@@ -473,6 +473,34 @@ GPUdi() void GPUCommonMath::AtomicMinInt(S* addr, T val)
 #endif // GPUCA_GPUCODE
 }
 
+#if defined(__CUDACC__) || defined(__HIPCC__)
+#define GPUCA_HAVE_ATOMIC_MINMAX_FLOAT
+template <>
+GPUdii() void GPUCommonMath::AtomicMaxInt(GPUglobalref() GPUgeneric() GPUAtomic(float) * addr, float val)
+{
+  if (val == -0.f) {
+    val = 0.f;
+  }
+  if (val >= 0) {
+    AtomicMaxInt((GPUAtomic(int)*)addr, __float_as_int(val));
+  } else {
+    AtomicMinInt((GPUAtomic(unsigned int)*)addr, __float_as_uint(val));
+  }
+}
+template <>
+GPUdii() void GPUCommonMath::AtomicMinInt(GPUglobalref() GPUgeneric() GPUAtomic(float) * addr, float val)
+{
+  if (val == -0.f) {
+    val = 0.f;
+  }
+  if (val >= 0) {
+    AtomicMinInt((GPUAtomic(int)*)addr, __float_as_int(val));
+  } else {
+    AtomicMaxInt((GPUAtomic(unsigned int)*)addr, __float_as_uint(val));
+  }
+}
+#endif
+
 #undef CHOICE
 
 #if !defined(__OPENCL__) || defined(__OPENCLCPP__)

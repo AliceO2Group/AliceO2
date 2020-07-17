@@ -225,9 +225,9 @@ GPUd() int GPUTPCSliceData::InitFromClusterData(int nBlocks, int nThreads, int i
 
     GPUTPCRow& row = mRows[rowIndex];
     if (iThread == 0) {
-      tmpMinMax[0] = -yMin;
+      tmpMinMax[0] = yMin;
       tmpMinMax[1] = yMax;
-      tmpMinMax[2] = -zMin;
+      tmpMinMax[2] = zMin;
       tmpMinMax[3] = zMax;
       row.mFirstHitInBinOffset = CAMath::nextMultipleOf<GPUCA_ROWALIGNMENT / sizeof(calink)>(GetGridSize(RowOffset, rowIndex) + rowIndex * GPUCA_ROWALIGNMENT / sizeof(int));
     }
@@ -279,30 +279,33 @@ GPUd() int GPUTPCSliceData::InitFromClusterData(int nBlocks, int nThreads, int i
       row.mHitNumberOffset = CAMath::nextMultipleOf<GPUCA_ROWALIGNMENT / sizeof(calink)>(RowOffset + rowIndex * GPUCA_ROWALIGNMENT / sizeof(calink));
     }
 
-    /* CAMath::AtomicMaxShared(&tmpMinMax[0], -yMin); // Atomic max not supported for float
+#ifdef GPUCA_HAVE_ATOMIC_MINMAX_FLOAT
+    CAMath::AtomicMinShared(&tmpMinMax[0], yMin);
     CAMath::AtomicMaxShared(&tmpMinMax[1], yMax);
-    CAMath::AtomicMaxShared(&tmpMinMax[2], -zMin);
-    CAMath::AtomicMaxShared(&tmpMinMax[3], zMax); */
-    for (int i = 0; i < nThreads; i++) { // Todo: Implement a better version of this stupid atomic max replacement
+    CAMath::AtomicMinShared(&tmpMinMax[2], zMin);
+    CAMath::AtomicMaxShared(&tmpMinMax[3], zMax);
+#else
+    for (int i = 0; i < nThreads; i++) {
       GPUbarrier();
       if (iThread == i) {
-        if (tmpMinMax[0] < -yMin) {
-          tmpMinMax[0] = -yMin;
+        if (tmpMinMax[0] > yMin) {
+          tmpMinMax[0] = yMin;
         }
         if (tmpMinMax[1] < yMax) {
           tmpMinMax[1] = yMax;
         }
-        if (tmpMinMax[2] < -zMin) {
-          tmpMinMax[2] = -zMin;
+        if (tmpMinMax[2] > zMin) {
+          tmpMinMax[2] = zMin;
         }
         if (tmpMinMax[3] < zMax) {
           tmpMinMax[3] = zMax;
         }
       }
     }
+#endif
     GPUbarrier();
     if (iThread == 0) {
-      CreateGrid(mem, &row, -tmpMinMax[0], tmpMinMax[1], -tmpMinMax[2], tmpMinMax[3]);
+      CreateGrid(mem, &row, tmpMinMax[0], tmpMinMax[1], tmpMinMax[2], tmpMinMax[3]);
     }
     GPUbarrier();
     const GPUTPCGrid& grid = row.mGrid;
