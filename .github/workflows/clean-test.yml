@@ -21,7 +21,7 @@ jobs:
       - name: Install ali-bot
         run: |
           python -m pip install --upgrade pip
-          pip install alibot
+          pip install git+https://github.com/alisw/ali-bot@master
       - uses: octokit/graphql-action@v2.x
         id: get_last_commit_for_pr
         with:
@@ -29,7 +29,7 @@ jobs:
              {
                repository(owner: "AliceO2Group", name: "AliceO2") {
                  url
-                 pullRequest(number: ${{ github.event.inputs.pr}}) {
+                 pullRequest(number: ${{ github.event.inputs.pr }}) {
                    commits(last: 1) {
                      nodes {
                        commit {
