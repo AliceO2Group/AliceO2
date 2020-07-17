@@ -45,7 +45,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: Cleanup tests
         run: |-
-          COMMIT=`echo '${{ steps.get_latest_release.outputs.data }}' | jq -r '.data.repository.pullRequest.commits.nodes[].commit.oid'`
+          COMMIT=`echo '${{ steps.get_last_commit_for_pr.outputs.data }}' | jq -r '.data.repository.pullRequest.commits.nodes[].commit.oid'`
           echo $COMMIT
           for check in `tr , \\n`; do
             set-github-status -c AliceO2Group/AliceO2@$COMMIT -s $check/pending
