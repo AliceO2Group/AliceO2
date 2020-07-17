@@ -6,6 +6,7 @@
 /mcVerbose/opGeometryManager 1
 /mcTracking/loopVerbose 1
 /mcVerbose/composedPhysicsList 2
+/mcVerbose/runAction 2   # For looping thresholds control
 #/tracking/verbose 1
 #//control/cout/ignoreThreadsExcept 0
 
@@ -46,6 +47,11 @@
 /mcMagField/setMinimumEpsilonStep 0.5e-05
 /mcMagField/setMaximumEpsilonStep 1.0e-05
 /mcMagField/printParameters
+
+# Change default parameters for killing looping particles
+#
+/mcPhysics/useHighLooperThresholds
+/mcRun/setLooperThresholdImportantEnergy 100. MeV
 
 # Define media with the INCLXX physics list; here basically in all ITS media
 #/mcVerbose/biasingConfigurationManager 3
