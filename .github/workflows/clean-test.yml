@@ -26,7 +26,7 @@ jobs:
       - uses: AliceO2Group/github-graphql-action@2.0.1
         id: get_last_commit_for_pr
         with:
-          query: |
+          query: '
               query statuses($pr:Int!) {
                 repository(owner: "ktf", name: "AliceO2") {
                   url
@@ -40,7 +40,7 @@ jobs:
                     }
                   }
                 }
-              }
+              }'
           pr: ${{ github.event.inputs.pr }}  
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
