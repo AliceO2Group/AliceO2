@@ -8,7 +8,7 @@ on:
       checks:
         description: Checks to be cleaned
         required: true
-        default: ''
+        default: 'build/O2/o2'
 
 jobs:
   build:
