@@ -207,8 +207,8 @@ bool DataInputDirector::readJsonDocument(Document* jsonDoc)
   itemName = "InputDirector";
   const Value& didirItem = (*jsonDoc)[itemName];
   if (!didirItem.IsObject()) {
-    LOGP(ERROR, "Check the JSON document! Couldn't find an \"{}\" object!", itemName);
-    return false;
+    LOGP(INFO, "No \"{}\" object found in the JSON document!", itemName);
+    return true;
   }
 
   // now read various items
