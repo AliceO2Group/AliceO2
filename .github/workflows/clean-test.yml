@@ -27,20 +27,22 @@ jobs:
         id: get_last_commit_for_pr
         with:
           query: |
-             {
-               repository(owner: "ktf", name: "AliceO2") {
-                 url
-                 pullRequest(number: ${{ github.event.inputs.pr }}) {
-                   commits(last: 1) {
-                     nodes {
-                       commit {
-                         oid
-                       }
-                     }
-                   }
-                 }
-               }
-             }
+            query statuses($pr:String!) {
+                repository(owner: "ktf", name: "AliceO2") {
+                  url
+                  pullRequest(number: $pr) {
+                    commits(last: 1) {
+                      nodes {
+                        commit {
+                          oid
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          pr: ${{ github.event.inputs.pr }}  
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: Cleanup tests
