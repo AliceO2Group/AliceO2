@@ -53,6 +53,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: Cleanup tests
         run: |-
+          set -x
           cat <<\EOF > results.json
           ${{ steps.get_last_commit_for_pr.outputs.data }}
           EOF
@@ -61,3 +62,5 @@ jobs:
           for check in `echo ${{ github.event.inputs.checks }} | tr , \\n`; do
             set-github-status -c ${{ github.event.inputs.owner }}/${{ github.event.inputs.repo }}@$COMMIT -s $check/pending
           done
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
