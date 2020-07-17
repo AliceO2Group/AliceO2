@@ -53,6 +53,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: Cleanup tests
         run: |-
+          set -x
           cat <<\EOF > results.json
           ${{ steps.get_last_commit_for_pr.outputs.data }}
           EOF
