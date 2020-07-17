@@ -39,6 +39,26 @@ using Decoder32 = Decoder<uint32_t, uint8_t, source_T>;
 template <typename source_T>
 using Decoder64 = Decoder<uint64_t, uint32_t, source_T>;
 
+template <typename source_T>
+using LiteralEncoder32 = LiteralEncoder<uint32_t, uint8_t, source_T>;
+template <typename source_T>
+using LiteralEncoder64 = LiteralEncoder<uint64_t, uint32_t, source_T>;
+
+template <typename source_T>
+using LiteralDecoder32 = LiteralDecoder<uint32_t, uint8_t, source_T>;
+template <typename source_T>
+using LiteralDecoder64 = LiteralDecoder<uint64_t, uint32_t, source_T>;
+
+template <typename source_T>
+using DedupEncoder32 = DedupEncoder<uint32_t, uint8_t, source_T>;
+template <typename source_T>
+using DedupEncoder64 = DedupEncoder<uint64_t, uint32_t, source_T>;
+
+template <typename source_T>
+using DedupDecoder32 = DedupDecoder<uint32_t, uint8_t, source_T>;
+template <typename source_T>
+using DedupDecoder64 = DedupDecoder<uint64_t, uint32_t, source_T>;
+
 //rans default values
 constexpr size_t ProbabilityBits8Bit = 10;
 constexpr size_t ProbabilityBits16Bit = 22;
