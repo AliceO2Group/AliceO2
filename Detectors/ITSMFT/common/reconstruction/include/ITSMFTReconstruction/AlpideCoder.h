@@ -20,6 +20,7 @@
 #include <FairLogger.h>
 #include <iostream>
 #include "PayLoadCont.h"
+#include <map>
 
 #include "ITSMFTReconstruction/PixelData.h"
 
@@ -103,6 +104,9 @@ class AlpideCoder
 
   static bool isEmptyChip(uint8_t b) { return (b & CHIPEMPTY) == CHIPEMPTY; }
 
+  static void loadNoisyPixels(const std::string& noise);
+  static void setNoiseThreshold(int t) { mNoiseThreshold = t; }
+
   /// decode alpide data for the next non-empty chip from the buffer
   template <class T>
   static int decodeChip(ChipPixelData& chipData, T& buffer)
@@ -158,7 +162,7 @@ class AlpideCoder
         if (nRightCHits) {
           colDPrev++;
           for (int ihr = 0; ihr < nRightCHits; ihr++) {
-            chipData.getData().emplace_back(rightColHits[ihr], colDPrev);
+            addHit(chipData, rightColHits[ihr], colDPrev);
           }
         }
         break;
@@ -186,7 +190,7 @@ class AlpideCoder
           if (colD != colDPrev) {
             colDPrev++;
             for (int ihr = 0; ihr < nRightCHits; ihr++) {
-              chipData.getData().emplace_back(rightColHits[ihr], colDPrev);
+              addHit(chipData, rightColHits[ihr], colDPrev);
             }
             colDPrev = colD;
             nRightCHits = 0; // reset the buffer
@@ -200,7 +204,7 @@ class AlpideCoder
           if (rightC) {
             rightColHits[nRightCHits++] = row; // col = colD+1
           } else {
-            chipData.getData().emplace_back(row, colD); // col = colD, left column hits are added directly to the container
+            addHit(chipData, row, colD); // col = colD, left column hits are added directly to the container
           }
 
           if ((dataS & (~MaskDColID)) == DATALONG) { // multiple hits ?
@@ -216,7 +220,7 @@ class AlpideCoder
                 if (rightC) { // same as above
                   rightColHits[nRightCHits++] = rowE;
                 } else {
-                  chipData.getData().emplace_back(rowE, colD + rightC); // left column hits are added directly to the container
+                  addHit(chipData, rowE, colD + rightC); // left column hits are added directly to the container
                 }
               }
             }
@@ -266,6 +270,20 @@ class AlpideCoder
   //
 
  private:
+  /// Output a non-noisy fired pixel
+  static void addHit(ChipPixelData& chipData, short row, short col)
+  {
+    if (!mNoisyPixels.empty()) {
+      auto chipID = chipData.getChipID();
+      int key = row * 1024 + col;
+      if (mNoisyPixels[chipID][key] > mNoiseThreshold) {
+        return;
+      }
+    }
+
+    chipData.getData().emplace_back(row, col);
+  }
+
   ///< add pixed to compressed matrix, the data must be provided sorted in row/col, no check is done
   void addPixel(short row, short col)
   {
@@ -346,11 +364,15 @@ class AlpideCoder
 
   // =====================================================================
   //
+
+  static std::vector<std::map<int, int>> mNoisyPixels;
+  static int mNoiseThreshold;
+
   // cluster map used for the ENCODING only
   std::vector<int> mFirstInRow;     //! entry of 1st pixel of each non-empty row in the mPix2Encode
   std::vector<PixLink> mPix2Encode; //! pool of links: fired pixel + index of the next one in the row
   //
-  ClassDefNV(AlpideCoder, 1);
+  ClassDefNV(AlpideCoder, 2);
 };
 
 } // namespace itsmft
