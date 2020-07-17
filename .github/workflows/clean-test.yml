@@ -9,6 +9,14 @@ on:
         description: Checks to be cleaned
         required: true
         default: 'build/O2/o2'
+      owner:
+        description: Organization
+        required: true
+        default: 'AliceO2Group'
+      repo:
+        description: Repository
+        required: true
+        default: 'AliceO2'
 
 jobs:
   cleanup_pr_checks:
@@ -28,7 +36,7 @@ jobs:
         with:
           query: |
               {
-                repository(owner: "ktf", name: "AliceO2") {
+                repository(owner: "${{ github.event.inputs.owner }}", name: "${{ github.event.inputs.repo }}") {
                   url
                   pullRequest(number:${{ github.event.inputs.pr }}) {
                     commits(last: 1) {
@@ -48,5 +56,5 @@ jobs:
           COMMIT=`echo '${{ steps.get_last_commit_for_pr.outputs.data }}' | jq -r '.data.repository.pullRequest.commits.nodes[].commit.oid'`
           echo $COMMIT
           for check in `tr , \\n`; do
-            set-github-status -c AliceO2Group/AliceO2@$COMMIT -s $check/pending
+            set-github-status -c ${{ github.event.inputs.owner }}/${{ github.event.inputs.repo }}@$COMMIT -s $check/pending
           done
