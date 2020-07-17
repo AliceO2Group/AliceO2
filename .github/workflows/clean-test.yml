@@ -28,7 +28,7 @@ jobs:
         with:
           query: |
              {
-               repository(owner: "AliceO2Group", name: "AliceO2") {
+               repository(owner: "ktf", name: "AliceO2") {
                  url
                  pullRequest(number: ${{ github.event.inputs.pr }}) {
                    commits(last: 1) {
@@ -41,6 +41,8 @@ jobs:
                  }
                }
              }
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: Cleanup tests
         run: |-
           COMMIT=`echo '${{ steps.get_latest_release.outputs.data }}' | jq -r '.data.repository.pullRequest.commits.nodes[].commit.oid'`
