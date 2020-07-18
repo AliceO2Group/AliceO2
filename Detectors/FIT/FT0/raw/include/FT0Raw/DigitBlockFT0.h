@@ -47,7 +47,6 @@ class DigitBlockFT0
   DigitBlockFT0(o2::InteractionRecord intRec) { mDigit.mIntRecord = intRec; }
   DigitBlockFT0() = default;
   DigitBlockFT0(const DigitBlockFT0& other) = default;
-  //~DigitBlockFT0() = default;
 
   Digit mDigit;
   std::vector<ChannelData> mVecChannelData;
