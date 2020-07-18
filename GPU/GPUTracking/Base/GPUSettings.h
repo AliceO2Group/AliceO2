@@ -69,8 +69,8 @@ struct GPUSettingsProcessing {
 } // namespace gpu
 } // namespace GPUCA_NAMESPACE
 
-#if !defined(__OPENCL__) || defined(__OPENCLCPP__)
-#define QCONFIG_CPP11_INIT
+#ifdef GPUCA_GPUCODE_DEVICE
+#define QCONFIG_GPU
 #endif
 #include "utils/qconfig.h"
 
