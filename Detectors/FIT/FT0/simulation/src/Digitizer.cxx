@@ -348,7 +348,7 @@ void Digitizer::printParameters() const
 {
   LOG(INFO) << " Run Digitzation with parametrs: \n"
             << " CFD amplitude threshold \n " << mParameters.mCFD_trsh << " CFD signal gate in ps \n"
-            << mParameters.mSignalWidth << "shift to have signal around zero after CFD trancformation  \n"
+            << mParameters.mTime_trg_gate << "shift to have signal around zero after CFD trancformation  \n"
             << mParameters.mCfdShift << "CFD distance between 0.3 of max amplitude  to max \n"
             << mParameters.mCFDShiftPos << "MIP -> mV " << mParameters.mMip_in_V << " Pe in MIP \n"
             << mParameters.mPe_in_mip << "noise level " << mParameters.mNoiseVar << " noise frequency \n"
