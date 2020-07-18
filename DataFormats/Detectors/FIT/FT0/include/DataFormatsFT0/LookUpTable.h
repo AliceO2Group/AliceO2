@@ -48,13 +48,15 @@ class LookUpTable
   /// Default constructor.
   /// It must be kept public for root persistency purposes,
   /// but should never be called by the outside world
-  LookUpTable() = default;
+  //LookUpTable() = default;
+
   explicit LookUpTable(std::vector<Topo> const& topoVector)
     : mTopoVector(topoVector), mInvTopo(topoVector.size())
   {
     for (size_t channel = 0; channel < mTopoVector.size(); ++channel)
       mInvTopo.at(getIdx(mTopoVector[channel].mPM, mTopoVector[channel].mMCP)) = channel;
   }
+
   ~LookUpTable() = default;
   void printFullMap() const
   {
@@ -71,6 +73,17 @@ class LookUpTable
 
   int getLink(int channel) const { return mTopoVector[channel].mPM; }
   int getMCP(int channel) const { return mTopoVector[channel].mMCP; }
+
+  static o2::ft0::LookUpTable linear()
+  {
+    std::vector<o2::ft0::Topo> lut_data(NUMBER_OF_MCPs * NUMBER_OF_PMs);
+    for (int link = 0; link < NUMBER_OF_PMs; ++link) {
+      for (int mcp = 0; mcp < NUMBER_OF_MCPs; ++mcp) {
+        lut_data[link * NUMBER_OF_MCPs + mcp] = o2::ft0::Topo{link, mcp};
+      }
+    }
+    return o2::ft0::LookUpTable{lut_data};
+  }
 
  private:
   std::vector<Topo> mTopoVector;

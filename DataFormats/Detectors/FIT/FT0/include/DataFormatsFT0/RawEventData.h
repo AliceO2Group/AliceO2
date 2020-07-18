@@ -21,6 +21,7 @@
 #include <CommonDataFormat/InteractionRecord.h>
 #include <Framework/Logger.h>
 #include <iostream>
+#include <utility>
 #include <cstring>
 #include "Rtypes.h"
 namespace o2
@@ -30,25 +31,51 @@ namespace ft0
 constexpr int Nchannels_FT0 = 208;
 constexpr int Nchannels_PM = 12;
 constexpr int NPMs = 19;
+constexpr size_t sizeWord = 16;
 
 struct EventHeader {
-  static constexpr int PayloadSize = 16;
+  static constexpr size_t PayloadSize = 16;       //should be equal to 10
+  static constexpr size_t PayloadPerGBTword = 16; //should be equal to 10
+  static constexpr int MinNelements = 1;
+  static constexpr int MaxNelements = 1;
   union {
     uint64_t word[2] = {};
     struct {
       uint64_t bc : 12;
       uint64_t orbit : 32;
-      uint64_t reservedField1 : 20;
+      uint64_t phase : 3;
+      uint64_t errorPhase : 1;
+      uint64_t reservedField1 : 16;
       uint64_t reservedField2 : 8;
       uint64_t nGBTWords : 4;
       uint64_t startDescriptor : 4;
       uint64_t reservedField3 : 48;
     };
   };
+  InteractionRecord getIntRec() { return InteractionRecord{(uint16_t)bc, (uint32_t)orbit}; }
+
+  void print()
+  {
+
+    std::cout << std::hex;
+    std::cout << "################EventHeader###############" << std::endl;
+    std::cout << "startDescriptor: " << startDescriptor << std::endl;
+    std::cout << "nGBTWords: " << nGBTWords << std::endl;
+    std::cout << "BC: " << bc << std::endl;
+    std::cout << "Orbit: " << orbit << std::endl;
+    std::cout << "##########################################" << std::endl;
+
+    std::cout << std::dec;
+  }
 };
 struct EventData {
+  static constexpr size_t PayloadSize = 5;
+  static constexpr size_t PayloadPerGBTword = 10;
+  static constexpr int MinNelements = 1;
+  static constexpr int MaxNelements = 12;
+
   union {
-    uint64_t word = {0};
+    uint64_t word = {0}; //should be
     struct {
       int64_t time : 12;
       int64_t charge : 13;
@@ -65,31 +92,116 @@ struct EventData {
         channelID : 4;
     };
   };
-  uint64_t word_zeros = 0x0;
-  static const size_t PayloadSizeSecondWord = 11;
-  static const size_t PayloadSizeFirstWord = 5;
+  void print()
+  {
+
+    std::cout << std::hex;
+    std::cout << "###############EventData(PM)##############" << std::endl;
+    std::cout << "------------Channel " << channelID << "------------" << std::endl;
+    std::cout << "Charge: " << charge << std::endl;
+    std::cout << "Time: " << time << std::endl;
+    std::cout << "1TimeLostEvent: " << is1TimeLostEvent << std::endl;
+    std::cout << "2TimeLostEvent: " << is2TimeLostEvent << std::endl;
+    std::cout << "ADCinGate: " << isADCinGate << std::endl;
+    std::cout << "AmpHigh: " << isAmpHigh << std::endl;
+    std::cout << "DoubleEvent: " << isDoubleEvent << std::endl;
+    std::cout << "EventInTVDC: " << isEventInTVDC << std::endl;
+    std::cout << "TimeInfoLate: " << isTimeInfoLate << std::endl;
+    std::cout << "TimeInfoLost: " << isTimeInfoLost << std::endl;
+    std::cout << "numberADC: " << numberADC << std::endl;
+    std::cout << "##########################################" << std::endl;
+
+    std::cout << std::dec;
+  }
+  uint64_t word_zeros = 0x0;                      //to remove
+  static const size_t PayloadSizeSecondWord = 11; //to remove
+  static const size_t PayloadSizeFirstWord = 5;   //to remove
 };
 
 struct TCMdata {
-  static constexpr int PayloadSize = 16;
+  static constexpr size_t PayloadSize = 16;       //should be equal to 10
+  static constexpr size_t PayloadPerGBTword = 16; //should be equal to 10
+  static constexpr int MinNelements = 1;
+  static constexpr int MaxNelements = 1;
+  uint64_t orC : 1,     // 0 bit (0 byte)
+    orA : 1,            //1 bit
+    sCen : 1,           //2 bit
+    cen : 1,            //3 bit
+    vertex : 1,         //4 bit
+    reservedField1 : 3, //5 bit
+    nChanA : 7,         //8 bit(1 byte)
+    reservedField2 : 1, //15 bit
+    nChanC : 7,         //16 bit(2 byte)
+    reservedField3 : 1; // 23 bit
+  int64_t amplA : 17,   //24 bit (3 byte)
+    reservedField4 : 1, //41 bit
+    amplC : 17,         //42 bit.
+    reservedField5 : 1, //59 bit.
+    //in standard case(without __atribute__((packed)) macros, or packing by using union)
+    //here will be empty 4 bits, end next field("timeA") will start from 64 bit.
+    timeA : 9,           //60 bit
+    reservedField6 : 1,  //69 bit
+    timeC : 9,           //70 bit
+    reservedField7 : 1,  //79 bit
+    reservedField8 : 48; //80 bit
+
+  void print()
+  {
+    std::cout << std::hex;
+    std::cout << "################TCMdata###################" << std::endl;
+    std::cout << "orC: " << orC << std::endl;
+    std::cout << "orA: " << orA << std::endl;
+    std::cout << "sCen: " << sCen << std::endl;
+    std::cout << "cen: " << cen << std::endl;
+    std::cout << "vertex: " << vertex << std::endl;
+    std::cout << "nChanA: " << nChanA << std::endl;
+    std::cout << "nChanC: " << nChanC << std::endl;
+    std::cout << "amplA: " << amplA << std::endl;
+    std::cout << "amplC: " << amplC << std::endl;
+    std::cout << "timeA: " << timeA << std::endl;
+    std::cout << "timeC: " << timeC << std::endl;
+    std::cout << "##########################################" << std::endl;
+
+    std::cout << std::dec;
+  }
+
+  //temporary, this method should be in Triggers struct
+  void pushTrgData(Triggers& trg)
+  {
+    trg.triggersignals = ((bool)orA << Triggers::bitA) |
+                         ((bool)orC << Triggers::bitC) |
+                         ((bool)vertex << Triggers::bitVertex) |
+                         ((bool)cen << Triggers::bitCen) |
+                         ((bool)sCen << Triggers::bitSCen);
+    trg.nChanA = (int8_t)nChanA;
+    trg.nChanC = (int8_t)nChanC;
+    trg.amplA = (int32_t)amplA;
+    trg.amplC = (int32_t)amplC;
+    trg.timeA = (int16_t)timeA;
+    trg.timeC = (int16_t)timeC;
+  }
+} __attribute__((__packed__));
+
+struct TCMdataExtended {
+  static constexpr size_t PayloadSize = 4;
+  static constexpr size_t PayloadPerGBTword = 10;
+  static constexpr int MinNelements = 1;
+  static constexpr int MaxNelements = 20;
   union {
-    uint64_t word[2] = {0};
-    struct {
-      uint64_t orC : 1,
-        orA : 1,
-        sCen : 1,
-        cen : 1,
-        vertex : 1,
-        nChanA : 7,
-        nChanC : 7;
-      int64_t amplA : 18,
-        amplC : 18,
-        reservedField1 : 1, //56B,  PayloadSize1stWord 6
-        timeA : 9,
-        timeC : 9,
-        reservedField2 : 46;
-    };
+    uint32_t word[1] = {};
+    uint32_t triggerWord;
   };
+
+  void print()
+  {
+
+    std::cout << std::hex;
+    std::cout << "############TCMdataExtended###############" << std::endl;
+    std::cout << "triggerWord: " << triggerWord << std::endl;
+    std::cout << "##########################################" << std::endl;
+
+    std::cout << std::dec;
+  }
 };
 
 class RawEventData

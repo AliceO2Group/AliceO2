@@ -8,31 +8,24 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-/// @file   RecoWorkflow.cxx
+/// @file   FT0Workflow.cxx
 
-#include "FT0Workflow/RecoWorkflow.h"
-
-#include "FT0Workflow/DigitReaderSpec.h"
-#include "FT0Workflow/RecPointWriterSpec.h"
-#include "FT0Workflow/ReconstructionSpec.h"
+#include "FT0Workflow/FT0Workflow.h"
 #include "FT0Workflow/FT0DataReaderDPLSpec.h"
+#include "FT0Workflow/FT0DataProcessDPLSpec.h"
 
 namespace o2
 {
 namespace fit
 {
 
-framework::WorkflowSpec getRecoWorkflow(bool useMC, bool disableRootInp, bool disableRootOut)
+framework::WorkflowSpec getFT0Workflow(bool isExtendedMode, bool useProcess, bool dumpProcessor, bool dumpReader)
 {
+  LOG(INFO) << "framework::WorkflowSpec getFT0Workflow";
   framework::WorkflowSpec specs;
-  if (!disableRootInp) {
-    specs.emplace_back(o2::ft0::getDigitReaderSpec(useMC));
-  }
-
-  specs.emplace_back(o2::ft0::getReconstructionSpec(useMC));
-  if (!disableRootOut) {
-    specs.emplace_back(o2::ft0::getRecPointWriterSpec(useMC));
-  }
+  specs.emplace_back(o2::ft0::getFT0DataReaderDPLSpec(dumpReader, isExtendedMode));
+  if (useProcess)
+    specs.emplace_back(o2::ft0::getFT0DataProcessDPLSpec(dumpProcessor));
   return specs;
 }
 
