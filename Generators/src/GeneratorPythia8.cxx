@@ -68,11 +68,7 @@ Bool_t GeneratorPythia8::Init()
       LOG(FATAL) << "Failed to init \'Pythia8\': problem with user hooks configuration ";
       return false;
     }
-#if PYTHIA_VERSION_INTEGER < 8300
-    mPythia.setUserHooksPtr(hooks);
-#else
-    mPythia.setUserHooksPtr(std::shared_ptr<Pythia8::UserHooks>(hooks));
-#endif
+    setUserHooks(hooks);
   }
 
 #if PYTHIA_VERSION_INTEGER < 8300
@@ -144,15 +140,15 @@ Bool_t
 /*****************************************************************/
 
 Bool_t
-  GeneratorPythia8::importParticles()
+  GeneratorPythia8::importParticles(Pythia8::Event& event)
 {
   /** import particles **/
 
   /* loop over particles */
   //  auto weight = mPythia.info.weight(); // TBD: use weights
-  auto nParticles = mPythia.event.size();
+  auto nParticles = event.size();
   for (Int_t iparticle = 0; iparticle < nParticles; iparticle++) { // first particle is system
-    auto particle = mPythia.event[iparticle];
+    auto particle = event[iparticle];
     auto pdg = particle.id();
     auto st = particle.statusHepMC();
     auto px = particle.px();
@@ -189,6 +185,46 @@ void GeneratorPythia8::updateHeader(FairMCEventHeader* eventHeader)
   /** set impact parameter if in heavy-ion mode **/
   if (hiinfo)
     eventHeader->SetB(hiinfo->b());
+}
+
+/*****************************************************************/
+
+void GeneratorPythia8::selectFromAncestor(int ancestor, Pythia8::Event& inputEvent, Pythia8::Event& outputEvent)
+{
+
+  /** select from ancestor
+      fills the output event with all particles related to
+      an ancestor of the input event **/
+
+  // recursive selection via lambda function
+  std::set<int> selected;
+  std::function<void(int)> select;
+  select = [&](int i) {
+    selected.insert(i);
+    auto dl = inputEvent[i].daughterList();
+    for (auto j : dl)
+      select(j);
+  };
+  select(ancestor);
+
+  // map selected particle index to output index
+  std::map<int, int> indexMap;
+  int index = outputEvent.size();
+  for (auto i : selected)
+    indexMap[i] = index++;
+
+  // adjust mother/daughter indices and append to output event
+  for (auto i : selected) {
+    auto p = mPythia.event[i];
+    auto m1 = indexMap[p.mother1()];
+    auto m2 = indexMap[p.mother2()];
+    auto d1 = indexMap[p.daughter1()];
+    auto d2 = indexMap[p.daughter2()];
+    p.mothers(m1, m2);
+    p.daughters(d1, d2);
+
+    outputEvent.append(p);
+  }
 }
 
 /*****************************************************************/
