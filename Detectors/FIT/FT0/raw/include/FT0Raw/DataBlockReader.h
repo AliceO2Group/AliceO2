@@ -44,7 +44,6 @@ class DataBlockReader
 {
  public:
   DataBlockReader() = default;
-  //  ~DataBlockReader() = default;
   typedef DataBlockType DataBlock;
   size_t decodeBlocks(const gsl::span<const uint8_t> binaryPayload, std::vector<DataBlockType>& vecDataBlocks)
   {
