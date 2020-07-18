@@ -138,9 +138,9 @@ void TrackFitter::initTrack(const Cluster& cl, TrackParamMFT& param)
   auto& mftTrackingParam = MFTTrackingParam::Instance();
 
   // compute the track parameters at the last cluster
-  double x0 = cl.xCoordinate;
-  double y0 = cl.yCoordinate;
-  double z0 = cl.zCoordinate;
+  double x0 = cl.getX();
+  double y0 = cl.getY();
+  double z0 = cl.getZ();
   double pt = TMath::Sqrt(x0 * x0 + y0 * y0);
   double pz = z0;
   double phi0 = TMath::ATan2(y0, x0);
@@ -240,12 +240,12 @@ bool TrackFitter::addCluster(const TrackParamMFT& startingParam, const Cluster& 
 
   auto& mftTrackingParam = MFTTrackingParam::Instance();
 
-  if (cl.zCoordinate <= startingParam.getZ()) {
+  if (cl.getZ() <= startingParam.getZ()) {
     LOG(INFO) << "AddCluster ERROR: The new cluster must be upstream! Bug on TrackFinder. ";
     return false;
   }
   if (mftTrackingParam.verbose)
-    std::cout << "addCluster:     X = " << cl.xCoordinate << " Y = " << cl.yCoordinate << " Z = " << cl.zCoordinate << std::endl;
+    std::cout << "addCluster:     X = " << cl.getX() << " Y = " << cl.getY() << " Z = " << cl.getZ() << std::endl;
   // copy the current parameters into the new ones
   param.setParameters(startingParam.getParameters());
   param.setZ(startingParam.getZ());
@@ -256,13 +256,13 @@ bool TrackFitter::addCluster(const TrackParamMFT& startingParam, const Cluster& 
   using o2::mft::constants::LayerZPosition;
   int startingLayerID, newLayerID;
 
-  double dZ = TMath::Abs(cl.zCoordinate - startingParam.getZ());
+  double dZ = TMath::Abs(cl.getZ() - startingParam.getZ());
   //LayerID of each cluster from ZPosition // TODO: Use ChipMapping
   for (auto layer = 10; layer--;)
     if (startingParam.getZ() < LayerZPosition[layer] + .3 & startingParam.getZ() > LayerZPosition[layer] - .3)
       startingLayerID = layer;
   for (auto layer = 10; layer--;)
-    if (cl.zCoordinate<LayerZPosition[layer] + .3 & cl.zCoordinate> LayerZPosition[layer] - .3)
+    if (cl.getZ()<LayerZPosition[layer] + .3 & cl.getZ()> LayerZPosition[layer] - .3)
       newLayerID = layer;
   // Number of disks crossed by this tracklet
   int NDisksMS = (startingLayerID % 2 == 0) ? (startingLayerID - newLayerID) / 2 : (startingLayerID - newLayerID + 1) / 2;
@@ -271,7 +271,7 @@ bool TrackFitter::addCluster(const TrackParamMFT& startingParam, const Cluster& 
   if (mftTrackingParam.verbose) {
     std::cout << "startingLayerID = " << startingLayerID << " ; "
               << "newLayerID = " << newLayerID << " ; ";
-    std::cout << "cl.zCoordinate = " << cl.zCoordinate << " ; ";
+    std::cout << "cl.getZ() = " << cl.getZ() << " ; ";
     std::cout << "startingParam.getZ() = " << startingParam.getZ() << " ; ";
     std::cout << "NDisksMS = " << NDisksMS << std::endl;
   }
@@ -289,7 +289,7 @@ bool TrackFitter::addCluster(const TrackParamMFT& startingParam, const Cluster& 
     std::cout << "  BeforeExtrap: X = " << param.getX() << " Y = " << param.getY() << " Z = " << param.getZ() << " Tgl = " << param.getTanl() << "  Phi = " << param.getPhi() << " pz = " << param.getPz() << " qpt = " << 1.0 / param.getInvQPt() << std::endl;
 
   // extrapolate to the z position of the new cluster
-  mTrackExtrap.extrapToZCov(&param, cl.zCoordinate, mSmooth);
+  mTrackExtrap.extrapToZCov(&param, cl.getZ(), mSmooth);
 
   if (mftTrackingParam.verbose)
     std::cout << "   AfterExtrap: X = " << param.getX() << " Y = " << param.getY() << " Z = " << param.getZ() << " Tgl = " << param.getTanl() << "  Phi = " << param.getPhi() << " pz = " << param.getPz() << " qpt = " << 1.0 / param.getInvQPt() << std::endl;
@@ -304,7 +304,7 @@ bool TrackFitter::addCluster(const TrackParamMFT& startingParam, const Cluster& 
   param.setClusterPtr(&cl);
   if (runKalmanFilter(param)) {
     if (mftTrackingParam.verbose) {
-      std::cout << "   New Cluster: X = " << cl.xCoordinate << " Y = " << cl.yCoordinate << " Z = " << cl.zCoordinate << std::endl;
+      std::cout << "   New Cluster: X = " << cl.getX() << " Y = " << cl.getY() << " Z = " << cl.getZ() << std::endl;
       std::cout << "   AfterKalman: X = " << param.getX() << " Y = " << param.getY() << " Z = " << param.getZ() << " Tgl = " << param.getTanl() << "  Phi = " << param.getPhi() << " pz = " << param.getPz() << " qpt = " << 1.0 / param.getInvQPt() << std::endl;
       std::cout << std::endl;
       // Outputs track covariance matrix:
@@ -366,8 +366,8 @@ bool TrackFitter::runKalmanFilter(TrackParamMFT& trackParam)
   const Cluster* cluster = trackParam.getClusterPtr();
   TMatrixD clusterParam(5, 1);
   clusterParam.Zero();
-  clusterParam(0, 0) = cluster->xCoordinate;
-  clusterParam(1, 0) = cluster->yCoordinate;
+  clusterParam(0, 0) = cluster->getX();
+  clusterParam(1, 0) = cluster->getY();
 
   // compute the actual parameter weight (W)
   TMatrixD paramWeight(trackParam.getCovariances());
@@ -458,8 +458,8 @@ bool TrackFitter::runSmoother(const TrackParamMFT& previousParam, TrackParamMFT&
   const Cluster* cluster = param.getClusterPtr();
   TMatrixD smoothResidual(2, 1);
   smoothResidual.Zero();
-  smoothResidual(0, 0) = cluster->xCoordinate - smoothParameters(0, 0);
-  smoothResidual(1, 0) = cluster->yCoordinate - smoothParameters(1, 0);
+  smoothResidual(0, 0) = cluster->getX() - smoothParameters(0, 0);
+  smoothResidual(1, 0) = cluster->getY() - smoothParameters(1, 0);
 
   // compute weight of smoothed residual: W(k n) = (clusterCov - C(k n))^-1
   TMatrixD smoothResidualWeight(2, 2);
@@ -503,8 +503,8 @@ Double_t invQPtFromParabola(const FitterTrackMFT& track, Double_t bFieldZ, Doubl
   Double_t* y = new Double_t[nPoints];
   int n = 0;
   for (auto trackparam = track.begin(); trackparam != track.end(); trackparam++) {
-    auto x_0 = trackparam->getClusterPtr()->xCoordinate - x_m;
-    auto y_0 = trackparam->getClusterPtr()->yCoordinate - y_m;
+    auto x_0 = trackparam->getClusterPtr()->getX() - x_m;
+    auto y_0 = trackparam->getClusterPtr()->getY() - y_m;
     x[n] = x_0 * costheta - y_0 * sintheta;
     y[n] = x_0 * sintheta + y_0 * costheta;
     //std::cout << "    adding rotated point to fit at z = " << trackparam->getClusterPtr()->getZ() << " (" << x[n] <<  "," << y[n]  <<  ") "<< std::endl;

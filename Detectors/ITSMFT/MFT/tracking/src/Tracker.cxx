@@ -169,7 +169,7 @@ void Tracker::findTracksLTF(ROframe& event)
             // add the first seed-point
             mcCompLabel = mUseMC ? event.getClusterLabels(layer1, cluster1.clusterId) : MCCompLabel();
             newPoint = kTRUE;
-            event.getCurrentTrackLTF().setPoint(cluster1.xCoordinate, cluster1.yCoordinate, cluster1.zCoordinate, layer1, clsLayer1, mcCompLabel, newPoint);
+            event.getCurrentTrackLTF().setPoint(cluster1.getX(), cluster1.getY(), cluster1.getZ(), layer1, clsLayer1, mcCompLabel, newPoint);
 
             for (Int_t layer = (layer1 + 1); layer <= (layer2 - 1); ++layer) {
 
@@ -209,7 +209,7 @@ void Tracker::findTracksLTF(ROframe& event)
 
                     hasDisk[layer / 2] = kTRUE;
                     mcCompLabel = mUseMC ? event.getClusterLabels(layer, cluster.clusterId) : MCCompLabel();
-                    event.getCurrentTrackLTF().setPoint(cluster.xCoordinate, cluster.yCoordinate, cluster.zCoordinate, layer, clsLayer, mcCompLabel, newPoint);
+                    event.getCurrentTrackLTF().setPoint(cluster.getX(), cluster.getY(), cluster.getZ(), layer, clsLayer, mcCompLabel, newPoint);
                   } // end clusters bin intermediate layer
                 }   // end intermediate layers
               }     // end binPhi
@@ -218,10 +218,11 @@ void Tracker::findTracksLTF(ROframe& event)
             // add the second seed-point
             mcCompLabel = mUseMC ? event.getClusterLabels(layer2, cluster2.clusterId) : MCCompLabel();
             newPoint = kTRUE;
-            event.getCurrentTrackLTF().setPoint(cluster2.xCoordinate, cluster2.yCoordinate, cluster2.zCoordinate, layer2, clsLayer2, mcCompLabel, newPoint);
+            event.getCurrentTrackLTF().setPoint(cluster2.getX(), cluster2.getY(), cluster2.getZ(), layer2, clsLayer2, mcCompLabel, newPoint);
 
             // keep only tracks fulfilling the minimum length condition
             if (event.getCurrentTrackLTF().getNPoints() < constants::mft::MinTrackPoints) {
+              LOG(INFO) << "removing Current TrackLTF as nPointDisks = " << event.getCurrentTrackLTF().getNPoints() << std::endl;
               event.removeCurrentTrackLTF();
               continue;
             }
@@ -232,8 +233,11 @@ void Tracker::findTracksLTF(ROframe& event)
             }
             if (nPointDisks < constants::mft::MinTrackPoints) {
               event.removeCurrentTrackLTF();
+              LOG(INFO) << "removing Current TrackLTF as nPointDisks = " << nPointDisks << std::endl;
               continue;
             }
+            LOG(INFO) << "Current TrackLTF as nPointDisks = " << nPointDisks << std::endl;
+
             // mark the used clusters
             //Int_t lay, layMin = 10, layMax = -1;
             for (Int_t point = 0; point < event.getCurrentTrackLTF().getNPoints(); ++point) {
@@ -330,7 +334,7 @@ void Tracker::findTracksCA(ROframe& event)
               // add the 1st/2nd road points
               mcCompLabel = mUseMC ? event.getClusterLabels(layer1, cluster1.clusterId) : MCCompLabel();
               newPoint = kTRUE;
-              event.getCurrentRoad().setPoint(cluster1.xCoordinate, cluster1.yCoordinate, cluster1.zCoordinate, layer1, clsLayer1, mcCompLabel, newPoint);
+              event.getCurrentRoad().setPoint(cluster1.getX(), cluster1.getY(), cluster1.getZ(), layer1, clsLayer1, mcCompLabel, newPoint);
 
               for (Int_t layer = (layer1 + 1); layer <= (layer2 - 1); ++layer) {
 
@@ -367,7 +371,7 @@ void Tracker::findTracksCA(ROframe& event)
                       hasDisk[layer / 2] = kTRUE;
                       mcCompLabel = mUseMC ? event.getClusterLabels(layer, cluster.clusterId) : MCCompLabel();
                       newPoint = kTRUE;
-                      event.getCurrentRoad().setPoint(cluster.xCoordinate, cluster.yCoordinate, cluster.zCoordinate, layer, clsLayer, mcCompLabel, newPoint);
+                      event.getCurrentRoad().setPoint(cluster.getX(), cluster.getY(), cluster.getZ(), layer, clsLayer, mcCompLabel, newPoint);
 
                     } // end clusters bin intermediate layer
                   }   // end intermediate layers
@@ -377,7 +381,7 @@ void Tracker::findTracksCA(ROframe& event)
               // add the second seed-point
               mcCompLabel = mUseMC ? event.getClusterLabels(layer2, cluster2.clusterId) : MCCompLabel();
               newPoint = kTRUE;
-              event.getCurrentRoad().setPoint(cluster2.xCoordinate, cluster2.yCoordinate, cluster2.zCoordinate, layer2, clsLayer2, mcCompLabel, newPoint);
+              event.getCurrentRoad().setPoint(cluster2.getX(), cluster2.getY(), cluster2.getZ(), layer2, clsLayer2, mcCompLabel, newPoint);
 
               // keep only roads fulfilling the minimum length condition
               if (event.getCurrentRoad().getNPoints() < constants::mft::MinTrackPoints) {
@@ -677,9 +681,9 @@ const Float_t Tracker::getCellChisquare(ROframe& event, const Cell& cell) const
     z[point] = trackCA.getZCoordinates()[point];
     err[point] = constants::mft::Resolution; // FIXME
   }
-  x[point] = cluster2.xCoordinate;
-  y[point] = cluster2.yCoordinate;
-  z[point] = cluster2.zCoordinate;
+  x[point] = cluster2.getX();
+  y[point] = cluster2.getY();
+  z[point] = cluster2.getZ();
   err[point] = constants::mft::Resolution; // FIXME
 
   // linear regression in the plane z:x
@@ -714,8 +718,8 @@ const Bool_t Tracker::addCellToCurrentTrackCA(const Int_t layer1, const Int_t ce
   if (trackCA.getNPoints() > 0) {
     const Float_t xLast = trackCA.getXCoordinates()[trackCA.getNPoints() - 1];
     const Float_t yLast = trackCA.getYCoordinates()[trackCA.getNPoints() - 1];
-    Float_t dx = xLast - cluster2.xCoordinate;
-    Float_t dy = yLast - cluster2.yCoordinate;
+    Float_t dx = xLast - cluster2.getX();
+    Float_t dy = yLast - cluster2.getY();
     Float_t dr = std::sqrt(dx * dx + dy * dy);
     if (dr > constants::mft::Resolution) {
       return kFALSE;
@@ -729,11 +733,11 @@ const Bool_t Tracker::addCellToCurrentTrackCA(const Int_t layer1, const Int_t ce
 
   if (trackCA.getNPoints() == 0) {
     newPoint = kTRUE;
-    trackCA.setPoint(cluster2.xCoordinate, cluster2.yCoordinate, cluster2.zCoordinate, layer2, cls2Id, mcCompLabel2, newPoint);
+    trackCA.setPoint(cluster2.getX(), cluster2.getY(), cluster2.getZ(), layer2, cls2Id, mcCompLabel2, newPoint);
   }
 
   newPoint = kTRUE;
-  trackCA.setPoint(cluster1.xCoordinate, cluster1.yCoordinate, cluster1.zCoordinate, layer1, cls1Id, mcCompLabel1, newPoint);
+  trackCA.setPoint(cluster1.getX(), cluster1.getY(), cluster1.getZ(), layer1, cls1Id, mcCompLabel1, newPoint);
 
   trackCA.addCell(layer1, cellId);
 

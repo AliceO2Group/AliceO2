@@ -19,7 +19,6 @@
 #include <TMatrixD.h>
 #include <TMath.h>
 
-#include "MFTBase/Constants.h"
 #include "MFTTracking/Cluster.h"
 
 namespace o2

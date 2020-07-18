@@ -167,6 +167,8 @@ inline void TrackLTF::setPoint(const Float_t x, const Float_t y, const Float_t z
     mClusterId[mNPoints] = clusterId;
     mMCCompLabels[mNPoints] = label;
   }
+  LOG(INFO) << "MFT TrackLTF setPoint mNPoints = " << mNPoints << std::endl;
+
 }
 
 } // namespace mft

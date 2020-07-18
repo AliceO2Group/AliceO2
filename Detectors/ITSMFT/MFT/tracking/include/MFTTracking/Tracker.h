@@ -108,13 +108,13 @@ inline const Float_t Tracker::getDistanceToSeed(const Cluster& cluster1, const C
   // the seed is between "cluster1" and "cluster2" and cuts the plane
   // of the "cluster" at a distance dR from it
   Float_t dxSeed, dySeed, dzSeed, dz, dR, xSeed, ySeed;
-  dxSeed = cluster2.xCoordinate - cluster1.xCoordinate;
-  dySeed = cluster2.yCoordinate - cluster1.yCoordinate;
-  dzSeed = cluster2.zCoordinate - cluster1.zCoordinate;
-  dz = cluster.zCoordinate - cluster1.zCoordinate;
-  xSeed = cluster1.xCoordinate + dxSeed * dz / dzSeed;
-  ySeed = cluster1.yCoordinate + dySeed * dz / dzSeed;
-  dR = std::sqrt((cluster.xCoordinate - xSeed) * (cluster.xCoordinate - xSeed) + (cluster.yCoordinate - ySeed) * (cluster.yCoordinate - ySeed));
+  dxSeed = cluster2.getX() - cluster1.getX();
+  dySeed = cluster2.getY() - cluster1.getY();
+  dzSeed = cluster2.getZ() - cluster1.getZ();
+  dz = cluster.getZ() - cluster1.getZ();
+  xSeed = cluster1.getX() + dxSeed * dz / dzSeed;
+  ySeed = cluster1.getY() + dySeed * dz / dzSeed;
+  dR = std::sqrt((cluster.getX() - xSeed) * (cluster.getX() - xSeed) + (cluster.getY() - ySeed) * (cluster.getY() - ySeed));
   return dR;
 }
 
@@ -122,8 +122,8 @@ inline void Tracker::getRPhiProjectionBin(const Cluster& cluster1, const Int_t l
 {
   Float_t dz, x_proj, y_proj, r_proj, phi_proj;
   dz = constants::mft::LayerZCoordinate()[layer] - constants::mft::LayerZCoordinate()[layer1];
-  x_proj = cluster1.xCoordinate + dz * cluster1.xCoordinate * constants::mft::InverseLayerZCoordinate()[layer1];
-  y_proj = cluster1.yCoordinate + dz * cluster1.yCoordinate * constants::mft::InverseLayerZCoordinate()[layer1];
+  x_proj = cluster1.getX() + dz * cluster1.getX() * constants::mft::InverseLayerZCoordinate()[layer1];
+  y_proj = cluster1.getY() + dz * cluster1.getY() * constants::mft::InverseLayerZCoordinate()[layer1];
   auto clsPoint2D = Point2D<Float_t>(x_proj, y_proj);
   r_proj = clsPoint2D.R();
   phi_proj = clsPoint2D.Phi();
@@ -170,21 +170,21 @@ inline const Float_t Tracker::getCellDeviation(const ROframe& event, const Cell&
   auto cluster21 = event.getClustersInLayer(cell2layer1)[cell2cls1];
   auto cluster22 = event.getClustersInLayer(cell2layer2)[cell2cls2];
 
-  Float_t cell1x1 = cluster11.xCoordinate;
-  Float_t cell1y1 = cluster11.yCoordinate;
-  Float_t cell1z1 = cluster11.zCoordinate;
+  Float_t cell1x1 = cluster11.getX();
+  Float_t cell1y1 = cluster11.getY();
+  Float_t cell1z1 = cluster11.getZ();
 
-  Float_t cell1x2 = cluster12.xCoordinate;
-  Float_t cell1y2 = cluster12.yCoordinate;
-  Float_t cell1z2 = cluster12.zCoordinate;
+  Float_t cell1x2 = cluster12.getX();
+  Float_t cell1y2 = cluster12.getY();
+  Float_t cell1z2 = cluster12.getZ();
 
-  Float_t cell2x1 = cluster21.xCoordinate;
-  Float_t cell2y1 = cluster21.yCoordinate;
-  Float_t cell2z1 = cluster21.zCoordinate;
+  Float_t cell2x1 = cluster21.getX();
+  Float_t cell2y1 = cluster21.getY();
+  Float_t cell2z1 = cluster21.getZ();
 
-  Float_t cell2x2 = cluster22.xCoordinate;
-  Float_t cell2y2 = cluster22.yCoordinate;
-  Float_t cell2z2 = cluster22.zCoordinate;
+  Float_t cell2x2 = cluster22.getX();
+  Float_t cell2y2 = cluster22.getY();
+  Float_t cell2z2 = cluster22.getZ();
 
   Float_t cell1dx = cell1x2 - cell1x1;
   Float_t cell1dy = cell1y2 - cell1y1;
@@ -221,21 +221,21 @@ inline const Bool_t Tracker::getCellsConnect(const ROframe& event, const Cell& c
   auto cluster21 = event.getClustersInLayer(cell2layer1)[cell2cls1];
   auto cluster22 = event.getClustersInLayer(cell2layer2)[cell2cls2];
 
-  Float_t cell1x1 = cluster11.xCoordinate;
-  Float_t cell1y1 = cluster11.yCoordinate;
-  //Float_t cell1z1 = cluster11.zCoordinate;
+  Float_t cell1x1 = cluster11.getX();
+  Float_t cell1y1 = cluster11.getY();
+  //Float_t cell1z1 = cluster11.getZ();
 
-  Float_t cell1x2 = cluster12.xCoordinate;
-  Float_t cell1y2 = cluster12.yCoordinate;
-  //Float_t cell1z2 = cluster12.zCoordinate;
+  Float_t cell1x2 = cluster12.getX();
+  Float_t cell1y2 = cluster12.getY();
+  //Float_t cell1z2 = cluster12.getZ();
 
-  Float_t cell2x1 = cluster21.xCoordinate;
-  Float_t cell2y1 = cluster21.yCoordinate;
-  //Float_t cell2z1 = cluster21.zCoordinate;
+  Float_t cell2x1 = cluster21.getX();
+  Float_t cell2y1 = cluster21.getY();
+  //Float_t cell2z1 = cluster21.getZ();
 
-  Float_t cell2x2 = cluster22.xCoordinate;
-  Float_t cell2y2 = cluster22.yCoordinate;
-  //Float_t cell2z2 = cluster22.zCoordinate;
+  Float_t cell2x2 = cluster22.getX();
+  Float_t cell2y2 = cluster22.getY();
+  //Float_t cell2z2 = cluster22.getZ();
 
   Float_t cell1dx = cell1x2 - cell1x1;
   Float_t cell1dy = cell1y2 - cell1y1;

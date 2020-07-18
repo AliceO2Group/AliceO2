@@ -16,9 +16,8 @@
 #define O2_MFT_CLUSTER_H_
 
 #include <array>
-
+#include "ReconstructionDataFormats/BaseCluster.h"
 #include "MFTTracking/IndexTableUtils.h"
-
 #include "GPUCommonDef.h"
 
 namespace o2
@@ -26,11 +25,9 @@ namespace o2
 namespace mft
 {
 
-struct Cluster final {
+struct Cluster : public o2::BaseCluster<float> {
   Cluster(const Float_t x, const Float_t y, const Float_t z, const Float_t phi, const Float_t r, const Int_t idx, const Int_t bin)
-    : xCoordinate{x},
-      yCoordinate{y},
-      zCoordinate{z},
+    : BaseCluster(1 ,x, y, z),
       phiCoordinate{phi},
       rCoordinate{r},
       clusterId{idx},
@@ -38,9 +35,9 @@ struct Cluster final {
   Cluster(const Float_t x, const Float_t y, const Float_t z, const Int_t index);
   Cluster(const Int_t layerIndex, const Cluster& other);
 
-  Float_t xCoordinate;
-  Float_t yCoordinate;
-  Float_t zCoordinate;
+  //Float_t xCoordinate;
+  //Float_t yCoordinate;
+  //Float_t zCoordinate;
   Float_t phiCoordinate;
   Float_t rCoordinate;
   Int_t clusterId;
