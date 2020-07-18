@@ -911,7 +911,7 @@ bool MatchTPCITS::registerMatchRecordTPC(int iITS, int iTPC, float chi2)
       } else { // max number of candidates reached, will overwrite the last one
         nextMatchRec.chi2 = chi2;
         suppressMatchRecordITS(nextMatchRec.partnerID, iTPC); // flag as disabled the overriden ITS match
-        registerMatchRecordITS(iITS, tTPC.matchID, chi2);     // register TPC track entry in the ITS records
+        registerMatchRecordITS(iITS, iTPC, chi2);             // register TPC track entry in the ITS records
         nextMatchRec.partnerID = iITS;                        // reuse the record of suppressed ITS match to store better one
         return true;
       }
@@ -930,7 +930,7 @@ bool MatchTPCITS::registerMatchRecordTPC(int iITS, int iTPC, float chi2)
       topID = mMatchRecordsTPC[topID].nextRecID = mMatchRecordsTPC.size(); // register to his parent
     }
     // nextID==-1 will mean that the while loop run over all candidates->the new one is the worst (goes to the end)
-    registerMatchRecordITS(iITS, tTPC.matchID, chi2);  // register TPC track in the ITS records
+    registerMatchRecordITS(iITS, iTPC, chi2);          // register TPC track in the ITS records
     mMatchRecordsTPC.emplace_back(iITS, chi2, nextID); // create new record with empty reference on next match
     // make sure that after addition the number of candidates don't exceed allowed number
     count++;
@@ -957,7 +957,7 @@ void MatchTPCITS::registerMatchRecordITS(int iITS, int iTPC, float chi2)
   ///< register TPC match in ITS tracks match records, ordering then in chi2
   auto& tITS = mITSWork[iITS];
   int idnew = mMatchRecordsITS.size();
-  mMatchRecordsITS.emplace_back(iTPC, chi2); // associate iTPC with this record
+  auto& newRecord = mMatchRecordsITS.emplace_back(iTPC, chi2); // associate iTPC with this record
   if (tITS.matchID < 0) {
     tITS.matchID = idnew;
     return;
@@ -965,8 +965,6 @@ void MatchTPCITS::registerMatchRecordITS(int iITS, int iTPC, float chi2)
   // there are other matches for this ITS track, insert the new record preserving chi2 order
   // navigate till last record or the one with worse chi2
   int topID = MinusOne, nextRecord = tITS.matchID;
-  mMatchRecordsITS.emplace_back(iTPC, chi2); // associate iTPC with this record
-  auto& newRecord = mMatchRecordsITS.back();
   do {
     auto& recITS = mMatchRecordsITS[nextRecord];
     if (chi2 < recITS.chi2) {           // insert before this one
@@ -1065,12 +1063,12 @@ void MatchTPCITS::printCandidatesTPC() const
   for (int i = 0; i < ntpc; i++) {
     const auto& tTPC = mTPCWork[i];
     int nm = getNMatchRecordsTPC(tTPC);
-    printf("*** trackTPC#%6d %6d : Ncand = %d\n", i, tTPC.sourceID, nm);
+    printf("*** trackTPC#%6d %6d : Ncand = %d Best = %d\n", i, tTPC.sourceID, nm, tTPC.matchID);
     int count = 0, recID = tTPC.matchID;
     while (recID > MinusOne) {
       const auto& rcTPC = mMatchRecordsTPC[recID];
       const auto& tITS = mITSWork[rcTPC.partnerID];
-      printf("  * cand %2d : ITS track %6d Chi2: %.2f\n", count, tITS.sourceID, rcTPC.chi2);
+      printf("  * cand %2d : ITS track %6d(src:%6d) Chi2: %.2f\n", count, rcTPC.partnerID, tITS.sourceID, rcTPC.chi2);
       count++;
       recID = rcTPC.nextRecID;
     }
@@ -1086,12 +1084,12 @@ void MatchTPCITS::printCandidatesITS() const
 
   for (int i = 0; i < nits; i++) {
     const auto& tITS = mITSWork[i];
-    printf("*** trackITS#%6d %6d : Ncand = %d\n", i, tITS.sourceID, getNMatchRecordsITS(tITS));
+    printf("*** trackITS#%6d %6d : Ncand = %d Best = %d\n", i, tITS.sourceID, getNMatchRecordsITS(tITS), tITS.matchID);
     int count = 0, recID = tITS.matchID;
     while (recID > MinusOne) {
       const auto& rcITS = mMatchRecordsITS[recID];
       const auto& tTPC = mTPCWork[rcITS.partnerID];
-      printf("  * cand %2d : TPC track %6d Chi2: %.2f\n", count, tTPC.sourceID, rcITS.chi2);
+      printf("  * cand %2d : TPC track %6d(src:%6d) Chi2: %.2f\n", count, rcITS.partnerID, tTPC.sourceID, rcITS.chi2);
       count++;
       recID = rcITS.nextRecID;
     }
@@ -1460,7 +1458,6 @@ bool MatchTPCITS::refitTrackTPCITSloopTPC(int iTPC, int& iITS)
   ///< refit in inward direction the pair of TPC and ITS tracks
 
   const float maxStep = 2.f; // max propagation step (TODO: tune)
-
   const auto& tTPC = mTPCWork[iTPC];
   if (isDisabledTPC(tTPC)) {
     return false; // no match
