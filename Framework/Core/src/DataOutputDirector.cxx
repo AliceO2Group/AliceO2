@@ -265,7 +265,7 @@ std::tuple<std::string, std::string, int> DataOutputDirector::readJsonDocument(D
   itemName = "OutputDirector";
   const Value& dodirItem = (*jsonDocument)[itemName];
   if (!dodirItem.IsObject()) {
-    LOGP(ERROR, "Check the JSON document! Couldn't find an \"{}\" object!", itemName);
+    LOGP(INFO, "No \"{}\" object found in the JSON document!", itemName);
     return memptyanswer;
   }
 
