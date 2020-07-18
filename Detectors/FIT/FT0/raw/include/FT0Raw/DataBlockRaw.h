@@ -68,7 +68,6 @@ struct DataBlockWrapper {
   DataBlockWrapper() = default;
   DataBlockWrapper(const DataBlockWrapper& other) = default;
   DataBlockWrapper(DataBlockWrapper&& other) = default;
-  // virtual ~DataBlockWrapper() = default;
 
   std::vector<uint8_t> serialize(int nWords)
   {
