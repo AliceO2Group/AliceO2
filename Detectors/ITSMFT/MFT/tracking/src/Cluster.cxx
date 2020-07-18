@@ -23,9 +23,7 @@ namespace mft
 {
 
 Cluster::Cluster(const Float_t x, const Float_t y, const Float_t z, const Int_t index)
-  : xCoordinate{x},
-    yCoordinate{y},
-    zCoordinate{z},
+  : BaseCluster(1 , x, y, z),
     phiCoordinate{0.},
     rCoordinate{0.},
     clusterId{index},
@@ -38,16 +36,14 @@ Cluster::Cluster(const Float_t x, const Float_t y, const Float_t z, const Int_t 
 }
 
 Cluster::Cluster(const Int_t layerIndex, const Cluster& other)
-  : xCoordinate{other.xCoordinate},
-    yCoordinate{other.yCoordinate},
-    zCoordinate{other.zCoordinate},
+  : BaseCluster(1 , other.getXYZ()),
     phiCoordinate{0.},
     rCoordinate{0.},
     clusterId{other.clusterId},
     indexTableBin{index_table_utils::getBinIndex(index_table_utils::getRBinIndex(layerIndex, rCoordinate),
                                                  index_table_utils::getPhiBinIndex(phiCoordinate))}
 {
-  auto clsPoint2D = Point2D<Float_t>(other.xCoordinate, other.yCoordinate);
+  auto clsPoint2D = Point2D<Float_t>(other.getX(), other.getY());
   rCoordinate = clsPoint2D.R();
   phiCoordinate = clsPoint2D.Phi();
   o2::utils::BringTo02PiGen(phiCoordinate);

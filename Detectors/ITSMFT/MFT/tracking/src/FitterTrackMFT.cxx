@@ -51,7 +51,7 @@ TrackParamMFT& FitterTrackMFT::createParamAtCluster(const Cluster& cluster)
   // find the iterator before which the new element will be constructed
   auto itParam = mParamAtClusters.begin();
   for (; itParam != mParamAtClusters.end(); ++itParam) {
-    if (cluster.zCoordinate >= itParam->getZ()) {
+    if (cluster.getZ() >= itParam->getZ()) {
       break;
     }
   }
@@ -59,9 +59,9 @@ TrackParamMFT& FitterTrackMFT::createParamAtCluster(const Cluster& cluster)
   // add the new track parameters
   mParamAtClusters.emplace(itParam);
   --itParam;
-  itParam->setX(cluster.xCoordinate);
-  itParam->setY(cluster.yCoordinate);
-  itParam->setZ(cluster.zCoordinate);
+  itParam->setX(cluster.getX());
+  itParam->setY(cluster.getY());
+  itParam->setZ(cluster.getZ());
   itParam->setClusterPtr(&cluster);
   mNPoints++;
   return *itParam;
@@ -83,7 +83,7 @@ void FitterTrackMFT::addParamAtCluster(const TrackParamMFT& param)
   // find the iterator before which the new element will be constructed
   auto itParam = mParamAtClusters.begin();
   for (; itParam != mParamAtClusters.end(); ++itParam) {
-    if (cluster->zCoordinate >= itParam->getZ()) {
+    if (cluster->getZ() >= itParam->getZ()) {
       break;
     }
   }
