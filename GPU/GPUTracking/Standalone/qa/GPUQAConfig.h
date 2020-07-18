@@ -16,9 +16,6 @@
 
 #include "GPUCommonDef.h"
 
-#if !defined(GPUCA_STANDALONE)
-#define QCONFIG_CPP11_INIT
-#endif
 #include "utils/qconfig.h"
 
 namespace GPUCA_NAMESPACE
