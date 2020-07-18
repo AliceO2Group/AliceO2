@@ -193,18 +193,15 @@
   namespace name             \
   {
 #define EndNamespace() }
-#define AddOption(name, type, default, optname, optnameshort, help, ...) name(default),
-#define AddVariable(name, type, default) name(default),
+#define AddOption(name, type, default, optname, optnameshort, help, ...)
+#define AddVariable(name, type, default)
 #define AddOptionSet(name, type, value, optname, optnameshort, help, ...)
-#define AddOptionVec(name, type, optname, optnameshort, help, ...) name(),
-#define AddOptionArray(name, type, count, default, optname, optnameshort, help, ...) name default,
-#define AddSubConfig(name, instance) instance(),
-#define BeginConfig(name, instance) \
-  name instance;                    \
-  name::name() :
-#define BeginSubConfig(name, instance, parent, preoptname, preoptnameshort, descr) name::name() :
-#define EndConfig() \
-  _qConfigDummy() {}
+#define AddOptionVec(name, type, optname, optnameshort, help, ...)
+#define AddOptionArray(name, type, count, default, optname, optnameshort, help, ...)
+#define AddSubConfig(name, instance)
+#define BeginConfig(name, instance) name instance;
+#define BeginSubConfig(name, instance, parent, preoptname, preoptnameshort, descr)
+#define EndConfig()
 
 // End QCONFIG_INSTANCE
 #else // Define structures
@@ -228,18 +225,24 @@ enum qConfigRetVal { qcrOK = 0,
                      qcrArrayOverflow = 8 };
 }
 
-#if defined(QCONFIG_CPP11_INIT) && !defined(QCONFIG_GPU)
 #define BeginNamespace(name) \
   namespace name             \
   {
 #define EndNamespace() }
 #define AddCustomCPP(...) __VA_ARGS__
+#if !defined(QCONFIG_GPU)
 #define AddOption(name, type, default, optname, optnameshort, help, ...) type name = default;
 #define AddVariable(name, type, default) type name = default;
-#define AddOptionSet(name, type, value, optname, optnameshort, help, ...)
-#define AddSubConfig(name, instance) name instance;
 #define AddOptionArray(name, type, count, default, optname, optnameshort, help, ...) type name[count] = {default};
 #define AddOptionVec(name, type, optname, optnameshort, help, ...) std::vector<type> name;
+#else
+#define AddOption(name, type, default, optname, optnameshort, help, ...) type name;
+#define AddVariable(name, type, default) type name;
+#define AddOptionArray(name, type, count, default, optname, optnameshort, help, ...) type name[count];
+#define AddOptionVec(name, type, optname, optnameshort, help, ...) void* name[sizeof(std::vector<type>) / sizeof(void*)];
+#endif
+#define AddOptionSet(name, type, value, optname, optnameshort, help, ...)
+#define AddSubConfig(name, instance) name instance;
 #define BeginConfig(name, instance) \
   struct name {
 #define BeginSubConfig(name, instance, parent, preoptname, preoptnameshort, descr) \
@@ -247,47 +250,7 @@ enum qConfigRetVal { qcrOK = 0,
 #define EndConfig() \
   }                 \
   ;
-#else
-#define BeginNamespace(name) \
-  namespace name             \
-  {
-#define EndNamespace() }
-#define AddCustomCPP(...) __VA_ARGS__
-#define AddOption(name, type, default, optname, optnameshort, help, ...) type name;
-#define AddVariable(name, type, default) type name;
-#define AddOptionSet(name, type, value, optname, optnameshort, help, ...)
-#define AddSubConfig(name, instance) name instance;
-#define AddOptionArray(name, type, count, default, optname, optnameshort, help, ...) type name[count];
-#define EndConfig()           \
-  qConfigDummy _qConfigDummy; \
-  }                           \
-  ;
-#ifdef QCONFIG_GPU
-#define AddOptionVec(name, type, optname, optnameshort, help, ...) void* name[sizeof(std::vector<type>) / sizeof(void*)];
-#define BeginConfig(name, instance) \
-  struct name {
-#define BeginSubConfig(name, instance, parent, preoptname, preoptnameshort, descr) \
-  struct name {
-struct qConfigDummy {
-};
-#else
-#define AddOptionVec(name, type, optname, optnameshort, help, ...) std::vector<type> name;
-#define BeginConfig(name, instance) \
-  struct name {                     \
-    name();                         \
-    name(const name& s);            \
-    name& operator=(const name& s);
-#define BeginSubConfig(name, instance, parent, preoptname, preoptnameshort, descr) \
-  struct name {                                                                    \
-    name();                                                                        \
-    name(const name& s);                                                           \
-    name& operator=(const name& s);
-;
-struct qConfigDummy {
-  qConfigDummy() {}
-};
-#endif
-#endif
+
 #endif
 #endif
 
