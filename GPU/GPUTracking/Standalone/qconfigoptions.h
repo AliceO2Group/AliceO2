@@ -162,6 +162,7 @@ AddShortcut("compare", 0, "--QAinput", "Compare QA histograms", "--qa", "--QAinp
 AddHelp("help", 'h')
 EndConfig()
 
+#ifdef GPUCA_STANDALONE
 // Settings concerning standalone toy event generator
 BeginSubConfig(GPUSettingsEG, configEG, configStandalone, "EG", 0, "Event generator settings")
 AddOption(numberOfTracks, int, 1, "", 0, "Number of tracks per generated event")
@@ -239,6 +240,15 @@ AddSubConfig(GPUSettingsDisplay, configGL)
 AddSubConfig(GPUSettingsRec, configRec)
 AddSubConfig(GPUSettingsDeviceProcessing, configProc)
 EndConfig()
+#elif defined(GPUCA_O2_LIB) // GPUCA_STANDALONE
+BeginSubConfig(GPUSettingsO2, configGPUO2, configStandalone, "O2", 0, "O2 workflow settings")
+AddOption(solenoidBz, float, -5.00668, "", 0, "solenoid field strength")
+AddOption(constBz, bool, false, "", 0, "force constant Bz for tests")
+AddOption(continuousMaxTimeBin, int, 0, "", 0, "maximum time bin of continuous data, 0 for triggered events, -1 for default of 23ms")
+AddOption(deviceType, const char*, "CPU", "", 0, "Device type, CPU | CUDA | HIP | OCL1 | OCL2")
+AddOption(forceDeviceType, bool, true, "", 0, "force device type, otherwise allows fall-back to CPU")
+EndConfig()
+#endif // GPUCA_O2_LIB
 #endif // !GPUCA_GPUCODE_DEVICE
 
 EndNamespace() // gpu

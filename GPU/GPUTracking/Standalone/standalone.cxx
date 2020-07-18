@@ -75,6 +75,11 @@ using namespace GPUCA_NAMESPACE::gpu;
 
 //#define BROKEN_EVENTS
 
+namespace GPUCA_NAMESPACE::gpu
+{
+extern GPUSettingsStandalone configStandalone;
+}
+
 GPUReconstruction *rec, *recAsync, *recPipeline;
 GPUChainTracking *chainTracking, *chainTrackingAsync, *chainTrackingPipeline;
 #ifdef HAVE_O2HEADERS

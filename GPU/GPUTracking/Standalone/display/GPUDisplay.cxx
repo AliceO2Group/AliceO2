@@ -78,6 +78,12 @@ using namespace GPUCA_NAMESPACE::gpu;
 
 #define GET_CID(slice, i) (tracker.Param().earlyTpcTransform ? tracker.ClusterData()[i].id : (tracker.GetConstantMem()->ioPtrs.clustersNative->clusterOffset[slice][0] + i))
 
+#ifdef GPUCA_STANDALONE
+namespace GPUCA_NAMESPACE::gpu
+{
+extern GPUSettingsStandalone configStandalone;
+}
+#endif
 static const GPUDisplay::configDisplay& GPUDisplay_GetConfig(GPUChainTracking* rec)
 {
 #if !defined(GPUCA_STANDALONE)

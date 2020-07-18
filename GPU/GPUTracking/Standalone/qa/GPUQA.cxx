@@ -136,6 +136,12 @@ using namespace GPUCA_NAMESPACE::gpu;
   CHECK_CLUSTER_STATE_CHK_NOCOUNT() //Fill state variables, do not increase counters
 // clang-format on
 
+#ifdef GPUCA_STANDALONE
+namespace GPUCA_NAMESPACE::gpu
+{
+extern GPUSettingsStandalone configStandalone;
+}
+#endif
 static const GPUQA::configQA& GPUQA_GetConfig(GPUChainTracking* rec)
 {
 #if !defined(GPUCA_STANDALONE)
