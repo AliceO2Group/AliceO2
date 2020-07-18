@@ -29,12 +29,11 @@ struct DigitizationParameters {
   float mAmpRecordLow = -4;                                  // integrate charge from
 
   float mAmpRecordUp = 15;                                   // to [ns]
-  int mTime_trg_gate = 189;                                  //2500/13; (+-2ns)  #channels
+  int mTime_trg_gate = 192;                                  // #channels
   // int mTime_trg_gate = 2000;                                  //2000/13; (+-2ns)  #channels no limits
   float mTimeDiffAC = (Geometry::ZdetA - Geometry::ZdetC) * TMath::C();
   float C_side_cable_cmps = 2.86;   //ns
   float A_side_cable_cmps = 11.110; //ns
-  int mSignalWidth = 189;           //+-2500.ps/13.2ps   #channels
   int mtrg_central_trh = 600.;      // channels
   int mtrg_semicentral_trh = 300.;  // channels
 
