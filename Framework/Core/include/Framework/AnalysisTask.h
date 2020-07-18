@@ -338,7 +338,11 @@ struct Partition {
 
   void setTable(const T& table)
   {
-    mFiltered.reset(new o2::soa::Filtered<T>{{table}, mTree});
+    if constexpr (soa::is_soa_filtered_t<std::decay_t<T>>::value) {
+      mFiltered.reset(new o2::soa::Filtered<T>{{table}, mTree});
+    } else {
+      mFiltered.reset(new o2::soa::Filtered<T>{{table.asArrowTable()}, mTree});
+    }
   }
 
   template <typename... Ts>
@@ -357,13 +361,32 @@ struct Partition {
     }
   }
 
-  o2::soa::Filtered<T>& getPartition()
-  {
-    return *mFiltered;
-  }
-
   gandiva::NodePtr mTree;
   std::unique_ptr<o2::soa::Filtered<T>> mFiltered;
+
+  using filtered_iterator = typename o2::soa::Filtered<T>::iterator;
+  using filtered_const_iterator = typename o2::soa::Filtered<T>::const_iterator;
+  inline filtered_iterator begin()
+  {
+    return mFiltered->begin();
+  }
+  inline o2::soa::RowViewSentinel end()
+  {
+    return mFiltered->end();
+  }
+  inline filtered_const_iterator begin() const
+  {
+    return mFiltered->begin();
+  }
+  inline o2::soa::RowViewSentinel end() const
+  {
+    return mFiltered->end();
+  }
+
+  int64_t size() const
+  {
+    return mFiltered->size();
+  }
 };
 
 template <typename ANY>
