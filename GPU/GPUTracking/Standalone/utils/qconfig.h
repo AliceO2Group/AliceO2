@@ -210,9 +210,6 @@
 #else // Define structures
 #ifdef QCONFIG_HEADER_GUARD
 #define QCONFIG_HEADER_GUARD_NO_INCLUDE
-#ifdef QCONFIG_EXTERNS
-#undef QCONFIG_EXTERNS
-#endif
 #else
 #define QCONFIG_HEADER_GUARD
 
@@ -231,23 +228,7 @@ enum qConfigRetVal { qcrOK = 0,
                      qcrArrayOverflow = 8 };
 }
 
-#if defined(QCONFIG_EXTERNS)
-#define BeginNamespace(name) \
-  namespace name             \
-  {
-#define EndNamespace() }
-#define AddOption(name, type, default, optname, optnameshort, help, ...)
-#define AddOptionSet(name, type, value, optname, optnameshort, help, ...)
-#define AddOptionVec(name, type, optname, optnameshort, help, ...)
-#define AddOptionArray(name, type, count, default, optname, optnameshort, help, ...)
-#define AddSubConfig(name, instance)
-#define BeginConfig(name, instance) extern "C" name instance;
-#define BeginSubConfig(name, instance, parent, preoptname, preoptnameshort, descr)
-#define EndConfig()
-#undef QCONFIG_EXTERNS
-
-// End QCONFIG_EXTERNS
-#elif defined(QCONFIG_CPP11_INIT) && !defined(QCONFIG_GPU)
+#if defined(QCONFIG_CPP11_INIT) && !defined(QCONFIG_GPU)
 #define BeginNamespace(name) \
   namespace name             \
   {
@@ -305,7 +286,6 @@ struct qConfigDummy {
 struct qConfigDummy {
   qConfigDummy() {}
 };
-#define QCONFIG_EXTERNS
 #endif
 #endif
 #endif
@@ -364,9 +344,6 @@ struct qConfigDummy {
 #undef QCONFIG_COMPARE
 #endif
 
-#ifdef QCONFIG_EXTERNS
-#include "qconfig.h"
-#endif
 #else
 #undef QCONFIG_HEADER_GUARD_NO_INCLUDE
 #endif
