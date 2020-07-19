@@ -165,6 +165,7 @@ struct GPUSettingsDeviceProcessing {
   bool deviceTimers;                  // Use device timers instead of host-based timers
   bool registerStandaloneInputMemory; // Automatically register memory for the GPU which is used as input for the standalone benchmark
   int tpcCompressionGatherMode;       // Modes: 0 = gather by DMA, 1 = DMA + gather on host, 2 = gather by kernel
+  int tpcCompressionGatherModeKernel; // Kernels: 0 = unbuffered, 1 = buffer in shm (4 byte chunks), 2 =  buffer in shm (8 byte chunks), 3 = buffer in shm (16 byte chunks)
   char mergerSortTracks;              // Sort track indices for GPU track fit
   bool runMC;                         // Process MC labels
   float memoryScalingFactor;          // Factor to apply to all memory scalers
