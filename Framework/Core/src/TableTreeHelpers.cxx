@@ -429,7 +429,7 @@ ColumnIterator::ColumnIterator(TTreeReader* reader, const char* colname)
         MAKE_FIELD_AND_BUILDER(uint32_t, 1, mTableBuilder_ui);
         break;
       case EDataType::kULong64_t:
-        mReaderValue_ul = new TTreeReaderValue<uint64_t>(*reader, mColumnName);
+        mReaderValue_ul = new TTreeReaderValue<ULong64_t>(*reader, mColumnName);
         MAKE_FIELD_AND_BUILDER(uint64_t, 1, mTableBuilder_ul);
         break;
       case EDataType::kChar_t:
