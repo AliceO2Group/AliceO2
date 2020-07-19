@@ -10,6 +10,7 @@
 
 o2_add_library(ReconstructionDataFormats
                SOURCES src/Track.cxx
+                       src/TrackFwd.cxx
                        src/BaseCluster.cxx
                        src/TrackTPCITS.cxx
                        src/Vertex.cxx
@@ -24,6 +25,7 @@ o2_add_library(ReconstructionDataFormats
 o2_target_root_dictionary(
   ReconstructionDataFormats
   HEADERS include/ReconstructionDataFormats/Track.h
+          include/ReconstructionDataFormats/TrackFwd.h
           include/ReconstructionDataFormats/BaseCluster.h
           include/ReconstructionDataFormats/TrackTPCITS.h
           include/ReconstructionDataFormats/Vertex.h

@@ -299,65 +299,6 @@ void TrackParamMFT::setSmoothCovariances(const TMatrixD& smoothCovariances)
 }
 
 //__________________________________________________________________________
-Bool_t TrackParamMFT::isCompatibleTrackParamMFT(const TrackParamMFT& TrackParamMFT, Double_t sigma2Cut, Double_t& chi2) const
-{
-  /// Return kTRUE if the two set of track parameters are compatible within sigma2Cut
-  /// Set chi2 to the compatible chi2 value
-  /// Note that parameter covariances must exist for at least one set of parameters
-  /// Note also that if parameters are not given at the same Z, results will be meaningless
-
-  // reset chi2 value
-  chi2 = 0.;
-
-  // ckeck covariance matrices
-  if (!mCovariances && !TrackParamMFT.mCovariances) {
-    LOG(ERROR) << "Covariance matrix must exist for at least one set of parameters";
-    return kFALSE;
-  }
-
-  Double_t maxChi2 = 5. * sigma2Cut * sigma2Cut; // 5 degrees of freedom
-
-  // check Z parameters
-  if (mZ != TrackParamMFT.mZ) {
-    LOG(WARN) << "Parameters are given at different Z position (" << mZ << " : " << TrackParamMFT.mZ
-              << "): results are meaningless";
-  }
-
-  // compute the parameter residuals
-  TMatrixD deltaParam(mParameters, TMatrixD::kMinus, TrackParamMFT.mParameters);
-
-  // build the error matrix
-  TMatrixD weight(5, 5);
-  if (mCovariances) {
-    weight += *mCovariances;
-  }
-  if (TrackParamMFT.mCovariances) {
-    weight += *(TrackParamMFT.mCovariances);
-  }
-
-  // invert the error matrix to get the parameter weights if possible
-  if (weight.Determinant() == 0) {
-    LOG(ERROR) << "Cannot compute the compatibility chi2";
-    return kFALSE;
-  }
-  weight.Invert();
-
-  // compute the compatibility chi2
-  TMatrixD tmp(deltaParam, TMatrixD::kTransposeMult, weight);
-  TMatrixD mChi2(tmp, TMatrixD::kMult, deltaParam);
-
-  // set chi2 value
-  chi2 = mChi2(0, 0);
-
-  // check compatibility
-  if (chi2 > maxChi2) {
-    return kFALSE;
-  }
-
-  return kTRUE;
-}
-
-//__________________________________________________________________________
 void TrackParamMFT::print() const
 {
   /// Printing TrackParamMFT informations

@@ -132,8 +132,6 @@ class TrackParamMFT
   /// set the local chi2 of the associated cluster with respect to the track
   void setLocalChi2(Double_t chi2) { mLocalChi2 = chi2; }
 
-  Bool_t isCompatibleTrackParamMFT(const TrackParamMFT& TrackParamMFT, Double_t sigma2Cut, Double_t& normChi2) const;
-
   void print() const;
 
   void clear();
