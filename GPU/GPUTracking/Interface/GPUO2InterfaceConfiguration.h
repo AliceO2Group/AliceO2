@@ -74,14 +74,15 @@ struct GPUO2InterfaceConfiguration {
   struct GPUInterfaceSettings {
     int dumpEvents = 0;
     bool outputToExternalBuffers = false;
-    // These constants affect GPU memory allocation and do not limit the CPU processing
+    // These constants affect GPU memory allocation only and do not limit the CPU processing
+    unsigned long maxTPCZS = 4096ul * 1024 * 1024;
     unsigned int maxTPCHits = 1024 * 1024 * 1024;
     unsigned int maxTRDTracklets = 128 * 1024;
     unsigned int maxITSTracks = 96 * 1024;
   };
 
+  GPUSettingsDeviceBackend configDeviceBackend;
   GPUSettingsProcessing configProcessing;
-  GPUSettingsDeviceProcessing configDeviceProcessing;
   GPUSettingsEvent configEvent;
   GPUSettingsRec configReconstruction;
   GPUDisplayConfig configDisplay;

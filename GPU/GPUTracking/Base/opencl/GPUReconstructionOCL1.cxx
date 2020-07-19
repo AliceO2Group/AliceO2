@@ -28,9 +28,9 @@ using namespace GPUCA_NAMESPACE::gpu;
 #include "../makefiles/opencl_obtain_program.h"
 extern "C" char _makefile_opencl_program_Base_opencl_common_GPUReconstructionOCL_cl[];
 
-GPUReconstruction* GPUReconstruction_Create_OCL(const GPUSettingsProcessing& cfg) { return new GPUReconstructionOCL1(cfg); }
+GPUReconstruction* GPUReconstruction_Create_OCL(const GPUSettingsDeviceBackend& cfg) { return new GPUReconstructionOCL1(cfg); }
 
-GPUReconstructionOCL1Backend::GPUReconstructionOCL1Backend(const GPUSettingsProcessing& cfg) : GPUReconstructionOCL(cfg)
+GPUReconstructionOCL1Backend::GPUReconstructionOCL1Backend(const GPUSettingsDeviceBackend& cfg) : GPUReconstructionOCL(cfg)
 {
 }
 
@@ -91,7 +91,7 @@ bool GPUReconstructionOCL1Backend::CheckPlatform(unsigned int i)
     float ver = 0;
     sscanf(platform_version, "OpenCL 2.0 AMD-APP (%f)", &ver);
     if (ver < 2000.f) {
-      if (mDeviceProcessingSettings.debugLevel >= 2) {
+      if (mProcessingSettings.debugLevel >= 2) {
         GPUInfo("AMD APP OpenCL Platform found");
       }
       return true;

@@ -295,9 +295,9 @@ int SetupReconstruction()
 
   GPUSettingsEvent ev = rec->GetEventSettings();
   GPUSettingsRec recSet;
-  GPUSettingsDeviceProcessing devProc;
+  GPUSettingsProcessing devProc;
   memcpy((void*)&recSet, (void*)&configStandalone.configRec, sizeof(GPUSettingsRec));
-  memcpy((void*)&devProc, (void*)&configStandalone.configProc, sizeof(GPUSettingsDeviceProcessing));
+  memcpy((void*)&devProc, (void*)&configStandalone.configProc, sizeof(GPUSettingsProcessing));
   GPURecoStepConfiguration steps;
 
   if (configStandalone.eventGenerator) {
@@ -900,7 +900,7 @@ int main(int argc, char** argv)
   }
 
 breakrun:
-  if (rec->GetDeviceProcessingSettings().memoryAllocationStrategy == GPUMemoryResource::ALLOCATION_GLOBAL) {
+  if (rec->GetProcessingSettings().memoryAllocationStrategy == GPUMemoryResource::ALLOCATION_GLOBAL) {
     rec->PrintMemoryMax();
   }
 

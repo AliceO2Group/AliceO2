@@ -185,7 +185,7 @@ int GPUTRDTrackerComponent::DoInit(int argc, const char** argv)
   GPUSettingsEvent cfgEvent;
   cfgEvent.solenoidBz = GetBz();
   GPUSettingsRec cfgRec;
-  GPUSettingsDeviceProcessing cfgDeviceProcessing;
+  GPUSettingsProcessing cfgDeviceProcessing;
   GPURecoStepConfiguration cfgRecoStep;
   cfgRecoStep.steps = GPUDataTypes::RecoStep::NoRecoStep;
   cfgRecoStep.inputs.clear();

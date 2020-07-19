@@ -32,7 +32,7 @@ class GPUTPCRow;
 
 #define SemLockName "AliceHLTTPCGPUTrackerInitLockSem"
 
-GPUReconstructionDeviceBase::GPUReconstructionDeviceBase(const GPUSettingsProcessing& cfg, size_t sizeCheck) : GPUReconstructionCPU(cfg)
+GPUReconstructionDeviceBase::GPUReconstructionDeviceBase(const GPUSettingsDeviceBackend& cfg, size_t sizeCheck) : GPUReconstructionCPU(cfg)
 {
   if (sizeCheck != sizeof(GPUReconstructionDeviceBase)) {
     GPUFatal("Mismatch of C++ object size between GPU compilers!");
@@ -55,7 +55,7 @@ void* GPUReconstructionDeviceBase::helperWrapper_static(void* arg)
 
 void* GPUReconstructionDeviceBase::helperWrapper(GPUReconstructionHelpers::helperParam* par)
 {
-  if (mDeviceProcessingSettings.debugLevel >= 3) {
+  if (mProcessingSettings.debugLevel >= 3) {
     GPUInfo("\tHelper thread %d starting", par->num);
   }
 
@@ -66,8 +66,8 @@ void* GPUReconstructionDeviceBase::helperWrapper(GPUReconstructionHelpers::helpe
 
   par->mutex[0].lock();
   while (par->terminate == false) {
-    for (int i = par->num + 1; i < par->count; i += mDeviceProcessingSettings.nDeviceHelperThreads + 1) {
-      // if (mDeviceProcessingSettings.debugLevel >= 3) GPUInfo("\tHelper Thread %d Running, Slice %d+%d, Phase %d", par->num, i, par->phase);
+    for (int i = par->num + 1; i < par->count; i += mProcessingSettings.nDeviceHelperThreads + 1) {
+      // if (mProcessingSettings.debugLevel >= 3) GPUInfo("\tHelper Thread %d Running, Slice %d+%d, Phase %d", par->num, i, par->phase);
       if ((par->functionCls->*par->function)(i, par->num + 1, par)) {
         par->error = 1;
       }
@@ -75,12 +75,12 @@ void* GPUReconstructionDeviceBase::helperWrapper(GPUReconstructionHelpers::helpe
         break;
       }
       par->done = i + 1;
-      // if (mDeviceProcessingSettings.debugLevel >= 3) GPUInfo("\tHelper Thread %d Finished, Slice %d+%d, Phase %d", par->num, i, par->phase);
+      // if (mProcessingSettings.debugLevel >= 3) GPUInfo("\tHelper Thread %d Finished, Slice %d+%d, Phase %d", par->num, i, par->phase);
     }
     ResetThisHelperThread(par);
     par->mutex[0].lock();
   }
-  if (mDeviceProcessingSettings.debugLevel >= 3) {
+  if (mProcessingSettings.debugLevel >= 3) {
     GPUInfo("\tHelper thread %d terminating", par->num);
   }
   par->mutex[1].unlock();
@@ -145,11 +145,11 @@ void GPUReconstructionDeviceBase::ReleaseGlobalLock(void* sem)
 
 void GPUReconstructionDeviceBase::ResetHelperThreads(int helpers)
 {
-  GPUImportant("Error occurred, GPU tracker helper threads will be reset (Number of threads %d (%d))", mDeviceProcessingSettings.nDeviceHelperThreads, mNSlaveThreads);
+  GPUImportant("Error occurred, GPU tracker helper threads will be reset (Number of threads %d (%d))", mProcessingSettings.nDeviceHelperThreads, mNSlaveThreads);
   SynchronizeGPU();
-  for (int i = 0; i < mDeviceProcessingSettings.nDeviceHelperThreads; i++) {
+  for (int i = 0; i < mProcessingSettings.nDeviceHelperThreads; i++) {
     mHelperParams[i].reset = true;
-    if (helpers || i >= mDeviceProcessingSettings.nDeviceHelperThreads) {
+    if (helpers || i >= mProcessingSettings.nDeviceHelperThreads) {
       pthread_mutex_lock(&((pthread_mutex_t*)mHelperParams[i].mutex)[1]);
     }
   }
@@ -158,7 +158,7 @@ void GPUReconstructionDeviceBase::ResetHelperThreads(int helpers)
 
 int GPUReconstructionDeviceBase::StartHelperThreads()
 {
-  int nThreads = mDeviceProcessingSettings.nDeviceHelperThreads;
+  int nThreads = mProcessingSettings.nDeviceHelperThreads;
   if (nThreads) {
     mHelperParams = new GPUReconstructionHelpers::helperParam[nThreads];
     if (mHelperParams == nullptr) {
@@ -206,14 +206,14 @@ int GPUReconstructionDeviceBase::StopHelperThreads()
 
 void GPUReconstructionDeviceBase::WaitForHelperThreads()
 {
-  for (int i = 0; i < mDeviceProcessingSettings.nDeviceHelperThreads; i++) {
+  for (int i = 0; i < mProcessingSettings.nDeviceHelperThreads; i++) {
     pthread_mutex_lock(&((pthread_mutex_t*)mHelperParams[i].mutex)[1]);
   }
 }
 
 void GPUReconstructionDeviceBase::RunHelperThreads(int (GPUReconstructionHelpers::helperDelegateBase::*function)(int i, int t, GPUReconstructionHelpers::helperParam* p), GPUReconstructionHelpers::helperDelegateBase* functionCls, int count)
 {
-  for (int i = 0; i < mDeviceProcessingSettings.nDeviceHelperThreads; i++) {
+  for (int i = 0; i < mProcessingSettings.nDeviceHelperThreads; i++) {
     mHelperParams[i].done = 0;
     mHelperParams[i].error = 0;
     mHelperParams[i].function = function;
@@ -230,22 +230,22 @@ int GPUReconstructionDeviceBase::InitDevice()
   // CPU_SET(0, &mask);
   // sched_setaffinity(0, sizeof(mask), &mask);
 
-  if (mDeviceProcessingSettings.memoryAllocationStrategy == GPUMemoryResource::ALLOCATION_INDIVIDUAL) {
+  if (mProcessingSettings.memoryAllocationStrategy == GPUMemoryResource::ALLOCATION_INDIVIDUAL) {
     GPUError("Individual memory allocation strategy unsupported for device\n");
     return (1);
   }
-  if (mDeviceProcessingSettings.nStreams > GPUCA_MAX_STREAMS) {
-    GPUError("Too many straems requested %d > %d\n", mDeviceProcessingSettings.nStreams, GPUCA_MAX_STREAMS);
+  if (mProcessingSettings.nStreams > GPUCA_MAX_STREAMS) {
+    GPUError("Too many straems requested %d > %d\n", mProcessingSettings.nStreams, GPUCA_MAX_STREAMS);
     return (1);
   }
   mThreadId = GetThread();
 
   void* semLock = nullptr;
-  if (mDeviceProcessingSettings.globalInitMutex && GetGlobalLock(semLock)) {
+  if (mProcessingSettings.globalInitMutex && GetGlobalLock(semLock)) {
     return (1);
   }
 
-  if (mDeviceProcessingSettings.deviceTimers) {
+  if (mProcessingSettings.deviceTimers) {
     AddGPUEvents(mDebugEvents);
   }
 
@@ -255,7 +255,7 @@ int GPUReconstructionDeviceBase::InitDevice()
     return (1);
   }
 
-  if (mDeviceProcessingSettings.globalInitMutex) {
+  if (mProcessingSettings.globalInitMutex) {
     ReleaseGlobalLock(semLock);
   }
 
@@ -271,7 +271,7 @@ int GPUReconstructionDeviceBase::InitDevice()
     return (1);
   }
 
-  if (mMaster == nullptr || mDeviceProcessingSettings.debugLevel >= 2) {
+  if (mMaster == nullptr || mProcessingSettings.debugLevel >= 2) {
     GPUInfo("GPU Tracker initialization successfull"); // Verbosity reduced because GPU backend will print GPUImportant message!
   }
 
