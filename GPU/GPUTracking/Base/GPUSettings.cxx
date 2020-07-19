@@ -104,6 +104,7 @@ void GPUSettingsDeviceProcessing::SetDefaults()
   nTPCClustererLanes = 3;
   registerStandaloneInputMemory = false;
   tpcCompressionGatherMode = -1;
+  tpcCompressionGatherModeKernel = -1;
   mergerSortTracks = -1;
   runMC = false;
   memoryScalingFactor = 1.f;

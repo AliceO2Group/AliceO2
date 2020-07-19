@@ -423,6 +423,7 @@ int SetupReconstruction()
   }
   devProc.mergerSortTracks = configStandalone.configProc.mergerSortTracks;
   devProc.tpcCompressionGatherMode = configStandalone.configProc.tpcCompressionGatherMode;
+  devProc.tpcCompressionGatherModeKernel = configStandalone.configProc.tpcCompressionGatherModeKernel;
 
   steps.steps = GPUDataTypes::RecoStep::AllRecoSteps;
   if (configStandalone.configRec.runTRD != -1) {
