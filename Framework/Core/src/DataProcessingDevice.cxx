@@ -128,6 +128,7 @@ void run_callback(uv_work_t* handle)
   ZoneScopedN("run_callback");
   std::vector<DataProcessorContext>* contexes = (std::vector<DataProcessorContext>*)handle->data;
   DataProcessorContext& context = contexes->at(0);
+  DataProcessingDevice::doPrepare(context);
   DataProcessingDevice::doRun(context);
   //  FrameMark;
 }
@@ -458,9 +459,9 @@ bool DataProcessingDevice::ConditionalRun()
 
 /// We drive the state loop ourself so that we will be able to support
 /// non-data triggers like those which are time based.
-void DataProcessingDevice::doRun(DataProcessorContext& context)
+void DataProcessingDevice::doPrepare(DataProcessorContext& context)
 {
-  ZoneScopedN("doRun");
+  ZoneScopedN("DataProcessingDevice::doPrepare");
   auto switchState = [& registry = context.registry,
                       &state = context.state->streaming](StreamingState newState) {
     LOG(debug) << "New state " << (int)newState << " old state " << (int)state;
@@ -480,7 +481,7 @@ void DataProcessingDevice::doRun(DataProcessorContext& context)
   // expect to receive an EndOfStream signal. Thus we do not wait for these
   // to be completed. In the case of data source devices, as they do not have
   // real data input channels, they have to signal EndOfStream themselves.
-  bool allDone = std::any_of(context.state->inputChannelInfos.begin(), context.state->inputChannelInfos.end(), [](const auto& info) {
+  context.allDone = std::any_of(context.state->inputChannelInfos.begin(), context.state->inputChannelInfos.end(), [](const auto& info) {
     return info.state != InputChannelState::Pull;
   });
   // Whether or not all the channels are completed
@@ -489,7 +490,7 @@ void DataProcessingDevice::doRun(DataProcessorContext& context)
     auto& info = context.state->inputChannelInfos[ci];
 
     if (info.state != InputChannelState::Completed && info.state != InputChannelState::Pull) {
-      allDone = false;
+      context.allDone = false;
     }
     if (info.state != InputChannelState::Running) {
       continue;
@@ -502,11 +503,22 @@ void DataProcessingDevice::doRun(DataProcessorContext& context)
       // messages without hanging on the uv_run.
       *context.wasActive = true;
       DataProcessingDevice::handleData(context, parts, info);
-      context.completed->clear();
-      context.completed->reserve(16);
-      *context.wasActive |= DataProcessingDevice::tryDispatchComputation(context, *context.completed);
     }
   }
+}
+
+void DataProcessingDevice::doRun(DataProcessorContext& context)
+{
+  auto switchState = [& registry = context.registry,
+                      &state = context.state->streaming](StreamingState newState) {
+    LOG(debug) << "New state " << (int)newState << " old state " << (int)state;
+    state = newState;
+    registry->get<ControlService>().notifyStreamingState(state);
+  };
+
+  context.completed->clear();
+  context.completed->reserve(16);
+  *context.wasActive |= DataProcessingDevice::tryDispatchComputation(context, *context.completed);
   DanglingContext danglingContext{*context.registry};
   for (auto preDanglingHandle : *context.preDanglingHandles) {
     preDanglingHandle.callback(danglingContext, preDanglingHandle.service);
@@ -528,7 +540,7 @@ void DataProcessingDevice::doRun(DataProcessorContext& context)
   // callback and return false. Notice that what happens next is actually
   // dependent on the callback, not something which is controlled by the
   // framework itself.
-  if (allDone == true && context.state->streaming == StreamingState::Streaming) {
+  if (context.allDone == true && context.state->streaming == StreamingState::Streaming) {
     switchState(StreamingState::EndOfStreaming);
     *context.wasActive = true;
   }
