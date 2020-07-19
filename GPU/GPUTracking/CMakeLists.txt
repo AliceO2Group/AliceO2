@@ -129,6 +129,8 @@ set(HDRS_INSTALL
     Base/GPUParam.inc
     Merger/GPUTPCGMMergerTypes.h
     Global/GPUErrorCodes.h
+    Standalone/qconfigoptions.h
+    Base/GPUSettingsList.h
 )
 
 # Sources only for O2
@@ -227,10 +229,6 @@ if(GPUCA_QA)
   set(SRCS_NO_CINT ${SRCS_NO_CINT} Standalone/qa/GPUQA.cxx)
 else()
   set(HDRS_INSTALL ${HDRS_INSTALL} Standalone/qa/GPUQA.h)
-endif()
-
-if(GPUCA_EVENT_DISPLAY OR GPUCA_QA)
-  set(HDRS_INSTALL ${HDRS_INSTALL} Standalone/qconfigoptions.h)
 endif()
 
 # Update HDR variables with files derrived from SRC variables

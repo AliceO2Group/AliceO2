@@ -29,7 +29,7 @@ using namespace o2::gpu;
 #define AddCustomCPP(...)
 #define AddHelp(...)
 #define AddShortcut(...)
-#include "qconfigoptions.h"
+#include "GPUSettingsList.h"
 #undef BeginNamespace
 #undef EndNamespace
 #undef AddOption
@@ -66,7 +66,7 @@ GPUSettingsO2 GPUO2InterfaceConfiguration::ReadConfigurableParam()
 #define AddCustomCPP(...)
 #define AddHelp(...)
 #define AddShortcut(...)
-#include "qconfigoptions.h"
+#include "GPUSettingsList.h"
 #undef BeginNamespace
 #undef EndNamespace
 #undef AddOption
