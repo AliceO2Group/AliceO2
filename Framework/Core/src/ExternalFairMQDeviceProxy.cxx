@@ -420,18 +420,8 @@ DataProcessorSpec specifyFairMQDeviceOutputProxy(char const* name,
     return adaptStateless([](RawDeviceService& rds, InputRecord& inputs) {
       std::unordered_map<std::string, FairMQParts> outputs;
       auto& device = *rds.device();
-      for (auto& input : inputs) {
-        // TODO: we need to make a copy of the messages, maybe we can implement functionality in
-        // the RawDeviceService to forward messages, but this also needs to take into account that
-        // other consumers might exist
-        size_t headerMsgSize = o2::header::Stack::headerStackSize(reinterpret_cast<o2::byte const*>(input.header));
-        auto* dh = o2::header::get<DataHeader*>(input.header);
-        if (!dh) {
-          std::stringstream errorMessage;
-          errorMessage << "no data header in " << *input.spec;
-          throw std::runtime_error(errorMessage.str());
-        }
-        size_t payloadMsgSize = dh->payloadSize;
+      for (size_t ii = 0; ii != inputs.size(); ++ii) {
+        auto first = inputs.getByPos(ii, 0);
         // we could probably do something like this but we do not know when the message is going to be sent
         // and if DPL is still owning a valid copy.
         //auto headerMessage = device.NewMessageFor(input.spec->binding, input.header, headerMsgSize, [](void*, void*) {});
@@ -439,12 +429,27 @@ DataProcessorSpec specifyFairMQDeviceOutputProxy(char const* name,
         // Note: DPL is only setting up one instance of a channel while FairMQ allows to have an
         // array of channels, the index is 0 in the call
         constexpr auto index = 0;
-        auto headerMessage = device.NewMessageFor(input.spec->binding, index, headerMsgSize);
-        memcpy(headerMessage->GetData(), input.header, headerMsgSize);
-        auto payloadMessage = device.NewMessageFor(input.spec->binding, index, payloadMsgSize);
-        memcpy(payloadMessage->GetData(), input.payload, payloadMsgSize);
-        outputs[input.spec->binding].AddPart(std::move(headerMessage));
-        outputs[input.spec->binding].AddPart(std::move(payloadMessage));
+        for (size_t pi = 0; pi < inputs.getNofParts(ii); ++pi) {
+          auto part = inputs.getByPos(ii, pi);
+          // TODO: we need to make a copy of the messages, maybe we can implement functionality in
+          // the RawDeviceService to forward messages, but this also needs to take into account that
+          // other consumers might exist
+          size_t headerMsgSize = o2::header::Stack::headerStackSize(reinterpret_cast<o2::byte const*>(first.header));
+          auto* dh = o2::header::get<DataHeader*>(first.header);
+          if (!dh) {
+            std::stringstream errorMessage;
+            errorMessage << "no data header in " << *first.spec;
+            throw std::runtime_error(errorMessage.str());
+          }
+          size_t payloadMsgSize = dh->payloadSize;
+
+          auto headerMessage = device.NewMessageFor(first.spec->binding, index, headerMsgSize);
+          memcpy(headerMessage->GetData(), part.header, headerMsgSize);
+          auto payloadMessage = device.NewMessageFor(first.spec->binding, index, payloadMsgSize);
+          memcpy(payloadMessage->GetData(), part.payload, payloadMsgSize);
+          outputs[first.spec->binding].AddPart(std::move(headerMessage));
+          outputs[first.spec->binding].AddPart(std::move(payloadMessage));
+        }
       }
       for (auto& [channelName, channelParts] : outputs) {
         if (channelParts.Size() == 0) {
