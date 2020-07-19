@@ -254,6 +254,7 @@ enum qConfigRetVal { qcrOK = 0,
 #endif
 #endif
 
+#ifndef QCONFIG_HEADER_GUARD_NO_INCLUDE
 #ifndef AddHelp
 #define AddHelp(cmd, cmdshort)
 #endif
@@ -282,7 +283,6 @@ enum qConfigRetVal { qcrOK = 0,
 #define AddCustomCPP(...)
 #endif
 
-#ifndef QCONFIG_HEADER_GUARD_NO_INCLUDE
 #include "qconfigoptions.h"
 
 #undef AddOption

@@ -20,6 +20,7 @@
 #include <iostream>
 #include <tuple>
 #include <vector>
+#include <string>
 #include "qconfig.h"
 
 // Create config instances
@@ -413,6 +414,15 @@ inline int qAddOptionType<const char*>(qConfigSettings<const char*>& settings, c
 {
   return qAddOptionGeneric<const char*>(
     settings, ref, i, argv, argc, settings.set, [](const char* a) -> const char* {
+      return a;
+    },
+    settings.doDefault);
+}
+template <>
+inline int qAddOptionType<std::string>(qConfigSettings<std::string>& settings, std::string& ref, int& i, const char** argv, const int argc, std::string /*def*/)
+{
+  return qAddOptionGeneric<std::string>(
+    settings, ref, i, argv, argc, settings.set, [](const char* a) -> std::string {
       return a;
     },
     settings.doDefault);
