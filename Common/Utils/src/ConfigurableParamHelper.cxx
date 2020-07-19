@@ -83,18 +83,18 @@ void loopOverMembers(TClass* cl, void* obj,
     }
 
     if (dm->IsaPointer()) {
-      LOG(WARNING) << "Pointer types not supported in ConfigurableParams";
+      LOG(WARNING) << "Pointer types not supported in ConfigurableParams: " << dm->GetFullTypeName() << " " << dm->GetName();
       continue;
     }
     if (!dm->IsBasic() && !isValidComplex()) {
-      LOG(WARNING) << "Generic complex types not supported in ConfigurableParams";
+      LOG(WARNING) << "Generic complex types not supported in ConfigurableParams: " << dm->GetFullTypeName() << " " << dm->GetName();
       continue;
     }
 
     const auto dim = dm->GetArrayDim();
     // we support very simple vectored data in 1D for now
     if (dim > 1) {
-      LOG(WARNING) << "We support at most 1 dimensional arrays in ConfigurableParams";
+      LOG(WARNING) << "We support at most 1 dimensional arrays in ConfigurableParams: " << dm->GetFullTypeName() << " " << dm->GetName();
       continue;
     }
 
