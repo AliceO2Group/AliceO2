@@ -16,6 +16,7 @@
 #define O2_MFT_TRACKCA_H_
 
 #include <array>
+#include "DataFormatsMFT/TrackMFT.h"
 #include "SimulationDataFormat/MCCompLabel.h"
 #include "MFTTracking/Constants.h"
 #include <fairlogger/Logger.h>
@@ -25,7 +26,7 @@ namespace o2
 namespace mft
 {
 
-class TrackCA final
+class TrackCA : public TrackMFT
 {
  public:
   TrackCA() = default;
@@ -172,5 +173,13 @@ inline void TrackLTF::setPoint(const Float_t x, const Float_t y, const Float_t z
 }
 
 } // namespace mft
+namespace framework
+{
+template <typename T>
+struct is_messageable;
+template <>
+struct is_messageable<o2::mft::TrackCA> : std::true_type {
+};
+} // namespace framework
 } // namespace o2
 #endif /* O2_MFT_TRACKCA_H_ */
