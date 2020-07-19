@@ -222,7 +222,6 @@ void Tracker::findTracksLTF(ROframe& event)
 
             // keep only tracks fulfilling the minimum length condition
             if (event.getCurrentTrackLTF().getNPoints() < constants::mft::MinTrackPoints) {
-              LOG(INFO) << "removing Current TrackLTF as nPointDisks = " << event.getCurrentTrackLTF().getNPoints() << std::endl;
               event.removeCurrentTrackLTF();
               continue;
             }
@@ -233,10 +232,8 @@ void Tracker::findTracksLTF(ROframe& event)
             }
             if (nPointDisks < constants::mft::MinTrackPoints) {
               event.removeCurrentTrackLTF();
-              LOG(INFO) << "removing Current TrackLTF as nPointDisks = " << nPointDisks << std::endl;
               continue;
             }
-            LOG(INFO) << "Current TrackLTF as nPointDisks = " << nPointDisks << std::endl;
 
             // mark the used clusters
             //Int_t lay, layMin = 10, layMax = -1;
