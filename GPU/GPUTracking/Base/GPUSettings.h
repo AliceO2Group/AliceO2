@@ -59,8 +59,8 @@ struct GPUSettingsEvent {
 };
 
 // Settings defining the setup of the GPUReconstruction processing (basically selecting the device / class instance)
-struct GPUSettingsProcessing {
-  GPUSettingsProcessing();
+struct GPUSettingsDeviceBackend {
+  GPUSettingsDeviceBackend();
   unsigned int deviceType;   // Device type, shall use GPUDataTypes::DEVICE_TYPE constants, e.g. CPU / CUDA
   char forceDeviceType;      // Fail if device initialization fails, otherwise falls back to CPU
   GPUReconstruction* master; // GPUReconstruction master object

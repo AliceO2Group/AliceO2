@@ -39,7 +39,7 @@ int GPUTPCO2Interface::Initialize(const GPUO2InterfaceConfiguration& config)
   }
   mConfig.reset(new GPUO2InterfaceConfiguration(config));
   mContinuous = mConfig->configEvent.continuousMaxTimeBin != 0;
-  mRec.reset(GPUReconstruction::CreateInstance(mConfig->configProcessing));
+  mRec.reset(GPUReconstruction::CreateInstance(mConfig->configDeviceBackend));
   if (mRec == nullptr) {
     GPUError("Error obtaining instance of GPUReconstruction");
     return 1;
@@ -50,7 +50,7 @@ int GPUTPCO2Interface::Initialize(const GPUO2InterfaceConfiguration& config)
   if (mConfig->configWorkflow.inputs.isSet(GPUDataTypes::InOutType::TPCRaw)) {
     mConfig->configEvent.needsClusterer = 1;
   }
-  mRec->SetSettings(&mConfig->configEvent, &mConfig->configReconstruction, &mConfig->configDeviceProcessing, &mConfig->configWorkflow);
+  mRec->SetSettings(&mConfig->configEvent, &mConfig->configReconstruction, &mConfig->configProcessing, &mConfig->configWorkflow);
   mChain->SetTPCFastTransform(mConfig->configCalib.fastTransform);
   mChain->SetdEdxSplines(mConfig->configCalib.dEdxSplines);
   mChain->SetMatLUT(mConfig->configCalib.matLUT);
@@ -67,7 +67,7 @@ int GPUTPCO2Interface::Initialize(const GPUO2InterfaceConfiguration& config)
   if (mRec->Init()) {
     return (1);
   }
-  if (!mRec->IsGPU() && mConfig->configDeviceProcessing.memoryAllocationStrategy == GPUMemoryResource::ALLOCATION_INDIVIDUAL) {
+  if (!mRec->IsGPU() && mConfig->configProcessing.memoryAllocationStrategy == GPUMemoryResource::ALLOCATION_INDIVIDUAL) {
     mRec->MemoryScalers()->factor *= 2;
   }
   mInitialized = true;

@@ -65,7 +65,7 @@ AddHelp("help", 'h')
 EndConfig()
 
 // Settings steering the processing once the device was selected
-BeginSubConfig(GPUSettingsDeviceProcessing, configProc, configStandalone, "PROC", 0, "Processing settings")
+BeginSubConfig(GPUSettingsProcessing, configProc, configStandalone, "PROC", 0, "Processing settings")
 AddOption(platformNum, int, -1, "", 0, "Platform to use, in case the backend provides multiple platforms (-1 = auto-select)")
 AddOption(gpuDeviceOnly, bool, false, "", 0, "Use only GPU as device (i.e. no CPU for OpenCL)")
 AddOption(debugMask, int, -1, "", 0, "Mask for debug output dumps to file")
@@ -238,7 +238,7 @@ AddSubConfig(GPUSettingsQA, configQA)
 AddSubConfig(GPUSettingsEG, configEG)
 AddSubConfig(GPUSettingsDisplay, configGL)
 AddSubConfig(GPUSettingsRec, configRec)
-AddSubConfig(GPUSettingsDeviceProcessing, configProc)
+AddSubConfig(GPUSettingsProcessing, configProc)
 EndConfig()
 #elif defined(GPUCA_O2_LIB) // GPUCA_STANDALONE
 BeginSubConfig(GPUSettingsO2, configGPUO2, configStandalone, "O2", 0, "O2 workflow settings")

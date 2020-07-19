@@ -51,7 +51,7 @@ using namespace GPUCA_NAMESPACE::gpu;
 constexpr GPUReconstructionCPU::krnlRunRange GPUReconstructionCPU::krnlRunRangeNone;
 constexpr GPUReconstructionCPU::krnlEvent GPUReconstructionCPU::krnlEventNone;
 
-GPUReconstruction* GPUReconstruction::GPUReconstruction_Create_CPU(const GPUSettingsProcessing& cfg) { return new GPUReconstructionCPU(cfg); }
+GPUReconstruction* GPUReconstruction::GPUReconstruction_Create_CPU(const GPUSettingsDeviceBackend& cfg) { return new GPUReconstructionCPU(cfg); }
 
 GPUReconstructionCPU::~GPUReconstructionCPU()
 {
@@ -71,8 +71,8 @@ int GPUReconstructionCPUBackend::runKernelBackend(krnlSetup& _xyz, const Args&..
   }
   unsigned int num = y.num == 0 || y.num == -1 ? 1 : y.num;
   for (unsigned int k = 0; k < num; k++) {
-    if (mDeviceProcessingSettings.ompKernels) {
-      GPUCA_OPENMP(parallel for num_threads(mDeviceProcessingSettings.ompThreads))
+    if (mProcessingSettings.ompKernels) {
+      GPUCA_OPENMP(parallel for num_threads(mProcessingSettings.ompThreads))
       for (unsigned int iB = 0; iB < x.nBlocks; iB++) {
         typename T::GPUSharedMemory smem;
         T::template Thread<I>(x.nBlocks, 1, iB, 0, smem, T::Processor(*mHostConstantMem)[y.start + k], args...);
@@ -125,7 +125,7 @@ size_t GPUReconstructionCPU::TransferMemoryResourcesHelper(GPUProcessor* proc, i
     if (!(res.mType & GPUMemoryResource::MEMORY_GPU) || (res.mType & GPUMemoryResource::MEMORY_CUSTOM_TRANSFER)) {
       continue;
     }
-    if (!mDeviceProcessingSettings.keepAllMemory && !all && (res.mType & exc) && !(res.mType & inc)) {
+    if (!mProcessingSettings.keepAllMemory && !all && (res.mType & exc) && !(res.mType & inc)) {
       continue;
     }
     if (toGPU) {
@@ -151,7 +151,7 @@ int GPUReconstructionCPU::GetThread()
 
 int GPUReconstructionCPU::InitDevice()
 {
-  if (mDeviceProcessingSettings.memoryAllocationStrategy == GPUMemoryResource::ALLOCATION_GLOBAL) {
+  if (mProcessingSettings.memoryAllocationStrategy == GPUMemoryResource::ALLOCATION_GLOBAL) {
     if (mDeviceMemorySize > mHostMemorySize) {
       mHostMemorySize = mDeviceMemorySize;
     }
@@ -161,7 +161,7 @@ int GPUReconstructionCPU::InitDevice()
     mHostMemoryPermanent = mHostMemoryBase;
     ClearAllocatedMemory();
   }
-  if (mDeviceProcessingSettings.ompKernels) {
+  if (mProcessingSettings.ompKernels) {
     mBlockCount = getOMPMaxThreads();
   }
   mThreadId = GetThread();
@@ -170,7 +170,7 @@ int GPUReconstructionCPU::InitDevice()
 
 int GPUReconstructionCPU::ExitDevice()
 {
-  if (mDeviceProcessingSettings.memoryAllocationStrategy == GPUMemoryResource::ALLOCATION_GLOBAL) {
+  if (mProcessingSettings.memoryAllocationStrategy == GPUMemoryResource::ALLOCATION_GLOBAL) {
     if (mMaster == nullptr) {
       operator delete(mHostMemoryBase);
     }
@@ -186,13 +186,13 @@ int GPUReconstructionCPU::RunChains()
   mNEventsProcessed++;
 
   timerTotal.Start();
-  if (mDeviceProcessingSettings.doublePipeline) {
+  if (mProcessingSettings.doublePipeline) {
     if (EnqueuePipeline()) {
       return 1;
     }
   } else {
     if (mThreadId != GetThread()) {
-      if (mDeviceProcessingSettings.debugLevel >= 2) {
+      if (mProcessingSettings.debugLevel >= 2) {
         GPUInfo("Thread changed, migrating context, Previous Thread: %d, New Thread: %d", mThreadId, GetThread());
       }
       mThreadId = GetThread();
@@ -210,7 +210,7 @@ int GPUReconstructionCPU::RunChains()
   timerTotal.Stop();
 
   mStatWallTime = (timerTotal.GetElapsedTime() * 1000000. / mStatNEvents);
-  if (GetDeviceProcessingSettings().debugLevel >= 1) {
+  if (GetProcessingSettings().debugLevel >= 1) {
     double kernelTotal = 0;
     std::vector<double> kernelStepTimes(GPUDataTypes::N_RECO_STEPS);
 
@@ -222,7 +222,7 @@ int GPUReconstructionCPU::RunChains()
       for (int j = 0; j < mTimers[i]->num; j++) {
         HighResTimer& timer = mTimers[i]->timer[j];
         time += timer.GetElapsedTime();
-        if (mDeviceProcessingSettings.resetTimers) {
+        if (mProcessingSettings.resetTimers) {
           timer.Reset();
         }
       }
@@ -239,7 +239,7 @@ int GPUReconstructionCPU::RunChains()
         snprintf(bandwidth, 256, " (%6.3f GB/s - %'14lu bytes)", mTimers[i]->memSize / time * 1e-9, (unsigned long)(mTimers[i]->memSize / mStatNEvents));
       }
       printf("Execution Time: Task (%c %8ux): %50s Time: %'10d us%s\n", type, mTimers[i]->count, mTimers[i]->name.c_str(), (int)(time * 1000000 / mStatNEvents), bandwidth);
-      if (mDeviceProcessingSettings.resetTimers) {
+      if (mProcessingSettings.resetTimers) {
         mTimers[i]->count = 0;
         mTimers[i]->memSize = 0;
       }
@@ -256,7 +256,7 @@ int GPUReconstructionCPU::RunChains()
         printf("Execution Time: Step (D %8ux): %11s %38s Time: %'10d us (%6.3f GB/s - %'14lu bytes - %'14lu per call)\n", mTimersRecoSteps[i].countToHost, "DMA to Host", GPUDataTypes::RECO_STEP_NAMES[i], (int)(mTimersRecoSteps[i].timerToHost.GetElapsedTime() * 1000000 / mStatNEvents),
                mTimersRecoSteps[i].bytesToHost / mTimersRecoSteps[i].timerToHost.GetElapsedTime() * 1e-9, mTimersRecoSteps[i].bytesToHost / mStatNEvents, mTimersRecoSteps[i].bytesToHost / mTimersRecoSteps[i].countToHost);
       }
-      if (mDeviceProcessingSettings.resetTimers) {
+      if (mProcessingSettings.resetTimers) {
         mTimersRecoSteps[i].bytesToGPU = mTimersRecoSteps[i].bytesToHost = 0;
         mTimersRecoSteps[i].timerToGPU.Reset();
         mTimersRecoSteps[i].timerToHost.Reset();
@@ -273,10 +273,10 @@ int GPUReconstructionCPU::RunChains()
     mStatKernelTime = kernelTotal * 1000000 / mStatNEvents;
     printf("Execution Time: Total   : %50s Time: %'10d us\n", "Total Kernel", (int)mStatKernelTime);
     printf("Execution Time: Total   : %50s Time: %'10d us\n", "Total Wall", (int)mStatWallTime);
-  } else if (GetDeviceProcessingSettings().debugLevel >= 0) {
+  } else if (GetProcessingSettings().debugLevel >= 0) {
     printf("Total Wall Time: %'d us\n", (int)mStatWallTime);
   }
-  if (mDeviceProcessingSettings.resetTimers) {
+  if (mProcessingSettings.resetTimers) {
     mStatNEvents = 0;
     timerTotal.Reset();
   }

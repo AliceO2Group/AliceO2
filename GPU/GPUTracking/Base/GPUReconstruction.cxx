@@ -76,10 +76,10 @@ constexpr GPUReconstruction::GeometryType GPUReconstruction::geometryType;
 
 static long long int ptrDiff(void* a, void* b) { return (long long int)((char*)a - (char*)b); }
 
-GPUReconstruction::GPUReconstruction(const GPUSettingsProcessing& cfg) : mHostConstantMem(new GPUConstantMem), mProcessingSettings(cfg)
+GPUReconstruction::GPUReconstruction(const GPUSettingsDeviceBackend& cfg) : mHostConstantMem(new GPUConstantMem), mDeviceBackendSettings(cfg)
 {
   if (cfg.master) {
-    if (cfg.master->mProcessingSettings.deviceType != cfg.deviceType) {
+    if (cfg.master->mDeviceBackendSettings.deviceType != cfg.deviceType) {
       throw std::invalid_argument("device type of master and slave GPUReconstruction does not match");
     }
     if (cfg.master->mMaster) {
@@ -88,7 +88,7 @@ GPUReconstruction::GPUReconstruction(const GPUSettingsProcessing& cfg) : mHostCo
     mMaster = cfg.master;
     cfg.master->mSlaves.emplace_back(this);
   }
-  new (&mDeviceProcessingSettings) GPUSettingsDeviceProcessing;
+  new (&mProcessingSettings) GPUSettingsProcessing;
   new (&mEventSettings) GPUSettingsEvent;
   param().SetDefaults(&mEventSettings);
   mMemoryScalers.reset(new GPUMemorySizeScalers);
@@ -193,84 +193,84 @@ int GPUReconstruction::InitPhaseBeforeDevice()
     mRecoStepsGPU.set((unsigned char)0);
   }
 
-  if (mDeviceProcessingSettings.memoryAllocationStrategy == GPUMemoryResource::ALLOCATION_AUTO) {
-    mDeviceProcessingSettings.memoryAllocationStrategy = IsGPU() ? GPUMemoryResource::ALLOCATION_GLOBAL : GPUMemoryResource::ALLOCATION_INDIVIDUAL;
+  if (mProcessingSettings.memoryAllocationStrategy == GPUMemoryResource::ALLOCATION_AUTO) {
+    mProcessingSettings.memoryAllocationStrategy = IsGPU() ? GPUMemoryResource::ALLOCATION_GLOBAL : GPUMemoryResource::ALLOCATION_INDIVIDUAL;
   }
-  if (mDeviceProcessingSettings.debugLevel >= 4) {
-    mDeviceProcessingSettings.keepAllMemory = true;
+  if (mProcessingSettings.debugLevel >= 4) {
+    mProcessingSettings.keepAllMemory = true;
   }
-  if (mDeviceProcessingSettings.debugLevel >= 5 && mDeviceProcessingSettings.allocDebugLevel < 2) {
-    mDeviceProcessingSettings.allocDebugLevel = 2;
+  if (mProcessingSettings.debugLevel >= 5 && mProcessingSettings.allocDebugLevel < 2) {
+    mProcessingSettings.allocDebugLevel = 2;
   }
-  if (mDeviceProcessingSettings.eventDisplay || mDeviceProcessingSettings.keepAllMemory) {
-    mDeviceProcessingSettings.keepDisplayMemory = true;
+  if (mProcessingSettings.eventDisplay || mProcessingSettings.keepAllMemory) {
+    mProcessingSettings.keepDisplayMemory = true;
   }
-  if (mDeviceProcessingSettings.debugLevel < 6) {
-    mDeviceProcessingSettings.debugMask = 0;
+  if (mProcessingSettings.debugLevel < 6) {
+    mProcessingSettings.debugMask = 0;
   }
-  if (mDeviceProcessingSettings.debugLevel < 1) {
-    mDeviceProcessingSettings.deviceTimers = false;
+  if (mProcessingSettings.debugLevel < 1) {
+    mProcessingSettings.deviceTimers = false;
   }
-  if (mDeviceProcessingSettings.debugLevel >= 6 && mDeviceProcessingSettings.comparableDebutOutput) {
-    mDeviceProcessingSettings.nTPCClustererLanes = 1;
-    if (mDeviceProcessingSettings.trackletConstructorInPipeline < 0) {
-      mDeviceProcessingSettings.trackletConstructorInPipeline = 1;
+  if (mProcessingSettings.debugLevel >= 6 && mProcessingSettings.comparableDebutOutput) {
+    mProcessingSettings.nTPCClustererLanes = 1;
+    if (mProcessingSettings.trackletConstructorInPipeline < 0) {
+      mProcessingSettings.trackletConstructorInPipeline = 1;
     }
-    if (mDeviceProcessingSettings.trackletSelectorInPipeline < 0) {
-      mDeviceProcessingSettings.trackletSelectorInPipeline = 1;
+    if (mProcessingSettings.trackletSelectorInPipeline < 0) {
+      mProcessingSettings.trackletSelectorInPipeline = 1;
     }
-    if (mDeviceProcessingSettings.trackletSelectorSlices < 0) {
-      mDeviceProcessingSettings.trackletSelectorSlices = 1;
+    if (mProcessingSettings.trackletSelectorSlices < 0) {
+      mProcessingSettings.trackletSelectorSlices = 1;
     }
   }
-  if (mDeviceProcessingSettings.tpcCompressionGatherMode < 0) {
-    mDeviceProcessingSettings.tpcCompressionGatherMode = (mRecoStepsGPU & GPUDataTypes::RecoStep::TPCCompression) ? 2 : 0;
+  if (mProcessingSettings.tpcCompressionGatherMode < 0) {
+    mProcessingSettings.tpcCompressionGatherMode = (mRecoStepsGPU & GPUDataTypes::RecoStep::TPCCompression) ? 2 : 0;
   }
   if (!(mRecoStepsGPU & GPUDataTypes::RecoStep::TPCMerging)) {
-    mDeviceProcessingSettings.mergerSortTracks = false;
+    mProcessingSettings.mergerSortTracks = false;
   }
   if (!IsGPU()) {
-    mDeviceProcessingSettings.nDeviceHelperThreads = 0;
+    mProcessingSettings.nDeviceHelperThreads = 0;
   }
 
   if (param().rec.NonConsecutiveIDs) {
     param().rec.DisableRefitAttachment = 0xFF;
   }
   if (!(mRecoStepsGPU & RecoStep::TPCMerging) || !param().rec.mergerReadFromTrackerDirectly) {
-    mDeviceProcessingSettings.fullMergerOnGPU = false;
+    mProcessingSettings.fullMergerOnGPU = false;
   }
-  if (mDeviceProcessingSettings.debugLevel || !mDeviceProcessingSettings.fullMergerOnGPU) {
-    mDeviceProcessingSettings.delayedOutput = false;
+  if (mProcessingSettings.debugLevel || !mProcessingSettings.fullMergerOnGPU) {
+    mProcessingSettings.delayedOutput = false;
   }
 
   UpdateSettings();
   GPUCA_GPUReconstructionUpdateDefailts();
-  if (!mDeviceProcessingSettings.trackletConstructorInPipeline) {
-    mDeviceProcessingSettings.trackletSelectorInPipeline = false;
+  if (!mProcessingSettings.trackletConstructorInPipeline) {
+    mProcessingSettings.trackletSelectorInPipeline = false;
   }
 
-  mMemoryScalers->factor = mDeviceProcessingSettings.memoryScalingFactor;
+  mMemoryScalers->factor = mProcessingSettings.memoryScalingFactor;
 
 #ifdef WITH_OPENMP
-  if (mDeviceProcessingSettings.ompThreads <= 0) {
-    mDeviceProcessingSettings.ompThreads = omp_get_max_threads();
+  if (mProcessingSettings.ompThreads <= 0) {
+    mProcessingSettings.ompThreads = omp_get_max_threads();
   } else {
-    omp_set_num_threads(mDeviceProcessingSettings.ompThreads);
+    omp_set_num_threads(mProcessingSettings.ompThreads);
   }
 #else
-  mDeviceProcessingSettings.ompThreads = 1;
+  mProcessingSettings.ompThreads = 1;
 #endif
-  mMaxThreads = std::max(mMaxThreads, mDeviceProcessingSettings.ompThreads);
+  mMaxThreads = std::max(mMaxThreads, mProcessingSettings.ompThreads);
   if (IsGPU()) {
-    mNStreams = std::max(mDeviceProcessingSettings.nStreams, 3);
+    mNStreams = std::max(mProcessingSettings.nStreams, 3);
   }
 
-  if (mDeviceProcessingSettings.doublePipeline && (mChains.size() != 1 || mChains[0]->SupportsDoublePipeline() == false || !IsGPU() || mDeviceProcessingSettings.memoryAllocationStrategy != GPUMemoryResource::ALLOCATION_GLOBAL)) {
+  if (mProcessingSettings.doublePipeline && (mChains.size() != 1 || mChains[0]->SupportsDoublePipeline() == false || !IsGPU() || mProcessingSettings.memoryAllocationStrategy != GPUMemoryResource::ALLOCATION_GLOBAL)) {
     GPUError("Must use double pipeline mode only with exactly one chain that must support it");
     return 1;
   }
 
-  if (mMaster == nullptr && mDeviceProcessingSettings.doublePipeline) {
+  if (mMaster == nullptr && mProcessingSettings.doublePipeline) {
     mPipelineContext.reset(new GPUReconstructionPipelineContext);
   }
 
@@ -282,13 +282,13 @@ int GPUReconstruction::InitPhaseBeforeDevice()
     mDeviceMemorySize += memGpu;
     mHostMemorySize += memHost;
   }
-  if (mDeviceProcessingSettings.forceMemoryPoolSize && mDeviceProcessingSettings.forceMemoryPoolSize <= 2 && CanQueryMaxMemory()) {
-    mDeviceMemorySize = mDeviceProcessingSettings.forceMemoryPoolSize;
-  } else if (mDeviceProcessingSettings.forceMemoryPoolSize > 2) {
-    mDeviceMemorySize = mHostMemorySize = mDeviceProcessingSettings.forceMemoryPoolSize;
+  if (mProcessingSettings.forceMemoryPoolSize && mProcessingSettings.forceMemoryPoolSize <= 2 && CanQueryMaxMemory()) {
+    mDeviceMemorySize = mProcessingSettings.forceMemoryPoolSize;
+  } else if (mProcessingSettings.forceMemoryPoolSize > 2) {
+    mDeviceMemorySize = mHostMemorySize = mProcessingSettings.forceMemoryPoolSize;
   }
-  if (mDeviceProcessingSettings.forceHostMemoryPoolSize) {
-    mHostMemorySize = mDeviceProcessingSettings.forceHostMemoryPoolSize;
+  if (mProcessingSettings.forceHostMemoryPoolSize) {
+    mHostMemorySize = mProcessingSettings.forceHostMemoryPoolSize;
   }
 
   for (unsigned int i = 0; i < mProcessors.size(); i++) {
@@ -355,7 +355,7 @@ int GPUReconstruction::Exit()
 
   mChains.clear();          // Make sure we destroy a possible ITS GPU tracker before we call the destructors
   mHostConstantMem.reset(); // Reset these explicitly before the destruction of other members unloads the library
-  if (mDeviceProcessingSettings.memoryAllocationStrategy == GPUMemoryResource::ALLOCATION_INDIVIDUAL) {
+  if (mProcessingSettings.memoryAllocationStrategy == GPUMemoryResource::ALLOCATION_INDIVIDUAL) {
     for (unsigned int i = 0; i < mMemoryResources.size(); i++) {
       if (mMemoryResources[i].mReuse >= 0) {
         continue;
@@ -392,7 +392,7 @@ void GPUReconstruction::ComputeReuseMax(GPUProcessor* proc)
 
 size_t GPUReconstruction::AllocateRegisteredMemory(GPUProcessor* proc, bool resetCustom)
 {
-  if (mDeviceProcessingSettings.debugLevel >= 5) {
+  if (mProcessingSettings.debugLevel >= 5) {
     GPUInfo("Allocating memory %p", (void*)proc);
   }
   size_t total = 0;
@@ -405,7 +405,7 @@ size_t GPUReconstruction::AllocateRegisteredMemory(GPUProcessor* proc, bool rese
       }
     }
   }
-  if (mDeviceProcessingSettings.debugLevel >= 5) {
+  if (mProcessingSettings.debugLevel >= 5) {
     GPUInfo("Allocating memory done");
   }
   return total;
@@ -413,7 +413,7 @@ size_t GPUReconstruction::AllocateRegisteredMemory(GPUProcessor* proc, bool rese
 
 size_t GPUReconstruction::AllocateRegisteredPermanentMemory()
 {
-  if (mDeviceProcessingSettings.debugLevel >= 5) {
+  if (mProcessingSettings.debugLevel >= 5) {
     GPUInfo("Allocating Permanent Memory");
   }
   int total = 0;
@@ -424,7 +424,7 @@ size_t GPUReconstruction::AllocateRegisteredPermanentMemory()
   }
   mHostMemoryPermanent = mHostMemoryPool;
   mDeviceMemoryPermanent = mDeviceMemoryPool;
-  if (mDeviceProcessingSettings.debugLevel >= 5) {
+  if (mProcessingSettings.debugLevel >= 5) {
     GPUInfo("Permanent Memory Done");
   }
   return total;
@@ -443,7 +443,7 @@ size_t GPUReconstruction::AllocateRegisteredMemoryHelper(GPUMemoryResource* res,
       GPUError("Insufficient reuse memory %lu < %lu (%s)", mMemoryResources[res->mReuse].mSize, retVal, res->mName);
       throw std::bad_alloc();
     }
-    if (mDeviceProcessingSettings.allocDebugLevel >= 2) {
+    if (mProcessingSettings.allocDebugLevel >= 2) {
       std::cout << "Reused " << res->mName << ": " << retVal << "\n";
     }
     return retVal;
@@ -477,7 +477,7 @@ size_t GPUReconstruction::AllocateRegisteredMemoryHelper(GPUMemoryResource* res,
     std::cout << "Memory pool size exceeded (" << res->mName << ": " << (memorypoolend ? (memorysize + ((char*)memorypool - (char*)memorypoolend)) : (char*)memorypool - (char*)memorybase) << " < " << memorysize << "\n";
     throw std::bad_alloc();
   }
-  if (mDeviceProcessingSettings.allocDebugLevel >= 2) {
+  if (mProcessingSettings.allocDebugLevel >= 2) {
     std::cout << "Allocated " << res->mName << ": " << retVal << " - available: " << (memorypoolend ? ((char*)memorypoolend - (char*)memorypool) : (memorysize - ((char*)memorypool - (char*)memorybase))) << "\n";
   }
   return retVal;
@@ -485,7 +485,7 @@ size_t GPUReconstruction::AllocateRegisteredMemoryHelper(GPUMemoryResource* res,
 
 void GPUReconstruction::AllocateRegisteredMemoryInternal(GPUMemoryResource* res, GPUOutputControl* control, GPUReconstruction* recPool)
 {
-  if (mDeviceProcessingSettings.memoryAllocationStrategy == GPUMemoryResource::ALLOCATION_INDIVIDUAL && (control == nullptr || control->OutputType == GPUOutputControl::AllocateInternal)) {
+  if (mProcessingSettings.memoryAllocationStrategy == GPUMemoryResource::ALLOCATION_INDIVIDUAL && (control == nullptr || control->OutputType == GPUOutputControl::AllocateInternal)) {
     if (!(res->mType & GPUMemoryResource::MEMORY_EXTERNAL)) {
       if (res->mPtrDevice && res->mReuse < 0) {
         operator delete(res->mPtrDevice GPUCA_OPERATOR_NEW_ALIGNMENT);
@@ -502,7 +502,7 @@ void GPUReconstruction::AllocateRegisteredMemoryInternal(GPUMemoryResource* res,
       }
       res->mPtr = GPUProcessor::alignPointer<GPUCA_BUFFER_ALIGNMENT>(res->mPtrDevice);
       res->SetPointers(res->mPtr);
-      if (mDeviceProcessingSettings.allocDebugLevel >= 2) {
+      if (mProcessingSettings.allocDebugLevel >= 2) {
         std::cout << (res->mReuse >= 0 ? "Reused " : "Allocated ") << res->mName << ": " << res->mSize << "\n";
       }
     }
@@ -514,7 +514,7 @@ void GPUReconstruction::AllocateRegisteredMemoryInternal(GPUMemoryResource* res,
     if (IsGPU() && res->mOverrideSize < GPUCA_BUFFER_ALIGNMENT) {
       res->mOverrideSize = GPUCA_BUFFER_ALIGNMENT;
     }
-    if ((!IsGPU() || (res->mType & GPUMemoryResource::MEMORY_HOST) || mDeviceProcessingSettings.keepDisplayMemory) && !(res->mType & GPUMemoryResource::MEMORY_EXTERNAL)) { // keepAllMemory --> keepDisplayMemory
+    if ((!IsGPU() || (res->mType & GPUMemoryResource::MEMORY_HOST) || mProcessingSettings.keepDisplayMemory) && !(res->mType & GPUMemoryResource::MEMORY_EXTERNAL)) { // keepAllMemory --> keepDisplayMemory
       if (control && control->OutputType == GPUOutputControl::UseExternalBuffer) {
         if (control->OutputAllocator) {
           res->mSize = std::max((size_t)res->SetPointers((void*)1) - 1, res->mOverrideSize);
@@ -567,7 +567,7 @@ void* GPUReconstruction::AllocateUnmanagedMemory(size_t size, int type)
   if (type != GPUMemoryResource::MEMORY_HOST && (!IsGPU() || type != GPUMemoryResource::MEMORY_GPU)) {
     throw std::bad_alloc();
   }
-  if (mDeviceProcessingSettings.memoryAllocationStrategy == GPUMemoryResource::ALLOCATION_INDIVIDUAL) {
+  if (mProcessingSettings.memoryAllocationStrategy == GPUMemoryResource::ALLOCATION_INDIVIDUAL) {
     mUnmanagedChunks.emplace_back(new char[size + GPUCA_BUFFER_ALIGNMENT]);
     return GPUProcessor::alignPointer<GPUCA_BUFFER_ALIGNMENT>(mUnmanagedChunks.back().get());
   } else {
@@ -637,10 +637,10 @@ void GPUReconstruction::FreeRegisteredMemory(GPUProcessor* proc, bool freeCustom
 void GPUReconstruction::FreeRegisteredMemory(short ires)
 {
   GPUMemoryResource* res = &mMemoryResources[ires];
-  if (mDeviceProcessingSettings.allocDebugLevel >= 2 && (res->mPtr || res->mPtrDevice)) {
+  if (mProcessingSettings.allocDebugLevel >= 2 && (res->mPtr || res->mPtrDevice)) {
     std::cout << "Freeing " << res->mName << ": size " << res->mSize << " (reused " << res->mReuse << ")\n";
   }
-  if (mDeviceProcessingSettings.memoryAllocationStrategy == GPUMemoryResource::ALLOCATION_INDIVIDUAL && res->mReuse < 0) {
+  if (mProcessingSettings.memoryAllocationStrategy == GPUMemoryResource::ALLOCATION_INDIVIDUAL && res->mReuse < 0) {
     operator delete(res->mPtrDevice GPUCA_OPERATOR_NEW_ALIGNMENT);
   }
   res->mPtr = nullptr;
@@ -662,10 +662,10 @@ void GPUReconstruction::PushNonPersistentMemory()
 
 void GPUReconstruction::PopNonPersistentMemory(RecoStep step)
 {
-  if (mDeviceProcessingSettings.debugLevel >= 3 || mDeviceProcessingSettings.allocDebugLevel) {
+  if (mProcessingSettings.debugLevel >= 3 || mProcessingSettings.allocDebugLevel) {
     printf("Allocated memory after %30s: %'13lld (non temporary %'13lld, blocked %'13lld)\n", GPUDataTypes::RECO_STEP_NAMES[getRecoStepNum(step, true)], ptrDiff(mDeviceMemoryPool, mDeviceMemoryBase) + ptrDiff((char*)mDeviceMemoryBase + mDeviceMemorySize, mDeviceMemoryPoolEnd), ptrDiff(mDeviceMemoryPool, mDeviceMemoryBase), mDeviceMemoryPoolBlocked == nullptr ? 0ll : ptrDiff((char*)mDeviceMemoryBase + mDeviceMemorySize, mDeviceMemoryPoolBlocked));
   }
-  if (mDeviceProcessingSettings.keepDisplayMemory || mDeviceProcessingSettings.disableMemoryReuse) {
+  if (mProcessingSettings.keepDisplayMemory || mProcessingSettings.disableMemoryReuse) {
     return;
   }
   mHostMemoryPoolEnd = mNonPersistentMemoryStack.back().first;
@@ -727,7 +727,7 @@ void GPUReconstruction::PrintMemoryMax()
 
 void GPUReconstruction::PrintMemoryOverview()
 {
-  if (mDeviceProcessingSettings.memoryAllocationStrategy == GPUMemoryResource::ALLOCATION_GLOBAL) {
+  if (mProcessingSettings.memoryAllocationStrategy == GPUMemoryResource::ALLOCATION_GLOBAL) {
     printf("Memory Allocation: Host %'lld / %'lld (Permanent %'lld), Device %'lld / %'lld, (Permanent %'lld) %d chunks\n",
            ptrDiff(mHostMemoryPool, mHostMemoryBase) + ptrDiff((char*)mHostMemoryBase + mHostMemorySize, mHostMemoryPoolEnd), (long long int)mHostMemorySize, ptrDiff(mHostMemoryPermanent, mHostMemoryBase),
            ptrDiff(mDeviceMemoryPool, mDeviceMemoryBase) + ptrDiff((char*)mDeviceMemoryBase + mDeviceMemorySize, mDeviceMemoryPoolEnd), (long long int)mDeviceMemorySize, ptrDiff(mDeviceMemoryPermanent, mDeviceMemoryBase), (int)mMemoryResources.size());
@@ -782,10 +782,10 @@ int GPUReconstruction::getGeneralStepNum(GeneralStep step, bool validCheck) { re
 
 void GPUReconstruction::RunPipelineWorker()
 {
-  if (!mInitialized || !mDeviceProcessingSettings.doublePipeline || mMaster != nullptr || !mSlaves.size()) {
+  if (!mInitialized || !mProcessingSettings.doublePipeline || mMaster != nullptr || !mSlaves.size()) {
     throw std::invalid_argument("Cannot start double pipeline mode");
   }
-  if (mDeviceProcessingSettings.debugLevel >= 3) {
+  if (mProcessingSettings.debugLevel >= 3) {
     GPUInfo("Pipeline worker started");
   }
   bool terminate = false;
@@ -809,7 +809,7 @@ void GPUReconstruction::RunPipelineWorker()
     q->done = true;
     q->c.notify_one();
   }
-  if (mDeviceProcessingSettings.debugLevel >= 3) {
+  if (mProcessingSettings.debugLevel >= 3) {
     GPUInfo("Pipeline worker ended");
   }
 }
@@ -892,7 +892,7 @@ void GPUReconstruction::DumpSettings(const char* dir)
   }
 }
 
-void GPUReconstruction::UpdateEventSettings(const GPUSettingsEvent* e, const GPUSettingsDeviceProcessing* p)
+void GPUReconstruction::UpdateEventSettings(const GPUSettingsEvent* e, const GPUSettingsProcessing* p)
 {
   param().UpdateEventSettings(e, p);
   if (mInitialized) {
@@ -924,7 +924,7 @@ void GPUReconstruction::SetSettings(float solenoidBz)
   SetSettings(&ev, nullptr, nullptr);
 }
 
-void GPUReconstruction::SetSettings(const GPUSettingsEvent* settings, const GPUSettingsRec* rec, const GPUSettingsDeviceProcessing* proc, const GPURecoStepConfiguration* workflow)
+void GPUReconstruction::SetSettings(const GPUSettingsEvent* settings, const GPUSettingsRec* rec, const GPUSettingsProcessing* proc, const GPURecoStepConfiguration* workflow)
 {
   if (mInitialized) {
     GPUError("Cannot update settings while initialized");
@@ -932,7 +932,7 @@ void GPUReconstruction::SetSettings(const GPUSettingsEvent* settings, const GPUS
   }
   mEventSettings = *settings;
   if (proc) {
-    mDeviceProcessingSettings = *proc;
+    mProcessingSettings = *proc;
   }
   if (workflow) {
     mRecoSteps = workflow->steps;
@@ -959,15 +959,15 @@ std::unique_ptr<GPUReconstruction::GPUThreadContext> GPUReconstruction::GetThrea
 
 GPUReconstruction* GPUReconstruction::CreateInstance(DeviceType type, bool forceType, GPUReconstruction* master)
 {
-  GPUSettingsProcessing cfg;
-  new (&cfg) GPUSettingsProcessing;
+  GPUSettingsDeviceBackend cfg;
+  new (&cfg) GPUSettingsDeviceBackend;
   cfg.deviceType = type;
   cfg.forceDeviceType = forceType;
   cfg.master = master;
   return CreateInstance(cfg);
 }
 
-GPUReconstruction* GPUReconstruction::CreateInstance(const GPUSettingsProcessing& cfg)
+GPUReconstruction* GPUReconstruction::CreateInstance(const GPUSettingsDeviceBackend& cfg)
 {
   GPUReconstruction* retVal = nullptr;
   unsigned int type = cfg.deviceType;
@@ -999,7 +999,7 @@ GPUReconstruction* GPUReconstruction::CreateInstance(const GPUSettingsProcessing
       GPUError("Error: Could not load GPUReconstruction for specified device: %s (%u)", DEVICE_TYPE_NAMES[type], type);
     } else {
       GPUError("Could not load GPUReconstruction for device type %s (%u), falling back to CPU version", DEVICE_TYPE_NAMES[type], type);
-      GPUSettingsProcessing cfg2 = cfg;
+      GPUSettingsDeviceBackend cfg2 = cfg;
       cfg2.deviceType = DeviceType::CPU;
       retVal = CreateInstance(cfg2);
     }
@@ -1106,7 +1106,7 @@ int GPUReconstruction::LibraryLoader::LoadLibrary()
   return 0;
 }
 
-GPUReconstruction* GPUReconstruction::LibraryLoader::GetPtr(const GPUSettingsProcessing& cfg)
+GPUReconstruction* GPUReconstruction::LibraryLoader::GetPtr(const GPUSettingsDeviceBackend& cfg)
 {
   if (LoadLibrary()) {
     return nullptr;
@@ -1114,7 +1114,7 @@ GPUReconstruction* GPUReconstruction::LibraryLoader::GetPtr(const GPUSettingsPro
   if (mGPUEntry == nullptr) {
     return nullptr;
   }
-  GPUReconstruction* (*tmp)(const GPUSettingsProcessing& cfg) = (GPUReconstruction * (*)(const GPUSettingsProcessing& cfg)) mGPUEntry;
+  GPUReconstruction* (*tmp)(const GPUSettingsDeviceBackend& cfg) = (GPUReconstruction * (*)(const GPUSettingsDeviceBackend& cfg)) mGPUEntry;
   return tmp(cfg);
 }
 

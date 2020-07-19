@@ -42,7 +42,7 @@ void run_trd_tracker(std::string path = "./",
   //-------- init GPU reconstruction --------//
   GPUSettingsEvent cfgEvent;                       // defaults should be ok
   GPUSettingsRec cfgRec;                           // don't care for now, NWaysOuter is set in here for instance
-  GPUSettingsDeviceProcessing cfgDeviceProcessing; // also keep defaults here, or adjust debug level
+  GPUSettingsProcessing cfgDeviceProcessing;       // also keep defaults here, or adjust debug level
   cfgDeviceProcessing.debugLevel = 10;
   GPURecoStepConfiguration cfgRecoStep;
   cfgRecoStep.steps = GPUDataTypes::RecoStep::NoRecoStep;

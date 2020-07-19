@@ -225,11 +225,11 @@ DataProcessorSpec getCATrackerSpec(ca::Config const& specconfig, std::vector<int
       processAttributes->suppressOutput = (dump == 2);
       GPUO2InterfaceConfiguration config;
       if (useGPU) {
-        config.configProcessing.deviceType = GPUDataTypes::GetDeviceType(gpuType);
+        config.configDeviceBackend.deviceType = GPUDataTypes::GetDeviceType(gpuType);
       } else {
-        config.configProcessing.deviceType = GPUDataTypes::DeviceType::CPU;
+        config.configDeviceBackend.deviceType = GPUDataTypes::DeviceType::CPU;
       }
-      config.configProcessing.forceDeviceType = true; // If we request a GPU, we force that it is available - no CPU fallback
+      config.configDeviceBackend.forceDeviceType = true; // If we request a GPU, we force that it is available - no CPU fallback
 
       if (gpuDevice == -2) {
         int myId = ic.services().get<const o2::framework::DeviceSpec>().inputTimesliceId;
@@ -237,16 +237,16 @@ DataProcessorSpec getCATrackerSpec(ca::Config const& specconfig, std::vector<int
         gpuDevice = myId;
         LOG(INFO) << "GPU device number selected from pipeline id: " << myId << " / " << idMax;
       }
-      config.configDeviceProcessing.deviceNum = gpuDevice;
-      config.configDeviceProcessing.ompThreads = nThreads;
-      config.configDeviceProcessing.runQA = qa;                                   // Run QA after tracking
-      config.configDeviceProcessing.runMC = specconfig.processMC;                 // Propagate MC labels
-      config.configDeviceProcessing.eventDisplay = display;                       // Ptr to event display backend, for running standalone OpenGL event display
-      config.configDeviceProcessing.debugLevel = debugLevel;                      // Debug verbosity
-      config.configDeviceProcessing.forceMemoryPoolSize = memoryPoolSize;         // GPU / Host Memory pool size, default = 1 = auto-detect
-      config.configDeviceProcessing.forceHostMemoryPoolSize = hostMemoryPoolSize; // Same for host, overrides the avove value for the host if set
+      config.configProcessing.deviceNum = gpuDevice;
+      config.configProcessing.ompThreads = nThreads;
+      config.configProcessing.runQA = qa;                                   // Run QA after tracking
+      config.configProcessing.runMC = specconfig.processMC;                 // Propagate MC labels
+      config.configProcessing.eventDisplay = display;                       // Ptr to event display backend, for running standalone OpenGL event display
+      config.configProcessing.debugLevel = debugLevel;                      // Debug verbosity
+      config.configProcessing.forceMemoryPoolSize = memoryPoolSize;         // GPU / Host Memory pool size, default = 1 = auto-detect
+      config.configProcessing.forceHostMemoryPoolSize = hostMemoryPoolSize; // Same for host, overrides the avove value for the host if set
       if (memoryPoolSize || hostMemoryPoolSize) {
-        config.configDeviceProcessing.memoryAllocationStrategy = 2;
+        config.configProcessing.memoryAllocationStrategy = 2;
       }
 
       config.configEvent.solenoidBz = solenoidBz;

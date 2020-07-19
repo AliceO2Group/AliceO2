@@ -17,9 +17,9 @@
 #include "GPUReconstructionDeviceBase.h"
 
 #ifdef _WIN32
-extern "C" __declspec(dllexport) GPUCA_NAMESPACE::gpu::GPUReconstruction* GPUReconstruction_Create_CUDA(const GPUCA_NAMESPACE::gpu::GPUSettingsProcessing& cfg);
+extern "C" __declspec(dllexport) GPUCA_NAMESPACE::gpu::GPUReconstruction* GPUReconstruction_Create_CUDA(const GPUCA_NAMESPACE::gpu::GPUSettingsDeviceBackend& cfg);
 #else
-extern "C" GPUCA_NAMESPACE::gpu::GPUReconstruction* GPUReconstruction_Create_CUDA(const GPUCA_NAMESPACE::gpu::GPUSettingsProcessing& cfg);
+extern "C" GPUCA_NAMESPACE::gpu::GPUReconstruction* GPUReconstruction_Create_CUDA(const GPUCA_NAMESPACE::gpu::GPUSettingsDeviceBackend& cfg);
 #endif
 
 namespace GPUCA_NAMESPACE
@@ -34,7 +34,7 @@ class GPUReconstructionCUDABackend : public GPUReconstructionDeviceBase
   ~GPUReconstructionCUDABackend() override;
 
  protected:
-  GPUReconstructionCUDABackend(const GPUSettingsProcessing& cfg);
+  GPUReconstructionCUDABackend(const GPUSettingsDeviceBackend& cfg);
 
   int InitDevice_Runtime() override;
   int ExitDevice_Runtime() override;
