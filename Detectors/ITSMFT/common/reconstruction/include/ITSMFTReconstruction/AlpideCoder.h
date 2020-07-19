@@ -131,7 +131,7 @@ class AlpideCoder
       uint8_t dataCM = dataC & (~MaskChipID);
       //
       if ((expectInp & ExpectChipEmpty) && dataCM == CHIPEMPTY) { // empty chip was expected
-        chipData.setChipID(dataC & MaskChipID);                   // here we set the chip ID within the module
+        //chipData.setChipID(dataC & MaskChipID);                   // here we set the chip ID within the module
         if (!buffer.next(timestamp)) {
           return unexpectedEOF("CHIP_EMPTY:Timestamp");
         }
@@ -140,7 +140,7 @@ class AlpideCoder
       }
 
       if ((expectInp & ExpectChipHeader) && dataCM == CHIPHEADER) { // chip header was expected
-        chipData.setChipID(dataC & MaskChipID);                     // here we set the chip ID within the module
+        //chipData.setChipID(dataC & MaskChipID);                     // here we set the chip ID within the module
         if (!buffer.next(timestamp)) {
           return unexpectedEOF("CHIP_HEADER");
         }
