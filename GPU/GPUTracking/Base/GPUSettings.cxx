@@ -18,7 +18,7 @@
 
 using namespace GPUCA_NAMESPACE::gpu;
 
-GPUSettingsProcessing::GPUSettingsProcessing()
+GPUSettingsDeviceBackend::GPUSettingsDeviceBackend()
 {
   deviceType = GPUDataTypes::DeviceType::CPU;
   forceDeviceType = true;

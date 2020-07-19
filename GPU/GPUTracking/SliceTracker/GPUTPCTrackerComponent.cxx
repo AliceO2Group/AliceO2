@@ -370,7 +370,7 @@ int GPUTPCTrackerComponent::ConfigureSlices()
   // Initialize the tracker slices
   GPUSettingsRec rec;
   GPUSettingsEvent ev;
-  GPUSettingsDeviceProcessing devProc;
+  GPUSettingsProcessing devProc;
 
   ev.solenoidBz = fSolenoidBz;
   ev.continuousMaxTimeBin = 0; // triggered events

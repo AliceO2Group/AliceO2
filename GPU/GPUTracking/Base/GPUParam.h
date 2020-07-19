@@ -63,8 +63,8 @@ struct GPUParam {
 
 #ifndef GPUCA_GPUCODE
   void SetDefaults(float solenoidBz);
-  void SetDefaults(const GPUSettingsEvent* e, const GPUSettingsRec* r = nullptr, const GPUSettingsDeviceProcessing* p = nullptr, const GPURecoStepConfiguration* w = nullptr);
-  void UpdateEventSettings(const GPUSettingsEvent* e, const GPUSettingsDeviceProcessing* p = nullptr);
+  void SetDefaults(const GPUSettingsEvent* e, const GPUSettingsRec* r = nullptr, const GPUSettingsProcessing* p = nullptr, const GPURecoStepConfiguration* w = nullptr);
+  void UpdateEventSettings(const GPUSettingsEvent* e, const GPUSettingsProcessing* p = nullptr);
   void LoadClusterErrors(bool Print = 0);
 #endif
 

@@ -78,7 +78,7 @@ void* GPUTPCTracker::SetPointersDataRows(void* mem) { return mData.SetPointersRo
 void* GPUTPCTracker::SetPointersScratch(void* mem)
 {
   computePointerWithAlignment(mem, mTrackletStartHits, mNMaxStartHits);
-  if (mRec->GetDeviceProcessingSettings().memoryAllocationStrategy != GPUMemoryResource::ALLOCATION_INDIVIDUAL) {
+  if (mRec->GetProcessingSettings().memoryAllocationStrategy != GPUMemoryResource::ALLOCATION_INDIVIDUAL) {
     mem = SetPointersTracklets(mem);
   }
   if (mRec->IsGPU()) {
@@ -90,7 +90,7 @@ void* GPUTPCTracker::SetPointersScratch(void* mem)
 
 void* GPUTPCTracker::SetPointersScratchHost(void* mem)
 {
-  if (mRec->GetDeviceProcessingSettings().keepDisplayMemory) {
+  if (mRec->GetProcessingSettings().keepDisplayMemory) {
     computePointerWithAlignment(mem, mLinkTmpMemory, mRec->Res(mMemoryResLinks).Size());
   }
   mem = mData.SetPointersClusterIds(mem, mRec->GetRecoStepsGPU() & GPUDataTypes::RecoStep::TPCMerging);
@@ -106,21 +106,21 @@ void* GPUTPCTracker::SetPointersCommon(void* mem)
 void GPUTPCTracker::RegisterMemoryAllocation()
 {
   AllocateAndInitializeLate();
-  bool reuseCondition = !mRec->GetDeviceProcessingSettings().keepDisplayMemory && mRec->GetDeviceProcessingSettings().trackletSelectorInPipeline && ((mRec->GetRecoStepsGPU() & GPUDataTypes::RecoStep::TPCSliceTracking) || mRec->GetDeviceProcessingSettings().ompThreads == 1);
-  GPUMemoryReuse reLinks{reuseCondition, GPUMemoryReuse::REUSE_1TO1, GPUMemoryReuse::TrackerDataLinks, (unsigned short)(mISlice % mRec->GetDeviceProcessingSettings().nStreams)};
+  bool reuseCondition = !mRec->GetProcessingSettings().keepDisplayMemory && mRec->GetProcessingSettings().trackletSelectorInPipeline && ((mRec->GetRecoStepsGPU() & GPUDataTypes::RecoStep::TPCSliceTracking) || mRec->GetProcessingSettings().ompThreads == 1);
+  GPUMemoryReuse reLinks{reuseCondition, GPUMemoryReuse::REUSE_1TO1, GPUMemoryReuse::TrackerDataLinks, (unsigned short)(mISlice % mRec->GetProcessingSettings().nStreams)};
   mMemoryResLinks = mRec->RegisterMemoryAllocation(this, &GPUTPCTracker::SetPointersDataLinks, GPUMemoryResource::MEMORY_SCRATCH | GPUMemoryResource::MEMORY_STACK, "TPCSliceLinks", reLinks);
   mMemoryResSliceScratch = mRec->RegisterMemoryAllocation(this, &GPUTPCTracker::SetPointersDataScratch, GPUMemoryResource::MEMORY_SCRATCH | GPUMemoryResource::MEMORY_STACK | GPUMemoryResource::MEMORY_CUSTOM, "TPCSliceScratch");
   mMemoryResSliceInput = mRec->RegisterMemoryAllocation(this, &GPUTPCTracker::SetPointersDataInput, GPUMemoryResource::MEMORY_INPUT | GPUMemoryResource::MEMORY_STACK | GPUMemoryResource::MEMORY_CUSTOM, "TPCSliceInput");
-  GPUMemoryReuse reWeights{reuseCondition, GPUMemoryReuse::REUSE_1TO1, GPUMemoryReuse::TrackerDataWeights, (unsigned short)(mISlice % mRec->GetDeviceProcessingSettings().nStreams)};
+  GPUMemoryReuse reWeights{reuseCondition, GPUMemoryReuse::REUSE_1TO1, GPUMemoryReuse::TrackerDataWeights, (unsigned short)(mISlice % mRec->GetProcessingSettings().nStreams)};
   mRec->RegisterMemoryAllocation(this, &GPUTPCTracker::SetPointersDataWeights, GPUMemoryResource::MEMORY_SCRATCH | GPUMemoryResource::MEMORY_STACK, "TPCSliceWeights", reWeights);
-  GPUMemoryReuse reScratch{reuseCondition, GPUMemoryReuse::REUSE_1TO1, GPUMemoryReuse::TrackerScratch, (unsigned short)(mISlice % mRec->GetDeviceProcessingSettings().nStreams)};
+  GPUMemoryReuse reScratch{reuseCondition, GPUMemoryReuse::REUSE_1TO1, GPUMemoryReuse::TrackerScratch, (unsigned short)(mISlice % mRec->GetProcessingSettings().nStreams)};
   mRec->RegisterMemoryAllocation(this, &GPUTPCTracker::SetPointersScratch, GPUMemoryResource::MEMORY_SCRATCH | GPUMemoryResource::MEMORY_STACK, "TPCTrackerScratch", reScratch);
   mRec->RegisterMemoryAllocation(this, &GPUTPCTracker::SetPointersScratchHost, GPUMemoryResource::MEMORY_SCRATCH_HOST, "TPCTrackerHost");
   mMemoryResCommon = mRec->RegisterMemoryAllocation(this, &GPUTPCTracker::SetPointersCommon, GPUMemoryResource::MEMORY_PERMANENT, "TPCTrackerCommon");
   mRec->RegisterMemoryAllocation(this, &GPUTPCTracker::SetPointersDataRows, GPUMemoryResource::MEMORY_PERMANENT, "TPCSliceRows");
 
-  unsigned int type = mRec->GetDeviceProcessingSettings().fullMergerOnGPU ? GPUMemoryResource::MEMORY_SCRATCH : GPUMemoryResource::MEMORY_OUTPUT;
-  if (mRec->GetDeviceProcessingSettings().memoryAllocationStrategy == GPUMemoryResource::ALLOCATION_INDIVIDUAL) { // For individual scheme, we allocate tracklets separately, and change the type for the following allocations to custom
+  unsigned int type = mRec->GetProcessingSettings().fullMergerOnGPU ? GPUMemoryResource::MEMORY_SCRATCH : GPUMemoryResource::MEMORY_OUTPUT;
+  if (mRec->GetProcessingSettings().memoryAllocationStrategy == GPUMemoryResource::ALLOCATION_INDIVIDUAL) { // For individual scheme, we allocate tracklets separately, and change the type for the following allocations to custom
     type |= GPUMemoryResource::MEMORY_CUSTOM;
     mMemoryResTracklets = mRec->RegisterMemoryAllocation(this, &GPUTPCTracker::SetPointersTracklets, type, "TPCTrackerTracklets");
   }
@@ -143,7 +143,7 @@ GPUhd() void* GPUTPCTracker::SetPointersOutput(void* mem)
 
 void GPUTPCTracker::SetMaxData(const GPUTrackingInOutPointers& io)
 {
-  if (mRec->GetDeviceProcessingSettings().memoryAllocationStrategy == GPUMemoryResource::ALLOCATION_INDIVIDUAL) {
+  if (mRec->GetProcessingSettings().memoryAllocationStrategy == GPUMemoryResource::ALLOCATION_INDIVIDUAL) {
     mNMaxStartHits = mData.NumberOfHits();
   } else {
     mNMaxStartHits = mRec->MemoryScalers()->NTPCStartHits(mData.NumberOfHits());
