@@ -35,7 +35,7 @@ namespace GPUCA_NAMESPACE::gpu
 {
 extern GPUSettingsStandalone configStandalone;
 }
-static auto& config = configStandalone.configTF;
+static auto& config = configStandalone.TF;
 
 GPUReconstructionTimeframe::GPUReconstructionTimeframe(GPUChainTracking* chain, int (*read)(int), int nEvents) : mChain(chain), mReadEvent(read), mNEventsInDirectory(nEvents), mDisUniReal(0., 1.), mRndGen1(configStandalone.seed), mRndGen2(mDisUniInt(mRndGen1))
 {
