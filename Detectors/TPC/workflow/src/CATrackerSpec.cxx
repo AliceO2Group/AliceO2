@@ -95,178 +95,37 @@ DataProcessorSpec getCATrackerSpec(ca::Config const& specconfig, std::vector<int
 
   auto processAttributes = std::make_shared<ProcessAttributes>();
   auto initFunction = [processAttributes, specconfig](InitContext& ic) {
-    auto options = ic.options().get<std::string>("tracker-options");
     {
       auto& parser = processAttributes->parser;
       auto& tracker = processAttributes->tracker;
       parser = std::make_unique<ClusterGroupParser>();
       tracker = std::make_unique<GPUCATracking>();
 
-      // Prepare initialization of CATracker - we parse the deprecated option string here,
-      // and create the proper configuration objects for compatibility.
-      // This should go away eventually.
+      // Create configuration object and fill settings
 
-      // Default Settings
-      float solenoidBz = 5.00668;                // B-field
-      float refX = 83.;                          // transport tracks to this x after tracking, >500 for disabling
-      bool continuous = false;                   // time frame data v.s. triggered events
-      int nThreads = 1;                          // number of threads if we run on the CPU, 1 = default, 0 = auto-detect
-      bool useGPU = false;                       // use a GPU for processing, if false uses GPU
-      int debugLevel = 0;                        // Enable additional debug output
-      int dump = 0;                              // create memory dump of processed events for standalone runs, 2 to dump only and skip processing
-      char gpuType[1024] = "CUDA";               // Type of GPU device, if useGPU is set to true
-      int gpuDevice = -1;                        // Select GPU device id (-1 = auto-detect fastest, -2 = use pipeline-slice)
-      GPUDisplayBackend* display = nullptr;      // Ptr to display backend (enables event display)
-      bool qa = false;                           // Run the QA after tracking
-      bool readTransformationFromFile = false;   // Read the TPC transformation from the file
-      bool allocateOutputOnTheFly = true;        // Provide a callback to allocate output buffer on the fly instead of preallocating
-      char tpcTransformationFileName[1024] = ""; // A file with the TPC transformation
-      char matBudFileName[1024] = "";            // Material budget file name
-      char dEdxSplinesFile[1024] = "";           // File containing dEdx splines
-      int tpcRejectionMode = GPUSettings::RejectionStrategyA;
-      size_t memoryPoolSize = 1;
-      size_t hostMemoryPoolSize = 0;
-
+      GPUO2InterfaceConfiguration config;
       const auto grp = o2::parameters::GRPObject::loadFrom("o2sim_grp.root");
       if (grp) {
-        solenoidBz *= grp->getL3Current() / 30000.;
-        continuous = grp->isDetContinuousReadOut(o2::detectors::DetID::TPC);
-        LOG(INFO) << "Initializing run paramerers from GRP bz=" << solenoidBz << " cont=" << continuous;
+        config.configEvent.solenoidBz *= grp->getL3Current() / 30000.;
+        config.configEvent.continuousMaxTimeBin = grp->isDetContinuousReadOut(o2::detectors::DetID::TPC) ? -1 : 0; // Number of timebins in timeframe if continuous, 0 otherwise
+        LOG(INFO) << "Initializing run paramerers from GRP bz=" << config.configEvent.solenoidBz << " cont=" << grp->isDetContinuousReadOut(o2::detectors::DetID::TPC);
       } else {
         throw std::runtime_error("Failed to initialize run parameters from GRP");
       }
-
-      // Parse the config string
-      const char* opt = options.c_str();
-      if (opt && *opt) {
-        printf("Received options %s\n", opt);
-        const char* optPtr = opt;
-        while (optPtr && *optPtr) {
-          while (*optPtr == ' ') {
-            optPtr++;
-          }
-          const char* nextPtr = strstr(optPtr, " ");
-          const int optLen = nextPtr ? nextPtr - optPtr : strlen(optPtr);
-          if (strncmp(optPtr, "cont", optLen) == 0) {
-            continuous = true;
-            printf("Continuous tracking mode enabled\n");
-          } else if (strncmp(optPtr, "dump", optLen) == 0) {
-            dump = 1;
-            printf("Dumping of input events enabled\n");
-          } else if (strncmp(optPtr, "dumponly", optLen) == 0) {
-            dump = 2;
-            printf("Dumping of input events enabled, processing disabled\n");
-          } else if (strncmp(optPtr, "display", optLen) == 0) {
-#ifdef GPUCA_BUILD_EVENT_DISPLAY
-            processAttributes->displayBackend.reset(new GPUDisplayBackendGlfw);
-            display = processAttributes->displayBackend.get();
-            printf("Event display enabled\n");
-#else
-            printf("Standalone Event Display not enabled at build time!\n");
-#endif
-          } else if (strncmp(optPtr, "qa", optLen) == 0) {
-            qa = true;
-            printf("Enabling TPC Standalone QA\n");
-          } else if (optLen > 3 && strncmp(optPtr, "bz=", 3) == 0) {
-            sscanf(optPtr + 3, "%f", &solenoidBz);
-            printf("Using solenoid field %f\n", solenoidBz);
-          } else if (optLen > 5 && strncmp(optPtr, "refX=", 5) == 0) {
-            sscanf(optPtr + 5, "%f", &refX);
-            printf("Propagating to reference X %f\n", refX);
-          } else if (optLen > 5 && strncmp(optPtr, "debug=", 6) == 0) {
-            sscanf(optPtr + 6, "%d", &debugLevel);
-            printf("Debug level set to %d\n", debugLevel);
-          } else if (optLen > 8 && strncmp(optPtr, "threads=", 8) == 0) {
-            sscanf(optPtr + 8, "%d", &nThreads);
-            printf("Using %d threads\n", nThreads);
-          } else if (optLen > 21 && strncmp(optPtr, "tpcRejectionStrategy=", 21) == 0) {
-            sscanf(optPtr + 21, "%d", &tpcRejectionMode);
-            tpcRejectionMode = tpcRejectionMode == 0 ? GPUSettings::RejectionNone : tpcRejectionMode == 1 ? GPUSettings::RejectionStrategyA : GPUSettings::RejectionStrategyB;
-            printf("TPC Rejection Mode: %d\n", tpcRejectionMode);
-          } else if (optLen > 8 && strncmp(optPtr, "gpuType=", 8) == 0) {
-            int len = std::min(optLen - 8, 1023);
-            memcpy(gpuType, optPtr + 8, len);
-            gpuType[len] = 0;
-            useGPU = true;
-            printf("Using GPU Type %s\n", gpuType);
-          } else if (optLen > 8 && strncmp(optPtr, "matBudFile=", 8) == 0) {
-            int len = std::min(optLen - 11, 1023);
-            memcpy(matBudFileName, optPtr + 11, len);
-            matBudFileName[len] = 0;
-          } else if (optLen > 7 && strncmp(optPtr, "gpuNum=", 7) == 0) {
-            sscanf(optPtr + 7, "%d", &gpuDevice);
-            printf("Using GPU device %d\n", gpuDevice);
-          } else if (optLen > 8 && strncmp(optPtr, "gpuMemorySize=", 14) == 0) {
-            sscanf(optPtr + 14, "%llu", (unsigned long long int*)&memoryPoolSize);
-            printf("GPU memory pool size set to %llu\n", (unsigned long long int)memoryPoolSize);
-          } else if (optLen > 8 && strncmp(optPtr, "hostMemorySize=", 15) == 0) {
-            sscanf(optPtr + 15, "%llu", (unsigned long long int*)&hostMemoryPoolSize);
-            printf("Host memory pool size set to %llu\n", (unsigned long long int)hostMemoryPoolSize);
-          } else if (optLen > 8 && strncmp(optPtr, "dEdxFile=", 9) == 0) {
-            int len = std::min(optLen - 9, 1023);
-            memcpy(dEdxSplinesFile, optPtr + 9, len);
-            dEdxSplinesFile[len] = 0;
-          } else if (optLen > 15 && strncmp(optPtr, "transformation=", 15) == 0) {
-            int len = std::min(optLen - 15, 1023);
-            memcpy(tpcTransformationFileName, optPtr + 15, len);
-            tpcTransformationFileName[len] = 0;
-            readTransformationFromFile = true;
-            printf("Read TPC transformation from the file \"%s\"\n", tpcTransformationFileName);
-          } else {
-            printf("Unknown option: %s\n", optPtr);
-            throw std::invalid_argument("Unknown config string option");
-          }
-          optPtr = nextPtr;
-        }
+      const GPUSettingsO2& confParam = config.ReadConfigurableParam();
+      processAttributes->allocateOutputOnTheFly = confParam.allocateOutputOnTheFly;
+      processAttributes->suppressOutput = (confParam.dump == 2);
+      if (config.configEvent.continuousMaxTimeBin == -1) {
+        config.configEvent.continuousMaxTimeBin = (o2::raw::HBFUtils::Instance().getNOrbitsPerTF() * o2::constants::lhc::LHCMaxBunches + 2 * Constants::LHCBCPERTIMEBIN - 2) / Constants::LHCBCPERTIMEBIN;
       }
-
-      // Create configuration object and fill settings
-      processAttributes->allocateOutputOnTheFly = allocateOutputOnTheFly;
-      processAttributes->suppressOutput = (dump == 2);
-      GPUO2InterfaceConfiguration config;
-      if (useGPU) {
-        config.configDeviceBackend.deviceType = GPUDataTypes::GetDeviceType(gpuType);
-      } else {
-        config.configDeviceBackend.deviceType = GPUDataTypes::DeviceType::CPU;
-      }
-      config.configDeviceBackend.forceDeviceType = true; // If we request a GPU, we force that it is available - no CPU fallback
-
-      if (gpuDevice == -2) {
+      if (config.configProcessing.deviceNum == -2) {
         int myId = ic.services().get<const o2::framework::DeviceSpec>().inputTimesliceId;
         int idMax = ic.services().get<const o2::framework::DeviceSpec>().maxInputTimeslices;
-        gpuDevice = myId;
+        config.configProcessing.deviceNum = myId;
         LOG(INFO) << "GPU device number selected from pipeline id: " << myId << " / " << idMax;
       }
-      config.configProcessing.deviceNum = gpuDevice;
-      config.configProcessing.ompThreads = nThreads;
-      config.configProcessing.runQA = qa;                                   // Run QA after tracking
-      config.configProcessing.runMC = specconfig.processMC;                 // Propagate MC labels
-      config.configProcessing.eventDisplay = display;                       // Ptr to event display backend, for running standalone OpenGL event display
-      config.configProcessing.debugLevel = debugLevel;                      // Debug verbosity
-      config.configProcessing.forceMemoryPoolSize = memoryPoolSize;         // GPU / Host Memory pool size, default = 1 = auto-detect
-      config.configProcessing.forceHostMemoryPoolSize = hostMemoryPoolSize; // Same for host, overrides the avove value for the host if set
-      if (memoryPoolSize || hostMemoryPoolSize) {
-        config.configProcessing.memoryAllocationStrategy = 2;
-      }
-
-      config.configEvent.solenoidBz = solenoidBz;
-      int maxContTimeBin = (o2::raw::HBFUtils::Instance().getNOrbitsPerTF() * o2::constants::lhc::LHCMaxBunches + 2 * Constants::LHCBCPERTIMEBIN - 2) / Constants::LHCBCPERTIMEBIN;
-      config.configEvent.continuousMaxTimeBin = continuous ? maxContTimeBin : 0; // Number of timebins in timeframe if continuous, 0 otherwise
-
-      config.configReconstruction.NWays = 3;               // Should always be 3!
-      config.configReconstruction.NWaysOuter = true;       // Will create outer param for TRD
-      config.configReconstruction.SearchWindowDZDR = 2.5f; // Should always be 2.5 for looper-finding and/or continuous tracking
-      config.configReconstruction.TrackReferenceX = refX;
-
-      // Settings for TPC Compression:
-      config.configReconstruction.tpcRejectionMode = tpcRejectionMode;                // Implement TPC Strategy A
-      config.configReconstruction.tpcRejectQPt = 1.f / 0.05f;                         // Reject clusters of tracks < 50 MeV
-      config.configReconstruction.tpcCompressionModes = GPUSettings::CompressionFull; // Activate all compression steps
-      config.configReconstruction.tpcCompressionSortOrder = GPUSettings::SortTime;    // Sort order for differences compression
-      config.configReconstruction.tpcSigBitsCharge = 4;                               // Number of significant bits in TPC cluster chargs
-      config.configReconstruction.tpcSigBitsWidth = 3;                                // Number of significant bits in TPC cluster width
-
-      config.configInterface.dumpEvents = dump;
+      config.configProcessing.runMC = specconfig.processMC;
+      config.configReconstruction.NWaysOuter = true;
       config.configInterface.outputToExternalBuffers = true;
 
       // Configure the "GPU workflow" i.e. which steps we run on the GPU (or CPU) with this instance of GPUCATracking
@@ -294,9 +153,9 @@ DataProcessorSpec getCATrackerSpec(ca::Config const& specconfig, std::vector<int
       }
 
       // Create and forward data objects for TPC transformation, material LUT, ...
-      if (readTransformationFromFile) {
+      if (confParam.transformationFile.size()) {
         processAttributes->fastTransform = nullptr;
-        config.configCalib.fastTransform = TPCFastTransform::loadFromFile(tpcTransformationFileName);
+        config.configCalib.fastTransform = TPCFastTransform::loadFromFile(confParam.transformationFile.c_str());
       } else {
         processAttributes->fastTransform = std::move(TPCFastTransformHelperO2::instance()->create(0));
         config.configCalib.fastTransform = processAttributes->fastTransform.get();
@@ -304,14 +163,15 @@ DataProcessorSpec getCATrackerSpec(ca::Config const& specconfig, std::vector<int
       if (config.configCalib.fastTransform == nullptr) {
         throw std::invalid_argument("GPUCATracking: initialization of the TPC transformation failed");
       }
-      if (strlen(matBudFileName)) {
-        config.configCalib.matLUT = o2::base::MatLayerCylSet::loadFromFile(matBudFileName, "MatBud");
+      if (confParam.matLUTFile.size()) {
+        config.configCalib.matLUT = o2::base::MatLayerCylSet::loadFromFile(confParam.matLUTFile.c_str(), "MatBud");
       }
-      processAttributes->dEdxSplines.reset(new TPCdEdxCalibrationSplines);
-      if (strlen(dEdxSplinesFile)) {
-        TFile dEdxFile(dEdxSplinesFile);
-        processAttributes->dEdxSplines->setSplinesFromFile(dEdxFile);
+      if (confParam.dEdxFile.size()) {
+        processAttributes->dEdxSplines.reset(new TPCdEdxCalibrationSplines(confParam.dEdxFile.c_str()));
+      } else {
+        processAttributes->dEdxSplines.reset(new TPCdEdxCalibrationSplines);
       }
+
       config.configCalib.dEdxSplines = processAttributes->dEdxSplines.get();
 
       // Sample code what needs to be done for the TRD Geometry, when we extend this to TRD tracking.
@@ -877,10 +737,7 @@ DataProcessorSpec getCATrackerSpec(ca::Config const& specconfig, std::vector<int
   return DataProcessorSpec{"tpc-tracker", // process id
                            {createInputSpecs()},
                            {createOutputSpecs()},
-                           AlgorithmSpec(initFunction),
-                           Options{
-                             {"tracker-options", VariantType::String, "", {"Option string passed to tracker"}},
-                           }};
+                           AlgorithmSpec(initFunction)};
 }
 
 } // namespace tpc

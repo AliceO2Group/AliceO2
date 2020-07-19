@@ -157,7 +157,7 @@ int genEvents::GenerateEvent(const GPUParam& param, char* filename)
     gRandom->SetSeed(configStandalone.seed);
   }
 
-  int nTracks = configStandalone.configEG.numberOfTracks; // Number of MC tracks, must be at least as large as the largest fMCID assigned above
+  int nTracks = configStandalone.EG.numberOfTracks; // Number of MC tracks, must be at least as large as the largest fMCID assigned above
   cout << "NTracks " << nTracks << endl;
   std::vector<GPUTPCMCInfo> mcInfo(nTracks);
   memset(mcInfo.data(), 0, nTracks * sizeof(mcInfo[0]));

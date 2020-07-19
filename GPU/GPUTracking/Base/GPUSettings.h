@@ -17,6 +17,7 @@
 #include "GPUCommonDef.h"
 #ifndef __OPENCL__
 #include <vector>
+#include <string>
 #endif
 
 namespace GPUCA_NAMESPACE

@@ -95,7 +95,7 @@ static const GPUDisplay::configDisplay& GPUDisplay_GetConfig(GPUChainTracking* r
   }
 
 #else
-  return configStandalone.configGL;
+  return configStandalone.GL;
 #endif
 }
 
