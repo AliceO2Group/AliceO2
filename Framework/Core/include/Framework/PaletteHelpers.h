@@ -10,6 +10,8 @@
 #ifndef FRAMEWORK_PALETTE_HELPER_H
 #define FRAMEWORK_PALETTE_HELPER_H
 
+#if __has_include(<DebugGUI/DebugGUI.h>)
+
 #include "DebugGUI/imgui.h"
 
 namespace o2
@@ -38,5 +40,7 @@ struct PaletteHelpers {
 
 } // namespace framework
 } // namespace o2
+
+#endif
 
 #endif

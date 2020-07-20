@@ -7,6 +7,8 @@
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
+
+#if __has_include("DebugGUI/icons_font_awesome.h")
 #include "Framework/PaletteHelpers.h"
 
 namespace o2
@@ -32,3 +34,6 @@ const ImVec4 PaletteHelpers::LIGHT_GRAY = ImVec4(75 / 255., 75 / 255., 75 / 255.
 
 } // namespace framework
 } // namespace o2
+
+#endif
+

@@ -7,6 +7,8 @@
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
+#if __has_include("DebugGUI/icons_font_awesome.h")
+
 #include "Framework/FrameworkGUIDevicesGraph.h"
 #include "Framework/FrameworkGUIDataRelayerUsage.h"
 #include "Framework/FrameworkGUIState.h"
@@ -17,12 +19,10 @@
 #include "FrameworkGUIDeviceInspector.h"
 #include "../src/WorkflowHelpers.h"
 #include "DebugGUI/imgui.h"
-#if __has_include("DebugGUI/icons_font_awesome.h")
 #include "DebugGUI/icons_font_awesome.h"
-#else
-#define ICON_FA_EXCLAMATION_CIRCLE "(Errors!)"
-#define ICON_FA_EXCLAMATION_TRIANGLE "(Warnings!)"
-#endif
+// #else
+// #define ICON_FA_EXCLAMATION_CIRCLE "(Errors!)"
+// #define ICON_FA_EXCLAMATION_TRIANGLE "(Warnings!)"
 #include <algorithm>
 #include <cmath>
 #include <vector>
@@ -560,3 +560,5 @@ void showTopologyNodeGraph(WorkspaceGUIState& state,
 } // namespace gui
 } // namespace framework
 } // namespace o2
+
+#endif

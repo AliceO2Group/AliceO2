@@ -7,6 +7,9 @@
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
+
+#if __has_include(<DebugGUI/DebugGUI.h>)
+
 #include "Framework/FrameworkGUIDebugger.h"
 #include <algorithm>
 #include <iostream>
@@ -788,3 +791,5 @@ std::function<void(void)> getGUIDebugger(std::vector<DeviceInfo> const& infos,
 } // namespace gui
 } // namespace framework
 } // namespace o2
+
+#endif

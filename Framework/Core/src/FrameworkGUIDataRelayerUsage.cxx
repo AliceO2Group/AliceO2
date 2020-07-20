@@ -7,6 +7,7 @@
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
+#if __has_include(<DebugGUI/DebugGUI.h>)
 #include "DebugGUI/imgui.h"
 #include <functional>
 #include "Framework/DeviceMetricsInfo.h"
@@ -165,3 +166,4 @@ void displayDataRelayer(DeviceMetricsInfo const& metrics,
 } // namespace gui
 } // namespace framework
 } // namespace o2
+#endif

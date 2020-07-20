@@ -8,6 +8,8 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
+#if __has_include(<DebugGUI/DebugGUI.h>)
+
 #include "FrameworkGUIDeviceInspector.h"
 #include "DataProcessorInfo.h"
 
@@ -258,3 +260,5 @@ void displayDeviceInspector(DeviceSpec const& spec,
 } // namespace gui
 } // namespace framework
 } // namespace o2
+
+#endif

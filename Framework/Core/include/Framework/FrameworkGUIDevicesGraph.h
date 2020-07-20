@@ -10,6 +10,8 @@
 #ifndef FRAMEWORK_FRAMEWORKGUIDEVICEGRAPH_H_
 #define FRAMEWORK_FRAMEWORKGUIDEVICEGRAPH_H_
 
+#if __has_include(<DebugGUI/DebugGUI.h>)
+
 #include "../../src/DataProcessorInfo.h"
 #include "Framework/DeviceSpec.h"
 #include "Framework/DeviceInfo.h"
@@ -37,4 +39,5 @@ void showTopologyNodeGraph(WorkspaceGUIState& state,
 } // namespace framework
 } // namespace o2
 
+#endif
 #endif // FRAMEWORK_FRAMEWORKGUIDEVICEGRAPH_H_

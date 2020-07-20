@@ -10,6 +10,8 @@
 
 /// Helper to display information about a device
 
+#if __has_include(<DebugGUI/DebugGUI.h>)
+
 namespace o2
 {
 namespace framework
@@ -29,3 +31,5 @@ void displayDeviceInspector(DeviceSpec const& spec, DeviceInfo const& info, Devi
 } // namespace gui
 } // namespace framework
 } // namespace o2
+
+#endif
