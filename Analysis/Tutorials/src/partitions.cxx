@@ -32,11 +32,14 @@ struct ATask {
 
   float philow = 1.0f;
   float phiup = 2.0f;
-  Partition<soa::Filtered<aod::Tracks>> leftPhi = aod::track::phiraw < philow;
-  Partition<soa::Filtered<aod::Tracks>> midPhi = aod::track::phiraw >= philow && aod::track::phiraw < phiup;
-  Partition<soa::Filtered<aod::Tracks>> rightPhi = aod::track::phiraw >= phiup;
 
-  void process(aod::Collision const& collision, soa::Filtered<aod::Tracks> const& tracks)
+  using myTracks = soa::Filtered<aod::Tracks>;
+
+  Partition<myTracks> leftPhi = aod::track::phiraw < philow;
+  Partition<myTracks> midPhi = aod::track::phiraw >= philow && aod::track::phiraw < phiup;
+  Partition<myTracks> rightPhi = aod::track::phiraw >= phiup;
+
+  void process(aod::Collision const& collision, myTracks const& tracks)
   {
     LOGF(INFO, "Collision: %d [N = %d] [left phis = %d] [mid phis = %d] [right phis = %d]",
          collision.globalIndex(), tracks.size(), leftPhi.size(), midPhi.size(), rightPhi.size());
