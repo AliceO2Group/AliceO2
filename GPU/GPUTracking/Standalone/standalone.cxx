@@ -233,19 +233,6 @@ int ReadConfiguration(int argc, char** argv)
     configStandalone.proc.ompThreads = 1;
   }
 
-#ifdef WITH_OPENMP
-  if (configStandalone.proc.ompThreads != -1) {
-    omp_set_num_threads(configStandalone.proc.ompThreads);
-  } else {
-    configStandalone.proc.ompThreads = omp_get_max_threads();
-  }
-  if (configStandalone.proc.ompThreads != omp_get_max_threads()) {
-    printf("Cannot set number of OMP threads!\n");
-    return 1;
-  }
-#else
-  configStandalone.proc.ompThreads = 1;
-#endif
   if (configStandalone.outputcontrolmem) {
     bool forceEmptyMemory = getenv("LD_PRELOAD") && strstr(getenv("LD_PRELOAD"), "valgrind") != nullptr;
     outputmemory.reset(new char[configStandalone.outputcontrolmem]);
