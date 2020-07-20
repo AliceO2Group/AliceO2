@@ -462,12 +462,6 @@ bool DataProcessingDevice::ConditionalRun()
 void DataProcessingDevice::doPrepare(DataProcessorContext& context)
 {
   ZoneScopedN("DataProcessingDevice::doPrepare");
-  auto switchState = [& registry = context.registry,
-                      &state = context.state->streaming](StreamingState newState) {
-    LOG(debug) << "New state " << (int)newState << " old state " << (int)state;
-    state = newState;
-    registry->get<ControlService>().notifyStreamingState(state);
-  };
   context.registry->get<DataProcessingStats>().beginIterationTimestamp = uv_hrtime() / 1000000;
 
   *context.wasActive = false;
@@ -510,10 +504,10 @@ void DataProcessingDevice::doPrepare(DataProcessorContext& context)
 void DataProcessingDevice::doRun(DataProcessorContext& context)
 {
   auto switchState = [& registry = context.registry,
-                      &state = context.state->streaming](StreamingState newState) {
-    LOG(debug) << "New state " << (int)newState << " old state " << (int)state;
-    state = newState;
-    registry->get<ControlService>().notifyStreamingState(state);
+                      &state = context.state](StreamingState newState) {
+    LOG(debug) << "New state " << (int)newState << " old state " << (int)state->streaming;
+    state->streaming = newState;
+    registry->get<ControlService>().notifyStreamingState(state->streaming);
   };
 
   context.completed->clear();
@@ -911,9 +905,9 @@ bool DataProcessingDevice::tryDispatchComputation(DataProcessorContext& context,
   };
 
   auto switchState = [& control = context.registry->get<ControlService>(),
-                      &state = context.state->streaming](StreamingState newState) {
-    state = newState;
-    control.notifyStreamingState(state);
+                      &state = context.state](StreamingState newState) {
+    state->streaming = newState;
+    control.notifyStreamingState(state->streaming);
   };
 
   if (canDispatchSomeComputation() == false) {
