@@ -635,14 +635,8 @@ int GPUDisplay::InitGL_internal()
   setDepthBuffer();
   setQuality();
   ReSizeGLScene(GPUDisplayBackend::INIT_WIDTH, GPUDisplayBackend::INIT_HEIGHT, true);
-#ifdef WITH_OPENMP
-  int maxThreads = mChain->GetProcessingSettings().ompThreads > 1 ? mChain->GetProcessingSettings().ompThreads : 1;
-  omp_set_num_threads(maxThreads);
-#else
-  int maxThreads = 1;
-#endif
-  mThreadBuffers.resize(maxThreads);
-  mThreadTracks.resize(maxThreads);
+  mThreadBuffers.resize(mChain->GetProcessingSettings().ompThreads);
+  mThreadTracks.resize(mChain->GetProcessingSettings().ompThreads);
 #ifdef GPUCA_DISPLAY_OPENGL_CORE
   CHKERR(mVertexShader = glCreateShader(GL_VERTEX_SHADER));
   CHKERR(glShaderSource(mVertexShader, 1, &GPUDisplayShaders::vertexShader, NULL));
