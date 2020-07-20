@@ -36,4 +36,3 @@ const ImVec4 PaletteHelpers::LIGHT_GRAY = ImVec4(75 / 255., 75 / 255., 75 / 255.
 } // namespace o2
 
 #endif
-
