@@ -1,0 +1,40 @@
+{
+    "internal-dpl-clock": "",
+    "internal-dpl-aod-reader": {
+        "aod-file": "AO2D.root",
+        "start-value-enumeration": "0",
+        "end-value-enumeration": "-1",
+        "step-value-enumeration": "1"
+    },
+    "produce-sel-track": {
+        "dovalplots": "true",
+        "ptmintrack": "0.",
+        "d_tpcnclsfound": "71",
+        "dcatoprimxymin": 0.03
+    },
+    "vertexerhf-hftrackindexskimscreator": {
+        "dovalplots": "true",
+        "triggerindex": "-1",
+	"do3prong": "1",
+	"d_bz": "5",
+        "b_propdca": "true",
+        "d_maxr": "200",
+        "d_maxdzini": "4",
+        "d_minparamchange": "0.001",
+        "d_minrelchi2change": "0.90000000000000002",
+        "d_minmassDp": 1.5,
+        "d_maxmassDp": 2.1
+    },
+    "vertexerhf-hfcandcreator2prong": {
+        "dovalplots": "true",
+        "d_bz": "5",
+        "b_propdca": "true",
+        "d_maxr": "200",
+        "d_maxdzini": "4",
+        "d_minparamchange": "0.001",
+        "d_minrelchi2change": "0.90000000000000002"
+    },
+    "hf-taskdzero": "",
+    "internal-dpl-aod-writer": {
+    }
+}
