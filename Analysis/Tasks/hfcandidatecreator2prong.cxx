@@ -20,6 +20,8 @@
 #include <TFile.h>
 #include <TH1F.h>
 #include <Math/Vector4D.h>
+#include <TPDGCode.h>
+#include <TDatabasePDG.h>
 #include <cmath>
 #include <array>
 #include <cstdlib>
@@ -60,8 +62,8 @@ struct HFCandidateCreator2Prong {
     df.setMinRelChi2Change(d_minrelchi2change);
 
     std::vector<PxPyPzMVector> listTracks;
-    double masspion = 0.140;
-    double masskaon = 0.494;
+    double masspion = TDatabasePDG::Instance()->GetParticle(kPiPlus)->Mass();
+    double masskaon = TDatabasePDG::Instance()->GetParticle(kKPlus)->Mass();
 
     for (auto& hfpr2 : hftrackindexprong2s) {
       auto trackparvar_p1 = getTrackParCov(hfpr2.index0());
