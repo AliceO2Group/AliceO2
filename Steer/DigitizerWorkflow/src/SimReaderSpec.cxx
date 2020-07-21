@@ -125,6 +125,7 @@ DataProcessorSpec getSimReaderSpec(SubspecRange range, const std::vector<std::st
       }
 
       mgr.getInteractionSampler().init();
+      mgr.getInteractionSampler().print();
       // doing a random event selection/subsampling?
       mgr.setRandomEventSequence(ctx.options().get<int>("randomsample") > 0);
 
@@ -151,12 +152,16 @@ DataProcessorSpec getSimReaderSpec(SubspecRange range, const std::vector<std::st
         last.bc = o2::constants::lhc::LHCMaxBunches;
 
         const float ratio = ctx.options().get<float>("qed-x-section-ratio");
+        if (ratio <= 0.) {
+          throw std::runtime_error("no meaningful qed-x-section-ratio was provided");
+        }
         const float hadronicrate = ctx.options().get<float>("interactionRate");
         const float qedrate = ratio * hadronicrate;
         LOG(INFO) << "QED RATE " << qedrate;
         qedInteractionSampler.setInteractionRate(qedrate);
         qedInteractionSampler.setFirstIR(first);
         qedInteractionSampler.init();
+        qedInteractionSampler.print();
         std::vector<o2::InteractionTimeRecord> qedinteractionrecords;
         o2::InteractionTimeRecord t;
         LOG(INFO) << "GENERATING COL TIMES";
@@ -202,7 +207,7 @@ DataProcessorSpec getSimReaderSpec(SubspecRange range, const std::vector<std::st
       {"firstOrbit", VariantType::Int, 1, {"First orbit in interaction sampling"}},
       {"bcPatternFile", VariantType::String, "", {"Interacting BC pattern file (e.g. from CreateBCPattern.C)"}},
       {"simPrefixQED", VariantType::String, "", {"Sim (QED) input prefix (example: path/o2qed). The prefix allows to find files like path/o2qed_Kine.root etc."}},
-      {"qed-x-section-ratio", VariantType::Float, 10000.0f, {"Ratio of cross sections QED/hadronic events. Determines QED interaction rate from hadronic interaction rate."}},
+      {"qed-x-section-ratio", VariantType::Float, -1.f, {"Ratio of cross sections QED/hadronic events. Determines QED interaction rate from hadronic interaction rate."}},
       {"outcontext", VariantType::String, "collisioncontext.root", {"Output file for collision context"}},
       {"incontext", VariantType::String, "", {"Take collision context from this file"}},
       {"ncollisions,n",
