@@ -15,6 +15,7 @@
 #include "DetectorsVertexing/DCAFitterN.h"
 #include "ReconstructionDataFormats/Track.h"
 #include "Analysis/RecoDecay.h"
+#include "PID/PIDResponse.h"
 #include "Analysis/trackUtilities.h"
 
 #include <TFile.h>
@@ -34,18 +35,25 @@ using namespace ROOT::Math;
 
 namespace o2::aod
 {
-namespace seltrack
+namespace hfseltrack
 {
+enum Select {
+  IsTrackSel = BIT(0),
+  IsPion = BIT(1),
+  IsKaon = BIT(2),
+  IsProton = BIT(3)
+};
+
 DECLARE_SOA_COLUMN(IsSel, issel, int);
 DECLARE_SOA_COLUMN(DCAPrim0, dcaprim0, float);
 DECLARE_SOA_COLUMN(DCAPrim1, dcaprim1, float);
-} // namespace seltrack
-DECLARE_SOA_TABLE(SelTrack, "AOD", "SELTRACK", seltrack::IsSel, seltrack::DCAPrim0,
-                  seltrack::DCAPrim1);
+} // namespace hfseltrack
+DECLARE_SOA_TABLE(SelTrack, "AOD", "SELTRACK", hfseltrack::IsSel, hfseltrack::DCAPrim0,
+                  hfseltrack::DCAPrim1);
 } // namespace o2::aod
 
 struct SelectTracks {
-  Produces<aod::SelTrack> seltrack;
+  Produces<aod::SelTrack> hfseltrack;
   Configurable<double> ptmintrack{"ptmintrack", -1, "ptmin single track"};
   Configurable<double> dcatoprimxymin{"dcatoprimxymin", 0, "dca xy to prim vtx min"};
   Configurable<int> d_tpcnclsfound{"d_tpcnclsfound", 70, "min number of tpc cls >="};
@@ -56,7 +64,7 @@ struct SelectTracks {
   OutputObj<TH1F> hdcatoprimxy_cuts{TH1F("hdcatoprimxy_cuts", "dca xy to prim. vertex (cm)", 100, -1.0, 1.0)};
 
   void process(aod::Collision const& collision,
-               soa::Join<aod::Tracks, aod::TracksCov, aod::TracksExtra> const& tracks)
+               soa::Join<aod::Tracks, aod::TracksCov, aod::TracksExtra, aod::pidRespTOF> const& tracks)
   {
     Point3D<float> vtxXYZ(collision.posX(), collision.posY(), collision.posZ());
     for (auto it0 = tracks.begin(); it0 != tracks.end(); ++it0) {
@@ -76,13 +84,21 @@ struct SelectTracks {
       trackparvar0.propagateParamToDCA(vtxXYZ, d_bz, &dca);
       if (abs(dca[0]) < dcatoprimxymin)
         status = 0;
+      if (status) {
+        if (TMath::Abs(track_0.nSigmaPi()) < 3)
+          status |= BIT(o2::aod::hfseltrack::IsPion);
+        if (TMath::Abs(track_0.nSigmaKa()) < 3)
+          status |= BIT(o2::aod::hfseltrack::IsKaon);
+        if (TMath::Abs(track_0.nSigmaPr()) < 3)
+          status |= BIT(o2::aod::hfseltrack::IsProton);
+      }
       if (b_dovalplots == true) {
-        if (status == 1) {
+        if (status) {
           hpt_cuts->Fill(track_0.pt());
           hdcatoprimxy_cuts->Fill(dca[0]);
         }
       }
-      seltrack(status, dca[0], dca[1]);
+      hfseltrack(status, dca[0], dca[1]);
     }
   }
 };
@@ -110,7 +126,7 @@ struct HFTrackIndexSkimsCreator {
   Configurable<double> d_minmassDp{"d_minmassDp", 1.5, "min mass dplus presel"};
   Configurable<double> d_maxmassDp{"d_maxmassDp", 2.1, "max mass dplus presel"};
   Configurable<bool> b_dovalplots{"b_dovalplots", true, "do validation plots"};
-  Filter seltrack = (aod::seltrack::issel == 1);
+  Filter hfseltrack = (aod::hfseltrack::issel == 1);
 
   void process(aod::Collision const& collision,
                aod::BCs const& bcs,
