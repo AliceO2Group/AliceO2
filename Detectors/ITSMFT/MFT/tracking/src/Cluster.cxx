@@ -23,7 +23,7 @@ namespace mft
 {
 
 Cluster::Cluster(const Float_t x, const Float_t y, const Float_t z, const Int_t index)
-  : BaseCluster(1 , x, y, z),
+  : BaseCluster(1, x, y, z),
     phiCoordinate{0.},
     rCoordinate{0.},
     clusterId{index},
@@ -36,7 +36,7 @@ Cluster::Cluster(const Float_t x, const Float_t y, const Float_t z, const Int_t 
 }
 
 Cluster::Cluster(const Int_t layerIndex, const Cluster& other)
-  : BaseCluster(1 , other.getXYZ()),
+  : BaseCluster(1, other.getXYZ()),
     phiCoordinate{0.},
     rCoordinate{0.},
     clusterId{other.clusterId},

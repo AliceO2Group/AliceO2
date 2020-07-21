@@ -43,7 +43,7 @@ framework::WorkflowSpec getWorkflow(bool useMC, bool upstreamDigits, bool upstre
     specs.emplace_back(o2::mft::getClusterWriterSpec(useMC));
   }
   specs.emplace_back(o2::mft::getTrackerSpec(useMC));
-  specs.emplace_back(o2::mft::getTrackFitterSpec(useMC));
+  //specs.emplace_back(o2::mft::getTrackFitterSpec(useMC));
   if (!disableRootOutput) {
     specs.emplace_back(o2::mft::getTrackWriterSpec(useMC));
   }

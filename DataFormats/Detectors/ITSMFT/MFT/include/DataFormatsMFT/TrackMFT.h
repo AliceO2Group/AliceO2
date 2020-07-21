@@ -24,20 +24,13 @@
 #include "SimulationDataFormat/MCCompLabel.h"
 #include "ReconstructionDataFormats/TrackFwd.h"
 
-
 namespace o2
 {
-
-namespace itsmft
-{
-class Cluster;
-}
 
 namespace mft
 {
 class TrackMFT : public o2::track::TrackParCovFwd
 {
-  using Cluster = o2::itsmft::Cluster;
   using ClusRefs = o2::dataformats::RangeRefComp<4>;
   using SMatrix55 = ROOT::Math::SMatrix<double, 5, 5, ROOT::Math::MatRepSym<double, 5>>;
   using SMatrix5 = ROOT::Math::SVector<Double_t, 5>;
@@ -48,7 +41,7 @@ class TrackMFT : public o2::track::TrackParCovFwd
   ~TrackMFT() = default;
 
   // Track finding method
-  void setCA(Bool_t method) { mIsCA = method; }
+  void setCA(Bool_t method = true) { mIsCA = method; }
   const Bool_t isCA() const { return mIsCA; }
   const Bool_t isLTF() const { return !mIsCA; }
 
@@ -59,8 +52,6 @@ class TrackMFT : public o2::track::TrackParCovFwd
   const Double_t getChargeQuadratic() const { return TMath::Sign(1., getInvQPtQuadtratic()); }
   void setChi2QPtQuadtratic(Double_t chi2) { mQuadraticFitChi2 = chi2; }
   const Double_t getChi2QPtQuadtratic() const { return mQuadraticFitChi2; }
-
-
 
   // Other functions
   int getNumberOfClusters() const { return mClusRef.getEntries(); }
@@ -149,10 +140,10 @@ class TrackMFTExt : public TrackMFT
   static constexpr int MaxClusters = 10;
   using TrackMFT::TrackMFT; // inherit base constructors
 
-  void setClusterIndex(int l, int i)
+  void setClusterIndex(int l, int i, int ncl)
   {
-    int ncl = getNumberOfClusters();
-    mIndex[ncl++] = (l << 28) + i;
+    //int ncl = getNumberOfClusters();
+    mIndex[ncl] = (l << 28) + i;
     getClusterRefs().setEntries(ncl);
   }
 

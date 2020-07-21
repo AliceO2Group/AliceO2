@@ -11,7 +11,6 @@
 #include "ReconstructionDataFormats/TrackFwd.h"
 #include "Math/MatrixFunctions.h"
 
-
 namespace o2
 {
 namespace track
@@ -38,9 +37,8 @@ const SMatrix55& TrackParCovFwd::getCovariances() const
 void TrackParCovFwd::setCovariances(const SMatrix55& covariances)
 {
   /// Set the covariance matrix
-    mCovariances = covariances;
+  mCovariances = covariances;
 }
-
 
 //__________________________________________________________________________
 void TrackParCovFwd::deleteCovariances()
@@ -62,8 +60,6 @@ TrackParCovFwd& TrackParCovFwd::operator=(const TrackParCovFwd& tp)
 }
 */
 
-
-
 /*
 //_________________________________________________________________________
 TrackParCovFwd::TrackParCovFwd(const TrackParCovFwd& tp)
@@ -73,7 +69,6 @@ TrackParCovFwd::TrackParCovFwd(const TrackParCovFwd& tp)
   mCovariances = tp.mCovariances;
 }
 */
-
 
 //__________________________________________________________________________
 void TrackParFwd::linearExtrapToZ(double zEnd)
@@ -133,7 +128,7 @@ void TrackParCovFwd::linearExtrapToZCov(double zEnd)
   jacob(1, 3) = -m * sinphi0;
 
   // Extrapolate track parameter covariances to "zEnd"
-  setCovariances(ROOT::Math::Similarity(jacob,mCovariances));
+  setCovariances(ROOT::Math::Similarity(jacob, mCovariances));
 }
 
 //__________________________________________________________________________
@@ -214,8 +209,7 @@ void TrackParCovFwd::quadraticExtrapToZCov(double zEnd, double zField)
   jacob(2, 4) = -Hz * k * n;
 
   // Extrapolate track parameter covariances to "zEnd"
-  setCovariances(ROOT::Math::Similarity(jacob,mCovariances));
-
+  setCovariances(ROOT::Math::Similarity(jacob, mCovariances));
 }
 
 //__________________________________________________________________________
@@ -322,8 +316,7 @@ void TrackParCovFwd::helixExtrapToZCov(double zEnd, double zField)
   jacob(2, 4) = -Hz * k * n;
 
   // Extrapolate track parameter covariances to "zEnd"
-  setCovariances(ROOT::Math::Similarity(jacob,mCovariances));
-
+  setCovariances(ROOT::Math::Similarity(jacob, mCovariances));
 }
 
 //__________________________________________________________________________
@@ -422,7 +415,6 @@ void TrackParCovFwd::addMCSEffect(double dZ, double x0, double zField)
 
     newParamCov(4, 4) += sigmathetasq * tanl0 * tanl0 * invqpt0 * invqpt0;
   }
-
 
   // Set new covariances
   setCovariances(newParamCov);

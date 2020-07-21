@@ -16,6 +16,7 @@ o2_add_library(MFTTracking
 	               src/Cluster.cxx
 	               src/IOUtils.cxx
                  src/TrackFitter.cxx
+                 src/TrackFitter2.cxx
                  src/FitterTrackMFT.cxx
                  src/TrackExtrap.cxx
                  src/MFTTrackingParam.cxx
@@ -30,6 +31,7 @@ o2_target_root_dictionary(MFTTracking
                           HEADERS include/MFTTracking/TrackCA.h
                           HEADERS include/MFTTracking/TrackFitter.h
                           HEADERS include/MFTTracking/TrackExtrap.h
+                          HEADERS include/MFTTracking/TrackFitter2.h
                           HEADERS include/MFTTracking/FitterTrackMFT.h
                           HEADERS include/MFTTracking/TrackParamMFT.h
                           HEADERS include/MFTTracking/MFTTrackingParam.h
