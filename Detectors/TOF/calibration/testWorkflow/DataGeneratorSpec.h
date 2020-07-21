@@ -122,7 +122,7 @@ DataProcessorSpec getTFDispatcherSpec()
   return DataProcessorSpec{
     "calib-tf-dispatcher",
     Inputs{},
-    Outputs{{{"output"}, "DUM", "DATASIZE"}},
+    Outputs{{{"output"}, "TOF", "DATASIZE"}},
     AlgorithmSpec{adaptFromTask<o2::calibration::TFDispatcher>()},
     Options{{"max-timeframes", VariantType::Int64, 99999999999ll, {"max TimeFrames to generate"}}}};
 }
@@ -131,8 +131,8 @@ DataProcessorSpec getTFProcessorSpec()
 {
   return DataProcessorSpec{
     "calib-tf-data-processor",
-    Inputs{{"input", "DUM", "DATASIZE"}},
-    Outputs{{{"output"}, "DUM", "CALIBDATA"}},
+    Inputs{{"input", "TOF", "DATASIZE"}},
+    Outputs{{{"output"}, "TOF", "CALIBDATA"}},
     AlgorithmSpec{adaptFromTask<o2::calibration::TFProcessor>()},
     Options{
       {"mean-latency", VariantType::Int, 1000, {"mean latency of the generator in microseconds"}},

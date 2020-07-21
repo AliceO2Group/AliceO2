@@ -51,7 +51,7 @@ struct LHCClockDataHisto {
   ClassDefNV(LHCClockDataHisto, 1);
 };
 
-class LHCClockCalibrator : public o2::calibration::TimeSlotCalibration<o2::dataformats::CalibInfoTOF, o2::tof::LHCClockDataHisto>
+class LHCClockCalibrator final : public o2::calibration::TimeSlotCalibration<o2::dataformats::CalibInfoTOF, o2::tof::LHCClockDataHisto>
 {
   using TFType = uint64_t;
   using Slot = o2::calibration::TimeSlot<o2::tof::LHCClockDataHisto>;
