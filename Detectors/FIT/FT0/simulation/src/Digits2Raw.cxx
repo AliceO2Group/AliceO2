@@ -113,6 +113,7 @@ void Digits2Raw::readDigits(const std::string& outDir, const std::string& fileDi
     for (int ibc = 0; ibc < nbc; ibc++) {
       auto& bcd = digitsBC[ibc];
       intRecord = bcd.getIntRecord();
+      bcd.printStream(std::cout);
       auto channels = bcd.getBunchChannelData(digitsCh);
       if (!channels.empty())
         convertDigits(bcd, channels, lut, intRecord);
@@ -135,9 +136,9 @@ void Digits2Raw::convertDigits(o2::ft0::Digit bcdigits,
     if (nlink != oldlink) {
       if (oldlink >= 0) {
         uint nGBTWords = uint((nchannels + 1) / 2);
-        LOG(DEBUG) << " oldlink " << oldlink << " nGBTWords " << nGBTWords;
-        if ((nchannels % 2) == 1)
+        if ((nchannels % 2) == 1) {
           mRawEventData.mEventData[nchannels] = {};
+        }
         mRawEventData.mEventHeader.nGBTWords = nGBTWords;
         auto data = mRawEventData.to_vector(false);
         mLinkID = uint32_t(oldlink);
@@ -147,7 +148,6 @@ void Digits2Raw::convertDigits(o2::ft0::Digit bcdigits,
       oldlink = nlink;
       mRawEventData.mEventHeader = makeGBTHeader(nlink, intRecord);
       nchannels = 0;
-      //  LOG(INFO) << " switch to new link " << nlink;
     }
     auto& newData = mRawEventData.mEventData[nchannels];
     bool isAside = (pmchannels[ich].ChId < 96);
@@ -165,7 +165,7 @@ void Digits2Raw::convertDigits(o2::ft0::Digit bcdigits,
     int chain = std::rand() % 2;
     newData.numberADC = chain ? 1 : 0;
     newData.channelID = lut.getMCP(pmchannels[ich].ChId);
-    //  LOG(INFO) << "packed GBT " << nlink << " channelID   " << (int)newData.channelID << " charge " << newData.charge << " time " << newData.time << " chain " << int(newData.numberADC) << " size " << sizeof(newData);
+    LOG(DEBUG) << "packed GBT " << nlink << " channelID   " << (int)newData.channelID << " charge " << newData.charge << " time " << newData.time << " chain " << int(newData.numberADC) << " channel dig " << (int)pmchannels[ich].ChId;
     nchannels++;
   }
   // fill mEventData[nchannels] with 0s to flag that this is a dummy data
@@ -173,7 +173,11 @@ void Digits2Raw::convertDigits(o2::ft0::Digit bcdigits,
   if ((nchannels % 2) == 1)
     mRawEventData.mEventData[nchannels] = {};
   mRawEventData.mEventHeader.nGBTWords = nGBTWords;
-  LOG(DEBUG) << " last " << oldlink;
+  auto data = mRawEventData.to_vector(false);
+  mLinkID = uint32_t(oldlink);
+  mFeeID = uint64_t(oldlink);
+  mWriter.addData(mFeeID, mCruID, mLinkID, mEndPointID, intRecord, data);
+
   //TCM
   mRawEventData.mEventHeader = makeGBTHeader(LinkTCM, intRecord); //TCM
   mRawEventData.mEventHeader.nGBTWords = 1;
@@ -213,10 +217,10 @@ void Digits2Raw::convertDigits(o2::ft0::Digit bcdigits,
               << " ver " << tcmdata.vertex << " A " << tcmdata.orA << " C " << tcmdata.orC
               << " size " << sizeof(tcmdata);
   }
-  auto data = mRawEventData.to_vector(1);
+  auto datatcm = mRawEventData.to_vector(1);
   mLinkID = uint32_t(LinkTCM);
   mFeeID = uint64_t(LinkTCM);
-  mWriter.addData(mFeeID, mCruID, mLinkID, mEndPointID, intRecord, data);
+  mWriter.addData(mFeeID, mCruID, mLinkID, mEndPointID, intRecord, datatcm);
 }
 
 //_____________________________________________________________________________________

@@ -189,3 +189,68 @@ BOOST_AUTO_TEST_CASE(AdaptorCompilation)
 
   auto task10 = adaptAnalysisTask<JTask>("test10");
 }
+
+BOOST_AUTO_TEST_CASE(TestPartitionIteration)
+{
+  TableBuilder builderA;
+  auto rowWriterA = builderA.persist<float, float>({"fX", "fY"});
+  rowWriterA(0, 0.0f, 8.0f);
+  rowWriterA(0, 1.0f, 9.0f);
+  rowWriterA(0, 2.0f, 10.0f);
+  rowWriterA(0, 3.0f, 11.0f);
+  rowWriterA(0, 4.0f, 12.0f);
+  rowWriterA(0, 5.0f, 13.0f);
+  rowWriterA(0, 6.0f, 14.0f);
+  rowWriterA(0, 7.0f, 15.0f);
+  auto tableA = builderA.finalize();
+  BOOST_REQUIRE_EQUAL(tableA->num_rows(), 8);
+
+  using TestA = o2::soa::Table<o2::soa::Index<>, aod::test::X, aod::test::Y>;
+  using FilteredTest = o2::soa::Filtered<TestA>;
+  using PartitionTest = Partition<TestA>;
+  using PartitionFilteredTest = Partition<o2::soa::Filtered<TestA>>;
+  using PartitionNestedFilteredTest = Partition<o2::soa::Filtered<o2::soa::Filtered<TestA>>>;
+  using namespace o2::framework;
+
+  TestA testA{tableA};
+
+  PartitionTest p1 = aod::test::x < 4.0f;
+  p1.setTable(testA);
+  BOOST_CHECK_EQUAL(4, p1.size());
+  BOOST_CHECK(p1.begin() != p1.end());
+  auto i = 0;
+  for (auto& p : p1) {
+    BOOST_CHECK_EQUAL(i, p.x());
+    BOOST_CHECK_EQUAL(i + 8, p.y());
+    BOOST_CHECK_EQUAL(i, p.index());
+    i++;
+  }
+  BOOST_CHECK_EQUAL(i, 4);
+
+  expressions::Filter f1 = aod::test::x < 4.0f;
+  FilteredTest filtered{{testA.asArrowTable()}, expressions::createSelection(testA.asArrowTable(), f1)};
+  PartitionFilteredTest p2 = aod::test::y > 9.0f;
+  p2.setTable(filtered);
+
+  BOOST_CHECK_EQUAL(2, p2.size());
+  i = 0;
+  for (auto& p : p2) {
+    BOOST_CHECK_EQUAL(i + 2, p.x());
+    BOOST_CHECK_EQUAL(i + 10, p.y());
+    BOOST_CHECK_EQUAL(i + 2, p.index());
+    i++;
+  }
+  BOOST_CHECK_EQUAL(i, 2);
+
+  PartitionNestedFilteredTest p3 = aod::test::x < 3.0f;
+  p3.setTable(*(p2.mFiltered));
+  BOOST_CHECK_EQUAL(1, p3.size());
+  i = 0;
+  for (auto& p : p3) {
+    BOOST_CHECK_EQUAL(i + 2, p.x());
+    BOOST_CHECK_EQUAL(i + 10, p.y());
+    BOOST_CHECK_EQUAL(i + 2, p.index());
+    i++;
+  }
+  BOOST_CHECK_EQUAL(i, 1);
+}

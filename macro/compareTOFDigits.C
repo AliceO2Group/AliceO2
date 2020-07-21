@@ -47,10 +47,28 @@ bool compareTOFDigits(std::string inpName1 = "tofdigitsOr.root", std::string inp
   int nro1 = row1.size();
   int nro2 = row2.size();
 
+  for (int ii = 1; ii < t2->GetEntries(); ii++) {
+    t2->GetEvent(ii);
+    nro2 += row2.size();
+  }
+
+  int row2lastSize = row2.size();
+
   while (row1[nro1 - 1].size() == 0 && nro1 > 0)
     nro1--;
-  while (row2[nro2 - 1].size() == 0 && nro2 > 0)
+  while (row2[row2lastSize - 1].size() == 0 && row2lastSize > 0) {
+    row2lastSize--;
     nro2--;
+  }
+
+  if (row2lastSize == 0) {
+    t2->GetEvent(t2->GetEntries() - 2);
+    row2lastSize = row2.size();
+    while (row2[row2lastSize - 1].size() == 0 && row2lastSize > 0) {
+      row2lastSize--;
+      nro2--;
+    }
+  }
 
   if (nro1 != nro2) {
     printf("N readout windows different!!!! %d != %d \n", nro1, nro2);
@@ -60,15 +78,29 @@ bool compareTOFDigits(std::string inpName1 = "tofdigitsOr.root", std::string inp
 
   printf("N readout windows = %d\n", nro1);
 
-  for (int i = 0; i < nro1; i++) {
-    if (row1[i].size() != row2[i].size()) {
-      printf("Readout window %d)  different number of digits in this window!!!! %d != %d \n", i, int(row1[i].size()), int(row2[i].size()));
+  int offset = 0;
+  t2->GetEvent(0);
+  int nro2c = row2.size();
+  int next = 1;
+
+  for (int k = 0; k < nro1; k++) {
+    if (k >= nro2c) {
+      offset = nro2c;
+      t2->GetEvent(next);
+      nro2c += row2.size();
+      next++;
+    }
+    int i = k;
+    int i2 = i - offset;
+
+    if (row1[i].size() != row2[i2].size()) {
+      printf("Readout window %d)  different number of digits in this window!!!! %d != %d \n", i, int(row1[i].size()), int(row2[i2].size()));
       status = false;
       return status;
     }
 
     auto digitsRO1 = row1.at(i).getBunchChannelData(digits1);
-    auto digitsRO2 = row2.at(i).getBunchChannelData(digits2);
+    auto digitsRO2 = row2.at(i2).getBunchChannelData(digits2);
 
     for (int j = 0; j < row1[i].size(); j++) {
       bool digitstatus = true;
@@ -83,7 +115,7 @@ bool compareTOFDigits(std::string inpName1 = "tofdigitsOr.root", std::string inp
       }
 
       if (digitsRO1[j].getBC() != digitsRO2[j].getBC()) {
-        printf("RO %d - Digit %d/%d) Different BCs %d != %d \n", i, j, row1[i].size(), digitsRO1[j].getBC(), digitsRO2[j].getBC());
+        printf("RO %d - Digit %d/%d) Different BCs %lu != %lu \n", i, j, row1[i].size(), digitsRO1[j].getBC(), digitsRO2[j].getBC());
         digitstatus = false;
       }
 

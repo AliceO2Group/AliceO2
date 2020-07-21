@@ -496,3 +496,129 @@ BOOST_AUTO_TEST_CASE(TestSchemaCreation)
   BOOST_CHECK_EQUAL(schema->field(0)->name(), "x");
   BOOST_CHECK_EQUAL(schema->field(1)->name(), "y");
 }
+
+BOOST_AUTO_TEST_CASE(TestFilteredOperators)
+{
+  TableBuilder builderA;
+  auto rowWriterA = builderA.persist<int32_t, int32_t>({"x", "y"});
+  rowWriterA(0, 0, 8);
+  rowWriterA(0, 1, 9);
+  rowWriterA(0, 2, 10);
+  rowWriterA(0, 3, 11);
+  rowWriterA(0, 4, 12);
+  rowWriterA(0, 5, 13);
+  rowWriterA(0, 6, 14);
+  rowWriterA(0, 7, 15);
+  auto tableA = builderA.finalize();
+  BOOST_REQUIRE_EQUAL(tableA->num_rows(), 8);
+
+  using TestA = o2::soa::Table<o2::soa::Index<>, test::X, test::Y>;
+  using FilteredTest = Filtered<TestA>;
+  using NestedFilteredTest = Filtered<Filtered<TestA>>;
+  using namespace o2::framework;
+
+  expressions::Filter f1 = test::x < 4;
+  expressions::Filter f2 = test::y > 13;
+
+  TestA testA{tableA};
+  FilteredTest filtered1{{testA.asArrowTable()}, expressions::createSelection(testA.asArrowTable(), f1)};
+  BOOST_CHECK_EQUAL(4, filtered1.size());
+  BOOST_CHECK(filtered1.begin() != filtered1.end());
+
+  FilteredTest filtered2{{testA.asArrowTable()}, expressions::createSelection(testA.asArrowTable(), f2)};
+  BOOST_CHECK_EQUAL(2, filtered2.size());
+  BOOST_CHECK(filtered2.begin() != filtered2.end());
+
+  FilteredTest filteredUnion = filtered1 + filtered2;
+  BOOST_CHECK_EQUAL(6, filteredUnion.size());
+
+  std::vector<std::tuple<int32_t, int32_t>> expectedUnion{
+    {0, 8}, {1, 9}, {2, 10}, {3, 11}, {6, 14}, {7, 15}};
+  auto i = 0;
+  for (auto& f : filteredUnion) {
+    BOOST_CHECK_EQUAL(std::get<0>(expectedUnion[i]), f.x());
+    BOOST_CHECK_EQUAL(std::get<1>(expectedUnion[i]), f.y());
+    BOOST_CHECK_EQUAL(std::get<0>(expectedUnion[i]), f.index());
+    i++;
+  }
+  BOOST_CHECK_EQUAL(i, 6);
+
+  FilteredTest filteredIntersection = filtered1 * filtered2;
+  BOOST_CHECK_EQUAL(0, filteredIntersection.size());
+
+  i = 0;
+  for (auto& f : filteredIntersection) {
+    i++;
+  }
+  BOOST_CHECK_EQUAL(i, 0);
+
+  expressions::Filter f3 = test::x < 3;
+  FilteredTest filtered3{{testA.asArrowTable()}, expressions::createSelection(testA.asArrowTable(), f3)};
+  BOOST_CHECK_EQUAL(3, filtered3.size());
+  BOOST_CHECK(filtered3.begin() != filtered3.end());
+
+  FilteredTest unionIntersection = (filtered1 + filtered2) * filtered3;
+  BOOST_CHECK_EQUAL(3, unionIntersection.size());
+
+  i = 0;
+  for (auto& f : unionIntersection) {
+    BOOST_CHECK_EQUAL(i, f.x());
+    BOOST_CHECK_EQUAL(i + 8, f.y());
+    BOOST_CHECK_EQUAL(i, f.index());
+    i++;
+  }
+  BOOST_CHECK_EQUAL(i, 3);
+}
+
+BOOST_AUTO_TEST_CASE(TestNestedFiltering)
+{
+  TableBuilder builderA;
+  auto rowWriterA = builderA.persist<int32_t, int32_t>({"x", "y"});
+  rowWriterA(0, 0, 8);
+  rowWriterA(0, 1, 9);
+  rowWriterA(0, 2, 10);
+  rowWriterA(0, 3, 11);
+  rowWriterA(0, 4, 12);
+  rowWriterA(0, 5, 13);
+  rowWriterA(0, 6, 14);
+  rowWriterA(0, 7, 15);
+  auto tableA = builderA.finalize();
+  BOOST_REQUIRE_EQUAL(tableA->num_rows(), 8);
+
+  using TestA = o2::soa::Table<o2::soa::Index<>, test::X, test::Y>;
+  using FilteredTest = Filtered<TestA>;
+  using NestedFilteredTest = Filtered<Filtered<TestA>>;
+  using TripleNestedFilteredTest = Filtered<Filtered<Filtered<TestA>>>;
+  using namespace o2::framework;
+
+  expressions::Filter f1 = test::x < 4;
+  expressions::Filter f2 = test::y > 9;
+  expressions::Filter f3 = test::x < 3;
+
+  TestA testA{tableA};
+  FilteredTest filtered{{testA.asArrowTable()}, expressions::createSelection(testA.asArrowTable(), f1)};
+  BOOST_CHECK_EQUAL(4, filtered.size());
+  BOOST_CHECK(filtered.begin() != filtered.end());
+
+  NestedFilteredTest nestedFiltered{{filtered}, expressions::createSelection(filtered.asArrowTable(), f2)};
+  BOOST_CHECK_EQUAL(2, nestedFiltered.size());
+  auto i = 0;
+  for (auto& f : nestedFiltered) {
+    BOOST_CHECK_EQUAL(i + 2, f.x());
+    BOOST_CHECK_EQUAL(i + 10, f.y());
+    BOOST_CHECK_EQUAL(i + 2, f.index());
+    i++;
+  }
+  BOOST_CHECK_EQUAL(i, 2);
+
+  TripleNestedFilteredTest tripleFiltered{{nestedFiltered}, expressions::createSelection(nestedFiltered.asArrowTable(), f3)};
+  BOOST_CHECK_EQUAL(1, tripleFiltered.size());
+  i = 0;
+  for (auto& f : tripleFiltered) {
+    BOOST_CHECK_EQUAL(i + 2, f.x());
+    BOOST_CHECK_EQUAL(i + 10, f.y());
+    BOOST_CHECK_EQUAL(i + 2, f.index());
+    i++;
+  }
+  BOOST_CHECK_EQUAL(i, 1);
+}

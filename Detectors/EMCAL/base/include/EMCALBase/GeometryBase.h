@@ -189,6 +189,40 @@ class SupermoduleIndexException : public std::exception
   std::string mMessage;  ///< Error message
 };
 
+/// \class RowColException
+/// \brief Handling error for invalid positions in row-column space
+/// \ingroup EMCALBase
+class RowColException : public std::exception
+{
+ public:
+  /// \brief Constructor, initializing the exception with invalid row-column position
+  /// \param row Row ID of the position
+  /// \param col Column ID of the position
+  RowColException(int row, int col) : mRow(row), mCol(col), mMessage("")
+  {
+    mMessage = "Invalid position: row " + std::to_string(mRow) + ", col " + std::to_string(mCol);
+  }
+
+  /// \brief Destructor
+  ~RowColException() noexcept final = default;
+
+  /// \brief Get row of the position raising the exception
+  /// \return Row ID
+  int getRow() const noexcept { return mRow; }
+
+  /// \brief Get column of the position raising the exception
+  /// \brief Column ID
+  int getCol() const noexcept { return mCol; }
+
+  /// \brief Access tp error message of the exception
+  /// \return Error message
+  const char* what() const noexcept final { return mMessage.data(); }
+
+ private:
+  int mRow, mCol;
+  std::string mMessage;
+};
+
 } // namespace emcal
 } // namespace o2
 

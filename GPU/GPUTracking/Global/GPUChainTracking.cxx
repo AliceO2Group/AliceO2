@@ -1436,7 +1436,7 @@ int GPUChainTracking::RunTPCTrackingSlices_internal()
   mRec->PushNonPersistentMemory();
   for (unsigned int iSlice = 0; iSlice < NSLICES; iSlice++) {
     SetupGPUProcessor(&processors()->tpcTrackers[iSlice], true);             // Now we allocate
-    mRec->ResetRegisteredMemoryPointers(&processors()->tpcTrackers[iSlice]); // TODO: The above call breaks the GPU ptrs to already allocated memory. This fixes them. Should actually be cleaner up at the source.
+    mRec->ResetRegisteredMemoryPointers(&processors()->tpcTrackers[iSlice]); // TODO: The above call breaks the GPU ptrs to already allocated memory. This fixes them. Should actually be cleaned up at the source.
     processors()->tpcTrackers[iSlice].SetupCommonMemory();
   }
 
@@ -1771,7 +1771,6 @@ int GPUChainTracking::RunTPCTrackingSlices_internal()
       TransferMemoryResourcesToHost(RecoStep::TPCSliceTracking, &processors()->tpcTrackers[i], -1, true);
     }
   }
-  SynchronizeGPU(); // Todo: why needed? processing small data fails otherwise
   if (GetDeviceProcessingSettings().debugLevel >= 2) {
     GPUInfo("TPC Slice Tracker finished");
   }
@@ -1861,7 +1860,6 @@ int GPUChainTracking::RunTPCTrackingMerger(bool synchronizeOutput)
   bool doGPUall = doGPU && GetDeviceProcessingSettings().fullMergerOnGPU;
   GPUReconstruction::krnlDeviceType deviceType = doGPUall ? GPUReconstruction::krnlDeviceType::Auto : GPUReconstruction::krnlDeviceType::CPU;
   unsigned int numBlocks = (!mRec->IsGPU() || doGPUall) ? BlockCount() : 1;
-
   GPUTPCGMMerger& Merger = processors()->tpcMerger;
   GPUTPCGMMerger& MergerShadow = doGPU ? processorsShadow()->tpcMerger : Merger;
   GPUTPCGMMerger& MergerShadowAll = doGPUall ? processorsShadow()->tpcMerger : Merger;
@@ -1870,6 +1868,7 @@ int GPUChainTracking::RunTPCTrackingMerger(bool synchronizeOutput)
   }
   const auto& threadContext = GetThreadContext();
 
+  SynchronizeGPU(); // Need to know the full number of slice tracks
   SetupGPUProcessor(&Merger, true);
   AllocateRegisteredMemory(Merger.MemoryResOutput(), mOutputTPCTracks);
 
