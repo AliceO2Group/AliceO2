@@ -28,4 +28,9 @@
 #pragma link C++ class o2::calibration::TimeSlot < o2::tof::TOFChannelData> + ;
 #pragma link C++ class o2::calibration::TimeSlotCalibration < o2::dataformats::CalibInfoTOF, o2::tof::TOFChannelData> + ;
 
+#pragma link C++ class o2::tof::TOFCalibInfoSlot + ;
+#pragma link C++ class o2::tof::TOFCalibCollector + ;
+#pragma link C++ class o2::calibration::TimeSlot < o2::tof::TOFCalibInfoSlot> + ;
+#pragma link C++ class o2::calibration::TimeSlotCalibration < o2::dataformats::CalibInfoTOF, o2::tof::TOFCalibInfoSlot> + ;
+
 #endif
