@@ -36,7 +36,7 @@ class CalibInfoTOF
   void setDeltaTimePi(float time) { mDeltaTimePi = time; }
   float getDeltaTimePi() const { return mDeltaTimePi; }
 
-  void setTot(int tot) { mTot = tot; }
+  void setTot(float tot) { mTot = tot; }
   float getTot() const { return mTot; }
 
   void setFlags(int flags) { mFlags = flags; }

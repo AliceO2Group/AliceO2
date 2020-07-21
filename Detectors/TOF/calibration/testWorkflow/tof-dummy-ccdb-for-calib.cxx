@@ -22,7 +22,7 @@ std::vector<DataProcessorSpec> defineDataProcessing(ConfigContext const&)
   return {
     DataProcessorSpec{
       "simple",
-      Inputs{{"input", "DUM", "CALIBDATA"}},
+      Inputs{{"input", "TOF", "CALIBDATA"}},
       Outputs{OutputSpec{{"phase"}, "TOF", "LHCphase"},
               OutputSpec{{"timeSlewing"}, "TOF", "ChannelCalib"},
               OutputSpec{{"startLHCphase"}, "TOF", "StartLHCphase"},
