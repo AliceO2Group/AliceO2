@@ -15,10 +15,9 @@
 #include "MFTTracking/Cluster.h"
 #include "MFTTracking/Cell.h"
 #include "MFTTracking/TrackCA.h"
-#include "MFTTracking/TrackFitter.h"
 #include "DataFormatsMFT/TrackMFT.h"
-
 #include "ReconstructionDataFormats/Track.h"
+
 #include "Framework/Logger.h"
 
 namespace o2
@@ -26,13 +25,21 @@ namespace o2
 namespace mft
 {
 
-Tracker::Tracker(bool useMC) : mUseMC{useMC} {}
+Tracker::Tracker(bool useMC) : mUseMC{useMC}
+{
+
+  /// Prepare the track extrapolation tools
+  LOG(INFO) << "initializing track fitter";
+  mTrackFitter = std::make_unique<o2::mft::TrackFitter2>();
+  mTrackFitter->setBz(mBz);
+}
 
 void Tracker::clustersToTracks(ROframe& event, std::ostream& timeBenchmarkOutputStream)
 {
   mTracks.clear();
   mTrackLabels.clear();
   findTracks(event);
+  fitTracks(event);
 }
 
 void Tracker::findTracks(ROframe& event)
@@ -243,7 +250,6 @@ void Tracker::findTracksLTF(ROframe& event)
               //layMin = (lay < layMin) ? lay : layMin;
               //layMax = (lay > layMax) ? lay : layMax;
             }
-
           } // end seed clusters bin layer2
         }   // end binPhi
       }     // end binR
@@ -532,6 +538,7 @@ void Tracker::runBackwardInRoad(ROframe& event)
       // start a track CA
       event.addTrackCA();
       event.getCurrentTrackCA().setRoadId(road.getRoadId());
+      event.getCurrentTrackCA().setCA();
       if (addCellToCurrentTrackCA(layer, icell, event)) {
         road.setCellUsed(layer, icell, kTRUE);
       }
@@ -646,7 +653,6 @@ void Tracker::runBackwardInRoad(ROframe& event)
         event.markUsedCluster(cellC.getFirstLayerId(), cellC.getFirstClusterIndex());
         event.markUsedCluster(cellC.getSecondLayerId(), cellC.getSecondClusterIndex());
       }
-
     } // end loop cells
   }   // end loop start layer
 }
@@ -841,6 +847,18 @@ const Bool_t Tracker::LinearRegression(Int_t npoints, Float_t* x, Float_t* y, Fl
   }
 
   return kTRUE;
+}
+
+bool Tracker::fitTracks(ROframe& event)
+{
+  for (auto& track : event.getTracksLTF()) {
+    mTrackFitter->fit(track);
+  }
+  for (auto& track : event.getTracksCA()) {
+    mTrackFitter->fit(track);
+  }
+
+  return true;
 }
 
 } // namespace mft

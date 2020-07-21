@@ -26,7 +26,31 @@ namespace o2
 namespace mft
 {
 
-class TrackCA : public TrackMFT
+class TrackLTF : public TrackMFTExt
+{
+ public:
+  const Int_t getNPoints() const { return mNPoints; }
+  const std::array<Float_t, constants::mft::LayersNumber>& getXCoordinates() const { return mX; }
+  const std::array<Float_t, constants::mft::LayersNumber>& getYCoordinates() const { return mY; }
+  const std::array<Float_t, constants::mft::LayersNumber>& getZCoordinates() const { return mZ; }
+  const std::array<Int_t, constants::mft::LayersNumber>& getLayers() const { return mLayer; }
+  const std::array<Int_t, constants::mft::LayersNumber>& getClustersId() const { return mClusterId; }
+  const std::array<MCCompLabel, constants::mft::LayersNumber>& getMCCompLabels() const { return mMCCompLabels; }
+  void setPoint(const Float_t x, const Float_t y, const Float_t z, const Int_t layer, const Int_t clusterId, const MCCompLabel label, Bool_t& newPoint);
+
+ protected:
+  Int_t mNPoints{0};
+
+ private:
+  std::array<Float_t, constants::mft::LayersNumber> mX = {-25., -25., -25., -25., -25., -25., -25., -25., -25., -25.};
+  std::array<Float_t, constants::mft::LayersNumber> mY = {-25., -25., -25., -25., -25., -25., -25., -25., -25., -25.};
+  std::array<Float_t, constants::mft::LayersNumber> mZ = {-120., -120., -120., -120., -120., -120., -120., -120., -120., -120.};
+  std::array<Int_t, constants::mft::LayersNumber> mLayer;
+  std::array<Int_t, constants::mft::LayersNumber> mClusterId;
+  std::array<MCCompLabel, constants::mft::LayersNumber> mMCCompLabels;
+};
+
+class TrackCA : public TrackLTF
 {
  public:
   TrackCA() = default;
@@ -36,36 +60,23 @@ class TrackCA : public TrackMFT
   const Int_t getNCells() const;
   void setRoadId(const Int_t rid) { mRoadId = rid; }
   const Int_t getRoadId() const;
-  void setPoint(const Float_t x, const Float_t y, const Float_t z, const Int_t layer, const Int_t clusterId, const MCCompLabel label, Bool_t& newPoint);
-  const Int_t getNPoints() const { return mNPoints; }
   void setChiSquareZX(const Float_t chisq) { mChiSquareZX = chisq; }
   void setChiSquareZY(const Float_t chisq) { mChiSquareZY = chisq; }
   const Float_t getChiSquareZX() const { return mChiSquareZX; }
   const Float_t getChiSquareZY() const { return mChiSquareZY; }
-  const std::array<Float_t, constants::mft::LayersNumber>& getXCoordinates() const { return mX; }
-  const std::array<Float_t, constants::mft::LayersNumber>& getYCoordinates() const { return mY; }
-  const std::array<Float_t, constants::mft::LayersNumber>& getZCoordinates() const { return mZ; }
-  const std::array<Int_t, constants::mft::LayersNumber>& getLayers() const { return mLayer; }
-  const std::array<Int_t, constants::mft::LayersNumber>& getClustersId() const { return mClusterId; }
+
   const std::array<Int_t, constants::mft::LayersNumber>& getCellsLayer() const { return mCellLayer; }
   const std::array<Int_t, constants::mft::LayersNumber>& getCellsId() const { return mCellId; }
-  const std::array<MCCompLabel, constants::mft::LayersNumber>& getMCCompLabels() const { return mMCCompLabels; }
 
  private:
-  Int_t mNPoints{0};
   Int_t mNCells{0};
   Int_t mRoadId{-1};
   Float_t mChiSquareZX{0.};
   Float_t mChiSquareZY{0.};
-  std::array<Float_t, constants::mft::LayersNumber> mX = {-25., -25., -25., -25., -25., -25., -25., -25., -25., -25.};
-  std::array<Float_t, constants::mft::LayersNumber> mY = {-25., -25., -25., -25., -25., -25., -25., -25., -25., -25.};
-  std::array<Float_t, constants::mft::LayersNumber> mZ = {-120., -120., -120., -120., -120., -120., -120., -120., -120., -120.};
-  std::array<Int_t, constants::mft::LayersNumber> mLayer;
-  std::array<Int_t, constants::mft::LayersNumber> mClusterId;
+
   std::array<Int_t, constants::mft::LayersNumber> mCellLayer;
   std::array<Int_t, constants::mft::LayersNumber> mCellId;
-  std::array<MCCompLabel, constants::mft::LayersNumber> mMCCompLabels;
-  ClassDefNV(TrackCA, 1);
+  ClassDefNV(TrackCA, 2);
 };
 
 inline void TrackCA::addCell(const Int_t layer, const Int_t cellId)
@@ -97,55 +108,6 @@ inline const Int_t TrackCA::getRoadId() const
   return mRoadId;
 }
 
-inline void TrackCA::setPoint(const Float_t x, const Float_t y, const Float_t z, const Int_t layer, const Int_t clusterId, const MCCompLabel label, Bool_t& newPoint)
-{
-  if (newPoint) {
-    if (mNPoints == constants::mft::LayersNumber) {
-      LOG(WARN) << "MFT TrackLTF Overflow";
-      return;
-    }
-    mX[mNPoints] = x;
-    mY[mNPoints] = y;
-    mZ[mNPoints] = z;
-    mLayer[mNPoints] = layer;
-    mClusterId[mNPoints] = clusterId;
-    mMCCompLabels[mNPoints] = label;
-    mNPoints++;
-  } else {
-    mX[mNPoints] = x;
-    mY[mNPoints] = y;
-    mZ[mNPoints] = z;
-    mLayer[mNPoints] = layer;
-    mClusterId[mNPoints] = clusterId;
-    mMCCompLabels[mNPoints] = label;
-  }
-}
-
-class TrackLTF final
-{
- public:
-  TrackLTF() = default;
-  ~TrackLTF() = default;
-  void setPoint(const Float_t x, const Float_t y, const Float_t z, const Int_t layer, const Int_t clusterId, const MCCompLabel label, Bool_t& newPoint);
-  const Int_t getNPoints() const { return mNPoints; }
-  const std::array<Float_t, constants::mft::LayersNumber>& getXCoordinates() const { return mX; }
-  const std::array<Float_t, constants::mft::LayersNumber>& getYCoordinates() const { return mY; }
-  const std::array<Float_t, constants::mft::LayersNumber>& getZCoordinates() const { return mZ; }
-  const std::array<Int_t, constants::mft::LayersNumber>& getLayers() const { return mLayer; }
-  const std::array<Int_t, constants::mft::LayersNumber>& getClustersId() const { return mClusterId; }
-  const std::array<MCCompLabel, constants::mft::LayersNumber>& getMCCompLabels() const { return mMCCompLabels; }
-
- private:
-  Int_t mNPoints = 0;
-  std::array<Float_t, constants::mft::LayersNumber> mX = {-25., -25., -25., -25., -25., -25., -25., -25., -25., -25.};
-  std::array<Float_t, constants::mft::LayersNumber> mY = {-25., -25., -25., -25., -25., -25., -25., -25., -25., -25.};
-  std::array<Float_t, constants::mft::LayersNumber> mZ = {-120., -120., -120., -120., -120., -120., -120., -120., -120., -120.};
-  std::array<Int_t, constants::mft::LayersNumber> mLayer;
-  std::array<Int_t, constants::mft::LayersNumber> mClusterId;
-  std::array<MCCompLabel, constants::mft::LayersNumber> mMCCompLabels;
-  ClassDefNV(TrackLTF, 1);
-};
-
 inline void TrackLTF::setPoint(const Float_t x, const Float_t y, const Float_t z, const Int_t layer, const Int_t clusterId, const MCCompLabel label, Bool_t& newPoint)
 {
   if (newPoint) {
@@ -159,6 +121,9 @@ inline void TrackLTF::setPoint(const Float_t x, const Float_t y, const Float_t z
     mLayer[mNPoints] = layer;
     mClusterId[mNPoints] = clusterId;
     mMCCompLabels[mNPoints] = label;
+    //std::cout << "setClusterIndex(layer, clusterId) = " << layer << " , " << clusterId << " newpoint" << std::endl;
+    setClusterIndex(layer, clusterId, mNPoints);
+
     mNPoints++;
   } else {
     mX[mNPoints] = x;
@@ -167,9 +132,9 @@ inline void TrackLTF::setPoint(const Float_t x, const Float_t y, const Float_t z
     mLayer[mNPoints] = layer;
     mClusterId[mNPoints] = clusterId;
     mMCCompLabels[mNPoints] = label;
+    //std::cout << "setClusterIndex(layer, clusterId) = " << layer << " , " << clusterId << std::endl;
+    setClusterIndex(layer, clusterId, mNPoints);
   }
-  LOG(INFO) << "MFT TrackLTF setPoint mNPoints = " << mNPoints << std::endl;
-
 }
 
 } // namespace mft
@@ -179,6 +144,11 @@ template <typename T>
 struct is_messageable;
 template <>
 struct is_messageable<o2::mft::TrackCA> : std::true_type {
+};
+template <typename T>
+struct is_messageable;
+template <>
+struct is_messageable<o2::mft::TrackLTF> : std::true_type {
 };
 } // namespace framework
 } // namespace o2

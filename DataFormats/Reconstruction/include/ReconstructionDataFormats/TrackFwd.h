@@ -13,7 +13,6 @@
 ///
 /// \author Philippe Pillot, Subatech; adapted by Rafael Pezzi, UFRGS
 
-
 #ifndef ALICEO2_BASE_TRACKFWD
 #define ALICEO2_BASE_TRACKFWD
 
@@ -33,111 +32,107 @@ using SMatrix5 = ROOT::Math::SVector<Double_t, 5>;
 
 class TrackParFwd
 { // Forward track parameterization, kinematics only.
-public:
- TrackParFwd() = default;
- ~TrackParFwd() = default;
+ public:
+  TrackParFwd() = default;
+  ~TrackParFwd() = default;
 
- TrackParFwd(const TrackParFwd& tp)  = default;
- TrackParFwd& operator=(const TrackParFwd& tp)  = default;
- TrackParFwd(TrackParFwd&&) = delete;
- TrackParFwd& operator=(TrackParFwd&&) = delete;
+  TrackParFwd(const TrackParFwd& tp) = default;
+  TrackParFwd& operator=(const TrackParFwd& tp) = default;
+  TrackParFwd(TrackParFwd&&) = delete;
+  TrackParFwd& operator=(TrackParFwd&&) = delete;
 
- /// return Z coordinate (cm)
- Double_t getZ() const { return mZ; }
- /// set Z coordinate (cm)
- void setZ(Double_t z) { mZ = z; }
- Double_t getX() const { return mParameters(0); }
- void setX(Double_t x) { mParameters(0) = x; }
+  /// return Z coordinate (cm)
+  Double_t getZ() const { return mZ; }
+  /// set Z coordinate (cm)
+  void setZ(Double_t z) { mZ = z; }
+  Double_t getX() const { return mParameters(0); }
+  void setX(Double_t x) { mParameters(0) = x; }
 
- Double_t getY() const { return mParameters(1); }
- void setY(Double_t y) { mParameters(1) = y; }
+  Double_t getY() const { return mParameters(1); }
+  void setY(Double_t y) { mParameters(1) = y; }
 
- void setPhi(Double_t phi) { mParameters(2) = phi; }
- Double_t getPhi() const { return mParameters(2); }
+  void setPhi(Double_t phi) { mParameters(2) = phi; }
+  Double_t getPhi() const { return mParameters(2); }
 
- void setTanl(Double_t tanl) { mParameters(3) = tanl; }
- Double_t getTanl() const { return mParameters(3); }
+  void setTanl(Double_t tanl) { mParameters(3) = tanl; }
+  Double_t getTanl() const { return mParameters(3); }
 
- void setInvQPt(Double_t invqpt) { mParameters(4) = invqpt; }
- Double_t getInvQPt() const { return mParameters(4); } // return Inverse charged pt
- Double_t getPt() const { return TMath::Abs(1.f / mParameters(4)); }
- Double_t getInvPt() const { return TMath::Abs(mParameters(4)); }
+  void setInvQPt(Double_t invqpt) { mParameters(4) = invqpt; }
+  Double_t getInvQPt() const { return mParameters(4); } // return Inverse charged pt
+  Double_t getPt() const { return TMath::Abs(1.f / mParameters(4)); }
+  Double_t getInvPt() const { return TMath::Abs(mParameters(4)); }
 
- Double_t getPx() const { return TMath::Cos(getPhi()) * getPt(); } // return px
- Double_t getInvPx() const { return 1. / getPx(); }                // return invpx
+  Double_t getPx() const { return TMath::Cos(getPhi()) * getPt(); } // return px
+  Double_t getInvPx() const { return 1. / getPx(); }                // return invpx
 
- Double_t getPy() const { return TMath::Sin(getPhi()) * getPt(); } // return py
- Double_t getInvPy() const { return 1. / getPx(); }                // return invpy
+  Double_t getPy() const { return TMath::Sin(getPhi()) * getPt(); } // return py
+  Double_t getInvPy() const { return 1. / getPx(); }                // return invpy
 
- Double_t getPz() const { return getTanl() * getPt(); } // return pz
- Double_t getInvPz() const { return 1. / getPz(); }     // return invpz
+  Double_t getPz() const { return getTanl() * getPt(); } // return pz
+  Double_t getInvPz() const { return 1. / getPz(); }     // return invpz
 
- Double_t getP() const { return getPt() * TMath::Sqrt(1. + getTanl() * getTanl()); } // return total momentum
- Double_t getInverseMomentum() const { return 1.f / getP(); }
+  Double_t getP() const { return getPt() * TMath::Sqrt(1. + getTanl() * getTanl()); } // return total momentum
+  Double_t getInverseMomentum() const { return 1.f / getP(); }
 
- Double_t getEta() const { return -TMath::Log(TMath::Tan((TMath::PiOver2() - TMath::ATan(getTanl())) / 2)); } // return total momentum
+  Double_t getEta() const { return -TMath::Log(TMath::Tan((TMath::PiOver2() - TMath::ATan(getTanl())) / 2)); } // return total momentum
 
- /// return the charge (assumed forward motion)
- Double_t getCharge() const { return TMath::Sign(1., mParameters(4)); }
- /// set the charge (assumed forward motion)
- void setCharge(Double_t charge)
- {
-   if (charge * mParameters(4) < 0.)
-     mParameters(4) *= -1.;
- }
+  /// return the charge (assumed forward motion)
+  Double_t getCharge() const { return TMath::Sign(1., mParameters(4)); }
+  /// set the charge (assumed forward motion)
+  void setCharge(Double_t charge)
+  {
+    if (charge * mParameters(4) < 0.)
+      mParameters(4) *= -1.;
+  }
 
- /// return track parameters
- const SMatrix5& getParameters() const { return mParameters; }
- /// set track parameters
- void setParameters(const SMatrix5& parameters) { mParameters = parameters; }
- /// add track parameters
- void addParameters(const SMatrix5& parameters) { mParameters += parameters; }
+  /// return track parameters
+  const SMatrix5& getParameters() const { return mParameters; }
+  /// set track parameters
+  void setParameters(const SMatrix5& parameters) { mParameters = parameters; }
+  /// add track parameters
+  void addParameters(const SMatrix5& parameters) { mParameters += parameters; }
 
- /// get pointer to associated cluster
- //const Cluster* getClusterPtr() const { return mClusterPtr; }
- /// set pointer to associated cluster
- //void setClusterPtr(const Cluster* cluster) { mClusterPtr = cluster; }
+  /// get pointer to associated cluster
+  //const Cluster* getClusterPtr() const { return mClusterPtr; }
+  /// set pointer to associated cluster
+  //void setClusterPtr(const Cluster* cluster) { mClusterPtr = cluster; }
 
+  /// return the chi2 of the track when the associated cluster was attached
+  Double_t getTrackChi2() const { return mTrackChi2; }
+  /// set the chi2 of the track when the associated cluster was attached
+  void setTrackChi2(Double_t chi2) { mTrackChi2 = chi2; }
 
- /// return the chi2 of the track when the associated cluster was attached
- Double_t getTrackChi2() const { return mTrackChi2; }
- /// set the chi2 of the track when the associated cluster was attached
- void setTrackChi2(Double_t chi2) { mTrackChi2 = chi2; }
+  void linearExtrapToZ(double zEnd);
+  void quadraticExtrapToZ(double zEnd, double zField);
+  void helixExtrapToZ(double zEnd, double zField);
 
- void linearExtrapToZ(double zEnd);
- void quadraticExtrapToZ(double zEnd, double zField);
- void helixExtrapToZ(double zEnd, double zField);
+ private:
+  Double_t mZ = 0.; ///< Z coordinate (cm)
 
-private:
- Double_t mZ = 0.; ///< Z coordinate (cm)
+  /// Track parameters ordered as follow:      <pre>
+  /// X       = X coordinate   (cm)
+  /// Y       = Y coordinate   (cm)
+  /// PHI     = azimutal angle
+  /// TANL    = tangent of \lambda (dip angle)
+  /// INVQPT    = Inverse transverse momentum (GeV/c ** -1) times charge (assumed forward motion)  </pre>
+  SMatrix5 mParameters{}; ///< \brief Track parameters
+  //const Cluster* mClusterPtr = nullptr; ///< Pointer to the associated cluster if any
+  Double_t mTrackChi2 = 0.; ///< Chi2 of the track when the associated cluster was attached
 
- /// Track parameters ordered as follow:      <pre>
- /// X       = X coordinate   (cm)
- /// Y       = Y coordinate   (cm)
- /// PHI     = azimutal angle
- /// TANL    = tangent of \lambda (dip angle)
- /// INVQPT    = Inverse transverse momentum (GeV/c ** -1) times charge (assumed forward motion)  </pre>
- SMatrix5 mParameters{};   ///< \brief Track parameters
- //const Cluster* mClusterPtr = nullptr; ///< Pointer to the associated cluster if any
- Double_t mTrackChi2 = 0.; ///< Chi2 of the track when the associated cluster was attached
-
- ClassDefNV(TrackParFwd, 1);
-
+  ClassDefNV(TrackParFwd, 1);
 };
 
 class TrackParCovFwd : public TrackParFwd
 { // Forward track+error parameterization
-  public:
+ public:
   using TrackParFwd::TrackParFwd; // inherit base constructors
 
   TrackParCovFwd() = default;
   ~TrackParCovFwd() = default;
 
-
   TrackParCovFwd(const TrackParCovFwd& tpf) = default;
   TrackParCovFwd& operator=(const TrackParCovFwd& tpf) = default;
   TrackParCovFwd(const Double_t z, const SMatrix5 parameters, const SMatrix55 covariances, const Double_t chi2);
-
 
   const SMatrix55& getCovariances() const;
   void setCovariances(const SMatrix55& covariances);
@@ -154,17 +149,15 @@ class TrackParCovFwd : public TrackParFwd
   void helixExtrapToZCov(double zEnd, double zField);
   void addMCSEffect(double dZ, double x0, double zField);
 
-private:
-
+ private:
   /// Covariance matrix of track parameters, ordered as follows:    <pre>
   ///  <X,X>         <Y,X>           <PHI,X>       <TANL,X>        <INVQPT,X>
   ///  <X,Y>         <Y,Y>           <PHI,Y>       <TANL,Y>        <INVQPT,Y>
   /// <X,PHI>       <Y,PHI>         <PHI,PHI>     <TANL,PHI>      <INVQPT,PHI>
   /// <X,TANL>      <Y,TANL>       <PHI,TANL>     <TANL,TANL>     <INVQPT,TANL>
   /// <X,INVQPT>   <Y,INVQPT>     <PHI,INVQPT>   <TANL,INVQPT>   <INVQPT,INVQPT>  </pre>
-  SMatrix55 mCovariances{};   ///< \brief Covariance matrix of track parameters
+  SMatrix55 mCovariances{}; ///< \brief Covariance matrix of track parameters
   ClassDefNV(TrackParCovFwd, 1);
-
 };
 
 } // namespace track

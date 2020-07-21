@@ -37,7 +37,7 @@ DataProcessorSpec getTrackWriterSpec(bool useMC)
   // Spectators for logging
   // this is only to restore the original behavior
   auto tracksSize = std::make_shared<int>(0);
-  auto tracksSizeGetter = [tracksSize](std::vector<o2::mft::TrackMFT> const& tracks) {
+  auto tracksSizeGetter = [tracksSize](std::vector<o2::mft::TrackLTF> const& tracks) {
     *tracksSize = tracks.size();
   };
   auto logger = [tracksSize](std::vector<o2::itsmft::ROFRecord> const& rofs) {
@@ -46,13 +46,15 @@ DataProcessorSpec getTrackWriterSpec(bool useMC)
   return MakeRootTreeWriterSpec("mft-track-writer",
                                 "mfttracks.root",
                                 MakeRootTreeWriterSpec::TreeAttributes{"o2sim", "Tree with MFT tracks"},
-                                BranchDefinition<std::vector<o2::mft::TrackMFT>>{InputSpec{"tracks", "MFT", "TRACKS", 0},
+                                BranchDefinition<std::vector<o2::mft::TrackLTF>>{InputSpec{"tracks", "MFT", "TRACKS", 0},
                                                                                  "MFTTrack",
                                                                                  tracksSizeGetter},
                                 BranchDefinition<std::vector<o2::mft::TrackLTF>>{InputSpec{"tracksltf", "MFT", "TRACKSLTF", 0},
                                                                                  "MFTTrackLTF"},
                                 BranchDefinition<std::vector<o2::mft::TrackCA>>{InputSpec{"tracksca", "MFT", "TRACKSCA", 0},
                                                                                 "MFTTrackCA"},
+                                BranchDefinition<std::vector<int>>{InputSpec{"trackClIdx", "MFT", "TRACKCLSID", 0},
+                                                                   "MFTTrackClusIdx"},
                                 BranchDefinition<o2::dataformats::MCTruthContainer<o2::MCCompLabel>>{InputSpec{"labels", "MFT", "TRACKSMCTR", 0},
                                                                                                      "MFTTrackMCTruth",
                                                                                                      (useMC ? 1 : 0), // one branch if mc labels enabled
