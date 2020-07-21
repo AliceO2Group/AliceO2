@@ -262,7 +262,7 @@ bool TrackFitter::addCluster(const TrackParamMFT& startingParam, const Cluster& 
     if (startingParam.getZ() < LayerZPosition[layer] + .3 & startingParam.getZ() > LayerZPosition[layer] - .3)
       startingLayerID = layer;
   for (auto layer = 10; layer--;)
-    if (cl.getZ()<LayerZPosition[layer] + .3 & cl.getZ()> LayerZPosition[layer] - .3)
+    if (cl.getZ() < LayerZPosition[layer] + .3 & cl.getZ() > LayerZPosition[layer] - .3)
       newLayerID = layer;
   // Number of disks crossed by this tracklet
   int NDisksMS = (startingLayerID % 2 == 0) ? (startingLayerID - newLayerID) / 2 : (startingLayerID - newLayerID + 1) / 2;
@@ -492,7 +492,7 @@ Double_t invQPtFromParabola(const FitterTrackMFT& track, Double_t bFieldZ, Doubl
   auto theta = -TMath::ATan2(deltay, deltax);
   auto costheta = TMath::Cos(theta), sintheta = TMath::Sin(theta);
 
-  bool verbose = false;
+  bool verbose = true;
   if (verbose) {
     std::cout << "First and last cluster X,Y => " << track.first().getX() << " , " << track.first().getY() << "     /  " << track.rbegin()->getX() << " , " << track.rbegin()->getY() << std::endl;
     std::cout << " Angle to rotate: " << theta << " ( " << theta * TMath::RadToDeg() << " deg ) " << std::endl;
@@ -507,7 +507,8 @@ Double_t invQPtFromParabola(const FitterTrackMFT& track, Double_t bFieldZ, Doubl
     auto y_0 = trackparam->getClusterPtr()->getY() - y_m;
     x[n] = x_0 * costheta - y_0 * sintheta;
     y[n] = x_0 * sintheta + y_0 * costheta;
-    //std::cout << "    adding rotated point to fit at z = " << trackparam->getClusterPtr()->getZ() << " (" << x[n] <<  "," << y[n]  <<  ") "<< std::endl;
+    if (verbose)
+      std::cout << "    adding rotated point to fit at z = " << trackparam->getClusterPtr()->getZ() << " (" << x[n] << "," << y[n] << ") " << std::endl;
     n++;
   }
 

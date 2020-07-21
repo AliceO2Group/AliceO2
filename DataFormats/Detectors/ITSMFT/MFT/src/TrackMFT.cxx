@@ -17,12 +17,6 @@
 #include "CommonConstants/MathConstants.h"
 #include "Framework/Logger.h"
 #include "MathUtils/Utils.h"
-#include <TMath.h>
-#include "DataFormatsITSMFT/Cluster.h"
-
-using namespace o2::mft;
-using namespace o2::itsmft;
-using namespace o2::constants::math;
 
 namespace o2
 {
@@ -31,8 +25,6 @@ namespace mft
 
 using SMatrix55 = ROOT::Math::SMatrix<double, 5, 5, ROOT::Math::MatRepSym<double, 5>>;
 using SMatrix5 = ROOT::Math::SVector<Double_t, 5>;
-
-
 
 //__________________________________________________________________________
 void TrackMFT::setCovariancesLast(const SMatrix55& covariances)
