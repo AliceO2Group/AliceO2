@@ -20,6 +20,8 @@
 #include <TFile.h>
 #include <TH1F.h>
 #include <Math/Vector4D.h>
+#include <TPDGCode.h>
+#include <TDatabasePDG.h>
 #include <cmath>
 #include <array>
 #include <cstdlib>
@@ -87,8 +89,8 @@ struct SelectTracks {
 
 struct HFTrackIndexSkimsCreator {
   std::vector<PxPyPzMVector> listTracks;
-  double masspion = 0.140;
-  double masskaon = 0.494;
+  double masspion = TDatabasePDG::Instance()->GetParticle(kPiPlus)->Mass();
+  double masskaon = TDatabasePDG::Instance()->GetParticle(kKPlus)->Mass();
   OutputObj<TH1F> hmass2{TH1F("hmass2", "; Inv Mass (GeV/c^{2})", 500, 0, 5.0)};
   OutputObj<TH1F> hmass3{TH1F("hmass3", "; Inv Mass (GeV/c^{2})", 500, 0, 5.0)};
   Produces<aod::HfTrackIndexProng2> hftrackindexprong2;
