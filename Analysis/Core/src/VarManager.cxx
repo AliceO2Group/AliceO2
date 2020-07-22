@@ -116,7 +116,7 @@ void VarManager::FillEvent(std::vector<float> event, float* values)
 }
 
 //__________________________________________________________________
-void VarManager::FillTrack(std::vector<float> track, float* values)
+void VarManager::FillTrackDerived(float* values)
 {
 
   if (!values)
@@ -128,23 +128,6 @@ void VarManager::FillTrack(std::vector<float> track, float* values)
   values[kCharge] = track[3];
   if(fgUsedVars[kP]) 
     values[kP] = values[kPt] * TMath::CosH(values[kEta]);
-  /*values[kPt] = track.pt();
-  values[kEta] = track.eta();
-  values[kPhi] = track.phi();
-  values[kCharge] = track.charge();*/
-  //values[kPin] = track.tpcInnerParam();
-  //if(fgUsedVars[kITSncls]) {
-  //  values[kITSncls] = 0.0;
-  //  for(int i=0; i<6; ++i)
-  //    values[kITSncls] += ((track.itsClusterMap() & (1<<i)) ? 1 : 0);
-  //}
-  //values[kITSchi2] = track.itsChi2NCl();
-  //values[kTPCncls] = track.tpcNCls();
-  //values[kTPCchi2] = track.tpcChi2NCl();
-  //values[kTPCsignal] = track.tpcSignal();
-  //values[kTRDsignal] = track.trdSignal();
-  //values[kTOFsignal] = track.tofSignal();
-  //values[kTrackLength] = track.barrelLength();
 }
 
 //__________________________________________________________________

@@ -80,6 +80,10 @@ struct TableMaker {
     VarManager::FillEvent<fgEventFillMap>(collision);       // extract event information and place it in the fgValues array
     fHistMan->FillHistClass("Event", VarManager::fgValues); // automatically fill all the histograms in the class Event
 
+    VarManager::ResetValues();
+    VarManager::FillEvent<fgEventFillMap>(collision);             // extract event information and place it in the fgValues array
+    fHistMan->FillHistClass("Event", VarManager::fgValues); // automatically fill all the histograms in the class Event
+    
     event(tag, collision.bc().runNumber(), collision.posX(), collision.posY(), collision.posZ(), collision.numContrib());
     eventExtended(collision.bc().globalBC(), collision.bc().triggerMask(), triggerAliases, collision.centV0M());
     eventVtxCov(collision.covXX(), collision.covXY(), collision.covXZ(), collision.covYY(), collision.covYZ(), collision.covZZ(), collision.chi2());
@@ -120,7 +124,7 @@ struct TableMaker {
       muonExtended(muon.inverseBendingMomentum(), muon.thetaX(), muon.thetaY(), muon.zMu(), muon.bendingCoor(), muon.nonBendingCoor(), muon.chi2(), muon.chi2MatchTrigger());
     }
   }
-
+ 
   void DefineHistograms(TString histClasses)
   {
     const int kNRuns = 2;
@@ -147,8 +151,8 @@ struct TableMaker {
                                100, 0.055, 0.08, VarManager::kVtxX, 100, 0.31, 0.35, VarManager::kVtxY, 30, -15., 15., VarManager::kVtxZ,
                                "", "", "", VarManager::kVtxNcontrib); // TProfile3D
       }
-    } // end loop over histogram classes
-  }
+    }   // end loop over histogram classes
+  }     
 };
 
 WorkflowSpec defineDataProcessing(o2::framework::ConfigContext const&)
