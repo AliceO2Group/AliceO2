@@ -129,12 +129,14 @@ set(HDRS_INSTALL
     Base/GPUParam.inc
     Merger/GPUTPCGMMergerTypes.h
     Global/GPUErrorCodes.h
+    Standalone/qconfigoptions.h
+    Base/GPUSettingsList.h
 )
 
 # Sources only for O2
 if(ALIGPU_BUILD_TYPE STREQUAL "O2")
-  set(SRCS ${SRCS} Interface/GPUO2Interface.cxx)
-  set(HDRS_CINT_O2 ${HDRS_CINT_O2} Interface/GPUO2Interface.h dEdx/TPCdEdxCalibrationSplines.h)
+  set(SRCS ${SRCS} Interface/GPUO2Interface.cxx Interface/GPUO2InterfaceConfigurableParam.cxx)
+  set(HDRS_CINT_O2 ${HDRS_CINT_O2} Interface/GPUO2Interface.h Interface/GPUO2InterfaceConfigurableParam.h dEdx/TPCdEdxCalibrationSplines.h)
 endif()
 
 # Sources for O2 and for Standalone if requested in config file
@@ -227,10 +229,6 @@ if(GPUCA_QA)
   set(SRCS_NO_CINT ${SRCS_NO_CINT} Standalone/qa/GPUQA.cxx)
 else()
   set(HDRS_INSTALL ${HDRS_INSTALL} Standalone/qa/GPUQA.h)
-endif()
-
-if(GPUCA_EVENT_DISPLAY OR GPUCA_QA)
-  set(HDRS_INSTALL ${HDRS_INSTALL} Standalone/qconfigoptions.h)
 endif()
 
 # Update HDR variables with files derrived from SRC variables

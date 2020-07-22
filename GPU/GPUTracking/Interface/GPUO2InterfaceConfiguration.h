@@ -46,6 +46,7 @@ class Digit;
 namespace gpu
 {
 class TPCFastTransform;
+struct GPUSettingsO2;
 
 // This defines an output region. Ptr points to a memory buffer, which should have a proper alignment.
 // Since DPL does not respect the alignment of data types, we do not impose anything specic but just use a char data type, but it should be >= 64 bytes ideally.
@@ -74,14 +75,15 @@ struct GPUO2InterfaceConfiguration {
   struct GPUInterfaceSettings {
     int dumpEvents = 0;
     bool outputToExternalBuffers = false;
-    // These constants affect GPU memory allocation and do not limit the CPU processing
+    // These constants affect GPU memory allocation only and do not limit the CPU processing
+    unsigned long maxTPCZS = 4096ul * 1024 * 1024;
     unsigned int maxTPCHits = 1024 * 1024 * 1024;
     unsigned int maxTRDTracklets = 128 * 1024;
     unsigned int maxITSTracks = 96 * 1024;
   };
 
+  GPUSettingsDeviceBackend configDeviceBackend;
   GPUSettingsProcessing configProcessing;
-  GPUSettingsDeviceProcessing configDeviceProcessing;
   GPUSettingsEvent configEvent;
   GPUSettingsRec configReconstruction;
   GPUDisplayConfig configDisplay;
@@ -89,6 +91,8 @@ struct GPUO2InterfaceConfiguration {
   GPUInterfaceSettings configInterface;
   GPURecoStepConfiguration configWorkflow;
   GPUCalibObjects configCalib;
+
+  GPUSettingsO2 ReadConfigurableParam();
 };
 
 // Structure with pointers to actual data for input and output

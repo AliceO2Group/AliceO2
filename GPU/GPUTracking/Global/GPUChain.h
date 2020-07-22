@@ -57,8 +57,8 @@ class GPUChain
 
   const GPUParam& GetParam() const { return mRec->mHostConstantMem->param; }
   const GPUSettingsEvent& GetEventSettings() const { return mRec->mEventSettings; }
+  const GPUSettingsDeviceBackend& GetDeviceBackendSettings() const { return mRec->mDeviceBackendSettings; }
   const GPUSettingsProcessing& GetProcessingSettings() const { return mRec->mProcessingSettings; }
-  const GPUSettingsDeviceProcessing& GetDeviceProcessingSettings() const { return mRec->mDeviceProcessingSettings; }
   GPUReconstruction* rec() { return mRec; }
   const GPUReconstruction* rec() const { return mRec; }
 
@@ -79,7 +79,7 @@ class GPUChain
   inline GPUConstantMem* processorsDevice() { return mRec->mDeviceConstantMem; }
   inline GPUParam& param() { return mRec->param(); }
   inline const GPUConstantMem* processors() const { return mRec->processors(); }
-  inline GPUSettingsDeviceProcessing& DeviceProcessingSettings() { return mRec->mDeviceProcessingSettings; }
+  inline GPUSettingsProcessing& ProcessingSettings() { return mRec->mProcessingSettings; }
   inline void SynchronizeStream(int stream) { mRec->SynchronizeStream(stream); }
   inline void SynchronizeEvents(deviceEvent* evList, int nEvents = 1) { mRec->SynchronizeEvents(evList, nEvents); }
   template <class T>
@@ -246,7 +246,7 @@ inline void GPUChain::timeCpy(RecoStep step, int toGPU, S T::*func, Args... args
   }
   HighResTimer* timer = nullptr;
   size_t* bytes = nullptr;
-  if (mRec->mDeviceProcessingSettings.debugLevel >= 1 && toGPU >= 0) { // Todo: time special cases toGPU < 0
+  if (mRec->mProcessingSettings.debugLevel >= 1 && toGPU >= 0) { // Todo: time special cases toGPU < 0
     int id = mRec->getRecoStepNum(step, false);
     if (id != -1) {
       auto& tmp = mRec->mTimersRecoSteps[id];
@@ -267,11 +267,11 @@ inline void GPUChain::timeCpy(RecoStep step, int toGPU, S T::*func, Args... args
 template <class T, class S, typename... Args>
 bool GPUChain::DoDebugAndDump(GPUChain::RecoStep step, int mask, bool transfer, T& processor, S T::*func, Args&&... args)
 {
-  if (GetDeviceProcessingSettings().keepAllMemory) {
+  if (GetProcessingSettings().keepAllMemory) {
     if (transfer) {
       TransferMemoryResourcesToHost(step, &processor, -1, true);
     }
-    if (GetDeviceProcessingSettings().debugLevel >= 6 && (mask == 0 || (GetDeviceProcessingSettings().debugMask & mask))) {
+    if (GetProcessingSettings().debugLevel >= 6 && (mask == 0 || (GetProcessingSettings().debugMask & mask))) {
       (processor.*func)(args...);
       return true;
     }
@@ -283,11 +283,11 @@ template <class T, class S, typename... Args>
 int GPUChain::runRecoStep(RecoStep step, S T::*func, Args... args)
 {
   if (GetRecoSteps().isSet(step)) {
-    if (GetDeviceProcessingSettings().debugLevel >= 1) {
+    if (GetProcessingSettings().debugLevel >= 1) {
       mRec->getRecoStepTimer(step).Start();
     }
     int retVal = (reinterpret_cast<T*>(this)->*func)(args...);
-    if (GetDeviceProcessingSettings().debugLevel >= 1) {
+    if (GetProcessingSettings().debugLevel >= 1) {
       mRec->getRecoStepTimer(step).Stop();
     }
     return retVal;

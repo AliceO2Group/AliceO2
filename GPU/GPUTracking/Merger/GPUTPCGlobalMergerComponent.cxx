@@ -292,7 +292,7 @@ int GPUTPCGlobalMergerComponent::Configure(const char* cdbEntry, const char* cha
 
   GPUSettingsEvent ev;
   GPUSettingsRec rec;
-  GPUSettingsDeviceProcessing devProc;
+  GPUSettingsProcessing devProc;
   ev.solenoidBz = fSolenoidBz;
   if (fClusterErrorCorrectionY > 1.e-4) {
     rec.ClusterError2CorrectionY = fClusterErrorCorrectionY * fClusterErrorCorrectionY;
