@@ -415,7 +415,11 @@ void spawnDevice(std::string const& forwardedStdin,
       }
     }
     for (auto& env : execution.environ) {
-      putenv(env);
+      char* formatted = strdup(fmt::format(env,
+                                           fmt::arg("timeslice0", spec.inputTimesliceId),
+                                           fmt::arg("timeslice1", spec.inputTimesliceId + 1))
+                                 .c_str());
+      putenv(formatted);
     }
     execvp(execution.args[0], execution.args.data());
   }
