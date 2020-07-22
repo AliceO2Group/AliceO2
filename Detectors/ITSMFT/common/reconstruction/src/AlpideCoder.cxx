@@ -17,7 +17,7 @@
 
 using namespace o2::itsmft;
 
-std::vector<std::map<int, int>> AlpideCoder::mNoisyPixels;
+NoiseMap* AlpideCoder::mNoisyPixels = nullptr;
 int AlpideCoder::mNoiseThreshold = 3;
 
 //______________________________________________________________
@@ -32,7 +32,7 @@ void AlpideCoder::loadNoisyPixels(const std::string& noise)
   LOG(INFO) << "Loading noisy pixels from " << noise << '\n';
 
   auto pnoise = (std::vector<std::map<int, int>>*)f.Get("Noise");
-  mNoisyPixels.assign(pnoise->begin(), pnoise->end());
+  mNoisyPixels = new NoiseMap(*pnoise);
   delete pnoise;
 }
 

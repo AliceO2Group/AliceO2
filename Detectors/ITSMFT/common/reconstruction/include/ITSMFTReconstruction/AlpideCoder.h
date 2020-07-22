@@ -23,6 +23,7 @@
 #include <map>
 
 #include "ITSMFTReconstruction/PixelData.h"
+#include "DataFormatsITSMFT/NoiseMap.h"
 
 /// \file AlpideCoder.h
 /// \brief class for the ALPIDE data decoding/encoding
@@ -100,7 +101,7 @@ class AlpideCoder
   static constexpr int EOFFlag = -100; // flag for EOF in reading
 
   AlpideCoder() = default;
-  ~AlpideCoder() = default;
+  ~AlpideCoder() { delete mNoisyPixels; }
 
   static bool isEmptyChip(uint8_t b) { return (b & CHIPEMPTY) == CHIPEMPTY; }
 
@@ -279,10 +280,9 @@ class AlpideCoder
   /// Output a non-noisy fired pixel
   static void addHit(ChipPixelData& chipData, short row, short col)
   {
-    if (!mNoisyPixels.empty()) {
+    if (mNoisyPixels) {
       auto chipID = chipData.getChipID();
-      int key = row * 1024 + col;
-      if (mNoisyPixels[chipID][key] > mNoiseThreshold) {
+      if (mNoisyPixels->getNoiseLevel(chipID, row, col) > mNoiseThreshold) {
         return;
       }
     }
@@ -371,7 +371,7 @@ class AlpideCoder
   // =====================================================================
   //
 
-  static std::vector<std::map<int, int>> mNoisyPixels;
+  static NoiseMap* mNoisyPixels;
   static int mNoiseThreshold;
 
   // cluster map used for the ENCODING only
