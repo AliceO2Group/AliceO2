@@ -23,6 +23,8 @@ namespace framework
 struct DeviceExecution {
   /// The options passed to a given device
   std::vector<char*> args;
+  /// The environment to be passed to a given device
+  std::vector<char*> environ;
 };
 
 } // namespace framework
