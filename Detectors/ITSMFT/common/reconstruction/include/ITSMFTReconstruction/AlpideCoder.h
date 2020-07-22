@@ -268,6 +268,12 @@ class AlpideCoder
   void print() const;
   void reset();
   //
+  template <class T>
+  static int getChipID(T& buffer)
+  {
+    uint8_t id = 0;
+    return (buffer.current(id) && isChipHeaderOrEmpty(id)) ? (id & AlpideCoder::MaskChipID) : -1;
+  }
 
  private:
   /// Output a non-noisy fired pixel
