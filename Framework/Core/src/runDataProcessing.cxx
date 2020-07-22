@@ -414,6 +414,9 @@ void spawnDevice(std::string const& forwardedStdin,
         service.postForkChild(serviceRegistry);
       }
     }
+    for (auto& env : execution.environ) {
+      putenv(env);
+    }
     execvp(execution.args[0], execution.args.data());
   }
   // This is the parent. We close the write end of
