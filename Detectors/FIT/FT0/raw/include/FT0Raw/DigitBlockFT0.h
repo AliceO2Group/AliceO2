@@ -47,6 +47,7 @@ class DigitBlockFT0
   DigitBlockFT0(o2::InteractionRecord intRec) { mDigit.mIntRecord = intRec; }
   DigitBlockFT0() = default;
   DigitBlockFT0(const DigitBlockFT0& other) = default;
+  ~DigitBlockFT0() = default;
 
   Digit mDigit;
   std::vector<ChannelData> mVecChannelData;
@@ -58,17 +59,17 @@ class DigitBlockFT0
   {
     if constexpr (std::is_same<DataBlockType, DataBlockPM>::value) { //Filling data from PM
       for (int iEventData = 0; iEventData < dataBlock.DataBlockWrapper<RawDataPM>::mNelements; iEventData++) {
-        mVecChannelData.emplace_back(int(sLookupTable.getChannel(linkID, dataBlock.DataBlockWrapper<RawDataPM>::mData[iEventData].channelID)),
+        mVecChannelData.emplace_back(uint8_t(sLookupTable.getChannel(linkID, dataBlock.DataBlockWrapper<RawDataPM>::mData[iEventData].channelID)),
                                      int(dataBlock.DataBlockWrapper<RawDataPM>::mData[iEventData].time),
                                      int(dataBlock.DataBlockWrapper<RawDataPM>::mData[iEventData].charge),
-                                     int(dataBlock.DataBlockWrapper<RawDataPM>::mData[iEventData].numberADC));
+                                     dataBlock.DataBlockWrapper<RawDataPM>::mData[iEventData].getFlagWord());
       }
     } else if constexpr (std::is_same<DataBlockType, DataBlockTCM>::value) { //Filling data from TCM (normal/extended mode)
-      dataBlock.DataBlockWrapper<RawDataTCM>::mData[0].pushTrgData(mDigit.mTriggers);
+      dataBlock.DataBlockWrapper<RawDataTCM>::mData[0].fillTrigger(mDigit.mTriggers);
     }
 
     else if constexpr (std::is_same<DataBlockType, DataBlockTCMext>::value) { //Filling data from TCM, extended mode. Same proccess as for normal mode, for now.
-      dataBlock.DataBlockWrapper<RawDataTCM>::mData[0].pushTrgData(mDigit.mTriggers);
+      dataBlock.DataBlockWrapper<RawDataTCM>::mData[0].fillTrigger(mDigit.mTriggers);
     }
   }
   void popData(std::vector<Digit>& vecDigits, std::vector<ChannelData>& vecChannelData)
@@ -83,7 +84,7 @@ class DigitBlockFT0
 
     sEventID++; //Increasing static eventID. After each poping of the data, it will increase
   }
-  void print()
+  void print() const
   {
     std::cout << "\n______________DIGIT DATA____________";
     std::cout << std::hex;
@@ -126,7 +127,6 @@ class DigitBlockFT0
       std::cout << "\n______________________________________\n";
     }
   }
-  ClassDefNV(DigitBlockFT0, 1);
 };
 
 } // namespace ft0

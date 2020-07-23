@@ -8,10 +8,10 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 //
-//file RawEventData.h class  for RAW data format
+// file RawEventData.h class  for RAW data format
 // Alla.Maevskaya
 //  simple look-up table just to feed digits 2 raw procedure.
-//Will be really set after module/electronics connections
+// Will be really set after module/electronics connections
 //
 #ifndef ALICEO2_FT0_LOOKUPTABLE_H_
 #define ALICEO2_FT0_LOOKUPTABLE_H_
@@ -48,22 +48,25 @@ class LookUpTable
   /// Default constructor.
   /// It must be kept public for root persistency purposes,
   /// but should never be called by the outside world
-  //LookUpTable() = default;
+  // LookUpTable() = default;
 
   explicit LookUpTable(std::vector<Topo> const& topoVector)
     : mTopoVector(topoVector), mInvTopo(topoVector.size())
   {
     for (size_t channel = 0; channel < mTopoVector.size(); ++channel)
-      mInvTopo.at(getIdx(mTopoVector[channel].mPM, mTopoVector[channel].mMCP)) = channel;
+      mInvTopo.at(getIdx(mTopoVector[channel].mPM, mTopoVector[channel].mMCP)) =
+        channel;
   }
 
   ~LookUpTable() = default;
   void printFullMap() const
   {
     for (size_t channel = 0; channel < mTopoVector.size(); ++channel)
-      std::cout << channel << "\t :  PM \t" << mTopoVector[channel].mPM << " MCP \t" << mTopoVector[channel].mMCP << std::endl;
+      std::cout << channel << "\t :  PM \t" << mTopoVector[channel].mPM
+                << " MCP \t" << mTopoVector[channel].mMCP << std::endl;
     for (size_t idx = 0; idx < mInvTopo.size(); ++idx)
-      std::cout << "PM \t" << getLinkFromIdx(mInvTopo[idx]) << " MCP \t" << getMCPFromIdx(mInvTopo[idx]) << std::endl;
+      std::cout << "PM \t" << getLinkFromIdx(mInvTopo[idx]) << " MCP \t"
+                << getMCPFromIdx(mInvTopo[idx]) << std::endl;
   }
 
   int getChannel(int link, int mcp) const
@@ -94,14 +97,8 @@ class LookUpTable
     assert(mcp < NUMBER_OF_MCPs);
     return link * NUMBER_OF_MCPs + mcp;
   }
-  static int getLinkFromIdx(int idx)
-  {
-    return idx / NUMBER_OF_MCPs;
-  }
-  static int getMCPFromIdx(int idx)
-  {
-    return idx % NUMBER_OF_MCPs;
-  }
+  static int getLinkFromIdx(int idx) { return idx / NUMBER_OF_MCPs; }
+  static int getMCPFromIdx(int idx) { return idx % NUMBER_OF_MCPs; }
 
   ClassDefNV(LookUpTable, 1);
 };
