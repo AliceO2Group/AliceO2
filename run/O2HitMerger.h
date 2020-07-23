@@ -309,6 +309,16 @@ class O2HitMerger : public FairMQDevice
     return expectmore;
   }
 
+  void cleanEvent(int eventID)
+  {
+    // remove tree for that eventID
+    delete mEventToTTreeMap[eventID];
+    mEventToTTreeMap.erase(eventID);
+    // remove memfile
+    delete mEventToTMemFileMap[eventID];
+    mEventToTMemFileMap.erase(eventID);
+  }
+
   template <typename T>
   void backInsert(T const& from, T& to)
   {
@@ -569,7 +579,7 @@ class O2HitMerger : public FairMQDevice
     if (confref.isFilterOutNoHitEvents()) {
       if (eventheader && eventheader->getMCEventStats().getNHits() == 0) {
         LOG(INFO) << " Taking out event " << eventID << " due to no hits ";
-
+        cleanEvent(eventID);
         return false;
       }
     }
@@ -618,12 +628,7 @@ class O2HitMerger : public FairMQDevice
     LOG(INFO) << "outtree has file " << mOutTree->GetDirectory()->GetFile()->GetName();
     mOutFile->Write("", TObject::kOverwrite);
 
-    // remove tree for that eventID
-    delete mEventToTTreeMap[eventID];
-    mEventToTTreeMap.erase(eventID);
-    // remove memfile
-    delete mEventToTMemFileMap[eventID];
-    mEventToTMemFileMap.erase(eventID);
+    cleanEvent(eventID);
 
     LOG(INFO) << "MERGING HITS TOOK " << timer.RealTime();
     return true;
