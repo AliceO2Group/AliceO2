@@ -44,6 +44,7 @@ class DataBlockReader
 {
  public:
   DataBlockReader() = default;
+  ~DataBlockReader() = default;
   typedef DataBlockType DataBlock;
   size_t decodeBlocks(const gsl::span<const uint8_t> binaryPayload, std::vector<DataBlockType>& vecDataBlocks)
   {
@@ -53,7 +54,7 @@ class DataBlockReader
       dataBlock.decodeBlock(binaryPayload, srcPos);
       srcPos += dataBlock.mSize;
       if (dataBlock.isCorrect())
-        vecDataBlocks.push_back(dataBlock);
+        vecDataBlocks.push_back(dataBlock); //change to in-place construction? TODO
     }
     return srcPos;
   }
@@ -91,7 +92,7 @@ class RawReaderFT0 : public RawReaderBase<DigitBlockFT0, DataBlockPM, typename s
   typedef typename std::conditional<IsExtendedMode, DataBlockTCMext, DataBlockTCM>::type DataBlockTCMtype;
   typedef RawReaderBase<DigitBlockFT0, DataBlockPM, DataBlockTCMtype> RawReaderBaseType;
 
-  RawReaderFT0() {}
+  RawReaderFT0() = default;
   ~RawReaderFT0() = default;
   //deserialize payload to raw data blocks and proccesss them to digits
   void proccess(int linkID, gsl::span<const uint8_t> payload)
@@ -116,13 +117,10 @@ class RawReaderFT0 : public RawReaderBase<DigitBlockFT0, DataBlockPM, typename s
     int digitCounter = RawReaderBaseType::mMapDigits.size();
     for (auto& digit : (RawReaderBaseType::mMapDigits)) {
       digit.second.popData(vecDigit, vecChannelData);
-      //digitCounter++;
     }
     (RawReaderBaseType::mMapDigits).clear();
     return digitCounter;
   }
-
-  ClassDefNV(RawReaderFT0, 1);
 };
 
 } // namespace ft0

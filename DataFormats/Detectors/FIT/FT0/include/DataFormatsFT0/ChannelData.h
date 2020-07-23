@@ -27,6 +27,15 @@ struct ChannelData {
   uint8_t ChainQTC = 0xff; //QTC chain
   int16_t CFDTime = -1000; //time in #CFD channels, 0 at the LHC clk center
   int16_t QTCAmpl = -1000; // Amplitude #channels
+  enum EEventDataBit { kNumberADC,
+                       kIsDoubleEvent,
+                       kIsTimeInfoNOTvalid,
+                       kIsCFDinADCgate,
+                       kIsTimeInfoLate,
+                       kIsAmpHigh,
+                       kIsEventInTVDC,
+                       kIsTimeInfoLost
+  };
 
   ChannelData() = default;
   ChannelData(uint8_t iPmt, int time, int charge, uint8_t chainQTC)
@@ -36,10 +45,18 @@ struct ChannelData {
     QTCAmpl = charge;
     ChainQTC = chainQTC;
   }
-
+  void setFlag(uint8_t flag)
+  {
+    ChainQTC = flag;
+  }
+  void setFlag(EEventDataBit bitFlag, bool value)
+  {
+    ChainQTC |= (value << bitFlag);
+  }
+  bool getFlag(EEventDataBit bitFlag) const { return bool(ChainQTC << bitFlag); }
   void print() const;
 
-  ClassDefNV(ChannelData, 1);
+  ClassDefNV(ChannelData, 2);
 };
 } // namespace ft0
 } // namespace o2

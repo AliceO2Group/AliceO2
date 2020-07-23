@@ -10,7 +10,3 @@
 
 #include "FT0Raw/DataBlockRaw.h"
 using namespace o2::ft0;
-
-ClassImp(DataBlockPM);
-ClassImp(DataBlockTCM);
-ClassImp(DataBlockTCMext);

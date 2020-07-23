@@ -66,14 +66,13 @@ using namespace std;
 template <typename T>
 struct DataBlockWrapper {
   DataBlockWrapper() = default;
-  DataBlockWrapper(const DataBlockWrapper& other) = default;
-  DataBlockWrapper(DataBlockWrapper&& other) = default;
+  DataBlockWrapper(const DataBlockWrapper&) = default;
 
   std::vector<uint8_t> serialize(int nWords)
   {
     std::vector<uint8_t> vecBytes(sizeWord * nWords);
     uint8_t* srcAddress = (uint8_t*)mData;
-    if (nWords == 0)
+    if (nWords == 0 || nWords > MaxNwords)
       return std::move(vecBytes);
     gsl::span<uint8_t> serializedBytes(vecBytes);
     size_t countBytes = 0;
@@ -277,7 +276,7 @@ struct DataBlockWrapper {
            << std::get<kDESTBYTEPOS>(sByteLookupTable[i]) << endl;
     }
   }
-  void print()
+  void print() const
   {
     assert(mNelements <= T::MaxNelements);
     for (int i = 0; i < mNelements; i++) {
@@ -287,7 +286,7 @@ struct DataBlockWrapper {
   }
   T mData[T::MaxNelements];
   unsigned int mNelements; //number of deserialized elements;
-  unsigned int mNwords;    //number of deserialized GBT words;
+  unsigned int mNwords;    //number of deserialized GBT words; //can be excluded
 };
 
 //CRTP(static polymorphism) + Composition over multiple inheritance(Header + multiple data structures)
@@ -300,9 +299,7 @@ class DataBlockBase : public boost::mpl::inherit<DataBlockWrapper<Header>, DataB
 
  public:
   DataBlockBase() = default;
-  DataBlockBase(const DataBlockBase& other) = default;
-
-  virtual ~DataBlockBase() = default;
+  DataBlockBase(const DataBlockBase&) = default;
 
   static void printLUT()
   {
@@ -310,7 +307,7 @@ class DataBlockBase : public boost::mpl::inherit<DataBlockWrapper<Header>, DataB
     (static_cast<void>(DataBlockWrapper<DataStructures>::printLUT()), ...);
   }
 
-  void print()
+  void print() const
   {
     LOG(INFO) << "HEADER";
     DataBlockWrapper<Header>::print();
@@ -318,7 +315,7 @@ class DataBlockBase : public boost::mpl::inherit<DataBlockWrapper<Header>, DataB
     (static_cast<void>(DataBlockWrapper<DataStructures>::print()), ...);
   }
 
-  InteractionRecord getInteractionRecord()
+  InteractionRecord getInteractionRecord() const
   {
     return DataBlockWrapper<Header>::mData[0].getIntRec();
   }
@@ -334,7 +331,7 @@ class DataBlockBase : public boost::mpl::inherit<DataBlockWrapper<Header>, DataB
     update();
   }
 
-  bool isCorrect() { return mIsCorrect; }
+  bool isCorrect() const { return mIsCorrect; }
 
   void update()
   {
@@ -360,8 +357,7 @@ class DataBlockPM : public DataBlockBase<DataBlockPM, RawHeaderPM, RawDataPM>
 {
  public:
   DataBlockPM() = default;
-  DataBlockPM(const DataBlockPM& other) = default;
-  virtual ~DataBlockPM() = default;
+  DataBlockPM(const DataBlockPM&) = default;
   void deserialize(gsl::span<const uint8_t> srcBytes, size_t& srcByteShift)
   {
     DataBlockWrapper<RawHeaderPM>::deserialize(srcBytes, DataBlockWrapper<RawHeaderPM>::MaxNwords, srcByteShift);
@@ -373,18 +369,16 @@ class DataBlockPM : public DataBlockBase<DataBlockPM, RawHeaderPM, RawDataPM>
   {
     if (DataBlockWrapper<RawDataPM>::mNelements % 2 == 0 && DataBlockWrapper<RawDataPM>::mData[DataBlockWrapper<RawDataPM>::mNelements - 1].channelID == 0)
       DataBlockWrapper<RawDataPM>::mNelements--; //in case of half GBT-word filling
-    //TODO
+    //TODO, Descriptor checking, Channel range
   }
-  //
-  ClassDefNV(DataBlockPM, 1);
 };
+
 //standard data block from TCM
 class DataBlockTCM : public DataBlockBase<DataBlockTCM, RawHeaderTCM, RawDataTCM>
 {
  public:
   DataBlockTCM() = default;
-  DataBlockTCM(const DataBlockTCM& other) = default;
-  virtual ~DataBlockTCM() = default;
+  DataBlockTCM(const DataBlockTCM&) = default;
   void deserialize(gsl::span<const uint8_t> srcBytes, size_t& srcByteShift)
   {
     DataBlockWrapper<RawHeaderTCM>::deserialize(srcBytes, DataBlockWrapper<RawHeaderTCM>::MaxNwords, srcByteShift);
@@ -394,10 +388,8 @@ class DataBlockTCM : public DataBlockBase<DataBlockTCM, RawHeaderTCM, RawDataTCM
   // put here code for raw data checking
   void sanityCheck(bool& flag)
   {
-
-  } //TODO
-  //
-  ClassDefNV(DataBlockTCM, 1);
+    //TODO, Descriptor checking, Channel range
+  }
 };
 
 //extended TCM mode, 1 TCMdata + 8 TCMdataExtendedstructs
@@ -405,8 +397,8 @@ class DataBlockTCMext : public DataBlockBase<DataBlockTCMext, RawHeaderTCMext, R
 {
  public:
   DataBlockTCMext() = default;
-  DataBlockTCMext(const DataBlockTCMext& other) = default;
-  virtual ~DataBlockTCMext() = default;
+  DataBlockTCMext(const DataBlockTCMext&) = default;
+  //virtual ~DataBlockTCMext() = default;
   void deserialize(gsl::span<const uint8_t> srcBytes, size_t& srcByteShift)
   {
     DataBlockWrapper<RawHeaderTCMext>::deserialize(srcBytes, DataBlockWrapper<RawHeaderTCMext>::MaxNwords, srcByteShift);
@@ -418,10 +410,8 @@ class DataBlockTCMext : public DataBlockBase<DataBlockTCMext, RawHeaderTCMext, R
   // put here code for raw data checking
   void sanityCheck(bool& flag)
   {
-
-  } //TODO
-  //
-  ClassDefNV(DataBlockTCMext, 1);
+    //TODO, Descriptor checking, Channel range
+  }
 };
 
 } // namespace ft0

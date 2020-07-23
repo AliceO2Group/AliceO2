@@ -16,6 +16,8 @@
 #define ALICEO2_FIT_RAWEVENTDATA_H_
 
 #include "DataFormatsFT0/Digit.h"
+#include "DataFormatsFT0/ChannelData.h"
+
 #include "Headers/RAWDataHeader.h"
 #include "DataFormatsFT0/LookUpTable.h"
 #include <CommonDataFormat/InteractionRecord.h>
@@ -52,11 +54,10 @@ struct EventHeader {
       uint64_t reservedField3 : 48;
     };
   };
-  InteractionRecord getIntRec() { return InteractionRecord{(uint16_t)bc, (uint32_t)orbit}; }
+  InteractionRecord getIntRec() const { return InteractionRecord{(uint16_t)bc, (uint32_t)orbit}; }
 
-  void print()
+  void print() const
   {
-
     std::cout << std::hex;
     std::cout << "################EventHeader###############" << std::endl;
     std::cout << "startDescriptor: " << startDescriptor << std::endl;
@@ -64,55 +65,74 @@ struct EventHeader {
     std::cout << "BC: " << bc << std::endl;
     std::cout << "Orbit: " << orbit << std::endl;
     std::cout << "##########################################" << std::endl;
-
     std::cout << std::dec;
   }
 };
 struct EventData {
   static constexpr size_t PayloadSize = 5;
   static constexpr size_t PayloadPerGBTword = 10;
-  static constexpr int MinNelements = 1;
+  static constexpr int MinNelements = 1; //additional static field
   static constexpr int MaxNelements = 12;
+  //
+  static constexpr int BitFlagPos = 25; // position of first bit flag(numberADC)
 
   union {
-    uint64_t word = {0}; //should be
+    uint64_t word = {0};
     struct {
       int64_t time : 12;
       int64_t charge : 13;
-      uint64_t numberADC : 1,
+      uint64_t numberADC : 1, //25 bit
         isDoubleEvent : 1,
-        is1TimeLostEvent : 1,
-        is2TimeLostEvent : 1,
-        isADCinGate : 1,
+        isTimeInfoNOTvalid : 1,
+        isCFDinADCgate : 1,
         isTimeInfoLate : 1,
         isAmpHigh : 1,
         isEventInTVDC : 1,
         isTimeInfoLost : 1,
-        reservedField : 2,
+        reservedField : 3,
         channelID : 4;
     };
   };
-  void print()
+  void generateFlags()
   {
-
+    numberADC = std::rand() % 2;
+    isDoubleEvent = 0;
+    isTimeInfoNOTvalid = 0;
+    isCFDinADCgate = 1;
+    isTimeInfoLate = 0;
+    isAmpHigh = 0;
+    isEventInTVDC = 1;
+    isTimeInfoLost = 0;
+  }
+  uint8_t getFlagWord() const
+  {
+    return uint8_t(word >> BitFlagPos);
+  }
+  void print() const
+  {
     std::cout << std::hex;
     std::cout << "###############EventData(PM)##############" << std::endl;
     std::cout << "------------Channel " << channelID << "------------" << std::endl;
     std::cout << "Charge: " << charge << std::endl;
     std::cout << "Time: " << time << std::endl;
-    std::cout << "1TimeLostEvent: " << is1TimeLostEvent << std::endl;
-    std::cout << "2TimeLostEvent: " << is2TimeLostEvent << std::endl;
-    std::cout << "ADCinGate: " << isADCinGate << std::endl;
-    std::cout << "AmpHigh: " << isAmpHigh << std::endl;
-    std::cout << "DoubleEvent: " << isDoubleEvent << std::endl;
-    std::cout << "EventInTVDC: " << isEventInTVDC << std::endl;
-    std::cout << "TimeInfoLate: " << isTimeInfoLate << std::endl;
-    std::cout << "TimeInfoLost: " << isTimeInfoLost << std::endl;
     std::cout << "numberADC: " << numberADC << std::endl;
+    std::cout << "isDoubleEvent: " << isDoubleEvent << std::endl;
+    std::cout << "isTimeInfoNOTvalid: " << isTimeInfoNOTvalid << std::endl;
+    std::cout << "isCFDinADCgate: " << isCFDinADCgate << std::endl;
+    std::cout << "isTimeInfoLate: " << isTimeInfoLate << std::endl;
+    std::cout << "isAmpHigh: " << isAmpHigh << std::endl;
+    std::cout << "isEventInTVDC: " << isEventInTVDC << std::endl;
+    std::cout << "isTimeInfoLost: " << isTimeInfoLost << std::endl;
     std::cout << "##########################################" << std::endl;
-
     std::cout << std::dec;
   }
+
+  //temporary, this method should be in ChannelData struct, TODO
+  void fillChannelData(ChannelData& channelData) const
+  {
+    channelData.ChainQTC = getFlagWord();
+  }
+
   uint64_t word_zeros = 0x0;                      //to remove
   static const size_t PayloadSizeSecondWord = 11; //to remove
   static const size_t PayloadSizeFirstWord = 5;   //to remove
@@ -145,7 +165,7 @@ struct TCMdata {
     reservedField7 : 1,  //79 bit
     reservedField8 : 48; //80 bit
 
-  void print()
+  void print() const
   {
     std::cout << std::hex;
     std::cout << "################TCMdata###################" << std::endl;
@@ -165,8 +185,8 @@ struct TCMdata {
     std::cout << std::dec;
   }
 
-  //temporary, this method should be in Triggers struct
-  void pushTrgData(Triggers& trg)
+  //temporary, this method should be in Triggers struct, TODO
+  void fillTrigger(Triggers& trg)
   {
     trg.triggersignals = ((bool)orA << Triggers::bitA) |
                          ((bool)orC << Triggers::bitC) |
@@ -208,23 +228,7 @@ class RawEventData
 {
  public:
   RawEventData() = default;
-  void generateHeader(int nChannels);
-  void generateData();
-  void generateRandomHeader(int nChannels);
-  void generateRandomData();
-  void generateRandomEvent(int nChannels);
-  EventHeader* getEventHeaderPtr() { return &mEventHeader; }
-  EventData* getEventDataPtr() { return mEventData; }
   void print();
-  enum EEventDataBit { kNumberADC,
-                       kIsDoubleEvent,
-                       kIs1TimeLostEvent,
-                       kIs2TimeLostEvent,
-                       kIsADCinGate,
-                       kIsTimeInfoLate,
-                       kIsAmpHigh,
-                       kIsEventInTVDC,
-                       kIsTimeInfoLost };
   const static int gStartDescriptor = 0x0000000f;
 
   int size() const
@@ -281,7 +285,7 @@ class RawEventData
   TCMdata mTCMdata;
   bool mIsPadded = true;
   /////////////////////////////////////////////////
-  ClassDefNV(RawEventData, 1);
+  ClassDefNV(RawEventData, 2);
 };
 std::ostream& operator<<(std::ostream& stream, const RawEventData& data);
 

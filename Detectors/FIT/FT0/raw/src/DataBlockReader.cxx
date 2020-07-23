@@ -10,6 +10,3 @@
 
 #include "FT0Raw/DataBlockReader.h"
 using namespace o2::ft0;
-
-ClassImp(RawReaderFT0<true>);
-ClassImp(RawReaderFT0<false>);
