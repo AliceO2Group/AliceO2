@@ -1,29 +1,20 @@
 #if !defined(__CLING__) || defined(__ROOTCLING__)
 #include <iostream>
 #include <vector>
-#include <map>
 #include <string>
 
 #include <TFile.h>
 #include <TTree.h>
 
-#include "ITSBase/GeometryTGeo.h"
+#include "DataFormatsITSMFT/ClusterPattern.h"
 #include "DataFormatsITSMFT/CompCluster.h"
-#include "DataFormatsITSMFT/TopologyDictionary.h"
+#include "DataFormatsITSMFT/ROFRecord.h"
 #include "DataFormatsITSMFT/NoiseMap.h"
 
 #endif
 
-void MakeNoiseMapFromClusters(std::string dictfile = "ITSdictionary.bin", std::string input = "o2clus_its.root", std::string output = "noise.root")
+void MakeNoiseMapFromClusters(std::string input = "o2clus_its.root", std::string output = "noise.root", int threshold = 3)
 {
-  o2::itsmft::TopologyDictionary dict;
-  std::ifstream file(dictfile.c_str());
-  if (!file.good()) {
-    std::cerr << "Cannot open the dictionary file: " << dictfile << '\n';
-    return;
-  }
-  dict.readBinaryFile(dictfile);
-
   TFile in(input.data());
   if (!in.IsOpen()) {
     std::cerr << "Can not open the input file " << input << '\n';
@@ -34,28 +25,51 @@ void MakeNoiseMapFromClusters(std::string dictfile = "ITSdictionary.bin", std::s
     std::cerr << "Can not get cluster tree\n";
     return;
   }
+
+  // Clusters
   std::vector<o2::itsmft::CompClusterExt>* clusters = nullptr;
   clusTree->SetBranchAddress("ITSClusterComp", &clusters);
 
+  // Pixel patterns
+  std::vector<unsigned char>* patternsPtr = nullptr;
+  auto pattBranch = clusTree->GetBranch("ITSClusterPatt");
+  if (pattBranch) {
+    pattBranch->SetAddress(&patternsPtr);
+  }
+
+  //RO frames
+  std::vector<o2::itsmft::ROFRecord>* rofVec = nullptr;
+  clusTree->SetBranchAddress("ITSClustersROF", &rofVec);
+
   o2::itsmft::NoiseMap noiseMap;
 
+  int n1pix = 0;
   auto nevents = clusTree->GetEntries();
   for (int n = 0; n < nevents; n++) {
     clusTree->GetEntry(n);
-
-    for (const auto& c : *clusters) {
-      auto pattID = c.getPatternID();
-      auto npix = dict.getNpixels(pattID);
-
-      if (npix > 1)
-        continue;
-
-      auto id = c.getSensorID();
-      int row = c.getRow();
-      int col = c.getCol();
-      noiseMap.increaseNoiseCount(id, row, col);
+    auto pattIt = patternsPtr->cbegin();
+    for (const auto& rof : *rofVec) {
+      auto clustersInFrame = rof.getROFData(*clusters);
+      for (const auto& c : clustersInFrame) {
+        if (c.getPatternID() != o2::itsmft::CompCluster::InvalidPatternID)
+          continue;
+        o2::itsmft::ClusterPattern patt(pattIt);
+        if (patt.getRowSpan() != 1)
+          continue;
+        if (patt.getColumnSpan() != 1)
+          continue;
+        auto id = c.getSensorID();
+        auto row = c.getRow();
+        auto col = c.getCol();
+        noiseMap.increaseNoiseCount(id, row, col);
+        n1pix++;
+      }
     }
   }
+
+  int ncalib = noiseMap.dumpAboveThreshold(threshold);
+  std::cout << "Threshold: " << threshold << "  number of pixels: " << ncalib << '\n';
+  std::cout << "Number of 1-pixel clusters: " << n1pix << '\n';
 
   TFile out(output.data(), "new");
   if (!out.IsOpen()) {
