@@ -14,6 +14,7 @@ o2_add_library(DataFormatsTRD
                        src/Tracklet64.cxx
                PUBLIC_LINK_LIBRARIES O2::CommonDataFormat 
                                      O2::SimulationDataFormat
+                                     O2::TRDBase
                                      )
 
 o2_target_root_dictionary(DataFormatsTRD

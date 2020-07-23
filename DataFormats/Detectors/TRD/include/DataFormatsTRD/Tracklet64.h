@@ -30,6 +30,7 @@
 #include <memory>   // for std::unique_ptr
 #include "Rtypes.h" // for ClassDef
 #include "fairlogger/Logger.h"
+#include "TRDBase/FeeParam.h"
 
 namespace o2
 {
@@ -76,9 +77,7 @@ class Tracklet64
   Tracklet64(uint64_t format, uint64_t hcid, uint64_t padrow, uint64_t col, uint64_t position,
              uint64_t slope, uint64_t Q2, uint64_t Q1, uint64_t Q0)
   {
-    mtrackletWord = ((format << formatbs) & formatmask) + ((hcid << hcidbs) & hcidmask) +
-                    ((padrow << padrowbs) & padrowmask) + ((col << colbs) & colmask) + ((position << posbs) & posmask) +
-                    ((slope << slopebs) & slopemask) + ((Q2 << Q2bs) & Q2mask) + ((Q1 << Q1bs) & Q1mask) + ((Q0 << Q0bs) & Q0mask);
+    buildTrackletWord(format,hcid, padrow, col, position, slope, Q2, Q1, Q0);
   }
   ~Tracklet64() = default;
 
@@ -88,6 +87,7 @@ class Tracklet64
   // ----- Getters for contents of tracklet word -----
   uint64_t getHCID() const { return ((mtrackletWord & hcidmask) >> hcidbs); };       // no units 0..1077
   uint64_t getPadRow() const { return ((mtrackletWord & padrowmask) >> padrowbs); }; // in units of 
+  uint64_t getColumn() const { return ((mtrackletWord & colmask) >> colbs); }; // in units of 
   uint64_t getPosition() const { return ((mtrackletWord & posmask) >> posbs); };     // in units of 0.02 pads [10bits] .. -10.22 to 10.22
   uint64_t getSlope() const { return ((mtrackletWord & slopemask) >> slopebs); };    // in units of -127 .. 127
   uint64_t getPID() const { return ((mtrackletWord & PIDmask)); };                   // in units of counts all 3 together
@@ -107,8 +107,14 @@ class Tracklet64
   }
   // ----- Getters for tracklet information -----
   // TODO figure out how to get MCM and ROB from hcid, col and padrow.
-  int getMCM() const { return 1; }
-  int getROB() const { return 1; }
+  int getMCM() const { 
+      return (getColumn() % (FeeParam::mgkNcol / 2)) / FeeParam::mgkNcolMcm + FeeParam::mgkNmcmRobInCol * (getPadRow() % FeeParam::mgkNmcmRobInRow);
+  }
+  int getROB() const { 
+      int side=getColumn()/(FeeParam::mgkNcol/2);
+      return (int)((int)getPadRow() / (int)FeeParam::mgkNmcmRobInRow) * 2 + side;
+  }
+
 
   // ----- Getters for offline corresponding values -----
   int getDetector() const { return getHCID() / 2; }
