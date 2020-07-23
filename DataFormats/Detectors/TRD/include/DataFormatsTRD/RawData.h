@@ -177,13 +177,14 @@ struct MCMRawDataHeader {
   //first word          *
   //             10987654321098765432109876543210
   // uint32_t:   00000000000000000000000000000000
-  //             1zzzz  pppppppp       pppppppp  1
-  //             ||   yy|      pppppppp |      ccc-- 0..1 check bits
-  //             ||   | |      |        ------------ 2-9   pid for tracklet 3 second part
-  //             ||   | |      --------------------- 10-17 pid for tracklet 2 second part
-  //             ||   | ---------------------------- 18-25 pid for tracklet 1 second part
-  //             ||   ------------------------------ 26-27 coly
-  //             |---------------------------------- 28-31 padrow
+  //             1zzzz  pppppppp        pppppppp1
+  //             ||   yy|       pppppppp |      |--- 0 1 check bits
+  //             ||   | |       |        ----------- 1-8   pid for tracklet 3 second part
+  //             ||   | |       -------------------- 9-16  pid for tracklet 2 second part
+  //             ||   | ---------------------------- 17-24 pid for tracklet 1 second part
+  //             ||   ------------------------------ 25-26 coly
+  //             |---------------------------------- 27-30 padrow
+  //             ----------------------------------- 31 1
   //TODO need to check endianness, I have a vague memory the trap chip has different endianness to x86.
   union {
     uint32_t word;
