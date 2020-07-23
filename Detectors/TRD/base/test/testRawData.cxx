@@ -63,7 +63,7 @@ BOOST_AUTO_TEST_CASE(TRDRawDataHeaderInternals)
   BOOST_CHECK_EQUAL(halfcruheader.HeaderVersion, 119);
   halfcruheader.word57[0] = 0x345869faba;
   halfcruheader.word57[2] = 0xaaade1277;
-//linkb[0] zero is undefined.
+  //linkb[0] zero is undefined.
   BOOST_CHECK_EQUAL(halfcruheader.linksB[1].errorflags, 0x58);
   BOOST_CHECK_EQUAL(halfcruheader.linksB[1].size, 0x34);
   BOOST_CHECK_EQUAL(halfcruheader.linksB[1].errorflags, o2::trd::getlinkerrorflag(halfcruheader, 8));
