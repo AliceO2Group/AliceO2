@@ -925,6 +925,7 @@ void DeviceSpecHelpers::prepareArguments(bool defaultQuiet, bool defaultStopped,
         realOdesc.add_options()("child-driver", bpo::value<std::string>());
         realOdesc.add_options()("rate", bpo::value<std::string>());
         realOdesc.add_options()("environment", bpo::value<std::string>());
+        realOdesc.add_options()("post-fork-command", bpo::value<std::string>());
         realOdesc.add_options()("shm-segment-size", bpo::value<std::string>());
         realOdesc.add_options()("shm-mlock-segment", bpo::value<std::string>());
         realOdesc.add_options()("shm-monitor", bpo::value<std::string>());
@@ -1041,6 +1042,7 @@ boost::program_options::options_description DeviceSpecHelpers::getForwardedDevic
     ("shm-segment-size", bpo::value<std::string>(), "size of the shared memory segment in bytes")                     //
     ("shm-mlock-segment", bpo::value<std::string>()->default_value("false"), "mlock shared memory segment")           //
     ("environment", bpo::value<std::string>(), "comma separated list of environment variables to set for the device") //
+    ("post-fork-command", bpo::value<std::string>(), "post fork command to execute (e.g. numactl {pid}")              //
     ("session", bpo::value<std::string>(), "unique label for the shared memory session")                              //
     ("configuration,cfg", bpo::value<std::string>(), "configuration connection string")                               //
     ("monitoring-backend", bpo::value<std::string>(), "monitoring connection string")                                 //
