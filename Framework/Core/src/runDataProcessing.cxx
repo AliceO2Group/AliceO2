@@ -738,8 +738,8 @@ int doChild(int argc, char** argv, ServiceRegistry& serviceRegistry, const o2::f
 
       simpleRawDeviceService = std::make_unique<SimpleRawDeviceService>(nullptr, spec);
 
-      serviceRegistry.registerService<RawDeviceService>(simpleRawDeviceService.get());
-      serviceRegistry.registerService<DeviceSpec>(&spec);
+      serviceRegistry.registerService(ServiceRegistryHelpers::handleForService<RawDeviceService>(simpleRawDeviceService.get()));
+      serviceRegistry.registerService(ServiceRegistryHelpers::handleForService<DeviceSpec>(&spec));
 
       // The decltype stuff is to be able to compile with both new and old
       // FairMQ API (one which uses a shared_ptr, the other one a unique_ptr.

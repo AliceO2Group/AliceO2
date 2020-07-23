@@ -11,6 +11,7 @@
 #define O2_FRAMEWORK_SERVICEREGISTRY_H_
 
 #include "Framework/ServiceHandle.h"
+#include "Framework/ServiceRegistryHelpers.h"
 #include "Framework/CompilerBuiltins.h"
 #include "Framework/TypeIdHelpers.h"
 
@@ -140,13 +141,7 @@ struct ServiceRegistryBase {
 class ServiceRegistry : ServiceRegistryBase
 {
  public:
-  // Register a service for the given interface T
-  // with actual implementation C, i.e. C is derived from T.
-  // Only one instance of type C can be registered per type T.
-  // The fact we use a bare pointer indicates that the ownership
-  // of the service still belongs to whatever created it, and is
-  // not passed to the registry. It's therefore responsibility of
-  // the creator of the service to properly dispose it.
+  /// @deprecated old API to be substituted with the ServiceHandle one
   template <class I, class C, enum ServiceKind K = ServiceKind::Serial>
   void registerService(C* service)
   {
@@ -161,6 +156,7 @@ class ServiceRegistry : ServiceRegistryBase
     ServiceRegistryBase::registerService(typeHash, reinterpret_cast<void*>(service), K, hasher(tid), typeid(C).name());
   }
 
+  /// @deprecated old API to be substituted with the ServiceHandle one
   template <class I, class C, enum ServiceKind K = ServiceKind::Serial>
   void registerService(C const* service)
   {
@@ -209,7 +205,8 @@ class ServiceRegistry : ServiceRegistryBase
                              ". Make sure you use const / non-const correctly.");
   }
 
-  void registerService(ServiceHandle& handle)
+  /// Register a service given an handle
+  void registerService(ServiceHandle handle)
   {
     auto tid = std::this_thread::get_id();
     std::hash<std::thread::id> hasher;
