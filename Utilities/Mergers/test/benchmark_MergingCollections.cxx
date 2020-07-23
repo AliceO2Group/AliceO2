@@ -22,7 +22,7 @@
 #include <TRandomGen.h>
 
 #include <boost/histogram.hpp>
-
+#include <chrono>
 namespace bh = boost::histogram;
 
 #include <ctime>
@@ -36,34 +36,31 @@ static void BM_mergingCollectionsTH1I(benchmark::State& state)
   const size_t numberOfCollections = MAX_SIZE_COLLECTION / collectionSize;
   const size_t bins = 62500; // makes 250kB
 
-  TCollection* collection = new TObjArray();
-  collection->SetOwner(true);
-  TF1* uni = new TF1("uni", "1", 0, 1000000);
-
   for (auto _ : state) {
-    state.PauseTiming();
     std::vector<std::unique_ptr<TCollection>> collections;
-
     for (size_t ci = 0; ci < numberOfCollections; ci++) {
       std::unique_ptr<TCollection> collection = std::make_unique<TObjArray>();
       collection->SetOwner(true);
+      TF1* uni = new TF1("uni", "1", 0, 1000000);
       for (size_t i = 0; i < collectionSize; i++) {
         TH1I* h = new TH1I(("test" + std::to_string(ci) + "-" + std::to_string(i)).c_str(), "test", bins, 0, 1000000);
         h->FillRandom("uni", 50000);
         collection->Add(h);
       }
       collections.push_back(std::move(collection));
+      delete uni;
     }
-
     auto m = std::make_unique<TH1I>("merged", "merged", bins, 0, 1000000);
-    state.ResumeTiming();
+
+    auto start = std::chrono::high_resolution_clock::now();
     for (const auto& collection : collections) {
       m->Merge(collection.get(), "-NOCHECK");
     }
-    state.PauseTiming();
-  }
+    auto end = std::chrono::high_resolution_clock::now();
 
-  delete uni;
+    auto elapsed_seconds = std::chrono::duration_cast<std::chrono::duration<double>>(end - start);
+    state.SetIterationTime(elapsed_seconds.count());
+  }
 }
 
 static void BM_mergingCollectionsTH2I(benchmark::State& state)
@@ -77,7 +74,6 @@ static void BM_mergingCollectionsTH2I(benchmark::State& state)
 
   for (auto _ : state) {
 
-    state.PauseTiming();
     std::vector<std::unique_ptr<TCollection>> collections;
 
     for (size_t ci = 0; ci < numberOfCollections; ci++) {
@@ -94,11 +90,14 @@ static void BM_mergingCollectionsTH2I(benchmark::State& state)
     }
     auto m = std::make_unique<TH2I>("merged", "merged", bins, 0, 1000000, bins, 0, 1000000);
 
-    state.ResumeTiming();
+    auto start = std::chrono::high_resolution_clock::now();
     for (const auto& collection : collections) {
       m->Merge(collection.get(), "-NOCHECK");
     }
-    state.PauseTiming();
+    auto end = std::chrono::high_resolution_clock::now();
+
+    auto elapsed_seconds = std::chrono::duration_cast<std::chrono::duration<double>>(end - start);
+    state.SetIterationTime(elapsed_seconds.count());
   }
   delete uni;
 }
@@ -114,7 +113,6 @@ static void BM_mergingCollectionsTH3I(benchmark::State& state)
 
   for (auto _ : state) {
 
-    state.PauseTiming();
     std::vector<std::unique_ptr<TCollection>> collections;
 
     for (size_t ci = 0; ci < numberOfCollections; ci++) {
@@ -132,11 +130,14 @@ static void BM_mergingCollectionsTH3I(benchmark::State& state)
     }
     auto m = std::make_unique<TH3I>("merged", "merged", bins, 0, 1000000, bins, 0, 1000000, bins, 0, 1000000);
 
-    state.ResumeTiming();
+    auto start = std::chrono::high_resolution_clock::now();
     for (const auto& collection : collections) {
       m->Merge(collection.get(), "-NOCHECK");
     }
-    state.PauseTiming();
+    auto end = std::chrono::high_resolution_clock::now();
+
+    auto elapsed_seconds = std::chrono::duration_cast<std::chrono::duration<double>>(end - start);
+    state.SetIterationTime(elapsed_seconds.count());
   }
 
   delete uni;
@@ -162,7 +163,6 @@ static void BM_mergingCollectionsTHNSparse(benchmark::State& state)
 
   for (auto _ : state) {
 
-    state.PauseTiming();
     std::vector<std::unique_ptr<TCollection>> collections;
 
     for (size_t ci = 0; ci < numberOfCollections; ci++) {
@@ -183,11 +183,14 @@ static void BM_mergingCollectionsTHNSparse(benchmark::State& state)
     }
     auto m = std::make_unique<THnSparseI>("merged", "merged", dim, binsDims, mins, maxs);
 
-    state.ResumeTiming();
+    auto start = std::chrono::high_resolution_clock::now();
     for (const auto& collection : collections) {
       m->Merge(collection.get());
     }
-    state.PauseTiming();
+    auto end = std::chrono::high_resolution_clock::now();
+
+    auto elapsed_seconds = std::chrono::duration_cast<std::chrono::duration<double>>(end - start);
+    state.SetIterationTime(elapsed_seconds.count());
   }
 }
 
@@ -218,7 +221,6 @@ static void BM_mergingCollectionsTTree(benchmark::State& state)
   Double_t randomArray[5];
 
   for (auto _ : state) {
-    state.PauseTiming();
     std::vector<std::unique_ptr<TCollection>> collections;
 
     for (size_t ci = 0; ci < numberOfCollections; ci++) {
@@ -238,11 +240,14 @@ static void BM_mergingCollectionsTTree(benchmark::State& state)
     }
     TTree* merged = createTree("merged");
 
-    state.ResumeTiming();
+    auto start = std::chrono::high_resolution_clock::now();
     for (const auto& collection : collections) {
       merged->Merge(collection.get());
     }
-    state.PauseTiming();
+    auto end = std::chrono::high_resolution_clock::now();
+
+    auto elapsed_seconds = std::chrono::duration_cast<std::chrono::duration<double>>(end - start);
+    state.SetIterationTime(elapsed_seconds.count());
 
     delete merged;
   }
@@ -265,7 +270,6 @@ static void BM_mergingPODCollections(benchmark::State& state)
   Double_t randomArray[randoms];
 
   for (auto _ : state) {
-    state.PauseTiming();
     std::vector<std::unique_ptr<std::vector<PODHistoTypePtr>>> collections;
 
     for (size_t ci = 0; ci < numberOfCollections; ci++) {
@@ -292,13 +296,16 @@ static void BM_mergingPODCollections(benchmark::State& state)
       }
     };
 
-    state.ResumeTiming();
+    auto start = std::chrono::high_resolution_clock::now();
     for (const auto& collection : collections) {
       for (size_t i = 0; i < collectionSize; i++) {
         merge(*collection, i);
       }
     }
-    state.PauseTiming();
+    auto end = std::chrono::high_resolution_clock::now();
+
+    auto elapsed_seconds = std::chrono::duration_cast<std::chrono::duration<double>>(end - start);
+    state.SetIterationTime(elapsed_seconds.count());
   }
   delete uni;
 }
@@ -325,7 +332,6 @@ static void BM_mergingBoostRegular1DCollections(benchmark::State& state)
 
   for (auto _ : state) {
 
-    state.PauseTiming();
     std::vector<CollectionHistoType> collections;
 
     for (size_t ci = 0; ci < numberOfCollections; ci++) {
@@ -350,12 +356,14 @@ static void BM_mergingBoostRegular1DCollections(benchmark::State& state)
       }
     };
 
-    state.ResumeTiming();
+    auto start = std::chrono::high_resolution_clock::now();
     for (size_t ci = 0; ci < numberOfCollections; ci++) {
       merge(collections[ci]);
     }
+    auto end = std::chrono::high_resolution_clock::now();
 
-    state.PauseTiming();
+    auto elapsed_seconds = std::chrono::duration_cast<std::chrono::duration<double>>(end - start);
+    state.SetIterationTime(elapsed_seconds.count());
   }
 
   delete uni;
@@ -410,36 +418,39 @@ static void BM_mergingBoostRegular2DCollections(benchmark::State& state)
       }
     };
 
-    state.ResumeTiming();
+    auto start = std::chrono::high_resolution_clock::now();
     for (size_t ci = 0; ci < numberOfCollections; ci++) {
       merge(collections[ci]);
     }
+    auto end = std::chrono::high_resolution_clock::now();
 
-    state.PauseTiming();
+    auto elapsed_seconds = std::chrono::duration_cast<std::chrono::duration<double>>(end - start);
+    state.SetIterationTime(elapsed_seconds.count());
   }
 
   delete uni;
 }
 
 // one by one comparison
-BENCHMARK(BM_mergingCollectionsTH1I)->Arg(1);
-BENCHMARK(BM_mergingCollectionsTH2I)->Arg(1);
-BENCHMARK(BM_mergingCollectionsTH3I)->Arg(1);
-BENCHMARK(BM_mergingCollectionsTHNSparse)->Arg(1);
-BENCHMARK(BM_mergingPODCollections)->Arg(1);
-BENCHMARK(BM_mergingBoostRegular1DCollections)->Arg(1);
-BENCHMARK(BM_mergingBoostRegular2DCollections)->Arg(1);
-BENCHMARK(BM_mergingCollectionsTTree)->Arg(1);
+BENCHMARK(BM_mergingCollectionsTH1I)->Arg(1)->UseManualTime();
+BENCHMARK(BM_mergingCollectionsTH1I)->Arg(1)->UseManualTime();
+BENCHMARK(BM_mergingCollectionsTH2I)->Arg(1)->UseManualTime();
+BENCHMARK(BM_mergingCollectionsTH3I)->Arg(1)->UseManualTime();
+BENCHMARK(BM_mergingCollectionsTHNSparse)->Arg(1)->UseManualTime();
+BENCHMARK(BM_mergingPODCollections)->Arg(1)->UseManualTime();
+BENCHMARK(BM_mergingBoostRegular1DCollections)->Arg(1)->UseManualTime();
+BENCHMARK(BM_mergingBoostRegular2DCollections)->Arg(1)->UseManualTime();
+BENCHMARK(BM_mergingCollectionsTTree)->Arg(1)->UseManualTime();
 
 // collections
 
-BENCHMARK(BM_mergingCollectionsTH1I)->BENCHMARK_RANGE_COLLECTIONS;
-BENCHMARK(BM_mergingCollectionsTH2I)->BENCHMARK_RANGE_COLLECTIONS;
-BENCHMARK(BM_mergingCollectionsTH3I)->BENCHMARK_RANGE_COLLECTIONS;
-BENCHMARK(BM_mergingCollectionsTHNSparse)->BENCHMARK_RANGE_COLLECTIONS;
-BENCHMARK(BM_mergingPODCollections)->BENCHMARK_RANGE_COLLECTIONS;
-BENCHMARK(BM_mergingBoostRegular1DCollections)->BENCHMARK_RANGE_COLLECTIONS;
-BENCHMARK(BM_mergingBoostRegular2DCollections)->BENCHMARK_RANGE_COLLECTIONS;
-BENCHMARK(BM_mergingCollectionsTTree)->BENCHMARK_RANGE_COLLECTIONS;
+BENCHMARK(BM_mergingCollectionsTH1I)->BENCHMARK_RANGE_COLLECTIONS->UseManualTime();
+BENCHMARK(BM_mergingCollectionsTH2I)->BENCHMARK_RANGE_COLLECTIONS->UseManualTime();
+BENCHMARK(BM_mergingCollectionsTH3I)->BENCHMARK_RANGE_COLLECTIONS->UseManualTime();
+BENCHMARK(BM_mergingCollectionsTHNSparse)->BENCHMARK_RANGE_COLLECTIONS->UseManualTime();
+BENCHMARK(BM_mergingPODCollections)->BENCHMARK_RANGE_COLLECTIONS->UseManualTime();
+BENCHMARK(BM_mergingBoostRegular1DCollections)->BENCHMARK_RANGE_COLLECTIONS->UseManualTime();
+BENCHMARK(BM_mergingBoostRegular2DCollections)->BENCHMARK_RANGE_COLLECTIONS->UseManualTime();
+BENCHMARK(BM_mergingCollectionsTTree)->BENCHMARK_RANGE_COLLECTIONS->UseManualTime();
 
 BENCHMARK_MAIN();

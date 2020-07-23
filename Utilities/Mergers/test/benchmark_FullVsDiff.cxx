@@ -20,7 +20,7 @@
 #include <TF3.h>
 #include <TRandom.h>
 #include <TRandomGen.h>
-
+#include <chrono>
 #include <ctime>
 
 const size_t entriesInDiff = 50;
@@ -47,13 +47,16 @@ static void BM_MergingTH1I(benchmark::State& state)
   TH1I* m = new TH1I("merged", "merged", bins, 0, 1000000);
 
   for (auto _ : state) {
-    state.PauseTiming();
     if (state.range(0) == FULL_OBJECTS) {
       m->Reset();
     }
-    state.ResumeTiming();
 
+    auto start = std::chrono::high_resolution_clock::now();
     m->Merge(collection, "-NOCHECK");
+    auto end = std::chrono::high_resolution_clock::now();
+
+    auto elapsed_seconds = std::chrono::duration_cast<std::chrono::duration<double>>(end - start);
+    state.SetIterationTime(elapsed_seconds.count());
   }
 
   delete collection;
@@ -78,13 +81,16 @@ static void BM_MergingTH2I(benchmark::State& state)
   TH2I* m = new TH2I("merged", "merged", bins, 0, 1000000, bins, 0, 1000000);
 
   for (auto _ : state) {
-    state.PauseTiming();
     if (state.range(0) == FULL_OBJECTS) {
       m->Reset();
     }
-    state.ResumeTiming();
 
+    auto start = std::chrono::high_resolution_clock::now();
     m->Merge(collection, "-NOCHECK");
+    auto end = std::chrono::high_resolution_clock::now();
+
+    auto elapsed_seconds = std::chrono::duration_cast<std::chrono::duration<double>>(end - start);
+    state.SetIterationTime(elapsed_seconds.count());
   }
 
   delete collection;
@@ -111,13 +117,16 @@ static void BM_MergingTH3I(benchmark::State& state)
   TH3I* m = new TH3I("merged", "merged", bins, 0, 1000000, bins, 0, 1000000, bins, 0, 1000000);
 
   for (auto _ : state) {
-    state.PauseTiming();
     if (state.range(0) == FULL_OBJECTS) {
       m->Reset();
     }
-    state.ResumeTiming();
 
+    auto start = std::chrono::high_resolution_clock::now();
     m->Merge(collection, "-NOCHECK");
+    auto end = std::chrono::high_resolution_clock::now();
+
+    auto elapsed_seconds = std::chrono::duration_cast<std::chrono::duration<double>>(end - start);
+    state.SetIterationTime(elapsed_seconds.count());
   }
 
   delete collection;
@@ -142,7 +151,6 @@ static void BM_MergingTHnSparse(benchmark::State& state)
   auto* m = new THnSparseI("merged", "merged", dim, binsDims, mins, maxs);
   for (auto _ : state) {
 
-    state.PauseTiming();
     TCollection* collection = new TObjArray();
     collection->SetOwner(true);
     for (size_t i = 0; i < collectionSize; i++) {
@@ -162,10 +170,12 @@ static void BM_MergingTHnSparse(benchmark::State& state)
       m->Reset();
     }
 
-    state.ResumeTiming();
+    auto start = std::chrono::high_resolution_clock::now();
     m->Merge(collection);
+    auto end = std::chrono::high_resolution_clock::now();
 
-    state.PauseTiming();
+    auto elapsed_seconds = std::chrono::duration_cast<std::chrono::duration<double>>(end - start);
+    state.SetIterationTime(elapsed_seconds.count());
 
     delete collection;
   }
@@ -198,7 +208,6 @@ static void BM_MergingTTree(benchmark::State& state)
   TTree* merged = createTree("merged");
 
   for (auto _ : state) {
-    state.PauseTiming();
     TCollection* collection = new TObjArray();
     collection->SetOwner(true);
     for (size_t i = 0; i < collectionSize; i++) {
@@ -216,25 +225,25 @@ static void BM_MergingTTree(benchmark::State& state)
       merged->Reset();
     }
 
-    state.ResumeTiming();
-    merged->Merge(collection);
+    auto start = std::chrono::high_resolution_clock::now();
+    merged->Merge(collection, "-NOCHECK");
+    auto end = std::chrono::high_resolution_clock::now();
 
-    state.PauseTiming();
-
-    delete collection;
+    auto elapsed_seconds = std::chrono::duration_cast<std::chrono::duration<double>>(end - start);
+    state.SetIterationTime(elapsed_seconds.count());
   }
   delete merged;
 }
 
-BENCHMARK(BM_MergingTH1I)->Arg(DIFF_OBJECTS);
-BENCHMARK(BM_MergingTH1I)->Arg(FULL_OBJECTS);
-BENCHMARK(BM_MergingTH2I)->Arg(DIFF_OBJECTS);
-BENCHMARK(BM_MergingTH2I)->Arg(FULL_OBJECTS);
-BENCHMARK(BM_MergingTH3I)->Arg(DIFF_OBJECTS);
-BENCHMARK(BM_MergingTH3I)->Arg(FULL_OBJECTS);
-BENCHMARK(BM_MergingTHnSparse)->Arg(DIFF_OBJECTS);
-BENCHMARK(BM_MergingTHnSparse)->Arg(FULL_OBJECTS);
-BENCHMARK(BM_MergingTTree)->Arg(DIFF_OBJECTS);
-BENCHMARK(BM_MergingTTree)->Arg(FULL_OBJECTS);
+BENCHMARK(BM_MergingTH1I)->Arg(DIFF_OBJECTS)->UseManualTime();
+BENCHMARK(BM_MergingTH1I)->Arg(FULL_OBJECTS)->UseManualTime();
+BENCHMARK(BM_MergingTH2I)->Arg(DIFF_OBJECTS)->UseManualTime();
+BENCHMARK(BM_MergingTH2I)->Arg(FULL_OBJECTS)->UseManualTime();
+BENCHMARK(BM_MergingTH3I)->Arg(DIFF_OBJECTS)->UseManualTime();
+BENCHMARK(BM_MergingTH3I)->Arg(FULL_OBJECTS)->UseManualTime();
+BENCHMARK(BM_MergingTHnSparse)->Arg(DIFF_OBJECTS)->UseManualTime();
+BENCHMARK(BM_MergingTHnSparse)->Arg(FULL_OBJECTS)->UseManualTime();
+BENCHMARK(BM_MergingTTree)->Arg(DIFF_OBJECTS)->UseManualTime();
+BENCHMARK(BM_MergingTTree)->Arg(FULL_OBJECTS)->UseManualTime();
 
 BENCHMARK_MAIN();
