@@ -48,9 +48,9 @@ Word 0  |  slope                |    Q0                 |    Q1                 
 class Tracklet64
 {
   // bit masks for the above raw data;
-  static constexpr uint64_t formatmask = 0xf000000000000000; 
-  static constexpr uint64_t hcidmask = 0x0ffe000000000000;   
-  static constexpr uint64_t padrowmask = 0x0001e00000000000; 
+  static constexpr uint64_t formatmask = 0xf000000000000000;
+  static constexpr uint64_t hcidmask = 0x0ffe000000000000;
+  static constexpr uint64_t padrowmask = 0x0001e00000000000;
   static constexpr uint64_t colmask = 0x0000180000000000;
   static constexpr uint64_t posmask = 0x000007ff00000000;
   static constexpr uint64_t slopemask = 0x00000000ff000000;
@@ -79,6 +79,7 @@ class Tracklet64
   {
     buildTrackletWord(format,hcid, padrow, col, position, slope, Q2, Q1, Q0);
   }
+
   ~Tracklet64() = default;
 
   Tracklet64& operator=(const Tracklet64& o) { return *this; }
@@ -86,8 +87,8 @@ class Tracklet64
   //TODO convert to the actual number  regarding compliments.
   // ----- Getters for contents of tracklet word -----
   uint64_t getHCID() const { return ((mtrackletWord & hcidmask) >> hcidbs); };       // no units 0..1077
-  uint64_t getPadRow() const { return ((mtrackletWord & padrowmask) >> padrowbs); }; // in units of 
-  uint64_t getColumn() const { return ((mtrackletWord & colmask) >> colbs); }; // in units of 
+  uint64_t getPadRow() const { return ((mtrackletWord & padrowmask) >> padrowbs); }; // in units of
+  uint64_t getColumn() const { return ((mtrackletWord & colmask) >> colbs); }; // in units of
   uint64_t getPosition() const { return ((mtrackletWord & posmask) >> posbs); };     // in units of 0.02 pads [10bits] .. -10.22 to 10.22
   uint64_t getSlope() const { return ((mtrackletWord & slopemask) >> slopebs); };    // in units of -127 .. 127
   uint64_t getPID() const { return ((mtrackletWord & PIDmask)); };                   // in units of counts all 3 together
