@@ -14,6 +14,7 @@
 #define ALICEO2_ITSMFT_NOISEMAP_H
 
 #include "Rtypes.h" // for Double_t, ULong_t, etc
+#include <iostream>
 #include <climits>
 #include <vector>
 #include <map>
@@ -34,11 +35,16 @@ class NoiseMap
   /// Constructor, initializing values for position, charge and readout frame
   NoiseMap(std::vector<std::map<int, int>>& noise) { mNoisyPixels.swap(noise); }
 
+  /// Constructor
+  NoiseMap()
+  {
+    mNoisyPixels.assign(24120, std::map<int, int>());
+  }
   /// Destructor
   ~NoiseMap() = default;
 
   /// Get the noise level for this pixels
-  int getNoiseLevel(int chip, int row, int col) const
+  float getNoiseLevel(int chip, int row, int col) const
   {
     if (chip > mNoisyPixels.size())
       return 0;
@@ -47,6 +53,33 @@ class NoiseMap
     if (keyIt != mNoisyPixels[chip].end())
       return keyIt->second;
     return 0;
+  }
+
+  void increaseNoiseCount(int chip, int row, int col)
+  {
+    if (chip > mNoisyPixels.size())
+      return;
+    auto key = row * 1024 + col;
+    mNoisyPixels[chip][key]++;
+  }
+
+  int dumpAboveThreshold(int t = 3) const
+  {
+    int n = 0;
+    auto chipID = mNoisyPixels.size();
+    while (chipID--) {
+      const auto& map = mNoisyPixels[chipID];
+      for (const auto& pair : map) {
+        if (pair.second <= t)
+          continue;
+        n++;
+        auto key = pair.first;
+        auto row = key / 1024;
+        auto col = key % 1024;
+        std::cout << "chip, row, col, noise: " << chipID << ' ' << row << ' ' << col << ' ' << pair.second << '\n';
+      }
+    }
+    return n;
   }
 
  private:

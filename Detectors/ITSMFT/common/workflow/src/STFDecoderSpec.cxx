@@ -63,7 +63,9 @@ void STFDecoder<Mapping>::init(InitContext& ic)
 
   std::string noiseFile = o2::base::NameConf::getDictionaryFileName(detID, mNoiseName, ".root");
   if (o2::base::NameConf::pathExists(noiseFile)) {
-    AlpideCoder::loadNoisyPixels(noiseFile);
+    TFile* f = TFile::Open(noiseFile.data(), "old");
+    auto pnoise = (NoiseMap*)f->Get("Noise");
+    AlpideCoder::setNoisyPixels(pnoise);
     LOG(INFO) << mSelfName << " loading noise map file: " << noiseFile;
   } else {
     LOG(INFO) << mSelfName << " Noise file " << noiseFile << " is absent, " << Mapping::getName() << " running without noise suppression";

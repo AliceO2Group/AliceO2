@@ -10,8 +10,7 @@
 #include "ITSBase/GeometryTGeo.h"
 #include "DataFormatsITSMFT/CompCluster.h"
 #include "DataFormatsITSMFT/TopologyDictionary.h"
-
-#pragma link C++ class std::vector < std::map < int, int>> + ;
+#include "DataFormatsITSMFT/NoiseMap.h"
 
 #endif
 
@@ -38,8 +37,7 @@ void MakeNoiseMapFromClusters(std::string dictfile = "ITSdictionary.bin", std::s
   std::vector<o2::itsmft::CompClusterExt>* clusters = nullptr;
   clusTree->SetBranchAddress("ITSClusterComp", &clusters);
 
-  std::vector<std::map<int, int>> noiseMap;
-  noiseMap.assign(24120, std::map<int, int>());
+  o2::itsmft::NoiseMap noiseMap;
 
   auto nevents = clusTree->GetEntries();
   for (int n = 0; n < nevents; n++) {
@@ -55,9 +53,7 @@ void MakeNoiseMapFromClusters(std::string dictfile = "ITSdictionary.bin", std::s
       auto id = c.getSensorID();
       int row = c.getRow();
       int col = c.getCol();
-      int key = row * 1024 + col;
-
-      noiseMap[id][key]++;
+      noiseMap.increaseNoiseCount(id, row, col);
     }
   }
 

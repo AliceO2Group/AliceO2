@@ -3,8 +3,7 @@
 #include <iostream>
 #include "DataFormatsITSMFT/ROFRecord.h"
 #include "DataFormatsITSMFT/Digit.h"
-
-#pragma link C++ class std::vector < std::map < int, int>> + ;
+#include "DataFormatsITSMFT/NoiseMap.h"
 
 void MakeNoiseMapFromDigits(std::string digifile = "itsdigits.root", int hitCut = 3)
 {
@@ -14,8 +13,7 @@ void MakeNoiseMapFromDigits(std::string digifile = "itsdigits.root", int hitCut 
   std::vector<o2::itsmft::Digit>* digArr = nullptr;
   digTree->SetBranchAddress("ITSDigit", &digArr);
 
-  std::vector<std::map<int, int>> noisyPixels;
-  noisyPixels.assign(24120, std::map<int, int>());
+  o2::itsmft::NoiseMap noiseMap;
 
   int nevD = digTree->GetEntries(), nd = 0;
   for (int iev = 0; iev < nevD; iev++) {
@@ -25,30 +23,16 @@ void MakeNoiseMapFromDigits(std::string digifile = "itsdigits.root", int hitCut 
       auto id = d.getChipIndex();
       auto row = d.getRow();
       auto col = d.getColumn();
-      auto key = row * 1024 + col;
-      noisyPixels[id][key]++;
-    }
-  }
-
-  int nPixelCalib = 0;
-  for (int i = 0; i < noisyPixels.size(); i++) {
-    const auto& map = noisyPixels[i];
-    for (const auto& pair : map) {
-      if (pair.second > hitCut) {
-        auto key = pair.first;
-        auto row = key / 1024;
-        auto col = key % 1024;
-        std::cout << "Chip, row, col: " << i << ' ' << row << ' ' << col << "  Hits: " << pair.second << '\n';
-        nPixelCalib++;
-      }
+      noiseMap.increaseNoiseCount(id, row, col);
     }
   }
 
   TFile* fout = new TFile("ITSnoise.root", "new");
   fout->cd();
-  fout->WriteObject(&noisyPixels, "Noise");
+  fout->WriteObject(&noiseMap, "Noise");
   fout->Close();
 
-  std::cout << "Total Digits Processed = " << nd << '\n';
+  int nPixelCalib = noiseMap.dumpAboveThreshold(hitCut);
   std::cout << "Noise threshold = " << hitCut << "  Noisy pixels = " << nPixelCalib << '\n';
+  std::cout << "Total Digits Processed = " << nd << '\n';
 }

@@ -101,11 +101,11 @@ class AlpideCoder
   static constexpr int EOFFlag = -100; // flag for EOF in reading
 
   AlpideCoder() = default;
-  ~AlpideCoder() { delete mNoisyPixels; }
+  ~AlpideCoder() = default;
 
   static bool isEmptyChip(uint8_t b) { return (b & CHIPEMPTY) == CHIPEMPTY; }
 
-  static void loadNoisyPixels(const std::string& noise);
+  static void setNoisyPixels(const NoiseMap* noise) { mNoisyPixels = noise; }
   static void setNoiseThreshold(int t) { mNoiseThreshold = t; }
 
   /// decode alpide data for the next non-empty chip from the buffer
@@ -371,7 +371,7 @@ class AlpideCoder
   // =====================================================================
   //
 
-  static NoiseMap* mNoisyPixels;
+  static const NoiseMap* mNoisyPixels;
   static int mNoiseThreshold;
 
   // cluster map used for the ENCODING only

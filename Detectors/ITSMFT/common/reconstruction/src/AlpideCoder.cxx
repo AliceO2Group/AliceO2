@@ -17,24 +17,8 @@
 
 using namespace o2::itsmft;
 
-NoiseMap* AlpideCoder::mNoisyPixels = nullptr;
+const NoiseMap* AlpideCoder::mNoisyPixels = nullptr;
 int AlpideCoder::mNoiseThreshold = 3;
-
-//______________________________________________________________
-void AlpideCoder::loadNoisyPixels(const std::string& noise)
-{
-  TFile f(noise.data(), "old");
-  if (!f.IsOpen()) {
-    LOG(ERROR) << "Cannot load noisy pixels from " << noise << '\n';
-    return;
-  }
-
-  LOG(INFO) << "Loading noisy pixels from " << noise << '\n';
-
-  auto pnoise = (std::vector<std::map<int, int>>*)f.Get("Noise");
-  mNoisyPixels = new NoiseMap(*pnoise);
-  delete pnoise;
-}
 
 //_____________________________________
 void AlpideCoder::print() const
