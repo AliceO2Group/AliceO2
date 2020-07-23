@@ -993,20 +993,20 @@ int TrapSimulator::produceTrackletStream(std::vector<uint32_t>& buf)
   // A MCM Header followed by at most 3 tracklet words.
   // Although a little confusingly some of the tracklet data is in the header.
 
-//  numberWordsWritten = packData(buf);
+  //  numberWordsWritten = packData(buf);
   //
   //given the, up to 3 tracklets, pack them according to the define data format.
   //
   // produce a MCM Header, then the 1 to 3 tracklet words.
-//
-    std::array<uint32_t,3> pid;
-//    std::array<TrackletRawDataHeader,3> tracklet;
-//  MCMRawDataHeader mcmheader;
-//  TrackletRawDataHeader tracklet[3]; // at most 3 tracklets
-//  mcmheader.checkbits=0x3;
-//  mcmheader.y=;
-//  mcmheader z=;
-/* for(auto track mTrackletArray)
+  //
+  std::array<uint32_t, 3> pid;
+  //    std::array<TrackletRawDataHeader,3> tracklet;
+  //  MCMRawDataHeader mcmheader;
+  //  TrackletRawDataHeader tracklet[3]; // at most 3 tracklets
+  //  mcmheader.checkbits=0x3;
+  //  mcmheader.y=;
+  //  mcmheader z=;
+  /* for(auto track mTrackletArray)
   {
       tracklet[].checkbit=0x1;
       tracklet[].pid=0x1;

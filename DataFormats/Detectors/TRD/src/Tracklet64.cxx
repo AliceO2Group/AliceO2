@@ -17,6 +17,5 @@ namespace o2
 namespace trd
 {
 
-
 } // namespace trd
 } // namespace o2
