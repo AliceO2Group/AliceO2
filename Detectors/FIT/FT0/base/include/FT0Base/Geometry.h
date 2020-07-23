@@ -43,7 +43,7 @@ class Geometry
   static constexpr float ChannelWidth = 13.02;       // channel width in ps
   static constexpr float MV_2_Nchannels = 2.2857143; //amplitude channel 7 mV ->16channels
   static constexpr float MV_2_NchannelsInverse = 0.437499997; //inverse amplitude channel 7 mV ->16channels
-                                                              ///
+  static constexpr int mTime_trg_gate = 192;                  // #channels
 
  private:
   TVector3 mMCP[52];
