@@ -106,6 +106,25 @@
 #include <sys/un.h>
 #include <sys/wait.h>
 #include <unistd.h>
+#if __has_include(<linux/getcpu.h>)
+#include <linux/getcpu.h>
+#elif __has_include(<cpuid.h>)
+#include <cpuid.h>
+#define CPUID(INFO, LEAF, SUBLEAF) __cpuid_count(LEAF, SUBLEAF, INFO[0], INFO[1], INFO[2], INFO[3])
+#define GETCPU(CPU)                                 \
+  {                                                 \
+    uint32_t CPUInfo[4];                            \
+    CPUID(CPUInfo, 1, 0);                           \
+    /* CPUInfo[1] is EBX, bits 24-31 are APIC ID */ \
+    if ((CPUInfo[3] & (1 << 9)) == 0) {             \
+      CPU = -1; /* no APIC on chip */               \
+    } else {                                        \
+      CPU = (unsigned)CPUInfo[1] >> 24;             \
+    }                                               \
+    if (CPU < 0)                                    \
+      CPU = 0;                                      \
+  }
+#endif
 
 using namespace o2::monitoring;
 using namespace o2::configuration;
@@ -424,16 +443,24 @@ void spawnDevice(std::string const& forwardedStdin,
     execvp(execution.args[0], execution.args.data());
   }
   if (varmap.count("post-fork-command")) {
+    unsigned cpu = -1;
+    unsigned node = -1;
+#if __has_include(<linux/getcpu.h>)
+    getcpu(&cpu, &node, nullptr);
+#elif __has_include(<cpuid.h>)
+    GETCPU(cpu);
+#endif
     auto templateCmd = varmap["post-fork-command"];
-    auto cmd = fmt::format(templateCmd.as<std::string>(), 
+    auto cmd = fmt::format(templateCmd.as<std::string>(),
                            fmt::arg("pid", id),
                            fmt::arg("id", spec.id),
+                           fmt::arg("cpu", cpu),
+                           fmt::arg("node", node),
                            fmt::arg("name", spec.name),
                            fmt::arg("timeslice0", spec.inputTimesliceId),
                            fmt::arg("timeslice1", spec.inputTimesliceId + 1),
                            fmt::arg("rank0", spec.rank),
-                           fmt::arg("maxRank0", spec.nSlots)
-                          );
+                           fmt::arg("maxRank0", spec.nSlots));
     int err = system(cmd.c_str());
     if (err) {
       LOG(error) << "Post fork command `" << cmd << "` returned with status " << err;
