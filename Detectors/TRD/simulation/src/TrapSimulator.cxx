@@ -892,7 +892,7 @@ int TrapSimulator::packData(std::vector<uint32_t>& buf)
   //given the, up to 3 tracklets, pack them according to the define data format.
   //
   //TODO this is left blank so that the dataformats etc. can come in a seperate PR
-  //to keep different work seperate.  
+  //to keep different work seperate.
   LOG(fatal) << "Called packData of TrapSimualtor ... why? I am going to die, till next pr.";
   return 1;
 }
@@ -1000,8 +1000,8 @@ int TrapSimulator::produceTrackletStream(std::vector<uint32_t>& buf)
 
   int numberWordsWritten = 0; // Number of written words
 
-  // Produce tracklet data.   
-  // A MCM Header followed by at most 3 tracklet words.  
+  // Produce tracklet data.
+  // A MCM Header followed by at most 3 tracklet words.
   // Although a little confusingly some of the tracklet data is in the header.
 
   numberWordsWritten = packData(buf);
