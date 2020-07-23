@@ -56,6 +56,9 @@
 #include <iomanip>
 #include <stdexcept>
 #include <regex>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <fcntl.h>
 #include "GPUReconstructionConvert.h"
 #include "DetectorsRaw/RDHUtils.h"
 
@@ -96,6 +99,8 @@ DataProcessorSpec getCATrackerSpec(ca::Config const& specconfig, std::vector<int
 
   auto processAttributes = std::make_shared<ProcessAttributes>();
   auto initFunction = [processAttributes, specconfig](InitContext& ic) {
+    GPUO2InterfaceConfiguration config;
+    GPUSettingsO2 confParam;
     {
       auto& parser = processAttributes->parser;
       auto& tracker = processAttributes->tracker;
@@ -103,8 +108,6 @@ DataProcessorSpec getCATrackerSpec(ca::Config const& specconfig, std::vector<int
       tracker = std::make_unique<GPUCATracking>();
 
       // Create configuration object and fill settings
-
-      GPUO2InterfaceConfiguration config;
       const auto grp = o2::parameters::GRPObject::loadFrom("o2sim_grp.root");
       if (grp) {
         config.configEvent.solenoidBz = 5.00668f * grp->getL3Current() / 30000.;
@@ -113,7 +116,7 @@ DataProcessorSpec getCATrackerSpec(ca::Config const& specconfig, std::vector<int
       } else {
         throw std::runtime_error("Failed to initialize run parameters from GRP");
       }
-      const GPUSettingsO2& confParam = config.ReadConfigurableParam();
+      confParam = config.ReadConfigurableParam();
       processAttributes->allocateOutputOnTheFly = confParam.allocateOutputOnTheFly;
       processAttributes->outputBufferSize = confParam.outputBufferSize;
       processAttributes->suppressOutput = (confParam.dump == 2);
@@ -200,11 +203,27 @@ DataProcessorSpec getCATrackerSpec(ca::Config const& specconfig, std::vector<int
     }
 
     auto& callbacks = ic.services().get<CallbackService>();
-    callbacks.set(CallbackService::Id::RegionInfoCallback, [&processAttributes](FairMQRegionInfo const& info) {
+    callbacks.set(CallbackService::Id::RegionInfoCallback, [&processAttributes, confParam](FairMQRegionInfo const& info) {
       if (info.size) {
+        int fd = 0;
+        if (confParam.mutexMemReg) {
+          fd = open("/tmp/o2_gpu_memlock_mutex.lock", O_RDWR | O_CREAT | O_CLOEXEC, S_IRUSR | S_IWUSR);
+          if (fd == -1) {
+            throw std::runtime_error("Error opening lock file");
+          }
+          if (lockf(fd, F_LOCK, 0)) {
+            throw std::runtime_error("Error locking file");
+          }
+        }
         auto& tracker = processAttributes->tracker;
         if (tracker->registerMemoryForGPU(info.ptr, info.size)) {
           throw std::runtime_error("Error registering memory for GPU");
+        }
+        if (confParam.mutexMemReg) {
+          if (lockf(fd, F_ULOCK, 0)) {
+            throw std::runtime_error("Error unlocking file");
+          }
+          close(fd);
         }
       }
     });
