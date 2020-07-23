@@ -886,9 +886,8 @@ int TrapSimulator::getCol(int adc)
     return col;
 }
 
-int TrapSimulator::packData(std::vector<uint32_t>& buf) 
-{   
-    
+int TrapSimulator::packData(std::vector<uint32_t>& buf)
+{
   //
   //given the, up to 3 tracklets, pack them according to the define data format.    
   //  
@@ -897,7 +896,7 @@ int TrapSimulator::packData(std::vector<uint32_t>& buf)
   LOG(fatal) << "Called packData of TrapSimualtor ... why? I am going to die, till next pr.";   
   return 1;   
 }
-  
+
 int TrapSimulator::produceRawStream(std::vector<uint32_t>& buf, unsigned int iEv) const
 {
   //
@@ -1000,9 +999,9 @@ int TrapSimulator::produceTrackletStream(std::vector<uint32_t>& buf)
     return 0;
 
   int numberWordsWritten = 0; // Number of written words
- 
+
   numberWordsWritten = packData(buf);
-  
+
   return numberWordsWritten;
 }
 
