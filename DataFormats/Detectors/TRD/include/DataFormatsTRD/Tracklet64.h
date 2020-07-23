@@ -47,9 +47,9 @@ Word 0  |  slope                |    Q0                 |    Q1                 
 class Tracklet64
 {
   // bit masks for the above raw data;
-  static constexpr uint64_t formatmask = 0xf000000000000000; //0-1079
-  static constexpr uint64_t hcidmask = 0x0ffe000000000000;   //0-1079
-  static constexpr uint64_t padrowmask = 0x0001e00000000000; //0-3;
+  static constexpr uint64_t formatmask = 0xf000000000000000; 
+  static constexpr uint64_t hcidmask = 0x0ffe000000000000;   
+  static constexpr uint64_t padrowmask = 0x0001e00000000000; 
   static constexpr uint64_t colmask = 0x0000180000000000;
   static constexpr uint64_t posmask = 0x000007ff00000000;
   static constexpr uint64_t slopemask = 0x00000000ff000000;
@@ -86,8 +86,8 @@ class Tracklet64
 
   //TODO convert to the actual number  regarding compliments.
   // ----- Getters for contents of tracklet word -----
-  uint64_t getHCID() const { return ((mtrackletWord & hcidmask) >> hcidbs); };       // no units
-  uint64_t getPadRow() const { return ((mtrackletWord & padrowmask) >> padrowbs); }; // in units of ??
+  uint64_t getHCID() const { return ((mtrackletWord & hcidmask) >> hcidbs); };       // no units 0..1077
+  uint64_t getPadRow() const { return ((mtrackletWord & padrowmask) >> padrowbs); }; // in units of 
   uint64_t getPosition() const { return ((mtrackletWord & posmask) >> posbs); };     // in units of 0.02 pads [10bits] .. -10.22 to 10.22
   uint64_t getSlope() const { return ((mtrackletWord & slopemask) >> slopebs); };    // in units of -127 .. 127
   uint64_t getPID() const { return ((mtrackletWord & PIDmask)); };                   // in units of counts all 3 together
@@ -106,7 +106,7 @@ class Tracklet64
     return 0;
   }
   // ----- Getters for tracklet information -----
-  // TODO figure out how to get MCM and ROB from hcid, chipindex and row.
+  // TODO figure out how to get MCM and ROB from hcid, col and padrow.
   int getMCM() const { return 1; }
   int getROB() const { return 1; }
 
@@ -118,7 +118,7 @@ class Tracklet64
 
   //  void setDetector(int id) { uint64_t hcid= 2* id; uint64_t side=1;mtrackletWord = hcid << hcidbs + ; }
   //  void setHCId(int id) { mHCId = id; }
-  // TODO row and mcm to chipindex and z mapping.
+  // TODO row and mcm to col and padrow mapping.
   uint64_t setQ0(int charge)
   {
     mtrackletWord |= ((charge << Q0bs) & Q0mask);
