@@ -13,7 +13,7 @@ void MakeNoiseMapFromDigits(std::string digifile = "itsdigits.root", int hitCut 
   std::vector<o2::itsmft::Digit>* digArr = nullptr;
   digTree->SetBranchAddress("ITSDigit", &digArr);
 
-  o2::itsmft::NoiseMap noiseMap;
+  o2::itsmft::NoiseMap noiseMap(24120);
 
   int nevD = digTree->GetEntries(), nd = 0;
   for (int iev = 0; iev < nevD; iev++) {

@@ -36,9 +36,11 @@ class NoiseMap
   NoiseMap(std::vector<std::map<int, int>>& noise) { mNoisyPixels.swap(noise); }
 
   /// Constructor
-  NoiseMap()
+  NoiseMap() = default;
+  /// Constructor
+  NoiseMap(int nchips)
   {
-    mNoisyPixels.assign(24120, std::map<int, int>());
+    mNoisyPixels.assign(nchips, std::map<int, int>());
   }
   /// Destructor
   ~NoiseMap() = default;

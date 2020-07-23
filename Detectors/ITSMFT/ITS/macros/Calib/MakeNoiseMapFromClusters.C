@@ -41,7 +41,7 @@ void MakeNoiseMapFromClusters(std::string input = "o2clus_its.root", std::string
   std::vector<o2::itsmft::ROFRecord>* rofVec = nullptr;
   clusTree->SetBranchAddress("ITSClustersROF", &rofVec);
 
-  o2::itsmft::NoiseMap noiseMap;
+  o2::itsmft::NoiseMap noiseMap(24120);
 
   int n1pix = 0;
   auto nevents = clusTree->GetEntries();
