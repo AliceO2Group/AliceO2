@@ -423,6 +423,23 @@ void spawnDevice(std::string const& forwardedStdin,
     }
     execvp(execution.args[0], execution.args.data());
   }
+  if (varmap.count("post-fork-command")) {
+    auto templateCmd = varmap["post-fork-command"];
+    auto cmd = fmt::format(templateCmd.as<std::string>(), 
+                           fmt::arg("pid", id),
+                           fmt::arg("id", spec.id),
+                           fmt::arg("name", spec.name),
+                           fmt::arg("timeslice0", spec.inputTimesliceId),
+                           fmt::arg("timeslice1", spec.inputTimesliceId + 1),
+                           fmt::arg("rank0", spec.rank),
+                           fmt::arg("maxRank0", spec.nSlots)
+                          );
+    int err = system(cmd.c_str());
+    if (err) {
+      LOG(error) << "Post fork command `" << cmd << "` returned with status " << err;
+    }
+    LOG(debug) << "Successfully executed `" << cmd;
+  }
   // This is the parent. We close the write end of
   // the child pipe and and keep track of the fd so
   // that we can later select on it.
