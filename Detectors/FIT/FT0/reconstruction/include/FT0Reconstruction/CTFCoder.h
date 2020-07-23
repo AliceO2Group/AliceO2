@@ -68,8 +68,9 @@ void CTFCoder::encode(VEC& buff, const gsl::span<const Digit>& digitVec, const g
     MD::EENCODE, // BLC_bcInc
     MD::EENCODE, // BLC_orbitInc
     MD::EENCODE, // BLC_nChan
+    //  MD::EENCODE, // BLC_flags
     MD::EENCODE, // BLC_idChan
-    MD::EENCODE, // BLC_qtc
+    MD::EENCODE, // BLC_qtcChain
     MD::EENCODE, // BLC_cfdTime
     MD::EENCODE  // BLC_qtcAmpl
   };
@@ -88,8 +89,9 @@ void CTFCoder::encode(VEC& buff, const gsl::span<const Digit>& digitVec, const g
   ENCODE(cd.bcInc,     CTF::BLC_bcInc,    o2::rans::ProbabilityBits16Bit, optField[CTF::BLC_bcInc],    &buff);
   ENCODE(cd.orbitInc,  CTF::BLC_orbitInc, o2::rans::ProbabilityBits16Bit, optField[CTF::BLC_orbitInc], &buff);
   ENCODE(cd.nChan,     CTF::BLC_nChan,    o2::rans::ProbabilityBits8Bit,  optField[CTF::BLC_nChan],    &buff);
+  //  ENCODE(cd.eventFlags, CTF::BLC_flags,    o2::rans::ProbabilityBits8Bit,  optField[CTF::BLC_flags],    &buff);
   ENCODE(cd.idChan ,   CTF::BLC_idChan,   o2::rans::ProbabilityBits8Bit,  optField[CTF::BLC_idChan],   &buff);
-  ENCODE(cd.qtc ,      CTF::BLC_qtc,      o2::rans::ProbabilityBits8Bit,  optField[CTF::BLC_qtc],      &buff);
+  ENCODE(cd.qtcChain,  CTF::BLC_qtcChain,      o2::rans::ProbabilityBits8Bit,  optField[CTF::BLC_qtcChain],      &buff);
   ENCODE(cd.cfdTime,   CTF::BLC_cfdTime,  o2::rans::ProbabilityBits16Bit, optField[CTF::BLC_cfdTime],  &buff);
   ENCODE(cd.qtcAmpl,   CTF::BLC_qtcAmpl,  o2::rans::ProbabilityBits25Bit, optField[CTF::BLC_qtcAmpl],  &buff);
   // clang-format on
@@ -106,8 +108,9 @@ void CTFCoder::decode(const CTF::base& ec, VDIG& digitVec, VCHAN& channelVec)
   ec.decode(cd.bcInc,     CTF::BLC_bcInc); 
   ec.decode(cd.orbitInc,  CTF::BLC_orbitInc);
   ec.decode(cd.nChan,     CTF::BLC_nChan);
-  ec.decode(cd.idChan ,   CTF::BLC_idChan);
-  ec.decode(cd.qtc ,      CTF::BLC_qtc);
+  //  ec.decode(cd.eventFlags,     CTF::BLC_flags);
+  ec.decode(cd.idChan,    CTF::BLC_idChan);
+  ec.decode(cd.qtcChain,  CTF::BLC_qtcChain);
   ec.decode(cd.cfdTime,   CTF::BLC_cfdTime);
   ec.decode(cd.qtcAmpl,   CTF::BLC_qtcAmpl);
   // clang-format on
@@ -141,28 +144,32 @@ void CTFCoder::decompress(const CompressedDigits& cd, VDIG& digitVec, VCHAN& cha
     firstEntry = channelVec.size();
     uint8_t chID = 0;
     int amplA = 0, amplC = 0, timeA = 0, timeC = 0;
+    //  int mTime_trg_gate = 192; // #channels
     for (uint8_t ic = 0; ic < cd.nChan[idig]; ic++) {
       auto icc = channelVec.size();
-      const auto& chan = channelVec.emplace_back((chID += cd.idChan[icc]), cd.cfdTime[icc], cd.qtcAmpl[icc], cd.qtc[icc]);
+      const auto& chan = channelVec.emplace_back((chID += cd.idChan[icc]), cd.cfdTime[icc], cd.qtcAmpl[icc], cd.qtcChain[icc]);
       //
       // rebuild digit
-      if (chan.ChId < 4 * uint8_t(Geometry::NCellsA)) { // A side
-        trig.nChanA++;
-        amplA += chan.QTCAmpl;
-        timeA += chan.CFDTime;
-      } else {
-        trig.nChanC++;
-        amplC += chan.QTCAmpl;
-        timeC += chan.CFDTime;
+      if (std::abs(chan.CFDTime) < Geometry::mTime_trg_gate) {
+        if (chan.ChId < 4 * uint8_t(Geometry::NCellsA)) { // A side
+          amplA += chan.QTCAmpl;
+          timeA += chan.CFDTime;
+          trig.nChanA++;
+
+        } else {
+          amplC += chan.QTCAmpl;
+          timeC += chan.CFDTime;
+          trig.nChanC++;
+        }
       }
     }
     if (trig.nChanA) {
       trig.timeA = timeA / trig.nChanA;
-      trig.amplA = amplA;
+      trig.amplA = amplA / 8;
     }
     if (trig.nChanC) {
       trig.timeC = timeC / trig.nChanC;
-      trig.amplC = amplC;
+      trig.amplC = amplC / 8;
     }
     digitVec.emplace_back(firstEntry, cd.nChan[idig], ir, trig, idig);
   }

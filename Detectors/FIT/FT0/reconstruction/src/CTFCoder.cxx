@@ -55,7 +55,7 @@ void CTFCoder::compress(CompressedDigits& cd, const gsl::span<const Digit>& digi
   cd.nChan.resize(cd.header.nTriggers);
 
   cd.idChan.resize(channelVec.size());
-  cd.qtc.resize(channelVec.size());
+  cd.qtcChain.resize(channelVec.size());
   cd.cfdTime.resize(channelVec.size());
   cd.qtcAmpl.resize(channelVec.size());
 
@@ -87,7 +87,7 @@ void CTFCoder::compress(CompressedDigits& cd, const gsl::span<const Digit>& digi
     for (uint8_t ic = 0; ic < cd.nChan[idig]; ic++) {
       assert(prevChan <= chanels[ic].ChId);
       cd.idChan[ccount] = chanels[ic].ChId - prevChan;
-      cd.qtc[ccount] = chanels[ic].ChainQTC;
+      cd.qtcChain[ccount] = chanels[ic].ChainQTC;
       cd.cfdTime[ccount] = chanels[ic].CFDTime;
       cd.qtcAmpl[ccount] = chanels[ic].QTCAmpl;
       prevChan = chanels[ic].ChId;
