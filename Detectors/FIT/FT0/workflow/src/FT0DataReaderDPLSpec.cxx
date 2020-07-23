@@ -36,10 +36,7 @@ void FT0DataReaderDPLSpec<IsExtendedMode>::run(ProcessingContext& pc)
   for (auto it = parser.begin(), end = parser.end(); it != end; ++it) {
     //Proccessing each page
     count++;
-    //auto rdhPtr = it.get_if<o2::header::RAWDataHeader>(); //PROBLEM!
-    //auto rdhPtr = it.get_if<o2::header::RAWDataHeaderV4>();
-    auto rdhPtr = it.get_if<o2::header::RAWDataHeaderV6>();
-
+    auto rdhPtr = it.get_if<o2::header::RAWDataHeader>();
     gsl::span<const uint8_t> payload(it.data(), it.size());
     mRawReaderFT0.proccess(rdhPtr->linkID, payload);
   }

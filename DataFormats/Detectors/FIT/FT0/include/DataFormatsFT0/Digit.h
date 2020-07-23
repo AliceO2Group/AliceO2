@@ -85,8 +85,12 @@ struct Triggers {
 struct Digit {
   o2::dataformats::RangeReference<int, int> ref;
   Triggers mTriggers;               // pattern of triggers  in this BC
+  uint8_t mEventStatus;             //Status of event from FT0, such as Pileup , etc
   o2::InteractionRecord mIntRecord; // Interaction record (orbit, bc)
   int mEventID;
+  enum EEventStatus {
+    kPileup
+  };
   Digit() = default;
   Digit(int first, int ne, const o2::InteractionRecord& iRec, const Triggers& chTrig, int event)
   {
@@ -102,24 +106,13 @@ struct Digit {
   int getEventID() const { return mEventID; }
   o2::InteractionRecord getIntRecord() { return mIntRecord; };
   gsl::span<const ChannelData> getBunchChannelData(const gsl::span<const ChannelData> tfdata) const;
-  enum { bit1TimeLostEvent,
-         bit2TimeLostEvent,
-         bitADCinGate,
-         bitTimeInfoLate,
-         bitAmpHigh,
-         bitEventInTVDC,
-         bitTimeInfoLost };
-  // T0 channel flags
-  uint8_t flags;
-  void setFlags(bool is1TimeLostEvent, bool is2TimeLostEvent, bool isADCinGate, bool isTimeInfoLate, bool isAmpHigh, bool isEventInTVDC, bool isTimeInfoLost)
-  {
-    flags = (is1TimeLostEvent << bit1TimeLostEvent) | (is2TimeLostEvent << bit2TimeLostEvent) | (isADCinGate << bitADCinGate) | (isTimeInfoLate << bitTimeInfoLate) | (isAmpHigh << bitAmpHigh) | (isEventInTVDC << bitEventInTVDC) | (isTimeInfoLost << bitTimeInfoLost);
-  };
 
   void printStream(std::ostream& stream) const;
   void setTriggers(Triggers trig) { mTriggers = trig; };
-
-  ClassDefNV(Digit, 3);
+  void setEventStatus(uint8_t stat) { mEventStatus = stat; };
+  void setStatusFlag(EEventStatus bit, bool value) { mEventStatus |= (value << bit); };
+  bool getStatusFlag(EEventStatus bit) const { return bool(mEventStatus << bit); }
+  ClassDefNV(Digit, 4);
 };
 } // namespace ft0
 } // namespace o2
