@@ -48,6 +48,9 @@ constexpr float GRANULARITYTRKLSLOPE = 1.f / 1000; // granularity of slope in tr
 // OS: Should this not be flexible for example in case of Kr calib?
 constexpr int TIMEBINS = 30; // the number of time bins
 
+// array size to store incoming half cru payload.
+constexpr int CRUBUFFERMAX = 1048576;
+
 } //namespace constants
 } // namespace trd
 } // namespace o2

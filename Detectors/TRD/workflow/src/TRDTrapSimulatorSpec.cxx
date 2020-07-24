@@ -421,6 +421,8 @@ void TRDDPLTrapSimulatorTask::run(o2::framework::ProcessingContext& pc)
       oldrow = row;
       olddetector = detector;
     }
+
+    LOG(debug) << "link : " << LinkRecord::getHalfChamberLinkId(detector, rob) << " det:rob " << detector << ":" << rob;
     //Are we on a new half chamber ?
     if (mOldHalfChamberLinkId != LinkRecord::getHalfChamberLinkId(detector, rob)) {
       //     hcid= detector*2 + robpos%2;
@@ -430,6 +432,8 @@ void TRDDPLTrapSimulatorTask::run(o2::framework::ProcessingContext& pc)
       mOldHalfChamberLinkId = LinkRecord::getHalfChamberLinkId(detector, rob);
       // now we have a problem. We must only write the halfchamberheader if a tracklet is written i.e. if the digits for this half chamber actually produce 1 or more tracklets!
       mNewTrackletHCHeaderHasBeenWritten = false;
+      LOG(debug) << "link : "
+                 << "changing half chamber id from : " << mOldHalfChamberLinkId << " to " << mTrackletHCHeader.word;
     }
     //figure out which trigger record from digits we are on
     if (digitcounter >= triggerRecords[currentTriggerRecord].getFirstEntry() + triggerRecords[currentTriggerRecord].getNumberOfObjects()) {

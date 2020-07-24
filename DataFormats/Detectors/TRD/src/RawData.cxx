@@ -41,6 +41,19 @@ void buildTrackletHCHeaderd(TrackletHCHeader& header, int detector, int rob, int
   buildTrackletHCHeader(header, sector, stack, layer, side, chipclock, format);
 }
 
+uint32_t getHCIDFromTrackletHCHeader(const TrackletHCHeader& header)
+{
+  return header.layer * 2 + header.stack * constants::NLAYER * 2 + header.supermodule * constants::NLAYER * constants::NSTACK * 2 + header.side;
+}
+
+// same method alternate input simpler to send a word pointer as const
+uint32_t getHCIDFromTrackletHCHeader(const uint32_t& headerword)
+{
+  TrackletHCHeader header;
+  header.word = headerword;
+  return header.layer * 2 + header.stack * constants::NLAYER * 2 + header.supermodule * constants::NLAYER * constants::NSTACK * 2 + header.side;
+}
+
 uint16_t buildTRDFeeID(int supermodule, int side, int endpoint)
 {
   TRDFeeID feeid;
@@ -137,13 +150,13 @@ std::ostream& operator<<(std::ostream& stream, const TrackletMCMData& tracklet)
          << tracklet.checkbit << std::endl;
   return stream;
 }
-void printTrackletMCMData(o2::trd::TrackletMCMData const& tracklet)
+void printTrackletMCMData(o2::trd::TrackletMCMData& tracklet)
 {
   LOGF(INFO, "TrackletMCMData: Raw:0x%08x pos:%d slope:%d pid:0x%08x checkbit:0x%02x",
        tracklet.word, tracklet.pos, tracklet.slope, tracklet.pid, tracklet.checkbit);
 }
 
-void printTrackletMCMHeader(o2::trd::TrackletMCMHeader const& mcmhead)
+void printTrackletMCMHeader(o2::trd::TrackletMCMHeader& mcmhead)
 {
   LOGF(INFO, "MCMRawHeader: Raw:0x%08x 1:%d padrow: 0x%02x col: 0x%01x pid2 0x%02x pid1: 0x%02x pid0: 0x%02x 1:%d",
        mcmhead.word, mcmhead.onea, mcmhead.padrow, mcmhead.col,
@@ -153,16 +166,23 @@ void printTrackletMCMHeader(o2::trd::TrackletMCMHeader const& mcmhead)
 std::ostream& operator<<(std::ostream& stream, const TrackletMCMHeader& mcmhead)
 {
   // make a pretty output of the mcm header.
-  stream << "MCMRawHeader: Raw:0x" << std::hex << mcmhead.word << " " << mcmhead.onea << "::"
+  stream << "TrackletMCMRawHeader: Raw:0x" << std::hex << mcmhead.word << " " << mcmhead.onea << "::"
          << mcmhead.pid2 << ":" << mcmhead.pid1 << ":" << mcmhead.pid0 << "::"
          << mcmhead.oneb << std::endl;
   return stream;
 }
 
-void printHalfChamber(o2::trd::TrackletHCHeader const& halfchamber)
+void printHalfChamber(o2::trd::TrackletHCHeader& halfchamber)
 {
   LOGF(INFO, "TrackletHCHeader: Raw:0x%08x SM : %d stack %d layer %d side : %d MCLK: 0x%0x Format: 0x%0x Always1:0x%0x",
        halfchamber.supermodule, halfchamber.stack, halfchamber.layer, halfchamber.side, halfchamber.MCLK, halfchamber.format, halfchamber.one);
+}
+
+void printDigitMCMHeader(o2::trd::DigitMCMHeader& mcmhead)
+{
+  LOGF(INFO, "DigitMCMRawHeader: Raw:0x%08x res(0xc):0x%02x mcm: 0x%03x rob: 0x%03x eventcount 0x%05x year(>2007?): 0x%02x ",
+       mcmhead.word, mcmhead.res, mcmhead.mcm, mcmhead.rob, mcmhead.eventcount,
+       mcmhead.yearflag);
 }
 
 void dumpHalfChamber(o2::trd::TrackletHCHeader const& halfchamber)
@@ -213,6 +233,53 @@ std::ostream& operator<<(std::ostream& stream, const HalfCRUHeader& halfcru)
   stream << std::endl;
   stream << "0x" << std::hex << halfcru.word0 << " 0x" << halfcru.word12[0] << " 0x" << halfcru.word12[1] << " 0x" << halfcru.word3 << " 0x" << halfcru.word47[0] << " 0x" << halfcru.word47[1] << " 0x" << halfcru.word47[2] << " 0x" << halfcru.word47[3] << std::endl;
   return stream;
+}
+
+bool trackletMCMHeaderSanityCheck(o2::trd::TrackletMCMHeader& header)
+{
+  // a bit limited to what we can check.
+  bool goodheader = true;
+  if (header.onea != 1) {
+    goodheader = false;
+  }
+  if (header.oneb != 1) {
+    goodheader = false;
+  }
+  // if we have 3rd tracklet (pid2!=0) then we must have all the others as well.
+  if ((header.pid2 != 0) && (header.pid1 == 0 || header.pid0 == 0)) {
+    goodheader = false;
+  }
+  // sim for 2 tracklets.
+  if ((header.pid1 != 0) && (header.pid0 == 0)) {
+    goodheader = false;
+  }
+
+  return goodheader;
+}
+
+bool trackletHCHeaderSanityCheck(o2::trd::TrackletHCHeader& header)
+{
+  bool goodheader = true;
+  if (header.one != 1)
+    goodheader = false;
+  if (header.supermodule > 17)
+    goodheader = false;
+  //if(header.format != )  only certain format versions are permitted come back an fill in if needed.
+  return goodheader;
+}
+
+bool digitMCMHeaderSanityCheck(o2::trd::DigitMCMHeader* header)
+{
+  // a bit limited to what we can check.
+  bool goodheader = true;
+  if (header->res != 0x1100) {
+    goodheader = false;
+  }
+  if (header->yearflag == 0) { //we only have data after 2007 now in run3.
+    goodheader = false;
+  }
+
+  return goodheader;
 }
 
 } // namespace trd
