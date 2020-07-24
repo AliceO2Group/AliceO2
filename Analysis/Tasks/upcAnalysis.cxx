@@ -41,13 +41,13 @@ struct UPCAnalysis {
     // TODO:
     // Add trigger class check
     // if (!col.alias()[kCUP9])
-    // return;
+    //   return;
     std::vector<soa::Join<aod::Tracks, aod::TracksExtra, aod::TrackSelection>::iterator> selTracks;
     for (auto track : tracks) {
       if (!track.isGlobalTrack())
         continue;
       selTracks.push_back(track);
-      if (selTracks.size() == 2)
+      if (selTracks.size() > 2)
         break;
     }
     if (selTracks.size() != 2)
