@@ -24,7 +24,7 @@
 #include <cmath>
 
 // TODO: create an array holding these constants for all needed particles or check for a place where these are already defined
-static const float fgkElectronMass = 0.000511;   // GeV
+static const float fgkElectronMass = 0.000511; // GeV
 
 //_________________________________________________________________________
 class VarManager : public TObject
@@ -43,7 +43,7 @@ class VarManager : public TObject
     ReducedTrackBarrel = BIT(4),
     ReducedTrackBarrelCov = BIT(5),
     ReducedTrackMuon = BIT(6)
-  };  
+  };
 
  public:
   enum Variables {
@@ -165,7 +165,7 @@ class VarManager : public TObject
   static void FillTrack(T const& track, float* values = nullptr);
   template <typename T>
   static void FillPair(T const& t1, T const& t2, float* values = nullptr);
-  
+
  public:
   VarManager();
   ~VarManager() override;
@@ -181,7 +181,7 @@ class VarManager : public TObject
 
   static void FillEventDerived(float* values = nullptr);
   static void FillTrackDerived(float* values = nullptr);
-  
+
   VarManager& operator=(const VarManager& c);
   VarManager(const VarManager& c);
 
@@ -193,15 +193,13 @@ void VarManager::FillEvent(T const& event, float* values)
 {
   if (!values)
     values = fgValues;
-  
-  if constexpr (fillMap & BC)
-  {
-    values[kRunNo] = event.bc().runNumber();    // accessed via Collisions table
+
+  if constexpr ( (fillMap & BC) > 0 ) {
+    values[kRunNo] = event.bc().runNumber(); // accessed via Collisions table
     values[kBC] = event.bc().globalBC();
   }
-  
-  if constexpr (fillMap & Collision)
-  {
+
+  if constexpr ( (fillMap & Collision) > 0 ) {
     values[kVtxX] = event.posX();
     values[kVtxY] = event.posY();
     values[kVtxZ] = event.posZ();
@@ -215,26 +213,23 @@ void VarManager::FillEvent(T const& event, float* values)
     values[kVtxCovZZ] = event.covZZ();
     values[kVtxChi2] = event.chi2();
   }
-  
+
   // TODO: need to add EvSels and Cents tables, etc. in case of the central data model
-  
-  if constexpr (fillMap & ReducedEvent)
-  {
+
+  if constexpr ( (fillMap & ReducedEvent) > 0 ) {
     values[kRunNo] = event.runNumber();
     values[kVtxX] = event.posX();
     values[kVtxY] = event.posY();
     values[kVtxZ] = event.posZ();
     values[kVtxNcontrib] = event.numContrib();
   }
-  
-  if constexpr (fillMap & ReducedEventExtended)
-  {
+
+  if constexpr ( (fillMap & ReducedEventExtended) > 0 ) {
     values[kBC] = event.globalBC();
     values[kCentVZERO] = event.centV0M();
   }
-  
-  if constexpr (fillMap & ReducedEventVtxCov)
-  {
+
+  if constexpr ( (fillMap & ReducedEventVtxCov) > 0 ) {
     values[kVtxCovXX] = event.covXX();
     values[kVtxCovXY] = event.covXY();
     values[kVtxCovXZ] = event.covXZ();
@@ -243,7 +238,7 @@ void VarManager::FillEvent(T const& event, float* values)
     values[kVtxCovZZ] = event.covZZ();
     values[kVtxChi2] = event.chi2();
   }
-  
+
   FillEventDerived(values);
 }
 
@@ -252,20 +247,18 @@ void VarManager::FillTrack(T const& track, float* values)
 {
   if (!values)
     values = fgValues;
-    
-  if constexpr (fillMap & Track)
-  {
+
+  if constexpr ( (fillMap & Track) > 0 ) {
     values[kPt] = track.pt();
     values[kEta] = track.eta();
     values[kPhi] = track.phi();
     values[kCharge] = track.charge();
   }
-  
-  if constexpr (fillMap & TrackExtra)
-  {
+
+  if constexpr ( (fillMap & TrackExtra) > 0 ) {
     values[kPin] = track.tpcInnerParam();
-    if(fgUsedVars[kITSncls]) 
-      values[kITSncls] = track.itsNCls();        // dynamic column
+    if (fgUsedVars[kITSncls])
+      values[kITSncls] = track.itsNCls(); // dynamic column
     values[kITSchi2] = track.itsChi2NCl();
     values[kTPCncls] = track.tpcNClsFound();
     values[kTPCchi2] = track.tpcChi2NCl();
@@ -274,37 +267,34 @@ void VarManager::FillTrack(T const& track, float* values)
     values[kTOFsignal] = track.tofSignal();
     values[kTrackLength] = track.length();
   }
-  
-  if constexpr (fillMap & TrackCov)
-  {
+
+  if constexpr ( (fillMap & TrackCov) > 0 ) {
     values[kTrackCYY] = track.cYY();
     values[kTrackCZZ] = track.cZZ();
     values[kTrackCSnpSnp] = track.cSnpSnp();
     values[kTrackCTglTgl] = track.cTglTgl();
     values[kTrackC1Pt21Pt2] = track.c1Pt21Pt2();
   }
-  
-  if constexpr (fillMap & ReducedTrack)
-  {
+
+  if constexpr ( (fillMap & ReducedTrack) > 0 ) {
     values[kPt] = track.pt();
-    if(fgUsedVars[kPx]) 
+    if (fgUsedVars[kPx])
       values[kPx] = track.px();
-    if(fgUsedVars[kPy]) 
+    if (fgUsedVars[kPy])
       values[kPy] = track.py();
-    if(fgUsedVars[kPz]) 
+    if (fgUsedVars[kPz])
       values[kPz] = track.pz();
     values[kEta] = track.eta();
     values[kPhi] = track.phi();
     values[kCharge] = track.charge();
   }
-  
-  if constexpr (fillMap & ReducedTrackBarrel)
-  {
+
+  if constexpr ( (fillMap & ReducedTrackBarrel) > 0 ) {
     values[kPin] = track.tpcInnerParam();
-    if(fgUsedVars[kITSncls]) {             // TODO: add the central data model dynamic column to the reduced table
+    if (fgUsedVars[kITSncls]) { // TODO: add the central data model dynamic column to the reduced table
       values[kITSncls] = 0.0;
-      for(int i=0; i<6; ++i)
-        values[kITSncls] += ((track.itsClusterMap() & (1<<i)) ? 1 : 0);
+      for (int i = 0; i < 6; ++i)
+        values[kITSncls] += ((track.itsClusterMap() & (1 << i)) ? 1 : 0);
     }
     values[kITSchi2] = track.itsChi2NCl();
     values[kTPCncls] = track.tpcNClsFound();
@@ -314,18 +304,16 @@ void VarManager::FillTrack(T const& track, float* values)
     values[kTOFsignal] = track.tofSignal();
     values[kTrackLength] = track.length();
   }
-  
-  if constexpr (fillMap & ReducedTrackBarrelCov)
-  {
+
+  if constexpr ( (fillMap & ReducedTrackBarrelCov) > 0 ) {
     values[kTrackCYY] = track.cYY();
     values[kTrackCZZ] = track.cZZ();
     values[kTrackCSnpSnp] = track.cSnpSnp();
     values[kTrackCTglTgl] = track.cTglTgl();
     values[kTrackC1Pt21Pt2] = track.c1Pt21Pt2();
   }
-    
-  if constexpr (fillMap & ReducedTrackMuon)
-  {
+
+  if constexpr ( (fillMap & ReducedTrackMuon) > 0 ) {
     values[kMuonInvBendingMomentum] = track.inverseBendingMomentum();
     values[kMuonThetaX] = track.thetaX();
     values[kMuonThetaY] = track.thetaY();
@@ -335,20 +323,20 @@ void VarManager::FillTrack(T const& track, float* values)
     values[kMuonChi2] = track.chi2();
     values[kMuonChi2MatchTrigger] = track.chi2MatchTrigger();
   }
-  
+
   FillTrackDerived(values);
 }
 
 template <typename T>
-void VarManager::FillPair(T const& t1, T const& t2, float* values) 
+void VarManager::FillPair(T const& t1, T const& t2, float* values)
 {
   if (!values)
     values = fgValues;
-  
+
   // TODO: build the mass using the (pt,eta,phi) which are pre-calculated
-  values[kMass] = fgkElectronMass*fgkElectronMass;
-  values[kMass] = 2.0*values[kMass] + 2.0*(sqrt(values[kMass]+t1.pmom()*t1.pmom())*sqrt(values[kMass]+t2.pmom()*t2.pmom()) - 
-                      t1.px()*t2.px() - t1.py()*t2.py() - t1.pz()*t2.pz());
+  values[kMass] = fgkElectronMass * fgkElectronMass;
+  values[kMass] = 2.0 * values[kMass] + 2.0 * (sqrt(values[kMass] + t1.pmom() * t1.pmom()) * sqrt(values[kMass] + t2.pmom() * t2.pmom()) -
+                                               t1.px() * t2.px() - t1.py() * t2.py() - t1.pz() * t2.pz());
 }
 
 #endif

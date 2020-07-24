@@ -41,9 +41,9 @@ struct TableReader {
   AnalysisCompositeCut* fEventCut;
   AnalysisCompositeCut* fTrackCut;
   AnalysisCompositeCut* fMuonCut;
-  
+
   // HACK: In order to be able to deduce which kind of aod object is transmitted to the templated VarManager::Fill functions
-  //         a constexpr static bit map must be defined and sent as template argument  
+  //         a constexpr static bit map must be defined and sent as template argument
   //        The user has to include in this bit map all the tables needed in analysis, as defined in VarManager::ObjTypes
   //        Additionally, one should make sure that the requested tables are actually provided in the process() function,
   //       otherwise a compile time error will be thrown.
@@ -53,7 +53,7 @@ struct TableReader {
   constexpr static uint32_t fgEventMuonFillMap = VarManager::ObjTypes::ReducedEvent | VarManager::ObjTypes::ReducedEventExtended;
   constexpr static uint32_t fgTrackFillMap = VarManager::ObjTypes::ReducedTrack | VarManager::ObjTypes::ReducedTrackBarrel | VarManager::ObjTypes::ReducedTrackBarrelCov;
   constexpr static uint32_t fgMuonFillMap = VarManager::ObjTypes::ReducedTrack | VarManager::ObjTypes::ReducedTrackMuon;
-  
+
   void init(o2::framework::InitContext&)
   {
     VarManager::SetDefaultVarNames();
@@ -92,7 +92,7 @@ struct TableReader {
     cut2->AddCut(VarManager::kPt, 0.5, 3.0);
     fTrackCut->AddCut(cut1);
     //fTrackCut->AddCut(cut2);
-    
+
     fMuonCut = new AnalysisCompositeCut(true);
     AnalysisCut kineMuonCut;
     kineMuonCut.AddCut(VarManager::kPt, 1.5, 10.0);
@@ -110,7 +110,7 @@ struct TableReader {
     //       The reset can be done selectively, using arguments in the ResetValues() function
     VarManager::ResetValues();
 
-    VarManager::FillEvent<fgEventFillMap>(event); 
+    VarManager::FillEvent<fgEventFillMap>(event);
     fHistMan->FillHistClass("Event_BeforeCuts", VarManager::fgValues); // automatically fill all the histograms in the class Event
     if (!fEventCut->IsSelected(VarManager::fgValues))
       return;
@@ -121,27 +121,29 @@ struct TableReader {
     std::vector<std::decay_t<decltype(tracks)>::iterator> selectedTracksPos;
     std::vector<std::decay_t<decltype(tracks)>::iterator> selectedTracksNeg;
     for (auto& track : tracks) {
-      
+
       VarManager::ResetValues(VarManager::kNEventWiseVariables, VarManager::kNMuonTrackVariables);
-      
+
       VarManager::FillTrack<fgTrackFillMap>(track);
       fHistMan->FillHistClass("TrackBarrel_BeforeCuts", VarManager::fgValues);
       if (!fTrackCut->IsSelected(VarManager::fgValues))
         continue;
       fHistMan->FillHistClass("TrackBarrel_AfterCuts", VarManager::fgValues);
-      
-      if(track.charge()<0) selectedTracksNeg.push_back(track);
-      if(track.charge()>0) selectedTracksPos.push_back(track);
+
+      if (track.charge() < 0)
+        selectedTracksNeg.push_back(track);
+      if (track.charge() > 0)
+        selectedTracksPos.push_back(track);
     }
-    
+
     // run the same event pairing for barrel tracks
     for (auto& tpos : selectedTracksPos) {
       for (auto& tneg : selectedTracksNeg) {
         VarManager::FillPair(tpos, tneg);
         fHistMan->FillHistClass("PairsBarrel", VarManager::fgValues);
       }
-    }    
-    
+    }
+
     // loop over muon tracks
     std::vector<std::decay_t<decltype(muons)>::iterator> selectedMuonsPos;
     std::vector<std::decay_t<decltype(muons)>::iterator> selectedMuonsNeg;
@@ -151,11 +153,13 @@ struct TableReader {
       if (!fMuonCut->IsSelected(VarManager::fgValues))
         continue;
       fHistMan->FillHistClass("TrackMuon_AfterCuts", VarManager::fgValues);
-      
-      if(muon.charge()<0) selectedMuonsNeg.push_back(muon);
-      if(muon.charge()>0) selectedMuonsPos.push_back(muon);
+
+      if (muon.charge() < 0)
+        selectedMuonsNeg.push_back(muon);
+      if (muon.charge() > 0)
+        selectedMuonsPos.push_back(muon);
     }
-    
+
     // same event pairing for muons
     for (auto& tpos : selectedMuonsNeg) {
       for (auto& tneg : selectedMuonsPos) {
@@ -211,9 +215,9 @@ struct TableReader {
         fHistMan->AddHistogram(classStr.Data(), "vtxHisto", "n contrib vs (x,y,z)", 4, vars, binLimits);
 
         fHistMan->AddHistogram(classStr.Data(), "CentV0M_vtxZ", "CentV0M vs Vtx Z", false, 60, -15.0, 15.0, VarManager::kVtxZ, 20, 0., 100., VarManager::kCentVZERO); // TH2F histogram
-        
+
         fHistMan->AddHistogram(classStr.Data(), "VtxChi2", "Vtx chi2", false, 100, 0.0, 100.0, VarManager::kVtxChi2); // TH1F histogram
-        
+
         continue;
       } // end if(Event)
 
@@ -222,20 +226,20 @@ struct TableReader {
         fHistMan->AddHistogram(classStr.Data(), "Pt", "p_{T} distribution", false, 200, 0.0, 20.0, VarManager::kPt);                                               // TH1F histogram
         fHistMan->AddHistogram(classStr.Data(), "Eta", "#eta distribution", false, 500, -5.0, 5.0, VarManager::kEta);                                              // TH1F histogram
         fHistMan->AddHistogram(classStr.Data(), "Phi_Eta", "#phi vs #eta distribution", false, 200, -5.0, 5.0, VarManager::kEta, 200, -6.3, 6.3, VarManager::kPhi); // TH2F histogram
-        fHistMan->AddHistogram(classStr.Data(), "P", "p distribution", false, 200, 0.0, 20.0, VarManager::kP);         // TH1F histogram
+        fHistMan->AddHistogram(classStr.Data(), "P", "p distribution", false, 200, 0.0, 20.0, VarManager::kP);                                                      // TH1F histogram
         fHistMan->AddHistogram(classStr.Data(), "Px", "p_{x} distribution", false, 200, 0.0, 20.0, VarManager::kPx);
         fHistMan->AddHistogram(classStr.Data(), "Py", "p_{y} distribution", false, 200, 0.0, 20.0, VarManager::kPy);
         fHistMan->AddHistogram(classStr.Data(), "Pz", "p_{z} distribution", false, 200, 0.0, 20.0, VarManager::kPz);
-        
-        if(classStr.Contains("Barrel")) {
+
+        if (classStr.Contains("Barrel")) {
           fHistMan->AddHistogram(classStr.Data(), "TPCdedx_pIN", "TPC dE/dx vs pIN", false, 100, 0.0, 20.0, VarManager::kPin,
-                                200, 0.0, 200., VarManager::kTPCsignal);   // TH2F histogram
-        
-          fHistMan->AddHistogram(classStr.Data(), "Cov1Pt_Pt", "cov(1/pt,1/pt) vs p_{T} distribution", false, 20, 0.0, 5.0, VarManager::kPt, 100, 0.0, 1.0, VarManager::kTrackC1Pt21Pt2);                                               // TH2F histogram
+                                 200, 0.0, 200., VarManager::kTPCsignal); // TH2F histogram
+
+          fHistMan->AddHistogram(classStr.Data(), "Cov1Pt_Pt", "cov(1/pt,1/pt) vs p_{T} distribution", false, 20, 0.0, 5.0, VarManager::kPt, 100, 0.0, 1.0, VarManager::kTrackC1Pt21Pt2); // TH2F histogram
         }
-        
+
         if (classStr.Contains("Muon")) {
-          fHistMan->AddHistogram(classStr.Data(), "InvBendingMom", "", false, 100, 0.0, 1.0, VarManager::kMuonInvBendingMomentum); 
+          fHistMan->AddHistogram(classStr.Data(), "InvBendingMom", "", false, 100, 0.0, 1.0, VarManager::kMuonInvBendingMomentum);
           fHistMan->AddHistogram(classStr.Data(), "ThetaX", "", false, 100, -1.0, 1.0, VarManager::kMuonThetaX);
           fHistMan->AddHistogram(classStr.Data(), "ThetaY", "", false, 100, -2.0, 2.0, VarManager::kMuonThetaY);
           fHistMan->AddHistogram(classStr.Data(), "ZMu", "", false, 100, -30.0, 30.0, VarManager::kMuonZMu);
@@ -245,10 +249,10 @@ struct TableReader {
           fHistMan->AddHistogram(classStr.Data(), "Chi2MatchTrigger", "", false, 100, 0.0, 20.0, VarManager::kMuonChi2MatchTrigger);
         }
       }
-      
+
       if (classStr.Contains("Pairs")) {
         fHistMan->AddHistClass(classStr.Data());
-        fHistMan->AddHistogram(classStr.Data(), "Mass", "", false, 100, 0.0, 5.0, VarManager::kMass); 
+        fHistMan->AddHistogram(classStr.Data(), "Mass", "", false, 100, 0.0, 5.0, VarManager::kMass);
       }
     } // end loop over histogram classes
   }

@@ -43,11 +43,11 @@ struct TableMaker {
   Produces<ReducedTracksBarrelCov> trackBarrelCov;
   Produces<ReducedMuons> muonBasic;
   Produces<ReducedMuonsExtended> muonExtended;
-  
+
   OutputObj<HistogramManager> fHistMan{"output"};
-  
+
   // HACK: In order to be able to deduce which kind of aod object is transmitted to the templated VarManager::Fill functions
-  //         a constexpr static bit map must be defined and sent as template argument  
+  //         a constexpr static bit map must be defined and sent as template argument
   //        The user has to include in this bit map all the tables needed in analysis, as defined in VarManager::ObjTypes
   //        Additionally, one should make sure that the requested tables are actually provided in the process() function,
   //       otherwise a compile time error will be thrown.
@@ -55,7 +55,7 @@ struct TableMaker {
   //           to automatically detect the object types transmitted to the VarManager
   constexpr static uint32_t fgEventFillMap = VarManager::ObjTypes::BC | VarManager::ObjTypes::Collision;
   constexpr static uint32_t fgTrackFillMap = VarManager::ObjTypes::Track | VarManager::ObjTypes::TrackExtra | VarManager::ObjTypes::TrackCov;
-    
+
   void init(o2::framework::InitContext&)
   {
     VarManager::SetDefaultVarNames();
@@ -63,8 +63,8 @@ struct TableMaker {
 
     fHistMan->SetUseDefaultVariableNames(kTRUE);
     fHistMan->SetDefaultVarNames(VarManager::fgVariableNames, VarManager::fgVariableUnits);
-    
-    DefineHistograms("Event;"); // define all histograms
+
+    DefineHistograms("Event;");                      // define all histograms
     VarManager::SetUseVars(fHistMan->GetUsedVars()); // provide the list of required variables so that VarManager knows what to fill
   }
 
@@ -72,18 +72,18 @@ struct TableMaker {
   {
     uint64_t tag = 0;
     uint32_t triggerAliases = 0;
-    for(int i=0; i<kNaliases; i++)
-      if(collision.alias()[i]>0)
+    for (int i = 0; i < kNaliases; i++)
+      if (collision.alias()[i] > 0)
         triggerAliases |= (uint32_t(1) << i);
 
     VarManager::ResetValues();
-    VarManager::FillEvent<fgEventFillMap>(collision);             // extract event information and place it in the fgValues array
+    VarManager::FillEvent<fgEventFillMap>(collision);       // extract event information and place it in the fgValues array
     fHistMan->FillHistClass("Event", VarManager::fgValues); // automatically fill all the histograms in the class Event
-    
+
     event(tag, collision.bc().runNumber(), collision.posX(), collision.posY(), collision.posZ(), collision.numContrib());
     eventExtended(collision.bc().globalBC(), collision.bc().triggerMask(), triggerAliases, collision.centV0M());
     eventVtxCov(collision.covXX(), collision.covXY(), collision.covXZ(), collision.covYY(), collision.covYZ(), collision.covZZ(), collision.chi2());
-    
+
     uint64_t trackFilteringTag = 0;
     for (auto& track : tracksBarrel) {
 
@@ -102,25 +102,25 @@ struct TableMaker {
 
     for (auto& muon : tracksMuon) {
       // TODO: add proper information for muon tracks
-      if(muon.bc() != collision.bc()) 
+      if (muon.bc() != collision.bc())
         continue;
-      trackFilteringTag |= (uint64_t(1) << 0);      // this is a MUON arm track
+      trackFilteringTag |= (uint64_t(1) << 0); // this is a MUON arm track
       //TODO: the calculation of the muon momentum vector should be done in the central data model
       float xSlope = tan(muon.thetaX());
       float ySlope = tan(muon.thetaY());
-      float pz = - sqrt(1.0 + ySlope*ySlope) / abs(muon.inverseBendingMomentum());
-      float pt = abs(pz)*sqrt(xSlope*xSlope + ySlope*ySlope);
-      float phi = atan2(ySlope,xSlope);
-      phi = (phi>=0.0 ? phi : phi+TMath::TwoPi());
-      float eta = acos(pz/sqrt(pt*pt+pz*pz));
-      eta = tan(0.5*eta);
-      if(eta>0.0)
+      float pz = -sqrt(1.0 + ySlope * ySlope) / abs(muon.inverseBendingMomentum());
+      float pt = abs(pz) * sqrt(xSlope * xSlope + ySlope * ySlope);
+      float phi = atan2(ySlope, xSlope);
+      phi = (phi >= 0.0 ? phi : phi + TMath::TwoPi());
+      float eta = acos(pz / sqrt(pt * pt + pz * pz));
+      eta = tan(0.5 * eta);
+      if (eta > 0.0)
         eta = -log(eta);
-      muonBasic(collision, trackFilteringTag, pt, eta, phi, (muon.inverseBendingMomentum()>0.0 ? short(1) : short(-1)));
+      muonBasic(collision, trackFilteringTag, pt, eta, phi, (muon.inverseBendingMomentum() > 0.0 ? short(1) : short(-1)));
       muonExtended(muon.inverseBendingMomentum(), muon.thetaX(), muon.thetaY(), muon.zMu(), muon.bendingCoor(), muon.nonBendingCoor(), muon.chi2(), muon.chi2MatchTrigger());
     }
   }
-  
+
   void DefineHistograms(TString histClasses)
   {
     const int kNRuns = 2;
@@ -147,8 +147,8 @@ struct TableMaker {
                                100, 0.055, 0.08, VarManager::kVtxX, 100, 0.31, 0.35, VarManager::kVtxY, 30, -15., 15., VarManager::kVtxZ,
                                "", "", "", VarManager::kVtxNcontrib); // TProfile3D
       }
-    }   // end loop over histogram classes
-  }     
+    } // end loop over histogram classes
+  }
 };
 
 WorkflowSpec defineDataProcessing(o2::framework::ConfigContext const&)

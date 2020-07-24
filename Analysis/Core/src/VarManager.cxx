@@ -71,7 +71,7 @@ void VarManager::FillEventDerived(float* values)
   // Fill event-wise derived quantities (these are all quantities which can be computed just based on the values already filled in the FillEvent() function)
   //
   if (fgUsedVars[kRunId])
-      values[kRunId] = (fgRunMap.size() > 0 ? fgRunMap[int(values[kRunNo])] : 0);
+    values[kRunId] = (fgRunMap.size() > 0 ? fgRunMap[int(values[kRunNo])] : 0);
 }
 
 //__________________________________________________________________

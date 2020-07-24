@@ -91,7 +91,7 @@ DECLARE_SOA_TABLE(ReducedTracksBarrelCov, "AOD", "RTBARRELCOV",
                   track::CTglTgl, track::C1Pt21Pt2);
 
 // muon quantities
-namespace reducedmuon 
+namespace reducedmuon
 {
 DECLARE_SOA_INDEX_COLUMN(ReducedEvent, reducedevent);
 DECLARE_SOA_COLUMN(FilteringFlags, filteringFlags, uint64_t);
@@ -104,7 +104,7 @@ DECLARE_SOA_DYNAMIC_COLUMN(Px, px, [](float pt, float phi) -> float { return pt 
 DECLARE_SOA_DYNAMIC_COLUMN(Py, py, [](float pt, float phi) -> float { return pt * sin(phi); });
 DECLARE_SOA_DYNAMIC_COLUMN(Pz, pz, [](float pt, float eta) -> float { return pt * sinh(eta); });
 DECLARE_SOA_DYNAMIC_COLUMN(Pmom, pmom, [](float pt, float eta) -> float { return pt * cosh(eta); });
-}
+} // namespace reducedmuon
 
 DECLARE_SOA_TABLE(ReducedMuons, "AOD", "RTMUON",
                   o2::soa::Index<>, reducedmuon::ReducedEventId, reducedmuon::FilteringFlags,
