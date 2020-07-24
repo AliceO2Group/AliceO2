@@ -45,15 +45,15 @@ struct TPCPIDQATask {
 
   void process(aod::Collision const& collision, soa::Join<aod::Tracks, aod::TracksExtra, aod::pidRespTPC> const& tracks)
   {
-    for (auto i : tracks) {
+    for (auto const& i : tracks) {
       // Track selection
-      UChar_t clustermap = i.itsClusterMap();
-      bool issel = (i.tpcNClsFindable() > 70) && (i.flags() & 0x4) && (TESTBIT(clustermap, 0) || TESTBIT(clustermap, 1));
+      const UChar_t clustermap = i.itsClusterMap();
+      bool issel = (i.tpcNClsFindable() > 70);
+      issel = issel && (i.flags() & 0x4);
+      issel = issel && (TESTBIT(clustermap, 0) || TESTBIT(clustermap, 1));
       if (!issel)
         continue;
       //
-      LOG(INFO) << "Signal " << i.expSignalEl();
-      LOG(INFO) << "Sigma " << i.nSigmaEl();
       htpcsignal->Fill(i.p(), i.tpcSignal());
       hexpEl->Fill(i.p(), i.expSignalEl());
       hexpDe->Fill(i.p(), i.expSignalDe());

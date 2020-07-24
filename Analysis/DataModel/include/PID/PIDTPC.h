@@ -28,8 +28,8 @@
 namespace o2::pid::tpc
 {
 
-float BetheBlochF(float x, const float p[5]);
-float RelResolutionF(float x, const float p[2]);
+float BetheBlochF(float x, const std::array<float, 5> p);
+float RelResolutionF(float x, const std::array<float, 2> p);
 
 /// \brief Class to handle the parametrization of the detector response
 class Param

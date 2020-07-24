@@ -14,13 +14,13 @@
 namespace o2::pid::tpc
 {
 
-float BetheBlochF(float betagamma, const float p[5])
+float BetheBlochF(float betagamma, const std::array<float, 5> p)
 {
   // Parameters of the ALEPH Bethe-Bloch formula
   return o2::tpc::Detector::BetheBlochAleph(betagamma, p[0], p[1], p[2], p[3], p[4]);
 }
 
-float RelResolutionF(float npoints, const float p[2])
+float RelResolutionF(float npoints, const std::array<float, 2> p)
 {
   // relative dEdx resolution rel sigma = fRes0*sqrt(1+fResN2/npoint)
   return p[0] * (npoints > 0 ? sqrt(1. + p[1] / npoints) : 1.f);

@@ -137,7 +137,7 @@ struct pidTOFTask {
     evt.SetEvTimeMask(0, collision.collisionTimeMask());
     tof::Response resp = tof::Response();
     resp.SetEventTime(evt);
-    for (auto i : tracks) {
+    for (auto const& i : tracks) {
       resp.UpdateTrack(i.p(), i.tofExpMom() / tof::Response::kCSPEED, i.length(), i.tofSignal());
       tofpidbeta(resp.GetBeta(),
                  resp.GetBetaExpectedSigma(),
@@ -186,7 +186,7 @@ struct pidTPCTask {
     resp.mParam.mBetheBloch.mParameters.Set(bbparams);
     float resoparams[2] = {0.07, 0.0};
     resp.mParam.mRelResolution.mParameters.Set(resoparams);
-    for (auto i : tracks) {
+    for (auto const& i : tracks) {
       resp.UpdateTrack(i.p(), i.tpcSignal(), i.tpcNClsShared());
       tpcpid(
         resp.GetExpectedSignal(PID::Electron),

@@ -44,15 +44,15 @@ class Parameters
   /// Getter for parametrization parameters
   T Get(unsigned int param_index) const { return param_index < size ? mPar[param_index] : -999.f; }
   /// Getter for parametrization parameters
-  const T* Get() const { return mPar; }
+  std::array<T, size> Get() const { return mPar; }
 
  private:
   /// parameters
-  T mPar[size];
+  std::array<T, size> mPar;
 };
 
 /// \brief Class to handle the parameters and the parametrization of a given detector response
-template <typename T, unsigned int size, T (*functional_form)(T, const T[size])>
+template <typename T, unsigned int size, T (*functional_form)(T, const std::array<T, size>)>
 class Parametrization
 {
  public:
