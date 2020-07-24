@@ -179,7 +179,7 @@ uint32_t Trap2CRU::buildCRUHeader(HalfCRUHeader& header, uint32_t bc, uint32_t h
     if (mLinkRecords[linkrecord].getLinkHCID() == hcid) {
       linksize = mLinkRecords[linkrecord].getNumberOfObjects();
       // this can be done differently by keeping a pointer to halfcruheader and setting it after reading it all in and going back per link to set the size.
-      LOG(debug3) << "setting CRU HEADER for halfcru : " << halfcru << "and link : " << link << " contents" << header << ":" << link << ":" << linksize << ":" << errors;
+      LOG(info) << "setting CRU HEADER for halfcru : " << halfcru << "and link : " << link << " contents" << header << ":" << link << ":" << linksize << ":" << errors;
       linkrecord++; // increment locally for walking through linkrecords.
     }
     linkSizePadding(linksize, crudatasize, padding);

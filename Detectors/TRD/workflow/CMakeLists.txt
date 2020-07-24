@@ -18,6 +18,7 @@ o2_add_library(TRDWorkflow
                        src/TRDTrackletWriterSpec.cxx
                        src/TRDTrapRawWriterSpec.cxx
                        src/TRDTrapSimulatorSpec.cxx
+#					   src/TRDSTFDecoderSpec.cxx
                        PUBLIC_LINK_LIBRARIES O2::Framework O2::DPLUtils O2::Steer O2::Algorithm O2::DataFormatsTRD O2::TRDSimulation O2::DetectorsBase O2::SimulationDataFormat O2::TRDBase)
 
                    #o2_target_root_dictionary(TRDWorkflow
@@ -32,6 +33,12 @@ o2_add_executable(trap-sim
                                         O2::TRDBase
                                         O2::DataFormatsTRD
                                         O2::TRDWorkflow)
+
+# o2_add_executable(stf-decoder-workflow
+#                  SOURCES src/trd-stf-decoder-workflow.cxx
+#                  COMPONENT_NAME trd
+#                  PUBLIC_LINK_LIBRARIES O2::TRDWorkflow)
+
 
 if (OpenMP_CXX_FOUND)
     target_compile_definitions(${targetName} PRIVATE WITH_OPENMP)

@@ -105,13 +105,13 @@ std::ostream& operator<<(std::ostream& stream, const TrackletMCMData& tracklet)
          << tracklet.checkbit << std::endl;
   return stream;
 }
-void printTrackletMCMData(o2::trd::TrackletMCMData const& tracklet)
+void printTrackletMCMData(o2::trd::TrackletMCMData& tracklet)
 {
   LOGF(INFO, "TrackletMCMData: Raw:0x%08x pos:%d slope:%d pid:0x%08x checkbit:0x%02x",
        tracklet.word, tracklet.pos, tracklet.slope, tracklet.pid, tracklet.checkbit);
 }
 
-void printTrackletMCMHeader(o2::trd::TrackletMCMHeader const& mcmhead)
+void printTrackletMCMHeader(o2::trd::TrackletMCMHeader& mcmhead)
 {
   LOGF(INFO, "MCMRawHeader: Raw:0x%08x 1:%d padrow: 0x%02x col: 0x%01x pid2 0x%02x pid1: 0x%02x pid0: 0x%02x 1:%d",
        mcmhead.word, mcmhead.onea, mcmhead.padrow, mcmhead.col,
@@ -127,7 +127,7 @@ std::ostream& operator<<(std::ostream& stream, const TrackletMCMHeader& mcmhead)
   return stream;
 }
 
-void printHalfChamber(o2::trd::TrackletHCHeader const& halfchamber)
+void printHalfChamber(o2::trd::TrackletHCHeader& halfchamber)
 {
   LOGF(INFO, "TrackletHCHeader: Raw:0x%08x HCID : 0x%0x MCLK: 0x%0x Format: 0x%0x Always1:0x%0x",
        halfchamber.HCID, halfchamber.MCLK, halfchamber.format, halfchamber.one);
