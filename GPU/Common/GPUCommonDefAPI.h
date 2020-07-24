@@ -172,6 +172,13 @@
   #define GPUAtomic(type) type
 #endif
 
+#ifndef GPUdic // Takes different parameter for inlining: 0 = never, 1 = always, 2 = compiler-decision
+#define GPUdic(...) GPUd()
+#endif
+#define GPUCA_GPUdic_select_0() GPUdni()
+#define GPUCA_GPUdic_select_1() GPUdii()
+#define GPUCA_GPUdic_select_2() GPUd()
+
 #ifdef GPUCA_CONSTANT_AS_ARGUMENT
   #undef GPUconstant
   #define GPUconstant()
