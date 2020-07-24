@@ -36,6 +36,9 @@
 #include <uv.h>
 #include <iostream>
 
+#include <sys/time.h>
+#include <sys/resource.h>
+
 namespace bpo = boost::program_options;
 
 using namespace o2::framework;
@@ -790,6 +793,14 @@ void DeviceSpecHelpers::reworkShmSegmentSize(std::vector<DataProcessorInfo>& inf
       segmentSize = size;
     }
     info.cmdLineArgs.erase(it, it + 2);
+  }
+  /// If no segment size is set, make it 90% of the VSIZE.
+  if (segmentSize == 0) {
+    struct rlimit limits;
+    getrlimit(RLIMIT_AS, &limits);
+    if (limits.rlim_cur != RLIM_INFINITY) {
+      segmentSize = (limits.rlim_cur / 100) * 90;
+    }
   }
   if (segmentSize == 0) {
     segmentSize = 2000000000LL;
