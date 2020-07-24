@@ -1972,7 +1972,7 @@ int GPUChainTracking::RunTPCTrackingMerger(bool synchronizeOutput)
     mOutputQueue.clear();
   }
 
-  runKernel<GPUTPCGMMergerTrackFit>(GetGridBlk(Merger.NOutputTracks(), 0), krnlRunRangeNone, krnlEventNone, GetProcessingSettings().mergerSortTracks ? 1 : 0);
+  runKernel<GPUTPCGMMergerTrackFit>(GetGrid(Merger.NOutputTracks(), 0), krnlRunRangeNone, krnlEventNone, GetProcessingSettings().mergerSortTracks ? 1 : 0);
   if (param().rec.retryRefit == 1) {
     runKernel<GPUTPCGMMergerTrackFit>(GetGridAuto(0), krnlRunRangeNone, krnlEventNone, -1);
   }
