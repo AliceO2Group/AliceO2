@@ -91,20 +91,19 @@ DECLARE_SOA_TABLE(pidRespTOF, "AOD", "pidRespTOF",
 namespace pidTPC
 {
 // NSigma
-DECLARE_SOA_COLUMN(TPCNSigmaEl, TPCnSigmaEl, float);
-DECLARE_SOA_COLUMN(TPCNSigmaMu, TPCnSigmaMu, float);
-DECLARE_SOA_COLUMN(TPCNSigmaPi, TPCnSigmaPi, float);
-DECLARE_SOA_COLUMN(TPCNSigmaKa, TPCnSigmaKa, float);
-DECLARE_SOA_COLUMN(TPCNSigmaPr, TPCnSigmaPr, float);
-DECLARE_SOA_COLUMN(TPCNSigmaDe, TPCnSigmaDe, float);
-DECLARE_SOA_COLUMN(TPCNSigmaTr, TPCnSigmaTr, float);
-DECLARE_SOA_COLUMN(TPCNSigmaHe, TPCnSigmaHe, float);
-DECLARE_SOA_COLUMN(TPCNSigmaAl, TPCnSigmaAl, float);
+DECLARE_SOA_COLUMN(NSigmaEl, nSigmaEl, float);
+DECLARE_SOA_COLUMN(NSigmaMu, nSigmaMu, float);
+DECLARE_SOA_COLUMN(NSigmaPi, nSigmaPi, float);
+DECLARE_SOA_COLUMN(NSigmaKa, nSigmaKa, float);
+DECLARE_SOA_COLUMN(NSigmaPr, nSigmaPr, float);
+DECLARE_SOA_COLUMN(NSigmaDe, nSigmaDe, float);
+DECLARE_SOA_COLUMN(NSigmaTr, nSigmaTr, float);
+DECLARE_SOA_COLUMN(NSigmaHe, nSigmaHe, float);
+DECLARE_SOA_COLUMN(NSigmaAl, nSigmaAl, float);
 } // namespace pidTPC
 
-using namespace pidTPC;
 DECLARE_SOA_TABLE(pidRespTPC, "AOD", "pidRespTPC",
-                  TPCNSigmaEl, TPCNSigmaMu, TPCNSigmaPi, TPCNSigmaKa, TPCNSigmaPr, TPCNSigmaDe, TPCNSigmaTr, TPCNSigmaHe, TPCNSigmaAl);
+                  pidTPC::NSigmaEl, pidTPC::NSigmaMu, pidTPC::NSigmaPi, pidTPC::NSigmaKa, pidTPC::NSigmaPr, pidTPC::NSigmaDe, pidTPC::NSigmaTr, pidTPC::NSigmaHe, pidTPC::NSigmaAl);
 
 } // namespace o2::aod
 
@@ -172,7 +171,7 @@ struct pidTPCTask {
   void process(aod::Collision const& collision, soa::Join<aod::Tracks, aod::TracksExtra> const& tracks)
   {
     tpc::Response resp = tpc::Response();
-    float bbparams[5] = { 0.0320981, 19.9768, 2.52666e-16, 2.72123, 6.08092 };
+    float bbparams[5] = {0.0320981, 19.9768, 2.52666e-16, 2.72123, 6.08092};
     resp.mParam.mBetheBloch.mParameters.Set(bbparams);
     for (auto i : tracks) {
       resp.UpdateTrack(i.p(), i.tpcSignal());
