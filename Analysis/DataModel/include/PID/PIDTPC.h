@@ -71,7 +71,7 @@ class Param
   ///           2. for reconstructed PID
   float BetheBloch(float betagamma) const { return mBetheBloch.GetValue(betagamma); };
 
-  static constexpr auto mBetheBloch = Parametrization<float, 5, BetheBlochF>();
+  Parametrization<float, 5, BetheBlochF> mBetheBloch = Parametrization<float, 5, BetheBlochF>();
 
  private:
   //   float fMIP;                             // dEdx for MIP
