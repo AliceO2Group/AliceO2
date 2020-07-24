@@ -62,6 +62,10 @@ constexpr double READOUT_TIME = 3000;                  // the time the readout t
 constexpr double DEAD_TIME = 200;                      // trigger deadtime, 2 micro-s
 constexpr double BUSY_TIME = READOUT_TIME + DEAD_TIME; // the time for which no new trigger can be received in nanoseconds
 
+// array size to store incoming half cru payload.
+constexpr int CRUBUFFERMAX = 1048576;               // max buffer size for data read from a half cru, (all events)
+constexpr int CRUPADDING32 = 0xeeeeeeee;            // padding word used in the cru.
+
 } //namespace constants
 } // namespace trd
 } // namespace o2

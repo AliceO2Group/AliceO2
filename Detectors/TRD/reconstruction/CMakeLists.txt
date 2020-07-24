@@ -11,11 +11,26 @@
 o2_add_library(TRDReconstruction
                SOURCES src/CTFCoder.cxx
                        src/CTFHelper.cxx
-               PUBLIC_LINK_LIBRARIES O2::TRDBase
-                                     O2::DataFormatsTRD
-                                     O2::DetectorsRaw
-                                     O2::rANS
-                                     ms_gsl::ms_gsl)
+                       src/DigitsParser.cxx
+                       src/TrackletsParser.cxx
+                       src/CruRawReader.cxx
+                       src/CompressedRawReader.cxx
+                       src/EpnDataReaderTask.cxx
+                       src/CruCompressorTask.cxx
+               PUBLIC_LINK_LIBRARIES O2::TRDBase O2::DataFormatsTRD O2::DetectorsRaw O2::rANS ms_gsl::ms_gsl)
 
-# o2_target_root_dictionary(TRDReconstruction
-#                           HEADERS )
+                   # o2_target_root_dictionary(TRDReconstruction
+                   #                           HEADERS )
+
+
+o2_add_executable(crucompressor
+    COMPONENT_NAME trd
+    SOURCES src/CruCompressor.cxx
+    PUBLIC_LINK_LIBRARIES O2::TRDReconstruction
+    )
+
+o2_add_executable(epndatareader
+    COMPONENT_NAME trd
+    SOURCES src/EpnDataReader.cxx
+    PUBLIC_LINK_LIBRARIES O2::TRDReconstruction
+    )

@@ -13,6 +13,7 @@ o2_add_library(DataFormatsTRD
                        src/LinkRecord.cxx
                        src/Tracklet64.cxx
                        src/RawData.cxx
+                       src/CompressedDigit.cxx
                        src/CTF.cxx
                PUBLIC_LINK_LIBRARIES O2::CommonDataFormat O2::SimulationDataFormat)
 
@@ -25,4 +26,6 @@ o2_target_root_dictionary(DataFormatsTRD
                        include/DataFormatsTRD/CalibratedTracklet.h
                        include/DataFormatsTRD/Hit.h
                        include/DataFormatsTRD/CTF.h
-                       include/DataFormatsTRD/SignalArray.h)
+                       include/DataFormatsTRD/SignalArray.h
+                       include/DataFormatsTRD/CompressedDigit.h
+                       include/DataFormatsTRD/CompressedHeader.h)

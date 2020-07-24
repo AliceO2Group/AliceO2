@@ -406,6 +406,7 @@ uint32_t getlinkerrorflag(const HalfCRUHeader& cruhead, const uint32_t link);
 uint32_t getlinkdatasize(const HalfCRUHeader& cruhead, const uint32_t link);
 uint32_t getlinkerrorflags(const HalfCRUHeader& cruheader, std::array<uint32_t, 15>& linkerrorflags);
 uint32_t getlinkdatasizes(const HalfCRUHeader& cruheader, std::array<uint32_t, 15>& linksizes);
+uint32_t getQFromRaw(const o2::trd::TrackletMCMHeader *header, const o2::trd::TrackletMCMData *data, int pidindex, int trackletindex);
 uint32_t getHCIDFromTrackletHCHeader(const TrackletHCHeader& header);
 uint32_t getHCIDFromTrackletHCHeader(const uint32_t& headerword);
 std::ostream& operator<<(std::ostream& stream, const TrackletHCHeader& halfchamberheader);

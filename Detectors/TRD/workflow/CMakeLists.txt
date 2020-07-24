@@ -8,7 +8,7 @@
 # granted to it by virtue of its status as an Intergovernmental Organization or
 # submit itself to any jurisdiction.
 
-#add_compile_options(-O0 -pg -fPIC)
+add_compile_options(-O0 -pg -fPIC)
 
 o2_add_library(TRDWorkflow
                TARGETVARNAME targetName
@@ -27,9 +27,6 @@ o2_add_library(TRDWorkflow
                        src/EntropyDecoderSpec.cxx
                        src/EntropyEncoderSpec.cxx                       
                        PUBLIC_LINK_LIBRARIES O2::Framework O2::DPLUtils O2::Steer O2::Algorithm O2::DataFormatsTRD O2::TRDSimulation O2::TRDReconstruction O2::DetectorsBase O2::SimulationDataFormat O2::TRDBase O2::GPUTracking O2::GlobalTrackingWorkflow)
-
-                   #o2_target_root_dictionary(TRDWorkflow
-                   # HEADERS include/TRDWorkflow/TRDTrapSimulatorSpec.h)
 
 o2_add_executable(trap-sim
                   COMPONENT_NAME trd
@@ -50,7 +47,6 @@ o2_add_executable(tracklet-transformer
                   COMPONENT_NAME trd
                   SOURCES src/TRDTrackletTransformerWorkflow.cxx
                   PUBLIC_LINK_LIBRARIES O2::TRDWorkflow)
-
 
 if (OpenMP_CXX_FOUND)
     target_compile_definitions(${targetName} PRIVATE WITH_OPENMP)

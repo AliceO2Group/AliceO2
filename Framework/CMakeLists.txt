@@ -8,6 +8,8 @@
 # granted to it by virtue of its status as an Intergovernmental Organization or
 # submit itself to any jurisdiction.
 
+add_compile_options(-O0 -pg -fPIC)
+
 add_subdirectory(Logger)
 
 add_subdirectory(Foundation)

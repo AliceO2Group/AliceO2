@@ -41,6 +41,19 @@ void buildTrackletHCHeaderd(TrackletHCHeader& header, int detector, int rob, int
   buildTrackletHCHeader(header, sector, stack, layer, side, chipclock, format);
 }
 
+uint32_t getHCIDFromTrackletHCHeader(const TrackletHCHeader& header)
+{
+  return header.layer * 2 + header.stack * constants::NLAYER * 2 + header.supermodule * constants::NLAYER * constants::NSTACK * 2 + header.side;
+}
+
+// same method alternate input simpler to send a word pointer as const
+uint32_t getHCIDFromTrackletHCHeader(const uint32_t& headerword)
+{
+  TrackletHCHeader header;
+  header.word = headerword;
+  return header.layer * 2 + header.stack * constants::NLAYER * 2 + header.supermodule * constants::NLAYER * constants::NSTACK * 2 + header.side;
+}
+
 uint16_t buildTRDFeeID(int supermodule, int side, int endpoint)
 {
   TRDFeeID feeid;
@@ -91,6 +104,38 @@ uint32_t getlinkdatasizes(const HalfCRUHeader& cruheader, std::array<uint32_t, 1
     linksizes[link] = getlinkdatasize(cruheader, link);
   }
   return 0;
+};
+
+uint32_t getQFromRaw(const o2::trd::TrackletMCMHeader *header, const o2::trd::TrackletMCMData *data, int pidindex, int trackletindex)
+{
+ uint32_t pid=0;
+ uint32_t qa,qb;
+ //PID VERSION 1
+ //frist part of pid is in the TrackletMCMHeader
+ switch(trackletindex){
+     case 0 : qa=header->pid0;break;
+     case 1 : qa=header->pid1;break;
+     case 2 : qa=header->pid2;break;
+     default : LOG(warn) << " unknown trackletindex to getQFromRaw : " << pidindex;
+ }
+ //second part of pid is in the TrackletMCMData
+ qb=data->pid;
+ switch(pidindex) {
+     case 0 : pid=qa&0xffc>>2;break;
+     case 1 : pid=((qa&0x3)<<5)|(qb>>6);break;
+     case 2 : pid=qb&0x3f;break;
+     default : LOG(warn) << " unknown pid index of : " << pidindex;
+ }
+ //PID VERSION 2
+/*
+ switch(pidindex) {
+     case 0 : pid=qa&0xffc>>2;break;
+     case 1 : pid=((qa&0x3)<<5)|(qb>>6);break;
+     case 2 : pid=qb&0x3f;break;
+     default : LOG(warn) << " unknown pid index of : " << pidindex;
+ }
+ */
+ return pid;
 }
 
 uint32_t setHalfCRUHeader(HalfCRUHeader& cruhead, int crurdhversion, int bunchcrossing, int stopbits, int endpoint, int eventtype, int feeid, int cruid)
@@ -137,13 +182,13 @@ std::ostream& operator<<(std::ostream& stream, const TrackletMCMData& tracklet)
          << tracklet.checkbit << std::endl;
   return stream;
 }
-void printTrackletMCMData(o2::trd::TrackletMCMData const& tracklet)
+void printTrackletMCMData(o2::trd::TrackletMCMData& tracklet)
 {
   LOGF(INFO, "TrackletMCMData: Raw:0x%08x pos:%d slope:%d pid:0x%08x checkbit:0x%02x",
        tracklet.word, tracklet.pos, tracklet.slope, tracklet.pid, tracklet.checkbit);
 }
 
-void printTrackletMCMHeader(o2::trd::TrackletMCMHeader const& mcmhead)
+void printTrackletMCMHeader(o2::trd::TrackletMCMHeader& mcmhead)
 {
   LOGF(INFO, "MCMRawHeader: Raw:0x%08x 1:%d padrow: 0x%02x col: 0x%01x pid2 0x%02x pid1: 0x%02x pid0: 0x%02x 1:%d",
        mcmhead.word, mcmhead.onea, mcmhead.padrow, mcmhead.col,
@@ -153,16 +198,23 @@ void printTrackletMCMHeader(o2::trd::TrackletMCMHeader const& mcmhead)
 std::ostream& operator<<(std::ostream& stream, const TrackletMCMHeader& mcmhead)
 {
   // make a pretty output of the mcm header.
-  stream << "MCMRawHeader: Raw:0x" << std::hex << mcmhead.word << " " << mcmhead.onea << "::"
+  stream << "TrackletMCMRawHeader: Raw:0x" << std::hex << mcmhead.word << " " << mcmhead.onea << "::"
          << mcmhead.pid2 << ":" << mcmhead.pid1 << ":" << mcmhead.pid0 << "::"
          << mcmhead.oneb << std::endl;
   return stream;
 }
 
-void printHalfChamber(o2::trd::TrackletHCHeader const& halfchamber)
+void printHalfChamber(o2::trd::TrackletHCHeader& halfchamber)
 {
   LOGF(INFO, "TrackletHCHeader: Raw:0x%08x SM : %d stack %d layer %d side : %d MCLK: 0x%0x Format: 0x%0x Always1:0x%0x",
        halfchamber.supermodule, halfchamber.stack, halfchamber.layer, halfchamber.side, halfchamber.MCLK, halfchamber.format, halfchamber.one);
+}
+
+void printDigitMCMHeader(o2::trd::DigitMCMHeader& mcmhead)
+{
+  LOGF(INFO, "DigitMCMRawHeader: Raw:0x%08x res(0xc):0x%02x mcm: 0x%03x rob: 0x%03x eventcount 0x%05x year(>2007?): 0x%02x ",
+       mcmhead.word, mcmhead.res, mcmhead.mcm, mcmhead.rob, mcmhead.eventcount,
+       mcmhead.yearflag);
 }
 
 void dumpHalfChamber(o2::trd::TrackletHCHeader const& halfchamber)
@@ -213,6 +265,59 @@ std::ostream& operator<<(std::ostream& stream, const HalfCRUHeader& halfcru)
   stream << std::endl;
   stream << "0x" << std::hex << halfcru.word0 << " 0x" << halfcru.word12[0] << " 0x" << halfcru.word12[1] << " 0x" << halfcru.word3 << " 0x" << halfcru.word47[0] << " 0x" << halfcru.word47[1] << " 0x" << halfcru.word47[2] << " 0x" << halfcru.word47[3] << std::endl;
   return stream;
+}
+
+bool trackletMCMHeaderSanityCheck(o2::trd::TrackletMCMHeader& header)
+{
+  // a bit limited to what we can check.
+  bool goodheader = true;
+  if (header.onea != 1) {
+    goodheader = false;
+  }
+  if (header.oneb != 1) {
+    goodheader = false;
+  }
+  // if we have 3rd tracklet (pid2!=0) then we must have all the others as well.
+  if ((header.pid2 != 0) && (header.pid1 == 0 || header.pid0 == 0)) {
+    goodheader = false;
+  }
+  // sim for 2 tracklets.
+  if ((header.pid1 != 0) && (header.pid0 == 0)) {
+    goodheader = false;
+  }
+
+  return goodheader;
+}
+
+bool trackletHCHeaderSanityCheck(o2::trd::TrackletHCHeader& header)
+{
+  bool goodheader = true;
+  if (header.one != 1)
+    goodheader = false;
+  if (header.supermodule > 17)
+    goodheader = false;
+  //if(header.format != )  only certain format versions are permitted come back an fill in if needed.
+  return goodheader;
+}
+
+bool digitMCMHeaderSanityCheck(o2::trd::DigitMCMHeader* header)
+{
+  // a bit limited to what we can check.
+  bool goodheader = true;
+  if (header->res != 0xc) {
+    goodheader = false;
+  }
+  if (header->yearflag == 0) { //we only have data after 2007 now in run3.
+    goodheader = false;
+  }
+
+  return goodheader;
+}
+
+void printDigitHCHeader(o2::trd::DigitHCHeader& header)
+{
+  LOGF(INFO, "Digit HalfChamber Header\n Raw:0x%08x 0x%08x reserve:%01x side:%01x stack:0x%02x layer:0x%02x supermod:0x%02x numberHCW:0x%02x minor:0x%03x major:0x%03x version:0x%01x reserve:0x%02x pretriggercount=0x%02x pretriggerphase=0x%02x bunchxing:0x%05x number of timebins : 0x%03x\n",
+       header.word0, header.word1, header.res0, header.side, header.stack, header.layer, header.supermodule, header.numberHCW, header.minor, header.major, header.version, header.res1, header.ptrigcount, header.ptrigphase, header.bunchcrossing, header.numtimebins);
 }
 
 } // namespace trd
