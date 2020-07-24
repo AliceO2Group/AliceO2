@@ -194,12 +194,12 @@ void VarManager::FillEvent(T const& event, float* values)
   if (!values)
     values = fgValues;
 
-  if constexpr ( (fillMap & BC) > 0 ) {
+  if constexpr ((fillMap & BC) > 0) {
     values[kRunNo] = event.bc().runNumber(); // accessed via Collisions table
     values[kBC] = event.bc().globalBC();
   }
 
-  if constexpr ( (fillMap & Collision) > 0 ) {
+  if constexpr ((fillMap & Collision) > 0) {
     values[kVtxX] = event.posX();
     values[kVtxY] = event.posY();
     values[kVtxZ] = event.posZ();
@@ -216,7 +216,7 @@ void VarManager::FillEvent(T const& event, float* values)
 
   // TODO: need to add EvSels and Cents tables, etc. in case of the central data model
 
-  if constexpr ( (fillMap & ReducedEvent) > 0 ) {
+  if constexpr ((fillMap & ReducedEvent) > 0) {
     values[kRunNo] = event.runNumber();
     values[kVtxX] = event.posX();
     values[kVtxY] = event.posY();
@@ -224,12 +224,12 @@ void VarManager::FillEvent(T const& event, float* values)
     values[kVtxNcontrib] = event.numContrib();
   }
 
-  if constexpr ( (fillMap & ReducedEventExtended) > 0 ) {
+  if constexpr ((fillMap & ReducedEventExtended) > 0) {
     values[kBC] = event.globalBC();
     values[kCentVZERO] = event.centV0M();
   }
 
-  if constexpr ( (fillMap & ReducedEventVtxCov) > 0 ) {
+  if constexpr ((fillMap & ReducedEventVtxCov) > 0) {
     values[kVtxCovXX] = event.covXX();
     values[kVtxCovXY] = event.covXY();
     values[kVtxCovXZ] = event.covXZ();
@@ -248,14 +248,14 @@ void VarManager::FillTrack(T const& track, float* values)
   if (!values)
     values = fgValues;
 
-  if constexpr ( (fillMap & Track) > 0 ) {
+  if constexpr ((fillMap & Track) > 0) {
     values[kPt] = track.pt();
     values[kEta] = track.eta();
     values[kPhi] = track.phi();
     values[kCharge] = track.charge();
   }
 
-  if constexpr ( (fillMap & TrackExtra) > 0 ) {
+  if constexpr ((fillMap & TrackExtra) > 0) {
     values[kPin] = track.tpcInnerParam();
     if (fgUsedVars[kITSncls])
       values[kITSncls] = track.itsNCls(); // dynamic column
@@ -268,7 +268,7 @@ void VarManager::FillTrack(T const& track, float* values)
     values[kTrackLength] = track.length();
   }
 
-  if constexpr ( (fillMap & TrackCov) > 0 ) {
+  if constexpr ((fillMap & TrackCov) > 0) {
     values[kTrackCYY] = track.cYY();
     values[kTrackCZZ] = track.cZZ();
     values[kTrackCSnpSnp] = track.cSnpSnp();
@@ -276,7 +276,7 @@ void VarManager::FillTrack(T const& track, float* values)
     values[kTrackC1Pt21Pt2] = track.c1Pt21Pt2();
   }
 
-  if constexpr ( (fillMap & ReducedTrack) > 0 ) {
+  if constexpr ((fillMap & ReducedTrack) > 0) {
     values[kPt] = track.pt();
     if (fgUsedVars[kPx])
       values[kPx] = track.px();
@@ -289,7 +289,7 @@ void VarManager::FillTrack(T const& track, float* values)
     values[kCharge] = track.charge();
   }
 
-  if constexpr ( (fillMap & ReducedTrackBarrel) > 0 ) {
+  if constexpr ((fillMap & ReducedTrackBarrel) > 0) {
     values[kPin] = track.tpcInnerParam();
     if (fgUsedVars[kITSncls]) { // TODO: add the central data model dynamic column to the reduced table
       values[kITSncls] = 0.0;
@@ -305,7 +305,7 @@ void VarManager::FillTrack(T const& track, float* values)
     values[kTrackLength] = track.length();
   }
 
-  if constexpr ( (fillMap & ReducedTrackBarrelCov) > 0 ) {
+  if constexpr ((fillMap & ReducedTrackBarrelCov) > 0) {
     values[kTrackCYY] = track.cYY();
     values[kTrackCZZ] = track.cZZ();
     values[kTrackCSnpSnp] = track.cSnpSnp();
@@ -313,7 +313,7 @@ void VarManager::FillTrack(T const& track, float* values)
     values[kTrackC1Pt21Pt2] = track.c1Pt21Pt2();
   }
 
-  if constexpr ( (fillMap & ReducedTrackMuon) > 0 ) {
+  if constexpr ((fillMap & ReducedTrackMuon) > 0) {
     values[kMuonInvBendingMomentum] = track.inverseBendingMomentum();
     values[kMuonThetaX] = track.thetaX();
     values[kMuonThetaY] = track.thetaY();
