@@ -51,7 +51,10 @@ static void BM_mergingCollectionsTH1I(benchmark::State& state)
       delete uni;
     }
     auto m = std::make_unique<TH1I>("merged", "merged", bins, 0, 1000000);
-
+    // avoid memory overcommitment by doing something with data.
+    for (size_t i = 0; i < bins; i++) {
+      m->SetBinContent(i, 1);
+    }
     auto start = std::chrono::high_resolution_clock::now();
     for (const auto& collection : collections) {
       m->Merge(collection.get(), "-NOCHECK");
@@ -89,6 +92,10 @@ static void BM_mergingCollectionsTH2I(benchmark::State& state)
       collections.push_back(std::move(collection));
     }
     auto m = std::make_unique<TH2I>("merged", "merged", bins, 0, 1000000, bins, 0, 1000000);
+    // avoid memory overcommitment by doing something with data.
+    for (size_t i = 0; i < bins; i++) {
+      m->SetBinContent(i, 1);
+    }
 
     auto start = std::chrono::high_resolution_clock::now();
     for (const auto& collection : collections) {
@@ -129,6 +136,10 @@ static void BM_mergingCollectionsTH3I(benchmark::State& state)
       collections.push_back(std::move(collection));
     }
     auto m = std::make_unique<TH3I>("merged", "merged", bins, 0, 1000000, bins, 0, 1000000, bins, 0, 1000000);
+    // avoid memory overcommitment by doing something with data.
+    for (size_t i = 0; i < bins; i++) {
+      m->SetBinContent(i, 1);
+    }
 
     auto start = std::chrono::high_resolution_clock::now();
     for (const auto& collection : collections) {
@@ -288,6 +299,10 @@ static void BM_mergingPODCollections(benchmark::State& state)
       collections.emplace_back(std::move(collection));
     }
     auto m = PODHistoTypePtr(new PODHistoType(bins, 0));
+    // avoid memory overcommitment by doing something with data.
+    for (size_t i = 0; i < bins; i++) {
+      (*m)[i] = 1;
+    }
 
     auto merge = [&](const std::vector<PODHistoTypePtr>& collection, size_t i) {
       auto h = collection[i].get();
@@ -320,6 +335,7 @@ static void BM_mergingBoostRegular1DCollections(benchmark::State& state)
   const size_t bins = 62500; // makes 250kB
 
   auto merged = bh::make_histogram(bh::axis::regular<>(bins, min, max, "x"));
+  merged += merged; // avoid memory overcommitment by doing something with data.
   using HistoType = decltype(merged);
   using CollectionHistoType = std::vector<HistoType>;
 
@@ -379,6 +395,7 @@ static void BM_mergingBoostRegular2DCollections(benchmark::State& state)
   const size_t bins = 250; // 250 bins * 250 bins * 4B makes 250kB
 
   auto merged = bh::make_histogram(bh::axis::regular<>(bins, min, max, "x"), bh::axis::regular<>(bins, min, max, "y"));
+  merged += merged; // avoid memory overcommitment by doing something with data.
   using HistoType = decltype(merged);
   using CollectionHistoType = std::vector<HistoType>;
 

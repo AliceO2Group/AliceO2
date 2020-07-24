@@ -45,6 +45,10 @@ static void BM_MergingTH1I(benchmark::State& state)
   }
 
   TH1I* m = new TH1I("merged", "merged", bins, 0, 1000000);
+  // avoid memory overcommitment by doing something with data.
+  for (size_t i = 0; i < bins; i++) {
+    m->SetBinContent(i, 1);
+  }
 
   for (auto _ : state) {
     if (state.range(0) == FULL_OBJECTS) {
@@ -79,6 +83,10 @@ static void BM_MergingTH2I(benchmark::State& state)
   }
 
   TH2I* m = new TH2I("merged", "merged", bins, 0, 1000000, bins, 0, 1000000);
+  // avoid memory overcommitment by doing something with data.
+  for (size_t i = 0; i < bins; i++) {
+    m->SetBinContent(i, 1);
+  }
 
   for (auto _ : state) {
     if (state.range(0) == FULL_OBJECTS) {
@@ -115,6 +123,10 @@ static void BM_MergingTH3I(benchmark::State& state)
   }
 
   TH3I* m = new TH3I("merged", "merged", bins, 0, 1000000, bins, 0, 1000000, bins, 0, 1000000);
+  // avoid memory overcommitment by doing something with data.
+  for (size_t i = 0; i < bins; i++) {
+    m->SetBinContent(i, 1);
+  }
 
   for (auto _ : state) {
     if (state.range(0) == FULL_OBJECTS) {
