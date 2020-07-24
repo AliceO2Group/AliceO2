@@ -90,6 +90,16 @@ DECLARE_SOA_TABLE(pidRespTOF, "AOD", "pidRespTOF",
 
 namespace pidTPC
 {
+// Expected signals
+DECLARE_SOA_COLUMN(ExpSignalEl, expSignalEl, float);
+DECLARE_SOA_COLUMN(ExpSignalMu, expSignalMu, float);
+DECLARE_SOA_COLUMN(ExpSignalPi, expSignalPi, float);
+DECLARE_SOA_COLUMN(ExpSignalKa, expSignalKa, float);
+DECLARE_SOA_COLUMN(ExpSignalPr, expSignalPr, float);
+DECLARE_SOA_COLUMN(ExpSignalDe, expSignalDe, float);
+DECLARE_SOA_COLUMN(ExpSignalTr, expSignalTr, float);
+DECLARE_SOA_COLUMN(ExpSignalHe, expSignalHe, float);
+DECLARE_SOA_COLUMN(ExpSignalAl, expSignalAl, float);
 // NSigma
 DECLARE_SOA_COLUMN(NSigmaEl, nSigmaEl, float);
 DECLARE_SOA_COLUMN(NSigmaMu, nSigmaMu, float);
@@ -103,6 +113,7 @@ DECLARE_SOA_COLUMN(NSigmaAl, nSigmaAl, float);
 } // namespace pidTPC
 
 DECLARE_SOA_TABLE(pidRespTPC, "AOD", "pidRespTPC",
+                  pidTPC::ExpSignalEl, pidTPC::ExpSignalMu, pidTPC::ExpSignalPi, pidTPC::ExpSignalKa, pidTPC::ExpSignalPr, pidTPC::ExpSignalDe, pidTPC::ExpSignalTr, pidTPC::ExpSignalHe, pidTPC::ExpSignalAl,
                   pidTPC::NSigmaEl, pidTPC::NSigmaMu, pidTPC::NSigmaPi, pidTPC::NSigmaKa, pidTPC::NSigmaPr, pidTPC::NSigmaDe, pidTPC::NSigmaTr, pidTPC::NSigmaHe, pidTPC::NSigmaAl);
 
 } // namespace o2::aod
@@ -173,9 +184,20 @@ struct pidTPCTask {
     tpc::Response resp = tpc::Response();
     float bbparams[5] = {0.0320981, 19.9768, 2.52666e-16, 2.72123, 6.08092};
     resp.mParam.mBetheBloch.mParameters.Set(bbparams);
+    float resoparams[2] = {0.07, 0.0};
+    resp.mParam.mRelResolution.mParameters.Set(resoparams);
     for (auto i : tracks) {
-      resp.UpdateTrack(i.p(), i.tpcSignal());
+      resp.UpdateTrack(i.p(), i.tpcSignal(), i.tpcNClsShared());
       tpcpid(
+        resp.GetExpectedSignal(PID::Electron),
+        resp.GetExpectedSignal(PID::Muon),
+        resp.GetExpectedSignal(PID::Pion),
+        resp.GetExpectedSignal(PID::Kaon),
+        resp.GetExpectedSignal(PID::Proton),
+        resp.GetExpectedSignal(PID::Deuteron),
+        resp.GetExpectedSignal(PID::Triton),
+        resp.GetExpectedSignal(PID::Helium3),
+        resp.GetExpectedSignal(PID::Alpha),
         resp.GetNumberOfSigmas(PID::Electron),
         resp.GetNumberOfSigmas(PID::Muon),
         resp.GetNumberOfSigmas(PID::Pion),
