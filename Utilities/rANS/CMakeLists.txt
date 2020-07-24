@@ -8,12 +8,21 @@
 # granted to it by virtue of its status as an Intergovernmental Organization or
 # submit itself to any jurisdiction.
 
-o2_add_header_only_library(rANS  
-               INTERFACE_LINK_LIBRARIES FairLogger::FairLogger)
+o2_add_library(rANS  
+               SOURCES src/SymbolStatistics.cxx
+                       src/FrequencyTable.cxx
+               PUBLIC_LINK_LIBRARIES FairLogger::FairLogger)
 
 o2_add_test(EncodeDecode
             NAME EncodeDecode
             SOURCES test/test_ransEncodeDecode.cxx
+            PUBLIC_LINK_LIBRARIES O2::rANS
+            COMPONENT_NAME rANS
+            LABELS utils)
+            
+o2_add_test(FrequencyTable
+            NAME FrequencyTable
+            SOURCES test/test_ransFrequencyTable.cxx
             PUBLIC_LINK_LIBRARIES O2::rANS
             COMPONENT_NAME rANS
             LABELS utils)
@@ -23,7 +32,6 @@ o2_add_executable(rans-encode-decode-8
                   SOURCES run/bin-encode-decode.cxx
                   PUBLIC_LINK_LIBRARIES O2::rANS Boost::program_options)
 target_compile_definitions(${targetName} PRIVATE -DSOURCE_T=uint8_t)
-
 
 o2_add_executable(rans-encode-decode-16
                   TARGETVARNAME targetName

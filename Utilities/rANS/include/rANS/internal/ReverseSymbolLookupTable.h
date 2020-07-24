@@ -20,8 +20,8 @@
 #include <type_traits>
 #include <fairlogger/Logger.h>
 
-#include "../internal/helper.h"
-#include "rANS/SymbolStatistics.h"
+#include "helper.h"
+#include "SymbolStatistics.h"
 
 namespace o2
 {
@@ -29,16 +29,16 @@ namespace rans
 {
 namespace internal
 {
-template <typename Source_T>
+
 class ReverseSymbolLookupTable
 {
  public:
   ReverseSymbolLookupTable(size_t probabilityBits,
-                           const SymbolStatistics<Source_T>& stats) : mLut()
+                           const SymbolStatistics& stats) : mLut()
   {
     LOG(trace) << "start building reverse symbol lookup table";
 
-    if (stats.getAlphabetSize() == 0) {
+    if (stats.size() == 1) {
       LOG(warning) << "SymbolStatistics of empty message passed to " << __func__;
       return;
     }

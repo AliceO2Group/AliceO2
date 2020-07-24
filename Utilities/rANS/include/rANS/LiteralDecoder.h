@@ -68,7 +68,7 @@ void LiteralDecoder<coder_T, stream_T, source_T>::process(const source_IT output
 
   auto decode = [&, this](ransDecoder& decoder) {
     auto cumul = decoder.get(this->mProbabilityBits);
-    const uint32_t streamSymbol = (*this->mReverseLUT)[cumul];
+    const auto streamSymbol = (*this->mReverseLUT)[cumul];
     source_T symbol = streamSymbol;
     if (this->mSymbolTable->isLiteralSymbol(streamSymbol)) {
       symbol = literals.back();
