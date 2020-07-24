@@ -28,6 +28,7 @@
 #include "internal/EncoderSymbol.h"
 #include "internal/helper.h"
 #include "internal/SymbolTable.h"
+#include "FrequencyTable.h"
 
 namespace o2
 {
@@ -38,7 +39,7 @@ template <typename coder_T, typename stream_T, typename source_T>
 class Encoder
 {
  protected:
-  using encoderSymbolTable_t = internal::SymbolTable<internal::EncoderSymbol<coder_T>, source_T>;
+  using encoderSymbolTable_t = internal::SymbolTable<internal::EncoderSymbol<coder_T>>;
 
  public:
   Encoder() = delete;
@@ -50,7 +51,7 @@ class Encoder
 
   Encoder(const encoderSymbolTable_t& e, size_t probabilityBits);
   Encoder(encoderSymbolTable_t&& e, size_t probabilityBits);
-  Encoder(const SymbolStatistics<source_T>& stats, size_t probabilityBits);
+  Encoder(const FrequencyTable& frequencies, size_t probabilityBits);
 
   template <typename stream_IT, typename source_IT>
   const stream_IT process(const stream_IT outputBegin, const stream_IT outputEnd,
@@ -91,10 +92,13 @@ template <typename coder_T, typename stream_T, typename source_T>
 Encoder<coder_T, stream_T, source_T>::Encoder(encoderSymbolTable_t&& e, size_t probabilityBits) : mSymbolTable(std::move(e.mSymbolTable)), mProbabilityBits(probabilityBits){};
 
 template <typename coder_T, typename stream_T, typename source_T>
-Encoder<coder_T, stream_T, source_T>::Encoder(const SymbolStatistics<source_T>& stats,
+Encoder<coder_T, stream_T, source_T>::Encoder(const FrequencyTable& frequencies,
                                               size_t probabilityBits) : mSymbolTable(nullptr), mProbabilityBits(probabilityBits)
 {
   using namespace internal;
+
+  SymbolStatistics stats(frequencies, mProbabilityBits);
+
   RANSTimer t;
   t.start();
   mSymbolTable = std::make_unique<encoderSymbolTable_t>(stats, probabilityBits);

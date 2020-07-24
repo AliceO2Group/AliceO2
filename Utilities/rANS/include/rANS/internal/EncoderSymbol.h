@@ -19,7 +19,7 @@
 #include <cstdint>
 #include <cassert>
 
-#include "../internal/helper.h"
+#include "helper.h"
 
 namespace o2
 {

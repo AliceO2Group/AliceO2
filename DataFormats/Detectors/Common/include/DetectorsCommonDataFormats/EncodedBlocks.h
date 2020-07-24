@@ -135,6 +135,10 @@ struct Block {
   int nStored = 0;              // total length
   W* payload = nullptr;         //[nStored];
 
+  inline const W* getDict() const { return nDict ? payload : nullptr; };
+  inline const W* getData() const { return payload ? (payload + nDict) : nullptr; };
+  inline const W* getLiterals() const { return nLiterals ? (payload + nDict + nData) : nullptr; };
+
   inline W* getDict() { return payload ? payload : (payload = reinterpret_cast<W*>(registry->getFreeBlockStart())); };
   inline W* getData() { return payload ? (payload + nDict) : (registry ? (payload = reinterpret_cast<W*>(registry->getFreeBlockStart())) : nullptr); };
   W* getLiterals()
@@ -148,10 +152,6 @@ struct Block {
     }
     return nullptr;
   };
-
-  inline const W* getDict() const { return nDict ? payload : nullptr; };
-  inline const W* getData() const { return payload ? (payload + nDict) : nullptr; };
-  inline const W* getLiterals() const { return nLiterals ? payload + nDict + nData : nullptr; };
 
   inline void setNDict(int _ndict)
   {
@@ -682,14 +682,15 @@ void EncodedBlocks<H, N, W>::decode(D* dest,        // destination pointer
   if (block.getNData()) {
     if (md.opt == Metadata::OptStore::EENCODE) {
       assert(block.getNDict()); // at the moment we expect to have dictionary
-      o2::rans::SymbolStatistics<D> stats(block.getDict(), block.getDict() + block.getNDict(), md.min, md.max, md.messageLength);
+      o2::rans::FrequencyTable frequencies;
+      frequencies.addFrequencies(block.getDict(), block.getDict() + block.getNDict(), md.min, md.max);
 
       // load incompressible symbols if they existed
       std::vector<D> literals;
       if (md.nLiterals) {
         literals = std::vector<D>{reinterpret_cast<const D*>(block.getLiterals()), reinterpret_cast<const D*>(block.getLiterals()) + md.nLiterals};
       }
-      o2::rans::LiteralDecoder64<D> decoder(stats, md.probabilityBits);
+      o2::rans::LiteralDecoder64<D> decoder(frequencies, md.probabilityBits);
       decoder.process(dest, block.getData() + block.getNData(), md.messageLength, literals);
     } else { // data was stored as is
       std::memcpy(dest, block.payload, md.messageLength * sizeof(D));
@@ -712,18 +713,19 @@ void EncodedBlocks<H, N, W>::encode(const S* const srcBegin, // begin of source 
   mRegistry.nFilledBlocks++;
   using stream_t = typename o2::rans::Encoder64<S>::stream_t;
 
+  const size_t messageLength = std::distance(srcBegin, srcEnd);
   // cover three cases:
   // * empty source message: no entropy coding
   // * source message to pass through without any entropy coding
   // * source message where entropy coding should be applied
 
   // case 1: empty source message
-  if (srcBegin == srcEnd) {
+  if (messageLength == 0) {
     mMetadata[slot] = Metadata{0, 0, sizeof(uint64_t), sizeof(stream_t), probabilityBits, Metadata::OptStore::NODATA, 0, 0, 0, 0, 0};
     return;
   }
   static_assert(std::is_same<W, stream_t>());
-  std::unique_ptr<rans::SymbolStatistics<S>> stats = nullptr;
+  std::unique_ptr<rans::FrequencyTable> frequencies = nullptr;
 
   Metadata md;
   auto* bl = &mBlocks[slot];
@@ -747,19 +749,19 @@ void EncodedBlocks<H, N, W>::encode(const S* const srcBegin, // begin of source 
   // case 3: message where entropy coding should be applied
   if (opt == Metadata::OptStore::EENCODE) {
     // build symbol statistics
-    stats = std::make_unique<rans::SymbolStatistics<S>>(srcBegin, srcEnd);
-    stats->rescaleToNBits(probabilityBits);
-    const o2::rans::LiteralEncoder64<S> encoder{*stats, probabilityBits};
-    const int dictSize = stats->getFrequencyTable().size();
+    frequencies = std::make_unique<rans::FrequencyTable>();
+    frequencies->addSamples(srcBegin, srcEnd);
+    const o2::rans::LiteralEncoder64<S> encoder{*frequencies, probabilityBits};
+    const int dictSize = frequencies->size();
 
     // estimate size of encode buffer
-    int dataSize = rans::calculateMaxBufferSize(stats->getMessageLength(),
-                                                stats->getAlphabetRangeBits(),
+    int dataSize = rans::calculateMaxBufferSize(messageLength,
+                                                frequencies->getAlphabetRangeBits(),
                                                 sizeof(S));
     // preliminary expansion of storage based on dict size + estimated size of encode buffer
     expandStorage(dictSize, dataSize);
     //store dictionary first
-    bl->storeDict(dictSize, stats->getFrequencyTable().data());
+    bl->storeDict(dictSize, frequencies->data());
     // vector of incompressible literal symbols
     std::vector<S> literals;
     // directly encode source message into block buffer.
@@ -774,11 +776,10 @@ void EncodedBlocks<H, N, W>::encode(const S* const srcBegin, // begin of source 
       literalSize = (literals.size() * sizeof(S)) / sizeof(stream_t) + (sizeof(S) < sizeof(stream_t));
       bl->storeLiterals(literalSize, reinterpret_cast<const stream_t*>(literals.data()));
     }
-    *meta = Metadata{stats->getMessageLength(), literals.size(), sizeof(uint64_t), sizeof(stream_t), probabilityBits, opt,
-                     stats->getMinSymbol(), stats->getMaxSymbol(), dictSize, dataSize, literalSize};
+    *meta = Metadata{messageLength, literals.size(), sizeof(uint64_t), sizeof(stream_t), probabilityBits, opt,
+                     frequencies->getMinSymbol(), frequencies->getMaxSymbol(), dictSize, dataSize, literalSize};
 
   } else { // store original data w/o EEncoding
-    const size_t messageLength = (srcEnd - srcBegin);
     const size_t szb = messageLength * sizeof(S);
     const int dataSize = szb / sizeof(stream_t) + (sizeof(S) < sizeof(stream_t));
     // no dictionary needed

@@ -21,7 +21,7 @@
 
 #include <fairlogger/Logger.h>
 
-#include "rANS/SymbolStatistics.h"
+#include "SymbolStatistics.h"
 
 namespace o2
 {
@@ -30,18 +30,18 @@ namespace rans
 namespace internal
 {
 
-template <typename T, typename Source_T>
+template <typename T>
 class SymbolTable
 {
 
  public:
-  SymbolTable(const SymbolStatistics<Source_T>& symbolStats, size_t probabiltyBits);
+  SymbolTable(const SymbolStatistics& symbolStats, size_t probabiltyBits);
 
-  const T& operator[](Source_T index) const;
+  const T& operator[](int64_t index) const;
 
   const T& getLiteralSymbol() const;
 
-  bool isLiteralSymbol(Source_T index) const;
+  bool isLiteralSymbol(int64_t index) const;
 
  private:
   int mMin;
@@ -49,13 +49,13 @@ class SymbolTable
   std::vector<T> mSymbols;
 };
 
-template <typename T, typename Source_T>
-SymbolTable<T, Source_T>::SymbolTable(const SymbolStatistics<Source_T>& symbolStats, uint64_t probabiltyBits) : mMin(symbolStats.getMinSymbol()), mIndex(), mSymbols()
+template <typename T>
+SymbolTable<T>::SymbolTable(const SymbolStatistics& symbolStats, size_t probabiltyBits) : mMin(symbolStats.getMinSymbol()), mIndex(), mSymbols()
 {
   LOG(trace) << "start building symbol table";
 
-  mIndex.reserve(symbolStats.getAlphabetSize());
-  mSymbols.reserve(symbolStats.getAlphabetSize());
+  mIndex.reserve(symbolStats.size());
+  mSymbols.reserve(symbolStats.size());
 
   for (const auto& entry : symbolStats) {
     const auto [symFrequency, symCumulated] = entry;
@@ -73,8 +73,8 @@ SymbolTable<T, Source_T>::SymbolTable(const SymbolStatistics<Source_T>& symbolSt
   LOG(trace) << "done building symbol table";
 }
 
-template <typename T, typename Source_T>
-inline const T& SymbolTable<T, Source_T>::operator[](Source_T index) const
+template <typename T>
+inline const T& SymbolTable<T>::operator[](int64_t index) const
 {
   const auto idx = index - mMin;
   assert(idx >= 0);
@@ -82,8 +82,8 @@ inline const T& SymbolTable<T, Source_T>::operator[](Source_T index) const
   return *(mIndex[idx]);
 }
 
-template <typename T, typename Source_T>
-inline bool SymbolTable<T, Source_T>::isLiteralSymbol(Source_T index) const
+template <typename T>
+inline bool SymbolTable<T>::isLiteralSymbol(int64_t index) const
 {
   const auto idx = index - mMin;
   assert(idx >= 0);
@@ -91,8 +91,8 @@ inline bool SymbolTable<T, Source_T>::isLiteralSymbol(Source_T index) const
   return idx == mSymbols.size() - 1;
 }
 
-template <typename T, typename Source_T>
-inline const T& SymbolTable<T, Source_T>::getLiteralSymbol() const
+template <typename T>
+inline const T& SymbolTable<T>::getLiteralSymbol() const
 {
   return mSymbols.back();
 }

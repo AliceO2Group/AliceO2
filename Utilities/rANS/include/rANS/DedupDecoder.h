@@ -75,7 +75,7 @@ void DedupDecoder<coder_T, stream_T, source_T>::process(const source_IT outputBe
   inputIter = rans.init(inputIter);
 
   for (size_t i = 0; i < (messageLength); i++) {
-    const stream_T s = (*this->mReverseLUT)[rans.get(this->mProbabilityBits)];
+    const auto s = (*this->mReverseLUT)[rans.get(this->mProbabilityBits)];
 
     // deduplication
     auto duplicatesIter = duplicates.find(i);

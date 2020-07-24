@@ -16,7 +16,7 @@
 #ifndef RANS_RANS_H
 #define RANS_RANS_H
 
-#include "SymbolStatistics.h"
+#include "FrequencyTable.h"
 #include "Encoder.h"
 #include "Decoder.h"
 #include "DedupEncoder.h"
@@ -66,9 +66,10 @@ constexpr size_t ProbabilityBits25Bit = 25;
 
 inline size_t calculateMaxBufferSize(size_t num, size_t rangeBits, size_t sizeofStreamT)
 {
-  // RS: w/o safety margin the o2-test-ctf-io produces an overflow in the Encoder::process
-  constexpr size_t SaferyMargin = 16;
-  return std::ceil(1.20 * (num * rangeBits * 1.0) / (sizeofStreamT * 8.0)) + SaferyMargin;
+  //  // RS: w/o safety margin the o2-test-ctf-io produces an overflow in the Encoder::process
+  //  constexpr size_t SaferyMargin = 16;
+  //  return std::ceil(1.20 * (num * rangeBits * 1.0) / (sizeofStreamT * 8.0)) + SaferyMargin;
+  return num * sizeofStreamT;
 }
 
 } // namespace rans
