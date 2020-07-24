@@ -53,7 +53,7 @@ struct Fixture {
   // 25Bits for 25Bit alphabets
   const uint probabilityBits = P;
 
-  const std::string source = "";
+  const std::string source;
 };
 
 template <typename CODER_T, typename STREAM_T, uint P>
@@ -77,14 +77,13 @@ BOOST_FIXTURE_TEST_CASE_TEMPLATE(test_EncodeDecode, T, Fixtures, T)
 {
 
   // iterate over the message and create PDF and CDF for each symbol in the message
-  o2::rans::SymbolStatistics<typename T::source_t> stats{std::begin(T::source), std::end(T::source)};
-  // For performance reason the distributions must be rescaled to be a power of two.
-  stats.rescaleToNBits(T::probabilityBits);
+  o2::rans::FrequencyTable frequencies;
+  frequencies.addSamples(std::begin(T::source), std::end(T::source));
 
   // buffer to write the rANS coded message into
   std::vector<typename T::stream_t> encoderBuffer(1 << 20, 0);
   //create a stateful encoder object that builds an encoding table from the given symbol statistics
-  const typename T::encoder_t encoder{stats, T::probabilityBits};
+  const typename T::encoder_t encoder{frequencies, T::probabilityBits};
   // encoder rANS encodes symbols from SOURCE array to encoder Buffer. Since coder and decoder
   // are mathematical inverse functions on the ANS state, they operate as a stack -
   // i.e. the decoder outputs the message in reverse order of the encoder.
@@ -97,9 +96,9 @@ BOOST_FIXTURE_TEST_CASE_TEMPLATE(test_EncodeDecode, T, Fixtures, T)
   // The decoded message will go into the decoder buffer which will have as many symbols as the original message
   std::vector<typename T::source_t> decoderBuffer(std::distance(std::begin(T::source), std::end(T::source)), 0);
   // create a stateful decoder object that build a decoding table from the given symbol statistics
-  const typename T::decoder_t decoder{stats, T::probabilityBits};
+  const typename T::decoder_t decoder{frequencies, T::probabilityBits};
   // the decoder unwinds the rANS state in the encoder buffer starting at ransBegin and decodes it into the decode buffer;
-  decoder.process(decoderBuffer.begin(), encodedMessageEnd, stats.getMessageLength());
+  decoder.process(decoderBuffer.begin(), encodedMessageEnd, std::distance(std::begin(T::source), std::end(T::source)));
 
   //the decodeBuffer and the source message have to be identical afterwards.
   BOOST_REQUIRE(std::memcmp(&(*T::source.begin()), decoderBuffer.data(),
@@ -110,10 +109,10 @@ typedef boost::mpl::vector<FixtureFull<uint32_t, uint8_t, 14>, FixtureFull<uint6
 
 BOOST_FIXTURE_TEST_CASE_TEMPLATE(test_EncodeDecode_literals, T, LiteralFixtures, T)
 {
+
   // iterate over the message and create PDF and CDF for each symbol in the message
-  o2::rans::SymbolStatistics<typename T::source_t> stats{std::begin(T::source), std::end(T::source)};
-  // For performance reason the distributions must be rescaled to be a power of two.
-  stats.rescaleToNBits(T::probabilityBits);
+  o2::rans::FrequencyTable frequencies;
+  frequencies.addSamples(std::begin(T::source), std::end(T::source));
 
   std::string adaptedSource = "\\";
   adaptedSource.append(T::source);
@@ -122,7 +121,7 @@ BOOST_FIXTURE_TEST_CASE_TEMPLATE(test_EncodeDecode_literals, T, LiteralFixtures,
   // buffer to write the rANS coded message into
   std::vector<typename T::stream_t> encoderBuffer(1 << 20, 0);
   //create a stateful encoder object that builds an encoding table from the given symbol statistics
-  const typename T::literalEncoder_t encoder{stats, T::probabilityBits};
+  const typename T::literalEncoder_t encoder{frequencies, T::probabilityBits};
   // encoder rANS encodes symbols from SOURCE array to encoder Buffer. Since coder and decoder
   // are mathematical inverse functions on the ANS state, they operate as a stack -
   // i.e. the decoder outputs the message in reverse order of the encoder.
@@ -136,7 +135,7 @@ BOOST_FIXTURE_TEST_CASE_TEMPLATE(test_EncodeDecode_literals, T, LiteralFixtures,
   // The decoded message will go into the decoder buffer which will have as many symbols as the original message
   std::vector<typename T::source_t> decoderBuffer(std::distance(std::begin(adaptedSource), std::end(adaptedSource)), 0);
   // create a stateful decoder object that build a decoding table from the given symbol statistics
-  const typename T::literalDecoder_t decoder{stats, T::probabilityBits};
+  const typename T::literalDecoder_t decoder{frequencies, T::probabilityBits};
   // the decoder unwinds the rANS state in the encoder buffer starting at ransBegin and decodes it into the decode buffer;
   decoder.process(decoderBuffer.begin(), encodedMessageEnd, std::distance(std::begin(adaptedSource), std::end(adaptedSource)), literals);
 
@@ -151,14 +150,13 @@ BOOST_FIXTURE_TEST_CASE_TEMPLATE(test_EncodeDecode_dedup, T, DedupFixtures, T)
 {
 
   // iterate over the message and create PDF and CDF for each symbol in the message
-  o2::rans::SymbolStatistics<typename T::source_t> stats{std::begin(T::source), std::end(T::source)};
-  // For performance reason the distributions must be rescaled to be a power of two.
-  stats.rescaleToNBits(T::probabilityBits);
+  o2::rans::FrequencyTable frequencies;
+  frequencies.addSamples(std::begin(T::source), std::end(T::source));
 
   // buffer to write the rANS coded message into
   std::vector<typename T::stream_t> encoderBuffer(1 << 20, 0);
   //create a stateful encoder object that builds an encoding table from the given symbol statistics
-  const typename T::dedupEncoder_t encoder{stats, T::probabilityBits};
+  const typename T::dedupEncoder_t encoder{frequencies, T::probabilityBits};
   // encoder rANS encodes symbols from SOURCE array to encoder Buffer. Since coder and decoder
   // are mathematical inverse functions on the ANS state, they operate as a stack -
   // i.e. the decoder outputs the message in reverse order of the encoder.
@@ -172,9 +170,9 @@ BOOST_FIXTURE_TEST_CASE_TEMPLATE(test_EncodeDecode_dedup, T, DedupFixtures, T)
   // The decoded message will go into the decoder buffer which will have as many symbols as the original message
   std::vector<typename T::source_t> decoderBuffer(std::distance(std::begin(T::source), std::end(T::source)), 0);
   // create a stateful decoder object that build a decoding table from the given symbol statistics
-  const typename T::dedupDecoder_t decoder{stats, T::probabilityBits};
+  const typename T::dedupDecoder_t decoder{frequencies, T::probabilityBits};
   // the decoder unwinds the rANS state in the encoder buffer starting at ransBegin and decodes it into the decode buffer;
-  decoder.process(decoderBuffer.begin(), encodedMessageEnd, stats.getMessageLength(), duplicates);
+  decoder.process(decoderBuffer.begin(), encodedMessageEnd, std::distance(std::begin(T::source), std::end(T::source)), duplicates);
 
   //the decodeBuffer and the source message have to be identical afterwards.
   BOOST_REQUIRE(std::memcmp(&(*T::source.begin()), decoderBuffer.data(),

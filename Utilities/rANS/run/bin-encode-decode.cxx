@@ -123,22 +123,19 @@ int main(int argc, char* argv[])
     std::vector<source_t> tokens;
     readFile(filename, &tokens);
 
-    std::unique_ptr<o2::rans::SymbolStatistics<source_t>> stats = [&]() {
-      auto stats = std::make_unique<o2::rans::SymbolStatistics<source_t>>(std::begin(tokens), std::end(tokens), symbolRangeBits);
-      stats->rescaleToNBits(probabilityBits);
-      return std::move(stats);
-    }();
+    o2::rans::FrequencyTable frequencies;
+    frequencies.addSamples(std::begin(tokens), std::end(tokens));
 
     std::vector<stream_t> encoderBuffer(256 << 20, 0);
     const auto encodedMessageEnd = [&]() {
-      const o2::rans::Encoder64<source_t> encoder{*stats, probabilityBits};
+      const o2::rans::Encoder64<source_t> encoder{frequencies, probabilityBits};
       return encoder.process(encoderBuffer.begin(), encoderBuffer.end(), std::begin(tokens), std::end(tokens));
     }();
 
     std::vector<source_t> decoderBuffer(tokens.size());
     [&]() {
-      o2::rans::Decoder64<source_t> decoder{*stats, probabilityBits};
-      decoder.process(decoderBuffer.begin(), encodedMessageEnd, stats->getMessageLength());
+      o2::rans::Decoder64<source_t> decoder{frequencies, probabilityBits};
+      decoder.process(decoderBuffer.begin(), encodedMessageEnd, std::distance(std::begin(tokens), std::end(tokens)));
     }();
 
     if (std::memcmp(tokens.data(), decoderBuffer.data(),
