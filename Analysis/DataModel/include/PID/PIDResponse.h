@@ -23,8 +23,9 @@
 #include "Framework/AnalysisTask.h"
 #include "Framework/AnalysisDataModel.h"
 #include "ReconstructionDataFormats/Track.h"
-#include "PID/PIDTOF.h"
 #include "ReconstructionDataFormats/PID.h"
+#include "PID/PIDTOF.h"
+#include "PID/PIDTPC.h"
 
 namespace o2::aod
 {
@@ -87,6 +88,24 @@ DECLARE_SOA_TABLE(pidRespTOF, "AOD", "pidRespTOF",
                   ExpSigmaEl, ExpSigmaMu, ExpSigmaPi, ExpSigmaKa, ExpSigmaPr, ExpSigmaDe, ExpSigmaTr, ExpSigmaHe, ExpSigmaAl,
                   NSigmaEl, NSigmaMu, NSigmaPi, NSigmaKa, NSigmaPr, NSigmaDe, NSigmaTr, NSigmaHe, NSigmaAl);
 
+namespace pidTPC
+{
+// NSigma
+DECLARE_SOA_COLUMN(TPCNSigmaEl, TPCnSigmaEl, float);
+DECLARE_SOA_COLUMN(TPCNSigmaMu, TPCnSigmaMu, float);
+DECLARE_SOA_COLUMN(TPCNSigmaPi, TPCnSigmaPi, float);
+DECLARE_SOA_COLUMN(TPCNSigmaKa, TPCnSigmaKa, float);
+DECLARE_SOA_COLUMN(TPCNSigmaPr, TPCnSigmaPr, float);
+DECLARE_SOA_COLUMN(TPCNSigmaDe, TPCnSigmaDe, float);
+DECLARE_SOA_COLUMN(TPCNSigmaTr, TPCnSigmaTr, float);
+DECLARE_SOA_COLUMN(TPCNSigmaHe, TPCnSigmaHe, float);
+DECLARE_SOA_COLUMN(TPCNSigmaAl, TPCnSigmaAl, float);
+} // namespace pidTPC
+
+using namespace pidTPC;
+DECLARE_SOA_TABLE(pidRespTPC, "AOD", "pidRespTPC",
+                  TPCNSigmaEl, TPCNSigmaMu, TPCNSigmaPi, TPCNSigmaKa, TPCNSigmaPr, TPCNSigmaDe, TPCNSigmaTr, TPCNSigmaHe, TPCNSigmaAl);
+
 } // namespace o2::aod
 
 using namespace o2;
@@ -134,6 +153,30 @@ struct pidTOFTask {
         resp.GetExpectedSigma(PID::Triton),
         resp.GetExpectedSigma(PID::Helium3),
         resp.GetExpectedSigma(PID::Alpha),
+        resp.GetNumberOfSigmas(PID::Electron),
+        resp.GetNumberOfSigmas(PID::Muon),
+        resp.GetNumberOfSigmas(PID::Pion),
+        resp.GetNumberOfSigmas(PID::Kaon),
+        resp.GetNumberOfSigmas(PID::Proton),
+        resp.GetNumberOfSigmas(PID::Deuteron),
+        resp.GetNumberOfSigmas(PID::Triton),
+        resp.GetNumberOfSigmas(PID::Helium3),
+        resp.GetNumberOfSigmas(PID::Alpha));
+    }
+  }
+};
+
+struct pidTPCTask {
+  Produces<aod::pidRespTPC> tpcpid;
+
+  void process(aod::Collision const& collision, soa::Join<aod::Tracks, aod::TracksExtra> const& tracks)
+  {
+    tpc::Response resp = tpc::Response();
+    float bbparams[5] = { 0.0320981, 19.9768, 2.52666e-16, 2.72123, 6.08092 };
+    resp.mParam.mBetheBloch.mParameters.Set(bbparams);
+    for (auto i : tracks) {
+      resp.UpdateTrack(i.p(), i.tpcSignal());
+      tpcpid(
         resp.GetNumberOfSigmas(PID::Electron),
         resp.GetNumberOfSigmas(PID::Muon),
         resp.GetNumberOfSigmas(PID::Pion),
