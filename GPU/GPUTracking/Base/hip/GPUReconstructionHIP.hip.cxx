@@ -13,6 +13,7 @@
 
 #define GPUCA_GPUTYPE_VEGA
 #define GPUCA_UNROLL(CUDA, HIP) GPUCA_M_UNROLL_##HIP
+#define GPUdic(CUDA, HIP) GPUCA_GPUdic_select_##HIP()
 
 #include <hip/hip_runtime.h>
 #ifdef __CUDACC__

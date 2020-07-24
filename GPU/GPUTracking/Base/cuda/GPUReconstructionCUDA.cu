@@ -13,6 +13,7 @@
 
 #define GPUCA_GPUTYPE_TURING
 #define GPUCA_UNROLL(CUDA, HIP) GPUCA_M_UNROLL_##CUDA
+#define GPUdic(CUDA, HIP) GPUCA_GPUdic_select_##CUDA()
 
 #include <cuda.h>
 #include <cuda_profiler_api.h>

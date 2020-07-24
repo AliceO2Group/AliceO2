@@ -1064,7 +1064,7 @@ GPUd() o2::base::MatBudget GPUTPCGMPropagator::getMatBudget(const float* p1, con
 #endif
 }
 
-GPUdni() void GPUTPCGMPropagator::UpdateMaterial(const GPUTPCGMPhysicalTrackModel& GPUrestrict() t0e)
+GPUdic(0, 1) void GPUTPCGMPropagator::UpdateMaterial(const GPUTPCGMPhysicalTrackModel& GPUrestrict() t0e)
 {
 #ifdef HAVE_O2HEADERS
   float xyz1[3] = {getGlobalX(mT0.GetX(), mT0.GetY()), getGlobalY(mT0.GetX(), mT0.GetY()), mT0.GetZ()};

@@ -566,7 +566,7 @@ GPUd() bool GPUTPCGMTrackParam::FollowCircleChk(float lrFactor, float toY, float
          (up ? (-mP[0] * lrFactor > toX || (right ^ (mP[2] > 0))) : (-mP[0] * lrFactor < toX || (right ^ (mP[2] < 0)))); // don't overshoot in X
 }
 
-GPUdni() void GPUTPCGMTrackParam::StoreAttachMirror(const GPUTPCGMMerger* GPUrestrict() Merger, int slice, int iRow, int iTrack, bool goodLeg, float toAlpha, float toY, float toX, int toSlice, int toRow, bool inFlyDirection, float alpha)
+GPUdic(0, 1) void GPUTPCGMTrackParam::StoreAttachMirror(const GPUTPCGMMerger* GPUrestrict() Merger, int slice, int iRow, int iTrack, bool goodLeg, float toAlpha, float toY, float toX, int toSlice, int toRow, bool inFlyDirection, float alpha)
 {
   unsigned int nLoopData = CAMath::AtomicAdd(&Merger->Memory()->nLoopData, 1u);
   if (nLoopData >= Merger->NMaxTracks()) {
@@ -590,7 +590,7 @@ GPUdni() void GPUTPCGMTrackParam::StoreAttachMirror(const GPUTPCGMMerger* GPUres
   Merger->LoopData()[nLoopData] = data;
 }
 
-GPUd() void GPUTPCGMTrackParam::RefitLoop(const GPUTPCGMMerger* GPUrestrict() Merger, int loopIdx)
+GPUdii() void GPUTPCGMTrackParam::RefitLoop(const GPUTPCGMMerger* GPUrestrict() Merger, int loopIdx)
 {
   GPUTPCGMPropagator prop;
   prop.SetMaterialTPC();
@@ -612,7 +612,7 @@ GPUd() void GPUTPCGMTrackParam::RefitLoop(const GPUTPCGMMerger* GPUrestrict() Me
 }
 
 template <int I>
-GPUdni() int GPUTPCGMTrackParam::FollowCircle(const GPUTPCGMMerger* GPUrestrict() Merger, GPUTPCGMPropagator& GPUrestrict() prop, int slice, int iRow, int iTrack, bool goodLeg, float toAlpha, float toX, float toY, int toSlice, int toRow, bool inFlyDirection, bool phase2)
+GPUdic(0, 1) int GPUTPCGMTrackParam::FollowCircle(const GPUTPCGMMerger* GPUrestrict() Merger, GPUTPCGMPropagator& GPUrestrict() prop, int slice, int iRow, int iTrack, bool goodLeg, float toAlpha, float toX, float toY, int toSlice, int toRow, bool inFlyDirection, bool phase2)
 {
   if (Merger->Param().rec.DisableRefitAttachment & 4) {
     return 1;
