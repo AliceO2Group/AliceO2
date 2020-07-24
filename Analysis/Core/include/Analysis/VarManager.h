@@ -16,19 +16,34 @@
 #ifndef VarManager_H
 #define VarManager_H
 
-//#include "Analysis/ReducedInfoTables.h"
 #include <TObject.h>
 #include <TString.h>
 
 #include <vector>
 #include <map>
+#include <cmath>
 
-//using namespace o2::aod;
-//using std::vector;
+// TODO: create an array holding these constants for all needed particles or check for a place where these are already defined
+static const float fgkElectronMass = 0.000511; // GeV
 
 //_________________________________________________________________________
 class VarManager : public TObject
 {
+ public:
+  enum ObjTypes {
+    BC = BIT(0),
+    Collision = BIT(1),
+    ReducedEvent = BIT(2),
+    ReducedEventExtended = BIT(3),
+    ReducedEventVtxCov = BIT(4),
+    Track = BIT(0),
+    TrackCov = BIT(1),
+    TrackExtra = BIT(2),
+    ReducedTrack = BIT(3),
+    ReducedTrackBarrel = BIT(4),
+    ReducedTrackBarrelCov = BIT(5),
+    ReducedTrackMuon = BIT(6)
+  };
 
  public:
   enum Variables {
@@ -36,18 +51,11 @@ class VarManager : public TObject
     // Run wise variables
     kRunNo = 0,
     kRunId,
-    kRunTimeStart,
-    kRunTimeStop,
-    kLHCFillNumber,
-    kDipolePolarity,
-    kL3Polarity,
     kNRunWiseVariables,
 
     // Event wise variables   // Daria: imedjat ai ziua mja
-    kTimeStamp,
+    kCollisionTime,
     kBC,
-    kInstLumi,
-    kEventType,
     kIsPhysicsSelection,
     kVtxX,
     kVtxY,
@@ -68,6 +76,9 @@ class VarManager : public TObject
     kEta,
     kPhi,
     kP,
+    kPx,
+    kPy,
+    kPz,
     kRap,
     kMass,
     kCharge,
@@ -84,9 +95,22 @@ class VarManager : public TObject
     kTRDsignal,
     kTOFsignal,
     kTrackLength,
+    kTrackCYY,
+    kTrackCZZ,
+    kTrackCSnpSnp,
+    kTrackCTglTgl,
+    kTrackC1Pt21Pt2,
     kNBarrelTrackVariables,
 
     // Muon track variables
+    kMuonInvBendingMomentum,
+    kMuonThetaX,
+    kMuonThetaY,
+    kMuonZMu,
+    kMuonBendingCoor,
+    kMuonNonBendingCoor,
+    kMuonChi2,
+    kMuonChi2MatchTrigger,
     kNMuonTrackVariables,
 
     // Pair variables
@@ -135,9 +159,12 @@ class VarManager : public TObject
 
   static void SetRunNumbers(int n, int* runs);
 
-  static void FillEvent(std::vector<float> event, float* values = nullptr);
-  static void FillTrack(std::vector<float> track, float* values = nullptr);
-  //static void FillTrack(ReducedTrack track, float* values = nullptr);
+  template <uint32_t fillMap, typename T>
+  static void FillEvent(T const& event, float* values = nullptr);
+  template <uint32_t fillMap, typename T>
+  static void FillTrack(T const& track, float* values = nullptr);
+  template <typename T>
+  static void FillPair(T const& t1, T const& t2, float* values = nullptr);
 
  public:
   VarManager();
@@ -152,10 +179,164 @@ class VarManager : public TObject
 
   static std::map<int, int> fgRunMap; // map of runs to be used in histogram axes
 
+  static void FillEventDerived(float* values = nullptr);
+  static void FillTrackDerived(float* values = nullptr);
+
   VarManager& operator=(const VarManager& c);
   VarManager(const VarManager& c);
 
   ClassDef(VarManager, 1)
 };
+
+template <uint32_t fillMap, typename T>
+void VarManager::FillEvent(T const& event, float* values)
+{
+  if (!values)
+    values = fgValues;
+
+  if constexpr ((fillMap & BC) > 0) {
+    values[kRunNo] = event.bc().runNumber(); // accessed via Collisions table
+    values[kBC] = event.bc().globalBC();
+  }
+
+  if constexpr ((fillMap & Collision) > 0) {
+    values[kVtxX] = event.posX();
+    values[kVtxY] = event.posY();
+    values[kVtxZ] = event.posZ();
+    values[kVtxNcontrib] = event.numContrib();
+    values[kCollisionTime] = event.collisionTime();
+    values[kVtxCovXX] = event.covXX();
+    values[kVtxCovXY] = event.covXY();
+    values[kVtxCovXZ] = event.covXZ();
+    values[kVtxCovYY] = event.covYY();
+    values[kVtxCovYZ] = event.covYZ();
+    values[kVtxCovZZ] = event.covZZ();
+    values[kVtxChi2] = event.chi2();
+  }
+
+  // TODO: need to add EvSels and Cents tables, etc. in case of the central data model
+
+  if constexpr ((fillMap & ReducedEvent) > 0) {
+    values[kRunNo] = event.runNumber();
+    values[kVtxX] = event.posX();
+    values[kVtxY] = event.posY();
+    values[kVtxZ] = event.posZ();
+    values[kVtxNcontrib] = event.numContrib();
+  }
+
+  if constexpr ((fillMap & ReducedEventExtended) > 0) {
+    values[kBC] = event.globalBC();
+    values[kCentVZERO] = event.centV0M();
+  }
+
+  if constexpr ((fillMap & ReducedEventVtxCov) > 0) {
+    values[kVtxCovXX] = event.covXX();
+    values[kVtxCovXY] = event.covXY();
+    values[kVtxCovXZ] = event.covXZ();
+    values[kVtxCovYY] = event.covYY();
+    values[kVtxCovYZ] = event.covYZ();
+    values[kVtxCovZZ] = event.covZZ();
+    values[kVtxChi2] = event.chi2();
+  }
+
+  FillEventDerived(values);
+}
+
+template <uint32_t fillMap, typename T>
+void VarManager::FillTrack(T const& track, float* values)
+{
+  if (!values)
+    values = fgValues;
+
+  if constexpr ((fillMap & Track) > 0) {
+    values[kPt] = track.pt();
+    values[kEta] = track.eta();
+    values[kPhi] = track.phi();
+    values[kCharge] = track.charge();
+  }
+
+  if constexpr ((fillMap & TrackExtra) > 0) {
+    values[kPin] = track.tpcInnerParam();
+    if (fgUsedVars[kITSncls])
+      values[kITSncls] = track.itsNCls(); // dynamic column
+    values[kITSchi2] = track.itsChi2NCl();
+    values[kTPCncls] = track.tpcNClsFound();
+    values[kTPCchi2] = track.tpcChi2NCl();
+    values[kTPCsignal] = track.tpcSignal();
+    values[kTRDsignal] = track.trdSignal();
+    values[kTOFsignal] = track.tofSignal();
+    values[kTrackLength] = track.length();
+  }
+
+  if constexpr ((fillMap & TrackCov) > 0) {
+    values[kTrackCYY] = track.cYY();
+    values[kTrackCZZ] = track.cZZ();
+    values[kTrackCSnpSnp] = track.cSnpSnp();
+    values[kTrackCTglTgl] = track.cTglTgl();
+    values[kTrackC1Pt21Pt2] = track.c1Pt21Pt2();
+  }
+
+  if constexpr ((fillMap & ReducedTrack) > 0) {
+    values[kPt] = track.pt();
+    if (fgUsedVars[kPx])
+      values[kPx] = track.px();
+    if (fgUsedVars[kPy])
+      values[kPy] = track.py();
+    if (fgUsedVars[kPz])
+      values[kPz] = track.pz();
+    values[kEta] = track.eta();
+    values[kPhi] = track.phi();
+    values[kCharge] = track.charge();
+  }
+
+  if constexpr ((fillMap & ReducedTrackBarrel) > 0) {
+    values[kPin] = track.tpcInnerParam();
+    if (fgUsedVars[kITSncls]) { // TODO: add the central data model dynamic column to the reduced table
+      values[kITSncls] = 0.0;
+      for (int i = 0; i < 6; ++i)
+        values[kITSncls] += ((track.itsClusterMap() & (1 << i)) ? 1 : 0);
+    }
+    values[kITSchi2] = track.itsChi2NCl();
+    values[kTPCncls] = track.tpcNClsFound();
+    values[kTPCchi2] = track.tpcChi2NCl();
+    values[kTPCsignal] = track.tpcSignal();
+    values[kTRDsignal] = track.trdSignal();
+    values[kTOFsignal] = track.tofSignal();
+    values[kTrackLength] = track.length();
+  }
+
+  if constexpr ((fillMap & ReducedTrackBarrelCov) > 0) {
+    values[kTrackCYY] = track.cYY();
+    values[kTrackCZZ] = track.cZZ();
+    values[kTrackCSnpSnp] = track.cSnpSnp();
+    values[kTrackCTglTgl] = track.cTglTgl();
+    values[kTrackC1Pt21Pt2] = track.c1Pt21Pt2();
+  }
+
+  if constexpr ((fillMap & ReducedTrackMuon) > 0) {
+    values[kMuonInvBendingMomentum] = track.inverseBendingMomentum();
+    values[kMuonThetaX] = track.thetaX();
+    values[kMuonThetaY] = track.thetaY();
+    values[kMuonZMu] = track.zMu();
+    values[kMuonBendingCoor] = track.bendingCoor();
+    values[kMuonNonBendingCoor] = track.nonBendingCoor();
+    values[kMuonChi2] = track.chi2();
+    values[kMuonChi2MatchTrigger] = track.chi2MatchTrigger();
+  }
+
+  FillTrackDerived(values);
+}
+
+template <typename T>
+void VarManager::FillPair(T const& t1, T const& t2, float* values)
+{
+  if (!values)
+    values = fgValues;
+
+  // TODO: build the mass using the (pt,eta,phi) which are pre-calculated
+  values[kMass] = fgkElectronMass * fgkElectronMass;
+  values[kMass] = 2.0 * values[kMass] + 2.0 * (sqrt(values[kMass] + t1.pmom() * t1.pmom()) * sqrt(values[kMass] + t2.pmom() * t2.pmom()) -
+                                               t1.px() * t2.px() - t1.py() * t2.py() - t1.pz() * t2.pz());
+}
 
 #endif
