@@ -11,6 +11,8 @@
 ///
 /// \file   PIDTPC.h
 /// \author Nicolo' Jacazio
+/// \since  2020-07-24
+/// \brief  Handler for the TPC PID response
 ///
 
 #ifndef O2_FRAMEWORK_PIDTPC_H_
@@ -42,17 +44,9 @@ class Param
   /// Calculates the expected PID signal as the function of
   /// the information stored in the track and the given parameters,
   /// for the specified particle type
-  ///
-  /// At the moment, these signals are just the results of calling the
-  /// Bethe-Bloch formula plus, if desired, taking into account the eta dependence
-  /// and the multiplicity dependence (for PbPb).
-  /// This can be improved. By taking into account the number of
-  /// assigned clusters and/or the track dip angle, for example.
   float GetExpectedSignal(float mom, float mass, float charge) const;
 
-  /// Getter for the charge factor
-  /// BB goes with z^2, however in reality it is slightly larger (calibration, threshold effects, ...)
-  /// !!! Splines for light nuclei need to be normalised to this factor !!!
+  /// Getter for the charge factor BB goes with z^2, however in reality it is slightly larger (calibration, threshold effects, ...)
   float GetChargeFactor(float charge) const { return TMath::Power(charge, 2.3); }
 
   /// Getter for the expected resolution.
@@ -60,23 +54,14 @@ class Param
   /// If the operation is not possible, return a negative value.
   float GetExpectedSigma(float npoints, float tpcsignal) const;
 
-  /// This is the Bethe-Bloch function normalised to 1 at the minimum
-  /// WARNING
-  /// Simulated and reconstructed Bethe-Bloch differs
-  ///           Simulated  curve is the dNprim/dx
-  ///           Reconstructed is proportianal dNtot/dx
-  /// Temporary fix for production -  Simple linear correction function
-  /// Future    2 Bethe Bloch formulas needed
-  ///           1. for simulation
-  ///           2. for reconstructed PID
+  /// Bethe-Bloch function normalised to 1 at the minimum
   Parametrization<float, 5, BetheBlochF> mBetheBloch = Parametrization<float, 5, BetheBlochF>();
 
+  /// Parametrization of the resolution
   Parametrization<float, 2, RelResolutionF> mRelResolution = Parametrization<float, 2, RelResolutionF>();
 
   float fMIP = 50.f; // dEdx for MIP
  private:
-  //   float fRes0[fgkNumberOfGainScenarios];  // relative dEdx resolution  rel sigma = fRes0*sqrt(1+fResN2/npoint)
-  //   float fResN2[fgkNumberOfGainScenarios]; // relative Npoint dependence rel  sigma = fRes0*sqrt(1+fResN2/npoint)
 };
 
 /// \brief Class to handle the the TPC detector response
