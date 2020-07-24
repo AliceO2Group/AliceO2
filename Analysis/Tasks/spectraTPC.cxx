@@ -30,6 +30,9 @@ using namespace o2::framework::expressions;
 
 struct TPCPIDQATask {
   // TPC NSigma
+  DOTH2F(htpcsignal, ";#it{p} (GeV/#it{c});TPC Signal;Tracks", 100, 0, 5, 100, 0, 1000);
+  DOTH2F(hexpEl, ";#it{p} (GeV/#it{c});TPC exoected signal e;Tracks", 100, 0, 5, 100, 0, 1000);
+  DOTH2F(hexpDe, ";#it{p} (GeV/#it{c});TPC exoected signal d;Tracks", 100, 0, 5, 100, 0, 1000);
   DOTH2F(hnsigmaEl, ";#it{p} (GeV/#it{c});TPC N_{sigma e};Tracks", 100, 0, 5, 100, -10, 10);
   DOTH2F(hnsigmaMu, ";#it{p} (GeV/#it{c});TPC N_{sigma #mu};Tracks", 100, 0, 5, 100, -10, 10);
   DOTH2F(hnsigmaPi, ";#it{p} (GeV/#it{c});TPC N_{sigma #pi};Tracks", 100, 0, 5, 100, -10, 10);
@@ -46,7 +49,14 @@ struct TPCPIDQATask {
       // Track selection
       UChar_t clustermap = i.itsClusterMap();
       bool issel = (i.tpcNClsFindable() > 70) && (i.flags() & 0x4) && (TESTBIT(clustermap, 0) || TESTBIT(clustermap, 1));
+      if (!issel)
+        continue;
       //
+      LOG(INFO) << "Signal " << i.expSignalEl();
+      LOG(INFO) << "Sigma " << i.nSigmaEl();
+      htpcsignal->Fill(i.p(), i.tpcSignal());
+      hexpEl->Fill(i.p(), i.expSignalEl());
+      hexpDe->Fill(i.p(), i.expSignalDe());
       hnsigmaEl->Fill(i.p(), i.nSigmaEl());
       hnsigmaMu->Fill(i.p(), i.nSigmaMu());
       hnsigmaPi->Fill(i.p(), i.nSigmaPi());
