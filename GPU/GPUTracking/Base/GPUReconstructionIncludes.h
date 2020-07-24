@@ -61,6 +61,9 @@
   }                                                                                    \
   if (param().rec.loopInterpolationInExtraPass < 0) {                                  \
     param().rec.loopInterpolationInExtraPass = GPUCA_MERGER_SPLIT_LOOP_INTERPOLATION;  \
+  }                                                                                    \
+  if (mProcessingSettings.tpcCompressionGatherModeKernel < 0) {                        \
+    mProcessingSettings.tpcCompressionGatherModeKernel = GPUCA_COMP_GATHER_KERNEL;     \
   }
 
 #endif

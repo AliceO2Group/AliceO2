@@ -232,9 +232,6 @@ int GPUReconstruction::InitPhaseBeforeDevice()
   if (mProcessingSettings.tpcCompressionGatherMode < 0) {
     mProcessingSettings.tpcCompressionGatherMode = (mRecoStepsGPU & GPUDataTypes::RecoStep::TPCCompression) ? 2 : 0;
   }
-  if (mProcessingSettings.tpcCompressionGatherModeKernel < 0) {
-    mProcessingSettings.tpcCompressionGatherModeKernel = 0;
-  }
   if (!(mRecoStepsGPU & GPUDataTypes::RecoStep::TPCMerging)) {
     mProcessingSettings.mergerSortTracks = false;
   }
