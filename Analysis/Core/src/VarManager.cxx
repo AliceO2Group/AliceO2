@@ -65,80 +65,24 @@ void VarManager::SetRunNumbers(int n, int* runs)
 }
 
 //__________________________________________________________________
-void VarManager::FillEvent(std::vector<float> event, float* values)
+void VarManager::FillEventDerived(float* values)
 {
-
-  //TODO: the Fill function should take as argument an aod::ReducedEvent iterator, this is just a temporary fix
-  if (!values)
-    values = fgValues;
-
-  values[kRunNo] = event[0];
+  //
+  // Fill event-wise derived quantities (these are all quantities which can be computed just based on the values already filled in the FillEvent() function)
+  //
   if (fgUsedVars[kRunId])
     values[kRunId] = (fgRunMap.size() > 0 ? fgRunMap[int(values[kRunNo])] : 0);
-  values[kVtxX] = event[1];
-  values[kVtxY] = event[2];
-  values[kVtxZ] = event[3];
-  values[kVtxNcontrib] = event[4];
-  /*values[kRunNo] = event.runNumber();
-  values[kVtxX] = event.posX();
-  values[kVtxY] = event.posY();
-  values[kVtxZ] = event.posZ();
-  values[kVtxNcontrib] = event.numContrib();*/
-  //values[kVtxChi2] = event.chi2();
-  //values[kBC] = event.bc();
-  //values[kCentVZERO] = event.centVZERO();
-  //values[kVtxCovXX] = event.covXX();
-  //values[kVtxCovXY] = event.covXY();
-  //values[kVtxCovXZ] = event.covXZ();
-  //values[kVtxCovYY] = event.covYY();
-  //values[kVtxCovYZ] = event.covYZ();
-  //values[kVtxCovZZ] = event.covZZ();
 }
 
 //__________________________________________________________________
-void VarManager::FillTrack(std::vector<float> track, float* values)
+void VarManager::FillTrackDerived(float* values)
 {
-
-  if (!values)
-    values = fgValues;
-
-  values[kPt] = track[0];
-  values[kEta] = track[1];
-  values[kPhi] = track[2];
-  values[kCharge] = track[3];
+  //
+  // Fill track-wise derived quantities (these are all quantities which can be computed just based on the values already filled in the FillTrack() function)
+  //
   if (fgUsedVars[kP])
     values[kP] = values[kPt] * TMath::CosH(values[kEta]);
-  /*values[kPt] = track.pt();
-  values[kEta] = track.eta();
-  values[kPhi] = track.phi();
-  values[kCharge] = track.charge();*/
-  //values[kPin] = track.tpcInnerParam();
-  //if(fgUsedVars[kITSncls]) {
-  //  values[kITSncls] = 0.0;
-  //  for(int i=0; i<6; ++i)
-  //    values[kITSncls] += ((track.itsClusterMap() & (1<<i)) ? 1 : 0);
-  //}
-  //values[kITSchi2] = track.itsChi2NCl();
-  //values[kTPCncls] = track.tpcNCls();
-  //values[kTPCchi2] = track.tpcChi2NCl();
-  //values[kTPCsignal] = track.tpcSignal();
-  //values[kTRDsignal] = track.trdSignal();
-  //values[kTOFsignal] = track.tofSignal();
-  //values[kTrackLength] = track.barrelLength();
 }
-
-/*
-//__________________________________________________________________
-void VarManager::FillTrack(ReducedTrack track, float* values)
-{
-  if (!values)
-    values = fgValues;
-
-  values[kPt] = track.pt();
-  values[kEta] = track.eta();
-  values[kPhi] = track.phi();
-  values[kCharge] = track.charge();
-}*/
 
 //__________________________________________________________________
 void VarManager::SetDefaultVarNames()
@@ -155,24 +99,10 @@ void VarManager::SetDefaultVarNames()
   fgVariableUnits[kRunNo] = "";
   fgVariableNames[kRunId] = "Run number";
   fgVariableUnits[kRunId] = "";
-  fgVariableNames[kRunTimeStart] = "Run start time";
-  fgVariableUnits[kRunTimeStart] = "";
-  fgVariableNames[kRunTimeStop] = "Run stop time";
-  fgVariableUnits[kRunTimeStop] = "";
-  fgVariableNames[kLHCFillNumber] = "LHC fill number";
-  fgVariableUnits[kLHCFillNumber] = "";
-  fgVariableNames[kDipolePolarity] = "Dipole polarity";
-  fgVariableUnits[kDipolePolarity] = "";
-  fgVariableNames[kL3Polarity] = "L3 polarity";
-  fgVariableUnits[kL3Polarity] = "";
-  fgVariableNames[kTimeStamp] = "Time stamp";
-  fgVariableUnits[kTimeStamp] = "";
+  fgVariableNames[kCollisionTime] = "collision time";
+  fgVariableUnits[kCollisionTime] = "";
   fgVariableNames[kBC] = "Bunch crossing";
   fgVariableUnits[kBC] = "";
-  fgVariableNames[kInstLumi] = "Instantaneous luminosity";
-  fgVariableUnits[kInstLumi] = "Hz/mb";
-  fgVariableNames[kEventType] = "Event type";
-  fgVariableUnits[kEventType] = "";
   fgVariableNames[kIsPhysicsSelection] = "Physics selection";
   fgVariableUnits[kIsPhysicsSelection] = "";
   fgVariableNames[kVtxX] = "Vtx X ";
@@ -203,6 +133,12 @@ void VarManager::SetDefaultVarNames()
   fgVariableUnits[kPt] = "GeV/c";
   fgVariableNames[kP] = "p";
   fgVariableUnits[kP] = "GeV/c";
+  fgVariableNames[kPx] = "p_{x}";
+  fgVariableUnits[kPy] = "GeV/c";
+  fgVariableNames[kPy] = "p_{y}";
+  fgVariableUnits[kPz] = "GeV/c";
+  fgVariableNames[kPz] = "p_{z}";
+  fgVariableUnits[kPx] = "GeV/c";
   fgVariableNames[kEta] = "#eta";
   fgVariableUnits[kEta] = "";
   fgVariableNames[kPhi] = "#varphi";
@@ -233,6 +169,22 @@ void VarManager::SetDefaultVarNames()
   fgVariableUnits[kTOFsignal] = "";
   fgVariableNames[kTrackLength] = "track length";
   fgVariableUnits[kTrackLength] = "cm";
+  fgVariableNames[kMuonInvBendingMomentum] = "Inverse bending mom.";
+  fgVariableUnits[kMuonInvBendingMomentum] = "1/(GeV/c)";
+  fgVariableNames[kMuonThetaX] = "theta X";
+  fgVariableUnits[kMuonThetaX] = "";
+  fgVariableNames[kMuonThetaY] = "theta Y";
+  fgVariableUnits[kMuonThetaY] = "";
+  fgVariableNames[kMuonZMu] = "ZMu";
+  fgVariableUnits[kMuonZMu] = "";
+  fgVariableNames[kMuonBendingCoor] = "bending coor.";
+  fgVariableUnits[kMuonBendingCoor] = "";
+  fgVariableNames[kMuonNonBendingCoor] = "non-bending coor.";
+  fgVariableUnits[kMuonNonBendingCoor] = "";
+  fgVariableNames[kMuonChi2] = "#chi 2";
+  fgVariableUnits[kMuonChi2] = "";
+  fgVariableNames[kMuonChi2MatchTrigger] = "#chi 2 trigger match";
+  fgVariableUnits[kMuonChi2MatchTrigger] = "";
   fgVariableNames[kCandidateId] = "";
   fgVariableUnits[kCandidateId] = "";
   fgVariableNames[kPairType] = "Pair type";
