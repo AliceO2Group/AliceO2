@@ -11,8 +11,9 @@
 o2_add_library(AnalysisDataModel
                SOURCES src/dummy.cxx
                        src/PIDTOF.cxx
+                       src/PIDTPC.cxx
                PRIVATE_INCLUDE_DIRECTORIES ${CMAKE_CURRENT_LIST_DIR}/src
-               PUBLIC_LINK_LIBRARIES O2::Framework O2::ReconstructionDataFormats
+               PUBLIC_LINK_LIBRARIES O2::Framework O2::ReconstructionDataFormats O2::TPCSimulation
               )
 
 o2_add_executable(dump-aod-data-model

@@ -14,18 +14,26 @@
 namespace o2::pid::tpc
 {
 
-float BetheBlochF(float x, const float p[5])
+float BetheBlochF(float betagamma, const float p[5])
 {
-  // float bb = 0;
-  float bb = o2::tpc::Detector::BetheBlochAleph(x, p[0], p[1], p[2], p[3], p[4]);
-  // AliExternalTrackParam::BetheBlochAleph(betaGamma, fKp1, fKp2, fKp3, fKp4, fKp5);
-  // return bb * fMIP;
-  return bb;
+  // Parameters of the ALEPH Bethe-Bloch formula
+  return o2::tpc::Detector::BetheBlochAleph(betagamma, p[0], p[1], p[2], p[3], p[4]);
 }
 
-float Param::GetExpectedSignal(float mom, float tpc, float mass, float charge) const
+float RelResolutionF(float npoints, const float p[2])
 {
-  return BetheBloch(mom / mass) * GetChargeFactor(charge);
+  // relative dEdx resolution rel sigma = fRes0*sqrt(1+fResN2/npoint)
+  return p[0] * (npoints > 0 ? sqrt(1. + p[1] / npoints) : 1.f);
+}
+
+float Param::GetExpectedSignal(float mom, float mass, float charge) const
+{
+  return mBetheBloch.GetValue(mom / mass) * fMIP * GetChargeFactor(charge);
+}
+
+float Param::GetExpectedSigma(float npoints, float tpcsignal) const
+{
+  return tpcsignal * mRelResolution.GetValue(npoints);
 }
 
 } // namespace o2::pid::tpc
