@@ -73,9 +73,9 @@ static inline const char* getOptName(const char** argv, int i)
 
 template <typename T>
 struct qConfigSettings {
-  qConfigSettings() : checkMin(false), checkMax(false), doSet(false), doDefault(false), min(0), max(0), set(0), message(nullptr), allowEmpty(false){};
+  qConfigSettings() : checkMin(false), checkMax(false), doSet(false), doDefault(false), min(), max(), set(), message(nullptr), allowEmpty(false){};
   template <typename S>
-  qConfigSettings(const qConfigSettings<S> v) : checkMin(false), checkMax(false), doSet(false), doDefault(false), min(0), max(0), set(0), message(v.message), allowEmpty(v.allowEmpty){};
+  qConfigSettings(const qConfigSettings<S> v) : checkMin(false), checkMax(false), doSet(false), doDefault(false), min(), max(), set(), message(v.message), allowEmpty(v.allowEmpty){};
   bool checkMin, checkMax;
   bool doSet, doDefault;
   T min, max;
