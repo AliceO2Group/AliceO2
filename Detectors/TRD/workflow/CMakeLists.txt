@@ -51,6 +51,10 @@ o2_add_executable(trd-vdrift-exb
                   PUBLIC_LINK_LIBRARIES O2::Framework O2::TRDCalibration O2::TRDWorkflow O2::DetectorsCalibration)
 
 
+o2_add_executable(track-reader
+                  COMPONENT_NAME trd
+                  SOURCES src/trd-track-reader-workflow.cxx
+                  PUBLIC_LINK_LIBRARIES O2::TRDWorkflow)
 
 if (OpenMP_CXX_FOUND)
     target_compile_definitions(${targetName} PRIVATE WITH_OPENMP)

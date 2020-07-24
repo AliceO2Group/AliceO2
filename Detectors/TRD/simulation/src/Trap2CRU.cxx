@@ -265,6 +265,8 @@ uint32_t Trap2CRU::buildHalfCRUHeader(HalfCRUHeader& header, const uint32_t bc, 
   uint32_t crudatasize = 0; //link size in units of 256 bits.
   int endpoint = halfcru % 2 ? 1 : 0;
   uint32_t padding = 0;
+  //lets first clear it out.
+  clearHalfCRUHeader(header);
   //TODO this bunchcrossing is not the same as the bunchcrossing in the rdh, which is effectively the bc coming in the parameter list to this function.
   setHalfCRUHeader(header, crurdhversion, bunchcrossing, stopbits, endpoint, eventtype, feeid, cruid); //TODO come back and pull this from somewhere.
 
@@ -483,7 +485,7 @@ void Trap2CRU::convertTrapData(o2::trd::TriggerRecord const& triggerrecord, cons
   int rawwords = 0;
   char* rawdataptratstart;
   std::vector<char> rawdatavector(1024 * 1024 * 2); // sum of link sizes + padding in units of bytes and some space for the header (512 bytes).
-  LOG(debug) << "BUNCH CROSSING : " << triggerrecord.getBCData().bc << " with orbit : " << triggerrecord.getBCData().orbit;
+  LOG(info) << "BUNCH CROSSING : " << triggerrecord.getBCData().bc << " with orbit : " << triggerrecord.getBCData().orbit;
   for (int halfcru = 0; halfcru < o2::trd::constants::NHALFCRU; halfcru++) {
     int halfcruwordswritten = 0;
     int supermodule = halfcru / 4; // 2 cru per supermodule.
@@ -499,6 +501,7 @@ void Trap2CRU::convertTrapData(o2::trd::TriggerRecord const& triggerrecord, cons
     HalfCRUHeader halfcruheader;
     //now write the cruheader at the head of all the data for this halfcru.
     buildHalfCRUHeader(halfcruheader, triggerrecord.getBCData().bc, halfcru);
+    printHalfCRUHeader(halfcruheader);
     halfcruheader.EndPoint = mEndPointID;
     mRawDataPtr = rawdatavector.data();
     memcpy(mRawDataPtr, (char*)&halfcruheader, sizeof(halfcruheader));
@@ -509,7 +512,7 @@ void Trap2CRU::convertTrapData(o2::trd::TriggerRecord const& triggerrecord, cons
     for (int halfcrulink = 0; halfcrulink < o2::trd::constants::NLINKSPERHALFCRU; halfcrulink++) {
       //links run from 0 to 14, so linkid offset is halfcru*15;
       int linkid = halfcrulink + halfcru * o2::trd::constants::NLINKSPERHALFCRU;
-      LOG(debug) << __func__ << " " << __LINE__ << " linkid : " << linkid << " with link " << halfcrulink << "  of halfcru " << halfcru;
+      LOG(info) << __func__ << " " << __LINE__ << " linkid : " << linkid << " with link " << halfcrulink << "  of halfcru " << halfcru;
       int linkwordswritten = 0;
       int errors = 0;           // put no errors in for now.
       int size = 0;             // in 32 bit words
@@ -520,6 +523,7 @@ void Trap2CRU::convertTrapData(o2::trd::TriggerRecord const& triggerrecord, cons
         //we have some data on this link
         int trackletcounter = 0;
         while (isTrackletOnLink(linkid, mCurrentTracklet)) {
+          LOG(info) << "tracklet is on link for linkid : " << linkid << " and trackle index of : " << mCurrentDigit;
           // still on an mcm on this link
           int tracklets = buildTrackletRawData(mCurrentTracklet, linkid); //returns # of 32 bits, header plus trackletdata words that would have come from the mcm.
           mCurrentTracklet += tracklets;
@@ -535,6 +539,7 @@ void Trap2CRU::convertTrapData(o2::trd::TriggerRecord const& triggerrecord, cons
         linkwordswritten += hcheaderwords;
         rawwords += hcheaderwords;
         while (isDigitOnLink(linkid, mDigitsIndex[mCurrentDigit])) {
+          LOG(info) << "digit is on link for linkid : " << linkid << " and digit index of : " << mCurrentDigit;
           //while we are on a single mcm, copy the digits timebins to the array.
           int digitcounter = 0;
           int currentROB = mDigits[mDigitsIndex[mCurrentDigit]].getROB();
@@ -563,13 +568,11 @@ void Trap2CRU::convertTrapData(o2::trd::TriggerRecord const& triggerrecord, cons
           }
           rawwords += digits * 10 + 1; //10 for the tiembins and 1 for the header.
           linkwordswritten += digits * 10 + 1;
-        }
-        int digitendmarkerwritten = writeDigitEndMarker();
-        linkwordswritten += digitendmarkerwritten;
+        } int digitendmarkerwritten = writeDigitEndMarker(); linkwordswritten += digitendmarkerwritten;
         rawwords += digitendmarkerwritten;
 
       } else {
-        LOG(debug) << "no data on link : " << linkid;
+        LOG(info) << "no data on link : " << linkid;
       }
       //write digit end marker.
       //pad up to a whole 256 bit word size
@@ -598,28 +601,40 @@ void Trap2CRU::convertTrapData(o2::trd::TriggerRecord const& triggerrecord, cons
         totallinklengths += crudatasize;
         if ((mRawDataPtr - rawdataptratstart) != (totallinklengths * 32)) {
           bytescopied = mRawDataPtr - rawdataptratstart;
-          LOG(debug) << "something wrong with data size in cruheader writing"
-                     << "linkwordswriten:" << linkwordswritten << " rawwords:" << rawwords << "bytestocopy : " << bytescopied << " crudatasize:" << crudatasize << " sum of links up to now : " << totallinklengths << " mRawDataPtr:0x" << std::hex << (void*)mRawDataPtr << "  start ptr:" << std::hex << (void*)rawdataptratstart;
+          LOG(info) << "something wrong with data size in cruheader writing"
+                    << "linkwordswriten:" << linkwordswritten << " rawwords:" << rawwords << "bytestocopy : " << bytescopied << " crudatasize:" << crudatasize << " sum of links up to now : " << totallinklengths << " mRawDataPtr:0x" << std::hex << (void*)mRawDataPtr << "  start ptr:" << std::hex << (void*)rawdataptratstart;
           //something wrong with data size writing padbytes:81 bytestocopy : 3488 crudatasize:81 mRawDataPtr:0x0x7f669acdedf0  start ptr:0x7f669acde050
 
         } else {
-          LOG(debug) << "all fine with data size writing padbytes:" << paddingsize << " linkwordswriten:" << linkwordswritten << " bytestocopy : " << bytescopied << " crudatasize:" << crudatasize << " mRawDataPtr:0x" << std::hex << (void*)mRawDataPtr << "  start ptr:" << std::hex << (void*)rawdataptratstart;
+          LOG(info) << "all fine with data size writing padbytes:" << paddingsize << " linkwordswriten:" << linkwordswritten << " bytestocopy : " << bytescopied << " crudatasize:" << crudatasize << " mRawDataPtr:0x" << std::hex << (void*)mRawDataPtr << "  start ptr:" << std::hex << (void*)rawdataptratstart;
         }
         //sanity check for now:
         if (crudatasize != o2::trd::getlinkdatasize(halfcruheader, halfcrulink)) {
           // we have written the wrong amount of data ....
-          LOG(debug) << "crudata is ! = get link data size " << crudatasize << "!=" << o2::trd::getlinkdatasize(halfcruheader, halfcrulink);
+          LOG(info) << "crudata is ! = get link data size " << crudatasize << "!=" << o2::trd::getlinkdatasize(halfcruheader, halfcrulink);
         }
-        LOG(debug) << "Link words to be written : " << linkwordswritten * 4;
+        LOG(info) << "Link words to be written : " << linkwordswritten * 4;
       } // if we have data on link
+      LOG(info) << "incrementing halfcruwordswritten : " << halfcruwordswritten << " by linkwordswritten : " << linkwordswritten;
       halfcruwordswritten += linkwordswritten;
+      LOG(info) << "incremented halfcruwordswritten : " << halfcruwordswritten << " by linkwordswritten : " << linkwordswritten;
     }
     //write halfcru data here.
     std::vector<char> feeidpayload(halfcruwordswritten * 4);
     memcpy(feeidpayload.data(), &rawdatavector[0], halfcruwordswritten * 4);
     assert(halfcruwordswritten % 8 == 0);
-    mWriter.addData(mFeeID, mCruID, mLinkID, mEndPointID, triggerrecord.getBCData(), feeidpayload);
-    LOG(debug) << "written file for feeid of 0x" << std::hex << mFeeID << " and payload size of : " << halfcruwordswritten;
+    mWriter.addData(mFeeID, mCruID, mLinkID, mEndPointID, triggerrecord.getBCData(), feeidpayload, false,triggercount );
+    LOG(info) << "written file for trigger : " << triggercount << " feeid of 0x" << std::hex << mFeeID << " cruid : " << mCruID << " and linkid: "<< mLinkID << " and EndPoint: " << mEndPointID << " orbit :0x" << std::hex << triggerrecord.getBCData().orbit << " bc:0x" << std::hex <<triggerrecord.getBCData().bc << " and payload size of : " << halfcruwordswritten << " with  a half cru of: ";
+    printHalfCRUHeader(halfcruheader);
+    for(int a=0;a<halfcruwordswritten;++a){
+        LOG(info) << std::hex << " 0x" << (unsigned int)feeidpayload[a*4] << " 0x" << (unsigned int)feeidpayload[a*4+1] << " 0x" << (unsigned int)feeidpayload[a*4+2] << " 0x" << (unsigned int)feeidpayload[a*4+3] ;
+    }
+    HalfCRUHeader *h;
+    h=(HalfCRUHeader*)feeidpayload.data();
+    HalfCRUHeader h1=*h;
+    printHalfCRUHeader(h1);
+    LOG(info) << " ======   end of writing";
+
   }
 }
 
