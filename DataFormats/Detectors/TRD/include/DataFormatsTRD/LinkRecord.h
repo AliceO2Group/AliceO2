@@ -41,6 +41,7 @@ class LinkRecord
   void setNumberOfObjects(int nentries) { mDataRange.setEntries(nentries); }
 
   uint32_t getLinkId() { return mLinkId; }
+  uint32_t getLinkHCID() { return mLinkId & 0x7ff; } // the last 11 bits.
   int getNumberOfObjects() const { return mDataRange.getEntries(); }
   int getFirstEntry() const { return mDataRange.getFirstEntry(); }
 

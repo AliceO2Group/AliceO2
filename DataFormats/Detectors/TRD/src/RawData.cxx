@@ -10,6 +10,7 @@
 
 #include <iomanip>
 #include <iostream>
+#include <iomanip>
 #include "DataFormatsTRD/RawData.h"
 
 namespace o2
@@ -53,6 +54,25 @@ uint32_t getlinkdatasizes(const HalfCRUHeader& cruheader, std::array<uint32_t, 1
   return 0;
 }
 
+uint32_t setHalfCRUHeader(HalfCRUHeader& cruhead, int crurdhversion, int bunchcrossing, int stopbits, int endpoint, int eventtype, int feeid, int cruid)
+{
+  cruhead.BunchCrossing = bunchcrossing;
+  cruhead.StopBit = stopbits;
+  cruhead.EndPoint = endpoint;
+  cruhead.EventType = eventtype;
+  //later versions
+  //   cruhead.rdhversion = crurdhversion;
+  //   cruhead.FeeID = feeid;
+  //   cruhead.CRUID = cruid;
+  return 0;
+}
+
+uint32_t setHalfCRUHeaderLinkData(HalfCRUHeader& cruhead, int link, int size, int errors)
+{
+  cruhead.datasizes[link].size = size;
+  cruhead.errorflags[link].errorflag = errors;
+  return 0;
+}
 //
 //  Printing methods to dump and display the various structures above in pretty format or hexdump
 //  printNameOfStruct(const NameOfStruct& nameofstruct);
@@ -62,37 +82,46 @@ uint32_t getlinkdatasizes(const HalfCRUHeader& cruheader, std::array<uint32_t, 1
 
 std::ostream& operator<<(std::ostream& stream, const TrackletHCHeader halfchamberheader)
 {
-  stream << "TrackletHCHeader : Raw:0x" << std::hex << halfchamberheader.word << " " << halfchamberheader.format << " ;; " << halfchamberheader.MCLK << " :: " << halfchamberheader.one << " :: " << halfchamberheader.HCID << std::endl;
+  stream << "TrackletHCHeader : Raw:0x" << std::hex << halfchamberheader.word << " "
+         << halfchamberheader.format << " ;; " << halfchamberheader.MCLK << " :: "
+         << halfchamberheader.one << " :: " << halfchamberheader.HCID << std::endl;
   return stream;
 }
 
 std::ostream& operator<<(std::ostream& stream, const TrackletMCMData& tracklet)
 {
   // make a pretty output of the tracklet.
-  stream << "TrackletMCMData: Raw:0x" << std::hex << tracklet.word << " pos=" << tracklet.pos << "::slope=" << tracklet.slope << "::pid=" << tracklet.pid << "::checkbit=" << tracklet.checkbit << std::endl;
+  stream << "TrackletMCMData: Raw:0x" << std::hex << tracklet.word << " pos=" << tracklet.pos
+         << "::slope=" << tracklet.slope << "::pid=" << tracklet.pid << "::checkbit="
+         << tracklet.checkbit << std::endl;
   return stream;
 }
 void printTrackletMCMData(o2::trd::TrackletMCMData& tracklet)
 {
-  LOGF(INFO, "TrackletMCMData: Raw:0x%08x pos:%d slope:%d pid:0x%08x checkbit:0x%02x", tracklet.word, tracklet.pos, tracklet.slope, tracklet.pid, tracklet.checkbit);
+  LOGF(INFO, "TrackletMCMData: Raw:0x%08x pos:%d slope:%d pid:0x%08x checkbit:0x%02x",
+       tracklet.word, tracklet.pos, tracklet.slope, tracklet.pid, tracklet.checkbit);
 }
 
 void printTrackletMCMHeader(o2::trd::TrackletMCMHeader& mcmhead)
 {
-  LOGF(INFO, "MCMRawHeader: Raw:0x%08x 1:%d padrow: 0x%02x col: 0x%01x pid2 0x%02x pid1: 0x%02x pid0: 0x%02x 1:%d", mcmhead.word, mcmhead.onea, mcmhead.padrow, mcmhead.col, mcmhead.pid2, mcmhead.pid1, mcmhead.pid0, mcmhead.oneb);
+  LOGF(INFO, "MCMRawHeader: Raw:0x%08x 1:%d padrow: 0x%02x col: 0x%01x pid2 0x%02x pid1: 0x%02x pid0: 0x%02x 1:%d",
+       mcmhead.word, mcmhead.onea, mcmhead.padrow, mcmhead.col,
+       mcmhead.pid2, mcmhead.pid1, mcmhead.pid0, mcmhead.oneb);
 }
 
 std::ostream& operator<<(std::ostream& stream, const TrackletMCMHeader& mcmhead)
 {
   // make a pretty output of the mcm header.
-  // stream << "MCMRawHeader:" << mcmhead.checkbits << "::" << (mcmhead.pid&0xfff000000) << ":"<<  (mcmhead.pid&0xfff000) << ":"<< (mcmhead.pid&0xfff) << std::endl;
-  stream << "MCMRawHeader: Raw:0x" << std::hex << mcmhead.word << " " << mcmhead.onea << "::" << mcmhead.pid2 << ":" << mcmhead.pid1 << ":" << mcmhead.pid0 << "::" << mcmhead.oneb << std::endl;
+  stream << "MCMRawHeader: Raw:0x" << std::hex << mcmhead.word << " " << mcmhead.onea << "::"
+         << mcmhead.pid2 << ":" << mcmhead.pid1 << ":" << mcmhead.pid0 << "::"
+         << mcmhead.oneb << std::endl;
   return stream;
 }
 
 void printHalfChamber(o2::trd::TrackletHCHeader& halfchamber)
 {
-  LOGF(INFO, "TrackletHCHeader: Raw:0x%08x HCID : 0x%0x MCLK: 0x%0x Format: 0x%0x Always1:0x%0x", halfchamber.HCID, halfchamber.MCLK, halfchamber.format, halfchamber.one);
+  LOGF(INFO, "TrackletHCHeader: Raw:0x%08x HCID : 0x%0x MCLK: 0x%0x Format: 0x%0x Always1:0x%0x",
+       halfchamber.HCID, halfchamber.MCLK, halfchamber.format, halfchamber.one);
 }
 
 void dumpHalfChamber(o2::trd::TrackletHCHeader& halfchamber)
@@ -106,23 +135,25 @@ void printHalfCRUHeader(o2::trd::HalfCRUHeader& halfcru)
   std::array<uint32_t, 15> errorflags;
   getlinkdatasizes(halfcru, sizes);
   getlinkerrorflags(halfcru, errorflags);
-  LOGF(INFO, "V:%d BC:%d SB:%d EType:%d", halfcru.HeaderVersion, halfcru.BunchCrossing, halfcru.StopBit, halfcru.EventType);
+  LOGF(INFO, "V:%d BC:%d SB:%d EType:%d", halfcru.HeaderVersion, halfcru.BunchCrossing,
+       halfcru.StopBit, halfcru.EventType);
   for (int i = 0; i < 15; i++)
     LOGF(INFO, "Link %d size: %ul eflag: 0x%02x", i, sizes[i], errorflags[i]);
 }
 
 void dumpHalfCRUHeader(o2::trd::HalfCRUHeader& halfcru)
 {
-  std::array<uint32_t, 16> raw{};
+  std::array<uint64_t, 8> raw{};
   memcpy(&raw[0], &halfcru, sizeof(halfcru));
-  for (int i = 0; i < 4; i++) {
+  for (int i = 0; i < 2; i++) {
     int index = 4 * i;
-    LOGF(INFO, "[1/2CRUHeader %d] 0x%08x 0x%08x 0x%08x 0x%08x", i, raw[index + 3], raw[index + 2], raw[index + 1], raw[index + 0]);
+    LOGF(INFO, "[1/2CRUHeader %d] 0x%08x 0x%08x 0x%08x 0x%08x", i, raw[index + 3], raw[index + 2],
+         raw[index + 1], raw[index + 0]);
   }
 }
 
-std::ostream& operator<<(std::ostream& stream, const HalfCRUHeader& halfcru) // make a pretty output of the header.
-{
+std::ostream& operator<<(std::ostream& stream, const HalfCRUHeader& halfcru)
+{ // make a pretty output of the header.
   stream << std::hex;
   stream << "EventType : " << halfcru.EventType << std::endl;
   stream << "StopBit : " << halfcru.StopBit << std::endl;
