@@ -20,6 +20,7 @@
 // for TRD
 #include "TRDWorkflow/TRDTrapSimulatorSpec.h"
 #include "TRDWorkflow/TRDTrackletWriterSpec.h"
+#include "TRDWorkflow/TRDTrapRawWriterSpec.h"
 #include "TRDWorkflow/TRDDigitReaderSpec.h"
 
 #include "DataFormatsParameters/GRPObject.h"
@@ -85,5 +86,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
     // connect the TRD digitization
     o2::trd::getTRDTrapSimulatorSpec(),
     // connect the TRD digit writer
-    o2::trd::getTRDTrackletWriterSpec()};
+    o2::trd::getTRDTrackletWriterSpec(),
+    // connect the TRD digit writer
+    o2::trd::getTRDTrapRawWriterSpec()};
 }

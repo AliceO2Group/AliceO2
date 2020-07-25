@@ -9,7 +9,7 @@
 // or submit itself to any jurisdiction.
 
 #include <iostream>
-#include "DataFormatsTRD/Tracklet64.h"
+#include "DataFormatsTRD/LinkRecord.h"
 
 namespace o2
 {
@@ -17,16 +17,12 @@ namespace o2
 namespace trd
 {
 
-void Tracklet64::printStream(std::ostream& stream) const
+void LinkRecord::printStream(std::ostream& stream) const
 {
-  stream << "Tracklet64 : 0x" << std::hex << getTrackletWord();
-  stream << "\t hcid : " << getHCID() << " row:" << getPadRow() << " col:" << getColumn()
-         << " Position:" << getPosition() << " slope:" << getSlope()
-         << " PID:0x" << getPID()
-         << " Q0:" << getQ0() << " Q1:" << getQ1() << " Q2:" << getQ2();
+  stream << "Data for link 0x" << std::hex << mLinkId << std::dec << ", starting from entry " << getFirstEntry() << " with " << getNumberOfObjects() << " objects";
 }
 
-std::ostream& operator<<(std::ostream& stream, const Tracklet64& trg)
+std::ostream& operator<<(std::ostream& stream, const LinkRecord& trg)
 {
   trg.printStream(stream);
   return stream;

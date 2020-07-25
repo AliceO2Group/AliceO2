@@ -16,6 +16,7 @@ o2_add_library(TRDWorkflow
                        src/TRDDigitWriterSpec.cxx
                        src/TRDDigitReaderSpec.cxx
                        src/TRDTrackletWriterSpec.cxx
+                       src/TRDTrapRawWriterSpec.cxx
                        src/TRDTrapSimulatorSpec.cxx
                        PUBLIC_LINK_LIBRARIES O2::Framework O2::DPLUtils O2::Steer O2::Algorithm O2::DataFormatsTRD O2::TRDSimulation O2::DetectorsBase O2::SimulationDataFormat O2::TRDBase)
 
