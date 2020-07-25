@@ -18,7 +18,6 @@
 #include "MFTWorkflow/ClusterWriterSpec.h"
 #include "MFTWorkflow/ClusterReaderSpec.h"
 #include "MFTWorkflow/TrackerSpec.h"
-#include "MFTWorkflow/TrackFitterSpec.h"
 #include "MFTWorkflow/TrackWriterSpec.h"
 
 namespace o2
@@ -43,7 +42,6 @@ framework::WorkflowSpec getWorkflow(bool useMC, bool upstreamDigits, bool upstre
     specs.emplace_back(o2::mft::getClusterWriterSpec(useMC));
   }
   specs.emplace_back(o2::mft::getTrackerSpec(useMC));
-  //specs.emplace_back(o2::mft::getTrackFitterSpec(useMC));
   if (!disableRootOutput) {
     specs.emplace_back(o2::mft::getTrackWriterSpec(useMC));
   }

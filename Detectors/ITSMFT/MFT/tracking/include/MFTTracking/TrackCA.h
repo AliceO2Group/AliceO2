@@ -37,6 +37,7 @@ class TrackLTF : public TrackMFTExt
   const std::array<Int_t, constants::mft::LayersNumber>& getClustersId() const { return mClusterId; }
   const std::array<MCCompLabel, constants::mft::LayersNumber>& getMCCompLabels() const { return mMCCompLabels; }
   void setPoint(const Float_t x, const Float_t y, const Float_t z, const Int_t layer, const Int_t clusterId, const MCCompLabel label, Bool_t& newPoint);
+  void sort();
 
  protected:
   Int_t mNPoints{0};
@@ -121,7 +122,6 @@ inline void TrackLTF::setPoint(const Float_t x, const Float_t y, const Float_t z
     mLayer[mNPoints] = layer;
     mClusterId[mNPoints] = clusterId;
     mMCCompLabels[mNPoints] = label;
-    //std::cout << "setClusterIndex(layer, clusterId) = " << layer << " , " << clusterId << " newpoint" << std::endl;
     setClusterIndex(layer, clusterId, mNPoints);
 
     mNPoints++;
@@ -132,8 +132,45 @@ inline void TrackLTF::setPoint(const Float_t x, const Float_t y, const Float_t z
     mLayer[mNPoints] = layer;
     mClusterId[mNPoints] = clusterId;
     mMCCompLabels[mNPoints] = label;
-    //std::cout << "setClusterIndex(layer, clusterId) = " << layer << " , " << clusterId << std::endl;
     setClusterIndex(layer, clusterId, mNPoints);
+  }
+}
+
+inline void TrackLTF::sort()
+{
+  // Orders elements along z position
+
+  struct ClusterData {
+    Float_t x;
+    Float_t y;
+    Float_t z;
+    Float_t layer;
+    Float_t clusterId;
+    Float_t label;
+  };
+
+  std::vector<ClusterData> points;
+  for (Int_t point = 0; point < getNPoints(); ++point) {
+    auto& somepoint = points.emplace_back();
+    somepoint.x = mX[point];
+    somepoint.y = mY[point];
+    somepoint.z = mZ[point];
+    somepoint.layer = mLayer[point];
+    somepoint.clusterId = mClusterId[point];
+    somepoint.label = mMCCompLabels[point];
+  }
+
+  std::sort(points.begin(), points.end(), [](ClusterData a, ClusterData b) { return a.z > b.z; });
+
+  // after sorting
+  for (Int_t point = 0; point < getNPoints(); ++point) {
+    //  auto& somepoint = points.emplace_back();
+    mX[point] = points[point].x;
+    mY[point] = points[point].y;
+    mZ[point] = points[point].z;
+    mLayer[point] = points[point].layer;
+    mClusterId[point] = points[point].clusterId;
+    mMCCompLabels[point] = points[point].label;
   }
 }
 
