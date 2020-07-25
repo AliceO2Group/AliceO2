@@ -30,7 +30,7 @@ Tracker::Tracker(bool useMC) : mUseMC{useMC}
 
   /// Prepare the track extrapolation tools
   LOG(INFO) << "initializing track fitter";
-  mTrackFitter = std::make_unique<o2::mft::TrackFitter2>();
+  mTrackFitter = std::make_unique<o2::mft::TrackFitter>();
   mTrackFitter->setBz(mBz);
 }
 
@@ -370,7 +370,6 @@ void Tracker::findTracksCA(ROframe& event)
                       if (dR >= dRcut) {
                         continue;
                       }
-
                       hasDisk[layer / 2] = kTRUE;
                       mcCompLabel = mUseMC ? event.getClusterLabels(layer, cluster.clusterId) : MCCompLabel();
                       newPoint = kTRUE;
@@ -855,6 +854,7 @@ bool Tracker::fitTracks(ROframe& event)
     mTrackFitter->fit(track);
   }
   for (auto& track : event.getTracksCA()) {
+    track.sort();
     mTrackFitter->fit(track);
   }
 

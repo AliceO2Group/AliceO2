@@ -13,17 +13,15 @@
 ///
 /// \author Philippe Pillot, Subatech; adapted by Rafael Pezzi, UFRGS
 
-#ifndef ALICEO2_MFT_TRACKFITTER_H_
-#define ALICEO2_MFT_TRACKFITTER_H_
+#ifndef ALICEO2_MFT_TrackFitter_H_
+#define ALICEO2_MFT_TrackFitter_H_
 
 #include "MFTTracking/Cluster.h"
 #include "MFTTracking/TrackCA.h"
-#include "MFTTracking/FitterTrackMFT.h"
 #include "MFTTracking/TrackParamMFT.h"
-#include "MFTTracking/TrackExtrap.h"
+//#include "MFTTracking/TrackExtrap.h"
 #include "MFTTracking/MFTTrackingParam.h"
 #include "DataFormatsMFT/TrackMFT.h"
-
 #include <TLinearFitter.h>
 #include <list>
 
@@ -35,6 +33,10 @@ namespace mft
 /// Class to fit a track to a set of clusters
 class TrackFitter
 {
+
+  using SMatrix55 = ROOT::Math::SMatrix<double, 5, 5, ROOT::Math::MatRepSym<double, 5>>;
+  using SMatrix5 = ROOT::Math::SVector<Double_t, 5>;
+
  public:
   TrackFitter() = default;
   ~TrackFitter() = default;
@@ -46,40 +48,34 @@ class TrackFitter
 
   void setBz(float bZ);
 
-  /// Enable/disable the smoother (and the saving of related parameters)
-  void smoothTracks(bool smooth) { mSmooth = smooth; }
-  /// Return the smoother enable/disable flag
-  bool isSmootherEnabled() { return mSmooth; }
+  bool fit(TrackLTF& track);
 
-  bool fit(FitterTrackMFT& track, bool smooth = true, bool finalize = true,
-           std::list<TrackParamMFT>::reverse_iterator* itStartingParam = nullptr);
-
-  bool runKalmanFilter(TrackParamMFT& trackParam);
+  bool runKalmanFilter(TrackLTF& track, int cluster);
 
   /// Return the maximum chi2 above which the track can be considered as abnormal
   static constexpr double getMaxChi2() { return SMaxChi2; }
 
  private:
-  void initTrack(const Cluster& cl, TrackParamMFT& param);
-  bool addCluster(const TrackParamMFT& startingParam, const Cluster& cl, TrackParamMFT& param);
-  bool smoothTrack(FitterTrackMFT& track, bool finalize);
-  bool runSmoother(const TrackParamMFT& previousParam, TrackParamMFT& param);
+  bool initTrack(TrackLTF& track);
+  bool addCluster(TrackLTF& track, int cluster);
+
   Float_t mBZField;                         // kiloGauss.
   static constexpr double SMaxChi2 = 2.e10; ///< maximum chi2 above which the track can be considered as abnormal
   /// default layer thickness in X0 for reconstruction  //FIXME: set values for the MFT
   static constexpr double SLayerThicknessInX0[10] = {0.065, 0.065, 0.075, 0.075, 0.035,
                                                      0.035, 0.035, 0.035, 0.035, 0.035};
 
-  bool mSmooth = false; ///< switch ON/OFF the smoother
   bool mFieldON = true;
-  o2::mft::TrackExtrap mTrackExtrap;
+  //o2::mft::TrackExtrap mTrackExtrap;
 };
 
 // Functions to estimate momentum and charge from track curvature
-Double_t invQPtFromParabola(const FitterTrackMFT& track, double bFieldZ, Double_t& chi2);
-Double_t QuadraticRegression(Int_t nVal, Double_t* xVal, Double_t* yVal, Double_t& p0, Double_t& p1, Double_t& p2);
+Double_t invQPtFromParabola2(const TrackLTF& track, double bFieldZ, Double_t& chi2);
+Double_t QuadraticRegression2(Int_t nVal, Double_t* xVal, Double_t* yVal, Double_t& p0, Double_t& p1, Double_t& p2);
+Double_t invQPtFromFCF(const TrackLTF& track, Double_t bFieldZ, Double_t& chi2);
+Bool_t LinearRegression(Int_t nVal, Double_t* xVal, Double_t* yVal, Double_t* yErr, Double_t& a, Double_t& ae, Double_t& b, Double_t& be);
 
 } // namespace mft
 } // namespace o2
 
-#endif // ALICEO2_MFT_TRACKFITTER_H_
+#endif // ALICEO2_MFT_TrackFitter_H_

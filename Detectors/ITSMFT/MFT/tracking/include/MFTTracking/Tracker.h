@@ -16,7 +16,7 @@
 #define O2_MFT_TRACKER_H_
 
 #include "MFTTracking/ROframe.h"
-#include "MFTTracking/TrackFitter2.h"
+#include "MFTTracking/TrackFitter.h"
 #include "MFTTracking/Cluster.h"
 
 #include "MathUtils/Utils.h"
@@ -66,7 +66,7 @@ class Tracker
   void updateCellStatusInRoad(Road&);
 
   bool fitTracks(ROframe&);
-  std::unique_ptr<o2::mft::TrackFitter2> mTrackFitter = nullptr;
+  std::unique_ptr<o2::mft::TrackFitter> mTrackFitter = nullptr;
 
   const Int_t isDiskFace(Int_t layer) const;
 
