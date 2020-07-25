@@ -16,7 +16,6 @@
 #include "MFTBase/Constants.h"
 #include "MFTTracking/TrackFitter.h"
 #include "MFTTracking/TrackCA.h"
-#include "MFTTracking/TrackExtrap.h"
 #include "MFTTracking/Cluster.h"
 #include "DataFormatsMFT/TrackMFT.h"
 #include "SimulationDataFormat/MCCompLabel.h"
