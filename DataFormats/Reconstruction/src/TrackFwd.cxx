@@ -320,7 +320,7 @@ void TrackParCovFwd::helixExtrapToZCov(double zEnd, double zField)
 }
 
 //__________________________________________________________________________
-void TrackParCovFwd::addMCSEffect(double dZ, double x0, double zField)
+void TrackParCovFwd::addMCSEffect(double dZ, double x0)
 {
   /// Add to the track parameter covariances the effects of multiple Coulomb scattering
   /// through a material of thickness "abs(dZ)" and of radiation length "x0"

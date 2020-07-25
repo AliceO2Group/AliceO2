@@ -129,26 +129,6 @@ void TrackerDPL::run(ProcessingContext& pc)
     for (auto& rof : rofs) {
       int nclUsed = ioutils::loadROFrameData(rof, event, compClusters, pattIt, mDict, labels);
       if (nclUsed) {
-        /*
-        event.setROFrameId(roFrame);
-        event.initialise();
-        LOG(INFO) << "ROframe: " << roFrame << ", clusters loaded : " << nclUsed;
-        mTracker->setROFrame(roFrame);
-        mTracker->clustersToTracks(event);
-        tracksLTF.swap(event.getTracksLTF());
-        tracksCA.swap(event.getTracksCA());
-        LOG(INFO) << "Found tracks LTF: " << tracksLTF.size();
-        LOG(INFO) << "Found tracks CA: " << tracksCA.size();
-        trackLabels = mTracker->getTrackLabels(); /// FIXME: assignment ctor is not optimal.
-        int first = allTracksMFT.size();
-        int shiftIdx = -rof.getFirstEntry();
-        rofs[roFrame].setFirstEntry(first);
-        std::copy(tracksLTF.begin(), tracksLTF.end(), std::back_inserter(allTracksLTF));
-        std::copy(tracksCA.begin(), tracksCA.end(), std::back_inserter(allTracksCA));
-        allTrackLabels.mergeAtBack(trackLabels);
-        */
-
-
         event.setROFrameId(roFrame);
         event.initialise();
         LOG(INFO) << "ROframe: " << roFrame << ", clusters loaded : " << nclUsed;
@@ -197,7 +177,6 @@ DataProcessorSpec getTrackerSpec(bool useMC)
   outputs.emplace_back("MFT", "TRACKSCA", 0, Lifetime::Timeframe);
   outputs.emplace_back("MFT", "TRACKSROF", 0, Lifetime::Timeframe);
   outputs.emplace_back("MFT", "TRACKCLSID", 0, Lifetime::Timeframe);
-
 
   if (useMC) {
     inputs.emplace_back("labels", "MFT", "CLUSTERSMCTR", 0, Lifetime::Timeframe);

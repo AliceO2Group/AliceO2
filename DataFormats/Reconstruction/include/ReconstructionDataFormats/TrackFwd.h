@@ -19,14 +19,12 @@
 #include <TMath.h>
 #include "Math/SMatrix.h"
 #include "MathUtils/Utils.h"
-//#include <Framework/Logger.h>
 
 namespace o2
 {
 namespace track
 {
 
-//using Cluster = o2::BaseCluster<Float_t>;
 using SMatrix55 = ROOT::Math::SMatrix<double, 5, 5, ROOT::Math::MatRepSym<double, 5>>;
 using SMatrix5 = ROOT::Math::SVector<Double_t, 5>;
 
@@ -92,16 +90,12 @@ class TrackParFwd
   /// add track parameters
   void addParameters(const SMatrix5& parameters) { mParameters += parameters; }
 
-  /// get pointer to associated cluster
-  //const Cluster* getClusterPtr() const { return mClusterPtr; }
-  /// set pointer to associated cluster
-  //void setClusterPtr(const Cluster* cluster) { mClusterPtr = cluster; }
-
   /// return the chi2 of the track when the associated cluster was attached
   Double_t getTrackChi2() const { return mTrackChi2; }
   /// set the chi2 of the track when the associated cluster was attached
   void setTrackChi2(Double_t chi2) { mTrackChi2 = chi2; }
 
+  // Track propagation
   void linearExtrapToZ(double zEnd);
   void quadraticExtrapToZ(double zEnd, double zField);
   void helixExtrapToZ(double zEnd, double zField);
@@ -115,8 +109,7 @@ class TrackParFwd
   /// PHI     = azimutal angle
   /// TANL    = tangent of \lambda (dip angle)
   /// INVQPT    = Inverse transverse momentum (GeV/c ** -1) times charge (assumed forward motion)  </pre>
-  SMatrix5 mParameters{}; ///< \brief Track parameters
-  //const Cluster* mClusterPtr = nullptr; ///< Pointer to the associated cluster if any
+  SMatrix5 mParameters{};   ///< \brief Track parameters
   Double_t mTrackChi2 = 0.; ///< Chi2 of the track when the associated cluster was attached
 
   ClassDefNV(TrackParFwd, 1);
@@ -147,7 +140,7 @@ class TrackParCovFwd : public TrackParFwd
   void linearExtrapToZCov(double zEnd);
   void quadraticExtrapToZCov(double zEnd, double zField);
   void helixExtrapToZCov(double zEnd, double zField);
-  void addMCSEffect(double dZ, double x0, double zField);
+  void addMCSEffect(double dZ, double x0);
 
  private:
   /// Covariance matrix of track parameters, ordered as follows:    <pre>
