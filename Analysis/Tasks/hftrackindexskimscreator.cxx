@@ -203,9 +203,9 @@ struct HFTrackIndexSkimsCreator {
             std::array<float, 3> pvec0;
             std::array<float, 3> pvec1;
             std::array<float, 3> pvec2;
-            df.getTrack(0).getPxPyPzGlo(pvec0);
-            df.getTrack(1).getPxPyPzGlo(pvec1);
-            df.getTrack(2).getPxPyPzGlo(pvec2);
+            df3.getTrack(0).getPxPyPzGlo(pvec0);
+            df3.getTrack(1).getPxPyPzGlo(pvec1);
+            df3.getTrack(2).getPxPyPzGlo(pvec2);
 
             addTrack(listTracks, pvec0, masspion);
             addTrack(listTracks, pvec1, masskaon);
@@ -219,7 +219,7 @@ struct HFTrackIndexSkimsCreator {
             hftrackindexprong3(track_p1.collisionId(),
                                track_p1.globalIndex(),
                                track_n1.globalIndex(),
-                               track_p1.globalIndex(), 2);
+                               track_p2.globalIndex(), 2);
           }
           //second loop on negative tracks
           for (auto i_n2 = i_n1 + 1; i_n2 != tracks.end(); ++i_n2) {
@@ -245,9 +245,9 @@ struct HFTrackIndexSkimsCreator {
             std::array<float, 3> pvec0;
             std::array<float, 3> pvec1;
             std::array<float, 3> pvec2;
-            df.getTrack(0).getPxPyPzGlo(pvec0);
-            df.getTrack(1).getPxPyPzGlo(pvec1);
-            df.getTrack(2).getPxPyPzGlo(pvec2);
+            df3.getTrack(0).getPxPyPzGlo(pvec0);
+            df3.getTrack(1).getPxPyPzGlo(pvec1);
+            df3.getTrack(2).getPxPyPzGlo(pvec2);
 
             addTrack(listTracks, pvec0, masspion);
             addTrack(listTracks, pvec1, masskaon);
@@ -261,7 +261,7 @@ struct HFTrackIndexSkimsCreator {
             hftrackindexprong3(track_n1.collisionId(),
                                track_n1.globalIndex(),
                                track_p1.globalIndex(),
-                               track_n1.globalIndex(), 2.);
+                               track_n2.globalIndex(), 2);
           }
         }
       }
