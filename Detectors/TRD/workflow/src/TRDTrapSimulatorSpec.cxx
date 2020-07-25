@@ -70,23 +70,43 @@ bool msgDigitSortComparator(o2::trd::Digit const& a, o2::trd::Digit const& b)
   int rowb = b.getRow();
   int pada = a.getPad();
   int padb = b.getPad();
+  int deta = a.getDetector();
+  int detb = b.getDetector();
   double timea = a.getTimeStamp();
   double timeb = b.getTimeStamp();
   int roba = fee->getROBfromPad(rowa, pada);
   int robb = fee->getROBfromPad(rowb, padb);
   int mcma = fee->getMCMfromPad(rowa, pada);
   int mcmb = fee->getMCMfromPad(rowb, padb);
+  int hcida = deta * 2 + roba % 2;
+  int hcidb = detb * 2 + robb % 2;
   //LOG(info) << "comparing " << rowa << ":" << pada <<":" << roba <<" "<< mcma  << " with " << rowb << ":" << padb <<":" << robb <<" "<< mcmb;
   if (timea < timeb) {
     //  LOG(info) << "yip timea < timeb " << timea <<"<" << timeb;
     return 1;
   } else if (timea == timeb) {
-
-    if (a.getDetector() < b.getDetector())
+    if (hcida < hcidb)
       return 1;
     else {
-      if (a.getDetector() == b.getDetector()) {
-        if (roba < robb)
+      if (hcida == hcidb) {
+        if (mcma < mcmb)
+          return 1;
+        else
+          return 0;
+      } else
+        return 0;
+    }
+    return 0;
+
+    /* 
+    if (deta < detb)
+      return 1;
+    else {
+      if (deta == detb) {
+        if(hcida < hcidb) 
+          return 1;
+        else { 
+            if (roba < robb)
           return 1;
         else {
           if (roba == robb) {
@@ -100,8 +120,10 @@ bool msgDigitSortComparator(o2::trd::Digit const& a, o2::trd::Digit const& b)
         return 0;
       }
       return 0;
+      }
+      return 0;
     }
-    return 0;
+    return 0;*/
   }
   return 0;
 }
@@ -516,6 +538,7 @@ void TRDDPLTrapSimulatorTask::run(o2::framework::ProcessingContext& pc)
             //mTotalRawWordsWritten++; //no longer writing to raw stream
             mNewTrackletHCHeaderHasBeenWritten = true;
             LOG(debug) << mTrackletHCHeader;
+            LOG(info) << " add HCID : " << mTrackletHCHeader.HCID;
           }
           LOG(debug) << "getting trackletsteram for trapcounter = " << trapcounter;
           auto wordswritten = mTrapSimulator[trapcounter].getTrackletStream(rawdata, mTotalRawWordsWritten); // view of data from current marker and only 5 words long (can only have 4 words at most in the trackletstream for 1 MCM)
