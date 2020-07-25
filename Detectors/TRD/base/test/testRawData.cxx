@@ -35,16 +35,16 @@ namespace trd
 BOOST_AUTO_TEST_CASE(TRDRawDataHeaderSizes)
 {
   //check the sizes of header structs due to packing
-  BOOST_CHECK_EQUAL(sizeof(o2::trd::TrapRawTracklet), 4);
-  BOOST_CHECK_EQUAL(sizeof(o2::trd::HalfChamberHeader), 4);
-  BOOST_CHECK_EQUAL(sizeof(o2::trd::MCMRawDataHeader), 4);
+  BOOST_CHECK_EQUAL(sizeof(o2::trd::TrackletMCMData), 4);
+  BOOST_CHECK_EQUAL(sizeof(o2::trd::TrackletHCHeader), 4);
+  BOOST_CHECK_EQUAL(sizeof(o2::trd::TrackletMCMHeader), 4);
   BOOST_CHECK_EQUAL(sizeof(o2::trd::HalfCRUHeader), 64);
 }
 
 BOOST_AUTO_TEST_CASE(TRDRawDataHeaderInternals)
 {
-  o2::trd::TrapRawTracklet tracklet;
-  o2::trd::HalfChamberHeader halfchamberheader;
+  o2::trd::TrackletMCMData tracklet;
+  o2::trd::TrackletHCHeader halfchamberheader;
   o2::trd::HalfCRUHeader halfcruheader;
   halfcruheader.word02[0] = 0x102;
   BOOST_CHECK_EQUAL(halfcruheader.linksA[0].errorflags, 2);
@@ -78,7 +78,7 @@ BOOST_AUTO_TEST_CASE(TRDRawDataHeaderInternals)
   halfcruheader.word02[0] = (uint64_t)0x1000000000000000;
   halfcruheader.word02[1] = (uint64_t)0xa00b000c000d0ebf;
   BOOST_CHECK_EQUAL(halfcruheader.linksA[2].size, 0xbf10); // check a size that spans a 64bit word.
-  o2::trd::MCMRawDataHeader mcmrawdataheader;
+  o2::trd::TrackletMCMHeader mcmrawdataheader;
   mcmrawdataheader.word = 0x78000000;
   BOOST_CHECK_EQUAL(mcmrawdataheader.padrow, 15);
   mcmrawdataheader.word = 0x06000000;

@@ -11,11 +11,8 @@
 #ifndef ALICEO2_TRD_RAWDATA_H
 #define ALICEO2_TRD_RAWDATA_H
 
-#include <iosfwd>
-#include <iostream>
-#include <iomanip>
-#include <fstream>
 #include "fairlogger/Logger.h"
+
 /// \class TRDRDH
 /// \brief Header for TRD raw data header
 //  this is the header added by the CRU
@@ -141,11 +138,11 @@ Word 7  |            link 13 datasize                   |            link 14 dat
   };
 };
 
-/// \structure HalfChamberHeader
+/// \structure TrackletHCHeader
 /// \brief Header for each half chamber
 //         Coming before all other tracklet data, a single tracklet word as a header for its half chamber
 
-struct HalfChamberHeader {
+struct TrackletHCHeader {
   union {
     //             10987654321098765432109876543210
     // uint32_t:   00000000000000000000000000000000
@@ -170,10 +167,10 @@ struct HalfChamberHeader {
   };
 };
 
-/// \structure MCMRawDataHeader
+/// \structure TrackletMCMHeader
 /// \brief Header for MCM tracklet data outuput
-//         This constitutes the "4x32" bits of information from a single MCM, MCMRawDataHeader and 1-3 TrapRawTracklet.
-struct MCMRawDataHeader {
+//         This constitutes the "4x32" bits of information from a single MCM, TrackletMCMHeader and 1-3 TrackletMCMData.
+struct TrackletMCMHeader {
   //first word          *
   //             10987654321098765432109876543210
   // uint32_t:   00000000000000000000000000000000
@@ -190,9 +187,9 @@ struct MCMRawDataHeader {
     uint32_t word;
     struct {
       uint32_t oneb : 1;   //
-      uint32_t pid0 : 8;   // 3 parts of pid for each tracklet
-      uint32_t pid1 : 8;   // 3 parts of pid for each tracklet
-      uint32_t pid2 : 8;   // 3 parts of pid for each tracklet
+      uint32_t pid0 : 8;   // part of pid for tracklet 0
+      uint32_t pid1 : 8;   // part of pid for tracklet 1
+      uint32_t pid2 : 8;   // part of pid for tracklet 2
       uint32_t col : 2;    //  2 bits for position in pad direction.
       uint32_t padrow : 4; //  padrow,z coordinate for chip.
       uint32_t onea : 1;   //
@@ -200,16 +197,16 @@ struct MCMRawDataHeader {
   };
 };
 
-//  \structure TrapRawTracklet.
+//  \structure TrackletMCMData.
 //  \brief Raw Data of a tracklet, part is how ever in the MCM Header hence both are grouped together in the same file
 
-struct TrapRawTracklet { // This is a bad name as part of the tracklet data is in the MCMHeader.
+struct TrackletMCMData { // This is a bad name as part of the tracklet data is in the MCMHeader.
   union {
     uint32_t word;
     struct {
-      uint8_t checkbit : 1; // The size of the data for this link
-      uint16_t pid : 15;    // Particle Identity
+      uint8_t checkbit : 1; //
       uint16_t slope : 6;   // Deflection angle of tracklet
+      uint16_t pid : 15;    // Particle Identity
       uint16_t pos : 10;    // Position of tracklet, signed 10 bits, granularity 0.02 pad widths, -10.22 to +10.22, relative to centre of pad 10
     } __attribute__((__packed__));
   };
@@ -220,15 +217,15 @@ std::vector<uint32_t> getPID(char *rawdata, int tracklet)
 {
     // extract the 2 parts of the pid and return the combined PID
     // rawdata starts with the mcmheader
-    uint32_t pid = 1;//(rawdata.pid[tracklet]<<15) + rawdata.pid[]; TODO figure out a better way that is not *undefined* c++ to progress to following 32bit words after MCMRawDataHeader.
+    uint32_t pid = 1;//(rawdata.pid[tracklet]<<15) + rawdata.pid[]; TODO figure out a better way that is not *undefined* c++ to progress to following 32bit words after TrackletMCMHeader.
     //TODO come back here, marker to come back.
     std::vector<uint32_t> pids;
-    MCMRawDataHeader mcmheader;
-    TrapRawTracklet trackletdata;
+    TrackletMCMHeader mcmheader;
+    TrackletMCMData trackletdata;
     //memcpy(&mcmheader,&rawdata[0],sizeof(mcmheader));
     std::copy(rawdata.begin(), rawdata.begin()+sizeof(mcmheader),(char*)&mcmheader);
     for(int tracklet=0;tracklet<3;tracklet++){
-        memcpy(&trackletdata,&rawdata[0]+sizeof(mcmheader)+tracklet*sizeof(trackletdata),sizeof(TrapRawTracklet));
+        memcpy(&trackletdata,&rawdata[0]+sizeof(mcmheader)+tracklet*sizeof(trackletdata),sizeof(TrackletMCMData));
         uint32_t headpid=0;
         switch(tracklet){
             case 0 : headpid=mcmheader.pid0;break;
@@ -243,193 +240,54 @@ std::vector<uint32_t> getPID(char *rawdata, int tracklet)
 
 uint32_t getPadRow(const char *rawdata)
 {
-    MCMRawDataHeader mcmheader;
-    memcpy(&mcmheader, rawdata,sizeof(MCMRawDataHeader));
+    TrackletMCMHeader mcmheader;
+    memcpy(&mcmheader, rawdata,sizeof(TrackletMCMHeader));
     return mcmheader.padrow;
 
 }
 uint32_t getCol(const char* rawdata)
 {
-    MCMRawDataHeader mcmheader;
-    memcpy(&mcmheader, rawdata,sizeof(MCMRawDataHeader));
+    TrackletMCMHeader mcmheader;
+    memcpy(&mcmheader, rawdata,sizeof(TrackletMCMHeader));
     return mcmheader.col;
 
 }
 int16_t getPos(const char* rawdata, int tracklet) 
 {
     // extract y from the tracklet word, raw data points to the mcmheader of this data.
-    //rawdata points to the MCMRawDataHeader
-     TrapRawTracklet trackletdata;
-    MCMRawDataHeader mcmrawdataheader;
-    memcpy(&mcmrawdataheader,rawdata,sizeof(MCMRawDataHeader));
-    memcpy(&trackletdata,rawdata+sizeof(MCMRawDataHeader));
+    //rawdata points to the TrackletMCMHeader
+     TrackletMCMData trackletdata;
+    TrackletMCMHeader mcmrawdataheader;
+    memcpy(&mcmrawdataheader,rawdata,sizeof(TrackletMCMHeader));
+    memcpy(&trackletdata,rawdata+sizeof(TrackletMCMHeader));
     return trackletdata.pos;
     return 1;
 }
 uint32_t getSlope(const *rawdata, int tracklet)
 {
     // extract dy or slope from the tracklet word, raw data points to the mcmheader of this data.
-    TrapRawTracklet trackletdata;
-    memcpy(&trackletdata,&rawdata[0]+sizeof(MCMRawDataHeader)+tracklet*sizeof(trackletdata),sizeof(TrapRawTracklet));
+    TrackletMCMData trackletdata;
+    memcpy(&trackletdata,&rawdata[0]+sizeof(TrackletMCMHeader)+tracklet*sizeof(trackletdata),sizeof(TrackletMCMData));
     return trackletdata.slope;
 }
-due to the interplay of MCMRawDataHeader and TrapRawTracklet come back to this. TODO
+due to the interplay of TrackletMCMHeader and TrackletMCMData come back to this. TODO
 */
 
-uint32_t unpacklinkinfo(const HalfCRUHeader& cruhead, const uint32_t link, const bool data = true)
-{
-  //TODO this needs some more ellaborate testing. I got the packing to work so for now,
-  //     its a question of unpacking info in line 88 and 89.
-  uint32_t info = 0;
-  if (link > 14)
-    return 0xffffffff;
-
-  char* words;
-  if (link < 8)
-    words = (char*)&cruhead.word02[0];
-  if (link < 15)
-    words = (char*)&cruhead.word57[0];
-  uint32_t byteoffset = link * 3; // each link [size+erroflags] is 24 bits, so 3 bytes.
-  if (data)
-    info = ((words[byteoffset + 1]) << 8) + (words[byteoffset + 2]);
-  else
-    info = words[byteoffset];
-
-  return info;
+uint32_t unpacklinkinfo(const HalfCRUHeader& cruhead, const uint32_t link, const bool data);
+uint32_t getlinkerrorflag(const HalfCRUHeader& cruhead, const uint32_t link);
+uint32_t getlinkdatasize(const HalfCRUHeader& cruhead, const uint32_t link);
+uint32_t getlinkerrorflags(const HalfCRUHeader& cruheader, std::array<uint32_t, 15>& linkerrorflags);
+uint32_t getlinkdatasizes(const HalfCRUHeader& cruheader, std::array<uint32_t, 15>& linksizes);
+std::ostream& operator<<(std::ostream& stream, const TrackletHCHeader halfchamberheader);
+std::ostream& operator<<(std::ostream& stream, const TrackletMCMData& tracklet);
+void printTrackletMCMData(o2::trd::TrackletMCMData& tracklet);
+void printTrackletMCMHeader(o2::trd::TrackletMCMHeader& mcmhead);
+std::ostream& operator<<(std::ostream& stream, const TrackletMCMHeader& mcmhead);
+void printHalfChamber(o2::trd::TrackletHCHeader& halfchamber);
+void dumpHalfChamber(o2::trd::TrackletHCHeader& halfchamber);
+void printHalfCRUHeader(o2::trd::HalfCRUHeader& halfcru);
+void dumpHalfCRUHeader(o2::trd::HalfCRUHeader& halfcru);
+std::ostream& operator<<(std::ostream& stream, const HalfCRUHeader& halfcru);
 }
-
-uint32_t getlinkerrorflag(const HalfCRUHeader& cruhead, const uint32_t link)
-{
-  uint32_t errorflags = 0;
-  if (link < 8) {
-    //dealing with word0-2
-    errorflags = cruhead.linksA[link].errorflags;
-  } else {
-    if (link < 16) {
-      errorflags = cruhead.linksB[link - 8 + 1].errorflags; // link 0 [actually 9] is in fact the end part of reserved.
-
-    } else
-      std::cout << "error link=" << link << " not in range 0-14" << std::endl;
-  }
-  return errorflags;
 }
-
-uint32_t getlinkdatasize(const HalfCRUHeader& cruhead, const uint32_t link)
-{
-  //return number 32 byte blocks for the link 3x64bit ints.
-  uint32_t size = 0;
-  if (link < 8) {
-    size = (cruhead.linksA[link].size);
-  } else {
-    if (link < 16) { // link 0 is part of reserved
-      size = cruhead.linksB[link - 8 + 1].size;
-
-    } else
-      std::cout << "error link=" << link << " not in range 0-14" << std::endl;
-  }
-  return size;
-}
-
-uint32_t getlinkerrorflags(const HalfCRUHeader& cruheader, std::array<uint32_t, 15>& linkerrorflags)
-{
-  for (uint32_t link = 0; link < 15; link++) {
-    linkerrorflags[link] = getlinkerrorflag(cruheader, link);
-  }
-  return 0;
-}
-uint32_t getlinkdatasizes(const HalfCRUHeader& cruheader, std::array<uint32_t, 15>& linksizes)
-{
-  for (uint32_t link = 0; link < 15; link++) {
-    linksizes[link] = getlinkdatasize(cruheader, link);
-  }
-  return 0;
-}
-
-/*
- *  Printing methods to dump and display the various structures above in pretty format or hexdump
- */
-
-std::ostream& operator<<(std::ostream& stream, const HalfChamberHeader halfchamberheader)
-{
-  stream << "HalfChamberHeader : " << halfchamberheader.format << " ;; " << halfchamberheader.MCLK << " :: " << halfchamberheader.one << " :: " << halfchamberheader.HCID << std::endl;
-  return stream;
-}
-
-std::ostream& operator<<(std::ostream& stream, const TrapRawTracklet& tracklet)
-{
-  // make a pretty output of the tracklet.
-  stream << "TrapRawTracklet: pos=" << tracklet.pos << "::slope=" << tracklet.slope << "::pid=" << tracklet.pid << "::checkbit=" << tracklet.checkbit << std::endl;
-  return stream;
-}
-void printTrapRawTracklet(o2::trd::TrapRawTracklet& tracklet)
-{
-  LOGF(INFO, "TrapRawTracklet: ");
-}
-
-void printMCMHeader(o2::trd::MCMRawDataHeader& mcmhead)
-{
-  LOGF(INFO, "MCMRawHeader: 1:%d padrow: 0x%02x col: 0x%01x pid2 0x%02x pid1: 0x%02x pid0: 0x%02x 1:%d", mcmhead.onea, mcmhead.padrow, mcmhead.col, mcmhead.pid2, mcmhead.pid1, mcmhead.pid0, mcmhead.oneb);
-}
-
-std::ostream& operator<<(std::ostream& stream, const MCMRawDataHeader& mcmhead)
-{
-  // make a pretty output of the mcm header.
-  // stream << "MCMRawHeader:" << mcmhead.checkbits << "::" << (mcmhead.pid&0xfff000000) << ":"<<  (mcmhead.pid&0xfff000) << ":"<< (mcmhead.pid&0xfff) << std::endl;
-  stream << "MCMRawHeader:" << mcmhead.onea << "::" << mcmhead.pid2 << ":" << mcmhead.pid1 << ":" << mcmhead.pid0 << "::" << mcmhead.oneb << std::endl;
-  return stream;
-}
-
-void printHalfChamber(o2::trd::HalfChamberHeader& halfchamber)
-{
-  LOGF(INFO, "HCID : %d MCLK: %d Format: %d Always1:%d", halfchamber.HCID, halfchamber.MCLK, halfchamber.format, halfchamber.one);
-}
-
-void dumpHalfChamber(o2::trd::HalfChamberHeader& halfchamber)
-{
-  LOGF(INFO, "HalfChamber : 0x%08x", halfchamber.word);
-}
-
-void printHalfCRUHeader(o2::trd::HalfCRUHeader& halfcru)
-{
-  std::array<uint32_t, 15> sizes;
-  std::array<uint32_t, 15> errorflags;
-  getlinkdatasizes(halfcru, sizes);
-  getlinkerrorflags(halfcru, errorflags);
-  LOGF(INFO, "V:%d BC:%d SB:%d EType:%d", halfcru.HeaderVersion, halfcru.BunchCrossing, halfcru.StopBit, halfcru.EventType);
-  for (int i = 0; i < 15; i++)
-    LOGF(INFO, "Link %d size: %ul eflag: 0x%02x", i, sizes[i], errorflags[i]);
-}
-
-void dumpHalfCRUHeader(o2::trd::HalfCRUHeader& halfcru)
-{
-  std::array<uint32_t, 16> raw{};
-  memcpy(&raw[0], &halfcru, sizeof(halfcru));
-  for (int i = 0; i < 4; i++) {
-    int index = 4 * i;
-    LOGF(INFO, "[1/2CRUHeader %d] 0x%08x 0x%08x 0x%08x 0x%08x", i, raw[index + 3], raw[index + 2], raw[index + 1], raw[index + 0]);
-  }
-}
-
-std::ostream& operator<<(std::ostream& stream, const HalfCRUHeader& halfcru) // make a pretty output of the header.
-{
-  stream << std::hex;
-  stream << "EventType : " << halfcru.EventType << std::endl;
-  stream << "StopBit : " << halfcru.StopBit << std::endl;
-  stream << "BunchCrossing : " << halfcru.BunchCrossing << std::endl;
-  stream << "HeaderVersion : " << halfcru.HeaderVersion << std::endl;
-  stream << "link  sizes : ";
-  for (int link = 0; link < 15; link++)
-    stream << link << ":" << std::hex << std::setw(4) << getlinkdatasize(halfcru, link) << ",";
-  stream << std::endl;
-  stream << "link  errorflags : ";
-  for (int link = 0; link < 15; link++)
-    stream << link << ":" << std::hex << std::setw(2) << getlinkerrorflag(halfcru, link) << ",";
-  stream << std::endl;
-  stream << "0x" << halfcru.word02[0] << " 0x" << halfcru.word02[1] << " 0x" << halfcru.word02[2] << " 0x" << halfcru.word3 << " 0x" << halfcru.word4 << " 0x" << halfcru.word57[0] << " 0x" << halfcru.word57[1] << " 0x" << halfcru.word57[2] << std::endl;
-  return stream;
-}
-
-} // namespace trd
-} // namespace o2
-
 #endif
