@@ -330,6 +330,10 @@ int GPUReconstructionHIPBackend::InitDevice_Runtime()
       GPUError("Could not set HIP Device!");
       return (1);
     }
+    if (GPUFailedMsgI(hipSetDeviceFlags(hipDeviceScheduleBlockingSync))) {
+      GPUError("Could not set HIP Device!");
+      return (1);
+    }
 
     /*if (GPUFailedMsgI(hipDeviceSetLimit(hipLimitStackSize, GPUCA_GPU_STACK_SIZE)))
     {
@@ -398,7 +402,7 @@ int GPUReconstructionHIPBackend::InitDevice_Runtime()
   for (unsigned int i = 0; i < mEvents.size(); i++) {
     hipEvent_t* events = (hipEvent_t*)mEvents[i].data();
     for (unsigned int j = 0; j < mEvents[i].size(); j++) {
-      if (GPUFailedMsgI(hipEventCreate(&events[j]))) {
+      if (GPUFailedMsgI(hipEventCreateWithFlags(&events[j], hipEventBlockingSync))) {
         GPUError("Error creating event");
         GPUFailedMsgI(hipDeviceReset());
         return 1;
