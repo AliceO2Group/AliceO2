@@ -46,6 +46,7 @@ class VertexBase
 
 #ifndef ALIGPU_GPUCODE
   void print() const;
+  std::string asString() const;
 #endif
 
   // getting the cartesian coordinates and errors
@@ -123,6 +124,7 @@ class Vertex : public VertexBase
 
   ushort getNContributors() const { return mNContributors; }
   void setNContributors(ushort v) { mNContributors = v; }
+  void addContributor() { mNContributors++; }
 
   ushort getBits() const { return mBits; }
   bool isBitSet(int bit) const { return mBits & (FlagsMask & (0x1 << bit)); }
@@ -153,7 +155,8 @@ template <typename Stamp>
 inline std::ostream& operator<<(std::ostream& os, const o2::dataformats::Vertex<Stamp>& v)
 {
   // stream itself
-  os << (const VertexBase&)v << "\n NCont: " << v.getNContributors() << " Chi2: " << v.getChi2() << " TimeStamp: " << v.getTimeStamp();
+  os << (const VertexBase&)v << " "
+     << "NCont: " << v.getNContributors() << " Chi2: " << v.getChi2() << " TimeStamp: " << v.getTimeStamp();
   return os;
 }
 

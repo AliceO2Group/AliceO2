@@ -19,6 +19,10 @@
 // this aliase are defined in the DCAFitterN.h as o2::vertexing::DCAFitterN<3,o2::track::TrackParCov>
 #pragma link C++ class o2::vertexing::DCAFitter3 + ;
 
+#pragma link C++ class o2::vertexing::PVertexer + ;
+#pragma link C++ class o2::vertexing::PVertexerParams + ;
+#pragma link C++ class o2::conf::ConfigurableParamHelper < o2::vertexing::PVertexerParams> + ;
+
 #pragma link C++ class o2::track::TrackAuxPar + ;
 #pragma link C++ class o2::track::CrossInfo + ;
 
