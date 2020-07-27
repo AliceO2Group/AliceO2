@@ -14,19 +14,27 @@
 #include "EMCALBase/Geometry.h"
 #include "EMCALBase/RCUTrailer.h"
 #include "EMCALSimulation/RawWriter.h"
-#include "Headers/RAWDataHeader.h"
 
 using namespace o2::emcal;
 
-void RawWriter::setTriggerRecords(std::vector<o2::emcal::TriggerRecord>* triggers)
+void RawWriter::setTriggerRecords(gsl::span<o2::emcal::TriggerRecord> triggers)
 {
   mTriggers = triggers;
-  mCurrentTrigger = triggers->begin();
+  mCurrentTrigger = triggers.begin();
 }
 
 void RawWriter::init()
 {
-  mPageHandler = std::make_unique<RawOutputPageHandler>(mRawFilename.data());
+  mRawWriter = std::make_unique<o2::raw::RawFileWriter>(o2::header::gDataOriginEMC);
+  for (auto iddl = 0; iddl < 40; iddl++) {
+    // For EMCAL set
+    // - FEE ID = DDL ID
+    // - C-RORC and link increasing with DDL ID
+    // @TODO replace with link assignment on production FLPs,
+    // eventually storing in CCDB
+    auto [crorc, link] = getLinkAssignment(iddl);
+    mRawWriter->registerLink(iddl, crorc, link, 0, mRawFilename.data());
+  }
   // initialize mappers
   std::array<char, 4> sides = {{'A', 'C'}};
   for (auto iside = 0; iside < sides.size(); iside++) {
@@ -43,15 +51,28 @@ void RawWriter::init()
   }
 }
 
-void RawWriter::processNextTrigger()
+void RawWriter::process()
 {
-  // initialize page handler when processing the first trigger
-  mPageHandler->initTrigger(mCurrentTrigger->getBCData());
+  while (processNextTrigger())
+    ;
+}
+
+void RawWriter::processTimeFrame(gsl::span<o2::emcal::Digit> digitsbranch, gsl::span<o2::emcal::TriggerRecord> triggerbranch)
+{
+  setDigits(digitsbranch);
+  setTriggerRecords(triggerbranch);
+  process();
+}
+
+bool RawWriter::processNextTrigger()
+{
+  if (mCurrentTrigger == mTriggers.end())
+    return false;
   for (auto srucont : mSRUdata)
     srucont.mChannels.clear();
   std::vector<o2::emcal::Digit*>* bunchDigits;
   int lasttower = -1;
-  for (auto& dig : gsl::span(&mDigits->data()[mCurrentTrigger->getFirstEntry()], mCurrentTrigger->getNumberOfObjects())) {
+  for (auto& dig : gsl::span(mDigits.data() + mCurrentTrigger->getFirstEntry(), mCurrentTrigger->getNumberOfObjects())) {
     auto tower = dig.getTower();
     if (tower != lasttower) {
       lasttower = tower;
@@ -72,13 +93,6 @@ void RawWriter::processNextTrigger()
   // Create and fill DMA pages for each channel
   std::vector<char> payload;
   for (auto srucont : mSRUdata) {
-    // EMCAL does not set HBF triggers, only set trigger BC and orbit
-    o2::header::RAWDataHeaderV4 rawheader;
-    rawheader.triggerBC = mCurrentTrigger->getBCData().bc;
-    rawheader.triggerOrbit = mCurrentTrigger->getBCData().orbit;
-    // @TODO: Set trigger type
-    rawheader.feeId = srucont.mSRUid;
-    rawheader.linkID = srucont.mSRUid;
 
     for (const auto& [tower, channel] : srucont.mChannels) {
       // Find out hardware address of the channel
@@ -109,9 +123,13 @@ void RawWriter::processNextTrigger()
     for (auto word : trailerwords)
       payload.emplace_back(word);
 
-    // write DMA page to stream
-    mPageHandler->addPageForLink(srucont.mSRUid, rawheader, payload);
+    // register output data
+    auto ddlid = srucont.mSRUid;
+    auto [crorc, link] = getLinkAssignment(ddlid);
+    mRawWriter->addData(ddlid, crorc, link, 0, mCurrentTrigger->getBCData(), payload);
   }
+  mCurrentTrigger++;
+  return true;
 }
 
 std::vector<AltroBunch> RawWriter::findBunches(const std::vector<o2::emcal::Digit*>& channelDigits)
@@ -166,6 +184,14 @@ std::tuple<int, int, int> RawWriter::getOnlineID(int towerID)
     sruID = 1 - sruID; // swap for odd=C side, to allow us to cable both sides the same
 
   return std::make_tuple(sruID, row, col);
+}
+
+std::tuple<int, int> RawWriter::getLinkAssignment(int ddlID)
+{
+  // Temporary link assignment (till final link assignment is known -
+  // eventually taken from CCDB)
+  // - Link (0-5) and C-RORC ID linear with ddlID
+  return std::make_tuple(ddlID / 6, ddlID % 6);
 }
 
 std::vector<int> RawWriter::encodeBunchData(const std::vector<int>& data)
