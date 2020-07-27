@@ -14,6 +14,7 @@ o2_add_library(
           src/CrateMapper.cxx
           src/CrateMasks.cxx
           src/Decoder.cxx
+          src/ElectronicsDelay.cxx
           src/ELinkDecoder.cxx
           src/Encoder.cxx
           src/FEEIdConfig.cxx
