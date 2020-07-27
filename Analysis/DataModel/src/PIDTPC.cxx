@@ -28,7 +28,7 @@ float RelResolutionF(float npoints, const std::array<float, 2> p)
 
 float Param::GetExpectedSignal(float mom, float mass, float charge) const
 {
-  return mBetheBloch.GetValue(mom / mass) * fMIP * GetChargeFactor(charge);
+  return mBetheBloch.GetValue(mom / mass) * mMIP * GetChargeFactor(charge);
 }
 
 float Param::GetExpectedSigma(float npoints, float tpcsignal) const

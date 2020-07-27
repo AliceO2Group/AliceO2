@@ -60,7 +60,7 @@ class Param
   /// Parametrization of the resolution
   Parametrization<float, 2, RelResolutionF> mRelResolution = Parametrization<float, 2, RelResolutionF>();
 
-  float fMIP = 50.f; // dEdx for MIP
+  float mMIP = 50.f; // dEdx for MIP
  private:
 };
 
