@@ -46,7 +46,8 @@ class TrackFitter
 
   void setBz(float bZ);
 
-  bool fit(TrackLTF& track);
+  bool initTrack(TrackLTF& track, bool outward = false);
+  bool fit(TrackLTF& track, bool outward = false);
 
   bool runKalmanFilter(TrackLTF& track, int cluster);
 
@@ -54,7 +55,6 @@ class TrackFitter
   static constexpr double getMaxChi2() { return SMaxChi2; }
 
  private:
-  bool initTrack(TrackLTF& track);
   bool addCluster(TrackLTF& track, int cluster);
 
   Float_t mBZField;                         // kiloGauss.
@@ -64,7 +64,6 @@ class TrackFitter
                                                      0.035, 0.035, 0.035, 0.035, 0.035};
 
   bool mFieldON = true;
-  //o2::mft::TrackExtrap mTrackExtrap;
 };
 
 // Functions to estimate momentum and charge from track curvature

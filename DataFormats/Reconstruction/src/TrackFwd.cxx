@@ -27,53 +27,9 @@ TrackParCovFwd::TrackParCovFwd(const Double_t z, const SMatrix5 parameters, cons
 }
 
 //__________________________________________________________________________
-const SMatrix55& TrackParCovFwd::getCovariances() const
+void TrackParFwd::propagateParamToZlinear(double zEnd)
 {
-  /// Return the covariance matrix (create it before if needed)
-  return mCovariances;
-}
-
-//__________________________________________________________________________
-void TrackParCovFwd::setCovariances(const SMatrix55& covariances)
-{
-  /// Set the covariance matrix
-  mCovariances = covariances;
-}
-
-//__________________________________________________________________________
-void TrackParCovFwd::deleteCovariances()
-{
-  /// Delete the covariance matrix
-  mCovariances = SMatrix55();
-}
-
-/* //_________________________________________________________________________
-TrackParCovFwd& TrackParCovFwd::operator=(const TrackParCovFwd& tp)
-{
-  /// Assignment operator
-  if (this == &tp)
-    return *this;
-
-  TrackParFwd::operator=(tp);
-  mCovariances = tp.mCovariances;
-  return *this;
-}
-*/
-
-/*
-//_________________________________________________________________________
-TrackParCovFwd::TrackParCovFwd(const TrackParCovFwd& tp)
-  : TrackParFwd(tp)
-{
-  /// Copy constructor
-  mCovariances = tp.mCovariances;
-}
-*/
-
-//__________________________________________________________________________
-void TrackParFwd::linearExtrapToZ(double zEnd)
-{
-  /// Track linearly extrapolated to the plane at "zEnd".
+  // Track parameters linearly extrapolated to the plane at "zEnd".
 
   if (getZ() == zEnd) {
     return; // nothing to be done if same z
@@ -96,10 +52,9 @@ void TrackParFwd::linearExtrapToZ(double zEnd)
 }
 
 //__________________________________________________________________________
-void TrackParCovFwd::linearExtrapToZCov(double zEnd)
+void TrackParCovFwd::propagateToZlinear(double zEnd)
 {
-  /// Track parameters and their covariances linearly extrapolated to the plane at "zEnd".
-  /// On return, results from the extrapolation are updated in trackParam.
+  // Track parameters and their covariances linearly extrapolated to the plane at "zEnd".
 
   // Calculate the jacobian related to the track parameters extrapolated to "zEnd"
   auto dZ = (zEnd - getZ());
@@ -114,10 +69,8 @@ void TrackParCovFwd::linearExtrapToZCov(double zEnd)
   auto m = n * invtanl0;
 
   // Extrapolate track parameters to "zEnd"
-  auto x = x0 + n * cosphi0;
-  auto y = y0 + n * sinphi0;
-  setX(x);
-  setY(y);
+  mParameters(0) += n * cosphi0;
+  mParameters(1) += n * sinphi0;
   setZ(zEnd);
 
   // Calculate Jacobian
@@ -132,10 +85,9 @@ void TrackParCovFwd::linearExtrapToZCov(double zEnd)
 }
 
 //__________________________________________________________________________
-void TrackParFwd::quadraticExtrapToZ(double zEnd, double zField)
+void TrackParFwd::propagateParamToZquadratic(double zEnd, double zField)
 {
-  /// Track parameters extrapolated to the plane at "zEnd" considering a helix
-  /// On return, results from the extrapolation are updated in trackParam.
+  // Track parameters extrapolated to the plane at "zEnd" considering a helix
 
   if (getZ() == zEnd) {
     return; // nothing to be done if same z
@@ -143,8 +95,6 @@ void TrackParFwd::quadraticExtrapToZ(double zEnd, double zField)
 
   // Compute track parameters
   auto dZ = (zEnd - getZ());
-  auto x0 = getX();
-  auto y0 = getY();
   auto phi0 = getPhi();
   double cosphi0, sinphi0;
   o2::utils::sincos(phi0, sinphi0, cosphi0);
@@ -154,21 +104,19 @@ void TrackParFwd::quadraticExtrapToZ(double zEnd, double zField)
   auto k = TMath::Abs(o2::constants::math::B2C * zField);
   auto n = dZ * invtanl0;
   auto theta = -invqpt0 * dZ * k * invtanl0;
-  auto x = x0 + n * cosphi0 - 0.5 * n * theta * Hz * sinphi0;
-  auto y = y0 + n * sinphi0 + 0.5 * n * theta * Hz * cosphi0;
-  auto phi = phi0 + Hz * theta;
 
-  setX(x);
-  setY(y);
+  mParameters(0) += n * cosphi0 - 0.5 * n * theta * Hz * sinphi0;
+  mParameters(1) += n * sinphi0 + 0.5 * n * theta * Hz * cosphi0;
+  mParameters(2) += Hz * theta;
   setZ(zEnd);
-  setPhi(phi);
 }
 
 //__________________________________________________________________________
-void TrackParCovFwd::quadraticExtrapToZCov(double zEnd, double zField)
+void TrackParCovFwd::propagateToZquadratic(double zEnd, double zField)
 {
-
   // Extrapolate track parameters and covariances matrix to "zEnd"
+  // using quadratic track model
+
   if (getZ() == zEnd) {
     return; // nothing to be done if same z
   }
@@ -213,10 +161,10 @@ void TrackParCovFwd::quadraticExtrapToZCov(double zEnd, double zField)
 }
 
 //__________________________________________________________________________
-void TrackParFwd::helixExtrapToZ(double zEnd, double zField)
+void TrackParFwd::propagateParamToZhelix(double zEnd, double zField)
 {
-  /// Track parameters extrapolated to the plane at "zEnd" considering a helix
-  /// On return, results from the extrapolation are updated in trackParam.
+  // Track parameters extrapolated to the plane at "zEnd"
+  // using helix track model
 
   if (getZ() == zEnd) {
     return; // nothing to be done if same z
@@ -257,10 +205,11 @@ void TrackParFwd::helixExtrapToZ(double zEnd, double zField)
 }
 
 //__________________________________________________________________________
-void TrackParCovFwd::helixExtrapToZCov(double zEnd, double zField)
+void TrackParCovFwd::propagateToZhelix(double zEnd, double zField)
 {
-
   // Extrapolate track parameters and covariances matrix to "zEnd"
+  // using helix track model
+
   auto dZ = (zEnd - getZ());
   auto x0 = getX();
   auto y0 = getY();
@@ -320,27 +269,28 @@ void TrackParCovFwd::helixExtrapToZCov(double zEnd, double zField)
 }
 
 //__________________________________________________________________________
-void TrackParCovFwd::addMCSEffect(double dZ, double x0)
+void TrackParCovFwd::addMCSEffect(double dZ, double x_over_X0)
 {
-  /// Add to the track parameter covariances the effects of multiple Coulomb scattering
-  /// through a material of thickness "abs(dZ)" and of radiation length "x0"
-  /// assuming linear propagation and using the small angle approximation.
-  /// All scattering evaluated happens at the position of the first cluster
+  /// Add multiple Coulomb scattering effects to the track parameter covariances.
+  ///  * if (dZ > 0): MCS effects are evaluated with a linear propagation model.
+  ///  * if (dZ <= 0): only angular MCS effects are evaluated as if dZ = 0.
+  ///  * x_over_X0 is the fraction of the radiation lenght (x/X0).
+  ///  * No energy loss correction.
+  ///  * All scattering evaluated at the position of the first cluster.
 
   auto phi0 = getPhi();
   auto tanl0 = getTanl();
   auto invtanl0 = 1.0 / tanl0;
   auto invqpt0 = getInvQPt();
-  auto p = getP();
 
   double cosphi0, sinphi0;
   o2::utils::sincos(phi0, sinphi0, cosphi0);
 
   auto csclambda = TMath::Abs(TMath::Sqrt(1 + tanl0 * tanl0) * invtanl0);
-  auto pathLengthOverX0 = x0 * csclambda;
+  auto pathLengthOverX0 = x_over_X0 * csclambda; //
 
   // Angular dispersion square of the track (variance) in a plane perpendicular to the trajectory
-  auto sigmathetasq = 0.0136 * invqpt0 * (1 + 0.038 * TMath::Log(pathLengthOverX0));
+  auto sigmathetasq = 0.0136 * getInverseMomentum() * (1 + 0.038 * TMath::Log(pathLengthOverX0));
   sigmathetasq *= sigmathetasq * pathLengthOverX0;
 
   // Get covariance matrix
@@ -359,40 +309,30 @@ void TrackParCovFwd::addMCSEffect(double dZ, double x0)
     newParamCov(0, 0) += sigmathetasq * F * F;
 
     newParamCov(0, 1) += sigmathetasq * F * G;
-    newParamCov(1, 0) += sigmathetasq * F * G;
 
     newParamCov(1, 1) += sigmathetasq * G * G;
 
     newParamCov(2, 0) += sigmathetasq * F;
-    newParamCov(0, 2) += sigmathetasq * F;
 
     newParamCov(2, 1) += sigmathetasq * G;
-    newParamCov(1, 2) += sigmathetasq * G;
 
     newParamCov(2, 2) += sigmathetasq;
 
     newParamCov(3, 0) += sigmathetasq * A * F;
-    newParamCov(0, 3) += sigmathetasq * A * F;
 
     newParamCov(3, 1) += sigmathetasq * A * G;
-    newParamCov(1, 3) += sigmathetasq * A * G;
 
     newParamCov(3, 2) += sigmathetasq * A;
-    newParamCov(2, 3) += sigmathetasq * A;
 
     newParamCov(3, 3) += sigmathetasq * A * A;
 
     newParamCov(4, 0) += sigmathetasq * F * H;
-    newParamCov(0, 4) += sigmathetasq * F * H;
 
     newParamCov(4, 1) += sigmathetasq * G * H;
-    newParamCov(1, 4) += sigmathetasq * G * H;
 
     newParamCov(4, 2) += sigmathetasq * H;
-    newParamCov(2, 4) += sigmathetasq * H;
 
     newParamCov(4, 3) += sigmathetasq * A * H;
-    newParamCov(3, 4) += sigmathetasq * A * H;
 
     newParamCov(4, 4) += sigmathetasq * tanl0 * tanl0 * invqpt0 * invqpt0;
   } else {
@@ -403,15 +343,12 @@ void TrackParCovFwd::addMCSEffect(double dZ, double x0)
     newParamCov(2, 2) += sigmathetasq;
 
     newParamCov(3, 2) += sigmathetasq * A;
-    newParamCov(2, 3) += sigmathetasq * A;
 
     newParamCov(3, 3) += sigmathetasq * A * A;
 
     newParamCov(4, 2) += sigmathetasq * H;
-    newParamCov(2, 4) += sigmathetasq * H;
 
     newParamCov(4, 3) += sigmathetasq * A * H;
-    newParamCov(3, 4) += sigmathetasq * A * H;
 
     newParamCov(4, 4) += sigmathetasq * tanl0 * tanl0 * invqpt0 * invqpt0;
   }
