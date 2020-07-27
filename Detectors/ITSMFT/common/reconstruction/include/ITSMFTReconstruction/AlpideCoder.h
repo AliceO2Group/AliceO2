@@ -20,8 +20,10 @@
 #include <FairLogger.h>
 #include <iostream>
 #include "PayLoadCont.h"
+#include <map>
 
 #include "ITSMFTReconstruction/PixelData.h"
+#include "DataFormatsITSMFT/NoiseMap.h"
 
 /// \file AlpideCoder.h
 /// \brief class for the ALPIDE data decoding/encoding
@@ -103,6 +105,9 @@ class AlpideCoder
 
   static bool isEmptyChip(uint8_t b) { return (b & CHIPEMPTY) == CHIPEMPTY; }
 
+  static void setNoisyPixels(const NoiseMap* noise) { mNoisyPixels = noise; }
+  static void setNoiseThreshold(int t) { mNoiseThreshold = t; }
+
   /// decode alpide data for the next non-empty chip from the buffer
   template <class T>
   static int decodeChip(ChipPixelData& chipData, T& buffer)
@@ -127,7 +132,7 @@ class AlpideCoder
       uint8_t dataCM = dataC & (~MaskChipID);
       //
       if ((expectInp & ExpectChipEmpty) && dataCM == CHIPEMPTY) { // empty chip was expected
-        chipData.setChipID(dataC & MaskChipID);                   // here we set the chip ID within the module
+        //chipData.setChipID(dataC & MaskChipID);                   // here we set the chip ID within the module
         if (!buffer.next(timestamp)) {
           return unexpectedEOF("CHIP_EMPTY:Timestamp");
         }
@@ -136,7 +141,7 @@ class AlpideCoder
       }
 
       if ((expectInp & ExpectChipHeader) && dataCM == CHIPHEADER) { // chip header was expected
-        chipData.setChipID(dataC & MaskChipID);                     // here we set the chip ID within the module
+        //chipData.setChipID(dataC & MaskChipID);                     // here we set the chip ID within the module
         if (!buffer.next(timestamp)) {
           return unexpectedEOF("CHIP_HEADER");
         }
@@ -158,7 +163,7 @@ class AlpideCoder
         if (nRightCHits) {
           colDPrev++;
           for (int ihr = 0; ihr < nRightCHits; ihr++) {
-            chipData.getData().emplace_back(rightColHits[ihr], colDPrev);
+            addHit(chipData, rightColHits[ihr], colDPrev);
           }
         }
         break;
@@ -186,7 +191,7 @@ class AlpideCoder
           if (colD != colDPrev) {
             colDPrev++;
             for (int ihr = 0; ihr < nRightCHits; ihr++) {
-              chipData.getData().emplace_back(rightColHits[ihr], colDPrev);
+              addHit(chipData, rightColHits[ihr], colDPrev);
             }
             colDPrev = colD;
             nRightCHits = 0; // reset the buffer
@@ -200,7 +205,7 @@ class AlpideCoder
           if (rightC) {
             rightColHits[nRightCHits++] = row; // col = colD+1
           } else {
-            chipData.getData().emplace_back(row, colD); // col = colD, left column hits are added directly to the container
+            addHit(chipData, row, colD); // col = colD, left column hits are added directly to the container
           }
 
           if ((dataS & (~MaskDColID)) == DATALONG) { // multiple hits ?
@@ -216,7 +221,7 @@ class AlpideCoder
                 if (rightC) { // same as above
                   rightColHits[nRightCHits++] = rowE;
                 } else {
-                  chipData.getData().emplace_back(rowE, colD + rightC); // left column hits are added directly to the container
+                  addHit(chipData, rowE, colD + rightC); // left column hits are added directly to the container
                 }
               }
             }
@@ -264,8 +269,27 @@ class AlpideCoder
   void print() const;
   void reset();
   //
+  template <class T>
+  static int getChipID(T& buffer)
+  {
+    uint8_t id = 0;
+    return (buffer.current(id) && isChipHeaderOrEmpty(id)) ? (id & AlpideCoder::MaskChipID) : -1;
+  }
 
  private:
+  /// Output a non-noisy fired pixel
+  static void addHit(ChipPixelData& chipData, short row, short col)
+  {
+    if (mNoisyPixels) {
+      auto chipID = chipData.getChipID();
+      if (mNoisyPixels->getNoiseLevel(chipID, row, col) > mNoiseThreshold) {
+        return;
+      }
+    }
+
+    chipData.getData().emplace_back(row, col);
+  }
+
   ///< add pixed to compressed matrix, the data must be provided sorted in row/col, no check is done
   void addPixel(short row, short col)
   {
@@ -346,11 +370,15 @@ class AlpideCoder
 
   // =====================================================================
   //
+
+  static const NoiseMap* mNoisyPixels;
+  static int mNoiseThreshold;
+
   // cluster map used for the ENCODING only
   std::vector<int> mFirstInRow;     //! entry of 1st pixel of each non-empty row in the mPix2Encode
   std::vector<PixLink> mPix2Encode; //! pool of links: fired pixel + index of the next one in the row
   //
-  ClassDefNV(AlpideCoder, 1);
+  ClassDefNV(AlpideCoder, 2);
 };
 
 } // namespace itsmft

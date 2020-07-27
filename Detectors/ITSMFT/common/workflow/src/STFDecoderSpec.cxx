@@ -40,8 +40,8 @@ using namespace o2::framework;
 
 ///_______________________________________
 template <class Mapping>
-STFDecoder<Mapping>::STFDecoder(bool doClusters, bool doPatterns, bool doDigits, std::string_view dict)
-  : mDoClusters(doClusters), mDoPatterns(doPatterns), mDoDigits(doDigits), mDictName(dict)
+STFDecoder<Mapping>::STFDecoder(bool doClusters, bool doPatterns, bool doDigits, std::string_view dict, std::string_view noise)
+  : mDoClusters(doClusters), mDoPatterns(doPatterns), mDoDigits(doDigits), mDictName(dict), mNoiseName(noise)
 {
   mSelfName = o2::utils::concat_string(Mapping::getName(), "STFDecoder");
   mTimer.Stop();
@@ -60,6 +60,17 @@ void STFDecoder<Mapping>::init(InitContext& ic)
   mDecoder->setNThreads(mNThreads);
   mDecoder->setFormat(ic.options().get<bool>("old-format") ? GBTLink::OldFormat : GBTLink::NewFormat);
   mDecoder->setVerbosity(ic.options().get<int>("decoder-verbosity"));
+
+  std::string noiseFile = o2::base::NameConf::getDictionaryFileName(detID, mNoiseName, ".root");
+  if (o2::base::NameConf::pathExists(noiseFile)) {
+    TFile* f = TFile::Open(noiseFile.data(), "old");
+    auto pnoise = (NoiseMap*)f->Get("Noise");
+    AlpideCoder::setNoisyPixels(pnoise);
+    LOG(INFO) << mSelfName << " loading noise map file: " << noiseFile;
+  } else {
+    LOG(INFO) << mSelfName << " Noise file " << noiseFile << " is absent, " << Mapping::getName() << " running without noise suppression";
+  }
+
   if (mDoClusters) {
     mClusterer = std::make_unique<Clusterer>();
     mClusterer->setNChips(Mapping::getNChips());
@@ -149,7 +160,7 @@ void STFDecoder<Mapping>::endOfStream(EndOfStreamContext& ec)
   }
 }
 
-DataProcessorSpec getSTFDecoderITSSpec(bool doClusters, bool doPatterns, bool doDigits, const std::string& dict)
+DataProcessorSpec getSTFDecoderITSSpec(bool doClusters, bool doPatterns, bool doDigits, const std::string& dict, const std::string& noise)
 {
   std::vector<OutputSpec> outputs;
   auto orig = o2::header::gDataOriginITS;
@@ -168,14 +179,14 @@ DataProcessorSpec getSTFDecoderITSSpec(bool doClusters, bool doPatterns, bool do
     "its-stf-decoder",
     Inputs{{"stf", ConcreteDataTypeMatcher{orig, "RAWDATA"}, Lifetime::Timeframe}},
     outputs,
-    AlgorithmSpec{adaptFromTask<STFDecoder<ChipMappingITS>>(doClusters, doPatterns, doDigits, dict)},
+    AlgorithmSpec{adaptFromTask<STFDecoder<ChipMappingITS>>(doClusters, doPatterns, doDigits, dict, noise)},
     Options{
       {"nthreads", VariantType::Int, 1, {"Number of decoding/clustering threads"}},
       {"old-format", VariantType::Bool, false, {"Use old format (1 trigger per CRU page)"}},
       {"decoder-verbosity", VariantType::Int, 0, {"Verbosity level (-1: silent, 0: errors, 1: headers, 2: data)"}}}};
 }
 
-DataProcessorSpec getSTFDecoderMFTSpec(bool doClusters, bool doPatterns, bool doDigits, const std::string& dict)
+DataProcessorSpec getSTFDecoderMFTSpec(bool doClusters, bool doPatterns, bool doDigits, const std::string& dict, const std::string& noise)
 {
   std::vector<OutputSpec> outputs;
   auto orig = o2::header::gDataOriginMFT;
@@ -196,7 +207,7 @@ DataProcessorSpec getSTFDecoderMFTSpec(bool doClusters, bool doPatterns, bool do
     "mft-stf-decoder",
     Inputs{{"stf", ConcreteDataTypeMatcher{orig, "RAWDATA"}, Lifetime::Timeframe}},
     outputs,
-    AlgorithmSpec{adaptFromTask<STFDecoder<ChipMappingMFT>>(doClusters, doPatterns, doDigits, dict)},
+    AlgorithmSpec{adaptFromTask<STFDecoder<ChipMappingMFT>>(doClusters, doPatterns, doDigits, dict, noise)},
     Options{
       {"nthreads", VariantType::Int, 1, {"Number of decoding/clustering threads"}},
       {"old-format", VariantType::Bool, false, {"Use old format (1 trigger per CRU page)"}},

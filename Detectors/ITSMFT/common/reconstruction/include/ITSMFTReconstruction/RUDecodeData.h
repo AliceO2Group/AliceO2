@@ -73,14 +73,24 @@ int RUDecodeData::decodeROF(const Mapping& mp)
       continue;
     }
     int nhits = 0;
+    int cid = AlpideCoder::getChipID(cableData[icab]);
+    if (cid < 0) {
+      continue;
+    }
+    chipData->setChipID(mp.getGlobalChipID(cid, cableHWID[icab], *ruInfo));
     while ((nhits = AlpideCoder::decodeChip(*chipData, cableData[icab]))) { // we register only chips with hits or errors flags set
       if (nhits > 0) {
         // convert HW chip id within the module to absolute chip id
-        chipData->setChipID(mp.getGlobalChipID(chipData->getChipID(), cableHWID[icab], *ruInfo));
+        //chipData->setChipID(mp.getGlobalChipID(chipData->getChipID(), cableHWID[icab], *ruInfo));
         setROFInfo(chipData, cableLinkPtr[icab]);
         ntot += nhits;
         if (++nChipsFired < chipsData.size()) { // fetch next free chip
           chipData = &chipsData[nChipsFired];
+          cid = AlpideCoder::getChipID(cableData[icab]);
+          if (cid < 0) {
+            continue;
+          }
+          chipData->setChipID(mp.getGlobalChipID(cid, cableHWID[icab], *ruInfo));
         } else {
           break; // last chip decoded
         }

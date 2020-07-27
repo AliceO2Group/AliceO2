@@ -37,7 +37,7 @@ template <class Mapping>
 class STFDecoder : public Task
 {
  public:
-  STFDecoder(bool clusters = true, bool pattern = true, bool digits = false, std::string_view dict = "");
+  STFDecoder(bool clusters = true, bool pattern = true, bool digits = false, std::string_view dict = "", std::string_view noise = "");
   ~STFDecoder() override = default;
   void init(InitContext& ic) final;
   void run(ProcessingContext& pc) final;
@@ -53,6 +53,7 @@ class STFDecoder : public Task
   size_t mTFCounter = 0;
   std::string mSelfName;
   std::string mDictName;
+  std::string mNoiseName;
   std::unique_ptr<RawPixelDecoder<Mapping>> mDecoder;
   std::unique_ptr<Clusterer> mClusterer;
 };
@@ -61,8 +62,8 @@ using STFDecoderITS = STFDecoder<ChipMappingITS>;
 using STFDecoderMFT = STFDecoder<ChipMappingMFT>;
 
 /// create a processor spec
-o2::framework::DataProcessorSpec getSTFDecoderITSSpec(bool doClusters, bool doPatterns, bool doDigits, const std::string& dict);
-o2::framework::DataProcessorSpec getSTFDecoderMFTSpec(bool doClusters, bool doPatterns, bool doDigits, const std::string& dict);
+o2::framework::DataProcessorSpec getSTFDecoderITSSpec(bool doClusters, bool doPatterns, bool doDigits, const std::string& dict, const std::string& noise);
+o2::framework::DataProcessorSpec getSTFDecoderMFTSpec(bool doClusters, bool doPatterns, bool doDigits, const std::string& dict, const std::string& noise);
 
 } // namespace itsmft
 } // namespace o2
