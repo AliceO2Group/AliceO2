@@ -799,7 +799,7 @@ void DeviceSpecHelpers::reworkShmSegmentSize(std::vector<DataProcessorInfo>& inf
     struct rlimit limits;
     getrlimit(RLIMIT_AS, &limits);
     if (limits.rlim_cur != RLIM_INFINITY) {
-      segmentSize = std::min(limits.rlim_cur - 1000000000LL, (limits.rlim_cur * 90) / 100);
+      segmentSize = std::min(limits.rlim_cur - 1000000000LL, (limits.rlim_cur * 90LL) / 100LL);
     }
   }
   if (segmentSize == 0) {
