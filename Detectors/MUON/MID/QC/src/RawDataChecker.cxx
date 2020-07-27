@@ -27,6 +27,7 @@ void RawDataChecker::init(const CrateMasks& crateMasks)
 {
   /// Initializes the checkers
   for (uint16_t igbt = 0; igbt < crateparams::sNGBTs; ++igbt) {
+    mCheckers[igbt].setElectronicsDelay(mElectronicsDelay);
     mCheckers[igbt].init(igbt, crateMasks.getMask(igbt));
   }
 }

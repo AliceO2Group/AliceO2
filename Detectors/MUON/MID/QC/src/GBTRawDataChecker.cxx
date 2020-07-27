@@ -392,7 +392,7 @@ bool GBTRawDataChecker::checkEvents(bool isTriggered)
     ++mStatistics[0];
     if (!checkEvent(isTriggered, gbtEvent.regs, gbtEvent.locs)) {
       std::stringstream ss;
-      ss << std::hex << std::showbase << evtIdxItem.first;
+      ss << fmt::format("BCid: 0x{:x} Orbit: 0x{:x}", evtIdxItem.first.bc, evtIdxItem.first.orbit);
       if (!gbtEvent.pages.empty()) {
         ss << "   [in";
         for (auto& page : gbtEvent.pages) {
@@ -446,7 +446,7 @@ bool GBTRawDataChecker::process(gsl::span<const LocalBoardRO> localBoards, gsl::
         board.triggerWord = 0;
         auto ir = rofIt->interactionRecord;
         if (id >= crateparams::sMaxNBoardsInLink) {
-          uint16_t delayRegLocal = 6;
+          uint16_t delayRegLocal = mElectronicsDelay.regToLocal;
           if (rofIt->interactionRecord.bc < delayRegLocal) {
             ir -= (constants::lhc::LHCMaxBunches - mResetVal - 1);
           }
