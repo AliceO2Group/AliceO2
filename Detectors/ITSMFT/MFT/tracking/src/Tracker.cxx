@@ -25,15 +25,22 @@ namespace o2
 namespace mft
 {
 
+//_________________________________________________________________________________________________
 Tracker::Tracker(bool useMC) : mUseMC{useMC}
 {
 
-  /// Configure track propagation
-  LOG(INFO) << "initializing track fitter";
   mTrackFitter = std::make_unique<o2::mft::TrackFitter>();
-  mTrackFitter->setBz(mBz);
 }
 
+//_________________________________________________________________________________________________
+void Tracker::setBz(Float_t bz)
+{
+  /// Configure track propagation
+  mBz = bz;
+  mTrackFitter->setBz(bz);
+}
+
+//_________________________________________________________________________________________________
 void Tracker::clustersToTracks(ROframe& event, std::ostream& timeBenchmarkOutputStream)
 {
   mTracks.clear();
@@ -42,6 +49,7 @@ void Tracker::clustersToTracks(ROframe& event, std::ostream& timeBenchmarkOutput
   fitTracks(event);
 }
 
+//_________________________________________________________________________________________________
 void Tracker::findTracks(ROframe& event)
 {
   //computeCells(event);
@@ -49,6 +57,7 @@ void Tracker::findTracks(ROframe& event)
   findTracksCA(event);
 }
 
+//_________________________________________________________________________________________________
 void Tracker::computeCells(ROframe& event)
 {
   MCCompLabel mcCompLabel;
@@ -91,6 +100,7 @@ void Tracker::computeCells(ROframe& event)
   }         // end layers
 }
 
+//_________________________________________________________________________________________________
 void Tracker::findTracksLTF(ROframe& event)
 {
   // find (high momentum) tracks by the Linear Track Finder (LTF) method
@@ -258,6 +268,7 @@ void Tracker::findTracksLTF(ROframe& event)
   } // end seeding
 }
 
+//_________________________________________________________________________________________________
 void Tracker::findTracksCA(ROframe& event)
 {
   // layers: 0, 1, 2, ..., 9
@@ -415,6 +426,7 @@ void Tracker::findTracksCA(ROframe& event)
   }           // end layer1
 }
 
+//_________________________________________________________________________________________________
 void Tracker::computeCellsInRoad(Road& road)
 {
   Int_t layer1, layer1min, layer1max, layer2, layer2min, layer2max;
@@ -453,6 +465,7 @@ void Tracker::computeCellsInRoad(Road& road)
   }     // end layer1
 }
 
+//_________________________________________________________________________________________________
 void Tracker::runForwardInRoad(ROframe& event)
 {
   Int_t layerR, layerL, icellR, icellL;
@@ -504,6 +517,7 @@ void Tracker::runForwardInRoad(ROframe& event)
   } // end while (step)
 }
 
+//_________________________________________________________________________________________________
 void Tracker::runBackwardInRoad(ROframe& event)
 {
   if (mMaxCellLevel == 1)
@@ -656,6 +670,7 @@ void Tracker::runBackwardInRoad(ROframe& event)
   }   // end loop start layer
 }
 
+//_________________________________________________________________________________________________
 void Tracker::updateCellStatusInRoad(Road& road)
 {
   for (Int_t layer = 0; layer < (constants::mft::LayersNumber - 1); ++layer) {
@@ -666,6 +681,7 @@ void Tracker::updateCellStatusInRoad(Road& road)
   }
 }
 
+//_________________________________________________________________________________________________
 const Float_t Tracker::getCellChisquare(ROframe& event, const Cell& cell) const
 {
   // returns the new chisquare of the previous cells plus the new one
@@ -705,6 +721,7 @@ const Float_t Tracker::getCellChisquare(ROframe& event, const Cell& cell) const
   return (chisqZX + chisqZY) / (Float_t)nDegFree;
 }
 
+//_________________________________________________________________________________________________
 const Bool_t Tracker::addCellToCurrentTrackCA(const Int_t layer1, const Int_t cellId, ROframe& event)
 {
   TrackCA& trackCA = event.getCurrentTrackCA();
@@ -848,6 +865,7 @@ const Bool_t Tracker::LinearRegression(Int_t npoints, Float_t* x, Float_t* y, Fl
   return kTRUE;
 }
 
+//_________________________________________________________________________________________________
 bool Tracker::fitTracks(ROframe& event)
 {
   for (auto& track : event.getTracksLTF()) {
@@ -860,7 +878,12 @@ bool Tracker::fitTracks(ROframe& event)
   }
   for (auto& track : event.getTracksCA()) {
     track.sort();
+    TrackCA outParam = track;
+    mTrackFitter->initTrack(track);
     mTrackFitter->fit(track);
+    mTrackFitter->initTrack(outParam, true);
+    mTrackFitter->fit(outParam, true);
+    track.SetOutParam(outParam);
   }
 
   return true;
