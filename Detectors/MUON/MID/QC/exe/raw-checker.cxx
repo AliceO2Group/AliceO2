@@ -16,8 +16,9 @@
 #include <iostream>
 #include <fstream>
 #include "boost/program_options.hpp"
-#include "MIDRaw/FEEIdConfig.h"
 #include "MIDRaw/CrateMasks.h"
+#include "MIDRaw/ElectronicsDelay.h"
+#include "MIDRaw/FEEIdConfig.h"
 #include "MIDRaw/Decoder.h"
 #include "MIDRaw/RawFileReader.h"
 #include "MIDQC/RawDataChecker.h"
@@ -58,6 +59,13 @@ int process(po::variables_map& vm)
     o2::mid::FEEIdConfig feeIdConfig(vm["feeId-config-file"].as<std::string>().c_str());
     decoder.setFeeIdConfig(feeIdConfig);
   }
+  o2::mid::ElectronicsDelay electronicsDelay;
+  if (vm.count("electronics-delay-file")) {
+    o2::mid::ElectronicsDelay electronicsDelay = o2::mid::readElectronicsDelay(vm["electronics-delay-file"].as<std::string>().c_str());
+    decoder.setElectronicsDelay(electronicsDelay);
+    checker.setElectronicsDelay(electronicsDelay);
+  }
+
   if (vm.count("crate-masks-file")) {
     o2::mid::CrateMasks crateMasks(vm["crate-masks-file"].as<std::string>().c_str());
     decoder.setCrateMasks(crateMasks);
@@ -155,6 +163,7 @@ int main(int argc, char* argv[])
           ("max-errors", po::value<unsigned long int>()->default_value(10000),"Maximum number of errors before aborting")
           ("feeId-config-file", po::value<std::string>(),"Filename with crate FEE ID correspondence")
           ("crate-masks-file", po::value<std::string>(),"Filename with crate masks")
+          ("electronics-delay-file", po::value<std::string>(),"Filename with electronics delay")
           ("output-dir", po::value<std::string>()->default_value(""),"Output directory")
           ("bare", po::value<bool>()->implicit_value(true),"Use bare decoder");
 
