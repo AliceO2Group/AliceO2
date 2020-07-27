@@ -95,12 +95,12 @@ class TrackParFwd
   /// set the chi2 of the track when the associated cluster was attached
   void setTrackChi2(Double_t chi2) { mTrackChi2 = chi2; }
 
-  // Track propagation
-  void linearExtrapToZ(double zEnd);
-  void quadraticExtrapToZ(double zEnd, double zField);
-  void helixExtrapToZ(double zEnd, double zField);
+  // Track parameter propagation
+  void propagateParamToZlinear(double zEnd);
+  void propagateParamToZquadratic(double zEnd, double zField);
+  void propagateParamToZhelix(double zEnd, double zField);
 
- private:
+ protected:
   Double_t mZ = 0.; ///< Z coordinate (cm)
 
   /// Track parameters ordered as follow:      <pre>
@@ -122,25 +122,26 @@ class TrackParCovFwd : public TrackParFwd
 
   TrackParCovFwd() = default;
   ~TrackParCovFwd() = default;
-
-  TrackParCovFwd(const TrackParCovFwd& tpf) = default;
   TrackParCovFwd& operator=(const TrackParCovFwd& tpf) = default;
   TrackParCovFwd(const Double_t z, const SMatrix5 parameters, const SMatrix55 covariances, const Double_t chi2);
 
-  const SMatrix55& getCovariances() const;
-  void setCovariances(const SMatrix55& covariances);
-  void deleteCovariances();
+  const SMatrix55& getCovariances() const { return mCovariances; }
+  void setCovariances(const SMatrix55& covariances) { mCovariances = covariances; }
+  void deleteCovariances() { mCovariances = SMatrix55(); }
 
-  Double_t getSigmaX() const { return mCovariances(0, 0); }
-  Double_t getSigmaY() const { return mCovariances(1, 1); }
-  Double_t getSigmaPhi() const { return mCovariances(2, 2); }
-  Double_t getSigmaTanl() const { return mCovariances(3, 3); }
-  Double_t getSigmaInvQPt() const { return mCovariances(4, 4); }
+  Double_t getSigma2X() const { return mCovariances(0, 0); }
+  Double_t getSigma2Y() const { return mCovariances(1, 1); }
+  Double_t getSigma2Phi() const { return mCovariances(2, 2); }
+  Double_t getSigma2Tanl() const { return mCovariances(3, 3); }
+  Double_t getSigma2InvQPt() const { return mCovariances(4, 4); }
 
-  void linearExtrapToZCov(double zEnd);
-  void quadraticExtrapToZCov(double zEnd, double zField);
-  void helixExtrapToZCov(double zEnd, double zField);
-  void addMCSEffect(double dZ, double x0);
+  // Propagate parameters and covariances matrix
+  void propagateToZlinear(double zEnd);
+  void propagateToZquadratic(double zEnd, double zField);
+  void propagateToZhelix(double zEnd, double zField);
+
+  // Add Multiple Coulomb Scattering effects
+  void addMCSEffect(double dZ, double x2X0);
 
  private:
   /// Covariance matrix of track parameters, ordered as follows:    <pre>

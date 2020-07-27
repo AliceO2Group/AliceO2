@@ -29,6 +29,9 @@ namespace mft
 class TrackLTF : public TrackMFTExt
 {
  public:
+  TrackLTF() = default;
+  TrackLTF(const TrackLTF& t) = default;
+  ~TrackLTF() = default;
   const Int_t getNPoints() const { return mNPoints; }
   const std::array<Float_t, constants::mft::LayersNumber>& getXCoordinates() const { return mX; }
   const std::array<Float_t, constants::mft::LayersNumber>& getYCoordinates() const { return mY; }
@@ -55,6 +58,7 @@ class TrackCA : public TrackLTF
 {
  public:
   TrackCA() = default;
+  TrackCA(const TrackCA& t) = default;
   ~TrackCA() = default;
   void addCell(const Int_t, const Int_t);
   void removeLastCell(Int_t&, Int_t&);
@@ -139,14 +143,13 @@ inline void TrackLTF::setPoint(const Float_t x, const Float_t y, const Float_t z
 inline void TrackLTF::sort()
 {
   // Orders elements along z position
-
   struct ClusterData {
     Float_t x;
     Float_t y;
     Float_t z;
-    Float_t layer;
-    Float_t clusterId;
-    Float_t label;
+    Int_t layer;
+    Int_t clusterId;
+    Int_t label;
   };
 
   std::vector<ClusterData> points;
@@ -162,9 +165,8 @@ inline void TrackLTF::sort()
 
   std::sort(points.begin(), points.end(), [](ClusterData a, ClusterData b) { return a.z > b.z; });
 
-  // after sorting
+  // Storing sorted cluster data
   for (Int_t point = 0; point < getNPoints(); ++point) {
-    //  auto& somepoint = points.emplace_back();
     mX[point] = points[point].x;
     mY[point] = points[point].y;
     mZ[point] = points[point].z;

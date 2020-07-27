@@ -43,7 +43,6 @@ void TrackFitter::setBz(float bZ)
 
   /// Set the magnetic field for the MFT
   mBZField = bZ;
-  //mTrackExtrap.setBz(bZ);
 
   if (mftTrackingParam.verbose) {
     LOG(INFO) << "Setting Fitter field = " << bZ;
@@ -51,7 +50,7 @@ void TrackFitter::setBz(float bZ)
 }
 
 //_________________________________________________________________________________________________
-bool TrackFitter::fit(TrackLTF& track)
+bool TrackFitter::fit(TrackLTF& track, bool outward)
 {
 
   /// Fit a track to its attached clusters
@@ -66,7 +65,6 @@ bool TrackFitter::fit(TrackLTF& track)
     std::cout << "N Clusters = " << nClusters << std::endl;
   }
 
-  initTrack(track);
 
   if (mftTrackingParam.verbose) {
     std::cout << "Seed covariances: \n";
@@ -74,14 +72,23 @@ bool TrackFitter::fit(TrackLTF& track)
     std::cout << std::endl;
   }
 
-  // recusively add the upstream clusters and update the track parameters
-  nClusters--;
-  while (nClusters-- > 0) {
-    if (!addCluster(track, nClusters)) {
-      return false;
+  // recursively add clusters and update the track parameters
+  if (!outward) { // Inward
+    nClusters--;
+    while (nClusters-- > 0) {
+      if (!addCluster(track, nClusters)) {
+        return false;
+      }
+    }
+  } else { // Outward for MCH matching
+    int ncl = 1;
+    while (ncl < nClusters) {
+      if (!addCluster(track, ncl)) {
+        return false;
+      }
+      ncl++;
     }
   }
-
   if (mftTrackingParam.verbose) {
     //  std::cout << "Track covariances:";
     //  trac->getCovariances().Print();
@@ -93,7 +100,7 @@ bool TrackFitter::fit(TrackLTF& track)
 }
 
 //_________________________________________________________________________________________________
-bool TrackFitter::initTrack(TrackLTF& track)
+bool TrackFitter::initTrack(TrackLTF& track, bool outward)
 {
   // initialize the starting track parameters and cluster
   double chi2invqptquad;
@@ -104,17 +111,23 @@ bool TrackFitter::initTrack(TrackLTF& track)
   track.setChi2QPtQuadtratic(chi2invqptquad);
   track.setInvQPt(invpqtquad);
 
-  /// Compute the initial track parameters at the z position of the last cluster (cl)
+  /// Compute the initial track parameters
   /// The covariance matrix is computed such that the last cluster is the only constraint
   /// (by assigning an infinite dispersion to the other cluster)
   /// These parameters are the seed for the Kalman filter
 
   auto& mftTrackingParam = MFTTrackingParam::Instance();
 
-  // compute the track parameters at the last cluster
-  double x0 = track.getXCoordinates()[nPoints - 1];
-  double y0 = track.getYCoordinates()[nPoints - 1];
-  double z0 = track.getZCoordinates()[nPoints - 1];
+  // compute track parameters
+  int where; // First or last cluster?
+  if (outward)
+    where = 0;
+  else
+    where = nPoints - 1;
+
+  double x0 = track.getXCoordinates()[where];
+  double y0 = track.getYCoordinates()[where];
+  double z0 = track.getZCoordinates()[where];
   double pt = TMath::Sqrt(x0 * x0 + y0 * y0);
   double pz = z0;
   double phi0 = TMath::ATan2(y0, x0);
@@ -165,7 +178,6 @@ bool TrackFitter::initTrack(TrackLTF& track)
 
   // compute the track parameter covariances at the last cluster (as if the other clusters did not exist)
   SMatrix55 lastParamCov;
-  //lastParamCov.Zero();
   lastParamCov(0, 0) = sigmax0sq;                                   // <X,X>
   lastParamCov(0, 1) = 0;                                           // <Y,X>
   lastParamCov(0, 2) = sigmaboost * -sigmax0sq * y0 * invr0sq;      // <PHI,X>
@@ -186,17 +198,6 @@ bool TrackFitter::initTrack(TrackLTF& track)
 
   lastParamCov(4, 4) = sigmaboost * sigmaboost * (sigmax0sq * x0 * x0 + sigmay0sq * y0 * y0) * invr0cu * invr0cu; // <INVQPT,INVQPT>
 
-  lastParamCov(1, 0) = lastParamCov(0, 1); //
-  lastParamCov(2, 0) = lastParamCov(0, 2); //
-  lastParamCov(2, 1) = lastParamCov(1, 2); //
-  lastParamCov(3, 0) = lastParamCov(0, 3); //
-  lastParamCov(3, 1) = lastParamCov(1, 3); //
-  lastParamCov(3, 2) = lastParamCov(2, 3); //
-  lastParamCov(4, 0) = lastParamCov(0, 4); //
-  lastParamCov(4, 1) = lastParamCov(1, 4); //
-  lastParamCov(4, 2) = lastParamCov(2, 4); //
-  lastParamCov(4, 3) = lastParamCov(3, 4); //
-
   track.setCovariances(lastParamCov);
   track.setTrackChi2(0.);
 
@@ -205,7 +206,7 @@ bool TrackFitter::initTrack(TrackLTF& track)
 
 bool TrackFitter::addCluster(TrackLTF& track, int cluster)
 {
-  /// Extrapolate the starting track parameters to the z position of the new cluster
+  /// Propagate track to the z position of the new cluster
   /// accounting for MCS dispersion in the current layer and the other(s) crossed
   /// Recompute the parameters adding the cluster constraint with the Kalman filter
   /// Returns false in case of failure
@@ -215,11 +216,10 @@ bool TrackFitter::addCluster(TrackLTF& track, int cluster)
   const auto& cly = track.getYCoordinates()[cluster];
   const auto& clz = track.getZCoordinates()[cluster];
 
-  if (track.getZ() >= clz) {
+  if (track.getZ() == clz) {
     LOG(INFO) << "AddCluster ERROR: The new cluster must be upstream! Bug on TrackFinder. " << (track.isCA() ? " CATrack" : "LTFTrack");
-    LOG(INFO) << "track.getZ() = " << track.getZ() << " ; newClusterZ = " << clz;
-
-    //return false;
+    LOG(INFO) << "track.getZ() = " << track.getZ() << " ; newClusterZ = " << clz << " ==> Skipping point.";
+    return true;
   }
   if (mftTrackingParam.verbose)
     std::cout << "addCluster:     X = " << clx << " Y = " << cly << " Z = " << clz << " nCluster = " << cluster << std::endl;
@@ -228,7 +228,7 @@ bool TrackFitter::addCluster(TrackLTF& track, int cluster)
   using o2::mft::constants::LayerZPosition;
   int startingLayerID, newLayerID;
 
-  double dZ = TMath::Abs(clz - track.getZ());
+  double dZ = clz - track.getZ();
   //LayerID of each cluster from ZPosition // TODO: Use ChipMapping
   for (auto layer = 10; layer--;)
     if (track.getZ() < LayerZPosition[layer] + .3 & track.getZ() > LayerZPosition[layer] - .3)
@@ -237,7 +237,11 @@ bool TrackFitter::addCluster(TrackLTF& track, int cluster)
     if (clz<LayerZPosition[layer] + .3 & clz> LayerZPosition[layer] - .3)
       newLayerID = layer;
   // Number of disks crossed by this tracklet
-  int NDisksMS = (startingLayerID % 2 == 0) ? (startingLayerID - newLayerID) / 2 : (startingLayerID - newLayerID + 1) / 2;
+  int NDisksMS;
+  if (clz - track.getZ() > 0)
+    NDisksMS = (startingLayerID % 2 == 0) ? (startingLayerID - newLayerID) / 2 : (startingLayerID - newLayerID + 1) / 2;
+  else
+    NDisksMS = (startingLayerID % 2 == 0) ? (newLayerID - startingLayerID + 1) / 2 : (newLayerID - startingLayerID) / 2;
 
   double MFTDiskThicknessInX0 = mftTrackingParam.MFTRadLenghts / 5.0;
   if (mftTrackingParam.verbose) {
@@ -254,8 +258,23 @@ bool TrackFitter::addCluster(TrackLTF& track, int cluster)
   if (mftTrackingParam.verbose)
     std::cout << "  BeforeExtrap: X = " << track.getX() << " Y = " << track.getY() << " Z = " << track.getZ() << " Tgl = " << track.getTanl() << "  Phi = " << track.getPhi() << " pz = " << track.getPz() << " qpt = " << 1.0 / track.getInvQPt() << std::endl;
 
-  // extrapolate to the z position of the new cluster
-  track.helixExtrapToZCov(clz, mBZField);
+  // Propagate track to the z position of the new cluster
+  switch (mftTrackingParam.trackmodel) {
+    case Linear:
+      track.propagateToZlinear(clz);
+      break;
+    case Quadratic:
+      track.propagateToZquadratic(clz, mBZField);
+      break;
+    case Helix:
+      track.propagateToZhelix(clz, mBZField);
+      break;
+    default:
+      std::cout << " Invalid track model.\n";
+      return false;
+      break;
+  }
+
   if (mftTrackingParam.verbose)
     std::cout << "   AfterExtrap: X = " << track.getX() << " Y = " << track.getY() << " Z = " << track.getZ() << " Tgl = " << track.getTanl() << "  Phi = " << track.getPhi() << " pz = " << track.getPz() << " qpt = " << 1.0 / track.getInvQPt() << std::endl;
 
@@ -277,7 +296,7 @@ bool TrackFitter::addCluster(TrackLTF& track, int cluster)
 bool TrackFitter::runKalmanFilter(TrackLTF& track, int cluster)
 {
   /// Compute the new track parameters including the attached cluster with the Kalman filter
-  /// The current parameters are supposed to have been extrapolated to the cluster z position
+  /// The current track is expected to have been propagated to the cluster z position
   /// Retruns false in case of failure
 
   // get propagated track parameters (p)

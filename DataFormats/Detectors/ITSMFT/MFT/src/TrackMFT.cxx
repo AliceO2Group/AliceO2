@@ -27,12 +27,6 @@ using SMatrix55 = ROOT::Math::SMatrix<double, 5, 5, ROOT::Math::MatRepSym<double
 using SMatrix5 = ROOT::Math::SVector<Double_t, 5>;
 
 //__________________________________________________________________________
-void TrackMFT::setCovariancesLast(const SMatrix55& covariances)
-{
-  mCovariancesLast = covariances;
-}
-
-//__________________________________________________________________________
 void TrackMFT::print() const
 {
   /// Printing TrackMFT information
