@@ -28,7 +28,7 @@ namespace mft
 Tracker::Tracker(bool useMC) : mUseMC{useMC}
 {
 
-  /// Prepare the track extrapolation tools
+  /// Configure track propagation
   LOG(INFO) << "initializing track fitter";
   mTrackFitter = std::make_unique<o2::mft::TrackFitter>();
   mTrackFitter->setBz(mBz);
@@ -851,7 +851,12 @@ const Bool_t Tracker::LinearRegression(Int_t npoints, Float_t* x, Float_t* y, Fl
 bool Tracker::fitTracks(ROframe& event)
 {
   for (auto& track : event.getTracksLTF()) {
+    TrackLTF outParam = track;
+    mTrackFitter->initTrack(track);
     mTrackFitter->fit(track);
+    mTrackFitter->initTrack(outParam, true);
+    mTrackFitter->fit(outParam, true);
+    track.SetOutParam(outParam);
   }
   for (auto& track : event.getTracksCA()) {
     track.sort();

@@ -92,23 +92,8 @@ class TrackMFT : public o2::track::TrackParCovFwd
   void print() const;
   void printMCCompLabels() const;
 
-  // Parameters and Covariances on last track clusters
-  const SMatrix5& getParametersLast() const { return mParametersLast; }
-  void setParametersLast(const SMatrix5& parameters) { mParametersLast = parameters; } // Last cluster
-  const SMatrix55& getCovariancesLast() const;
-  void setCovariancesLast(const SMatrix55& covariances);
-
-  Double_t getZLast() const { return mZLast; }
-  void setZLast(Double_t z) { mZLast = z; }
-  Double_t getXLast() const { return mParametersLast(0); }
-  Double_t getYLast() const { return mParametersLast(1); }
-  Double_t getPhiLast() const { return mParametersLast(2); }
-  Double_t getTanlLast() const { return mParametersLast(3); }
-  Double_t getInvQPtLast() const { return mParametersLast(4); }
-  Double_t getPtLast() const { return TMath::Abs(1.f / mParametersLast(4)); }
-  Double_t getInvPtLast() const { return TMath::Abs(mParametersLast(4)); }
-  Double_t getPLast() const { return getPtLast() * TMath::Sqrt(1. + getTanlLast() * getTanlLast()); }                  // return total momentum last cluster
-  Double_t getEtaLast() const { return -TMath::Log(TMath::Tan((TMath::PiOver2() - TMath::ATan(getTanlLast())) / 2)); } // return total momentum
+  const o2::track::TrackParCovFwd& GetOutParam() const { return mOutParameters; }
+  void SetOutParam(const o2::track::TrackParCovFwd parcov) { mOutParameters = parcov; }
 
  private:
   std::uint32_t mROFrame = 0;                ///< RO Frame
@@ -118,11 +103,8 @@ class TrackMFT : public o2::track::TrackParCovFwd
 
   ClusRefs mClusRef; ///< references on clusters
 
-  Double_t mZLast = 0.; ///< Z coordinate (cm) of Last cluster
-
-  SMatrix5 mParametersLast; ///< \brief Track parameters at last cluster
-  SMatrix55 mCovariancesLast; ///< \brief Covariance matrix of track parameters at last cluster
-
+  // Outward parameters for MCH matching
+  o2::track::TrackParCovFwd mOutParameters;
 
   // Results from quadratic regression of clusters X,Y positions
   // Chi2 of the quadratic regression used to estimate track pT and charge
@@ -137,6 +119,9 @@ class TrackMFTExt : public TrackMFT
 {
   ///< heavy version of TrackMFT, with clusters embedded
  public:
+  TrackMFTExt() = default;
+  TrackMFTExt(const TrackMFTExt& t) = default;
+  ~TrackMFTExt() = default;
   static constexpr int MaxClusters = 10;
   using TrackMFT::TrackMFT; // inherit base constructors
 
