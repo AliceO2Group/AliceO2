@@ -15,6 +15,7 @@
 #include "Rtypes.h"
 #include "TOFBase/Geo.h"
 #include "CommonDataFormat/RangeReference.h"
+#include "CommonDataFormat/InteractionRecord.h"
 #include <gsl/span>
 
 #include <boost/serialization/base_object.hpp> // for base_object
@@ -107,6 +108,23 @@ struct ReadoutWindowData {
   // 1st entry and number of entries in the full vector of digits
   // for given trigger (or BC or RO frame)
   o2::dataformats::RangeReference<int, int> ref;
+  InteractionRecord mFirstIR{0, 0};
+
+  const InteractionRecord& getBCData() const { return mFirstIR; }
+
+  void setBCData(int orbit, int bc)
+  {
+    mFirstIR.orbit = orbit;
+    mFirstIR.bc = bc;
+  }
+  void setBCData(InteractionRecord& src)
+  {
+    mFirstIR.orbit = src.orbit;
+    mFirstIR.bc = src.bc;
+  }
+  void SetBC(int bc) { mFirstIR.bc = bc; }
+  void SetOrbit(int orbit) { mFirstIR.orbit = orbit; }
+
   gsl::span<const Digit> getBunchChannelData(const gsl::span<const Digit> tfdata) const
   {
     // extract the span of channel data for this readout window from the whole TF data
@@ -123,7 +141,10 @@ struct ReadoutWindowData {
   int first() const { return ref.getFirstEntry(); }
   int size() const { return ref.getEntries(); }
 
-  ClassDefNV(ReadoutWindowData, 1);
+  void setFirstEntry(int first) { ref.setFirstEntry(first); }
+  void setNEntries(int ne) { ref.setEntries(ne); }
+
+  ClassDefNV(ReadoutWindowData, 2);
 };
 
 } // namespace tof
