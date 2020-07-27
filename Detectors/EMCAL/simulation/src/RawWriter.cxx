@@ -25,7 +25,7 @@ void RawWriter::setTriggerRecords(gsl::span<o2::emcal::TriggerRecord> triggers)
 
 void RawWriter::init()
 {
-  mRawWriter = std::make_unique<o2::raw::RawFileWriter>(o2::header::gDataOriginEMC);
+  mRawWriter = std::make_unique<o2::raw::RawFileWriter>(o2::header::gDataOriginEMC, false);
   for (auto iddl = 0; iddl < 40; iddl++) {
     // For EMCAL set
     // - FEE ID = DDL ID
