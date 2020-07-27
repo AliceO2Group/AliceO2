@@ -20,6 +20,7 @@
 #include <gsl/gsl>
 #include "DetectorsRaw/RDHUtils.h"
 #include "DataFormatsMID/ROFRecord.h"
+#include "MIDRaw/ElectronicsDelay.h"
 #include "MIDRaw/ELinkDecoder.h"
 #include "MIDRaw/GBTOutputHandler.h"
 #include "MIDRaw/LocalBoardRO.h"
@@ -49,6 +50,9 @@ class GBTUserLogicDecoder
 
   /// Clears the decoded data
   void clear() { mOutputHandler.clear(); }
+
+  /// Sets the delay in the electronics
+  void setElectronicsDelay(const ElectronicsDelay& electronicsDelay) { mOutputHandler.setElectronicsDelay(electronicsDelay); }
 
  private:
   GBTOutputHandler mOutputHandler{}; /// GBT output handler

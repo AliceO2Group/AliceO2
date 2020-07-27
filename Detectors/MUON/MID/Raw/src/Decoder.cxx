@@ -15,7 +15,7 @@
 
 #include "MIDRaw/Decoder.h"
 
-#include "Headers/RAWDataHeader.h"
+#include "Headers/RDHAny.h"
 #include "DPLUtils/RawParser.h"
 
 namespace o2
@@ -48,6 +48,7 @@ void Decoder<GBTDECODER>::init(bool isDebugMode)
     } else {
       mGBTDecoders[igbt].init(igbt, isDebugMode);
     }
+    mGBTDecoders[igbt].setElectronicsDelay(mElectronicsDelay);
   }
 }
 

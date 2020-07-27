@@ -18,8 +18,8 @@
 #include <cstdint>
 #include <vector>
 #include <gsl/gsl>
-#include "Headers/RAWDataHeader.h"
 #include "DataFormatsMID/ROFRecord.h"
+#include "MIDRaw/ElectronicsDelay.h"
 #include "MIDRaw/LocalBoardRO.h"
 
 namespace o2
@@ -47,6 +47,9 @@ class GBTUserLogicEncoder
   /// Clears the buffer
   void clear() { mBytes.clear(); }
 
+  /// Sets the delay in the electronics
+  void setElectronicsDelay(const ElectronicsDelay& electronicsDelay) { mElectronicsDelay = electronicsDelay; }
+
  private:
   /// Adds the board id and the fired chambers
   inline void addIdAndChambers(uint8_t id, uint8_t firedChambers) { mBytes.emplace_back((id << 4) | firedChambers); }
@@ -57,9 +60,10 @@ class GBTUserLogicEncoder
   void addShort(uint16_t shortWord);
   bool checkAndAdd(gsl::span<const LocalBoardRO> data, uint16_t bc, uint8_t triggerWord);
 
-  std::vector<uint8_t> mBytes{}; /// Vector with encoded information
-  uint16_t mFeeId{0};            /// FEE ID
-  uint8_t mMask{0xFF};           /// GBT mask
+  std::vector<uint8_t> mBytes{};      /// Vector with encoded information
+  uint16_t mFeeId{0};                 /// FEE ID
+  uint8_t mMask{0xFF};                /// GBT mask
+  ElectronicsDelay mElectronicsDelay; /// Delays in the electronics
 };
 } // namespace mid
 } // namespace o2
