@@ -23,7 +23,6 @@ namespace mft
 
 enum MFTTrackingSeed {
   AB, //
-  CE,
   DH
 };
 

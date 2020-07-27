@@ -45,13 +45,13 @@ class TrackMFT : public o2::track::TrackParCovFwd
   const Bool_t isCA() const { return mIsCA; }
   const Bool_t isLTF() const { return !mIsCA; }
 
-  // Charge and momentum from quadratic regression of clusters X,Y positions
-  void setInvQPtQuadtratic(Double_t invqpt) { mInvQPtQuadtratic = invqpt; }
-  const Double_t getInvQPtQuadtratic() const { return mInvQPtQuadtratic; } // Inverse charged pt
-  const Double_t getPtQuadtratic() const { return TMath::Abs(1.f / getInvQPtQuadtratic()); }
-  const Double_t getChargeQuadratic() const { return TMath::Sign(1., getInvQPtQuadtratic()); }
-  void setChi2QPtQuadtratic(Double_t chi2) { mQuadraticFitChi2 = chi2; }
-  const Double_t getChi2QPtQuadtratic() const { return mQuadraticFitChi2; }
+  // Tracking seed charge and momentum from Fast Circle Fit of clusters X,Y positions
+  void setInvQPtSeed(Double_t invqpt) { mInvQPtSeed = invqpt; }
+  const Double_t getInvQPtSeed() const { return mInvQPtSeed; } // Inverse charged pt
+  const Double_t getPtSeed() const { return TMath::Abs(1.f / getInvQPtSeed()); }
+  const Double_t getChargeSeed() const { return TMath::Sign(1., getInvQPtSeed()); }
+  void setChi2QPtSeed(Double_t chi2) { mSeedinvQPtFitChi2 = chi2; }
+  const Double_t getChi2QPtSeed() const { return mSeedinvQPtFitChi2; }
 
   // Other functions
   int getNumberOfClusters() const { return mClusRef.getEntries(); }
@@ -106,11 +106,9 @@ class TrackMFT : public o2::track::TrackParCovFwd
   // Outward parameters for MCH matching
   o2::track::TrackParCovFwd mOutParameters;
 
-  // Results from quadratic regression of clusters X,Y positions
-  // Chi2 of the quadratic regression used to estimate track pT and charge
-  Double_t mQuadraticFitChi2 = 0.;
-  // inversed charged momentum from quadratic regression
-  Double_t mInvQPtQuadtratic;
+  // Seed InveQPt and Chi2 from fitting clusters X,Y positions
+  Double_t mSeedinvQPtFitChi2 = 0.;
+  Double_t mInvQPtSeed;
 
   ClassDefNV(TrackMFT, 1);
 };

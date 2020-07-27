@@ -43,7 +43,7 @@ class Tracker
   Tracker(const Tracker&) = delete;
   Tracker& operator=(const Tracker&) = delete;
 
-  void setBz(Float_t bz) { mBz = bz; }
+  void setBz(Float_t bz);
   const Float_t getBz() const { return mBz; }
 
   std::vector<TrackMFT>& getTracks();

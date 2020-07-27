@@ -61,15 +61,9 @@ bool TrackFitter::fit(TrackLTF& track, bool outward)
   auto nClusters = track.getNPoints();
 
   if (mftTrackingParam.verbose) {
-    std::cout << "\n ***************************** Start Fitting new track ***************************** \n";
-    std::cout << "N Clusters = " << nClusters << std::endl;
-  }
-
-
-  if (mftTrackingParam.verbose) {
-    std::cout << "Seed covariances: \n";
-    track.getCovariances().Print(std::cout);
-    std::cout << std::endl;
+    std::cout << "Seed covariances: \n"
+              << track.getCovariances() << std::endl
+              << std::endl;
   }
 
   // recursively add clusters and update the track parameters
@@ -102,21 +96,31 @@ bool TrackFitter::fit(TrackLTF& track, bool outward)
 //_________________________________________________________________________________________________
 bool TrackFitter::initTrack(TrackLTF& track, bool outward)
 {
+
+  auto& mftTrackingParam = MFTTrackingParam::Instance();
+
   // initialize the starting track parameters and cluster
   double chi2invqptquad;
-  double invpqtquad;
+  double invQPtSeed;
   auto nPoints = track.getNPoints();
-  invpqtquad = invQPtFromFCF(track, mBZField, chi2invqptquad);
-  track.setInvQPtQuadtratic(invpqtquad);
-  track.setChi2QPtQuadtratic(chi2invqptquad);
-  track.setInvQPt(invpqtquad);
+  auto k = TMath::Abs(o2::constants::math::B2C * mBZField);
+  auto Hz = std::copysign(1, mBZField);
+  //invQPtSeed = invQPtFromParabola(track, mBZField, chi2invqptquad);
+  invQPtSeed = invQPtFromFCF(track, mBZField, chi2invqptquad);
+
+  if (mftTrackingParam.verbose) {
+    std::cout << "\n ***************************** Start Fitting new track ***************************** \n";
+    std::cout << "N Clusters = " << nPoints << std::endl;
+  }
+
+  track.setInvQPtSeed(invQPtSeed);
+  track.setChi2QPtSeed(chi2invqptquad);
+  track.setInvQPt(invQPtSeed);
 
   /// Compute the initial track parameters
   /// The covariance matrix is computed such that the last cluster is the only constraint
   /// (by assigning an infinite dispersion to the other cluster)
   /// These parameters are the seed for the Kalman filter
-
-  auto& mftTrackingParam = MFTTrackingParam::Instance();
 
   // compute track parameters
   int where; // First or last cluster?
@@ -128,10 +132,13 @@ bool TrackFitter::initTrack(TrackLTF& track, bool outward)
   double x0 = track.getXCoordinates()[where];
   double y0 = track.getYCoordinates()[where];
   double z0 = track.getZCoordinates()[where];
-  double pt = TMath::Sqrt(x0 * x0 + y0 * y0);
-  double pz = z0;
-  double phi0 = TMath::ATan2(y0, x0);
-  double tanl = pz / pt;
+  double deltaX = track.getXCoordinates()[nPoints - 1] - track.getXCoordinates()[0];
+  double deltaY = track.getYCoordinates()[nPoints - 1] - track.getYCoordinates()[0];
+  double deltaZ = track.getZCoordinates()[nPoints - 1] - track.getZCoordinates()[0];
+  double deltaR = TMath::Sqrt(deltaX * deltaX + deltaY * deltaY);
+  double tanl = 0.5 * TMath::Sqrt(2) * (deltaZ / deltaR) *
+                TMath::Sqrt(TMath::Sqrt((invQPtSeed * deltaR * k) * (invQPtSeed * deltaR * k) + 1) + 1);
+  double phi0 = TMath::ATan2(y0, x0) + 0.5 * Hz * invQPtSeed * deltaZ * k / tanl;
   double r0sq = x0 * x0 + y0 * y0;
   double r0cu = r0sq * TMath::Sqrt(r0sq);
   double invr0sq = 1.0 / r0sq;
@@ -152,22 +159,17 @@ bool TrackFitter::initTrack(TrackLTF& track, bool outward)
   switch (mftTrackingParam.seed) {
     case AB:
       if (mftTrackingParam.verbose)
-        std::cout << " Init track with Seed A / B; sigmaboost = " << sigmaboost << ".\n";
-      track.setInvQPt(1.0 / pt); // Seeds A & B
-      break;
-    case CE:
-      if (mftTrackingParam.verbose)
-        std::cout << " Init track with Seed C / E; sigmaboost = " << sigmaboost << ".\n";
-      track.setInvQPt(std::copysign(1.0, track.getInvQPt()) / pt); // Seeds C & E
+        std::cout << " Init track with Seed A / B; sigmaboost = " << sigmaboost << (track.isCA() ? " CA Track " : " LTF Track") << std::endl;
+      track.setInvQPt(1.0 / TMath::Sqrt(x0 * x0 + y0 * y0)); // Seeds A & B
       break;
     case DH:
       if (mftTrackingParam.verbose)
-        std::cout << " Init track with Seed H; (k = " << seedH_k << "); sigmaboost = " << sigmaboost << ".\n";
+        std::cout << " Init track with Seed H; (k = " << seedH_k << "); sigmaboost = " << sigmaboost << (track.isCA() ? " CA Track " : " LTF Track") << std::endl;
       track.setInvQPt(track.getInvQPt() / seedH_k); // SeedH
       break;
     default:
-      if (mftTrackingParam.verbose)
-        std::cout << " Init track with Seed D.\n";
+      LOG(ERROR) << "Invalid MFT tracking seed";
+      return false;
       break;
   }
   if (mftTrackingParam.verbose) {
@@ -204,6 +206,7 @@ bool TrackFitter::initTrack(TrackLTF& track, bool outward)
   return true;
 }
 
+//_________________________________________________________________________________________________
 bool TrackFitter::addCluster(TrackLTF& track, int cluster)
 {
   /// Propagate track to the z position of the new cluster
@@ -343,94 +346,7 @@ bool TrackFitter::runKalmanFilter(TrackLTF& track, int cluster)
   return true;
 }
 
-//__________________________________________________________________________
-Double_t invQPtFromParabola2(const TrackLTF& track, Double_t bFieldZ, Double_t& chi2)
-{
-  auto nPoints = track.getNPoints();
-
-  const std::array<Float_t, constants::mft::LayersNumber>& xPositons = track.getXCoordinates();
-  const std::array<Float_t, constants::mft::LayersNumber>& yPositons = track.getYCoordinates();
-
-  //rotate track to stabilize quadratic fitting
-  auto deltax = xPositons[0] - xPositons[nPoints - 1];
-  auto deltay = yPositons[0] - yPositons[nPoints - 1];
-  //auto x_m = (xPositons[nPoints - 1] + xPositons[0]) / 2;
-  //auto y_m = (yPositons[nPoints - 1] + yPositons[0]) / 2;
-  auto theta = -TMath::ATan2(deltay, deltax);
-  auto costheta = TMath::Cos(theta), sintheta = TMath::Sin(theta);
-
-  bool verbose = false;
-  if (verbose) {
-    std::cout << "First and last cluster X,Y => " << xPositons[0] << " , " << yPositons[0] << "     /  " << xPositons[nPoints - 1] << " , " << yPositons[nPoints - 1] << std::endl;
-    std::cout << " Angle to rotate: " << theta << " ( " << theta * TMath::RadToDeg() << " deg ) ; nPoints = " << nPoints << std::endl;
-  }
-
-  Double_t* x = new Double_t[nPoints];
-  Double_t* y = new Double_t[nPoints];
-  for (auto n = 0; n < nPoints; n++) {
-    auto x_0 = xPositons[n]; // - x_m;
-    auto y_0 = yPositons[n]; // - y_m;
-    x[n] = x_0 * costheta - y_0 * sintheta;
-    y[n] = x_0 * sintheta + y_0 * costheta;
-    if (verbose)
-      std::cout << "    adding rotated point to fit at z = " << track.getZCoordinates()[n] << " (" << x[n] << "," << y[n] << ") " << std::endl;
-  }
-
-  Double_t q0, q1, q2;
-  chi2 = QuadraticRegression2(nPoints, x, y, q0, q1, q2);
-  Double_t radiusParabola = 0.5 / q2;
-  auto invqpt_parabola = q2 / (o2::constants::math::B2C * bFieldZ * 0.5); // radiusParabola; // radius = 0.5/q2
-
-  if (verbose) {
-    std::cout << "--------------------------------------------" << std::endl;
-    std::cout << " Fit QuadraticRegression: " << std::endl;
-    std::cout << " Fit Parameters [0] = " << q0 << " [1] =  " << q1 << " [2] = " << q2 << std::endl;
-    std::cout << " Radius from QuadraticRegression = " << 0.5 / q2 << std::endl;
-    std::cout << " Seed qpt = " << 1.0 / invqpt_parabola << std::endl;
-    std::cout << "--------------------------------------------" << std::endl;
-  }
-
-  return invqpt_parabola;
-}
-
-//__________________________________________________________________________
-Double_t QuadraticRegression2(Int_t nVal, Double_t* xVal, Double_t* yVal, Double_t& p0, Double_t& p1, Double_t& p2)
-{
-  /// Perform a Quadratic Regression
-  /// Assume same error on all clusters = 1
-  /// Return ~ Chi2
-
-  TMatrixD y(nVal, 1);
-  TMatrixD x(nVal, 3);
-  TMatrixD xtrans(3, nVal);
-
-  for (int i = 0; i < nVal; i++) {
-    y(i, 0) = yVal[i];
-    x(i, 0) = 1.;
-    x(i, 1) = xVal[i];
-    x(i, 2) = xVal[i] * xVal[i];
-    xtrans(0, i) = 1.;
-    xtrans(1, i) = xVal[i];
-    xtrans(2, i) = xVal[i] * xVal[i];
-  }
-  TMatrixD tmp(xtrans, TMatrixD::kMult, x);
-  tmp.Invert();
-
-  TMatrixD tmp2(xtrans, TMatrixD::kMult, y);
-  TMatrixD b(tmp, TMatrixD::kMult, tmp2);
-
-  p0 = b(0, 0);
-  p1 = b(1, 0);
-  p2 = b(2, 0);
-
-  // chi2 = (y-xb)^t . W . (y-xb)
-  TMatrixD tmp3(x, TMatrixD::kMult, b);
-  TMatrixD tmp4(y, TMatrixD::kMinus, tmp3);
-  TMatrixD chi2(tmp4, TMatrixD::kTransposeMult, tmp4);
-
-  return chi2(0, 0);
-}
-
+//_________________________________________________________________________________________________
 Double_t invQPtFromFCF(const TrackLTF& track, Double_t bFieldZ, Double_t& chi2)
 {
 
@@ -451,8 +367,7 @@ Double_t invQPtFromFCF(const TrackLTF& track, Double_t bFieldZ, Double_t& chi2)
   Double_t a, ae, b, be, x2, y2, invx2y2, rx, ry, r;
 
   for (auto np = 0; np < nPoints; np++) {
-    //printf("BV track %d  %f  %f  %f \n", np, trackparam->getClusterPtr()->getX(), trackparam->getClusterPtr()->getY(), trackparam->getClusterPtr()->getZ());
-    xErr[np] = 5e-4; // FIXME
+    xErr[np] = 5e-4; // FIXME -> errors from clusters
     yErr[np] = 5e-4; // FIXME
     if (np > 0) {
       xVal[np] = xPositons[np] - xVal[0];
@@ -500,11 +415,7 @@ Double_t invQPtFromFCF(const TrackLTF& track, Double_t bFieldZ, Double_t& chi2)
     Double_t sinSlope = TMath::Sin(slope);
     Double_t rxRot = rx * cosSlope + ry * sinSlope;
     Double_t ryRot = rx * sinSlope - ry * cosSlope;
-    qfcf = (ryRot < 0.) ? -1 : +1;
-    //printf("BV r-quad %f ,  r-fcf %f  q-fcf %f \n", 0.5 / q2, r, qfcf);
-
-    //Double_t xRot = x * cosSlope + y * sinSlope;
-    //printf("BV check %f %f \n", xRot, 2.0 * rxRot);
+    qfcf = (ryRot > 0.) ? -1 : +1;
 
     Double_t alpha = 2.0 * std::abs(TMath::ATan2(rxRot, ryRot));
     Double_t x0 = xVal[0], y0 = yVal[0], z0 = zVal[0];
@@ -515,7 +426,7 @@ Double_t invQPtFromFCF(const TrackLTF& track, Double_t bFieldZ, Double_t& chi2)
     pt = 1. / invpt;
     p = std::sqrt(dxyz2) / c_alpha;
     pz = std::sqrt(p * p - pt * pt);
-    //    tanl = pz / pt;
+
     invqpt_fcf = qfcf * invpt;
   } else { // the linear regression failed...
     printf("BV LinearRegression failed!\n");
@@ -525,7 +436,7 @@ Double_t invQPtFromFCF(const TrackLTF& track, Double_t bFieldZ, Double_t& chi2)
   return invqpt_fcf;
 }
 
-//__________________________________________________________________________
+////_________________________________________________________________________________________________
 Bool_t LinearRegression(Int_t nVal, Double_t* xVal, Double_t* yVal, Double_t* yErr, Double_t& a, Double_t& ae, Double_t& b, Double_t& be)
 {
   // linear regression y = a * x + b
@@ -537,7 +448,6 @@ Bool_t LinearRegression(Int_t nVal, Double_t* xVal, Double_t* yVal, Double_t* yE
   SsXX = SsYY = SsXY = Xm = Ym = 0.;
   difx = 0.;
   for (Int_t i = 0; i < nVal; i++) {
-    //printf("BV LinFit %d  %f  %f  %f  \n", i, xVal[i], yVal[i], yErr[i]);
     invYErr2 = 1. / (yErr[i] * yErr[i]);
     S1 += invYErr2;
     SXY += xVal[i] * yVal[i] * invYErr2;
