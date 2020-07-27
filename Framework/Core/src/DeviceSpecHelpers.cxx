@@ -794,12 +794,12 @@ void DeviceSpecHelpers::reworkShmSegmentSize(std::vector<DataProcessorInfo>& inf
     }
     info.cmdLineArgs.erase(it, it + 2);
   }
-  /// If no segment size is set, make it 90% of the VSIZE.
+  /// If no segment size is set, make it max VSIZE - 1GB, but not less than 1GB.
   if (segmentSize == 0) {
     struct rlimit limits;
     getrlimit(RLIMIT_AS, &limits);
     if (limits.rlim_cur != RLIM_INFINITY) {
-      segmentSize = (limits.rlim_cur / 100) * 90;
+      segmentSize = std::max(limits.rlim_cur - 1000000000LL, 1000000000LL);
     }
   }
   if (segmentSize == 0) {
