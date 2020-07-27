@@ -21,6 +21,7 @@
 #include "CommonDataFormat/InteractionRecord.h"
 #include "DataFormatsMID/ROFRecord.h"
 #include "MIDRaw/CrateParameters.h"
+#include "MIDRaw/ElectronicsDelay.h"
 #include "MIDRaw/ELinkDecoder.h"
 #include "MIDRaw/LocalBoardRO.h"
 
@@ -41,6 +42,9 @@ class GBTOutputHandler
   void onDoneReg(size_t, const ELinkDecoder&){}; /// Dummy function
   void onDoneRegDebug(size_t ilink, const ELinkDecoder& decoder);
 
+  /// Sets the delay in the electronics
+  void setElectronicsDelay(const ElectronicsDelay& electronicsDelay) { mElectronicsDelay = electronicsDelay; }
+
   /// Gets the vector of data
   const std::vector<LocalBoardRO>& getData() const { return mData; }
 
@@ -55,6 +59,7 @@ class GBTOutputHandler
   uint16_t mFeeId{0};                   /// FEE ID
   InteractionRecord mIRFirstPage{};     /// Interaction record of the first page
   uint16_t mReceivedCalibration{0};     /// Word with one bit per e-link indicating if the calibration trigger was received by the e-link
+  ElectronicsDelay mElectronicsDelay{}; /// Delays in the electronics
 
   std::array<InteractionRecord, crateparams::sNELinksPerGBT> mIRs{};     /// Interaction records per link
   std::array<uint16_t, crateparams::sNELinksPerGBT> mExpectedFETClock{}; /// Expected FET clock

@@ -15,8 +15,6 @@
 
 #include "MIDRaw/GBTOutputHandler.h"
 
-#include "RawInfo.h"
-
 namespace o2
 {
 namespace mid
@@ -64,7 +62,7 @@ bool GBTOutputHandler::checkLoc(size_t ilink, const ELinkDecoder& decoder)
 EventType GBTOutputHandler::processSelfTriggered(size_t ilink, uint16_t localClock, uint16_t& correctedClock)
 {
   /// Processes the self-triggered event
-  correctedClock = localClock - sDelayBCToLocal;
+  correctedClock = localClock - mElectronicsDelay.BCToLocal;
   uint16_t linkMask = 1 << ilink;
   if ((mReceivedCalibration & linkMask) && (localClock == mExpectedFETClock[ilink])) {
     // Reset the calibration flag for this e-link
@@ -77,7 +75,7 @@ EventType GBTOutputHandler::processSelfTriggered(size_t ilink, uint16_t localClo
 EventType GBTOutputHandler::processCalibrationTrigger(size_t ilink, uint16_t localClock)
 {
   /// Processes the calibration event
-  mExpectedFETClock[ilink] = localClock + sDelayCalibToFET;
+  mExpectedFETClock[ilink] = localClock + mElectronicsDelay.calibToFET;
   mReceivedCalibration |= (1 << ilink);
   return EventType::Noise;
 }
@@ -191,7 +189,7 @@ void GBTOutputHandler::onDoneRegDebug(size_t ilink, const ELinkDecoder& decoder)
 
   InteractionRecord intRec(mIRs[ilink].bc + correctedClock, orbit);
   if (decoder.getTriggerWord() == 0) {
-    if (intRec.bc < sDelayRegToLocal) {
+    if (intRec.bc < mElectronicsDelay.regToLocal) {
       // In the tests, the HB does not really correspond to a change of orbit
       // So we need to keep track of the last clock at which the HB was received
       // and come back to that value
@@ -202,7 +200,7 @@ void GBTOutputHandler::onDoneRegDebug(size_t ilink, const ELinkDecoder& decoder)
     // In this case the regional card needs to wait to receive the tracklet decision of each local
     // which result in a delay that needs to be subtracted if we want to be able to synchronize
     // local and regional cards for the checks
-    intRec -= sDelayRegToLocal;
+    intRec -= mElectronicsDelay.regToLocal;
   }
   mROFRecords.emplace_back(intRec, eventType, firstEntry, 1);
 }

@@ -16,7 +16,6 @@
 #include "MIDRaw/GBTUserLogicEncoder.h"
 
 #include "MIDRaw/CrateParameters.h"
-#include "RawInfo.h"
 
 namespace o2
 {
@@ -93,7 +92,7 @@ void GBTUserLogicEncoder::addReg(uint16_t bc, uint8_t triggerWord, uint8_t id, u
   mBytes.emplace_back(triggerWord);
   uint16_t localClock = bc;
   if (triggerWord == 0) {
-    localClock += sDelayBCToLocal + sDelayRegToLocal;
+    localClock += mElectronicsDelay.BCToLocal + mElectronicsDelay.regToLocal;
   }
   addShort(localClock);
   addIdAndChambers(id + 8 * crateparams::getGBTIdInCrate(mFeeId), firedChambers);
@@ -108,7 +107,7 @@ void GBTUserLogicEncoder::addLoc(const LocalBoardRO& loc, uint16_t bc, uint8_t t
 
   uint16_t localClock = bc;
   if (loc.triggerWord == 0) {
-    localClock += sDelayBCToLocal;
+    localClock += mElectronicsDelay.BCToLocal;
   }
   addShort(localClock);
 
@@ -130,7 +129,7 @@ void GBTUserLogicEncoder::process(gsl::span<const LocalBoardRO> data, const uint
   checkAndAdd(data, bc, triggerWord);
   if (triggerWord == raw::sCALIBRATE) {
     // Add FET
-    checkAndAdd(data, bc + sDelayCalibToFET, 0);
+    checkAndAdd(data, bc + mElectronicsDelay.calibToFET, 0);
   }
 }
 
