@@ -13,8 +13,12 @@
 
 #include "ITSMFTReconstruction/AlpideCoder.h"
 #include <TClass.h>
+#include <TFile.h>
 
 using namespace o2::itsmft;
+
+const NoiseMap* AlpideCoder::mNoisyPixels = nullptr;
+int AlpideCoder::mNoiseThreshold = 3;
 
 //_____________________________________
 void AlpideCoder::print() const
