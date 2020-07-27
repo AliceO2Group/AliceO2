@@ -121,6 +121,9 @@ void WindowFiller::fillOutputContainer(std::vector<Digit>& digits)
     int first = mDigitsPerTimeFrame.size();
     int ne = digits.size();
     ReadoutWindowData info(first, ne);
+    int orbit_shift = mReadoutWindowData.size() / 3;
+    int bc_shift = (mReadoutWindowData.size() % 3) * Geo::BC_IN_WINDOW;
+    info.setBCData(mFirstIR.orbit + orbit_shift, mFirstIR.bc + bc_shift);
     if (digits.size())
       mDigitsPerTimeFrame.insert(mDigitsPerTimeFrame.end(), digits.begin(), digits.end());
     mReadoutWindowData.push_back(info);
