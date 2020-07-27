@@ -18,11 +18,11 @@
 #include <cstdint>
 #include <map>
 #include <string>
-#include <tuple>
 #include <vector>
 #include <unordered_map>
 #include <gsl/gsl>
 #include "DataFormatsMID/ROFRecord.h"
+#include "MIDRaw/ElectronicsDelay.h"
 #include "MIDRaw/LocalBoardRO.h"
 
 namespace o2
@@ -43,6 +43,9 @@ class GBTRawDataChecker
   /// Gets the
   std::string getDebugMessage() const { return mDebugMsg; }
   void clear();
+
+  /// Sets the delay in the electronics
+  void setElectronicsDelay(const ElectronicsDelay& electronicsDelay) { mElectronicsDelay = electronicsDelay; }
 
  private:
   struct Mask {
@@ -84,6 +87,7 @@ class GBTRawDataChecker
   uint8_t mCrateMask{0xFF};                       /// Crate mask
   uint16_t mFeeId{0};                             /// FeeId
   uint16_t mResetVal{0};                          /// Reset value
+  ElectronicsDelay mElectronicsDelay{};           /// Delays in the electronics
 
   std::map<o2::InteractionRecord, uint16_t> mTrigEvents{}; ///! Index of triggered events
 
