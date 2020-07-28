@@ -24,6 +24,7 @@
 #include "TOFWorkflow/TOFCalibWriterSpec.h"
 #include "TOFWorkflow/TOFRawWriterSpec.h"
 #include "TOFWorkflow/CompressedDecodingTask.h"
+#include "TOFWorkflow/EntropyEncoderSpec.h"
 #include "Framework/WorkflowSpec.h"
 #include "Framework/ConfigParamSpec.h"
 #include "TOFWorkflow/RecoWorkflowSpec.h"
@@ -46,8 +47,8 @@
 // including Framework/runDataProcessing
 void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
 {
-  workflowOptions.push_back(ConfigParamSpec{"input-type", o2::framework::VariantType::String, "digits", {"digits, raw, clusters, TBI"}});
-  workflowOptions.push_back(ConfigParamSpec{"output-type", o2::framework::VariantType::String, "clusters,matching-info,calib-info", {"digits,clusters, matching-info, calib-info, TBI"}});
+  workflowOptions.push_back(ConfigParamSpec{"input-type", o2::framework::VariantType::String, "digits", {"digits, raw, clusters, ctf"}});
+  workflowOptions.push_back(ConfigParamSpec{"output-type", o2::framework::VariantType::String, "clusters,matching-info,calib-info", {"digits, clusters, matching-info, calib-info, raw, ctf"}});
   workflowOptions.push_back(ConfigParamSpec{"disable-mc", o2::framework::VariantType::Bool, false, {"disable sending of MC information, TBI"}});
   workflowOptions.push_back(ConfigParamSpec{"tof-sectors", o2::framework::VariantType::String, "0-17", {"TOF sector range, e.g. 5-7,8,9 ,TBI"}});
   workflowOptions.push_back(ConfigParamSpec{"tof-lanes", o2::framework::VariantType::Int, 1, {"number of parallel lanes up to the matcher, TBI"}});
@@ -104,6 +105,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
   bool writecalib = 0;
   bool writedigit = 0;
   bool writeraw = 0;
+  bool writectf = 0;
 
   if (outputType.rfind("clusters") < outputType.size())
     writecluster = 1;
@@ -115,6 +117,8 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
     writedigit = 1;
   if (outputType.rfind("raw") < outputType.size())
     writeraw = 1;
+  if (outputType.rfind("ctf") < outputType.size())
+    writectf = 1;
 
   bool dgtinput = 0;
   if (inputType == "digits") {
@@ -201,6 +205,11 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
       specs.emplace_back(o2::tof::getTOFCalibWriterSpec());
     }
   }
+  if (writectf) {
+    LOG(INFO) << "Insert TOF CTF encoder";
+    specs.emplace_back(o2::tof::getEntropyEncoderSpec());
+  }
+
   LOG(INFO) << "Number of active devices = " << specs.size();
 
   return std::move(specs);

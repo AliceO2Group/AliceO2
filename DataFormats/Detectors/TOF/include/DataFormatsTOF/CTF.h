@@ -58,6 +58,7 @@ struct CompressedInfos {
   std::vector<uint16_t> bcIncROF;    /// increment of ROF BC wrt BC of previous ROF
   std::vector<uint32_t> orbitIncROF; /// increment of ROF orbit wrt orbit of previous ROF
   std::vector<uint32_t> ndigROF;     /// number of digits in ROF
+  std::vector<uint32_t> ndiaROF;     /// number of diagnostic/pattern words in ROF
 
   // Hit data
   std::vector<uint16_t> timeFrameInc; /// time increment with respect of previous digit in TimeFrame units
@@ -65,7 +66,7 @@ struct CompressedInfos {
   std::vector<uint16_t> stripID;      /// increment of stripID wrt that of prev. strip
   std::vector<uint8_t> chanInStrip;   /// channel in strip 0-95 (ordered in time)
   std::vector<uint16_t> tot;          /// Time-Over-Threshold in TOF channel (about 48.8 ps)
-  std::vector<uint16_t> pattMap;      /// explict patterns container
+  std::vector<uint32_t> pattMap;      /// explict patterns container
 
   CompressedInfos() = default;
 
@@ -81,6 +82,7 @@ struct CTF : public o2::ctf::EncodedBlocks<CTFHeader, 10, uint32_t> {
   enum Slots { BLCbcIncROF,
                BLCorbitIncROF,
                BLCndigROF,
+               BLCndiaROF,
                BLCtimeFrameInc,
                BLCtimeTDCInc,
                BLCstripID,

@@ -18,7 +18,7 @@ o2_add_library(TOFReconstruction
                                      O2::SimulationDataFormat
                                      O2::CommonDataFormat
                                      O2::DataFormatsTOF
-                                     O2::rANS
+                                     O2::rANS O2::DPLUtils
 				     O2::TOFCalibration O2::DetectorsRaw)
 
 o2_target_root_dictionary(TOFReconstruction
