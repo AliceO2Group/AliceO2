@@ -29,8 +29,9 @@ namespace eventgen
  **/
 
 struct DecayerPythia8Param : public o2::conf::ConfigurableParamHelper<DecayerPythia8Param> {
-  std::string config = "${O2_ROOT}/share/Generators/pythia8/decays/base.cfg";
+  std::string config[8] = {"${O2_ROOT}/share/Generators/pythia8/decays/base.cfg", "", "", "", "", "", "", ""};
   bool verbose = false;
+  bool showChanged = false;
   O2ParamDef(DecayerPythia8Param, "DecayerPythia8");
 };
 
