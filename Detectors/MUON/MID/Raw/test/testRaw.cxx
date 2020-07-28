@@ -230,7 +230,7 @@ BOOST_AUTO_TEST_CASE(SmallSample)
 
   std::map<o2::InteractionRecord, std::vector<o2::mid::ColumnData>> inData;
   // Small standard event
-  o2::InteractionRecord ir(100, 0);
+  o2::InteractionRecord ir(100, 1);
 
   // Crate 5 link 0
   inData[ir].emplace_back(getColData(2, 4, 0x1, 0xFFFF));
@@ -241,7 +241,7 @@ BOOST_AUTO_TEST_CASE(SmallSample)
   // Crate 10 link 1 and crate 11 link 1
   inData[ir].emplace_back(getColData(41, 2, 0xFF0F, 0, 0xF0FF, 0xF));
   ir.bc = 200;
-  ir.orbit = 1;
+  ir.orbit = 2;
   // Crate 12 link 1
   inData[ir].emplace_back(getColData(70, 3, 0xFF00, 0xFF));
 
@@ -255,7 +255,7 @@ BOOST_AUTO_TEST_CASE(LargeBufferSample)
   o2::mid::Mapping mapping;
   std::map<o2::InteractionRecord, std::vector<o2::mid::ColumnData>> inData;
   // Big event that should pass the 8kB
-  o2::InteractionRecord ir(0, 0);
+  o2::InteractionRecord ir(0, 1);
   for (int irepeat = 0; irepeat < 4000; ++irepeat) {
     ++ir;
     for (int ide = 0; ide < o2::mid::detparams::NDetectionElements; ++ide) {
