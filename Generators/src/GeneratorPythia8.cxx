@@ -11,11 +11,15 @@
 /// \author R+Preghenella - January 2020
 
 #include "Generators/GeneratorPythia8.h"
+#include "Generators/GeneratorPythia8Param.h"
 #include "Generators/ConfigurationMacroHelper.h"
 #include "FairLogger.h"
 #include "TParticle.h"
 #include "FairMCEventHeader.h"
 #include "Pythia8/HIUserHooks.h"
+#include "TSystem.h"
+
+#include <iostream>
 
 namespace o2
 {
@@ -31,6 +35,14 @@ GeneratorPythia8::GeneratorPythia8() : Generator("ALICEo2", "ALICEo2 Pythia8 Gen
 
   mInterface = reinterpret_cast<void*>(&mPythia);
   mInterfaceName = "pythia8";
+
+  auto& param = GeneratorPythia8Param::Instance();
+  LOG(INFO) << "Instance \'Pythia8\' generator with following parameters";
+  LOG(INFO) << param;
+
+  setConfig(param.config);
+  setHooksFileName(param.hooksFileName);
+  setHooksFuncName(param.hooksFuncName);
 }
 
 /*****************************************************************/
@@ -54,15 +66,22 @@ Bool_t GeneratorPythia8::Init()
 
   /** read configuration **/
   if (!mConfig.empty()) {
-    if (!mPythia.readFile(mConfig, true)) {
-      LOG(FATAL) << "Failed to init \'Pythia8\': problems with configuration file "
-                 << mConfig;
-      return false;
+    std::stringstream ss(mConfig);
+    std::string config;
+    while (getline(ss, config, ' ')) {
+      config = gSystem->ExpandPathName(config.c_str());
+      LOG(INFO) << "Reading configuration from file: " << config;
+      if (!mPythia.readFile(config, true)) {
+        LOG(FATAL) << "Failed to init \'Pythia8\': problems with configuration file "
+                   << config;
+        return false;
+      }
     }
   }
 
   /** user hooks via configuration macro **/
   if (!mHooksFileName.empty()) {
+    LOG(INFO) << "Applying \'Pythia8\' user hooks: " << mHooksFileName << " -> " << mHooksFuncName;
     auto hooks = GetFromMacro<Pythia8::UserHooks*>(mHooksFileName, mHooksFuncName, "Pythia8::UserHooks*", "pythia8_user_hooks");
     if (!hooks) {
       LOG(FATAL) << "Failed to init \'Pythia8\': problem with user hooks configuration ";

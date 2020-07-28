@@ -64,12 +64,6 @@ void GeneratorFactory::setPrimaryGenerator(o2::conf::SimConfig const& conf, Fair
     auto gen = new o2::eventgen::GeneratorPythia8();
     LOG(INFO) << "Reading \'Pythia8\' base configuration: " << config << std::endl;
     gen->readFile(config);
-    auto& param = GeneratorPythia8Param::Instance();
-    LOG(INFO) << "Init \'Pythia8\' generator with following parameters";
-    LOG(INFO) << param;
-    gen->setConfig(param.config);
-    gen->setHooksFileName(param.hooksFileName);
-    gen->setHooksFuncName(param.hooksFuncName);
     auto seed = (gRandom->GetSeed() % 900000000);
     LOG(INFO) << "Using random seed from gRandom % 900000000: " << seed;
     gen->readString("Random:setSeed on");
