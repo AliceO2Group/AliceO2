@@ -19,6 +19,12 @@ if (TARGET AliceO2::DebugGUI)
   set(DEBUGGUI_TARGET AliceO2::DebugGUI)
 endif()
 
+# Given GCC 7.3 does not provide std::filesystem we use Boost instead
+# Drop this once we move to GCC 8.2+
+if (NOT __APPLE__)
+  set(BOOST_FILESYSTEM Boost::filesystem)
+endif()
+
 o2_add_library(Framework
                SOURCES src/AODReaderHelpers.cxx
                        src/ASoA.cxx
@@ -129,6 +135,7 @@ o2_add_library(Framework
                                      ROOT::ROOTDataFrame
                                      O2::FrameworkLogger
                                      Boost::serialization
+                                     ${BOOST_FILESYSTEM}
                                      arrow::gandiva_shared
                                      LibUV::LibUV
                                      )
