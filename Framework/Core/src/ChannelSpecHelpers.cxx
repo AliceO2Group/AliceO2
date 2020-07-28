@@ -12,6 +12,25 @@
 #include <ostream>
 #include <cassert>
 #include <stdexcept>
+#if __has_include(<filesystem>)
+#include <filesystem>
+namespace fs = std::filesystem;
+#elif __has_include(<boost/filesystem.hpp>)
+#include <boost/filesystem.hpp>
+namespace fs = boost::filesystem;
+#endif
+
+namespace
+{
+std::string getTmpFolder()
+{
+  std::string tmppath = fs::temp_directory_path().native();
+  while (tmppath.back() == '/') {
+    tmppath.pop_back();
+  }
+  return tmppath;
+}
+} // namespace
 
 namespace o2::framework
 {
@@ -48,7 +67,7 @@ std::string ChannelSpecHelpers::channelUrl(OutputChannelSpec const& channel)
 {
   switch (channel.protocol) {
     case ChannelProtocol::IPC:
-      return fmt::format("ipc://{}_{},transport=shmem", channel.hostname, channel.port);
+      return fmt::format("ipc://{}/{}_{},transport=shmem", getTmpFolder(), channel.hostname, channel.port);
     default:
       return channel.method == ChannelMethod::Bind ? fmt::format("tcp://*:{}", channel.port)
                                                    : fmt::format("tcp://{}:{}", channel.hostname, channel.port);
@@ -59,7 +78,7 @@ std::string ChannelSpecHelpers::channelUrl(InputChannelSpec const& channel)
 {
   switch (channel.protocol) {
     case ChannelProtocol::IPC:
-      return fmt::format("ipc://{}_{},transport=shmem", channel.hostname, channel.port);
+      return fmt::format("ipc://{}/{}_{},transport=shmem", getTmpFolder(), channel.hostname, channel.port);
     default:
       return channel.method == ChannelMethod::Bind ? fmt::format("tcp://*:{}", channel.port)
                                                    : fmt::format("tcp://{}:{}", channel.hostname, channel.port);
