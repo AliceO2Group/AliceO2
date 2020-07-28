@@ -45,12 +45,6 @@ inline uint8_t getGBTIdFromBoardInCrate(uint16_t locId) { return locId / sMaxNBo
 inline uint8_t getCrateId(bool isRightSide, uint8_t crateIdOneSide) { return isRightSide ? crateIdOneSide : crateIdOneSide + sNCratesPerSide; }
 /// Tests if the crate is in the right side
 inline bool isRightSide(uint8_t crateId) { return (crateId / sNCratesPerSide) == 0; }
-/// Builds the unique loc ID from the crate ID and the loc ID in the crate
-inline uint8_t makeUniqueLocID(uint8_t crateId, uint8_t locId) { return locId | (crateId << 4); }
-/// Gets the crate ID from the absolute local board ID
-inline uint8_t getCrateId(uint8_t uniqueLocId) { return (uniqueLocId >> 4) & 0xF; }
-/// Gets the loc ID in the crate from the unique local board ID
-inline uint8_t getLocId(uint8_t uniqueLocId) { return uniqueLocId & 0xF; }
 } // namespace crateparams
 } // namespace mid
 } // namespace o2

@@ -27,7 +27,7 @@
 #include "MIDRaw/CrateParameters.h"
 #include "MIDRaw/FEEIdConfig.h"
 #include "MIDRaw/GBTUserLogicEncoder.h"
-#include "MIDRaw/LocalBoardRO.h"
+#include "DataFormatsMID/ROBoard.h"
 
 class RDHAny;
 
@@ -58,10 +58,10 @@ class Encoder
 
   o2::raw::RawFileWriter mRawWriter{o2::header::gDataOriginMID}; /// Raw file writer
 
-  std::map<uint16_t, LocalBoardRO> mROData{}; /// Map of data per board
-  ColumnDataToLocalBoard mConverter{};        /// ColumnData to LocalBoardRO converter
-  FEEIdConfig mFEEIdConfig{};                 /// Crate FEEId mapper
-  InteractionRecord mLastIR{};                /// Last interaction record
+  std::map<uint16_t, ROBoard> mROData{}; /// Map of data per board
+  ColumnDataToLocalBoard mConverter{};   /// ColumnData to ROBoard converter
+  FEEIdConfig mFEEIdConfig{};            /// Crate FEEId mapper
+  InteractionRecord mLastIR{};           /// Last interaction record
 
   std::array<GBTUserLogicEncoder, crateparams::sNGBTs> mGBTEncoders{};     /// Array of encoders per link
   std::array<std::vector<char>, crateparams::sNGBTs> mOrbitResponse{};     /// Response to orbit trigger

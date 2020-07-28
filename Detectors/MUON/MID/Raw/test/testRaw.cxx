@@ -145,7 +145,7 @@ BOOST_AUTO_TEST_CASE(ColumnDataConverter)
   inData[ir].emplace_back(getColData(14, 1, 0, 0, 0, 0xFF));
 
   std::vector<o2::mid::ROFRecord> rofs;
-  std::vector<o2::mid::LocalBoardRO> outData;
+  std::vector<o2::mid::ROBoard> outData;
   auto inEventType = o2::mid::EventType::Standard;
   o2::mid::ColumnDataToLocalBoard converter;
   converter.setDebugMode(true);
@@ -170,9 +170,9 @@ BOOST_AUTO_TEST_CASE(GBTUserLogicDecoder)
 {
   /// Event with just one link fired
 
-  std::map<uint16_t, std::vector<o2::mid::LocalBoardRO>> inData;
+  std::map<uint16_t, std::vector<o2::mid::ROBoard>> inData;
   uint16_t bc = 100;
-  o2::mid::LocalBoardRO loc;
+  o2::mid::ROBoard loc;
   // Crate 5 link 0
   loc.statusWord = o2::mid::raw::sSTARTBIT | o2::mid::raw::sCARDTYPE;
   loc.triggerWord = 0;
@@ -207,7 +207,7 @@ BOOST_AUTO_TEST_CASE(GBTUserLogicDecoder)
   // Sets the feeId
   rdh.word0 |= ((5 * 2) << 16);
   auto decoder = o2::mid::createGBTDecoder(feeId);
-  std::vector<o2::mid::LocalBoardRO> data;
+  std::vector<o2::mid::ROBoard> data;
   std::vector<o2::mid::ROFRecord> rofs;
   std::vector<uint8_t> convertedBuffer(buf.size());
   memcpy(convertedBuffer.data(), buf.data(), buf.size());
@@ -221,7 +221,7 @@ BOOST_AUTO_TEST_CASE(GBTUserLogicDecoder)
     for (auto inLoc = inItMap->second.begin(); inLoc != inItMap->second.end(); ++inLoc) {
       BOOST_TEST(inLoc->statusWord == outLoc->statusWord);
       BOOST_TEST(inLoc->triggerWord == outLoc->triggerWord);
-      BOOST_TEST(o2::mid::crateparams::makeUniqueLocID(crateId, inLoc->boardId) == outLoc->boardId);
+      BOOST_TEST(o2::mid::raw::makeUniqueLocID(crateId, inLoc->boardId) == outLoc->boardId);
       BOOST_TEST(inLoc->firedChambers == outLoc->firedChambers);
       for (int ich = 0; ich < 4; ++ich) {
         BOOST_TEST(inLoc->patternsBP[ich] == outLoc->patternsBP[ich]);
