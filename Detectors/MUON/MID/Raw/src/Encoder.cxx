@@ -45,12 +45,7 @@ void Encoder::hbTrigger(const InteractionRecord& ir)
 {
   /// Processes HB trigger
   if (mLastIR.isDummy()) {
-    // This is the first HB
-    for (uint16_t feeId = 0; feeId < crateparams::sNGBTs; ++feeId) {
-      mGBTEncoders[feeId].processTrigger(o2::constants::lhc::LHCMaxBunches, raw::sORB);
-    }
     mLastIR = o2::raw::HBFUtils::Instance().getFirstIR();
-    return;
   }
 
   std::vector<InteractionRecord> HBIRVec;
