@@ -21,6 +21,7 @@ void CompressedInfos::clear()
   bcIncROF.clear();
   orbitIncROF.clear();
   ndigROF.clear();
+  ndiaROF.clear();
   timeFrameInc.clear();
   timeTDCInc.clear();
   stripID.clear();

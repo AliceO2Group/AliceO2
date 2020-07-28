@@ -108,6 +108,7 @@ struct ReadoutWindowData {
   // 1st entry and number of entries in the full vector of digits
   // for given trigger (or BC or RO frame)
   o2::dataformats::RangeReference<int, int> ref;
+  o2::dataformats::RangeReference<int, int> refDiagnostic;
   InteractionRecord mFirstIR{0, 0};
 
   const InteractionRecord& getBCData() const { return mFirstIR; }
@@ -136,15 +137,21 @@ struct ReadoutWindowData {
   {
     ref.setFirstEntry(first);
     ref.setEntries(ne);
+    refDiagnostic.setFirstEntry(0);
+    refDiagnostic.setEntries(0);
   }
 
   int first() const { return ref.getFirstEntry(); }
   int size() const { return ref.getEntries(); }
+  int firstDia() const { return refDiagnostic.getFirstEntry(); }
+  int sizeDia() const { return refDiagnostic.getEntries(); }
 
   void setFirstEntry(int first) { ref.setFirstEntry(first); }
   void setNEntries(int ne) { ref.setEntries(ne); }
+  void setFirstEntryDia(int first) { refDiagnostic.setFirstEntry(first); }
+  void setNEntriesDia(int ne) { refDiagnostic.setEntries(ne); }
 
-  ClassDefNV(ReadoutWindowData, 2);
+  ClassDefNV(ReadoutWindowData, 3);
 };
 
 } // namespace tof
