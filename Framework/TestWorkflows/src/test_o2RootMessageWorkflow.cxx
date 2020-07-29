@@ -20,7 +20,7 @@
 #include <TClonesArray.h>
 #include <TH1F.h>
 #include <TString.h>
-
+#include <TObjString.h>
 #include <chrono>
 
 using namespace o2::framework;

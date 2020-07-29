@@ -19,6 +19,7 @@
 #include "DataFormatsTPC/TrackTPC.h"
 
 #include <fairlogger/Logger.h>
+#include <set>
 
 using namespace o2::tpc;
 

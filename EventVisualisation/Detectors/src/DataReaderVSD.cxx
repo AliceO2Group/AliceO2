@@ -20,6 +20,7 @@
 #include <TPRegexp.h>
 #include <TEveTrackPropagator.h>
 #include <TEveEventManager.h>
+#include <TKey.h>
 
 namespace o2
 {

@@ -17,6 +17,7 @@
 #include <algorithm>
 #include <memory>
 #include <unordered_map>
+#include <TObjString.h>
 
 using namespace o2::framework;
 

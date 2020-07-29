@@ -24,6 +24,7 @@
 #include "Mergers/CustomMergeableObject.h"
 
 #include <TObjArray.h>
+#include <TObjString.h>
 #include <TH1.h>
 #include <TH2.h>
 #include <TH3.h>
