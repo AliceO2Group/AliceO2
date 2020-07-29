@@ -86,7 +86,8 @@ struct CTask {
 };
 
 struct DTask {
-  void process(aod::Collision const&, aod::MTracks const& tracks)
+  Filter notTracklet = aod::track::trackType != 3; // only works with literal now
+  void process(aod::Collision const&, soa::Filtered<aod::MTracks> const& tracks)
   {
     for (auto& track : tracks) {
       LOGF(INFO, "%.3f == %.3f", track.spt(), std::abs(track.sigma1Pt() / track.signed1Pt()));
