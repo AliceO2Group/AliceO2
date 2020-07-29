@@ -186,7 +186,7 @@ void Tracker::findTracksLTF(ROframe& event)
             // add the first seed-point
             mcCompLabel = mUseMC ? event.getClusterLabels(layer1, cluster1.clusterId) : MCCompLabel();
             newPoint = kTRUE;
-            event.getCurrentTrackLTF().setPoint(cluster1.getX(), cluster1.getY(), cluster1.getZ(), layer1, clsLayer1, mcCompLabel, newPoint);
+            event.getCurrentTrackLTF().setPoint(cluster1, layer1, clsLayer1, mcCompLabel, newPoint);
 
             for (Int_t layer = (layer1 + 1); layer <= (layer2 - 1); ++layer) {
 
@@ -226,7 +226,7 @@ void Tracker::findTracksLTF(ROframe& event)
 
                     hasDisk[layer / 2] = kTRUE;
                     mcCompLabel = mUseMC ? event.getClusterLabels(layer, cluster.clusterId) : MCCompLabel();
-                    event.getCurrentTrackLTF().setPoint(cluster.getX(), cluster.getY(), cluster.getZ(), layer, clsLayer, mcCompLabel, newPoint);
+                    event.getCurrentTrackLTF().setPoint(cluster, layer, clsLayer, mcCompLabel, newPoint);
                   } // end clusters bin intermediate layer
                 }   // end intermediate layers
               }     // end binPhi
@@ -235,7 +235,7 @@ void Tracker::findTracksLTF(ROframe& event)
             // add the second seed-point
             mcCompLabel = mUseMC ? event.getClusterLabels(layer2, cluster2.clusterId) : MCCompLabel();
             newPoint = kTRUE;
-            event.getCurrentTrackLTF().setPoint(cluster2.getX(), cluster2.getY(), cluster2.getZ(), layer2, clsLayer2, mcCompLabel, newPoint);
+            event.getCurrentTrackLTF().setPoint(cluster2, layer2, clsLayer2, mcCompLabel, newPoint);
 
             // keep only tracks fulfilling the minimum length condition
             if (event.getCurrentTrackLTF().getNPoints() < constants::mft::MinTrackPoints) {
@@ -752,11 +752,11 @@ const Bool_t Tracker::addCellToCurrentTrackCA(const Int_t layer1, const Int_t ce
 
   if (trackCA.getNPoints() == 0) {
     newPoint = kTRUE;
-    trackCA.setPoint(cluster2.getX(), cluster2.getY(), cluster2.getZ(), layer2, cls2Id, mcCompLabel2, newPoint);
+    trackCA.setPoint(cluster2, layer2, cls2Id, mcCompLabel2, newPoint);
   }
 
   newPoint = kTRUE;
-  trackCA.setPoint(cluster1.getX(), cluster1.getY(), cluster1.getZ(), layer1, cls1Id, mcCompLabel1, newPoint);
+  trackCA.setPoint(cluster1, layer1, cls1Id, mcCompLabel1, newPoint);
 
   trackCA.addCell(layer1, cellId);
 
