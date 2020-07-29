@@ -139,20 +139,6 @@ o2_add_test_root_macro(share/egconfig/pythia8_userhooks_charm.C
                        LABELS generators)
 endif()		       
 		     
-install(FILES share/external/extgen.C share/external/pythia6.C
-              share/external/tgenerator.C share/external/QEDLoader.C share/external/QEDepem.C
-	      share/external/trigger_multiplicity.C
-	      share/external/trigger_mpi.C
-        DESTINATION share/Generators/external/)
-
-install(FILES share/egconfig/pythia8_inel.cfg
-              share/egconfig/pythia8_hf.cfg
-	      share/egconfig/pythia8_hi.cfg
-	      share/egconfig/pythia8_userhooks_charm.C
-        DESTINATION share/Generators/egconfig/)
-
-install(FILES share/pythia8/decays/base.cfg
-              share/pythia8/decays/bjpsidimuon.cfg
-        DESTINATION share/Generators/pythia8/decays/)
-
-      
+o2_data_file(COPY share/external DESTINATION Generators)
+o2_data_file(COPY share/egconfig DESTINATION Generators)
+o2_data_file(COPY share/pythia8 DESTINATION Generators)
