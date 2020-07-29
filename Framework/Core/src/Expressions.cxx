@@ -425,6 +425,16 @@ gandiva::NodePtr createExpressionTree(Operations const& opSpecs,
       return node;
     };
 
+    auto insertEqualizeUpcastNode = [&](gandiva::NodePtr node1, gandiva::NodePtr node2, atype::type t1, atype::type t2) {
+      if (t2 > t1) {
+        auto upcast = gandiva::TreeExprBuilder::MakeFunction(upcastTo(t2), {node1}, concreteArrowType(t2));
+        node1 = upcast;
+      } else {
+        auto upcast = gandiva::TreeExprBuilder::MakeFunction(upcastTo(t1), {node2}, concreteArrowType(t1));
+        node2 = upcast;
+      }
+    };
+
     switch (it->op) {
       case BasicOp::LogicalOr:
         tree = gandiva::TreeExprBuilder::MakeOr({leftNode, rightNode});
@@ -437,6 +447,8 @@ gandiva::NodePtr createExpressionTree(Operations const& opSpecs,
           if (it->type != atype::BOOL) {
             leftNode = insertUpcastNode(leftNode, it->left.type);
             rightNode = insertUpcastNode(rightNode, it->right.type);
+          } else if (it->op == BasicOp::Equal || it->op == BasicOp::NotEqual) {
+            insertEqualizeUpcastNode(leftNode, rightNode, it->left.type, it->right.type);
           }
           tree = gandiva::TreeExprBuilder::MakeFunction(binaryOperationsMap[it->op], {leftNode, rightNode}, concreteArrowType(it->type));
         } else {
