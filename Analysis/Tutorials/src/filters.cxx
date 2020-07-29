@@ -65,9 +65,11 @@ struct BTask {
   float phiup = 2.0f;
   Filter phifilter = (aod::etaphi::nphi < phiup) && (aod::etaphi::nphi > philow);
 
-  void process(aod::Collision const& collision, soa::Filtered<soa::Join<aod::Tracks, aod::TPhi>> const& tracks)
+  Filter posZfilter = nabs(aod::collision::posZ) < 10.0f;
+
+  void process(soa::Filtered<aod::Collisions>::iterator const& collision, soa::Filtered<soa::Join<aod::Tracks, aod::TPhi>> const& tracks)
   {
-    LOGF(INFO, "Collision: %d [N = %d]", collision.globalIndex(), tracks.size());
+    LOGF(INFO, "Collision: %d [N = %d], -10 < %.3f < 10", collision.globalIndex(), tracks.size(), collision.posZ());
     for (auto& track : tracks) {
       LOGF(INFO, "id = %d; eta:  %.3f < %.3f < %.3f; phi: %.3f < %.3f < %.3f; pt: %.3f < %.3f < %.3f", track.collisionId(), etalow, track.eta(), etaup, philow, track.nphi(), phiup, ptlow, track.pt(), ptup);
     }
