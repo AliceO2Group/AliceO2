@@ -15,6 +15,7 @@ o2_add_library(CTFWorkflow
                                      O2::DetectorsCommonDataFormats
                                      O2::DataFormatsITSMFT
                                      O2::DataFormatsTPC
+                                     O2::DataFormatsTOF
                                      O2::DataFormatsParameters
                                      O2::ITSMFTWorkflow
                                      O2::TPCWorkflow

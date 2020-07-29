@@ -26,6 +26,7 @@ template <typename T>
 using BranchDefinition = MakeRootTreeWriterSpec::BranchDefinition<T>;
 using OutputType = std::vector<o2::tof::Digit>;
 using ReadoutWinType = std::vector<o2::tof::ReadoutWindowData>;
+using PatternType = std::vector<uint32_t>;
 using LabelsType = std::vector<o2::dataformats::MCTruthContainer<o2::MCCompLabel>>;
 using namespace o2::header;
 
@@ -52,6 +53,9 @@ DataProcessorSpec getTOFDigitWriterSpec(bool useMC)
   auto loggerROW = [nCalls](ReadoutWinType const& row) {
     LOG(INFO) << "RECEIVED READOUT WINDOWS " << row.size();
   };
+  auto loggerPatterns = [nCalls](PatternType const& patterns) {
+    LOG(INFO) << "RECEIVED PATTERNS " << patterns.size();
+  };
   return MakeRootTreeWriterSpec("TOFDigitWriter",
                                 "tofdigits.root",
                                 "o2sim",
@@ -68,6 +72,11 @@ DataProcessorSpec getTOFDigitWriterSpec(bool useMC)
                                                                  "rowindow-branch-name",
                                                                  1,
                                                                  loggerROW},
+                                BranchDefinition<PatternType>{InputSpec{"patterns", gDataOriginTOF, "PATTERNS", 0},
+                                                              "TOFPatterns",
+                                                              "patterns-branch-name",
+                                                              1,
+                                                              loggerPatterns},
                                 BranchDefinition<LabelsType>{InputSpec{"labels", gDataOriginTOF, "DIGITSMCTR", 0},
                                                              "TOFDigitMCTruth",
                                                              (useMC ? 1 : 0), // one branch if mc labels enabled

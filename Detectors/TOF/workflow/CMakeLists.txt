@@ -18,4 +18,11 @@ o2_add_library(TOFWorkflowUtils
                        src/CompressedDecodingTask.cxx
                        src/CompressedInspectorTask.cxx
                        src/EntropyEncoderSpec.cxx
+                       src/EntropyDecoderSpec.cxx
                PUBLIC_LINK_LIBRARIES O2::Framework O2::DPLUtils O2::TOFBase O2::DataFormatsTOF O2::TOFReconstruction)
+
+o2_add_executable(entropy-encoder-workflow
+                  SOURCES src/entropy-encoder-workflow.cxx
+                  COMPONENT_NAME tof
+                  PUBLIC_LINK_LIBRARIES O2::TOFWorkflow)
+

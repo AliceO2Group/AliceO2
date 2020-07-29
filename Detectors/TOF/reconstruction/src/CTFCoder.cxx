@@ -50,6 +50,8 @@ void CTFCoder::compress(CompressedInfos& cc,
   const auto& rofRec0 = rofRecVec[0];
   int nrof = rofRecVec.size();
 
+  printf("TOF compress %d ReadoutWindow with %ld digits\n", nrof, cdigVec.size());
+
   cc.header.nROFs = nrof;
   cc.header.firstOrbit = rofRec0.getBCData().orbit;
   cc.header.firstBC = rofRec0.getBCData().bc;
