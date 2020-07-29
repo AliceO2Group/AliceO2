@@ -608,6 +608,9 @@ struct AnalysisDataProcessorBuilder {
           mGroupingElement{gt.begin()},
           position{0}
       {
+        if constexpr (soa::is_soa_filtered_t<std::decay_t<G>>::value) {
+          groupSelection = &gt.getSelectedRows();
+        }
         auto indexColumnName = getLabelFromType();
         arrow::compute::FunctionContext ctx;
         /// prepare slices and offsets for all associated tables that have index
@@ -625,7 +628,7 @@ struct AnalysisDataProcessorBuilder {
             if (result.ok() == false) {
               throw std::runtime_error("Cannot split collection");
             }
-            if (groups[index].size() != gt.size()) {
+            if (groups[index].size() != gt.tableSize()) {
               throw std::runtime_error("Splitting collection resulted in different group number than there is rows in the grouping table.");
             };
           }
@@ -711,24 +714,28 @@ struct AnalysisDataProcessorBuilder {
       {
         constexpr auto index = framework::has_type_at<A1>(associated_pack_t{});
         if (hasIndexTo<G>(typename std::decay_t<A1>::persistent_columns_t{})) {
+          auto pos = position;
+          if constexpr (soa::is_soa_filtered_t<std::decay_t<G>>::value) {
+            pos = groupSelection[position];
+          }
           if constexpr (soa::is_soa_filtered_t<std::decay_t<A1>>::value) {
-            auto groupedElementsTable = arrow::util::get<std::shared_ptr<arrow::Table>>(((groups[index])[position]).value);
+            auto groupedElementsTable = arrow::util::get<std::shared_ptr<arrow::Table>>(((groups[index])[pos]).value);
 
             // for each grouping element we need to slice the selection vector
-            auto start_iterator = std::lower_bound(starts[index], selections[index]->end(), (offsets[index])[position]);
-            auto stop_iterator = std::lower_bound(start_iterator, selections[index]->end(), (offsets[index])[position + 1]);
+            auto start_iterator = std::lower_bound(starts[index], selections[index]->end(), (offsets[index])[pos]);
+            auto stop_iterator = std::lower_bound(start_iterator, selections[index]->end(), (offsets[index])[pos + 1]);
             starts[index] = stop_iterator;
             soa::SelectionVector slicedSelection{start_iterator, stop_iterator};
             std::transform(slicedSelection.begin(), slicedSelection.end(), slicedSelection.begin(),
                            [&](int64_t idx) {
-                             return idx - static_cast<int64_t>((offsets[index])[position]);
+                             return idx - static_cast<int64_t>((offsets[index])[pos]);
                            });
 
-            std::decay_t<A1> typedTable{{groupedElementsTable}, std::move(slicedSelection), (offsets[index])[position]};
+            std::decay_t<A1> typedTable{{groupedElementsTable}, std::move(slicedSelection), (offsets[index])[pos]};
             return typedTable;
           } else {
-            auto groupedElementsTable = arrow::util::get<std::shared_ptr<arrow::Table>>(((groups[index])[position]).value);
-            std::decay_t<A1> typedTable{{groupedElementsTable}, (offsets[index])[position]};
+            auto groupedElementsTable = arrow::util::get<std::shared_ptr<arrow::Table>>(((groups[index])[pos]).value);
+            std::decay_t<A1> typedTable{{groupedElementsTable}, (offsets[index])[pos]};
             return typedTable;
           }
         } else {
@@ -740,6 +747,7 @@ struct AnalysisDataProcessorBuilder {
       std::tuple<A...>* mAt;
       typename grouping_t::iterator mGroupingElement;
       uint64_t position = 0;
+      soa::SelectionVector* groupSelection = nullptr;
 
       std::array<std::vector<arrow::compute::Datum>, sizeof...(A)> groups;
       std::array<std::vector<uint64_t>, sizeof...(A)> offsets;

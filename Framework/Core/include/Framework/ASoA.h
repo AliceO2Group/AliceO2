@@ -925,6 +925,11 @@ class Table
     return mTable->num_rows();
   }
 
+  int64_t tableSize() const
+  {
+    return size();
+  }
+
   /// Bind the columns which refer to other tables
   /// to the associated tables.
   template <typename... TA>
