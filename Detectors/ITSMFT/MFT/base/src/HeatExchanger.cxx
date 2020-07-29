@@ -256,8 +256,6 @@ void HeatExchanger::createManifold(Int_t disk)
   Double_t lengthBottom1;
   lengthBottom1 = lengthMiddle1[disk];
 
-  auto* dummy = new TGeoBBox("dummy", 0, 0, 0);
-
   auto* Top1 = new TGeoBBox(Form("Top1MF%d", disk), lengthTop1[disk] / 2, widthTop1[disk] / 2, thicknessTop[disk] / 2);
   auto* Top2 = new TGeoBBox(Form("Top2MF%d", disk), lengthTop2 / 2, widthTop2 / 2, thicknessTop[disk] / 2);
   auto* Top3 = new TGeoTube(Form("Top3MF%d", disk), 0, cornerRadiusTop[disk], thicknessTop[disk] / 2);
@@ -532,12 +530,29 @@ void HeatExchanger::createManifold(Int_t disk)
   TGeoRotation* rcoverBodyStep = new TGeoRotation(Form("rcoverBodyStep4MF%d", disk), 45, 0, 0);
   rcoverBodyStep->RegisterYourself();
 
-  TGeoCompositeShape* coverBodyStep4rotated = new TGeoCompositeShape(Form("coverBodyStep4rotatedMF%d", disk), Form("dummy + coverBodyStep4MF%d:rcoverBodyStep4MF%d", disk, disk));
+  ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+  //Add 01/07/2020
+  ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+  TGeoCombiTrans* combtcoverBodyStep[4];
+  combtcoverBodyStep[3] = new TGeoCombiTrans(Form("combtcoverBodyStep4MF%d", disk), -(lengthStep1[disk] - lengthStep2) / 2, -widthStep1[disk] / 2, 0., rcoverBodyStep);
+  combtcoverBodyStep[3]->RegisterYourself();
+  ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+  //
+  ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+  //TGeoCompositeShape* coverBodyStep4rotated = new TGeoCompositeShape(Form("coverBodyStep4rotatedMF%d", disk), Form("dummy + coverBodyStep4MF%d:rcoverBodyStep4MF%d", disk, disk));
 
   for (Int_t i = 0; i < 4; ++i)
     tcoverBodyStep[i]->RegisterYourself();
 
-  TGeoCompositeShape* shapeStep = new TGeoCompositeShape(Form("shapeStepMF%d", disk), Form("coverBodyStep1MF%d:tcoverBodyStep1MF%d + coverBodyStep2MF%d:tcoverBodyStep2MF%d + coverBodyStep3MF%d:tcoverBodyStep3MF%d + coverBodyStep4rotatedMF%d:tcoverBodyStep4MF%d", disk, disk, disk, disk, disk, disk, disk, disk));
+  //TGeoCompositeShape* shapeStep = new TGeoCompositeShape(Form("shapeStepMF%d", disk), Form("coverBodyStep1MF%d:tcoverBodyStep1MF%d + coverBodyStep2MF%d:tcoverBodyStep2MF%d + coverBodyStep3MF%d:tcoverBodyStep3MF%d + coverBodyStep4rotatedMF%d:tcoverBodyStep4MF%d", disk, disk, disk, disk, disk, disk, disk, disk));
+  ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+  //Add 01/07/2020
+  ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+  TGeoCompositeShape* shapeStep = new TGeoCompositeShape(Form("shapeStepMF%d", disk), Form("coverBodyStep1MF%d:tcoverBodyStep1MF%d + coverBodyStep2MF%d:tcoverBodyStep2MF%d + coverBodyStep3MF%d:tcoverBodyStep3MF%d + coverBodyStep4MF%d:combtcoverBodyStep4MF%d", disk, disk, disk, disk, disk, disk, disk, disk));
+  ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+  //
+  ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
   TGeoTranslation* tcoverStep = new TGeoTranslation(Form("tcoverStepMF%d", disk), -(lengthMiddle1[disk] / 2 - (lengthStep1[disk] / 2 - lengthStep2 / 2)),
                                                     (widthBody / 2 - widthStep1[disk] / 2), -(thicknessBody[disk] / 2 - thicknessStep1[disk] / 2));
@@ -572,12 +587,29 @@ void HeatExchanger::createManifold(Int_t disk)
   TGeoRotation* rcoverBodyBulgeSub = new TGeoRotation(Form("rcoverBodyBulgeSubMF%d", disk), 0, 90, 45);
   rcoverBodyBulgeSub->RegisterYourself();
 
-  TGeoCompositeShape* coverBodyBulgeSubrotated = new TGeoCompositeShape(Form("coverBodyBulgeSubrotatedMF%d", disk), Form("dummy + coverBodyBulgeSubMF%d:rcoverBodyBulgeSubMF%d", disk, disk));
+  //TGeoCompositeShape* coverBodyBulgeSubrotated = new TGeoCompositeShape(Form("coverBodyBulgeSubrotatedMF%d", disk), Form("dummy + coverBodyBulgeSubMF%d:rcoverBodyBulgeSubMF%d", disk, disk));
 
   TGeoTranslation* tcoverBodyBulgeSub = new TGeoTranslation(Form("tcoverBodyBulgeSubMF%d", disk), -lengthBulge[disk] / 2, 0, 0);
   tcoverBodyBulgeSub->RegisterYourself();
 
-  TGeoCompositeShape* shapeBulge = new TGeoCompositeShape(Form("shapeBulgeMF%d", disk), Form("coverBodyBulgeMF%d - coverBodyBulgeSubrotatedMF%d:tcoverBodyBulgeSubMF%d", disk, disk, disk));
+  ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+  //Add 01/07/2020
+  ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+  TGeoCombiTrans* combtcoverBodyBulgeSub = new TGeoCombiTrans(Form("combtcoverBodyBulgeSubMF%d", disk), -lengthBulge[disk] / 2, 0, 0, rcoverBodyBulgeSub);
+  combtcoverBodyBulgeSub->RegisterYourself();
+  ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+  //
+  ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+  //TGeoCompositeShape* shapeBulge = new TGeoCompositeShape(Form("shapeBulgeMF%d", disk), Form("coverBodyBulgeMF%d - coverBodyBulgeSubrotatedMF%d:tcoverBodyBulgeSubMF%d", disk, disk, disk));
+
+  ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+  //Add 01/07/2020
+  ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+  TGeoCompositeShape* shapeBulge = new TGeoCompositeShape(Form("shapeBulgeMF%d", disk), Form("coverBodyBulgeMF%d - coverBodyBulgeSubMF%d:combtcoverBodyBulgeSubMF%d", disk, disk, disk));
+  ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+  //
+  ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
   TGeoTranslation* tcoverBulge = new TGeoTranslation(Form("tcoverBulgeMF%d", disk), -(lengthMiddle1[disk] / 2 + lengthBulge[disk] / 2), -(widthBody / 2 - widthBulge[disk] / 2), 0);
   tcoverBulge->RegisterYourself();
@@ -604,15 +636,32 @@ void HeatExchanger::createManifold(Int_t disk)
   TGeoRotation* rshapeManifold2 = new TGeoRotation(Form("rshapeManifold2MF%d", disk), 0, 180, 0);
   rshapeManifold2->RegisterYourself();
 
-  TGeoCompositeShape* shapeManifold2rotated = new TGeoCompositeShape(Form("shapeManifold2rotatedMF%d", disk), Form("dummy + shapeManifold2MF%d:rshapeManifold2MF%d", disk, disk));
+  //TGeoCompositeShape* shapeManifold2rotated = new TGeoCompositeShape(Form("shapeManifold2rotatedMF%d", disk), Form("dummy + shapeManifold2MF%d:rshapeManifold2MF%d", disk, disk));
 
   TGeoTranslation* tshapeManifold1 = new TGeoTranslation(Form("tshapeManifold1MF%d", disk), 0, 0,
                                                          -((thicknessBody[disk] + thicknessMiddle[disk] + thicknessBottom[disk]) / 2 - (thicknessTop[disk] + thicknessMiddle[disk] + thicknessBottom[disk]) / 2));
   tshapeManifold1->RegisterYourself();
+
   TGeoTranslation* tshapeManifold2 = new TGeoTranslation(Form("tshapeManifold2MF%d", disk), 0, 0, (thicknessBody[disk] + thicknessMiddle[disk] + thicknessBottom[disk]) / 2 - thicknessBody[disk] / 2);
   tshapeManifold2->RegisterYourself();
 
-  TGeoCompositeShape* shapeManifold = new TGeoCompositeShape("shapeManifold", Form("shapeManifold1MF%d:tshapeManifold1MF%d + shapeManifold2rotatedMF%d:tshapeManifold2MF%d", disk, disk, disk, disk));
+  ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+  //Add 01/07/2020
+  ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+  TGeoCombiTrans* combtshapeManifold2 = new TGeoCombiTrans(Form("combtshapeManifold2MF%d", disk), 0, 0, (thicknessBody[disk] + thicknessMiddle[disk] + thicknessBottom[disk]) / 2 - thicknessBody[disk] / 2, rshapeManifold2);
+  combtshapeManifold2->RegisterYourself();
+  ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+  //
+  ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+  //TGeoCompositeShape* shapeManifold = new TGeoCompositeShape("shapeManifold", Form("shapeManifold1MF%d:tshapeManifold1MF%d + shapeManifold2rotatedMF%d:tshapeManifold2MF%d", disk, disk, disk, disk));
+  ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+  //Add 01/07/2020
+  ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+  TGeoCompositeShape* shapeManifold = new TGeoCompositeShape("shapeManifold", Form("shapeManifold1MF%d:tshapeManifold1MF%d + shapeManifold2MF%d:combtshapeManifold2MF%d", disk, disk, disk, disk));
+  ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+  //
+  ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
   ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
   // Manifold3
@@ -660,7 +709,7 @@ void HeatExchanger::createManifold(Int_t disk)
   TGeoTranslation* tPlug5sub = new TGeoTranslation(Form("tPlug5subMF%d", disk), 0, outerRadiusPlug5 * TMath::Cos(anglesubPlug5) + outerRadiusPlug5 * (1 - TMath::Cos(anglesubPlug5)) / 2, 0.);
   tPlug5sub->RegisterYourself();
 
-  TGeoCompositeShape* disPlug5sub = new TGeoCompositeShape(Form("disPlug5subMF%d", disk), Form("dummy + plug5subMF%d:tPlug5subMF%d", disk, disk));
+  //TGeoCompositeShape* disPlug5sub = new TGeoCompositeShape(Form("disPlug5subMF%d", disk), Form("dummy + plug5subMF%d:tPlug5subMF%d", disk, disk));
 
   TGeoRotation* rPlug5sub[nSidePlug5];
 
@@ -669,7 +718,16 @@ void HeatExchanger::createManifold(Int_t disk)
   for (Int_t index = 0; index < nSidePlug5; ++index) {
     rPlug5sub[index] = new TGeoRotation(Form("rPlug5sub%dMF%d", index, disk), index * 60, 0, 0);
     rPlug5sub[index]->RegisterYourself();
-    namePlug5 += Form(" - disPlug5subMF%d:rPlug5sub%dMF%d", disk, index, disk);
+    //namePlug5 += Form(" - disPlug5subMF%d:rPlug5sub%dMF%d", disk, index, disk);
+    ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+    //Add 01/07/2020
+    ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+    TGeoCombiTrans* combtPlug5sub = new TGeoCombiTrans(Form("combtPlug5subMF%d", disk), 0, outerRadiusPlug5 * TMath::Cos(anglesubPlug5) + outerRadiusPlug5 * (1 - TMath::Cos(anglesubPlug5)) / 2, 0., rPlug5sub[index]);
+    combtPlug5sub->RegisterYourself();
+    namePlug5 += Form(" - plug5subMF%d:combtPlug5subMF%d", disk, disk);
+    ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+    //
+    ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
   }
 
   TGeoCompositeShape* plug5 = new TGeoCompositeShape(Form("plug5MF%d", disk), namePlug5);
@@ -730,7 +788,7 @@ void HeatExchanger::createManifold(Int_t disk)
   TGeoTranslation* tPlug12sub = new TGeoTranslation(Form("tPlug12subMF%d", disk), 0, outerRadiusPlug12 * TMath::Cos(anglesubPlug12) + outerRadiusPlug12 * (1 - TMath::Cos(anglesubPlug12)) / 2, 0.);
   tPlug12sub->RegisterYourself();
 
-  TGeoCompositeShape* disPlug12sub = new TGeoCompositeShape(Form("disPlug12subMF%d", disk), Form("dummy + plug12subMF%d:tPlug12subMF%d", disk, disk));
+  //TGeoCompositeShape* disPlug12sub = new TGeoCompositeShape(Form("disPlug12subMF%d", disk), Form("dummy + plug12subMF%d:tPlug12subMF%d", disk, disk));
 
   TGeoRotation* rPlug12sub[nSidePlug12];
 
@@ -739,7 +797,16 @@ void HeatExchanger::createManifold(Int_t disk)
   for (Int_t index = 0; index < nSidePlug12; ++index) {
     rPlug12sub[index] = new TGeoRotation(Form("rPlug12sub%dMF%d", index, disk), index * 60, 0, 0);
     rPlug12sub[index]->RegisterYourself();
-    namePlug12 += Form(" - disPlug12subMF%d:rPlug12sub%dMF%d", disk, index, disk);
+    //namePlug12 += Form(" - disPlug12subMF%d:rPlug12sub%dMF%d", disk, index, disk);
+    ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+    //Add 01/07/2020
+    ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+    TGeoCombiTrans* combtPlug12sub = new TGeoCombiTrans(Form("combtPlug12subMF%d", disk), 0, outerRadiusPlug12 * TMath::Cos(anglesubPlug12) + outerRadiusPlug12 * (1 - TMath::Cos(anglesubPlug12)) / 2, 0., rPlug12sub[index]);
+    combtPlug12sub->RegisterYourself();
+    namePlug12 += Form(" - plug12subMF%d:combtPlug12subMF%d", disk, disk);
+    ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+    //
+    ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
   }
 
   TGeoCompositeShape* plug12 = new TGeoCompositeShape(Form("plug12MF%d", disk), namePlug12);
