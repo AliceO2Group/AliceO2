@@ -114,7 +114,7 @@ class Detector : public o2::base::DetImpl<Detector>
   /// @param kp* Parameters for the ALICE TPC
   /// @return Bethe-Bloch value in MIP units
   template <typename T>
-  T BetheBlochAleph(T bg, T kp1, T kp2, T kp3, T kp4, T kp5);
+  static T BetheBlochAleph(T bg, T kp1, T kp2, T kp3, T kp4, T kp5);
 
   /// Copied from AliRoot - should go to someplace else
   /// Function to generate random numbers according to Gamma function
