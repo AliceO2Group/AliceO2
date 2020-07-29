@@ -40,7 +40,7 @@ AddOption(ClusterError2CorrectionZ, float, 1., "", 0, "correction for the square
 AddOption(MinNTrackClusters, int, -1, "", 0, "required min number of clusters on the track")
 AddOption(MaxTrackQPt, float, 1.f / GPUCA_MIN_TRACK_PT_DEFAULT, "", 0, "required max Q/Pt (==min Pt) of tracks")
 AddOption(SearchWindowDZDR, float, 2.5, "", 0, "Use DZDR window for seeding instead of vertex window")
-AddOption(TrackReferenceX, float, 1000, "", 0, "Transport all tracks to this X after tracking (disabled if > 500)")
+AddOption(TrackReferenceX, float, 1000.f, "", 0, "Transport all tracks to this X after tracking (disabled if > 500, auto = 1000)")
 AddOption(tpcZSthreshold, float, 2.0f, "", 0, "Zero-Suppression threshold")
 AddOption(NWays, char, 3, "", 0, "Do N fit passes in final fit of merger")
 AddOption(NWaysOuter, char, 0, "", 0, "Store outer param")
