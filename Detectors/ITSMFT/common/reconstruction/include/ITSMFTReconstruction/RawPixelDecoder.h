@@ -64,6 +64,8 @@ class RawPixelDecoder : public PixelReader
   int fillDecodedDigits(DigitContainer& digits, ROFContainer& rofs);
 
   const RUDecodeData* getRUDecode(int ruSW) const { return mRUEntry[ruSW] < 0 ? nullptr : &mRUDecodeVec[mRUEntry[ruSW]]; }
+  const GBTLink* getGBTLink(int i) const { return i < 0 ? nullptr : &mGBTLinks[i]; }
+  int getNLinks() const { return mGBTLinks.size(); }
 
   auto getUserDataOrigin() const { return mUserDataOrigin; }
   void setUserDataOrigin(header::DataOrigin orig) { mUserDataOrigin = orig; }
@@ -93,7 +95,6 @@ class RawPixelDecoder : public PixelReader
   int getRUEntrySW(int ruSW) const { return mRUEntry[ruSW]; }
   RUDecodeData* getRUDecode(int ruSW) { return &mRUDecodeVec[mRUEntry[ruSW]]; }
   GBTLink* getGBTLink(int i) { return i < 0 ? nullptr : &mGBTLinks[i]; }
-  const GBTLink* getGBTLink(int i) const { return i < 0 ? nullptr : &mGBTLinks[i]; }
   RUDecodeData& getCreateRUDecode(int ruSW);
 
   static constexpr uint16_t NORUDECODED = 0xffff; // this must be > than max N RUs
