@@ -90,6 +90,7 @@ DataProcessorSpec getCATrackerSpec(ca::Config const& specconfig, std::vector<int
     std::vector<int> clusterOutputIds;
     bool readyToQuit = false;
     bool allocateOutputOnTheFly = false;
+    unsigned long outputBufferSize = 0;
     bool suppressOutput = false;
   };
 
@@ -114,6 +115,7 @@ DataProcessorSpec getCATrackerSpec(ca::Config const& specconfig, std::vector<int
       }
       const GPUSettingsO2& confParam = config.ReadConfigurableParam();
       processAttributes->allocateOutputOnTheFly = confParam.allocateOutputOnTheFly;
+      processAttributes->outputBufferSize = confParam.outputBufferSize;
       processAttributes->suppressOutput = (confParam.dump == 2);
       if (config.configEvent.continuousMaxTimeBin == -1) {
         config.configEvent.continuousMaxTimeBin = (o2::raw::HBFUtils::Instance().getNOrbitsPerTF() * o2::constants::lhc::LHCMaxBunches + 2 * Constants::LHCBCPERTIMEBIN - 2) / Constants::LHCBCPERTIMEBIN;
@@ -564,15 +566,12 @@ DataProcessorSpec getCATrackerSpec(ca::Config const& specconfig, std::vector<int
       }
 
       GPUInterfaceOutputs outputRegions;
-      // TODO: For output to preallocated buffer, just allocated some large buffer for now.
-      // This should be estimated correctly, but it is not the default for now, so it doesn't matter much.
-      size_t bufferSize = 256ul * 1024 * 1024;
       std::optional<std::reference_wrapper<O2CharVectorOutputType>> clusterOutput = std::nullopt, bufferCompressedClusters = std::nullopt, bufferTPCTracks = std::nullopt;
       if (specconfig.outputCompClustersFlat) {
         if (processAttributes->allocateOutputOnTheFly) {
           outputRegions.compressedClusters.allocator = [&bufferCompressedClusters, &pc](size_t size) -> void* {bufferCompressedClusters.emplace(pc.outputs().make<std::vector<char>>(Output{gDataOriginTPC, "COMPCLUSTERSFLAT", 0}, size)); return bufferCompressedClusters->get().data(); };
         } else {
-          bufferCompressedClusters.emplace(pc.outputs().make<std::vector<char>>(Output{gDataOriginTPC, "COMPCLUSTERSFLAT", 0}, bufferSize));
+          bufferCompressedClusters.emplace(pc.outputs().make<std::vector<char>>(Output{gDataOriginTPC, "COMPCLUSTERSFLAT", 0}, processAttributes->outputBufferSize));
           outputRegions.compressedClusters.ptr = bufferCompressedClusters->get().data();
           outputRegions.compressedClusters.size = bufferCompressedClusters->get().size();
         }
@@ -581,7 +580,7 @@ DataProcessorSpec getCATrackerSpec(ca::Config const& specconfig, std::vector<int
         if (processAttributes->allocateOutputOnTheFly) {
           outputRegions.clustersNative.allocator = [&clusterOutput, &pc, clusterOutputSectorHeader](size_t size) -> void* {clusterOutput.emplace(pc.outputs().make<std::vector<char>>({gDataOriginTPC, "CLUSTERNATIVE", NSectors, Lifetime::Timeframe, {clusterOutputSectorHeader}}, size + sizeof(ClusterCountIndex))); return (char*)clusterOutput->get().data() + sizeof(ClusterCountIndex); };
         } else {
-          clusterOutput.emplace(pc.outputs().make<std::vector<char>>({gDataOriginTPC, "CLUSTERNATIVE", NSectors, Lifetime::Timeframe, {clusterOutputSectorHeader}}, bufferSize));
+          clusterOutput.emplace(pc.outputs().make<std::vector<char>>({gDataOriginTPC, "CLUSTERNATIVE", NSectors, Lifetime::Timeframe, {clusterOutputSectorHeader}}, processAttributes->outputBufferSize));
           outputRegions.clustersNative.ptr = (char*)clusterOutput->get().data() + sizeof(ClusterCountIndex);
           outputRegions.clustersNative.size = clusterOutput->get().size() * sizeof(*clusterOutput->get().data()) - sizeof(ClusterCountIndex);
         }
@@ -589,7 +588,7 @@ DataProcessorSpec getCATrackerSpec(ca::Config const& specconfig, std::vector<int
       if (processAttributes->allocateOutputOnTheFly) {
         outputRegions.tpcTracks.allocator = [&bufferTPCTracks, &pc](size_t size) -> void* {bufferTPCTracks.emplace(pc.outputs().make<std::vector<char>>(Output{gDataOriginTPC, "TRACKSGPU", 0}, size)); return bufferTPCTracks->get().data(); };
       } else {
-        bufferTPCTracks.emplace(pc.outputs().make<std::vector<char>>(Output{gDataOriginTPC, "TRACKSGPU", 0}, bufferSize));
+        bufferTPCTracks.emplace(pc.outputs().make<std::vector<char>>(Output{gDataOriginTPC, "TRACKSGPU", 0}, processAttributes->outputBufferSize));
         outputRegions.tpcTracks.ptr = bufferTPCTracks->get().data();
         outputRegions.tpcTracks.size = bufferTPCTracks->get().size();
       }
