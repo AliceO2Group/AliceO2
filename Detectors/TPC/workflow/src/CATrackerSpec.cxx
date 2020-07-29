@@ -132,8 +132,13 @@ DataProcessorSpec getCATrackerSpec(ca::Config const& specconfig, std::vector<int
       config.configWorkflow.steps.set(GPUDataTypes::RecoStep::TPCConversion,
                                       GPUDataTypes::RecoStep::TPCSliceTracking,
                                       GPUDataTypes::RecoStep::TPCMerging,
-                                      GPUDataTypes::RecoStep::TPCCompression,
-                                      GPUDataTypes::RecoStep::TPCdEdx);
+                                      GPUDataTypes::RecoStep::TPCCompression);
+
+      config.configWorkflow.steps.setBits(GPUDataTypes::RecoStep::TPCdEdx, !confParam.synchronousProcessing);
+      if (confParam.synchronousProcessing) {
+        config.configReconstruction.useMatLUT = false;
+      }
+
       // Alternative steps: TRDTracking | ITSTracking
       config.configWorkflow.inputs.set(GPUDataTypes::InOutType::TPCClusters);
       // Alternative inputs: GPUDataTypes::InOutType::TRDTracklets
