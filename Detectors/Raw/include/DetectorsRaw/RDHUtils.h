@@ -55,7 +55,7 @@ struct RDHUtils {
   template <typename H>
   static constexpr int getVersion()
   {
-#ifndef __OPENCL__
+#ifndef GPUCA_GPUCODE_DEVICE
     RDHAny::sanityCheckStrict<H>();
     if (std::is_same<H, RDHv6>::value) {
       return 6;
@@ -68,7 +68,7 @@ struct RDHUtils {
     }
 #else
     return -1; // dummy value as this method will be used on the CPU only
-#endif // __OPENCL__
+#endif // GPUCA_GPUCODE_DEVICE
   }
 
   ///_______________________________

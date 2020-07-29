@@ -17,7 +17,7 @@
 #define ALICEO2_GPUCOMMON_TPCFASTTRANSFORMATION_TPCFASTTRANSFORMGEO_H
 
 #include "GPUCommonDef.h"
-#ifndef __OPENCL__
+#ifndef GPUCA_GPUCODE_DEVICE
 #include <memory>
 #endif
 

@@ -19,7 +19,7 @@
 #include "GPUCommonMath.h"
 #include "GPUdEdxInfo.h"
 
-#ifndef __OPENCL__
+#ifndef GPUCA_GPUCODE_DEVICE
 #include <cstddef>
 #endif
 

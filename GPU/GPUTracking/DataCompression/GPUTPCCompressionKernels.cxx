@@ -349,6 +349,7 @@ GPUdi() bool GPUTPCCompressionGatherKernels::isAlignedTo(const S* ptr)
   {
     return reinterpret_cast<size_t>(ptr) % alignof(T) == 0;
   }
+  return false; // BUG: Cuda complains about missing return value with constexpr if
 }
 
 template <>

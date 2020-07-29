@@ -20,7 +20,7 @@
 #include <sm_20_atomic_functions.h>
 #endif
 
-#if !defined(__OPENCL__)
+#if !defined(GPUCA_GPUCODE_DEVICE)
 #include <cmath>
 #include <algorithm>
 #endif
@@ -35,39 +35,39 @@ namespace gpu
 class GPUCommonMath
 {
  public:
-  GPUhdni() static float2 MakeFloat2(float x, float y); // TODO: Find better appraoch that is constexpr
+  GPUd() static float2 MakeFloat2(float x, float y); // TODO: Find better appraoch that is constexpr
 
   template <class T>
   GPUhd() static T Min(const T x, const T y);
   template <class T>
   GPUhd() static T Max(const T x, const T y);
   template <class T, class S, class R>
-  GPUhd() static T MinWithRef(T x, T y, S refX, S refY, R& r);
+  GPUd() static T MinWithRef(T x, T y, S refX, S refY, R& r);
   template <class T, class S, class R>
-  GPUhd() static T MaxWithRef(T x, T y, S refX, S refY, R& r);
+  GPUd() static T MaxWithRef(T x, T y, S refX, S refY, R& r);
   template <class T, class S, class R>
-  GPUhd() static T MaxWithRef(T x, T y, T z, T w, S refX, S refY, S refZ, S refW, R& r);
+  GPUd() static T MaxWithRef(T x, T y, T z, T w, S refX, S refY, S refZ, S refW, R& r);
   GPUhdni() static float Sqrt(float x);
-  GPUhdni() static float FastInvSqrt(float x);
+  GPUd() static float FastInvSqrt(float x);
   template <class T>
   GPUhd() static T Abs(T x);
-  GPUhdni() static float ASin(float x);
-  GPUhdni() static float ATan(float x);
-  GPUhdni() static float ATan2(float y, float x);
-  GPUhdni() static float Sin(float x);
-  GPUhdni() static float Cos(float x);
+  GPUd() static float ASin(float x);
+  GPUd() static float ATan(float x);
+  GPUd() static float ATan2(float y, float x);
+  GPUd() static float Sin(float x);
+  GPUd() static float Cos(float x);
   GPUhdni() static void SinCos(float x, float& s, float& c);
   GPUhdni() static void SinCos(double x, double& s, double& c);
-  GPUhdni() static float Tan(float x);
+  GPUd() static float Tan(float x);
   GPUhdni() static float Copysign(float x, float y);
-  GPUhdni() static float TwoPi() { return 6.28319f; }
-  GPUhdni() static float Pi() { return 3.1415926535897f; }
-  GPUhdni() static int Nint(float x);
-  GPUhdni() static bool Finite(float x);
-  GPUhdni() static unsigned int Clz(unsigned int val);
-  GPUhdni() static unsigned int Popcount(unsigned int val);
+  GPUd() static float TwoPi() { return 6.28319f; }
+  GPUd() static float Pi() { return 3.1415926535897f; }
+  GPUd() static int Nint(float x);
+  GPUd() static bool Finite(float x);
+  GPUd() static unsigned int Clz(unsigned int val);
+  GPUd() static unsigned int Popcount(unsigned int val);
 
-  GPUhdni() static float Log(float x);
+  GPUd() static float Log(float x);
   template <class T>
   GPUdi() static T AtomicExch(GPUglobalref() GPUgeneric() GPUAtomic(T) * addr, T val)
   {
@@ -178,9 +178,10 @@ GPUdi() CONSTEXPR17 T GPUCommonMath::nextMultipleOf(T val)
   {
     return (val + I - 1) & ~(T)(I - 1);
   }
+  return 0; // BUG: Cuda complains about missing return value with constexpr if
 }
 
-GPUhdi() float2 GPUCommonMath::MakeFloat2(float x, float y)
+GPUdi() float2 GPUCommonMath::MakeFloat2(float x, float y)
 {
 #if !defined(GPUCA_GPUCODE) || defined(__OPENCL__) || defined(__OPENCL_HOST__)
   float2 ret = {x, y};
@@ -190,7 +191,7 @@ GPUhdi() float2 GPUCommonMath::MakeFloat2(float x, float y)
 #endif // GPUCA_GPUCODE
 }
 
-GPUhdi() int GPUCommonMath::Nint(float x)
+GPUdi() int GPUCommonMath::Nint(float x)
 {
   int i;
   if (x >= 0) {
@@ -205,15 +206,15 @@ GPUhdi() int GPUCommonMath::Nint(float x)
   return i;
 }
 
-GPUhdi() bool GPUCommonMath::Finite(float x) { return CHOICE(std::isfinite(x), true, true); }
+GPUdi() bool GPUCommonMath::Finite(float x) { return CHOICE(std::isfinite(x), true, true); }
 
-GPUhdi() float GPUCommonMath::ATan(float x) { return CHOICE(atanf(x), atanf(x), atan(x)); }
+GPUdi() float GPUCommonMath::ATan(float x) { return CHOICE(atanf(x), atanf(x), atan(x)); }
 
-GPUhdi() float GPUCommonMath::ATan2(float y, float x) { return CHOICE(atan2f(y, x), atan2f(y, x), atan2(y, x)); }
+GPUdi() float GPUCommonMath::ATan2(float y, float x) { return CHOICE(atan2f(y, x), atan2f(y, x), atan2(y, x)); }
 
-GPUhdi() float GPUCommonMath::Sin(float x) { return CHOICE(sinf(x), sinf(x), sin(x)); }
+GPUdi() float GPUCommonMath::Sin(float x) { return CHOICE(sinf(x), sinf(x), sin(x)); }
 
-GPUhdi() float GPUCommonMath::Cos(float x) { return CHOICE(cosf(x), cosf(x), cos(x)); }
+GPUdi() float GPUCommonMath::Cos(float x) { return CHOICE(cosf(x), cosf(x), cos(x)); }
 
 GPUhdi() void GPUCommonMath::SinCos(float x, float& s, float& c)
 {
@@ -237,9 +238,9 @@ GPUhdi() void GPUCommonMath::SinCos(double x, double& s, double& c)
 #endif
 }
 
-GPUhdi() float GPUCommonMath::Tan(float x) { return CHOICE(tanf(x), tanf(x), tan(x)); }
+GPUdi() float GPUCommonMath::Tan(float x) { return CHOICE(tanf(x), tanf(x), tan(x)); }
 
-GPUhdi() unsigned int GPUCommonMath::Clz(unsigned int x)
+GPUdi() unsigned int GPUCommonMath::Clz(unsigned int x)
 {
 #if (defined(__GNUC__) || defined(__clang__) || defined(__CUDACC__) || defined(__HIPCC__)) && (!defined(__OPENCL__) || defined(__OPENCLCPP__))
   return x == 0 ? 32 : CHOICE(__builtin_clz(x), __clz(x), __builtin_clz(x)); // use builtin if available
@@ -253,7 +254,7 @@ GPUhdi() unsigned int GPUCommonMath::Clz(unsigned int x)
 #endif
 }
 
-GPUhdi() unsigned int GPUCommonMath::Popcount(unsigned int x)
+GPUdi() unsigned int GPUCommonMath::Popcount(unsigned int x)
 {
 #if (defined(__GNUC__) || defined(__clang__) || defined(__CUDACC__) || defined(__HIPCC__)) && (!defined(__OPENCL__) /*|| defined(__OPENCLCPP__)*/) // TODO: remove OPENCLCPP workaround when reported SPIR-V bug is fixed
   return CHOICE(__builtin_popcount(x), __popc(x), __builtin_popcount(x));                                                                          // use builtin if available
@@ -271,17 +272,17 @@ GPUhdi() unsigned int GPUCommonMath::Popcount(unsigned int x)
 template <class T>
 GPUhdi() T GPUCommonMath::Min(const T x, const T y)
 {
-  return CHOICE(std::min(x, y), std::min(x, y), (x < y ? x : y));
+  return CHOICE(std::min(x, y), min(x, y), (x < y ? x : y));
 }
 
 template <class T>
 GPUhdi() T GPUCommonMath::Max(const T x, const T y)
 {
-  return CHOICE(std::max(x, y), std::max(x, y), (x > y ? x : y));
+  return CHOICE(std::max(x, y), max(x, y), (x > y ? x : y));
 }
 
 template <class T, class S, class R>
-GPUhdi() T GPUCommonMath::MinWithRef(T x, T y, S refX, S refY, R& r)
+GPUdi() T GPUCommonMath::MinWithRef(T x, T y, S refX, S refY, R& r)
 {
   if (x < y) {
     r = refX;
@@ -292,7 +293,7 @@ GPUhdi() T GPUCommonMath::MinWithRef(T x, T y, S refX, S refY, R& r)
 }
 
 template <class T, class S, class R>
-GPUhdi() T GPUCommonMath::MaxWithRef(T x, T y, S refX, S refY, R& r)
+GPUdi() T GPUCommonMath::MaxWithRef(T x, T y, S refX, S refY, R& r)
 {
   if (x > y) {
     r = refX;
@@ -303,7 +304,7 @@ GPUhdi() T GPUCommonMath::MaxWithRef(T x, T y, S refX, S refY, R& r)
 }
 
 template <class T, class S, class R>
-GPUhdi() T GPUCommonMath::MaxWithRef(T x, T y, T z, T w, S refX, S refY, S refZ, S refW, R& r)
+GPUdi() T GPUCommonMath::MaxWithRef(T x, T y, T z, T w, S refX, S refY, S refZ, S refW, R& r)
 {
   T retVal = x;
   S retRef = refX;
@@ -325,7 +326,7 @@ GPUhdi() T GPUCommonMath::MaxWithRef(T x, T y, T z, T w, S refX, S refY, S refZ,
 
 GPUhdi() float GPUCommonMath::Sqrt(float x) { return CHOICE(sqrtf(x), sqrtf(x), sqrt(x)); }
 
-GPUhdi() float GPUCommonMath::FastInvSqrt(float _x)
+GPUdi() float GPUCommonMath::FastInvSqrt(float _x)
 {
   // the function calculates fast inverse sqrt
   union {
@@ -358,9 +359,9 @@ GPUhdi() int GPUCommonMath::Abs<int>(int x)
   return CHOICE(abs(x), abs(x), abs(x));
 }
 
-GPUhdi() float GPUCommonMath::ASin(float x) { return CHOICE(asinf(x), asinf(x), asin(x)); }
+GPUdi() float GPUCommonMath::ASin(float x) { return CHOICE(asinf(x), asinf(x), asin(x)); }
 
-GPUhdi() float GPUCommonMath::Log(float x) { return CHOICE(logf(x), logf(x), log(x)); }
+GPUdi() float GPUCommonMath::Log(float x) { return CHOICE(logf(x), logf(x), log(x)); }
 
 GPUhdi() float GPUCommonMath::Copysign(float x, float y)
 {

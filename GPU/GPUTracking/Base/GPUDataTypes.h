@@ -18,7 +18,7 @@
 
 // These are basic and non-comprex data types, which will also be visible on the GPU.
 // Please add complex data types required on the host but not GPU to GPUHostDataTypes.h and forward-declare!
-#ifndef __OPENCL__
+#ifndef GPUCA_GPUCODE_DEVICE
 #include <cstddef>
 #endif
 #ifdef GPUCA_NOCOMPAT_ALLOPENCL
@@ -85,7 +85,7 @@ namespace gpu
 #define GPUCA_RECO_STEP GPUDataTypes
 #endif
 
-#ifdef __OPENCL__
+#if defined(__OPENCL__) && !defined(__OPENCLCPP__)
 MEM_CLASS_PRE() // Macro with some template magic for OpenCL 1.2
 #endif
 class GPUTPCTrack;

@@ -91,7 +91,7 @@ class bitfield
     return retVal;
   }
 
-#ifdef GPUCA_NOCOMPAT_ALLOPENCL
+#if defined(GPUCA_NOCOMPAT_ALLOPENCL) && !defined(GPUCA_GPUCODE_DEVICE)
   static_assert(std::is_integral<S>::value, "Storage type non integral");
   static_assert(sizeof(S) >= sizeof(T), "Storage type has insufficient capacity");
 #endif

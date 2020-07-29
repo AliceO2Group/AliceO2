@@ -60,40 +60,40 @@ class TRDGeometryBase
   GPUd() float getRow0(int layer, int stack) { return mPadPlanes[getDetectorSec(layer, stack)].getRow0(); }
   GPUd() float getRowEnd(int layer, int stack) { return mPadPlanes[getDetectorSec(layer, stack)].getRowEnd(); }
 
-  static constexpr int getSector(int det) { return (det / (constants::NLAYER * constants::NSTACK)); }
-  static constexpr float getTime0(int layer) { return TIME0[layer]; }
-  static constexpr float getXtrdBeg() { return XTRDBEG; }
-  static constexpr float getXtrdEnd() { return XTRDEND; }
-  static constexpr float getChamberWidth(int layer) { return CWIDTH[layer]; }
-  static constexpr float getChamberLength(int layer, int stack) { return CLENGTH[layer][stack]; }
-  static constexpr float getAlpha() { return 2.0 * 3.14159265358979324 / constants::NSECTOR; }
-  static constexpr float cheight() { return CH; }
-  static constexpr float cheightSV() { return CHSV; }
-  static constexpr float cspace() { return VSPACE; }
-  static constexpr float craHght() { return CRAH; }
-  static constexpr float cdrHght() { return CDRH; }
-  static constexpr float camHght() { return CAMH; }
-  static constexpr float croHght() { return CROH; }
-  static constexpr float csvHght() { return CSVH; }
-  static constexpr float croWid() { return CROW; }
-  static constexpr float anodePos() { return ANODEPOS; }
-  static constexpr float myThick() { return RMYTHICK; }
-  static constexpr float drThick() { return DRTHICK; }
-  static constexpr float amThick() { return AMTHICK; }
-  static constexpr float drZpos() { return DRZPOS; }
-  static constexpr float rpadW() { return RPADW; }
-  static constexpr float cpadW() { return CPADW; }
-  static constexpr float cwidcha() { return (SWIDTH2 - SWIDTH1) / SHEIGHT * (CH + VSPACE); }
-  static constexpr int MCMmax() { return MCMMAX; }
-  static constexpr int MCMrow() { return MCMROW; }
-  static constexpr int ROBmaxC0() { return ROBMAXC0; }
-  static constexpr int ROBmaxC1() { return ROBMAXC1; }
-  static constexpr int ADCmax() { return ADCMAX; }
-  static constexpr int TBmax() { return TBMAX; }
-  static constexpr int padmax() { return PADMAX; }
-  static constexpr int colmax() { return COLMAX; }
-  static constexpr int rowmaxC0() { return ROWMAXC0; }
-  static constexpr int rowmaxC1() { return ROWMAXC1; }
+  static constexpr GPUd() int getSector(int det) { return (det / (constants::NLAYER * constants::NSTACK)); }
+  static constexpr GPUd() float getTime0(int layer) { return TIME0[layer]; }
+  static constexpr GPUd() float getXtrdBeg() { return XTRDBEG; }
+  static constexpr GPUd() float getXtrdEnd() { return XTRDEND; }
+  static constexpr GPUd() float getChamberWidth(int layer) { return CWIDTH[layer]; }
+  static constexpr GPUd() float getChamberLength(int layer, int stack) { return CLENGTH[layer][stack]; }
+  static constexpr GPUd() float getAlpha() { return 2.0 * 3.14159265358979324 / constants::NSECTOR; }
+  static constexpr GPUd() float cheight() { return CH; }
+  static constexpr GPUd() float cheightSV() { return CHSV; }
+  static constexpr GPUd() float cspace() { return VSPACE; }
+  static constexpr GPUd() float craHght() { return CRAH; }
+  static constexpr GPUd() float cdrHght() { return CDRH; }
+  static constexpr GPUd() float camHght() { return CAMH; }
+  static constexpr GPUd() float croHght() { return CROH; }
+  static constexpr GPUd() float csvHght() { return CSVH; }
+  static constexpr GPUd() float croWid() { return CROW; }
+  static constexpr GPUd() float anodePos() { return ANODEPOS; }
+  static constexpr GPUd() float myThick() { return RMYTHICK; }
+  static constexpr GPUd() float drThick() { return DRTHICK; }
+  static constexpr GPUd() float amThick() { return AMTHICK; }
+  static constexpr GPUd() float drZpos() { return DRZPOS; }
+  static constexpr GPUd() float rpadW() { return RPADW; }
+  static constexpr GPUd() float cpadW() { return CPADW; }
+  static constexpr GPUd() float cwidcha() { return (SWIDTH2 - SWIDTH1) / SHEIGHT * (CH + VSPACE); }
+  static constexpr GPUd() int MCMmax() { return MCMMAX; }
+  static constexpr GPUd() int MCMrow() { return MCMROW; }
+  static constexpr GPUd() int ROBmaxC0() { return ROBMAXC0; }
+  static constexpr GPUd() int ROBmaxC1() { return ROBMAXC1; }
+  static constexpr GPUd() int ADCmax() { return ADCMAX; }
+  static constexpr GPUd() int TBmax() { return TBMAX; }
+  static constexpr GPUd() int padmax() { return PADMAX; }
+  static constexpr GPUd() int colmax() { return COLMAX; }
+  static constexpr GPUd() int rowmaxC0() { return ROWMAXC0; }
+  static constexpr GPUd() int rowmaxC1() { return ROWMAXC1; }
 
  protected:
   TRDGeometryBase() = default;
