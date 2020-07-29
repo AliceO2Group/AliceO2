@@ -128,7 +128,7 @@ struct Block {
   int nStored = 0;              // total payload: data + dictionary length
   W* payload = nullptr;         //[nStored];
 
-  W* getData() { return payload ? (payload + nDict) : (payload = reinterpret_cast<W*>(registry->getFreeBlockStart())); }
+  W* getData() { return payload ? (payload + nDict) : (registry ? (payload = reinterpret_cast<W*>(registry->getFreeBlockStart())) : nullptr); }
   W* getDict() { return nDict ? payload : nullptr; }
   const W* getData() const { return payload ? (payload + nDict) : nullptr; }
   const W* getDict() const { return nDict ? payload : nullptr; }
