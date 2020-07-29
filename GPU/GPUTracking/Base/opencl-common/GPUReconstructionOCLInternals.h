@@ -16,6 +16,7 @@
 #ifndef GPUTPCGPUTRACKEROPENCLINTERNALS_H
 #define GPUTPCGPUTRACKEROPENCLINTERNALS_H
 
+#define CL_TARGET_OPENCL_VERSION 220
 #include <CL/opencl.h>
 #include <CL/cl_ext.h>
 #include <vector>
