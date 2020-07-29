@@ -43,19 +43,22 @@ class ROframe final
 {
  public:
   ROframe(Int_t ROframeId);
-  Int_t getROFrameId() const;
+  Int_t getROFrameId() const { return mROframeId; }
   Int_t getTotalClusters() const;
 
   void setROFrameId(const Int_t rofid) { mROframeId = rofid; }
 
-  const std::array<std::vector<Cluster>, constants::mft::LayersNumber>& getClusters() const;
-  const std::vector<Cluster>& getClustersInLayer(Int_t layerId) const;
-  const MCCompLabel& getClusterLabels(Int_t layerId, const Cluster& cl) const;
-  const MCCompLabel& getClusterLabels(Int_t layerId, const Int_t clId) const;
-  const std::map<Int_t, std::pair<Int_t, Int_t>>& getClusterBinIndexRange(Int_t layerId) const;
-  Int_t getClusterExternalIndex(Int_t layerId, const Int_t clId) const;
+  const std::array<std::vector<Cluster>, constants::mft::LayersNumber>& getClusters() const { return mClusters; }
+  const std::vector<Cluster>& getClustersInLayer(Int_t layerId) const { return mClusters[layerId]; }
+
+  const MCCompLabel& getClusterLabels(Int_t layerId, const Cluster& cl) const { return mClusterLabels[layerId][cl.clusterId]; }
+  const MCCompLabel& getClusterLabels(Int_t layerId, const Int_t clId) const { return mClusterLabels[layerId][clId]; }
+
+  const std::map<Int_t, std::pair<Int_t, Int_t>>& getClusterBinIndexRange(Int_t layerId) const { return mClusterBinIndexRange[layerId]; }
+  Int_t getClusterExternalIndex(Int_t layerId, const Int_t clId) const { return mClusterExternalIndices[layerId][clId]; }
+
   const std::array<std::vector<Cell>, constants::mft::LayersNumber>& getCells() const;
-  const std::vector<Cell>& getCellsInLayer(Int_t layerId) const;
+  const std::vector<Cell>& getCellsInLayer(Int_t layerId) const { return mCells[layerId]; }
   std::vector<TrackLTF>& getTracksLTF();
   TrackLTF& getCurrentTrackLTF();
   void removeCurrentTrackLTF();
@@ -75,7 +78,8 @@ class ROframe final
   void addClusterLabelToLayer(Int_t layer, const MCCompLabel label);
   void addClusterExternalIndexToLayer(Int_t layer, const Int_t idx);
   void addClusterBinIndexRangeToLayer(Int_t layer, const std::pair<Int_t, std::pair<Int_t, Int_t>> range);
-  void addTrackLTF();
+  void addTrackLTF() { mTracksLTF.emplace_back(); }
+
   void addTrackCA();
   void addRoad();
 
@@ -99,43 +103,6 @@ class ROframe final
   std::vector<TrackCA> mTracksCA;
   std::vector<Road> mRoads;
 };
-
-inline Int_t ROframe::getROFrameId() const { return mROframeId; }
-
-inline const std::array<std::vector<Cluster>, constants::mft::LayersNumber>& ROframe::getClusters() const
-{
-  return mClusters;
-}
-
-inline const std::vector<Cluster>& ROframe::getClustersInLayer(Int_t layerId) const
-{
-  return mClusters[layerId];
-}
-
-inline const MCCompLabel& ROframe::getClusterLabels(Int_t layerId, const Cluster& cl) const
-{
-  return mClusterLabels[layerId][cl.clusterId];
-}
-
-inline const MCCompLabel& ROframe::getClusterLabels(Int_t layerId, const Int_t clId) const
-{
-  return mClusterLabels[layerId][clId];
-}
-
-inline Int_t ROframe::getClusterExternalIndex(Int_t layerId, const Int_t clId) const
-{
-  return mClusterExternalIndices[layerId][clId];
-}
-
-inline const std::map<Int_t, std::pair<Int_t, Int_t>>& ROframe::getClusterBinIndexRange(Int_t layerId) const
-{
-  return mClusterBinIndexRange[layerId];
-}
-
-inline const std::vector<Cell>& ROframe::getCellsInLayer(Int_t layerId) const
-{
-  return mCells[layerId];
-}
 
 template <typename... T>
 void ROframe::addClusterToLayer(Int_t layer, T&&... values)
@@ -168,7 +135,6 @@ inline Bool_t ROframe::isClusterUsed(Int_t layer, Int_t clusterId) const
 
 inline void ROframe::markUsedCluster(Int_t layer, Int_t clusterId) { mUsedClusters[layer][clusterId] = kTRUE; }
 
-inline void ROframe::addTrackLTF() { mTracksLTF.emplace_back(); }
 
 inline TrackLTF& ROframe::getCurrentTrackLTF()
 {

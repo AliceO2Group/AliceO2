@@ -143,8 +143,8 @@ bool TrackFitter::initTrack(TrackLTF& track, bool outward)
   double r0cu = r0sq * TMath::Sqrt(r0sq);
   double invr0sq = 1.0 / r0sq;
   double invr0cu = 1.0 / r0cu;
-  double sigmax0sq = 5e-4;
-  double sigmay0sq = 5.43e-4;
+  double sigmax0sq = track.getSigmasX2()[where];
+  double sigmay0sq = track.getSigmasY2()[where];
   double sigmaDeltaZsq = 5.0;                      // Primary vertex distribution: beam interaction diamond
   double sigmaboost = mftTrackingParam.sigmaboost; // Boost q/pt seed covariances
   double seedH_k = mftTrackingParam.seedH_k;       // SeedH constant
@@ -319,8 +319,8 @@ bool TrackFitter::runKalmanFilter(TrackLTF& track, int cluster)
 
   // compute the new cluster weight (U)
   SMatrix55 clusterWeight;
-  clusterWeight(0, 0) = 1. / 5e-4; // FIXME
-  clusterWeight(1, 1) = 1. / 5.43e-4;
+  clusterWeight(0, 0) = 1. / track.getSigmasX2()[cluster];
+  clusterWeight(1, 1) = 1. / track.getSigmasY2()[cluster];
 
   // compute the new parameters covariance matrix ((W+U)^-1)
   SMatrix55 newParamCov(paramWeight + clusterWeight);
@@ -353,6 +353,8 @@ Double_t invQPtFromFCF(const TrackLTF& track, Double_t bFieldZ, Double_t& chi2)
   const std::array<Float_t, constants::mft::LayersNumber>& xPositons = track.getXCoordinates();
   const std::array<Float_t, constants::mft::LayersNumber>& yPositons = track.getYCoordinates();
   const std::array<Float_t, constants::mft::LayersNumber>& zPositons = track.getZCoordinates();
+  const std::array<Float_t, constants::mft::LayersNumber>& SigmasX2 = track.getSigmasX2();
+  const std::array<Float_t, constants::mft::LayersNumber>& SigmasY2 = track.getSigmasY2();
 
   // Fast Circle Fit (Hansroul, Jeremie, Savard, 1987)
   auto nPoints = track.getNPoints();
@@ -367,8 +369,8 @@ Double_t invQPtFromFCF(const TrackLTF& track, Double_t bFieldZ, Double_t& chi2)
   Double_t a, ae, b, be, x2, y2, invx2y2, rx, ry, r;
 
   for (auto np = 0; np < nPoints; np++) {
-    xErr[np] = 5e-4; // FIXME -> errors from clusters
-    yErr[np] = 5e-4; // FIXME
+    xErr[np] = SigmasX2[np];
+    yErr[np] = SigmasY2[np];
     if (np > 0) {
       xVal[np] = xPositons[np] - xVal[0];
       yVal[np] = yPositons[np] - yVal[0];

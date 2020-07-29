@@ -26,12 +26,14 @@ namespace mft
 {
 
 struct Cluster : public o2::BaseCluster<float> {
-  Cluster(const Float_t x, const Float_t y, const Float_t z, const Float_t phi, const Float_t r, const Int_t idx, const Int_t bin)
-    : BaseCluster(1, x, y, z),
+  Cluster(const Float_t x, const Float_t y, const Float_t z, const Float_t phi, const Float_t r, const Int_t idx, const Int_t bin, const Float_t sigX2, const Float_t sigY2, const Int_t sensorID)
+    : BaseCluster(sensorID, x, y, z),
       phiCoordinate{phi},
       rCoordinate{r},
       clusterId{idx},
-      indexTableBin{bin} {};
+      indexTableBin{bin},
+      sigmaX2{sigX2},
+      sigmaY2{sigY2} {};
   Cluster(const Float_t x, const Float_t y, const Float_t z, const Int_t index);
   Cluster(const Int_t layerIndex, const Cluster& other);
 
@@ -39,8 +41,8 @@ struct Cluster : public o2::BaseCluster<float> {
   Float_t rCoordinate;
   Int_t clusterId;
   Int_t indexTableBin;
-  Float_t sigmaY2;
   Float_t sigmaX2;
+  Float_t sigmaY2;
 };
 
 } // namespace mft
