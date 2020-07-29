@@ -94,6 +94,9 @@ GPUSettingsO2 GPUO2InterfaceConfiguration::ReadConfigurableParam()
   if (global.constBz) {
     configEvent.constBz = global.constBz;
   }
+  if (configReconstruction.TrackReferenceX == 1000.f) {
+    configReconstruction.TrackReferenceX = 83.f;
+  }
   configDeviceBackend.deviceType = GPUDataTypes::GetDeviceType(global.deviceType.c_str());
   configDeviceBackend.forceDeviceType = global.forceDeviceType;
   return global;
