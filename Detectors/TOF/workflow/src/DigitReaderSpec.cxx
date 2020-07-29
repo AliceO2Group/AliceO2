@@ -51,16 +51,18 @@ void DigitReader::run(ProcessingContext& pc)
   if (treeDig) {
     treeDig->SetBranchAddress("TOFDigit", &mPdigits);
     treeDig->SetBranchAddress("TOFReadoutWindow", &mProw);
+    treeDig->SetBranchAddress("TOFPatterns", &mPpatterns);
 
     if (mUseMC) {
       treeDig->SetBranchAddress("TOFDigitMCTruth", &mPlabels);
     }
 
-    treeDig->GetEntry(0);
+    treeDig->GetEntry(mCurrentEntry);
 
     // add digits loaded in the output snapshot
     pc.outputs().snapshot(Output{o2::header::gDataOriginTOF, "DIGITS", 0, Lifetime::Timeframe}, mDigits);
     pc.outputs().snapshot(Output{o2::header::gDataOriginTOF, "READOUTWINDOW", 0, Lifetime::Timeframe}, mRow);
+    pc.outputs().snapshot(Output{o2::header::gDataOriginTOF, "PATTERNS", 0, Lifetime::Timeframe}, mPatterns);
     if (mUseMC)
       pc.outputs().snapshot(Output{o2::header::gDataOriginTOF, "DIGITSMCTR", 0, Lifetime::Timeframe}, mLabels);
 
@@ -73,9 +75,13 @@ void DigitReader::run(ProcessingContext& pc)
     return;
   }
 
-  mState = 2;
-  //pc.services().get<ControlService>().readyToQuit(QuitRequest::Me);
-  pc.services().get<ControlService>().endOfStream();
+  mCurrentEntry++;
+
+  if (mCurrentEntry >= treeDig->GetEntries()) {
+    mState = 2;
+    //pc.services().get<ControlService>().readyToQuit(QuitRequest::Me);
+    pc.services().get<ControlService>().endOfStream();
+  }
 }
 
 DataProcessorSpec getDigitReaderSpec(bool useMC)
@@ -86,6 +92,7 @@ DataProcessorSpec getDigitReaderSpec(bool useMC)
   if (useMC) {
     outputs.emplace_back(o2::header::gDataOriginTOF, "DIGITSMCTR", 0, Lifetime::Timeframe);
   }
+  outputs.emplace_back(o2::header::gDataOriginTOF, "PATTERNS", 0, Lifetime::Timeframe);
   outputs.emplace_back(o2::header::gDataOriginTOF, "ROMode", 0, Lifetime::Timeframe);
 
   return DataProcessorSpec{

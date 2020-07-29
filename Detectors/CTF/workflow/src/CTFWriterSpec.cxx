@@ -26,6 +26,7 @@
 #include "DataFormatsITSMFT/CTF.h"
 #include "DataFormatsTPC/CTF.h"
 #include "DataFormatsFT0/CTF.h"
+#include "DataFormatsTOF/CTF.h"
 
 using namespace o2::framework;
 
@@ -106,6 +107,16 @@ void CTFWriterSpec::run(ProcessingContext& pc)
     header.detectors.set(det);
   }
 
+  det = DetID::TOF;
+  if (isPresent(det) && pc.inputs().isValid(det.getName())) {
+    auto ctfBuffer = pc.inputs().get<gsl::span<o2::ctf::BufferType>>(det.getName());
+    const auto ctfImage = o2::tof::CTF::getImage(ctfBuffer.data());
+    LOG(INFO) << "CTF for " << det.getName();
+    ctfImage.print();
+    ctfImage.appendToTree(ctfTree, det.getName());
+    header.detectors.set(det);
+  }
+
   appendToTree(ctfTree, "CTFHeader", header);
 
   ctfTree.SetEntries(1);
@@ -125,9 +136,11 @@ void CTFWriterSpec::endOfStream(EndOfStreamContext& ec)
 DataProcessorSpec getCTFWriterSpec(DetID::mask_t dets, uint64_t run)
 {
   std::vector<InputSpec> inputs;
+  LOG(INFO) << "Det list:";
   for (auto id = DetID::First; id <= DetID::Last; id++) {
     if (dets[id]) {
       inputs.emplace_back(DetID::getName(id), DetID::getDataOrigin(id), "CTFDATA", 0, Lifetime::Timeframe);
+      LOG(INFO) << "Det " << DetID::getName(id) << " added";
     }
   }
   return DataProcessorSpec{

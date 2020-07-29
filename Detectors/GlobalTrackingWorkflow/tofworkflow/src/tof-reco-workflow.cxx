@@ -25,6 +25,7 @@
 #include "TOFWorkflow/TOFRawWriterSpec.h"
 #include "TOFWorkflow/CompressedDecodingTask.h"
 #include "TOFWorkflow/EntropyEncoderSpec.h"
+#include "TOFWorkflow/EntropyDecoderSpec.h"
 #include "Framework/WorkflowSpec.h"
 #include "Framework/ConfigParamSpec.h"
 #include "TOFWorkflow/RecoWorkflowSpec.h"
@@ -121,16 +122,17 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
     writectf = 1;
 
   bool dgtinput = 0;
+  bool clusterinput = 0;
+  bool rawinput = 0;
+  bool ctfinput = 0;
   if (inputType == "digits") {
     dgtinput = 1;
-  }
-  bool clusterinput = 0;
-  if (inputType == "clusters") {
+  } else if (inputType == "clusters") {
     clusterinput = 1;
-  }
-  bool rawinput = 0;
-  if (inputType == "raw") {
+  } else if (inputType == "raw") {
     rawinput = 1;
+  } else if (inputType == "ctf") {
+    ctfinput = 1;
   }
 
   auto useMC = !cfgc.options().get<bool>("disable-mc");
@@ -173,6 +175,9 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
       LOG(INFO) << "Insert TOF Digit Writer";
       specs.emplace_back(o2::tof::getTOFDigitWriterSpec(0));
     }
+  } else if (ctfinput) {
+    LOG(INFO) << "Insert TOF CTF decoder";
+    specs.emplace_back(o2::tof::getEntropyDecoderSpec());
   }
 
   if (!clusterinput && writecluster) {
