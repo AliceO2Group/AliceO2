@@ -260,6 +260,7 @@ AddOption(dEdxFile, std::string, "", "", 0, "File name of dEdx Splines file")
 AddOption(transformationFile, std::string, "", "", 0, "File name of TPC fast transformation map")
 AddOption(matLUTFile, std::string, "", "", 0, "File name of material LUT file")
 AddOption(allocateOutputOnTheFly, bool, true, "", 0, "Allocate shm output buffers on the fly, instead of using preallocated buffer with upper bound size")
+AddOption(outputBufferSize, unsigned long, 200000000ul, "", 0, "Size of the output buffers to be allocated")
 AddOption(synchronousProcessing, bool, false, "", 0, "Apply performance shortcuts for synchronous processing, disable unneeded steps")
 EndConfig()
 #endif // GPUCA_O2_LIB
