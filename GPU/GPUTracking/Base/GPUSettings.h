@@ -15,7 +15,7 @@
 #define GPUSETTINGS_H
 
 #include "GPUCommonDef.h"
-#ifndef __OPENCL__
+#ifndef GPUCA_GPUCODE_DEVICE
 #include <vector>
 #include <string>
 #endif

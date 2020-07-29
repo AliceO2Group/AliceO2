@@ -15,7 +15,7 @@
 #ifndef TRACKINGITSU_INCLUDE_CONSTANTS_H_
 #define TRACKINGITSU_INCLUDE_CONSTANTS_H_
 
-#ifndef __OPENCL__
+#ifndef GPUCA_GPUCODE_DEVICE
 #include <climits>
 #include <vector>
 #endif

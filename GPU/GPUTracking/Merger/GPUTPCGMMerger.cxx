@@ -13,17 +13,17 @@
 
 #define GPUCA_CADEBUG 0
 
-#ifndef __OPENCL__
+#ifndef GPUCA_GPUCODE_DEVICE
 #include <cstdio>
 #include <cstring>
 #include <cmath>
+#include "GPUReconstruction.h"
 #endif
 
 #include "GPUTPCTracker.h"
 #include "GPUTPCClusterData.h"
 #include "GPUTPCTrackParam.h"
 #include "GPUTPCGMMerger.h"
-#include "GPUReconstruction.h"
 #include "GPUO2DataTypes.h"
 #include "TPCFastTransform.h"
 #include "GPUTPCConvertImpl.h"
@@ -691,7 +691,7 @@ GPUd() void GPUTPCGMMerger::MergeBorderTracks<1>(int nBlocks, int nThreads, int 
   }
 }
 
-#if defined(__CUDACC__) || defined(__HIPCC__) // Specialize MergeBorderTracks<3>
+#if (defined(__CUDACC__) || defined(__HIPCC__)) && !defined(GPUCA_GPUCODE_GENRTC) // Specialize MergeBorderTracks<3>
 struct MergeBorderTracks_compMax {
   GPUd() bool operator()(const GPUTPCGMBorderRange& a, const GPUTPCGMBorderRange& b)
   {
@@ -1725,7 +1725,7 @@ GPUd() void GPUTPCGMMerger::PrepareClustersForFit0(int nBlocks, int nThreads, in
   }
 }
 
-#if defined(__CUDACC__) || defined(__HIPCC__) // Specialize GPUTPCGMMergerSortTracks and GPUTPCGMMergerSortTracksQPt
+#if (defined(__CUDACC__) || defined(__HIPCC__)) && !defined(GPUCA_GPUCODE_GENRTC) // Specialize GPUTPCGMMergerSortTracks and GPUTPCGMMergerSortTracksQPt
 struct GPUTPCGMMergerSortTracks_comp {
   const GPUTPCGMMergedTrack* const mCmp;
   GPUhd() GPUTPCGMMergerSortTracks_comp(GPUTPCGMMergedTrack* cmp) : mCmp(cmp) {}

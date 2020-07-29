@@ -15,7 +15,7 @@
 #ifndef TRACKINGITSU_INCLUDE_ROAD_H_
 #define TRACKINGITSU_INCLUDE_ROAD_H_
 
-#ifndef __OPENCL__
+#ifndef GPUCA_GPUCODE_DEVICE
 #include <array>
 #endif
 

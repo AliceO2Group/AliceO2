@@ -11,7 +11,7 @@
 #ifndef O2_TRDGEOMETRYFLAT_H
 #define O2_TRDGEOMETRYFLAT_H
 
-#ifndef __OPENCL__
+#ifndef GPUCA_GPUCODE_DEVICE
 #include <cstring>
 #endif
 #include "FlatObject.h"

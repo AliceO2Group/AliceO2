@@ -18,7 +18,7 @@
 #include "GPUCommonRtypes.h"
 #include "GPUCommonDef.h"
 #include "CommonDataFormat/TimeStamp.h"
-#ifndef __OPENCL__
+#ifndef GPUCA_GPUCODE_DEVICE
 #include <climits>
 #endif
 

@@ -15,7 +15,7 @@
 #ifndef ALICEO2_COMMON_MATH_UTILS_
 #define ALICEO2_COMMON_MATH_UTILS_
 
-#ifndef __OPENCL__
+#ifndef GPUCA_GPUCODE_DEVICE
 #include <array>
 #include <cmath>
 #endif
@@ -69,17 +69,17 @@ inline void BringToPMPiGen(float& phi)
   }
 }
 
-inline void sincosf(float ang, float& s, float& c)
+GPUdi() void sincosf(float ang, float& s, float& c)
 {
   o2::gpu::GPUCommonMath::SinCos(ang, s, c);
 }
 
-inline void sincos(float ang, float& s, float& c)
+GPUdi() void sincos(float ang, float& s, float& c)
 {
   o2::gpu::GPUCommonMath::SinCos(ang, s, c);
 }
 
-inline void sincos(double ang, double& s, double& c)
+GPUdi() void sincos(double ang, double& s, double& c)
 {
   o2::gpu::GPUCommonMath::SinCos(ang, s, c);
 }
@@ -110,12 +110,12 @@ inline void rotateZInv(double xG, double yG, double& xL, double& yL, double snAl
   rotateZ(xG, yG, xL, yL, -snAlp, csAlp);
 }
 
-#ifndef __OPENCL__
+#ifndef GPUCA_GPUCODE_DEVICE
 inline void RotateZ(std::array<float, 3>& xy, float alpha)
 {
   // transforms vector in tracking frame alpha to global frame
   float sn, cs, x = xy[0];
-  sincosf(alpha, sn, cs);
+  o2::gpu::GPUCommonMath::SinCos(alpha, sn, cs);
   xy[0] = x * cs - xy[1] * sn;
   xy[1] = x * sn + xy[1] * cs;
 }

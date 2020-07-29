@@ -42,7 +42,7 @@
 #include "AliHLTTPCClusterMCData.h"
 #endif
 
-#ifndef __OPENCL__
+#ifndef GPUCA_GPUCODE_DEVICE
 #include <cmath>
 #include <cstdlib>
 #endif

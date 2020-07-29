@@ -15,16 +15,16 @@
 #include "GPUTPCClusterData.h"
 #include "GPUTPCHit.h"
 #include "GPUTPCSliceData.h"
-#include "GPUReconstruction.h"
 #include "GPUProcessor.h"
 #include "GPUO2DataTypes.h"
 #include "GPUTPCConvertImpl.h"
 #include "GPUCommonMath.h"
 
-#ifndef __OPENCL__
+#ifndef GPUCA_GPUCODE_DEVICE
 #include "utils/vecpod.h"
 #include <iostream>
 #include <cstring>
+#include "GPUReconstruction.h"
 #endif
 
 using namespace GPUCA_NAMESPACE::gpu;

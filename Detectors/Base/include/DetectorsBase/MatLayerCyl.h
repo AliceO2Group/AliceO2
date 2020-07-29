@@ -14,7 +14,7 @@
 #ifndef ALICEO2_MATLAYERCYL_H
 #define ALICEO2_MATLAYERCYL_H
 
-#ifndef __OPENCL__
+#ifndef GPUCA_GPUCODE_DEVICE
 #include <cmath>
 #include <cstring>
 #endif

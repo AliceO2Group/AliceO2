@@ -75,4 +75,4 @@ if(ALIGPU_BUILD_TYPE STREQUAL "Standalone")
 endif()
 
 # Since
-target_link_libraries(${targetName} PRIVATE cuda cudart)
+target_link_libraries(${targetName} PRIVATE cuda cudart nvrtc)
