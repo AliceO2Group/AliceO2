@@ -38,11 +38,13 @@ class DigitReader : public Task
 
  private:
   int mState = 0;
+  int mCurrentEntry = 0;
   bool mUseMC = true;
   std::unique_ptr<TFile> mFile = nullptr;
   std::vector<o2::tof::Digit> mDigits, *mPdigits = &mDigits;
   std::vector<o2::tof::ReadoutWindowData> mRow, *mProw = &mRow;
   std::vector<o2::dataformats::MCTruthContainer<o2::MCCompLabel>> mLabels, *mPlabels = &mLabels;
+  std::vector<uint32_t> mPatterns, *mPpatterns = &mPatterns;
 };
 
 /// create a processor spec

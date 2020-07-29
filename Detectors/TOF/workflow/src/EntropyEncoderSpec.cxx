@@ -35,7 +35,7 @@ void EntropyEncoderSpec::run(ProcessingContext& pc)
 {
   auto cput = mTimer.CpuTime();
   mTimer.Start(false);
-  auto compDigits = pc.inputs().get<gsl::span<Digit>>("compClusters");
+  auto compDigits = pc.inputs().get<gsl::span<Digit>>("compDigits");
   auto pspan = pc.inputs().get<gsl::span<uint32_t>>("patterns");
   auto rofs = pc.inputs().get<gsl::span<ReadoutWindowData>>("ROframes");
 
@@ -47,11 +47,12 @@ void EntropyEncoderSpec::run(ProcessingContext& pc)
   //  eeb->print();
   mTimer.Stop();
   LOG(INFO) << "Created encoded data of size " << eeb->size() << " for TOF in " << mTimer.CpuTime() - cput << " s";
+  //  pc.services().get<ControlService>().endOfStream();
 }
 
 void EntropyEncoderSpec::endOfStream(EndOfStreamContext& ec)
 {
-  LOGF(INFO, "%s Entropy Encoding total timing: Cpu: %.3e Real: %.3e s in %d slots TOF",
+  LOGF(INFO, "TOF Entropy Encoding total timing: Cpu: %.3e Real: %.3e s in %d slots",
        mTimer.CpuTime(), mTimer.RealTime(), mTimer.Counter() - 1);
 }
 
