@@ -14,12 +14,14 @@
 #ifndef GPUCOMMONALGORITHMTHRUST_H
 #define GPUCOMMONALGORITHMTHRUST_H
 
+#ifndef GPUCA_GPUCODE_GENRTC
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wshadow"
 #include <thrust/sort.h>
 #include <thrust/execution_policy.h>
 #include <thrust/device_ptr.h>
 #pragma GCC diagnostic pop
+#endif
 
 #include "GPUCommonDef.h"
 

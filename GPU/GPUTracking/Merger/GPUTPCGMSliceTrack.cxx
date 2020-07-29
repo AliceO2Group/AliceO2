@@ -18,9 +18,6 @@
 #include "GPUTPCGMMerger.h"
 #include "GPUTPCConvertImpl.h"
 #include "GPUParam.inc"
-#ifndef __OPENCLCPP__
-#include <cmath>
-#endif
 
 using namespace GPUCA_NAMESPACE::gpu;
 using namespace o2::tpc;

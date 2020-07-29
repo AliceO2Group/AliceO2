@@ -24,7 +24,7 @@
 #include "GPUTRDTrack.h"
 #include "GPULogging.h"
 
-#ifndef __OPENCL__
+#ifndef GPUCA_GPUCODE_DEVICE
 #include <vector>
 #endif
 

@@ -19,10 +19,6 @@
 #include "GPUParam.inc"
 #include "GPUTPCGMMergerTypes.h"
 
-#ifndef __OPENCL__
-#include <cmath>
-#endif
-
 #if defined(GPUCA_GM_USE_FULL_FIELD)
 #include "AliTracker.h"
 #include "AliMagF.h"

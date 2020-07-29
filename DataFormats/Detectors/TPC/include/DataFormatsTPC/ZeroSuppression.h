@@ -13,7 +13,7 @@
 /// \author David Rohr
 #ifndef ALICEO2_DATAFORMATSTPC_ZEROSUPPRESSION_H
 #define ALICEO2_DATAFORMATSTPC_ZEROSUPPRESSION_H
-#ifndef __OPENCL__
+#ifndef GPUCA_GPUCODE_DEVICE
 #include <cstdint>
 #include <cstddef> // for size_t
 #endif
