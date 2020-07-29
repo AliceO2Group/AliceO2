@@ -19,6 +19,7 @@
 #include "DataFormatsMFT/TrackMFT.h"
 #include "SimulationDataFormat/MCCompLabel.h"
 #include "MFTTracking/Constants.h"
+#include "MFTTracking/Cluster.h"
 #include <fairlogger/Logger.h>
 
 namespace o2
@@ -36,10 +37,13 @@ class TrackLTF : public TrackMFTExt
   const std::array<Float_t, constants::mft::LayersNumber>& getXCoordinates() const { return mX; }
   const std::array<Float_t, constants::mft::LayersNumber>& getYCoordinates() const { return mY; }
   const std::array<Float_t, constants::mft::LayersNumber>& getZCoordinates() const { return mZ; }
+  const std::array<Float_t, constants::mft::LayersNumber>& getSigmasX2() const { return mSigmaX2; }
+  const std::array<Float_t, constants::mft::LayersNumber>& getSigmasY2() const { return mSigmaY2; }
   const std::array<Int_t, constants::mft::LayersNumber>& getLayers() const { return mLayer; }
   const std::array<Int_t, constants::mft::LayersNumber>& getClustersId() const { return mClusterId; }
   const std::array<MCCompLabel, constants::mft::LayersNumber>& getMCCompLabels() const { return mMCCompLabels; }
-  void setPoint(const Float_t x, const Float_t y, const Float_t z, const Int_t layer, const Int_t clusterId, const MCCompLabel label, Bool_t& newPoint);
+  void setPoint(const Cluster, const Int_t layer, const Int_t clusterId, const MCCompLabel label, Bool_t& newPoint);
+
   void sort();
 
  protected:
@@ -49,11 +53,14 @@ class TrackLTF : public TrackMFTExt
   std::array<Float_t, constants::mft::LayersNumber> mX = {-25., -25., -25., -25., -25., -25., -25., -25., -25., -25.};
   std::array<Float_t, constants::mft::LayersNumber> mY = {-25., -25., -25., -25., -25., -25., -25., -25., -25., -25.};
   std::array<Float_t, constants::mft::LayersNumber> mZ = {-120., -120., -120., -120., -120., -120., -120., -120., -120., -120.};
+  std::array<Float_t, constants::mft::LayersNumber> mSigmaX2 = {0};
+  std::array<Float_t, constants::mft::LayersNumber> mSigmaY2 = {0};
   std::array<Int_t, constants::mft::LayersNumber> mLayer;
   std::array<Int_t, constants::mft::LayersNumber> mClusterId;
   std::array<MCCompLabel, constants::mft::LayersNumber> mMCCompLabels;
 };
 
+//_________________________________________________________________________________________________
 class TrackCA : public TrackLTF
 {
  public:
@@ -62,9 +69,9 @@ class TrackCA : public TrackLTF
   ~TrackCA() = default;
   void addCell(const Int_t, const Int_t);
   void removeLastCell(Int_t&, Int_t&);
-  const Int_t getNCells() const;
+  const Int_t getNCells() const { return mNCells; }
   void setRoadId(const Int_t rid) { mRoadId = rid; }
-  const Int_t getRoadId() const;
+  const Int_t getRoadId() const { return mRoadId; }
   void setChiSquareZX(const Float_t chisq) { mChiSquareZX = chisq; }
   void setChiSquareZY(const Float_t chisq) { mChiSquareZY = chisq; }
   const Float_t getChiSquareZX() const { return mChiSquareZX; }
@@ -84,6 +91,7 @@ class TrackCA : public TrackLTF
   ClassDefNV(TrackCA, 2);
 };
 
+//_________________________________________________________________________________________________
 inline void TrackCA::addCell(const Int_t layer, const Int_t cellId)
 {
   mCellLayer[mNCells] = layer;
@@ -91,6 +99,7 @@ inline void TrackCA::addCell(const Int_t layer, const Int_t cellId)
   mNCells++;
 }
 
+//_________________________________________________________________________________________________
 inline void TrackCA::removeLastCell(Int_t& layer, Int_t& cellId)
 {
   layer = mCellLayer[mNCells - 1];
@@ -103,26 +112,19 @@ inline void TrackCA::removeLastCell(Int_t& layer, Int_t& cellId)
   mNCells--;
 }
 
-inline const Int_t TrackCA::getNCells() const
-{
-  return mNCells;
-}
-
-inline const Int_t TrackCA::getRoadId() const
-{
-  return mRoadId;
-}
-
-inline void TrackLTF::setPoint(const Float_t x, const Float_t y, const Float_t z, const Int_t layer, const Int_t clusterId, const MCCompLabel label, Bool_t& newPoint)
+//_________________________________________________________________________________________________
+inline void TrackLTF::setPoint(const Cluster cl, const Int_t layer, const Int_t clusterId, const MCCompLabel label, Bool_t& newPoint)
 {
   if (newPoint) {
     if (mNPoints == constants::mft::LayersNumber) {
       LOG(WARN) << "MFT TrackLTF Overflow";
       return;
     }
-    mX[mNPoints] = x;
-    mY[mNPoints] = y;
-    mZ[mNPoints] = z;
+    mX[mNPoints] = cl.getX();
+    mY[mNPoints] = cl.getY();
+    mZ[mNPoints] = cl.getZ();
+    mSigmaX2[mNPoints] = cl.sigmaX2;
+    mSigmaY2[mNPoints] = cl.sigmaY2;
     mLayer[mNPoints] = layer;
     mClusterId[mNPoints] = clusterId;
     mMCCompLabels[mNPoints] = label;
@@ -130,9 +132,11 @@ inline void TrackLTF::setPoint(const Float_t x, const Float_t y, const Float_t z
 
     mNPoints++;
   } else {
-    mX[mNPoints] = x;
-    mY[mNPoints] = y;
-    mZ[mNPoints] = z;
+    mX[mNPoints] = cl.getX();
+    mY[mNPoints] = cl.getY();
+    mZ[mNPoints] = cl.getZ();
+    mSigmaX2[mNPoints] = cl.sigmaX2;
+    mSigmaY2[mNPoints] = cl.sigmaY2;
     mLayer[mNPoints] = layer;
     mClusterId[mNPoints] = clusterId;
     mMCCompLabels[mNPoints] = label;
@@ -140,6 +144,7 @@ inline void TrackLTF::setPoint(const Float_t x, const Float_t y, const Float_t z
   }
 }
 
+//_________________________________________________________________________________________________
 inline void TrackLTF::sort()
 {
   // Orders elements along z position
@@ -147,22 +152,28 @@ inline void TrackLTF::sort()
     Float_t x;
     Float_t y;
     Float_t z;
+    Float_t sigmaX2;
+    Float_t sigmaY2;
     Int_t layer;
     Int_t clusterId;
-    Int_t label;
+    MCCompLabel label;
   };
-
   std::vector<ClusterData> points;
+
+  // Loading cluster data
   for (Int_t point = 0; point < getNPoints(); ++point) {
     auto& somepoint = points.emplace_back();
     somepoint.x = mX[point];
     somepoint.y = mY[point];
     somepoint.z = mZ[point];
+    somepoint.sigmaX2 = mSigmaX2[point];
+    somepoint.sigmaY2 = mSigmaY2[point];
     somepoint.layer = mLayer[point];
     somepoint.clusterId = mClusterId[point];
     somepoint.label = mMCCompLabels[point];
   }
 
+  // Sorting cluster data
   std::sort(points.begin(), points.end(), [](ClusterData a, ClusterData b) { return a.z > b.z; });
 
   // Storing sorted cluster data
@@ -170,6 +181,8 @@ inline void TrackLTF::sort()
     mX[point] = points[point].x;
     mY[point] = points[point].y;
     mZ[point] = points[point].z;
+    mSigmaX2[point] = points[point].sigmaX2;
+    mSigmaY2[point] = points[point].sigmaY2;
     mLayer[point] = points[point].layer;
     mClusterId[point] = points[point].clusterId;
     mMCCompLabels[point] = points[point].label;
@@ -177,6 +190,7 @@ inline void TrackLTF::sort()
 }
 
 } // namespace mft
+
 namespace framework
 {
 template <typename T>
@@ -184,11 +198,13 @@ struct is_messageable;
 template <>
 struct is_messageable<o2::mft::TrackCA> : std::true_type {
 };
+
 template <typename T>
 struct is_messageable;
 template <>
 struct is_messageable<o2::mft::TrackLTF> : std::true_type {
 };
+
 } // namespace framework
 } // namespace o2
 #endif /* O2_MFT_TRACKCA_H_ */

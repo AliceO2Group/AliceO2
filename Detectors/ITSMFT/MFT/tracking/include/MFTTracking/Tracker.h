@@ -46,9 +46,9 @@ class Tracker
   void setBz(Float_t bz);
   const Float_t getBz() const { return mBz; }
 
-  std::vector<TrackMFT>& getTracks();
-  std::vector<TrackLTF>& getTracksLTF();
-  o2::dataformats::MCTruthContainer<MCCompLabel>& getTrackLabels();
+  std::vector<TrackMFT>& getTracks() { return mTracks; }
+  std::vector<TrackLTF>& getTracksLTF() { return mTracksLTF; }
+  o2::dataformats::MCTruthContainer<MCCompLabel>& getTrackLabels() { return mTrackLabels; }
 
   void clustersToTracks(ROframe&, std::ostream& = std::cout);
 
@@ -68,8 +68,7 @@ class Tracker
   bool fitTracks(ROframe&);
   std::unique_ptr<o2::mft::TrackFitter> mTrackFitter = nullptr;
 
-  const Int_t isDiskFace(Int_t layer) const;
-
+  const Int_t isDiskFace(Int_t layer) const { return (layer % 2); }
   const Float_t getDistanceToSeed(const Cluster&, const Cluster&, const Cluster&) const;
   void getRPhiProjectionBin(const Cluster&, const Int_t, const Int_t, Int_t&, Int_t&) const;
   Bool_t getBinClusterRange(const ROframe&, const Int_t, const Int_t, Int_t&, Int_t&) const;
@@ -92,21 +91,7 @@ class Tracker
   bool mUseMC = false;
 };
 
-inline std::vector<TrackMFT>& Tracker::getTracks()
-{
-  return mTracks;
-}
-
-inline std::vector<TrackLTF>& Tracker::getTracksLTF()
-{
-  return mTracksLTF;
-}
-
-inline o2::dataformats::MCTruthContainer<MCCompLabel>& Tracker::getTrackLabels()
-{
-  return mTrackLabels;
-}
-
+//_________________________________________________________________________________________________
 inline const Float_t Tracker::getDistanceToSeed(const Cluster& cluster1, const Cluster& cluster2, const Cluster& cluster) const
 {
   // the seed is between "cluster1" and "cluster2" and cuts the plane
@@ -122,6 +107,7 @@ inline const Float_t Tracker::getDistanceToSeed(const Cluster& cluster1, const C
   return dR;
 }
 
+//_________________________________________________________________________________________________
 inline void Tracker::getRPhiProjectionBin(const Cluster& cluster1, const Int_t layer1, const Int_t layer, Int_t& binR_proj, Int_t& binPhi_proj) const
 {
   Float_t dz, x_proj, y_proj, r_proj, phi_proj;
@@ -137,6 +123,7 @@ inline void Tracker::getRPhiProjectionBin(const Cluster& cluster1, const Int_t l
   return;
 }
 
+//_________________________________________________________________________________________________
 inline Bool_t Tracker::getBinClusterRange(const ROframe& event, const Int_t layer, const Int_t bin, Int_t& clsMinIndex, Int_t& clsMaxIndex) const
 {
   const auto pair2 = event.getClusterBinIndexRange(layer).find(bin);
@@ -150,11 +137,7 @@ inline Bool_t Tracker::getBinClusterRange(const ROframe& event, const Int_t laye
   return kTRUE;
 }
 
-inline const Int_t Tracker::isDiskFace(Int_t layer) const
-{
-  return (layer % 2);
-}
-
+//_________________________________________________________________________________________________
 inline const Float_t Tracker::getCellDeviation(const ROframe& event, const Cell& cell1, const Cell& cell2) const
 {
   Int_t cell1layer1 = cell1.getFirstLayerId();
@@ -206,6 +189,7 @@ inline const Float_t Tracker::getCellDeviation(const ROframe& event, const Cell&
   return std::acos(cosAngle);
 }
 
+//_________________________________________________________________________________________________
 inline const Bool_t Tracker::getCellsConnect(const ROframe& event, const Cell& cell1, const Cell& cell2) const
 {
   Int_t cell1layer1 = cell1.getFirstLayerId();
