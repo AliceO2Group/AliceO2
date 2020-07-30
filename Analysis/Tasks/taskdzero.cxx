@@ -26,6 +26,7 @@ using namespace o2::framework;
 using namespace o2::framework::expressions;
 using std::array;
 
+/// D0 analysis task
 struct TaskDzero {
   OutputObj<TH1F> hmass{TH1F("hmass", "2-track inv mass", 500, 0, 5.0)};
   OutputObj<TH1F> hptcand{TH1F("hptcand", "pt candidate", 100, 0, 10.0)};

@@ -44,6 +44,7 @@ DECLARE_SOA_TABLE(SelTrack, "AOD", "SELTRACK", seltrack::IsSel, seltrack::DCAPri
                   seltrack::DCAPrim1);
 } // namespace o2::aod
 
+/// Track selection
 struct SelectTracks {
   Produces<aod::SelTrack> seltrack;
   Configurable<double> ptmintrack{"ptmintrack", -1, "ptmin single track"};
@@ -61,7 +62,7 @@ struct SelectTracks {
     Point3D<float> vtxXYZ(collision.posX(), collision.posY(), collision.posZ());
     for (auto it0 = tracks.begin(); it0 != tracks.end(); ++it0) {
       auto& track_0 = *it0;
-      int status = 1;
+      int status = 1; // selection flag
       if (b_dovalplots)
         hpt_nocuts->Fill(track_0.pt());
       if (track_0.pt() < ptmintrack)
@@ -87,6 +88,7 @@ struct SelectTracks {
   }
 };
 
+/// Pre-selection of 2-prong and 3-prong secondary vertices
 struct HFTrackIndexSkimsCreator {
   OutputObj<TH1F> hmass2{TH1F("hmass2", "; Inv Mass (GeV/c^{2})", 500, 0, 5.0)};
   OutputObj<TH1F> hmass3{TH1F("hmass3", "; Inv Mass (GeV/c^{2})", 500, 0, 5.0)};
@@ -146,16 +148,21 @@ struct HFTrackIndexSkimsCreator {
     double mass3PiKPiPlus{0};
     double mass3PiKPiMinus{0};
 
+    // first loop over positive tracks
     for (auto i_p1 = tracks.begin(); i_p1 != tracks.end(); ++i_p1) {
       auto& track_p1 = *i_p1;
       if (track_p1.signed1Pt() < 0)
         continue;
       auto trackparvar_p1 = getTrackParCov(track_p1);
+
+      // first loop over negative tracks
       for (auto i_n1 = tracks.begin(); i_n1 != tracks.end(); ++i_n1) {
         auto& track_n1 = *i_n1;
         if (track_n1.signed1Pt() > 0)
           continue;
         auto trackparvar_n1 = getTrackParCov(track_n1);
+
+        // reconstruct the 2-prong secondary vertex
         df.setUseAbsDCA(true);
         int nCand = df.process(trackparvar_p1, trackparvar_n1);
         if (nCand == 0)
@@ -182,8 +189,9 @@ struct HFTrackIndexSkimsCreator {
                            track_p1.globalIndex(),
                            track_n1.globalIndex(), 1);
 
+        // 3-prong vertex reconstruction
         if (do3prong == 1) {
-          //second loop on positive tracks
+          // second loop over positive tracks
           for (auto i_p2 = i_p1 + 1; i_p2 != tracks.end(); ++i_p2) {
             auto& track_p2 = *i_p2;
             if (track_p2.signed1Pt() < 0)
@@ -224,7 +232,7 @@ struct HFTrackIndexSkimsCreator {
                                track_n1.globalIndex(),
                                track_p2.globalIndex(), 2);
           }
-          //second loop on negative tracks
+          // second loop over negative tracks
           for (auto i_n2 = i_n1 + 1; i_n2 != tracks.end(); ++i_n2) {
             auto& track_n2 = *i_n2;
             if (track_n2.signed1Pt() > 0)
