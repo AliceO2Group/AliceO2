@@ -26,16 +26,15 @@ using namespace trd;
 using namespace std;
 
 
-void convert_run2_to_run3_digits(TString infilename = "TRD.Digits.root",
+void convertRun2ToRun3Digits(TString infilename = "TRD.Digits.root",
               TString outfilename = "digitsqa.root")
 {
-    unsigned int digitscount = 0;
-    std::vector<o2::trd::Digit> run3digits;
+    std::vector<o2::trd::Digit> run3Digits;
     
     // ======================================================================
     // Book histograms
 
-    TFile *outfile = new TFile(outfilename, "RECREATE");
+    TFile *outFile = new TFile(outfilename, "RECREATE");
 
     TH1F *hAdc = new TH1F("hADC", "ADC spectrum", 1024, -0.5, 1023.5);
     hAdc->SetXTitle("ADC value");
@@ -45,57 +44,58 @@ void convert_run2_to_run3_digits(TString infilename = "TRD.Digits.root",
 
     TFile fd(infilename);
 
-    AliTRDdigitsManager *digman = new AliTRDdigitsManager;
-    digman->CreateArrays();
+    AliTRDdigitsManager *digitMan = new AliTRDdigitsManager;
+    digitMan->CreateArrays();
 
     TIter next(fd.GetListOfKeys());
     while (TObject *obj = next())
     {
         cout << "Processing " << obj->GetName() << endl;
-        string name(obj->GetName(), 5, 3);
-        int eventtime = stoi(name) * 12;
+        string eventNumber(obj->GetName(), 5, 3);
+        // eventTime needs to be some increasing integer
+        int eventTime = stoi(eventNumber) * 12;
 
         TTree *tr = (TTree *)fd.Get(Form("%s/TreeD", obj->GetName()));
         //tr->Print();
 
         for (int det = 0; det < 540; det++)
         {
-            digman->ClearArrays(det);
-            digman->ClearIndexes(det);
+            digitMan->ClearArrays(det);
+            digitMan->ClearIndexes(det);
         }
 
-        digman->ReadDigits(tr);
+        digitMan->ReadDigits(tr);
 
         for (int det = 0; det < 540; det++)
         {
-            if (!digman->GetDigits(det))
+            if (!digitMan->GetDigits(det))
                 continue;
 
-            digman->GetDigits(det)->Expand();
+            digitMan->GetDigits(det)->Expand();
 
             AliTRDarrayADC* digits;
-            digits = digman->GetDigits(det);
+            digits = digitMan->GetDigits(det);
             digits->Expand();
 
             // TODO: check actual number of rows, from geometry
             // here: play it safe, assume 12 rows everywhere
             int nrows = 12;
-            for (int r = 0; r < nrows; r++)
+            for (int row = 0; row < nrows; row++)
             {
-                for (int c = 0; c < 144; c++)
+                for (int col = 0; col < 144; col++)
                 {
                     int tbsum = 0;
                     ArrayADC adctimes;
-                    for (int t = 0; t < digman->GetDigits(det)->GetNtime(); t++)
+                    for (int timebin = 0; timebin < digitMan->GetDigits(det)->GetNtime(); timebin++)
                     {
-                        // int adc = digman->GetDigits(det)->GetDataBits(row,c,t);
-                        int adc = digman->GetDigitAmp(r, c, t, det);
+                        // int adc = digitMan->GetDigits(det)->GetDataBits(row,col,timebin);
+                        int adc = digitMan->GetDigitAmp(row, col, timebin, det);
 
                         if (digits->GetNtime() > 30)
                         {
                             cout << "----!!! --- number of times is greater than 30" << endl;
                         }
-                        adctimes[t] = digits->GetData(r, c, t);
+                        adctimes[timebin] = digits->GetData(row, col, timebin);
 
                         // this value seems to indicate no digit -> skip
                         if (adc == -7169)
@@ -105,8 +105,7 @@ void convert_run2_to_run3_digits(TString infilename = "TRD.Digits.root",
                         tbsum += adc;
                     }
 
-                    run3digits.push_back(o2::trd::Digit(det, r, c, adctimes, eventtime));
-                    digitscount++;
+                    run3Digits.push_back(o2::trd::Digit(det, row, col, adctimes, eventTime));
 
                     if (tbsum > 0)
                     {
@@ -125,15 +124,16 @@ void convert_run2_to_run3_digits(TString infilename = "TRD.Digits.root",
     cnv_adc->SetLogy();
     hTBsum->Draw();
 
-    outfile->Write();
+    outFile->Write();
     
-    TFile *digitsfile = new TFile("converted_run3_digits.root", "RECREATE");
-    TTree *digittree = new TTree("o2sim", "run2 digits");
-    std::vector<o2::trd::Digit> *run3pdigits = &run3digits;
-    digittree->Branch("TRDDigit", &run3pdigits);
-    digittree->Fill();
-    cout << " run3digits is : " << run3digits.size() << endl;
-    digittree->Write();
-    delete digittree;
-    delete digitsfile;
+    TFile *digitsFile = new TFile("convertedRun3Digits.root", "RECREATE");
+    TTree *digitTree = new TTree("o2sim", "run2 digits");
+    std::vector<o2::trd::Digit> *run3pdigits = &run3Digits;
+
+    digitTree->Branch("TRDDigit", &run3pdigits);
+    digitTree->Fill();
+    cout << "Number of run3 digits is: " << run3Digits.size() << endl;
+    digitTree->Write();
+    delete digitTree;
+    delete digitsFile;
 }
