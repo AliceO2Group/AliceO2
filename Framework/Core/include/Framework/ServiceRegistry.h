@@ -11,6 +11,7 @@
 #define O2_FRAMEWORK_SERVICEREGISTRY_H_
 
 #include "Framework/ServiceHandle.h"
+#include "Framework/ServiceSpec.h"
 #include "Framework/ServiceRegistryHelpers.h"
 #include "Framework/CompilerBuiltins.h"
 #include "Framework/TypeIdHelpers.h"
@@ -34,19 +35,31 @@ struct ServiceMeta {
   uint64_t threadId = 0;
 };
 
-struct ServiceRegistryBase {
+struct ServiceRegistry {
   /// The maximum distance a entry can be from the optimal slot.
   constexpr static int MAX_DISTANCE = 8;
   /// The number of slots in the hashmap.
   constexpr static int MAX_SERVICES = 256;
   /// The mask to use to calculate the initial slot id.
   constexpr static int MAX_SERVICES_MASK = MAX_SERVICES - 1;
+  /// Callbacks for services to be executed before every process method invokation
+  std::vector<ServiceProcessingHandle> mPreProcessingHandles;
+  /// Callbacks for services to be executed after every process method invokation
+  std::vector<ServiceProcessingHandle> mPostProcessingHandles;
+  /// Callbacks for services to be executed before every dangling check
+  std::vector<ServiceDanglingHandle> mPreDanglingHandles;
+  /// Callbacks for services to be executed after every dangling check
+  std::vector<ServiceDanglingHandle> mPostDanglingHandles;
+  /// Callbacks for services to be executed before every EOS user callback invokation
+  std::vector<ServiceEOSHandle> mPreEOSHandles;
+  /// Callbacks for services to be executed after every EOS user callback invokation
+  std::vector<ServiceEOSHandle> mPostEOSHandles;
 
  public:
   using hash_type = decltype(TypeIdHelpers::uniqueId<void>());
-  ServiceRegistryBase();
+  ServiceRegistry();
 
-  ServiceRegistryBase(ServiceRegistryBase const& other)
+  ServiceRegistry(ServiceRegistry const& other)
   {
     mServicesKey = other.mServicesKey;
     mServicesValue = other.mServicesValue;
@@ -56,7 +69,7 @@ struct ServiceRegistryBase {
     }
   }
 
-  ServiceRegistryBase& operator=(ServiceRegistryBase const& other)
+  ServiceRegistry& operator=(ServiceRegistry const& other)
   {
     mServicesKey = other.mServicesKey;
     mServicesValue = other.mServicesValue;
@@ -66,6 +79,29 @@ struct ServiceRegistryBase {
     }
     return *this;
   }
+
+  /// Invoke callbacks to be executed before every process method invokation
+  void preProcessingCallbacks(ProcessingContext&);
+  /// Invoke callbacks to be executed after every process method invokation
+  void postProcessingCallbacks(ProcessingContext&);
+  /// Invoke callbacks to be executed before every dangling check
+  void preDanglingCallbacks(DanglingContext&);
+  /// Invoke callbacks to be executed after every dangling check
+  void postDanglingCallbacks(DanglingContext&);
+  /// Invoke callbacks to be executed before every EOS user callback invokation
+  void preEOSCallbacks(EndOfStreamContext&);
+  /// Invoke callbacks to be executed after every EOS user callback invokation
+  void postEOSCallbacks(EndOfStreamContext&);
+  /// Declare a service by its ServiceSpec. If of type Global
+  /// / Serial it will be immediately registered for tid 0,
+  /// so that subsequent gets will ultimately use it.
+  /// If it is of kind "Stream" we will create the Service only
+  /// when requested by a given thread. This function is not
+  /// thread safe.
+  void declareService(ServiceSpec const& spec, DeviceState& state, fair::mq::ProgOptions& options);
+
+  /// Bind the callbacks of a service spec to a given service.
+  void bindService(ServiceSpec const& spec, void* service);
 
   /// Type erased service registration. @a typeHash is the
   /// hash used to identify the service, @a service is
@@ -130,17 +166,20 @@ struct ServiceRegistryBase {
     return nullptr;
   }
 
+  /// Register a service given an handle
+  void registerService(ServiceHandle handle)
+  {
+    auto tid = std::this_thread::get_id();
+    std::hash<std::thread::id> hasher;
+    ServiceRegistry::registerService(handle.hash, handle.instance, handle.kind, hasher(tid), handle.name.c_str());
+  }
+
+  mutable std::vector<ServiceSpec> mSpecs;
   mutable std::array<uint32_t, MAX_SERVICES + MAX_DISTANCE> mServicesKey;
   mutable std::array<void*, MAX_SERVICES + MAX_DISTANCE> mServicesValue;
   mutable std::array<ServiceMeta, MAX_SERVICES + MAX_DISTANCE> mServicesMeta;
   mutable std::array<std::atomic<bool>, MAX_SERVICES + MAX_DISTANCE> mServicesBooked;
-};
 
-/// Service registry to hold generic, singleton like, interfaces and retrieve
-/// them by type.
-class ServiceRegistry : ServiceRegistryBase
-{
- public:
   /// @deprecated old API to be substituted with the ServiceHandle one
   template <class I, class C, enum ServiceKind K = ServiceKind::Serial>
   void registerService(C* service)
@@ -153,7 +192,7 @@ class ServiceRegistry : ServiceRegistryBase
     constexpr hash_type typeHash = TypeIdHelpers::uniqueId<I>();
     auto tid = std::this_thread::get_id();
     std::hash<std::thread::id> hasher;
-    ServiceRegistryBase::registerService(typeHash, reinterpret_cast<void*>(service), K, hasher(tid), typeid(C).name());
+    ServiceRegistry::registerService(typeHash, reinterpret_cast<void*>(service), K, hasher(tid), typeid(C).name());
   }
 
   /// @deprecated old API to be substituted with the ServiceHandle one
@@ -169,7 +208,7 @@ class ServiceRegistry : ServiceRegistryBase
     constexpr auto id = typeHash & MAX_SERVICES_MASK;
     auto tid = std::this_thread::get_id();
     std::hash<std::thread::id> hasher;
-    ServiceRegistryBase::registerService(typeHash, reinterpret_cast<void*>(const_cast<C*>(service)), K, hasher(tid), typeid(C).name());
+    this->registerService(typeHash, reinterpret_cast<void*>(const_cast<C*>(service)), K, hasher(tid), typeid(C).name());
   }
 
   /// Check if service of type T is currently active.
@@ -179,7 +218,7 @@ class ServiceRegistry : ServiceRegistryBase
     constexpr auto typeHash = TypeIdHelpers::uniqueId<T>();
     auto tid = std::this_thread::get_id();
     std::hash<std::thread::id> hasher;
-    auto result = ServiceRegistryBase::getPos(typeHash, hasher(tid)) != -1;
+    auto result = this->getPos(typeHash, hasher(tid)) != -1;
     return result;
   }
 
@@ -192,7 +231,7 @@ class ServiceRegistry : ServiceRegistryBase
     constexpr auto typeHash = TypeIdHelpers::uniqueId<T>();
     auto tid = std::this_thread::get_id();
     std::hash<std::thread::id> hasher;
-    auto ptr = ServiceRegistryBase::get(typeHash, hasher(tid), ServiceKind::Serial, typeid(T).name());
+    auto ptr = this->get(typeHash, hasher(tid), ServiceKind::Serial, typeid(T).name());
     if (O2_BUILTIN_LIKELY(ptr != nullptr)) {
       if constexpr (std::is_const_v<T>) {
         return *reinterpret_cast<T const*>(ptr);
@@ -203,14 +242,6 @@ class ServiceRegistry : ServiceRegistryBase
     throw std::runtime_error(std::string("Unable to find service of kind ") +
                              typeid(T).name() +
                              ". Make sure you use const / non-const correctly.");
-  }
-
-  /// Register a service given an handle
-  void registerService(ServiceHandle handle)
-  {
-    auto tid = std::this_thread::get_id();
-    std::hash<std::thread::id> hasher;
-    ServiceRegistryBase::registerService(handle.hash, handle.instance, handle.kind, hasher(tid), handle.name.c_str());
   }
 };
 
