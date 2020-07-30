@@ -27,12 +27,14 @@
 #include "SimulationDataFormat/MCCompLabel.h"
 #include "SimulationDataFormat/MCTruthContainer.h"
 #include "DetectorsCommonDataFormats/NameConf.h"
+#include "SimulationDataFormat/DigitizationContext.h"
 #include "Framework/Logger.h"
 #include <unordered_map>
 #endif
 
 void CheckTopologies(std::string clusfile = "o2clus_its.root",
                      std::string hitfile = "o2sim_HitsITS.root",
+                     std::string collContextfile = "collisioncontext.root",
                      std::string inputGeom = "")
 {
   const int QEDSourceID = 99; // Clusters from this MC source correspond to QED electrons
@@ -49,10 +51,10 @@ void CheckTopologies(std::string clusfile = "o2clus_its.root",
   using MC2ROF = o2::itsmft::MC2ROFRecord;
   using HitVec = std::vector<Hit>;
   using MC2HITS_map = std::unordered_map<uint64_t, int>; // maps (track_ID<<16 + chip_ID) to entry in the hit vector
-
+  std::unordered_map<int, int> hadronicMCMap;            // mapping from MC event entry to hadronic event ID
   std::vector<HitVec*> hitVecPool;
   std::vector<MC2HITS_map> mc2hitVec;
-
+  const o2::steer::DigitizationContext* digContext = nullptr;
   TStopwatch sw;
   sw.Start();
 
@@ -66,11 +68,34 @@ void CheckTopologies(std::string clusfile = "o2clus_its.root",
   TFile* fileH = nullptr;
   TTree* hitTree = nullptr;
 
-  if (!hitfile.empty() && !gSystem->AccessPathName(hitfile.c_str())) {
+  if (!hitfile.empty() && !collContextfile.empty() && !gSystem->AccessPathName(hitfile.c_str()) && !gSystem->AccessPathName(collContextfile.c_str())) {
     fileH = TFile::Open(hitfile.data());
     hitTree = (TTree*)fileH->Get("o2sim");
     mc2hitVec.resize(hitTree->GetEntries());
     hitVecPool.resize(hitTree->GetEntries(), nullptr);
+    digContext = o2::steer::DigitizationContext::loadFromFile(collContextfile);
+
+    auto& intGlo = digContext->getEventParts(digContext->isQEDProvided());
+    int hadrID = -1, nGlo = intGlo.size(), nHadro = 0;
+    for (int iglo = 0; iglo < nGlo; iglo++) {
+      const auto& parts = intGlo[iglo];
+      bool found = false;
+      for (auto& part : parts) {
+        if (part.sourceID == 0) { // we use underlying background
+          hadronicMCMap[iglo] = part.entryID;
+          found = true;
+          nHadro++;
+          break;
+        }
+      }
+      if (!found) {
+        hadronicMCMap[iglo] = -1;
+      }
+    }
+    if (nHadro < hitTree->GetEntries()) {
+      LOG(FATAL) << "N=" << nHadro << " hadronic events < "
+                 << " N=" << hitTree->GetEntries() << " Hit enties.";
+    }
   }
 
   // Clusters
@@ -103,21 +128,27 @@ void CheckTopologies(std::string clusfile = "o2clus_its.root",
   BuildTopologyDictionary noiseDictionary;
 
   int nROFRec = (int)rofRecVec.size();
-  std::vector<int> mcEvMin(nROFRec, hitTree->GetEntries()), mcEvMax(nROFRec, -1);
+  std::vector<int> mcEvMin, mcEvMax;
 
   if (clusLabArr) { // >> build min and max MC events used by each ROF
+    mcEvMin.resize(nROFRec, hitTree->GetEntries());
+    mcEvMax.resize(nROFRec, -1);
     for (int imc = mc2rofVec.size(); imc--;) {
+      int hadrID = hadronicMCMap[imc];
+      if (hadrID < 0) {
+        continue;
+      }
       const auto& mc2rof = mc2rofVec[imc];
       if (mc2rof.rofRecordID < 0) {
         continue; // this MC event did not contribute to any ROF
       }
       for (int irfd = mc2rof.maxROF - mc2rof.minROF + 1; irfd--;) {
         int irof = mc2rof.rofRecordID + irfd;
-        if (mcEvMin[irof] > imc) {
-          mcEvMin[irof] = imc;
+        if (mcEvMin[irof] > hadrID) {
+          mcEvMin[irof] = hadrID;
         }
-        if (mcEvMax[irof] < imc) {
-          mcEvMax[irof] = imc;
+        if (mcEvMax[irof] < hadrID) {
+          mcEvMax[irof] = hadrID;
         }
       }
     }
@@ -152,6 +183,7 @@ void CheckTopologies(std::string clusfile = "o2clus_its.root",
       const auto& cluster = (*clusArr)[clEntry];
 
       if (cluster.getPatternID() != CompCluster::InvalidPatternID) {
+        LOG(WARNING) << "Encountered patternID = " << cluster.getPatternID() << " != " << CompCluster::InvalidPatternID;
         LOG(WARNING) << "Clusters have already been generated with a dictionary! Quitting";
         return;
       }
@@ -181,6 +213,7 @@ void CheckTopologies(std::string clusfile = "o2clus_its.root",
             dZ = locH.Z() - locC.Z();
           } else {
             printf("Failed to find MC hit entry for Tr:%d chipID:%d\n", trID, chipID);
+            lab.print();
           }
           signalDictionary.accountTopology(topology, dX, dZ);
         } else {
@@ -190,17 +223,16 @@ void CheckTopologies(std::string clusfile = "o2clus_its.root",
       completeDictionary.accountTopology(topology, dX, dZ);
     }
     // clean MC cache for events which are not needed anymore
-    int irfNext = irof;
-    while ((++irfNext < nROFRec) && mcEvMax[irfNext] < 0) {
-    }                                                                      // find next ROF having MC contribution
-    int limMC = irfNext == nROFRec ? hitVecPool.size() : mcEvMin[irfNext]; // can clean events up to this
-    for (int imc = mcEvMin[irof]; imc < limMC; imc++) {
-      delete hitVecPool[imc];
-      hitVecPool[imc] = nullptr;
-      mc2hitVec[imc].clear();
+    if (clusLabArr) {
+      int irfNext = irof;
+      int limMC = irfNext == nROFRec ? hitVecPool.size() : mcEvMin[irfNext]; // can clean events up to this
+      for (int imc = mcEvMin[irof]; imc < limMC; imc++) {
+        delete hitVecPool[imc];
+        hitVecPool[imc] = nullptr;
+        mc2hitVec[imc].clear();
+      }
     }
   }
-
   auto dID = o2::detectors::DetID::ITS;
 
   completeDictionary.setThreshold(0.0001);
