@@ -71,19 +71,7 @@ struct DataProcessorContext {
   AlgorithmSpec::ProcessCallback* statefulProcess = nullptr;
   AlgorithmSpec::ProcessCallback* statelessProcess = nullptr;
   AlgorithmSpec::ErrorCallback* error = nullptr;
-  /// Callbacks for services to be executed before every process method invokation
-  std::vector<ServiceProcessingHandle>* preProcessingHandles = nullptr;
-  /// Callbacks for services to be executed after every process method invokation
-  std::vector<ServiceProcessingHandle>* postProcessingHandles = nullptr;
-  /// Callbacks for services to be executed before every dangling check
-  std::vector<ServiceDanglingHandle>* preDanglingHandles = nullptr;
-  /// Callbacks for services to be executed after every dangling check
-  std::vector<ServiceDanglingHandle>* postDanglingHandles = nullptr;
-  /// Callbacks for services to be executed before every EOS user callback invokation
-  std::vector<ServiceEOSHandle>* preEOSHandles = nullptr;
-  /// Callbacks for services to be executed after every EOS user callback invokation
-  std::vector<ServiceEOSHandle>* postEOSHandles = nullptr;
-  /// Callback for the error handling
+
   std::function<void(std::exception& e, InputRecord& record)>* errorHandling = nullptr;
   int* errorCount = nullptr;
 };
@@ -102,7 +90,6 @@ class DataProcessingDevice : public FairMQDevice
   void ResetTask() final;
   bool ConditionalRun() final;
   void SetErrorPolicy(enum TerminationPolicy policy) { mErrorPolicy = policy; }
-  void bindService(ServiceSpec const& spec, void* service);
 
   // Processing functions are now renetrant
   static void doRun(DataProcessorContext& context);
@@ -135,18 +122,6 @@ class DataProcessingDevice : public FairMQDevice
   std::vector<ExpirationHandler> mExpirationHandlers;
   /// Completed actions
   std::vector<DataRelayer::RecordAction> mCompleted;
-  /// Callbacks for services to be executed before every process method invokation
-  std::vector<ServiceProcessingHandle> mPreProcessingHandles;
-  /// Callbacks for services to be executed after every process method invokation
-  std::vector<ServiceProcessingHandle> mPostProcessingHandles;
-  /// Callbacks for services to be executed before every dangling check
-  std::vector<ServiceDanglingHandle> mPreDanglingHandles;
-  /// Callbacks for services to be executed after every dangling check
-  std::vector<ServiceDanglingHandle> mPostDanglingHandles;
-  /// Callbacks for services to be executed before every EOS user callback invokation
-  std::vector<ServiceEOSHandle> mPreEOSHandles;
-  /// Callbacks for services to be executed after every EOS user callback invokation
-  std::vector<ServiceEOSHandle> mPostEOSHandles;
 
   int mErrorCount;
   uint64_t mLastSlowMetricSentTimestamp = 0;         /// The timestamp of the last time we sent slow metrics

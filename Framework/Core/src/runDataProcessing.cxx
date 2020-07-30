@@ -753,10 +753,8 @@ int doChild(int argc, char** argv, ServiceRegistry& serviceRegistry, const o2::f
 
       /// Create all the requested services and initialise them
       for (auto& service : spec.services) {
-        LOG(info) << "Initialising service " << service.name;
-        auto handle = service.init(serviceRegistry, *deviceState.get(), r.fConfig);
-        serviceRegistry.registerService(handle);
-        dynamic_cast<DataProcessingDevice*>(r.fDevice.get())->bindService(service, handle.instance);
+        LOG(info) << "Declaring service " << service.name;
+        serviceRegistry.declareService(service, *deviceState.get(), r.fConfig);
       }
       if (ResourcesMonitoringHelper::isResourcesMonitoringEnabled(spec.resourceMonitoringInterval)) {
         serviceRegistry.get<Monitoring>().enableProcessMonitoring(spec.resourceMonitoringInterval);
