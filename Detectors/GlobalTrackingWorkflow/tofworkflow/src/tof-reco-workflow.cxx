@@ -178,6 +178,12 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
   } else if (ctfinput) {
     LOG(INFO) << "Insert TOF CTF decoder";
     specs.emplace_back(o2::tof::getEntropyDecoderSpec());
+
+    if (writedigit && !disableRootOutput) {
+      // add TOF digit writer without mc labels
+      LOG(INFO) << "Insert TOF Digit Writer";
+      specs.emplace_back(o2::tof::getTOFDigitWriterSpec(0));
+    }
   }
 
   if (!clusterinput && writecluster) {

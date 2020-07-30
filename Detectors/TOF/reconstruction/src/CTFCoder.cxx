@@ -98,7 +98,8 @@ void CTFCoder::compress(CompressedInfos& cc,
       continue;
     }
 
-    int idig = rofRec.first(), idigMax = idig + ndig;
+    int idigMin = rofRec.first(), idigMax = idigMin + ndig;
+    int idig = idigMin;
 
     // make a copy of digits
     digCopy.clear();
@@ -117,9 +118,9 @@ void CTFCoder::compress(CompressedInfos& cc,
 
     int timeframe = 0;
     int tdc = 0;
-    idig = 0;
-    for (; idig < ndig; idig++) {
-      const auto& dig = digCopy[idig];
+    idig = idigMin;
+    for (; idig < idigMax; idig++) {
+      const auto& dig = digCopy[idig - idigMin];
       int deltaBC = dig.getBC() - rofInBC;
       int ctimeframe = deltaBC / 64;
       int cTDC = (deltaBC % 64) * 1024 + dig.getTDC();
@@ -137,6 +138,8 @@ void CTFCoder::compress(CompressedInfos& cc,
       cc.stripID[idig] = chan / Geo::NPADS;
       cc.chanInStrip[idig] = chan % Geo::NPADS;
       cc.tot[idig] = dig.getTOT();
+      printf("%d) TOFBC = %d, deltaBC = %d, TDC = %d, CH=%d\n", irof, rofInBC, deltaBC, cTDC, chan);
+      printf("%d) TF=%d, TDC=%d, STRIP=%d, CH=%d, TOT=%d\n", idig, cc.timeFrameInc[idig], cc.timeTDCInc[idig], cc.stripID[idig], cc.chanInStrip[idig], cc.tot[idig]);
     }
   }
   // store explicit patters as they are
