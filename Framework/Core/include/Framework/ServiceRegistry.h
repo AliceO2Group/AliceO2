@@ -26,6 +26,7 @@
 #include <stdexcept>
 #include <thread>
 #include <atomic>
+#include <mutex>
 
 namespace o2::framework
 {
@@ -33,6 +34,34 @@ namespace o2::framework
 struct ServiceMeta {
   ServiceKind kind = ServiceKind::Serial;
   uint64_t threadId = 0;
+};
+
+struct NoLocking {
+  void lock() {}
+  void unlock() {}
+};
+
+struct MutexLock {
+  void lock() { mutex.lock(); }
+  void unlock() { mutex.unlock(); }
+  std::mutex& mutex;
+};
+
+// A pointer to a service. Includes the locking policy
+// for that service.
+template <typename T, typename LOCKING = NoLocking>
+class service_ptr : LOCKING
+{
+ public:
+  service_ptr(T* ptr, LOCKING policy) : LOCKING(policy), mPtr{ptr} { this->lock(); }
+  ~service_ptr() { this->unlock(); }
+  service_ptr(service_ptr<T, LOCKING> const&) = delete;
+  service_ptr& operator=(service_ptr<T, LOCKING> const&) = delete;
+  T& operator*() { return *mPtr; }
+  T* operator->() { return mPtr; }
+
+ private:
+  T* mPtr;
 };
 
 struct ServiceRegistry {
