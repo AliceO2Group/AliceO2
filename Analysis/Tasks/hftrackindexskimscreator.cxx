@@ -62,7 +62,7 @@ struct SelectTracks {
     for (auto it0 = tracks.begin(); it0 != tracks.end(); ++it0) {
       auto& track_0 = *it0;
       int status = 1;
-      if (b_dovalplots == true)
+      if (b_dovalplots)
         hpt_nocuts->Fill(track_0.pt());
       if (track_0.pt() < ptmintrack)
         status = 0;
@@ -76,7 +76,7 @@ struct SelectTracks {
       trackparvar0.propagateParamToDCA(vtxXYZ, d_bz, &dca);
       if (abs(dca[0]) < dcatoprimxymin)
         status = 0;
-      if (b_dovalplots == true) {
+      if (b_dovalplots) {
         if (status == 1) {
           hpt_cuts->Fill(track_0.pt());
           hdcatoprimxy_cuts->Fill(dca[0]);
@@ -88,9 +88,6 @@ struct SelectTracks {
 };
 
 struct HFTrackIndexSkimsCreator {
-  std::vector<PxPyPzMVector> listTracks;
-  double masspion = TDatabasePDG::Instance()->GetParticle(kPiPlus)->Mass();
-  double masskaon = TDatabasePDG::Instance()->GetParticle(kKPlus)->Mass();
   OutputObj<TH1F> hmass2{TH1F("hmass2", "; Inv Mass (GeV/c^{2})", 500, 0, 5.0)};
   OutputObj<TH1F> hmass3{TH1F("hmass3", "; Inv Mass (GeV/c^{2})", 500, 0, 5.0)};
   Produces<aod::HfTrackIndexProng2> hftrackindexprong2;
@@ -111,6 +108,8 @@ struct HFTrackIndexSkimsCreator {
   Configurable<double> d_maxmassDp{"d_maxmassDp", 2.1, "max mass dplus presel"};
   Configurable<bool> b_dovalplots{"b_dovalplots", true, "do validation plots"};
   Filter seltrack = (aod::seltrack::issel == 1);
+  double massPi = TDatabasePDG::Instance()->GetParticle(kPiPlus)->Mass();
+  double massK = TDatabasePDG::Instance()->GetParticle(kKPlus)->Mass();
 
   void process(aod::Collision const& collision,
                aod::BCs const& bcs,
@@ -142,6 +141,11 @@ struct HFTrackIndexSkimsCreator {
     df3.setMinParamChange(d_minparamchange);
     df3.setMinRelChi2Change(d_minrelchi2change);
 
+    double mass2PiK{0};
+    double mass2KPi{0};
+    double mass3PiKPiPlus{0};
+    double mass3PiKPiMinus{0};
+
     for (auto i_p1 = tracks.begin(); i_p1 != tracks.end(); ++i_p1) {
       auto& track_p1 = *i_p1;
       if (track_p1.signed1Pt() < 0)
@@ -162,21 +166,22 @@ struct HFTrackIndexSkimsCreator {
         df.getTrack(0).getPxPyPzGlo(pvec0);
         df.getTrack(1).getPxPyPzGlo(pvec1);
 
-        addTrack(listTracks, pvec0, masspion);
-        addTrack(listTracks, pvec1, masskaon);
-        double mass_ = (sumOfTracks(listTracks)).M();
-        listTracks[0].SetM(masskaon);
-        listTracks[1].SetM(masspion);
-        double masssw_ = (sumOfTracks(listTracks)).M();
-        listTracks.clear();
+        mass2PiK = invmass2prongs(
+          pvec0[0], pvec0[1], pvec0[2], massPi,
+          pvec1[0], pvec1[1], pvec1[2], massK);
+        mass2KPi = invmass2prongs(
+          pvec0[0], pvec0[1], pvec0[2], massK,
+          pvec1[0], pvec1[1], pvec1[2], massPi);
 
-        if (b_dovalplots == true) {
-          hmass2->Fill(mass_);
-          hmass2->Fill(masssw_);
+        if (b_dovalplots) {
+          hmass2->Fill(mass2PiK);
+          hmass2->Fill(mass2KPi);
         }
+
         hftrackindexprong2(track_p1.collisionId(),
                            track_p1.globalIndex(),
                            track_n1.globalIndex(), 1);
+
         if (do3prong == 1) {
           //second loop on positive tracks
           for (auto i_p2 = i_p1 + 1; i_p2 != tracks.end(); ++i_p2) {
@@ -184,16 +189,14 @@ struct HFTrackIndexSkimsCreator {
             if (track_p2.signed1Pt() < 0)
               continue;
 
-            addTrack(listTracks, track_p1.px(), track_p1.py(), track_p1.pz(), masspion);
-            addTrack(listTracks, track_n1.px(), track_n1.py(), track_n1.pz(), masskaon);
-            addTrack(listTracks, track_p2.px(), track_p2.py(), track_p2.pz(), masspion);
-            double mass3prong = (sumOfTracks(listTracks)).M();
-            listTracks.clear();
+            mass3PiKPiPlus = invmass3prongs(
+              track_p1.px(), track_p1.py(), track_p1.pz(), massPi,
+              track_n1.px(), track_n1.py(), track_n1.pz(), massK,
+              track_p2.px(), track_p2.py(), track_p2.pz(), massPi);
 
-            if (mass3prong < d_minmassDp || mass3prong > d_maxmassDp)
+            if (mass3PiKPiPlus < d_minmassDp || mass3PiKPiPlus > d_maxmassDp)
               continue;
-            if (b_dovalplots == true)
-              hmass3->Fill(mass3prong);
+
             auto trackparvar_p2 = getTrackParCov(track_p2);
             df3.setUseAbsDCA(true);
             int nCand3 = df3.process(trackparvar_p1, trackparvar_n1, trackparvar_p2);
@@ -207,15 +210,15 @@ struct HFTrackIndexSkimsCreator {
             df3.getTrack(1).getPxPyPzGlo(pvec1);
             df3.getTrack(2).getPxPyPzGlo(pvec2);
 
-            addTrack(listTracks, pvec0, masspion);
-            addTrack(listTracks, pvec1, masskaon);
-            addTrack(listTracks, pvec2, masspion);
-            double mass_ = (sumOfTracks(listTracks)).M();
-            listTracks.clear();
+            mass3PiKPiPlus = invmass3prongs(
+              pvec0[0], pvec0[1], pvec0[2], massPi,
+              pvec1[0], pvec1[1], pvec1[2], massK,
+              pvec2[0], pvec2[1], pvec2[2], massPi);
 
-            if (b_dovalplots == true) {
-              hmass3->Fill(mass_);
+            if (b_dovalplots) {
+              hmass3->Fill(mass3PiKPiPlus);
             }
+
             hftrackindexprong3(track_p1.collisionId(),
                                track_p1.globalIndex(),
                                track_n1.globalIndex(),
@@ -227,15 +230,14 @@ struct HFTrackIndexSkimsCreator {
             if (track_n2.signed1Pt() > 0)
               continue;
 
-            addTrack(listTracks, track_n1.px(), track_n1.py(), track_n1.pz(), masspion);
-            addTrack(listTracks, track_p1.px(), track_p1.py(), track_p1.pz(), masskaon);
-            addTrack(listTracks, track_n2.px(), track_n2.py(), track_n2.pz(), masspion);
-            double mass3prong = (sumOfTracks(listTracks)).M();
-            listTracks.clear();
+            mass3PiKPiMinus = invmass3prongs(
+              track_n1.px(), track_n1.py(), track_n1.pz(), massPi,
+              track_p1.px(), track_p1.py(), track_p1.pz(), massK,
+              track_n2.px(), track_n2.py(), track_n2.pz(), massPi);
 
-            if (mass3prong < d_minmassDp || mass3prong > d_maxmassDp)
+            if (mass3PiKPiMinus < d_minmassDp || mass3PiKPiMinus > d_maxmassDp)
               continue;
-            hmass3->Fill(mass3prong);
+
             auto trackparvar_n2 = getTrackParCov(track_n2);
             df3.setUseAbsDCA(true);
             int nCand3 = df3.process(trackparvar_n1, trackparvar_p1, trackparvar_n2);
@@ -249,15 +251,15 @@ struct HFTrackIndexSkimsCreator {
             df3.getTrack(1).getPxPyPzGlo(pvec1);
             df3.getTrack(2).getPxPyPzGlo(pvec2);
 
-            addTrack(listTracks, pvec0, masspion);
-            addTrack(listTracks, pvec1, masskaon);
-            addTrack(listTracks, pvec2, masspion);
-            double mass_ = (sumOfTracks(listTracks)).M();
-            listTracks.clear();
+            mass3PiKPiMinus = invmass3prongs(
+              pvec0[0], pvec0[1], pvec0[2], massPi,
+              pvec1[0], pvec1[1], pvec1[2], massK,
+              pvec2[0], pvec2[1], pvec2[2], massPi);
 
-            if (b_dovalplots == true) {
-              hmass3->Fill(mass_);
+            if (b_dovalplots) {
+              hmass3->Fill(mass3PiKPiMinus);
             }
+
             hftrackindexprong3(track_n1.collisionId(),
                                track_n1.globalIndex(),
                                track_p1.globalIndex(),

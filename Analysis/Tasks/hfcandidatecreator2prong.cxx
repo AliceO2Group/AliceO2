@@ -49,6 +49,9 @@ struct HFCandidateCreator2Prong {
                                         "stop iterations if largest change of any X is smaller than this"};
   Configurable<double> d_minrelchi2change{"d_minrelchi2change", 0.9,
                                           "stop iterations is chi2/chi2old > this"};
+  double massPi = TDatabasePDG::Instance()->GetParticle(kPiPlus)->Mass();
+  double massK = TDatabasePDG::Instance()->GetParticle(kKPlus)->Mass();
+
   void process(aod::Collision const& collision,
                aod::HfTrackIndexProng2 const& hftrackindexprong2s,
                soa::Join<aod::Tracks, aod::TracksCov, aod::TracksExtra> const& tracks)
@@ -61,9 +64,8 @@ struct HFCandidateCreator2Prong {
     df.setMinParamChange(d_minparamchange);
     df.setMinRelChi2Change(d_minrelchi2change);
 
-    std::vector<PxPyPzMVector> listTracks;
-    double masspion = TDatabasePDG::Instance()->GetParticle(kPiPlus)->Mass();
-    double masskaon = TDatabasePDG::Instance()->GetParticle(kKPlus)->Mass();
+    double mass2PiK{0};
+    double mass2KPi{0};
 
     for (auto& hfpr2 : hftrackindexprong2s) {
       auto trackparvar_p1 = getTrackParCov(hfpr2.index0());
@@ -78,23 +80,22 @@ struct HFCandidateCreator2Prong {
       df.getTrack(0).getPxPyPzGlo(pvec0);
       df.getTrack(1).getPxPyPzGlo(pvec1);
 
-      addTrack(listTracks, pvec0, masspion);
-      addTrack(listTracks, pvec1, masskaon);
-      double mass_ = (sumOfTracks(listTracks)).M();
-      listTracks[0].SetM(masskaon);
-      listTracks[1].SetM(masspion);
-      double masssw_ = (sumOfTracks(listTracks)).M();
-      listTracks.clear();
+      mass2PiK = invmass2prongs(
+        pvec0[0], pvec0[1], pvec0[2], massPi,
+        pvec1[0], pvec1[1], pvec1[2], massK);
+      mass2KPi = invmass2prongs(
+        pvec0[0], pvec0[1], pvec0[2], massK,
+        pvec1[0], pvec1[1], pvec1[2], massPi);
 
       hfcandprong2(collision.posX(), collision.posY(), collision.posZ(),
                    pvec0[0], pvec0[1], pvec0[2], pvec1[0], pvec1[1], pvec1[2],
-                   vtx[0], vtx[1], vtx[2], mass_, masssw_);
+                   vtx[0], vtx[1], vtx[2], mass2PiK, mass2KPi);
       if (b_dovalplots == true) {
         hvtx_x_out->Fill(vtx[0]);
         hvtx_y_out->Fill(vtx[1]);
         hvtx_z_out->Fill(vtx[2]);
-        hmass2->Fill(mass_);
-        hmass2->Fill(masssw_);
+        hmass2->Fill(mass2PiK);
+        hmass2->Fill(mass2KPi);
       }
     }
   }
