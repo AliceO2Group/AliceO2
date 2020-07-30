@@ -129,6 +129,7 @@ void CTFCoder::decompress(const CompressedInfos& cc, VROF& rofRecVec, VDIG& cdig
   rofRecVec.resize(cc.header.nROFs);
   cdigVec.resize(cc.header.nDigits);
   pattVec.resize(cc.header.nPatternBytes);
+  std::vector<Digit> digCopy;
 
   o2::InteractionRecord prevIR(cc.header.firstBC, cc.header.firstOrbit);
   uint32_t firstEntry = 0, digCount = 0, stripCount = 0, ndiagnostic = 0;
@@ -149,22 +150,30 @@ void CTFCoder::decompress(const CompressedInfos& cc, VROF& rofRecVec, VDIG& cdig
     firstEntry += cc.ndigROF[irof];
     ndiagnostic += cc.ndiaROF[irof];
 
+    if (!cc.ndigROF[irof])
+      continue;
+
     // restore hit data
     uint ctimeframe = 0;
     uint ctdc = 0;
 
     int firstDig = digCount;
 
+    int BCrow = prevIR.orbit * Geo::BC_IN_ORBIT + prevIR.bc;
+
+    digCopy.resize(cc.ndigROF[irof]);
     for (uint32_t idig = 0; idig < cc.ndigROF[irof]; idig++) {
-      auto& digit = cdigVec[digCount];
+      auto& digit = digCopy[idig]; //cdigVec[digCount];
+      printf("%d) TF=%d, TDC=%d, STRIP=%d, CH=%d\n", idig, cc.timeFrameInc[digCount], cc.timeTDCInc[digCount], cc.stripID[digCount], cc.chanInStrip[digCount]);
       if (cc.timeFrameInc[digCount]) { // new time frame
         ctdc = cc.timeTDCInc[digCount];
         ctimeframe += cc.timeFrameInc[digCount];
       } else {
         ctdc += cc.timeTDCInc[digCount];
       }
+      printf("BC=%d, TDC=%d, TOT=%d, CH=%d \n", uint32_t(ctimeframe) * 64 + ctdc / 1024 + BCrow, ctdc % 1024, cc.tot[digCount], uint32_t(cc.stripID[digCount]) * 96 + cc.chanInStrip[digCount]);
 
-      digit.setBC(uint32_t(ctimeframe) * 64 + ctdc / 1024);
+      digit.setBC(uint32_t(ctimeframe) * 64 + ctdc / 1024 + BCrow);
       digit.setTDC(ctdc % 1024);
       digit.setTOT(cc.tot[digCount]);
       digit.setChannel(uint32_t(cc.stripID[digCount]) * 96 + cc.chanInStrip[digCount]);
@@ -173,14 +182,22 @@ void CTFCoder::decompress(const CompressedInfos& cc, VROF& rofRecVec, VDIG& cdig
     }
 
     // sort digits according to strip number within the ROF
-    if (digCount > firstDig) {
-      std::partial_sort(cdigVec.begin() + firstDig, cdigVec.begin() + digCount - 1, cdigVec.end(),
-                        [](o2::tof::Digit a, o2::tof::Digit b) {
-                          int str1 = a.getChannel() / 1600;
-                          int str2 = b.getChannel() / 1600;
-                          return (str1 <= str2);
-                        });
+    std::sort(digCopy.begin(), digCopy.end(),
+              [](o2::tof::Digit a, o2::tof::Digit b) {
+                int str1 = a.getChannel() / Geo::NPADS;
+                int str2 = b.getChannel() / Geo::NPADS;
+                if (str1 == str2) {
+                  return (a.getOrderingKey() < b.getOrderingKey());
+                }
+                return (str1 < str2);
+              });
+
+    // fill digits, once sorted, of rof in digit vector
+    for (uint32_t idig = 0; idig < digCopy.size(); idig++) {
+      cdigVec[firstDig + idig] = digCopy[idig];
     }
+
+    digCopy.clear();
   }
   // explicit patterns
   memcpy(pattVec.data(), cc.pattMap.data(), cc.header.nPatternBytes); // RSTODO use swap?
