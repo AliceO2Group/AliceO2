@@ -13,6 +13,7 @@ o2_add_library(TOFWorkflow
                        src/TOFMatchedWriterSpec.cxx
                        src/TOFCalibWriterSpec.cxx
                        src/TOFMatchedReaderSpec.cxx
+                       src/CalibInfoReaderSpec.cxx
                PUBLIC_LINK_LIBRARIES O2::Framework O2::TOFBase O2::DataFormatsTOF O2::TOFReconstruction 
                                      O2::GlobalTracking O2::GlobalTrackingWorkflow O2::TOFWorkflowUtils
                                      O2::TOFCalibration O2::DataFormatsFT0 O2::FT0Reconstruction O2::FT0Workflow)
@@ -20,4 +21,9 @@ o2_add_library(TOFWorkflow
 o2_add_executable(reco-workflow
                   COMPONENT_NAME tof
                   SOURCES src/tof-reco-workflow.cxx
+                  PUBLIC_LINK_LIBRARIES O2::TOFWorkflow)
+
+o2_add_executable(calib-reader
+                  COMPONENT_NAME tof
+                  SOURCES src/tof-calibinfo-reader.cxx
                   PUBLIC_LINK_LIBRARIES O2::TOFWorkflow)
