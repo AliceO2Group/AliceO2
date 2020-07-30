@@ -12,7 +12,7 @@
 #include <ostream>
 #include <cassert>
 #include <stdexcept>
-#if __has_include(<filesystem>)
+#if 0
 #include <filesystem>
 namespace fs = std::filesystem;
 #elif __has_include(<boost/filesystem.hpp>)
