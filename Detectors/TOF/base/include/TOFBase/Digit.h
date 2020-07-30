@@ -39,6 +39,10 @@ class Digit
   {
     return ((static_cast<ULong64_t>(bc) << 18) + channel); // channel in the least significant bits; then shift by 18 bits (which cover the total number of channels) to write the BC number
   }
+  ULong64_t getOrderingKey()
+  {
+    return getOrderingKey(mChannel, mBC, mTDC);
+  }
 
   Int_t getChannel() const { return mChannel; }
   void setChannel(Int_t channel) { mChannel = channel; }
