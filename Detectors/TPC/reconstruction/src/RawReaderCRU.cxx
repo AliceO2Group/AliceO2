@@ -188,7 +188,7 @@ int RawReaderCRU::scanFile()
   // std::vector<PacketDescriptor> mPacketDescriptorMap;
   //const uint64_t RDH_HEADERWORD0 = 0x1ea04003;
   //const uint64_t RDH_HEADERWORD0 = 0x00004003;
-  const uint64_t RDH_HEADERWORD0 = 0x00004000 + RDHUtils::getVersion<o2::header::RAWDataHeader>();
+  const uint64_t RDH_HEADERWORD0 = 0x00004000; // + RDHUtils::getVersion<o2::header::RAWDataHeader>();
 
   std::ifstream& file = mFileHandle;
   if (!file.is_open()) {
@@ -287,7 +287,7 @@ int RawReaderCRU::scanFile()
     // * create the packet descriptor
     // * set the mLinkPresent flag
     //
-    if ((rdh.word0 & 0x0000FFFF) == RDH_HEADERWORD0) {
+    if ((rdh.word0 & 0x0000FFF0) == RDH_HEADERWORD0) {
       // non 0 stop bit means data with payload
       if (RDHUtils::getStop(rdh) == 0) {
         mPacketDescriptorMaps[globalLinkID].emplace_back(currentPos, mCRU, linkID, dataWrapperID, memorySize, packetSize);
