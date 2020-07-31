@@ -28,7 +28,8 @@ o2_add_library(TPCReconstruction
                        src/TPCFastTransformHelperO2.cxx
                        src/CTFCoder.cxx
                PUBLIC_LINK_LIBRARIES FairRoot::Base O2::SimulationDataFormat
-                                     O2::TPCBase O2::GPUTracking)
+                                     O2::TPCBase O2::GPUTracking
+                                     O2::DetectorsRaw)
 
 o2_target_root_dictionary(
   TPCReconstruction
