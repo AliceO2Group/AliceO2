@@ -305,6 +305,8 @@ o2-raw-file-reader-workflow
   --super-page-size arg (=1048576)      super-page size for FMQ parts definition
   --part-per-hbf                        FMQ parts per superpage (default) of HBF
   --raw-channel-config arg              optional raw FMQ channel for non-DPL output
+  --cache-data                          cache data at 1st reading, may require excessive memory!!!
+
   --configKeyValues arg                 semicolon separated key=value strings
 
   # to suppress various error checks / reporting
@@ -323,7 +325,8 @@ The workflow takes an input from the configuration file (as described in `RawFil
 with the `OutputSpec`s indicated in the configuration file (or defaults). Each link data gets `SubSpecification` according to DataDistribution
 scheme.
 
-If `--loop` argument is provided, data will be re-played in loop. The delay (in seconds) can be added between sensding of consecutive TFs to avoid pile-up of TFs.
+If `--loop` argument is provided, data will be re-played in loop. The delay (in seconds) can be added between sensding of consecutive TFs to avoid pile-up of TFs. By default at each iteration the data will be again read from the disk.
+Using `--cache-data` option one can force caching the data to memory during the 1st reading, this avoiding disk I/O for following iterations, but this option should be used with care as it will eventually create a memory copy of all TFs to read.
 
 At every invocation of the device `processing` callback a full TimeFrame for every link will be added as a multi-part `FairMQ` message and relayed by the relevant channel.
 By default each part will be a single CRU super-page of the link. This behaviour can be changed by providing `part-per-hbf` option, in which case each HBF will be added as a separate HBF.

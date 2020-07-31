@@ -32,6 +32,7 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
   options.push_back(ConfigParamSpec{"super-page-size", VariantType::Int64, 1024L * 1024L, {"super-page size for FMQ parts definition"}});
   options.push_back(ConfigParamSpec{"part-per-hbf", VariantType::Bool, false, {"FMQ parts per superpage (default) of HBF"}});
   options.push_back(ConfigParamSpec{"raw-channel-config", VariantType::String, "", {"optional raw FMQ channel for non-DPL output"}});
+  options.push_back(ConfigParamSpec{"cache-data", VariantType::Bool, false, {"cache data at 1st reading, may require excessive memory!!!"}});
   options.push_back(ConfigParamSpec{"configKeyValues", VariantType::String, "", {"semicolon separated key=value strings"}});
   // options for error-check suppression
 
@@ -55,6 +56,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   uint64_t buffSize = uint64_t(configcontext.options().get<int64_t>("buffer-size"));
   uint64_t spSize = uint64_t(configcontext.options().get<int64_t>("super-page-size"));
   bool partPerSP = !configcontext.options().get<bool>("part-per-hbf");
+  bool cache = configcontext.options().get<bool>("cache-data");
   std::string rawChannelConfig = configcontext.options().get<std::string>("raw-channel-config");
   uint32_t errmap = 0;
   for (int i = RawFileReader::NErrorsDefined; i--;) {
@@ -67,5 +69,5 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   o2::conf::ConfigurableParam::updateFromString(configcontext.options().get<std::string>("configKeyValues"));
   uint32_t delay_us = uint32_t(1e6 * configcontext.options().get<float>("delay")); // delay in microseconds
 
-  return std::move(o2::raw::getRawFileReaderWorkflow(inifile, loop, delay_us, errmap, minTF, maxTF, partPerSP, spSize, buffSize, rawChannelConfig));
+  return std::move(o2::raw::getRawFileReaderWorkflow(inifile, loop, delay_us, errmap, minTF, maxTF, partPerSP, cache, spSize, buffSize, rawChannelConfig));
 }
