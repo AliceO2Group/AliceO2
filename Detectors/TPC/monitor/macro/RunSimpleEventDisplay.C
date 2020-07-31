@@ -337,7 +337,7 @@ void DrawPadSignal(TString type)
     //mRawReader->Reset();
     TH1D* h2 = mEvDisp.makePadSignals(roc, row, pad);
     if (h2) {
-      h2->GetXaxis()->SetRangeUser(0, mEvDisp.getNumberOfProcessedTimeBins() + 5);
+      //h2->GetXaxis()->SetRangeUser(0, mEvDisp.getNumberOfProcessedTimeBins() + 5);
       h2->Draw();
       h2->SetStats(0);
 
@@ -601,7 +601,7 @@ void CallEventNumber()
 }
 
 //__________________________________________________________________________
-void RunSimpleEventDisplay(TString fileInfo, TString pedestalFile = "", Int_t nTimeBinsPerCall = 500, uint32_t verbosity = 0, uint32_t debugLevel = 0, int selectedSector = 0, bool showSides = 0)
+void RunSimpleEventDisplay(TString fileInfo, TString pedestalFile = "", Int_t firstTimeBin = 0, Int_t lastTimeBin = 500, Int_t nTimeBinsPerCall = 500, uint32_t verbosity = 0, uint32_t debugLevel = 0, int selectedSector = 0, bool showSides = 0)
 {
   FairLogger* logger = FairLogger::GetLogger();
   logger->SetLogVerbosityLevel("LOW");
@@ -623,7 +623,7 @@ void RunSimpleEventDisplay(TString fileInfo, TString pedestalFile = "", Int_t nT
   mEvDisp.setSelectedSector(mSelectedSector);
   mEvDisp.setLastSelSector(mSelectedSector);
   mEvDisp.setTimeBinsPerCall(nTimeBinsPerCall);
-  mEvDisp.setTimeBinRange(0, nTimeBinsPerCall);
+  mEvDisp.setTimeBinRange(firstTimeBin, lastTimeBin);
 
   InitGUI();
   //  while (mRawReader->NextEvent() && mRawReader->GetEventFromTag()==0) Next();
