@@ -64,7 +64,7 @@ void KrBoxClusterFinder::updateTempClusterFinal()
 
   const int pads = mapperInstance.getNumberOfPadsInRowSector(int(mTempCluster.meanRow));
 
-  mTempCluster.meanPad += (pads / 2) - (MaxPads / 2);
+  mTempCluster.meanPad = mTempCluster.meanPad + (pads / 2.0) - (MaxPads / 2.0);
 }
 
 // Function to update the temporal cluster.
