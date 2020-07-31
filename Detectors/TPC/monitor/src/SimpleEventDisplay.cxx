@@ -135,7 +135,7 @@ Int_t SimpleEventDisplay::updateROC(const Int_t roc,
   //fill signals for current pad
   if (mCurrentROC % 36 == mSelectedSector % 36) {
     const Int_t nbins = mLastTimeBin - mFirstTimeBin;
-    const Int_t offset = (nbins + 2) * (iChannel + 1) + timeBin + 1;
+    const Int_t offset = (nbins + 2) * (iChannel + 1) + (timeBin - mFirstTimeBin) + 1;
 
     if ((UInt_t)roc < mTPCmapper.getNumberOfIROCs()) {
       mHSigIROC->GetArray()[offset] = corrSignal;
