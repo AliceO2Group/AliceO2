@@ -24,6 +24,7 @@
 #include "TPCBase/CalDet.h"
 #include "TPCBase/CalArray.h"
 #include "TPCBase/Painter.h"
+#include "TPCBase/Utils.h"
 
 using namespace o2::tpc;
 
@@ -129,10 +130,56 @@ TCanvas* painter::draw(const CalArray<T>& calArray)
 
 //______________________________________________________________________________
 template <class T>
-TH2* painter::getHistogram2D(const CalDet<T>& calDet, Side side)
+void painter::fillHistogram2D(TH2& h2D, const CalDet<T>& calDet, Side side)
 {
   static const Mapper& mapper = Mapper::instance();
 
+  for (ROC roc; !roc.looped(); ++roc) {
+    if (roc.side() != side) {
+      continue;
+    }
+
+    const int nrows = mapper.getNumberOfRowsROC(roc);
+    for (int irow = 0; irow < nrows; ++irow) {
+      const int npads = mapper.getNumberOfPadsInRowROC(roc, irow);
+      for (int ipad = 0; ipad < npads; ++ipad) {
+        const auto val = calDet.getValue(roc, irow, ipad);
+        const GlobalPosition2D pos = mapper.getPadCentre(PadROCPos(roc, irow, ipad));
+        const int bin = h2D.FindBin(pos.X(), pos.Y());
+        if (!h2D.GetBinContent(bin)) {
+          h2D.SetBinContent(bin, val);
+        }
+      }
+    }
+  }
+}
+
+//______________________________________________________________________________
+template <class T>
+void painter::fillHistogram2D(TH2& h2D, const CalArray<T>& calArray)
+{
+  static const Mapper& mapper = Mapper::instance();
+
+  const size_t position = calArray.getPadSubsetNumber();
+  const PadSubset padSubset = calArray.getPadSubset();
+  const int nrows = mapper.getNumberOfPadRows(padSubset, position);
+
+  // ===| fill hist |===========================================================
+  for (int irow = 0; irow < nrows; ++irow) {
+    const int padsInRow = mapper.getNumberOfPadsInRow(padSubset, position, irow);
+    for (int ipad = 0; ipad < padsInRow; ++ipad) {
+      const GlobalPadNumber pad = mapper.getPadNumber(padSubset, position, irow, ipad);
+      const auto val = calArray.getValue(pad);
+      const int cpad = ipad - padsInRow / 2;
+      h2D.Fill(irow, cpad, val);
+    }
+  }
+}
+
+//______________________________________________________________________________
+template <class T>
+TH2* painter::getHistogram2D(const CalDet<T>& calDet, Side side)
+{
   const auto title = calDet.getName().c_str();
   std::string name = calDet.getName();
   std::replace(name.begin(), name.end(), ' ', '_');
@@ -142,21 +189,7 @@ TH2* painter::getHistogram2D(const CalDet<T>& calDet, Side side)
                       Form("%s (%c-Side);x (cm);y (cm)", title, side_name),
                       300, -300, 300, 300, -300, 300);
 
-  for (ROC roc; !roc.looped(); ++roc) {
-    if (roc.side() != side)
-      continue;
-    const int nrows = mapper.getNumberOfRowsROC(roc);
-    for (int irow = 0; irow < nrows; ++irow) {
-      const int npads = mapper.getNumberOfPadsInRowROC(roc, irow);
-      for (int ipad = 0; ipad < npads; ++ipad) {
-        const auto val = calDet.getValue(roc, irow, ipad);
-        const GlobalPosition2D pos = mapper.getPadCentre(PadROCPos(roc, irow, ipad));
-        const int bin = h2D->FindBin(pos.X(), pos.Y());
-        if (!h2D->GetBinContent(bin))
-          h2D->SetBinContent(bin, val);
-      }
-    }
-  }
+  fillHistogram2D(*h2D, calDet, side);
 
   return h2D;
 }
@@ -168,8 +201,8 @@ TH2* painter::getHistogram2D(const CalArray<T>& calArray)
   static const Mapper& mapper = Mapper::instance();
 
   const size_t position = calArray.getPadSubsetNumber();
-
   const PadSubset padSubset = calArray.getPadSubset();
+
   // ===| maximum number of rows and pads |=====================================
   const int nrows = mapper.getNumberOfPadRows(padSubset, position);
   const int npads = mapper.getNumberOfPadsInRow(padSubset, position, nrows - 1) + 6;
@@ -183,17 +216,8 @@ TH2* painter::getHistogram2D(const CalArray<T>& calArray)
                        nrows, 0., nrows,
                        npads, -npads / 2, npads / 2);
 
-  // ===| fill hist |===========================================================
-  for (int irow = 0; irow < nrows; ++irow) {
-    const int padsInRow = mapper.getNumberOfPadsInRow(padSubset, position, irow);
-    for (int ipad = 0; ipad < padsInRow; ++ipad) {
-      const GlobalPadNumber pad = mapper.getPadNumber(padSubset, position, irow, ipad);
-      const auto val = calArray.getValue(pad);
-      const int cpad = ipad - padsInRow / 2;
-      hist->Fill(irow, cpad, val);
-      //printf("%d %d: %f\n", irow, cpad, (double)val);
-    }
-  }
+  fillHistogram2D(*hist, calArray);
+
   return hist;
 }
 
@@ -275,6 +299,25 @@ std::vector<TCanvas*> painter::makeSummaryCanvases(const CalDet<T>& calDet, int 
     h2D->Draw("colz");
 
     ++pad;
+  }
+
+  return vecCanvases;
+}
+
+//==============================================================================
+std::vector<TCanvas*> painter::makeSummaryCanvases(const std::string_view fileName, const std::string_view calPadNames, int nbins1D, float xMin1D, float xMax1D, bool onlyFilled)
+{
+  using namespace o2::tpc;
+
+  const auto calPads = utils::readCalPads(fileName, calPadNames);
+
+  std::vector<TCanvas*> vecCanvases;
+
+  for (const auto calPad : calPads) {
+    auto canvases = makeSummaryCanvases(*calPad, nbins1D, xMin1D, xMax1D, onlyFilled);
+    for (auto c : canvases) {
+      vecCanvases.emplace_back(c);
+    }
   }
 
   return vecCanvases;
