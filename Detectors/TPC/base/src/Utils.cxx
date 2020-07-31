@@ -174,7 +174,7 @@ void utils::mergeCalPads(std::string_view outputFileName, std::string_view input
 {
   using namespace o2::tpc;
 
-  auto calPadNamesVec = utils::tokenize(calPadNames, ",");
+  const auto calPadNamesVec = utils::tokenize(calPadNames, ",");
 
   std::string_view cmd = "ls";
   if (inputFileNames.rfind(".root") == std::string_view::npos) {
@@ -230,4 +230,3 @@ TChain* utils::buildChain(std::string_view command, std::string_view treeName, s
 
   return c;
 }
-
