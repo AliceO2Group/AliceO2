@@ -19,121 +19,235 @@
 //#include "TRDDataFormat/TriggerRecord.h"
 #include "TRDBase/Digit.h"
 // #include "TRDBase/Tracklet.h"
+
+#include <AliRawReaderRoot.h>
+#include <AliRawReaderDateOnline.h>
+#include <AliTRDrawStream.h>
+#include <AliRawReader.h>
 #endif
+
 
 using namespace o2;
 using namespace trd;
 using namespace std;
 
 
-void convertRun2ToRun3Digits(TString infilename = "TRD.Digits.root",
-              TString outfilename = "digitsqa.root")
+// qa.root
+// 18000283989033.808.root
+// TRD.Digits.root
+void convertRun2ToRun3Digits(TString qaOutPath = "",
+        TString rawDataInPath = "",
+        TString run2DigitsInPath = "TRD.Digits.root",
+        TString run3DigitsOutPath = "trddigits.root",
+        int nRawEvents = 1000)
 {
-    std::vector<o2::trd::Digit> run3Digits;
+    vector<o2::trd::Digit> run3Digits;
     
-    // ======================================================================
-    // Book histograms
-
-    TFile *outFile = new TFile(outfilename, "RECREATE");
-
     TH1F *hAdc = new TH1F("hADC", "ADC spectrum", 1024, -0.5, 1023.5);
-    hAdc->SetXTitle("ADC value");
-    hAdc->SetYTitle("number of entries");
-
     TH1F *hTBsum = new TH1F("hTBsum", "TBsum", 3000, -0.5, 2999.5);
 
-    TFile fd(infilename);
-
-    AliTRDdigitsManager *digitMan = new AliTRDdigitsManager;
-    digitMan->CreateArrays();
-
-    TIter next(fd.GetListOfKeys());
-    while (TObject *obj = next())
+    // convert raw data if path set
+    if (rawDataInPath != "")
     {
-        cout << "Processing " << obj->GetName() << endl;
-        string eventNumber(obj->GetName(), 5, 3);
-        // eventTime needs to be some increasing integer
-        int eventTime = stoi(eventNumber) * 12;
-
-        TTree *tr = (TTree *)fd.Get(Form("%s/TreeD", obj->GetName()));
-        //tr->Print();
-
-        for (int det = 0; det < 540; det++)
+        cout << "Converting RAW data..." << endl;
+        AliRawReader* reader;
+        if (rawDataInPath.Contains(".root")) 
+        {            
+            cout << "[I] Reading with ROOT" << endl;
+            AliRawReaderRoot *readerDate = new AliRawReaderRoot(rawDataInPath);
+            readerDate->SelectEquipment(0, 1024, 1024);
+            readerDate->Select("TRD");
+            //readerDate->SelectEvents(7);      
+            reader = (AliRawReader*)readerDate;
+            
+        } else if (rawDataInPath.Contains(":")) 
         {
-            digitMan->ClearArrays(det);
-            digitMan->ClearIndexes(det);
+            cout << "[I] Reading DATE monitoring events" << endl;
+            AliRawReaderDateOnline *readerRoot = new AliRawReaderDateOnline(rawDataInPath);
+            readerRoot->SelectEquipment(0, 1024, 1041);
+            readerRoot->Select("TRD");
+            //readerRoot->SelectEvents(7);
+            reader = (AliRawReader*)readerRoot;
         }
 
-        digitMan->ReadDigits(tr);
+        AliTRDdigitsManager *digitMan = new AliTRDdigitsManager;
+        digitMan->CreateArrays();
 
-        for (int det = 0; det < 540; det++)
+        AliTRDrawStream* rawStream = new AliTRDrawStream(reader);
+
+        TClonesArray trkl("AliTRDtrackletMCM");
+        rawStream->SetTrackletArray(&trkl);
+
+        int ievent = 0;
+        while (reader->NextEvent()) 
         {
-            if (!digitMan->GetDigits(det))
-                continue;
+            ievent++;
+            int eventtime = ievent * 12;
 
-            digitMan->GetDigits(det)->Expand();
+            if (ievent >= nRawEvents) break;
 
-            AliTRDarrayADC* digits;
-            digits = digitMan->GetDigits(det);
-            digits->Expand();
-
-            // TODO: check actual number of rows, from geometry
-            // here: play it safe, assume 12 rows everywhere
-            int nrows = 12;
-            for (int row = 0; row < nrows; row++)
+            //digitMan->ResetArrays();
+            
+            if (ievent % 10 == 0) 
             {
-                for (int col = 0; col < 144; col++)
+                cout << "Event " << ievent << endl;
+            }
+
+            // hntrkl->Fill(trkl.GetEntries());
+            while(rawStream->NextChamber(digitMan) >= 0)
+            {
+                //hptphase->Fill(digMan->GetDigitsParam()->GetPretriggerPhase());
+            }
+
+            for (int det = 0; det < 540; det++) 
+            {
+                AliTRDSignalIndex* idx = digitMan->GetIndexes(det);
+                
+                if (!idx) continue;
+                if (!idx->HasEntry()) continue;
+
+                AliTRDarrayADC* digits;
+                digits = digitMan->GetDigits(det);
+                digits->Expand();
+
+                int row, col;
+                while (idx->NextRCIndex(row, col)) 
                 {
                     int tbsum = 0;
                     ArrayADC adctimes;
-                    for (int timebin = 0; timebin < digitMan->GetDigits(det)->GetNtime(); timebin++)
-                    {
-                        // int adc = digitMan->GetDigits(det)->GetDataBits(row,col,timebin);
-                        int adc = digitMan->GetDigitAmp(row, col, timebin, det);
-
-                        if (digits->GetNtime() > 30)
-                        {
-                            cout << "----!!! --- number of times is greater than 30" << endl;
-                        }
-                        adctimes[timebin] = digits->GetData(row, col, timebin);
-
-                        // this value seems to indicate no digit -> skip
-                        if (adc == -7169)
-                            continue;
-
+                    for (int timebin=0; timebin<digitMan->GetDigits(det)->GetNtime(); timebin++) {
+                        int adc = digitMan->GetDigits(det)->GetData(row,col,timebin);
                         hAdc->Fill(adc);
                         tbsum += adc;
+
+                        adctimes[timebin] = digits->GetData(row, col, timebin);
                     }
 
-                    run3Digits.push_back(o2::trd::Digit(det, row, col, adctimes, eventTime));
+                    run3Digits.push_back(o2::trd::Digit(det, row, col, adctimes, eventtime));
 
-                    if (tbsum > 0)
+                    hTBsum->Fill(tbsum);
+                }
+            }
+            trkl.Clear();
+        }
+
+        delete rawStream;
+        if (reader) delete reader;
+    }
+
+
+    // convert run2 digits if path set
+    if (run2DigitsInPath != "")
+    {
+        cout << "Converting Run2 digits..." << endl;
+
+        TFile run2DigitsFile(run2DigitsInPath);
+        AliTRDdigitsManager *digitMan = new AliTRDdigitsManager;
+        digitMan->CreateArrays();
+
+        TIter next(run2DigitsFile.GetListOfKeys());
+        while (TObject *obj = next())
+        {
+            cout << "Processing " << obj->GetName() << endl;
+
+            // eventTime needs to be some increasing integer
+            string eventNumber(obj->GetName(), 5, 3);
+            int eventTime = stoi(eventNumber) * 12;
+
+            TTree *tr = (TTree *)run2DigitsFile.Get(Form("%s/TreeD", obj->GetName()));
+
+            for (int det = 0; det < 540; det++)
+            {
+                digitMan->ClearArrays(det);
+                digitMan->ClearIndexes(det);
+            }
+
+            digitMan->ReadDigits(tr);
+
+            for (int det = 0; det < 540; det++)
+            {
+                if (!digitMan->GetDigits(det))
+                    continue;
+
+                digitMan->GetDigits(det)->Expand();
+
+                AliTRDarrayADC* digits;
+                digits = digitMan->GetDigits(det);
+                digits->Expand();
+
+                // TODO: check actual number of rows, from geometry
+                // here: play it safe, assume 12 rows everywhere
+                for (int row = 0; row < 12; row++)
+                {
+                    for (int col = 0; col < 144; col++)
                     {
-                        hTBsum->Fill(tbsum);
+                        int tbsum = 0;
+                        ArrayADC adctimes;
+                        for (int timebin = 0; timebin < digitMan->GetDigits(det)->GetNtime(); timebin++)
+                        {
+                            int adc = digitMan->GetDigitAmp(row, col, timebin, det);
+
+                            if (digits->GetNtime() > 30)
+                            {
+                                cout << "----!!! --- number of times is greater than 30" << endl;
+                            }
+
+                            adctimes[timebin] = digits->GetData(row, col, timebin);
+
+                            // this value seems to indicate no digit -> skip
+                            if (adc == -7169)
+                                continue;
+
+                            hAdc->Fill(adc);
+                            tbsum += adc;
+                        }
+
+                        run3Digits.push_back(o2::trd::Digit(det, row, col, adctimes, eventTime));
+
+                        if (tbsum > 0)
+                        {
+                            hTBsum->Fill(tbsum);
+                        }
                     }
                 }
             }
         }
     }
 
-    TCanvas *cnv_adc = new TCanvas("cnv_adc", "cnv_adc");
-    cnv_adc->SetLogy();
-    hAdc->Draw();
+    // show and write QA
+    if (qaOutPath != "")
+    {
+        hAdc->SetXTitle("ADC value");
+        hAdc->SetYTitle("number of entries");
 
-    TCanvas *cnv_tbsum = new TCanvas("cnv_tbsum", "cnv_tbsum");
-    cnv_adc->SetLogy();
-    hTBsum->Draw();
+        TCanvas *cnv_adc = new TCanvas("cnv_adc", "cnv_adc");
+        cnv_adc->SetLogy();
+        hAdc->Draw();
 
-    outFile->Write();
-    
-    TFile *digitsFile = new TFile("convertedRun3Digits.root", "RECREATE");
-    TTree *digitTree = new TTree("o2sim", "run2 digits");
-    std::vector<o2::trd::Digit> *run3pdigits = &run3Digits;
+        TCanvas *cnv_tbsum = new TCanvas("cnv_tbsum", "cnv_tbsum");
+        cnv_adc->SetLogy();
+        hTBsum->Draw();
+        
+        TFile *outFile = new TFile(qaOutPath, "RECREATE");
+        hAdc->Write();
+        hTBsum->Write();
 
-    digitTree->Branch("TRDDigit", &run3pdigits);
-    digitTree->Fill();
-    cout << "Number of run3 digits is: " << run3Digits.size() << endl;
-    digitTree->Write();
-    delete digitTree;
-    delete digitsFile;
+        cout << "QA output written to: " << qaOutPath << endl;
+    }
+
+
+    // write run3 digits
+    if (run3Digits.size() != 0)
+    {
+        TFile *digitsFile = new TFile(run3DigitsOutPath, "RECREATE");
+        TTree *digitTree = new TTree("o2sim", "run2 digits");
+        std::vector<o2::trd::Digit> *run3pdigits = &run3Digits;
+
+        digitTree->Branch("TRDDigit", &run3pdigits);
+        digitTree->Fill();
+        cout << run3Digits.size() << " run3 digits written to: " << run3DigitsOutPath << endl;
+        digitTree->Write();
+        delete digitTree;
+        delete digitsFile;
+    }
 }
