@@ -41,6 +41,8 @@ class CalDet
 
  public:
   CalDet() = default;
+  CalDet(CalDet const&) = default;
+  CalDet& operator=(CalDet const&) = default;
   ~CalDet() = default;
 
   CalDet(PadSubset padSusbset) : mName{"PadCalibrationObject"}, mData{}, mPadSubset{padSusbset} { initData(); }
@@ -81,6 +83,12 @@ class CalDet
   const CalDet& operator-=(const T& val);
   const CalDet& operator*=(const T& val);
   const CalDet& operator/=(const T& val);
+
+  template <class U>
+  friend CalDet<U> operator+(const CalDet<U>&, const CalDet<U>&);
+
+  template <class U>
+  friend CalDet<U> operator-(const CalDet<U>&, const CalDet<U>&);
 
  private:
   std::string mName;          ///< name of the object
@@ -282,6 +290,23 @@ inline const CalDet<T>& CalDet<T>::operator/=(const T& val)
   return *this;
 }
 
+//______________________________________________________________________________
+template <class T>
+CalDet<T> operator+(const CalDet<T>& c1, const CalDet<T>& c2)
+{
+  CalDet<T> ret(c1);
+  ret += c2;
+  return ret;
+}
+
+//______________________________________________________________________________
+template <class T>
+CalDet<T> operator-(const CalDet<T>& c1, const CalDet<T>& c2)
+{
+  CalDet<T> ret(c1);
+  ret -= c2;
+  return ret;
+}
 // ===| Full detector initialisation |==========================================
 template <class T>
 void CalDet<T>::initData()
