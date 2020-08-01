@@ -117,6 +117,8 @@ DataProcessorSpec getCATrackerSpec(ca::Config const& specconfig, std::vector<int
       processAttributes->allocateOutputOnTheFly = confParam.allocateOutputOnTheFly;
       processAttributes->outputBufferSize = confParam.outputBufferSize;
       processAttributes->suppressOutput = (confParam.dump == 2);
+      config.configInterface.dumpEvents = confParam.dump;
+
       if (config.configEvent.continuousMaxTimeBin == -1) {
         config.configEvent.continuousMaxTimeBin = (o2::raw::HBFUtils::Instance().getNOrbitsPerTF() * o2::constants::lhc::LHCMaxBunches + 2 * Constants::LHCBCPERTIMEBIN - 2) / Constants::LHCBCPERTIMEBIN;
       }
