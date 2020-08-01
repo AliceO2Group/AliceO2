@@ -10,6 +10,8 @@
 #ifndef FRAMEWORK_RAWDEVICESERVICE_H
 #define FRAMEWORK_RAWDEVICESERVICE_H
 
+#include "Framework/ServiceHandle.h"
+
 class FairMQDevice;
 
 namespace o2
@@ -26,6 +28,8 @@ class DeviceSpec;
 class RawDeviceService
 {
  public:
+  constexpr static ServiceKind service_kind = ServiceKind::Global;
+
   virtual FairMQDevice* device() = 0;
   virtual void setDevice(FairMQDevice* device) = 0;
   virtual DeviceSpec const& spec() = 0;
