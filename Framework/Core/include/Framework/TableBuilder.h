@@ -581,14 +581,14 @@ class TableBuilder
   /// template argument T is a o2::soa::Table which contains only the
   /// persistent columns.
   template <typename T, size_t... Is>
-  auto cursorHelper(std::index_sequence<Is...> s)
+  auto cursorHelper(std::index_sequence<Is...>)
   {
     std::vector<std::string> columnNames{pack_element_t<Is, typename T::columns>::columnLabel()...};
     return this->template persist<typename pack_element_t<Is, typename T::columns>::type...>(columnNames);
   }
 
   template <typename T, typename E, size_t... Is>
-  auto cursorHelper(std::index_sequence<Is...> s)
+  auto cursorHelper(std::index_sequence<Is...>)
   {
     std::vector<std::string> columnNames{pack_element_t<Is, typename T::columns>::columnLabel()...};
     return this->template persist<E>(columnNames);
