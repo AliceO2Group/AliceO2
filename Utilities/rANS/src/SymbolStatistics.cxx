@@ -38,45 +38,50 @@ void SymbolStatistics::rescaleToNBits(size_t bits)
   assert(newCumulatedFrequency >= mFrequencyTable.size());
 
   size_t cumulatedFrequencies = mCumulativeFrequencyTable.back();
+  std::vector<uint32_t> sortIdx;
+  sortIdx.reserve(mNUsedAlphabetSymbols);
 
   // resample distribution based on cumulative frequencies_
-  for (size_t i = 1; i <= mFrequencyTable.size(); i++)
-    mCumulativeFrequencyTable[i] =
-      (static_cast<uint64_t>(newCumulatedFrequency) *
-       mCumulativeFrequencyTable[i]) /
-      cumulatedFrequencies;
+  for (size_t i = 0; i < mFrequencyTable.size();) {
+    if (mFrequencyTable[i]) {
+      sortIdx.push_back(i); // we will sort only those memorize only those entries which can be used
+    }
+    i++;
+    mCumulativeFrequencyTable[i] = (static_cast<uint64_t>(newCumulatedFrequency) * mCumulativeFrequencyTable[i]) / cumulatedFrequencies;
+  }
+
+  std::sort(sortIdx.begin(), sortIdx.end(), [this](uint32_t i, uint32_t j) { return this->getCumulativeFrequency(i) < this->getCumulativeFrequency(j); });
+  size_t nonZeroStart = 0;
+  while (getCumulativeFrequency(sortIdx[nonZeroStart]) == 0) { // find elements whose frequency was rounded to 0
+    nonZeroStart++;
+  }
+  size_t aboveOne = nonZeroStart;
+  while (getCumulativeFrequency(sortIdx[aboveOne]) == 1 && aboveOne < mNUsedAlphabetSymbols) { // // find elements whose frequency >1
+    aboveOne++;
+  }
+  assert(nonZeroStart < mNUsedAlphabetSymbols && aboveOne < mNUsedAlphabetSymbols);
 
   // if we nuked any non-0 frequency symbol to 0, we need to steal
   // the range to make the frequency nonzero from elsewhere.
   //
-  // this is not at all optimal, i'm just doing the first thing that comes to
-  // mind.
-  for (size_t i = 0; i < mFrequencyTable.size(); i++) {
-    if (mFrequencyTable[i] &&
-        mCumulativeFrequencyTable[i + 1] == mCumulativeFrequencyTable[i]) {
-      // symbol i was set to zero freq
+  for (int i = 0; i < nonZeroStart; i++) {
+    auto iZero = sortIdx[i];
+    // steal from smallest frequency>1 element
+    while (getCumulativeFrequency(sortIdx[aboveOne]) < 2 && aboveOne < mNUsedAlphabetSymbols) { // in case the frequency became 1, use next element
+      aboveOne++;
+    }
+    assert(aboveOne < mNUsedAlphabetSymbols);
+    auto iSteal = sortIdx[aboveOne];
 
-      // find best symbol to steal frequency from (try to steal from low-freq
-      // ones)
-      std::pair<size_t, size_t> stealFromEntry{mFrequencyTable.size(), ~0u};
-      for (size_t j = 0; j < mFrequencyTable.size(); j++) {
-        uint32_t frequency =
-          mCumulativeFrequencyTable[j + 1] - mCumulativeFrequencyTable[j];
-        if (frequency > 1 && frequency < stealFromEntry.second) {
-          stealFromEntry.second = frequency;
-          stealFromEntry.first = j;
-        }
+    // and steal from it!
+    if (iSteal < iZero) {
+      for (size_t j = iSteal + 1; j <= iZero; j++) {
+        mCumulativeFrequencyTable[j]--;
       }
-      assert(stealFromEntry.first != mFrequencyTable.size());
-
-      // and steal from it!
-      if (stealFromEntry.first < i) {
-        for (size_t j = stealFromEntry.first + 1; j <= i; j++)
-          mCumulativeFrequencyTable[j]--;
-      } else {
-        assert(stealFromEntry.first > i);
-        for (size_t j = i + 1; j <= stealFromEntry.first; j++)
-          mCumulativeFrequencyTable[j]++;
+    } else {
+      assert(iSteal > iZero);
+      for (size_t j = iZero + 1; j <= iSteal; j++) {
+        mCumulativeFrequencyTable[j]++;
       }
     }
   }
@@ -84,6 +89,7 @@ void SymbolStatistics::rescaleToNBits(size_t bits)
   // calculate updated freqs and make sure we didn't screw anything up
   assert(mCumulativeFrequencyTable.front() == 0 &&
          mCumulativeFrequencyTable.back() == newCumulatedFrequency);
+
   for (size_t i = 0; i < mFrequencyTable.size(); i++) {
     if (mFrequencyTable[i] == 0)
       assert(mCumulativeFrequencyTable[i + 1] == mCumulativeFrequencyTable[i]);
@@ -91,8 +97,7 @@ void SymbolStatistics::rescaleToNBits(size_t bits)
       assert(mCumulativeFrequencyTable[i + 1] > mCumulativeFrequencyTable[i]);
 
     // calc updated freq
-    mFrequencyTable[i] =
-      mCumulativeFrequencyTable[i + 1] - mCumulativeFrequencyTable[i];
+    mFrequencyTable[i] = getCumulativeFrequency(i);
   }
   //	    for(int i = 0; i<static_cast<int>(freqs.getNumSymbols()); i++){
   //	    	std::cout << i << ": " << i + min_ << " " << freqs[i] << " " <<
