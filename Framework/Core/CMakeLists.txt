@@ -21,9 +21,9 @@ endif()
 
 # Given GCC 7.3 does not provide std::filesystem we use Boost instead
 # Drop this once we move to GCC 8.2+
-if (NOT __APPLE__)
+# if (NOT __APPLE__)
   set(BOOST_FILESYSTEM Boost::filesystem)
-endif()
+# endif()
 
 o2_add_library(Framework
                SOURCES src/AODReaderHelpers.cxx
