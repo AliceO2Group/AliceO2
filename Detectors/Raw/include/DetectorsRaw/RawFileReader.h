@@ -97,6 +97,13 @@ class RawFileReader
   using InputsMap = std::map<OrigDescCard, std::vector<std::string>>;
 
   //=====================================================================================
+
+  // reference on blocks making single message part
+  struct PartStat {
+    int size;    // total size
+    int nBlocks; // number of consecutive LinkBlock objects
+  };
+
   // info on the smallest block of data to be read when fetching the HBF
   struct LinkBlock {
     enum { StartTF = 0x1,
@@ -109,6 +116,7 @@ class RawFileReader
     IR ir = 0;           //! ir starting the block
     uint16_t fileID = 0; //! file id where the block is located
     uint8_t flags = 0;   //! different flags
+    std::unique_ptr<char[]> dataCache; //! optional cache for fast access
     LinkBlock() = default;
     LinkBlock(int fid, size_t offs) : offset(offs), fileID(fid) {}
     void setFlag(uint8_t fl, bool v = true)
@@ -155,12 +163,12 @@ class RawFileReader
     size_t getLargestTF() const;
     size_t getNextHBFSize() const;
     size_t getNextTFSize() const;
-    size_t getNextTFSuperPagesStat(std::vector<size_t>& parts) const;
+    size_t getNextTFSuperPagesStat(std::vector<PartStat>& parts) const;
     int getNHBFinTF() const;
 
     size_t readNextHBF(char* buff);
     size_t readNextTF(char* buff);
-    size_t readNextSuperPage(char* buff);
+    size_t readNextSuperPage(char* buff, const PartStat* pstat = nullptr);
     size_t skipNextHBF();
     size_t skipNextTF();
 
@@ -220,6 +228,9 @@ class RawFileReader
   uint32_t getOrbitMin() const { return mOrbitMin; }
   uint32_t getOrbitMax() const { return mOrbitMax; }
 
+  bool getCacheData() const { return mCacheData; }
+  void setCacheData(bool v) { mCacheData = v; }
+
   o2::header::DataOrigin getDefaultDataOrigin() const { return mDefDataOrigin; }
   o2::header::DataDescription getDefaultDataSpecification() const { return mDefDataDescription; }
   ReadoutCardType getDefaultReadoutCardType() const { return mDefCardType; }
@@ -261,6 +272,7 @@ class RawFileReader
   int mCurrentFileID = 0;                           //! current file being processed
   long int mPosInFile = 0;                          //! current position in the file
   bool mMultiLinkFile = false;                      //! was > than 1 link seen in the file?
+  bool mCacheData = false;                          //! cache data to block after 1st scan (may require excessive memory, use with care)
   uint32_t mCheckErrors = 0;                        //! mask for errors to check
   int mVerbosity = 0;
 
