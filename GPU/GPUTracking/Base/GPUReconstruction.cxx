@@ -193,11 +193,14 @@ int GPUReconstruction::InitPhaseBeforeDevice()
     mRecoStepsGPU.set((unsigned char)0);
   }
 
-  if (mProcessingSettings.forceMemoryPoolSize || mProcessingSettings.forceHostMemoryPoolSize) {
+  if (mProcessingSettings.forceMemoryPoolSize >= 1024 || mProcessingSettings.forceHostMemoryPoolSize >= 1024) {
     mProcessingSettings.memoryAllocationStrategy = GPUMemoryResource::ALLOCATION_GLOBAL;
   }
   if (mProcessingSettings.memoryAllocationStrategy == GPUMemoryResource::ALLOCATION_AUTO) {
     mProcessingSettings.memoryAllocationStrategy = IsGPU() ? GPUMemoryResource::ALLOCATION_GLOBAL : GPUMemoryResource::ALLOCATION_INDIVIDUAL;
+  }
+  if (mProcessingSettings.memoryAllocationStrategy == GPUMemoryResource::ALLOCATION_INDIVIDUAL) {
+    mProcessingSettings.forceMemoryPoolSize = mProcessingSettings.forceHostMemoryPoolSize = 0;
   }
   if (mProcessingSettings.debugLevel >= 4) {
     mProcessingSettings.keepAllMemory = true;
