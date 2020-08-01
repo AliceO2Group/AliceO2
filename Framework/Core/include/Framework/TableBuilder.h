@@ -601,6 +601,111 @@ class TableBuilder
   std::vector<std::shared_ptr<arrow::Array>> mArrays;
 };
 
+/// Helper to get a tuple tail
+template <typename Head, typename... Tail>
+std::tuple<Tail...> tuple_tail(std::tuple<Head, Tail...>& t)
+{
+  return apply([](auto, auto&... tail) { return std::tie(tail...); }, t);
+}
+
+/// Helpers to get type pack from tuple
+template <typename... T>
+auto pack_from_tuple(std::tuple<T...> const&)
+{
+  return framework::pack<T...>{};
+}
+
+/// Binary search for an index column
+template <typename Key, typename T>
+auto lowerBound(int32_t value, T& start, soa::RowViewSentinel const& end)
+{
+  int count, step;
+  count = end.index - start.globalIndex();
+  while (count > 0) {
+    auto it = start;
+    step = count / 2;
+    it.moveByIndex(step);
+    if (it.template getId<Key>() < value) {
+      start.moveByIndex(step);
+      count -= step + 1;
+    } else {
+      count = step;
+    }
+  }
+  return start;
+}
+
+/// Generic builder for in index table
+template <typename... Cs, typename Key, typename T1, typename... T>
+auto indexBuilder(framework::pack<Cs...>, Key const&, std::tuple<T1, T...> tables)
+{
+  static_assert(sizeof...(Cs) == sizeof...(T) + 1, "Number of columns does not coincide with number of supplied tables");
+  using tables_t = framework::pack<T...>;
+  using first_t = T1;
+  auto tail = tuple_tail(tables);
+  TableBuilder builder;
+  auto cursor = framework::FFL(builder.cursor<o2::soa::Table<Cs...>>());
+
+  std::array<int32_t, sizeof...(T)> values;
+  auto begins = std::apply(
+    [](auto&&... x) {
+      return std::make_tuple(x.begin()...);
+    },
+    tail);
+
+  using rest_it_t = decltype(pack_from_tuple(begins));
+
+  auto ends = std::apply(
+    [](auto&&... x) {
+      return std::make_tuple(x.end()...);
+    },
+    tail);
+
+  auto first = std::get<first_t>(tables);
+  for (auto& row : first) {
+    auto idx = -1;
+    if constexpr (std::is_same_v<std::decay_t<Key>, std::decay_t<T1>>) {
+      idx = row.globalIndex();
+    } else {
+      row.template getId<Key>();
+    }
+    auto setValue = [&](auto& x) -> bool {
+      using type = std::decay_t<decltype(x)>;
+      constexpr auto position = framework::has_type_at<type>(rest_it_t{});
+
+      auto end = std::get<position>(ends);
+      if (x == end) {
+        return false;
+      }
+      auto copy = x;
+      auto found = lowerBound<Key>(idx, copy, end);
+      if (found == end) {
+        return false;
+      } else if (found.template getId<Key>() != idx) {
+        x.matchTo(found);
+        return false;
+      } else {
+        x.matchTo(found);
+        values[position] = x.globalIndex();
+        ++x;
+        return true;
+      }
+    };
+
+    auto result = std::apply(
+      [&](auto&... x) {
+        std::array<bool, sizeof...(T)> results{setValue(x)...};
+        return (results[framework::has_type_at<std::decay_t<decltype(x)>>(rest_it_t{})] && ...);
+      },
+      begins);
+
+    if (result) {
+      cursor(0, row.globalIndex(), values[framework::has_type_at<T>(tables_t{})]...);
+    }
+  }
+  return builder.finalize();
+}
+
 } // namespace framework
 } // namespace o2
 #endif // FRAMEWORK_TABLEBUILDER_H

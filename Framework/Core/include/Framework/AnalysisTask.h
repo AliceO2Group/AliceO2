@@ -185,6 +185,7 @@ struct Spawns {
   {
     return OutputRef{metadata::tableLabel(), 0};
   }
+
   T* operator->()
   {
     return table.get();
