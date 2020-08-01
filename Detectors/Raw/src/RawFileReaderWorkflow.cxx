@@ -46,7 +46,7 @@ class RawReaderSpecs : public o2f::Task
 {
  public:
   explicit RawReaderSpecs(const std::string& config, int loop = 1, uint32_t delay_us = 0,
-                          uint32_t errmap = 0xffffffff, uint32_t minTF = 0, uint32_t maxTF = 0xffffffff, bool partPerSP = true,
+                          uint32_t errmap = 0xffffffff, uint32_t minTF = 0, uint32_t maxTF = 0xffffffff, bool partPerSP = true, bool cache = false,
                           size_t spSize = 1024L * 1024L, size_t buffSize = 5 * 1024UL,
                           const std::string& rawChannelName = "")
     : mLoop(loop < 0 ? INT_MAX : (loop < 1 ? 1 : loop)), mDelayUSec(delay_us), mMinTFID(minTF), mMaxTFID(maxTF), mPartPerSP(partPerSP), mReader(std::make_unique<o2::raw::RawFileReader>(config, 0, buffSize)), mRawChannelName(rawChannelName)
@@ -54,6 +54,7 @@ class RawReaderSpecs : public o2f::Task
     mReader->setCheckErrors(errmap);
     mReader->setMaxTFToRead(maxTF);
     mReader->setNominalSPageSize(spSize);
+    mReader->setCacheData(cache);
     LOG(INFO) << "Will preprocess files with buffer size of " << buffSize << " bytes";
     LOG(INFO) << "Number of loops over whole data requested: " << mLoop;
     for (int i = NTimers; i--;) {
@@ -134,7 +135,7 @@ class RawReaderSpecs : public o2f::Task
     for (int il = 0; il < nlinks; il++) {
       mReader->getLink(il).rewindToTF(tfID);
     }
-    std::vector<size_t> partsSP;
+    std::vector<RawFileReader::PartStat> partsSP;
     const auto& hbfU = HBFUtils::Instance();
 
     // read next time frame
@@ -157,12 +158,12 @@ class RawReaderSpecs : public o2f::Task
 
       while (hdrTmpl.splitPayloadIndex < hdrTmpl.splitPayloadParts) {
 
-        tfSize += hdrTmpl.payloadSize = mPartPerSP ? partsSP[hdrTmpl.splitPayloadIndex] : link.getNextHBFSize();
+        tfSize += hdrTmpl.payloadSize = mPartPerSP ? partsSP[hdrTmpl.splitPayloadIndex].size : link.getNextHBFSize();
         auto fmqFactory = device->GetChannel(link.fairMQChannel, 0).Transport();
         auto hdMessage = fmqFactory->CreateMessage(hstackSize, fair::mq::Alignment{64});
         auto plMessage = fmqFactory->CreateMessage(hdrTmpl.payloadSize, fair::mq::Alignment{64});
         mTimer[TimerIO].Start(false);
-        auto bread = mPartPerSP ? link.readNextSuperPage(reinterpret_cast<char*>(plMessage->GetData())) : link.readNextHBF(reinterpret_cast<char*>(plMessage->GetData()));
+        auto bread = mPartPerSP ? link.readNextSuperPage(reinterpret_cast<char*>(plMessage->GetData()), &partsSP[hdrTmpl.splitPayloadIndex]) : link.readNextHBF(reinterpret_cast<char*>(plMessage->GetData()));
         if (bread != hdrTmpl.payloadSize) {
           LOG(ERROR) << "Link " << il << " read " << bread << " bytes instead of " << hdrTmpl.payloadSize
                      << " expected in TF=" << mTFCounter << " part=" << hdrTmpl.splitPayloadIndex;
@@ -245,7 +246,7 @@ class RawReaderSpecs : public o2f::Task
 };
 
 o2f::DataProcessorSpec getReaderSpec(std::string config, int loop, uint32_t delay_us, uint32_t errmap,
-                                     uint32_t minTF, uint32_t maxTF, bool partPerSP, size_t spSize, size_t buffSize, const std::string& rawChannelConfig)
+                                     uint32_t minTF, uint32_t maxTF, bool partPerSP, bool cache, size_t spSize, size_t buffSize, const std::string& rawChannelConfig)
 {
   // check which inputs are present in files to read
   o2f::DataProcessorSpec spec;
@@ -276,15 +277,15 @@ o2f::DataProcessorSpec getReaderSpec(std::string config, int loop, uint32_t dela
     LOG(INFO) << "Will send output to non-DPL channel " << rawChannelConfig;
   }
 
-  spec.algorithm = o2f::adaptFromTask<RawReaderSpecs>(config, loop, delay_us, errmap, minTF, maxTF, partPerSP, spSize, buffSize, rawChannelName);
+  spec.algorithm = o2f::adaptFromTask<RawReaderSpecs>(config, loop, delay_us, errmap, minTF, maxTF, partPerSP, cache, spSize, buffSize, rawChannelName);
 
   return spec;
 }
 
 o2f::WorkflowSpec o2::raw::getRawFileReaderWorkflow(std::string inifile, int loop, uint32_t delay_us, uint32_t errmap, uint32_t minTF, uint32_t maxTF,
-                                                    bool partPerSP, size_t spSize, size_t buffSize, const std::string& rawChannelConfig)
+                                                    bool partPerSP, bool cache, size_t spSize, size_t buffSize, const std::string& rawChannelConfig)
 {
   o2f::WorkflowSpec specs;
-  specs.emplace_back(getReaderSpec(inifile, loop, delay_us, errmap, minTF, maxTF, partPerSP, spSize, buffSize, rawChannelConfig));
+  specs.emplace_back(getReaderSpec(inifile, loop, delay_us, errmap, minTF, maxTF, partPerSP, cache, spSize, buffSize, rawChannelConfig));
   return specs;
 }
