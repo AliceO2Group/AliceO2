@@ -84,7 +84,7 @@ class SymbolStatistics
 
  private:
   void buildCumulativeFrequencyTable();
-
+  auto getCumulativeFrequency(size_t i) const { return mCumulativeFrequencyTable[i + 1] - mCumulativeFrequencyTable[i]; }
   template <typename IT>
   void buildFrequencyTable(const IT begin, const IT end, size_t range);
 
@@ -92,7 +92,6 @@ class SymbolStatistics
   int64_t mMax;
   size_t mNUsedAlphabetSymbols;
   size_t mMessageLength;
-
   std::vector<uint32_t> mFrequencyTable;
   std::vector<uint32_t> mCumulativeFrequencyTable;
 };
