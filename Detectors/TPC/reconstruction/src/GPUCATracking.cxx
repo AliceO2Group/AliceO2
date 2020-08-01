@@ -34,6 +34,9 @@
 #include "GPUTPCGMMergedTrackHit.h"
 #include "GPUHostDataTypes.h"
 
+#include <atomic>
+#include <omp.h>
+
 using namespace o2::gpu;
 using namespace o2::tpc;
 using namespace o2;
@@ -41,7 +44,7 @@ using namespace o2::dataformats;
 
 using MCLabelContainer = MCTruthContainer<MCCompLabel>;
 
-GPUCATracking::GPUCATracking() : mTrackingCAO2Interface() {}
+GPUCATracking::GPUCATracking() = default;
 GPUCATracking::~GPUCATracking() { deinitialize(); }
 
 int GPUCATracking::initialize(const GPUO2InterfaceConfiguration& config)
@@ -150,11 +153,15 @@ int GPUCATracking::runTracking(GPUO2InterfaceIOPtrs* data, GPUInterfaceOutputs* 
       mNTracksASide = tmp;
   }
   nTracks = tmp;
-
   outputTracks->resize(nTracks);
   outClusRefs->resize(clBuff);
-  clBuff = 0;
 
+  std::atomic_int clusterOffsetCounter;
+  clusterOffsetCounter.store(0);
+
+#ifdef WITH_OPENMP
+#pragma omp parallel for num_threads(4)
+#endif
   for (int iTmp = 0; iTmp < nTracks; iTmp++) {
     auto& oTrack = (*outputTracks)[iTmp];
     const int i = trackSort[iTmp].first;
@@ -225,12 +232,12 @@ int GPUCATracking::runTracking(GPUO2InterfaceIOPtrs* data, GPUInterfaceOutputs* 
         nOutCl++;
       }
     }
+    clBuff = clusterOffsetCounter.fetch_add(nOutCl + (nOutCl + 1) / 2);
     oTrack.setClusterRef(clBuff, nOutCl);         // register the references
     uint32_t* clIndArr = &(*outClusRefs)[clBuff]; // cluster indices start here
     uint8_t* sectorIndexArr = reinterpret_cast<uint8_t*>(clIndArr + nOutCl);
     uint8_t* rowIndexArr = sectorIndexArr + nOutCl;
 
-    clBuff += nOutCl + (nOutCl + 1) / 2;
     std::vector<std::pair<MCCompLabel, unsigned int>> labels;
     nOutCl = 0;
     for (int j = 0; j < tracks[i].NClusters(); j++) {
@@ -282,9 +289,8 @@ int GPUCATracking::runTracking(GPUO2InterfaceIOPtrs* data, GPUInterfaceOutputs* 
         outputTracksMCTruth->addElement(iTmp, bestLabel);
       }
     }
-    int lastSector = trackClusters[tracks[i].FirstClusterRef() + tracks[i].NClusters() - 1].slice;
   }
-  outClusRefs->resize(clBuff); // remove overhead
+  outClusRefs->resize(clusterOffsetCounter.load()); // remove overhead
   if (data->o2Digits || data->tpcZS || data->compressedClusters) {
     data->clusters = ptrs.clustersNative;
   }
