@@ -160,7 +160,7 @@ int GPUCATracking::runTracking(GPUO2InterfaceIOPtrs* data, GPUInterfaceOutputs* 
   clusterOffsetCounter.store(0);
 
 #ifdef WITH_OPENMP
-#pragma omp parallel for num_threads(4)
+#pragma omp parallel for if(!outputTracksMCTruth) num_threads(4)
 #endif
   for (int iTmp = 0; iTmp < nTracks; iTmp++) {
     auto& oTrack = (*outputTracks)[iTmp];
