@@ -610,7 +610,7 @@ std::tuple<Tail...> tuple_tail(std::tuple<Head, Tail...>& t)
 
 /// Helpers to get type pack from tuple
 template <typename... T>
-auto pack_from_tuple(std::tuple<T...> const&)
+constexpr auto pack_from_tuple(std::tuple<T...> const&)
 {
   return framework::pack<T...>{};
 }
