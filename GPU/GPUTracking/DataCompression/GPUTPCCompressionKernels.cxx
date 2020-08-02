@@ -43,6 +43,7 @@ GPUdii() void GPUTPCCompressionKernels::Thread<GPUTPCCompressionKernels::step0at
     CompressedClustersPtrs& GPUrestrict() c = compressor.mPtrs;
     unsigned int lastRow = 0, lastSlice = 0; // BUG: These should be unsigned char, but then CUDA breaks
     GPUTPCCompressionTrackModel track;
+    float zOffset = 0;
     for (int k = trk.NClusters() - 1; k >= 0; k--) {
       const GPUTPCGMMergedTrackHit& GPUrestrict() hit = merger.Clusters()[trk.FirstClusterRef() + k];
       if (hit.state & GPUTPCGMMergedTrackHit::flagReject) {
@@ -84,7 +85,8 @@ GPUdii() void GPUTPCCompressionKernels::Thread<GPUTPCCompressionKernels::step0at
       int cidx = trk.FirstClusterRef() + nClustersStored++;
       if (nClustersStored == 1) {
         unsigned char qpt = fabs(trk.GetParam().GetQPt()) < 20.f ? (trk.GetParam().GetQPt() * (127.f / 20.f) + 127.5f) : (trk.GetParam().GetQPt() > 0 ? 254 : 0);
-        track.Init(x, y, z, param.SliceParam[hit.slice].Alpha, qpt, param); // TODO: Compression track model must respect Z offset!
+        zOffset = z;
+        track.Init(x, y, z - zOffset, param.SliceParam[hit.slice].Alpha, qpt, param);
 
         myTrack = CAMath::AtomicAdd(&compressor.mMemory->nStoredTracks, 1u);
         compressor.mAttachedClusterFirstIndex[myTrack] = trk.FirstClusterRef();
@@ -112,7 +114,7 @@ GPUdii() void GPUTPCCompressionKernels::Thread<GPUTPCCompressionKernels::step0at
         c.sliceLegDiffA[cidx] = (hit.leg == lastLeg ? 0 : compressor.NSLICES) + slice;
         float pad = CAMath::Max(0.f, CAMath::Min((float)param.tpcGeometry.NPads(GPUCA_ROW_COUNT - 1), param.tpcGeometry.LinearY2Pad(hit.slice, hit.row, track.Y())));
         c.padResA[cidx] = orgCl.padPacked - orgCl.packPad(pad);
-        float time = CAMath::Max(0.f, param.tpcGeometry.LinearZ2Time(hit.slice, track.Z()));
+        float time = CAMath::Max(0.f, param.tpcGeometry.LinearZ2Time(hit.slice, track.Z() + zOffset));
         c.timeResA[cidx] = (orgCl.getTimePacked() - orgCl.packTime(time)) & 0xFFFFFF;
         lastLeg = hit.leg;
       }
@@ -129,7 +131,7 @@ GPUdii() void GPUTPCCompressionKernels::Thread<GPUTPCCompressionKernels::step0at
       c.sigmaPadA[cidx] = sigmapad;
       c.sigmaTimeA[cidx] = sigmatime;
       c.flagsA[cidx] = orgCl.getFlags();
-      if (k && track.Filter(y, z, hit.row)) {
+      if (k && track.Filter(y, z - zOffset, hit.row)) {
         break;
       }
       lastRow = hit.row;
