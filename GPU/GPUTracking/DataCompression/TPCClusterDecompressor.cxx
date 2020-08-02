@@ -38,6 +38,7 @@ int TPCClusterDecompressor::decompress(const CompressedClusters* clustersCompres
 {
   std::vector<ClusterNative> clusters[NSLICES][GPUCA_ROW_COUNT];
   unsigned int offset = 0;
+  float zOffset = 0;
   for (unsigned int i = 0; i < clustersCompressed->nTracks; i++) {
     unsigned int slice = clustersCompressed->sliceA[i];
     unsigned int row = clustersCompressed->rowA[i];
@@ -75,7 +76,7 @@ int TPCClusterDecompressor::decompress(const CompressedClusters* clustersCompres
         if (timeTmp & 800000) {
           timeTmp |= 0xFF000000;
         }
-        time = timeTmp + ClusterNative::packTime(CAMath::Max(0.f, param.tpcGeometry.LinearZ2Time(slice, track.Z())));
+        time = timeTmp + ClusterNative::packTime(CAMath::Max(0.f, param.tpcGeometry.LinearZ2Time(slice, track.Z() + zOffset)));
         float tmpPad = CAMath::Max(0.f, CAMath::Min((float)param.tpcGeometry.NPads(GPUCA_ROW_COUNT - 1), param.tpcGeometry.LinearY2Pad(slice, row, track.Y())));
         pad = clustersCompressed->padResA[offset - i - 1] + ClusterNative::packPad(tmpPad);
       } else {
@@ -87,9 +88,10 @@ int TPCClusterDecompressor::decompress(const CompressedClusters* clustersCompres
       float y = param.tpcGeometry.LinearPad2Y(slice, row, clusterVector.back().getPad());
       float z = param.tpcGeometry.LinearTime2Z(slice, clusterVector.back().getTime());
       if (j == 0) {
-        track.Init(param.tpcGeometry.Row2X(row), y, z, param.SliceParam[slice].Alpha, clustersCompressed->qPtA[i], param);
+        zOffset = z;
+        track.Init(param.tpcGeometry.Row2X(row), y, z - zOffset, param.SliceParam[slice].Alpha, clustersCompressed->qPtA[i], param);
       }
-      if (j + 1 < clustersCompressed->nTrackClusters[i] && track.Filter(y, z, row)) {
+      if (j + 1 < clustersCompressed->nTrackClusters[i] && track.Filter(y, z - zOffset, row)) {
         offset += clustersCompressed->nTrackClusters[i] - j;
         break;
       }
