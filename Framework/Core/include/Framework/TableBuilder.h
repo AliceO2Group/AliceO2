@@ -617,22 +617,21 @@ constexpr auto pack_from_tuple(std::tuple<T...> const&)
 
 /// Binary search for an index column
 template <typename Key, typename T>
-auto lowerBound(int32_t value, T& start, soa::RowViewSentinel const& end)
+void lowerBound(int32_t value, T& start, soa::RowViewSentinel const& end)
 {
   int count, step;
   count = end.index - start.globalIndex();
+
   while (count > 0) {
-    auto it = start;
     step = count / 2;
-    it.moveByIndex(step);
-    if (it.template getId<Key>() < value) {
-      start.moveByIndex(step);
+    start.moveByIndex(step);
+    if (start.template getId<Key>() < value) {
       count -= step + 1;
     } else {
+      start.moveByIndex(-step);
       count = step;
     }
   }
-  return start;
 }
 
 template <typename... T>
@@ -680,15 +679,13 @@ auto indexBuilder(framework::pack<Cs...>, Key const&, std::tuple<T1, T...> table
       if (x == end) {
         return false;
       }
-      auto copy = x;
-      auto found = lowerBound<Key>(idx, copy, end);
-      if (found == end) {
+
+      lowerBound<Key>(idx, x, end);
+      if (x == end) {
         return false;
-      } else if (found.template getId<Key>() != idx) {
-        x.matchTo(found);
+      } else if (x.template getId<Key>() != idx) {
         return false;
       } else {
-        x.matchTo(found);
         values[position] = x.globalIndex();
         ++x;
         return true;
