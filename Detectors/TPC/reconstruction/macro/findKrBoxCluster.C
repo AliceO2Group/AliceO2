@@ -34,12 +34,12 @@ void findKrBoxCluster()
   std::cout << "The Tree has " << nEntries << " Entries." << std::endl;
 
   // Initialize File for later writing
-  TFile* f = new TFile("boxClustersSectors.root", "RECREATE", "Clusters");
-  TTree* T = new TTree("T", "Clusters");
+  TFile* f = new TFile("BoxClusters.root", "RECREATE", "Clusters");
+  TTree* T = new TTree("Clusters", "Clusters");
 
   // Tree will be filled with a vector of clusters
   std::vector<o2::tpc::KrCluster> vCluster{};
-  T->Branch("cluster", &vCluster);
+  T->Branch("cls", &vCluster);
 
   std::array<std::vector<o2::tpc::Digit>*, 36> DigitizedSignal;
   for (int iSec = 0; iSec < DigitizedSignal.size(); ++iSec) {
