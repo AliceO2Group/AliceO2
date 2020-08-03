@@ -670,10 +670,6 @@ auto indexBuilder(framework::pack<Cs...>, Key const&, std::tuple<T1, T...> table
       using type = std::decay_t<decltype(x)>;
       constexpr auto position = framework::has_type_at<type>(rest_it_t{});
 
-      if (x == soa::RowViewSentinel{static_cast<uint64_t>(x.mMaxRow)}) {
-        return false;
-      }
-
       lowerBound<Key>(idx, x);
       if (x == soa::RowViewSentinel{static_cast<uint64_t>(x.mMaxRow)}) {
         return false;
