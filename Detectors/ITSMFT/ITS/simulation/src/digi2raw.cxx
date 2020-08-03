@@ -273,7 +273,8 @@ void setupLinks(o2::itsmft::MC2RawEncoder<MAP>& m2r, std::string_view outDir, st
               outFileLink = o2::utils::concat_string(outDir, "/", outPrefix, "_cru", std::to_string(cruID), ".raw");
             } else if (fileFor == "link") {
               outFileLink = o2::utils::concat_string(outDir, "/", outPrefix, "_cru", std::to_string(cruID),
-                                                     "_link", std::to_string(linkID), "_ep", std::to_string(link->endPointID), ".raw");
+                                                     "_link", std::to_string(linkID), "_ep", std::to_string(link->endPointID),
+                                                     "_feeid", std::to_string(link->feeID), ".raw");
             } else {
               throw std::runtime_error("invalid option provided for file grouping");
             }
