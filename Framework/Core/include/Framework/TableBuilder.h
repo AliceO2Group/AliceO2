@@ -650,7 +650,7 @@ auto indexBuilder(framework::pack<Cs...>, Key const&, std::tuple<T1, T...> table
   auto cursor = framework::FFL(builder.cursor<o2::soa::Table<Cs...>>());
 
   std::array<int32_t, sizeof...(T)> values;
-  iterator_tuple_t<T...> begins = std::apply(
+  iterator_tuple_t<std::decay_t<T>...> begins = std::apply(
     [](auto&&... x) {
       return std::make_tuple(x.begin()...);
     },
