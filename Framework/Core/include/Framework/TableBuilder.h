@@ -686,6 +686,14 @@ auto indexBuilder(framework::pack<Cs...>, Key const&, std::tuple<T1, T...> table
       }
     };
 
+    if (std::apply(
+          [](auto&... x) {
+            return ((x == soa::RowViewSentinel{static_cast<uint64_t>(x.mMaxRow)}) && ...);
+          },
+          begins)) {
+      break;
+    }
+
     auto result = std::apply(
       [&](auto&... x) {
         std::array<bool, sizeof...(T)> results{setValue(x)...};
