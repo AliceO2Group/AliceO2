@@ -71,8 +71,6 @@ class SymbolStatistics
   template <typename Source_IT>
   SymbolStatistics(const Source_IT begin, const Source_IT end, int64_t min, int64_t max, size_t scaleBits);
 
-  auto getFrequency(size_t i) const { return mCumulativeFrequencyTable[i + 1] - mCumulativeFrequencyTable[i]; }
-
   std::tuple<uint32_t, uint32_t> operator[](int64_t index) const;
   std::tuple<uint32_t, uint32_t> at(size_t pos) const;
 
