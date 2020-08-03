@@ -635,6 +635,9 @@ auto lowerBound(int32_t value, T& start, soa::RowViewSentinel const& end)
   return start;
 }
 
+template <typename... T>
+using iterator_tuple_t = std::tuple<typename T::iterator...>;
+
 /// Generic builder for in index table
 template <typename... Cs, typename Key, typename T1, typename... T>
 auto indexBuilder(framework::pack<Cs...>, Key const&, std::tuple<T1, T...> tables)
@@ -647,7 +650,7 @@ auto indexBuilder(framework::pack<Cs...>, Key const&, std::tuple<T1, T...> table
   auto cursor = framework::FFL(builder.cursor<o2::soa::Table<Cs...>>());
 
   std::array<int32_t, sizeof...(T)> values;
-  auto begins = std::apply(
+  iterator_tuple_t<T...> begins = std::apply(
     [](auto&&... x) {
       return std::make_tuple(x.begin()...);
     },
