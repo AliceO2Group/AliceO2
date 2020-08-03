@@ -605,7 +605,7 @@ class TableBuilder
 template <typename Head, typename... Tail>
 std::tuple<Tail...> tuple_tail(std::tuple<Head, Tail...>& t)
 {
-  return apply([](auto, auto&... tail) { return std::tie(tail...); }, t);
+  return apply([](auto const&, auto&... tail) { return std::tie(tail...); }, t);
 }
 
 /// Helpers to get type pack from tuple
@@ -617,10 +617,11 @@ constexpr auto pack_from_tuple(std::tuple<T...> const&)
 
 /// Binary search for an index column
 template <typename Key, typename T>
-void lowerBound(int32_t value, T& start, soa::RowViewSentinel const& end)
+void lowerBound(int32_t value, T& start)
 {
-  int count, step;
-  count = end.index - start.globalIndex();
+  static_assert(soa::is_soa_iterator_t<T>::value, "Argument needs to be a Table::iterator");
+  int step;
+  auto count = start.mMaxRow - start.globalIndex();
 
   while (count > 0) {
     step = count / 2;
@@ -657,12 +658,6 @@ auto indexBuilder(framework::pack<Cs...>, Key const&, std::tuple<T1, T...> table
 
   using rest_it_t = decltype(pack_from_tuple(begins));
 
-  auto ends = std::apply(
-    [](auto&&... x) {
-      return std::make_tuple(x.end()...);
-    },
-    tail);
-
   auto first = std::get<first_t>(tables);
   for (auto& row : first) {
     auto idx = -1;
@@ -675,13 +670,12 @@ auto indexBuilder(framework::pack<Cs...>, Key const&, std::tuple<T1, T...> table
       using type = std::decay_t<decltype(x)>;
       constexpr auto position = framework::has_type_at<type>(rest_it_t{});
 
-      auto end = std::get<position>(ends);
-      if (x == end) {
+      if (x == soa::RowViewSentinel{static_cast<uint64_t>(x.mMaxRow)}) {
         return false;
       }
 
-      lowerBound<Key>(idx, x, end);
-      if (x == end) {
+      lowerBound<Key>(idx, x);
+      if (x == soa::RowViewSentinel{static_cast<uint64_t>(x.mMaxRow)}) {
         return false;
       } else if (x.template getId<Key>() != idx) {
         return false;
