@@ -185,6 +185,7 @@ struct Spawns {
   {
     return OutputRef{metadata::tableLabel(), 0};
   }
+
   T* operator->()
   {
     return table.get();
@@ -392,17 +393,17 @@ struct Partition {
 template <typename ANY>
 struct PartitionManager {
   template <typename... T2s>
-  static void setPartition(ANY&, T2s&... tables)
+  static void setPartition(ANY&, T2s&...)
   {
   }
 
   template <typename... Ts>
-  static void bindExternalIndices(ANY&, Ts*... tables)
+  static void bindExternalIndices(ANY&, Ts*...)
   {
   }
 
   template <typename... Ts>
-  static void getBoundToExternalIndices(ANY& partition, Ts&... tables)
+  static void getBoundToExternalIndices(ANY&, Ts&...)
   {
   }
 };

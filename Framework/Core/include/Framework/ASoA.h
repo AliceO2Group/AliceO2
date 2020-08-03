@@ -600,7 +600,7 @@ struct RowViewCore : public IP, C... {
   using persistent_columns_t = framework::selected_pack<is_persistent_t, C...>;
   using dynamic_columns_t = framework::selected_pack<is_dynamic_t, C...>;
   using index_columns_t = framework::selected_pack<is_index_t, C...>;
-  constexpr inline static bool has_index_v = !std::is_same_v<index_columns_t, framework::pack<>>;
+  constexpr inline static bool has_index_v = framework::pack_size(index_columns_t{}) > 0;
   using external_index_columns_t = framework::selected_pack<is_external_index_t, C...>;
 
   RowViewCore(arrow::ChunkedArray* columnData[sizeof...(C)], IP&& policy)
@@ -786,6 +786,14 @@ class Table
 
   template <typename IP, typename Parent, typename... T>
   struct RowViewBase : public RowViewCore<IP, C...> {
+    /// Helper function to extract bound indices
+    template <typename... Is>
+    static constexpr auto extractBindings(framework::pack<Is...>)
+    {
+      return framework::pack<typename Is::binding_t...>{};
+    }
+    using external_index_columns_t = framework::selected_pack<is_external_index_t, C...>;
+    using bindings_pack_t = decltype(extractBindings(external_index_columns_t{}));
     using parent_t = Parent;
     using originals = originals_pack_t<T...>;
 
@@ -817,6 +825,22 @@ class Table
     {
       this->mRowIndex = other.index;
       return *this;
+    }
+
+    void matchTo(RowViewBase const& other)
+    {
+      this->mRowIndex = other.mRowIndex;
+    }
+
+    template <typename TI>
+    auto getId() const
+    {
+      if constexpr (framework::has_type_v<std::decay_t<TI>, bindings_pack_t>) {
+        constexpr auto idx = framework::has_type_at<std::decay_t<TI>>(bindings_pack_t{});
+        return framework::pack_element_t<idx, external_index_columns_t>::getId();
+      } else {
+        return static_cast<int32_t>(-1);
+      }
     }
 
     using RowViewCore<IP, C...>::operator++;
@@ -1116,6 +1140,10 @@ using ConcatBase = decltype(concat(std::declval<T1>(), std::declval<T2>()));
     _Name_##Id() = default;                                                        \
     _Name_##Id(_Name_##Id const& other) = default;                                 \
     _Name_##Id& operator=(_Name_##Id const& other) = default;                      \
+    type inline getId() const                                                      \
+    {                                                                              \
+      return _Getter_##Id();                                                       \
+    }                                                                              \
                                                                                    \
     type _Getter_##Id() const                                                      \
     {                                                                              \

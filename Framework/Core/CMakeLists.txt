@@ -178,6 +178,7 @@ foreach(t
         Graphviz
         GroupSlicer
         HistogramRegistry
+        IndexBuilder
         InfoLogger
         InputRecord
         InputRecordWalker

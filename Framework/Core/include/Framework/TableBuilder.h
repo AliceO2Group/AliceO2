@@ -581,14 +581,14 @@ class TableBuilder
   /// template argument T is a o2::soa::Table which contains only the
   /// persistent columns.
   template <typename T, size_t... Is>
-  auto cursorHelper(std::index_sequence<Is...> s)
+  auto cursorHelper(std::index_sequence<Is...>)
   {
     std::vector<std::string> columnNames{pack_element_t<Is, typename T::columns>::columnLabel()...};
     return this->template persist<typename pack_element_t<Is, typename T::columns>::type...>(columnNames);
   }
 
   template <typename T, typename E, size_t... Is>
-  auto cursorHelper(std::index_sequence<Is...> s)
+  auto cursorHelper(std::index_sequence<Is...>)
   {
     std::vector<std::string> columnNames{pack_element_t<Is, typename T::columns>::columnLabel()...};
     return this->template persist<E>(columnNames);
@@ -600,6 +600,109 @@ class TableBuilder
   std::shared_ptr<arrow::Schema> mSchema;
   std::vector<std::shared_ptr<arrow::Array>> mArrays;
 };
+
+/// Helper to get a tuple tail
+template <typename Head, typename... Tail>
+std::tuple<Tail...> tuple_tail(std::tuple<Head, Tail...>& t)
+{
+  return apply([](auto const&, auto&... tail) { return std::tie(tail...); }, t);
+}
+
+/// Helpers to get type pack from tuple
+template <typename... T>
+constexpr auto pack_from_tuple(std::tuple<T...> const&)
+{
+  return framework::pack<T...>{};
+}
+
+/// Binary search for an index column
+template <typename Key, typename T>
+void lowerBound(int32_t value, T& start)
+{
+  static_assert(soa::is_soa_iterator_t<T>::value, "Argument needs to be a Table::iterator");
+  int step;
+  auto count = start.mMaxRow - start.globalIndex();
+
+  while (count > 0) {
+    step = count / 2;
+    start.moveByIndex(step);
+    if (start.template getId<Key>() < value) {
+      count -= step + 1;
+    } else {
+      start.moveByIndex(-step);
+      count = step;
+    }
+  }
+}
+
+template <typename... T>
+using iterator_tuple_t = std::tuple<typename T::iterator...>;
+
+/// Generic builder for in index table
+template <typename... Cs, typename Key, typename T1, typename... T>
+auto indexBuilder(framework::pack<Cs...>, Key const&, std::tuple<T1, T...> tables)
+{
+  static_assert(sizeof...(Cs) == sizeof...(T) + 1, "Number of columns does not coincide with number of supplied tables");
+  using tables_t = framework::pack<T...>;
+  using first_t = T1;
+  auto tail = tuple_tail(tables);
+  TableBuilder builder;
+  auto cursor = framework::FFL(builder.cursor<o2::soa::Table<Cs...>>());
+
+  std::array<int32_t, sizeof...(T)> values;
+  iterator_tuple_t<std::decay_t<T>...> begins = std::apply(
+    [](auto&&... x) {
+      return std::make_tuple(x.begin()...);
+    },
+    tail);
+
+  using rest_it_t = decltype(pack_from_tuple(begins));
+
+  auto first = std::get<first_t>(tables);
+  for (auto& row : first) {
+    auto idx = -1;
+    if constexpr (std::is_same_v<std::decay_t<Key>, std::decay_t<T1>>) {
+      idx = row.globalIndex();
+    } else {
+      row.template getId<Key>();
+    }
+    auto setValue = [&](auto& x) -> bool {
+      using type = std::decay_t<decltype(x)>;
+      constexpr auto position = framework::has_type_at<type>(rest_it_t{});
+
+      lowerBound<Key>(idx, x);
+      if (x == soa::RowViewSentinel{static_cast<uint64_t>(x.mMaxRow)}) {
+        return false;
+      } else if (x.template getId<Key>() != idx) {
+        return false;
+      } else {
+        values[position] = x.globalIndex();
+        ++x;
+        return true;
+      }
+    };
+
+    if (std::apply(
+          [](auto&... x) {
+            return ((x == soa::RowViewSentinel{static_cast<uint64_t>(x.mMaxRow)}) && ...);
+          },
+          begins)) {
+      break;
+    }
+
+    auto result = std::apply(
+      [&](auto&... x) {
+        std::array<bool, sizeof...(T)> results{setValue(x)...};
+        return (results[framework::has_type_at<std::decay_t<decltype(x)>>(rest_it_t{})] && ...);
+      },
+      begins);
+
+    if (result) {
+      cursor(0, row.globalIndex(), values[framework::has_type_at<T>(tables_t{})]...);
+    }
+  }
+  return builder.finalize();
+}
 
 } // namespace framework
 } // namespace o2
