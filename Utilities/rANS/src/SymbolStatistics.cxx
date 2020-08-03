@@ -30,6 +30,8 @@ SymbolStatistics::SymbolStatistics(const FrequencyTable& frequencyTable, size_t 
 void SymbolStatistics::rescale()
 {
 
+  auto getFrequency = [this](size_t i) { return mCumulativeFrequencyTable[i + 1] - mCumulativeFrequencyTable[i]; };
+
   using namespace internal;
   LOG(trace) << "start rescaling frequency table";
   RANSTimer t;
@@ -55,7 +57,7 @@ void SymbolStatistics::rescale()
     }
   }
 
-  std::sort(sortIdx.begin(), sortIdx.end(), [this](uint32_t i, uint32_t j) { return this->getFrequency(i) < this->getFrequency(j); });
+  std::sort(sortIdx.begin(), sortIdx.end(), [&](uint32_t i, uint32_t j) { return getFrequency(i) < getFrequency(j); });
   size_t need_shift = 0;
   for (size_t i = 0; i < sortIdx.size(); i++) {
     if (static_cast<uint64_t>(getFrequency(sortIdx[i])) * (newCumulatedFrequency - need_shift) / cumulatedFrequencies >= 1) {
