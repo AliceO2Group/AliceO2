@@ -21,6 +21,7 @@
 #include "Framework/DataSpecUtils.h"
 #include "Framework/Logger.h"
 #include "Framework/ConfigParamRegistry.h"
+#include "Framework/InputRecordWalker.h"
 
 #include <Monitoring/Monitoring.h>
 #include <Configuration/ConfigurationInterface.h>
@@ -76,31 +77,30 @@ void Dispatcher::init(InitContext& ctx)
 
 void Dispatcher::run(ProcessingContext& ctx)
 {
-  for (const auto& input : ctx.inputs()) {
-    if (input.header != nullptr && input.spec != nullptr) {
-      const auto* inputHeader = header::get<header::DataHeader*>(input.header);
-      ConcreteDataMatcher inputMatcher{inputHeader->dataOrigin, inputHeader->dataDescription, inputHeader->subSpecification};
+  for (const auto& input : InputRecordWalker(ctx.inputs())) {
 
-      for (auto& policy : mPolicies) {
-        // todo: consider getting the outputSpec in match to improve performance
-        // todo: consider matching (and deciding) in completion policy to save some time
+    const auto* inputHeader = header::get<header::DataHeader*>(input.header);
+    ConcreteDataMatcher inputMatcher{inputHeader->dataOrigin, inputHeader->dataDescription, inputHeader->subSpecification};
 
-        if (policy->match(inputMatcher) && policy->decide(input)) {
-          // We copy every header which is not DataHeader or DataProcessingHeader,
-          // so that custom data-dependent headers are passed forward,
-          // and we add a DataSamplingHeader.
-          header::Stack headerStack{
-            std::move(extractAdditionalHeaders(input.header)),
-            std::move(prepareDataSamplingHeader(*policy.get(), ctx.services().get<const DeviceSpec>()))};
+    for (auto& policy : mPolicies) {
+      // todo: consider getting the outputSpec in match to improve performance
+      // todo: consider matching (and deciding) in completion policy to save some time
 
-          if (!policy->getFairMQOutputChannel().empty()) {
-            sendFairMQ(ctx.services().get<RawDeviceService>().device(), input, policy->getFairMQOutputChannelName(),
-                       std::move(headerStack));
-          } else {
-            Output output = policy->prepareOutput(inputMatcher, input.spec->lifetime);
-            output.metaHeader = std::move(header::Stack{std::move(output.metaHeader), std::move(headerStack)});
-            send(ctx.outputs(), input, std::move(output));
-          }
+      if (policy->match(inputMatcher) && policy->decide(input)) {
+        // We copy every header which is not DataHeader or DataProcessingHeader,
+        // so that custom data-dependent headers are passed forward,
+        // and we add a DataSamplingHeader.
+        header::Stack headerStack{
+          std::move(extractAdditionalHeaders(input.header)),
+          std::move(prepareDataSamplingHeader(*policy.get(), ctx.services().get<const DeviceSpec>()))};
+
+        if (!policy->getFairMQOutputChannel().empty()) {
+          sendFairMQ(ctx.services().get<RawDeviceService>().device(), input, policy->getFairMQOutputChannelName(),
+                     std::move(headerStack));
+        } else {
+          Output output = policy->prepareOutput(inputMatcher, input.spec->lifetime);
+          output.metaHeader = std::move(header::Stack{std::move(output.metaHeader), std::move(headerStack)});
+          send(ctx.outputs(), input, std::move(output));
         }
       }
     }
