@@ -57,9 +57,7 @@ void MatchTOF::run()
   prepareTOFClusters();
 
   mTimerTot.Stop();
-  printf("Timing:\n");
-  printf("prepareTOFCluster:        ");
-  mTimerTot.Print();
+  LOGF(INFO, "Timing prepareTOFCluster: Cpu: %.3e s Real: %.3e s in %d slots", mTimerTot.CpuTime(), mTimerTot.RealTime(), mTimerTot.Counter() - 1);
   mTimerTot.Start();
 
   if (mIsworkflowON) {
@@ -71,9 +69,7 @@ void MatchTOF::run()
     prepareTracks();
 
     mTimerTot.Stop();
-    printf("Timing:\n");
-    printf("prepare tracks:        ");
-    mTimerTot.Print();
+    LOGF(INFO, "Timing prepare tracks: Cpu: %.3e s Real: %.3e s in %d slots", mTimerTot.CpuTime(), mTimerTot.RealTime(), mTimerTot.Counter() - 1);
     mTimerTot.Start();
 
     for (int sec = o2::constants::math::NSectors; sec--;) {
@@ -99,9 +95,7 @@ void MatchTOF::run()
     prepareTracks();
 
     mTimerTot.Stop();
-    printf("Timing:\n");
-    printf("prepare tracks:        ");
-    mTimerTot.Print();
+    LOGF(INFO, "Timing prepare tracks: Cpu: %.3e s Real: %.3e s in %d slots", mTimerTot.CpuTime(), mTimerTot.RealTime(), mTimerTot.Counter() - 1);
     mTimerTot.Start();
 
     /* Uncomment for local debug 
@@ -146,9 +140,7 @@ void MatchTOF::run()
   mWFInputAttached = false;
 
   mTimerTot.Stop();
-  printf("Timing:\n");
-  printf("Do Matching:        ");
-  mTimerTot.Print();
+  LOGF(INFO, "Timing Do Matching: Cpu: %.3e s Real: %.3e s in %d slots", mTimerTot.CpuTime(), mTimerTot.RealTime(), mTimerTot.Counter() - 1);
 }
 
 //______________________________________________
@@ -255,7 +247,7 @@ void MatchTOF::printCandidatesTOF() const
 void MatchTOF::attachInputTrees()
 {
   ///< attaching the input tree
-  printf("attachInputTrees\n");
+  LOG(DEBUG) << "attachInputTrees";
   if (!mInputTreeTracks) {
     LOG(FATAL) << "Input tree with tracks is not set";
   }
@@ -339,7 +331,7 @@ bool MatchTOF::prepareTracks()
   auto o2field = static_cast<o2::field::MagneticField*>(TGeoGlobalMagField::Instance()->GetField());
   float bzField = o2field->solenoidField(); // magnetic field in kGauss
 
-  Printf("\n\nWe have %d tracks to try to match to TOF", mNumOfTracks);
+  LOG(DEBUG) << "\n\nWe have %d tracks to try to match to TOF: " << mNumOfTracks;
   int nNotPropagatedToTOF = 0;
   for (int it = 0; it < mNumOfTracks; it++) {
     const o2::dataformats::TrackTPCITS& trcOrig = mTracksArrayInp[it]; // TODO: check if we cannot directly use the o2::track::TrackParCov class instead of o2::dataformats::TrackTPCITS, and then avoid the casting below; this is the track at the vertex
@@ -515,9 +507,9 @@ bool MatchTOF::loadTracksNextChunk()
 //______________________________________________
 bool MatchTOF::loadTOFClustersNextChunk()
 {
-  printf("Loat clusters next chunck\n");
+  LOG(DEBUG) << "Loat clusters next chunck";
   ///< load next chunk of clusters to be matched to TOF
-  printf("Loading TOF clusters: number of entries in tree = %lld\n", mTreeTOFClusters->GetEntries());
+  LOG(DEBUG) << "Loading TOF clusters: number of entries in tree = " << mTreeTOFClusters->GetEntries();
   while (++mCurrTOFClustersTreeEntry < mTreeTOFClusters->GetEntries()) {
     mTreeTOFClusters->GetEntry(mCurrTOFClustersTreeEntry);
     mTOFClustersArrayInp = gsl::span<const Cluster>{*mTOFClustersArrayInpVect};
@@ -874,7 +866,7 @@ void MatchTOF::selectBestMatches()
 {
   ///< define the track-TOFcluster pair per sector
 
-  printf("Number of pair matched = %lu\n", mMatchedTracksPairs.size());
+  LOG(INFO) << "Number of pair matched = " << mMatchedTracksPairs.size();
 
   // first, we sort according to the chi2
   std::sort(mMatchedTracksPairs.begin(), mMatchedTracksPairs.end(), [this](o2::dataformats::MatchInfoTOF& a, o2::dataformats::MatchInfoTOF& b) { return (a.getChi2() < b.getChi2()); });
