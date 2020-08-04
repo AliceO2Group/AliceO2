@@ -10,7 +10,7 @@
                             {
                                 "type":"req",
                                 "method":"connect",
-                                "address":"ipc://primary-get_25005",
+                                "address":"ipc:///tmp/primary-get_25005",
                                 "sndBufSize":"100000",
                                 "rcvBufSize":"100000",
                                 "rateLogging":"0"
@@ -23,7 +23,7 @@
                             {
                                 "type":"push",
                                 "method":"connect",
-                                "address":"ipc://hitmerger-simdata_25009",
+                                "address":"ipc:///tmp/hitmerger-simdata_25009",
                                 "sndBufSize":1000,
                                 "rcvBufSize":1000,
                                 "rateLogging":0
@@ -41,7 +41,7 @@
                             {
                                 "type":"rep",
                                 "method":"bind",
-                                "address":"ipc://primary-get_25005",
+                                "address":"ipc:///tmp/primary-get_25005",
                                 "sndBufSize":100000,
                                 "rcvBufSize":100000,
                                 "rateLogging":0
@@ -59,7 +59,7 @@
                             {
                                 "type":"req",
                                 "method":"connect",
-                                "address":"ipc://primary-get_25005",
+                                "address":"ipc:///tmp/primary-get_25005",
                                 "sndBufSize":"1000",
                                 "rcvBufSize":"1000",
                                 "rateLogging":"0"
@@ -72,7 +72,7 @@
                             {
                                 "type":"pull",
                                 "method":"bind",
-                                "address":"ipc://hitmerger-simdata_25009",
+                                "address":"ipc:///tmp/hitmerger-simdata_25009",
                                 "sndBufSize":1000,
                                 "rcvBufSize":1000,
                                 "rateLogging":0
