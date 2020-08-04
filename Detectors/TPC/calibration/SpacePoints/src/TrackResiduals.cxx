@@ -510,8 +510,8 @@ void TrackResiduals::buildLocalResidualTreesFromRun2Data()
 
     fillLocalResidualsTrees();
   }
-  printf("Rejected due to Nclusters(%i), HelixFit(%i), qpt(%i), validation(%i)\n", nRejCl, nRejHelix, nRejQpt, nRejValidation);
-  printf("validation failed %i times because of fraction of rej. cls and %i times because of rms and %i rest\n", counterTrkValidation[1], counterTrkValidation[2], counterTrkValidation[0]);
+  //printf("Rejected due to Nclusters(%i), HelixFit(%i), qpt(%i), validation(%i)\n", nRejCl, nRejHelix, nRejQpt, nRejValidation);
+  //printf("validation failed %i times because of fraction of rej. cls and %i times because of rms and %i rest\n", counterTrkValidation[1], counterTrkValidation[2], counterTrkValidation[0]);
   LOG(info) << "Accepted " << nTracksSelected << " tracks. With outliers it would be " << nTracksSelectedWithOutliers;
   dumpTracks(debugOutliers);
   writeLocalResidualTreesToFile();
