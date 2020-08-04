@@ -43,7 +43,6 @@ void DataInputDescriptor::addFilename(std::string fn)
 
 TFile* DataInputDescriptor::getInputFile(int counter)
 {
-
   if (counter < getNumberInputfiles()) {
     if (mcurrentFile) {
       if (mcurrentFile->GetName() != mfilenames[counter]) {
@@ -52,6 +51,9 @@ TFile* DataInputDescriptor::getInputFile(int counter)
       }
     } else {
       mcurrentFile = TFile::Open(mfilenames[counter].c_str());
+    }
+    if (!mcurrentFile) {
+      throw std::runtime_error(fmt::format("Couldn't open file \"{}\"!", mfilenames[counter]));
     }
   } else {
     closeInputFile();
@@ -405,14 +407,13 @@ std::unique_ptr<TTreeReader> DataInputDirector::getTreeReader(header::DataHeader
   if (!didesc) {
     didesc = mdefaultDataInputDescriptor;
   }
+
   auto file = didesc->getInputFile(counter);
-  if (file->IsOpen()) {
+  if (file) {
     reader = std::make_unique<TTreeReader>(treename.c_str(), file);
     if (!reader) {
-      LOGP(ERROR, "Couldn't create TTreeReader for tree \"{}\" in file \"{}\"", treename, file->GetName());
+      throw std::runtime_error(fmt::format("Couldn't create TTreeReader for tree \"{}\" in file \"{}\"", treename, file->GetName()));
     }
-  } else {
-    LOGP(ERROR, "Couldn't open file \"{}\"", file->GetName());
   }
 
   return reader;
@@ -446,15 +447,13 @@ TTree* DataInputDirector::getDataTree(header::DataHeader dh, int counter)
     didesc = mdefaultDataInputDescriptor;
     treename = dh.dataDescription.str;
   }
-  auto file = didesc->getInputFile(counter);
 
-  if (file->IsOpen()) {
+  auto file = didesc->getInputFile(counter);
+  if (file) {
     tree = (TTree*)file->Get(treename);
     if (!tree) {
-      LOGP(ERROR, "Couldn't get TTree \"{}\" from \"{}\"", treename, file->GetName());
+      throw std::runtime_error(fmt::format("Couldn't get TTree \"{}\" from \"{}\"", treename, file->GetName()));
     }
-  } else {
-    LOGP(ERROR, "Couldn't open file \"{}\"", file->GetName());
   }
 
   return tree;
