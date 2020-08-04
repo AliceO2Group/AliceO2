@@ -21,6 +21,7 @@
 #include "Analysis/ReducedInfoTables.h"
 #include "Analysis/VarManager.h"
 #include "Analysis/HistogramManager.h"
+#include "PID/PIDResponse.h"
 #include <TH1F.h>
 #include <TMath.h>
 #include <iostream>
@@ -41,6 +42,7 @@ struct TableMaker {
   Produces<ReducedTracks> trackBasic;
   Produces<ReducedTracksBarrel> trackBarrel;
   Produces<ReducedTracksBarrelCov> trackBarrelCov;
+  Produces<ReducedTracksBarrelPID> trackBarrelPID;
   Produces<ReducedMuons> muonBasic;
   Produces<ReducedMuonsExtended> muonExtended;
 
@@ -68,7 +70,7 @@ struct TableMaker {
     VarManager::SetUseVars(fHistMan->GetUsedVars()); // provide the list of required variables so that VarManager knows what to fill
   }
 
-  void process(soa::Join<aod::Collisions, aod::EvSels, aod::Cents>::iterator collision, aod::MuonClusters const& clustersMuon, aod::Muons const& tracksMuon, aod::BCs const& bcs, soa::Join<aod::Tracks, aod::TracksExtra, aod::TracksCov> const& tracksBarrel)
+  void process(soa::Join<aod::Collisions, aod::EvSels, aod::Cents>::iterator collision, aod::MuonClusters const& clustersMuon, aod::Muons const& tracksMuon, aod::BCs const& bcs, soa::Join<aod::Tracks, aod::TracksExtra, aod::TracksCov, aod::pidRespTPC> const& tracksBarrel)
   {
     uint64_t tag = 0;
     uint32_t triggerAliases = 0;
@@ -98,6 +100,28 @@ struct TableMaker {
                   track.trdChi2(), track.tofChi2(),
                   track.length());
       trackBarrelCov(track.cYY(), track.cZZ(), track.cSnpSnp(), track.cTglTgl(), track.c1Pt21Pt2());
+      trackBarrelPID(
+          track.nSigmaEl(),//for TPC
+          track.nSigmaMu(),//for TPC
+          track.nSigmaPi(),//for TPC
+          track.nSigmaKa(),//for TPC
+          track.nSigmaPr(),//for TPC
+          track.nSigmaDe(),//for TPC
+          track.nSigmaTr(),//for TPC
+          track.nSigmaHe(),//for TPC
+          track.nSigmaAl()
+//,//for TPC
+//          track.nSigmaEl(),//for TOF
+//          track.nSigmaMu(),//for TOF
+//          track.nSigmaPi(),//for TOF
+//          track.nSigmaKa(),//for TOF
+//          track.nSigmaPr(),//for TOF
+//          track.nSigmaDe(),//for TOF
+//          track.nSigmaTr(),//for TOF
+//          track.nSigmaHe(),//for TOF
+//          track.nSigmaAl() //for TOF
+          );
+
     }
 
     for (auto& muon : tracksMuon) {
@@ -154,5 +178,6 @@ struct TableMaker {
 WorkflowSpec defineDataProcessing(o2::framework::ConfigContext const&)
 {
   return WorkflowSpec{
+    adaptAnalysisTask<pidTPCTask>("pidTPC-task"),
     adaptAnalysisTask<TableMaker>("table-maker")};
 }

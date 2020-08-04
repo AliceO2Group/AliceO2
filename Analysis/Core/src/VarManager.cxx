@@ -169,6 +169,8 @@ void VarManager::SetDefaultVarNames()
   fgVariableUnits[kTOFsignal] = "";
   fgVariableNames[kTrackLength] = "track length";
   fgVariableUnits[kTrackLength] = "cm";
+  fgVariableNames[kTPCnSigmaEl] = "n #sigma_{e}^{TPC}";
+  fgVariableUnits[kTPCnSigmaEl] = "";
   fgVariableNames[kMuonInvBendingMomentum] = "Inverse bending mom.";
   fgVariableUnits[kMuonInvBendingMomentum] = "1/(GeV/c)";
   fgVariableNames[kMuonThetaX] = "theta X";

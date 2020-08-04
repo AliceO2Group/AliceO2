@@ -43,7 +43,7 @@ class AnalysisCut : public TNamed
   //       But this would require to have access to the VarManager for extracting variables
   virtual bool IsSelected(float* values);
 
-  static vector<int> fgUsedVars; //! vector of used variables
+  static std::vector<int> fgUsedVars; //! vector of used variables
 
   struct CutContainer {
     short fVar;    // variable to be cut upon
@@ -66,7 +66,7 @@ class AnalysisCut : public TNamed
   };
 
  protected:
-  vector<CutContainer> fCuts;
+  std::vector<CutContainer> fCuts;
 
   ClassDef(AnalysisCut, 1);
 };

@@ -102,7 +102,7 @@ struct TableReader {
   }
 
   void process(soa::Join<aod::ReducedEvents, aod::ReducedEventsExtended, aod::ReducedEventsVtxCov>::iterator event,
-               soa::Join<aod::ReducedTracks, aod::ReducedTracksBarrel, aod::ReducedTracksBarrelCov> const& tracks,
+               soa::Join<aod::ReducedTracks, aod::ReducedTracksBarrel, aod::ReducedTracksBarrelCov, aod::ReducedTracksBarrelPID> const& tracks,
                soa::Join<aod::ReducedMuons, aod::ReducedMuonsExtended> const& muons)
   {
     // Reset the fgValues array
@@ -234,6 +234,8 @@ struct TableReader {
         if (classStr.Contains("Barrel")) {
           fHistMan->AddHistogram(classStr.Data(), "TPCdedx_pIN", "TPC dE/dx vs pIN", false, 100, 0.0, 20.0, VarManager::kPin,
                                  200, 0.0, 200., VarManager::kTPCsignal); // TH2F histogram
+
+          fHistMan->AddHistogram(classStr.Data(), "TPCnSigma_pIN", "TPC dE/dx n#sigma_{e} vs pIN", false, 100, 0.0, 20.0, VarManager::kPin, 200, -10, +10, VarManager::kTPCnSigmaEl); // TH2F histogram
 
           fHistMan->AddHistogram(classStr.Data(), "Cov1Pt_Pt", "cov(1/pt,1/pt) vs p_{T} distribution", false, 20, 0.0, 5.0, VarManager::kPt, 100, 0.0, 1.0, VarManager::kTrackC1Pt21Pt2); // TH2F histogram
         }

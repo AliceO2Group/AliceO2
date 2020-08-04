@@ -42,7 +42,8 @@ class VarManager : public TObject
     ReducedTrack = BIT(3),
     ReducedTrackBarrel = BIT(4),
     ReducedTrackBarrelCov = BIT(5),
-    ReducedTrackMuon = BIT(6)
+    ReducedTrackBarrelPID = BIT(6),
+    ReducedTrackMuon = BIT(7)
   };
 
  public:
@@ -100,6 +101,7 @@ class VarManager : public TObject
     kTrackCSnpSnp,
     kTrackCTglTgl,
     kTrackC1Pt21Pt2,
+    kTPCnSigmaEl,
     kNBarrelTrackVariables,
 
     // Muon track variables
@@ -311,6 +313,9 @@ void VarManager::FillTrack(T const& track, float* values)
     values[kTrackCSnpSnp] = track.cSnpSnp();
     values[kTrackCTglTgl] = track.cTglTgl();
     values[kTrackC1Pt21Pt2] = track.c1Pt21Pt2();
+  }
+  if constexpr ((fillMap & ReducedTrackBarrelPID) > 0) {
+    values[kTPCnSigmaEl] = track.nSigmaEl();
   }
 
   if constexpr ((fillMap & ReducedTrackMuon) > 0) {

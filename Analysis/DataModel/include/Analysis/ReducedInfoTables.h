@@ -17,6 +17,7 @@
 #include "Framework/ASoA.h"
 #include "Framework/AnalysisDataModel.h"
 #include "Analysis/Centrality.h"
+#include "PID/PIDResponse.h"
 #include "MathUtils/Utils.h"
 #include <cmath>
 
@@ -91,6 +92,18 @@ DECLARE_SOA_TABLE(ReducedTracksBarrelCov, "AOD", "RTBARRELCOV",
                   track::CYY, track::CZZ, track::CSnpSnp,
                   track::CTglTgl, track::C1Pt21Pt2);
 
+// barrel PID information
+DECLARE_SOA_TABLE(ReducedTracksBarrelPID, "AOD", "RTBARRELPID",
+                  pidTPC::NSigmaEl, pidTPC::NSigmaMu, 
+                  pidTPC::NSigmaPi, pidTPC::NSigmaKa, pidTPC::NSigmaPr, 
+                  pidTPC::NSigmaDe, pidTPC::NSigmaTr, pidTPC::NSigmaHe, pidTPC::NSigmaAl
+//,
+                  //pidTOF::NSigmaEl, pidTOF::NSigmaMu,
+                  //pidTOF::NSigmaPi, pidTOF::NSigmaKa, pidTOF::NSigmaPr,
+                  //pidTOF::NSigmaDe, pidTOF::NSigmaTr, pidTOF::NSigmaHe, pidTOF::NSigmaAl
+);
+
+
 // muon quantities
 namespace reducedmuon
 {
@@ -125,6 +138,7 @@ DECLARE_SOA_TABLE(ReducedMuonsExtended, "AOD", "RTMUONEXTENDED",
 using ReducedTrack = ReducedTracks::iterator;
 using ReducedTrackBarrel = ReducedTracksBarrel::iterator;
 using ReducedTrackBarrelCov = ReducedTracksBarrelCov::iterator;
+using ReducedTrackBarrelPID = ReducedTracksBarrelPID::iterator;
 using ReducedMuon = ReducedMuons::iterator;
 using ReducedMuonExtended = ReducedMuonsExtended::iterator;
 } // namespace o2::aod
