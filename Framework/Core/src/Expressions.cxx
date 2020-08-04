@@ -392,6 +392,8 @@ gandiva::NodePtr createExpressionTree(Operations const& opSpecs,
         return gandiva::TreeExprBuilder::MakeLiteral(std::get<float>(content));
       if (content.index() == 3)
         return gandiva::TreeExprBuilder::MakeLiteral(std::get<double>(content));
+      if (content.index() == 4)
+        return gandiva::TreeExprBuilder::MakeLiteral(std::get<uint8_t>(content));
       throw std::runtime_error("Malformed LiteralNode");
     }
 
@@ -425,11 +427,11 @@ gandiva::NodePtr createExpressionTree(Operations const& opSpecs,
       return node;
     };
 
-    auto insertEqualizeUpcastNode = [&](gandiva::NodePtr node1, gandiva::NodePtr node2, atype::type t1, atype::type t2) {
+    auto insertEqualizeUpcastNode = [&](gandiva::NodePtr& node1, gandiva::NodePtr& node2, atype::type t1, atype::type t2) {
       if (t2 > t1) {
         auto upcast = gandiva::TreeExprBuilder::MakeFunction(upcastTo(t2), {node1}, concreteArrowType(t2));
         node1 = upcast;
-      } else {
+      } else if (t1 > t2) {
         auto upcast = gandiva::TreeExprBuilder::MakeFunction(upcastTo(t1), {node2}, concreteArrowType(t1));
         node2 = upcast;
       }
