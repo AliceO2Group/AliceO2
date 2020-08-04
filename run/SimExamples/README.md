@@ -5,6 +5,7 @@
 # Simulation Examples
 
 <!-- doxy
+* \subpage refrunSimExamplesHF_Embedding_Pythia8
 * \subpage refrunSimExamplesSignal_ImpactB
 * \subpage refrunSimExamplesTrigger_ImpactB_Pythia8
 * \subpage refrunSimExamplesAdaptive_Pythia8
