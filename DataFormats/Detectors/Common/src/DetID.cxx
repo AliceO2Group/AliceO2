@@ -30,6 +30,7 @@ constexpr DetID::ID DetID::ITS, DetID::TPC, DetID::TRD, DetID::TOF, DetID::PHS, 
 
 #ifdef ENABLE_UPGRADES
 constexpr DetID::ID DetID::IT3;
+constexpr DetID::ID DetID::IT4;
 #endif
 
 constexpr int DetID::nDetectors;

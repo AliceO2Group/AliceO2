@@ -130,7 +130,7 @@ class GeometryManager : public TObject
  private:
 /// sensitive volume identifier composed from (det_mask<<sDetOffset)|(sensid&sSensorMask)
 #ifdef ENABLE_UPGRADES
-  static constexpr UInt_t sDetOffset = 14; /// detector identifier will start from this bit
+  static constexpr UInt_t sDetOffset = 13; /// detector identifier will start from this bit
 #else
   static constexpr UInt_t sDetOffset = 15; /// detector identifier will start from this bit
 #endif

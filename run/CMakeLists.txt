@@ -26,6 +26,7 @@ target_link_libraries(allsim
                                 O2::HMPIDSimulation
                                 O2::ITSSimulation
                                 O2::ITS3Simulation
+                                O2::ITS4Simulation
 				                        O2::MCHBase
                                 O2::MCHSimulation
                                 O2::MFTSimulation
