@@ -34,7 +34,7 @@ struct MFTBaseParam : public o2::conf::ConfigurableParamHelper<MFTBaseParam> {
   bool buildCone = true;
   bool buildBarrel = true;
   bool buildPatchPanel = true;
-  bool buildPCBSupports = false;
+  bool buildPCBSupports = true;
   bool buildPCBs = true;
   bool buildPSU = true;
 
