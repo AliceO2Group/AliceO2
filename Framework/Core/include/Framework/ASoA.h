@@ -838,6 +838,8 @@ class Table
       if constexpr (framework::has_type_v<std::decay_t<TI>, bindings_pack_t>) {
         constexpr auto idx = framework::has_type_at<std::decay_t<TI>>(bindings_pack_t{});
         return framework::pack_element_t<idx, external_index_columns_t>::getId();
+      } else if constexpr (std::is_same_v<std::decay_t<TI>, Parent>) {
+        return this->globalIndex();
       } else {
         return static_cast<int32_t>(-1);
       }
