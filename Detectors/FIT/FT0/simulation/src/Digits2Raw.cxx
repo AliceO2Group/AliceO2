@@ -155,7 +155,7 @@ void Digits2Raw::convertDigits(o2::ft0::Digit bcdigits,
     newData.time = pmchannels[ich].CFDTime;
     newData.generateFlags();
     newData.channelID = lut.getMCP(pmchannels[ich].ChId);
-    //  LOG(INFO) << "packed GBT " << nlink << " channelID   " << (int)newData.channelID << " charge " << newData.charge << " time " << newData.time << " chain " << int(newData.numberADC) << " size " << sizeof(newData);
+    LOG(DEBUG) << "packed GBT " << nlink << " channelID   " << (int)newData.channelID << " charge " << newData.charge << " time " << newData.time << " chain " << int(newData.numberADC) << " size " << sizeof(newData);
     nchannels++;
   }
   // fill mEventData[nchannels] with 0s to flag that this is a dummy data
@@ -163,6 +163,10 @@ void Digits2Raw::convertDigits(o2::ft0::Digit bcdigits,
   if ((nchannels % 2) == 1)
     mRawEventData.mEventData[nchannels] = {};
   mRawEventData.mEventHeader.nGBTWords = nGBTWords;
+  auto datalast = mRawEventData.to_vector(false);
+  mLinkID = uint32_t(oldlink);
+  mFeeID = uint64_t(oldlink);
+  mWriter.addData(mFeeID, mCruID, mLinkID, mEndPointID, intRecord, datalast);
   LOG(DEBUG) << " last " << oldlink;
   //TCM
   mRawEventData.mEventHeader = makeGBTHeader(LinkTCM, intRecord); //TCM
