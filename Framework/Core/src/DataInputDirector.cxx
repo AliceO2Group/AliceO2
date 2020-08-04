@@ -38,6 +38,10 @@ std::regex DataInputDescriptor::getFilenamesRegex()
 
 void DataInputDescriptor::addFilename(std::string fn)
 {
+  if (fn.rfind("alien://", 0) == 0) {
+    LOG(debug) << "AliEn file requested. Enabling support.";
+    TGrid::Connect("alien://");
+  }
   mfilenames.emplace_back(fn);
 }
 

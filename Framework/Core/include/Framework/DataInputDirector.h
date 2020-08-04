@@ -10,6 +10,7 @@
 #ifndef o2_framework_DataInputDirector_H_INCLUDED
 #define o2_framework_DataInputDirector_H_INCLUDED
 
+#include "TGrid.h"
 #include "TFile.h"
 #include "TTreeReader.h"
 
@@ -104,6 +105,7 @@ struct DataInputDirector {
   std::vector<DataInputDescriptor*> mdataInputDescriptors;
 
   bool mdebugmode = false;
+  bool malienSupport = false;
 
   bool readJsonDocument(Document* doc);
   bool isValid();
