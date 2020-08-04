@@ -123,12 +123,12 @@ bool TrackInterpolation::trackPassesQualityCuts(const o2::dataformats::TrackTPCI
     // track has a match in TRD or TOF
     if (trkTPC.getNClusterReferences() < param::MinTPCNCls ||
         trkITS.getNumberOfClusters() < param::MinITSNCls) {
-      printf("TPC clusters (%i), ITS clusters(%i)\n", trkTPC.getNClusterReferences(), trkITS.getNumberOfClusters());
+      LOG(DEBUG) << "TPC clusters (" << trkTPC.getNClusterReferences() << "), ITS clusters(" << trkITS.getNumberOfClusters() << ")";
       return false;
     }
     if (trkTPC.getChi2() / trkTPC.getNClusterReferences() > param::MaxTPCChi2 ||
         trkITS.getChi2() / trkITS.getNumberOfClusters() > param::MaxITSChi2) {
-      printf("TPC reduced chi2 (%.2f), ITS reduced chi2 (%.2f)\n", trkTPC.getChi2() / trkTPC.getNClusterReferences(), trkITS.getChi2() / trkITS.getNumberOfClusters());
+      LOG(DEBUG) << "TPC reduced chi2 (" << trkTPC.getChi2() / trkTPC.getNClusterReferences() << "), ITS reduced chi2 (" << trkITS.getChi2() / trkITS.getNumberOfClusters() << ")";
       return false;
     }
   } else {
