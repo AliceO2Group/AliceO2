@@ -450,6 +450,7 @@ Other helpful resources are the scripts used for regression testing in [prodtest
 
 | Example               | Short Description                                                                      |
 | --------------------- | -------------------------------------------------------------------------------------- |
+| [HF_Embedding_Pythia8](../run/SimExamples/HF_Embedding_Pythia8) | Example showing how to setup a complex HF simulation for embedding |
 | [AliRoot_Hijing](../run/SimExamples/AliRoot_Hijing) | Example showing how to use Hijing from AliRoot for event generation |
 | [AliRoot_AMPT](../run/SimExamples/AliRoot_AMPT) | Example showing how to use AMPT from AliRoot for event generation |
 | [Adaptive_Pythia8](../run/SimExamples/Adaptive_Pythia8) | Complex example showing **generator configuration for embedding** that cat adapt the response based on the background event |
