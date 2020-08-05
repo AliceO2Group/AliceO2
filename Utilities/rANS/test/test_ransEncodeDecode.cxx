@@ -75,7 +75,7 @@ typedef boost::mpl::vector<Fixture<uint32_t, uint8_t, 14>, Fixture<uint64_t, uin
 
 BOOST_FIXTURE_TEST_CASE_TEMPLATE(test_EncodeDecode, T, Fixtures, T)
 {
-
+  fair::Logger::SetConsoleSeverity("trace");
   // iterate over the message and create PDF and CDF for each symbol in the message
   o2::rans::FrequencyTable frequencies;
   frequencies.addSamples(std::begin(T::source), std::end(T::source));
@@ -109,6 +109,7 @@ typedef boost::mpl::vector<FixtureFull<uint32_t, uint8_t, 14>, FixtureFull<uint6
 
 BOOST_FIXTURE_TEST_CASE_TEMPLATE(test_EncodeDecode_literals, T, LiteralFixtures, T)
 {
+  fair::Logger::SetConsoleSeverity("trace");
 
   // iterate over the message and create PDF and CDF for each symbol in the message
   o2::rans::FrequencyTable frequencies;
@@ -148,7 +149,7 @@ typedef boost::mpl::vector<FixtureFull<uint32_t, uint8_t, 14>, FixtureFull<uint6
 
 BOOST_FIXTURE_TEST_CASE_TEMPLATE(test_EncodeDecode_dedup, T, DedupFixtures, T)
 {
-
+  fair::Logger::SetConsoleSeverity("trace");
   // iterate over the message and create PDF and CDF for each symbol in the message
   o2::rans::FrequencyTable frequencies;
   frequencies.addSamples(std::begin(T::source), std::end(T::source));

@@ -42,7 +42,7 @@ class Decoder
 {
 
  protected:
-  using decoderSymbol_t = internal::SymbolTable<internal::DecoderSymbol>;
+  using decoderSymbolTable_t = internal::SymbolTable<internal::DecoderSymbol>;
   using reverseSymbolLookupTable_t = internal::ReverseSymbolLookupTable;
   using ransDecoder = internal::Decoder<coder_T, stream_T>;
 
@@ -66,7 +66,7 @@ class Decoder
   using source_t = source_T;
 
  protected:
-  std::unique_ptr<decoderSymbol_t> mSymbolTable;
+  std::unique_ptr<decoderSymbolTable_t> mSymbolTable;
   std::unique_ptr<reverseSymbolLookupTable_t> mReverseLUT;
   size_t mProbabilityBits;
 };
@@ -74,14 +74,14 @@ class Decoder
 template <typename coder_T, typename stream_T, typename source_T>
 Decoder<coder_T, stream_T, source_T>::Decoder(const Decoder& d) : mSymbolTable(nullptr), mReverseLUT(nullptr), mProbabilityBits(d.mProbabilityBits)
 {
-  mSymbolTable = std::make_unique<decoderSymbol_t>(*d.mSymbolTable);
+  mSymbolTable = std::make_unique<decoderSymbolTable_t>(*d.mSymbolTable);
   mReverseLUT = std::make_unique<reverseSymbolLookupTable_t>(*d.mReverseLUT);
 }
 
 template <typename coder_T, typename stream_T, typename source_T>
 Decoder<coder_T, stream_T, source_T>& Decoder<coder_T, stream_T, source_T>::operator=(const Decoder& d)
 {
-  mSymbolTable = std::make_unique<decoderSymbol_t>(*d.mSymbolTable);
+  mSymbolTable = std::make_unique<decoderSymbolTable_t>(*d.mSymbolTable);
   mReverseLUT = std::make_unique<reverseSymbolLookupTable_t>(*d.mReverseLUT);
   mProbabilityBits = d.mProbabilityBits;
   return *this;
@@ -96,7 +96,7 @@ Decoder<coder_T, stream_T, source_T>::Decoder(const FrequencyTable& frequencies,
 
   RANSTimer t;
   t.start();
-  mSymbolTable = std::make_unique<decoderSymbol_t>(stats, mProbabilityBits);
+  mSymbolTable = std::make_unique<decoderSymbolTable_t>(stats, mProbabilityBits);
   t.stop();
   LOG(debug1) << "Decoder SymbolTable inclusive time (ms): " << t.getDurationMS();
   t.start();

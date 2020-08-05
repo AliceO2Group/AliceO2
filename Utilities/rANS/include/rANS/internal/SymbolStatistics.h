@@ -54,7 +54,13 @@ class SymbolStatistics
 
     const Iterator& operator++();
 
+    const Iterator& operator--();
+
     difference_type operator-(const Iterator& other) const;
+
+    difference_type operator-(size_t idx) const;
+
+    const Iterator& operator-(size_t idx);
 
     value_type operator*() const;
 
@@ -69,7 +75,7 @@ class SymbolStatistics
   SymbolStatistics(const FrequencyTable& frequencyTable, size_t scaleBits);
 
   template <typename Source_IT>
-  SymbolStatistics(const Source_IT begin, const Source_IT end, int64_t min, int64_t max, size_t scaleBits);
+  SymbolStatistics(const Source_IT begin, const Source_IT end, int64_t min, int64_t max, size_t scaleBits, size_t nUsedAlphabetSymbols);
 
   std::tuple<uint32_t, uint32_t> operator[](int64_t index) const;
   std::tuple<uint32_t, uint32_t> at(size_t pos) const;
@@ -77,21 +83,24 @@ class SymbolStatistics
   Iterator begin() const;
   Iterator end() const;
 
+  Iterator getEscapeSymbol() const;
+
   size_t size() const;
 
   int64_t getMinSymbol() const;
   int64_t getMaxSymbol() const;
+
+  size_t getNUsedAlphabetSymbols() const;
 
  private:
   void buildCumulativeFrequencyTable();
 
   void rescale();
 
-  size_t getNUsedAlphabetSymbols() const;
-
   int64_t mMin;
   int64_t mMax;
   size_t mScaleBits;
+  size_t mNUsedAlphabetSymbols;
 
   std::vector<uint32_t> mFrequencyTable;
   std::vector<uint32_t> mCumulativeFrequencyTable;
@@ -100,7 +109,7 @@ class SymbolStatistics
 };
 
 template <typename Source_IT>
-SymbolStatistics::SymbolStatistics(const Source_IT begin, const Source_IT end, int64_t min, int64_t max, size_t scaleBits) : mMin(min), mMax(max), mScaleBits(scaleBits), mFrequencyTable(), mCumulativeFrequencyTable()
+SymbolStatistics::SymbolStatistics(const Source_IT begin, const Source_IT end, int64_t min, int64_t max, size_t scaleBits, size_t nUsedAlphabetSymbols) : mMin(min), mMax(max), mScaleBits(scaleBits), mFrequencyTable(), mNUsedAlphabetSymbols(nUsedAlphabetSymbols), mCumulativeFrequencyTable()
 {
 
   using namespace internal;
@@ -115,7 +124,7 @@ SymbolStatistics::SymbolStatistics(const Source_IT begin, const Source_IT end, i
 
   assert(mScaleBits > 0);
 
-  //additional bit for incompressible symbol
+  //additional bit for escape symbol
   mFrequencyTable.reserve(std::distance(begin, end) + 1);
 
   mFrequencyTable.insert(mFrequencyTable.begin(), begin, end);
@@ -191,6 +200,11 @@ inline SymbolStatistics::Iterator SymbolStatistics::end() const
   return SymbolStatistics::Iterator(mFrequencyTable.size(), *this);
 }
 
+inline SymbolStatistics::Iterator SymbolStatistics::getEscapeSymbol() const
+{
+  return mFrequencyTable.size() > 0 ? SymbolStatistics::Iterator(mFrequencyTable.size() - 1, *this) : end();
+}
+
 inline const SymbolStatistics::Iterator& SymbolStatistics::Iterator::operator++()
 {
   ++mIndex;
@@ -198,9 +212,27 @@ inline const SymbolStatistics::Iterator& SymbolStatistics::Iterator::operator++(
   return *this;
 }
 
+inline const SymbolStatistics::Iterator& SymbolStatistics::Iterator::operator--()
+{
+  --mIndex;
+  assert(mIndex >= 0);
+  return *this;
+}
+
 inline SymbolStatistics::Iterator::difference_type SymbolStatistics::Iterator::operator-(const Iterator& other) const
 {
   return mIndex - other.mIndex;
+}
+
+inline SymbolStatistics::Iterator::difference_type SymbolStatistics::Iterator::operator-(size_t index) const
+{
+  return mIndex - index;
+}
+
+inline const SymbolStatistics::Iterator& SymbolStatistics::Iterator::operator-(size_t index)
+{
+  mIndex -= index;
+  return *this;
 }
 
 inline typename SymbolStatistics::Iterator::value_type SymbolStatistics::Iterator::operator*() const
