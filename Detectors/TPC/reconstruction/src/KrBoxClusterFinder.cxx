@@ -35,12 +35,12 @@ KrBoxClusterFinder::KrBoxClusterFinder(std::vector<o2::tpc::Digit>& eventSector)
 
   // Fill digits map
   for (const auto& digit : eventSector) {
-    int time = digit.getTimeStamp();
-    int row = digit.getRow();
-    int pad = digit.getPad();
+    const int time = digit.getTimeStamp();
+    const int row = digit.getRow();
+    const int pad = digit.getPad();
 
-    const int pads = mapperInstance.getNumberOfPadsInRowSector(row);
-    int corPad = pad - (pads / 2) + (MaxPads / 2);
+    const int pads = mMapperInstance.getNumberOfPadsInRowSector(row);
+    const int corPad = pad - (pads / 2) + (MaxPads / 2);
 
     mMapOfAllDigits[time][row][corPad] = digit.getChargeFloat();
   }
@@ -62,7 +62,7 @@ void KrBoxClusterFinder::updateTempClusterFinal()
   mTempCluster.sigmaRow = std::sqrt(std::abs(mTempCluster.sigmaRow - mTempCluster.meanRow * mTempCluster.meanRow));
   mTempCluster.sigmaTime = std::sqrt(std::abs(mTempCluster.sigmaTime - mTempCluster.meanTime * mTempCluster.meanTime));
 
-  const int pads = mapperInstance.getNumberOfPadsInRowSector(int(mTempCluster.meanRow));
+  const int pads = mMapperInstance.getNumberOfPadsInRowSector(int(mTempCluster.meanRow));
 
   mTempCluster.meanPad = mTempCluster.meanPad + (pads / 2.0) - (MaxPads / 2.0);
 }

@@ -125,7 +125,7 @@ class KrBoxClusterFinder
   static constexpr size_t MaxTimes = 550; ///< Size of the map in time-direction
 
   /// Need an instance of Mapper to know position of pads
-  const Mapper& mapperInstance = o2::tpc::Mapper::instance();
+  const Mapper& mMapperInstance = o2::tpc::Mapper::instance();
 
   KrCluster mTempCluster; ///< Used to save the cluster data
 
