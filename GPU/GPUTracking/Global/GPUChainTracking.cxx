@@ -1704,12 +1704,8 @@ int GPUChainTracking::RunTPCTrackingSlices_internal()
         if (param().rec.GlobalTracking) {
           for (unsigned int tmpSlice2a = 0; tmpSlice2a <= iSlice; tmpSlice2a += GetProcessingSettings().nDeviceHelperThreads + 1) {
             unsigned int tmpSlice2 = GPUTPCGlobalTracking::GlobalTrackingSliceOrder(tmpSlice2a);
-            unsigned int sliceLeft = (tmpSlice2 + (NSLICES / 2 - 1)) % (NSLICES / 2);
-            unsigned int sliceRight = (tmpSlice2 + 1) % (NSLICES / 2);
-            if (tmpSlice2 >= (int)NSLICES / 2) {
-              sliceLeft += NSLICES / 2;
-              sliceRight += NSLICES / 2;
-            }
+            unsigned int sliceLeft, sliceRight;
+            GPUTPCGlobalTracking::GlobalTrackingSliceLeftRight(tmpSlice2, sliceLeft, sliceRight);
 
             if (tmpSlice2 <= iSlice && sliceLeft <= iSlice && sliceRight <= iSlice && mWriteOutputDone[tmpSlice2] == 0) {
               GlobalTracking(tmpSlice2, 0);
@@ -1725,12 +1721,33 @@ int GPUChainTracking::RunTPCTrackingSlices_internal()
       }
       WaitForHelperThreads();
     }
+    if (!(GetRecoStepsOutputs() & GPUDataTypes::InOutType::TPCSectorTracks) && param().rec.GlobalTracking) {
+      std::vector<bool> blocking(NSLICES * mRec->NStreams());
+      for (int i = 0; i < NSLICES; i++) {
+        for (int j = 0; j < mRec->NStreams(); j++) {
+          blocking[i * mRec->NStreams() + j] = i % mRec->NStreams() == j;
+        }
+      }
+      for (unsigned int iSlice = 0; iSlice < NSLICES; iSlice++) {
+        unsigned int tmpSlice = GPUTPCGlobalTracking::GlobalTrackingSliceOrder(iSlice);
+        if (!((GetRecoStepsOutputs() & GPUDataTypes::InOutType::TPCSectorTracks) || (doGPU && !(GetRecoStepsGPU() & RecoStep::TPCMerging)))) {
+          unsigned int sliceLeft, sliceRight;
+          GPUTPCGlobalTracking::GlobalTrackingSliceLeftRight(tmpSlice, sliceLeft, sliceRight);
+          if (!blocking[tmpSlice * mRec->NStreams() + sliceLeft] % mRec->NStreams()) {
+            StreamWaitForEvents(tmpSlice % mRec->NStreams(), &mEvents->slice[sliceLeft]);
+            blocking[tmpSlice * mRec->NStreams() + sliceLeft % mRec->NStreams()] = true;
+          }
+          if (!blocking[tmpSlice * mRec->NStreams() + sliceRight] % mRec->NStreams()) {
+            StreamWaitForEvents(tmpSlice % mRec->NStreams(), &mEvents->slice[sliceRight]);
+            blocking[tmpSlice * mRec->NStreams() + sliceRight % mRec->NStreams()] = true;
+          }
+        }
+        GlobalTracking(tmpSlice, 0, !GetProcessingSettings().fullMergerOnGPU);
+      }
+    }
     for (unsigned int iSlice = 0; iSlice < NSLICES; iSlice++) {
       if (transferRunning[iSlice]) {
         ReleaseEvent(&mEvents->slice[iSlice]);
-      }
-      if (!(GetRecoStepsOutputs() & GPUDataTypes::InOutType::TPCSectorTracks) && param().rec.GlobalTracking) {
-        GlobalTracking(iSlice, 0, !GetProcessingSettings().fullMergerOnGPU);
       }
     }
   } else {
@@ -2451,15 +2468,11 @@ int GPUChainTracking::HelperReadEvent(int iSlice, int threadId, GPUReconstructio
 int GPUChainTracking::HelperOutput(int iSlice, int threadId, GPUReconstructionHelpers::helperParam* par)
 {
   if (param().rec.GlobalTracking) {
-    int tmpSlice = GPUTPCGlobalTracking::GlobalTrackingSliceOrder(iSlice);
-    int sliceLeft = (tmpSlice + (NSLICES / 2 - 1)) % (NSLICES / 2);
-    int sliceRight = (tmpSlice + 1) % (NSLICES / 2);
-    if (tmpSlice >= (int)NSLICES / 2) {
-      sliceLeft += NSLICES / 2;
-      sliceRight += NSLICES / 2;
-    }
+    unsigned int tmpSlice = GPUTPCGlobalTracking::GlobalTrackingSliceOrder(iSlice);
+    unsigned int sliceLeft, sliceRight;
+    GPUTPCGlobalTracking::GlobalTrackingSliceLeftRight(tmpSlice, sliceLeft, sliceRight);
 
-    while (mSliceSelectorReady < tmpSlice || mSliceSelectorReady < sliceLeft || mSliceSelectorReady < sliceRight) {
+    while (mSliceSelectorReady < (int)tmpSlice || mSliceSelectorReady < (int)sliceLeft || mSliceSelectorReady < (int)sliceRight) {
       if (par->reset) {
         return 1;
       }

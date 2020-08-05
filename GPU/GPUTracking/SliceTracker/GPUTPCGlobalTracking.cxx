@@ -191,6 +191,16 @@ GPUd() int GPUTPCGlobalTracking::GlobalTrackingSliceOrder(int iSlice)
   }
   return iSlice;
 }
+
+GPUd() void GPUTPCGlobalTracking::GlobalTrackingSliceLeftRight(unsigned int iSlice, unsigned int& left, unsigned int& right)
+{
+  left = (iSlice + (GPUDataTypes::NSLICES / 2 - 1)) % (GPUDataTypes::NSLICES / 2);
+  right = (iSlice + 1) % (GPUDataTypes::NSLICES / 2);
+  if (iSlice >= (int)GPUDataTypes::NSLICES / 2) {
+    left += GPUDataTypes::NSLICES / 2;
+    right += GPUDataTypes::NSLICES / 2;
+  }
+}
 #endif // !__OPENCL__ || __OPENCLCPP__
 
 template <>
