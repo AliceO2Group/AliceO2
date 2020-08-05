@@ -149,16 +149,11 @@ void WindowFiller::flushOutputContainer(std::vector<Digit>& digits)
 { // flush all residual buffered data
   // TO be implemented
 
-  printf("flushOutputContainer\n");
   for (Int_t i = 0; i < MAXWINDOWS; i++) {
     int n = 0;
     for (int j = 0; j < mStrips[i].size(); j++)
       n += ((mStrips[i])[j]).getNumberOfDigits();
-
-    printf("ro #%d: digits = %d\n", i, n);
   }
-
-  printf("Future digits = %lu\n", mFutureDigits.size());
 
   checkIfReuseFutureDigitsRO();
 

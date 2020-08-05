@@ -830,7 +830,6 @@ void Digitizer::fillOutputContainer(std::vector<Digit>& digits)
 void Digitizer::flushOutputContainer(std::vector<Digit>& digits)
 { // flush all residual buffered data
   // TO be implemented
-  printf("flushOutputContainer\n");
   if (!mContinuous)
     fillOutputContainer(digits);
   else {

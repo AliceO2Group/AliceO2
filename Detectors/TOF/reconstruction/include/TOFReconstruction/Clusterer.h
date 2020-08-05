@@ -49,7 +49,6 @@ class Clusterer
   void setCalibApi(CalibApi* calibApi)
   {
     mCalibApi = calibApi;
-    Printf("mCalibApi = %p", mCalibApi);
   }
 
   void setFirstOrbit(uint32_t orb);
