@@ -55,17 +55,17 @@ struct TPCPIDQATask {
         continue;
       //
       htpcsignal->Fill(i.p(), i.tpcSignal());
-      hexpEl->Fill(i.p(), i.expSignalEl());
-      hexpDe->Fill(i.p(), i.expSignalDe());
-      hnsigmaEl->Fill(i.p(), i.nSigmaEl());
-      hnsigmaMu->Fill(i.p(), i.nSigmaMu());
-      hnsigmaPi->Fill(i.p(), i.nSigmaPi());
-      hnsigmaKa->Fill(i.p(), i.nSigmaKa());
-      hnsigmaPr->Fill(i.p(), i.nSigmaPr());
-      hnsigmaDe->Fill(i.p(), i.nSigmaDe());
-      hnsigmaTr->Fill(i.p(), i.nSigmaTr());
-      hnsigmaHe->Fill(i.p(), i.nSigmaHe());
-      hnsigmaAl->Fill(i.p(), i.nSigmaAl());
+      hexpEl->Fill(i.p(), i.tpcExpSignalEl());
+      hexpDe->Fill(i.p(), i.tpcExpSignalDe());
+      hnsigmaEl->Fill(i.p(), i.tpcNSigmaEl());
+      hnsigmaMu->Fill(i.p(), i.tpcNSigmaMu());
+      hnsigmaPi->Fill(i.p(), i.tpcNSigmaPi());
+      hnsigmaKa->Fill(i.p(), i.tpcNSigmaKa());
+      hnsigmaPr->Fill(i.p(), i.tpcNSigmaPr());
+      hnsigmaDe->Fill(i.p(), i.tpcNSigmaDe());
+      hnsigmaTr->Fill(i.p(), i.tpcNSigmaTr());
+      hnsigmaHe->Fill(i.p(), i.tpcNSigmaHe());
+      hnsigmaAl->Fill(i.p(), i.tpcNSigmaAl());
     }
   }
 };
