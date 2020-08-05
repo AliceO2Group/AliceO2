@@ -85,6 +85,10 @@ DataProcessorSpec getSimReaderSpec(SubspecRange range, const std::vector<std::st
     // initialize fundamental objects
     auto& mgr = steer::HitProcessingManager::instance();
 
+    // init gRandom to random start
+    // TODO: offer option to set seed
+    gRandom->SetSeed(0);
+
     if (simprefixes.size() == 0) {
       LOG(ERROR) << "No simulation prefix available";
     } else {
