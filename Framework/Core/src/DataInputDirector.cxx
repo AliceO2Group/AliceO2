@@ -416,7 +416,7 @@ std::unique_ptr<TTreeReader> DataInputDirector::getTreeReader(header::DataHeader
   if (file) {
     reader = std::make_unique<TTreeReader>(treename.c_str(), file);
     if (!reader) {
-      throw std::runtime_error(fmt::format("Couldn't create TTreeReader for tree \"{}\" in file \"{}\"", treename, file->GetName()));
+      throw std::runtime_error(fmt::format(R"(Couldn't create TTreeReader for tree "{}" in file "{}")", treename, file->GetName()));
     }
   }
 
@@ -456,7 +456,7 @@ TTree* DataInputDirector::getDataTree(header::DataHeader dh, int counter)
   if (file) {
     tree = (TTree*)file->Get(treename);
     if (!tree) {
-      throw std::runtime_error(fmt::format("Couldn't get TTree \"{}\" from \"{}\"", treename, file->GetName()));
+      throw std::runtime_error(fmt::format(R"(Couldn't get TTree "{}" from "{}")", treename, file->GetName()));
     }
   }
 
