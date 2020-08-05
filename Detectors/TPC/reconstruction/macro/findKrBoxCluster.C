@@ -72,7 +72,7 @@ void findKrBoxCluster(int lastTimeBin = 1000, int run = -1, int time = -1)
         int rowMax = std::get<1>(coords);
         int timeMax = std::get<2>(coords);
 
-        if (timeMax>=lastTimeBin) {
+        if (timeMax >= lastTimeBin) {
           continue;
         }
         // Build total cluster
@@ -84,7 +84,6 @@ void findKrBoxCluster(int lastTimeBin = 1000, int run = -1, int time = -1)
     // Fill Tree
     tClusters->Fill();
     clusters.clear();
-
   }
   // Write Tree to file
   fOut->Write();
