@@ -39,9 +39,9 @@ class SymbolTable
 
   const T& operator[](int64_t index) const;
 
-  const T& getLiteralSymbol() const;
+  const T& getEscapeSymbol() const;
 
-  bool isLiteralSymbol(int64_t index) const;
+  bool isRareSymbol(int64_t index) const;
 
   size_t getAlphabetRangeBits() const;
   int getMinSymbol() const { return mMin; }
@@ -52,21 +52,39 @@ class SymbolTable
   int mMax;
   std::vector<T*> mIndex;
   std::vector<T> mSymbols;
+  std::unique_ptr<T> mEscapeSymbol;
 };
 
 template <typename T>
-SymbolTable<T>::SymbolTable(const SymbolStatistics& symbolStats, size_t probabiltyBits) : mMin(symbolStats.getMinSymbol()), mMax(symbolStats.getMaxSymbol()), mIndex(), mSymbols()
+SymbolTable<T>::SymbolTable(const SymbolStatistics& symbolStats, size_t probabiltyBits) : mMin(symbolStats.getMinSymbol()), mMax(symbolStats.getMaxSymbol()), mIndex(), mSymbols(), mEscapeSymbol(nullptr)
 {
   LOG(trace) << "start building symbol table";
 
   mIndex.reserve(symbolStats.size());
-  mSymbols.reserve(symbolStats.size());
+  mSymbols.reserve(symbolStats.getNUsedAlphabetSymbols());
 
-  for (const auto& entry : symbolStats) {
-    const auto [symFrequency, symCumulated] = entry;
-    mSymbols.emplace_back(symCumulated, symFrequency, probabiltyBits);
-    mIndex.emplace_back(&mSymbols.back());
+  mEscapeSymbol = [&]() -> std::unique_ptr<T> {
+    const auto it = symbolStats.getEscapeSymbol();
+    if (it != symbolStats.end()) {
+      const auto [symFrequency, symCumulated] = *(it);
+      return std::make_unique<T>(symCumulated, symFrequency, probabiltyBits);
+    } else {
+      return nullptr;
+    }
+  }();
+
+  for (auto it = symbolStats.begin(); it != symbolStats.getEscapeSymbol(); ++it) {
+    const auto [symFrequency, symCumulated] = *it;
+    if (symFrequency) {
+      mSymbols.emplace_back(symCumulated, symFrequency, probabiltyBits);
+      mIndex.emplace_back(&mSymbols.back());
+    } else {
+      mIndex.emplace_back(mEscapeSymbol.get());
+    }
   }
+
+  //escape symbol
+  mIndex.emplace_back(mEscapeSymbol.get());
 
 // advanced diagnostics for debug builds
 #if !defined(NDEBUG)
@@ -81,25 +99,33 @@ SymbolTable<T>::SymbolTable(const SymbolStatistics& symbolStats, size_t probabil
 template <typename T>
 inline const T& SymbolTable<T>::operator[](int64_t index) const
 {
-  const auto idx = index - mMin;
-  assert(idx >= 0);
-  assert(idx < mSymbols.size());
-  return *(mIndex[idx]);
+  const int64_t idx = index - mMin;
+  // static cast to unsigned: idx < 0 => (uint)idx > MAX_INT => idx > mIndex.size()
+  if (static_cast<uint64_t>(idx) < mIndex.size()) {
+    return *(mIndex[idx]);
+  } else {
+    return *mEscapeSymbol;
+  }
 }
 
 template <typename T>
-inline bool SymbolTable<T>::isLiteralSymbol(int64_t index) const
+inline bool SymbolTable<T>::isRareSymbol(int64_t index) const
 {
-  const auto idx = index - mMin;
-  assert(idx >= 0);
-  assert(idx < mSymbols.size());
-  return idx == mSymbols.size() - 1;
+  const int64_t idx = index - mMin;
+  // static cast to unsigned: idx < 0 => (uint)idx > MAX_INT => idx > mIndex.size()
+  if (static_cast<uint64_t>(idx) < mIndex.size()) {
+    assert(mEscapeSymbol != nullptr);
+    return mIndex[idx] == mEscapeSymbol.get();
+  } else {
+    return true;
+  }
 }
 
 template <typename T>
-inline const T& SymbolTable<T>::getLiteralSymbol() const
+inline const T& SymbolTable<T>::getEscapeSymbol() const
 {
-  return mSymbols.back();
+  assert(mEscapeSymbol != nullptr);
+  return *mEscapeSymbol;
 }
 
 template <typename T>
