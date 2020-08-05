@@ -44,12 +44,15 @@ class FrequencyTable
 
   FrequencyTable() : mMin(0), mMax(0), mNumSamples(0), mFrequencyTable(){};
 
-  FrequencyTable(value_t min, value_t max) : mMin(0), mMax(0), mNumSamples(0), mFrequencyTable(mMax - mMin + 1, 0)
+  FrequencyTable(value_t min, value_t max) : mMin(min), mMax(max), mNumSamples(0), mFrequencyTable(mMax - mMin + 1, 0)
   {
     assert(mMax >= mMin);
   }
 
-  FrequencyTable(size_t range) : FrequencyTable(0, internal::bitsToRange(range) - 1) { assert(range >= 1); };
+  FrequencyTable(size_t range) : FrequencyTable(0, internal::bitsToRange(range) - 1)
+  {
+    assert(range >= 1);
+  };
 
   template <typename Source_IT>
   void addSamples(Source_IT begin, Source_IT end, value_t min = 0, value_t max = 0);
@@ -109,11 +112,12 @@ void FrequencyTable::addSamples(Source_IT begin, Source_IT end, value_t min, val
     return;
   }
 
-  if (min != max && (!max && !min)) {
-    resizeFrequencyTable(min, max);
-  } else {
+  if (min == max) {
     const auto& [minIter, maxIter] = std::minmax_element(begin, end);
     resizeFrequencyTable(*minIter, *maxIter);
+
+  } else {
+    resizeFrequencyTable(min, max);
   }
 
   for (auto it = begin; it != end; it++) {
