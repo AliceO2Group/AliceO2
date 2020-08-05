@@ -74,17 +74,17 @@ struct TOFPIDQATask {
       hevtime_NoCut->Fill(collision.collisionTime() / 1000);
       // hevtime_NoCut->Fill(collision.collisionTime0() / 1000);
       //
-      htimediffEl_NoCut->Fill(i.p(), i.tofSignal() - collision.collisionTime() - i.expTimeEl());
-      htimediffMu_NoCut->Fill(i.p(), i.tofSignal() - collision.collisionTime() - i.expTimeMu());
-      htimediffPi_NoCut->Fill(i.p(), i.tofSignal() - collision.collisionTime() - i.expTimePi());
-      htimediffKa_NoCut->Fill(i.p(), i.tofSignal() - collision.collisionTime() - i.expTimeKa());
-      htimediffPr_NoCut->Fill(i.p(), i.tofSignal() - collision.collisionTime() - i.expTimePr());
+      htimediffEl_NoCut->Fill(i.p(), i.tofSignal() - collision.collisionTime() - i.tofExpSignalEl());
+      htimediffMu_NoCut->Fill(i.p(), i.tofSignal() - collision.collisionTime() - i.tofExpSignalMu());
+      htimediffPi_NoCut->Fill(i.p(), i.tofSignal() - collision.collisionTime() - i.tofExpSignalPi());
+      htimediffKa_NoCut->Fill(i.p(), i.tofSignal() - collision.collisionTime() - i.tofExpSignalKa());
+      htimediffPr_NoCut->Fill(i.p(), i.tofSignal() - collision.collisionTime() - i.tofExpSignalPr());
       //
-      hnsigmaEl_NoCut->Fill(i.p(), i.nSigmaEl());
-      hnsigmaMu_NoCut->Fill(i.p(), i.nSigmaMu());
-      hnsigmaPi_NoCut->Fill(i.p(), i.nSigmaPi());
-      hnsigmaKa_NoCut->Fill(i.p(), i.nSigmaKa());
-      hnsigmaPr_NoCut->Fill(i.p(), i.nSigmaPr());
+      hnsigmaEl_NoCut->Fill(i.p(), i.tofNSigmaEl());
+      hnsigmaMu_NoCut->Fill(i.p(), i.tofNSigmaMu());
+      hnsigmaPi_NoCut->Fill(i.p(), i.tofNSigmaPi());
+      hnsigmaKa_NoCut->Fill(i.p(), i.tofNSigmaKa());
+      hnsigmaPr_NoCut->Fill(i.p(), i.tofNSigmaPr());
       // Beta
       hp_beta->Fill(i.p(), i.beta());
     }
@@ -121,13 +121,13 @@ struct SpectraTask {
       issel = issel && (i.flags() & 0x80000000); //kTIME
       if (!issel)
         continue;
-      if (TMath::Abs(i.nSigmaPi()) < 3) {
+      if (TMath::Abs(i.tofNSigmaPi()) < 3) {
         hp_El->Fill(i.p());
         hpt_El->Fill(i.pt());
-      } else if (TMath::Abs(i.nSigmaKa()) < 3) {
+      } else if (TMath::Abs(i.tofNSigmaKa()) < 3) {
         hp_Ka->Fill(i.p());
         hpt_Ka->Fill(i.pt());
-      } else if (TMath::Abs(i.nSigmaPr()) < 3) {
+      } else if (TMath::Abs(i.tofNSigmaPr()) < 3) {
         hp_Pr->Fill(i.p());
         hpt_Pr->Fill(i.pt());
       }

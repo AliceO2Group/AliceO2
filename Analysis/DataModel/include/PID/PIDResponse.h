@@ -45,35 +45,35 @@ DECLARE_SOA_DYNAMIC_COLUMN(DiffBetaEl, diffbetael, [](float beta, float expbetae
 namespace pidTOF
 {
 // Expected times
-DECLARE_SOA_COLUMN(ExpTimeEl, expTimeEl, float);
-DECLARE_SOA_COLUMN(ExpTimeMu, expTimeMu, float);
-DECLARE_SOA_COLUMN(ExpTimePi, expTimePi, float);
-DECLARE_SOA_COLUMN(ExpTimeKa, expTimeKa, float);
-DECLARE_SOA_COLUMN(ExpTimePr, expTimePr, float);
-DECLARE_SOA_COLUMN(ExpTimeDe, expTimeDe, float);
-DECLARE_SOA_COLUMN(ExpTimeTr, expTimeTr, float);
-DECLARE_SOA_COLUMN(ExpTimeHe, expTimeHe, float);
-DECLARE_SOA_COLUMN(ExpTimeAl, expTimeAl, float);
+DECLARE_SOA_COLUMN(TOFExpSignalEl, tofExpSignalEl, float);
+DECLARE_SOA_COLUMN(TOFExpSignalMu, tofExpSignalMu, float);
+DECLARE_SOA_COLUMN(TOFExpSignalPi, tofExpSignalPi, float);
+DECLARE_SOA_COLUMN(TOFExpSignalKa, tofExpSignalKa, float);
+DECLARE_SOA_COLUMN(TOFExpSignalPr, tofExpSignalPr, float);
+DECLARE_SOA_COLUMN(TOFExpSignalDe, tofExpSignalDe, float);
+DECLARE_SOA_COLUMN(TOFExpSignalTr, tofExpSignalTr, float);
+DECLARE_SOA_COLUMN(TOFExpSignalHe, tofExpSignalHe, float);
+DECLARE_SOA_COLUMN(TOFExpSignalAl, tofExpSignalAl, float);
 // Expected sigma
-DECLARE_SOA_COLUMN(ExpSigmaEl, expSigmaEl, float);
-DECLARE_SOA_COLUMN(ExpSigmaMu, expSigmaMu, float);
-DECLARE_SOA_COLUMN(ExpSigmaPi, expSigmaPi, float);
-DECLARE_SOA_COLUMN(ExpSigmaKa, expSigmaKa, float);
-DECLARE_SOA_COLUMN(ExpSigmaPr, expSigmaPr, float);
-DECLARE_SOA_COLUMN(ExpSigmaDe, expSigmaDe, float);
-DECLARE_SOA_COLUMN(ExpSigmaTr, expSigmaTr, float);
-DECLARE_SOA_COLUMN(ExpSigmaHe, expSigmaHe, float);
-DECLARE_SOA_COLUMN(ExpSigmaAl, expSigmaAl, float);
+DECLARE_SOA_COLUMN(TOFExpSigmaEl, tofExpSigmaEl, float);
+DECLARE_SOA_COLUMN(TOFExpSigmaMu, tofExpSigmaMu, float);
+DECLARE_SOA_COLUMN(TOFExpSigmaPi, tofExpSigmaPi, float);
+DECLARE_SOA_COLUMN(TOFExpSigmaKa, tofExpSigmaKa, float);
+DECLARE_SOA_COLUMN(TOFExpSigmaPr, tofExpSigmaPr, float);
+DECLARE_SOA_COLUMN(TOFExpSigmaDe, tofExpSigmaDe, float);
+DECLARE_SOA_COLUMN(TOFExpSigmaTr, tofExpSigmaTr, float);
+DECLARE_SOA_COLUMN(TOFExpSigmaHe, tofExpSigmaHe, float);
+DECLARE_SOA_COLUMN(TOFExpSigmaAl, tofExpSigmaAl, float);
 // NSigma
-DECLARE_SOA_COLUMN(NSigmaEl, nSigmaEl, float);
-DECLARE_SOA_COLUMN(NSigmaMu, nSigmaMu, float);
-DECLARE_SOA_COLUMN(NSigmaPi, nSigmaPi, float);
-DECLARE_SOA_COLUMN(NSigmaKa, nSigmaKa, float);
-DECLARE_SOA_COLUMN(NSigmaPr, nSigmaPr, float);
-DECLARE_SOA_COLUMN(NSigmaDe, nSigmaDe, float);
-DECLARE_SOA_COLUMN(NSigmaTr, nSigmaTr, float);
-DECLARE_SOA_COLUMN(NSigmaHe, nSigmaHe, float);
-DECLARE_SOA_COLUMN(NSigmaAl, nSigmaAl, float);
+DECLARE_SOA_COLUMN(TOFNSigmaEl, tofNSigmaEl, float);
+DECLARE_SOA_COLUMN(TOFNSigmaMu, tofNSigmaMu, float);
+DECLARE_SOA_COLUMN(TOFNSigmaPi, tofNSigmaPi, float);
+DECLARE_SOA_COLUMN(TOFNSigmaKa, tofNSigmaKa, float);
+DECLARE_SOA_COLUMN(TOFNSigmaPr, tofNSigmaPr, float);
+DECLARE_SOA_COLUMN(TOFNSigmaDe, tofNSigmaDe, float);
+DECLARE_SOA_COLUMN(TOFNSigmaTr, tofNSigmaTr, float);
+DECLARE_SOA_COLUMN(TOFNSigmaHe, tofNSigmaHe, float);
+DECLARE_SOA_COLUMN(TOFNSigmaAl, tofNSigmaAl, float);
 } // namespace pidTOF
 
 using namespace pidTOFbeta;
@@ -84,37 +84,49 @@ DECLARE_SOA_TABLE(pidRespTOFbeta, "AOD", "pidRespTOFbeta",
                   DiffBetaEl<Beta, ExpBetaEl>);
 using namespace pidTOF;
 DECLARE_SOA_TABLE(pidRespTOF, "AOD", "pidRespTOF",
-                  ExpTimeEl, ExpTimeMu, ExpTimePi, ExpTimeKa, ExpTimePr, ExpTimeDe, ExpTimeTr, ExpTimeHe, ExpTimeAl,
-                  ExpSigmaEl, ExpSigmaMu, ExpSigmaPi, ExpSigmaKa, ExpSigmaPr, ExpSigmaDe, ExpSigmaTr, ExpSigmaHe, ExpSigmaAl,
-                  NSigmaEl, NSigmaMu, NSigmaPi, NSigmaKa, NSigmaPr, NSigmaDe, NSigmaTr, NSigmaHe, NSigmaAl);
+                  TOFExpSignalEl, TOFExpSignalMu, TOFExpSignalPi, TOFExpSignalKa, TOFExpSignalPr, TOFExpSignalDe, TOFExpSignalTr, TOFExpSignalHe, TOFExpSignalAl,
+                  TOFExpSigmaEl, TOFExpSigmaMu, TOFExpSigmaPi, TOFExpSigmaKa, TOFExpSigmaPr, TOFExpSigmaDe, TOFExpSigmaTr, TOFExpSigmaHe, TOFExpSigmaAl,
+                  TOFNSigmaEl, TOFNSigmaMu, TOFNSigmaPi, TOFNSigmaKa, TOFNSigmaPr, TOFNSigmaDe, TOFNSigmaTr, TOFNSigmaHe, TOFNSigmaAl);
 
 namespace pidTPC
 {
 // Expected signals
-DECLARE_SOA_COLUMN(ExpSignalEl, expSignalEl, float);
-DECLARE_SOA_COLUMN(ExpSignalMu, expSignalMu, float);
-DECLARE_SOA_COLUMN(ExpSignalPi, expSignalPi, float);
-DECLARE_SOA_COLUMN(ExpSignalKa, expSignalKa, float);
-DECLARE_SOA_COLUMN(ExpSignalPr, expSignalPr, float);
-DECLARE_SOA_COLUMN(ExpSignalDe, expSignalDe, float);
-DECLARE_SOA_COLUMN(ExpSignalTr, expSignalTr, float);
-DECLARE_SOA_COLUMN(ExpSignalHe, expSignalHe, float);
-DECLARE_SOA_COLUMN(ExpSignalAl, expSignalAl, float);
+DECLARE_SOA_COLUMN(TPCExpSignalEl, tpcExpSignalEl, float);
+DECLARE_SOA_COLUMN(TPCExpSignalMu, tpcExpSignalMu, float);
+DECLARE_SOA_COLUMN(TPCExpSignalPi, tpcExpSignalPi, float);
+DECLARE_SOA_COLUMN(TPCExpSignalKa, tpcExpSignalKa, float);
+DECLARE_SOA_COLUMN(TPCExpSignalPr, tpcExpSignalPr, float);
+DECLARE_SOA_COLUMN(TPCExpSignalDe, tpcExpSignalDe, float);
+DECLARE_SOA_COLUMN(TPCExpSignalTr, tpcExpSignalTr, float);
+DECLARE_SOA_COLUMN(TPCExpSignalHe, tpcExpSignalHe, float);
+DECLARE_SOA_COLUMN(TPCExpSignalAl, tpcExpSignalAl, float);
+// Expected sigma
+DECLARE_SOA_COLUMN(TPCExpSigmaEl, tpcExpSigmaEl, float);
+DECLARE_SOA_COLUMN(TPCExpSigmaMu, tpcExpSigmaMu, float);
+DECLARE_SOA_COLUMN(TPCExpSigmaPi, tpcExpSigmaPi, float);
+DECLARE_SOA_COLUMN(TPCExpSigmaKa, tpcExpSigmaKa, float);
+DECLARE_SOA_COLUMN(TPCExpSigmaPr, tpcExpSigmaPr, float);
+DECLARE_SOA_COLUMN(TPCExpSigmaDe, tpcExpSigmaDe, float);
+DECLARE_SOA_COLUMN(TPCExpSigmaTr, tpcExpSigmaTr, float);
+DECLARE_SOA_COLUMN(TPCExpSigmaHe, tpcExpSigmaHe, float);
+DECLARE_SOA_COLUMN(TPCExpSigmaAl, tpcExpSigmaAl, float);
 // NSigma
-DECLARE_SOA_COLUMN(NSigmaEl, nSigmaEl, float);
-DECLARE_SOA_COLUMN(NSigmaMu, nSigmaMu, float);
-DECLARE_SOA_COLUMN(NSigmaPi, nSigmaPi, float);
-DECLARE_SOA_COLUMN(NSigmaKa, nSigmaKa, float);
-DECLARE_SOA_COLUMN(NSigmaPr, nSigmaPr, float);
-DECLARE_SOA_COLUMN(NSigmaDe, nSigmaDe, float);
-DECLARE_SOA_COLUMN(NSigmaTr, nSigmaTr, float);
-DECLARE_SOA_COLUMN(NSigmaHe, nSigmaHe, float);
-DECLARE_SOA_COLUMN(NSigmaAl, nSigmaAl, float);
+DECLARE_SOA_COLUMN(TPCNSigmaEl, tpcNSigmaEl, float);
+DECLARE_SOA_COLUMN(TPCNSigmaMu, tpcNSigmaMu, float);
+DECLARE_SOA_COLUMN(TPCNSigmaPi, tpcNSigmaPi, float);
+DECLARE_SOA_COLUMN(TPCNSigmaKa, tpcNSigmaKa, float);
+DECLARE_SOA_COLUMN(TPCNSigmaPr, tpcNSigmaPr, float);
+DECLARE_SOA_COLUMN(TPCNSigmaDe, tpcNSigmaDe, float);
+DECLARE_SOA_COLUMN(TPCNSigmaTr, tpcNSigmaTr, float);
+DECLARE_SOA_COLUMN(TPCNSigmaHe, tpcNSigmaHe, float);
+DECLARE_SOA_COLUMN(TPCNSigmaAl, tpcNSigmaAl, float);
 } // namespace pidTPC
 
+using namespace pidTPC;
 DECLARE_SOA_TABLE(pidRespTPC, "AOD", "pidRespTPC",
-                  pidTPC::ExpSignalEl, pidTPC::ExpSignalMu, pidTPC::ExpSignalPi, pidTPC::ExpSignalKa, pidTPC::ExpSignalPr, pidTPC::ExpSignalDe, pidTPC::ExpSignalTr, pidTPC::ExpSignalHe, pidTPC::ExpSignalAl,
-                  pidTPC::NSigmaEl, pidTPC::NSigmaMu, pidTPC::NSigmaPi, pidTPC::NSigmaKa, pidTPC::NSigmaPr, pidTPC::NSigmaDe, pidTPC::NSigmaTr, pidTPC::NSigmaHe, pidTPC::NSigmaAl);
+                  TPCExpSignalEl, TPCExpSignalMu, TPCExpSignalPi, TPCExpSignalKa, TPCExpSignalPr, TPCExpSignalDe, TPCExpSignalTr, TPCExpSignalHe, TPCExpSignalAl,
+                  TPCExpSigmaEl, TPCExpSigmaMu, TPCExpSigmaPi, TPCExpSigmaKa, TPCExpSigmaPr, TPCExpSigmaDe, TPCExpSigmaTr, TPCExpSigmaHe, TPCExpSigmaAl,
+                  TPCNSigmaEl, TPCNSigmaMu, TPCNSigmaPi, TPCNSigmaKa, TPCNSigmaPr, TPCNSigmaDe, TPCNSigmaTr, TPCNSigmaHe, TPCNSigmaAl);
 
 } // namespace o2::aod
 
@@ -198,6 +210,15 @@ struct pidTPCTask {
         resp.GetExpectedSignal(PID::Triton),
         resp.GetExpectedSignal(PID::Helium3),
         resp.GetExpectedSignal(PID::Alpha),
+        resp.GetExpectedSigma(PID::Electron),
+        resp.GetExpectedSigma(PID::Muon),
+        resp.GetExpectedSigma(PID::Pion),
+        resp.GetExpectedSigma(PID::Kaon),
+        resp.GetExpectedSigma(PID::Proton),
+        resp.GetExpectedSigma(PID::Deuteron),
+        resp.GetExpectedSigma(PID::Triton),
+        resp.GetExpectedSigma(PID::Helium3),
+        resp.GetExpectedSigma(PID::Alpha),
         resp.GetNumberOfSigmas(PID::Electron),
         resp.GetNumberOfSigmas(PID::Muon),
         resp.GetNumberOfSigmas(PID::Pion),
