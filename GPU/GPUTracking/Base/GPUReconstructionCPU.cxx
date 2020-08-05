@@ -274,7 +274,7 @@ int GPUReconstructionCPU::RunChains()
     printf("Execution Time: Total   : %50s Time: %'10d us\n", "Total Kernel", (int)mStatKernelTime);
     printf("Execution Time: Total   : %50s Time: %'10d us\n", "Total Wall", (int)mStatWallTime);
   } else if (GetProcessingSettings().debugLevel >= 0) {
-    printf("Total Wall Time: %'d us\n", (int)mStatWallTime);
+    GPUInfo("Total Wall Time: %d us", (int)mStatWallTime);
   }
   if (mProcessingSettings.resetTimers) {
     mStatNEvents = 0;
