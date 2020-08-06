@@ -939,6 +939,8 @@ void DeviceSpecHelpers::prepareArguments(bool defaultQuiet, bool defaultStopped,
         realOdesc.add_options()("post-fork-command", bpo::value<std::string>());
         realOdesc.add_options()("shm-segment-size", bpo::value<std::string>());
         realOdesc.add_options()("shm-mlock-segment", bpo::value<std::string>());
+        realOdesc.add_options()("shm-zero-segment", bpo::value<std::string>());
+        realOdesc.add_options()("shm-throw-bad-alloc", bpo::value<std::string>());
         realOdesc.add_options()("shm-monitor", bpo::value<std::string>());
         realOdesc.add_options()("session", bpo::value<std::string>());
         filterArgsFct(expansions.we_wordc, expansions.we_wordv, realOdesc);
@@ -1052,6 +1054,8 @@ boost::program_options::options_description DeviceSpecHelpers::getForwardedDevic
     ("shm-monitor", bpo::value<std::string>(), "whether to use the shared memory monitor")                            //
     ("shm-segment-size", bpo::value<std::string>(), "size of the shared memory segment in bytes")                     //
     ("shm-mlock-segment", bpo::value<std::string>()->default_value("false"), "mlock shared memory segment")           //
+    ("shm-zero-segment", bpo::value<std::string>()->default_value("false"), "zero shared memory segment")             //
+    ("shm-throw-bad-alloc", bpo::value<std::string>()->default_value("true"), "throw if insufficient shm memory")     //
     ("environment", bpo::value<std::string>(), "comma separated list of environment variables to set for the device") //
     ("post-fork-command", bpo::value<std::string>(), "post fork command to execute (e.g. numactl {pid}")              //
     ("session", bpo::value<std::string>(), "unique label for the shared memory session")                              //
