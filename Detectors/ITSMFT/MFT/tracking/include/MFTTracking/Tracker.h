@@ -46,7 +46,7 @@ class Tracker
   void setBz(Float_t bz);
   const Float_t getBz() const { return mBz; }
 
-  std::vector<TrackMFT>& getTracks() { return mTracks; }
+  std::vector<TrackMFTExt>& getTracks() { return mTracks; }
   std::vector<TrackLTF>& getTracksLTF() { return mTracksLTF; }
   o2::dataformats::MCTruthContainer<MCCompLabel>& getTrackLabels() { return mTrackLabels; }
 
@@ -66,7 +66,6 @@ class Tracker
   void updateCellStatusInRoad(Road&);
 
   bool fitTracks(ROframe&);
-  std::unique_ptr<o2::mft::TrackFitter> mTrackFitter = nullptr;
 
   const Int_t isDiskFace(Int_t layer) const { return (layer % 2); }
   const Float_t getDistanceToSeed(const Cluster&, const Cluster&, const Cluster&) const;
@@ -81,10 +80,11 @@ class Tracker
 
   Float_t mBz = 5.f;
   std::uint32_t mROFrame = 0;
-  std::vector<TrackMFT> mTracks;
+  std::vector<TrackMFTExt> mTracks;
   std::vector<TrackLTF> mTracksLTF;
   std::vector<Cluster> mClusters;
   o2::dataformats::MCTruthContainer<MCCompLabel> mTrackLabels;
+  std::unique_ptr<o2::mft::TrackFitter> mTrackFitter = nullptr;
 
   Int_t mMaxCellLevel = 0;
 

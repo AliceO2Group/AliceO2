@@ -116,7 +116,12 @@ inline void TrackCA::removeLastCell(Int_t& layer, Int_t& cellId)
 inline void TrackLTF::setPoint(const Cluster cl, const Int_t layer, const Int_t clusterId, const MCCompLabel label, Bool_t& newPoint)
 {
   if (newPoint) {
-    if (mNPoints == constants::mft::LayersNumber) {
+    if (mNPoints > 0)
+      if (mZ[mNPoints - 1] == cl.getZ()) {
+        LOG(WARN) << "MFT TrackLTF: skipping setPoint (1 cluster per layer!)";
+        return;
+      }
+    if (mNPoints >= constants::mft::LayersNumber - 1) {
       LOG(WARN) << "MFT TrackLTF Overflow";
       return;
     }
@@ -128,9 +133,8 @@ inline void TrackLTF::setPoint(const Cluster cl, const Int_t layer, const Int_t 
     mLayer[mNPoints] = layer;
     mClusterId[mNPoints] = clusterId;
     mMCCompLabels[mNPoints] = label;
-    setClusterIndex(layer, clusterId, mNPoints);
-
     mNPoints++;
+    setClusterIndex(layer, clusterId, mNPoints);
   } else {
     mX[mNPoints] = cl.getX();
     mY[mNPoints] = cl.getY();

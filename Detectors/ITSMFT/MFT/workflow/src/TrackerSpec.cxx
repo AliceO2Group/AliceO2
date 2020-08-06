@@ -113,12 +113,15 @@ void TrackerDPL::run(ProcessingContext& pc)
   LOG(INFO) << "MFTTracker RO: continuous=" << continuous;
 
   // snippet to convert found tracks to final output tracks with separate cluster indices
-  auto copyTracks = [](auto& tracks, auto& allTracks, auto& allClusIdx, int offset = 0) {
+  auto copyTracks = [&event](auto& tracks, auto& allTracks, auto& allClusIdx, int offset = 0) {
     for (auto& trc : tracks) {
       trc.setFirstClusterEntry(allClusIdx.size()); // before adding tracks, create final cluster indices
       int ncl = trc.getNumberOfClusters();
       for (int ic = 0; ic < ncl; ic++) {
-        allClusIdx.push_back(trc.getClusterIndex(ic) + offset);
+        auto layer_clID = trc.getClustersId()[ic];
+        auto layer = trc.getLayers()[ic];
+        auto externalClusterID = event.getClusterExternalIndex(layer, trc.getClustersId()[ic]);
+        allClusIdx.push_back(externalClusterID);
       }
       allTracks.emplace_back(trc);
     }
@@ -141,14 +144,12 @@ void TrackerDPL::run(ProcessingContext& pc)
         trackLabels = mTracker->getTrackLabels(); /// FIXME: assignment ctor is not optimal.
         int first = allTracksMFT.size();
         int number = tracksLTF.size() + tracksCA.size();
-        int shiftIdx = -rof.getFirstEntry();
         rof.setFirstEntry(first);
-        rofs[roFrame].setFirstEntry(first);
         rof.setNEntries(number);
-        copyTracks(tracksLTF, allTracksMFT, allClusIdx, shiftIdx);
-        copyTracks(tracksCA, allTracksMFT, allClusIdx, shiftIdx);
-        std::copy(tracksLTF.begin(), tracksLTF.end(), std::back_inserter(allTracksLTF));
-        std::copy(tracksCA.begin(), tracksCA.end(), std::back_inserter(allTracksCA));
+        copyTracks(tracksLTF, allTracksMFT, allClusIdx);
+        copyTracks(tracksCA, allTracksMFT, allClusIdx);
+        std::copy(tracksLTF.begin(), tracksLTF.end(), std::back_inserter(allTracksLTF)); // TODO: Get rid of allTracksLTF
+        std::copy(tracksCA.begin(), tracksCA.end(), std::back_inserter(allTracksCA));    // TODO: Get rid of allTracksCA
         allTrackLabels.mergeAtBack(trackLabels);
       }
       roFrame++;
