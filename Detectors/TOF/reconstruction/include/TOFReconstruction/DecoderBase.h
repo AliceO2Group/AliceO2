@@ -63,20 +63,15 @@ class DecoderBaseT
  private:
   /** handlers **/
 
-  virtual void rdhHandler(const RDH* rdh){};
-  virtual void headerHandler(const CrateHeader_t* crateHeader, const CrateOrbit_t* crateOrbit){};
+  virtual void rdhHandler(const RDH* rdh) = 0;
+  virtual void headerHandler(const CrateHeader_t* crateHeader, const CrateOrbit_t* crateOrbit) = 0;
 
   virtual void frameHandler(const CrateHeader_t* crateHeader, const CrateOrbit_t* crateOrbit,
-                            const FrameHeader_t* frameHeader, const PackedHit_t* packedHits){};
+                            const FrameHeader_t* frameHeader, const PackedHit_t* packedHits) = 0;
 
   virtual void trailerHandler(const CrateHeader_t* crateHeader, const CrateOrbit_t* crateOrbit,
                               const CrateTrailer_t* crateTrailer, const Diagnostic_t* diagnostics,
-                              const Error_t* errors){};
-
-  /** old API, deprecated **/
-
-  virtual void trailerHandler(const CrateHeader_t* crateHeader, const CrateOrbit_t* crateOrbit,
-                              const CrateTrailer_t* crateTrailer, const Diagnostic_t* diagnostics){};
+                              const Error_t* errors) = 0;
 
   bool processHBF();
   bool processDRM();
