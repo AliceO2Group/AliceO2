@@ -35,7 +35,7 @@ using namespace std;
 // qa.root
 // 18000283989033.808.root
 // TRD.Digits.root
-void convertRun2ToRun3Digits(TString qaOutPath = "",
+void ConvertRun2ToRun3Digits(TString qaOutPath = "",
         TString rawDataInPath = "",
         TString run2DigitsInPath = "",
         TString run3DigitsOutPath = "trddigits.root",
@@ -183,6 +183,9 @@ void convertRun2ToRun3Digits(TString qaOutPath = "",
                     {
                         int tbsum = 0;
                         ArrayADC adctimes;
+
+                        cout << "timebins: " << digitMan->GetDigits(det)->GetNtime() << endl;
+
                         for (int timebin = 0; timebin < digitMan->GetDigits(det)->GetNtime(); timebin++)
                         {
                             int adc = digitMan->GetDigitAmp(row, col, timebin, det);
