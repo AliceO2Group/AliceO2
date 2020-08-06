@@ -49,7 +49,7 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
     {"tpc-sectors", VariantType::String, "0-35", {"TPC sector range, e.g. 5-7,8,9"}},
     {"tpc-lanes", VariantType::Int, 1, {"number of parallel lanes up to the tracker"}},
     {"dispatching-mode", VariantType::String, "prompt", {"determines when to dispatch: prompt, complete"}},
-    {"tpc-zs", VariantType::Bool, false, {"use TPC zero suppression, true/false"}},
+    {"tpc-zs-on-the-fly", VariantType::Bool, false, {"use TPC zero suppression on the fly, true/false"}},
     {"zs-threshold", VariantType::Float, 2.0f, {"zero suppression threshold"}},
     {"zs-10bit", VariantType::Bool, false, {"use 10 bit ADCs for TPC zero suppression, true/false, default/false = 12 bit ADC"}},
     {"configKeyValues", VariantType::String, "", {"Semicolon separated key=value strings (e.g.: 'TPCHwClusterer.peakChargeThreshold=4;...')"}},
@@ -146,7 +146,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
                                              inputType,                                      //
                                              cfgc.options().get<std::string>("output-type"), //
                                              cfgc.options().get<bool>("ca-clusterer"),       //
-                                             cfgc.options().get<bool>("tpc-zs"),             //
+                                             cfgc.options().get<bool>("tpc-zs-on-the-fly"),  //
                                              cfgc.options().get<bool>("zs-10bit"),           //
                                              cfgc.options().get<float>("zs-threshold")       //
   );
