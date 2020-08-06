@@ -125,8 +125,7 @@ class TrackMFTExt : public TrackMFT
 
   void setClusterIndex(int l, int i, int ncl)
   {
-    //int ncl = getNumberOfClusters();
-    mIndex[ncl] = (l << 28) + i;
+    mIndex[ncl] = (l << 27) + i;
     getClusterRefs().setEntries(ncl);
   }
 
