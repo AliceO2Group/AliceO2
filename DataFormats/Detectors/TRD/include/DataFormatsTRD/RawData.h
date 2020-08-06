@@ -22,119 +22,96 @@ namespace o2
 namespace trd
 {
 
+/// \structure HalfCRUHeader
+/// \brief Header for half a cru, each cru has 2 output, 1 for each pciid.
+//         This comes at the top of the data stream for each event and 1/2cru
+
 struct HalfCRUHeader {
+
   /* Half cru header
 64 bits is too wide, hence reduce to 32 to make it readable.
-
         |31|30|29|28|27|26|25|24|23|22|21|20|19|18|17|16|15|14|13|12|11|10|09|08|07|06|05|04|03|02|01|00|
         -------------------------------------------------------------------------------------------------
-Word 0  |  link 0  errorflags   |               link 0 datasize                 |  link 1  errorflags   |
+Word 0  |  eventtype   | end point | stopbit|             bunchcrossing         |      headerversion    |
         -------------------------------------------------------------------------------------------------
-Word 0  |   link 0 data size                            |   link 2 error flags  |  link 2 datasize upper|
+Word 0  |                                          reserved 1                                           |
         -------------------------------------------------------------------------------------------------
-Word 1  | link 2 datasize lower |   link 3 errorflags   |              link 3 datasize                  |
+Word 1  |  link 3  errorflags   |    link 2 errorflags  |  link 1 error flags   |  link 0 error flags   |
         -------------------------------------------------------------------------------------------------
-Word 1  |  link 4  errorflags   |               link 4 datasize                 |  link 5  errorflags   |
+Word 1  |  link 7 error flags   |   link 6 error flags  |  link 5 error flags   |  link 4 error flags   |
         -------------------------------------------------------------------------------------------------
-Word 2  |   link 5 data size                            |   link 6 error flags  |  link 6 datasize upper|
+Word 2  |  link 11 error flags  |   link 10 error flags |  link 9 error flags   |  link 8 error flags   |
         -------------------------------------------------------------------------------------------------
-Word 2  | link 6 datasize lower |   link 7 errorflags   |              link 7 datasize                  |
+Word 2  |  link 12 error flags  |  link 13 error flags  |  link 14 error flags  |      reserved 2       |
         -------------------------------------------------------------------------------------------------
-Word 3  |                                          reserved                                             |
+Word 3  |                                          reserved 3                                           |
         -------------------------------------------------------------------------------------------------
-Word 3  | header version        | bunch crossing                    | stop bit  |  event type           |
+Word 3  |                                          reserved 4                                           |
         -------------------------------------------------------------------------------------------------
-Word 4  |                                          reserved                                             |
+Word 4  |            link 1 datasize                    |             link 0 datasize                   |
         -------------------------------------------------------------------------------------------------
-Word 4  |                                          reserved                                             |
+Word 4  |            link 3 datasize                    |             link 2 datasize                   |
         -------------------------------------------------------------------------------------------------
-Word 5  |                      reserved                                         | link 8 error flags    |
+Word 5  |            link 5 datasize                    |             link 4 datasize                   |
         -------------------------------------------------------------------------------------------------
-Word 5  |   link 8 data size                            |   link 9 error flags  |  link 9 datasize upper|
+Word 5  |            link 7 datasize                    |             link 6 datasize                   |
         -------------------------------------------------------------------------------------------------
-Word 6  | link 9 datasize lower |   link 10 errorflags  |              link 10 datasize                 |
+Word 6  |            link 9 datasize                    |             link 8 datasize                   |
         -------------------------------------------------------------------------------------------------
-Word 6  |  link 11 errorflags   |               link 11 datasize                |  link 12 errorflags   |
+Word 6  |            link 11 datasize                   |             link 10 datasize                  |
         -------------------------------------------------------------------------------------------------
-Word 7  |   link 12 data size                            | link 13 error flags  | link 13 datasize upper|
+Word 7  |            link 13 datasize                   |             link 12 datasize                  |
         -------------------------------------------------------------------------------------------------
-Word 7  |link 13 datasize lower |   link 14 errorflags   |              link 14 datasize                |
+Word 7  |              reserved 5                       |             link 14 datasize                  |
         -------------------------------------------------------------------------------------------------
-
-alternate candidate :
-        |31|30|29|28|27|26|25|24|23|22|21|20|19|18|17|16|15|14|13|12|11|10|09|08|07|06|05|04|03|02|01|00|
-        -------------------------------------------------------------------------------------------------
-Word 0  | header version        | bunch crossing                    | stop bit  |  event type           |
-        -------------------------------------------------------------------------------------------------
-Word 0  |                                          reserved                                             |
-        -------------------------------------------------------------------------------------------------
-Word 1  |  link 0  errorflags   |    link 1 errorflags  | link2 error flags     | link 3 error flags    |
-        -------------------------------------------------------------------------------------------------
-Word 1  |   link 4 error flags  |   link 5 error flags  |  link 6 error flags   | link 7 error flags    |
-        -------------------------------------------------------------------------------------------------
-Word 2  |            link 0 datasize                    |            link 1 datasize                    |
-        -------------------------------------------------------------------------------------------------
-Word 2  |            link 2 datasize                    |            link 3 datasize                    |
-        -------------------------------------------------------------------------------------------------
-Word 3  |            link 4 data size                   |            link 5 datasize                    |
-        -------------------------------------------------------------------------------------------------
-Word 3  |             link 6 datasize                   |            link 7 datasize                    |
-        -------------------------------------------------------------------------------------------------
-Word 4  |                                          reserved                                             |
-        -------------------------------------------------------------------------------------------------
-Word 4  |                                          reserved                                             |
-        -------------------------------------------------------------------------------------------------
-Word 5  |                                         reserved                      |  link 8 error flags   |
-        -------------------------------------------------------------------------------------------------
-Word 5  |   link 9  errorflags  |    link 10 errorflags |   link11 error flags | link 12 error flags    |
-        -------------------------------------------------------------------------------------------------
-Word 6  |   link 13 error flags |   link 14 error flags |            link 8 datasize                    |
-        -------------------------------------------------------------------------------------------------
-Word 6  |            link 9 datasize                    |            link 10 datasize                   |
-        -------------------------------------------------------------------------------------------------
-Word 7  |            link 11 datasize                   |            link 12 datasize                   |
-        -------------------------------------------------------------------------------------------------
-Word 7  |            link 13 datasize                   |            link 14 datasize                   |
-       --------------------------------------------------------------------------------------------------
 */
 
   union {
-    uint64_t word02[3];
-    struct {
-      uint64_t errorflags : 8;
-      uint64_t size : 16;
-    } __attribute__((__packed__)) linksA[8];
-  };
-  union {
-    uint64_t word3 = 0x0;
+    uint64_t word0 = 0x0;
     //first word          *
-    // uint64_t: 0x0000000000000000
-    //             |      - |   ||
-    //             |      | |   |- 0..7 Event type
-    //             |      | |   -- 8..11 Stop bit
-    //             |      | ------ 12..23 bunch crossing id
-    //             |      -------- 24..31 TRD Header version
-    //             --------------- 32..63 reserveda
+    //                6         5         4         3         2         1
+    //             3210987654321098765432109876543210987654321098765432109876543210
+    // uint64_t:   0000000000000000000000000000000000000000000000000000000000000000
+    //             |                               |   |   |   |           |-------- 0..7   TRD Header version
+    //             |                               |   |   |   |-------------------- 8..19  bunch crossing
+    //             |                               |   |   |------------------------ 20..23 stop bit
+    //             |                               |   |---------------------------- 24..27 end point
+    //             |                               |-------------------------------- 28..31 event type
+    //             |---------------------------------------------------------------- 32..63 reserved1
     struct {
-      uint64_t reserveda : 32;     //
       uint64_t HeaderVersion : 8;  // TRD Header Version
       uint64_t BunchCrossing : 12; // bunch crossing
       uint64_t StopBit : 4;        // 8 .. 11 stop bit  0x1 if TRD packet is last data packet of trigger, else 0x0  TODO why 4 bits if only using 1?
-      uint64_t EventType : 8;      // bit 0..7 event type of the data. Trigger bits from TTC-PON message, distinguish physics from calibration events.
+      uint64_t EndPoint : 4;       // bit 0..7 event type of the data. Trigger bits from TTC-PON message, distinguish physics from calibration events.
+      uint64_t EventType : 4;      // bit 0..7 event type of the data. Trigger bits from TTC-PON message, distinguish physics from calibration events.
+      uint64_t reserveda : 32;     //
     } __attribute__((__packed__));
   };
   union {
-    uint64_t word4 = 0x0;
+    uint64_t word12[2];
+    // 15 8 bit error flags and 1 8 bit reserved.
     struct {
-      uint64_t reservedb;
+      struct {
+        uint8_t errorflag : 8;
+      } __attribute__((__packed__)) errorflags[15];
+      uint8_t reserved2 : 8;
     } __attribute__((__packed__));
   };
   union {
-    uint64_t word57[3];
+    uint64_t word3 = 0x0;
     struct {
-      uint64_t errorflags : 8;
-      uint64_t size : 16;
-    } __attribute__((__packed__)) linksB[8]; // although this is 8 dont use index 0 as its part of reserved.
+      uint64_t reserved34;
+    } __attribute__((__packed__));
+  };
+  union {
+    uint64_t word47[4];
+    //15 16 bit data sizes and 1 16 bit reserved word.
+    struct {
+      struct {
+        uint64_t size : 16;
+      } __attribute__((__packed__)) datasizes[15]; // although this is 8 dont use index 0 as its part of reserved.
+      uint16_t reserved5;
+    } __attribute__((__packed__));
   };
 };
 

@@ -46,47 +46,41 @@ BOOST_AUTO_TEST_CASE(TRDRawDataHeaderInternals)
   o2::trd::TrackletMCMData tracklet;
   o2::trd::TrackletHCHeader halfchamberheader;
   o2::trd::HalfCRUHeader halfcruheader;
-  halfcruheader.word02[0] = 0x102;
-  BOOST_CHECK_EQUAL(halfcruheader.linksA[0].errorflags, 2);
-  BOOST_CHECK_EQUAL(halfcruheader.linksA[0].size, 1);
-  BOOST_CHECK_EQUAL(halfcruheader.linksA[0].errorflags, o2::trd::getlinkerrorflag(halfcruheader, 0));
-  BOOST_CHECK_EQUAL(halfcruheader.linksA[0].size, o2::trd::getlinkdatasize(halfcruheader, 0));
-  //ab is size
-  halfcruheader.word02[2] = 0xffffaa0000000000;
-  BOOST_CHECK_EQUAL(halfcruheader.linksA[7].size, 0xffff);
-  BOOST_CHECK_EQUAL(halfcruheader.linksA[7].errorflags, 0xaa);
-  BOOST_CHECK_EQUAL(halfcruheader.linksA[7].errorflags, o2::trd::getlinkerrorflag(halfcruheader, 7));
-  BOOST_CHECK_EQUAL(halfcruheader.linksA[7].size, o2::trd::getlinkdatasize(halfcruheader, 7));
-  halfcruheader.word3 = (0x222LL) << 40; //bc is at 0x000ffff000000000
+  // changed as now nothing spans a 32 or 16 bit boundary
+  halfcruheader.word0 = 0x22200; //bc is at 0x0000000fff00
   BOOST_CHECK_EQUAL(halfcruheader.BunchCrossing, 0x222);
-  halfcruheader.word3 = 0x7700000000; //headerversion is at 0x00ff0000000
+  halfcruheader.word0 = 0x00000077; //headerversion is at 0x000000000
   BOOST_CHECK_EQUAL(halfcruheader.HeaderVersion, 119);
-  halfcruheader.word57[0] = 0x345869faba;
-  halfcruheader.word57[2] = 0xaaade1277;
-  //linkb[0] zero is undefined.
-  BOOST_CHECK_EQUAL(halfcruheader.linksB[1].errorflags, 0x58);
-  BOOST_CHECK_EQUAL(halfcruheader.linksB[1].size, 0x34);
-  BOOST_CHECK_EQUAL(halfcruheader.linksB[1].errorflags, o2::trd::getlinkerrorflag(halfcruheader, 8));
-  BOOST_CHECK_EQUAL(halfcruheader.linksB[1].size, o2::trd::getlinkdatasize(halfcruheader, 8));
-  //ab is size
-  BOOST_CHECK_EQUAL(halfcruheader.linksB[5].size, 0x1277);
-  BOOST_CHECK_EQUAL(halfcruheader.linksB[6].size, 0xaaa);
-  BOOST_CHECK_EQUAL(halfcruheader.linksB[6].errorflags, 0xde);
-  BOOST_CHECK_EQUAL(halfcruheader.linksB[6].errorflags, o2::trd::getlinkerrorflag(halfcruheader, 13));
-  BOOST_CHECK_EQUAL(halfcruheader.linksB[6].size, o2::trd::getlinkdatasize(halfcruheader, 13));
-  //now test the boundary crossing of the int64_t
-  halfcruheader.word02[0] = (uint64_t)0x1000000000000000;
-  halfcruheader.word02[1] = (uint64_t)0xa00b000c000d0ebf;
-  BOOST_CHECK_EQUAL(halfcruheader.linksA[2].size, 0xbf10); // check a size that spans a 64bit word.
+  //error flags
+  halfcruheader.word12[0] = 0xa02;
+  halfcruheader.word12[1] = 0xab0000;
+  BOOST_CHECK_EQUAL(halfcruheader.errorflags[0].errorflag, 2);
+  BOOST_CHECK_EQUAL(halfcruheader.errorflags[1].errorflag, 0xa);
+  halfcruheader.word12[1] = 0x00ed000000000000; // should link 14 error flags.
+  BOOST_CHECK_EQUAL(halfcruheader.errorflags[14].errorflag, 0xed);
+  BOOST_CHECK_EQUAL(halfcruheader.errorflags[14].errorflag, o2::trd::getlinkerrorflag(halfcruheader, 14));
+  //datasizes
+  halfcruheader.word47[0] = 0xbdbd;
+  BOOST_CHECK_EQUAL(halfcruheader.datasizes[0].size, 0xbdbd);
+  BOOST_CHECK_EQUAL(halfcruheader.datasizes[0].size, o2::trd::getlinkdatasize(halfcruheader, 0));
+  halfcruheader.word47[1] = 0xabcd;
+  BOOST_CHECK_EQUAL(halfcruheader.datasizes[4].size, 0xabcd);
+  BOOST_CHECK_EQUAL(halfcruheader.datasizes[4].size, o2::trd::getlinkdatasize(halfcruheader, 4));
+  halfcruheader.word47[2] = 0xaaade127;
+  BOOST_CHECK_EQUAL(halfcruheader.datasizes[8].size, 0xe127);
+  BOOST_CHECK_EQUAL(halfcruheader.datasizes[8].size, o2::trd::getlinkdatasize(halfcruheader, 8));
+  halfcruheader.word47[3] = 0xefaadebc0000;
+  BOOST_CHECK_EQUAL(halfcruheader.datasizes[14].size, 0xefaa);
+  BOOST_CHECK_EQUAL(halfcruheader.datasizes[14].size, o2::trd::getlinkdatasize(halfcruheader, 14));
   o2::trd::TrackletMCMHeader mcmrawdataheader;
   mcmrawdataheader.word = 0x78000000;
   BOOST_CHECK_EQUAL(mcmrawdataheader.padrow, 15);
   mcmrawdataheader.word = 0x06000000;
   BOOST_CHECK_EQUAL(mcmrawdataheader.col, 3);
   mcmrawdataheader.word = 0x01fe0000;
-  BOOST_CHECK_EQUAL(mcmrawdataheader.pid2, 0xff); // 8 bits  // gave up seperating pid, so its a flat 24 bit needs to be masked 0xfff 0xfff000 and 0xfff000000
+  BOOST_CHECK_EQUAL(mcmrawdataheader.pid2, 0xff); // 8 bits
   mcmrawdataheader.word = 0x01fe;
-  BOOST_CHECK_EQUAL(mcmrawdataheader.pid0, 0xff); // 8 bits  // gave up seperating pid, so its a flat 24 bit needs to be masked 0xfff 0xfff000 and 0xfff000000
+  BOOST_CHECK_EQUAL(mcmrawdataheader.pid0, 0xff); // 8 bits
   //check tracklet
   tracklet.word = 0xffc00000;
   BOOST_CHECK_EQUAL((uint32_t)tracklet.pos, 0x3ff);

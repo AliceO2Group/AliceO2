@@ -18,44 +18,13 @@ namespace o2
 namespace trd
 {
 
-uint32_t unpacklinkinfo(const HalfCRUHeader& cruhead, const uint32_t link, const bool data = true)
-{
-  // cruhead is the incoming header to pass
-  // link is the link you are requesting information on, 0-14
-  //
-  uint32_t info = 0;
-  if (link > 14)
-    return 0xffffffff;
-
-  char* words;
-  if (link < 8)
-    words = (char*)&cruhead.word02[0];
-  if (link < 15)
-    words = (char*)&cruhead.word57[0];
-  uint32_t byteoffset = link * 3; // each link [size+erroflags] is 24 bits, so 3 bytes.
-  if (data)
-    info = ((words[byteoffset + 1]) << 8) + (words[byteoffset + 2]);
-  else
-    info = words[byteoffset];
-
-  return info;
-}
-
 uint32_t getlinkerrorflag(const HalfCRUHeader& cruhead, const uint32_t link)
 {
   // link is the link you are requesting information on, 0-14
-  uint32_t errorflags = 0;
-  if (link < 8) {
-    //dealing with word0-2
-    errorflags = cruhead.linksA[link].errorflags;
-  } else {
-    if (link < 16) {
-      errorflags = cruhead.linksB[link - 8 + 1].errorflags; // link 0 [actually 9] is in fact the end part of reserved.
-
-    } else
-      std::cout << "error link=" << link << " not in range 0-14" << std::endl;
-  }
-  return errorflags;
+  uint32_t errorflag = 0;
+  //dealing with word0-2
+  errorflag = cruhead.errorflags[link].errorflag;
+  return errorflag;
 }
 
 uint32_t getlinkdatasize(const HalfCRUHeader& cruhead, const uint32_t link)
@@ -63,15 +32,7 @@ uint32_t getlinkdatasize(const HalfCRUHeader& cruhead, const uint32_t link)
   // link is the link you are requesting information on, 0-14
   //return number 32 byte blocks for the link 3x64bit ints.
   uint32_t size = 0;
-  if (link < 8) {
-    size = (cruhead.linksA[link].size);
-  } else {
-    if (link < 16) { // link 0 is part of reserved
-      size = cruhead.linksB[link - 8 + 1].size;
-
-    } else
-      std::cout << "error link=" << link << " not in range 0-14" << std::endl;
-  }
+  size = cruhead.datasizes[link].size;
   return size;
 }
 
@@ -175,7 +136,7 @@ std::ostream& operator<<(std::ostream& stream, const HalfCRUHeader& halfcru) // 
   for (int link = 0; link < 15; link++)
     stream << link << ":" << std::hex << std::setw(2) << getlinkerrorflag(halfcru, link) << ",";
   stream << std::endl;
-  stream << "0x" << halfcru.word02[0] << " 0x" << halfcru.word02[1] << " 0x" << halfcru.word02[2] << " 0x" << halfcru.word3 << " 0x" << halfcru.word4 << " 0x" << halfcru.word57[0] << " 0x" << halfcru.word57[1] << " 0x" << halfcru.word57[2] << std::endl;
+  stream << "0x" << std::hex << halfcru.word0 << " 0x" << halfcru.word12[0] << " 0x" << halfcru.word12[1] << " 0x" << halfcru.word3 << " 0x" << halfcru.word47[0] << " 0x" << halfcru.word47[1] << " 0x" << halfcru.word47[2] << " 0x" << halfcru.word47[3] << std::endl;
   return stream;
 }
 
