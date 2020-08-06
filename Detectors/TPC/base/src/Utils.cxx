@@ -12,13 +12,17 @@
 #include <regex>
 #include <string>
 #include <fmt/format.h>
+#include <fmt/printf.h>
 
+#include "TSystem.h"
 #include "TObject.h"
 #include "TObjArray.h"
 #include "TCanvas.h"
 #include "TH1.h"
 #include "TFile.h"
+#include "TChain.h"
 
+#include "Framework/Logger.h"
 #include "TPCBase/Mapper.h"
 #include "TPCBase/Utils.h"
 
@@ -101,10 +105,13 @@ void utils::addFECInfo()
 
   const auto& fecInfo = mapper.getFECInfo(PadROCPos(roc, row, pad));
 
-  std::string title("#splitline{#lower[.1]{#scale[.5]{");
-  title += (roc / 18 % 2 == 0) ? "A" : "C";
-  title += fmt::format("{:02d} ({:02d}) row: {:02d}, pad: {:03d}, globalpad: {:05d} (in roc)}}}{#scale[.5]{FEC: {:02d}, Chip: {:02d}, Chn: {:02d}, Value: {:.3f}}}",
-                       roc % 18, roc, row, pad, channel, fecInfo.getIndex(), fecInfo.getSampaChip(), fecInfo.getSampaChannel(), binValue);
+  const std::string title = fmt::format(
+    "#splitline{{#lower[.1]{{#scale[.5]{{"
+    "{}{:02d} ({:02d}) row: {:02d}, pad: {:03d}, globalpad: {:05d} (in roc)"
+    "}}}}}}{{#scale[.5]{{FEC: "
+    "{:02d}, Chip: {:02d}, Chn: {:02d}, Value: {:.3f}"
+    "}}}}",
+    (roc / 18 % 2 == 0) ? "A" : "C", roc % 18, roc, row, pad, channel, fecInfo.getIndex(), fecInfo.getSampaChip(), fecInfo.getSampaChannel(), binValue);
 
   h->SetTitle(title.data());
 }
@@ -122,10 +129,104 @@ void utils::saveCanvases(TObjArray& arr, std::string_view outDir, std::string_vi
   }
 }
 
+void utils::saveCanvases(std::vector<TCanvas*> canvases, std::string_view outDir, std::string_view types, std::string_view rootFileName)
+{
+  TObjArray arr;
+  for (auto c : canvases) {
+    arr.Add(c);
+  }
+
+  saveCanvases(arr, outDir, types, rootFileName);
+}
+
 void utils::saveCanvas(TCanvas& c, std::string_view outDir, std::string_view types)
 {
   const auto typesVec = tokenize(types, ",");
   for (const auto& type : typesVec) {
     c.SaveAs(fmt::format("{}/{}.{}", outDir, c.GetName(), type).data());
   }
+}
+
+std::vector<CalPad*> utils::readCalPads(const std::string_view fileName, const std::vector<std::string>& calPadNames)
+{
+  std::vector<CalPad*> calPads(calPadNames.size());
+
+  std::unique_ptr<TFile> file(TFile::Open(fileName.data()));
+  if (!file || !file->IsOpen() || file->IsZombie()) {
+    return calPads;
+  }
+
+  for (size_t iCalPad = 0; iCalPad < calPadNames.size(); ++iCalPad) {
+    file->GetObject(calPadNames[iCalPad].data(), calPads[iCalPad]);
+  }
+
+  return calPads;
+}
+
+std::vector<CalPad*> utils::readCalPads(const std::string_view fileName, const std::string_view calPadNames)
+{
+  auto calPadNamesVec = tokenize(calPadNames, ",");
+  return readCalPads(fileName, calPadNamesVec);
+}
+
+//______________________________________________________________________________
+void utils::mergeCalPads(std::string_view outputFileName, std::string_view inputFileNames, std::string_view calPadNames)
+{
+  using namespace o2::tpc;
+
+  const auto calPadNamesVec = utils::tokenize(calPadNames, ",");
+
+  std::string_view cmd = "ls";
+  if (inputFileNames.rfind(".root") == std::string_view::npos) {
+    cmd = "cat";
+  }
+  auto files = gSystem->GetFromPipe(TString::Format("%s %s", cmd.data(), inputFileNames.data()));
+  std::unique_ptr<TObjArray> arrFiles(files.Tokenize("\n"));
+
+  std::vector<CalPad*> mergedCalPads;
+
+  for (auto ofile : *arrFiles) {
+    auto calPads = utils::readCalPads(ofile->GetName(), calPadNamesVec);
+    if (!calPads.size()) {
+      continue;
+    }
+    if (!mergedCalPads.size()) {
+      mergedCalPads = calPads;
+    } else {
+      for (size_t iCalPad = 0; iCalPad < calPads.size(); ++iCalPad) {
+        auto calPadName = calPadNamesVec[iCalPad];
+        auto calPadMerged = mergedCalPads[iCalPad];
+        calPadMerged->setName(calPadName);
+        auto calPadToMerge = calPads[iCalPad];
+
+        *calPadMerged += *calPadToMerge;
+
+        delete calPadToMerge;
+      }
+    }
+  }
+
+  std::unique_ptr<TFile> outFile(TFile::Open(outputFileName.data(), "recreate"));
+  for (auto calPad : mergedCalPads) {
+    outFile->WriteObject(calPad, calPad->getName().data());
+  }
+}
+
+//______________________________________________________________________________
+TChain* utils::buildChain(std::string_view command, std::string_view treeName, std::string_view treeTitle)
+{
+  const TString files = gSystem->GetFromPipe(command.data());
+  std::unique_ptr<TObjArray> arrFiles(files.Tokenize("\n"));
+  if (!arrFiles->GetEntriesFast()) {
+    LOGP(error, "command '{}' did not return results", command);
+    return nullptr;
+  }
+
+  auto c = new TChain(treeName.data(), treeTitle.data());
+  for (const auto o : *arrFiles) {
+    LOGP(info, "Adding file '{}'", o->GetName());
+    c->AddFile(o->GetName());
+  }
+
+  return c;
 }

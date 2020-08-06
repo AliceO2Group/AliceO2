@@ -9,13 +9,28 @@
 // or submit itself to any jurisdiction.
 
 #include <iostream>
-//#include "DataFormatsTRD/Tracklet64.h"
+#include "DataFormatsTRD/Tracklet64.h"
 
 namespace o2
 {
 
 namespace trd
 {
+
+void Tracklet64::printStream(std::ostream& stream) const
+{
+  stream << "Tracklet64 : 0x" << std::hex << getTrackletWord();
+  stream << "\t hcid : " << getHCID() << " row:" << getPadRow() << " col:" << getColumn()
+         << " Position:" << getPosition() << " slope:" << getSlope()
+         << " PID:0x" << getPID()
+         << " Q0:" << getQ0() << " Q1:" << getQ1() << " Q2:" << getQ2();
+}
+
+std::ostream& operator<<(std::ostream& stream, const Tracklet64& trg)
+{
+  trg.printStream(stream);
+  return stream;
+}
 
 } // namespace trd
 } // namespace o2

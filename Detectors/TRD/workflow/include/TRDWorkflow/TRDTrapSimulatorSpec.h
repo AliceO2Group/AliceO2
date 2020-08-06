@@ -18,9 +18,11 @@
 #include "Framework/DataProcessorSpec.h"
 #include "Framework/Task.h"
 #include "TRDBase/FeeParam.h"
-#include "TRDBase/Tracklet.h"
 #include "TRDSimulation/TrapSimulator.h"
 #include "DataFormatsTRD/TriggerRecord.h"
+#include "DataFormatsTRD/LinkRecord.h"
+#include "DataFormatsTRD/Tracklet64.h"
+#include "DataFormatsTRD/RawData.h"
 #include "TRDSimulation/TrapConfig.h"
 #include "CCDB/BasicCCDBManager.h"
 
@@ -39,7 +41,12 @@ class TRDDPLTrapSimulatorTask : public o2::framework::Task
 
   void init(o2::framework::InitContext& ic) override;
   void run(o2::framework::ProcessingContext& pc) override;
-  void fixTriggerRecords(std::vector<o2::trd::TriggerRecord>& trigRecord);
+
+ protected:
+  void fixTriggerRecords(std::vector<o2::trd::TriggerRecord>& trigRecord); // should be temporary.
+  void setTriggerRecord(std::vector<o2::trd::TriggerRecord>& triggerrecord, uint32_t currentrecord, uint64_t recordsize);
+  void setTrapSimulatorData(int adc, std::vector<o2::trd::Digit>& digits, int digitposition);
+  // TODO LABELS, o2::dataformats::MCTruthContainer<o2::MCCompLabel>* labels)
 
  private:
   std::array<TrapSimulator, 8> mTrapSimulator; //the 8 trap simulators for a given padrow.
@@ -58,13 +65,14 @@ class TRDDPLTrapSimulatorTask : public o2::framework::Task
   bool mEnableOnlineGainCorrection{false};
   bool mEnableTrapConfigDump{false};
   bool mFixTriggerRecords{false};   // shift the trigger record due to its being corrupt on coming in.
-  std::vector<Tracklet> mTracklets; // store of found tracklets
+  std::vector<Tracklet64> mTracklets; // store of found tracklets
   std::string mTrapConfigName;      // the name of the config to be used.
   std::string mTrapConfigBaseName = "TRD_test/TrapConfig/";
   std::unique_ptr<CalOnlineGainTables> mGainTable; //this will probably not be used in run3.
   std::string mOnlineGainTableName;
   std::unique_ptr<Calibrations> mCalib; // store the calibrations connection to CCDB. Used primarily for the gaintables in line above.
 
+  std::vector<o2::trd::LinkRecord> mLinkRecords;
   //arrays to keep some stats during processing
   std::array<unsigned int, 8> mTrapUsedCounter{0};
   std::array<unsigned int, 8> mTrapUsedFrequency{0};
@@ -77,9 +85,14 @@ class TRDDPLTrapSimulatorTask : public o2::framework::Task
   std::chrono::duration<double> mTrackletTime{0};           ///< full timer
   std::chrono::duration<double> mSortingTime{0};            ///< full timer
 
+  uint64_t mTotalRawWordsWritten = 0; // words written for the raw format of 4x32bits, where 4 can be 2 to 4 depending on # of tracklets in the block.
+  int32_t mOldHalfChamberID = 0;
+  bool mNewTrackletHCHeaderHasBeenWritten{false};
+  TrackletHCHeader mTrackletHCHeader; // the current half chamber header, that will be written if a first tracklet is found for this halfchamber.
   TrapConfig* getTrapConfig();
   void loadTrapConfig();
   void setOnlineGainTables();
+  uint32_t getHalfChamberID(uint32_t detector, uint32_t rob) { return detector * 2 + rob % 2; };
 };
 
 o2::framework::DataProcessorSpec getTRDTrapSimulatorSpec();

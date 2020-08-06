@@ -86,7 +86,7 @@ struct DummyService {
 BOOST_AUTO_TEST_CASE(TestSerialServices)
 {
   using namespace o2::framework;
-  ServiceRegistryBase registry;
+  ServiceRegistry registry;
 
   DummyService t0{0};
   /// We register it pretending to be on thread 0
@@ -103,7 +103,7 @@ BOOST_AUTO_TEST_CASE(TestSerialServices)
 BOOST_AUTO_TEST_CASE(TestGlobalServices)
 {
   using namespace o2::framework;
-  ServiceRegistryBase registry;
+  ServiceRegistry registry;
 
   DummyService t0{0};
   /// We register it pretending to be on thread 0
@@ -120,7 +120,7 @@ BOOST_AUTO_TEST_CASE(TestGlobalServices)
 BOOST_AUTO_TEST_CASE(TestGlobalServices02)
 {
   using namespace o2::framework;
-  ServiceRegistryBase registry;
+  ServiceRegistry registry;
 
   DummyService t0{1};
   /// We register it pretending to be on thread 0
@@ -137,7 +137,7 @@ BOOST_AUTO_TEST_CASE(TestGlobalServices02)
 BOOST_AUTO_TEST_CASE(TestStreamServices)
 {
   using namespace o2::framework;
-  ServiceRegistryBase registry;
+  ServiceRegistry registry;
 
   DummyService t0{0};
   DummyService t1{1};

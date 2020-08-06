@@ -15,6 +15,7 @@
 #include "Rtypes.h"
 #include "TOFBase/Geo.h"
 #include "CommonDataFormat/RangeReference.h"
+#include "CommonDataFormat/InteractionRecord.h"
 #include <gsl/span>
 
 #include <boost/serialization/base_object.hpp> // for base_object
@@ -37,6 +38,10 @@ class Digit
   static ULong64_t getOrderingKey(Int_t channel, uint64_t bc, Int_t /*tdc*/)
   {
     return ((static_cast<ULong64_t>(bc) << 18) + channel); // channel in the least significant bits; then shift by 18 bits (which cover the total number of channels) to write the BC number
+  }
+  ULong64_t getOrderingKey()
+  {
+    return getOrderingKey(mChannel, mBC, mTDC);
   }
 
   Int_t getChannel() const { return mChannel; }
@@ -107,6 +112,24 @@ struct ReadoutWindowData {
   // 1st entry and number of entries in the full vector of digits
   // for given trigger (or BC or RO frame)
   o2::dataformats::RangeReference<int, int> ref;
+  o2::dataformats::RangeReference<int, int> refDiagnostic;
+  InteractionRecord mFirstIR{0, 0};
+
+  const InteractionRecord& getBCData() const { return mFirstIR; }
+
+  void setBCData(int orbit, int bc)
+  {
+    mFirstIR.orbit = orbit;
+    mFirstIR.bc = bc;
+  }
+  void setBCData(InteractionRecord& src)
+  {
+    mFirstIR.orbit = src.orbit;
+    mFirstIR.bc = src.bc;
+  }
+  void SetBC(int bc) { mFirstIR.bc = bc; }
+  void SetOrbit(int orbit) { mFirstIR.orbit = orbit; }
+
   gsl::span<const Digit> getBunchChannelData(const gsl::span<const Digit> tfdata) const
   {
     // extract the span of channel data for this readout window from the whole TF data
@@ -118,12 +141,21 @@ struct ReadoutWindowData {
   {
     ref.setFirstEntry(first);
     ref.setEntries(ne);
+    refDiagnostic.setFirstEntry(0);
+    refDiagnostic.setEntries(0);
   }
 
   int first() const { return ref.getFirstEntry(); }
   int size() const { return ref.getEntries(); }
+  int firstDia() const { return refDiagnostic.getFirstEntry(); }
+  int sizeDia() const { return refDiagnostic.getEntries(); }
 
-  ClassDefNV(ReadoutWindowData, 1);
+  void setFirstEntry(int first) { ref.setFirstEntry(first); }
+  void setNEntries(int ne) { ref.setEntries(ne); }
+  void setFirstEntryDia(int first) { refDiagnostic.setFirstEntry(first); }
+  void setNEntriesDia(int ne) { refDiagnostic.setEntries(ne); }
+
+  ClassDefNV(ReadoutWindowData, 3);
 };
 
 } // namespace tof

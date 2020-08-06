@@ -30,7 +30,6 @@
 #include <memory>   // for std::unique_ptr
 #include "Rtypes.h" // for ClassDef
 #include "fairlogger/Logger.h"
-#include "TRDBase/FeeParam.h"
 
 namespace o2
 {
@@ -42,46 +41,23 @@ Word 0  |   Format  |              HCID              |  padrow   | col |        
         -------------------------------------------------------------------------------------------------
         |31|30|29|28|27|26|25|24|23|22|21|20|19|18|17|16|15|14|13|12|11|10|09|08|07|06|05|04|03|02|01|00|
         -------------------------------------------------------------------------------------------------
-Word 0  |  slope                |    Q0                 |    Q1                 |         Q2            |
+Word 0  |  slope                |    Q2                 |    Q1                 |         Q0            |
         -------------------------------------------------------------------------------------------------
 */
 class Tracklet64
 {
-  // bit masks for the above raw data;
-  static constexpr uint64_t formatmask = 0xf000000000000000;
-  static constexpr uint64_t hcidmask = 0x0ffe000000000000;
-  static constexpr uint64_t padrowmask = 0x0001e00000000000;
-  static constexpr uint64_t colmask = 0x0000180000000000;
-  static constexpr uint64_t posmask = 0x000007ff00000000;
-  static constexpr uint64_t slopemask = 0x00000000ff000000;
-  static constexpr uint64_t Q0mask = 0x0000000000ff0000;
-  static constexpr uint64_t Q1mask = 0x000000000000ff00;
-  static constexpr uint64_t Q2mask = 0x00000000000000ff;
-  static constexpr uint64_t PIDmask = 0x0000000000ffffff;
-  //bit shifts for the above raw data
-  static constexpr uint64_t formatbs = 60;
-  static constexpr uint64_t hcidbs = 49;
-  static constexpr uint64_t padrowbs = 45;
-  static constexpr uint64_t colbs = 43;
-  static constexpr uint64_t posbs = 32;
-  static constexpr uint64_t slopebs = 24;
-  static constexpr uint64_t PIDbs = 0;
-  static constexpr uint64_t Q0bs = 16;
-  static constexpr uint64_t Q1bs = 8;
-  static constexpr uint64_t Q2bs = 0;
 
  public:
   Tracklet64() = default;
   Tracklet64(uint64_t trackletword) { mtrackletWord = trackletword; }
-  Tracklet64(const Tracklet64& rhs);
+  Tracklet64(const Tracklet64& rhs) { mtrackletWord = rhs.getTrackletWord(); };
   Tracklet64(uint64_t format, uint64_t hcid, uint64_t padrow, uint64_t col, uint64_t position,
-             uint64_t slope, uint64_t Q2, uint64_t Q1, uint64_t Q0)
+             uint64_t slope, uint64_t Q0, uint64_t Q1, uint64_t Q2)
   {
-    buildTrackletWord(format, hcid, padrow, col, position, slope, Q2, Q1, Q0);
+    buildTrackletWord(format, hcid, padrow, col, position, slope, Q0, Q1, Q2);
   }
 
   ~Tracklet64() = default;
-
   Tracklet64& operator=(const Tracklet64& o) { return *this; }
 
   //TODO convert to the actual number  regarding compliments.
@@ -106,16 +82,26 @@ class Tracklet64
     mtrackletWord = trackletword;
     return 0;
   }
+  static const int mgkNmcmRob = 16;     // Number of MCMs per ROB
+  static const int mgkNmcmRobInRow = 4; // Number of MCMs per ROB in row dir.
+  static const int mgkNmcmRobInCol = 4; // Number of MCMs per ROB in col dir.
+  static const int mgkNrobC0 = 6;       // Number of ROBs per C0 chamber
+  static const int mgkNrobC1 = 8;       // Number of ROBs per C1 chamber
+  static const int mgkNadcMcm = 21;     // Number of ADC channels per MCM
+  static const int mgkNcol = 144;       // Number of pads per padplane row
+  static const int mgkNcolMcm = 18;     // Number of pads per MCM
+  static const int mgkNrowC0 = 12;      // Number of Rows per C0 chamber
+  static const int mgkNrowC1 = 16;      // Number of Rows per C1 chamber
+
   // ----- Getters for tracklet information -----
-  // TODO figure out how to get MCM and ROB from hcid, col and padrow.
   int getMCM() const
   {
-    return (getColumn() % (FeeParam::mgkNcol / 2)) / FeeParam::mgkNcolMcm + FeeParam::mgkNmcmRobInCol * (getPadRow() % FeeParam::mgkNmcmRobInRow);
+    return (getColumn() % (72)) / 18 + 4 * (getPadRow() % 4);
   }
   int getROB() const
   {
-    int side = getColumn() / (FeeParam::mgkNcol / 2);
-    return (int)((int)getPadRow() / (int)FeeParam::mgkNmcmRobInRow) * 2 + side;
+    int side = getColumn() / 72;
+    return (int)((int)getPadRow() / 8 + side);
   }
 
   // ----- Getters for offline corresponding values -----
@@ -145,6 +131,30 @@ class Tracklet64
   void setPID(uint64_t pid) { mtrackletWord |= ((((uint64_t)pid) << PIDbs) & PIDmask); } // set the entire pid area of the trackletword, all the 3 Q's
   void setPosition(uint64_t position) { mtrackletWord |= ((((uint64_t)position) << posbs) & posmask); }
   void setSlope(uint64_t slope) { mtrackletWord |= ((((uint64_t)slope) << slopebs) & slopemask); }
+  void printStream(std::ostream& stream) const;
+
+  // bit masks for the above raw data;
+  static constexpr uint64_t formatmask = 0xf000000000000000;
+  static constexpr uint64_t hcidmask = 0x0ffe000000000000;
+  static constexpr uint64_t padrowmask = 0x0001e00000000000;
+  static constexpr uint64_t colmask = 0x0000180000000000;
+  static constexpr uint64_t posmask = 0x000007ff00000000;
+  static constexpr uint64_t slopemask = 0x00000000ff000000;
+  static constexpr uint64_t Q2mask = 0x0000000000ff0000;
+  static constexpr uint64_t Q1mask = 0x000000000000ff00;
+  static constexpr uint64_t Q0mask = 0x00000000000000ff;
+  static constexpr uint64_t PIDmask = 0x0000000000ffffff;
+  //bit shifts for the above raw data
+  static constexpr uint64_t formatbs = 60;
+  static constexpr uint64_t hcidbs = 49;
+  static constexpr uint64_t padrowbs = 45;
+  static constexpr uint64_t colbs = 43;
+  static constexpr uint64_t posbs = 32;
+  static constexpr uint64_t slopebs = 24;
+  static constexpr uint64_t PIDbs = 0;
+  static constexpr uint64_t Q2bs = 16;
+  static constexpr uint64_t Q1bs = 8;
+  static constexpr uint64_t Q0bs = 0;
 
  protected:
   uint64_t mtrackletWord; // the 64 bit word holding all the tracklet information for run3.
@@ -153,7 +163,7 @@ class Tracklet64
   ClassDefNV(Tracklet64, 1);
 };
 
-//using Tracklet = RawTracklet64;
+std::ostream& operator<<(std::ostream& stream, const Tracklet64& trg);
 
 } //namespace trd
 } //namespace o2

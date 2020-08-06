@@ -32,6 +32,7 @@ using namespace o2::framework::expressions;
 using std::array;
 using namespace ROOT::Math;
 
+/// Reconstruction of heavy-flavour 2-prong decay candidates
 struct HFCandidateCreator2Prong {
   Produces<aod::HfCandProng2> hfcandprong2;
   Configurable<bool> b_dovalplots{"b_dovalplots", true, "do validation plots"};
@@ -67,6 +68,7 @@ struct HFCandidateCreator2Prong {
     double mass2PiK{0};
     double mass2KPi{0};
 
+    // loop over 2-prong secondary vertices
     for (auto& hfpr2 : hftrackindexprong2s) {
       auto trackparvar_p1 = getTrackParCov(hfpr2.index0());
       auto trackparvar_n1 = getTrackParCov(hfpr2.index1());

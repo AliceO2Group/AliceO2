@@ -254,6 +254,21 @@ class Mapper
     return pos;
   }
 
+  /// sampa on FEC and channel on SAMPA from the cru and the raw FEC channel (0-79) in the half FEC
+  /// this is required for the link-based zero suppression
+  static constexpr void getSampaAndChannelOnFEC(const int cruID, const size_t rawFECChannel, int& sampaOnFEC, int& channelOnSAMPA)
+  {
+    constexpr int sampaMapping[10] = {0, 0, 1, 1, 2, 3, 3, 4, 4, 2};
+    constexpr int channelOffset[10] = {0, 16, 0, 16, 0, 0, 16, 0, 16, 16};
+
+    const int regionIter = cruID % 2;
+    const int istreamm = ((rawFECChannel % 10) / 2);
+    const int partitionStream = istreamm + regionIter * 5;
+    sampaOnFEC = sampaMapping[partitionStream];
+    const int channel = (rawFECChannel % 2) + 2 * (rawFECChannel / 10);
+    channelOnSAMPA = channel + channelOffset[partitionStream];
+  }
+
   const PadCentre& padCentre(const int partition, const int fecInPartition, const int sampaOnFEC,
                              const int channelOnSAMPA) const
   {

@@ -51,7 +51,7 @@ struct LiteralStorage {
   using stored_pack = framework::pack<T...>;
 };
 
-using LiteralValue = LiteralStorage<int, bool, float, double>;
+using LiteralValue = LiteralStorage<int, bool, float, double, uint8_t>;
 
 template <typename T>
 constexpr auto selectArrowType()

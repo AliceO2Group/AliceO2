@@ -46,7 +46,7 @@
 
 static constexpr size_t REQUIRE_MIN_MEMORY = 1024u * 1024 * 1024;
 static constexpr size_t REQUIRE_MEMORY_RESERVED = 512u * 1024 * 1024;
-static constexpr size_t REQUIRE_FREE_MEMORY_RESERVED = 1280u * 1024 * 1024;
+static constexpr size_t REQUIRE_FREE_MEMORY_RESERVED = 2048u * 1024 * 1024;
 
 using namespace GPUCA_NAMESPACE::gpu;
 

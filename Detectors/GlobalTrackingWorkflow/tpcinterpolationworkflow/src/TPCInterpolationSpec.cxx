@@ -162,7 +162,7 @@ void TPCInterpolationDPL::run(ProcessingContext& pc)
     // not yet implemented
   }
 
-  printf("TPC Interpolation Workflow initialized. Start processing...\n");
+  LOG(INFO) << "TPC Interpolation Workflow initialized. Start processing...";
 
   mInterpolation.process();
 

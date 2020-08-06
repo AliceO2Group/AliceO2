@@ -459,11 +459,13 @@ DECLARE_SOA_COLUMN(PosY, posY, float);
 DECLARE_SOA_COLUMN(PosZ, posZ, float);
 DECLARE_SOA_COLUMN(T, t, float);
 DECLARE_SOA_COLUMN(Weight, weight, float);
+DECLARE_SOA_COLUMN(ImpactParameter, impactParameter, float);
 } // namespace mccollision
 
 DECLARE_SOA_TABLE(McCollisions, "AOD", "MCCOLLISION", o2::soa::Index<>, mccollision::BCId,
                   mccollision::GeneratorsID,
-                  mccollision::PosX, mccollision::PosY, mccollision::PosZ, mccollision::T, mccollision::Weight);
+                  mccollision::PosX, mccollision::PosY, mccollision::PosZ, mccollision::T, mccollision::Weight,
+                  mccollision::ImpactParameter);
 using McCollision = McCollisions::iterator;
 
 namespace mcparticle
@@ -472,8 +474,10 @@ DECLARE_SOA_INDEX_COLUMN(McCollision, mcCollision);
 DECLARE_SOA_COLUMN(PdgCode, pdgCode, int);
 DECLARE_SOA_COLUMN(StatusCode, statusCode, int);
 DECLARE_SOA_COLUMN(Flags, flags, uint8_t);
-DECLARE_SOA_COLUMN(Mother, mother, int[2]);     // TODO needs INDEX pending NULL columns
-DECLARE_SOA_COLUMN(Daughter, daughter, int[2]); // TODO needs INDEX pending NULL columns
+DECLARE_SOA_COLUMN(Mother0, mother0, int);
+DECLARE_SOA_COLUMN(Mother1, mother1, int);
+DECLARE_SOA_COLUMN(Daughter0, daughter0, int);
+DECLARE_SOA_COLUMN(Daughter1, daughter1, int);
 DECLARE_SOA_COLUMN(Weight, weight, float);
 DECLARE_SOA_COLUMN(Px, px, float);
 DECLARE_SOA_COLUMN(Py, py, float);
@@ -492,7 +496,7 @@ DECLARE_SOA_DYNAMIC_COLUMN(ProducedByGenerator, producedByGenerator, [](uint8_t 
 DECLARE_SOA_TABLE(McParticles, "AOD", "MCPARTICLE",
                   o2::soa::Index<>, mcparticle::McCollisionId,
                   mcparticle::PdgCode, mcparticle::StatusCode, mcparticle::Flags,
-                  mcparticle::Mother, mcparticle::Daughter, mcparticle::Weight,
+                  mcparticle::Mother0, mcparticle::Mother1, mcparticle::Daughter0, mcparticle::Daughter1, mcparticle::Weight,
                   mcparticle::Px, mcparticle::Py, mcparticle::Pz, mcparticle::E,
                   mcparticle::Vx, mcparticle::Vy, mcparticle::Vz, mcparticle::Vt,
                   mcparticle::Phi<mcparticle::Px, mcparticle::Py>,

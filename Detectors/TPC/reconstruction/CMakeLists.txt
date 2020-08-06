@@ -9,6 +9,7 @@
 # submit itself to any jurisdiction.
 
 o2_add_library(TPCReconstruction
+               TARGETVARNAME targetName
                SOURCES src/AdcClockMonitor.cxx
                        src/ClustererTask.cxx
                        src/GBTFrame.cxx
@@ -27,7 +28,8 @@ o2_add_library(TPCReconstruction
                        src/TPCFastTransformHelperO2.cxx
                        src/CTFCoder.cxx
                PUBLIC_LINK_LIBRARIES FairRoot::Base O2::SimulationDataFormat
-                                     O2::TPCBase O2::GPUTracking)
+                                     O2::TPCBase O2::GPUTracking
+                                     O2::DetectorsRaw)
 
 o2_target_root_dictionary(
   TPCReconstruction
@@ -132,3 +134,10 @@ o2_add_test_root_macro(macro/findKrBoxCluster.C
 # target which is built after reconstruction
 # o2_add_test_root_macro(macro/testTracks.C PUBLIC_LINK_LIBRARIES
 # ReconstructionDataFormats O2::TPCBase O2::DataFormatsTPC O2::TPCSimulation)
+
+if(OpenMP_CXX_FOUND)
+  message(STATUS "GPU: Using OpenMP: ${OpenMP_CXX_SPEC_DATE}")
+  # Must be private, depending libraries might be compiled by compiler not understanding -fopenmp
+  target_compile_definitions(${targetName} PRIVATE WITH_OPENMP)
+  target_link_libraries(${targetName} PRIVATE OpenMP::OpenMP_CXX)
+endif()

@@ -18,7 +18,7 @@ usage() {
   echo "    -n, --nevents=       : number of events to process (default: 1000)"
   echo "    -m, --adcMin=        : minimal ADC values accepted (default: 0)"
   echo "    -x, --adcMax=        : maximal ADC values accepted (default: 1100)"
-  echo "    -s, --statType=      : statistics type - 0: Gaus fit (default), 1: Mean and StdDev"
+  echo "    -s, --statType=      : statistics type - 0: Gaus fit (default), 1: Gaus fit fast, 2: Mean and StdDev"
   echo "    -v, --verbosity=     : set verbosity level for raw reader"
   echo "    -d, --debugLevel=    : set debug level for raw reader"
   echo "    -w, --writeDebug     : write debug output histograms"
@@ -93,8 +93,9 @@ fi
 fileInfo=$(echo $fileInfo | sed "s|^|{\"|;s|,|:$lastTimeBin\",\"|g;s|$|\"}|")
 
 # ===| command building and execution |=========================================
-cmd="root.exe -b -q -l -n -x $O2_SRC/Detectors/TPC/calibration/macro/runPedestal.C'($fileInfo,\"$outputFile\", $nevents, $adcMin, $adcMax, $firstTimeBin, $lastTimeBin, $statisticsType, $verbosity, $debugLevel, 0, $writeDebug)'"
-#cmd="perf record -g -o perf.log root.exe -b -q -l -n -x $O2_SRC/Detectors/TPC/calibration/macro/runPedestal.C'($fileInfo,\"$outputFile\", $nevents, $adcMin, $adcMax, $firstTimeBin, $lastTimeBin, $statisticsType, $verbosity, $debugLevel)'"
-#cmd="valgrind --tool=callgrind --dump-instr=yes --dump-instr=yes root.exe -b -q -l -n -x $O2_SRC/Detectors/TPC/calibration/macro/runPedestal.C'($fileInfo,\"$outputFile\", $nevents, $adcMin, $adcMax, $firstTimeBin, $lastTimeBin, $statisticsType, $verbosity, $debugLevel)'"
+cmd=""
+#cmd="valgrind --tool=callgrind --dump-instr=yes --dump-instr=yes"
+#cmd="perf record -g -o perf.log"
+cmd="$cmd root.exe -b -q -l -n -x $O2_SRC/Detectors/TPC/calibration/macro/runPedestal.C'($fileInfo,\"$outputFile\", $nevents, $adcMin, $adcMax, $firstTimeBin, $lastTimeBin, $statisticsType, $verbosity, $debugLevel, 0, $writeDebug)'"
 echo "running: $cmd"
 eval $cmd

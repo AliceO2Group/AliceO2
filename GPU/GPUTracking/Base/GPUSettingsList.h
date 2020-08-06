@@ -99,7 +99,7 @@ AddOption(mergerSortTracks, int, -1, "", 0, "Sort track indizes for GPU track fi
 AddOption(tpcCompressionGatherMode, int, -1, "", 0, "TPC Compressed Clusters Gather Mode")
 AddOption(tpcCompressionGatherModeKernel, int, -1, "", 0, "TPC Compressed Clusters Gather Mode Kernel")
 AddOption(runMC, bool, false, "", 0, "Process MC labels")
-AddOption(ompKernels, bool, false, "", 0, "Parallelize with OMP inside kernels instead of over slices")
+AddOption(ompKernels, bool, true, "", 0, "Parallelize with OMP inside kernels instead of over slices")
 AddOption(doublePipeline, bool, false, "", 0, "Double pipeline mode")
 AddOption(prefetchTPCpageScan, int, 0, "", 0, "Prefetch Data for TPC page scan in CPU cache")
 AddOption(debugLevel, int, -1, "debug", 'd', "Set debug level (-1 = silend)")

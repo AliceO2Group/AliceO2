@@ -86,7 +86,7 @@ struct CTask {
 };
 
 struct DTask {
-  Filter notTracklet = aod::track::trackType != 3; // only works with literal now
+  Filter notTracklet = aod::track::trackType != static_cast<uint8_t>(aod::track::TrackTypeEnum::Run2Tracklet);
   void process(aod::Collision const&, soa::Filtered<aod::MTracks> const& tracks)
   {
     for (auto& track : tracks) {

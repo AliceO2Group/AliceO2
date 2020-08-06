@@ -43,12 +43,13 @@ struct CompressedDigits {
   std::vector<uint16_t> bcInc;    // increment in BC if the same orbit, otherwise abs bc
   std::vector<uint32_t> orbitInc; // increment in orbit
   std::vector<uint8_t> nChan;     // number of fired channels
+  // std::vector<uint8_t> eventFlags;     // special flags about event conditions: pile-up, not use for collision time, not use for event plane, etc.
 
   // channel data
   std::vector<uint8_t> idChan;   // channels ID: 1st on absolute, then increment
   std::vector<int16_t> cfdTime;  // CFD time
-  std::vector<uint32_t> qtcAmpl; // Amplitude
-  std::vector<uint8_t> qtc;      // QTC
+  std::vector<int16_t> qtcAmpl;  // Amplitude
+  std::vector<uint8_t> qtcChain; // QTC chain
 
   CompressedDigits() = default;
 
@@ -66,11 +67,12 @@ struct CTF : public o2::ctf::EncodedBlocks<CTFHeader, 8, uint32_t> {
     BLC_bcInc,    // increment in BC
     BLC_orbitInc, // increment in orbit
     BLC_nChan,    // number of fired channels
+    //   BLC_flags,    // flags special flags about event conditions: pile-up, not use for collision time, not use for event plane, etc.
     BLC_idChan,   // channels ID: 1st on absolute, then increment
-    BLC_qtc,      // QTC
+    BLC_qtcChain, // ADC chain
     BLC_cfdTime,  // CFD time
-    BLC_qtcAmpl
-  }; // Amplitude
+    BLC_qtcAmpl   // amplitude
+  };
 
   ClassDefNV(CTF, 1);
 };
