@@ -305,7 +305,6 @@ void Decoder::FillWindows()
 {
   std::vector<Digit> digTemp;
   flushOutputContainer(digTemp);
-  printf("hit decoded = %d (digits not filled = %lu)\n", mHitDecoded, mFutureDigits.size());
 }
 
 void Decoder::printCrateInfo(int icru) const
