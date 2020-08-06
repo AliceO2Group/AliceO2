@@ -60,7 +60,6 @@ class O2PrimaryServerDevice : public FairMQDevice
     TStopwatch timer;
     timer.Start();
     auto& conf = o2::conf::SimConfig::Instance();
-    o2::conf::ConfigurableParam::updateFromString(conf.getKeyValueString());
     o2::eventgen::GeneratorFactory::setPrimaryGenerator(conf, &mPrimGen);
     mPrimGen.SetEvent(&mEventHeader);
 
@@ -96,6 +95,11 @@ class O2PrimaryServerDevice : public FairMQDevice
     for (auto& keyvalue : vm) {
       LOG(INFO) << "///// " << keyvalue.first << " " << keyvalue.second.value().type().name();
     }
+    // update the parameters from an INI/JSON file, if given (overrides code-based version)
+    o2::conf::ConfigurableParam::updateFromFile(conf.getConfigFile());
+    // update the parameters from stuff given at command line (overrides file-based version)
+    o2::conf::ConfigurableParam::updateFromString(conf.getKeyValueString());
+
     // MC ENGINE
     LOG(INFO) << "ENGINE SET TO " << vm["mcEngine"].as<std::string>();
     // CHUNK SIZE
