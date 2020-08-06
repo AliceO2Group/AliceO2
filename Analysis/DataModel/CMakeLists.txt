@@ -11,6 +11,7 @@
 o2_add_library(AnalysisDataModel
                SOURCES src/dummy.cxx
                        src/ParamBase.cxx
+                       src/DetectorResponse.cxx
                        src/PIDTOF.cxx
                        src/PIDTPC.cxx
                PRIVATE_INCLUDE_DIRECTORIES ${CMAKE_CURRENT_LIST_DIR}/src
@@ -19,7 +20,10 @@ o2_add_library(AnalysisDataModel
 
 
 o2_target_root_dictionary(AnalysisDataModel
-                          HEADERS include/PID/ParamBase.h
+                          HEADERS include/PIDBase/ParamBase.h
+                                  include/PIDBase/DetectorResponse.h
+                                  include/PID/PIDTOF.h
+                                  include/PID/PIDTPC.h
                           LINKDEF src/AnalysisDataModelLinkDef.h
                          )
 
