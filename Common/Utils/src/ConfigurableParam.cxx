@@ -20,6 +20,7 @@
 #include <boost/lexical_cast.hpp>
 #include <algorithm>
 #include <array>
+#include <limits>
 #ifdef NDEBUG
 #undef NDEBUG
 #endif
@@ -743,6 +744,38 @@ bool ConvertAndCopy<std::string>(std::string const& valuestring, void* targetadd
     // the targetaddr is a std::string to which we can simply assign
     // and all the magic will happen internally
     target = valuestring;
+    return true;
+  }
+  return false;
+}
+// special version for char and unsigned char since we are interested in the numeric
+// meaning of char as an 8-bit integer (boost lexical cast is assigning the string as a character i// nterpretation
+template <>
+bool ConvertAndCopy<char>(std::string const& valuestring, void* targetaddr)
+{
+  int intvalue = boost::lexical_cast<int>(valuestring);
+  if (intvalue > std::numeric_limits<char>::max() || intvalue < std::numeric_limits<char>::min()) {
+    LOG(ERROR) << "Cannot assign " << valuestring << " to a char variable";
+    return false;
+  }
+  char addr = intvalue;
+  if (isMemblockDifferent<char>(targetaddr, (void*)&addr)) {
+    std::memcpy(targetaddr, (void*)&addr, sizeof(char));
+    return true;
+  }
+  return false;
+}
+template <>
+bool ConvertAndCopy<unsigned char>(std::string const& valuestring, void* targetaddr)
+{
+  unsigned int intvalue = boost::lexical_cast<int>(valuestring);
+  if (intvalue > std::numeric_limits<unsigned char>::max() || intvalue < std::numeric_limits<unsigned char>::min()) {
+    LOG(ERROR) << "Cannot assign " << valuestring << " to an unsigned char variable";
+    return false;
+  }
+  unsigned char addr = intvalue;
+  if (isMemblockDifferent<unsigned char>(targetaddr, (void*)&addr)) {
+    std::memcpy(targetaddr, (void*)&addr, sizeof(unsigned char));
     return true;
   }
   return false;
