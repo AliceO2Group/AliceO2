@@ -424,8 +424,7 @@ int GPUQA::InitQA()
   std::vector<o2::MCTrack>* tracksX;
   std::vector<o2::TrackReference>* trackRefsX;
   if (treeSim == nullptr) {
-    GPUError("Error reading o2sim tree");
-    exit(1);
+    throw std::runtime_error("Error reading o2sim tree");
   }
   treeSim->SetBranchAddress("MCTrack", &tracksX);
   treeSim->SetBranchAddress("TrackRefs", &trackRefsX);
