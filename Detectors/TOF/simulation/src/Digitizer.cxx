@@ -245,7 +245,11 @@ void Digitizer::addDigit(Int_t channel, UInt_t istrip, Double_t time, Float_t x,
   time = getDigitTimeSmeared(time, x, z, charge); // add time smearing
 
   charge *= getFractionOfCharge(x, z);
-  Float_t tot = 12; // time-over-threshold
+
+  // tot tuned to reproduce 0.8% of orphans tot(=0)
+  Float_t tot = gRandom->Gaus(12., 1.5); // time-over-threshold
+  if (tot < 8.4)
+    tot = 0;
 
   Float_t xborder = Geo::XPAD * 0.5 - TMath::Abs(x);
   Float_t zborder = Geo::ZPAD * 0.5 - TMath::Abs(z);
@@ -826,7 +830,6 @@ void Digitizer::fillOutputContainer(std::vector<Digit>& digits)
 void Digitizer::flushOutputContainer(std::vector<Digit>& digits)
 { // flush all residual buffered data
   // TO be implemented
-  printf("flushOutputContainer\n");
   if (!mContinuous)
     fillOutputContainer(digits);
   else {
