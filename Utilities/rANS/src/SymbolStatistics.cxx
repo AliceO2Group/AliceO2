@@ -15,16 +15,24 @@
 
 #include <cmath>
 
-#include "rANS/SymbolStatistics.h"
-#include "rANS/helper.h"
+#include "rANS/internal/SymbolStatistics.h"
+#include "rANS/internal/helper.h"
 
 namespace o2
 {
 namespace rans
 {
-
-void SymbolStatistics::rescaleToNBits(size_t bits)
+namespace internal
 {
+
+SymbolStatistics::SymbolStatistics(const FrequencyTable& frequencyTable, size_t scaleBits) : SymbolStatistics(frequencyTable.begin(), frequencyTable.end(), frequencyTable.getMinSymbol(), frequencyTable.getMaxSymbol(), scaleBits){};
+
+void SymbolStatistics::rescale()
+{
+
+  auto getFrequency = [this](size_t i) { return mCumulativeFrequencyTable[i + 1] - mCumulativeFrequencyTable[i]; };
+
+  using namespace internal;
   LOG(trace) << "start rescaling frequency table";
   RANSTimer t;
   t.start();
@@ -34,13 +42,13 @@ void SymbolStatistics::rescaleToNBits(size_t bits)
     return;
   }
 
-  const size_t newCumulatedFrequency = bitsToRange(bits);
+  const size_t newCumulatedFrequency = bitsToRange(mScaleBits);
   assert(newCumulatedFrequency >= mFrequencyTable.size());
 
   size_t cumulatedFrequencies = mCumulativeFrequencyTable.back();
 
   std::vector<uint32_t> sortIdx;
-  sortIdx.reserve(mNUsedAlphabetSymbols);
+  sortIdx.reserve(getNUsedAlphabetSymbols());
 
   // resample distribution based on cumulative frequencies_
   for (size_t i = 0; i < mFrequencyTable.size(); i++) {
@@ -49,7 +57,7 @@ void SymbolStatistics::rescaleToNBits(size_t bits)
     }
   }
 
-  std::sort(sortIdx.begin(), sortIdx.end(), [this](uint32_t i, uint32_t j) { return this->getFrequency(i) < this->getFrequency(j); });
+  std::sort(sortIdx.begin(), sortIdx.end(), [&](uint32_t i, uint32_t j) { return getFrequency(i) < getFrequency(j); });
   size_t need_shift = 0;
   for (size_t i = 0; i < sortIdx.size(); i++) {
     if (static_cast<uint64_t>(getFrequency(sortIdx[i])) * (newCumulatedFrequency - need_shift) / cumulatedFrequencies >= 1) {
@@ -94,33 +102,15 @@ void SymbolStatistics::rescaleToNBits(size_t bits)
   LOG(trace) << "done rescaling frequency table";
 }
 
-int SymbolStatistics::getMinSymbol() const { return mMin; }
-
-int SymbolStatistics::getMaxSymbol() const { return mMax; }
-
-size_t SymbolStatistics::getAlphabetSize() const { return mFrequencyTable.size(); }
-
-size_t SymbolStatistics::getAlphabetRangeBits() const
-{
-  return std::max(std::ceil(std::log2(mMax - mMin)), 1.0);
-}
-
 size_t SymbolStatistics::getNUsedAlphabetSymbols() const
 {
-  return mNUsedAlphabetSymbols;
-}
-
-size_t SymbolStatistics::getMessageLength() const
-{
-  return mMessageLength;
-}
-
-std::pair<uint32_t, uint32_t> SymbolStatistics::operator[](int64_t index) const
-{
-  assert(index - mMin < mFrequencyTable.size());
-
-  return std::make_pair(mFrequencyTable[index - mMin],
-                        mCumulativeFrequencyTable[index - mMin]);
+  size_t nUsedAlphabetSymbols = 0;
+  for (auto symbolCount : mFrequencyTable) {
+    if (symbolCount > 0) {
+      ++nUsedAlphabetSymbols;
+    }
+  }
+  return nUsedAlphabetSymbols;
 }
 
 void SymbolStatistics::buildCumulativeFrequencyTable()
@@ -135,40 +125,6 @@ void SymbolStatistics::buildCumulativeFrequencyTable()
   LOG(trace) << "done building cumulative frequency table";
 }
 
-SymbolStatistics::Iterator SymbolStatistics::begin() const
-{
-  return SymbolStatistics::Iterator(this->getMinSymbol(), *this);
-}
-
-SymbolStatistics::Iterator SymbolStatistics::end() const
-{
-  if (mFrequencyTable.empty()) {
-    return this->begin(); // begin == end for empty stats;
-  } else {
-    return SymbolStatistics::Iterator(this->getMaxSymbol() + 1, *this);
-  }
-}
-
-SymbolStatistics::Iterator::Iterator(int64_t index,
-                                     const SymbolStatistics& stats)
-  : mIndex(index), mStats(stats) {}
-
-const SymbolStatistics::Iterator& SymbolStatistics::Iterator::operator++()
-{
-  ++mIndex;
-  assert(mIndex <= mStats.getMaxSymbol() + 1);
-  return *this;
-}
-
-std::pair<uint32_t, uint32_t> SymbolStatistics::Iterator::operator*() const
-{
-  return std::move(mStats[mIndex]);
-}
-
-bool SymbolStatistics::Iterator::operator!=(const Iterator& other) const
-{
-  return this->mIndex != other.mIndex;
-}
-
+} // namespace internal
 } // namespace rans
 } // namespace o2
