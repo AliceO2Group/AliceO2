@@ -34,6 +34,8 @@
 #include <Generators/TriggerParticleParam.h>
 #include "Generators/ConfigurationMacroHelper.h"
 
+#include "TRandom.h"
+
 namespace o2
 {
 namespace eventgen
@@ -68,6 +70,10 @@ void GeneratorFactory::setPrimaryGenerator(o2::conf::SimConfig const& conf, Fair
     gen->setConfig(param.config);
     gen->setHooksFileName(param.hooksFileName);
     gen->setHooksFuncName(param.hooksFuncName);
+    auto seed = (gRandom->GetSeed() % 900000000);
+    LOG(INFO) << "Using random seed from gRandom % 900000000: " << seed;
+    gen->readString("Random:setSeed on");
+    gen->readString("Random:seed " + std::to_string(seed));
     return gen;
   };
 #endif
