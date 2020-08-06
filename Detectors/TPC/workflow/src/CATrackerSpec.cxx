@@ -200,7 +200,7 @@ DataProcessorSpec getCATrackerSpec(ca::Config const& specconfig, std::vector<int
     }
 
     auto& callbacks = ic.services().get<CallbackService>();
-    callbacks.set(CallbackService::Id::RegionInfoCallback, [processAttributes](FairMQRegionInfo const& info) {
+    callbacks.set(CallbackService::Id::RegionInfoCallback, [&processAttributes](FairMQRegionInfo const& info) {
       if (info.size) {
         auto& tracker = processAttributes->tracker;
         if (tracker->registerMemoryForGPU(info.ptr, info.size)) {
