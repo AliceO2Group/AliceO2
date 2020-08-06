@@ -10,13 +10,21 @@
 
 o2_add_library(AnalysisDataModel
                SOURCES src/dummy.cxx
+                       src/ParamBase.cxx
                        src/PIDTOF.cxx
                        src/PIDTPC.cxx
                PRIVATE_INCLUDE_DIRECTORIES ${CMAKE_CURRENT_LIST_DIR}/src
                PUBLIC_LINK_LIBRARIES O2::Framework O2::ReconstructionDataFormats O2::TPCSimulation
               )
 
+
+o2_target_root_dictionary(AnalysisDataModel
+                          HEADERS include/PID/ParamBase.h
+                          LINKDEF src/AnalysisDataModelLinkDef.h
+                         )
+
+
 o2_add_executable(dump-aod-data-model
                   SOURCES src/dumpDataModel.cxx
                   PUBLIC_LINK_LIBRARIES O2::Framework O2::AnalysisDataModel
-                  )
+                 )
