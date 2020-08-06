@@ -19,6 +19,7 @@ o2_add_library(FT0Workflow
                        src/FT0Workflow.cxx
                        src/FT0DataProcessDPLSpec.cxx
                        src/FT0DataReaderDPLSpec.cxx
+                       src/FT0DigitWriterSpec.cxx
                PUBLIC_LINK_LIBRARIES O2::Framework
                                      O2::DataFormatsFT0
                                      O2::FT0Reconstruction
