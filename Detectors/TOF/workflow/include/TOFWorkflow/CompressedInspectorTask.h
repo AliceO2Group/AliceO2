@@ -46,6 +46,8 @@ class CompressedInspectorTask : public DecoderBaseT<RDH>, public Task
 
  private:
   /** decoding handlers **/
+  void rdhHandler(const RDH* rdh) override{};
+
   void headerHandler(const CrateHeader_t* crateHeader, const CrateOrbit_t* crateOrbit) override;
 
   void frameHandler(const CrateHeader_t* crateHeader, const CrateOrbit_t* crateOrbit,
