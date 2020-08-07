@@ -49,6 +49,7 @@ void TrackInterpolation::process()
     LOG(error) << "Initialization not yet done. Aborting...";
     return;
   }
+  reset();
 
 #ifdef TPC_RUN2
   // processing will not work if the run 2 geometry is defined in the parameter class SpacePointsCalibParam.h
