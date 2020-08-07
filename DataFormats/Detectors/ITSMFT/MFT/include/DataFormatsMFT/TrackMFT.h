@@ -74,13 +74,6 @@ class TrackMFT : public o2::track::TrackParCovFwd
     mClusRef.set(firstEntry, n);
   }
 
-  const std::array<MCCompLabel, 10>& getMCCompLabels() const { return mMCCompLabels; } // constants::mft::LayersNumber = 10
-  void setMCCompLabels(const std::array<MCCompLabel, 10>& labels, int nPoints)
-  {
-    mMCCompLabels = labels;
-    mNPoints = nPoints;
-  }
-
   const ClusRefs& getClusterRefs() const { return mClusRef; }
   ClusRefs& getClusterRefs() { return mClusRef; }
 
@@ -90,7 +83,6 @@ class TrackMFT : public o2::track::TrackParCovFwd
   const Int_t getNPoints() const { return mNPoints; }
 
   void print() const;
-  void printMCCompLabels() const;
 
   const o2::track::TrackParCovFwd& GetOutParam() const { return mOutParameters; }
   void SetOutParam(const o2::track::TrackParCovFwd parcov) { mOutParameters = parcov; }
@@ -98,7 +90,6 @@ class TrackMFT : public o2::track::TrackParCovFwd
  private:
   std::uint32_t mROFrame = 0;                ///< RO Frame
   Int_t mNPoints{0};                         // Number of clusters
-  std::array<MCCompLabel, 10> mMCCompLabels; // constants::mft::LayersNumber = 10
   Bool_t mIsCA = false;                      // Track finding method CA vs. LTF
 
   ClusRefs mClusRef; ///< references on clusters

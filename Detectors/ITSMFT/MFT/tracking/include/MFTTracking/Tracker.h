@@ -52,6 +52,9 @@ class Tracker
 
   void clustersToTracks(ROframe&, std::ostream& = std::cout);
 
+  template <class T>
+  void computeTracksMClabels(const T&);
+
   void setROFrame(std::uint32_t f) { mROFrame = f; }
   std::uint32_t getROFrame() const { return mROFrame; }
 
@@ -241,6 +244,46 @@ inline const Bool_t Tracker::getCellsConnect(const ROframe& event, const Cell& c
     return kFALSE;
   }
   return kTRUE;
+}
+
+//_________________________________________________________________________________________________
+template <class T>
+inline void Tracker::computeTracksMClabels(const T& tracks)
+{
+  /// Moore's Voting Algorithm
+  for (auto& track : tracks) {
+    MCCompLabel maxOccurrencesValue{-1, -1, -1, false};
+    int count{0};
+    bool isFakeTrack{false};
+    auto nClusters = track.getNumberOfClusters();
+    for (int iCluster = 0; iCluster < nClusters; ++iCluster) {
+      const MCCompLabel& currentLabel = track.getMCCompLabels()[iCluster];
+      if (currentLabel == maxOccurrencesValue) {
+        ++count;
+      } else {
+        if (count != 0) { // only in the first iteration count can be 0 at this point
+          --count;
+        }
+        if (count == 0) {
+          maxOccurrencesValue = currentLabel;
+          count = 1;
+        }
+      }
+    }
+    count = 0;
+    for (int iCluster = 0; iCluster < nClusters; ++iCluster) {
+      if (track.getMCCompLabels()[iCluster] == maxOccurrencesValue)
+        count++;
+    }
+
+    auto labelratio = 1.0 * count / nClusters;
+    if (labelratio >= 0.8) {
+    } else {
+      isFakeTrack = true;
+      maxOccurrencesValue.setFakeFlag();
+    }
+    mTrackLabels.addElement(mTrackLabels.getIndexedSize(), maxOccurrencesValue);
+  }
 }
 
 } // namespace mft
