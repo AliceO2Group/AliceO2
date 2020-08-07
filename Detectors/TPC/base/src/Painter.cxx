@@ -329,6 +329,8 @@ std::vector<TCanvas*> painter::makeSummaryCanvases(const std::string_view fileNa
 template TCanvas* painter::draw<float>(const CalDet<float>& calDet, int, float, float);
 template std::vector<TCanvas*> painter::makeSummaryCanvases<float>(const CalDet<float>& calDet, int, float, float, bool);
 template TCanvas* painter::draw<float>(const CalArray<float>& calArray);
+template void painter::fillHistogram2D<float>(TH2& h2D, const CalDet<float>& calDet, Side side);
+template void painter::fillHistogram2D<float>(TH2& h2D, const CalArray<float>& calArray);
 template TH2* painter::getHistogram2D<float>(const CalDet<float>& calDet, Side side);
 template TH2* painter::getHistogram2D<float>(const CalArray<float>& calArray);
 
