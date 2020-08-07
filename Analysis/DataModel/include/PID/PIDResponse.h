@@ -198,9 +198,9 @@ struct pidTPCTask {
   {
     tpc::Response resp = tpc::Response();
     float bbparams[5] = {0.0320981, 19.9768, 2.52666e-16, 2.72123, 6.08092};
-    resp.mParam.mBetheBloch.mParameters.Set(bbparams);
+    resp.GetExpectedSignalParam().SetParameters(bbparams);
     float resoparams[2] = {0.07, 0.0};
-    resp.mParam.mRelResolution.mParameters.Set(resoparams);
+    resp.GetExpectedSigmaParam().SetParameters(resoparams);
     for (auto const& i : tracks) {
       resp.UpdateTrack(i.p(), i.tpcSignal(), i.tpcNClsShared());
       tpcpid(
@@ -222,15 +222,15 @@ struct pidTPCTask {
         resp.GetExpectedSigma(PID::Triton),
         resp.GetExpectedSigma(PID::Helium3),
         resp.GetExpectedSigma(PID::Alpha),
-        resp.GetNumberOfSigmas(PID::Electron),
-        resp.GetNumberOfSigmas(PID::Muon),
-        resp.GetNumberOfSigmas(PID::Pion),
-        resp.GetNumberOfSigmas(PID::Kaon),
-        resp.GetNumberOfSigmas(PID::Proton),
-        resp.GetNumberOfSigmas(PID::Deuteron),
-        resp.GetNumberOfSigmas(PID::Triton),
-        resp.GetNumberOfSigmas(PID::Helium3),
-        resp.GetNumberOfSigmas(PID::Alpha));
+        resp.GetSeparation(PID::Electron),
+        resp.GetSeparation(PID::Muon),
+        resp.GetSeparation(PID::Pion),
+        resp.GetSeparation(PID::Kaon),
+        resp.GetSeparation(PID::Proton),
+        resp.GetSeparation(PID::Deuteron),
+        resp.GetSeparation(PID::Triton),
+        resp.GetSeparation(PID::Helium3),
+        resp.GetSeparation(PID::Alpha));
     }
   }
 };
