@@ -39,12 +39,6 @@ void TrackMFT::print() const
             << " chi2 = " << std::setw(5) << std::setprecision(3) << getTrackChi2() << std::endl;
 }
 
-//__________________________________________________________________________
-void TrackMFT::printMCCompLabels() const
-{
-  /// Printing TrackMFT MCLabel information
-  LOG(INFO) << "TrackMFT with " << mNPoints << " clusters. MCLabels: " << mMCCompLabels[0] << mMCCompLabels[1] << "..."; //<< mMCCompLabels[2] << mMCCompLabels[3] << mMCCompLabels[4] << mMCCompLabels[5] << mMCCompLabels[6] << mMCCompLabels[7] << mMCCompLabels[8] << mMCCompLabels[9];
-}
 
 } // namespace mft
 } // namespace o2
