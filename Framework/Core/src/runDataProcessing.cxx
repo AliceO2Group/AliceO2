@@ -1128,7 +1128,11 @@ int runStateMachine(DataProcessorSpecs const& workflow,
         // I allow queueing of more sigchld only when
         // I process the previous call
         if (forceful_exit == true) {
-          LOG(INFO) << "Forceful exit requested.";
+          static bool forcefulExitMessage = true;
+          if (forcefulExitMessage) {
+            LOG(INFO) << "Forceful exit requested.";
+            forcefulExitMessage = false;
+          }
           killChildren(infos, SIGCONT);
           killChildren(infos, SIGKILL);
         }
