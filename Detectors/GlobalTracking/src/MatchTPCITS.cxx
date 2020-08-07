@@ -251,7 +251,7 @@ void MatchTPCITS::run()
   ProcInfo_t procInfoStart, procInfoStop;
   gSystem->GetProcInfo(&procInfoStart);
   constexpr uint64_t kMB = 1024 * 1024;
-  printf("Memory (GB) at entrance: RSS: %.3f VMem: %.3f\n", float(procInfoStart.fMemResident) / kMB, float(procInfoStart.fMemVirtual) / kMB);
+  LOGF(info, "Memory (GB) at entrance: RSS: %.3f VMem: %.3f\n", float(procInfoStart.fMemResident) / kMB, float(procInfoStart.fMemVirtual) / kMB);
 
   mTimer[SWTot].Start(false);
 
