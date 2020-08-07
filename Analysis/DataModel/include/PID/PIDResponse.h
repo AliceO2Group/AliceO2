@@ -9,9 +9,10 @@
 // or submit itself to any jurisdiction.
 
 ///
-/// Class to provide PID response
 /// \file   PIDResponse.h
 /// \author Nicolo' Jacazio
+/// \brief Set of tables, tasks and utilities to provide the interface between
+///        the analysis data model and the PID response
 ///
 
 #ifndef O2_FRAMEWORK_PIDRESPONSE_H_
@@ -148,6 +149,8 @@ struct pidTOFTask {
     evt.SetEvTimeReso(0, collision.collisionTimeRes());
     evt.SetEvTimeMask(0, collision.collisionTimeMask());
     tof::Response resp = tof::Response();
+    const float p[4] = {0.008, 0.008, 0.002, 40.0};
+    resp.GetExpectedSigmaParam().SetParameters(p);
     resp.SetEventTime(evt);
     for (auto const& i : tracks) {
       resp.UpdateTrack(i.p(), i.tofExpMom() / tof::Response::kCSPEED, i.length(), i.tofSignal());
@@ -175,15 +178,15 @@ struct pidTOFTask {
         resp.GetExpectedSigma(PID::Triton),
         resp.GetExpectedSigma(PID::Helium3),
         resp.GetExpectedSigma(PID::Alpha),
-        resp.GetNumberOfSigmas(PID::Electron),
-        resp.GetNumberOfSigmas(PID::Muon),
-        resp.GetNumberOfSigmas(PID::Pion),
-        resp.GetNumberOfSigmas(PID::Kaon),
-        resp.GetNumberOfSigmas(PID::Proton),
-        resp.GetNumberOfSigmas(PID::Deuteron),
-        resp.GetNumberOfSigmas(PID::Triton),
-        resp.GetNumberOfSigmas(PID::Helium3),
-        resp.GetNumberOfSigmas(PID::Alpha));
+        resp.GetSeparation(PID::Electron),
+        resp.GetSeparation(PID::Muon),
+        resp.GetSeparation(PID::Pion),
+        resp.GetSeparation(PID::Kaon),
+        resp.GetSeparation(PID::Proton),
+        resp.GetSeparation(PID::Deuteron),
+        resp.GetSeparation(PID::Triton),
+        resp.GetSeparation(PID::Helium3),
+        resp.GetSeparation(PID::Alpha));
     }
   }
 };
