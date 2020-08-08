@@ -72,7 +72,8 @@ int ioutils::loadROFrameData(const o2::itsmft::ROFRecord& rof, ROframe& event, g
     int rBinIndex = constants::index_table::getRBinIndex(rCoord);
     int phiBinIndex = constants::index_table::getPhiBinIndex(phiCoord);
     int binIndex = constants::index_table::getBinIndex(rBinIndex, phiBinIndex);
-
+    // TODO: Check consistency of sigmaX2 and sigmaY2
+    // std::cout << "ClusterID = " << clusterId << " ; pattID = " << pattID << " ; sigmaX2 = " << sigmaX2 << " ; sigmaY2 = " << sigmaY2 << std::endl;
     event.addClusterToLayer(layer, gloXYZ.x(), gloXYZ.y(), gloXYZ.z(), phiCoord, rCoord, event.getClustersInLayer(layer).size(), binIndex, sigmaX2, sigmaY2, sensorID);
     if (mcLabels) {
       event.addClusterLabelToLayer(layer, *(mcLabels->getLabels(first + clusterId).begin()));
