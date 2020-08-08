@@ -63,7 +63,7 @@ void TrackerDPL::init(InitContext& ic)
   }
 
   std::string dictPath = ic.options().get<std::string>("its-dictionary-path");
-  std::string dictFile = o2::base::NameConf::getDictionaryFileName(o2::detectors::DetID::ITS, dictPath, ".bin");
+  std::string dictFile = o2::base::NameConf::getDictionaryFileName(o2::detectors::DetID::MFT, dictPath, ".bin");
   if (o2::base::NameConf::pathExists(dictFile)) {
     mDict.readBinaryFile(dictFile);
     LOG(INFO) << "Tracker running with a provided dictionary: " << dictFile;
@@ -76,6 +76,8 @@ void TrackerDPL::run(ProcessingContext& pc)
 {
   gsl::span<const unsigned char> patterns = pc.inputs().get<gsl::span<unsigned char>>("patterns");
   auto compClusters = pc.inputs().get<const std::vector<o2::itsmft::CompClusterExt>>("compClusters");
+  auto nTracksLTF = 0;
+  auto nTracksCA = 0;
 
   // code further down does assignment to the rofs and the altered object is used for output
   // we therefore need a copy of the vector rather than an object created directly on the input data,
@@ -101,9 +103,7 @@ void TrackerDPL::run(ProcessingContext& pc)
   o2::dataformats::MCTruthContainer<o2::MCCompLabel> trackLabels;
   o2::dataformats::MCTruthContainer<o2::MCCompLabel> allTrackLabels;
   std::vector<o2::mft::TrackLTF> tracksLTF;
-  auto& allTracksLTF = pc.outputs().make<std::vector<o2::mft::TrackLTF>>(Output{"MFT", "TRACKSLTF", 0, Lifetime::Timeframe});
   std::vector<o2::mft::TrackCA> tracksCA;
-  auto& allTracksCA = pc.outputs().make<std::vector<o2::mft::TrackCA>>(Output{"MFT", "TRACKSCA", 0, Lifetime::Timeframe});
   auto& allTracksMFT = pc.outputs().make<std::vector<o2::mft::TrackMFT>>(Output{"MFT", "TRACKS", 0, Lifetime::Timeframe});
 
   std::uint32_t roFrame = 0;
@@ -139,10 +139,15 @@ void TrackerDPL::run(ProcessingContext& pc)
         mTracker->clustersToTracks(event);
         tracksLTF.swap(event.getTracksLTF());
         tracksCA.swap(event.getTracksCA());
-        mTracker->computeTracksMClabels(tracksLTF);
-        mTracker->computeTracksMClabels(tracksCA);
-        trackLabels = mTracker->getTrackLabels(); /// FIXME: assignment ctor is not optimal.
-        allTrackLabels.mergeAtBack(trackLabels);
+        nTracksLTF += tracksLTF.size();
+        nTracksCA += tracksCA.size();
+
+        if (mUseMC) {
+          mTracker->computeTracksMClabels(tracksLTF);
+          mTracker->computeTracksMClabels(tracksCA);
+          trackLabels = mTracker->getTrackLabels(); /// FIXME: assignment ctor is not optimal.
+          allTrackLabels.mergeAtBack(trackLabels);
+        }
 
         LOG(INFO) << "Found tracks LTF: " << tracksLTF.size();
         LOG(INFO) << "Found tracks CA: " << tracksCA.size();
@@ -152,17 +157,15 @@ void TrackerDPL::run(ProcessingContext& pc)
         rof.setNEntries(number);
         copyTracks(tracksLTF, allTracksMFT, allClusIdx);
         copyTracks(tracksCA, allTracksMFT, allClusIdx);
-
-        std::copy(tracksLTF.begin(), tracksLTF.end(), std::back_inserter(allTracksLTF)); // TODO: Get rid of allTracksLTF
-        std::copy(tracksCA.begin(), tracksCA.end(), std::back_inserter(allTracksCA));    // TODO: Get rid of allTracksCA
       }
       roFrame++;
     }
   }
 
+  LOG(INFO) << "MFTTracker found " << nTracksLTF << " tracks LTF";
+  LOG(INFO) << "MFTTracker found " << nTracksCA << " tracks CA";
   LOG(INFO) << "MFTTracker pushed " << allTracksMFT.size() << " tracks";
-  LOG(INFO) << "MFTTracker pushed " << allTracksLTF.size() << " tracks LTF";
-  LOG(INFO) << "MFTTracker pushed " << allTracksCA.size() << " tracks CA";
+
   if (mUseMC) {
     pc.outputs().snapshot(Output{"MFT", "TRACKSMCTR", 0, Lifetime::Timeframe}, allTrackLabels);
     pc.outputs().snapshot(Output{"MFT", "TRACKSMC2ROF", 0, Lifetime::Timeframe}, mc2rofs);
@@ -178,8 +181,6 @@ DataProcessorSpec getTrackerSpec(bool useMC)
 
   std::vector<OutputSpec> outputs;
   outputs.emplace_back("MFT", "TRACKS", 0, Lifetime::Timeframe);
-  outputs.emplace_back("MFT", "TRACKSLTF", 0, Lifetime::Timeframe);
-  outputs.emplace_back("MFT", "TRACKSCA", 0, Lifetime::Timeframe);
   outputs.emplace_back("MFT", "TRACKSROF", 0, Lifetime::Timeframe);
   outputs.emplace_back("MFT", "TRACKCLSID", 0, Lifetime::Timeframe);
 

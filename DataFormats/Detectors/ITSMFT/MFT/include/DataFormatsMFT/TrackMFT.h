@@ -135,6 +135,14 @@ class TrackMFTExt : public TrackMFT
   ClassDefNV(TrackMFTExt, 1);
 };
 } // namespace mft
+namespace framework
+{
+template <typename T>
+struct is_messageable;
+template <>
+struct is_messageable<o2::mft::TrackMFT> : std::true_type {
+};
+} // namespace framework
 } // namespace o2
 
 #endif

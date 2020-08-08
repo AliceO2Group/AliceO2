@@ -72,9 +72,9 @@ void ClustererDPL::init(InitContext& ic)
   std::string dictFile = o2::base::NameConf::getDictionaryFileName(o2::detectors::DetID::MFT, dictPath, ".bin");
   if (o2::base::NameConf::pathExists(dictFile)) {
     mClusterer->loadDictionary(dictFile);
-    LOG(INFO) << "ITSClusterer running with a provided dictionary: " << dictFile;
+    LOG(INFO) << "MFTClusterer running with a provided dictionary: " << dictFile;
   } else {
-    LOG(INFO) << "Dictionary " << dictFile << " is absent, ITSClusterer expects cluster patterns";
+    LOG(INFO) << "Dictionary " << dictFile << " is absent, MFTClusterer expects cluster patterns";
   }
   mState = 1;
   mClusterer->print();
