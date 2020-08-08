@@ -82,6 +82,10 @@ void CompressedDecodingTask::postData(ProcessingContext& pc)
   pc.outputs().snapshot(Output{o2::header::gDataOriginTOF, "DIGITS", 0, Lifetime::Timeframe}, *alldigits);
   pc.outputs().snapshot(Output{o2::header::gDataOriginTOF, "READOUTWINDOW", 0, Lifetime::Timeframe}, *row);
 
+  // RS FIXME: At the moment dummy output to comply with CTF encoded inputs
+  std::vector<uint32_t> patterns;
+  pc.outputs().snapshot(Output{o2::header::gDataOriginTOF, "PATTERNS", 0, Lifetime::Timeframe}, patterns);
+
   // RS this is a hack to be removed once we have correct propagation of the firstTForbit by the framework
   auto setFirstTFOrbit = [&](const Output& spec, uint32_t orb) {
     auto* hd = pc.outputs().findMessageHeader(spec);
@@ -182,6 +186,7 @@ DataProcessorSpec getCompressedDecodingSpec(const std::string& inputDesc)
   std::vector<OutputSpec> outputs;
   outputs.emplace_back(o2::header::gDataOriginTOF, "DIGITS", 0, Lifetime::Timeframe);
   outputs.emplace_back(o2::header::gDataOriginTOF, "READOUTWINDOW", 0, Lifetime::Timeframe);
+  outputs.emplace_back(o2::header::gDataOriginTOF, "PATTERNS", 0, Lifetime::Timeframe); // RS FIXME: At the moment dummy output to comply with CTF encoded inputs
 
   return DataProcessorSpec{
     "tof-compressed-decoder",
