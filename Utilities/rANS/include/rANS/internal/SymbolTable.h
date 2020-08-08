@@ -18,7 +18,7 @@
 
 #include <vector>
 #include <cstdint>
-
+#include <cmath>
 #include <fairlogger/Logger.h>
 
 #include "SymbolStatistics.h"
@@ -43,14 +43,19 @@ class SymbolTable
 
   bool isLiteralSymbol(int64_t index) const;
 
+  size_t getAlphabetRangeBits() const;
+  int getMinSymbol() const { return mMin; }
+  int getMaxSymbol() const { return mMax; }
+
  private:
   int mMin;
+  int mMax;
   std::vector<T*> mIndex;
   std::vector<T> mSymbols;
 };
 
 template <typename T>
-SymbolTable<T>::SymbolTable(const SymbolStatistics& symbolStats, size_t probabiltyBits) : mMin(symbolStats.getMinSymbol()), mIndex(), mSymbols()
+SymbolTable<T>::SymbolTable(const SymbolStatistics& symbolStats, size_t probabiltyBits) : mMin(symbolStats.getMinSymbol()), mMax(symbolStats.getMaxSymbol()), mIndex(), mSymbols()
 {
   LOG(trace) << "start building symbol table";
 
@@ -95,6 +100,18 @@ template <typename T>
 inline const T& SymbolTable<T>::getLiteralSymbol() const
 {
   return mSymbols.back();
+}
+
+template <typename T>
+inline size_t SymbolTable<T>::getAlphabetRangeBits() const
+{
+  if (mMax - mMin > 0) {
+    return std::ceil(std::log2(mMax - mMin));
+  } else if (mMax - mMin == 0) {
+    return 1;
+  } else {
+    return 0;
+  }
 }
 
 } // namespace internal

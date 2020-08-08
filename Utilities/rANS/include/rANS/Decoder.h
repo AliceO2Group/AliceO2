@@ -57,6 +57,10 @@ class Decoder
   template <typename stream_IT, typename source_IT>
   void process(const source_IT outputBegin, const stream_IT inputEnd, size_t messageLength) const;
 
+  size_t getAlphabetRangeBits() const { return mSymbolTable->getAlphabetRangeBits(); }
+  int getMinSymbol() const { return mSymbolTable->getMinSymbol(); }
+  int getMaxSymbol() const { return mSymbolTable->getMaxSymbol(); }
+
   using coder_t = coder_T;
   using stream_t = stream_T;
   using source_t = source_T;

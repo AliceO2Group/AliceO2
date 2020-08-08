@@ -57,6 +57,11 @@ class Encoder
   const stream_IT process(const stream_IT outputBegin, const stream_IT outputEnd,
                           const source_IT inputBegin, const source_IT inputEnd) const;
 
+  size_t getProbabilityBits() const { return mProbabilityBits; }
+  size_t getAlphabetRangeBits() const { return mSymbolTable->getAlphabetRangeBits(); }
+  int getMinSymbol() const { return mSymbolTable->getMinSymbol(); }
+  int getMaxSymbol() const { return mSymbolTable->getMaxSymbol(); }
+
   using coder_t = coder_T;
   using stream_t = stream_T;
   using source_t = source_T;
