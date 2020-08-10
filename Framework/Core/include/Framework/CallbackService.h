@@ -60,13 +60,6 @@ class CallbackService
     RegionInfoCallback
   };
 
-  template <typename T, T... v>
-  class EnumRegistry
-  {
-    constexpr static T values[] = {v...};
-    constexpr static std::size_t size = sizeof...(v);
-  };
-
   using StartCallback = std::function<void()>;
   using StopCallback = std::function<void()>;
   using ResetCallback = std::function<void()>;
