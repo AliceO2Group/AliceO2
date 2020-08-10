@@ -23,6 +23,7 @@ o2_target_root_dictionary(AnalysisDataModel
                           HEADERS include/PIDBase/ParamBase.h
                                   include/PIDBase/DetectorResponse.h
                                   include/PID/PIDTOF.h
+                                  include/PID/TOFReso.h
                                   include/PID/PIDTPC.h
                                   include/PID/BetheBloch.h
                                   include/PID/TPCReso.h

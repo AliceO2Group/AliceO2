@@ -57,7 +57,7 @@ float Response::GetExpectedBeta(float mom, float mass)
 float Response::GetExpectedSigma(o2::track::PID::ID id) const
 {
   const float x[4] = {mMomentum, mTOFSignal, mEventTime.GetEvTimeReso(mMomentum), o2::track::PID::getMass2Z(id)};
-  return mExpectedSigmaParam(x);
+  return this->operator()(kSigma, x);
 }
 
 } // namespace o2::pid::tof

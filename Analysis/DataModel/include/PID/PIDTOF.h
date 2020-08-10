@@ -105,7 +105,7 @@ class Response : public DetectorResponse
   /// Computes the expected time of a track, given it TOF expected momentum
   static float ComputeExpectedTime(float tofexpmom, float length, float massZ);
   /// Gets the expected signal of the track of interest under the PID assumption
-  float GetExpectedSignal(o2::track::PID::ID id) const { return ComputeExpectedTime(mTOFExpMomentum, mLength, o2::track::PID::getMass2Z(id)); }
+  float GetExpectedSignal(o2::track::PID::ID id) const override { return ComputeExpectedTime(mTOFExpMomentum, mLength, o2::track::PID::getMass2Z(id)); }
 
   // Expected resolution
   /// Gets the expected resolution of the measurement
