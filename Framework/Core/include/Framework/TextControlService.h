@@ -10,9 +10,12 @@
 #ifndef O2_FRAMEWORK_TEXTCONTROLSERVICE_H_
 #define O2_FRAMEWORK_TEXTCONTROLSERVICE_H_
 
+#include "Framework/ServiceHandle.h"
 #include "Framework/ControlService.h"
+
 #include <string>
 #include <regex>
+#include <mutex>
 
 namespace o2::framework
 {
@@ -49,6 +52,7 @@ class TextControlService : public ControlService
   bool mOnce = false;
   ServiceRegistry& mRegistry;
   DeviceState& mDeviceState;
+  std::mutex mMutex;
 };
 
 bool parseControl(std::string const& s, std::smatch& match);
