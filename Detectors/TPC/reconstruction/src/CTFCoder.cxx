@@ -86,3 +86,56 @@ void CTFCoder::setCompClusAddresses(CompressedClusters& c, void*& buff)
     setAlignedPtr(buff, c.nTrackClusters, header.nTracks);
   }
 }
+
+///________________________________
+void CTFCoder::createCoders(const std::string& dictPath, o2::ctf::CTFCoderBase::OpType op)
+{
+  bool mayFail = true; // RS FIXME if the dictionary file is not there, do not produce exception
+  auto buff = readDictionaryFromFile<CTF>(dictPath, o2::detectors::DetID::TPC, mayFail);
+  if (!buff.size()) {
+    if (mayFail) {
+      return;
+    }
+    throw std::runtime_error("Failed to create CTF dictionaty");
+  }
+  const auto* ctf = CTF::get(buff.data());
+
+  auto getFreq = [ctf](CTF::Slots slot) -> o2::rans::FrequencyTable {
+    o2::rans::FrequencyTable ft;
+    auto bl = ctf->getBlock(slot);
+    auto md = ctf->getMetadata(slot);
+    ft.addFrequencies(bl.getDict(), bl.getDict() + bl.getNDict(), md.min, md.max);
+    return std::move(ft);
+  };
+  auto getProbBits = [ctf](CTF::Slots slot) -> int {
+    return ctf->getMetadata(slot).probabilityBits;
+  };
+
+  CompressedClusters cc; // just to get member types
+#define MAKECODER(part, slot) createCoder<std::remove_pointer<decltype(part)>::type>(op, getFreq(slot), getProbBits(slot), int(slot))
+  // clang-format off
+  MAKECODER(cc.qTotA,             CTF::BLCqTotA);
+  MAKECODER(cc.qMaxA,             CTF::BLCqMaxA);
+  MAKECODER(cc.flagsA,            CTF::BLCflagsA);
+  MAKECODER(cc.rowDiffA,          CTF::BLCrowDiffA);
+  MAKECODER(cc.sliceLegDiffA,     CTF::BLCsliceLegDiffA);
+  MAKECODER(cc.padResA,           CTF::BLCpadResA);
+  MAKECODER(cc.timeResA,          CTF::BLCtimeResA);
+  MAKECODER(cc.sigmaPadA,         CTF::BLCsigmaPadA);
+  MAKECODER(cc.sigmaTimeA,        CTF::BLCsigmaTimeA);
+  MAKECODER(cc.qPtA,              CTF::BLCqPtA);
+  MAKECODER(cc.rowA,              CTF::BLCrowA);
+  MAKECODER(cc.sliceA,            CTF::BLCsliceA);
+  MAKECODER(cc.timeA,             CTF::BLCtimeA);
+  MAKECODER(cc.padA,              CTF::BLCpadA);
+  MAKECODER(cc.qTotU,             CTF::BLCqTotU);
+  MAKECODER(cc.qMaxU,             CTF::BLCqMaxU);
+  MAKECODER(cc.flagsU,            CTF::BLCflagsU);
+  MAKECODER(cc.padDiffU,          CTF::BLCpadDiffU);
+  MAKECODER(cc.timeDiffU,         CTF::BLCtimeDiffU);
+  MAKECODER(cc.sigmaPadU,         CTF::BLCsigmaPadU);
+  MAKECODER(cc.sigmaTimeU,        CTF::BLCsigmaTimeU);
+  MAKECODER(cc.nTrackClusters,    CTF::BLCnTrackClusters);
+  MAKECODER(cc.nSliceRowClusters, CTF::BLCnSliceRowClusters);
+  // clang-format on
+}
