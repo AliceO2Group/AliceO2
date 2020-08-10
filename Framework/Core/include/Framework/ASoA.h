@@ -774,6 +774,13 @@ using is_soa_table_t = typename framework::is_specialization<T, soa::Table>;
 template <typename T>
 using is_soa_table_like_t = typename framework::is_base_of_template<soa::Table, T>;
 
+/// Helper function to extract bound indices
+template <typename... Is>
+static constexpr auto extractBindings(framework::pack<Is...>)
+{
+  return framework::pack<typename Is::binding_t...>{};
+}
+
 /// A Table class which observes an arrow::Table and provides
 /// It is templated on a set of Column / DynamicColumn types.
 template <typename... C>
@@ -786,12 +793,7 @@ class Table
 
   template <typename IP, typename Parent, typename... T>
   struct RowViewBase : public RowViewCore<IP, C...> {
-    /// Helper function to extract bound indices
-    template <typename... Is>
-    static constexpr auto extractBindings(framework::pack<Is...>)
-    {
-      return framework::pack<typename Is::binding_t...>{};
-    }
+
     using external_index_columns_t = framework::selected_pack<is_external_index_t, C...>;
     using bindings_pack_t = decltype(extractBindings(external_index_columns_t{}));
     using parent_t = Parent;
@@ -838,6 +840,8 @@ class Table
       if constexpr (framework::has_type_v<std::decay_t<TI>, bindings_pack_t>) {
         constexpr auto idx = framework::has_type_at<std::decay_t<TI>>(bindings_pack_t{});
         return framework::pack_element_t<idx, external_index_columns_t>::getId();
+      } else if constexpr (std::is_same_v<std::decay_t<TI>, Parent>) {
+        return this->globalIndex();
       } else {
         return static_cast<int32_t>(-1);
       }
@@ -1294,6 +1298,32 @@ using ConcatBase = decltype(concat(std::declval<T1>(), std::declval<T2>()));
 #define DECLARE_SOA_EXTENDED_TABLE_USER(_Name_, _Table_, _Description_, ...) \
   DECLARE_SOA_EXTENDED_TABLE_FULL(_Name_, _Table_, "AOD", _Description_, __VA_ARGS__)
 
+#define DECLARE_SOA_INDEX_TABLE_FULL(_Name_, _Key_, _Origin_, _Description_, ...) \
+  using _Name_ = o2::soa::IndexTable<_Key_, soa::Index<>, __VA_ARGS__>;           \
+                                                                                  \
+  struct _Name_##Metadata : o2::soa::TableMetadata<_Name_##Metadata> {            \
+    using table_t = _Name_;                                                       \
+    using Key = _Key_;                                                            \
+    using index_pack_t = framework::pack<__VA_ARGS__>;                            \
+    using originals = decltype(soa::extractBindings(index_pack_t{}));             \
+    static constexpr char const* mLabel = #_Name_;                                \
+    static constexpr char const mOrigin[4] = _Origin_;                            \
+    static constexpr char const mDescription[16] = _Description_;                 \
+  };                                                                              \
+                                                                                  \
+  template <>                                                                     \
+  struct MetadataTrait<_Name_> {                                                  \
+    using metadata = _Name_##Metadata;                                            \
+  };                                                                              \
+                                                                                  \
+  template <>                                                                     \
+  struct MetadataTrait<_Name_::unfiltered_iterator> {                             \
+    using metadata = _Name_##Metadata;                                            \
+  };
+
+#define DECLARE_SOA_INDEX_TABLE(_Name_, _Key_, _Description_, ...) \
+  DECLARE_SOA_INDEX_TABLE_FULL(_Name_, _Key_, "AOD", _Description_, __VA_ARGS__)
+
 namespace o2::soa
 {
 template <typename... Ts>
@@ -1684,6 +1714,29 @@ auto spawner(framework::pack<C...> columns, arrow::Table* atable)
   }
   return arrow::Table::Make(std::make_shared<arrow::Schema>(new_fields), new_columns);
 }
+
+/// Template for building an index table to access matching rows from non-
+/// joinable, but compatible tables, e.g. Collisions and ZDCs.
+/// First argument is the key table (BCs for the Collisions+ZDCs case), the rest
+/// are index columns defined for the required tables.
+/// First index will be used by process() as the grouping
+template <typename Key, typename H, typename... Ts>
+struct IndexTable : Table<H, Ts...> {
+  using table_t = Table<H, Ts...>;
+  using indexing_t = Key;
+  using first_t = H;
+  using rest_t = framework::pack<Ts...>;
+
+  IndexTable(std::shared_ptr<arrow::Table> table, uint64_t offset = 0)
+    : table_t{table, offset}
+  {
+  }
+
+  IndexTable(IndexTable const&) = default;
+  IndexTable(IndexTable&&) = default;
+  IndexTable& operator=(IndexTable const&) = default;
+  IndexTable& operator=(IndexTable&&) = default;
+};
 
 } // namespace o2::soa
 

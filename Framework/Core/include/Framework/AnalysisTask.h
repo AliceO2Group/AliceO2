@@ -142,18 +142,11 @@ struct Produces<soa::Table<C...>> : WritingCursor<typename soa::FilterPersistent
   }
 };
 
-/// This helper class allows you to declare extended tables which should be
-/// created by the task (as opposed to those pre-defined by data model)
+/// Base template for table transformation declarations
 template <typename T>
-struct Spawns {
+struct TransformTable {
   using metadata = typename aod::MetadataTrait<T>::metadata;
-  using expression_pack_t = typename metadata::expression_pack_t;
   using originals = typename metadata::originals;
-
-  constexpr expression_pack_t pack()
-  {
-    return expression_pack_t{};
-  }
 
   template <typename O>
   InputSpec const base_spec()
@@ -200,6 +193,36 @@ struct Spawns {
     return table->asArrowTable();
   }
   std::shared_ptr<T> table = nullptr;
+};
+
+/// This helper struct allows you to declare extended tables which should be
+/// created by the task (as opposed to those pre-defined by data model)
+template <typename T>
+struct Spawns : TransformTable<T> {
+  using metadata = typename TransformTable<T>::metadata;
+  using originals = typename metadata::originals;
+  using expression_pack_t = typename metadata::expression_pack_t;
+
+  constexpr auto pack()
+  {
+    return expression_pack_t{};
+  }
+};
+
+/// This helper struct allows you to declare index tables to be created in a task
+template <typename T>
+struct Builds : TransformTable<T> {
+  using metadata = typename TransformTable<T>::metadata;
+  using originals = typename metadata::originals;
+  using Key = typename T::indexing_t;
+  using H = typename T::first_t;
+  using Ts = typename T::rest_t;
+  using index_pack_t = typename metadata::index_pack_t;
+
+  constexpr auto pack()
+  {
+    return index_pack_t{};
+  }
 };
 
 /// This helper class allows you to declare things which will be created by a
@@ -880,6 +903,7 @@ struct FilterManager<expressions::Filter> {
   }
 };
 
+/// SFINAE placeholder
 template <typename T>
 struct OutputManager {
   template <typename ANY>
@@ -907,6 +931,7 @@ struct OutputManager {
   }
 };
 
+/// Produces specialization
 template <typename TABLE>
 struct OutputManager<Produces<TABLE>> {
   static bool appendOutput(std::vector<OutputSpec>& outputs, Produces<TABLE>& what, uint32_t)
@@ -929,6 +954,7 @@ struct OutputManager<Produces<TABLE>> {
   }
 };
 
+/// HistogramRegistry specialization
 template <>
 struct OutputManager<HistogramRegistry> {
   static bool appendOutput(std::vector<OutputSpec>& outputs, HistogramRegistry& what, uint32_t)
@@ -952,6 +978,7 @@ struct OutputManager<HistogramRegistry> {
   }
 };
 
+/// OutputObj specialization
 template <typename T>
 struct OutputManager<OutputObj<T>> {
   static bool appendOutput(std::vector<OutputSpec>& outputs, OutputObj<T>& what, uint32_t hash)
@@ -976,6 +1003,19 @@ struct OutputManager<OutputObj<T>> {
     return true;
   }
 };
+
+/// Spawns specializations
+template <typename O>
+static auto extractOriginal(ProcessingContext& pc)
+{
+  return pc.inputs().get<TableConsumer>(aod::MetadataTrait<O>::metadata::tableLabel())->asArrowTable();
+}
+
+template <typename... Os>
+static std::vector<std::shared_ptr<arrow::Table>> extractOriginals(framework::pack<Os...>, ProcessingContext& pc)
+{
+  return {extractOriginal<Os>(pc)...};
+}
 
 template <typename T>
 struct OutputManager<Spawns<T>> {
@@ -1004,17 +1044,48 @@ struct OutputManager<Spawns<T>> {
     eosc.outputs().adopt(Output{metadata::origin(), metadata::description()}, what.asArrowTable());
     return true;
   }
+};
 
-  template <typename... Os>
-  static std::vector<std::shared_ptr<arrow::Table>> extractOriginals(framework::pack<Os...>, ProcessingContext& pc)
+/// Builds specialization
+template <typename O>
+static auto extractTypedOriginal(ProcessingContext& pc)
+{
+  ///FIXME: this should be done in invokeProcess() as some of the originals may be compound tables
+  return O{pc.inputs().get<TableConsumer>(aod::MetadataTrait<O>::metadata::tableLabel())->asArrowTable()};
+}
+
+template <typename... Os>
+static auto extractOriginalsTuple(framework::pack<Os...>, ProcessingContext& pc)
+{
+  return std::make_tuple(extractTypedOriginal<Os>(pc)...);
+}
+
+template <typename T>
+struct OutputManager<Builds<T>> {
+  static bool appendOutput(std::vector<OutputSpec>& outputs, Builds<T>& what, uint32_t)
   {
-    return {extractOriginal<Os>(pc)...};
+    outputs.emplace_back(what.spec());
+    return true;
   }
 
-  template <typename O>
-  static auto extractOriginal(ProcessingContext& pc)
+  static bool prepare(ProcessingContext& pc, Builds<T>& what)
   {
-    return pc.inputs().get<TableConsumer>(aod::MetadataTrait<O>::metadata::tableLabel())->asArrowTable();
+    using metadata = typename std::decay_t<decltype(what)>::metadata;
+    auto source_tables = extractOriginalsTuple(typename metadata::originals{}, pc);
+    what.table = std::make_shared<T>(indexBuilder(typename metadata::index_pack_t{}, extractTypedOriginal<typename metadata::Key>(pc), source_tables));
+    return true;
+  }
+
+  static bool finalize(ProcessingContext&, Builds<T>&)
+  {
+    return true;
+  }
+
+  static bool postRun(EndOfStreamContext& eosc, Builds<T>& what)
+  {
+    using metadata = typename std::decay_t<decltype(what)>::metadata;
+    eosc.outputs().adopt(Output{metadata::origin(), metadata::description()}, what.asArrowTable());
+    return true;
   }
 };
 
@@ -1119,6 +1190,26 @@ struct SpawnManager<Spawns<TABLE>> {
   }
 };
 
+/// Manager template for building index tables
+template <typename T>
+struct IndexManager {
+  static bool requestInputs(std::vector<InputSpec>&, T const&) { return false; };
+};
+
+template <typename IDX>
+struct IndexManager<Builds<IDX>> {
+  static bool requestInputs(std::vector<InputSpec>& inputs, Builds<IDX>& builds)
+  {
+    auto base_specs = builds.base_specs();
+    for (auto& base_spec : base_specs) {
+      if (std::find_if(inputs.begin(), inputs.end(), [&](InputSpec const& spec) { return base_spec.binding == spec.binding; }) == inputs.end()) {
+        inputs.emplace_back(base_spec);
+      }
+    }
+    return true;
+  }
+};
+
 // SFINAE test
 template <typename T>
 class has_process
@@ -1202,6 +1293,12 @@ DataProcessorSpec adaptAnalysisTask(char const* name, Args&&... args)
   //request base tables for spawnable extended tables
   std::apply([&inputs](auto&... x) {
     return (SpawnManager<std::decay_t<decltype(x)>>::requestInputs(inputs, x), ...);
+  },
+             tupledTask);
+
+  //request base tables for indices to be built
+  std::apply([&inputs](auto&... x) {
+    return (IndexManager<std::decay_t<decltype(x)>>::requestInputs(inputs, x), ...);
   },
              tupledTask);
 

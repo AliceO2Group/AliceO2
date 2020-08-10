@@ -361,7 +361,7 @@ DECLARE_SOA_COLUMN(TimeZPA, timeZPA, float);
 DECLARE_SOA_COLUMN(TimeZPC, timeZPC, float);
 } // namespace zdc
 
-DECLARE_SOA_TABLE(Zdcs, "AOD", "ZDC", zdc::BCId, zdc::EnergyZEM1, zdc::EnergyZEM2,
+DECLARE_SOA_TABLE(Zdcs, "AOD", "ZDC", o2::soa::Index<>, zdc::BCId, zdc::EnergyZEM1, zdc::EnergyZEM2,
                   zdc::EnergyCommonZNA, zdc::EnergyCommonZNC, zdc::EnergyCommonZPA, zdc::EnergyCommonZPC,
                   zdc::EnergySectorZNA, zdc::EnergySectorZNC, zdc::EnergySectorZPA, zdc::EnergySectorZPC,
                   zdc::TimeZEM1, zdc::TimeZEM2, zdc::TimeZNA, zdc::TimeZNC, zdc::TimeZPA, zdc::TimeZPC);
