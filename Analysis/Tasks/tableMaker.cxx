@@ -111,7 +111,7 @@ struct TableMaker {
       if (muon.bc() != collision.bc())
         continue;
       trackFilteringTag |= (uint64_t(1) << 0); // this is a MUON arm track
-      muonBasic(collision, trackFilteringTag, muon.px(), muon.py(), muon.pz(), muon.charge());
+      muonBasic(collision, trackFilteringTag, muon.pt(), muon.eta(), muon.phi(), muon.charge());
       muonExtended(muon.inverseBendingMomentum(), muon.thetaX(), muon.thetaY(), muon.zMu(), muon.bendingCoor(), muon.nonBendingCoor(), muon.chi2(), muon.chi2MatchTrigger());
     }
   }
