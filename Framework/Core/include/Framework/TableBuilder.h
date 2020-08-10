@@ -660,12 +660,7 @@ auto indexBuilder(framework::pack<Cs...>, Key const&, std::tuple<T1, T...> table
 
   auto first = std::get<first_t>(tables);
   for (auto& row : first) {
-    auto idx = -1;
-    if constexpr (std::is_same_v<std::decay_t<Key>, std::decay_t<T1>>) {
-      idx = row.globalIndex();
-    } else {
-      row.template getId<Key>();
-    }
+    auto idx = row.template getId<Key>();
     auto setValue = [&](auto& x) -> bool {
       using type = std::decay_t<decltype(x)>;
       constexpr auto position = framework::has_type_at<type>(rest_it_t{});
