@@ -23,6 +23,7 @@
 #include "DataFormatsFT0/Digit.h"
 #include "DataFormatsFT0/ChannelData.h"
 #include "DetectorsCommonDataFormats/DetID.h"
+#include "DetectorsBase/CTFCoderBase.h"
 #include "rANS/rans.h"
 
 class TTree;
@@ -32,27 +33,32 @@ namespace o2
 namespace ft0
 {
 
-class CTFCoder
+class CTFCoder : public o2::ctf::CTFCoderBase
 {
  public:
+  CTFCoder() : o2::ctf::CTFCoderBase(CTF::getNBlocks()) {}
+  ~CTFCoder() = default;
+
   /// entropy-encode digits to buffer with CTF
   template <typename VEC>
-  static void encode(VEC& buff, const gsl::span<const Digit>& digitVec, const gsl::span<const ChannelData>& channelVec);
+  void encode(VEC& buff, const gsl::span<const Digit>& digitVec, const gsl::span<const ChannelData>& channelVec);
 
   /// entropy decode clusters from buffer with CTF
   template <typename VDIG, typename VCHAN>
-  static void decode(const CTF::base& ec, VDIG& digitVec, VCHAN& channelVec);
+  void decode(const CTF::base& ec, VDIG& digitVec, VCHAN& channelVec);
+
+  void createCoders(const std::string& dictPath, o2::ctf::CTFCoderBase::OpType op);
 
  private:
   /// compres digits clusters to CompressedDigits
-  static void compress(CompressedDigits& cd, const gsl::span<const Digit>& digitVec, const gsl::span<const ChannelData>& channelVec);
+  void compress(CompressedDigits& cd, const gsl::span<const Digit>& digitVec, const gsl::span<const ChannelData>& channelVec);
 
   /// decompress CompressedDigits to digits
   template <typename VDIG, typename VCHAN>
-  static void decompress(const CompressedDigits& cd, VDIG& digitVec, VCHAN& channelVec);
+  void decompress(const CompressedDigits& cd, VDIG& digitVec, VCHAN& channelVec);
 
-  static void appendToTree(TTree& tree, CTF& ec);
-  static void readFromTree(TTree& tree, int entry, std::vector<Digit>& digitVec, std::vector<ChannelData>& channelVec);
+  void appendToTree(TTree& tree, CTF& ec);
+  void readFromTree(TTree& tree, int entry, std::vector<Digit>& digitVec, std::vector<ChannelData>& channelVec);
 
   ClassDefNV(CTFCoder, 1);
 };
@@ -83,18 +89,19 @@ void CTFCoder::encode(VEC& buff, const gsl::span<const Digit>& digitVec, const g
   ec->getANSHeader().majorVersion = 0;
   ec->getANSHeader().minorVersion = 1;
   // at every encoding the buffer might be autoexpanded, so we don't work with fixed pointer ec
-#define ENCODE CTF::get(buff.data())->encode
+#define ENCODEFT0(part, slot, bits) CTF::get(buff.data())->encode(part, int(slot), bits, optField[int(slot)], &buff, mCoders[int(slot)].get());
   // clang-format off
-  ENCODE(cd.trigger,   CTF::BLC_trigger,  o2::rans::ProbabilityBits16Bit, optField[CTF::BLC_trigger],  &buff);
-  ENCODE(cd.bcInc,     CTF::BLC_bcInc,    o2::rans::ProbabilityBits16Bit, optField[CTF::BLC_bcInc],    &buff);
-  ENCODE(cd.orbitInc,  CTF::BLC_orbitInc, o2::rans::ProbabilityBits16Bit, optField[CTF::BLC_orbitInc], &buff);
-  ENCODE(cd.nChan,     CTF::BLC_nChan,    o2::rans::ProbabilityBits8Bit,  optField[CTF::BLC_nChan],    &buff);
-  //  ENCODE(cd.eventFlags, CTF::BLC_flags,    o2::rans::ProbabilityBits8Bit,  optField[CTF::BLC_flags],    &buff);
-  ENCODE(cd.idChan ,   CTF::BLC_idChan,   o2::rans::ProbabilityBits8Bit,  optField[CTF::BLC_idChan],   &buff);
-  ENCODE(cd.qtcChain,  CTF::BLC_qtcChain,      o2::rans::ProbabilityBits8Bit,  optField[CTF::BLC_qtcChain],      &buff);
-  ENCODE(cd.cfdTime,   CTF::BLC_cfdTime,  o2::rans::ProbabilityBits16Bit, optField[CTF::BLC_cfdTime],  &buff);
-  ENCODE(cd.qtcAmpl,   CTF::BLC_qtcAmpl,  o2::rans::ProbabilityBits25Bit, optField[CTF::BLC_qtcAmpl],  &buff);
+  ENCODEFT0(cd.trigger,   CTF::BLC_trigger,  o2::rans::ProbabilityBits16Bit);
+  ENCODEFT0(cd.bcInc,     CTF::BLC_bcInc,    o2::rans::ProbabilityBits16Bit);
+  ENCODEFT0(cd.orbitInc,  CTF::BLC_orbitInc, o2::rans::ProbabilityBits16Bit);
+  ENCODEFT0(cd.nChan,     CTF::BLC_nChan,    o2::rans::ProbabilityBits8Bit);
+  //  ENCODEFT0(cd.eventFlags, CTF::BLC_flags,    o2::rans::ProbabilityBits8Bit);
+  ENCODEFT0(cd.idChan ,   CTF::BLC_idChan,   o2::rans::ProbabilityBits8Bit);
+  ENCODEFT0(cd.qtcChain,  CTF::BLC_qtcChain,      o2::rans::ProbabilityBits8Bit);
+  ENCODEFT0(cd.cfdTime,   CTF::BLC_cfdTime,  o2::rans::ProbabilityBits16Bit);
+  ENCODEFT0(cd.qtcAmpl,   CTF::BLC_qtcAmpl,  o2::rans::ProbabilityBits25Bit);
   // clang-format on
+  CTF::get(buff.data())->print("FT0 done: ");
 }
 
 /// decode entropy-encoded clusters to standard compact clusters
@@ -103,16 +110,17 @@ void CTFCoder::decode(const CTF::base& ec, VDIG& digitVec, VCHAN& channelVec)
 {
   CompressedDigits cd;
   cd.header = ec.getHeader();
+#define DECODEFT0(part, slot) ec.decode(part, int(slot), mCoders[int(slot)].get())
   // clang-format off
-  ec.decode(cd.trigger,   CTF::BLC_trigger);
-  ec.decode(cd.bcInc,     CTF::BLC_bcInc); 
-  ec.decode(cd.orbitInc,  CTF::BLC_orbitInc);
-  ec.decode(cd.nChan,     CTF::BLC_nChan);
-  //  ec.decode(cd.eventFlags,     CTF::BLC_flags);
-  ec.decode(cd.idChan,    CTF::BLC_idChan);
-  ec.decode(cd.qtcChain,  CTF::BLC_qtcChain);
-  ec.decode(cd.cfdTime,   CTF::BLC_cfdTime);
-  ec.decode(cd.qtcAmpl,   CTF::BLC_qtcAmpl);
+  DECODEFT0(cd.trigger,   CTF::BLC_trigger);
+  DECODEFT0(cd.bcInc,     CTF::BLC_bcInc); 
+  DECODEFT0(cd.orbitInc,  CTF::BLC_orbitInc);
+  DECODEFT0(cd.nChan,     CTF::BLC_nChan);
+  //  DECODEFT0(cd.eventFlags,     CTF::BLC_flags);
+  DECODEFT0(cd.idChan,    CTF::BLC_idChan);
+  DECODEFT0(cd.qtcChain,  CTF::BLC_qtcChain);
+  DECODEFT0(cd.cfdTime,   CTF::BLC_cfdTime);
+  DECODEFT0(cd.qtcAmpl,   CTF::BLC_qtcAmpl);
   // clang-format on
   //
   decompress(cd, digitVec, channelVec);
