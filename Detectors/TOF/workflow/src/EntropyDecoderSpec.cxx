@@ -14,7 +14,6 @@
 
 #include "Framework/ControlService.h"
 #include "Framework/ConfigParamRegistry.h"
-#include "TOFReconstruction/CTFCoder.h"
 #include "TOFWorkflow/EntropyDecoderSpec.h"
 
 using namespace o2::framework;
@@ -30,6 +29,14 @@ EntropyDecoderSpec::EntropyDecoderSpec()
   mTimer.Reset();
 }
 
+void EntropyDecoderSpec::init(o2::framework::InitContext& ic)
+{
+  std::string dictPath = ic.options().get<std::string>("tof-ctf-dictionary");
+  if (!dictPath.empty() && dictPath != "none") {
+    mCTFCoder.createCoders(dictPath, o2::ctf::CTFCoderBase::OpType::Decoder);
+  }
+}
+
 void EntropyDecoderSpec::run(ProcessingContext& pc)
 {
   auto cput = mTimer.CpuTime();
@@ -43,7 +50,7 @@ void EntropyDecoderSpec::run(ProcessingContext& pc)
 
   // since the buff is const, we cannot use EncodedBlocks::relocate directly, instead we wrap its data to another flat object
   const auto ctfImage = o2::tof::CTF::getImage(buff.data());
-  CTFCoder::decode(ctfImage, row, digits, patterns);
+  mCTFCoder.decode(ctfImage, row, digits, patterns);
 
   mTimer.Stop();
   LOG(INFO) << "Decoded " << digits.size() << " digits in " << row.size() << " ROF in " << mTimer.CpuTime() - cput << " s";
@@ -67,7 +74,7 @@ DataProcessorSpec getEntropyDecoderSpec()
     Inputs{InputSpec{"ctf", o2::header::gDataOriginTOF, "CTFDATA", 0, Lifetime::Timeframe}},
     outputs,
     AlgorithmSpec{adaptFromTask<EntropyDecoderSpec>()},
-    Options{}};
+    Options{{"tof-ctf-dictionary", VariantType::String, "ctf_dictionary.root", {"File of CTF decoding dictionary"}}}};
 }
 
 } // namespace tof

@@ -23,6 +23,7 @@
 #include "ITSMFTWorkflow/EntropyDecoderSpec.h"
 #include "TPCWorkflow/EntropyDecoderSpec.h"
 #include "FT0Workflow/EntropyDecoderSpec.h"
+#include "TOFWorkflow/EntropyDecoderSpec.h"
 
 using namespace o2::framework;
 using DetID = o2::detectors::DetID;
@@ -73,9 +74,11 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   if (dets[DetID::TPC]) {
     specs.push_back(o2::tpc::getEntropyDecoderSpec());
   }
+  if (dets[DetID::TOF]) {
+    specs.push_back(o2::tof::getEntropyDecoderSpec());
+  }
   if (dets[DetID::FT0]) {
     specs.push_back(o2::ft0::getEntropyDecoderSpec());
   }
-
   return std::move(specs);
 }
