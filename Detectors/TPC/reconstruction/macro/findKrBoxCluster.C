@@ -12,6 +12,7 @@
 /// \brief This macro retrieves clusters from Krypton and X-Ray runs, input tpcdigits.root
 /// \author Philip Hauer <philip.hauer@cern.ch>
 
+#if !defined(__CLING__) || defined(__ROOTCLING__)
 #include "TCanvas.h"
 #include "TFile.h"
 #include "TTree.h"
@@ -24,8 +25,9 @@
 #include <iostream>
 #include <tuple>
 #include <vector>
+#endif
 
-void findKrBoxCluster()
+void findKrBoxCluster(int lastTimeBin = 1000, int run = -1, int time = -1)
 {
   // Read the digits:
   TFile* file = new TFile("tpcdigits.root");
@@ -34,17 +36,19 @@ void findKrBoxCluster()
   std::cout << "The Tree has " << nEntries << " Entries." << std::endl;
 
   // Initialize File for later writing
-  TFile* f = new TFile("boxClustersSectors.root", "RECREATE", "Clusters");
-  TTree* T = new TTree("T", "Clusters");
+  TFile* fOut = new TFile("BoxClusters.root", "RECREATE");
+  TTree* tClusters = new TTree("Clusters", "Clusters");
 
-  // Tree will be filled with a vector of clusters
-  std::vector<o2::tpc::KrCluster> vCluster{};
-  T->Branch("cluster", &vCluster);
+  // Create a Branch for each sector:
+  std::vector<o2::tpc::KrCluster> clusters;
+  tClusters->Branch("cls", &clusters);
+  tClusters->Branch("run", &run);
+  tClusters->Branch("time", &time);
 
-  std::array<std::vector<o2::tpc::Digit>*, 36> DigitizedSignal;
-  for (int iSec = 0; iSec < DigitizedSignal.size(); ++iSec) {
-    DigitizedSignal[iSec] = nullptr;
-    tree->SetBranchAddress(Form("TPCDigit_%d", iSec), &DigitizedSignal[iSec]);
+  std::array<std::vector<o2::tpc::Digit>*, 36> digitizedSignal;
+  for (size_t iSec = 0; iSec < digitizedSignal.size(); ++iSec) {
+    digitizedSignal[iSec] = nullptr;
+    tree->SetBranchAddress(Form("TPCDigit_%zu", iSec), &digitizedSignal[iSec]);
   }
 
   // Now everything can get processed
@@ -54,34 +58,35 @@ void findKrBoxCluster()
     tree->GetEntry(iEvent);
     // Each event consists of sectors (atm only two)
     for (int i = 0; i < 36; i++) {
-      auto sector = DigitizedSignal[i];
-      if (sector->size() != 0) {
-        // Create ClusterFinder Object on Heap since creation on stack fails
-        // Probably due to too much memory consumption
-        o2::tpc::KrBoxClusterFinder* cluster = new o2::tpc::KrBoxClusterFinder(*sector);
-        std::vector<std::tuple<int, int, int>> localMaxima = cluster->findLocalMaxima();
-        // Loop over cluster centers
-        for (const std::tuple<int, int, int>& coords : localMaxima) {
-          int padMax = std::get<0>(coords);
-          int rowMax = std::get<1>(coords);
-          int timeMax = std::get<2>(coords);
-          // Build total cluster
-          o2::tpc::KrCluster tempCluster = cluster->buildCluster(padMax, rowMax, timeMax);
-          tempCluster.sector = i;
-          vCluster.emplace_back(tempCluster);
+      auto sector = digitizedSignal[i];
+      if (sector->size() == 0) {
+        continue;
+      }
+      // Create ClusterFinder Object on Heap since creation on stack fails
+      // Probably due to too much memory consumption
+      auto clFinder = std::make_unique<o2::tpc::KrBoxClusterFinder>(*sector);
+      std::vector<std::tuple<int, int, int>> localMaxima = clFinder->findLocalMaxima();
+      // Loop over cluster centers
+      for (const std::tuple<int, int, int>& coords : localMaxima) {
+        int padMax = std::get<0>(coords);
+        int rowMax = std::get<1>(coords);
+        int timeMax = std::get<2>(coords);
+
+        if (timeMax >= lastTimeBin) {
+          continue;
         }
-        // Clean up memory:
-        delete cluster;
-        cluster = nullptr;
+        // Build total cluster
+        o2::tpc::KrCluster tempCluster = clFinder->buildCluster(padMax, rowMax, timeMax);
+        tempCluster.sector = i;
+        clusters.emplace_back(tempCluster);
       }
     }
     // Fill Tree
-    T->Fill();
-    vCluster.clear();
+    tClusters->Fill();
+    clusters.clear();
   }
   // Write Tree to file
-  f->cd();
-  T->Write();
-  f->Close();
+  fOut->Write();
+  fOut->Close();
   return;
 }

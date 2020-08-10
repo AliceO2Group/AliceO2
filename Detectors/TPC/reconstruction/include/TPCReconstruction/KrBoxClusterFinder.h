@@ -70,6 +70,7 @@
 
 #include "DataFormatsTPC/Digit.h"
 #include "TPCReconstruction/KrCluster.h"
+#include "TPCBase/Mapper.h"
 
 #include <tuple>
 #include <vector>
@@ -122,6 +123,9 @@ class KrBoxClusterFinder
   static constexpr size_t MaxPads = 138;  ///< Size of the map in pad-direction
   static constexpr size_t MaxRows = 152;  ///< Size of the map in row-direction
   static constexpr size_t MaxTimes = 550; ///< Size of the map in time-direction
+
+  /// Need an instance of Mapper to know position of pads
+  const Mapper& mMapperInstance = o2::tpc::Mapper::instance();
 
   KrCluster mTempCluster; ///< Used to save the cluster data
 
