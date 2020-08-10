@@ -82,6 +82,9 @@ class NameConf
   // standard name for digitization configuration output
   static constexpr std::string_view DIGITIZATIONCONFIGFILE = "o2simdigitizerworkflow_configuration.ini";
 
+  // public standard CTF dictionary
+  static constexpr std::string_view CTFDICT = "ctf_dictionary"; // hardcoded
+
   // Block for ITS/TPC matching
   static constexpr std::string_view TPCITS_TracksBranchName = "TPCITS";              ///< name of branch containing output matched tracks
   static constexpr std::string_view TPCITS_TPCMCTruthBranchName = "MatchTPCMCTruth"; ///< name of branch for output matched tracks TPC MC
