@@ -15,7 +15,6 @@
 #include "Framework/ControlService.h"
 #include "Framework/ConfigParamRegistry.h"
 #include "TOFBase/Digit.h"
-#include "TOFReconstruction/CTFCoder.h"
 #include "TOFWorkflow/EntropyEncoderSpec.h"
 
 using namespace o2::framework;
@@ -31,6 +30,14 @@ EntropyEncoderSpec::EntropyEncoderSpec()
   mTimer.Reset();
 }
 
+void EntropyEncoderSpec::init(o2::framework::InitContext& ic)
+{
+  std::string dictPath = ic.options().get<std::string>("tof-ctf-dictionary");
+  if (!dictPath.empty() && dictPath != "none") {
+    mCTFCoder.createCoders(dictPath, o2::ctf::CTFCoderBase::OpType::Encoder);
+  }
+}
+
 void EntropyEncoderSpec::run(ProcessingContext& pc)
 {
   auto cput = mTimer.CpuTime();
@@ -40,7 +47,7 @@ void EntropyEncoderSpec::run(ProcessingContext& pc)
   auto rofs = pc.inputs().get<gsl::span<ReadoutWindowData>>("ROframes");
 
   auto& buffer = pc.outputs().make<std::vector<o2::ctf::BufferType>>(Output{o2::header::gDataOriginTOF, "CTFDATA", 0, Lifetime::Timeframe});
-  CTFCoder::encode(buffer, rofs, compDigits, pspan);
+  mCTFCoder.encode(buffer, rofs, compDigits, pspan);
   auto eeb = CTF::get(buffer.data()); // cast to container pointer
   eeb->compactify();                  // eliminate unnecessary padding
   buffer.resize(eeb->size());         // shrink buffer to strictly necessary size
@@ -68,7 +75,7 @@ DataProcessorSpec getEntropyEncoderSpec()
     inputs,
     Outputs{{o2::header::gDataOriginTOF, "CTFDATA", 0, Lifetime::Timeframe}},
     AlgorithmSpec{adaptFromTask<EntropyEncoderSpec>()},
-    Options{}};
+    Options{{"tof-ctf-dictionary", VariantType::String, "ctf_dictionary.root", {"File of CTF encoding dictionary"}}}};
 }
 
 } // namespace tof

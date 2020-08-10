@@ -50,7 +50,7 @@ void CTFCoder::compress(CompressedInfos& cc,
   const auto& rofRec0 = rofRecVec[0];
   int nrof = rofRecVec.size();
 
-  printf("TOF compress %d ReadoutWindow with %ld digits\n", nrof, cdigVec.size());
+  LOGF(INFO, "TOF compress %d ReadoutWindow with %ld digits", nrof, cdigVec.size());
 
   cc.header.nROFs = nrof;
   cc.header.firstOrbit = rofRec0.getBCData().orbit;
@@ -138,10 +138,51 @@ void CTFCoder::compress(CompressedInfos& cc,
       cc.stripID[idig] = chan / Geo::NPADS;
       cc.chanInStrip[idig] = chan % Geo::NPADS;
       cc.tot[idig] = dig.getTOT();
-      printf("%d) TOFBC = %d, deltaBC = %d, TDC = %d, CH=%d\n", irof, rofInBC, deltaBC, cTDC, chan);
-      printf("%d) TF=%d, TDC=%d, STRIP=%d, CH=%d, TOT=%d\n", idig, cc.timeFrameInc[idig], cc.timeTDCInc[idig], cc.stripID[idig], cc.chanInStrip[idig], cc.tot[idig]);
+      LOGF(DEBUG, "%d) TOFBC = %d, deltaBC = %d, TDC = %d, CH=%d", irof, rofInBC, deltaBC, cTDC, chan);
+      LOGF(DEBUG, "%d) TF=%d, TDC=%d, STRIP=%d, CH=%d, TOT=%d", idig, cc.timeFrameInc[idig], cc.timeTDCInc[idig], cc.stripID[idig], cc.chanInStrip[idig], cc.tot[idig]);
     }
   }
   // store explicit patters as they are
   memcpy(cc.pattMap.data(), pattVec.data(), cc.header.nPatternBytes); // RSTODO: do we need this?
+}
+
+///________________________________
+void CTFCoder::createCoders(const std::string& dictPath, o2::ctf::CTFCoderBase::OpType op)
+{
+  bool mayFail = true; // RS FIXME if the dictionary file is not there, do not produce exception
+  auto buff = readDictionaryFromFile<CTF>(dictPath, o2::detectors::DetID::TOF, mayFail);
+  if (!buff.size()) {
+    if (mayFail) {
+      return;
+    }
+    throw std::runtime_error("Failed to create CTF dictionaty");
+  }
+  const auto* ctf = CTF::get(buff.data());
+
+  auto getFreq = [ctf](CTF::Slots slot) -> o2::rans::FrequencyTable {
+    o2::rans::FrequencyTable ft;
+    auto bl = ctf->getBlock(slot);
+    auto md = ctf->getMetadata(slot);
+    ft.addFrequencies(bl.getDict(), bl.getDict() + bl.getNDict(), md.min, md.max);
+    return std::move(ft);
+  };
+  auto getProbBits = [ctf](CTF::Slots slot) -> int {
+    return ctf->getMetadata(slot).probabilityBits;
+  };
+
+  CompressedInfos cc; // just to get member types
+#define MAKECODER(part, slot) createCoder<decltype(part)::value_type>(op, getFreq(slot), getProbBits(slot), int(slot))
+  // clang-format off
+  MAKECODER(cc.bcIncROF,     CTF::BLCbcIncROF);
+  MAKECODER(cc.orbitIncROF,  CTF::BLCorbitIncROF);
+  MAKECODER(cc.ndigROF,      CTF::BLCndigROF);
+  MAKECODER(cc.ndiaROF,      CTF::BLCndiaROF);
+  
+  MAKECODER(cc.timeFrameInc, CTF::BLCtimeFrameInc);
+  MAKECODER(cc.timeTDCInc,   CTF::BLCtimeTDCInc);
+  MAKECODER(cc.stripID,      CTF::BLCstripID);
+  MAKECODER(cc.chanInStrip,  CTF::BLCchanInStrip);
+  MAKECODER(cc.tot,          CTF::BLCtot);
+  MAKECODER(cc.pattMap,      CTF::BLCpattMap);
+  // clang-format on
 }
