@@ -404,7 +404,7 @@ auto sendRelayerMetrics(ServiceRegistry& registry, DataProcessingStats& stats) -
   monitoring.send(Metric{stats.lastElapsedTimeMs, "elapsed_time_ms"}.addTag(Key::Subsystem, Value::DPL));
   monitoring.send(Metric{stats.lastTotalProcessedSize, "processed_input_size_byte"}
                     .addTag(Key::Subsystem, Value::DPL));
-  monitoring.send(Metric{(stats.lastTotalProcessedSize / (stats.lastElapsedTimeMs ? stats.lastElapsedTimeMs : 1) / 1000),
+  monitoring.send(Metric{(stats.lastTotalProcessedSize.load() / (stats.lastElapsedTimeMs.load() ? stats.lastElapsedTimeMs.load() : 1) / 1000),
                          "processing_rate_mb_s"}
                     .addTag(Key::Subsystem, Value::DPL));
   monitoring.send(Metric{stats.lastLatency.minLatency, "min_input_latency_ms"}
@@ -414,7 +414,7 @@ auto sendRelayerMetrics(ServiceRegistry& registry, DataProcessingStats& stats) -
   monitoring.send(Metric{(stats.lastTotalProcessedSize / (stats.lastLatency.maxLatency ? stats.lastLatency.maxLatency : 1) / 1000), "input_rate_mb_s"}
                     .addTag(Key::Subsystem, Value::DPL));
 
-  stats.lastSlowMetricSentTimestamp = stats.beginIterationTimestamp;
+  stats.lastSlowMetricSentTimestamp.store(stats.beginIterationTimestamp.load());
   O2_SIGNPOST_END(MonitoringStatus::ID, MonitoringStatus::SEND, 0, 0, O2_SIGNPOST_BLUE);
 };
 
@@ -438,7 +438,7 @@ auto flushMetrics(ServiceRegistry& registry, DataProcessingStats& stats) -> void
   }
   relayer.sendContextState();
   monitoring.flushBuffer();
-  stats.lastMetricFlushedTimestamp = stats.beginIterationTimestamp;
+  stats.lastMetricFlushedTimestamp.store(stats.beginIterationTimestamp.load());
   O2_SIGNPOST_END(MonitoringStatus::ID, MonitoringStatus::FLUSH, 0, 0, O2_SIGNPOST_RED);
 };
 } // namespace
