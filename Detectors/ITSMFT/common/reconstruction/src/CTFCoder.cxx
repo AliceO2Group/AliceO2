@@ -119,3 +119,44 @@ void CTFCoder::compress(CompressedClusters& cc,
   // store explicit patters as they are
   memcpy(cc.pattMap.data(), pattVec.data(), cc.header.nPatternBytes); // RSTODO: do we need this?
 }
+
+///________________________________
+void CTFCoder::createCoders(const std::string& dictPath, o2::detectors::DetID det, o2::ctf::CTFCoderBase::OpType op)
+{
+  bool mayFail = true; // RS FIXME if the dictionary file is not there, do not produce exception
+  auto buff = readDictionaryFromFile<CTF>(dictPath, det, mayFail);
+  if (!buff.size()) {
+    if (mayFail) {
+      return;
+    }
+    throw std::runtime_error("Failed to create CTF dictionaty");
+  }
+  const auto* ctf = CTF::get(buff.data());
+
+  auto getFreq = [ctf](CTF::Slots slot) -> o2::rans::FrequencyTable {
+    o2::rans::FrequencyTable ft;
+    auto bl = ctf->getBlock(slot);
+    auto md = ctf->getMetadata(slot);
+    ft.addFrequencies(bl.getDict(), bl.getDict() + bl.getNDict(), md.min, md.max);
+    return std::move(ft);
+  };
+  auto getProbBits = [ctf](CTF::Slots slot) -> int {
+    return ctf->getMetadata(slot).probabilityBits;
+  };
+
+  CompressedClusters cc; // just to get member types
+#define MAKECODER(part, slot) createCoder<decltype(part)::value_type>(op, getFreq(slot), getProbBits(slot), int(slot))
+  // clang-format off
+  MAKECODER(cc.firstChipROF, CTF::BLCfirstChipROF);
+  MAKECODER(cc.bcIncROF,     CTF::BLCbcIncROF    );
+  MAKECODER(cc.orbitIncROF,  CTF::BLCorbitIncROF );
+  MAKECODER(cc.nclusROF,     CTF::BLCnclusROF    );
+  //
+  MAKECODER(cc.chipInc,      CTF::BLCchipInc     );
+  MAKECODER(cc.chipMul,      CTF::BLCchipMul     );
+  MAKECODER(cc.row,          CTF::BLCrow         );
+  MAKECODER(cc.colInc,       CTF::BLCcolInc      );
+  MAKECODER(cc.pattID,       CTF::BLCpattID      );
+  MAKECODER(cc.pattMap,      CTF::BLCpattMap     );
+  // clang-format on
+}

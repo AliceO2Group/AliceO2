@@ -15,8 +15,8 @@
 #include "Framework/ControlService.h"
 #include "Framework/ConfigParamRegistry.h"
 #include "DataFormatsITSMFT/CompCluster.h"
-#include "ITSMFTReconstruction/CTFCoder.h"
 #include "ITSMFTWorkflow/EntropyEncoderSpec.h"
+#include "DetectorsCommonDataFormats/DetID.h"
 
 using namespace o2::framework;
 
@@ -32,6 +32,15 @@ EntropyEncoderSpec::EntropyEncoderSpec(o2::header::DataOrigin orig) : mOrigin(or
   mTimer.Reset();
 }
 
+void EntropyEncoderSpec::init(o2::framework::InitContext& ic)
+{
+  std::string dictPath = ic.options().get<std::string>((mOrigin == o2::header::gDataOriginITS) ? "its-ctf-dictionary" : "mft-ctf-dictionary");
+  if (!dictPath.empty() && dictPath != "none") {
+    mCTFCoder.createCoders(dictPath, mOrigin == o2::header::gDataOriginITS ? o2::detectors::DetID::ITS : o2::detectors::DetID::MFT,
+                           o2::ctf::CTFCoderBase::OpType::Encoder);
+  }
+}
+
 void EntropyEncoderSpec::run(ProcessingContext& pc)
 {
   auto cput = mTimer.CpuTime();
@@ -41,7 +50,7 @@ void EntropyEncoderSpec::run(ProcessingContext& pc)
   auto rofs = pc.inputs().get<gsl::span<o2::itsmft::ROFRecord>>("ROframes");
 
   auto& buffer = pc.outputs().make<std::vector<o2::ctf::BufferType>>(Output{mOrigin, "CTFDATA", 0, Lifetime::Timeframe});
-  CTFCoder::encode(buffer, rofs, compClusters, pspan);
+  mCTFCoder.encode(buffer, rofs, compClusters, pspan);
   auto eeb = CTF::get(buffer.data()); // cast to container pointer
   eeb->compactify();                  // eliminate unnecessary padding
   buffer.resize(eeb->size());         // shrink buffer to strictly necessary size
@@ -63,12 +72,14 @@ DataProcessorSpec getEntropyEncoderSpec(o2::header::DataOrigin orig)
   inputs.emplace_back("patterns", orig, "PATTERNS", 0, Lifetime::Timeframe);
   inputs.emplace_back("ROframes", orig, "CLUSTERSROF", 0, Lifetime::Timeframe);
 
+  std::string dictOptName = (orig == o2::header::gDataOriginITS) ? "its-ctf-dictionary" : "mft-ctf-dictionary";
+
   return DataProcessorSpec{
     orig == o2::header::gDataOriginITS ? "its-entropy-encoder" : "mft-entropy-encoder",
     inputs,
     Outputs{{orig, "CTFDATA", 0, Lifetime::Timeframe}},
     AlgorithmSpec{adaptFromTask<EntropyEncoderSpec>(orig)},
-    Options{}};
+    Options{{dictOptName, VariantType::String, "ctf_dictionary.root", {"File of CTF encoding dictionary"}}}};
 }
 
 } // namespace itsmft

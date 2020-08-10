@@ -18,6 +18,7 @@
 #include "Framework/Task.h"
 #include "Headers/DataHeader.h"
 #include <TStopwatch.h>
+#include "ITSMFTReconstruction/CTFCoder.h"
 
 namespace o2
 {
@@ -30,10 +31,12 @@ class EntropyEncoderSpec : public o2::framework::Task
   EntropyEncoderSpec(o2::header::DataOrigin orig);
   ~EntropyEncoderSpec() override = default;
   void run(o2::framework::ProcessingContext& pc) final;
+  void init(o2::framework::InitContext& ic) final;
   void endOfStream(o2::framework::EndOfStreamContext& ec) final;
 
  private:
   o2::header::DataOrigin mOrigin = o2::header::gDataOriginInvalid;
+  o2::itsmft::CTFCoder mCTFCoder;
   TStopwatch mTimer;
 };
 
