@@ -7,8 +7,8 @@
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
-#ifndef FRAMEWORK_DATARELAYER_H
-#define FRAMEWORK_DATARELAYER_H
+#ifndef O2_FRAMEWORK_DATARELAYER_H_
+#define O2_FRAMEWORK_DATARELAYER_H_
 
 #include "Framework/RootSerializationSupport.h"
 #include "Framework/InputRoute.h"
@@ -23,13 +23,12 @@
 
 class FairMQMessage;
 
-namespace o2
-{
-namespace monitoring
+namespace o2::monitoring
 {
 class Monitoring;
 }
-namespace framework
+
+namespace o2::framework
 {
 
 /// Helper struct to hold statistics about the relaying process.
@@ -84,10 +83,6 @@ class DataRelayer
   /// DataRelayer they need to be deleted once the processing is concluded.
   std::vector<MessageSet> getInputsForTimeslice(TimesliceSlot id);
 
-  /// Returns the index of the arguments which have to be forwarded to
-  /// the next processor
-  const std::vector<int>& forwardingMask();
-
   /// Returns how many timeslices we can handle in parallel
   size_t getParallelTimeslices() const;
 
@@ -130,7 +125,6 @@ class DataRelayer
   DataRelayerStats mStats;
 };
 
-} // namespace framework
-} // namespace o2
+} // namespace o2::framework
 
-#endif
+#endif // O2_FRAMEWORK_DATARELAYER_H_
