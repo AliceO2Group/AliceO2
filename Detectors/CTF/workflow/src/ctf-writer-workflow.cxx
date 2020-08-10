@@ -30,6 +30,7 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
   options.push_back(ConfigParamSpec{"onlyDet", VariantType::String, std::string{DetID::NONE}, {"comma separated list of detectors to accept. Overrides skipDet"}});
   options.push_back(ConfigParamSpec{"skipDet", VariantType::String, std::string{DetID::NONE}, {"comma separate list of detectors to skip"}});
   options.push_back(ConfigParamSpec{"grpfile", VariantType::String, o2::base::NameConf::getGRPFileName(), {"name of the grp file"}});
+  options.push_back(ConfigParamSpec{"output-type", VariantType::String, "ctf", {"output types: ctf (per TF) or dict (create dictionaries)"}});
   std::swap(workflowOptions, options);
 }
 
@@ -40,11 +41,20 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
 {
   DetID::mask_t dets;
   long run = 0;
+  bool doCTF = true, doDict = false;
   if (!configcontext.helpOnCommandLine()) {
     std::unique_ptr<o2::parameters::GRPObject> grp(o2::parameters::GRPObject::loadFrom(configcontext.options().get<std::string>("grpfile")));
     dets = grp->getDetsReadOut(configcontext.options().get<std::string>("onlyDet"), configcontext.options().get<std::string>("skipDet"));
+    auto outmode = configcontext.options().get<std::string>("output-type");
+    if (outmode == "ctf") {
+      doCTF = true;
+      doDict = false;
+    } else if (outmode == "dict") {
+      doCTF = false;
+      doDict = true;
+    }
     run = grp->getRun();
   }
-  WorkflowSpec specs{o2::ctf::getCTFWriterSpec(dets, run)};
+  WorkflowSpec specs{o2::ctf::getCTFWriterSpec(dets, run, doCTF, doDict)};
   return std::move(specs);
 }
