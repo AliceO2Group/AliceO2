@@ -89,7 +89,8 @@ class SimTraits
       /*ACO*/ VS{ "ACOHit" }
 #ifdef ENABLE_UPGRADES
       ,
-      /*IT3*/ VS{ "IT3Hit" }
+      /*IT3*/ VS{ "IT3Hit" },
+      /*IT4*/ VS{ "IT4Hit" }
 #endif
     };
   // clang-format on
@@ -224,6 +225,11 @@ struct DetIDToHitTypes<o2::detectors::DetID::TPC> {
 #ifdef ENABLE_UPGRADES
 template <>
 struct DetIDToHitTypes<o2::detectors::DetID::IT3> {
+  using HitType = o2::itsmft::Hit;
+};
+
+template <>
+struct DetIDToHitTypes<o2::detectors::DetID::IT4> {
   using HitType = o2::itsmft::Hit;
 };
 #endif
