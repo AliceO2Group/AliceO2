@@ -46,6 +46,13 @@ using Value = o2::monitoring::tags::Value;
 
 namespace o2::framework
 {
+
+/// This is a global service because read only
+template <>
+struct ServiceKindExtractor<InfoLoggerContext> {
+  constexpr static ServiceKind kind = ServiceKind::Global;
+};
+
 o2::framework::ServiceSpec CommonServices::monitoringSpec()
 {
   return ServiceSpec{"monitoring",
