@@ -56,7 +56,7 @@ struct pidTPCTask {
   void process(aod::Collision const& collision, soa::Join<aod::Tracks, aod::TracksExtra> const& tracks)
   {
     for (auto const& i : tracks) {
-      resp.UpdateTrack(i.p(), i.tpcSignal(), i.tpcNClsShared());
+      resp.UpdateTrack(i.tpcInnerParam(), i.tpcSignal(), i.tpcNClsShared());
       tpcpid(
         resp.GetExpectedSignal(PID::Electron),
         resp.GetExpectedSignal(PID::Muon),
