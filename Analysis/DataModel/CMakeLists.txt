@@ -24,6 +24,8 @@ o2_target_root_dictionary(AnalysisDataModel
                                   include/PIDBase/DetectorResponse.h
                                   include/PID/PIDTOF.h
                                   include/PID/PIDTPC.h
+                                  include/PID/BetheBloch.h
+                                  include/PID/TPCReso.h
                           LINKDEF src/AnalysisDataModelLinkDef.h
                          )
 
