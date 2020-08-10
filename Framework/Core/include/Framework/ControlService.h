@@ -10,6 +10,8 @@
 #ifndef O2_FRAMEWORK_CONTROLSERVICE_H_
 #define O2_FRAMEWORK_CONTROLSERVICE_H_
 
+#include "Framework/ServiceHandle.h"
+
 namespace o2::framework
 {
 
@@ -25,9 +27,12 @@ enum struct QuitRequest {
 
 /// A service that data processors can use to talk to control and ask for their
 /// own state change or others.
+/// A ControlService is requried to be a ServiceKind::Global kind of service.
 class ControlService
 {
  public:
+  constexpr static ServiceKind service_kind = ServiceKind::Global;
+
   /// Compatibility with old API.
   void readyToQuit(bool all) { this->readyToQuit(all ? QuitRequest::All : QuitRequest::Me); }
   /// Signal control that we are potentially ready to quit some / all

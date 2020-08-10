@@ -31,12 +31,14 @@ TextControlService::TextControlService(ServiceRegistry& registry, DeviceState& d
 // This will send an end of stream to all the devices downstream.
 void TextControlService::endOfStream()
 {
+  std::scoped_lock lock(mMutex);
   mDeviceState.streaming = StreamingState::EndOfStreaming;
 }
 
 // All we do is to printout
 void TextControlService::readyToQuit(QuitRequest what)
 {
+  std::scoped_lock lock(mMutex);
   if (mOnce == true) {
     return;
   }
@@ -55,6 +57,7 @@ void TextControlService::readyToQuit(QuitRequest what)
 
 void TextControlService::notifyStreamingState(StreamingState state)
 {
+  std::scoped_lock lock(mMutex);
   switch (state) {
     case StreamingState::Idle:
       LOG(INFO) << "CONTROL_ACTION: NOTIFY_STREAMING_STATE IDLE";
