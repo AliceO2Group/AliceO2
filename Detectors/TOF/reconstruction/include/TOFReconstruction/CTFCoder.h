@@ -21,6 +21,7 @@
 #include "DataFormatsTOF/CTF.h"
 #include "DetectorsCommonDataFormats/DetID.h"
 #include "rANS/rans.h"
+#include "DetectorsBase/CTFCoderBase.h"
 #include "TOFBase/Digit.h"
 
 class TTree;
@@ -30,27 +31,32 @@ namespace o2
 namespace tof
 {
 
-class CTFCoder
+class CTFCoder : public o2::ctf::CTFCoderBase
 {
  public:
+  CTFCoder() : o2::ctf::CTFCoderBase(CTF::getNBlocks()) {}
+  ~CTFCoder() = default;
+
   /// entropy-encode clusters to buffer with CTF
   template <typename VEC>
-  static void encode(VEC& buff, const gsl::span<const ReadoutWindowData>& rofRecVec, const gsl::span<const Digit>& cdigVec, const gsl::span<const uint32_t>& pattVec);
+  void encode(VEC& buff, const gsl::span<const ReadoutWindowData>& rofRecVec, const gsl::span<const Digit>& cdigVec, const gsl::span<const uint32_t>& pattVec);
 
   /// entropy decode clusters from buffer with CTF
   template <typename VROF, typename VDIG, typename VPAT>
-  static void decode(const CTF::base& ec, VROF& rofRecVec, VDIG& cdigVec, VPAT& pattVec);
+  void decode(const CTF::base& ec, VROF& rofRecVec, VDIG& cdigVec, VPAT& pattVec);
+
+  void createCoders(const std::string& dictPath, o2::ctf::CTFCoderBase::OpType op);
 
  private:
   /// compres compact clusters to CompressedInfos
-  static void compress(CompressedInfos& cc, const gsl::span<const ReadoutWindowData>& rofRecVec, const gsl::span<const Digit>& cdigVec, const gsl::span<const uint32_t>& pattVec);
+  void compress(CompressedInfos& cc, const gsl::span<const ReadoutWindowData>& rofRecVec, const gsl::span<const Digit>& cdigVec, const gsl::span<const uint32_t>& pattVec);
 
   /// decompress CompressedInfos to compact clusters
   template <typename VROF, typename VDIG, typename VPAT>
-  static void decompress(const CompressedInfos& cc, VROF& rofRecVec, VDIG& cdigVec, VPAT& pattVec);
+  void decompress(const CompressedInfos& cc, VROF& rofRecVec, VDIG& cdigVec, VPAT& pattVec);
 
-  static void appendToTree(TTree& tree, o2::detectors::DetID id, CTF& ec);
-  static void readFromTree(TTree& tree, int entry, o2::detectors::DetID id, std::vector<ReadoutWindowData>& rofRecVec, std::vector<Digit>& cdigVec, std::vector<uint32_t>& pattVec);
+  void appendToTree(TTree& tree, o2::detectors::DetID id, CTF& ec);
+  void readFromTree(TTree& tree, int entry, o2::detectors::DetID id, std::vector<ReadoutWindowData>& rofRecVec, std::vector<Digit>& cdigVec, std::vector<uint32_t>& pattVec);
 
  protected:
   ClassDefNV(CTFCoder, 1);
@@ -84,19 +90,20 @@ void CTFCoder::encode(VEC& buff, const gsl::span<const ReadoutWindowData>& rofRe
   ec->getANSHeader().majorVersion = 0;
   ec->getANSHeader().minorVersion = 1;
   // at every encoding the buffer might be autoexpanded, so we don't work with fixed pointer ec
-#define ENCODE CTF::get(buff.data())->encode
+#define ENCODETOF(part, slot, bits) CTF::get(buff.data())->encode(part, int(slot), bits, optField[int(slot)], &buff, mCoders[int(slot)].get());
   // clang-format off
-  ENCODE(cc.bcIncROF, CTF::BLCbcIncROF, o2::rans::ProbabilityBits16Bit, optField[CTF::BLCbcIncROF], &buff);
-  ENCODE(cc.orbitIncROF, CTF::BLCorbitIncROF, o2::rans::ProbabilityBits16Bit, optField[CTF::BLCorbitIncROF], &buff);
-  ENCODE(cc.ndigROF, CTF::BLCndigROF, o2::rans::ProbabilityBits16Bit, optField[CTF::BLCndigROF], &buff);
-  ENCODE(cc.ndiaROF, CTF::BLCndiaROF, o2::rans::ProbabilityBits16Bit, optField[CTF::BLCndiaROF], &buff);
-  ENCODE(cc.timeFrameInc, CTF::BLCtimeFrameInc, o2::rans::ProbabilityBits16Bit, optField[CTF::BLCtimeFrameInc], &buff);
-  ENCODE(cc.timeTDCInc, CTF::BLCtimeTDCInc, o2::rans::ProbabilityBits16Bit, optField[CTF::BLCtimeTDCInc], &buff);
-  ENCODE(cc.stripID, CTF::BLCstripID, o2::rans::ProbabilityBits16Bit, optField[CTF::BLCstripID], &buff);
-  ENCODE(cc.chanInStrip, CTF::BLCchanInStrip, o2::rans::ProbabilityBits16Bit, optField[CTF::BLCchanInStrip], &buff);
-  ENCODE(cc.tot, CTF::BLCtot, o2::rans::ProbabilityBits16Bit, optField[CTF::BLCtot], &buff);
-  ENCODE(cc.pattMap,      CTF::BLCpattMap,      o2::rans::ProbabilityBits16Bit, optField[CTF::BLCpattMap], &buff);
+  ENCODETOF(cc.bcIncROF,     CTF::BLCbcIncROF,     o2::rans::ProbabilityBits16Bit);
+  ENCODETOF(cc.orbitIncROF,  CTF::BLCorbitIncROF,  o2::rans::ProbabilityBits16Bit);
+  ENCODETOF(cc.ndigROF,      CTF::BLCndigROF,      o2::rans::ProbabilityBits16Bit);
+  ENCODETOF(cc.ndiaROF,      CTF::BLCndiaROF,      o2::rans::ProbabilityBits16Bit);
+  ENCODETOF(cc.timeFrameInc, CTF::BLCtimeFrameInc, o2::rans::ProbabilityBits16Bit);
+  ENCODETOF(cc.timeTDCInc,   CTF::BLCtimeTDCInc,   o2::rans::ProbabilityBits16Bit);
+  ENCODETOF(cc.stripID,      CTF::BLCstripID,      o2::rans::ProbabilityBits16Bit);
+  ENCODETOF(cc.chanInStrip,  CTF::BLCchanInStrip,  o2::rans::ProbabilityBits16Bit);
+  ENCODETOF(cc.tot,          CTF::BLCtot,          o2::rans::ProbabilityBits16Bit);
+  ENCODETOF(cc.pattMap,      CTF::BLCpattMap,      o2::rans::ProbabilityBits16Bit);
   // clang-format on
+  CTF::get(buff.data())->print("TOF done: ");
 }
 ///___________________________________________________________________________________
 /// decode entropy-encoded digits to standard compact digits
@@ -105,18 +112,19 @@ void CTFCoder::decode(const CTF::base& ec, VROF& rofRecVec, VDIG& cdigVec, VPAT&
 {
   CompressedInfos cc;
   cc.header = ec.getHeader();
+#define DECODETOF(part, slot) ec.decode(part, int(slot), mCoders[int(slot)].get())
   // clang-format off
-    ec.decode(cc.bcIncROF, CTF::BLCbcIncROF);
-    ec.decode(cc.orbitIncROF, CTF::BLCorbitIncROF);
-    ec.decode(cc.ndigROF, CTF::BLCndigROF);
-    ec.decode(cc.ndiaROF, CTF::BLCndiaROF);
-
-    ec.decode(cc.timeFrameInc, CTF::BLCtimeFrameInc);
-    ec.decode(cc.timeTDCInc, CTF::BLCtimeTDCInc);
-    ec.decode(cc.stripID, CTF::BLCstripID);
-    ec.decode(cc.chanInStrip, CTF::BLCchanInStrip);
-    ec.decode(cc.tot, CTF::BLCtot);
-    ec.decode(cc.pattMap,      CTF::BLCpattMap);
+  DECODETOF(cc.bcIncROF,     CTF::BLCbcIncROF);
+  DECODETOF(cc.orbitIncROF,  CTF::BLCorbitIncROF);
+  DECODETOF(cc.ndigROF,      CTF::BLCndigROF);
+  DECODETOF(cc.ndiaROF,      CTF::BLCndiaROF);
+  
+  DECODETOF(cc.timeFrameInc, CTF::BLCtimeFrameInc);
+  DECODETOF(cc.timeTDCInc,   CTF::BLCtimeTDCInc);
+  DECODETOF(cc.stripID,      CTF::BLCstripID);
+  DECODETOF(cc.chanInStrip,  CTF::BLCchanInStrip);
+  DECODETOF(cc.tot,          CTF::BLCtot);
+  DECODETOF(cc.pattMap,      CTF::BLCpattMap);
   // clang-format on
   //
   decompress(cc, rofRecVec, cdigVec, pattVec);
@@ -164,14 +172,14 @@ void CTFCoder::decompress(const CompressedInfos& cc, VROF& rofRecVec, VDIG& cdig
     digCopy.resize(cc.ndigROF[irof]);
     for (uint32_t idig = 0; idig < cc.ndigROF[irof]; idig++) {
       auto& digit = digCopy[idig]; //cdigVec[digCount];
-      printf("%d) TF=%d, TDC=%d, STRIP=%d, CH=%d\n", idig, cc.timeFrameInc[digCount], cc.timeTDCInc[digCount], cc.stripID[digCount], cc.chanInStrip[digCount]);
+      LOGF(DEBUG, "%d) TF=%d, TDC=%d, STRIP=%d, CH=%d", idig, cc.timeFrameInc[digCount], cc.timeTDCInc[digCount], cc.stripID[digCount], cc.chanInStrip[digCount]);
       if (cc.timeFrameInc[digCount]) { // new time frame
         ctdc = cc.timeTDCInc[digCount];
         ctimeframe += cc.timeFrameInc[digCount];
       } else {
         ctdc += cc.timeTDCInc[digCount];
       }
-      printf("BC=%d, TDC=%d, TOT=%d, CH=%d \n", uint32_t(ctimeframe) * 64 + ctdc / 1024 + BCrow, ctdc % 1024, cc.tot[digCount], uint32_t(cc.stripID[digCount]) * 96 + cc.chanInStrip[digCount]);
+      LOGF(DEBUG, "BC=%d, TDC=%d, TOT=%d, CH=%d", uint32_t(ctimeframe) * 64 + ctdc / 1024 + BCrow, ctdc % 1024, cc.tot[digCount], uint32_t(cc.stripID[digCount]) * 96 + cc.chanInStrip[digCount]);
 
       digit.setBC(uint32_t(ctimeframe) * 64 + ctdc / 1024 + BCrow);
       digit.setTDC(ctdc % 1024);

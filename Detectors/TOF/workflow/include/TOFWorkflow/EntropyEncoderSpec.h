@@ -17,6 +17,7 @@
 #include "Framework/DataProcessorSpec.h"
 #include "Framework/Task.h"
 #include "Headers/DataHeader.h"
+#include "TOFReconstruction/CTFCoder.h"
 #include <TStopwatch.h>
 
 namespace o2
@@ -30,9 +31,11 @@ class EntropyEncoderSpec : public o2::framework::Task
   EntropyEncoderSpec();
   ~EntropyEncoderSpec() override = default;
   void run(o2::framework::ProcessingContext& pc) final;
+  void init(o2::framework::InitContext& ic) final;
   void endOfStream(o2::framework::EndOfStreamContext& ec) final;
 
  private:
+  o2::tof::CTFCoder mCTFCoder;
   TStopwatch mTimer;
 };
 
