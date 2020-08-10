@@ -18,11 +18,12 @@
 #include "Analysis/EventSelection.h"
 #include "Analysis/Centrality.h"
 #include "Analysis/TriggerAliases.h"
+#include "PID/PIDResponse.h"
 #include "Analysis/ReducedInfoTables.h"
 #include "Analysis/VarManager.h"
 #include "Analysis/HistogramManager.h"
-#include <TH1F.h>
-#include <TMath.h>
+#include "ReconstructionDataFormats/Track.h"
+
 #include <iostream>
 
 using std::cout;
@@ -30,7 +31,7 @@ using std::endl;
 
 using namespace o2;
 using namespace o2::framework;
-//using namespace o2::framework::expressions;
+using namespace o2::framework::expressions;
 using namespace o2::aod;
 
 struct TableMaker {
@@ -102,6 +103,7 @@ struct TableMaker {
                   track.trdChi2(), track.tofChi2(),
                   track.length());
       trackBarrelCov(track.cYY(), track.cZZ(), track.cSnpSnp(), track.cTglTgl(), track.c1Pt21Pt2());
+      //cout << "tpc pid nsigma-el :: " << track.nSigmaEl() << endl;
     }
 
     for (auto& muon : tracksMuon) {
@@ -109,18 +111,7 @@ struct TableMaker {
       if (muon.bc() != collision.bc())
         continue;
       trackFilteringTag |= (uint64_t(1) << 0); // this is a MUON arm track
-      //TODO: the calculation of the muon momentum vector should be done in the central data model
-      float xSlope = tan(muon.thetaX());
-      float ySlope = tan(muon.thetaY());
-      float pz = -sqrt(1.0 + ySlope * ySlope) / abs(muon.inverseBendingMomentum());
-      float pt = abs(pz) * sqrt(xSlope * xSlope + ySlope * ySlope);
-      float phi = atan2(ySlope, xSlope);
-      phi = (phi >= 0.0 ? phi : phi + TMath::TwoPi());
-      float eta = acos(pz / sqrt(pt * pt + pz * pz));
-      eta = tan(0.5 * eta);
-      if (eta > 0.0)
-        eta = -log(eta);
-      muonBasic(collision, trackFilteringTag, pt, eta, phi, (muon.inverseBendingMomentum() > 0.0 ? short(1) : short(-1)));
+      muonBasic(collision, trackFilteringTag, muon.px(), muon.py(), muon.pz(), muon.charge());
       muonExtended(muon.inverseBendingMomentum(), muon.thetaX(), muon.thetaY(), muon.zMu(), muon.bendingCoor(), muon.nonBendingCoor(), muon.chi2(), muon.chi2MatchTrigger());
     }
   }
@@ -155,8 +146,9 @@ struct TableMaker {
   }
 };
 
-WorkflowSpec defineDataProcessing(o2::framework::ConfigContext const&)
+WorkflowSpec defineDataProcessing(ConfigContext const&)
 {
   return WorkflowSpec{
+    //adaptAnalysisTask<pidTPCTask>("pidTPC-task"),
     adaptAnalysisTask<TableMaker>("table-maker")};
 }
