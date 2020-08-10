@@ -59,13 +59,18 @@ void CompressedDecodingTask::postData(ProcessingContext& pc)
   std::vector<o2::tof::ReadoutWindowData>* row = mDecoder.getReadoutWindowData();
 
   ReadoutWindowData* last = nullptr;
-  if (row->size())
-    last = &(row->at(row->size() - 1));
-  int lastval = last->first() + last->size();
+  o2::InteractionRecord lastIR;
+  int lastval = 0;
+  if (!row->empty()) {
+    last = &row->back();
+    lastval = last->first() + last->size();
+    lastIR = last->mFirstIR;
+  }
 
   while (row->size() < nwindowperTF) {
     // complete timeframe with empty readout windows
-    row->emplace_back(lastval, 0);
+    auto& dummy = row->emplace_back(lastval, 0);
+    dummy.mFirstIR = lastIR;
   }
   while (row->size() > nwindowperTF) {
     // remove extra readout windows after a check they are empty
