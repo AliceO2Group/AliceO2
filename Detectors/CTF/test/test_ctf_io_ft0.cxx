@@ -77,7 +77,10 @@ BOOST_AUTO_TEST_CASE(CTFTest)
 
   sw.Start();
   std::vector<o2::ctf::BufferType> vec;
-  CTFCoder::encode(vec, digits, channels); // compress
+  {
+    CTFCoder coder;
+    coder.encode(vec, digits, channels); // compress
+  }
   sw.Stop();
   LOG(INFO) << "Compressed in " << sw.CpuTime() << " s";
 
@@ -111,7 +114,10 @@ BOOST_AUTO_TEST_CASE(CTFTest)
 
   sw.Start();
   const auto ctfImage = o2::ft0::CTF::getImage(vec.data());
-  CTFCoder::decode(ctfImage, digitsD, channelsD); // decompress
+  {
+    CTFCoder coder;
+    coder.decode(ctfImage, digitsD, channelsD); // decompress
+  }
   sw.Stop();
   LOG(INFO) << "Decompressed in " << sw.CpuTime() << " s";
 

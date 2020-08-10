@@ -95,3 +95,42 @@ void CTFCoder::compress(CompressedDigits& cd, const gsl::span<const Digit>& digi
     }
   }
 }
+
+///________________________________
+void CTFCoder::createCoders(const std::string& dictPath, o2::ctf::CTFCoderBase::OpType op)
+{
+  bool mayFail = true; // RS FIXME if the dictionary file is not there, do not produce exception
+  auto buff = readDictionaryFromFile<CTF>(dictPath, o2::detectors::DetID::FT0, mayFail);
+  if (!buff.size()) {
+    if (mayFail) {
+      return;
+    }
+    throw std::runtime_error("Failed to create CTF dictionaty");
+  }
+  const auto* ctf = CTF::get(buff.data());
+
+  auto getFreq = [ctf](CTF::Slots slot) -> o2::rans::FrequencyTable {
+    o2::rans::FrequencyTable ft;
+    auto bl = ctf->getBlock(slot);
+    auto md = ctf->getMetadata(slot);
+    ft.addFrequencies(bl.getDict(), bl.getDict() + bl.getNDict(), md.min, md.max);
+    return std::move(ft);
+  };
+  auto getProbBits = [ctf](CTF::Slots slot) -> int {
+    return ctf->getMetadata(slot).probabilityBits;
+  };
+
+  CompressedDigits cd; // just to get member types
+#define MAKECODER(part, slot) createCoder<decltype(part)::value_type>(op, getFreq(slot), getProbBits(slot), int(slot))
+  // clang-format off
+  MAKECODER(cd.trigger,   CTF::BLC_trigger);
+  MAKECODER(cd.bcInc,     CTF::BLC_bcInc); 
+  MAKECODER(cd.orbitInc,  CTF::BLC_orbitInc);
+  MAKECODER(cd.nChan,     CTF::BLC_nChan);
+  //  MAKECODER(cd.eventFlags,     CTF::BLC_flags);
+  MAKECODER(cd.idChan,    CTF::BLC_idChan);
+  MAKECODER(cd.qtcChain,  CTF::BLC_qtcChain);
+  MAKECODER(cd.cfdTime,   CTF::BLC_cfdTime);
+  MAKECODER(cd.qtcAmpl,   CTF::BLC_qtcAmpl);
+  // clang-format on
+}
