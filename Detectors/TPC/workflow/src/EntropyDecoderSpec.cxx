@@ -16,7 +16,6 @@
 #include "Framework/ConfigParamRegistry.h"
 #include "DataFormatsTPC/CompressedClusters.h"
 #include "TPCWorkflow/EntropyDecoderSpec.h"
-#include "TPCReconstruction/CTFCoder.h"
 
 using namespace o2::framework;
 
@@ -25,9 +24,12 @@ namespace o2
 namespace tpc
 {
 
-void EntropyDecoderSpec::init(InitContext& ic)
+void EntropyDecoderSpec::init(o2::framework::InitContext& ic)
 {
-  // at the moment do nothing
+  std::string dictPath = ic.options().get<std::string>("tpc-ctf-dictionary");
+  if (!dictPath.empty() && dictPath != "none") {
+    mCTFCoder.createCoders(dictPath, o2::ctf::CTFCoderBase::OpType::Decoder);
+  }
 }
 
 void EntropyDecoderSpec::run(ProcessingContext& pc)
@@ -39,21 +41,21 @@ void EntropyDecoderSpec::run(ProcessingContext& pc)
 
   auto& compclusters = pc.outputs().make<std::vector<char>>(OutputRef{"output"});
   const auto ctfImage = o2::tpc::CTF::getImage(buff.data());
-  CTFCoder::decode(ctfImage, compclusters);
+  mCTFCoder.decode(ctfImage, compclusters);
 
   mTimer.Stop();
   LOG(INFO) << "Decoded " << buff.size() * sizeof(o2::ctf::BufferType) << " encoded bytes to "
-            << compclusters.size() << " bytes in" << mTimer.CpuTime() - cput << "\n";
+            << compclusters.size() << " bytes in " << mTimer.CpuTime() - cput << " s";
 }
 
 DataProcessorSpec getEntropyDecoderSpec()
 {
   return DataProcessorSpec{
-    "TPC",
+    "tpc-entropy-decoder",
     Inputs{InputSpec{"ctf", "TPC", "CTFDATA", 0, Lifetime::Timeframe}},
     Outputs{OutputSpec{{"output"}, "TPC", "COMPCLUSTERSFLAT", 0, Lifetime::Timeframe}},
     AlgorithmSpec{adaptFromTask<EntropyDecoderSpec>()},
-    Options{}};
+    Options{{"tpc-ctf-dictionary", VariantType::String, "ctf_dictionary.root", {"File of CTF decoding dictionary"}}}};
 }
 
 } // namespace tpc
