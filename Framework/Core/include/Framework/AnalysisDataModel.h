@@ -310,7 +310,7 @@ DECLARE_SOA_COLUMN(NonBendingCoor, nonBendingCoor, float);
 DECLARE_SOA_COLUMN(Chi2, chi2, float);
 DECLARE_SOA_COLUMN(Chi2MatchTrigger, chi2MatchTrigger, float);
 
-DECLARE_SOA_DYNAMIC_COLUMN(Pt, pt, [](float inverseBendingMomentum, float thetaX, float thetaY) -> float {
+/*DECLARE_SOA_DYNAMIC_COLUMN(Pt, pt, [](float inverseBendingMomentum, float thetaX, float thetaY) -> float {
   float pz = -std::sqrt(1.0 + std::tan(thetaY)*std::tan(thetaY)) / std::abs(inverseBendingMomentum);
   return std::abs(pz) * std::sqrt(std::tan(thetaX)*std::tan(thetaX) + std::tan(thetaY)*std::tan(thetaY));
 });
@@ -339,37 +339,45 @@ DECLARE_SOA_DYNAMIC_COLUMN(Py, py, [](float inverseBendingMomentum, float thetaY
 });
 DECLARE_SOA_DYNAMIC_COLUMN(Pz, pz, [](float inverseBendingMomentum, float thetaY) -> float {
   return -std::sqrt(1.0 + std::tan(thetaY)*std::tan(thetaY)) / std::abs(inverseBendingMomentum);
-});
-//DECLARE_SOA_EXPRESSION_COLUMN(Px, px, float, -1.0f*ntan(aod::muon::thetaX) * nsqrt(1.0 + ntan(aod::muon::thetaY)*ntan(aod::muon::thetaY)) / nabs(aod::muon::inverseBendingMomentum));
-//DECLARE_SOA_EXPRESSION_COLUMN(Py, py, float, -1.0f*ntan(aod::muon::thetaY) * nsqrt(1.0 + ntan(aod::muon::thetaY)*ntan(aod::muon::thetaY)) / nabs(aod::muon::inverseBendingMomentum));
-//DECLARE_SOA_EXPRESSION_COLUMN(Pz, pz, float, -1.0f*nsqrt(1.0 + ntan(aod::muon::thetaY)*ntan(aod::muon::thetaY)) / nabs(aod::muon::inverseBendingMomentum));
+});*/
+DECLARE_SOA_EXPRESSION_COLUMN(Px, px, float, -1.0f*ntan(aod::muon::thetaX) * nsqrt(1.0 + ntan(aod::muon::thetaY)*ntan(aod::muon::thetaY)) / nabs(aod::muon::inverseBendingMomentum));
+DECLARE_SOA_EXPRESSION_COLUMN(Py, py, float, -1.0f*ntan(aod::muon::thetaY) * nsqrt(1.0 + ntan(aod::muon::thetaY)*ntan(aod::muon::thetaY)) / nabs(aod::muon::inverseBendingMomentum));
+DECLARE_SOA_EXPRESSION_COLUMN(Pz, pz, float, -1.0f*nsqrt(1.0 + ntan(aod::muon::thetaY)*ntan(aod::muon::thetaY)) / nabs(aod::muon::inverseBendingMomentum));
 DECLARE_SOA_DYNAMIC_COLUMN(Charge, charge, [](float inverseBendingMomentum) -> short { return (inverseBendingMomentum > 0.0f) ? 1 : -1; });
 //
 
 } // namespace muon
 
-DECLARE_SOA_TABLE(Muons, "AOD", "MUON",
+DECLARE_SOA_TABLE_FULL(StoredMuons, "Muons", "AOD", "MUON",
                   muon::BCId, muon::InverseBendingMomentum,
                   muon::ThetaX, muon::ThetaY, muon::ZMu,
                   muon::BendingCoor, muon::NonBendingCoor,
                   muon::Chi2, muon::Chi2MatchTrigger,
+                  muon::Charge<muon::InverseBendingMomentum>);
+
+DECLARE_SOA_EXTENDED_TABLE(Muons, StoredMuons, "MUON",
+                           aod::muon::Px,
+                           aod::muon::Py,
+                           aod::muon::Pz);
+
 //                  aod::muon::Px,
 //                  aod::muon::Py,
 //                  aod::muon::Pz,
-                  muon::Pt<muon::InverseBendingMomentum, muon::ThetaX, muon::ThetaY>,
+                  /*muon::Pt<muon::InverseBendingMomentum, muon::ThetaX, muon::ThetaY>,
                   muon::Eta<muon::InverseBendingMomentum, muon::ThetaX, muon::ThetaY>,
                   muon::Phi<muon::ThetaX, muon::ThetaY>,
                   muon::Px<muon::InverseBendingMomentum, muon::ThetaX, muon::ThetaY>,
                   muon::Py<muon::InverseBendingMomentum, muon::ThetaY>,
                   muon::Pz<muon::InverseBendingMomentum, muon::ThetaY>,
-                  muon::Charge<muon::InverseBendingMomentum>);
+                  muon::Charge<muon::InverseBendingMomentum>);  */
 using Muon = Muons::iterator;
 
 // NOTE for now muon tracks are uniquely assigned to a BC / GlobalBC assuming they contain an MID hit. Discussion on tracks without MID hit is ongoing.
 
 namespace muoncluster
 {
-DECLARE_SOA_INDEX_COLUMN_FULL(Track, track, int, Muons, "fMuonsID"); // points to a muon track in the Muon table
+//DECLARE_SOA_INDEX_COLUMN_FULL(Track, track, int, Muons, "fMuonsID"); // points to a muon track in the Muon table
+DECLARE_SOA_INDEX_COLUMN(Muon, muon); // points to a muon track in the Muon table
 DECLARE_SOA_COLUMN(X, x, float);
 DECLARE_SOA_COLUMN(Y, y, float);
 DECLARE_SOA_COLUMN(Z, z, float);
@@ -380,7 +388,7 @@ DECLARE_SOA_COLUMN(Chi2, chi2, float);
 } // namespace muoncluster
 
 DECLARE_SOA_TABLE(MuonClusters, "AOD", "MUONCLUSTER",
-                  muoncluster::TrackId,
+                  muoncluster::MuonId,
                   muoncluster::X, muoncluster::Y, muoncluster::Z,
                   muoncluster::ErrX, muoncluster::ErrY,
                   muoncluster::Charge, muoncluster::Chi2);

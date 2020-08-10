@@ -179,6 +179,8 @@ AlgorithmSpec AODReaderHelpers::aodSpawnerCallback(std::vector<InputSpec> reques
           outputs.adopt(Output{origin, description}, maker(o2::aod::TracksMetadata{}));
         } else if (description == header::DataDescription{"TRACKPARCOV"}) {
           outputs.adopt(Output{origin, description}, maker(o2::aod::TracksCovMetadata{}));
+        } else if (description == header::DataDescription{"MUON"}) {
+          outputs.adopt(Output{origin, description}, maker(o2::aod::MuonsMetadata{}));
         } else {
           throw std::runtime_error("Not an extended table");
         }
