@@ -18,11 +18,7 @@
 #include "Framework/ControlService.h"
 #include "Framework/ConfigParamRegistry.h"
 #include "Framework/InputSpec.h"
-#include "CommonUtils/StringUtils.h"
 #include "CTFWorkflow/CTFWriterSpec.h"
-#include "DetectorsCommonDataFormats/EncodedBlocks.h"
-#include "DetectorsCommonDataFormats/CTFHeader.h"
-#include "DetectorsCommonDataFormats/NameConf.h"
 #include "DataFormatsITSMFT/CTF.h"
 #include "DataFormatsTPC/CTF.h"
 #include "DataFormatsFT0/CTF.h"
@@ -57,83 +53,83 @@ void CTFWriterSpec::run(ProcessingContext& pc)
 {
   auto cput = mTimer.CpuTime();
   mTimer.Start(false);
-
   auto tfOrb = DataRefUtils::getHeader<o2::header::DataHeader*>(pc.inputs().getByPos(0))->firstTForbit;
-  TFile flOut(o2::base::NameConf::getCTFFileName(tfOrb).c_str(), "recreate");
-  TTree ctfTree(std::string(o2::base::NameConf::CTFTREENAME).c_str(), "O2 CTF tree");
+
+  std::unique_ptr<TFile> fileOut;
+  std::unique_ptr<TTree> treeOut;
+  if (mWriteCTF) {
+    fileOut.reset(TFile::Open(o2::base::NameConf::getCTFFileName(tfOrb).c_str(), "recreate"));
+    treeOut = std::make_unique<TTree>(std::string(o2::base::NameConf::CTFTREENAME).c_str(), "O2 CTF tree");
+  }
 
   // create header
   CTFHeader header{mRun, tfOrb};
 
-  DetID det;
-
-  det = DetID::ITS;
-  if (isPresent(det) && pc.inputs().isValid(det.getName())) {
-    auto ctfBuffer = pc.inputs().get<gsl::span<o2::ctf::BufferType>>(det.getName());
-    const auto ctfImage = o2::itsmft::CTF::getImage(ctfBuffer.data());
-    LOG(INFO) << "CTF for " << det.getName();
-    ctfImage.print();
-    ctfImage.appendToTree(ctfTree, det.getName());
-    header.detectors.set(det);
-  }
-
-  det = DetID::MFT;
-  if (isPresent(det) && pc.inputs().isValid(det.getName())) {
-    auto ctfBuffer = pc.inputs().get<gsl::span<o2::ctf::BufferType>>(det.getName());
-    const auto ctfImage = o2::itsmft::CTF::getImage(ctfBuffer.data());
-    LOG(INFO) << "CTF for " << det.getName();
-    ctfImage.print();
-    ctfImage.appendToTree(ctfTree, det.getName());
-    header.detectors.set(det);
-  }
-
-  det = DetID::TPC;
-  if (isPresent(det) && pc.inputs().isValid(det.getName())) {
-    auto ctfBuffer = pc.inputs().get<gsl::span<o2::ctf::BufferType>>(det.getName());
-    const auto ctfImage = o2::tpc::CTF::getImage(ctfBuffer.data());
-    LOG(INFO) << "CTF for " << det.getName();
-    ctfImage.print();
-    ctfImage.appendToTree(ctfTree, det.getName());
-    header.detectors.set(det);
-  }
-
-  det = DetID::FT0;
-  if (isPresent(det) && pc.inputs().isValid(det.getName())) {
-    auto ctfBuffer = pc.inputs().get<gsl::span<o2::ctf::BufferType>>(det.getName());
-    const auto ctfImage = o2::ft0::CTF::getImage(ctfBuffer.data());
-    LOG(INFO) << "CTF for " << det.getName();
-    ctfImage.print();
-    ctfImage.appendToTree(ctfTree, det.getName());
-    header.detectors.set(det);
-  }
-
-  det = DetID::TOF;
-  if (isPresent(det) && pc.inputs().isValid(det.getName())) {
-    auto ctfBuffer = pc.inputs().get<gsl::span<o2::ctf::BufferType>>(det.getName());
-    const auto ctfImage = o2::tof::CTF::getImage(ctfBuffer.data());
-    LOG(INFO) << "CTF for " << det.getName();
-    ctfImage.print();
-    ctfImage.appendToTree(ctfTree, det.getName());
-    header.detectors.set(det);
-  }
-
-  appendToTree(ctfTree, "CTFHeader", header);
-
-  ctfTree.SetEntries(1);
-  ctfTree.Write();
-  flOut.Close();
+  processDet<o2::itsmft::CTF>(pc, DetID::ITS, header, treeOut.get());
+  processDet<o2::itsmft::CTF>(pc, DetID::MFT, header, treeOut.get());
+  processDet<o2::tpc::CTF>(pc, DetID::TPC, header, treeOut.get());
+  processDet<o2::tof::CTF>(pc, DetID::TOF, header, treeOut.get());
+  processDet<o2::ft0::CTF>(pc, DetID::FT0, header, treeOut.get());
 
   mTimer.Stop();
-  LOG(INFO) << "Wrote " << flOut.GetName() << " with CTF{" << header << "} in " << mTimer.CpuTime() - cput << " s";
+
+  if (mWriteCTF) {
+    appendToTree(*treeOut.get(), "CTFHeader", header);
+    treeOut->SetEntries(1);
+    treeOut->Write();
+    treeOut.reset();
+    fileOut->Close();
+    LOG(INFO) << "TF#" << mNTF << ": wrote " << fileOut->GetName() << " with CTF{" << header << "} in " << mTimer.CpuTime() - cput << " s";
+  }
+  mNTF++;
 }
 
 void CTFWriterSpec::endOfStream(EndOfStreamContext& ec)
 {
+
+  if (mCreateDict) {
+    storeDictionaries();
+  }
+
   LOGF(INFO, "CTF writing total timing: Cpu: %.3e Real: %.3e s in %d slots",
        mTimer.CpuTime(), mTimer.RealTime(), mTimer.Counter() - 1);
 }
 
-DataProcessorSpec getCTFWriterSpec(DetID::mask_t dets, uint64_t run)
+void CTFWriterSpec::prepareDictionaryTreeAndFile(DetID det)
+{
+  if (mDictPerDetector) {
+    if (mDictTreeOut) {
+      mDictTreeOut->Write();
+      mDictTreeOut.reset();
+      mDictFileOut.reset();
+    }
+  }
+  if (!mDictTreeOut) {
+    std::string fnm = mDictPerDetector ? o2::utils::concat_string(det.getName(), "_", o2::base::NameConf::CTFDICT, ".root") : o2::utils::concat_string(o2::base::NameConf::CTFDICT, ".root");
+    mDictFileOut.reset(TFile::Open(fnm.c_str(), "recreate"));
+    mDictTreeOut = std::make_unique<TTree>(std::string(o2::base::NameConf::CTFDICT).c_str(), "O2 CTF dictionary");
+  }
+}
+
+void CTFWriterSpec::storeDictionaries()
+{
+  CTFHeader header{mRun, 0};
+  storeDictionary<o2::itsmft::CTF>(DetID::ITS, header);
+  storeDictionary<o2::itsmft::CTF>(DetID::MFT, header);
+  storeDictionary<o2::tpc::CTF>(DetID::TPC, header);
+  storeDictionary<o2::tof::CTF>(DetID::TOF, header);
+  storeDictionary<o2::ft0::CTF>(DetID::FT0, header);
+  // close remnants
+  if (mDictTreeOut) {
+    mDictTreeOut->SetEntries(1);
+    appendToTree(*mDictTreeOut.get(), "CTFHeader", header);
+    mDictTreeOut->Write();
+    mDictTreeOut.reset();
+    mDictFileOut.reset();
+  }
+}
+
+DataProcessorSpec getCTFWriterSpec(DetID::mask_t dets, uint64_t run, bool doCTF, bool doDict, bool dictPerDet)
 {
   std::vector<InputSpec> inputs;
   LOG(INFO) << "Det list:";
@@ -147,7 +143,7 @@ DataProcessorSpec getCTFWriterSpec(DetID::mask_t dets, uint64_t run)
     "ctf-writer",
     inputs,
     Outputs{},
-    AlgorithmSpec{adaptFromTask<CTFWriterSpec>(dets, run)},
+    AlgorithmSpec{adaptFromTask<CTFWriterSpec>(dets, run, doCTF, doDict, dictPerDet)},
     Options{}};
 }
 
