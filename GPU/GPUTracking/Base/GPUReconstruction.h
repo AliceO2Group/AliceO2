@@ -180,7 +180,7 @@ class GPUReconstruction
   virtual void* getGPUPointer(void* ptr) { return ptr; }
   virtual void startGPUProfiling() {}
   virtual void endGPUProfiling() {}
-  int CheckErrorCodes();
+  int CheckErrorCodes(bool cpuOnly = false);
   void RunPipelineWorker();
   void TerminatePipelineWorker();
 

@@ -876,11 +876,11 @@ void GPUReconstruction::PrepareEvent() // TODO: Clean this up, this should not b
   AllocateRegisteredMemory(nullptr);
 }
 
-int GPUReconstruction::CheckErrorCodes()
+int GPUReconstruction::CheckErrorCodes(bool cpuOnly)
 {
   int retVal = 0;
   for (unsigned int i = 0; i < mChains.size(); i++) {
-    if (mChains[i]->CheckErrorCodes()) {
+    if (mChains[i]->CheckErrorCodes(cpuOnly)) {
       retVal++;
     }
   }

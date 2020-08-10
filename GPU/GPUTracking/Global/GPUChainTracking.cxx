@@ -2490,10 +2490,10 @@ int GPUChainTracking::HelperOutput(int iSlice, int threadId, GPUReconstructionHe
   return 0;
 }
 
-int GPUChainTracking::CheckErrorCodes()
+int GPUChainTracking::CheckErrorCodes(bool cpuOnly)
 {
   int retVal = 0;
-  for (int i = 0; i < 1 + mRec->IsGPU(); i++) {
+  for (int i = 0; i < 1 + (!cpuOnly && mRec->IsGPU()); i++) {
     if (i) {
       const auto& threadContext = GetThreadContext();
       if (GetProcessingSettings().doublePipeline) {
