@@ -47,6 +47,7 @@
 
 #ifdef ENABLE_UPGRADES
 #include <ITS3Simulation/Detector.h>
+#include <ITS4Simulation/Detector.h>
 #endif
 
 void finalize_geometry(FairRunSim* run);
@@ -191,8 +192,14 @@ void build_geometry(FairRunSim* run = nullptr)
 #ifdef ENABLE_UPGRADES
   if (isActivated("IT3")) {
     // ITS3
-    auto its3 = new o2::its3::Detector(kTRUE);
+    auto its3 = new o2::its3::Detector(true);
     run->AddModule(its3);
+  }
+
+  if (isActivated("IT4")) {
+    // ITS4
+    auto its4 = new o2::its4::Detector(true);
+    run->AddModule(its4);
   }
 #endif
 

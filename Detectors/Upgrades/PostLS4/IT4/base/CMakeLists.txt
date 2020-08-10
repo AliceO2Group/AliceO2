@@ -8,4 +8,11 @@
 # granted to it by virtue of its status as an Intergovernmental Organization or
 # submit itself to any jurisdiction.
 
-add_subdirectory(IT4)
+o2_add_library(ITS4Base
+               SOURCES src/MisalignmentParameter.cxx
+                       src/GeometryTGeo.cxx 
+               PUBLIC_LINK_LIBRARIES O2::DetectorsBase O2::ITSMFTBase)
+
+o2_target_root_dictionary(ITS4Base
+                          HEADERS include/ITS4Base/GeometryTGeo.h
+                                  include/ITS4Base/MisalignmentParameter.h)

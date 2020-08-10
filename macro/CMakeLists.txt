@@ -113,6 +113,7 @@ if (ENABLE_UPGRADES)
                                                O2::TPCSimulation
                                                O2::ITSSimulation
                                                O2::ITS3Simulation
+                                               O2::ITS4Simulation
                                                O2::MFTSimulation
                                                O2::MCHSimulation
                                                O2::MIDSimulation
