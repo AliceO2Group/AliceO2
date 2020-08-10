@@ -11,6 +11,7 @@
 #define FRAMEWORK_CALLBACKSERVICE_H
 
 #include "CallbackRegistry.h"
+#include "Framework/ServiceHandle.h"
 #include <tuple>
 
 class FairMQRegionInfo;
@@ -27,6 +28,9 @@ class EndOfStreamContext;
 class CallbackService
 {
  public:
+  /// Callbacks are a global service because they will always be
+  /// invoked by the main thread only.
+  constexpr static ServiceKind service_kind = ServiceKind::Global;
   /// the defined processing steps at which a callback can be invoked
   enum class Id {
     Start,     /**< Invoked before the inner loop is started */
