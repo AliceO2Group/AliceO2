@@ -79,7 +79,6 @@ struct CTF : public o2::ctf::EncodedBlocks<CTFHeader, 10, uint32_t> {
                BLCcolInc,
                BLCpattID,
                BLCpattMap };
-
   ClassDefNV(CTF, 1);
 };
 
