@@ -14,14 +14,12 @@
 #include "Analysis/SecondaryVertexHF.h"
 #include "DetectorsVertexing/DCAFitterN.h"
 #include "ReconstructionDataFormats/Track.h"
-#include "Analysis/RecoDecay.h"
 #include "Analysis/trackUtilities.h"
+#include "Analysis/RecoDecay.h"
 
 #include <TFile.h>
 #include <TH1F.h>
-#include <Math/Vector4D.h>
-#include <TPDGCode.h>
-#include <TDatabasePDG.h>
+
 #include <cmath>
 #include <array>
 #include <cstdlib>
@@ -30,7 +28,6 @@ using namespace o2;
 using namespace o2::framework;
 using namespace o2::framework::expressions;
 using std::array;
-using namespace ROOT::Math;
 
 namespace o2::aod
 {
@@ -110,8 +107,8 @@ struct HFTrackIndexSkimsCreator {
   Configurable<double> d_maxmassDp{"d_maxmassDp", 2.1, "max mass dplus presel"};
   Configurable<bool> b_dovalplots{"b_dovalplots", true, "do validation plots"};
   Filter seltrack = (aod::seltrack::issel == 1);
-  double massPi = TDatabasePDG::Instance()->GetParticle(kPiPlus)->Mass();
-  double massK = TDatabasePDG::Instance()->GetParticle(kKPlus)->Mass();
+  double massPi = RecoDecay::getMassPDG(kPiPlus);
+  double massK = RecoDecay::getMassPDG(kKPlus);
 
   void process(aod::Collision const& collision,
                aod::BCs const& bcs,
@@ -145,8 +142,7 @@ struct HFTrackIndexSkimsCreator {
 
     double mass2PiK{0};
     double mass2KPi{0};
-    double mass3PiKPiPlus{0};
-    double mass3PiKPiMinus{0};
+    double mass3PiKPi{0};
 
     // first loop over positive tracks
     for (auto i_p1 = tracks.begin(); i_p1 != tracks.end(); ++i_p1) {
@@ -168,17 +164,14 @@ struct HFTrackIndexSkimsCreator {
         if (nCand == 0)
           continue;
         const auto& vtx = df.getPCACandidate();
-        std::array<float, 3> pvec0;
-        std::array<float, 3> pvec1;
+        array<float, 3> pvec0;
+        array<float, 3> pvec1;
         df.getTrack(0).getPxPyPzGlo(pvec0);
         df.getTrack(1).getPxPyPzGlo(pvec1);
 
-        mass2PiK = invmass2prongs(
-          pvec0[0], pvec0[1], pvec0[2], massPi,
-          pvec1[0], pvec1[1], pvec1[2], massK);
-        mass2KPi = invmass2prongs(
-          pvec0[0], pvec0[1], pvec0[2], massK,
-          pvec1[0], pvec1[1], pvec1[2], massPi);
+        auto arrMom = array{pvec0, pvec1};
+        mass2PiK = RecoDecay::M(arrMom, array{massPi, massK});
+        mass2KPi = RecoDecay::M(arrMom, array{massK, massPi});
 
         if (b_dovalplots) {
           hmass2->Fill(mass2PiK);
@@ -197,12 +190,13 @@ struct HFTrackIndexSkimsCreator {
             if (track_p2.signed1Pt() < 0)
               continue;
 
-            mass3PiKPiPlus = invmass3prongs(
-              track_p1.px(), track_p1.py(), track_p1.pz(), massPi,
-              track_n1.px(), track_n1.py(), track_n1.pz(), massK,
-              track_p2.px(), track_p2.py(), track_p2.pz(), massPi);
+            auto arr3Mom = array{
+              array{track_p1.px(), track_p1.py(), track_p1.pz()},
+              array{track_n1.px(), track_n1.py(), track_n1.pz()},
+              array{track_p2.px(), track_p2.py(), track_p2.pz()}};
+            mass3PiKPi = RecoDecay::M(std::move(arr3Mom), array{massPi, massK, massPi});
 
-            if (mass3PiKPiPlus < d_minmassDp || mass3PiKPiPlus > d_maxmassDp)
+            if (mass3PiKPi < d_minmassDp || mass3PiKPi > d_maxmassDp)
               continue;
 
             auto trackparvar_p2 = getTrackParCov(track_p2);
@@ -211,20 +205,18 @@ struct HFTrackIndexSkimsCreator {
             if (nCand3 == 0)
               continue;
             const auto& vtx3 = df3.getPCACandidate();
-            std::array<float, 3> pvec0;
-            std::array<float, 3> pvec1;
-            std::array<float, 3> pvec2;
+            array<float, 3> pvec0;
+            array<float, 3> pvec1;
+            array<float, 3> pvec2;
             df3.getTrack(0).getPxPyPzGlo(pvec0);
             df3.getTrack(1).getPxPyPzGlo(pvec1);
             df3.getTrack(2).getPxPyPzGlo(pvec2);
 
-            mass3PiKPiPlus = invmass3prongs(
-              pvec0[0], pvec0[1], pvec0[2], massPi,
-              pvec1[0], pvec1[1], pvec1[2], massK,
-              pvec2[0], pvec2[1], pvec2[2], massPi);
+            arr3Mom = array{pvec0, pvec1, pvec2};
+            mass3PiKPi = RecoDecay::M(std::move(arr3Mom), array{massPi, massK, massPi});
 
             if (b_dovalplots) {
-              hmass3->Fill(mass3PiKPiPlus);
+              hmass3->Fill(mass3PiKPi);
             }
 
             hftrackindexprong3(track_p1.collisionId(),
@@ -238,12 +230,13 @@ struct HFTrackIndexSkimsCreator {
             if (track_n2.signed1Pt() > 0)
               continue;
 
-            mass3PiKPiMinus = invmass3prongs(
-              track_n1.px(), track_n1.py(), track_n1.pz(), massPi,
-              track_p1.px(), track_p1.py(), track_p1.pz(), massK,
-              track_n2.px(), track_n2.py(), track_n2.pz(), massPi);
+            auto arr3Mom = array{
+              array{track_n1.px(), track_n1.py(), track_n1.pz()},
+              array{track_p1.px(), track_p1.py(), track_p1.pz()},
+              array{track_n2.px(), track_n2.py(), track_n2.pz()}};
+            mass3PiKPi = RecoDecay::M(std::move(arr3Mom), array{massPi, massK, massPi});
 
-            if (mass3PiKPiMinus < d_minmassDp || mass3PiKPiMinus > d_maxmassDp)
+            if (mass3PiKPi < d_minmassDp || mass3PiKPi > d_maxmassDp)
               continue;
 
             auto trackparvar_n2 = getTrackParCov(track_n2);
@@ -252,20 +245,18 @@ struct HFTrackIndexSkimsCreator {
             if (nCand3 == 0)
               continue;
             const auto& vtx3 = df3.getPCACandidate();
-            std::array<float, 3> pvec0;
-            std::array<float, 3> pvec1;
-            std::array<float, 3> pvec2;
+            array<float, 3> pvec0;
+            array<float, 3> pvec1;
+            array<float, 3> pvec2;
             df3.getTrack(0).getPxPyPzGlo(pvec0);
             df3.getTrack(1).getPxPyPzGlo(pvec1);
             df3.getTrack(2).getPxPyPzGlo(pvec2);
 
-            mass3PiKPiMinus = invmass3prongs(
-              pvec0[0], pvec0[1], pvec0[2], massPi,
-              pvec1[0], pvec1[1], pvec1[2], massK,
-              pvec2[0], pvec2[1], pvec2[2], massPi);
+            arr3Mom = array{pvec0, pvec1, pvec2};
+            mass3PiKPi = RecoDecay::M(std::move(arr3Mom), array{massPi, massK, massPi});
 
             if (b_dovalplots) {
-              hmass3->Fill(mass3PiKPiMinus);
+              hmass3->Fill(mass3PiKPi);
             }
 
             hftrackindexprong3(track_n1.collisionId(),

@@ -14,14 +14,12 @@
 #include "Analysis/SecondaryVertexHF.h"
 #include "DetectorsVertexing/DCAFitterN.h"
 #include "ReconstructionDataFormats/Track.h"
-#include "Analysis/RecoDecay.h"
 #include "Analysis/trackUtilities.h"
+#include "Analysis/RecoDecay.h"
 
 #include <TFile.h>
 #include <TH1F.h>
-#include <Math/Vector4D.h>
-#include <TPDGCode.h>
-#include <TDatabasePDG.h>
+
 #include <cmath>
 #include <array>
 #include <cstdlib>
@@ -30,7 +28,6 @@ using namespace o2;
 using namespace o2::framework;
 using namespace o2::framework::expressions;
 using std::array;
-using namespace ROOT::Math;
 
 /// Reconstruction of heavy-flavour 2-prong decay candidates
 struct HFCandidateCreator2Prong {
@@ -50,8 +47,8 @@ struct HFCandidateCreator2Prong {
                                         "stop iterations if largest change of any X is smaller than this"};
   Configurable<double> d_minrelchi2change{"d_minrelchi2change", 0.9,
                                           "stop iterations is chi2/chi2old > this"};
-  double massPi = TDatabasePDG::Instance()->GetParticle(kPiPlus)->Mass();
-  double massK = TDatabasePDG::Instance()->GetParticle(kKPlus)->Mass();
+  double massPi = RecoDecay::getMassPDG(kPiPlus);
+  double massK = RecoDecay::getMassPDG(kKPlus);
 
   void process(aod::Collision const& collision,
                aod::HfTrackIndexProng2 const& hftrackindexprong2s,
@@ -65,8 +62,8 @@ struct HFCandidateCreator2Prong {
     df.setMinParamChange(d_minparamchange);
     df.setMinRelChi2Change(d_minrelchi2change);
 
-    double mass2PiK{0};
-    double mass2KPi{0};
+    double massPiK{0};
+    double massKPi{0};
 
     // loop over 2-prong secondary vertices
     for (auto& hfpr2 : hftrackindexprong2s) {
@@ -77,27 +74,24 @@ struct HFCandidateCreator2Prong {
       if (nCand == 0)
         continue;
       const auto& vtx = df.getPCACandidate();
-      std::array<float, 3> pvec0;
-      std::array<float, 3> pvec1;
+      array<float, 3> pvec0;
+      array<float, 3> pvec1;
       df.getTrack(0).getPxPyPzGlo(pvec0);
       df.getTrack(1).getPxPyPzGlo(pvec1);
 
-      mass2PiK = invmass2prongs(
-        pvec0[0], pvec0[1], pvec0[2], massPi,
-        pvec1[0], pvec1[1], pvec1[2], massK);
-      mass2KPi = invmass2prongs(
-        pvec0[0], pvec0[1], pvec0[2], massK,
-        pvec1[0], pvec1[1], pvec1[2], massPi);
+      auto arrMom = array{pvec0, pvec1};
+      massPiK = RecoDecay::M(arrMom, array{massPi, massK});
+      massKPi = RecoDecay::M(arrMom, array{massK, massPi});
 
       hfcandprong2(collision.posX(), collision.posY(), collision.posZ(),
                    pvec0[0], pvec0[1], pvec0[2], pvec1[0], pvec1[1], pvec1[2],
-                   vtx[0], vtx[1], vtx[2], mass2PiK, mass2KPi);
-      if (b_dovalplots == true) {
+                   vtx[0], vtx[1], vtx[2], massPiK, massKPi);
+      if (b_dovalplots) {
         hvtx_x_out->Fill(vtx[0]);
         hvtx_y_out->Fill(vtx[1]);
         hvtx_z_out->Fill(vtx[2]);
-        hmass2->Fill(mass2PiK);
-        hmass2->Fill(mass2KPi);
+        hmass2->Fill(massPiK);
+        hmass2->Fill(massKPi);
       }
     }
   }

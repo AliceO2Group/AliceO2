@@ -53,16 +53,16 @@ DECLARE_SOA_COLUMN(DecayVtxZ, decayvtxz, float);
 DECLARE_SOA_COLUMN(MassD0, massD0, float);
 DECLARE_SOA_COLUMN(MassD0bar, massD0bar, float);
 DECLARE_SOA_DYNAMIC_COLUMN(PtProng0, ptprong0,
-                           [](float px0, float py0) { return pttrack(px0, py0); });
+                           [](float px0, float py0) { return RecoDecay::Pt(px0, py0); });
 DECLARE_SOA_DYNAMIC_COLUMN(PtProng1, ptprong1,
-                           [](float px1, float py1) { return pttrack(px1, py1); });
+                           [](float px1, float py1) { return RecoDecay::Pt(px1, py1); });
 DECLARE_SOA_DYNAMIC_COLUMN(Pt, pt,
-                           [](float px0, float py0, float px1, float py1) { return ptcand2prong(px0, py0, px1, py1); });
+                           [](float px0, float py0, float px1, float py1) { return RecoDecay::Pt(array{px0, py0}, array{px1, py1}); });
 DECLARE_SOA_DYNAMIC_COLUMN(DecaylengthXY, decaylengthxy,
-                           [](float xvtxd, float yvtxd, float xvtxp, float yvtxp) { return declengthxy(xvtxd, yvtxd, xvtxp, yvtxp); });
+                           [](float xvtxd, float yvtxd, float xvtxp, float yvtxp) { return RecoDecay::distanceXY(array{xvtxd, yvtxd}, array{xvtxp, yvtxp}); });
 DECLARE_SOA_DYNAMIC_COLUMN(Decaylength, decaylength,
                            [](float xvtxd, float yvtxd, float zvtxd, float xvtxp,
-                              float yvtxp, float zvtxp) { return declength(xvtxd, yvtxd, zvtxd, xvtxp, yvtxp, zvtxp); });
+                              float yvtxp, float zvtxp) { return RecoDecay::distance(array{xvtxd, yvtxd, zvtxd}, array{xvtxp, yvtxp, zvtxp}); });
 } // namespace hfcandprong2
 
 DECLARE_SOA_TABLE(HfTrackIndexProng2, "AOD", "HFTRACKIDXP2",
