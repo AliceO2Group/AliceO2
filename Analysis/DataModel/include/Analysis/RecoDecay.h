@@ -13,8 +13,8 @@
 ///
 /// \author Vít Kučera <vit.kucera@cern.ch>, CERN
 
-#ifndef RECODECAY_H
-#define RECODECAY_H
+#ifndef O2_ANALYSIS_RECODECAY_H_
+#define O2_ANALYSIS_RECODECAY_H_
 
 #include <tuple>
 #include <vector>
@@ -376,4 +376,4 @@ class RecoDecay
 
 std::vector<std::tuple<int, double>> RecoDecay::mListMass;
 
-#endif // RECODECAY_H
+#endif // O2_ANALYSIS_RECODECAY_H_
