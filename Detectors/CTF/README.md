@@ -39,6 +39,10 @@ To create a dictionary run usual CTF creation chain but with extra option, e.g.:
 o2-its-reco-workflow --entropy-encoding | o2-ctf-writer-workflow --output-type dict --onlyDet ITS
 ```
 This will create a file `ctf_dictionary.root` containing dictionary data for all detectors processed by the `o2-ctf-writer-workflow`.
+By default the dictionary file is written on the exit from the workflow, in `CTFWriterSpec::endOfStream()` which is currently not called if the workflow is stopped
+by `ctrl-C`. Periodic incremental saving of so-far accumulated dictionary data during processing can be triggered by providing an option
+``--save-dict-after <N>``.
+
 Following encoding / decoding will use external dictionaries automatically if this file is found in the working directory (eventually it will be provided via CCDB).
 Note that if the file is found but dictionary data for some detector participating in the workflow are not found, an error will be printed and for given detector
 the workflows will use in-ctf dictionaries.
