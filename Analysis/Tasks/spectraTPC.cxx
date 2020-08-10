@@ -104,7 +104,6 @@ struct TPCPIDQANSigmaTask {
 WorkflowSpec defineDataProcessing(ConfigContext const&)
 {
   return WorkflowSpec{
-    adaptAnalysisTask<pidTPCTask>("pidTPC-task"),
     adaptAnalysisTask<TPCPIDQAExpSignalTask>("TPCpidqa-expsignal-task"),
     adaptAnalysisTask<TPCPIDQANSigmaTask>("TPCpidqa-nsigma-task")};
 }
