@@ -29,4 +29,6 @@
 
 #pragma link C++ class o2::base::DCAFitter + ;
 
+#pragma link C++ class o2::ctf::CTFCoderBase + ;
+
 #endif
