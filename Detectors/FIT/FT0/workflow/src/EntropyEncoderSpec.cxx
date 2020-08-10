@@ -14,8 +14,8 @@
 
 #include "Framework/ControlService.h"
 #include "Framework/ConfigParamRegistry.h"
-#include "FT0Reconstruction/CTFCoder.h"
 #include "FT0Workflow/EntropyEncoderSpec.h"
+#include "DetectorsCommonDataFormats/DetID.h"
 
 using namespace o2::framework;
 
@@ -30,6 +30,14 @@ EntropyEncoderSpec::EntropyEncoderSpec()
   mTimer.Reset();
 }
 
+void EntropyEncoderSpec::init(o2::framework::InitContext& ic)
+{
+  std::string dictPath = ic.options().get<std::string>("ft0-ctf-dictionary");
+  if (!dictPath.empty() && dictPath != "none") {
+    mCTFCoder.createCoders(dictPath, o2::ctf::CTFCoderBase::OpType::Encoder);
+  }
+}
+
 void EntropyEncoderSpec::run(ProcessingContext& pc)
 {
   auto cput = mTimer.CpuTime();
@@ -38,7 +46,7 @@ void EntropyEncoderSpec::run(ProcessingContext& pc)
   auto channels = pc.inputs().get<gsl::span<o2::ft0::ChannelData>>("channels");
 
   auto& buffer = pc.outputs().make<std::vector<o2::ctf::BufferType>>(Output{"FT0", "CTFDATA", 0, Lifetime::Timeframe});
-  CTFCoder::encode(buffer, digits, channels);
+  mCTFCoder.encode(buffer, digits, channels);
   auto eeb = CTF::get(buffer.data()); // cast to container pointer
   eeb->compactify();                  // eliminate unnecessary padding
   buffer.resize(eeb->size());         // shrink buffer to strictly necessary size
@@ -64,7 +72,7 @@ DataProcessorSpec getEntropyEncoderSpec()
     inputs,
     Outputs{{"FT0", "CTFDATA", 0, Lifetime::Timeframe}},
     AlgorithmSpec{adaptFromTask<EntropyEncoderSpec>()},
-    Options{}};
+    Options{{"ft0-ctf-dictionary", VariantType::String, "ctf_dictionary.root", {"File of CTF encoding dictionary"}}}};
 }
 
 } // namespace ft0

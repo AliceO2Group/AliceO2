@@ -14,7 +14,6 @@
 
 #include "Framework/ControlService.h"
 #include "Framework/ConfigParamRegistry.h"
-#include "FT0Reconstruction/CTFCoder.h"
 #include "FT0Workflow/EntropyDecoderSpec.h"
 
 using namespace o2::framework;
@@ -30,6 +29,14 @@ EntropyDecoderSpec::EntropyDecoderSpec()
   mTimer.Reset();
 }
 
+void EntropyDecoderSpec::init(o2::framework::InitContext& ic)
+{
+  std::string dictPath = ic.options().get<std::string>("ft0-ctf-dictionary");
+  if (!dictPath.empty() && dictPath != "none") {
+    mCTFCoder.createCoders(dictPath, o2::ctf::CTFCoderBase::OpType::Decoder);
+  }
+}
+
 void EntropyDecoderSpec::run(ProcessingContext& pc)
 {
   auto cput = mTimer.CpuTime();
@@ -42,7 +49,7 @@ void EntropyDecoderSpec::run(ProcessingContext& pc)
 
   // since the buff is const, we cannot use EncodedBlocks::relocate directly, instead we wrap its data to another flat object
   const auto ctfImage = o2::ft0::CTF::getImage(buff.data());
-  CTFCoder::decode(ctfImage, digits, channels);
+  mCTFCoder.decode(ctfImage, digits, channels);
 
   mTimer.Stop();
   LOG(INFO) << "Decoded " << channels.size() << " FT0 channels in " << digits.size() << " digits in " << mTimer.CpuTime() - cput << " s";
@@ -65,7 +72,7 @@ DataProcessorSpec getEntropyDecoderSpec()
     Inputs{InputSpec{"ctf", "FT0", "CTFDATA", 0, Lifetime::Timeframe}},
     outputs,
     AlgorithmSpec{adaptFromTask<EntropyDecoderSpec>()},
-    Options{}};
+    Options{{"ft0-ctf-dictionary", VariantType::String, "ctf_dictionary.root", {"File of CTF decoding dictionary"}}}};
 }
 
 } // namespace ft0
