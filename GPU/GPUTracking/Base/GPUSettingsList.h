@@ -199,7 +199,6 @@ AddOption(runGPUforce, bool, true, "", 0, "Force usage of the specified GPU devi
 AddOption(noprompt, bool, true, "", 0, "Do prompt for keypress before exiting")
 AddOption(continueOnError, bool, false, "", 0, "Continue processing after an error")
 AddOption(seed, int, -1, "", 0, "Set srand seed (-1: random)")
-AddOption(cleardebugout, bool, false, "", 0, "Clear debug output file when processing next event")
 AddOption(StartEvent, int, 0, "", 's', "First event to process", min(0))
 AddOption(NEvents, int, -1, "", 'n', "Number of events to process (-1; all)", min(0))
 AddOption(runs, int, 1, "runs", 'r', "Number of iterations to perform (repeat each event)", min(0))
