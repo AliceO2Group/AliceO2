@@ -19,22 +19,23 @@ namespace framework
 
 /// Helper struct to hold statistics about the data processing happening.
 struct DataProcessingStats {
+  constexpr static ServiceKind service_kind = ServiceKind::Global;
   // We use this to keep track of the latency of the first message we get for a given input record
   // and of the last one.
   struct InputLatency {
     int minLatency = 0;
     int maxLatency = 0;
   };
-  int pendingInputs = 0;
-  int incomplete = 0;
-  int inputParts = 0;
-  int lastElapsedTimeMs = 0;
-  int lastTotalProcessedSize = 0;
+  std::atomic<int> pendingInputs = 0;
+  std::atomic<int> incomplete = 0;
+  std::atomic<int> inputParts = 0;
+  std::atomic<int> lastElapsedTimeMs = 0;
+  std::atomic<int> lastTotalProcessedSize = 0;
 
-  uint64_t lastSlowMetricSentTimestamp = 0; /// The timestamp of the last time we sent slow metrics
-  uint64_t lastMetricFlushedTimestamp = 0;  /// The timestamp of the last time we actually flushed metrics
-  uint64_t beginIterationTimestamp = 0;     /// The timestamp of when the current ConditionalRun was started
-  InputLatency lastLatency = {};
+  std::atomic<uint64_t> lastSlowMetricSentTimestamp = 0; /// The timestamp of the last time we sent slow metrics
+  std::atomic<uint64_t> lastMetricFlushedTimestamp = 0;  /// The timestamp of the last time we actually flushed metrics
+  std::atomic<uint64_t> beginIterationTimestamp = 0;     /// The timestamp of when the current ConditionalRun was started
+  InputLatency lastLatency = {0, 0};
   std::vector<int> relayerState;
 };
 
