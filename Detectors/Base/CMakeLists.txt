@@ -18,6 +18,7 @@ o2_add_library(DetectorsBase
                        src/Ray.cxx
 		       src/DCAFitter.cxx
                        src/BaseDPLDigitizer.cxx
+                       src/CTFCoderBase.cxx
                PUBLIC_LINK_LIBRARIES FairRoot::Base
                                      O2::CommonUtils
                                      O2::DetectorsCommonDataFormats
@@ -40,7 +41,8 @@ o2_target_root_dictionary(DetectorsBase
                                   include/DetectorsBase/Ray.h
                                   include/DetectorsBase/MatCell.h
                                   include/DetectorsBase/MatLayerCyl.h
-                                  include/DetectorsBase/MatLayerCylSet.h)
+                                  include/DetectorsBase/MatLayerCylSet.h
+                                  include/DetectorsBase/CTFCoderBase.h)
 
 if(BUILD_SIMULATION)
   o2_add_test(
