@@ -35,3 +35,8 @@ o2_add_executable(dump-aod-data-model
                   SOURCES src/dumpDataModel.cxx
                   PUBLIC_LINK_LIBRARIES O2::Framework O2::AnalysisDataModel
                  )
+
+o2_add_executable(pidparam-tof-reso
+                  SOURCES src/handleParamTOFReso.cxx
+                  PUBLIC_LINK_LIBRARIES O2::Framework O2::AnalysisDataModel
+                 )
