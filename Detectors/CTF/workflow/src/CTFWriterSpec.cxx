@@ -47,6 +47,7 @@ void appendToTree(TTree& tree, const std::string brname, T& ptr)
 
 void CTFWriterSpec::init(InitContext& ic)
 {
+  mSaveDictAfter = ic.options().get<int>("save-dict-after");
 }
 
 void CTFWriterSpec::run(ProcessingContext& pc)
@@ -80,8 +81,13 @@ void CTFWriterSpec::run(ProcessingContext& pc)
     treeOut.reset();
     fileOut->Close();
     LOG(INFO) << "TF#" << mNTF << ": wrote " << fileOut->GetName() << " with CTF{" << header << "} in " << mTimer.CpuTime() - cput << " s";
+  } else {
+    LOG(INFO) << "TF#" << mNTF << " CTF writing is disabled";
   }
   mNTF++;
+  if (mCreateDict && mSaveDictAfter > 0 && (mNTF % mSaveDictAfter) == 0) {
+    storeDictionaries();
+  }
 }
 
 void CTFWriterSpec::endOfStream(EndOfStreamContext& ec)
@@ -99,6 +105,7 @@ void CTFWriterSpec::prepareDictionaryTreeAndFile(DetID det)
 {
   if (mDictPerDetector) {
     if (mDictTreeOut) {
+      mDictTreeOut->SetEntries(1);
       mDictTreeOut->Write();
       mDictTreeOut.reset();
       mDictFileOut.reset();
@@ -113,7 +120,7 @@ void CTFWriterSpec::prepareDictionaryTreeAndFile(DetID det)
 
 void CTFWriterSpec::storeDictionaries()
 {
-  CTFHeader header{mRun, 0};
+  CTFHeader header{mRun, uint32_t(mNTF)};
   storeDictionary<o2::itsmft::CTF>(DetID::ITS, header);
   storeDictionary<o2::itsmft::CTF>(DetID::MFT, header);
   storeDictionary<o2::tpc::CTF>(DetID::TPC, header);
@@ -121,9 +128,17 @@ void CTFWriterSpec::storeDictionaries()
   storeDictionary<o2::ft0::CTF>(DetID::FT0, header);
   // close remnants
   if (mDictTreeOut) {
-    mDictTreeOut->SetEntries(1);
+    closeDictionaryTreeAndFile(header);
+  }
+  LOG(INFO) << "Saved CTF dictionary after " << mNTF << " TFs processed";
+}
+
+void CTFWriterSpec::closeDictionaryTreeAndFile(CTFHeader& header)
+{
+  if (mDictTreeOut) {
     appendToTree(*mDictTreeOut.get(), "CTFHeader", header);
-    mDictTreeOut->Write();
+    mDictTreeOut->SetEntries(1);
+    mDictTreeOut->Write(mDictTreeOut->GetName(), TObject::kSingleKey);
     mDictTreeOut.reset();
     mDictFileOut.reset();
   }
@@ -144,7 +159,7 @@ DataProcessorSpec getCTFWriterSpec(DetID::mask_t dets, uint64_t run, bool doCTF,
     inputs,
     Outputs{},
     AlgorithmSpec{adaptFromTask<CTFWriterSpec>(dets, run, doCTF, doDict, dictPerDet)},
-    Options{}};
+    Options{{"save-dict-after", VariantType::Int, -1, {"In dictionary generation mode save it dictionary after certain number of TFs processed"}}}};
 }
 
 } // namespace ctf

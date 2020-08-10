@@ -58,12 +58,14 @@ class CTFWriterSpec : public o2::framework::Task
   void storeDictionary(DetID det, CTFHeader& header);
   void storeDictionaries();
   void prepareDictionaryTreeAndFile(DetID det);
+  void closeDictionaryTreeAndFile(CTFHeader& header);
 
   DetID::mask_t mDets; // detectors
   bool mWriteCTF = false;
   bool mCreateDict = false;
   bool mDictPerDetector = false;
   size_t mNTF = 0;
+  int mSaveDictAfter = -1; // if positive and mWriteCTF==true, save dictionary after each mSaveDictAfter TFs processed
   uint64_t mRun = 0;
 
   std::unique_ptr<TFile> mDictFileOut; // file to store dictionary
@@ -123,9 +125,15 @@ void CTFWriterSpec::storeDictionary(DetID det, CTFHeader& header)
   auto dictBlocks = C::createDictionaryBlocks(mFreqsAccumulation[det], mFreqsMetaData[det]);
   C::get(dictBlocks.data())->print(o2::utils::concat_string("Storing dictionary for ", det.getName(), ": "));
   C::get(dictBlocks.data())->appendToTree(*mDictTreeOut.get(), det.getName()); // cast to EncodedBlock
-  mFreqsAccumulation[det].clear();
-  mFreqsMetaData[det].clear();
+  //  mFreqsAccumulation[det].clear();
+  //  mFreqsMetaData[det].clear();
+  if (mDictPerDetector) {
+    header.detectors.reset();
+  }
   header.detectors.set(det);
+  if (mDictPerDetector) {
+    closeDictionaryTreeAndFile(header);
+  }
 }
 
 /// create a processor spec
