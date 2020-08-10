@@ -22,6 +22,7 @@
 #include "DataFormatsITSMFT/ROFRecord.h"
 #include "DataFormatsITSMFT/CompCluster.h"
 #include "DetectorsCommonDataFormats/DetID.h"
+#include "DetectorsBase/CTFCoderBase.h"
 #include "rANS/rans.h"
 
 class TTree;
@@ -31,27 +32,32 @@ namespace o2
 namespace itsmft
 {
 
-class CTFCoder
+class CTFCoder : public o2::ctf::CTFCoderBase
 {
  public:
+  CTFCoder() : o2::ctf::CTFCoderBase(CTF::getNBlocks()) {}
+  ~CTFCoder() = default;
+
   /// entropy-encode clusters to buffer with CTF
   template <typename VEC>
-  static void encode(VEC& buff, const gsl::span<const ROFRecord>& rofRecVec, const gsl::span<const CompClusterExt>& cclusVec, const gsl::span<const unsigned char>& pattVec);
+  void encode(VEC& buff, const gsl::span<const ROFRecord>& rofRecVec, const gsl::span<const CompClusterExt>& cclusVec, const gsl::span<const unsigned char>& pattVec);
 
   /// entropy decode clusters from buffer with CTF
   template <typename VROF, typename VCLUS, typename VPAT>
-  static void decode(const CTF::base& ec, VROF& rofRecVec, VCLUS& cclusVec, VPAT& pattVec);
+  void decode(const CTF::base& ec, VROF& rofRecVec, VCLUS& cclusVec, VPAT& pattVec);
+
+  void createCoders(const std::string& dictPath, o2::detectors::DetID det, o2::ctf::CTFCoderBase::OpType op);
 
  private:
   /// compres compact clusters to CompressedClusters
-  static void compress(CompressedClusters& cc, const gsl::span<const ROFRecord>& rofRecVec, const gsl::span<const CompClusterExt>& cclusVec, const gsl::span<const unsigned char>& pattVec);
+  void compress(CompressedClusters& cc, const gsl::span<const ROFRecord>& rofRecVec, const gsl::span<const CompClusterExt>& cclusVec, const gsl::span<const unsigned char>& pattVec);
 
   /// decompress CompressedClusters to compact clusters
   template <typename VROF, typename VCLUS, typename VPAT>
-  static void decompress(const CompressedClusters& cc, VROF& rofRecVec, VCLUS& cclusVec, VPAT& pattVec);
+  void decompress(const CompressedClusters& cc, VROF& rofRecVec, VCLUS& cclusVec, VPAT& pattVec);
 
-  static void appendToTree(TTree& tree, o2::detectors::DetID id, CTF& ec);
-  static void readFromTree(TTree& tree, int entry, o2::detectors::DetID id, std::vector<ROFRecord>& rofRecVec, std::vector<CompClusterExt>& cclusVec, std::vector<unsigned char>& pattVec);
+  void appendToTree(TTree& tree, o2::detectors::DetID id, CTF& ec);
+  void readFromTree(TTree& tree, int entry, o2::detectors::DetID id, std::vector<ROFRecord>& rofRecVec, std::vector<CompClusterExt>& cclusVec, std::vector<unsigned char>& pattVec);
 
  protected:
   ClassDefNV(CTFCoder, 1);
@@ -84,20 +90,21 @@ void CTFCoder::encode(VEC& buff, const gsl::span<const ROFRecord>& rofRecVec, co
   ec->getANSHeader().majorVersion = 0;
   ec->getANSHeader().minorVersion = 1;
   // at every encoding the buffer might be autoexpanded, so we don't work with fixed pointer ec
-#define ENCODE CTF::get(buff.data())->encode
+#define ENCODEITSMFT(part, slot, bits) CTF::get(buff.data())->encode(part, int(slot), bits, optField[int(slot)], &buff, mCoders[int(slot)].get());
   // clang-format off
-  ENCODE(cc.firstChipROF, CTF::BLCfirstChipROF, o2::rans::ProbabilityBits16Bit, optField[CTF::BLCfirstChipROF], &buff);
-  ENCODE(cc.bcIncROF,     CTF::BLCbcIncROF ,    o2::rans::ProbabilityBits16Bit, optField[CTF::BLCbcIncROF],     &buff);
-  ENCODE(cc.orbitIncROF,  CTF::BLCorbitIncROF,  o2::rans::ProbabilityBits16Bit, optField[CTF::BLCorbitIncROF],  &buff);
-  ENCODE(cc.nclusROF,     CTF::BLCnclusROF,     o2::rans::ProbabilityBits16Bit, optField[CTF::BLCnclusROF],     &buff);
+  ENCODEITSMFT(cc.firstChipROF, CTF::BLCfirstChipROF, o2::rans::ProbabilityBits16Bit);
+  ENCODEITSMFT(cc.bcIncROF, CTF::BLCbcIncROF, o2::rans::ProbabilityBits16Bit);
+  ENCODEITSMFT(cc.orbitIncROF, CTF::BLCorbitIncROF, o2::rans::ProbabilityBits16Bit);
+  ENCODEITSMFT(cc.nclusROF, CTF::BLCnclusROF, o2::rans::ProbabilityBits16Bit);
   //
-  ENCODE(cc.chipInc,      CTF::BLCchipInc,      o2::rans::ProbabilityBits16Bit, optField[CTF::BLCchipInc], &buff);
-  ENCODE(cc.chipMul,      CTF::BLCchipMul,      o2::rans::ProbabilityBits16Bit, optField[CTF::BLCchipMul], &buff);
-  ENCODE(cc.row,          CTF::BLCrow,          o2::rans::ProbabilityBits16Bit, optField[CTF::BLCrow],     &buff);
-  ENCODE(cc.colInc,       CTF::BLCcolInc,       o2::rans::ProbabilityBits16Bit, optField[CTF::BLCcolInc],  &buff);
-  ENCODE(cc.pattID,       CTF::BLCpattID,       o2::rans::ProbabilityBits16Bit, optField[CTF::BLCpattID],  &buff);
-  ENCODE(cc.pattMap,      CTF::BLCpattMap,      o2::rans::ProbabilityBits16Bit, optField[CTF::BLCpattMap], &buff);
+  ENCODEITSMFT(cc.chipInc, CTF::BLCchipInc, o2::rans::ProbabilityBits16Bit);
+  ENCODEITSMFT(cc.chipMul, CTF::BLCchipMul, o2::rans::ProbabilityBits16Bit);
+  ENCODEITSMFT(cc.row, CTF::BLCrow, o2::rans::ProbabilityBits16Bit);
+  ENCODEITSMFT(cc.colInc, CTF::BLCcolInc, o2::rans::ProbabilityBits16Bit);
+  ENCODEITSMFT(cc.pattID, CTF::BLCpattID, o2::rans::ProbabilityBits16Bit);
+  ENCODEITSMFT(cc.pattMap, CTF::BLCpattMap, o2::rans::ProbabilityBits16Bit);
   // clang-format on
+  CTF::get(buff.data())->print("ITS done: ");
 }
 
 /// decode entropy-encoded clusters to standard compact clusters
@@ -106,18 +113,19 @@ void CTFCoder::decode(const CTF::base& ec, VROF& rofRecVec, VCLUS& cclusVec, VPA
 {
   CompressedClusters cc;
   cc.header = ec.getHeader();
+#define DECODEITSMFT(part, slot) ec.decode(part, int(slot), mCoders[int(slot)].get())
   // clang-format off
-    ec.decode(cc.firstChipROF, CTF::BLCfirstChipROF);
-    ec.decode(cc.bcIncROF,     CTF::BLCbcIncROF);
-    ec.decode(cc.orbitIncROF,  CTF::BLCorbitIncROF);
-    ec.decode(cc.nclusROF,     CTF::BLCnclusROF);
-    //    
-    ec.decode(cc.chipInc,      CTF::BLCchipInc);
-    ec.decode(cc.chipMul,      CTF::BLCchipMul);
-    ec.decode(cc.row,          CTF::BLCrow);
-    ec.decode(cc.colInc,       CTF::BLCcolInc);
-    ec.decode(cc.pattID,       CTF::BLCpattID);
-    ec.decode(cc.pattMap,      CTF::BLCpattMap);
+  DECODEITSMFT(cc.firstChipROF, CTF::BLCfirstChipROF);
+  DECODEITSMFT(cc.bcIncROF,     CTF::BLCbcIncROF);
+  DECODEITSMFT(cc.orbitIncROF,  CTF::BLCorbitIncROF);
+  DECODEITSMFT(cc.nclusROF,     CTF::BLCnclusROF);
+  //    
+  DECODEITSMFT(cc.chipInc,      CTF::BLCchipInc);
+  DECODEITSMFT(cc.chipMul,      CTF::BLCchipMul);
+  DECODEITSMFT(cc.row,          CTF::BLCrow);
+  DECODEITSMFT(cc.colInc,       CTF::BLCcolInc);
+  DECODEITSMFT(cc.pattID,       CTF::BLCpattID);
+  DECODEITSMFT(cc.pattMap,      CTF::BLCpattMap);
   // clang-format on
   //
   decompress(cc, rofRecVec, cclusVec, pattVec);

@@ -69,7 +69,10 @@ BOOST_AUTO_TEST_CASE(CompressedClustersTest)
 
   sw.Start();
   std::vector<o2::ctf::BufferType> vec;
-  CTFCoder::encode(vec, rofRecVec, cclusVec, pattVec); // compress
+  {
+    CTFCoder coder;
+    coder.encode(vec, rofRecVec, cclusVec, pattVec); // compress
+  }
   sw.Stop();
   LOG(INFO) << "Compressed in " << sw.CpuTime() << " s";
 
@@ -103,7 +106,10 @@ BOOST_AUTO_TEST_CASE(CompressedClustersTest)
   std::vector<unsigned char> pattVecD;
   sw.Start();
   const auto ctfImage = o2::itsmft::CTF::getImage(vec.data());
-  CTFCoder::decode(ctfImage, rofRecVecD, cclusVecD, pattVecD); // decompress
+  {
+    CTFCoder coder;
+    coder.decode(ctfImage, rofRecVecD, cclusVecD, pattVecD); // decompress
+  }
   sw.Stop();
   LOG(INFO) << "Decompressed in " << sw.CpuTime() << " s";
 

@@ -15,7 +15,6 @@
 #include "Framework/ControlService.h"
 #include "Framework/ConfigParamRegistry.h"
 #include "DataFormatsITSMFT/CompCluster.h"
-#include "ITSMFTReconstruction/CTFCoder.h"
 #include "ITSMFTWorkflow/EntropyDecoderSpec.h"
 
 using namespace o2::framework;
@@ -32,6 +31,15 @@ EntropyDecoderSpec::EntropyDecoderSpec(o2::header::DataOrigin orig) : mOrigin(or
   mTimer.Reset();
 }
 
+void EntropyDecoderSpec::init(o2::framework::InitContext& ic)
+{
+  std::string dictPath = ic.options().get<std::string>((mOrigin == o2::header::gDataOriginITS) ? "its-ctf-dictionary" : "mft-ctf-dictionary");
+  if (!dictPath.empty() && dictPath != "none") {
+    mCTFCoder.createCoders(dictPath, mOrigin == o2::header::gDataOriginITS ? o2::detectors::DetID::ITS : o2::detectors::DetID::MFT,
+                           o2::ctf::CTFCoderBase::OpType::Decoder);
+  }
+}
+
 void EntropyDecoderSpec::run(ProcessingContext& pc)
 {
   auto cput = mTimer.CpuTime();
@@ -45,7 +53,7 @@ void EntropyDecoderSpec::run(ProcessingContext& pc)
 
   // since the buff is const, we cannot use EncodedBlocks::relocate directly, instead we wrap its data to another flat object
   const auto ctfImage = o2::itsmft::CTF::getImage(buff.data());
-  CTFCoder::decode(ctfImage, rofs, compcl, patterns);
+  mCTFCoder.decode(ctfImage, rofs, compcl, patterns);
 
   mTimer.Stop();
   LOG(INFO) << "Decoded " << compcl.size() << " clusters in " << rofs.size() << " RO frames in " << mTimer.CpuTime() - cput << " s";
@@ -64,12 +72,14 @@ DataProcessorSpec getEntropyDecoderSpec(o2::header::DataOrigin orig)
     OutputSpec{{"patterns"}, orig, "PATTERNS", 0, Lifetime::Timeframe},
     OutputSpec{{"ROframes"}, orig, "CLUSTERSROF", 0, Lifetime::Timeframe}};
 
+  std::string dictOptName = (orig == o2::header::gDataOriginITS) ? "its-ctf-dictionary" : "mft-ctf-dictionary";
+
   return DataProcessorSpec{
     orig == o2::header::gDataOriginITS ? "its-entropy-decoder" : "mft-entropy-decoder",
     Inputs{InputSpec{"ctf", orig, "CTFDATA", 0, Lifetime::Timeframe}},
     outputs,
     AlgorithmSpec{adaptFromTask<EntropyDecoderSpec>(orig)},
-    Options{}};
+    Options{{dictOptName, VariantType::String, "ctf_dictionary.root", {"File of CTF decoding dictionary"}}}};
 }
 
 } // namespace itsmft
