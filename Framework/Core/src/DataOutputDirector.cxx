@@ -108,9 +108,9 @@ void DataOutputDescriptor::printOut()
   LOGP(INFO, "  File name base : {}", getFilenameBase());
   LOGP(INFO, "  Tree name      : {}", treename);
   if (colnames.empty()) {
-    LOGP(INFO, "  Columns      : \"all\"");
+    LOGP(INFO, "  Columns        : \"all\"");
   } else {
-    LOGP(INFO, "  Columns      : {}", colnames.size());
+    LOGP(INFO, "  Columns        : {}", colnames.size());
   }
   for (auto cn : colnames)
     LOGP(INFO, "    {}", cn);
