@@ -21,7 +21,7 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
 {
   // option allowing to set parameters
   std::vector<ConfigParamSpec> options{
-    ConfigParamSpec{"mft", VariantType::Bool, false, {"source detector is MFT (default ITS)"}},
+    ConfigParamSpec{"runmft", VariantType::Bool, false, {"source detector is MFT (default ITS)"}},
     ConfigParamSpec{"configKeyValues", VariantType::String, "", {"Semicolon separated key=value strings"}}};
 
   std::swap(workflowOptions, options);
@@ -37,7 +37,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
   // Update the (declared) parameters if changed from the command line
   o2::conf::ConfigurableParam::updateFromString(cfgc.options().get<std::string>("configKeyValues"));
 
-  if (cfgc.options().get<bool>("mft")) {
+  if (cfgc.options().get<bool>("runmft")) {
     wf.emplace_back(o2::itsmft::getEntropyEncoderSpec("MFT"));
   } else {
     wf.emplace_back(o2::itsmft::getEntropyEncoderSpec("ITS"));
