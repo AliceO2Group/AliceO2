@@ -34,6 +34,7 @@ GPUdii() void GPUTPCCompressionKernels::Thread<GPUTPCCompressionKernels::step0at
   char lastLeg = 0;
   int myTrack = 0;
   for (unsigned int i = get_global_id(0); i < (unsigned int)merger.NOutputTracks(); i += get_global_size(0)) {
+    GPUbarrierWarp();
     const GPUTPCGMMergedTrack& GPUrestrict() trk = merger.OutputTracks()[i];
     if (!trk.OK()) {
       continue;
