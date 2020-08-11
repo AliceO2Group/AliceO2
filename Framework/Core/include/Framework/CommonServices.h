@@ -16,10 +16,6 @@
 namespace o2::framework
 {
 
-struct ThreadPool {
-  int poolSize;
-};
-
 /// A few ServiceSpecs for services we know about and that / are needed by
 /// everyone.
 struct CommonServices {
@@ -28,7 +24,7 @@ struct CommonServices {
   template <typename I, typename T>
   static ServiceInit simpleServiceInit()
   {
-    return [](ServiceRegistry&, DeviceState&, fair::mq::ProgOptions& options) -> ServiceHandle {
+    return [](ServiceRegistry&, DeviceState&, fair::mq::ProgOptions&) -> ServiceHandle {
       return ServiceHandle{TypeIdHelpers::uniqueId<I>(), new T, ServiceKind::Serial, typeid(T).name()};
     };
   }
@@ -37,7 +33,7 @@ struct CommonServices {
   template <typename I, typename T>
   static ServiceInit singletonServiceInit()
   {
-    return [](ServiceRegistry&, DeviceState&, fair::mq::ProgOptions& options) -> ServiceHandle {
+    return [](ServiceRegistry&, DeviceState&, fair::mq::ProgOptions&) -> ServiceHandle {
       return ServiceHandle{TypeIdHelpers::uniqueId<I>(), T::instance(), ServiceKind::Serial, typeid(T).name()};
     };
   }
@@ -57,6 +53,7 @@ struct CommonServices {
   static ServiceSpec rawDeviceSpec();
   static ServiceSpec callbacksSpec();
   static ServiceSpec timesliceIndex();
+  static ServiceSpec timingInfoSpec();
   static ServiceSpec dataRelayer();
   static ServiceSpec tracingSpec();
   static ServiceSpec threadPool(int numWorkers);

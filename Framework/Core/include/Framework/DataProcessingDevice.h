@@ -47,7 +47,7 @@ class DataProcessingDevice;
 struct DataProcessorContext {
   // These are specific of a given context and therefore
   // not shared by threads.
-  bool* wasActive = nullptr;
+  std::atomic<bool>* wasActive = nullptr;
   bool allDone = false;
 
   // These are pointers to the one owned by the DataProcessingDevice
@@ -66,7 +66,6 @@ struct DataProcessorContext {
   ServiceRegistry* registry = nullptr;
   std::vector<DataRelayer::RecordAction>* completed = nullptr;
   std::vector<ExpirationHandler>* expirationHandlers = nullptr;
-  TimingInfo* timingInfo = nullptr;
   DataAllocator* allocator = nullptr;
   AlgorithmSpec::ProcessCallback* statefulProcess = nullptr;
   AlgorithmSpec::ProcessCallback* statelessProcess = nullptr;
@@ -92,8 +91,8 @@ class DataProcessingDevice : public FairMQDevice
   void SetErrorPolicy(enum TerminationPolicy policy) { mErrorPolicy = policy; }
 
   // Processing functions are now renetrant
-  static void doRun(DataProcessorContext& context);
-  static void doPrepare(DataProcessorContext& context);
+  static void doRun(DataProcessorContext& context, InputChannelState& channelStates, std::vector<DataRelayer::RecordAction>& completed);
+  static InputChannelState doPrepare(DataProcessorContext& context);
   static void handleData(DataProcessorContext& context, FairMQParts&, InputChannelInfo&);
   static bool tryDispatchComputation(DataProcessorContext& context, std::vector<DataRelayer::RecordAction>& completed);
   std::vector<DataProcessorContext> mDataProcessorContexes;
@@ -103,6 +102,7 @@ class DataProcessingDevice : public FairMQDevice
   void fillContext(DataProcessorContext& context);
 
  private:
+  std::vector<void*> mTaskHandles;
   /// The specification used to create the initial state of this device
   DeviceSpec const& mSpec;
   /// The current internal state of this device.
@@ -130,7 +130,8 @@ class DataProcessingDevice : public FairMQDevice
   DataProcessingStats mStats;                        /// Stats about the actual data processing.
   std::vector<FairMQRegionInfo> mPendingRegionInfos; /// A list of the region infos not yet notified.
   enum TerminationPolicy mErrorPolicy = TerminationPolicy::WAIT; /// What to do when an error arises
-  bool mWasActive = false;                                       /// Whether or not the device was active at last iteration.
+  std::atomic<bool> mWasActive = false;                          /// Whether or not the device was active at last iteration.
+  bool mProcessingRequired = false;
 };
 
 } // namespace o2::framework

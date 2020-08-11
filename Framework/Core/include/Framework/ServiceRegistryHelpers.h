@@ -47,7 +47,7 @@ struct ServiceRegistryHelpers {
   }
 
   /// Same as above, but for const instances
-  template <class I, class C, enum ServiceKind K = ServiceKind::Serial>
+  template <class I, class C, enum ServiceKind K = ServiceKind::ReadOnly>
   static auto handleForService(C const* service) -> ServiceHandle
   {
     // This only works for concrete implementations of the type T.
@@ -55,7 +55,7 @@ struct ServiceRegistryHelpers {
     // advance
     static_assert(std::is_base_of<I, C>::value == true,
                   "Registered service is not derived from declared interface");
-    constexpr auto typeHash = TypeIdHelpers::uniqueId<I const>();
+    constexpr auto typeHash = TypeIdHelpers::uniqueId<I>();
     return ServiceHandle{typeHash, reinterpret_cast<void*>(const_cast<C*>(service)), K, typeid(C).name()};
   }
 };

@@ -33,12 +33,10 @@ using DataHeader = o2::header::DataHeader;
 using DataDescription = o2::header::DataDescription;
 using DataProcessingHeader = o2::framework::DataProcessingHeader;
 
-DataAllocator::DataAllocator(TimingInfo* timingInfo,
-                             ServiceRegistry* contextRegistry,
-                             const AllowedOutputRoutes& routes)
+DataAllocator::DataAllocator(ServiceRegistry* services,
+                             AllowedOutputRoutes const& routes)
   : mAllowedOutputRoutes{routes},
-    mTimingInfo{timingInfo},
-    mRegistry{contextRegistry}
+    mRegistry{services}
 {
 }
 
@@ -60,7 +58,7 @@ std::string const& DataAllocator::matchDataHeader(const Output& spec, size_t tim
 
 DataChunk& DataAllocator::newChunk(const Output& spec, size_t size)
 {
-  std::string const& channel = matchDataHeader(spec, mTimingInfo->timeslice);
+  std::string const& channel = matchDataHeader(spec, mRegistry->get<TimingInfo>().timeslice);
   auto& context = mRegistry->get<MessageContext>();
 
   FairMQMessagePtr headerMessage = headerMessageFromOutput(spec, channel,                        //
@@ -75,7 +73,7 @@ void DataAllocator::adoptChunk(const Output& spec, char* buffer, size_t size, fa
 {
   // Find a matching channel, create a new message for it and put it in the
   // queue to be sent at the end of the processing
-  std::string const& channel = matchDataHeader(spec, mTimingInfo->timeslice);
+  std::string const& channel = matchDataHeader(spec, mRegistry->get<TimingInfo>().timeslice);
 
   FairMQMessagePtr headerMessage = headerMessageFromOutput(spec, channel,                        //
                                                            o2::header::gSerializationMethodNone, //
@@ -99,7 +97,7 @@ FairMQMessagePtr DataAllocator::headerMessageFromOutput(Output const& spec,     
   dh.payloadSize = payloadSize;
   dh.payloadSerializationMethod = method;
 
-  DataProcessingHeader dph{mTimingInfo->timeslice, 1};
+  DataProcessingHeader dph{mRegistry->get<TimingInfo>().timeslice, 1};
   auto& context = mRegistry->get<MessageContext>();
 
   auto channelAlloc = o2::pmr::getTransportAllocator(context.proxy().getTransport(channel, 0));
@@ -109,7 +107,7 @@ FairMQMessagePtr DataAllocator::headerMessageFromOutput(Output const& spec,     
 void DataAllocator::addPartToContext(FairMQMessagePtr&& payloadMessage, const Output& spec,
                                      o2::header::SerializationMethod serializationMethod)
 {
-  std::string const& channel = matchDataHeader(spec, mTimingInfo->timeslice);
+  std::string const& channel = matchDataHeader(spec, mRegistry->get<TimingInfo>().timeslice);
   auto headerMessage = headerMessageFromOutput(spec, channel, serializationMethod, 0);
 
   // FIXME: this is kind of ugly, we know that we can change the content of the
@@ -127,7 +125,7 @@ void DataAllocator::addPartToContext(FairMQMessagePtr&& payloadMessage, const Ou
 void DataAllocator::adopt(const Output& spec, std::string* ptr)
 {
   std::unique_ptr<std::string> payload(ptr);
-  std::string const& channel = matchDataHeader(spec, mTimingInfo->timeslice);
+  std::string const& channel = matchDataHeader(spec, mRegistry->get<TimingInfo>().timeslice);
   // the correct payload size is set later when sending the
   // StringContext, see DataProcessor::doSend
   auto header = headerMessageFromOutput(spec, channel, o2::header::gSerializationMethodNone, 0);
@@ -137,7 +135,7 @@ void DataAllocator::adopt(const Output& spec, std::string* ptr)
 
 void DataAllocator::adopt(const Output& spec, TableBuilder* tb)
 {
-  std::string const& channel = matchDataHeader(spec, mTimingInfo->timeslice);
+  std::string const& channel = matchDataHeader(spec, mRegistry->get<TimingInfo>().timeslice);
   auto header = headerMessageFromOutput(spec, channel, o2::header::gSerializationMethodArrow, 0);
   auto& context = mRegistry->get<ArrowContext>();
 
@@ -164,7 +162,7 @@ void DataAllocator::adopt(const Output& spec, TableBuilder* tb)
 
 void DataAllocator::adopt(const Output& spec, TreeToTable* t2t)
 {
-  std::string const& channel = matchDataHeader(spec, mTimingInfo->timeslice);
+  std::string const& channel = matchDataHeader(spec, mRegistry->get<TimingInfo>().timeslice);
   LOG(INFO) << "DataAllocator::adopt channel " << channel.c_str();
 
   auto header = headerMessageFromOutput(spec, channel, o2::header::gSerializationMethodArrow, 0);
@@ -199,7 +197,7 @@ void DataAllocator::adopt(const Output& spec, TreeToTable* t2t)
 
 void DataAllocator::adopt(const Output& spec, std::shared_ptr<arrow::Table> ptr)
 {
-  std::string const& channel = matchDataHeader(spec, mTimingInfo->timeslice);
+  std::string const& channel = matchDataHeader(spec, mRegistry->get<TimingInfo>().timeslice);
   auto header = headerMessageFromOutput(spec, channel, o2::header::gSerializationMethodArrow, 0);
   auto& context = mRegistry->get<ArrowContext>();
 

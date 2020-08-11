@@ -10,6 +10,7 @@
 #ifndef FRAMEWORK_MESSAGECONTEXT_H
 #define FRAMEWORK_MESSAGECONTEXT_H
 
+#include "Framework/ServiceHandle.h"
 #include "Framework/DispatchControl.h"
 #include "Framework/FairMQDeviceProxy.h"
 #include "Framework/TMessageSerializer.h"
@@ -39,6 +40,7 @@ class Output;
 class MessageContext
 {
  public:
+  constexpr static ServiceKind service_kind = ServiceKind::Stream;
   // so far we are only using one instance per named channel
   static constexpr int DefaultChannelIndex = 0;
 

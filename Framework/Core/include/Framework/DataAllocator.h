@@ -81,8 +81,7 @@ class DataAllocator
   using DataDescription = o2::header::DataDescription;
   using SubSpecificationType = o2::header::DataHeader::SubSpecificationType;
 
-  DataAllocator(TimingInfo* timingInfo,
-                ServiceRegistry* contextes,
+  DataAllocator(ServiceRegistry*,
                 const AllowedOutputRoutes& routes);
 
   DataChunk& newChunk(const Output&, size_t);
@@ -100,11 +99,12 @@ class DataAllocator
   template <typename T, typename... Args>
   decltype(auto) make(const Output& spec, Args... args)
   {
+    auto timingInfo = mRegistry->get<TimingInfo>();
     if constexpr (is_specialization<T, std::vector>::value && has_messageable_value_type<T>::value) {
       // this catches all std::vector objects with messageable value type before checking if is also
       // has a root dictionary, so non-serialized transmission is preferred
       using ValueType = typename T::value_type;
-      std::string const& channel = matchDataHeader(spec, mTimingInfo->timeslice);
+      std::string const& channel = matchDataHeader(spec, timingInfo.timeslice);
       auto& context = mRegistry->get<MessageContext>();
 
       // Note: initial payload size is 0 and will be set by the context before sending
@@ -113,7 +113,7 @@ class DataAllocator
     } else if constexpr (has_root_dictionary<T>::value == true && is_messageable<T>::value == false) {
       // Extended support for types implementing the Root ClassDef interface, both TObject
       // derived types and others
-      std::string const& channel = matchDataHeader(spec, mTimingInfo->timeslice);
+      std::string const& channel = matchDataHeader(spec, timingInfo.timeslice);
       auto& context = mRegistry->get<MessageContext>();
 
       // Note: initial payload size is 0 and will be set by the context before sending
@@ -155,7 +155,7 @@ class DataAllocator
         if constexpr (is_messageable<T>::value == true) {
           auto [nElements] = std::make_tuple(args...);
           auto size = nElements * sizeof(T);
-          std::string const& channel = matchDataHeader(spec, mTimingInfo->timeslice);
+          std::string const& channel = matchDataHeader(spec, timingInfo.timeslice);
           auto& context = mRegistry->get<MessageContext>();
 
           FairMQMessagePtr headerMessage = headerMessageFromOutput(spec, channel, o2::header::gSerializationMethodNone, size);
@@ -221,7 +221,7 @@ class DataAllocator
     using type = T;
 
     char* payload = reinterpret_cast<char*>(ptr);
-    std::string const& channel = matchDataHeader(spec, mTimingInfo->timeslice);
+    std::string const& channel = matchDataHeader(spec, mRegistry->get<TimingInfo>().timeslice);
     // the correct payload size is set later when sending the
     // RawBufferContext, see DataProcessor::doSend
     auto header = headerMessageFromOutput(spec, channel, o2::header::gSerializationMethodNone, 0);
@@ -382,7 +382,7 @@ class DataAllocator
   //get the memory resource associated with an output
   o2::pmr::FairMQMemoryResource* getMemoryResource(const Output& spec)
   {
-    std::string const& channel = matchDataHeader(spec, mTimingInfo->timeslice);
+    std::string const& channel = matchDataHeader(spec, mRegistry->get<TimingInfo>().timeslice);
     auto& context = mRegistry->get<MessageContext>();
     return *context.proxy().getTransport(channel);
   }
@@ -403,7 +403,7 @@ class DataAllocator
   {
     // Find a matching channel, extract the message for it form the container
     // and put it in the queue to be sent at the end of the processing
-    std::string const& channel = matchDataHeader(spec, mTimingInfo->timeslice);
+    std::string const& channel = matchDataHeader(spec, mRegistry->get<TimingInfo>().timeslice);
 
     auto& context = mRegistry->get<MessageContext>();
     FairMQMessagePtr payloadMessage = o2::pmr::getMessage(std::forward<ContainerT>(container), *context.proxy().getTransport(channel));
@@ -442,7 +442,6 @@ class DataAllocator
 
  private:
   AllowedOutputRoutes mAllowedOutputRoutes;
-  TimingInfo* mTimingInfo;
   ServiceRegistry* mRegistry;
 
   std::string const& matchDataHeader(const Output& spec, size_t timeframeId);

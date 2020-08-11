@@ -104,6 +104,7 @@ class ConfigContext;
 }
 /// Helper used to customize a workflow pipelining options
 void overridePipeline(o2::framework::ConfigContext& ctx, std::vector<o2::framework::DataProcessorSpec>& workflow);
+void overrideThreads(o2::framework::ConfigContext& ctx, std::vector<o2::framework::DataProcessorSpec>& workflow);
 
 // This comes from the framework itself. This way we avoid code duplication.
 int doMain(int argc, char** argv, o2::framework::WorkflowSpec const& specs,
@@ -130,6 +131,7 @@ int main(int argc, char** argv)
     UserCustomizationsHelper::userDefinedCustomization(workflowOptions, 0);
     workflowOptions.push_back(ConfigParamSpec{"readers", VariantType::Int64, 1ll, {"number of parallel readers to use"}});
     workflowOptions.push_back(ConfigParamSpec{"pipeline", VariantType::String, "", {"override default pipeline size"}});
+    workflowOptions.push_back(ConfigParamSpec{"threads", VariantType::String, "", {"override the default number of threads per device"}});
     std::vector<ChannelConfigurationPolicy> channelPolicies;
     UserCustomizationsHelper::userDefinedCustomization(channelPolicies, 0);
     auto defaultChannelPolicies = ChannelConfigurationPolicy::createDefaultPolicies();
@@ -158,6 +160,7 @@ int main(int argc, char** argv)
     for (auto& spec : specs) {
       UserCustomizationsHelper::userDefinedCustomization(spec.requiredServices, 0);
     }
+    overrideThreads(configContext, specs);
     result = doMain(argc, argv, specs, channelPolicies, completionPolicies, dispatchPolicies, workflowOptions, configContext);
   } catch (boost::exception& e) {
     doBoostException(e);

@@ -21,6 +21,11 @@
 #include <iostream>
 #include <memory>
 
+struct InterfaceC {
+  constexpr static o2::framework::ServiceKind service_kind = o2::framework::ServiceKind::ReadOnly;
+  virtual bool method() const = 0;
+};
+
 BOOST_AUTO_TEST_CASE(TestServiceRegistry)
 {
   using namespace o2::framework;
@@ -40,9 +45,6 @@ BOOST_AUTO_TEST_CASE(TestServiceRegistry)
     bool method() final { return false; }
   };
 
-  struct InterfaceC {
-    virtual bool method() const = 0;
-  };
 
   struct ConcreteC : InterfaceC {
     bool method() const final { return false; }
@@ -55,14 +57,17 @@ BOOST_AUTO_TEST_CASE(TestServiceRegistry)
   registry.registerService(ServiceRegistryHelpers::handleForService<InterfaceA>(&serviceA));
   registry.registerService(ServiceRegistryHelpers::handleForService<InterfaceB>(&serviceB));
   registry.registerService(ServiceRegistryHelpers::handleForService<InterfaceC>(&serviceC));
-  BOOST_CHECK(registry.get<InterfaceA>().method() == true);
-  BOOST_CHECK(registry.get<InterfaceB>().method() == false);
-  BOOST_CHECK(registry.get<InterfaceC const>().method() == false);
+  BOOST_CHECK(registry.get<InterfaceA>()->method() == true);
+  BOOST_CHECK(registry.get<InterfaceB>()->method() == false);
+  BOOST_CHECK(registry.get<InterfaceC>().method() == false);
   BOOST_CHECK(registry.active<InterfaceA>() == true);
   BOOST_CHECK(registry.active<InterfaceB>() == true);
-  BOOST_CHECK(registry.active<InterfaceC>() == false);
-  BOOST_CHECK_THROW(registry.get<InterfaceA const>(), RuntimeErrorRef);
-  BOOST_CHECK_THROW(registry.get<InterfaceC>(), RuntimeErrorRef);
+  BOOST_CHECK(registry.active<InterfaceC>() == true);
+  BOOST_CHECK(registry.active<InterfaceC const>() == true);
+  BOOST_CHECK_NO_THROW(registry.get<InterfaceA const>());
+  BOOST_CHECK_NO_THROW(registry.get<InterfaceC>());
+  BOOST_CHECK_NO_THROW(registry.get<InterfaceC const>());
+  InterfaceC const& foo = registry.get<InterfaceC>();
 }
 
 BOOST_AUTO_TEST_CASE(TestCallbackService)
@@ -179,7 +184,7 @@ BOOST_AUTO_TEST_CASE(TestServiceDeclaration)
   options.SetProperty("infologger-severity", "info");
   options.SetProperty("configuration", "command-line");
 
-  registry.declareService(CommonServices::callbacksSpec(), state, options);
+  registry.declareService(CommonServices::callbacksSpec());
   BOOST_CHECK(registry.active<CallbackService>() == true);
   BOOST_CHECK(registry.active<DummyService>() == false);
 }

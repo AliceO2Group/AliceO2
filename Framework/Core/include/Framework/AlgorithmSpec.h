@@ -124,6 +124,19 @@ struct ContextElementTraits<DataAllocator> {
   }
 };
 
+template <typename T>
+struct remove_service {
+  using type = std::remove_reference_t<T>;
+};
+
+template <typename T>
+struct remove_service<service_ptr<T>> {
+  using type = T;
+};
+
+template <typename T>
+using remove_service_t = typename remove_service<T>::type;
+
 template <typename... CONTEXTELEMENT>
 AlgorithmSpec::ProcessCallback adaptStatelessF(std::function<void(CONTEXTELEMENT&...)> callback)
 {

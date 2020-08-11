@@ -42,13 +42,13 @@ using ServiceInit = std::function<ServiceHandle(ServiceRegistry&, DeviceState&, 
 using ServiceConfigureCallback = std::function<void*(InitContext&, void*)>;
 
 /// A callback which is executed before each processing loop.
-using ServiceProcessingCallback = std::function<void(ProcessingContext&, void*)>;
+using ServiceProcessingCallback = std::function<void(ProcessingContext&)>;
 
 /// A callback which is executed before each dangling input loop
-using ServiceDanglingCallback = std::function<void(DanglingContext&, void*)>;
+using ServiceDanglingCallback = std::function<void(DanglingContext&)>;
 
 /// A callback which is executed before the end of stream loop.
-using ServiceEOSCallback = std::function<void(EndOfStreamContext&, void*)>;
+using ServiceEOSCallback = std::function<void(EndOfStreamContext&)>;
 
 /// Callback executed before the forking of a given device in the driver
 /// Notice the forking can happen multiple times. It's responsibility of
@@ -72,6 +72,8 @@ using ServicePostForkParent = std::function<void(ServiceRegistry&)>;
 struct ServiceSpec {
   /// Name of the service
   std::string name;
+  /// UniqueId for the service. Must be set to TypeIdHelpers::uniqueId<T>()
+  uint32_t uniqueId;
   /// Callback to initialise the service.
   ServiceInit init;
   /// Callback to configure the service.
@@ -110,17 +112,14 @@ struct ServiceConfigureHandle {
 
 struct ServiceProcessingHandle {
   ServiceProcessingCallback callback;
-  void* service;
 };
 
 struct ServiceDanglingHandle {
   ServiceDanglingCallback callback;
-  void* service;
 };
 
 struct ServiceEOSHandle {
   ServiceEOSCallback callback;
-  void* service;
 };
 
 } // namespace o2::framework

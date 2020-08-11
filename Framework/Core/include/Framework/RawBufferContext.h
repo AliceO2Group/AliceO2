@@ -36,6 +36,11 @@ namespace framework
 class RawBufferContext
 {
  public:
+  /// Every message sending context must be a Stream service
+  /// so that we can handle outgoing messages separately per
+  /// thread.
+  constexpr static ServiceKind service_kind = ServiceKind::Stream;
+
   RawBufferContext(FairMQDeviceProxy proxy)
     : mProxy{proxy}
   {

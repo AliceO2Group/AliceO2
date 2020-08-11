@@ -64,14 +64,14 @@ DataProcessorSpec sim_tpc()
 
         // Requiring a file is something which requires IO, and it's therefore
         // delegated to the framework
-        auto& rfm = setup.services().get<RootFileService>();
+        auto rfm = setup.services().get<RootFileService>();
         // FIXME: We should propably have a service for FairRunSim, rather than
         //        for the root files themselves...
         // Output file name
-        auto outFile = rfm.format("AliceO2_%s.tpc.mc_%i_event.root", mcEngine.c_str(), nEvents);
+        auto outFile = rfm->format("AliceO2_%s.tpc.mc_%i_event.root", mcEngine.c_str(), nEvents);
 
         // Parameter file name
-        auto parFile = rfm.format("AliceO2_%s.tpc.mc_%i_event.root", mcEngine.c_str(), nEvents);
+        auto parFile = rfm->format("AliceO2_%s.tpc.mc_%i_event.root", mcEngine.c_str(), nEvents);
 
         // Create simulation run
         FairRunSim* run = new FairRunSim();

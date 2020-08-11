@@ -10,6 +10,7 @@
 #include "Framework/ConfigParamSpec.h"
 #include "Framework/CompletionPolicyHelpers.h"
 #include "Framework/DeviceSpec.h"
+#include "Framework/ThreadPool.h"
 #include <InfoLogger/InfoLogger.hxx>
 
 #include <chrono>
@@ -41,8 +42,10 @@ AlgorithmSpec simplePipe(std::string const& what, int minDelay)
 {
   return AlgorithmSpec{adaptStateful([what, minDelay]() {
     srand(getpid());
-    return adaptStateless([what, minDelay](DataAllocator& outputs) {
-      throw runtime_error_f("This is an error %d", 1);
+    return adaptStateless([what, minDelay](ThreadPool& pool, DataAllocator& outputs) {
+      LOG(info) << "This is thread " << pool.threadIndex;
+      LOG(info) << "PoolSize" << pool.poolSize;
+      LOG(info) << "ThreadId" << std::this_thread::get_id();
       std::this_thread::sleep_for(std::chrono::seconds((rand() % 5) + minDelay));
       auto& bData = outputs.make<int>(OutputRef{what}, 1);
     });
@@ -58,11 +61,12 @@ WorkflowSpec defineDataProcessing(ConfigContext const& specs)
      {OutputSpec{{"a1"}, "TST", "A1"},
       OutputSpec{{"a2"}, "TST", "A2"}},
      AlgorithmSpec{adaptStateless(
-       [](DataAllocator& outputs, InfoLogger& logger) {
-         std::this_thread::sleep_for(std::chrono::seconds(rand() % 2));
+       [](ThreadPool& pool, DataAllocator& outputs /*, service_ptr<InfoLogger> logger*/) {
+         LOG(info) << "This is thread " << pool.threadIndex;
+         std::this_thread::sleep_for(std::chrono::seconds(2));
          auto& aData = outputs.make<int>(OutputRef{"a1"}, 1);
          auto& bData = outputs.make<int>(OutputRef{"a2"}, 1);
-         logger.log("This goes to infologger");
+         // logger->log("This goes to infologger");
        })},
      {ConfigParamSpec{"some-device-param", VariantType::Int, 1, {"Some device parameter"}}}},
     {"B",

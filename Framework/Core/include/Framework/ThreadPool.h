@@ -7,21 +7,23 @@
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
-
-#ifndef O2_FRAMEWORK_TIMINGINFO_H_
-#define O2_FRAMEWORK_TIMINGINFO_H_
+#ifndef O2_FRAMEWORK_THREADPOOL_H_
+#define O2_FRAMEWORK_THREADPOOL_H_
 
 #include "Framework/ServiceHandle.h"
-#include <cstddef>
+#include "Framework/TypeIdHelpers.h"
+
+#include <atomic>
 
 namespace o2::framework
 {
-/// This class holds the information about timing
-/// of the messages being processed.
-struct TimingInfo {
+
+struct ThreadPool {
   constexpr static ServiceKind service_kind = ServiceKind::Stream;
-  size_t timeslice; /// the timeslice associated to current processing
+  int poolSize;
+  std::atomic<int> threadIndex;
 };
+
 } // namespace o2::framework
 
-#endif // O2_FRAMEWORK_TIMINGINFO_H_
+#endif // O2_FRAMEWORK_THREADPOOL_H_

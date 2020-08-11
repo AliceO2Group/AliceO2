@@ -35,42 +35,42 @@ struct CommonMessageBackendsHelpers {
   {
     return [](ServiceRegistry& services, DeviceState&, fair::mq::ProgOptions& options) {
       auto& device = services.get<RawDeviceService>();
-      return ServiceHandle{TypeIdHelpers::uniqueId<T>(), new T(FairMQDeviceProxy{device.device()})};
+      return ServiceHandle{TypeIdHelpers::uniqueId<T>(), new T(FairMQDeviceProxy{device.device()}), ServiceKind::Stream};
     };
   }
 
   static ServiceProcessingCallback sendCallback()
   {
-    return [](ProcessingContext& ctx, void* service) {
+    return [](ProcessingContext& ctx) {
       ZoneScopedN("send message callback");
-      T* context = reinterpret_cast<T*>(service);
+      T& context = ctx.services().get<T>();
       auto& device = ctx.services().get<RawDeviceService>();
-      DataProcessor::doSend(*device.device(), *context);
+      DataProcessor::doSend(*device.device(), context);
     };
   }
 
   static ServiceProcessingCallback clearContext()
   {
-    return [](ProcessingContext&, void* service) {
-      T* context = reinterpret_cast<T*>(service);
-      context->clear();
+    return [](ProcessingContext& ctx) {
+      T& context = ctx.services().get<T>();
+      context.clear();
     };
   }
 
   static ServiceEOSCallback clearContextEOS()
   {
-    return [](EndOfStreamContext&, void* service) {
-      T* context = reinterpret_cast<T*>(service);
-      context->clear();
+    return [](EndOfStreamContext& ctx) {
+      T& context = ctx.services().get<T>();
+      context.clear();
     };
   }
 
   static ServiceEOSCallback sendCallbackEOS()
   {
-    return [](EndOfStreamContext& ctx, void* service) {
-      T* context = reinterpret_cast<T*>(service);
+    return [](EndOfStreamContext& ctx) {
+      T& context = ctx.services().get<T>();
       auto& device = ctx.services().get<RawDeviceService>();
-      DataProcessor::doSend(*device.device(), *context);
+      DataProcessor::doSend(*device.device(), context);
     };
   }
 };
@@ -79,6 +79,7 @@ struct CommonMessageBackendsHelpers {
 o2::framework::ServiceSpec CommonMessageBackends::arrowBackendSpec()
 {
   return ServiceSpec{"arrow-backend",
+                     TypeIdHelpers::uniqueId<ArrowContext>(),
                      CommonMessageBackendsHelpers<ArrowContext>::createCallback(),
                      CommonServices::noConfiguration(),
                      CommonMessageBackendsHelpers<ArrowContext>::clearContext(),
@@ -90,12 +91,13 @@ o2::framework::ServiceSpec CommonMessageBackends::arrowBackendSpec()
                      nullptr,
                      nullptr,
                      nullptr,
-                     ServiceKind::Serial};
+                     ServiceKind::Stream};
 }
 
 o2::framework::ServiceSpec CommonMessageBackends::fairMQBackendSpec()
 {
   return ServiceSpec{"fairmq-backend",
+                     TypeIdHelpers::uniqueId<MessageContext>(),
                      [](ServiceRegistry& services, DeviceState&, fair::mq::ProgOptions&) -> ServiceHandle {
                        auto& device = services.get<RawDeviceService>();
                        auto context = new MessageContext(FairMQDeviceProxy{device.device()});
@@ -115,7 +117,7 @@ o2::framework::ServiceSpec CommonMessageBackends::fairMQBackendSpec()
                        if (spec.dispatchPolicy.action == DispatchPolicy::DispatchOp::WhenReady) {
                          context->init(DispatchControl{dispatcher, matcher});
                        }
-                       return ServiceHandle{TypeIdHelpers::uniqueId<MessageContext>(), context};
+                       return ServiceHandle{TypeIdHelpers::uniqueId<MessageContext>(), context, ServiceKind::Stream};
                      },
                      CommonServices::noConfiguration(),
                      CommonMessageBackendsHelpers<MessageContext>::clearContext(),
@@ -127,12 +129,13 @@ o2::framework::ServiceSpec CommonMessageBackends::fairMQBackendSpec()
                      nullptr,
                      nullptr,
                      nullptr,
-                     ServiceKind::Serial};
+                     ServiceKind::Stream};
 }
 
 o2::framework::ServiceSpec CommonMessageBackends::stringBackendSpec()
 {
   return ServiceSpec{"string-backend",
+                     TypeIdHelpers::uniqueId<StringContext>(),
                      CommonMessageBackendsHelpers<StringContext>::createCallback(),
                      CommonServices::noConfiguration(),
                      CommonMessageBackendsHelpers<StringContext>::clearContext(),
@@ -144,12 +147,13 @@ o2::framework::ServiceSpec CommonMessageBackends::stringBackendSpec()
                      nullptr,
                      nullptr,
                      nullptr,
-                     ServiceKind::Serial};
+                     ServiceKind::Stream};
 }
 
 o2::framework::ServiceSpec CommonMessageBackends::rawBufferBackendSpec()
 {
   return ServiceSpec{"raw-backend",
+                     TypeIdHelpers::uniqueId<RawBufferContext>(),
                      CommonMessageBackendsHelpers<RawBufferContext>::createCallback(),
                      CommonServices::noConfiguration(),
                      CommonMessageBackendsHelpers<RawBufferContext>::clearContext(),
@@ -161,7 +165,7 @@ o2::framework::ServiceSpec CommonMessageBackends::rawBufferBackendSpec()
                      nullptr,
                      nullptr,
                      nullptr,
-                     ServiceKind::Serial};
+                     ServiceKind::Stream};
 }
 
 } // namespace o2::framework

@@ -22,7 +22,9 @@ enum struct ServiceKind {
   /// A Service which is thread safe and therefore can be used by many threads the same time without risk
   Global,
   /// A Service which is specific to a given thread in a thread pool
-  Stream
+  Stream,
+  /// A Service which is ReadOnly can only be retrieved as "const"
+  ReadOnly
 };
 
 /// Handle to the service hash must be calculated

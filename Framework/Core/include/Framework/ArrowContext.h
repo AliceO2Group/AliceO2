@@ -10,6 +10,7 @@
 #ifndef FRAMEWORK_ARROWCONTEXT_H
 #define FRAMEWORK_ARROWCONTEXT_H
 
+#include "Framework/ServiceHandle.h"
 #include "Framework/FairMQDeviceProxy.h"
 #include <cassert>
 #include <functional>
@@ -32,6 +33,8 @@ class FairMQResizableBuffer;
 class ArrowContext
 {
  public:
+  constexpr static ServiceKind service_kind = ServiceKind::Stream;
+
   ArrowContext(FairMQDeviceProxy proxy)
     : mProxy{proxy}
   {

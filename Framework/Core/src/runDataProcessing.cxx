@@ -749,10 +749,11 @@ int doChild(int argc, char** argv, ServiceRegistry& serviceRegistry, const o2::f
       r.fDevice = std::move(device);
       fair::Logger::SetConsoleColor(false);
 
+      serviceRegistry.bindState(deviceState.get(), &r.fConfig);
       /// Create all the requested services and initialise them
       for (auto& service : spec.services) {
         LOG(debug) << "Declaring service " << service.name;
-        serviceRegistry.declareService(service, *deviceState.get(), r.fConfig);
+        serviceRegistry.declareService(service);
       }
       if (ResourcesMonitoringHelper::isResourcesMonitoringEnabled(spec.resourceMonitoringInterval)) {
         serviceRegistry.get<Monitoring>().enableProcessMonitoring(spec.resourceMonitoringInterval);
@@ -1253,6 +1254,7 @@ void overridePipeline(ConfigContext& ctx, WorkflowSpec& workflow)
     std::string matcher;
     int64_t pipeline;
   };
+
   auto s = ctx.options().get<std::string>("pipeline");
   std::vector<PipelineSpec> specs;
   std::string delimiter = ",";
@@ -1283,6 +1285,55 @@ void overridePipeline(ConfigContext& ctx, WorkflowSpec& workflow)
     for (auto& processor : workflow) {
       if (processor.name == spec.matcher) {
         processor.maxInputTimeslices = spec.pipeline;
+      }
+    }
+  }
+}
+
+void overrideThreads(ConfigContext& ctx, WorkflowSpec& workflow)
+{
+  struct ThreadsSpec {
+    std::string matcher;
+    int64_t threads;
+  };
+
+  auto s = ctx.options().get<std::string>("threads");
+  std::vector<ThreadsSpec> specs;
+  std::string delimiter = ",";
+
+  size_t pos = 0;
+  while (s.empty() == false) {
+    auto newPos = s.find(delimiter);
+    auto token = s.substr(0, newPos);
+    auto split = token.find(":");
+    if (split == std::string::npos) {
+      throw std::runtime_error("bad threads definition. Syntax <processor>:<threads>");
+    }
+    auto key = token.substr(0, split);
+    token.erase(0, split + 1);
+    size_t error;
+    auto value = std::stoll(token, &error, 10);
+    if (token[error] != '\0') {
+      throw std::runtime_error("Bad threads definition. Expecting integer");
+    }
+    specs.push_back({key, value});
+    s.erase(0, newPos + (newPos == std::string::npos ? 0 : 1));
+  }
+  if (s.empty() == false && specs.empty() == true) {
+    throw std::runtime_error("bad threads definition. Syntax <processor>:<pipeline>");
+  }
+
+  for (auto& spec : specs) {
+    for (auto& processor : workflow) {
+      if (processor.name != spec.matcher) {
+        continue;
+      }
+      if (spec.threads > 0) {
+        LOG(debug) << "Overriding number of threads for " << processor.name << " new value  " << spec.threads;
+        std::remove_if(processor.requiredServices.begin(),
+                       processor.requiredServices.end(),
+                       [](ServiceSpec& spec) { return spec.name == "threadpool"; });
+        processor.requiredServices.push_back(CommonServices::threadPool(spec.threads));
       }
     }
   }

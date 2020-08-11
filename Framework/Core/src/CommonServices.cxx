@@ -21,7 +21,9 @@
 #include "Framework/CommonMessageBackends.h"
 #include "Framework/DanglingContext.h"
 #include "Framework/EndOfStreamContext.h"
+#include "Framework/TypeIdHelpers.h"
 #include "Framework/Tracing.h"
+#include "Framework/ThreadPool.h"
 #include "Framework/Monitoring.h"
 #include "../src/DataProcessingStatus.h"
 
@@ -56,6 +58,7 @@ struct ServiceKindExtractor<InfoLoggerContext> {
 o2::framework::ServiceSpec CommonServices::monitoringSpec()
 {
   return ServiceSpec{"monitoring",
+                     TypeIdHelpers::uniqueId<Monitoring>(),
                      [](ServiceRegistry&, DeviceState&, fair::mq::ProgOptions& options) -> ServiceHandle {
                        void* service = MonitoringFactory::Get(options.GetPropertyAsString("monitoring-backend")).release();
                        return ServiceHandle{TypeIdHelpers::uniqueId<Monitoring>(), service};
@@ -76,6 +79,7 @@ o2::framework::ServiceSpec CommonServices::monitoringSpec()
 o2::framework::ServiceSpec CommonServices::infologgerContextSpec()
 {
   return ServiceSpec{"infologger-contex",
+                     TypeIdHelpers::uniqueId<InfoLoggerContext>(),
                      simpleServiceInit<InfoLoggerContext, InfoLoggerContext>(),
                      noConfiguration(),
                      nullptr,
@@ -87,7 +91,7 @@ o2::framework::ServiceSpec CommonServices::infologgerContextSpec()
                      nullptr,
                      nullptr,
                      nullptr,
-                     ServiceKind::Serial};
+                     ServiceKind::Global};
 }
 
 // Creates the sink for FairLogger / InfoLogger integration
@@ -148,6 +152,7 @@ auto createInfoLoggerSinkHelper(InfoLogger* logger, InfoLoggerContext* ctx)
 o2::framework::ServiceSpec CommonServices::infologgerSpec()
 {
   return ServiceSpec{"infologger",
+                     TypeIdHelpers::uniqueId<InfoLogger>(),
                      [](ServiceRegistry& services, DeviceState&, fair::mq::ProgOptions& options) -> ServiceHandle {
                        auto infoLoggerMode = options.GetPropertyAsString("infologger-mode");
                        if (infoLoggerMode != "") {
@@ -179,6 +184,7 @@ o2::framework::ServiceSpec CommonServices::configurationSpec()
 {
   return ServiceSpec{
     "configuration",
+    TypeIdHelpers::uniqueId<ConfigurationInterface>(),
     [](ServiceRegistry& services, DeviceState&, fair::mq::ProgOptions& options) -> ServiceHandle {
       auto backend = options.GetPropertyAsString("configuration");
       if (backend == "command-line") {
@@ -204,6 +210,7 @@ o2::framework::ServiceSpec CommonServices::controlSpec()
 {
   return ServiceSpec{
     "control",
+    TypeIdHelpers::uniqueId<ControlService>(),
     [](ServiceRegistry& services, DeviceState& state, fair::mq::ProgOptions& options) -> ServiceHandle {
       return ServiceHandle{TypeIdHelpers::uniqueId<ControlService>(),
                            new TextControlService(services, state)};
@@ -225,6 +232,7 @@ o2::framework::ServiceSpec CommonServices::rootFileSpec()
 {
   return ServiceSpec{
     "localrootfile",
+    TypeIdHelpers::uniqueId<LocalRootFileService>(),
     simpleServiceInit<LocalRootFileService, LocalRootFileService>(),
     noConfiguration(),
     nullptr,
@@ -243,6 +251,7 @@ o2::framework::ServiceSpec CommonServices::parallelSpec()
 {
   return ServiceSpec{
     "parallel",
+    TypeIdHelpers::uniqueId<ParallelContext>(),
     [](ServiceRegistry& services, DeviceState&, fair::mq::ProgOptions& options) -> ServiceHandle {
       auto& spec = services.get<DeviceSpec const>();
       return ServiceHandle{TypeIdHelpers::uniqueId<ParallelContext>(),
@@ -258,13 +267,14 @@ o2::framework::ServiceSpec CommonServices::parallelSpec()
     nullptr,
     nullptr,
     nullptr,
-    ServiceKind::Serial};
+    ServiceKind::Global};
 }
 
 o2::framework::ServiceSpec CommonServices::timesliceIndex()
 {
   return ServiceSpec{
     "timesliceindex",
+    TypeIdHelpers::uniqueId<TimesliceIndex>(),
     simpleServiceInit<TimesliceIndex, TimesliceIndex>(),
     noConfiguration(),
     nullptr,
@@ -276,13 +286,14 @@ o2::framework::ServiceSpec CommonServices::timesliceIndex()
     nullptr,
     nullptr,
     nullptr,
-    ServiceKind::Serial};
+    ServiceKind::Global};
 }
 
 o2::framework::ServiceSpec CommonServices::callbacksSpec()
 {
   return ServiceSpec{
     "callbacks",
+    TypeIdHelpers::uniqueId<CallbackService>(),
     simpleServiceInit<CallbackService, CallbackService>(),
     noConfiguration(),
     nullptr,
@@ -294,13 +305,14 @@ o2::framework::ServiceSpec CommonServices::callbacksSpec()
     nullptr,
     nullptr,
     nullptr,
-    ServiceKind::Serial};
+    ServiceKind::Global};
 }
 
 o2::framework::ServiceSpec CommonServices::dataRelayer()
 {
   return ServiceSpec{
     "datarelayer",
+    TypeIdHelpers::uniqueId<DataRelayer>(),
     [](ServiceRegistry& services, DeviceState&, fair::mq::ProgOptions& options) -> ServiceHandle {
       auto& spec = services.get<DeviceSpec const>();
       return ServiceHandle{TypeIdHelpers::uniqueId<DataRelayer>(),
@@ -319,28 +331,30 @@ o2::framework::ServiceSpec CommonServices::dataRelayer()
     nullptr,
     nullptr,
     nullptr,
-    ServiceKind::Serial};
+    ServiceKind::Global};
 }
 
 struct TracingInfrastructure {
-  int processingCount;
+  constexpr static ServiceKind service_kind = ServiceKind::Global;
+  std::atomic<int> processingCount{0};
 };
 
 o2::framework::ServiceSpec CommonServices::tracingSpec()
 {
   return ServiceSpec{
     "tracing",
+    TypeIdHelpers::uniqueId<TracingInfrastructure>(),
     [](ServiceRegistry& services, DeviceState&, fair::mq::ProgOptions& options) -> ServiceHandle {
       return ServiceHandle{TypeIdHelpers::uniqueId<TracingInfrastructure>(), new TracingInfrastructure()};
     },
     noConfiguration(),
-    [](ProcessingContext&, void* service) {
-      TracingInfrastructure* t = reinterpret_cast<TracingInfrastructure*>(service);
-      t->processingCount += 1;
+    [](ProcessingContext& ctx) {
+      auto& t = ctx.services().get<TracingInfrastructure>();
+      t.processingCount++;
     },
-    [](ProcessingContext&, void* service) {
-      TracingInfrastructure* t = reinterpret_cast<TracingInfrastructure*>(service);
-      t->processingCount += 1;
+    [](ProcessingContext& ctx) {
+      auto& t = ctx.services().get<TracingInfrastructure>();
+      t.processingCount++;
     },
     nullptr,
     nullptr,
@@ -349,9 +363,11 @@ o2::framework::ServiceSpec CommonServices::tracingSpec()
     nullptr,
     nullptr,
     nullptr,
-    ServiceKind::Serial};
+    ServiceKind::Global};
 }
 
+/// Include a thread pool service. The service itself is a Stream
+/// service because the thread id is mapped to a 0 based index.
 // FIXME: allow configuring the default number of threads per device
 //        This should probably be done by overriding the preFork
 //        callback and using the boost program options there to
@@ -360,9 +376,13 @@ o2::framework::ServiceSpec CommonServices::threadPool(int numWorkers)
 {
   return ServiceSpec{
     "threadpool",
+    TypeIdHelpers::uniqueId<ThreadPool>(),
     [numWorkers](ServiceRegistry& services, DeviceState&, fair::mq::ProgOptions& options) -> ServiceHandle {
+      static std::atomic<int> threadIndex{0};
       ThreadPool* pool = new ThreadPool();
       pool->poolSize = numWorkers;
+      // -1 because otherwise the main thread counts as 0.
+      pool->threadIndex = threadIndex++ - 1;
       return ServiceHandle{TypeIdHelpers::uniqueId<ThreadPool>(), pool};
     },
     [numWorkers](InitContext&, void* service) -> void* {
@@ -382,7 +402,7 @@ o2::framework::ServiceSpec CommonServices::threadPool(int numWorkers)
       setenv("UV_THREADPOOL_SIZE", numWorkersS.c_str(), 0);
     },
     nullptr,
-    ServiceKind::Serial};
+    ServiceKind::Stream};
 }
 
 namespace
@@ -455,6 +475,7 @@ o2::framework::ServiceSpec CommonServices::dataProcessingStats()
 {
   return ServiceSpec{
     "data-processing-stats",
+    TypeIdHelpers::uniqueId<DataProcessingStats>(),
     [](ServiceRegistry& services, DeviceState&, fair::mq::ProgOptions& options) -> ServiceHandle {
       DataProcessingStats* stats = new DataProcessingStats();
       return ServiceHandle{TypeIdHelpers::uniqueId<DataProcessingStats>(), stats};
@@ -462,31 +483,53 @@ o2::framework::ServiceSpec CommonServices::dataProcessingStats()
     noConfiguration(),
     nullptr,
     nullptr,
-    [](DanglingContext& context, void* service) {
-      DataProcessingStats* stats = (DataProcessingStats*)service;
-      sendRelayerMetrics(context.services(), *stats);
-      flushMetrics(context.services(), *stats);
+    [](DanglingContext& context) {
+      auto& stats = context.services().get<DataProcessingStats>();
+      sendRelayerMetrics(context.services(), stats);
+      flushMetrics(context.services(), stats);
     },
-    [](DanglingContext& context, void* service) {
-      DataProcessingStats* stats = (DataProcessingStats*)service;
-      sendRelayerMetrics(context.services(), *stats);
-      flushMetrics(context.services(), *stats);
+    [](DanglingContext& context) {
+      auto& stats = context.services().get<DataProcessingStats>();
+      sendRelayerMetrics(context.services(), stats);
+      flushMetrics(context.services(), stats);
     },
-    [](EndOfStreamContext& context, void* service) {
-      DataProcessingStats* stats = (DataProcessingStats*)service;
-      sendRelayerMetrics(context.services(), *stats);
-      flushMetrics(context.services(), *stats);
+    [](EndOfStreamContext& context) {
+      auto& stats = context.services().get<DataProcessingStats>();
+      sendRelayerMetrics(context.services(), stats);
+      flushMetrics(context.services(), stats);
     },
     nullptr,
     nullptr,
     nullptr,
     nullptr,
-    ServiceKind::Serial};
+    ServiceKind::Global};
+}
+
+o2::framework::ServiceSpec CommonServices::timingInfoSpec()
+{
+  return ServiceSpec{
+    "timing-info",
+    TypeIdHelpers::uniqueId<TimingInfo>(),
+    [](ServiceRegistry& services, DeviceState&, fair::mq::ProgOptions& options) -> ServiceHandle {
+      return ServiceHandle{TypeIdHelpers::uniqueId<TimingInfo>(), new TimingInfo()};
+    },
+    noConfiguration(),
+    nullptr,
+    nullptr,
+    nullptr,
+    nullptr,
+    nullptr,
+    nullptr,
+    nullptr,
+    nullptr,
+    nullptr,
+    ServiceKind::Stream};
 }
 
 std::vector<ServiceSpec> CommonServices::defaultServices(int numThreads)
 {
   std::vector<ServiceSpec> specs{
+    timingInfoSpec(),
     timesliceIndex(),
     monitoringSpec(),
     infologgerContextSpec(),
@@ -501,10 +544,8 @@ std::vector<ServiceSpec> CommonServices::defaultServices(int numThreads)
     CommonMessageBackends::fairMQBackendSpec(),
     CommonMessageBackends::arrowBackendSpec(),
     CommonMessageBackends::stringBackendSpec(),
+    threadPool(numThreads),
     CommonMessageBackends::rawBufferBackendSpec()};
-  if (numThreads) {
-    specs.push_back(threadPool(numThreads));
-  }
   return specs;
 }
 
