@@ -161,10 +161,6 @@ void convertRun2ToRun3Digits(TString qaOutPath = "",
         int sector = det / 30;
         int stack = (det - sector * 30) / 6;
 
-        cout << "det: " << det << " | "
-             << "sector: " << sector << " | "
-             << "stack: " << stack << endl;
-
         digitMan->GetDigits(det)->Expand();
 
         AliTRDarrayADC* digits;
