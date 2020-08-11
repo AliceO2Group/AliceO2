@@ -41,6 +41,7 @@ GPUdii() void GPUTPCTrackletSelector::Thread<0>(int nBlocks, int nThreads, int i
         return;
       }
     }
+    GPUbarrierWarp();
 
     GPUglobalref() MEM_GLOBAL(GPUTPCTracklet) & GPUrestrict() tracklet = tracker.Tracklets()[itr];
     const int kMaxRowGap = 4;

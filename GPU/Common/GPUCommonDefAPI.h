@@ -45,6 +45,7 @@
   #define GPUprivate()                              // private memory variable declaration
   #define GPUgeneric()                              // reference / ptr to generic address space
   #define GPUbarrier()                              // synchronize all GPU threads in block
+  #define GPUbarrierWarp()                          // synchronize threads inside warp
   #define GPUAtomic(type) type                      // atomic variable type
   #define GPUsharedref()                            // reference / ptr to shared memory
   #define GPUglobalref()                            // reference / ptr to global memory
@@ -87,10 +88,12 @@
   #define GPUconstexprref() GPUconstexpr()
   #if defined(__OPENCLCPP__) && !defined(__clang__)
     #define GPUbarrier() work_group_barrier(mem_fence::global | mem_fence::local);
+    #define GPUbarrierWarp()
     #define GPUAtomic(type) atomic<type>
     static_assert(sizeof(atomic<unsigned int>) == sizeof(unsigned int), "Invalid size of atomic type");
   #else
     #define GPUbarrier() barrier(CLK_LOCAL_MEM_FENCE | CLK_GLOBAL_MEM_FENCE)
+    #define GPUbarrierWarp()
     #if defined(__OPENCLCPP__) && defined(GPUCA_OPENCL_CPP_CLANG_C11_ATOMICS)
       namespace GPUCA_NAMESPACE { namespace gpu {
       template <class T> struct oclAtomic;
@@ -148,6 +151,7 @@
   #define GPUprivate()
   #define GPUgeneric()
   #define GPUbarrier() __syncthreads()
+  #define GPUbarrierWarp()
   #define GPUAtomic(type) type
 #elif defined(__CUDACC__) //Defines for CUDA
   #define GPUd() __device__
@@ -169,6 +173,7 @@
   #define GPUprivate()
   #define GPUgeneric()
   #define GPUbarrier() __syncthreads()
+  #define GPUbarrierWarp() __syncwarp()
   #define GPUAtomic(type) type
 #endif
 
