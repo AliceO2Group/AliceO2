@@ -18,12 +18,9 @@
 #include "Analysis/EventSelection.h"
 #include "Analysis/Centrality.h"
 #include "Analysis/TriggerAliases.h"
-#include "PID/PIDResponse.h"
 #include "Analysis/ReducedInfoTables.h"
 #include "Analysis/VarManager.h"
 #include "Analysis/HistogramManager.h"
-#include "ReconstructionDataFormats/Track.h"
-
 #include <iostream>
 
 using std::cout;
@@ -31,7 +28,7 @@ using std::endl;
 
 using namespace o2;
 using namespace o2::framework;
-using namespace o2::framework::expressions;
+//using namespace o2::framework::expressions;
 using namespace o2::aod;
 
 struct TableMaker {
@@ -78,10 +75,6 @@ struct TableMaker {
         triggerAliases |= (uint32_t(1) << i);
 
     VarManager::ResetValues();
-    VarManager::FillEvent<fgEventFillMap>(collision);       // extract event information and place it in the fgValues array
-    fHistMan->FillHistClass("Event", VarManager::fgValues); // automatically fill all the histograms in the class Event
-
-    VarManager::ResetValues();
     VarManager::FillEvent<fgEventFillMap>(collision);             // extract event information and place it in the fgValues array
     fHistMan->FillHistClass("Event", VarManager::fgValues); // automatically fill all the histograms in the class Event
 
@@ -103,7 +96,6 @@ struct TableMaker {
                   track.trdChi2(), track.tofChi2(),
                   track.length());
       trackBarrelCov(track.cYY(), track.cZZ(), track.cSnpSnp(), track.cTglTgl(), track.c1Pt21Pt2());
-      //cout << "tpc pid nsigma-el :: " << track.nSigmaEl() << endl;
     }
 
     for (auto& muon : tracksMuon) {
@@ -149,6 +141,5 @@ struct TableMaker {
 WorkflowSpec defineDataProcessing(ConfigContext const&)
 {
   return WorkflowSpec{
-    //adaptAnalysisTask<pidTPCTask>("pidTPC-task"),
     adaptAnalysisTask<TableMaker>("table-maker")};
 }

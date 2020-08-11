@@ -65,26 +65,6 @@ void VarManager::SetRunNumbers(int n, int* runs)
 }
 
 //__________________________________________________________________
-void VarManager::ResetValues(int startValue, int endValue)
-{
-  //
-  // reset all variables to an "innocent" value
-  // NOTE: here we use -9999.0 as a neutral value, but depending on situation, this may not be the case
-  for (Int_t i = startValue; i < endValue; ++i)
-    fgValues[i] = -9999.;
-}
-
-//__________________________________________________________________
-void VarManager::SetRunNumbers(int n, int* runs)
-{
-  //
-  // maps the list of runs such that one can plot the list of runs nicely in a histogram axis
-  //
-  for (int i = 0; i < n; ++i)
-    fgRunMap[runs[i]] = i + 1;
-}
-
-//__________________________________________________________________
 void VarManager::FillEventDerived(float* values)
 {
   //

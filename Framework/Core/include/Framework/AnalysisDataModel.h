@@ -352,8 +352,7 @@ using Muon = Muons::iterator;
 
 namespace muoncluster
 {
-//DECLARE_SOA_INDEX_COLUMN_FULL(Track, track, int, Muons, "fMuonsID"); // points to a muon track in the Muon table
-DECLARE_SOA_INDEX_COLUMN(Muon, muon); // points to a muon track in the Muon table
+DECLARE_SOA_INDEX_COLUMN_FULL(Track, track, int, Muons, "fMuonsID"); // points to a muon track in the Muon table
 DECLARE_SOA_COLUMN(X, x, float);
 DECLARE_SOA_COLUMN(Y, y, float);
 DECLARE_SOA_COLUMN(Z, z, float);
@@ -364,7 +363,7 @@ DECLARE_SOA_COLUMN(Chi2, chi2, float);
 } // namespace muoncluster
 
 DECLARE_SOA_TABLE(MuonClusters, "AOD", "MUONCLUSTER",
-                  muoncluster::MuonId,
+                  muoncluster::TrackId,
                   muoncluster::X, muoncluster::Y, muoncluster::Z,
                   muoncluster::ErrX, muoncluster::ErrY,
                   muoncluster::Charge, muoncluster::Chi2);
