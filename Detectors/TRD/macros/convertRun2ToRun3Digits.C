@@ -92,7 +92,7 @@ void convertRun2ToRun3Digits(TString qaOutPath = "",
         //hptphase->Fill(digMan->GetDigitsParam()->GetPretriggerPhase());
       }
 
-      for (int det = 0; det < 540; det++) {
+      for (int det = 0; det < AliTRDCommonParam::kNdet; det++) {
         AliTRDSignalIndex* idx = digitMan->GetIndexes(det);
 
         if (!idx)
@@ -147,14 +147,14 @@ void convertRun2ToRun3Digits(TString qaOutPath = "",
 
       TTree* tr = (TTree*)run2DigitsFile.Get(Form("%s/TreeD", obj->GetName()));
 
-      for (int det = 0; det < 540; det++) {
+      for (int det = 0; det < AliTRDCommonParam::kNdet; det++) {
         digitMan->ClearArrays(det);
         digitMan->ClearIndexes(det);
       }
 
       digitMan->ReadDigits(tr);
 
-      for (int det = 0; det < 540; det++) {
+      for (int det = 0; det < AliTRDCommonParam::kNdet; det++) {
         if (!digitMan->GetDigits(det))
           continue;
 
@@ -169,13 +169,13 @@ void convertRun2ToRun3Digits(TString qaOutPath = "",
 
         // TODO: check actual number of rows, from geometry
         // here: play it safe, assume 12 rows everywhere
-        int nrows = 16;
+        int nrows = AliTRDfeeParam::GetNrowC1();
         if (stack == 2) {
-          nrows = 12;
+          nrows = AliTRDfeeParam::GetNrowC0();
         }
 
         for (int row = 0; row < nrows; row++) {
-          for (int col = 0; col < 144; col++) {
+          for (int col = 0; col < AliTRDfeeParam::GetNcol(); col++) {
             int tbsum = 0;
             ArrayADC adctimes;
 
