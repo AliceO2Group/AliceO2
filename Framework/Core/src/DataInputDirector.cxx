@@ -15,11 +15,18 @@
 #include "rapidjson/prettywriter.h"
 #include "rapidjson/filereadstream.h"
 
+#include "TGrid.h"
+
 namespace o2
 {
 namespace framework
 {
 using namespace rapidjson;
+
+DataInputDescriptor::DataInputDescriptor(bool alienSupport)
+{
+  mAlienSupport = alienSupport;
+}
 
 std::string DataInputDescriptor::getInputfilesFilename()
 {
@@ -38,12 +45,16 @@ std::regex DataInputDescriptor::getFilenamesRegex()
 
 void DataInputDescriptor::addFilename(std::string fn)
 {
+  if (!mAlienSupport && fn.rfind("alien://", 0) == 0) {
+    LOG(debug) << "AliEn file requested. Enabling support.";
+    TGrid::Connect("alien://");
+    mAlienSupport = true;
+  }
   mfilenames.emplace_back(fn);
 }
 
 TFile* DataInputDescriptor::getInputFile(int counter)
 {
-
   if (counter < getNumberInputfiles()) {
     if (mcurrentFile) {
       if (mcurrentFile->GetName() != mfilenames[counter]) {
@@ -52,6 +63,9 @@ TFile* DataInputDescriptor::getInputFile(int counter)
       }
     } else {
       mcurrentFile = TFile::Open(mfilenames[counter].c_str());
+    }
+    if (!mcurrentFile) {
+      throw std::runtime_error(fmt::format("Couldn't open file \"{}\"!", mfilenames[counter]));
     }
   } else {
     closeInputFile();
@@ -156,7 +170,7 @@ void DataInputDirector::createDefaultDataInputDescriptor()
   if (mdefaultDataInputDescriptor) {
     delete mdefaultDataInputDescriptor;
   }
-  mdefaultDataInputDescriptor = new DataInputDescriptor();
+  mdefaultDataInputDescriptor = new DataInputDescriptor(mAlienSupport);
 
   mdefaultDataInputDescriptor->setInputfilesFile(minputfilesFile);
   mdefaultDataInputDescriptor->setFilenamesRegex(mFilenameRegex);
@@ -164,6 +178,8 @@ void DataInputDirector::createDefaultDataInputDescriptor()
   mdefaultDataInputDescriptor->tablename = "any";
   mdefaultDataInputDescriptor->treename = "any";
   mdefaultDataInputDescriptor->fillInputfiles();
+
+  mAlienSupport &= mdefaultDataInputDescriptor->isAlienSupportOn();
 }
 
 bool DataInputDirector::readJson(std::string const& fnjson)
@@ -215,16 +231,16 @@ bool DataInputDirector::readJsonDocument(Document* jsonDoc)
   itemName = "debugmode";
   if (didirItem.HasMember(itemName)) {
     if (didirItem[itemName].IsBool()) {
-      mdebugmode = (didirItem[itemName].GetBool());
+      mDebugMode = (didirItem[itemName].GetBool());
     } else {
       LOGP(ERROR, "Check the JSON document! Item \"{}\" must be a boolean!", itemName);
       return false;
     }
   } else {
-    mdebugmode = false;
+    mDebugMode = false;
   }
 
-  if (mdebugmode) {
+  if (mDebugMode) {
     StringBuffer buffer;
     buffer.Clear();
     PrettyWriter<StringBuffer> writer(buffer);
@@ -279,7 +295,7 @@ bool DataInputDirector::readJsonDocument(Document* jsonDoc)
         return false;
       }
       // create a new dataInputDescriptor
-      auto didesc = new DataInputDescriptor();
+      auto didesc = new DataInputDescriptor(mAlienSupport);
       didesc->setDefaultInputfiles(&mdefaultInputFiles);
 
       itemName = "table";
@@ -360,6 +376,7 @@ bool DataInputDirector::readJsonDocument(Document* jsonDoc)
         didesc->printOut();
         LOGP(INFO, "This DataInputDescriptor is ignored because its file list is empty!");
       }
+      mAlienSupport &= didesc->isAlienSupportOn();
     }
   }
 
@@ -373,7 +390,7 @@ bool DataInputDirector::readJsonDocument(Document* jsonDoc)
   }
 
   // print the DataIputDirector
-  if (mdebugmode) {
+  if (mDebugMode) {
     printOut();
   }
 
@@ -405,14 +422,13 @@ std::unique_ptr<TTreeReader> DataInputDirector::getTreeReader(header::DataHeader
   if (!didesc) {
     didesc = mdefaultDataInputDescriptor;
   }
+
   auto file = didesc->getInputFile(counter);
-  if (file->IsOpen()) {
+  if (file) {
     reader = std::make_unique<TTreeReader>(treename.c_str(), file);
     if (!reader) {
-      LOGP(ERROR, "Couldn't create TTreeReader for tree \"{}\" in file \"{}\"", treename, file->GetName());
+      throw std::runtime_error(fmt::format(R"(Couldn't create TTreeReader for tree "{}" in file "{}")", treename, file->GetName()));
     }
-  } else {
-    LOGP(ERROR, "Couldn't open file \"{}\"", file->GetName());
   }
 
   return reader;
@@ -446,15 +462,13 @@ TTree* DataInputDirector::getDataTree(header::DataHeader dh, int counter)
     didesc = mdefaultDataInputDescriptor;
     treename = dh.dataDescription.str;
   }
-  auto file = didesc->getInputFile(counter);
 
-  if (file->IsOpen()) {
+  auto file = didesc->getInputFile(counter);
+  if (file) {
     tree = (TTree*)file->Get(treename);
     if (!tree) {
-      LOGP(ERROR, "Couldn't get TTree \"{}\" from \"{}\"", treename, file->GetName());
+      throw std::runtime_error(fmt::format(R"(Couldn't get TTree "{}" from "{}")", treename, file->GetName()));
     }
-  } else {
-    LOGP(ERROR, "Couldn't open file \"{}\"", file->GetName());
   }
 
   return tree;
