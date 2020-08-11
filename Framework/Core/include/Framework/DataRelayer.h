@@ -19,6 +19,7 @@
 #include "Framework/TimesliceIndex.h"
 
 #include <cstddef>
+#include <mutex>
 #include <vector>
 
 class FairMQMessage;
@@ -42,6 +43,10 @@ struct DataRelayerStats {
 class DataRelayer
 {
  public:
+  /// DataRelayer is thread safe because we have a lock around
+  /// each method and there is no particular order in which
+  /// methods need to be called.
+  constexpr static ServiceKind service_kind = ServiceKind::Global;
   enum RelayChoice {
     WillRelay,
     WillNotRelay
@@ -123,6 +128,7 @@ class DataRelayer
   static std::vector<std::string> sQueriesMetricsNames;
 
   DataRelayerStats mStats;
+  std::recursive_mutex mMutex;
 };
 
 } // namespace o2::framework
