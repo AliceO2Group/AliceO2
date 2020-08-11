@@ -67,6 +67,9 @@ SymbolTable<T>::SymbolTable(const SymbolStatistics& symbolStats, size_t probabil
     mSymbols.emplace_back(symCumulated, symFrequency, probabiltyBits);
     mIndex.emplace_back(&mSymbols.back());
   }
+  if (int(mSymbols.size()) == mMax - mMin + 2) {
+    mSymbols.back().freq = 0; // make literal symbol to have 0 freq
+  }
 
 // advanced diagnostics for debug builds
 #if !defined(NDEBUG)
@@ -81,10 +84,8 @@ SymbolTable<T>::SymbolTable(const SymbolStatistics& symbolStats, size_t probabil
 template <typename T>
 inline const T& SymbolTable<T>::operator[](int64_t index) const
 {
-  const auto idx = index - mMin;
-  assert(idx >= 0);
-  assert(idx < mSymbols.size());
-  return *(mIndex[idx]);
+  const uint64_t idx = static_cast<uint64_t>(index - mMin);
+  return idx < mSymbols.size() ? *(mIndex[idx]) : getLiteralSymbol();
 }
 
 template <typename T>
