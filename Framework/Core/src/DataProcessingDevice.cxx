@@ -270,7 +270,7 @@ void DataProcessingDevice::Init()
 void on_signal_callback(uv_signal_t* handle, int signum)
 {
   ZoneScopedN("Signal callaback");
-  LOG(debug) << "Signal " << signum << "received." << std::endl;
+  LOG(debug) << "Signal " << signum << " received.";
 }
 
 void DataProcessingDevice::InitTask()
@@ -293,6 +293,11 @@ void DataProcessingDevice::InitTask()
   uv_signal_t* sigusr1Handle = (uv_signal_t*)malloc(sizeof(uv_signal_t));
   uv_signal_init(mState.loop, sigusr1Handle);
   uv_signal_start(sigusr1Handle, on_signal_callback, SIGUSR1);
+  // Handle SIGWINCH by simply forcing the event loop to continue.
+  // This will hopefully hide it from FairMQ on linux.
+  uv_signal_t* sigwinchHandle = (uv_signal_t*)malloc(sizeof(uv_signal_t));
+  uv_signal_init(mState.loop, sigwinchHandle);
+  uv_signal_start(sigwinchHandle, on_signal_callback, SIGWINCH);
 
   // We add a timer only in case a channel poller is not there.
   if ((mStatefulProcess != nullptr) || (mStatelessProcess != nullptr)) {
