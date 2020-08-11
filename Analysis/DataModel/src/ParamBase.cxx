@@ -24,8 +24,9 @@ namespace o2::pid
 
 void Parameters::SetParameters(const std::vector<pidvar_t> params)
 {
-  if (mPar.size() != params.size())
+  if (mPar.size() != params.size()) {
     LOG(fatal) << "Updating parametrization size!";
+  }
   mPar.assign(params.begin(), params.end());
 }
 
