@@ -90,11 +90,11 @@ struct AlgorithmSpec {
 
 template <typename T>
 struct ContextElementTraits {
-  static T& get(ProcessingContext& ctx)
+  static decltype(auto) get(ProcessingContext& ctx)
   {
     return ctx.services().get<T>();
   }
-  static T& get(InitContext& ctx)
+  static decltype(auto) get(InitContext& ctx)
   {
     return ctx.services().get<T>();
   }
