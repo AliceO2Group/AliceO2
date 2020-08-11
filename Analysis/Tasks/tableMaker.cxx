@@ -75,7 +75,7 @@ struct TableMaker {
         triggerAliases |= (uint32_t(1) << i);
 
     VarManager::ResetValues();
-    VarManager::FillEvent<fgEventFillMap>(collision);             // extract event information and place it in the fgValues array
+    VarManager::FillEvent<fgEventFillMap>(collision);       // extract event information and place it in the fgValues array
     fHistMan->FillHistClass("Event", VarManager::fgValues); // automatically fill all the histograms in the class Event
 
     event(tag, collision.bc().runNumber(), collision.posX(), collision.posY(), collision.posZ(), collision.numContrib());
@@ -107,7 +107,7 @@ struct TableMaker {
       muonExtended(muon.inverseBendingMomentum(), muon.thetaX(), muon.thetaY(), muon.zMu(), muon.bendingCoor(), muon.nonBendingCoor(), muon.chi2(), muon.chi2MatchTrigger());
     }
   }
- 
+
   void DefineHistograms(TString histClasses)
   {
     const int kNRuns = 2;

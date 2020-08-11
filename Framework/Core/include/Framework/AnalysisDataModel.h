@@ -310,11 +310,11 @@ DECLARE_SOA_COLUMN(NonBendingCoor, nonBendingCoor, float);
 DECLARE_SOA_COLUMN(Chi2, chi2, float);
 DECLARE_SOA_COLUMN(Chi2MatchTrigger, chi2MatchTrigger, float);
 DECLARE_SOA_DYNAMIC_COLUMN(Eta, eta, [](float inverseBendingMomentum, float thetaX, float thetaY) -> float {
-  float pz = -std::sqrt(1.0 + std::tan(thetaY)*std::tan(thetaY)) / std::abs(inverseBendingMomentum);
-  float pt = std::abs(pz) * std::sqrt(std::tan(thetaX)*std::tan(thetaX) + std::tan(thetaY)*std::tan(thetaY));
-  float eta = std::acos(pz / std::sqrt(pt*pt + pz*pz));
-  eta = std::tan(0.5*eta);
-  if(eta > 0.0)
+  float pz = -std::sqrt(1.0 + std::tan(thetaY) * std::tan(thetaY)) / std::abs(inverseBendingMomentum);
+  float pt = std::abs(pz) * std::sqrt(std::tan(thetaX) * std::tan(thetaX) + std::tan(thetaY) * std::tan(thetaY));
+  float eta = std::acos(pz / std::sqrt(pt * pt + pz * pz));
+  eta = std::tan(0.5 * eta);
+  if (eta > 0.0)
     return -std::log(eta);
   else
     return 0.0;
@@ -324,21 +324,21 @@ DECLARE_SOA_DYNAMIC_COLUMN(Phi, phi, [](float thetaX, float thetaY) -> float {
   constexpr float twopi = 2.0f * static_cast<float>(M_PI);
   return (phi >= 0.0 ? phi : phi + twopi);
 });
-DECLARE_SOA_EXPRESSION_COLUMN(Pt, pt, float, nsqrt(1.0f + ntan(aod::muon::thetaY)*ntan(aod::muon::thetaY)) * nsqrt(ntan(aod::muon::thetaX)*ntan(aod::muon::thetaX) + ntan(aod::muon::thetaY)*ntan(aod::muon::thetaY)) / nabs(aod::muon::inverseBendingMomentum));
-DECLARE_SOA_EXPRESSION_COLUMN(Px, px, float, -1.0f*ntan(aod::muon::thetaX) * nsqrt(1.0f + ntan(aod::muon::thetaY)*ntan(aod::muon::thetaY)) / nabs(aod::muon::inverseBendingMomentum));
-DECLARE_SOA_EXPRESSION_COLUMN(Py, py, float, -1.0f*ntan(aod::muon::thetaY) * nsqrt(1.0f + ntan(aod::muon::thetaY)*ntan(aod::muon::thetaY)) / nabs(aod::muon::inverseBendingMomentum));
-DECLARE_SOA_EXPRESSION_COLUMN(Pz, pz, float, -1.0f*nsqrt(1.0f + ntan(aod::muon::thetaY)*ntan(aod::muon::thetaY)) / nabs(aod::muon::inverseBendingMomentum));
+DECLARE_SOA_EXPRESSION_COLUMN(Pt, pt, float, nsqrt(1.0f + ntan(aod::muon::thetaY) * ntan(aod::muon::thetaY)) * nsqrt(ntan(aod::muon::thetaX) * ntan(aod::muon::thetaX) + ntan(aod::muon::thetaY) * ntan(aod::muon::thetaY)) / nabs(aod::muon::inverseBendingMomentum));
+DECLARE_SOA_EXPRESSION_COLUMN(Px, px, float, -1.0f * ntan(aod::muon::thetaX) * nsqrt(1.0f + ntan(aod::muon::thetaY) * ntan(aod::muon::thetaY)) / nabs(aod::muon::inverseBendingMomentum));
+DECLARE_SOA_EXPRESSION_COLUMN(Py, py, float, -1.0f * ntan(aod::muon::thetaY) * nsqrt(1.0f + ntan(aod::muon::thetaY) * ntan(aod::muon::thetaY)) / nabs(aod::muon::inverseBendingMomentum));
+DECLARE_SOA_EXPRESSION_COLUMN(Pz, pz, float, -1.0f * nsqrt(1.0f + ntan(aod::muon::thetaY) * ntan(aod::muon::thetaY)) / nabs(aod::muon::inverseBendingMomentum));
 DECLARE_SOA_DYNAMIC_COLUMN(Charge, charge, [](float inverseBendingMomentum) -> short { return (inverseBendingMomentum > 0.0f) ? 1 : -1; });
 } // namespace muon
 
 DECLARE_SOA_TABLE_FULL(StoredMuons, "Muons", "AOD", "MUON",
-                  muon::BCId, muon::InverseBendingMomentum,
-                  muon::ThetaX, muon::ThetaY, muon::ZMu,
-                  muon::BendingCoor, muon::NonBendingCoor,
-                  muon::Chi2, muon::Chi2MatchTrigger,
-                  muon::Eta<muon::InverseBendingMomentum, muon::ThetaX, muon::ThetaY>,
-                  muon::Phi<muon::ThetaX, muon::ThetaY>,
-                  muon::Charge<muon::InverseBendingMomentum>);
+                       muon::BCId, muon::InverseBendingMomentum,
+                       muon::ThetaX, muon::ThetaY, muon::ZMu,
+                       muon::BendingCoor, muon::NonBendingCoor,
+                       muon::Chi2, muon::Chi2MatchTrigger,
+                       muon::Eta<muon::InverseBendingMomentum, muon::ThetaX, muon::ThetaY>,
+                       muon::Phi<muon::ThetaX, muon::ThetaY>,
+                       muon::Charge<muon::InverseBendingMomentum>);
 
 DECLARE_SOA_EXTENDED_TABLE(Muons, StoredMuons, "MUON",
                            aod::muon::Pt,
