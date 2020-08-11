@@ -8,18 +8,17 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#ifndef FRAMEWORK_TIMESLICEINDEX_H
-#define FRAMEWORK_TIMESLICEINDEX_H
+#ifndef O2_FRAMEWORK_TIMESLICEINDEX_H_
+#define O2_FRAMEWORK_TIMESLICEINDEX_H_
 
 #include "Framework/DataDescriptorMatcher.h"
+#include "Framework/ServiceHandle.h"
 
 #include <cstdint>
 #include <tuple>
 #include <vector>
 
-namespace o2
-{
-namespace framework
+namespace o2::framework
 {
 
 struct TimesliceId {
@@ -46,6 +45,9 @@ struct TimesliceSlot {
 class TimesliceIndex
 {
  public:
+  /// TimesliceIndex is threadsafe because it's accessed only by the
+  /// DataRelayer.
+  constexpr static ServiceKind service_kind = ServiceKind::Global;
   /// The outcome for the processing of a given timeslot
   enum struct ActionTaken {
     ReplaceUnused,   /// An unused / invalid slot is used to hold the new context
@@ -104,8 +106,7 @@ class TimesliceIndex
   std::vector<bool> mDirty;
 };
 
-} // namespace framework
-} // namespace o2
+} // namespace o2::framework
 
 #include "TimesliceIndex.inc"
 #endif // FRAMEWORK_TIMESLICEINDEX_H
