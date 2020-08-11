@@ -1123,7 +1123,7 @@ int GPUChainTracking::RunTPCClusterizer(bool synchronizeOutput)
         clusterer.mPmemory->counters.nPeaks = clusterer.mPmemory->counters.nClusters = 0;
         clusterer.mPmemory->fragment = fragment;
 
-        if (propagateMCLabels) {
+        if (propagateMCLabels && fragment.index == 0) {
           clusterer.PrepareMC();
           clusterer.mPinputLabels = digitsMC->v[iSlice];
           // TODO: Why is the number of header entries in truth container
@@ -1253,6 +1253,7 @@ int GPUChainTracking::RunTPCClusterizer(bool synchronizeOutput)
         if (GetProcessingSettings().debugLevel >= 3) {
           GPUInfo("Lane %d: Found clusters: digits %u peaks %u clusters %u", lane, (int)clusterer.mPmemory->counters.nPositions, (int)clusterer.mPmemory->counters.nPeaks, (int)clusterer.mPmemory->counters.nClusters);
         }
+
         TransferMemoryResourcesToHost(RecoStep::TPCClusterFinding, &clusterer, lane);
         laneHasData[lane] = true;
         if (DoDebugAndDump(RecoStep::TPCClusterFinding, 0, clusterer, &GPUTPCClusterFinder::DumpCountedPeaks, *mDebugFile)) {
@@ -1321,6 +1322,7 @@ int GPUChainTracking::RunTPCClusterizer(bool synchronizeOutput)
   static o2::dataformats::MCTruthContainer<o2::MCCompLabel> mcLabels;
 
   assert(propagateMCLabels ? mcLinearLabels.header.size() == nClsTotal : true);
+  assert(propagateMCLabels ? mcLinearLabels.data.size() >= nClsTotal : true);
 
   mcLabels.setFrom(mcLinearLabels.header, mcLinearLabels.data);
 
