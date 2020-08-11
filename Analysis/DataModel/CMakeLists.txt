@@ -30,6 +30,20 @@ o2_target_root_dictionary(AnalysisDataModel
                           LINKDEF src/AnalysisDataModelLinkDef.h
                          )
 
+install(FILES
+        include/PIDBase/ParamBase.h
+        include/PIDBase/DetectorResponse.h
+        DESTINATION
+        include/PIDBase)
+
+install(FILES
+        include/PID/PIDTOF.h
+        include/PID/TOFReso.h
+        include/PID/PIDTPC.h
+        include/PID/BetheBloch.h
+        include/PID/TPCReso.h
+        DESTINATION
+        include/PID)
 
 o2_add_executable(dump-aod-data-model
                   SOURCES src/dumpDataModel.cxx
