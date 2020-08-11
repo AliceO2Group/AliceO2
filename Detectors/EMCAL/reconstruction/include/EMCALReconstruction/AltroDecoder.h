@@ -17,12 +17,7 @@
 #include "EMCALBase/RCUTrailer.h"
 #include "EMCALReconstruction/Bunch.h"
 #include "EMCALReconstruction/Channel.h"
-
-// for template specification
-#include "EMCALReconstruction/RawReaderFile.h"
 #include "EMCALReconstruction/RawReaderMemory.h"
-#include "EMCALReconstruction/RAWDataHeader.h"
-#include "Headers/RAWDataHeader.h"
 
 namespace o2
 {
@@ -84,13 +79,13 @@ class AltroDecoderError : public std::exception
 /// the payload, altro header and RCU trailer contents.
 ///
 /// Based on AliAltroRawStreamV3 and AliCaloRawStreamV3 by C. Cheshkov
-template <class RawReader>
+
 class AltroDecoder
 {
  public:
   /// \brief Constructor
   /// \param reader Raw reader instance to be decoded
-  AltroDecoder(RawReader& reader);
+  AltroDecoder(RawReaderMemory& reader);
 
   /// \brief Destructor
   ~AltroDecoder() = default;
@@ -130,19 +125,13 @@ class AltroDecoder
   /// In case of failure an exception is thrown.
   void checkRCUTrailer();
 
-  RawReader& mRawReader;             ///< underlying raw reader
+  RawReaderMemory& mRawReader;       ///< underlying raw reader
   RCUTrailer mRCUTrailer;            ///< RCU trailer
   std::vector<Channel> mChannels;    ///< vector of channels in the raw stream
   bool mChannelsInitialized = false; ///< check whether the channels are initialized
 
   ClassDefNV(AltroDecoder, 1);
 };
-
-// template specifications
-using AltroDecoderMemoryRDHvE = AltroDecoder<RawReaderMemory<o2::emcal::RAWDataHeader>>;
-using AltroDecoderMemoryRDHv4 = AltroDecoder<RawReaderMemory<o2::header::RAWDataHeaderV4>>;
-using AltroDecoderFileRDHvE = AltroDecoder<RawReaderFile<o2::emcal::RAWDataHeader>>;
-using AltroDecoderFileRDHv4 = AltroDecoder<RawReaderFile<o2::header::RAWDataHeaderV4>>;
 
 } // namespace emcal
 

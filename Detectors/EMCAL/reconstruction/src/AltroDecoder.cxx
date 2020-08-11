@@ -8,36 +8,28 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 #include <cstring>
-#include <iomanip>
-#include <iostream>
 #include <boost/format.hpp>
 #include "InfoLogger/InfoLogger.hxx"
-#include "Headers/RAWDataHeader.h"
 #include "EMCALReconstruction/AltroDecoder.h"
-#include "EMCALReconstruction/RAWDataHeader.h"
-#include "EMCALReconstruction/RawReaderFile.h"
 #include "EMCALReconstruction/RawReaderMemory.h"
 
 using namespace o2::emcal;
 
-template <class RawReader>
-AltroDecoder<RawReader>::AltroDecoder(RawReader& reader) : mRawReader(reader),
-                                                           mRCUTrailer(),
-                                                           mChannels(),
-                                                           mChannelsInitialized(false)
+AltroDecoder::AltroDecoder(RawReaderMemory& reader) : mRawReader(reader),
+                                                      mRCUTrailer(),
+                                                      mChannels(),
+                                                      mChannelsInitialized(false)
 {
 }
 
-template <class RawReader>
-void AltroDecoder<RawReader>::decode()
+void AltroDecoder::decode()
 {
   readRCUTrailer();
   checkRCUTrailer();
   readChannels();
 }
 
-template <class RawReader>
-void AltroDecoder<RawReader>::readRCUTrailer()
+void AltroDecoder::readRCUTrailer()
 {
   try {
     auto payloadwordsOrig = mRawReader.getPayload().getPayloadWords();
@@ -50,19 +42,16 @@ void AltroDecoder<RawReader>::readRCUTrailer()
   }
 }
 
-template <class RawReader>
-void AltroDecoder<RawReader>::checkRCUTrailer()
+void AltroDecoder::checkRCUTrailer()
 {
 }
 
-template <class RawReader>
-void AltroDecoder<RawReader>::readChannels()
+void AltroDecoder::readChannels()
 {
   mChannelsInitialized = false;
   mChannels.clear();
   int currentpos = 0;
   auto& buffer = mRawReader.getPayload().getPayloadWords();
-  std::array<uint16_t, 1024> bunchwords;
   while (currentpos < buffer.size() - mRCUTrailer.getTrailerSize()) {
     auto currentword = buffer[currentpos++];
     if (currentword >> 30 != 1) {
@@ -74,8 +63,8 @@ void AltroDecoder<RawReader>::readChannels()
     currentchannel.setBadChannel((currentword >> 29) & 0x1);
 
     /// decode all words for channel
-    int numberofsamples = 0,
-        numberofwords = (currentchannel.getPayloadSize() + 2) / 3;
+    int numberofwords = (currentchannel.getPayloadSize() + 2) / 3;
+    std::vector<uint16_t> bunchwords;
     for (int iword = 0; iword < numberofwords; iword++) {
       currentword = buffer[currentpos++];
       if ((currentword >> 30) != 0) {
@@ -85,9 +74,9 @@ void AltroDecoder<RawReader>::readChannels()
         currentpos--;
         continue;
       }
-      bunchwords[numberofsamples++] = (currentword >> 20) & 0x3FF;
-      bunchwords[numberofsamples++] = (currentword >> 10) & 0x3FF;
-      bunchwords[numberofsamples++] = currentword & 0x3FF;
+      bunchwords.push_back((currentword >> 20) & 0x3FF);
+      bunchwords.push_back((currentword >> 10) & 0x3FF);
+      bunchwords.push_back(currentword & 0x3FF);
     }
 
     // decode bunches
@@ -96,30 +85,23 @@ void AltroDecoder<RawReader>::readChannels()
       int bunchlength = bunchwords[currentsample] - 2, // remove words for bunchlength and starttime
         starttime = bunchwords[currentsample + 1];
       auto& currentbunch = currentchannel.createBunch(bunchlength, starttime);
-      currentbunch.initFromRange(gsl::span<uint16_t>(&bunchwords[currentsample + 2], std::min(bunchlength, numberofsamples - currentsample - 2)));
+      currentbunch.initFromRange(gsl::span<uint16_t>(&bunchwords[currentsample + 2], std::min((unsigned long)bunchlength, bunchwords.size() - currentsample - 2)));
       currentsample += bunchlength + 2;
     }
   }
   mChannelsInitialized = true;
 }
 
-template <class RawReader>
-const RCUTrailer& AltroDecoder<RawReader>::getRCUTrailer() const
+const RCUTrailer& AltroDecoder::getRCUTrailer() const
 {
   if (!mRCUTrailer.isInitialized())
     throw AltroDecoderError(AltroDecoderError::ErrorType_t::RCU_TRAILER_ERROR, "RCU trailer was not initialized");
   return mRCUTrailer;
 }
 
-template <class RawReader>
-const std::vector<Channel>& AltroDecoder<RawReader>::getChannels() const
+const std::vector<Channel>& AltroDecoder::getChannels() const
 {
   if (!mChannelsInitialized)
     throw AltroDecoderError(AltroDecoderError::ErrorType_t::CHANNEL_ERROR, "Channels not initizalized");
   return mChannels;
 }
-
-template class o2::emcal::AltroDecoder<o2::emcal::RawReaderFile<o2::emcal::RAWDataHeader>>;
-template class o2::emcal::AltroDecoder<o2::emcal::RawReaderFile<o2::header::RAWDataHeaderV4>>;
-template class o2::emcal::AltroDecoder<o2::emcal::RawReaderMemory<o2::emcal::RAWDataHeader>>;
-template class o2::emcal::AltroDecoder<o2::emcal::RawReaderMemory<o2::header::RAWDataHeaderV4>>;
