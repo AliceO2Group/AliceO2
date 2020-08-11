@@ -85,52 +85,6 @@ void VarManager::SetRunNumbers(int n, int* runs)
 }
 
 //__________________________________________________________________
-void VarManager::FillEvent(std::vector<float> event, float* values)
-{
-
-  //TODO: the Fill function should take as argument an aod::ReducedEvent iterator, this is just a temporary fix
-  if (!values)
-    values = fgValues;
-  
-  values[kRunNo] = event[0];
-  if(fgUsedVars[kRunId])
-    values[kRunId] = (fgRunMap.size() > 0 ? fgRunMap[int(values[kRunNo])] : 0);
-  values[kVtxX] = event[1];
-  values[kVtxY] = event[2];
-  values[kVtxZ] = event[3];
-  values[kVtxNcontrib] = event[4];
-  /*values[kRunNo] = event.runNumber();
-  values[kVtxX] = event.posX();
-  values[kVtxY] = event.posY();
-  values[kVtxZ] = event.posZ();
-  values[kVtxNcontrib] = event.numContrib();*/
-  //values[kVtxChi2] = event.chi2();
-  //values[kBC] = event.bc();
-  //values[kCentVZERO] = event.centVZERO();
-  //values[kVtxCovXX] = event.covXX();
-  //values[kVtxCovXY] = event.covXY();
-  //values[kVtxCovXZ] = event.covXZ();
-  //values[kVtxCovYY] = event.covYY();
-  //values[kVtxCovYZ] = event.covYZ();
-  //values[kVtxCovZZ] = event.covZZ();
-}
-
-//__________________________________________________________________
-void VarManager::FillTrackDerived(float* values)
-{
-
-  if (!values)
-    values = fgValues;
-
-  values[kPt] = track[0];
-  values[kEta] = track[1];
-  values[kPhi] = track[2];
-  values[kCharge] = track[3];
-  if(fgUsedVars[kP]) 
-    values[kP] = values[kPt] * TMath::CosH(values[kEta]);
-}
-
-//__________________________________________________________________
 void VarManager::FillEventDerived(float* values)
 {
   //
