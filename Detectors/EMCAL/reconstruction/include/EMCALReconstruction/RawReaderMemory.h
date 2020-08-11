@@ -13,10 +13,11 @@
 #include <gsl/span>
 #include <Rtypes.h>
 
+#include "EMCALBase/RCUTrailer.h"
 #include "EMCALReconstruction/RawBuffer.h"
-#include "EMCALReconstruction/RAWDataHeader.h"
 #include "EMCALReconstruction/RawPayload.h"
 #include "Headers/RAWDataHeader.h"
+#include "Headers/RDHAny.h"
 
 namespace o2
 {
@@ -31,7 +32,6 @@ namespace emcal
 /// \since Nov. 14, 2019
 ///
 ///
-template <class RawHeader>
 class RawReaderMemory
 {
  public:
@@ -72,7 +72,7 @@ class RawReaderMemory
   /// \brief access to the raw header of the current page
   /// \return Raw header of the current page
   /// \throw RawDecodingError with HEADER_INVALID if the header was not decoded
-  const RawHeader& getRawHeader() const;
+  const o2::header::RDHAny& getRawHeader() const;
 
   /// \brief access to the raw buffer (single DMA page)
   /// \return Raw buffer of the current page
@@ -105,14 +105,15 @@ class RawReaderMemory
   /// Rewind stream to the first entry
   void init();
 
-  bool isStop(const o2::emcal::RAWDataHeader& hdr) { return true; }
-  bool isStop(const o2::header::RAWDataHeaderV4& hdr) { return hdr.stop; }
+  o2::header::RDHAny decodeRawHeader(const void* headerwords);
 
  private:
   gsl::span<const char> mRawMemoryBuffer; ///< Memory block with multiple DMA pages
   RawBuffer mRawBuffer;                   ///< Raw buffer
-  RawHeader mRawHeader;                   ///< Raw header
+  o2::header::RDHAny mRawHeader;          ///< Raw header
   RawPayload mRawPayload;                 ///< Raw payload (can consist of multiple pages)
+  RCUTrailer mCurrentTrailer;             ///< RCU trailer
+  uint64_t mTrailerPayloadWords = 0;      ///< Payload words in common trailer
   int mCurrentPosition = 0;               ///< Current page in file
   int mNumData = 0;                       ///< Number of pages
   bool mRawHeaderInitialized = false;     ///< RDH for current page initialized
@@ -120,10 +121,6 @@ class RawReaderMemory
 
   ClassDefNV(RawReaderMemory, 1);
 };
-
-// For template specifications
-using RawReaderMemoryRDHvE = RawReaderMemory<o2::emcal::RAWDataHeader>;
-using RawReaderMemoryRDHv4 = RawReaderMemory<o2::header::RAWDataHeaderV4>;
 
 } // namespace emcal
 
