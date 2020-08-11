@@ -54,6 +54,8 @@ DataRelayer::DataRelayer(const CompletionPolicy& policy,
     mDistinctRoutesIndex{DataRelayerHelpers::createDistinctRouteIndex(routes)},
     mInputMatchers{DataRelayerHelpers::createInputMatchers(routes)}
 {
+  std::scoped_lock lock(mMutex);
+
   setPipelineLength(DEFAULT_PIPELINE_LENGTH);
 
   // The queries are all the same, so we only have width 1
@@ -74,6 +76,8 @@ DataRelayer::DataRelayer(const CompletionPolicy& policy,
 DataRelayer::ActivityStats DataRelayer::processDanglingInputs(std::vector<ExpirationHandler> const& expirationHandlers,
                                                               ServiceRegistry& services)
 {
+  std::scoped_lock lock(mMutex);
+
   ActivityStats activity;
   /// Nothing to do if nothing can expire.
   if (expirationHandlers.empty()) {
@@ -179,6 +183,7 @@ DataRelayer::RelayChoice
   DataRelayer::relay(std::unique_ptr<FairMQMessage>&& header,
                      std::unique_ptr<FairMQMessage>&& payload)
 {
+  std::scoped_lock lock(mMutex);
   // STATE HOLDING VARIABLES
   // This is the class level state of the relaying. If we start supporting
   // multithreading this will have to be made thread safe before we can invoke
@@ -383,6 +388,8 @@ DataRelayer::RelayChoice
 
 void DataRelayer::getReadyToProcess(std::vector<DataRelayer::RecordAction>& completed)
 {
+  std::scoped_lock lock(mMutex);
+
   // THE STATE
   const auto& cache = mCache;
   const auto numInputTypes = mDistinctRoutesIndex.size();
@@ -460,6 +467,8 @@ void DataRelayer::getReadyToProcess(std::vector<DataRelayer::RecordAction>& comp
 
 std::vector<o2::framework::MessageSet> DataRelayer::getInputsForTimeslice(TimesliceSlot slot)
 {
+  std::scoped_lock lock(mMutex);
+
   const auto numInputTypes = mDistinctRoutesIndex.size();
   // State of the computation
   std::vector<MessageSet> messages(numInputTypes);
@@ -513,6 +522,8 @@ std::vector<o2::framework::MessageSet> DataRelayer::getInputsForTimeslice(Timesl
 
 void DataRelayer::clear()
 {
+  std::scoped_lock lock(mMutex);
+
   for (auto& cache : mCache) {
     cache.clear();
   }
@@ -533,6 +544,8 @@ size_t
 /// the time pipelining.
 void DataRelayer::setPipelineLength(size_t s)
 {
+  std::scoped_lock lock(mMutex);
+
   mTimesliceIndex.resize(s);
   mVariableContextes.resize(s);
   publishMetrics();
@@ -540,6 +553,8 @@ void DataRelayer::setPipelineLength(size_t s)
 
 void DataRelayer::publishMetrics()
 {
+  std::scoped_lock lock(mMutex);
+
   auto numInputTypes = mDistinctRoutesIndex.size();
   mCache.resize(numInputTypes * mTimesliceIndex.size());
   mMetrics.send({(int)numInputTypes, "data_relayer/h"});
@@ -577,6 +592,7 @@ DataRelayerStats const& DataRelayer::getStats() const
 
 void DataRelayer::sendContextState()
 {
+  std::scoped_lock lock(mMutex);
   for (size_t ci = 0; ci < mTimesliceIndex.size(); ++ci) {
     auto slot = TimesliceSlot{ci};
     sendVariableContextMetrics(mTimesliceIndex.getPublishedVariablesForSlot(slot), slot,
