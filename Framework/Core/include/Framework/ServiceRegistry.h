@@ -64,6 +64,16 @@ class service_ptr : LOCKING
   T* mPtr;
 };
 
+template <typename, typename = void>
+struct ServiceKindExtractor {
+  constexpr static ServiceKind kind = ServiceKind::Serial;
+};
+
+template <typename T>
+struct ServiceKindExtractor<T, std::void_t<decltype(T::service_kind)>> : std::is_same<decltype(T::service_kind), enum ServiceKind> {
+  constexpr static ServiceKind kind = T::service_kind;
+};
+
 struct ServiceRegistry {
   /// The maximum distance a entry can be from the optimal slot.
   constexpr static int MAX_DISTANCE = 8;
