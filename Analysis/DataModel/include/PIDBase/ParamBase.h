@@ -43,7 +43,7 @@ class Parameters : public TObject
   Parameters(const std::vector<pidvar_t> params) : mPar{} { SetParameters(params); };
 
   /// Default destructor
-  ~Parameters() = default;
+  ~Parameters() override = default;
 
   /// Setter for the parameter at position iparam
   /// \param iparam index in the array of the parameters
@@ -99,7 +99,7 @@ class Parametrization : public TNamed
   Parametrization(TString name, const std::vector<pidvar_t> params) : TNamed(name, name), mParameters{params} {};
 
   /// Default destructor
-  virtual ~Parametrization() = default;
+  ~Parametrization() override = default;
 
   /// Getter for parametrization values, to be reimplemented in the custom parametrization of the user
   /// \param x array of variables to use in order to compute the return value

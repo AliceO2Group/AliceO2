@@ -28,8 +28,8 @@ class BetheBloch : public Parametrization
 {
  public:
   BetheBloch() : Parametrization("BetheBloch", 7) { Printf("%s", fName.Data()); };
-  ~BetheBloch() = default;
-  virtual float operator()(const float* x) const override
+  ~BetheBloch() override = default;
+  float operator()(const float* x) const override
   {
     return mParameters[5] * o2::tpc::Detector::BetheBlochAleph(x[0], mParameters[0], mParameters[1], mParameters[2], mParameters[3], mParameters[4]) * TMath::Power(x[1], mParameters[6]);
   }

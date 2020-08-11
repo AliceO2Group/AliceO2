@@ -35,7 +35,7 @@ class Response : public DetectorResponse
 {
  public:
   Response() = default;
-  ~Response() = default;
+  ~Response() override = default;
 
   /// Updater for the TPC response to setup the track parameters
   /// i.e. sets the track of interest

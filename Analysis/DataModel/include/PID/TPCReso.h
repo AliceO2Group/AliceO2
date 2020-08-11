@@ -27,8 +27,8 @@ class TPCReso : public Parametrization
 {
  public:
   TPCReso() : Parametrization("TPCReso", 2) { Printf("%s", fName.Data()); };
-  ~TPCReso() = default;
-  virtual float operator()(const float* x) const override
+  ~TPCReso() override = default;
+  float operator()(const float* x) const override
   {
     // relative dEdx resolution rel sigma = fRes0*sqrt(1+fResN2/npoint)
     return x[0] * mParameters[0] * (x[1] > 0 ? sqrt(1. + mParameters[1] / x[1]) : 1.f);

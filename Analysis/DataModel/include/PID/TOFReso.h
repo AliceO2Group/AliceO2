@@ -30,8 +30,8 @@ class TOFReso : public Parametrization
 {
  public:
   TOFReso() : Parametrization("TOFReso", 5) { Printf("%s", fName.Data()); };
-  ~TOFReso() = default;
-  virtual float operator()(const float* x) const override
+  ~TOFReso() override = default;
+  float operator()(const float* x) const override
   {
     const float mom = abs(x[0]);
     if (mom <= 0)
