@@ -35,7 +35,7 @@ using namespace std;
 // TRD.Digits.root
 void convertRun2ToRun3Digits(TString qaOutPath = "",
                              TString rawDataInPath = "",
-                             TString run2DigitsInPath = "",
+                             TString run2DigitsInPath = "TRD.Digits.root",
                              TString run3DigitsOutPath = "trddigits.root",
                              int nRawEvents = 1000)
 {
@@ -158,6 +158,11 @@ void convertRun2ToRun3Digits(TString qaOutPath = "",
         if (!digitMan->GetDigits(det))
           continue;
 
+        int sector = det/30;
+        int stack = (det - sector*30)/6;
+
+        cout << "det: " << det << " | " << "sector: " << sector << " | " << "stack: " << stack << endl;
+
         digitMan->GetDigits(det)->Expand();
 
         AliTRDarrayADC* digits;
@@ -166,7 +171,13 @@ void convertRun2ToRun3Digits(TString qaOutPath = "",
 
         // TODO: check actual number of rows, from geometry
         // here: play it safe, assume 12 rows everywhere
-        for (int row = 0; row < 12; row++) {
+        int nrows = 16;
+        if (stack == 2)
+        {
+          nrows = 12;
+        }
+
+        for (int row = 0; row < nrows; row++) {
           for (int col = 0; col < 144; col++) {
             int tbsum = 0;
             ArrayADC adctimes;
@@ -190,14 +201,17 @@ void convertRun2ToRun3Digits(TString qaOutPath = "",
               tbsum += adc;
             }
 
-            run3Digits.push_back(o2::trd::Digit(det, row, col, adctimes, eventTime));
+            if (tbsum > 0)
+            {
+              run3Digits.push_back(o2::trd::Digit(det, row, col, adctimes, eventTime));
+            }
 
             if (tbsum > 0) {
               hTBsum->Fill(tbsum);
             }
           }
         }
-      }
+      }break;
     }
   }
 
