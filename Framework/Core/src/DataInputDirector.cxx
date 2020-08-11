@@ -178,7 +178,7 @@ void DataInputDirector::createDefaultDataInputDescriptor()
   mdefaultDataInputDescriptor->tablename = "any";
   mdefaultDataInputDescriptor->treename = "any";
   mdefaultDataInputDescriptor->fillInputfiles();
-  
+
   mAlienSupport &= mdefaultDataInputDescriptor->isAlienSupportOn();
 }
 
