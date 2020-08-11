@@ -15,11 +15,18 @@
 #include "rapidjson/prettywriter.h"
 #include "rapidjson/filereadstream.h"
 
+#include "TGrid.h"
+
 namespace o2
 {
 namespace framework
 {
 using namespace rapidjson;
+
+DataInputDescriptor::DataInputDescriptor(bool alienSupport)
+{
+  mAlienSupport = alienSupport;
+}
 
 std::string DataInputDescriptor::getInputfilesFilename()
 {
@@ -38,9 +45,10 @@ std::regex DataInputDescriptor::getFilenamesRegex()
 
 void DataInputDescriptor::addFilename(std::string fn)
 {
-  if (fn.rfind("alien://", 0) == 0) {
+  if (!mAlienSupport && fn.rfind("alien://", 0) == 0) {
     LOG(debug) << "AliEn file requested. Enabling support.";
     TGrid::Connect("alien://");
+    mAlienSupport = true;
   }
   mfilenames.emplace_back(fn);
 }
@@ -162,7 +170,7 @@ void DataInputDirector::createDefaultDataInputDescriptor()
   if (mdefaultDataInputDescriptor) {
     delete mdefaultDataInputDescriptor;
   }
-  mdefaultDataInputDescriptor = new DataInputDescriptor();
+  mdefaultDataInputDescriptor = new DataInputDescriptor(mAlienSupport);
 
   mdefaultDataInputDescriptor->setInputfilesFile(minputfilesFile);
   mdefaultDataInputDescriptor->setFilenamesRegex(mFilenameRegex);
@@ -170,6 +178,8 @@ void DataInputDirector::createDefaultDataInputDescriptor()
   mdefaultDataInputDescriptor->tablename = "any";
   mdefaultDataInputDescriptor->treename = "any";
   mdefaultDataInputDescriptor->fillInputfiles();
+  
+  mAlienSupport &= mdefaultDataInputDescriptor->isAlienSupportOn();
 }
 
 bool DataInputDirector::readJson(std::string const& fnjson)
@@ -221,16 +231,16 @@ bool DataInputDirector::readJsonDocument(Document* jsonDoc)
   itemName = "debugmode";
   if (didirItem.HasMember(itemName)) {
     if (didirItem[itemName].IsBool()) {
-      mdebugmode = (didirItem[itemName].GetBool());
+      mDebugMode = (didirItem[itemName].GetBool());
     } else {
       LOGP(ERROR, "Check the JSON document! Item \"{}\" must be a boolean!", itemName);
       return false;
     }
   } else {
-    mdebugmode = false;
+    mDebugMode = false;
   }
 
-  if (mdebugmode) {
+  if (mDebugMode) {
     StringBuffer buffer;
     buffer.Clear();
     PrettyWriter<StringBuffer> writer(buffer);
@@ -285,7 +295,7 @@ bool DataInputDirector::readJsonDocument(Document* jsonDoc)
         return false;
       }
       // create a new dataInputDescriptor
-      auto didesc = new DataInputDescriptor();
+      auto didesc = new DataInputDescriptor(mAlienSupport);
       didesc->setDefaultInputfiles(&mdefaultInputFiles);
 
       itemName = "table";
@@ -366,6 +376,7 @@ bool DataInputDirector::readJsonDocument(Document* jsonDoc)
         didesc->printOut();
         LOGP(INFO, "This DataInputDescriptor is ignored because its file list is empty!");
       }
+      mAlienSupport &= didesc->isAlienSupportOn();
     }
   }
 
@@ -379,7 +390,7 @@ bool DataInputDirector::readJsonDocument(Document* jsonDoc)
   }
 
   // print the DataIputDirector
-  if (mdebugmode) {
+  if (mDebugMode) {
     printOut();
   }
 
