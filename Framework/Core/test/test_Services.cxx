@@ -14,7 +14,10 @@
 #include "Framework/ServiceHandle.h"
 #include "Framework/ServiceRegistry.h"
 #include "Framework/CallbackService.h"
+#include "Framework/CommonServices.h"
+#include <Framework/DeviceState.h>
 #include <boost/test/unit_test.hpp>
+#include <options/FairMQProgOptions.h>
 #include <iostream>
 #include <memory>
 
@@ -55,6 +58,9 @@ BOOST_AUTO_TEST_CASE(TestServiceRegistry)
   BOOST_CHECK(registry.get<InterfaceA>().method() == true);
   BOOST_CHECK(registry.get<InterfaceB>().method() == false);
   BOOST_CHECK(registry.get<InterfaceC const>().method() == false);
+  BOOST_CHECK(registry.active<InterfaceA>() == true);
+  BOOST_CHECK(registry.active<InterfaceB>() == true);
+  BOOST_CHECK(registry.active<InterfaceC>() == false);
   BOOST_CHECK_THROW(registry.get<InterfaceA const>(), std::runtime_error);
   BOOST_CHECK_THROW(registry.get<InterfaceC>(), std::runtime_error);
 }
@@ -160,4 +166,20 @@ BOOST_AUTO_TEST_CASE(TestServiceRegistryCtor)
   using namespace o2::framework;
   ServiceRegistry registry;
   registry = ServiceRegistry();
+}
+
+BOOST_AUTO_TEST_CASE(TestServiceDeclaration)
+{
+  using namespace o2::framework;
+  ServiceRegistry registry;
+  DeviceState state;
+  FairMQProgOptions options;
+  options.SetProperty("monitoring-backend", "no-op://");
+  options.SetProperty("infologger-mode", "no-op://");
+  options.SetProperty("infologger-severity", "info");
+  options.SetProperty("configuration", "command-line");
+
+  registry.declareService(CommonServices::callbacksSpec(), state, options);
+  BOOST_CHECK(registry.active<CallbackService>() == true);
+  BOOST_CHECK(registry.active<DummyService>() == false);
 }

@@ -218,6 +218,9 @@ struct ServiceRegistry {
     constexpr auto typeHash = TypeIdHelpers::uniqueId<T>();
     auto tid = std::this_thread::get_id();
     std::hash<std::thread::id> hasher;
+    if (this->getPos(typeHash, 0) != -1) {
+      return true;
+    }
     auto result = this->getPos(typeHash, hasher(tid)) != -1;
     return result;
   }

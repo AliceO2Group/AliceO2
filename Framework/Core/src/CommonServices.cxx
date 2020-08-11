@@ -190,7 +190,7 @@ o2::framework::ServiceSpec CommonServices::configurationSpec()
     nullptr,
     nullptr,
     nullptr,
-    ServiceKind::Serial};
+    ServiceKind::Global};
 }
 
 o2::framework::ServiceSpec CommonServices::controlSpec()
