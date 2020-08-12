@@ -29,4 +29,8 @@
 #pragma link C++ class o2::fv0::TCMdata + ;
 #pragma link C++ class o2::fv0::Topo + ;
 
+#pragma link C++ class o2::fv0::CTFHeader + ;
+#pragma link C++ class o2::fv0::CTF + ;
+#pragma link C++ class o2::ctf::EncodedBlocks < o2::fv0::CTFHeader, 6, uint32_t> + ;
+
 #endif
