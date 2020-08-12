@@ -37,12 +37,14 @@ class Trap2CRU
   static constexpr int NumberOfHalfCRU = 72;
   static constexpr int NumberOfFLP = 12;
   static constexpr int CRUperFLP = 3;
-  static constexpr int WordSizeInBytes = 256; // word size in bits, everything is done in 256 bit blocks.
-  static constexpr int WordSize = 8;          // 8 standard 32bit words.
-  static constexpr int NLinksPerHalfCRU = 15;
+  static constexpr int WordSizeInBytes = 256;  // word size in bits, everything is done in 256 bit blocks.
+  static constexpr int WordSize = 8;           // 8 standard 32bit words.
+  static constexpr int NLinksPerHalfCRU = 15;  // number of fibers per each half cru
+  static constexpr int TRDLinkID = 15;         // hard coded link id. TODO give reason?
   static constexpr uint32_t PaddWord = 0xeeee; // pad word to fill 256bit blocks or entire block for no data case.
-                                               //TODO come back and change the mapping of 1077 channels to a lut and probably configurable.
-                                               //
+  static constexpr bool DebugDataWriting = false; //dump put very first vector of data to see if the thing going into the rawwriter is correct.
+                                                  //TODO come back and change the mapping of 1077 channels to a lut addnd probably configurable.
+                                                  //
  public:
   Trap2CRU() = default;
   Trap2CRU(const std::string& outputDir, const std::string& inputFilename);
@@ -57,6 +59,7 @@ class Trap2CRU
   int getVerbosity() { return mVerbosity; }
   void setVerbosity(int verbosity) { mVerbosity = verbosity; }
   void buildCRUPayLoad();
+  int sortByORI();
   o2::raw::RawFileWriter& getWriter() { return mWriter; }
   uint32_t buildCRUHeader(HalfCRUHeader& header, uint32_t bc, uint32_t halfcru, int startlinkrecord);
   void linkSizePadding(uint32_t linksize, uint32_t& crudatasize, uint32_t& padding);

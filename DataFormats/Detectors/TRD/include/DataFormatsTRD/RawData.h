@@ -156,7 +156,7 @@ struct TrackletMCMHeader {
   //             ||   | |       |        ----------- 1-8   pid for tracklet 3 second part
   //             ||   | |       -------------------- 9-16  pid for tracklet 2 second part
   //             ||   | ---------------------------- 17-24 pid for tracklet 1 second part
-  //             ||   ------------------------------ 25-26 coly
+  //             ||   ------------------------------ 25-26 col
   //             |---------------------------------- 27-30 padrow
   //             ----------------------------------- 31 1
   //TODO need to check endianness, I have a vague memory the trap chip has different endianness to x86.
@@ -189,66 +189,31 @@ struct TrackletMCMData { // This is a bad name as part of the tracklet data is i
   };
 };
 
-/*
-std::vector<uint32_t> getPID(char *rawdata, int tracklet)
-{
-    // extract the 2 parts of the pid and return the combined PID
-    // rawdata starts with the mcmheader
-    uint32_t pid = 1;//(rawdata.pid[tracklet]<<15) + rawdata.pid[]; TODO figure out a better way that is not *undefined* c++ to progress to following 32bit words after TrackletMCMHeader.
-    //TODO come back here, marker to come back.
-    std::vector<uint32_t> pids;
-    TrackletMCMHeader mcmheader;
-    TrackletMCMData trackletdata;
-    //memcpy(&mcmheader,&rawdata[0],sizeof(mcmheader));
-    std::copy(rawdata.begin(), rawdata.begin()+sizeof(mcmheader),(char*)&mcmheader);
-    for(int tracklet=0;tracklet<3;tracklet++){
-        memcpy(&trackletdata,&rawdata[0]+sizeof(mcmheader)+tracklet*sizeof(trackletdata),sizeof(TrackletMCMData));
-        uint32_t headpid=0;
-        switch(tracklet){
-            case 0 : headpid=mcmheader.pid0;break;
-            case 1 : headpid=mcmheader.pid1;break;
-            case 2 : headpid=mcmheader.pid2;break;
-        }
-        pids[tracklet]  = (headpid<<15) + trackletdata.pid;
-    }
-    //    memcpy(rawdata,)
-    return pids;
-}
+/// \structure TRDFeeID
+/// \brief Frontend Electronics ID, is made up of supermodule, a/c side and the end point encoded as below.
 
-uint32_t getPadRow(const char *rawdata)
-{
-    TrackletMCMHeader mcmheader;
-    memcpy(&mcmheader, rawdata,sizeof(TrackletMCMHeader));
-    return mcmheader.padrow;
+struct TRDFeeID {
+  //
+  //             5432109876543210
+  // uint16_t:   0000000000000000
+  //             mmmmmmmm         --- supermodule 0 - 17
+  //                     xxx      --- unused1
+  //                        s     --- side 0=A C=1
+  //                         xxx  --- unused 2;
+  //                            e --- endpoint 0=lower, 1=upper
+  union {
+    uint16_t word;
+    struct {
+      uint8_t endpoint : 1;    // the pci end point of the cru in question
+      uint8_t unused2 : 3;     // seperate so easier to read in hex dumps
+      uint8_t side : 1;        // the A=0 or C=1 side of the supermodule being readout
+      uint8_t unused1 : 3;     // seperate so easier to read in hex dumps
+      uint8_t supermodule : 8; // the supermodule being read out 0-17
+    } __attribute__((__packed__));
+  };
+};
 
-}
-uint32_t getCol(const char* rawdata)
-{
-    TrackletMCMHeader mcmheader;
-    memcpy(&mcmheader, rawdata,sizeof(TrackletMCMHeader));
-    return mcmheader.col;
-
-}
-int16_t getPos(const char* rawdata, int tracklet) 
-{
-    // extract y from the tracklet word, raw data points to the mcmheader of this data.
-    //rawdata points to the TrackletMCMHeader
-     TrackletMCMData trackletdata;
-    TrackletMCMHeader mcmrawdataheader;
-    memcpy(&mcmrawdataheader,rawdata,sizeof(TrackletMCMHeader));
-    memcpy(&trackletdata,rawdata+sizeof(TrackletMCMHeader));
-    return trackletdata.pos;
-    return 1;
-}
-uint32_t getSlope(const *rawdata, int tracklet)
-{
-    // extract dy or slope from the tracklet word, raw data points to the mcmheader of this data.
-    TrackletMCMData trackletdata;
-    memcpy(&trackletdata,&rawdata[0]+sizeof(TrackletMCMHeader)+tracklet*sizeof(trackletdata),sizeof(TrackletMCMData));
-    return trackletdata.slope;
-}
-due to the interplay of TrackletMCMHeader and TrackletMCMData come back to this. TODO
-*/
+uint16_t buildTRDFeeID(int supermodule, int side, int endpoint);
 uint32_t setHalfCRUHeader(HalfCRUHeader& cruhead, int crurdhversion, int bunchcrossing, int stopbits, int endpoint, int eventtype, int feeid, int cruid);
 uint32_t setHalfCRUHeaderLinkData(HalfCRUHeader& cruhead, int link, int size, int errors);
 uint32_t unpacklinkinfo(const HalfCRUHeader& cruhead, const uint32_t link, const bool data);

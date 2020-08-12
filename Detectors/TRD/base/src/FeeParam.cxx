@@ -33,12 +33,14 @@
 #include <TMath.h>
 #include <TVirtualMC.h>
 #include <fairlogger/Logger.h>
+#include <array>
 
 #include "DetectorsBase/GeometryManager.h"
 #include "TRDBase/TRDGeometry.h"
 #include "TRDBase/TRDPadPlane.h"
 #include "TRDBase/FeeParam.h"
 #include "TRDBase/TRDCommonParam.h"
+//#include "DataFormatsTRD/Constants.h"
 
 using namespace std;
 using namespace o2::trd;
@@ -455,6 +457,98 @@ short FeeParam::getRobAB(unsigned short robsel, unsigned short linkpair)
 
   return 0;
 }
+/* 
+void FeeParam::createORILookUpTable()
+{
+    int ori;
+    for(int trdstack=0;trdstack<3;trdstack++)
+    {
+        for(int side=0;side<2;side++)
+        {
+
+            for(int trdlayer=5;trdlayer>=0;trdlayer++)
+            {
+                ori=trdstack*12  + (5-trdlayer + side*6) +trdlayer/6 + side; 
+                mgAsideLUT[ori]= (trdstack<<8) + (trdlayer<<4) + side;           // A side LUT to map ORI to stack/layer/side
+                if(ori==29) break;
+                
+            }
+                if(ori==29) break;
+        }
+                if(ori==29) break;
+    }
+    for(int trdstack=4;trdstack>1;trdstack--)
+    {
+        for(int side=0;side<2;side++)
+        {
+
+            for(int trdlayer=5;trdlayer>=0;trdlayer++)
+            {
+                ori = (4-trdstack)*12  + (5-trdlayer + side*5) +trdlayer/6 + side;
+                int newside;
+                if(ori >=24) newside=1; else newside=side; // a hack as I am not typing this all out.
+                mgCsideLUT[ori]= (trdstack<<8) + (trdlayer<<4) + newside;           // A side LUT to map ORI to stack/layer/side
+                if(ori==29) break;
+            }
+                if(ori==29) break;
+        }
+                if(ori==29) break;
+    }
+}
+*/
+
+int FeeParam::getORI(int detector, int readoutboard) const
+{
+  int supermodule = detector / 30;
+  LOG(debug3) << "getORI : " << detector << " :: " << readoutboard << getORIinSM(detector, readoutboard) + 60 * detector;
+  return getORIinSM(detector, readoutboard) + 2 * detector; // 2 ORI per detector
+}
+
+int FeeParam::getORIinSM(int detector, int readoutboard) const
+{
+  int ori = -1;
+  int chamberside = 0;
+  int trdstack = TRDGeometry::getStack(detector);
+  int trdlayer = TRDGeometry::getLayer(detector);
+  int side = getRobSide(readoutboard);
+  //see TDP for explanation of mapping TODO should probably come from CCDB for the instances where the mapping of ori fibers is misconfigured (accidental fibre swaps).
+  if (trdstack < 2 || (trdstack == 2 && side == 0)) // A Side
+  {
+    ori = trdstack * 12 + (5 - trdlayer + side * 5) + trdlayer / 6 + side; // <- that is correct for A side at least for now, probably not for very long LUT as that will come form CCDB ni anycase.
+  } else {
+    if (trdstack > 2 || (trdstack == 2 && side == 1)) // CSide
+    {
+      int newside = side;
+      if (trdstack == 2)
+        newside = 0; // the last part of C side CRU is a special case.
+      ori = (4 - trdstack) * 12 + (5 - trdlayer + newside * 5) + trdlayer / 6 + newside;
+    } else
+      LOG(warn) << " something wrong with calculation of ORI for detector " << detector << " and readoutboard" << readoutboard;
+  }
+  // now offset for supermodule (+60*supermodule);
+
+  return ori;
+}
+
+int FeeParam::getORIfromHCID(int hcid) const
+{
+  int detector = hcid / 2;
+  int side = hcid % 2; // 0 for side 0, 1 for side 1;
+  int ori = -1;
+  int chamberside = 0;
+  int trdstack = TRDGeometry::getStack(detector);
+  int trdlayer = TRDGeometry::getLayer(detector);
+  return getORIinSM(detector, side); // it takes readoutboard but only cares if its odd or even hence side here.
+  return 1;
+}
+int FeeParam::getHCIDfromORI(int ori, int readoutboard) const
+{
+  // ori = 60*SM+offset[0-29 A, 30-59 C]
+  // from the offset, we can derive the stack/layer/side combination giving the decector.
+  //TODO do we need this, currently I dont, others might? come back if need be.
+  //
+  return 1;
+}
 
 short FeeParam::chipmaskToMCMlist(unsigned int cmA, unsigned int cmB, unsigned short linkpair, int* mcmList, int listSize)
 {
@@ -495,10 +589,9 @@ void FeeParam::setRAWversion(int rawver)
 /*
  * This was originally moved here from arrayADC, signalADC etc. We now longer use those classes
  * so removing this for now as its crashing.
-*/
+ */
 void FeeParam::createPad2MCMLookUpTable()
 {
-
   //
   // Initializes the Look Up Table to relate
   // pad numbering and mcm channel numbering
@@ -516,7 +609,6 @@ void FeeParam::createPad2MCMLookUpTable()
         mgLUTPadNumbering[index] = index + shiftposition;
       }
     }
-    mgLUTPadNumberingFilled = true;
   }
 }
 
