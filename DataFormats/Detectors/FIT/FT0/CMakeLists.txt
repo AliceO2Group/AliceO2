@@ -15,9 +15,10 @@ o2_add_library(DataFormatsFT0
   SOURCES src/RecPoints.cxx
   SOURCES src/RawEventData.cxx
           src/CTF.cxx
-               PUBLIC_LINK_LIBRARIES O2::CommonDataFormat O2::Headers
-               O2::SimulationDataFormat O2::FT0Base
-	       )
+  PUBLIC_LINK_LIBRARIES O2::CommonDataFormat
+                        O2::Headers
+                        O2::SimulationDataFormat
+                        O2::FT0Base)
 
 o2_target_root_dictionary(DataFormatsFT0
                           HEADERS include/DataFormatsFT0/Digit.h
