@@ -268,7 +268,6 @@ DataProcessorSpec getCATrackerSpec(ca::Config const& specconfig, std::vector<int
           inputrefs[sector].labels = ref;
           if (specconfig.caClusterer) {
             inputDigitsMC[sector] = std::move(pc.inputs().get<const MCLabelContainer*>(ref));
-          } else {
           }
           validMcInputs |= sectorMask;
           activeSectors |= sectorHeader->activeSectors;
@@ -309,9 +308,9 @@ DataProcessorSpec getCATrackerSpec(ca::Config const& specconfig, std::vector<int
         activeSectors |= sectorHeader->activeSectors;
         validInputs |= sectorMask;
         inputrefs[sector].data = ref;
-        if (specconfig.caClusterer && !specconfig.zsOnTheFly) {
+        if (specconfig.caClusterer && (!specconfig.zsOnTheFly || specconfig.processMC)) {
           inputDigits[sector] = pc.inputs().get<gsl::span<o2::tpc::Digit>>(ref);
-          LOG(INFO) << "GOT SPAN FOR SECTOR " << sector << " -> " << inputDigits[sector].size();
+          LOG(INFO) << "GOT DIGITS SPAN FOR SECTOR " << sector << " -> " << inputDigits[sector].size();
         }
       }
       if (specconfig.zsOnTheFly) {
@@ -433,7 +432,6 @@ DataProcessorSpec getCATrackerSpec(ca::Config const& specconfig, std::vector<int
           pCompClustersFlat = pc.inputs().get<CompressedClustersFlat*>("input").get();
         }
       } else if (!specconfig.zsOnTheFly) {
-        // FIXME: We can have digits input in zs decoder mode for MC labels
         // This code path should run optionally also for the zs decoder version
         auto printInputLog = [&verbosity, &validInputs, &activeSectors](auto& r, const char* comment, auto& s) {
           if (verbosity > 1) {
@@ -522,21 +520,20 @@ DataProcessorSpec getCATrackerSpec(ca::Config const& specconfig, std::vector<int
       ptrs.outputTracksMCTruth = (specconfig.processMC ? &tracksMCTruth : nullptr);
       if (specconfig.caClusterer) {
         if (specconfig.zsOnTheFly) {
-          std::cout << "inputZS size: " << inputZS.size() << std::endl;
           const unsigned long long int* buffer = reinterpret_cast<const unsigned long long int*>(&inputZS[0]);
           o2::gpu::GPUReconstructionConvert::RunZSEncoderCreateMeta(buffer, tpcZSonTheFlySizes.data(), *&ptrEp, &tpcZS);
           ptrs.tpcZS = &tpcZS;
           if (specconfig.processMC) {
-            throw std::runtime_error("Currently unable to process MC information, tpc-tracker crashing when MC propagated");
+            ptrs.o2Digits = &inputDigits;
             ptrs.o2DigitsMC = &inputDigitsMC;
           }
         } else if (specconfig.zsDecoder) {
           ptrs.tpcZS = &tpcZS;
           if (specconfig.processMC) {
-            throw std::runtime_error("Cannot process MC information, none available"); // In fact, passing in MC data with ZS TPC Raw is not yet available
+            throw std::runtime_error("Cannot process MC information, none available");
           }
         } else {
-          ptrs.o2Digits = &inputDigits; // TODO: We will also create ClusterNative as output stored in ptrs. Should be added to the output
+          ptrs.o2Digits = &inputDigits;
           if (specconfig.processMC) {
             ptrs.o2DigitsMC = &inputDigitsMC;
           }
@@ -679,16 +676,16 @@ DataProcessorSpec getCATrackerSpec(ca::Config const& specconfig, std::vector<int
       inputs.emplace_back(InputSpec{"input", ConcreteDataTypeMatcher{gDataOriginTPC, specconfig.decompressTPCFromROOT ? header::DataDescription("COMPCLUSTERS") : header::DataDescription("COMPCLUSTERSFLAT")}, Lifetime::Timeframe});
     } else if (specconfig.caClusterer) {
       // We accept digits and MC labels also if we run on ZS Raw data, since they are needed for MC label propagation
-      if (!specconfig.zsOnTheFly && !specconfig.zsDecoder) { // FIXME: We can have digits input in zs decoder mode for MC labels, to be made optional
+      if ((!specconfig.zsOnTheFly || specconfig.processMC) && !specconfig.zsDecoder) {
         inputs.emplace_back(InputSpec{"input", ConcreteDataTypeMatcher{gDataOriginTPC, "DIGITS"}, Lifetime::Timeframe});
       }
     } else {
       inputs.emplace_back(InputSpec{"input", ConcreteDataTypeMatcher{gDataOriginTPC, "CLUSTERNATIVE"}, Lifetime::Timeframe});
     }
     if (specconfig.processMC) {
-      if (!specconfig.zsOnTheFly && specconfig.caClusterer) {
+      if (specconfig.caClusterer) {
         constexpr o2::header::DataDescription datadesc("DIGITSMCTR");
-        if (!specconfig.zsDecoder) { // FIXME: We can have digits input in zs decoder mode for MC labels, to be made optional
+        if (!specconfig.zsDecoder) {
           inputs.emplace_back(InputSpec{"mclblin", ConcreteDataTypeMatcher{gDataOriginTPC, datadesc}, Lifetime::Timeframe});
         }
       } else {
