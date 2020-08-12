@@ -16,6 +16,7 @@
 
 #pragma link C++ class o2::fv0::Hit + ;
 #pragma link C++ class vector < o2::fv0::Hit> + ;
+#pragma link C++ class o2::fv0::MCLabel + ;
 
 #pragma link C++ class o2::fv0::ChannelData + ;
 #pragma link C++ class o2::fv0::BCData + ;

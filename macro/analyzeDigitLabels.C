@@ -7,7 +7,7 @@
 #include "DataFormatsPHOS/MCLabel.h"
 #include "DataFormatsFT0/MCLabel.h"
 #include "DataFormatsFDD/MCLabel.h"
-#include "FV0Simulation/MCLabel.h"
+#include "DataFormatsFV0/MCLabel.h"
 #include "ZDCSimulation/MCLabel.h"
 #include "MIDSimulation/MCLabel.h"
 #include "TRDBase/MCLabel.h"
