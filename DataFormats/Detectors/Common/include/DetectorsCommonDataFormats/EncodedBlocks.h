@@ -656,7 +656,8 @@ void EncodedBlocks<H, N, W>::print(const std::string& prefix) const
 {
   LOG(INFO) << prefix << "Container of " << N << " blocks, size: " << size() << " bytes, unused: " << getFreeSize();
   for (int i = 0; i < N; i++) {
-    LOG(INFO) << "Block " << i << " NDictWords: " << mBlocks[i].getNDict() << " NDataWords: " << mBlocks[i].getNData()
+    LOG(INFO) << "Block " << i << " for " << mMetadata[i].messageLength << " message words |"
+              << " NDictWords: " << mBlocks[i].getNDict() << " NDataWords: " << mBlocks[i].getNData()
               << " NLiteralWords: " << mBlocks[i].getNLiterals();
   }
 }
@@ -704,7 +705,6 @@ void EncodedBlocks<H, N, W>::decode(D* dest,                      // destination
           throw std::runtime_error("Mismatch between min/max symbols in metadata and those in external decoder");
         }
       }
-
       // load incompressible symbols if they existed
       std::vector<D> literals;
       if (block.getNLiterals()) {
