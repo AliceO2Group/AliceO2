@@ -23,17 +23,6 @@ uint EventTime::GetMomBin(float mom) const
 }
 
 //_________________________________________________________________________
-double Param::GetExpectedSigma(float mom, float time, float evtimereso, float mass) const
-{
-  mom = abs(mom);
-  if (mom <= 0)
-    return -999;
-  double dpp = mPar[0] + mPar[1] * mom + mPar[2] * mass / mom; //mean relative pt resolution;
-  double sigma = dpp * time / (1. + mom * mom / (mass * mass));
-  return TMath::Sqrt(sigma * sigma + mPar[3] * mPar[3] / mom / mom + mSigma * mSigma + evtimereso * evtimereso);
-}
-
-//_________________________________________________________________________
 float Response::ComputeExpectedTime(float tofexpmom, float length, float massZ)
 {
   const float energy = sqrt((massZ * massZ) + (tofexpmom * tofexpmom));
@@ -62,6 +51,13 @@ float Response::GetExpectedBeta(float mom, float mass)
   if (mom > 0)
     return mom / TMath::Sqrt(mom * mom + mass * mass);
   return 0;
+}
+
+//_________________________________________________________________________
+float Response::GetExpectedSigma(o2::track::PID::ID id) const
+{
+  const float x[4] = {mMomentum, mTOFSignal, mEventTime.GetEvTimeReso(mMomentum), o2::track::PID::getMass2Z(id)};
+  return this->operator()(kSigma, x);
 }
 
 } // namespace o2::pid::tof

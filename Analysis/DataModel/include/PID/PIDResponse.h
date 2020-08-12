@@ -9,9 +9,10 @@
 // or submit itself to any jurisdiction.
 
 ///
-/// Class to provide PID response
 /// \file   PIDResponse.h
 /// \author Nicolo' Jacazio
+/// \brief Set of tables, tasks and utilities to provide the interface between
+///        the analysis data model and the PID response
 ///
 
 #ifndef O2_FRAMEWORK_PIDRESPONSE_H_
@@ -129,107 +130,5 @@ DECLARE_SOA_TABLE(pidRespTPC, "AOD", "pidRespTPC",
                   TPCNSigmaEl, TPCNSigmaMu, TPCNSigmaPi, TPCNSigmaKa, TPCNSigmaPr, TPCNSigmaDe, TPCNSigmaTr, TPCNSigmaHe, TPCNSigmaAl);
 
 } // namespace o2::aod
-
-using namespace o2;
-using namespace o2::framework;
-using namespace o2::pid;
-using namespace o2::framework::expressions;
-using namespace o2::track;
-
-struct pidTOFTask {
-  Produces<aod::pidRespTOF> tofpid;
-  Produces<aod::pidRespTOFbeta> tofpidbeta;
-
-  void process(aod::Collision const& collision, soa::Join<aod::Tracks, aod::TracksExtra> const& tracks)
-  {
-    LOGF(info, "Tracks for collision: %d", tracks.size());
-    tof::EventTime evt = tof::EventTime();
-    evt.SetEvTime(0, collision.collisionTime());
-    evt.SetEvTimeReso(0, collision.collisionTimeRes());
-    evt.SetEvTimeMask(0, collision.collisionTimeMask());
-    tof::Response resp = tof::Response();
-    resp.SetEventTime(evt);
-    for (auto const& i : tracks) {
-      resp.UpdateTrack(i.p(), i.tofExpMom() / tof::Response::kCSPEED, i.length(), i.tofSignal());
-      tofpidbeta(resp.GetBeta(),
-                 resp.GetBetaExpectedSigma(),
-                 resp.GetExpectedBeta(PID::Electron),
-                 resp.GetBetaExpectedSigma(),
-                 resp.GetBetaNumberOfSigmas(PID::Electron));
-      tofpid(
-        resp.GetExpectedSignal(PID::Electron),
-        resp.GetExpectedSignal(PID::Muon),
-        resp.GetExpectedSignal(PID::Pion),
-        resp.GetExpectedSignal(PID::Kaon),
-        resp.GetExpectedSignal(PID::Proton),
-        resp.GetExpectedSignal(PID::Deuteron),
-        resp.GetExpectedSignal(PID::Triton),
-        resp.GetExpectedSignal(PID::Helium3),
-        resp.GetExpectedSignal(PID::Alpha),
-        resp.GetExpectedSigma(PID::Electron),
-        resp.GetExpectedSigma(PID::Muon),
-        resp.GetExpectedSigma(PID::Pion),
-        resp.GetExpectedSigma(PID::Kaon),
-        resp.GetExpectedSigma(PID::Proton),
-        resp.GetExpectedSigma(PID::Deuteron),
-        resp.GetExpectedSigma(PID::Triton),
-        resp.GetExpectedSigma(PID::Helium3),
-        resp.GetExpectedSigma(PID::Alpha),
-        resp.GetNumberOfSigmas(PID::Electron),
-        resp.GetNumberOfSigmas(PID::Muon),
-        resp.GetNumberOfSigmas(PID::Pion),
-        resp.GetNumberOfSigmas(PID::Kaon),
-        resp.GetNumberOfSigmas(PID::Proton),
-        resp.GetNumberOfSigmas(PID::Deuteron),
-        resp.GetNumberOfSigmas(PID::Triton),
-        resp.GetNumberOfSigmas(PID::Helium3),
-        resp.GetNumberOfSigmas(PID::Alpha));
-    }
-  }
-};
-
-struct pidTPCTask {
-  Produces<aod::pidRespTPC> tpcpid;
-
-  void process(aod::Collision const& collision, soa::Join<aod::Tracks, aod::TracksExtra> const& tracks)
-  {
-    tpc::Response resp = tpc::Response();
-    float bbparams[5] = {0.0320981, 19.9768, 2.52666e-16, 2.72123, 6.08092};
-    resp.mParam.mBetheBloch.mParameters.Set(bbparams);
-    float resoparams[2] = {0.07, 0.0};
-    resp.mParam.mRelResolution.mParameters.Set(resoparams);
-    for (auto const& i : tracks) {
-      resp.UpdateTrack(i.p(), i.tpcSignal(), i.tpcNClsShared());
-      tpcpid(
-        resp.GetExpectedSignal(PID::Electron),
-        resp.GetExpectedSignal(PID::Muon),
-        resp.GetExpectedSignal(PID::Pion),
-        resp.GetExpectedSignal(PID::Kaon),
-        resp.GetExpectedSignal(PID::Proton),
-        resp.GetExpectedSignal(PID::Deuteron),
-        resp.GetExpectedSignal(PID::Triton),
-        resp.GetExpectedSignal(PID::Helium3),
-        resp.GetExpectedSignal(PID::Alpha),
-        resp.GetExpectedSigma(PID::Electron),
-        resp.GetExpectedSigma(PID::Muon),
-        resp.GetExpectedSigma(PID::Pion),
-        resp.GetExpectedSigma(PID::Kaon),
-        resp.GetExpectedSigma(PID::Proton),
-        resp.GetExpectedSigma(PID::Deuteron),
-        resp.GetExpectedSigma(PID::Triton),
-        resp.GetExpectedSigma(PID::Helium3),
-        resp.GetExpectedSigma(PID::Alpha),
-        resp.GetNumberOfSigmas(PID::Electron),
-        resp.GetNumberOfSigmas(PID::Muon),
-        resp.GetNumberOfSigmas(PID::Pion),
-        resp.GetNumberOfSigmas(PID::Kaon),
-        resp.GetNumberOfSigmas(PID::Proton),
-        resp.GetNumberOfSigmas(PID::Deuteron),
-        resp.GetNumberOfSigmas(PID::Triton),
-        resp.GetNumberOfSigmas(PID::Helium3),
-        resp.GetNumberOfSigmas(PID::Alpha));
-    }
-  }
-};
 
 #endif // O2_FRAMEWORK_PIDRESPONSE_H_
