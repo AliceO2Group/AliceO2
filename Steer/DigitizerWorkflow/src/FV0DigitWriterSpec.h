@@ -16,7 +16,7 @@
 #include "Framework/InputSpec.h"
 #include "DataFormatsFV0/ChannelData.h"
 #include "DataFormatsFV0/BCData.h"
-#include "FV0Simulation/MCLabel.h"
+#include "DataFormatsFV0/MCLabel.h"
 #include "SimulationDataFormat/MCTruthContainer.h"
 #include "SimulationDataFormat/MCCompLabel.h"
 
