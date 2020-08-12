@@ -36,7 +36,7 @@ namespace ft0
 class CTFCoder : public o2::ctf::CTFCoderBase
 {
  public:
-  CTFCoder() : o2::ctf::CTFCoderBase(CTF::getNBlocks()) {}
+  CTFCoder() : o2::ctf::CTFCoderBase(CTF::getNBlocks(), o2::detectors::DetID::FT0) {}
   ~CTFCoder() = default;
 
   /// entropy-encode digits to buffer with CTF
@@ -101,7 +101,7 @@ void CTFCoder::encode(VEC& buff, const gsl::span<const Digit>& digitVec, const g
   ENCODEFT0(cd.cfdTime,   CTF::BLC_cfdTime,  o2::rans::ProbabilityBits16Bit);
   ENCODEFT0(cd.qtcAmpl,   CTF::BLC_qtcAmpl,  o2::rans::ProbabilityBits25Bit);
   // clang-format on
-  CTF::get(buff.data())->print("FT0 done: ");
+  CTF::get(buff.data())->print(getPrefix());
 }
 
 /// decode entropy-encoded clusters to standard compact clusters
@@ -110,6 +110,7 @@ void CTFCoder::decode(const CTF::base& ec, VDIG& digitVec, VCHAN& channelVec)
 {
   CompressedDigits cd;
   cd.header = ec.getHeader();
+  ec.print(getPrefix());
 #define DECODEFT0(part, slot) ec.decode(part, int(slot), mCoders[int(slot)].get())
   // clang-format off
   DECODEFT0(cd.trigger,   CTF::BLC_trigger);

@@ -31,17 +31,17 @@ bool readFromTree(TTree& tree, const std::string brname, T& dest, int ev = 0)
   return false;
 }
 
-std::unique_ptr<TFile> CTFCoderBase::loadDictionaryTreeFile(const std::string& dictPath, DetID det, bool mayFail)
+std::unique_ptr<TFile> CTFCoderBase::loadDictionaryTreeFile(const std::string& dictPath, bool mayFail)
 {
   TDirectory* curd = gDirectory;
   std::unique_ptr<TFile> fileDict(TFile::Open(dictPath.c_str()));
   if (!fileDict || fileDict->IsZombie()) {
     if (mayFail) {
-      LOG(INFO) << "CTF dictionary file " << dictPath << " for detector " << det.getName() << " is absent, will use dictionaries stored in CTF";
+      LOG(INFO) << "CTF dictionary file " << dictPath << " for detector " << mDet.getName() << " is absent, will use dictionaries stored in CTF";
       fileDict.reset();
       return std::move(fileDict);
     }
-    LOG(ERROR) << "Failed to open CTF dictionary file " << dictPath << " for detector " << det.getName();
+    LOG(ERROR) << "Failed to open CTF dictionary file " << dictPath << " for detector " << mDet.getName();
     throw std::runtime_error("Failed to open dictionary file");
   }
   auto tnm = std::string(o2::base::NameConf::CTFDICT);
@@ -52,15 +52,15 @@ std::unique_ptr<TFile> CTFCoderBase::loadDictionaryTreeFile(const std::string& d
     throw std::runtime_error("Did not fine CTF dictionary tree in the file");
   }
   CTFHeader ctfHeader;
-  if (!readFromTree(*tree.get(), "CTFHeader", ctfHeader) || !ctfHeader.detectors[det]) {
+  if (!readFromTree(*tree.get(), "CTFHeader", ctfHeader) || !ctfHeader.detectors[mDet]) {
     tree.reset();
     fileDict.reset();
-    LOG(ERROR) << "Did not find CTF dictionary header or Detector " << det.getName() << " in it";
+    LOG(ERROR) << "Did not find CTF dictionary header or Detector " << mDet.getName() << " in it";
     if (!mayFail) {
       throw std::runtime_error("did not find CTFHeader with needed detector");
     }
   } else {
-    LOG(INFO) << "Found CTF dictionary for " << det.getName() << " in " << dictPath;
+    LOG(INFO) << "Found CTF dictionary for " << mDet.getName() << " in " << dictPath;
   }
   return fileDict;
 }

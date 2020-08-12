@@ -34,7 +34,7 @@ namespace tof
 class CTFCoder : public o2::ctf::CTFCoderBase
 {
  public:
-  CTFCoder() : o2::ctf::CTFCoderBase(CTF::getNBlocks()) {}
+  CTFCoder() : o2::ctf::CTFCoderBase(CTF::getNBlocks(), o2::detectors::DetID::TOF) {}
   ~CTFCoder() = default;
 
   /// entropy-encode clusters to buffer with CTF
@@ -55,8 +55,8 @@ class CTFCoder : public o2::ctf::CTFCoderBase
   template <typename VROF, typename VDIG, typename VPAT>
   void decompress(const CompressedInfos& cc, VROF& rofRecVec, VDIG& cdigVec, VPAT& pattVec);
 
-  void appendToTree(TTree& tree, o2::detectors::DetID id, CTF& ec);
-  void readFromTree(TTree& tree, int entry, o2::detectors::DetID id, std::vector<ReadoutWindowData>& rofRecVec, std::vector<Digit>& cdigVec, std::vector<uint32_t>& pattVec);
+  void appendToTree(TTree& tree, CTF& ec);
+  void readFromTree(TTree& tree, int entry, std::vector<ReadoutWindowData>& rofRecVec, std::vector<Digit>& cdigVec, std::vector<uint32_t>& pattVec);
 
  protected:
   ClassDefNV(CTFCoder, 1);
@@ -103,14 +103,16 @@ void CTFCoder::encode(VEC& buff, const gsl::span<const ReadoutWindowData>& rofRe
   ENCODETOF(cc.tot,          CTF::BLCtot,          o2::rans::ProbabilityBits16Bit);
   ENCODETOF(cc.pattMap,      CTF::BLCpattMap,      o2::rans::ProbabilityBits16Bit);
   // clang-format on
-  CTF::get(buff.data())->print("TOF done: ");
+  CTF::get(buff.data())->print(getPrefix());
 }
+
 ///___________________________________________________________________________________
 /// decode entropy-encoded digits to standard compact digits
 template <typename VROF, typename VDIG, typename VPAT>
 void CTFCoder::decode(const CTF::base& ec, VROF& rofRecVec, VDIG& cdigVec, VPAT& pattVec)
 {
   CompressedInfos cc;
+  ec.print(getPrefix());
   cc.header = ec.getHeader();
 #define DECODETOF(part, slot) ec.decode(part, int(slot), mCoders[int(slot)].get())
   // clang-format off

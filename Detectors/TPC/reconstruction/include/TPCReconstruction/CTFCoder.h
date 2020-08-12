@@ -34,7 +34,7 @@ namespace tpc
 class CTFCoder : public o2::ctf::CTFCoderBase
 {
  public:
-  CTFCoder() : o2::ctf::CTFCoderBase(CTF::getNBlocks()) {}
+  CTFCoder() : o2::ctf::CTFCoderBase(CTF::getNBlocks(), o2::detectors::DetID::TPC) {}
   ~CTFCoder() = default;
 
   /// entropy-encode compressed clusters to flat buffer
@@ -134,7 +134,7 @@ void CTFCoder::encode(VEC& buff, const CompressedClusters& ccl)
   ENCODETPC(ccl.nTrackClusters,    ccl.nTrackClusters + ccl.nTracks,                 CTF::BLCnTrackClusters,    o2::rans::ProbabilityBits16Bit);
   ENCODETPC(ccl.nSliceRowClusters, ccl.nSliceRowClusters + ccl.nSliceRows,           CTF::BLCnSliceRowClusters, o2::rans::ProbabilityBits25Bit);
   // clang-format on
-  CTF::get(buff.data())->print("TPC done: ");
+  CTF::get(buff.data())->print(getPrefix());
 }
 
 /// decode entropy-encoded bloks to TPC CompressedClusters into the externally provided vector (e.g. PMR vector from DPL)
@@ -154,7 +154,7 @@ void CTFCoder::decode(const CTF::base& ec, VEC& buffVec)
 
   setCompClusAddresses(cc, buff);
   ccFlat->set(sz, cc); // set offsets
-
+  ec.print(getPrefix());
   // decode encoded data directly to destination buff
 #define DECODETPC(part, slot) ec.decode(part, int(slot), mCoders[int(slot)].get())
   // clang-format off
