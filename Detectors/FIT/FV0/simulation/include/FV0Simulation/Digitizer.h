@@ -12,7 +12,7 @@
 #define ALICEO2_FV0_DIGITIZER_H
 
 #include "FV0Base/Constants.h"
-#include <FV0Simulation/MCLabel.h>
+#include <DataFormatsFV0/MCLabel.h>
 #include <FV0Simulation/DigitizationConstant.h>
 #include <FV0Simulation/FV0DigParam.h>
 #include <DataFormatsFV0/ChannelData.h>

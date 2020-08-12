@@ -25,7 +25,7 @@
 #include "DataFormatsParameters/GRPObject.h"
 #include "FV0Simulation/Digitizer.h"
 #include "FV0Simulation/DigitizationConstant.h"
-#include "FV0Simulation/MCLabel.h"
+#include "DataFormatsFV0/MCLabel.h"
 #include "SimulationDataFormat/MCCompLabel.h"
 #include "DetectorsBase/BaseDPLDigitizer.h"
 #include <TFile.h>
