@@ -93,10 +93,6 @@ void convertRun2ToRun3Digits(TString qaOutPath = "",
         if (!idx->HasEntry())
           continue;
 
-        AliTRDarrayADC* digits;
-        digits = digitMan->GetDigits(det);
-        digits->Expand();
-
         int row, col;
         while (idx->NextRCIndex(row, col)) {
           int tbsum = 0;
@@ -106,10 +102,12 @@ void convertRun2ToRun3Digits(TString qaOutPath = "",
             hAdc->Fill(adc);
             tbsum += adc;
 
-            adctimes[timebin] = digits->GetData(row, col, timebin);
+            adctimes[timebin] = adc;
           }
 
-          run3Digits.push_back(o2::trd::Digit(det, row, col, adctimes, eventtime));
+          if (tbsum > 0) {
+            run3Digits.push_back(o2::trd::Digit(det, row, col, adctimes, eventtime));
+          }
 
           hTBsum->Fill(tbsum);
         }
