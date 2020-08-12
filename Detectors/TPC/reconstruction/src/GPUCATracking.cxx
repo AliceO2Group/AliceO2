@@ -64,8 +64,8 @@ void GPUCATracking::deinitialize()
 
 int GPUCATracking::runTracking(GPUO2InterfaceIOPtrs* data, GPUInterfaceOutputs* outputs)
 {
-  if ((int)(data->tpcZS != nullptr) + (int)(data->o2Digits != nullptr) + (int)(data->clusters != nullptr) + (int)(data->compressedClusters != nullptr) != 1) {
-    return 0;
+  if ((int)(data->tpcZS != nullptr) + (int)(data->o2Digits != nullptr && (data->tpcZS == nullptr || data->o2DigitsMC == nullptr)) + (int)(data->clusters != nullptr) + (int)(data->compressedClusters != nullptr) != 1) {
+    throw std::runtime_error("Invalid input for gpu tracking");
   }
 
   std::vector<TrackTPC>* outputTracks = data->outputTracks;
