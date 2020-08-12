@@ -40,11 +40,7 @@ class CTFWriterSpec : public o2::framework::Task
 {
  public:
   CTFWriterSpec() = delete;
-  CTFWriterSpec(DetID::mask_t dm, uint64_t r = 0, bool doCTF = true, bool doDict = false, bool dictPerDet = false) : mDets(dm), mRun(r), mWriteCTF(doCTF), mCreateDict(doDict), mDictPerDetector(dictPerDet)
-  {
-    mTimer.Stop();
-    mTimer.Reset();
-  }
+  CTFWriterSpec(DetID::mask_t dm, uint64_t r = 0, bool doCTF = true, bool doDict = false, bool dictPerDet = false);
   ~CTFWriterSpec() override = default;
   void init(o2::framework::InitContext& ic) final;
   void run(o2::framework::ProcessingContext& pc) final;
@@ -59,6 +55,7 @@ class CTFWriterSpec : public o2::framework::Task
   void storeDictionaries();
   void prepareDictionaryTreeAndFile(DetID det);
   void closeDictionaryTreeAndFile(CTFHeader& header);
+  std::string dictionaryFileName(const std::string& detName = "");
 
   DetID::mask_t mDets; // detectors
   bool mWriteCTF = false;

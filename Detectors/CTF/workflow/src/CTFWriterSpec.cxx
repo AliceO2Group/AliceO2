@@ -13,6 +13,7 @@
 #include <vector>
 #include <TFile.h>
 #include <TTree.h>
+#include <TSystem.h>
 
 #include "Framework/Logger.h"
 #include "Framework/ControlService.h"
@@ -43,6 +44,28 @@ void appendToTree(TTree& tree, const std::string brname, T& ptr)
   }
   br->Fill();
   br->ResetAddress();
+}
+
+CTFWriterSpec::CTFWriterSpec(DetID::mask_t dm, uint64_t r, bool doCTF, bool doDict, bool dictPerDet)
+  : mDets(dm), mRun(r), mWriteCTF(doCTF), mCreateDict(doDict), mDictPerDetector(dictPerDet)
+{
+  mTimer.Stop();
+  mTimer.Reset();
+
+  if (doDict) { // make sure that there is no local dictonary
+    for (int id = 0; id < DetID::nDetectors; id++) {
+      DetID det(id);
+      if (isPresent(det)) {
+        auto dictName = dictionaryFileName(det.getName());
+        if (gSystem->AccessPathName(dictName.c_str()) == 0) {
+          throw std::runtime_error(o2::utils::concat_string("CTF dictionary creation is requested but ", dictName, " already exists, remove it!"));
+        }
+        if (!mDictPerDetector) {
+          break; // no point in checking further
+        }
+      }
+    }
+  }
 }
 
 void CTFWriterSpec::init(InitContext& ic)
@@ -112,9 +135,20 @@ void CTFWriterSpec::prepareDictionaryTreeAndFile(DetID det)
     }
   }
   if (!mDictTreeOut) {
-    std::string fnm = mDictPerDetector ? o2::utils::concat_string(det.getName(), "_", o2::base::NameConf::CTFDICT, ".root") : o2::utils::concat_string(o2::base::NameConf::CTFDICT, ".root");
-    mDictFileOut.reset(TFile::Open(fnm.c_str(), "recreate"));
+    mDictFileOut.reset(TFile::Open(dictionaryFileName(det.getName()).c_str(), "recreate"));
     mDictTreeOut = std::make_unique<TTree>(std::string(o2::base::NameConf::CTFDICT).c_str(), "O2 CTF dictionary");
+  }
+}
+
+std::string CTFWriterSpec::dictionaryFileName(const std::string& detName)
+{
+  if (mDictPerDetector) {
+    if (detName.empty()) {
+      throw std::runtime_error("Per-detector dictionary files are requested but detector name is not provided");
+    }
+    return o2::utils::concat_string(detName, "_", o2::base::NameConf::CTFDICT, ".root");
+  } else {
+    return o2::utils::concat_string(o2::base::NameConf::CTFDICT, ".root");
   }
 }
 
@@ -147,7 +181,7 @@ void CTFWriterSpec::closeDictionaryTreeAndFile(CTFHeader& header)
 DataProcessorSpec getCTFWriterSpec(DetID::mask_t dets, uint64_t run, bool doCTF, bool doDict, bool dictPerDet)
 {
   std::vector<InputSpec> inputs;
-  LOG(INFO) << "Det list:";
+  LOG(INFO) << "Detectors list:";
   for (auto id = DetID::First; id <= DetID::Last; id++) {
     if (dets[id]) {
       inputs.emplace_back(DetID::getName(id), DetID::getDataOrigin(id), "CTFDATA", 0, Lifetime::Timeframe);
