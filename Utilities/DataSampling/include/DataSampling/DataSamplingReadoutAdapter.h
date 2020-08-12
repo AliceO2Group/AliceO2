@@ -11,19 +11,19 @@
 #ifndef ALICEO2_DATASAMPLINGREADOUTADAPTER_H
 #define ALICEO2_DATASAMPLINGREADOUTADAPTER_H
 
-#include "ExternalFairMQDeviceProxy.h"
+#include "Framework/ExternalFairMQDeviceProxy.h"
 
 namespace o2
 {
-namespace framework
+namespace utilities
 {
 
 /// An adapter function for data sent by Readout for Data Sampling / Quality control purposes.
 /// It adds DataHeader and DataProcessingHeader using information found in received DataBlockHeaderBase
 /// header and given OutputSpec. It **IGNORES** SubSpecification in OutputSpec and uses linkID instead.
-InjectorFunction dataSamplingReadoutAdapter(OutputSpec const& spec);
+framework::InjectorFunction dataSamplingReadoutAdapter(framework::OutputSpec const& spec);
 
-} // namespace framework
+} // namespace utilities
 } // namespace o2
 
 #endif //ALICEO2_DATASAMPLINGREADOUTADAPTER_H

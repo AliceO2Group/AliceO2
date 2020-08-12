@@ -13,9 +13,9 @@
 ///
 /// \author Piotr Konopka, piotr.jan.konopka@cern.ch
 
-#include "Framework/DataSamplingHeader.h"
+#include "DataSampling/DataSamplingHeader.h"
 
-namespace o2::framework
+namespace o2::utilities
 {
 
 DataSamplingHeader::DataSamplingHeader() : BaseHeader(sizeof(DataSamplingHeader), sHeaderType, sSerializationMethod, sVersion)
@@ -37,8 +37,8 @@ const DataSamplingHeader* DataSamplingHeader::Get(const BaseHeader* baseHeader)
 }
 
 // storage for DataSamplingHeader static members
-const uint32_t o2::framework::DataSamplingHeader::sVersion = 1;
-const o2::header::HeaderType o2::framework::DataSamplingHeader::sHeaderType = header::String2<uint64_t>("DataSamp");
-const o2::header::SerializationMethod o2::framework::DataSamplingHeader::sSerializationMethod = o2::header::gSerializationMethodNone;
+const uint32_t o2::utilities::DataSamplingHeader::sVersion = 1;
+const o2::header::HeaderType o2::utilities::DataSamplingHeader::sHeaderType = header::String2<uint64_t>("DataSamp");
+const o2::header::SerializationMethod o2::utilities::DataSamplingHeader::sSerializationMethod = o2::header::gSerializationMethodNone;
 
-} // namespace o2::framework
+} // namespace o2::utilities

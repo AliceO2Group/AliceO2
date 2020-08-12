@@ -9,10 +9,12 @@
 // or submit itself to any jurisdiction.
 
 #include "Framework/RootSerializationSupport.h"
-#include "Framework/DataSampling.h"
+#include "DataSampling/DataSampling.h"
 #include <thread>
 
 using namespace o2::framework;
+using namespace o2::utilities;
+
 void customize(std::vector<CompletionPolicy>& policies)
 {
   DataSampling::CustomizeInfrastructure(policies);
@@ -26,7 +28,7 @@ void customize(std::vector<ChannelConfigurationPolicy>& policies)
 #include "Framework/DataProcessorSpec.h"
 #include "Framework/runDataProcessing.h"
 #include "Framework/TMessageSerializer.h"
-#include "Framework/DataSamplingHeader.h"
+#include "DataSampling/DataSamplingHeader.h"
 #include "Framework/Logger.h"
 #include <TClonesArray.h>
 #include <TObjString.h>
@@ -85,8 +87,8 @@ WorkflowSpec defineDataProcessing(ConfigContext const&)
   DataProcessorSpec qcTaskTpc{
     "qcTaskTpc",
     Inputs{
-      { "TPC_CLUSTERS_S",   {"DS", "simpleQcTask-0"}},
-      { "TPC_CLUSTERS_P_S", {"DS", "simpleQcTask-1"}}
+      { "TPC_CLUSTERS_S",   {"DS", "simpleQcTask0"}},
+      { "TPC_CLUSTERS_P_S", {"DS", "simpleQcTask1"}}
     },
     Outputs{},
     AlgorithmSpec{
@@ -178,8 +180,8 @@ WorkflowSpec defineDataProcessing(ConfigContext const&)
   DataProcessorSpec rootQcTask{
     "rootQcTask",
     {
-      InputSpec{ "TST_HISTOS_S", {"DS", "rootQcTask-0"}},
-      InputSpec{ "TST_STRING_S", {"DS", "rootQcTask-1"}},
+      InputSpec{ "TST_HISTOS_S", {"DS", "rootQcTask0"}},
+      InputSpec{ "TST_STRING_S", {"DS", "rootQcTask1"}},
     },
     Outputs{},
     AlgorithmSpec{

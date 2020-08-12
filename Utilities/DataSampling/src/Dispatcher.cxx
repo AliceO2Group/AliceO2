@@ -13,10 +13,10 @@
 ///
 /// \author Piotr Konopka, piotr.jan.konopka@cern.ch
 
-#include "Framework/Dispatcher.h"
+#include "DataSampling/Dispatcher.h"
 #include "Framework/RawDeviceService.h"
-#include "Framework/DataSamplingPolicy.h"
-#include "Framework/DataSamplingHeader.h"
+#include "DataSampling/DataSamplingPolicy.h"
+#include "DataSampling/DataSamplingHeader.h"
 #include "Framework/DataProcessingHeader.h"
 #include "Framework/DataSpecUtils.h"
 #include "Framework/Logger.h"
@@ -30,8 +30,9 @@
 
 using namespace o2::configuration;
 using namespace o2::monitoring;
+using namespace o2::framework;
 
-namespace o2::framework
+namespace o2::utilities
 {
 
 Dispatcher::Dispatcher(std::string name, const std::string reconfigurationSource)
@@ -220,4 +221,4 @@ Outputs Dispatcher::getOutputSpecs()
   return outputs;
 }
 
-} // namespace o2::framework
+} // namespace o2::utilities
