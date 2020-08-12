@@ -17,7 +17,6 @@
 //                                                                           //
 ///////////////////////////////////////////////////////////////////////////////
 
-//#include "TTreeStream.h"
 
 #include "TRDBase/TRDSimParam.h"
 #include "TRDBase/TRDCommonParam.h"
@@ -1470,12 +1469,9 @@ void TrapSimulator::addHitToFitreg(int adc, unsigned short timebin, unsigned sho
       (timebin < mTrapConfig->getTrapReg(TrapConfig::kTPQE1, mDetector, mRobPos, mMcmPos))) {
     mFitReg[adc].mQ1 += qtot;
   }
-
-  if ((timebin > mTrapConfig->getTrapReg(TrapConfig::kTPQE1, mDetector, mRobPos, mMcmPos)) &&
-      (timebin > mTrapConfig->getTrapReg(TrapConfig::kTPQE0, mDetector, mRobPos, mMcmPos)) &&
-      (timebin < mNTimeBin)) {
+  // Q2 is simply the addition of times from 3 to 5, for now consts in the header file till they come from a config.
+  if (timebin > mQ2Startbin && timebin < mQ2Endbin) {
     mFitReg[adc].mQ2 += qtot;
-    // TODO I am not sure what happens with Q2, for now just assume its the rest of the time windows after Q0 and Q1 and before the end of the time bins.
   }
 
   if ((timebin >= mTrapConfig->getTrapReg(TrapConfig::kTPFS, mDetector, mRobPos, mMcmPos)) &&
