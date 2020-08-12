@@ -13,6 +13,7 @@ o2_add_library(DataFormatsFV0
                 src/ChannelData.cxx
                 src/BCData.cxx
                 src/RawEventData.cxx
+                src/CTF.cxx
         PUBLIC_LINK_LIBRARIES O2::FV0Base
                               O2::SimulationDataFormat
                               O2::CommonDataFormat
@@ -24,4 +25,5 @@ o2_target_root_dictionary(DataFormatsFV0
                 include/DataFormatsFV0/MCLabel.h
                 include/DataFormatsFV0/ChannelData.h
                 include/DataFormatsFV0/RawEventData.h
-                include/DataFormatsFV0/LookUpTable.h)
+                include/DataFormatsFV0/LookUpTable.h
+                include/DataFormatsFV0/CTF.h)
