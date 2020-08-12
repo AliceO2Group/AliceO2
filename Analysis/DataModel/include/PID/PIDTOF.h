@@ -11,6 +11,8 @@
 ///
 /// \file   PIDTOF.h
 /// \author Nicolo' Jacazio
+/// \since  02/07/2020
+/// \brief  Implementation of the TOF detector response for PID
 ///
 
 #ifndef O2_FRAMEWORK_PIDTOF_H_
@@ -23,6 +25,7 @@
 // O2 includes
 #include "Framework/Logger.h"
 #include "ReconstructionDataFormats/PID.h"
+#include "PIDBase/DetectorResponse.h"
 
 namespace o2::pid::tof
 {
@@ -52,49 +55,20 @@ class EventTime
   float GetEvTimeReso(float mom) const { return mEvTimeReso[GetMomBin(mom)]; }
 
  private:
-  static const uint mNmomBins = 1;                           /// Number of momentum bin
-  static constexpr float mMomBins[mNmomBins + 1] = {0, 100}; /// Momentum bins
-  float mEvTime[mNmomBins];                                  /// Evtime (best, T0, T0-TOF, ...) of the event as a function of p
-  float mEvTimeReso[mNmomBins];                              /// Evtime (best, T0, T0-TOF, ...) resolution as a function of p
-  int mEvTimeMask[mNmomBins];                                /// Mask withthe T0 used (0x1=T0-TOF,0x2=T0A,0x3=TOC) for p bins
+  static const unsigned int mNmomBins = 1;                               /// Number of momentum bin
+  static constexpr std::array<float, mNmomBins + 1> mMomBins = {0, 100}; /// Momentum bins
+  std::array<float, mNmomBins> mEvTime;                                  /// Evtime (best, T0, T0-TOF, ...) of the event as a function of p
+  std::array<float, mNmomBins> mEvTimeReso;                              /// Evtime (best, T0, T0-TOF, ...) resolution as a function of p
+  std::array<int, mNmomBins> mEvTimeMask;                                /// Mask withthe T0 used (0x1=T0-TOF,0x2=T0A,0x3=TOC) for p bins
 };
 
-/// \brief Class to handle the parametrization of the detector response
-class Param
-{
- public:
-  Param() = default;
-  ~Param() = default;
-
-  /// Setter for expected time resolution
-  void SetTimeResolution(float res) { mSigma = res; }
-  /// Getter for expected time resolution
-  float GetTimeResolution() const { return mSigma; }
-
-  // Tracking resolution for expected times
-  /// Setter for resolution parametrization
-  void SetTrackParameter(uint ip, float value) { ip < mParDim ? mPar[ip] = value : 0.f; };
-  /// Getter for resolution parametrization
-  float GetTrackParameter(uint ip) { return ip < mParDim ? mPar[ip] : -999.f; };
-
-  /// Getter for the expected resolution.
-  /// Returns the expected sigma of the PID signal for the specified
-  /// particle mass/Z.
-  /// If the operation is not possible, return a negative value.
-  double GetExpectedSigma(float mom, float tof, float evtimereso, float massZ) const;
-
- private:
-  double mSigma; /// intrinsic TOF resolution
-  static constexpr uint mParDim = 4;
-  float mPar[mParDim] = {0.008, 0.008, 0.002, 40.0}; /// parameter for expected time resolutions
-};
 
 /// \brief Class to handle the the TOF detector response
-class Response
+class Response : public DetectorResponse
 {
  public:
   Response() = default;
-  ~Response() = default;
+  ~Response() override = default;
 
   /// Updater for the TOF response to setup the track parameters
   /// i.e. sets the track of interest
@@ -110,10 +84,6 @@ class Response
   void SetEventTime(EventTime& evtime) { mEventTime = evtime; };
   /// Getter for the event time information in the parametrization
   EventTime GetEventTime() const { return mEventTime; };
-  /// Setter for the resolution parametrization
-  void SetParam(Param& evtime) { mParam = evtime; };
-  /// Getter for the resolution parametrization
-  Param GetParam() const { return mParam; };
 
   // TOF beta
   /// Computes the beta of a track given a length, a time measurement and an event time
@@ -135,20 +105,19 @@ class Response
   /// Computes the expected time of a track, given it TOF expected momentum
   static float ComputeExpectedTime(float tofexpmom, float length, float massZ);
   /// Gets the expected signal of the track of interest under the PID assumption
-  float GetExpectedSignal(o2::track::PID::ID id) const { return ComputeExpectedTime(mTOFExpMomentum, mLength, o2::track::PID::getMass2Z(id)); }
+  float GetExpectedSignal(o2::track::PID::ID id) const override { return ComputeExpectedTime(mTOFExpMomentum, mLength, o2::track::PID::getMass2Z(id)); }
 
   // Expected resolution
   /// Gets the expected resolution of the measurement
-  float GetExpectedSigma(o2::track::PID::ID id) const { return mParam.GetExpectedSigma(mMomentum, mTOFSignal, mEventTime.GetEvTimeReso(mMomentum), o2::track::PID::getMass2Z(id)); }
+  float GetExpectedSigma(o2::track::PID::ID id) const override;
 
   // Nsigma
-  float GetNumberOfSigmas(o2::track::PID::ID id) const { return (mTOFSignal - mEventTime.GetEvTime(mMomentum) - GetExpectedSignal(id)) / GetExpectedSigma(id); }
+  float GetSeparation(o2::track::PID::ID id) const override { return (mTOFSignal - mEventTime.GetEvTime(mMomentum) - GetExpectedSignal(id)) / GetExpectedSigma(id); }
 
-  // double GetMismatchProbability(double time, double eta) const;
+  // float GetMismatchProbability(float time, float eta) const;
   // Utility values
   static constexpr float kCSPEED = TMath::C() * 1.0e2f * 1.0e-12f; /// Speed of light in TOF units (cm/ps)
  private:
-  Param mParam; /// Parametrization of the TOF signal
   // Event of interest information
   EventTime mEventTime; /// Event time object
   // Track of interest information

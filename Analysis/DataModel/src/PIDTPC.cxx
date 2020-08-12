@@ -9,31 +9,27 @@
 // or submit itself to any jurisdiction.
 
 #include "PID/PIDTPC.h"
-#include "TPCSimulation/Detector.h"
 
 namespace o2::pid::tpc
 {
 
-float BetheBlochF(float betagamma, const std::array<float, 5> p)
+void Response::UpdateTrack(float mom, float tpcsignal, float tpcpoints)
 {
-  // Parameters of the ALEPH Bethe-Bloch formula
-  return o2::tpc::Detector::BetheBlochAleph(betagamma, p[0], p[1], p[2], p[3], p[4]);
+  mMomentum = mom;
+  mTPCSignal = tpcsignal;
+  mTPCPoints = tpcpoints;
+};
+
+float Response::GetExpectedSignal(o2::track::PID::ID id) const
+{
+  const float x[2] = {mMomentum / o2::track::PID::getMass(id), (float)o2::track::PID::getCharge(id)};
+  return this->operator()(kSignal, x);
 }
 
-float RelResolutionF(float npoints, const std::array<float, 2> p)
+float Response::GetExpectedSigma(o2::track::PID::ID id) const
 {
-  // relative dEdx resolution rel sigma = fRes0*sqrt(1+fResN2/npoint)
-  return p[0] * (npoints > 0 ? sqrt(1. + p[1] / npoints) : 1.f);
-}
-
-float Param::GetExpectedSignal(float mom, float mass, float charge) const
-{
-  return mBetheBloch.GetValue(mom / mass) * mMIP * GetChargeFactor(charge);
-}
-
-float Param::GetExpectedSigma(float npoints, float tpcsignal) const
-{
-  return tpcsignal * mRelResolution.GetValue(npoints);
+  const float x[2] = {mTPCSignal, mTPCPoints};
+  return this->operator()(kSigma, x);
 }
 
 } // namespace o2::pid::tpc

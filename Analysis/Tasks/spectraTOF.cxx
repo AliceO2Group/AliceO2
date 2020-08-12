@@ -148,7 +148,6 @@ struct SpectraTask {
 WorkflowSpec defineDataProcessing(ConfigContext const&)
 {
   return WorkflowSpec{
-    adaptAnalysisTask<pidTOFTask>("pidTOF-task"),
     adaptAnalysisTask<TOFPIDQATask>("tofpidqa-task"),
     adaptAnalysisTask<SpectraTask>("filterEl-task")};
 }

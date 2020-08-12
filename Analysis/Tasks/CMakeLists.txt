@@ -58,6 +58,16 @@ o2_add_dpl_workflow(spectra-tpc
                     PUBLIC_LINK_LIBRARIES O2::Framework O2::DetectorsBase O2::AnalysisDataModel
                     COMPONENT_NAME Analysis)
 
+o2_add_dpl_workflow(pid-tof
+                    SOURCES pidTOF.cxx
+                    PUBLIC_LINK_LIBRARIES O2::Framework O2::DetectorsBase O2::AnalysisDataModel
+                    COMPONENT_NAME Analysis)
+
+o2_add_dpl_workflow(pid-tpc
+                    SOURCES pidTPC.cxx
+                    PUBLIC_LINK_LIBRARIES O2::Framework O2::DetectorsBase O2::AnalysisDataModel
+                    COMPONENT_NAME Analysis)
+
 o2_add_dpl_workflow(validation
                     SOURCES validation.cxx
                     PUBLIC_LINK_LIBRARIES O2::Framework O2::DetectorsBase
