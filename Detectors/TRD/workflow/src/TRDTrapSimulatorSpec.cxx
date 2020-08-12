@@ -65,6 +65,11 @@ namespace trd
 
 bool msgDigitSortComparator(o2::trd::Digit const& a, o2::trd::Digit const& b)
 {
+  // sort digits.
+  // order of sort, is time, detector, hlaf chamber index, readout board, mcm.
+  // the pads wont be in order they are in, in the pad row.
+  // it however does not matter as all the relevant pads will be loaded into the 8 mcms of the pad row.
+  // so the shared pad issue is fixed.
   FeeParam* fee = FeeParam::instance();
   int rowa = a.getRow();
   int rowb = b.getRow();
@@ -98,8 +103,7 @@ bool msgDigitSortComparator(o2::trd::Digit const& a, o2::trd::Digit const& b)
     }
     return 0;
 
-    /* 
-    if (deta < detb)
+    /*     if (deta < detb)
       return 1;
     else {
       if (deta == detb) {
@@ -198,7 +202,7 @@ void TRDDPLTrapSimulatorTask::loadTrapConfig()
   LOG(info) << "looking for TRAPconfig " << mTrapConfigName;
 
   auto& ccdbmgr = o2::ccdb::BasicCCDBManager::instance();
-  ccdbmgr.setTimestamp(297595);
+  ccdbmgr.setTimestamp(mRunNumber);
   //default is : mTrapConfigName="cf_pg-fpnp32_zs-s16-deh_tb30_trkl-b5n-fs1e24-ht200-qs0e24s24e23-pidlinear-pt100_ptrg.r5549";
   mTrapConfigName = "c";
   mTrapConfig = ccdbmgr.get<o2::trd::TrapConfig>("TRD_test/TrapConfig2020/c");
@@ -445,6 +449,19 @@ void TRDDPLTrapSimulatorTask::run(o2::framework::ProcessingContext& pc)
   for (auto& trig : trackletTriggerRecords) {
     LOG(debug) << "Trigger Tracklet  Record ; " << trig.getFirstEntry() << " --> " << trig.getNumberOfObjects();
   }
+  //print digits to check the sorting.
+  LOG(debug4) << " Digits : ";
+  for (auto& digit : msgDigits) {
+    LOG(debug4) << "sorted digit time:" << digit.getTimeStamp() << " detector:row:pad:rob:mcm ::"
+                << digit.getDetector() << ":" << digit.getRow() << ":" << digit.getPad() << ":"
+                << mFeeParam->getROBfromPad(digit.getRow(), digit.getPad()) << ":"
+                << mFeeParam->getMCMfromPad(digit.getRow(), digit.getPad())
+                << " HCID:" << getHalfChamberID(digit.getDetector(), mFeeParam->getROBfromPad(digit.getRow(), digit.getPad())) << "\t\t  SM:stack:layer:side  "
+                << digit.getDetector() / 30 << ":" << TRDGeometry::getStack(digit.getDetector())
+                << ":" << TRDGeometry::getLayer(digit.getDetector()) << ":" << FeeParam::instance()->getRobSide(mFeeParam->getROBfromPad(digit.getRow(), digit.getPad()))
+                << " with ORI# : " << mFeeParam->getORI(digit.getDetector(), mFeeParam->getROBfromPad(digit.getRow(), digit.getPad()))
+                << " within SM ori#:" << mFeeParam->getORIinSM(digit.getDetector(), mFeeParam->getROBfromPad(digit.getRow(), digit.getPad()));
+  }
   //accounting variables for various things.
   //TODO make them class members, i dont want to fiddle right now though.
   int olddetector = -1;
@@ -462,6 +479,7 @@ void TRDDPLTrapSimulatorTask::run(o2::framework::ProcessingContext& pc)
   // now to loop over the incoming digits.
   auto digitloopstart = std::chrono::high_resolution_clock::now();
   uint64_t digitcounter = 0;
+  double b = 0;
   LOG(debug4) << "now for digit loop ";
   for (auto digititerator = msgDigits.begin(); digititerator != msgDigits.end() /* && std::distance(msgDigits.begin(),digititerator)<7*/; ++digititerator) {
     //in here we have an entire padrow which corresponds to 8 TRAPs.
@@ -474,8 +492,18 @@ void TRDDPLTrapSimulatorTask::run(o2::framework::ProcessingContext& pc)
     int detector = digititerator->getDetector();
     int rob = mFeeParam->getROBfromPad(row, pad);
     int mcm = mFeeParam->getMCMfromPad(row, pad);
-    LOG(debug3) << "calculated rob and mcm at top of loop with detector:row:pad:rob:mcm" << detector << ":" << row << ":" << pad << ":" << rob << ":" << mcm;
+    int trdstack = TRDGeometry::getStack(detector);
+    int trdlayer = TRDGeometry::getLayer(detector);
+    int fibreside = FeeParam::instance()->getRobSide(rob);
+    LOG(debug) << "calculated rob and mcm at top of loop with detector:row:pad:rob:mcm ::"
+               << detector << ":" << row << ":" << pad << ":" << rob << ":" << mcm
+               << " HCID:" << getHalfChamberID(detector, rob) << "\t\t  SM:stack:layer:side  " << detector / 30 << ":" << trdstack << ":" << trdlayer << ":" << fibreside
+               << " with ORI : " << mFeeParam->getORI(detector, rob) << " and within supermodule ori index:" << mFeeParam->getORIinSM(detector, rob);
     LOG(debug) << "digit time :  " << digittime;
+    if (row == 4 && pad == 17 && rob == 2 & mcm == 0) {
+      // here for debugging.
+      b = sin(30);
+    }
     if (digititerator == msgDigits.begin()) { // first time in loop
       oldrow = row;
       olddetector = detector;
@@ -529,16 +557,15 @@ void TRDDPLTrapSimulatorTask::run(o2::framework::ProcessingContext& pc)
             // .. fix the previous linkrecord to note its end of range.
             if (mLinkRecords.size() == 0) { // special case for the first entry into the linkrecords vector.
               mLinkRecords.emplace_back(mTrackletHCHeader.word, 0, -1);
+              LOG(debug) << " added HCID :[record.size==0] " << mTrackletHCHeader.HCID << " with number of bytes : " << mTotalRawWordsWritten << "-" << mLinkRecords.back().getFirstEntry();
             } else {
               mLinkRecords.back().setNumberOfObjects(mTotalRawWordsWritten - mLinkRecords.back().getFirstEntry()); // current number of words written - the start of this index record.
+              LOG(debug) << " added HCID : " << mTrackletHCHeader.HCID << " with number of bytes : " << mTotalRawWordsWritten << "-" << mLinkRecords.back().getFirstEntry();
               //..... so write the new one thing
-
               mLinkRecords.emplace_back(mTrackletHCHeader.word, mTotalRawWordsWritten, -1); // set the number of elements to -1 for an error condition
             }
-            //mTotalRawWordsWritten++; //no longer writing to raw stream
             mNewTrackletHCHeaderHasBeenWritten = true;
             LOG(debug) << mTrackletHCHeader;
-            LOG(info) << " add HCID : " << mTrackletHCHeader.HCID;
           }
           LOG(debug) << "getting trackletsteram for trapcounter = " << trapcounter;
           auto wordswritten = mTrapSimulator[trapcounter].getTrackletStream(rawdata, mTotalRawWordsWritten); // view of data from current marker and only 5 words long (can only have 4 words at most in the trackletstream for 1 MCM)
@@ -553,7 +580,7 @@ void TRDDPLTrapSimulatorTask::run(o2::framework::ProcessingContext& pc)
           mTrapSimAccumulatedTime += std::chrono::high_resolution_clock::now() - trapsimtimerstart;
           if (mShowTrackletStats > 0) {
             if (trapTrackletsAccum.size() - oldsize > mShowTrackletStats) {
-              LOG(info) << "TrapSim Accumulated tracklets: " << trapTrackletsAccum.size() << " :: " << trapTracklets.size();
+              LOG(debug) << "TrapSim Accumulated tracklets: " << trapTrackletsAccum.size() << " :: " << trapTracklets.size();
               oldsize = trapTrackletsAccum.size();
             }
           }
@@ -564,7 +591,7 @@ void TRDDPLTrapSimulatorTask::run(o2::framework::ProcessingContext& pc)
           //  mTrapSimulator[trapcounter].draw(mDrawTrackletOptions, loopindex);
           if (mDebugRejectedTracklets) {                    //&& trapTracklets.size()==0) {
             mTrapSimulator[trapcounter].draw(7, loopindex); //draw adc when no tracklets are found.A
-            LOG(info) << "loop index  : " << loopindex;
+            LOG(debug) << "loop index  : " << loopindex;
             mTrapSimulator[trapcounter].print(1);
             // if(loopindex==320) LOG(fatal) <<"exiting at trap loop count 320";
           }
@@ -577,7 +604,7 @@ void TRDDPLTrapSimulatorTask::run(o2::framework::ProcessingContext& pc)
         } else {
           LOG(debug) << "if statement is init failed [" << trapcounter << "] PROCESSING TRAP !";
         }
-        //  LOG(info) << "Finishe MCM : : " << trapcounter;
+        //  LOG(debug) << "Finishe MCM : : " << trapcounter;
       } //end of loop over trap chips
 
       //timing info
@@ -616,18 +643,23 @@ void TRDDPLTrapSimulatorTask::run(o2::framework::ProcessingContext& pc)
       tmplabels.push_back(tmplabel);
     }
     LOG(debug) << "tmplabels for set data : " << tmplabels.size() << " and gslspan digitlabels size of : " << digitslabels.size();
+    LOG(debug) << " setting data with pad=" << pad << " ti=" << trapindex + 1;
     mTrapSimulator[trapindex].setData(adc, digititerator->getADC(), tmplabels);
 
     // now take care of the case of shared pads (the whole reason for doing this pad row wise).
 
     if (pad % 18 == 0 || (pad + 1) % 18 == 0) { //case of pad 18 and 19 must be shared to preceding trap chip adc 1 and 0 respectively.
       adc = 20 - (pad % 18) - 1;
-      mTrapSimulator[trapindex - 1].setData(adc, digititerator->getADC(), tmplabels);
+      if (trapindex != 0) { // avoid the case of the first trap chip
+        LOG(debug) << " setting data preceding with pad=" << pad << " ti=" << trapindex - 1;
+        mTrapSimulator[trapindex - 1].setData(adc, digititerator->getADC(), tmplabels);
+      }
     }
     if ((pad - 1) % 18 == 0) { // case of pad 17 must shared to next trap chip as adc 20
                                //check trap is initialised.
       adc = 20 - (pad % 18) - 1;
       if (trapindex + 1 != 8) { // avoid the case of the last trap chip.
+        LOG(debug) << " setting data proceeding with pad=" << pad << " ti=" << trapindex + 1;
         mTrapSimulator[trapindex + 1].setData(adc, digititerator->getADC(), tmplabels);
       }
     }

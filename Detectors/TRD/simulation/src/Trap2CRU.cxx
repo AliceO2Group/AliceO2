@@ -53,31 +53,39 @@ Trap2CRU::Trap2CRU(const std::string& outputDir, const std::string& inputFilenam
   readTrapData(outputDir, inputFilename, 1024 * 1024);
 }
 
-void Trap2CRU::readTrapData(const std::string& otuputDir, const std::string& inputFilename, int superPageSizeInB)
+void Trap2CRU::readTrapData(const std::string& outputDir, const std::string& inputFilename, int superPageSizeInB)
 {
   //set things up, read the file and then deligate to convertTrapdata to do the conversion.
   //
   mRawData.reserve(1024 * 1024); //TODO take out the hardcoded 1MB its supposed to come in from the options
-  LOG(info) << "Trap2CRU::readTrapData";
+  LOG(debug) << "Trap2CRU::readTrapData";
   // data comes in index by event (triggerrecord) and link (linke record) both sequentially.
   // first 15 links go to cru0a, second 15 links go to cru0b, 3rd 15 links go to cru1a ... first 90 links to flp0 and then repate for 12 flp
   // then do next event
 
   // lets register our links
-  for (int link = 0; link < NumberOfCRU; link++) {
-    mFeeID = link;
-    mCruID = link;
-    mEndPointID = link * 2;
-    mLinkID = link;
-    std::string outputFilelink = o2::utils::concat_string("trd_cru_", std::to_string(link), "_a.raw");
-    mWriter.registerLink(mFeeID, mCruID, mLinkID, mEndPointID, outputFilelink);
-    outputFilelink = o2::utils::concat_string("trd_cru_", std::to_string(link), "_b.raw");
-    mEndPointID++;
+  std::string prefix = outputDir;
+  if (!prefix.empty() && prefix.back() != '/') {
+    prefix += '/';
+  }
+
+  for (int link = 0; link < NumberOfHalfCRU; link++) {
+    // FeeID *was* 0xFEED, now is indicates the cru Supermodule, side (A/C) and endpoint. See RawData.cxx for details.
+    int supermodule = link / 4;
+    int endpoint = link / 2;
+    int side = link % 2 ? 1 : 0;
+    mFeeID = buildTRDFeeID(supermodule, side, endpoint);
+    mCruID = link / 2;
+    mEndPointID = link % 2 ? 1 : 0; //TODO figure out a value ... endpoint needs a rebase to PR4106
+    mLinkID = TRDLinkID;
+    std::string trdside = link % 2 ? "c" : "a"; // the side of supermodule readout A or C, odd numbered CRU are A, even numbered CRU are C.
+    // filenmae structure of trd_cru_[CRU#]_[upper/lower].raw
+    std::string outputFilelink = o2::utils::concat_string(prefix, "trd_cru_", std::to_string(mCruID), "_", trdside, ".raw");
     mWriter.registerLink(mFeeID, mCruID, mLinkID, mEndPointID, outputFilelink);
   }
   mTrapRawFile = TFile::Open(inputFilename.data());
   assert(mTrapRawFile != nullptr);
-  LOG(info) << "Trap Raw file open " << inputFilename;
+  LOG(debug) << "Trap Raw file open " << inputFilename;
   mTrapRawTree = (TTree*)mTrapRawFile->Get("o2sim");
 
   mTrapRawTree->SetBranchAddress("TrapLinkRecord", &mLinkRecordsPtr);      // branch with the link records
@@ -92,15 +100,25 @@ void Trap2CRU::readTrapData(const std::string& otuputDir, const std::string& inp
       //get the event limits from TriggerRecord;
       uint32_t eventstart = trigger.getFirstEntry();
       uint32_t eventend = trigger.getFirstEntry() + trigger.getNumberOfObjects();
-      LOG(info) << "Event starts at:" << eventstart << " and ends at :" << eventend;
+      LOG(debug) << "Event starts at:" << eventstart << " and ends at :" << eventend;
       convertTrapData(trigger);
     }
   }
 }
 
+int Trap2CRU::sortByORI()
+{
+  // data comes in sorted by padcolum, a row of 8 trap chips.
+  // this is sadly not how the electronics is actually connected.
+  // we therefore need to resort the data according to the ORI link.
+  // TODO consider unpacking an entire event into memory into a per ori vector, then dump it all out.
+  // this is not for production running so the performance hit of sortin is probably ok ?? TODO ask someone to verify that.
+  return 1;
+}
+
 void Trap2CRU::buildCRUPayLoad()
 {
-  // go through the data for the event in question, produce the raw stream for each cru.
+  // go through the data for the event in question, sort via above method, produce the raw stream for each cru.
   // i.e. 30 link per cru, 3cru per flp.
   // 30x [HalfCRUHeader, TrackletHCHeader0, [MCMHeader TrackletMCMData. .....] TrackletHCHeader1 ..... TrackletHCHeader30 ...]
   //
@@ -161,7 +179,7 @@ uint32_t Trap2CRU::buildCRUHeader(HalfCRUHeader& header, uint32_t bc, uint32_t h
     if (mLinkRecords[linkrecord].getLinkHCID() == hcid) {
       linksize = mLinkRecords[linkrecord].getNumberOfObjects();
       // this can be done differently by keeping a pointer to halfcruheader and setting it after reading it all in and going back per link to set the size.
-      // LOG(info) << "setting CRU HEADER for halfcru : " << halfcru << "and link : " << link << " contents" << halfcruheader << ":" << link << ":" << linksize << ":" << errors;
+      LOG(debug3) << "setting CRU HEADER for halfcru : " << halfcru << "and link : " << link << " contents" << header << ":" << link << ":" << linksize << ":" << errors;
       linkrecord++; // increment locally for walking through linkrecords.
     }
     linkSizePadding(linksize, crudatasize, padding);
@@ -183,8 +201,15 @@ void Trap2CRU::convertTrapData(o2::trd::TriggerRecord const& TrigRecord)
   //finished for event. this method is only called per event.
   int currentlinkrecord = 0;
   char* traprawdataptr = (char*)&mTrapRawData[0];
-  for (int halfcru = 0; halfcru < NumberOfHalfCRU; halfcru++) {     //TODO come back and replace 72 with something.
-                                                                    //   TrackletHC
+  for (int halfcru = 0; halfcru < NumberOfHalfCRU; halfcru++) {
+    int supermodule = halfcru / 4;
+    int endpoint = halfcru / 2;
+    int side = halfcru % 2 ? 1 : 0;
+    mFeeID = buildTRDFeeID(supermodule, side, endpoint);
+    mCruID = halfcru / 2;
+    mLinkID = TRDLinkID;
+    mEndPointID = halfcru % 2 ? 1 : 0;
+
     memset(&mRawData[0], 0, sizeof(mRawData[0]) * mRawData.size()); //   zero the rawdata storage
     int numberofdetectors = o2::trd::constants::MAXCHAMBER;
     HalfCRUHeader halfcruheader;
@@ -195,28 +220,23 @@ void Trap2CRU::convertTrapData(o2::trd::TriggerRecord const& TrigRecord)
 
     std::vector<char> rawdatavector(totalhalfcrudatasize * 32 + sizeof(halfcruheader)); // sum of link sizes + padding in units of bytes and some space for the header (512 bytes).
     char* rawdataptr = rawdatavector.data();
-    LOG(info) << "before writing halfcruheader pionter is sitting at " << std::hex << static_cast<void*>(rawdataptr);
-    dumpHalfCRUHeader(halfcruheader);
+
+    //dumpHalfCRUHeader(halfcruheader);
     memcpy(rawdataptr, (char*)&halfcruheader, sizeof(halfcruheader));
     std::array<uint64_t, 8> raw{};
     memcpy((char*)&raw[0], rawdataptr, sizeof(halfcruheader));
     for (int i = 0; i < 2; i++) {
       int index = 4 * i;
-      LOGF(debug, "[1/2rawdaptr %d] 0x%08x 0x%08x 0x%08x 0x%08x", i, raw[index + 3], raw[index + 2], raw[index + 1], raw[index + 0]);
+      LOG(debug) << "[1/2rawdaptr " << i << " " << std::hex << raw[index + 3] << " " << raw[index + 2] << " " << raw[index + 1] << " " << raw[index + 0];
     }
     rawdataptr += sizeof(halfcruheader);
-    LOG(info) << "For writing halfcruheader pionter advanced by " << std::dec << sizeof(halfcruheader) << " ptr is now at:" << std::hex << static_cast<void*>(rawdataptr);
-    LOG(debug) << "Just wrote cruheader for halfcru index : " << halfcru << " with contents \n"
-               << halfcruheader;
-    LOG(debug) << "end of halfcruheader";
 
     int linkdatasize = 0; // in 32 bit words
     int link = halfcru / 2;
-    int endpoint = halfcru;
     for (int halfcrulink = 0; halfcrulink < NLinksPerHalfCRU; halfcrulink++) {
       //links run from 0 to 14, so hcid offset is halfcru*15;
-      int hcid = halfcrulink + halfcru * NLinksPerHalfCRU; // TODO this might have to change to a lut I dont think the mapping is linear.
-      LOG(info) << "Currently checking for data on hcid : " << hcid << " from halfcru=" << halfcru << " and halfcrulink:" << halfcrulink << " ?? " << hcid << "==" << mLinkRecords[currentlinkrecord].getLinkHCID();
+      int hcid = halfcrulink + halfcru * NLinksPerHalfCRU;
+      LOG(debug) << "Currently checking for data on hcid : " << hcid << " from halfcru=" << halfcru << " and halfcrulink:" << halfcrulink << " ?? " << hcid << "==" << mLinkRecords[currentlinkrecord].getLinkHCID();
       int errors = 0;           // put no errors in for now.
       int size = 0;             // in 32 bit words
       int datastart = 0;        // in 32 bit words
@@ -225,18 +245,17 @@ void Trap2CRU::convertTrapData(o2::trd::TriggerRecord const& TrigRecord)
       uint32_t crudatasize = 0; // in 256 bit words.
       if (mLinkRecords[currentlinkrecord].getLinkHCID() == hcid) {
         //this link has data in the stream.
-        LOG(info) << "+++ We have data on hcid = " << hcid << " halfcrulink : " << halfcrulink;
+        LOG(debug) << "+++ We have data on hcid = " << hcid << " halfcrulink : " << halfcrulink;
         linkdatasize = mLinkRecords[currentlinkrecord].getNumberOfObjects();
         datastart = mLinkRecords[currentlinkrecord].getFirstEntry();
         dataend = datastart + size;
-        LOG(info) << "We have data on hcid = " << hcid << " and linksize : " << linkdatasize << " so :" << linkdatasize / 8 << " 256 bit words";
+        LOG(debug) << "We have data on hcid = " << hcid << " and linksize : " << linkdatasize << " so :" << linkdatasize / 8 << " 256 bit words";
         currentlinkrecord++;
       } else {
         assert(mLinkRecords[currentlinkrecord].getLinkId() < hcid);
-        LOG(info) << "---We do not have data on hcid = " << hcid << " halfcrulink : " << halfcrulink;
-        //blank data for this link??? what do i do?
+        LOG(debug) << "---We do not have data on hcid = " << hcid << " halfcrulink : " << halfcrulink;
+        //blank data for this link
         // put in a 1 256 bit word of data for the link and padd with 0xeeee x 8
-        //     tmpLinkInfo[halfcrulink] = -1;
         linkdatasize = 0;
         paddingsize = 8;
       }
@@ -244,30 +263,29 @@ void Trap2CRU::convertTrapData(o2::trd::TriggerRecord const& TrigRecord)
       //
       linkSizePadding(linkdatasize, crudatasize, paddingsize); //TODO this can come out as we have already called it, but previously we have lost the #padding words, solve to remove.
 
-      LOG(info) << "WRITING " << crudatasize << " 256 bit data words to output stream";
-      LOG(info) << "setting CRY HEADER for " << halfcruheader << ":" << halfcrulink << ":" << crudatasize << ":" << errors;
+      LOG(debug) << "WRITING " << crudatasize << " 256 bit data words to output stream";
+      LOG(debug) << "setting CRY HEADER for " << halfcruheader << ":" << halfcrulink << ":" << crudatasize << ":" << errors;
       // now pad ....
-      LOG(info) << " now to pump data into the stream with : " << linkdatasize << " crudatasize:" << crudatasize << " paddingsize: " << paddingsize << " and rem:" << linkdatasize % 8;
+      LOG(debug) << " now to pump data into the stream with : " << linkdatasize << " crudatasize:" << crudatasize << " paddingsize: " << paddingsize << " and rem:" << linkdatasize % 8;
       char* olddataptr = rawdataptr; // store the old pointer so we can do some sanity checks for how far we advance.
       //linkdatasize is the #of 32 bit words coming from the incoming tree.
       //paddingsize is the number of padding words to add 0xeeee
       uint32_t bytestocopy = linkdatasize * (sizeof(uint32_t));
-      LOG(info) << "copying " << bytestocopy << " bytes of link tracklet data at pos:" << std::hex << static_cast<void*>(rawdataptr);
+      LOG(debug) << "copying " << bytestocopy << " bytes of link tracklet data at pos:" << std::hex << static_cast<void*>(rawdataptr);
       memcpy(rawdataptr, traprawdataptr, bytestocopy);
       //increment pointer
       rawdataptr += bytestocopy;
       traprawdataptr += bytestocopy;
       //now for padding
       uint16_t padbytes = paddingsize * sizeof(uint32_t);
-      LOG(info) << "writing " << padbytes << " bytes of padding data  at pos:" << std::hex << static_cast<void*>(rawdataptr);
+      LOG(debug) << "writing " << padbytes << " bytes of padding data  at pos:" << std::hex << static_cast<void*>(rawdataptr);
       memset(rawdataptr, 0xee, padbytes);
       //increment pointer.
       rawdataptr += padbytes;
       if (padbytes + bytestocopy != crudatasize * 32) {
-        LOG(info) << "something wrong with data size writing padbytes:" << padbytes << " bytestocopy : " << bytestocopy << " crudatasize:" << crudatasize;
+        LOG(debug) << "something wrong with data size writing padbytes:" << padbytes << " bytestocopy : " << bytestocopy << " crudatasize:" << crudatasize;
       }
       LOG(debug3) << std::hex << " rawdataptr:" << static_cast<void*>(rawdataptr) << " traprawdataptr " << static_cast<void*>(traprawdataptr);
-      // printf(std::cout << std::hex << " rawdataptr:0x"<<&rawdataptr << " traprawdataptr 0x"<<&traprawdataptr << std::endl;
       //sanity check for now:
       if (((char*)rawdataptr - (char*)olddataptr) != crudatasize * 32) { // cru words are 8 uint32 and comparison is in bytes.
         LOG(debug) << "according to pointer arithmatic we have added " << rawdataptr - olddataptr << "bytes from " << static_cast<void*>(rawdataptr) << "-" << static_cast<void*>(olddataptr) << " when we should have added  " << crudatasize * 8 * 4 << " because crudatasize=" << crudatasize;
@@ -276,26 +294,16 @@ void Trap2CRU::convertTrapData(o2::trd::TriggerRecord const& TrigRecord)
         // we have written the wrong amount of data ....
         LOG(debug) << "crudata is ! = get link data size " << crudatasize << "!=" << o2::trd::getlinkdatasize(halfcruheader, halfcrulink);
       }
-      //    if(crudatasize ==0)LOG(info) << "CRUDATASIZ EIS ZERO" ;
-      //      if(crudatasize>0){
-      //      std::ofstream out1("crutestdumphalfcrurawdata");
-      //      std::ofstream out2("crutestdumprawdatavector");
-      //      LOG(info) << "writing out " << halfcrurawdata.size() << " and"  << crudatasize*32;
-      //      out1.write(halfcrurawdata.data(),halfcrurawdata.size());
-      //      out2.write(rawdatavector.data(),crudatasize*32);
-      //      out1.flush();
-      //      out2.flush();
-      //      exit(1);
-      //      }
-      LOG(info) << "copied " << crudatasize * 32 << "bytes to halfcrurawdata which now has  size of " << rawdatavector.size() << " for " << link << ":" << endpoint;
+      LOG(debug) << "copied " << crudatasize * 32 << "bytes to halfcrurawdata which now has  size of " << rawdatavector.size() << " for " << link << ":" << endpoint;
     }
-    // std::vector<char> halfcrurawdata(crudatasize * 32); // vector of 256bit words * 32 to get to 8 bit words
-
-    mWriter.addData(link, link, link, endpoint, TrigRecord.getBCData(), rawdatavector);
-    std::ofstream out2("crutestdumprawdatavector");
-    out2.write(rawdatavector.data(), rawdatavector.size());
-    out2.flush();
-    //    halfcru = NumberOfHalfCRU; // exit loop after 1 half cru for now.
+    LOG(debug) << "writing to " << std::hex << mFeeID << std::dec << " : " << mCruID << " : " << mLinkID << " : " << mEndPointID;
+    mWriter.addData(mFeeID, mCruID, mLinkID, mEndPointID, TrigRecord.getBCData(), rawdatavector);
+    if (DebugDataWriting) {
+      std::ofstream out2("crutestdumprawdatavector");
+      out2.write(rawdatavector.data(), rawdatavector.size());
+      out2.flush();
+      halfcru = NumberOfHalfCRU; // exit loop after 1 half cru for now.
+    }
   }
 }
 

@@ -69,6 +69,13 @@ class FeeParam
   static short chipmaskToMCMlist(unsigned int cmA, unsigned int cmB, unsigned short linkpair, int* mcmList, int listSize);
   static short getRobAB(unsigned short robsel, unsigned short linkpair); // Returns the chamber side (A=0, B=0) of a ROB
 
+  // wiring
+  virtual int getORI(int detector, int readoutboard) const;
+  virtual int getORIinSM(int detector, int readoutboard) const;
+  //  virtual void createORILookUpTable();
+  virtual int getORIfromHCID(int hcid) const;
+  virtual int getHCIDfromORI(int ori, int readoutboard) const; // TODO we need more info than just ori, for now readoutboard is there ... might change
+
   // tracklet simulation
   bool getTracklet() const { return mgTracklet; }
   static void setTracklet(bool trackletSim = true) { mgTracklet = trackletSim; }
@@ -167,6 +174,8 @@ class FeeParam
   static float mgBinDy;                           // bin in dy (140 um)
   static int mgDyMax;                             // max dy for a tracklet (hard limit)
   static int mgDyMin;                             // min dy for a tracklet (hard limit)
+                                                  //std::array<int,30> mgAsideLUT;                          // A side LUT to map ORI to stack/layer/side
+                                                  //std::array<int,30> mgCsideLUT;                          // C side LUT to map ORI to stack/layer/side
 
   // settings
   float mMagField;          // magnetic field
