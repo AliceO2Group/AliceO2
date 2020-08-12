@@ -19,6 +19,15 @@ namespace o2
 namespace trd
 {
 
+uint16_t buildTRDFeeID(int supermodule, int side, int endpoint)
+{
+  TRDFeeID feeid;
+  feeid.supermodule = supermodule;
+  feeid.side = side;
+  feeid.endpoint = endpoint;
+  return feeid.word;
+}
+
 uint32_t getlinkerrorflag(const HalfCRUHeader& cruhead, const uint32_t link)
 {
   // link is the link you are requesting information on, 0-14
