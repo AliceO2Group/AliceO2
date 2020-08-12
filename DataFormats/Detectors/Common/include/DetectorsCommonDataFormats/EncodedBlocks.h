@@ -832,16 +832,15 @@ std::vector<char> EncodedBlocks<H, N, W>::createDictionaryBlocks(const std::vect
   if (vfreq.size() != N) {
     throw std::runtime_error("mismatch between the size of frequencies vector and number of blocks");
   }
-  size_t sz = sizeof(EncodedBlocks<H, N, W>);
+  size_t sz = alignSize(sizeof(EncodedBlocks<H, N, W>));
   for (int ib = 0; ib < N; ib++) {
-    LOG(INFO) << "bl " << ib << " sz= " << vfreq[ib].size() << " min/max " << vfreq[ib].getMinSymbol() << "/" << vfreq[ib].getMaxSymbol();
     sz += Block<W>::estimateSize(vfreq[ib].size());
   }
   std::vector<char> vdict(sz); // memory space for dictionary
   auto dictBlocks = create(vdict.data(), sz);
   for (int ib = 0; ib < N; ib++) {
     if (vfreq[ib].size()) {
-      LOG(INFO) << "adding dict of size " << vfreq[ib].size() << " for block " << ib;
+      LOG(INFO) << "adding dictionary of " << vfreq[ib].size() << " words for block " << ib << ", min/max= " << vfreq[ib].getMinSymbol() << "/" << vfreq[ib].getMaxSymbol();
       dictBlocks->mBlocks[ib].storeDict(vfreq[ib].size(), vfreq[ib].data());
       dictBlocks = get(vdict.data()); // !!! rellocation might have invalidated dictBlocks pointer
       dictBlocks->mMetadata[ib] = vmd[ib];
