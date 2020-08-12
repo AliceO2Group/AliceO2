@@ -201,6 +201,9 @@ class TrapSimulator
   static const int mgkDmemAddrTimeOffset = 0xc3fe;   // DMEM address of time offset t0
   static const int mgkDmemAddrYcorr = 0xc3ff;        // DMEM address of y correction (mis-alignment)
   static const int mgkMaxTracklets = 4;              // maximum number of tracklet-words submitted per MCM (one per CPU)
+  static constexpr int mQ2Startbin = 3;              // Start range of Q2, for now here. TODO pull from a revised TrapConfig?
+  static constexpr int mQ2Endbin = 5;                // End range of Q2, also pull from a revised trapconfig at some point.
+
   std::vector<Tracklet>& getTrackletArray() { return mTrackletArray; }
   std::vector<Tracklet64>& getTrackletArray64() { return mTrackletArray64; }
   void getTracklet64s(std::vector<Tracklet64>& TrackletStore); // place the trapsim 64 bit tracklets nto the incoming vector
