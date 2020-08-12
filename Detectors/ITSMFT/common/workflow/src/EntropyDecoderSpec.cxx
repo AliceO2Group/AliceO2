@@ -24,7 +24,8 @@ namespace o2
 namespace itsmft
 {
 
-EntropyDecoderSpec::EntropyDecoderSpec(o2::header::DataOrigin orig) : mOrigin(orig)
+EntropyDecoderSpec::EntropyDecoderSpec(o2::header::DataOrigin orig)
+  : mOrigin(orig), mCTFCoder(orig == o2::header::gDataOriginITS ? o2::detectors::DetID::ITS : o2::detectors::DetID::MFT)
 {
   assert(orig == o2::header::gDataOriginITS || orig == o2::header::gDataOriginMFT);
   mTimer.Stop();
@@ -35,8 +36,7 @@ void EntropyDecoderSpec::init(o2::framework::InitContext& ic)
 {
   std::string dictPath = ic.options().get<std::string>((mOrigin == o2::header::gDataOriginITS) ? "its-ctf-dictionary" : "mft-ctf-dictionary");
   if (!dictPath.empty() && dictPath != "none") {
-    mCTFCoder.createCoders(dictPath, mOrigin == o2::header::gDataOriginITS ? o2::detectors::DetID::ITS : o2::detectors::DetID::MFT,
-                           o2::ctf::CTFCoderBase::OpType::Decoder);
+    mCTFCoder.createCoders(dictPath, o2::ctf::CTFCoderBase::OpType::Decoder);
   }
 }
 

@@ -40,18 +40,18 @@ class CTFCoderBase
                             Decoder };
 
   CTFCoderBase() = delete;
-  CTFCoderBase(int n) : mCoders(n) {}
+  CTFCoderBase(int n, DetID det) : mCoders(n), mDet(det) {}
 
-  std::unique_ptr<TFile> loadDictionaryTreeFile(const std::string& dictPath, DetID det, bool mayFail = false);
+  std::unique_ptr<TFile> loadDictionaryTreeFile(const std::string& dictPath, bool mayFail = false);
 
   template <typename CTF>
-  std::vector<char> readDictionaryFromFile(const std::string& dictPath, DetID det, bool mayFail = false)
+  std::vector<char> readDictionaryFromFile(const std::string& dictPath, bool mayFail = false)
   {
     std::vector<char> bufVec;
-    auto fileDict = loadDictionaryTreeFile(dictPath, det, mayFail);
+    auto fileDict = loadDictionaryTreeFile(dictPath, mayFail);
     if (fileDict) {
       std::unique_ptr<TTree> tree((TTree*)fileDict->Get(std::string(o2::base::NameConf::CTFDICT).c_str()));
-      CTF::readFromTree(bufVec, *tree.get(), det.getName());
+      CTF::readFromTree(bufVec, *tree.get(), mDet.getName());
     }
     return bufVec;
   }
@@ -74,7 +74,10 @@ class CTFCoderBase
   }
 
  protected:
+  std::string getPrefix() const { return o2::utils::concat_string(mDet.getName(), "_CTF: "); }
+
   std::vector<std::shared_ptr<void>> mCoders; // encoders/decoders
+  DetID mDet;
 
   ClassDefNV(CTFCoderBase, 1);
 };

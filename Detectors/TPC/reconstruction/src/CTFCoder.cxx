@@ -91,7 +91,7 @@ void CTFCoder::setCompClusAddresses(CompressedClusters& c, void*& buff)
 void CTFCoder::createCoders(const std::string& dictPath, o2::ctf::CTFCoderBase::OpType op)
 {
   bool mayFail = true; // RS FIXME if the dictionary file is not there, do not produce exception
-  auto buff = readDictionaryFromFile<CTF>(dictPath, o2::detectors::DetID::TPC, mayFail);
+  auto buff = readDictionaryFromFile<CTF>(dictPath, mayFail);
   if (!buff.size()) {
     if (mayFail) {
       return;

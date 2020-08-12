@@ -20,19 +20,18 @@ using namespace o2::tof;
 
 ///___________________________________________________________________________________
 // Register encoded data in the tree (Fill is not called, will be done by caller)
-void CTFCoder::appendToTree(TTree& tree, o2::detectors::DetID id, CTF& ec)
+void CTFCoder::appendToTree(TTree& tree, CTF& ec)
 {
-  ec.appendToTree(tree, id.getName());
+  ec.appendToTree(tree, mDet.getName());
 }
 
 ///___________________________________________________________________________________
 // extract and decode data from the tree
-void CTFCoder::readFromTree(TTree& tree, int entry, o2::detectors::DetID id,
-                            std::vector<ReadoutWindowData>& rofRecVec, std::vector<Digit>& cdigVec, std::vector<uint32_t>& pattVec)
+void CTFCoder::readFromTree(TTree& tree, int entry, std::vector<ReadoutWindowData>& rofRecVec, std::vector<Digit>& cdigVec, std::vector<uint32_t>& pattVec)
 {
   assert(entry >= 0 && entry < tree.GetEntries());
   CTF ec;
-  ec.readFromTree(tree, id.getName(), entry);
+  ec.readFromTree(tree, mDet.getName(), entry);
   decode(ec, rofRecVec, cdigVec, pattVec);
 }
 
@@ -150,7 +149,7 @@ void CTFCoder::compress(CompressedInfos& cc,
 void CTFCoder::createCoders(const std::string& dictPath, o2::ctf::CTFCoderBase::OpType op)
 {
   bool mayFail = true; // RS FIXME if the dictionary file is not there, do not produce exception
-  auto buff = readDictionaryFromFile<CTF>(dictPath, o2::detectors::DetID::TOF, mayFail);
+  auto buff = readDictionaryFromFile<CTF>(dictPath, mayFail);
   if (!buff.size()) {
     if (mayFail) {
       return;

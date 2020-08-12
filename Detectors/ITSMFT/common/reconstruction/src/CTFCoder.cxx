@@ -20,19 +20,18 @@ using namespace o2::itsmft;
 
 ///___________________________________________________________________________________
 // Register encoded data in the tree (Fill is not called, will be done by caller)
-void CTFCoder::appendToTree(TTree& tree, o2::detectors::DetID id, CTF& ec)
+void CTFCoder::appendToTree(TTree& tree, CTF& ec)
 {
-  ec.appendToTree(tree, id.getName());
+  ec.appendToTree(tree, mDet.getName());
 }
 
 ///___________________________________________________________________________________
 // extract and decode data from the tree
-void CTFCoder::readFromTree(TTree& tree, int entry, o2::detectors::DetID id,
-                            std::vector<ROFRecord>& rofRecVec, std::vector<CompClusterExt>& cclusVec, std::vector<unsigned char>& pattVec)
+void CTFCoder::readFromTree(TTree& tree, int entry, std::vector<ROFRecord>& rofRecVec, std::vector<CompClusterExt>& cclusVec, std::vector<unsigned char>& pattVec)
 {
   assert(entry >= 0 && entry < tree.GetEntries());
   CTF ec;
-  ec.readFromTree(tree, id.getName(), entry);
+  ec.readFromTree(tree, mDet.getName(), entry);
   decode(ec, rofRecVec, cclusVec, pattVec);
 }
 
@@ -121,10 +120,10 @@ void CTFCoder::compress(CompressedClusters& cc,
 }
 
 ///________________________________
-void CTFCoder::createCoders(const std::string& dictPath, o2::detectors::DetID det, o2::ctf::CTFCoderBase::OpType op)
+void CTFCoder::createCoders(const std::string& dictPath, o2::ctf::CTFCoderBase::OpType op)
 {
   bool mayFail = true; // RS FIXME if the dictionary file is not there, do not produce exception
-  auto buff = readDictionaryFromFile<CTF>(dictPath, det, mayFail);
+  auto buff = readDictionaryFromFile<CTF>(dictPath, mayFail);
   if (!buff.size()) {
     if (mayFail) {
       return;
