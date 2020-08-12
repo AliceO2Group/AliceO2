@@ -35,7 +35,7 @@ namespace itsmft
 class CTFCoder : public o2::ctf::CTFCoderBase
 {
  public:
-  CTFCoder() : o2::ctf::CTFCoderBase(CTF::getNBlocks()) {}
+  CTFCoder(o2::detectors::DetID det) : o2::ctf::CTFCoderBase(CTF::getNBlocks(), det) {}
   ~CTFCoder() = default;
 
   /// entropy-encode clusters to buffer with CTF
@@ -46,7 +46,7 @@ class CTFCoder : public o2::ctf::CTFCoderBase
   template <typename VROF, typename VCLUS, typename VPAT>
   void decode(const CTF::base& ec, VROF& rofRecVec, VCLUS& cclusVec, VPAT& pattVec);
 
-  void createCoders(const std::string& dictPath, o2::detectors::DetID det, o2::ctf::CTFCoderBase::OpType op);
+  void createCoders(const std::string& dictPath, o2::ctf::CTFCoderBase::OpType op);
 
  private:
   /// compres compact clusters to CompressedClusters
@@ -56,8 +56,8 @@ class CTFCoder : public o2::ctf::CTFCoderBase
   template <typename VROF, typename VCLUS, typename VPAT>
   void decompress(const CompressedClusters& cc, VROF& rofRecVec, VCLUS& cclusVec, VPAT& pattVec);
 
-  void appendToTree(TTree& tree, o2::detectors::DetID id, CTF& ec);
-  void readFromTree(TTree& tree, int entry, o2::detectors::DetID id, std::vector<ROFRecord>& rofRecVec, std::vector<CompClusterExt>& cclusVec, std::vector<unsigned char>& pattVec);
+  void appendToTree(TTree& tree, CTF& ec);
+  void readFromTree(TTree& tree, int entry, std::vector<ROFRecord>& rofRecVec, std::vector<CompClusterExt>& cclusVec, std::vector<unsigned char>& pattVec);
 
  protected:
   ClassDefNV(CTFCoder, 1);
@@ -104,7 +104,7 @@ void CTFCoder::encode(VEC& buff, const gsl::span<const ROFRecord>& rofRecVec, co
   ENCODEITSMFT(cc.pattID, CTF::BLCpattID, o2::rans::ProbabilityBits16Bit);
   ENCODEITSMFT(cc.pattMap, CTF::BLCpattMap, o2::rans::ProbabilityBits16Bit);
   // clang-format on
-  CTF::get(buff.data())->print("ITS done: ");
+  CTF::get(buff.data())->print(getPrefix());
 }
 
 /// decode entropy-encoded clusters to standard compact clusters
@@ -113,6 +113,7 @@ void CTFCoder::decode(const CTF::base& ec, VROF& rofRecVec, VCLUS& cclusVec, VPA
 {
   CompressedClusters cc;
   cc.header = ec.getHeader();
+  ec.print(getPrefix());
 #define DECODEITSMFT(part, slot) ec.decode(part, int(slot), mCoders[int(slot)].get())
   // clang-format off
   DECODEITSMFT(cc.firstChipROF, CTF::BLCfirstChipROF);

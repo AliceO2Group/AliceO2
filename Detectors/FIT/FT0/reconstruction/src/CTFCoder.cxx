@@ -22,7 +22,7 @@ using namespace o2::ft0;
 // Register encoded data in the tree (Fill is not called, will be done by caller)
 void CTFCoder::appendToTree(TTree& tree, CTF& ec)
 {
-  ec.appendToTree(tree, o2::detectors::DetID::getName(o2::detectors::DetID::FT0));
+  ec.appendToTree(tree, mDet.getName());
 }
 
 ///___________________________________________________________________________________
@@ -32,7 +32,7 @@ void CTFCoder::readFromTree(TTree& tree, int entry,
 {
   assert(entry >= 0 && entry < tree.GetEntries());
   CTF ec;
-  ec.readFromTree(tree, o2::detectors::DetID::getName(o2::detectors::DetID::FT0), entry);
+  ec.readFromTree(tree, mDet.getName(), entry);
   decode(ec, digitVec, channelVec);
 }
 
@@ -100,7 +100,7 @@ void CTFCoder::compress(CompressedDigits& cd, const gsl::span<const Digit>& digi
 void CTFCoder::createCoders(const std::string& dictPath, o2::ctf::CTFCoderBase::OpType op)
 {
   bool mayFail = true; // RS FIXME if the dictionary file is not there, do not produce exception
-  auto buff = readDictionaryFromFile<CTF>(dictPath, o2::detectors::DetID::FT0, mayFail);
+  auto buff = readDictionaryFromFile<CTF>(dictPath, mayFail);
   if (!buff.size()) {
     if (mayFail) {
       return;
