@@ -93,10 +93,11 @@ Decoder<coder_T, stream_T, source_T>::Decoder(const FrequencyTable& frequencies,
   using namespace internal;
 
   SymbolStatistics stats(frequencies, mProbabilityBits);
+  mProbabilityBits = stats.getSymbolTablePrecision();
 
   RANSTimer t;
   t.start();
-  mSymbolTable = std::make_unique<decoderSymbolTable_t>(stats, mProbabilityBits);
+  mSymbolTable = std::make_unique<decoderSymbolTable_t>(stats);
   t.stop();
   LOG(debug1) << "Decoder SymbolTable inclusive time (ms): " << t.getDurationMS();
   t.start();
