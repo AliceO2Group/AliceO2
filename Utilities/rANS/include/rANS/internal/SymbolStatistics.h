@@ -37,6 +37,9 @@ namespace rans
 namespace internal
 {
 
+constexpr size_t MIN_SCALE = 16;
+constexpr size_t MAX_SCALE = 27;
+
 class SymbolStatistics
 {
 
@@ -72,7 +75,7 @@ class SymbolStatistics
   };
 
  public:
-  SymbolStatistics(const FrequencyTable& frequencyTable, size_t scaleBits);
+  SymbolStatistics(const FrequencyTable& frequencyTable, size_t scaleBits = 0);
 
   template <typename Source_IT>
   SymbolStatistics(const Source_IT begin, const Source_IT end, int64_t min, int64_t max, size_t scaleBits, size_t nUsedAlphabetSymbols);
@@ -91,6 +94,8 @@ class SymbolStatistics
   int64_t getMaxSymbol() const;
 
   size_t getNUsedAlphabetSymbols() const;
+
+  size_t getSymbolTablePrecision() const;
 
  private:
   void buildCumulativeFrequencyTable();
@@ -122,7 +127,15 @@ SymbolStatistics::SymbolStatistics(const Source_IT begin, const Source_IT end, i
     return;
   }
 
-  assert(mScaleBits > 0);
+  // if we did not calculate renormalization size, calculate it.
+  if (scaleBits == 0) {
+    mScaleBits = [&, this]() {
+      const size_t minScale = MIN_SCALE;
+      const size_t maxScale = MAX_SCALE;
+      const size_t calculated = static_cast<uint32_t>(3 * std::ceil(std::log2(getNUsedAlphabetSymbols())) / 2 + 2);
+      return std::max(minScale, std::min(maxScale, calculated));
+    }();
+  }
 
   //additional bit for escape symbol
   mFrequencyTable.reserve(std::distance(begin, end) + 1);
@@ -176,6 +189,11 @@ inline int64_t SymbolStatistics::getMaxSymbol() const
 inline size_t SymbolStatistics::size() const
 {
   return mFrequencyTable.size();
+}
+
+inline size_t SymbolStatistics::getSymbolTablePrecision() const
+{
+  return mScaleBits;
 }
 
 inline std::tuple<uint32_t, uint32_t> SymbolStatistics::operator[](int64_t index) const

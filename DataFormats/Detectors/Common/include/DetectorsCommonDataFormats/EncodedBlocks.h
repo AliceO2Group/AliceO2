@@ -784,8 +784,6 @@ void EncodedBlocks<H, N, W>::encode(const S* const srcBegin, // begin of source 
       encoder = encoderLoc.get();
       dictSize = frequencies->size();
     }
-    assert(probabilityBits == encoder->getProbabilityBits());
-    //    const o2::rans::LiteralEncoder64<S> encoder{*frequencies, probabilityBits};
 
     // estimate size of encode buffer
     int dataSize = rans::calculateMaxBufferSize(messageLength, encoder->getAlphabetRangeBits(), sizeof(S));
@@ -811,7 +809,7 @@ void EncodedBlocks<H, N, W>::encode(const S* const srcBegin, // begin of source 
       expandStorage(literalSize);
       bl->storeLiterals(literalSize, reinterpret_cast<const stream_t*>(literals.data()));
     }
-    *meta = Metadata{messageLength, literals.size(), sizeof(uint64_t), sizeof(stream_t), probabilityBits, opt,
+    *meta = Metadata{messageLength, literals.size(), sizeof(uint64_t), sizeof(stream_t), static_cast<uint8_t>(encoder->getProbabilityBits()), opt,
                      encoder->getMinSymbol(), encoder->getMaxSymbol(), dictSize, dataSize, literalSize};
 
   } else { // store original data w/o EEncoding

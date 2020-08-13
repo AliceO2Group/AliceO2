@@ -92,17 +92,17 @@ void CTFCoder::encode(VEC& buff, const gsl::span<const ROFRecord>& rofRecVec, co
   // at every encoding the buffer might be autoexpanded, so we don't work with fixed pointer ec
 #define ENCODEITSMFT(part, slot, bits) CTF::get(buff.data())->encode(part, int(slot), bits, optField[int(slot)], &buff, mCoders[int(slot)].get());
   // clang-format off
-  ENCODEITSMFT(cc.firstChipROF, CTF::BLCfirstChipROF, o2::rans::ProbabilityBits16Bit);
-  ENCODEITSMFT(cc.bcIncROF, CTF::BLCbcIncROF, o2::rans::ProbabilityBits16Bit);
-  ENCODEITSMFT(cc.orbitIncROF, CTF::BLCorbitIncROF, o2::rans::ProbabilityBits16Bit);
-  ENCODEITSMFT(cc.nclusROF, CTF::BLCnclusROF, o2::rans::ProbabilityBits16Bit);
+  ENCODEITSMFT(cc.firstChipROF, CTF::BLCfirstChipROF, 0);
+  ENCODEITSMFT(cc.bcIncROF, CTF::BLCbcIncROF, 0);
+  ENCODEITSMFT(cc.orbitIncROF, CTF::BLCorbitIncROF, 0);
+  ENCODEITSMFT(cc.nclusROF, CTF::BLCnclusROF, 0);
   //
-  ENCODEITSMFT(cc.chipInc, CTF::BLCchipInc, o2::rans::ProbabilityBits16Bit);
-  ENCODEITSMFT(cc.chipMul, CTF::BLCchipMul, o2::rans::ProbabilityBits16Bit);
-  ENCODEITSMFT(cc.row, CTF::BLCrow, o2::rans::ProbabilityBits16Bit);
-  ENCODEITSMFT(cc.colInc, CTF::BLCcolInc, o2::rans::ProbabilityBits16Bit);
-  ENCODEITSMFT(cc.pattID, CTF::BLCpattID, o2::rans::ProbabilityBits16Bit);
-  ENCODEITSMFT(cc.pattMap, CTF::BLCpattMap, o2::rans::ProbabilityBits16Bit);
+  ENCODEITSMFT(cc.chipInc, CTF::BLCchipInc, 0);
+  ENCODEITSMFT(cc.chipMul, CTF::BLCchipMul, 0);
+  ENCODEITSMFT(cc.row, CTF::BLCrow, 0);
+  ENCODEITSMFT(cc.colInc, CTF::BLCcolInc, 0);
+  ENCODEITSMFT(cc.pattID, CTF::BLCpattID, 0);
+  ENCODEITSMFT(cc.pattMap, CTF::BLCpattMap, 0);
   // clang-format on
   CTF::get(buff.data())->print(getPrefix());
 }

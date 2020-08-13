@@ -103,10 +103,11 @@ Encoder<coder_T, stream_T, source_T>::Encoder(const FrequencyTable& frequencies,
   using namespace internal;
 
   SymbolStatistics stats(frequencies, mProbabilityBits);
+  mProbabilityBits = stats.getSymbolTablePrecision();
 
   RANSTimer t;
   t.start();
-  mSymbolTable = std::make_unique<encoderSymbolTable_t>(stats, probabilityBits);
+  mSymbolTable = std::make_unique<encoderSymbolTable_t>(stats);
   t.stop();
   LOG(debug1) << "Encoder SymbolTable inclusive time (ms): " << t.getDurationMS();
 }

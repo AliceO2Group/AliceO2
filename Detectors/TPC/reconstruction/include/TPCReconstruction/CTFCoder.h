@@ -110,29 +110,29 @@ void CTFCoder::encode(VEC& buff, const CompressedClusters& ccl)
   // at every encoding the buffer might be autoexpanded, so we don't work with fixed pointer ec
 #define ENCODETPC(beg, end, slot, bits) CTF::get(buff.data())->encode(beg, end, int(slot), bits, optField[int(slot)], &buff, mCoders[int(slot)].get());
   // clang-format off
-  ENCODETPC(ccl.qTotA,             ccl.qTotA + ccl.nAttachedClusters,                CTF::BLCqTotA,             o2::rans::ProbabilityBits16Bit);
-  ENCODETPC(ccl.qMaxA,             ccl.qMaxA + ccl.nAttachedClusters,                CTF::BLCqMaxA,             o2::rans::ProbabilityBits16Bit);
-  ENCODETPC(ccl.flagsA,            ccl.flagsA + ccl.nAttachedClusters,               CTF::BLCflagsA,            o2::rans::ProbabilityBits8Bit);
-  ENCODETPC(ccl.rowDiffA,          ccl.rowDiffA + ccl.nAttachedClustersReduced,      CTF::BLCrowDiffA,          o2::rans::ProbabilityBits8Bit);
-  ENCODETPC(ccl.sliceLegDiffA,     ccl.sliceLegDiffA + ccl.nAttachedClustersReduced, CTF::BLCsliceLegDiffA,     o2::rans::ProbabilityBits8Bit);
-  ENCODETPC(ccl.padResA,           ccl.padResA + ccl.nAttachedClustersReduced,       CTF::BLCpadResA,           o2::rans::ProbabilityBits16Bit);
-  ENCODETPC(ccl.timeResA,          ccl.timeResA + ccl.nAttachedClustersReduced,      CTF::BLCtimeResA,          o2::rans::ProbabilityBits25Bit);
-  ENCODETPC(ccl.sigmaPadA,         ccl.sigmaPadA + ccl.nAttachedClusters,            CTF::BLCsigmaPadA,         o2::rans::ProbabilityBits8Bit);
-  ENCODETPC(ccl.sigmaTimeA,        ccl.sigmaTimeA + ccl.nAttachedClusters,           CTF::BLCsigmaTimeA,        o2::rans::ProbabilityBits8Bit);
-  ENCODETPC(ccl.qPtA,              ccl.qPtA + ccl.nTracks,                           CTF::BLCqPtA,              o2::rans::ProbabilityBits8Bit);
-  ENCODETPC(ccl.rowA,              ccl.rowA + ccl.nTracks,                           CTF::BLCrowA,              o2::rans::ProbabilityBits8Bit);
-  ENCODETPC(ccl.sliceA,            ccl.sliceA + ccl.nTracks,                         CTF::BLCsliceA,            o2::rans::ProbabilityBits8Bit);
-  ENCODETPC(ccl.timeA,             ccl.timeA + ccl.nTracks,                          CTF::BLCtimeA,             o2::rans::ProbabilityBits25Bit);
-  ENCODETPC(ccl.padA,              ccl.padA + ccl.nTracks,                           CTF::BLCpadA,              o2::rans::ProbabilityBits16Bit);
-  ENCODETPC(ccl.qTotU,             ccl.qTotU + ccl.nUnattachedClusters,              CTF::BLCqTotU,             o2::rans::ProbabilityBits16Bit);
-  ENCODETPC(ccl.qMaxU,             ccl.qMaxU + ccl.nUnattachedClusters,              CTF::BLCqMaxU,             o2::rans::ProbabilityBits16Bit);
-  ENCODETPC(ccl.flagsU,            ccl.flagsU + ccl.nUnattachedClusters,             CTF::BLCflagsU,            o2::rans::ProbabilityBits8Bit);
-  ENCODETPC(ccl.padDiffU,          ccl.padDiffU + ccl.nUnattachedClusters,           CTF::BLCpadDiffU,          o2::rans::ProbabilityBits16Bit);
-  ENCODETPC(ccl.timeDiffU,         ccl.timeDiffU + ccl.nUnattachedClusters,          CTF::BLCtimeDiffU,         o2::rans::ProbabilityBits25Bit);
-  ENCODETPC(ccl.sigmaPadU,         ccl.sigmaPadU + ccl.nUnattachedClusters,          CTF::BLCsigmaPadU,         o2::rans::ProbabilityBits8Bit);
-  ENCODETPC(ccl.sigmaTimeU,        ccl.sigmaTimeU + ccl.nUnattachedClusters,         CTF::BLCsigmaTimeU,        o2::rans::ProbabilityBits8Bit);
-  ENCODETPC(ccl.nTrackClusters,    ccl.nTrackClusters + ccl.nTracks,                 CTF::BLCnTrackClusters,    o2::rans::ProbabilityBits16Bit);
-  ENCODETPC(ccl.nSliceRowClusters, ccl.nSliceRowClusters + ccl.nSliceRows,           CTF::BLCnSliceRowClusters, o2::rans::ProbabilityBits25Bit);
+  ENCODETPC(ccl.qTotA,             ccl.qTotA + ccl.nAttachedClusters,                CTF::BLCqTotA,             0);
+  ENCODETPC(ccl.qMaxA,             ccl.qMaxA + ccl.nAttachedClusters,                CTF::BLCqMaxA,             0);
+  ENCODETPC(ccl.flagsA,            ccl.flagsA + ccl.nAttachedClusters,               CTF::BLCflagsA,            0);
+  ENCODETPC(ccl.rowDiffA,          ccl.rowDiffA + ccl.nAttachedClustersReduced,      CTF::BLCrowDiffA,          0);
+  ENCODETPC(ccl.sliceLegDiffA,     ccl.sliceLegDiffA + ccl.nAttachedClustersReduced, CTF::BLCsliceLegDiffA,     0);
+  ENCODETPC(ccl.padResA,           ccl.padResA + ccl.nAttachedClustersReduced,       CTF::BLCpadResA,           0);
+  ENCODETPC(ccl.timeResA,          ccl.timeResA + ccl.nAttachedClustersReduced,      CTF::BLCtimeResA,          0);
+  ENCODETPC(ccl.sigmaPadA,         ccl.sigmaPadA + ccl.nAttachedClusters,            CTF::BLCsigmaPadA,         0);
+  ENCODETPC(ccl.sigmaTimeA,        ccl.sigmaTimeA + ccl.nAttachedClusters,           CTF::BLCsigmaTimeA,        0);
+  ENCODETPC(ccl.qPtA,              ccl.qPtA + ccl.nTracks,                           CTF::BLCqPtA,              0);
+  ENCODETPC(ccl.rowA,              ccl.rowA + ccl.nTracks,                           CTF::BLCrowA,              0);
+  ENCODETPC(ccl.sliceA,            ccl.sliceA + ccl.nTracks,                         CTF::BLCsliceA,            0);
+  ENCODETPC(ccl.timeA,             ccl.timeA + ccl.nTracks,                          CTF::BLCtimeA,             0);
+  ENCODETPC(ccl.padA,              ccl.padA + ccl.nTracks,                           CTF::BLCpadA,              0);
+  ENCODETPC(ccl.qTotU,             ccl.qTotU + ccl.nUnattachedClusters,              CTF::BLCqTotU,             0);
+  ENCODETPC(ccl.qMaxU,             ccl.qMaxU + ccl.nUnattachedClusters,              CTF::BLCqMaxU,             0);
+  ENCODETPC(ccl.flagsU,            ccl.flagsU + ccl.nUnattachedClusters,             CTF::BLCflagsU,            0);
+  ENCODETPC(ccl.padDiffU,          ccl.padDiffU + ccl.nUnattachedClusters,           CTF::BLCpadDiffU,          0);
+  ENCODETPC(ccl.timeDiffU,         ccl.timeDiffU + ccl.nUnattachedClusters,          CTF::BLCtimeDiffU,         0);
+  ENCODETPC(ccl.sigmaPadU,         ccl.sigmaPadU + ccl.nUnattachedClusters,          CTF::BLCsigmaPadU,         0);
+  ENCODETPC(ccl.sigmaTimeU,        ccl.sigmaTimeU + ccl.nUnattachedClusters,         CTF::BLCsigmaTimeU,        0);
+  ENCODETPC(ccl.nTrackClusters,    ccl.nTrackClusters + ccl.nTracks,                 CTF::BLCnTrackClusters,    0);
+  ENCODETPC(ccl.nSliceRowClusters, ccl.nSliceRowClusters + ccl.nSliceRows,           CTF::BLCnSliceRowClusters, 0);
   // clang-format on
   CTF::get(buff.data())->print(getPrefix());
 }

@@ -91,15 +91,15 @@ void CTFCoder::encode(VEC& buff, const gsl::span<const Digit>& digitVec, const g
   // at every encoding the buffer might be autoexpanded, so we don't work with fixed pointer ec
 #define ENCODEFT0(part, slot, bits) CTF::get(buff.data())->encode(part, int(slot), bits, optField[int(slot)], &buff, mCoders[int(slot)].get());
   // clang-format off
-  ENCODEFT0(cd.trigger,   CTF::BLC_trigger,  o2::rans::ProbabilityBits16Bit);
-  ENCODEFT0(cd.bcInc,     CTF::BLC_bcInc,    o2::rans::ProbabilityBits16Bit);
-  ENCODEFT0(cd.orbitInc,  CTF::BLC_orbitInc, o2::rans::ProbabilityBits16Bit);
-  ENCODEFT0(cd.nChan,     CTF::BLC_nChan,    o2::rans::ProbabilityBits8Bit);
-  //  ENCODEFT0(cd.eventFlags, CTF::BLC_flags,    o2::rans::ProbabilityBits8Bit);
-  ENCODEFT0(cd.idChan ,   CTF::BLC_idChan,   o2::rans::ProbabilityBits8Bit);
-  ENCODEFT0(cd.qtcChain,  CTF::BLC_qtcChain,      o2::rans::ProbabilityBits8Bit);
-  ENCODEFT0(cd.cfdTime,   CTF::BLC_cfdTime,  o2::rans::ProbabilityBits16Bit);
-  ENCODEFT0(cd.qtcAmpl,   CTF::BLC_qtcAmpl,  o2::rans::ProbabilityBits25Bit);
+  ENCODEFT0(cd.trigger,   CTF::BLC_trigger,  0);
+  ENCODEFT0(cd.bcInc,     CTF::BLC_bcInc,    0);
+  ENCODEFT0(cd.orbitInc,  CTF::BLC_orbitInc, 0);
+  ENCODEFT0(cd.nChan,     CTF::BLC_nChan,    0);
+  //  ENCODEFT0(cd.eventFlags, CTF::BLC_flags,    0);
+  ENCODEFT0(cd.idChan ,   CTF::BLC_idChan,   0);
+  ENCODEFT0(cd.qtcChain,  CTF::BLC_qtcChain, 0);
+  ENCODEFT0(cd.cfdTime,   CTF::BLC_cfdTime,  0);
+  ENCODEFT0(cd.qtcAmpl,   CTF::BLC_qtcAmpl,  0);
   // clang-format on
   CTF::get(buff.data())->print(getPrefix());
 }
