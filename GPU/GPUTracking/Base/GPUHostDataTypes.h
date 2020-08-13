@@ -38,7 +38,7 @@ namespace gpu
 {
 
 struct GPUTPCDigitsMCInput {
-  std::array<const o2::dataformats::MCTruthContainer<o2::MCCompLabel>*, o2::tpc::Constants::MAXSECTOR> v;
+  std::array<const o2::dataformats::MCTruthContainer<o2::MCCompLabel>*, o2::tpc::constants::MAXSECTOR> v;
 };
 
 struct GPUTPCClusterMCInterim {
