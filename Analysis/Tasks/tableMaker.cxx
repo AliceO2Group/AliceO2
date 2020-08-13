@@ -70,7 +70,7 @@ struct TableMaker {
     VarManager::SetUseVars(fHistMan->GetUsedVars()); // provide the list of required variables so that VarManager knows what to fill
   }
 
-  void process(soa::Join<aod::Collisions, aod::EvSels, aod::Cents>::iterator collision, aod::MuonClusters const& clustersMuon, aod::Muons const& tracksMuon, aod::BCs const& bcs, soa::Join<aod::Tracks, aod::TracksExtra, aod::TracksCov, aod::pidRespTPC> const& tracksBarrel)
+  void process(soa::Join<aod::Collisions, aod::EvSels, aod::Cents>::iterator collision, aod::MuonClusters const& clustersMuon, aod::Muons const& tracksMuon, aod::BCs const& bcs, soa::Join<aod::Tracks, aod::TracksExtra, aod::TracksCov, aod::pidRespTPC, aod::pidRespTOF> const& tracksBarrel)
   {
     uint64_t tag = 0;
     uint32_t triggerAliases = 0;
@@ -89,8 +89,9 @@ struct TableMaker {
     uint64_t trackFilteringTag = 0;
     for (auto& track : tracksBarrel) {
 
-      if (track.pt() < 1.0)
+      if (track.pt() < 0.15)
         continue;
+      if (TMath::Abs(track.eta()) > 0.9) continue;
 
       trackBasic(collision, track.globalIndex(), trackFilteringTag, track.pt(), track.eta(), track.phi(), track.charge());
       trackBarrel(track.tpcInnerParam(), track.flags(), track.itsClusterMap(), track.itsChi2NCl(),
@@ -101,25 +102,12 @@ struct TableMaker {
                   track.length());
       trackBarrelCov(track.cYY(), track.cZZ(), track.cSnpSnp(), track.cTglTgl(), track.c1Pt21Pt2());
       trackBarrelPID(
-          track.nSigmaEl(),//for TPC
-          track.nSigmaMu(),//for TPC
-          track.nSigmaPi(),//for TPC
-          track.nSigmaKa(),//for TPC
-          track.nSigmaPr(),//for TPC
-          track.nSigmaDe(),//for TPC
-          track.nSigmaTr(),//for TPC
-          track.nSigmaHe(),//for TPC
-          track.nSigmaAl()
-//,//for TPC
-//          track.nSigmaEl(),//for TOF
-//          track.nSigmaMu(),//for TOF
-//          track.nSigmaPi(),//for TOF
-//          track.nSigmaKa(),//for TOF
-//          track.nSigmaPr(),//for TOF
-//          track.nSigmaDe(),//for TOF
-//          track.nSigmaTr(),//for TOF
-//          track.nSigmaHe(),//for TOF
-//          track.nSigmaAl() //for TOF
+          track.tpcNSigmaEl(), track.tpcNSigmaMu(),
+          track.tpcNSigmaPi(), track.tpcNSigmaKa(), track.tpcNSigmaPr(),
+          track.tpcNSigmaDe(), track.tpcNSigmaTr(), track.tpcNSigmaHe(), track.tpcNSigmaAl(),
+          track.tofNSigmaEl(), track.tofNSigmaMu(),
+          track.tofNSigmaPi(), track.tofNSigmaKa(), track.tofNSigmaPr(),
+          track.tofNSigmaDe(), track.tofNSigmaTr(), track.tofNSigmaHe(), track.tofNSigmaAl() 
           );
 
     }
@@ -178,6 +166,5 @@ struct TableMaker {
 WorkflowSpec defineDataProcessing(o2::framework::ConfigContext const&)
 {
   return WorkflowSpec{
-    adaptAnalysisTask<pidTPCTask>("pidTPC-task"),
     adaptAnalysisTask<TableMaker>("table-maker")};
 }

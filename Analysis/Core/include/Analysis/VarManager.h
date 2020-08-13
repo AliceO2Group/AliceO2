@@ -102,6 +102,15 @@ class VarManager : public TObject
     kTrackCTglTgl,
     kTrackC1Pt21Pt2,
     kTPCnSigmaEl,
+    kTPCnSigmaMu,
+    kTPCnSigmaPi,
+    kTPCnSigmaKa,
+    kTPCnSigmaPr,
+    kTOFnSigmaEl,
+    kTOFnSigmaMu,
+    kTOFnSigmaPi,
+    kTOFnSigmaKa,
+    kTOFnSigmaPr,
     kNBarrelTrackVariables,
 
     // Muon track variables
@@ -314,8 +323,18 @@ void VarManager::FillTrack(T const& track, float* values)
     values[kTrackCTglTgl] = track.cTglTgl();
     values[kTrackC1Pt21Pt2] = track.c1Pt21Pt2();
   }
+
   if constexpr ((fillMap & ReducedTrackBarrelPID) > 0) {
-    values[kTPCnSigmaEl] = track.nSigmaEl();
+    values[kTPCnSigmaEl] = track.tpcNSigmaEl();
+    values[kTPCnSigmaMu] = track.tpcNSigmaMu();
+    values[kTPCnSigmaPi] = track.tpcNSigmaPi();
+    values[kTPCnSigmaKa] = track.tpcNSigmaKa();
+    values[kTPCnSigmaPr] = track.tpcNSigmaPr();
+    values[kTOFnSigmaEl] = track.tofNSigmaEl();
+    values[kTOFnSigmaMu] = track.tofNSigmaMu();
+    values[kTOFnSigmaPi] = track.tofNSigmaPi();
+    values[kTOFnSigmaKa] = track.tofNSigmaKa();
+    values[kTOFnSigmaPr] = track.tofNSigmaPr();
   }
 
   if constexpr ((fillMap & ReducedTrackMuon) > 0) {

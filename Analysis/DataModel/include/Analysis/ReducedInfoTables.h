@@ -94,14 +94,12 @@ DECLARE_SOA_TABLE(ReducedTracksBarrelCov, "AOD", "RTBARRELCOV",
 
 // barrel PID information
 DECLARE_SOA_TABLE(ReducedTracksBarrelPID, "AOD", "RTBARRELPID",
-                  pidTPC::NSigmaEl, pidTPC::NSigmaMu, 
-                  pidTPC::NSigmaPi, pidTPC::NSigmaKa, pidTPC::NSigmaPr, 
-                  pidTPC::NSigmaDe, pidTPC::NSigmaTr, pidTPC::NSigmaHe, pidTPC::NSigmaAl
-//,
-                  //pidTOF::NSigmaEl, pidTOF::NSigmaMu,
-                  //pidTOF::NSigmaPi, pidTOF::NSigmaKa, pidTOF::NSigmaPr,
-                  //pidTOF::NSigmaDe, pidTOF::NSigmaTr, pidTOF::NSigmaHe, pidTOF::NSigmaAl
-);
+                  pidTPC::TPCNSigmaEl, pidTPC::TPCNSigmaMu, 
+                  pidTPC::TPCNSigmaPi, pidTPC::TPCNSigmaKa, pidTPC::TPCNSigmaPr, 
+                  pidTPC::TPCNSigmaDe, pidTPC::TPCNSigmaTr, pidTPC::TPCNSigmaHe, pidTPC::TPCNSigmaAl,
+                  pidTOF::TOFNSigmaEl, pidTOF::TOFNSigmaMu,
+                  pidTOF::TOFNSigmaPi, pidTOF::TOFNSigmaKa, pidTOF::TOFNSigmaPr,
+                  pidTOF::TOFNSigmaDe, pidTOF::TOFNSigmaTr, pidTOF::TOFNSigmaHe, pidTOF::TOFNSigmaAl);
 
 
 // muon quantities
