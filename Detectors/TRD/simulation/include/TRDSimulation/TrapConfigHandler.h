@@ -77,10 +77,6 @@ class TrapConfigHandler
   static const unsigned int mgkScsnCmdOri = 26;     // SCSN command for ORI configuration
   static const unsigned int mgkScsnLTUparam = 27;   // extended SCSN command for the LTU configuration
 
-  static const int mgkMCMperROBCol = 4; // MCMs per ROB column
-  static const int mgkPadsPerMCM = 18;  // readout pads per MCM
-  static const int mgkMCMperROBRow = 4; // MCMs per ROB row
-
   static const int mgkMaxLinkPairs = 4;  // number of linkpairs used during configuration
   static const int mgkMcmlistSize = 256; // list of MCMs to which a value has to be written
 
