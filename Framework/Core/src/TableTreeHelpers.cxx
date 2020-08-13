@@ -33,10 +33,10 @@ BranchIterator::BranchIterator(TTree* tree, std::shared_ptr<arrow::ChunkedArray>
   if (mFieldType == arrow::Type::type::FIXED_SIZE_LIST) {
 
     // element type
-    if (mField->type()->num_children() <= 0) {
+    if (mField->type()->num_fields() <= 0) {
       LOGP(FATAL, "Field {} of type {} has no children!", mField->name(), mField->type()->ToString().c_str());
     }
-    mElementType = mField->type()->child(0)->type()->id();
+    mElementType = mField->type()->field(0)->type()->id();
 
     // number of elements
     mNumberElements = static_cast<const arrow::FixedSizeListType*>(mField->type().get())->list_size();

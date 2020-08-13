@@ -15,8 +15,6 @@
 #include "Framework/Kernels.h"
 #include <arrow/table.h>
 
-#include <arrow/compute/context.h>
-
 #include <iterator>
 #include <tuple>
 #include <utility>
