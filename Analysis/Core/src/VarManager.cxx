@@ -167,6 +167,8 @@ void VarManager::SetDefaultVarNames()
   fgVariableUnits[kTRDsignal] = "";
   fgVariableNames[kTOFsignal] = "TOF signal";
   fgVariableUnits[kTOFsignal] = "";
+  fgVariableNames[kTOFbeta] = "TOF #beta";
+  fgVariableUnits[kTOFbeta] = "";
   fgVariableNames[kTrackLength] = "track length";
   fgVariableUnits[kTrackLength] = "cm";
   fgVariableNames[kTPCnSigmaEl] = "n #sigma_{e}^{TPC}";

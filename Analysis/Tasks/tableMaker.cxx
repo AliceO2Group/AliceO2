@@ -70,7 +70,7 @@ struct TableMaker {
     VarManager::SetUseVars(fHistMan->GetUsedVars()); // provide the list of required variables so that VarManager knows what to fill
   }
 
-  void process(soa::Join<aod::Collisions, aod::EvSels, aod::Cents>::iterator collision, aod::MuonClusters const& clustersMuon, aod::Muons const& tracksMuon, aod::BCs const& bcs, soa::Join<aod::Tracks, aod::TracksExtra, aod::TracksCov, aod::pidRespTPC, aod::pidRespTOF> const& tracksBarrel)
+  void process(soa::Join<aod::Collisions, aod::EvSels, aod::Cents>::iterator collision, aod::MuonClusters const& clustersMuon, aod::Muons const& tracksMuon, aod::BCs const& bcs, soa::Join<aod::Tracks, aod::TracksExtra, aod::TracksCov, aod::pidRespTPC, aod::pidRespTOF, aod::pidRespTOFbeta> const& tracksBarrel)
   {
     uint64_t tag = 0;
     uint32_t triggerAliases = 0;
@@ -97,17 +97,20 @@ struct TableMaker {
       trackBarrel(track.tpcInnerParam(), track.flags(), track.itsClusterMap(), track.itsChi2NCl(),
                   track.tpcNClsFindable(), track.tpcNClsFindableMinusFound(), track.tpcNClsFindableMinusCrossedRows(),
                   track.tpcNClsShared(), track.tpcChi2NCl(),
-                  track.tpcSignal(), track.trdSignal(), track.tofSignal(),
+                  //track.tpcSignal(), track.trdSignal(), track.tofSignal(),
                   track.trdChi2(), track.tofChi2(),
                   track.length());
       trackBarrelCov(track.cYY(), track.cZZ(), track.cSnpSnp(), track.cTglTgl(), track.c1Pt21Pt2());
       trackBarrelPID(
+          track.tpcSignal(),
           track.tpcNSigmaEl(), track.tpcNSigmaMu(),
           track.tpcNSigmaPi(), track.tpcNSigmaKa(), track.tpcNSigmaPr(),
           track.tpcNSigmaDe(), track.tpcNSigmaTr(), track.tpcNSigmaHe(), track.tpcNSigmaAl(),
+          track.tofSignal(), track.beta(),
           track.tofNSigmaEl(), track.tofNSigmaMu(),
           track.tofNSigmaPi(), track.tofNSigmaKa(), track.tofNSigmaPr(),
-          track.tofNSigmaDe(), track.tofNSigmaTr(), track.tofNSigmaHe(), track.tofNSigmaAl() 
+          track.tofNSigmaDe(), track.tofNSigmaTr(), track.tofNSigmaHe(), track.tofNSigmaAl() ,
+          track.trdSignal()
           );
 
     }

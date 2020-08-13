@@ -82,7 +82,7 @@ DECLARE_SOA_TABLE(ReducedTracksBarrel, "AOD", "RTBARREL",
                   track::ITSClusterMap, track::ITSChi2NCl,
                   track::TPCNClsFindable, track::TPCNClsFindableMinusFound, track::TPCNClsFindableMinusCrossedRows,
                   track::TPCNClsShared, track::TPCChi2NCl,
-                  track::TPCSignal, track::TRDSignal, track::TOFSignal,
+//                  track::TPCSignal, track::TRDSignal, track::TOFSignal,
                   track::TRDChi2, track::TOFChi2, track::Length,
                   track::TPCNClsFound<track::TPCNClsFindable, track::TPCNClsFindableMinusFound>,
                   track::TPCNClsCrossedRows<track::TPCNClsFindable, track::TPCNClsFindableMinusCrossedRows>);
@@ -94,13 +94,15 @@ DECLARE_SOA_TABLE(ReducedTracksBarrelCov, "AOD", "RTBARRELCOV",
 
 // barrel PID information
 DECLARE_SOA_TABLE(ReducedTracksBarrelPID, "AOD", "RTBARRELPID",
+                  track::TPCSignal,
                   pidTPC::TPCNSigmaEl, pidTPC::TPCNSigmaMu, 
                   pidTPC::TPCNSigmaPi, pidTPC::TPCNSigmaKa, pidTPC::TPCNSigmaPr, 
                   pidTPC::TPCNSigmaDe, pidTPC::TPCNSigmaTr, pidTPC::TPCNSigmaHe, pidTPC::TPCNSigmaAl,
+                  track::TOFSignal, pidTOFbeta::Beta,
                   pidTOF::TOFNSigmaEl, pidTOF::TOFNSigmaMu,
                   pidTOF::TOFNSigmaPi, pidTOF::TOFNSigmaKa, pidTOF::TOFNSigmaPr,
-                  pidTOF::TOFNSigmaDe, pidTOF::TOFNSigmaTr, pidTOF::TOFNSigmaHe, pidTOF::TOFNSigmaAl);
-
+                  pidTOF::TOFNSigmaDe, pidTOF::TOFNSigmaTr, pidTOF::TOFNSigmaHe, pidTOF::TOFNSigmaAl,
+                  track::TRDSignal);
 
 // muon quantities
 namespace reducedmuon

@@ -95,6 +95,7 @@ class VarManager : public TObject
     kTPCsignal,
     kTRDsignal,
     kTOFsignal,
+    kTOFbeta,
     kTrackLength,
     kTrackCYY,
     kTrackCZZ,
@@ -273,9 +274,10 @@ void VarManager::FillTrack(T const& track, float* values)
     values[kITSchi2] = track.itsChi2NCl();
     values[kTPCncls] = track.tpcNClsFound();
     values[kTPCchi2] = track.tpcChi2NCl();
-    values[kTPCsignal] = track.tpcSignal();
-    values[kTRDsignal] = track.trdSignal();
-    values[kTOFsignal] = track.tofSignal();
+    //values[kTPCsignal] = track.tpcSignal();
+    //values[kTRDsignal] = track.trdSignal();
+    //values[kTOFsignal] = track.tofSignal();
+    //values[kTOFbeta] = track.beta();
     values[kTrackLength] = track.length();
   }
 
@@ -310,9 +312,9 @@ void VarManager::FillTrack(T const& track, float* values)
     values[kITSchi2] = track.itsChi2NCl();
     values[kTPCncls] = track.tpcNClsFound();
     values[kTPCchi2] = track.tpcChi2NCl();
-    values[kTPCsignal] = track.tpcSignal();
-    values[kTRDsignal] = track.trdSignal();
-    values[kTOFsignal] = track.tofSignal();
+    //values[kTPCsignal] = track.tpcSignal();
+    //values[kTRDsignal] = track.trdSignal();
+    //values[kTOFsignal] = track.tofSignal();
     values[kTrackLength] = track.length();
   }
 
@@ -335,6 +337,10 @@ void VarManager::FillTrack(T const& track, float* values)
     values[kTOFnSigmaPi] = track.tofNSigmaPi();
     values[kTOFnSigmaKa] = track.tofNSigmaKa();
     values[kTOFnSigmaPr] = track.tofNSigmaPr();
+    values[kTPCsignal] = track.tpcSignal();
+    values[kTRDsignal] = track.trdSignal();
+    values[kTOFsignal] = track.tofSignal();
+    values[kTOFbeta] = track.beta();
   }
 
   if constexpr ((fillMap & ReducedTrackMuon) > 0) {
