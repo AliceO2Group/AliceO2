@@ -31,6 +31,8 @@
 #include "ITStracking/Tracklet.h"
 #include "ITStracking/Cluster.h"
 
+#include "Framework/Logger.h"
+
 class TTree;
 
 namespace o2
@@ -137,7 +139,9 @@ inline std::vector<Vertex> Vertexer::exportVertices()
 {
   std::vector<Vertex> vertices;
   for (auto& vertex : mTraits->getVertices()) {
-    std::cout << "\t\tFound vertex with: " << std::setw(6) << vertex.mContributors << " contributors" << std::endl;
+    if (fair::Logger::Logging(fair::Severity::info)) {
+      std::cout << "\t\tFound vertex with: " << std::setw(6) << vertex.mContributors << " contributors" << std::endl;
+    }
     vertices.emplace_back(Point3D<float>(vertex.mX, vertex.mY, vertex.mZ), vertex.mRMS2, vertex.mContributors, vertex.mAvgDistance2);
     vertices.back().setTimeStamp(vertex.mTimeStamp);
   }
@@ -158,10 +162,12 @@ float Vertexer::evaluateTask(void (Vertexer::*task)(T...), const char* taskName,
     std::chrono::duration<double, std::milli> diff_t{end - start};
     diff = diff_t.count();
 
-    if (taskName == nullptr) {
-      ostream << diff << "\t";
-    } else {
-      ostream << std::setw(2) << " - " << taskName << " completed in: " << diff << " ms" << std::endl;
+    if (fair::Logger::Logging(fair::Severity::info)) {
+      if (taskName == nullptr) {
+        ostream << diff << "\t";
+      } else {
+        ostream << std::setw(2) << " - " << taskName << " completed in: " << diff << " ms" << std::endl;
+      }
     }
   } else {
     (this->*task)(std::forward<T>(args)...);

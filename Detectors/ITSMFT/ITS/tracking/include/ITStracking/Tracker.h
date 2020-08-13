@@ -34,6 +34,8 @@
 #include "DataFormatsITS/TrackITS.h"
 #include "SimulationDataFormat/MCCompLabel.h"
 
+#include "Framework/Logger.h"
+
 namespace o2
 {
 namespace gpu
@@ -147,10 +149,12 @@ float Tracker::evaluateTask(void (Tracker::*task)(T...), const char* taskName, s
     std::chrono::duration<double, std::milli> diff_t{end - start};
     diff = diff_t.count();
 
-    if (taskName == nullptr) {
-      ostream << diff << "\t";
-    } else {
-      ostream << std::setw(2) << " - " << taskName << " completed in: " << diff << " ms" << std::endl;
+    if (fair::Logger::Logging(fair::Severity::info)) {
+      if (taskName == nullptr) {
+        ostream << diff << "\t";
+      } else {
+        ostream << std::setw(2) << " - " << taskName << " completed in: " << diff << " ms" << std::endl;
+      }
     }
   } else {
     (this->*task)(std::forward<T>(args)...);

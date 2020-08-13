@@ -69,10 +69,10 @@ void Tracker::clustersToTracks(const ROframe& event, std::ostream& timeBenchmark
       total += evaluateTask(&Tracker::findRoads, "Road finding", timeBenchmarkOutputStream, iteration);
       total += evaluateTask(&Tracker::findTracks, "Track finding", timeBenchmarkOutputStream, event);
     }
-
-    if (constants::DoTimeBenchmarks)
+    if (constants::DoTimeBenchmarks && fair::Logger::Logging(fair::Severity::info)) {
       timeBenchmarkOutputStream << std::setw(2) << " - "
                                 << "Vertex processing completed in: " << total << "ms" << std::endl;
+    }
   }
   if (event.hasMCinformation()) {
     computeTracksMClabels(event);
