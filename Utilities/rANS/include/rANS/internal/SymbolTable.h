@@ -35,7 +35,7 @@ class SymbolTable
 {
 
  public:
-  SymbolTable(const SymbolStatistics& symbolStats, size_t probabiltyBits);
+  SymbolTable(const SymbolStatistics& symbolStats);
 
   const T& operator[](int64_t index) const;
 
@@ -56,7 +56,7 @@ class SymbolTable
 };
 
 template <typename T>
-SymbolTable<T>::SymbolTable(const SymbolStatistics& symbolStats, size_t probabiltyBits) : mMin(symbolStats.getMinSymbol()), mMax(symbolStats.getMaxSymbol()), mIndex(), mSymbols(), mEscapeSymbol(nullptr)
+SymbolTable<T>::SymbolTable(const SymbolStatistics& symbolStats) : mMin(symbolStats.getMinSymbol()), mMax(symbolStats.getMaxSymbol()), mIndex(), mSymbols(), mEscapeSymbol(nullptr)
 {
   LOG(trace) << "start building symbol table";
 
@@ -67,7 +67,7 @@ SymbolTable<T>::SymbolTable(const SymbolStatistics& symbolStats, size_t probabil
     const auto it = symbolStats.getEscapeSymbol();
     if (it != symbolStats.end()) {
       const auto [symFrequency, symCumulated] = *(it);
-      return std::make_unique<T>(symCumulated, symFrequency, probabiltyBits);
+      return std::make_unique<T>(symCumulated, symFrequency, symbolStats.getSymbolTablePrecision());
     } else {
       return nullptr;
     }
@@ -76,7 +76,7 @@ SymbolTable<T>::SymbolTable(const SymbolStatistics& symbolStats, size_t probabil
   for (auto it = symbolStats.begin(); it != symbolStats.getEscapeSymbol(); ++it) {
     const auto [symFrequency, symCumulated] = *it;
     if (symFrequency) {
-      mSymbols.emplace_back(symCumulated, symFrequency, probabiltyBits);
+      mSymbols.emplace_back(symCumulated, symFrequency, symbolStats.getSymbolTablePrecision());
       mIndex.emplace_back(&mSymbols.back());
     } else {
       mIndex.emplace_back(mEscapeSymbol.get());

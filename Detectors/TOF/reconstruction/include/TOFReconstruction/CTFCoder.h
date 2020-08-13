@@ -92,16 +92,16 @@ void CTFCoder::encode(VEC& buff, const gsl::span<const ReadoutWindowData>& rofRe
   // at every encoding the buffer might be autoexpanded, so we don't work with fixed pointer ec
 #define ENCODETOF(part, slot, bits) CTF::get(buff.data())->encode(part, int(slot), bits, optField[int(slot)], &buff, mCoders[int(slot)].get());
   // clang-format off
-  ENCODETOF(cc.bcIncROF,     CTF::BLCbcIncROF,     o2::rans::ProbabilityBits16Bit);
-  ENCODETOF(cc.orbitIncROF,  CTF::BLCorbitIncROF,  o2::rans::ProbabilityBits16Bit);
-  ENCODETOF(cc.ndigROF,      CTF::BLCndigROF,      o2::rans::ProbabilityBits16Bit);
-  ENCODETOF(cc.ndiaROF,      CTF::BLCndiaROF,      o2::rans::ProbabilityBits16Bit);
-  ENCODETOF(cc.timeFrameInc, CTF::BLCtimeFrameInc, o2::rans::ProbabilityBits16Bit);
-  ENCODETOF(cc.timeTDCInc,   CTF::BLCtimeTDCInc,   o2::rans::ProbabilityBits16Bit);
-  ENCODETOF(cc.stripID,      CTF::BLCstripID,      o2::rans::ProbabilityBits16Bit);
-  ENCODETOF(cc.chanInStrip,  CTF::BLCchanInStrip,  o2::rans::ProbabilityBits16Bit);
-  ENCODETOF(cc.tot,          CTF::BLCtot,          o2::rans::ProbabilityBits16Bit);
-  ENCODETOF(cc.pattMap,      CTF::BLCpattMap,      o2::rans::ProbabilityBits16Bit);
+  ENCODETOF(cc.bcIncROF,     CTF::BLCbcIncROF,     0);
+  ENCODETOF(cc.orbitIncROF,  CTF::BLCorbitIncROF,  0);
+  ENCODETOF(cc.ndigROF,      CTF::BLCndigROF,      0);
+  ENCODETOF(cc.ndiaROF,      CTF::BLCndiaROF,      0);
+  ENCODETOF(cc.timeFrameInc, CTF::BLCtimeFrameInc, 0);
+  ENCODETOF(cc.timeTDCInc,   CTF::BLCtimeTDCInc,   0);
+  ENCODETOF(cc.stripID,      CTF::BLCstripID,      0);
+  ENCODETOF(cc.chanInStrip,  CTF::BLCchanInStrip,  0);
+  ENCODETOF(cc.tot,          CTF::BLCtot,          0);
+  ENCODETOF(cc.pattMap,      CTF::BLCpattMap,      0);
   // clang-format on
   CTF::get(buff.data())->print(getPrefix());
 }
