@@ -27,6 +27,7 @@
 #include "DataFormatsTPC/Helpers.h"
 
 using namespace o2::tpc;
+using namespace o2::tpc::constants;
 
 void ZeroSuppress::process()
 {
@@ -62,7 +63,7 @@ void ZeroSuppress::DecodeZSPages(gsl::span<const ZeroSuppressedContainer8kb>* z0
 
     const o2::header::RAWDataHeader* rdh = (const o2::header::RAWDataHeader*)&inputPage;
     auto orbit = o2::raw::RDHUtils::getHeartBeatOrbit(rdh);
-    int timeBin = (_timeOffset + (o2::raw::RDHUtils::getHeartBeatOrbit(rdh) - firstHBF) * o2::constants::lhc::LHCMaxBunches) / Constants::LHCBCPERTIMEBIN;
+    int timeBin = (_timeOffset + (o2::raw::RDHUtils::getHeartBeatOrbit(rdh) - firstHBF) * o2::constants::lhc::LHCMaxBunches) / LHCBCPERTIMEBIN;
 
     unsigned int ct = 0;
     startPtr += (sizeof(z0Container->rdh) + sizeof(z0Container->hdr)); // move to first time bin

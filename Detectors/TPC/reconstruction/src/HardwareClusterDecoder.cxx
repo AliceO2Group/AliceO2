@@ -47,10 +47,10 @@ int HardwareClusterDecoder::decodeClusters(std::vector<std::pair<const ClusterHa
   }
   ClusterNative* outputClusterBuffer = nullptr;
   // the number of clusters in a {sector,row}
-  int nRowClusters[Constants::MAXSECTOR][Constants::MAXGLOBALPADROW] = {0};
+  int nRowClusters[constants::MAXSECTOR][constants::MAXGLOBALPADROW] = {0};
   // offset of first cluster of {sector,row} in the output buffer
-  size_t clusterOffsets[Constants::MAXSECTOR][Constants::MAXGLOBALPADROW] = {0};
-  int containerRowCluster[Constants::MAXSECTOR][Constants::MAXGLOBALPADROW] = {0};
+  size_t clusterOffsets[constants::MAXSECTOR][constants::MAXGLOBALPADROW] = {0};
+  int containerRowCluster[constants::MAXSECTOR][constants::MAXGLOBALPADROW] = {0};
   Mapper& mapper = Mapper::instance();
   int numberOfOutputContainers = 0;
   for (int loop = 0; loop < 2; loop++) {
@@ -105,8 +105,8 @@ int HardwareClusterDecoder::decodeClusters(std::vector<std::pair<const ClusterHa
     }
     if (loop == 1) {
       //We are done with filling the buffers, sort all output buffers
-      for (int i = 0; i < Constants::MAXSECTOR; i++) {
-        for (int j = 0; j < Constants::MAXGLOBALPADROW; j++) {
+      for (int i = 0; i < constants::MAXSECTOR; i++) {
+        for (int j = 0; j < constants::MAXGLOBALPADROW; j++) {
           if (nRowClusters[i][j] == 0) {
             continue;
           }
@@ -129,8 +129,8 @@ int HardwareClusterDecoder::decodeClusters(std::vector<std::pair<const ClusterHa
       outputClusterBuffer = reinterpret_cast<ClusterNative*>(rawOutputBuffer + sizeof(ClusterCountIndex));
       nTotalClusters = 0;
       numberOfOutputContainers = 0;
-      for (int i = 0; i < Constants::MAXSECTOR; i++) {
-        for (int j = 0; j < Constants::MAXGLOBALPADROW; j++) {
+      for (int i = 0; i < constants::MAXSECTOR; i++) {
+        for (int j = 0; j < constants::MAXGLOBALPADROW; j++) {
           clusterCounts.nClusters[i][j] = nRowClusters[i][j];
           if (nRowClusters[i][j] == 0) {
             continue;
@@ -149,8 +149,8 @@ int HardwareClusterDecoder::decodeClusters(std::vector<std::pair<const ClusterHa
   if (outMCLabels) {
     auto& labels = *outMCLabels;
     int nCls = 0;
-    for (int i = 0; i < Constants::MAXSECTOR; i++) {
-      for (int j = 0; j < Constants::MAXGLOBALPADROW; j++) {
+    for (int i = 0; i < constants::MAXSECTOR; i++) {
+      for (int j = 0; j < constants::MAXGLOBALPADROW; j++) {
         if (nRowClusters[i][j] == 0) {
           continue;
         }

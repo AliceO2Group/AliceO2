@@ -101,7 +101,7 @@ void TPCITSMatchingDPL::run(ProcessingContext& pc)
   //---------------------------->> TPC Clusters loading >>------------------------------------------
   int operation = 0;
   uint64_t activeSectors = 0;
-  std::bitset<o2::tpc::Constants::MAXSECTOR> validSectors = 0;
+  std::bitset<o2::tpc::constants::MAXSECTOR> validSectors = 0;
   std::map<int, DataRef> datarefs;
   std::vector<InputSpec> filter = {
     {"check", ConcreteDataTypeMatcher{"TPC", "CLUSTERNATIVE"}, Lifetime::Timeframe},
@@ -114,7 +114,7 @@ void TPCITSMatchingDPL::run(ProcessingContext& pc)
       throw std::runtime_error("sector header missing on header stack");
     }
     int sector = sectorHeader->sector();
-    std::bitset<o2::tpc::Constants::MAXSECTOR> sectorMask(sectorHeader->sectorBits);
+    std::bitset<o2::tpc::constants::MAXSECTOR> sectorMask(sectorHeader->sectorBits);
     LOG(INFO) << "Reading TPC cluster data, sector mask is " << sectorMask;
     if ((validSectors & sectorMask).any()) {
       // have already data for this sector, this should not happen in the current
@@ -133,7 +133,7 @@ void TPCITSMatchingDPL::run(ProcessingContext& pc)
               << std::endl                                                                   //
               << "  input status:   " << validSectors                                        //
               << std::endl                                                                   //
-              << "  active sectors: " << std::bitset<o2::tpc::Constants::MAXSECTOR>(activeSectors);
+              << "  active sectors: " << std::bitset<o2::tpc::constants::MAXSECTOR>(activeSectors);
   };
 
   if (activeSectors == 0 || (activeSectors & validSectors.to_ulong()) != activeSectors) {

@@ -55,7 +55,7 @@ class DigitalCurrentClusterIntegrator
   void reset(); //Free all allocated current buffers
 
  private:
-  std::unique_ptr<unsigned long long int[]> mIntegratedCurrents[Constants::MAXSECTOR][Constants::MAXGLOBALPADROW];
+  std::unique_ptr<unsigned long long int[]> mIntegratedCurrents[constants::MAXSECTOR][constants::MAXGLOBALPADROW];
 };
 
 } // namespace tpc

@@ -40,7 +40,7 @@ class Sector
 {
  public:
   // the number of sectors
-  static constexpr int MAXSECTOR = Constants::MAXSECTOR;
+  static constexpr int MAXSECTOR = constants::MAXSECTOR;
 
   /// constructor
   Sector() = default;

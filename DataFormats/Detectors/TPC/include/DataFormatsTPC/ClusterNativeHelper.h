@@ -82,7 +82,7 @@ struct ClusterNativeBuffer : public ClusterGroupHeader {
 // This is the header for the transport format of TPC ClusterNative data,
 // followed by a linear buffer of clusters.
 struct alignas(64) ClusterCountIndex {
-  unsigned int nClusters[Constants::MAXSECTOR][Constants::MAXGLOBALPADROW];
+  unsigned int nClusters[constants::MAXSECTOR][constants::MAXGLOBALPADROW];
 };
 
 // @struct ClusterCountIndex
@@ -91,13 +91,13 @@ struct alignas(64) ClusterCountIndex {
 struct alignas(64) ClusterIndexBuffer {
   using value_type = ClusterNative;
 
-  unsigned int nClusters[Constants::MAXSECTOR][Constants::MAXGLOBALPADROW];
+  unsigned int nClusters[constants::MAXSECTOR][constants::MAXGLOBALPADROW];
 
   size_t getNClusters() const
   {
     size_t count = 0;
-    for (auto sector = 0; sector < Constants::MAXSECTOR; sector++) {
-      for (auto row = 0; row < Constants::MAXGLOBALPADROW; row++) {
+    for (auto sector = 0; sector < constants::MAXSECTOR; sector++) {
+      for (auto row = 0; row < constants::MAXGLOBALPADROW; row++) {
         count += nClusters[sector][row];
       }
     }
@@ -135,8 +135,8 @@ class ClusterNativeHelper
   ClusterNativeHelper() = default;
   ~ClusterNativeHelper() = default;
 
-  constexpr static unsigned int NSectors = Constants::MAXSECTOR;
-  constexpr static unsigned int NPadRows = Constants::MAXGLOBALPADROW;
+  constexpr static unsigned int NSectors = constants::MAXSECTOR;
+  constexpr static unsigned int NPadRows = constants::MAXGLOBALPADROW;
 
   /// convert clusters stored in binary cluster native format to a tree and write to root file
   /// the cluster parameters are stored in the tree together with sector and padrow numbers.

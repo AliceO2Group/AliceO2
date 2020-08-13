@@ -51,7 +51,7 @@ static constexpr float RowX[NPadRows] = {                            ///< x-posi
 
 #else  // not defined TPC_RUN2
 /// TPC geometric constants for Run 3+
-static constexpr int NPadRows = o2::tpc::Constants::MAXGLOBALPADROW;
+static constexpr int NPadRows = o2::tpc::constants::MAXGLOBALPADROW;
 static constexpr int NROCTypes = 4;
 static constexpr int NRowsPerROC[NROCTypes] = {63, 34, 30, 25};
 static constexpr int NRowsAccumulated[NROCTypes] = {63, 97, 127, 152};

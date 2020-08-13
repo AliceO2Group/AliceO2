@@ -20,6 +20,7 @@
 #include <iostream>
 
 using namespace o2::tpc;
+using namespace o2::tpc::constants;
 
 void ClusterNativeHelper::convert(const char* fromFile, const char* toFile, const char* toTreeName)
 {
@@ -177,7 +178,7 @@ int ClusterNativeHelper::Reader::fillIndex(ClusterNativeAccess& clusterIndex, st
 }
 
 int ClusterNativeHelper::Reader::parseSector(const char* buffer, size_t size, gsl::span<MCLabelContainer const> const& mcinput, ClusterNativeAccess& clusterIndex,
-                                             const MCLabelContainer* (&clustersMCTruth)[Constants::MAXSECTOR])
+                                             const MCLabelContainer* (&clustersMCTruth)[MAXSECTOR])
 {
   if (!buffer || size < sizeof(ClusterCountIndex)) {
     return 0;
@@ -187,9 +188,9 @@ int ClusterNativeHelper::Reader::parseSector(const char* buffer, size_t size, gs
   ClusterCountIndex const& counts = *reinterpret_cast<const ClusterCountIndex*>(buffer);
   ClusterNative const* clusters = reinterpret_cast<ClusterNative const*>(buffer + sizeof(ClusterCountIndex));
   size_t numberOfClusters = 0;
-  for (int i = 0; i < Constants::MAXSECTOR; i++) {
+  for (int i = 0; i < MAXSECTOR; i++) {
     int nSectorClusters = 0;
-    for (int j = 0; j < Constants::MAXGLOBALPADROW; j++) {
+    for (int j = 0; j < MAXGLOBALPADROW; j++) {
       if (counts.nClusters[i][j] == 0) {
         continue;
       }
@@ -246,8 +247,8 @@ int ClusterNativeHelper::TreeWriter::fillFrom(ClusterNativeAccess const& cluster
     return -1;
   }
   int result = 0;
-  for (size_t sector = 0; sector < Constants::MAXSECTOR; ++sector) {
-    for (size_t padrow = 0; padrow < Constants::MAXGLOBALPADROW; ++padrow) {
+  for (size_t sector = 0; sector < MAXSECTOR; ++sector) {
+    for (size_t padrow = 0; padrow < MAXGLOBALPADROW; ++padrow) {
       int locres = fillFrom(sector, padrow, clusterIndex.clusters[sector][padrow], clusterIndex.nClusters[sector][padrow]);
       if (result >= 0 && locres >= 0) {
         result += locres;

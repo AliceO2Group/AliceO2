@@ -25,7 +25,7 @@ struct TPCSectorHeader : public o2::header::BaseHeader {
   // Required to do the lookup
   constexpr static const o2::header::HeaderType sHeaderType = "TPCSectH";
   static const uint32_t sVersion = 2;
-  static constexpr int NSectors = o2::tpc::Constants::MAXSECTOR;
+  static constexpr int NSectors = o2::tpc::constants::MAXSECTOR;
 
   TPCSectorHeader(int s)
     : BaseHeader(sizeof(TPCSectorHeader), sHeaderType, o2::header::gSerializationMethodNone, sVersion), sectorBits(((uint64_t)0x1) << s)
