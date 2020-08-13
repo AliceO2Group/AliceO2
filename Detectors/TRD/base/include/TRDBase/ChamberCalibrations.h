@@ -19,6 +19,7 @@
 ///////////////////////////////////////////////////////////////////////////////
 
 #include "TRDBase/TRDSimParam.h"
+#include "DataFormatsTRD/Constants.h"
 //
 class TRDGeometry;
 
@@ -52,10 +53,10 @@ class ChamberCalibrations
   bool init(int run2run = 0);
 
  protected:
-  std::array<float, TRDSimParam::kNdet> mVDrift{};     // mean drift velocity per chamber.
-  std::array<float, TRDSimParam::kNdet> mGainFactor{}; // mean gas gain per chamber
-  std::array<float, TRDSimParam::kNdet> mT0{};         // Min timeoffset in the chamber
-  std::array<float, TRDSimParam::kNdet> mExB{};        //
+  std::array<float, constants::MAXCHAMBER> mVDrift{};     // mean drift velocity per chamber.
+  std::array<float, constants::MAXCHAMBER> mGainFactor{}; // mean gas gain per chamber
+  std::array<float, constants::MAXCHAMBER> mT0{};         // Min timeoffset in the chamber
+  std::array<float, constants::MAXCHAMBER> mExB{};        //
 };
 } // namespace trd
 } // namespace o2

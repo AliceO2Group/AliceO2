@@ -14,6 +14,7 @@ o2_add_test_root_macro(CheckCCDBvalues.C
 
 o2_add_test_root_macro(CheckDigits.C
                        PUBLIC_LINK_LIBRARIES O2::TRDBase
+                                             O2::DataFormatsTRD
                        LABELS trd)
 
 o2_add_test_root_macro(CheckHits.C

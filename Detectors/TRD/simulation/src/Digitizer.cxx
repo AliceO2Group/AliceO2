@@ -28,6 +28,7 @@
 #endif
 
 using namespace o2::trd;
+using namespace o2::trd::constants;
 using namespace o2::math_utils;
 
 // init method for late initialization
@@ -78,8 +79,8 @@ void Digitizer::setSimulationParameters()
   if (mSimParam->TRFOn()) {
     mTimeBinTRFend = ((int)(mSimParam->GetTRFhi() * mCommonParam->GetSamplingFrequency())) - 1;
   }
-  mMaxTimeBins = kTimeBins;     // for signals, usually set at 30 tb = 3 microseconds
-  mMaxTimeBinsTRAP = kTimeBins; // for adcs; should be read from the CCDB or the TRAP config
+  mMaxTimeBins = TIMEBINS;     // for signals, usually set at 30 tb = 3 microseconds
+  mMaxTimeBinsTRAP = TIMEBINS; // for adcs; should be read from the CCDB or the TRAP config
   mSamplingRate = mCommonParam->GetSamplingFrequency();
   mElAttachProp = mSimParam->GetElAttachProp() / 100;
 }
@@ -119,7 +120,7 @@ SignalContainer Digitizer::addSignalsFromPileup()
   int count = 0;
   SignalContainer addedSignalsMap;
   for (const auto& collection : mPileupSignals) {
-    for (int det = 0; det < kNdet; ++det) {
+    for (int det = 0; det < MAXCHAMBER; ++det) {
       const auto& signalMap = collection[det]; //--> a map with active pads only for this chamber
       for (const auto& signal : signalMap) {   // loop over active pads only, if there is any
         const int& key = signal.first;
@@ -222,7 +223,7 @@ void Digitizer::process(std::vector<HitType> const& hits, DigitContainer& digits
   int status = triggerEventProcessing(digits, labels);
 
   // Get the a hit container for all the hits in a given detector then call convertHits for a given detector (0 - 539)
-  std::array<std::vector<HitType>, kNdet> hitsPerDetector;
+  std::array<std::vector<HitType>, MAXCHAMBER> hitsPerDetector;
   getHitContainerPerDetector(hits, hitsPerDetector);
 
 #ifdef WITH_OPENMP
@@ -230,7 +231,7 @@ void Digitizer::process(std::vector<HitType> const& hits, DigitContainer& digits
 // Loop over all TRD detectors (in a parallel fashion)
 #pragma omp parallel for schedule(dynamic)
 #endif
-  for (int det = 0; det < kNdet; ++det) {
+  for (int det = 0; det < MAXCHAMBER; ++det) {
 #ifdef WITH_OPENMP
     const int threadid = omp_get_thread_num();
 #else
@@ -258,10 +259,10 @@ void Digitizer::process(std::vector<HitType> const& hits, DigitContainer& digits
   }
 }
 
-void Digitizer::getHitContainerPerDetector(const std::vector<HitType>& hits, std::array<std::vector<HitType>, kNdet>& hitsPerDetector)
+void Digitizer::getHitContainerPerDetector(const std::vector<HitType>& hits, std::array<std::vector<HitType>, MAXCHAMBER>& hitsPerDetector)
 {
   //
-  // Fill an array of size kNdet (540)
+  // Fill an array of size MAXCHAMBER (540)
   // The i-element of the array contains the hit collection for the i-detector
   // To be called once, before doing the loop over all detectors and process the hits
   //

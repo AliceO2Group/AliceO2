@@ -23,6 +23,7 @@
 #include "DataFormatsTRD/LinkRecord.h"
 #include "DataFormatsTRD/RawData.h"
 #include "DataFormatsTRD/Tracklet64.h"
+#include "DataFormatsTRD/Constants.h"
 #include "DetectorsRaw/HBFUtils.h"
 #include "DetectorsRaw/RawFileWriter.h"
 #include "TRDSimulation/Trap2CRU.h"
@@ -185,7 +186,7 @@ void Trap2CRU::convertTrapData(o2::trd::TriggerRecord const& TrigRecord)
   for (int halfcru = 0; halfcru < NumberOfHalfCRU; halfcru++) {     //TODO come back and replace 72 with something.
                                                                     //   TrackletHC
     memset(&mRawData[0], 0, sizeof(mRawData[0]) * mRawData.size()); //   zero the rawdata storage
-    int numberofdetectors = o2::trd::kNdet;
+    int numberofdetectors = o2::trd::constants::MAXCHAMBER;
     HalfCRUHeader halfcruheader;
     //now write the cruheader at the head of all the data for this halfcru.
     LOG(debug) << "cru before building cruheader for halfcru index : " << halfcru << " with contents \n"

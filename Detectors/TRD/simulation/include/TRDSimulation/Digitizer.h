@@ -18,6 +18,7 @@
 #include "TRDBase/MCLabel.h"
 #include "TRDBase/TRDCommonParam.h"
 #include "TRDBase/TRDDiffAndTimeStructEstimator.h"
+#include "DataFormatsTRD/Constants.h"
 
 #include "MathUtils/RandomRing.h"
 #include "SimulationDataFormat/MCTruthContainer.h"
@@ -40,7 +41,7 @@ class PadResponse;
 
 struct SignalArray {
   double firstTBtime;                     // first TB time
-  std::array<float, kTimeBins> signals{}; // signals
+  std::array<float, constants::TIMEBINS> signals{}; // signals
   std::unordered_map<int, int> trackIds;  // tracks Ids associated to the signal
   std::vector<MCLabel> labels;            // labels associated to the signal
 };
@@ -115,10 +116,10 @@ class Digitizer
   // Digitization containers
   std::vector<HitType> mHitContainer;                            // the container of hits in a given detector
   std::vector<MCLabel> mMergedLabels;                            // temporary label container
-  std::array<SignalContainer, kNdet> mSignalsMapCollection;      // container for caching signals over a timeframe
-  std::deque<std::array<SignalContainer, kNdet>> mPileupSignals; // container for piled up signals
+  std::array<SignalContainer, constants::MAXCHAMBER> mSignalsMapCollection;      // container for caching signals over a timeframe
+  std::deque<std::array<SignalContainer, constants::MAXCHAMBER>> mPileupSignals; // container for piled up signals
 
-  void getHitContainerPerDetector(const std::vector<HitType>&, std::array<std::vector<HitType>, kNdet>&);
+  void getHitContainerPerDetector(const std::vector<HitType>&, std::array<std::vector<HitType>, constants::MAXCHAMBER>&);
   void setSimulationParameters();
 
   // Digitization chain methods

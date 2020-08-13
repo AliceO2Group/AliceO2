@@ -49,6 +49,7 @@ class TObjArray;
 #include "GPUDef.h"
 #include "TRDBase/TRDGeometryFlat.h"
 #include "TRDBase/TRDPadPlane.h"
+#include "DataFormatsTRD/Constants.h"
 #include "GPUCommonTransform3D.h"
 
 namespace GPUCA_NAMESPACE
@@ -98,7 +99,7 @@ class GPUTRDGeometry : private o2::trd::TRDGeometryFlat
   GPUd() int GetRowMax(int layer, int stack, int sector) const { return getRowMax(layer, stack, sector); }
   GPUd() bool ChamberInGeometry(int det) const { return chamberInGeometry(det); }
 
-  static constexpr int kNstack = o2::trd::kNstack;
+  static constexpr int kNstack = o2::trd::constants::NSTACK;
 };
 } // namespace gpu
 } // namespace GPUCA_NAMESPACE

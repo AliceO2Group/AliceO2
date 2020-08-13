@@ -26,6 +26,8 @@
 //                                                                        //
 ////////////////////////////////////////////////////////////////////////////
 
+#include "DataFormatsTRD/Constants.h"
+
 #include <array>
 #include <vector>
 
@@ -66,31 +68,6 @@ class FeeParam
   static int extAliToAli(unsigned int dest, unsigned short linkpair, unsigned short rocType, int* list, int listSize); // translates an extended MCM ALICE ID to a list of MCMs
   static short chipmaskToMCMlist(unsigned int cmA, unsigned int cmB, unsigned short linkpair, int* mcmList, int listSize);
   static short getRobAB(unsigned short robsel, unsigned short linkpair); // Returns the chamber side (A=0, B=0) of a ROB
-
-  // geometry
-  static float getSamplingFrequency() { return (float)mgkLHCfrequency / 4000000.0; } //TODO put the 40MHz into a static variable somewhere.
-  static int getNmcmRob() { return mgkNmcmRob; }
-  static int getNmcmRobInRow() { return mgkNmcmRobInRow; }
-  static int getNmcmRobInCol() { return mgkNmcmRobInCol; }
-  static int getNrobC0() { return mgkNrobC0; }
-  static int getNrobC1() { return mgkNrobC1; }
-  static int getNadcMcm() { return mgkNadcMcm; }
-  static int getNcol() { return mgkNcol; }
-  static int getNcolMcm() { return mgkNcolMcm; }
-  static int getNrowC0() { return mgkNrowC0; }
-  static int getNrowC1() { return mgkNrowC1; }
-  // Basic Geometrical numbers
-  static const int mgkLHCfrequency = 40079000; // [Hz] LHC clock
-  static const int mgkNmcmRob = 16;            // Number of MCMs per ROB
-  static const int mgkNmcmRobInRow = 4;        // Number of MCMs per ROB in row dir.
-  static const int mgkNmcmRobInCol = 4;        // Number of MCMs per ROB in col dir.
-  static const int mgkNrobC0 = 6;              // Number of ROBs per C0 chamber
-  static const int mgkNrobC1 = 8;              // Number of ROBs per C1 chamber
-  static const int mgkNadcMcm = 21;            // Number of ADC channels per MCM
-  static const int mgkNcol = 144;              // Number of pads per padplane row
-  static const int mgkNcolMcm = 18;            // Number of pads per MCM
-  static const int mgkNrowC0 = 12;             // Number of Rows per C0 chamber
-  static const int mgkNrowC1 = 16;             // Number of Rows per C1 chamber
 
   // tracklet simulation
   bool getTracklet() const { return mgTracklet; }
@@ -174,17 +151,17 @@ class FeeParam
   static const int mgkMaxRAWversion = 3; // Maximum raw version number supported
 
   // geometry constants
-  static std::array<float, 30> mgZrow;            // z-position of pad row edge 6x5
-  static std::array<float, 6> mgX;                // x-position for all layers
-  static std::array<float, 6> mgInvX;             // inverse x-position for all layers (to remove divisions)
-  static std::array<float, 6> mgTiltingAngle;     // tilting angle for every layer
-  static std::array<float, 6> mgTiltingAngleTan;  // tan of tilting angle for every layer (look up table to avoid tan calculations)
-  static std::array<float, 6> mgWidthPad;         // pad width for all layers
-  static std::array<float, 6> mgInvWidthPad;      // inverse pad width for all layers (to remove divisions)
+  static std::array<float, constants::NCHAMBERPERSEC> mgZrow;    // z-position of pad row edge 6x5
+  static std::array<float, constants::NLAYER> mgX;               // x-position for all layers
+  static std::array<float, constants::NLAYER> mgInvX;            // inverse x-position for all layers (to remove divisions)
+  static std::array<float, constants::NLAYER> mgTiltingAngle;    // tilting angle for every layer
+  static std::array<float, constants::NLAYER> mgTiltingAngleTan; // tan of tilting angle for every layer (look up table to avoid tan calculations)
+  static std::array<float, constants::NLAYER> mgWidthPad;        // pad width for all layers
+  static std::array<float, constants::NLAYER> mgInvWidthPad;     // inverse pad width for all layers (to remove divisions)
   static float mgLengthInnerPadC0;                // inner pad length C0 chamber
   static float mgLengthOuterPadC0;                // outer pad length C0 chamber
-  static std::array<float, 6> mgLengthInnerPadC1; // inner pad length C1 chambers
-  static std::array<float, 6> mgLengthOuterPadC1; // outer pad length C1 chambers
+  static std::array<float, constants::NLAYER> mgLengthInnerPadC1; // inner pad length C1 chambers
+  static std::array<float, constants::NLAYER> mgLengthOuterPadC1; // outer pad length C1 chambers
   static float mgScalePad;                        // scaling factor for pad width
   static float mgDriftLength;                     // length of the  parse gaintbl Krypton_2009-01 drift region
   static float mgBinDy;                           // bin in dy (140 um)
