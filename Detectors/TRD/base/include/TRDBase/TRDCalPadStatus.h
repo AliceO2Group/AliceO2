@@ -11,6 +11,8 @@
 #ifndef O2_TRDCALPADSTATUS_H
 #define O2_TRDCALPADSTATUS_H
 
+#include "DataFormatsTRD/Constants.h"
+
 #include "TH1F.h"
 #include "TH2F.h"
 #include <string>
@@ -32,10 +34,6 @@ class TRDCalPadStatus
 {
 
  public:
-  enum { kNplan = 6,
-         kNcham = 5,
-         kNsect = 18,
-         kNdet = 540 };
   enum { kMasked = 2,
          kPadBridgedLeft = 4,
          kPadBridgedRight = 8,
@@ -86,7 +84,7 @@ class TRDCalPadStatus
   void setName(const std::string newName) { mName = newName; };
 
  protected:
-  TRDCalSingleChamberStatus* mROC[kNdet]; //  Array of ROC objects which contain the values per pad
+  TRDCalSingleChamberStatus* mROC[constants::MAXCHAMBER]; //  Array of ROC objects which contain the values per pad
 
  private:
   std::string mName;

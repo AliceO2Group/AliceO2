@@ -13,6 +13,7 @@
 
 #include "GPUCommonDef.h"
 #include "TRDBase/TRDCommonParam.h"
+#include "DataFormatsTRD/Constants.h"
 #include "TRDBase/TRDPadPlane.h"
 
 namespace o2
@@ -39,11 +40,11 @@ class TRDGeometryBase
     }
   }
   GPUd() bool getSMstatus(int sm) const { return (mSMStatus & (0x1 << sm)) != 0; }
-  GPUd() static int getDetectorSec(int det) { return (det % (kNlayer * kNstack)); }
-  GPUd() static int getDetectorSec(int layer, int stack) { return (layer + stack * kNlayer); }
-  GPUd() static int getDetector(int layer, int stack, int sector) { return (layer + stack * kNlayer + sector * kNlayer * kNstack); }
-  GPUd() static int getLayer(int det) { return (det % kNlayer); }
-  GPUd() static int getStack(int det) { return ((det % (kNlayer * kNstack)) / kNlayer); }
+  GPUd() static int getDetectorSec(int det) { return (det % (constants::NLAYER * constants::NSTACK)); }
+  GPUd() static int getDetectorSec(int layer, int stack) { return (layer + stack * constants::NLAYER); }
+  GPUd() static int getDetector(int layer, int stack, int sector) { return (layer + stack * constants::NLAYER + sector * constants::NLAYER * constants::NSTACK); }
+  GPUd() static int getLayer(int det) { return (det % constants::NLAYER); }
+  GPUd() static int getStack(int det) { return ((det % (constants::NLAYER * constants::NSTACK)) / constants::NLAYER); }
   GPUd() int getStack(float z, int layer) const;
 
   GPUd() const TRDPadPlane* getPadPlane(int layer, int stack) const { return &mPadPlanes[getDetectorSec(layer, stack)]; }
@@ -59,13 +60,13 @@ class TRDGeometryBase
   GPUd() float getRow0(int layer, int stack) { return mPadPlanes[getDetectorSec(layer, stack)].getRow0(); }
   GPUd() float getRowEnd(int layer, int stack) { return mPadPlanes[getDetectorSec(layer, stack)].getRowEnd(); }
 
-  static constexpr int getSector(int det) { return (det / (kNlayer * kNstack)); }
+  static constexpr int getSector(int det) { return (det / (constants::NLAYER * constants::NSTACK)); }
   static constexpr float getTime0(int layer) { return TIME0[layer]; }
   static constexpr float getXtrdBeg() { return XTRDBEG; }
   static constexpr float getXtrdEnd() { return XTRDEND; }
   static constexpr float getChamberWidth(int layer) { return CWIDTH[layer]; }
   static constexpr float getChamberLength(int layer, int stack) { return CLENGTH[layer][stack]; }
-  static constexpr float getAlpha() { return 2.0 * 3.14159265358979324 / kNsector; }
+  static constexpr float getAlpha() { return 2.0 * 3.14159265358979324 / constants::NSECTOR; }
   static constexpr float cheight() { return CH; }
   static constexpr float cheightSV() { return CHSV; }
   static constexpr float cspace() { return VSPACE; }
@@ -199,11 +200,11 @@ class TRDGeometryBase
   static constexpr float XTRDEND = 366.33; ///< X-coordinate in tracking system of end of TRD mother volume
 
   // The outer width of the chambers
-  static constexpr float CWIDTH[kNlayer] = {90.4, 94.8, 99.3, 103.7, 108.1, 112.6};
+  static constexpr float CWIDTH[constants::NLAYER] = {90.4, 94.8, 99.3, 103.7, 108.1, 112.6};
 
   // The outer lengths of the chambers
   // Includes the spacings between the chambers!
-  static constexpr float CLENGTH[kNlayer][kNstack] = {
+  static constexpr float CLENGTH[constants::NLAYER][constants::NSTACK] = {
     {124.0, 124.0, 110.0, 124.0, 124.0},
     {124.0, 124.0, 110.0, 124.0, 124.0},
     {131.0, 131.0, 110.0, 131.0, 131.0},
@@ -211,7 +212,7 @@ class TRDGeometryBase
     {145.0, 145.0, 110.0, 145.0, 145.0},
     {147.0, 147.0, 110.0, 147.0, 147.0}};
 
-  TRDPadPlane mPadPlanes[kNlayer * kNstack];
+  TRDPadPlane mPadPlanes[constants::NLAYER * constants::NSTACK];
 
   int mSMStatus = 0x3ffff;
 

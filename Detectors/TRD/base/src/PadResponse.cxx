@@ -11,6 +11,7 @@
 #include "TRDBase/PadResponse.h"
 
 using namespace o2::trd;
+using namespace o2::trd::constants;
 
 void PadResponse::samplePRF()
 {
@@ -19,7 +20,7 @@ void PadResponse::samplePRF()
   //
 
   constexpr int kPRFbin = 61; // arbitraty value - need documentation/ref.
-  constexpr float prf[kNlayer][kPRFbin] = {
+  constexpr float prf[NLAYER][kPRFbin] = {
     {2.9037e-02, 3.3608e-02, 3.9020e-02, 4.5292e-02,
      5.2694e-02, 6.1362e-02, 7.1461e-02, 8.3362e-02,
      9.7063e-02, 1.1307e-01, 1.3140e-01, 1.5235e-01,
@@ -132,7 +133,7 @@ void PadResponse::samplePRF()
   int ipos2;
   float diff;
 
-  for (int iLayer = 0; iLayer < kNlayer; ++iLayer) {
+  for (int iLayer = 0; iLayer < NLAYER; ++iLayer) {
     for (int iBin = 0; iBin < mPRFbin; ++iBin) {
       float bin = (((float)iBin) + 0.5) * mPRFwid + mPRFlo;
       ipos1 = ipos2 = 0;
@@ -171,12 +172,12 @@ int PadResponse::getPRF(double signal, double dist, int layer, double* pad) cons
   pad[1] = 0;
   pad[2] = 0;
 
-  if ((iBin1 >= 0) && (iBin1 < (mPRFbin * kNlayer))) {
+  if ((iBin1 >= 0) && (iBin1 < (mPRFbin * NLAYER))) {
     if (iBin0 >= 0) {
       pad[0] = signal * mPRFsmp[iBin0];
     }
     pad[1] = signal * mPRFsmp[iBin1];
-    if (iBin2 < (mPRFbin * kNlayer)) {
+    if (iBin2 < (mPRFbin * NLAYER)) {
       pad[2] = signal * mPRFsmp[iBin2];
     }
     return 1;

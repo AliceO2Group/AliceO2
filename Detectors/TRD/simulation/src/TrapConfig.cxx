@@ -19,6 +19,7 @@
 #include "TRDBase/TRDGeometry.h"
 #include "TRDBase/FeeParam.h"
 #include "TRDSimulation/TrapConfig.h"
+#include "DataFormatsTRD/Constants.h"
 #include <fairlogger/Logger.h>
 
 #include <fstream>
@@ -28,6 +29,7 @@
 
 using namespace std;
 using namespace o2::trd;
+using namespace o2::trd::constants;
 
 bool TrapConfig::mgRegAddressMapInitialized = false;
 
@@ -663,9 +665,9 @@ bool TrapConfig::printTrapReg(TrapReg_t reg, int det, int rob, int mcm)
   // print the value stored in the given register
   // if it is individual a valid MCM has to be specified
 
-  if ((det >= 0 && det < kNdet) &&
-      (rob >= 0 && rob < FeeParam::getNrobC1()) &&
-      (mcm >= 0 && mcm < FeeParam::getNmcmRob() + 2)) {
+  if ((det >= 0 && det < MAXCHAMBER) &&
+      (rob >= 0 && rob < NROBC1) &&
+      (mcm >= 0 && mcm < NMCMROB + 2)) {
     LOG(info) << getRegName((TrapReg_t)reg) << "(" << std::setw(2) << getRegNBits((TrapReg_t)reg)
               << " bits) at 0x" << hex << std::setw(4) << getRegAddress((TrapReg_t)reg)
               << " is 0x" << hex << std::setw(8) << mRegisterValue[reg].getValue(det, rob, mcm)
@@ -999,7 +1001,7 @@ void TrapConfig::configureOnlineGains()
 {
   // we dont want to do this anymore .... but here for future reference.
   /* if (hasOnlineFilterGain()) {
-    const int nDets = kNdet;
+    const int nDets = MAXCHAMBER;
     const int nMcms = TRDGeometry::MCMmax();
     const int nChs = TRDGeometry::ADCmax();
 
@@ -1011,8 +1013,8 @@ void TrapConfig::configureOnlineGains()
     }
 
     for (int iDet = 0; iDet < nDets; ++iDet) {
-      //const int MaxRows = TRDGeometry::getStack(iDet) == 2 ? FeeParam::mgkNrowC0 : FeeParam::mgkNrowC1;
-      int MaxCols = FeeParam::mgkNcol;
+      //const int MaxRows = TRDGeometry::getStack(iDet) == 2 ? NROWC0 : NROWC1;
+      int MaxCols = NCOLUMN;
       //	CalOnlineGainTableROC gainTbl = mGainTable.getGainTableROC(iDet);
       const int nRobs = TRDGeometry::getStack(iDet) == 2 ? TRDGeometry::ROBmaxC0() : TRDGeometry::ROBmaxC1();
 

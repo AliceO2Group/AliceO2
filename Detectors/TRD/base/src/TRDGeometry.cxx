@@ -20,6 +20,7 @@
 #include "TRDBase/TRDPadPlane.h"
 
 using namespace o2::trd;
+using namespace o2::trd::constants;
 
 //_____________________________________________________________________________
 
@@ -40,7 +41,7 @@ bool TRDGeometry::rotateBack(int det, const float* const loc, float* glb) const
   //
 
   int sector = getSector(det);
-  float phi = 2.0 * TMath::Pi() / (float)kNsector * ((float)sector + 0.5);
+  float phi = 2.0 * TMath::Pi() / (float)NSECTOR * ((float)sector + 0.5);
 
   glb[0] = loc[0] * TMath::Cos(phi) - loc[1] * TMath::Sin(phi);
   glb[1] = loc[0] * TMath::Sin(phi) + loc[1] * TMath::Cos(phi);
@@ -56,8 +57,8 @@ void TRDGeometry::createPadPlaneArray()
   // Creates the array of TRDPadPlane objects
   //
 
-  for (int ilayer = 0; ilayer < kNlayer; ilayer++) {
-    for (int istack = 0; istack < kNstack; istack++) {
+  for (int ilayer = 0; ilayer < NLAYER; ilayer++) {
+    for (int istack = 0; istack < NSTACK; istack++) {
       createPadPlane(ilayer, istack);
     }
   }
@@ -371,8 +372,8 @@ void TRDGeometry::createVolumes(std::vector<int> const& idtmed)
   createVolume("UTF1", "TRD1", idtmed[2], parTrd, kNparTrd);
   createVolume("UTF2", "TRD1", idtmed[2], parTrd, kNparTrd);
 
-  for (int istack = 0; istack < kNstack; istack++) {
-    for (int ilayer = 0; ilayer < kNlayer; ilayer++) {
+  for (int istack = 0; istack < NSTACK; istack++) {
+    for (int ilayer = 0; ilayer < NLAYER; ilayer++) {
       int iDet = getDetectorSec(ilayer, istack);
 
       // The lower part of the readout chambers (drift volume + radiator)
@@ -705,8 +706,8 @@ void TRDGeometry::createVolumes(std::vector<int> const& idtmed)
   // Create the volumes of the services
   createServices(idtmed);
 
-  for (int istack = 0; istack < kNstack; istack++) {
-    for (int ilayer = 0; ilayer < kNlayer; ilayer++) {
+  for (int istack = 0; istack < NSTACK; istack++) {
+    for (int ilayer = 0; ilayer < NLAYER; ilayer++) {
       assembleChamber(ilayer, istack);
     }
   }
@@ -732,7 +733,7 @@ void TRDGeometry::createVolumes(std::vector<int> const& idtmed)
   xpos = 0.0;
   ypos = 0.0;
   zpos = 0.0;
-  for (int isector = 0; isector < kNsector; isector++) {
+  for (int isector = 0; isector < NSECTOR; isector++) {
     if (getSMstatus(isector)) {
       snprintf(cTagV, kTag, "BTRD%d", isector);
       switch (isector) {
@@ -763,7 +764,7 @@ void TRDGeometry::createVolumes(std::vector<int> const& idtmed)
   xpos = 0.0;
   ypos = 0.5 * SLENGTH + 0.5 * FLENGTH;
   zpos = 0.0;
-  for (int isector = 0; isector < kNsector; isector++) {
+  for (int isector = 0; isector < NSECTOR; isector++) {
     if (getSMstatus(isector)) {
       snprintf(cTagV, kTag, "BTRD%d", isector);
       TVirtualMC::GetMC()->Gspos("UTF1", 1, cTagV, xpos, ypos, zpos, 0, "ONLY");
@@ -937,19 +938,19 @@ void TRDGeometry::createFrame(std::vector<int> const& idtmed)
   xpos = 0.0;
   ypos = 0.0;
   zpos = 0.0;
-  for (ilayer = 1; ilayer < kNlayer; ilayer++) {
+  for (ilayer = 1; ilayer < NLAYER; ilayer++) {
     xpos = CWIDTH[ilayer] / 2.0 + kSRLwidA / 2.0 + kSRLdst;
     ypos = 0.0;
     zpos = VROCSM + SMPLTT - CALZPOS - SHEIGHT / 2.0 + CRAH + CDRH - CALH - kSRLhgt / 2.0 +
            ilayer * (CH + VSPACE);
     TVirtualMC::GetMC()->Gspos("USRL", ilayer + 1, "UTI1", xpos, ypos, zpos, matrix[2], "ONLY");
-    TVirtualMC::GetMC()->Gspos("USRL", ilayer + 1 + kNlayer, "UTI1", -xpos, ypos, zpos, matrix[3], "ONLY");
-    TVirtualMC::GetMC()->Gspos("USRL", ilayer + 1 + 2 * kNlayer, "UTI2", xpos, ypos, zpos, matrix[2], "ONLY");
-    TVirtualMC::GetMC()->Gspos("USRL", ilayer + 1 + 3 * kNlayer, "UTI2", -xpos, ypos, zpos, matrix[3], "ONLY");
-    TVirtualMC::GetMC()->Gspos("USRL", ilayer + 1 + 4 * kNlayer, "UTI3", xpos, ypos, zpos, matrix[2], "ONLY");
-    TVirtualMC::GetMC()->Gspos("USRL", ilayer + 1 + 5 * kNlayer, "UTI3", -xpos, ypos, zpos, matrix[3], "ONLY");
-    TVirtualMC::GetMC()->Gspos("USRL", ilayer + 1 + 6 * kNlayer, "UTI4", xpos, ypos, zpos, matrix[2], "ONLY");
-    TVirtualMC::GetMC()->Gspos("USRL", ilayer + 1 + 7 * kNlayer, "UTI4", -xpos, ypos, zpos, matrix[3], "ONLY");
+    TVirtualMC::GetMC()->Gspos("USRL", ilayer + 1 + NLAYER, "UTI1", -xpos, ypos, zpos, matrix[3], "ONLY");
+    TVirtualMC::GetMC()->Gspos("USRL", ilayer + 1 + 2 * NLAYER, "UTI2", xpos, ypos, zpos, matrix[2], "ONLY");
+    TVirtualMC::GetMC()->Gspos("USRL", ilayer + 1 + 3 * NLAYER, "UTI2", -xpos, ypos, zpos, matrix[3], "ONLY");
+    TVirtualMC::GetMC()->Gspos("USRL", ilayer + 1 + 4 * NLAYER, "UTI3", xpos, ypos, zpos, matrix[2], "ONLY");
+    TVirtualMC::GetMC()->Gspos("USRL", ilayer + 1 + 5 * NLAYER, "UTI3", -xpos, ypos, zpos, matrix[3], "ONLY");
+    TVirtualMC::GetMC()->Gspos("USRL", ilayer + 1 + 6 * NLAYER, "UTI4", xpos, ypos, zpos, matrix[2], "ONLY");
+    TVirtualMC::GetMC()->Gspos("USRL", ilayer + 1 + 7 * NLAYER, "UTI4", -xpos, ypos, zpos, matrix[3], "ONLY");
   }
 
   //
@@ -972,7 +973,7 @@ void TRDGeometry::createFrame(std::vector<int> const& idtmed)
   xpos = 0.0;
   ypos = 0.0;
   zpos = 0.0;
-  for (ilayer = 0; ilayer < kNlayer; ilayer++) {
+  for (ilayer = 0; ilayer < NLAYER; ilayer++) {
     // The aluminum of the cross bars
     parSCB[0] = CWIDTH[ilayer] / 2.0 + kSRLdst / 2.0;
     snprintf(cTagV, kTag, "USF%01d", ilayer);
@@ -1025,7 +1026,7 @@ void TRDGeometry::createFrame(std::vector<int> const& idtmed)
   const int kNparSCH = 3;
   float parSCH[kNparSCH];
 
-  for (ilayer = 1; ilayer < kNlayer - 1; ilayer++) {
+  for (ilayer = 1; ilayer < NLAYER - 1; ilayer++) {
     parSCH[0] = CWIDTH[ilayer] / 2.0;
     parSCH[1] = (CLENGTH[ilayer + 1][2] / 2.0 + CLENGTH[ilayer + 1][1] - CLENGTH[ilayer][2] / 2.0 -
                  CLENGTH[ilayer][1]) /
@@ -1593,7 +1594,7 @@ void TRDGeometry::createServices(std::vector<int> const& idtmed)
   TVirtualMC::GetMC()->Gspos("UTC2", 1, "UTC1", xpos, ypos, zpos, 0, "ONLY");
   TVirtualMC::GetMC()->Gspos("UTC4", 1, "UTC3", xpos, ypos, zpos, 0, "ONLY");
 
-  for (ilayer = 1; ilayer < kNlayer; ilayer++) {
+  for (ilayer = 1; ilayer < NLAYER; ilayer++) {
     // Along the chambers
     xpos = CWIDTH[ilayer] / 2.0 + kCOLwid / 2.0 + kCOLposx;
     ypos = 0.0;
@@ -1603,19 +1604,19 @@ void TRDGeometry::createServices(std::vector<int> const& idtmed)
     parCOL[1] = SLENGTH / 2.0;
     parCOL[2] = kCOLhgt / 2.0;
     TVirtualMC::GetMC()->Gsposp("UTC1", ilayer, "UTI1", xpos, ypos, zpos, matrix[0], "ONLY", parCOL, kNparCOL);
-    TVirtualMC::GetMC()->Gsposp("UTC1", ilayer + kNlayer, "UTI1", -xpos, ypos, zpos, matrix[1], "ONLY", parCOL,
+    TVirtualMC::GetMC()->Gsposp("UTC1", ilayer + NLAYER, "UTI1", -xpos, ypos, zpos, matrix[1], "ONLY", parCOL,
                                 kNparCOL);
-    TVirtualMC::GetMC()->Gsposp("UTC1", ilayer + 6 * kNlayer, "UTI2", xpos, ypos, zpos, matrix[0], "ONLY", parCOL,
+    TVirtualMC::GetMC()->Gsposp("UTC1", ilayer + 6 * NLAYER, "UTI2", xpos, ypos, zpos, matrix[0], "ONLY", parCOL,
                                 kNparCOL);
-    TVirtualMC::GetMC()->Gsposp("UTC1", ilayer + 7 * kNlayer, "UTI2", -xpos, ypos, zpos, matrix[1], "ONLY", parCOL,
+    TVirtualMC::GetMC()->Gsposp("UTC1", ilayer + 7 * NLAYER, "UTI2", -xpos, ypos, zpos, matrix[1], "ONLY", parCOL,
                                 kNparCOL);
-    TVirtualMC::GetMC()->Gsposp("UTC1", ilayer + 8 * kNlayer, "UTI3", xpos, ypos, zpos, matrix[0], "ONLY", parCOL,
+    TVirtualMC::GetMC()->Gsposp("UTC1", ilayer + 8 * NLAYER, "UTI3", xpos, ypos, zpos, matrix[0], "ONLY", parCOL,
                                 kNparCOL);
-    TVirtualMC::GetMC()->Gsposp("UTC1", ilayer + 9 * kNlayer, "UTI3", -xpos, ypos, zpos, matrix[1], "ONLY", parCOL,
+    TVirtualMC::GetMC()->Gsposp("UTC1", ilayer + 9 * NLAYER, "UTI3", -xpos, ypos, zpos, matrix[1], "ONLY", parCOL,
                                 kNparCOL);
-    TVirtualMC::GetMC()->Gsposp("UTC1", ilayer + 10 * kNlayer, "UTI4", xpos, ypos, zpos, matrix[0], "ONLY", parCOL,
+    TVirtualMC::GetMC()->Gsposp("UTC1", ilayer + 10 * NLAYER, "UTI4", xpos, ypos, zpos, matrix[0], "ONLY", parCOL,
                                 kNparCOL);
-    TVirtualMC::GetMC()->Gsposp("UTC1", ilayer + 11 * kNlayer, "UTI4", -xpos, ypos, zpos, matrix[1], "ONLY", parCOL,
+    TVirtualMC::GetMC()->Gsposp("UTC1", ilayer + 11 * NLAYER, "UTI4", -xpos, ypos, zpos, matrix[1], "ONLY", parCOL,
                                 kNparCOL);
 
     // Front of supermodules
@@ -1626,17 +1627,17 @@ void TRDGeometry::createServices(std::vector<int> const& idtmed)
     parCOL[0] = kCOLwid / 2.0;
     parCOL[1] = FLENGTH / 2.0;
     parCOL[2] = kCOLhgt / 2.0;
-    TVirtualMC::GetMC()->Gsposp("UTC3", ilayer + 2 * kNlayer, "UTF1", xpos, ypos, zpos, matrix[0], "ONLY", parCOL,
+    TVirtualMC::GetMC()->Gsposp("UTC3", ilayer + 2 * NLAYER, "UTF1", xpos, ypos, zpos, matrix[0], "ONLY", parCOL,
                                 kNparCOL);
-    TVirtualMC::GetMC()->Gsposp("UTC3", ilayer + 3 * kNlayer, "UTF1", -xpos, ypos, zpos, matrix[1], "ONLY", parCOL,
+    TVirtualMC::GetMC()->Gsposp("UTC3", ilayer + 3 * NLAYER, "UTF1", -xpos, ypos, zpos, matrix[1], "ONLY", parCOL,
                                 kNparCOL);
-    TVirtualMC::GetMC()->Gsposp("UTC3", ilayer + 4 * kNlayer, "UTF2", xpos, ypos, zpos, matrix[0], "ONLY", parCOL,
+    TVirtualMC::GetMC()->Gsposp("UTC3", ilayer + 4 * NLAYER, "UTF2", xpos, ypos, zpos, matrix[0], "ONLY", parCOL,
                                 kNparCOL);
-    TVirtualMC::GetMC()->Gsposp("UTC3", ilayer + 5 * kNlayer, "UTF2", -xpos, ypos, zpos, matrix[1], "ONLY", parCOL,
+    TVirtualMC::GetMC()->Gsposp("UTC3", ilayer + 5 * NLAYER, "UTF2", -xpos, ypos, zpos, matrix[1], "ONLY", parCOL,
                                 kNparCOL);
   }
 
-  for (ilayer = 1; ilayer < kNlayer; ilayer++) {
+  for (ilayer = 1; ilayer < NLAYER; ilayer++) {
     // In baby frame
     xpos = CWIDTH[ilayer] / 2.0 + kCOLwid / 2.0 + kCOLposx - 2.5;
     ypos = kBBSdz / 2.0 - kBBMdz / 2.0;
@@ -1645,13 +1646,13 @@ void TRDGeometry::createServices(std::vector<int> const& idtmed)
     parCOL[0] = kCOLwid / 2.0;
     parCOL[1] = kBBSdz / 2.0;
     parCOL[2] = kCOLhgt / 2.0;
-    TVirtualMC::GetMC()->Gsposp("UTC3", ilayer + 6 * kNlayer, "BBTRD", xpos, ypos, zpos, matrix[0], "ONLY", parCOL,
+    TVirtualMC::GetMC()->Gsposp("UTC3", ilayer + 6 * NLAYER, "BBTRD", xpos, ypos, zpos, matrix[0], "ONLY", parCOL,
                                 kNparCOL);
-    TVirtualMC::GetMC()->Gsposp("UTC3", ilayer + 7 * kNlayer, "BBTRD", -xpos, ypos, zpos, matrix[1], "ONLY", parCOL,
+    TVirtualMC::GetMC()->Gsposp("UTC3", ilayer + 7 * NLAYER, "BBTRD", -xpos, ypos, zpos, matrix[1], "ONLY", parCOL,
                                 kNparCOL);
   }
 
-  for (ilayer = 1; ilayer < kNlayer; ilayer++) {
+  for (ilayer = 1; ilayer < NLAYER; ilayer++) {
     // In back frame
     xpos = CWIDTH[ilayer] / 2.0 + kCOLwid / 2.0 + kCOLposx - 0.3;
     ypos = -kBFSdz / 2.0 + kBFMdz / 2.0;
@@ -1660,9 +1661,9 @@ void TRDGeometry::createServices(std::vector<int> const& idtmed)
     parCOL[0] = kCOLwid / 2.0;
     parCOL[1] = kBFSdz / 2.0;
     parCOL[2] = kCOLhgt / 2.0;
-    TVirtualMC::GetMC()->Gsposp("UTC3", ilayer + 6 * kNlayer, "BFTRD", xpos, ypos, zpos, matrix[0], "ONLY", parCOL,
+    TVirtualMC::GetMC()->Gsposp("UTC3", ilayer + 6 * NLAYER, "BFTRD", xpos, ypos, zpos, matrix[0], "ONLY", parCOL,
                                 kNparCOL);
-    TVirtualMC::GetMC()->Gsposp("UTC3", ilayer + 7 * kNlayer, "BFTRD", -xpos, ypos, zpos, matrix[1], "ONLY", parCOL,
+    TVirtualMC::GetMC()->Gsposp("UTC3", ilayer + 7 * NLAYER, "BFTRD", -xpos, ypos, zpos, matrix[1], "ONLY", parCOL,
                                 kNparCOL);
   }
 
@@ -1675,13 +1676,13 @@ void TRDGeometry::createServices(std::vector<int> const& idtmed)
   parCOL[1] = SLENGTH / 2.0;
   parCOL[2] = kCOLhgt / 2.0;
   TVirtualMC::GetMC()->Gsposp("UTC1", 6, "UTI1", xpos, ypos, zpos, matrix[3], "ONLY", parCOL, kNparCOL);
-  TVirtualMC::GetMC()->Gsposp("UTC1", 6 + kNlayer, "UTI1", -xpos, ypos, zpos, matrix[3], "ONLY", parCOL, kNparCOL);
-  TVirtualMC::GetMC()->Gsposp("UTC1", 6 + 6 * kNlayer, "UTI2", xpos, ypos, zpos, matrix[3], "ONLY", parCOL, kNparCOL);
-  TVirtualMC::GetMC()->Gsposp("UTC1", 6 + 7 * kNlayer, "UTI2", -xpos, ypos, zpos, matrix[3], "ONLY", parCOL, kNparCOL);
-  TVirtualMC::GetMC()->Gsposp("UTC1", 6 + 8 * kNlayer, "UTI3", xpos, ypos, zpos, matrix[3], "ONLY", parCOL, kNparCOL);
-  TVirtualMC::GetMC()->Gsposp("UTC1", 6 + 9 * kNlayer, "UTI3", -xpos, ypos, zpos, matrix[3], "ONLY", parCOL, kNparCOL);
-  TVirtualMC::GetMC()->Gsposp("UTC1", 6 + 10 * kNlayer, "UTI4", xpos, ypos, zpos, matrix[3], "ONLY", parCOL, kNparCOL);
-  TVirtualMC::GetMC()->Gsposp("UTC1", 6 + 11 * kNlayer, "UTI4", -xpos, ypos, zpos, matrix[3], "ONLY", parCOL, kNparCOL);
+  TVirtualMC::GetMC()->Gsposp("UTC1", 6 + NLAYER, "UTI1", -xpos, ypos, zpos, matrix[3], "ONLY", parCOL, kNparCOL);
+  TVirtualMC::GetMC()->Gsposp("UTC1", 6 + 6 * NLAYER, "UTI2", xpos, ypos, zpos, matrix[3], "ONLY", parCOL, kNparCOL);
+  TVirtualMC::GetMC()->Gsposp("UTC1", 6 + 7 * NLAYER, "UTI2", -xpos, ypos, zpos, matrix[3], "ONLY", parCOL, kNparCOL);
+  TVirtualMC::GetMC()->Gsposp("UTC1", 6 + 8 * NLAYER, "UTI3", xpos, ypos, zpos, matrix[3], "ONLY", parCOL, kNparCOL);
+  TVirtualMC::GetMC()->Gsposp("UTC1", 6 + 9 * NLAYER, "UTI3", -xpos, ypos, zpos, matrix[3], "ONLY", parCOL, kNparCOL);
+  TVirtualMC::GetMC()->Gsposp("UTC1", 6 + 10 * NLAYER, "UTI4", xpos, ypos, zpos, matrix[3], "ONLY", parCOL, kNparCOL);
+  TVirtualMC::GetMC()->Gsposp("UTC1", 6 + 11 * NLAYER, "UTI4", -xpos, ypos, zpos, matrix[3], "ONLY", parCOL, kNparCOL);
   // Front of supermodules
   xpos = CWIDTH[5] / 2.0 - kCOLhgt / 2.0 - 1.3;
   ypos = 0.0;
@@ -1689,10 +1690,10 @@ void TRDGeometry::createServices(std::vector<int> const& idtmed)
   parCOL[0] = kCOLwid / 2.0;
   parCOL[1] = FLENGTH / 2.0;
   parCOL[2] = kCOLhgt / 2.0;
-  TVirtualMC::GetMC()->Gsposp("UTC3", 6 + 2 * kNlayer, "UTF1", xpos, ypos, zpos, matrix[3], "ONLY", parCOL, kNparCOL);
-  TVirtualMC::GetMC()->Gsposp("UTC3", 6 + 3 * kNlayer, "UTF1", -xpos, ypos, zpos, matrix[3], "ONLY", parCOL, kNparCOL);
-  TVirtualMC::GetMC()->Gsposp("UTC3", 6 + 4 * kNlayer, "UTF2", xpos, ypos, zpos, matrix[3], "ONLY", parCOL, kNparCOL);
-  TVirtualMC::GetMC()->Gsposp("UTC3", 6 + 5 * kNlayer, "UTF2", -xpos, ypos, zpos, matrix[3], "ONLY", parCOL, kNparCOL);
+  TVirtualMC::GetMC()->Gsposp("UTC3", 6 + 2 * NLAYER, "UTF1", xpos, ypos, zpos, matrix[3], "ONLY", parCOL, kNparCOL);
+  TVirtualMC::GetMC()->Gsposp("UTC3", 6 + 3 * NLAYER, "UTF1", -xpos, ypos, zpos, matrix[3], "ONLY", parCOL, kNparCOL);
+  TVirtualMC::GetMC()->Gsposp("UTC3", 6 + 4 * NLAYER, "UTF2", xpos, ypos, zpos, matrix[3], "ONLY", parCOL, kNparCOL);
+  TVirtualMC::GetMC()->Gsposp("UTC3", 6 + 5 * NLAYER, "UTF2", -xpos, ypos, zpos, matrix[3], "ONLY", parCOL, kNparCOL);
   // In baby frame
   xpos = CWIDTH[5] / 2.0 - kCOLhgt / 2.0 - 3.1;
   ypos = kBBSdz / 2.0 - kBBMdz / 2.0;
@@ -1700,8 +1701,8 @@ void TRDGeometry::createServices(std::vector<int> const& idtmed)
   parCOL[0] = kCOLwid / 2.0;
   parCOL[1] = kBBSdz / 2.0;
   parCOL[2] = kCOLhgt / 2.0;
-  TVirtualMC::GetMC()->Gsposp("UTC3", 6 + 6 * kNlayer, "BBTRD", xpos, ypos, zpos, matrix[3], "ONLY", parCOL, kNparCOL);
-  TVirtualMC::GetMC()->Gsposp("UTC3", 6 + 7 * kNlayer, "BBTRD", -xpos, ypos, zpos, matrix[3], "ONLY", parCOL, kNparCOL);
+  TVirtualMC::GetMC()->Gsposp("UTC3", 6 + 6 * NLAYER, "BBTRD", xpos, ypos, zpos, matrix[3], "ONLY", parCOL, kNparCOL);
+  TVirtualMC::GetMC()->Gsposp("UTC3", 6 + 7 * NLAYER, "BBTRD", -xpos, ypos, zpos, matrix[3], "ONLY", parCOL, kNparCOL);
   // In back frame
   xpos = CWIDTH[5] / 2.0 - kCOLhgt / 2.0 - 1.3;
   ypos = -kBFSdz / 2.0 + kBFMdz / 2.0;
@@ -1709,8 +1710,8 @@ void TRDGeometry::createServices(std::vector<int> const& idtmed)
   parCOL[0] = kCOLwid / 2.0;
   parCOL[1] = kBFSdz / 2.0;
   parCOL[2] = kCOLhgt / 2.0;
-  TVirtualMC::GetMC()->Gsposp("UTC3", 6 + 6 * kNlayer, "BFTRD", xpos, ypos, zpos, matrix[3], "ONLY", parCOL, kNparCOL);
-  TVirtualMC::GetMC()->Gsposp("UTC3", 6 + 7 * kNlayer, "BFTRD", -xpos, ypos, zpos, matrix[3], "ONLY", parCOL, kNparCOL);
+  TVirtualMC::GetMC()->Gsposp("UTC3", 6 + 6 * NLAYER, "BFTRD", xpos, ypos, zpos, matrix[3], "ONLY", parCOL, kNparCOL);
+  TVirtualMC::GetMC()->Gsposp("UTC3", 6 + 7 * NLAYER, "BFTRD", -xpos, ypos, zpos, matrix[3], "ONLY", parCOL, kNparCOL);
 
   //
   // The power bus bars
@@ -1731,7 +1732,7 @@ void TRDGeometry::createServices(std::vector<int> const& idtmed)
   createVolume("UTP1", "BOX ", idtmed[25], parPWR, 0);
   createVolume("UTP3", "BOX ", idtmed[25], parPWR, 0);
 
-  for (ilayer = 1; ilayer < kNlayer; ilayer++) {
+  for (ilayer = 1; ilayer < NLAYER; ilayer++) {
     // Along the chambers
     xpos = CWIDTH[ilayer] / 2.0 + kPWRwid / 2.0 + kPWRposx;
     ypos = 0.0;
@@ -1741,19 +1742,19 @@ void TRDGeometry::createServices(std::vector<int> const& idtmed)
     parPWR[1] = SLENGTH / 2.0;
     parPWR[2] = kPWRhgtA / 2.0;
     TVirtualMC::GetMC()->Gsposp("UTP1", ilayer, "UTI1", xpos, ypos, zpos, matrix[0], "ONLY", parPWR, kNparPWR);
-    TVirtualMC::GetMC()->Gsposp("UTP1", ilayer + kNlayer, "UTI1", -xpos, ypos, zpos, matrix[1], "ONLY", parPWR,
+    TVirtualMC::GetMC()->Gsposp("UTP1", ilayer + NLAYER, "UTI1", -xpos, ypos, zpos, matrix[1], "ONLY", parPWR,
                                 kNparPWR);
-    TVirtualMC::GetMC()->Gsposp("UTP1", ilayer + 6 * kNlayer, "UTI2", xpos, ypos, zpos, matrix[0], "ONLY", parPWR,
+    TVirtualMC::GetMC()->Gsposp("UTP1", ilayer + 6 * NLAYER, "UTI2", xpos, ypos, zpos, matrix[0], "ONLY", parPWR,
                                 kNparPWR);
-    TVirtualMC::GetMC()->Gsposp("UTP1", ilayer + 7 * kNlayer, "UTI2", -xpos, ypos, zpos, matrix[1], "ONLY", parPWR,
+    TVirtualMC::GetMC()->Gsposp("UTP1", ilayer + 7 * NLAYER, "UTI2", -xpos, ypos, zpos, matrix[1], "ONLY", parPWR,
                                 kNparPWR);
-    TVirtualMC::GetMC()->Gsposp("UTP1", ilayer + 8 * kNlayer, "UTI3", xpos, ypos, zpos, matrix[0], "ONLY", parPWR,
+    TVirtualMC::GetMC()->Gsposp("UTP1", ilayer + 8 * NLAYER, "UTI3", xpos, ypos, zpos, matrix[0], "ONLY", parPWR,
                                 kNparPWR);
-    TVirtualMC::GetMC()->Gsposp("UTP1", ilayer + 9 * kNlayer, "UTI3", -xpos, ypos, zpos, matrix[1], "ONLY", parPWR,
+    TVirtualMC::GetMC()->Gsposp("UTP1", ilayer + 9 * NLAYER, "UTI3", -xpos, ypos, zpos, matrix[1], "ONLY", parPWR,
                                 kNparPWR);
-    TVirtualMC::GetMC()->Gsposp("UTP1", ilayer + 10 * kNlayer, "UTI4", xpos, ypos, zpos, matrix[0], "ONLY", parPWR,
+    TVirtualMC::GetMC()->Gsposp("UTP1", ilayer + 10 * NLAYER, "UTI4", xpos, ypos, zpos, matrix[0], "ONLY", parPWR,
                                 kNparPWR);
-    TVirtualMC::GetMC()->Gsposp("UTP1", ilayer + 11 * kNlayer, "UTI4", -xpos, ypos, zpos, matrix[1], "ONLY", parPWR,
+    TVirtualMC::GetMC()->Gsposp("UTP1", ilayer + 11 * NLAYER, "UTI4", -xpos, ypos, zpos, matrix[1], "ONLY", parPWR,
                                 kNparPWR);
 
     // Front of supermodule
@@ -1764,17 +1765,17 @@ void TRDGeometry::createServices(std::vector<int> const& idtmed)
     parPWR[0] = kPWRwid / 2.0;
     parPWR[1] = FLENGTH / 2.0;
     parPWR[2] = kPWRhgtA / 2.0;
-    TVirtualMC::GetMC()->Gsposp("UTP3", ilayer + 2 * kNlayer, "UTF1", xpos, ypos, zpos, matrix[0], "ONLY", parPWR,
+    TVirtualMC::GetMC()->Gsposp("UTP3", ilayer + 2 * NLAYER, "UTF1", xpos, ypos, zpos, matrix[0], "ONLY", parPWR,
                                 kNparPWR);
-    TVirtualMC::GetMC()->Gsposp("UTP3", ilayer + 3 * kNlayer, "UTF1", -xpos, ypos, zpos, matrix[1], "ONLY", parPWR,
+    TVirtualMC::GetMC()->Gsposp("UTP3", ilayer + 3 * NLAYER, "UTF1", -xpos, ypos, zpos, matrix[1], "ONLY", parPWR,
                                 kNparPWR);
-    TVirtualMC::GetMC()->Gsposp("UTP3", ilayer + 4 * kNlayer, "UTF2", xpos, ypos, zpos, matrix[0], "ONLY", parPWR,
+    TVirtualMC::GetMC()->Gsposp("UTP3", ilayer + 4 * NLAYER, "UTF2", xpos, ypos, zpos, matrix[0], "ONLY", parPWR,
                                 kNparPWR);
-    TVirtualMC::GetMC()->Gsposp("UTP3", ilayer + 5 * kNlayer, "UTF2", -xpos, ypos, zpos, matrix[1], "ONLY", parPWR,
+    TVirtualMC::GetMC()->Gsposp("UTP3", ilayer + 5 * NLAYER, "UTF2", -xpos, ypos, zpos, matrix[1], "ONLY", parPWR,
                                 kNparPWR);
   }
 
-  for (ilayer = 1; ilayer < kNlayer; ilayer++) {
+  for (ilayer = 1; ilayer < NLAYER; ilayer++) {
     // In baby frame
     xpos = CWIDTH[ilayer] / 2.0 + kPWRwid / 2.0 + kPWRposx - 2.5;
     ypos = kBBSdz / 2.0 - kBBMdz / 2.0;
@@ -1783,13 +1784,13 @@ void TRDGeometry::createServices(std::vector<int> const& idtmed)
     parPWR[0] = kPWRwid / 2.0;
     parPWR[1] = kBBSdz / 2.0;
     parPWR[2] = kPWRhgtB / 2.0;
-    TVirtualMC::GetMC()->Gsposp("UTP3", ilayer + 6 * kNlayer, "BBTRD", xpos, ypos, zpos, matrix[0], "ONLY", parPWR,
+    TVirtualMC::GetMC()->Gsposp("UTP3", ilayer + 6 * NLAYER, "BBTRD", xpos, ypos, zpos, matrix[0], "ONLY", parPWR,
                                 kNparPWR);
-    TVirtualMC::GetMC()->Gsposp("UTP3", ilayer + 7 * kNlayer, "BBTRD", -xpos, ypos, zpos, matrix[1], "ONLY", parPWR,
+    TVirtualMC::GetMC()->Gsposp("UTP3", ilayer + 7 * NLAYER, "BBTRD", -xpos, ypos, zpos, matrix[1], "ONLY", parPWR,
                                 kNparPWR);
   }
 
-  for (ilayer = 1; ilayer < kNlayer; ilayer++) {
+  for (ilayer = 1; ilayer < NLAYER; ilayer++) {
     // In back frame
     xpos = CWIDTH[ilayer] / 2.0 + kPWRwid / 2.0 + kPWRposx - 0.3;
     ypos = -kBFSdz / 2.0 + kBFMdz / 2.0;
@@ -1798,9 +1799,9 @@ void TRDGeometry::createServices(std::vector<int> const& idtmed)
     parPWR[0] = kPWRwid / 2.0;
     parPWR[1] = kBFSdz / 2.0;
     parPWR[2] = kPWRhgtB / 2.0;
-    TVirtualMC::GetMC()->Gsposp("UTP3", ilayer + 8 * kNlayer, "BFTRD", xpos, ypos, zpos, matrix[0], "ONLY", parPWR,
+    TVirtualMC::GetMC()->Gsposp("UTP3", ilayer + 8 * NLAYER, "BFTRD", xpos, ypos, zpos, matrix[0], "ONLY", parPWR,
                                 kNparPWR);
-    TVirtualMC::GetMC()->Gsposp("UTP3", ilayer + 9 * kNlayer, "BFTRD", -xpos, ypos, zpos, matrix[1], "ONLY", parPWR,
+    TVirtualMC::GetMC()->Gsposp("UTP3", ilayer + 9 * NLAYER, "BFTRD", -xpos, ypos, zpos, matrix[1], "ONLY", parPWR,
                                 kNparPWR);
   }
 
@@ -1813,13 +1814,13 @@ void TRDGeometry::createServices(std::vector<int> const& idtmed)
   parPWR[1] = SLENGTH / 2.0;
   parPWR[2] = kPWRhgtB / 2.0;
   TVirtualMC::GetMC()->Gsposp("UTP1", 6, "UTI1", xpos, ypos, zpos, matrix[3], "ONLY", parPWR, kNparPWR);
-  TVirtualMC::GetMC()->Gsposp("UTP1", 6 + kNlayer, "UTI1", -xpos, ypos, zpos, matrix[3], "ONLY", parPWR, kNparPWR);
-  TVirtualMC::GetMC()->Gsposp("UTP1", 6 + 6 * kNlayer, "UTI2", xpos, ypos, zpos, matrix[3], "ONLY", parPWR, kNparPWR);
-  TVirtualMC::GetMC()->Gsposp("UTP1", 6 + 7 * kNlayer, "UTI2", -xpos, ypos, zpos, matrix[3], "ONLY", parPWR, kNparPWR);
-  TVirtualMC::GetMC()->Gsposp("UTP1", 6 + 8 * kNlayer, "UTI3", xpos, ypos, zpos, matrix[3], "ONLY", parPWR, kNparPWR);
-  TVirtualMC::GetMC()->Gsposp("UTP1", 6 + 9 * kNlayer, "UTI3", -xpos, ypos, zpos, matrix[3], "ONLY", parPWR, kNparPWR);
-  TVirtualMC::GetMC()->Gsposp("UTP1", 6 + 10 * kNlayer, "UTI4", xpos, ypos, zpos, matrix[3], "ONLY", parPWR, kNparPWR);
-  TVirtualMC::GetMC()->Gsposp("UTP1", 6 + 11 * kNlayer, "UTI4", -xpos, ypos, zpos, matrix[3], "ONLY", parPWR, kNparPWR);
+  TVirtualMC::GetMC()->Gsposp("UTP1", 6 + NLAYER, "UTI1", -xpos, ypos, zpos, matrix[3], "ONLY", parPWR, kNparPWR);
+  TVirtualMC::GetMC()->Gsposp("UTP1", 6 + 6 * NLAYER, "UTI2", xpos, ypos, zpos, matrix[3], "ONLY", parPWR, kNparPWR);
+  TVirtualMC::GetMC()->Gsposp("UTP1", 6 + 7 * NLAYER, "UTI2", -xpos, ypos, zpos, matrix[3], "ONLY", parPWR, kNparPWR);
+  TVirtualMC::GetMC()->Gsposp("UTP1", 6 + 8 * NLAYER, "UTI3", xpos, ypos, zpos, matrix[3], "ONLY", parPWR, kNparPWR);
+  TVirtualMC::GetMC()->Gsposp("UTP1", 6 + 9 * NLAYER, "UTI3", -xpos, ypos, zpos, matrix[3], "ONLY", parPWR, kNparPWR);
+  TVirtualMC::GetMC()->Gsposp("UTP1", 6 + 10 * NLAYER, "UTI4", xpos, ypos, zpos, matrix[3], "ONLY", parPWR, kNparPWR);
+  TVirtualMC::GetMC()->Gsposp("UTP1", 6 + 11 * NLAYER, "UTI4", -xpos, ypos, zpos, matrix[3], "ONLY", parPWR, kNparPWR);
   // Front of supermodules
   xpos = CWIDTH[5] / 2.0 + kPWRhgtB / 2.0 - 1.3;
   ypos = 0.0;
@@ -1827,10 +1828,10 @@ void TRDGeometry::createServices(std::vector<int> const& idtmed)
   parPWR[0] = kPWRwid / 2.0;
   parPWR[1] = FLENGTH / 2.0;
   parPWR[2] = kPWRhgtB / 2.0;
-  TVirtualMC::GetMC()->Gsposp("UTP3", 6 + 2 * kNlayer, "UTF1", xpos, ypos, zpos, matrix[3], "ONLY", parPWR, kNparPWR);
-  TVirtualMC::GetMC()->Gsposp("UTP3", 6 + 3 * kNlayer, "UTF1", -xpos, ypos, zpos, matrix[3], "ONLY", parPWR, kNparPWR);
-  TVirtualMC::GetMC()->Gsposp("UTP3", 6 + 4 * kNlayer, "UTF2", xpos, ypos, zpos, matrix[3], "ONLY", parPWR, kNparPWR);
-  TVirtualMC::GetMC()->Gsposp("UTP3", 6 + 5 * kNlayer, "UTF2", -xpos, ypos, zpos, matrix[3], "ONLY", parPWR, kNparPWR);
+  TVirtualMC::GetMC()->Gsposp("UTP3", 6 + 2 * NLAYER, "UTF1", xpos, ypos, zpos, matrix[3], "ONLY", parPWR, kNparPWR);
+  TVirtualMC::GetMC()->Gsposp("UTP3", 6 + 3 * NLAYER, "UTF1", -xpos, ypos, zpos, matrix[3], "ONLY", parPWR, kNparPWR);
+  TVirtualMC::GetMC()->Gsposp("UTP3", 6 + 4 * NLAYER, "UTF2", xpos, ypos, zpos, matrix[3], "ONLY", parPWR, kNparPWR);
+  TVirtualMC::GetMC()->Gsposp("UTP3", 6 + 5 * NLAYER, "UTF2", -xpos, ypos, zpos, matrix[3], "ONLY", parPWR, kNparPWR);
   // In baby frame
   xpos = CWIDTH[5] / 2.0 + kPWRhgtB / 2.0 - 3.0;
   ypos = kBBSdz / 2.0 - kBBMdz / 2.0;
@@ -1838,8 +1839,8 @@ void TRDGeometry::createServices(std::vector<int> const& idtmed)
   parPWR[0] = kPWRwid / 2.0;
   parPWR[1] = kBBSdz / 2.0;
   parPWR[2] = kPWRhgtB / 2.0;
-  TVirtualMC::GetMC()->Gsposp("UTP3", 6 + 6 * kNlayer, "BBTRD", xpos, ypos, zpos, matrix[3], "ONLY", parPWR, kNparPWR);
-  TVirtualMC::GetMC()->Gsposp("UTP3", 6 + 7 * kNlayer, "BBTRD", -xpos, ypos, zpos, matrix[3], "ONLY", parPWR, kNparPWR);
+  TVirtualMC::GetMC()->Gsposp("UTP3", 6 + 6 * NLAYER, "BBTRD", xpos, ypos, zpos, matrix[3], "ONLY", parPWR, kNparPWR);
+  TVirtualMC::GetMC()->Gsposp("UTP3", 6 + 7 * NLAYER, "BBTRD", -xpos, ypos, zpos, matrix[3], "ONLY", parPWR, kNparPWR);
   // In back frame
   xpos = CWIDTH[5] / 2.0 + kPWRhgtB / 2.0 - 1.3;
   ypos = -kBFSdz / 2.0 + kBFMdz / 2.0;
@@ -1847,8 +1848,8 @@ void TRDGeometry::createServices(std::vector<int> const& idtmed)
   parPWR[0] = kPWRwid / 2.0;
   parPWR[1] = kBFSdz / 2.0;
   parPWR[2] = kPWRhgtB / 2.0;
-  TVirtualMC::GetMC()->Gsposp("UTP3", 6 + 8 * kNlayer, "BFTRD", xpos, ypos, zpos, matrix[3], "ONLY", parPWR, kNparPWR);
-  TVirtualMC::GetMC()->Gsposp("UTP3", 6 + 9 * kNlayer, "BFTRD", -xpos, ypos, zpos, matrix[3], "ONLY", parPWR, kNparPWR);
+  TVirtualMC::GetMC()->Gsposp("UTP3", 6 + 8 * NLAYER, "BFTRD", xpos, ypos, zpos, matrix[3], "ONLY", parPWR, kNparPWR);
+  TVirtualMC::GetMC()->Gsposp("UTP3", 6 + 9 * NLAYER, "BFTRD", -xpos, ypos, zpos, matrix[3], "ONLY", parPWR, kNparPWR);
 
   //
   // The gas tubes connecting the chambers in the super modules with holes
@@ -1868,7 +1869,7 @@ void TRDGeometry::createServices(std::vector<int> const& idtmed)
   ypos = 0.0;
   zpos = 0.0;
   TVirtualMC::GetMC()->Gspos("UTG2", 1, "UTG1", xpos, ypos, zpos, 0, "ONLY");
-  for (ilayer = 0; ilayer < kNlayer; ilayer++) {
+  for (ilayer = 0; ilayer < NLAYER; ilayer++) {
     xpos = CWIDTH[ilayer] / 2.0 + kCOLwid / 2.0 - 1.5;
     ypos = 0.0;
     zpos = VROCSM + SMPLTT + kCOLhgt / 2.0 - SHEIGHT / 2.0 + 5.0 + ilayer * (CH + VSPACE);
@@ -1901,8 +1902,8 @@ void TRDGeometry::createServices(std::vector<int> const& idtmed)
   const int kNparServ = 3;
   float parServ[kNparServ];
 
-  for (istack = 0; istack < kNstack; istack++) {
-    for (ilayer = 0; ilayer < kNlayer; ilayer++) {
+  for (istack = 0; istack < NSTACK; istack++) {
+    for (ilayer = 0; ilayer < NLAYER; ilayer++) {
       int iDet = getDetectorSec(ilayer, istack);
 
       snprintf(cTagV, kTag, "UU%02d", iDet);
@@ -1934,8 +1935,8 @@ void TRDGeometry::createServices(std::vector<int> const& idtmed)
   TVirtualMC::GetMC()->Gspos("UTCH", 1, "UTCP", xpos, ypos, zpos, 0, "ONLY");
 
   // Position the cooling pipes in the mother volume
-  for (istack = 0; istack < kNstack; istack++) {
-    for (ilayer = 0; ilayer < kNlayer; ilayer++) {
+  for (istack = 0; istack < NSTACK; istack++) {
+    for (ilayer = 0; ilayer < NLAYER; ilayer++) {
       int iDet = getDetectorSec(ilayer, istack);
       int iCopy = getDetector(ilayer, istack, 0) * 100;
       int nMCMrow = getRowMax(ilayer, istack, 0);
@@ -1966,8 +1967,8 @@ void TRDGeometry::createServices(std::vector<int> const& idtmed)
   createVolume("UTPL", "TUBE", idtmed[5], parTube, 0);
 
   // Position the power lines in the mother volume
-  for (istack = 0; istack < kNstack; istack++) {
-    for (ilayer = 0; ilayer < kNlayer; ilayer++) {
+  for (istack = 0; istack < NSTACK; istack++) {
+    for (ilayer = 0; ilayer < NLAYER; ilayer++) {
       int iDet = getDetectorSec(ilayer, istack);
       int iCopy = getDetector(ilayer, istack, 0) * 100;
       int nMCMrow = getRowMax(ilayer, istack, 0);
@@ -2041,8 +2042,8 @@ void TRDGeometry::createServices(std::vector<int> const& idtmed)
   TVirtualMC::GetMC()->Gspos("UMC4", 1, "UMCM", xpos, ypos, zpos, 0, "ONLY");
 
   // Position the MCMs in the mother volume
-  for (istack = 0; istack < kNstack; istack++) {
-    for (ilayer = 0; ilayer < kNlayer; ilayer++) {
+  for (istack = 0; istack < NSTACK; istack++) {
+    for (ilayer = 0; ilayer < NLAYER; ilayer++) {
       int iDet = getDetectorSec(ilayer, istack);
       int iCopy = getDetector(ilayer, istack, 0) * 1000;
       int nMCMrow = getRowMax(ilayer, istack, 0);
@@ -2121,8 +2122,8 @@ void TRDGeometry::createServices(std::vector<int> const& idtmed)
   TVirtualMC::GetMC()->Gspos("UDC3", 1, "UDCS", xpos, ypos, zpos, 0, "ONLY");
 
   // Put the DCS board in the chamber services mother volume
-  for (istack = 0; istack < kNstack; istack++) {
-    for (ilayer = 0; ilayer < kNlayer; ilayer++) {
+  for (istack = 0; istack < NSTACK; istack++) {
+    for (ilayer = 0; ilayer < NLAYER; ilayer++) {
       int iDet = getDetectorSec(ilayer, istack);
       int iCopy = iDet + 1;
       xpos = CWIDTH[ilayer] / 2.0 -
@@ -2181,8 +2182,8 @@ void TRDGeometry::createServices(std::vector<int> const& idtmed)
   TVirtualMC::GetMC()->Gspos("UOR3", 1, "UORI", xpos, ypos, zpos, 0, "ONLY");
 
   // Put the ORI board in the chamber services mother volume
-  for (istack = 0; istack < kNstack; istack++) {
-    for (ilayer = 0; ilayer < kNlayer; ilayer++) {
+  for (istack = 0; istack < NSTACK; istack++) {
+    for (ilayer = 0; ilayer < NLAYER; ilayer++) {
       int iDet = getDetectorSec(ilayer, istack);
       int iCopy = iDet + 1;
       xpos = CWIDTH[ilayer] / 2.0 -
@@ -2196,7 +2197,7 @@ void TRDGeometry::createServices(std::vector<int> const& idtmed)
       ypos = -16.0;
       zpos = kORIz / 2.0 - CSVH / 2.0;
       snprintf(cTagV, kTag, "UU%02d", iDet);
-      TVirtualMC::GetMC()->Gspos("UORI", iCopy + kNdet, cTagV, xpos, ypos, zpos, 0, "ONLY");
+      TVirtualMC::GetMC()->Gspos("UORI", iCopy + MAXCHAMBER, cTagV, xpos, ypos, zpos, 0, "ONLY");
     }
   }
 
@@ -2218,7 +2219,7 @@ void TRDGeometry::createServices(std::vector<int> const& idtmed)
   ypos = 0.0;
   zpos = 0.0;
   TVirtualMC::GetMC()->Gspos("UTG4", 1, "UTG3", xpos, ypos, zpos, 0, "ONLY");
-  for (ilayer = 0; ilayer < kNlayer - 1; ilayer++) {
+  for (ilayer = 0; ilayer < NLAYER - 1; ilayer++) {
     xpos = 0.0;
     ypos = CLENGTH[ilayer][2] / 2.0 + CLENGTH[ilayer][1] + CLENGTH[ilayer][0];
     zpos = 9.0 - SHEIGHT / 2.0 + ilayer * (CH + VSPACE);
@@ -2226,19 +2227,19 @@ void TRDGeometry::createServices(std::vector<int> const& idtmed)
     parTube[1] = 1.5 / 2.0;
     parTube[2] = CWIDTH[ilayer] / 2.0 - 2.5;
     TVirtualMC::GetMC()->Gsposp("UTG3", ilayer + 1, "UTI1", xpos, ypos, zpos, matrix[2], "ONLY", parTube, kNparTube);
-    TVirtualMC::GetMC()->Gsposp("UTG3", ilayer + 1 + 1 * kNlayer, "UTI1", xpos, -ypos, zpos, matrix[2], "ONLY", parTube,
+    TVirtualMC::GetMC()->Gsposp("UTG3", ilayer + 1 + 1 * NLAYER, "UTI1", xpos, -ypos, zpos, matrix[2], "ONLY", parTube,
                                 kNparTube);
-    TVirtualMC::GetMC()->Gsposp("UTG3", ilayer + 1 + 2 * kNlayer, "UTI2", xpos, ypos, zpos, matrix[2], "ONLY", parTube,
+    TVirtualMC::GetMC()->Gsposp("UTG3", ilayer + 1 + 2 * NLAYER, "UTI2", xpos, ypos, zpos, matrix[2], "ONLY", parTube,
                                 kNparTube);
-    TVirtualMC::GetMC()->Gsposp("UTG3", ilayer + 1 + 3 * kNlayer, "UTI2", xpos, -ypos, zpos, matrix[2], "ONLY", parTube,
+    TVirtualMC::GetMC()->Gsposp("UTG3", ilayer + 1 + 3 * NLAYER, "UTI2", xpos, -ypos, zpos, matrix[2], "ONLY", parTube,
                                 kNparTube);
-    TVirtualMC::GetMC()->Gsposp("UTG3", ilayer + 1 + 4 * kNlayer, "UTI3", xpos, ypos, zpos, matrix[2], "ONLY", parTube,
+    TVirtualMC::GetMC()->Gsposp("UTG3", ilayer + 1 + 4 * NLAYER, "UTI3", xpos, ypos, zpos, matrix[2], "ONLY", parTube,
                                 kNparTube);
-    TVirtualMC::GetMC()->Gsposp("UTG3", ilayer + 1 + 5 * kNlayer, "UTI3", xpos, -ypos, zpos, matrix[2], "ONLY", parTube,
+    TVirtualMC::GetMC()->Gsposp("UTG3", ilayer + 1 + 5 * NLAYER, "UTI3", xpos, -ypos, zpos, matrix[2], "ONLY", parTube,
                                 kNparTube);
-    TVirtualMC::GetMC()->Gsposp("UTG3", ilayer + 1 + 6 * kNlayer, "UTI4", xpos, ypos, zpos, matrix[2], "ONLY", parTube,
+    TVirtualMC::GetMC()->Gsposp("UTG3", ilayer + 1 + 6 * NLAYER, "UTI4", xpos, ypos, zpos, matrix[2], "ONLY", parTube,
                                 kNparTube);
-    TVirtualMC::GetMC()->Gsposp("UTG3", ilayer + 1 + 7 * kNlayer, "UTI4", xpos, -ypos, zpos, matrix[2], "ONLY", parTube,
+    TVirtualMC::GetMC()->Gsposp("UTG3", ilayer + 1 + 7 * NLAYER, "UTI4", xpos, -ypos, zpos, matrix[2], "ONLY", parTube,
                                 kNparTube);
   }
 
@@ -2346,18 +2347,18 @@ void TRDGeometry::createServices(std::vector<int> const& idtmed)
   parBox[1] = 15.0 / 2.0;
   parBox[2] = 7.0 / 2.0;
   createVolume("UTPC", "BOX ", idtmed[25], parBox, kNparBox);
-  for (ilayer = 0; ilayer < kNlayer - 1; ilayer++) {
+  for (ilayer = 0; ilayer < NLAYER - 1; ilayer++) {
     xpos = CWIDTH[ilayer] / 2.0 + kPWRwid / 2.0;
     ypos = 0.0;
     zpos = VROCSM + SMPLTT + kPWRhgtA / 2.0 - SHEIGHT / 2.0 + kPWRposz + (ilayer + 1) * (CH + VSPACE);
     TVirtualMC::GetMC()->Gspos("UTPC", ilayer, "UTF1", xpos, ypos, zpos, matrix[0], "ONLY");
-    TVirtualMC::GetMC()->Gspos("UTPC", ilayer + kNlayer, "UTF1", -xpos, ypos, zpos, matrix[1], "ONLY");
+    TVirtualMC::GetMC()->Gspos("UTPC", ilayer + NLAYER, "UTF1", -xpos, ypos, zpos, matrix[1], "ONLY");
   }
   xpos = CWIDTH[5] / 2.0 + kPWRhgtA / 2.0 - 2.0;
   ypos = 0.0;
   zpos = SHEIGHT / 2.0 - SMPLTT - 2.0;
   TVirtualMC::GetMC()->Gspos("UTPC", 5, "UTF1", xpos, ypos, zpos, matrix[3], "ONLY");
-  TVirtualMC::GetMC()->Gspos("UTPC", 5 + kNlayer, "UTF1", -xpos, ypos, zpos, matrix[3], "ONLY");
+  TVirtualMC::GetMC()->Gspos("UTPC", 5 + NLAYER, "UTF1", -xpos, ypos, zpos, matrix[3], "ONLY");
 
   // Power connection panel (Al)
   parBox[0] = 60.0 / 2.0;
@@ -2571,9 +2572,9 @@ void TRDGeometry::fillMatrixCache(int mask)
   const std::string vpApp3c{"/UTR3_1/UTS3_1/UTI3_1"};
   const std::string vpApp3d{"/UTR4_1/UTS4_1/UTI4_1"};
 
-  for (int ilayer = 0; ilayer < kNlayer; ilayer++) {
-    for (int isector = 0; isector < kNsector; isector++) {
-      for (int istack = 0; istack < kNstack; istack++) {
+  for (int ilayer = 0; ilayer < NLAYER; ilayer++) {
+    for (int isector = 0; isector < NSECTOR; isector++) {
+      for (int istack = 0; istack < NSTACK; istack++) {
         Int_t lid = getDetector(ilayer, istack, isector);
         // Check for disabled supermodules
         volPath = vpStr;
@@ -2661,7 +2662,7 @@ void TRDGeometry::addAlignableVolumes() const
 
   // The super modules
   // The symbolic names are: TRD/sm00 ... TRD/sm17
-  for (int isector = 0; isector < kNsector; isector++) {
+  for (int isector = 0; isector < NSECTOR; isector++) {
     volPath = vpStr;
     volPath += std::to_string(isector);
     volPath += vpApp1;
@@ -2674,11 +2675,11 @@ void TRDGeometry::addAlignableVolumes() const
   // The readout chambers
   // The symbolic names are: TRD/sm00/st0/pl0 ... TRD/sm17/st4/pl5
 
-  for (int isector = 0; isector < kNsector; isector++) {
+  for (int isector = 0; isector < NSECTOR; isector++) {
     if (!getSMstatus(isector))
       continue;
-    for (int ilayer = 0; ilayer < kNlayer; ilayer++) {
-      for (int istack = 0; istack < kNstack; istack++) {
+    for (int ilayer = 0; ilayer < NLAYER; ilayer++) {
+      for (int istack = 0; istack < NSTACK; istack++) {
         Int_t lid = getDetector(ilayer, istack, isector);
         int idet = getDetectorSec(ilayer, istack);
 
@@ -2750,7 +2751,7 @@ bool TRDGeometry::createClusterMatrixArray()
     return true; // already initialized
   }
 
-  setSize(MAXMATRICES, kNdet); //Only MAXMATRICES=521 of kNdet matrices are filled
+  setSize(MAXMATRICES, MAXCHAMBER); //Only MAXMATRICES=521 of MAXCHAMBER matrices are filled
   fillMatrixCache(o2::utils::bit2Mask(o2::TransformType::T2L) | o2::utils::bit2Mask(o2::TransformType::L2G) |
                   o2::utils::bit2Mask(o2::TransformType::T2G) | o2::utils::bit2Mask(o2::TransformType::T2GRot));
   return true;

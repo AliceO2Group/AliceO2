@@ -21,6 +21,7 @@
 #include "CalDet.h"
 
 using namespace o2::trd;
+using namespace o2::trd::constants;
 
 ///////////////////////////////////////////////////////////////////////////////
 //                                                                           //
@@ -35,7 +36,7 @@ CalPad::CalPad()
   // CalPad default constructor
   //
 
-  for (int idet = 0; idet < kNdet; idet++) {
+  for (int idet = 0; idet < MAXCHAMBER; idet++) {
     fROC[idet] = nullptr;
   }
 }
@@ -47,9 +48,9 @@ CalPad::CalPad(const Text_t* name, const Text_t* title)
   // CalPad constructor
   //
 
-  for (int isec = 0; isec < kNsect; isec++) {
-    for (int ipla = 0; ipla < kNplan; ipla++) {
-      for (int icha = 0; icha < kNcham; icha++) {
+  for (int isec = 0; isec < NSECTOR; isec++) {
+    for (int ipla = 0; ipla < NLAYER; ipla++) {
+      for (int icha = 0; icha < NSTACK; icha++) {
         int idet = getDet(ipla, icha, isec);
         fROC[idet] = new CalROC(ipla, icha);
       }
@@ -66,7 +67,7 @@ CalPad::CalPad(const CalPad& c)
   // CalPad copy constructor
   //
 
-  for (int idet = 0; idet < kNdet; idet++) {
+  for (int idet = 0; idet < MAXCHAMBER; idet++) {
     fROC[idet] = new CalROC(*((CalPad&)c).fROC[idet]);
   }
   mName = c.mName;
@@ -80,7 +81,7 @@ CalPad::~CalPad()
   // CalPad destructor
   //
 
-  for (int idet = 0; idet < kNdet; idet++) {
+  for (int idet = 0; idet < MAXCHAMBER; idet++) {
     if (fROC[idet]) {
       delete fROC[idet];
       fROC[idet] = 0;
@@ -107,7 +108,7 @@ void CalPad::Copy(TObject& c) const
   // Copy function
   //
 
-  for (int idet = 0; idet < kNdet; idet++) {
+  for (int idet = 0; idet < MAXCHAMBER; idet++) {
     if (((CalPad&)c).fROC[idet]) {
       delete ((CalPad&)c).fROC[idet];
     }
@@ -133,7 +134,7 @@ bool CalPad::scaleROCs(const CalDet* values)
   if (!values)
     return kFALSE;
   bool result = kTRUE;
-  for (int idet = 0; idet < kNdet; idet++) {
+  for (int idet = 0; idet < MAXCHAMBER; idet++) {
     if (fROC[idet]) {
       if (!fROC[idet]->multiply(values->getValue(idet)))
         result = kFALSE;
@@ -172,7 +173,7 @@ double CalPad::getMeanRMS(double& rms, const CalDet* calDet, int type)
   if (type == 0)
     factor = 1.0;
   double sum = 0, sum2 = 0, n = 0, val;
-  for (int idet = 0; idet < kNdet; idet++) {
+  for (int idet = 0; idet < MAXCHAMBER; idet++) {
     if (calDet)
       factor = calDet->getValue(idet);
     CalROC* calRoc = fROC[idet];
@@ -208,9 +209,9 @@ double CalPad::getMean(const CalDet* calDet, int type, CalPad* const outlierPad)
   double factor = 0.0;
   if (type == 0)
     factor = 1.0;
-  double arr[kNdet];
+  double arr[MAXCHAMBER];
   int n = 0;
-  for (int idet = 0; idet < kNdet; idet++) {
+  for (int idet = 0; idet < MAXCHAMBER; idet++) {
     if (calDet)
       factor = calDet->getValue(idet);
     CalROC* calRoc = fROC[idet];
@@ -240,9 +241,9 @@ double CalPad::getRMS(const CalDet* calDet, int type, CalPad* const outlierPad)
   double factor = 0.0;
   if (type == 0)
     factor = 1.0;
-  double arr[kNdet];
+  double arr[MAXCHAMBER];
   int n = 0;
-  for (int idet = 0; idet < kNdet; idet++) {
+  for (int idet = 0; idet < MAXCHAMBER; idet++) {
     if (calDet)
       factor = calDet->getValue(idet);
     CalROC* calRoc = fROC[idet];
@@ -272,9 +273,9 @@ double CalPad::getMedian(const CalDet* calDet, int type, CalPad* const outlierPa
   double factor = 0.0;
   if (type == 0)
     factor = 1.0;
-  double arr[kNdet];
+  double arr[MAXCHAMBER];
   int n = 0;
-  for (int idet = 0; idet < kNdet; idet++) {
+  for (int idet = 0; idet < MAXCHAMBER; idet++) {
     if (calDet)
       factor = calDet->getValue(idet);
     CalROC* calRoc = fROC[idet];
@@ -304,12 +305,12 @@ double CalPad::getLTM(double* sigma, double fraction, const CalDet* calDet, int 
   double factor = 0.0;
   if (type == 0)
     factor = 1.0;
-  double arrm[kNdet];
-  double arrs[kNdet];
+  double arrm[MAXCHAMBER];
+  double arrs[MAXCHAMBER];
   double* sTemp = 0x0;
   int n = 0;
 
-  for (int idet = 0; idet < kNdet; idet++) {
+  for (int idet = 0; idet < MAXCHAMBER; idet++) {
     if (calDet)
       factor = calDet->getValue(idet);
     CalROC* calRoc = fROC[idet];
@@ -390,7 +391,7 @@ TH1F* CalPad::makeHisto1D(const CalDet* calDet, int typedet, float min, float ma
   char name[1000];
   snprintf(name, 1000, "%s Pad 1D", getTitle());
   TH1F* his = new TH1F(name, name, 100, min, max);
-  for (int idet = 0; idet < kNdet; idet++) {
+  for (int idet = 0; idet < MAXCHAMBER; idet++) {
     if (calDet)
       factor = calDet->getValue(idet);
     if (fROC[idet]) {
@@ -478,7 +479,7 @@ TH2F* CalPad::makeHisto2DSmPl(int sm, int pl, const CalDet* calDet, int typedet,
   // Where we begin
   int offsetsmpl = 30 * sm + pl;
 
-  for (int k = 0; k < kNcham; k++) {
+  for (int k = 0; k < NSTACK; k++) {
     int det = offsetsmpl + k * 6;
     if (calDet)
       factor = calDet->getValue(det);
@@ -488,7 +489,7 @@ TH2F* CalPad::makeHisto2DSmPl(int sm, int pl, const CalDet* calDet, int typedet,
         for (int icol = 0; icol < calRoc->getNcols(); icol++) {
           if (TMath::Abs(calRoc->getValue(icol, irow)) > kEpsilon) {
             int binz = 0;
-            int kb = kNcham - 1 - k;
+            int kb = NSTACK - 1 - k;
             int krow = calRoc->getNrows() - 1 - irow;
             int kcol = calRoc->getNcols() - 1 - icol;
             if (kb > 2)
@@ -584,8 +585,8 @@ TH2F* CalPad::makeHisto2DCh(int ch, const CalDet* calDet, int typedet, float min
   // Where we begin
   int offsetch = 6 * ch;
 
-  for (int isec = 0; isec < kNsect; isec++) {
-    for (int ipl = 0; ipl < kNplan; ipl++) {
+  for (int isec = 0; isec < NSECTOR; isec++) {
+    for (int ipl = 0; ipl < NLAYER; ipl++) {
       int det = offsetch + isec * 30 + ipl;
       if (calDet)
         factor = calDet->getValue(det);
@@ -635,7 +636,7 @@ bool CalPad::add(float c1)
   //
 
   bool result = kTRUE;
-  for (int idet = 0; idet < kNdet; idet++) {
+  for (int idet = 0; idet < MAXCHAMBER; idet++) {
     if (fROC[idet]) {
       if (!fROC[idet]->add(c1))
         result = kFALSE;
@@ -651,7 +652,7 @@ bool CalPad::multiply(float c1)
   // multiply constant for all channels of all ROCs
   //
   bool result = kTRUE;
-  for (int idet = 0; idet < kNdet; idet++) {
+  for (int idet = 0; idet < MAXCHAMBER; idet++) {
     if (fROC[idet]) {
       if (!fROC[idet]->multiply(c1))
         result = kFALSE;
@@ -680,7 +681,7 @@ bool CalPad::add(const CalPad* pad, double c1, const CalDet* calDet1, const CalD
     factor2 = 1.0;
   }
   bool result = kTRUE;
-  for (int idet = 0; idet < kNdet; idet++) {
+  for (int idet = 0; idet < MAXCHAMBER; idet++) {
     if (calDet1)
       factor1 = calDet1->getValue(idet);
     if (calDet2)
@@ -723,7 +724,7 @@ bool CalPad::multiply(const CalPad* pad, const CalDet* calDet1, const CalDet* ca
     factor1 = 1.0;
     factor2 = 1.0;
   }
-  for (int idet = 0; idet < kNdet; idet++) {
+  for (int idet = 0; idet < MAXCHAMBER; idet++) {
     if (calDet1)
       factor1 = calDet1->getValue(idet);
     if (calDet2)
@@ -773,7 +774,7 @@ bool CalPad::divide(const CalPad* pad, const CalDet* calDet1, const CalDet* calD
     factor1 = 1.0;
     factor2 = 1.0;
   }
-  for (int idet = 0; idet < kNdet; idet++) {
+  for (int idet = 0; idet < MAXCHAMBER; idet++) {
     if (calDet1)
       factor1 = calDet1->getValue(idet);
     if (calDet2)

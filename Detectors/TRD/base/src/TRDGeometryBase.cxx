@@ -11,6 +11,7 @@
 #include "TRDBase/TRDGeometryBase.h"
 
 using namespace o2::trd;
+using namespace o2::trd::constants;
 
 //_____________________________________________________________________________
 GPUd() int TRDGeometryBase::getStack(float z, int layer) const
@@ -21,10 +22,10 @@ GPUd() int TRDGeometryBase::getStack(float z, int layer) const
   // The return function has to be protected for positiveness !!
   //
 
-  if ((layer < 0) || (layer >= kNlayer))
+  if ((layer < 0) || (layer >= NLAYER))
     return -1;
 
-  int istck = kNstack;
+  int istck = NSTACK;
   float zmin = 0.0;
   float zmax = 0.0;
 
@@ -49,11 +50,11 @@ GPUd() bool TRDGeometryBase::isOnBoundary(int det, float y, float z, float eps) 
   //
 
   int ly = getLayer(det);
-  if ((ly < 0) || (ly >= kNlayer))
+  if ((ly < 0) || (ly >= NLAYER))
     return true;
 
   int stk = getStack(det);
-  if ((stk < 0) || (stk >= kNstack))
+  if ((stk < 0) || (stk >= NSTACK))
     return true;
 
   const TRDPadPlane* pp = &mPadPlanes[getDetectorSec(ly, stk)];

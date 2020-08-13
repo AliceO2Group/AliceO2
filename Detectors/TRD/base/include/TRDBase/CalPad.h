@@ -17,6 +17,8 @@
 //                                                                           //
 ///////////////////////////////////////////////////////////////////////////////
 
+#include "DataFormatsTRD/Constants.h"
+
 class CalROC;
 class CalDet;
 class TH2F;
@@ -26,10 +28,6 @@ class CalPad
 {
 
  public:
-  enum { kNplan = 6,
-         kNcham = 5,
-         kNsect = 18,
-         kNdet = 540 };
 
   CalPad();
   CalPad(const std::string& name, const std::String& title);
@@ -37,7 +35,7 @@ class CalPad
   ~CalPad();
   CalPad& operator=(const CalPad& c);
 
-  static int getDet(int p, int c, int s) { return p + c * kNplan + s * kNplan * kNcham; };
+  static int getDet(int p, int c, int s) { return p + c * Constants::NLAYER + s * Constants::NLAYER * Constants::NSTACK; };
 
   CalROC* getCalROC(int d) const { return mROC[d]; };
   CalROC* getCalROC(int p, int c, int s) const
@@ -69,7 +67,7 @@ class CalPad
   bool divide(const CalPad* pad, const CalDet* calDet1 = 0, const CalDet* calDet2 = 0, int type = 0);
 
  protected:
-  std::vector<CalROC> mROC(kNdet); //  Array of ROC objects which contain the values per pad
+  std::vector<CalROC> mROC(Constants::MAXCHAMBER); //  Array of ROC objects which contain the values per pad
 
   ClassDef(CalPad, 1) //  TRD calibration class for parameters which are saved per pad
 };

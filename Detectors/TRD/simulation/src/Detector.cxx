@@ -13,6 +13,7 @@
 #include "TRDBase/TRDCommonParam.h"
 #include "TRDBase/TRDGeometry.h"
 #include "TRDSimulation/TRsim.h"
+#include "DataFormatsTRD/Constants.h"
 
 #include "CommonUtils/ShmAllocator.h"
 #include "SimulationDataFormat/Stack.h"
@@ -27,6 +28,7 @@
 #include <string>
 
 using namespace o2::trd;
+using namespace o2::trd::constants;
 
 Detector::Detector(Bool_t active)
   : o2::base::DetImpl<Detector>("TRD", active)
@@ -118,12 +120,12 @@ bool Detector::ProcessHits(FairVolume* v)
   if (r2 != 1) {
     LOG(FATAL) << "Something went wrong with the geometry volume name " << fMC->CurrentVolOffName(7);
   }
-  if (sector < 0 || sector >= kNsector) {
+  if (sector < 0 || sector >= NSECTOR) {
     LOG(FATAL) << "Sector out of bounds";
   }
   // The detector number (0 - 539)
   int det = mGeom->getDetector(mGeom->getLayer(idChamber), mGeom->getStack(idChamber), sector);
-  if (det < 0 || det >= kNdet) {
+  if (det < 0 || det >= MAXCHAMBER) {
     LOG(FATAL) << "Detector number out of bounds";
   }
 

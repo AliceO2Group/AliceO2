@@ -19,6 +19,7 @@
 
 #include "CommonDataFormat/TimeStamp.h"
 #include "TRDBase/TRDCommonParam.h"
+#include "DataFormatsTRD/Constants.h"
 
 namespace o2
 {
@@ -26,7 +27,7 @@ namespace trd
 {
 
 using ADC_t = std::uint16_t;
-using ArrayADC = std::array<ADC_t, kTimeBins>;
+using ArrayADC = std::array<ADC_t, constants::TIMEBINS>;
 
 using TimeStamp = o2::dataformats::TimeStamp<double>;
 

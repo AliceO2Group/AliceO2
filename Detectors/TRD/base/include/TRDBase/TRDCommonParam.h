@@ -19,8 +19,6 @@ namespace trd
 {
 
 class TRDPadPlane;
-constexpr int kNlayer = 6, kNstack = 5, kNsector = 18, kNdet = 540;
-constexpr int kTimeBins = 30;
 
 class TRDCommonParam
 {

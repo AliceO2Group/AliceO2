@@ -29,6 +29,7 @@
 #include "TRDBase/TRDCalPadStatus.h"
 
 using namespace o2::trd;
+using namespace o2::trd::constants;
 
 //_____________________________________________________________________________
 TRDCalPadStatus::TRDCalPadStatus()
@@ -37,7 +38,7 @@ TRDCalPadStatus::TRDCalPadStatus()
   // TRDCalPadStatus default constructor
   //
 
-  for (int idet = 0; idet < kNdet; idet++) {
+  for (int idet = 0; idet < MAXCHAMBER; idet++) {
     mROC[idet] = nullptr;
   }
 }
@@ -49,9 +50,9 @@ TRDCalPadStatus::TRDCalPadStatus(const Text_t* name, const Text_t* title)
   // TRDCalPadStatus constructor
   //
   //TRDGeometry fgeom;
-  for (int isec = 0; isec < kNsect; isec++) {
-    for (int ipla = 0; ipla < kNplan; ipla++) {
-      for (int icha = 0; icha < kNcham; icha++) {
+  for (int isec = 0; isec < NSECTOR; isec++) {
+    for (int ipla = 0; ipla < NLAYER; ipla++) {
+      for (int icha = 0; icha < NSTACK; icha++) {
         int idet = o2::trd::TRDGeometry::getDetector(ipla, icha, isec);
         //    int idet = fgeom.getDetector(ipla,icha,isec);//TRDGeometryBase::getDetector(ipla,icha,isec);
         mROC[idet] = new TRDCalSingleChamberStatus(ipla, icha, 144);
@@ -79,7 +80,7 @@ TRDCalPadStatus::~TRDCalPadStatus()
   // TRDCalPadStatus destructor
   //
 
-  for (int idet = 0; idet < kNdet; idet++) {
+  for (int idet = 0; idet < MAXCHAMBER; idet++) {
     if (mROC[idet]) {
       delete mROC[idet];
       mROC[idet] = nullptr;
@@ -106,7 +107,7 @@ void TRDCalPadStatus::Copy(TRDCalPadStatus& c) const
   // Copy function
   //
 
-  for (int idet = 0; idet < kNdet; idet++) {
+  for (int idet = 0; idet < MAXCHAMBER; idet++) {
     if (mROC[idet]) {
       mROC[idet]->Copy(*((TRDCalPadStatus&)c).mROC[idet]);
     }
@@ -156,7 +157,7 @@ TH1F* TRDCalPadStatus::makeHisto1D()
   his->GetXaxis()->SetBinLabel(5, "ReadSecond");
   his->GetXaxis()->SetBinLabel(6, "NotConnected");
 
-  for (int idet = 0; idet < kNdet; idet++) {
+  for (int idet = 0; idet < MAXCHAMBER; idet++) {
     if (mROC[idet]) {
       for (int ichannel = 0; ichannel < mROC[idet]->getNchannels(); ichannel++) {
         int status = (int)mROC[idet]->getStatus(ichannel);
@@ -198,14 +199,14 @@ TH2F* TRDCalPadStatus::makeHisto2DSmPl(int sm, int pl)
   // Where we begin
   int offsetsmpl = 30 * sm + pl;
 
-  for (int k = 0; k < kNcham; k++) {
+  for (int k = 0; k < NSTACK; k++) {
     int det = offsetsmpl + k * 6;
     if (mROC[det]) {
       TRDCalSingleChamberStatus* calRoc = mROC[det];
       for (int icol = 0; icol < calRoc->getNcols(); icol++) {
         for (int irow = 0; irow < calRoc->getNrows(); irow++) {
           int binz = 0;
-          int kb = kNcham - 1 - k;
+          int kb = NSTACK - 1 - k;
           int krow = calRoc->getNrows() - 1 - irow;
           int kcol = calRoc->getNcols() - 1 - icol;
           if (kb > 2)
@@ -220,7 +221,7 @@ TH2F* TRDCalPadStatus::makeHisto2DSmPl(int sm, int pl)
       for (int icol = 1; icol < 147; icol++) {
         for (int l = 0; l < 2; l++) {
           int binz = 0;
-          int kb = kNcham - 1 - k;
+          int kb = NSTACK - 1 - k;
           if (kb > 2)
             binz = 16 * (kb - 1) + 12 + 1 + 2 * (kb + 1) - (l + 1);
           else
