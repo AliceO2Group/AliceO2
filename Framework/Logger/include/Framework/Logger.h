@@ -10,91 +10,10 @@
 #ifndef O2_FRAMEWORK_LOGGER_H_
 #define O2_FRAMEWORK_LOGGER_H_
 
-// FIXME: until we actually have fmt widely available we simply print out the
-// format string.
-// If FairLogger is not available, we use fmt::printf directly, with no level.
-#if __has_include(<fairlogger/Logger.h>)
 #include <fairlogger/Logger.h>
-#if (!defined(LOGP)) && __has_include(<fmt/format.h>)
-#include <fmt/format.h>
-#include <fmt/printf.h>
-FMT_BEGIN_NAMESPACE
-#if FMT_VERSION >= 60000
-template <typename S, typename Char = char_t<S>>
-inline int vfprintf(fair::Logger& logger,
-                    const S& format,
-                    basic_format_args<basic_printf_context_t<Char>> args)
-{
-  basic_memory_buffer<Char> buffer;
-  printf(buffer, to_string_view(format), args);
-  logger << std::string_view(buffer.data(), buffer.size());
-  return static_cast<int>(buffer.size());
-}
 
-template <typename S, typename... Args>
-inline enable_if_t<internal::is_string<S>::value, int>
-  fprintf(fair::Logger& logger,
-          const S& format_str, const Args&... args)
-{
-  internal::check_format_string<Args...>(format_str);
-  using context = basic_printf_context_t<char_t<S>>;
-  format_arg_store<context, Args...> as{args...};
-  return vfprintf(logger, to_string_view(format_str),
-                  basic_format_args<context>(as));
-}
-#else
-template <typename S, typename Char = FMT_CHAR(S)>
-inline int vfprintf(fair::Logger& logger,
-                    const S& format,
-                    basic_format_args<typename basic_printf_context_t<
-                      internal::basic_buffer<Char>>::type>
-                      args)
-{
-  basic_memory_buffer<Char> buffer;
-  printf(buffer, to_string_view(format), args);
-  logger << std::string_view(buffer.data(), buffer.size());
-  return static_cast<int>(buffer.size());
-}
-
-template <typename S, typename... Args>
-inline FMT_ENABLE_IF_T(internal::is_string<S>::value, int)
-  fprintf(fair::Logger& logger,
-          const S& format_str, const Args&... args)
-{
-  internal::check_format_string<Args...>(format_str);
-  typedef internal::basic_buffer<FMT_CHAR(S)> buffer;
-  typedef typename basic_printf_context_t<buffer>::type context;
-  format_arg_store<context, Args...> as{args...};
-  return vfprintf(logger, to_string_view(format_str),
-                  basic_format_args<context>(as));
-}
-#endif
-FMT_END_NAMESPACE
-
-// clang-format off
-// Must not add braces since it can break the usage in certain if clauses
-#define LOGF(severity, ...)                                                                                                                                          \
-  if (fair::Logger::SuppressSeverity(fair::Severity::severity)) ; else                                                                                               \
-    for (bool fairLOggerunLikelyvariable = false; fair::Logger::Logging(fair::Severity::severity) && !fairLOggerunLikelyvariable; fairLOggerunLikelyvariable = true) \
-      fmt::fprintf(fair::Logger(fair::Severity::severity, __FILE__, CONVERTTOSTRING(__LINE__), __FUNCTION__).Log(), __VA_ARGS__)
-// clang-format on
-#define LOGP(severity, ...) \
-  LOG(severity) << fmt::format(__VA_ARGS__)
-#elif (!defined(LOGP))
-#define O2_FIRST_ARG(N, ...) N
-#define LOGF(level, ...) LOG(level) << O2_FIRST_ARG(__VA_ARGS__)
-#define LOGP(level, ...) LOG(level) << O2_FIRST_ARG(__VA_ARGS__)
-#endif
 #define O2DEBUG(...) LOGF(debug, __VA_ARGS__)
 #define O2INFO(...) LOGF(info, __VA_ARGS__)
 #define O2ERROR(...) LOGF(error, __VA_ARGS__)
-#elif (!defined(LOGP)) && __has_include(<fmt/format.h>)
-#include <fmt/format.h>
-#define LOGF(level, ...) fmt::printf(__VA_ARGS__)
-#define LOGP(level, ...) fmt::print(__VA_ARGS__)
-#define O2DEBUG(...) LOGF("dummy", __VA_ARGS__)
-#define O2INFO(...) LOGF("dummy", __VA_ARGS__)
-#define O2ERROR(...) LOGF("dummy", __VA_ARGS__)
-#endif
 
 #endif // O2_FRAMEWORK_LOGGER_H_
