@@ -9,7 +9,7 @@
 // or submit itself to any jurisdiction.
 #include "Framework/DataRefUtils.h"
 #include "Framework/runDataProcessing.h"
-#include <Monitoring/Monitoring.h>
+#include "Framework/Monitoring.h"
 #include "Framework/Logger.h"
 
 #include <chrono>

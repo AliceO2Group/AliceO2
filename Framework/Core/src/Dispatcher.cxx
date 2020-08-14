@@ -23,7 +23,7 @@
 #include "Framework/ConfigParamRegistry.h"
 #include "Framework/InputRecordWalker.h"
 
-#include <Monitoring/Monitoring.h>
+#include "Framework/Monitoring.h"
 #include <Configuration/ConfigurationInterface.h>
 #include <Configuration/ConfigurationFactory.h>
 #include <fairmq/FairMQDevice.h>
@@ -31,9 +31,7 @@
 using namespace o2::configuration;
 using namespace o2::monitoring;
 
-namespace o2
-{
-namespace framework
+namespace o2::framework
 {
 
 Dispatcher::Dispatcher(std::string name, const std::string reconfigurationSource)
@@ -222,5 +220,4 @@ Outputs Dispatcher::getOutputSpecs()
   return outputs;
 }
 
-} // namespace framework
-} // namespace o2
+} // namespace o2::framework

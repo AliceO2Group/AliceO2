@@ -22,12 +22,12 @@
 #include "Framework/DanglingContext.h"
 #include "Framework/EndOfStreamContext.h"
 #include "Framework/Tracing.h"
+#include "Framework/Monitoring.h"
 #include "../src/DataProcessingStatus.h"
 
 #include <Configuration/ConfigurationInterface.h>
 #include <Configuration/ConfigurationFactory.h>
 #include <Monitoring/MonitoringFactory.h>
-#include <Monitoring/Monitoring.h>
 #include <InfoLogger/InfoLogger.hxx>
 
 #include <options/FairMQProgOptions.h>
