@@ -36,14 +36,6 @@ constexpr int MAXGLOBALPADROW = 152; // Correct number of pad rows in Run 3
 // number of LHC bunch crossings per TPC time bin (40 MHz / 5 MHz)
 constexpr int LHCBCPERTIMEBIN = 8;
 } // namespace constants
-
-// FIXME: Temporary workaround to not break the QC build which depends on the removed class o2::tpc::Constants
-//        Once https://github.com/AliceO2Group/QualityControl/pull/459 is merged this can be removed
-namespace Constants
-{
-using namespace constants;
-}
-
 } // namespace tpc
 } // namespace o2
 
