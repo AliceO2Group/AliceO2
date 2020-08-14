@@ -43,7 +43,11 @@ class CaloRawFitter
   CaloRawFitter(const char* name, const char* nameshort);
 
   /// \brief Destructor
-  ~CaloRawFitter() = default;
+  virtual ~CaloRawFitter() = default;
+
+  virtual CaloFitResults evaluate(const std::vector<Bunch>& bunchvector,
+                                  std::optional<unsigned int> altrocfg1,
+                                  std::optional<unsigned int> altrocfg2) = 0;
 
   /// \brief Method to do the selection of what should possibly be fitted.
   /// \return Size of the sub-selected sample,

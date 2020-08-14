@@ -47,7 +47,7 @@ class CaloRawFitterStandard : public CaloRawFitter
   CaloRawFitterStandard();
 
   /// \brief Destructor
-  ~CaloRawFitterStandard() = default;
+  ~CaloRawFitterStandard() final = default;
 
   /// \brief Approximate response function of the EMCal electronics.
   /// \param x: bin
@@ -57,9 +57,9 @@ class CaloRawFitterStandard : public CaloRawFitter
 
   /// \brief Evaluation Amplitude and TOF
   /// return Container with the fit results (amp, time, chi2, ...)
-  virtual CaloFitResults evaluate(const std::vector<Bunch>& bunchvector,
-                                  std::optional<unsigned int> altrocfg1,
-                                  std::optional<unsigned int> altrocfg2);
+  CaloFitResults evaluate(const std::vector<Bunch>& bunchvector,
+                          std::optional<unsigned int> altrocfg1,
+                          std::optional<unsigned int> altrocfg2) final;
 
   /// \brief Fits the raw signal time distribution
   /// \return the fit parameters: amplitude, time, chi2, fit status.
