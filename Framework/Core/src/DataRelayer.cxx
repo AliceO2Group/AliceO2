@@ -43,7 +43,6 @@ constexpr int INVALID_INPUT = -1;
 // The number should really be tuned at runtime for each processor.
 constexpr int DEFAULT_PIPELINE_LENGTH = 16;
 
-// FIXME: do we really need to pass the forwards?
 DataRelayer::DataRelayer(const CompletionPolicy& policy,
                          std::vector<InputRoute> const& routes,
                          monitoring::Monitoring& metrics,
