@@ -17,6 +17,7 @@
 #include "Framework/CompletionPolicy.h"
 #include "Framework/MessageSet.h"
 #include "Framework/TimesliceIndex.h"
+#include "Framework/Tracing.h"
 
 #include <cstddef>
 #include <mutex>
@@ -128,7 +129,7 @@ class DataRelayer
   static std::vector<std::string> sQueriesMetricsNames;
 
   DataRelayerStats mStats;
-  std::recursive_mutex mMutex;
+  TracyLockableN(std::recursive_mutex, mMutex, "data relayer mutex");
 };
 
 } // namespace o2::framework
