@@ -140,7 +140,7 @@ class TRDDPLDigitizerTask : public o2::base::BaseDPLDigitizer
   Digitizer mDigitizer;
   std::vector<TChain*> mSimChains;
   // RS: at the moment using hardcoded flag for continuos readout
-  o2::parameters::GRPObject::ROMode mROMode = o2::parameters::GRPObject::CONTINUOUS; // readout mode
+  o2::parameters::GRPObject::ROMode mROMode = o2::parameters::GRPObject::PRESENT; // readout mode
 };
 
 o2::framework::DataProcessorSpec getTRDDigitizerSpec(int channel, bool mctruth)
