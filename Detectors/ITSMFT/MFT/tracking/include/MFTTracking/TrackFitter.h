@@ -49,13 +49,11 @@ class TrackFitter
   bool initTrack(TrackLTF& track, bool outward = false);
   bool fit(TrackLTF& track, bool outward = false);
 
-  bool runKalmanFilter(TrackLTF& track, int cluster);
-
   /// Return the maximum chi2 above which the track can be considered as abnormal
   static constexpr double getMaxChi2() { return SMaxChi2; }
 
  private:
-  bool addCluster(TrackLTF& track, int cluster);
+  bool computeCluster(TrackLTF& track, int cluster);
 
   Float_t mBZField;                         // kiloGauss.
   static constexpr double SMaxChi2 = 2.e10; ///< maximum chi2 above which the track can be considered as abnormal
