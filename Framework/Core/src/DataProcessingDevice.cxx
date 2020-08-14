@@ -75,6 +75,11 @@ constexpr int BACKOFF_DELAY_STEP = 100;
 namespace o2::framework
 {
 
+template <>
+struct ServiceKindExtractor<ConfigurationInterface> {
+  constexpr static ServiceKind kind = ServiceKind::Global;
+};
+
 /// We schedule a timer to reduce CPU usage.
 /// Watching stdin for commands probably a better approach.
 void idle_timer(uv_timer_t* handle)
