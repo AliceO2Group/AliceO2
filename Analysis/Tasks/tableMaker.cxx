@@ -91,7 +91,8 @@ struct TableMaker {
 
       if (track.pt() < 0.15)
         continue;
-      if (TMath::Abs(track.eta()) > 0.9) continue;
+      if (TMath::Abs(track.eta()) > 0.9)
+        continue;
 
       trackBasic(collision, track.globalIndex(), trackFilteringTag, track.pt(), track.eta(), track.phi(), track.charge());
       trackBarrel(track.tpcInnerParam(), track.flags(), track.itsClusterMap(), track.itsChi2NCl(),
@@ -102,17 +103,15 @@ struct TableMaker {
                   track.length());
       trackBarrelCov(track.cYY(), track.cZZ(), track.cSnpSnp(), track.cTglTgl(), track.c1Pt21Pt2());
       trackBarrelPID(
-          track.tpcSignal(),
-          track.tpcNSigmaEl(), track.tpcNSigmaMu(),
-          track.tpcNSigmaPi(), track.tpcNSigmaKa(), track.tpcNSigmaPr(),
-          track.tpcNSigmaDe(), track.tpcNSigmaTr(), track.tpcNSigmaHe(), track.tpcNSigmaAl(),
-          track.tofSignal(), track.beta(),
-          track.tofNSigmaEl(), track.tofNSigmaMu(),
-          track.tofNSigmaPi(), track.tofNSigmaKa(), track.tofNSigmaPr(),
-          track.tofNSigmaDe(), track.tofNSigmaTr(), track.tofNSigmaHe(), track.tofNSigmaAl() ,
-          track.trdSignal()
-          );
-
+        track.tpcSignal(),
+        track.tpcNSigmaEl(), track.tpcNSigmaMu(),
+        track.tpcNSigmaPi(), track.tpcNSigmaKa(), track.tpcNSigmaPr(),
+        track.tpcNSigmaDe(), track.tpcNSigmaTr(), track.tpcNSigmaHe(), track.tpcNSigmaAl(),
+        track.tofSignal(), track.beta(),
+        track.tofNSigmaEl(), track.tofNSigmaMu(),
+        track.tofNSigmaPi(), track.tofNSigmaKa(), track.tofNSigmaPr(),
+        track.tofNSigmaDe(), track.tofNSigmaTr(), track.tofNSigmaHe(), track.tofNSigmaAl(),
+        track.trdSignal());
     }
 
     for (auto& muon : tracksMuon) {
