@@ -143,6 +143,9 @@ class TrackParCovFwd : public TrackParFwd
   // Add Multiple Coulomb Scattering effects
   void addMCSEffect(double dZ, double x2X0);
 
+  // Kalman filter/fitting
+  bool update(const std::array<float, 2>& p, const std::array<float, 2>& cov);
+
  private:
   /// Covariance matrix of track parameters, ordered as follows:    <pre>
   ///  <X,X>         <Y,X>           <PHI,X>       <TANL,X>        <INVQPT,X>

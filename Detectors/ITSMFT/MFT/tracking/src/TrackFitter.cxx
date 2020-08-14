@@ -53,8 +53,7 @@ void TrackFitter::setBz(float bZ)
 bool TrackFitter::fit(TrackLTF& track, bool outward)
 {
 
-  /// Fit a track to its attached clusters
-  /// Fit the entire track or only the part upstream itStartingParam
+  /// Fit a track using its attached clusters
   /// Returns false in case of failure
 
   auto& mftTrackingParam = MFTTrackingParam::Instance();
@@ -66,26 +65,25 @@ bool TrackFitter::fit(TrackLTF& track, bool outward)
               << std::endl;
   }
 
-  // recursively add clusters and update the track parameters
-  if (!outward) { // Inward
+  // recursively compute clusters, updating the track parameters
+  if (!outward) { // Inward for vertexing
     nClusters--;
     while (nClusters-- > 0) {
-      if (!addCluster(track, nClusters)) {
+      if (!computeCluster(track, nClusters)) {
         return false;
       }
     }
   } else { // Outward for MCH matching
     int ncl = 1;
     while (ncl < nClusters) {
-      if (!addCluster(track, ncl)) {
+      if (!computeCluster(track, ncl)) {
         return false;
       }
       ncl++;
     }
   }
   if (mftTrackingParam.verbose) {
-    //  std::cout << "Track covariances:";
-    //  trac->getCovariances().Print();
+    //  Print final covariances? std::cout << "Track covariances:"; track->getCovariances().Print();
     std::cout << "Track Chi2 = " << track.getTrackChi2() << std::endl;
     std::cout << " ***************************** Done fitting *****************************\n";
   }
@@ -105,7 +103,6 @@ bool TrackFitter::initTrack(TrackLTF& track, bool outward)
   auto nPoints = track.getNPoints();
   auto k = TMath::Abs(o2::constants::math::B2C * mBZField);
   auto Hz = std::copysign(1, mBZField);
-  //invQPtSeed = invQPtFromParabola(track, mBZField, chi2invqptquad);
   invQPtSeed = invQPtFromFCF(track, mBZField, chi2invqptquad);
 
   if (mftTrackingParam.verbose) {
@@ -117,21 +114,17 @@ bool TrackFitter::initTrack(TrackLTF& track, bool outward)
   track.setChi2QPtSeed(chi2invqptquad);
   track.setInvQPt(invQPtSeed);
 
-  /// Compute the initial track parameters
-  /// The covariance matrix is computed such that the last cluster is the only constraint
-  /// (by assigning an infinite dispersion to the other cluster)
-  /// These parameters are the seed for the Kalman filter
+  /// Compute the initial track parameters to seed the Kalman filter
 
-  // compute track parameters
-  int where; // First or last cluster?
+  int start; // Start fitting by the first or the last cluster
   if (outward)
-    where = 0;
+    start = 0;
   else
-    where = nPoints - 1;
+    start = nPoints - 1;
 
-  double x0 = track.getXCoordinates()[where];
-  double y0 = track.getYCoordinates()[where];
-  double z0 = track.getZCoordinates()[where];
+  double x0 = track.getXCoordinates()[start];
+  double y0 = track.getYCoordinates()[start];
+  double z0 = track.getZCoordinates()[start];
   double deltaX = track.getXCoordinates()[nPoints - 1] - track.getXCoordinates()[0];
   double deltaY = track.getYCoordinates()[nPoints - 1] - track.getYCoordinates()[0];
   double deltaZ = track.getZCoordinates()[nPoints - 1] - track.getZCoordinates()[0];
@@ -143,8 +136,8 @@ bool TrackFitter::initTrack(TrackLTF& track, bool outward)
   double r0cu = r0sq * TMath::Sqrt(r0sq);
   double invr0sq = 1.0 / r0sq;
   double invr0cu = 1.0 / r0cu;
-  double sigmax0sq = track.getSigmasX2()[where];
-  double sigmay0sq = track.getSigmasY2()[where];
+  double sigmax0sq = track.getSigmasX2()[start];
+  double sigmay0sq = track.getSigmasY2()[start];
   double sigmaDeltaZsq = 5.0;                      // Primary vertex distribution: beam interaction diamond
   double sigmaboost = mftTrackingParam.sigmaboost; // Boost q/pt seed covariances
   double seedH_k = mftTrackingParam.seedH_k;       // SeedH constant
@@ -207,7 +200,7 @@ bool TrackFitter::initTrack(TrackLTF& track, bool outward)
 }
 
 //_________________________________________________________________________________________________
-bool TrackFitter::addCluster(TrackLTF& track, int cluster)
+bool TrackFitter::computeCluster(TrackLTF& track, int cluster)
 {
   /// Propagate track to the z position of the new cluster
   /// accounting for MCS dispersion in the current layer and the other(s) crossed
@@ -218,6 +211,8 @@ bool TrackFitter::addCluster(TrackLTF& track, int cluster)
   const auto& clx = track.getXCoordinates()[cluster];
   const auto& cly = track.getYCoordinates()[cluster];
   const auto& clz = track.getZCoordinates()[cluster];
+  const auto& sigmaX2 = track.getSigmasX2()[cluster];
+  const auto& sigmaY2 = track.getSigmasY2()[cluster];
 
   if (track.getZ() == clz) {
     LOG(INFO) << "AddCluster ERROR: The new cluster must be upstream! Bug on TrackFinder. " << (track.isCA() ? " CATrack" : "LTFTrack");
@@ -225,7 +220,7 @@ bool TrackFitter::addCluster(TrackLTF& track, int cluster)
     return true;
   }
   if (mftTrackingParam.verbose)
-    std::cout << "addCluster:     X = " << clx << " Y = " << cly << " Z = " << clz << " nCluster = " << cluster << std::endl;
+    std::cout << "computeCluster:     X = " << clx << " Y = " << cly << " Z = " << clz << " nCluster = " << cluster << std::endl;
 
   // add MCS effects for the new cluster
   using o2::mft::constants::LayerZPosition;
@@ -281,8 +276,11 @@ bool TrackFitter::addCluster(TrackLTF& track, int cluster)
   if (mftTrackingParam.verbose)
     std::cout << "   AfterExtrap: X = " << track.getX() << " Y = " << track.getY() << " Z = " << track.getZ() << " Tgl = " << track.getTanl() << "  Phi = " << track.getPhi() << " pz = " << track.getPz() << " qpt = " << 1.0 / track.getInvQPt() << std::endl;
 
-  // recompute the parameters
-  if (runKalmanFilter(track, cluster)) {
+  // recompute parameters
+  const std::array<float, 2>& pos = {clx, cly};
+  const std::array<float, 2>& cov = {sigmaX2, sigmaY2};
+
+  if (track.update(pos, cov)) {
     if (mftTrackingParam.verbose) {
       std::cout << "   New Cluster: X = " << clx << " Y = " << cly << " Z = " << clz << std::endl;
       std::cout << "   AfterKalman: X = " << track.getX() << " Y = " << track.getY() << " Z = " << track.getZ() << " Tgl = " << track.getTanl() << "  Phi = " << track.getPhi() << " pz = " << track.getPz() << " qpt = " << 1.0 / track.getInvQPt() << std::endl;
@@ -293,57 +291,6 @@ bool TrackFitter::addCluster(TrackLTF& track, int cluster)
     return true;
   }
   return false;
-}
-
-//_________________________________________________________________________________________________
-bool TrackFitter::runKalmanFilter(TrackLTF& track, int cluster)
-{
-  /// Compute the new track parameters including the attached cluster with the Kalman filter
-  /// The current track is expected to have been propagated to the cluster z position
-  /// Retruns false in case of failure
-
-  // get propagated track parameters (p)
-  auto param = track.getParameters();
-
-  // get new cluster parameters (m)
-  SMatrix5 clusterParam;
-  clusterParam(0) = track.getXCoordinates()[cluster];
-  clusterParam(1) = track.getYCoordinates()[cluster];
-
-  // compute the actual parameter weight (W)
-  SMatrix55 paramWeight(track.getCovariances());
-  if (!(paramWeight.Invert())) {
-    LOG(INFO) << "runKalmanFilter ERROR: Determinant = 0";
-    return false;
-  }
-
-  // compute the new cluster weight (U)
-  SMatrix55 clusterWeight;
-  clusterWeight(0, 0) = 1. / track.getSigmasX2()[cluster];
-  clusterWeight(1, 1) = 1. / track.getSigmasY2()[cluster];
-
-  // compute the new parameters covariance matrix ((W+U)^-1)
-  SMatrix55 newParamCov(paramWeight + clusterWeight);
-  if (!newParamCov.Invert()) {
-    LOG(INFO) << "runKalmanFilter ERROR: Determinant = 0";
-    return false;
-  }
-  track.setCovariances(newParamCov);
-
-  // compute the new parameters: (p' = ((W+U)^-1)U(m-p) + p)
-  // Parameters increment: p' - p = ((W+U)^-1)U(m-p)
-  SMatrix5 predict_residuals(clusterParam - param); // m-p   -> residuals of prediction
-  SMatrix5 tmp(clusterWeight * predict_residuals);  // U(m-p)
-  SMatrix5 newParamDelta(newParamCov * tmp);        // ((W+U)^-1)U(m-p)
-  SMatrix5 newParam = newParamDelta + param;        // ((W+U)^-1)U(m-p) + p
-  track.setParameters(newParam);
-
-  // compute the additional addChi2 = ((p'-p)^t)W(p'-p) + ((p'-m)^t)U(p'-m)
-  SMatrix5 tmp2(clusterParam - newParam); // (m-p)
-  auto addChi2Track(ROOT::Math::Similarity(newParamDelta, paramWeight) + ROOT::Math::Similarity(tmp2, clusterWeight));
-  track.setTrackChi2(track.getTrackChi2() + addChi2Track);
-
-  return true;
 }
 
 //_________________________________________________________________________________________________
