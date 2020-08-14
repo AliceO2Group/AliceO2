@@ -159,7 +159,7 @@ class HistogramFactoryImpl : public HistogramFactory
   }
 
  private:
-  virtual std::unique_ptr<TH1> createImpl(HistogramSpec const& spec)
+  std::unique_ptr<TH1> createImpl(HistogramSpec const& spec) override
   {
     if (spec.config.axes.size() == 0) {
       throw std::runtime_error("No arguments available in spec to create a histogram");
