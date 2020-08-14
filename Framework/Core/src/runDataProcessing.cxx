@@ -755,7 +755,7 @@ int doChild(int argc, char** argv, ServiceRegistry& serviceRegistry, const o2::f
 
       /// Create all the requested services and initialise them
       for (auto& service : spec.services) {
-        LOG(info) << "Declaring service " << service.name;
+        LOG(debug) << "Declaring service " << service.name;
         serviceRegistry.declareService(service, *deviceState.get(), r.fConfig);
       }
       if (ResourcesMonitoringHelper::isResourcesMonitoringEnabled(spec.resourceMonitoringInterval)) {
