@@ -17,6 +17,7 @@
 #include "Framework/CompletionPolicy.h"
 #include "Framework/CompletionPolicyHelpers.h"
 #include "Framework/DeviceSpec.h"
+#include "Framework/Monitoring.h"
 
 using namespace o2::framework;
 

@@ -31,6 +31,7 @@
 #include "Framework/Signpost.h"
 #include "Framework/SourceInfoHeader.h"
 #include "Framework/Logger.h"
+#include "Framework/Monitoring.h"
 #include "DataProcessingStatus.h"
 #include "DataProcessingHelpers.h"
 #include "DataRelayerHelpers.h"
@@ -44,7 +45,6 @@
 #include <options/FairMQProgOptions.h>
 #include <Configuration/ConfigurationInterface.h>
 #include <Configuration/ConfigurationFactory.h>
-#include <Monitoring/Monitoring.h>
 #include <TMessage.h>
 #include <TClonesArray.h>
 
