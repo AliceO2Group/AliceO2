@@ -269,6 +269,53 @@ void TrackParCovFwd::propagateToZhelix(double zEnd, double zField)
 }
 
 //__________________________________________________________________________
+bool TrackParCovFwd::update(const std::array<float, 2>& p, const std::array<float, 2>& cov)
+{
+  /// Kalman update step: computes new track parameters with a new cluster position and uncertainties
+  /// The current track is expected to have been propagated to the cluster z position
+  /// Returns false in case of failure
+
+  // get new cluster parameters (m)
+  SMatrix5 clusterParam;
+  clusterParam(0) = p[0];
+  clusterParam(1) = p[1];
+
+  // compute the actual parameter weight (W)
+  SMatrix55 paramWeight(mCovariances);
+  if (!(paramWeight.Invert())) {
+    std::cout << "runKalmanFilter ERROR: Determinant = 0\n";
+    return false;
+  }
+
+  // compute the new cluster weight (U)
+  SMatrix55 clusterWeight;
+  clusterWeight(0, 0) = 1. / cov[0];
+  clusterWeight(1, 1) = 1. / cov[1];
+
+  // compute the new parameters covariance matrix ((W+U)^-1)
+  SMatrix55 newParamCov(paramWeight + clusterWeight);
+  if (!newParamCov.Invert()) {
+    std::cout << "runKalmanFilter ERROR: Determinant = 0\n";
+    return false;
+  }
+  mCovariances = newParamCov;
+
+  // compute the new parameters: (p' = ((W+U)^-1)U(m-p) + p)
+  // Parameters increment: p' - p = ((W+U)^-1)U(m-p)
+  SMatrix5 predict_residuals(clusterParam - mParameters); // m-p   -> residuals of prediction
+  SMatrix5 tmp(clusterWeight * predict_residuals);        // U(m-p)
+  SMatrix5 newParamDelta(newParamCov * tmp);              // ((W+U)^-1)U(m-p)
+  mParameters += newParamDelta;                           // ((W+U)^-1)U(m-p) + p
+
+  // compute the additional addChi2 = ((p'-p)^t)W(p'-p) + ((p'-m)^t)U(p'-m)
+  SMatrix5 tmp2(mParameters - clusterParam); // (p'-m)
+  auto addChi2Track(ROOT::Math::Similarity(newParamDelta, paramWeight) + ROOT::Math::Similarity(tmp2, clusterWeight));
+  mTrackChi2 += addChi2Track;
+
+  return true;
+}
+
+//__________________________________________________________________________
 void TrackParCovFwd::addMCSEffect(double dZ, double x_over_X0)
 {
   /// Add multiple Coulomb scattering effects to the track parameter covariances.
