@@ -42,6 +42,7 @@
 #include "Framework/TextControlService.h"
 #include "Framework/CallbackService.h"
 #include "Framework/WorkflowSpec.h"
+#include "Framework/Monitoring.h"
 
 #include "ComputingResourceHelpers.h"
 #include "DataProcessingStatus.h"

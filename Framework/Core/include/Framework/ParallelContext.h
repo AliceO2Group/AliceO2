@@ -8,12 +8,12 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#ifndef FRAMEWORK_PARALLELCONTEXT_H
-#define FRAMEWORK_PARALLELCONTEXT_H
+#ifndef O2_FRAMEWORK_PARALLELCONTEXT_H_
+#define O2_FRAMEWORK_PARALLELCONTEXT_H_
 
-namespace o2
-{
-namespace framework
+#include "Framework/ServiceHandle.h"
+
+namespace o2::framework
 {
 
 /// Purpose of this class is to provide DataProcessors which
@@ -31,6 +31,7 @@ namespace framework
 class ParallelContext
 {
  public:
+  constexpr static ServiceKind service_kind = ServiceKind::Global;
   // FIXME: find better names... rank1D and rank1DSize?
   ParallelContext(size_t index1D, size_t index1DSize)
     : mIndex1D{index1D},
@@ -46,6 +47,5 @@ class ParallelContext
   size_t mIndex1DSize;
 };
 
-} // namespace framework
-} // namespace o2
+} // namespace o2::framework
 #endif
