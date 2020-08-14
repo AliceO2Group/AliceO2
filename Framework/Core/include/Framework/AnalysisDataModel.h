@@ -117,7 +117,7 @@ DECLARE_SOA_DYNAMIC_COLUMN(Pz, pz, [](float signed1Pt, float tgl) -> float {
   return pt * tgl;
 });
 
-DECLARE_SOA_EXPRESSION_COLUMN(P, p, float, nsqrt((1.f + aod::track::tgl * aod::track::tgl) / nabs(aod::track::signed1Pt)));
+DECLARE_SOA_EXPRESSION_COLUMN(P, p, float, 0.5f * (ntan(0.25f * static_cast<float>(M_PI) - 0.5f * natan(aod::track::tgl)) + 1.f / ntan(0.25f * static_cast<float>(M_PI) - 0.5f * natan(aod::track::tgl))) / nabs(aod::track::signed1Pt));
 
 // TRACKPARCOV TABLE definition
 DECLARE_SOA_COLUMN(SigmaY, sigmaY, float);
