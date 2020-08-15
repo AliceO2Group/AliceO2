@@ -223,6 +223,7 @@ class RawFileReader
   size_t getBufferSize() const { return mBufferSize; }
 
   void setMaxTFToRead(uint32_t n) { mMaxTFToRead = n; }
+  bool isEmpty() const { return mEmpty; }
   uint32_t getMaxTFToRead() const { return mMaxTFToRead; }
   uint32_t getNTimeFrames() const { return mNTimeFrames; }
   uint32_t getOrbitMin() const { return mOrbitMin; }
@@ -259,6 +260,7 @@ class RawFileReader
   std::vector<std::unique_ptr<char[]>> mFileBuffers; //! buffers for input files
   std::vector<OrigDescCard> mDataSpecs;              //! data origin and description for every input file + readout card type
   bool mInitDone = false;
+  bool mEmpty = true;
   std::unordered_map<LinkSpec_t, int> mLinkEntries; //! mapping between RDH specs and link entry in the mLinksData
   std::vector<LinkData> mLinksData;                 //! info on links data in the files
   std::vector<int> mOrderedIDs;                     //! links entries ordered in Specs

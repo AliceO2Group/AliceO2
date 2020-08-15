@@ -512,7 +512,7 @@ bool RawFileReader::preprocessFile(int ifl)
   long int nr = 0;
   mPosInFile = 0;
   size_t nRDHread = 0, boffs;
-  bool ok = true, readMore = true;
+  bool readMore = true;
   while (readMore && (nr = fread(buffer.get(), 1, mBufferSize, fl))) {
     boffs = 0;
     while (1) {
@@ -556,7 +556,7 @@ bool RawFileReader::preprocessFile(int ifl)
   }
   LOGF(INFO, "File %3d : %9li bytes scanned, %6d RDH read for %4d links from %s",
        mCurrentFileID, mPosInFile, nRDHread, int(mLinkEntries.size()), mFileNames[mCurrentFileID]);
-  return ok;
+  return nRDHread > 0;
 }
 
 //_____________________________________________________________________
@@ -638,9 +638,11 @@ bool RawFileReader::init()
   }
 
   int nf = mFiles.size();
-  bool ok = true;
+  mEmpty = true;
   for (int i = 0; i < nf; i++) {
-    ok &= preprocessFile(i);
+    if (preprocessFile(i)) {
+      mEmpty = false;
+    }
   }
   mOrderedIDs.resize(mLinksData.size());
   for (int i = mLinksData.size(); i--;) {
@@ -691,7 +693,7 @@ bool RawFileReader::init()
   }
   mInitDone = true;
 
-  return ok;
+  return !mEmpty;
 }
 
 //_____________________________________________________________________
