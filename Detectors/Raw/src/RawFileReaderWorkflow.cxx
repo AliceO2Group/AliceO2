@@ -70,7 +70,7 @@ class RawReaderSpecs : public o2f::Task
     mReader->init();
     mTimer[TimerInit].Stop();
     if (mMaxTFID >= mReader->getNTimeFrames()) {
-      mMaxTFID = mReader->getNTimeFrames() - 1;
+      mMaxTFID = mReader->getNTimeFrames() ? mReader->getNTimeFrames() - 1 : 0;
     }
   }
 
@@ -111,7 +111,7 @@ class RawReaderSpecs : public o2f::Task
     std::unordered_map<std::string, std::unique_ptr<FairMQParts>> messagesPerRoute;
 
     if (tfID > mMaxTFID) {
-      if (mReader->getNTimeFrames() && --mLoop) {
+      if (!mReader->isEmpty() && --mLoop) {
         mLoopsDone++;
         tfID = 0;
         LOG(INFO) << "Starting new loop " << mLoopsDone << " from the beginning of data";
