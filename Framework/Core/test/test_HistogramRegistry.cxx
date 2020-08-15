@@ -19,18 +19,20 @@ using namespace o2::framework;
 
 HistogramRegistry foo()
 {
-  return {"r", true, {{"histo", "histo", {"TH1F", 100, 0, 1}}}};
+  return {"r", true, {{"histo", "histo", {HistogramType::kTH1F, {{100, 0, 1}}}}}};
 }
 
 BOOST_AUTO_TEST_CASE(HistogramRegistryLookup)
 {
   /// Construct a registry object with direct declaration
-  HistogramRegistry registry{"registry", true, {{"eta", "#Eta", {"TH1F", 100, -2.0, 2.0}}, {"phi", "#Phi", {"TH1D", 102, 0, 2 * M_PI}}, {"pt", "p_{T}", {"TH1D", 1002, -0.01, 50.1}}}};
+  HistogramRegistry registry{"registry", true, {{"eta", "#Eta", {HistogramType::kTH1F, {{100, -2.0, 2.0}}}}, {"phi", "#Phi", {HistogramType::kTH1D, {{102, 0, 2 * M_PI}}}}, {"pt", "p_{T}", {HistogramType::kTH1D, {{1002, -0.01, 50.1}}}}, {"ptToPt", "#ptToPt", {HistogramType::kTH2F, {{100, -0.01, 10.01}, {100, -0.01, 10.01}}}}}};
 
   /// Get histograms by name
   BOOST_REQUIRE_EQUAL(registry.get("eta")->GetNbinsX(), 100);
   BOOST_REQUIRE_EQUAL(registry.get("phi")->GetNbinsX(), 102);
   BOOST_REQUIRE_EQUAL(registry.get("pt")->GetNbinsX(), 1002);
+  BOOST_REQUIRE_EQUAL(registry.get("ptToPt")->GetNbinsX(), 100);
+  BOOST_REQUIRE_EQUAL(registry.get("ptToPt")->GetNbinsY(), 100);
 
   /// Get a pointer to the histogram
   auto histo = registry.get("pt").get();
