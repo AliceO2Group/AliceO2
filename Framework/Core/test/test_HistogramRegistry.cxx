@@ -42,4 +42,12 @@ BOOST_AUTO_TEST_CASE(HistogramRegistryLookup)
   auto r = foo();
   auto histo2 = r.get("histo").get();
   BOOST_REQUIRE_EQUAL(histo2->GetNbinsX(), 100);
+
+  /// Fill histograms
+  registry.fill("eta", 1.0f);
+  BOOST_REQUIRE_EQUAL(registry.get("eta")->GetBinContent(76), 1);
+  registry.fill("eta", -1.0f);
+  BOOST_REQUIRE_EQUAL(registry.get("eta")->GetBinContent(26), 1);
+  registry.fill("eta", 0.0f);
+  BOOST_REQUIRE_EQUAL(registry.get("eta")->GetBinContent(51), 1);
 }

@@ -228,6 +228,13 @@ class HistogramRegistry
     throw std::runtime_error("No match found!");
   }
 
+  template <typename T>
+  void fill(char const* const name, T value)
+  {
+    auto& hist = get(name);
+    hist->Fill(value);
+  }
+
   /// @return the histogram registered with name @a name
   auto& operator()(char const* const name) const
   {
