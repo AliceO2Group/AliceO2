@@ -21,6 +21,12 @@ using namespace o2::framework;
 using namespace arrow;
 using namespace arrow::compute;
 
+#if (ARROW_VERSION < 1000000)
+namespace arrow
+{
+using Datum = compute::Datum;
+}
+#else
 BOOST_AUTO_TEST_CASE(TestSlicing)
 {
   TableBuilder builder;
@@ -54,6 +60,7 @@ BOOST_AUTO_TEST_CASE(TestSlicing)
     BOOST_REQUIRE_EQUAL(arr1.Value(i), c[i]);
   }
 }
+#endif
 
 BOOST_AUTO_TEST_CASE(TestSlicingFramework)
 {
@@ -75,7 +82,7 @@ BOOST_AUTO_TEST_CASE(TestSlicingFramework)
 
   std::vector<uint64_t> offsets;
   std::vector<arrow::Datum> slices;
-  auto status = sliceByColumn<int32_t>("x", table.get(), 12, &slices, &offsets);
+  auto status = sliceByColumn<int32_t>("x", table, 12, &slices, &offsets);
   BOOST_REQUIRE(status.ok());
   BOOST_REQUIRE_EQUAL(slices.size(), 12);
   std::array<int, 12> sizes{4, 4, 1, 0, 1, 2, 0, 0, 0, 0, 0, 0};
