@@ -69,8 +69,11 @@ void BoostOptionsRetriever::update(std::vector<ConfigParamSpec> const& specs,
     };
   }
 
-  auto parsed = mIgnoreUnknown ? bpo::command_line_parser(mArgc, mArgv).options(mDescription).allow_unregistered().run()
-                               : bpo::parse_command_line(mArgc, mArgv, mDescription);
+  using namespace bpo::command_line_style;
+  auto style = (allow_short | short_allow_adjacent | short_allow_next | allow_long | long_allow_adjacent | long_allow_next | allow_sticky | allow_dash_for_short);
+
+  auto parsed = mIgnoreUnknown ? bpo::command_line_parser(mArgc, mArgv).options(mDescription).style(style).allow_unregistered().run()
+                               : bpo::parse_command_line(mArgc, mArgv, mDescription, style);
   bpo::variables_map vmap;
   bpo::store(parsed, vmap);
   PropertyTreeHelpers::populate(specs, store, vmap, provenance);

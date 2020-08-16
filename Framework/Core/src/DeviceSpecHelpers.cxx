@@ -909,8 +909,12 @@ void DeviceSpecHelpers::prepareArguments(bool defaultQuiet, bool defaultStopped,
     // if found in the argument list. If not found they will be added with the default value
     FilterFunctionT filterArgsFct = [&](int largc, char** largv, const bpo::options_description& odesc) {
       // spec contains options
+      using namespace bpo::command_line_style;
+      auto style = (allow_short | short_allow_adjacent | short_allow_next | allow_long | long_allow_adjacent | long_allow_next | allow_sticky | allow_dash_for_short);
+
       bpo::command_line_parser parser{largc, largv};
       parser.options(odesc).allow_unregistered();
+      parser.style(style);
       bpo::parsed_options parsed_options = parser.run();
 
       bpo::variables_map varmap;
