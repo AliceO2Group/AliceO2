@@ -12,21 +12,25 @@
 #define BOOST_TEST_MAIN
 #define BOOST_TEST_DYN_LINK
 
-#include "Framework/AnalysisDataModel.h"
 #include "Framework/Kernels.h"
 #include "Framework/TableBuilder.h"
-#include <arrow/compute/context.h>
-#include <arrow/compute/kernels/hash.h>
+#include "Framework/Pack.h"
 #include <boost/test/unit_test.hpp>
 
 using namespace o2::framework;
 using namespace arrow;
 using namespace arrow::compute;
 
-BOOST_AUTO_TEST_CASE(TestHashByColumnKernel)
+#if (ARROW_VERSION < 1000000)
+namespace arrow
+{
+using Datum = compute::Datum;
+}
+#else
+BOOST_AUTO_TEST_CASE(TestSlicing)
 {
   TableBuilder builder;
-  auto rowWriter = builder.persist<uint64_t, uint64_t>({"x", "y"});
+  auto rowWriter = builder.persist<int32_t, int32_t>({"x", "y"});
   rowWriter(0, 0, 0);
   rowWriter(0, 0, 1);
   rowWriter(0, 0, 2);
@@ -35,68 +39,54 @@ BOOST_AUTO_TEST_CASE(TestHashByColumnKernel)
   rowWriter(0, 1, 5);
   rowWriter(0, 1, 6);
   rowWriter(0, 1, 7);
-  rowWriter(0, 2, 8);
+  rowWriter(0, 2, 7);
+  rowWriter(0, 4, 8);
+  rowWriter(0, 5, 9);
+  rowWriter(0, 5, 10);
   auto table = builder.finalize();
 
-  arrow::compute::FunctionContext ctx;
-  HashByColumnKernel kernel{{"x"}};
-  std::shared_ptr<arrow::Array> out;
-  auto outDatum = arrow::compute::Datum(out);
-  BOOST_CHECK_EQUAL(kernel.Call(&ctx, arrow::compute::Datum(table), &outDatum).ok(), true);
-  auto indices = arrow::util::get<std::shared_ptr<arrow::ChunkedArray>>(outDatum.value);
-  BOOST_CHECK_EQUAL(indices->length(), table->num_rows());
+  auto options = arrow::compute::CountOptions::Defaults();
+  auto value_counts = arrow::compute::CallFunction("value_counts", {table->GetColumnByName("x")}, &options).ValueOrDie();
+  auto array = static_cast<arrow::StructArray>(value_counts.array());
 
-  std::shared_ptr<arrow::Array> uniqueValues;
-  BOOST_CHECK_EQUAL(Unique(&ctx, arrow::compute::Datum(indices), &uniqueValues).ok(), true);
-  BOOST_REQUIRE(uniqueValues.get() != nullptr);
-  BOOST_CHECK_EQUAL(uniqueValues->length(), 3);
+  auto arr0 = static_cast<NumericArray<Int32Type>>(array.field(0)->data());
+  auto arr1 = static_cast<NumericArray<Int64Type>>(array.field(1)->data());
 
-  arrow::compute::Datum outRanges;
-  SortedGroupByKernel<uint64_t, arrow::UInt64Array> groupBy{{"x", 3}};
-  BOOST_CHECK_EQUAL(groupBy.Call(&ctx, arrow::compute::Datum(table), &outRanges).ok(), true);
-  auto result = arrow::util::get<std::shared_ptr<arrow::Table>>(outRanges.value);
-  BOOST_REQUIRE(result.get() != nullptr);
-  BOOST_CHECK_EQUAL(result->num_rows(), 3);
+  std::array<int, 5> v{0, 1, 2, 4, 5};
+  std::array<int, 5> c{4, 4, 1, 1, 2};
 
-  std::vector<Datum> splitted;
-  BOOST_CHECK_EQUAL(sliceByColumn(&ctx, "x", static_cast<uint64_t>(3), arrow::compute::Datum(table), &splitted).ok(), true);
-  BOOST_REQUIRE_EQUAL(splitted.size(), 3);
-  BOOST_CHECK_EQUAL(util::get<std::shared_ptr<Table>>(splitted[0].value)->num_rows(), 4);
-  BOOST_CHECK_EQUAL(util::get<std::shared_ptr<Table>>(splitted[1].value)->num_rows(), 4);
-  BOOST_CHECK_EQUAL(util::get<std::shared_ptr<Table>>(splitted[2].value)->num_rows(), 1);
+  for (auto i = 0; i < arr0.length(); ++i) {
+    BOOST_REQUIRE_EQUAL(arr0.Value(i), v[i]);
+    BOOST_REQUIRE_EQUAL(arr1.Value(i), c[i]);
+  }
 }
+#endif
 
-BOOST_AUTO_TEST_CASE(TestWithSOATables)
+BOOST_AUTO_TEST_CASE(TestSlicingFramework)
 {
-  using namespace o2;
-  TableBuilder builder2;
-  auto tracksCursor = builder2.cursor<aod::StoredTracks>();
-  tracksCursor(0, 0, 2, 3, 4, 5, 6, 7, 8, 9);
-  tracksCursor(0, 0, 2, 3, 4, 5, 6, 7, 8, 9);
-  tracksCursor(0, 1, 2, 3, 4, 5, 6, 7, 8, 9);
-  tracksCursor(0, 1, 2, 3, 4, 5, 6, 7, 8, 9);
-  tracksCursor(0, 1, 2, 3, 4, 5, 6, 7, 8, 9);
-  tracksCursor(0, 1, 2, 3, 4, 5, 6, 7, 8, 9);
-  tracksCursor(0, 2, 2, 3, 4, 5, 6, 7, 8, 9);
-  auto tracks = builder2.finalize();
+  TableBuilder builder;
+  auto rowWriter = builder.persist<int32_t, int32_t>({"x", "y"});
+  rowWriter(0, 0, 0);
+  rowWriter(0, 0, 1);
+  rowWriter(0, 0, 2);
+  rowWriter(0, 0, 3);
+  rowWriter(0, 1, 4);
+  rowWriter(0, 1, 5);
+  rowWriter(0, 1, 6);
+  rowWriter(0, 1, 7);
+  rowWriter(0, 2, 7);
+  rowWriter(0, 4, 8);
+  rowWriter(0, 5, 9);
+  rowWriter(0, 5, 10);
+  auto table = builder.finalize();
 
-  arrow::compute::FunctionContext ctx;
-  arrow::compute::Datum outRanges;
-  SortedGroupByKernel<int32_t, arrow::Int32Array> groupBy{{"fCollisionsID", 3}};
-  BOOST_CHECK_EQUAL(groupBy.Call(&ctx, arrow::compute::Datum(tracks), &outRanges).ok(), true);
-  auto result = arrow::util::get<std::shared_ptr<arrow::Table>>(outRanges.value);
-  BOOST_REQUIRE(result.get() != nullptr);
-  BOOST_CHECK_EQUAL(result->num_rows(), 3);
-
-  std::vector<Datum> splitted;
   std::vector<uint64_t> offsets;
-  BOOST_CHECK_EQUAL(sliceByColumn(&ctx, "fCollisionsID", static_cast<int32_t>(3), arrow::compute::Datum(tracks), &splitted, &offsets).ok(), true);
-  BOOST_REQUIRE_EQUAL(splitted.size(), 3);
-  BOOST_CHECK_EQUAL(util::get<std::shared_ptr<Table>>(splitted[0].value)->num_rows(), 2);
-  BOOST_CHECK_EQUAL(util::get<std::shared_ptr<Table>>(splitted[1].value)->num_rows(), 4);
-  BOOST_CHECK_EQUAL(util::get<std::shared_ptr<Table>>(splitted[2].value)->num_rows(), 1);
-
-  BOOST_CHECK_EQUAL(offsets[0], 0);
-  BOOST_CHECK_EQUAL(offsets[1], 2);
-  BOOST_CHECK_EQUAL(offsets[2], 6);
+  std::vector<arrow::Datum> slices;
+  auto status = sliceByColumn<int32_t>("x", table, 12, &slices, &offsets);
+  BOOST_REQUIRE(status.ok());
+  BOOST_REQUIRE_EQUAL(slices.size(), 12);
+  std::array<int, 12> sizes{4, 4, 1, 0, 1, 2, 0, 0, 0, 0, 0, 0};
+  for (auto i = 0u; i < slices.size(); ++i) {
+    BOOST_REQUIRE_EQUAL(slices[i].table()->num_rows(), sizes[i]);
+  }
 }

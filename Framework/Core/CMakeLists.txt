@@ -84,7 +84,6 @@ o2_add_library(Framework
                        src/InputRecord.cxx
                        src/InputSpec.cxx
                        src/OutputSpec.cxx
-                       src/Kernels.cxx
                        src/LifetimeHelpers.cxx
                        src/LocalRootFileService.cxx
                        src/RootConfigParamHelpers.cxx

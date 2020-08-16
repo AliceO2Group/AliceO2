@@ -21,7 +21,6 @@
 #include <arrow/table.h>
 #include <arrow/array.h>
 #include <arrow/util/variant.h>
-#include <arrow/compute/context.h>
 #include <arrow/compute/kernel.h>
 #include <gandiva/selection_vector.h>
 #include <cassert>
