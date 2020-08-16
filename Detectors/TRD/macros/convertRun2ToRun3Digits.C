@@ -33,6 +33,7 @@ void convertRun2ToRun3Digits(TString qaOutPath = "",
                              int nRawEvents = 1000)
 {
   vector<o2::trd::Digit> run3Digits;
+  vector<o2::trd::TriggerRecord> triggerRecords;
 
   TH1F* hAdc = new TH1F("hADC", "ADC spectrum", 1024, -0.5, 1023.5);
   TH1F* hTBsum = new TH1F("hTBsum", "TBsum", 3000, -0.5, 2999.5);
@@ -129,6 +130,10 @@ void convertRun2ToRun3Digits(TString qaOutPath = "",
     digitMan->CreateArrays();
 
     TIter next(run2DigitsFile.GetListOfKeys());
+
+    uint64_t triggerRecordsStart = 0;
+    int recordSize = 0;
+    int ievent = 0;
     while (TObject* obj = next()) {
       cout << "Processing " << obj->GetName() << endl;
 
@@ -166,8 +171,6 @@ void convertRun2ToRun3Digits(TString qaOutPath = "",
             int tbsum = 0;
             ArrayADC adctimes;
 
-            // cout << "timebins: " << digitMan->GetDigits(det)->GetNtime() << endl;
-
             for (int timebin = 0; timebin < digitMan->GetDigits(det)->GetNtime(); timebin++) {
 
               if (digitMan->GetDigits(det)->GetNtime() > 30) {
@@ -194,6 +197,10 @@ void convertRun2ToRun3Digits(TString qaOutPath = "",
             }
           }
         }
+        recordSize = run3Digits.size() - triggerRecordsStart;
+        triggerRecords.emplace_back(ievent, triggerRecordsStart, recordSize);
+        triggerRecordsStart = run3Digits.size();
+        ievent++;
       }
     }
   }
@@ -223,8 +230,8 @@ void convertRun2ToRun3Digits(TString qaOutPath = "",
     TFile* digitsFile = new TFile(run3DigitsOutPath, "RECREATE");
     TTree* digitTree = new TTree("o2sim", "run2 digits");
     std::vector<o2::trd::Digit>* run3pdigits = &run3Digits;
-
     digitTree->Branch("TRDDigit", &run3pdigits);
+    digitTree->Branch("TriggerRecord", &triggerRecords);
     digitTree->Fill();
     cout << run3Digits.size() << " run3 digits written to: " << run3DigitsOutPath << endl;
     digitTree->Write();
