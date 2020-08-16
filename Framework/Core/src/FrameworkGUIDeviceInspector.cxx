@@ -144,6 +144,41 @@ void optionsTable(const char* label, std::vector<ConfigParamSpec> const& options
   ImGui::Columns(1);
 }
 
+void servicesTable(const char* label, std::vector<ServiceSpec> const& services)
+{
+  if (services.empty()) {
+    return;
+  }
+  if (ImGui::CollapsingHeader(label, ImGuiTreeNodeFlags_DefaultOpen)) {
+    ImGui::Columns(2);
+    auto labels = {"Service", "Kind"};
+    for (auto& label : labels) {
+      ImGui::TextUnformatted(label);
+      ImGui::NextColumn();
+    }
+    for (auto& service : services) {
+      ImGui::TextUnformatted(service.name.c_str());
+      ImGui::NextColumn();
+      switch (service.kind) {
+        case ServiceKind::Serial:
+          ImGui::TextUnformatted("Serial");
+          break;
+        case ServiceKind::Global:
+          ImGui::TextUnformatted("Global");
+          break;
+        case ServiceKind::Stream:
+          ImGui::TextUnformatted("Stream");
+          break;
+        default:
+          ImGui::TextUnformatted("unknown");
+      }
+      ImGui::NextColumn();
+    }
+  }
+
+  ImGui::Columns(1);
+}
+
 void displayDeviceInspector(DeviceSpec const& spec,
                             DeviceInfo const& info,
                             DeviceMetricsInfo const& metrics,
@@ -215,6 +250,7 @@ void displayDeviceInspector(DeviceSpec const& spec,
   }
   configurationTable(info.currentConfig, info.currentProvenance);
   optionsTable("Workflow Options", metadata.workflowOptions, control);
+  servicesTable("Services", spec.services);
   if (ImGui::CollapsingHeader("Command line arguments", ImGuiTreeNodeFlags_DefaultOpen)) {
     for (auto& arg : metadata.cmdLineArgs) {
       ImGui::Text("%s", arg.c_str());
