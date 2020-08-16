@@ -14,6 +14,12 @@
 #include "Framework/BasicOps.h"
 #include "Framework/TableBuilder.h"
 
+#if __has_include(<arrow/config.h>)
+#include <arrow/config.h>
+#endif
+#if __has_include(<arrow/util/config.h>)
+#include <arrow/util/config.h>
+#endif
 #include <arrow/compute/kernel.h>
 #include <arrow/status.h>
 #include <arrow/util/visibility.h>
