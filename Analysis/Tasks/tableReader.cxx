@@ -229,7 +229,7 @@ struct TableReader {
         fHistMan->AddHistogram(classStr.Data(), "P", "p distribution", false, 200, 0.0, 20.0, VarManager::kP);                                                      // TH1F histogram
         fHistMan->AddHistogram(classStr.Data(), "Px", "p_{x} distribution", false, 200, 0.0, 20.0, VarManager::kPx);
         fHistMan->AddHistogram(classStr.Data(), "Py", "p_{y} distribution", false, 200, 0.0, 20.0, VarManager::kPy);
-        fHistMan->AddHistogram(classStr.Data(), "Pz", "p_{z} distribution", false, 200, 0.0, 20.0, VarManager::kPz);
+        fHistMan->AddHistogram(classStr.Data(), "Pz", "p_{z} distribution", false, 400, -20.0, 20.0, VarManager::kPz);
 
         if (classStr.Contains("Barrel")) {
           fHistMan->AddHistogram(classStr.Data(), "TPCdedx_pIN", "TPC dE/dx vs pIN", false, 100, 0.0, 20.0, VarManager::kPin,
