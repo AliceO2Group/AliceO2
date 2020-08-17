@@ -53,9 +53,9 @@ struct DTask {
   {
     LOGF(INFO, "Collision %d has %d V0s", collision.globalIndex(), v0s.size());
 
-    //         for (auto& v0 : v0s) {
-    //           LOGF(INFO, "Collision %d V0 %d (%d, %d)", collision.globalIndex(), v0s.globalIndex(), v0.posTrackId(), v0.negTrackId());
-    //         }
+    for (auto& v0 : v0s) {
+      LOGF(DEBUG, "Collision %d V0 %d (%d, %d)", collision.globalIndex(), v0.globalIndex(), v0.posTrackId(), v0.negTrackId());
+    }
   }
 };
 
