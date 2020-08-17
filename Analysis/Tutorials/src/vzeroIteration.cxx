@@ -51,11 +51,11 @@ struct CTask {
 struct DTask {
   void process(aod::Collision const& collision, aod::V0s const& v0s, aod::Tracks const& tracks)
   {
-    LOGF(INFO, "Collision %d has %d V0s", collision.index(), v0s.size());
+    LOGF(INFO, "Collision %d has %d V0s", collision.globalIndex(), v0s.size());
 
-    //     for (auto& v0 : v0s) {
-    //       LOGF(INFO, "Collision %d V0 %d (%d, %d)", collision.index(), 0, v0.posTrackId(), v0.negTrackId());
-    //     }
+    //         for (auto& v0 : v0s) {
+    //           LOGF(INFO, "Collision %d V0 %d (%d, %d)", collision.globalIndex(), v0s.globalIndex(), v0.posTrackId(), v0.negTrackId());
+    //         }
   }
 };
 

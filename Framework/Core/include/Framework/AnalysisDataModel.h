@@ -444,7 +444,7 @@ DECLARE_SOA_INDEX_COLUMN_FULL(NegTrack, negTrack, int, Tracks, "fNegTrackID");
 DECLARE_SOA_INDEX_COLUMN(Collision, collision);
 } // namespace v0
 
-DECLARE_SOA_TABLE(StoredV0s, "AOD", "O2v0", v0::PosTrackId, v0::NegTrackId);
+DECLARE_SOA_TABLE(StoredV0s, "AOD", "O2v0", o2::soa::Index<>, v0::PosTrackId, v0::NegTrackId);
 DECLARE_SOA_TABLE(TransientV0s, "AOD", "V0INDEX", v0::CollisionId);
 
 using V0s = soa::Join<TransientV0s, StoredV0s>;
@@ -457,7 +457,7 @@ DECLARE_SOA_INDEX_COLUMN_FULL(Bachelor, bachelor, int, Tracks, "fTracksID");
 DECLARE_SOA_INDEX_COLUMN(Collision, collision);
 } // namespace cascade
 
-DECLARE_SOA_TABLE(StoredCascades, "AOD", "O2cascade", cascade::V0Id, cascade::BachelorId);
+DECLARE_SOA_TABLE(StoredCascades, "AOD", "O2cascade", o2::soa::Index<>, cascade::V0Id, cascade::BachelorId);
 DECLARE_SOA_TABLE(TransientCascades, "AOD", "CASCADEINDEX", cascade::CollisionId);
 
 using Cascades = soa::Join<TransientCascades, StoredCascades>;
