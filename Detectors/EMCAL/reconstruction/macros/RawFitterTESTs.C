@@ -77,6 +77,8 @@ void RawFitterTESTs(const char* filename = "")
       while (parser.hasNext()) {
         parser.next();
         std::cout << "next page \n";
+        if (o2::raw::RDHUtils::getFEEID(parser.getRawHeader()) >= 40)
+          continue;
 
         //std::cout<<rawreader.getRawHeader()<<std::endl;
 
