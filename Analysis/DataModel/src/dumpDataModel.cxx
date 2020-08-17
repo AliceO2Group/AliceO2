@@ -154,8 +154,8 @@ edge[dir=back, arrowtail=empty]
   dumpTable<MuonClusters>();
   dumpTable<Zdcs>();
   dumpTable<Run2V0s>();
-  dumpTable<V0s>();
-  dumpTable<Cascades>();
+  dumpTable<StoredV0s>();
+  dumpTable<StoredCascades>();
   dumpTable<BCs>();
   dumpTable<FT0s>();
   dumpTable<FV0s>();
