@@ -16,7 +16,7 @@ using std::endl;
 
 ClassImp(AnalysisCut);
 
-vector<int> AnalysisCut::fgUsedVars = {};
+std::vector<int> AnalysisCut::fgUsedVars = {};
 
 //____________________________________________________________________________
 AnalysisCut::AnalysisCut() : TNamed(),
