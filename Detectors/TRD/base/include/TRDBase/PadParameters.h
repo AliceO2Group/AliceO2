@@ -25,6 +25,7 @@
 #include "TRDBase/TRDGeometry.h"
 #include "TRDBase/TRDSimParam.h"
 #include "TRDBase/FeeParam.h"
+#include "DataFormatsTRD/Constants.h"
 
 namespace o2
 {
@@ -52,12 +53,12 @@ class PadParameters
   int reset(int chamberindex, int col, int row, std::vector<T>& data);
 
  protected:
-  int mPlane{0};                 //  Plane number
-  int mChamber{0};               //  Chamber number
-  int mNrows{0};                 //  Number of rows
-  int mNcols{FeeParam::mgkNcol}; //  Number of columns
-  int mNchannels;                //  Number of channels = rows*columns
-  std::vector<T> mData;          // Size is mNchannels
+  int mPlane{0};                  //  Plane number
+  int mChamber{0};                //  Chamber number
+  int mNrows{0};                  //  Number of rows
+  int mNcols{constants::NCOLUMN}; //  Number of columns
+  int mNchannels;                 //  Number of channels = rows*columns
+  std::vector<T> mData;           // Size is mNchannels
 };
 
 template <class T>
@@ -72,9 +73,9 @@ int PadParameters<T>::init(int chamberindex)
   mPlane = TRDGeometry::getLayer(chamberindex);
   mChamber = TRDGeometry::getStack(chamberindex);
   if (mChamber == 2)
-    mNrows = FeeParam::mgkNrowC0;
+    mNrows = constants::NROWC0;
   else
-    mNrows = FeeParam::mgkNrowC1;
+    mNrows = constants::NROWC1;
   // the FeeParam variables need to be unprotected, and dont want to change FeeParam in this PR.
   mNchannels = mNrows * mNcols;
   mData.resize(mNchannels);

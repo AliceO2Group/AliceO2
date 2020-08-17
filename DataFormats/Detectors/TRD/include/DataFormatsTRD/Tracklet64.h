@@ -82,16 +82,6 @@ class Tracklet64
     mtrackletWord = trackletword;
     return 0;
   }
-  static const int mgkNmcmRob = 16;     // Number of MCMs per ROB
-  static const int mgkNmcmRobInRow = 4; // Number of MCMs per ROB in row dir.
-  static const int mgkNmcmRobInCol = 4; // Number of MCMs per ROB in col dir.
-  static const int mgkNrobC0 = 6;       // Number of ROBs per C0 chamber
-  static const int mgkNrobC1 = 8;       // Number of ROBs per C1 chamber
-  static const int mgkNadcMcm = 21;     // Number of ADC channels per MCM
-  static const int mgkNcol = 144;       // Number of pads per padplane row
-  static const int mgkNcolMcm = 18;     // Number of pads per MCM
-  static const int mgkNrowC0 = 12;      // Number of Rows per C0 chamber
-  static const int mgkNrowC1 = 16;      // Number of Rows per C1 chamber
 
   // ----- Getters for tracklet information -----
   int getMCM() const

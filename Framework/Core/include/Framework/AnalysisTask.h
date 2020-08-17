@@ -31,7 +31,6 @@
 #include "Framework/OutputObjHeader.h"
 #include "Framework/RootConfigParamHelpers.h"
 
-#include <arrow/compute/context.h>
 #include <arrow/compute/kernel.h>
 #include <arrow/table.h>
 #include <gandiva/node.h>
@@ -636,7 +635,6 @@ struct AnalysisDataProcessorBuilder {
           groupSelection = &gt.getSelectedRows();
         }
         auto indexColumnName = getLabelFromType();
-        arrow::compute::FunctionContext ctx;
         /// prepare slices and offsets for all associated tables that have index
         /// to grouping table
         ///
@@ -644,9 +642,9 @@ struct AnalysisDataProcessorBuilder {
           using xt = std::decay_t<decltype(x)>;
           constexpr auto index = framework::has_type_at<std::decay_t<decltype(x)>>(associated_pack_t{});
           if (hasIndexTo<std::decay_t<G>>(typename xt::persistent_columns_t{})) {
-            auto result = o2::framework::sliceByColumn(&ctx, indexColumnName,
-                                                       static_cast<int32_t>(gt.size()),
+            auto result = o2::framework::sliceByColumn(indexColumnName.c_str(),
                                                        x.asArrowTable(),
+                                                       static_cast<int32_t>(gt.size()),
                                                        &groups[index],
                                                        &offsets[index]);
             if (result.ok() == false) {
@@ -773,7 +771,7 @@ struct AnalysisDataProcessorBuilder {
       uint64_t position = 0;
       soa::SelectionVector* groupSelection = nullptr;
 
-      std::array<std::vector<arrow::compute::Datum>, sizeof...(A)> groups;
+      std::array<std::vector<arrow::Datum>, sizeof...(A)> groups;
       std::array<std::vector<uint64_t>, sizeof...(A)> offsets;
       std::array<soa::SelectionVector const*, sizeof...(A)> selections;
       std::array<soa::SelectionVector::const_iterator, sizeof...(A)> starts;

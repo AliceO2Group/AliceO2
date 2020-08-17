@@ -197,7 +197,7 @@ class TrackInterpolation
   std::vector<TPCClusterResiduals> mClRes{};            ///< residuals for each available TPC cluster of all tracks
 
   // cache
-  std::array<CacheStruct, Constants::MAXGLOBALPADROW> mCache{{}}; ///< caching positions, covariances and angles for track extrapolations and interpolation
+  std::array<CacheStruct, constants::MAXGLOBALPADROW> mCache{{}}; ///< caching positions, covariances and angles for track extrapolations and interpolation
 
   // helpers
   std::unique_ptr<TPCFastTransform> mFastTransform{}; ///< TPC cluster transformation

@@ -17,11 +17,7 @@
 static inline ImVec2 operator+(const ImVec2& lhs, const ImVec2& rhs) { return ImVec2(lhs.x + rhs.x, lhs.y + rhs.y); }
 static inline ImVec2 operator-(const ImVec2& lhs, const ImVec2& rhs) { return ImVec2(lhs.x - rhs.x, lhs.y - rhs.y); }
 
-namespace o2
-{
-namespace framework
-{
-namespace gui
+namespace o2::framework::gui
 {
 
 // This is to display the information in the data relayer
@@ -137,14 +133,18 @@ void displayDataRelayer(DeviceMetricsInfo const& metrics,
   };
   auto describeCell = [&metrics, &variablesIndex, &queriesIndex](int input, int slot) -> void {
     ImGui::BeginTooltip();
+    ImGui::Text("Input query matched values for slot: %d", slot);
     for (size_t vi = 0; vi < variablesIndex.w; ++vi) {
       auto idx = (slot * variablesIndex.w) + vi;
       assert(idx < variablesIndex.indexes.size());
       MetricInfo const& metricInfo = metrics.metrics[variablesIndex.indexes[idx]];
       assert(metricInfo.storeIdx < metrics.stringMetrics.size());
-      //assert(metricInfo.type == MetricType::String);
       auto& data = metrics.stringMetrics[metricInfo.storeIdx];
-      ImGui::Text("$%zu: %s", vi, data[(metricInfo.pos - 1) % data.size()].data);
+      if (vi == 0) {
+        ImGui::Text("$%zu (timeslice): %s", vi, data[(metricInfo.pos - 1) % data.size()].data);
+      } else {
+        ImGui::Text("$%zu: %s", vi, data[(metricInfo.pos - 1) % data.size()].data);
+      }
     }
     ImGui::EndTooltip();
   };
@@ -162,6 +162,4 @@ void displayDataRelayer(DeviceMetricsInfo const& metrics,
   }
 }
 
-} // namespace gui
-} // namespace framework
-} // namespace o2
+} // namespace o2::framework::gui

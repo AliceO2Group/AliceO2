@@ -35,7 +35,9 @@
 #include "GPUHostDataTypes.h"
 
 #include <atomic>
+#ifdef WITH_OPENMP
 #include <omp.h>
+#endif
 
 using namespace o2::gpu;
 using namespace o2::tpc;

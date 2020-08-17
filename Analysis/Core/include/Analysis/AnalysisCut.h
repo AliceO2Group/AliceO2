@@ -19,8 +19,6 @@
 #include <TF1.h>
 #include <vector>
 
-using std::vector;
-
 //_________________________________________________________________________
 class AnalysisCut : public TNamed
 {

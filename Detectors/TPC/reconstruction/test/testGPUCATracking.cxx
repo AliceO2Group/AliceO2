@@ -78,9 +78,9 @@ BOOST_AUTO_TEST_CASE(CATracking_test1)
   config.configCalib.dEdxSplines = dEdxSplines.get();
 
   tracker.initialize(config);
-  std::vector<ClusterNativeContainer> cont(Constants::MAXGLOBALPADROW);
+  std::vector<ClusterNativeContainer> cont(constants::MAXGLOBALPADROW);
 
-  for (int i = 0; i < Constants::MAXGLOBALPADROW; i++) {
+  for (int i = 0; i < constants::MAXGLOBALPADROW; i++) {
     cont[i].sector = 0;
     cont[i].globalPadRow = i;
     cont[i].clusters.resize(1);

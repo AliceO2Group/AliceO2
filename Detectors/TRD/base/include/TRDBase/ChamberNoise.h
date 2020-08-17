@@ -19,6 +19,7 @@
 ///////////////////////////////////////////////////////////////////////////////
 
 #include "TRDBase/TRDSimParam.h"
+#include "DataFormatsTRD/Constants.h"
 //
 class TRDGeometry;
 
@@ -38,7 +39,7 @@ class ChamberNoise
   void setNoise(int det, float noise) { mNoise[det] = noise; };
   //bulk gets ?
  protected:
-  std::array<float, TRDSimParam::kNdet> mNoise{};
+  std::array<float, constants::MAXCHAMBER> mNoise{};
 };
 } // namespace trd
 } // namespace o2

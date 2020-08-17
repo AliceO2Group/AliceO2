@@ -188,7 +188,7 @@ bool DecoderBaseT<RDH>::processDRM()
       auto crateTrailer = reinterpret_cast<const CrateTrailer_t*>(mDecoderPointer);
 #ifdef DECODER_VERBOSE
       if (mDecoderVerbose) {
-        printf(" %08x CrateTrailer         (numberOfDiagnostics=%d, numberOfErrors=%d) \n ", *mDecoderPointer, crateTrailer->numberOfDiagnostics, numberOfErrors);
+        printf(" %08x CrateTrailer         (numberOfDiagnostics=%d, numberOfErrors=%d) \n ", *mDecoderPointer, crateTrailer->numberOfDiagnostics, crateTrailer->numberOfErrors);
       }
 #endif
       mDecoderPointer++;

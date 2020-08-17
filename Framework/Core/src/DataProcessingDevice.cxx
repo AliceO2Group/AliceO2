@@ -31,6 +31,7 @@
 #include "Framework/Signpost.h"
 #include "Framework/SourceInfoHeader.h"
 #include "Framework/Logger.h"
+#include "Framework/Monitoring.h"
 #include "DataProcessingStatus.h"
 #include "DataProcessingHelpers.h"
 #include "DataRelayerHelpers.h"
@@ -44,7 +45,6 @@
 #include <options/FairMQProgOptions.h>
 #include <Configuration/ConfigurationInterface.h>
 #include <Configuration/ConfigurationFactory.h>
-#include <Monitoring/Monitoring.h>
 #include <TMessage.h>
 #include <TClonesArray.h>
 
@@ -74,6 +74,11 @@ constexpr int BACKOFF_DELAY_STEP = 100;
 
 namespace o2::framework
 {
+
+template <>
+struct ServiceKindExtractor<ConfigurationInterface> {
+  constexpr static ServiceKind kind = ServiceKind::Global;
+};
 
 /// We schedule a timer to reduce CPU usage.
 /// Watching stdin for commands probably a better approach.

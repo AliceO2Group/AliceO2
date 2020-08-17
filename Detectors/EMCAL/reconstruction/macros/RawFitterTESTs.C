@@ -16,6 +16,7 @@
 #include "RStringView.h"
 #include <Rtypes.h>
 #include "DetectorsRaw/RawFileReader.h"
+#include "DetectorsRaw/RDHUtils.h"
 #include "EMCALReconstruction/CaloFitResults.h"
 #include "EMCALReconstruction/Bunch.h"
 #include "EMCALReconstruction/CaloRawFitterStandard.h"
@@ -27,23 +28,27 @@
 using namespace o2::emcal;
 
 /// \brief Testing the standard raw fitter on run2 to run3 converted data
-void RawFitterTESTs()
+void RawFitterTESTs(const char* filename = "")
 {
 
   const Int_t NoiseThreshold = 3;
 
-  // Use the RawReaderFile to read the raw data file
-  const char* aliceO2env = std::getenv("O2_ROOT");
-  std::string inputDir = " ";
-  if (aliceO2env)
-    inputDir = aliceO2env;
-  inputDir += "/share/Detectors/EMC/files/";
+  std::string inputfile = filename;
+  if (!inputfile.length()) {
+    // Use the RawReaderFile to read the raw data file
+    const char* aliceO2env = std::getenv("O2_ROOT");
+    std::string inputDir = " ";
+    if (aliceO2env)
+      inputDir = aliceO2env;
+    inputDir += "/share/Detectors/EMC/files/";
+    inputfile = inputDir + "emcal.raw";
+  }
 
   o2::raw::RawFileReader reader;
   reader.setDefaultDataOrigin(o2::header::gDataOriginEMC);
   reader.setDefaultDataDescription(o2::header::gDataDescriptionRawData);
   reader.setDefaultReadoutCardType(o2::raw::RawFileReader::RORC);
-  reader.addFile(inputDir + "emcal.raw");
+  reader.addFile(inputfile.data());
   reader.init();
 
   // define the standard raw fitter
@@ -55,7 +60,7 @@ void RawFitterTESTs()
   while (1) {
     int tfID = reader.getNextTFToRead();
     if (tfID >= reader.getNTimeFrames()) {
-      std::cerr << "nothing left to read after " << tfID << " TFs read";
+      std::cerr << "nothing left to read after " << tfID << " TFs read" << std::endl;
       break;
     }
     std::vector<char> dataBuffer; // where to put extracted data
@@ -92,5 +97,6 @@ void RawFitterTESTs()
         }
       }
     }
+    reader.setNextTFToRead(++tfID);
   }
 }

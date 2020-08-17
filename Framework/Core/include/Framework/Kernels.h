@@ -21,53 +21,16 @@
 
 #include <string>
 
+#if (ARROW_VERSION < 1000000)
 namespace arrow
 {
-class Array;
-class DataType;
-
-namespace compute
-{
-class FunctionContext;
-} // namespace compute
-} // namespace arrow
+using Datum = compute::Datum;
+}
+#endif
 
 namespace o2::framework
 {
-
-struct ARROW_EXPORT HashByColumnOptions {
-  std::string columnName;
-};
-
-/// A kernel which provides a unique hash based on the contents of a given
-/// column
-/// * The input datum has to be a table like object.
-/// * The output datum will be a column of integers which define the
-///   category.
-class ARROW_EXPORT HashByColumnKernel : public arrow::compute::UnaryKernel
-{
- public:
-  HashByColumnKernel(HashByColumnOptions options = {});
-  arrow::Status Call(arrow::compute::FunctionContext* ctx,
-                     arrow::compute::Datum const& table,
-                     arrow::compute::Datum* hashes) override;
-
-#pragma GCC diagnostic push
-#ifdef __clang__
-#pragma GCC diagnostic ignored "-Winconsistent-missing-override"
-#endif // __clang__
-
-  std::shared_ptr<arrow::DataType> out_type() const final
-  {
-    return mType;
-  }
-#pragma GCC diagnostic pop
-
- private:
-  HashByColumnOptions mOptions;
-  std::shared_ptr<arrow::DataType> mType;
-};
-
+#if (ARROW_VERSION < 1000000)
 template <typename T>
 struct ARROW_EXPORT GroupByOptions {
   std::string columnName;
@@ -80,7 +43,7 @@ class ARROW_EXPORT SortedGroupByKernel : public arrow::compute::UnaryKernel
 {
  public:
   explicit SortedGroupByKernel(GroupByOptions<T> options = {}) : mOptions(options){};
-  arrow::Status Call(arrow::compute::FunctionContext* ctx,
+  arrow::Status Call(arrow::compute::FunctionContext*,
                      arrow::compute::Datum const& table,
                      arrow::compute::Datum* outputRanges) override
   {
@@ -151,22 +114,19 @@ class ARROW_EXPORT SortedGroupByKernel : public arrow::compute::UnaryKernel
 /// slice was split.
 /// Slice a given table is a vector of tables each containing a slice.
 template <typename T>
-arrow::Status sliceByColumn(arrow::compute::FunctionContext* context,
-                            std::string const& key,
+arrow::Status sliceByColumn(std::string const& key,
+                            std::shared_ptr<arrow::Table> const& input,
                             T size,
-                            arrow::compute::Datum const& inputTable,
                             std::vector<arrow::compute::Datum>* outputSlices,
                             std::vector<uint64_t>* offsets = nullptr)
 {
-  if (inputTable.kind() != arrow::compute::Datum::TABLE) {
-    return arrow::Status::Invalid("Input Datum was not a table");
-  }
+  arrow::compute::Datum inputTable{input};
   // build all the ranges on the fly.
   arrow::compute::Datum outRanges;
   auto table = arrow::util::get<std::shared_ptr<arrow::Table>>(inputTable.value);
   o2::framework::SortedGroupByKernel<T, soa::arrow_array_for_t<T>> kernel{GroupByOptions<T>{key, size}};
 
-  ARROW_RETURN_NOT_OK(kernel.Call(context, inputTable, &outRanges));
+  ARROW_RETURN_NOT_OK(kernel.Call(nullptr, inputTable, &outRanges));
   auto ranges = arrow::util::get<std::shared_ptr<arrow::Table>>(outRanges.value);
   outputSlices->reserve(ranges->num_rows());
   if (offsets) {
@@ -198,6 +158,79 @@ arrow::Status sliceByColumn(arrow::compute::FunctionContext* context,
   }
   return arrow::Status::OK();
 }
+
+#else
+/// Slice a given table in a vector of tables each containing a slice.
+/// @a slices the arrow tables in which the original @a input
+/// is split into.
+/// @a offset the offset in the original table at which the corresponding
+/// slice was split.
+template <typename T>
+auto sliceByColumn(char const* key,
+                   std::shared_ptr<arrow::Table> const& input,
+                   T fullSize,
+                   std::vector<arrow::Datum>* slices,
+                   std::vector<uint64_t>* offsets = nullptr)
+{
+  arrow::Datum value_counts;
+  auto options = arrow::compute::CountOptions::Defaults();
+  ARROW_ASSIGN_OR_RAISE(value_counts,
+                        arrow::compute::CallFunction("value_counts", {input->GetColumnByName(key)},
+                                                     &options));
+  auto pair = static_cast<arrow::StructArray>(value_counts.array());
+  auto values = static_cast<arrow::NumericArray<typename detail::ConversionTraits<T>::ArrowType>>(pair.field(0)->data());
+  auto counts = static_cast<arrow::NumericArray<arrow::Int64Type>>(pair.field(1)->data());
+
+  // create slices and offsets
+  auto offset = 0;
+  auto count = 0;
+  auto size = values.length();
+  for (auto r = 0; r < size; ++r) {
+    count = counts.Value(r);
+    std::shared_ptr<arrow::Schema> schema(input->schema());
+    std::vector<std::shared_ptr<arrow::ChunkedArray>> sliceArray;
+    sliceArray.reserve(schema->num_fields());
+    for (auto ci = 0; ci < schema->num_fields(); ++ci) {
+      sliceArray.emplace_back(input->column(ci)->Slice(offset, count));
+    }
+    slices->emplace_back(arrow::Datum(arrow::Table::Make(schema, sliceArray)));
+    if (offsets) {
+      offsets->emplace_back(offset);
+    }
+    offset += count;
+    sliceArray.clear();
+    if (r < size - 1) {
+      auto nextValue = values.Value(r + 1);
+      while (nextValue - values.Value(r) > 1) {
+        for (auto ci = 0; ci < schema->num_fields(); ++ci) {
+          sliceArray.emplace_back(input->column(ci)->Slice(offset, 0));
+        }
+        slices->emplace_back(arrow::Datum(arrow::Table::Make(schema, sliceArray)));
+        if (offsets) {
+          offsets->emplace_back(offset);
+        }
+        sliceArray.clear();
+        nextValue -= 1;
+      }
+    }
+  }
+  if (values.Value(size - 1) < fullSize) {
+    for (auto v = values.Value(size - 1) + 1; v < fullSize; ++v) {
+      std::shared_ptr<arrow::Schema> schema(input->schema());
+      std::vector<std::shared_ptr<arrow::ChunkedArray>> sliceArray;
+      for (auto ci = 0; ci < schema->num_fields(); ++ci) {
+        sliceArray.emplace_back(input->column(ci)->Slice(offset, 0));
+      }
+      slices->emplace_back(arrow::Datum(arrow::Table::Make(schema, sliceArray)));
+      if (offsets) {
+        offsets->emplace_back(offset);
+      }
+    }
+  }
+
+  return arrow::Status::OK();
+}
+#endif
 
 } // namespace o2::framework
 

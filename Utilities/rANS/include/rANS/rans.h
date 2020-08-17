@@ -59,11 +59,6 @@ using DedupDecoder32 = DedupDecoder<uint32_t, uint8_t, source_T>;
 template <typename source_T>
 using DedupDecoder64 = DedupDecoder<uint64_t, uint32_t, source_T>;
 
-//rans default values
-constexpr size_t ProbabilityBits8Bit = 10;
-constexpr size_t ProbabilityBits16Bit = 22;
-constexpr size_t ProbabilityBits25Bit = 25;
-
 inline size_t calculateMaxBufferSize(size_t num, size_t rangeBits, size_t sizeofStreamT)
 {
   //  // RS: w/o safety margin the o2-test-ctf-io produces an overflow in the Encoder::process

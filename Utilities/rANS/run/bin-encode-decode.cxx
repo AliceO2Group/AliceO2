@@ -29,7 +29,6 @@ using source_t = SOURCE_T;
 using coder_t = uint64_t;
 using stream_t = uint32_t;
 static const uint REPETITIONS = 5;
-static const uint PROB_BITS = 18;
 
 template <typename T>
 void readFile(const std::string& filename, std::vector<T>* tokens)
@@ -68,7 +67,7 @@ int main(int argc, char* argv[])
     ("help,h", "print usage message")
     ("file,f",bpo::value<std::string>(), "file to compress")
     ("samples,s",bpo::value<uint32_t>(), "how often to run benchmark")
-    ("bits,b",bpo::value<uint32_t>()->default_value(20), "resample dictionary to N Bits")
+    ("bits,b",bpo::value<uint32_t>(), "resample dictionary to N Bits")
     ("range,r",bpo::value<uint32_t>()->default_value(0), "range of the source data")
   	("log_severity,l",bpo::value<std::string>(), "severity of FairLogger");
   // clang-format on
@@ -95,7 +94,7 @@ int main(int argc, char* argv[])
     if (vm.count("bits")) {
       return vm["bits"].as<uint32_t>();
     } else {
-      return PROB_BITS;
+      return 0u;
     }
   }();
 

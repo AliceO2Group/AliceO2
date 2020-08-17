@@ -156,11 +156,11 @@ struct ClusterNative {
 // the data inside a buffer.
 struct ClusterNativeAccess {
   const ClusterNative* clustersLinear;
-  const ClusterNative* clusters[Constants::MAXSECTOR][Constants::MAXGLOBALPADROW];
+  const ClusterNative* clusters[constants::MAXSECTOR][constants::MAXGLOBALPADROW];
   const o2::dataformats::MCTruthContainer<o2::MCCompLabel>* clustersMCTruth;
-  unsigned int nClusters[Constants::MAXSECTOR][Constants::MAXGLOBALPADROW];
-  unsigned int nClustersSector[Constants::MAXSECTOR];
-  unsigned int clusterOffset[Constants::MAXSECTOR][Constants::MAXGLOBALPADROW];
+  unsigned int nClusters[constants::MAXSECTOR][constants::MAXGLOBALPADROW];
+  unsigned int nClustersSector[constants::MAXSECTOR];
+  unsigned int clusterOffset[constants::MAXSECTOR][constants::MAXGLOBALPADROW];
   unsigned int nClustersTotal;
 
   void setOffsetPtrs();
@@ -169,9 +169,9 @@ struct ClusterNativeAccess {
 inline void ClusterNativeAccess::setOffsetPtrs()
 {
   int offset = 0;
-  for (unsigned int i = 0; i < Constants::MAXSECTOR; i++) {
+  for (unsigned int i = 0; i < constants::MAXSECTOR; i++) {
     nClustersSector[i] = 0;
-    for (unsigned int j = 0; j < Constants::MAXGLOBALPADROW; j++) {
+    for (unsigned int j = 0; j < constants::MAXGLOBALPADROW; j++) {
       clusterOffset[i][j] = offset;
       clusters[i][j] = &clustersLinear[offset];
       nClustersSector[i] += nClusters[i][j];

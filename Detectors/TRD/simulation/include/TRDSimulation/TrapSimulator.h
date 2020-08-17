@@ -34,6 +34,7 @@
 #include "SimulationDataFormat/MCTruthContainer.h"
 //#include "DataFormatsTRD/RawData.h"
 #include "DataFormatsTRD/Tracklet64.h"
+#include "DataFormatsTRD/Constants.h"
 
 class TH2F;
 
@@ -287,7 +288,7 @@ class TrapSimulator
       mSumXY = 0;
     }
   };
-  std::array<FitReg, FeeParam::mgkNadcMcm> mFitReg{};
+  std::array<FitReg, constants::NADCMCM> mFitReg{};
 
  protected:
   void setNTimebins(int ntimebins); // allocate data arrays corr. to the no. of timebins
@@ -302,7 +303,7 @@ class TrapSimulator
   //TODO adcr adcf labels zerosupressionmap can all go into their own class. Refactor when stable.
   std::vector<int> mADCR; // Array with MCM ADC values (Raw, 12 bit) 2d with dimension mNTimeBin
   std::vector<int> mADCF; // Array with MCM ADC values (Filtered, 12 bit) 2d with dimension mNTimeBin
-  std::array<std::vector<o2::MCCompLabel>, FeeParam::mgkNadcMcm> mADCLabels{}; // MC Labels sent in from the digits coming in.
+  std::array<std::vector<o2::MCCompLabel>, constants::NADCMCM> mADCLabels{}; // MC Labels sent in from the digits coming in.
   std::vector<unsigned int> mMCMT;      // tracklet word for one mcm/trap-chip
   std::vector<Tracklet> mTrackletArray; // Array of TRDtrackletMCM which contains MC information in addition to the tracklet word
   std::vector<Tracklet64> mTrackletArray64; // Array of TRDtrackletMCM which contains MC information in addition to the tracklet word
@@ -319,9 +320,9 @@ class TrapSimulator
   TrapConfigHandler mTrapConfigHandler;
   //  CalOnlineGainTables mGainTable;
 
-  static const int NOfAdcPerMcm = FeeParam::mgkNadcMcm;
+  static const int NOfAdcPerMcm = constants::NADCMCM;
 
-  std::array<FilterReg, FeeParam::mgkNadcMcm> mInternalFilterRegisters;
+  std::array<FilterReg, constants::NADCMCM> mInternalFilterRegisters;
   int mADCFilled = 0; // stores bitpattern of fillted adc, for know when to fill with pure baseline, for use with setData(int iadc, const ArrayADC& adc);
   int mNHits; // Number of detected hits
 

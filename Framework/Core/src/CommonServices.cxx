@@ -22,12 +22,12 @@
 #include "Framework/DanglingContext.h"
 #include "Framework/EndOfStreamContext.h"
 #include "Framework/Tracing.h"
+#include "Framework/Monitoring.h"
 #include "../src/DataProcessingStatus.h"
 
 #include <Configuration/ConfigurationInterface.h>
 #include <Configuration/ConfigurationFactory.h>
 #include <Monitoring/MonitoringFactory.h>
-#include <Monitoring/Monitoring.h>
 #include <InfoLogger/InfoLogger.hxx>
 
 #include <options/FairMQProgOptions.h>
@@ -46,6 +46,13 @@ using Value = o2::monitoring::tags::Value;
 
 namespace o2::framework
 {
+
+/// This is a global service because read only
+template <>
+struct ServiceKindExtractor<InfoLoggerContext> {
+  constexpr static ServiceKind kind = ServiceKind::Global;
+};
+
 o2::framework::ServiceSpec CommonServices::monitoringSpec()
 {
   return ServiceSpec{"monitoring",

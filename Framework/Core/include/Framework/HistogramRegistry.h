@@ -32,31 +32,66 @@ namespace o2
 
 namespace framework
 {
+// Most common histogram types
+enum HistogramType {
+  kTH1D,
+  kTH1F,
+  kTH1I,
+  kTH2D,
+  kTH2F,
+  kTH2I,
+  kTH3D,
+  kTH3F,
+  kTH3I
+};
+
+/// Description of a single histogram axis
+struct AxisSpec {
+  AxisSpec(int nBins_, std::vector<double> bins_, std::string label_ = "")
+    : nBins(nBins_),
+      bins(bins_),
+      binsEqual(false),
+      label(label_)
+  {
+  }
+
+  AxisSpec(int nBins_, double binMin_, double binMax_, std::string label_ = "")
+    : nBins(nBins_),
+      bins({binMin_, binMax_}),
+      binsEqual(true),
+      label(label_)
+  {
+  }
+
+  AxisSpec() : nBins(1), binsEqual(false), bins(), label("") {}
+
+  int nBins;
+  std::vector<double> bins;
+  bool binsEqual; // if true, then bins specify min and max for equidistant binning
+  std::string label;
+};
+
 /// Data sctructure that will allow to construct a fully qualified TH* histogram
-/// Currently only supports TH1F
 struct HistogramConfigSpec {
-  HistogramConfigSpec(char const* const kind_, unsigned int nBins_, double xmin_, double xmax_)
-    : kind(kind_),
-      nBins(nBins_),
-      xmin(xmin_),
-      xmax(xmax_)
+  HistogramConfigSpec(HistogramType type_, std::vector<AxisSpec> axes_)
+    : type(type_),
+      axes(axes_),
+      binsEqual(axes.size() > 0 ? axes[0].binsEqual : false)
   {
   }
 
   HistogramConfigSpec()
-    : kind(""),
-      nBins(1),
-      xmin(0),
-      xmax(1)
+    : type(HistogramType::kTH1F),
+      axes(),
+      binsEqual(false)
   {
   }
   HistogramConfigSpec(HistogramConfigSpec const& other) = default;
   HistogramConfigSpec(HistogramConfigSpec&& other) = default;
 
-  std::string kind;
-  unsigned int nBins;
-  double xmin;
-  double xmax;
+  HistogramType type;
+  std::vector<AxisSpec> axes;
+  bool binsEqual;
 };
 
 /// Data structure containing histogram specification for the HistogramRegistry
@@ -85,6 +120,80 @@ struct HistogramSpec {
   uint32_t id;
   HistogramConfigSpec config;
 };
+
+class HistogramFactory
+{
+ public:
+  static std::unique_ptr<TH1> create(HistogramSpec& spec)
+  {
+    const auto& it = lookup().find(spec.config.type);
+    if (it == lookup().end()) {
+      return nullptr;
+    }
+    return std::move(it->second->createImpl(spec));
+  }
+
+ protected:
+  static std::map<HistogramType, HistogramFactory*>& lookup()
+  {
+    static std::map<HistogramType, HistogramFactory*> histMap;
+    return histMap;
+  }
+
+ private:
+  virtual std::unique_ptr<TH1> createImpl(HistogramSpec const& spec) = 0;
+};
+
+template <typename T>
+class HistogramFactoryImpl : public HistogramFactory
+{
+ public:
+  HistogramFactoryImpl(HistogramType type)
+    : position(this->lookup().insert(std::make_pair(type, this)).first)
+  {
+  }
+
+  ~HistogramFactoryImpl()
+  {
+    this->lookup().erase(position);
+  }
+
+ private:
+  std::unique_ptr<TH1> createImpl(HistogramSpec const& spec) override
+  {
+    if (spec.config.axes.size() == 0) {
+      throw std::runtime_error("No arguments available in spec to create a histogram");
+    }
+    if constexpr (std::is_base_of_v<TH3, T>) {
+      if (spec.config.binsEqual) {
+        return std::make_unique<T>(spec.name.data(), spec.readableName.data(), spec.config.axes[0].nBins, spec.config.axes[0].bins[0], spec.config.axes[0].bins[1], spec.config.axes[1].nBins, spec.config.axes[1].bins[0], spec.config.axes[1].bins[1], spec.config.axes[2].nBins, spec.config.axes[2].bins[0], spec.config.axes[2].bins[1]);
+      }
+      return std::make_unique<T>(spec.name.data(), spec.readableName.data(), spec.config.axes[0].nBins, spec.config.axes[0].bins.data(), spec.config.axes[1].nBins, spec.config.axes[1].bins.data(), spec.config.axes[2].nBins, spec.config.axes[2].bins.data());
+    } else if constexpr (std::is_base_of_v<TH2, T>) {
+      if (spec.config.binsEqual) {
+        return std::make_unique<T>(spec.name.data(), spec.readableName.data(), spec.config.axes[0].nBins, spec.config.axes[0].bins[0], spec.config.axes[0].bins[1], spec.config.axes[1].nBins, spec.config.axes[1].bins[0], spec.config.axes[1].bins[1]);
+      }
+      return std::make_unique<T>(spec.name.data(), spec.readableName.data(), spec.config.axes[0].nBins, spec.config.axes[0].bins.data(), spec.config.axes[1].nBins, spec.config.axes[1].bins.data());
+    } else if constexpr (std::is_base_of_v<TH1, T>) {
+      if (spec.config.binsEqual) {
+        return std::make_unique<T>(spec.name.data(), spec.readableName.data(), spec.config.axes[0].nBins, spec.config.axes[0].bins[0], spec.config.axes[0].bins[1]);
+      }
+      return std::make_unique<T>(spec.name.data(), spec.readableName.data(), spec.config.axes[0].nBins, spec.config.axes[0].bins.data());
+    }
+  }
+
+  typename std::map<HistogramType, HistogramFactory*>::iterator position;
+};
+
+HistogramFactoryImpl<TH1D> const hf1d(HistogramType::kTH1D);
+HistogramFactoryImpl<TH1F> const hf1f(HistogramType::kTH1F);
+HistogramFactoryImpl<TH1I> const hf1i(HistogramType::kTH1I);
+HistogramFactoryImpl<TH2D> const hf2d(HistogramType::kTH2D);
+HistogramFactoryImpl<TH2F> const hf2f(HistogramType::kTH2F);
+HistogramFactoryImpl<TH2I> const hf2i(HistogramType::kTH2I);
+HistogramFactoryImpl<TH3D> const hf3d(HistogramType::kTH3D);
+HistogramFactoryImpl<TH3F> const hf3f(HistogramType::kTH3F);
+HistogramFactoryImpl<TH3I> const hf3i(HistogramType::kTH3I);
 
 /// Histogram registry for an analysis task that allows to define needed histograms
 /// and serves as the container/wrapper to fill them
@@ -148,7 +257,7 @@ class HistogramRegistry
     for (auto j = 0u; j < MAX_REGISTRY_SIZE; ++j) {
       if (mRegistryValue[imask(j + i)].get() == nullptr) {
         mRegistryKey[imask(j + i)] = spec.id;
-        mRegistryValue[imask(j + i)] = {std::make_unique<TH1F>(spec.name.data(), spec.readableName.data(), spec.config.nBins, spec.config.xmin, spec.config.xmax)};
+        mRegistryValue[imask(j + i)] = HistogramFactory::create(spec);
         lookup += j;
         return;
       }

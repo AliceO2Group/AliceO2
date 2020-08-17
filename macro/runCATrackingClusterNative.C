@@ -74,8 +74,8 @@ int runCATrackingClusterNative(TString inputFile, TString outputFile)
   bool doMC = true;
 
   TFile fin(inputFile);
-  for (int i = 0; i < Constants::MAXSECTOR; i++) {
-    for (int j = 0; j < Constants::MAXGLOBALPADROW; j++) {
+  for (int i = 0; i < o2::tpc::constants::MAXSECTOR; i++) {
+    for (int j = 0; j < o2::tpc::constants::MAXGLOBALPADROW; j++) {
       TString contName = Form("clusters_sector_%d_row_%d", i, j);
       TObject* tmp = fin.FindObjectAny(contName);
       if (tmp == nullptr) {
