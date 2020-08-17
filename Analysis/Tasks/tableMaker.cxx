@@ -22,8 +22,6 @@
 #include "Analysis/VarManager.h"
 #include "Analysis/HistogramManager.h"
 #include "PID/PIDResponse.h"
-#include <TH1F.h>
-#include <TMath.h>
 #include <iostream>
 
 using std::cout;
