@@ -37,18 +37,14 @@ void TrackParFwd::propagateParamToZlinear(double zEnd)
 
   // Compute track parameters
   auto dZ = (zEnd - getZ());
-  auto x0 = getX();
-  auto y0 = getY();
   auto phi0 = getPhi();
   double cosphi0, sinphi0;
   o2::utils::sincos(phi0, sinphi0, cosphi0);
   auto invtanl0 = 1.0 / getTanl();
   auto n = dZ * invtanl0;
-  auto x = x0 + n * cosphi0;
-  auto y = y0 + n * sinphi0;
-  setX(x);
-  setY(y);
-  setZ(zEnd);
+  mParameters(0) += n * cosphi0;
+  mParameters(1) += n * sinphi0;
+  mZ = zEnd;
 }
 
 //__________________________________________________________________________
@@ -58,8 +54,6 @@ void TrackParCovFwd::propagateToZlinear(double zEnd)
 
   // Calculate the jacobian related to the track parameters extrapolated to "zEnd"
   auto dZ = (zEnd - getZ());
-  auto x0 = getX();
-  auto y0 = getY();
   auto phi0 = getPhi();
   auto tanl0 = getTanl();
   auto invtanl0 = 1.0 / tanl0;
@@ -123,8 +117,6 @@ void TrackParCovFwd::propagateToZquadratic(double zEnd, double zField)
 
   // Compute track parameters
   auto dZ = (zEnd - getZ());
-  auto x0 = getX();
-  auto y0 = getY();
   auto phi0 = getPhi();
   double cosphi0, sinphi0;
   o2::utils::sincos(phi0, sinphi0, cosphi0);
@@ -137,13 +129,10 @@ void TrackParCovFwd::propagateToZquadratic(double zEnd, double zField)
   auto theta = -invqpt0 * dZ * k * invtanl0;
 
   // Extrapolate track parameters to "zEnd"
-  auto x = x0 + n * cosphi0 - 0.5 * n * theta * Hz * sinphi0;
-  auto y = y0 + n * sinphi0 + 0.5 * n * theta * Hz * cosphi0;
-  auto phi = phi0 + Hz * theta;
-  setX(x);
-  setY(y);
-  setZ(zEnd);
-  setPhi(phi);
+  mParameters(0) += n * cosphi0 - 0.5 * n * theta * Hz * sinphi0;
+  mParameters(1) += n * sinphi0 + 0.5 * n * theta * Hz * cosphi0;
+  mParameters(2) += Hz * theta;
+  mZ = zEnd;
 
   // Calculate Jacobian
   SMatrix55 jacob = ROOT::Math::SMatrixIdentity();
@@ -172,8 +161,6 @@ void TrackParFwd::propagateParamToZhelix(double zEnd, double zField)
 
   // Compute track parameters
   auto dZ = (zEnd - getZ());
-  auto x0 = getX();
-  auto y0 = getY();
   auto phi0 = getPhi();
   auto tanl0 = getTanl();
   auto invtanl0 = 1.0 / tanl0;
@@ -195,13 +182,10 @@ void TrackParFwd::propagateParamToZhelix(double zEnd, double zField)
   auto XS = X * sintheta;
 
   // Extrapolate track parameters to "zEnd"
-  auto x = x0 + Hz * (Y - YC) - XS;
-  auto y = y0 + Hz * (-X + XC) - YS;
-  auto phi = phi0 + Hz * theta;
-  setX(x);
-  setY(y);
-  setZ(zEnd);
-  setPhi(phi);
+  mParameters(0) += Hz * (Y - YC) - XS;
+  mParameters(1) += Hz * (-X + XC) - YS;
+  mParameters(2) += Hz * theta;
+  mZ = zEnd;
 }
 
 //__________________________________________________________________________
@@ -211,8 +195,6 @@ void TrackParCovFwd::propagateToZhelix(double zEnd, double zField)
   // using helix track model
 
   auto dZ = (zEnd - getZ());
-  auto x0 = getX();
-  auto y0 = getY();
   auto phi0 = getPhi();
   auto tanl0 = getTanl();
   auto invtanl0 = 1.0 / tanl0;
@@ -245,13 +227,10 @@ void TrackParCovFwd::propagateToZhelix(double zEnd, double zField)
   auto m = n * invtanl0;
 
   // Extrapolate track parameters to "zEnd"
-  auto x = x0 + Hz * (Y - YC) - XS;
-  auto y = y0 + Hz * (-X + XC) - YS;
-  auto phi = phi0 + Hz * theta;
-  setX(x);
-  setY(y);
-  setZ(zEnd);
-  setPhi(phi);
+  mParameters(0) += Hz * (Y - YC) - XS;
+  mParameters(1) += Hz * (-X + XC) - YS;
+  mParameters(2) += Hz * theta;
+  mZ = zEnd;
 
   // Calculate Jacobian
   SMatrix55 jacob = ROOT::Math::SMatrixIdentity();
