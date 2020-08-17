@@ -9,12 +9,11 @@
 // or submit itself to any jurisdiction.
 #include "SimpleResourceManager.h"
 #include "Framework/ComputingResource.h"
+#include <fmt/format.h>
 #include <exception>
 #include <stdexcept>
 
-namespace o2
-{
-namespace framework
+namespace o2::framework
 {
 
 /// The simplest implementation of this allocates mMaxPorts ports starting from
@@ -66,9 +65,14 @@ void SimpleResourceManager::notifyAcceptedOffer(ComputingOffer const& offer)
   }
 
   if (resourceFound == false) {
-    throw std::runtime_error("Could not match offer to original resource.");
+    std::string resources = "Available resources:\n";
+    for (auto& resource : mResources) {
+      resources += fmt::format("- ({}, {}, {}, {})\n", resource.hostname.c_str(), resource.cpu, resource.memory, resource.startPort);
+    }
+    throw std::runtime_error(fmt::format("Could not match offer (host:{}, cpu:{}, mem:{}, ports:{}) to original resource.\n",
+                                         offer.hostname, offer.cpu, offer.memory, offer.rangeSize) +
+                             resources);
   }
 }
 
-} // namespace framework
-} // namespace o2
+} // namespace o2::framework
