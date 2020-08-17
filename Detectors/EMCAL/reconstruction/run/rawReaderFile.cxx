@@ -93,6 +93,9 @@ int main(int argc, char** argv)
       o2::emcal::RawReaderMemory parser(dataBuffer);
       while (parser.hasNext()) {
         parser.next();
+        // Exclude STU DDLs
+        if (o2::raw::RDHUtils::getFEEID(parser.getRawHeader()) >= 40)
+          continue;
         o2::emcal::AltroDecoder decoder(parser);
         decoder.decode();
 
