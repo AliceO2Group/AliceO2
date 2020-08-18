@@ -32,6 +32,7 @@
 #pragma link C++ class std::vector < o2::MCTrackT < double>> + ;
 #pragma link C++ class std::vector < o2::MCTrackT < float>> + ;
 #pragma link C++ class o2::MCCompLabel + ;
+#pragma link C++ class o2::MCEventLabel + ;
 
 #pragma link C++ class o2::BaseHit + ;
 #pragma link C++ class o2::BasicXYZVHit < float, float, float> + ;
@@ -47,6 +48,7 @@
 #pragma link C++ class o2::dataformats::MCTruthContainer < o2::MCCompLabel > -;
 #pragma link C++ class std::vector < o2::dataformats::MCTruthContainer < o2::MCCompLabel>> + ;
 #pragma link C++ class std::vector < o2::MCCompLabel> + ;
+#pragma link C++ class std::vector < o2::MCEventLabel> + ;
 #pragma link C++ class std::vector < o2::dataformats::MCTruthHeaderElement> + ;
 
 #pragma link C++ class o2::SimTrackStatus + ;
