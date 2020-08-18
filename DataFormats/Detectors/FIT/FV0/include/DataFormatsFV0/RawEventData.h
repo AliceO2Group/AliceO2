@@ -67,6 +67,18 @@ struct EventData {
   uint64_t word_zeros = 0x0;
   static const size_t PayloadSizeSecondWord = 11;
   static const size_t PayloadSizeFirstWord = 5;
+  void generateFlags()
+  {
+    numberADC = std::rand() % 2;
+    isDoubleEvent = 0;
+    is1TimeLostEvent = 0;
+    is2TimeLostEvent = 1;
+    isADCinGate = 0;
+    isTimeInfoLate = 0;
+    isAmpHigh = 0;
+    isEventInTVDC = 1;
+    isTimeInfoLost = 0;
+  }
 };
 
 struct TCMdata {
