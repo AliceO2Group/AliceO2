@@ -53,15 +53,15 @@ void readFV0Digits(std::string digiFName = "fv0digits.root", bool printAllToTerm
 {
   gStyle->SetOptStat("noumri");
   // Settings for drawing, used with SetRangeUser()
-  const float tMin = 0, tMax = 50, chargeMin = 5, chargeMax = 800;
+  const float tMin = -30, tMax = 70, chargeMin = 0, chargeMax = 800;
   const float chargePerMip = 1. / 16; // Assumes 1-MIP-peak is at 16th ADC channel
   const int nChannels = o2::fv0::Constants::nFv0Channels;
 
   // Init histos
   std::vector<std::string> vHistoNames;
   InitHistoNames(vHistoNames);
-  TH2F* hTimeCharge = new TH2F(vHistoNames.at(0).c_str(), "", 2000, 0, 200, 4096, 0, 4096);
-  TH2F* hTimeCh = new TH2F(vHistoNames.at(1).c_str(), "", 2000, 0, 200, nChannels, 0, nChannels);
+  TH2F* hTimeCharge = new TH2F(vHistoNames.at(0).c_str(), "", 400, -200, 200, 4096, 0, 4096);
+  TH2F* hTimeCh = new TH2F(vHistoNames.at(1).c_str(), "", 400, -200, 200, nChannels, 0, nChannels);
   TH2F* hChargeCh = new TH2F(vHistoNames.at(2).c_str(), "", 4096, 0, 4096, nChannels, 0, nChannels);
   TH2F* hMipsCh = new TH2F(vHistoNames.at(3).c_str(), "", 256, 0, 256, nChannels, 0, nChannels);
   TH1F* hNchReal = new TH1F(vHistoNames.at(4).c_str(), "", 600, 0, 600);
@@ -118,7 +118,7 @@ void readFV0Digits(std::string digiFName = "fv0digits.root", bool printAllToTerm
 
     // Fill histos
     for (int ibc = 0; ibc < nbc; ibc++) {
-      if ((nbc > 10) && (ibc % (nbc / 10) == 0)) {
+      if ((nbc > 100) && (ibc % (nbc / 100) == 0)) {
         std::cout << "  Progress reading tree: " << ibc << "/" << nbc << " [";
         std::cout << 100.0 * ibc / nbc << "%]" << std::endl;
       }
@@ -129,9 +129,6 @@ void readFV0Digits(std::string digiFName = "fv0digits.root", bool printAllToTerm
       int nchReal = 0;
       for (int ic = 0; ic < bcd.ref.getEntries(); ic++) {
         const auto& chd = fv0ChData[chEnt++];
-        if ((chd.time == -1024.f) && (chd.chargeAdc == 0.f)) {
-          continue;
-        }
         std::cout << chd.pmtNumber << "  " << chd.chargeAdc << "  " << chd.time << std::endl;
         hTimeCharge->Fill(chd.time, chd.chargeAdc);
         hTimeCh->Fill(chd.time, chd.pmtNumber);
@@ -305,8 +302,6 @@ int compareFV0Digits(std::string digiFName1 = "fv0digi-rawhistos.root", std::str
   }
   std::cout << "  <I> Read: " << vh.size() << " histos" << std::endl;
 
-  //  TH1D* ht = hTimeCharge->ProjectionX("hTime_prX");
-  //  TH1D* hc = hTimeCharge->ProjectionY("hCharge_prY");
   const float rmargin = 0.12, lmargin = 0.13, tmargin = 0.02, bmargin = 0.15;
   const float statX1 = 1. - rmargin, statX2 = statX1 - 0.18;
   const float statH = 0.3, statY1 = 1. - tmargin, statY2 = statY1 - statH;
@@ -330,7 +325,7 @@ int compareFV0Digits(std::string digiFName1 = "fv0digi-rawhistos.root", std::str
   // Draw the comparison of TH1's
   Color_t col[3] = {kBlack, kRed, kBlue};
   TCanvas* c = new TCanvas("fv0digi-cmp-th1", "fv0digi-cmp-th1", 1800, 500);
-  c->Divide(3, 1);
+  c->Divide(2, 1);
   for (UInt_t ifile = 0; ifile < nFiles; ifile++) {
     TH2F* h2 = (TH2F*)vh.at(ifile * nHistos);
     h2->SetLineColor(col[ifile]);
@@ -343,6 +338,7 @@ int compareFV0Digits(std::string digiFName1 = "fv0digi-rawhistos.root", std::str
     c->cd(1);
     gPad->SetMargin(lmargin, rmargin, bmargin, tmargin);
     gPad->SetLogy();
+    ht->SetLineWidth(3.5 - ifile);
     ht->Draw((ifile == 0) ? "" : "sames");
     AdjustStatBox(ht, statX1, statX2, statY1 - statH * ifile, statY2 - statH * ifile);
     c->cd(2);
@@ -351,16 +347,6 @@ int compareFV0Digits(std::string digiFName1 = "fv0digi-rawhistos.root", std::str
     hc->SetLineWidth(3.5 - ifile);
     hc->Draw((ifile == 0) ? "" : "sames");
     AdjustStatBox(hc, statX1, statX2, statY1 - statH * ifile, statY2 - statH * ifile);
-  }
-  c->cd(3);
-  gPad->SetMargin(lmargin, rmargin, bmargin, tmargin);
-  gPad->SetLogy();
-  for (UInt_t ifile = 0; ifile < nFiles; ifile++) {
-    TH1* h = vh.at(ifile * nHistos + 4);
-    h->SetLineColor(col[ifile]);
-    h->SetLineWidth(2);
-    h->Draw((ifile == 0) ? "" : "sames");
-    AdjustStatBox(h, statX1, statX2, statY1 - statH * ifile, statY2 - statH * ifile);
   }
   return 0;
 }

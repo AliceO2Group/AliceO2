@@ -96,29 +96,16 @@ void Digits2Raw::convertDigits(o2::fv0::BCData bcdigits, gsl::span<const Channel
       if (prevPmLink >= 0) {
         fillSecondHalfWordAndAddData(iChannelPerLink, prevPmLink, intRecord);
       }
-      if (ich != nch - 1) {
-        LOG(DEBUG) << "  Switch prevPmLink:  " << prevPmLink << ". Save data with nGBTWords="
-                   << uint((iChannelPerLink + 1) / 2) << " in header.";
-        makeGBTHeader(mRawEventData.mEventHeader, nLinkPm, intRecord);
-        iChannelPerLink = 0;
-        prevPmLink = nLinkPm;
-      }
+      makeGBTHeader(mRawEventData.mEventHeader, nLinkPm, intRecord);
+      iChannelPerLink = 0;
+      prevPmLink = nLinkPm;
     }
     if (pmchannels[ich].chargeAdc != 0) {
       LOG(DEBUG) << "    Store data for channel: " << ich << " PmLink = " << nLinkPm << "  ";
       auto& newData = mRawEventData.mEventData[iChannelPerLink];
       newData.charge = pmchannels[ich].chargeAdc;
       newData.time = pmchannels[ich].time;
-      newData.is1TimeLostEvent = 0;
-      newData.is2TimeLostEvent = 0;
-      newData.isADCinGate = 1;
-      newData.isAmpHigh = 0;
-      newData.isDoubleEvent = 0;
-      newData.isEventInTVDC = 1;
-      newData.isTimeInfoLate = 0;
-      newData.isTimeInfoLost = 0;
-      int chain = std::rand() % 2;
-      newData.numberADC = chain ? 1 : 0;
+      newData.generateFlags();
       newData.channelID = lut.getPmChannel(pmchannels[ich].pmtNumber);
       iChannelPerLink++;
     }
@@ -181,4 +168,6 @@ void Digits2Raw::fillSecondHalfWordAndAddData(int iChannelPerLink, int prevPmLin
   uint32_t linkId = uint32_t(prevPmLink);
   uint64_t feeId = uint64_t(prevPmLink);
   mWriter.addData(feeId, sCruId, linkId, sEndPointId, ir, data);
+  LOG(DEBUG) << "  Switch prevPmLink:  " << prevPmLink << ". Save data with nGBTWords="
+             << nGBTWords << " in header. Last channel: " << iChannelPerLink;
 }
