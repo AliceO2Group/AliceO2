@@ -108,6 +108,11 @@ class Parametrization : public TNamed
   /// Printer for parameters
   void PrintParametrization() const;
 
+  /// Setter for the parameter at position iparam
+  /// \param iparam index in the array of the parameters
+  /// \param value value of the parameter at position iparam
+  void SetParameter(const unsigned int iparam, const pidvar_t value) { mParameters.SetParameter(iparam, value); }
+
   /// Setter for the parameter, using an array
   /// \param params array with parameters
   void SetParameters(const std::vector<pidvar_t> params) { mParameters.SetParameters(params); }
