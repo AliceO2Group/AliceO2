@@ -14,6 +14,7 @@
 #include "TTreeReader.h"
 
 #include "Framework/DataDescriptorMatcher.h"
+#include "Framework/AnalysisDataModel.h"
 
 #include <regex>
 #include "rapidjson/fwd.h"

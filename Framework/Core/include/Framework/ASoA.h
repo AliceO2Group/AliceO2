@@ -1245,30 +1245,65 @@ using ConcatBase = decltype(concat(std::declval<T1>(), std::declval<T2>()));
     std::tuple<o2::soa::ColumnIterator<typename Bindings::type> const*...> boundIterators;                                 \
   }
 
-#define DECLARE_SOA_TABLE_FULL(_Name_, _Label_, _Origin_, _Description_, ...) \
-  using _Name_ = o2::soa::Table<__VA_ARGS__>;                                 \
-                                                                              \
-  struct _Name_##Metadata : o2::soa::TableMetadata<_Name_##Metadata> {        \
-    using table_t = _Name_;                                                   \
-    static constexpr char const* mLabel = _Label_;                            \
-    static constexpr char const mOrigin[4] = _Origin_;                        \
-    static constexpr char const mDescription[16] = _Description_;             \
-  };                                                                          \
-                                                                              \
-  template <>                                                                 \
-  struct MetadataTrait<_Name_> {                                              \
-    using metadata = _Name_##Metadata;                                        \
-  };                                                                          \
-                                                                              \
-  template <>                                                                 \
-  struct MetadataTrait<_Name_::unfiltered_iterator> {                         \
-    using metadata = _Name_##Metadata;                                        \
+#define DECLARE_SOA_TABLE_FULL_ANDTREE(_Name_, _Label_, _Tree_, _Origin_, _Description_, ...) \
+  using _Name_ = o2::soa::Table<__VA_ARGS__>;                                                 \
+                                                                                              \
+  struct _Name_##Metadata : o2::soa::TableMetadata<_Name_##Metadata> {                        \
+    using table_t = _Name_;                                                                   \
+    static constexpr char const* mLabel = _Label_;                                            \
+    static constexpr char const mOrigin[4] = _Origin_;                                        \
+    static constexpr char const mDescription[16] = _Description_;                             \
+    static constexpr char const* mTreeName = _Tree_;                                          \
+  };                                                                                          \
+                                                                                              \
+  template <>                                                                                 \
+  struct MetadataTrait<_Name_> {                                                              \
+    using metadata = _Name_##Metadata;                                                        \
+  };                                                                                          \
+                                                                                              \
+  template <>                                                                                 \
+  struct MetadataTrait<_Name_::unfiltered_iterator> {                                         \
+    using metadata = _Name_##Metadata;                                                        \
   };
+
+#define DECLARE_SOA_TABLE_ANDTREE(_Name_, _Tree_, _Origin_, _Description_, ...) \
+  DECLARE_SOA_TABLE_FULL_ANDTREE(_Name_, #_Name_, _Tree_, _Origin_, _Description_, __VA_ARGS__);
+
+#define DECLARE_SOA_TABLE_FULL(_Name_, _Label_, _Origin_, _Description_, ...) \
+  DECLARE_SOA_TABLE_FULL_ANDTREE(_Name_, #_Name_, _Description_, _Origin_, _Description_, __VA_ARGS__);
 
 #define DECLARE_SOA_TABLE(_Name_, _Origin_, _Description_, ...) \
   DECLARE_SOA_TABLE_FULL(_Name_, #_Name_, _Origin_, _Description_, __VA_ARGS__);
 
 #define DECLARE_SOA_EXTENDED_TABLE_FULL(_Name_, _Table_, _Origin_, _Description_, ...)      \
+  using _Name_ = o2::soa::JoinBase<typename _Table_::table_t, o2::soa::Table<__VA_ARGS__>>; \
+                                                                                            \
+  struct _Name_##Metadata : o2::soa::TableMetadata<_Name_##Metadata> {                      \
+    using table_t = _Name_;                                                                 \
+    using base_table_t = _Table_;                                                           \
+    using base_metadata_t = _Table_##Metadata;                                              \
+    using expression_pack_t = framework::pack<__VA_ARGS__>;                                 \
+    using originals = soa::originals_pack_t<_Table_>;                                       \
+    static constexpr char const* mLabel = #_Name_;                                          \
+    static constexpr char const mOrigin[4] = _Origin_;                                      \
+    static constexpr char const mDescription[16] = _Description_;                           \
+    static constexpr char const* mTreeName = base_metadata_t::mTreeName;                    \
+  };                                                                                        \
+                                                                                            \
+  template <>                                                                               \
+  struct MetadataTrait<_Name_> {                                                            \
+    using metadata = _Name_##Metadata;                                                      \
+  };                                                                                        \
+                                                                                            \
+  template <>                                                                               \
+  struct MetadataTrait<_Name_::unfiltered_iterator> {                                       \
+    using metadata = _Name_##Metadata;                                                      \
+  };
+
+#define DECLARE_SOA_EXTENDED_TABLE(_Name_, _Table_, _Description_, ...) \
+  DECLARE_SOA_EXTENDED_TABLE_FULL(_Name_, _Table_, "DYN", _Description_, __VA_ARGS__)
+
+#define DECLARE_SOA_EXTENDED_TABLE_USER_FULL(_Name_, _Table_, _Origin_, _Description_, ...) \
   using _Name_ = o2::soa::JoinBase<typename _Table_::table_t, o2::soa::Table<__VA_ARGS__>>; \
                                                                                             \
   struct _Name_##Metadata : o2::soa::TableMetadata<_Name_##Metadata> {                      \
@@ -1291,11 +1326,8 @@ using ConcatBase = decltype(concat(std::declval<T1>(), std::declval<T2>()));
     using metadata = _Name_##Metadata;                                                      \
   };
 
-#define DECLARE_SOA_EXTENDED_TABLE(_Name_, _Table_, _Description_, ...) \
-  DECLARE_SOA_EXTENDED_TABLE_FULL(_Name_, _Table_, "DYN", _Description_, __VA_ARGS__)
-
 #define DECLARE_SOA_EXTENDED_TABLE_USER(_Name_, _Table_, _Description_, ...) \
-  DECLARE_SOA_EXTENDED_TABLE_FULL(_Name_, _Table_, "AOD", _Description_, __VA_ARGS__)
+  DECLARE_SOA_EXTENDED_TABLE_USER_FULL(_Name_, _Table_, "AOD", _Description_, __VA_ARGS__)
 
 #define DECLARE_SOA_INDEX_TABLE_FULL(_Name_, _Key_, _Origin_, _Description_, ...) \
   using _Name_ = o2::soa::IndexTable<_Key_, soa::Index<>, __VA_ARGS__>;           \
