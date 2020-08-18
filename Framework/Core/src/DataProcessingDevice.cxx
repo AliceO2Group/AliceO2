@@ -49,6 +49,7 @@
 #include <TMessage.h>
 #include <TClonesArray.h>
 
+#include <execinfo.h>
 #include <algorithm>
 #include <vector>
 #include <memory>
@@ -314,6 +315,30 @@ void on_signal_callback(uv_signal_t* handle, int signum)
   LOG(debug) << "Signal " << signum << " received.";
 }
 
+volatile sig_atomic_t print_backtrace = true;
+
+void on_sigsegv_callback(uv_signal_t* handle, int signum)
+{
+  void* array[100];
+  size_t size;
+
+  if (print_backtrace) {
+    size = backtrace(array, 100);
+
+    // Dump stacktrace
+    fprintf(stderr, "Error: signal %d:\n", signum);
+    backtrace_symbols_fd(array, size, STDERR_FILENO);
+    // exit(1) should flush, but we do in any case.
+    fflush(stdout);
+    fflush(stderr);
+    print_backtrace = false;
+    signal(signum, SIG_DFL);
+    raise(signum);
+  }
+  signal(signum, SIG_DFL);
+  raise(signum);
+}
+
 void DataProcessingDevice::InitTask()
 {
   for (auto& channel : fChannels) {
@@ -339,6 +364,10 @@ void DataProcessingDevice::InitTask()
   uv_signal_t* sigwinchHandle = (uv_signal_t*)malloc(sizeof(uv_signal_t));
   uv_signal_init(mState.loop, sigwinchHandle);
   uv_signal_start(sigwinchHandle, on_signal_callback, SIGWINCH);
+  // Handle SIGSEGV by printing the stacktrace and exiting
+  uv_signal_t* sigsegvHandle = (uv_signal_t*)malloc(sizeof(uv_signal_t));
+  uv_signal_init(mState.loop, sigsegvHandle);
+  uv_signal_start(sigsegvHandle, on_sigsegv_callback, SIGSEGV);
 
   // We add a timer only in case a channel poller is not there.
   if ((mStatefulProcess != nullptr) || (mStatelessProcess != nullptr)) {
