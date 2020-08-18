@@ -93,6 +93,10 @@ class RawWriter
   void processTimeFrame(gsl::span<o2::emcal::Digit> digits, gsl::span<o2::emcal::TriggerRecord> triggers);
   bool processNextTrigger();
 
+  int carryOverMethod(const header::RDHAny* rdh, const gsl::span<char> data,
+                                            const char* ptr, int maxSize, int splitID,
+                                            std::vector<char>& trailer, std::vector<char>& header) const;
+
  protected:
   std::vector<AltroBunch> findBunches(const std::vector<o2::emcal::Digit*>& channelDigits);
   std::tuple<int, int, int> getOnlineID(int towerID);

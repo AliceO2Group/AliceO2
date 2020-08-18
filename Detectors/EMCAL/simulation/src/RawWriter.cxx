@@ -26,6 +26,7 @@ void RawWriter::setTriggerRecords(gsl::span<o2::emcal::TriggerRecord> triggers)
 void RawWriter::init()
 {
   mRawWriter = std::make_unique<o2::raw::RawFileWriter>(o2::header::gDataOriginEMC, false);
+  mRawWriter->setCarryOverCallBack(this);
   for (auto iddl = 0; iddl < 40; iddl++) {
     // For EMCAL set
     // - FEE ID = DDL ID
@@ -244,4 +245,29 @@ std::vector<char> RawWriter::createRCUTrailer(int payloadsize, int feca, int fec
   std::vector<char> encoded(trailerwords.size() * sizeof(uint32_t));
   memcpy(encoded.data(), trailerwords.data(), trailerwords.size() * sizeof(uint32_t));
   return encoded;
+}
+
+
+int RawWriter::carryOverMethod(const header::RDHAny* rdh, const gsl::span<char> data,
+                                            const char* ptr, int maxSize, int splitID,
+                                            std::vector<char>& trailer, std::vector<char>& header) const {
+  int offs = ptr - &data[0]; // offset wrt the head of the payload
+  // make sure ptr and end of the suggested block are within the payload
+  assert(offs >= 0 && size_t(offs + maxSize) <= data.size());
+
+  // Read trailer template from the end of payload
+  gsl::span<const uint32_t> payloadwords(reinterpret_cast<const uint32_t *>(data.data()), data.size()/sizeof(uint32_t));
+  auto rcutrailer = RCUTrailer::constructFromPayloadWords(payloadwords);
+
+  int actualSize = maxSize - rcutrailer.getTrailerSize();
+  // calculate payload size for RCU trailer:
+  // assume actualsize is in byte
+  // Payload size is defined as the number of 10bit words in 32-bit payload 
+  // -> actualSize to be converted to size of 32 bit words
+  auto payloadsize = actualSize / sizeof(uint32_t) * 3;
+  rcutrailer.setPayloadSize(payloadsize);
+  auto trailerwords = rcutrailer.encode();
+  trailer.resize(trailerwords.size() * sizeof(uint32_t));
+  memcpy(trailer.data(), trailerwords.data(), trailer.size());
+  return actualSize;
 }
