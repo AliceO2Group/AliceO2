@@ -390,7 +390,9 @@ void DeviceSpecHelpers::processOutEdgeActions(std::vector<DeviceSpec>& devices,
     }
     appendOutputRouteToSourceDeviceChannel(edge, device, channel);
   }
-  resourceManager.notifyAcceptedOffer(acceptedOffer);
+  if (std::string(acceptedOffer.hostname) != "") {
+    resourceManager.notifyAcceptedOffer(acceptedOffer);
+  }
   sortDeviceIndex();
 }
 
@@ -643,7 +645,9 @@ void DeviceSpecHelpers::processInEdgeActions(std::vector<DeviceSpec>& devices,
     }
     appendInputRouteToDestDeviceChannel(edge, consumerDevice, channel);
   }
-  resourceManager.notifyAcceptedOffer(acceptedOffer);
+  if (acceptedOffer.hostname != "") {
+    resourceManager.notifyAcceptedOffer(acceptedOffer);
+  }
 }
 
 // Construct the list of actual devices we want, given a workflow.
