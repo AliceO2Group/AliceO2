@@ -47,6 +47,12 @@ constexpr bool is_type_with_originals_v = false;
 template <typename T>
 constexpr bool is_type_with_originals_v<T, std::void_t<decltype(sizeof(typename T::originals))>> = true;
 
+template <typename T, typename = void>
+constexpr bool is_type_with_parent_v = false;
+
+template <typename T>
+constexpr bool is_type_with_parent_v<T, std::void_t<decltype(sizeof(typename T::parent_t))>> = true;
+
 template <typename, typename = void>
 constexpr bool is_type_with_metadata_v = false;
 
@@ -84,6 +90,8 @@ constexpr auto make_originals_from_type()
       return typename decayed::originals{};
     } else if constexpr (is_type_with_originals_v<typename decayed::table_t>) {
       return typename decayed::table_t::originals{};
+    } else if constexpr (is_type_with_parent_v<decayed>) {
+      return make_originals_from_type(decayed::parent_t);
     } else {
       return framework::pack<decayed>{};
     }
@@ -1298,10 +1306,9 @@ using ConcatBase = decltype(concat(std::declval<T1>(), std::declval<T2>()));
   DECLARE_SOA_EXTENDED_TABLE_FULL(_Name_, _Table_, "AOD", _Description_, __VA_ARGS__)
 
 #define DECLARE_SOA_INDEX_TABLE_FULL(_Name_, _Key_, _Origin_, _Description_, ...) \
-  using _Name_ = o2::soa::IndexTable<_Key_, soa::Index<>, __VA_ARGS__>;           \
+  using _Name_ = o2::soa::IndexTable<_Key_, __VA_ARGS__>;                         \
                                                                                   \
   struct _Name_##Metadata : o2::soa::TableMetadata<_Name_##Metadata> {            \
-    using table_t = _Name_;                                                       \
     using Key = _Key_;                                                            \
     using index_pack_t = framework::pack<__VA_ARGS__>;                            \
     using originals = decltype(soa::extractBindings(index_pack_t{}));             \
@@ -1316,7 +1323,16 @@ using ConcatBase = decltype(concat(std::declval<T1>(), std::declval<T2>()));
   };                                                                              \
                                                                                   \
   template <>                                                                     \
-  struct MetadataTrait<_Name_::unfiltered_iterator> {                             \
+  struct MetadataTrait<_Name_::base_t> {                                          \
+    using metadata = _Name_##Metadata;                                            \
+  };                                                                              \
+                                                                                  \
+  template <>                                                                     \
+  struct MetadataTrait<_Name_::iterator> {                                        \
+    using metadata = _Name_##Metadata;                                            \
+  };                                                                              \
+  template <>                                                                     \
+  struct MetadataTrait<_Name_::base_t::iterator> {                                \
     using metadata = _Name_##Metadata;                                            \
   };
 
@@ -1720,14 +1736,14 @@ auto spawner(framework::pack<C...> columns, arrow::Table* atable)
 /// are index columns defined for the required tables.
 /// First index will be used by process() as the grouping
 template <typename Key, typename H, typename... Ts>
-struct IndexTable : Table<H, Ts...> {
-  using table_t = Table<H, Ts...>;
+struct IndexTable : Table<soa::Index<>, H, Ts...> {
+  using base_t = Table<soa::Index<>, H, Ts...>;
   using indexing_t = Key;
-  using first_t = H;
-  using rest_t = framework::pack<Ts...>;
+  using first_t = typename H::binding_t;
+  using rest_t = framework::pack<typename Ts::binding_t...>;
 
   IndexTable(std::shared_ptr<arrow::Table> table, uint64_t offset = 0)
-    : table_t{table, offset}
+    : base_t{table, offset}
   {
   }
 
@@ -1735,7 +1751,13 @@ struct IndexTable : Table<H, Ts...> {
   IndexTable(IndexTable&&) = default;
   IndexTable& operator=(IndexTable const&) = default;
   IndexTable& operator=(IndexTable&&) = default;
+
+  using iterator = typename base_t::template RowView<IndexTable<Key, H, Ts...>, base_t>;
+  using const_iterator = iterator;
 };
+
+template <typename T>
+using is_soa_index_table_t = typename framework::is_specialization<T, soa::IndexTable>;
 
 } // namespace o2::soa
 

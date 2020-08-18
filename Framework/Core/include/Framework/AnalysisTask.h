@@ -616,7 +616,17 @@ struct AnalysisDataProcessorBuilder {
 
       auto getLabelFromType()
       {
-        if constexpr (soa::is_type_with_originals_v<std::decay_t<G>>) {
+        if constexpr (soa::is_soa_index_table_t<std::decay_t<G>>::value) {
+          using T = typename std::decay_t<G>::first_t;
+          if constexpr (soa::is_type_with_originals_v<std::decay_t<T>>) {
+            using O = typename framework::pack_element_t<0, typename std::decay_t<G>::originals>;
+            using groupingMetadata = typename aod::MetadataTrait<O>::metadata;
+            return std::string("f") + groupingMetadata::tableLabel() + "ID";
+          } else {
+            using groupingMetadata = typename aod::MetadataTrait<T>::metadata;
+            return std::string("f") + groupingMetadata::tableLabel() + "ID";
+          }
+        } else if constexpr (soa::is_type_with_originals_v<std::decay_t<G>>) {
           using T = typename framework::pack_element_t<0, typename std::decay_t<G>::originals>;
           using groupingMetadata = typename aod::MetadataTrait<T>::metadata;
           return std::string("f") + groupingMetadata::tableLabel() + "ID";
@@ -688,12 +698,23 @@ struct AnalysisDataProcessorBuilder {
       constexpr bool isIndexTo()
       {
         if constexpr (soa::is_type_with_binding_v<C>) {
-          if constexpr (soa::is_type_with_originals_v<std::decay_t<B>>) {
-            using TT = typename framework::pack_element_t<0, typename std::decay_t<B>::originals>;
-            return std::is_same_v<typename C::binding_t, TT>;
+          if constexpr (soa::is_soa_index_table_t<std::decay_t<B>>::value) {
+            using T = typename std::decay_t<B>::first_t;
+            if constexpr (soa::is_type_with_originals_v<std::decay_t<T>>) {
+              using TT = typename framework::pack_element_t<0, typename std::decay_t<T>::originals>;
+              return std::is_same_v<typename C::binding_t, TT>;
+            } else {
+              using TT = std::decay_t<T>;
+              return std::is_same_v<typename C::binding_t, TT>;
+            }
           } else {
-            using TT = std::decay_t<B>;
-            return std::is_same_v<typename C::binding_t, TT>;
+            if constexpr (soa::is_type_with_originals_v<std::decay_t<B>>) {
+              using TT = typename framework::pack_element_t<0, typename std::decay_t<B>::originals>;
+              return std::is_same_v<typename C::binding_t, TT>;
+            } else {
+              using TT = std::decay_t<B>;
+              return std::is_same_v<typename C::binding_t, TT>;
+            }
           }
         }
         return false;

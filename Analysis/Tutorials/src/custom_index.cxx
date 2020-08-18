@@ -39,8 +39,19 @@ struct ATask {
   }
 };
 
+struct BTask {
+  void process(aod::Matched::iterator const& m, aod::Tracks const& tracks)
+  {
+    LOGF(INFO, "Collision %d; Ntrk: %d", m.collisionId(), tracks.size());
+    auto t1 = tracks.begin();
+    auto t2 = t1 + (tracks.size() - 1);
+    LOGF(INFO, "track 1 from %d; track %d from %d", t1.collisionId(), tracks.size(), t2.collisionId());
+  }
+};
+
 WorkflowSpec defineDataProcessing(ConfigContext const&)
 {
   return WorkflowSpec{
-    adaptAnalysisTask<ATask>("produce-index")};
+    adaptAnalysisTask<ATask>("produce-index"),
+    adaptAnalysisTask<BTask>("consume-index")};
 }
