@@ -129,8 +129,7 @@ void addMissingOutputsToReader(std::vector<OutputSpec> const& providedOutputs,
       return DataSpecUtils::match(requested, provided);
     };
   };
-  auto last = std::unique(requestedInputs.begin(), requestedInputs.end());
-  requestedInputs.erase(last, requestedInputs.end());
+
   for (InputSpec const& requested : requestedInputs) {
     auto provided = std::find_if(providedOutputs.begin(),
                                  providedOutputs.end(),
@@ -139,6 +138,14 @@ void addMissingOutputsToReader(std::vector<OutputSpec> const& providedOutputs,
     if (provided != providedOutputs.end()) {
       continue;
     }
+
+    auto inlist = std::find_if(publisher.outputs.begin(),
+                               publisher.outputs.end(),
+                               matchingOutputFor(requested));
+    if (inlist != publisher.outputs.end()) {
+      continue;
+    }
+
     auto concrete = DataSpecUtils::asConcreteDataMatcher(requested);
     publisher.outputs.emplace_back(OutputSpec{concrete.origin, concrete.description, concrete.subSpec});
   }
@@ -163,7 +170,7 @@ void WorkflowHelpers::injectServiceDevices(WorkflowSpec& workflow, ConfigContext
     LOG(INFO) << "To be hidden / removed at some point.";
     // mark this dummy process as ready-to-quit
     ic.services().get<ControlService>().readyToQuit(QuitRequest::Me);
-  
+
     return [](ProcessingContext& pc) {
       // this callback is never called since there is no expiring input
       pc.services().get<RawDeviceService>().device()->WaitFor(std::chrono::seconds(2));
