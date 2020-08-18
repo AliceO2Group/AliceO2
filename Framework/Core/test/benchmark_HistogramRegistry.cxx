@@ -30,7 +30,7 @@ static void BM_HashedNameLookup(benchmark::State& state)
     state.PauseTiming();
     std::vector<HistogramSpec> specs;
     for (auto i = 0; i < state.range(0); ++i) {
-      specs.push_back({fmt::format("histo{}", i + 1).c_str(), fmt::format("Histo {}", i + 1).c_str(), {HistogramType::kTH1F, {{100, 0, 1}}}});
+      specs.push_back({(boost::format("histo%1%") % (i + 1)).str().c_str(), (boost::format("Histo %1%") % (i + 1)).str().c_str(), {"TH1F", 100, 0, 1}});
     }
     HistogramRegistry registry{"registry", true, specs};
     state.ResumeTiming();
