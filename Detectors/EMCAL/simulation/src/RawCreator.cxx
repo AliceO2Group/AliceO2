@@ -18,6 +18,8 @@
 #include <TTree.h>
 #include <TTreeReader.h>
 
+#include "CommonUtils/ConfigurableParam.h"
+#include "CommonUtils/StringUtils.h"
 #include "DataFormatsEMCAL/Digit.h"
 #include "DataFormatsEMCAL/TriggerRecord.h"
 #include "EMCALBase/Geometry.h"
@@ -41,8 +43,10 @@ int main(int argc, const char** argv)
     add_option("help,h", "Print this help message");
     add_option("verbose,v", bpo::value<uint32_t>()->default_value(0), "Select verbosity level [0 = no output]");
     add_option("input-file,i", bpo::value<std::string>()->required(), "Specifies digit input file.");
-    add_option("output-file,o", bpo::value<std::string>()->required(), "Specifies raw ouput file.");
+    add_option("file-for,f", bpo::value<std::string>()->default_value("all"), "single file per: all,subdet,link");
+    add_option("output-dir,o", bpo::value<std::string>()->default_value("./"), "output directory for raw data");
     add_option("debug,d", bpo::value<uint32_t>()->default_value(0), "Select debug output level [0 = no debug output]");
+    add_option("configKeyValues", bpo::value<std::string>()->default_value(""), "comma-separated configKeyValues");
 
     opt_all.add(opt_general).add(opt_hidden);
     bpo::store(bpo::command_line_parser(argc, argv).options(opt_all).positional(opt_pos).run(), vm);
@@ -62,18 +66,29 @@ int main(int argc, const char** argv)
     exit(2);
   }
 
+  o2::conf::ConfigurableParam::updateFromString(vm["configKeyValues"].as<std::string>());
+
   auto digitfilename = vm["input-file"].as<std::string>(),
-       rawfilename = vm["output-file"].as<std::string>();
+       outputdir = vm["output-dir"].as<std::string>(),
+       filefor = vm["file-for"].as<std::string>();
 
   std::unique_ptr<TFile> digitfile(TFile::Open(digitfilename.data(), "READ"));
   auto treereader = std::make_unique<TTreeReader>(static_cast<TTree*>(digitfile->Get("o2sim")));
   TTreeReaderValue<std::vector<o2::emcal::Digit>> digitbranch(*treereader, "EMCALDigit");
   TTreeReaderValue<std::vector<o2::emcal::TriggerRecord>> triggerbranch(*treereader, "EMCALDigitTRGR");
 
-  // @TODO Initialize start Interaction record for methods in RawFileReader
+  o2::emcal::RawWriter::FileFor_t granularity = o2::emcal::RawWriter::FileFor_t::kFullDet;
+  if (filefor == "all") {
+    granularity = o2::emcal::RawWriter::FileFor_t::kFullDet;
+  } else if (filefor == "subdet") {
+    granularity = o2::emcal::RawWriter::FileFor_t::kSubDet;
+  } else if (filefor == "link") {
+    granularity = o2::emcal::RawWriter::FileFor_t::kLink;
+  }
 
   o2::emcal::RawWriter rawwriter;
-  rawwriter.setRawFileName(rawfilename.data());
+  rawwriter.setOutputLocation(outputdir.data());
+  rawwriter.setFileFor(granularity);
   rawwriter.setGeometry(o2::emcal::Geometry::GetInstanceFromRunNumber(300000));
   rawwriter.setNumberOfADCSamples(15); // @TODO Needs to come from CCDB
   rawwriter.setPedestal(0);            // @TODO Needs to come from CCDB
@@ -81,6 +96,7 @@ int main(int argc, const char** argv)
 
   // Loop over all entries in the tree, where each tree entry corresponds to a time frame
   for (auto en : *treereader) {
-    rawwriter.processTimeFrame(*digitbranch, *triggerbranch);
+    rawwriter.digitsToRaw(*digitbranch, *triggerbranch);
   }
+  rawwriter.getWriter().writeConfFile("EMC", "RAWDATA", o2::utils::concat_string(outputdir, "raw.cfg"));
 }

@@ -75,12 +75,20 @@ union CaloBunchWord {
 class RawWriter
 {
  public:
+  enum class FileFor_t {
+    kFullDet,
+    kSubDet,
+    kLink
+  };
   RawWriter() = default;
-  RawWriter(const char* rawfilename) { setRawFileName(rawfilename); }
+  RawWriter(const char* outputdir) { setOutputLocation(outputdir); }
   ~RawWriter() = default;
 
-  void setRawFileName(const char* filename) { mRawFilename = filename; }
+  o2::raw::RawFileWriter& getWriter() const { return *mRawWriter; }
+
+  void setOutputLocation(const char* outputdir) { mOutputLocation = outputdir; }
   void setDigits(gsl::span<o2::emcal::Digit> digits) { mDigits = digits; }
+  void setFileFor(FileFor_t filefor) { mFileFor = filefor; }
   void setTriggerRecords(gsl::span<o2::emcal::TriggerRecord> triggers);
   void setNumberOfADCSamples(int nsamples) { mNADCSamples = nsamples; }
   void setPedestal(int pedestal) { mPedestal = pedestal; }
@@ -90,12 +98,12 @@ class RawWriter
 
   void init();
   void process();
-  void processTimeFrame(gsl::span<o2::emcal::Digit> digits, gsl::span<o2::emcal::TriggerRecord> triggers);
+  void digitsToRaw(gsl::span<o2::emcal::Digit> digits, gsl::span<o2::emcal::TriggerRecord> triggers);
   bool processNextTrigger();
 
   int carryOverMethod(const header::RDHAny* rdh, const gsl::span<char> data,
-                                            const char* ptr, int maxSize, int splitID,
-                                            std::vector<char>& trailer, std::vector<char>& header) const;
+                      const char* ptr, int maxSize, int splitID,
+                      std::vector<char>& trailer, std::vector<char>& header) const;
 
  protected:
   std::vector<AltroBunch> findBunches(const std::vector<o2::emcal::Digit*>& channelDigits);
@@ -109,8 +117,9 @@ class RawWriter
  private:
   int mNADCSamples = 15;                                         ///< Number of time samples
   int mPedestal = 0;                                             ///< Pedestal
+  FileFor_t mFileFor = FileFor_t::kFullDet;                      ///< Granularity of the output files
   o2::emcal::Geometry* mGeometry = nullptr;                      ///< EMCAL geometry
-  std::string mRawFilename;                                      ///< Rawfile name
+  std::string mOutputLocation;                                   ///< Rawfile name
   std::array<o2::emcal::Mapper, 4> mMappers;                     ///< EMCAL mappers
   gsl::span<o2::emcal::Digit> mDigits;                           ///< Digits input vector - must be in digitized format including the time response
   gsl::span<o2::emcal::TriggerRecord> mTriggers;                 ///< Trigger records, separating the data from different triggers

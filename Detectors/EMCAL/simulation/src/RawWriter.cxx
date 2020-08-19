@@ -8,6 +8,7 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
+#include <fmt/core.h>
 #include <gsl/span>
 #include <TSystem.h>
 #include "DataFormatsEMCAL/Constants.h"
@@ -34,7 +35,24 @@ void RawWriter::init()
     // @TODO replace with link assignment on production FLPs,
     // eventually storing in CCDB
     auto [crorc, link] = getLinkAssignment(iddl);
-    mRawWriter->registerLink(iddl, crorc, link, 0, mRawFilename.data());
+    std::string rawfilename = mOutputLocation;
+    switch (mFileFor) {
+      case FileFor_t::kFullDet:
+        rawfilename += "/emcal.root";
+        break;
+      case FileFor_t::kSubDet: {
+        std::string detstring;
+        if (iddl < 22)
+          detstring = "emcal";
+        else
+          detstring = "dcal";
+        rawfilename += fmt::format("/%s", detstring.data());
+        break;
+      };
+      case FileFor_t::kLink:
+        rawfilename += fmt::format("/emcal_%d_%d.root", crorc, link);
+    }
+    mRawWriter->registerLink(iddl, crorc, link, 0, rawfilename.data());
   }
   // initialize mappers
   std::array<char, 4> sides = {{'A', 'C'}};
@@ -58,7 +76,7 @@ void RawWriter::process()
     ;
 }
 
-void RawWriter::processTimeFrame(gsl::span<o2::emcal::Digit> digitsbranch, gsl::span<o2::emcal::TriggerRecord> triggerbranch)
+void RawWriter::digitsToRaw(gsl::span<o2::emcal::Digit> digitsbranch, gsl::span<o2::emcal::TriggerRecord> triggerbranch)
 {
   setDigits(digitsbranch);
   setTriggerRecords(triggerbranch);
@@ -247,22 +265,22 @@ std::vector<char> RawWriter::createRCUTrailer(int payloadsize, int feca, int fec
   return encoded;
 }
 
-
 int RawWriter::carryOverMethod(const header::RDHAny* rdh, const gsl::span<char> data,
-                                            const char* ptr, int maxSize, int splitID,
-                                            std::vector<char>& trailer, std::vector<char>& header) const {
+                               const char* ptr, int maxSize, int splitID,
+                               std::vector<char>& trailer, std::vector<char>& header) const
+{
   int offs = ptr - &data[0]; // offset wrt the head of the payload
   // make sure ptr and end of the suggested block are within the payload
   assert(offs >= 0 && size_t(offs + maxSize) <= data.size());
 
   // Read trailer template from the end of payload
-  gsl::span<const uint32_t> payloadwords(reinterpret_cast<const uint32_t *>(data.data()), data.size()/sizeof(uint32_t));
+  gsl::span<const uint32_t> payloadwords(reinterpret_cast<const uint32_t*>(data.data()), data.size() / sizeof(uint32_t));
   auto rcutrailer = RCUTrailer::constructFromPayloadWords(payloadwords);
 
   int actualSize = maxSize - rcutrailer.getTrailerSize();
   // calculate payload size for RCU trailer:
   // assume actualsize is in byte
-  // Payload size is defined as the number of 10bit words in 32-bit payload 
+  // Payload size is defined as the number of 10bit words in 32-bit payload
   // -> actualSize to be converted to size of 32 bit words
   auto payloadsize = actualSize / sizeof(uint32_t) * 3;
   rcutrailer.setPayloadSize(payloadsize);
