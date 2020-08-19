@@ -51,7 +51,7 @@ struct TableReader {
   //           to automatically detect the object types transmitted to the VarManager
   constexpr static uint32_t fgEventFillMap = VarManager::ObjTypes::ReducedEvent | VarManager::ObjTypes::ReducedEventExtended | VarManager::ObjTypes::ReducedEventVtxCov;
   constexpr static uint32_t fgEventMuonFillMap = VarManager::ObjTypes::ReducedEvent | VarManager::ObjTypes::ReducedEventExtended;
-  constexpr static uint32_t fgTrackFillMap = VarManager::ObjTypes::ReducedTrack | VarManager::ObjTypes::ReducedTrackBarrel | VarManager::ObjTypes::ReducedTrackBarrelCov;
+  constexpr static uint32_t fgTrackFillMap = VarManager::ObjTypes::ReducedTrack | VarManager::ObjTypes::ReducedTrackBarrel | VarManager::ObjTypes::ReducedTrackBarrelCov | VarManager::ObjTypes::ReducedTrackBarrelPID;
   constexpr static uint32_t fgMuonFillMap = VarManager::ObjTypes::ReducedTrack | VarManager::ObjTypes::ReducedTrackMuon;
 
   void init(o2::framework::InitContext&)
@@ -63,7 +63,7 @@ struct TableReader {
     fHistMan->SetDefaultVarNames(VarManager::fgVariableNames, VarManager::fgVariableUnits);
 
     DefineHistograms("Event_BeforeCuts;Event_AfterCuts;TrackBarrel_BeforeCuts;TrackBarrel_AfterCuts;TrackMuon_BeforeCuts;TrackMuon_AfterCuts;PairsBarrel;PairsMuon;"); // define all histograms
-    VarManager::SetUseVars(fHistMan->GetUsedVars()); // provide the list of required variables so that VarManager knows what to fill
+    VarManager::SetUseVars(fHistMan->GetUsedVars());                                                                                                                   // provide the list of required variables so that VarManager knows what to fill
 
     DefineCuts();
   }
@@ -84,10 +84,12 @@ struct TableReader {
 
     fTrackCut = new AnalysisCompositeCut(true); // true: use AND
     AnalysisCut* cut1 = new AnalysisCut();
-    cut1->AddCut(VarManager::kPt, 1.0, 20.0);
+    cut1->AddCut(VarManager::kPt, 0.15, 20.0);
     cut1->AddCut(VarManager::kEta, -0.9, 0.9);
     cut1->AddCut(VarManager::kTPCchi2, 0.0, 4.0);
     cut1->AddCut(VarManager::kITSchi2, 0.0, 36.0);
+    cut1->AddCut(VarManager::kITSncls, 2.5, 7.5);
+    cut1->AddCut(VarManager::kTPCncls, 69.5, 159.5);
     AnalysisCut* cut2 = new AnalysisCut();
     cut2->AddCut(VarManager::kPt, 0.5, 3.0);
     fTrackCut->AddCut(cut1);
@@ -102,7 +104,7 @@ struct TableReader {
   }
 
   void process(soa::Join<aod::ReducedEvents, aod::ReducedEventsExtended, aod::ReducedEventsVtxCov>::iterator event,
-               soa::Join<aod::ReducedTracks, aod::ReducedTracksBarrel, aod::ReducedTracksBarrelCov> const& tracks,
+               soa::Join<aod::ReducedTracks, aod::ReducedTracksBarrel, aod::ReducedTracksBarrelCov, aod::ReducedTracksBarrelPID> const& tracks,
                soa::Join<aod::ReducedMuons, aod::ReducedMuonsExtended> const& muons)
   {
     // Reset the fgValues array
@@ -223,8 +225,8 @@ struct TableReader {
 
       if (classStr.Contains("Track")) {
         fHistMan->AddHistClass(classStr.Data());
-        fHistMan->AddHistogram(classStr.Data(), "Pt", "p_{T} distribution", false, 200, 0.0, 20.0, VarManager::kPt);                                               // TH1F histogram
-        fHistMan->AddHistogram(classStr.Data(), "Eta", "#eta distribution", false, 500, -5.0, 5.0, VarManager::kEta);                                              // TH1F histogram
+        fHistMan->AddHistogram(classStr.Data(), "Pt", "p_{T} distribution", false, 200, 0.0, 20.0, VarManager::kPt);                                                // TH1F histogram
+        fHistMan->AddHistogram(classStr.Data(), "Eta", "#eta distribution", false, 500, -5.0, 5.0, VarManager::kEta);                                               // TH1F histogram
         fHistMan->AddHistogram(classStr.Data(), "Phi_Eta", "#phi vs #eta distribution", false, 200, -5.0, 5.0, VarManager::kEta, 200, -6.3, 6.3, VarManager::kPhi); // TH2F histogram
         fHistMan->AddHistogram(classStr.Data(), "P", "p distribution", false, 200, 0.0, 20.0, VarManager::kP);                                                      // TH1F histogram
         fHistMan->AddHistogram(classStr.Data(), "Px", "p_{x} distribution", false, 200, 0.0, 20.0, VarManager::kPx);
@@ -232,8 +234,31 @@ struct TableReader {
         fHistMan->AddHistogram(classStr.Data(), "Pz", "p_{z} distribution", false, 400, -20.0, 20.0, VarManager::kPz);
 
         if (classStr.Contains("Barrel")) {
-          fHistMan->AddHistogram(classStr.Data(), "TPCdedx_pIN", "TPC dE/dx vs pIN", false, 100, 0.0, 20.0, VarManager::kPin,
-                                 200, 0.0, 200., VarManager::kTPCsignal); // TH2F histogram
+
+          fHistMan->AddHistogram(classStr.Data(), "TPCncls", "Number of cluster in TPC", false, 160, -0.5, 159.5, VarManager::kTPCncls); // TH1F histogram
+          fHistMan->AddHistogram(classStr.Data(), "ITSncls", "Number of cluster in ITS", false, 8, -0.5, 7.5, VarManager::kITSncls);     // TH1F histogram
+
+          //for TPC PID
+          fHistMan->AddHistogram(classStr.Data(), "TPCdedx_pIN", "TPC dE/dx vs pIN", false, 200, 0.0, 20.0, VarManager::kPin, 200, 0.0, 200., VarManager::kTPCsignal);                    // TH2F histogram
+          fHistMan->AddHistogram(classStr.Data(), "TPCnSigmaEl_pIN", "TPC dE/dx n#sigma_{e} vs pIN", false, 200, 0.0, 20.0, VarManager::kPin, 200, -10, +10, VarManager::kTPCnSigmaEl);   // TH2F histogram
+          fHistMan->AddHistogram(classStr.Data(), "TPCnSigmaEl_Eta", "TPC dE/dx n#sigma_{e} vs #eta", false, 20, -1, +1, VarManager::kEta, 200, -10, +10, VarManager::kTPCnSigmaEl);      // TH2F histogram
+          fHistMan->AddHistogram(classStr.Data(), "TPCnSigmaPi_pIN", "TPC dE/dx n#sigma_{#pi} vs pIN", false, 200, 0.0, 20.0, VarManager::kPin, 200, -10, +10, VarManager::kTPCnSigmaPi); // TH2F histogram
+          fHistMan->AddHistogram(classStr.Data(), "TPCnSigmaPi_Eta", "TPC dE/dx n#sigma_{#pi} vs #eta", false, 20, -1, +1, VarManager::kEta, 200, -10, +10, VarManager::kTPCnSigmaPi);    // TH2F histogram
+          fHistMan->AddHistogram(classStr.Data(), "TPCnSigmaKa_pIN", "TPC dE/dx n#sigma_{K} vs pIN", false, 200, 0.0, 20.0, VarManager::kPin, 200, -10, +10, VarManager::kTPCnSigmaKa);   // TH2F histogram
+          fHistMan->AddHistogram(classStr.Data(), "TPCnSigmaKa_Eta", "TPC dE/dx n#sigma_{K} vs #eta", false, 20, -1, +1, VarManager::kEta, 200, -10, +10, VarManager::kTPCnSigmaKa);      // TH2F histogram
+          fHistMan->AddHistogram(classStr.Data(), "TPCnSigmaPr_pIN", "TPC dE/dx n#sigma_{p} vs pIN", false, 200, 0.0, 20.0, VarManager::kPin, 200, -10, +10, VarManager::kTPCnSigmaPr);   // TH2F histogram
+          fHistMan->AddHistogram(classStr.Data(), "TPCnSigmaPr_Eta", "TPC dE/dx n#sigma_{p} vs #eta", false, 20, -1, +1, VarManager::kEta, 200, -10, +10, VarManager::kTPCnSigmaPr);      // TH2F histogram
+
+          //for TOF PID
+          fHistMan->AddHistogram(classStr.Data(), "TOFbeta_pIN", "TOF #beta vs pIN", false, 200, 0.0, 20.0, VarManager::kPin, 120, 0.0, 1.2, VarManager::kTOFbeta);                       // TH2F histogram
+          fHistMan->AddHistogram(classStr.Data(), "TOFnSigmaEl_pIN", "TOF #beta n#sigma_{e} vs pIN", false, 200, 0.0, 20.0, VarManager::kPin, 200, -10, +10, VarManager::kTOFnSigmaEl);   // TH2F histogram
+          fHistMan->AddHistogram(classStr.Data(), "TOFnSigmaEl_Eta", "TOF #beta n#sigma_{e} vs #eta", false, 20, -1, +1, VarManager::kEta, 200, -10, +10, VarManager::kTOFnSigmaEl);      // TH2F histogram
+          fHistMan->AddHistogram(classStr.Data(), "TOFnSigmaPi_pIN", "TOF #beta n#sigma_{#pi} vs pIN", false, 200, 0.0, 20.0, VarManager::kPin, 200, -10, +10, VarManager::kTOFnSigmaPi); // TH2F histogram
+          fHistMan->AddHistogram(classStr.Data(), "TOFnSigmaPi_Eta", "TOF #beta n#sigma_{#pi} vs #eta", false, 20, -1, +1, VarManager::kEta, 200, -10, +10, VarManager::kTOFnSigmaPi);    // TH2F histogram
+          fHistMan->AddHistogram(classStr.Data(), "TOFnSigmaKa_pIN", "TOF #beta n#sigma_{K} vs pIN", false, 200, 0.0, 20.0, VarManager::kPin, 200, -10, +10, VarManager::kTOFnSigmaKa);   // TH2F histogram
+          fHistMan->AddHistogram(classStr.Data(), "TOFnSigmaKa_Eta", "TOF #beta n#sigma_{K} vs #eta", false, 20, -1, +1, VarManager::kEta, 200, -10, +10, VarManager::kTOFnSigmaKa);      // TH2F histogram
+          fHistMan->AddHistogram(classStr.Data(), "TOFnSigmaPr_pIN", "TOF #beta n#sigma_{p} vs pIN", false, 200, 0.0, 20.0, VarManager::kPin, 200, -10, +10, VarManager::kTOFnSigmaPr);   // TH2F histogram
+          fHistMan->AddHistogram(classStr.Data(), "TOFnSigmaPr_Eta", "TOF #beta n#sigma_{p} vs #eta", false, 20, -1, +1, VarManager::kEta, 200, -10, +10, VarManager::kTOFnSigmaPr);      // TH2F histogram
 
           fHistMan->AddHistogram(classStr.Data(), "Cov1Pt_Pt", "cov(1/pt,1/pt) vs p_{T} distribution", false, 20, 0.0, 5.0, VarManager::kPt, 100, 0.0, 1.0, VarManager::kTrackC1Pt21Pt2); // TH2F histogram
         }

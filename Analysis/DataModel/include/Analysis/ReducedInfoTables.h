@@ -17,6 +17,7 @@
 #include "Framework/ASoA.h"
 #include "Framework/AnalysisDataModel.h"
 #include "Analysis/Centrality.h"
+#include "PID/PIDResponse.h"
 #include "MathUtils/Utils.h"
 #include <cmath>
 
@@ -81,7 +82,7 @@ DECLARE_SOA_TABLE(ReducedTracksBarrel, "AOD", "RTBARREL",
                   track::ITSClusterMap, track::ITSChi2NCl,
                   track::TPCNClsFindable, track::TPCNClsFindableMinusFound, track::TPCNClsFindableMinusCrossedRows,
                   track::TPCNClsShared, track::TPCChi2NCl,
-                  track::TPCSignal, track::TRDSignal, track::TOFSignal,
+                  //                  track::TPCSignal, track::TRDSignal, track::TOFSignal,
                   track::TRDChi2, track::TOFChi2, track::Length,
                   track::TPCNClsFound<track::TPCNClsFindable, track::TPCNClsFindableMinusFound>,
                   track::TPCNClsCrossedRows<track::TPCNClsFindable, track::TPCNClsFindableMinusCrossedRows>);
@@ -90,6 +91,18 @@ DECLARE_SOA_TABLE(ReducedTracksBarrel, "AOD", "RTBARREL",
 DECLARE_SOA_TABLE(ReducedTracksBarrelCov, "AOD", "RTBARRELCOV",
                   track::CYY, track::CZZ, track::CSnpSnp,
                   track::CTglTgl, track::C1Pt21Pt2);
+
+// barrel PID information
+DECLARE_SOA_TABLE(ReducedTracksBarrelPID, "AOD", "RTBARRELPID",
+                  track::TPCSignal,
+                  pidTPC::TPCNSigmaEl, pidTPC::TPCNSigmaMu,
+                  pidTPC::TPCNSigmaPi, pidTPC::TPCNSigmaKa, pidTPC::TPCNSigmaPr,
+                  pidTPC::TPCNSigmaDe, pidTPC::TPCNSigmaTr, pidTPC::TPCNSigmaHe, pidTPC::TPCNSigmaAl,
+                  track::TOFSignal, pidTOFbeta::Beta,
+                  pidTOF::TOFNSigmaEl, pidTOF::TOFNSigmaMu,
+                  pidTOF::TOFNSigmaPi, pidTOF::TOFNSigmaKa, pidTOF::TOFNSigmaPr,
+                  pidTOF::TOFNSigmaDe, pidTOF::TOFNSigmaTr, pidTOF::TOFNSigmaHe, pidTOF::TOFNSigmaAl,
+                  track::TRDSignal);
 
 // muon quantities
 namespace reducedmuon
@@ -125,6 +138,7 @@ DECLARE_SOA_TABLE(ReducedMuonsExtended, "AOD", "RTMUONEXTENDED",
 using ReducedTrack = ReducedTracks::iterator;
 using ReducedTrackBarrel = ReducedTracksBarrel::iterator;
 using ReducedTrackBarrelCov = ReducedTracksBarrelCov::iterator;
+using ReducedTrackBarrelPID = ReducedTracksBarrelPID::iterator;
 using ReducedMuon = ReducedMuons::iterator;
 using ReducedMuonExtended = ReducedMuonsExtended::iterator;
 } // namespace o2::aod
