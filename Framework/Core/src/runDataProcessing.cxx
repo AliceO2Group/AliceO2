@@ -383,7 +383,9 @@ void spawnDevice(std::string const& forwardedStdin,
                  ServiceRegistry& serviceRegistry,
                  boost::program_options::variables_map& varmap,
                  uv_loop_t* loop,
-                 std::vector<uv_poll_t*> handles)
+                 std::vector<uv_poll_t*> handles,
+                 unsigned parentCPU,
+                 unsigned parentNode)
 {
   int childstdin[2];
   int childstdout[2];
@@ -445,19 +447,12 @@ void spawnDevice(std::string const& forwardedStdin,
     execvp(execution.args[0], execution.args.data());
   }
   if (varmap.count("post-fork-command")) {
-    unsigned cpu = -1;
-    unsigned node = -1;
-#if __has_include(<linux/getcpu.h>)
-    getcpu(&cpu, &node, nullptr);
-#elif __has_include(<cpuid.h>)
-    GETCPU(cpu);
-#endif
     auto templateCmd = varmap["post-fork-command"];
     auto cmd = fmt::format(templateCmd.as<std::string>(),
                            fmt::arg("pid", id),
                            fmt::arg("id", spec.id),
-                           fmt::arg("cpu", cpu),
-                           fmt::arg("node", node),
+                           fmt::arg("cpu", parentCPU),
+                           fmt::arg("node", parentNode),
                            fmt::arg("name", spec.name),
                            fmt::arg("timeslice0", spec.inputTimesliceId),
                            fmt::arg("timeslice1", spec.inputTimesliceId + 1),
@@ -1054,6 +1049,15 @@ int runStateMachine(DataProcessorSpecs const& workflow,
         std::ostringstream forwardedStdin;
         WorkflowSerializationHelpers::dump(forwardedStdin, workflow, dataProcessorInfos);
         infos.reserve(deviceSpecs.size());
+
+        // This is guaranteed to be a single CPU.
+        unsigned parentCPU = -1;
+        unsigned parentNode = -1;
+#if __has_include(<linux/getcpu.h>)
+        getcpu(&parentCPU, &parentNode, nullptr);
+#elif __has_include(<cpuid.h>)
+        GETCPU(parentCPU);
+#endif
         for (size_t di = 0; di < deviceSpecs.size(); ++di) {
           if (deviceSpecs[di].resource.hostname != driverInfo.deployHostname) {
             spawnRemoteDevice(forwardedStdin.str(),
@@ -1062,7 +1066,7 @@ int runStateMachine(DataProcessorSpecs const& workflow,
             spawnDevice(forwardedStdin.str(),
                         deviceSpecs[di], driverInfo,
                         controls[di], deviceExecutions[di], infos,
-                        serviceRegistry, varmap, loop, pollHandles);
+                        serviceRegistry, varmap, loop, pollHandles, parentCPU, parentNode);
           }
         }
         assert(infos.empty() == false);
