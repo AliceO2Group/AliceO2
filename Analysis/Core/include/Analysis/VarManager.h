@@ -42,7 +42,8 @@ class VarManager : public TObject
     ReducedTrack = BIT(3),
     ReducedTrackBarrel = BIT(4),
     ReducedTrackBarrelCov = BIT(5),
-    ReducedTrackMuon = BIT(6)
+    ReducedTrackBarrelPID = BIT(6),
+    ReducedTrackMuon = BIT(7)
   };
 
  public:
@@ -94,12 +95,23 @@ class VarManager : public TObject
     kTPCsignal,
     kTRDsignal,
     kTOFsignal,
+    kTOFbeta,
     kTrackLength,
     kTrackCYY,
     kTrackCZZ,
     kTrackCSnpSnp,
     kTrackCTglTgl,
     kTrackC1Pt21Pt2,
+    kTPCnSigmaEl,
+    kTPCnSigmaMu,
+    kTPCnSigmaPi,
+    kTPCnSigmaKa,
+    kTPCnSigmaPr,
+    kTOFnSigmaEl,
+    kTOFnSigmaMu,
+    kTOFnSigmaPi,
+    kTOFnSigmaKa,
+    kTOFnSigmaPr,
     kNBarrelTrackVariables,
 
     // Muon track variables
@@ -262,9 +274,10 @@ void VarManager::FillTrack(T const& track, float* values)
     values[kITSchi2] = track.itsChi2NCl();
     values[kTPCncls] = track.tpcNClsFound();
     values[kTPCchi2] = track.tpcChi2NCl();
-    values[kTPCsignal] = track.tpcSignal();
-    values[kTRDsignal] = track.trdSignal();
-    values[kTOFsignal] = track.tofSignal();
+    //values[kTPCsignal] = track.tpcSignal();
+    //values[kTRDsignal] = track.trdSignal();
+    //values[kTOFsignal] = track.tofSignal();
+    //values[kTOFbeta] = track.beta();
     values[kTrackLength] = track.length();
   }
 
@@ -299,9 +312,9 @@ void VarManager::FillTrack(T const& track, float* values)
     values[kITSchi2] = track.itsChi2NCl();
     values[kTPCncls] = track.tpcNClsFound();
     values[kTPCchi2] = track.tpcChi2NCl();
-    values[kTPCsignal] = track.tpcSignal();
-    values[kTRDsignal] = track.trdSignal();
-    values[kTOFsignal] = track.tofSignal();
+    //values[kTPCsignal] = track.tpcSignal();
+    //values[kTRDsignal] = track.trdSignal();
+    //values[kTOFsignal] = track.tofSignal();
     values[kTrackLength] = track.length();
   }
 
@@ -311,6 +324,23 @@ void VarManager::FillTrack(T const& track, float* values)
     values[kTrackCSnpSnp] = track.cSnpSnp();
     values[kTrackCTglTgl] = track.cTglTgl();
     values[kTrackC1Pt21Pt2] = track.c1Pt21Pt2();
+  }
+
+  if constexpr ((fillMap & ReducedTrackBarrelPID) > 0) {
+    values[kTPCnSigmaEl] = track.tpcNSigmaEl();
+    values[kTPCnSigmaMu] = track.tpcNSigmaMu();
+    values[kTPCnSigmaPi] = track.tpcNSigmaPi();
+    values[kTPCnSigmaKa] = track.tpcNSigmaKa();
+    values[kTPCnSigmaPr] = track.tpcNSigmaPr();
+    values[kTOFnSigmaEl] = track.tofNSigmaEl();
+    values[kTOFnSigmaMu] = track.tofNSigmaMu();
+    values[kTOFnSigmaPi] = track.tofNSigmaPi();
+    values[kTOFnSigmaKa] = track.tofNSigmaKa();
+    values[kTOFnSigmaPr] = track.tofNSigmaPr();
+    values[kTPCsignal] = track.tpcSignal();
+    values[kTRDsignal] = track.trdSignal();
+    values[kTOFsignal] = track.tofSignal();
+    values[kTOFbeta] = track.beta();
   }
 
   if constexpr ((fillMap & ReducedTrackMuon) > 0) {

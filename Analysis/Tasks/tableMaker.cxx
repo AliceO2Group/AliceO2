@@ -21,6 +21,7 @@
 #include "Analysis/ReducedInfoTables.h"
 #include "Analysis/VarManager.h"
 #include "Analysis/HistogramManager.h"
+#include "PID/PIDResponse.h"
 #include <iostream>
 
 using std::cout;
@@ -39,6 +40,7 @@ struct TableMaker {
   Produces<ReducedTracks> trackBasic;
   Produces<ReducedTracksBarrel> trackBarrel;
   Produces<ReducedTracksBarrelCov> trackBarrelCov;
+  Produces<ReducedTracksBarrelPID> trackBarrelPID;
   Produces<ReducedMuons> muonBasic;
   Produces<ReducedMuonsExtended> muonExtended;
 
@@ -66,7 +68,7 @@ struct TableMaker {
     VarManager::SetUseVars(fHistMan->GetUsedVars()); // provide the list of required variables so that VarManager knows what to fill
   }
 
-  void process(soa::Join<aod::Collisions, aod::EvSels, aod::Cents>::iterator collision, aod::MuonClusters const& clustersMuon, aod::Muons const& tracksMuon, aod::BCs const& bcs, soa::Join<aod::Tracks, aod::TracksExtra, aod::TracksCov> const& tracksBarrel)
+  void process(soa::Join<aod::Collisions, aod::EvSels, aod::Cents>::iterator collision, aod::MuonClusters const& clustersMuon, aod::Muons const& tracksMuon, aod::BCs const& bcs, soa::Join<aod::Tracks, aod::TracksExtra, aod::TracksCov, aod::pidRespTPC, aod::pidRespTOF, aod::pidRespTOFbeta> const& tracksBarrel)
   {
     uint64_t tag = 0;
     uint32_t triggerAliases = 0;
@@ -85,17 +87,29 @@ struct TableMaker {
     uint64_t trackFilteringTag = 0;
     for (auto& track : tracksBarrel) {
 
-      if (track.pt() < 1.0)
+      if (track.pt() < 0.15)
+        continue;
+      if (TMath::Abs(track.eta()) > 0.9)
         continue;
 
       trackBasic(collision, track.globalIndex(), trackFilteringTag, track.pt(), track.eta(), track.phi(), track.charge());
       trackBarrel(track.tpcInnerParam(), track.flags(), track.itsClusterMap(), track.itsChi2NCl(),
                   track.tpcNClsFindable(), track.tpcNClsFindableMinusFound(), track.tpcNClsFindableMinusCrossedRows(),
                   track.tpcNClsShared(), track.tpcChi2NCl(),
-                  track.tpcSignal(), track.trdSignal(), track.tofSignal(),
+                  //track.tpcSignal(), track.trdSignal(), track.tofSignal(),
                   track.trdChi2(), track.tofChi2(),
                   track.length());
       trackBarrelCov(track.cYY(), track.cZZ(), track.cSnpSnp(), track.cTglTgl(), track.c1Pt21Pt2());
+      trackBarrelPID(
+        track.tpcSignal(),
+        track.tpcNSigmaEl(), track.tpcNSigmaMu(),
+        track.tpcNSigmaPi(), track.tpcNSigmaKa(), track.tpcNSigmaPr(),
+        track.tpcNSigmaDe(), track.tpcNSigmaTr(), track.tpcNSigmaHe(), track.tpcNSigmaAl(),
+        track.tofSignal(), track.beta(),
+        track.tofNSigmaEl(), track.tofNSigmaMu(),
+        track.tofNSigmaPi(), track.tofNSigmaKa(), track.tofNSigmaPr(),
+        track.tofNSigmaDe(), track.tofNSigmaTr(), track.tofNSigmaHe(), track.tofNSigmaAl(),
+        track.trdSignal());
     }
 
     for (auto& muon : tracksMuon) {
