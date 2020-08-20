@@ -273,7 +273,7 @@ inline int GPUReconstructionCPU::runKernel(const krnlExec& x, const krnlRunRange
   if (nThreads == 0 || nBlocks == 0) {
     return 0;
   }
-  if (mProcessingSettings.debugLevel >= 0) {
+  if (mProcessingSettings.debugLevel >= 1) {
     t = &getKernelTimer<S, I, J>(myStep, !IsGPU() || cpuFallback ? getOMPThreadNum() : x.stream);
     if (!mProcessingSettings.deviceTimers || !IsGPU() || cpuFallback) {
       t->Start();
@@ -289,10 +289,10 @@ inline int GPUReconstructionCPU::runKernel(const krnlExec& x, const krnlRunRange
       return 1;
     }
   }
-  if (mProcessingSettings.debugLevel >= 0) {
-    if (GPUDebug(GetKernelName<S, I>(), x.stream)) {
-      throw std::runtime_error("kernel failure");
-    }
+  if (GPUDebug(GetKernelName<S, I>(), x.stream)) {
+    throw std::runtime_error("kernel failure");
+  }
+  if (mProcessingSettings.debugLevel >= 1) {
     if (t) {
       if (!mProcessingSettings.deviceTimers || !IsGPU() || cpuFallback) {
         t->Stop();
@@ -300,7 +300,7 @@ inline int GPUReconstructionCPU::runKernel(const krnlExec& x, const krnlRunRange
         t->AddTime(setup.t);
       }
     }
-    if (mProcessingSettings.debugLevel >= 1 && CheckErrorCodes(cpuFallback)) {
+    if (CheckErrorCodes(cpuFallback)) {
       throw std::runtime_error("kernel error code");
     }
   }

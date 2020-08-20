@@ -554,7 +554,7 @@ int GPUReconstructionHIPBackend::GPUDebug(const char* state, int stream)
     GPUError("HIP Error %s while running kernel (%s) (Stream %d)", hipGetErrorString(cuErr), state, stream);
     return (1);
   }
-  if (mProcessingSettings.debugLevel == 0) {
+  if (mProcessingSettings.debugLevel <= 0) {
     return (0);
   }
   if (GPUFailedMsgI(hipDeviceSynchronize())) {

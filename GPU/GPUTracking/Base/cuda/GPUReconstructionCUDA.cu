@@ -619,7 +619,7 @@ int GPUReconstructionCUDABackend::GPUDebug(const char* state, int stream)
     GPUError("Cuda Error %s while running kernel (%s) (Stream %d)", cudaGetErrorString(cuErr), state, stream);
     return (1);
   }
-  if (mProcessingSettings.debugLevel == 0) {
+  if (mProcessingSettings.debugLevel <= 0) {
     return (0);
   }
   if (GPUFailedMsgI(cudaDeviceSynchronize())) {
