@@ -81,6 +81,8 @@ struct TestRawWriter { // simple class to create detector payload for multiple l
       writer.setEmptyPageCallBack(this); // we want the writer to ask the detector code what to put in empty HBFs
     }
     writer.setCarryOverCallBack(this); // we want that writer to ask the detector code how to split large payloads
+
+    writer.setApplyCarryOverToLastPage(true); // call CarryOver method also for the last chunk
   }
 
   //_________________________________________________________________
@@ -155,10 +157,17 @@ struct TestRawWriter { // simple class to create detector payload for multiple l
   {
     // how we want to split the large payloads. The data is the full payload which was sent for writing and
     // it is already equiped with header and trailer
+    static int verboseCount = 0;
+
     if (maxSize <= RDHUtils::GBTWord) { // do not carry over trailer or header only
       return 0;
     }
 
+    int bytesLeft = data.size() - (ptr - &data[0]);
+    bool lastPage = bytesLeft <= maxSize;
+    if (verboseCount++ < 100) {
+      LOG(INFO) << "Carry-over method for chunk of size " << bytesLeft << " is called, MaxSize = " << maxSize << (lastPage ? " : last chunk being processed!" : "");
+    }
     // here we simply copy the header/trailer of the payload to every CRU page of this payload
     header.resize(RDHUtils::GBTWord);
     std::memcpy(header.data(), &data[0], RDHUtils::GBTWord);
@@ -166,7 +175,10 @@ struct TestRawWriter { // simple class to create detector payload for multiple l
     std::memcpy(trailer.data(), &data[data.size() - RDHUtils::GBTWord], RDHUtils::GBTWord);
     // since we write an extra GBT word (trailer) in the end of the CRU page, we ask to write
     // not the block ptr : ptr+maxSize, but ptr : ptr+maxSize - GBTWord;
-    int sz = maxSize - RDHUtils::GBTWord;
+    int sz = maxSize; // if the method is called for the last page, then the trailer is overwritten !!!
+    if (!lastPage) {  // otherwise it is added incrementally, so its size must be accounted
+      sz -= trailer.size();
+    }
     return sz;
   }
 };

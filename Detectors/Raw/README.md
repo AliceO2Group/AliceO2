@@ -125,11 +125,17 @@ header  : what it wants to add right after the RDH of the new CRU page before th
           the payload (starting at ptr+actualSize) will be written
 ```
 
-The method mast return actual size of the bloc which can be written (`<=maxSize`).
+The method must return actual size of the bloc which can be written (`<=maxSize`).
 If this method populates the trailer, it must ensure that it returns the actual size such that
 `actualSize + trailer.size() <= maxSize`.
-In case returned `actualSize` is 0, current CRU page will be closed w/o adding anything, and new
+In case returned `actualSize` is 0, current CRU page will be closed just with user trailer added (if any) and new
 query of this method will be done on the new CRU page.
+
+By default, the carry-over callback is not called if remaining data fits to the free space of the 8KB page (or the super-page).
+In case the splitting affects the information written in the payload trailer, user may set `writer.setApplyCarryOverToLastPage(true)`.
+With this flag set to `ON`, if there was at least one splitting for the user payload provided to `addData` method, then the carry-over
+method will be called also for the very last chunk (which by definition does not need splitting) and the supplied trailer will overwrite
+the tail of the this chunk instead of adding it incrementally.
 
 Additionally, in case detector wants to add some information between `empty` HBF packet's opening and
 closing RDHs (they will be added automatically using the HBFUtils functionality for all HBFs w/o data
