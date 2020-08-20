@@ -10,6 +10,7 @@
 #ifndef FRAMEWORK_DATAALLOCATOR_H
 #define FRAMEWORK_DATAALLOCATOR_H
 
+#include "Framework/AnalysisDataModel.h"
 #include "Framework/MessageContext.h"
 #include "Framework/StringContext.h"
 #include "Framework/RawBufferContext.h"
@@ -133,7 +134,17 @@ class DataAllocator
       void* t2tr = nullptr;
       call_if_defined<struct TreeToTable>([&](auto* p) {
         auto t2t = new std::decay_t<decltype(*p)>(args...);
-        t2t->addAllColumns();
+
+        auto dh = header::DataHeader(spec.description, spec.origin, spec.subSpec);
+        auto colnames = aod::datamodel::getColumnNames(dh);
+        if (colnames.size() == 0) {
+          t2t->addAllColumns();
+        } else {
+          for (auto colname : colnames) {
+            t2t->addColumn(colname.c_str());
+          }
+        }
+
         adopt(spec, t2t);
         t2tr = t2t;
       });

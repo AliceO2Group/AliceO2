@@ -13,6 +13,7 @@
 #include "Framework/ASoA.h"
 #include "MathUtils/Utils.h"
 #include <cmath>
+#include "Headers/DataHeader.h"
 #include "Framework/DataTypes.h"
 
 namespace o2
@@ -22,6 +23,18 @@ namespace aod
 // This is required to register SOA_TABLEs inside
 // the o2::aod namespace.
 DECLARE_SOA_STORE();
+
+// This is required to make
+//  o2::aod::datamodel::getTreeName
+//  o2::aod::datamodel::getColumnNames
+// available
+// ATTENTION: getTreeName and getColumnNames must be updated
+//            in accordance with changes of the AnalysisDataModel!
+namespace datamodel
+{
+std::string getTreeName(header::DataHeader dh);
+std::vector<std::string> getColumnNames(header::DataHeader dh);
+} // namespace datamodel
 
 namespace bc
 {
@@ -196,7 +209,7 @@ DECLARE_SOA_DYNAMIC_COLUMN(TPCFractionSharedCls, tpcFractionSharedCls, [](uint8_
 });
 } // namespace track
 
-DECLARE_SOA_TABLE_FULL(StoredTracks, "Tracks", "AOD", "TRACKPAR",
+DECLARE_SOA_TABLE_FULL(StoredTracks, "Tracks", "AOD", "TRACK:PAR",
                        o2::soa::Index<>, track::CollisionId, track::TrackType,
                        track::X, track::Alpha,
                        track::Y, track::Z, track::Snp, track::Tgl,
@@ -213,7 +226,7 @@ DECLARE_SOA_EXTENDED_TABLE(Tracks, StoredTracks, "TRACKPAR",
                            aod::track::Eta,
                            aod::track::RawPhi);
 
-DECLARE_SOA_TABLE_FULL(StoredTracksCov, "TracksCov", "AOD", "TRACKPARCOV",
+DECLARE_SOA_TABLE_FULL(StoredTracksCov, "TracksCov", "AOD", "TRACK:PARCOV",
                        track::SigmaY, track::SigmaZ, track::SigmaSnp, track::SigmaTgl, track::Sigma1Pt,
                        track::RhoZY, track::RhoSnpY, track::RhoSnpZ, track::RhoTglY, track::RhoTglZ,
                        track::RhoTglSnp, track::Rho1PtY, track::Rho1PtZ, track::Rho1PtSnp, track::Rho1PtTgl);
@@ -235,7 +248,7 @@ DECLARE_SOA_EXTENDED_TABLE(TracksCov, StoredTracksCov, "TRACKPARCOV",
                            aod::track::C1PtTgl,
                            aod::track::C1Pt21Pt2);
 
-DECLARE_SOA_TABLE(TracksExtra, "AOD", "TRACKEXTRA",
+DECLARE_SOA_TABLE(TracksExtra, "AOD", "TRACK:EXTRA",
                   track::TPCInnerParam, track::Flags, track::ITSClusterMap,
                   track::TPCNClsFindable, track::TPCNClsFindableMinusFound, track::TPCNClsFindableMinusCrossedRows,
                   track::TPCNClsShared, track::TRDPattern, track::ITSChi2NCl,
@@ -447,7 +460,7 @@ DECLARE_SOA_INDEX_COLUMN_FULL(NegTrack, negTrack, int, FullTracks, "fNegTrackID"
 DECLARE_SOA_INDEX_COLUMN(Collision, collision);
 } // namespace v0
 
-DECLARE_SOA_TABLE(StoredV0s, "AOD", "O2v0", o2::soa::Index<>, v0::PosTrackId, v0::NegTrackId);
+DECLARE_SOA_TABLE(StoredV0s, "AOD", "V0", o2::soa::Index<>, v0::PosTrackId, v0::NegTrackId);
 DECLARE_SOA_TABLE(TransientV0s, "AOD", "V0INDEX", v0::CollisionId);
 
 using V0s = soa::Join<TransientV0s, StoredV0s>;
@@ -460,7 +473,7 @@ DECLARE_SOA_INDEX_COLUMN_FULL(Bachelor, bachelor, int, FullTracks, "fTracksID");
 DECLARE_SOA_INDEX_COLUMN(Collision, collision);
 } // namespace cascade
 
-DECLARE_SOA_TABLE(StoredCascades, "AOD", "O2cascade", o2::soa::Index<>, cascade::V0Id, cascade::BachelorId);
+DECLARE_SOA_TABLE(StoredCascades, "AOD", "CASCADE", o2::soa::Index<>, cascade::V0Id, cascade::BachelorId);
 DECLARE_SOA_TABLE(TransientCascades, "AOD", "CASCADEINDEX", cascade::CollisionId);
 
 using Cascades = soa::Join<TransientCascades, StoredCascades>;
@@ -482,7 +495,7 @@ DECLARE_SOA_COLUMN(BBFlag, bbFlag, uint64_t);
 DECLARE_SOA_COLUMN(BGFlag, bgFlag, uint64_t);
 } // namespace run2v0
 
-DECLARE_SOA_TABLE(Run2V0s, "AOD", "RUN2V0", o2::soa::Index<>, run2v0::BCId,
+DECLARE_SOA_TABLE(Run2V0s, "RN2", "V0", run2v0::BCId,
                   run2v0::Adc, run2v0::Time, run2v0::Width,
                   run2v0::MultA, run2v0::MultC,
                   run2v0::TimeA, run2v0::TimeC,
