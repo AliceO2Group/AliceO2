@@ -150,7 +150,7 @@ void GPUReconstructionCUDABackend::runKernelBackendInternal<GPUMemClean16, 0>(kr
 template <class T, int I, typename... Args>
 void GPUReconstructionCUDABackend::runKernelBackendInternal(krnlSetup& _xyz, const Args&... args)
 {
-  GPUDebugTiming timer(mProcessingSettings.deviceTimers, (void**)mDebugEvents, mInternals->Streams, _xyz);
+  GPUDebugTiming timer(mProcessingSettings.deviceTimers && mProcessingSettings.debugLevel > 0, (void**)mDebugEvents, mInternals->Streams, _xyz);
   backendInternal<T, I>::runKernelBackendMacro(_xyz, this, args...);
 }
 
