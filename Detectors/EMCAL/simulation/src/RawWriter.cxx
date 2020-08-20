@@ -28,6 +28,7 @@ void RawWriter::init()
 {
   mRawWriter = std::make_unique<o2::raw::RawFileWriter>(o2::header::gDataOriginEMC, false);
   mRawWriter->setCarryOverCallBack(this);
+  mRawWriter->setApplyCarryOverToLastPage(true);
   for (auto iddl = 0; iddl < 40; iddl++) {
     // For EMCAL set
     // - FEE ID = DDL ID
@@ -138,7 +139,7 @@ bool RawWriter::processNextTrigger()
     }
 
     // Create RCU trailer
-    auto trailerwords = createRCUTrailer(payload.size(), 16, 16, 100., 0.);
+    auto trailerwords = createRCUTrailer(payload.size() / 4, 16, 16, 100., 0.);
     for (auto word : trailerwords)
       payload.emplace_back(word);
 
@@ -277,15 +278,24 @@ int RawWriter::carryOverMethod(const header::RDHAny* rdh, const gsl::span<char> 
   gsl::span<const uint32_t> payloadwords(reinterpret_cast<const uint32_t*>(data.data()), data.size() / sizeof(uint32_t));
   auto rcutrailer = RCUTrailer::constructFromPayloadWords(payloadwords);
 
-  int actualSize = maxSize - rcutrailer.getTrailerSize();
+  int sizeNoTrailer = maxSize - rcutrailer.getTrailerSize();
   // calculate payload size for RCU trailer:
   // assume actualsize is in byte
-  // Payload size is defined as the number of 10bit words in 32-bit payload
+  // Payload size is defined as the number of 32-bit payload words
   // -> actualSize to be converted to size of 32 bit words
-  auto payloadsize = actualSize / sizeof(uint32_t) * 3;
+  auto payloadsize = sizeNoTrailer / sizeof(uint32_t);
   rcutrailer.setPayloadSize(payloadsize);
   auto trailerwords = rcutrailer.encode();
   trailer.resize(trailerwords.size() * sizeof(uint32_t));
   memcpy(trailer.data(), trailerwords.data(), trailer.size());
+  // Size to return differs between intermediate pages and last page
+  // - intermediate page: Size of the trailer needs to be removed as the trailer gets appended
+  // - last page: Size of the trailer needs to be included as the trailer gets replaced
+  int bytesLeft = data.size() - (ptr - &data[0]);
+  bool lastPage = bytesLeft <= maxSize;
+  int actualSize = maxSize;
+  if (!lastPage) {
+    actualSize = sizeNoTrailer;
+  }
   return actualSize;
 }
