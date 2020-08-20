@@ -341,9 +341,12 @@ class RawFileWriter
     }
   }
 
+  void setApplyCarryOverToLastPage(bool v) { mApplyCarryOverToLastPage = v; }
+
   bool isRORCDetector() const { return !mCRUDetector; }
   bool isCRUDetector() const { return mCRUDetector; }
   bool isRDHStopUsed() const { return mUseRDHStop; }
+  bool isCarryOverToLastPageApplied() const { return mApplyCarryOverToLastPage; }
 
  private:
   void fillFromCache();
@@ -369,6 +372,7 @@ class RawFileWriter
   bool mAddSeparateHBFStopPage = true; // HBF stop is added on a separate CRU page
   bool mUseRDHStop = true;             // detector uses STOP in RDH
   bool mCRUDetector = true;            // Detector readout via CRU ( RORC if false)
+  bool mApplyCarryOverToLastPage = false; // call CarryOver method also for last chunk and overwrite modified trailer
 
   //>> caching --------------
   bool mCachingStage = false; // signal that current data should be cached

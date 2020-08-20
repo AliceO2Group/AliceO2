@@ -308,7 +308,7 @@ void RawFileWriter::LinkData::addData(const IR& ir, const gsl::span<char> data, 
   // in case particular detector CRU pages need to be self-consistent, when carrying-over
   // large payload to new CRU page we may need to write optional trailer and header before
   // and after the new RDH.
-  bool carryOver = false;
+  bool carryOver = false, wasSplit = false, lastSplitPart = false;
   int splitID = 0;
   std::vector<char> carryOverHeader;
   while (dataSize > 0) {
@@ -328,26 +328,46 @@ void RawFileWriter::LinkData::addData(const IR& ir, const gsl::span<char> data, 
       addHBFPage();  // start new CRU page, if needed, the completed superpage is flushed
       continue;
     }
-    if (dataSize <= sizeLeft) { // add all remaining data
+
+    if (dataSize <= sizeLeft) {
+      if (wasSplit && writer->mApplyCarryOverToLastPage) {
+        lastSplitPart = true;
+        carryOver = true;
+      }
+    } else {
+      carryOver = true;
+      wasSplit = true;
+    }
+
+    if (!carryOver) { // add all remaining data
       LOG(DEBUG) << "Adding payload " << dataSize << " bytes in IR " << ir << " (carryover=" << carryOver << " ) to " << describe();
       pushBack(ptr, dataSize);
       dataSize = 0;
     } else { // need to carryOver payload, determine 1st wsize bytes to write starting from ptr
-      carryOver = true;
+      if (sizeLeft > dataSize) {
+        sizeLeft = dataSize;
+      }
       int sizeActual = sizeLeft;
       std::vector<char> carryOverTrailer;
       if (writer->carryOverFunc) {
         sizeActual = writer->carryOverFunc(&rdhCopy, data, ptr, sizeLeft, splitID++, carryOverTrailer, carryOverHeader);
       }
       LOG(DEBUG) << "Adding carry-over " << splitID - 1 << " fitted payload " << sizeActual << " bytes in IR " << ir << " to " << describe();
-      if (sizeActual < 0 || sizeActual + carryOverTrailer.size() > sizeLeft) {
+      if (sizeActual < 0 || (!lastSplitPart && (sizeActual + carryOverTrailer.size() > sizeLeft))) {
         throw std::runtime_error(std::string("wrong carry-over data size provided by carryOverMethod") + std::to_string(sizeActual));
       }
-      pushBack(ptr, sizeActual); // write payload fitting to this page
+      // if there is carry-over trailer at the very last chunk, it must overwrite existing trailer
+      int trailerOffset = 0;
+      if (lastSplitPart) {
+        trailerOffset = carryOverTrailer.size();
+        if (sizeActual - trailerOffset < 0) {
+          throw std::runtime_error("trailer size of last split chunk cannot exceed actual size as it overwrites the existing trailer");
+        }
+      }
+      pushBack(ptr, sizeActual - trailerOffset); // write payload fitting to this page
       dataSize -= sizeActual;
       ptr += sizeActual;
-      LOG(DEBUG) << "Adding carryOverTrailer " << carryOverTrailer.size() << " bytes in IR "
-                 << ir << " to " << describe();
+      LOG(DEBUG) << "Adding carryOverTrailer " << carryOverTrailer.size() << " bytes in IR " << ir << " to " << describe();
       pushBack(carryOverTrailer.data(), carryOverTrailer.size());
     }
   }
