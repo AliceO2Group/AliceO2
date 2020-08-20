@@ -19,7 +19,8 @@ o2_add_library(FT0Workflow
                        src/FT0Workflow.cxx
                        src/FT0DataProcessDPLSpec.cxx
                        src/FT0DataReaderDPLSpec.cxx
-               PUBLIC_LINK_LIBRARIES O2::Framework
+                       src/FT0DigitWriterDPLSpec.cxx
+                       PUBLIC_LINK_LIBRARIES O2::Framework
                                      O2::DataFormatsFT0
                                      O2::FT0Reconstruction
                                      O2::DetectorsCommonDataFormats
@@ -49,5 +50,8 @@ o2_add_executable(flp-dpl-workflow
                   TARGETVARNAME ft0flpexe)
 
 if(NOT APPLE)
+
  set_property(TARGET ${fitrecoexe} PROPERTY LINK_WHAT_YOU_USE ON)
-endif()    		
+
+endif()
+

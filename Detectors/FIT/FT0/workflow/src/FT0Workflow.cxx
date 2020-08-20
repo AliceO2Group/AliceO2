@@ -11,21 +11,27 @@
 /// @file   FT0Workflow.cxx
 
 #include "FT0Workflow/FT0Workflow.h"
-#include "FT0Workflow/FT0DataReaderDPLSpec.h"
 #include "FT0Workflow/FT0DataProcessDPLSpec.h"
+#include "FT0Workflow/FT0DataReaderDPLSpec.h"
+#include "FT0Workflow/FT0DigitWriterDPLSpec.h"
 
 namespace o2
 {
 namespace fit
 {
 
-framework::WorkflowSpec getFT0Workflow(bool isExtendedMode, bool useProcess, bool dumpProcessor, bool dumpReader)
+framework::WorkflowSpec getFT0Workflow(bool isExtendedMode, bool useProcess,
+                                       bool dumpProcessor, bool dumpReader,
+                                       bool disableRootOut)
 {
   LOG(INFO) << "framework::WorkflowSpec getFT0Workflow";
   framework::WorkflowSpec specs;
-  specs.emplace_back(o2::ft0::getFT0DataReaderDPLSpec(dumpReader, isExtendedMode));
+  specs.emplace_back(
+    o2::ft0::getFT0DataReaderDPLSpec(dumpReader, isExtendedMode));
   if (useProcess)
     specs.emplace_back(o2::ft0::getFT0DataProcessDPLSpec(dumpProcessor));
+  if (!disableRootOut)
+    specs.emplace_back(o2::ft0::getFT0DigitWriterDPLSpec());
   return specs;
 }
 
