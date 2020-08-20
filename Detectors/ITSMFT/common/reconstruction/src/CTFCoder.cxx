@@ -159,3 +159,30 @@ void CTFCoder::createCoders(const std::string& dictPath, o2::ctf::CTFCoderBase::
   MAKECODER(cc.pattMap,      CTF::BLCpattMap     );
   // clang-format on
 }
+
+///________________________________
+size_t CTFCoder::estimateCompressedSize(const CompressedClusters& cc)
+{
+  size_t sz = 0;
+  // clang-format off
+  // RS FIXME this is very crude estimate, instead, an empirical values should be used
+#define VTP(vec) typename std::remove_reference<decltype(vec)>::type::value_type
+#define ESTSIZE(vec, slot) mCoders[int(slot)] ?                         \
+  rans::calculateMaxBufferSize(vec.size(), reinterpret_cast<const o2::rans::LiteralEncoder64<VTP(vec)>*>(mCoders[int(slot)].get())->getAlphabetRangeBits(), sizeof(VTP(vec)) ) : vec.size()*sizeof(VTP(vec))
+  sz += ESTSIZE(cc.firstChipROF, CTF::BLCfirstChipROF);
+  sz += ESTSIZE(cc.bcIncROF,     CTF::BLCbcIncROF    );
+  sz += ESTSIZE(cc.orbitIncROF,  CTF::BLCorbitIncROF );
+  sz += ESTSIZE(cc.nclusROF,     CTF::BLCnclusROF    );
+  //
+  sz += ESTSIZE(cc.chipInc,      CTF::BLCchipInc     );
+  sz += ESTSIZE(cc.chipMul,      CTF::BLCchipMul     );
+  sz += ESTSIZE(cc.row,          CTF::BLCrow         );
+  sz += ESTSIZE(cc.colInc,       CTF::BLCcolInc      );
+  sz += ESTSIZE(cc.pattID,       CTF::BLCpattID      );
+  sz += ESTSIZE(cc.pattMap,      CTF::BLCpattMap     );
+
+  // clang-format on
+
+  LOG(INFO) << "Estimated output size is " << sz << " bytes";
+  return sz;
+}

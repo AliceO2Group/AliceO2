@@ -786,8 +786,9 @@ void EncodedBlocks<H, N, W>::encode(const S* const srcBegin, // begin of source 
     }
 
     // estimate size of encode buffer
-    int dataSize = rans::calculateMaxBufferSize(messageLength, encoder->getAlphabetRangeBits(), sizeof(S));
+    int dataSize = rans::calculateMaxBufferSize(messageLength, encoder->getAlphabetRangeBits(), sizeof(S)); // size in bytes
     // preliminary expansion of storage based on dict size + estimated size of encode buffer
+    dataSize = dataSize / sizeof(W) + (sizeof(S) < sizeof(W)); // size in words of output stream
     expandStorage(dictSize + dataSize);
     //store dictionary first
     if (dictSize) {

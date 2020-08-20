@@ -51,6 +51,7 @@ class CTFCoder : public o2::ctf::CTFCoderBase
  private:
   /// compres compact clusters to CompressedClusters
   void compress(CompressedClusters& cc, const gsl::span<const ROFRecord>& rofRecVec, const gsl::span<const CompClusterExt>& cclusVec, const gsl::span<const unsigned char>& pattVec);
+  size_t estimateCompressedSize(const CompressedClusters& cc);
 
   /// decompress CompressedClusters to compact clusters
   template <typename VROF, typename VCLUS, typename VPAT>
@@ -83,6 +84,10 @@ void CTFCoder::encode(VEC& buff, const gsl::span<const ROFRecord>& rofRecVec, co
   };
   CompressedClusters cc;
   compress(cc, rofRecVec, cclusVec, pattVec);
+  // book output size with some margin
+  auto szIni = estimateCompressedSize(cc);
+  buff.resize(szIni);
+
   auto ec = CTF::create(buff);
   using ECB = CTF::base;
 
