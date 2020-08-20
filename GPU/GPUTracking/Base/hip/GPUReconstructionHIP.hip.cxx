@@ -157,7 +157,7 @@ void GPUReconstructionHIPBackend::runKernelBackendInternal<GPUMemClean16, 0>(krn
 template <class T, int I, typename... Args>
 void GPUReconstructionHIPBackend::runKernelBackendInternal(krnlSetup& _xyz, const Args&... args)
 {
-  if (mProcessingSettings.deviceTimers) {
+  if (mProcessingSettings.deviceTimers && mProcessingSettings.debugLevel > 0) {
 #ifdef __CUDACC__
     GPUFailedMsg(hipEventRecord((hipEvent_t)mDebugEvents->DebugStart, mInternals->Streams[x.stream]));
 #endif
