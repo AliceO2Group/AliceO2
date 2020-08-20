@@ -484,6 +484,12 @@ struct DefaultIndexPolicy : IndexPolicyBase {
   {
     return O2_BUILTIN_UNLIKELY(this->mRowIndex == sentinel.index);
   }
+
+  auto size() const
+  {
+    return mMaxRow;
+  }
+
   int64_t mMaxRow = 0;
 };
 
@@ -568,9 +574,14 @@ struct FilteredIndexPolicy : IndexPolicyBase {
     this->mRowIndex = -1;
   }
 
-  int64_t getSelectionRow() const
+  auto getSelectionRow() const
   {
     return mSelectionRow;
+  }
+
+  auto size() const
+  {
+    return mMaxSelection;
   }
 
  private:
@@ -853,6 +864,8 @@ class Table
         return static_cast<int32_t>(-1);
       }
     }
+
+    using IP::size;
 
     using RowViewCore<IP, C...>::operator++;
 
