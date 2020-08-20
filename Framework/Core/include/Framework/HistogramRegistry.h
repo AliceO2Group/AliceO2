@@ -32,31 +32,66 @@ namespace o2
 
 namespace framework
 {
+// Most common histogram types
+enum HistogramType : unsigned int {
+  kTH1D = 0,
+  kTH1F = 1,
+  kTH1I = 2,
+  kTH2D = 3,
+  kTH2F = 4,
+  kTH2I = 5,
+  kTH3D = 6,
+  kTH3F = 7,
+  kTH3I = 8
+};
+
+/// Description of a single histogram axis
+struct AxisSpec {
+  AxisSpec(int nBins_, std::vector<double> bins_, std::string label_ = "")
+    : nBins(nBins_),
+      bins(bins_),
+      binsEqual(false),
+      label(label_)
+  {
+  }
+
+  AxisSpec(int nBins_, double binMin_, double binMax_, std::string label_ = "")
+    : nBins(nBins_),
+      bins({binMin_, binMax_}),
+      binsEqual(true),
+      label(label_)
+  {
+  }
+
+  AxisSpec() : nBins(1), binsEqual(false), bins(), label("") {}
+
+  int nBins;
+  std::vector<double> bins;
+  bool binsEqual; // if true, then bins specify min and max for equidistant binning
+  std::string label;
+};
+
 /// Data sctructure that will allow to construct a fully qualified TH* histogram
-/// Currently only supports TH1F
 struct HistogramConfigSpec {
-  HistogramConfigSpec(char const* const kind_, unsigned int nBins_, double xmin_, double xmax_)
-    : kind(kind_),
-      nBins(nBins_),
-      xmin(xmin_),
-      xmax(xmax_)
+  HistogramConfigSpec(HistogramType type_, std::vector<AxisSpec> axes_)
+    : type(type_),
+      axes(axes_),
+      binsEqual(axes.size() > 0 ? axes[0].binsEqual : false)
   {
   }
 
   HistogramConfigSpec()
-    : kind(""),
-      nBins(1),
-      xmin(0),
-      xmax(1)
+    : type(HistogramType::kTH1F),
+      axes(),
+      binsEqual(false)
   {
   }
   HistogramConfigSpec(HistogramConfigSpec const& other) = default;
   HistogramConfigSpec(HistogramConfigSpec&& other) = default;
 
-  std::string kind;
-  unsigned int nBins;
-  double xmin;
-  double xmax;
+  HistogramType type;
+  std::vector<AxisSpec> axes;
+  bool binsEqual;
 };
 
 /// Data structure containing histogram specification for the HistogramRegistry
@@ -86,6 +121,110 @@ struct HistogramSpec {
   HistogramConfigSpec config;
 };
 
+template <typename T>
+std::unique_ptr<TH1> createTH1FromSpec(HistogramSpec const& spec)
+{
+  if (spec.config.axes.size() == 0) {
+    throw std::runtime_error("No arguments available in spec to create a histogram");
+  }
+  if (spec.config.binsEqual) {
+    return std::make_unique<T>(spec.name.data(), spec.readableName.data(), spec.config.axes[0].nBins, spec.config.axes[0].bins[0], spec.config.axes[0].bins[1]);
+  }
+  return std::make_unique<T>(spec.name.data(), spec.readableName.data(), spec.config.axes[0].nBins, spec.config.axes[0].bins.data());
+}
+
+template <typename T>
+std::unique_ptr<TH2> createTH2FromSpec(HistogramSpec const& spec)
+{
+  if (spec.config.axes.size() == 0) {
+    throw std::runtime_error("No arguments available in spec to create a histogram");
+  }
+  if (spec.config.binsEqual) {
+    return std::make_unique<T>(spec.name.data(), spec.readableName.data(), spec.config.axes[0].nBins, spec.config.axes[0].bins[0], spec.config.axes[0].bins[1], spec.config.axes[1].nBins, spec.config.axes[1].bins[0], spec.config.axes[1].bins[1]);
+  }
+  return std::make_unique<T>(spec.name.data(), spec.readableName.data(), spec.config.axes[0].nBins, spec.config.axes[0].bins.data(), spec.config.axes[1].nBins, spec.config.axes[1].bins.data());
+}
+
+template <typename T>
+std::unique_ptr<TH3> createTH3FromSpec(HistogramSpec const& spec)
+{
+  if (spec.config.axes.size() == 0) {
+    throw std::runtime_error("No arguments available in spec to create a histogram");
+  }
+  if (spec.config.binsEqual) {
+    return std::make_unique<T>(spec.name.data(), spec.readableName.data(), spec.config.axes[0].nBins, spec.config.axes[0].bins[0], spec.config.axes[0].bins[1], spec.config.axes[1].nBins, spec.config.axes[1].bins[0], spec.config.axes[1].bins[1], spec.config.axes[2].nBins, spec.config.axes[2].bins[0], spec.config.axes[2].bins[1]);
+  }
+  return std::make_unique<T>(spec.name.data(), spec.readableName.data(), spec.config.axes[0].nBins, spec.config.axes[0].bins.data(), spec.config.axes[1].nBins, spec.config.axes[1].bins.data(), spec.config.axes[2].nBins, spec.config.axes[2].bins.data());
+}
+
+using HistogramCreationCallback = std::function<std::unique_ptr<TH1>(HistogramSpec const& spec)>;
+
+// Wrapper to avoid multiple function definitinions error
+struct HistogramCallbacks {
+  static HistogramCreationCallback createTH1D()
+  {
+    return [](HistogramSpec const& spec) -> std::unique_ptr<TH1> {
+      return createTH1FromSpec<TH1D>(spec);
+    };
+  }
+
+  static HistogramCreationCallback createTH1F()
+  {
+    return [](HistogramSpec const& spec) -> std::unique_ptr<TH1> {
+      return createTH1FromSpec<TH1F>(spec);
+    };
+  }
+
+  static HistogramCreationCallback createTH1I()
+  {
+    return [](HistogramSpec const& spec) -> std::unique_ptr<TH1> {
+      return createTH1FromSpec<TH1I>(spec);
+    };
+  }
+
+  static HistogramCreationCallback createTH2D()
+  {
+    return [](HistogramSpec const& spec) -> std::unique_ptr<TH1> {
+      return createTH2FromSpec<TH2D>(spec);
+    };
+  }
+
+  static HistogramCreationCallback createTH2F()
+  {
+    return [](HistogramSpec const& spec) -> std::unique_ptr<TH1> {
+      return createTH2FromSpec<TH2F>(spec);
+    };
+  }
+
+  static HistogramCreationCallback createTH2I()
+  {
+    return [](HistogramSpec const& spec) -> std::unique_ptr<TH1> {
+      return createTH2FromSpec<TH2I>(spec);
+    };
+  }
+
+  static HistogramCreationCallback createTH3D()
+  {
+    return [](HistogramSpec const& spec) -> std::unique_ptr<TH1> {
+      return createTH3FromSpec<TH3D>(spec);
+    };
+  }
+
+  static HistogramCreationCallback createTH3F()
+  {
+    return [](HistogramSpec const& spec) -> std::unique_ptr<TH1> {
+      return createTH3FromSpec<TH3F>(spec);
+    };
+  }
+
+  static HistogramCreationCallback createTH3I()
+  {
+    return [](HistogramSpec const& spec) -> std::unique_ptr<TH1> {
+      return createTH3FromSpec<TH3I>(spec);
+    };
+  }
+};
+
 /// Histogram registry for an analysis task that allows to define needed histograms
 /// and serves as the container/wrapper to fill them
 class HistogramRegistry
@@ -95,7 +234,16 @@ class HistogramRegistry
     : name(name_),
       enabled(enable),
       mRegistryKey(),
-      mRegistryValue()
+      mRegistryValue(),
+      mHistogramCreationCallbacks({HistogramCallbacks::createTH1D(),
+                                   HistogramCallbacks::createTH1F(),
+                                   HistogramCallbacks::createTH1I(),
+                                   HistogramCallbacks::createTH2D(),
+                                   HistogramCallbacks::createTH2F(),
+                                   HistogramCallbacks::createTH2I(),
+                                   HistogramCallbacks::createTH3D(),
+                                   HistogramCallbacks::createTH3F(),
+                                   HistogramCallbacks::createTH3I()})
   {
     mRegistryKey.fill(0u);
     for (auto& spec : specs) {
@@ -148,7 +296,7 @@ class HistogramRegistry
     for (auto j = 0u; j < MAX_REGISTRY_SIZE; ++j) {
       if (mRegistryValue[imask(j + i)].get() == nullptr) {
         mRegistryKey[imask(j + i)] = spec.id;
-        mRegistryValue[imask(j + i)] = {std::make_unique<TH1F>(spec.name.data(), spec.readableName.data(), spec.config.nBins, spec.config.xmin, spec.config.xmax)};
+        mRegistryValue[imask(j + i)] = mHistogramCreationCallbacks[spec.config.type](spec);
         lookup += j;
         return;
       }
@@ -169,6 +317,7 @@ class HistogramRegistry
   static constexpr uint32_t MAX_REGISTRY_SIZE = mask + 1;
   std::array<uint32_t, MAX_REGISTRY_SIZE> mRegistryKey;
   std::array<std::unique_ptr<TH1>, MAX_REGISTRY_SIZE> mRegistryValue;
+  std::vector<HistogramCreationCallback> mHistogramCreationCallbacks;
 };
 
 } // namespace framework
