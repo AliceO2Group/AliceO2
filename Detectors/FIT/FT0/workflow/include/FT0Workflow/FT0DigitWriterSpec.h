@@ -8,20 +8,24 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#ifndef O2_FIT_FT0WORKFLOW_H
-#define O2_FIT_FT0WORKFLOW_H
+/// @file   FT0DigitWriterSpec.h
 
-/// @file   FT0Workflow.h
+#ifndef O2_FT0DIGITWRITER_H
+#define O2_FT0DIGITWRITER_H
 
-#include "Framework/WorkflowSpec.h"
+#include "Framework/DataProcessorSpec.h"
+
+using namespace o2::framework;
 
 namespace o2
 {
-namespace fit
+namespace ft0
 {
-framework::WorkflowSpec getFT0Workflow(bool isExtendedMode, bool useProcess,
-                                       bool dumpProcessor, bool dumpReader,
-                                       bool disableRootOut);
-} // namespace fit
+
+/// create a processor spec
+framework::DataProcessorSpec getFT0DigitWriterSpec();
+
+} // namespace ft0
 } // namespace o2
-#endif
+
+#endif /* O2_FT0DIGITWRITER_H */
