@@ -52,6 +52,7 @@ class CTFCoder : public o2::ctf::CTFCoderBase
  private:
   /// compres digits clusters to CompressedDigits
   void compress(CompressedDigits& cd, const gsl::span<const Digit>& digitVec, const gsl::span<const ChannelData>& channelVec);
+  size_t estimateCompressedSize(const CompressedDigits& cc);
 
   /// decompress CompressedDigits to digits
   template <typename VDIG, typename VCHAN>
@@ -82,6 +83,11 @@ void CTFCoder::encode(VEC& buff, const gsl::span<const Digit>& digitVec, const g
   };
   CompressedDigits cd;
   compress(cd, digitVec, channelVec);
+
+  // book output size with some margin
+  auto szIni = estimateCompressedSize(cd);
+  buff.resize(szIni);
+
   auto ec = CTF::create(buff);
   using ECB = CTF::base;
 

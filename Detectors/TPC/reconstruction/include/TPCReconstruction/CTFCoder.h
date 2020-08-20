@@ -45,6 +45,7 @@ class CTFCoder : public o2::ctf::CTFCoderBase
   void decode(const CTF::base& ec, VEC& buff);
 
   void createCoders(const std::string& dictPath, o2::ctf::CTFCoderBase::OpType op);
+  size_t estimateCompressedSize(const CompressedClusters& ccl);
 
   static size_t constexpr Alignment = 16;
   static size_t estimateSize(CompressedClusters& c);
@@ -102,6 +103,10 @@ void CTFCoder::encode(VEC& buff, const CompressedClusters& ccl)
     MD::EENCODE, //nTrackClusters
     MD::EENCODE  //nSliceRowClusters
   };
+
+  // book output size with some margin
+  auto szIni = estimateCompressedSize(ccl);
+  buff.resize(szIni);
 
   auto ec = CTF::create(buff);
   ec->setHeader(reinterpret_cast<const CompressedClustersCounters&>(ccl));

@@ -128,3 +128,25 @@ void CTFCoder::createCoders(const std::string& dictPath, o2::ctf::CTFCoderBase::
   MAKECODER(cd.charge,    CTF::BLC_charge);
   // clang-format on
 }
+
+///________________________________
+size_t CTFCoder::estimateCompressedSize(const CompressedDigits& cd)
+{
+  size_t sz = 0;
+  // clang-format off
+  // RS FIXME this is very crude estimate, instead, an empirical values should be used
+#define VTP(vec) typename std::remove_reference<decltype(vec)>::type::value_type
+#define ESTSIZE(vec, slot) mCoders[int(slot)] ?                         \
+  rans::calculateMaxBufferSize(vec.size(), reinterpret_cast<const o2::rans::LiteralEncoder64<VTP(vec)>*>(mCoders[int(slot)].get())->getAlphabetRangeBits(), sizeof(VTP(vec)) ) : vec.size()*sizeof(VTP(vec))
+  sz += ESTSIZE(cd.bcInc,     CTF::BLC_bcInc); 
+  sz += ESTSIZE(cd.orbitInc,  CTF::BLC_orbitInc);
+  sz += ESTSIZE(cd.nChan,     CTF::BLC_nChan);
+
+  sz += ESTSIZE(cd.idChan,    CTF::BLC_idChan);
+  sz += ESTSIZE(cd.time,      CTF::BLC_time);
+  sz += ESTSIZE(cd.charge,    CTF::BLC_charge);
+  // clang-format on
+
+  LOG(INFO) << "Estimated output size is " << sz << " bytes";
+  return sz;
+}
