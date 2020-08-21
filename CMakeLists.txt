@@ -39,6 +39,14 @@ if (ENABLE_UPGRADES)
   add_definitions(-DENABLE_UPGRADES)
 endif()
 
+if (ENABLE_SANITIZERS)
+  set(SANITIZERS address)
+  foreach(san IN LISTS SANITIZERS)
+    add_compile_options(-fsanitize=${san})
+    add_link_options(-fsanitize=${san})
+  endforeach()
+endif()
+
 include(O2DefineOutputPaths)
 o2_define_output_paths()
 
