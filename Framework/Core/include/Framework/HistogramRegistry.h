@@ -18,6 +18,7 @@
 #include "Framework/OutputSpec.h"
 #include "Framework/StringHelpers.h"
 #include "Framework/TableBuilder.h"
+#include "Framework/RuntimeError.h"
 
 #include "TH1.h"
 #include "TH2.h"
@@ -125,7 +126,7 @@ template <typename T>
 std::unique_ptr<TH1> createTH1FromSpec(HistogramSpec const& spec)
 {
   if (spec.config.axes.size() == 0) {
-    throw std::runtime_error("No arguments available in spec to create a histogram");
+    throw runtime_error("No arguments available in spec to create a histogram");
   }
   if (spec.config.binsEqual) {
     return std::make_unique<T>(spec.name.data(), spec.readableName.data(), spec.config.axes[0].nBins, spec.config.axes[0].bins[0], spec.config.axes[0].bins[1]);
@@ -137,7 +138,7 @@ template <typename T>
 std::unique_ptr<TH2> createTH2FromSpec(HistogramSpec const& spec)
 {
   if (spec.config.axes.size() == 0) {
-    throw std::runtime_error("No arguments available in spec to create a histogram");
+    throw runtime_error("No arguments available in spec to create a histogram");
   }
   if (spec.config.binsEqual) {
     return std::make_unique<T>(spec.name.data(), spec.readableName.data(), spec.config.axes[0].nBins, spec.config.axes[0].bins[0], spec.config.axes[0].bins[1], spec.config.axes[1].nBins, spec.config.axes[1].bins[0], spec.config.axes[1].bins[1]);
@@ -149,7 +150,7 @@ template <typename T>
 std::unique_ptr<TH3> createTH3FromSpec(HistogramSpec const& spec)
 {
   if (spec.config.axes.size() == 0) {
-    throw std::runtime_error("No arguments available in spec to create a histogram");
+    throw runtime_error("No arguments available in spec to create a histogram");
   }
   if (spec.config.binsEqual) {
     return std::make_unique<T>(spec.name.data(), spec.readableName.data(), spec.config.axes[0].nBins, spec.config.axes[0].bins[0], spec.config.axes[0].bins[1], spec.config.axes[1].nBins, spec.config.axes[1].bins[0], spec.config.axes[1].bins[1], spec.config.axes[2].nBins, spec.config.axes[2].bins[0], spec.config.axes[2].bins[1]);
@@ -264,7 +265,7 @@ class HistogramRegistry
         return mRegistryValue[imask(j + i)];
       }
     }
-    throw std::runtime_error("No match found!");
+    throw runtime_error("No match found!");
   }
 
   /// @return the histogram registered with name @a name
@@ -301,7 +302,7 @@ class HistogramRegistry
         return;
       }
     }
-    throw std::runtime_error("Internal array is full.");
+    throw runtime_error("Internal array is full.");
   }
 
   inline constexpr uint32_t imask(uint32_t i) const

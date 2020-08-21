@@ -15,15 +15,14 @@
 #include "Framework/ServiceRegistryHelpers.h"
 #include "Framework/CompilerBuiltins.h"
 #include "Framework/TypeIdHelpers.h"
+#include "Framework/RuntimeError.h"
 
 #include <algorithm>
 #include <array>
-#include <exception>
 #include <functional>
 #include <string>
 #include <type_traits>
 #include <typeinfo>
-#include <stdexcept>
 #include <thread>
 #include <atomic>
 #include <mutex>
@@ -281,9 +280,8 @@ struct ServiceRegistry {
         return *reinterpret_cast<T*>(ptr);
       }
     }
-    throw std::runtime_error(std::string("Unable to find service of kind ") +
-                             typeid(T).name() +
-                             ". Make sure you use const / non-const correctly.");
+    throw runtime_error_f("Unable to find service of kind %s. Make sure you use const / non-const correctly.",
+                          typeid(T).name());
   }
 };
 

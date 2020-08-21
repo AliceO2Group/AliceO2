@@ -13,6 +13,7 @@
 #include "Framework/DataMatcherWalker.h"
 #include "Framework/DataProcessingHeader.h"
 #include "Framework/VariantHelpers.h"
+#include "Framework/RuntimeError.h"
 #include <iostream>
 
 namespace o2
@@ -63,7 +64,7 @@ bool OriginValueMatcher::match(header::DataHeader const& header, VariableContext
   } else if (auto s = std::get_if<std::string>(&mValue)) {
     return strncmp(header.dataOrigin.str, s->c_str(), 4) == 0;
   }
-  throw std::runtime_error("Mismatching type for variable");
+  throw runtime_error("Mismatching type for variable");
 }
 
 bool DescriptionValueMatcher::match(header::DataHeader const& header, VariableContext& context) const
@@ -79,7 +80,7 @@ bool DescriptionValueMatcher::match(header::DataHeader const& header, VariableCo
   } else if (auto s = std::get_if<std::string>(&this->mValue)) {
     return strncmp(header.dataDescription.str, s->c_str(), 16) == 0;
   }
-  throw std::runtime_error("Mismatching type for variable");
+  throw runtime_error("Mismatching type for variable");
 }
 
 bool SubSpecificationTypeValueMatcher::match(header::DataHeader const& header, VariableContext& context) const
@@ -94,7 +95,7 @@ bool SubSpecificationTypeValueMatcher::match(header::DataHeader const& header, V
   } else if (auto v = std::get_if<header::DataHeader::SubSpecificationType>(&mValue)) {
     return header.subSpecification == *v;
   }
-  throw std::runtime_error("Mismatching type for variable");
+  throw runtime_error("Mismatching type for variable");
 }
 
 /// This will match the timing information which is currently in
@@ -112,7 +113,7 @@ bool StartTimeValueMatcher::match(DataProcessingHeader const& dph, VariableConte
   } else if (auto v = std::get_if<uint64_t>(&mValue)) {
     return (dph.startTime / mScale) == *v;
   }
-  throw std::runtime_error("Mismatching type for variable");
+  throw runtime_error("Mismatching type for variable");
 }
 
 DataDescriptorMatcher::DataDescriptorMatcher(DataDescriptorMatcher const& other)
@@ -241,19 +242,19 @@ bool DataDescriptorMatcher::match(char const* d, VariableContext& context) const
   if (auto pval0 = std::get_if<OriginValueMatcher>(&mLeft)) {
     auto dh = o2::header::get<header::DataHeader*>(d);
     if (dh == nullptr) {
-      throw std::runtime_error("Cannot find DataHeader");
+      throw runtime_error("Cannot find DataHeader");
     }
     leftValue = pval0->match(*dh, context);
   } else if (auto pval1 = std::get_if<DescriptionValueMatcher>(&mLeft)) {
     auto dh = o2::header::get<header::DataHeader*>(d);
     if (dh == nullptr) {
-      throw std::runtime_error("Cannot find DataHeader");
+      throw runtime_error("Cannot find DataHeader");
     }
     leftValue = pval1->match(*dh, context);
   } else if (auto pval2 = std::get_if<SubSpecificationTypeValueMatcher>(&mLeft)) {
     auto dh = o2::header::get<header::DataHeader*>(d);
     if (dh == nullptr) {
-      throw std::runtime_error("Cannot find DataHeader");
+      throw runtime_error("Cannot find DataHeader");
     }
     leftValue = pval2->match(*dh, context);
   } else if (auto pval3 = std::get_if<std::unique_ptr<DataDescriptorMatcher>>(&mLeft)) {
@@ -263,11 +264,11 @@ bool DataDescriptorMatcher::match(char const* d, VariableContext& context) const
   } else if (auto pval5 = std::get_if<StartTimeValueMatcher>(&mLeft)) {
     auto dph = o2::header::get<DataProcessingHeader*>(d);
     if (dph == nullptr) {
-      throw std::runtime_error("Cannot find DataProcessingHeader");
+      throw runtime_error("Cannot find DataProcessingHeader");
     }
     leftValue = pval5->match(*dph, context);
   } else {
-    throw std::runtime_error("Bad parsing tree");
+    throw runtime_error("Bad parsing tree");
   }
   // Common speedup.
   if (mOp == Op::And && leftValue == false) {
@@ -309,7 +310,7 @@ bool DataDescriptorMatcher::match(char const* d, VariableContext& context) const
     case Op::Just:
       return leftValue;
   }
-  throw std::runtime_error("Bad parsing tree");
+  throw runtime_error("Bad parsing tree");
 };
 
 bool DataDescriptorMatcher::operator==(DataDescriptorMatcher const& other) const

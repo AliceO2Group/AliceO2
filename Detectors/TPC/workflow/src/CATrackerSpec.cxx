@@ -476,7 +476,8 @@ DataProcessorSpec getCATrackerSpec(ca::Config const& specconfig, std::vector<int
         // for digits and clusters we always have the sector information, activeSectors being zero
         // is thus an error condition. The completion policy makes sure that the data set is complete
         if (activeSectors == 0 || (activeSectors & validInputs.to_ulong()) != activeSectors) {
-          throw std::runtime_error("Incomplete input data, expecting complete data set, buffering has been removed ");
+          throw o2::framework::runtime_error_f("Incomplete input data, expecting complete data set, buffering has been removed (0x%08x & 0x%08x != 0x%08x)",
+                                               activeSectors, validInputs.to_ulong(), activeSectors);
         }
         // MC label blocks must be in the same multimessage with the corresponding data, the completion
         // policy does not check for the MC labels and expects them to be present and thus complete if

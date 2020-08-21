@@ -17,6 +17,7 @@
 #include "Framework/InputSpan.h"
 #include "Framework/TableConsumer.h"
 #include "Framework/Traits.h"
+#include "Framework/RuntimeError.h"
 #include "MemoryResources/Types.h"
 #include "Headers/DataHeader.h"
 
@@ -29,7 +30,6 @@
 #include <vector>
 #include <cstring>
 #include <cassert>
-#include <exception>
 #include <memory>
 #include <type_traits>
 
@@ -139,7 +139,7 @@ class InputRecord
       if (mProperty == OwnershipProperty::Unknown) {
         mProperty = other.mProperty;
       } else if (mProperty != other.mProperty) {
-        throw std::runtime_error("Attemp to change resource control");
+        throw runtime_error("Attemp to change resource control");
       }
     }
 
@@ -156,7 +156,7 @@ class InputRecord
       if (mProperty == OwnershipProperty::Unknown) {
         mProperty = other.mProperty;
       } else if (mProperty != other.mProperty) {
-        throw std::runtime_error("Attemp to change resource control");
+        throw runtime_error("Attemp to change resource control");
       }
       return *this;
     }
@@ -180,13 +180,13 @@ class InputRecord
   DataRef getByPos(int pos, int part = 0) const
   {
     if (pos >= mSpan.size() || pos < 0) {
-      throw std::runtime_error("Unknown message requested at position " + std::to_string(pos));
+      throw runtime_error_f("Unknown message requested at position %d", pos);
     }
     if (part > 0 && part >= getNofParts(pos)) {
-      throw std::runtime_error("Invalid message part index at " + std::to_string(pos) + ":" + std::to_string(part));
+      throw runtime_error_f("Invalid message part index at %d:%d", pos, part);
     }
     if (pos >= mInputsSchema.size()) {
-      throw std::runtime_error("Unknown schema at position" + std::to_string(pos));
+      throw runtime_error_f("Unknown schema at position %d", pos);
     }
     auto ref = mSpan.get(pos, part);
     ref.spec = &mInputsSchema[pos].matcher;
@@ -232,8 +232,11 @@ class InputRecord
         }
         ref = this->getByPos(pos, part);
       } catch (const std::exception& e) {
-        throw std::runtime_error("Unknown argument requested " + std::string(binding) +
-                                 " - " + e.what());
+        if constexpr (std::is_same_v<std::decay_t<R>, std::string>) {
+          throw runtime_error_f("Unknown argument requested %s - %s", binding.c_str(), e.what());
+        } else {
+          throw runtime_error_f("Unknown argument requested %s - %s", binding, e.what());
+        }
       }
     } else if constexpr (std::is_same_v<std::decay_t<R>, DataRef>) {
       ref = binding;
@@ -296,13 +299,14 @@ class InputRecord
       auto header = header::get<const header::DataHeader*>(ref.header);
       assert(header);
       if (sizeof(typename T::value_type) > 1 && header->payloadSerializationMethod != o2::header::gSerializationMethodNone) {
-        throw std::runtime_error("Inconsistent serialization method for extracting span");
+        throw runtime_error("Inconsistent serialization method for extracting span");
       }
       using ValueT = typename T::value_type;
       if (header->payloadSize % sizeof(ValueT)) {
-        throw std::runtime_error("Inconsistent type and payload size at " + std::string(ref.spec->binding) + "(" + DataSpecUtils::describe(*ref.spec) + ")" +
-                                 ": type size " + std::to_string(sizeof(ValueT)) +
-                                 "  payload size " + std::to_string(header->payloadSize));
+        throw runtime_error(("Inconsistent type and payload size at " + std::string(ref.spec->binding) + "(" + DataSpecUtils::describe(*ref.spec) + ")" +
+                             ": type size " + std::to_string(sizeof(ValueT)) +
+                             "  payload size " + std::to_string(header->payloadSize))
+                              .c_str());
       }
       return gsl::span<ValueT const>(reinterpret_cast<ValueT const*>(ref.payload), header->payloadSize / sizeof(ValueT));
 
@@ -336,10 +340,10 @@ class InputRecord
             std::swap(const_cast<NonConstT&>(container), *object);
             return container;
           } else {
-            throw std::runtime_error("No supported conversion function for ROOT serialized message");
+            throw runtime_error("No supported conversion function for ROOT serialized message");
           }
         } else {
-          throw std::runtime_error("Attempt to extract object from message with unsupported serialization type");
+          throw runtime_error("Attempt to extract object from message with unsupported serialization type");
         }
       } else {
         static_assert(always_static_assert_v<T>, "unsupported code path");
@@ -358,7 +362,7 @@ class InputRecord
       if (method != o2::header::gSerializationMethodNone) {
         // FIXME: we could in principle support serialized content here as well if we
         // store all extracted objects internally and provide cleanup
-        throw std::runtime_error("Can not extract a plain object from serialized message");
+        throw runtime_error("Can not extract a plain object from serialized message");
       }
       return *reinterpret_cast<T const*>(ref.payload);
 
@@ -387,7 +391,7 @@ class InputRecord
           std::unique_ptr<ValueT const, Deleter<ValueT const>> result(container.release(), Deleter<ValueT const>(true));
           return result;
         }
-        throw std::runtime_error("unsupported code path");
+        throw runtime_error("unsupported code path");
       } else if (method == o2::header::gSerializationMethodROOT) {
         // This supports the common case of retrieving a root object and getting pointer.
         // Notice that this will return a copy of the actual contents of the buffer, because
@@ -400,7 +404,7 @@ class InputRecord
         std::unique_ptr<ValueT const, Deleter<ValueT const>> result(DataRefUtils::as<ROOTSerialized<ValueT>>(ref).release());
         return result;
       } else {
-        throw std::runtime_error("Attempt to extract object from message with unsupported serialization type");
+        throw runtime_error("Attempt to extract object from message with unsupported serialization type");
       }
     } else if constexpr (has_root_dictionary<T>::value) {
       // retrieving ROOT objects follows the pointer approach, i.e. T* has to be specified
@@ -416,7 +420,7 @@ class InputRecord
       auto method = header->payloadSerializationMethod;
       if (method == o2::header::gSerializationMethodNone) {
         // this code path is only selected if the type is non-messageable
-        throw std::runtime_error(
+        throw runtime_error(
           "Type mismatch: attempt to extract a non-messagable object "
           "from message with unserialized data");
       } else if (method == o2::header::gSerializationMethodROOT) {
@@ -426,7 +430,7 @@ class InputRecord
         std::unique_ptr<T const, Deleter<T const>> result(DataRefUtils::as<ROOTSerialized<T>>(ref).release());
         return result;
       } else {
-        throw std::runtime_error("Attempt to extract object from message with unsupported serialization type");
+        throw runtime_error("Attempt to extract object from message with unsupported serialization type");
       }
     }
   }
