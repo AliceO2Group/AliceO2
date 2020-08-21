@@ -38,12 +38,11 @@ class Table;
 class Array;
 } // namespace arrow
 
-namespace o2
-{
-namespace framework
+namespace o2::framework
 {
 namespace detail
 {
+/// FIXME: adapt type conversion to arrow 1.0
 // This is needed by Arrow 0.12.0 which dropped
 //
 //      using ArrowType = ArrowType_;
@@ -637,68 +636,5 @@ void lowerBound(int32_t value, T& start)
 
 template <typename... T>
 using iterator_tuple_t = std::tuple<typename T::iterator...>;
-
-/// Generic builder for in index table
-template <typename... Cs, typename Key, typename T1, typename... T>
-auto indexBuilder(framework::pack<Cs...>, Key const&, std::tuple<T1, T...> tables)
-{
-  static_assert(sizeof...(Cs) == sizeof...(T) + 1, "Number of columns does not coincide with number of supplied tables");
-  using tables_t = framework::pack<T...>;
-  using first_t = T1;
-  auto tail = tuple_tail(tables);
-  TableBuilder builder;
-  auto cursor = framework::FFL(builder.cursor<o2::soa::Table<Cs...>>());
-
-  std::array<int32_t, sizeof...(T)> values;
-  iterator_tuple_t<std::decay_t<T>...> begins = std::apply(
-    [](auto&&... x) {
-      return std::make_tuple(x.begin()...);
-    },
-    tail);
-
-  using rest_it_t = decltype(pack_from_tuple(begins));
-
-  auto first = std::get<first_t>(tables);
-  for (auto& row : first) {
-    auto idx = row.template getId<Key>();
-    auto setValue = [&](auto& x) -> bool {
-      using type = std::decay_t<decltype(x)>;
-      constexpr auto position = framework::has_type_at<type>(rest_it_t{});
-
-      lowerBound<Key>(idx, x);
-      if (x == soa::RowViewSentinel{static_cast<uint64_t>(x.mMaxRow)}) {
-        return false;
-      } else if (x.template getId<Key>() != idx) {
-        return false;
-      } else {
-        values[position] = x.globalIndex();
-        ++x;
-        return true;
-      }
-    };
-
-    if (std::apply(
-          [](auto&... x) {
-            return ((x == soa::RowViewSentinel{static_cast<uint64_t>(x.mMaxRow)}) && ...);
-          },
-          begins)) {
-      break;
-    }
-
-    auto result = std::apply(
-      [&](auto&... x) {
-        std::array<bool, sizeof...(T)> results{setValue(x)...};
-        return (results[framework::has_type_at<std::decay_t<decltype(x)>>(rest_it_t{})] && ...);
-      },
-      begins);
-
-    if (result) {
-      cursor(0, row.globalIndex(), values[framework::has_type_at<T>(tables_t{})]...);
-    }
-  }
-  return builder.finalize();
-}
-
-} // namespace framework
-} // namespace o2
+} // namespace o2::framework
 #endif // FRAMEWORK_TABLEBUILDER_H
