@@ -61,63 +61,42 @@ std::vector<std::string> getColumnNames(header::DataHeader dh)
       switch (description_id) {
         case compile_time_hash("TRACK:PAR"):
           return columnNamesTrait(decltype(StoredTracksMetadata{})::table_t::persistent_columns_t{});
-          break;
         case compile_time_hash("TRACK:PARCOV"):
           return columnNamesTrait(decltype(StoredTracksCovMetadata{})::table_t::persistent_columns_t{});
-          break;
         case compile_time_hash("TRACK:EXTRA"):
           return columnNamesTrait(decltype(TracksExtraMetadata{})::table_t::persistent_columns_t{});
-          break;
         case compile_time_hash("CALO"):
           return columnNamesTrait(decltype(CalosMetadata{})::table_t::persistent_columns_t{});
-          break;
         case compile_time_hash("CALOTRIGGER"):
           return columnNamesTrait(decltype(CaloTriggersMetadata{})::table_t::persistent_columns_t{});
-          break;
         case compile_time_hash("MUON"):
           return columnNamesTrait(decltype(MuonsMetadata{})::table_t::persistent_columns_t{});
-          break;
         case compile_time_hash("MUONCLUSTER"):
           return columnNamesTrait(decltype(MuonClustersMetadata{})::table_t::persistent_columns_t{});
-          break;
         case compile_time_hash("ZDC"):
           return columnNamesTrait(decltype(ZdcsMetadata{})::table_t::persistent_columns_t{});
-          break;
         case compile_time_hash("BC"):
           return columnNamesTrait(decltype(BCsMetadata{})::table_t::persistent_columns_t{});
-          break;
         case compile_time_hash("COLLISION"):
           return columnNamesTrait(decltype(CollisionsMetadata{})::table_t::persistent_columns_t{});
-          break;
         case compile_time_hash("FT0"):
           return columnNamesTrait(decltype(FT0sMetadata{})::table_t::persistent_columns_t{});
-          break;
         case compile_time_hash("FV0"):
           return columnNamesTrait(decltype(FV0sMetadata{})::table_t::persistent_columns_t{});
-          break;
         case compile_time_hash("FDD"):
           return columnNamesTrait(decltype(FDDsMetadata{})::table_t::persistent_columns_t{});
-          break;
         case compile_time_hash("UNASSIGNEDTRACK"):
           return columnNamesTrait(decltype(UnassignedTracksMetadata{})::table_t::persistent_columns_t{});
-          break;
         case compile_time_hash("MCCOLLISION"):
           return columnNamesTrait(decltype(McCollisionsMetadata{})::table_t::persistent_columns_t{});
-          break;
         case compile_time_hash("MCTRACKLABEL"):
           return columnNamesTrait(decltype(McTrackLabelsMetadata{})::table_t::persistent_columns_t{});
-          break;
         case compile_time_hash("MCCALOLABEL"):
           return columnNamesTrait(decltype(McCaloLabelsMetadata{})::table_t::persistent_columns_t{});
-          break;
         case compile_time_hash("MCCOLLISLABEL"):
           return columnNamesTrait(decltype(McCollisionLabelsMetadata{})::table_t::persistent_columns_t{});
-          break;
         case compile_time_hash("MCPARTICLE"):
           return columnNamesTrait(decltype(McParticlesMetadata{})::table_t::persistent_columns_t{});
-          break;
-        default:
-          break;
       }
       break;
 
@@ -125,9 +104,6 @@ std::vector<std::string> getColumnNames(header::DataHeader dh)
       switch (description_id) {
         case compile_time_hash("V0"):
           return columnNamesTrait(decltype(Run2V0sMetadata{})::table_t::persistent_columns_t{});
-          break;
-        default:
-          break;
       }
   }
 
