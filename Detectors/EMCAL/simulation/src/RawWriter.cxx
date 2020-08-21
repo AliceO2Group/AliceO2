@@ -8,25 +8,53 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
+#include <fmt/core.h>
 #include <gsl/span>
 #include <TSystem.h>
 #include "DataFormatsEMCAL/Constants.h"
 #include "EMCALBase/Geometry.h"
 #include "EMCALBase/RCUTrailer.h"
 #include "EMCALSimulation/RawWriter.h"
-#include "Headers/RAWDataHeader.h"
 
 using namespace o2::emcal;
 
-void RawWriter::setTriggerRecords(std::vector<o2::emcal::TriggerRecord>* triggers)
+void RawWriter::setTriggerRecords(gsl::span<o2::emcal::TriggerRecord> triggers)
 {
   mTriggers = triggers;
-  mCurrentTrigger = triggers->begin();
+  mCurrentTrigger = triggers.begin();
 }
 
 void RawWriter::init()
 {
-  mPageHandler = std::make_unique<RawOutputPageHandler>(mRawFilename.data());
+  mRawWriter = std::make_unique<o2::raw::RawFileWriter>(o2::header::gDataOriginEMC, false);
+  mRawWriter->setCarryOverCallBack(this);
+  mRawWriter->setApplyCarryOverToLastPage(true);
+  for (auto iddl = 0; iddl < 40; iddl++) {
+    // For EMCAL set
+    // - FEE ID = DDL ID
+    // - C-RORC and link increasing with DDL ID
+    // @TODO replace with link assignment on production FLPs,
+    // eventually storing in CCDB
+    auto [crorc, link] = getLinkAssignment(iddl);
+    std::string rawfilename = mOutputLocation;
+    switch (mFileFor) {
+      case FileFor_t::kFullDet:
+        rawfilename += "/emcal.root";
+        break;
+      case FileFor_t::kSubDet: {
+        std::string detstring;
+        if (iddl < 22)
+          detstring = "emcal";
+        else
+          detstring = "dcal";
+        rawfilename += fmt::format("/%s", detstring.data());
+        break;
+      };
+      case FileFor_t::kLink:
+        rawfilename += fmt::format("/emcal_%d_%d.root", crorc, link);
+    }
+    mRawWriter->registerLink(iddl, crorc, link, 0, rawfilename.data());
+  }
   // initialize mappers
   std::array<char, 4> sides = {{'A', 'C'}};
   for (auto iside = 0; iside < sides.size(); iside++) {
@@ -43,15 +71,28 @@ void RawWriter::init()
   }
 }
 
-void RawWriter::processNextTrigger()
+void RawWriter::process()
 {
-  // initialize page handler when processing the first trigger
-  mPageHandler->initTrigger(mCurrentTrigger->getBCData());
+  while (processNextTrigger())
+    ;
+}
+
+void RawWriter::digitsToRaw(gsl::span<o2::emcal::Digit> digitsbranch, gsl::span<o2::emcal::TriggerRecord> triggerbranch)
+{
+  setDigits(digitsbranch);
+  setTriggerRecords(triggerbranch);
+  process();
+}
+
+bool RawWriter::processNextTrigger()
+{
+  if (mCurrentTrigger == mTriggers.end())
+    return false;
   for (auto srucont : mSRUdata)
     srucont.mChannels.clear();
   std::vector<o2::emcal::Digit*>* bunchDigits;
   int lasttower = -1;
-  for (auto& dig : gsl::span(&mDigits->data()[mCurrentTrigger->getFirstEntry()], mCurrentTrigger->getNumberOfObjects())) {
+  for (auto& dig : gsl::span(mDigits.data() + mCurrentTrigger->getFirstEntry(), mCurrentTrigger->getNumberOfObjects())) {
     auto tower = dig.getTower();
     if (tower != lasttower) {
       lasttower = tower;
@@ -72,13 +113,6 @@ void RawWriter::processNextTrigger()
   // Create and fill DMA pages for each channel
   std::vector<char> payload;
   for (auto srucont : mSRUdata) {
-    // EMCAL does not set HBF triggers, only set trigger BC and orbit
-    o2::header::RAWDataHeaderV4 rawheader;
-    rawheader.triggerBC = mCurrentTrigger->getBCData().bc;
-    rawheader.triggerOrbit = mCurrentTrigger->getBCData().orbit;
-    // @TODO: Set trigger type
-    rawheader.feeId = srucont.mSRUid;
-    rawheader.linkID = srucont.mSRUid;
 
     for (const auto& [tower, channel] : srucont.mChannels) {
       // Find out hardware address of the channel
@@ -105,13 +139,17 @@ void RawWriter::processNextTrigger()
     }
 
     // Create RCU trailer
-    auto trailerwords = createRCUTrailer(payload.size(), 16, 16, 100., 0.);
+    auto trailerwords = createRCUTrailer(payload.size() / 4, 16, 16, 100., 0.);
     for (auto word : trailerwords)
       payload.emplace_back(word);
 
-    // write DMA page to stream
-    mPageHandler->addPageForLink(srucont.mSRUid, rawheader, payload);
+    // register output data
+    auto ddlid = srucont.mSRUid;
+    auto [crorc, link] = getLinkAssignment(ddlid);
+    mRawWriter->addData(ddlid, crorc, link, 0, mCurrentTrigger->getBCData(), payload);
   }
+  mCurrentTrigger++;
+  return true;
 }
 
 std::vector<AltroBunch> RawWriter::findBunches(const std::vector<o2::emcal::Digit*>& channelDigits)
@@ -168,6 +206,14 @@ std::tuple<int, int, int> RawWriter::getOnlineID(int towerID)
   return std::make_tuple(sruID, row, col);
 }
 
+std::tuple<int, int> RawWriter::getLinkAssignment(int ddlID)
+{
+  // Temporary link assignment (till final link assignment is known -
+  // eventually taken from CCDB)
+  // - Link (0-5) and C-RORC ID linear with ddlID
+  return std::make_tuple(ddlID / 6, ddlID % 6);
+}
+
 std::vector<int> RawWriter::encodeBunchData(const std::vector<int>& data)
 {
   std::vector<int> encoded;
@@ -218,4 +264,38 @@ std::vector<char> RawWriter::createRCUTrailer(int payloadsize, int feca, int fec
   std::vector<char> encoded(trailerwords.size() * sizeof(uint32_t));
   memcpy(encoded.data(), trailerwords.data(), trailerwords.size() * sizeof(uint32_t));
   return encoded;
+}
+
+int RawWriter::carryOverMethod(const header::RDHAny* rdh, const gsl::span<char> data,
+                               const char* ptr, int maxSize, int splitID,
+                               std::vector<char>& trailer, std::vector<char>& header) const
+{
+  int offs = ptr - &data[0]; // offset wrt the head of the payload
+  // make sure ptr and end of the suggested block are within the payload
+  assert(offs >= 0 && size_t(offs + maxSize) <= data.size());
+
+  // Read trailer template from the end of payload
+  gsl::span<const uint32_t> payloadwords(reinterpret_cast<const uint32_t*>(data.data()), data.size() / sizeof(uint32_t));
+  auto rcutrailer = RCUTrailer::constructFromPayloadWords(payloadwords);
+
+  int sizeNoTrailer = maxSize - rcutrailer.getTrailerSize();
+  // calculate payload size for RCU trailer:
+  // assume actualsize is in byte
+  // Payload size is defined as the number of 32-bit payload words
+  // -> actualSize to be converted to size of 32 bit words
+  auto payloadsize = sizeNoTrailer / sizeof(uint32_t);
+  rcutrailer.setPayloadSize(payloadsize);
+  auto trailerwords = rcutrailer.encode();
+  trailer.resize(trailerwords.size() * sizeof(uint32_t));
+  memcpy(trailer.data(), trailerwords.data(), trailer.size());
+  // Size to return differs between intermediate pages and last page
+  // - intermediate page: Size of the trailer needs to be removed as the trailer gets appended
+  // - last page: Size of the trailer needs to be included as the trailer gets replaced
+  int bytesLeft = data.size() - (ptr - &data[0]);
+  bool lastPage = bytesLeft <= maxSize;
+  int actualSize = maxSize;
+  if (!lastPage) {
+    actualSize = sizeNoTrailer;
+  }
+  return actualSize;
 }
