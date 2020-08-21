@@ -27,21 +27,24 @@ using namespace o2;
 using namespace o2::framework;
 
 struct JetAnalysis {
-  OutputObj<TH1F> hJetPt{"pt"};
+  OutputObj<TH1F> hJetPt{"jetPt"};
+  OutputObj<TH1F> hConstPt{"constPt"};
 
   void init(InitContext const&)
   {
-    hJetPt.setObject(new TH1F("pt", "jet p_{T};p_{T} (GeV/#it{c})",
+    hJetPt.setObject(new TH1F("jetPt", "jet p_{T};p_{T} (GeV/#it{c})",
                               100, 0., 100.));
+    hConstPt.setObject(new TH1F("constPt", "constituent p_{T};p_{T} (GeV/#it{c})",
+                                100, 0., 100.));
   }
 
-  // TODO: add aod::Tracks (when available)
   void process(aod::Jet const& jet,
-               aod::JetConstituents const& constituents)
+               aod::JetConstituents const& constituents, aod::Tracks const& tracks)
   {
     hJetPt->Fill(jet.pt());
     for (const auto c : constituents) {
-      LOGF(INFO, "jet %d: track id %d", jet.index(), c.trackId());
+      LOGF(DEBUG, "jet %d: track id %d, track pt %g", jet.index(), c.trackId(), c.track().pt());
+      hConstPt->Fill(c.track().pt());
     }
   }
 };
