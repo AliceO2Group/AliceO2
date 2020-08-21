@@ -43,7 +43,7 @@ std::string getTreeName(header::DataHeader dh)
 }
 
 template <typename... C>
-static auto columnNamesTrait(framework::pack<C...>)
+static constexpr auto columnNamesTrait(framework::pack<C...>)
 {
   return std::vector<std::string>{C::columnLabel()...};
 }
