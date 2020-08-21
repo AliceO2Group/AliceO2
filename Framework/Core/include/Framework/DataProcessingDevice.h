@@ -73,7 +73,7 @@ struct DataProcessorContext {
   AlgorithmSpec::ProcessCallback* statelessProcess = nullptr;
   AlgorithmSpec::ErrorCallback* error = nullptr;
 
-  std::function<void(std::exception& e, InputRecord& record)>* errorHandling = nullptr;
+  std::function<void(o2::framework::RuntimeErrorRef e, InputRecord& record)>* errorHandling = nullptr;
   int* errorCount = nullptr;
 };
 
@@ -113,7 +113,7 @@ class DataProcessingDevice : public FairMQDevice
   AlgorithmSpec::ProcessCallback mStatefulProcess;
   AlgorithmSpec::ProcessCallback mStatelessProcess;
   AlgorithmSpec::ErrorCallback mError;
-  std::function<void(std::exception& e, InputRecord& record)> mErrorHandling;
+  std::function<void(RuntimeErrorRef e, InputRecord& record)> mErrorHandling;
   std::unique_ptr<ConfigParamRegistry> mConfigRegistry;
   ServiceRegistry& mServiceRegistry;
   TimingInfo mTimingInfo;

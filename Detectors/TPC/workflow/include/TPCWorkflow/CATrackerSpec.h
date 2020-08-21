@@ -134,6 +134,5 @@ struct Config {
 /// @param tpcsectors list of sector numbers
 framework::DataProcessorSpec getCATrackerSpec(ca::Config const& specconfig, std::vector<int> const& tpcsectors);
 
-o2::framework::CompletionPolicy getCATrackerCompletionPolicy();
 } // end namespace tpc
 } // end namespace o2

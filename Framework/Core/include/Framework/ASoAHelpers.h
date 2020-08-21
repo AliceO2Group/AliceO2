@@ -13,6 +13,7 @@
 
 #include "Framework/ASoA.h"
 #include "Framework/Kernels.h"
+#include "Framework/RuntimeError.h"
 #include <arrow/table.h>
 
 #include <iterator>
@@ -122,7 +123,7 @@ auto groupTable(const T& table, const std::string& categoryColumnName, int minCa
     return doGroupTable<float, arrow::FloatArray>(arrowTable, categoryColumnName, minCatSize, outsider);
   }
   // FIXME: Should we support other types as well?
-  throw std::runtime_error("Combinations: category column must be of integral type");
+  throw o2::framework::runtime_error("Combinations: category column must be of integral type");
 }
 
 // Synchronize categories so as groupedIndices contain elements only of categories common to all tables

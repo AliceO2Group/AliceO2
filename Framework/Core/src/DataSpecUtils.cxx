@@ -12,6 +12,8 @@
 #include "Framework/DataMatcherWalker.h"
 #include "Framework/VariantHelpers.h"
 #include "Framework/Logger.h"
+#include "Framework/RuntimeError.h"
+
 #include <cstring>
 #include <cinttypes>
 
@@ -70,7 +72,7 @@ std::string DataSpecUtils::describe(InputSpec const& spec)
     ss << "<matcher query: " << *matcher << ">";
     return ss.str();
   }
-  throw std::runtime_error("Unhandled InputSpec kind.");
+  throw runtime_error("Unhandled InputSpec kind.");
 }
 
 std::string DataSpecUtils::describe(OutputSpec const& spec)
@@ -95,7 +97,7 @@ void DataSpecUtils::describe(char* buffer, size_t size, InputSpec const& spec)
     ss << "<matcher query: " << *matcher << ">";
     strncpy(buffer, ss.str().c_str(), size - 1);
   } else {
-    throw std::runtime_error("Unsupported InputSpec");
+    throw runtime_error("Unsupported InputSpec");
   }
 }
 
@@ -112,7 +114,7 @@ std::string DataSpecUtils::label(InputSpec const& spec)
 
     return result;
   }
-  throw std::runtime_error("Unsupported InputSpec");
+  throw runtime_error("Unsupported InputSpec");
 }
 
 std::string DataSpecUtils::label(OutputSpec const& spec)
@@ -129,7 +131,7 @@ std::string DataSpecUtils::restEndpoint(InputSpec const& spec)
   if (auto concrete = std::get_if<ConcreteDataMatcher>(&spec.matcher)) {
     return std::string("/") + join(*concrete, "/");
   } else {
-    throw std::runtime_error("Unsupported InputSpec kind");
+    throw runtime_error("Unsupported InputSpec kind");
   }
 }
 
@@ -215,7 +217,7 @@ bool DataSpecUtils::match(InputSpec const& spec, ConcreteDataMatcher const& targ
     data_matcher::VariableContext context;
     return matcher->match(target, context);
   } else {
-    throw std::runtime_error("Unsupported InputSpec");
+    throw runtime_error("Unsupported InputSpec");
   }
 }
 
@@ -406,7 +408,7 @@ ConcreteDataTypeMatcher DataSpecUtils::asConcreteDataTypeMatcher(InputSpec const
                         if (state.hasUniqueOrigin && state.hasUniqueDescription) {
                           return ConcreteDataTypeMatcher{state.origin, state.description};
                         }
-                        throw std::runtime_error("Could not extract data type from query");
+                        throw runtime_error("Could not extract data type from query");
                       }},
                     spec.matcher);
 }
@@ -422,7 +424,7 @@ header::DataOrigin DataSpecUtils::asConcreteOrigin(InputSpec const& spec)
                         if (state.hasUniqueOrigin) {
                           return state.origin;
                         }
-                        throw std::runtime_error("Could not extract data type from query");
+                        throw runtime_error("Could not extract data type from query");
                       }},
                     spec.matcher);
 }
@@ -438,7 +440,7 @@ header::DataDescription DataSpecUtils::asConcreteDataDescription(InputSpec const
                         if (state.hasUniqueDescription) {
                           return state.description;
                         }
-                        throw std::runtime_error("Could not extract data type from query");
+                        throw runtime_error("Could not extract data type from query");
                       }},
                     spec.matcher);
 }
@@ -457,7 +459,7 @@ OutputSpec DataSpecUtils::asOutputSpec(InputSpec const& spec)
                           return OutputSpec{{spec.binding}, ConcreteDataTypeMatcher{state.origin, state.description}, spec.lifetime};
                         }
 
-                        throw std::runtime_error("Could not extract neither ConcreteDataMatcher nor ConcreteDataTypeMatcher from query" + describe(spec));
+                        throw runtime_error_f("Could not extract neither ConcreteDataMatcher nor ConcreteDataTypeMatcher from query %s", describe(spec).c_str());
                       }},
                     spec.matcher);
 }
@@ -554,7 +556,7 @@ std::optional<header::DataHeader::SubSpecificationType> DataSpecUtils::getOption
                         if (state.hasUniqueSubSpec) {
                           return std::make_optional(state.subSpec);
                         } else if (state.hasError) {
-                          throw std::runtime_error("Could not extract subSpec from query");
+                          throw runtime_error("Could not extract subSpec from query");
                         }
                         return {};
                       }},

@@ -18,13 +18,15 @@
 #include "Framework/Traits.h"
 #include "Framework/Expressions.h"
 #include "Framework/ArrowTypes.h"
+#include "Framework/RuntimeError.h"
 #include <arrow/table.h>
 #include <arrow/array.h>
 #include <arrow/util/variant.h>
 #include <arrow/compute/kernel.h>
 #include <gandiva/selection_vector.h>
 #include <cassert>
-#include <fmt/format.h>
+
+using o2::framework::runtime_error_f;
 
 namespace o2::soa
 {
@@ -1004,7 +1006,7 @@ class Table
       auto label = T::columnLabel();
       auto index = mTable->schema()->GetFieldIndex(label);
       if (index == -1) {
-        throw std::runtime_error(std::string("Unable to find column with label ") + label);
+        throw runtime_error_f("Unable to find column with label %s", label);
       }
       return mTable->column(index).get();
     } else {
@@ -1766,14 +1768,14 @@ auto spawner(framework::pack<C...> columns, arrow::Table* atable)
   while (true) {
     auto s = reader.ReadNext(&batch);
     if (!s.ok()) {
-      throw std::runtime_error(fmt::format("Cannot read batches from table: {}", s.ToString()));
+      throw runtime_error_f("Cannot read batches from table: %s", s.ToString().c_str());
     }
     if (batch == nullptr) {
       break;
     }
     s = projectors->Evaluate(*batch, arrow::default_memory_pool(), &v);
     if (!s.ok()) {
-      throw std::runtime_error(fmt::format("Cannot apply projector: {}", s.ToString()));
+      throw runtime_error_f("Cannot apply projector: %s", s.ToString().c_str());
     }
     for (auto i = 0u; i < sizeof...(C); ++i) {
       chunks[i].emplace_back(v.at(i));
