@@ -76,9 +76,9 @@ AlgorithmSpec AODReaderHelpers::aodSpawnerCallback(std::vector<InputSpec> reques
           return o2::soa::spawner(expressions{}, original_table.get());
         };
 
-        if (description == header::DataDescription{"TRACKPAR"}) {
+        if (description == header::DataDescription{"TRACK:PAR"}) {
           outputs.adopt(Output{origin, description}, maker(o2::aod::TracksMetadata{}));
-        } else if (description == header::DataDescription{"TRACKPARCOV"}) {
+        } else if (description == header::DataDescription{"TRACK:PARCOV"}) {
           outputs.adopt(Output{origin, description}, maker(o2::aod::TracksCovMetadata{}));
         } else if (description == header::DataDescription{"MUON"}) {
           outputs.adopt(Output{origin, description}, maker(o2::aod::MuonsMetadata{}));
@@ -156,6 +156,16 @@ AlgorithmSpec AODReaderHelpers::rootFileReaderCallback()
 
         auto o = Output(dh);
         auto& t2t = outputs.make<TreeToTable>(o, tr);
+
+        // add branches to read
+        auto colnames = aod::datamodel::getColumnNames(dh);
+        if (colnames.size() == 0) {
+          t2t.addAllColumns();
+        } else {
+          for (auto colname : colnames) {
+            t2t.addColumn(colname.c_str());
+          }
+        }
 
         // fill the table
         t2t.fill();

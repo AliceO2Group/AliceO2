@@ -220,7 +220,7 @@ DECLARE_SOA_TABLE_FULL(StoredTracks, "Tracks", "AOD", "TRACK:PAR",
                        track::Pz<track::Signed1Pt, track::Tgl>,
                        track::Charge<track::Signed1Pt>);
 
-DECLARE_SOA_EXTENDED_TABLE(Tracks, StoredTracks, "TRACKPAR",
+DECLARE_SOA_EXTENDED_TABLE(Tracks, StoredTracks, "TRACK:PAR",
                            aod::track::Pt,
                            aod::track::P,
                            aod::track::Eta,
@@ -231,7 +231,7 @@ DECLARE_SOA_TABLE_FULL(StoredTracksCov, "TracksCov", "AOD", "TRACK:PARCOV",
                        track::RhoZY, track::RhoSnpY, track::RhoSnpZ, track::RhoTglY, track::RhoTglZ,
                        track::RhoTglSnp, track::Rho1PtY, track::Rho1PtZ, track::Rho1PtSnp, track::Rho1PtTgl);
 
-DECLARE_SOA_EXTENDED_TABLE(TracksCov, StoredTracksCov, "TRACKPARCOV",
+DECLARE_SOA_EXTENDED_TABLE(TracksCov, StoredTracksCov, "TRACK:PARCOV",
                            aod::track::CYY,
                            aod::track::CZY,
                            aod::track::CZZ,
