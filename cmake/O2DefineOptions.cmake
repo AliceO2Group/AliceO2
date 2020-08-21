@@ -21,8 +21,6 @@ function(o2_define_options)
 
   option(ENABLE_CASSERT "Enable asserts" OFF)
 
-  option(ENABLE_SANITIZERS "Enable sanitizers" OFF)
-
   option(
     BUILD_SIMULATION_DEFAULT
     "Default behavior for simulation (disregarded if BUILD_SIMULATION is defined)"
