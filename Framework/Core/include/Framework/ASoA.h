@@ -18,13 +18,15 @@
 #include "Framework/Traits.h"
 #include "Framework/Expressions.h"
 #include "Framework/ArrowTypes.h"
+#include "Framework/RuntimeError.h"
 #include <arrow/table.h>
 #include <arrow/array.h>
 #include <arrow/util/variant.h>
 #include <arrow/compute/kernel.h>
 #include <gandiva/selection_vector.h>
 #include <cassert>
-#include <fmt/format.h>
+
+using o2::framework::runtime_error_f;
 
 namespace o2::soa
 {
@@ -1005,7 +1007,7 @@ class Table
       auto label = T::columnLabel();
       auto index = mTable->schema()->GetFieldIndex(label);
       if (index == -1) {
-        throw std::runtime_error(std::string("Unable to find column with label ") + label);
+        throw runtime_error_f("Unable to find column with label %s", label);
       }
       return mTable->column(index).get();
     } else {

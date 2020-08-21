@@ -12,8 +12,10 @@
 
 #include "Framework/DispatchControl.h"
 #include "Framework/FairMQDeviceProxy.h"
+#include "Framework/RuntimeError.h"
 #include "Framework/TMessageSerializer.h"
 #include "Framework/TypeTraits.h"
+
 #include "Headers/DataHeader.h"
 #include "MemoryResources/MemoryResources.h"
 
@@ -22,7 +24,6 @@
 
 #include <cassert>
 #include <functional>
-#include <stdexcept>
 #include <string>
 #include <type_traits>
 #include <unordered_map>
@@ -233,10 +234,10 @@ class MessageContext
       // FIXME: drop this repeated check and make sure at initial setup of devices that everything is fine
       // introduce error policy
       if (mFactory == nullptr) {
-        throw std::runtime_error(std::string("failed to get transport factory for channel ") + bindingChannel);
+        throw runtime_error_f("failed to get transport factory for channel %s", bindingChannel.c_str());
       }
       if (mResource.isValid() == false) {
-        throw std::runtime_error(std::string("no memory resource for channel ") + bindingChannel);
+        throw runtime_error_f("no memory resource for channel %s", bindingChannel.c_str());
       }
     }
     ~ContainerRefObject() override = default;
@@ -406,7 +407,7 @@ class MessageContext
         // TODO: decide whether this is an error or not
         // can also check if the standard constructor can be dropped to make sure that
         // the ScopeHook is always set up with a context
-        throw std::runtime_error("No context available to schedule the context object");
+        throw runtime_error("No context available to schedule the context object");
         return base::operator()(ptr);
       }
       // keep the object alive and add to message list of the context

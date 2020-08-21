@@ -24,6 +24,7 @@
 #include "Framework/FunctionalHelpers.h"
 #include "Framework/Traits.h"
 #include "Framework/VariantHelpers.h"
+#include "Framework/RuntimeError.h"
 
 #include <arrow/compute/kernel.h>
 #include <arrow/table.h>
@@ -250,10 +251,10 @@ struct AnalysisDataProcessorBuilder {
                                                        &groups[index],
                                                        &offsets[index]);
             if (result.ok() == false) {
-              throw std::runtime_error("Cannot split collection");
+              throw runtime_error("Cannot split collection");
             }
             if (groups[index].size() != gt.tableSize()) {
-              throw std::runtime_error(fmt::format("Splitting collection resulted in different group number ({}) than there is rows in the grouping table ({}).", groups[index].size(), gt.tableSize()));
+              throw runtime_error_f("Splitting collection resulted in different group number (%d) than there is rows in the grouping table (%d).", groups[index].size(), gt.tableSize());
             };
           }
         };

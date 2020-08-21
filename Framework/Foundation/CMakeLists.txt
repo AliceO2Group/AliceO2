@@ -12,7 +12,13 @@ install(DIRECTORY ${CMAKE_CURRENT_LIST_DIR}/include/Framework
         DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
 
 o2_add_library(FrameworkFoundation
-               SOURCES src/RuntimeError.cxx)
+               SOURCES src/RuntimeError.cxx
+               TARGETVARNAME targetName
+              )
+if (DPL_ENABLE_BACKTRACE)
+target_compile_definitions(${targetName} PUBLIC -DDPL_ENABLE_BACKTRACE)
+endif()
+
 
 o2_add_test(test_FunctionalHelpers NAME test_FrameworkFoundation_test_FunctionalHelpers
             COMPONENT_NAME FrameworkFoundation

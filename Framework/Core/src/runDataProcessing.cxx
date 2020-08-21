@@ -107,6 +107,7 @@
 #include <sys/un.h>
 #include <sys/wait.h>
 #include <unistd.h>
+#include <execinfo.h>
 #if __has_include(<linux/getcpu.h>)
 #include <linux/getcpu.h>
 #elif __has_include(<cpuid.h>)
@@ -763,11 +764,16 @@ int doChild(int argc, char** argv, ServiceRegistry& serviceRegistry, const o2::f
     runner.AddHook<fair::mq::hooks::InstantiateDevice>(afterConfigParsingCallback);
     return runner.Run();
   } catch (boost::exception& e) {
-    LOG(ERROR) << "Unhandled exception reached the top of main, device shutting down. Details follow: \n"
+    LOG(ERROR) << "Unhandled boost::exception reached the top of main, device shutting down. Details follow: \n"
                << boost::current_exception_diagnostic_information(true);
     return 1;
+  } catch (o2::framework::RuntimeErrorRef e) {
+    LOG(ERROR) << "Unhandled o2::framework::runtime_error reached the top of main, device shutting down. Details follow: \n";
+    auto& err = o2::framework::error_from_ref(e);
+    backtrace_symbols_fd(err.backtrace, err.maxBacktrace, STDERR_FILENO);
+    return 1;
   } catch (std::exception& e) {
-    LOG(ERROR) << "Unhandled exception reached the top of main: " << e.what() << ", device shutting down.";
+    LOG(ERROR) << "Unhandled std::exception reached the top of main: " << e.what() << ", device shutting down.";
     return 1;
   } catch (...) {
     LOG(ERROR) << "Unknown exception reached the top of main.\n";

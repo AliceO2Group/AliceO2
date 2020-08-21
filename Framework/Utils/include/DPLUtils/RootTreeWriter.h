@@ -672,7 +672,7 @@ class RootTreeWriter
         if (ptr) {
           delete ptr;
         }
-      } catch (const std::runtime_error& e) {
+      } catch (RuntimeErrorRef e) {
         if constexpr (has_root_dictionary<value_type>::value == true) {
           // try extracting from message with serialization method ROOT
           auto data = context.get<typename std::add_pointer<value_type>::type>(ref);

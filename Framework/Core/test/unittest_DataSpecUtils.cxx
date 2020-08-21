@@ -302,7 +302,7 @@ BOOST_AUTO_TEST_CASE(GettingConcreteMembers)
 
   BOOST_REQUIRE_EQUAL(justOriginInputSpec.size(), 1);
   BOOST_CHECK_EQUAL(DataSpecUtils::asConcreteOrigin(justOriginInputSpec.at(0)).as<std::string>(), "TST");
-  BOOST_CHECK_THROW(DataSpecUtils::asConcreteDataDescription(justOriginInputSpec.at(0)).as<std::string>(), std::runtime_error);
+  BOOST_CHECK_THROW(DataSpecUtils::asConcreteDataDescription(justOriginInputSpec.at(0)).as<std::string>(), RuntimeErrorRef);
 }
 
 BOOST_AUTO_TEST_CASE(Includes)
