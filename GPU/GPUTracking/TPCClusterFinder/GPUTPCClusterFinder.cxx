@@ -32,6 +32,7 @@ void GPUTPCClusterFinder::InitializeProcessor()
 
 GPUTPCClusterFinder::~GPUTPCClusterFinder()
 {
+  delete[] mMinMaxCN;
   clearMCMemory();
 }
 
@@ -147,6 +148,4 @@ void GPUTPCClusterFinder::clearMCMemory()
   mPlabelHeaderOffset = nullptr;
   delete[] mPlabelDataOffset;
   mPlabelDataOffset = nullptr;
-  delete[] mMinMaxCN;
-  mMinMaxCN = nullptr;
 }

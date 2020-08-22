@@ -1167,7 +1167,7 @@ int GPUChainTracking::RunTPCClusterizer(bool synchronizeOutput)
         }
 
         if (propagateMCLabels || not mIOPtrs.tpcZS) {
-          runKernel<GPUTPCCFChargeMapFiller, GPUTPCCFChargeMapFiller::findFragmentStart>(GetGrid(1, lane), {iSlice}, {});
+          runKernel<GPUTPCCFChargeMapFiller, GPUTPCCFChargeMapFiller::findFragmentStart>(GetGrid(1, lane), {iSlice}, {}, mIOPtrs.tpcZS == nullptr);
           TransferMemoryResourceLinkToHost(RecoStep::TPCClusterFinding, clusterer.mMemoryId, lane);
         }
 
@@ -1206,7 +1206,7 @@ int GPUChainTracking::RunTPCClusterizer(bool synchronizeOutput)
         }
 
         if (propagateMCLabels) {
-          runKernel<GPUTPCCFChargeMapFiller, GPUTPCCFChargeMapFiller::fillIndexMap>(GetGrid(clusterer.mPmemory->counters.nPositions, lane), {iSlice}, {});
+          runKernel<GPUTPCCFChargeMapFiller, GPUTPCCFChargeMapFiller::fillIndexMap>(GetGrid(clusterer.mPmemory->counters.nDigitsInFragment, lane), {iSlice}, {});
         }
 
         runKernel<GPUTPCCFPeakFinder>(GetGrid(clusterer.mPmemory->counters.nPositions, lane), {iSlice}, {});

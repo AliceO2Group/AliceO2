@@ -52,6 +52,7 @@ class GPUTPCClusterFinder : public GPUProcessor
   struct Memory {
     struct counters_t {
       size_t nDigits = 0;
+      tpccf::SizeT nDigitsInFragment = 0; // num of digits in fragment can differ from nPositions if ZS is active
       tpccf::SizeT nPositions = 0;
       tpccf::SizeT nPeaks = 0;
       tpccf::SizeT nClusters = 0;
