@@ -67,21 +67,37 @@ GPUd() void GPUTPCCFChargeMapFiller::fillFromDigitsImpl(int nBlocks, int nThread
 template <>
 GPUdii() void GPUTPCCFChargeMapFiller::Thread<GPUTPCCFChargeMapFiller::findFragmentStart>(int nBlocks, int nThreads, int iBlock, int iThread, GPUSharedMemory& smem, processorType& clusterer)
 {
-  // TODO: use binary search
-  if (get_global_id(0) != 0) {
+  if (iThread != 0) {
     return;
   }
 
   size_t nDigits = clusterer.mPmemory->counters.nDigits;
   const tpc::Digit* digits = clusterer.mPdigits;
-  size_t st = 0;
-  for (; st < nDigits && digits[st].getTimeStamp() < clusterer.mPmemory->fragment.first(); st++) {
-  }
-
-  size_t end = st;
-  for (; end < nDigits && digits[end].getTimeStamp() < clusterer.mPmemory->fragment.last(); end++) {
-  }
+  size_t st = findTransition(clusterer.mPmemory->fragment.first(), digits, nDigits, 0);
+  size_t end = findTransition(clusterer.mPmemory->fragment.last(), digits, nDigits, st);
 
   clusterer.mPmemory->fragment.digitsStart = st;
   clusterer.mPmemory->counters.nPositions = end - st;
+}
+
+GPUd() size_t GPUTPCCFChargeMapFiller::findTransition(int time, const tpc::Digit* digits, size_t nDigits, size_t lower)
+{
+  size_t upper = nDigits - 1;
+
+  while (lower <= upper) {
+    size_t middle = (lower + upper) / 2;
+
+    if (middle == 0) {
+      return 0;
+    }
+
+    if (digits[middle].getTimeStamp() < time) {
+      lower = middle + 1;
+    } else if (digits[middle - 1].getTimeStamp() < time) {
+      return middle;
+    } else {
+      upper = middle - 1;
+    }
+  }
+  return lower;
 }
