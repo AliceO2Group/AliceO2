@@ -70,7 +70,7 @@ GPUCA_KRNL_LB((GPUTPCCompressionGatherKernels, buffered128  ), (simple), (), ())
 
 GPUCA_KRNL_LB((GPUTPCCFChargeMapFiller,  fillIndexMap       ), (single), (), ())
 GPUCA_KRNL_LB((GPUTPCCFChargeMapFiller,  fillFromDigits     ), (single), (), ())
-GPUCA_KRNL_LB((GPUTPCCFChargeMapFiller,  findFragmentStart  ), (single), (), ())
+GPUCA_KRNL_LB((GPUTPCCFChargeMapFiller,  findFragmentStart  ), (single), (, char setPositions), (, setPositions))
 GPUCA_KRNL_LB((GPUTPCCFPeakFinder                           ), (single), (), ())
 GPUCA_KRNL_LB((GPUTPCCFNoiseSuppression,   noiseSuppression ), (single), (), ())
 GPUCA_KRNL_LB((GPUTPCCFNoiseSuppression,   updatePeaks      ), (single), (), ())
