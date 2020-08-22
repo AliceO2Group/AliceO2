@@ -22,7 +22,7 @@ template <>
 GPUdii() void GPUTPCCFChargeMapFiller::Thread<GPUTPCCFChargeMapFiller::fillIndexMap>(int nBlocks, int nThreads, int iBlock, int iThread, GPUSharedMemory& smem, processorType& clusterer)
 {
   Array2D<uint> indexMap(clusterer.mPindexMap);
-  fillIndexMapImpl(get_num_groups(0), get_local_size(0), get_group_id(0), get_local_id(0), clusterer.mPmemory->fragment, clusterer.mPdigits, indexMap, clusterer.mPmemory->counters.nPositions);
+  fillIndexMapImpl(get_num_groups(0), get_local_size(0), get_group_id(0), get_local_id(0), clusterer.mPmemory->fragment, clusterer.mPdigits, indexMap, clusterer.mPmemory->counters.nDigitsInFragment);
 }
 
 GPUd() void GPUTPCCFChargeMapFiller::fillIndexMapImpl(int nBlocks, int nThreads, int iBlock, int iThread,
@@ -65,7 +65,7 @@ GPUd() void GPUTPCCFChargeMapFiller::fillFromDigitsImpl(int nBlocks, int nThread
 }
 
 template <>
-GPUdii() void GPUTPCCFChargeMapFiller::Thread<GPUTPCCFChargeMapFiller::findFragmentStart>(int nBlocks, int nThreads, int iBlock, int iThread, GPUSharedMemory& smem, processorType& clusterer)
+GPUdii() void GPUTPCCFChargeMapFiller::Thread<GPUTPCCFChargeMapFiller::findFragmentStart>(int nBlocks, int nThreads, int iBlock, int iThread, GPUSharedMemory& smem, processorType& clusterer, char setPositions)
 {
   if (iThread != 0) {
     return;
@@ -77,7 +77,13 @@ GPUdii() void GPUTPCCFChargeMapFiller::Thread<GPUTPCCFChargeMapFiller::findFragm
   size_t end = findTransition(clusterer.mPmemory->fragment.last(), digits, nDigits, st);
 
   clusterer.mPmemory->fragment.digitsStart = st;
-  clusterer.mPmemory->counters.nPositions = end - st;
+
+  size_t elems = end - st;
+
+  clusterer.mPmemory->counters.nDigitsInFragment = elems;
+  if (setPositions) {
+    clusterer.mPmemory->counters.nPositions = elems;
+  }
 }
 
 GPUd() size_t GPUTPCCFChargeMapFiller::findTransition(int time, const tpc::Digit* digits, size_t nDigits, size_t lower)
