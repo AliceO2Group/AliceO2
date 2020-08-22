@@ -1111,7 +1111,7 @@ int GPUChainTracking::RunTPCClusterizer(bool synchronizeOutput)
     std::vector<bool> laneHasData(GetProcessingSettings().nTPCClustererLanes, false);
     for (CfFragment fragment = mCFContext->fragmentFirst; !fragment.isEnd(); fragment = fragment.next()) {
       if (GetProcessingSettings().debugLevel >= 3) {
-        GPUInfo("Processing time bins [%d, %d)", fragment.start, fragment.last());
+        GPUInfo("Processing time bins [%d, %d) for sectors %d to %d", fragment.start, fragment.last(), iSliceBase, iSliceBase + GetProcessingSettings().nTPCClustererLanes - 1);
       }
       for (int lane = 0; lane < GetProcessingSettings().nTPCClustererLanes && iSliceBase + lane < NSLICES; lane++) {
         if (fragment.index != 0) {
