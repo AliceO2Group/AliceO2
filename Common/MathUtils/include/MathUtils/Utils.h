@@ -210,6 +210,65 @@ GPUhdi() float FastATan2(float y, float x)
   return o2::gpu::GPUCommonMath::Copysign(atan2P(o2::gpu::CAMath::Abs(y), x), y);
 }
 
+struct StatAccumulator {
+  // mean / RMS accumulator
+  double sum = 0.;
+  double sum2 = 0.;
+  double wsum = 0.;
+  int n = 0;
+  void add(float v, float w = 1.)
+  {
+    auto c = v * w;
+    sum += c;
+    sum2 += c * v;
+    wsum += w;
+    n++;
+  }
+  double getMean() const { return wsum > 0. ? sum / wsum : 0.; }
+  bool getMeanRMS2(double& mean, double& rms2) const
+  {
+    if (!wsum) {
+      mean = rms2 = 0;
+      return false;
+    }
+    auto wi = 1. / wsum;
+    mean = sum * wi;
+    rms2 = sum2 * wi - mean * mean;
+    return true;
+  }
+  bool getMeanRMS2(float& mean, float& rms2) const
+  {
+    if (!wsum) {
+      mean = rms2 = 0;
+      return false;
+    }
+    auto wi = 1. / wsum;
+    mean = sum * wi;
+    rms2 = sum2 * wi - mean * mean;
+    return true;
+  }
+  StatAccumulator& operator+=(const StatAccumulator& other)
+  {
+    sum += other.sum;
+    sum2 += other.sum2;
+    wsum += other.wsum;
+    return *this;
+  }
+
+  StatAccumulator operator+(const StatAccumulator& other) const
+  {
+    StatAccumulator res = *this;
+    res += other;
+    return res;
+  }
+
+  void clear()
+  {
+    sum = sum2 = wsum = 0.;
+    n = 0;
+  }
+};
+
 } // namespace utils
 //}
 } // namespace o2
