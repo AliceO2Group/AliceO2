@@ -251,7 +251,7 @@ inline int GPUReconstructionCPU::runKernel(const krnlExec& x, const krnlRunRange
   unsigned int nBlocks = x.nBlocks;
   auto prop = getKernelProperties<S, I>();
   const int autoThreads = cpuFallback ? 1 : prop.nThreads;
-  const int autoBlocks = cpuFallback ? 1 : (prop.minBlocks * mBlockCount);
+  const int autoBlocks = cpuFallback ? 1 : (prop.forceBlocks ? prop.forceBlocks : (prop.minBlocks * mBlockCount));
   if (nBlocks == (unsigned int)-1) {
     nBlocks = (nThreads + autoThreads - 1) / autoThreads;
     nThreads = autoThreads;

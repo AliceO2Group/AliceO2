@@ -147,10 +147,11 @@ class GPUReconstruction
   };
 
   struct krnlProperties {
-    krnlProperties(int t = 0, int b = 1) : nThreads(t), minBlocks(b) {}
+    krnlProperties(int t = 0, int b = 1, int b2 = 0) : nThreads(t), minBlocks(b), forceBlocks(b2) {}
     unsigned int nThreads;
     unsigned int minBlocks;
-    unsigned int total() { return nThreads * minBlocks; }
+    unsigned int forceBlocks;
+    unsigned int total() { return forceBlocks ? forceBlocks : (nThreads * minBlocks); }
   };
 
   struct krnlSetup {

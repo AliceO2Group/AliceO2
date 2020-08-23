@@ -123,7 +123,7 @@ GPUg() void runKernelHIP(GPUCA_CONSMEM_PTR int iSlice_internal, Args... args)
 */
 
 #undef GPUCA_KRNL_REG
-#define GPUCA_KRNL_REG(args) __launch_bounds__(GPUCA_M_STRIP(args))
+#define GPUCA_KRNL_REG(args) __launch_bounds__(GPUCA_M_MAX2_3(GPUCA_M_STRIP(args)))
 #undef GPUCA_KRNL_CUSTOM
 #define GPUCA_KRNL_CUSTOM(args) GPUCA_M_STRIP(args)
 #undef GPUCA_KRNL_BACKEND_XARGS
