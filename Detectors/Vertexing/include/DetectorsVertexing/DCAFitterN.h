@@ -30,15 +30,15 @@ namespace vertexing
 struct TrackCovI {
   float sxx, syy, syz, szz;
 
-  TrackCovI(const o2::track::TrackParCov& trc) { set(trc); }
+  TrackCovI(const o2::track::TrackParCov& trc, float xerrFactor = 1.) { set(trc, xerrFactor); }
 
   TrackCovI() = default;
 
-  void set(const o2::track::TrackParCov& trc)
+  void set(const o2::track::TrackParCov& trc, float xerrFactor = 1)
   {
     // we assign Y error to X for DCA calculation
     // (otherwise for quazi-collinear tracks the X will not be constrained)
-    float cyy = trc.getSigmaY2(), czz = trc.getSigmaZ2(), cyz = trc.getSigmaZY(), cxx = cyy;
+    float cyy = trc.getSigmaY2(), czz = trc.getSigmaZ2(), cyz = trc.getSigmaZY(), cxx = cyy * xerrFactor;
     float detYZ = cyy * czz - cyz * cyz;
     if (detYZ > 0.) {
       auto detYZI = 1. / detYZ;
@@ -75,7 +75,7 @@ class DCAFitterN
   static constexpr double NMax = 4;
   static constexpr double NInv = 1. / N;
   static constexpr int MAXHYP = 2;
-
+  static constexpr float XerrFactor = 5.; // factor for conversion of track covYY to dummy covXX
   using Track = o2::track::TrackParCov;
   using TrackAuxPar = o2::track::TrackAuxPar;
   using CrossInfo = o2::track::CrossInfo;
@@ -129,6 +129,8 @@ class DCAFitterN
     return mCandTr[mOrder[cand]][i];
   }
 
+  MatSym3D calcPCACovMatrix(int cand = 0) const;
+
   const Track* getOrigTrackPtr(int i) const { return mOrigTrPtr[i]; }
 
   ///< return number of iterations during minimization (no check for its validity)
@@ -179,6 +181,27 @@ class DCAFitterN
   bool roughDZCut() const;
   bool closerToAlternative() const;
   static double getAbsMax(const VecND& v);
+
+  MatStd3D getTrackRotMatrix(int i) const // generate 3D matrix for track rotation to global frame
+  {
+    MatStd3D mat;
+    mat(2, 2) = 1;
+    mat(0, 0) = mat(1, 1) = mTrAux[i].c;
+    mat(0, 1) = -mTrAux[i].s;
+    mat(1, 0) = mTrAux[i].s;
+    return std::move(mat);
+  }
+
+  MatSym3D getTrackCovMatrix(int i, int cand = 0) const // generate covariance matrix of track position, adding fake X error
+  {
+    const auto& trc = mCandTr[mOrder[cand]][i];
+    MatSym3D mat;
+    mat(0, 0) = trc.getSigmaY2() * XerrFactor;
+    mat(1, 1) = trc.getSigmaY2();
+    mat(2, 2) = trc.getSigmaZ2();
+    mat(2, 1) = trc.getSigmaZY();
+    return std::move(mat);
+  }
 
   void assign(int) {}
   template <class T, class... Tr>
@@ -572,6 +595,18 @@ void DCAFitterN<N, Args...>::calcPCANoErr()
 
 //___________________________________________________________________
 template <int N, typename... Args>
+ROOT::Math::SMatrix<double, 3, 3, ROOT::Math::MatRepSym<double, 3>> DCAFitterN<N, Args...>::calcPCACovMatrix(int cand) const
+{
+  // calculate covariance matrix for the point of closest approach
+  MatSym3D covm;
+  for (int i = N; i--;) {
+    covm += ROOT::Math::Similarity(mUseAbsDCA ? getTrackRotMatrix(i) : mTrCFVT[mOrder[cand]][i], getTrackCovMatrix(i, cand));
+  }
+  return std::move(covm);
+}
+
+//___________________________________________________________________
+template <int N, typename... Args>
 void DCAFitterN<N, Args...>::calcTrackResiduals()
 {
   // calculate residuals
@@ -686,7 +721,7 @@ bool DCAFitterN<N, Args...>::minimizeChi2()
       return false;
     }
     setTrackPos(mTrPos[mCurHyp][i], mCandTr[mCurHyp][i]); // prepare positions
-    mTrcEInv[mCurHyp][i].set(mCandTr[mCurHyp][i]);        // prepare inverse cov.matrices at starting point
+    mTrcEInv[mCurHyp][i].set(mCandTr[mCurHyp][i], XerrFactor); // prepare inverse cov.matrices at starting point
   }
 
   if (mMaxDZIni > 0 && !roughDZCut()) { // apply rough cut on tracks Z difference
