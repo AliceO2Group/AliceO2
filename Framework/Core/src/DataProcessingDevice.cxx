@@ -112,6 +112,17 @@ DataProcessingDevice::DataProcessingDevice(DeviceSpec const& spec, ServiceRegist
       auto& err = error_from_ref(e);
       LOGP(ERROR, "Exception caught: {} ", err.what);
       backtrace_symbols_fd(err.backtrace, err.maxBacktrace, STDERR_FILENO);
+      auto lastCheckpoint = get_last_checkpoint();
+      LOG(ERROR) << "Previous checkpoints: ";
+      for (auto ci = 0; ci < Checkpoint::MAX_CHECKPOINTS; ++ci) {
+        if ((lastCheckpoint - ci) < 0) {
+          break;
+        }
+        auto pos = (lastCheckpoint - ci) & Checkpoint::MAX_CHECKPOINTS;
+        auto& c = get_checkpoint(pos);
+        LOG(ERROR) << c.what;
+        //backtrace_symbols_fd(c.backtrace, c.maxBacktrace, STDERR_FILENO);
+      }
       serviceRegistry.get<Monitoring>().send({1, "error"});
       switch (errorPolicy) {
         case TerminationPolicy::QUIT:

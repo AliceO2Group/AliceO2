@@ -37,4 +37,22 @@ BOOST_AUTO_TEST_CASE(TestRuntimeError)
     backtrace_symbols_fd(err.backtrace, err.maxBacktrace, STDERR_FILENO);
 #endif
   }
+
+  try {
+    int i = 0;
+    CHECKPOINT(i++ == 0, "nice");
+    CHECKPOINT_F(i++ == 0, "not correct %d", i);
+  } catch (o2::framework::RuntimeErrorRef ref) {
+    auto& err = o2::framework::error_from_ref(ref);
+    BOOST_CHECK_EQUAL(strncmp(err.what, "not correct 2", 13), 0);
+#ifdef DPL_ENABLE_BACKTRACE
+    backtrace_symbols_fd(err.backtrace, err.maxBacktrace, STDERR_FILENO);
+#endif
+    std::cerr << "Previous checkpoints" << std::endl;
+    auto& c = o2::framework::get_checkpoint(0);
+    BOOST_CHECK_EQUAL(c.what, std::string("i++ == 0"));
+#ifdef DPL_ENABLE_BACKTRACE
+    backtrace_symbols_fd(c.backtrace, c.maxBacktrace, STDERR_FILENO);
+#endif
+  }
 }
