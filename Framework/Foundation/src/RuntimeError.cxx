@@ -24,6 +24,9 @@ namespace
 static RuntimeError gError[RuntimeError::MAX_RUNTIME_ERRORS];
 static std::atomic<bool> gErrorBooking[RuntimeError::MAX_RUNTIME_ERRORS];
 
+static Checkpoint gCheckpoint[Checkpoint::MAX_CHECKPOINTS];
+static std::atomic<int> gLastCheckpoint{0};
+
 bool canDumpBacktrace()
 {
 #ifdef DPL_ENABLE_BACKTRACE
@@ -75,6 +78,25 @@ RuntimeErrorRef runtime_error(const char* s)
   strncpy(gError[i].what, s, RuntimeError::MAX_RUNTIME_ERROR_SIZE);
   gError[i].maxBacktrace = canDumpBacktrace() ? backtrace(gError[i].backtrace, RuntimeError::MAX_BACKTRACE_SIZE) : 0;
   return RuntimeErrorRef{i};
+}
+
+Checkpoint& get_checkpoint(int i)
+{
+  return gCheckpoint[i];
+}
+
+void checkpoint(const char* msg)
+{
+  auto i = gLastCheckpoint++;
+  int pos = i & Checkpoint::MAX_CHECKPOINTS;
+  strncpy(gCheckpoint[pos].what, msg, Checkpoint::MAX_CHECKPOINT_SIZE);
+  gCheckpoint[pos].index = i;
+  gCheckpoint[pos].maxBacktrace = canDumpBacktrace() ? backtrace(gCheckpoint[pos].backtrace, Checkpoint::MAX_BACKTRACE_SIZE) : 0;
+}
+
+int get_last_checkpoint()
+{
+  return (gLastCheckpoint.load() - 1);
 }
 
 } // namespace o2::framework
