@@ -47,7 +47,7 @@ struct CTask {
   }
 };
 
-// Grouping
+// Grouping V0s
 struct DTask {
   void process(aod::Collision const& collision, aod::V0s const& v0s, aod::FullTracks const& tracks)
   {
@@ -59,12 +59,26 @@ struct DTask {
   }
 };
 
+// Grouping V0s and cascades
+// NOTE that you need to subscribe to V0s even if you only process cascades
+struct ETask {
+  void process(aod::Collision const& collision, aod::V0s const& v0s, aod::Cascades const& cascades, aod::FullTracks const& tracks)
+  {
+    LOGF(INFO, "Collision %d has %d cascades", collision.globalIndex(), cascades.size());
+
+    for (auto& cascade : cascades) {
+      LOGF(INFO, "Collision %d Cascade %d (%d, %d, %d)", collision.globalIndex(), cascade.globalIndex(), cascade.v0().posTrackId(), cascade.v0().negTrackId(), cascade.bachelorId());
+    }
+  }
+};
+
 WorkflowSpec defineDataProcessing(ConfigContext const&)
 {
   return WorkflowSpec{
     adaptAnalysisTask<ATask>("produce-v0index"),
-    adaptAnalysisTask<BTask>("consume-v0"),
+    adaptAnalysisTask<BTask>("consume-v0s"),
     adaptAnalysisTask<CTask>("consume-cascades"),
-    adaptAnalysisTask<DTask>("consume-grouped-v0"),
+    adaptAnalysisTask<DTask>("consume-grouped-v0s"),
+    adaptAnalysisTask<ETask>("consume-grouped-cascades"),
   };
 }
