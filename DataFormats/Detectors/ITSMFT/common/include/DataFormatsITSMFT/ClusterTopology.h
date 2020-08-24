@@ -82,7 +82,7 @@ class ClusterTopology
   /// Hashcode computed from the pattern
   ///
   /// The first four bytes are computed with MurMur2 hash-function. The remaining
-  /// four bytes are the first 32 pixels of the pattern. If the number of pixles
+  /// four bytes are the first 32 pixels of the pattern. If the number of pixels
   /// is less than 32, the remaining bits are set to 0.
   unsigned long mHash;
 
