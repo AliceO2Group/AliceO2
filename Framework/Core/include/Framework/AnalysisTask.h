@@ -208,8 +208,131 @@ struct Spawns : TransformTable<T> {
   }
 };
 
+/// Policy to control index building
+/// Exclusive index: each entry in a row has a valid index
+struct IndexExclusive {
+  /// Generic builder for in index table
+  template <typename... Cs, typename Key, typename T1, typename... T>
+  static auto indexBuilder(framework::pack<Cs...>, Key const&, std::tuple<T1, T...> tables)
+  {
+    static_assert(sizeof...(Cs) == sizeof...(T) + 1, "Number of columns does not coincide with number of supplied tables");
+    using tables_t = framework::pack<T...>;
+    using first_t = T1;
+    auto tail = tuple_tail(tables);
+    TableBuilder builder;
+    auto cursor = framework::FFL(builder.cursor<o2::soa::Table<Cs...>>());
+
+    std::array<int32_t, sizeof...(T)> values;
+    iterator_tuple_t<std::decay_t<T>...> iterators = std::apply(
+      [](auto&&... x) {
+        return std::make_tuple(x.begin()...);
+      },
+      tail);
+
+    using rest_it_t = decltype(pack_from_tuple(iterators));
+
+    int32_t idx = -1;
+    auto setValue = [&](auto& x) -> bool {
+      using type = std::decay_t<decltype(x)>;
+      constexpr auto position = framework::has_type_at<type>(rest_it_t{});
+
+      lowerBound<Key>(idx, x);
+      if (x == soa::RowViewSentinel{static_cast<uint64_t>(x.mMaxRow)}) {
+        return false;
+      } else if (x.template getId<Key>() != idx) {
+        return false;
+      } else {
+        values[position] = x.globalIndex();
+        ++x;
+        return true;
+      }
+    };
+
+    auto first = std::get<first_t>(tables);
+    for (auto& row : first) {
+      idx = row.template getId<Key>();
+
+      if (std::apply(
+            [](auto&... x) {
+              return ((x == soa::RowViewSentinel{static_cast<uint64_t>(x.mMaxRow)}) && ...);
+            },
+            iterators)) {
+        break;
+      }
+
+      auto result = std::apply(
+        [&](auto&... x) {
+          std::array<bool, sizeof...(T)> results{setValue(x)...};
+          return (results[framework::has_type_at<std::decay_t<decltype(x)>>(rest_it_t{})] && ...);
+        },
+        iterators);
+
+      if (result) {
+        cursor(0, row.globalIndex(), values[framework::has_type_at<T>(tables_t{})]...);
+      }
+    }
+    return builder.finalize();
+  }
+};
+/// Sparse index: values in a row can be (-1), index table is isomorphic (joinable)
+/// to T1
+struct IndexSparse {
+  template <typename... Cs, typename Key, typename T1, typename... T>
+  static auto indexBuilder(framework::pack<Cs...>, Key const&, std::tuple<T1, T...> tables)
+  {
+    static_assert(sizeof...(Cs) == sizeof...(T) + 1, "Number of columns does not coincide with number of supplied tables");
+    using tables_t = framework::pack<T...>;
+    using first_t = T1;
+    auto tail = tuple_tail(tables);
+    TableBuilder builder;
+    auto cursor = framework::FFL(builder.cursor<o2::soa::Table<Cs...>>());
+
+    std::array<int32_t, sizeof...(T)> values;
+
+    iterator_tuple_t<std::decay_t<T>...> iterators = std::apply(
+      [](auto&&... x) {
+        return std::make_tuple(x.begin()...);
+      },
+      tail);
+
+    using rest_it_t = decltype(pack_from_tuple(iterators));
+
+    int32_t idx = -1;
+    auto setValue = [&](auto& x) -> bool {
+      using type = std::decay_t<decltype(x)>;
+      constexpr auto position = framework::has_type_at<type>(rest_it_t{});
+
+      lowerBound<Key>(idx, x);
+      if (x == soa::RowViewSentinel{static_cast<uint64_t>(x.mMaxRow)}) {
+        values[position] = -1;
+        return false;
+      } else if (x.template getId<Key>() != idx) {
+        values[position] = -1;
+        return false;
+      } else {
+        values[position] = x.globalIndex();
+        ++x;
+        return true;
+      }
+    };
+
+    auto first = std::get<first_t>(tables);
+    for (auto& row : first) {
+      idx = row.template getId<Key>();
+      std::apply(
+        [&](auto&... x) {
+          (setValue(x), ...);
+        },
+        iterators);
+
+      cursor(0, row.globalIndex(), values[framework::has_type_at<T>(tables_t{})]...);
+    }
+    return builder.finalize();
+  }
+};
+
 /// This helper struct allows you to declare index tables to be created in a task
-template <typename T>
+template <typename T, typename IP = IndexSparse>
 struct Builds : TransformTable<T> {
   using metadata = typename TransformTable<T>::metadata;
   using originals = typename metadata::originals;
@@ -222,7 +345,17 @@ struct Builds : TransformTable<T> {
   {
     return index_pack_t{};
   }
+
+  template <typename... Cs, typename Key, typename T1, typename... Ts>
+  auto build(framework::pack<Cs...>, Key const& key, std::tuple<T1, Ts...> tables)
+  {
+    this->table = std::make_shared<T>(IP::indexBuilder(framework::pack<Cs...>{}, key, tables));
+    return (this->table != nullptr);
+  }
 };
+
+template <typename T>
+using BuildsExclusive = Builds<T, IndexExclusive>;
 
 /// This helper class allows you to declare things which will be created by a
 /// given analysis task. Currently wrapped objects are limited to be TNamed
@@ -1079,28 +1212,28 @@ static auto extractOriginalsTuple(framework::pack<Os...>, ProcessingContext& pc)
   return std::make_tuple(extractTypedOriginal<Os>(pc)...);
 }
 
-template <typename T>
-struct OutputManager<Builds<T>> {
-  static bool appendOutput(std::vector<OutputSpec>& outputs, Builds<T>& what, uint32_t)
+template <typename T, typename P>
+struct OutputManager<Builds<T, P>> {
+  static bool appendOutput(std::vector<OutputSpec>& outputs, Builds<T, P>& what, uint32_t)
   {
     outputs.emplace_back(what.spec());
     return true;
   }
 
-  static bool prepare(ProcessingContext& pc, Builds<T>& what)
+  static bool prepare(ProcessingContext& pc, Builds<T, P>& what)
   {
     using metadata = typename std::decay_t<decltype(what)>::metadata;
-    auto source_tables = extractOriginalsTuple(typename metadata::originals{}, pc);
-    what.table = std::make_shared<T>(indexBuilder(typename metadata::index_pack_t{}, extractTypedOriginal<typename metadata::Key>(pc), source_tables));
-    return true;
+    return what.build(typename metadata::index_pack_t{},
+                      extractTypedOriginal<typename metadata::Key>(pc),
+                      extractOriginalsTuple(typename metadata::originals{}, pc));
   }
 
-  static bool finalize(ProcessingContext&, Builds<T>&)
+  static bool finalize(ProcessingContext&, Builds<T, P>&)
   {
     return true;
   }
 
-  static bool postRun(EndOfStreamContext& eosc, Builds<T>& what)
+  static bool postRun(EndOfStreamContext& eosc, Builds<T, P>& what)
   {
     using metadata = typename std::decay_t<decltype(what)>::metadata;
     eosc.outputs().adopt(Output{metadata::origin(), metadata::description()}, what.asArrowTable());
@@ -1215,9 +1348,9 @@ struct IndexManager {
   static bool requestInputs(std::vector<InputSpec>&, T const&) { return false; };
 };
 
-template <typename IDX>
-struct IndexManager<Builds<IDX>> {
-  static bool requestInputs(std::vector<InputSpec>& inputs, Builds<IDX>& builds)
+template <typename IDX, typename P>
+struct IndexManager<Builds<IDX, P>> {
+  static bool requestInputs(std::vector<InputSpec>& inputs, Builds<IDX, P>& builds)
   {
     auto base_specs = builds.base_specs();
     for (auto& base_spec : base_specs) {
