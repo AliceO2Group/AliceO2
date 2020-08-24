@@ -53,12 +53,11 @@ std::shared_ptr<arrow::Table>
   mFinalizer();
   std::vector<std::shared_ptr<arrow::ChunkedArray>> columns;
   columns.reserve(mArrays.size());
-  for (size_t i = 0; i < mSchema->num_fields(); ++i) {
+  for (auto i = 0; i < mSchema->num_fields(); ++i) {
     auto column = std::make_shared<arrow::ChunkedArray>(mArrays[i]);
     columns.emplace_back(column);
   }
-  auto table_ = arrow::Table::Make(mSchema, columns);
-  return table_;
+  return arrow::Table::Make(mSchema, columns);
 }
 
 } // namespace o2::framework

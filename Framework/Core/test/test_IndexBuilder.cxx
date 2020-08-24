@@ -13,7 +13,7 @@
 #define BOOST_TEST_DYN_LINK
 
 #include "Framework/AnalysisDataModel.h"
-#include "Framework/TableBuilder.h"
+#include "Framework/AnalysisTask.h"
 #include <boost/test/unit_test.hpp>
 
 using namespace o2::framework;
@@ -75,9 +75,9 @@ BOOST_AUTO_TEST_CASE(TestIndexBuilder)
     w1(0, i * 2., i * 3., i * 4.);
   }
 
-  std::array<int, 7> d = {0, 1, 2, 4, 7, 8, 9};
-  std::array<int, 5> f = {0, 1, 2, 5, 8};
-  std::array<int, 7> c = {0, 1, 2, 3, 5, 7, 8};
+  std::array<int, 7> d{0, 1, 2, 4, 7, 8, 9};
+  std::array<int, 5> f{0, 1, 2, 5, 8};
+  std::array<int, 7> c{0, 1, 2, 3, 5, 7, 8};
 
   for (auto i : d) {
     w2(0, i, i * 10.);
@@ -100,7 +100,7 @@ BOOST_AUTO_TEST_CASE(TestIndexBuilder)
   auto t4 = b4.finalize();
   Categorys st4{t4};
 
-  auto t5 = indexBuilder(typename IDXs::persistent_columns_t{}, st1, std::tie(st1, st2, st3, st4));
+  auto t5 = IndexExclusive::indexBuilder(typename IDXs::persistent_columns_t{}, st1, std::tie(st1, st2, st3, st4));
   BOOST_REQUIRE_EQUAL(t5->num_rows(), 4);
   IDXs idxt{t5};
   idxt.bindExternalIndices(&st1, &st2, &st3, &st4);
@@ -108,5 +108,32 @@ BOOST_AUTO_TEST_CASE(TestIndexBuilder)
     BOOST_REQUIRE(row.distance().pointId() == row.pointId());
     BOOST_REQUIRE(row.flag().pointId() == row.pointId());
     BOOST_REQUIRE(row.category().pointId() == row.pointId());
+  }
+
+  auto t6 = IndexSparse::indexBuilder(typename IDXs::persistent_columns_t{}, st1, std::tie(st1, st2, st3, st4));
+  BOOST_REQUIRE_EQUAL(t6->num_rows(), st1.size());
+  IDXs idxs{t6};
+  std::array<int, 10> ds{0, 1, 2, -1, 4, -1, -1, 7, 8, 9};
+  std::array<int, 10> fs{0, 1, 2, -1, -1, 5, -1, -1, 8, -1};
+  std::array<int, 10> cs{0, 1, 2, 3, -1, 5, -1, 7, 8, -1};
+  idxs.bindExternalIndices(&st1, &st2, &st3, &st4);
+  auto i = 0;
+  for (auto& row : idxs) {
+    if (row.has_distance()) {
+      BOOST_REQUIRE(row.distance().pointId() == ds[i]);
+    } else {
+      BOOST_REQUIRE(row.distanceId() == ds[i]);
+    }
+    if (row.has_flag()) {
+      BOOST_REQUIRE(row.flag().pointId() == fs[i]);
+    } else {
+      BOOST_REQUIRE(row.flagId() == fs[i]);
+    }
+    if (row.has_category()) {
+      BOOST_REQUIRE(row.category().pointId() == cs[i]);
+    } else {
+      BOOST_REQUIRE(row.categoryId() == cs[i]);
+    }
+    ++i;
   }
 }

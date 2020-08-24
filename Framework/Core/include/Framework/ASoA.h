@@ -1174,11 +1174,17 @@ using ConcatBase = decltype(concat(std::declval<T1>(), std::declval<T2>()));
       return *mColumnIterator;                                                     \
     }                                                                              \
                                                                                    \
+    bool has_##_Getter_() const                                                    \
+    {                                                                              \
+      return *mColumnIterator >= 0;                                                \
+    }                                                                              \
+                                                                                   \
     binding_t::iterator _Getter_() const                                           \
     {                                                                              \
       assert(mBinding != nullptr);                                                 \
       return mBinding->begin() + *mColumnIterator;                                 \
     }                                                                              \
+                                                                                   \
     template <typename T>                                                          \
     bool setCurrent(T* current)                                                    \
     {                                                                              \
@@ -1318,35 +1324,32 @@ using ConcatBase = decltype(concat(std::declval<T1>(), std::declval<T2>()));
 #define DECLARE_SOA_EXTENDED_TABLE_USER(_Name_, _Table_, _Description_, ...) \
   DECLARE_SOA_EXTENDED_TABLE_FULL(_Name_, _Table_, "AOD", _Description_, __VA_ARGS__)
 
-#define DECLARE_SOA_INDEX_TABLE_FULL(_Name_, _Key_, _Origin_, _Description_, ...) \
-  using _Name_ = o2::soa::IndexTable<_Key_, __VA_ARGS__>;                         \
-                                                                                  \
-  struct _Name_##Metadata : o2::soa::TableMetadata<_Name_##Metadata> {            \
-    using Key = _Key_;                                                            \
-    using index_pack_t = framework::pack<__VA_ARGS__>;                            \
-    using originals = decltype(soa::extractBindings(index_pack_t{}));             \
-    static constexpr char const* mLabel = #_Name_;                                \
-    static constexpr char const mOrigin[4] = _Origin_;                            \
-    static constexpr char const mDescription[16] = _Description_;                 \
-  };                                                                              \
-                                                                                  \
-  template <>                                                                     \
-  struct MetadataTrait<_Name_> {                                                  \
-    using metadata = _Name_##Metadata;                                            \
-  };                                                                              \
-                                                                                  \
-  template <>                                                                     \
-  struct MetadataTrait<_Name_::base_t> {                                          \
-    using metadata = _Name_##Metadata;                                            \
-  };                                                                              \
-                                                                                  \
-  template <>                                                                     \
-  struct MetadataTrait<_Name_::iterator> {                                        \
-    using metadata = _Name_##Metadata;                                            \
-  };                                                                              \
-  template <>                                                                     \
-  struct MetadataTrait<_Name_::base_t::iterator> {                                \
-    using metadata = _Name_##Metadata;                                            \
+#define DECLARE_SOA_INDEX_TABLE_FULL(_Name_, _Key_, _Origin_, _Description_, ...)                                                \
+  struct _Name_ : o2::soa::IndexTable<_Key_, __VA_ARGS__> {                                                                      \
+    _Name_(std::shared_ptr<arrow::Table> table, uint64_t offset = 0) : o2::soa::IndexTable<_Key_, __VA_ARGS__>(table, offset){}; \
+    _Name_(_Name_ const&) = default;                                                                                             \
+    _Name_(_Name_&&) = default;                                                                                                  \
+    using iterator = typename base_t::template RowView<_Name_, _Name_>;                                                          \
+    using const_iterator = iterator;                                                                                             \
+  };                                                                                                                             \
+                                                                                                                                 \
+  struct _Name_##Metadata : o2::soa::TableMetadata<_Name_##Metadata> {                                                           \
+    using Key = _Key_;                                                                                                           \
+    using index_pack_t = framework::pack<__VA_ARGS__>;                                                                           \
+    using originals = decltype(soa::extractBindings(index_pack_t{}));                                                            \
+    static constexpr char const* mLabel = #_Name_;                                                                               \
+    static constexpr char const mOrigin[4] = _Origin_;                                                                           \
+    static constexpr char const mDescription[16] = _Description_;                                                                \
+  };                                                                                                                             \
+                                                                                                                                 \
+  template <>                                                                                                                    \
+  struct MetadataTrait<_Name_> {                                                                                                 \
+    using metadata = _Name_##Metadata;                                                                                           \
+  };                                                                                                                             \
+                                                                                                                                 \
+  template <>                                                                                                                    \
+  struct MetadataTrait<_Name_::iterator> {                                                                                       \
+    using metadata = _Name_##Metadata;                                                                                           \
   };
 
 #define DECLARE_SOA_INDEX_TABLE(_Name_, _Key_, _Description_, ...) \
@@ -1765,12 +1768,12 @@ struct IndexTable : Table<soa::Index<>, H, Ts...> {
   IndexTable& operator=(IndexTable const&) = default;
   IndexTable& operator=(IndexTable&&) = default;
 
-  using iterator = typename base_t::template RowView<IndexTable<Key, H, Ts...>, base_t>;
+  using iterator = typename base_t::template RowView<IndexTable<Key, H, Ts...>, IndexTable<Key, H, Ts...>>;
   using const_iterator = iterator;
 };
 
 template <typename T>
-using is_soa_index_table_t = typename framework::is_specialization<T, soa::IndexTable>;
+using is_soa_index_table_t = typename framework::is_base_of_template<soa::IndexTable, T>;
 
 } // namespace o2::soa
 
