@@ -10,10 +10,7 @@
 
 set(CMAKE_CXX_COMPILER ${hip_HIPCC_EXECUTABLE})
 set(CMAKE_CXX_EXTENSIONS OFF)
-
-if(DEFINED HIP_AMDGPUTARGET)
-  set(TMP_TARGET "(GPU Target ${HIP_AMDGPUTARGET})")
-endif()
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${O2_HIP_CMAKE_CXX_FLAGS} -fgpu-rdc")
 
 message(STATUS "Building ITS HIP vertexer")
 o2_add_library(ITStrackingHIP
@@ -24,7 +21,7 @@ o2_add_library(ITStrackingHIP
                        src/StreamHIP.hip.cxx
                        # src/TrackerTraitsHIP.hip.cxx
                        src/VertexerTraitsHIP.hip.cxx
-                       src/UtilsHIP.hip.cxx                   
+                       src/UtilsHIP.hip.cxx
                PUBLIC_LINK_LIBRARIES O2::ITStracking
                                      hip::host
                                      hip::device
@@ -35,13 +32,6 @@ target_compile_definitions(
   ${targetName} PRIVATE $<TARGET_PROPERTY:O2::ITStracking,COMPILE_DEFINITIONS>)
 
 if(HIP_AMDGPUTARGET)
+  # Need to add gpu target also to link flags due to gpu-rdc option
   target_link_options(${targetName} PUBLIC --amdgpu-target=${HIP_AMDGPUTARGET})
-  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} --amdgpu-target=${HIP_AMDGPUTARGET}")
 endif()
-
-target_compile_options(${targetName}
-                       PUBLIC -Wno-invalid-command-line-argument
-                              -Wno-unused-command-line-argument
-                              -Wno-invalid-constexpr
-                              -Wno-ignored-optimization-argument
-                              -Wno-unused-private-field)
