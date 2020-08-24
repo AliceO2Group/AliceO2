@@ -18,7 +18,7 @@ struct ATask {
   Produces<aod::TransientV0s> transientV0s;
   Produces<aod::TransientCascades> transientCascades;
 
-  void process(aod::StoredV0s const& v0s, aod::StoredCascades const& cascades, aod::Tracks const& tracks)
+  void process(aod::StoredV0s const& v0s, aod::StoredCascades const& cascades, aod::FullTracks const& tracks)
   {
     for (auto& v0 : v0s) {
       transientV0s(v0.posTrack().collisionId());
@@ -30,7 +30,7 @@ struct ATask {
 };
 
 struct BTask {
-  void process(aod::V0s const& v0s, aod::Tracks const& tracks)
+  void process(aod::V0s const& v0s, aod::FullTracks const& tracks)
   {
     for (auto& v0 : v0s) {
       LOGF(DEBUG, "V0 (%d, %d, %d)", v0.posTrack().collisionId(), v0.negTrack().collisionId(), v0.collisionId());
@@ -39,7 +39,7 @@ struct BTask {
 };
 
 struct CTask {
-  void process(aod::Cascades const& cascades, aod::Tracks const& tracks)
+  void process(aod::Cascades const& cascades, aod::FullTracks const& tracks)
   {
     for (auto& cascade : cascades) {
       LOGF(DEBUG, "Cascade (%d, %d)", cascade.bachelor().collisionId(), cascade.collisionId());
@@ -49,7 +49,7 @@ struct CTask {
 
 // Grouping
 struct DTask {
-  void process(aod::Collision const& collision, aod::V0s const& v0s, aod::Tracks const& tracks)
+  void process(aod::Collision const& collision, aod::V0s const& v0s, aod::FullTracks const& tracks)
   {
     LOGF(INFO, "Collision %d has %d V0s", collision.globalIndex(), v0s.size());
 

@@ -251,6 +251,9 @@ using Track = Tracks::iterator;
 using TrackCov = TracksCov::iterator;
 using TrackExtra = TracksExtra::iterator;
 
+using FullTracks = soa::Join<Tracks, TracksCov, TracksExtra>;
+using FullTrack = FullTracks::iterator;
+
 namespace unassignedtracks
 {
 DECLARE_SOA_INDEX_COLUMN(Collision, collision);
@@ -439,8 +442,8 @@ using FDD = FDDs::iterator;
 
 namespace v0
 {
-DECLARE_SOA_INDEX_COLUMN_FULL(PosTrack, posTrack, int, Tracks, "fPosTrackID");
-DECLARE_SOA_INDEX_COLUMN_FULL(NegTrack, negTrack, int, Tracks, "fNegTrackID");
+DECLARE_SOA_INDEX_COLUMN_FULL(PosTrack, posTrack, int, FullTracks, "fPosTrackID");
+DECLARE_SOA_INDEX_COLUMN_FULL(NegTrack, negTrack, int, FullTracks, "fNegTrackID");
 DECLARE_SOA_INDEX_COLUMN(Collision, collision);
 } // namespace v0
 
@@ -453,7 +456,7 @@ using V0 = V0s::iterator;
 namespace cascade
 {
 DECLARE_SOA_INDEX_COLUMN(V0, v0);
-DECLARE_SOA_INDEX_COLUMN_FULL(Bachelor, bachelor, int, Tracks, "fTracksID");
+DECLARE_SOA_INDEX_COLUMN_FULL(Bachelor, bachelor, int, FullTracks, "fTracksID");
 DECLARE_SOA_INDEX_COLUMN(Collision, collision);
 } // namespace cascade
 
