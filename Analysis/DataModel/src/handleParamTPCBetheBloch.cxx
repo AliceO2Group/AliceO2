@@ -31,8 +31,9 @@ bool initOptionsAndParse(bpo::options_description& options, int argc, char* argv
     "url,u", bpo::value<std::string>()->default_value("http://ccdb-test.cern.ch:8080"), "URL of the CCDB database")(
     "start,s", bpo::value<long>()->default_value(0), "Start timestamp of object validity")(
     "stop,S", bpo::value<long>()->default_value(4108971600000), "Stop timestamp of object validity")(
-    "delete_previous,d", bpo::value<int>()->default_value(0), "Flag to delete previous versions of converter objects in the CCDB before uploading the new one so as to avoid proliferation on CCDB")(
-    "file,f", bpo::value<std::string>()->default_value(""), "Option to save parametrization to file instead of uploading to ccdb")(
+    "delete-previous,d", bpo::value<int>()->default_value(0), "Flag to delete previous versions of converter objects in the CCDB before uploading the new one so as to avoid proliferation on CCDB")(
+    "save-to-file,f", bpo::value<std::string>()->default_value(""), "Option to save parametrization to file instead of uploading to ccdb")(
+    "read-from-file", bpo::value<std::string>()->default_value(""), "Option to get parametrization from a file")(
     "mode,m", bpo::value<unsigned int>()->default_value(0), "Working mode: 0 push 1 pull and test")(
     "verbose,v", bpo::value<int>()->default_value(0), "Verbose level 0, 1")(
     "help,h", "Produce help message.");
@@ -75,17 +76,34 @@ int main(int argc, char* argv[])
     return 1;
   }
   if (mode == 0) { // Push mode
-    const std::vector<float> bbparams = {0.0320981, 19.9768, 2.52666e-16, 2.72123, 6.08092, 50.f, 2.3};
-    const std::vector<float> resoparams = {0.07, 0.0};
-    BetheBloch tpc;
-    tpc.SetParameters(bbparams);
-    TPCReso reso;
-    reso.SetParameters(resoparams);
-    const std::string fname = vm["file"].as<std::string>();
+    BetheBloch* bb = nullptr;
+    TPCReso* reso = nullptr;
+    const std::string input_file_name = vm["read-from-file"].as<std::string>();
+
+    if (!input_file_name.empty()) {
+      TFile f(input_file_name.data(), "READ");
+      if (!f.IsOpen()) {
+        LOG(WARNING) << "Input file " << input_file_name << " is not reacheable, cannot get param from file";
+      }
+      f.GetObject("BetheBloch", bb);
+      f.GetObject("TPCReso", reso);
+      f.Close();
+    }
+    if (!bb) {
+      bb = new BetheBloch();
+      const std::vector<float> bbparams = {0.0320981, 19.9768, 2.52666e-16, 2.72123, 6.08092, 50.f, 2.3};
+      bb->SetParameters(bbparams);
+    }
+    if (!reso) {
+      reso = new TPCReso();
+      const std::vector<float> resoparams = {0.07, 0.0};
+      reso->SetParameters(resoparams);
+    }
+    const std::string fname = vm["save-to-file"].as<std::string>();
     if (!fname.empty()) { // Saving it to file
       TFile f(fname.data(), "RECREATE");
-      tpc.Write();
-      reso.Write();
+      bb->Write();
+      reso->Write();
       f.ls();
       f.Close();
     } else { // Saving it to CCDB
@@ -93,17 +111,17 @@ int main(int argc, char* argv[])
       long start = vm["start"].as<long>();
       long stop = vm["stop"].as<long>();
 
-      if (vm["delete_previous"].as<int>()) {
+      if (vm["delete-previous"].as<int>()) {
         api.truncate(path);
       }
-      api.storeAsTFileAny(&tpc, path + "/BetheBloch", metadata, start, stop);
-      api.storeAsTFileAny(&reso, path + "/TPCReso", metadata, start, stop);
+      api.storeAsTFileAny(bb, path + "/BetheBloch", metadata, start, stop);
+      api.storeAsTFileAny(reso, path + "/TPCReso", metadata, start, stop);
     }
   } else { // Pull and test mode
     const float x[2] = {1, 1};
-    BetheBloch* tpc = api.retrieveFromTFileAny<BetheBloch>(path + "/BetheBloch", metadata, -1, headers);
-    tpc->PrintParametrization();
-    LOG(INFO) << "BetheBloch " << tpc->operator()(x);
+    BetheBloch* bb = api.retrieveFromTFileAny<BetheBloch>(path + "/BetheBloch", metadata, -1, headers);
+    bb->PrintParametrization();
+    LOG(INFO) << "BetheBloch " << bb->operator()(x);
     TPCReso* reso = api.retrieveFromTFileAny<TPCReso>(path + "/TPCReso", metadata, -1, headers);
     reso->PrintParametrization();
     LOG(INFO) << "TPCReso " << reso->operator()(x);
