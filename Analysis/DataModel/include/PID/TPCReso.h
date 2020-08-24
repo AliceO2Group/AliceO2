@@ -26,7 +26,7 @@ namespace o2::pid::tpc
 class TPCReso : public Parametrization
 {
  public:
-  TPCReso() : Parametrization("TPCReso", 2) { Printf("%s", fName.Data()); };
+  TPCReso() : Parametrization("TPCReso", 2){};
   ~TPCReso() override = default;
   float operator()(const float* x) const override
   {

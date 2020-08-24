@@ -28,80 +28,133 @@ using namespace o2;
 using namespace o2::framework;
 using namespace o2::framework::expressions;
 
-struct TOFPIDQATask {
+#define TRACKSELECTION                                                                                                \
+  UChar_t clustermap = i.itsClusterMap();                                                                             \
+  bool issel = (i.tpcNClsFindable() > 70) && (i.flags() & 0x4) && (TESTBIT(clustermap, 0) || TESTBIT(clustermap, 1)); \
+  issel = issel && (i.flags() & 0x2000);                                                                              \
+  issel = issel && (i.flags() & 0x80000000);                                                                          \
+  if (!issel)                                                                                                         \
+    continue;
+
+// #define TRACKSELECTION 1;
+
+struct TOFQATask {
+  // Event quantities
+  DOTH1F(hvtxz, ";Vertex Z position;Events", 300, -15, 15);
+  DOTH1F(hevtime, ";Event time (ns);Tracks", 100, -2, 2);
   // Track quantities
-  DOTH1F(hp_NoCut, ";#it{p} (GeV/#it{c});Tracks", 100, 0, 20);
-  DOTH1F(hp_TrkCut, ";#it{p} (GeV/#it{c});Tracks", 100, 0, 20);
-  DOTH1F(hp_TOFCut, ";#it{p} (GeV/#it{c});Tracks", 100, 0, 20);
-  // TOF Quantities
-  DOTH1F(hlength_NoCut, ";Track Length (cm);Tracks", 100, 0, 1000);
-  DOTH1F(htime_NoCut, ";TOF Time (ns);Tracks", 1000, 0, 600);
-  DOTH1F(hevtime_NoCut, ";Event time (ns);Tracks", 100, -2, 2);
-  DOTH2F(hp_pTOFexp_NoCut, ";#it{p} (GeV/#it{c});#it{p}_{Exp TOF} (GeV/#it{c});Tracks", 100, 0, 20, 100, 0, 20);
-  // T-Texp
-  DOTH2F(htimediffEl_NoCut, ";#it{p} (GeV/#it{c});(t-t_{evt}-t_{exp e});Tracks", 100, 0, 5, 100, -1000, 1000);
-  DOTH2F(htimediffMu_NoCut, ";#it{p} (GeV/#it{c});(t-t_{evt}-t_{exp #mu});Tracks", 100, 0, 5, 100, -1000, 1000);
-  DOTH2F(htimediffPi_NoCut, ";#it{p} (GeV/#it{c});(t-t_{evt}-t_{exp #pi});Tracks", 100, 0, 5, 100, -1000, 1000);
-  DOTH2F(htimediffKa_NoCut, ";#it{p} (GeV/#it{c});(t-t_{evt}-t_{exp K});Tracks", 100, 0, 5, 100, -1000, 1000);
-  DOTH2F(htimediffPr_NoCut, ";#it{p} (GeV/#it{c});(t-t_{evt}-t_{exp p});Tracks", 100, 0, 5, 100, -1000, 1000);
-  // NSigma
-  DOTH2F(hnsigmaEl_NoCut, ";#it{p} (GeV/#it{c});(t-t_{evt}-t_{exp e})/N_{sigma e};Tracks", 100, 0, 5, 100, -10, 10);
-  DOTH2F(hnsigmaMu_NoCut, ";#it{p} (GeV/#it{c});(t-t_{evt}-t_{exp #mu})/N_{sigma #mu};Tracks", 100, 0, 5, 100, -10, 10);
-  DOTH2F(hnsigmaPi_NoCut, ";#it{p} (GeV/#it{c});(t-t_{evt}-t_{exp #pi})/N_{sigma #pi};Tracks", 100, 0, 5, 100, -10, 10);
-  DOTH2F(hnsigmaKa_NoCut, ";#it{p} (GeV/#it{c});(t-t_{evt}-t_{exp K})/N_{sigma K};Tracks", 100, 0, 5, 100, -10, 10);
-  DOTH2F(hnsigmaPr_NoCut, ";#it{p} (GeV/#it{c});(t-t_{evt}-t_{exp p})/N_{sigma p};Tracks", 100, 0, 5, 100, -10, 10);
+  DOTH1F(heta, ";#eta;Tracks", 100, -1, 1);
+  DOTH1F(hp, ";#it{p} (GeV/#it{c});Tracks", 100, 0, 20);
+  DOTH1F(hpt, ";#it{p}_{T} (GeV/#it{c});Tracks", 100, 0, 20);
+  DOTH1F(hlength, ";Track Length (cm);Tracks", 100, 0, 1000);
+  DOTH1F(htime, ";TOF Time (ns);Tracks", 1000, 0, 600);
   // Beta
   DOTH2F(hp_beta, ";#it{p} (GeV/#it{c});TOF #beta;Tracks", 100, 0, 20, 100, 0, 2);
 
   void process(aod::Collision const& collision, soa::Join<aod::Tracks, aod::TracksExtra, aod::pidRespTOF, aod::pidRespTOFbeta> const& tracks)
   {
+    hvtxz->Fill(collision.posZ());
     for (auto i : tracks) {
-      hp_NoCut->Fill(i.p());
       // Track selection
-      UChar_t clustermap = i.itsClusterMap();
-      bool issel = (i.tpcNClsFindable() > 70) && (i.flags() & 0x4) && (TESTBIT(clustermap, 0) || TESTBIT(clustermap, 1));
-      if (issel)
-        hp_TrkCut->Fill(i.p());
-      issel = issel && (i.flags() & 0x2000);     //kTOFout
-      issel = issel && (i.flags() & 0x80000000); //kTIME
-      if (issel)
-        hp_TOFCut->Fill(i.p());
-      hp_pTOFexp_NoCut->Fill(i.p(), i.tofExpMom() / (TMath::C() * 1.0e2f * 1.0e-12f));
+      TRACKSELECTION;
       //
-      hlength_NoCut->Fill(i.length());
-      htime_NoCut->Fill(i.tofSignal() / 1000);
+      hevtime->Fill(collision.collisionTime() / 1000);
+      // hevtime->Fill(collision.collisionTime0() / 1000);
+      const float psq = sqrt(i.px() * i.px() + i.py() * i.py() + i.pz() * i.pz());
+      heta->Fill(i.eta());
+      hp->Fill(i.p());
+      hpt->Fill(i.pt());
       //
-      hevtime_NoCut->Fill(collision.collisionTime() / 1000);
-      // hevtime_NoCut->Fill(collision.collisionTime0() / 1000);
-      //
-      htimediffEl_NoCut->Fill(i.p(), i.tofSignal() - collision.collisionTime() - i.tofExpSignalEl());
-      htimediffMu_NoCut->Fill(i.p(), i.tofSignal() - collision.collisionTime() - i.tofExpSignalMu());
-      htimediffPi_NoCut->Fill(i.p(), i.tofSignal() - collision.collisionTime() - i.tofExpSignalPi());
-      htimediffKa_NoCut->Fill(i.p(), i.tofSignal() - collision.collisionTime() - i.tofExpSignalKa());
-      htimediffPr_NoCut->Fill(i.p(), i.tofSignal() - collision.collisionTime() - i.tofExpSignalPr());
-      //
-      hnsigmaEl_NoCut->Fill(i.p(), i.tofNSigmaEl());
-      hnsigmaMu_NoCut->Fill(i.p(), i.tofNSigmaMu());
-      hnsigmaPi_NoCut->Fill(i.p(), i.tofNSigmaPi());
-      hnsigmaKa_NoCut->Fill(i.p(), i.tofNSigmaKa());
-      hnsigmaPr_NoCut->Fill(i.p(), i.tofNSigmaPr());
+      hlength->Fill(i.length());
+      htime->Fill(i.tofSignal() / 1000);
       // Beta
       hp_beta->Fill(i.p(), i.beta());
     }
   }
 };
 
-struct SpectraTask {
+struct TOFExpTimeQATask {
+  // T-Texp
+#define TIT(part) Form(";#it{p} (GeV/#it{c});(t-t_{evt}-t_{exp %s});Tracks", part)
+  DOTH2F(htimediffEl, TIT("e"), 100, 0, 5, 100, -1000, 1000);
+  DOTH2F(htimediffMu, TIT("#mu"), 100, 0, 5, 100, -1000, 1000);
+  DOTH2F(htimediffPi, TIT("#pi"), 100, 0, 5, 100, -1000, 1000);
+  DOTH2F(htimediffKa, TIT("K"), 100, 0, 5, 100, -1000, 1000);
+  DOTH2F(htimediffPr, TIT("p"), 100, 0, 5, 100, -1000, 1000);
+  DOTH2F(htimediffDe, TIT("d"), 100, 0, 5, 100, -1000, 1000);
+  DOTH2F(htimediffTr, TIT("t"), 100, 0, 5, 100, -1000, 1000);
+  DOTH2F(htimediffHe, TIT("^{3}He"), 100, 0, 5, 100, -1000, 1000);
+  DOTH2F(htimediffAl, TIT("#alpha"), 100, 0, 5, 100, -1000, 1000);
+#undef TIT
+
+  void process(aod::Collision const& collision, soa::Join<aod::Tracks, aod::TracksExtra, aod::pidRespTOF, aod::pidRespTOFbeta> const& tracks)
+  {
+    for (auto i : tracks) {
+      // Track selection
+      TRACKSELECTION;
+      //
+      const float tof = i.tofSignal() - collision.collisionTime();
+      htimediffEl->Fill(i.p(), tof - i.tofExpSignalEl());
+      htimediffMu->Fill(i.p(), tof - i.tofExpSignalMu());
+      htimediffPi->Fill(i.p(), tof - i.tofExpSignalPi());
+      htimediffKa->Fill(i.p(), tof - i.tofExpSignalKa());
+      htimediffPr->Fill(i.p(), tof - i.tofExpSignalPr());
+      htimediffDe->Fill(i.p(), tof - i.tofExpSignalDe());
+      htimediffTr->Fill(i.p(), tof - i.tofExpSignalTr());
+      htimediffHe->Fill(i.p(), tof - i.tofExpSignalHe());
+      htimediffAl->Fill(i.p(), tof - i.tofExpSignalAl());
+    }
+  }
+};
+
+struct TOFNSigmaQATask {
+  // NSigma
+#define TIT(part) Form(";#it{p} (GeV/#it{c});(t-t_{evt}-t_{exp %s})/N_{sigma %s};Tracks", part, part)
+  DOTH2F(hnsigmaEl, TIT("e"), 100, 0, 5, 100, -10, 10);
+  DOTH2F(hnsigmaMu, TIT("#mu"), 100, 0, 5, 100, -10, 10);
+  DOTH2F(hnsigmaPi, TIT("#pi"), 100, 0, 5, 100, -10, 10);
+  DOTH2F(hnsigmaKa, TIT("K"), 100, 0, 5, 100, -10, 10);
+  DOTH2F(hnsigmaPr, TIT("p"), 100, 0, 5, 100, -10, 10);
+  DOTH2F(hnsigmaDe, TIT("d"), 100, 0, 5, 100, -10, 10);
+  DOTH2F(hnsigmaTr, TIT("t"), 100, 0, 5, 100, -10, 10);
+  DOTH2F(hnsigmaHe, TIT("^{3}He"), 100, 0, 5, 100, -10, 10);
+  DOTH2F(hnsigmaAl, TIT("#alpha"), 100, 0, 5, 100, -10, 10);
+#undef TIT
+
+  void process(aod::Collision const& collision, soa::Join<aod::Tracks, aod::TracksExtra, aod::pidRespTOF, aod::pidRespTOFbeta> const& tracks)
+  {
+    for (auto i : tracks) {
+      // Track selection
+      TRACKSELECTION;
+      //
+      hnsigmaEl->Fill(i.p(), i.tofNSigmaEl());
+      hnsigmaMu->Fill(i.p(), i.tofNSigmaMu());
+      hnsigmaPi->Fill(i.p(), i.tofNSigmaPi());
+      hnsigmaKa->Fill(i.p(), i.tofNSigmaKa());
+      hnsigmaPr->Fill(i.p(), i.tofNSigmaPr());
+      hnsigmaDe->Fill(i.p(), i.tofNSigmaDe());
+      hnsigmaTr->Fill(i.p(), i.tofNSigmaTr());
+      hnsigmaHe->Fill(i.p(), i.tofNSigmaHe());
+      hnsigmaAl->Fill(i.p(), i.tofNSigmaAl());
+    }
+  }
+};
+
+struct TOFSpectraTask {
   // Pt
-  DOTH1F(hpt_El, ";#it{p}_{T} (GeV/#it{c});Tracks", 100, 0, 20);
-  DOTH1F(hpt_Pi, ";#it{p}_{T} (GeV/#it{c});Tracks", 100, 0, 20);
-  DOTH1F(hpt_Ka, ";#it{p}_{T} (GeV/#it{c});Tracks", 100, 0, 20);
-  DOTH1F(hpt_Pr, ";#it{p}_{T} (GeV/#it{c});Tracks", 100, 0, 20);
+#define TIT ";#it{p}_{T} (GeV/#it{c});Tracks"
+  DOTH1F(hpt_El, TIT, 100, 0, 20);
+  DOTH1F(hpt_Pi, TIT, 100, 0, 20);
+  DOTH1F(hpt_Ka, TIT, 100, 0, 20);
+  DOTH1F(hpt_Pr, TIT, 100, 0, 20);
+#undef TIT
   // P
-  DOTH1F(hp_El, ";#it{p} (GeV/#it{c});Tracks", 100, 0, 20);
-  DOTH1F(hp_Pi, ";#it{p} (GeV/#it{c});Tracks", 100, 0, 20);
-  DOTH1F(hp_Ka, ";#it{p} (GeV/#it{c});Tracks", 100, 0, 20);
-  DOTH1F(hp_Pr, ";#it{p} (GeV/#it{c});Tracks", 100, 0, 20);
+#define TIT ";#it{p} (GeV/#it{c});Tracks"
+  DOTH1F(hp_El, TIT, 100, 0, 20);
+  DOTH1F(hp_Pi, TIT, 100, 0, 20);
+  DOTH1F(hp_Ka, TIT, 100, 0, 20);
+  DOTH1F(hp_Pr, TIT, 100, 0, 20);
+#undef TIT
   //
   DOTH1F(hlength_El, ";Track Length (cm);Tracks", 100, 0, 1000);
   DOTH1F(htime_El, ";TOF Time (ns);Tracks", 1000, 0, 600);
@@ -115,15 +168,12 @@ struct SpectraTask {
   void process(soa::Join<aod::Tracks, aod::TracksExtra, aod::pidRespTOF, aod::pidRespTOFbeta> const& tracks)
   {
     for (auto i : tracks) {
-      UChar_t clustermap = i.itsClusterMap();
-      bool issel = (i.tpcNClsFindable() > 70) && (i.flags() & 0x4) && (TESTBIT(clustermap, 0) || TESTBIT(clustermap, 1));
-      issel = issel && (i.flags() & 0x2000);     //kTOFout
-      issel = issel && (i.flags() & 0x80000000); //kTIME
-      if (!issel)
-        continue;
+      // Track selection
+      TRACKSELECTION;
+      //
       if (TMath::Abs(i.tofNSigmaPi()) < 3) {
-        hp_El->Fill(i.p());
-        hpt_El->Fill(i.pt());
+        hp_Pi->Fill(i.p());
+        hpt_Pi->Fill(i.pt());
       } else if (TMath::Abs(i.tofNSigmaKa()) < 3) {
         hp_Ka->Fill(i.p());
         hpt_Ka->Fill(i.pt());
@@ -148,6 +198,10 @@ struct SpectraTask {
 WorkflowSpec defineDataProcessing(ConfigContext const&)
 {
   return WorkflowSpec{
-    adaptAnalysisTask<TOFPIDQATask>("tofpidqa-task"),
-    adaptAnalysisTask<SpectraTask>("filterEl-task")};
+    adaptAnalysisTask<TOFQATask>("tofqa-task"),
+    adaptAnalysisTask<TOFExpTimeQATask>("tofexptime-task"),
+    adaptAnalysisTask<TOFNSigmaQATask>("tofnsigma-task"),
+    adaptAnalysisTask<TOFSpectraTask>("tofspectra-task")};
 }
+
+#undef TRACKSELECTION

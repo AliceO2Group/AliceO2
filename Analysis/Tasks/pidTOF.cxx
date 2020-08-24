@@ -55,7 +55,6 @@ struct pidTOFTask {
 
   void process(aod::Collision const& collision, soa::Join<aod::Tracks, aod::TracksExtra> const& tracks)
   {
-    LOGF(info, "Tracks for collision: %d", tracks.size());
     tof::EventTime evt = tof::EventTime();
     evt.SetEvTime(0, collision.collisionTime());
     evt.SetEvTimeReso(0, collision.collisionTimeRes());

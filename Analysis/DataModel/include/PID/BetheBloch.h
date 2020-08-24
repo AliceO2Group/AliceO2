@@ -27,7 +27,7 @@ namespace o2::pid::tpc
 class BetheBloch : public Parametrization
 {
  public:
-  BetheBloch() : Parametrization("BetheBloch", 7) { Printf("%s", fName.Data()); };
+  BetheBloch() : Parametrization("BetheBloch", 7){};
   ~BetheBloch() override = default;
   float operator()(const float* x) const override
   {
