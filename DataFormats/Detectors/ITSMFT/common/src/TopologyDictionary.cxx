@@ -41,7 +41,7 @@ TopologyDictionary::TopologyDictionary(std::string fileName)
 std::ostream& operator<<(std::ostream& os, const TopologyDictionary& dict)
 {
   for (auto& p : dict.mVectorOfIDs) {
-    os << "Hash: " << p.mHash << " ErrX: " << p.mErrX << " ErrZ : " << p.mErrZ << " xCOG: " << p.mXCOG << " zCOG: " << p.mZCOG << " Npixles: " << p.mNpixels << " Frequency: " << p.mFrequency << " isGroup : " << std::boolalpha << p.mIsGroup << std::endl
+    os << "Hash: " << p.mHash << " ErrX: " << p.mErrX << " ErrZ : " << p.mErrZ << " xCOG: " << p.mXCOG << " zCOG: " << p.mZCOG << " Npixels: " << p.mNpixels << " Frequency: " << p.mFrequency << " isGroup : " << std::boolalpha << p.mIsGroup << std::endl
        << p.mPattern << std::endl
        << "*********************************************************" << std::endl
        << std::endl;

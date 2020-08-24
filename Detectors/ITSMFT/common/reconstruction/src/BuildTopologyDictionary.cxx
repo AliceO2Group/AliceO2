@@ -174,6 +174,8 @@ void BuildTopologyDictionary::groupRareTopologies()
         gr.mHash = (((unsigned long)(grNum)) << 32) & 0xffffffff00000000;
         gr.mErrX = (rowBinEdge)*o2::itsmft::SegmentationAlpide::PitchRow / std::sqrt(12);
         gr.mErrZ = (colBinEdge)*o2::itsmft::SegmentationAlpide::PitchCol / std::sqrt(12);
+        gr.mErr2X = gr.mErrX * gr.mErrX;
+        gr.mErr2Z = gr.mErrZ * gr.mErrZ;
         gr.mXCOG = 0;
         gr.mZCOG = 0;
         gr.mNpixels = rowBinEdge * colBinEdge;
