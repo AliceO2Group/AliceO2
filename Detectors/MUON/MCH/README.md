@@ -8,6 +8,7 @@ This is a top page for the MCH detector documentation.
 
 <!-- doxy
 \subpage refDetectorsMUONMCHContour
+\subpage refDetectorsMUONMCHClustering
 \subpage refDetectorsMUONMCHRaw
 \subpage refDetectorsMUONMCHMapping
 \subpage refDetectorsMUONMCHWorkflow

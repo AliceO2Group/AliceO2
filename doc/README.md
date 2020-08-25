@@ -14,4 +14,5 @@ This module contains the documentation pages.
 * \subpage refdocDetectorSimulation
 * \subpage refdocDoxygenInstructions
 * \subpage refdocManPages
+* \subpage refdocUpgrades
 /doxy -->

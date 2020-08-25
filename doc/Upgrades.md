@@ -1,3 +1,7 @@
+<!-- doxy
+\page refdocUpgrades Upgrades
+/doxy -->
+
 # Detector upgrades in O2
 
 ## Conventions
