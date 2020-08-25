@@ -11,6 +11,7 @@
 #include "GlobalTrackingWorkflow/PrimaryVertexingSpec.h"
 #include "GlobalTrackingWorkflow/PrimaryVertexWriterSpec.h"
 #include "GlobalTrackingWorkflow/TrackTPCITSReaderSpec.h"
+#include "FT0Workflow/RecPointReaderSpec.h"
 
 #include "CommonUtils/ConfigurableParam.h"
 #include "Framework/CompletionPolicy.h"
@@ -28,6 +29,7 @@ void customize(std::vector<ConfigParamSpec>& workflowOptions)
     {"disable-mc", o2::framework::VariantType::Bool, false, {"disable MC propagation"}},
     {"disable-root-input", o2::framework::VariantType::Bool, false, {"disable root-files input reader"}},
     {"disable-root-output", o2::framework::VariantType::Bool, false, {"disable root-files output writer"}},
+    {"validate-with-ft0", o2::framework::VariantType::Bool, false, {"use FT0 time for vertex validation"}},
     {"configKeyValues", VariantType::String, "", {"Semicolon separated key=value strings ..."}}};
 
   std::swap(workflowOptions, options);
@@ -47,12 +49,16 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   auto useMC = !configcontext.options().get<bool>("disable-mc");
   auto disableRootInp = configcontext.options().get<bool>("disable-root-input");
   auto disableRootOut = configcontext.options().get<bool>("disable-root-output");
+  auto validateWithFT0 = configcontext.options().get<bool>("validate-with-ft0");
 
   WorkflowSpec specs;
   if (!disableRootInp) {
     specs.emplace_back(o2::globaltracking::getTrackTPCITSReaderSpec(useMC));
+    if (validateWithFT0) {
+      specs.emplace_back(o2::ft0::getRecPointReaderSpec(false));
+    }
   }
-  specs.emplace_back(o2::vertexing::getPrimaryVertexingSpec(useMC));
+  specs.emplace_back(o2::vertexing::getPrimaryVertexingSpec(validateWithFT0, useMC));
   if (!disableRootOut) {
     specs.emplace_back(o2::vertexing::getPrimaryVertexWriterSpec(useMC));
   }

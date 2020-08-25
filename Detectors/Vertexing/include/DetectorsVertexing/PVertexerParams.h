@@ -35,6 +35,14 @@ struct PVertexerParams : public o2::conf::ConfigurableParamHelper<PVertexerParam
   float maxScale2 = 1.e6;            ///< max slaling factor^2
   float upscaleFactor = 9.;          ///< factor for upscaling if not candidate is found
   float slowConvergenceFactor = 0.5; ///< consider convergence as slow if ratio new/old scale2 exceeds it
+  //
+  // validation with FT0
+  bool requireFT0ValidTimeMean = false; //true;///< require both FT0A/C
+  int minNContributorsForFT0cut = 4;    ///< do not apply FT0 cut to vertice below FT0 efficiency threshold
+  float maxTError = 0.2;                ///< use min of vertex time error or this for nsigma evaluation
+  float minTError = 0.003;              ///< don't use error smaller than that (~BC/2/minNContributorsForFT0cut)
+  float nSigmaFT0cut = 4.;              ///< eliminate vertex if there is no FT0 signal within this cut
+  //
   // stopping condition params
   float maxChi2Mean = 10.;          ///< max mean chi2 of vertex to accept
   int minTracksPerVtx = 2;          ///< min N tracks per vertex

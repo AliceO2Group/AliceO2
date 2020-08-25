@@ -29,26 +29,34 @@ void PrimaryVertexingSpec::init(InitContext& ic)
   o2::base::Propagator::initFieldFromGRP("o2sim_grp.root");
   mTimer.Stop();
   mTimer.Reset();
+  mVertexer.setValidateWithFT0(mValidateWithFT0);
   mVertexer.init();
 }
 
 void PrimaryVertexingSpec::run(ProcessingContext& pc)
 {
-  mTimer.Start(false);
   double timeCPU0 = mTimer.CpuTime(), timeReal0 = mTimer.RealTime();
+  mTimer.Start(false);
   const auto tracksITSTPC = pc.inputs().get<gsl::span<o2::dataformats::TrackTPCITS>>("match");
   gsl::span<const o2::MCCompLabel> lblITS, lblTPC;
+  gsl::span<const o2::ft0::RecPoints> ft0Data;
+  if (mValidateWithFT0) {
+    ft0Data = pc.inputs().get<gsl::span<o2::ft0::RecPoints>>("fitInfo");
+  }
   if (mUseMC) {
     lblITS = pc.inputs().get<gsl::span<o2::MCCompLabel>>("lblITS");
     lblTPC = pc.inputs().get<gsl::span<o2::MCCompLabel>>("lblTPC");
   }
-  std::vector<Vertex> vertices;
+  std::vector<PVertex> vertices;
   std::vector<int> vertexTrackIDs;
   std::vector<V2TRef> v2tRefs;
   std::vector<o2::MCEventLabel> lblVtx;
 
-  mVertexer.process(tracksITSTPC, vertices, vertexTrackIDs, v2tRefs, lblITS, lblTPC, lblVtx);
+  // RS FIXME this will not have effect until the 1st orbit is propagated, until that will work only for TF starting at orbit 0
+  const auto* dh = o2::header::get<o2::header::DataHeader*>(pc.inputs().get("match").header);
+  mVertexer.setStartIR({0, dh->firstTForbit});
 
+  mVertexer.process(tracksITSTPC, ft0Data, vertices, vertexTrackIDs, v2tRefs, lblITS, lblTPC, lblVtx);
   pc.outputs().snapshot(Output{"GLO", "PVERTEX", 0, Lifetime::Timeframe}, vertices);
   pc.outputs().snapshot(Output{"GLO", "PVERTEX_TRIDREFS", 0, Lifetime::Timeframe}, v2tRefs);
   pc.outputs().snapshot(Output{"GLO", "PVERTEX_TRID", 0, Lifetime::Timeframe}, vertexTrackIDs);
@@ -68,12 +76,15 @@ void PrimaryVertexingSpec::endOfStream(EndOfStreamContext& ec)
        mTimer.CpuTime(), mTimer.RealTime(), mTimer.Counter() - 1);
 }
 
-DataProcessorSpec getPrimaryVertexingSpec(bool useMC)
+DataProcessorSpec getPrimaryVertexingSpec(bool validateWithFT0, bool useMC)
 {
   std::vector<InputSpec> inputs;
   std::vector<OutputSpec> outputs;
 
   inputs.emplace_back("match", "GLO", "TPCITS", 0, Lifetime::Timeframe);
+  if (validateWithFT0) {
+    inputs.emplace_back("fitInfo", "FT0", "RECPOINTS", 0, Lifetime::Timeframe);
+  }
 
   outputs.emplace_back("GLO", "PVERTEX", 0, Lifetime::Timeframe);
   outputs.emplace_back("GLO", "PVERTEX_TRIDREFS", 0, Lifetime::Timeframe);
@@ -89,7 +100,7 @@ DataProcessorSpec getPrimaryVertexingSpec(bool useMC)
     "primary-vertexing",
     inputs,
     outputs,
-    AlgorithmSpec{adaptFromTask<PrimaryVertexingSpec>(useMC)},
+    AlgorithmSpec{adaptFromTask<PrimaryVertexingSpec>(validateWithFT0, useMC)},
     Options{}};
 }
 
