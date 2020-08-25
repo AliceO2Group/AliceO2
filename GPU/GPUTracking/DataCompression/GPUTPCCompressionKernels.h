@@ -16,17 +16,12 @@
 
 #include "GPUGeneralKernels.h"
 
-namespace o2
-{
-namespace tpc
+namespace o2::tpc
 {
 struct ClusterNative;
-}
-} // namespace o2
+} // namespace o2::tpc
 
-namespace GPUCA_NAMESPACE
-{
-namespace gpu
+namespace GPUCA_NAMESPACE::gpu
 {
 class GPUTPCCompressionKernels : public GPUKernelTemplate
 {
@@ -126,7 +121,6 @@ class GPUTPCCompressionGatherKernels : public GPUKernelTemplate
   GPUdii() static void gatherBuffered(int nBlocks, int nThreads, int iBlock, int iThread, GPUsharedref() GPUSharedMemory& GPUrestrict() smem, processorType& GPUrestrict() processors);
 };
 
-} // namespace gpu
-} // namespace GPUCA_NAMESPACE
+} // namespace GPUCA_NAMESPACE::gpu
 
 #endif

@@ -74,9 +74,7 @@ class MCCompLabel;
 
 class AliHLTTPCClusterMCLabel;
 
-namespace GPUCA_NAMESPACE
-{
-namespace gpu
+namespace GPUCA_NAMESPACE::gpu
 {
 class GPUChainTracking;
 class GPUTPCMCInfo;
@@ -317,8 +315,7 @@ inline bool GPUQA::SuppressTrack(int iTrack) const { return (mConfig.matchMCLabe
 inline bool GPUQA::SuppressHit(int iHit) const { return (mConfig.matchMCLabels.size() && !mGoodHits[mNEvents - 1][iHit]); }
 inline int GPUQA::HitAttachStatus(int iHit) const { return (mClusterParam.size() && mClusterParam[iHit].fakeAttached ? (mClusterParam[iHit].attached ? 1 : 2) : 0); }
 
-} // namespace gpu
-} // namespace GPUCA_NAMESPACE
+} // namespace GPUCA_NAMESPACE::gpu
 
 #endif
 #endif
