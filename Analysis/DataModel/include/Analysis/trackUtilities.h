@@ -7,14 +7,19 @@
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
+#include "ReconstructionDataFormats/Track.h"
+#include "ReconstructionDataFormats/Vertex.h"
 
-/// \file Utilities for manipulating track parameters
+/// \file trackUtilities.h
+/// \brief Utilities for manipulating track parameters
 ///
 /// \author Vít Kučera <vit.kucera@cern.ch>, CERN
 
 #ifndef O2_ANALYSIS_TRACKUTILITIES_H_
 #define O2_ANALYSIS_TRACKUTILITIES_H_
 
+/// Extracts track parameters and covariance matrix from a track.
+/// \return o2::track::TrackParCov
 template <typename T>
 auto getTrackParCov(T track)
 {
@@ -27,6 +32,16 @@ auto getTrackParCov(T track)
                                   track.c1PtY(), track.c1PtZ(), track.c1PtSnp(),
                                   track.c1PtTgl(), track.c1Pt21Pt2()};
   return o2::track::TrackParCov(track.x(), track.alpha(), std::move(arraypar), std::move(covpar));
+}
+
+/// Extracts primary vertex position and covariance matrix from a collision.
+/// \return o2::dataformats::VertexBase
+template <typename T>
+auto getPrimaryVertex(T collision)
+{
+  Point3D<float> vtxXYZ(collision.posX(), collision.posY(), collision.posZ());
+  std::array<float, 6> vtxCov{collision.covXX(), collision.covXY(), collision.covYY(), collision.covXZ(), collision.covYZ(), collision.covZZ()};
+  return o2::dataformats::VertexBase{std::move(vtxXYZ), std::move(vtxCov)};
 }
 
 #endif // O2_ANALYSIS_TRACKUTILITIES_H_

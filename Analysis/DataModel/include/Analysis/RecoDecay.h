@@ -51,6 +51,16 @@ class RecoDecay
     return (args + ...);
   }
 
+  /// Squares a number.
+  /// \note Promotes number to double before squaring to avoid precision loss in float multiplication.
+  /// \param num  a number of arbitrary type
+  /// \return number squared
+  template <typename T>
+  auto static sq(T num)
+  {
+    return (double)num * (double)num;
+  }
+
   /// Sums squares of numbers.
   /// \note Promotes numbers to double before squaring to avoid precision loss in float multiplication.
   /// \param args  arbitrary number of numbers of arbitrary types
@@ -152,7 +162,7 @@ class RecoDecay
   /// \param mass  mass
   /// \return rapidity
   template <typename T, typename U>
-  static auto Rapidity(const array<T, 3>& mom, U mass)
+  static auto Y(const array<T, 3>& mom, U mass)
   {
     // y = arctanh(pz/E)
     return std::atanh(mom[2] / E(mom, mass));
@@ -206,10 +216,87 @@ class RecoDecay
   /// \param length  decay length
   /// \return proper lifetime times c
   template <typename T, typename U, typename V>
-  static auto Ct(array<T, 3> mom, U mass, V length)
+  static auto Ct(const array<T, 3>& mom, U length, V mass)
   {
     // c t = l m c^2/(p c)
     return (double)length * (double)mass / P(mom);
+  }
+
+  /// Calculates cosine of θ* (theta star).
+  /// \note Implemented for 2 prongs only.
+  /// \note "Multiply by gamma" version
+  /// \param arrMom  array of two 3-momentum arrays
+  /// \param arrMass  array of two masses (in the same order as arrMom)
+  /// \param iProng  index of the prong
+  /// \return cosine of θ* of the i-th prong
+  template <typename T, typename U>
+  static auto CosThetaStarM(const array<array<T, 3>, 2>& arrMom, const array<U, 2>& arrMass, int iProng)
+  {
+    auto eProng = E(arrMom[iProng], arrMass[iProng]);                                                                      // energy of the prong
+    auto pVecTot = PVec(arrMom[0], arrMom[1]);                                                                             // momentum of the 2-prong system
+    auto pTot = P(pVecTot);                                                                                                // magnitude of the momentum of the 2-prong system
+    auto mTot = M(arrMom, arrMass);                                                                                        // invariant mass of the 2-prong system
+    auto eTot = eProng + E(arrMom[1 - iProng], arrMass[1 - iProng]);                                                       // energy of the 2-prong system
+    auto gamma = eTot / mTot;                                                                                              // γ, Lorentz gamma factor of the 2-prong system
+    auto beta = pTot / eTot;                                                                                               // β, velocity of the 2-prong system
+    auto pStar = std::sqrt(sq(sq(mTot) - sq(arrMass[0]) - sq(arrMass[1])) - sq(2 * arrMass[0] * arrMass[1])) / (2 * mTot); // p*, prong momentum in the rest frame of the 2-prong system
+    // p* = √[(M^2 - m1^2 - m2^2)^2 - 4 m1^2 m2^2]/2M
+    // Lorentz transformation of the longitudinal momentum of the prong into the rest frame of the 2-prong system:
+    // p*_L,i = γ (p_L,i - β E_i)
+    // p*_L,i = p* cos(θ*_i)
+    // cos(θ*_i) = γ (p_L,i - β E_i)/p*
+    return gamma * (dotProd(arrMom[iProng], pVecTot) / pTot - beta * eProng) / pStar;
+  }
+
+  /// Calculates cosine of θ* (theta star).
+  /// \note Implemented for 2 prongs only.
+  /// \note "Divide by gamma" version
+  /// \param arrMom  array of two 3-momentum arrays
+  /// \param arrMass  array of two masses (in the same order as arrMom)
+  /// \param iProng  index of the prong
+  /// \return cosine of θ* of the i-th prong
+  template <typename T, typename U>
+  static auto CosThetaStarD(const array<array<T, 3>, 2>& arrMom, const array<U, 2>& arrMass, int iProng)
+  {
+    auto eProng = E(arrMom[iProng], arrMass[iProng]);                                                                      // energy of the prong
+    auto pVecTot = PVec(arrMom[0], arrMom[1]);                                                                             // momentum of the 2-prong system
+    auto pTot = P(pVecTot);                                                                                                // magnitude of the momentum of the 2-prong system
+    auto mTot = M(arrMom, arrMass);                                                                                        // invariant mass of the 2-prong system
+    auto eTot = eProng + E(arrMom[1 - iProng], arrMass[1 - iProng]);                                                       // energy of the 2-prong system
+    auto gamma = eTot / mTot;                                                                                              // γ, Lorentz gamma factor of the 2-prong system
+    auto beta = pTot / eTot;                                                                                               // β, velocity of the 2-prong system
+    auto pStar = std::sqrt(sq(sq(mTot) - sq(arrMass[0]) - sq(arrMass[1])) - sq(2 * arrMass[0] * arrMass[1])) / (2 * mTot); // p*, prong momentum in the rest frame of the 2-prong system
+    // p* = √[(M^2 - m1^2 - m2^2)^2 - 4 m1^2 m2^2]/2M
+    // Lorentz transformation of the longitudinal momentum of the prong into the detector frame:
+    // p_L,i = γ (p*_L,i + β E*_i)
+    // p*_L,i = p_L,i/γ - β E*_i (less sensitive too incorrect masses?)
+    // cos(θ*_i) = (p_L,i/γ - β E*_i)/p*
+    return (dotProd(arrMom[iProng], pVecTot) / (pTot * gamma) - beta * E(pStar, arrMass[iProng])) / pStar;
+  }
+
+  /// Calculates cosine of θ* (theta star).
+  /// \note Implemented for 2 prongs only.
+  /// \note AliRoot version
+  /// \param arrMom  array of two 3-momentum arrays
+  /// \param arrMass  array of two masses (in the same order as arrMom)
+  /// \param iProng  index of the prong
+  /// \param mTot  assumed mass of mother particle
+  /// \return cosine of θ* of the i-th prong under the assumption of the invariant mass
+  template <typename T, typename U, typename V>
+  static auto CosThetaStarA(const array<array<T, 3>, 2>& arrMom, const array<U, 2>& arrMass, V mTot, int iProng)
+  {
+    auto pVecTot = PVec(arrMom[0], arrMom[1]);                                                                             // momentum of the mother particle
+    auto pTot = P(pVecTot);                                                                                                // magnitude of the momentum of the mother particle
+    auto eTot = E(pTot, mTot);                                                                                             // energy of the mother particle
+    auto gamma = eTot / mTot;                                                                                              // γ, Lorentz gamma factor of the mother particle
+    auto beta = pTot / eTot;                                                                                               // β, velocity of the mother particle
+    auto pStar = std::sqrt(sq(sq(mTot) - sq(arrMass[0]) - sq(arrMass[1])) - sq(2 * arrMass[0] * arrMass[1])) / (2 * mTot); // p*, prong momentum in the rest frame of the mother particle
+    // p* = √[(M^2 - m1^2 - m2^2)^2 - 4 m1^2 m2^2]/2M
+    // Lorentz transformation of the longitudinal momentum of the prong into the detector frame:
+    // p_L,i = γ (p*_L,i + β E*_i)
+    // p*_L,i = p_L,i/γ - β E*_i)
+    // cos(θ*_i) = (p_L,i/γ - β E*_i)/p*
+    return (dotProd(arrMom[iProng], pVecTot) / (pTot * gamma) - beta * E(pStar, arrMass[iProng])) / pStar;
   }
 
   /// Sums 3-momenta.
@@ -299,7 +386,7 @@ class RecoDecay
   /// \param args  3-momentum array, mass
   /// \return energy
   template <typename... T>
-  static auto E(T... args)
+  static auto E(const T&... args)
   {
     return std::sqrt(E2(args...));
   }
@@ -348,7 +435,7 @@ class RecoDecay
   /// \param args  array of momenta, array of masses
   /// \return invariant mass
   template <typename... T>
-  static auto M(T... args)
+  static auto M(const T&... args)
   {
     return std::sqrt(M2(args...));
   }
