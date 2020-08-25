@@ -306,7 +306,7 @@ class MappingHandler
   ///
   /// Error thrown in queries to the MappingHandler where the DDL ID is
   /// out-of-range for EMCAL.
-  class DDLInvalid : public std::exception
+  class DDLInvalid final : public std::exception
   {
    public:
     DDLInvalid(int ddlID) : mDDL(ddlID) { mMessage = fmt::format("DDL {0} not existing for EMCAL", mDDL); };

@@ -35,7 +35,7 @@ namespace utilities
 /// Utility device for data publishing
 ///
 /// TODO: Generalize with an input policy
-class DataPublisherDevice : public base::O2Device
+class DataPublisherDevice final : public base::O2Device
 {
  public:
   typedef o2::base::O2Message O2Message;

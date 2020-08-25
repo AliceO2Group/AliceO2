@@ -39,7 +39,7 @@ namespace emcal
 /// least square fit for the
 /// Moment assuming identical and
 /// independent errors (equivalent with chi square)
-class CaloRawFitterStandard : public CaloRawFitter
+class CaloRawFitterStandard final : public CaloRawFitter
 {
 
  public:

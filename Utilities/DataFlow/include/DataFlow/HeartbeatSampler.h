@@ -38,7 +38,7 @@ namespace data_flow
 ///
 /// TODO: the class can evolve to a general clock sampler device with
 /// configurable period, even randomly distributed
-class HeartbeatSampler : public base::O2Device
+class HeartbeatSampler final : public base::O2Device
 {
  public:
   typedef o2::base::O2Message O2Message;

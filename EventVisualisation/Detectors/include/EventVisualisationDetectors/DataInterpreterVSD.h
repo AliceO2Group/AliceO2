@@ -33,7 +33,7 @@ namespace o2
 namespace event_visualisation
 {
 
-class DataInterpreterVSD : public DataInterpreter
+class DataInterpreterVSD final : public DataInterpreter
 {
  private:
   void LoadClusters(TEvePointSet*& ps, const TString& det_name, Int_t det_id);

@@ -37,7 +37,7 @@ namespace o2
 namespace devices
 {
 
-class O2PrimaryServerDevice : public FairMQDevice
+class O2PrimaryServerDevice final : public FairMQDevice
 {
  public:
   /// Default constructor

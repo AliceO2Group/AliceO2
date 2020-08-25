@@ -37,7 +37,7 @@ namespace emcal
 /// Newton's method used for solving the set of non-linear equations.
 /// Ported from class AliCaloRawAnalyzerGamma2 from AliRoot
 
-class CaloRawFitterGamma2 : public CaloRawFitter
+class CaloRawFitterGamma2 final : public CaloRawFitter
 {
 
  public:

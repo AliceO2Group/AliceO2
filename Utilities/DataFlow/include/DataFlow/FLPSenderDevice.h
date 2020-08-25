@@ -29,7 +29,7 @@ namespace devices
 /// and are sent to epnReceivers. Target epnReceiver is determined from the timeframe ID:
 /// targetEpnReceiver = timeframeId % numEPNs (numEPNs is same for every flpSender, although some may be inactive).
 
-class FLPSenderDevice : public FairMQDevice
+class FLPSenderDevice final : public FairMQDevice
 {
  public:
   /// Default constructor

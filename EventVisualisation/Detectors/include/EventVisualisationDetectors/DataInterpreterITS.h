@@ -28,7 +28,7 @@ namespace o2
 namespace event_visualisation
 {
 
-class DataInterpreterITS : public DataInterpreter
+class DataInterpreterITS final : public DataInterpreter
 {
  public:
   // Default constructor

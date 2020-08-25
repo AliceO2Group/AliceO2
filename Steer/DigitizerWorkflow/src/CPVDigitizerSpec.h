@@ -30,7 +30,7 @@ namespace cpv
 /// \author Dmitri Peresunko, NRC "Kurchatov institute"
 /// \author Adopted from PHOS code
 /// \since Jan, 2020
-class DigitizerSpec : public o2::base::BaseDPLDigitizer
+class DigitizerSpec final : public o2::base::BaseDPLDigitizer
 {
  public:
   /// \brief Constructor

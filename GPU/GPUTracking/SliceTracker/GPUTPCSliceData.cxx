@@ -215,7 +215,7 @@ GPUdii() int GPUTPCSliceData::InitFromClusterData(int nBlocks, int nThreads, int
 
     const unsigned int NumberOfClusters = EarlyTransformWithoutClusterNative ? NumberOfClustersInRow[rowIndex] : mem->ioPtrs.clustersNative->nClusters[iSlice][rowIndex];
     const unsigned int RowOffset = EarlyTransformWithoutClusterNative ? RowOffsets[rowIndex] : (mem->ioPtrs.clustersNative->clusterOffset[iSlice][rowIndex] - mem->ioPtrs.clustersNative->clusterOffset[iSlice][0]);
-    CONSTEXPR unsigned int maxN = sizeof(calink) < 3 ? (1 << (sizeof(calink) * 8)) : (1 << 24);
+    CONSTEXPR unsigned int maxN = 1u << (sizeof(calink) < 3 ? (sizeof(calink) * 8) : 24);
     if (NumberOfClusters >= maxN) {
       if (iThread == 0) {
         mem->errorCodes.raiseError(GPUErrors::ERROR_SLICEDATA_HITINROW_OVERFLOW, rowIndex, NumberOfClusters, maxN);
@@ -310,7 +310,7 @@ GPUdii() int GPUTPCSliceData::InitFromClusterData(int nBlocks, int nThreads, int
     GPUbarrier();
     const GPUTPCGrid& grid = row.mGrid;
     const int numberOfBins = grid.N();
-    CONSTEXPR int maxBins = sizeof(calink) < 4 ? (1 << (sizeof(calink) * 8)) : 0x7FFFFFFF;
+    CONSTEXPR int maxBins = sizeof(calink) < 4 ? (1 << (sizeof(calink) * 8)) : 0x7FFFFFFF; // NOLINT: false warning
     if (sizeof(calink) < 4 && numberOfBins >= maxBins) {
       if (iThread == 0) {
         mem->errorCodes.raiseError(GPUErrors::ERROR_SLICEDATA_BIN_OVERFLOW, rowIndex, numberOfBins, maxBins);

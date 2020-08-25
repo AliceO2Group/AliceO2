@@ -38,7 +38,7 @@ class ClusterFactory
 {
 
  public:
-  class ClusterRangeException : public std::exception
+  class ClusterRangeException final : public std::exception
   {
    public:
     /// \brief Constructor defining the error
@@ -73,7 +73,7 @@ class ClusterFactory
     std::string mErrorMessage; ///< Error message
   };
 
-  class CellIndexRangeException : public std::exception
+  class CellIndexRangeException final : public std::exception
   {
    public:
     /// \brief Constructor defining the error
