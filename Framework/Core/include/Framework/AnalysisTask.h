@@ -794,7 +794,7 @@ struct AnalysisDataProcessorBuilder {
               throw std::runtime_error("Cannot split collection");
             }
             if (groups[index].size() != gt.tableSize()) {
-              throw std::runtime_error("Splitting collection resulted in different group number than there is rows in the grouping table.");
+              throw std::runtime_error(fmt::format("Splitting collection resulted in different group number ({}) than there is rows in the grouping table ({}).", groups[index].size(), gt.tableSize()));
             };
           }
         };
