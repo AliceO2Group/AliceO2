@@ -110,6 +110,7 @@ void Tracker::findTracksLTF(ROframe& event)
   Int_t nClsInLayer1, nClsInLayer2, nClsInLayer;
   Int_t binR_proj, binPhi_proj, bin;
   Int_t binIndex, clsMinIndex, clsMaxIndex, clsMinIndexS, clsMaxIndexS;
+  Int_t extClsIndex;
   Float_t dR, dRmin, dRcut = constants::mft::LTFclsRCut;
   std::vector<Int_t> binsR, binsPhi, binsRS, binsPhiS;
   Bool_t hasDisk[constants::mft::DisksNumber], newPoint, seed = kTRUE;
@@ -186,7 +187,8 @@ void Tracker::findTracksLTF(ROframe& event)
             // add the first seed-point
             mcCompLabel = mUseMC ? event.getClusterLabels(layer1, cluster1.clusterId) : MCCompLabel();
             newPoint = kTRUE;
-            event.getCurrentTrackLTF().setPoint(cluster1, layer1, clsLayer1, mcCompLabel, newPoint);
+            extClsIndex = event.getClusterExternalIndex(layer1, cluster1.clusterId);
+            event.getCurrentTrackLTF().setPoint(cluster1, layer1, clsLayer1, mcCompLabel, extClsIndex, newPoint);
 
             for (Int_t layer = (layer1 + 1); layer <= (layer2 - 1); ++layer) {
 
@@ -226,7 +228,10 @@ void Tracker::findTracksLTF(ROframe& event)
 
                     hasDisk[layer / 2] = kTRUE;
                     mcCompLabel = mUseMC ? event.getClusterLabels(layer, cluster.clusterId) : MCCompLabel();
-                    event.getCurrentTrackLTF().setPoint(cluster, layer, clsLayer, mcCompLabel, newPoint);
+                    extClsIndex = event.getClusterExternalIndex(layer, cluster.clusterId);
+                    event.getCurrentTrackLTF().setPoint(cluster, layer, clsLayer, mcCompLabel, extClsIndex, newPoint);
+                    // retain only the closest point in DistanceToSeed
+                    newPoint = false;
                   } // end clusters bin intermediate layer
                 }   // end intermediate layers
               }     // end binPhi
@@ -235,10 +240,11 @@ void Tracker::findTracksLTF(ROframe& event)
             // add the second seed-point
             mcCompLabel = mUseMC ? event.getClusterLabels(layer2, cluster2.clusterId) : MCCompLabel();
             newPoint = kTRUE;
-            event.getCurrentTrackLTF().setPoint(cluster2, layer2, clsLayer2, mcCompLabel, newPoint);
+            extClsIndex = event.getClusterExternalIndex(layer2, cluster2.clusterId);
+            event.getCurrentTrackLTF().setPoint(cluster2, layer2, clsLayer2, mcCompLabel, extClsIndex, newPoint);
 
             // keep only tracks fulfilling the minimum length condition
-            if (event.getCurrentTrackLTF().getNPoints() < constants::mft::MinTrackPoints) {
+            if (event.getCurrentTrackLTF().getNumberOfPoints() < constants::mft::MinTrackPoints) {
               event.removeCurrentTrackLTF();
               continue;
             }
@@ -254,7 +260,7 @@ void Tracker::findTracksLTF(ROframe& event)
 
             // mark the used clusters
             //Int_t lay, layMin = 10, layMax = -1;
-            for (Int_t point = 0; point < event.getCurrentTrackLTF().getNPoints(); ++point) {
+            for (Int_t point = 0; point < event.getCurrentTrackLTF().getNumberOfPoints(); ++point) {
               event.markUsedCluster(event.getCurrentTrackLTF().getLayers()[point], event.getCurrentTrackLTF().getClustersId()[point]);
               //lay = event.getCurrentTrackLTF().getLayers()[point];
               //layMin = (lay < layMin) ? lay : layMin;
@@ -693,7 +699,7 @@ const Float_t Tracker::getCellChisquare(ROframe& event, const Cell& cell) const
   Float_t x[constants::mft::MaxTrackPoints], y[constants::mft::MaxTrackPoints], z[constants::mft::MaxTrackPoints], err[constants::mft::MaxTrackPoints];
   Int_t point;
 
-  for (point = 0; point < trackCA.getNPoints(); ++point) {
+  for (point = 0; point < trackCA.getNumberOfPoints(); ++point) {
     x[point] = trackCA.getXCoordinates()[point];
     y[point] = trackCA.getYCoordinates()[point];
     z[point] = trackCA.getZCoordinates()[point];
@@ -707,17 +713,17 @@ const Float_t Tracker::getCellChisquare(ROframe& event, const Cell& cell) const
   // linear regression in the plane z:x
   // x = zxApar * z + zxBpar
   Float_t zxApar, zxBpar, zxAparErr, zxBparErr, chisqZX = 0.0;
-  if (!LinearRegression(trackCA.getNPoints() + 1, z, x, err, zxApar, zxAparErr, zxBpar, zxBparErr, chisqZX)) {
+  if (!LinearRegression(trackCA.getNumberOfPoints() + 1, z, x, err, zxApar, zxAparErr, zxBpar, zxBparErr, chisqZX)) {
     return -1.0;
   }
   // linear regression in the plane z:y
   // y = zyApar * z + zyBpar
   Float_t zyApar, zyBpar, zyAparErr, zyBparErr, chisqZY = 0.0;
-  if (!LinearRegression(trackCA.getNPoints() + 1, z, y, err, zyApar, zyAparErr, zyBpar, zyBparErr, chisqZY)) {
+  if (!LinearRegression(trackCA.getNumberOfPoints() + 1, z, y, err, zyApar, zyAparErr, zyBpar, zyBparErr, chisqZY)) {
     return -1.0;
   }
 
-  Int_t nDegFree = 2 * (trackCA.getNPoints() + 1) - 4;
+  Int_t nDegFree = 2 * (trackCA.getNumberOfPoints() + 1) - 4;
   return (chisqZX + chisqZY) / (Float_t)nDegFree;
 }
 
@@ -728,15 +734,15 @@ const Bool_t Tracker::addCellToCurrentTrackCA(const Int_t layer1, const Int_t ce
   Road& road = event.getCurrentRoad();
   const Cell& cell = road.getCellsInLayer(layer1)[cellId];
   const Int_t layer2 = cell.getSecondLayerId();
-  const Int_t cls1Id = cell.getFirstClusterIndex();
-  const Int_t cls2Id = cell.getSecondClusterIndex();
+  const Int_t clsLayer1 = cell.getFirstClusterIndex();
+  const Int_t clsLayer2 = cell.getSecondClusterIndex();
 
-  const Cluster& cluster1 = event.getClustersInLayer(layer1)[cls1Id];
-  const Cluster& cluster2 = event.getClustersInLayer(layer2)[cls2Id];
+  const Cluster& cluster1 = event.getClustersInLayer(layer1)[clsLayer1];
+  const Cluster& cluster2 = event.getClustersInLayer(layer2)[clsLayer2];
 
-  if (trackCA.getNPoints() > 0) {
-    const Float_t xLast = trackCA.getXCoordinates()[trackCA.getNPoints() - 1];
-    const Float_t yLast = trackCA.getYCoordinates()[trackCA.getNPoints() - 1];
+  if (trackCA.getNumberOfPoints() > 0) {
+    const Float_t xLast = trackCA.getXCoordinates()[trackCA.getNumberOfPoints() - 1];
+    const Float_t yLast = trackCA.getYCoordinates()[trackCA.getNumberOfPoints() - 1];
     Float_t dx = xLast - cluster2.getX();
     Float_t dy = yLast - cluster2.getY();
     Float_t dr = std::sqrt(dx * dx + dy * dy);
@@ -749,27 +755,29 @@ const Bool_t Tracker::addCellToCurrentTrackCA(const Int_t layer1, const Int_t ce
   MCCompLabel mcCompLabel2 = mUseMC ? event.getClusterLabels(layer2, cluster2.clusterId) : MCCompLabel();
 
   Bool_t newPoint;
+  Int_t extClsIndex;
 
-  if (trackCA.getNPoints() == 0) {
+  if (trackCA.getNumberOfPoints() == 0) {
     newPoint = kTRUE;
-    trackCA.setPoint(cluster2, layer2, cls2Id, mcCompLabel2, newPoint);
+    extClsIndex = event.getClusterExternalIndex(layer2, cluster2.clusterId);
+    trackCA.setPoint(cluster2, layer2, clsLayer2, mcCompLabel2, extClsIndex, newPoint);
   }
 
   newPoint = kTRUE;
-  trackCA.setPoint(cluster1, layer1, cls1Id, mcCompLabel1, newPoint);
+  extClsIndex = event.getClusterExternalIndex(layer1, cluster1.clusterId);
+  trackCA.setPoint(cluster1, layer1, clsLayer1, mcCompLabel1, extClsIndex, newPoint);
 
   trackCA.addCell(layer1, cellId);
 
   // update the chisquare
-  if (trackCA.getNPoints() == 2) {
-
+  if (trackCA.getNumberOfPoints() == 2) {
     trackCA.setChiSquareZX(0.0);
     trackCA.setChiSquareZY(0.0);
     return kTRUE;
   }
 
   Float_t x[constants::mft::MaxTrackPoints], y[constants::mft::MaxTrackPoints], z[constants::mft::MaxTrackPoints], err[constants::mft::MaxTrackPoints];
-  for (Int_t point = 0; point < trackCA.getNPoints(); ++point) {
+  for (Int_t point = 0; point < trackCA.getNumberOfPoints(); ++point) {
     x[point] = trackCA.getXCoordinates()[point];
     y[point] = trackCA.getYCoordinates()[point];
     z[point] = trackCA.getZCoordinates()[point];
@@ -779,7 +787,7 @@ const Bool_t Tracker::addCellToCurrentTrackCA(const Int_t layer1, const Int_t ce
   // linear regression in the plane z:x
   // x = zxApar * z + zxBpar
   Float_t zxApar, zxBpar, zxAparErr, zxBparErr, chisqZX = 0.0;
-  if (LinearRegression(trackCA.getNPoints(), z, x, err, zxApar, zxAparErr, zxBpar, zxBparErr, chisqZX)) {
+  if (LinearRegression(trackCA.getNumberOfPoints(), z, x, err, zxApar, zxAparErr, zxBpar, zxBparErr, chisqZX)) {
     trackCA.setChiSquareZX(chisqZX);
   } else {
     return kFALSE;
@@ -788,7 +796,7 @@ const Bool_t Tracker::addCellToCurrentTrackCA(const Int_t layer1, const Int_t ce
   // linear regression in the plane z:y
   // y = zyApar * z + zyBpar
   Float_t zyApar, zyBpar, zyAparErr, zyBparErr, chisqZY = 0.0;
-  if (LinearRegression(trackCA.getNPoints(), z, y, err, zyApar, zyAparErr, zyBpar, zyBparErr, chisqZY)) {
+  if (LinearRegression(trackCA.getNumberOfPoints(), z, y, err, zyApar, zyAparErr, zyBpar, zyBparErr, chisqZY)) {
     trackCA.setChiSquareZY(chisqZY);
   } else {
     return kFALSE;
@@ -874,7 +882,7 @@ bool Tracker::fitTracks(ROframe& event)
     mTrackFitter->fit(track);
     mTrackFitter->initTrack(outParam, true);
     mTrackFitter->fit(outParam, true);
-    track.SetOutParam(outParam);
+    track.setOutParam(outParam);
   }
   for (auto& track : event.getTracksCA()) {
     track.sort();
@@ -883,7 +891,7 @@ bool Tracker::fitTracks(ROframe& event)
     mTrackFitter->fit(track);
     mTrackFitter->initTrack(outParam, true);
     mTrackFitter->fit(outParam, true);
-    track.SetOutParam(outParam);
+    track.setOutParam(outParam);
   }
 
   return true;

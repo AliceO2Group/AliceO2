@@ -53,44 +53,25 @@ class TrackMFT : public o2::track::TrackParCovFwd
   void setChi2QPtSeed(Double_t chi2) { mSeedinvQPtFitChi2 = chi2; }
   const Double_t getChi2QPtSeed() const { return mSeedinvQPtFitChi2; }
 
-  // Other functions
-  int getNumberOfClusters() const { return mClusRef.getEntries(); }
-  int getFirstClusterEntry() const { return mClusRef.getFirstEntry(); }
-  int getClusterEntry(int i) const { return getFirstClusterEntry() + i; }
-  void shiftFirstClusterEntry(int bias)
-  {
-    mClusRef.setFirstEntry(mClusRef.getFirstEntry() + bias);
-  }
-  void setFirstClusterEntry(int offs)
-  {
-    mClusRef.setFirstEntry(offs);
-  }
-  void setNumberOfClusters(int n)
-  {
-    mClusRef.setEntries(n);
-  }
-  void setClusterRefs(int firstEntry, int n)
-  {
-    mClusRef.set(firstEntry, n);
-  }
-
-  const ClusRefs& getClusterRefs() const { return mClusRef; }
-  ClusRefs& getClusterRefs() { return mClusRef; }
-
   std::uint32_t getROFrame() const { return mROFrame; }
   void setROFrame(std::uint32_t f) { mROFrame = f; }
 
-  const Int_t getNPoints() const { return mNPoints; }
+  const int getNumberOfPoints() const { return mClusRef.getEntries(); }
+
+  const int getExternalClusterIndexOffset() const { return mClusRef.getFirstEntry(); }
+
+  void setExternalClusterIndexOffset(int offset = 0) { mClusRef.setFirstEntry(offset); }
+
+  void setNumberOfPoints(int n) { mClusRef.setEntries(n); }
 
   void print() const;
 
-  const o2::track::TrackParCovFwd& GetOutParam() const { return mOutParameters; }
-  void SetOutParam(const o2::track::TrackParCovFwd parcov) { mOutParameters = parcov; }
+  const o2::track::TrackParCovFwd& getOutParam() const { return mOutParameters; }
+  void setOutParam(const o2::track::TrackParCovFwd parcov) { mOutParameters = parcov; }
 
  private:
-  std::uint32_t mROFrame = 0;                ///< RO Frame
-  Int_t mNPoints{0};                         // Number of clusters
-  Bool_t mIsCA = false;                      // Track finding method CA vs. LTF
+  std::uint32_t mROFrame = 0; ///< RO Frame
+  Bool_t mIsCA = false;       // Track finding method CA vs. LTF
 
   ClusRefs mClusRef; ///< references on clusters
 
@@ -114,24 +95,16 @@ class TrackMFTExt : public TrackMFT
   static constexpr int MaxClusters = 10;
   using TrackMFT::TrackMFT; // inherit base constructors
 
-  void setClusterIndex(int l, int i, int ncl)
+  int getExternalClusterIndex(int i) const { return mExtClsIndex[i]; }
+
+  void setExternalClusterIndex(int np, int idx)
   {
-    mIndex[ncl] = (l << 27) + i;
-    getClusterRefs().setEntries(ncl);
+    mExtClsIndex[np] = idx;
   }
 
-  int getClusterIndex(int lr) const { return mIndex[lr]; }
+ protected:
+  std::array<int, MaxClusters> mExtClsIndex = {-1}; ///< External indices of associated clusters
 
-  void setExternalClusterIndex(int layer, int idx, bool newCluster = false)
-  {
-    if (newCluster) {
-      getClusterRefs().setEntries(getNumberOfClusters() + 1);
-    }
-    mIndex[layer] = idx;
-  }
-
- private:
-  std::array<int, MaxClusters> mIndex = {-1}; ///< Indices of associated clusters
   ClassDefNV(TrackMFTExt, 1);
 };
 } // namespace mft
