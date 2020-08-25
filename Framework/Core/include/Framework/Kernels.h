@@ -194,26 +194,9 @@ auto sliceByColumn(char const* key,
 
   auto size = values.length();
 
-  auto current = 0;
-  auto v = values.Value(0);
-  while (v - current >= 1) {
+  auto injectSlice = [&](T count) {
     std::shared_ptr<arrow::Schema> schema(input->schema());
     std::vector<std::shared_ptr<arrow::ChunkedArray>> sliceArray;
-    for (auto ci = 0; ci < schema->num_fields(); ++ci) {
-      sliceArray.emplace_back(input->column(ci)->Slice(offset, 0));
-    }
-    slices->emplace_back(arrow::Datum(arrow::Table::Make(schema, sliceArray)));
-    if (offsets) {
-      offsets->emplace_back(offset);
-    }
-    ++current;
-  }
-
-  for (auto r = 0; r < size; ++r) {
-    count = counts.Value(r);
-    std::shared_ptr<arrow::Schema> schema(input->schema());
-    std::vector<std::shared_ptr<arrow::ChunkedArray>> sliceArray;
-    sliceArray.reserve(schema->num_fields());
     for (auto ci = 0; ci < schema->num_fields(); ++ci) {
       sliceArray.emplace_back(input->column(ci)->Slice(offset, count));
     }
@@ -221,35 +204,31 @@ auto sliceByColumn(char const* key,
     if (offsets) {
       offsets->emplace_back(offset);
     }
+  };
+
+  auto current = 0;
+  auto v = values.Value(0);
+  while (v - current >= 1) {
+    injectSlice(0);
+    ++current;
+  }
+
+  for (auto r = 0; r < size; ++r) {
+    count = counts.Value(r);
+    injectSlice(count);
     offset += count;
-    sliceArray.clear();
     if (r < size - 1) {
       auto nextValue = values.Value(r + 1);
       auto value = values.Value(r);
       while (nextValue - value > 1) {
-        for (auto ci = 0; ci < schema->num_fields(); ++ci) {
-          sliceArray.emplace_back(input->column(ci)->Slice(offset, 0));
-        }
-        slices->emplace_back(arrow::Datum(arrow::Table::Make(schema, sliceArray)));
-        if (offsets) {
-          offsets->emplace_back(offset);
-        }
-        sliceArray.clear();
+        injectSlice(0);
         ++value;
       }
     }
   }
   if (values.Value(size - 1) < fullSize - 1) {
     for (auto v = values.Value(size - 1) + 1; v < fullSize; ++v) {
-      std::shared_ptr<arrow::Schema> schema(input->schema());
-      std::vector<std::shared_ptr<arrow::ChunkedArray>> sliceArray;
-      for (auto ci = 0; ci < schema->num_fields(); ++ci) {
-        sliceArray.emplace_back(input->column(ci)->Slice(offset, 0));
-      }
-      slices->emplace_back(arrow::Datum(arrow::Table::Make(schema, sliceArray)));
-      if (offsets) {
-        offsets->emplace_back(offset);
-      }
+      injectSlice(0);
     }
   }
 
