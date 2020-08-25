@@ -9,8 +9,7 @@
 # submit itself to any jurisdiction.
 
 o2_add_library(AnalysisDataModel
-               SOURCES src/dummy.cxx
-                       src/ParamBase.cxx
+               SOURCES src/ParamBase.cxx
                        src/DetectorResponse.cxx
                        src/PIDTOF.cxx
                        src/PIDTPC.cxx
