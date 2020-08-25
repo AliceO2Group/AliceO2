@@ -9,21 +9,32 @@
 // or submit itself to any jurisdiction.
 #include "CommonDataFormat/InteractionRecord.h"
 #include <iostream>
+#include <fmt/printf.h>
 
 namespace o2
 {
 
-//const double InteractionRecord::DummyTime = InteractionRecord::bc2ns(0xffff,0xffffffff);
+#ifndef ALIGPU_GPUCODE
+
+std::string InteractionRecord::asString() const
+{
+  return isDummy() ? std::string{"NotSet"} : fmt::format("BCid: {:4d} Orbit: {:6d}", bc, orbit);
+}
 
 std::ostream& operator<<(std::ostream& stream, o2::InteractionRecord const& ir)
 {
-  stream << "BCid: " << ir.bc << " Orbit: " << ir.orbit;
+  stream << ir.asString();
   return stream;
+}
+
+std::string InteractionTimeRecord::asString() const
+{
+  return isDummy() ? InteractionRecord::asString() : InteractionRecord::asString() + fmt::format(" |T in BC(ns): {:.3f}", timeInBCNS);
 }
 
 std::ostream& operator<<(std::ostream& stream, o2::InteractionTimeRecord const& ir)
 {
-  stream << "BCid: " << ir.bc << " Orbit: " << ir.orbit << " T in BC(ns): " << ir.timeInBCNS;
+  stream << ir.asString();
   return stream;
 }
 
@@ -36,5 +47,7 @@ void InteractionTimeRecord::print() const
 {
   std::cout << (*this) << std::endl;
 }
+
+#endif
 
 } // namespace o2
