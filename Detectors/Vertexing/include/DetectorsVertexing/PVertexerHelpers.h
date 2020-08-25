@@ -16,7 +16,7 @@
 #define O2_PVERTEXER_HELPERS_H
 
 #include "gsl/span"
-#include "ReconstructionDataFormats/Vertex.h"
+#include "ReconstructionDataFormats/PrimaryVertex.h"
 #include "ReconstructionDataFormats/Track.h"
 #include "CommonDataFormat/TimeStamp.h"
 #include "CommonDataFormat/RangeReference.h"
@@ -26,12 +26,12 @@ namespace o2
 namespace vertexing
 {
 
+using PVertex = o2::dataformats::PrimaryVertex;
 using TimeEst = o2::dataformats::TimeStampWithError<float, float>;
-using Vertex = o2::dataformats::Vertex<TimeEst>;
 using V2TRef = o2::dataformats::RangeReference<int, int>;
 
 ///< weights and scaling params for current vertex
-struct VertexSeed : public Vertex {
+struct VertexSeed : public PVertex {
   double wghSum = 0.;                                                                              // sum of tracks weights
   double wghChi2 = 0.;                                                                             // sum of tracks weighted chi2's
   double tMeanAcc = 0.;                                                                            // sum of track times * inv.err^2
@@ -66,8 +66,8 @@ struct VertexSeed : public Vertex {
   }
 
   VertexSeed() = default;
-  VertexSeed(const Vertex& vtx, bool _constraint, bool _errors)
-    : Vertex(vtx), useConstraint(_constraint), fillErrors(_errors) {}
+  VertexSeed(const PVertex& vtx, bool _constraint, bool _errors)
+    : PVertex(vtx), useConstraint(_constraint), fillErrors(_errors) {}
 
   void print() const;
 };
@@ -114,7 +114,7 @@ struct TrackVF {
     return z + tgL * (vx * cosAlp + vy * sinAlp - x);
   }
 
-  float getResiduals(const Vertex& vtx, float& dy, float& dz) const
+  float getResiduals(const PVertex& vtx, float& dy, float& dz) const
   {
     // get residuals (Y and Z DCA in track frame) and calculate chi2
     float dx = vtx.getX() * cosAlp + vtx.getY() * sinAlp - x; // VX rotated to track frame - trackX

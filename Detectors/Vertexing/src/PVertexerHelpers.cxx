@@ -23,5 +23,5 @@ void VertexSeed::print() const
        scaleSigma2, scaleSigma2Prev, nScaleIncrease, nScaleSlowConvergence, wghChi2, wghSum, tMeanAcc * terr2, std::sqrt(terr2));
   double dZP, rmsZP, dZN, rmsZN, dTP, rmsTP, dTN, rmsTN;
   double dZ, rmsZ, dT, rmsT;
-  Vertex::print();
+  PVertex::print();
 }

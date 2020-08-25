@@ -21,7 +21,7 @@
 
 #include "CommonDataFormat/TimeStamp.h"
 #include "CommonDataFormat/RangeReference.h"
-#include "ReconstructionDataFormats/Vertex.h"
+#include "ReconstructionDataFormats/PrimaryVertex.h"
 #include "SimulationDataFormat/MCEventLabel.h"
 
 namespace o2
@@ -32,10 +32,9 @@ namespace vertexing
 
 class PrimaryVertexReader : public o2::framework::Task
 {
-  using TimeEst = o2::dataformats::TimeStampWithError<float, float>;
-  using Vertex = o2::dataformats::Vertex<TimeEst>;
-  using V2TRef = o2::dataformats::RangeReference<int, int>;
   using Label = o2::MCEventLabel;
+  using V2TRef = o2::dataformats::RangeReference<int, int>;
+  using PVertex = o2::dataformats::PrimaryVertex;
 
  public:
   PrimaryVertexReader(bool useMC) : mUseMC(useMC) {}
@@ -48,7 +47,7 @@ class PrimaryVertexReader : public o2::framework::Task
 
   bool mUseMC = false;
 
-  std::vector<Vertex> mVertices, *mVerticesPtr = &mVertices;
+  std::vector<PVertex> mVertices, *mVerticesPtr = &mVertices;
   std::vector<int> mPVTrIdx, *mPVTrIdxPtr = &mPVTrIdx;
   std::vector<V2TRef> mPV2TrIdx, *mPV2TrIdxPtr = &mPV2TrIdx;
   std::vector<Label> mLabels, *mLabelsPtr = &mLabels;
