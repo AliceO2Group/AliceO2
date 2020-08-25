@@ -1084,24 +1084,26 @@ int GPUChainTracking::RunTPCClusterizer(bool synchronizeOutput)
 
   auto* digitsMC = propagateMCLabels ? processors()->ioPtrs.tpcPackedDigits->tpcDigitsMC : nullptr;
 
-  GPUTPCLinearLabels mcLinearLabels;
-  if (propagateMCLabels) {
-    mcLinearLabels.header.reserve(mRec->MemoryScalers()->nTPCHits);
-    mcLinearLabels.data.reserve(mRec->MemoryScalers()->nTPCHits * 16); // Assumption: cluster will have less than 16 labels on average
-  }
-
   if (param().continuousMaxTimeBin > 0 && mCFContext->tpcMaxTimeBin >= (unsigned int)std::max(param().continuousMaxTimeBin + 1, TPC_MAX_FRAGMENT_LEN)) {
     GPUError("Input data has invalid time bin\n");
     return 1;
   }
   bool buildNativeGPU = (mRec->GetRecoStepsGPU() & GPUDataTypes::RecoStep::TPCConversion) || (mRec->GetRecoStepsGPU() & GPUDataTypes::RecoStep::TPCSliceTracking) || (mRec->GetRecoStepsGPU() & GPUDataTypes::RecoStep::TPCMerging) || (mRec->GetRecoStepsGPU() & GPUDataTypes::RecoStep::TPCCompression);
   bool buildNativeHost = mRec->GetRecoStepsOutputs() & GPUDataTypes::InOutType::TPCClusters; // TODO: Should do this also when clusters are needed for later steps on the host but not requested as output
-  mInputsHost->mNClusterNative = mInputsShadow->mNClusterNative = mRec->MemoryScalers()->NTPCClusters(mRec->MemoryScalers()->nTPCdigits);
+  mRec->MemoryScalers()->nTPCHits = mRec->MemoryScalers()->NTPCClusters(mRec->MemoryScalers()->nTPCdigits);
+  mInputsHost->mNClusterNative = mInputsShadow->mNClusterNative = mRec->MemoryScalers()->nTPCHits;
   if (buildNativeGPU) {
     AllocateRegisteredMemory(mInputsHost->mResourceClusterNativeBuffer);
   }
   if (buildNativeHost && !(buildNativeGPU && GetProcessingSettings().delayedOutput)) {
     AllocateRegisteredMemory(mInputsHost->mResourceClusterNativeOutput, mOutputClustersNative);
+  }
+
+  GPUTPCLinearLabels mcLinearLabels;
+  if (propagateMCLabels) {
+    // No need to overallocate here, nTPCHits is anyway an upper bound used for the GPU cluster buffer, and we can always enlarge the buffer anyway
+    mcLinearLabels.header.reserve(mRec->MemoryScalers()->nTPCHits / 2);
+    mcLinearLabels.data.reserve(mRec->MemoryScalers()->nTPCHits);
   }
 
   char transferRunning[NSLICES] = {0};
@@ -1305,6 +1307,7 @@ int GPUChainTracking::RunTPCClusterizer(bool synchronizeOutput)
         }
         runKernel<GPUTPCCFMCLabelFlattener, GPUTPCCFMCLabelFlattener::flatten>(GetGrid(clusterer.mPclusterInRow[j], lane), {iSlice}, {}, j, &mcLinearLabels);
       }
+      clusterer.clearMCMemory();
     }
     if (buildNativeHost && buildNativeGPU && anyLaneHasData) {
       if (GetProcessingSettings().delayedOutput) {
