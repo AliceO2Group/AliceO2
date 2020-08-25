@@ -1634,6 +1634,12 @@ GPUd() void GPUTPCGMMerger::CollectMergedTracks(int nBlocks, int nThreads, int i
         const ClusterNative& c = GetConstantMem()->ioPtrs.clustersNative->clustersLinear[trackClusters[i].id];
         state = c.getFlags();
       }
+#ifdef GPUCA_ALIROOT_LIB
+      cl[i].x = clXYZ[i].x;
+      cl[i].y = clXYZ[i].y;
+      cl[i].z = clXYZ[i].z;
+      cl[i].amp = clXYZ[i].amp;
+#endif
       cl[i].state = state & GPUTPCGMMergedTrackHit::clustererAndSharedFlags; // Only allow edge, deconvoluted, and shared flags
       cl[i].row = trackClusters[i].row;
       if (!Param().rec.NonConsecutiveIDs) // We already have global consecutive numbers from the slice tracker, and we need to keep them for late cluster attachment
