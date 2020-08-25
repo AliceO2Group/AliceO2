@@ -19,7 +19,7 @@
 
 namespace o2
 {
-using myTS = o2::dataformats::TimeStampWithError<double, double>;
+using myTS = o2::dataformats::TimeStampWithError<float, float>;
 using myVtx = o2::dataformats::Vertex<myTS>;
 
 // basic Vertex tests

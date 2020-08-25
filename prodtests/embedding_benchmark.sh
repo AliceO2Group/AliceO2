@@ -169,13 +169,13 @@ done
 produce_background() 
 {
   echo "Running background simulation for $nevBG $collSyst events with $generBG generator and engine $engine"
-  taskwrapper sim_bg.log o2-sim -j ${NCPUS} -n"$nevBG" --configKeyValue "Diamond.width[2]=6." -g "$generBG" -e "$engine" -o o2simbg --skipModules ZDC --seed ${SEED:-1}
+  taskwrapper sim_bg.log o2-sim -j ${NCPUS} -n"$nevBG" --configKeyValues "Diamond.width[2]=6." -g "$generBG" -e "$engine" -o o2simbg --skipModules ZDC --seed ${SEED:-1}
 }
 
 produce_signal() 
 {
   echo "Running signal simulation for $nevS $collSyst events with $generS generator and engine $engine"
-  taskwrapper sim_s.log o2-sim -j ${NCPUS} -n"$nevS" --configKeyValue "Diamond.width[2]=6." -g "$generS" -e "$engine" -o o2sims --embedIntoFile o2simbg_Kine.root --skipModules ZDC --seed ${SEED:-1}
+  taskwrapper sim_s.log o2-sim -j ${NCPUS} -n"$nevS" --configKeyValues "Diamond.width[2]=6." -g "$generS" -e "$engine" -o o2sims --embedIntoFile o2simbg_Kine.root --skipModules ZDC --seed ${SEED:-1}
 }
 
 do_transport_local() 

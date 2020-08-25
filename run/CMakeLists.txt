@@ -221,8 +221,8 @@ o2_add_test_wrapper(NAME o2sim_hepmc
                                       2
 				      -g
 				      hepmc
-				      --HepMCFile
-				      ${CMAKE_SOURCE_DIR}/Generators/share/data/pythia.hepmc
+				      --configKeyValues
+				      "HepMC.fileName=${CMAKE_SOURCE_DIR}/Generators/share/data/pythia.hepmc;HepMC.version=2"
                                       -o
                                       o2simhepmc
                     LABELS long sim hepmc3

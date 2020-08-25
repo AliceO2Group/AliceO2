@@ -158,6 +158,15 @@ DataInputDirector::DataInputDirector(std::string inputFile)
   createDefaultDataInputDescriptor();
 }
 
+DataInputDirector::DataInputDirector(std::vector<std::string> inputFiles)
+{
+  for (auto inputFile : inputFiles) {
+    mdefaultInputFiles.emplace_back(inputFile);
+  }
+
+  createDefaultDataInputDescriptor();
+}
+
 void DataInputDirector::reset()
 {
   mdataInputDescriptors.clear();

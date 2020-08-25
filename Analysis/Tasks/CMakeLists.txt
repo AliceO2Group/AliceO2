@@ -9,6 +9,7 @@
 # submit itself to any jurisdiction.
 
 add_subdirectory(PWGCF)
+add_subdirectory(PWGDQ)
 
 o2_add_dpl_workflow(trackselection
                     SOURCES trackselection.cxx
@@ -118,17 +119,12 @@ o2_add_dpl_workflow(centrality-qa
                     PUBLIC_LINK_LIBRARIES O2::Framework O2::AnalysisDataModel O2::AnalysisCore O2::DetectorsBase
                     COMPONENT_NAME Analysis)
 
-o2_add_dpl_workflow(table-maker
-                    SOURCES tableMaker.cxx
-                    PUBLIC_LINK_LIBRARIES O2::Framework O2::AnalysisDataModel O2::DetectorsBase O2::AnalysisCore
-                    COMPONENT_NAME Analysis)
-
-o2_add_dpl_workflow(table-reader
-                    SOURCES tableReader.cxx
-                    PUBLIC_LINK_LIBRARIES O2::Framework O2::AnalysisDataModel O2::DetectorsBase O2::AnalysisCore
-                    COMPONENT_NAME Analysis)
-
 o2_add_dpl_workflow(timestamp
                     SOURCES timestamp.cxx
                     PUBLIC_LINK_LIBRARIES O2::Framework O2::DetectorsBase O2::AnalysisDataModel O2::DetectorsRaw O2::AnalysisCore O2::CommonDataFormat O2::CCDB
+                    COMPONENT_NAME Analysis)
+
+o2_add_dpl_workflow(weak-decay-indices
+                    SOURCES weakDecayIndices.cxx
+                    PUBLIC_LINK_LIBRARIES O2::Framework O2::DetectorsBase O2::AnalysisDataModel
                     COMPONENT_NAME Analysis)

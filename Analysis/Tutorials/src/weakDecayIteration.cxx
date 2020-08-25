@@ -11,26 +11,15 @@
 #include "Framework/AnalysisTask.h"
 #include "Framework/AnalysisDataModel.h"
 
+// Example how to enumerate V0s and cascades
+// Needs weak-decay-indices in the workflow
+// Example usage: o2-analysis-weak-decay-indices --aod-file AO2D.root | o2-analysistutorial-weak-decay-iteration
+
 using namespace o2;
 using namespace o2::framework;
 
-struct ATask {
-  Produces<aod::TransientV0s> transientV0s;
-  Produces<aod::TransientCascades> transientCascades;
-
-  void process(aod::StoredV0s const& v0s, aod::StoredCascades const& cascades, aod::Tracks const& tracks)
-  {
-    for (auto& v0 : v0s) {
-      transientV0s(v0.posTrack().collisionId());
-    }
-    for (auto& cascade : cascades) {
-      transientCascades(cascade.bachelor().collisionId());
-    }
-  }
-};
-
 struct BTask {
-  void process(aod::V0s const& v0s, aod::Tracks const& tracks)
+  void process(aod::V0s const& v0s, aod::FullTracks const& tracks)
   {
     for (auto& v0 : v0s) {
       LOGF(DEBUG, "V0 (%d, %d, %d)", v0.posTrack().collisionId(), v0.negTrack().collisionId(), v0.collisionId());
@@ -39,7 +28,7 @@ struct BTask {
 };
 
 struct CTask {
-  void process(aod::Cascades const& cascades, aod::Tracks const& tracks)
+  void process(aod::Cascades const& cascades, aod::FullTracks const& tracks)
   {
     for (auto& cascade : cascades) {
       LOGF(DEBUG, "Cascade (%d, %d)", cascade.bachelor().collisionId(), cascade.collisionId());
@@ -47,9 +36,9 @@ struct CTask {
   }
 };
 
-// Grouping
+// Grouping V0s
 struct DTask {
-  void process(aod::Collision const& collision, aod::V0s const& v0s, aod::Tracks const& tracks)
+  void process(aod::Collision const& collision, aod::V0s const& v0s, aod::FullTracks const& tracks)
   {
     LOGF(INFO, "Collision %d has %d V0s", collision.globalIndex(), v0s.size());
 
@@ -59,12 +48,25 @@ struct DTask {
   }
 };
 
+// Grouping V0s and cascades
+// NOTE that you need to subscribe to V0s even if you only process cascades
+struct ETask {
+  void process(aod::Collision const& collision, aod::V0s const& v0s, aod::Cascades const& cascades, aod::FullTracks const& tracks)
+  {
+    LOGF(INFO, "Collision %d has %d cascades", collision.globalIndex(), cascades.size());
+
+    for (auto& cascade : cascades) {
+      LOGF(DEBUG, "Collision %d Cascade %d (%d, %d, %d)", collision.globalIndex(), cascade.globalIndex(), cascade.v0().posTrackId(), cascade.v0().negTrackId(), cascade.bachelorId());
+    }
+  }
+};
+
 WorkflowSpec defineDataProcessing(ConfigContext const&)
 {
   return WorkflowSpec{
-    adaptAnalysisTask<ATask>("produce-v0index"),
-    adaptAnalysisTask<BTask>("consume-v0"),
+    adaptAnalysisTask<BTask>("consume-v0s"),
     adaptAnalysisTask<CTask>("consume-cascades"),
-    adaptAnalysisTask<DTask>("consume-grouped-v0"),
+    adaptAnalysisTask<DTask>("consume-grouped-v0s"),
+    adaptAnalysisTask<ETask>("consume-grouped-cascades"),
   };
 }

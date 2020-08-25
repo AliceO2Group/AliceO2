@@ -41,7 +41,7 @@
   #define GPUCA_LB_GPUTPCCFDecodeZS 64, 4
   #define GPUCA_LB_GPUTPCCFGather 1024, 1
   #define GPUCA_LB_GPUTPCGMMergerTrackFit 64, 1
-  #define GPUCA_LB_GPUTPCGMMergerFollowLoopers 256, 1
+  #define GPUCA_LB_GPUTPCGMMergerFollowLoopers 256, 1, 200
   #define GPUCA_LB_GPUTPCGMMergerSliceRefit 256
   #define GPUCA_LB_GPUTPCGMMergerUnpackResetIds 256
   #define GPUCA_LB_GPUTPCGMMergerUnpackGlobal 256

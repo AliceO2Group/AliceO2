@@ -66,22 +66,12 @@ set_package_properties(Geant4VMC PROPERTIES TYPE ${mcPackageRequirement})
 find_package(VGM MODULE)
 set_package_properties(VGM PROPERTIES TYPE ${mcPackageRequirement})
 
-find_package(HepMC MODULE)
-set_package_properties(HepMC
-		       PROPERTIES
-		       TYPE OPTIONAL DESCRIPTION
-		       "the HepMC3 event record package (deprecated old find_package call)")
-		     
 find_package(HepMC3 MODULE)
 set_package_properties(HepMC3
 		       PROPERTIES
 		       TYPE OPTIONAL DESCRIPTION
 		       "the HepMC3 event record package")
 
-if(HepMC_FOUND AND HepMC3_FOUND)
-  message(ERROR "Both HepMC3 packages have been found, something is wrong")
-endif()
-		     
 set(doBuildSimulation OFF)
 
 if(pythia_FOUND
@@ -90,7 +80,7 @@ if(pythia_FOUND
    AND Geant4_FOUND
    AND Geant4VMC_FOUND
    AND VGM_FOUND
-   AND (HepMC_FOUND OR HepMC3_FOUND))
+   AND HepMC3_FOUND)
   set(doBuildSimulation ON)
 endif()
 

@@ -128,7 +128,7 @@ GPUg() void runKernelCUDA(GPUCA_CONSMEM_PTR int iSlice_internal, Args... args)
 */
 
 #undef GPUCA_KRNL_REG
-#define GPUCA_KRNL_REG(args) __launch_bounds__(GPUCA_M_STRIP(args))
+#define GPUCA_KRNL_REG(args) __launch_bounds__(GPUCA_M_MAX2_3(GPUCA_M_STRIP(args)))
 #define GPUCA_KRNL(x_class, x_attributes, x_arguments, x_forward) \
   GPUCA_KRNL_PROP(x_class, x_attributes)                          \
   GPUCA_KRNL_WRAP(GPUCA_KRNL_, x_class, x_attributes, x_arguments, x_forward)
@@ -150,7 +150,7 @@ void GPUReconstructionCUDABackend::runKernelBackendInternal<GPUMemClean16, 0>(kr
 template <class T, int I, typename... Args>
 void GPUReconstructionCUDABackend::runKernelBackendInternal(krnlSetup& _xyz, const Args&... args)
 {
-  GPUDebugTiming timer(mProcessingSettings.deviceTimers, (void**)mDebugEvents, mInternals->Streams, _xyz);
+  GPUDebugTiming timer(mProcessingSettings.deviceTimers && mProcessingSettings.debugLevel > 0, (void**)mDebugEvents, mInternals->Streams, _xyz);
   backendInternal<T, I>::runKernelBackendMacro(_xyz, this, args...);
 }
 
@@ -619,7 +619,7 @@ int GPUReconstructionCUDABackend::GPUDebug(const char* state, int stream)
     GPUError("Cuda Error %s while running kernel (%s) (Stream %d)", cudaGetErrorString(cuErr), state, stream);
     return (1);
   }
-  if (mProcessingSettings.debugLevel == 0) {
+  if (mProcessingSettings.debugLevel <= 0) {
     return (0);
   }
   if (GPUFailedMsgI(cudaDeviceSynchronize())) {

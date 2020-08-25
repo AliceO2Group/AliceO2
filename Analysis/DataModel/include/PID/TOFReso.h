@@ -29,7 +29,7 @@ namespace o2::pid::tof
 class TOFReso : public Parametrization
 {
  public:
-  TOFReso() : Parametrization("TOFReso", 5) { Printf("%s", fName.Data()); };
+  TOFReso() : Parametrization("TOFReso", 5){};
   ~TOFReso() override = default;
   float operator()(const float* x) const override
   {

@@ -202,14 +202,14 @@ int GPUReconstructionOCL::runKernelBackendCommon(krnlSetup& _xyz, K& k, const Ar
   cl_event ev;
   cl_event* evr;
   bool tmpEvent = false;
-  if (z.ev == nullptr && mProcessingSettings.deviceTimers) {
+  if (z.ev == nullptr && mProcessingSettings.deviceTimers && mProcessingSettings.debugLevel > 0) {
     evr = &ev;
     tmpEvent = true;
   } else {
     evr = (cl_event*)z.ev;
   }
   int retVal = clExecuteKernelA(mInternals->command_queue[x.stream], k, x.nThreads, x.nThreads * x.nBlocks, evr, (cl_event*)z.evList, z.nEvents);
-  if (mProcessingSettings.deviceTimers) {
+  if (mProcessingSettings.deviceTimers && mProcessingSettings.debugLevel > 0) {
     cl_ulong time_start, time_end;
     GPUFailedMsg(clWaitForEvents(1, evr));
     GPUFailedMsg(clGetEventProfilingInfo(*evr, CL_PROFILING_COMMAND_START, sizeof(time_start), &time_start, nullptr));
