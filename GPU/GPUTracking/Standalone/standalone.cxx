@@ -175,6 +175,10 @@ int ReadConfiguration(int argc, char** argv)
 #endif
 #ifndef GPUCA_TPC_GEOMETRY_O2
   configStandalone.rec.mergerReadFromTrackerDirectly = 0;
+  configStandalone.proc.ompKernels = false;
+  if (configStandalone.rundEdx == -1) {
+    configStandalone.rundEdx = 0;
+  }
 #endif
 #ifndef GPUCA_BUILD_QA
   if (configStandalone.proc.runQA || configStandalone.eventGenerator) {
