@@ -36,6 +36,9 @@ namespace tpc
 struct ClusterNativeAccess;
 struct CompressedClustersFlat;
 class Digit;
+namespace constants
+{
+} // namespace constants
 } // namespace tpc
 } // namespace o2
 #endif

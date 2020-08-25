@@ -23,6 +23,10 @@ namespace gpu
 struct GPUTPCGMMergedTrackHit {
   unsigned int num;
   unsigned char slice, row, leg, state;
+#ifdef GPUCA_ALIROOT_LIB
+  float x, y, z;
+  unsigned short amp;
+#endif
 
   // NOTE: the lower states must match those from ClusterNative!
   enum hitState { flagSplitPad = 0x1,

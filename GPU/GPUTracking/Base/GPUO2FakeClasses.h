@@ -99,6 +99,8 @@ class GPUTPCCompression
 class GPUTPCClusterFinder
 {
 };
+struct GPUTPCCFChainContext {
+};
 #ifndef __OPENCL__
 struct GPUParam;
 class GPUTPCClusterStatistics
