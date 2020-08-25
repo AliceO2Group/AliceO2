@@ -255,7 +255,7 @@ inline void Tracker::computeTracksMClabels(const T& tracks)
     MCCompLabel maxOccurrencesValue{-1, -1, -1, false};
     int count{0};
     bool isFakeTrack{false};
-    auto nClusters = track.getNumberOfClusters();
+    auto nClusters = track.getNumberOfPoints();
     for (int iCluster = 0; iCluster < nClusters; ++iCluster) {
       const MCCompLabel& currentLabel = track.getMCCompLabels()[iCluster];
       if (currentLabel == maxOccurrencesValue) {
