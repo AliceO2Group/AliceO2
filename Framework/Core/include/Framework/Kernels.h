@@ -193,10 +193,10 @@ auto sliceByColumn(char const* key,
   auto count = 0;
 
   auto size = values.length();
+  std::shared_ptr<arrow::Schema> schema(input->schema());
+  std::vector<std::shared_ptr<arrow::ChunkedArray>> sliceArray;
 
   auto injectSlice = [&](T count) {
-    std::shared_ptr<arrow::Schema> schema(input->schema());
-    std::vector<std::shared_ptr<arrow::ChunkedArray>> sliceArray;
     for (auto ci = 0; ci < schema->num_fields(); ++ci) {
       sliceArray.emplace_back(input->column(ci)->Slice(offset, count));
     }
@@ -204,6 +204,7 @@ auto sliceByColumn(char const* key,
     if (offsets) {
       offsets->emplace_back(offset);
     }
+    sliceArray.clear();
   };
 
   auto current = 0;
@@ -213,19 +214,19 @@ auto sliceByColumn(char const* key,
     ++current;
   }
 
-  for (auto r = 0; r < size; ++r) {
+  for (auto r = 0; r < size - 1; ++r) {
     count = counts.Value(r);
     injectSlice(count);
     offset += count;
-    if (r < size - 1) {
-      auto nextValue = values.Value(r + 1);
-      auto value = values.Value(r);
-      while (nextValue - value > 1) {
-        injectSlice(0);
-        ++value;
-      }
+    auto nextValue = values.Value(r + 1);
+    auto value = values.Value(r);
+    while (nextValue - value > 1) {
+      injectSlice(0);
+      ++value;
     }
   }
+  injectSlice(counts.Value(size - 1));
+
   if (values.Value(size - 1) < fullSize - 1) {
     for (auto v = values.Value(size - 1) + 1; v < fullSize; ++v) {
       injectSlice(0);
