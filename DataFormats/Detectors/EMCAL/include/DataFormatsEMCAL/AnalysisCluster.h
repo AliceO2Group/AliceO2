@@ -39,7 +39,7 @@ class AnalysisCluster
   /// \class CellOutOfRangeException
   /// \brief Exception handling non-existing cell indices
   /// \ingroup EMCALbase
-  class CellOutOfRangeException : public std::exception
+  class CellOutOfRangeException final : public std::exception
   {
    public:
     /// \brief Constructor, setting cell wrong cell index raising the exception
