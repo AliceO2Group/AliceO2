@@ -16,6 +16,7 @@
 #define O2_PVERTEXER_H
 
 #include <array>
+#include "CommonConstants/LHCConstants.h"
 #include "CommonDataFormat/TimeStamp.h"
 #include "CommonDataFormat/RangeReference.h"
 #include "SimulationDataFormat/MCEventLabel.h"
@@ -23,7 +24,8 @@
 #include "MathUtils/Utils.h"
 #include "ReconstructionDataFormats/TrackTPCITS.h"
 #include "ReconstructionDataFormats/Track.h"
-#include "ReconstructionDataFormats/Vertex.h"
+#include "ReconstructionDataFormats/PrimaryVertex.h"
+#include "DataFormatsFT0/RecPoints.h"
 #include "DetectorsVertexing/PVertexerHelpers.h"
 #include "DetectorsVertexing/PVertexerParams.h"
 #include "gsl/span"
@@ -35,12 +37,6 @@ namespace vertexing
 
 namespace o2d = o2::dataformats;
 
-class VertexSeed;
-class TrackVF;
-class VertexingInput;
-class SeedHisto;
-class TimeCluster;
-
 class PVertexer
 {
 
@@ -51,18 +47,18 @@ class PVertexer
                                IterateFurther,
                                OK };
 
-  using TimeEst = o2::dataformats::TimeStampWithError<float, float>;
-  using Vertex = o2::dataformats::Vertex<TimeEst>;
-  using V2TRef = o2::dataformats::RangeReference<int, int>;
-
   void init();
-  int process(gsl::span<const o2d::TrackTPCITS> tracksITSTPC, std::vector<Vertex>& vertices, std::vector<int>& vertexTrackIDs, std::vector<V2TRef>& v2tRefs,
+  int process(gsl::span<const o2d::TrackTPCITS> tracksITSTPC, gsl::span<const o2::ft0::RecPoints> ft0Data,
+              std::vector<PVertex>& vertices, std::vector<int>& vertexTrackIDs, std::vector<V2TRef>& v2tRefs,
               gsl::span<const o2::MCCompLabel> lblITS, gsl::span<const o2::MCCompLabel> lblTPC, std::vector<o2::MCEventLabel>& lblVtx);
-  int process(gsl::span<const o2d::TrackTPCITS> tracksITSTPC, std::vector<Vertex>& vertices, std::vector<int>& vertexTrackIDs, std::vector<V2TRef>& v2tRefs);
+  int process(gsl::span<const o2d::TrackTPCITS> tracksITSTPC, gsl::span<const o2::ft0::RecPoints> ft0Data,
+              std::vector<PVertex>& vertices, std::vector<int>& vertexTrackIDs, std::vector<V2TRef>& v2tRefs);
   static void createMCLabels(gsl::span<const o2::MCCompLabel> lblITS, gsl::span<const o2::MCCompLabel> lblTPC,
-                             const std::vector<Vertex> vertices, const std::vector<int> vertexTrackIDs, const std::vector<V2TRef> v2tRefs,
+                             const std::vector<PVertex> vertices, const std::vector<int> vertexTrackIDs, const std::vector<V2TRef> v2tRefs,
                              std::vector<o2::MCEventLabel>& lblVtx);
-  bool findVertex(const VertexingInput& input, Vertex& vtx);
+  bool findVertex(const VertexingInput& input, PVertex& vtx);
+
+  void setStartIR(const o2::InteractionRecord& ir) { mStartIR = ir; } ///< set InteractionRecods for the beginning of the TF
 
   void setTukey(float t)
   {
@@ -70,9 +66,11 @@ class PVertexer
   }
   float getTukey() const;
 
-  void finalizeVertex(const VertexingInput& input, const Vertex& vtx, std::vector<Vertex>& vertices, std::vector<V2TRef>& v2tRefs, std::vector<int>& vertexTrackIDs, SeedHisto& histo);
+  void finalizeVertex(const VertexingInput& input, const PVertex& vtx, std::vector<PVertex>& vertices, std::vector<V2TRef>& v2tRefs, std::vector<int>& vertexTrackIDs, SeedHisto& histo);
 
   void setBz(float bz) { mBz = bz; }
+  void setValidateWithFT0(bool v) { mValidateWithFT0 = v; }
+  bool getValidateWithFT0() const { return mValidateWithFT0; }
 
   auto& getTracksPool() const { return mTracksPool; }
   auto& getTimeClusters() const { return mTimesClusters; }
@@ -96,7 +94,7 @@ class PVertexer
   FitStatus fitIteration(const VertexingInput& input, VertexSeed& vtxSeed);
   void accountTrack(TrackVF& trc, VertexSeed& vtxSeed) const;
   bool solveVertex(VertexSeed& vtxSeed) const;
-  FitStatus evalIterations(VertexSeed& vtxSeed, Vertex& vtx) const;
+  FitStatus evalIterations(VertexSeed& vtxSeed, PVertex& vtx) const;
   TimeEst timeEstimate(const VertexingInput& input) const;
   float findZSeedHistoPeak() const;
   void initMeanVertexConstraint();
@@ -105,7 +103,9 @@ class PVertexer
   void createTracksPool(gsl::span<const o2d::TrackTPCITS> tracksITSTPC);
   void clusterizeTimeBruteForce(float margin = 0.1, float cut = 25);
   void clusterizeTime(float binSize = 0.1, float maxTDist = 0.6);
-  int findVertices(const VertexingInput& input, std::vector<Vertex>& vertices, std::vector<int>& vertexTrackIDs, std::vector<V2TRef>& v2tRefs);
+  int findVertices(const VertexingInput& input, std::vector<PVertex>& vertices, std::vector<int>& vertexTrackIDs, std::vector<V2TRef>& v2tRefs);
+  float getTimeMSFromTFStart(const o2::InteractionRecord& bc) const { return bc.differenceInBC(mStartIR) * 1e-3 * o2::constants::lhc::LHCBunchSpacingNS; }
+  int compatibleTimes(const TimeEst& t, gsl::span<const o2::ft0::RecPoints> ft0Data, int& currEntry) const;
 
   o2d::VertexBase mMeanVertex{{0., 0., 0.}, {0.1 * 0.1, 0., 0.1 * 0.1, 0., 0., 6. * 6.}};
   std::array<float, 3> mXYConstraintInvErr = {1.0f, 0.f, 1.0f}; ///< nominal vertex constraint inverted errors^2
@@ -116,6 +116,9 @@ class PVertexer
   std::vector<int> mSortedTrackID;         ///< indices of tracks sorted in time
   std::vector<TimeCluster> mTimesClusters; ///< set of time clusters
   float mBz = 0.;                          ///< mag.field at beam line
+  bool mValidateWithFT0 = false;           ///< require vertex validation with FT0 (if available)
+
+  o2::InteractionRecord mStartIR{0, 0}; ///< IR corresponding to the start of the TF
 
   ///========== Parameters to be set externally, e.g. from CCDB ====================
   const PVertexerParams* mParams = nullptr;
