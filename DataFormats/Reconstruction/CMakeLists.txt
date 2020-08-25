@@ -14,6 +14,7 @@ o2_add_library(ReconstructionDataFormats
                        src/BaseCluster.cxx
                        src/TrackTPCITS.cxx
                        src/Vertex.cxx
+                       src/PrimaryVertex.cxx
                        src/MatchInfoTOF.cxx
                        src/TrackLTIntegral.cxx
                        src/PID.cxx
@@ -29,6 +30,7 @@ o2_target_root_dictionary(
           include/ReconstructionDataFormats/BaseCluster.h
           include/ReconstructionDataFormats/TrackTPCITS.h
           include/ReconstructionDataFormats/Vertex.h
+          include/ReconstructionDataFormats/PrimaryVertex.h
           include/ReconstructionDataFormats/MatchInfoTOF.h
           include/ReconstructionDataFormats/TrackLTIntegral.h
           include/ReconstructionDataFormats/PID.h
