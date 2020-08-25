@@ -99,7 +99,7 @@ int GPUCATracking::runTracking(GPUO2InterfaceIOPtrs* data, GPUInterfaceOutputs* 
     const int maxContTimeBin = mTrackingCAO2Interface->getConfig().configEvent.continuousMaxTimeBin;
     for (int i = 0; i < Sector::MAXSECTOR; i++) {
       const auto& d = (*(data->o2Digits))[i];
-      if (zsThreshold > 0) {
+      if (zsThreshold > 0 && data->tpcZS == nullptr) {
         gpuDigits[i].reserve(d.size());
       }
       for (int j = 0; j < d.size(); j++) {
@@ -117,7 +117,7 @@ int GPUCATracking::runTracking(GPUO2InterfaceIOPtrs* data, GPUInterfaceOutputs* 
           }
         }
       }
-      if (zsThreshold > 0) {
+      if (zsThreshold > 0 && data->tpcZS == nullptr) {
         gpuDigitsMap.tpcDigits[i] = gpuDigits[i].data();
         gpuDigitsMap.nTPCDigits[i] = gpuDigits[i].size();
         if (data->o2DigitsMC) {
