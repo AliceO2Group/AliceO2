@@ -14,9 +14,11 @@
 #define ALICEO2_INTERACTIONRECORD_H
 
 #include "GPUCommonRtypes.h"
+#ifndef ALIGPU_GPUCODE
 #include <iosfwd>
-#include <cmath>
 #include <cstdint>
+#endif
+#include <cmath>
 #include "CommonConstants/LHCConstants.h"
 
 namespace o2
@@ -232,10 +234,11 @@ struct InteractionRecord {
     return InteractionRecord(l % o2::constants::lhc::LHCMaxBunches, l / o2::constants::lhc::LHCMaxBunches);
   }
 
+#ifndef ALIGPU_GPUCODE
   void print() const;
-
+  std::string asString() const;
   friend std::ostream& operator<<(std::ostream& stream, InteractionRecord const& ir);
-
+#endif
   ClassDefNV(InteractionRecord, 3);
 };
 
@@ -309,9 +312,11 @@ struct InteractionTimeRecord : public InteractionRecord {
     return !((*this) > other);
   }
 
+#ifndef ALIGPU_GPUCODE
   void print() const;
-
+  std::string asString() const;
   friend std::ostream& operator<<(std::ostream& stream, InteractionTimeRecord const& ir);
+#endif
 
   ClassDefNV(InteractionTimeRecord, 1);
 };

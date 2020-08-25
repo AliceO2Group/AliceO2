@@ -17,8 +17,6 @@
 #include <array>
 #endif
 #ifndef ALIGPU_GPUCODE
-#include <iomanip>
-#include <ios>
 #include <iosfwd>
 #endif
 
@@ -104,12 +102,15 @@ class VertexBase
 // The Stamp template parameter allows to define vertex (time)stamp in different
 // formats (ITS ROFrame ID, real time + error etc)
 
-template <typename Stamp = o2::dataformats::TimeStamp<int>>
+template <typename Stamp>
 class Vertex : public VertexBase
 {
  public:
   using ushort = unsigned short;
-  static ushort constexpr FlagsMask = 0xffff;
+  enum Flags : ushort {
+    TimeValidated = 0x1 << 0, // Flag that the vertex was validated by external time measurement (e.g. FIT)
+    FlagsMask = 0xffff
+  };
 
   Vertex() = default;
   ~Vertex() = default;
@@ -118,19 +119,14 @@ class Vertex : public VertexBase
   {
   }
 
-#ifndef ALIGPU_GPUCODE
-  void print() const;
-#endif
-
   ushort getNContributors() const { return mNContributors; }
   void setNContributors(ushort v) { mNContributors = v; }
   void addContributor() { mNContributors++; }
 
-  ushort getBits() const { return mBits; }
-  bool isBitSet(int bit) const { return mBits & (FlagsMask & (0x1 << bit)); }
-  void setBits(ushort b) { mBits = b; }
-  void setBit(int bit) { mBits |= FlagsMask & (0x1 << bit); }
-  void resetBit(int bit) { mBits &= ~(FlagsMask & (0x1 << bit)); }
+  ushort getFlags() const { return mBits; }
+  bool isFlagSet(uint f) const { return mBits & (FlagsMask & f); }
+  void setFlags(ushort f) { mBits |= FlagsMask & f; }
+  void resetFrags(ushort f = FlagsMask) { mBits &= ~(FlagsMask & f); }
 
   void setChi2(float v) { mChi2 = v; }
   float getChi2() const { return mChi2; }
@@ -139,32 +135,17 @@ class Vertex : public VertexBase
   Stamp& getTimeStamp() { return mTimeStamp; }
   void setTimeStamp(const Stamp& v) { mTimeStamp = v; }
 
- private:
+ protected:
   float mChi2 = 0;               ///< chi2 or quality of tracks to vertex attachment
   ushort mNContributors = 0;     ///< N contributors
   ushort mBits = 0;              ///< bit field for flags
   Stamp mTimeStamp;              ///< vertex time-stamp
 
-  ClassDefNV(Vertex, 2);
+  ClassDefNV(Vertex, 3);
 };
 
 #ifndef ALIGPU_GPUCODE
 std::ostream& operator<<(std::ostream& os, const o2::dataformats::VertexBase& v);
-
-template <typename Stamp>
-inline std::ostream& operator<<(std::ostream& os, const o2::dataformats::Vertex<Stamp>& v)
-{
-  // stream itself
-  os << (const VertexBase&)v << " "
-     << "NCont: " << v.getNContributors() << " Chi2: " << v.getChi2() << " TimeStamp: " << v.getTimeStamp();
-  return os;
-}
-
-template <typename Stamp>
-void Vertex<Stamp>::print() const
-{
-  std::cout << *this << std::endl;
-}
 #endif
 
 } // namespace dataformats
