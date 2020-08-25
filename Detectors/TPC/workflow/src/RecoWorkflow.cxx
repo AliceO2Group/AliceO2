@@ -88,7 +88,6 @@ framework::WorkflowSpec getWorkflow(std::vector<int> const& tpcSectors, std::vec
                                     int caClusterer, int zsOnTheFly, int zs10bit, float zsThreshold)
 {
   InputType inputType;
-
   try {
     inputType = InputMap.at(cfgInput);
   } catch (std::out_of_range&) {
@@ -104,6 +103,22 @@ framework::WorkflowSpec getWorkflow(std::vector<int> const& tpcSectors, std::vec
     return std::find(outputTypes.begin(), outputTypes.end(), type) != outputTypes.end();
   };
 
+  bool decompressTPC = inputType == InputType::CompClustersCTF || inputType == InputType::CompClusters;
+  // Disable not applicable settings depending on TPC input, no need to disable manually
+  if (decompressTPC && (isEnabled(OutputType::Clusters) || isEnabled(OutputType::Tracks))) {
+    caClusterer = false;
+    zsOnTheFly = false;
+    propagateMC = false;
+  }
+  if (inputType == InputType::ZSRaw) {
+    caClusterer = true;
+    zsOnTheFly = false;
+    propagateMC = false;
+  }
+  if (!caClusterer) {
+    zsOnTheFly = false;
+  }
+
   if (inputType == InputType::ClustersHardware && isEnabled(OutputType::Digits)) {
     throw std::invalid_argument("input/output type mismatch, can not produce 'digits' from 'clustershardware'");
   }
@@ -112,10 +127,6 @@ framework::WorkflowSpec getWorkflow(std::vector<int> const& tpcSectors, std::vec
   }
   if (inputType == InputType::ZSRaw && isEnabled(OutputType::ClustersHardware)) {
     throw std::invalid_argument("input/output type mismatch, can not produce 'clustershardware' from 'zsraw'");
-  }
-
-  if (inputType == InputType::ZSRaw && !caClusterer) {
-    throw std::invalid_argument("zsraw input needs caclusterer");
   }
   if (caClusterer && (inputType == InputType::Clusters || inputType == InputType::ClustersHardware)) {
     throw std::invalid_argument("ca-clusterer requires digits as input");
@@ -209,15 +220,11 @@ framework::WorkflowSpec getWorkflow(std::vector<int> const& tpcSectors, std::vec
   bool runClusterer = !caClusterer && (runHWDecoder || isEnabled(OutputType::ClustersHardware));
   bool zsDecoder = inputType == InputType::ZSRaw;
   bool runClusterEncoder = isEnabled(OutputType::EncodedClusters);
-  bool decompressTPC = inputType == InputType::CompClustersCTF || inputType == InputType::CompClusters;
+
   // input matrix
   runClusterer &= inputType == InputType::Digitizer || inputType == InputType::Digits;
   runHWDecoder &= runClusterer || inputType == InputType::ClustersHardware;
   runTracker &= caClusterer || runHWDecoder || inputType == InputType::Clusters || decompressTPC;
-
-  if (decompressTPC && (isEnabled(OutputType::Clusters) || isEnabled(OutputType::Tracks)) && (caClusterer || zsOnTheFly || propagateMC)) {
-    throw std::invalid_argument("Compressed clusters as input are incompatible to ca-clusterer, zs-on-the-fly, propagate-mc");
-  }
 
   bool outRaw = inputType == InputType::Digits && isEnabled(OutputType::ZSRaw);
   //bool runZSDecode = inputType == InputType::ZSRaw;
