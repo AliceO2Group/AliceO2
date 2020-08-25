@@ -29,7 +29,7 @@ namespace o2
 namespace event_visualisation
 {
 
-class DataInterpreterTPC : public DataInterpreter
+class DataInterpreterTPC final : public DataInterpreter
 {
  public:
   // Default constructor

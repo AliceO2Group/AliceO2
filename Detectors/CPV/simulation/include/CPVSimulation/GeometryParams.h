@@ -21,7 +21,7 @@ namespace o2
 {
 namespace cpv
 {
-class GeometryParams : public TNamed
+class GeometryParams final : public TNamed
 {
  public:
   /// Default constructor
