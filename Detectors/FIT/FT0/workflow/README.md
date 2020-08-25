@@ -1,3 +1,7 @@
+<!-- doxy
+\page refFITFT0workflow FIT/FT0 FLP DPL workflow
+/doxy -->
+
 # FLP DPL workflow, for reading raw data blocks from payload, and converting them into digits.
 
 To run with source file:
