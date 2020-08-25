@@ -12,7 +12,6 @@
 #include "Framework/AnalysisDataModel.h"
 #include "Analysis/MC.h"
 
-sdsds
 #include <TH1F.h>
 #include <cmath>
 
@@ -42,4 +41,3 @@ WorkflowSpec defineDataProcessing(ConfigContext const&)
     adaptAnalysisTask<QATrackingKine>("qa-tracking-kine"),
   };
 }
-
