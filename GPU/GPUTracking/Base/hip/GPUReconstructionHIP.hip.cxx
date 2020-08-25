@@ -59,9 +59,7 @@ __global__ void dummyInitKernel(void* foo) {}
 #if defined(HAVE_O2HEADERS) && !defined(GPUCA_NO_ITS_TRAITS)
 #include "ITStrackingHIP/VertexerTraitsHIP.h"
 #else
-namespace o2
-{
-namespace its
+namespace o2::its
 {
 class VertexerTraitsHIP : public VertexerTraits
 {
@@ -69,8 +67,7 @@ class VertexerTraitsHIP : public VertexerTraits
 class TrackerTraitsHIP : public TrackerTraits
 {
 };
-} // namespace its
-} // namespace o2
+} // namespace o2::its
 #endif
 
 class GPUDebugTiming
