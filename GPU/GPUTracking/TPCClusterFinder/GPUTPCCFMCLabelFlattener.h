@@ -20,9 +20,7 @@
 #include "GPUTPCClusterFinder.h"
 #include "GPUConstantMem.h"
 
-namespace GPUCA_NAMESPACE
-{
-namespace gpu
+namespace GPUCA_NAMESPACE::gpu
 {
 
 struct GPUTPCLinearLabels;
@@ -58,7 +56,6 @@ class GPUTPCCFMCLabelFlattener : public GPUKernelTemplate
   static void setGlobalOffsetsAndAllocate(GPUTPCClusterFinder&, GPUTPCLinearLabels&);
 };
 
-} // namespace gpu
-} // namespace GPUCA_NAMESPACE
+} // namespace GPUCA_NAMESPACE::gpu
 
 #endif

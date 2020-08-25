@@ -17,20 +17,15 @@
 #include "GPUProcessor.h"
 #include "GPUITSTrack.h"
 
-namespace o2
-{
-namespace its
+namespace o2::its
 {
 class Road;
 struct TrackingFrameInfo;
 struct Cluster;
 class Cell;
-} // namespace its
-} // namespace o2
+} // namespace o2::its
 
-namespace GPUCA_NAMESPACE
-{
-namespace gpu
+namespace GPUCA_NAMESPACE::gpu
 {
 class GPUITSTrack;
 
@@ -97,7 +92,6 @@ class GPUITSFitter : public GPUProcessor
   short mMemoryResTracks = -1;
   short mMemoryResMemory = -1;
 };
-} // namespace gpu
-} // namespace GPUCA_NAMESPACE
+} // namespace GPUCA_NAMESPACE::gpu
 
 #endif

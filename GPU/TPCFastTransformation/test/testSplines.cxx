@@ -19,9 +19,7 @@
 #include "Spline1D.h"
 #include "Spline2D.h"
 
-namespace o2
-{
-namespace gpu
+namespace o2::gpu
 {
 
 /// @brief Basic test if we can create the interface
@@ -36,5 +34,4 @@ BOOST_AUTO_TEST_CASE(Spline_test1)
   int err2 = s2.test(0);
   BOOST_CHECK_MESSAGE(err2 == 0, "test of GPU/TPCFastTransform/Spline2D failed with the error code " << err2);
 }
-} // namespace gpu
-} // namespace o2
+} // namespace o2::gpu

@@ -18,18 +18,13 @@
 #include <vector>
 #include <functional>
 
-namespace o2
-{
-namespace tpc
+namespace o2::tpc
 {
 struct ClusterNativeAccess;
 struct ClusterNative;
-} // namespace tpc
-} // namespace o2
+} // namespace o2::tpc
 
-namespace GPUCA_NAMESPACE
-{
-namespace gpu
+namespace GPUCA_NAMESPACE::gpu
 {
 struct GPUParam;
 
@@ -42,7 +37,6 @@ class TPCClusterDecompressor
 
  protected:
 };
-} // namespace gpu
-} // namespace GPUCA_NAMESPACE
+} // namespace GPUCA_NAMESPACE::gpu
 
 #endif

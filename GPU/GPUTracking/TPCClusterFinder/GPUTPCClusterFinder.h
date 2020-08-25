@@ -38,9 +38,7 @@ class Digit;
 
 } // namespace o2
 
-namespace GPUCA_NAMESPACE
-{
-namespace gpu
+namespace GPUCA_NAMESPACE::gpu
 {
 struct GPUTPCClusterMCInterim;
 
@@ -140,7 +138,6 @@ class GPUTPCClusterFinder : public GPUProcessor
 #endif
 };
 
-} // namespace gpu
-} // namespace GPUCA_NAMESPACE
+} // namespace GPUCA_NAMESPACE::gpu
 
 #endif

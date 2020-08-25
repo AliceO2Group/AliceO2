@@ -18,17 +18,12 @@
 #include "TPCClusterDecompressor.h"
 #include <vector>
 
-namespace o2
-{
-namespace tpc
+namespace o2::tpc
 {
 struct ClusterNativeAccess;
-}
-} // namespace o2
+} // namespace o2::tpc
 
-namespace GPUCA_NAMESPACE
-{
-namespace gpu
+namespace GPUCA_NAMESPACE::gpu
 {
 class GPUTPCClusterStatistics
 {
@@ -93,7 +88,6 @@ class GPUTPCClusterStatistics
   size_t mNTotalClusters = 0;
 #endif
 };
-} // namespace gpu
-} // namespace GPUCA_NAMESPACE
+} // namespace GPUCA_NAMESPACE::gpu
 
 #endif

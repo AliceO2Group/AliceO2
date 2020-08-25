@@ -16,9 +16,7 @@
 
 #include "GPUTPCGMTrackParam.h"
 
-namespace GPUCA_NAMESPACE
-{
-namespace gpu
+namespace GPUCA_NAMESPACE::gpu
 {
 class GPUITSTrack : public GPUTPCGMTrackParam
 {
@@ -27,7 +25,6 @@ class GPUITSTrack : public GPUTPCGMTrackParam
   float mAlpha;
   int mClusters[7];
 };
-} // namespace gpu
-} // namespace GPUCA_NAMESPACE
+} // namespace GPUCA_NAMESPACE::gpu
 
 #endif

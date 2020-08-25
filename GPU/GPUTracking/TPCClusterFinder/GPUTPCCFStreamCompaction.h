@@ -19,9 +19,7 @@
 #include "GPUConstantMem.h"
 #include "GPUTPCClusterFinder.h"
 
-namespace GPUCA_NAMESPACE
-{
-namespace gpu
+namespace GPUCA_NAMESPACE::gpu
 {
 
 class GPUTPCCFStreamCompaction : public GPUKernelTemplate
@@ -76,7 +74,6 @@ class GPUTPCCFStreamCompaction : public GPUKernelTemplate
   static GPUd() int compactionElems(processorType& clusterer, int stage);
 };
 
-} // namespace gpu
-} // namespace GPUCA_NAMESPACE
+} // namespace GPUCA_NAMESPACE::gpu
 
 #endif

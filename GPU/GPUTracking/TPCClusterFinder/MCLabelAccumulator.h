@@ -20,15 +20,13 @@
 #include <bitset>
 #include <vector>
 
-namespace GPUCA_NAMESPACE
-{
-namespace dataformats
+namespace o2::dataformats
 {
 template <typename T>
 class MCTruthContainer;
-}
+} // namespace o2::dataformats
 
-namespace gpu
+namespace GPUCA_NAMESPACE::gpu
 {
 
 class GPUTPCClusterFinder;
@@ -57,7 +55,6 @@ class MCLabelAccumulator
   std::vector<o2::MCCompLabel> mClusterLabels;
 };
 
-} // namespace gpu
-} // namespace GPUCA_NAMESPACE
+} // namespace GPUCA_NAMESPACE::gpu
 
 #endif

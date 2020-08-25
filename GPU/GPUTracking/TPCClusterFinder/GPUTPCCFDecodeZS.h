@@ -19,9 +19,7 @@
 #include "GPUConstantMem.h"
 #include "DataFormatsTPC/ZeroSuppression.h"
 
-namespace GPUCA_NAMESPACE
-{
-namespace gpu
+namespace GPUCA_NAMESPACE::gpu
 {
 
 class GPUTPCClusterFinder;
@@ -62,7 +60,6 @@ class GPUTPCCFDecodeZS : public GPUKernelTemplate
   GPUd() static void Thread(int nBlocks, int nThreads, int iBlock, int iThread, GPUSharedMemory& smem, processorType& clusterer, Args... args);
 };
 
-} // namespace gpu
-} // namespace GPUCA_NAMESPACE
+} // namespace GPUCA_NAMESPACE::gpu
 
 #endif

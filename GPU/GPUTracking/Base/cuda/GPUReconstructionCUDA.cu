@@ -63,9 +63,7 @@ __global__ void dummyInitKernel(void* foo)
 #include "ITStrackingCUDA/TrackerTraitsNV.h"
 #include "ITStrackingCUDA/VertexerTraitsGPU.h"
 #else
-namespace o2
-{
-namespace its
+namespace o2::its
 {
 class TrackerTraitsNV : public TrackerTraits
 {
@@ -73,8 +71,7 @@ class TrackerTraitsNV : public TrackerTraits
 class VertexerTraitsGPU : public VertexerTraits
 {
 };
-} // namespace its
-} // namespace o2
+} // namespace o2::its
 #endif
 
 class GPUDebugTiming

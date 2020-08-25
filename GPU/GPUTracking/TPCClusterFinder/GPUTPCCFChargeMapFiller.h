@@ -21,17 +21,12 @@
 #include "Array2D.h"
 #include "PackedCharge.h"
 
-namespace o2
-{
-namespace tpc
+namespace o2::tpc
 {
 class Digit;
-}
-} // namespace o2
+} // namespace o2::tpc
 
-namespace GPUCA_NAMESPACE
-{
-namespace gpu
+namespace GPUCA_NAMESPACE::gpu
 {
 
 struct ChargePos;
@@ -69,7 +64,6 @@ class GPUTPCCFChargeMapFiller : public GPUKernelTemplate
   static GPUd() size_t findTransition(int, const tpc::Digit*, size_t, size_t);
 };
 
-} // namespace gpu
-} // namespace GPUCA_NAMESPACE
+} // namespace GPUCA_NAMESPACE::gpu
 
 #endif

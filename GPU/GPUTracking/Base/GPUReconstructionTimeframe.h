@@ -20,13 +20,10 @@
 #include <random>
 #include <tuple>
 
-namespace o2
-{
-namespace tpc
+namespace o2::tpc
 {
 struct ClusterNative;
-}
-} // namespace o2
+} // namespace o2::tpc
 
 namespace GPUCA_NAMESPACE
 {
