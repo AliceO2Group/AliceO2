@@ -52,10 +52,10 @@ class ROframe final
   const std::vector<Cluster>& getClustersInLayer(Int_t layerId) const { return mClusters[layerId]; }
 
   const MCCompLabel& getClusterLabels(Int_t layerId, const Cluster& cl) const { return mClusterLabels[layerId][cl.clusterId]; }
-  const MCCompLabel& getClusterLabels(Int_t layerId, const Int_t clId) const { return mClusterLabels[layerId][clId]; }
+  const MCCompLabel& getClusterLabels(Int_t layerId, const Int_t clusterId) const { return mClusterLabels[layerId][clusterId]; }
 
   const std::map<Int_t, std::pair<Int_t, Int_t>>& getClusterBinIndexRange(Int_t layerId) const { return mClusterBinIndexRange[layerId]; }
-  Int_t getClusterExternalIndex(Int_t layerId, const Int_t clId) const { return mClusterExternalIndices[layerId][clId]; }
+  const Int_t getClusterExternalIndex(Int_t layerId, const Int_t clusterId) const { return mClusterExternalIndices[layerId][clusterId]; }
 
   const std::array<std::vector<Cell>, constants::mft::LayersNumber>& getCells() const;
   const std::vector<Cell>& getCellsInLayer(Int_t layerId) const { return mCells[layerId]; }
@@ -134,7 +134,6 @@ inline Bool_t ROframe::isClusterUsed(Int_t layer, Int_t clusterId) const
 }
 
 inline void ROframe::markUsedCluster(Int_t layer, Int_t clusterId) { mUsedClusters[layer][clusterId] = kTRUE; }
-
 
 inline TrackLTF& ROframe::getCurrentTrackLTF()
 {

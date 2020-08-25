@@ -49,8 +49,11 @@ int ioutils::loadROFrameData(const o2::itsmft::ROFRecord& rof, ROframe& event, g
     Point3D<float> locXYZ;
     float sigmaX2 = ioutils::DefClusError2Row, sigmaY2 = ioutils::DefClusError2Col; //Dummy COG errors (about half pixel size)
     if (pattID != itsmft::CompCluster::InvalidPatternID) {
-      sigmaX2 = dict.getErr2X(pattID); // ALPIDE local X coordinate => MFT global X coordinate (ALPIDE rows)
-      sigmaY2 = dict.getErr2Z(pattID); // ALPIDE local Z coordinate => MFT global Y coordinate (ALPIDE columns)
+      //sigmaX2 = dict.getErr2X(pattID); // ALPIDE local X coordinate => MFT global X coordinate (ALPIDE rows)
+      //sigmaY2 = dict.getErr2Z(pattID); // ALPIDE local Z coordinate => MFT global Y coordinate (ALPIDE columns)
+      // temporary, until ITS bug fix
+      sigmaX2 = dict.getErrX(pattID) * dict.getErrX(pattID);
+      sigmaY2 = dict.getErrZ(pattID) * dict.getErrZ(pattID);
       if (!dict.isGroup(pattID)) {
         locXYZ = dict.getClusterCoordinates(c);
       } else {
@@ -73,7 +76,6 @@ int ioutils::loadROFrameData(const o2::itsmft::ROFRecord& rof, ROframe& event, g
     int phiBinIndex = constants::index_table::getPhiBinIndex(phiCoord);
     int binIndex = constants::index_table::getBinIndex(rBinIndex, phiBinIndex);
     // TODO: Check consistency of sigmaX2 and sigmaY2
-    // std::cout << "ClusterID = " << clusterId << " ; pattID = " << pattID << " ; sigmaX2 = " << sigmaX2 << " ; sigmaY2 = " << sigmaY2 << std::endl;
     event.addClusterToLayer(layer, gloXYZ.x(), gloXYZ.y(), gloXYZ.z(), phiCoord, rCoord, event.getClustersInLayer(layer).size(), binIndex, sigmaX2, sigmaY2, sensorID);
     if (mcLabels) {
       event.addClusterLabelToLayer(layer, *(mcLabels->getLabels(first + clusterId).begin()));

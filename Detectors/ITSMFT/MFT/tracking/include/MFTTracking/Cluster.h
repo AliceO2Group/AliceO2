@@ -26,11 +26,11 @@ namespace mft
 {
 
 struct Cluster : public o2::BaseCluster<float> {
-  Cluster(const Float_t x, const Float_t y, const Float_t z, const Float_t phi, const Float_t r, const Int_t idx, const Int_t bin, const Float_t sigX2, const Float_t sigY2, const Int_t sensorID)
+  Cluster(const Float_t x, const Float_t y, const Float_t z, const Float_t phi, const Float_t r, const Int_t id, const Int_t bin, const Float_t sigX2, const Float_t sigY2, const Int_t sensorID)
     : BaseCluster(sensorID, x, y, z),
       phiCoordinate{phi},
       rCoordinate{r},
-      clusterId{idx},
+      clusterId{id},
       indexTableBin{bin},
       sigmaX2{sigX2},
       sigmaY2{sigY2} {};

@@ -113,14 +113,12 @@ void TrackerDPL::run(ProcessingContext& pc)
   LOG(INFO) << "MFTTracker RO: continuous=" << continuous;
 
   // snippet to convert found tracks to final output tracks with separate cluster indices
-  auto copyTracks = [&event](auto& tracks, auto& allTracks, auto& allClusIdx, int offset = 0) {
+  auto copyTracks = [&event](auto& tracks, auto& allTracks, auto& allClusIdx) {
     for (auto& trc : tracks) {
-      trc.setFirstClusterEntry(allClusIdx.size()); // before adding tracks, create final cluster indices
-      int ncl = trc.getNumberOfClusters();
+      trc.setExternalClusterIndexOffset(allClusIdx.size());
+      int ncl = trc.getNumberOfPoints();
       for (int ic = 0; ic < ncl; ic++) {
-        auto layer_clID = trc.getClustersId()[ic];
-        auto layer = trc.getLayers()[ic];
-        auto externalClusterID = event.getClusterExternalIndex(layer, trc.getClustersId()[ic]);
+        auto externalClusterID = trc.getExternalClusterIndex(ic);
         allClusIdx.push_back(externalClusterID);
       }
       allTracks.emplace_back(trc);
