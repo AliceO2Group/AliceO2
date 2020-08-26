@@ -511,6 +511,9 @@ void GPUReconstruction::AllocateRegisteredMemoryInternal(GPUMemoryResource* res,
       if (mProcessingSettings.allocDebugLevel >= 2) {
         std::cout << (res->mReuse >= 0 ? "Reused " : "Allocated ") << res->mName << ": " << res->mSize << "\n";
       }
+      if (res->mType & GPUMemoryResource::MEMORY_STACK) {
+        mNonPersistentIndividualAllocations.emplace_back(res);
+      }
     }
   } else {
     if (res->mPtr != nullptr) {
@@ -642,7 +645,11 @@ void GPUReconstruction::FreeRegisteredMemory(GPUProcessor* proc, bool freeCustom
 
 void GPUReconstruction::FreeRegisteredMemory(short ires)
 {
-  GPUMemoryResource* res = &mMemoryResources[ires];
+  FreeRegisteredMemory(&mMemoryResources[ires]);
+}
+
+void GPUReconstruction::FreeRegisteredMemory(GPUMemoryResource* res)
+{
   if (mProcessingSettings.allocDebugLevel >= 2 && (res->mPtr || res->mPtrDevice)) {
     std::cout << "Freeing " << res->mName << ": size " << res->mSize << " (reused " << res->mReuse << ")\n";
   }
@@ -663,7 +670,7 @@ void GPUReconstruction::ReturnVolatileDeviceMemory()
 
 void GPUReconstruction::PushNonPersistentMemory()
 {
-  mNonPersistentMemoryStack.emplace_back(mHostMemoryPoolEnd, mDeviceMemoryPoolEnd);
+  mNonPersistentMemoryStack.emplace_back(mHostMemoryPoolEnd, mDeviceMemoryPoolEnd, mNonPersistentIndividualAllocations.size());
 }
 
 void GPUReconstruction::PopNonPersistentMemory(RecoStep step)
@@ -674,8 +681,17 @@ void GPUReconstruction::PopNonPersistentMemory(RecoStep step)
   if (mProcessingSettings.keepDisplayMemory || mProcessingSettings.disableMemoryReuse) {
     return;
   }
-  mHostMemoryPoolEnd = mNonPersistentMemoryStack.back().first;
-  mDeviceMemoryPoolEnd = mNonPersistentMemoryStack.back().second;
+  mHostMemoryPoolEnd = std::get<0>(mNonPersistentMemoryStack.back());
+  mDeviceMemoryPoolEnd = std::get<1>(mNonPersistentMemoryStack.back());
+  for (unsigned int i = std::get<2>(mNonPersistentMemoryStack.back()); i < mNonPersistentIndividualAllocations.size(); i++) {
+    GPUMemoryResource* res = mNonPersistentIndividualAllocations[i];
+    if (res->mReuse < 0) {
+      operator delete(res->mPtrDevice GPUCA_OPERATOR_NEW_ALIGNMENT);
+    }
+    res->mPtr = nullptr;
+    res->mPtrDevice = nullptr;
+  }
+  mNonPersistentIndividualAllocations.resize(std::get<2>(mNonPersistentMemoryStack.back()));
   mNonPersistentMemoryStack.pop_back();
 }
 
@@ -716,6 +732,7 @@ void GPUReconstruction::ClearAllocatedMemory(bool clearOutputs)
   mUnmanagedChunks.clear();
   mVolatileMemoryStart = nullptr;
   mNonPersistentMemoryStack.clear();
+  mNonPersistentIndividualAllocations.clear();
   mHostMemoryPoolEnd = mHostMemoryPoolBlocked ? mHostMemoryPoolBlocked : ((char*)mHostMemoryBase + mHostMemorySize);
   mDeviceMemoryPoolEnd = mDeviceMemoryPoolBlocked ? mDeviceMemoryPoolBlocked : ((char*)mDeviceMemoryBase + mDeviceMemorySize);
 }

@@ -261,6 +261,7 @@ class GPUReconstruction
 
  protected:
   void AllocateRegisteredMemoryInternal(GPUMemoryResource* res, GPUOutputControl* control, GPUReconstruction* recPool);
+  void FreeRegisteredMemory(GPUMemoryResource* res);
   GPUReconstruction(const GPUSettingsDeviceBackend& cfg); // Constructor
   int InitPhaseBeforeDevice();
   virtual void UpdateSettings() {}
@@ -381,7 +382,8 @@ class GPUReconstruction
     std::vector<unsigned short> res;
   };
   std::unordered_map<GPUMemoryReuse::ID, MemoryReuseMeta> mMemoryReuse1to1;
-  std::vector<std::pair<void*, void*>> mNonPersistentMemoryStack;
+  std::vector<std::tuple<void*, void*, size_t>> mNonPersistentMemoryStack;
+  std::vector<GPUMemoryResource*> mNonPersistentIndividualAllocations;
 
   std::unique_ptr<GPUReconstructionPipelineContext> mPipelineContext;
 
