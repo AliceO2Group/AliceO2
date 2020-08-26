@@ -18,6 +18,7 @@
 
 #include <TObject.h>
 #include <TString.h>
+#include <Math/Vector4D.h>
 
 #include <vector>
 #include <map>
@@ -367,6 +368,14 @@ void VarManager::FillPair(T const& t1, T const& t2, float* values)
   values[kMass] = fgkElectronMass * fgkElectronMass;
   values[kMass] = 2.0 * values[kMass] + 2.0 * (sqrt(values[kMass] + t1.pmom() * t1.pmom()) * sqrt(values[kMass] + t2.pmom() * t2.pmom()) -
                                                t1.px() * t2.px() - t1.py() * t2.py() - t1.pz() * t2.pz());
+
+  ROOT::Math::PtEtaPhiMVector v1(t1.pt(), t1.eta(), t1.phi(), fgkElectronMass);
+  ROOT::Math::PtEtaPhiMVector v2(t2.pt(), t2.eta(), t2.phi(), fgkElectronMass);
+  ROOT::Math::PtEtaPhiMVector v12 = v1 + v2;
+  values[kMass] = v12.M();
+  values[kPt] = v12.Pt();
+  values[kEta] = v12.Eta();
+  values[kPhi] = v12.Phi();
 }
 
 #endif
