@@ -1739,11 +1739,11 @@ int GPUChainTracking::RunTPCTrackingSlices_internal()
         if (!((GetRecoStepsOutputs() & GPUDataTypes::InOutType::TPCSectorTracks) || (doGPU && !(GetRecoStepsGPU() & RecoStep::TPCMerging)))) {
           unsigned int sliceLeft, sliceRight;
           GPUTPCGlobalTracking::GlobalTrackingSliceLeftRight(tmpSlice, sliceLeft, sliceRight);
-          if (!blocking[tmpSlice * mRec->NStreams() + sliceLeft] % mRec->NStreams()) {
+          if (!blocking[tmpSlice * mRec->NStreams() + sliceLeft % mRec->NStreams()]) {
             StreamWaitForEvents(tmpSlice % mRec->NStreams(), &mEvents->slice[sliceLeft]);
             blocking[tmpSlice * mRec->NStreams() + sliceLeft % mRec->NStreams()] = true;
           }
-          if (!blocking[tmpSlice * mRec->NStreams() + sliceRight] % mRec->NStreams()) {
+          if (!blocking[tmpSlice * mRec->NStreams() + sliceRight % mRec->NStreams()]) {
             StreamWaitForEvents(tmpSlice % mRec->NStreams(), &mEvents->slice[sliceRight]);
             blocking[tmpSlice * mRec->NStreams() + sliceRight % mRec->NStreams()] = true;
           }
