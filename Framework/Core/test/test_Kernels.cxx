@@ -8,7 +8,7 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#define BOOST_TEST_MODULE Test Framework AlgorithmSpec
+#define BOOST_TEST_MODULE Test Framework Kernels
 #define BOOST_TEST_MAIN
 #define BOOST_TEST_DYN_LINK
 
@@ -31,10 +31,7 @@ BOOST_AUTO_TEST_CASE(TestSlicing)
 {
   TableBuilder builder;
   auto rowWriter = builder.persist<int32_t, int32_t>({"x", "y"});
-  rowWriter(0, 0, 0);
-  rowWriter(0, 0, 1);
-  rowWriter(0, 0, 2);
-  rowWriter(0, 0, 3);
+
   rowWriter(0, 1, 4);
   rowWriter(0, 1, 5);
   rowWriter(0, 1, 6);
@@ -52,8 +49,8 @@ BOOST_AUTO_TEST_CASE(TestSlicing)
   auto arr0 = static_cast<NumericArray<Int32Type>>(array.field(0)->data());
   auto arr1 = static_cast<NumericArray<Int64Type>>(array.field(1)->data());
 
-  std::array<int, 5> v{0, 1, 2, 4, 5};
-  std::array<int, 5> c{4, 4, 1, 1, 2};
+  std::array<int, 4> v{1, 2, 4, 5};
+  std::array<int, 4> c{4, 1, 1, 2};
 
   for (auto i = 0; i < arr0.length(); ++i) {
     BOOST_REQUIRE_EQUAL(arr0.Value(i), v[i]);
@@ -66,10 +63,7 @@ BOOST_AUTO_TEST_CASE(TestSlicingFramework)
 {
   TableBuilder builder;
   auto rowWriter = builder.persist<int32_t, int32_t>({"x", "y"});
-  rowWriter(0, 0, 0);
-  rowWriter(0, 0, 1);
-  rowWriter(0, 0, 2);
-  rowWriter(0, 0, 3);
+
   rowWriter(0, 1, 4);
   rowWriter(0, 1, 5);
   rowWriter(0, 1, 6);
@@ -85,7 +79,7 @@ BOOST_AUTO_TEST_CASE(TestSlicingFramework)
   auto status = sliceByColumn<int32_t>("x", table, 12, &slices, &offsets);
   BOOST_REQUIRE(status.ok());
   BOOST_REQUIRE_EQUAL(slices.size(), 12);
-  std::array<int, 12> sizes{4, 4, 1, 0, 1, 2, 0, 0, 0, 0, 0, 0};
+  std::array<int, 12> sizes{0, 4, 1, 0, 1, 2, 0, 0, 0, 0, 0, 0};
   for (auto i = 0u; i < slices.size(); ++i) {
     BOOST_REQUIRE_EQUAL(slices[i].table()->num_rows(), sizes[i]);
   }
