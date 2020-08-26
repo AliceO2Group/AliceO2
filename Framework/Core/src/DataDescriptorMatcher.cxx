@@ -314,7 +314,7 @@ bool DataDescriptorMatcher::match(char const* d, VariableContext& context) const
 
 bool DataDescriptorMatcher::operator==(DataDescriptorMatcher const& other) const
 {
-  if (mOp != this->mOp) {
+  if (other.mOp != this->mOp) {
     return false;
   }
 

@@ -124,7 +124,7 @@ BOOST_AUTO_TEST_CASE(TestMatcherInvariants)
       DataDescriptorMatcher::Op::Just,
       ConstantValueMatcher{1},
       DescriptionValueMatcher{"TPC"}};
-    BOOST_CHECK(matcherA == matcherB);
+    BOOST_CHECK_NE(matcherA, matcherB);
   }
 
   {
