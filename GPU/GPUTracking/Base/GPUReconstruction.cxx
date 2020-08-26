@@ -237,6 +237,7 @@ int GPUReconstruction::InitPhaseBeforeDevice()
   }
   if (!IsGPU()) {
     mProcessingSettings.nDeviceHelperThreads = 0;
+    mProcessingSettings.nTPCClustererLanes = 1;
   }
 
   if (param().rec.NonConsecutiveIDs) {
