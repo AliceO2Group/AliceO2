@@ -47,11 +47,13 @@ int LookUp::groupFinder(int nRow, int nCol)
   if (nCol % TopologyDictionary::RowClassSpan == 0) {
     col_index--;
   }
-  if (row_index > TopologyDictionary::MaxNumberOfClasses || col_index > TopologyDictionary::MaxNumberOfClasses) {
-    return TopologyDictionary::NumberOfRareGroups - 1;
+  int grNum = -1;
+  if (row_index > TopologyDictionary::MaxNumberOfRowClasses || col_index > TopologyDictionary::MaxNumberOfColClasses) {
+    grNum = TopologyDictionary::NumberOfRareGroups - 1;
   } else {
-    return row_index * TopologyDictionary::MaxNumberOfClasses + col_index;
+    grNum = row_index * TopologyDictionary::MaxNumberOfColClasses + col_index;
   }
+  return grNum;
 }
 
 int LookUp::findGroupID(int nRow, int nCol, const unsigned char patt[ClusterPattern::MaxPatternBytes])

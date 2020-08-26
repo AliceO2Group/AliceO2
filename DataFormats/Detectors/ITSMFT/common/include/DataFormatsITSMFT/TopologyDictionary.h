@@ -73,11 +73,11 @@ class TopologyDictionary
 
   /// constexpr for the definition of the groups of rare topologies.
   /// The attritbution of the group ID is stringly dependent on the following parameters: it must be a power of 2.
-  static constexpr int RowClassSpan = 4;                                                 ///< Row span of the classes of rare topologies
-  static constexpr int ColClassSpan = 4;                                                 ///< Column span of the classes of rare topologies
-  static constexpr int MinimumClassArea = RowClassSpan * ColClassSpan;                   ///< Area of the smallest class of rare topologies (used as reference)
-  static constexpr int MaxNumberOfClasses = ClusterPattern::MaxPatternBits / MinimumClassArea; ///< Maximum number of row/column classes for the groups of rare topologies
-  static constexpr int NumberOfRareGroups = MaxNumberOfClasses * MaxNumberOfClasses;     ///< Number of entries corresponding to groups of rare topologies (those whos matrix exceed the max number of bytes are empty).
+  static constexpr int RowClassSpan = 4;                                                            ///< Row span of the classes of rare topologies
+  static constexpr int ColClassSpan = 4;                                                            ///< Column span of the classes of rare topologies
+  static constexpr int MaxNumberOfRowClasses = 1 + (ClusterPattern::MaxRowSpan - 1) / RowClassSpan; ///< Maximum number of row classes for the groups of rare topologies
+  static constexpr int MaxNumberOfColClasses = 1 + (ClusterPattern::MaxColSpan - 1) / ColClassSpan; ///< Maximum number of col classes for the groups of rare topologies
+  static constexpr int NumberOfRareGroups = MaxNumberOfRowClasses * MaxNumberOfColClasses;          ///< Number of entries corresponding to groups of rare topologies (those whos matrix exceed the max number of bytes are empty).
   /// Prints the dictionary
   friend std::ostream& operator<<(std::ostream& os, const TopologyDictionary& dictionary);
   /// Prints the dictionary in a binary file
@@ -169,7 +169,7 @@ class TopologyDictionary
   int mSmallTopologiesLUT[8 * 255 + 1];              ///< Look-Up Table for the topologies with 1-byte linearised matrix
   std::vector<GroupStruct> mVectorOfIDs;             ///< Vector of topologies and groups
 
-  ClassDefNV(TopologyDictionary, 3);
+  ClassDefNV(TopologyDictionary, 4);
 }; // namespace itsmft
 } // namespace itsmft
 } // namespace o2

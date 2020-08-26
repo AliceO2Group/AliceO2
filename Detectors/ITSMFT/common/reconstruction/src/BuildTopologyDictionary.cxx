@@ -156,56 +156,53 @@ void BuildTopologyDictionary::groupRareTopologies()
     mDictionary.mVectorOfIDs.push_back(gr);
   }
   // groupRareTopologies based on binning over number of rows and columns (TopologyDictionary::NumberOfRowClasses *
-  // NumberOfColClasse)
+  // NumberOfColClasses)
 
   std::unordered_map<int, std::pair<GroupStruct, unsigned long>> tmp_GroupMap; //<group ID, <Group struct, counts>>
 
   int grNum = 0;
   int rowBinEdge = 0;
   int colBinEdge = 0;
-  for (int iRowClass = 0; iRowClass < TopologyDictionary::MaxNumberOfClasses; iRowClass++) {
-    for (int iColClass = 0; iColClass < TopologyDictionary::MaxNumberOfClasses; iColClass++) {
-      if ((iRowClass + 1) * (iColClass + 1) <= TopologyDictionary::MaxNumberOfClasses) {
-        rowBinEdge = (iRowClass + 1) * TopologyDictionary::RowClassSpan;
-        colBinEdge = (iColClass + 1) * TopologyDictionary::ColClassSpan;
-        grNum = LookUp::groupFinder(rowBinEdge, colBinEdge);
-        // Create a structure for a group of rare topologies
-        GroupStruct gr;
-        gr.mHash = (((unsigned long)(grNum)) << 32) & 0xffffffff00000000;
-        gr.mErrX = (rowBinEdge)*o2::itsmft::SegmentationAlpide::PitchRow / std::sqrt(12);
-        gr.mErrZ = (colBinEdge)*o2::itsmft::SegmentationAlpide::PitchCol / std::sqrt(12);
-        gr.mErr2X = gr.mErrX * gr.mErrX;
-        gr.mErr2Z = gr.mErrZ * gr.mErrZ;
-        gr.mXCOG = 0;
-        gr.mZCOG = 0;
-        gr.mNpixels = rowBinEdge * colBinEdge;
-        gr.mIsGroup = true;
-        gr.mFrequency = 0.;
-        /// A dummy pattern with all fired pixels in the bounding box is assigned to groups of rare topologies.
-        unsigned char dummyPattern[ClusterPattern::kExtendedPatternBytes] = {0};
-        dummyPattern[0] = (unsigned char)rowBinEdge;
-        dummyPattern[1] = (unsigned char)colBinEdge;
-        int nBits = rowBinEdge * colBinEdge;
-        int nBytes = nBits / 8;
-        for (int iB = 2; iB < nBytes + 2; iB++) {
-          dummyPattern[iB] = (unsigned char)255;
-        }
-        int residualBits = nBits % 8;
-        if (residualBits) {
-          unsigned char tempChar = 0;
-          while (residualBits > 0) {
-            residualBits--;
-            tempChar |= 1 << (7 - residualBits);
-          }
-          dummyPattern[nBytes + 2] = tempChar;
-        }
-        gr.mPattern.setPattern(dummyPattern);
-        // Filling the map for groups
-        tmp_GroupMap[grNum] = std::make_pair(gr, 0);
+  for (int iRowClass = 0; iRowClass < TopologyDictionary::MaxNumberOfRowClasses; iRowClass++) {
+    for (int iColClass = 0; iColClass < TopologyDictionary::MaxNumberOfColClasses; iColClass++) {
+      rowBinEdge = (iRowClass + 1) * TopologyDictionary::RowClassSpan;
+      colBinEdge = (iColClass + 1) * TopologyDictionary::ColClassSpan;
+      grNum = LookUp::groupFinder(rowBinEdge, colBinEdge);
+      // Create a structure for a group of rare topologies
+      GroupStruct gr;
+      gr.mHash = (((unsigned long)(grNum)) << 32) & 0xffffffff00000000;
+      gr.mErrX = (rowBinEdge)*o2::itsmft::SegmentationAlpide::PitchRow / std::sqrt(12);
+      gr.mErrZ = (colBinEdge)*o2::itsmft::SegmentationAlpide::PitchCol / std::sqrt(12);
+      gr.mErr2X = gr.mErrX * gr.mErrX;
+      gr.mErr2Z = gr.mErrZ * gr.mErrZ;
+      gr.mXCOG = 0;
+      gr.mZCOG = 0;
+      gr.mNpixels = rowBinEdge * colBinEdge;
+      gr.mIsGroup = true;
+      gr.mFrequency = 0.;
+      /// A dummy pattern with all fired pixels in the bounding box is assigned to groups of rare topologies.
+      unsigned char dummyPattern[ClusterPattern::kExtendedPatternBytes] = {0};
+      dummyPattern[0] = (unsigned char)rowBinEdge;
+      dummyPattern[1] = (unsigned char)colBinEdge;
+      int nBits = rowBinEdge * colBinEdge;
+      int nBytes = nBits / 8;
+      for (int iB = 2; iB < nBytes + 2; iB++) {
+        dummyPattern[iB] = (unsigned char)255;
       }
+      int residualBits = nBits % 8;
+      if (residualBits) {
+        unsigned char tempChar = 0;
+        while (residualBits > 0) {
+          residualBits--;
+          tempChar |= 1 << (7 - residualBits);
+        }
+        dummyPattern[nBytes + 2] = tempChar;
+      }
+      gr.mPattern.setPattern(dummyPattern);
+      // Filling the map for groups
+      tmp_GroupMap[grNum] = std::make_pair(gr, 0);
     }
   }
-
   int rs;
   int cs;
   int index;
