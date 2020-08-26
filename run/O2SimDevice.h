@@ -39,7 +39,7 @@ class TMessageWrapper : public TMessage
 };
 
 // device representing a simulation worker
-class O2SimDevice : public FairMQDevice
+class O2SimDevice final : public FairMQDevice
 {
  public:
   O2SimDevice() = default;

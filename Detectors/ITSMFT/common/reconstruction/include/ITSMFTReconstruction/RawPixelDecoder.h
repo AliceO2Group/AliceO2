@@ -40,7 +40,7 @@ namespace itsmft
 class ChipPixelData;
 
 template <class Mapping>
-class RawPixelDecoder : public PixelReader
+class RawPixelDecoder final : public PixelReader
 {
   using RDH = o2::header::RAWDataHeader;
 

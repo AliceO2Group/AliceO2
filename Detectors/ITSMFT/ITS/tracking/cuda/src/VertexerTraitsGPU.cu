@@ -151,11 +151,11 @@ GPUg() void trackleterKernel(
           phiBinsNum += PhiBins;
         }
         const size_t nClustersAdjacentLayer = store.getClusters()[static_cast<int>(adjacentLayerIndex)].size();
-        for (size_t iPhiBin{selectedBinsRect.y}, iPhiCount{0}; iPhiCount < phiBinsNum; iPhiBin = ++iPhiBin == PhiBins ? 0 : iPhiBin, iPhiCount++) {
+        for (size_t iPhiBin{(size_t)selectedBinsRect.y}, iPhiCount{0}; iPhiCount < (size_t)phiBinsNum; iPhiBin = ++iPhiBin == PhiBins ? 0 : iPhiBin, iPhiCount++) {
           const int firstBinIndex{index_table_utils::getBinIndex(selectedBinsRect.x, iPhiBin)};
           const int firstRowClusterIndex{store.getIndexTable(adjacentLayerIndex)[firstBinIndex]};
           const int maxRowClusterIndex{store.getIndexTable(adjacentLayerIndex)[firstBinIndex + selectedBinsRect.z - selectedBinsRect.x + 1]};
-          for (size_t iAdjacentCluster{firstRowClusterIndex}; iAdjacentCluster < maxRowClusterIndex && iAdjacentCluster < nClustersAdjacentLayer; ++iAdjacentCluster) {
+          for (size_t iAdjacentCluster{(size_t)firstRowClusterIndex}; iAdjacentCluster < (size_t)maxRowClusterIndex && iAdjacentCluster < nClustersAdjacentLayer; ++iAdjacentCluster) {
             const Cluster& adjacentCluster = store.getClusters()[static_cast<int>(adjacentLayerIndex)][iAdjacentCluster]; // assign-constructor may be a problem, check
             if (gpu::GPUCommonMath::Abs(currentCluster.phiCoordinate - adjacentCluster.phiCoordinate) < phiCut) {
               if (storedTracklets < store.getConfig().maxTrackletsPerCluster) {
@@ -276,7 +276,7 @@ GPUg() void computeZCentroidsKernel(DeviceStoreVertexerGPU& store,
       store.getBeamPosition().emplace(1, wY / sumWY);
       float fakeBeamPoint1[3] = {store.getBeamPosition()[0], store.getBeamPosition()[1], -1}; // get two points laying at different z, to create line object
       float fakeBeamPoint2[3] = {store.getBeamPosition()[0], store.getBeamPosition()[1], 1};
-      Line pseudoBeam = Line::Line(fakeBeamPoint1, fakeBeamPoint2);
+      Line pseudoBeam = {fakeBeamPoint1, fakeBeamPoint2};
       if (Line::getDCA(store.getLines()[currentThreadIndex], pseudoBeam) < pairCut) {
         ClusterLinesGPU cluster{store.getLines()[currentThreadIndex], pseudoBeam};
         store.getZCentroids().emplace(currentThreadIndex, cluster.getVertex()[2]);

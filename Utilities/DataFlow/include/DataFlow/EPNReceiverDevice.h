@@ -33,7 +33,7 @@ struct TFBuffer {
 
 /// Receives sub-timeframes from the flpSenders and merges these into full timeframes.
 
-class EPNReceiverDevice : public FairMQDevice
+class EPNReceiverDevice final : public FairMQDevice
 {
  public:
   EPNReceiverDevice() = default;

@@ -43,7 +43,7 @@ namespace event_visualisation
 
 class DataSource;
 
-class EventManager : public TEveEventManager, public TQObject
+class EventManager final : public TEveEventManager, public TQObject
 {
  public:
   enum EDataSource {

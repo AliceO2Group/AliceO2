@@ -35,7 +35,7 @@ namespace emcal
 /// \author Anders Garritt Knospe <anders.knospe@cern.ch>, University of Houston
 /// \author Markus Fasel <markus.fasel@cern.ch> Oak Ridge National laboratory
 /// \since Nov 12, 2018
-class DigitizerSpec : public o2::base::BaseDPLDigitizer
+class DigitizerSpec final : public o2::base::BaseDPLDigitizer
 {
  public:
   /// \brief Constructor

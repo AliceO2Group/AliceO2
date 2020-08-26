@@ -38,7 +38,7 @@ enum ChannelType_t {
 
 /// \class InvalidChanneltypeException
 /// \brief Error handling invalid channel types
-class InvalidChanneltypeException : public std::exception
+class InvalidChanneltypeException final : public std::exception
 {
  public:
   /// \brief Constructor initializing the exception

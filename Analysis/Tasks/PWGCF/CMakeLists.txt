@@ -8,18 +8,8 @@
 # granted to it by virtue of its status as an Intergovernmental Organization or
 # submit itself to any jurisdiction.
 
-find_path(CUB_INCLUDE_DIR cub/cub.cuh PATHS ${cub_ROOT} $ENV{CUB_ROOT} ${CMAKE_CUDA_TOOLKIT_INCLUDE_DIRECTORIES})
+o2_add_dpl_workflow(dptdptcorrelations
+                    SOURCES dptdptcorrelations.cxx
+                    PUBLIC_LINK_LIBRARIES O2::Framework O2::AnalysisCore O2::AnalysisDataModel 
+                    COMPONENT_NAME Analysis)
 
-if(NOT CUB_INCLUDE_DIR)
-  set(CUB_FOUND FALSE)
-  return()
-endif()
-
-set(CUB_FOUND TRUE)
-
-if(NOT TARGET cub::cub)
-  add_library(cub::cub INTERFACE IMPORTED)
-  target_include_directories(cub::cub SYSTEM INTERFACE ${CUB_INCLUDE_DIR})
-endif()
-
-mark_as_advanced(CUB_INCLUDE_DIR)
