@@ -67,7 +67,7 @@ GPUd() void GPUTPCCFMCLabelFlattener::Thread<GPUTPCCFMCLabelFlattener::flatten>(
 
   uint headerOffset = clusterer.mPlabelsHeaderGlobalOffset;
   uint dataOffset = clusterer.mPlabelsDataGlobalOffset;
-  for (int r = 0; r < row; r++) {
+  for (uint r = 0; r < row; r++) {
     headerOffset += clusterer.mPclusterInRow[r];
     dataOffset += clusterer.mPlabelsInRow[r];
   }

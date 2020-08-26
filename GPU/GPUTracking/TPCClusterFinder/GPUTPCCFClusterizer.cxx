@@ -25,13 +25,15 @@ using namespace GPUCA_NAMESPACE::gpu;
 using namespace GPUCA_NAMESPACE::gpu::tpccf;
 
 template <>
-GPUdii() void GPUTPCCFClusterizer::Thread<0>(int nBlocks, int nThreads, int iBlock, int iThread, GPUSharedMemory& smem, processorType& clusterer)
+GPUdii() void GPUTPCCFClusterizer::Thread<0>(int nBlocks, int nThreads, int iBlock, int iThread, GPUSharedMemory& smem, processorType& clusterer, char onlyMC)
 {
   Array2D<PackedCharge> chargeMap(reinterpret_cast<PackedCharge*>(clusterer.mPchargeMap));
   CPU_ONLY(
     MCLabelAccumulator labelAcc(clusterer));
 
-  GPUTPCCFClusterizer::computeClustersImpl(get_num_groups(0), get_local_size(0), get_group_id(0), get_local_id(0), clusterer.mPmemory->fragment, smem, chargeMap, clusterer.mPfilteredPeakPositions, CPU_PTR(&labelAcc), clusterer.mPmemory->counters.nClusters, clusterer.mNMaxClusterPerRow, clusterer.mPclusterInRow, clusterer.mPclusterByRow);
+  tpc::ClusterNative* clusterOut = (onlyMC) ? nullptr : clusterer.mPclusterByRow;
+
+  GPUTPCCFClusterizer::computeClustersImpl(get_num_groups(0), get_local_size(0), get_group_id(0), get_local_id(0), clusterer.mPmemory->fragment, smem, chargeMap, clusterer.mPfilteredPeakPositions, CPU_PTR(&labelAcc), clusterer.mPmemory->counters.nClusters, clusterer.mNMaxClusterPerRow, clusterer.mPclusterInRow, clusterOut, clusterer.mPclusterPosInRow);
 }
 
 GPUdii() void GPUTPCCFClusterizer::computeClustersImpl(int nBlocks, int nThreads, int iBlock, int iThread,
@@ -43,7 +45,8 @@ GPUdii() void GPUTPCCFClusterizer::computeClustersImpl(int nBlocks, int nThreads
                                                        uint clusternum,
                                                        uint maxClusterPerRow,
                                                        uint* clusterInRow,
-                                                       tpc::ClusterNative* clusterByRow)
+                                                       tpc::ClusterNative* clusterByRow,
+                                                       uint* clusterPosInRow)
 {
   uint idx = get_global_id(0);
 
@@ -80,16 +83,24 @@ GPUdii() void GPUTPCCFClusterizer::computeClustersImpl(int nBlocks, int nThreads
 #endif
 
   if (!aboveQTotCutoff) {
+    clusterPosInRow[idx] = maxClusterPerRow;
     return;
   }
 
-  uint rowIndex = sortIntoBuckets(
-    myCluster,
-    pos.row(),
-    maxClusterPerRow,
-    clusterInRow,
-    clusterByRow);
-  static_cast<void>(rowIndex); // Avoid unused varible warning on GPU.
+  uint rowIndex;
+  if (clusterByRow != nullptr) {
+    rowIndex = sortIntoBuckets(
+      myCluster,
+      pos.row(),
+      maxClusterPerRow,
+      clusterInRow,
+      clusterByRow);
+    if (clusterPosInRow != nullptr) {
+      clusterPosInRow[idx] = rowIndex;
+    }
+  } else {
+    rowIndex = clusterPosInRow[idx];
+  }
 
   CPU_ONLY(labelAcc->commit(pos.row(), rowIndex, maxClusterPerRow));
 }
