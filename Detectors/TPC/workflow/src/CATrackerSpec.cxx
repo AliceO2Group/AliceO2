@@ -121,6 +121,15 @@ DataProcessorSpec getCATrackerSpec(ca::Config const& specconfig, std::vector<int
       processAttributes->outputBufferSize = confParam.outputBufferSize;
       processAttributes->suppressOutput = (confParam.dump == 2);
       config.configInterface.dumpEvents = confParam.dump;
+      if (confParam.display) {
+#ifdef GPUCA_BUILD_EVENT_DISPLAY
+        processAttributes->displayBackend.reset(new GPUDisplayBackendGlfw);
+        config.configProcessing.eventDisplay = processAttributes->displayBackend.get();
+        LOG(INFO) << "Event display enabled";
+#else
+        throw std::runtime_error("Standalone Event Display not enabled at build time!");
+#endif
+      }
 
       if (config.configEvent.continuousMaxTimeBin == -1) {
         config.configEvent.continuousMaxTimeBin = (o2::raw::HBFUtils::Instance().getNOrbitsPerTF() * o2::constants::lhc::LHCMaxBunches + 2 * constants::LHCBCPERTIMEBIN - 2) / constants::LHCBCPERTIMEBIN;
