@@ -65,6 +65,12 @@ constexpr bool is_type_with_binding_v = false;
 template <typename T>
 constexpr bool is_type_with_binding_v<T, std::void_t<decltype(sizeof(typename T::binding_t))>> = true;
 
+template <typename, typename = void>
+constexpr bool is_type_spawnable_v = false;
+
+template <typename T>
+constexpr bool is_type_spawnable_v<T, std::void_t<decltype(sizeof(typename T::spawnable_t))>> = true;
+
 template <typename T, typename TLambda>
 void call_if_has_originals(TLambda&& lambda)
 {
@@ -1116,6 +1122,7 @@ using ConcatBase = decltype(concat(std::declval<T1>(), std::declval<T2>()));
     using base = o2::soa::Column<_Type_, _Name_>;                                           \
     using type = _Type_;                                                                    \
     using column_t = _Name_;                                                                \
+    using spawnable_t = std::true_type;                                                     \
     _Name_(arrow::ChunkedArray const* column)                                               \
       : o2::soa::Column<_Type_, _Name_>(o2::soa::ColumnIterator<type>(column))              \
     {                                                                                       \
@@ -1748,6 +1755,15 @@ auto spawner(framework::pack<C...> columns, arrow::Table* atable)
     new_columns.push_back(arrays[i]);
   }
   return arrow::Table::Make(std::make_shared<arrow::Schema>(new_fields), new_columns);
+}
+
+/// On-the-fly adding of expression columns
+template <typename T, typename... Cs>
+auto Extend(T const& table)
+{
+  static_assert((soa::is_type_spawnable_v<Cs> && ...), "You can only extend a table with expression columns");
+  using output_t = JoinBase<T, soa::Table<Cs...>>;
+  return output_t{spawner(framework::pack<Cs...>{}, table.asArrowTable().get()), table.offset()};
 }
 
 /// Template for building an index table to access matching rows from non-
