@@ -701,6 +701,15 @@ auto calculateTotalInputRecordSize(InputRecord const& record) -> int
   }
   return totalInputSize;
 };
+
+template <typename T>
+void update_maximum(std::atomic<T>& maximum_value, T const& value) noexcept
+{
+  T prev_value = maximum_value;
+  while (prev_value < value &&
+         !maximum_value.compare_exchange_weak(prev_value, value)) {
+  }
+}
 } // namespace
 
 bool DataProcessingDevice::tryDispatchComputation(DataProcessorContext& context, std::vector<DataRelayer::RecordAction>& completed)
@@ -902,11 +911,13 @@ bool DataProcessingDevice::tryDispatchComputation(DataProcessorContext& context,
   }
 
   auto postUpdateStats = [& stats = context.registry->get<DataProcessingStats>()](DataRelayer::RecordAction const& action, InputRecord const& record, uint64_t tStart) {
+    std::atomic_thread_fence(std::memory_order_release);
     for (size_t ai = 0; ai != record.size(); ai++) {
       auto cacheId = action.slot.index * record.size() + ai;
       auto state = record.isValid(ai) ? 3 : 0;
-      stats.relayerState.resize(std::max(cacheId + 1, stats.relayerState.size()), 0);
-      stats.relayerState[cacheId] = state;
+      update_maximum(stats.statesSize, cacheId + 1);
+      assert(cacheId < DataProcessingStats::MAX_RELAYER_STATES);
+      stats.relayerState[cacheId].store(state);
     }
     uint64_t tEnd = uv_hrtime();
     stats.lastElapsedTimeMs = tEnd - tStart;
@@ -915,11 +926,13 @@ bool DataProcessingDevice::tryDispatchComputation(DataProcessorContext& context,
   };
 
   auto preUpdateStats = [& stats = context.registry->get<DataProcessingStats>()](DataRelayer::RecordAction const& action, InputRecord const& record, uint64_t tStart) {
+    std::atomic_thread_fence(std::memory_order_release);
     for (size_t ai = 0; ai != record.size(); ai++) {
       auto cacheId = action.slot.index * record.size() + ai;
       auto state = record.isValid(ai) ? 2 : 0;
-      stats.relayerState.resize(std::max(cacheId + 1, stats.relayerState.size()), 0);
-      stats.relayerState[cacheId] = state;
+      update_maximum(stats.statesSize, cacheId + 1);
+      assert(cacheId < DataProcessingStats::MAX_RELAYER_STATES);
+      stats.relayerState[cacheId].store(state);
     }
   };
 
