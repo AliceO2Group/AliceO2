@@ -45,7 +45,7 @@ class LookUp
   TopologyDictionary mDictionary;
   int mTopologiesOverThreshold;
 
-  ClassDefNV(LookUp, 2);
+  ClassDefNV(LookUp, 3);
 };
 } // namespace itsmft
 } // namespace o2

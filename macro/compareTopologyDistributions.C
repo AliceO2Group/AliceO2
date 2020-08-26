@@ -24,9 +24,8 @@ void compareTopologyDistributions(
   string output_file_name = "comparison.root")
 {
   if (dictionary_file_name.empty()) {
-    dictionary_file_name = o2::base::NameConf::getDictionaryFileName(o2::detectors::DetID::ITS, "", ".root");
+    dictionary_file_name = o2::base::NameConf::getDictionaryFileName(o2::detectors::DetID::ITS, "", ".bin");
   }
-  TFile dictionary_file(dictionary_file_name.c_str());
   o2::itsmft::TopologyDictionary dict;
   dict.readBinaryFile(dictionary_file_name.c_str());
   int dict_size = dict.getSize();
@@ -49,6 +48,8 @@ void compareTopologyDistributions(
   hRec->Scale(1 / hRec->Integral());
 
   TFile output_file(output_file_name.c_str(), "RECREATE");
+  hRec->Write();
+  hDictio->Write();
   TCanvas* cOut = new TCanvas("cOut", "cOut", 800, 600);
   cOut->SetLogy();
   hDictio->GetYaxis()->SetRangeUser(1.e-8, 1.2);

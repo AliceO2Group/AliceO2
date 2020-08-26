@@ -82,7 +82,7 @@ class BuildTopologyDictionary
 
   std::unordered_map<long unsigned, TopologyInfo> mMapInfo;
 
-  ClassDefNV(BuildTopologyDictionary, 3);
+  ClassDefNV(BuildTopologyDictionary, 4);
 };
 } // namespace itsmft
 } // namespace o2
