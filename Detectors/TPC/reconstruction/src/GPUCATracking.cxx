@@ -127,7 +127,7 @@ int GPUCATracking::runTracking(GPUO2InterfaceIOPtrs* data, GPUInterfaceOutputs* 
         gpuDigitsMap.tpcDigits[i] = (*(data->o2Digits))[i].data();
         gpuDigitsMap.nTPCDigits[i] = (*(data->o2Digits))[i].size();
         if (data->o2DigitsMC) {
-          gpuDigitsMapMC.v[i] = (*data->o2DigitsMC)[i].get();
+          gpuDigitsMapMC.v[i] = (*data->o2DigitsMC)[i];
         }
       }
     }
