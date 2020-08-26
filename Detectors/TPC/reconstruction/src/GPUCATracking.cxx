@@ -106,7 +106,7 @@ int GPUCATracking::runTracking(GPUO2InterfaceIOPtrs* data, GPUInterfaceOutputs* 
         if (maxContTimeBin && d[j].getTimeStamp() >= maxContTimeBin) {
           throw std::runtime_error("Digit time bin exceeds time frame length");
         }
-        if (zsThreshold > 0) {
+        if (zsThreshold > 0 && data->tpcZS == nullptr) {
           if (d[j].getChargeFloat() >= zsThreshold) {
             if (data->o2DigitsMC) {
               for (const auto& element : (*data->o2DigitsMC)[i]->getLabels(j)) {
