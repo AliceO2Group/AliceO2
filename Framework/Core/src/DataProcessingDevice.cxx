@@ -36,6 +36,7 @@
 #include "DataProcessingStatus.h"
 #include "DataProcessingHelpers.h"
 #include "DataRelayerHelpers.h"
+#include "RegionInfoManager.h"
 
 #include "ScopedExit.h"
 
@@ -342,13 +343,11 @@ void on_sigsegv_callback(uv_signal_t* handle, int signum)
 void DataProcessingDevice::InitTask()
 {
   for (auto& channel : fChannels) {
-    channel.second.at(0).Transport()->SubscribeToRegionEvents([& pendingRegionInfos = mPendingRegionInfos](FairMQRegionInfo info) {
-      LOG(debug) << ">>> Region info event" << info.event;
-      LOG(debug) << "id: " << info.id;
-      LOG(debug) << "ptr: " << info.ptr;
-      LOG(debug) << "size: " << info.size;
-      LOG(debug) << "flags: " << info.flags;
-      pendingRegionInfos.push_back(info);
+    channel.second.at(0).Transport()->SubscribeToRegionEvents([& registry = mServiceRegistry](FairMQRegionInfo info) {
+      auto& manager = registry.get<RegionInfoManager>();
+      LOGP(debug, "Region info event {} id: {} ptr: {} size: {} flags:{}",
+           info.event, info.id, info.ptr, info.size, info.flags);
+      manager.post(info);
     });
   }
 
@@ -515,13 +514,8 @@ bool DataProcessingDevice::ConditionalRun()
 
   // Notify on the main thread the new region callbacks, making sure
   // no callback is issued if there is something still processing.
-  if (mPendingRegionInfos.empty() == false) {
-    std::vector<FairMQRegionInfo> toBeNotified;
-    toBeNotified.swap(mPendingRegionInfos); // avoid any MT issue.
-    for (auto const& info : toBeNotified) {
-      mServiceRegistry.get<CallbackService>()(CallbackService::Id::RegionInfoCallback, info);
-    }
-  }
+  mServiceRegistry.get<RegionInfoManager>().notify();
+
   // Synchronous execution of the callbacks. This will be moved in the
   // moved in the on_socket_polled once we have threading in place.
   auto& context = mDataProcessorContexes.at(0);

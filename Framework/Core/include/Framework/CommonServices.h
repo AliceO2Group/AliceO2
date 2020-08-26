@@ -51,6 +51,7 @@ struct CommonServices {
   static ServiceSpec rootFileSpec();
   static ServiceSpec parallelSpec();
   static ServiceSpec rawDeviceSpec();
+  static ServiceSpec regionInfoSpec();
   static ServiceSpec callbacksSpec();
   static ServiceSpec timesliceIndex();
   static ServiceSpec timingInfoSpec();

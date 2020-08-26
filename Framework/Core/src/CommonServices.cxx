@@ -26,6 +26,7 @@
 #include "Framework/ThreadPool.h"
 #include "Framework/Monitoring.h"
 #include "../src/DataProcessingStatus.h"
+#include "RegionInfoManager.h"
 
 #include <Configuration/ConfigurationInterface.h>
 #include <Configuration/ConfigurationFactory.h>
@@ -54,6 +55,27 @@ template <>
 struct ServiceKindExtractor<InfoLoggerContext> {
   constexpr static ServiceKind kind = ServiceKind::Global;
 };
+
+o2::framework::ServiceSpec CommonServices::regionInfoSpec()
+{
+  return ServiceSpec{"regioninfomanager",
+                     TypeIdHelpers::uniqueId<RegionInfoManager>(),
+                     [](ServiceRegistry& registry, DeviceState&, fair::mq::ProgOptions& options) -> ServiceHandle {
+                       void* service = new RegionInfoManager(registry.get<CallbackService>());
+                       return ServiceHandle{TypeIdHelpers::uniqueId<RegionInfoManager>(), service};
+                     },
+                     noConfiguration(),
+                     nullptr,
+                     nullptr,
+                     nullptr,
+                     nullptr,
+                     nullptr,
+                     nullptr,
+                     nullptr,
+                     nullptr,
+                     nullptr,
+                     ServiceKind::Global};
+}
 
 o2::framework::ServiceSpec CommonServices::monitoringSpec()
 {
@@ -539,6 +561,7 @@ std::vector<ServiceSpec> CommonServices::defaultServices(int numThreads)
     rootFileSpec(),
     parallelSpec(),
     callbacksSpec(),
+    regionInfoSpec(),
     dataRelayer(),
     dataProcessingStats(),
     CommonMessageBackends::fairMQBackendSpec(),
