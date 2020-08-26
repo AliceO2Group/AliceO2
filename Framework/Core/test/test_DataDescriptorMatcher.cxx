@@ -82,7 +82,7 @@ BOOST_AUTO_TEST_CASE(TestMatcherInvariants)
     DataDescriptorMatcher matcherB{
       DataDescriptorMatcher::Op::Just,
       OriginValueMatcher{"TPC"}};
-    BOOST_CHECK(matcherA == matcherB);
+    BOOST_CHECK_EQUAL(matcherA, matcherB);
   }
 
   {
@@ -92,7 +92,7 @@ BOOST_AUTO_TEST_CASE(TestMatcherInvariants)
     DataDescriptorMatcher matcherB{
       DataDescriptorMatcher::Op::Just,
       DescriptionValueMatcher{"TRACKS"}};
-    BOOST_CHECK(matcherA == matcherB);
+    BOOST_CHECK_EQUAL(matcherA, matcherB);
   }
 
   {
@@ -102,7 +102,7 @@ BOOST_AUTO_TEST_CASE(TestMatcherInvariants)
     DataDescriptorMatcher matcherB{
       DataDescriptorMatcher::Op::Just,
       SubSpecificationTypeValueMatcher{1}};
-    BOOST_CHECK(matcherA == matcherB);
+    BOOST_CHECK_EQUAL(matcherA, matcherB);
   }
 
   {
@@ -112,7 +112,7 @@ BOOST_AUTO_TEST_CASE(TestMatcherInvariants)
     DataDescriptorMatcher matcherB{
       DataDescriptorMatcher::Op::Just,
       ConstantValueMatcher{1}};
-    BOOST_CHECK(matcherA == matcherB);
+    BOOST_CHECK_EQUAL(matcherA, matcherB);
   }
 
   {
@@ -149,7 +149,7 @@ BOOST_AUTO_TEST_CASE(TestMatcherInvariants)
           DataDescriptorMatcher::Op::And,
           SubSpecificationTypeValueMatcher{1},
           ConstantValueMatcher{true}))};
-    BOOST_CHECK(matcherA == matcherB);
+    BOOST_CHECK_EQUAL(matcherA, matcherB);
   }
 }
 
@@ -572,7 +572,7 @@ BOOST_AUTO_TEST_CASE(DataQuery)
                                                 StartTimeValueMatcher{ContextRef{0}})))};
   auto matcher = std::get_if<DataDescriptorMatcher>(&result0[0].matcher);
   BOOST_REQUIRE(matcher != nullptr);
-  BOOST_CHECK(expectedMatcher00 == *matcher);
+  BOOST_CHECK_EQUAL(expectedMatcher00, *matcher);
   std::ostringstream ss0;
   ss0 << *matcher;
   std::ostringstream expectedSS00;
