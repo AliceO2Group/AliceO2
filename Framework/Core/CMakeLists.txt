@@ -8,15 +8,13 @@
 # granted to it by virtue of its status as an Intergovernmental Organization or
 # submit itself to any jurisdiction.
 
-if(GLFW_FOUND)
+if (TARGET AliceO2::DebugGUI)
   set(GUI_SOURCES src/FrameworkGUIDebugger.cxx src/FrameworkGUIDevicesGraph.cxx
                   src/FrameworkGUIDeviceInspector.cxx
                   src/FrameworkGUIDataRelayerUsage.cxx src/PaletteHelpers.cxx)
+  set(DEBUGGUI_TARGET AliceO2::DebugGUI)
 else()
   set(GUI_SOURCES src/FrameworkDummyDebugger.cxx)
-endif()
-if (TARGET AliceO2::DebugGUI)
-  set(DEBUGGUI_TARGET AliceO2::DebugGUI)
 endif()
 
 # Given GCC 7.3 does not provide std::filesystem we use Boost instead
