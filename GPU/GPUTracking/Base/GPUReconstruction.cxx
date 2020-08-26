@@ -406,7 +406,7 @@ size_t GPUReconstruction::AllocateRegisteredMemory(GPUProcessor* proc, bool rese
     if (proc == nullptr ? !mMemoryResources[i].mProcessor->mAllocateAndInitializeLate : mMemoryResources[i].mProcessor == proc) {
       if (!(mMemoryResources[i].mType & GPUMemoryResource::MEMORY_CUSTOM)) {
         total += AllocateRegisteredMemory(i);
-      } else if (resetCustom) {
+      } else if (resetCustom && (mMemoryResources[i].mPtr || mMemoryResources[i].mPtrDevice)) {
         ResetRegisteredMemoryPointers(i);
       }
     }
