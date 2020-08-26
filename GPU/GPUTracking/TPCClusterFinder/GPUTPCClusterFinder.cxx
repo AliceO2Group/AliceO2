@@ -134,8 +134,7 @@ void GPUTPCClusterFinder::PrepareMC()
   clearMCMemory();
   mPindexMap = new uint[TPCMapMemoryLayout<decltype(*mPindexMap)>::items()];
   mPlabelsByRow = new GPUTPCClusterMCInterim[GPUCA_ROW_COUNT * mNMaxClusterPerRow];
-  mPlabelHeaderOffset = new uint[GPUCA_ROW_COUNT];
-  mPlabelDataOffset = new uint[GPUCA_ROW_COUNT];
+  mPlabelsInRow = new uint[GPUCA_ROW_COUNT];
 }
 
 void GPUTPCClusterFinder::clearMCMemory()
@@ -144,8 +143,6 @@ void GPUTPCClusterFinder::clearMCMemory()
   mPindexMap = nullptr;
   delete[] mPlabelsByRow;
   mPlabelsByRow = nullptr;
-  delete[] mPlabelHeaderOffset;
-  mPlabelHeaderOffset = nullptr;
-  delete[] mPlabelDataOffset;
-  mPlabelDataOffset = nullptr;
+  delete[] mPlabelsInRow;
+  mPlabelsInRow = nullptr;
 }

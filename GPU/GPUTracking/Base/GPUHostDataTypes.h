@@ -26,8 +26,6 @@
 
 #include <vector>
 #include <array>
-#include <memory>
-#include <mutex>
 #include "DataFormatsTPC/Constants.h"
 #include "SimulationDataFormat/MCTruthContainer.h"
 #include "SimulationDataFormat/MCCompLabel.h"
@@ -43,7 +41,6 @@ struct GPUTPCDigitsMCInput {
 
 struct GPUTPCClusterMCInterim {
   std::vector<o2::MCCompLabel> labels;
-  uint offset;
 };
 
 struct GPUTPCLinearLabels {

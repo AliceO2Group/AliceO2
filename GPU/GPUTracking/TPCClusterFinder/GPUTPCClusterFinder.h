@@ -107,8 +107,9 @@ class GPUTPCClusterFinder : public GPUProcessor
   Memory* mPmemory = nullptr;
 
   o2::dataformats::MCTruthContainer<o2::MCCompLabel> const* mPinputLabels = nullptr;
-  uint* mPlabelHeaderOffset = nullptr;
-  uint* mPlabelDataOffset = nullptr;
+  uint* mPlabelsInRow = nullptr;
+  uint mPlabelsHeaderGlobalOffset = 0;
+  uint mPlabelsDataGlobalOffset = 0;
 
   int mISlice = 0;
   constexpr static int mScanWorkGroupSize = GPUCA_THREAD_COUNT_SCAN;

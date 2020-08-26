@@ -28,16 +28,12 @@ void GPUTPCCFMCLabelFlattener::setGlobalOffsetsAndAllocate(
   uint headerOffset = labels.header.size();
   uint dataOffset = labels.data.size();
 
-  for (Row row = 0; row < GPUCA_ROW_COUNT; row++) {
-    cls.mPlabelHeaderOffset[row] = headerOffset;
-    headerOffset += cls.mPclusterInRow[row];
+  cls.mPlabelsHeaderGlobalOffset = headerOffset;
+  cls.mPlabelsDataGlobalOffset = dataOffset;
 
-    cls.mPlabelDataOffset[row] = dataOffset;
-    if (cls.mPclusterInRow[row] > 0) {
-      auto& lastInterim = cls.mPlabelsByRow[cls.mNMaxClusterPerRow * row + cls.mPclusterInRow[row] - 1];
-      uint labelsInRow = lastInterim.offset + lastInterim.labels.size();
-      dataOffset += labelsInRow;
-    }
+  for (Row row = 0; row < GPUCA_ROW_COUNT; row++) {
+    headerOffset += cls.mPclusterInRow[row];
+    dataOffset += cls.mPlabelsInRow[row];
   }
 
   labels.header.resize(headerOffset);
@@ -52,32 +48,40 @@ GPUd() void GPUTPCCFMCLabelFlattener::Thread<GPUTPCCFMCLabelFlattener::setRowOff
   Row row = get_global_id(0);
 
   uint clusterInRow = clusterer.mPclusterInRow[row];
-  uint offset = 0;
+  uint labelCount = 0;
 
   for (uint i = 0; i < clusterInRow; i++) {
     auto& interim = clusterer.mPlabelsByRow[row * clusterer.mNMaxClusterPerRow + i];
-    interim.offset = offset;
-    offset += interim.labels.size();
+    labelCount += interim.labels.size();
   }
+
+  clusterer.mPlabelsInRow[row] = labelCount;
 #endif
 }
 
 template <>
-GPUd() void GPUTPCCFMCLabelFlattener::Thread<GPUTPCCFMCLabelFlattener::flatten>(int nBlocks, int nThreads, int iBlock, int iThread, GPUSharedMemory&, processorType& clusterer, uint row, GPUTPCLinearLabels* out)
+GPUd() void GPUTPCCFMCLabelFlattener::Thread<GPUTPCCFMCLabelFlattener::flatten>(int nBlocks, int nThreads, int iBlock, int iThread, GPUSharedMemory&, processorType& clusterer, GPUTPCLinearLabels* out)
 {
 #if !defined(GPUCA_GPUCODE)
-  uint idx = get_global_id(0);
+  uint row = get_global_id(0);
 
-  GPUTPCClusterMCInterim& interim = clusterer.mPlabelsByRow[row * clusterer.mNMaxClusterPerRow + idx];
+  uint headerOffset = clusterer.mPlabelsHeaderGlobalOffset;
+  uint dataOffset = clusterer.mPlabelsDataGlobalOffset;
+  for (int r = 0; r < row; r++) {
+    headerOffset += clusterer.mPclusterInRow[r];
+    dataOffset += clusterer.mPlabelsInRow[r];
+  }
 
-  uint headerOffset = clusterer.mPlabelHeaderOffset[row] + idx;
-  uint dataOffset = clusterer.mPlabelDataOffset[row] + interim.offset;
+  auto* labels = &clusterer.mPlabelsByRow[row * clusterer.mNMaxClusterPerRow];
+  for (uint c = 0; c < clusterer.mPclusterInRow[row]; c++) {
+    GPUTPCClusterMCInterim& interim = labels[c];
+    assert(dataOffset + interim.labels.size() <= out->data.size());
+    out->header[headerOffset] = dataOffset;
+    std::copy(interim.labels.cbegin(), interim.labels.cend(), out->data.begin() + dataOffset);
 
-  assert(dataOffset + interim.labels.size() <= out->data.size());
-
-  out->header[headerOffset] = dataOffset;
-  std::copy(interim.labels.cbegin(), interim.labels.cend(), out->data.begin() + dataOffset);
-
-  interim = {}; // ensure interim labels are destroyed to prevent memleak
+    headerOffset++;
+    dataOffset += interim.labels.size();
+    interim = {}; // ensure interim labels are destroyed to prevent memleak
+  }
 #endif
 }
