@@ -7,6 +7,9 @@
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
+/// \author Peter Hristov <Peter.Hristov@cern.ch>, CERN
+/// \author Gian Michele Innocenti <gian.michele.innocenti@cern.ch>, CERN
+
 #include "Framework/runDataProcessing.h"
 #include "Framework/AnalysisTask.h"
 #include "Framework/AnalysisDataModel.h"
@@ -19,7 +22,8 @@ using namespace o2;
 using namespace o2::framework;
 
 struct QATrackingKine {
-  OutputObj<TH1F> hpt{TH1F("pt", ";p_{T} [GeV]", 100, 0., 200.)};
+  Configurable<bool> ismc{"ismc", false, "option to flag mc"};
+  OutputObj<TH1F> hpt{TH1F("pt", ";p_{T} [GeV]", 100, 0., 10.)};
   OutputObj<TH1F> hphi{TH1F("phi", ";#phi", 100, 0, 2 * M_PI)};
   OutputObj<TH1F> heta{TH1F("eta", ";#eta", 100, -6, 6)};
 
@@ -35,9 +39,31 @@ struct QATrackingKine {
   }
 };
 
+struct QATrackingResolution {
+  OutputObj<TH1F> etaDiff{TH1F("etaDiff", ";eta_{MC} - eta_{Rec}", 100, -2, 2)};
+  OutputObj<TH1F> phiDiff{TH1F("phiDiff", ";phi_{MC} - phi_{Rec}", 100, -M_PI, M_PI)};
+  OutputObj<TH1F> ptDiff{TH1F("ptDiff", ";p_{T}_{MC} - p_{T}_{Rec}", 100, -5., 5.)};
+
+  void process(soa::Join<aod::Collisions, aod::McCollisionLabels>::iterator const& collision, soa::Join<aod::Tracks, aod::McTrackLabels> const& tracks, aod::McParticles const& mcParticles, aod::McCollisions const& mcCollisions)
+  {
+    LOGF(info, "vtx-z (data) = %f | vtx-z (MC) = %f", collision.posZ(), collision.label().posZ());
+    for (auto& track : tracks) {
+      ptDiff->Fill(track.label().pt() - track.pt());
+      etaDiff->Fill(track.label().eta() - track.eta());
+      auto delta = track.label().phi() - track.phi();
+      if (delta > M_PI)
+        delta -= 2 * M_PI;
+      if (delta < -M_PI)
+        delta += 2 * M_PI;
+      phiDiff->Fill(delta);
+    }
+  }
+};
+
 WorkflowSpec defineDataProcessing(ConfigContext const&)
 {
   return WorkflowSpec{
     adaptAnalysisTask<QATrackingKine>("qa-tracking-kine"),
+    adaptAnalysisTask<QATrackingResolution>("qa-tracking-resolution"),
   };
 }
