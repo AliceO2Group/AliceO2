@@ -262,6 +262,7 @@ AddOption(allocateOutputOnTheFly, bool, true, "", 0, "Allocate shm output buffer
 AddOption(outputBufferSize, unsigned long, 200000000ul, "", 0, "Size of the output buffers to be allocated")
 AddOption(synchronousProcessing, bool, false, "", 0, "Apply performance shortcuts for synchronous processing, disable unneeded steps")
 AddOption(mutexMemReg, bool, false, "", 0, "Global mutex to serialize GPU memory registration")
+AddOption(display, bool, false, "", 0, "Enable standalone gpu tracking visualizaion")
 EndConfig()
 #endif // GPUCA_O2_LIB
 #endif // !GPUCA_GPUCODE_DEVICE
