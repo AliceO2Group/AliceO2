@@ -8,18 +8,18 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#ifndef __RESOURCES_MONITORING_MANAGER__H__
-#define __RESOURCES_MONITORING_MANAGER__H__
+#ifndef O2_FRAMEWORK_RESOURCESMONITORINGHELPER_H_
+#define O2_FRAMEWORK_RESOURCESMONITORINGHELPER_H_
 
-#include <vector>
 #include "Framework/DeviceMetricsInfo.h"
 #include "Monitoring/ProcessMonitor.h"
 #include <boost/property_tree/ptree.hpp>
 #include "Framework/DeviceSpec.h"
 
-namespace o2
-{
-namespace framework
+#include <vector>
+#include <type_traits>
+
+namespace o2::framework
 {
 
 class ResourcesMonitoringHelper
@@ -57,13 +57,16 @@ boost::property_tree::ptree ResourcesMonitoringHelper::fillNodeWithValue(const D
   for (unsigned int idx = 0; idx < loopRange; ++idx) {
     boost::property_tree::ptree values;
     values.add("timestamp", deviceMetrics.timestamps[labelIndex][idx]);
-    values.add("value", retriveValue(std::cref(metricsStorage[storageIndex][idx])));
+    if constexpr (std::is_arithmetic_v<T>) {
+      values.add("value", std::to_string(retriveValue(std::cref(metricsStorage[storageIndex][idx]))));
+    } else {
+      values.add("value", retriveValue(std::cref(metricsStorage[storageIndex][idx])));
+    }
     metricNode.push_back(std::make_pair("", values));
   }
   return metricNode;
 }
 
-} // namespace framework
-} // namespace o2
+} // namespace o2::framework
 
-#endif
+#endif // O2_FRAMEWORK_RESOURCESMONITORINGHELPER_H_
