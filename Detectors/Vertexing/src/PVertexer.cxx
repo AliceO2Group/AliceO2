@@ -66,7 +66,7 @@ int PVertexer::process(gsl::span<const o2d::TrackTPCITS> tracksITSTPC, gsl::span
     auto& vtx = verticesLoc[i];
     // do we need to validate by FT0 ?
     if (mValidateWithFT0) {
-      auto bestMatch = compatibleTimes(vtx.getTimeStamp(), ft0Data, vtimeID);
+      auto bestMatch = getBestFT0Trigger(vtx, ft0Data, vtimeID);
       if (bestMatch >= 0) { // RS FIXME eventually, we should assign the IR to vertex?
         vtx.setFlags(PVertex::TimeValidated);
         vtx.setIR(ft0Data[bestMatch].getInteractionRecord());
@@ -657,11 +657,11 @@ void PVertexer::createMCLabels(gsl::span<const o2::MCCompLabel> lblITS, gsl::spa
 }
 
 //___________________________________________________________________
-int PVertexer::compatibleTimes(const TimeEst& t, gsl::span<const o2::ft0::RecPoints> ft0Data, int& currEntry) const
+int PVertexer::getBestFT0Trigger(const PVertex& vtx, gsl::span<const o2::ft0::RecPoints> ft0Data, int& currEntry) const
 {
   // check if the times stamp is compatible with any entry startinge from currEntry in ft0Data vector, return best matching time
   int best = -1, n = ft0Data.size();
-
+  auto t = vtx.getTimeStamp();
   while (currEntry < n && getTimeMSFromTFStart(ft0Data[currEntry].getInteractionRecord()) + mParams->nSigmaFT0cut * mParams->maxTError < t.getTimeStamp()) {
     currEntry++; // skip all times which have no chance to be matched
   }
@@ -671,10 +671,13 @@ int PVertexer::compatibleTimes(const TimeEst& t, gsl::span<const o2::ft0::RecPoi
     if ((df = getTimeMSFromTFStart(ft0Data[i].getInteractionRecord()) - t.getTimeStamp()) > bestDf) {
       break;
     }
-    auto dfa = std::abs(df);
-    if (dfa <= bestDf) {
-      bestDf = dfa;
-      best = i;
+    auto ft0Trigger = ft0Data[i].getTrigger();
+    if (ft0Trigger.amplA + ft0Trigger.amplC > mParams->minFT0AmplitudeAC) {
+      auto dfa = std::abs(df);
+      if (dfa <= bestDf) {
+        bestDf = dfa;
+        best = i;
+      }
     }
     i++;
   }

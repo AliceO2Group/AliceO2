@@ -104,8 +104,11 @@ class PVertexer
   void clusterizeTimeBruteForce(float margin = 0.1, float cut = 25);
   void clusterizeTime(float binSize = 0.1, float maxTDist = 0.6);
   int findVertices(const VertexingInput& input, std::vector<PVertex>& vertices, std::vector<int>& vertexTrackIDs, std::vector<V2TRef>& v2tRefs);
-  float getTimeMSFromTFStart(const o2::InteractionRecord& bc) const { return bc.differenceInBC(mStartIR) * 1e-3 * o2::constants::lhc::LHCBunchSpacingNS; }
-  int compatibleTimes(const TimeEst& t, gsl::span<const o2::ft0::RecPoints> ft0Data, int& currEntry) const;
+  float getTimeMSFromTFStart(const o2::InteractionRecord& bc) const
+  {
+    return bc.differenceInBC(mStartIR) * 1e-3 * o2::constants::lhc::LHCBunchSpacingNS + mParams->timeBiasMS;
+  }
+  int getBestFT0Trigger(const PVertex& vtx, gsl::span<const o2::ft0::RecPoints> ft0Data, int& currEntry) const;
 
   o2d::VertexBase mMeanVertex{{0., 0., 0.}, {0.1 * 0.1, 0., 0.1 * 0.1, 0., 0., 6. * 6.}};
   std::array<float, 3> mXYConstraintInvErr = {1.0f, 0.f, 1.0f}; ///< nominal vertex constraint inverted errors^2
