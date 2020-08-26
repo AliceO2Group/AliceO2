@@ -31,6 +31,7 @@
 #include "DetectorsCommonDataFormats/NameConf.h"
 #endif
 
+#include "ReconstructionDataFormats/PrimaryVertex.h" // hack to silence JIT compiler
 #include "ITStracking/ROframe.h"
 #include "ITStracking/IOUtils.h"
 #include "ITStracking/Vertexer.h"
