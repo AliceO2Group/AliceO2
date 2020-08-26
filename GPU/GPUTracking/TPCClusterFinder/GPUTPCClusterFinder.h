@@ -97,6 +97,9 @@ class GPUTPCClusterFinder : public GPUProcessor
   ChargePos* mPpeakPositions = nullptr;
   ChargePos* mPfilteredPeakPositions = nullptr;
   unsigned char* mPisPeak = nullptr;
+  uint* mPclusterPosInRow = nullptr; // store the index where the corresponding cluster is stored in a bucket.
+                                     // Required when MC are enabled to write the mc data to the correct position.
+                                     // Set to >= mNMaxClusterPerRow if cluster was discarded.
   ushort* mPchargeMap = nullptr;
   unsigned char* mPpeakMap = nullptr;
   uint* mPindexMap = nullptr;
@@ -123,6 +126,7 @@ class GPUTPCClusterFinder : public GPUProcessor
   unsigned int mNBufs = 0;
 
   short mMemoryId = -1;
+  short mScratchId = -1;
   short mZSId = -1;
   short mZSOffsetId = -1;
   short mOutputId = -1;
