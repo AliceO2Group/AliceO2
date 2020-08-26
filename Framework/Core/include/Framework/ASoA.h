@@ -966,7 +966,11 @@ class Table
   {
     return mTable;
   }
-
+  /// Return offset
+  auto offset() const
+  {
+    return mOffset;
+  }
   /// Size of the table, in rows.
   int64_t size() const
   {
@@ -1774,6 +1778,16 @@ struct IndexTable : Table<soa::Index<>, H, Ts...> {
 
 template <typename T>
 using is_soa_index_table_t = typename framework::is_base_of_template<soa::IndexTable, T>;
+
+/// Template function to attach dynamic columns on-the-fly (e.g. inside
+/// process() function). Dynamic columns need to be compatible with the table.
+template <typename T, typename... Cs>
+auto Attach(T const& table)
+{
+  static_assert((framework::is_base_of_template<o2::soa::DynamicColumn, Cs>::value && ...), "You can only attach dynamic columns");
+  using output_t = JoinBase<T, o2::soa::Table<Cs...>>;
+  return output_t{table.asArrowTable(), table.offset()};
+}
 
 } // namespace o2::soa
 
