@@ -245,8 +245,7 @@ void Tracker::findTracks(const ROframe& event)
         CA_DEBUGGER(nClusters++);
       }
     }
-
-    assert(nClusters >= mTrkParams[0].MinTrackLength);
+    CA_DEBUGGER(assert(nClusters >= mTrkParams[0].MinTrackLength));
     CA_DEBUGGER(roadCounters[nClusters - 4]++);
 
     if (lastCellLevel == constants::its::UnusedIndex)
@@ -287,7 +286,7 @@ void Tracker::findTracks(const ROframe& event)
     CA_DEBUGGER(refitCounters[nClusters - 4]++);
     temporaryTrack.setROFrame(mROFrame);
     tracks.emplace_back(temporaryTrack);
-    assert(nClusters == temporaryTrack.getNumberOfClusters());
+    CA_DEBUGGER(assert(nClusters == temporaryTrack.getNumberOfClusters()));
   }
   //mTraits->refitTracks(event.getTrackingFrameInfo(), tracks);
 
