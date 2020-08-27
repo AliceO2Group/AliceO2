@@ -23,9 +23,6 @@ using namespace GPUCA_NAMESPACE::gpu::tpccf;
 MCLabelAccumulator::MCLabelAccumulator(GPUTPCClusterFinder& clusterer)
   : mIndexMap(clusterer.mPindexMap), mLabels(clusterer.mPinputLabels), mOutput(clusterer.mPlabelsByRow)
 {
-  if (engaged()) {
-    mClusterLabels.reserve(32);
-  }
 }
 
 void MCLabelAccumulator::collect(const ChargePos& pos, Charge q)

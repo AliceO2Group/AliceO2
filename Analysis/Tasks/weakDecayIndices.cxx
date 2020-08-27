@@ -14,16 +14,32 @@
 using namespace o2;
 using namespace o2::framework;
 
-struct ATask {
-  Produces<aod::TransientV0s> transientV0s;
-  Produces<aod::TransientCascades> transientCascades;
+// Tasks to build transient indices to group V0s and cascades to collisions
 
-  void process(aod::StoredV0s const& v0s, aod::StoredCascades const& cascades, aod::FullTracks const& tracks)
+struct IndexV0s {
+  Produces<aod::TransientV0s> transientV0s;
+
+  void process(aod::StoredV0s const& v0s, aod::FullTracks const& tracks)
   {
     for (auto& v0 : v0s) {
+      if (v0.posTrack().collisionId() != v0.negTrack().collisionId()) {
+        LOGF(WARNING, "V0 %d has inconsistent collision information (%d, %d)", v0.globalIndex(), v0.posTrack().collisionId(), v0.negTrack().collisionId());
+      }
       transientV0s(v0.posTrack().collisionId());
     }
+  }
+};
+
+// NOTE These tasks have to be split because for the cascades, V0s and not StoredV0s are needed
+struct IndexCascades {
+  Produces<aod::TransientCascades> transientCascades;
+
+  void process(aod::V0s const& v0s, aod::StoredCascades const& cascades, aod::FullTracks const& tracks)
+  {
     for (auto& cascade : cascades) {
+      if (cascade.bachelor().collisionId() != cascade.v0().posTrack().collisionId() || cascade.v0().posTrack().collisionId() != cascade.v0().negTrack().collisionId()) {
+        LOGF(WARNING, "Cascade %d has inconsistent collision information (%d, %d, %d)", cascade.globalIndex(), cascade.bachelor().collisionId(), cascade.v0().posTrack().collisionId(), cascade.v0().negTrack().collisionId());
+      }
       transientCascades(cascade.bachelor().collisionId());
     }
   }
@@ -32,6 +48,7 @@ struct ATask {
 WorkflowSpec defineDataProcessing(ConfigContext const&)
 {
   return WorkflowSpec{
-    adaptAnalysisTask<ATask>("weak-decay-indices"),
+    adaptAnalysisTask<IndexV0s>("weak-decay-indices-v0"),
+    adaptAnalysisTask<IndexCascades>("weak-decay-indices-cascades"),
   };
 }

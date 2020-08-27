@@ -17,9 +17,7 @@
 #include "GPUGeneralKernels.h"
 #include "GPUConstantMem.h"
 
-namespace GPUCA_NAMESPACE
-{
-namespace gpu
+namespace GPUCA_NAMESPACE::gpu
 {
 
 class GPUTPCClusterFinder;
@@ -44,7 +42,6 @@ class GPUTPCCFGather : public GPUKernelTemplate
   GPUd() static void Thread(int nBlocks, int nThreads, int iBlock, int iThread, GPUSharedMemory& smem, processorType& clusterer, Args... args);
 };
 
-} // namespace gpu
-} // namespace GPUCA_NAMESPACE
+} // namespace GPUCA_NAMESPACE::gpu
 
 #endif

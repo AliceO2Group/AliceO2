@@ -21,15 +21,12 @@
 #include "Array2D.h"
 #include "PackedCharge.h"
 
-namespace GPUCA_NAMESPACE
-{
-
-namespace tpc
+namespace o2::tpc
 {
 struct ClusterNative;
-}
+} // namespace o2::tpc
 
-namespace gpu
+namespace GPUCA_NAMESPACE::gpu
 {
 
 class ClusterAccumulator;
@@ -73,7 +70,6 @@ class GPUTPCCFClusterizer : public GPUKernelTemplate
   static GPUd() uint sortIntoBuckets(const tpc::ClusterNative&, uint, uint, uint*, tpc::ClusterNative*);
 };
 
-} // namespace gpu
-} // namespace GPUCA_NAMESPACE
+} // namespace GPUCA_NAMESPACE::gpu
 
 #endif

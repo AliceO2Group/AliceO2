@@ -106,7 +106,7 @@ int GPUCATracking::runTracking(GPUO2InterfaceIOPtrs* data, GPUInterfaceOutputs* 
         if (maxContTimeBin && d[j].getTimeStamp() >= maxContTimeBin) {
           throw std::runtime_error("Digit time bin exceeds time frame length");
         }
-        if (zsThreshold > 0) {
+        if (zsThreshold > 0 && data->tpcZS == nullptr) {
           if (d[j].getChargeFloat() >= zsThreshold) {
             if (data->o2DigitsMC) {
               for (const auto& element : (*data->o2DigitsMC)[i]->getLabels(j)) {
@@ -127,7 +127,7 @@ int GPUCATracking::runTracking(GPUO2InterfaceIOPtrs* data, GPUInterfaceOutputs* 
         gpuDigitsMap.tpcDigits[i] = (*(data->o2Digits))[i].data();
         gpuDigitsMap.nTPCDigits[i] = (*(data->o2Digits))[i].size();
         if (data->o2DigitsMC) {
-          gpuDigitsMapMC.v[i] = (*data->o2DigitsMC)[i].get();
+          gpuDigitsMapMC.v[i] = (*data->o2DigitsMC)[i];
         }
       }
     }

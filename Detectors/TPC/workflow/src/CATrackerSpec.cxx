@@ -121,6 +121,15 @@ DataProcessorSpec getCATrackerSpec(ca::Config const& specconfig, std::vector<int
       processAttributes->outputBufferSize = confParam.outputBufferSize;
       processAttributes->suppressOutput = (confParam.dump == 2);
       config.configInterface.dumpEvents = confParam.dump;
+      if (confParam.display) {
+#ifdef GPUCA_BUILD_EVENT_DISPLAY
+        processAttributes->displayBackend.reset(new GPUDisplayBackendGlfw);
+        config.configProcessing.eventDisplay = processAttributes->displayBackend.get();
+        LOG(INFO) << "Event display enabled";
+#else
+        throw std::runtime_error("Standalone Event Display not enabled at build time!");
+#endif
+      }
 
       if (config.configEvent.continuousMaxTimeBin == -1) {
         config.configEvent.continuousMaxTimeBin = (o2::raw::HBFUtils::Instance().getNOrbitsPerTF() * o2::constants::lhc::LHCMaxBunches + 2 * constants::LHCBCPERTIMEBIN - 2) / constants::LHCBCPERTIMEBIN;
@@ -256,7 +265,8 @@ DataProcessorSpec getCATrackerSpec(ca::Config const& specconfig, std::vector<int
       const void** tpcZSmetaPointers2[GPUTrackingInOutZS::NSLICES][GPUTrackingInOutZS::NENDPOINTS];
       const unsigned int* tpcZSmetaSizes2[GPUTrackingInOutZS::NSLICES][GPUTrackingInOutZS::NENDPOINTS];
       std::array<gsl::span<const o2::tpc::Digit>, NSectors> inputDigits;
-      std::array<std::unique_ptr<const MCLabelContainer>, NSectors> inputDigitsMC;
+      std::vector<CachedMCLabelContainer> inputDigitsMC;
+      std::array<const MCLabelContainer*, constants::MAXSECTOR> inputDigitsMCPtrs;
       std::array<unsigned int, NEndpoints * NSectors> tpcZSonTheFlySizes;
       gsl::span<const ZeroSuppressedContainer8kb> inputZS;
 
@@ -286,7 +296,8 @@ DataProcessorSpec getCATrackerSpec(ca::Config const& specconfig, std::vector<int
           }
           inputrefs[sector].labels = ref;
           if (specconfig.caClusterer) {
-            inputDigitsMC[sector] = std::move(pc.inputs().get<const MCLabelContainer*>(ref));
+            inputDigitsMC.emplace_back(pc.inputs().get<const MCLabelContainer*>(ref));
+            inputDigitsMCPtrs[sector] = inputDigitsMC.back().get();
           }
           validMcInputs |= sectorMask;
           activeSectors |= sectorHeader->activeSectors;
@@ -482,7 +493,7 @@ DataProcessorSpec getCATrackerSpec(ca::Config const& specconfig, std::vector<int
             continue;
           }
           if (refentry.second.labels.header != nullptr && refentry.second.labels.payload != nullptr) {
-            mcInputs.emplace_back(std::move(pc.inputs().get<const MCLabelContainer*>(refentry.second.labels)));
+            mcInputs.emplace_back(pc.inputs().get<const MCLabelContainer*>(refentry.second.labels));
           }
           inputs.emplace_back(gsl::span(ref.payload, DataRefUtils::getPayloadSize(ref)));
           printInputLog(ref, "received", sector);
@@ -544,7 +555,7 @@ DataProcessorSpec getCATrackerSpec(ca::Config const& specconfig, std::vector<int
           ptrs.tpcZS = &tpcZS;
           if (specconfig.processMC) {
             ptrs.o2Digits = &inputDigits;
-            ptrs.o2DigitsMC = &inputDigitsMC;
+            ptrs.o2DigitsMC = &inputDigitsMCPtrs;
           }
         } else if (specconfig.zsDecoder) {
           ptrs.tpcZS = &tpcZS;
@@ -554,7 +565,7 @@ DataProcessorSpec getCATrackerSpec(ca::Config const& specconfig, std::vector<int
         } else {
           ptrs.o2Digits = &inputDigits;
           if (specconfig.processMC) {
-            ptrs.o2DigitsMC = &inputDigitsMC;
+            ptrs.o2DigitsMC = &inputDigitsMCPtrs;
           }
         }
       } else if (specconfig.decompressTPC) {
@@ -676,9 +687,6 @@ DataProcessorSpec getCATrackerSpec(ca::Config const& specconfig, std::vector<int
       validInputs.reset();
       if (specconfig.processMC) {
         validMcInputs.reset();
-        for (auto& mcInput : mcInputs) {
-          mcInput.reset();
-        }
       }
     };
 

@@ -17,9 +17,7 @@
 #include "clusterFinderDefs.h"
 #include "GPUCommonMath.h"
 
-namespace GPUCA_NAMESPACE
-{
-namespace gpu
+namespace GPUCA_NAMESPACE::gpu
 {
 
 struct CfFragment {
@@ -98,7 +96,6 @@ struct CfFragment {
   }
 };
 
-} // namespace gpu
-} // namespace GPUCA_NAMESPACE
+} // namespace GPUCA_NAMESPACE::gpu
 
 #endif

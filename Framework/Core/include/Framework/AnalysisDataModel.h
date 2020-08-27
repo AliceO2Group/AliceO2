@@ -409,7 +409,7 @@ DECLARE_SOA_COLUMN(TimeC, timeC, float);
 DECLARE_SOA_COLUMN(BCSignal, triggerSignal, uint8_t);
 } // namespace ft0
 
-DECLARE_SOA_TABLE(FT0s, "AOD", "FT0", ft0::BCId,
+DECLARE_SOA_TABLE(FT0s, "AOD", "FT0", o2::soa::Index<>, ft0::BCId,
                   ft0::Amplitude, ft0::TimeA, ft0::TimeC,
                   ft0::BCSignal);
 using FT0 = FT0s::iterator;
@@ -422,7 +422,7 @@ DECLARE_SOA_COLUMN(TimeA, timeA, float);
 DECLARE_SOA_COLUMN(BCSignal, triggerSignal, uint8_t);
 } // namespace fv0
 
-DECLARE_SOA_TABLE(FV0s, "AOD", "FV0", fv0::BCId,
+DECLARE_SOA_TABLE(FV0s, "AOD", "FV0", o2::soa::Index<>, fv0::BCId,
                   fv0::Amplitude, fv0::TimeA, fv0::BCSignal);
 using FV0 = FV0s::iterator;
 
@@ -435,7 +435,7 @@ DECLARE_SOA_COLUMN(TimeC, timeC, float);
 DECLARE_SOA_COLUMN(BCSignal, triggerSignal, uint8_t);
 } // namespace fdd
 
-DECLARE_SOA_TABLE(FDDs, "AOD", "FDD", fdd::BCId,
+DECLARE_SOA_TABLE(FDDs, "AOD", "FDD", o2::soa::Index<>, fdd::BCId,
                   fdd::Amplitude, fdd::TimeA, fdd::TimeC,
                   fdd::BCSignal);
 using FDD = FDDs::iterator;
@@ -482,7 +482,7 @@ DECLARE_SOA_COLUMN(BBFlag, bbFlag, uint64_t);
 DECLARE_SOA_COLUMN(BGFlag, bgFlag, uint64_t);
 } // namespace run2v0
 
-DECLARE_SOA_TABLE(Run2V0s, "AOD", "RUN2V0", run2v0::BCId,
+DECLARE_SOA_TABLE(Run2V0s, "AOD", "RUN2V0", o2::soa::Index<>, run2v0::BCId,
                   run2v0::Adc, run2v0::Time, run2v0::Width,
                   run2v0::MultA, run2v0::MultC,
                   run2v0::TimeA, run2v0::TimeC,
@@ -583,6 +583,27 @@ DECLARE_SOA_COLUMN(LabelMask, labelMask, uint16_t);
 DECLARE_SOA_TABLE(McCollisionLabels, "AOD", "MCCOLLISLABEL",
                   mccollisionlabel::LabelId, mccollisionlabel::LabelMask);
 using McCollisionLabel = McCollisionLabels::iterator;
+
+// --- Matching between collisions and other tables through BC ---
+
+namespace indices
+{
+DECLARE_SOA_INDEX_COLUMN(Collision, collision);
+DECLARE_SOA_INDEX_COLUMN(BC, bc);
+DECLARE_SOA_INDEX_COLUMN(Zdc, zdc);
+DECLARE_SOA_INDEX_COLUMN(FT0, ft0);
+DECLARE_SOA_INDEX_COLUMN(FV0, fv0);
+DECLARE_SOA_INDEX_COLUMN(FDD, fdd);
+DECLARE_SOA_INDEX_COLUMN(Run2V0, run2v0);
+} // namespace indices
+
+#define INDEX_LIST_RUN2 indices::CollisionId, indices::ZdcId, indices::BCId, indices::Run2V0Id
+DECLARE_SOA_INDEX_TABLE(Run2MatchedExclusive, BCs, "MATCHED", INDEX_LIST_RUN2);
+DECLARE_SOA_INDEX_TABLE(Run2MatchedSparse, BCs, "MATCHED", INDEX_LIST_RUN2);
+
+#define INDEX_LIST_RUN3 indices::CollisionId, indices::ZdcId, indices::BCId, indices::FT0Id, indices::FV0Id, indices::FDDId
+DECLARE_SOA_INDEX_TABLE(Run3MatchedExclusive, BCs, "MATCHED", INDEX_LIST_RUN3);
+DECLARE_SOA_INDEX_TABLE(Run3MatchedSparse, BCs, "MATCHED", INDEX_LIST_RUN3);
 
 } // namespace aod
 

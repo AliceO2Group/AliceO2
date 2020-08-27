@@ -28,10 +28,10 @@ struct BTask {
 };
 
 struct CTask {
-  void process(aod::Cascades const& cascades, aod::FullTracks const& tracks)
+  void process(aod::Cascades const& cascades, aod::V0s const& v0s, aod::FullTracks const& tracks)
   {
     for (auto& cascade : cascades) {
-      LOGF(DEBUG, "Cascade (%d, %d)", cascade.bachelor().collisionId(), cascade.collisionId());
+      LOGF(DEBUG, "Cascade %d (%d, %d, %d, %d)", cascade.globalIndex(), cascade.bachelor().collisionId(), cascade.v0().posTrack().collisionId(), cascade.v0().negTrack().collisionId(), cascade.collisionId());
     }
   }
 };
@@ -53,10 +53,11 @@ struct DTask {
 struct ETask {
   void process(aod::Collision const& collision, aod::V0s const& v0s, aod::Cascades const& cascades, aod::FullTracks const& tracks)
   {
-    LOGF(INFO, "Collision %d has %d cascades", collision.globalIndex(), cascades.size());
+    LOGF(INFO, "Collision %d has %d cascades (%d tracks)", collision.globalIndex(), cascades.size(), tracks.size());
 
     for (auto& cascade : cascades) {
-      LOGF(DEBUG, "Collision %d Cascade %d (%d, %d, %d)", collision.globalIndex(), cascade.globalIndex(), cascade.v0().posTrackId(), cascade.v0().negTrackId(), cascade.bachelorId());
+      LOGF(INFO, "Collision %d Cascade %d (%d, %d, %d)", collision.globalIndex(), cascade.globalIndex(), cascade.v0().posTrackId(), cascade.v0().negTrackId(), cascade.bachelorId());
+      LOGF(INFO, "             IDs: %d %d %d", cascade.v0().posTrack().collisionId(), cascade.v0().negTrack().collisionId(), cascade.bachelor().collisionId());
     }
   }
 };

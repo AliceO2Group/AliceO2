@@ -21,7 +21,7 @@ if(ALIGPU_BUILD_TYPE STREQUAL "ALIROOT")
 else()
   if(OPENGL_FOUND
      AND GLFW_FOUND
-     AND (ALIGPU_BUILD_TYPE STREQUAL "O2" OR GLEW_FOUND)
+     AND ((ALIGPU_BUILD_TYPE STREQUAL "O2" AND TARGET AliceO2::DebugGUI) OR GLEW_FOUND)
      AND OPENGL_GLU_FOUND
      AND NOT CMAKE_SYSTEM_NAME STREQUAL "Darwin")
     set(GPUCA_EVENT_DISPLAY ON)
@@ -322,6 +322,7 @@ if(ALIGPU_BUILD_TYPE STREQUAL "ALIROOT")
                       ${CMAKE_SOURCE_DIR}/GPU/Common
                       ${CMAKE_SOURCE_DIR}/GPU/Utils
                       ${CMAKE_SOURCE_DIR}/GPU/GPUTracking
+                      ${CMAKE_SOURCE_DIR}/GPU/GPUTracking/Standalone
                       ${CMAKE_SOURCE_DIR}/GPU/GPUTracking/Base
                       ${CMAKE_SOURCE_DIR}/GPU/GPUTracking/SliceTracker
                       ${CMAKE_SOURCE_DIR}/GPU/GPUTracking/Merger

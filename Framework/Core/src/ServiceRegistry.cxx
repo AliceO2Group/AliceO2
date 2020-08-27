@@ -73,6 +73,8 @@ void ServiceRegistry::declareService(ServiceSpec const& spec, DeviceState& state
 
 void ServiceRegistry::bindService(ServiceSpec const& spec, void* service)
 {
+  static TracyLockableN(std::mutex, bindMutex, "bind mutex");
+  std::scoped_lock<LockableBase(std::mutex)> lock(bindMutex);
   if (spec.preProcessing) {
     mPreProcessingHandles.push_back(ServiceProcessingHandle{spec.preProcessing, service});
   }

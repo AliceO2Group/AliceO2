@@ -15,17 +15,12 @@
 #define GPUITSFITTERKERNELS_H
 
 #include "GPUGeneralKernels.h"
-namespace o2
-{
-namespace its
+namespace o2::its
 {
 struct TrackingFrameInfo;
-}
-} // namespace o2
+} // namespace o2::its
 
-namespace GPUCA_NAMESPACE
-{
-namespace gpu
+namespace GPUCA_NAMESPACE::gpu
 {
 class GPUTPCGMPropagator;
 class GPUITSFitter;
@@ -41,7 +36,6 @@ class GPUITSFitterKernel : public GPUKernelTemplate
  protected:
   GPUd() static bool fitTrack(GPUITSFitter& Fitter, GPUTPCGMPropagator& prop, GPUITSTrack& track, int start, int end, int step);
 };
-} // namespace gpu
-} // namespace GPUCA_NAMESPACE
+} // namespace GPUCA_NAMESPACE::gpu
 
 #endif
