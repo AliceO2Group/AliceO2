@@ -62,10 +62,9 @@ if(ENABLE_CUDA)
       set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} -Werror=cross-execution-space-call")
     endif()
     if(CUDA_COMPUTETARGET)
-      set(
-        CMAKE_CUDA_FLAGS
-        "${CMAKE_CUDA_FLAGS} -gencode arch=compute_${CUDA_COMPUTETARGET},code=sm_${CUDA_COMPUTETARGET}"
-        )
+      set(CMAKE_CUDA_ARCHITECTURES ${CUDA_COMPUTETARGET})
+    else()
+      set(CMAKE_CUDA_ARCHITECTURES OFF)
     endif()
 
     set(CUDA_ENABLED ON)
