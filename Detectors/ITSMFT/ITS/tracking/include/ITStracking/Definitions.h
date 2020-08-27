@@ -29,9 +29,9 @@
 #define CA_DEBUGGER(x) \
   do {                 \
   } while (0)
-#ifndef NDEBUG
-#define NDEBUG 1
-#endif
+// #ifndef NDEBUG
+// #define NDEBUG 1
+// #endif
 #endif
 
 #if defined(CUDA_ENABLED)
