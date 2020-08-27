@@ -22,7 +22,6 @@ using namespace o2::itsmft;
 DigiParams::DigiParams()
 {
   // make sure the defaults are consistent
-  setROFrameLength(mROFrameLength);
   setNSimSteps(mNSimSteps);
 }
 
