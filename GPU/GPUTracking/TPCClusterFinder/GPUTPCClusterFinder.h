@@ -42,6 +42,7 @@ class Digit;
 namespace GPUCA_NAMESPACE::gpu
 {
 struct GPUTPCClusterMCInterim;
+struct TPCCFCalibration;
 
 struct ChargePos;
 
