@@ -47,6 +47,7 @@ struct TPCCFCalibration {
   TPCCFCalibration(const o2::tpc::CalDet<float>&);
 #endif
 
+  // Deal with pad gain correction from here on
   GPUdi() void setGainCorrection(int sector, tpccf::Row row, tpccf::Pad pad, float c)
   {
     mGainCorrection[sector].set(globalPad(row, pad), c);
