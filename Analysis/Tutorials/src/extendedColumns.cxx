@@ -15,8 +15,8 @@ namespace o2::aod
 {
 namespace extension
 {
-DECLARE_SOA_DYNAMIC_COLUMN(P2, p2, [](float p) { return p * p; });
-} // namespace etaphi
+DECLARE_SOA_EXPRESSION_COLUMN(P2, p2, float, track::p* track::p);
+} // namespace extension
 } // namespace o2::aod
 
 using namespace o2;
@@ -25,8 +25,8 @@ using namespace o2::framework;
 struct ATask {
   void process(aod::Collision const&, aod::Tracks const& tracks)
   {
-    auto table_with_extra_dynamic_columns = soa::Attach<aod::Tracks, aod::extension::P2<aod::track::P>>(tracks);
-    for (auto& row : table_with_extra_dynamic_columns) {
+    auto table_extension = soa::Extend<aod::Tracks, aod::extension::P2>(tracks);
+    for (auto& row : table_extension) {
       if (row.trackType() != 3) {
         LOGF(info, "P^2 = %.3f", row.p2());
       }
@@ -38,5 +38,5 @@ WorkflowSpec defineDataProcessing(ConfigContext const&)
 {
   // create and use table
   return WorkflowSpec{
-    adaptAnalysisTask<ATask>("attach-showcase")};
+    adaptAnalysisTask<ATask>("extend-showcase")};
 }
