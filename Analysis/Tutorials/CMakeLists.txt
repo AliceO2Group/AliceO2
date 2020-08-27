@@ -111,6 +111,11 @@ o2_add_dpl_workflow(weak-decay-iteration
                   SOURCES src/weakDecayIteration.cxx
                   COMPONENT_NAME AnalysisTutorial)
 
+o2_add_dpl_workflow(extended-columns
+                  SOURCES src/extendedColumns.cxx
+                  PUBLIC_LINK_LIBRARIES O2::Framework
+                  COMPONENT_NAME AnalysisTutorial)
+
 o2_add_dpl_workflow(zdc-vzero-iteration
                   SOURCES src/ZDCVZeroIteration.cxx
                   COMPONENT_NAME AnalysisTutorial)
