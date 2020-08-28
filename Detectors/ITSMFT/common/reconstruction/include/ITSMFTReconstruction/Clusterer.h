@@ -132,7 +132,7 @@ class Clusterer
     void streamCluster(const std::vector<PixelData>& pixbuf, uint16_t rowMin, uint16_t rowSpanW, uint16_t colMin, uint16_t colSpanW,
                        uint16_t chipID,
                        CompClusCont* compClusPtr, PatternCont* patternsPtr,
-                       MCTruth* labelsClusPtr, int nlab);
+                       MCTruth* labelsClusPtr, int nlab, bool isHuge = false);
 
     void fetchMCLabels(int digID, const MCTruth* labelsDig, int& nfilled);
     void initChip(const ChipPixelData* curChipData, uint32_t first);
