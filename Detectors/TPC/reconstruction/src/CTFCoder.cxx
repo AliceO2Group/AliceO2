@@ -13,6 +13,7 @@
 /// \brief class for entropy encoding/decoding of TPC compressed clusters data
 
 #include "TPCReconstruction/CTFCoder.h"
+#include <fmt/format.h>
 
 using namespace o2::tpc;
 
@@ -99,6 +100,8 @@ void CTFCoder::createCoders(const std::string& dictPath, o2::ctf::CTFCoderBase::
     throw std::runtime_error("Failed to create CTF dictionaty");
   }
   const auto* ctf = CTF::get(buff.data());
+  mCombineColumns = ctf->getHeader().flags & CTFHeader::CombinedColumns;
+  LOG(INFO) << "TPC CTF Columns Combining " << (mCombineColumns ? "ON" : "OFF");
 
   auto getFreq = [ctf](CTF::Slots slot) -> o2::rans::FrequencyTable {
     o2::rans::FrequencyTable ft;
@@ -114,30 +117,69 @@ void CTFCoder::createCoders(const std::string& dictPath, o2::ctf::CTFCoderBase::
   CompressedClusters cc; // just to get member types
 #define MAKECODER(part, slot) createCoder<std::remove_pointer<decltype(part)>::type>(op, getFreq(slot), getProbBits(slot), int(slot))
   // clang-format off
-  MAKECODER(cc.qTotA,             CTF::BLCqTotA);
+  if (mCombineColumns) {
+    MAKECODER( (MPTR<CTF::NBitsQTot, CTF::NBitsQMax>()),             CTF::BLCqTotA); //  merged qTotA and qMaxA
+  }
+  else {
+    MAKECODER(cc.qTotA,           CTF::BLCqTotA);
+  }
   MAKECODER(cc.qMaxA,             CTF::BLCqMaxA);
   MAKECODER(cc.flagsA,            CTF::BLCflagsA);
-  MAKECODER(cc.rowDiffA,          CTF::BLCrowDiffA);
+  if (mCombineColumns) {
+    MAKECODER( (MPTR<CTF::NBitsRowDiff, CTF::NBitsSliceLegDiff>()),  CTF::BLCrowDiffA); // merged rowDiffA and sliceLegDiffA
+  }
+  else {
+    MAKECODER(cc.rowDiffA,        CTF::BLCrowDiffA);
+  }
   MAKECODER(cc.sliceLegDiffA,     CTF::BLCsliceLegDiffA);
   MAKECODER(cc.padResA,           CTF::BLCpadResA);
   MAKECODER(cc.timeResA,          CTF::BLCtimeResA);
-  MAKECODER(cc.sigmaPadA,         CTF::BLCsigmaPadA);
-  MAKECODER(cc.sigmaTimeA,        CTF::BLCsigmaTimeA);
+  if (mCombineColumns) {
+    MAKECODER( (MPTR<CTF::NBitsSigmaPad, CTF::NBitsSigmaTime>()),    CTF::BLCsigmaPadA); // merged sigmaPadA and sigmaTimeA
+  }
+  else {
+    MAKECODER(cc.sigmaPadA,       CTF::BLCsigmaPadA);
+  }
+  MAKECODER(cc.sigmaTimeA,        CTF::BLCsigmaTimeA);  
   MAKECODER(cc.qPtA,              CTF::BLCqPtA);
   MAKECODER(cc.rowA,              CTF::BLCrowA);
   MAKECODER(cc.sliceA,            CTF::BLCsliceA);
   MAKECODER(cc.timeA,             CTF::BLCtimeA);
   MAKECODER(cc.padA,              CTF::BLCpadA);
-  MAKECODER(cc.qTotU,             CTF::BLCqTotU);
+  if (mCombineColumns) {
+    MAKECODER( (MPTR<CTF::NBitsQTot, CTF::NBitsQMax>()),             CTF::BLCqTotU); // merged qTotU and qMaxU
+  }
+  else {
+    MAKECODER(cc.qTotU,           CTF::BLCqTotU);
+  }
   MAKECODER(cc.qMaxU,             CTF::BLCqMaxU);
   MAKECODER(cc.flagsU,            CTF::BLCflagsU);
   MAKECODER(cc.padDiffU,          CTF::BLCpadDiffU);
   MAKECODER(cc.timeDiffU,         CTF::BLCtimeDiffU);
-  MAKECODER(cc.sigmaPadU,         CTF::BLCsigmaPadU);
+  if (mCombineColumns) {
+    MAKECODER( (MPTR<CTF::NBitsSigmaPad, CTF::NBitsSigmaTime>()),    CTF::BLCsigmaPadU); // merged sigmaPadA and sigmaTimeA
+  }
+  else {
+    MAKECODER(cc.sigmaPadU,       CTF::BLCsigmaPadU);
+  }
   MAKECODER(cc.sigmaTimeU,        CTF::BLCsigmaTimeU);
   MAKECODER(cc.nTrackClusters,    CTF::BLCnTrackClusters);
   MAKECODER(cc.nSliceRowClusters, CTF::BLCnSliceRowClusters);
   // clang-format on
+}
+
+/// make sure loaded dictionaries (if any) are consistent with data
+void CTFCoder::checkDataDictionaryConsistency(const CTFHeader& h)
+{
+  if (mCoders[0]) { // if external dictionary is provided (it will set , make sure its columns combining option is the same as
+    if (mCombineColumns != (h.flags & CTFHeader::CombinedColumns)) {
+      throw std::runtime_error(fmt::format("Mismatch in columns combining mode, Dictionary:{:s} CTFHeader:{:s}",
+                                           mCombineColumns ? "ON" : "OFF", (h.flags & CTFHeader::CombinedColumns) ? "ON" : "OFF"));
+    }
+  } else {
+    setCombineColumns(h.flags & CTFHeader::CombinedColumns);
+    LOG(INFO) << "CTF with stored dictionaries, columns combining " << (mCombineColumns ? "ON" : "OFF");
+  }
 }
 
 ///________________________________
