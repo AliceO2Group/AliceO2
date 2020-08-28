@@ -164,8 +164,6 @@ int GPUCATracking::runTracking(GPUO2InterfaceIOPtrs* data, GPUInterfaceOutputs* 
     std::sort(trackSort.data() + tmp2, trackSort.data() + tmp,
               [](const auto& a, const auto& b) { return (a.second > b.second); });
     tmp2 = tmp;
-    if (cside == 0)
-      mNTracksASide = tmp;
   }
   nTracks = tmp;
   outputTracks->resize(nTracks);
