@@ -87,3 +87,8 @@ o2_add_dpl_workflow(weak-decay-indices
                     SOURCES weakDecayIndices.cxx
                     PUBLIC_LINK_LIBRARIES O2::Framework O2::DetectorsBase O2::AnalysisDataModel
                     COMPONENT_NAME Analysis)
+
+o2_add_dpl_workflow(emcal-correction-task
+                    SOURCES emcalCorrectionTask.cxx
+                    PUBLIC_LINK_LIBRARIES O2::Framework O2::AnalysisDataModel O2::AnalysisCore O2::DetectorsBase O2::EMCALBase O2::EMCALReconstruction
+                    COMPONENT_NAME Analysis)
