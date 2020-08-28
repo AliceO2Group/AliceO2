@@ -18,19 +18,18 @@
 #include <TH2F.h>
 #include <cmath>
 
-const double ketaBinWidth=0.1;
-
 using namespace o2;
 using namespace o2::framework;
 using namespace o2::framework::expressions;
 
 struct PseudorapidityDensity {
 
+  Configurable<double> etaBinWidth{"etaBinWidth", 0.1, "eta bin width"};
   Configurable<float> etaMax{"etaMax", 1.5, "max eta value"};
   Configurable<float> etaMin{"etaMin", -1.5, "min eta value"};
   Configurable<float> vtxZMax{"vtxZMax", 10, "max z vertex"};
   Configurable<float> vtxZMin{"vtxZMin", -10, "min z vertex"};
-  int etaBins = TMath::Nint((etaMax-etaMin)/ketaBinWidth);
+  int etaBins = TMath::Nint((etaMax-etaMin)/etaBinWidth);
   int vtxZBins = TMath::Nint(vtxZMax-vtxZMin);
 
   OutputObj<TH1F> hStat{TH1F("hStat", "TotalEvents", 1, 0.5, 1.5)};
