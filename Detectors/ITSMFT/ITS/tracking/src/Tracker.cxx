@@ -421,8 +421,7 @@ void Tracker::traverseCellsTree(const int currentCellId, const int currentLayerI
 
   mPrimaryVertexContext->getRoads().back().addCell(currentLayerId, currentCellId);
 
-  if (currentLayerId > 0) {
-
+  if (currentLayerId > 0 && currentCellLevel > 1) {
     const int cellNeighboursNum{static_cast<int>(
       mPrimaryVertexContext->getCellsNeighbours()[currentLayerId - 1][currentCellId].size())};
     bool isFirstValidNeighbour = true;
