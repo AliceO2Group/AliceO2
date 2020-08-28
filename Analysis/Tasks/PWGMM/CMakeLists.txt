@@ -10,5 +10,5 @@
 
 o2_add_dpl_workflow(dNdetaRun2Tracklets-analysis
                     SOURCES dNdetaRun2Tracklets.cxx
-                    PUBLIC_LINK_LIBRARIES O2::Framework O2::AnalysisDataModel O2::AnalysisCore O2::DetectorsBase
+                    PUBLIC_LINK_LIBRARIES O2::Framework O2::AnalysisCore O2::AnalysisDataModel
                     COMPONENT_NAME Analysis)

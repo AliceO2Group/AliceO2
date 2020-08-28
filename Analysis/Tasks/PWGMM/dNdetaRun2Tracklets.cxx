@@ -25,10 +25,11 @@ using namespace o2::framework;
 using namespace o2::framework::expressions;
 
 struct PseudorapidityDensity {
-  float etaMax = 1.5;
-  float etaMin = -1.5;
-  float vtxZMax = 10;
-  float vtxZMin = -10;
+
+  Configurable<float> etaMax{"etaMax", 1.5, "max eta value"};
+  Configurable<float> etaMin{"etaMin", -1.5, "min eta value"};
+  Configurable<float> vtxZMax{"vtxZMax", 10, "max z vertex"};
+  Configurable<float> vtxZMin{"vtxZMin", -10, "min z vertex"};
   int etaBins = TMath::Nint((etaMax-etaMin)/ketaBinWidth);
   int vtxZBins = TMath::Nint(vtxZMax-vtxZMin);
 
@@ -37,17 +38,18 @@ struct PseudorapidityDensity {
   OutputObj<TH2F> vtxZEta{TH2F("vtxZEta", ";#eta;vtxZ", 50, -2.5, 2.5, 60, -30, 30)};
   OutputObj<TH2F> phiEta{TH2F("phiEta", ";#eta;#varphi", 50, -2.5, 2.5, 200, 0. , 2*TMath::Pi())};
 
-
- Filter etaFilter = (aod::track::eta < etaMax) && (aod::track::eta > etaMin);
+ // TODO remove static casts for configurables when fixed
+ Filter etaFilter = (aod::track::eta < (float)etaMax) && (aod::track::eta > (float)etaMin);
  Filter trackTypeFilter = (aod::track::trackType == static_cast<uint8_t>(aod::track::TrackTypeEnum::Run2Tracklet));
- Filter posZFilter = (aod::collision::posZ < vtxZMax) && (aod::collision::posZ > vtxZMin);
-
-  void process(soa::Filtered<soa::Join<aod::Collisions, aod::EvSels>>::iterator const& collisions, soa::Filtered<aod::Tracks> const& tracklets)
+ Filter posZFilter = (aod::collision::posZ < (float)vtxZMax) && (aod::collision::posZ > (float)vtxZMin);
+ 
+ void process(soa::Filtered<soa::Join<aod::Collisions, aod::EvSels>>::iterator const& collisions, soa::Filtered<aod::Tracks> const& tracklets)
   {
+    // TODO change to sel7 filter expression when implemented
     if (!collisions.sel7())
       return;
     hStat->Fill(collisions.size());
-    float vtxZ = collisions.posZ();
+    auto vtxZ = collisions.posZ();
     for (auto& track : tracklets) {
         vtxZEta->Fill(track.eta(), vtxZ);
         phiEta->Fill(track.eta(), track.phi());
