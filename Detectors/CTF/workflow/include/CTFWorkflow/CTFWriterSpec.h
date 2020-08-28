@@ -74,6 +74,7 @@ class CTFWriterSpec : public o2::framework::Task
   // The metadata of the block (min,max) will be used for the consistency check at the decoding
   std::array<std::vector<FTrans>, DetID::nDetectors> mFreqsAccumulation;
   std::array<std::vector<o2::ctf::Metadata>, DetID::nDetectors> mFreqsMetaData;
+  std::array<std::shared_ptr<void>, DetID::nDetectors> mHeaders;
 
   TStopwatch mTimer;
 };
@@ -96,6 +97,9 @@ void CTFWriterSpec::processDet(o2::framework::ProcessingContext& pc, DetID det, 
     if (!mFreqsAccumulation[det].size()) {
       mFreqsAccumulation[det].resize(C::getNBlocks());
       mFreqsMetaData[det].resize(C::getNBlocks());
+    }
+    if (!mHeaders[det]) { // store 1st header
+      mHeaders[det] = ctfImage.cloneHeader();
     }
     for (int ib = 0; ib < C::getNBlocks(); ib++) {
       const auto& bl = ctfImage.getBlock(ib);
@@ -120,6 +124,8 @@ void CTFWriterSpec::storeDictionary(DetID det, CTFHeader& header)
   prepareDictionaryTreeAndFile(det);
   // create vector whose data contains dictionary in CTF format (EncodedBlock)
   auto dictBlocks = C::createDictionaryBlocks(mFreqsAccumulation[det], mFreqsMetaData[det]);
+  auto& h = C::get(dictBlocks.data())->getHeader();
+  h = *reinterpret_cast<typename std::remove_reference<decltype(h)>::type*>(mHeaders[det].get());
   C::get(dictBlocks.data())->print(o2::utils::concat_string("Storing dictionary for ", det.getName(), ": "));
   C::get(dictBlocks.data())->appendToTree(*mDictTreeOut.get(), det.getName()); // cast to EncodedBlock
   //  mFreqsAccumulation[det].clear();
