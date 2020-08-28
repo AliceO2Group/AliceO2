@@ -59,7 +59,6 @@ class GPUCATracking
   int runTracking(o2::gpu::GPUO2InterfaceIOPtrs* data, o2::gpu::GPUInterfaceOutputs* outputs = nullptr);
 
   float getPseudoVDrift();                                              //Return artificial VDrift used to convert time to Z
-  int getNTracksASide() { return mNTracksASide; }
   void GetClusterErrors2(int row, float z, float sinPhi, float DzDs, short clusterState, float& ErrY2, float& ErrZ2) const;
 
   int registerMemoryForGPU(const void* ptr, size_t size);
@@ -71,7 +70,6 @@ class GPUCATracking
                                                                       //The GPUCATracking class interfaces this library via this pointer to GPUTPCO2Interface class.
 
   static constexpr float sTrackMCMaxFake = 0.1;
-  int mNTracksASide = 0;
 };
 
 } // namespace tpc
