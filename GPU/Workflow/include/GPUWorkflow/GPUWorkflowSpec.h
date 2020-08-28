@@ -27,6 +27,7 @@
 #include <string>
 #include <array>
 #include <vector>
+#include <mutex>
 
 class TStopwatch;
 namespace o2
@@ -138,7 +139,7 @@ class GPURecoWorkflowSpec : public o2::framework::Task
   /// storing the new calib objects by overwritting the old calibs
   void cleanOldCalibsTPCPtrs();
 
-  void doCalibUpdates(o2::framework::ProcessingContext& pc);
+  void doCalibUpdates(o2::framework::ProcessingContext& pc, unsigned int threadIndex);
 
   void doTrackTuneTPC(GPUTrackingInOutPointers& ptrs, char* buffout);
 
@@ -175,6 +176,7 @@ class GPURecoWorkflowSpec : public o2::framework::Task
   std::vector<int> mTPCSectors;
   std::unique_ptr<o2::its::Tracker> mITSTracker;
   std::unique_ptr<o2::its::Vertexer> mITSVertexer;
+  std::mutex mMutexDecodeInput;
   o2::its::TimeFrame* mITSTimeFrame = nullptr;
   const o2::itsmft::TopologyDictionary* mITSDict = nullptr;
   const o2::dataformats::MeanVertexObject* mMeanVertex;
