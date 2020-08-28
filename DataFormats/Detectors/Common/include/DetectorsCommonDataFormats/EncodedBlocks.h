@@ -255,6 +255,7 @@ struct Block {
     setNDict(_ndict);
     setNData(_ndata);
     setNLiterals(_nliterals);
+    getCreatePayload(); // do this even for empty block!!!
     if (getNStored()) {
       payload = reinterpret_cast<W*>(registry->getFreeBlockStart());
       if (getNDict()) {
@@ -291,6 +292,7 @@ class EncodedBlocks
   void setHeader(const H& h) { mHeader = h; }
   const H& getHeader() const { return mHeader; }
   H& getHeader() { return mHeader; }
+  std::shared_ptr<H> cloneHeader() const { return std::shared_ptr<H>(new H(mHeader)); } // for dictionary creation
 
   const auto& getMetadata() const { return mMetadata; }
 
@@ -472,6 +474,7 @@ void EncodedBlocks<H, N, W>::appendToTree(TTree& tree, const std::string& name) 
     int compression = mMetadata[i].opt == Metadata::OptStore::ROOTCompression ? 1 : 0;
     fillTreeBranch(tree, o2::utils::concat_string(name, "_block.", std::to_string(i), "."), const_cast<Block<W>&>(mBlocks[i]), compression);
   }
+  tree.SetEntries(tree.GetEntries() + 1);
 }
 
 ///_____________________________________________________________________________
