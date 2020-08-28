@@ -123,7 +123,7 @@ SymbolStatistics::SymbolStatistics(const Source_IT begin, const Source_IT end, i
   t.start();
 
   if (begin == end) {
-    LOG(warning) << "Passed empty message to " << __func__;
+    LOG(debug) << "Passed empty message to " << __func__; // RS this is ok for empty columns
     return;
   }
 
