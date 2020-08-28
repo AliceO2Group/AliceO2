@@ -989,6 +989,13 @@ struct AnalysisDataProcessorBuilder {
       };
       groupingTable.bindExternalIndices(&std::get<std::decay_t<Associated>>(associatedTables)...);
 
+      // always pre-bind full tables to support index hierarchy
+      std::apply(
+        [&](auto&&... x) {
+          (binder(x), ...);
+        },
+        associatedTables);
+
       if constexpr (soa::is_soa_iterator_t<std::decay_t<G>>::value) {
         // grouping case
         auto slicer = GroupSlicer(groupingTable, associatedTables);
@@ -1012,12 +1019,6 @@ struct AnalysisDataProcessorBuilder {
         }
       } else {
         // non-grouping case
-
-        std::apply(
-          [&](auto&&... x) {
-            (binder(x), ...);
-          },
-          associatedTables);
 
         // bind partitions and grouping table
         std::apply([&groupingTable](auto&... x) {
