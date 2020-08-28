@@ -28,6 +28,7 @@ namespace tpc
 
 void EntropyEncoderSpec::init(o2::framework::InitContext& ic)
 {
+  mCTFCoder.setCombineColumns(!ic.options().get<bool>("no-ctf-columns-combining"));
   std::string dictPath = ic.options().get<std::string>("tpc-ctf-dictionary");
   if (!dictPath.empty() && dictPath != "none") {
     mCTFCoder.createCoders(dictPath, o2::ctf::CTFCoderBase::OpType::Encoder);
@@ -81,7 +82,8 @@ DataProcessorSpec getEntropyEncoderSpec(bool inputFromFile)
     Inputs{{"input", "TPC", inputType, 0, Lifetime::Timeframe}},
     Outputs{{"TPC", "CTFDATA", 0, Lifetime::Timeframe}},
     AlgorithmSpec{adaptFromTask<EntropyEncoderSpec>(inputFromFile)},
-    Options{{"tpc-ctf-dictionary", VariantType::String, "ctf_dictionary.root", {"File of CTF encoding dictionary"}}}};
+    Options{{"tpc-ctf-dictionary", VariantType::String, "ctf_dictionary.root", {"File of CTF encoding dictionary"}},
+            {"no-ctf-columns-combining", VariantType::Bool, false, {"Do not combine correlated columns in CTF"}}}};
 }
 
 } // namespace tpc
