@@ -72,8 +72,21 @@
 #include "ITSBase/GeometryTGeo.h"
 #include "CommonUtils/VerbosityConfig.h"
 #include "CommonUtils/DebugStreamer.h"
+#include "GPUReconstructionConvert.h"
+#include "DetectorsRaw/RDHUtils.h"
+#include "ITStracking/Tracker.h"
+#include "ITStracking/Vertexer.h"
+// #include "Framework/ThreadPool.h"
+
+#include <TStopwatch.h>
+#include <TObjArray.h>
+#include <TH1F.h>
+#include <TH2F.h>
+#include <TH1D.h>
+#include <TGraphAsymmErrors.h>
+
 #include <filesystem>
-#include <memory> // for make_shared
+#include <memory>
 #include <vector>
 #include <iomanip>
 #include <stdexcept>
@@ -82,16 +95,6 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <chrono>
-#include "GPUReconstructionConvert.h"
-#include "DetectorsRaw/RDHUtils.h"
-#include <TStopwatch.h>
-#include <TObjArray.h>
-#include <TH1F.h>
-#include <TH2F.h>
-#include <TH1D.h>
-#include <TGraphAsymmErrors.h>
-#include "ITStracking/Tracker.h"
-#include "ITStracking/Vertexer.h"
 
 using namespace o2::framework;
 using namespace o2::header;
@@ -223,6 +226,9 @@ void GPURecoWorkflowSpec::init(InitContext& ic)
       LOG(fatal) << "Deprecated configurable param options GPU_global.transformationFile or transformationSCFile used\n"
                  << "Instead, link the corresponding file as <somedir>/TPC/Calib/CorrectionMap/snapshot.root and use it via\n"
                  << "--condition-remap file://<somdir>=TPC/Calib/CorrectionMap option";
+    }
+    if (config.configProcessing.doublePipeline && ic.services().get<ThreadPool>().poolSize != 2) {
+      throw std::runtime_error("double pipeline requires exactly 2 threads");
     }
 
     // initialize TPC calib objects
@@ -471,11 +477,6 @@ void GPURecoWorkflowSpec::run(ProcessingContext& pc)
   mTimer->Start(false);
   mNTFs++;
 
-  GRPGeomHelper::instance().checkUpdates(pc);
-  if (GRPGeomHelper::instance().getGRPECS()->isDetReadOut(o2::detectors::DetID::TPC) && mConfParam->tpcTriggeredMode ^ !GRPGeomHelper::instance().getGRPECS()->isDetContinuousReadOut(o2::detectors::DetID::TPC)) {
-    LOG(fatal) << "configKeyValue tpcTriggeredMode does not match GRP isDetContinuousReadOut(TPC) setting";
-  }
-
   std::vector<gsl::span<const char>> inputs;
 
   const o2::tpc::CompressedClustersFlat* pCompClustersFlat = nullptr;
@@ -502,6 +503,15 @@ void GPURecoWorkflowSpec::run(ProcessingContext& pc)
   }
   if (!mSpecConfig.decompressTPC && mSpecConfig.caClusterer && ((!mSpecConfig.zsOnTheFly || mSpecConfig.processMC) && !mSpecConfig.zsDecoder)) {
     getWorkflowTPCInput_digits = true;
+  }
+
+  auto lockDecodeInput = std::make_unique<std::lock_guard<std::mutex>>(mMutexDecodeInput);
+  // int threadIndex = pc.services().get<ThreadPool>().threadIndex;
+  int threadIndex = 0;
+
+  GRPGeomHelper::instance().checkUpdates(pc);
+  if (GRPGeomHelper::instance().getGRPECS()->isDetReadOut(o2::detectors::DetID::TPC) && mConfParam->tpcTriggeredMode ^ !GRPGeomHelper::instance().getGRPECS()->isDetContinuousReadOut(o2::detectors::DetID::TPC)) {
+    LOG(fatal) << "configKeyValue tpcTriggeredMode does not match GRP isDetContinuousReadOut(TPC) setting";
   }
 
   processInputs(pc, tpcZSmetaPointers, tpcZSmetaPointers2, tpcZSmetaSizes, tpcZSmetaSizes2, inputZS, tpcZS, tpcZSonTheFlySizes, debugTFDump, compClustersDummy, compClustersFlatDummy, pCompClustersFlat, tmpEmptyCompClusters); // Process non-digit / non-cluster inputs
@@ -686,7 +696,9 @@ void GPURecoWorkflowSpec::run(ProcessingContext& pc)
 
   const auto& holdData = o2::tpc::TPCTrackingDigitsPreCheck::runPrecheck(&ptrs, mConfig.get());
 
-  doCalibUpdates(pc);
+  doCalibUpdates(pc, threadIndex);
+
+  lockDecodeInput.reset();
 
   if (mConfParam->dump) {
     if (mNTFs == 1) {
@@ -702,7 +714,7 @@ void GPURecoWorkflowSpec::run(ProcessingContext& pc)
 
   int retVal = 0;
   if (mConfParam->dump < 2) {
-    retVal = mTracker->RunTracking(&ptrs, &outputRegions);
+    retVal = mTracker->RunTracking(&ptrs, &outputRegions, threadIndex);
     if (retVal != 0) {
       debugTFDump = true;
     }
@@ -712,13 +724,10 @@ void GPURecoWorkflowSpec::run(ProcessingContext& pc)
     }
   }
 
-  // flushing debug output to file
-  o2::utils::DebugStreamer::instance()->flush();
-
-  // setting TPC calibration objects
-  cleanOldCalibsTPCPtrs();
-
-  mTracker->Clear(false);
+  o2::utils::DebugStreamer::instance()->flush(); // flushing debug output to file
+  cleanOldCalibsTPCPtrs();                       // setting TPC calibration objects
+  // if (!mTrackingCAO2Interface->getConfig().configInterface.outputToExternalBuffers) // TODO: Why was this needed for double-pipeline?
+  mTracker->Clear(false, threadIndex); // clean non-output memory used by GPU Reconstruction
 
   if (debugTFDump && mNDebugDumps < mConfParam->dumpBadTFs) {
     mNDebugDumps++;
@@ -889,7 +898,7 @@ void GPURecoWorkflowSpec::run(ProcessingContext& pc)
   LOG(info) << "GPU Reoncstruction time for this TF " << mTimer->CpuTime() - cput << " s (cpu), " << mTimer->RealTime() - realt << " s (wall)";
 }
 
-void GPURecoWorkflowSpec::doCalibUpdates(o2::framework::ProcessingContext& pc)
+void GPURecoWorkflowSpec::doCalibUpdates(o2::framework::ProcessingContext& pc, unsigned int threadIndex)
 {
   GPUCalibObjectsConst newCalibObjects;
   GPUNewCalibValues newCalibValues;
@@ -947,7 +956,7 @@ void GPURecoWorkflowSpec::doCalibUpdates(o2::framework::ProcessingContext& pc)
   }
   if (needCalibUpdate) {
     LOG(info) << "Updating GPUReconstruction calibration objects";
-    mTracker->UpdateCalibration(newCalibObjects, newCalibValues);
+    mTracker->UpdateCalibration(newCalibObjects, newCalibValues, threadIndex);
   }
 }
 
