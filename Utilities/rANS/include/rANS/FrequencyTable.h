@@ -108,7 +108,7 @@ void FrequencyTable::addSamples(Source_IT begin, Source_IT end, value_t min, val
   t.start();
 
   if (begin == end) {
-    LOG(warning) << "Passed empty message to " << __func__;
+    LOG(debug) << "Passed empty message to " << __func__;  // RS this is ok for empty columns
     return;
   }
 
@@ -145,7 +145,7 @@ void FrequencyTable::addFrequencies(Freq_IT begin, Freq_IT end, value_t min, val
   t.start();
 
   if (begin == end) {
-    LOG(warning) << "Passed empty FrequencyTable to " << __func__;
+    LOG(debug) << "Passed empty FrequencyTable to " << __func__;  // RS this is ok for empty columns
     return;
   }
 
