@@ -120,7 +120,7 @@ class RawWriter
   FileFor_t mFileFor = FileFor_t::kFullDet;                      ///< Granularity of the output files
   o2::emcal::Geometry* mGeometry = nullptr;                      ///< EMCAL geometry
   std::string mOutputLocation;                                   ///< Rawfile name
-  std::array<o2::emcal::Mapper, 4> mMappers;                     ///< EMCAL mappers
+  std::unique_ptr<o2::emcal::MappingHandler> mMappingHandler;    ///< Mapping handler
   gsl::span<o2::emcal::Digit> mDigits;                           ///< Digits input vector - must be in digitized format including the time response
   gsl::span<o2::emcal::TriggerRecord> mTriggers;                 ///< Trigger records, separating the data from different triggers
   std::vector<SRUDigitContainer> mSRUdata;                       ///< Internal helper of digits assigned to SRUs
