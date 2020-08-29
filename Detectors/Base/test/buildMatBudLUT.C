@@ -15,9 +15,11 @@
 #include "DetectorsBase/MatLayerCylSet.h"
 #include "DetectorsBase/MatLayerCyl.h"
 #include "DetectorsBase/GeometryManager.h"
+#include "ITSMFTReconstruction/ChipMappingITS.h"
 #include "DetectorsCommonDataFormats/NameConf.h"
 #include <TFile.h>
 #include <TSystem.h>
+#include <TStopwatch.h>
 #endif
 
 #ifndef GPUCA_ALIGPUCODE // this part is unvisible on GPU version
@@ -60,16 +62,22 @@ bool buildMatBudLUT(int nTst, int maxLr, std::string outName, std::string outFil
   }
   for (int i = 0; i < maxLr; i++) {
     auto& l = lrData[i];
+    printf("L:%3d %6.2f<R<%6.2f ZH=%5.1f | dz = %6.2f drph = %6.2f\n", i, l.rMin, l.rMax, l.zHalf, l.dZMin, l.dRPhiMin);
     mbLUT.addLayer(l.rMin, l.rMax, l.zHalf, l.dZMin, l.dRPhiMin);
   }
 
+  TStopwatch sw;
   mbLUT.populateFromTGeo(nTst);
   mbLUT.optimizePhiSlices(); // move to populateFromTGeo
   mbLUT.flatten();           // move to populateFromTGeo
 
   mbLUT.writeToFile(outFile, outName);
-
+  sw.Stop();
+  sw.Print();
+  sw.Start(false);
   mbLUT.dumpToTree("matbudTree.root");
+  sw.Stop();
+  sw.Print();
   return true;
 }
 
@@ -172,18 +180,23 @@ bool testMBLUT(std::string lutName, std::string lutFile)
 //_______________________________________________________________________
 void configLayers()
 {
+  const int NSect = 18;
+
   const float kToler = 1e-3;
   float drStep = 0.f, zSpanH = 0.f, zBin = 0.f, rphiBin = 0.f, phiBin = 0.f;
+
+  o2::itsmft::ChipMappingITS mp;
+  int nStave = 0;
 
   //                           rMin    rMax   zHalf
   lrData.emplace_back(LrData(0.0f, 1.8f, 30.f));
 
   // beam pipe
-  lrData.emplace_back(LrData(lrData.back().rMax, 1.9f, 30.f));
+  lrData.emplace_back(LrData(lrData.back().rMax, 2.0f, 30.f));
 
   // ITS Inner Barrel
   drStep = 0.1;
-  zSpanH = 17.;
+  zSpanH = 20.;
   rphiBin = 0.2; // 0.1;
   zBin = 0.5;
   do {
@@ -191,63 +204,139 @@ void configLayers()
   } while (lrData.back().rMax < 5.2 + kToler);
 
   // air space between Inner and Middle Barrels
-  lrData.emplace_back(LrData(lrData.back().rMax, 18.0, zSpanH));
+  zSpanH = 40.;
+  zBin = 5.;
+  rphiBin = 2.;
+  lrData.emplace_back(LrData(lrData.back().rMax, 19.0, zSpanH, zBin, rphiBin));
 
+  //===================================================================================
   // ITS Middle Barrel
-  drStep = 0.2;
-  zSpanH = 50.;
-  rphiBin = 0.5;
+  nStave = mp.getNStavesOnLr(3); // Lr 3
+  zSpanH = 55.;
   zBin = 0.5;
+  drStep = 0.2;
   do {
+    auto rmean = lrData.back().rMax + drStep / 2;
+    rphiBin = rmean * TMath::Pi() * 2 / (nStave * 10);
+    lrData.emplace_back(LrData(lrData.back().rMax, lrData.back().rMax + drStep, zSpanH, zBin, rphiBin));
+  } while (lrData.back().rMax < 20.5 + kToler);
+
+  drStep = 0.5;
+  do {
+    auto rmean = lrData.back().rMax + drStep / 2;
+    rphiBin = rmean * TMath::Pi() * 2 / (nStave * 10);
+    lrData.emplace_back(LrData(lrData.back().rMax, lrData.back().rMax + drStep, zSpanH, zBin, rphiBin));
+  } while (lrData.back().rMax < 24. + kToler);
+
+  nStave = mp.getNStavesOnLr(3); // Lr 4
+  drStep = 0.2;
+  do {
+    auto rmean = lrData.back().rMax + drStep / 2;
+    rphiBin = rmean * TMath::Pi() * 2 / (nStave * 10);
+    lrData.emplace_back(LrData(lrData.back().rMax, lrData.back().rMax + drStep, zSpanH, zBin, rphiBin));
+  } while (lrData.back().rMax < 25.6 + kToler);
+  drStep = 0.5;
+  do {
+    auto rmean = lrData.back().rMax + drStep / 2;
+    rphiBin = rmean * TMath::Pi() * 2 / (nStave * 10);
     lrData.emplace_back(LrData(lrData.back().rMax, lrData.back().rMax + drStep, zSpanH, zBin, rphiBin));
   } while (lrData.back().rMax < 29. + kToler);
+
+  //===================================================================================
 
   // air space between Middle and Outer Barrels
   zSpanH = 80.f;
   lrData.emplace_back(LrData(lrData.back().rMax, 33.5, zSpanH));
 
+  //===================================================================================
   // ITS Outer barrel
-  drStep = 0.5;
+  nStave = mp.getNStavesOnLr(5); // Lr 5
+  drStep = 0.25;
   zSpanH = 80.;
-  rphiBin = 1.;
   zBin = 1.;
   do {
+    auto rmean = lrData.back().rMax + drStep / 2;
+    rphiBin = rmean * TMath::Pi() * 2 / (nStave * 10);
     lrData.emplace_back(LrData(lrData.back().rMax, lrData.back().rMax + drStep, zSpanH, zBin, rphiBin));
-  } while (lrData.back().rMax < 45.5 + kToler);
+  } while (lrData.back().rMax < 36. + kToler);
 
-  // air space between Outer Barrel and shell
+  drStep = 1.;
+  do {
+    auto rmean = lrData.back().rMax + drStep / 2;
+    rphiBin = rmean * TMath::Pi() * 2 / (nStave * 10);
+    lrData.emplace_back(LrData(lrData.back().rMax, lrData.back().rMax + drStep, zSpanH, zBin, rphiBin));
+  } while (lrData.back().rMax < 38.5 + kToler);
+
+  nStave = mp.getNStavesOnLr(6); // Lr 6
+  drStep = 0.25;
+  do {
+    auto rmean = lrData.back().rMax + drStep / 2;
+    rphiBin = rmean * TMath::Pi() * 2 / (nStave * 10);
+    lrData.emplace_back(LrData(lrData.back().rMax, lrData.back().rMax + drStep, zSpanH, zBin, rphiBin));
+  } while (lrData.back().rMax < 41. + kToler);
+
+  drStep = 1.;
+  do {
+    auto rmean = lrData.back().rMax + drStep / 2;
+    rphiBin = rmean * TMath::Pi() * 2 / (nStave * 10);
+    lrData.emplace_back(LrData(lrData.back().rMax, lrData.back().rMax + drStep, zSpanH, zBin, rphiBin));
+  } while (lrData.back().rMax < 44. + kToler);
+
+  //===================================================================================
+
   zSpanH = 100.f;
-  lrData.emplace_back(LrData(lrData.back().rMax, 59.5, zSpanH));
+  zBin = 5.;
+  lrData.emplace_back(LrData(lrData.back().rMax, 47., zSpanH, zBin));
 
-  // Shell
-  drStep = 0.5;
-  zSpanH = 100.;
-  rphiBin = 1.;
-  zBin = 1.;
+  drStep = 2.;
+  zBin = 5.;
+  rphiBin = 2.;
   do {
     lrData.emplace_back(LrData(lrData.back().rMax, lrData.back().rMax + drStep, zSpanH, zBin, rphiBin));
-  } while (lrData.back().rMax < 63. + kToler);
+  } while (lrData.back().rMax < 53. + kToler);
 
-  // air space between Shell and TPC
+  zSpanH = 120.f;
+  lrData.emplace_back(LrData(lrData.back().rMax, 56.5, zSpanH));
+
+  zSpanH = 150.f;
+  drStep = 4.;
+  zBin = 15.;
+  rphiBin = 10;
+  do {
+    lrData.emplace_back(LrData(lrData.back().rMax, lrData.back().rMax + drStep, zSpanH, zBin, rphiBin));
+  } while (lrData.back().rMax < 68.5 + kToler);
+
   zSpanH = 250.f;
-  lrData.emplace_back(LrData(lrData.back().rMax, 76, zSpanH));
-
+  zBin = 25.;
+  rphiBin = 5;
+  {
+    auto rmean = (lrData.back().rMax + 76) / 2.;
+    rphiBin = rmean * TMath::Pi() * 2 / (NSect * 2);
+    lrData.emplace_back(LrData(lrData.back().rMax, 76, zSpanH, zBin, rphiBin));
+  }
   // TPC inner vessel
   // up to r = 78.5
   zSpanH = 250.f;
-  rphiBin = 1.;
   zBin = 25.;
-  lrData.emplace_back(LrData(lrData.back().rMax, 78.5, zSpanH, zBin, rphiBin));
-
+  {
+    auto rmean = (lrData.back().rMax + 78.5) / 2;
+    rphiBin = rmean * TMath::Pi() * 2 / (NSect * 12);
+    lrData.emplace_back(LrData(lrData.back().rMax, 78.5, zSpanH, zBin, rphiBin));
+  }
   //
   zSpanH = 250.f;
-  rphiBin = 2.;
   zBin = 2;
-  lrData.emplace_back(LrData(lrData.back().rMax, 84.5, zSpanH, zBin, rphiBin));
+  {
+    auto rmean = (lrData.back().rMax + 78.5) / 2;
+    rphiBin = rmean * TMath::Pi() * 2 / (NSect * 12);
+    lrData.emplace_back(LrData(lrData.back().rMax, 84.5, zSpanH, zBin, rphiBin));
+  }
 
   // TPC drum
   zSpanH = 250.f;
   lrData.emplace_back(LrData(lrData.back().rMax, 250.0, zSpanH));
+
+  //===============================
 
   // TPC outer vessel
   zSpanH = 247.f; // ignore large lumps of material at |z|>247
@@ -260,13 +349,38 @@ void configLayers()
   zBin = 999.; // no segmentation in Z
   lrData.emplace_back(LrData(lrData.back().rMax, 280., zSpanH, zBin, rphiBin));
 
+  // TRD
+
+  zSpanH = 360.;
   drStep = 1;
-  zBin = 5;
+  zBin = 10;
+  do {
+    auto rmean = lrData.back().rMax + drStep / 2;
+    rphiBin = rmean * TMath::Pi() * 2 / (NSect * 12);
+    lrData.emplace_back(LrData(lrData.back().rMax, lrData.back().rMax + drStep, zSpanH, zBin, rphiBin));
+  } while (lrData.back().rMax < 370);
+
+  // TOF
+  zSpanH = 380.;
+  drStep = 1;
+  zBin = 10;
+  rphiBin = 5.;
+  do {
+    auto rmean = lrData.back().rMax + drStep / 2;
+    rphiBin = rmean * TMath::Pi() * 2 / (NSect * 12);
+    lrData.emplace_back(LrData(lrData.back().rMax, lrData.back().rMax + drStep, zSpanH, zBin, rphiBin));
+  } while (lrData.back().rMax < 400);
+
+  // rest
+  drStep = 1;
+  zBin = 10;
   rphiBin = 5.;
   do {
     zSpanH = lrData.back().rMax;
+    auto rmean = lrData.back().rMax + drStep / 2;
+    rphiBin = rmean * TMath::Pi() * 2 / (NSect * 12);
     lrData.emplace_back(LrData(lrData.back().rMax, lrData.back().rMax + drStep, zSpanH, zBin, rphiBin));
-  } while (lrData.back().rMax < 400);
+  } while (lrData.back().rMax < 500);
 }
 
 #endif //!_COMPILED_ON_GPU_
