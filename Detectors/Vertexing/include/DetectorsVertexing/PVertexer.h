@@ -28,6 +28,7 @@
 #include "DataFormatsFT0/RecPoints.h"
 #include "DetectorsVertexing/PVertexerHelpers.h"
 #include "DetectorsVertexing/PVertexerParams.h"
+#include "FT0Reconstruction/InteractionTag.h"
 #include "gsl/span"
 
 namespace o2
@@ -85,8 +86,8 @@ class PVertexer
 
   float estimateScale2()
   {
-    float minrange = std::min(mParams->zHistoBinSize, mParams->minZSeedRange);
-    auto sc = mParams->zHistoBinSize * mParams->zHistoBinSize * mTukey2I / (mStatZErr.getMean() * mStatZErr.getMean());
+    float minrange = std::min(mPVParams->zHistoBinSize, mPVParams->minZSeedRange);
+    auto sc = mPVParams->zHistoBinSize * mPVParams->zHistoBinSize * mTukey2I / (mStatZErr.getMean() * mStatZErr.getMean());
     return sc;
   }
 
@@ -104,10 +105,6 @@ class PVertexer
   void clusterizeTimeBruteForce(float margin = 0.1, float cut = 25);
   void clusterizeTime(float binSize = 0.1, float maxTDist = 0.6);
   int findVertices(const VertexingInput& input, std::vector<PVertex>& vertices, std::vector<int>& vertexTrackIDs, std::vector<V2TRef>& v2tRefs);
-  float getTimeMSFromTFStart(const o2::InteractionRecord& bc) const
-  {
-    return bc.differenceInBC(mStartIR) * 1e-3 * o2::constants::lhc::LHCBunchSpacingNS + mParams->timeBiasMS;
-  }
   int getBestFT0Trigger(const PVertex& vtx, gsl::span<const o2::ft0::RecPoints> ft0Data, int& currEntry) const;
 
   o2d::VertexBase mMeanVertex{{0., 0., 0.}, {0.1 * 0.1, 0., 0.1 * 0.1, 0., 0., 6. * 6.}};
@@ -124,7 +121,8 @@ class PVertexer
   o2::InteractionRecord mStartIR{0, 0}; ///< IR corresponding to the start of the TF
 
   ///========== Parameters to be set externally, e.g. from CCDB ====================
-  const PVertexerParams* mParams = nullptr;
+  const PVertexerParams* mPVParams = nullptr;
+  const o2::ft0::InteractionTag* mFT0Params = nullptr;
   float mTukey2I = 0;                        ///< 1./[Tukey parameter]^2
   static constexpr float kDefTukey = 5.0f;   ///< def.value for tukey constant
   static constexpr float kHugeF = 1.e12;     ///< very large float
@@ -149,9 +147,9 @@ inline void PVertexer::applyConstraint(VertexSeed& vtxSeed) const
 inline bool PVertexer::upscaleSigma(VertexSeed& vtxSeed) const
 {
   // scale upward the scaleSigma2 if needes
-  if (vtxSeed.scaleSigma2 < mParams->maxScale2) {
-    auto s = vtxSeed.scaleSigma2 * mParams->upscaleFactor;
-    vtxSeed.setScale(s > mParams->maxScale2 ? mParams->maxScale2 : s, mTukey2I);
+  if (vtxSeed.scaleSigma2 < mPVParams->maxScale2) {
+    auto s = vtxSeed.scaleSigma2 * mPVParams->upscaleFactor;
+    vtxSeed.setScale(s > mPVParams->maxScale2 ? mPVParams->maxScale2 : s, mTukey2I);
     return true;
   }
   return false;
