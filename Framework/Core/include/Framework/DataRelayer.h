@@ -102,6 +102,10 @@ class DataRelayer
   void sendContextState();
   void publishMetrics();
 
+  /// Get timeslice associated to a given slot.
+  /// Notice how this avoids exposing the timesliceIndex directly
+  /// so that we can mutex on it.
+  TimesliceId getTimesliceForSlot(TimesliceSlot slot);
   /// Remove all pending messages
   void clear();
 

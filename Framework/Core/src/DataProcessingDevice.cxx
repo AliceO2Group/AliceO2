@@ -766,8 +766,9 @@ bool DataProcessingDevice::tryDispatchComputation(DataProcessorContext& context,
   // create messages) because the messages need to have the timeslice id into
   // it.
   auto prepareAllocatorForCurrentTimeSlice = [& timingInfo = context.timingInfo,
-                                              &timesliceIndex = context.registry->get<TimesliceIndex>()](TimesliceSlot i) {
-    auto timeslice = timesliceIndex.getTimesliceForSlot(i);
+                                              &relayer = context.relayer](TimesliceSlot i) {
+    ZoneScopedN("DataProcessingDevice::prepareForCurrentTimeslice");
+    auto timeslice = relayer->getTimesliceForSlot(i);
     timingInfo->timeslice = timeslice.value;
   };
 
