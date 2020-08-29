@@ -49,7 +49,7 @@ if(BUILD_SIMULATION)
     MatBudLUT
     SOURCES test/testMatBudLUT.cxx
     COMPONENT_NAME DetectorsBase
-    PUBLIC_LINK_LIBRARIES O2::DetectorsBase
+    PUBLIC_LINK_LIBRARIES O2::DetectorsBase O2::ITSMFTReconstruction
     LABELS detectorsbase
     ENVIRONMENT O2_ROOT=${CMAKE_BINARY_DIR}/stage
                 VMCWORKDIR=${CMAKE_BINARY_DIR}/stage/${CMAKE_INSTALL_DATADIR})
