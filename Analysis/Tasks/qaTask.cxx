@@ -53,9 +53,9 @@ struct QATrackingResolution {
     LOGF(info, "vtx-z (data) = %f | vtx-z (MC) = %f", collision.posZ(), collision.label().posZ());
     for (auto& track : tracks) {
       ptDiff->Fill(track.label().pt() - track.pt());
-      ptRes->Fill((track.label().pt() - track.pt())/track.pt());
-      ptResvspt->Fill(track.pt(), abs(track.label().pt() - track.pt())/track.pt());
-      ptResvseta->Fill(track.eta(), abs(track.label().pt() - track.pt())/track.pt());
+      ptRes->Fill((track.label().pt() - track.pt()) / track.pt());
+      ptResvspt->Fill(track.pt(), abs(track.label().pt() - track.pt()) / track.pt());
+      ptResvseta->Fill(track.eta(), abs(track.label().pt() - track.pt()) / track.pt());
       etaDiff->Fill(track.label().eta() - track.eta());
 
       auto delta = track.label().phi() - track.phi();
