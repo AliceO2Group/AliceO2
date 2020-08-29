@@ -72,6 +72,12 @@ DataRelayer::DataRelayer(const CompletionPolicy& policy,
   }
 }
 
+TimesliceId DataRelayer::getTimesliceForSlot(TimesliceSlot slot)
+{
+  std::scoped_lock<LockableBase(std::recursive_mutex)> lock(mMutex);
+  return mTimesliceIndex.getTimesliceForSlot(slot);
+}
+
 DataRelayer::ActivityStats DataRelayer::processDanglingInputs(std::vector<ExpirationHandler> const& expirationHandlers,
                                                               ServiceRegistry& services)
 {
