@@ -10,8 +10,9 @@
 
 o2_add_library(FT0Reconstruction
   SOURCES src/CollisionTimeRecoTask.cxx 
-  SOURCES src/ReadRaw.cxx
-  src/CTFCoder.cxx
+          src/ReadRaw.cxx
+          src/CTFCoder.cxx
+          src/InteractionTag.cxx
   
   PUBLIC_LINK_LIBRARIES O2::SimulationDataFormat O2::Framework
   O2::FT0Base
@@ -24,6 +25,7 @@ o2_add_library(FT0Reconstruction
 o2_target_root_dictionary(  
   FT0Reconstruction
   HEADERS include/FT0Reconstruction/CollisionTimeRecoTask.h
-  HEADERS include/FT0Reconstruction/ReadRaw.h
-  include/FT0Reconstruction/CTFCoder.h
+          include/FT0Reconstruction/ReadRaw.h
+          include/FT0Reconstruction/CTFCoder.h
+          include/FT0Reconstruction/InteractionTag.h
   )

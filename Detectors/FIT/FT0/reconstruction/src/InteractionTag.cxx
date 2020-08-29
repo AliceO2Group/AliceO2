@@ -8,15 +8,10 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#ifdef __CLING__
+/// \file PVertexerParams.cxx
+/// \brief Configurable params for primary vertexer
+/// \author ruben.shahoyan@cern.ch
 
-#pragma link off all globals;
-#pragma link off all classes;
-#pragma link off all functions;
+#include "FT0Reconstruction/InteractionTag.h"
 
-#pragma link C++ class o2::ft0::CollisionTimeRecoTask + ;
-#pragma link C++ class o2::ft0::ReadRaw + ;
-#pragma link C++ class o2::ft0::CTFCoder + ;
-#pragma link C++ class o2::ft0::InteractionTag + ;
-
-#endif
+O2ParamImpl(o2::ft0::InteractionTag);

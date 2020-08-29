@@ -21,7 +21,7 @@ namespace o2
 namespace vertexing
 {
 
-// There are configurable params for Primary Vertexer
+// These are configurable params for Primary Vertexer
 struct PVertexerParams : public o2::conf::ConfigurableParamHelper<PVertexerParams> {
   static constexpr float kDefTukey = 5.0f; ///< def.value for tukey constant
 
@@ -39,8 +39,6 @@ struct PVertexerParams : public o2::conf::ConfigurableParamHelper<PVertexerParam
   // validation with FT0
   bool requireFT0ValidTimeMean = false; //true;///< require both FT0A/C
   int minNContributorsForFT0cut = 4;    ///< do not apply FT0 cut to vertice below FT0 efficiency threshold
-  int minFT0AmplitudeAC = 20;           ///< use only FT0 triggers with high enough aplitude
-  float timeBiasMS = 0.0;               ///< relative bias in ms between TPC/ITS time and IR
   float maxTError = 0.2;                ///< use min of vertex time error or this for nsigma evaluation
   float minTError = 0.003;              ///< don't use error smaller than that (~BC/2/minNContributorsForFT0cut)
   float nSigmaFT0cut = 4.;              ///< eliminate vertex if there is no FT0 signal within this cut
