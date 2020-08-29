@@ -40,6 +40,7 @@
 #include "DataFormatsITSMFT/ROFRecord.h"
 #include "DataFormatsITS/TrackITS.h"
 #include "DataFormatsFT0/RecPoints.h"
+#include "FT0Reconstruction/InteractionTag.h"
 #include "DataFormatsTPC/ClusterNativeHelper.h"
 #include "ITSReconstruction/RecoGeomHelper.h"
 #include "TPCFastTransform.h"
@@ -121,15 +122,28 @@ struct TrackLocITS : public o2::track::TrackParCov {
 };
 
 ///< record TPC or ITS track associated with single ITS or TPC track and reference on
-///< the next (worse chi2) matchRecord of the same TPC or ITS track
-struct matchRecord {
+///< the next (worse chi2) MatchRecord of the same TPC or ITS track
+struct MatchRecord {
   float chi2 = -1.f;        ///< matching chi2
   int partnerID = MinusOne; ///< id of parnter track entry in mTPCWork or mITSWork containers
   int nextRecID = MinusOne; ///< index of eventual next record
+  int matchedIC = MinusOne; ///< index of eventually matched InteractionCandidate
+  MatchRecord(int partID, float chi2match, int nxt = MinusOne, int candIC = MinusOne) : partnerID(partID), chi2(chi2match), nextRecID(nxt), matchedIC(candIC) {}
+  MatchRecord() = default;
 
-  matchRecord(int partID, float chi2match) : partnerID(partID), chi2(chi2match) {}
-  matchRecord(int partID, float chi2match, int nxt) : partnerID(partID), chi2(chi2match), nextRecID(nxt) {}
-  matchRecord() = default;
+  bool isBetter(float otherChi2, int otherIC = MinusOne) const
+  { // prefer record with matched IC candidate, otherwise, better chi2
+    if (otherIC == MinusOne) {
+      return matchedIC == MinusOne ? chi2 < otherChi2 : true;
+    } else {
+      return matchedIC == MinusOne ? false : chi2 < otherChi2;
+    }
+  }
+
+  bool isBetter(const MatchRecord& other) const
+  {
+    return isBetter(other.chi2, other.matchedIC);
+  }
 };
 
 ///< Link of the AfterBurner track: update at sertain cluster
@@ -313,6 +327,9 @@ class MatchTPCITS
   void setITSTriggered(bool v) { mITSTriggered = v; }
   bool isITSTriggered() const { return mITSTriggered; }
 
+  void setUseFT0(bool v) { mUseFT0 = v; }
+  bool getUseFT0() const { return mUseFT0; }
+
   ///< set ITS ROFrame duration in microseconds
   void setITSROFrameLengthMUS(float fums) { mITSROFrameLengthMUS = fums; }
   ///< set ITS ROFrame duration in BC (continuous mode only)
@@ -447,6 +464,8 @@ class MatchTPCITS
 #endif
 
  private:
+  void updateTPCTimeDependentParams();
+
   int findLaddersToCheckBOn(int ilr, int lad0, const o2::utils::CircleXY& circle, float errYFrac,
                             std::array<int, MaxLadderCand>& lad2Check) const;
   int findLaddersToCheckBOff(int ilr, int lad0, const o2::utils::IntervalXY& trcLinPar, float errYFrac,
@@ -486,8 +505,8 @@ class MatchTPCITS
   void addLastTrackCloneForNeighbourSector(int sector);
 
   ///------------------- manipulations with matches records ----------------------
-  bool registerMatchRecordTPC(int iITS, int iTPC, float chi2);
-  void registerMatchRecordITS(int iITS, int iTPC, float chi2);
+  bool registerMatchRecordTPC(int iITS, int iTPC, float chi2, int candIC = MinusOne);
+  void registerMatchRecordITS(int iITS, int iTPC, float chi2, int candIC = MinusOne);
   void suppressMatchRecordITS(int iITS, int iTPC);
 
   ///< get number of matching records for TPC track
@@ -510,10 +529,16 @@ class MatchTPCITS
   ///< convert ITS ROFrame to TPC time bin units // TOREMOVE
   float itsROFrame2TPCTimeBin(int rof) const { return rof * mITSROFrame2TPCBin; }
 
+  ///< convert time in microseconds to TPC time bin units
+  float time2TPCTimeBin(float tms) const
+  {
+    return tms * mTPCTBinMUSInv;
+  }
+
   ///< convert Interaction Record for TPC time bin units
   float intRecord2TPCTimeBin(const o2::InteractionRecord& bc) const
   {
-    return bc.differenceInBC(mStartIR) * o2::constants::lhc::LHCBunchSpacingNS / 1000 / mTPCTBinMUS;
+    return time2TPCTimeBin(bc.differenceInBC(mStartIR) * o2::constants::lhc::LHCBunchSpacingNS * 1e-3);
   }
 
   ///< convert Z interval to TPC time-bins
@@ -527,6 +552,21 @@ class MatchTPCITS
   {
     return delta > toler ? rejFlag : (delta < -toler ? -rejFlag : Accept);
   }
+
+  ///< correct TPC time0 (int TPC time-bins)
+  float getTPCTrackCorrectedTimeBin(const o2::tpc::TrackTPC& trc, float delta) const
+  {
+    float timeTB = trc.getTime0();
+    if (trc.hasASideClustersOnly()) {
+      timeTB += delta;
+    } else if (trc.hasCSideClustersOnly()) {
+      timeTB -= delta;
+    } else {
+      // TODO : special treatment of tracks crossing the CE
+    }
+    return timeTB;
+  }
+
   //================================================================
 
   bool mInitDone = false; ///< flag init already done
@@ -537,10 +577,12 @@ class MatchTPCITS
 
   ///========== Parameters to be set externally, e.g. from CCDB ====================
   const Params* mParams = nullptr;
+  const o2::ft0::InteractionTag* mFT0Params = nullptr;
 
   MatCorrType mUseMatCorrFlag = MatCorrType::USEMatCorrTGeo;
 
   bool mITSTriggered = false; ///< ITS readout is triggered
+  bool mUseFT0 = false;       ///< FT0 information is available
 
   ///< do we use track Z difference to reject fake matches? makes sense for triggered mode only
   bool mCompareTracksDZ = false;
@@ -556,6 +598,7 @@ class MatchTPCITS
   float mTPCVDrift0 = -1.;          ///< TPC nominal drift speed in cm/microseconds
   float mTPCVDrift0Inv = -1.;       ///< inverse TPC nominal drift speed in cm/microseconds
   float mTPCTBinMUS = 0.;           ///< TPC time bin duration in microseconds
+  float mTPCTBinMUSInv = 0.;        ///< inverse TPC time bin duration in microseconds
   float mITSROFrame2TPCBin = 0.;    ///< conversion coeff from ITS ROFrame units to TPC time-bin
   float mTPCBin2ITSROFrame = 0.;    ///< conversion coeff from TPC time-bin to ITS ROFrame units
   float mZ2TPCBin = 0.;             ///< conversion coeff from Z to TPC time-bin
@@ -588,11 +631,12 @@ class MatchTPCITS
   /// <<<-----
 
   std::vector<InteractionCandidate> mInteractions; ///< possible interaction times
+  std::vector<o2::dataformats::RangeRefComp<8>> mITSROFIntCandEntries; ///< entries of InteractionCandidate vector for every ITS ROF bin
 
   ///< container for record the match of TPC track to single ITS track
-  std::vector<matchRecord> mMatchRecordsTPC;
-  ///< container for reference to matchRecord involving particular ITS track
-  std::vector<matchRecord> mMatchRecordsITS;
+  std::vector<MatchRecord> mMatchRecordsTPC;
+  ///< container for reference to MatchRecord involving particular ITS track
+  std::vector<MatchRecord> mMatchRecordsITS;
 
   std::vector<int> mITSROFofTPCBin;         ///< aux structure for mapping of TPC time-bins on ITS ROFs
   std::vector<BracketF> mITSROFTimes;       ///< min/max times of ITS ROFs in TPC time-bins
@@ -692,7 +736,7 @@ inline void MatchTPCITS::removeTPCfromITS(int tpcID, int itsID)
   if (isValidatedITS(tITS)) {
     return;
   }
-  int topID = MinusOne, next = tITS.matchID; // ITS matchRecord
+  int topID = MinusOne, next = tITS.matchID; // ITS MatchRecord
   while (next > MinusOne) {
     auto& rcITS = mMatchRecordsITS[next];
     if (rcITS.partnerID == tpcID) {

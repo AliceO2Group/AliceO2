@@ -25,7 +25,12 @@ namespace globaltracking
 
 // There are configurable params for TPC-ITS matching
 struct MatchITSTPCParams : public o2::conf::ConfigurableParamHelper<MatchITSTPCParams> {
-  bool runAfterBurner = false;
+  enum ValidateMatchByFIT { Disable,
+                            Prefer,
+                            Require }; // flags for usage of FT0 in match validation
+
+  bool runAfterBurner = false;                    ///< run afterburner for TPCtrack-ITScluster matching
+  ValidateMatchByFIT validateMatchByFIT = Prefer; ///< when comparing ITS-TPC matches, prefer those which have time of Interaction Candidate
   float crudeAbsDiffCut[o2::track::kNParams] = {2.f, 2.f, 0.2f, 0.2f, 4.f};
   float crudeNSigma2Cut[o2::track::kNParams] = {49.f, 49.f, 49.f, 49.f, 49.f};
 
@@ -40,13 +45,15 @@ struct MatchITSTPCParams : public o2::conf::ConfigurableParamHelper<MatchITSTPCP
 
   int maxMatchCandidates = 5; ///< max allowed matching candidates per TPC track
 
-  int ABRequireToReachLayer = 5; ///< AB tracks should reach at least this layer from above
+  int requireToReachLayerAB = 5; ///< AB tracks should reach at least this layer from above
 
-  float TPCITSTimeBinSafeMargin = 1.f; ///< safety margin (in TPC time bins) for ITS-TPC tracks time (in TPC time bins!) comparison
+  float safeMarginTPCITSTimeBin = 1.f; ///< safety margin (in TPC time bins) for ITS-TPC tracks time (in TPC time bins!) comparison
 
-  float TPCTimeEdgeZSafeMargin = 20.f; ///< safety margin in cm when estimating TPC track tMin and tMax from assigned time0 and its track Z position
+  float safeMarginTPCTimeEdge = 20.f; ///< safety margin in cm when estimating TPC track tMin and tMax from assigned time0 and its track Z position
 
-  float TimeBinTolerance = 10.f; ///<tolerance in time-bin for ITS-TPC time bracket matching (not used ? TODO)
+  float timeBinTolerance = 10.f; ///<tolerance in time-bin for ITS-TPC time bracket matching (not used ? TODO)
+
+  float tpcTimeICMatchingNSigma = 4.; ///< nsigma for matching TPC corrected time and InteractionCandidate from FT0
 
   o2::base::Propagator::MatCorrType matCorr = o2::base::Propagator::MatCorrType::USEMatCorrLUT; /// Material correction type
 

@@ -27,7 +27,7 @@ namespace o2
 namespace globaltracking
 {
 
-framework::WorkflowSpec getMatchTPCITSWorkflow(bool useMC, bool disableRootInp, bool disableRootOut)
+framework::WorkflowSpec getMatchTPCITSWorkflow(bool useFT0, bool useMC, bool disableRootInp, bool disableRootOut)
 {
   framework::WorkflowSpec specs;
 
@@ -53,11 +53,11 @@ framework::WorkflowSpec getMatchTPCITSWorkflow(bool useMC, bool disableRootInp, 
                                                    tpcClusLanes},
                                                  useMC));
 
-    if (o2::globaltracking::MatchITSTPCParams::Instance().runAfterBurner) {
+    if (useFT0) {
       specs.emplace_back(o2::ft0::getRecPointReaderSpec(useMC));
     }
   }
-  specs.emplace_back(o2::globaltracking::getTPCITSMatchingSpec(useMC, tpcClusLanes));
+  specs.emplace_back(o2::globaltracking::getTPCITSMatchingSpec(useFT0, useMC, tpcClusLanes));
 
   if (!disableRootOut) {
     specs.emplace_back(o2::globaltracking::getTrackWriterTPCITSSpec(useMC));

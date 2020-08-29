@@ -62,6 +62,7 @@ void TPCITSMatchingDPL::init(InitContext& ic)
     mMatching.setITSROFrameLengthInBC(alpParams.roFrameLengthInBC); // ITS ROFrame duration in \mus
   }
   mMatching.setMCTruthOn(mUseMC);
+  mMatching.setUseFT0(mUseFT0);
   //
   std::string dictPath = ic.options().get<std::string>("its-dictionary-path");
   std::string dictFile = o2::base::NameConf::getDictionaryFileName(o2::detectors::DetID::ITS, dictPath, ".bin");
@@ -238,7 +239,7 @@ void TPCITSMatchingDPL::run(ProcessingContext& pc)
     mMatching.setTPCTrkLabelsInp(lblTPCPtr);
   }
 
-  if (o2::globaltracking::MatchITSTPCParams::Instance().runAfterBurner) {
+  if (mUseFT0) {
     // Note: the particular variable will go out of scope, but the span is passed by copy to the
     // worker and the underlying memory is valid throughout the whole computation
     auto fitInfo = pc.inputs().get<gsl::span<o2::ft0::RecPoints>>("fitInfo");
@@ -269,7 +270,7 @@ void TPCITSMatchingDPL::endOfStream(EndOfStreamContext& ec)
        mTimer.CpuTime(), mTimer.RealTime(), mTimer.Counter() - 1);
 }
 
-DataProcessorSpec getTPCITSMatchingSpec(bool useMC, const std::vector<int>& tpcClusLanes)
+DataProcessorSpec getTPCITSMatchingSpec(bool useFT0, bool useMC, const std::vector<int>& tpcClusLanes)
 {
 
   std::vector<InputSpec> inputs;
@@ -285,7 +286,7 @@ DataProcessorSpec getTPCITSMatchingSpec(bool useMC, const std::vector<int>& tpcC
 
   inputs.emplace_back("clusTPC", ConcreteDataTypeMatcher{"TPC", "CLUSTERNATIVE"}, Lifetime::Timeframe);
 
-  if (o2::globaltracking::MatchITSTPCParams::Instance().runAfterBurner) {
+  if (useFT0) {
     inputs.emplace_back("fitInfo", "FT0", "RECPOINTS", 0, Lifetime::Timeframe);
   }
 
@@ -304,7 +305,7 @@ DataProcessorSpec getTPCITSMatchingSpec(bool useMC, const std::vector<int>& tpcC
     "itstpc-track-matcher",
     inputs,
     outputs,
-    AlgorithmSpec{adaptFromTask<TPCITSMatchingDPL>(useMC)},
+    AlgorithmSpec{adaptFromTask<TPCITSMatchingDPL>(useFT0, useMC)},
     Options{
       {"its-dictionary-path", VariantType::String, "", {"Path of the cluster-topology dictionary file"}},
       {"material-lut-path", VariantType::String, "", {"Path of the material LUT file"}}}};
