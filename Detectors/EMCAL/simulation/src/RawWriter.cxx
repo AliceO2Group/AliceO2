@@ -56,12 +56,8 @@ void RawWriter::init()
     mRawWriter->registerLink(iddl, crorc, link, 0, rawfilename.data());
   }
   // initialize mappers
-  std::array<char, 4> sides = {{'A', 'C'}};
-  for (auto iside = 0; iside < sides.size(); iside++) {
-    for (auto isru = 0; isru < 20; isru++) {
-      mMappers[iside * 2 + isru].setMapping(Form("%s/share/Detectors/EMC/file/RCU%d%c.data", gSystem->Getenv("O2_ROOT"), isru, sides[iside]));
-    }
-  }
+  if (!mMappingHandler)
+    mMappingHandler = std::make_unique<o2::emcal::MappingHandler>();
 
   // initialize containers for SRU
   for (auto isru = 0; isru < 40; isru++) {
@@ -116,7 +112,7 @@ bool RawWriter::processNextTrigger()
 
     for (const auto& [tower, channel] : srucont.mChannels) {
       // Find out hardware address of the channel
-      auto hwaddress = mMappers[srucont.mSRUid].getHardwareAddress(channel.mRow, channel.mCol, ChannelType_t::HIGH_GAIN); // @TODO distinguish between high- and low-gain cells
+      auto hwaddress = mMappingHandler->getMappingForDDL(srucont.mSRUid).getHardwareAddress(channel.mRow, channel.mCol, ChannelType_t::HIGH_GAIN); // @TODO distinguish between high- and low-gain cells
 
       std::vector<int> rawbunches;
       for (auto& bunch : findBunches(channel.mDigits)) {
