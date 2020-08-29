@@ -11,12 +11,14 @@
 #include <memory>
 #include <string>
 #include <vector>
+#include "Framework/Logger.h"
 
 #include <boost/program_options.hpp>
 
 #include <TFile.h>
 #include <TTree.h>
 #include <TTreeReader.h>
+#include <TSystem.h>
 
 #include "CommonUtils/ConfigurableParam.h"
 #include "CommonUtils/StringUtils.h"
@@ -42,7 +44,7 @@ int main(int argc, const char** argv)
     auto add_option = opt_general.add_options();
     add_option("help,h", "Print this help message");
     add_option("verbose,v", bpo::value<uint32_t>()->default_value(0), "Select verbosity level [0 = no output]");
-    add_option("input-file,i", bpo::value<std::string>()->required(), "Specifies digit input file.");
+    add_option("input-file,i", bpo::value<std::string>()->default_value("emcaldigits.root"), "Specifies digit input file.");
     add_option("file-for,f", bpo::value<std::string>()->default_value("all"), "single file per: all,subdet,link");
     add_option("output-dir,o", bpo::value<std::string>()->default_value("./"), "output directory for raw data");
     add_option("debug,d", bpo::value<uint32_t>()->default_value(0), "Select debug output level [0 = no debug output]");
@@ -71,6 +73,15 @@ int main(int argc, const char** argv)
   auto digitfilename = vm["input-file"].as<std::string>(),
        outputdir = vm["output-dir"].as<std::string>(),
        filefor = vm["file-for"].as<std::string>();
+
+  // if needed, create output directory
+  if (gSystem->AccessPathName(outputdir.c_str())) {
+    if (gSystem->mkdir(outputdir.c_str(), kTRUE)) {
+      LOG(FATAL) << "could not create output directory " << outputdir;
+    } else {
+      LOG(INFO) << "created output directory " << outputdir;
+    }
+  }
 
   std::unique_ptr<TFile> digitfile(TFile::Open(digitfilename.data(), "READ"));
   auto treereader = std::make_unique<TTreeReader>(static_cast<TTree*>(digitfile->Get("o2sim")));
