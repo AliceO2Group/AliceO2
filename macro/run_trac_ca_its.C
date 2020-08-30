@@ -165,7 +165,7 @@ void run_trac_ca_its(std::string path = "./",
   std::vector<o2::itsmft::ROFRecord> vertROFvec, *vertROFvecPtr = &vertROFvec;
   std::vector<Vertex> vertices, *verticesPtr = &vertices;
 
-  MCLabCont trackLabels, *trackLabelsPtr = &trackLabels;
+  std::vector<o2::MCCompLabel> trackLabels, *trackLabelsPtr = &trackLabels;
   outTree.Branch("ITSTrack", &tracksITSPtr);
   outTree.Branch("ITSTrackClusIdx", &trackClIdxPtr);
   outTree.Branch("ITSTrackMCTruth", &trackLabelsPtr);

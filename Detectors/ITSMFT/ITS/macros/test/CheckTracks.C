@@ -103,7 +103,7 @@ void CheckTracks(std::string tracfile = "o2trac_its.root", std::string clusfile 
   std::vector<TrackITS>* recArr = nullptr;
   recTree->SetBranchAddress("ITSTrack", &recArr);
   // Track MC labels
-  o2::dataformats::MCTruthContainer<o2::MCCompLabel>* trkLabArr = nullptr;
+  std::vector<o2::MCCompLabel>* trkLabArr = nullptr;
   recTree->SetBranchAddress("ITSTrackMCTruth", &trkLabArr);
 
   Int_t lastEventIDcl = -1, cf = 0;
@@ -154,7 +154,7 @@ void CheckTracks(std::string tracfile = "o2trac_its.root", std::string clusfile 
       continue;
     int loadedEventTracks = frame;
     for (unsigned int i = 0; i < recArr->size(); i++) { // Find the last MC event within this reconstructed entry
-      auto lab = (trkLabArr->getLabels(i))[0];
+      auto lab = (*trkLabArr)[i];
       if (!lab.isValid()) {
         const TrackITS& recTrack = (*recArr)[i];
         fak->Fill(recTrack.getPt());
@@ -210,7 +210,7 @@ void CheckTracks(std::string tracfile = "o2trac_its.root", std::string clusfile 
       long lastIndex = (frame == f.lastFrame) ? f.lastIndex : nentr - 1;
 
       for (long i = firstIndex; i <= lastIndex; i++) {
-        auto lab = (trkLabArr->getLabels(i))[0];
+        auto lab = (*trkLabArr)[i];
         if (!lab.isValid() || lab.getSourceID() != 0 || lab.getEventID() != n)
           continue;
         int mcid = lab.getTrackID();

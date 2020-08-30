@@ -100,7 +100,7 @@ int runCATrackingClusterNative(TString inputFile, TString outputFile)
 
   vector<TrackTPC> tracks;
   vector<TPCClRefElem> trackClusRefs;
-  MCLabelContainer tracksMC;
+  std::vector<o2::MCCompLabel> tracksMC;
 
   TFile fout(outputFile, "recreate");
   TTree tout("events", "events");
