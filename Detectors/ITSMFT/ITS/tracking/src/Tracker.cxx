@@ -566,7 +566,7 @@ void Tracker::computeTracksMClabels(const ROframe& event)
     if (isFakeTrack) {
       maxOccurrencesValue.setFakeFlag();
     }
-    mTrackLabels.addElement(mTrackLabels.getIndexedSize(), maxOccurrencesValue);
+    mTrackLabels.emplace_back(maxOccurrencesValue);
   }
 }
 
