@@ -65,14 +65,14 @@ void MatchTPCITS::printABTracksTree(const ABTrackLinksList& llist) const
     return;
   }
   o2::MCCompLabel lblTrc;
-  if (mTPCTrkLabels) {
-    lblTrc = mTPCTrkLabels->getLabels(mTPCWork[llist.trackID].sourceID)[0];
+  if (mMCTruthON) {
+    lblTrc = mTPCTrkLabels[mTPCWork[llist.trackID].sourceID];
   }
   LOG(INFO) << "Matches for track " << llist.trackID << " lowest lr: " << int(llist.lowestLayer) << " " << lblTrc
             << " pT= " << mTPCWork[llist.trackID].getPt();
 
   auto printHyp = [this, &lblTrc](int nextHyp, int cnt) {
-    printf("#%d Lr/IC/Lnk/ClID/Chi2/Chi2Nrm/{MC}:%c ", cnt++, mTPCTrkLabels ? (lblTrc.isFake() ? 'F' : 'C') : '-');
+    printf("#%d Lr/IC/Lnk/ClID/Chi2/Chi2Nrm/{MC}:%c ", cnt++, mTPCTrkLabels.size() ? (lblTrc.isFake() ? 'F' : 'C') : '-');
     int nFakeClus = 0, nTotClus = 0, parID = nextHyp; // print particular hypothesis
     while (1) {
       const auto& lnk = mABTrackLinks[parID];
@@ -90,7 +90,7 @@ void MatchTPCITS::printABTracksTree(const ABTrackLinksList& llist) const
           mcEv = mcTr = -999; // noise
           nFakeClus++;
         }
-      } else if (lnk.isDummyTop() && mTPCTrkLabels) { // top layer, use TPC MC lbl
+      } else if (lnk.isDummyTop() && mMCTruthON) { // top layer, use TPC MC lbl
         mcEv = lblTrc.getEventID();
         mcTr = lblTrc.getTrackID();
       }
@@ -138,8 +138,8 @@ void MatchTPCITS::dumpABTracksDebugTree(const ABTrackLinksList& llist)
   }
   LOG(INFO) << "Dump AB Matches for track " << llist.trackID;
   o2::MCCompLabel lblTrc;
-  if (mTPCTrkLabels) {
-    lblTrc = mTPCTrkLabels->getLabels(mTPCWork[llist.trackID].sourceID)[0]; // tmp
+  if (mMCTruthON) {
+    lblTrc = mTPCTrkLabels[mTPCWork[llist.trackID].sourceID]; // tmp
   }
   int ord = 0;
   for (int lowest = llist.lowestLayer; lowest <= mParams->requireToReachLayerAB; lowest++) {
@@ -545,7 +545,7 @@ bool MatchTPCITS::prepareTPCTracks()
       continue;
     }
     if (mMCTruthON) {
-      mTPCLblWork.emplace_back(mTPCTrkLabels->getLabels(it)[0]);
+      mTPCLblWork.emplace_back(mTPCTrkLabels[it]);
     }
 
     float time0 = trcOrig.getTime0();
@@ -711,7 +711,7 @@ bool MatchTPCITS::prepareITSTracks()
         continue;            // add to cache only those ITS tracks which reached ref.X and have reasonable snp
       }
       if (mMCTruthON) {
-        mITSLblWork.emplace_back(mITSTrkLabels->getLabels(it)[0]);
+        mITSLblWork.emplace_back(mITSTrkLabels[it]);
       }
       trc.roFrame = irof;
 
@@ -1191,7 +1191,7 @@ void MatchTPCITS::addLastTrackCloneForNeighbourSector(int sector)
     // TODO: use faster prop here, no 3d field, materials
     mITSSectIndexCache[sector].push_back(mITSWork.size() - 1); // register track CLONE
     if (mMCTruthON) {
-      mITSLblWork.emplace_back(mITSTrkLabels->getLabels(trc.sourceID)[0]);
+      mITSLblWork.emplace_back(mITSTrkLabels[trc.sourceID]);
     }
   } else {
     mITSWork.pop_back(); // rotation / propagation failed
@@ -1999,8 +1999,11 @@ int MatchTPCITS::checkABSeedFromLr(int lrSeed, int seedID, ABTrackLinksList& lli
   std::array<int, MaxLadderCand> lad2Check;
   nLad2Check = mFieldON ? findLaddersToCheckBOn(lrTgt, ladIDguess, trcCircle, errYFrac, lad2Check) : findLaddersToCheckBOff(lrTgt, ladIDguess, trcLinPar, errYFrac, lad2Check);
 
-  const auto& tTPC = mTPCWork[llist.trackID];               // tmp
-  auto lblTrc = mTPCTrkLabels->getLabels(tTPC.sourceID)[0]; // tmp
+  const auto& tTPC = mTPCWork[llist.trackID]; // tmp
+  o2::MCCompLabel lblTrc;
+  if (mMCTruthON) {
+    lblTrc = mTPCTrkLabels[tTPC.sourceID]; // tmp
+  }
   for (int ilad = nLad2Check; ilad--;) {
     int ladID = lad2Check[ilad];
     const auto& lad = lr.ladders[ladID];
@@ -2496,7 +2499,7 @@ bool MatchTPCITS::validateABMatch(int ilink)
       if (linkCl.linkedABTrack != headID) { // best link for this cluster differs from the link we are checking
         return false;
       }
-    } else if (lnk.isDummyTop() && mTPCTrkLabels) { // top layer reached, this is winner
+    } else if (lnk.isDummyTop()) { // top layer reached, this is winner
       break;
     }
     parID = lnk.parentID; // check next cluster of the same link
