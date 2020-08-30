@@ -269,7 +269,9 @@ class MatchTPCITS
 {
   using ITSCluster = o2::BaseCluster<float>;
   using ClusRange = o2::dataformats::RangeReference<int, int>;
-  using MCLabCont = o2::dataformats::MCTruthContainer<o2::MCCompLabel>;
+  using MCLabContCl = o2::dataformats::MCTruthContainer<o2::MCCompLabel>;
+  using MCLabContTr = std::vector<o2::MCCompLabel>;
+  using MCLabSpan = gsl::span<const o2::MCCompLabel>;
   using TPCTransform = o2::gpu::TPCFastTransform;
   using BracketF = o2::utils::Bracket<float>;
   using Params = o2::globaltracking::MatchITSTPCParams;
@@ -392,19 +394,19 @@ class MatchTPCITS
   }
 
   ///< set input ITS track MC labels
-  void setITSTrkLabelsInp(const MCLabCont* lbl)
+  void setITSTrkLabelsInp(const MCLabSpan& lbl)
   {
     mITSTrkLabels = lbl;
   }
 
   ///< set input ITS clusters MC labels
-  void setITSClsLabelsInp(const MCLabCont* lbl)
+  void setITSClsLabelsInp(const MCLabContCl* lbl)
   {
     mITSClsLabels = lbl;
   }
 
   ///< set input TPC track MC labels
-  void setTPCTrkLabelsInp(const MCLabCont* lbl)
+  void setTPCTrkLabelsInp(const MCLabSpan& lbl)
   {
     mTPCTrkLabels = lbl;
   }
@@ -423,8 +425,8 @@ class MatchTPCITS
   void printCandidatesITS() const;
 
   std::vector<o2::dataformats::TrackTPCITS>& getMatchedTracks() { return mMatchedTracks; }
-  std::vector<o2::MCCompLabel>& getMatchedITSLabels() { return mOutITSLabels; }
-  std::vector<o2::MCCompLabel>& getMatchedTPCLabels() { return mOutTPCLabels; }
+  MCLabContTr& getMatchedITSLabels() { return mOutITSLabels; }
+  MCLabContTr& getMatchedTPCLabels() { return mOutTPCLabels; }
 
   //>>> ====================== options =============================>>>
   void setUseMatCorrFlag(MatCorrType f) { mUseMatCorrFlag = f; }
@@ -477,8 +479,7 @@ class MatchTPCITS
   bool prepareFITInfo();
 
   int preselectChipClusters(std::vector<int>& clVecOut, const ClusRange& clRange, const ITSChipClustersRefs& clRefs,
-                            float trackY, float trackZ, float tolerY, float tolerZ,
-                            const o2::MCCompLabel& lblTrc) const;
+                            float trackY, float trackZ, float tolerY, float tolerZ, const o2::MCCompLabel& lblTrc) const;
   void fillClustersForAfterBurner(ITSChipClustersRefs& refCont, int rofStart, int nROFs = 1);
   void cleanAfterBurnerClusRefCache(int currentIC, int& startIC);
   void flagUsedITSClusters(const o2::its::TrackITS& track, int rofOffset);
@@ -625,9 +626,9 @@ class MatchTPCITS
 
   const o2::tpc::ClusterNativeAccess* mTPCClusterIdxStruct = nullptr;     ///< struct holding the TPC cluster indices
 
-  const MCLabCont* mITSTrkLabels = nullptr; ///< input ITS Track MC labels
-  const MCLabCont* mITSClsLabels = nullptr; ///< input ITS Cluster MC labels
-  const MCLabCont* mTPCTrkLabels = nullptr; ///< input TPC Track MC labels
+  const MCLabContCl* mITSClsLabels = nullptr; ///< input ITS Cluster MC labels
+  MCLabSpan mITSTrkLabels;                    ///< input ITS Track MC labels
+  MCLabSpan mTPCTrkLabels;                    ///< input TPC Track MC labels
   /// <<<-----
 
   std::vector<InteractionCandidate> mInteractions; ///< possible interaction times
@@ -642,8 +643,8 @@ class MatchTPCITS
   std::vector<BracketF> mITSROFTimes;       ///< min/max times of ITS ROFs in TPC time-bins
   std::vector<TrackLocTPC> mTPCWork;        ///< TPC track params prepared for matching
   std::vector<TrackLocITS> mITSWork;        ///< ITS track params prepared for matching
-  std::vector<o2::MCCompLabel> mTPCLblWork; ///< TPC track labels
-  std::vector<o2::MCCompLabel> mITSLblWork; ///< ITS track labels
+  MCLabContTr mTPCLblWork;                  ///< TPC track labels
+  MCLabContTr mITSLblWork;                  ///< ITS track labels
   std::vector<float> mWinnerChi2Refit;      ///< vector of refitChi2 for winners
 
   std::deque<ITSChipClustersRefs> mITSChipClustersRefs; ///< range of clusters for each chip in ITS (for AfterBurner)
@@ -676,8 +677,8 @@ class MatchTPCITS
 
   ///< outputs tracks container
   std::vector<o2::dataformats::TrackTPCITS> mMatchedTracks;
-  std::vector<o2::MCCompLabel> mOutITSLabels; ///< ITS label of matched track
-  std::vector<o2::MCCompLabel> mOutTPCLabels; ///< TPC label of matched track
+  MCLabContTr mOutITSLabels; ///< ITS label of matched track
+  MCLabContTr mOutTPCLabels; ///< TPC label of matched track
 
   o2::its::RecoGeomHelper mRGHelper; ///< helper for cluster and geometry access
   float mITSFiducialZCut = 9999.;    ///< eliminate TPC seeds outside of this range
