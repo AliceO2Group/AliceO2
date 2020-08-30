@@ -21,13 +21,13 @@
 
 #include "DetectorsBase/GeometryManager.h"
 
-#include "DataFormatsEMCAL/Cell.h"
-#include "DataFormatsEMCAL/AnalysisCluster.h"
-#include "EMCALBase/ClusterFactory.h"
-#include "EMCALReconstruction/Clusterizer.h"
-
 #include "Analysis/EMCALClusters.h"
 
+#include "DataFormatsEMCAL/Cell.h"
+#include "DataFormatsEMCAL/AnalysisCluster.h"
+#include "EMCALBase/Geometry.h"
+#include "EMCALBase/ClusterFactory.h"
+#include "EMCALReconstruction/Clusterizer.h"
 
 using namespace o2;
 using namespace o2::framework;
@@ -52,8 +52,8 @@ struct EmcalCorrectionTask {
   //fastjet::Selector selBkg = fastjet::SelectorAbsRapMax(rapBkg);
 
   // Clusterizer and related
-  o2::emcal::Clusterizer<o2::emcal::Cell> mClusterizer;
-  o2::emcal::ClusterFactory<o2::emcal::Cell> mClusterFactory;
+  std::unique_ptr<o2::emcal::Clusterizer<o2::emcal::Cell>> mClusterizer;
+  std::unique_ptr<o2::emcal::ClusterFactory<o2::emcal::Cell>> mClusterFactory;
   // Cells and clusters
   std::vector<o2::emcal::Cell> mEmcalCells;
   std::vector<o2::emcal::AnalysisCluster> mAnalysisClusters;
@@ -65,6 +65,7 @@ struct EmcalCorrectionTask {
 
   void init(InitContext const&)
   {
+    LOG(INFO) << "Start init!";
     // Initialize clusterizer
     // FIXME: Placeholder configuration -> make configurable.
     double timeCut = 10000, timeMin = 0, timeMax = 10000, gradientCut = 0.03, thresholdSeedEnergy = 0.1, thresholdCellEnergy = 0.05;
@@ -73,21 +74,24 @@ struct EmcalCorrectionTask {
     // FIXME: Hardcoded for run 2
     // Get default geometry object if not yet set
     o2::base::GeometryManager::loadGeometry(); // for generating full clusters
+    LOG(DEBUG) << "After load geometry!";
     o2::emcal::Geometry* geometry = o2::emcal::Geometry::GetInstanceFromRunNumber(223409);
     if (!geometry) {
       LOG(ERROR) << "Failure accessing geometry";
     }
 
     // Initialize clusterizer and link geometry
-    mClusterizer.initialize(timeCut, timeMin, timeMax, gradientCut, doEnergyGradientCut, thresholdSeedEnergy, thresholdCellEnergy);
-    mClusterizer.setGeometry(geometry);
-    LOG(ERROR) << "Completed init!";
+    LOG(INFO) << "Init clusterizer!";
+    mClusterizer = decltype(mClusterizer)(new o2::emcal::Clusterizer<o2::emcal::Cell>());
+    mClusterizer->initialize(timeCut, timeMin, timeMax, gradientCut, doEnergyGradientCut, thresholdSeedEnergy, thresholdCellEnergy);
+    mClusterizer->setGeometry(geometry);
+    LOG(INFO) << "Completed init!";
   }
 
   void process(aod::Collision const& collision, aod::Calos const& cells)
   {
     // Convert aod::Calo to o2::emcal::Cell
-    mEmcalCells.clear();
+    /*mEmcalCells.clear();
     for (auto & cell : cells) {
       // TODO: Select only EMCAL cells based on the CaloType
       //       Check in AliRoot.
@@ -132,14 +136,16 @@ struct EmcalCorrectionTask {
       pos = pos - Point3D<float>{collision.posX(), collision.posY(), collision.posZ()};
       // Normalize the vector and rescale by energy.
       pos /= (cluster.E() / std::sqrt(pos.Mag2()));
-      /*double px = ;
-      double py = ;
-      double pz = ;
-      double pt = std::sqrt(px * px + py * py);
-      double phi = atan2(py, px);
-      double eta = asinh(pz / pt);*/
-      clusters(collision, cluster.E(), pos.Eta(), pos.Phi(), cluster.getM02());
-    }
+      //double px = ;
+      //double py = ;
+      //double pz = ;
+      //double pt = std::sqrt(px * px + py * py);
+      //double phi = atan2(py, px);
+      //double eta = asinh(pz / pt);
+      //clusters(collision, cluster.E(), pos.Eta(), pos.Phi(), cluster.getM02());
+      LOG(DEBUG) << "Cluster E: " << cluster.E();
+    }*/
+    LOG(INFO) << "Done with process.";
   }
 };
 
