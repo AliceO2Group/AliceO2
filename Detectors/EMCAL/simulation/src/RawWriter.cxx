@@ -8,6 +8,8 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
+#include "FairLogger.h"
+
 #include <fmt/core.h>
 #include <gsl/span>
 #include <TSystem.h>
@@ -102,7 +104,15 @@ bool RawWriter::processNextTrigger()
       } else {
         bunchDigits = &(towerdata->second.mDigits);
       }
-      (*bunchDigits)[int(dig.getTimeStamp())] = &dig;
+      // Get time sample of the digit:
+      // Digitizer stores the time sample in ns, needs to be converted to time sample dividing
+      // by the length of the time sample
+      auto timesample = int(dig.getTimeStamp() / emcal::constants::EMCAL_TIMESAMPLE);
+      if (timesample >= mNADCSamples) {
+        LOG(ERROR) << "Digit time sample " << timesample << " outside range [0," << mNADCSamples << "]";
+        continue;
+      }
+      (*bunchDigits)[timesample] = &dig;
     }
   }
 
