@@ -72,7 +72,7 @@ bool SimConfig::resetFromParsedMap(boost::program_options::variables_map const& 
         active.emplace_back(DetID::getName(d));
       }
 #else
-  active.emplace_back(DetID::getName(d));
+      active.emplace_back(DetID::getName(d));
 #endif
     }
     // add passive components manually (make a PassiveDetID for them!)
