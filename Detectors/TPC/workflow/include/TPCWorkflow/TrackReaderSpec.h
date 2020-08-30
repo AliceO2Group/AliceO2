@@ -45,7 +45,7 @@ class TrackReader : public Task
 
   std::vector<o2::tpc::TrackTPC>*mTracksInp = nullptr, mTracksOut;
   std::vector<o2::tpc::TPCClRefElem>*mCluRefVecInp = nullptr, mCluRefVecOut;
-  o2::dataformats::MCTruthContainer<o2::MCCompLabel>*mMCTruthInp = nullptr, mMCTruthOut;
+  std::vector<o2::MCCompLabel>*mMCTruthInp = nullptr, mMCTruthOut;
 
   std::unique_ptr<TFile> mFile;
   std::unique_ptr<TTree> mTree;

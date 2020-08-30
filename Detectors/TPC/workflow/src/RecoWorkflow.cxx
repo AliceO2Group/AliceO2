@@ -444,7 +444,7 @@ framework::WorkflowSpec getWorkflow(std::vector<int> const& tpcSectors, std::vec
 
     using ClusRefsOutputType = std::vector<o2::tpc::TPCClRefElem>;
 
-    using MCLabelContainer = o2::dataformats::MCTruthContainer<o2::MCCompLabel>;
+    using MCLabelContainer = std::vector<o2::MCCompLabel>;
     // a spectator callback which will be invoked by the tree writer with the extracted object
     // we are using it for printing a log message
     auto logger = BranchDefinition<TrackOutputType>::Spectator([](TrackOutputType const& tracks) {
