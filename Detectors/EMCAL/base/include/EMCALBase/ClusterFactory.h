@@ -178,7 +178,7 @@ class ClusterFactory
   /// \param clustersContainer cluster container
   /// \param inputsContainer cells/digits container
   /// \param cellsIndices for cells/digits indices
-  ClusterFactory(gsl::span<const o2::emcal::Cluster> clustersContainer, gsl::span<const InputType> inputsContainer, gsl::span<int> cellsIndices);
+  ClusterFactory(gsl::span<const o2::emcal::Cluster> clustersContainer, gsl::span<const InputType> inputsContainer, gsl::span<const int> cellsIndices);
 
   ///
   /// Copy constructor
@@ -225,17 +225,17 @@ class ClusterFactory
 
   ///
   /// Calculates the center of gravity in the local EMCAL-module coordinates
-  void evalLocalPosition(gsl::span<int> inputsIndices, AnalysisCluster& cluster) const;
+  void evalLocalPosition(gsl::span<const int> inputsIndices, AnalysisCluster& cluster) const;
 
   ///
   /// Calculates the center of gravity in the global ALICE coordinates
-  void evalGlobalPosition(gsl::span<int> inputsIndices, AnalysisCluster& cluster) const;
+  void evalGlobalPosition(gsl::span<const int> inputsIndices, AnalysisCluster& cluster) const;
 
   void evalLocal2TrackingCSTransform() const;
 
   ///
   /// evaluates local position of clusters in SM
-  void evalLocalPositionFit(Double_t deff, Double_t w0, Double_t phiSlope, gsl::span<int> inputsIndices, AnalysisCluster& cluster) const;
+  void evalLocalPositionFit(Double_t deff, Double_t w0, Double_t phiSlope, gsl::span<const int> inputsIndices, AnalysisCluster& cluster) const;
 
   ///
   /// Applied for simulation data with threshold 3 adc
@@ -250,11 +250,11 @@ class ClusterFactory
   /// \return the index of the cells with max enegry
   /// \return the maximum energy
   /// \return the total energy of the cluster
-  std::tuple<int, float, float> getMaximalEnergyIndex(gsl::span<int> inputsIndices) const;
+  std::tuple<int, float, float> getMaximalEnergyIndex(gsl::span<const int> inputsIndices) const;
 
   ///
   /// Calculates the multiplicity of digits/cells with energy larger than level*energy
-  int getMultiplicityAtLevel(float level, gsl::span<int> inputsIndices, AnalysisCluster& clusterAnalysis) const;
+  int getMultiplicityAtLevel(float level, gsl::span<const int> inputsIndices, AnalysisCluster& clusterAnalysis) const;
 
   int getSuperModuleNumber() const { return mSuperModuleNumber; }
 
@@ -287,7 +287,7 @@ class ClusterFactory
     mInputsContainer = cellContainer;
   }
 
-  void setCellsIndicesContainer(gsl::span<int> indicesContainer)
+  void setCellsIndicesContainer(gsl::span<const int> indicesContainer)
   {
     mCellsIndices = indicesContainer;
   }
@@ -305,21 +305,21 @@ class ClusterFactory
   /// should be less than 2%
   /// Unfinished - Nov 15,2006
   /// Distance is calculate in (phi,eta) units
-  void evalCoreEnergy(gsl::span<int> inputsIndices, AnalysisCluster& clusterAnalysis) const;
+  void evalCoreEnergy(gsl::span<const int> inputsIndices, AnalysisCluster& clusterAnalysis) const;
 
   ///
   /// Calculates the dispersion of the shower at the origin of the cluster
   /// in cell units
-  void evalDispersion(gsl::span<int> inputsIndices, AnalysisCluster& clusterAnalysis) const;
+  void evalDispersion(gsl::span<const int> inputsIndices, AnalysisCluster& clusterAnalysis) const;
 
   ///
   /// Calculates the axis of the shower ellipsoid in eta and phi
   /// in cell units
-  void evalElipsAxis(gsl::span<int> inputsIndices, AnalysisCluster& clusterAnalysis) const;
+  void evalElipsAxis(gsl::span<const int> inputsIndices, AnalysisCluster& clusterAnalysis) const;
 
   ///
   /// Time is set to the time of the digit with the maximum energy
-  void evalTime(gsl::span<int> inputsIndices, AnalysisCluster& clusterAnalysis) const;
+  void evalTime(gsl::span<const int> inputsIndices, AnalysisCluster& clusterAnalysis) const;
 
   ///
   /// Converts Theta (Radians) to Eta (Radians)
@@ -344,9 +344,9 @@ class ClusterFactory
 
   gsl::span<const o2::emcal::Cluster> mClustersContainer; ///< Container for all the clusters in the event
   gsl::span<const InputType> mInputsContainer;            ///< Container for all the cells/digits in the event
-  gsl::span<int> mCellsIndices;                           ///< Container for cells indices in the event
+  gsl::span<const int> mCellsIndices;                     ///< Container for cells indices in the event
 
-  ClassDefNV(ClusterFactory, 1);
+  ClassDefNV(ClusterFactory, 2);
 };
 
 } // namespace emcal
