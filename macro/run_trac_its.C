@@ -38,6 +38,7 @@
 #include "ITStracking/VertexerTraits.h"
 
 using MCLabCont = o2::dataformats::MCTruthContainer<o2::MCCompLabel>;
+using MCLabContTr = std::vector<o2::MCCompLabel>;
 using Vertex = o2::dataformats::Vertex<o2::dataformats::TimeStamp<int>>;
 
 void run_trac_its(std::string path = "./", std::string outputfile = "o2trac_its.root",
@@ -141,7 +142,7 @@ void run_trac_its(std::string path = "./", std::string outputfile = "o2trac_its.
   std::vector<o2::itsmft::ROFRecord> vertROFvec, *vertROFvecPtr = &vertROFvec;
   std::vector<Vertex> vertices, *verticesPtr = &vertices;
 
-  MCLabCont trackLabels, *trackLabelsPtr = &trackLabels;
+  MCLabContTr trackLabels, *trackLabelsPtr = &trackLabels;
   outTree.Branch("ITSTrack", &tracksITSPtr);
   outTree.Branch("ITSTrackClusIdx", &trackClIdxPtr);
   outTree.Branch("ITSTrackMCTruth", &trackLabelsPtr);
