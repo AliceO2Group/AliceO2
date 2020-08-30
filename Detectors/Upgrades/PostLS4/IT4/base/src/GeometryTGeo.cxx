@@ -450,55 +450,56 @@ void GeometryTGeo::fillTrackingFramesCache()
 //__________________________________________________________________________
 int GeometryTGeo::extractNumberOfLayers()
 {
-  int numberOfLayers = 0;
+  //   int numberOfLayers = 0;
 
-  TGeoVolume* itsV = gGeoManager->GetVolume(getITSVolPattern());
-  if (!itsV) {
-    LOG(FATAL) << "ITS volume " << getITSVolPattern() << " is not in the geometry";
-  }
+  //   TGeoVolume* itsV = gGeoManager->GetVolume(getITSVolPattern());
+  //   if (!itsV) {
+  //     LOG(FATAL) << "ITS volume " << getITSVolPattern() << " is not in the geometry";
+  //   }
 
-  // Loop on all ITSV nodes, count Layer volumes by checking names
-  // Build on the fly layer - wrapper correspondence
-  TObjArray* nodes = itsV->GetNodes();
-  int nNodes = nodes->GetEntriesFast();
+  //   // Loop on all ITSV nodes, count Layer volumes by checking names
+  //   // Build on the fly layer - wrapper correspondence
+  //   TObjArray* nodes = itsV->GetNodes();
+  //   int nNodes = nodes->GetEntriesFast();
 
-  for (int j = 0; j < nNodes; j++) {
-    int lrID = -1;
-    TGeoNode* nd = (TGeoNode*)nodes->At(j);
-    const char* name = nd->GetName();
+  //   for (int j = 0; j < nNodes; j++) {
+  //     int lrID = -1;
+  //     TGeoNode* nd = (TGeoNode*)nodes->At(j);
+  //     const char* name = nd->GetName();
 
-    if (strstr(name, getITSLayerPattern())) {
-      numberOfLayers++;
-      if ((lrID = extractVolumeCopy(name, GeometryTGeo::getITSLayerPattern())) < 0) {
-        LOG(FATAL) << "Failed to extract layer ID from the " << name;
-        exit(1);
-      }
+  //     if (strstr(name, getITSLayerPattern())) {
+  //       numberOfLayers++;
+  //       if ((lrID = extractVolumeCopy(name, GeometryTGeo::getITSLayerPattern())) < 0) {
+  //         LOG(FATAL) << "Failed to extract layer ID from the " << name;
+  //         exit(1);
+  //       }
 
-      mLayerToWrapper[lrID] = -1;                      // not wrapped
-    } else if (strstr(name, getITSWrapVolPattern())) { // this is a wrapper volume, may cointain layers
-      int wrID = -1;
-      if ((wrID = extractVolumeCopy(name, GeometryTGeo::getITSWrapVolPattern())) < 0) {
-        LOG(FATAL) << "Failed to extract wrapper ID from the " << name;
-        exit(1);
-      }
+  //       mLayerToWrapper[lrID] = -1;                      // not wrapped
+  //     } else if (strstr(name, getITSWrapVolPattern())) { // this is a wrapper volume, may cointain layers
+  //       int wrID = -1;
+  //       if ((wrID = extractVolumeCopy(name, GeometryTGeo::getITSWrapVolPattern())) < 0) {
+  //         LOG(FATAL) << "Failed to extract wrapper ID from the " << name;
+  //         exit(1);
+  //       }
 
-      TObjArray* nodesW = nd->GetNodes();
-      int nNodesW = nodesW->GetEntriesFast();
+  //       TObjArray* nodesW = nd->GetNodes();
+  //       int nNodesW = nodesW->GetEntriesFast();
 
-      for (int jw = 0; jw < nNodesW; jw++) {
-        TGeoNode* ndW = (TGeoNode*)nodesW->At(jw);
-        if (strstr(ndW->GetName(), getITSLayerPattern())) {
-          if ((lrID = extractVolumeCopy(ndW->GetName(), GeometryTGeo::getITSLayerPattern())) < 0) {
-            LOG(FATAL) << "Failed to extract layer ID from the " << name;
-            exit(1);
-          }
-          numberOfLayers++;
-          mLayerToWrapper[lrID] = wrID;
-        }
-      }
-    }
-  }
-  return numberOfLayers;
+  //       for (int jw = 0; jw < nNodesW; jw++) {
+  //         TGeoNode* ndW = (TGeoNode*)nodesW->At(jw);
+  //         if (strstr(ndW->GetName(), getITSLayerPattern())) {
+  //           if ((lrID = extractVolumeCopy(ndW->GetName(), GeometryTGeo::getITSLayerPattern())) < 0) {
+  //             LOG(FATAL) << "Failed to extract layer ID from the " << name;
+  //             exit(1);
+  //           }
+  //           numberOfLayers++;
+  //           mLayerToWrapper[lrID] = wrID;
+  //         }
+  //       }
+  //     }
+  //   }
+  //   return numberOfLayers;
+  return 10;
 }
 
 //__________________________________________________________________________
