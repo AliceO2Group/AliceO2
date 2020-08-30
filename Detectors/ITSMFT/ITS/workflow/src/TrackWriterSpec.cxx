@@ -30,7 +30,7 @@ using Vertex = o2::dataformats::Vertex<o2::dataformats::TimeStamp<int>>;
 
 template <typename T>
 using BranchDefinition = MakeRootTreeWriterSpec::BranchDefinition<T>;
-using LabelsType = o2::dataformats::MCTruthContainer<o2::MCCompLabel>;
+using LabelsType = std::vector<o2::MCCompLabel>;
 using ROFRecLblT = std::vector<o2::itsmft::MC2ROFRecord>;
 using namespace o2::header;
 
