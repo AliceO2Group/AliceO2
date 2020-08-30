@@ -8,9 +8,16 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-/// \file GPUReconstructionCUDArtcPre.h
+/// \file GPUReconstructionCUDArtcPre2.h
 /// \author David Rohr
 
-// Included during RTC preprocessing
+// Included during RTC compilation
 
-#define GPUCA_CONSMEM (gGPUConstantMemBuffer.v)
+#define GPUCA_CONSMEM_PTR
+#define GPUCA_CONSMEM_CALL
+
+#include <stdint.h>
+#include <cub/block/block_scan.cuh>
+#include <thrust/sort.h>
+#include <thrust/execution_policy.h>
+#include <thrust/device_ptr.h>
