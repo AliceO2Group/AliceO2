@@ -62,7 +62,7 @@ class Tracker
   float getBz() const;
 
   std::vector<TrackITSExt>& getTracks();
-  dataformats::MCTruthContainer<MCCompLabel>& getTrackLabels();
+  auto& getTrackLabels() { return mTrackLabels; }
 
   void clustersToTracks(const ROframe&, std::ostream& = std::cout);
 
@@ -99,7 +99,7 @@ class Tracker
   float mBz = 5.f;
   std::uint32_t mROFrame = 0;
   std::vector<TrackITSExt> mTracks;
-  dataformats::MCTruthContainer<MCCompLabel> mTrackLabels;
+  std::vector<MCCompLabel> mTrackLabels;
   o2::gpu::GPUChainITS* mRecoChain = nullptr;
 };
 
@@ -128,11 +128,6 @@ void Tracker::initialisePrimaryVertexContext(T&&... args)
 inline std::vector<TrackITSExt>& Tracker::getTracks()
 {
   return mTracks;
-}
-
-inline dataformats::MCTruthContainer<MCCompLabel>& Tracker::getTrackLabels()
-{
-  return mTrackLabels;
 }
 
 template <typename... T>

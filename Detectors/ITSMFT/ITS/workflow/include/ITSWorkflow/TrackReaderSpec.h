@@ -48,7 +48,7 @@ class TrackReader : public o2::framework::Task
   std::vector<o2::its::TrackITS> mTracks, *mTracksInp = &mTracks;
   std::vector<Vertex> mVertices, *mVerticesInp = &mVertices;
   std::vector<int> mClusInd, *mClusIndInp = &mClusInd;
-  o2::dataformats::MCTruthContainer<o2::MCCompLabel> mMCTruth, *mMCTruthInp = &mMCTruth;
+  std::vector<o2::MCCompLabel> mMCTruth, *mMCTruthInp = &mMCTruth;
 
   o2::header::DataOrigin mOrigin = o2::header::gDataOriginITS;
 

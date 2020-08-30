@@ -571,7 +571,7 @@ std::tuple<int, int> CookedTracker::processLoadedClusters(TrackInserter& inserte
         }
         // the inserter returns the size of the track vector, the index of the last
         // inserted track is thus n - 1
-        mTrkLabels->addElement(nAllTracks - 1, label);
+        mTrkLabels->emplace_back(label);
       }
     }
   }

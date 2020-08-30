@@ -112,7 +112,7 @@ void CookedTrackerDPL::run(ProcessingContext& pc)
 
   LOG(INFO) << "ITSCookedTracker pulled " << compClusters.size() << " clusters, in " << rofs.size() << " RO frames";
 
-  o2::dataformats::MCTruthContainer<o2::MCCompLabel> trackLabels;
+  std::vector<o2::MCCompLabel> trackLabels;
   if (mUseMC) {
     mTracker.setMCTruthContainers(labels.get(), &trackLabels);
   }

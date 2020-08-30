@@ -122,9 +122,9 @@ void TrackerDPL::run(ProcessingContext& pc)
 
   std::vector<o2::its::TrackITSExt> tracks;
   auto& allClusIdx = pc.outputs().make<std::vector<int>>(Output{"ITS", "TRACKCLSID", 0, Lifetime::Timeframe});
-  o2::dataformats::MCTruthContainer<o2::MCCompLabel> trackLabels;
+  std::vector<o2::MCCompLabel> trackLabels;
   auto& allTracks = pc.outputs().make<std::vector<o2::its::TrackITS>>(Output{"ITS", "TRACKS", 0, Lifetime::Timeframe});
-  o2::dataformats::MCTruthContainer<o2::MCCompLabel> allTrackLabels;
+  std::vector<o2::MCCompLabel> allTrackLabels;
 
   auto& vertROFvec = pc.outputs().make<std::vector<o2::itsmft::ROFRecord>>(Output{"ITS", "VERTICESROF", 0, Lifetime::Timeframe});
   auto& vertices = pc.outputs().make<std::vector<Vertex>>(Output{"ITS", "VERTICES", 0, Lifetime::Timeframe});
@@ -211,13 +211,13 @@ void TrackerDPL::run(ProcessingContext& pc)
         tracks.swap(mTracker->getTracks());
         LOG(INFO) << "Found tracks: " << tracks.size();
         int number = tracks.size();
-        trackLabels = mTracker->getTrackLabels(); /// FIXME: assignment ctor is not optimal.
+        trackLabels.swap(mTracker->getTrackLabels()); /// FIXME: assignment ctor is not optimal.
         int shiftIdx = -rof.getFirstEntry();      // cluster entry!!!
         rof.setFirstEntry(first);
         rof.setNEntries(number);
         copyTracks(tracks, allTracks, allClusIdx, shiftIdx);
-        allTrackLabels.mergeAtBack(trackLabels);
-
+        std::copy(trackLabels.begin(), trackLabels.end(), std::back_inserter(allTrackLabels));
+        trackLabels.clear();
         vtxROF.setNEntries(vtxVecLoc.size());
         for (const auto& vtx : vtxVecLoc) {
           vertices.push_back(vtx);
@@ -232,7 +232,7 @@ void TrackerDPL::run(ProcessingContext& pc)
     mTracker->clustersToTracks(event);
     tracks.swap(mTracker->getTracks());
     copyTracks(tracks, allTracks, allClusIdx);
-    allTrackLabels = mTracker->getTrackLabels(); /// FIXME: assignment ctor is not optimal.
+    allTrackLabels.swap(mTracker->getTrackLabels()); /// FIXME: assignment ctor is not optimal.
   }
 
   LOG(INFO) << "ITSTracker pushed " << allTracks.size() << " tracks";
