@@ -91,6 +91,7 @@ class CookedTracker
         clusIdx.emplace_back(idx);
       }
       trackNew.setClusterRefs(clEntry, noc);
+      trackNew.setPattern(0x7f); // this tracker finds only complete tracks
       return tracks.size();
     };
     process(clusters, it, dict, inserter, rof);

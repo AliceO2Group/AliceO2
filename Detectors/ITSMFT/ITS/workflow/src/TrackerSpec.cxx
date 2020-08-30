@@ -143,14 +143,17 @@ void TrackerDPL::run(ProcessingContext& pc)
     for (auto& trc : tracks) {
       trc.setFirstClusterEntry(allClusIdx.size()); // before adding tracks, create final cluster indices
       int ncl = trc.getNumberOfClusters(), nclf = 0;
+      uint8_t patt = 0;
       for (int ic = TrackITSExt::MaxClusters; ic--;) { // track internally keeps in->out cluster indices, but we want to store the references as out->in!!!
         auto clid = trc.getClusterIndex(ic);
         if (clid >= 0) {
           allClusIdx.push_back(clid + offset);
           nclf++;
+          patt |= 0x1 << ic;
         }
       }
       assert(ncl == nclf);
+      trc.setPattern(patt);
       allTracks.emplace_back(trc);
     }
   };
