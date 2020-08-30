@@ -28,6 +28,9 @@ if(NOT ALIGPU_BUILD_TYPE STREQUAL "ALIROOT")
   set(CUDARTC_FLAGS "${CMAKE_CUDA_FLAGS} ${CMAKE_CUDA_FLAGS_${CMAKE_BUILD_TYPE}} -std=c++${CMAKE_CUDA_STANDARD}")
   if(CUDA_COMPUTETARGET)
       set(CUDARTC_FLAGS "${CUDARTC_FLAGS} -gencode arch=compute_${CUDA_COMPUTETARGET},code=sm_${CUDA_COMPUTETARGET}")
+      set(RTC_CUDA_ARCH "${CUDA_COMPUTETARGET}0")
+  else()
+      set(RTC_CUDA_ARCH "750")
   endif()
   separate_arguments(CUDARTC_FLAGS)
   
@@ -43,11 +46,8 @@ if(NOT ALIGPU_BUILD_TYPE STREQUAL "ALIROOT")
   # cmake-format: off
   add_custom_command(
       OUTPUT ${CURTC_BIN}.src
-      COMMAND echo "\\# 1 \"\\\"\"${GPUDIR}/Base/cuda/GPUReconstructionCUDArtc.cu\"\\\"\"" > ${CURTC_BIN}.src
-      COMMAND echo "\\# 1 \"\\\"\"${GPUDIR}/Base/cuda/GPUReconstructionCUDArtcPre.h\"\\\"\" 1" >> ${CURTC_BIN}.src
-      COMMAND cat ${GPUDIR}/Base/cuda/GPUReconstructionCUDArtcPre2.h >> ${CURTC_BIN}.src
-      COMMAND ${CMAKE_CUDA_COMPILER} ${CURTC_DEFINES} ${CUDARTC_FLAGS} -E ${CURTC_SRC} > ${CURTC_BIN}.src.tmp
-      COMMAND cat ${CURTC_BIN}.src.tmp | sed '1,/^\# 1 \".*GPUReconstructionCUDArtcPre.h\" 1$$/d' >> ${CURTC_BIN}.src
+      COMMAND cat ${GPUDIR}/Base/cuda/GPUReconstructionCUDArtcPre2.h > ${CURTC_BIN}.src
+      COMMAND ${CMAKE_CXX_COMPILER} ${CURTC_DEFINES} -std=c++${CMAKE_CUDA_STANDARD} -D__CUDA_ARCH__=${RTC_CUDA_ARCH} -D__CUDACC__ -x c++ -E ${CURTC_SRC} >> ${CURTC_BIN}.src
       MAIN_DEPENDENCY ${CURTC_SRC}
       IMPLICIT_DEPENDS CXX ${CURTC_SRC}
       COMMAND_EXPAND_LISTS

@@ -454,7 +454,9 @@ int GPUReconstructionCUDABackend::InitDevice_Runtime()
             (long long int)mDeviceMemorySize, (int)GPUCA_GPU_STACK_SIZE, (long long int)gGPUConstantMemBufferSize);
 
     if (mProcessingSettings.enableRTC) {
-      GPUInfo("Starting CUDA RTC Compilation");
+      if (mProcessingSettings.debugLevel >= 0) {
+        GPUInfo("Starting CUDA RTC Compilation");
+      }
       HighResTimer rtcTimer;
       rtcTimer.ResetStart();
       std::string filename = "/tmp/o2cagpu_rtc_";
@@ -498,7 +500,9 @@ int GPUReconstructionCUDABackend::InitDevice_Runtime()
 
       remove((filename + ".cu").c_str());
       remove((filename + ".o").c_str());
-      GPUInfo("RTC Compilation finished (%f seconds)", rtcTimer.GetCurrentElapsedTime());
+      if (mProcessingSettings.debugLevel >= 0) {
+        GPUInfo("RTC Compilation finished (%f seconds)", rtcTimer.GetCurrentElapsedTime());
+      }
     }
     void* devPtrConstantMem;
 #ifndef GPUCA_NO_CONSTANT_MEMORY

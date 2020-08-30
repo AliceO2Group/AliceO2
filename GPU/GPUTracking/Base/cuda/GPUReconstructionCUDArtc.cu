@@ -11,9 +11,6 @@
 /// \file GPUReconstructionCUDArtc.cu
 /// \author David Rohr
 
-#include <cuda_runtime.h>
-#include <cuda.h>
-
 #include "GPUReconstructionCUDArtcPre.h"
 
 #define GPUCA_GPUTYPE_TURING

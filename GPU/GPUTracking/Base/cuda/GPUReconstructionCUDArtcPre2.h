@@ -17,7 +17,10 @@
 #define GPUCA_CONSMEM_CALL
 
 #include <stdint.h>
+#include <cuda_runtime.h>
+#include <cuda.h>
 #include <cub/block/block_scan.cuh>
 #include <thrust/sort.h>
 #include <thrust/execution_policy.h>
 #include <thrust/device_ptr.h>
+#include <sm_20_atomic_functions.h>
