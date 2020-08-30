@@ -10,7 +10,7 @@
 
 // Table definitions for EMCAL analysis clusters
 //
-// Author: Jochen Klein
+// Author: Raymond Ehlers
 
 #pragma once
 
