@@ -67,7 +67,13 @@ bool SimConfig::resetFromParsedMap(boost::program_options::variables_map const& 
   if (active.size() == 1 && active[0] == "all") {
     active.clear();
     for (int d = DetID::First; d <= DetID::Last; ++d) {
+#ifdef ENABLE_UPGRADES
+      if (d != DetID::IT3 && d != DetID::IT4) {
+        active.emplace_back(DetID::getName(d));
+      }
+#else
       active.emplace_back(DetID::getName(d));
+#endif
     }
     // add passive components manually (make a PassiveDetID for them!)
     active.emplace_back("HALL");
