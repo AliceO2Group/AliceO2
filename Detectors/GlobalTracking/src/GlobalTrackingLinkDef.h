@@ -26,9 +26,5 @@
 
 #pragma link C++ class std::pair < o2::dataformats::EvIndex < int, int>, o2::dataformats::MatchInfoTOF> + ;
 #pragma link C++ class std::vector < std::pair < o2::dataformats::EvIndex < int, int>, o2::dataformats::MatchInfoTOF>> + ;
-#pragma link C++ class std::vector < o2::dataformats::TrackTPCITS> + ;
-#pragma link C++ class std::vector < o2::tpc::TrackTPC> + ;
-#pragma link C++ class std::vector < o2::its::TrackITS> + ;
-#pragma link C++ class std::vector < o2::tof::Cluster> + ;
 
 #endif
