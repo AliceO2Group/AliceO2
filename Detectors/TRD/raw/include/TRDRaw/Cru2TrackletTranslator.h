@@ -130,7 +130,7 @@ class Cru2TrackletTranslator
   uint32_t mErrorCounter;
 
   std::array<std::vector<Tracklet64>, 72> mEventTracklets; // when this runs properly it will only 6 for the flp its runnung on.
-  std::vector < std::array<uint32_t, 72> mEventStartPositions;
+  std::vector < std::array<uint32_t, 72>> mEventStartPositions;
   struct TRDDataCounters_t {
     std::array<uint32_t, 1080> LinkWordCounts;    //units of 256bits "cru word"
     std::array<uint32_t, 1080> LinkPadWordCounts; // units of 32 bits the data word size.
