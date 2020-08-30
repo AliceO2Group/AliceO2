@@ -539,7 +539,7 @@ DataProcessorSpec getCATrackerSpec(ca::Config const& specconfig, std::vector<int
 
       std::vector<TrackTPC> tracks;
       std::vector<uint32_t> clusRefs;
-      MCLabelContainer tracksMCTruth;
+      std::vector<o2::MCCompLabel> tracksMCTruth;
       GPUO2InterfaceIOPtrs ptrs;
       ClusterNativeAccess clusterIndex;
       std::unique_ptr<ClusterNative[]> clusterBuffer;
@@ -637,7 +637,7 @@ DataProcessorSpec getCATrackerSpec(ca::Config const& specconfig, std::vector<int
         pc.outputs().snapshot(OutputRef{"outTracks"}, tracks);
         pc.outputs().snapshot(OutputRef{"outClusRefs"}, clusRefs);
         if (specconfig.processMC) {
-          LOG(INFO) << "sending " << tracksMCTruth.getIndexedSize() << " track label(s)";
+          LOG(INFO) << "sending " << tracksMCTruth.size() << " track label(s)";
           pc.outputs().snapshot(OutputRef{"mclblout"}, tracksMCTruth);
         }
       }

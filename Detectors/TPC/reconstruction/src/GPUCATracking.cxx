@@ -72,7 +72,7 @@ int GPUCATracking::runTracking(GPUO2InterfaceIOPtrs* data, GPUInterfaceOutputs* 
 
   std::vector<TrackTPC>* outputTracks = data->outputTracks;
   std::vector<uint32_t>* outClusRefs = data->outputClusRefs;
-  MCLabelContainer* outputTracksMCTruth = data->outputTracksMCTruth;
+  std::vector<o2::MCCompLabel>* outputTracksMCTruth = data->outputTracksMCTruth;
 
   if (!outputTracks || !outClusRefs) {
     LOG(ERROR) << "Output tracks or clusRefs vectors are not initialized";
@@ -288,7 +288,7 @@ int GPUCATracking::runTracking(GPUO2InterfaceIOPtrs* data, GPUInterfaceOutputs* 
     }
     if (outputTracksMCTruth) {
       if (labels.size() == 0) {
-        outputTracksMCTruth->addElement(iTmp, MCCompLabel()); //default constructor creates NotSet label
+        outputTracksMCTruth->emplace_back(); //default constructor creates NotSet label
       } else {
         int bestLabelNum = 0, bestLabelCount = 0;
         for (int j = 0; j < labels.size(); j++) {
@@ -301,7 +301,7 @@ int GPUCATracking::runTracking(GPUO2InterfaceIOPtrs* data, GPUInterfaceOutputs* 
         if (bestLabelCount < (1.f - sTrackMCMaxFake) * nOutCl) {
           bestLabel.setFakeFlag();
         }
-        outputTracksMCTruth->addElement(iTmp, bestLabel);
+        outputTracksMCTruth->emplace_back(bestLabel);
       }
     }
   }
