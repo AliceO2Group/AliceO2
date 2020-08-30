@@ -285,7 +285,6 @@ void Tracker::findTracks(const ROframe& event)
     if (!fitSuccess)
       continue;
     CA_DEBUGGER(refitCounters[nClusters - 4]++);
-    temporaryTrack.setROFrame(mROFrame);
     tracks.emplace_back(temporaryTrack);
     CA_DEBUGGER(assert(nClusters == temporaryTrack.getNumberOfClusters()));
   }
