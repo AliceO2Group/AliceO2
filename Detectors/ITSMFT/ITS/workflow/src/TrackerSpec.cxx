@@ -35,6 +35,7 @@
 
 #include "ITSReconstruction/FastMultEstConfig.h"
 #include "ITSReconstruction/FastMultEst.h"
+#include <fmt/format.h>
 
 namespace o2
 {
@@ -132,10 +133,15 @@ void TrackerDPL::run(ProcessingContext& pc)
   auto copyTracks = [](auto& tracks, auto& allTracks, auto& allClusIdx, int offset = 0) {
     for (auto& trc : tracks) {
       trc.setFirstClusterEntry(allClusIdx.size()); // before adding tracks, create final cluster indices
-      int ncl = trc.getNumberOfClusters();
-      for (int ic = ncl; ic--;) { // track internally keeps in->out cluster indices, but we want to store the references as out->in!!!
-        allClusIdx.push_back(trc.getClusterIndex(ic) + offset);
+      int ncl = trc.getNumberOfClusters(), nclf = 0;
+      for (int ic = TrackITSExt::MaxClusters; ic--;) { // track internally keeps in->out cluster indices, but we want to store the references as out->in!!!
+        auto clid = trc.getClusterIndex(ic);
+        if (clid >= 0) {
+          allClusIdx.push_back(clid + offset);
+          nclf++;
+        }
       }
+      assert(ncl == nclf);
       allTracks.emplace_back(trc);
     }
   };
