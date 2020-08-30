@@ -734,8 +734,6 @@ int main(int argc, char** argv)
     pipelineThread.reset(new std::thread([]() { rec->RunPipelineWorker(); }));
   }
 
-  // hlt.SetRunMerger(configStandalone.merger); //TODO!
-
   if (configStandalone.seed == -1) {
     std::random_device rd;
     configStandalone.seed = (int)rd();

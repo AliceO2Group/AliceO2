@@ -113,6 +113,7 @@ AddOption(deviceTimers, bool, true, "", 0, "Use device timers instead of host-ba
 AddOption(registerStandaloneInputMemory, bool, false, "registerInputMemory", 0, "Automatically register input memory buffers for the GPU")
 AddOption(memoryScalingFactor, float, 1.f, "", 0, "Factor to apply to all memory scalers")
 AddOption(alternateBorderSort, int, -1, "", 0, "Alternative implementation for sorting of border tracks")
+AddOption(enableRTC, bool, false, "", 0, "Use RTC to optimize GPU code")
 AddVariable(eventDisplay, GPUCA_NAMESPACE::gpu::GPUDisplayBackend*, nullptr)
 AddHelp("help", 'h')
 EndConfig()
