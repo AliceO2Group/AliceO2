@@ -25,7 +25,7 @@
 using namespace o2::emcal;
 
 template <class InputType>
-ClusterFactory<InputType>::ClusterFactory(gsl::span<const o2::emcal::Cluster> clustersContainer, gsl::span<const InputType> inputsContainer, gsl::span<int> cellsIndices)
+ClusterFactory<InputType>::ClusterFactory(gsl::span<const o2::emcal::Cluster> clustersContainer, gsl::span<const InputType> inputsContainer, gsl::span<const int> cellsIndices)
 {
   setClustersContainer(clustersContainer);
   setCellsContainer(inputsContainer);
@@ -55,7 +55,7 @@ o2::emcal::AnalysisCluster ClusterFactory<InputType>::buildCluster(int clusterIn
   int firstCellIndex = mClustersContainer[clusterIndex].getCellIndexFirst();
   int nCells = mClustersContainer[clusterIndex].getNCells();
 
-  gsl::span<int> inputsIndices = gsl::span<int>(&mCellsIndices[firstCellIndex], nCells);
+  gsl::span<const int> inputsIndices = gsl::span<const int>(&mCellsIndices[firstCellIndex], nCells);
 
   // First calculate the index of input with maximum amplitude and get
   // the supermodule number where it sits.
@@ -107,7 +107,7 @@ o2::emcal::AnalysisCluster ClusterFactory<InputType>::buildCluster(int clusterIn
 /// in cell units
 //____________________________________________________________________________
 template <class InputType>
-void ClusterFactory<InputType>::evalDispersion(gsl::span<int> inputsIndices, AnalysisCluster& clusterAnalysis) const
+void ClusterFactory<InputType>::evalDispersion(gsl::span<const int> inputsIndices, AnalysisCluster& clusterAnalysis) const
 {
   double d = 0., wtot = 0.;
   int nstat = 0;
@@ -180,7 +180,7 @@ void ClusterFactory<InputType>::evalDispersion(gsl::span<int> inputsIndices, Ana
 /// Calculates the center of gravity in the local EMCAL-module coordinates
 //____________________________________________________________________________
 template <class InputType>
-void ClusterFactory<InputType>::evalLocalPosition(gsl::span<int> inputsIndices, AnalysisCluster& clusterAnalysis) const
+void ClusterFactory<InputType>::evalLocalPosition(gsl::span<const int> inputsIndices, AnalysisCluster& clusterAnalysis) const
 {
 
   int nstat = 0;
@@ -249,7 +249,7 @@ void ClusterFactory<InputType>::evalLocalPosition(gsl::span<int> inputsIndices, 
 /// Calculates the center of gravity in the global ALICE coordinates
 //____________________________________________________________________________
 template <class InputType>
-void ClusterFactory<InputType>::evalGlobalPosition(gsl::span<int> inputsIndices, AnalysisCluster& clusterAnalysis) const
+void ClusterFactory<InputType>::evalGlobalPosition(gsl::span<const int> inputsIndices, AnalysisCluster& clusterAnalysis) const
 {
 
   int i = 0, nstat = 0;
@@ -319,7 +319,7 @@ void ClusterFactory<InputType>::evalGlobalPosition(gsl::span<int> inputsIndices,
 //____________________________________________________________________________
 template <class InputType>
 void ClusterFactory<InputType>::evalLocalPositionFit(double deff, double mLogWeight,
-                                                     double phiSlope, gsl::span<int> inputsIndices, AnalysisCluster& clusterAnalysis) const
+                                                     double phiSlope, gsl::span<const int> inputsIndices, AnalysisCluster& clusterAnalysis) const
 {
   int i = 0, nstat = 0;
   double clXYZ[3] = {0., 0., 0.}, clRmsXYZ[3] = {0., 0., 0.}, xyzi[3], wtot = 0., w = 0.;
@@ -416,7 +416,7 @@ void ClusterFactory<InputType>::getDeffW0(const double esum, double& deff, doubl
 /// Distance is calculate in (phi,eta) units
 //______________________________________________________________________________
 template <class InputType>
-void ClusterFactory<InputType>::evalCoreEnergy(gsl::span<int> inputsIndices, AnalysisCluster& clusterAnalysis) const
+void ClusterFactory<InputType>::evalCoreEnergy(gsl::span<const int> inputsIndices, AnalysisCluster& clusterAnalysis) const
 {
 
   float coreEnergy = 0.;
@@ -444,7 +444,7 @@ void ClusterFactory<InputType>::evalCoreEnergy(gsl::span<int> inputsIndices, Ana
 /// in cell units
 //____________________________________________________________________________
 template <class InputType>
-void ClusterFactory<InputType>::evalElipsAxis(gsl::span<int> inputsIndices, AnalysisCluster& clusterAnalysis) const
+void ClusterFactory<InputType>::evalElipsAxis(gsl::span<const int> inputsIndices, AnalysisCluster& clusterAnalysis) const
 {
   TString gn(mGeomPtr->GetName());
 
@@ -521,7 +521,7 @@ void ClusterFactory<InputType>::evalElipsAxis(gsl::span<int> inputsIndices, Anal
 /// Finds the maximum energy in the cluster and computes the Summed amplitude of digits/cells
 //____________________________________________________________________________
 template <class InputType>
-std::tuple<int, float, float> ClusterFactory<InputType>::getMaximalEnergyIndex(gsl::span<int> inputsIndices) const
+std::tuple<int, float, float> ClusterFactory<InputType>::getMaximalEnergyIndex(gsl::span<const int> inputsIndices) const
 {
 
   float energy = 0.;
@@ -544,7 +544,7 @@ std::tuple<int, float, float> ClusterFactory<InputType>::getMaximalEnergyIndex(g
 /// Calculates the multiplicity of inputs with energy larger than H*energy
 //____________________________________________________________________________
 template <class InputType>
-int ClusterFactory<InputType>::getMultiplicityAtLevel(float H, gsl::span<int> inputsIndices, AnalysisCluster& clusterAnalysis) const
+int ClusterFactory<InputType>::getMultiplicityAtLevel(float H, gsl::span<const int> inputsIndices, AnalysisCluster& clusterAnalysis) const
 {
   int multipl = 0;
   for (auto iInput : inputsIndices) {
@@ -559,7 +559,7 @@ int ClusterFactory<InputType>::getMultiplicityAtLevel(float H, gsl::span<int> in
 /// Time is set to the time of the input with the maximum energy
 //____________________________________________________________________________
 template <class InputType>
-void ClusterFactory<InputType>::evalTime(gsl::span<int> inputsIndices, AnalysisCluster& clusterAnalysis) const
+void ClusterFactory<InputType>::evalTime(gsl::span<const int> inputsIndices, AnalysisCluster& clusterAnalysis) const
 {
   float maxE = 0;
   unsigned short maxAt = 0;
