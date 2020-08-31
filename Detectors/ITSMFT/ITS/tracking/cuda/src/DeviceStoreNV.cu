@@ -124,11 +124,15 @@ UniquePointer<DeviceStoreNV> DeviceStoreNV::initialise(const float3& primaryVert
                                                        const std::array<std::vector<Cluster>, constants::its::LayersNumber>& clusters,
                                                        const std::array<std::vector<Tracklet>, constants::its::TrackletsPerRoad>& tracklets,
                                                        const std::array<std::vector<Cell>, constants::its::CellsPerRoad>& cells,
-                                                       const std::array<std::vector<int>, constants::its::CellsPerRoad - 1>& cellsLookupTable)
+                                                       const std::array<std::vector<int>, constants::its::CellsPerRoad - 1>& cellsLookupTable,
+                                                       const std::array<float, constants::its::LayersNumber>& rmin,
+                                                       const std::array<float, constants::its::LayersNumber>& rmax)
 {
   mPrimaryVertex = UniquePointer<float3>{primaryVertex};
 
   for (int iLayer{0}; iLayer < constants::its::LayersNumber; ++iLayer) {
+    this->mRmin[iLayer] = rmin[iLayer];
+    this->mRmax[iLayer] = rmax[iLayer];
 
     this->mClusters[iLayer] =
       Vector<Cluster>{&clusters[iLayer][0], static_cast<int>(clusters[iLayer].size())};
