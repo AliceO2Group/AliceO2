@@ -52,8 +52,6 @@ void CompressedDecodingTask::postData(ProcessingContext& pc)
   mHasToBePosted = false;
   mDecoder.FillWindows();
 
-  int nwindowperTF = o2::raw::HBFUtils::Instance().getNOrbitsPerTF() * 3;
-
   // send output message
   std::vector<o2::tof::Digit>* alldigits = mDecoder.getDigitPerTimeFrame();
   std::vector<o2::tof::ReadoutWindowData>* row = mDecoder.getReadoutWindowData();
@@ -67,6 +65,8 @@ void CompressedDecodingTask::postData(ProcessingContext& pc)
     lastIR = last->mFirstIR;
   }
 
+  /*
+  int nwindowperTF = o2::raw::HBFUtils::Instance().getNOrbitsPerTF() * 3;
   while (row->size() < nwindowperTF) {
     // complete timeframe with empty readout windows
     auto& dummy = row->emplace_back(lastval, 0);
@@ -76,6 +76,7 @@ void CompressedDecodingTask::postData(ProcessingContext& pc)
     // remove extra readout windows after a check they are empty
     row->pop_back();
   }
+*/
 
   int n_tof_window = row->size();
   int n_orbits = n_tof_window / 3;

@@ -32,6 +32,7 @@ class Digit
   Digit() = default;
 
   Digit(Int_t channel, Int_t tdc, Int_t tot, uint64_t bc, Int_t label = -1, uint32_t triggerorbit = 0, uint16_t triggerbunch = 0);
+  Digit(Int_t channel, Int_t tdc, Int_t tot, uint32_t orbit, uint16_t bc, Int_t label = -1, uint32_t triggerorbit = 0, uint16_t triggerbunch = 0);
   ~Digit() = default;
 
   /// Get global ordering key made of
@@ -41,7 +42,7 @@ class Digit
   }
   ULong64_t getOrderingKey()
   {
-    return getOrderingKey(mChannel, mBC, mTDC);
+    return getOrderingKey(mChannel, mIR.toLong(), mTDC);
   }
 
   Int_t getChannel() const { return mChannel; }
@@ -53,8 +54,8 @@ class Digit
   uint16_t getTOT() const { return mTOT; }
   void setTOT(uint16_t tot) { mTOT = tot; }
 
-  uint64_t getBC() const { return mBC; }
-  void setBC(uint64_t bc) { mBC = bc; }
+  uint64_t getBC() const { return mIR.toLong(); }
+  void setBC(uint64_t bc) { mIR.setFromLong(bc); }
 
   Int_t getLabel() const { return mLabel; }
   void setLabel(Int_t label) { mLabel = label; }
@@ -91,19 +92,19 @@ class Digit
  private:
   friend class boost::serialization::access;
 
-  Double_t mCalibratedTime; //!< time of the digits after calibration (not persistent; it will be filled during clusterization)
   Int_t mChannel;          ///< TOF channel index
   uint16_t mTDC;           ///< TDC bin number
   uint16_t mTOT;           ///< TOT bin number
-  uint64_t mBC;            ///< Bunch Crossing // RS: since it is used as absolute bunch counter from orbit 0, it has to be 64 bits
+  InteractionRecord mIR{0, 0}; ///< InteractionRecord (orbit and bc) when digit occurs
   Int_t mLabel;            ///< Index of the corresponding entry in the MC label array
+  Double_t mCalibratedTime; //!< time of the digits after calibration (not persistent; it will be filled during clusterization)
   Int_t mElectronIndex;    //!/< index in electronic format
   uint32_t mTriggerOrbit = 0;    //!< orbit id of trigger event // RS: orbit must be 32bits long
   uint16_t mTriggerBunch = 0;    //!< bunch id of trigger event
   Bool_t mIsUsedInCluster;       //!/< flag to declare that the digit was used to build a cluster
   Bool_t mIsProblematic = false; //!< flag to tell whether the channel of the digit was problemati; not persistent; default = ok
 
-  ClassDefNV(Digit, 3);
+  ClassDefNV(Digit, 4);
 };
 
 std::ostream& operator<<(std::ostream& stream, const Digit& dig);
