@@ -32,8 +32,6 @@ if(ALIGPU_BUILD_TYPE STREQUAL "O2")
     ${targetName} PUBLIC GPUCA_GPULIBRARY=CUDA
     $<TARGET_PROPERTY:O2::GPUTracking,COMPILE_DEFINITIONS>)
 
-  target_compile_options(${targetName} PUBLIC --expt-relaxed-constexpr)
-
   set_target_properties(${targetName} PROPERTIES LINKER_LANGUAGE CXX)
 
   install(FILES ${HDRS} DESTINATION include/GPU)
