@@ -14,12 +14,6 @@
 #ifndef GPURECONSTRUCTIONINCLUDES_H
 #define GPURECONSTRUCTIONINCLUDES_H
 
-// Disable assertions since they produce errors in GPU Code
-#ifdef assert
-#undef assert
-#endif
-#define assert(param)
-
 #ifndef WIN32
 #include <sys/syscall.h>
 #include <semaphore.h>

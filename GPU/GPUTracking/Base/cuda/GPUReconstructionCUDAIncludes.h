@@ -8,9 +8,23 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-/// \file GPUReconstructionCUDArtcPre.h
+/// \file GPUReconstructionCUDIncludes.h
 /// \author David Rohr
 
-// Included during RTC preprocessing
+#ifndef O2_GPU_GPURECONSTRUCTIONCUDAINCLUDES_H
+#define O2_GPU_GPURECONSTRUCTIONCUDAINCLUDES_H
 
-#define GPUCA_CONSMEM (gGPUConstantMemBuffer.v)
+#include <stdint.h>
+#include <cuda_runtime.h>
+#include <cuda.h>
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wshadow"
+#include <cub/cub.cuh>
+#include <cub/block/block_scan.cuh>
+#include <thrust/sort.h>
+#include <thrust/execution_policy.h>
+#include <thrust/device_ptr.h>
+#pragma GCC diagnostic pop
+#include <sm_20_atomic_functions.h>
+
+#endif

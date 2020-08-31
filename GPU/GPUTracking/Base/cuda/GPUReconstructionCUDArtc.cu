@@ -11,9 +11,7 @@
 /// \file GPUReconstructionCUDArtc.cu
 /// \author David Rohr
 
-#include "GPUReconstructionCUDArtcPre.h"
-
-#define GPUCA_GPUTYPE_TURING
+#include "GPUReconstructionCUDADef.h"
 #include "GPUReconstructionIncludesDevice.h"
 
 #ifndef GPUCA_GPUCODE_DEVICE

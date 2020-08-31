@@ -11,35 +11,11 @@
 /// \file GPUReconstructionCUDA.cu
 /// \author David Rohr
 
-#define GPUCA_GPUTYPE_TURING
-#define GPUCA_UNROLL(CUDA, HIP) GPUCA_M_UNROLL_##CUDA
-#define GPUdic(CUDA, HIP) GPUCA_GPUdic_select_##CUDA()
+#include "GPUReconstructionCUDADef.h"
+#include "GPUReconstructionCUDAIncludes.h"
 
-#include <cuda.h>
 #include <cuda_profiler_api.h>
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wshadow"
-#include <thrust/sort.h>
-#include <thrust/device_ptr.h>
-#pragma GCC diagnostic pop
 #include <unistd.h>
-
-#ifdef __clang__
-#define assert(...)
-#endif
-
-#include "GPUDef.h"
-
-#ifndef GPUCA_NO_CONSTANT_MEMORY
-#define GPUCA_CONSMEM_PTR
-#define GPUCA_CONSMEM_CALL
-#define GPUCA_CONSMEM (gGPUConstantMemBuffer.v)
-#else
-#define GPUCA_CONSMEM_PTR const GPUConstantMem *gGPUConstantMemBuffer,
-#define GPUCA_CONSMEM_CALL me->mDeviceConstantMem,
-#define GPUCA_CONSMEM ((GPUConstantMem&)(*gGPUConstantMemBuffer))
-#endif
-#define GPUCA_KRNL_BACKEND_CLASS GPUReconstructionCUDABackend
 
 #include "GPUReconstructionCUDA.h"
 #include "GPUReconstructionCUDAInternals.h"
