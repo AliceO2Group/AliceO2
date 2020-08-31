@@ -16,14 +16,15 @@ endif()
 message(STATUS "Building GPUTracking with CUDA support ${TMP_TARGET}")
 
 set(SRCS GPUReconstructionCUDA.cu)
-set(HDRS GPUReconstructionCUDA.h GPUReconstructionCUDAInternals.h)
+set(HDRS GPUReconstructionCUDA.h GPUReconstructionCUDAInternals.h GPUReconstructionCUDADef.h GPUReconstructionCUDIncludes.h)
 
 # -------------------------------- Prepare RTC -------------------------------------------------------
 if(NOT ALIGPU_BUILD_TYPE STREQUAL "ALIROOT")
   set(CURTC_DEFINES "-D$<JOIN:$<TARGET_PROPERTY:O2::GPUTracking,COMPILE_DEFINITIONS>,$<SEMICOLON>-D>"
-              "-I$<JOIN:$<TARGET_PROPERTY:O2::GPUTracking,INCLUDE_DIRECTORIES>,$<SEMICOLON>-I>"
-              -DGPUCA_GPUCODE_GENRTC -DGPUCA_NO_ITS_TRAITS -DGPUCA_GPULIBRARY=CUDA
+                    -DGPUCA_GPUCODE_GENRTC -DGPUCA_GPULIBRARY=CUDA
   )
+  set(CURTC_INCLUDES "-I$<JOIN:$<TARGET_PROPERTY:O2::GPUTracking,INCLUDE_DIRECTORIES>,$<SEMICOLON>-I>")
+  #set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} -keep")
 
   set(CUDARTC_FLAGS "${CMAKE_CUDA_FLAGS} ${CMAKE_CUDA_FLAGS_${CMAKE_BUILD_TYPE}} -std=c++${CMAKE_CUDA_STANDARD}")
   if(CUDA_COMPUTETARGET)
@@ -46,8 +47,8 @@ if(NOT ALIGPU_BUILD_TYPE STREQUAL "ALIROOT")
   # cmake-format: off
   add_custom_command(
       OUTPUT ${CURTC_BIN}.src
-      COMMAND cat ${GPUDIR}/Base/cuda/GPUReconstructionCUDArtcPre2.h > ${CURTC_BIN}.src
-      COMMAND ${CMAKE_CXX_COMPILER} ${CURTC_DEFINES} -std=c++${CMAKE_CUDA_STANDARD} -D__CUDA_ARCH__=${RTC_CUDA_ARCH} -D__CUDACC__ -x c++ -E ${CURTC_SRC} >> ${CURTC_BIN}.src
+      COMMAND cat ${GPUDIR}/Base/cuda/GPUReconstructionCUDAIncludes.h > ${CURTC_BIN}.src
+      COMMAND ${CMAKE_CXX_COMPILER} ${CURTC_DEFINES} ${CURTC_INCLUDES} -std=c++${CMAKE_CUDA_STANDARD} -D__CUDA_ARCH__=${RTC_CUDA_ARCH} -D__CUDACC__ -x c++ -E ${CURTC_SRC} >> ${CURTC_BIN}.src
       MAIN_DEPENDENCY ${CURTC_SRC}
       IMPLICIT_DEPENDS CXX ${CURTC_SRC}
       COMMAND_EXPAND_LISTS
@@ -61,7 +62,7 @@ if(NOT ALIGPU_BUILD_TYPE STREQUAL "ALIROOT")
 
   add_custom_command(
       OUTPUT ${CURTC_BIN}.command
-      COMMAND echo -n "${CMAKE_CUDA_COMPILER} ${CUDARTC_FLAGS}" > ${CURTC_BIN}.command
+      COMMAND echo -n "${CMAKE_CUDA_COMPILER} ${CUDARTC_FLAGS} ${CURTC_DEFINES}" > ${CURTC_BIN}.command
       COMMAND_EXPAND_LISTS
       VERBATIM
   )
