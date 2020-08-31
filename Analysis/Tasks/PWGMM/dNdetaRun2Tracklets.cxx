@@ -41,7 +41,7 @@ struct PseudorapidityDensity {
   Filter etaFilter = (aod::track::eta < (float)etaMax) && (aod::track::eta > (float)etaMin);
   Filter trackTypeFilter = (aod::track::trackType == static_cast<uint8_t>(aod::track::TrackTypeEnum::Run2Tracklet));
   Filter posZFilter = (aod::collision::posZ < (float)vtxZMax) && (aod::collision::posZ > (float)vtxZMin);
-  
+
   void process(soa::Filtered<soa::Join<aod::Collisions, aod::EvSels>>::iterator const& collisions, soa::Filtered<aod::Tracks> const& tracklets)
   {
     // TODO change to sel7 filter expression when implemented
