@@ -29,7 +29,7 @@ struct PseudorapidityDensity {
   Configurable<float> etaMin{"etaMin", -1.5, "min eta value"};
   Configurable<float> vtxZMax{"vtxZMax", 10, "max z vertex"};
   Configurable<float> vtxZMin{"vtxZMin", -10, "min z vertex"};
-  int etaBins = TMath::Nint((etaMax-etaMin)/etaBinWidth);
+  int etaBins = TMath::Nint((etaMax - etaMin) / etaBinWidth);
   int vtxZBins = TMath::Nint(vtxZMax-vtxZMin);
 
   OutputObj<TH1F> hStat{TH1F("hStat", "TotalEvents", 1, 0.5, 1.5)};
