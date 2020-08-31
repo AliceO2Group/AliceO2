@@ -30,19 +30,19 @@ struct PseudorapidityDensity {
   Configurable<float> vtxZMax{"vtxZMax", 10, "max z vertex"};
   Configurable<float> vtxZMin{"vtxZMin", -10, "min z vertex"};
   int etaBins = TMath::Nint((etaMax - etaMin) / etaBinWidth);
-  int vtxZBins = TMath::Nint(vtxZMax-vtxZMin);
+  int vtxZBins = TMath::Nint(vtxZMax - vtxZMin);
 
   OutputObj<TH1F> hStat{TH1F("hStat", "TotalEvents", 1, 0.5, 1.5)};
   OutputObj<TH1F> hdNdeta{TH1F("hdNdeta", "dNdeta", 50, -2.5, 2.5)};
   OutputObj<TH2F> vtxZEta{TH2F("vtxZEta", ";#eta;vtxZ", 50, -2.5, 2.5, 60, -30, 30)};
-  OutputObj<TH2F> phiEta{TH2F("phiEta", ";#eta;#varphi", 50, -2.5, 2.5, 200, 0. , 2*TMath::Pi())};
+  OutputObj<TH2F> phiEta{TH2F("phiEta", ";#eta;#varphi", 50, -2.5, 2.5, 200, 0. , 2 * TMath::Pi())};
 
- // TODO remove static casts for configurables when fixed
- Filter etaFilter = (aod::track::eta < (float)etaMax) && (aod::track::eta > (float)etaMin);
- Filter trackTypeFilter = (aod::track::trackType == static_cast<uint8_t>(aod::track::TrackTypeEnum::Run2Tracklet));
- Filter posZFilter = (aod::collision::posZ < (float)vtxZMax) && (aod::collision::posZ > (float)vtxZMin);
+  // TODO remove static casts for configurables when fixed
+  Filter etaFilter = (aod::track::eta < (float)etaMax) && (aod::track::eta > (float)etaMin);
+  Filter trackTypeFilter = (aod::track::trackType == static_cast<uint8_t>(aod::track::TrackTypeEnum::Run2Tracklet));
+  Filter posZFilter = (aod::collision::posZ < (float)vtxZMax) && (aod::collision::posZ > (float)vtxZMin);
  
- void process(soa::Filtered<soa::Join<aod::Collisions, aod::EvSels>>::iterator const& collisions, soa::Filtered<aod::Tracks> const& tracklets)
+  void process(soa::Filtered<soa::Join<aod::Collisions, aod::EvSels>>::iterator const& collisions, soa::Filtered<aod::Tracks> const& tracklets)
   {
     // TODO change to sel7 filter expression when implemented
     if (!collisions.sel7())
@@ -50,12 +50,11 @@ struct PseudorapidityDensity {
     hStat->Fill(collisions.size());
     auto vtxZ = collisions.posZ();
     for (auto& track : tracklets) {
-        vtxZEta->Fill(track.eta(), vtxZ);
-        phiEta->Fill(track.eta(), track.phi());
-        hdNdeta->Fill(track.eta());
-        }
+      vtxZEta->Fill(track.eta(), vtxZ);
+      phiEta->Fill(track.eta(), track.phi());
+      hdNdeta->Fill(track.eta());
+    }
   }
-
 };
 
 WorkflowSpec defineDataProcessing(ConfigContext const&)
@@ -63,4 +62,3 @@ WorkflowSpec defineDataProcessing(ConfigContext const&)
   return WorkflowSpec{
     adaptAnalysisTask<PseudorapidityDensity>("dNdetaRun2Tracklets-analysis")};
 }
-
