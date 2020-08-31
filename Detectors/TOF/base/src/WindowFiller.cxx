@@ -175,6 +175,13 @@ void WindowFiller::flushOutputContainer(std::vector<Digit>& digits)
     for (Int_t i = 0; i < MAXWINDOWS; i++) {
       fillOutputContainer(digits); // fill last readout windows
     }
+
+    int nwindowperTF = o2::raw::HBFUtils::Instance().getNOrbitsPerTF() * Geo::NWINDOW_IN_ORBIT;
+
+    // check that all orbits are complete in terms of number of readout windows
+    while ((mReadoutWindowData.size() % nwindowperTF)) {
+      fillOutputContainer(digits); // fill windows without digits to complete all orbits in the last TF
+    }
   }
 }
 //______________________________________________________________________
