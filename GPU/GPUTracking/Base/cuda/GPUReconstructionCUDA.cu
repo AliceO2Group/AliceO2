@@ -91,9 +91,11 @@ class GPUDebugTiming
 
 #include "GPUReconstructionIncludesDevice.h"
 
+#ifndef GPUCA_ALIROOT_LIB
 extern "C" char _curtc_GPUReconstructionCUDArtc_cu_src[];
 extern "C" unsigned int _curtc_GPUReconstructionCUDArtc_cu_src_size;
 extern "C" char _curtc_GPUReconstructionCUDArtc_cu_command[];
+#endif
 
 /*
 // Not using templated kernel any more, since nvidia profiler does not resolve template names
@@ -429,6 +431,7 @@ int GPUReconstructionCUDABackend::InitDevice_Runtime()
     GPUInfo("CUDA Initialisation successfull (Device %d: %s (Frequency %d, Cores %d), %lld / %lld bytes host / global memory, Stack frame %d, Constant memory %lld)", mDeviceId, cudaDeviceProp.name, cudaDeviceProp.clockRate, cudaDeviceProp.multiProcessorCount, (long long int)mHostMemorySize,
             (long long int)mDeviceMemorySize, (int)GPUCA_GPU_STACK_SIZE, (long long int)gGPUConstantMemBufferSize);
 
+#ifndef GPUCA_ALIROOT_LIB
     if (mProcessingSettings.enableRTC) {
       if (mProcessingSettings.debugLevel >= 0) {
         GPUInfo("Starting CUDA RTC Compilation");
@@ -480,6 +483,7 @@ int GPUReconstructionCUDABackend::InitDevice_Runtime()
         GPUInfo("RTC Compilation finished (%f seconds)", rtcTimer.GetCurrentElapsedTime());
       }
     }
+#endif
     void* devPtrConstantMem;
 #ifndef GPUCA_NO_CONSTANT_MEMORY
     if (mProcessingSettings.enableRTC) {
