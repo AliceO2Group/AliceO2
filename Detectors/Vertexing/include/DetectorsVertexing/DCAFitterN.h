@@ -313,7 +313,7 @@ int DCAFitterN<N, Args...>::process(const Tr&... args)
     if (mUseAbsDCA ? minimizeChi2NoErr() : minimizeChi2()) {
       mOrder[mCurHyp] = mCurHyp;
       if (mPropagateToPCA && !propagateTracksToVertex(mCurHyp)) {
-        return false;
+        continue; // discard candidate if failed to propagate to it
       }
       mCurHyp++;
     }
