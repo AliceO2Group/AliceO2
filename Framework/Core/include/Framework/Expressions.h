@@ -14,6 +14,8 @@
 #include "Framework/CompilerBuiltins.h"
 #include "Framework/Pack.h"
 #include "Framework/CheckTypes.h"
+#include "Framework/Configurable.h"
+#include "Framework/Variant.h"
 #include <arrow/type_fwd.h>
 #include <gandiva/gandiva_aliases.h>
 #include <arrow/type.h>
@@ -82,12 +84,20 @@ std::string upcastTo(atype::type f);
 /// An expression tree node corresponding to a literal value
 struct LiteralNode {
   template <typename T>
-  LiteralNode(T v) : value{v}, type{selectArrowType<T>()}
+  LiteralNode(T v) : value{v}, type{selectArrowType<T>()}, uptodate{true}, name{""}
   {
   }
+
+  template <typename T>
+  LiteralNode(Configurable<T> v) : value{(T)v}, type{selectArrowType<T>()}, uptodate{false}, name{v.name}
+  {
+  }
+
   using var_t = LiteralValue::stored_type;
   var_t value;
   atype::type type = atype::NA;
+  bool uptodate = true;
+  std::string name = "";
 };
 
 /// An expression tree node corresponding to a column binding

@@ -77,6 +77,11 @@ struct FilterManager {
   {
     return false;
   }
+
+  static bool updatePlaceholders(ANY&)
+  {
+    return false;
+  }
 };
 
 template <>
