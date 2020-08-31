@@ -50,11 +50,14 @@ void TrackerTraitsCPU::computeLayerTracklets()
       }
 
       const float tanLambda{(currentCluster.zCoordinate - primaryVertex.z) / currentCluster.rCoordinate};
-      const float directionZIntersection{tanLambda * (constants::its::LayersRCoordinate()[iLayer + 1] -
-                                                      currentCluster.rCoordinate) +
-                                         currentCluster.zCoordinate};
+      const float zAtRmin{tanLambda * (mPrimaryVertexContext->getMinR(iLayer + 1) -
+                                       currentCluster.rCoordinate) +
+                          currentCluster.zCoordinate};
+      const float zAtRmax{tanLambda * (mPrimaryVertexContext->getMaxR(iLayer + 1) -
+                                       currentCluster.rCoordinate) +
+                          currentCluster.zCoordinate};
 
-      const int4 selectedBinsRect{getBinsRect(currentCluster, iLayer, directionZIntersection,
+      const int4 selectedBinsRect{getBinsRect(currentCluster, iLayer, zAtRmin, zAtRmax,
                                               mTrkParams.TrackletMaxDeltaZ[iLayer], mTrkParams.TrackletMaxDeltaPhi)};
 
       if (selectedBinsRect.x == 0 && selectedBinsRect.y == 0 && selectedBinsRect.z == 0 && selectedBinsRect.w == 0) {
