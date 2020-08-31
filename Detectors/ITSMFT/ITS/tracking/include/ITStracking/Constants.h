@@ -66,8 +66,8 @@ GPU_HOST_DEVICE constexpr GPUArray<float, 3> VertexerHistogramVolume()
 
 namespace index_table
 {
-constexpr int ZBins{20};
-constexpr int PhiBins{20};
+constexpr int ZBins{256};
+constexpr int PhiBins{128};
 constexpr float InversePhiBinSize{constants::index_table::PhiBins / constants::math::TwoPi};
 GPU_HOST_DEVICE constexpr GPUArray<float, its::LayersNumber> InverseZBinSize()
 {

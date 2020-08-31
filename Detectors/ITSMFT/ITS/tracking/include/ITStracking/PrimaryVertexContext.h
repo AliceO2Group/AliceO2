@@ -51,6 +51,9 @@ class PrimaryVertexContext
   std::array<std::vector<std::vector<int>>, constants::its::CellsPerRoad - 1>& getCellsNeighbours();
   std::vector<Road>& getRoads();
 
+  float getMinR(int layer) { return mMinR[layer]; }
+  float getMaxR(int layer) { return mMaxR[layer]; }
+
   bool isClusterUsed(int layer, int clusterId) const;
   void markUsedCluster(int layer, int clusterId);
 
@@ -67,6 +70,8 @@ class PrimaryVertexContext
 
  protected:
   float3 mPrimaryVertex;
+  std::array<float, constants::its::LayersNumber> mMinR;
+  std::array<float, constants::its::LayersNumber> mMaxR;
   std::array<std::vector<Cluster>, constants::its::LayersNumber> mUnsortedClusters;
   std::array<std::vector<Cluster>, constants::its::LayersNumber> mClusters;
   std::array<std::vector<bool>, constants::its::LayersNumber> mUsedClusters;
