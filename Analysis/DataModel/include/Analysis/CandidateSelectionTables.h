@@ -7,11 +7,9 @@
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
+
 #ifndef O2_ANALYSIS_CANDIDATESELECTIONTABLES_H_
 #define O2_ANALYSIS_CANDIDATESELECTIONTABLES_H_
-
-#include "Framework/AnalysisDataModel.h"
-#include "Analysis/RecoDecay.h"
 
 namespace o2::aod
 {
