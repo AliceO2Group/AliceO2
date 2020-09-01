@@ -890,9 +890,11 @@ struct AnalysisDataProcessorBuilder {
       {
         constexpr auto index = framework::has_type_at<A1>(associated_pack_t{});
         if (hasIndexTo<G>(typename std::decay_t<A1>::persistent_columns_t{})) {
-          auto pos = position;
+          uint64_t pos;
           if constexpr (soa::is_soa_filtered_t<std::decay_t<G>>::value) {
-            pos = groupSelection[position];
+            pos = (*groupSelection)[position];
+          } else {
+            pos = position;
           }
           if constexpr (soa::is_soa_filtered_t<std::decay_t<A1>>::value) {
             auto groupedElementsTable = arrow::util::get<std::shared_ptr<arrow::Table>>(((groups[index])[pos]).value);
@@ -923,7 +925,7 @@ struct AnalysisDataProcessorBuilder {
       std::tuple<A...>* mAt;
       typename grouping_t::iterator mGroupingElement;
       uint64_t position = 0;
-      soa::SelectionVector* groupSelection = nullptr;
+      soa::SelectionVector const* groupSelection = nullptr;
 
       std::array<std::vector<arrow::Datum>, sizeof...(A)> groups;
       std::array<std::vector<uint64_t>, sizeof...(A)> offsets;
