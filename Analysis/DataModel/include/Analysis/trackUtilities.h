@@ -31,9 +31,8 @@ auto getTrackPar(const T& track)
 }
 
 /// Extracts track parameters and covariance matrix from a track.
-/// \return o2::track::TrackParCov
 template <typename T>
-auto getTrackParCov(const T& track)
+o2::track::TrackParCov getTrackParCov(const T& track)
 {
   std::array<float, 5> arraypar = {track.y(), track.z(), track.snp(),
                                    track.tgl(), track.signed1Pt()};
@@ -47,9 +46,8 @@ auto getTrackParCov(const T& track)
 }
 
 /// Extracts primary vertex position and covariance matrix from a collision.
-/// \return o2::dataformats::VertexBase
 template <typename T>
-auto getPrimaryVertex(const T& collision)
+o2::dataformats::VertexBase getPrimaryVertex(const T& collision)
 {
   Point3D<float> vtxXYZ(collision.posX(), collision.posY(), collision.posZ());
   std::array<float, 6> vtxCov{collision.covXX(), collision.covXY(), collision.covYY(), collision.covXZ(), collision.covYZ(), collision.covZZ()};
