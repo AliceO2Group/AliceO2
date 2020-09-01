@@ -56,7 +56,7 @@ class RecoDecay
   /// \param num  a number of arbitrary type
   /// \return number squared
   template <typename T>
-  static auto sq(T num)
+  static double sq(T num)
   {
     return (double)num * (double)num;
   }
@@ -66,7 +66,7 @@ class RecoDecay
   /// \param args  arbitrary number of numbers of arbitrary types
   /// \return sum of squares of numbers
   template <typename... T>
-  static auto sumOfSquares(const T&... args)
+  static double sumOfSquares(const T&... args)
   {
     return (((double)args * (double)args) + ...);
   }
@@ -75,7 +75,7 @@ class RecoDecay
   /// \param args  arbitrary number of numbers of arbitrary types
   /// \return square root of sum of squares of numbers
   template <typename... T>
-  static auto sqrtSumOfSquares(const T&... args)
+  static double sqrtSumOfSquares(const T&... args)
   {
     return std::sqrt(sumOfSquares(args...));
   }
@@ -105,7 +105,7 @@ class RecoDecay
   /// \param vec1,vec2  vectors
   /// \return scalar product
   template <std::size_t N, typename T, typename U>
-  static auto dotProd(const array<T, N>& vec1, const array<U, N>& vec2)
+  static double dotProd(const array<T, N>& vec1, const array<U, N>& vec2)
   {
     double res{0};
     for (auto iDim = 0; iDim < N; ++iDim) {
@@ -119,7 +119,7 @@ class RecoDecay
   /// \param vec  vector
   /// \return magnitude squared
   template <std::size_t N, typename T>
-  static auto mag2(const array<T, N>& vec)
+  static double mag2(const array<T, N>& vec)
   {
     return dotProd(vec, vec);
   }
@@ -128,7 +128,7 @@ class RecoDecay
   /// \param point1,point2  {x, y, z} coordinates of points
   /// \return 3D distance between two points
   template <typename T, typename U>
-  static auto distance(const T& point1, const U& point2)
+  static double distance(const T& point1, const U& point2)
   {
     return sqrtSumOfSquares(point1[0] - point2[0], point1[1] - point2[1], point1[2] - point2[2]);
   }
@@ -137,7 +137,7 @@ class RecoDecay
   /// \param point1,point2  {x, y, z} or {x, y} coordinates of points
   /// \return 2D {x, y} distance between two points
   template <typename T, typename U>
-  static auto distanceXY(const T& point1, const U& point2)
+  static double distanceXY(const T& point1, const U& point2)
   {
     return sqrtSumOfSquares(point1[0] - point2[0], point1[1] - point2[1]);
   }
@@ -148,7 +148,7 @@ class RecoDecay
   /// \param mom  3-momentum array
   /// \return pseudorapidity
   template <typename T>
-  static auto Eta(const array<T, 3>& mom)
+  static double Eta(const array<T, 3>& mom)
   {
     // eta = arctanh(pz/p)
     if (std::abs(mom[0]) < Almost0 && std::abs(mom[1]) < Almost0) { // very small px and py
@@ -162,7 +162,7 @@ class RecoDecay
   /// \param mass  mass
   /// \return rapidity
   template <typename T, typename U>
-  static auto Y(const array<T, 3>& mom, U mass)
+  static double Y(const array<T, 3>& mom, U mass)
   {
     // y = arctanh(pz/E)
     return std::atanh(mom[2] / E(mom, mass));
@@ -174,7 +174,7 @@ class RecoDecay
   /// \param mom  3-momentum array
   /// \return cosine of pointing angle
   template <typename T, typename U, typename V>
-  static auto CPA(const array<T, 3>& posPV, const array<U, 3>& posSV, const array<V, 3>& mom)
+  static double CPA(const array<T, 3>& posPV, const array<U, 3>& posSV, const array<V, 3>& mom)
   {
     // CPA = (l . p)/(|l| |p|)
     auto lineDecay = array{posSV[0] - posPV[0], posSV[1] - posPV[1], posSV[2] - posPV[2]};
@@ -194,7 +194,7 @@ class RecoDecay
   /// \param mom  {x, y, z} or {x, y} momentum array
   /// \return cosine of pointing angle in {x, y}
   template <std::size_t N, std::size_t O, std::size_t P, typename T, typename U, typename V>
-  static auto CPAXY(const array<T, N>& posPV, const array<U, O>& posSV, const array<V, P>& mom)
+  static double CPAXY(const array<T, N>& posPV, const array<U, O>& posSV, const array<V, P>& mom)
   {
     // CPAXY = (r . pT)/(|r| |pT|)
     auto lineDecay = array{posSV[0] - posPV[0], posSV[1] - posPV[1]};
@@ -216,7 +216,7 @@ class RecoDecay
   /// \param length  decay length
   /// \return proper lifetime times c
   template <typename T, typename U, typename V>
-  static auto Ct(const array<T, 3>& mom, U length, V mass)
+  static double Ct(const array<T, 3>& mom, U length, V mass)
   {
     // c t = l m c^2/(p c)
     return (double)length * (double)mass / P(mom);
@@ -230,7 +230,7 @@ class RecoDecay
   /// \param iProng  index of the prong
   /// \return cosine of θ* of the i-th prong
   template <typename T, typename U>
-  static auto CosThetaStarM(const array<array<T, 3>, 2>& arrMom, const array<U, 2>& arrMass, int iProng)
+  static double CosThetaStarM(const array<array<T, 3>, 2>& arrMom, const array<U, 2>& arrMass, int iProng)
   {
     auto eProng = E(arrMom[iProng], arrMass[iProng]);                                                                      // energy of the prong
     auto pVecTot = PVec(arrMom[0], arrMom[1]);                                                                             // momentum of the 2-prong system
@@ -256,7 +256,7 @@ class RecoDecay
   /// \param iProng  index of the prong
   /// \return cosine of θ* of the i-th prong
   template <typename T, typename U>
-  static auto CosThetaStarD(const array<array<T, 3>, 2>& arrMom, const array<U, 2>& arrMass, int iProng)
+  static double CosThetaStarD(const array<array<T, 3>, 2>& arrMom, const array<U, 2>& arrMass, int iProng)
   {
     auto eProng = E(arrMom[iProng], arrMass[iProng]);                                                                      // energy of the prong
     auto pVecTot = PVec(arrMom[0], arrMom[1]);                                                                             // momentum of the 2-prong system
@@ -283,7 +283,7 @@ class RecoDecay
   /// \param iProng  index of the prong
   /// \return cosine of θ* of the i-th prong under the assumption of the invariant mass
   template <typename T, typename U, typename V>
-  static auto CosThetaStarA(const array<array<T, 3>, 2>& arrMom, const array<U, 2>& arrMass, V mTot, int iProng)
+  static double CosThetaStarA(const array<array<T, 3>, 2>& arrMom, const array<U, 2>& arrMass, V mTot, int iProng)
   {
     auto pVecTot = PVec(arrMom[0], arrMom[1]);                                                                             // momentum of the mother particle
     auto pTot = P(pVecTot);                                                                                                // magnitude of the momentum of the mother particle
@@ -311,7 +311,7 @@ class RecoDecay
   /// Calculates momentum squared from momentum components.
   /// \param px,py,pz  {x, y, z} momentum components
   /// \return momentum squared
-  static auto P2(double px, double py, double pz)
+  static double P2(double px, double py, double pz)
   {
     return sumOfSquares(px, py, pz);
   }
@@ -320,7 +320,7 @@ class RecoDecay
   /// \param args  pack of 3-momentum arrays
   /// \return total momentum squared
   template <typename... T>
-  static auto P2(const array<T, 3>&... args)
+  static double P2(const array<T, 3>&... args)
   {
     return sumOfSquares(getElement(0, args...), getElement(1, args...), getElement(2, args...));
   }
@@ -329,7 +329,7 @@ class RecoDecay
   /// \param args  {x, y, z} momentum components or pack of 3-momentum arrays
   /// \return (total) momentum magnitude
   template <typename... T>
-  static auto P(const T&... args)
+  static double P(const T&... args)
   {
     return std::sqrt(P2(args...));
   }
@@ -337,7 +337,7 @@ class RecoDecay
   /// Calculates transverse momentum squared from momentum components.
   /// \param px,py  {x, y} momentum components
   /// \return transverse momentum squared
-  static auto Pt2(double px, double py)
+  static double Pt2(double px, double py)
   {
     return sumOfSquares(px, py);
   }
@@ -346,7 +346,7 @@ class RecoDecay
   /// \param args  pack of 3-(or 2-)momentum arrays
   /// \return total transverse momentum squared
   template <std::size_t N, typename... T>
-  static auto Pt2(const array<T, N>&... args)
+  static double Pt2(const array<T, N>&... args)
   {
     return sumOfSquares(getElement(0, args...), getElement(1, args...));
   }
@@ -355,7 +355,7 @@ class RecoDecay
   /// \param args  {x, y} momentum components or pack of 3-momentum arrays
   /// \return (total) transverse momentum
   template <typename... T>
-  static auto Pt(const T&... args)
+  static double Pt(const T&... args)
   {
     return std::sqrt(Pt2(args...));
   }
@@ -365,7 +365,7 @@ class RecoDecay
   /// \param args  {x, y, z} momentum components, mass
   /// \return energy squared
   template <typename... T>
-  static auto E2(T... args)
+  static double E2(T... args)
   {
     return sumOfSquares(args...);
   }
@@ -375,7 +375,7 @@ class RecoDecay
   /// \param mass  mass
   /// \return energy squared
   template <typename T, typename U>
-  static auto E2(const array<T, 3>& mom, U mass)
+  static double E2(const array<T, 3>& mom, U mass)
   {
     return E2(mom[0], mom[1], mom[2], mass);
   }
@@ -386,7 +386,7 @@ class RecoDecay
   /// \param args  3-momentum array, mass
   /// \return energy
   template <typename... T>
-  static auto E(const T&... args)
+  static double E(const T&... args)
   {
     return std::sqrt(E2(args...));
   }
@@ -395,7 +395,7 @@ class RecoDecay
   /// \param mom  momentum magnitude
   /// \param energy  energy
   /// \return invariant mass squared
-  static auto M2(double mom, double energy)
+  static double M2(double mom, double energy)
   {
     return energy * energy - mom * mom;
   }
@@ -405,7 +405,7 @@ class RecoDecay
   /// \param energy  energy
   /// \return invariant mass squared
   template <typename T>
-  static auto M2(const array<T, 3>& mom, double energy)
+  static double M2(const array<T, 3>& mom, double energy)
   {
     return energy * energy - P2(mom);
   }
@@ -416,7 +416,7 @@ class RecoDecay
   /// \param arrMass  array of N masses (in the same order as arrMom)
   /// \return invariant mass squared
   template <std::size_t N, typename T, typename U>
-  static auto M2(const array<array<T, 3>, N>& arrMom, const array<U, N>& arrMass)
+  static double M2(const array<array<T, 3>, N>& arrMom, const array<U, N>& arrMass)
   {
     array<double, 3> momTotal{0., 0., 0.}; // candidate momentum vector
     double energyTot{0.};                  // candidate energy
@@ -435,7 +435,7 @@ class RecoDecay
   /// \param args  array of momenta, array of masses
   /// \return invariant mass
   template <typename... T>
-  static auto M(const T&... args)
+  static double M(const T&... args)
   {
     return std::sqrt(M2(args...));
   }
@@ -443,7 +443,7 @@ class RecoDecay
   /// Returns particle mass based on PDG code.
   /// \param pdg  PDG code
   /// \return particle mass
-  static auto getMassPDG(int pdg)
+  static double getMassPDG(int pdg)
   {
     // Try to get the particle mass from the list first.
     for (const auto& particle : mListMass) {
