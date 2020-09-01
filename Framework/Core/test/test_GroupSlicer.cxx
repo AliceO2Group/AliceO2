@@ -229,3 +229,52 @@ BOOST_AUTO_TEST_CASE(GroupSlicerMismatchedGroups)
     ++count;
   }
 }
+
+BOOST_AUTO_TEST_CASE(GroupSlicerMismatchedFilteredGroups)
+{
+  TableBuilder builderE;
+  auto evtsWriter = builderE.cursor<aod::Events>();
+  for (auto i = 0; i < 20; ++i) {
+    evtsWriter(0, 0.5f * i, 2.f * i, 3.f * i);
+  }
+  auto evtTable = builderE.finalize();
+
+  TableBuilder builderT;
+  auto trksWriter = builderT.cursor<aod::TrksX>();
+  for (auto i = 0; i < 20; ++i) {
+    if (i == 3 || i == 10 || i == 12 || i == 16) {
+      continue;
+    }
+    for (auto j = 0.f; j < 5; j += 0.5f) {
+      trksWriter(0, i, 0.5f * j);
+    }
+  }
+  auto trkTable = builderT.finalize();
+  using FilteredEvents = soa::Filtered<aod::Events>;
+  soa::SelectionVector rows{2, 4, 10, 9, 15};
+  FilteredEvents e{{evtTable}, {2, 4, 10, 9, 15}};
+  aod::TrksX t{trkTable};
+  BOOST_CHECK_EQUAL(e.size(), 5);
+  BOOST_CHECK_EQUAL(t.size(), 10 * (20 - 4));
+
+  auto tt = std::make_tuple(t);
+  o2::framework::AnalysisDataProcessorBuilder::GroupSlicer g(e, tt);
+
+  unsigned int count = 0;
+
+  for (auto& slice : g) {
+    auto as = slice.associatedTables();
+    auto gg = slice.groupingElement();
+    BOOST_CHECK_EQUAL(gg.globalIndex(), rows[count]);
+    auto trks = std::get<aod::TrksX>(as);
+    if (rows[count] == 3 || rows[count] == 10 || rows[count] == 12 || rows[count] == 16) {
+      BOOST_CHECK_EQUAL(trks.size(), 0);
+    } else {
+      BOOST_CHECK_EQUAL(trks.size(), 10);
+    }
+    for (auto& trk : trks) {
+      BOOST_CHECK_EQUAL(trk.eventId(), rows[count]);
+    }
+    ++count;
+  }
+}
