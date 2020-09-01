@@ -8,7 +8,7 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-/// \file taskdzero.h
+/// \file taskD0.cxx
 /// \brief D0 analysis task
 ///
 /// \author Gian Michele Innocenti <gian.michele.innocenti@cern.ch>, CERN
@@ -17,21 +17,12 @@
 #include "Framework/runDataProcessing.h"
 #include "Framework/AnalysisTask.h"
 #include "Analysis/SecondaryVertexHF.h"
-#include "DetectorsVertexing/DCAFitterN.h"
-#include "ReconstructionDataFormats/Track.h"
 #include "Analysis/CandidateSelectionTables.h"
-
-#include <TFile.h>
-#include <TH1F.h>
-#include <cmath>
-#include <array>
-#include <cstdlib>
 
 using namespace o2;
 using namespace o2::framework;
 using namespace o2::aod::hf_cand_prong2;
 using namespace o2::framework::expressions;
-using std::array;
 
 /// D0 analysis task
 struct TaskD0 {

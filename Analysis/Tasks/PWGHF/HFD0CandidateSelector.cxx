@@ -15,22 +15,12 @@
 
 #include "Framework/runDataProcessing.h"
 #include "Framework/AnalysisTask.h"
-#include "Framework/AnalysisDataModel.h"
-#include "Framework/ASoAHelpers.h"
 #include "Analysis/SecondaryVertexHF.h"
 #include "Analysis/CandidateSelectionTables.h"
-#include "Analysis/RecoDecay.h"
-#include "PID/PIDResponse.h"
-
-#include <cmath>
-#include <array>
-#include <cstdlib>
 
 using namespace o2;
 using namespace o2::framework;
-using namespace o2::framework::expressions;
 using namespace o2::aod::hf_cand_prong2;
-using std::array;
 
 static const int npTBins = 25;
 static const int nCutVars = 11;
@@ -114,7 +104,7 @@ struct HFD0CandidateSelector {
   }
 
   /// Conjugate independent toplogical cuts
-  /// \param hfcandprong2 is candidate
+  /// \param hfCandProng2 is candidate
   /// \return true if candidate passes all cuts
   template <typename T>
   bool selectionTopol(const T& hfCandProng2)
@@ -185,7 +175,7 @@ struct HFD0CandidateSelector {
     if (TMath::Abs(trackPion.pt()) < TMath::Abs(cuts[pTBin][4]) || TMath::Abs(trackKaon.pt()) < TMath::Abs(cuts[pTBin][3])) {
       return false; //cut on daughter pT
     }
-    if (TMath::Abs(trackPion.dcaprim0()) > cuts[pTBin][6] || TMath::Abs(trackKaon.dcaprim0()) > cuts[pTBin][5]) {
+    if (TMath::Abs(trackPion.dcaPrim0()) > cuts[pTBin][6] || TMath::Abs(trackKaon.dcaPrim0()) > cuts[pTBin][5]) {
       return false; //cut on daughter dca - need to add secondary vertex constraint here
     }
 
@@ -231,7 +221,7 @@ struct HFD0CandidateSelector {
 
   /// Check if track is compatible with given TPC Nsigma cut for a given flavour hypothesis
   /// \param track is the track
-  /// \param nPDG is the flavour hypothesis pdg number
+  /// \param nPDG is the flavour hypothesis PDG number
   /// \param nSigmaCut is the nsigma threshold to test against
   /// \note nPDG=211 pion  nPDG=321 kaon
   /// \return true if track satisfies TPC PID hypothesis for given Nsigma cut
@@ -256,7 +246,7 @@ struct HFD0CandidateSelector {
 
   /// Check if track is compatible with given TOF NSigma cut for a given flavour hypothesis
   /// \param track is the track
-  /// \param nPDG is the flavour hypothesis pdg number
+  /// \param nPDG is the flavour hypothesis PDG number
   /// \param nSigmaCut is the nSigma threshold to test against
   /// \note nPDG=211 pion  nPDG=321 kaon
   /// \return true if track satisfies TOF PID hypothesis for given NSigma cut
@@ -279,9 +269,9 @@ struct HFD0CandidateSelector {
 
   /// PID selection on daughter track
   /// \param track is the daughter track
-  /// \param nPDG is the pdg code of the flavour hypothesis
+  /// \param nPDG is the PDG code of the flavour hypothesis
   /// \note nPDG=211 pion  nPDG=321 kaon
-  /// \return 1 if succesful PID match, 0 if sucessful PID rejection, -1 if no PID info
+  /// \return 1 if successful PID match, 0 if successful PID rejection, -1 if no PID info
   template <typename T>
   int selectionPID(const T& track, int nPDG)
   {

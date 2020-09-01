@@ -8,7 +8,7 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-/// \file hfcandidatecreator2prong.cxx
+/// \file HFCandidateCreator2Prong.cxx
 /// \brief Reconstruction of heavy-flavour 2-prong decay candidates
 ///
 /// \author Gian Michele Innocenti <gian.michele.innocenti@cern.ch>, CERN
@@ -20,15 +20,9 @@
 #include "Analysis/SecondaryVertexHF.h"
 #include "Analysis/trackUtilities.h"
 #include "ReconstructionDataFormats/DCA.h"
-#include "Analysis/RecoDecay.h"
-#include "PID/PIDResponse.h"
-#include <cmath>
-#include <array>
-#include <cstdlib>
 
 using namespace o2;
 using namespace o2::framework;
-using std::array;
 
 /// Reconstruction of heavy-flavour 2-prong decay candidates
 struct HFCandidateCreator2Prong {
