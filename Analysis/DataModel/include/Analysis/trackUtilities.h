@@ -16,8 +16,6 @@
 #ifndef O2_ANALYSIS_TRACKUTILITIES_H_
 #define O2_ANALYSIS_TRACKUTILITIES_H_
 
-#include <cmath>
-
 #include "ReconstructionDataFormats/Track.h"
 #include "ReconstructionDataFormats/Vertex.h"
 #include "Analysis/RecoDecay.h"
