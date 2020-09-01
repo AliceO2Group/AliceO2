@@ -10,6 +10,7 @@
 
 add_subdirectory(PWGCF)
 add_subdirectory(PWGDQ)
+add_subdirectory(PWGHF)
 
 o2_add_dpl_workflow(trackselection
                     SOURCES trackselection.cxx
@@ -31,30 +32,11 @@ o2_add_dpl_workflow(correlations-mixed
                     PUBLIC_LINK_LIBRARIES O2::Framework O2::AnalysisCore
                     COMPONENT_NAME Analysis)
 
-o2_add_dpl_workflow(vertexing-hf
-                    SOURCES vertexerhf.cxx
-                    PUBLIC_LINK_LIBRARIES O2::Framework O2::AnalysisDataModel O2::DetectorsVertexing
-                    COMPONENT_NAME Analysis)
-
-o2_add_dpl_workflow(hftrackindexskimscreator
-                    SOURCES hftrackindexskimscreator.cxx
-                    PUBLIC_LINK_LIBRARIES O2::Framework O2::AnalysisDataModel O2::AnalysisCore O2::DetectorsVertexing ROOT::EG
-                    COMPONENT_NAME Analysis)
-
-o2_add_dpl_workflow(hfcandidatecreator2prong
-                    SOURCES hfcandidatecreator2prong.cxx
-                    PUBLIC_LINK_LIBRARIES O2::Framework O2::AnalysisDataModel O2::AnalysisCore O2::DetectorsVertexing ROOT::EG
-                    COMPONENT_NAME Analysis)
-
-o2_add_dpl_workflow(taskdzero
-                    SOURCES taskdzero.cxx
-                    PUBLIC_LINK_LIBRARIES O2::Framework O2::AnalysisDataModel O2::DetectorsVertexing
-                    COMPONENT_NAME Analysis)
-
 o2_add_dpl_workflow(qatask
-                  SOURCES qaTask.cxx
-                  PUBLIC_LINK_LIBRARIES O2::Framework O2::AnalysisDataModel O2::AnalysisCore
-                  COMPONENT_NAME Analysis)
+                    SOURCES qaTask.cxx
+                    PUBLIC_LINK_LIBRARIES O2::Framework O2::AnalysisDataModel O2::AnalysisCore
+                    COMPONENT_NAME Analysis)
+
 o2_add_dpl_workflow(spectra-tof
                     SOURCES spectraTOF.cxx
                     PUBLIC_LINK_LIBRARIES O2::Framework O2::DetectorsBase O2::AnalysisDataModel

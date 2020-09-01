@@ -56,6 +56,7 @@ DECLARE_SOA_COLUMN(XSecondaryVertex, xSecondaryVertex, float);
 DECLARE_SOA_COLUMN(YSecondaryVertex, ySecondaryVertex, float);
 DECLARE_SOA_COLUMN(ZSecondaryVertex, zSecondaryVertex, float);
 DECLARE_SOA_DYNAMIC_COLUMN(RSecondaryVertex, rSecondaryVertex, [](float xVtxS, float yVtxS) { return RecoDecay::sqrtSumOfSquares(xVtxS, yVtxS); });
+DECLARE_SOA_COLUMN(Chi2PCA, chi2PCA, float); // sum of (non-weighted) distances of the secondary vertex to its prongs
 // prong properties
 DECLARE_SOA_COLUMN(PxProng0, pxProng0, float);
 DECLARE_SOA_COLUMN(PyProng0, pyProng0, float);
@@ -108,7 +109,6 @@ DECLARE_SOA_DYNAMIC_COLUMN(Ct, ct, [](float xVtxP, float yVtxP, float zVtxP, flo
 // specific 2-prong decay properties
 namespace hf_cand_prong2
 {
-DECLARE_SOA_COLUMN(DCA, dca, float);
 DECLARE_SOA_EXPRESSION_COLUMN(Px, px, float, 1.f * aod::hf_cand::pxProng0 + 1.f * aod::hf_cand::pxProng1);
 DECLARE_SOA_EXPRESSION_COLUMN(Py, py, float, 1.f * aod::hf_cand::pyProng0 + 1.f * aod::hf_cand::pyProng1);
 DECLARE_SOA_EXPRESSION_COLUMN(Pz, pz, float, 1.f * aod::hf_cand::pzProng0 + 1.f * aod::hf_cand::pzProng1);
@@ -122,43 +122,43 @@ DECLARE_SOA_DYNAMIC_COLUMN(CosThetaStar, cosThetaStar, [](float px0, float py0, 
 // D0(bar) → π± K∓
 
 template <typename T>
-auto CtD0(T candidate)
+auto CtD0(const T& candidate)
 {
   return candidate.ct(RecoDecay::getMassPDG(421));
 }
 
 template <typename T>
-auto YD0(T candidate)
+auto YD0(const T& candidate)
 {
   return candidate.y(RecoDecay::getMassPDG(421));
 }
 
 template <typename T>
-auto ED0(T candidate)
+auto ED0(const T& candidate)
 {
   return candidate.e(RecoDecay::getMassPDG(421));
 }
 
 template <typename T>
-auto InvMassD0(T candidate)
+auto InvMassD0(const T& candidate)
 {
   return candidate.m(array{RecoDecay::getMassPDG(kPiPlus), RecoDecay::getMassPDG(kKPlus)});
 }
 
 template <typename T>
-auto InvMassD0bar(T candidate)
+auto InvMassD0bar(const T& candidate)
 {
   return candidate.m(array{RecoDecay::getMassPDG(kKPlus), RecoDecay::getMassPDG(kPiPlus)});
 }
 
 template <typename T>
-auto CosThetaStarD0(T candidate)
+auto CosThetaStarD0(const T& candidate)
 {
   return candidate.cosThetaStar(array{RecoDecay::getMassPDG(kPiPlus), RecoDecay::getMassPDG(kKPlus)}, RecoDecay::getMassPDG(421), 1);
 }
 
 template <typename T>
-auto CosThetaStarD0bar(T candidate)
+auto CosThetaStarD0bar(const T& candidate)
 {
   return candidate.cosThetaStar(array{RecoDecay::getMassPDG(kKPlus), RecoDecay::getMassPDG(kPiPlus)}, RecoDecay::getMassPDG(421), 0);
 }
@@ -168,6 +168,7 @@ DECLARE_SOA_TABLE(HfCandBase, "AOD", "HFCANDBASE",
                   collision::PosX, collision::PosY, collision::PosZ,
                   hf_cand::XSecondaryVertex, hf_cand::YSecondaryVertex, hf_cand::ZSecondaryVertex,
                   hf_cand::ErrorDecayLength, hf_cand::ErrorDecayLengthXY,
+                  hf_cand::Chi2PCA,
                   /* dynamic columns */
                   hf_cand::RSecondaryVertex<hf_cand::XSecondaryVertex, hf_cand::YSecondaryVertex>,
                   hf_cand::ImpactParameterNormalised0<hf_cand::ImpactParameter0, hf_cand::ErrorImpactParameter0>,
@@ -188,7 +189,6 @@ DECLARE_SOA_TABLE(HfCandBase, "AOD", "HFCANDBASE",
                   hf_cand::PxProng1, hf_cand::PyProng1, hf_cand::PzProng1,
                   hf_cand::ImpactParameter0, hf_cand::ImpactParameter1,
                   hf_cand::ErrorImpactParameter0, hf_cand::ErrorImpactParameter1,
-                  hf_cand_prong2::DCA,
                   /* dynamic columns */
                   hf_cand_prong2::ImpactParameterProduct<hf_cand::ImpactParameter0, hf_cand::ImpactParameter1>,
                   hf_cand_prong2::M<hf_cand::PxProng0, hf_cand::PyProng0, hf_cand::PzProng0, hf_cand::PxProng1, hf_cand::PyProng1, hf_cand::PzProng1>,

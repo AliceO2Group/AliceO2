@@ -56,7 +56,7 @@ class RecoDecay
   /// \param num  a number of arbitrary type
   /// \return number squared
   template <typename T>
-  auto static sq(T num)
+  static auto sq(T num)
   {
     return (double)num * (double)num;
   }
@@ -128,7 +128,7 @@ class RecoDecay
   /// \param point1,point2  {x, y, z} coordinates of points
   /// \return 3D distance between two points
   template <typename T, typename U>
-  static auto distance(const array<T, 3>& point1, const array<U, 3>& point2)
+  static auto distance(const T& point1, const U& point2)
   {
     return sqrtSumOfSquares(point1[0] - point2[0], point1[1] - point2[1], point1[2] - point2[2]);
   }
@@ -136,8 +136,8 @@ class RecoDecay
   /// Calculates 2D {x, y} distance between two points.
   /// \param point1,point2  {x, y, z} or {x, y} coordinates of points
   /// \return 2D {x, y} distance between two points
-  template <std::size_t N, std::size_t O, typename T, typename U>
-  static auto distanceXY(const array<T, N>& point1, const array<U, O>& point2)
+  template <typename T, typename U>
+  static auto distanceXY(const T& point1, const U& point2)
   {
     return sqrtSumOfSquares(point1[0] - point2[0], point1[1] - point2[1]);
   }
@@ -279,8 +279,8 @@ class RecoDecay
   /// \note AliRoot version
   /// \param arrMom  array of two 3-momentum arrays
   /// \param arrMass  array of two masses (in the same order as arrMom)
-  /// \param iProng  index of the prong
   /// \param mTot  assumed mass of mother particle
+  /// \param iProng  index of the prong
   /// \return cosine of θ* of the i-th prong under the assumption of the invariant mass
   template <typename T, typename U, typename V>
   static auto CosThetaStarA(const array<array<T, 3>, 2>& arrMom, const array<U, 2>& arrMass, V mTot, int iProng)
@@ -294,7 +294,7 @@ class RecoDecay
     // p* = √[(M^2 - m1^2 - m2^2)^2 - 4 m1^2 m2^2]/2M
     // Lorentz transformation of the longitudinal momentum of the prong into the detector frame:
     // p_L,i = γ (p*_L,i + β E*_i)
-    // p*_L,i = p_L,i/γ - β E*_i)
+    // p*_L,i = p_L,i/γ - β E*_i
     // cos(θ*_i) = (p_L,i/γ - β E*_i)/p*
     return (dotProd(arrMom[iProng], pVecTot) / (pTot * gamma) - beta * E(pStar, arrMass[iProng])) / pStar;
   }

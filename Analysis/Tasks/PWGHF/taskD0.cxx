@@ -24,7 +24,7 @@ using namespace o2::aod::hf_cand_prong2;
 using std::array;
 
 /// D0 analysis task
-struct TaskDzero {
+struct TaskD0 {
   OutputObj<TH1F> hmass{TH1F("hmass", "2-track inv mass", 500, 0, 5.0)};
   OutputObj<TH1F> hptcand{TH1F("hptcand", "pt candidate", 100, 0, 10.0)};
   OutputObj<TH1F> hptprong0{TH1F("hptprong0", "pt prong0", 100, 0, 10.0)};
@@ -60,5 +60,5 @@ struct TaskDzero {
 WorkflowSpec defineDataProcessing(ConfigContext const&)
 {
   return WorkflowSpec{
-    adaptAnalysisTask<TaskDzero>("hf-taskdzero")};
+    adaptAnalysisTask<TaskD0>("hf-task-d0")};
 }

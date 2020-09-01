@@ -69,6 +69,8 @@ struct HFCandidateCreator2Prong {
       if (df.process(trackParVarPos1, trackParVarNeg1) == 0)
         continue;
       const auto& secondaryVertex = df.getPCACandidate();
+      auto chi2PCA = df.getChi2AtPCACandidate();
+      auto covMatrixPCA = df.calcPCACovMatrix().Array();
       auto trackParVar0 = df.getTrack(0);
       auto trackParVar1 = df.getTrack(1);
 
@@ -86,25 +88,28 @@ struct HFCandidateCreator2Prong {
       // get track impact parameters
       // This modifies track momenta!
       auto primaryVertex = getPrimaryVertex(collision);
+      auto covMatrixPV = primaryVertex.getCov();
       o2::dataformats::DCA impactParameter0;
       o2::dataformats::DCA impactParameter1;
       trackParVar0.propagateToDCA(primaryVertex, magneticField, &impactParameter0);
       trackParVar1.propagateToDCA(primaryVertex, magneticField, &impactParameter1);
 
-      // TODO
-      float dcaDaughters = 0.;
-      float errorDecayLength = 1., errorDecayLengthXY = 1.;
+      // get uncertainty of the decay length
+      double phi, theta;
+      getPointDirection(array{collision.posX(), collision.posY(), collision.posZ()}, secondaryVertex, phi, theta);
+      auto errorDecayLength = std::sqrt(getRotatedCovMatrixXX(covMatrixPV, phi, theta) + getRotatedCovMatrixXX(covMatrixPCA, phi, theta));
+      auto errorDecayLengthXY = std::sqrt(getRotatedCovMatrixXX(covMatrixPV, phi, 0.) + getRotatedCovMatrixXX(covMatrixPCA, phi, 0.));
 
       // fill candidate table rows
       rowCandidateBase(collision.posX(), collision.posY(), collision.posZ(),
                        secondaryVertex[0], secondaryVertex[1], secondaryVertex[2],
-                       errorDecayLength, errorDecayLengthXY, //);
-                                                             //rowCandidateProng2Base( // TODO split table
+                       errorDecayLength, errorDecayLengthXY,
+                       chi2PCA, //);
+                                //rowCandidateProng2Base( // TODO split table
                        pvec0[0], pvec0[1], pvec0[2],
                        pvec1[0], pvec1[1], pvec1[2],
                        impactParameter0.getY(), impactParameter1.getY(),
-                       std::sqrt(impactParameter0.getSigmaY2()), std::sqrt(impactParameter1.getSigmaY2()),
-                       dcaDaughters);
+                       std::sqrt(impactParameter0.getSigmaY2()), std::sqrt(impactParameter1.getSigmaY2()));
 
       // fill histograms
       if (b_dovalplots) {
@@ -127,6 +132,6 @@ struct HFCandidateCreator2ProngExpressions {
 WorkflowSpec defineDataProcessing(ConfigContext const&)
 {
   return WorkflowSpec{
-    adaptAnalysisTask<HFCandidateCreator2Prong>("vertexerhf-hfcandcreator2prong"),
-    adaptAnalysisTask<HFCandidateCreator2ProngExpressions>("vertexerhf-hfcandcreator2prong-expressions")};
+    adaptAnalysisTask<HFCandidateCreator2Prong>("hf-cand-creator-2prong"),
+    adaptAnalysisTask<HFCandidateCreator2ProngExpressions>("hf-cand-creator-2prong-expressions")};
 }

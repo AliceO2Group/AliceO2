@@ -8,7 +8,6 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 #include "Framework/AnalysisDataModel.h"
-#include "Analysis/SecondaryVertex.h"
 #include "Analysis/SecondaryVertexHF.h"
 #include "PID/PIDResponse.h"
 #include "Analysis/Multiplicity.h"
@@ -167,8 +166,6 @@ edge[dir=back, arrowtail=empty]
   dumpTable<FV0s>();
   dumpTable<FDDs>();
   dumpTable<Timestamps>();
-  dumpTable<SecVtx2Prong>(true, StyleType::GREEN);
-  dumpTable<Cand2Prong>(true, StyleType::GREEN);
   dumpTable<HfTrackIndexProng2>(true, StyleType::GREEN);
   dumpTable<HfTrackIndexProng3>(true, StyleType::GREEN);
 
