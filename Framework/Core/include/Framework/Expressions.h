@@ -205,6 +205,42 @@ inline Node operator!=(Node left, T rightValue)
   return Node{OpNode{BasicOp::NotEqual}, std::move(left), LiteralNode{rightValue}};
 }
 
+template <typename T>
+inline Node operator>(Node left, Configurable<T> rightValue)
+{
+  return Node{OpNode{BasicOp::GreaterThan}, std::move(left), PlaceholderNode{rightValue}};
+}
+
+template <typename T>
+inline Node operator<(Node left, Configurable<T> rightValue)
+{
+  return Node{OpNode{BasicOp::LessThan}, std::move(left), PlaceholderNode{rightValue}};
+}
+
+template <typename T>
+inline Node operator>=(Node left, Configurable<T> rightValue)
+{
+  return Node{OpNode{BasicOp::GreaterThanOrEqual}, std::move(left), PlaceholderNode{rightValue}};
+}
+
+template <typename T>
+inline Node operator<=(Node left, Configurable<T> rightValue)
+{
+  return Node{OpNode{BasicOp::LessThanOrEqual}, std::move(left), PlaceholderNode{rightValue}};
+}
+
+template <typename T>
+inline Node operator==(Node left, Configurable<T> rightValue)
+{
+  return Node{OpNode{BasicOp::Equal}, std::move(left), PlaceholderNode{rightValue}};
+}
+
+template <typename T>
+inline Node operator!=(Node left, Configurable<T> rightValue)
+{
+  return Node{OpNode{BasicOp::NotEqual}, std::move(left), PlaceholderNode{rightValue}};
+}
+
 /// node comparisons
 inline Node operator>(Node left, Node right)
 {
@@ -357,6 +393,54 @@ template <typename T>
 inline Node operator-(T left, Node right)
 {
   return Node{OpNode{BasicOp::Subtraction}, LiteralNode{left}, std::move(right)};
+}
+
+template <typename T>
+inline Node operator*(Node left, Configurable<T> right)
+{
+  return Node{OpNode{BasicOp::Multiplication}, std::move(left), PlaceholderNode{right}};
+}
+
+template <typename T>
+inline Node operator*(Configurable<T> left, Node right)
+{
+  return Node{OpNode{BasicOp::Multiplication}, PlaceholderNode{left}, std::move(right)};
+}
+
+template <typename T>
+inline Node operator/(Node left, Configurable<T> right)
+{
+  return Node{OpNode{BasicOp::Division}, std::move(left), PlaceholderNode{right}};
+}
+
+template <typename T>
+inline Node operator/(Configurable<T> left, Node right)
+{
+  return Node{OpNode{BasicOp::Division}, PlaceholderNode{left}, std::move(right)};
+}
+
+template <typename T>
+inline Node operator+(Node left, Configurable<T> right)
+{
+  return Node{OpNode{BasicOp::Addition}, std::move(left), PlaceholderNode{right}};
+}
+
+template <typename T>
+inline Node operator+(Configurable<T> left, Node right)
+{
+  return Node{OpNode{BasicOp::Addition}, PlaceholderNode{left}, std::move(right)};
+}
+
+template <typename T>
+inline Node operator-(Node left, Configurable<T> right)
+{
+  return Node{OpNode{BasicOp::Subtraction}, std::move(left), PlaceholderNode{right}};
+}
+
+template <typename T>
+inline Node operator-(Configurable<T> left, Node right)
+{
+  return Node{OpNode{BasicOp::Subtraction}, PlaceholderNode{left}, std::move(right)};
 }
 /// semi-binary
 template <typename T>
