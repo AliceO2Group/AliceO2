@@ -263,7 +263,7 @@ AlgorithmSpec AODReaderHelpers::rootFileReaderCallback()
       tableMaker(o2::aod::StoredTracksCovMetadata{}, AODTypeMask::TrackCov, "O2track");
       tableMaker(o2::aod::TracksExtraMetadata{}, AODTypeMask::TrackExtra, "O2track");
       tableMaker(o2::aod::CalosMetadata{}, AODTypeMask::Calo, "O2calo");
-      tableMaker(o2::aod::CaloTriggersMetadata{}, AODTypeMask::Calo, "O2calotrigger");
+      tableMaker(o2::aod::CaloTriggersMetadata{}, AODTypeMask::CaloTrigger, "O2calotrigger");
       tableMaker(o2::aod::StoredMuonsMetadata{}, AODTypeMask::Muon, "O2muon");
       tableMaker(o2::aod::MuonClustersMetadata{}, AODTypeMask::Muon, "O2muoncluster");
       tableMaker(o2::aod::ZdcsMetadata{}, AODTypeMask::Zdc, "O2zdc");
