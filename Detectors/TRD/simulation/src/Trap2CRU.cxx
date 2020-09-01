@@ -173,10 +173,10 @@ uint32_t Trap2CRU::buildCRUHeader(HalfCRUHeader& header, uint32_t bc, uint32_t h
   int linkrecord = startlinkrecord;
   int totallinkdatasize = 0; //in units of 256bits
   for (int link = 0; link < NLinksPerHalfCRU; link++) {
-    int hcid = link + halfcru * NLinksPerHalfCRU; // TODO this might have to change to a lut I dont think the mapping is linear.
+    int linkid = link + halfcru * NLinksPerHalfCRU; // TODO this might have to change to a lut I dont think the mapping is linear.
     int errors = 0;
     int linksize = 0; // linkSizePadding will convert it to 1 for the no data case.
-    if (mLinkRecords[linkrecord].getLinkHCID() == hcid) {
+    if (mLinkRecords[linkrecord].getLinkId() == linkid) {
       linksize = mLinkRecords[linkrecord].getNumberOfObjects();
       // this can be done differently by keeping a pointer to halfcruheader and setting it after reading it all in and going back per link to set the size.
       LOG(debug3) << "setting CRU HEADER for halfcru : " << halfcru << "and link : " << link << " contents" << header << ":" << link << ":" << linksize << ":" << errors;
@@ -234,26 +234,26 @@ void Trap2CRU::convertTrapData(o2::trd::TriggerRecord const& TrigRecord)
     int linkdatasize = 0; // in 32 bit words
     int link = halfcru / 2;
     for (int halfcrulink = 0; halfcrulink < NLinksPerHalfCRU; halfcrulink++) {
-      //links run from 0 to 14, so hcid offset is halfcru*15;
-      int hcid = halfcrulink + halfcru * NLinksPerHalfCRU;
-      LOG(debug) << "Currently checking for data on hcid : " << hcid << " from halfcru=" << halfcru << " and halfcrulink:" << halfcrulink << " ?? " << hcid << "==" << mLinkRecords[currentlinkrecord].getLinkHCID();
+      //links run from 0 to 14, so linkid offset is halfcru*15;
+      int linkid = halfcrulink + halfcru * NLinksPerHalfCRU;
+      LOG(debug) << "Currently checking for data on linkid : " << linkid << " from halfcru=" << halfcru << " and halfcrulink:" << halfcrulink << " ?? " << linkid << "==" << mLinkRecords[currentlinkrecord].getLinkId();
       int errors = 0;           // put no errors in for now.
       int size = 0;             // in 32 bit words
       int datastart = 0;        // in 32 bit words
       int dataend = 0;          // in 32 bit words
       uint32_t paddingsize = 0; // in 32 bit words
       uint32_t crudatasize = 0; // in 256 bit words.
-      if (mLinkRecords[currentlinkrecord].getLinkHCID() == hcid) {
+      if (mLinkRecords[currentlinkrecord].getLinkId() == linkid) {
         //this link has data in the stream.
-        LOG(debug) << "+++ We have data on hcid = " << hcid << " halfcrulink : " << halfcrulink;
+        LOG(debug) << "+++ We have data on linkid = " << linkid << " halfcrulink : " << halfcrulink;
         linkdatasize = mLinkRecords[currentlinkrecord].getNumberOfObjects();
         datastart = mLinkRecords[currentlinkrecord].getFirstEntry();
         dataend = datastart + size;
-        LOG(debug) << "We have data on hcid = " << hcid << " and linksize : " << linkdatasize << " so :" << linkdatasize / 8 << " 256 bit words";
+        LOG(debug) << "We have data on linkid = " << linkid << " and linksize : " << linkdatasize << " so :" << linkdatasize / 8 << " 256 bit words";
         currentlinkrecord++;
       } else {
-        assert(mLinkRecords[currentlinkrecord].getLinkId() < hcid);
-        LOG(debug) << "---We do not have data on hcid = " << hcid << " halfcrulink : " << halfcrulink;
+        assert(mLinkRecords[currentlinkrecord].getLinkId() < linkid);
+        LOG(debug) << "---We do not have data on linkid = " << linkid << " halfcrulink : " << halfcrulink;
         //blank data for this link
         // put in a 1 256 bit word of data for the link and padd with 0xeeee x 8
         linkdatasize = 0;

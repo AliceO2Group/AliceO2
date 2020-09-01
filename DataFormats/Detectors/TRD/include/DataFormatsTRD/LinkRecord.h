@@ -23,6 +23,19 @@ namespace o2
 namespace trd
 {
 
+struct LinkId {
+ public:
+  union {
+    uint16_t word;
+    struct {
+      uint16_t spare : 4;
+      uint16_t side : 1;
+      uint16_t layer : 3;
+      uint16_t stack : 3;
+      uint16_t supermodule : 5;
+    };
+  };
+};
 /// \class LinkRecord
 /// \brief Header for data corresponding to the indexing of the links in the raw data output
 /// adapted from DataFormatsTRD/TriggerRecord
@@ -32,32 +45,46 @@ class LinkRecord
 
  public:
   LinkRecord() = default;
-  LinkRecord(const uint32_t hcid, int firstentry, int nentries) : mLinkId(hcid), mDataRange(firstentry, nentries) {}
+  LinkRecord(const uint32_t linkid, int firstentry, int nentries) : mDataRange(firstentry, nentries) { mLinkId.word = linkid; }
+  // LinkRecord(const LinkRecord::LinkId linkid, int firstentry, int nentries) : mDataRange(firstentry, nentries) {mLinkId.word=linkid.word;}
+  LinkRecord(uint32_t sector, int stack, int layer, int side, int firstentry, int nentries) : mDataRange(firstentry, nentries) { setLinkId(sector, stack, layer, side); }
+
   ~LinkRecord() = default;
 
-  void setLinkId(const uint32_t linkid) { mLinkId = linkid; }
+  void setLinkId(const uint32_t linkid) { mLinkId.word = linkid; }
+  void setLinkId(const LinkId linkid) { mLinkId.word = linkid.word; }
+  void setLinkId(const uint32_t sector, const uint32_t stack, const uint32_t layer, const uint32_t side);
   void setDataRange(int firstentry, int nentries) { mDataRange.set(firstentry, nentries); }
   void setIndexFirstObject(int firstentry) { mDataRange.setFirstEntry(firstentry); }
   void setNumberOfObjects(int nentries) { mDataRange.setEntries(nentries); }
 
-  uint32_t getLinkId() { return mLinkId; }
-  uint32_t getLinkHCID() { return mLinkId & 0x7ff; } // the last 11 bits.
+  const uint32_t getLinkId() { return mLinkId.word; }
+  //TODO come backwith a ccdb lookup.  const uint32_t getLinkHCID() { return mLinkId & 0x7ff; } // the last 11 bits.
+  const uint32_t getSector() { return mLinkId.supermodule; }
+  const uint32_t getStack() { return mLinkId.stack; }
+  const uint32_t getLayer() { return mLinkId.layer; }
+  const uint32_t getSide() { return mLinkId.side; }
   int getNumberOfObjects() const { return mDataRange.getEntries(); }
   int getFirstEntry() const { return mDataRange.getFirstEntry(); }
+  static uint32_t getHalfChamberLinkId(uint32_t detector, uint32_t rob);
+  static uint32_t getHalfChamberLinkId(uint32_t sector, uint32_t stack, uint32_t layer, uint32_t side);
 
-  void printStream(std::ostream& stream) const;
+  void printStream(std::ostream& stream);
 
  private:
-  uint32_t mLinkId;     /// The link ID for this set of data, hcid as well
+  LinkId mLinkId;
   DataRange mDataRange; /// Index of the triggering event (event index and first entry in the container)
-
-  ClassDefNV(LinkRecord, 1);
+  ClassDefNV(LinkRecord, 2);
 };
 
-std::ostream& operator<<(std::ostream& stream, const LinkRecord& trg);
+std::ostream& operator<<(std::ostream& stream, LinkRecord& trg);
 
+extern void buildTrackletHCHeader(TrackletHCHeader& header, int sector, int stack, int layer, int side, int chipclock, int format);
+extern void buildTrakcletHCHeader(TrackletHCHeader& header, int detector, int rob, int chipclock, int format);
 } // namespace trd
 
 } // namespace o2
 
 #endif
+//extern void buildTrackletHCHeader(TrackletHCHeader& header, int sector, int stack, int layer, int side, int chipclock, int format)
+//extern void buildTrakcletlHCHeader(TrackletHCHeader& header, int detector, int rob, int chipclock, int format)

@@ -123,18 +123,23 @@ struct TrackletHCHeader {
   union {
     //             10987654321098765432109876543210
     // uint32_t:   00000000000000000000000000000000
-    //                 cccccccccccccccc iiiiiiiiiii
-    //             ffff|               y|
-    //             |   |               |------       0-10 half chamber id
-    //             |   |               ------------- 11 always 0x1
-    //             |   ----------------------------- 12-72 MCM Clock counter
+    //                 cccccccccccccccX LLL   SSSSS
+    //             ffff|              |y|  sss|
+    //             |   |              |||  |  |-----  0-4  supermodule
+    //             |   |              |||  |--------  5-7  stack
+    //             |   |              ||------------  8-10 layer
+    //             |   |              |------------- 11    always 0x1
+    //             |   |              |------------- 12 side of chamber
+    //             |   ----------------------------- 13-72 MCM Clock counter
     //             --------------------------------- 28-31 tracklet data format number
     uint32_t word;
-
     struct {
-      uint32_t HCID : 11; // half chamber id 0:1079
+      uint32_t supermodule : 5;
+      uint32_t stack : 3;
+      uint32_t layer : 3;
       uint32_t one : 1;   //always 1
-      uint32_t MCLK : 16; // MCM clock counter 120MHz ... for simulation -- incrementing, and same number in all for each event.
+      uint32_t side : 1;  // side of chamber
+      uint32_t MCLK : 15; // MCM clock counter 120MHz ... for simulation -- incrementing, and same number in all for each event.
       uint32_t format : 4;
       //  0 baseline PID 3 time slices, 7 bit each
       //  1 DO NOT USE ! reserved for tracklet end marker disambiguation
@@ -213,6 +218,8 @@ struct TRDFeeID {
   };
 };
 
+void buildTrackletHCHeader(TrackletHCHeader& header, int sector, int stack, int layer, int side, int chipclock, int format);
+void buildTrackletHCHeaderd(TrackletHCHeader& header, int detector, int rob, int chipclock, int format);
 uint16_t buildTRDFeeID(int supermodule, int side, int endpoint);
 uint32_t setHalfCRUHeader(HalfCRUHeader& cruhead, int crurdhversion, int bunchcrossing, int stopbits, int endpoint, int eventtype, int feeid, int cruid);
 uint32_t setHalfCRUHeaderLinkData(HalfCRUHeader& cruhead, int link, int size, int errors);

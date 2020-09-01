@@ -12,12 +12,34 @@
 #include <iostream>
 #include <iomanip>
 #include "DataFormatsTRD/RawData.h"
+#include "DataFormatsTRD/LinkRecord.h"
+#include "DataFormatsTRD/Constants.h"
 
 namespace o2
 {
 
 namespace trd
 {
+
+void buildTrackletHCHeader(TrackletHCHeader& header, int sector, int stack, int layer, int side, int chipclock, int format)
+{
+  header.MCLK = chipclock;
+  header.format = format;
+  header.one = 1;
+  header.supermodule = sector;
+  header.stack = stack;
+  header.layer = layer;
+  header.side = side;
+}
+
+void buildTrackletHCHeaderd(TrackletHCHeader& header, int detector, int rob, int chipclock, int format)
+{
+  int sector = (detector % (constants::NLAYER * constants::NSTACK));
+  int stack = (detector % constants::NLAYER);
+  int layer = ((detector % (constants::NLAYER * constants::NSTACK)) / constants::NLAYER);
+  int side = rob % 2;
+  buildTrackletHCHeader(header, sector, stack, layer, side, chipclock, format);
+}
 
 uint16_t buildTRDFeeID(int supermodule, int side, int endpoint)
 {
@@ -93,7 +115,9 @@ std::ostream& operator<<(std::ostream& stream, const TrackletHCHeader halfchambe
 {
   stream << "TrackletHCHeader : Raw:0x" << std::hex << halfchamberheader.word << " "
          << halfchamberheader.format << " ;; " << halfchamberheader.MCLK << " :: "
-         << halfchamberheader.one << " :: " << halfchamberheader.HCID << std::endl;
+         << halfchamberheader.one << " :: (" << halfchamberheader.supermodule << ","
+         << halfchamberheader.stack << "," << halfchamberheader.layer << ") on side :"
+         << halfchamberheader.side << std::endl;
   return stream;
 }
 
@@ -129,8 +153,8 @@ std::ostream& operator<<(std::ostream& stream, const TrackletMCMHeader& mcmhead)
 
 void printHalfChamber(o2::trd::TrackletHCHeader const& halfchamber)
 {
-  LOGF(INFO, "TrackletHCHeader: Raw:0x%08x HCID : 0x%0x MCLK: 0x%0x Format: 0x%0x Always1:0x%0x",
-       halfchamber.HCID, halfchamber.MCLK, halfchamber.format, halfchamber.one);
+  LOGF(INFO, "TrackletHCHeader: Raw:0x%08x SM : %d stack %d layer %d side : %d MCLK: 0x%0x Format: 0x%0x Always1:0x%0x",
+       halfchamber.supermodule, halfchamber.stack, halfchamber.layer, halfchamber.side, halfchamber.MCLK, halfchamber.format, halfchamber.one);
 }
 
 void dumpHalfChamber(o2::trd::TrackletHCHeader const& halfchamber)
