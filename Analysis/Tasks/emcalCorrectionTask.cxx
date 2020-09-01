@@ -39,7 +39,7 @@ struct EmcalCorrectionTask {
   //Produces<o2::aod::JetConstituents> constituents;
 
   // Options for the clusterization
-  Configurable<int8_t> selectedCellType{"selectedCellType", 1, "EMCAL Cell type"};
+  //Configurable<int8_t> selectedCellType{"selectedCellType", 1, "EMCAL Cell type"};
 
   //BkgMode bkgMode = BkgMode::none;
   //Configurable<double> rParamBkg{"rParamBkg", 0.2, "jet radius for background"};
@@ -52,6 +52,8 @@ struct EmcalCorrectionTask {
   //fastjet::Selector selBkg = fastjet::SelectorAbsRapMax(rapBkg);
 
   // Clusterizer and related
+  // Apparently streaming these objects really doesn't work, and causes problems for setting up the workflow.
+  // So we define them below.
   std::unique_ptr<o2::emcal::Clusterizer<o2::emcal::Cell>> mClusterizer;
   std::unique_ptr<o2::emcal::ClusterFactory<o2::emcal::Cell>> mClusterFactory;
   // Cells and clusters
