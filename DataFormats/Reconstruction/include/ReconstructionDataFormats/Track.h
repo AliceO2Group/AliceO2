@@ -257,6 +257,8 @@ class TrackParCov : public TrackPar
   float getCovarElem(int i, int j) const { return mC[CovarMap[i][j]]; }
   float getDiagError2(int i) const { return mC[DiagMap[i]]; }
 
+  bool getCovXYZPxPyPzGlo(std::array<float, 21>& c) const;
+
 #ifndef GPUCA_ALIGPUCODE
   void print() const;
   std::string asString() const;
