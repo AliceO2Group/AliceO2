@@ -572,11 +572,6 @@ DataProcessorSpec adaptAnalysisTask(char const* name, Args&&... args)
   if constexpr (has_process<T>::value) {
     // this pushes (I,schemaPtr,nullptr) into expressionInfos for arguments that are Filtered/filtered_iterators
     AnalysisDataProcessorBuilder::inputsFromArgs(&T::process, inputs, expressionInfos);
-    // here the FilterManager will prepare the gandiva trees matched to schemas and put the pointers into expressionInfos
-    std::apply([&expressionInfos](auto&... x) {
-      return (FilterManager<std::decay_t<decltype(x)>>::createExpressionTrees(x, expressionInfos), ...);
-    },
-               tupledTask);
   }
   //request base tables for spawnable extended tables
   std::apply([&inputs](auto&... x) {
@@ -605,9 +600,21 @@ DataProcessorSpec adaptAnalysisTask(char const* name, Args&&... args)
     };
     callbacks.set(CallbackService::Id::EndOfStream, endofdatacb);
 
+    if constexpr (has_process<T>::value) {
+      std::apply(
+        [&ic](auto&&... x) { return (FilterManager<std::decay_t<decltype(x)>>::updatePlaceholders(x, ic), ...); },
+        tupledTask);
+      // here the FilterManager will prepare the gandiva trees matched to schemas and put the pointers into expressionInfos
+      std::apply([&expressionInfos](auto&... x) {
+        return (FilterManager<std::decay_t<decltype(x)>>::createExpressionTrees(x, expressionInfos), ...);
+      },
+                 tupledTask);
+    }
+
     if constexpr (has_init<T>::value) {
       task->init(ic);
     }
+
     return [task, expressionInfos](ProcessingContext& pc) {
       auto tupledTask = o2::framework::to_tuple_refs(*task.get());
       std::apply([&pc](auto&&... x) { return (OutputManager<std::decay_t<decltype(x)>>::prepare(pc, x), ...); }, tupledTask);

@@ -20,6 +20,7 @@
 #include "Framework/ConfigParamRegistry.h"
 #include "Framework/InitContext.h"
 #include "Framework/RootConfigParamHelpers.h"
+#include "../src/ExpressionHelpers.h"
 
 namespace o2::framework
 {
@@ -78,7 +79,7 @@ struct FilterManager {
     return false;
   }
 
-  static bool updatePlaceholders(ANY&)
+  static bool updatePlaceholders(ANY&, InitContext&)
   {
     return false;
   }
@@ -88,7 +89,13 @@ template <>
 struct FilterManager<expressions::Filter> {
   static bool createExpressionTrees(expressions::Filter const& filter, std::vector<ExpressionInfo>& expressionInfos)
   {
-    updateExpressionInfos(filter, expressionInfos);
+    expressions::updateExpressionInfos(filter, expressionInfos);
+    return true;
+  }
+
+  static bool updatePlaceholders(expressions::Filter& filter, InitContext& ctx)
+  {
+    expressions::updatePlaceholders(filter, ctx);
     return true;
   }
 };

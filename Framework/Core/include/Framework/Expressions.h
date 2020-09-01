@@ -114,20 +114,24 @@ struct OpNode {
 /// A placeholder node for simple type configurable
 struct PlaceholderNode : LiteralNode {
   template <typename T>
-  PlaceholderNode(Configurable<T> v) : LiteralNode{(T)v}, name{v.name}
+  PlaceholderNode(Configurable<T> v) : LiteralNode{v.value}
   {
     if constexpr (variant_trait_v<typename std::decay<T>::type> != VariantType::Unknown) {
-      reset = [this](InitContext& context) { this->value = context.options().get<T>(this->name.c_str()); };
+      retrieve = [name = v.name](InitContext& context) { return LiteralNode::var_t{context.options().get<T>(name.c_str())}; };
     } else {
-      reset = [this](InitContext& context) {
-        auto pt = context.options().get<boost::property_tree::ptree>(this->name.c_str());
-        this->value = RootConfigParamHelpers::as<T>(pt);
+      retrieve = [name = v.name](InitContext& context) {
+        auto pt = context.options().get<boost::property_tree::ptree>(name.c_str());
+        return LiteralNode::var_t{RootConfigParamHelpers::as<T>(pt)};
       };
     }
   }
 
-  std::string name;
-  std::function<void(InitContext&)> reset;
+  void reset(InitContext& context)
+  {
+    value = retrieve(context);
+  }
+
+  std::function<LiteralNode::var_t(InitContext&)> retrieve;
 };
 
 /// A generic tree node
@@ -551,6 +555,8 @@ void updateExpressionInfos(expressions::Filter const& filter, std::vector<Expres
 gandiva::ConditionPtr makeCondition(gandiva::NodePtr node);
 /// Function to create gandiva projecting expression from generic gandiva expression tree
 gandiva::ExpressionPtr makeExpression(gandiva::NodePtr node, gandiva::FieldPtr result);
+/// Update placeholder nodes from context
+void updatePlaceholders(Filter& filter, InitContext& context);
 
 template <typename... C>
 std::shared_ptr<gandiva::Projector> createProjectors(framework::pack<C...>, gandiva::SchemaPtr schema)
