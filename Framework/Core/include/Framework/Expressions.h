@@ -16,6 +16,9 @@
 #include "Framework/CheckTypes.h"
 #include "Framework/Configurable.h"
 #include "Framework/Variant.h"
+#include "Framework/InitContext.h"
+#include "Framework/ConfigParamRegistry.h"
+#include "Framework/RootConfigParamHelpers.h"
 #include <arrow/type_fwd.h>
 #include <gandiva/gandiva_aliases.h>
 #include <arrow/type.h>
@@ -84,20 +87,13 @@ std::string upcastTo(atype::type f);
 /// An expression tree node corresponding to a literal value
 struct LiteralNode {
   template <typename T>
-  LiteralNode(T v) : value{v}, type{selectArrowType<T>()}, uptodate{true}, name{""}
-  {
-  }
-
-  template <typename T>
-  LiteralNode(Configurable<T> v) : value{(T)v}, type{selectArrowType<T>()}, uptodate{false}, name{v.name}
+  LiteralNode(T v) : value{v}, type{selectArrowType<T>()}
   {
   }
 
   using var_t = LiteralValue::stored_type;
   var_t value;
   atype::type type = atype::NA;
-  bool uptodate = true;
-  std::string name = "";
 };
 
 /// An expression tree node corresponding to a column binding
@@ -115,9 +111,32 @@ struct OpNode {
   BasicOp op;
 };
 
+/// A placeholder node for simple type configurable
+struct PlaceholderNode : LiteralNode {
+  template <typename T>
+  PlaceholderNode(Configurable<T> v) : LiteralNode{(T)v}, name{v.name}
+  {
+    if constexpr (variant_trait_v<typename std::decay<T>::type> != VariantType::Unknown) {
+      reset = [this](InitContext& context) { this->value = context.options().get<T>(this->name.c_str()); };
+    } else {
+      reset = [this](InitContext& context) {
+        auto pt = context.options().get<boost::property_tree::ptree>(this->name.c_str());
+        this->value = RootConfigParamHelpers::as<T>(pt);
+      };
+    }
+  }
+
+  std::string name;
+  std::function<void(InitContext&)> reset;
+};
+
 /// A generic tree node
 struct Node {
   Node(LiteralNode v) : self{v}, left{nullptr}, right{nullptr}
+  {
+  }
+
+  Node(PlaceholderNode v) : self{v}, left{nullptr}, right{nullptr}
   {
   }
 
@@ -140,7 +159,7 @@ struct Node {
       right{nullptr} {}
 
   /// variant with possible nodes
-  using self_t = std::variant<LiteralNode, BindingNode, OpNode>;
+  using self_t = std::variant<LiteralNode, BindingNode, OpNode, PlaceholderNode>;
   self_t self;
   /// pointers to children
   std::unique_ptr<Node> left;
