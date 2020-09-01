@@ -86,13 +86,12 @@ class TRDDPLTrapSimulatorTask : public o2::framework::Task
   std::chrono::duration<double> mSortingTime{0};            ///< full timer
 
   uint64_t mTotalRawWordsWritten = 0; // words written for the raw format of 4x32bits, where 4 can be 2 to 4 depending on # of tracklets in the block.
-  int32_t mOldHalfChamberID = 0;
+  int32_t mOldHalfChamberLinkId = 0;
   bool mNewTrackletHCHeaderHasBeenWritten{false};
   TrackletHCHeader mTrackletHCHeader; // the current half chamber header, that will be written if a first tracklet is found for this halfchamber.
   TrapConfig* getTrapConfig();
   void loadTrapConfig();
   void setOnlineGainTables();
-  uint32_t getHalfChamberID(uint32_t detector, uint32_t rob) { return detector * 2 + rob % 2; };
 };
 
 o2::framework::DataProcessorSpec getTRDTrapSimulatorSpec();

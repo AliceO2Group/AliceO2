@@ -456,7 +456,7 @@ void TRDDPLTrapSimulatorTask::run(o2::framework::ProcessingContext& pc)
                 << digit.getDetector() << ":" << digit.getRow() << ":" << digit.getPad() << ":"
                 << mFeeParam->getROBfromPad(digit.getRow(), digit.getPad()) << ":"
                 << mFeeParam->getMCMfromPad(digit.getRow(), digit.getPad())
-                << " HCID:" << getHalfChamberID(digit.getDetector(), mFeeParam->getROBfromPad(digit.getRow(), digit.getPad())) << "\t\t  SM:stack:layer:side  "
+                << " LinkId:" << LinkRecord::getHalfChamberLinkId(digit.getDetector(), mFeeParam->getROBfromPad(digit.getRow(), digit.getPad())) << "\t\t  SM:stack:layer:side  "
                 << digit.getDetector() / 30 << ":" << TRDGeometry::getStack(digit.getDetector())
                 << ":" << TRDGeometry::getLayer(digit.getDetector()) << ":" << FeeParam::instance()->getRobSide(mFeeParam->getROBfromPad(digit.getRow(), digit.getPad()))
                 << " with ORI# : " << mFeeParam->getORI(digit.getDetector(), mFeeParam->getROBfromPad(digit.getRow(), digit.getPad()))
@@ -473,7 +473,7 @@ void TRDDPLTrapSimulatorTask::run(o2::framework::ProcessingContext& pc)
   double trackletrate;
   unsigned long oldtrackletcount = 0;
   mTotalRawWordsWritten = 0; // words written for the raw format of 4x32bits, where 4 can be 2 to 4 depending on # of tracklets in the block.
-  mOldHalfChamberID = 0;
+  mOldHalfChamberLinkId = 0;
   mNewTrackletHCHeaderHasBeenWritten = false;
 
   // now to loop over the incoming digits.
@@ -495,9 +495,10 @@ void TRDDPLTrapSimulatorTask::run(o2::framework::ProcessingContext& pc)
     int trdstack = TRDGeometry::getStack(detector);
     int trdlayer = TRDGeometry::getLayer(detector);
     int fibreside = FeeParam::instance()->getRobSide(rob);
+
     LOG(debug) << "calculated rob and mcm at top of loop with detector:row:pad:rob:mcm ::"
                << detector << ":" << row << ":" << pad << ":" << rob << ":" << mcm
-               << " HCID:" << getHalfChamberID(detector, rob) << "\t\t  SM:stack:layer:side  " << detector / 30 << ":" << trdstack << ":" << trdlayer << ":" << fibreside
+               << " LinkId:" << LinkRecord::getHalfChamberLinkId(detector, rob) << "\t\t  SM:stack:layer:side  " << detector / 30 << ":" << trdstack << ":" << trdlayer << ":" << fibreside
                << " with ORI : " << mFeeParam->getORI(detector, rob) << " and within supermodule ori index:" << mFeeParam->getORIinSM(detector, rob);
     LOG(debug) << "digit time :  " << digittime;
     if (row == 4 && pad == 17 && rob == 2 & mcm == 0) {
@@ -509,14 +510,12 @@ void TRDDPLTrapSimulatorTask::run(o2::framework::ProcessingContext& pc)
       olddetector = detector;
     }
     //Are we on a new half chamber ?
-    if (mOldHalfChamberID != getHalfChamberID(detector, rob)) {
+    if (mOldHalfChamberLinkId != LinkRecord::getHalfChamberLinkId(detector, rob)) {
       //     hcid= detector*2 + robpos%2;
       // new half chamber so add the header to the raw data stream.
-      mTrackletHCHeader.HCID = getHalfChamberID(detector, rob);
-      mTrackletHCHeader.one = 1;
-      mTrackletHCHeader.MCLK = currentTriggerRecord * 42; // 42 because its the universally true answer, this is fake in anycase, so long as its always bigger than the previous one and increasing.
-      mTrackletHCHeader.format = 4;
-      mOldHalfChamberID = getHalfChamberID(detector, rob);
+      buildTrackletHCHeaderd(mTrackletHCHeader, detector, rob, currentTriggerRecord * 42, 4);
+      //buildTrackletHCHeader(mTrackletHCHeader,sector,stack,layer,side,currentTriggerRecord*42,4);
+      mOldHalfChamberLinkId = LinkRecord::getHalfChamberLinkId(detector, rob);
       // now we have a problem. We must only write the halfchamberheader if a tracklet is written i.e. if the digits for this half chamber actually produce 1 or more tracklets!
       mNewTrackletHCHeaderHasBeenWritten = false;
     }
@@ -557,10 +556,10 @@ void TRDDPLTrapSimulatorTask::run(o2::framework::ProcessingContext& pc)
             // .. fix the previous linkrecord to note its end of range.
             if (mLinkRecords.size() == 0) { // special case for the first entry into the linkrecords vector.
               mLinkRecords.emplace_back(mTrackletHCHeader.word, 0, -1);
-              LOG(debug) << " added HCID :[record.size==0] " << mTrackletHCHeader.HCID << " with number of bytes : " << mTotalRawWordsWritten << "-" << mLinkRecords.back().getFirstEntry();
+              //   LOG(debug) << " added HCID :[record.size==0] " << mTrackletHCHeader.HCID << " with number of bytes : " << mTotalRawWordsWritten << "-" << mLinkRecords.back().getFirstEntry();
             } else {
               mLinkRecords.back().setNumberOfObjects(mTotalRawWordsWritten - mLinkRecords.back().getFirstEntry()); // current number of words written - the start of this index record.
-              LOG(debug) << " added HCID : " << mTrackletHCHeader.HCID << " with number of bytes : " << mTotalRawWordsWritten << "-" << mLinkRecords.back().getFirstEntry();
+                                                                                                                   //  LOG(debug) << " added HCID : " << mTrackletHCHeader.HCID << " with number of bytes : " << mTotalRawWordsWritten << "-" << mLinkRecords.back().getFirstEntry();
               //..... so write the new one thing
               mLinkRecords.emplace_back(mTrackletHCHeader.word, mTotalRawWordsWritten, -1); // set the number of elements to -1 for an error condition
             }
