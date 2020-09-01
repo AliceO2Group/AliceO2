@@ -1706,7 +1706,7 @@ class Filtered<Filtered<T>> : public FilteredPolicy<typename T::table_t>
 };
 
 template <typename T>
-using is_soa_filtered_t = typename framework::is_specialization<T, soa::Filtered>;
+using is_soa_filtered_t = typename framework::is_base_of_template<soa::FilteredPolicy, T>;
 
 template <typename T>
 auto filter(T&& t, framework::expressions::Filter const& expr)
