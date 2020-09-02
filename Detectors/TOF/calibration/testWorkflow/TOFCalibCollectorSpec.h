@@ -41,8 +41,8 @@ class TOFCalibCollectorDevice : public o2::framework::Task
     bool isTest = ic.options().get<bool>("running-in-test-mode");
     bool absMaxEnt = ic.options().get<bool>("is-max-number-hits-to-fill-tree-absolute");
     mCollector = std::make_unique<o2::tof::TOFCalibCollector>(isTFsendingPolicy, maxEnt);
-    mCollector->isTest(isTest);
-    mCollector->isMaxNumberOfHitsAbsolute(absMaxEnt);
+    mCollector->setIsTest(isTest);
+    mCollector->setIsMaxNumberOfHitsAbsolute(absMaxEnt);
     mCollector->setSlotLength(1);
     mCollector->setMaxSlotsDelay(0);
   }
