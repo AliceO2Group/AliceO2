@@ -29,33 +29,51 @@ void TOFCalibInfoSlot::fill(const gsl::span<const o2::dataformats::CalibInfoTOF>
   // we do not apply any calibration at this stage, it will be applied when we
   // process the data before filling the CCDB in the separate process
 
-  for (int i = data.size(); i--;) {
-    auto ch = data[i].getTOFChIndex();
-    auto offset = std::accumulate(mEntriesSlot.begin(), mEntriesSlot.begin() + ch, 0);
-    mTOFCollectedCalibInfoSlot.emplace(mTOFCollectedCalibInfoSlot.begin() + offset, data[i].getTimestamp(), data[i].getDeltaTimePi(), data[i].getTot(), data[i].getFlags());
+  // we first order the data that arrived, to improve speed when filling
+  int nd = data.size();
+  LOG(DEBUG) << "entries in incoming data = " << nd;
+  std::vector<int> ord(nd);
+  std::iota(ord.begin(), ord.end(), 0);
+  std::sort(ord.begin(), ord.end(), [&data](int i, int j) { return data[i].getTOFChIndex() < data[j].getTOFChIndex(); });
+  int chPrev = 0, offsPrev = 0;
+  for (int i = 0; i < nd; i++) {
+    const auto& dti = data[ord[i]];
+    auto ch = dti.getTOFChIndex();
+    auto offset = offsPrev;
+    if (ch > chPrev) {
+      offset += std::accumulate(mEntriesSlot.begin() + chPrev, mEntriesSlot.begin() + ch, 0);
+    }
+    offsPrev = offset;
+    chPrev = ch;
+    mTOFCollectedCalibInfoSlot.emplace(mTOFCollectedCalibInfoSlot.begin() + offset, data[ord[i]].getTimestamp(), data[ord[i]].getDeltaTimePi(), data[ord[i]].getTot(), data[ord[i]].getFlags());
     mEntriesSlot[ch]++;
   }
 }
-
 //_____________________________________________
 void TOFCalibInfoSlot::merge(const TOFCalibInfoSlot* prev)
 {
   // merge data of 2 slots
 
-  int addedPerChannel = 0;
-  int offset = 0;
-
   LOG(DEBUG) << "Merging two slots with entries: current slot -> " << mTOFCollectedCalibInfoSlot.size() << " , previous slot -> " << prev->mTOFCollectedCalibInfoSlot.size();
+
+  int offset = 0, offsetPrev = 0;
+  std::vector<o2::dataformats::CalibInfoTOFshort> tmpVector;
   for (int ch = 0; ch < Geo::NCHANNELS; ch++) {
-    offset += mEntriesSlot[ch];
-    if (prev->mEntriesSlot[ch] == 0)
-      continue;
-    auto offsetprevStart = addedPerChannel;
-    auto offsetprevEnd = addedPerChannel + prev->mEntriesSlot[ch];
-    addedPerChannel += prev->mEntriesSlot[ch];
-    mTOFCollectedCalibInfoSlot.insert(mTOFCollectedCalibInfoSlot.begin() + offset, prev->mTOFCollectedCalibInfoSlot.begin() + offsetprevStart, prev->mTOFCollectedCalibInfoSlot.begin() + offsetprevEnd);
-    mEntriesSlot[ch] += prev->mEntriesSlot[ch];
+    if (mEntriesSlot[ch] != 0) {
+      for (int i = offset; i < offset + mEntriesSlot[ch]; i++) {
+        tmpVector.emplace_back(mTOFCollectedCalibInfoSlot[i]);
+      }
+      offset += mEntriesSlot[ch];
+    }
+    if (prev->mEntriesSlot[ch] != 0) {
+      for (int i = offsetPrev; i < offsetPrev + prev->mEntriesSlot[ch]; i++) {
+        tmpVector.emplace_back(prev->mTOFCollectedCalibInfoSlot[i]);
+      }
+      offsetPrev += prev->mEntriesSlot[ch];
+      mEntriesSlot[ch] += prev->mEntriesSlot[ch];
+    }
   }
+  mTOFCollectedCalibInfoSlot.swap(tmpVector);
   LOG(DEBUG) << "After merging the size is " << mTOFCollectedCalibInfoSlot.size();
   return;
 }
@@ -114,7 +132,7 @@ bool TOFCalibCollector::hasEnoughData(const Slot& slot) const
   if (mTest)
     return true;
   const o2::tof::TOFCalibInfoSlot* c = slot.getContainer();
-  LOG(DEBUG) << "we have " << c->getCollectedCalibInfoSlot().size() << " entries";
+  LOG(INFO) << "we have " << c->getCollectedCalibInfoSlot().size() << " entries";
   int maxNumberOfHits = mAbsMaxNumOfHits ? mMaxNumOfHits : mMaxNumOfHits * o2::tof::Geo::NCHANNELS;
   if (mTFsendingPolicy || c->getCollectedCalibInfoSlot().size() > maxNumberOfHits)
     return true;
