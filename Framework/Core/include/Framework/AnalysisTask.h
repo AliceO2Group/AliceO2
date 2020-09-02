@@ -601,10 +601,15 @@ DataProcessorSpec adaptAnalysisTask(char const* name, Args&&... args)
     callbacks.set(CallbackService::Id::EndOfStream, endofdatacb);
 
     if constexpr (has_process<T>::value) {
+      /// update configurables in filters
       std::apply(
         [&ic](auto&&... x) { return (FilterManager<std::decay_t<decltype(x)>>::updatePlaceholders(x, ic), ...); },
         tupledTask);
-      // here the FilterManager will prepare the gandiva trees matched to schemas and put the pointers into expressionInfos
+      /// update configurables in partitions
+      std::apply(
+        [&ic](auto&&... x) { return (PartitionManager<std::decay_t<decltype(x)>>::updatePlaceholders(x, ic), ...); },
+        tupledTask);
+      /// create for filters gandiva trees matched to schemas and store the pointers into expressionInfos
       std::apply([&expressionInfos](auto&... x) {
         return (FilterManager<std::decay_t<decltype(x)>>::createExpressionTrees(x, expressionInfos), ...);
       },

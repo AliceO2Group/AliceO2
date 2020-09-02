@@ -41,6 +41,10 @@ struct PartitionManager {
   static void getBoundToExternalIndices(ANY&, Ts&...)
   {
   }
+
+  static void updatePlaceholders(ANY&, InitContext&)
+  {
+  }
 };
 
 template <typename T>
@@ -69,6 +73,11 @@ struct PartitionManager<Partition<T>> {
   static void getBoundToExternalIndices(Partition<T>& partition, Ts&... tables)
   {
     partition.getBoundToExternalIndices(tables...);
+  }
+
+  static void updatePlaceholders(Partition<T>& partition, InitContext& context)
+  {
+    partition.updatePlaceholders(context);
   }
 };
 

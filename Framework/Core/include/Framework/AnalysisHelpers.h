@@ -430,20 +430,20 @@ struct Service {
 
 template <typename T>
 struct Partition {
-  Partition(expressions::Node&& node)
+  Partition(expressions::Node&& filter_) : filter{std::move(filter_)}
   {
-    auto filter = expressions::Filter(std::move(node));
-    auto schema = o2::soa::createSchemaFromColumns(typename T::persistent_columns_t{});
+  }
+
+  void setTable(const T& table)
+  {
+    auto schema = table.asArrowTable()->schema();
     expressions::Operations ops = createOperations(filter);
     if (isSchemaCompatible(schema, ops)) {
       mTree = createExpressionTree(ops, schema);
     } else {
       throw std::runtime_error("Partition filter does not match declared table type");
     }
-  }
 
-  void setTable(const T& table)
-  {
     if constexpr (soa::is_soa_filtered_t<std::decay_t<T>>::value) {
       mFiltered.reset(new o2::soa::Filtered<T>{{table}, mTree});
     } else {
@@ -467,8 +467,14 @@ struct Partition {
     }
   }
 
-  gandiva::NodePtr mTree;
-  std::unique_ptr<o2::soa::Filtered<T>> mFiltered;
+  void updatePlaceholders(InitContext& context)
+  {
+    expressions::updatePlaceholders(filter, context);
+  }
+
+  expressions::Filter filter;
+  gandiva::NodePtr mTree = nullptr;
+  std::unique_ptr<o2::soa::Filtered<T>> mFiltered = nullptr;
 
   using filtered_iterator = typename o2::soa::Filtered<T>::iterator;
   using filtered_const_iterator = typename o2::soa::Filtered<T>::const_iterator;
