@@ -159,7 +159,7 @@ RawFileWriter::LinkData& RawFileWriter::registerLink(uint16_t fee, uint16_t cru,
 void RawFileWriter::addData(uint16_t feeid, uint16_t cru, uint8_t lnk, uint8_t endpoint, const IR& ir, const gsl::span<char> data, bool preformatted, uint32_t trigger)
 {
   // add payload to relevant links
-  if (data.size() % RDHUtils::GBTWord) {
+  if (isCRUDetector() && (data.size() % RDHUtils::GBTWord)) {
     LOG(ERROR) << "provided payload size " << data.size() << " is not multiple of GBT word size";
     throw std::runtime_error("payload size is not mutiple of GBT word size");
   }
