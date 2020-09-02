@@ -7,8 +7,8 @@
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
-#ifndef FRAMEWORK_CONFIGURABLE_H_
-#define FRAMEWORK_CONFIGURABLE_H_
+#ifndef O2_FRAMEWORK_CONFIGURABLE_H_
+#define O2_FRAMEWORK_CONFIGURABLE_H_
 #include <string>
 namespace o2::framework
 {
@@ -34,4 +34,4 @@ struct Configurable {
   }
 };
 } // namespace o2::framework
-#endif // FRAMEWORK_CONFIGURABLE_H_
+#endif // O2_FRAMEWORK_CONFIGURABLE_H_
