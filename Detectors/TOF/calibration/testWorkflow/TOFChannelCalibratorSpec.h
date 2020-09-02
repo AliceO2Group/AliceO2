@@ -49,7 +49,7 @@ class TOFChannelCalibDevice : public o2::framework::Task
     int isTest = ic.options().get<bool>("do-TOF-channel-calib-in-test-mode");
     mCalibrator = std::make_unique<o2::tof::TOFChannelCalibrator>(minEnt, nb, range);
     mCalibrator->setUpdateAtTheEndOfRunOnly();
-    mCalibrator->isTest(isTest);
+    mCalibrator->setIsTest(isTest);
 
     // calibration objects set to zero
     mPhase.addLHCphase(0, 0);

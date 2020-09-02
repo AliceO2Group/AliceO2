@@ -120,7 +120,7 @@ class TOFChannelCalibrator final : public o2::calibration::TimeSlotCalibration<o
   const CcdbObjectInfoVector& getTimeSlewingInfoVector() const { return mInfoVector; }
   CcdbObjectInfoVector& getTimeSlewingInfoVector() { return mInfoVector; }
 
-  void isTest(bool isTest) { mTest = isTest; }
+  void setIsTest(bool isTest) { mTest = isTest; }
   bool isTest() const { return mTest; }
 
   void setCalibTOFapi(CalibTOFapi* api) { mCalibTOFapi = api; }

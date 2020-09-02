@@ -73,10 +73,10 @@ class TOFCalibCollector final : public o2::calibration::TimeSlotCalibration<o2::
   void initOutput() final;
   void finalizeSlot(Slot& slot) final;
   Slot& emplaceNewSlot(bool front, TFType tstart, TFType tend) final;
-  void isTest(bool istest) { mTest = istest; }
+  void setIsTest(bool istest) { mTest = istest; }
   auto& getCollectedCalibInfo() const { return mTOFCollectedCalibInfo; }
   auto& getEntriesPerChannel() const { return mEntries; }
-  void isMaxNumberOfHitsAbsolute(bool absNumber) { mAbsMaxNumOfHits = absNumber; }
+  void setIsMaxNumberOfHitsAbsolute(bool absNumber) { mAbsMaxNumOfHits = absNumber; }
 
  private:
   bool mTFsendingPolicy = false;                                          // whether we will send information at every TF or only when we have a certain statistics

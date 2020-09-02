@@ -36,8 +36,8 @@ class TOFCalibCollectorWriter : public o2::framework::Task
   {
     TString filename = TString::Format("collTOF_%d.root", mCount);
     LOG(DEBUG) << "opening file " << filename.Data();
-    mfileOut = new TFile(TString::Format("%s", filename.Data()), "RECREATE");
-    mOutputTree = new TTree("treeCollectedCalibInfo", "Tree with TOF calib info for Time Slewing");
+    mfileOut.reset(TFile::Open(TString::Format("%s", filename.Data()), "RECREATE"));
+    mOutputTree = std::make_unique<TTree>("treeCollectedCalibInfo", "Tree with TOF calib info for Time Slewing");
     mOutputTree->Branch(mOutputBranchName.data(), &mPTOFCalibInfoOut);
   }
 
@@ -45,20 +45,21 @@ class TOFCalibCollectorWriter : public o2::framework::Task
   {
     mCount = 0;
     createAndOpenFileAndTree();
+    mTOFCalibInfoOut.reserve(500 * o2::tof::Geo::NCHANNELS); // should be a reasonable number of entries per channel, which allows 1 GB of data
   }
 
   void run(o2::framework::ProcessingContext& pc) final
   {
     auto collectedInfo = pc.inputs().get<std::vector<o2::dataformats::CalibInfoTOFshort>>("collectedInfo");
-    //auto collectedInfo = pc.inputs().get<gsl::span<const o2::dataformats::CalibInfoTOFshort>>("collectedInfo");
     auto entriesPerChannel = pc.inputs().get<std::array<int, Geo::NCHANNELS>>("entriesCh");
     int offsetStart = 0;
     for (int ich = 0; ich < o2::tof::Geo::NCHANNELS; ich++) {
       mTOFCalibInfoOut.clear();
-      auto offsetEnd = offsetStart + entriesPerChannel[ich] - 1;
-      if (offsetEnd >= offsetStart) {
+      if (entriesPerChannel[ich] > 0) {
         mTOFCalibInfoOut.resize(entriesPerChannel[ich]);
-        std::copy(collectedInfo.begin() + offsetStart, collectedInfo.begin() + offsetEnd + 1, mTOFCalibInfoOut.begin()); //mTOFCalibInfoOut->begin()); // this is very inefficient; maybe instead of vectors, using span and then one could avoid copying? https://solarianprogrammer.com/2019/11/03/cpp-20-span-tutorial/ --> did not work
+        auto subSpanVect = gsl::span<const o2::dataformats::CalibInfoTOFshort>(&collectedInfo[offsetStart], entriesPerChannel[ich]);
+        memcpy(&mTOFCalibInfoOut[0], subSpanVect.data(), sizeof(o2::dataformats::CalibInfoTOFshort) * subSpanVect.size());
+        const o2::dataformats::CalibInfoTOFshort* tmp = subSpanVect.data();
       }
       mOutputTree->Fill();
       offsetStart += entriesPerChannel[ich];
@@ -76,10 +77,10 @@ class TOFCalibCollectorWriter : public o2::framework::Task
   int mCount = 0; // how many times we filled the tree
   bool mIsEndOfStream = false;
   std::vector<o2::dataformats::CalibInfoTOFshort> mTOFCalibInfoOut, *mPTOFCalibInfoOut = &mTOFCalibInfoOut; ///< these are the object and pointer to the CalibInfo of a specific channel that we need to fill the output tree
-  TTree* mOutputTree;                                                                                       ///< tree for the collected calib tof info
+  std::unique_ptr<TTree> mOutputTree;                                                                       ///< tree for the collected calib tof info
   std::string mTOFCalibInfoBranchName = "TOFCalibInfo";                                                     ///< name of branch containing input TOF calib infos
   std::string mOutputBranchName = "TOFCollectedCalibInfo";                                                  ///< name of branch containing output
-  TFile* mfileOut = nullptr;                                                                                // file in which to write the output
+  std::unique_ptr<TFile> mfileOut = nullptr;                                                                // file in which to write the output
 
   //________________________________________________________________
   void sendOutput(DataAllocator& output)
@@ -91,8 +92,8 @@ class TOFCalibCollectorWriter : public o2::framework::Task
 
     mfileOut->cd();
     mOutputTree->Write();
-    mfileOut->Close();
-    delete mfileOut;
+    mOutputTree.reset();
+    mfileOut.reset();
     mCount++;
     if (!mIsEndOfStream)
       createAndOpenFileAndTree();
