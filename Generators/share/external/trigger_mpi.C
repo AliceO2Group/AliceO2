@@ -1,7 +1,6 @@
 // MPI trigger
 //
-//   usage: o2sim --trigger external --extTrgFile trigger_mpi.C
-// options:                          --extTrgFunc "trigger_mpi()"
+//   usage: o2sim --trigger external --configKeyValues 'TriggerExternal.fileName=trigger_mpi.C;TriggerExternal.funcName="trigger_mpi()"'
 //
 
 /// \author R+Preghenella - February 2020

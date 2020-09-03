@@ -9,7 +9,7 @@ The trigger selection defines impact parameters to be accepted according to a mi
 
 The definition and configuration of the external `DeepTrigger` is performed by the function `trigger_impactb_pythia8(double bMin = 0., double bMax = 20.)` defined in the macro `trigger_impactb_pythia8.macro`.
 
-The macro file is specified via the argument of `--extTrgFile` whereas the specific function call to retrieve the configuration is specified via the argument of `--extTrgFunc`.
+The macro file and function names are specified via `--configKeyValues` setting `TriggerExternal.fileName` and `TriggerExternal.funcName`, respectively.
 
 # WARNING
 Using a trigger is not always the most efficient way to deal with event generation.

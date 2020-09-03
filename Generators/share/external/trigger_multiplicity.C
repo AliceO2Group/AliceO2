@@ -1,7 +1,6 @@
 // multiplicity trigger
 //
-//   usage: o2sim --trigger external --extTrgFile trigger_multiplicity.C
-// options:                          --extTrgFunc "trigger_multiplicity(-0.8, 0.8, 100)"
+//   usage: o2sim --trigger external --configKeyValues 'TriggerExternal.fileName=trigger_multiplicity.C;TriggerExternal.funcName="trigger_multiplicity(-0.8, 0.8, 100)"'
 //
 
 /// \author R+Preghenella - February 2020
