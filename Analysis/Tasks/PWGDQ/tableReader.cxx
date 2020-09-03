@@ -39,14 +39,14 @@ void DefineHistograms(o2::framework::OutputObj<HistogramManager> histMan, TStrin
 
 namespace o2::aod
 {
-namespace trackSelection
+namespace reducedtrack
 {
 DECLARE_SOA_COLUMN(IsBarrelSelected, isBarrelSelected, int);
 DECLARE_SOA_COLUMN(IsMuonSelected, isMuonSelected, int);
 }
 
-DECLARE_SOA_TABLE(BarrelTrackCuts, "AOD", "BARRELTRACKCUTS", trackSelection::IsBarrelSelected);
-DECLARE_SOA_TABLE(MuonTrackCuts, "AOD", "MUONTRACKCUTS", trackSelection::IsMuonSelected);
+DECLARE_SOA_TABLE(BarrelTrackCuts, "AOD", "BARRELTRACKCUTS", reducedtrack::IsBarrelSelected);
+DECLARE_SOA_TABLE(MuonTrackCuts, "AOD", "MUONTRACKCUTS", reducedtrack::IsMuonSelected);
 } // namespace o2::aod
 
 
@@ -191,6 +191,14 @@ struct TableReader {
   constexpr static uint32_t fgEventFillMap = VarManager::ObjTypes::ReducedEvent | VarManager::ObjTypes::ReducedEventExtended | VarManager::ObjTypes::ReducedEventVtxCov;
   constexpr static uint32_t fgEventMuonFillMap = VarManager::ObjTypes::ReducedEvent | VarManager::ObjTypes::ReducedEventExtended;
 
+  using trackType = soa::Join<aod::ReducedTracks, aod::ReducedTracksBarrel, aod::ReducedTracksBarrelCov, aod::ReducedTracksBarrelPID, aod::BarrelTrackCuts>;
+  Partition<trackType> posTracks = aod::reducedtrack::charge > 0 && aod::reducedtrack::isBarrelSelected == 1;
+  Partition<trackType> negTracks = aod::reducedtrack::charge < 0 && aod::reducedtrack::isBarrelSelected == 1;
+  
+  using muonType = soa::Join<aod::ReducedMuons, aod::ReducedMuonsExtended, aod::MuonTrackCuts>;
+  Partition<muonType> posMuons = aod::reducedtrack::charge > 0 && aod::reducedtrack::isMuonSelected == 1;
+  Partition<muonType> negMuons = aod::reducedtrack::charge < 0 && aod::reducedtrack::isMuonSelected == 1;
+  
   void init(o2::framework::InitContext&)
   {
     VarManager::SetDefaultVarNames();
@@ -243,9 +251,7 @@ struct TableReader {
     // TODO: use Partition initiaslized by vector of track indices when this will be available
     
     //using tracktype = soa::Join<aod::ReducedTracks, aod::ReducedTracksBarrel, aod::ReducedTracksBarrelCov, aod::ReducedTracksBarrelPID>;
-    using trackType = soa::Join<aod::ReducedTracks, aod::ReducedTracksBarrel, aod::ReducedTracksBarrelCov, aod::ReducedTracksBarrelPID, aod::BarrelTrackCuts>;
-    Partition<trackType> posTracks = aod::reducedtrack::charge > 0 && aod::trackSelection::isBarrelSelected == 1;
-    Partition<trackType> negTracks = aod::reducedtrack::charge < 0 && aod::trackSelection::isBarrelSelected == 1;
+    
     //Partition<std::decay_t<decltype(tracks)>> posTracks = aod::reducedtrack::charge > 0 && aod::trackSelection::isBarrelSelected == 1;
     //Partition<std::decay_t<decltype(tracks)>> negTracks = aod::reducedtrack::charge < 0 && aod::trackSelection::isBarrelSelected == 1;
     
@@ -259,9 +265,7 @@ struct TableReader {
     }
 
     cout << "3" << endl;
-    using muonType = soa::Join<aod::ReducedMuons, aod::ReducedMuonsExtended, aod::MuonTrackCuts>;
-    Partition<muonType> posMuons = aod::reducedtrack::charge > 0 && aod::trackSelection::isMuonSelected == 1;
-    Partition<muonType> negMuons = aod::reducedtrack::charge < 0 && aod::trackSelection::isMuonSelected == 1;
+    
     //Partition<std::decay_t<decltype(muons)>> posMuons = aod::reducedtrack::charge > 0 && aod::trackSelection::isMuonSelected == 1;
     //Partition<std::decay_t<decltype(muons)>> negMuons = aod::reducedtrack::charge < 0 && aod::trackSelection::isMuonSelected == 1;   
     // same event pairing for muons
