@@ -26,6 +26,6 @@ echo "Running simulation for $nev $collSyst events with $gener generator and eng
 # we only need passive material and QED sensitive detectors close to beampipe
 #
 set -x
-o2-sim -j 8 -m PIPE ABSO DIPO SHIL ITS FT0 MFT -n"$nev" -e "$engine" --noemptyevents -g extgen --extGenFile ${O2_ROOT}/share/Generators/external/QEDLoader.C --configKeyValues "SimCutParams.maxRTracking=300" -o o2simqed
+o2-sim -j 8 -m PIPE ABSO DIPO SHIL ITS FT0 MFT -n"$nev" -e "$engine" --noemptyevents -g external --configKeyValues "GeneratorExternal.fileName=${O2_ROOT}/share/Generators/external/QEDLoader.C;SimCutParams.maxRTracking=300" -o o2simqed
 
 root -q -b -l ${O2_ROOT}/share/macro/analyzeHits.C\(\"o2simqed\"\) > QEDhitstats.log

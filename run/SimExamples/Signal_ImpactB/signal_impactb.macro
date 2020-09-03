@@ -3,8 +3,7 @@
 // Example of an implementation of an external event generator
 // that is used and adapts it behavior in an embedding scenario.
 //
-//   usage: o2sim -g extgen --extGenFile signal_impactb.C
-// options:                 --extGenFunc "signal_impactb(\"20. / (x + 1.)\")
+//   usage: o2sim -g external --configKeyValues 'GeneratorExternal.fileName=signal_impactb.C;GeneratorExternal.funcName="signal_impactb(\"20. / (x + 1.)\")"'
 
 using namespace o2::eventgen;
 
