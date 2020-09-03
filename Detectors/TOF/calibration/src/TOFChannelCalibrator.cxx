@@ -123,7 +123,7 @@ void TOFChannelData::print(int isect) const
   LOG(INFO) << "Number of entries in histogram: " << boost::histogram::algorithm::sum(mHisto[isect]);
   for (auto&& x : indexed(mHisto[isect])) { // does not work also when I use indexed(*(mHisto[sector]))
     cnt++;
-    //LOG(INFO) << " c " << cnt << " i " << x.index(0) << " j " << x.index(1) << " b0 " <<  x.bin(0) <<  " b1 " <<  x.bin(1) << " val= " << *x << "|" << x.get();
+    LOG(DEBUG) << " c " << cnt << " i " << x.index(0) << " j " << x.index(1) << " b0 " << x.bin(0) << " b1 " << x.bin(1) << " val= " << *x << "|" << x.get();
     if (x.get() > 0) {
       LOG(INFO) << "x = " << x.get() << " c " << cnt;
     }
@@ -148,12 +148,11 @@ int TOFChannelData::findBin(float v) const
   if (v == mRange)
     v -= 1.e-1;
 
-  /*
-  LOG(INFO) << "In FindBin, v = : " << v;
-  LOG(INFO) << "bin0 limits: lower = " << mHisto[0].axis(0).bin(0).lower() << ", upper = " << mHisto[0].axis(0).bin(0).upper();
-  LOG(INFO) << "bin1000 limits: lower = " << mHisto[0].axis(0).bin(mNBins-1).lower() << ", upper = " << mHisto[0].axis(0).bin(mNBins-1).upper();
-  LOG(INFO) << "v = " << v << " is in bin " << mHisto[0].axis(0).index(v);
-  */
+  LOG(DEBUG) << "In FindBin, v = : " << v;
+  LOG(DEBUG) << "bin0 limits: lower = " << mHisto[0].axis(0).bin(0).lower() << ", upper = " << mHisto[0].axis(0).bin(0).upper();
+  LOG(DEBUG) << "bin1000 limits: lower = " << mHisto[0].axis(0).bin(mNBins - 1).lower() << ", upper = " << mHisto[0].axis(0).bin(mNBins - 1).upper();
+  LOG(DEBUG) << "v = " << v << " is in bin " << mHisto[0].axis(0).index(v);
+
   return mHisto[0].axis(0).index(v);
 }
 
@@ -175,28 +174,23 @@ float TOFChannelData::integral(int chmin, int chmax, float binmin, float binmax)
 
   int chinsectormin = chmin % o2::tof::Geo::NPADSXSECTOR;
   int chinsectormax = chmax % o2::tof::Geo::NPADSXSECTOR;
-  //LOG(INFO) << "Calculating integral for channel " << ich << " which is in sector " << sector
-  //	    << " (channel in sector is " << chinsector << ")";;
-  //  LOG(INFO) << "Bin min = " << binmin << ", binmax = " << binmax <<
-  //             ", chmin = " << chmin << ", chmax = " << chmax <<
-  //             ", chinsectormin = " << chinsectormin << ", chinsector max = " << chinsectormax;
 
   float res2 = 0;
-  //TStopwatch t3;
+  TStopwatch t3;
   int ind = -1;
   int binxmin = findBin(binmin);
   int binxmax = findBin(binmax);
   LOG(DEBUG) << "binxmin = " << binxmin << ", binxmax = " << binxmax;
-  //t3.Start();
+  t3.Start();
   for (unsigned j = chinsectormin; j <= chinsectormax; ++j) {
     for (unsigned i = binxmin; i <= binxmax; ++i) {
       const auto& v = mHisto[sector].at(i, j);
       res2 += v;
     }
   }
-  //t3.Stop();
-  //LOG(DEBUG) << "Time for integral looping over axis (result = " << res2 << "):";
-  //t3.Print();
+  t3.Stop();
+  LOG(DEBUG) << "Time for integral looping over axis (result = " << res2 << "):";
+  t3.Print();
 
   return res2;
 
@@ -303,23 +297,19 @@ float TOFChannelData::integral(int chmin, int chmax, int binxmin, int binxmax) c
 
   int chinsectormin = chmin % o2::tof::Geo::NPADSXSECTOR;
   int chinsectormax = chmax % o2::tof::Geo::NPADSXSECTOR;
-  //LOG(INFO) << "Calculating integral for channel " << ich << " which is in sector " << sector
-  //	    << " (channel in sector is " << chinsector << ")";;
-  //LOG(INFO) << "Bin min = " << binmin << ", binmax = " << binmax <<
-  //             ", chmin = " << chmin << ", chmax" << chmax <<
-  //             ", chinsectormin = " << chinsector min << ", chinsector max = " << chinsectormax;
+
   float res2 = 0;
-  //TStopwatch t3;
-  //t3.Start();
+  TStopwatch t3;
+  t3.Start();
   for (unsigned j = chinsectormin; j <= chinsectormax; ++j) {
     for (unsigned i = binxmin; i <= binxmax; ++i) {
       const auto& v = mHisto[sector].at(i, j);
       res2 += v;
     }
   }
-  //t3.Stop();
-  //LOG(DEBUG) << "Time for integral looping over axis (result = " << res2 << "):";
-  //t3.Print();
+  t3.Stop();
+  LOG(DEBUG) << "Time for integral looping over axis (result = " << res2 << "):";
+  t3.Print();
   return res2;
 
   /* // all that is below is alternative methods, all proved to be slower
