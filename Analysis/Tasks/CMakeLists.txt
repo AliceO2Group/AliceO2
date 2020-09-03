@@ -22,11 +22,6 @@ o2_add_dpl_workflow(correlations
                     PUBLIC_LINK_LIBRARIES O2::Framework O2::AnalysisCore
                     COMPONENT_NAME Analysis)
 
-o2_add_dpl_workflow(correlations-collection
-                    SOURCES correlationsCollection.cxx
-                    PUBLIC_LINK_LIBRARIES O2::Framework O2::AnalysisCore
-                    COMPONENT_NAME Analysis)
-
 o2_add_dpl_workflow(correlations-mixed
                     SOURCES correlationsMixed.cxx
                     PUBLIC_LINK_LIBRARIES O2::Framework O2::AnalysisCore
