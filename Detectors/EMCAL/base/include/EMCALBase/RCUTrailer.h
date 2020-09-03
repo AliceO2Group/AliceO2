@@ -161,8 +161,8 @@ class RCUTrailer
  private:
   int mRCUId = -1;                    ///< current RCU identifier
   unsigned char mFirmwareVersion = 0; ///< RCU firmware version
-  unsigned int mTrailerSize = 0;      ///< Size of the trailer
-  unsigned int mPayloadSize = 0;      ///< Size of the payload
+  unsigned int mTrailerSize = 0;      ///< Size of the trailer (in number of 32 bit words)
+  unsigned int mPayloadSize = 0;      ///< Size of the payload (in nunber of 32 bit words)
   unsigned int mFECERRA = 0;          ///< contains errors related to ALTROBUS transactions
   unsigned int mFECERRB = 0;          ///< contains errors related to ALTROBUS transactions
   unsigned short mERRREG2 = 0;        ///< contains errors related to ALTROBUS transactions or trailer of ALTRO channel block

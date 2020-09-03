@@ -115,6 +115,6 @@ Mapper& MappingHandler::getMappingForDDL(int ddl)
 
 std::ostream& o2::emcal::operator<<(std::ostream& stream, const Mapper::ChannelID& channel)
 {
-  stream << "Row " << channel.mRow << ", Column " << channel.mColumn << ", type " << o2::emcal::channelTypeToString(channel.mChannelType);
+  stream << "Row " << static_cast<int>(channel.mRow) << ", Column " << static_cast<int>(channel.mColumn) << ", type " << o2::emcal::channelTypeToString(channel.mChannelType);
   return stream;
 }
