@@ -49,8 +49,8 @@ void CreateModuleConfig(long tmin = 0, long tmax = -1,
     module.id = modID;
     module.setChannel(0, IdZNAC, 4, false, true, -5, 6, 4, 12);
     module.setChannel(1, IdZNASum, 5, true, false);
-    module.setChannel(2, IdZNA1, 6, true, false);
-    module.setChannel(3, IdZNA2, 7, true, false);
+    module.setChannel(2, IdZNA3, 6, true, false);
+    module.setChannel(3, IdZNA4, 7, true, false);
     //
   }
   //-------------------------------------------
@@ -93,8 +93,8 @@ void CreateModuleConfig(long tmin = 0, long tmax = -1,
     module.id = modID;
     module.setChannel(0, IdZPAC, 18, false, true, -5, 6, 4, 12);
     module.setChannel(1, IdZPASum, 18, true, false);
-    module.setChannel(2, IdZPA1, 19, true, false);
-    module.setChannel(3, IdZPA2, 19, true, false);
+    module.setChannel(2, IdZPA3, 19, true, false);
+    module.setChannel(3, IdZPA4, 19, true, false);
     //
   }
   //-------------------------------------------

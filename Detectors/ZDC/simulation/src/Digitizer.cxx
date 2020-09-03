@@ -181,7 +181,7 @@ void Digitizer::digitizeBC(BCCache& bc)
   auto& bcdata = bc.data;
   // apply gain
   for (int idet : {ZNA, ZPA, ZNC, ZPC}) {
-    for (int ic : {Ch1, Ch2, Ch3, Ch4}) {
+    for (int ic : {Common, Ch1, Ch2, Ch3, Ch4}) {
       int chan = toChannel(idet, ic);
       auto gain = mSimCondition->channels[chan].gain;
       for (int ib = NTimeBinsPerBC; ib--;) {
@@ -314,7 +314,7 @@ void Digitizer::phe2Sample(int nphe, int parID, double timeHit, std::array<o2::I
         break;
       }
       if (sample >= 0) {
-        auto signal = chanConfig.shape[sample] * nphe; // signal accounting for the gain
+        auto signal = chanConfig.shape[sample] * nphe; // signal not accounting for the gain
         (*bcCache).data[channel][ib] += signal;
         added = true;
       }
