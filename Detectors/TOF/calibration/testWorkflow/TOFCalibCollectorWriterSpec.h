@@ -50,14 +50,14 @@ class TOFCalibCollectorWriter : public o2::framework::Task
 
   void run(o2::framework::ProcessingContext& pc) final
   {
-    auto collectedInfo = pc.inputs().get<std::vector<o2::dataformats::CalibInfoTOFshort>>("collectedInfo");
-    auto entriesPerChannel = pc.inputs().get<std::array<int, Geo::NCHANNELS>>("entriesCh");
+    auto collectedInfo = pc.inputs().get<gsl::span<o2::dataformats::CalibInfoTOFshort>>("collectedInfo");
+    auto entriesPerChannel = pc.inputs().get<gsl::span<int>>("entriesCh");
     int offsetStart = 0;
     for (int ich = 0; ich < o2::tof::Geo::NCHANNELS; ich++) {
       mTOFCalibInfoOut.clear();
       if (entriesPerChannel[ich] > 0) {
         mTOFCalibInfoOut.resize(entriesPerChannel[ich]);
-        auto subSpanVect = gsl::span<const o2::dataformats::CalibInfoTOFshort>(&collectedInfo[offsetStart], entriesPerChannel[ich]);
+        auto subSpanVect = collectedInfo.subspan(offsetStart, entriesPerChannel[ich]);
         memcpy(&mTOFCalibInfoOut[0], subSpanVect.data(), sizeof(o2::dataformats::CalibInfoTOFshort) * subSpanVect.size());
         const o2::dataformats::CalibInfoTOFshort* tmp = subSpanVect.data();
       }
