@@ -25,6 +25,7 @@ o2_add_library(Generators
 	       	       src/Trigger.cxx
 	       	       src/TriggerParticle.cxx
                        src/GeneratorTGenerator.cxx
+                       src/GeneratorExternalParam.cxx
                        src/GeneratorFromFile.cxx
                        src/PDG.cxx
                        src/PrimaryGenerator.cxx
@@ -65,6 +66,7 @@ set(headers
     include/Generators/Trigger.h
     include/Generators/TriggerParticle.h
     include/Generators/GeneratorTGenerator.h
+    include/Generators/GeneratorExternalParam.h
     include/Generators/GeneratorFromFile.h
     include/Generators/PDG.h
     include/Generators/PrimaryGenerator.h

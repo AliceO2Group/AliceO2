@@ -1,6 +1,5 @@
 // configures a AliGenAmpt class from AliRoot
-//   usage: o2sim -g extgen --extGenFile aliroot_ampt.macro
-// options:                 --extGenFunc aliroot_ampt(5020., 0., 20.)
+//   usage: o2sim -g external --configKeyValues 'GeneratorExternal.fileName=aliroot_ampt.macro;GeneratorExternal.funcName="aliroot_ampt(5020., 0., 20.)"'
 
 /// \author R+Preghenella - October 2018
 

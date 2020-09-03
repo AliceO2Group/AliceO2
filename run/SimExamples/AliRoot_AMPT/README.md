@@ -7,7 +7,7 @@ A wrapper class AliRoot_AMPT is defined to keep the AliGenAmpt instance and conf
 It also provides methods to set a random event plane before event generation and to update the event header.
 The overall setup is steered by the function `ampt(double energy = 5020., double bMin = 0., double bMax = 20.)` defined in the macro `aliroot_ampt.macro`.
 
-The macro file is specified via the argument of `--extGenFile` whereas the specific function call to retrieven the configuration is specified via the argument of `--extGenFunc`.
+The macro file is specified via `--configKeyValues` setting `GeneratorExternal.fileName` whereas the specific function call to retrieven the configuration is specified via `GeneratorExternal.funcName`.
  
 # IMPORTANT
 To run this example you need to load an AliRoot package compatible with the O2.

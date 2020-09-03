@@ -132,15 +132,15 @@ o2-sim -m PIPE ITS MFT -g pythia8 -n 50
 You may contribute to the documentation by asking a question
 
 #### 1. **How can I interface an event generator from ALIROOT**?
-In order to access event generators from ALIROOT, such as `THijing` or `TPyhtia6`, you may use the `-g extgen` command line option followed by a ROOT macro setting up the event 
+In order to access event generators from ALIROOT, such as `THijing` or `TPyhtia6`, you may use the `-g external` command line option followed by a ROOT macro setting up the event 
 generator. Examples thereof are available in the installation directory `$O2_ROOT/share/Generators/external`.
 
 For example, in order to simulate with 10 Pythia6 events, the following command can be run:
 ```
-o2-sim -n 10 -g extgen --extGenFile $O2_ROOT/share/Generators/external/pythia6.C
+o2-sim -n 10 -g external --configKeyValues 'GeneratorExternal.fileName=$O2_ROOT/share/Generators/external/pythia6.C'
 ```
-Macro arguments can be passed via
-`--extGenFunc pythia6(14000., "pythia.settings")`.
+Macro arguments can be passed setting `GeneratorExternal.funcName`  
+`GeneratorExternal.funcName=pythia6(14000., "pythia.settings")`.
 
 Users may write there own macros in order to customize to their needs.
 

@@ -1,6 +1,5 @@
 // configures a AliGenHijing class from AliRoot
-//   usage: o2sim -g extgen --extGenFile hijing.C
-// options:                 --extGenFunc hijing(5020., 0., 20.)
+//   usage: o2sim -g external --configKeyValues 'GeneratorExternal.fileName=hijing.C;GeneratorExternal.funcName="hijing(5020., 0., 20.)"'
 
 /// \author R+Preghenella - October 2018
 

@@ -11,4 +11,4 @@ Pythia8 events are generated according to the configuration given in the file `a
 The settings are as such that Pythia8 is initialised using the `pythia8_inel.cfg` configuration file.
 The customisation allows the generator to receive and react to a notification that signals the embedding status of the simulation, giving the header of the background event for determination of the subsequent actions. In this case, the number of pythia8 events to be embedded is calculated according to a formula that uses the number of primary particles of the background events.
 
-The macro file is specified via the argument of `--extGenFile` whereas the specific function call to retrieve the configuration and define the formula is specified via the argument of `--extGenFunc`.
+The macro file is specified via `--configKeyValues` setting `GeneratorExternal.fileName` whereas the specific function call to retrieve the configuration and define the formula is specified via `GeneratorExternal.funcName`.

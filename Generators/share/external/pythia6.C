@@ -1,6 +1,5 @@
 // configures a TPythia6 class
-//   usage: o2sim -g extgen --extGenFile pythia6.C
-// options:                 --extGenFunc pythia6(14000., "pythia.settings")
+//   usage: o2sim -g external --configKeyValues 'GeneratorExternal.fileName=pythia6.C;GeneratorExternal.funcName="pythia6(14000., "pythia.settings")"'
 
 /// \author R+Preghenella - October 2018
 
