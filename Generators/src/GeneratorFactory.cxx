@@ -32,6 +32,7 @@
 #endif
 #include <Generators/BoxGunParam.h>
 #include <Generators/TriggerParticle.h>
+#include <Generators/TriggerExternalParam.h>
 #include <Generators/TriggerParticleParam.h>
 #include "Generators/ConfigurationMacroHelper.h"
 
@@ -227,8 +228,11 @@ void GeneratorFactory::setPrimaryGenerator(o2::conf::SimConfig const& conf, Fair
     trigger = TriggerParticle(TriggerParticleParam::Instance());
   } else if (trgconfig.compare("external") == 0) {
     // external trigger via configuration macro
-    auto external_trigger_filename = conf.getExtTriggerFileName();
-    auto external_trigger_func = conf.getExtTriggerFuncName();
+    auto& params = TriggerExternalParam::Instance();
+    LOG(INFO) << "Setting up external trigger with following parameters";
+    LOG(INFO) << params;
+    auto external_trigger_filename = params.fileName;
+    auto external_trigger_func = params.funcName;
     trigger = GetFromMacro<o2::eventgen::Trigger>(external_trigger_filename, external_trigger_func, "o2::eventgen::Trigger", "trigger");
     if (!trigger) {
       LOG(INFO) << "Trying to retrieve a \'o2::eventgen::DeepTrigger\' type" << std::endl;
