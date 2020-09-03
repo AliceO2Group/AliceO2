@@ -3,15 +3,14 @@
 // Example of an implementation of an external event generator
 // that is used and adapts it behavior in an embedding scenario.
 //
-//   usage: o2sim -g extgen --extGenFile adaptive_pythia8.C
-// options:                 --extGenFunc "adaptive_pythia8(\"0.001 * x\")
+//   usage: o2sim -g external --configKeyValues 'GeneratorExternal.fileName=adaptive_pythia8.C;GeneratorExternal.funcName="adaptive_pythia8(\"0.001 * x\")"'
 
 using namespace o2::eventgen;
 
 class Adaptive_Pythia8 : public GeneratorPythia8
 {
 public:
-  Adaptive_Pythia8(char *formula = "0.01 * x") :
+  Adaptive_Pythia8(const char *formula = "0.01 * x") :
     GeneratorPythia8(), mFormula("formula", formula) { };
   ~Adaptive_Pythia8() = default;
 
@@ -43,7 +42,7 @@ private:
 };
 
 FairGenerator*
-adaptive_pythia8(char *formula = "0.01 * x")
+adaptive_pythia8(const char *formula = "0.01 * x")
 {
   std::cout << " --- adaptive_pythia8 initialising with formula: " << formula << std::endl;
   auto py8 = new Adaptive_Pythia8(formula);

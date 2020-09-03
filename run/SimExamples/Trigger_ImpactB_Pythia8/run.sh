@@ -22,4 +22,4 @@ set -x
 NEV=10
 BMIN=15.
 BMAX=20.
-o2-sim -j 20 -n ${NEV} -g pythia8hi -m PIPE ITS TPC --trigger external --configKeyValues 'TriggerExternal.fileName=trigger_impactb_pythia8.macro;TriggerExternal.funcName="trigger_impactb_pythia8(${BMIN}, ${BMAX})"'
+o2-sim -j 20 -n ${NEV} -g pythia8hi -m PIPE ITS TPC --trigger external --configKeyValues "TriggerExternal.fileName=trigger_impactb_pythia8.macro;TriggerExternal.funcName=trigger_impactb_pythia8(${BMIN}, ${BMAX})"
