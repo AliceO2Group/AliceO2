@@ -315,6 +315,7 @@ class Mapper
   }
 
   int getNumberOfPadsInRowSector(int row) const { return mMapNumberOfPadsPerRow[row]; }
+  int getPadOffsetInRowSector(int row) const { return mMapPadOffsetPerRow[row]; }
   int getNumberOfPadsInRowROC(int roc, int row) const
   {
     return mMapNumberOfPadsPerRow[row + (roc % 72 >= getNumberOfIROCs()) * mNumberOfPadRowsIROC];

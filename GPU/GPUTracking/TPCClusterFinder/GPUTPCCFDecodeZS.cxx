@@ -165,11 +165,15 @@ GPUdii() void GPUTPCCFDecodeZS::decode(GPUTPCClusterFinder& clusterer, GPUShared
                   const CfFragment& fragment = clusterer.mPmemory->fragment;
                   TPCTime globalTime = timeBin + l;
                   bool inFragment = fragment.contains(globalTime);
-                  ChargePos pos(Row(rowOffset + m), Pad(pad++), inFragment ? fragment.toLocal(globalTime) : INVALID_TIME_BIN);
+                  Row row = rowOffset + m;
+                  ChargePos pos(row, Pad(pad), inFragment ? fragment.toLocal(globalTime) : INVALID_TIME_BIN);
                   positions[nDigitsTmp++] = pos;
                   if (inFragment) {
-                    chargeMap[pos] = PackedCharge(float(byte & mask) * decodeBitsFactor);
+                    float q = float(byte & mask) * decodeBitsFactor;
+                    q *= clusterer.getGainCorrection(row, pad);
+                    chargeMap[pos] = PackedCharge(q);
                   }
+                  pad++;
                   byte = byte >> decodeBits;
                   bits -= decodeBits;
                   seqLen--;
