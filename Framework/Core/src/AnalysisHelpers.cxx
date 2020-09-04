@@ -35,7 +35,7 @@ ROOT::RDataFrame doSelfCombinationsWith(std::unique_ptr<framework::TableConsumer
   using Index = RCombinedDSBlockJoinIndex<int>;
   auto left = std::make_unique<RArrowDS>(table, std::vector<std::string>{});
   auto right = std::make_unique<RArrowDS>(table, std::vector<std::string>{});
-  auto combined = std::make_unique<RCombinedDS>(std::move(left), std::move(right), std::move(std::make_unique<Index>(grouping, true, BlockCombinationRule::StrictlyUpper)), name + "_", name + "bar_");
+  auto combined = std::make_unique<RCombinedDS>(std::move(left), std::move(right), std::make_unique<Index>(grouping, true, BlockCombinationRule::StrictlyUpper), name + "_", name + "bar_");
 
   ROOT::RDataFrame rdf(std::move(combined));
   return rdf;

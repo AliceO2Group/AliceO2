@@ -50,7 +50,7 @@ DECLARE_SOA_TABLE(Events, "AOD", "EVENTS",
 struct ATask {
   Produces<aod::FooBars> foobars;
 
-  void process(o2::aod::Track const& track)
+  void process(o2::aod::Track const&)
   {
     foobars(0.01102005, 0.27092016); // dummy value for phi for now...
   }
