@@ -147,6 +147,7 @@ class RawFileReader
     std::string fairMQChannel{};                                                   //! name of the fairMQ channel for the output
     int nErrors = 0;                                                               //!
     std::vector<LinkBlock> blocks;                                                 //!
+    std::vector<std::pair<int, uint32_t>> tfStartBlock;
     //
     // transient info during processing
     bool openHB = false;    //!
