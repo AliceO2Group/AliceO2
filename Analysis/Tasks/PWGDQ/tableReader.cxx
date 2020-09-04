@@ -496,12 +496,12 @@ void DefineHistograms(o2::framework::OutputObj<HistogramManager> histMan, TStrin
         histMan->AddHistogram(classStr.Data(), "Chi2MatchTrigger", "", false, 100, 0.0, 20.0, VarManager::kMuonChi2MatchTrigger);
       }
     }
-    
+
     if (classStr.Contains("DileptonsSelected")) {
       histMan->AddHistClass(classStr.Data());
       histMan->AddHistogram(classStr.Data(), "Mass_Pt", "", false, 100, 0.0, 5.0, VarManager::kMass, 100, 0.0, 20.0, VarManager::kPt);
     }
-    
+
     if (classStr.Contains("HadronsSelected")) {
       histMan->AddHistClass(classStr.Data());
       histMan->AddHistogram(classStr.Data(), "Eta_Pt", "", false, 20, -1.0, 1.0, VarManager::kEta, 100, 0.0, 20.0, VarManager::kPt);
