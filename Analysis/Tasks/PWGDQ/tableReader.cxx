@@ -13,6 +13,7 @@
 #include "Framework/runDataProcessing.h"
 #include "Framework/AnalysisTask.h"
 #include "Framework/AnalysisDataModel.h"
+#include "Framework/ASoAHelpers.h"
 #include "Analysis/ReducedInfoTables.h"
 #include "Analysis/VarManager.h"
 #include "Analysis/HistogramManager.h"
@@ -23,31 +24,49 @@
 #include <THashList.h>
 #include <TString.h>
 #include <iostream>
-#include <vector>
-#include <typeinfo>
 
 using std::cout;
 using std::endl;
-using std::vector;
 
 using namespace o2;
 using namespace o2::framework;
 //using namespace o2::framework::expressions;
 using namespace o2::aod;
 
-void DefineHistograms(o2::framework::OutputObj<HistogramManager> histMan, TString histClasses);
 
+// Some definitions
 namespace o2::aod
 {
-namespace reducedtrack
-{
-DECLARE_SOA_COLUMN(IsBarrelSelected, isBarrelSelected, int);
-DECLARE_SOA_COLUMN(IsMuonSelected, isMuonSelected, int);
-}
+  namespace reducedtrack
+  {
+    DECLARE_SOA_COLUMN(IsBarrelSelected, isBarrelSelected, int);
+    DECLARE_SOA_COLUMN(IsMuonSelected, isMuonSelected, int);
+  }
 
-DECLARE_SOA_TABLE(BarrelTrackCuts, "AOD", "BARRELTRACKCUTS", reducedtrack::IsBarrelSelected);
-DECLARE_SOA_TABLE(MuonTrackCuts, "AOD", "MUONTRACKCUTS", reducedtrack::IsMuonSelected);
+  DECLARE_SOA_TABLE(BarrelTrackCuts, "AOD", "BARRELTRACKCUTS", reducedtrack::IsBarrelSelected);
+  DECLARE_SOA_TABLE(MuonTrackCuts, "AOD", "MUONTRACKCUTS", reducedtrack::IsMuonSelected);
 } // namespace o2::aod
+
+using MyEvent = soa::Join<aod::ReducedEvents, aod::ReducedEventsExtended>::iterator;
+using MyEventVtxCov = soa::Join<aod::ReducedEvents, aod::ReducedEventsExtended, aod::ReducedEventsVtxCov>::iterator;
+using MyBarrelTracks = soa::Join<aod::ReducedTracks, aod::ReducedTracksBarrel, aod::ReducedTracksBarrelCov, aod::ReducedTracksBarrelPID>;
+using MyBarrelTracksSelected = soa::Join<aod::ReducedTracks, aod::ReducedTracksBarrel, aod::ReducedTracksBarrelCov, aod::ReducedTracksBarrelPID, aod::BarrelTrackCuts>;
+using MyMuonTracks = soa::Join<aod::ReducedMuons, aod::ReducedMuonsExtended>;
+using MyMuonTracksSelected = soa::Join<aod::ReducedMuons, aod::ReducedMuonsExtended, aod::MuonTrackCuts>;
+
+void DefineHistograms(o2::framework::OutputObj<HistogramManager> histMan, TString histClasses);
+
+// HACK: In order to be able to deduce which kind of aod object is transmitted to the templated VarManager::Fill functions
+//         a constexpr static bit map must be defined and sent as template argument
+//        The user has to include in this bit map all the tables needed in analysis, as defined in VarManager::ObjTypes
+//        Additionally, one should make sure that the requested tables are actually provided in the process() function,
+//       otherwise a compile time error will be thrown.
+//        This is a temporary fix until the arrow/ROOT issues are solved, at which point it will be possible
+//           to automatically detect the object types transmitted to the VarManager
+constexpr static uint32_t fgEventFillMap = VarManager::ObjTypes::ReducedEvent | VarManager::ObjTypes::ReducedEventExtended;
+constexpr static uint32_t fgTrackFillMap = VarManager::ObjTypes::ReducedTrack | VarManager::ObjTypes::ReducedTrackBarrel | VarManager::ObjTypes::ReducedTrackBarrelCov | VarManager::ObjTypes::ReducedTrackBarrelPID;
+constexpr static uint32_t fgMuonFillMap = VarManager::ObjTypes::ReducedTrack | VarManager::ObjTypes::ReducedTrackMuon;
+
 
 
 struct BarrelTrackSelection {
@@ -57,17 +76,13 @@ struct BarrelTrackSelection {
   
   float* fValues;
   
-  constexpr static uint32_t fgEventFillMap = VarManager::ObjTypes::ReducedEvent | VarManager::ObjTypes::ReducedEventExtended;
-  constexpr static uint32_t fgTrackFillMap = VarManager::ObjTypes::ReducedTrack | VarManager::ObjTypes::ReducedTrackBarrel | VarManager::ObjTypes::ReducedTrackBarrelCov | VarManager::ObjTypes::ReducedTrackBarrelPID;
-  
   void init(o2::framework::InitContext&)
   {
     fValues = new float[VarManager::kNVars];
     VarManager::SetDefaultVarNames();
     fHistMan.setObject(new HistogramManager("analysisHistos", "aa", VarManager::kNVars));
-
     fHistMan->SetUseDefaultVariableNames(kTRUE);
-    fHistMan->SetDefaultVarNames(VarManager::fgVariableNames, VarManager::fgVariableUnits);
+    fHistMan->SetDefaultVarNames(VarManager::fgVariableNames, VarManager::fgVariableUnits);   
     
     DefineHistograms(fHistMan,"TrackBarrel_BeforeCuts;TrackBarrel_AfterCuts;"); // define all histograms
     VarManager::SetUseVars(fHistMan->GetUsedVars());                                                                                                                   // provide the list of required variables so that VarManager knows what to fill
@@ -79,7 +94,7 @@ struct BarrelTrackSelection {
   {
     fTrackCut = new AnalysisCompositeCut(true); // true: use AND
     AnalysisCut* cut1 = new AnalysisCut();
-    cut1->AddCut(VarManager::kPt, 1.0, 20.0);
+    cut1->AddCut(VarManager::kPt, 1.5, 20.0);
     cut1->AddCut(VarManager::kEta, -0.9, 0.9);
     cut1->AddCut(VarManager::kTPCchi2, 0.0, 4.0);
     cut1->AddCut(VarManager::kITSchi2, 0.0, 36.0);
@@ -93,8 +108,7 @@ struct BarrelTrackSelection {
     VarManager::SetUseVars(AnalysisCut::fgUsedVars); // provide the list of required variables so that VarManager knows what to fill
   }
   
-  void process(soa::Join<aod::ReducedEvents, aod::ReducedEventsExtended>::iterator event,
-               soa::Join<aod::ReducedTracks, aod::ReducedTracksBarrel, aod::ReducedTracksBarrelCov, aod::ReducedTracksBarrelPID> const& tracks)
+  void process(MyEvent event, MyBarrelTracks const& tracks)
   {
     for(int i=0; i<VarManager::kNVars; ++i)
       fValues[i] = -9999.0f;
@@ -124,15 +138,11 @@ struct MuonTrackSelection {
   
   float* fValues;
   
-  constexpr static uint32_t fgEventMuonFillMap = VarManager::ObjTypes::ReducedEvent | VarManager::ObjTypes::ReducedEventExtended;
-  constexpr static uint32_t fgMuonFillMap = VarManager::ObjTypes::ReducedTrack | VarManager::ObjTypes::ReducedTrackMuon;
-  
   void init(o2::framework::InitContext&)
   {
     fValues = new float[VarManager::kNVars];
     VarManager::SetDefaultVarNames();
     fHistMan.setObject(new HistogramManager("analysisHistos", "aa", VarManager::kNVars));
-
     fHistMan->SetUseDefaultVariableNames(kTRUE);
     fHistMan->SetDefaultVarNames(VarManager::fgVariableNames, VarManager::fgVariableUnits);
     
@@ -152,12 +162,11 @@ struct MuonTrackSelection {
     VarManager::SetUseVars(AnalysisCut::fgUsedVars); // provide the list of required variables so that VarManager knows what to fill
   }
   
-  void process(soa::Join<aod::ReducedEvents, aod::ReducedEventsExtended>::iterator event,
-               soa::Join<aod::ReducedMuons, aod::ReducedMuonsExtended> const& muons)
+  void process(MyEvent event, MyMuonTracks const& muons)
   {
     for(int i=0; i<VarManager::kNVars; ++i)
       fValues[i] = -9999.0f;
-    VarManager::FillEvent<fgEventMuonFillMap>(event, fValues);
+    VarManager::FillEvent<fgEventFillMap>(event, fValues);
     
     for (auto& muon : muons) {
       for(int i=VarManager::kNBarrelTrackVariables; i<VarManager::kNMuonTrackVariables; ++i)
@@ -176,38 +185,25 @@ struct MuonTrackSelection {
 };
 
 
+
 struct TableReader {
 
   OutputObj<HistogramManager> fHistMan{"output"};
   AnalysisCompositeCut* fEventCut;
   
-  // HACK: In order to be able to deduce which kind of aod object is transmitted to the templated VarManager::Fill functions
-  //         a constexpr static bit map must be defined and sent as template argument
-  //        The user has to include in this bit map all the tables needed in analysis, as defined in VarManager::ObjTypes
-  //        Additionally, one should make sure that the requested tables are actually provided in the process() function,
-  //       otherwise a compile time error will be thrown.
-  //        This is a temporary fix until the arrow/ROOT issues are solved, at which point it will be possible
-  //           to automatically detect the object types transmitted to the VarManager
-  constexpr static uint32_t fgEventFillMap = VarManager::ObjTypes::ReducedEvent | VarManager::ObjTypes::ReducedEventExtended | VarManager::ObjTypes::ReducedEventVtxCov;
-  constexpr static uint32_t fgEventMuonFillMap = VarManager::ObjTypes::ReducedEvent | VarManager::ObjTypes::ReducedEventExtended;
-
-  using trackType = soa::Join<aod::ReducedTracks, aod::ReducedTracksBarrel, aod::ReducedTracksBarrelCov, aod::ReducedTracksBarrelPID, aod::BarrelTrackCuts>;
-  Partition<trackType> posTracks = aod::reducedtrack::charge > 0 && aod::reducedtrack::isBarrelSelected == 1;
-  Partition<trackType> negTracks = aod::reducedtrack::charge < 0 && aod::reducedtrack::isBarrelSelected == 1;
-  
-  using muonType = soa::Join<aod::ReducedMuons, aod::ReducedMuonsExtended, aod::MuonTrackCuts>;
-  Partition<muonType> posMuons = aod::reducedtrack::charge > 0 && aod::reducedtrack::isMuonSelected == 1;
-  Partition<muonType> negMuons = aod::reducedtrack::charge < 0 && aod::reducedtrack::isMuonSelected == 1;
+  Partition<MyBarrelTracksSelected> posTracks = aod::reducedtrack::charge > 0 && aod::reducedtrack::isBarrelSelected == 1;
+  Partition<MyBarrelTracksSelected> negTracks = aod::reducedtrack::charge < 0 && aod::reducedtrack::isBarrelSelected == 1;
+  Partition<MyMuonTracksSelected> posMuons = aod::reducedtrack::charge > 0 && aod::reducedtrack::isMuonSelected == 1;
+  Partition<MyMuonTracksSelected> negMuons = aod::reducedtrack::charge < 0 && aod::reducedtrack::isMuonSelected == 1;
   
   void init(o2::framework::InitContext&)
   {
     VarManager::SetDefaultVarNames();
     fHistMan.setObject(new HistogramManager("analysisHistos", "aa", VarManager::kNVars));
-
     fHistMan->SetUseDefaultVariableNames(kTRUE);
     fHistMan->SetDefaultVarNames(VarManager::fgVariableNames, VarManager::fgVariableUnits);
 
-    DefineHistograms(fHistMan, "Event_BeforeCuts;Event_AfterCuts;PairsBarrel;PairsMuon;"); // define all histograms
+    DefineHistograms(fHistMan, "Event_BeforeCuts;Event_AfterCuts;PairsBarrelPM;PairsBarrelPP;PairsBarrelMM;PairsMuon;"); // define all histograms
     VarManager::SetUseVars(fHistMan->GetUsedVars());   // provide the list of required variables so that VarManager knows what to fill
 
     DefineCuts();
@@ -230,14 +226,10 @@ struct TableReader {
     VarManager::SetUseVars(AnalysisCut::fgUsedVars); // provide the list of required variables so that VarManager knows what to fill
   }
 
-  void process(soa::Join<aod::ReducedEvents, aod::ReducedEventsExtended, aod::ReducedEventsVtxCov>::iterator event,
-               soa::Join<aod::ReducedTracks, aod::ReducedTracksBarrel, aod::ReducedTracksBarrelCov, aod::ReducedTracksBarrelPID, aod::BarrelTrackCuts> const& tracks,
-               soa::Join<aod::ReducedMuons, aod::ReducedMuonsExtended, aod::MuonTrackCuts> const& muons)
+  void process(MyEventVtxCov event, MyBarrelTracksSelected const& tracks, MyMuonTracksSelected const& muons)
   {
-    // Reset the fgValues array
-    // TODO: reseting will have to be done selectively, for example run-wise variables don't need to be reset every event, but just updated if the run changes
-    //       The reset can be done selectively, using arguments in the ResetValues() function
-    cout << "Event ++++++++++++++++++++++++++++++++++++++++++++++++++++++++" << endl;
+    // Reset the VarManager::fgValues array
+    // The reset can be done selectively, using arguments in the ResetValues() function
     VarManager::ResetValues();
 
     VarManager::FillEvent<fgEventFillMap>(event);
@@ -246,28 +238,32 @@ struct TableReader {
       return;
     fHistMan->FillHistClass("Event_AfterCuts", VarManager::fgValues);
 
-    cout << "1" << endl;
-    // loop over barrel tracks and store positive and negative tracks in separate arrays
-    // TODO: use Partition initiaslized by vector of track indices when this will be available
+    // Run the same event pairing for barrel tracks
+    // TODO: Use combinations() when this will work for Partitions   
+    /* e.g.
+     * for (auto& [tpos, tneg] : combinations(posTracks, negTracks)) {
+      VarManager::FillPair(tpos, tneg);
+      fHistMan->FillHistClass("PairsBarrelPM", VarManager::fgValues);
+    }
+    */
     
-    //using tracktype = soa::Join<aod::ReducedTracks, aod::ReducedTracksBarrel, aod::ReducedTracksBarrelCov, aod::ReducedTracksBarrelPID>;
-    
-    //Partition<std::decay_t<decltype(tracks)>> posTracks = aod::reducedtrack::charge > 0 && aod::trackSelection::isBarrelSelected == 1;
-    //Partition<std::decay_t<decltype(tracks)>> negTracks = aod::reducedtrack::charge < 0 && aod::trackSelection::isBarrelSelected == 1;
-    
-    cout << "2" << endl;
-    // run the same event pairing for barrel tracks
-    for (auto& tpos : posTracks) {
-      for (auto& tneg : negTracks) {
+    for (auto tpos : posTracks) {
+      for (auto tneg : negTracks) {        // +- pairs
         VarManager::FillPair(tpos, tneg);
-        fHistMan->FillHistClass("PairsBarrel", VarManager::fgValues);
+        fHistMan->FillHistClass("PairsBarrelPM", VarManager::fgValues);
+      }
+      for (auto tpos2 = tpos + 1; tpos2 != posTracks.end(); ++tpos2) {     // ++ pairs
+        VarManager::FillPair(tpos, tpos2);
+        fHistMan->FillHistClass("PairsBarrelPP", VarManager::fgValues);
       }
     }
-
-    cout << "3" << endl;
+    for (auto tneg : negTracks) {    // -- pairs
+      for (auto tneg2 = tneg + 1; tneg2 != negTracks.end(); ++tneg2) {
+        VarManager::FillPair(tneg, tneg2);
+        fHistMan->FillHistClass("PairsBarrelMM", VarManager::fgValues);
+      }
+    }
     
-    //Partition<std::decay_t<decltype(muons)>> posMuons = aod::reducedtrack::charge > 0 && aod::trackSelection::isMuonSelected == 1;
-    //Partition<std::decay_t<decltype(muons)>> negMuons = aod::reducedtrack::charge < 0 && aod::trackSelection::isMuonSelected == 1;   
     // same event pairing for muons
     for (auto& tpos : posMuons) {
       for (auto& tneg : negMuons) {
@@ -275,7 +271,6 @@ struct TableReader {
         fHistMan->FillHistClass("PairsMuon", VarManager::fgValues);
       }
     }
-    cout << "4" << endl;
   }
 };
 
@@ -284,12 +279,18 @@ WorkflowSpec defineDataProcessing(ConfigContext const&)
   return WorkflowSpec{
     adaptAnalysisTask<BarrelTrackSelection>("barrel-track-selection"),
     adaptAnalysisTask<MuonTrackSelection>("muon-track-selection"),
-    adaptAnalysisTask<TableReader>("table-reader")};
+    adaptAnalysisTask<TableReader>("table-reader")
+  };
 }
 
 
 void DefineHistograms(o2::framework::OutputObj<HistogramManager> histMan, TString histClasses)
 {
+  //
+  // Define here the histograms for all the classes required in analysis.
+  //  The histogram classes are provided in the histClasses string, separated by semicolon ";"
+  //  The histogram classes and their components histograms are defined below depending on the name of the histogram class
+  //
   const int kNRuns = 2;
   int runs[kNRuns] = {244918, 244919};
   TString runsStr;
@@ -392,7 +393,7 @@ void DefineHistograms(o2::framework::OutputObj<HistogramManager> histMan, TStrin
 
     if (classStr.Contains("Pairs")) {
       histMan->AddHistClass(classStr.Data());
-      histMan->AddHistogram(classStr.Data(), "Mass", "", false, 100, 0.0, 5.0, VarManager::kMass);
+      histMan->AddHistogram(classStr.Data(), "Mass_Pt", "", false, 100, 0.0, 5.0, VarManager::kMass, 100, 0.0, 20.0, VarManager::kPt);
     }
   } // end loop over histogram classes
 }
