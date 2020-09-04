@@ -513,7 +513,7 @@ class TableBuilder
   {
     using persistent_columns_pack = typename T::table_t::persistent_columns_t;
     constexpr auto persistent_size = pack_size(persistent_columns_pack{});
-    return cursorHelper<typename soa::PackToTable<persistent_columns_pack>>(std::make_index_sequence<persistent_size>());
+    return cursorHelper<typename soa::PackToTable<persistent_columns_pack>::table>(std::make_index_sequence<persistent_size>());
   }
 
   template <typename T, typename E>
@@ -521,7 +521,7 @@ class TableBuilder
   {
     using persistent_columns_pack = typename T::table_t::persistent_columns_t;
     constexpr auto persistent_size = pack_size(persistent_columns_pack{});
-    return cursorHelper<typename soa::PackToTable<persistent_columns_pack>, E>(std::make_index_sequence<persistent_size>());
+    return cursorHelper<typename soa::PackToTable<persistent_columns_pack>::table, E>(std::make_index_sequence<persistent_size>());
   }
 
   template <typename... ARGS>
