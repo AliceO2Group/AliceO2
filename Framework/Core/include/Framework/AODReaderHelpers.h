@@ -8,19 +8,15 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#ifndef o2_framework_readers_AODReaderHelpers_INCLUDED_H
-#define o2_framework_readers_AODReaderHelpers_INCLUDED_H
+#ifndef O2_FRAMEWORK_AODREADERHELPERS_H_
+#define O2_FRAMEWORK_AODREADERHELPERS_H_
 
 #include "Framework/TableBuilder.h"
 #include "Framework/AlgorithmSpec.h"
 #include "Framework/Logger.h"
 #include <uv.h>
 
-namespace o2
-{
-namespace framework
-{
-namespace readers
+namespace o2::framework::readers
 {
 
 struct RuntimeWatchdog {
@@ -71,8 +67,6 @@ struct AODReaderHelpers {
   static AlgorithmSpec aodSpawnerCallback(std::vector<InputSpec> requested);
 };
 
-} // namespace readers
-} // namespace framework
-} // namespace o2
+} // namespace o2::framework::readers
 
-#endif
+#endif // O2_FRAMEWORK_AODREADERHELPERS_H_
