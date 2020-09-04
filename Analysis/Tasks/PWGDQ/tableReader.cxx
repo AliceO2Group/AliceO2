@@ -42,9 +42,26 @@ namespace o2::aod
     DECLARE_SOA_COLUMN(IsBarrelSelected, isBarrelSelected, int);
     DECLARE_SOA_COLUMN(IsMuonSelected, isMuonSelected, int);
   }
+  namespace reducedpair
+  {
+    DECLARE_SOA_INDEX_COLUMN(ReducedEvent, reducedevent);
+    DECLARE_SOA_COLUMN(Mass, mass, float);
+    DECLARE_SOA_COLUMN(Pt, pt, float);
+    DECLARE_SOA_COLUMN(Eta, eta, float);
+    DECLARE_SOA_COLUMN(Phi, phi, float);
+    DECLARE_SOA_COLUMN(Charge, charge, int);
+    DECLARE_SOA_DYNAMIC_COLUMN(Px, px, [](float pt, float phi) -> float { return pt * std::cos(phi); });
+    DECLARE_SOA_DYNAMIC_COLUMN(Py, py, [](float pt, float phi) -> float { return pt * std::sin(phi); });
+    DECLARE_SOA_DYNAMIC_COLUMN(Pz, pz, [](float pt, float eta) -> float { return pt * std::sinh(eta); });
+    DECLARE_SOA_DYNAMIC_COLUMN(Pmom, pmom, [](float pt, float eta) -> float { return pt * std::cosh(eta); });
+  }
 
   DECLARE_SOA_TABLE(BarrelTrackCuts, "AOD", "BARRELTRACKCUTS", reducedtrack::IsBarrelSelected);
   DECLARE_SOA_TABLE(MuonTrackCuts, "AOD", "MUONTRACKCUTS", reducedtrack::IsMuonSelected);
+  DECLARE_SOA_TABLE(Dileptons, "AOD", "DILEPTON", reducedtrack::ReducedEventId, reducedpair::Mass, reducedpair::Pt, reducedpair::Eta, reducedpair::Phi, reducedpair::Charge,
+                    reducedpair::Px<reducedpair::Pt, reducedpair::Phi>, reducedpair::Py<reducedpair::Pt, reducedpair::Phi>,
+                    reducedpair::Pz<reducedpair::Pt, reducedpair::Eta>, reducedpair::Pmom<reducedpair::Pt, reducedpair::Eta>);
+  using Dilepton = Dileptons::iterator;
 } // namespace o2::aod
 
 using MyEvent = soa::Join<aod::ReducedEvents, aod::ReducedEventsExtended>::iterator;
@@ -74,7 +91,7 @@ struct BarrelTrackSelection {
   OutputObj<HistogramManager> fHistMan{"output"};
   AnalysisCompositeCut* fTrackCut;
   
-  float* fValues;
+  float* fValues; // array to be used by the VarManager
   
   void init(o2::framework::InitContext&)
   {
@@ -112,6 +129,7 @@ struct BarrelTrackSelection {
   {
     for(int i=0; i<VarManager::kNVars; ++i)
       fValues[i] = -9999.0f;
+    // fill event information which might be needed in histograms that combine track and event properties
     VarManager::FillEvent<fgEventFillMap>(event, fValues);
     
     for (auto& track : tracks) {
@@ -187,9 +205,10 @@ struct MuonTrackSelection {
 
 
 struct TableReader {
-
+  Produces<aod::Dileptons> dileptonList; 
   OutputObj<HistogramManager> fHistMan{"output"};
   AnalysisCompositeCut* fEventCut;
+  //NOTE: one could define also a dilepton cut, but for now basic selections can be supported using Partition  
   
   Partition<MyBarrelTracksSelected> posTracks = aod::reducedtrack::charge > 0 && aod::reducedtrack::isBarrelSelected == 1;
   Partition<MyBarrelTracksSelected> negTracks = aod::reducedtrack::charge < 0 && aod::reducedtrack::isBarrelSelected == 1;
@@ -250,16 +269,19 @@ struct TableReader {
     for (auto tpos : posTracks) {
       for (auto tneg : negTracks) {        // +- pairs
         VarManager::FillPair(tpos, tneg);
+        dileptonList(event, VarManager::fgValues[VarManager::kMass], VarManager::fgValues[VarManager::kPt], VarManager::fgValues[VarManager::kEta], VarManager::fgValues[VarManager::kPhi], 0);
         fHistMan->FillHistClass("PairsBarrelPM", VarManager::fgValues);
       }
       for (auto tpos2 = tpos + 1; tpos2 != posTracks.end(); ++tpos2) {     // ++ pairs
         VarManager::FillPair(tpos, tpos2);
+        dileptonList(event, VarManager::fgValues[VarManager::kMass], VarManager::fgValues[VarManager::kPt], VarManager::fgValues[VarManager::kEta], VarManager::fgValues[VarManager::kPhi], 2);
         fHistMan->FillHistClass("PairsBarrelPP", VarManager::fgValues);
       }
     }
     for (auto tneg : negTracks) {    // -- pairs
       for (auto tneg2 = tneg + 1; tneg2 != negTracks.end(); ++tneg2) {
         VarManager::FillPair(tneg, tneg2);
+        dileptonList(event, VarManager::fgValues[VarManager::kMass], VarManager::fgValues[VarManager::kPt], VarManager::fgValues[VarManager::kEta], VarManager::fgValues[VarManager::kPhi], -2);
         fHistMan->FillHistClass("PairsBarrelMM", VarManager::fgValues);
       }
     }
@@ -267,6 +289,7 @@ struct TableReader {
     // same event pairing for muons
     for (auto& tpos : posMuons) {
       for (auto& tneg : negMuons) {
+        //dileptonList(event, VarManager::fgValues[VarManager::kMass], VarManager::fgValues[VarManager::kPt], VarManager::fgValues[VarManager::kEta], VarManager::fgValues[VarManager::kPhi], 1);
         VarManager::FillPair(tpos, tneg);
         fHistMan->FillHistClass("PairsMuon", VarManager::fgValues);
       }
@@ -274,14 +297,104 @@ struct TableReader {
   }
 };
 
+
+
+struct DileptonHadronAnalysis {
+  //
+  // This task combines dilepton candidates with a track and could be used for example
+  //  in analyses with the dilepton as one of the decay products of a higher mass resonance (e.g. B0 -> Jpsi + K) 
+  //    or in dilepton + hadron correlations, etc.
+  // It requires the TableReader task to be in the workflow and produce the dilepton table
+  //
+  OutputObj<HistogramManager> fHistMan{"output"};
+  AnalysisCompositeCut* fHadronCut;
+  //NOTE: no cut has been included for dileptons because that can be controlled via the TableReader task and the partition below
+  
+  // use two values array to avoid mixing up the quantities
+  float* fValuesDilepton;
+  float* fValuesHadron;
+  
+  Partition<aod::Dileptons> selDileptons = aod::reducedpair::charge == 0 && aod::reducedpair::mass > 2.92f && aod::reducedpair::mass < 3.16f && aod::reducedpair::pt > 5.0f;
+  
+  constexpr static uint32_t fgDileptonFillMap = VarManager::ObjTypes::ReducedTrack | VarManager::ObjTypes::Pair;
+  
+  void init(o2::framework::InitContext&)
+  {
+    fValuesDilepton = new float[VarManager::kNVars];
+    fValuesHadron = new float[VarManager::kNVars];
+    VarManager::SetDefaultVarNames();
+    fHistMan.setObject(new HistogramManager("analysisHistos", "aa", VarManager::kNVars));
+    fHistMan->SetUseDefaultVariableNames(kTRUE);
+    fHistMan->SetDefaultVarNames(VarManager::fgVariableNames, VarManager::fgVariableUnits);   
+    
+    DefineHistograms(fHistMan,"DileptonsSelected;HadronsSelected;DileptonHadronInvMass;DileptonHadronCorrelation"); // define all histograms
+    VarManager::SetUseVars(fHistMan->GetUsedVars());           // provide the list of required variables so that VarManager knows what to fill
+
+    DefineCuts();
+  }
+  
+  void DefineCuts()
+  {
+    fHadronCut = new AnalysisCompositeCut(true); // true: use AND
+    AnalysisCut* cut1 = new AnalysisCut();
+    cut1->AddCut(VarManager::kPt, 4.0, 20.0);
+    cut1->AddCut(VarManager::kEta, -0.9, 0.9);
+    cut1->AddCut(VarManager::kTPCchi2, 0.0, 4.0);
+    cut1->AddCut(VarManager::kITSchi2, 0.0, 36.0);
+    cut1->AddCut(VarManager::kITSncls, 2.5, 7.5);
+    cut1->AddCut(VarManager::kTPCncls, 69.5, 159.5);
+    fHadronCut->AddCut(cut1);
+    
+    VarManager::SetUseVars(AnalysisCut::fgUsedVars); // provide the list of required variables so that VarManager knows what to fill
+  }
+  
+  void process(MyEvent event, MyBarrelTracks const& hadrons, aod::Dileptons const& dileptons)
+  {
+    for(int i=0; i<VarManager::kNVars; ++i)
+      fValuesHadron[i] = -9999.0f;
+    // fill event information which might be needed in histograms that combine track/pair and event properties
+    VarManager::FillEvent<fgEventFillMap>(event, fValuesHadron);
+    
+    // loop once over dileptons for QA purposes
+    for (auto dilepton : selDileptons) {
+      for(int i=VarManager::kNEventWiseVariables; i<VarManager::kNMuonTrackVariables; ++i)
+        fValuesDilepton[i] = -9999.0f;
+      VarManager::FillTrack<fgDileptonFillMap>(dilepton, fValuesDilepton);
+      fHistMan->FillHistClass("DileptonsSelected", fValuesDilepton);
+    }
+    
+    // loop over hadrons
+    for (auto& hadron : hadrons) {
+      for(int i=VarManager::kNEventWiseVariables; i<VarManager::kNMuonTrackVariables; ++i)
+        fValuesHadron[i] = -9999.0f;
+      VarManager::FillTrack<fgTrackFillMap>(hadron, fValuesHadron);
+      if (!fHadronCut->IsSelected(fValuesHadron))
+        continue;
+      
+      fHistMan->FillHistClass("HadronsSelected", fValuesHadron);
+      
+      for (auto dilepton : selDileptons) {
+        // TODO: At the moment there is no check on whether this hadron is one of the dilepton daughters
+        VarManager::FillDileptonHadron(dilepton, hadron, fValuesHadron);
+        fHistMan->FillHistClass("DileptonHadronInvMass", fValuesHadron);
+        fHistMan->FillHistClass("DileptonHadronCorrelation", fValuesHadron);
+      }
+    }
+  }
+};
+
+
+
 WorkflowSpec defineDataProcessing(ConfigContext const&)
 {
   return WorkflowSpec{
     adaptAnalysisTask<BarrelTrackSelection>("barrel-track-selection"),
     adaptAnalysisTask<MuonTrackSelection>("muon-track-selection"),
-    adaptAnalysisTask<TableReader>("table-reader")
+    adaptAnalysisTask<TableReader>("table-reader"),
+    adaptAnalysisTask<DileptonHadronAnalysis>("dilepton-hadron")
   };
 }
+
 
 
 void DefineHistograms(o2::framework::OutputObj<HistogramManager> histMan, TString histClasses)
@@ -390,10 +503,32 @@ void DefineHistograms(o2::framework::OutputObj<HistogramManager> histMan, TStrin
         histMan->AddHistogram(classStr.Data(), "Chi2MatchTrigger", "", false, 100, 0.0, 20.0, VarManager::kMuonChi2MatchTrigger);
       }
     }
+    
+    if (classStr.Contains("DileptonsSelected")) {
+      histMan->AddHistClass(classStr.Data());
+      histMan->AddHistogram(classStr.Data(), "Mass_Pt", "", false, 100, 0.0, 5.0, VarManager::kMass, 100, 0.0, 20.0, VarManager::kPt);
+    }
+    
+    if (classStr.Contains("HadronsSelected")) {
+      histMan->AddHistClass(classStr.Data());
+      histMan->AddHistogram(classStr.Data(), "Eta_Pt", "", false, 20, -1.0, 1.0, VarManager::kEta, 100, 0.0, 20.0, VarManager::kPt);
+      histMan->AddHistogram(classStr.Data(), "Eta_Phi", "", false, 20, -1.0, 1.0, VarManager::kEta, 100, -8.0, 8.0, VarManager::kPhi);
+    }
 
     if (classStr.Contains("Pairs")) {
       histMan->AddHistClass(classStr.Data());
       histMan->AddHistogram(classStr.Data(), "Mass_Pt", "", false, 100, 0.0, 5.0, VarManager::kMass, 100, 0.0, 20.0, VarManager::kPt);
+    }
+    
+    if (classStr.Contains("DileptonHadronInvMass")) {
+      histMan->AddHistClass(classStr.Data());
+      histMan->AddHistogram(classStr.Data(), "Mass_Pt", "", false, 40, 0.0, 20.0, VarManager::kPairMass, 40, 0.0, 20.0, VarManager::kPairPt);
+    }
+    
+    if (classStr.Contains("DileptonHadronCorrelation")) {
+      histMan->AddHistClass(classStr.Data());
+      histMan->AddHistogram(classStr.Data(), "DeltaEta_DeltaPhi", "", false, 20, -2.0, 2.0, VarManager::kDeltaEta, 50, -8.0, 8.0, VarManager::kDeltaPhi);
+      histMan->AddHistogram(classStr.Data(), "DeltaEta_DeltaPhiSym", "", false, 20, -2.0, 2.0, VarManager::kDeltaEta, 50, -8.0, 8.0, VarManager::kDeltaPhiSym);
     }
   } // end loop over histogram classes
 }
