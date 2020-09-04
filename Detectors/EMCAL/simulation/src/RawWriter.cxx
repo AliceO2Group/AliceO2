@@ -20,12 +20,6 @@
 
 using namespace o2::emcal;
 
-void RawWriter::setTriggerRecords(gsl::span<o2::emcal::TriggerRecord> triggers)
-{
-  mTriggers = triggers;
-  mCurrentTrigger = triggers.begin();
-}
-
 void RawWriter::init()
 {
   mRawWriter = std::make_unique<o2::raw::RawFileWriter>(o2::header::gDataOriginEMC, false);
@@ -69,31 +63,26 @@ void RawWriter::init()
   }
 }
 
-void RawWriter::process()
-{
-  while (processNextTrigger())
-    ;
-}
-
 void RawWriter::digitsToRaw(gsl::span<o2::emcal::Digit> digitsbranch, gsl::span<o2::emcal::TriggerRecord> triggerbranch)
 {
   setDigits(digitsbranch);
-  setTriggerRecords(triggerbranch);
-  process();
+  for (auto trg : triggerbranch) {
+    processTrigger(trg);
+  }
 }
 
-bool RawWriter::processNextTrigger()
+bool RawWriter::processTrigger(const o2::emcal::TriggerRecord& trg)
 {
-  if (mCurrentTrigger == mTriggers.end())
-    return false;
   for (auto srucont : mSRUdata)
     srucont.mChannels.clear();
   std::vector<o2::emcal::Digit*>* bunchDigits;
   int lasttower = -1;
-  for (auto& dig : gsl::span(mDigits.data() + mCurrentTrigger->getFirstEntry(), mCurrentTrigger->getNumberOfObjects())) {
+  for (auto& dig : gsl::span(mDigits.data() + trg.getFirstEntry(), trg.getNumberOfObjects())) {
     auto tower = dig.getTower();
     if (tower != lasttower) {
       lasttower = tower;
+      if (tower > 20000)
+        std::cout << "Wrong cell ID " << tower << std::endl;
       auto onlineindices = getOnlineID(tower);
       int sruID = std::get<0>(onlineindices);
       auto towerdata = mSRUdata[sruID].mChannels.find(tower);
@@ -104,19 +93,21 @@ bool RawWriter::processNextTrigger()
       } else {
         bunchDigits = &(towerdata->second.mDigits);
       }
-      // Get time sample of the digit:
-      // Digitizer stores the time sample in ns, needs to be converted to time sample dividing
-      // by the length of the time sample
-      auto timesample = int(dig.getTimeStamp() / emcal::constants::EMCAL_TIMESAMPLE);
-      if (timesample >= mNADCSamples) {
-        LOG(ERROR) << "Digit time sample " << timesample << " outside range [0," << mNADCSamples << "]";
-        continue;
-      }
-      (*bunchDigits)[timesample] = &dig;
     }
+
+    // Get time sample of the digit:
+    // Digitizer stores the time sample in ns, needs to be converted to time sample dividing
+    // by the length of the time sample
+    auto timesample = int(dig.getTimeStamp() / emcal::constants::EMCAL_TIMESAMPLE);
+    if (timesample >= mNADCSamples) {
+      LOG(ERROR) << "Digit time sample " << timesample << " outside range [0," << mNADCSamples << "]";
+      continue;
+    }
+    (*bunchDigits)[timesample] = &dig;
   }
 
   // Create and fill DMA pages for each channel
+  std::cout << "encode data" << std::endl;
   std::vector<char> payload;
   for (auto srucont : mSRUdata) {
 
@@ -153,9 +144,9 @@ bool RawWriter::processNextTrigger()
     auto ddlid = srucont.mSRUid;
     auto [crorc, link] = getLinkAssignment(ddlid);
     LOG(DEBUG1) << "Adding payload with size " << payload.size() << " (" << payload.size() / 4 << " ALTRO words)";
-    mRawWriter->addData(ddlid, crorc, link, 0, mCurrentTrigger->getBCData(), payload);
+    mRawWriter->addData(ddlid, crorc, link, 0, trg.getBCData(), payload);
   }
-  mCurrentTrigger++;
+  std::cout << "Done" << std::endl;
   return true;
 }
 
