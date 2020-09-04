@@ -109,5 +109,5 @@ int main(int argc, const char** argv)
   for (auto en : *treereader) {
     rawwriter.digitsToRaw(*digitbranch, *triggerbranch);
   }
-  rawwriter.getWriter().writeConfFile("EMC", "RAWDATA", o2::utils::concat_string(outputdir, "raw.cfg"));
+  rawwriter.getWriter().writeConfFile("EMC", "RAWDATA", o2::utils::concat_string(outputdir, "/EMCraw.cfg"));
 }

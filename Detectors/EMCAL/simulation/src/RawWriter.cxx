@@ -35,7 +35,7 @@ void RawWriter::init()
     std::string rawfilename = mOutputLocation;
     switch (mFileFor) {
       case FileFor_t::kFullDet:
-        rawfilename += "/emcal.root";
+        rawfilename += "/emcal.raw";
         break;
       case FileFor_t::kSubDet: {
         std::string detstring;
@@ -43,11 +43,11 @@ void RawWriter::init()
           detstring = "emcal";
         else
           detstring = "dcal";
-        rawfilename += fmt::format("/%s", detstring.data());
+        rawfilename += fmt::format("/{:s}.raw", detstring.data());
         break;
       };
       case FileFor_t::kLink:
-        rawfilename += fmt::format("/emcal_%d_%d.root", crorc, link);
+        rawfilename += fmt::format("/emcal_{:d}_{:d}.raw", crorc, link);
     }
     mRawWriter->registerLink(iddl, crorc, link, 0, rawfilename.data());
   }
