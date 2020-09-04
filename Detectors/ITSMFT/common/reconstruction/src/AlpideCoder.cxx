@@ -149,3 +149,8 @@ void AlpideCoder::resetMap()
 }
 
 //_____________________________________
+int AlpideCoder::unexpectedEOF(const std::string& message)
+{
+  LOG(ERROR) << message;
+  return Error;
+}

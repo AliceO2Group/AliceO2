@@ -41,6 +41,7 @@
 #pragma link C++ class o2::itsmft::GBTLink + ;
 #pragma link C++ class o2::itsmft::RUDecodeData + ;
 #pragma link C++ class o2::itsmft::RawDecodingStat + ;
+#pragma link C++ class o2::itsmft::ChipStat + ;
 
 #pragma link C++ class std::map < unsigned long, std::pair < o2::itsmft::ClusterTopology, unsigned long>> + ;
 
