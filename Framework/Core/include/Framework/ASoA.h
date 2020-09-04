@@ -1038,18 +1038,6 @@ struct TableWrap {
   using table_t = typename PackToTable<all_columns>::table;
 };
 
-template <typename T>
-struct FilterPersistentColumns {
-  static_assert(framework::always_static_assert_v<T>, "Not a soa::Table");
-};
-
-template <typename... C>
-struct FilterPersistentColumns<soa::Table<C...>> {
-  using columns = typename soa::Table<C...>::columns;
-  using persistent_columns_pack = framework::selected_pack<is_persistent_t, C...>;
-  using persistent_table_t = typename PackToTable<persistent_columns_pack>::table;
-};
-
 /// Template trait which allows to map a given
 /// Table type to its O2 DataModel origin and description
 template <typename INHERIT>
