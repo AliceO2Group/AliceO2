@@ -98,12 +98,12 @@ struct BarrelTrackSelection {
     fHistMan->SetUseDefaultVariableNames(kTRUE);
     fHistMan->SetDefaultVarNames(VarManager::fgVariableNames, VarManager::fgVariableUnits);
 
-    DefineHistograms(fHistMan,"TrackBarrel_BeforeCuts;TrackBarrel_AfterCuts;"); // define all histograms
+    DefineHistograms(fHistMan, "TrackBarrel_BeforeCuts;TrackBarrel_AfterCuts;");                                                                                       // define all histograms
     VarManager::SetUseVars(fHistMan->GetUsedVars());                                                                                                                   // provide the list of required variables so that VarManager knows what to fill
 
     DefineCuts();
   }
-  
+
   void DefineCuts()
   {
     fTrackCut = new AnalysisCompositeCut(true); // true: use AND
@@ -124,35 +124,33 @@ struct BarrelTrackSelection {
 
   void process(MyEvent event, MyBarrelTracks const& tracks)
   {
-    for(int i=0; i<VarManager::kNVars; ++i)
+    for (int i = 0; i < VarManager::kNVars; ++i)
       fValues[i] = -9999.0f;
     // fill event information which might be needed in histograms that combine track and event properties
     VarManager::FillEvent<fgEventFillMap>(event, fValues);
-    
+
     for (auto& track : tracks) {
-      for(int i=VarManager::kNEventWiseVariables; i<VarManager::kNMuonTrackVariables; ++i)
+      for (int i = VarManager::kNEventWiseVariables; i < VarManager::kNMuonTrackVariables; ++i)
         fValues[i] = -9999.0f;
       VarManager::FillTrack<fgTrackFillMap>(track, fValues);
       fHistMan->FillHistClass("TrackBarrel_BeforeCuts", fValues);
-      
-      if(fTrackCut->IsSelected(fValues)) { 
+
+      if (fTrackCut->IsSelected(fValues)) {
         trackSel(1);
         fHistMan->FillHistClass("TrackBarrel_AfterCuts", fValues);
-      }
-      else
+      } else
         trackSel(0);
     }
   }
 };
 
-
 struct MuonTrackSelection {
   Produces<aod::MuonTrackCuts> trackSel;
   OutputObj<HistogramManager> fHistMan{"output"};
   AnalysisCompositeCut* fTrackCut;
-  
+
   float* fValues;
-  
+
   void init(o2::framework::InitContext&)
   {
     fValues = new float[VarManager::kNVars];
@@ -160,40 +158,39 @@ struct MuonTrackSelection {
     fHistMan.setObject(new HistogramManager("analysisHistos", "aa", VarManager::kNVars));
     fHistMan->SetUseDefaultVariableNames(kTRUE);
     fHistMan->SetDefaultVarNames(VarManager::fgVariableNames, VarManager::fgVariableUnits);
-    
-    DefineHistograms(fHistMan,"TrackMuon_BeforeCuts;TrackMuon_AfterCuts;"); // define all histograms
-    VarManager::SetUseVars(fHistMan->GetUsedVars());                    // provide the list of required variables so that VarManager knows what to fill
+
+    DefineHistograms(fHistMan, "TrackMuon_BeforeCuts;TrackMuon_AfterCuts;"); // define all histograms
+    VarManager::SetUseVars(fHistMan->GetUsedVars());                         // provide the list of required variables so that VarManager knows what to fill
 
     DefineCuts();
   }
-  
+
   void DefineCuts()
   {
     fTrackCut = new AnalysisCompositeCut(true);
     AnalysisCut kineMuonCut;
     kineMuonCut.AddCut(VarManager::kPt, 1.5, 10.0);
     fTrackCut->AddCut(&kineMuonCut);
-    
+
     VarManager::SetUseVars(AnalysisCut::fgUsedVars); // provide the list of required variables so that VarManager knows what to fill
   }
 
   void process(MyEvent event, MyMuonTracks const& muons)
   {
-    for(int i=0; i<VarManager::kNVars; ++i)
+    for (int i = 0; i < VarManager::kNVars; ++i)
       fValues[i] = -9999.0f;
     VarManager::FillEvent<fgEventFillMap>(event, fValues);
 
     for (auto& muon : muons) {
-      for(int i=VarManager::kNBarrelTrackVariables; i<VarManager::kNMuonTrackVariables; ++i)
+      for (int i = VarManager::kNBarrelTrackVariables; i < VarManager::kNMuonTrackVariables; ++i)
         fValues[i] = -9999.0f;
       VarManager::FillTrack<fgMuonFillMap>(muon, fValues);
       fHistMan->FillHistClass("TrackMuon_BeforeCuts", fValues);
-      
-      if(fTrackCut->IsSelected(fValues)) { 
+
+      if (fTrackCut->IsSelected(fValues)) {
         trackSel(1);
         fHistMan->FillHistClass("TrackMuon_AfterCuts", fValues);
-      }
-      else
+      } else
         trackSel(0);
     }
   }
@@ -218,7 +215,7 @@ struct TableReader {
     fHistMan->SetDefaultVarNames(VarManager::fgVariableNames, VarManager::fgVariableUnits);
 
     DefineHistograms(fHistMan, "Event_BeforeCuts;Event_AfterCuts;PairsBarrelPM;PairsBarrelPP;PairsBarrelMM;PairsMuon;"); // define all histograms
-    VarManager::SetUseVars(fHistMan->GetUsedVars());   // provide the list of required variables so that VarManager knows what to fill
+    VarManager::SetUseVars(fHistMan->GetUsedVars());                                                                     // provide the list of required variables so that VarManager knows what to fill
 
     DefineCuts();
   }
@@ -407,7 +404,7 @@ void DefineHistograms(o2::framework::OutputObj<HistogramManager> histMan, TStrin
       histMan->AddHistClass(classStr.Data());
       histMan->AddHistogram(classStr.Data(), "VtxZ", "Vtx Z", false, 60, -15.0, 15.0, VarManager::kVtxZ); // TH1F histogram
       histMan->AddHistogram(classStr.Data(), "VtxZ_Run", "Vtx Z", true,
-                            kNRuns, 0.5, 0.5 + kNRuns, VarManager::kRunId, 60, -15.0, 15.0, VarManager::kVtxZ, 10, 0., 0., VarManager::kNothing, runsStr.Data());   // TH1F histogram
+                            kNRuns, 0.5, 0.5 + kNRuns, VarManager::kRunId, 60, -15.0, 15.0, VarManager::kVtxZ, 10, 0., 0., VarManager::kNothing, runsStr.Data());                                        // TH1F histogram
       histMan->AddHistogram(classStr.Data(), "VtxX_VtxY", "Vtx X vs Vtx Y", false, 100, 0.055, 0.08, VarManager::kVtxX, 100, 0.31, 0.35, VarManager::kVtxY);                                             // TH2F histogram
       histMan->AddHistogram(classStr.Data(), "VtxX_VtxY_VtxZ", "vtx x - y - z", false, 100, 0.055, 0.08, VarManager::kVtxX, 100, 0.31, 0.35, VarManager::kVtxY, 60, -15.0, 15.0, VarManager::kVtxZ);     // TH3F histogram
       histMan->AddHistogram(classStr.Data(), "NContrib_vs_VtxZ_prof", "Vtx Z vs ncontrib", true, 30, -15.0, 15.0, VarManager::kVtxZ, 10, -1., 1., VarManager::kVtxNcontrib);                             // TProfile histogram
