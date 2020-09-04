@@ -29,6 +29,7 @@ static BindingNode eta{"eta", atype::FLOAT};
 
 static BindingNode tgl{"tgl", atype::FLOAT};
 static BindingNode signed1Pt{"signed1Pt", atype::FLOAT};
+static BindingNode testInt{"testInt", atype::INT32};
 } // namespace nodes
 
 namespace o2::aod::track
