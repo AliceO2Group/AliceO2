@@ -97,7 +97,7 @@ struct Produces {
 /// means of the WritingCursor helper class, from which produces actually
 /// derives.
 template <typename... C>
-struct Produces<soa::Table<C...>> : WritingCursor<typename soa::Table<C...>::persistent_columns_t> {
+struct Produces<soa::Table<C...>> : WritingCursor<typename soa::PackToTable<typename soa::Table<C...>::persistent_columns_t>::table> {
   using table_t = soa::Table<C...>;
   using metadata = typename aod::MetadataTrait<table_t>::metadata;
 
