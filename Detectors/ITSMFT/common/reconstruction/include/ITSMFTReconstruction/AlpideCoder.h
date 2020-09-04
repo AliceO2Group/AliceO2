@@ -17,13 +17,16 @@
 #include <vector>
 #include <string>
 #include <cstdint>
-#include <FairLogger.h>
-#include <iostream>
+#include "Framework/Logger.h"
 #include "PayLoadCont.h"
 #include <map>
+#include <fmt/format.h>
 
 #include "ITSMFTReconstruction/PixelData.h"
+#include "ITSMFTReconstruction/DecodingStat.h"
 #include "DataFormatsITSMFT/NoiseMap.h"
+
+#define ALPIDE_DECODING_STAT
 
 /// \file AlpideCoder.h
 /// \brief class for the ALPIDE data decoding/encoding
@@ -68,6 +71,7 @@ class AlpideCoder
   static constexpr uint32_t ExpectChipEmpty = 0x1 << 2;
   static constexpr uint32_t ExpectRegion = 0x1 << 3;
   static constexpr uint32_t ExpectData = 0x1 << 4;
+  static constexpr uint32_t ExpectBUSY = 0x1 << 5;
   static constexpr int NRows = 512;
   static constexpr int NCols = 1024;
   static constexpr int NRegions = 32;
@@ -80,7 +84,10 @@ class AlpideCoder
   static constexpr uint32_t MaskDColID = MaskEncoder | MaskPixID; // mask for encoder + dcolumn combination
   static constexpr uint32_t MaskRegion = 0x1f;                    // region ID takes 5 bits max (0:31)
   static constexpr uint32_t MaskChipID = 0x0f;                    // chip id in module takes 4 bit max
-  static constexpr uint32_t MaskROFlags = 0x0f;                   // RO flags in chip header takes 4 bit max
+  static constexpr uint32_t MaskROFlags = 0x0f;                   // RO flags in chip trailer takes 4 bit max
+  static constexpr uint8_t MaskErrBusyViolation = 0x1 << 3;
+  static constexpr uint8_t MaskErrDataOverrun = 0x3 << 2;
+  static constexpr uint8_t MaskErrFatal = 0x7 << 1;
   static constexpr uint32_t MaskTimeStamp = 0xff;                 // Time stamps as BUNCH_COUNTER[10:3] bits
   static constexpr uint32_t MaskReserved = 0xff;                  // mask for reserved byte
   static constexpr uint32_t MaskHitMap = 0x7f;                    // mask for hit map: at most 7 hits in bits (0:6)
@@ -92,6 +99,8 @@ class AlpideCoder
   static constexpr uint32_t CHIPEMPTY = 0xe0;   // flag for empty chip
   static constexpr uint32_t DATALONG = 0x0000;  // flag for DATALONG
   static constexpr uint32_t DATASHORT = 0x4000; // flag for DATASHORT
+  static constexpr uint32_t BUSYOFF = 0xf0;     // flag for BUSY_OFF
+  static constexpr uint32_t BUSYON = 0xf1;      // flag for BUSY_ON
 
   // true if corresponds to DATALONG or DATASHORT: highest bit must be 0
   static bool isData(uint16_t v) { return (v & (0x1 << 15)) == 0; }
@@ -132,8 +141,11 @@ class AlpideCoder
       uint8_t dataCM = dataC & (~MaskChipID);
       //
       if ((expectInp & ExpectChipEmpty) && dataCM == CHIPEMPTY) { // empty chip was expected
-        //chipData.setChipID(dataC & MaskChipID);                   // here we set the chip ID within the module
+        //chipData.setChipID(dataC & MaskChipID);                   // here we set the chip ID within the module // now set upstream
         if (!buffer.next(timestamp)) {
+#ifdef ALPIDE_DECODING_STAT
+          chipData.setError(ChipStat::TruncatedChipEmpty);
+#endif
           return unexpectedEOF("CHIP_EMPTY:Timestamp");
         }
         expectInp = ExpectChipHeader | ExpectChipEmpty;
@@ -141,8 +153,11 @@ class AlpideCoder
       }
 
       if ((expectInp & ExpectChipHeader) && dataCM == CHIPHEADER) { // chip header was expected
-        //chipData.setChipID(dataC & MaskChipID);                     // here we set the chip ID within the module
+        //chipData.setChipID(dataC & MaskChipID);                     // here we set the chip ID within the module // now set upstream
         if (!buffer.next(timestamp)) {
+#ifdef ALPIDE_DECODING_STAT
+          chipData.setError(ChipStat::TruncatedChipHeader);
+#endif
           return unexpectedEOF("CHIP_HEADER");
         }
         expectInp = ExpectRegion; // now expect region info
@@ -159,6 +174,18 @@ class AlpideCoder
       if ((expectInp & ExpectChipTrailer) && dataCM == CHIPTRAILER) { // chip trailer was expected
         expectInp = ExpectChipHeader | ExpectChipEmpty;
         chipData.setROFlags(dataC & MaskROFlags);
+#ifdef ALPIDE_DECODING_STAT
+        uint8_t roErr = dataC & MaskROFlags;
+        if (roErr) {
+          if (roErr == MaskErrBusyViolation) {
+            chipData.setError(ChipStat::BusyViolation);
+          } else if (roErr == MaskErrDataOverrun) {
+            chipData.setError(ChipStat::DataOverrun);
+          } else if (roErr == MaskErrFatal) {
+            chipData.setError(ChipStat::Fatal);
+          }
+        }
+#endif
         // in case there are entries in the "right" columns buffer, add them to the container
         if (nRightCHits) {
           colDPrev++;
@@ -175,6 +202,9 @@ class AlpideCoder
                              // note that here we are checking on the byte rather than the short, need complete to ushort
           dataS = dataC << 8;
           if (!buffer.next(dataC)) {
+#ifdef ALPIDE_DECODING_STAT
+            chipData.setError(ChipStat::TruncatedRegion);
+#endif
             return unexpectedEOF("CHIPDATA");
           }
           dataS |= dataC;
@@ -211,8 +241,16 @@ class AlpideCoder
           if ((dataS & (~MaskDColID)) == DATALONG) { // multiple hits ?
             uint8_t hitsPattern = 0;
             if (!buffer.next(hitsPattern)) {
+#ifdef ALPIDE_DECODING_STAT
+              chipData.setError(ChipStat::TruncatedLondData);
+#endif
               return unexpectedEOF("CHIP_DATA_LONG:Pattern");
             }
+#ifdef ALPIDE_DECODING_STAT
+            if (hitsPattern & (~MaskHitMap)) {
+              chipData.setError(ChipStat::WrongDataLongPattern);
+            }
+#endif
             for (int ip = 0; ip < HitMapSize; ip++) {
               if (hitsPattern & (0x1 << ip)) {
                 uint16_t addr = pixID + ip + 1, rowE = addr >> 1;
@@ -227,6 +265,9 @@ class AlpideCoder
             }
           }
         } else {
+#ifdef ALPIDE_DECODING_STAT
+          chipData.setError(ChipStat::NoDataFound);
+#endif
           LOG(ERROR) << "Expected DataShort or DataLong mask, got : " << dataS;
           return Error;
         }
@@ -234,13 +275,27 @@ class AlpideCoder
         continue; // end of DATA(SHORT or LONG) processing
       }
 
+      if (dataC == BUSYON) {
+#ifdef ALPIDE_DECODING_STAT
+        chipData.setError(ChipStat::BusyOn);
+#endif
+        continue;
+      }
+      if (dataC == BUSYOFF) {
+#ifdef ALPIDE_DECODING_STAT
+        chipData.setError(ChipStat::BusyOff);
+#endif
+        continue;
+      }
+
       if (!dataC) {
         buffer.clear(); // 0 padding reached (end of the cable data), no point in continuing
         break;
       }
-      std::stringstream stream;
-      stream << "Unknown word 0x" << std::hex << int(dataC) << " [mode = 0x" << int(expectInp) << "]";
-      return unexpectedEOF(stream.str().c_str()); // error
+#ifdef ALPIDE_DECODING_STAT
+      chipData.setError(ChipStat::UnknownWord);
+#endif
+      return unexpectedEOF(fmt::format("Unknown word 0x{:x} [expectation = 0x{:x}]", int(dataC), int(expectInp))); // error
     }
 
     return chipData.getData().size();
@@ -362,11 +417,7 @@ class AlpideCoder
   void resetMap();
 
   ///< error message on unexpected EOF
-  static int unexpectedEOF(const char* message)
-  {
-    printf("Error: unexpected EOF on %s\n", message);
-    return Error;
-  }
+  static int unexpectedEOF(const std::string& message);
 
   // =====================================================================
   //

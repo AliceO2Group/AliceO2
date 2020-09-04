@@ -47,5 +47,13 @@ void RUDecodeData::setROFInfo(ChipPixelData* chipData, const GBTLink* lnk)
   chipData->setInteractionRecord(lnk->ir);
 }
 
+///_________________________________________________________________
+/// fill chip decoding statistics
+void RUDecodeData::fillChipStatistics(int icab, const ChipPixelData* chipData)
+{
+  cableLinkPtr[icab]->chipStat.nHits += chipData->getData().size();
+  cableLinkPtr[icab]->chipStat.addErrors(chipData->getErrorFlags());
+}
+
 } // namespace itsmft
 } // namespace o2
