@@ -37,7 +37,7 @@ struct MultiplicityTableTask {
     return dummy;
   }
 
-  void process(aod::Collision const& collision, aod::BCs const& bcs, aod::Zdcs const& zdcs, aod::Run2V0s const& vzeros)
+  void process(aod::Collision const& collision, aod::BCs const& bcs, aod::Zdcs const& zdcs, aod::Run2V0s const& vzeros, aod::Tracks const& tracks)
   {
     auto zdc = getZdc(collision.bc(), zdcs);
     auto vzero = getVZero(collision.bc(), vzeros);
@@ -45,10 +45,15 @@ struct MultiplicityTableTask {
     float multV0C = vzero.multC();
     float multZNA = zdc.energyCommonZNA();
     float multZNC = zdc.energyCommonZNC();
+      
+    int multTracklets = 0;
+    for (auto tr = tracks.begin(); tr != tracks.end(); ++tr)
+      if (tr.trackType() == o2::aod::track::TrackTypeEnum::GlobalTrack)
+          multTracklets++;
 
-    LOGF(debug, "multV0A=%5.0f multV0C=%5.0f multZNA=%6.0f multZNC=%6.0f", multV0A, multV0C, multZNA, multZNC);
+    LOGF(debug, "multV0A=%5.0f multV0C=%5.0f multZNA=%6.0f multZNC=%6.0f multTracklets=%i", multV0A, multV0C, multZNA, multZNC, multTracklets);
     // fill multiplicity columns
-    mult(multV0A, multV0C, multZNA, multZNC);
+    mult(multV0A, multV0C, multZNA, multZNC, multTracklets);
   }
 };
 
