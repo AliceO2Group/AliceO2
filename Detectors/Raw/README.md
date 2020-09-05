@@ -312,7 +312,7 @@ o2-raw-file-reader-workflow
   --part-per-hbf                        FMQ parts per superpage (default) of HBF
   --raw-channel-config arg              optional raw FMQ channel for non-DPL output
   --cache-data                          cache data at 1st reading, may require excessive memory!!!
-
+  --detect-tf0                          autodetect HBFUtils start Orbit/BC from 1st TF seen
   --configKeyValues arg                 semicolon separated key=value strings
 
   # to suppress various error checks / reporting
@@ -362,7 +362,9 @@ Options:
   -m [ --max-tf] arg (=0xffffffff)  max. TF ID to read (counts from 0)
   -v [ --verbosity ] arg (=0)    1: long report, 2 or 3: print or dump all RDH
   -s [ --spsize ]    arg (=1048576) nominal super-page size in bytes
-  -t [ --hbfpertf ]  arg (=256)     nominal number of HBFs per TF
+  --detect-tf0                      autodetect HBFUtils start Orbit/BC from 1st TF seen
+  --rorc                            impose RORC as default detector mode
+  --configKeyValues arg             semicolon separated key=value strings
   --nocheck-packet-increment        ignore /Wrong RDH.packetCounter increment/
   --nocheck-page-increment          ignore /Wrong RDH.pageCnt increment/
   --check-stop-on-page0             check  /RDH.stop set of 1st HBF page/
