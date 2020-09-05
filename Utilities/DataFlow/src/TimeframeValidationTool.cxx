@@ -10,6 +10,7 @@
 
 #include "DataFlow/TimeframeParser.h"
 #include "fairmq/FairMQParts.h"
+#include "Framework/Logger.h"
 #include <vector>
 #include <string>
 #include <cctype>
