@@ -13,6 +13,7 @@
 #include <vector>
 #include "SimulationDataFormat/MCTruthContainer.h"
 #include "Framework/ControlService.h"
+#include "Framework/Logger.h"
 #include "FDDWorkflow/ReconstructorSpec.h"
 #include "DataFormatsFDD/Digit.h"
 #include "DataFormatsFDD/MCLabel.h"

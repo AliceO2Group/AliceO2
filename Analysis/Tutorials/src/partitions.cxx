@@ -46,15 +46,15 @@ struct ATask {
 
     for (auto& track : leftPhi) {
       LOGF(INFO, "id = %d, from collision: %d, collision: %d; eta:  %.3f < %.3f < %.3f; phi: %.3f < %.3f; pt: %.3f < %.3f < %.3f",
-           track.collisionId(), track.collision().globalIndex(), collision.globalIndex(), etalow, track.eta(), etaup, track.phiraw(), philow, ptlow, track.pt(), ptup);
+           track.collisionId(), track.collision().globalIndex(), collision.globalIndex(), (float)etalow, track.eta(), (float)etaup, track.phiraw(), (float)philow, (float)ptlow, track.pt(), (float)ptup);
     }
     for (auto& track : midPhi) {
       LOGF(INFO, "id = %d, from collision: %d, collision: %d; eta: %.3f < %.3f < %.3f; phi: %.3f <= %.3f < %.3f; pt: %.3f < %.3f < %.3f",
-           track.collisionId(), track.collision().globalIndex(), collision.globalIndex(), etalow, track.eta(), etaup, philow, track.phiraw(), phiup, ptlow, track.pt(), ptup);
+           track.collisionId(), track.collision().globalIndex(), collision.globalIndex(), (float)etalow, track.eta(), (float)etaup, (float)philow, track.phiraw(), (float)phiup, (float)ptlow, track.pt(), (float)ptup);
     }
     for (auto& track : rightPhi) {
       LOGF(INFO, "id = %d, from collision: %d, collision: %d; eta: %.3f < %.3f < %.3f; phi: %.3f < %.3f; pt: %.3f < %.3f < %.3f",
-           track.collisionId(), track.collision().globalIndex(), collision.globalIndex(), etalow, track.eta(), etaup, phiup, track.phiraw(), ptlow, track.pt(), ptup);
+           track.collisionId(), track.collision().globalIndex(), collision.globalIndex(), (float)etalow, track.eta(), (float)etaup, (float)phiup, track.phiraw(), (float)ptlow, track.pt(), (float)ptup);
     }
   }
 };

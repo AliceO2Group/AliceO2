@@ -18,6 +18,7 @@
 #include "Framework/RootSerializationSupport.h"
 #include "Framework/InputRecord.h"
 #include "Framework/DataRef.h"
+#include "Framework/Logger.h"
 #include <TFile.h>
 #include <TTree.h>
 #include <TBranch.h>
