@@ -24,6 +24,7 @@
 #include "Framework/Lifetime.h"
 #include "Framework/Output.h"
 #include "Framework/Task.h"
+#include "Framework/Logger.h"
 
 #include "MCHBase/ClusterBlock.h"
 #include "MCHBase/TrackBlock.h"

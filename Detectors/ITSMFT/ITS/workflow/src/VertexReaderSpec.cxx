@@ -14,6 +14,7 @@
 
 #include "Framework/ControlService.h"
 #include "Framework/ConfigParamRegistry.h"
+#include "Framework/Logger.h"
 #include "ITSWorkflow/VertexReaderSpec.h"
 
 using namespace o2::framework;

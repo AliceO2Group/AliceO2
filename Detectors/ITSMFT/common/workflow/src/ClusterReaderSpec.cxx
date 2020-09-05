@@ -16,6 +16,7 @@
 
 #include "Framework/ControlService.h"
 #include "Framework/ConfigParamRegistry.h"
+#include "Framework/Logger.h"
 #include "ITSMFTWorkflow/ClusterReaderSpec.h"
 #include <cassert>
 

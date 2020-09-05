@@ -16,6 +16,7 @@
 #include "Framework/DeviceInfo.h"
 #include "Framework/DeviceMetricsInfo.h"
 #include "Framework/ChannelSpec.h"
+#include "Framework/Logger.h"
 
 #include "DebugGUI/imgui.h"
 #include <csignal>

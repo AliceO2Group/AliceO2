@@ -10,6 +10,7 @@
 
 #include "Framework/CommonDataProcessors.h"
 #include "Framework/TableTreeHelpers.h"
+#include "Framework/Logger.h"
 #include <benchmark/benchmark.h>
 #include <random>
 #include <vector>

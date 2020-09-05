@@ -20,6 +20,7 @@
 #include "Framework/BoostOptionsRetriever.h"
 #include "Framework/CustomWorkflowTerminationHook.h"
 #include "Framework/CommonServices.h"
+#include "Framework/Logger.h"
 
 #include <boost/program_options/options_description.hpp>
 #include <boost/program_options/variables_map.hpp>

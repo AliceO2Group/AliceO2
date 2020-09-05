@@ -16,7 +16,7 @@
 #include "TOFWorkflow/CompressedInspectorTask.h"
 #include "Framework/ControlService.h"
 #include "Framework/ConfigParamRegistry.h"
-
+#include "Framework/Logger.h"
 #include "Headers/RAWDataHeader.h"
 #include "DataFormatsTOF/CompressedDataFormat.h"
 

@@ -12,9 +12,9 @@
 #define BOOST_TEST_DYN_LINK
 
 #include <boost/test/unit_test.hpp>
-
 #include "Headers/DataHeader.h"
 #include "Framework/DataOutputDirector.h"
+#include <fstream>
 
 BOOST_AUTO_TEST_CASE(TestDataOutputDirector)
 {

@@ -18,6 +18,7 @@
 #include "Framework/RootSerializationSupport.h"
 #include "Framework/Output.h"
 #include "Framework/ProcessingContext.h"
+#include "Framework/Logger.h"
 #include "Headers/DataHeader.h"
 #include <TChain.h>
 #include <TTree.h>

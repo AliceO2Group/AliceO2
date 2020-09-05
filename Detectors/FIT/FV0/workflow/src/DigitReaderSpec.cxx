@@ -16,6 +16,7 @@
 
 #include "Framework/ConfigParamRegistry.h"
 #include "Framework/ControlService.h"
+#include "Framework/Logger.h"
 #include "FV0Workflow/DigitReaderSpec.h"
 #include "DataFormatsFV0/BCData.h"
 #include "DataFormatsFV0/ChannelData.h"

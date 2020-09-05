@@ -21,6 +21,7 @@
 #include "Framework/ControlService.h"
 #include "Framework/WorkflowSpec.h"
 #include "Framework/Task.h"
+#include "Framework/Logger.h"
 #include "DataFormatsTOF/CalibInfoTOF.h"
 #include "TOFBase/Geo.h"
 #include "CommonConstants/MathConstants.h"

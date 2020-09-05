@@ -18,6 +18,7 @@
 #include "Framework/DataSamplingConditionFactory.h"
 #include "Framework/DataSpecUtils.h"
 #include "Framework/DataDescriptorQueryBuilder.h"
+#include "Framework/Logger.h"
 
 #include <boost/property_tree/ptree.hpp>
 
