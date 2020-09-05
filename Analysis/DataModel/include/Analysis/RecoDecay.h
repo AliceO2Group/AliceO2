@@ -224,66 +224,13 @@ class RecoDecay
 
   /// Calculates cosine of θ* (theta star).
   /// \note Implemented for 2 prongs only.
-  /// \note "Multiply by gamma" version
-  /// \param arrMom  array of two 3-momentum arrays
-  /// \param arrMass  array of two masses (in the same order as arrMom)
-  /// \param iProng  index of the prong
-  /// \return cosine of θ* of the i-th prong
-  template <typename T, typename U>
-  static double CosThetaStarM(const array<array<T, 3>, 2>& arrMom, const array<U, 2>& arrMass, int iProng)
-  {
-    auto eProng = E(arrMom[iProng], arrMass[iProng]);                                                                      // energy of the prong
-    auto pVecTot = PVec(arrMom[0], arrMom[1]);                                                                             // momentum of the 2-prong system
-    auto pTot = P(pVecTot);                                                                                                // magnitude of the momentum of the 2-prong system
-    auto mTot = M(arrMom, arrMass);                                                                                        // invariant mass of the 2-prong system
-    auto eTot = eProng + E(arrMom[1 - iProng], arrMass[1 - iProng]);                                                       // energy of the 2-prong system
-    auto gamma = eTot / mTot;                                                                                              // γ, Lorentz gamma factor of the 2-prong system
-    auto beta = pTot / eTot;                                                                                               // β, velocity of the 2-prong system
-    auto pStar = std::sqrt(sq(sq(mTot) - sq(arrMass[0]) - sq(arrMass[1])) - sq(2 * arrMass[0] * arrMass[1])) / (2 * mTot); // p*, prong momentum in the rest frame of the 2-prong system
-    // p* = √[(M^2 - m1^2 - m2^2)^2 - 4 m1^2 m2^2]/2M
-    // Lorentz transformation of the longitudinal momentum of the prong into the rest frame of the 2-prong system:
-    // p*_L,i = γ (p_L,i - β E_i)
-    // p*_L,i = p* cos(θ*_i)
-    // cos(θ*_i) = γ (p_L,i - β E_i)/p*
-    return gamma * (dotProd(arrMom[iProng], pVecTot) / pTot - beta * eProng) / pStar;
-  }
-
-  /// Calculates cosine of θ* (theta star).
-  /// \note Implemented for 2 prongs only.
-  /// \note "Divide by gamma" version
-  /// \param arrMom  array of two 3-momentum arrays
-  /// \param arrMass  array of two masses (in the same order as arrMom)
-  /// \param iProng  index of the prong
-  /// \return cosine of θ* of the i-th prong
-  template <typename T, typename U>
-  static double CosThetaStarD(const array<array<T, 3>, 2>& arrMom, const array<U, 2>& arrMass, int iProng)
-  {
-    auto eProng = E(arrMom[iProng], arrMass[iProng]);                                                                      // energy of the prong
-    auto pVecTot = PVec(arrMom[0], arrMom[1]);                                                                             // momentum of the 2-prong system
-    auto pTot = P(pVecTot);                                                                                                // magnitude of the momentum of the 2-prong system
-    auto mTot = M(arrMom, arrMass);                                                                                        // invariant mass of the 2-prong system
-    auto eTot = eProng + E(arrMom[1 - iProng], arrMass[1 - iProng]);                                                       // energy of the 2-prong system
-    auto gamma = eTot / mTot;                                                                                              // γ, Lorentz gamma factor of the 2-prong system
-    auto beta = pTot / eTot;                                                                                               // β, velocity of the 2-prong system
-    auto pStar = std::sqrt(sq(sq(mTot) - sq(arrMass[0]) - sq(arrMass[1])) - sq(2 * arrMass[0] * arrMass[1])) / (2 * mTot); // p*, prong momentum in the rest frame of the 2-prong system
-    // p* = √[(M^2 - m1^2 - m2^2)^2 - 4 m1^2 m2^2]/2M
-    // Lorentz transformation of the longitudinal momentum of the prong into the detector frame:
-    // p_L,i = γ (p*_L,i + β E*_i)
-    // p*_L,i = p_L,i/γ - β E*_i (less sensitive too incorrect masses?)
-    // cos(θ*_i) = (p_L,i/γ - β E*_i)/p*
-    return (dotProd(arrMom[iProng], pVecTot) / (pTot * gamma) - beta * E(pStar, arrMass[iProng])) / pStar;
-  }
-
-  /// Calculates cosine of θ* (theta star).
-  /// \note Implemented for 2 prongs only.
-  /// \note AliRoot version
   /// \param arrMom  array of two 3-momentum arrays
   /// \param arrMass  array of two masses (in the same order as arrMom)
   /// \param mTot  assumed mass of mother particle
   /// \param iProng  index of the prong
   /// \return cosine of θ* of the i-th prong under the assumption of the invariant mass
   template <typename T, typename U, typename V>
-  static double CosThetaStarA(const array<array<T, 3>, 2>& arrMom, const array<U, 2>& arrMass, V mTot, int iProng)
+  static double CosThetaStar(const array<array<T, 3>, 2>& arrMom, const array<U, 2>& arrMass, V mTot, int iProng)
   {
     auto pVecTot = PVec(arrMom[0], arrMom[1]);                                                                             // momentum of the mother particle
     auto pTot = P(pVecTot);                                                                                                // magnitude of the momentum of the mother particle
