@@ -46,7 +46,7 @@ class RawReaderSpecs : public o2f::Task
 {
  public:
   explicit RawReaderSpecs(const std::string& config, int loop = 1, uint32_t delay_us = 0,
-                          uint32_t errmap = 0xffffffff, uint32_t minTF = 0, uint32_t maxTF = 0xffffffff, bool partPerSP = true, bool cache = false,
+                          uint32_t errmap = 0xffffffff, uint32_t minTF = 0, uint32_t maxTF = 0xffffffff, bool partPerSP = true, bool cache = false, bool autodetectTF0 = false,
                           size_t spSize = 1024L * 1024L, size_t buffSize = 5 * 1024UL,
                           const std::string& rawChannelName = "")
     : mLoop(loop < 0 ? INT_MAX : (loop < 1 ? 1 : loop)), mDelayUSec(delay_us), mMinTFID(minTF), mMaxTFID(maxTF), mPartPerSP(partPerSP), mReader(std::make_unique<o2::raw::RawFileReader>(config, 0, buffSize)), mRawChannelName(rawChannelName)
@@ -55,6 +55,7 @@ class RawReaderSpecs : public o2f::Task
     mReader->setMaxTFToRead(maxTF);
     mReader->setNominalSPageSize(spSize);
     mReader->setCacheData(cache);
+    mReader->setTFAutodetect(autodetectTF0 ? RawFileReader::FirstTFDetection::Pending : RawFileReader::FirstTFDetection::Disabled);
     LOG(INFO) << "Will preprocess files with buffer size of " << buffSize << " bytes";
     LOG(INFO) << "Number of loops over whole data requested: " << mLoop;
     for (int i = NTimers; i--;) {
@@ -246,7 +247,7 @@ class RawReaderSpecs : public o2f::Task
 };
 
 o2f::DataProcessorSpec getReaderSpec(std::string config, int loop, uint32_t delay_us, uint32_t errmap,
-                                     uint32_t minTF, uint32_t maxTF, bool partPerSP, bool cache, size_t spSize, size_t buffSize, const std::string& rawChannelConfig)
+                                     uint32_t minTF, uint32_t maxTF, bool partPerSP, bool cache, bool autodetectTF0, size_t spSize, size_t buffSize, const std::string& rawChannelConfig)
 {
   // check which inputs are present in files to read
   o2f::DataProcessorSpec spec;
@@ -277,15 +278,15 @@ o2f::DataProcessorSpec getReaderSpec(std::string config, int loop, uint32_t dela
     LOG(INFO) << "Will send output to non-DPL channel " << rawChannelConfig;
   }
 
-  spec.algorithm = o2f::adaptFromTask<RawReaderSpecs>(config, loop, delay_us, errmap, minTF, maxTF, partPerSP, cache, spSize, buffSize, rawChannelName);
+  spec.algorithm = o2f::adaptFromTask<RawReaderSpecs>(config, loop, delay_us, errmap, minTF, maxTF, partPerSP, cache, autodetectTF0, spSize, buffSize, rawChannelName);
 
   return spec;
 }
 
 o2f::WorkflowSpec o2::raw::getRawFileReaderWorkflow(std::string inifile, int loop, uint32_t delay_us, uint32_t errmap, uint32_t minTF, uint32_t maxTF,
-                                                    bool partPerSP, bool cache, size_t spSize, size_t buffSize, const std::string& rawChannelConfig)
+                                                    bool partPerSP, bool cache, bool autodetectTF0, size_t spSize, size_t buffSize, const std::string& rawChannelConfig)
 {
   o2f::WorkflowSpec specs;
-  specs.emplace_back(getReaderSpec(inifile, loop, delay_us, errmap, minTF, maxTF, partPerSP, cache, spSize, buffSize, rawChannelConfig));
+  specs.emplace_back(getReaderSpec(inifile, loop, delay_us, errmap, minTF, maxTF, partPerSP, cache, autodetectTF0, spSize, buffSize, rawChannelConfig));
   return specs;
 }
