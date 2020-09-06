@@ -48,7 +48,7 @@ struct MultiplicityTableTask {
       
     int multTracklets = 0;
     for (auto tr = tracks.begin(); tr != tracks.end(); ++tr)
-      if (tr.trackType() == o2::aod::track::TrackTypeEnum::GlobalTrack)
+      if (tr.trackType() == o2::aod::track::TrackTypeEnum::Run2Tracklet)
           multTracklets++;
 
     LOGF(debug, "multV0A=%5.0f multV0C=%5.0f multZNA=%6.0f multZNC=%6.0f multTracklets=%i", multV0A, multV0C, multZNA, multZNC, multTracklets);
