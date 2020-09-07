@@ -102,17 +102,22 @@ struct HFTrackIndexSkimsCreator {
   // FIXME
   //Partition<SelectedTracks> tracksPos = aod::track::signed1Pt > 0.f;
   //Partition<SelectedTracks> tracksNeg = aod::track::signed1Pt < 0.f;
-
   double massPi = RecoDecay::getMassPDG(kPiPlus);
   double massK = RecoDecay::getMassPDG(kKPlus);
-  double mass2PiK{0};
-  double mass2KPi{0};
+  double mass2PiK2{0};
+  double mass2KPi2{0};
+  double mass3PiKPi2{0};
   double mass3PiKPi{0};
+
+  double massPi2 = massPi * massPi;
 
   void process(aod::Collision const& collision,
                aod::BCs const& bcs,
                SelectedTracks const& tracks)
   {
+    auto minmassDp2 = d_minmassDp * d_minmassDp;
+    auto maxmassDp2 = d_maxmassDp * d_maxmassDp;
+
     int trigindex = int{triggerindex};
     if (trigindex != -1) {
       uint64_t triggerMask = collision.bc().triggerMask();
@@ -165,26 +170,33 @@ struct HFTrackIndexSkimsCreator {
         //const auto& vtx = df.getPCACandidate();
 
         // get track momenta
-        array<float, 3> pvec0;
-        array<float, 3> pvec1;
-        df.getTrack(0).getPxPyPzGlo(pvec0);
-        df.getTrack(1).getPxPyPzGlo(pvec1);
+        array<float, 3> pvec0, pvec1;
+        auto tr0 = df.getTrackParamAtPCA(0), tr1 = df.getTrackParamAtPCA(1);
+        if (tr0.isValid() && tr1.isValid()) {
+          tr0.getPxPyPzGlo(pvec0);
+          tr1.getPxPyPzGlo(pvec1);
+        } else {
+          continue;
+        }
 
         // calculate invariant masses
         auto arrMom = array{pvec0, pvec1};
-        mass2PiK = RecoDecay::M(arrMom, array{massPi, massK});
-        mass2KPi = RecoDecay::M(arrMom, array{massK, massPi});
+        auto e0Pi = RecoDecay::E(pvec0, massPi), e0K = RecoDecay::E(pvec0, massK);
+        auto e1Pi = RecoDecay::E(pvec1, massPi), e1K = RecoDecay::E(pvec1, massK);
+        auto e01PiK = e0Pi + e1K, e01KPi = e0K + e1Pi;
+        array<float, 3> pvec01{pvec0[0] + pvec1[0], pvec0[1] + pvec1[1], pvec0[2] + pvec1[2]};
+        mass2PiK2 = RecoDecay::M2(pvec01, e01PiK);
+        mass2KPi2 = RecoDecay::M2(pvec01, e01KPi);
 
         if (b_dovalplots) {
-          hmass2->Fill(mass2PiK);
-          hmass2->Fill(mass2KPi);
+          hmass2->Fill(std::sqrt(mass2PiK2));
+          hmass2->Fill(std::sqrt(mass2KPi2));
         }
 
         // fill table row
         rowTrackIndexProng2(trackPos1.collisionId(),
                             trackPos1.globalIndex(),
                             trackNeg1.globalIndex(), 1);
-
         // 3-prong vertex reconstruction
         if (do3prong == 1) {
           // second loop over positive tracks
@@ -194,13 +206,10 @@ struct HFTrackIndexSkimsCreator {
               continue;
 
             // calculate invariant mass
-            auto arr3Mom = array{
-              array{trackPos1.px(), trackPos1.py(), trackPos1.pz()},
-              array{trackNeg1.px(), trackNeg1.py(), trackNeg1.pz()},
-              array{trackPos2.px(), trackPos2.py(), trackPos2.pz()}};
-            mass3PiKPi = RecoDecay::M(std::move(arr3Mom), array{massPi, massK, massPi});
-
-            if (mass3PiKPi < d_minmassDp || mass3PiKPi > d_maxmassDp)
+            array<float, 3> pvec2or{trackPos2.px(), trackPos2.py(), trackPos2.pz()};
+            auto e2Pi = RecoDecay::E(pvec2or, massPi);
+            mass3PiKPi2 = mass2PiK2 + massPi2 + 2. * (e01PiK * e2Pi - pvec01[0] * pvec2or[0] - pvec01[1] * pvec2or[1] - pvec01[2] * pvec2or[2]);
+            if (mass3PiKPi2 < minmassDp2 || mass3PiKPi2 > maxmassDp2)
               continue;
 
             auto trackParVarPos2 = getTrackParCov(trackPos2);
@@ -213,21 +222,21 @@ struct HFTrackIndexSkimsCreator {
             //const auto& vtx3 = df3.getPCACandidate();
 
             // get track momenta
-            array<float, 3> pvec0;
-            array<float, 3> pvec1;
-            array<float, 3> pvec2;
-            df3.getTrack(0).getPxPyPzGlo(pvec0);
-            df3.getTrack(1).getPxPyPzGlo(pvec1);
-            df3.getTrack(2).getPxPyPzGlo(pvec2);
-
+            array<float, 3> pvec0, pvec1, pvec2;
+            auto tr0 = df.getTrackParamAtPCA(0), tr1 = df.getTrackParamAtPCA(1), tr2 = df.getTrackParamAtPCA(2);
+            if (tr0.isValid() && tr1.isValid() && tr2.isValid()) {
+              df3.getTrackParamAtPCA(0).getPxPyPzGlo(pvec0);
+              df3.getTrackParamAtPCA(1).getPxPyPzGlo(pvec1);
+              df3.getTrackParamAtPCA(2).getPxPyPzGlo(pvec2);
+            } else {
+              continue;
+            }
             // calculate invariant mass
-            arr3Mom = array{pvec0, pvec1, pvec2};
+            auto arr3Mom = array{pvec0, pvec1, pvec2};
             mass3PiKPi = RecoDecay::M(std::move(arr3Mom), array{massPi, massK, massPi});
-
             if (b_dovalplots) {
               hmass3->Fill(mass3PiKPi);
             }
-
             // fill table row
             rowTrackIndexProng3(trackPos1.collisionId(),
                                 trackPos1.globalIndex(),
@@ -241,13 +250,10 @@ struct HFTrackIndexSkimsCreator {
               continue;
 
             // calculate invariant mass
-            auto arr3Mom = array{
-              array{trackNeg1.px(), trackNeg1.py(), trackNeg1.pz()},
-              array{trackPos1.px(), trackPos1.py(), trackPos1.pz()},
-              array{trackNeg2.px(), trackNeg2.py(), trackNeg2.pz()}};
-            mass3PiKPi = RecoDecay::M(std::move(arr3Mom), array{massPi, massK, massPi});
-
-            if (mass3PiKPi < d_minmassDp || mass3PiKPi > d_maxmassDp)
+            array<float, 3> pvec2or{trackNeg2.px(), trackNeg2.py(), trackNeg2.pz()};
+            auto e2Pi = RecoDecay::E(pvec2or, massPi);
+            mass3PiKPi2 = mass2KPi2 + massPi2 + 2. * (e01KPi * e2Pi - pvec01[0] * pvec2or[0] - pvec01[1] * pvec2or[1] - pvec01[2] * pvec2or[2]);
+            if (mass3PiKPi2 < minmassDp2 || mass3PiKPi2 > maxmassDp2)
               continue;
 
             auto trackParVarNeg2 = getTrackParCov(trackNeg2);
@@ -260,21 +266,23 @@ struct HFTrackIndexSkimsCreator {
             //const auto& vtx3 = df3.getPCACandidate();
 
             // get track momenta
-            array<float, 3> pvec0;
-            array<float, 3> pvec1;
-            array<float, 3> pvec2;
-            df3.getTrack(0).getPxPyPzGlo(pvec0);
-            df3.getTrack(1).getPxPyPzGlo(pvec1);
-            df3.getTrack(2).getPxPyPzGlo(pvec2);
+            array<float, 3> pvec0, pvec1, pvec2;
+            auto tr0 = df.getTrackParamAtPCA(0), tr1 = df.getTrackParamAtPCA(1), tr2 = df.getTrackParamAtPCA(2);
+            if (tr0.isValid() && tr1.isValid() && tr2.isValid()) {
+              df3.getTrackParamAtPCA(0).getPxPyPzGlo(pvec0);
+              df3.getTrackParamAtPCA(1).getPxPyPzGlo(pvec1);
+              df3.getTrackParamAtPCA(2).getPxPyPzGlo(pvec2);
+            } else {
+              continue;
+            }
 
             // calculate invariant mass
-            arr3Mom = array{pvec0, pvec1, pvec2};
+            auto arr3Mom = array{pvec0, pvec1, pvec2};
             mass3PiKPi = RecoDecay::M(std::move(arr3Mom), array{massPi, massK, massPi});
 
             if (b_dovalplots) {
               hmass3->Fill(mass3PiKPi);
             }
-
             // fill table row
             rowTrackIndexProng3(trackNeg1.collisionId(),
                                 trackNeg1.globalIndex(),
