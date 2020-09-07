@@ -109,15 +109,12 @@ class DCAFitterN
   ///< return Chi2 at PCA candidate (no check for its validity)
   float getChi2AtPCACandidate(int cand = 0) const { return mChi2[mOrder[cand]]; }
 
-  ///< track param positions at V0 candidate (no check for the candidate validity)
-  const Vec3D& getTrackPos(int i, int cand = 0) const { return mTrPos[mOrder[cand]][i]; }
-
-  ///< prapare copies of tracks at the V0 candidate (no check for the candidate validity)
+  ///< prepare copies of tracks at the V0 candidate (no check for the candidate validity)
   ///  must be called before getTrack(i,cand) query
   bool propagateTracksToVertex(int cand = 0);
 
-  ///< track X-param at V0 candidate (no check for the candidate validity)
-  float getTrackX(int i, int cand = 0) const { return getTrackPos(i, cand)[0]; }
+  ///< check if propagation of tracks to candidate vertex was done
+  bool isPropagateTracksToVertexDone(int cand = 0) const { return mTrPropDone[mOrder[cand]]; }
 
   ///< track param propagated to V0 candidate (no check for the candidate validity)
   ///  propagateTracksToVertex must be called in advance
@@ -128,6 +125,9 @@ class DCAFitterN
     }
     return mCandTr[mOrder[cand]][i];
   }
+
+  ///< calculate on the fly track param (no cov mat) at candidate, check isValid to make sure propagation was successful
+  o2::track::TrackPar getTrackParamAtPCA(int i, int cand = 0) const;
 
   MatSym3D calcPCACovMatrix(int cand = 0) const;
 
@@ -181,6 +181,12 @@ class DCAFitterN
   bool roughDZCut() const;
   bool closerToAlternative() const;
   static double getAbsMax(const VecND& v);
+
+  ///< track param positions at V0 candidate (no check for the candidate validity)
+  const Vec3D& getTrackPos(int i, int cand = 0) const { return mTrPos[mOrder[cand]][i]; }
+
+  ///< track X-param at V0 candidate (no check for the candidate validity)
+  float getTrackX(int i, int cand = 0) const { return getTrackPos(i, cand)[0]; }
 
   MatStd3D getTrackRotMatrix(int i) const // generate 3D matrix for track rotation to global frame
   {
@@ -693,6 +699,22 @@ bool DCAFitterN<N, Args...>::propagateTracksToVertex(int icand)
   }
   mTrPropDone[ord] = true;
   return true;
+}
+
+//___________________________________________________________________
+template <int N, typename... Args>
+inline o2::track::TrackPar DCAFitterN<N, Args...>::getTrackParamAtPCA(int i, int icand) const
+{
+  // propagate tracks param only to current vertex (if not already done)
+  int ord = mOrder[icand];
+  o2::track::TrackPar trc(mCandTr[ord][i]);
+  if (!mTrPropDone[ord]) {
+    auto x = mTrAux[i].c * mPCA[ord][0] + mTrAux[i].s * mPCA[ord][1]; // X of PCA in the track frame
+    if (!trc.propagateParamTo(x, mBz)) {
+      trc.invalidate();
+    }
+  }
+  return std::move(trc);
 }
 
 //___________________________________________________________________
