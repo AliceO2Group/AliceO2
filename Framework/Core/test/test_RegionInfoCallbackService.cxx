@@ -34,6 +34,8 @@ WorkflowSpec defineDataProcessing(ConfigContext const&)
      AlgorithmSpec{
        [](ProcessingContext& ctx) {
          auto& out = ctx.outputs().make<int>(OutputRef{"test", 0});
+         ctx.services().get<ControlService>().endOfStream();
+         ctx.services().get<ControlService>().readyToQuit(QuitRequest::Me);
        }}},
     {"dest",
      Inputs{
