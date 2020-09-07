@@ -89,8 +89,8 @@ struct BarrelTrackSelection {
     fHistMan->SetUseDefaultVariableNames(kTRUE);
     fHistMan->SetDefaultVarNames(VarManager::fgVariableNames, VarManager::fgVariableUnits);
 
-    DefineHistograms(fHistMan, "TrackBarrel_BeforeCuts;TrackBarrel_AfterCuts;");                                                                                       // define all histograms
-    VarManager::SetUseVars(fHistMan->GetUsedVars());                                                                                                                   // provide the list of required variables so that VarManager knows what to fill
+    DefineHistograms(fHistMan, "TrackBarrel_BeforeCuts;TrackBarrel_AfterCuts;"); // define all histograms
+    VarManager::SetUseVars(fHistMan->GetUsedVars());                             // provide the list of required variables so that VarManager knows what to fill
 
     DefineCuts();
   }
@@ -105,40 +105,40 @@ struct BarrelTrackSelection {
     cut1->AddCut(VarManager::kITSchi2, 0.0, 5.0);
     cut1->AddCut(VarManager::kITSncls, 3.5, 7.5);
     cut1->AddCut(VarManager::kTPCncls, 69.5, 159.5);
-    cut1->AddCut(VarManager::kTPCsignal, 70, 100,false);//exclude = false
+    cut1->AddCut(VarManager::kTPCsignal, 70, 100, false); //exclude = false
     fTrackCut->AddCut(cut1);
 
-//    //AnalysisCut* pid_TPChadrej = new AnalysisCut("pid_TPChadrej","PID TPC hadron band rejection");
-//    //pid_TPChadrej->AddCut(VarManager::kTPCsignal, 70, 100,false);//exclude = false
-//    //pid_TPChadrej->AddCut(VarManager::kTPCnSigmaPi,-1e+10,+3.5,true);
-//    //pid_TPChadrej->AddCut(VarManager::kTPCnSigmaKa,   -3.,+3. ,true);
-//    //pid_TPChadrej->AddCut(VarManager::kTPCnSigmaPr,   -3.,+3. ,true);
-//
-//    //AnalysisCut* pid_TOFrec = new AnalysisCut("pid_TOFrec","PID TOF recovery");
-//    //pid_TOFrec->AddCut(VarManager::kTPCsignal, 70, 100,false);//exclude = false
-//    //pid_TOFrec->AddCut(VarManager::kTOFnSigmaPi,-3,+3.,false);
-//
-//    AnalysisCut* pid_TOFrec_pi = new AnalysisCut("pid_TOFrec_pi","PID TOF recovery pion");
-//    pid_TOFrec_pi->AddCut(VarManager::kTPCsignal, 70, 100,false);//exclude = false
-//    pid_TOFrec_pi->AddCut(VarManager::kTOFnSigmaEl,-3,+3.,false,VarManager::kTPCnSigmaPi,-1e+10,+3.5,false);
-//
-//    AnalysisCut* pid_TOFrec_ka = new AnalysisCut("pid_TOFrec_ka","PID TOF recovery Kaon");
-//    pid_TOFrec_ka->AddCut(VarManager::kTPCsignal, 70, 100,false);//exclude = false
-//    pid_TOFrec_ka->AddCut(VarManager::kTOFnSigmaEl,-3,+3.,false,VarManager::kTPCnSigmaKa,-3.,+3.,false);
-//
-//    AnalysisCut* pid_TOFrec_pr = new AnalysisCut("pid_TOFrec_ka","PID TOF recovery Proton");
-//    pid_TOFrec_pr->AddCut(VarManager::kTPCsignal, 70, 100,false);//exclude = false
-//    pid_TOFrec_pr->AddCut(VarManager::kTOFnSigmaEl,-3,+3.,false,VarManager::kTPCnSigmaPr,-3.,+3.,false);
-//
-//    AnalysisCompositeCut *pidcut = new AnalysisCompositeCut(false); // false: use OR
-//    //pidcut->AddCut(pid_TPChadrej);
-//    //pidcut->AddCut(pid_TOFrec);
-//    //pidcut->AddCut(pid_TOFrec_pi);
-//    pidcut->AddCut(pid_TOFrec_ka);
-//    pidcut->AddCut(pid_TOFrec_pr);
-//    fTrackCut->AddCut(pidcut);
-//
-//    //fTrackCut->AddCut(pid_TOFrec_ka);
+    //    //AnalysisCut* pid_TPChadrej = new AnalysisCut("pid_TPChadrej","PID TPC hadron band rejection");
+    //    //pid_TPChadrej->AddCut(VarManager::kTPCsignal, 70, 100,false);//exclude = false
+    //    //pid_TPChadrej->AddCut(VarManager::kTPCnSigmaPi,-1e+10,+3.5,true);
+    //    //pid_TPChadrej->AddCut(VarManager::kTPCnSigmaKa,   -3.,+3. ,true);
+    //    //pid_TPChadrej->AddCut(VarManager::kTPCnSigmaPr,   -3.,+3. ,true);
+    //
+    //    //AnalysisCut* pid_TOFrec = new AnalysisCut("pid_TOFrec","PID TOF recovery");
+    //    //pid_TOFrec->AddCut(VarManager::kTPCsignal, 70, 100,false);//exclude = false
+    //    //pid_TOFrec->AddCut(VarManager::kTOFnSigmaPi,-3,+3.,false);
+    //
+    //    AnalysisCut* pid_TOFrec_pi = new AnalysisCut("pid_TOFrec_pi","PID TOF recovery pion");
+    //    pid_TOFrec_pi->AddCut(VarManager::kTPCsignal, 70, 100,false);//exclude = false
+    //    pid_TOFrec_pi->AddCut(VarManager::kTOFnSigmaEl,-3,+3.,false,VarManager::kTPCnSigmaPi,-1e+10,+3.5,false);
+    //
+    //    AnalysisCut* pid_TOFrec_ka = new AnalysisCut("pid_TOFrec_ka","PID TOF recovery Kaon");
+    //    pid_TOFrec_ka->AddCut(VarManager::kTPCsignal, 70, 100,false);//exclude = false
+    //    pid_TOFrec_ka->AddCut(VarManager::kTOFnSigmaEl,-3,+3.,false,VarManager::kTPCnSigmaKa,-3.,+3.,false);
+    //
+    //    AnalysisCut* pid_TOFrec_pr = new AnalysisCut("pid_TOFrec_ka","PID TOF recovery Proton");
+    //    pid_TOFrec_pr->AddCut(VarManager::kTPCsignal, 70, 100,false);//exclude = false
+    //    pid_TOFrec_pr->AddCut(VarManager::kTOFnSigmaEl,-3,+3.,false,VarManager::kTPCnSigmaPr,-3.,+3.,false);
+    //
+    //    AnalysisCompositeCut *pidcut = new AnalysisCompositeCut(false); // false: use OR
+    //    //pidcut->AddCut(pid_TPChadrej);
+    //    //pidcut->AddCut(pid_TOFrec);
+    //    //pidcut->AddCut(pid_TOFrec_pi);
+    //    pidcut->AddCut(pid_TOFrec_ka);
+    //    pidcut->AddCut(pid_TOFrec_pr);
+    //    fTrackCut->AddCut(pidcut);
+    //
+    //    //fTrackCut->AddCut(pid_TOFrec_ka);
 
     VarManager::SetUseVars(AnalysisCut::fgUsedVars); // provide the list of required variables so that VarManager knows what to fill
   }
@@ -165,7 +165,6 @@ struct BarrelTrackSelection {
   }
 };
 
-
 struct DileptonEE {
   OutputObj<HistogramManager> fHistMan{"output"};
   AnalysisCompositeCut* fEventCut;
@@ -182,7 +181,7 @@ struct DileptonEE {
     fHistMan->SetDefaultVarNames(VarManager::fgVariableNames, VarManager::fgVariableUnits);
 
     DefineHistograms(fHistMan, "Event_BeforeCuts;Event_AfterCuts;PairsBarrelULS;PairsBarrelLSpp;PairsBarrelLSnn;"); // define all histograms
-    VarManager::SetUseVars(fHistMan->GetUsedVars());                                                                     // provide the list of required variables so that VarManager knows what to fill
+    VarManager::SetUseVars(fHistMan->GetUsedVars());                                                                // provide the list of required variables so that VarManager knows what to fill
 
     DefineCuts();
   }
@@ -236,10 +235,8 @@ struct DileptonEE {
         fHistMan->FillHistClass("PairsBarrelLSnn", VarManager::fgValues);
       }
     }
-
   }
 };
-
 
 WorkflowSpec defineDataProcessing(ConfigContext const&)
 {
@@ -307,10 +304,10 @@ void DefineHistograms(o2::framework::OutputObj<HistogramManager> histMan, TStrin
 
     if (classStr.Contains("Track")) {
       histMan->AddHistClass(classStr.Data());
-      histMan->AddHistogram(classStr.Data(), "Pt", "p_{T} distribution", false, 100, 0.0, 10.0, VarManager::kPt);                                                // TH1F histogram
-      histMan->AddHistogram(classStr.Data(), "Eta", "#eta distribution", false, 200, -1.0, 1.0, VarManager::kEta);                                               // TH1F histogram
-      histMan->AddHistogram(classStr.Data(), "Phi_Eta", "#phi vs #eta distribution", false, 200, -1.0, 1.0, VarManager::kEta, 72,0, TMath::TwoPi(), VarManager::kPhi); // TH2F histogram
-      histMan->AddHistogram(classStr.Data(), "P", "p distribution", false, 200, 0.0, 20.0, VarManager::kP);                                                      // TH1F histogram
+      histMan->AddHistogram(classStr.Data(), "Pt", "p_{T} distribution", false, 100, 0.0, 10.0, VarManager::kPt);                                                       // TH1F histogram
+      histMan->AddHistogram(classStr.Data(), "Eta", "#eta distribution", false, 200, -1.0, 1.0, VarManager::kEta);                                                      // TH1F histogram
+      histMan->AddHistogram(classStr.Data(), "Phi_Eta", "#phi vs #eta distribution", false, 200, -1.0, 1.0, VarManager::kEta, 72, 0, TMath::TwoPi(), VarManager::kPhi); // TH2F histogram
+      histMan->AddHistogram(classStr.Data(), "P", "p distribution", false, 200, 0.0, 20.0, VarManager::kP);                                                             // TH1F histogram
       histMan->AddHistogram(classStr.Data(), "Px", "p_{x} distribution", false, 200, 0.0, 20.0, VarManager::kPx);
       histMan->AddHistogram(classStr.Data(), "Py", "p_{y} distribution", false, 200, 0.0, 20.0, VarManager::kPy);
       histMan->AddHistogram(classStr.Data(), "Pz", "p_{z} distribution", false, 400, -20.0, 20.0, VarManager::kPz);
@@ -319,7 +316,7 @@ void DefineHistograms(o2::framework::OutputObj<HistogramManager> histMan, TStrin
         histMan->AddHistogram(classStr.Data(), "TPCncls", "Number of cluster in TPC", false, 160, -0.5, 159.5, VarManager::kTPCncls); // TH1F histogram
         histMan->AddHistogram(classStr.Data(), "ITSncls", "Number of cluster in ITS", false, 8, -0.5, 7.5, VarManager::kITSncls);     // TH1F histogram
         //for TPC PID
-        histMan->AddHistogram(classStr.Data(), "TPCdedx_pIN", "TPC dE/dx vs pIN", false, 1000, 0.0, 10.0, VarManager::kPin, 200, 0.0, 200., VarManager::kTPCsignal);                    // TH2F histogram
+        histMan->AddHistogram(classStr.Data(), "TPCdedx_pIN", "TPC dE/dx vs pIN", false, 1000, 0.0, 10.0, VarManager::kPin, 200, 0.0, 200., VarManager::kTPCsignal);                   // TH2F histogram
         histMan->AddHistogram(classStr.Data(), "TPCnSigmaEl_pIN", "TPC dE/dx n#sigma_{e} vs pIN", false, 100, 0.0, 10.0, VarManager::kPin, 200, -10, +10, VarManager::kTPCnSigmaEl);   // TH2F histogram
         histMan->AddHistogram(classStr.Data(), "TPCnSigmaEl_Eta", "TPC dE/dx n#sigma_{e} vs #eta", false, 20, -1, +1, VarManager::kEta, 200, -10, +10, VarManager::kTPCnSigmaEl);      // TH2F histogram
         histMan->AddHistogram(classStr.Data(), "TPCnSigmaPi_pIN", "TPC dE/dx n#sigma_{#pi} vs pIN", false, 100, 0.0, 10.0, VarManager::kPin, 200, -10, +10, VarManager::kTPCnSigmaPi); // TH2F histogram
@@ -330,7 +327,7 @@ void DefineHistograms(o2::framework::OutputObj<HistogramManager> histMan, TStrin
         histMan->AddHistogram(classStr.Data(), "TPCnSigmaPr_Eta", "TPC dE/dx n#sigma_{p} vs #eta", false, 20, -1, +1, VarManager::kEta, 200, -10, +10, VarManager::kTPCnSigmaPr);      // TH2F histogram
 
         //for TOF PID
-        histMan->AddHistogram(classStr.Data(), "TOFbeta_pIN", "TOF #beta vs pIN", false, 1000, 0.0, 10.0, VarManager::kPin, 120, 0.0, 1.2, VarManager::kTOFbeta);                       // TH2F histogram
+        histMan->AddHistogram(classStr.Data(), "TOFbeta_pIN", "TOF #beta vs pIN", false, 1000, 0.0, 10.0, VarManager::kPin, 120, 0.0, 1.2, VarManager::kTOFbeta);                      // TH2F histogram
         histMan->AddHistogram(classStr.Data(), "TOFnSigmaEl_pIN", "TOF #beta n#sigma_{e} vs pIN", false, 100, 0.0, 10.0, VarManager::kPin, 200, -10, +10, VarManager::kTOFnSigmaEl);   // TH2F histogram
         histMan->AddHistogram(classStr.Data(), "TOFnSigmaEl_Eta", "TOF #beta n#sigma_{e} vs #eta", false, 20, -1, +1, VarManager::kEta, 200, -10, +10, VarManager::kTOFnSigmaEl);      // TH2F histogram
         histMan->AddHistogram(classStr.Data(), "TOFnSigmaPi_pIN", "TOF #beta n#sigma_{#pi} vs pIN", false, 100, 0.0, 10.0, VarManager::kPin, 200, -10, +10, VarManager::kTOFnSigmaPi); // TH2F histogram
@@ -342,7 +339,6 @@ void DefineHistograms(o2::framework::OutputObj<HistogramManager> histMan, TStrin
 
         histMan->AddHistogram(classStr.Data(), "Cov1Pt_Pt", "cov(1/pt,1/pt) vs p_{T} distribution", false, 100, 0.0, 10.0, VarManager::kPt, 100, 0.0, 1.0, VarManager::kTrackC1Pt21Pt2); // TH2F histogram
       }
-
     }
 
     if (classStr.Contains("Pairs")) {
