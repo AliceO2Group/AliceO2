@@ -233,9 +233,9 @@ struct OutputManager<Spawns<T>> {
 
   static bool prepare(ProcessingContext& pc, Spawns<T>& what)
   {
-    using metadata = typename std::decay_t<decltype(what)>::metadata;
-    auto original_table = soa::ArrowHelpers::joinTables(extractOriginals(typename metadata::originals{}, pc));
-    what.table = std::make_shared<T>(o2::soa::spawner(what.pack(), original_table.get()));
+    auto original_table = soa::ArrowHelpers::joinTables(extractOriginals(typename Spawns<T>::sources{}, pc));
+    what.extension = std::make_shared<typename Spawns<T>::extension_t>(o2::soa::spawner(what.pack(), original_table.get()));
+    what.table = std::make_shared<typename T::table_t>(soa::ArrowHelpers::joinTables({what.extension->asArrowTable(), original_table}));
     return true;
   }
 

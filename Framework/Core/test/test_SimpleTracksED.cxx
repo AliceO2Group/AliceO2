@@ -33,7 +33,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const&)
   return WorkflowSpec{
     {"trackDisplay",
      Inputs{
-       {"tracks", "AOD", "TRACKPAR"}},
+       {"Collisions", "AOD", "COLLISION"}},
      Outputs{},
      AlgorithmSpec{adaptStateful(
        [](CallbackService& callbacks) {
@@ -51,12 +51,12 @@ WorkflowSpec defineDataProcessing(ConfigContext const&)
                        [count, window, guiCallback]() {
                     (*count)++; window ? pollGUI(window, guiCallback) : false; });
          return adaptStateless([count](InputRecord& inputs, ControlService& control) {
-           auto input = inputs.get<TableConsumer>("tracks");
+           auto input = inputs.get<TableConsumer>("Collisions");
 
-           o2::aod::Tracks myTracks{input->asArrowTable()};
+           o2::aod::Collisions myCollisions{{input->asArrowTable()}};
 
-           for (auto& track : myTracks) {
-             LOGF(info, "CollisionId %d", track.collisionId());
+           for (auto& collision : myCollisions) {
+             LOGF(info, "CollisionId %d", collision.globalIndex());
            }
 
            if (*count > 1000) {
