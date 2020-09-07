@@ -30,16 +30,11 @@ using namespace o2::framework::expressions;
 
 struct CorrelationTask {
 
-  // Filters and input definitions
-  Filter trackFilter = (aod::track::eta > -0.8f) && (aod::track::eta < 0.8f) && (aod::track::pt > 0.5f) && (aod::track::isGlobalTrack == (uint8_t)1);
-  using myTracks = soa::Filtered<soa::Join<aod::Tracks, aod::TrackSelection>>;
-
-  // Output definitions
-  OutputObj<CorrelationContainer> same{"sameEvent"};
-  OutputObj<CorrelationContainer> mixed{"mixedEvent"};
-  //OutputObj<TDirectory> qaOutput{"qa"};
-
   // Configuration
+  O2_DEFINE_CONFIGURABLE(cfgCutVertex, float, 7.0f, "Accepted z-vertex range")
+  O2_DEFINE_CONFIGURABLE(cfgCutPt, float, 0.5f, "Minimal pT for tracks")
+  O2_DEFINE_CONFIGURABLE(cfgCutEta, float, 0.8f, "Eta range for tracks")
+
   O2_DEFINE_CONFIGURABLE(cfgTriggerCharge, int, 0, "Select on charge of trigger particle: 0 = all; 1 = positive; -1 = negative");
   O2_DEFINE_CONFIGURABLE(cfgAssociatedCharge, int, 0, "Select on charge of associated particle: 0 = all; 1 = positive; -1 = negative");
   O2_DEFINE_CONFIGURABLE(cfgPairCharge, int, 0, "Select on charge of particle pair: 0 = all; 1 = like sign; -1 = unlike sign");
@@ -52,6 +47,16 @@ struct CorrelationTask {
   O2_DEFINE_CONFIGURABLE(cfgPairCutLambda, float, -1, "Pair cut on Lambda: -1 = off; >0 otherwise distance value (suggested: 0.005)")
   O2_DEFINE_CONFIGURABLE(cfgPairCutPhi, float, -1, "Pair cut on Phi: -1 = off; >0 otherwise distance value")
   O2_DEFINE_CONFIGURABLE(cfgPairCutRho, float, -1, "Pair cut on Rho: -1 = off; >0 otherwise distance value")
+
+  // Filters and input definitions
+  Filter collisionFilter = nabs(aod::collision::posZ) < cfgCutVertex;
+  Filter trackFilter = (nabs(aod::track::eta) < cfgCutEta) && (aod::track::pt > cfgCutPt) && (aod::track::isGlobalTrack == (uint8_t)1);
+  using myTracks = soa::Filtered<soa::Join<aod::Tracks, aod::TrackSelection>>;
+
+  // Output definitions
+  OutputObj<CorrelationContainer> same{"sameEvent"};
+  OutputObj<CorrelationContainer> mixed{"mixedEvent"};
+  //OutputObj<TDirectory> qaOutput{"qa"};
 
   enum PairCuts { Photon = 0,
                   K0,
