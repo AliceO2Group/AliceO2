@@ -103,13 +103,13 @@ void Digitizer::process(const std::vector<Hit> hits, std::vector<Digit>& digits,
   }   //loop over hits
 
   //generate noise-only digits
-  generateNoiseDigits();
+  if(mNoise) generateNoiseDigits();
 
   fillOutputContainer(digits);
   provideMC(mcContainer);
 }
 //______________________________________________________________________
-int Digitizer::processHit(const Hit& hit, int detID, double event_time)
+int Digitizer::processHit(const Hit& hit, int detID, int event_time)
 {
   Point3D<float> pos(hit.GetX(), hit.GetY(), hit.GetZ());
 
@@ -117,7 +117,9 @@ int Digitizer::processHit(const Hit& hit, int detID, double event_time)
 
   //convert energy to charge
   auto charge = resp.etocharge(hit.GetEnergyLoss());
-  auto time = event_time + hit.GetTime();
+  
+  //convert float ns time to BC counts
+  auto time = event_time & int(hit.GetTime()/25.);
 
   //transformation from global to local
   auto t = o2::mch::getTransformation(detID, *gGeoManager);
@@ -193,7 +195,7 @@ void Digitizer::generateNoiseDigits()
       Digit::Time dtime;
       dtime.sampaTime = static_cast<uint16_t>(eventTime) & 0x3FF;
       digits.emplace_back(detID, padid, 0.6, dtime);
-      //just to round above threshold when added
+      //just to roun adbove threshold when added
       MCCompLabel label(-1, eventID, srcID, true);
       mcTruthOutputContainer.addElement(digits.size() - 1, label);
     }
