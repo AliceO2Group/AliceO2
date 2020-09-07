@@ -122,8 +122,13 @@ struct TableTransform {
   using metadata = METADATA;
   using sources = SOURCES;
 
+  constexpr auto sources_pack() const
+  {
+    return SOURCES{};
+  }
+
   template <typename Oi>
-  InputSpec base_spec() const
+  constexpr auto base_spec() const
   {
     using o_metadata = typename aod::MetadataTrait<Oi>::metadata;
     return InputSpec{
@@ -140,20 +145,20 @@ struct TableTransform {
 
   std::vector<InputSpec> base_specs() const
   {
-    return base_specs_impl(SOURCES{});
+    return base_specs_impl(sources_pack());
   }
 
-  auto spec() const
+  constexpr auto spec() const
   {
     return OutputSpec{OutputLabel{METADATA::tableLabel()}, METADATA::origin(), METADATA::description()};
   }
 
-  auto output() const
+  constexpr auto output() const
   {
     return Output{METADATA::origin(), METADATA::description()};
   }
 
-  auto ref() const
+  constexpr auto ref() const
   {
     return OutputRef{METADATA::tableLabel(), 0};
   }
