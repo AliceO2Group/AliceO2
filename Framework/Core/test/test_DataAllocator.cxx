@@ -332,6 +332,7 @@ DataProcessorSpec getSinkSpec()
     ASSERT_ERROR(podvector.size() == 3);
     ASSERT_ERROR(podvector[0] == 10 && podvector[1] == 21 && podvector[2] == 42);
 
+    pc.services().get<ControlService>().endOfStream();
     pc.services().get<ControlService>().readyToQuit(QuitRequest::Me);
   };
 
@@ -391,6 +392,7 @@ DataProcessorSpec getSpectatorSinkSpec()
     ASSERT_ERROR((object12[0] == o2::test::TriviallyCopyable{42, 23, 0xdead}));
     ASSERT_ERROR((object12[1] == o2::test::TriviallyCopyable{10, 20, 0xacdc}));
 
+    pc.services().get<ControlService>().endOfStream();
     pc.services().get<ControlService>().readyToQuit(QuitRequest::Me);
   };
 

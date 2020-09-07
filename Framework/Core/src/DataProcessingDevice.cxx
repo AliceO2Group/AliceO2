@@ -864,9 +864,16 @@ bool DataProcessingDevice::tryDispatchComputation(DataProcessorContext& context,
     currentSetOfInputs = std::move(relayer->getInputsForTimeslice(slot));
     auto getter = [&currentSetOfInputs](size_t i, size_t partindex) -> DataRef {
       if (currentSetOfInputs[i].size() > partindex) {
+        auto& part = currentSetOfInputs[i].at(partindex);
+        if (!part.header) {
+          return DataRef{nullptr, nullptr, nullptr};
+        }
+        if (!part.payload) {
+          return DataRef{nullptr, nullptr, nullptr};
+        }
         return DataRef{nullptr,
-                       static_cast<char const*>(currentSetOfInputs[i].at(partindex).header->GetData()),
-                       static_cast<char const*>(currentSetOfInputs[i].at(partindex).payload->GetData())};
+                       static_cast<char const*>(part.header->GetData()),
+                       static_cast<char const*>(part.payload->GetData())};
       }
       return DataRef{nullptr, nullptr, nullptr};
     };
