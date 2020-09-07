@@ -89,7 +89,7 @@ class Tracker
   GeometryTransformer mTransformer{}; ///< Geometry transformer
 
   typedef bool (Tracker::*TrackerMemFn)(const Track&, bool, bool);
-  TrackerMemFn mFollowTrack{nullptr}; ///! Choice of the function to follow the track
+  TrackerMemFn mFollowTrack{&Tracker::followTrackKeepBest}; ///! Choice of the function to follow the track
 };
 } // namespace mid
 } // namespace o2
