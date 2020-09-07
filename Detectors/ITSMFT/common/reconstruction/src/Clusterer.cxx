@@ -276,7 +276,7 @@ void Clusterer::ClustererThread::finishChip(ChipPixelData* curChipData, CompClus
           // Stream a piece of cluster only if the reduced bounding box is not empty
           if (!pixbuf.empty()) {
             streamCluster(pixbuf, r, rsp, colMin, colSpan, chipID,
-                          compClusPtr, patternsPtr, labelsClusPtr, nlab);
+                          compClusPtr, patternsPtr, labelsClusPtr, nlab, true);
           }
           r += rsp;
           rsp = o2::itsmft::ClusterPattern::MaxRowSpan;
@@ -289,7 +289,7 @@ void Clusterer::ClustererThread::finishChip(ChipPixelData* curChipData, CompClus
   }
 }
 
-void Clusterer::ClustererThread::streamCluster(const std::vector<PixelData>& pixbuf, uint16_t rowMin, uint16_t rowSpanW, uint16_t colMin, uint16_t colSpanW, uint16_t chipID, CompClusCont* compClusPtr, PatternCont* patternsPtr, MCTruth* labelsClusPtr, int nlab)
+void Clusterer::ClustererThread::streamCluster(const std::vector<PixelData>& pixbuf, uint16_t rowMin, uint16_t rowSpanW, uint16_t colMin, uint16_t colSpanW, uint16_t chipID, CompClusCont* compClusPtr, PatternCont* patternsPtr, MCTruth* labelsClusPtr, int nlab, bool isHuge)
 {
   if (labelsClusPtr) { // MC labels were requested
     auto cnt = compClusPtr->size();
@@ -305,7 +305,7 @@ void Clusterer::ClustererThread::streamCluster(const std::vector<PixelData>& pix
     int nbits = ir * colSpanW + ic;
     patt[nbits >> 3] |= (0x1 << (7 - (nbits % 8)));
   }
-  uint16_t pattID = (parent->mPattIdConverter.size() == 0) ? CompCluster::InvalidPatternID : parent->mPattIdConverter.findGroupID(rowSpanW, colSpanW, patt);
+  uint16_t pattID = (isHuge || parent->mPattIdConverter.size() == 0) ? CompCluster::InvalidPatternID : parent->mPattIdConverter.findGroupID(rowSpanW, colSpanW, patt);
   if (pattID == CompCluster::InvalidPatternID || parent->mPattIdConverter.isGroup(pattID)) {
     float xCOG = 0., zCOG = 0.;
     ClusterPattern::getCOG(rowSpanW, colSpanW, patt, xCOG, zCOG);

@@ -113,7 +113,6 @@ int GPUChainITS::RunITSTrackFit(std::vector<Road>& roads, std::array<const Clust
                                      {trkin.Cov()[0], trkin.Cov()[1], trkin.Cov()[2], trkin.Cov()[3], trkin.Cov()[4], trkin.Cov()[5], trkin.Cov()[6], trkin.Cov()[7], trkin.Cov()[8], trkin.Cov()[9], trkin.Cov()[10], trkin.Cov()[11], trkin.Cov()[12], trkin.Cov()[13], trkin.Cov()[14]}},
                                     (short int)((trkin.NDF() + 5) / 2),
                                     trkin.Chi2(),
-                                    0,
                                     {trkin.mOuterParam.X,
                                      trkin.mOuterParam.alpha,
                                      {trkin.mOuterParam.P[0], trkin.mOuterParam.P[1], trkin.mOuterParam.P[2], trkin.mOuterParam.P[3], trkin.mOuterParam.P[4]},

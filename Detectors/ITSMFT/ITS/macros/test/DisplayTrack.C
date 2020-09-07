@@ -205,7 +205,7 @@ found:
   tree->SetBranchAddress("ITSTrack", &trkArr);
   tree->SetBranchAddress("ITSTrackClusIdx", &clIdx);
   // Track MC labels
-  o2::dataformats::MCTruthContainer<o2::MCCompLabel>* trkLabArr = nullptr;
+  std::vector<o2::MCCompLabel>* trkLabArr = nullptr;
   tree->SetBranchAddress("ITSTrackMCTruth", &trkLabArr);
 
   tree->GetEvent(0);
@@ -214,7 +214,7 @@ found:
   n = 0;
   while (nt--) {
     const TrackITS& t = (*trkArr)[nt];
-    auto lab = (trkLabArr->getLabels(nt))[0];
+    auto lab = (*trkLabArr)[nt];
     if (TMath::Abs(lab.getEventID()) != event)
       continue;
     if (TMath::Abs(lab.getTrackID()) != track)

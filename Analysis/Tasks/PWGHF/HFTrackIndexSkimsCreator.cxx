@@ -290,6 +290,6 @@ struct HFTrackIndexSkimsCreator {
 WorkflowSpec defineDataProcessing(ConfigContext const&)
 {
   return WorkflowSpec{
-    adaptAnalysisTask<SelectTracks>("produce-sel-track"),
-    adaptAnalysisTask<HFTrackIndexSkimsCreator>("vertexerhf-hftrackindexskimscreator")};
+    adaptAnalysisTask<SelectTracks>("hf-produce-sel-track"),
+    adaptAnalysisTask<HFTrackIndexSkimsCreator>("hf-track-index-skims-creator")};
 }

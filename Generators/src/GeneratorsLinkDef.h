@@ -58,5 +58,7 @@
 #pragma link C++ class o2::conf::ConfigurableParamHelper < o2::eventgen::BoxGunParam > +;
 #pragma link C++ class o2::eventgen::QEDGenParam + ;
 #pragma link C++ class o2::conf::ConfigurableParamHelper < o2::eventgen::QEDGenParam > +;
+#pragma link C++ class o2::eventgen::GenCosmicsParam + ;
+#pragma link C++ class o2::conf::ConfigurableParamHelper < o2::eventgen::GenCosmicsParam> + ;
 
 #endif

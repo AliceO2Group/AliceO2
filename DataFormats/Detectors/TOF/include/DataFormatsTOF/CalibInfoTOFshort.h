@@ -14,6 +14,8 @@
 #ifndef ALICEO2_CALIBINFOTOFSHORT_H
 #define ALICEO2_CALIBINFOTOFSHORT_H
 
+#include "Rtypes.h"
+
 namespace o2
 {
 namespace dataformats
@@ -43,7 +45,8 @@ class CalibInfoTOFshort
   float mDeltaTimePi;   // raw tof time - expected time for pi hypotesis
   float mTot;           // time-over-threshold
   unsigned char mFlags; // bit mask with quality flags (to be defined)
-  //  ClassDefNV(CalibInfoTOFshort, 1);
+
+  ClassDefNV(CalibInfoTOFshort, 1);
 };
 } // namespace dataformats
 } // namespace o2

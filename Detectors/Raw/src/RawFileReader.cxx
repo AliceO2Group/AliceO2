@@ -76,24 +76,24 @@ size_t RawFileReader::LinkData::getNextTFSuperPagesStat(std::vector<RawFileReade
 {
   // get stat. of superpages for this link in this TF. We treat as a start of a superpage the discontinuity in the link data, new TF
   // or continuous data exceeding a threshold (e.g. 1MB)
-  int sz = 0;
-  int nSP = 0;
-  int ibl = nextBlock2Read, nbl = blocks.size(), nblPart = 0;
-  parts.clear();
-  while (ibl < nbl && (blocks[ibl].tfID == blocks[nextBlock2Read].tfID)) {
-    if (ibl > nextBlock2Read && (blocks[ibl].testFlag(LinkBlock::StartSP) ||
-                                 (sz + blocks[ibl].size) > reader->mNominalSPageSize ||
-                                 (blocks[ibl - 1].offset + blocks[ibl - 1].size) < blocks[ibl].offset)) { // new superpage
-      parts.emplace_back(RawFileReader::PartStat{sz, nblPart});
-      sz = 0;
-      nblPart = 0;
+  if (nextBlock2Read >= 0) { // negative nextBlock2Read signals absence of data
+    int sz = 0, nSP = 0, ibl = nextBlock2Read, nbl = blocks.size(), nblPart = 0;
+    parts.clear();
+    while (ibl < nbl && (blocks[ibl].tfID == blocks[nextBlock2Read].tfID)) {
+      if (ibl > nextBlock2Read && (blocks[ibl].testFlag(LinkBlock::StartSP) ||
+                                   (sz + blocks[ibl].size) > reader->mNominalSPageSize ||
+                                   (blocks[ibl - 1].offset + blocks[ibl - 1].size) < blocks[ibl].offset)) { // new superpage
+        parts.emplace_back(RawFileReader::PartStat{sz, nblPart});
+        sz = 0;
+        nblPart = 0;
+      }
+      sz += blocks[ibl].size;
+      nblPart++;
+      ibl++;
     }
-    sz += blocks[ibl].size;
-    nblPart++;
-    ibl++;
-  }
-  if (sz) {
-    parts.emplace_back(RawFileReader::PartStat{sz, nblPart});
+    if (sz) {
+      parts.emplace_back(RawFileReader::PartStat{sz, nblPart});
+    }
   }
   return parts.size();
 }
@@ -104,10 +104,12 @@ size_t RawFileReader::LinkData::getNextHBFSize() const
   // estimate the memory size of the next HBF to read
   // The blocks are guaranteed to not cover more than 1 HB
   size_t sz = 0;
-  int ibl = nextBlock2Read, nbl = blocks.size();
-  while (ibl < nbl && (blocks[ibl].ir == blocks[nextBlock2Read].ir)) {
-    sz += blocks[ibl].size;
-    ibl++;
+  if (nextBlock2Read >= 0) { // negative nextBlock2Read signals absence of data
+    int ibl = nextBlock2Read, nbl = blocks.size();
+    while (ibl < nbl && (blocks[ibl].ir == blocks[nextBlock2Read].ir)) {
+      sz += blocks[ibl].size;
+      ibl++;
+    }
   }
   return sz;
 }
@@ -117,6 +119,9 @@ size_t RawFileReader::LinkData::readNextHBF(char* buff)
 {
   // read data of the next complete HB, buffer of getNextHBFSize() must be allocated in advance
   size_t sz = 0;
+  if (nextBlock2Read < 0) { // negative nextBlock2Read signals absence of data
+    return sz;
+  }
   int ibl = nextBlock2Read, nbl = blocks.size();
   bool error = false;
   while (ibl < nbl) {
@@ -149,6 +154,9 @@ size_t RawFileReader::LinkData::skipNextHBF()
 {
   // skip next complete HB
   size_t sz = 0;
+  if (nextBlock2Read < 0) { // negative nextBlock2Read signals absence of data
+    return sz;
+  }
   int ibl = nextBlock2Read, nbl = blocks.size();
   while (ibl < nbl) {
     const auto& blc = blocks[ibl];
@@ -168,10 +176,12 @@ size_t RawFileReader::LinkData::getNextTFSize() const
   // estimate the memory size of the next TF to read
   // (assuming nextBlock2Read is at the start of the TF)
   size_t sz = 0;
-  int ibl = nextBlock2Read, nbl = blocks.size();
-  while (ibl < nbl && (blocks[ibl].tfID == blocks[nextBlock2Read].tfID)) {
-    sz += blocks[ibl].size;
-    ibl++;
+  if (nextBlock2Read >= 0) { // negative nextBlock2Read signals absence of data
+    int ibl = nextBlock2Read, nbl = blocks.size();
+    while (ibl < nbl && (blocks[ibl].tfID == blocks[nextBlock2Read].tfID)) {
+      sz += blocks[ibl].size;
+      ibl++;
+    }
   }
   return sz;
 }
@@ -181,6 +191,9 @@ size_t RawFileReader::LinkData::readNextTF(char* buff)
 {
   // read next complete TF, buffer of getNextTFSize() must be allocated in advance
   size_t sz = 0;
+  if (nextBlock2Read < 0) { // negative nextBlock2Read signals absence of data
+    return sz;
+  }
   int ibl0 = nextBlock2Read, nbl = blocks.size();
   bool error = false;
   while (nextBlock2Read < nbl && (blocks[nextBlock2Read].tfID == blocks[ibl0].tfID)) { // nextBlock2Read is incremented by the readNextHBF!
@@ -198,6 +211,9 @@ size_t RawFileReader::LinkData::skipNextTF()
 {
   // skip next complete TF
   size_t sz = 0;
+  if (nextBlock2Read < 0) { // negative nextBlock2Read signals absence of data
+    return sz;
+  }
   int ibl0 = nextBlock2Read, nbl = blocks.size();
   bool error = false;
   while (nextBlock2Read < nbl && (blocks[nextBlock2Read].tfID == blocks[ibl0].tfID)) { // nextBlock2Read is incremented by the readNextHBF!
@@ -214,9 +230,11 @@ size_t RawFileReader::LinkData::skipNextTF()
 void RawFileReader::LinkData::rewindToTF(uint32_t tf)
 {
   // go to given TF
-  nextBlock2Read = 0;
-  for (uint32_t i = 0; i < tf; i++) {
-    skipNextTF();
+  if (tf < tfStartBlock.size()) {
+    nextBlock2Read = tfStartBlock[tf].first;
+  } else {
+    LOG(WARNING) << "No TF " << tf << " for link " << describe();
+    nextBlock2Read = -1;
   }
 }
 
@@ -225,11 +243,13 @@ int RawFileReader::LinkData::getNHBFinTF() const
 {
   // estimate number of HBFs left in the TF
   int ibl = nextBlock2Read, nbl = blocks.size(), nHB = 0;
-  while (ibl < nbl && (blocks[ibl].tfID == blocks[nextBlock2Read].tfID)) {
-    if (blocks[ibl].testFlag(LinkBlock::StartHB)) {
-      nHB++;
+  if (nextBlock2Read >= 0) { // negative nextBlock2Read signals absence of data
+    while (ibl < nbl && (blocks[ibl].tfID == blocks[nextBlock2Read].tfID)) {
+      if (blocks[ibl].testFlag(LinkBlock::StartHB)) {
+        nHB++;
+      }
+      ibl++;
     }
-    ibl++;
   }
   return nHB;
 }
@@ -239,6 +259,9 @@ size_t RawFileReader::LinkData::readNextSuperPage(char* buff, const RawFileReade
 {
   // read data of the next complete HB, buffer of getNextHBFSize() must be allocated in advance
   size_t sz = 0;
+  if (nextBlock2Read < 0) { // negative nextBlock2Read signals absence of data
+    return sz;
+  }
   int ibl = nextBlock2Read, nbl = blocks.size();
   auto tfID = blocks[nextBlock2Read].tfID;
   bool error = false;
@@ -424,8 +447,20 @@ bool RawFileReader::LinkData::preprocessCRUPage(const RDHAny& rdh, bool newSPage
   }
 
   if (newTF || newSPage || newHB) {
+    int nbl = blocks.size();
     auto& bl = blocks.emplace_back(reader->mCurrentFileID, reader->mPosInFile);
+    bl.ir = hbIR;
+    bl.tfID = HBU.getTF(hbIR); // nTimeFrames - 1;
     if (newTF) {
+      if (reader->getTFAutodetect() == FirstTFDetection::Pending) { // impose first TF
+        if (cruDetector) {
+          reader->imposeFirstTF(hbIR.orbit, hbIR.bc);
+          bl.tfID = HBU.getTF(hbIR); // update
+        } else {
+          throw std::runtime_error("HBFUtil first orbit/bc autodetection cannot be done with first link from CRORC detector");
+        }
+      }
+      tfStartBlock.emplace_back(nbl, bl.tfID);
       nTimeFrames++;
       bl.setFlag(LinkBlock::StartTF);
       if (reader->mCheckErrors & (0x1 << ErrNoSuperPageForTF) && cruDetector) {
@@ -436,8 +471,6 @@ bool RawFileReader::LinkData::preprocessCRUPage(const RDHAny& rdh, bool newSPage
         }
       } // end of check errors
     }
-    bl.ir = hbIR;
-    bl.tfID = HBU.getTF(hbIR); // nTimeFrames - 1;
 
     if (newSPage) {
       nSPages++;
@@ -658,7 +691,7 @@ bool RawFileReader::init()
 
   LOGF(INFO, "Summary of preprocessing:");
   for (int i = 0; i < int(mLinksData.size()); i++) {
-    const auto& link = getLink(i);
+    auto& link = getLink(i);
     auto msp = link.getLargestSuperPage();
     auto mtf = link.getLargestTF();
     if (maxSP < msp) {
@@ -681,12 +714,15 @@ bool RawFileReader::init()
     if (link.blocks.back().ir.orbit > mOrbitMax) {
       mOrbitMax = link.blocks.back().ir.orbit;
     }
+    if (link.tfStartBlock.empty() && !link.blocks.empty()) {
+      link.tfStartBlock.emplace_back(0, 0);
+    }
     if ((mCheckErrors & (0x1 << ErrWrongNumberOfTF)) && (mNTimeFrames != link.nTimeFrames)) {
       LOGF(ERROR, "%s for %s: %u TFs while %u were seen for other links", ErrNames[ErrWrongNumberOfTF],
            link.describe(), link.nTimeFrames, mNTimeFrames);
     }
   }
-  LOGF(INFO, "First orbit: %d, Last orbit: %d", mOrbitMin, mOrbitMax);
+  LOGF(INFO, "First orbit: %u, Last orbit: %u", mOrbitMin, mOrbitMax);
   LOGF(INFO, "Largest super-page: %zu B, largest TF: %zu B", maxSP, maxTF);
   if (!mCheckErrors) {
     LOGF(INFO, "Detailed data format check was disabled");
@@ -835,6 +871,19 @@ RawFileReader::InputsMap RawFileReader::parseInput(const std::string& confUri)
   }
 
   return entries;
+}
+
+void RawFileReader::imposeFirstTF(uint32_t orbit, uint16_t bc)
+{
+  if (mFirstTFAutodetect != FirstTFDetection::Pending) {
+    throw std::runtime_error("reader was not expecting imposing first TF");
+  }
+  auto& hbu = o2::raw::HBFUtils::Instance();
+  o2::raw::HBFUtils::setValue("HBFUtils", "orbitFirst", orbit);
+  o2::raw::HBFUtils::setValue("HBFUtils", "bcFirst", bc);
+  LOG(INFO) << "Imposed data-driven TF start";
+  mFirstTFAutodetect = FirstTFDetection::Done;
+  hbu.printKeyValues();
 }
 
 std::string RawFileReader::nochk_opt(RawFileReader::ErrTypes e)

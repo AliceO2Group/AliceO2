@@ -11,6 +11,7 @@
 #include "Framework/DataDescriptorMatcher.h"
 #include "Framework/DataMatcherWalker.h"
 #include "Framework/VariantHelpers.h"
+#include "Framework/Logger.h"
 #include <cstring>
 #include <cinttypes>
 

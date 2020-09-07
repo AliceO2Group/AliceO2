@@ -91,6 +91,7 @@ class CookedTracker
         clusIdx.emplace_back(idx);
       }
       trackNew.setClusterRefs(clEntry, noc);
+      trackNew.setPattern(0x7f); // this tracker finds only complete tracks
       return tracks.size();
     };
     process(clusters, it, dict, inserter, rof);
@@ -99,8 +100,7 @@ class CookedTracker
   const Cluster* getCluster(Int_t index) const;
 
   void setGeometry(o2::its::GeometryTGeo* geom);
-  void setMCTruthContainers(const o2::dataformats::MCTruthContainer<o2::MCCompLabel>* clsLabels,
-                            o2::dataformats::MCTruthContainer<o2::MCCompLabel>* trkLabels)
+  void setMCTruthContainers(const o2::dataformats::MCTruthContainer<o2::MCCompLabel>* clsLabels, std::vector<o2::MCCompLabel>* trkLabels)
   {
     mClsLabels = clsLabels;
     mTrkLabels = trkLabels;
@@ -135,7 +135,7 @@ class CookedTracker
   bool mContinuousMode = true;                                                    ///< triggered or cont. mode
   const o2::its::GeometryTGeo* mGeom = nullptr;                                   /// interface to geometry
   const o2::dataformats::MCTruthContainer<o2::MCCompLabel>* mClsLabels = nullptr; /// Cluster MC labels
-  o2::dataformats::MCTruthContainer<o2::MCCompLabel>* mTrkLabels = nullptr;       /// Track MC labels
+  std::vector<o2::MCCompLabel>* mTrkLabels = nullptr;                             /// Track MC labels
   std::uint32_t mFirstInFrame = 0;                                                ///< Index of the 1st cluster of a frame (within the loaded vector of clusters)
 
   Int_t mNumOfThreads; ///< Number of tracking threads

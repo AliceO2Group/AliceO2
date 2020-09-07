@@ -11,6 +11,7 @@
 #include "DataFlow/TimeframeParser.h"
 #include "DataFlow/FakeTimeframeBuilder.h"
 #include "Headers/DataHeader.h"
+#include "Framework/Logger.h"
 #include <FairMQParts.h>
 #include <istream>
 #include <cstdlib>

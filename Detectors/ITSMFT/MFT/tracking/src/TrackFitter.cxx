@@ -57,7 +57,7 @@ bool TrackFitter::fit(TrackLTF& track, bool outward)
   /// Returns false in case of failure
 
   auto& mftTrackingParam = MFTTrackingParam::Instance();
-  auto nClusters = track.getNPoints();
+  auto nClusters = track.getNumberOfPoints();
 
   if (mftTrackingParam.verbose) {
     std::cout << "Seed covariances: \n"
@@ -100,7 +100,7 @@ bool TrackFitter::initTrack(TrackLTF& track, bool outward)
   // initialize the starting track parameters and cluster
   double chi2invqptquad;
   double invQPtSeed;
-  auto nPoints = track.getNPoints();
+  auto nPoints = track.getNumberOfPoints();
   auto k = TMath::Abs(o2::constants::math::B2C * mBZField);
   auto Hz = std::copysign(1, mBZField);
   invQPtSeed = invQPtFromFCF(track, mBZField, chi2invqptquad);
@@ -170,6 +170,8 @@ bool TrackFitter::initTrack(TrackLTF& track, bool outward)
     std::cout << "Track Model: " << model << std::endl;
     std::cout << "  initTrack: X = " << x0 << " Y = " << y0 << " Z = " << z0 << " Tgl = " << track.getTanl() << "  Phi = " << track.getPhi() << " pz = " << track.getPz() << " qpt = " << 1.0 / track.getInvQPt() << std::endl;
   }
+
+  auto model = (mftTrackingParam.trackmodel == Helix) ? "Helix" : (mftTrackingParam.trackmodel == Quadratic) ? "Quadratic" : "Linear";
 
   // compute the track parameter covariances at the last cluster (as if the other clusters did not exist)
   SMatrix55 lastParamCov;
@@ -297,14 +299,14 @@ bool TrackFitter::computeCluster(TrackLTF& track, int cluster)
 Double_t invQPtFromFCF(const TrackLTF& track, Double_t bFieldZ, Double_t& chi2)
 {
 
-  const std::array<Float_t, constants::mft::LayersNumber>& xPositons = track.getXCoordinates();
-  const std::array<Float_t, constants::mft::LayersNumber>& yPositons = track.getYCoordinates();
-  const std::array<Float_t, constants::mft::LayersNumber>& zPositons = track.getZCoordinates();
+  const std::array<Float_t, constants::mft::LayersNumber>& xPositions = track.getXCoordinates();
+  const std::array<Float_t, constants::mft::LayersNumber>& yPositions = track.getYCoordinates();
+  const std::array<Float_t, constants::mft::LayersNumber>& zPositions = track.getZCoordinates();
   const std::array<Float_t, constants::mft::LayersNumber>& SigmasX2 = track.getSigmasX2();
   const std::array<Float_t, constants::mft::LayersNumber>& SigmasY2 = track.getSigmasY2();
 
   // Fast Circle Fit (Hansroul, Jeremie, Savard, 1987)
-  auto nPoints = track.getNPoints();
+  auto nPoints = track.getNumberOfPoints();
   Double_t* xVal = new Double_t[nPoints];
   Double_t* yVal = new Double_t[nPoints];
   Double_t* zVal = new Double_t[nPoints];
@@ -319,15 +321,15 @@ Double_t invQPtFromFCF(const TrackLTF& track, Double_t bFieldZ, Double_t& chi2)
     xErr[np] = SigmasX2[np];
     yErr[np] = SigmasY2[np];
     if (np > 0) {
-      xVal[np] = xPositons[np] - xVal[0];
-      yVal[np] = yPositons[np] - yVal[0];
+      xVal[np] = xPositions[np] - xVal[0];
+      yVal[np] = yPositions[np] - yVal[0];
       xErr[np] *= std::sqrt(2.);
       yErr[np] *= std::sqrt(2.);
     } else {
       xVal[np] = 0.;
       yVal[np] = 0.;
     }
-    zVal[np] = zPositons[np];
+    zVal[np] = zPositions[np];
   }
   for (int i = 0; i < (nPoints - 1); i++) {
     x2 = xVal[i + 1] * xVal[i + 1];
@@ -335,13 +337,13 @@ Double_t invQPtFromFCF(const TrackLTF& track, Double_t bFieldZ, Double_t& chi2)
     invx2y2 = 1. / (x2 + y2);
     uVal[i] = xVal[i + 1] * invx2y2;
     vVal[i] = yVal[i + 1] * invx2y2;
-    vErr[i] = std::sqrt(8. * xErr[i + 1] * xErr[i + 1] * x2 * y2 + 2. * yErr[i + 1] * yErr[i + 1] * (x2 - y2)) * invx2y2 * invx2y2;
+    vErr[i] = std::sqrt(8. * xErr[i + 1] * xErr[i + 1] * x2 * y2 + 2. * yErr[i + 1] * yErr[i + 1] * (x2 - y2) * (x2 - y2)) * invx2y2 * invx2y2;
   }
 
   Double_t invqpt_fcf;
   Int_t qfcf;
   chi2 = 0.;
-  if (LinearRegression((nPoints - 1), uVal, vVal, yErr, a, ae, b, be)) {
+  if (LinearRegression((nPoints - 1), uVal, vVal, vErr, a, ae, b, be)) {
     // v = a * u + b
     // circle passing through (0,0):
     // (x - rx)^2 + (y - ry)^2 = r^2
@@ -350,7 +352,6 @@ Double_t invQPtFromFCF(const TrackLTF& track, Double_t bFieldZ, Double_t& chi2)
     ry = 1. / (2. * b);
     rx = -a * ry;
     r = std::sqrt(rx * rx + ry * ry);
-
     // pt --->
     Double_t invpt = 1. / (o2::constants::math::B2C * bFieldZ * r);
 
@@ -378,7 +379,7 @@ Double_t invQPtFromFCF(const TrackLTF& track, Double_t bFieldZ, Double_t& chi2)
 
     invqpt_fcf = qfcf * invpt;
   } else { // the linear regression failed...
-    printf("BV LinearRegression failed!\n");
+    LOG(WARN) << "LinearRegression failed!";
     invqpt_fcf = 1. / 100.;
   }
 

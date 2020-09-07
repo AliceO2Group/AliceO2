@@ -54,6 +54,11 @@ class RawFileReader
                   ErrNoSuperPageForTF,
                   NErrorsDefined
   };
+
+  enum class FirstTFDetection : int { Disabled,
+                                      Pending,
+                                      Done };
+
   static constexpr std::string_view ErrNames[] = {
     // long names for error codes
     "Wrong RDH.packetCounter increment",     // ErrWrongPacketCounterIncrement
@@ -147,6 +152,7 @@ class RawFileReader
     std::string fairMQChannel{};                                                   //! name of the fairMQ channel for the output
     int nErrors = 0;                                                               //!
     std::vector<LinkBlock> blocks;                                                 //!
+    std::vector<std::pair<int, uint32_t>> tfStartBlock;
     //
     // transient info during processing
     bool openHB = false;    //!
@@ -155,7 +161,7 @@ class RawFileReader
 
     LinkData() = default;
     template <typename H>
-    LinkData(const H& rdh, const RawFileReader* r) : rdhl(rdh), reader(r)
+    LinkData(const H& rdh, RawFileReader* r) : rdhl(rdh), reader(r)
     {
     }
     bool preprocessCRUPage(const RDHAny& rdh, bool newSPage);
@@ -173,12 +179,11 @@ class RawFileReader
     size_t skipNextTF();
 
     void rewindToTF(uint32_t tf);
-
     void print(bool verbose = false, const std::string& pref = "") const;
     std::string describe() const;
 
    private:
-    const RawFileReader* reader = nullptr; //!
+    RawFileReader* reader = nullptr; //!
   };
 
   //=====================================================================================
@@ -236,6 +241,10 @@ class RawFileReader
   o2::header::DataDescription getDefaultDataSpecification() const { return mDefDataDescription; }
   ReadoutCardType getDefaultReadoutCardType() const { return mDefCardType; }
 
+  void imposeFirstTF(uint32_t orbit, uint16_t bc);
+  void setTFAutodetect(FirstTFDetection v) { mFirstTFAutodetect = v; }
+  FirstTFDetection getTFAutodetect() const { return mFirstTFAutodetect; }
+
   static o2::header::DataOrigin getDataOrigin(const std::string& ors);
   static o2::header::DataDescription getDataDescription(const std::string& ors);
   static InputsMap parseInput(const std::string& confUri);
@@ -276,8 +285,8 @@ class RawFileReader
   bool mMultiLinkFile = false;                      //! was > than 1 link seen in the file?
   bool mCacheData = false;                          //! cache data to block after 1st scan (may require excessive memory, use with care)
   uint32_t mCheckErrors = 0;                        //! mask for errors to check
-  int mVerbosity = 0;
-
+  FirstTFDetection mFirstTFAutodetect = FirstTFDetection::Disabled; //!
+  int mVerbosity = 0;                                               //!
   ClassDefNV(RawFileReader, 1);
 };
 

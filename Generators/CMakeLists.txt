@@ -32,6 +32,7 @@ o2_add_library(Generators
                        src/TriggerParticleParam.cxx
                        src/BoxGunParam.cxx
 		       src/QEDGenParam.cxx
+                       src/GenCosmicsParam.cxx
                        src/GeneratorFactory.cxx
                        $<$<BOOL:${pythia6_FOUND}>:src/GeneratorPythia6.cxx>
                        $<$<BOOL:${pythia6_FOUND}>:src/GeneratorPythia6Param.cxx>
@@ -70,7 +71,8 @@ set(headers
     include/Generators/TriggerParticleParam.h
     include/Generators/ConfigurationMacroHelper.h
     include/Generators/BoxGunParam.h
-    include/Generators/QEDGenParam.h)
+    include/Generators/QEDGenParam.h
+    include/Generators/GenCosmicsParam.h)
 
 if (pythia6_FOUND)
    list(APPEND headers include/Generators/GeneratorPythia6.h
@@ -104,6 +106,11 @@ endif()
 
 if(doBuildSimulation)
   o2_add_test_root_macro(share/external/QEDLoader.C
+                         PUBLIC_LINK_LIBRARIES O2::Generators
+                                               O2::SimConfig
+                                               LABELS generators)
+
+  o2_add_test_root_macro(share/external/GenCosmicsLoader.C
                          PUBLIC_LINK_LIBRARIES O2::Generators
                                                O2::SimConfig
                                                LABELS generators)

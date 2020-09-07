@@ -439,9 +439,10 @@ auto flushMetrics(ServiceRegistry& registry, DataProcessingStats& stats) -> void
   // Send all the relevant metrics for the relayer to update the GUI
   // FIXME: do a delta with the previous version if too many metrics are still
   // sent...
-  for (size_t si = 0; si < stats.relayerState.size(); ++si) {
-    auto state = stats.relayerState[si];
-    monitoring.send({state, "data_relayer/" + std::to_string(si)});
+  for (size_t si = 0; si < stats.statesSize.load(); ++si) {
+    auto value = std::atomic_load_explicit(&stats.relayerState[si], std::memory_order_relaxed);
+    std::atomic_thread_fence(std::memory_order_acquire);
+    monitoring.send({value, fmt::format("data_relayer/{}", si)});
   }
   relayer.sendContextState();
   monitoring.flushBuffer();

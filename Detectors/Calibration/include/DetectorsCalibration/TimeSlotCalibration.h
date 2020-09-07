@@ -31,7 +31,9 @@ class TimeSlotCalibration
   TimeSlotCalibration() = default;
   virtual ~TimeSlotCalibration() = default;
   uint32_t getMaxSlotsDelay() const { return mMaxSlotsDelay; }
-  void setMaxSlotsDelay(uint32_t v) { mMaxSlotsDelay = v < 1 ? 1 : v; }
+  void setMaxSlotsDelay(uint32_t v) { mMaxSlotsDelay = v; }
+  //void setMaxSlotsDelay(uint32_t v) { (mSlotLength == 1 && mMaxSlotsDelay == 0) ? mMaxSlotsDelay = 0 : mMaxSlotsDelay = v < 1 ? 1 : v; }
+  //void setMaxSlotsDelay(uint32_t v) { mSlotLength == 1 ? mMaxSlotsDelay = 0 : mMaxSlotsDelay = v < 1 ? 1 : v; }
 
   uint32_t getSlotLength() const { return mSlotLength; }
   void setSlotLength(uint32_t v) { mSlotLength = v < 1 ? 1 : v; }
@@ -88,7 +90,7 @@ bool TimeSlotCalibration<Input, Container>::process(TFType tf, const gsl::span<c
   if (!mUpdateAtTheEndOfRunOnly) {
     int maxDelay = mMaxSlotsDelay * mSlotLength;
     //  if (tf<mLastClosedTF || (!mSlots.empty() && getSlot(0).getTFStart() > tf + maxDelay)) { // ignore TF
-    if (tf < mLastClosedTF || (!mSlots.empty() && getLastSlot().getTFStart() > tf + maxDelay)) { // ignore TF
+    if (maxDelay != 0 && (tf < mLastClosedTF || (!mSlots.empty() && getLastSlot().getTFStart() > tf + maxDelay))) { // ignore TF
       LOG(INFO) << "Ignoring TF " << tf;
       return false;
     }
@@ -111,7 +113,7 @@ void TimeSlotCalibration<Input, Container>::checkSlotsToFinalize(TFType tf, int 
   // Check which slots can be finalized, provided the newly arrived TF is tf
   // check if some slots are done
   for (auto slot = mSlots.begin(); slot != mSlots.end(); slot++) {
-    if ((slot->getTFEnd() + maxDelay) < tf) {
+    if (maxDelay == 0 || (slot->getTFEnd() + maxDelay) < tf) {
       if (hasEnoughData(*slot)) {
         finalizeSlot(*slot); // will be removed after finalization
       } else if ((slot + 1) != mSlots.end()) {

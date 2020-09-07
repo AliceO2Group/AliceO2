@@ -7,4 +7,9 @@
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
-#include "Analysis/SecondaryVertex.h"
+
+#include "Generators/GenCosmicsParam.h"
+
+using namespace o2::eventgen;
+
+O2ParamImpl(o2::eventgen::GenCosmicsParam);

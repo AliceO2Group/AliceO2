@@ -13,6 +13,7 @@
 #include <vector>
 #include "SimulationDataFormat/MCTruthContainer.h"
 #include "Framework/ControlService.h"
+#include "Framework/Logger.h"
 #include "FT0Workflow/ReconstructionSpec.h"
 #include "DataFormatsFT0/Digit.h"
 #include "DataFormatsFT0/ChannelData.h"

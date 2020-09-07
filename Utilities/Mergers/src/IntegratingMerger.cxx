@@ -21,6 +21,7 @@
 #include <Monitoring/MonitoringFactory.h>
 
 #include "Framework/InputRecordWalker.h"
+#include "Framework/Logger.h"
 //#include "Framework/DataRef.h"
 
 //using namespace o2;

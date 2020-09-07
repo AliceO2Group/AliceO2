@@ -71,7 +71,7 @@ int PVertexer::process(gsl::span<const o2d::TrackTPCITS> tracksITSTPC, gsl::span
         vtx.setFlags(PVertex::TimeValidated);
         vtx.setIR(ft0Data[bestMatch].getInteractionRecord());
         LOG(DEBUG) << "Validated with t0" << bestMatch;
-      } else if (vtx.getNContributors() >= mParams->minNContributorsForFT0cut) {
+      } else if (vtx.getNContributors() >= mPVParams->minNContributorsForFT0cut) {
         LOG(DEBUG) << "Discarding " << vtx;
         continue; // reject
       }
@@ -106,11 +106,11 @@ int PVertexer::findVertices(const VertexingInput& input, std::vector<PVertex>& v
   // only those which are in the idRange and have canUse()==true, will be used.
   // Results are placed in vertices and v2tRefs vectors
   int nfound = 0, ntr = input.idRange.size();
-  if (ntr < mParams->minTracksPerVtx) {
+  if (ntr < mPVParams->minTracksPerVtx) {
     return nfound;
   }
   //
-  SeedHisto seedHisto(mParams->zHistoRange, mParams->zHistoBinSize);
+  SeedHisto seedHisto(mPVParams->zHistoRange, mPVParams->zHistoBinSize);
 
   for (int i : input.idRange) {
     if (mTracksPool[i].canUse()) {
@@ -118,7 +118,7 @@ int PVertexer::findVertices(const VertexingInput& input, std::vector<PVertex>& v
       seedHisto.incrementBin(mTracksPool[i].bin);
     }
   }
-  if (seedHisto.nFilled < mParams->minTracksPerVtx) {
+  if (seedHisto.nFilled < mPVParams->minTracksPerVtx) {
     return nfound;
   }
 
@@ -174,7 +174,7 @@ bool PVertexer::findVertex(const VertexingInput& input, PVertex& vtx)
     if (result == FitStatus::OK) {
       result = evalIterations(vtxSeed, vtx);
     } else if (result == FitStatus::NotEnoughTracks) {
-      if (vtxSeed.nIterations <= mParams->maxIterations && upscaleSigma(vtxSeed)) {
+      if (vtxSeed.nIterations <= mPVParams->maxIterations && upscaleSigma(vtxSeed)) {
         LOG(DEBUG) << "Upscaling scale to " << vtxSeed.scaleSigma2;
         result = FitStatus::IterateFurther;
         continue; // redo with stronger rescaling
@@ -208,8 +208,8 @@ PVertexer::FitStatus PVertexer::fitIteration(const VertexingInput& input, Vertex
     }
   }
   vtxSeed.maxScaleSigma2Tested = vtxSeed.scaleSigma2;
-  if (vtxSeed.getNContributors() < mParams->minTracksPerVtx) {
-    return nTested < mParams->minTracksPerVtx ? FitStatus::PoolEmpty : FitStatus::NotEnoughTracks;
+  if (vtxSeed.getNContributors() < mPVParams->minTracksPerVtx) {
+    return nTested < mPVParams->minTracksPerVtx ? FitStatus::PoolEmpty : FitStatus::NotEnoughTracks;
   }
   if (vtxSeed.useConstraint) {
     applyConstraint(vtxSeed);
@@ -234,7 +234,7 @@ void PVertexer::accountTrack(TrackVF& trc, VertexSeed& vtxSeed) const
   } else {
     dt = timeT.getTimeStamp() - timeV.getTimeStamp();
     trErr2I = 1. / (timeT.getTimeStampError() * timeT.getTimeStampError());
-    if (mParams->useTimeInChi2) {
+    if (mPVParams->useTimeInChi2) {
       chi2T += dt * dt * trErr2I;
       ndff = 1. / 3.;
     }
@@ -315,7 +315,7 @@ bool PVertexer::solveVertex(VertexSeed& vtxSeed) const
   auto newScale = vtxSeed.wghChi2 / vtxSeed.wghSum;
   LOG(DEBUG) << "Solve: wghChi2=" << vtxSeed.wghChi2 << " wghSum=" << vtxSeed.wghSum << " -> scale= " << newScale << " old scale " << vtxSeed.scaleSigma2 << " prevScale: " << vtxSeed.scaleSigma2Prev;
   //vtxSeed.print();
-  vtxSeed.setScale(newScale < mParams->minScale2 ? mParams->minScale2 : newScale, mTukey2I);
+  vtxSeed.setScale(newScale < mPVParams->minScale2 ? mPVParams->minScale2 : newScale, mTukey2I);
   return true;
 }
 
@@ -326,9 +326,9 @@ PVertexer::FitStatus PVertexer::evalIterations(VertexSeed& vtxSeed, PVertex& vtx
   // if scaleSigma2 reached its lower limit stop
   PVertexer::FitStatus result = PVertexer::FitStatus::IterateFurther;
 
-  if (vtxSeed.nIterations > mParams->maxIterations) {
+  if (vtxSeed.nIterations > mPVParams->maxIterations) {
     result = PVertexer::FitStatus::Failure;
-  } else if (vtxSeed.scaleSigma2Prev <= mParams->minScale2 + kAlmost0F) {
+  } else if (vtxSeed.scaleSigma2Prev <= mPVParams->minScale2 + kAlmost0F) {
     result = PVertexer::FitStatus::OK;
     LOG(DEBUG) << "stop on simga :" << vtxSeed.scaleSigma2 << " prev: " << vtxSeed.scaleSigma2Prev;
   }
@@ -345,7 +345,7 @@ PVertexer::FitStatus PVertexer::evalIterations(VertexSeed& vtxSeed, PVertex& vtx
 
   if (result == PVertexer::FitStatus::OK) {
     auto chi2Mean = vtxSeed.getChi2() / vtxSeed.getNContributors();
-    if (chi2Mean > mParams->maxChi2Mean) {
+    if (chi2Mean > mPVParams->maxChi2Mean) {
       result = PVertexer::FitStatus::Failure;
       LOG(DEBUG) << "Rejecting at iteration " << vtxSeed.nIterations << " and ScalePrev " << vtxSeed.scaleSigma2Prev << " with meanChi2 = " << chi2Mean;
     } else {
@@ -354,15 +354,15 @@ PVertexer::FitStatus PVertexer::evalIterations(VertexSeed& vtxSeed, PVertex& vtx
   }
 
   if (vtxSeed.scaleSigma2 > vtxSeed.scaleSigma2Prev) {
-    if (++vtxSeed.nScaleIncrease > mParams->maxNScaleIncreased) {
+    if (++vtxSeed.nScaleIncrease > mPVParams->maxNScaleIncreased) {
       result = PVertexer::FitStatus::Failure;
       LOG(DEBUG) << "Rejecting at iteration " << vtxSeed.nIterations << " with NScaleIncreased " << vtxSeed.nScaleIncrease;
     }
-  } else if (vtxSeed.scaleSigma2 > mParams->slowConvergenceFactor * vtxSeed.scaleSigma2Prev) {
-    if (++vtxSeed.nScaleSlowConvergence > mParams->maxNScaleSlowConvergence) {
-      if (vtxSeed.scaleSigma2 < mParams->acceptableScale2) {
-        vtxSeed.setScale(mParams->minScale2, mTukey2I);
-        LOG(DEBUG) << "Forcing scale2 to " << mParams->minScale2;
+  } else if (vtxSeed.scaleSigma2 > mPVParams->slowConvergenceFactor * vtxSeed.scaleSigma2Prev) {
+    if (++vtxSeed.nScaleSlowConvergence > mPVParams->maxNScaleSlowConvergence) {
+      if (vtxSeed.scaleSigma2 < mPVParams->acceptableScale2) {
+        vtxSeed.setScale(mPVParams->minScale2, mTukey2I);
+        LOG(DEBUG) << "Forcing scale2 to " << mPVParams->minScale2;
         result = PVertexer::FitStatus::IterateFurther;
       } else {
         result = PVertexer::FitStatus::Failure;
@@ -420,8 +420,9 @@ TimeEst PVertexer::timeEstimate(const VertexingInput& input) const
 //___________________________________________________________________
 void PVertexer::init()
 {
-  mParams = &PVertexerParams::Instance();
-  setTukey(mParams->tukey);
+  mPVParams = &PVertexerParams::Instance();
+  mFT0Params = &o2::ft0::InteractionTag::Instance();
+  setTukey(mPVParams->tukey);
   initMeanVertexConstraint();
 }
 
@@ -503,7 +504,7 @@ void PVertexer::clusterizeTimeBruteForce(float margin, float cut)
     int icur = mSortedTrackID[i];
     const auto& trc = mTracksPool[icur];
     if (!vtxT->isCompatible(trc.timeEst, margin, cut)) {
-      if (vtxT->count < mParams->minTracksPerVtx) {
+      if (vtxT->count < mPVParams->minTracksPerVtx) {
         vtxT->clear();
       } else {
         vtxT = &tclist.emplace_back();
@@ -511,7 +512,7 @@ void PVertexer::clusterizeTimeBruteForce(float margin, float cut)
     }
     vtxT->addTrack(i, trc.timeEst);
   }
-  if (tclist.back().count < mParams->minTracksPerVtx) {
+  if (tclist.back().count < mPVParams->minTracksPerVtx) {
     tclist.pop_back();
   }
   // final sort in decreasing multiplicity
@@ -521,7 +522,7 @@ void PVertexer::clusterizeTimeBruteForce(float margin, float cut)
   std::sort(tcselSort.begin(), tcselSort.end(), [&tclist](int i, int j) { return tclist[i].count > tclist[j].count; });
   mTimesClusters.reserve(tcselSort.size());
   for (auto i : tcselSort) {
-    if (tclist[i].count >= mParams->minTracksPerVtx) {
+    if (tclist[i].count >= mPVParams->minTracksPerVtx) {
       mTimesClusters.push_back(tclist[i]);
       auto& tc = mTimesClusters.back();
       //      tc.print();
@@ -662,17 +663,17 @@ int PVertexer::getBestFT0Trigger(const PVertex& vtx, gsl::span<const o2::ft0::Re
   // check if the times stamp is compatible with any entry startinge from currEntry in ft0Data vector, return best matching time
   int best = -1, n = ft0Data.size();
   auto t = vtx.getTimeStamp();
-  while (currEntry < n && getTimeMSFromTFStart(ft0Data[currEntry].getInteractionRecord()) + mParams->nSigmaFT0cut * mParams->maxTError < t.getTimeStamp()) {
+  float cut = mPVParams->nSigmaFT0cut * mPVParams->maxTError, bestDf = cut, df = 0;
+  while (currEntry < n && mFT0Params->getInteractionTimeNS(ft0Data[currEntry], mStartIR) * 1e-3 + cut < t.getTimeStamp()) {
     currEntry++; // skip all times which have no chance to be matched
   }
-  float cut = mParams->nSigmaFT0cut * std::min(mParams->maxTError, std::max(mParams->minTError, t.getTimeStampError())), bestDf = cut, df = 0;
+  cut = mPVParams->nSigmaFT0cut * std::min(mPVParams->maxTError, std::max(mPVParams->minTError, t.getTimeStampError()));
   int i = currEntry;
   while (i < n) {
-    if ((df = getTimeMSFromTFStart(ft0Data[i].getInteractionRecord()) - t.getTimeStamp()) > bestDf) {
+    if ((df = mFT0Params->getInteractionTimeNS(ft0Data[i], mStartIR) * 1e-3) > bestDf) {
       break;
     }
-    auto ft0Trigger = ft0Data[i].getTrigger();
-    if (ft0Trigger.amplA + ft0Trigger.amplC > mParams->minFT0AmplitudeAC) {
+    if (mFT0Params->isSelected(ft0Data[i])) {
       auto dfa = std::abs(df);
       if (dfa <= bestDf) {
         bestDf = dfa;

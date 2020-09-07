@@ -40,7 +40,7 @@ void checkTOFMatching(bool batchMode = true)
   TTree* tpcTree = (TTree*)ftracksTPC->Get("events");
   std::vector<o2::tpc::TrackTPC>* mTPCTracksArrayInp = new std::vector<o2::tpc::TrackTPC>;
   tpcTree->SetBranchAddress("Tracks", &mTPCTracksArrayInp);
-  o2::dataformats::MCTruthContainer<o2::MCCompLabel>* mcTPC = new o2::dataformats::MCTruthContainer<o2::MCCompLabel>();
+  std::vector<o2::MCCompLabel>* mcTPC = new std::vector<o2::MCCompLabel>();
   tpcTree->SetBranchAddress("TracksMCTruth", &mcTPC);
 
   // getting the ITS tracks
@@ -48,7 +48,7 @@ void checkTOFMatching(bool batchMode = true)
   TTree* itsTree = (TTree*)ftracksITS->Get("o2sim");
   std::vector<o2::its::TrackITS>* mITSTracksArrayInp = new std::vector<o2::its::TrackITS>;
   itsTree->SetBranchAddress("ITSTrack", &mITSTracksArrayInp);
-  o2::dataformats::MCTruthContainer<o2::MCCompLabel>* mcITS = new o2::dataformats::MCTruthContainer<o2::MCCompLabel>();
+  std::vector<o2::MCCompLabel>* mcITS = new std::vector<o2::MCCompLabel>();
   itsTree->SetBranchAddress("ITSTrackMCTruth", &mcITS);
 
   // getting the TOF clusters
@@ -274,23 +274,19 @@ void checkTOFMatching(bool batchMode = true)
       Printf("matched ITStrack index = %d", evIdxITS);
 #endif
       // getting the TPC labels
-      const auto& labelsTPC = mcTPC->getLabels(evIdxTPC);
+      const auto& labelsTPC = (*mcTPC)[evIdxTPC];
 #ifdef DEBUG
-      for (uint ilabel = 0; ilabel < labelsTPC.size(); ilabel++) {
-        Printf("TPC label %d: trackID = %d, eventID = %d, sourceID = %d", ilabel, labelsTPC[ilabel].getTrackID(), labelsTPC[ilabel].getEventID(), labelsTPC[ilabel].getSourceID());
-      }
+      Printf("TPC label: trackID = %d, eventID = %d, sourceID = %d", labelsTPC.getTrackID(), labelsTPC.getEventID(), labelsTPC.getSourceID());
 #endif
 
       // getting the ITS labels
-      const auto& labelsITS = mcITS->getLabels(evIdxITS);
+      const auto& labelsITS = (*mcITS)[evIdxITS];
 #ifdef DEBUG
-      for (uint ilabel = 0; ilabel < labelsITS.size(); ilabel++) {
-        Printf("ITS label %d: trackID = %d, eventID = %d, sourceID = %d", ilabel, labelsITS[ilabel].getTrackID(), labelsITS[ilabel].getEventID(), labelsITS[ilabel].getSourceID());
-      }
+      Printf("ITS label: trackID = %d, eventID = %d, sourceID = %d", ilabel, labelsITS.getTrackID(), labelsITS.getEventID(), labelsITS.getSourceID());
 #endif
       bool bMatched = kFALSE;
       for (uint ilabel = 0; ilabel < labelsTOF.size(); ilabel++) {
-        if ((abs(labelsTPC[0].getTrackID()) == labelsTOF[ilabel].getTrackID() && labelsTPC[0].getEventID() == labelsTOF[ilabel].getEventID() && labelsTPC[0].getSourceID() == labelsTOF[ilabel].getSourceID()) || (labelsITS[0].getTrackID() == labelsTOF[ilabel].getTrackID() && labelsITS[0].getEventID() == labelsTOF[ilabel].getEventID() && labelsITS[0].getSourceID() == labelsTOF[ilabel].getSourceID())) {
+        if ((abs(labelsTPC.getTrackID()) == labelsTOF[ilabel].getTrackID() && labelsTPC.getEventID() == labelsTOF[ilabel].getEventID() && labelsTPC.getSourceID() == labelsTOF[ilabel].getSourceID()) || (labelsITS.getTrackID() == labelsTOF[ilabel].getTrackID() && labelsITS.getEventID() == labelsTOF[ilabel].getEventID() && labelsITS.getSourceID() == labelsTOF[ilabel].getSourceID())) {
           nGoodMatches++;
           bMatched = kTRUE;
           break;
@@ -352,23 +348,19 @@ void checkTOFMatching(bool batchMode = true)
         o2::dataformats::TrackTPCITS trackITSTPC = mTracksArrayInp->at(i);
         const auto evIdxTPCcheck = trackITSTPC.getRefTPC();
         const auto evIdxITScheck = trackITSTPC.getRefITS();
-        const auto& labelsTPCcheck = mcTPC->getLabels(evIdxTPCcheck);
-        for (uint ilabel = 0; ilabel < labelsTPCcheck.size(); ilabel++) {
-          if (abs(labelsTPCcheck[ilabel].getTrackID()) == trackIdTOF && labelsTPCcheck[ilabel].getEventID() == eventIdTOF && labelsTPCcheck[ilabel].getSourceID() == sourceIdTOF) {
+        const auto& labelsTPCcheck = (*mcTPC)[evIdxTPCcheck];
+        if (abs(labelsTPCcheck.getTrackID()) == trackIdTOF && labelsTPCcheck.getEventID() == eventIdTOF && labelsTPCcheck.getSourceID() == sourceIdTOF) {
 #ifdef DEBUG
-            Printf("The TPC track that should have been matched to TOF is number %d", i);
+          Printf("The TPC track that should have been matched to TOF is number %d", i);
 #endif
-            TPCfound = true;
-          }
+          TPCfound = true;
         }
-        const auto& labelsITScheck = mcITS->getLabels(evIdxITScheck);
-        for (uint ilabel = 0; ilabel < labelsITScheck.size(); ilabel++) {
-          if (labelsITScheck[ilabel].getTrackID() == trackIdTOF && labelsITScheck[ilabel].getEventID() == eventIdTOF && labelsITScheck[ilabel].getSourceID() == sourceIdTOF) {
+        const auto& labelsITScheck = (*mcITS)[evIdxITScheck];
+        if (labelsITScheck.getTrackID() == trackIdTOF && labelsITScheck.getEventID() == eventIdTOF && labelsITScheck.getSourceID() == sourceIdTOF) {
 #ifdef DEBUG
-            Printf("The ITS track that should have been matched to TOF is number %d", i);
+          Printf("The ITS track that should have been matched to TOF is number %d", i);
 #endif
-            ITSfound = true;
-          }
+          ITSfound = true;
         }
       }
 #ifdef DEBUG

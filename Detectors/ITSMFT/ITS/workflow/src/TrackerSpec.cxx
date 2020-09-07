@@ -35,6 +35,7 @@
 
 #include "ITSReconstruction/FastMultEstConfig.h"
 #include "ITSReconstruction/FastMultEst.h"
+#include <fmt/format.h>
 
 namespace o2
 {
@@ -43,8 +44,7 @@ namespace its
 {
 using Vertex = o2::dataformats::Vertex<o2::dataformats::TimeStamp<int>>;
 
-TrackerDPL::TrackerDPL(bool isMC, o2::gpu::GPUDataTypes::DeviceType dType) : mIsMC{isMC},
-                                                                             mRecChain{o2::gpu::GPUReconstruction::CreateInstance(dType, true)}
+TrackerDPL::TrackerDPL(bool isMC, bool async, o2::gpu::GPUDataTypes::DeviceType dType) : mIsMC{isMC}, mAsyncMode{async}, mRecChain{o2::gpu::GPUReconstruction::CreateInstance(dType, true)}
 {
 }
 
@@ -68,6 +68,16 @@ void TrackerDPL::init(InitContext& ic)
     mRecChain->Init();
     mVertexer = std::make_unique<Vertexer>(chainITS->GetITSVertexerTraits());
     mTracker = std::make_unique<Tracker>(chainITS->GetITSTrackerTraits());
+    if (mAsyncMode) {
+      std::vector<TrackingParameters> trackParams(3);
+      trackParams[0].TrackletMaxDeltaPhi = 0.05f;
+      trackParams[1].TrackletMaxDeltaPhi = 0.1f;
+      trackParams[2].MinTrackLength = 4;
+      trackParams[2].TrackletMaxDeltaPhi = 0.3;
+      std::vector<MemoryParameters> memParams(3);
+      mTracker->setParameters(memParams, trackParams);
+      LOG(INFO) << "Initializing tracker in async. phase reconstruction with " << trackParams.size() << " passes";
+    }
     mVertexer->getGlobalConfiguration();
     // mVertexer->dumpTraits();
     double origD[3] = {0., 0., 0.};
@@ -112,9 +122,9 @@ void TrackerDPL::run(ProcessingContext& pc)
 
   std::vector<o2::its::TrackITSExt> tracks;
   auto& allClusIdx = pc.outputs().make<std::vector<int>>(Output{"ITS", "TRACKCLSID", 0, Lifetime::Timeframe});
-  o2::dataformats::MCTruthContainer<o2::MCCompLabel> trackLabels;
+  std::vector<o2::MCCompLabel> trackLabels;
   auto& allTracks = pc.outputs().make<std::vector<o2::its::TrackITS>>(Output{"ITS", "TRACKS", 0, Lifetime::Timeframe});
-  o2::dataformats::MCTruthContainer<o2::MCCompLabel> allTrackLabels;
+  std::vector<o2::MCCompLabel> allTrackLabels;
 
   auto& vertROFvec = pc.outputs().make<std::vector<o2::itsmft::ROFRecord>>(Output{"ITS", "VERTICESROF", 0, Lifetime::Timeframe});
   auto& vertices = pc.outputs().make<std::vector<Vertex>>(Output{"ITS", "VERTICES", 0, Lifetime::Timeframe});
@@ -132,10 +142,18 @@ void TrackerDPL::run(ProcessingContext& pc)
   auto copyTracks = [](auto& tracks, auto& allTracks, auto& allClusIdx, int offset = 0) {
     for (auto& trc : tracks) {
       trc.setFirstClusterEntry(allClusIdx.size()); // before adding tracks, create final cluster indices
-      int ncl = trc.getNumberOfClusters();
-      for (int ic = ncl; ic--;) { // track internally keeps in->out cluster indices, but we want to store the references as out->in!!!
-        allClusIdx.push_back(trc.getClusterIndex(ic) + offset);
+      int ncl = trc.getNumberOfClusters(), nclf = 0;
+      uint8_t patt = 0;
+      for (int ic = TrackITSExt::MaxClusters; ic--;) { // track internally keeps in->out cluster indices, but we want to store the references as out->in!!!
+        auto clid = trc.getClusterIndex(ic);
+        if (clid >= 0) {
+          allClusIdx.push_back(clid + offset);
+          nclf++;
+          patt |= 0x1 << ic;
+        }
       }
+      assert(ncl == nclf);
+      trc.setPattern(patt);
       allTracks.emplace_back(trc);
     }
   };
@@ -193,13 +211,13 @@ void TrackerDPL::run(ProcessingContext& pc)
         tracks.swap(mTracker->getTracks());
         LOG(INFO) << "Found tracks: " << tracks.size();
         int number = tracks.size();
-        trackLabels = mTracker->getTrackLabels(); /// FIXME: assignment ctor is not optimal.
+        trackLabels.swap(mTracker->getTrackLabels()); /// FIXME: assignment ctor is not optimal.
         int shiftIdx = -rof.getFirstEntry();      // cluster entry!!!
         rof.setFirstEntry(first);
         rof.setNEntries(number);
         copyTracks(tracks, allTracks, allClusIdx, shiftIdx);
-        allTrackLabels.mergeAtBack(trackLabels);
-
+        std::copy(trackLabels.begin(), trackLabels.end(), std::back_inserter(allTrackLabels));
+        trackLabels.clear();
         vtxROF.setNEntries(vtxVecLoc.size());
         for (const auto& vtx : vtxVecLoc) {
           vertices.push_back(vtx);
@@ -214,7 +232,7 @@ void TrackerDPL::run(ProcessingContext& pc)
     mTracker->clustersToTracks(event);
     tracks.swap(mTracker->getTracks());
     copyTracks(tracks, allTracks, allClusIdx);
-    allTrackLabels = mTracker->getTrackLabels(); /// FIXME: assignment ctor is not optimal.
+    allTrackLabels.swap(mTracker->getTrackLabels()); /// FIXME: assignment ctor is not optimal.
   }
 
   LOG(INFO) << "ITSTracker pushed " << allTracks.size() << " tracks";
@@ -231,7 +249,7 @@ void TrackerDPL::endOfStream(EndOfStreamContext& ec)
        mTimer.CpuTime(), mTimer.RealTime(), mTimer.Counter() - 1);
 }
 
-DataProcessorSpec getTrackerSpec(bool useMC, o2::gpu::GPUDataTypes::DeviceType dType)
+DataProcessorSpec getTrackerSpec(bool useMC, bool async, o2::gpu::GPUDataTypes::DeviceType dType)
 {
   std::vector<InputSpec> inputs;
   inputs.emplace_back("compClusters", "ITS", "COMPCLUSTERS", 0, Lifetime::Timeframe);
@@ -257,7 +275,7 @@ DataProcessorSpec getTrackerSpec(bool useMC, o2::gpu::GPUDataTypes::DeviceType d
     "its-tracker",
     inputs,
     outputs,
-    AlgorithmSpec{adaptFromTask<TrackerDPL>(useMC, dType)},
+    AlgorithmSpec{adaptFromTask<TrackerDPL>(useMC, async, dType)},
     Options{
       {"grp-file", VariantType::String, "o2sim_grp.root", {"Name of the grp file"}},
       {"its-dictionary-path", VariantType::String, "", {"Path of the cluster-topology dictionary file"}}}};

@@ -153,7 +153,7 @@ AlgorithmSpec AODReaderHelpers::rootFileReaderCallback()
           LOGP(ERROR, "Error while retrieving the tree for \"{}\"!", table);
           return;
         }
-
+        
         auto o = Output(dh);
         auto& t2t = outputs.make<TreeToTable>(o, tr);
 

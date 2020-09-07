@@ -8,6 +8,8 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
+#include "FairLogger.h"
+
 #include <fmt/core.h>
 #include <gsl/span>
 #include <TSystem.h>
@@ -17,12 +19,6 @@
 #include "EMCALSimulation/RawWriter.h"
 
 using namespace o2::emcal;
-
-void RawWriter::setTriggerRecords(gsl::span<o2::emcal::TriggerRecord> triggers)
-{
-  mTriggers = triggers;
-  mCurrentTrigger = triggers.begin();
-}
 
 void RawWriter::init()
 {
@@ -39,7 +35,7 @@ void RawWriter::init()
     std::string rawfilename = mOutputLocation;
     switch (mFileFor) {
       case FileFor_t::kFullDet:
-        rawfilename += "/emcal.root";
+        rawfilename += "/emcal.raw";
         break;
       case FileFor_t::kSubDet: {
         std::string detstring;
@@ -47,11 +43,11 @@ void RawWriter::init()
           detstring = "emcal";
         else
           detstring = "dcal";
-        rawfilename += fmt::format("/%s", detstring.data());
+        rawfilename += fmt::format("/{:s}.raw", detstring.data());
         break;
       };
       case FileFor_t::kLink:
-        rawfilename += fmt::format("/emcal_%d_%d.root", crorc, link);
+        rawfilename += fmt::format("/emcal_{:d}_{:d}.raw", crorc, link);
     }
     mRawWriter->registerLink(iddl, crorc, link, 0, rawfilename.data());
   }
@@ -67,31 +63,26 @@ void RawWriter::init()
   }
 }
 
-void RawWriter::process()
-{
-  while (processNextTrigger())
-    ;
-}
-
 void RawWriter::digitsToRaw(gsl::span<o2::emcal::Digit> digitsbranch, gsl::span<o2::emcal::TriggerRecord> triggerbranch)
 {
   setDigits(digitsbranch);
-  setTriggerRecords(triggerbranch);
-  process();
+  for (auto trg : triggerbranch) {
+    processTrigger(trg);
+  }
 }
 
-bool RawWriter::processNextTrigger()
+bool RawWriter::processTrigger(const o2::emcal::TriggerRecord& trg)
 {
-  if (mCurrentTrigger == mTriggers.end())
-    return false;
   for (auto srucont : mSRUdata)
     srucont.mChannels.clear();
   std::vector<o2::emcal::Digit*>* bunchDigits;
   int lasttower = -1;
-  for (auto& dig : gsl::span(mDigits.data() + mCurrentTrigger->getFirstEntry(), mCurrentTrigger->getNumberOfObjects())) {
+  for (auto& dig : gsl::span(mDigits.data() + trg.getFirstEntry(), trg.getNumberOfObjects())) {
     auto tower = dig.getTower();
     if (tower != lasttower) {
       lasttower = tower;
+      if (tower > 20000)
+        std::cout << "Wrong cell ID " << tower << std::endl;
       auto onlineindices = getOnlineID(tower);
       int sruID = std::get<0>(onlineindices);
       auto towerdata = mSRUdata[sruID].mChannels.find(tower);
@@ -102,11 +93,21 @@ bool RawWriter::processNextTrigger()
       } else {
         bunchDigits = &(towerdata->second.mDigits);
       }
-      (*bunchDigits)[int(dig.getTimeStamp())] = &dig;
     }
+
+    // Get time sample of the digit:
+    // Digitizer stores the time sample in ns, needs to be converted to time sample dividing
+    // by the length of the time sample
+    auto timesample = int(dig.getTimeStamp() / emcal::constants::EMCAL_TIMESAMPLE);
+    if (timesample >= mNADCSamples) {
+      LOG(ERROR) << "Digit time sample " << timesample << " outside range [0," << mNADCSamples << "]";
+      continue;
+    }
+    (*bunchDigits)[timesample] = &dig;
   }
 
   // Create and fill DMA pages for each channel
+  std::cout << "encode data" << std::endl;
   std::vector<char> payload;
   for (auto srucont : mSRUdata) {
 
@@ -142,9 +143,10 @@ bool RawWriter::processNextTrigger()
     // register output data
     auto ddlid = srucont.mSRUid;
     auto [crorc, link] = getLinkAssignment(ddlid);
-    mRawWriter->addData(ddlid, crorc, link, 0, mCurrentTrigger->getBCData(), payload);
+    LOG(DEBUG1) << "Adding payload with size " << payload.size() << " (" << payload.size() / 4 << " ALTRO words)";
+    mRawWriter->addData(ddlid, crorc, link, 0, trg.getBCData(), payload);
   }
-  mCurrentTrigger++;
+  std::cout << "Done" << std::endl;
   return true;
 }
 
@@ -152,30 +154,32 @@ std::vector<AltroBunch> RawWriter::findBunches(const std::vector<o2::emcal::Digi
 {
   std::vector<AltroBunch> result;
   AltroBunch* currentBunch = nullptr;
-  int starttime = 0;
-  for (auto ien = channelDigits.size() - 1;; ien--) {
-    auto dig = channelDigits[ien];
+  // Digits in ALTRO bunch in time-reversed order
+  int itime;
+  for (itime = channelDigits.size() - 1; itime >= 0; itime--) {
+    auto dig = channelDigits[itime];
     if (!dig) {
-      starttime++;
       continue;
     }
-    int adc = dig->getEnergy() / constants::EMCAL_ADCENERGY; /// conversion Energy <-> ADC := 16 MeV/ADC
+    int adc = dig->getAmplitudeADC();
     if (adc < mPedestal) {
       // Stop bunch
+      // Set the start time to the time sample of previous (passing) digit
+      currentBunch->mStarttime = itime + 1;
       currentBunch = nullptr;
-      starttime++;
       continue;
     }
     if (!currentBunch) {
       // start new bunch
       AltroBunch bunch;
-      bunch.mStarttime = starttime;
       result.push_back(bunch);
       currentBunch = &(result.back());
     }
     currentBunch->mADCs.emplace_back(adc);
-    starttime++;
   }
+  // if we have a last bunch set time start time to the time bin of teh previous digit
+  if (currentBunch)
+    currentBunch->mStarttime = itime + 1;
   return result;
 }
 
@@ -187,19 +191,19 @@ std::tuple<int, int, int> RawWriter::getOnlineID(int towerID)
   auto etaphishift = mGeometry->ShiftOfflineToOnlineCellIndexes(supermoduleID, std::get<0>(etaphi), std::get<1>(etaphi));
   int row = std::get<0>(etaphishift), col = std::get<1>(etaphishift);
 
-  int sruID = -1;
+  int ddlInSupermoudel = -1;
   if (0 <= row && row < 8)
-    sruID = 0; // first cable row
+    ddlInSupermoudel = 0; // first cable row
   else if (8 <= row && row < 16 && 0 <= col && col < 24)
-    sruID = 0; // first half;
+    ddlInSupermoudel = 0; // first half;
   else if (8 <= row && row < 16 && 24 <= col && col < 48)
-    sruID = 1; // second half;
+    ddlInSupermoudel = 1; // second half;
   else if (16 <= row && row < 24)
-    sruID = 1; // third cable row
+    ddlInSupermoudel = 1; // third cable row
   if (supermoduleID % 2 == 1)
-    sruID = 1 - sruID; // swap for odd=C side, to allow us to cable both sides the same
+    ddlInSupermoudel = 1 - ddlInSupermoudel; // swap for odd=C side, to allow us to cable both sides the same
 
-  return std::make_tuple(sruID, row, col);
+  return std::make_tuple(supermoduleID * 2 + ddlInSupermoudel, row, col);
 }
 
 std::tuple<int, int> RawWriter::getLinkAssignment(int ddlID)
@@ -274,7 +278,7 @@ int RawWriter::carryOverMethod(const header::RDHAny* rdh, const gsl::span<char> 
   gsl::span<const uint32_t> payloadwords(reinterpret_cast<const uint32_t*>(data.data()), data.size() / sizeof(uint32_t));
   auto rcutrailer = RCUTrailer::constructFromPayloadWords(payloadwords);
 
-  int sizeNoTrailer = maxSize - rcutrailer.getTrailerSize();
+  int sizeNoTrailer = maxSize - rcutrailer.getTrailerSize() * sizeof(uint32_t);
   // calculate payload size for RCU trailer:
   // assume actualsize is in byte
   // Payload size is defined as the number of 32-bit payload words
