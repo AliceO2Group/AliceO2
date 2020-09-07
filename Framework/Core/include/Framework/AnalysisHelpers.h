@@ -113,23 +113,14 @@ struct Produces<soa::Table<C...>> : WritingCursor<typename soa::PackToTable<type
   }
 };
 
-/// This helper struct allows you to declare extended tables which should be
-/// created by the task (as opposed to those pre-defined by data model)
-template <typename T>
-struct Spawns {
-  using extension_t = framework::pack_head_t<typename T::originals>;
-  using metadata = typename aod::MetadataTrait<extension_t>::metadata;
-  using sources = typename metadata::originals;
-  using expression_pack_t = typename metadata::expression_pack_t;
-
-  constexpr auto pack()
-  {
-    return expression_pack_t{};
-  }
-  template <typename O>
+/// Helper template for table transformations
+template <typename METADATA>
+struct TableTransform {
+  using SOURCES = typename METADATA::originals;
+  template <typename Oi>
   InputSpec const base_spec()
   {
-    using o_metadata = typename aod::MetadataTrait<O>::metadata;
+    using o_metadata = typename aod::MetadataTrait<Oi>::metadata;
     return InputSpec{
       o_metadata::tableLabel(),
       header::DataOrigin{o_metadata::origin()},
@@ -144,17 +135,30 @@ struct Spawns {
 
   std::vector<InputSpec> const base_specs()
   {
-    return base_specs_impl(sources{});
+    return base_specs_impl(SOURCES{});
   }
 
   OutputSpec const spec() const
   {
-    return OutputSpec{OutputLabel{metadata::tableLabel()}, metadata::origin(), metadata::description()};
+    return OutputSpec{OutputLabel{METADATA::tableLabel()}, METADATA::origin(), METADATA::description()};
   }
 
   OutputRef ref() const
   {
-    return OutputRef{metadata::tableLabel(), 0};
+    return OutputRef{METADATA::tableLabel(), 0};
+  }
+};
+
+/// This helper struct allows you to declare extended tables which should be
+/// created by the task (as opposed to those pre-defined by data model)
+template <typename T>
+struct Spawns : TableTransform<typename aod::MetadataTrait<framework::pack_head_t<typename T::originals>>::metadata> {
+  using extension_t = framework::pack_head_t<typename T::originals>;
+  using expression_pack_t = typename aod::MetadataTrait<extension_t>::metadata::expression_pack_t;
+
+  constexpr auto pack()
+  {
+    return expression_pack_t{};
   }
 
   T* operator->()
@@ -299,44 +303,11 @@ struct IndexSparse {
 
 /// This helper struct allows you to declare index tables to be created in a task
 template <typename T, typename IP = IndexSparse>
-struct Builds {
-  using metadata = typename aod::MetadataTrait<T>::metadata;
-  using originals = typename metadata::originals;
+struct Builds : TableTransform<typename aod::MetadataTrait<T>::metadata> {
   using Key = typename T::indexing_t;
   using H = typename T::first_t;
   using Ts = typename T::rest_t;
-  using index_pack_t = typename metadata::index_pack_t;
-
-  template <typename O>
-  InputSpec const base_spec()
-  {
-    using o_metadata = typename aod::MetadataTrait<O>::metadata;
-    return InputSpec{
-      o_metadata::tableLabel(),
-      header::DataOrigin{o_metadata::origin()},
-      header::DataDescription{o_metadata::description()}};
-  }
-
-  template <typename... Os>
-  std::vector<InputSpec> const base_specs_impl(framework::pack<Os...>)
-  {
-    return {base_spec<Os>()...};
-  }
-
-  std::vector<InputSpec> const base_specs()
-  {
-    return base_specs_impl(originals{});
-  }
-
-  OutputSpec const spec() const
-  {
-    return OutputSpec{OutputLabel{metadata::tableLabel()}, metadata::origin(), metadata::description()};
-  }
-
-  OutputRef ref() const
-  {
-    return OutputRef{metadata::tableLabel(), 0};
-  }
+  using index_pack_t = typename aod::MetadataTrait<T>::metadata::index_pack_t;
 
   T* operator->()
   {
