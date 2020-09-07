@@ -116,7 +116,7 @@ uint64_t getMask(header::DataDescription description)
   }
 }
 
-uint64_t calculateReadMask(std::vector<OutputRoute> const& routes, header::DataOrigin const& origin)
+uint64_t calculateReadMask(std::vector<OutputRoute> const& routes, header::DataOrigin const&)
 {
   uint64_t readMask = None;
   for (auto& route : routes) {
@@ -176,11 +176,11 @@ AlgorithmSpec AODReaderHelpers::aodSpawnerCallback(std::vector<InputSpec> reques
         };
 
         if (description == header::DataDescription{"TRACKPAR"}) {
-          outputs.adopt(Output{origin, description}, maker(o2::aod::TracksMetadata{}));
+          outputs.adopt(Output{origin, description}, maker(o2::aod::TracksExtensionMetadata{}));
         } else if (description == header::DataDescription{"TRACKPARCOV"}) {
-          outputs.adopt(Output{origin, description}, maker(o2::aod::TracksCovMetadata{}));
+          outputs.adopt(Output{origin, description}, maker(o2::aod::TracksCovExtensionMetadata{}));
         } else if (description == header::DataDescription{"MUON"}) {
-          outputs.adopt(Output{origin, description}, maker(o2::aod::MuonsMetadata{}));
+          outputs.adopt(Output{origin, description}, maker(o2::aod::MuonsExtensionMetadata{}));
         } else {
           throw std::runtime_error("Not an extended table");
         }
@@ -263,7 +263,7 @@ AlgorithmSpec AODReaderHelpers::rootFileReaderCallback()
       tableMaker(o2::aod::StoredTracksCovMetadata{}, AODTypeMask::TrackCov, "O2track");
       tableMaker(o2::aod::TracksExtraMetadata{}, AODTypeMask::TrackExtra, "O2track");
       tableMaker(o2::aod::CalosMetadata{}, AODTypeMask::Calo, "O2calo");
-      tableMaker(o2::aod::CaloTriggersMetadata{}, AODTypeMask::Calo, "O2calotrigger");
+      tableMaker(o2::aod::CaloTriggersMetadata{}, AODTypeMask::CaloTrigger, "O2calotrigger");
       tableMaker(o2::aod::StoredMuonsMetadata{}, AODTypeMask::Muon, "O2muon");
       tableMaker(o2::aod::MuonClustersMetadata{}, AODTypeMask::Muon, "O2muoncluster");
       tableMaker(o2::aod::ZdcsMetadata{}, AODTypeMask::Zdc, "O2zdc");

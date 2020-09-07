@@ -11,12 +11,14 @@
 /// @file   DigitReaderSpec.cxx
 
 #include <vector>
+#include <unistd.h>
 
 #include "TChain.h"
 #include "TTree.h"
 
 #include "Framework/ControlService.h"
 #include "Framework/ConfigParamRegistry.h"
+#include "Framework/Logger.h"
 #include "TOFWorkflow/CalibInfoReaderSpec.h"
 
 using namespace o2::framework;
@@ -46,30 +48,33 @@ void CalibInfoReader::run(ProcessingContext& pc)
   }
 
   char filename[100];
-  int ientry = 0;
-  while (fscanf(mFile, "%s", filename) == 1) {
-    TFile* fin = TFile::Open(filename);
-    TTree* tin = (TTree*)fin->Get("calibTOF");
-    tin->SetBranchAddress("TOFCalibInfo", &mPvect);
-    for (int i = 0; i < tin->GetEntries(); i += mNinstances) {
-      if ((ientry % mNinstances) == mInstance) {
-        tin->GetEvent(i);
-        LOG(INFO) << "Send " << mVect.size() << " calib infos";
-        pc.outputs().snapshot(Output{o2::header::gDataOriginTOF, "CALIBINFOS", 0, Lifetime::Timeframe}, mVect);
-      }
-      ientry++;
-    }
-  }
 
-  mState = 2;
-  pc.services().get<ControlService>().endOfStream();
+  if ((mTree && mCurrentEntry < mTree->GetEntries()) || fscanf(mFile, "%s", filename) == 1) {
+    if (!mTree || mCurrentEntry >= mTree->GetEntries()) {
+      TFile* fin = TFile::Open(filename);
+      mTree = (TTree*)fin->Get("calibTOF");
+      mCurrentEntry = 0;
+      mTree->SetBranchAddress("TOFCalibInfo", &mPvect);
+    }
+    if ((mGlobalEntry % mNinstances) == mInstance) {
+      mTree->GetEvent(mCurrentEntry);
+      LOG(INFO) << "Send " << mVect.size() << " calib infos";
+      pc.outputs().snapshot(Output{o2::header::gDataOriginTOF, "CALIBDATA", 0, Lifetime::Timeframe}, mVect);
+      usleep(10000);
+    }
+    mGlobalEntry++;
+    mCurrentEntry++;
+  } else {
+    mState = 2;
+    pc.services().get<ControlService>().endOfStream();
+  }
   return;
 }
 
 DataProcessorSpec getCalibInfoReaderSpec(int instance, int ninstances, const char* filename)
 {
   std::vector<OutputSpec> outputs;
-  outputs.emplace_back(o2::header::gDataOriginTOF, "CALIBINFOS", 0, Lifetime::Timeframe);
+  outputs.emplace_back(o2::header::gDataOriginTOF, "CALIBDATA", 0, Lifetime::Timeframe);
 
   const char* nameSpec;
   if (ninstances == 1)

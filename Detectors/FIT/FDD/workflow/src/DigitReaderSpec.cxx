@@ -16,6 +16,7 @@
 
 #include "Framework/ConfigParamRegistry.h"
 #include "Framework/ControlService.h"
+#include "Framework/Logger.h"
 #include "FDDWorkflow/DigitReaderSpec.h"
 
 using namespace o2::framework;

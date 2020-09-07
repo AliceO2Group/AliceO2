@@ -213,8 +213,18 @@ void VarManager::SetDefaultVarNames()
   fgVariableUnits[kPairType] = "";
   fgVariableNames[kPairLxy] = "Pair Lxy";
   fgVariableUnits[kPairLxy] = "cm";
+  fgVariableNames[kPairMass] = "mass";
+  fgVariableUnits[kPairMass] = "GeV/c2";
+  fgVariableNames[kPairPt] = "p_{T}";
+  fgVariableUnits[kPairPt] = "GeV/c";
+  fgVariableNames[kPairEta] = "#eta";
+  fgVariableUnits[kPairEta] = "";
+  fgVariableNames[kPairPhi] = "#varphi";
+  fgVariableUnits[kPairPhi] = "rad.";
   fgVariableNames[kDeltaEta] = "#Delta#eta";
   fgVariableUnits[kDeltaEta] = "";
   fgVariableNames[kDeltaPhi] = "#Delta#phi";
-  fgVariableUnits[kDeltaPhi] = "";
+  fgVariableUnits[kDeltaPhi] = "rad.";
+  fgVariableNames[kDeltaPhiSym] = "#Delta#phi";
+  fgVariableUnits[kDeltaPhiSym] = "rad.";
 }

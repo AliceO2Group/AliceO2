@@ -1649,6 +1649,68 @@ bool TrackParCov::correctForMaterial(float x2x0, float xrho, float mass, bool an
   return true;
 }
 
+//______________________________________________________________
+bool TrackParCov::getCovXYZPxPyPzGlo(std::array<float, 21>& cv) const
+{
+  //---------------------------------------------------------------------
+  // This function returns the global covariance matrix of the track params
+  //
+  // Cov(x,x) ... :   cv[0]
+  // Cov(y,x) ... :   cv[1]  cv[2]
+  // Cov(z,x) ... :   cv[3]  cv[4]  cv[5]
+  // Cov(px,x)... :   cv[6]  cv[7]  cv[8]  cv[9]
+  // Cov(py,x)... :   cv[10] cv[11] cv[12] cv[13] cv[14]
+  // Cov(pz,x)... :   cv[15] cv[16] cv[17] cv[18] cv[19] cv[20]
+  //
+  // Results for (nearly) straight tracks are meaningless !
+  //---------------------------------------------------------------------
+  if (std::abs(getQ2Pt()) <= Almost0 || std::abs(getSnp()) > Almost1) {
+    for (int i = 0; i < 21; i++) {
+      cv[i] = 0.;
+    }
+    return false;
+  }
+
+  auto pt = getPt();
+  float sn, cs;
+  o2::utils::sincos(getAlpha(), sn, cs);
+  auto r = std::sqrt((1. - getSnp()) * (1. + getSnp()));
+  auto m00 = -sn, m10 = cs;
+  auto m23 = -pt * (sn + getSnp() * cs / r), m43 = -pt * pt * (r * cs - getSnp() * sn);
+  auto m24 = pt * (cs - getSnp() * sn / r), m44 = -pt * pt * (r * sn + getSnp() * cs);
+  auto m35 = pt, m45 = -pt * pt * getTgl();
+
+  if (getSign() < 0) {
+    m43 = -m43;
+    m44 = -m44;
+    m45 = -m45;
+  }
+
+  cv[0] = mC[0] * m00 * m00;
+  cv[1] = mC[0] * m00 * m10;
+  cv[2] = mC[0] * m10 * m10;
+  cv[3] = mC[1] * m00;
+  cv[4] = mC[1] * m10;
+  cv[5] = mC[2];
+  cv[6] = m00 * (mC[3] * m23 + mC[10] * m43);
+  cv[7] = m10 * (mC[3] * m23 + mC[10] * m43);
+  cv[8] = mC[4] * m23 + mC[11] * m43;
+  cv[9] = m23 * (mC[5] * m23 + mC[12] * m43) + m43 * (mC[12] * m23 + mC[14] * m43);
+  cv[10] = m00 * (mC[3] * m24 + mC[10] * m44);
+  cv[11] = m10 * (mC[3] * m24 + mC[10] * m44);
+  cv[12] = mC[4] * m24 + mC[11] * m44;
+  cv[13] = m23 * (mC[5] * m24 + mC[12] * m44) + m43 * (mC[12] * m24 + mC[14] * m44);
+  cv[14] = m24 * (mC[5] * m24 + mC[12] * m44) + m44 * (mC[12] * m24 + mC[14] * m44);
+  cv[15] = m00 * (mC[6] * m35 + mC[10] * m45);
+  cv[16] = m10 * (mC[6] * m35 + mC[10] * m45);
+  cv[17] = mC[7] * m35 + mC[11] * m45;
+  cv[18] = m23 * (mC[8] * m35 + mC[12] * m45) + m43 * (mC[13] * m35 + mC[14] * m45);
+  cv[19] = m24 * (mC[8] * m35 + mC[12] * m45) + m44 * (mC[13] * m35 + mC[14] * m45);
+  cv[20] = m35 * (mC[9] * m35 + mC[13] * m45) + m45 * (mC[13] * m35 + mC[14] * m45);
+
+  return true;
+}
+
 #ifndef GPUCA_ALIGPUCODE
 //______________________________________________________________
 std::string TrackParCov::asString() const

@@ -76,7 +76,9 @@ class RawPixelDecoder final : public PixelReader
   void setVerbosity(int v);
   int getVerbosity() const { return mVerbosity; }
 
-  void printReport() const;
+  void printReport(bool decstat = false, bool skipEmpty = true) const;
+
+  void clearStat();
 
   TStopwatch& getTimerTFStart() { return mTimerTFStart; }
   TStopwatch& getTimerDecode() { return mTimerDecode; }
@@ -101,9 +103,8 @@ class RawPixelDecoder final : public PixelReader
 
   std::vector<GBTLink> mGBTLinks;                           // active links pool
   std::unordered_map<uint32_t, LinkEntry> mSubsSpec2LinkID; // link subspec to link entry in the pool mapping
-
-  std::vector<RUDecodeData> mRUDecodeVec;       // set of active RUs
-  std::array<int, Mapping::getNRUs()> mRUEntry; // entry of the RU with given SW ID in the mRUDecodeVec
+  std::vector<RUDecodeData> mRUDecodeVec;                   // set of active RUs
+  std::array<short, Mapping::getNRUs()> mRUEntry;           // entry of the RU with given SW ID in the mRUDecodeVec
   std::string mSelfName;                        // self name
   header::DataOrigin mUserDataOrigin = o2::header::gDataOriginInvalid; // alternative user-provided data origin to pick
   uint16_t mCurRUDecodeID = NORUDECODED;        // index of currently processed RUDecode container
