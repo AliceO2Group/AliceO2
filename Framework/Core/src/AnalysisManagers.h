@@ -246,8 +246,7 @@ struct OutputManager<Spawns<T>> {
 
   static bool postRun(EndOfStreamContext& eosc, Spawns<T>& what)
   {
-    using metadata = typename std::decay_t<decltype(what)>::metadata;
-    eosc.outputs().adopt(Output{metadata::origin(), metadata::description()}, what.asArrowTable());
+    eosc.outputs().adopt(what.output(), what.asArrowTable());
     return true;
   }
 };
@@ -289,8 +288,7 @@ struct OutputManager<Builds<T, P>> {
 
   static bool postRun(EndOfStreamContext& eosc, Builds<T, P>& what)
   {
-    using metadata = typename std::decay_t<decltype(what)>::metadata;
-    eosc.outputs().adopt(Output{metadata::origin(), metadata::description()}, what.asArrowTable());
+    eosc.outputs().adopt(what.output(), what.asArrowTable());
     return true;
   }
 };

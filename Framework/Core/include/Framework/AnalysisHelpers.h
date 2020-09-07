@@ -18,6 +18,7 @@
 #include "Framework/InputSpec.h"
 #include "Framework/OutputObjHeader.h"
 #include "Framework/StringHelpers.h"
+#include "Framework/Output.h"
 #include <ROOT/RDataFrame.hxx>
 #include <string>
 
@@ -117,8 +118,12 @@ struct Produces<soa::Table<C...>> : WritingCursor<typename soa::PackToTable<type
 template <typename METADATA>
 struct TableTransform {
   using SOURCES = typename METADATA::originals;
+
+  using metadata = METADATA;
+  using sources = SOURCES;
+
   template <typename Oi>
-  InputSpec const base_spec()
+  InputSpec base_spec() const
   {
     using o_metadata = typename aod::MetadataTrait<Oi>::metadata;
     return InputSpec{
@@ -128,22 +133,27 @@ struct TableTransform {
   }
 
   template <typename... Os>
-  std::vector<InputSpec> const base_specs_impl(framework::pack<Os...>)
+  std::vector<InputSpec> base_specs_impl(framework::pack<Os...>) const
   {
     return {base_spec<Os>()...};
   }
 
-  std::vector<InputSpec> const base_specs()
+  std::vector<InputSpec> base_specs() const
   {
     return base_specs_impl(SOURCES{});
   }
 
-  OutputSpec const spec() const
+  auto spec() const
   {
     return OutputSpec{OutputLabel{METADATA::tableLabel()}, METADATA::origin(), METADATA::description()};
   }
 
-  OutputRef ref() const
+  auto output() const
+  {
+    return Output{METADATA::origin(), METADATA::description()};
+  }
+
+  auto ref() const
   {
     return OutputRef{METADATA::tableLabel(), 0};
   }
