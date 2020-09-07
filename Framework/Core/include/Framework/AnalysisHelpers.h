@@ -97,7 +97,7 @@ struct Produces {
 /// means of the WritingCursor helper class, from which produces actually
 /// derives.
 template <typename... C>
-struct Produces<soa::Table<C...>> : WritingCursor<typename soa::FilterPersistentColumns<soa::Table<C...>>::persistent_table_t> {
+struct Produces<soa::Table<C...>> : WritingCursor<typename soa::PackToTable<typename soa::Table<C...>::persistent_columns_t>::table> {
   using table_t = soa::Table<C...>;
   using metadata = typename aod::MetadataTrait<table_t>::metadata;
 
@@ -113,12 +113,19 @@ struct Produces<soa::Table<C...>> : WritingCursor<typename soa::FilterPersistent
   }
 };
 
-/// Base template for table transformation declarations
+/// This helper struct allows you to declare extended tables which should be
+/// created by the task (as opposed to those pre-defined by data model)
 template <typename T>
-struct TransformTable {
-  using metadata = typename aod::MetadataTrait<T>::metadata;
-  using originals = typename metadata::originals;
+struct Spawns {
+  using extension_t = framework::pack_head_t<typename T::originals>;
+  using metadata = typename aod::MetadataTrait<extension_t>::metadata;
+  using sources = typename metadata::originals;
+  using expression_pack_t = typename metadata::expression_pack_t;
 
+  constexpr auto pack()
+  {
+    return expression_pack_t{};
+  }
   template <typename O>
   InputSpec const base_spec()
   {
@@ -137,7 +144,7 @@ struct TransformTable {
 
   std::vector<InputSpec> const base_specs()
   {
-    return base_specs_impl(originals{});
+    return base_specs_impl(sources{});
   }
 
   OutputSpec const spec() const
@@ -161,23 +168,10 @@ struct TransformTable {
 
   auto asArrowTable()
   {
-    return table->asArrowTable();
+    return extension->asArrowTable();
   }
-  std::shared_ptr<T> table = nullptr;
-};
-
-/// This helper struct allows you to declare extended tables which should be
-/// created by the task (as opposed to those pre-defined by data model)
-template <typename T>
-struct Spawns : TransformTable<T> {
-  using metadata = typename TransformTable<T>::metadata;
-  using originals = typename metadata::originals;
-  using expression_pack_t = typename metadata::expression_pack_t;
-
-  constexpr auto pack()
-  {
-    return expression_pack_t{};
-  }
+  std::shared_ptr<typename T::table_t> table = nullptr;
+  std::shared_ptr<extension_t> extension = nullptr;
 };
 
 /// Policy to control index building
@@ -305,13 +299,59 @@ struct IndexSparse {
 
 /// This helper struct allows you to declare index tables to be created in a task
 template <typename T, typename IP = IndexSparse>
-struct Builds : TransformTable<T> {
-  using metadata = typename TransformTable<T>::metadata;
+struct Builds {
+  using metadata = typename aod::MetadataTrait<T>::metadata;
   using originals = typename metadata::originals;
   using Key = typename T::indexing_t;
   using H = typename T::first_t;
   using Ts = typename T::rest_t;
   using index_pack_t = typename metadata::index_pack_t;
+
+  template <typename O>
+  InputSpec const base_spec()
+  {
+    using o_metadata = typename aod::MetadataTrait<O>::metadata;
+    return InputSpec{
+      o_metadata::tableLabel(),
+      header::DataOrigin{o_metadata::origin()},
+      header::DataDescription{o_metadata::description()}};
+  }
+
+  template <typename... Os>
+  std::vector<InputSpec> const base_specs_impl(framework::pack<Os...>)
+  {
+    return {base_spec<Os>()...};
+  }
+
+  std::vector<InputSpec> const base_specs()
+  {
+    return base_specs_impl(originals{});
+  }
+
+  OutputSpec const spec() const
+  {
+    return OutputSpec{OutputLabel{metadata::tableLabel()}, metadata::origin(), metadata::description()};
+  }
+
+  OutputRef ref() const
+  {
+    return OutputRef{metadata::tableLabel(), 0};
+  }
+
+  T* operator->()
+  {
+    return table.get();
+  }
+  T& operator*()
+  {
+    return *table.get();
+  }
+
+  auto asArrowTable()
+  {
+    return table->asArrowTable();
+  }
+  std::shared_ptr<T> table = nullptr;
 
   constexpr auto pack()
   {

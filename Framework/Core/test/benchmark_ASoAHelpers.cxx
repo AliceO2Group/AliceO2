@@ -19,6 +19,8 @@ using namespace o2::framework;
 using namespace arrow;
 using namespace o2::soa;
 
+/// FIXME: do not use data model tables
+
 namespace test
 {
 DECLARE_SOA_COLUMN_FULL(X, x, float, "x");
@@ -162,21 +164,20 @@ static void BM_ASoAHelpersNaiveTracksPairs(benchmark::State& state)
   std::uniform_real_distribution<float> uniform_dist(0, 1);
 
   TableBuilder builder;
-  auto rowWriter = builder.cursor<o2::aod::StoredTracks>();
+  auto rowWriter = builder.cursor<o2::aod::Calos>();
   for (auto i = 0; i < state.range(0); ++i) {
     rowWriter(0, uniform_dist(e1), uniform_dist(e1), uniform_dist(e1),
-              uniform_dist(e1), uniform_dist(e1), uniform_dist(e1),
               uniform_dist(e1), uniform_dist(e1), uniform_dist(e1));
   }
   auto table = builder.finalize();
 
-  o2::aod::Tracks tracks{table};
+  o2::aod::Calos Calos{table};
   int64_t count = 0;
 
   for (auto _ : state) {
     count = 0;
-    for (auto t0 = tracks.begin(); t0 + 1 != tracks.end(); ++t0) {
-      for (auto t1 = t0 + 1; t1 != tracks.end(); ++t1) {
+    for (auto t0 = Calos.begin(); t0 + 1 != Calos.end(); ++t0) {
+      for (auto t1 = t0 + 1; t1 != Calos.end(); ++t1) {
         auto comb = std::make_tuple(t0, t1);
         count++;
         benchmark::DoNotOptimize(comb);
@@ -197,24 +198,23 @@ static void BM_ASoAHelpersNaiveTracksFives(benchmark::State& state)
   std::uniform_real_distribution<float> uniform_dist(0, 1);
 
   TableBuilder builder;
-  auto rowWriter = builder.cursor<o2::aod::StoredTracks>();
+  auto rowWriter = builder.cursor<o2::aod::Calos>();
   for (auto i = 0; i < state.range(0); ++i) {
     rowWriter(0, uniform_dist(e1), uniform_dist(e1), uniform_dist(e1),
-              uniform_dist(e1), uniform_dist(e1), uniform_dist(e1),
               uniform_dist(e1), uniform_dist(e1), uniform_dist(e1));
   }
   auto table = builder.finalize();
 
-  o2::aod::Tracks tracks{table};
+  o2::aod::Calos calos{table};
   int64_t count = 0;
 
   for (auto _ : state) {
     count = 0;
-    for (auto t0 = tracks.begin(); t0 + 4 != tracks.end(); ++t0) {
-      for (auto t1 = t0 + 1; t1 + 3 != tracks.end(); ++t1) {
-        for (auto t2 = t1 + 1; t2 + 2 != tracks.end(); ++t2) {
-          for (auto t3 = t2 + 1; t3 + 1 != tracks.end(); ++t3) {
-            for (auto t4 = t3 + 1; t4 != tracks.end(); ++t4) {
+    for (auto t0 = calos.begin(); t0 + 4 != calos.end(); ++t0) {
+      for (auto t1 = t0 + 1; t1 + 3 != calos.end(); ++t1) {
+        for (auto t2 = t1 + 1; t2 + 2 != calos.end(); ++t2) {
+          for (auto t3 = t2 + 1; t3 + 1 != calos.end(); ++t3) {
+            for (auto t4 = t3 + 1; t4 != calos.end(); ++t4) {
               auto comb = std::make_tuple(t0, t1, t2, t3, t4);
               count++;
               benchmark::DoNotOptimize(comb);
@@ -300,21 +300,20 @@ static void BM_ASoAHelpersCombGenTracksPairs(benchmark::State& state)
   std::uniform_real_distribution<float> uniform_dist(0, 1);
 
   TableBuilder builder;
-  auto rowWriter = builder.cursor<o2::aod::StoredTracks>();
+  auto rowWriter = builder.cursor<o2::aod::Calos>();
   for (auto i = 0; i < state.range(0); ++i) {
     rowWriter(0, uniform_dist(e1), uniform_dist(e1), uniform_dist(e1),
-              uniform_dist(e1), uniform_dist(e1), uniform_dist(e1),
               uniform_dist(e1), uniform_dist(e1), uniform_dist(e1));
   }
   auto table = builder.finalize();
 
-  o2::aod::Tracks tracks{table};
+  o2::aod::Calos calos{table};
 
   int64_t count = 0;
 
   for (auto _ : state) {
     count = 0;
-    for (auto& comb : combinations(tracks, tracks)) {
+    for (auto& comb : combinations(calos, calos)) {
       count++;
     }
     benchmark::DoNotOptimize(count);
@@ -332,21 +331,20 @@ static void BM_ASoAHelpersCombGenTracksFives(benchmark::State& state)
   std::uniform_real_distribution<float> uniform_dist(0, 1);
 
   TableBuilder builder;
-  auto rowWriter = builder.cursor<o2::aod::StoredTracks>();
+  auto rowWriter = builder.cursor<o2::aod::Calos>();
   for (auto i = 0; i < state.range(0); ++i) {
     rowWriter(0, uniform_dist(e1), uniform_dist(e1), uniform_dist(e1),
-              uniform_dist(e1), uniform_dist(e1), uniform_dist(e1),
               uniform_dist(e1), uniform_dist(e1), uniform_dist(e1));
   }
   auto table = builder.finalize();
 
-  o2::aod::Tracks tracks{table};
+  o2::aod::Calos calos{table};
 
   int64_t count = 0;
 
   for (auto _ : state) {
     count = 0;
-    for (auto& comb : combinations(tracks, tracks, tracks, tracks, tracks)) {
+    for (auto& comb : combinations(calos, calos, calos, calos, calos)) {
       count++;
     }
     benchmark::DoNotOptimize(count);
@@ -405,32 +403,30 @@ static void BM_ASoAHelpersCombGenTracksFivesMultipleChunks(benchmark::State& sta
   std::uniform_real_distribution<float> uniform_dist(0, 1);
 
   TableBuilder builderA;
-  auto rowWriterA = builderA.cursor<o2::aod::StoredTracks>();
+  auto rowWriterA = builderA.cursor<o2::aod::Calos>();
   for (auto i = 0; i < state.range(0); ++i) {
     rowWriterA(0, uniform_dist(e1), uniform_dist(e1), uniform_dist(e1),
-               uniform_dist(e1), uniform_dist(e1), uniform_dist(e1),
                uniform_dist(e1), uniform_dist(e1), uniform_dist(e1));
   }
   auto tableA = builderA.finalize();
 
   TableBuilder builderB;
-  auto rowWriterB = builderB.cursor<o2::aod::StoredTracks>();
+  auto rowWriterB = builderB.cursor<o2::aod::Calos>();
   for (auto i = 0; i < state.range(0); ++i) {
     rowWriterB(0, uniform_dist(e1), uniform_dist(e1), uniform_dist(e1),
-               uniform_dist(e1), uniform_dist(e1), uniform_dist(e1),
                uniform_dist(e1), uniform_dist(e1), uniform_dist(e1));
   }
   auto tableB = builderB.finalize();
 
-  using ConcatTest = Concat<o2::aod::Tracks, o2::aod::Tracks>;
+  using ConcatTest = Concat<o2::aod::Calos, o2::aod::Calos>;
 
-  ConcatTest tracks{tableA, tableB};
+  ConcatTest calos{tableA, tableB};
 
   int64_t count = 0;
 
   for (auto _ : state) {
     count = 0;
-    for (auto& comb : combinations(tracks, tracks, tracks, tracks, tracks)) {
+    for (auto& comb : combinations(calos, calos, calos, calos, calos)) {
       count++;
     }
     benchmark::DoNotOptimize(count);

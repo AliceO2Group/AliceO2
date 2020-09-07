@@ -48,6 +48,15 @@ struct pack_element<0, pack<Head, Tail...>> {
 template <std::size_t I, typename T>
 using pack_element_t = typename pack_element<I, T>::type;
 
+template <typename T>
+using pack_head_t = typename pack_element<0, T>::type;
+
+template <typename Head, typename... Tail>
+constexpr auto pack_tail(pack<Head, Tail...>)
+{
+  return pack<Tail...>{};
+}
+
 /// Templates for manipulating type lists in pack
 /// (see https://codereview.stackexchange.com/questions/201209/filter-template-meta-function/201222#201222)
 /// Example of use:
@@ -160,6 +169,36 @@ struct intersect_pack {
 
 template <typename S1, typename S2>
 using intersected_pack_t = typename intersect_pack<S1, S2>::type;
+
+/// Subtract two packs
+template <typename S1, typename S2>
+struct subtract_pack {
+  template <std::size_t... Indices>
+  static constexpr auto make_subtraction(std::index_sequence<Indices...>)
+  {
+    return filtered_pack<std::is_void,
+                         std::conditional_t<
+                           !has_type_v<pack_element_t<Indices, S1>, S2>,
+                           pack_element_t<Indices, S1>, void>...>{};
+  }
+  using type = decltype(make_subtraction(std::make_index_sequence<pack_size(S1{})>{}));
+};
+
+template <typename... Args1, typename... Args2>
+constexpr auto concatenate_pack_unique(pack<Args1...>, pack<Args2...>)
+{
+  using p1 = typename subtract_pack<pack<Args1...>, pack<Args2...>>::type;
+  return concatenate_pack(p1{}, pack<Args2...>{});
+}
+
+template <typename P1, typename P2, typename... Ps>
+constexpr auto concatenate_pack_unique(P1 p1, P2 p2, Ps... ps)
+{
+  return concatenate_pack_unique(p1, concatenate_pack_unique(p2, ps...));
+}
+
+template <typename... Ps>
+using concatenated_pack_unique_t = decltype(concatenate_pack_unique(Ps{}...));
 
 } // namespace o2::framework
 

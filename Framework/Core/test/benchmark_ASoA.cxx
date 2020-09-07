@@ -19,6 +19,7 @@ using namespace o2::framework;
 using namespace arrow;
 using namespace o2::soa;
 
+DECLARE_SOA_STORE();
 namespace test
 {
 DECLARE_SOA_COLUMN_FULL(X, x, float, "x");
@@ -26,6 +27,8 @@ DECLARE_SOA_COLUMN_FULL(Y, y, float, "y");
 DECLARE_SOA_COLUMN_FULL(Z, z, float, "z");
 DECLARE_SOA_DYNAMIC_COLUMN(Sum, sum, [](float x, float y) { return x + y; });
 } // namespace test
+
+DECLARE_SOA_TABLE(TestTable, "AOD", "TESTTBL", test::X, test::Y, test::Z, test::Sum<test::X, test::Y>);
 
 #ifdef __APPLE__
 constexpr unsigned int maxrange = 10;
@@ -47,13 +50,13 @@ static void BM_SimpleForLoop(benchmark::State& state)
   std::default_random_engine e1(1234567891);
   std::uniform_real_distribution<float> uniform_dist(0, 1);
 
-  for (size_t i = 0; i < state.range(0); ++i) {
+  for (auto i = 0; i < state.range(0); ++i) {
     foo[i] = XYZ{uniform_dist(e1), uniform_dist(e1), uniform_dist(e1)};
   }
 
   for (auto _ : state) {
     float sum = 0;
-    for (auto& xyz : foo) {
+    for (auto& _ : foo) {
       benchmark::DoNotOptimize(sum++);
     }
   }
@@ -79,7 +82,7 @@ static void BM_TrackForLoop(benchmark::State& state)
   std::default_random_engine e1(1234567891);
   std::uniform_real_distribution<float> uniform_dist(0, 1);
 
-  for (size_t i = 0; i < state.range(0); ++i) {
+  for (auto i = 0; i < state.range(0); ++i) {
     foo[i] = TestTrack{
       uniform_dist(e1), uniform_dist(e1), uniform_dist(e1),
       uniform_dist(e1), uniform_dist(e1), uniform_dist(e1)};
@@ -114,7 +117,7 @@ static void BM_WholeTrackForLoop(benchmark::State& state)
   std::default_random_engine e1(1234567891);
   std::uniform_real_distribution<float> uniform_dist(0, 1);
 
-  for (auto i = 0u; i < state.range(0); ++i) {
+  for (auto i = 0; i < state.range(0); ++i) {
     foo[i] = TestTrack{
       uniform_dist(e1), uniform_dist(e1), uniform_dist(e1),
       uniform_dist(e1), uniform_dist(e1), uniform_dist(e1)};
@@ -149,7 +152,7 @@ static void BM_TrackForPhi(benchmark::State& state)
   std::default_random_engine e1(1234567891);
   std::uniform_real_distribution<float> uniform_dist(0, 1);
 
-  for (auto i = 0u; i < state.range(0); ++i) {
+  for (auto i = 0; i < state.range(0); ++i) {
     foo[i] = TestTrack{
       uniform_dist(e1), uniform_dist(e1), uniform_dist(e1),
       uniform_dist(e1), uniform_dist(e1), uniform_dist(e1)};
@@ -183,7 +186,7 @@ static void BM_SimpleForLoopWithOp(benchmark::State& state)
   std::default_random_engine e1(1234567891);
   std::uniform_real_distribution<float> uniform_dist(0, 1);
 
-  for (auto i = 0u; i < state.range(0); ++i) {
+  for (auto i = 0; i < state.range(0); ++i) {
     foo[i] = XYZ{uniform_dist(e1), uniform_dist(e1), uniform_dist(e1)};
   }
 
@@ -308,98 +311,6 @@ static void BM_ASoADynamicColumnCall(benchmark::State& state)
   }
   state.SetBytesProcessed(state.iterations() * state.range(0) * sizeof(float) * 2);
 }
-
 BENCHMARK(BM_ASoADynamicColumnCall)->Range(8, 8 << maxrange);
-
-static void BM_ASoAGettersPhi(benchmark::State& state)
-{
-  // Seed with a real random value, if available
-  std::default_random_engine e1(1234567891);
-  std::uniform_real_distribution<float> uniform_dist(0, 1);
-
-  TableBuilder builder;
-  auto rowWriter = builder.cursor<o2::aod::StoredTracks>();
-  for (auto i = 0; i < state.range(0); ++i) {
-    rowWriter(0, uniform_dist(e1), uniform_dist(e1), uniform_dist(e1),
-              uniform_dist(e1), uniform_dist(e1), uniform_dist(e1),
-              uniform_dist(e1), uniform_dist(e1), uniform_dist(e1));
-  }
-  auto table = builder.finalize();
-
-  o2::aod::Tracks tracks{table};
-  for (auto _ : state) {
-    state.PauseTiming();
-    std::vector<float> out;
-    out.resize(state.range(0));
-    float* result = out.data();
-    state.ResumeTiming();
-    for (auto& track : tracks) {
-      *result++ = asin(track.snp()) + track.alpha() + M_PI;
-    }
-    benchmark::DoNotOptimize(result);
-  }
-  state.SetBytesProcessed(state.iterations() * state.range(0) * sizeof(float) * 2);
-}
-
-BENCHMARK(BM_ASoAGettersPhi)->Range(8, 8 << maxrange);
-
-static void BM_ASoAWholeTrackForLoop(benchmark::State& state)
-{
-  // Seed with a real random value, if available
-  std::default_random_engine e1(1234567891);
-  std::uniform_real_distribution<float> uniform_dist(0, 1);
-
-  TableBuilder builder;
-  auto rowWriter = builder.cursor<o2::aod::StoredTracks>();
-  for (auto i = 0; i < state.range(0); ++i) {
-    rowWriter(0, uniform_dist(e1), uniform_dist(e1), uniform_dist(e1),
-              uniform_dist(e1), uniform_dist(e1), uniform_dist(e1),
-              uniform_dist(e1), uniform_dist(e1), uniform_dist(e1));
-  }
-  auto table = builder.finalize();
-
-  o2::aod::Tracks tracks{table};
-  for (auto _ : state) {
-    float sum = 0;
-    for (auto& track : tracks) {
-      sum += track.x() + track.alpha() + track.y() + track.z() + track.snp() + track.tgl() + track.signed1Pt();
-    }
-    benchmark::DoNotOptimize(sum);
-  }
-  state.SetBytesProcessed(state.iterations() * state.range(0) * sizeof(float) * 6);
-}
-
-BENCHMARK(BM_ASoAWholeTrackForLoop)->Range(8, 8 << maxrange);
-
-static void BM_ASoADynamicColumnPhi(benchmark::State& state)
-{
-  // Seed with a real random value, if available
-  std::default_random_engine e1(1234567891);
-  std::uniform_real_distribution<float> uniform_dist(0, 1);
-
-  TableBuilder builder;
-  auto rowWriter = builder.cursor<o2::aod::StoredTracks>();
-  for (auto i = 0; i < state.range(0); ++i) {
-    rowWriter(0, uniform_dist(e1), uniform_dist(e1), uniform_dist(e1),
-              uniform_dist(e1), uniform_dist(e1), uniform_dist(e1),
-              uniform_dist(e1), uniform_dist(e1), uniform_dist(e1));
-  }
-  auto table = builder.finalize();
-
-  o2::aod::Tracks tracks{table};
-  for (auto _ : state) {
-    state.PauseTiming();
-    std::vector<float> out;
-    out.resize(state.range(0));
-    float* result = out.data();
-    state.ResumeTiming();
-    for (auto& track : tracks) {
-      *result++ = track.phi();
-    }
-    benchmark::DoNotOptimize(result);
-  }
-  state.SetBytesProcessed(state.iterations() * state.range(0) * sizeof(float) * 2);
-}
-BENCHMARK(BM_ASoADynamicColumnPhi)->Range(8, 8 << maxrange);
 
 BENCHMARK_MAIN();

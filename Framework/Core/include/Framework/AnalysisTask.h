@@ -45,7 +45,6 @@ namespace o2::framework
 // FIXME: for the moment this needs to stay outside AnalysisTask
 //        because we cannot inherit from it due to a C++17 bug
 //        in GCC 7.3. We need to move to 7.4+
-
 struct AnalysisTask {
 };
 

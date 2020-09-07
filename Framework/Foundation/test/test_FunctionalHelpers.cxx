@@ -44,6 +44,12 @@ BOOST_AUTO_TEST_CASE(TestOverride)
   static_assert(std::is_same_v<concatenated_pack_t<pack<int, float, char>, pack<float, double>>, pack<int, float, char, float, double>>, "pack should be concatenated");
   static_assert(std::is_same_v<concatenated_pack_t<pack<int, float, char>, pack<float, double>, pack<char, short>>, pack<int, float, char, float, double, char, short>>, "pack should be concatenated");
 
+  using p1 = pack<int, float, bool>;
+  using p2 = pack<int, double, char>;
+  using p3 = concatenated_pack_unique_t<p1, p2>;
+  print_pack<p3>();
+  static_assert(std::is_same_v<p3, pack<float, bool, int, double, char>>, "pack should not have duplicated types");
+
   struct ForwardDeclared;
   static_assert(is_type_complete_v<ForwardDeclared> == false, "This should not be complete because the struct is simply forward declared.");
 

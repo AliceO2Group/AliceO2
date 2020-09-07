@@ -1032,16 +1032,10 @@ struct PackToTable<framework::pack<C...>> {
   using table = o2::soa::Table<C...>;
 };
 
-template <typename T>
-struct FilterPersistentColumns {
-  static_assert(framework::always_static_assert_v<T>, "Not a soa::Table");
-};
-
-template <typename... C>
-struct FilterPersistentColumns<soa::Table<C...>> {
-  using columns = typename soa::Table<C...>::columns;
-  using persistent_columns_pack = framework::selected_pack<is_persistent_t, C...>;
-  using persistent_table_t = typename PackToTable<persistent_columns_pack>::table;
+template <typename... T>
+struct TableWrap {
+  using all_columns = framework::concatenated_pack_unique_t<typename T::columns...>;
+  using table_t = typename PackToTable<all_columns>::table;
 };
 
 /// Template trait which allows to map a given
@@ -1056,9 +1050,45 @@ class TableMetadata
 };
 
 template <typename... C1, typename... C2>
-constexpr auto join(o2::soa::Table<C1...> const& t1, o2::soa::Table<C2...> const& t2)
+constexpr auto joinTables(o2::soa::Table<C1...> const& t1, o2::soa::Table<C2...> const& t2)
 {
   return o2::soa::Table<C1..., C2...>(ArrowHelpers::joinTables({t1.asArrowTable(), t2.asArrowTable()}));
+}
+
+template <typename T, typename... C, typename... O>
+constexpr auto joinLeft(T const& t1, o2::soa::Table<C...> const& t2, framework::pack<O...>)
+{
+  return typename o2::soa::TableWrap<O..., o2::soa::Table<C...>>::table_t(ArrowHelpers::joinTables({t1.asArrowTable(), t2.asArrowTable()}));
+}
+
+template <typename T, typename... C, typename... O>
+constexpr auto joinRight(o2::soa::Table<C...> const& t1, T const& t2, framework::pack<O...>)
+{
+  return typename o2::soa::TableWrap<o2::soa::Table<C...>, O...>::table_t(ArrowHelpers::joinTables({t1.asArrowTable(), t2.asArrowTable()}));
+}
+
+template <typename T1, typename T2, typename... O1, typename... O2>
+constexpr auto joinBoth(T1 const& t1, T2 const& t2, framework::pack<O1...>, framework::pack<O2...>)
+{
+  return typename o2::soa::TableWrap<O1..., O2...>::table_t(ArrowHelpers::joinTables({t1.asArrowTable(), t2.asArrowTable()}));
+}
+
+template <typename T1, typename T2>
+constexpr auto join(T1 const& t1, T2 const& t2)
+{
+  if constexpr (soa::is_type_with_originals_v<T1>) {
+    if constexpr (soa::is_type_with_originals_v<T2>) {
+      return joinBoth(t1, t2, typename T1::originals{}, typename T2::originals{});
+    } else {
+      return joinLeft(t1, t2, typename T1::originals{});
+    }
+  } else {
+    if constexpr (soa::is_type_with_originals_v<T2>) {
+      return joinRight(t1, t2, typename T2::originals{});
+    } else {
+      return joinTables(t1, t2);
+    }
+  }
 }
 
 template <typename T1, typename T2, typename... Ts>
@@ -1306,27 +1336,23 @@ using ConcatBase = decltype(concat(std::declval<T1>(), std::declval<T2>()));
 #define DECLARE_SOA_TABLE(_Name_, _Origin_, _Description_, ...) \
   DECLARE_SOA_TABLE_FULL(_Name_, #_Name_, _Origin_, _Description_, __VA_ARGS__);
 
-#define DECLARE_SOA_EXTENDED_TABLE_FULL(_Name_, _Table_, _Origin_, _Description_, ...)      \
-  using _Name_ = o2::soa::JoinBase<typename _Table_::table_t, o2::soa::Table<__VA_ARGS__>>; \
-                                                                                            \
-  struct _Name_##Metadata : o2::soa::TableMetadata<_Name_##Metadata> {                      \
-    using table_t = _Name_;                                                                 \
-    using base_table_t = _Table_;                                                           \
-    using expression_pack_t = framework::pack<__VA_ARGS__>;                                 \
-    using originals = soa::originals_pack_t<_Table_>;                                       \
-    static constexpr char const* mLabel = #_Name_;                                          \
-    static constexpr char const mOrigin[4] = _Origin_;                                      \
-    static constexpr char const mDescription[16] = _Description_;                           \
-  };                                                                                        \
-                                                                                            \
-  template <>                                                                               \
-  struct MetadataTrait<_Name_> {                                                            \
-    using metadata = _Name_##Metadata;                                                      \
-  };                                                                                        \
-                                                                                            \
-  template <>                                                                               \
-  struct MetadataTrait<_Name_::unfiltered_iterator> {                                       \
-    using metadata = _Name_##Metadata;                                                      \
+#define DECLARE_SOA_EXTENDED_TABLE_FULL(_Name_, _Table_, _Origin_, _Description_, ...)   \
+  using _Name_##Extension = o2::soa::Table<__VA_ARGS__>;                                 \
+  using _Name_ = o2::soa::Join<_Name_##Extension, _Table_>;                              \
+                                                                                         \
+  struct _Name_##ExtensionMetadata : o2::soa::TableMetadata<_Name_##ExtensionMetadata> { \
+    using table_t = _Name_##Extension;                                                   \
+    using base_table_t = typename _Table_::table_t;                                      \
+    using expression_pack_t = framework::pack<__VA_ARGS__>;                              \
+    using originals = soa::originals_pack_t<_Table_>;                                    \
+    static constexpr char const* mLabel = #_Name_ "Extension";                           \
+    static constexpr char const mOrigin[4] = _Origin_;                                   \
+    static constexpr char const mDescription[16] = _Description_;                        \
+  };                                                                                     \
+                                                                                         \
+  template <>                                                                            \
+  struct MetadataTrait<_Name_##Extension> {                                              \
+    using metadata = _Name_##ExtensionMetadata;                                          \
   };
 
 #define DECLARE_SOA_EXTENDED_TABLE(_Name_, _Table_, _Description_, ...) \
@@ -1745,16 +1771,12 @@ auto spawner(framework::pack<C...> columns, arrow::Table* atable)
     arrays[i] = std::make_shared<arrow::ChunkedArray>(chunks[i]);
   }
 
-  auto extra_schema = o2::soa::createSchemaFromColumns(columns);
-  auto original_fields = atable->schema()->fields();
-  auto original_columns = atable->columns();
-  std::vector<std::shared_ptr<arrow::Field>> new_fields(original_fields);
-  std::vector<std::shared_ptr<arrow::ChunkedArray>> new_columns(original_columns);
+  auto new_schema = o2::soa::createSchemaFromColumns(columns);
+  std::vector<std::shared_ptr<arrow::ChunkedArray>> new_columns;
   for (auto i = 0u; i < sizeof...(C); ++i) {
-    new_fields.emplace_back(extra_schema->field(i));
     new_columns.push_back(arrays[i]);
   }
-  return arrow::Table::Make(std::make_shared<arrow::Schema>(new_fields), new_columns);
+  return arrow::Table::Make(new_schema, new_columns);
 }
 
 /// On-the-fly adding of expression columns
