@@ -731,7 +731,7 @@ GPUd() bool GPUTRDTracker_t<TRDTRK, PROP>::FollowProlongation(PROP* prop, TRDTRK
             float chi2 = prop->getPredictedChi2(trkltPosTmpYZ, trkltCovTmp);
             // GPUInfo("layer %i: chi2 = %f", iLayer, chi2);
             if (chi2 < mMaxChi2 && CAMath::Abs(GetAngularPull(mSpacePoints[trkltIdx].mDy, trkWork->getSnp())) < 4) {
-              Hypothesis hypo(trkWork->GetNlayers(), iCandidate, trkltIdx, trkWork->GetChi2() + chi2, GetPredictedChi2(trkltPosTmpYZ, trkltCovTmp, trkWork->getPar(), trkWork->getCov()));
+              Hypothesis hypo(trkWork->GetNlayers(), iCandidate, trkltIdx, trkWork->GetChi2() + chi2);
               InsertHypothesis(hypo, nCurrHypothesis, hypothesisIdxOffset);
             } // end tracklet chi2 < mMaxChi2
           }   // end tracklet in window
@@ -769,7 +769,6 @@ GPUd() bool GPUTRDTracker_t<TRDTRK, PROP>::FollowProlongation(PROP* prop, TRDTRK
         My_Float covReal[3] = {0.};
         RecalcTrkltCov(tilt, trkWork->getSnp(), pad->GetRowSize(mTracklets[realTrkltId].GetZbin()), covReal);
         mDebug->SetChi2Real(prop->getPredictedChi2(yzPosReal, covReal), iLayer);
-        mDebug->SetChi2YZPhiReal(GetPredictedChi2(yzPosReal, covReal, trkWork->getPar(), trkWork->getCov()), iLayer);
         mDebug->SetRawTrackletPositionReal(mSpacePoints[realTrkltId].mR, mSpacePoints[realTrkltId].mX, iLayer);
         mDebug->SetCorrectedTrackletPositionReal(yzPosReal, iLayer);
         mDebug->SetTrackletPropertiesReal(mTracklets[realTrkltId].GetDetector(), iLayer);
@@ -778,7 +777,6 @@ GPUd() bool GPUTRDTracker_t<TRDTRK, PROP>::FollowProlongation(PROP* prop, TRDTRK
 #endif
     //
     mDebug->SetChi2Update(mHypothesis[0 + hypothesisIdxOffset].mChi2 - t->GetChi2(), iLayer); // only meaningful for ONE candidate!!!
-    mDebug->SetChi2YZPhiUpdate(mHypothesis[0 + hypothesisIdxOffset].mChi2YZPhi, iLayer);      // only meaningful for ONE candidate!!!
     mDebug->SetRoad(roadY, roadZ, iLayer);                                                    // only meaningful for ONE candidate
     bool wasTrackStored = false;
     // --------------------------------------------------------------------------------
@@ -989,40 +987,6 @@ GPUd() bool GPUTRDTracker_t<TRDTRK, PROP>::FollowProlongation(PROP* prop, TRDTRK
   return true;
 }
 
-template <class TRDTRK, class PROP>
-GPUd() float GPUTRDTracker_t<TRDTRK, PROP>::GetPredictedChi2(const My_Float* pTRD, const My_Float* covTRD, const My_Float* pTrk, const My_Float* covTrk) const
-{
-  // FIXME: This function cannot yet be used in production (maybe it is not necessary at all?)
-  // conversion from tracklet deflection to sin(phi) needs to be parametrized
-  // predict chi2 for update of track with pTrk and covTrk with TRD space point with pTRD and covTRD
-  // taking into account y, z and azimuthal angle of the track and tracklet
-  float deltaY = pTrk[0] - pTRD[0];
-  float deltaZ = pTrk[1] - pTRD[1];
-  float deltaS = pTrk[2] - pTRD[2]; // FIXME: pTRD[2] is not defined, needs conversion dy -> sin(phi)
-
-  // add errors for track and space point, assume no correlation in y-sin(phi) and z-sin(phi) for space point
-  float sigmaZ2 = covTrk[2] + covTRD[2];
-  float sigmaS2 = covTrk[5] + GetAngularResolution(pTrk[2]); // FIXME: convert angular resolution from dy to sin(phi) for the TRD space point
-  float sigmaY2 = covTrk[0] + covTRD[0];
-  float sigmaZS = covTrk[4];
-  float sigmaYS = covTrk[3];
-  float sigmaYZ = covTrk[1] + covTRD[1];
-  // inverse of the covariance matrix
-  float c11 = sigmaZ2 * sigmaS2 - sigmaZS * sigmaZS;
-  float c21 = sigmaZS * sigmaYS - sigmaYZ * sigmaS2;
-  float c22 = sigmaY2 * sigmaS2 - sigmaYS * sigmaYS;
-  float c31 = sigmaYZ * sigmaZS - sigmaZ2 * sigmaYS;
-  float c32 = sigmaYZ * sigmaYS - sigmaY2 * sigmaZS;
-  float c33 = sigmaY2 * sigmaZ2 - sigmaYZ * sigmaYZ;
-  // determinant
-  float det = sigmaY2 * sigmaZ2 * sigmaS2 + 2 * sigmaYZ * sigmaZS * sigmaYS - sigmaYS * sigmaYS * sigmaZ2 - sigmaZS * sigmaZS * sigmaY2 - sigmaS2 * sigmaYZ * sigmaYZ;
-  if (CAMath::Abs(det) < 1.e-10f) {
-    printf("Determinant too small: %f\n", det);
-    det = 1.e-10f;
-  }
-  det = 1.f / det;
-  return (c11 * deltaY * deltaY + 2.f * c21 * deltaY * deltaZ + 2.f * c31 * deltaY * deltaS + c22 * deltaZ * deltaZ + 2.f * c32 * deltaZ * deltaS + c33 * deltaS * deltaS) * det;
-}
 
 template <class TRDTRK, class PROP>
 GPUd() void GPUTRDTracker_t<TRDTRK, PROP>::InsertHypothesis(Hypothesis hypo, int& nCurrHypothesis, int idxOffset)
