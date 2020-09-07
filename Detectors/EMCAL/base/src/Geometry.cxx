@@ -1509,7 +1509,7 @@ const TGeoHMatrix* Geometry::GetMatrixForSuperModuleFromGeoManager(Int_t smod) c
     LOG(ERROR) << "Unkown SM Type!!\n";
   }
 
-  snprintf(path, buffersize, "/cave/%s_%d", smName.Data(), smOrder);
+  snprintf(path, buffersize, "/cave/barrel/%s_%d", smName.Data(), smOrder);
 
   if (!gGeoManager->cd(path)) {
     LOG(FATAL) << "Geo manager can not find path " << path << "!\n";
