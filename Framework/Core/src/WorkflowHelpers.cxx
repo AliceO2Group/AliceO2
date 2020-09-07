@@ -128,8 +128,7 @@ void addMissingOutputsToReader(std::vector<OutputSpec> const& providedOutputs,
       return DataSpecUtils::match(requested, provided);
     };
   };
-  auto last = std::unique(requestedInputs.begin(), requestedInputs.end());
-  requestedInputs.erase(last, requestedInputs.end());
+
   for (InputSpec const& requested : requestedInputs) {
     auto provided = std::find_if(providedOutputs.begin(),
                                  providedOutputs.end(),
@@ -138,6 +137,14 @@ void addMissingOutputsToReader(std::vector<OutputSpec> const& providedOutputs,
     if (provided != providedOutputs.end()) {
       continue;
     }
+
+    auto inlist = std::find_if(publisher.outputs.begin(),
+                               publisher.outputs.end(),
+                               matchingOutputFor(requested));
+    if (inlist != publisher.outputs.end()) {
+      continue;
+    }
+
     auto concrete = DataSpecUtils::asConcreteDataMatcher(requested);
     publisher.outputs.emplace_back(OutputSpec{concrete.origin, concrete.description, concrete.subSpec});
   }
@@ -267,6 +274,9 @@ void WorkflowHelpers::injectServiceDevices(WorkflowSpec& workflow, ConfigContext
       if (DataSpecUtils::partialMatch(input, header::DataOrigin{"AOD"})) {
         requestedAODs.emplace_back(input);
       }
+      if (DataSpecUtils::partialMatch(input, header::DataOrigin{"RN2"})) {
+        requestedAODs.emplace_back(input);
+      }
       if (DataSpecUtils::partialMatch(input, header::DataOrigin{"DYN"})) {
         if (std::find_if(requestedDYNs.begin(), requestedDYNs.end(), [&](InputSpec const& spec) { return input.binding == spec.binding; }) == requestedDYNs.end()) {
           requestedDYNs.emplace_back(input);
@@ -278,6 +288,8 @@ void WorkflowHelpers::injectServiceDevices(WorkflowSpec& workflow, ConfigContext
     for (size_t oi = 0; oi < processor.outputs.size(); ++oi) {
       auto& output = processor.outputs[oi];
       if (DataSpecUtils::partialMatch(output, header::DataOrigin{"AOD"})) {
+        providedAODs.emplace_back(output);
+      } else if (DataSpecUtils::partialMatch(output, header::DataOrigin{"RN2"})) {
         providedAODs.emplace_back(output);
       } else if (DataSpecUtils::partialMatch(output, header::DataOrigin{"ATSK"})) {
         providedOutputObj.emplace_back(output);
@@ -754,6 +766,10 @@ std::tuple<std::vector<InputSpec>, std::vector<unsigned char>> WorkflowHelpers::
 
     // is AOD?
     if (DataSpecUtils::partialMatch(outputSpec, header::DataOrigin("AOD"))) {
+      outputtype += 2;
+    }
+    // is RN2?
+    if (DataSpecUtils::partialMatch(outputSpec, header::DataOrigin("RN2"))) {
       outputtype += 2;
     }
 
