@@ -13,9 +13,14 @@
 #define BOOST_TEST_DYN_LINK
 #include <boost/test/unit_test.hpp>
 #include "SimulationDataFormat/MCTruthContainer.h"
+#include "SimulationDataFormat/MCCompLabel.h"
+#include "SimulationDataFormat/ConstMCTruthContainer.h"
 #include "SimulationDataFormat/LabelContainer.h"
+#include "SimulationDataFormat/IOMCTruthContainerView.h"
 #include <algorithm>
 #include <iostream>
+#include <TFile.h>
+#include <TTree.h>
 
 namespace o2
 {
@@ -180,6 +185,19 @@ BOOST_AUTO_TEST_CASE(MCTruthContainer_flatten)
   BOOST_CHECK(restoredContainer.getElement(1) == 2);
   BOOST_CHECK(restoredContainer.getElement(2) == 1);
   BOOST_CHECK(restoredContainer.getElement(3) == 10);
+
+  // check the special version ConstMCTruthContainer
+  using ConstMCTruthContainer = dataformats::ConstMCTruthContainer<TruthElement>;
+  ConstMCTruthContainer cc;
+  container.flatten_to(cc);
+
+  BOOST_CHECK(cc.getIndexedSize() == container.getIndexedSize());
+  BOOST_CHECK(cc.getNElements() == container.getNElements());
+  BOOST_CHECK(cc.getLabels(0).size() == container.getLabels(0).size());
+  BOOST_CHECK(cc.getLabels(1).size() == container.getLabels(1).size());
+  BOOST_CHECK(cc.getLabels(2).size() == container.getLabels(2).size());
+  BOOST_CHECK(cc.getLabels(2)[0] == container.getLabels(2)[0]);
+  BOOST_CHECK(cc.getLabels(2)[0] == 10);
 }
 
 BOOST_AUTO_TEST_CASE(LabelContainer_noncont)
@@ -303,6 +321,54 @@ BOOST_AUTO_TEST_CASE(MCTruthContainer_move)
   BOOST_CHECK(container2.getNElements() == 0);
   BOOST_CHECK(container.getIndexedSize() == 3);
   BOOST_CHECK(container.getNElements() == 4);
+}
+
+BOOST_AUTO_TEST_CASE(MCTruthContainer_ROOTIO)
+{
+  using TruthElement = o2::MCCompLabel;
+  using Container = dataformats::MCTruthContainer<TruthElement>;
+  Container container;
+  const size_t BIGSIZE{1000000};
+  for (int i = 0; i < BIGSIZE; ++i) {
+    container.addElement(i, TruthElement(i, i, i));
+    container.addElement(i, TruthElement(i + 1, i, i));
+  }
+  std::vector<char> buffer;
+  container.flatten_to(buffer);
+
+  // We use the special IO split container to stream to a file and back
+  dataformats::IOMCTruthContainerView io(buffer);
+  {
+    TFile f("tmp2.root", "RECREATE");
+    TTree tree("o2sim", "o2sim");
+    auto br = tree.Branch("Labels", &io, 32000, 2);
+    tree.Fill();
+    tree.Write();
+    f.Close();
+  }
+
+  // read back
+  TFile f2("tmp2.root", "OPEN");
+  auto tree2 = (TTree*)f2.Get("o2sim");
+  dataformats::IOMCTruthContainerView* io2 = nullptr;
+  auto br2 = tree2->GetBranch("Labels");
+  BOOST_CHECK(br2 != nullptr);
+  br2->SetAddress(&io2);
+  br2->GetEntry(0);
+
+  // make a const MC label container out of it
+  using ConstMCTruthContainer = dataformats::ConstMCTruthContainer<TruthElement>;
+  ConstMCTruthContainer cc;
+  io2->copyandflatten(cc);
+
+  BOOST_CHECK(cc.getNElements() == BIGSIZE * 2);
+  BOOST_CHECK(cc.getIndexedSize() == BIGSIZE);
+  BOOST_CHECK(cc.getLabels(0).size() == 2);
+  BOOST_CHECK(cc.getLabels(0)[0] == TruthElement(0, 0, 0));
+  BOOST_CHECK(cc.getLabels(0)[1] == TruthElement(1, 0, 0));
+  BOOST_CHECK(cc.getLabels(BIGSIZE - 1).size() == 2);
+  BOOST_CHECK(cc.getLabels(BIGSIZE - 1)[0] == TruthElement(BIGSIZE - 1, BIGSIZE - 1, BIGSIZE - 1));
+  BOOST_CHECK(cc.getLabels(BIGSIZE - 1)[1] == TruthElement(BIGSIZE, BIGSIZE - 1, BIGSIZE - 1));
 }
 
 } // namespace o2
