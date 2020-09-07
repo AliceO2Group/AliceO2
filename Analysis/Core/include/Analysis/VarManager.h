@@ -18,6 +18,8 @@
 
 #include <TObject.h>
 #include <TString.h>
+#include <Math/Vector4D.h>
+#include <TMath.h>
 
 #include <vector>
 #include <map>
@@ -43,7 +45,8 @@ class VarManager : public TObject
     ReducedTrackBarrel = BIT(4),
     ReducedTrackBarrelCov = BIT(5),
     ReducedTrackBarrelPID = BIT(6),
-    ReducedTrackMuon = BIT(7)
+    ReducedTrackMuon = BIT(7),
+    Pair = BIT(8)
   };
 
  public:
@@ -132,8 +135,13 @@ class VarManager : public TObject
     kNPairVariables,
 
     // Candidate-track correlation variables
+    kPairMass,
+    kPairPt,
+    kPairEta,
+    kPairPhi,
     kDeltaEta,
     kDeltaPhi,
+    kDeltaPhiSym,
     kNCorrelationVariables,
 
     kNVars
@@ -177,6 +185,8 @@ class VarManager : public TObject
   static void FillTrack(T const& track, float* values = nullptr);
   template <typename T>
   static void FillPair(T const& t1, T const& t2, float* values = nullptr);
+  template <typename T1, typename T2>
+  static void FillDileptonHadron(T1 const& dilepton, T2 const& hadron, float* values = nullptr, float hadronMass = 0.0f);
 
  public:
   VarManager();
@@ -354,6 +364,10 @@ void VarManager::FillTrack(T const& track, float* values)
     values[kMuonChi2MatchTrigger] = track.chi2MatchTrigger();
   }
 
+  if constexpr ((fillMap & Pair) > 0) {
+    values[kMass] = track.mass();
+  }
+
   FillTrackDerived(values);
 }
 
@@ -363,10 +377,46 @@ void VarManager::FillPair(T const& t1, T const& t2, float* values)
   if (!values)
     values = fgValues;
 
-  // TODO: build the mass using the (pt,eta,phi) which are pre-calculated
-  values[kMass] = fgkElectronMass * fgkElectronMass;
-  values[kMass] = 2.0 * values[kMass] + 2.0 * (sqrt(values[kMass] + t1.pmom() * t1.pmom()) * sqrt(values[kMass] + t2.pmom() * t2.pmom()) -
-                                               t1.px() * t2.px() - t1.py() * t2.py() - t1.pz() * t2.pz());
+  ROOT::Math::PtEtaPhiMVector v1(t1.pt(), t1.eta(), t1.phi(), fgkElectronMass);
+  ROOT::Math::PtEtaPhiMVector v2(t2.pt(), t2.eta(), t2.phi(), fgkElectronMass);
+  ROOT::Math::PtEtaPhiMVector v12 = v1 + v2;
+  values[kMass] = v12.M();
+  values[kPt] = v12.Pt();
+  values[kEta] = v12.Eta();
+  values[kPhi] = v12.Phi();
+}
+
+template <typename T1, typename T2>
+void VarManager::FillDileptonHadron(T1 const& dilepton, T2 const& hadron, float* values, float hadronMass)
+{
+  if (!values)
+    values = fgValues;
+
+  if (fgUsedVars[kPairMass] || fgUsedVars[kPairPt] || fgUsedVars[kPairEta] || fgUsedVars[kPairPhi]) {
+    ROOT::Math::PtEtaPhiMVector v1(dilepton.pt(), dilepton.eta(), dilepton.phi(), dilepton.mass());
+    ROOT::Math::PtEtaPhiMVector v2(hadron.pt(), hadron.eta(), hadron.phi(), hadronMass);
+    ROOT::Math::PtEtaPhiMVector v12 = v1 + v2;
+    values[kPairMass] = v12.M();
+    values[kPairPt] = v12.Pt();
+    values[kPairEta] = v12.Eta();
+    values[kPairPhi] = v12.Phi();
+  }
+  if (fgUsedVars[kDeltaPhi]) {
+    double delta = dilepton.phi() - hadron.phi();
+    if (delta > 3.0 / 2.0 * TMath::Pi())
+      delta -= 2.0 * TMath::Pi();
+    if (delta < -0.5 * TMath::Pi())
+      delta += 2.0 * TMath::Pi();
+    values[kDeltaPhi] = delta;
+  }
+  if (fgUsedVars[kDeltaPhiSym]) {
+    double delta = TMath::Abs(dilepton.phi() - hadron.phi());
+    if (delta > TMath::Pi())
+      delta = 2 * TMath::Pi() - delta;
+    values[kDeltaPhiSym] = delta;
+  }
+  if (fgUsedVars[kDeltaEta])
+    values[kDeltaEta] = dilepton.eta() - hadron.eta();
 }
 
 #endif
