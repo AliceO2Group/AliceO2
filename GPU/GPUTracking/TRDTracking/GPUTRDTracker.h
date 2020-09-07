@@ -95,11 +95,10 @@ class GPUTRDTracker_t : public GPUProcessor
     int mCandidateId; // to which track candidate the hypothesis belongs
     int mTrackletId;  // tracklet index to be used for update
     float mChi2;      // predicted chi2 for given space point
-    float mChi2YZPhi; // not yet ready (see GetPredictedChi2 method in cxx file)
 
     GPUd() float GetReducedChi2() { return mLayers > 0 ? mChi2 / mLayers : mChi2; }
     GPUd() Hypothesis() : mLayers(0), mCandidateId(-1), mTrackletId(-1), mChi2(9999.f) {}
-    GPUd() Hypothesis(int layers, int candidateId, int trackletId, float chi2, float chi2YZPhi = -1.f) : mLayers(layers), mCandidateId(candidateId), mTrackletId(trackletId), mChi2(chi2), mChi2YZPhi(chi2YZPhi) {}
+    GPUd() Hypothesis(int layers, int candidateId, int trackletId, float chi2, float chi2YZPhi = -1.f) : mLayers(layers), mCandidateId(candidateId), mTrackletId(trackletId), mChi2(chi2) {}
   };
 
   short MemoryPermanent() const { return mMemoryPermanent; }
@@ -149,7 +148,6 @@ class GPUTRDTracker_t : public GPUProcessor
   GPUd() void DoTrackingThread(int iTrk, int threadId = 0);
   GPUd() bool CalculateSpacePoints(int iCollision = 0);
   GPUd() bool FollowProlongation(PROP* prop, TRDTRK* t, int threadId, int collisionId);
-  GPUd() float GetPredictedChi2(const My_Float* pTRD, const My_Float* covTRD, const My_Float* pTrk, const My_Float* covTrk) const;
   GPUd() int GetDetectorNumber(const float zPos, const float alpha, const int layer) const;
   GPUd() bool AdjustSector(PROP* prop, TRDTRK* t, const int layer) const;
   GPUd() int GetSector(float alpha) const;
