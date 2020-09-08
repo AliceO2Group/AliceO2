@@ -75,10 +75,6 @@ struct lambdakzeroconsumer {
             h2dMassLambda->Fill(v0.Pts(), v0.MassAsLambdas());
             h2dMassAntiLambda->Fill(v0.Pts(), v0.MassAsAntiLambdas());
             h2dMassK0Short->Fill(v0.Pts(), v0.MassAsK0Shorts());
-            
-            hMassLambda->Fill(v0.MassAsLambdas());
-            hMassAntiLambda->Fill(v0.MassAsAntiLambdas());
-            hMassK0Short->Fill(v0.MassAsK0Shorts());
         }
     }
 };
@@ -86,7 +82,7 @@ struct lambdakzeroconsumer {
 WorkflowSpec defineDataProcessing(ConfigContext const&)
 {
     return WorkflowSpec{
-        adaptAnalysisTask<lambdakzeroQA>("lf-lambdakzeroQA")
+        adaptAnalysisTask<lambdakzeroQA>("lf-lambdakzeroQA"),
         adaptAnalysisTask<lambdakzeroconsumer>("lf-lambdakzeroconsumer")
     };
 }
