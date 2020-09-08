@@ -33,7 +33,7 @@ constexpr std::size_t pack_size(pack<Ts...> const&)
 template <std::size_t I, typename T>
 struct pack_element;
 
-#if __has_builtin(__type_pack_element)
+#ifdef __clang__
 template <std::size_t I, typename... Ts>
 struct pack_element<I, pack<Ts...>> {
   using type = __type_pack_element<I, Ts...>;
