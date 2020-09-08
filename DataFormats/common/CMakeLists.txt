@@ -18,7 +18,8 @@ o2_target_root_dictionary(CommonDataFormat
                                   include/CommonDataFormat/EvIndex.h
                                   include/CommonDataFormat/RangeReference.h
                                   include/CommonDataFormat/InteractionRecord.h
-                                  include/CommonDataFormat/BunchFilling.h)
+                                  include/CommonDataFormat/BunchFilling.h
+                                  include/CommonDataFormat/AbstractRef.h)
 
 o2_add_test(TimeStamp
             SOURCES test/testTimeStamp.cxx

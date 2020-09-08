@@ -46,4 +46,6 @@
 #pragma link C++ class o2::InteractionTimeRecord + ;
 #pragma link C++ class o2::BunchFilling + ;
 
+#pragma link C++ class o2::dataformats::AbstractRef < 26, 3, 3> + ;
+
 #endif
