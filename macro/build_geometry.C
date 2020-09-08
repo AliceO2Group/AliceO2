@@ -88,27 +88,7 @@ void build_geometry(FairRunSim* run = nullptr)
   run->SetMaterials("media.geo"); // Materials
 
   // we need a field to properly init the media
-  int fld = confref.getConfigData().mField, fldAbs = std::abs(fld);
-  float fldCoeff;
-  o2::field::MagFieldParam::BMap_t fldType;
-  switch (fldAbs) {
-    case 5:
-      fldType = o2::field::MagFieldParam::k5kG;
-      fldCoeff = fld > 0 ? 1. : -1;
-      break;
-    case 0:
-      fldType = o2::field::MagFieldParam::k5kG;
-      fldCoeff = 0;
-      break;
-    case 2:
-      fldType = o2::field::MagFieldParam::k2kG;
-      fldCoeff = fld > 0 ? 1. : -1;
-      break;
-    default:
-      LOG(FATAL) << "Field option " << fld << " is not supported, use +-2, +-5 or 0";
-  };
-
-  auto field = new o2::field::MagneticField("Maps", "Maps", fldCoeff, fldCoeff, fldType);
+  auto field = o2::field::MagneticField::createNominalField(confref.getConfigData().mField);
   run->SetField(field);
 
   // Create geometry
