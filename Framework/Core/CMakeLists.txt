@@ -97,6 +97,7 @@ o2_add_library(Framework
                        src/ResourcesMonitoringHelper.cxx
                        src/ServiceRegistry.cxx
                        src/SimpleResourceManager.cxx
+                       src/SimpleRawDeviceService.cxx
                        src/StreamOperators.cxx
                        src/TMessageSerializer.cxx
                        src/TableBuilder.cxx
