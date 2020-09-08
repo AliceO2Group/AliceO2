@@ -13,11 +13,7 @@
 #include "Framework/Logger.h"
 #include <boost/algorithm/string.hpp>
 
-namespace o2
-{
-namespace aod
-{
-namespace datamodel
+namespace o2::aod::datamodel
 {
 std::string getTreeName(header::DataHeader dh)
 {
@@ -58,47 +54,47 @@ std::vector<std::string> getColumnNames(header::DataHeader dh)
   // AOD / RN2
   if (origin == "AOD") {
     if (description == "TRACK:PAR") {
-      return columnNamesTrait(decltype(StoredTracksMetadata{})::table_t::persistent_columns_t{});
+      return columnNamesTrait(typename StoredTracksMetadata::table_t::persistent_columns_t{});
     } else if (description == "TRACK:PARCOV") {
-      return columnNamesTrait(decltype(StoredTracksCovMetadata{})::table_t::persistent_columns_t{});
+      return columnNamesTrait(typename StoredTracksCovMetadata::table_t::persistent_columns_t{});
     } else if (description == "TRACK:EXTRA") {
-      return columnNamesTrait(decltype(TracksExtraMetadata{})::table_t::persistent_columns_t{});
+      return columnNamesTrait(typename TracksExtraMetadata::table_t::persistent_columns_t{});
     } else if (description == "CALO") {
-      return columnNamesTrait(decltype(CalosMetadata{})::table_t::persistent_columns_t{});
+      return columnNamesTrait(typename CalosMetadata::table_t::persistent_columns_t{});
     } else if (description == "CALOTRIGGER") {
-      return columnNamesTrait(decltype(CaloTriggersMetadata{})::table_t::persistent_columns_t{});
+      return columnNamesTrait(typename CaloTriggersMetadata::table_t::persistent_columns_t{});
     } else if (description == "MUON") {
-      return columnNamesTrait(decltype(StoredMuonsMetadata{})::table_t::persistent_columns_t{});
+      return columnNamesTrait(typename StoredMuonsMetadata::table_t::persistent_columns_t{});
     } else if (description == "MUONCLUSTER") {
-      return columnNamesTrait(decltype(MuonClustersMetadata{})::table_t::persistent_columns_t{});
+      return columnNamesTrait(typename MuonClustersMetadata::table_t::persistent_columns_t{});
     } else if (description == "ZDC") {
-      return columnNamesTrait(decltype(ZdcsMetadata{})::table_t::persistent_columns_t{});
+      return columnNamesTrait(typename ZdcsMetadata::table_t::persistent_columns_t{});
     } else if (description == "BC") {
-      return columnNamesTrait(decltype(BCsMetadata{})::table_t::persistent_columns_t{});
+      return columnNamesTrait(typename BCsMetadata::table_t::persistent_columns_t{});
     } else if (description == "COLLISION") {
-      return columnNamesTrait(decltype(CollisionsMetadata{})::table_t::persistent_columns_t{});
+      return columnNamesTrait(typename CollisionsMetadata::table_t::persistent_columns_t{});
     } else if (description == "FT0") {
-      return columnNamesTrait(decltype(FT0sMetadata{})::table_t::persistent_columns_t{});
+      return columnNamesTrait(typename FT0sMetadata::table_t::persistent_columns_t{});
     } else if (description == "FV0") {
-      return columnNamesTrait(decltype(FV0sMetadata{})::table_t::persistent_columns_t{});
+      return columnNamesTrait(typename FV0sMetadata::table_t::persistent_columns_t{});
     } else if (description == "FDD") {
-      return columnNamesTrait(decltype(FDDsMetadata{})::table_t::persistent_columns_t{});
+      return columnNamesTrait(typename FDDsMetadata::table_t::persistent_columns_t{});
     } else if (description == "UNASSIGNEDTRACK") {
-      return columnNamesTrait(decltype(UnassignedTracksMetadata{})::table_t::persistent_columns_t{});
+      return columnNamesTrait(typename UnassignedTracksMetadata::table_t::persistent_columns_t{});
     } else if (description == "MCCOLLISION") {
-      return columnNamesTrait(decltype(McCollisionsMetadata{})::table_t::persistent_columns_t{});
+      return columnNamesTrait(typename McCollisionsMetadata::table_t::persistent_columns_t{});
     } else if (description == "MCTRACKLABEL") {
-      return columnNamesTrait(decltype(McTrackLabelsMetadata{})::table_t::persistent_columns_t{});
+      return columnNamesTrait(typename McTrackLabelsMetadata::table_t::persistent_columns_t{});
     } else if (description == "MCCALOLABEL") {
-      return columnNamesTrait(decltype(McCaloLabelsMetadata{})::table_t::persistent_columns_t{});
+      return columnNamesTrait(typename McCaloLabelsMetadata::table_t::persistent_columns_t{});
     } else if (description == "MCCOLLISLABEL") {
-      return columnNamesTrait(decltype(McCollisionLabelsMetadata{})::table_t::persistent_columns_t{});
+      return columnNamesTrait(typename McCollisionLabelsMetadata::table_t::persistent_columns_t{});
     } else if (description == "MCPARTICLE") {
-      return columnNamesTrait(decltype(McParticlesMetadata{})::table_t::persistent_columns_t{});
+      return columnNamesTrait(typename McParticlesMetadata::table_t::persistent_columns_t{});
     }
   } else if (origin == "RN2") {
     if (description == "V0") {
-      return columnNamesTrait(decltype(Run2V0sMetadata{})::table_t::persistent_columns_t{});
+      return columnNamesTrait(typename Run2V0sMetadata::table_t::persistent_columns_t{});
     }
   }
 
@@ -106,6 +102,4 @@ std::vector<std::string> getColumnNames(header::DataHeader dh)
   return std::vector<std::string>({});
 }
 
-} // namespace datamodel
-} // namespace aod
-} // namespace o2
+} // namespace datamodel::aod::o2
