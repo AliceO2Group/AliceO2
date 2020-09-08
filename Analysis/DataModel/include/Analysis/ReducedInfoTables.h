@@ -82,7 +82,6 @@ DECLARE_SOA_TABLE(ReducedTracksBarrel, "AOD", "RTBARREL",
                   track::ITSClusterMap, track::ITSChi2NCl,
                   track::TPCNClsFindable, track::TPCNClsFindableMinusFound, track::TPCNClsFindableMinusCrossedRows,
                   track::TPCNClsShared, track::TPCChi2NCl,
-                  //                  track::TPCSignal, track::TRDSignal, track::TOFSignal,
                   track::TRDChi2, track::TOFChi2, track::Length,
                   track::TPCNClsFound<track::TPCNClsFindable, track::TPCNClsFindableMinusFound>,
                   track::TPCNClsCrossedRows<track::TPCNClsFindable, track::TPCNClsFindableMinusCrossedRows>);
