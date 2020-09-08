@@ -19,7 +19,6 @@
 #include "Framework/RawDeviceService.h"
 #include "Framework/StringHelpers.h"
 
-#include "fairmq/FairMQDevice.h"
 #include "Headers/DataHeader.h"
 #include <algorithm>
 #include <list>
@@ -166,7 +165,7 @@ void WorkflowHelpers::injectServiceDevices(WorkflowSpec& workflow, ConfigContext
   
     return [](ProcessingContext& pc) {
       // this callback is never called since there is no expiring input
-      pc.services().get<RawDeviceService>().device()->WaitFor(std::chrono::seconds(2));
+      pc.services().get<RawDeviceService>().waitFor(2000);
     };
   }};
 
