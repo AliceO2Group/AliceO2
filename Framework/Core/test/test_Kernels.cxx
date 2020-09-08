@@ -21,12 +21,6 @@ using namespace o2::framework;
 using namespace arrow;
 using namespace arrow::compute;
 
-#if (ARROW_VERSION < 1000000)
-namespace arrow
-{
-using Datum = compute::Datum;
-}
-#else
 BOOST_AUTO_TEST_CASE(TestSlicing)
 {
   TableBuilder builder;
@@ -57,7 +51,6 @@ BOOST_AUTO_TEST_CASE(TestSlicing)
     BOOST_REQUIRE_EQUAL(arr1.Value(i), c[i]);
   }
 }
-#endif
 
 BOOST_AUTO_TEST_CASE(TestSlicingFramework)
 {

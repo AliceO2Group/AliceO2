@@ -10,13 +10,6 @@
 #include "Framework/TableTreeHelpers.h"
 #include "Framework/Logger.h"
 
-#if __has_include(<arrow/config.h>)
-#include <arrow/config.h>
-#endif
-#if __has_include(<arrow/util/config.h>)
-#include <arrow/util/config.h>
-#endif
-
 #include "arrow/type_traits.h"
 
 namespace o2
@@ -39,19 +32,11 @@ BranchIterator::BranchIterator(TTree* tree, std::shared_ptr<arrow::ChunkedArray>
   mNumberElements = 1;
   if (mFieldType == arrow::Type::type::FIXED_SIZE_LIST) {
 
-#if (ARROW_VERSION < 1000000)
-    // element type
-    if (mField->type()->num_children() <= 0) {
-      LOGP(FATAL, "Field {} of type {} has no children!", mField->name(), mField->type()->ToString().c_str());
-    }
-    mElementType = mField->type()->child(0)->type()->id();
-#else
     // element type
     if (mField->type()->num_fields() <= 0) {
       LOGP(FATAL, "Field {} of type {} has no children!", mField->name(), mField->type()->ToString().c_str());
     }
     mElementType = mField->type()->field(0)->type()->id();
-#endif
     // number of elements
     mNumberElements = static_cast<const arrow::FixedSizeListType*>(mField->type().get())->list_size();
     mLeaflistString += "[" + std::to_string(mNumberElements) + "]";
