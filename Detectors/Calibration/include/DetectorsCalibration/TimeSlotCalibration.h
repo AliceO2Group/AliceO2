@@ -52,6 +52,7 @@ class TimeSlotCalibration
 
   virtual bool process(TFType tf, const gsl::span<const Input> data);
   virtual void checkSlotsToFinalize(TFType tf, int maxDelay = 0);
+  virtual void finalizeOldestSlot();
 
   // Methods to be implemented by the derived user class
 
@@ -134,6 +135,20 @@ void TimeSlotCalibration<Input, Container>::checkSlotsToFinalize(TFType tf, int 
       break;
     }
   }
+}
+
+//_________________________________________________
+template <typename Input, typename Container>
+void TimeSlotCalibration<Input, Container>::finalizeOldestSlot()
+{
+  // Enforce finalization and removal of the oldest slot
+  if (mSlots.empty()) {
+    LOG(WARNING) << "There are no slots defined";
+    return;
+  }
+  finalizeSlot(mSlots.front());
+  mLastClosedTF = mSlots.front().getTFEnd() + 1; // do not accept any TF below this
+  mSlots.erase(mSlots.begin());
 }
 
 //________________________________________
