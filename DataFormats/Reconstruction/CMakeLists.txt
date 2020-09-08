@@ -19,6 +19,7 @@ o2_add_library(ReconstructionDataFormats
                        src/TrackLTIntegral.cxx
                        src/PID.cxx
                        src/DCA.cxx
+                       src/VtxTrackIndex.cxx
                PUBLIC_LINK_LIBRARIES O2::GPUCommon
                                      O2::DetectorsCommonDataFormats
                                      O2::CommonDataFormat)
@@ -34,7 +35,8 @@ o2_target_root_dictionary(
           include/ReconstructionDataFormats/MatchInfoTOF.h
           include/ReconstructionDataFormats/TrackLTIntegral.h
           include/ReconstructionDataFormats/PID.h
-          include/ReconstructionDataFormats/DCA.h)
+          include/ReconstructionDataFormats/DCA.h
+          include/ReconstructionDataFormats/VtxTrackIndex.h)
 
 o2_add_test(Vertex
             SOURCES test/testVertex.cxx
