@@ -28,7 +28,9 @@ struct ATask {
     auto table_with_extra_dynamic_columns = soa::Attach<aod::Tracks, aod::extension::P2<aod::track::P>>(tracks);
     for (auto& row : table_with_extra_dynamic_columns) {
       if (row.trackType() != 3) {
-        LOGF(info, "P^2 = %.3f", row.p2());
+        if (row.index() % 100 == 0) {
+          LOGF(info, "P^2 = %.3f", row.p2());
+        }
       }
     }
   }
