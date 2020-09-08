@@ -16,6 +16,7 @@
 #include "ReconstructionDataFormats/Track.h"
 #include "Analysis/RecoDecay.h"
 #include "Analysis/trackUtilities.h"
+#include "Analysis/StrangenessTables.h"
 
 #include <TFile.h>
 #include <TH2F.h>
@@ -52,39 +53,13 @@ struct TaskIndexer {
 
 namespace o2::aod
 {
-namespace cascdata
-{
-DECLARE_SOA_COLUMN(DCANegToPV, DCANegToPVs, float);
-DECLARE_SOA_COLUMN(DCAPosToPV, DCAPosToPVs, float);
-DECLARE_SOA_COLUMN(DCABachToPV, DCABachToPVs, float);
-DECLARE_SOA_COLUMN(V0Radius, V0Radii, float);
-DECLARE_SOA_COLUMN(CascRadius, CascRadii, float);
-DECLARE_SOA_COLUMN(DCAV0Daughter, DCAV0Daughters, float);
-DECLARE_SOA_COLUMN(DCACascDaughter, DCACascDaughters, float);
-DECLARE_SOA_COLUMN(DCAV0ToPV, DCAV0ToPVs, float);
-DECLARE_SOA_COLUMN(V0CosPA, V0CosPAs, float);
-DECLARE_SOA_COLUMN(CascCosPA, CascCosPAs, float);
-DECLARE_SOA_COLUMN(LambdaMass, LambdaMasses, float);
-DECLARE_SOA_COLUMN(MassAsXi, MassAsXis, float);
-DECLARE_SOA_COLUMN(MassAsOmega, MassAsOmegas, float);
-DECLARE_SOA_COLUMN(Charge, Charges, int);
-DECLARE_SOA_COLUMN(Pt, Pts, float);
 
-} // namespace cascdata
-
-DECLARE_SOA_TABLE(CascData, "AOD", "CASCDATA",
-                  cascdata::DCANegToPV, cascdata::DCAPosToPV, cascdata::DCABachToPV,
-                  cascdata::V0Radius, cascdata::CascRadius, cascdata::DCAV0Daughter,
-                  cascdata::DCACascDaughter, cascdata::DCAV0ToPV, cascdata::V0CosPA,
-                  cascdata::CascCosPA, cascdata::LambdaMass, cascdata::MassAsXi,
-                  cascdata::MassAsOmega, cascdata::Charge, cascdata::Pt);
 } // namespace o2::aod
 
 /// Cascade builder task: rebuilds cascades
 struct cascadebuilder {
     Produces<aod::CascData> cascdata;
     
-    OutputObj<TH1F> hBugCounter    {TH1F("hBugCounter"     , "",5, 0, 5)};
     OutputObj<TH1F> hEventCounter  {TH1F("hEventCounter"   , "",1, 0, 1)};
     OutputObj<TH1F> hCascCandidate {TH1F("hCascCandidate"  , "",10, 0, 10)};
     
@@ -145,33 +120,6 @@ struct cascadebuilder {
             
             hCascCandidate->Fill(0.5);
             
-            if(casc.collisionId() != casc.v0().collisionId()){
-                LOGF(INFO, "Event %d: Problematic cascade index pair found! Cascade from collision %d but V0 from collision %d",
-                     collision.globalIndex(), casc.collisionId(),casc.v0().collisionId() );
-                hBugCounter->Fill(0.5);
-                //continue;
-            }
-            
-            if(casc.bachelor().collisionId() != casc.v0().collisionId()){
-                LOGF(INFO, "Event %d: Problematic cascade index pair found! Bachelor from collision %d but V0 from collision %d", collision.globalIndex(),  casc.bachelor().collisionId(), casc.v0().collisionId() );
-                hBugCounter->Fill(1.5);
-                //continue;
-            }
-            
-            if(casc.v0().posTrack().collisionId() != casc.v0().collisionId()){
-                LOGF(INFO, "Event %d: Problematic cascade index pair found! Pos track from collision %d but V0 from collision %d", collision.globalIndex(),  casc.v0().posTrack().collisionId(), casc.v0().collisionId() );
-                hBugCounter->Fill(2.5);
-                //continue;
-            }
-            if(casc.v0().negTrack().collisionId() != casc.v0().collisionId()){
-                LOGF(INFO, "Event %d: Problematic cascade index pair found! Neg track from collision %d but V0 from collision %d", collision.globalIndex(),  casc.v0().negTrack().collisionId(), casc.v0().collisionId() );
-                hBugCounter->Fill(3.5);
-                //continue;
-            }
-            
-            //Count OK candidates
-            hBugCounter->Fill(4.5);
-            
             auto pTrack = getTrackParCov(casc.v0().posTrack());
             auto nTrack = getTrackParCov(casc.v0().negTrack());
             auto bTrack = getTrackParCov(casc.bachelor());
@@ -200,106 +148,115 @@ struct cascadebuilder {
             
             hCascCandidate->Fill(1.5);
             
+            double v0cosPA=-1, XicosPA=-1, lMassXi=-1, lMassOm=-1, lPt=-1, lV0Radius=-1, lXiRadius=-1;
+            
             int nCand = fitterV0.process(pTrack, nTrack);
-            
-            hCascCandidate->Fill(2.5);
-            
-            const auto& v0vtx = fitterV0.getPCACandidate();
-            
-            std::array<float, 3> pvec0;
-            std::array<float, 3> pvec1;
-            std::array<float, 21> cov0 = {0};
-            std::array<float, 21> cov1 = {0};
-            std::array<float, 21> covV0 = {0};
-            
-            //CosPA: manual calculation (transform into helper afterwards)
-            double v0cosPA = (v0vtx[0]-collision.posX())*(pvec0[0]+pvec1[0]) +
-            (v0vtx[1]-collision.posY())*(pvec0[1]+pvec1[1]) +
-            (v0vtx[2]-collision.posZ())*(pvec0[2]+pvec1[2]);
-            
-            double lNormR = TMath::Sqrt( TMath::Power( (v0vtx[0]-collision.posX()) , 2) +
-                                        TMath::Power( (v0vtx[1]-collision.posY()) , 2) +
-                                        TMath::Power( (v0vtx[2]-collision.posZ()) , 2) );
-            double lNormP = TMath::Sqrt( TMath::Power( (pvec0[0]+pvec1[0]) , 2) +
-                                        TMath::Power( (pvec0[1]+pvec1[1]) , 2) +
-                                        TMath::Power( (pvec0[2]+pvec1[2]) , 2) );
-            v0cosPA /= (lNormR*lNormP+1e-9);
-            
-            const int momInd[6] = {9,13,14,18,19,20}; // cov matrix elements for momentum component
-            fitterV0.getTrack(0).getPxPyPzGlo(pvec0);
-            fitterV0.getTrack(1).getPxPyPzGlo(pvec1);
-            fitterV0.getTrack(0).getCovXYZPxPyPzGlo(cov0);
-            fitterV0.getTrack(1).getCovXYZPxPyPzGlo(cov1);
-            for (int i=0;i<6;i++) {
-                int j = momInd[i];
-                covV0[j] = cov0[j] + cov1[j];
+            if(nCand!=0){
+                
+                hCascCandidate->Fill(2.5);
+                
+                const auto& v0vtx = fitterV0.getPCACandidate();
+                
+                std::array<float, 3> pvec0;
+                std::array<float, 3> pvec1;
+                std::array<float, 21> cov0 = {0};
+                std::array<float, 21> cov1 = {0};
+                std::array<float, 21> covV0 = {0};
+                
+                //CosPA: manual calculation (transform into helper afterwards)
+                v0cosPA = (v0vtx[0]-collision.posX())*(pvec0[0]+pvec1[0]) +
+                (v0vtx[1]-collision.posY())*(pvec0[1]+pvec1[1]) +
+                (v0vtx[2]-collision.posZ())*(pvec0[2]+pvec1[2]);
+                
+                double lNormR = TMath::Sqrt( TMath::Power( (v0vtx[0]-collision.posX()) , 2) +
+                                            TMath::Power( (v0vtx[1]-collision.posY()) , 2) +
+                                            TMath::Power( (v0vtx[2]-collision.posZ()) , 2) );
+                double lNormP = TMath::Sqrt( TMath::Power( (pvec0[0]+pvec1[0]) , 2) +
+                                            TMath::Power( (pvec0[1]+pvec1[1]) , 2) +
+                                            TMath::Power( (pvec0[2]+pvec1[2]) , 2) );
+                v0cosPA /= (lNormR*lNormP+1e-9);
+                
+                const int momInd[6] = {9,13,14,18,19,20}; // cov matrix elements for momentum component
+                fitterV0.getTrack(0).getPxPyPzGlo(pvec0);
+                fitterV0.getTrack(1).getPxPyPzGlo(pvec1);
+                fitterV0.getTrack(0).getCovXYZPxPyPzGlo(cov0);
+                fitterV0.getTrack(1).getCovXYZPxPyPzGlo(cov1);
+                for (int i=0;i<6;i++) {
+                    int j = momInd[i];
+                    covV0[j] = cov0[j] + cov1[j];
+                }
+                auto covVtxV0 = fitterV0.calcPCACovMatrix();
+                covV0[0] = covVtxV0(0,0);
+                covV0[1] = covVtxV0(1,0);
+                covV0[2] = covVtxV0(1,1);
+                covV0[3] = covVtxV0(2,0);
+                covV0[4] = covVtxV0(2,1);
+                covV0[5] = covVtxV0(2,2);
+                
+                const std::array<float, 3> vertex = {(float)v0vtx[0], (float)v0vtx[1], (float)v0vtx[2]};
+                const std::array<float, 3> momentum = {pvec0[0]+pvec1[0], pvec0[1]+pvec1[1],pvec0[2]+pvec1[2]};
+                
+                auto tV0 = o2::track::TrackParCov(vertex, momentum, covV0, 0);
+                tV0.setQ2Pt(0); //No bending, please
+                
+                int nCand2 = fitterCasc.process(tV0, bTrack);
+                if(nCand2!=0){
+                    
+                    hCascCandidate->Fill(3.5);
+                    
+                    const auto& vtxcasc = fitterCasc.getPCACandidate();
+                    std::array<float, 3> pveccasc0;
+                    std::array<float, 3> pveccasc1;
+                    fitterCasc.getTrack(0).getPxPyPzGlo(pveccasc0);
+                    fitterCasc.getTrack(1).getPxPyPzGlo(pveccasc1);
+                    
+                    //CosPA: manual calculation (transform into helper afterwards)
+                    XicosPA = (vtxcasc[0]-collision.posX())*(pveccasc0[0]+pveccasc1[0]) +
+                    (vtxcasc[1]-collision.posY())*(pveccasc0[1]+pveccasc1[1]) +
+                    (vtxcasc[2]-collision.posZ())*(pveccasc0[2]+pveccasc1[2]);
+                    double lNormRxi = TMath::Sqrt( TMath::Power( (vtxcasc[0]-collision.posX()) , 2) +
+                                                  TMath::Power( (vtxcasc[1]-collision.posY()) , 2) +
+                                                  TMath::Power( (vtxcasc[2]-collision.posZ()) , 2) );
+                    double lNormPxi = TMath::Sqrt( TMath::Power( (momentum[0]+pveccasc1[0]) , 2) +
+                                                  TMath::Power( (momentum[1]+pveccasc1[1]) , 2) +
+                                                  TMath::Power( (momentum[2]+pveccasc1[2]) , 2) );
+                    XicosPA /= (lNormRxi*lNormPxi+1e-9);
+                    
+                    // calculate invariant masses
+                    auto track0p2 = momentum[0]*momentum[0]+momentum[1]*momentum[1]+momentum[2]*momentum[2];
+                    auto track1p2 = pveccasc1[0]*pveccasc1[0]+pveccasc1[1]*pveccasc1[1]+pveccasc1[2]*pveccasc1[2];
+                    
+                    auto e0  = TMath::Sqrt(massPr*massPr + track0p2);
+                    auto e1  = TMath::Sqrt(massPi*massPi + track1p2);
+                    auto e2  = TMath::Sqrt(massKa*massKa + track1p2);
+                    
+                    lMassXi = TMath::Sqrt((e0+e1)*(e0+e1)-
+                                               (pveccasc1[0]+momentum[0])*(pveccasc1[0]+momentum[0])-
+                                               (pveccasc1[1]+momentum[1])*(pveccasc1[1]+momentum[1])-
+                                               (pveccasc1[2]+momentum[2])*(pveccasc1[2]+momentum[2]));
+                    lMassOm = TMath::Sqrt((e0+e2)*(e0+e2)-
+                                               (pveccasc1[0]+momentum[0])*(pveccasc1[0]+momentum[0])-
+                                               (pveccasc1[1]+momentum[1])*(pveccasc1[1]+momentum[1])-
+                                               (pveccasc1[2]+momentum[2])*(pveccasc1[2]+momentum[2]));
+                    
+                    lPt = TMath::Sqrt( (pveccasc1[0]+momentum[0])*(pveccasc1[0]+momentum[0])+
+                                           (pveccasc1[1]+momentum[1])*(pveccasc1[1]+momentum[1]) );
+                    
+                    lV0Radius = TMath::Sqrt(v0vtx[0]*v0vtx[0] + v0vtx[1]*v0vtx[1] );
+                    lXiRadius = TMath::Sqrt(vtxcasc[0]*vtxcasc[0] + vtxcasc[1]*vtxcasc[1] );
+                    
+                    if( casc.bachelor().charge()<0 ) hMassXiMinus -> Fill(lMassXi);
+                    if( casc.bachelor().charge()>0 ) hMassXiPlus -> Fill(lMassXi);
+                    if( casc.bachelor().charge()<0 ) hMassOmegaMinus -> Fill(lMassOm);
+                    if( casc.bachelor().charge()>0 ) hMassOmegaPlus -> Fill(lMassOm);
+                }
             }
-            auto covVtxV0 = fitterV0.calcPCACovMatrix();
-            covV0[0] = covVtxV0(0,0);
-            covV0[1] = covVtxV0(1,0);
-            covV0[2] = covVtxV0(1,1);
-            covV0[3] = covVtxV0(2,0);
-            covV0[4] = covVtxV0(2,1);
-            covV0[5] = covVtxV0(2,2);
-            
-            const std::array<float, 3> vertex = {(float)v0vtx[0], (float)v0vtx[1], (float)v0vtx[2]};
-            const std::array<float, 3> momentum = {pvec0[0]+pvec1[0], pvec0[1]+pvec1[1],pvec0[2]+pvec1[2]};
-            
-            auto tV0 = o2::track::TrackParCov(vertex, momentum, covV0, 0);
-            tV0.setQ2Pt(0); //No bending, please
-            
-            int nCand2 = fitterCasc.process(tV0, bTrack);
-            hCascCandidate->Fill(3.5);
-            
-            const auto& vtxcasc = fitterCasc.getPCACandidate();
-            std::array<float, 3> pveccasc0;
-            std::array<float, 3> pveccasc1;
-            fitterCasc.getTrack(0).getPxPyPzGlo(pveccasc0);
-            fitterCasc.getTrack(1).getPxPyPzGlo(pveccasc1);
-            
-            //CosPA: manual calculation (transform into helper afterwards)
-            double XicosPA = (vtxcasc[0]-collision.posX())*(pveccasc0[0]+pveccasc1[0]) +
-            (vtxcasc[1]-collision.posY())*(pveccasc0[1]+pveccasc1[1]) +
-            (vtxcasc[2]-collision.posZ())*(pveccasc0[2]+pveccasc1[2]);
-            double lNormRxi = TMath::Sqrt( TMath::Power( (vtxcasc[0]-collision.posX()) , 2) +
-                                          TMath::Power( (vtxcasc[1]-collision.posY()) , 2) +
-                                          TMath::Power( (vtxcasc[2]-collision.posZ()) , 2) );
-            double lNormPxi = TMath::Sqrt( TMath::Power( (pveccasc0[0]+pveccasc1[0]) , 2) +
-                                          TMath::Power( (pveccasc0[1]+pveccasc1[1]) , 2) +
-                                          TMath::Power( (pveccasc0[2]+pveccasc1[2]) , 2) );
-            XicosPA /= (lNormRxi*lNormPxi+1e-9);
-            
-            // calculate invariant masses
-            auto track0p2 = pveccasc0[0]*pveccasc0[0]+pveccasc0[1]*pveccasc0[1]+pveccasc0[2]*pveccasc0[2];
-            auto track1p2 = pveccasc1[0]*pveccasc1[0]+pveccasc1[1]*pveccasc1[1]+pveccasc1[2]*pveccasc1[2];
-            
-            auto e0  = TMath::Sqrt(massPr*massPr + track0p2);
-            auto e1  = TMath::Sqrt(massPi*massPi + track1p2);
-            auto e2  = TMath::Sqrt(massKa*massKa + track1p2);
-            
-            auto lMassXi = TMath::Sqrt((e0+e1)*(e0+e1)-
-                                       (pveccasc1[0]+pveccasc0[0])*(pveccasc1[0]+pveccasc0[0])-
-                                       (pveccasc1[1]+pveccasc0[1])*(pveccasc1[1]+pveccasc0[1])-
-                                       (pveccasc1[2]+pveccasc0[2])*(pveccasc1[2]+pveccasc0[2]));
-            auto lMassOm = TMath::Sqrt((e0+e2)*(e0+e2)-
-                                       (pveccasc1[0]+pveccasc0[0])*(pveccasc1[0]+pveccasc0[0])-
-                                       (pveccasc1[1]+pveccasc0[1])*(pveccasc1[1]+pveccasc0[1])-
-                                       (pveccasc1[2]+pveccasc0[2])*(pveccasc1[2]+pveccasc0[2]));
-            
-            auto lPt = TMath::Sqrt( (pveccasc1[0]+pveccasc0[0])*(pveccasc1[0]+pveccasc0[0])-
-                                   (pveccasc1[1]+pveccasc0[1])*(pveccasc1[1]+pveccasc0[1]) );
-            
-            auto lV0Radius = TMath::Sqrt(v0vtx[0]*v0vtx[0] + v0vtx[1]*v0vtx[1] );
-            auto lXiRadius = TMath::Sqrt(vtxcasc[0]*vtxcasc[0] + vtxcasc[1]*vtxcasc[1] );
-            
-            if (nCand == 0) lMassXi=lMassOm=-1;
-            if (nCand2 == 0) lMassXi=lMassOm=-1;
             
             cascdata(dcaXYneg, dcaXYpos, dcaXYbach,
-                        lV0Radius, lXiRadius, fitterV0.getChi2AtPCACandidate(),
-                        fitterCasc.getChi2AtPCACandidate(), 0.1,v0cosPA,
-                        XicosPA, 1.116, lMassXi,
-                        lMassOm, casc.bachelor().charge(), lPt);
+                     lV0Radius, lXiRadius, fitterV0.getChi2AtPCACandidate(),
+                     fitterCasc.getChi2AtPCACandidate(), 0.1,v0cosPA,
+                     XicosPA, 1.116, lMassXi,
+                     lMassOm, casc.bachelor().charge(), lPt);
         }
         
     }

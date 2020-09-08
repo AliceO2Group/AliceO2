@@ -121,7 +121,17 @@ o2_add_dpl_workflow(run3-matcher
                     PUBLIC_LINK_LIBRARIES O2::Framework O2::DetectorsBase O2::AnalysisDataModel
                     COMPONENT_NAME Analysis)
 
-o2_add_dpl_workflow(lambdakzerobuilder.cxx
-                    SOURCES lambdakzerobuilder.cxx
+o2_add_dpl_workflow(lambdakzeroproducer
+                    SOURCES lambdakzeroproducer
+                    PUBLIC_LINK_LIBRARIES O2::Framework O2::DetectorsBase O2::AnalysisDataModel O2::DetectorsVertexing
+                    COMPONENT_NAME Analysis)
+
+o2_add_dpl_workflow(lambdakzeroconsumer
+                    SOURCES lambdakzeroconsumer
+                    PUBLIC_LINK_LIBRARIES O2::Framework O2::DetectorsBase O2::AnalysisDataModel O2::DetectorsVertexing
+                    COMPONENT_NAME Analysis)
+
+o2_add_dpl_workflow(cascadebuilder
+                    SOURCES cascadebuilder
                     PUBLIC_LINK_LIBRARIES O2::Framework O2::DetectorsBase O2::AnalysisDataModel O2::DetectorsVertexing
                     COMPONENT_NAME Analysis)

@@ -16,6 +16,7 @@
 #include "ReconstructionDataFormats/Track.h"
 #include "Analysis/RecoDecay.h"
 #include "Analysis/trackUtilities.h"
+#include "Analysis/StrangenessTables.h"
 
 #include <TFile.h>
 #include <TH2F.h>
@@ -34,43 +35,6 @@ using namespace o2;
 using namespace o2::framework;
 using namespace o2::framework::expressions;
 using std::array;
-
-struct TaskIndexer {
-    Produces<aod::TransientV0s> transientV0s;
-    Produces<aod::TransientCascades> transientCascades;
-    
-    void process(aod::StoredV0s const& v0s, aod::StoredCascades const& cascades, aod::FullTracks const& tracks)
-    {
-        for (auto& v0 : v0s) {
-            transientV0s(v0.posTrack().collisionId());
-        }
-        for (auto& cascade : cascades) {
-            transientCascades(cascade.bachelor().collisionId());
-        }
-    }
-};
-
-namespace o2::aod
-{
-namespace v0data
-{
-DECLARE_SOA_COLUMN(DCANegToPV, DCANegToPVs, float);
-DECLARE_SOA_COLUMN(DCAPosToPV, DCAPosToPVs, float);
-DECLARE_SOA_COLUMN(V0Radius, V0Radii, float);
-DECLARE_SOA_COLUMN(DCAV0Daughter, DCAV0Daughters, float);
-DECLARE_SOA_COLUMN(V0CosPA, V0CosPAs, float);
-DECLARE_SOA_COLUMN(MassAsLambda, MassAsLambdas, float);
-DECLARE_SOA_COLUMN(MassAsAntiLambda, MassAsAntiLambdas, float);
-DECLARE_SOA_COLUMN(MassAsK0Short, MassAsK0Shorts, int);
-DECLARE_SOA_COLUMN(Pt, Pts, float);
-
-} // namespace v0data
-
-DECLARE_SOA_TABLE(V0Data, "AOD", "V0DATA",
-                  v0data::DCANegToPV, v0data::DCAPosToPV, v0data::V0Radius,
-                  v0data::DCAV0Daughter, v0data::V0CosPA, v0data::MassAsLambda,
-                  v0data::MassAsAntiLambda, v0data::MassAsK0Short, v0data::Pt);
-} // namespace o2::aod
 
 /// Cascade builder task: rebuilds cascades
 struct lambdakzerobuilder {
@@ -132,57 +96,63 @@ struct lambdakzerobuilder {
             
             int nCand = fitter.process(pTrack, nTrack);
             
-            hCascCandidate->Fill(2.5);
+            double v0cosPA=-1, lMassK0Short=-1, lMassLambda=-1, lMassAntiLambda=-1, lPt=-1, lV0Radius = -1;
             
-            const auto& vtx = fitter.getPCACandidate();
-            
-            std::array<float, 3> pvec0;
-            std::array<float, 3> pvec1;
-            fitter.getTrack(0).getPxPyPzGlo(pvec0);
-            fitter.getTrack(1).getPxPyPzGlo(pvec1);
-            
-            //CosPA: manual calculation (transform into helper afterwards)
-            double v0cosPA = (vtx[0]-collision.posX())*(pvec0[0]+pvec1[0]) +
-            (vtx[1]-collision.posY())*(pvec0[1]+pvec1[1]) +
-            (vtx[2]-collision.posZ())*(pvec0[2]+pvec1[2]);
-            
-            double lNormR = TMath::Sqrt( TMath::Power( (vtx[0]-collision.posX()) , 2) +
-                                        TMath::Power( (vtx[1]-collision.posY()) , 2) +
-                                        TMath::Power( (vtx[2]-collision.posZ()) , 2) );
-            double lNormP = TMath::Sqrt( TMath::Power( (pvec0[0]+pvec1[0]) , 2) +
-                                        TMath::Power( (pvec0[1]+pvec1[1]) , 2) +
-                                        TMath::Power( (pvec0[2]+pvec1[2]) , 2) );
-            v0cosPA /= (lNormR*lNormP+1e-9);
-        
-            // calculate invariant masses
-            auto track0p2 = pvec0[0]*pvec0[0]+pvec0[1]*pvec0[1]+pvec0[2]*pvec0[2];
-            auto track1p2 = pvec1[0]*pvec1[0]+pvec1[1]*pvec1[1]+pvec1[2]*pvec1[2];
-            
-            auto e0asPr  = TMath::Sqrt(massPr*massPr + track0p2);
-            auto e0asPi  = TMath::Sqrt(massPi*massPi + track0p2);
-            auto e1asPr  = TMath::Sqrt(massPr*massPr + track1p2);
-            auto e1asPi  = TMath::Sqrt(massPi*massPi + track1p2);
-            
-            auto lMassK0Short = TMath::Sqrt((e0asPi+e1asPi)*(e0asPi+e1asPi)-
-                                       (pvec1[0]+pvec0[0])*(pvec1[0]+pvec0[0])-
-                                       (pvec1[1]+pvec0[1])*(pvec1[1]+pvec0[1])-
-                                       (pvec1[2]+pvec0[2])*(pvec1[2]+pvec0[2]));
-            auto lMassLambda = TMath::Sqrt((e0asPr+e1asPi)*(e0asPr+e1asPi)-
-                                       (pvec1[0]+pvec0[0])*(pvec1[0]+pvec0[0])-
-                                       (pvec1[1]+pvec0[1])*(pvec1[1]+pvec0[1])-
-                                       (pvec1[2]+pvec0[2])*(pvec1[2]+pvec0[2]));
-            auto lMassAntiLambda = TMath::Sqrt((e0asPi+e1asPr)*(e0asPi+e1asPr)-
-                                       (pvec1[0]+pvec0[0])*(pvec1[0]+pvec0[0])-
-                                       (pvec1[1]+pvec0[1])*(pvec1[1]+pvec0[1])-
-                                       (pvec1[2]+pvec0[2])*(pvec1[2]+pvec0[2]));
-            
-            auto lPt = TMath::Sqrt( (pvec1[0]+pvec0[0])*(pvec1[0]+pvec0[0])-
-                                   (pvec1[1]+pvec0[1])*(pvec1[1]+pvec0[1]) );
-            
-            auto lV0Radius = TMath::Sqrt(vtx[0]*vtx[0] + vtx[1]*vtx[1] );
-            
-            if (nCand == 0){
-                lMassK0Short=lMassLambda=lMassAntiLambda=-1;
+            if (nCand != 0){
+                
+                fitter.propagateTracksToVertex();
+                
+                hCascCandidate->Fill(2.5);
+                
+                const auto& vtx = fitter.getPCACandidate();
+                
+                std::array<float, 3> pvec0;
+                std::array<float, 3> pvec1;
+                fitter.getTrack(0).getPxPyPzGlo(pvec0);
+                fitter.getTrack(1).getPxPyPzGlo(pvec1);
+                
+                //CosPA: manual calculation (transform into helper afterwards)
+                v0cosPA = (vtx[0]-collision.posX())*(pvec0[0]+pvec1[0]) +
+                (vtx[1]-collision.posY())*(pvec0[1]+pvec1[1]) +
+                (vtx[2]-collision.posZ())*(pvec0[2]+pvec1[2]);
+                
+                double lNormR = TMath::Sqrt( TMath::Power( (vtx[0]-collision.posX()) , 2) +
+                                            TMath::Power( (vtx[1]-collision.posY()) , 2) +
+                                            TMath::Power( (vtx[2]-collision.posZ()) , 2) );
+                double lNormP = TMath::Sqrt( TMath::Power( (pvec0[0]+pvec1[0]) , 2) +
+                                            TMath::Power( (pvec0[1]+pvec1[1]) , 2) +
+                                            TMath::Power( (pvec0[2]+pvec1[2]) , 2) );
+                v0cosPA /= (lNormR*lNormP+1e-9);
+                
+                // calculate invariant masses
+                auto track0p2 = pvec0[0]*pvec0[0]+pvec0[1]*pvec0[1]+pvec0[2]*pvec0[2];
+                auto track1p2 = pvec1[0]*pvec1[0]+pvec1[1]*pvec1[1]+pvec1[2]*pvec1[2];
+                
+                auto e0asPr  = TMath::Sqrt(massPr*massPr + track0p2);
+                auto e0asPi  = TMath::Sqrt(massPi*massPi + track0p2);
+                auto e1asPr  = TMath::Sqrt(massPr*massPr + track1p2);
+                auto e1asPi  = TMath::Sqrt(massPi*massPi + track1p2);
+                
+                lMassK0Short = TMath::Sqrt((e0asPi+e1asPi)*(e0asPi+e1asPi)-
+                                                (pvec1[0]+pvec0[0])*(pvec1[0]+pvec0[0])-
+                                                (pvec1[1]+pvec0[1])*(pvec1[1]+pvec0[1])-
+                                                (pvec1[2]+pvec0[2])*(pvec1[2]+pvec0[2]));
+                hMassK0Short->Fill(lMassK0Short);
+                lMassLambda = TMath::Sqrt((e0asPr+e1asPi)*(e0asPr+e1asPi)-
+                                               (pvec1[0]+pvec0[0])*(pvec1[0]+pvec0[0])-
+                                               (pvec1[1]+pvec0[1])*(pvec1[1]+pvec0[1])-
+                                               (pvec1[2]+pvec0[2])*(pvec1[2]+pvec0[2]));
+                hMassLambda->Fill(lMassLambda);
+                lMassAntiLambda = TMath::Sqrt((e0asPi+e1asPr)*(e0asPi+e1asPr)-
+                                                   (pvec1[0]+pvec0[0])*(pvec1[0]+pvec0[0])-
+                                                   (pvec1[1]+pvec0[1])*(pvec1[1]+pvec0[1])-
+                                                   (pvec1[2]+pvec0[2])*(pvec1[2]+pvec0[2]));
+                hMassAntiLambda->Fill(lMassAntiLambda);
+                
+                lPt = TMath::Sqrt( (pvec1[0]+pvec0[0])*(pvec1[0]+pvec0[0])+
+                                       (pvec1[1]+pvec0[1])*(pvec1[1]+pvec0[1]) );
+                
+                lV0Radius = TMath::Sqrt(vtx[0]*vtx[0] + vtx[1]*vtx[1] );
             }
             
             v0data(dcaXYneg, dcaXYpos, lV0Radius,
@@ -202,8 +172,8 @@ struct lambdakzeroconsumer {
     void process(aod::Collision const& collision, soa::Join<aod::V0s, aod::V0Data> const& fullV0s)
     {
         for (auto& v0 : fullV0s) {
-            h2dMassK0Short->Fill(v0.Pts(), v0.MassAsLambdas);
-            h2dMassK0Short->Fill(v0.Pts(), v0.MassAsAntiLambdas());
+            h2dMassLambda->Fill(v0.Pts(), v0.MassAsLambdas());
+            h2dMassAntiLambda->Fill(v0.Pts(), v0.MassAsAntiLambdas());
             h2dMassK0Short->Fill(v0.Pts(), v0.MassAsK0Shorts());
         }
     }
@@ -212,7 +182,6 @@ struct lambdakzeroconsumer {
 WorkflowSpec defineDataProcessing(ConfigContext const&)
 {
     return WorkflowSpec{
-        adaptAnalysisTask<TaskIndexer>("lf-TaskIndexer"),
         adaptAnalysisTask<lambdakzerobuilder>("lf-lambdakzerobuilder"),
         adaptAnalysisTask<lambdakzeroconsumer>("lf-lambdakzeroconsumer")
     };
