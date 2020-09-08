@@ -102,4 +102,4 @@ std::vector<std::string> getColumnNames(header::DataHeader dh)
   return std::vector<std::string>({});
 }
 
-} // namespace datamodel::aod::o2
+} // namespace o2::aod::datamodel
