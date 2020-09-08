@@ -37,7 +37,7 @@ using namespace o2::framework::expressions;
 using std::array;
 
 /// Cascade builder task: rebuilds cascades
-struct lambdakzerobuilder {
+struct lambdakzeroproducer {
     Produces<aod::V0Data> v0data;
     
     OutputObj<TH1F> hEventCounter  {TH1F("hEventCounter"   , "",1, 0, 1)};
@@ -162,27 +162,9 @@ struct lambdakzerobuilder {
     }
 };
 
-//aod::Cascades const& Cascades
-
-struct lambdakzeroconsumer {
-    OutputObj<TH2F> h2dMassK0Short   {TH2F("h2dMassK0Short"   , "", 200,0,10, 200, 0.450, 0.550)};
-    OutputObj<TH2F> h2dMassLambda    {TH2F("h2dMassLambda"    , "", 200,0,10, 200, 1.115-0.100,1.115+0.100)};
-    OutputObj<TH2F> h2dMassAntiLambda{TH2F("h2dMassAntiLambda", "", 200,0,10, 200, 1.115-0.100,1.115+0.100)};
-    
-    void process(aod::Collision const& collision, soa::Join<aod::V0s, aod::V0Data> const& fullV0s)
-    {
-        for (auto& v0 : fullV0s) {
-            h2dMassLambda->Fill(v0.Pts(), v0.MassAsLambdas());
-            h2dMassAntiLambda->Fill(v0.Pts(), v0.MassAsAntiLambdas());
-            h2dMassK0Short->Fill(v0.Pts(), v0.MassAsK0Shorts());
-        }
-    }
-};
-
 WorkflowSpec defineDataProcessing(ConfigContext const&)
 {
     return WorkflowSpec{
-        adaptAnalysisTask<lambdakzerobuilder>("lf-lambdakzerobuilder"),
-        adaptAnalysisTask<lambdakzeroconsumer>("lf-lambdakzeroconsumer")
+        adaptAnalysisTask<lambdakzeroproducer>("lf-lambdakzeroproducer")
     };
 }
