@@ -33,6 +33,13 @@ constexpr std::size_t pack_size(pack<Ts...> const&)
 template <std::size_t I, typename T>
 struct pack_element;
 
+#ifdef __clang__
+template <std::size_t I, typename... Ts>
+struct pack_element<I, pack<Ts...>> {
+  using type = __type_pack_element<I, Ts...>;
+};
+#else
+
 // recursive case
 template <std::size_t I, typename Head, typename... Tail>
 struct pack_element<I, pack<Head, Tail...>>
@@ -44,6 +51,7 @@ template <typename Head, typename... Tail>
 struct pack_element<0, pack<Head, Tail...>> {
   typedef Head type;
 };
+#endif
 
 template <std::size_t I, typename T>
 using pack_element_t = typename pack_element<I, T>::type;
