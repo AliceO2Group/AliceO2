@@ -11,6 +11,7 @@
 add_subdirectory(PWGCF)
 add_subdirectory(PWGDQ)
 add_subdirectory(PWGHF)
+add_subdirectory(PWGLF)
 
 o2_add_dpl_workflow(trackselection
                     SOURCES trackselection.cxx
