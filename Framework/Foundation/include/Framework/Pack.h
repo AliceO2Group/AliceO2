@@ -82,20 +82,26 @@ constexpr auto concatenate_pack(P1 p1, P2 p2, Ps... ps)
 template <typename... Ps>
 using concatenated_pack_t = decltype(concatenate_pack(Ps{}...));
 
-/// Selects from the pack types that satisfy the Condition
-template <template <typename> typename Condition, typename Result>
-constexpr auto select_pack(Result result, pack<>)
+/// Select only the items of a pack which match Condition
+template <template <typename> typename Condition, bool Invert, typename Result>
+constexpr auto pick_pack(Result result, pack<>)
 {
   return result;
 }
 
-template <template <typename> typename Condition, typename Result, typename T, typename... Ts>
-constexpr auto select_pack(Result result, pack<T, Ts...>)
+template <template <typename> typename Condition, bool Invert, typename Result, typename T, typename... Ts>
+constexpr auto pick_pack(Result result, pack<T, Ts...>)
 {
-  if constexpr (Condition<T>())
-    return select_pack<Condition>(concatenate_pack(result, pack<T>{}), pack<Ts...>{});
+  if constexpr (Condition<T>() ^ Invert)
+    return pick_pack<Condition, Invert>(result, pack<Ts...>{});
   else
-    return select_pack<Condition>(result, pack<Ts...>{});
+    return pick_pack<Condition, Invert>(concatenate_pack(result, pack<T>{}), pack<Ts...>{});
+}
+
+template <template <typename> typename Condition, typename Result, typename T, typename... Ts>
+constexpr auto select_pack(Result result, pack<T, Ts...> p)
+{
+  return pick_pack<Condition, true>(result, p);
 }
 
 template <template <typename> typename Condition, typename... Types>
@@ -109,12 +115,9 @@ constexpr auto filter_pack(Result result, pack<>)
 }
 
 template <template <typename> typename Condition, typename Result, typename T, typename... Ts>
-constexpr auto filter_pack(Result result, pack<T, Ts...>)
+constexpr auto filter_pack(Result result, pack<T, Ts...> p)
 {
-  if constexpr (Condition<T>())
-    return filter_pack<Condition>(result, pack<Ts...>{});
-  else
-    return filter_pack<Condition>(concatenate_pack(result, pack<T>{}), pack<Ts...>{});
+  return pick_pack<Condition, false>(result, p);
 }
 
 template <typename T>
