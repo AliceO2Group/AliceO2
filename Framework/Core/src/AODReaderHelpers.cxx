@@ -27,7 +27,6 @@
 #include "Framework/ChannelInfo.h"
 #include "Framework/Logger.h"
 
-#include <FairMQDevice.h>
 #include <ROOT/RDataFrame.hxx>
 #include <TGrid.h>
 #include <TFile.h>
