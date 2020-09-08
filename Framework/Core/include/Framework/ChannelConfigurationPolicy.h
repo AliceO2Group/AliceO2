@@ -12,8 +12,8 @@
 
 #include "Framework/ChannelConfigurationPolicyHelpers.h"
 #include "Framework/ChannelSpec.h"
-#include "Framework/DeviceSpec.h"
 
+#include <vector>
 #include <functional>
 
 namespace o2
