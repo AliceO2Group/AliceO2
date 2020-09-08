@@ -233,7 +233,7 @@ struct OutputManager<Spawns<T>> {
 
   static bool prepare(ProcessingContext& pc, Spawns<T>& what)
   {
-    auto original_table = soa::ArrowHelpers::joinTables(extractOriginals(typename Spawns<T>::sources{}, pc));
+    auto original_table = soa::ArrowHelpers::joinTables(extractOriginals(what.sources_pack(), pc));
     what.extension = std::make_shared<typename Spawns<T>::extension_t>(o2::soa::spawner(what.pack(), original_table.get()));
     what.table = std::make_shared<typename T::table_t>(soa::ArrowHelpers::joinTables({what.extension->asArrowTable(), original_table}));
     return true;
@@ -246,8 +246,7 @@ struct OutputManager<Spawns<T>> {
 
   static bool postRun(EndOfStreamContext& eosc, Spawns<T>& what)
   {
-    using metadata = typename std::decay_t<decltype(what)>::metadata;
-    eosc.outputs().adopt(Output{metadata::origin(), metadata::description()}, what.asArrowTable());
+    eosc.outputs().adopt(what.output(), what.asArrowTable());
     return true;
   }
 };
@@ -276,10 +275,9 @@ struct OutputManager<Builds<T, P>> {
 
   static bool prepare(ProcessingContext& pc, Builds<T, P>& what)
   {
-    using metadata = typename std::decay_t<decltype(what)>::metadata;
-    return what.build(typename metadata::index_pack_t{},
-                      extractTypedOriginal<typename metadata::Key>(pc),
-                      extractOriginalsTuple(typename metadata::originals{}, pc));
+    return what.build(what.pack(),
+                      extractTypedOriginal<typename Builds<T, P>::Key>(pc),
+                      extractOriginalsTuple(what.sources_pack(), pc));
   }
 
   static bool finalize(ProcessingContext&, Builds<T, P>&)
@@ -289,8 +287,7 @@ struct OutputManager<Builds<T, P>> {
 
   static bool postRun(EndOfStreamContext& eosc, Builds<T, P>& what)
   {
-    using metadata = typename std::decay_t<decltype(what)>::metadata;
-    eosc.outputs().adopt(Output{metadata::origin(), metadata::description()}, what.asArrowTable());
+    eosc.outputs().adopt(what.output(), what.asArrowTable());
     return true;
   }
 };
