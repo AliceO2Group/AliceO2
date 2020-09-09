@@ -37,6 +37,7 @@ struct TimestampTask {
   Configurable<bool> verbose{"verbose", false, "verbose mode"};
   Configurable<std::string> path{"ccdb-path", "RCT/RunInformation/", "path to the ccdb object"};
   Configurable<std::string> url{"ccdb-url", "http://ccdb-test.cern.ch:8080", "URL of the CCDB database"};
+  Configurable<bool> isMC{"isMC", 0, "0 - data, 1 - MC"};
 
   void init(o2::framework::InitContext&)
   {
@@ -85,10 +86,10 @@ struct TimestampTask {
     if (verbose.value) {
       LOGF(info, "Run-number to timestamp found! %i %llu ms", bc.runNumber(), ts);
     }
-    uint16_t currentBC = bc.globalBC() % o2::constants::lhc::LHCMaxBunches;
-    uint32_t currentOrbit = bc.globalBC() / o2::constants::lhc::LHCMaxBunches;
     uint16_t initialBC = 0; // exact bc number not relevant due to ms precision of timestamps
     uint32_t initialOrbit = mapStartOrbit->at(bc.runNumber());
+    uint16_t currentBC = isMC ? initialBC : bc.globalBC() % o2::constants::lhc::LHCMaxBunches;
+    uint32_t currentOrbit = isMC ? initialOrbit : bc.globalBC() / o2::constants::lhc::LHCMaxBunches;
     InteractionRecord current(currentBC, currentOrbit);
     InteractionRecord initial(initialBC, initialOrbit);
     ts += (current - initial).bc2ns() / 1000000;
