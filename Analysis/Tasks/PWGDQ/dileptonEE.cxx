@@ -104,8 +104,13 @@ struct BarrelTrackSelection {
     cut1->AddCut(VarManager::kTPCchi2, 0.0, 4.0);
     cut1->AddCut(VarManager::kITSchi2, 0.0, 5.0);
     cut1->AddCut(VarManager::kITSncls, 3.5, 7.5);
-    cut1->AddCut(VarManager::kTPCncls, 69.5, 159.5);
-    cut1->AddCut(VarManager::kTPCsignal, 70, 100, false); //exclude = false
+    cut1->AddCut(VarManager::kTPCncls, 79.5, 159.5);
+    cut1->AddCut(VarManager::kTPCsignal, 70, 100, false);  //exclude = false
+    cut1->AddCut(VarManager::kTOFnSigmaEl, -3, +3, false); //exclude = false
+
+    //cut1->AddCut(VarManager::kTPCnSigmaPi, -1e+10, +3.5, true); //exclude = false
+    //cut1->AddCut(VarManager::kTPCnSigmaKa, -3, +3, true); //exclude = false
+    //cut1->AddCut(VarManager::kTPCnSigmaPr, -3, +3, true); //exclude = false
     fTrackCut->AddCut(cut1);
 
     //    //AnalysisCut* pid_TPChadrej = new AnalysisCut("pid_TPChadrej","PID TPC hadron band rejection");
