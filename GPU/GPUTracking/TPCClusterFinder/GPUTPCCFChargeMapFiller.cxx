@@ -88,6 +88,9 @@ GPUdii() void GPUTPCCFChargeMapFiller::Thread<GPUTPCCFChargeMapFiller::findFragm
 
 GPUd() size_t GPUTPCCFChargeMapFiller::findTransition(int time, const tpc::Digit* digits, size_t nDigits, size_t lower)
 {
+  if (!nDigits) {
+    return 0;
+  }
   size_t upper = nDigits - 1;
 
   while (lower <= upper) {
