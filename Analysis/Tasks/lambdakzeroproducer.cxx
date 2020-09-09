@@ -17,8 +17,6 @@
 #include "Analysis/RecoDecay.h"
 #include "Analysis/trackUtilities.h"
 #include "Analysis/StrangenessTables.h"
-#include "Analysis/TrackSelection.h"
-#include "Analysis/TrackSelectionTables.h"
 
 #include <TFile.h>
 #include <TH2F.h>
@@ -57,8 +55,22 @@ struct lambdakzeroproducer {
     double massKa = TDatabasePDG::Instance()->GetParticle(kKPlus)->Mass();
     double massPr = TDatabasePDG::Instance()->GetParticle(kProton)->Mass();
     
-    //void process(aod::Collision const& collision, aod::V0s const& V0s, soa::Join<aod::FullTracks, aod::TracksExtended> const& tracks)
-    void process(aod::Collision const& collision, aod::V0s const& V0s, soa::Join<aod::Tracks, aod::TracksExtra, aod::TracksCov, aod::TracksExtended, aod::TrackSelection> const& tracks)
+    /// Extracts dca in the XY plane
+    /// \return dcaXY
+    template <typename T, typename U>
+    auto getdcaXY(const T& track, const U& coll)
+    {
+        //Calculate DCAs
+         auto sinAlpha = sin(track.alpha());
+         auto cosAlpha = cos(track.alpha());
+         auto globalX = track.x() * cosAlpha - track.y() * sinAlpha;
+         auto globalY = track.x() * sinAlpha + track.y() * cosAlpha;
+         return sqrt(pow((globalX - coll[0]), 2) +
+                                pow((globalY - coll[1]), 2));
+    }
+
+    
+    void process(aod::Collision const& collision, aod::V0s const& V0s, aod::FullTracks const& tracks)
     {
         //Define o2 fitter, 2-prong
         o2::vertexing::DCAFitterN<2> fitter;
@@ -72,14 +84,12 @@ struct lambdakzeroproducer {
         fitter.setUseAbsDCA(d_UseAbsDCA);
         
         hEventCounter->Fill(0.5);
+        std::array<float, 3> pVtx = {collision.posX(), collision.posY(), collision.posZ()};
         
         for (auto& V0 : V0s) {
             std::array<float, 3> pos = {0.};
             std::array<float, 3> pvec0 = {0.};
             std::array<float, 3> pvec1 = {0.};
-            
-            auto pTrackFull = V0.posTrack();
-            auto nTrackFull = V0.negTrack();
             
             hCascCandidate->Fill(0.5);
             auto pTrack = getTrackParCov(V0.posTrack());
@@ -97,7 +107,9 @@ struct lambdakzeroproducer {
             v0data(pos[0], pos[1], pos[2],
                    pvec0[0], pvec0[1], pvec0[2],
                    pvec1[0], pvec1[1], pvec1[2],
-                   fitter.getChi2AtPCACandidate(), pTrackFull.dcaXY(), nTrackFull.dcaXY());
+                   fitter.getChi2AtPCACandidate(),
+                   getdcaXY(V0.posTrack(), pVtx),
+                   getdcaXY(V0.negTrack(), pVtx));
         }
     }
 };
