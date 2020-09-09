@@ -161,8 +161,7 @@ constexpr size_t has_type_at(pack<T1, Ts...> const&)
   return sizeof...(Ts) + 2;
 }
 
-using namespace o2::framework;
-
+namespace {
 template <std::size_t I, typename T>
 struct indexed {
   using type = T;
@@ -183,7 +182,8 @@ indexed<I, T> select(indexed<I, T>);
 template <typename W, typename... Ts>
 constexpr std::size_t has_type_at_t = decltype(select<W>(
   indexer<std::index_sequence_for<Ts...>, Ts...>{}))::index;
-
+}
+ 
 template <typename W>
 constexpr std::size_t has_type_at_v(o2::framework::pack<> p)
 {
