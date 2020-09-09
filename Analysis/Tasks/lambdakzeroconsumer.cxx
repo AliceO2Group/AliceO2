@@ -15,6 +15,8 @@
 #include "Analysis/RecoDecay.h"
 #include "Analysis/trackUtilities.h"
 #include "Analysis/StrangenessTables.h"
+#include "Analysis/TrackSelection.h"
+#include "Analysis/TrackSelectionTables.h"
 
 #include <TFile.h>
 #include <TH2F.h>
@@ -49,15 +51,17 @@ struct lambdakzeroQA {
   void process(aod::Collision const& collision, soa::Join<aod::V0s, aod::V0Data> const& fullV0s)
   {
     for (auto& v0 : fullV0s) {
-      hMassLambda->Fill(v0.MassAsLambdas());
-      hMassAntiLambda->Fill(v0.MassAsAntiLambdas());
-      hMassK0Short->Fill(v0.MassAsK0Shorts());
+        
+      hMassLambda->Fill(v0.mLambda());
+      hMassAntiLambda->Fill(v0.mAntiLambda());
+      hMassK0Short->Fill(v0.mK0Short());
 
-      hV0Radius->Fill(v0.V0Radii());
-      hV0CosPA->Fill(v0.V0CosPAs());
-      hDCAPosToPV->Fill(v0.DCAPosToPVs());
-      hDCANegToPV->Fill(v0.DCANegToPVs());
-      hDCAV0Dau->Fill(v0.DCAV0Daughters());
+      hV0Radius->Fill(v0.v0radius());
+      hV0CosPA->Fill(v0.v0cosPA());
+         
+      hDCAPosToPV->Fill(v0.dcapostopv());
+      hDCANegToPV->Fill(v0.dcanegtopv());
+      hDCAV0Dau->Fill(v0.dcaV0daughters());
     }
   }
 };
@@ -68,22 +72,20 @@ struct lambdakzeroconsumer {
   OutputObj<TH2F> h2dMassAntiLambda{TH2F("h2dMassAntiLambda", "", 200, 0, 10, 200, 1.115 - 0.100, 1.115 + 0.100)};
 
   //Selection criteria
-  Configurable<double> v0cospa{"v0cospa", 0.995, "V0 CosPA"};
-  Configurable<double> dcav0dau{"dcav0dau", 1.0, "DCA V0 Daughters"};
-  Configurable<double> dcanegtopv{"dcanegtopv", .1, "DCA Neg To PV"};
-  Configurable<double> dcapostopv{"dcapostopv", .1, "DCA Pos To PV"};
-  Configurable<double> v0radius{"v0radius", 5.0, "v0radius"};
+  Configurable<double> v0cospa{"v0cospa", 0.995, "V0 CosPA"}; //double -> N.B. dcos(x)/dx = 0 at x=0)
+  Configurable<float> dcav0dau{"dcav0dau", 1.0, "DCA V0 Daughters"};
+  Configurable<float> dcanegtopv{"dcanegtopv", .1, "DCA Neg To PV"};
+  Configurable<float> dcapostopv{"dcapostopv", .1, "DCA Pos To PV"};
+  Configurable<float> v0radius{"v0radius", 5.0, "v0radius"};
 
   void process(aod::Collision const& collision, soa::Join<aod::V0s, aod::V0Data> const& fullV0s)
   {
     for (auto& v0 : fullV0s) {
-      if (v0.V0CosPAs() > v0cospa && v0.DCAV0Daughters() < dcav0dau && v0.V0Radii() > v0radius && v0.DCANegToPVs() > dcanegtopv && v0.DCAPosToPVs() > dcapostopv) {
-        h2dMassLambda->Fill(v0.Pts(), v0.MassAsLambdas());
-        h2dMassAntiLambda->Fill(v0.Pts(), v0.MassAsAntiLambdas());
-        h2dMassK0Short->Fill(v0.Pts(), v0.MassAsK0Shorts());
+        h2dMassLambda    ->Fill(v0.pt(), v0.mLambda());
+        h2dMassAntiLambda->Fill(v0.pt(), v0.mAntiLambda());
+        h2dMassK0Short   ->Fill(v0.pt(), v0.mK0Short());
       }
     }
-  }
 };
 
 WorkflowSpec defineDataProcessing(ConfigContext const&)
