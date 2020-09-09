@@ -23,7 +23,7 @@ struct MultiplicityQaTask {
   OutputObj<TH1F> hMultZNC{TH1F("hMultZNC", "", 600, 0., 240000.)};
 
   OutputObj<TProfile> hMultNtrackletsVsV0M{TProfile("hMultNtrackletsVsV0M", "", 50000, 0., 50000.)};
-    
+
   void process(soa::Join<aod::Collisions, aod::EvSels, aod::Mults>::iterator const& col)
   {
     if (!col.alias()[kINT7])
