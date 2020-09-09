@@ -180,6 +180,14 @@ DECLARE_SOA_DYNAMIC_COLUMN(ITSNCls, itsNCls, [](uint8_t itsClusterMap) -> uint8_
       itsNcls++;
   return itsNcls;
 });
+DECLARE_SOA_DYNAMIC_COLUMN(ITSNClsInnerBarrel, itsNClsInnerBarrel, [](uint8_t itsClusterMap) -> uint8_t {
+  uint8_t itsNclsInnerBarrel = 0;
+  constexpr uint8_t bit = 1;
+  for (int layer = 0; layer < 3; layer++)
+    if (itsClusterMap & (bit << layer))
+      itsNclsInnerBarrel++;
+  return itsNclsInnerBarrel;
+});
 
 DECLARE_SOA_DYNAMIC_COLUMN(TPCCrossedRowsOverFindableCls, tpcCrossedRowsOverFindableCls,
                            [](uint8_t tpcNClsFindable, uint8_t tpcNClsFindableMinusCrossedRows) -> float {
@@ -243,7 +251,7 @@ DECLARE_SOA_TABLE(TracksExtra, "AOD", "TRACKEXTRA",
                   track::TPCSignal, track::TRDSignal, track::TOFSignal, track::Length, track::TOFExpMom,
                   track::TPCNClsFound<track::TPCNClsFindable, track::TPCNClsFindableMinusFound>,
                   track::TPCNClsCrossedRows<track::TPCNClsFindable, track::TPCNClsFindableMinusCrossedRows>,
-                  track::ITSNCls<track::ITSClusterMap>,
+                  track::ITSNCls<track::ITSClusterMap>, track::ITSNClsInnerBarrel<track::ITSClusterMap>,
                   track::TPCCrossedRowsOverFindableCls<track::TPCNClsFindable, track::TPCNClsFindableMinusCrossedRows>,
                   track::TPCFractionSharedCls<track::TPCNClsShared, track::TPCNClsFindable, track::TPCNClsFindableMinusFound>);
 
