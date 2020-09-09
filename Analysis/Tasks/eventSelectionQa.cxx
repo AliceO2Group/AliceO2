@@ -56,9 +56,11 @@ struct EventSelectionTask {
   OutputObj<TH1F> hTimeFDAacc{TH1F("hTimeFDAacc", "", 1000, -100., 100.)};
   OutputObj<TH1F> hTimeFDCacc{TH1F("hTimeFDCacc", "", 1000, -100., 100.)};
 
+  Configurable<bool> isMC{"isMC", 0, "0 - data, 1 - MC"};
+
   void process(soa::Join<aod::Collisions, aod::EvSels>::iterator const& col, aod::BCs const& bcs, aod::Zdcs const& zdcs, aod::Run2V0s const& vzeros, aod::FDDs fdds)
   {
-    if (!col.alias()[kINT7])
+    if (!isMC && !col.alias()[kINT7])
       return;
 
     auto vzero = getVZero(col.bc(), vzeros);

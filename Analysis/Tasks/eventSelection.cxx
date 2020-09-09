@@ -55,6 +55,8 @@ struct EvSelParameters {
 struct EventSelectionTask {
   Produces<aod::EvSels> evsel;
   Service<o2::ccdb::BasicCCDBManager> ccdb;
+  Configurable<bool> isMC{"isMC", 0, "0 - data, 1 - MC"};
+
   EvSelParameters par;
 
   aod::Run2V0 getVZero(aod::BC const& bc, aod::Run2V0s const& vzeros)
@@ -137,6 +139,11 @@ struct EventSelectionTask {
     bool bbFDC = timeFDC > par.fFDCBBlower && timeFDC < par.fFDCBBupper;
     bool bgFDA = timeFDA > par.fFDABGlower && timeFDA < par.fFDABGupper;
     bool bgFDC = timeFDC > par.fFDCBGlower && timeFDC < par.fFDCBGupper;
+
+    if (isMC) {
+      bbZNA = 1;
+      bbZNC = 1;
+    }
 
     // Fill event selection columns
     evsel(alias, bbV0A, bbV0C, bgV0A, bgV0C, bbZNA, bbZNC, bbFDA, bbFDC, bgFDA, bgFDC);
