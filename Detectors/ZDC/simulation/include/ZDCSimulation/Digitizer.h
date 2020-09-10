@@ -35,12 +35,12 @@ class Digitizer
   using ChannelBCDataF = std::array<float, NTimeBinsPerBC>;
 
  public:
+  uint32_t triggerableChanMask = 0; // mask of triggerable channels IDs
   struct BCCache : public o2::InteractionRecord {
     std::array<ChannelBCDataF, NChannels> data = {};
     std::vector<o2::zdc::MCLabel> labels;
     bool digitized = false;
     bool triggerChecked = false;
-    uint32_t trigChanMask = 0; // mask of triggered channels IDs
     static constexpr uint32_t AllChannelsMask = 0x1 << NChannels;
 
     BCCache();
@@ -143,6 +143,7 @@ class Digitizer
   const SimCondition* mSimCondition = nullptr;      ///< externally set SimCondition
   const ModuleConfig* mModuleConfig = nullptr;      ///< externally set ModuleConfig
   std::vector<TriggerChannelConfig> mTriggerConfig; ///< triggering channels
+  uint32_t trigChanMask = 0;			    ///< mask of digital discriminators that are actually flagged as triggers
   std::vector<ModuleConfAux> mModConfAux;           ///< module check helper
   std::vector<BCCache*> mFastCache;                 ///< for the fast iteration over cached BCs + dummy
   std::vector<uint32_t> mStoreChanMask;             ///< pattern of channels to store
