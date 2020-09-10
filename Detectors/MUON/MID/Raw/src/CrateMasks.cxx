@@ -94,7 +94,7 @@ bool CrateMasks::load(const char* filename)
     std::getline(ss, token, ' ');
     uint16_t feeId = std::atoi(token.c_str());
     std::getline(ss, token, ' ');
-    uint8_t mask = std::atoi(token.c_str());
+    uint8_t mask = static_cast<uint8_t>(std::strtol(token.c_str(), nullptr, 16));
     mActiveBoards[feeId] = mask;
   }
   inFile.close();
