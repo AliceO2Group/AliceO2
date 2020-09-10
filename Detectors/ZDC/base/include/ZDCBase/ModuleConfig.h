@@ -34,12 +34,12 @@ struct Module {
   static constexpr int MaxChannels = 4, MaxTriggChannels = 2;
   int id = -1; // not active
   std::array<int8_t, MaxChannels> channelID = {IdDummy, IdDummy, IdDummy, IdDummy};
-  std::array<int16_t, MaxChannels> linkID = {-1, -1, -1, -1};
+  std::array<int16_t, MaxChannels> feeID = {-1, -1, -1, -1};
   std::array<bool, MaxChannels> readChannel = {false};
   std::array<bool, MaxChannels> trigChannel = {false};
   std::array<TriggerChannelConfig, MaxChannels> trigChannelConf;
 
-  void setChannel(int slot, int8_t chID, int16_t lID, bool read, bool trig = false, int tF = 0, int tL = 0, int tS = 0, int tT = 0);
+  void setChannel(int slot, int8_t chID, int16_t fID, bool read, bool trig = false, int tF = 0, int tL = 0, int tS = 0, int tT = 0);
   void print() const;
   void printCh() const;
   void printTrig() const;

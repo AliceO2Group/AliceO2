@@ -55,9 +55,11 @@ constexpr uint8_t ALICETriggerMask = 0x1;
 
 constexpr int NModules = 8;
 constexpr int NChPerModule = 4;
+constexpr int NLinks = NModules * 2;
 constexpr int NDigiChannels = NModules * NChPerModule;
 constexpr int NWPerBc = 3;
 constexpr int MaxTriggerChannels = NChannels;
+constexpr int ADCMin = -2048, ADCMax = 2047, ADCRange = 4096; // 12 bit ADC
 
 constexpr int MaxTDCValues = 5;  // max number of TDC values to store in reconstructed event
 constexpr int NTDCChannels = 10; // max number of TDC values to store in reconstructed event

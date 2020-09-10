@@ -8,6 +8,7 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
+#include "CommonConstants/LHCConstants.h"
 #include "CCDB/BasicCCDBManager.h"
 #include "CCDB/CCDBTimeStampUtils.h"
 #include "ZDCSimulation/Digitizer.h"
@@ -19,11 +20,13 @@
 
 using namespace o2::zdc;
 
+//______________________________________________________________________________
 Digitizer::BCCache::BCCache()
 {
   memset(&data, 0, NChannels * sizeof(ChannelBCDataF));
 }
 
+//______________________________________________________________________________
 Digitizer::ModuleConfAux::ModuleConfAux(const Module& md) : id(md.id)
 {
   if (md.id < 0 || md.id >= NModules) {
@@ -42,6 +45,7 @@ Digitizer::ModuleConfAux::ModuleConfAux(const Module& md) : id(md.id)
   }
 }
 
+//______________________________________________________________________________
 // this will process hits and fill the digit vector with digits which are finalized
 void Digitizer::process(const std::vector<o2::zdc::Hit>& hits,
                         std::vector<o2::zdc::BCData>& digitsBC,
@@ -98,6 +102,7 @@ void Digitizer::process(const std::vector<o2::zdc::Hit>& hits,
   }
 }
 
+//______________________________________________________________________________
 void Digitizer::flush(std::vector<o2::zdc::BCData>& digitsBC,
                       std::vector<o2::zdc::ChannelData>& digitsCh,
                       o2::dataformats::MCTruthContainer<o2::zdc::MCLabel>& labels)
@@ -163,6 +168,7 @@ void Digitizer::flush(std::vector<o2::zdc::BCData>& digitsBC,
   mCache.erase(mCache.begin(), mCache.end());
 }
 
+//______________________________________________________________________________
 void Digitizer::generatePedestal()
 {
   for (int idet : {ZNA, ZPA, ZNC, ZPC}) {
@@ -179,6 +185,7 @@ void Digitizer::generatePedestal()
   mPedestalBLFluct[IdZEM2] = gRandom->Gaus(0, mSimCondition->channels[IdZEM2].pedestalFluct);
 }
 
+//______________________________________________________________________________
 void Digitizer::digitizeBC(BCCache& bc)
 {
   auto& bcdata = bc.data;
@@ -230,10 +237,10 @@ void Digitizer::digitizeBC(BCCache& bc)
       }
     }
   }
-
   bc.digitized = true;
 }
 
+//______________________________________________________________________________
 bool Digitizer::triggerBC(int ibc)
 {
   // check trigger for the cached BC in the position ibc
@@ -293,6 +300,7 @@ bool Digitizer::triggerBC(int ibc)
   return bcCached.trigChanMask;
 }
 
+//______________________________________________________________________________
 void Digitizer::storeBC(const BCCache& bc, uint32_t chan2Store,
                         std::vector<o2::zdc::BCData>& digitsBC, std::vector<o2::zdc::ChannelData>& digitsCh,
                         o2::dataformats::MCTruthContainer<o2::zdc::MCLabel>& labels)
@@ -326,6 +334,7 @@ void Digitizer::storeBC(const BCCache& bc, uint32_t chan2Store,
   }
 }
 
+//______________________________________________________________________________
 void Digitizer::phe2Sample(int nphe, int parID, double timeHit, std::array<o2::InteractionRecord, NBC2Cache> const& cachedIR, int nCachedIR, int channel)
 {
   //function to simulate the waveform from no. of photoelectrons seen in a given sample
@@ -360,6 +369,7 @@ void Digitizer::phe2Sample(int nphe, int parID, double timeHit, std::array<o2::I
   } while (++ir < nCachedIR && !stop);
 }
 
+//______________________________________________________________________________
 o2::zdc::Digitizer::BCCache& Digitizer::getCreateBCCache(const o2::InteractionRecord& ir)
 {
   if (mCache.empty() || mCache.back() < ir) {
@@ -388,6 +398,7 @@ o2::zdc::Digitizer::BCCache& Digitizer::getCreateBCCache(const o2::InteractionRe
   return mCache.front();
 }
 
+//______________________________________________________________________________
 o2::zdc::Digitizer::BCCache* Digitizer::getBCCache(const o2::InteractionRecord& ir)
 {
   // get pointer on existing cache
@@ -399,6 +410,7 @@ o2::zdc::Digitizer::BCCache* Digitizer::getBCCache(const o2::InteractionRecord& 
   return nullptr;
 }
 
+//______________________________________________________________________________
 void Digitizer::init()
 {
   if (mCCDBServer.empty()) {
@@ -414,6 +426,7 @@ void Digitizer::init()
             << " BCs will be stored ahead of Trigger";
 }
 
+//______________________________________________________________________________
 void Digitizer::refreshCCDB()
 {
   // fetch ccdb objects. TODO: decide if this stays here or goes to the Spec
@@ -437,7 +450,7 @@ void Digitizer::refreshCCDB()
           if (md.trigChannel[ic] || (md.trigChannelConf[ic].shift > 0 && md.trigChannelConf[ic].threshold > 0)) {
             const auto& trgChanConf = md.trigChannelConf[ic];
             if (trgChanConf.last + trgChanConf.shift + 1 >= NTimeBinsPerBC) {
-              LOG(FATAL) << "Wrong trigger settings";
+              LOG(ERROR) << "Wrong trigger settings";
             }
             mTriggerConfig.emplace_back(trgChanConf);
             // We insert in the trigger mask only the channels that are actually triggering
@@ -457,6 +470,9 @@ void Digitizer::refreshCCDB()
               mTrigBinMax = trgChanConf.last + trgChanConf.shift;
             }
           }
+          if (md.feeID[ic] < 0 || md.feeID[ic] >= NLinks) {
+            LOG(ERROR) << "FEEID " << md.feeID[ic] << " not in allowed range [0:" << NLinks << ")";
+          }
         }
       } else {
         LOG(FATAL) << "Module id: " << md.id << " is out of range";
@@ -472,7 +488,7 @@ void Digitizer::refreshCCDB()
   }
 }
 
-//______________________________________________________________
+//______________________________________________________________________________
 void Digitizer::BCCache::print() const
 {
   std::bitset<NChannels> tmsk(trigChanMask);
