@@ -110,7 +110,6 @@ class Digitizer
 
  private:
   static constexpr int BCCacheMin = -1, BCCacheMax = 5, NBC2Cache = 1 + BCCacheMax - BCCacheMin;
-  static constexpr int ADCMin = -2048, ADCMax = 2047; // 12 bit ADC
 
   std::bitset<NChannels> chanPattern(uint32_t v) const
   {
