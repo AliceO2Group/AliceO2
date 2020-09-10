@@ -20,6 +20,8 @@
 #include "Framework/ChannelConfigurationPolicy.h"
 #include "Framework/ConfigParamSpec.h"
 #include "Framework/TerminationPolicy.h"
+#include "Framework/CompletionPolicy.h"
+#include "Framework/DispatchPolicy.h"
 #include "DataProcessorInfo.h"
 
 namespace o2::framework

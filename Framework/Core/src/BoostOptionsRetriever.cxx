@@ -14,6 +14,7 @@
 #include "PropertyTreeHelpers.h"
 
 #include <boost/program_options.hpp>
+#include <boost/program_options/options_description.hpp>
 
 #include <string>
 #include <vector>
@@ -28,7 +29,7 @@ namespace o2::framework
 
 BoostOptionsRetriever::BoostOptionsRetriever(bool ignoreUnknown,
                                              int argc, char** argv)
-  : mDescription{"ALICE O2 Framework - Available options"},
+  : mDescription{std::make_unique<boost::program_options::options_description>("ALICE O2 Framework - Available options")},
     mIgnoreUnknown{ignoreUnknown},
     mArgc{argc},
     mArgv{argv}
@@ -39,7 +40,7 @@ void BoostOptionsRetriever::update(std::vector<ConfigParamSpec> const& specs,
                                    boost::property_tree::ptree& store,
                                    boost::property_tree::ptree& provenance)
 {
-  auto options = mDescription.add_options();
+  auto options = mDescription->add_options();
   for (auto& spec : specs) {
     const char* name = spec.name.c_str();
     const char* help = spec.help.c_str();
@@ -72,8 +73,8 @@ void BoostOptionsRetriever::update(std::vector<ConfigParamSpec> const& specs,
   using namespace bpo::command_line_style;
   auto style = (allow_short | short_allow_adjacent | short_allow_next | allow_long | long_allow_adjacent | long_allow_next | allow_sticky | allow_dash_for_short);
 
-  auto parsed = mIgnoreUnknown ? bpo::command_line_parser(mArgc, mArgv).options(mDescription).style(style).allow_unregistered().run()
-                               : bpo::parse_command_line(mArgc, mArgv, mDescription, style);
+  auto parsed = mIgnoreUnknown ? bpo::command_line_parser(mArgc, mArgv).options(*mDescription).style(style).allow_unregistered().run()
+                               : bpo::parse_command_line(mArgc, mArgv, *mDescription, style);
   bpo::variables_map vmap;
   bpo::store(parsed, vmap);
   PropertyTreeHelpers::populate(specs, store, vmap, provenance);
