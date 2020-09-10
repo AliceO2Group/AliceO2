@@ -67,15 +67,15 @@ struct AnalysisDataProcessorBuilder {
     (doAppendInputWithMetadata<Args>(inputs), ...);
   }
 
-  template <typename T, size_t At>
-  static void appendSomethingWithMetadata(std::vector<InputSpec>& inputs, std::vector<ExpressionInfo>& eInfos)
+  template <typename T>
+  static void appendSomethingWithMetadata(std::vector<InputSpec>& inputs, std::vector<ExpressionInfo>& eInfos, size_t at)
   {
     using dT = std::decay_t<T>;
     if constexpr (framework::is_specialization<dT, soa::Filtered>::value) {
-      eInfos.push_back({At, o2::soa::createSchemaFromColumns(typename dT::table_t::persistent_columns_t{}), nullptr});
+      eInfos.push_back({at, o2::soa::createSchemaFromColumns(typename dT::table_t::persistent_columns_t{}), nullptr});
     } else if constexpr (soa::is_soa_iterator_t<dT>::value) {
       if constexpr (std::is_same_v<typename dT::policy_t, soa::FilteredIndexPolicy>) {
-        eInfos.push_back({At, o2::soa::createSchemaFromColumns(typename dT::table_t::persistent_columns_t{}), nullptr});
+        eInfos.push_back({at, o2::soa::createSchemaFromColumns(typename dT::table_t::persistent_columns_t{}), nullptr});
       }
     }
     doAppendInputWithMetadata(soa::make_originals_from_type<dT>(), inputs);
@@ -84,7 +84,7 @@ struct AnalysisDataProcessorBuilder {
   template <typename R, typename C, typename... Args>
   static void inputsFromArgs(R (C::*)(Args...), std::vector<InputSpec>& inputs, std::vector<ExpressionInfo>& eInfos)
   {
-    (appendSomethingWithMetadata<Args, has_type_at<Args>(pack<Args...>{})>(inputs, eInfos), ...);
+    (appendSomethingWithMetadata<Args>(inputs, eInfos, o2::framework::has_type_at_v<Args>(pack<Args...>{})), ...);
   }
 
   template <typename R, typename C, typename Grouping, typename... Args>
@@ -96,7 +96,7 @@ struct AnalysisDataProcessorBuilder {
   template <typename R, typename C, typename Grouping, typename... Args>
   static auto bindGroupingTable(InputRecord& record, R (C::*)(Grouping, Args...), std::vector<ExpressionInfo> const& infos)
   {
-    return extractSomethingFromRecord<Grouping, 0>(record, infos);
+    return extractSomethingFromRecord<Grouping>(record, infos, 0);
   }
 
   template <typename R, typename C>
@@ -137,20 +137,20 @@ struct AnalysisDataProcessorBuilder {
     }
   }
 
-  template <typename T, size_t At>
-  static auto extractSomethingFromRecord(InputRecord& record, std::vector<ExpressionInfo> const infos)
+  template <typename T>
+  static auto extractSomethingFromRecord(InputRecord& record, std::vector<ExpressionInfo> const infos, size_t at)
   {
     using decayed = std::decay_t<T>;
 
     if constexpr (soa::is_soa_filtered_t<decayed>::value) {
       for (auto& info : infos) {
-        if (info.index == At)
+        if (info.index == at)
           return extractFilteredFromRecord<decayed>(record, info, soa::make_originals_from_type<decayed>());
       }
     } else if constexpr (soa::is_soa_iterator_t<decayed>::value) {
       if constexpr (std::is_same_v<typename decayed::policy_t, soa::FilteredIndexPolicy>) {
         for (auto& info : infos) {
-          if (info.index == At)
+          if (info.index == at)
             return extractFilteredFromRecord<decayed>(record, info, soa::make_originals_from_type<decayed>());
         }
       } else {
@@ -165,7 +165,7 @@ struct AnalysisDataProcessorBuilder {
   template <typename R, typename C, typename Grouping, typename... Args>
   static auto bindAssociatedTables(InputRecord& record, R (C::*)(Grouping, Args...), std::vector<ExpressionInfo> const infos)
   {
-    return std::make_tuple(extractSomethingFromRecord<Args, has_type_at<Args>(pack<Args...>{}) + 1u>(record, infos)...);
+    return std::make_tuple(extractSomethingFromRecord<Args>(record, infos, has_type_at_v<Args>(pack<Args...>{}) + 1u)...);
   }
 
   template <typename R, typename C>
@@ -236,7 +236,7 @@ struct AnalysisDataProcessorBuilder {
         ///
         auto splitter = [&](auto&& x) {
           using xt = std::decay_t<decltype(x)>;
-          constexpr auto index = framework::has_type_at<std::decay_t<decltype(x)>>(associated_pack_t{});
+          constexpr auto index = framework::has_type_at_v<std::decay_t<decltype(x)>>(associated_pack_t{});
           if (hasIndexTo<std::decay_t<G>>(typename xt::persistent_columns_t{})) {
             auto result = o2::framework::sliceByColumn(indexColumnName.c_str(),
                                                        x.asArrowTable(),
@@ -261,7 +261,7 @@ struct AnalysisDataProcessorBuilder {
         auto extractor = [&](auto&& x) {
           using xt = std::decay_t<decltype(x)>;
           if constexpr (soa::is_soa_filtered_t<xt>::value) {
-            constexpr auto index = framework::has_type_at<std::decay_t<decltype(x)>>(associated_pack_t{});
+            constexpr auto index = framework::has_type_at_v<std::decay_t<decltype(x)>>(associated_pack_t{});
             selections[index] = &x.getSelectedRows();
             starts[index] = selections[index]->begin();
             offsets[index].push_back(std::get<xt>(at).tableSize());
@@ -341,7 +341,7 @@ struct AnalysisDataProcessorBuilder {
       template <typename A1>
       auto prepareArgument()
       {
-        constexpr auto index = framework::has_type_at<A1>(associated_pack_t{});
+        constexpr auto index = framework::has_type_at_v<A1>(associated_pack_t{});
         if (hasIndexTo<G>(typename std::decay_t<A1>::persistent_columns_t{})) {
           uint64_t pos;
           if constexpr (soa::is_soa_filtered_t<std::decay_t<G>>::value) {
