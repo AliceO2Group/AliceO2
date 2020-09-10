@@ -72,18 +72,23 @@ bool GBTRawDataChecker::checkConsistency(const ROBoard& board)
   bool isCalib = raw::isCalibration(board.triggerWord);
   bool isPhys = board.triggerWord & raw::sPHY;
 
-  if (isPhys) {
-    if (isCalib) {
-      mEventDebugMsg += "inconsistent trigger: calibration and physics trigger cannot be fired together\n";
-      return false;
-    }
-    if (raw::isLoc(board.statusWord)) {
-      if (board.firedChambers) {
-        mEventDebugMsg += "inconsistent trigger: fired chambers should be 0\n";
-        return false;
-      }
-    }
-  }
+  // FIXME: During data acquisition we do not expect a calibration trigger
+  // in coincidence with a physics trigger.
+  // However, this situation can happen in the tests with the LTU.
+  // So, let us remove these tests for the time being
+
+  // if (isPhys) {
+  //   if (isCalib) {
+  //     mEventDebugMsg += "inconsistent trigger: calibration and physics trigger cannot be fired together\n";
+  //     return false;
+  //   }
+  //   if (raw::isLoc(board.statusWord)) {
+  //     if (board.firedChambers) {
+  //       mEventDebugMsg += "inconsistent trigger: fired chambers should be 0\n";
+  //       return false;
+  //     }
+  //   }
+  // }
   if (isSoxOrReset && (isCalib || isPhys)) {
     mEventDebugMsg += "inconsistent trigger: cannot be SOX and calibration\n";
     return false;
