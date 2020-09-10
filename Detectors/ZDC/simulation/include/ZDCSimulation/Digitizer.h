@@ -41,7 +41,7 @@ class Digitizer
     std::vector<o2::zdc::MCLabel> labels;
     bool digitized = false;
     bool triggerChecked = false;
-    static constexpr uint32_t AllChannelsMask = 0x1 << NChannels;
+    static constexpr uint32_t AllChannelsMask = 0x80000000;
 
     BCCache();
 
