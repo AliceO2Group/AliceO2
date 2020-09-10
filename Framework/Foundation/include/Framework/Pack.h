@@ -161,6 +161,42 @@ constexpr size_t has_type_at(pack<T1, Ts...> const&)
   return sizeof...(Ts) + 2;
 }
 
+namespace
+{
+template <std::size_t I, typename T>
+struct indexed {
+  using type = T;
+  constexpr static std::size_t index = I;
+};
+
+template <typename Is, typename... Ts>
+struct indexer;
+
+template <std::size_t... Is, typename... Ts>
+struct indexer<std::index_sequence<Is...>, Ts...>
+  : indexed<Is, Ts>... {
+};
+
+template <typename T, std::size_t I>
+indexed<I, T> select(indexed<I, T>);
+
+template <typename W, typename... Ts>
+constexpr std::size_t has_type_at_t = decltype(select<W>(
+  indexer<std::index_sequence_for<Ts...>, Ts...>{}))::index;
+} // namespace
+
+template <typename W>
+constexpr std::size_t has_type_at_v(o2::framework::pack<> p)
+{
+  return -1;
+}
+
+template <typename W, typename... Ts>
+constexpr std::size_t has_type_at_v(o2::framework::pack<Ts...> p)
+{
+  return has_type_at_t<W, Ts...>;
+}
+
 /// Intersect two packs
 template <typename S1, typename S2>
 struct intersect_pack {

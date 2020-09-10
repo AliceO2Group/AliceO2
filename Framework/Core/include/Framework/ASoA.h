@@ -629,7 +629,7 @@ struct RowViewCore : public IP, C... {
 
   RowViewCore(arrow::ChunkedArray* columnData[sizeof...(C)], IP&& policy)
     : IP{policy},
-      C(columnData[framework::has_type_at<C>(all_columns{})])...
+      C(columnData[framework::has_type_at_v<C>(all_columns{})])...
   {
     bindIterators(persistent_columns_t{});
     bindAllDynamicColumns(dynamic_columns_t{});
@@ -862,7 +862,7 @@ class Table
     auto getId() const
     {
       if constexpr (framework::has_type_v<std::decay_t<TI>, bindings_pack_t>) {
-        constexpr auto idx = framework::has_type_at<std::decay_t<TI>>(bindings_pack_t{});
+        constexpr auto idx = framework::has_type_at_v<std::decay_t<TI>>(bindings_pack_t{});
         return framework::pack_element_t<idx, external_index_columns_t>::getId();
       } else if constexpr (std::is_same_v<std::decay_t<TI>, Parent>) {
         return this->globalIndex();

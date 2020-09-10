@@ -219,7 +219,7 @@ struct IndexExclusive {
     int32_t idx = -1;
     auto setValue = [&](auto& x) -> bool {
       using type = std::decay_t<decltype(x)>;
-      constexpr auto position = framework::has_type_at<type>(rest_it_t{});
+      constexpr auto position = framework::has_type_at_v<type>(rest_it_t{});
 
       lowerBound<Key>(idx, x);
       if (x == soa::RowViewSentinel{static_cast<uint64_t>(x.mMaxRow)}) {
@@ -248,12 +248,12 @@ struct IndexExclusive {
       auto result = std::apply(
         [&](auto&... x) {
           std::array<bool, sizeof...(T)> results{setValue(x)...};
-          return (results[framework::has_type_at<std::decay_t<decltype(x)>>(rest_it_t{})] && ...);
+          return (results[framework::has_type_at_v<std::decay_t<decltype(x)>>(rest_it_t{})] && ...);
         },
         iterators);
 
       if (result) {
-        cursor(0, row.globalIndex(), values[framework::has_type_at<T>(tables_t{})]...);
+        cursor(0, row.globalIndex(), values[framework::has_type_at_v<T>(tables_t{})]...);
       }
     }
     return builder.finalize();
@@ -285,7 +285,7 @@ struct IndexSparse {
     int32_t idx = -1;
     auto setValue = [&](auto& x) -> bool {
       using type = std::decay_t<decltype(x)>;
-      constexpr auto position = framework::has_type_at<type>(rest_it_t{});
+      constexpr auto position = framework::has_type_at_v<type>(rest_it_t{});
 
       lowerBound<Key>(idx, x);
       if (x == soa::RowViewSentinel{static_cast<uint64_t>(x.mMaxRow)}) {
@@ -310,7 +310,7 @@ struct IndexSparse {
         },
         iterators);
 
-      cursor(0, row.globalIndex(), values[framework::has_type_at<T>(tables_t{})]...);
+      cursor(0, row.globalIndex(), values[framework::has_type_at_v<T>(tables_t{})]...);
     }
     return builder.finalize();
   }
