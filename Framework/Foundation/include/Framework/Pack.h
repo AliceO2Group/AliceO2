@@ -184,7 +184,7 @@ template <typename W, typename... Ts>
 constexpr std::size_t has_type_at_t = decltype(select<W>(
   indexer<std::index_sequence_for<Ts...>, Ts...>{}))::index;
 } // namespace
- 
+
 template <typename W>
 constexpr std::size_t has_type_at_v(o2::framework::pack<> p)
 {
