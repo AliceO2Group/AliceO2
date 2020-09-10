@@ -12,8 +12,8 @@
 //                                                                        //
 //  TRAP config                                                           //
 //                                                                        //
-//  Author: J. Klein (Jochen.Klein@cern.ch)                               //
-//          Lots of mods by S. Murray (murrays@cern.ch)                   //
+//  Author: J. Klein (Jochen.Klein@cern.ch) (run2 version                 //
+//          S. Murray (murrays@cern.ch)                   //
 ////////////////////////////////////////////////////////////////////////////
 
 #include "TRDBase/TRDGeometry.h"
@@ -995,6 +995,48 @@ void TrapConfig::TrapRegister::initfromrun2(const char* name, int addr, int nBit
   mResetValue = resetValue;
   //LOG(fatal) << "Re-initialising an existing TRAP register " << name << ":" << mName << " : " << addr << ":" << mAddr << " : " << nBits << ":" << mNbits <<  " : " << resetValue << ":" << mResetValue;
   //LOG(fatal) << "Re-initialising an existing TRAP register";
+}
+
+void TrapConfig::PrintDmemValue3(TrapConfig::TrapDmemWord* trapval, std::ofstream& output)
+{
+  output << "\t AllocationMode : " << trapval->getAllocMode() << std::endl;
+  output << "\t Array size : " << trapval->getDataSize() << std::endl;
+  for (int dataarray = 0; dataarray < trapval->getDataSize(); dataarray++) {
+    output << "\t " << trapval->getDataRaw(dataarray) << " : valid : " << trapval->getValidRaw(dataarray) << std::endl;
+  }
+}
+
+void TrapConfig::PrintRegisterValue3(TrapConfig::TrapRegister* trapval, std::ofstream& output)
+{
+  output << "\t AllocationMode : " << trapval->getAllocMode() << std::endl;
+  output << "\t Array size : " << trapval->getDataSize() << std::endl;
+  for (int dataarray = 0; dataarray < trapval->getDataSize(); dataarray++) {
+    output << "\t " << trapval->getDataRaw(dataarray) << " : valid : " << trapval->getValidRaw(dataarray) << std::endl;
+  }
+}
+
+void TrapConfig::DumpTrapConfig2File(std::string filename)
+{
+  std::ofstream outfile(filename);
+  outfile << "Trap Registers : " << std::endl;
+  for (int regvalue = 0; regvalue < TrapConfig::kLastReg; regvalue++) {
+    outfile << " Trap : " << mRegisterValue[regvalue].getName()
+            << " at : 0x " << std::hex << mRegisterValue[regvalue].getAddr() << std::dec
+            << " with nbits : " << mRegisterValue[regvalue].getNbits()
+            << " and reset value of : " << mRegisterValue[regvalue].getResetValue() << std::endl;
+    // now for the inherited AliTRDtrapValue members;
+    PrintRegisterValue3(&mRegisterValue[regvalue], outfile);
+  }
+
+  //  outfile << "done with regiser values now for dmemwords" << std::endl;
+  outfile << "DMEM Words : " << std::endl;
+  for (int dmemwords = 0; dmemwords < TrapConfig::mgkDmemWords; dmemwords++) {
+    // copy fName, fAddr
+    // inherited from trapvalue : fAllocMode, fSize fData and fValid
+    //        trapconfig->mDmem[dmemwords].mName= run2config->fDmem[dmemwords].fName; // this gets set on setting the address
+    outfile << "Name : " << mDmem[dmemwords].getName() << " :address : " << mDmem[dmemwords].getAddress() << std::endl;
+    PrintDmemValue3(&mDmem[dmemwords], outfile);
+  }
 }
 
 void TrapConfig::configureOnlineGains()
