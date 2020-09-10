@@ -69,7 +69,6 @@ struct lambdakzeroproducer {
                                 pow((globalY - coll[1]), 2));
     }
 
-    
     void process(aod::Collision const& collision, aod::V0s const& V0s, aod::FullTracks const& tracks)
     {
         //Define o2 fitter, 2-prong
