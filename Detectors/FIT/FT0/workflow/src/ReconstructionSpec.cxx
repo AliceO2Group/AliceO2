@@ -33,9 +33,6 @@ void ReconstructionDPL::init(InitContext& ic)
 
 void ReconstructionDPL::run(ProcessingContext& pc)
 {
-  if (mFinished) {
-    return;
-  }
   mRecPoints.clear();
   auto digits = pc.inputs().get<gsl::span<o2::ft0::Digit>>("digits");
   //auto digits = pc.inputs().get<const std::vector<o2::ft0::Digit>>("digits");
@@ -49,10 +46,12 @@ void ReconstructionDPL::run(ProcessingContext& pc)
     LOG(INFO) << "Ignoring MC info";
   }
   int nDig = digits.size();
+  LOG(DEBUG) << " nDig " << nDig;
   mRecPoints.reserve(nDig);
   mRecChData.resize(digch.size());
   for (int id = 0; id < nDig; id++) {
     const auto& digit = digits[id];
+    LOG(DEBUG) << " ndig " << id << " bc " << digit.getBC() << " orbit " << digit.getOrbit();
     auto channels = digit.getBunchChannelData(digch);
     gsl::span<o2::ft0::ChannelDataFloat> out_ch(mRecChData);
     out_ch = out_ch.subspan(digit.ref.getFirstEntry(), digit.ref.getEntries());
@@ -65,7 +64,6 @@ void ReconstructionDPL::run(ProcessingContext& pc)
   pc.outputs().snapshot(Output{mOrigin, "RECCHDATA", 0, Lifetime::Timeframe}, mRecChData);
 
   mFinished = true;
-  pc.services().get<ControlService>().readyToQuit(QuitRequest::Me);
 }
 
 DataProcessorSpec getReconstructionSpec(bool useMC)
