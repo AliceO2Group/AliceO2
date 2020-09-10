@@ -156,45 +156,6 @@ TrapConfig* TRDDPLTrapSimulatorTask::getTrapConfig()
   } // end of else from if mTrapConfig
 }
 
-void PrintDmemValue3(TrapConfig::TrapDmemWord* trapval, std::ofstream& output)
-{
-  output << "\t AllocationMode : " << trapval->getAllocMode() << std::endl;
-  output << "\t Array size : " << trapval->getDataSize() << std::endl;
-  for (int dataarray = 0; dataarray < trapval->getDataSize(); dataarray++) {
-    output << "\t " << trapval->getDataRaw(dataarray) << " : valid : " << trapval->getValidRaw(dataarray) << std::endl;
-  }
-}
-void PrintRegisterValue3(TrapConfig::TrapRegister* trapval, std::ofstream& output)
-{
-  output << "\t AllocationMode : " << trapval->getAllocMode() << std::endl;
-  output << "\t Array size : " << trapval->getDataSize() << std::endl;
-  for (int dataarray = 0; dataarray < trapval->getDataSize(); dataarray++) {
-    output << "\t " << trapval->getDataRaw(dataarray) << " : valid : " << trapval->getValidRaw(dataarray) << std::endl;
-  }
-}
-void PrintTrapConfigAsStored3(TrapConfig* trapconfig)
-{
-  std::ofstream run3config("run3trapconfig-AsStored-insidedpl.txt");
-  run3config << "Trap Registers : " << std::endl;
-  for (int regvalue = 0; regvalue < TrapConfig::kLastReg; regvalue++) {
-    run3config << " Trap : " << trapconfig->mRegisterValue[regvalue].getName()
-               << " at : 0x " << std::hex << trapconfig->mRegisterValue[regvalue].getAddr() << std::dec
-               << " with nbits : " << trapconfig->mRegisterValue[regvalue].getNbits()
-               << " and reset value of : " << trapconfig->mRegisterValue[regvalue].getResetValue() << std::endl;
-    // now for the inherited AliTRDtrapValue members;
-    PrintRegisterValue3(&trapconfig->mRegisterValue[regvalue], run3config);
-  }
-
-  //  run3config << "done with regiser values now for dmemwords" << std::endl;
-  run3config << "DMEM Words : " << std::endl;
-  for (int dmemwords = 0; dmemwords < TrapConfig::mgkDmemWords; dmemwords++) {
-    // copy fName, fAddr
-    // inherited from trapvalue : fAllocMode, fSize fData and fValid
-    //        trapconfig->mDmem[dmemwords].mName= run2config->fDmem[dmemwords].fName; // this gets set on setting the address
-    run3config << "Name : " << trapconfig->mDmem[dmemwords].getName() << " :address : " << trapconfig->mDmem[dmemwords].getAddress() << std::endl;
-    PrintDmemValue3(&trapconfig->mDmem[dmemwords], run3config);
-  }
-}
 
 void TRDDPLTrapSimulatorTask::loadTrapConfig()
 {
@@ -204,9 +165,9 @@ void TRDDPLTrapSimulatorTask::loadTrapConfig()
 
   auto& ccdbmgr = o2::ccdb::BasicCCDBManager::instance();
   ccdbmgr.setTimestamp(mRunNumber);
-  //default is : mTrapConfigName="cf_pg-fpnp32_zs-s16-deh_tb30_trkl-b5n-fs1e24-ht200-qs0e24s24e23-pidlinear-pt100_ptrg.r5549";
+  //default is : mTrapConfigName="dcf_pg-fpnp32_zs-s16-deh_tb30_trkl-b5n-fs1e24-ht200-qs0e24s24e23-pidlinear-pt100_ptrg.r5549";
   mTrapConfigName = "c";
-  mTrapConfig = ccdbmgr.get<o2::trd::TrapConfig>("TRD_test/TrapConfig2020/c");
+  mTrapConfig = ccdbmgr.get<o2::trd::TrapConfig>("TRD_test/TrapConfig2020/" + mTrapConfigName);
   if (mTrapConfig == nullptr) {
     //failed to find or open or connect or something to get the trapconfig from the ccdb.
     //first check the directory listing.
@@ -214,7 +175,7 @@ void TRDDPLTrapSimulatorTask::loadTrapConfig()
   } else {
     //TODO figure out how to get the debug level from logger and only do this for debug option to --severity debug (or what ever the command actualy is)
     if (mEnableTrapConfigDump)
-      PrintTrapConfigAsStored3(mTrapConfig);
+      mTrapConfig->DumpTrapConfig2File("run3trapconfig_dump");
   }
 }
 
@@ -272,7 +233,6 @@ void TRDDPLTrapSimulatorTask::init(o2::framework::InitContext& ic)
   mDrawTrackletOptions = ic.options().get<int>("trd-drawtracklets");
   mShowTrackletStats = ic.options().get<int>("show-trd-trackletstats");
   mTrapConfigName = ic.options().get<std::string>("trd-trapconfig");
-  mPrintOutTrapConfig = ic.options().get<bool>("trd-printtrapconfig");
   mDebugRejectedTracklets = ic.options().get<bool>("trd-debugrejectedtracklets");
   mEnableOnlineGainCorrection = ic.options().get<bool>("trd-onlinegaincorrection");
   mOnlineGainTableName = ic.options().get<std::string>("trd-onlinegaintable");
@@ -502,10 +462,6 @@ void TRDDPLTrapSimulatorTask::run(o2::framework::ProcessingContext& pc)
                << " LinkId:" << LinkRecord::getHalfChamberLinkId(detector, rob) << "\t\t  SM:stack:layer:side  " << detector / 30 << ":" << trdstack << ":" << trdlayer << ":" << fibreside
                << " with ORI : " << mFeeParam->getORI(detector, rob) << " and within supermodule ori index:" << mFeeParam->getORIinSM(detector, rob);
     LOG(debug) << "digit time :  " << digittime;
-    if (row == 4 && pad == 17 && rob == 2 & mcm == 0) {
-      // here for debugging.
-      b = sin(30);
-    }
     if (digititerator == msgDigits.begin()) { // first time in loop
       oldrow = row;
       olddetector = detector;
@@ -587,16 +543,15 @@ void TRDDPLTrapSimulatorTask::run(o2::framework::ProcessingContext& pc)
 
           // mTrapSimulator[trapcounter].zeroSupressionMapping();
 
-          // if (mDrawTrackletOptions != 0)
-          //  mTrapSimulator[trapcounter].draw(mDrawTrackletOptions, loopindex);
+          if (mDrawTrackletOptions != 0)
+            mTrapSimulator[trapcounter].draw(mDrawTrackletOptions, loopindex);
           if (mDebugRejectedTracklets) {                    //&& trapTracklets.size()==0) {
             mTrapSimulator[trapcounter].draw(7, loopindex); //draw adc when no tracklets are found.A
             LOG(debug) << "loop index  : " << loopindex;
             mTrapSimulator[trapcounter].print(1);
-            // if(loopindex==320) LOG(fatal) <<"exiting at trap loop count 320";
           }
-          //          if (mPrintTrackletOptions != 0)
-          //            mTrapSimulator[trapcounter].print(mPrintTrackletOptions);
+          if (mPrintTrackletOptions != 0)
+            mTrapSimulator[trapcounter].print(mPrintTrackletOptions);
 
           loopindex++;
           //set this trap sim object to have not data (effectively) reset.
@@ -723,16 +678,14 @@ o2::framework::DataProcessorSpec getTRDTrapSimulatorSpec()
                            AlgorithmSpec{adaptFromTask<TRDDPLTrapSimulatorTask>()},
                            Options{
                              {"show-trd-trackletstats", VariantType::Int, 25000, {"Display the accumulated size and capacity at number of track intervals"}},
-                             {"trd-trapconfig", VariantType::String, "default", {"Name of the trap config from the CCDB"}},
-                             {"trd-printtrapconfig", VariantType::Bool, false, {"Name of the trap config from the CCDB"}},
-                             {"trd-drawtracklets", VariantType::Int, 0, {"Bitpattern of input to TrapSimulator Draw method (be very careful) one file per track"}},
-                             {"trd-printtracklets", VariantType::Int, 0, {"Bitpattern of input to TrapSimulator print method"}},
+                             {"trd-trapconfig", VariantType::String, "cf_pg-fpnp32_zs-s16-deh_tb30_trkl-b5n-fs1e24-ht200-qs0e24s24e23-pidlinear-pt100_ptrg.r5549", {"Name of the trap config from the CCDB default:cf_pg-fpnp32_zs-s16-deh_tb30_trkl-b5n-fs1e24-ht200-qs0e24s24e23-pidlinear-pt100_ptrg.r5549"}},
+                             {"trd-drawtracklets", VariantType::Int, 0, {"Bitpattern of input to TrapSimulator Draw method one histogram per chip not per tracklet, 1=raw,2=hits,4=tracklets, 7 for all"}},
+                             {"trd-printtracklets", VariantType::Int, 0, {"Bitpattern of input to TrapSimulator print method, "}},
                              {"trd-fixtriggerrecord", VariantType::Bool, false, {"Fix trigger record alignment, temporary, hence false by default"}},
                              {"trd-onlinegaincorrection", VariantType::Bool, false, {"Apply online gain calibrations, mostly for back checking to run2 by setting FGBY to 0"}},
                              {"trd-onlinegaintable", VariantType::String, "Krypton_2015-02", {"Online gain table to be use, names found in CCDB, obviously trd-onlinegaincorrection must be set as well."}},
                              {"trd-debugrejectedtracklets", VariantType::Bool, false, {"Output all MCM where tracklets were not identified"}},
-                             {"trd-dumptrapconfig", VariantType::Bool, false, {"Dump the trapconfig at loading"}},
-                             {"trd-dataformat", VariantType::Int, 1, {"Raw dataformat 1. 4x32bit words 2. 1 with triggerrecords."}},
+                             {"trd-dumptrapconfig", VariantType::Bool, false, {"Dump the selected trap configuration at loading time, to text file"}},
                              {"trd-runnum", VariantType::Int, 297595, {"Run number to use to anchor simulation to, defaults to 297595"}}}};
 };
 
