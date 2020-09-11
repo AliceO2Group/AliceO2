@@ -40,8 +40,8 @@ class OrbitInfo
   uint8_t getLinkID() const { return ((mOrbitInfo >> 32) & 0xFF); }
   uint16_t getFeeID() const { return ((mOrbitInfo >> 40) & 0xFF); }
 
-  friend bool operator== (const OrbitInfo &o1, const OrbitInfo &o2);
-  friend bool operator!= (const OrbitInfo &o1, const OrbitInfo &o2);
+  friend bool operator==(const OrbitInfo& o1, const OrbitInfo& o2);
+  friend bool operator!=(const OrbitInfo& o1, const OrbitInfo& o2);
 
  private:
   uint64_t mOrbitInfo = {0};
@@ -49,8 +49,8 @@ class OrbitInfo
   ClassDefNV(OrbitInfo, 1);
 }; //class OrbitInfo
 
-bool operator== (const OrbitInfo &o1, const OrbitInfo &o2);
-bool operator!= (const OrbitInfo &o1, const OrbitInfo &o2);
+bool operator==(const OrbitInfo& o1, const OrbitInfo& o2);
+bool operator!=(const OrbitInfo& o1, const OrbitInfo& o2);
 
 } //namespace mch
 } //namespace o2

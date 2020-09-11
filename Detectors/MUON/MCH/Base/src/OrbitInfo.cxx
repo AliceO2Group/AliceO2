@@ -29,12 +29,12 @@ OrbitInfo::OrbitInfo(gsl::span<const std::byte> rdhBuffer)
   mOrbitInfo += ((static_cast<uint64_t>(feeId) << 40) & 0xFF0000000000);
 }
 
-bool operator== (const OrbitInfo &o1, const OrbitInfo &o2)
+bool operator==(const OrbitInfo& o1, const OrbitInfo& o2)
 {
   return (o1.mOrbitInfo == o2.mOrbitInfo);
 }
 
-bool operator!= (const OrbitInfo &o1, const OrbitInfo &o2)
+bool operator!=(const OrbitInfo& o1, const OrbitInfo& o2)
 {
   return !(o1 == o2);
 }

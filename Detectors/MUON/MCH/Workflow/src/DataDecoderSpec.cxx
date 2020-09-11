@@ -311,7 +311,6 @@ class DataDecoderTask
       }
     }
 
-
     auto createBuffer = [&](auto& vec, size_t& size) {
       size = vec.empty() ? 0 : sizeof(vec[0]) * vec.size(); //vec.size() * sizeof(decltype(vec)::value_type);
       char* buf = nullptr;

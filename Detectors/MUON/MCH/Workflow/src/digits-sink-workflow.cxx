@@ -87,7 +87,8 @@ class DigitsSinkTask
 
     if (mText) {
       for (auto o : orbits) {
-        mOutputFile << std::endl << " FEEID " << o.getFeeID() << "  LINK " << o.getLinkID() << "  ORBIT " << o.getOrbit() << std::endl;
+        mOutputFile << std::endl
+                    << " FEEID " << o.getFeeID() << "  LINK " << (int)o.getLinkID() << "  ORBIT " << o.getOrbit() << std::endl;
       }
       mOutputFile << "---------------" << std::endl;
       for (auto d : digits) {
