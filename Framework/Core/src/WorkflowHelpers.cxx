@@ -216,15 +216,18 @@ void WorkflowHelpers::injectServiceDevices(WorkflowSpec& workflow, ConfigContext
   std::vector<InputSpec> requestedCCDBs;
   std::vector<OutputSpec> providedCCDBs;
   std::vector<OutputSpec> providedOutputObj;
+  std::vector<OutputSpec> providedHist;
 
   outputTasks outTskMap;
   outputObjects outObjMap;
+  outputObjects outHistMap;
 
   for (size_t wi = 0; wi < workflow.size(); ++wi) {
     auto& processor = workflow[wi];
     auto name = processor.name;
     auto hash = compile_time_hash(name.c_str());
     outTskMap.push_back({hash, name});
+    LOG(INFO) << "Processor name: " << name << " hash: " << hash;
 
     std::string prefix = "internal-dpl-";
     if (processor.inputs.empty() && processor.name.compare(0, prefix.size(), prefix) != 0) {
@@ -278,13 +281,29 @@ void WorkflowHelpers::injectServiceDevices(WorkflowSpec& workflow, ConfigContext
       if (DataSpecUtils::partialMatch(output, header::DataOrigin{"AOD"})) {
         providedAODs.emplace_back(output);
       } else if (DataSpecUtils::partialMatch(output, header::DataOrigin{"ATSK"})) {
+        LOG(INFO) << "Found output object: " << output.binding.value;
         providedOutputObj.emplace_back(output);
         auto it = std::find_if(outObjMap.begin(), outObjMap.end(), [&](auto&& x) { return x.first == hash; });
         if (it == outObjMap.end()) {
+          LOG(INFO) << "Pushing new hash: " << hash;
           outObjMap.push_back({hash, {output.binding.value}});
         } else {
+          LOG(INFO) << "Adding to existing list";
           it->second.push_back(output.binding.value);
         }
+        LOG(INFO) << "provided output size: " << providedOutputObj.size() << " output map size: " << outObjMap.size();
+      } else if (DataSpecUtils::partialMatch(output, header::DataOrigin{"HIST"})) {
+        LOG(INFO) << "Found output histogram: " << output.binding.value;
+        providedHist.emplace_back(output);
+        auto it = std::find_if(outHistMap.begin(), outHistMap.end(), [&](auto&& x) { return x.first == hash; });
+        if (it == outHistMap.end()) {
+          LOG(INFO) << "Pushing new hash: " << hash;
+          outHistMap.push_back({hash, {output.binding.value}});
+        } else {
+          LOG(INFO) << "Adding to existing list";
+          it->second.push_back(output.binding.value);
+        }
+        LOG(INFO) << "provided hist size: " << providedHist.size() << " output hist map size: " << outHistMap.size();
       }
       if (output.lifetime == Lifetime::Condition) {
         providedCCDBs.push_back(output);
@@ -335,7 +354,15 @@ void WorkflowHelpers::injectServiceDevices(WorkflowSpec& workflow, ConfigContext
   // This is to inject a file sink so that any dangling ATSK object is written
   // to a ROOT file.
   if (providedOutputObj.empty() == false) {
+    LOG(INFO) << "Provided output objects size: " << providedOutputObj.size();
     auto rootSink = CommonDataProcessors::getOutputObjSink(outObjMap, outTskMap);
+    extraSpecs.push_back(rootSink);
+  }
+  // This is to inject a file sink so that any dangling HIST object is written
+  // to a ROOT file.
+  if (providedHist.size() != 0) {
+    LOG(INFO) << "Provided hist size: " << providedHist.size();
+    auto rootSink = CommonDataProcessors::getHistogramRegistrySink(outHistMap, outTskMap);
     extraSpecs.push_back(rootSink);
   }
 
@@ -367,6 +394,7 @@ void WorkflowHelpers::injectServiceDevices(WorkflowSpec& workflow, ConfigContext
   }
 
   if (OutputsInputsAOD.size() > 0) {
+    LOGF(INFO, "AOD outputs size: %lu", OutputsInputsAOD.size());
     auto fileSink = CommonDataProcessors::getGlobalAODSink(OutputsInputsAOD,
                                                            isdangling);
     extraSpecs.push_back(fileSink);
@@ -385,6 +413,7 @@ void WorkflowHelpers::injectServiceDevices(WorkflowSpec& workflow, ConfigContext
 
   std::vector<InputSpec> unmatched;
   if (OutputsInputsDangling.size() > 0) {
+    LOGF(INFO, "Dangling outputs detected");
     auto fileSink = CommonDataProcessors::getGlobalFileSink(OutputsInputsDangling, unmatched);
     if (unmatched.size() != OutputsInputsDangling.size()) {
       extraSpecs.push_back(fileSink);
