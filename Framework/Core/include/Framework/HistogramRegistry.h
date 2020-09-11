@@ -15,10 +15,13 @@
 #include "Framework/FunctionalHelpers.h"
 #include "Framework/Logger.h"
 #include "Framework/OutputRef.h"
+#include "Framework/OutputObjHeader.h"
 #include "Framework/OutputSpec.h"
+#include "Framework/SerializationMethods.h"
 #include "Framework/StringHelpers.h"
 #include "Framework/TableBuilder.h"
 
+#include "TClass.h"
 #include "TH1.h"
 #include "TH2.h"
 #include "TH3.h"
@@ -27,6 +30,7 @@
 
 #include <string>
 #include <variant>
+#include <sstream>
 namespace o2
 {
 
@@ -230,8 +234,9 @@ struct HistogramCallbacks {
 class HistogramRegistry
 {
  public:
-  HistogramRegistry(char const* const name_, bool enable, std::vector<HistogramSpec> specs)
+  HistogramRegistry(char const* const name_, bool enable, std::vector<HistogramSpec> specs, OutputObjHandlingPolicy policy_ = OutputObjHandlingPolicy::AnalysisObject)
     : name(name_),
+      policy(policy_),
       enabled(enable),
       mRegistryKey(),
       mRegistryValue(),
@@ -283,7 +288,27 @@ class HistogramRegistry
 
   OutputRef ref()
   {
-    return OutputRef{this->name, 0};
+    return OutputRef{std::string{this->name}, 0, o2::header::Stack{OutputObjHeader{policy, taskHash}}};
+  }
+
+  void setHash(uint32_t hash)
+  {
+    taskHash = hash;
+  }
+
+  std::vector<ROOTSerialized<TH1&, TClass>> getHistogramsToWrite()
+  {
+    std::vector<ROOTSerialized<TH1&, TClass>> histos;
+    for (auto j = 0u; j < MAX_REGISTRY_SIZE; ++j) {
+      if (mRegistryValue[j].get() != nullptr) {
+        auto& hist = *(mRegistryValue[j].get());
+        TClass* hint = TClass::GetClass(typeid(hist));
+        std::string histPrefixedName = getHistName(hist.GetName());
+        hist.SetName(histPrefixedName.c_str());
+        histos.push_back(ROOTSerialized<TH1&, TClass>(hist, hint));
+      }
+    }
+    return histos;
   }
 
   /// lookup distance counter for benchmarking
@@ -308,8 +333,17 @@ class HistogramRegistry
   {
     return i & mask;
   }
+
+  std::string getHistName(const char* oldName) {
+    std::stringstream ss;
+    ss << name << ":" << oldName;
+    return ss.str();
+  }
+
   std::string name;
   bool enabled;
+  OutputObjHandlingPolicy policy;
+  uint32_t taskHash;
 
   /// The maximum number of histograms in buffer is currently set to 512
   /// which seems to be both reasonably large and allowing for very fast lookup

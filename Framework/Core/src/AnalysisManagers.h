@@ -22,6 +22,8 @@
 #include "Framework/RootConfigParamHelpers.h"
 #include "../src/ExpressionHelpers.h"
 
+#include <iostream>
+
 namespace o2::framework
 {
 
@@ -163,8 +165,9 @@ struct OutputManager<Produces<TABLE>> {
 /// HistogramRegistry specialization
 template <>
 struct OutputManager<HistogramRegistry> {
-  static bool appendOutput(std::vector<OutputSpec>& outputs, HistogramRegistry& what, uint32_t)
+  static bool appendOutput(std::vector<OutputSpec>& outputs, HistogramRegistry& what, uint32_t hash)
   {
+    what.setHash(hash);
     outputs.emplace_back(what.spec());
     return true;
   }
@@ -178,8 +181,12 @@ struct OutputManager<HistogramRegistry> {
     return true;
   }
 
-  static bool postRun(EndOfStreamContext&, HistogramRegistry&)
+  static bool postRun(EndOfStreamContext& context, HistogramRegistry& what)
   {
+    for (auto& hist : what.getHistogramsToWrite()) {
+      std::cout << "Writing histogram: " << hist().GetName() << std::endl;
+      context.outputs().snapshot(what.ref(), hist);
+    }
     return true;
   }
 };
