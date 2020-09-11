@@ -31,6 +31,7 @@
 
 #include "DPLUtils/DPLRawParser.h"
 #include "MCHBase/Digit.h"
+#include "MCHBase/OrbitInfo.h"
 #include "Headers/RAWDataHeader.h"
 #include "MCHRawCommon/DataFormats.h"
 #include "MCHRawDecoder/PageDecoder.h"
@@ -137,8 +138,9 @@ class DataDecoderTask
 
       digits.emplace_back(o2::mch::Digit(deId, padId, digitadc, time, sc.nofSamples()));
 
-      if (mPrint)
+      if (mPrint) {
         std::cout << "DIGIT STORED:\nADC " << digits.back().getADC() << " DE# " << digits.back().getDetID() << " PadId " << digits.back().getPadID() << " time " << digits.back().getTime().sampaTime << std::endl;
+      }
       ++ndigits;
     };
 
@@ -156,21 +158,18 @@ class DataDecoderTask
         std::cout << mNrdhs << "--\n";
         o2::raw::RDHUtils::printRDH(rdhAny);
       }
-
-      uint64_t orbitInfo = orbit;
-      orbitInfo += ((static_cast<uint64_t>(linkId) << 32) & 0xFF00000000);
-      orbitInfo += ((static_cast<uint64_t>(feeId) << 40) & 0xFF0000000000);
-
-      // add orbit to vector if not present yet
-      if (std::find(mOrbits.begin(), mOrbits.end(), orbitInfo) == mOrbits.end()) {
-        if (mPrint) {
-          printf("Orbit info: %lX (%u %d %d)\n", orbitInfo, orbit, linkId, feeId);
-        }
-        mOrbits.push_back(orbitInfo);
-      }
     };
 
     patchPage(page);
+
+    // add orbit to vector if not present yet
+    OrbitInfo orbitInfo(page);
+    if (std::find(mOrbits.begin(), mOrbits.end(), orbitInfo) == mOrbits.end()) {
+      if (mPrint) {
+        printf("Orbit info: %lX (%u %u %u)\n", orbitInfo.get(), (uint32_t)orbitInfo.getOrbit(), (uint32_t)orbitInfo.getLinkID(), (uint32_t)orbitInfo.getFeeID());
+      }
+      mOrbits.push_back(orbitInfo);
+    }
 
     if (!mDecoder) {
       mDecoder = mFee2Solar ? o2::mch::raw::createPageDecoder(page, channelHandler, mFee2Solar)
@@ -312,20 +311,23 @@ class DataDecoderTask
       }
     }
 
-    // send the output buffer via DPL
-    const size_t digitsSize = sizeof(o2::mch::Digit) * digits.size();
-    char* digitsBuffer = nullptr;
-    if (digitsSize > 0) {
-      digitsBuffer = (char*)malloc(digitsSize);
-      memcpy(digitsBuffer, digits.data(), digitsSize);
-    }
 
-    size_t orbitsSize = mOrbits.size() * sizeof(decltype(mOrbits)::value_type);
-    char* orbitsBuffer = nullptr;
-    if (orbitsSize > 0) {
-      orbitsBuffer = (char*)malloc(orbitsSize);
-      memcpy(orbitsBuffer, mOrbits.data(), orbitsSize);
-    }
+    auto createBuffer = [&](auto& vec, size_t& size) {
+      size = vec.empty() ? 0 : sizeof(vec[0]) * vec.size(); //vec.size() * sizeof(decltype(vec)::value_type);
+      char* buf = nullptr;
+      if (size > 0) {
+        buf = (char*)malloc(size);
+        if (buf) {
+          memcpy(buf, vec.data(), size);
+        }
+      }
+      return buf;
+    };
+
+    // send the output buffer via DPL
+    size_t digitsSize, orbitsSize;
+    char* digitsBuffer = createBuffer(digits, digitsSize);
+    char* orbitsBuffer = createBuffer(mOrbits, orbitsSize);
 
     // create the output message
     auto freefct = [](void* data, void*) { free(data); };
@@ -338,7 +340,7 @@ class DataDecoderTask
   FeeLink2SolarMapper mFee2Solar{nullptr};
   o2::mch::raw::PageDecoder mDecoder;
   size_t mNrdhs{0};
-  std::vector<uint64_t> mOrbits; ///< list of orbits in the processed buffer
+  std::vector<OrbitInfo> mOrbits; ///< list of orbits in the processed buffer
 
   std::ifstream mInputFile{}; ///< input file
   bool mDs2manu = false;      ///< print convert channel numbering from Run3 to Run1-2 order
