@@ -1110,6 +1110,13 @@ using JoinBase = decltype(join(std::declval<Ts>()...));
 template <typename T1, typename T2>
 using ConcatBase = decltype(concat(std::declval<T1>(), std::declval<T2>()));
 
+template <typename T1, typename T2>
+constexpr auto is_binding_compatible_v()
+{
+  return framework::pack_size(
+           framework::intersected_pack_t<originals_pack_t<T1>, originals_pack_t<T2>>{}) > 0;
+}
+
 } // namespace o2::soa
 
 #define DECLARE_SOA_STORE()          \
@@ -1220,24 +1227,30 @@ using ConcatBase = decltype(concat(std::declval<T1>(), std::declval<T2>()));
       return *mColumnIterator >= 0;                                                \
     }                                                                              \
                                                                                    \
-    binding_t::iterator _Getter_() const                                           \
+    template <typename T>                                                          \
+    auto _Getter_##_as() const                                                     \
     {                                                                              \
       assert(mBinding != nullptr);                                                 \
-      return mBinding->begin() + *mColumnIterator;                                 \
+      return static_cast<T*>(mBinding)->begin() + *mColumnIterator;                \
+    }                                                                              \
+                                                                                   \
+    auto _Getter_() const                                                          \
+    {                                                                              \
+      return _Getter_##_as<binding_t>();                                           \
     }                                                                              \
                                                                                    \
     template <typename T>                                                          \
     bool setCurrent(T* current)                                                    \
     {                                                                              \
-      if constexpr (std::is_same_v<T, binding_t>) {                                \
+      if constexpr (o2::soa::is_binding_compatible_v<T, binding_t>()) {            \
         assert(current != nullptr);                                                \
         this->mBinding = current;                                                  \
         return true;                                                               \
       }                                                                            \
       return false;                                                                \
     }                                                                              \
-    binding_t* getCurrent() { return mBinding; }                                   \
-    binding_t* mBinding = nullptr;                                                 \
+    binding_t* getCurrent() { return static_cast<binding_t*>(mBinding); }          \
+    void* mBinding = nullptr;                                                      \
   };                                                                               \
   static const o2::framework::expressions::BindingNode _Getter_##Id { _Label_,     \
                                                                       o2::framework::expressions::selectArrowType<_Type_>() }
