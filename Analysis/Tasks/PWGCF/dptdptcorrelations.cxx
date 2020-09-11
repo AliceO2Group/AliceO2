@@ -77,11 +77,10 @@ int etabins = 16;
 float etalow = -0.8, etaup = 0.8;
 int zvtxbins = 40;
 float zvtxlow = -10.0, zvtxup = 10.0;
-/* this still pending of being configurable */
 int phibins = 72;
-
 float philow = 0.0;
 float phiup = TMath::TwoPi();
+float phibinshift = 0.5;
 float etabinwidth = (etaup - etalow) / float(etabins);
 float phibinwidth = (phiup - philow) / float(phibins);
 int tracktype = 1;
@@ -250,7 +249,11 @@ inline void AcceptTrack(aod::TrackData const& track, uint8_t& asone, uint8_t& as
 inline int GetEtaPhiIndex(aod::FilteredTrackData const& t)
 {
   int etaix = int((t.eta() - etalow) / etabinwidth);
-  int phiix = int((t.phi() - philow) / phibinwidth);
+  /* consider a potential phi origin shift */
+  float phi = t.phi();
+  if (not(phi < phiup))
+    phi = phi - 2 * TMath::Pi();
+  int phiix = int((phi - philow) / phibinwidth);
   return etaix * phibins + phiix;
 }
 } /* end namespace dptdptcorrelations */
@@ -268,15 +271,9 @@ struct DptDptCorrelationsFilterAnalysisTask {
   Configurable<int> cfgTrackTwoCharge{"trk2charge", -1, "Trakc two charge: 1 = positive, -1 = negative"};
   Configurable<std::string> cfgCentMultEstimator{"centmultestimator", "V0M", "Centrality/multiplicity estimator detector: default V0M"};
 
-  Configurable<int> cfgPtBins{"ptbins", 18, "Number of pT bins, default 18"};
-  Configurable<int> cfgZVtxBins{"zvtxbins", 28, "Number of z_vtx bins, default 28"};
-  Configurable<int> cfgEtaBins{"etabins", 16, "Number of eta bins, default 16"};
-  Configurable<float> cfgPtLow{"ptlow", 0.2f, "Lowest pT (GeV/c), default 0.2"};
-  Configurable<float> cfgPtHigh{"pthigh", 2.0f, "Highest pT (GeV/c), default 2.0"};
-  Configurable<float> cfgZVtxLow{"zvtxlow", -7.0f, "Lowest z_vtx distance (cm), default -7.0"};
-  Configurable<float> cfgZVtxHigh{"zvtxhigh", 7.0f, "Highest z_vtx distance (cm), default 7.0"};
-  Configurable<float> cfgEtaLow{"etalow", -0.8f, "Lowest eta value, default -0.8"};
-  Configurable<float> cfgEtaHigh{"etahigh", 0.8f, "Highest eta value, default 0.8"};
+  Configurable<o2::analysis::DptDptBinningCuts> cfgBinning{"binning",
+                                                           {28, -7.0, 7.0, 18, 0.2, 2.0, 16, -0.8, 0.8, 72, 0.0, TMath::TwoPi()},
+                                                           "triplets - nbins, min, max - for z_vtx, pT, eta and phi, binning plus bin fraction of phi origin shift"};
 
   OutputObj<TList> fOutput{"DptDptCorrelationsGlobalInfo", OutputObjHandlingPolicy::AnalysisObject};
 
@@ -287,22 +284,19 @@ struct DptDptCorrelationsFilterAnalysisTask {
   {
     using namespace filteranalyistask;
 
-    /* update the configurable values */
-    ptbins = cfgPtBins.value;
-    ptlow = cfgPtLow.value;
-    ptup = cfgPtHigh.value;
-    etabins = cfgEtaBins.value;
-    etalow = cfgEtaLow.value;
-    etaup = cfgEtaHigh.value;
-    zvtxbins = cfgZVtxBins.value;
-    zvtxlow = cfgZVtxLow.value;
-    zvtxup = cfgZVtxHigh.value;
+    /* update with the configurable values */
+    ptbins = cfgBinning->pTbins;
+    ptlow = cfgBinning->pTmin;
+    ptup = cfgBinning->pTmax;
+    etabins = cfgBinning->etabins;
+    etalow = cfgBinning->etamin;
+    etaup = cfgBinning->etamax;
+    zvtxbins = cfgBinning->zVtxbins;
+    zvtxlow = cfgBinning->zVtxmin;
+    zvtxup = cfgBinning->zVtxmax;
     tracktype = cfgTrackType.value;
     trackonecharge = cfgTrackOneCharge.value;
     tracktwocharge = cfgTrackTwoCharge.value;
-
-    /* still missing configuration */
-    phibins = 72;
 
     /* if the system type is not known at this time, we have to put the initalization somewhere else */
     fSystem = getSystemType();
@@ -426,15 +420,9 @@ struct DptDptCorrelationsTask {
 
   Configurable<bool> cfgProcessPairs{"processpairs", false, "Process pairs: false = no, just singles, true = yes, process pairs"};
 
-  Configurable<int> cfgPtBins{"ptbins", 18, "Number of pT bins, default 18"};
-  Configurable<int> cfgZVtxBins{"zvtxbins", 28, "Number of z_vtx bins, default 28"};
-  Configurable<int> cfgEtaBins{"etabins", 16, "Number of eta bins, default 16"};
-  Configurable<float> cfgPtLow{"ptlow", 0.2f, "Lowest pT (GeV/c), default 0.2"};
-  Configurable<float> cfgPtHigh{"pthigh", 2.0f, "Highest pT (GeV/c), default 2.0"};
-  Configurable<float> cfgZVtxLow{"zvtxlow", -7.0f, "Lowest z_vtx distance (cm), default -7.0"};
-  Configurable<float> cfgZVtxHigh{"zvtxhigh", 7.0f, "Highest z_vtx distance (cm), default 7.0"};
-  Configurable<float> cfgEtaLow{"etalow", -0.8f, "Lowest eta value, default -0.8"};
-  Configurable<float> cfgEtaHigh{"etahigh", 0.8f, "Highest eta value, default 0.8"};
+  Configurable<o2::analysis::DptDptBinningCuts> cfgBinning{"binning",
+                                                           {28, -7.0, 7.0, 18, 0.2, 2.0, 16, -0.8, 0.8, 72, 0.0, TMath::TwoPi()},
+                                                           "triplets - nbins, min, max - for z_vtx, pT, eta and phi, binning plus bin fraction of phi origin shift"};
 
   OutputObj<TList> fOutput{"DptDptCorrelationsData", OutputObjHandlingPolicy::AnalysisObject};
 
@@ -447,15 +435,9 @@ struct DptDptCorrelationsTask {
   DptDptCorrelationsTask(float cmmin,
                          float cmmax,
                          Configurable<bool> _cfgProcessPairs = {"processpairs", false, "Process pairs: false = no, just singles, true = yes, process pairs"},
-                         Configurable<int> _cfgPtBins = {"ptbins", 18, "Number of pT bins, default 18"},
-                         Configurable<int> _cfgZVtxBins = {"zvtxbins", 28, "Number of z_vtx bins, default 28"},
-                         Configurable<int> _cfgEtaBins = {"etabins", 16, "Number of eta bins, default 16"},
-                         Configurable<float> _cfgPtLow = {"ptlow", 0.2f, "Lowest pT (GeV/c), default 0.2"},
-                         Configurable<float> _cfgPtHigh = {"pthigh", 2.0f, "Highest pT (GeV/c), default 2.0"},
-                         Configurable<float> _cfgZVtxLow = {"zvtxlow", -7.0f, "Lowest z_vtx distance (cm), default -7.0"},
-                         Configurable<float> _cfgZVtxHigh = {"zvtxhigh", 7.0f, "Highest z_vtx distance (cm), default 7.0"},
-                         Configurable<float> _cfgEtaLow = {"etalow", -0.8f, "Lowest eta value, default -0.8"},
-                         Configurable<float> _cfgEtaHigh = {"etahigh", 0.8f, "Highest eta value, default 0.8"},
+                         Configurable<o2::analysis::DptDptBinningCuts> _cfgBinning = {"binning",
+                                                                                      {28, -7.0, 7.0, 18, 0.2, 2.0, 16, -0.8, 0.8, 72, 0.0, TMath::TwoPi()},
+                                                                                      "triplets - nbins, min, max - for z_vtx, pT, eta and phi, binning plus bin fraction of phi origin shift"},
                          OutputObj<TList> _fOutput = {"DptDptCorrelationsData", OutputObjHandlingPolicy::AnalysisObject},
                          Filter _onlyacceptedevents = (aod::dptdptcorrelations::eventaccepted == DPTDPT_TRUE),
                          Filter _onlyacceptedtracks = ((aod::dptdptcorrelations::trackacceptedasone == DPTDPT_TRUE) or (aod::dptdptcorrelations::trackacceptedastwo == DPTDPT_TRUE)),
@@ -464,15 +446,7 @@ struct DptDptCorrelationsTask {
     : fCentMultMin(cmmin),
       fCentMultMax(cmmax),
       cfgProcessPairs(_cfgProcessPairs),
-      cfgPtBins(_cfgPtBins),
-      cfgZVtxBins(_cfgZVtxBins),
-      cfgEtaBins(_cfgEtaBins),
-      cfgPtLow(_cfgPtLow),
-      cfgPtHigh(_cfgPtHigh),
-      cfgZVtxLow(_cfgZVtxLow),
-      cfgZVtxHigh(_cfgZVtxHigh),
-      cfgEtaLow(_cfgEtaLow),
-      cfgEtaHigh(_cfgEtaHigh),
+      cfgBinning(_cfgBinning),
       fOutput(_fOutput),
       onlyacceptedevents((aod::dptdptcorrelations::eventaccepted == DPTDPT_TRUE) and (aod::dptdptcorrelations::centmult > fCentMultMin) and (aod::dptdptcorrelations::centmult < fCentMultMax)),
       onlyacceptedtracks((aod::dptdptcorrelations::trackacceptedasone == DPTDPT_TRUE) or (aod::dptdptcorrelations::trackacceptedastwo == DPTDPT_TRUE)),
@@ -485,23 +459,24 @@ struct DptDptCorrelationsTask {
   {
     using namespace correlationstask;
 
-    /* update the configurable values */
-    ptbins = cfgPtBins.value;
-    ptlow = cfgPtLow.value;
-    ptup = cfgPtHigh.value;
-    etabins = cfgEtaBins.value;
-    etalow = cfgEtaLow.value;
-    etaup = cfgEtaHigh.value;
-    zvtxbins = cfgZVtxBins.value;
-    zvtxlow = cfgZVtxLow.value;
-    zvtxup = cfgZVtxHigh.value;
+    /* update with the configurable values */
+    ptbins = cfgBinning->pTbins;
+    ptlow = cfgBinning->pTmin;
+    ptup = cfgBinning->pTmax;
+    etabins = cfgBinning->etabins;
+    etalow = cfgBinning->etamin;
+    etaup = cfgBinning->etamax;
+    zvtxbins = cfgBinning->zVtxbins;
+    zvtxlow = cfgBinning->zVtxmin;
+    zvtxup = cfgBinning->zVtxmax;
+    phibins = cfgBinning->phibins;
+    philow = cfgBinning->phimin;
+    phiup = cfgBinning->phimax;
+    phibinshift = cfgBinning->phibinshift;
     processpairs = cfgProcessPairs.value;
-
-    /* still missing configuration */
-    phibins = 72;
-    /* TODO: shift of the azimuthal angle origin */
-    philow = 0.0;
-    phiup = TMath::TwoPi();
+    /* update the potential binning change */
+    etabinwidth = (etaup - etalow) / float(etabins);
+    phibinwidth = (phiup - philow) / float(phibins);
 
     /* create the output list which will own the task histograms */
     TList* fOutputList = new TList();
@@ -521,8 +496,11 @@ struct DptDptCorrelationsTask {
     fOutputList->Add(new TParameter<Double_t>("MaxEta", etaup, 'f'));
     fOutputList->Add(new TParameter<Double_t>("MinPhi", philow, 'f'));
     fOutputList->Add(new TParameter<Double_t>("MaxPhi", phiup, 'f'));
+    fOutputList->Add(new TParameter<Double_t>("PhiBinShift", phibinshift, 'f'));
 
-    /* TODO: the shift in the origen of the azimuthal angle */
+    /* after the parameters dump the proper phi limits are set according to the phi shift */
+    phiup = phiup - phibinwidth * phibinshift;
+    philow = philow - phibinwidth * phibinshift;
 
     /* create the histograms */
     Bool_t oldstatus = TH1::AddDirectoryStatus();
@@ -751,8 +729,6 @@ struct DptDptCorrelationsTask {
 struct TracksAndEventClassificationQA {
 
   Configurable<o2::analysis::SimpleInclusiveCut> cfg{"mycfg", {"mycfg", 3, 2.0f}, "A Configurable Object, default mycfg.x=3, mycfg.y=2.0"};
-  //  Configurable<o2::analysis::DptDptBinning> cfgBinning{"binning", {{18, 0.2, 2.0}, {16, -0.8, 0.8}, {72, 0.0, TMath::TwoPi()}, {28, -7.0, 7.0}}, "The binning, default: pT(18,0.2,2.0),..."};
-  o2::analysis::DptDptBinning mybining = {{18, 0.2, 2.0}, {16, -0.8, 0.8}, {72, 0.0, TMath::TwoPi()}, {28, -7.0, 7.0}};
 
   OutputObj<TH1F> fTracksOne{TH1F("TracksOne", "Tracks as track one;number of tracks;events", 1500, 0.0, 1500.0)};
   OutputObj<TH1F> fTracksTwo{TH1F("TracksTwo", "Tracks as track two;number of tracks;events", 1500, 0.0, 1500.0)};

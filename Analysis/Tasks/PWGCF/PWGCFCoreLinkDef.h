@@ -12,6 +12,6 @@
 #pragma link off all classes;
 #pragma link off all functions;
 
-#pragma link C++ class o2::analysis::Binning + ;
-#pragma link C++ class o2::analysis::DptDptBinning + ;
+#pragma link C++ class o2::analysis::EventSelectionCuts + ;
+#pragma link C++ class o2::analysis::DptDptBinningCuts + ;
 #pragma link C++ class o2::analysis::SimpleInclusiveCut + ;

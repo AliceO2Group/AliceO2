@@ -32,22 +32,6 @@ SimpleInclusiveCut::SimpleInclusiveCut(const char* name, int _x, float _y) : TNa
   //
 }
 
-SimpleInclusiveCut::SimpleInclusiveCut(const SimpleInclusiveCut& sic) : TNamed(sic),
-                                                                        x(sic.x),
-                                                                        y(sic.y)
-{
-  //
-  // copy constructor
-  //
-}
-
-SimpleInclusiveCut::~SimpleInclusiveCut()
-{
-  //
-  // virtual destructor
-  //
-}
-
 SimpleInclusiveCut& SimpleInclusiveCut::operator=(const SimpleInclusiveCut& sic)
 {
   //
