@@ -67,7 +67,7 @@ struct BTask {
     LOGF(INFO, "ID: %d", collision.globalIndex());
     LOGF(INFO, "Tracks: %d", extTracks.size());
     for (auto& track : extTracks) {
-      LOGF(INFO, "(%f, %f) - (%f, %f)", track.eta(), track.phi(), track.etas(), track.phis());
+      LOGF(INFO, "(%f, %f) - (%f, %f)", track.eta(), track.phiraw(), track.etas(), track.phis());
     }
   }
 };

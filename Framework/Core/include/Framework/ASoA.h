@@ -1114,7 +1114,7 @@ template <typename T1, typename T2>
 constexpr auto is_binding_compatible_v()
 {
   return framework::pack_size(
-           framework::intersected_pack_t<typename T1::table_t::persistent_columns_t, typename T2::table_t::persistent_columns_t>{}) > 0;
+           framework::intersected_pack_t<originals_pack_t<T1>, originals_pack_t<T2>>{}) > 0;
 }
 
 } // namespace o2::soa
