@@ -186,13 +186,13 @@ constexpr std::size_t has_type_at_t = decltype(select<W>(
 } // namespace
 
 template <typename W>
-constexpr std::size_t has_type_at_v(o2::framework::pack<> p)
+constexpr std::size_t has_type_at_v(o2::framework::pack<>)
 {
   return -1;
 }
 
 template <typename W, typename... Ts>
-constexpr std::size_t has_type_at_v(o2::framework::pack<Ts...> p)
+constexpr std::size_t has_type_at_v(o2::framework::pack<Ts...>)
 {
   return has_type_at_t<W, Ts...>;
 }

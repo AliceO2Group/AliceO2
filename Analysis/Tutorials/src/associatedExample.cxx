@@ -15,15 +15,13 @@ namespace o2::aod
 {
 namespace etaphi
 {
-DECLARE_SOA_COLUMN(Eta, etas, float);
-DECLARE_SOA_COLUMN(Phi, phis, float);
-DECLARE_SOA_COLUMN(Pt, pts, float);
+DECLARE_SOA_COLUMN(AEta, etas, float);
+DECLARE_SOA_COLUMN(APhi, phis, float);
+DECLARE_SOA_COLUMN(APt, pts, float);
 } // namespace etaphi
 
 DECLARE_SOA_TABLE(EtaPhi, "AOD", "ETAPHI",
-                  etaphi::Eta, etaphi::Phi);
-DECLARE_SOA_TABLE(EtaPhiPt, "AOD", "ETAPHIPT",
-                  etaphi::Eta, etaphi::Phi, etaphi::Pt);
+                  etaphi::AEta, etaphi::APhi);
 
 namespace collision
 {
@@ -43,16 +41,13 @@ using namespace o2::framework;
 //        we need GCC 7.4+ for that
 struct ATask {
   Produces<aod::EtaPhi> etaphi;
-  Produces<aod::EtaPhiPt> etaphipt;
 
   void process(aod::Tracks const& tracks)
   {
     for (auto& track : tracks) {
       float phi = asin(track.snp()) + track.alpha() + static_cast<float>(M_PI);
       float eta = log(tan(0.25f * static_cast<float>(M_PI) - 0.5f * atan(track.tgl())));
-      float pt = 1.f / track.signed1Pt();
       etaphi(eta, phi);
-      etaphipt(eta, phi, pt);
     }
   }
 };
@@ -72,23 +67,20 @@ struct BTask {
     LOGF(INFO, "ID: %d", collision.globalIndex());
     LOGF(INFO, "Tracks: %d", extTracks.size());
     for (auto& track : extTracks) {
-      LOGF(INFO, "(%f, %f) - (%f, %f)", track.eta(), track.phi(), track.etas(), track.phis());
+      LOGF(INFO, "(%f, %f) - (%f, %f)", track.eta(), track.phiraw(), track.etas(), track.phis());
     }
   }
 };
 
-struct CTask {
-  void process(aod::Collision const& collision, soa::Concat<aod::EtaPhi, aod::EtaPhiPt> const& concatenated)
-  {
-    LOGF(INFO, "ID: %d", collision.globalIndex());
-    LOGF(INFO, "Tracks: %d", concatenated.size());
-  }
-};
-
 struct TTask {
+  using myCol = soa::Join<aod::Collisions, aod::CollisionsExtra>;
   void process(soa::Join<aod::Collisions, aod::CollisionsExtra>::iterator const& col, aod::Tracks const& tracks)
   {
-    LOGF(INFO, "ID: %d; %d == %d", col.globalIndex(), col.mult(), tracks.size());
+    LOGF(INFO, "[direct] ID: %d; %d == %d", col.globalIndex(), col.mult(), tracks.size());
+    if (tracks.size() > 0) {
+      auto track0 = tracks.begin();
+      LOGF(INFO, "[index ] ID: %d; %d == %d", track0.collision_as<myCol>().globalIndex(), track0.collision_as<myCol>().mult(), tracks.size());
+    }
   }
 };
 
@@ -97,7 +89,6 @@ WorkflowSpec defineDataProcessing(ConfigContext const&)
   return WorkflowSpec{
     adaptAnalysisTask<ATask>("produce-etaphi"),
     adaptAnalysisTask<BTask>("consume-etaphi"),
-    adaptAnalysisTask<CTask>("consume-etaphi-twice"),
     adaptAnalysisTask<MTask>("produce-mult"),
     adaptAnalysisTask<TTask>("consume-mult")};
 }
