@@ -17,16 +17,15 @@
 
 #include <iostream>
 #include "Headers/RAWDataHeader.h"
+#include "Headers/RDHAny.h"
+#include "DPLUtils/RawParser.h"
 #include "DetectorsRaw/RDHUtils.h"
 
 namespace o2
 {
 namespace mid
 {
-using RDHUtils = o2::raw::RDHUtils;
-
-template <typename T>
-bool RawFileReader<T>::init(const char* inFilename, bool readContinuous)
+bool RawFileReader::init(const char* inFilename, bool readContinuous)
 {
   /// Initializes the raw file reader
   mFile.open(inFilename, std::ios::binary);
@@ -35,71 +34,41 @@ bool RawFileReader<T>::init(const char* inFilename, bool readContinuous)
     mState = 2;
     return false;
   }
-  mBytes.reserve(2 * raw::sMaxBufferSize);
   mReadContinuous = readContinuous;
-  mHBCounters.fill(0);
-
   return true;
 }
 
-template <typename T>
-void RawFileReader<T>::read(size_t nBytes)
+void RawFileReader::read(size_t nBytes)
 {
   /// Reads nBytes of the file
   size_t currentIndex = mBytes.size();
-  mBytes.resize(currentIndex + nBytes / sizeof(T));
+  mBytes.resize(currentIndex + nBytes);
   mFile.read(reinterpret_cast<char*>(&(mBytes[currentIndex])), nBytes);
 }
 
-template <typename T>
-void RawFileReader<T>::clear()
+void RawFileReader::clear()
 {
   /// Clears the bytes and counters
   mBytes.clear();
-  mBuffer.setBuffer(mBytes, RawBuffer<T>::ResetMode::all);
-  mHBCounters.fill(0);
 }
 
-template <typename T>
-bool RawFileReader<T>::hasFullInfo()
+void RawFileReader::setCustomPayloadSize(uint16_t memorySize, uint16_t offsetToNext)
 {
-  /// Tests if we have read the same number of HBs for all GBT links
-
-  // We assume here that we read the data of one HV for all of the GBT links
-  // before moving to the next HB
-  for (uint16_t feeId = 1; feeId < crateparams::sNGBTs; ++feeId) {
-    if (mHBCounters[feeId] != mHBCounters[0]) {
-      return false;
-    }
-  }
-  return mHBCounters[0] != 0;
+  /// Sets a custom memory and payload size
+  /// This is done to be able to correctly read test data
+  /// that have a wrong RDH
+  o2::header::RAWDataHeader rdh;
+  rdh.word1 |= offsetToNext;
+  rdh.word1 |= (memorySize << 16);
+  setCustomRDH(rdh);
 }
 
-template <typename T>
-bool RawFileReader<T>::readAllGBTs(bool reset)
-{
-  /// Keeps reading the file until it reads the information of all GBT links
-  /// It returns the number of HBs read
-
-  if (reset) {
-    clear();
-  }
-
-  while (!hasFullInfo()) {
-    if (!readHB()) {
-      return false;
-    }
-  }
-  return true;
-}
-
-template <typename T>
-bool RawFileReader<T>::replaceRDH(size_t headerIndex)
+bool RawFileReader::replaceRDH(size_t headerIndex)
 {
   /// Replaces the current RDH with a custom one if needed.
   /// This is done to be able to correctly read test data
   /// that have a wrong RDH
-  if (RDHUtils::getOffsetToNext(mCustomRDH) > 0) {
+  if (o2::raw::RDHUtils::getOffsetToNext(mCustomRDH) > 0) {
     header::RAWDataHeader* rdh = reinterpret_cast<header::RAWDataHeader*>(&mBytes[headerIndex]);
     *rdh = mCustomRDH;
     return true;
@@ -107,19 +76,17 @@ bool RawFileReader<T>::replaceRDH(size_t headerIndex)
   return false;
 }
 
-template <typename T>
-bool RawFileReader<T>::readHB(bool sendCompleteHBs)
+bool RawFileReader::readHB(bool sendCompleteHBs)
 {
   /// Reads one HB
   if (mState != 0) {
     return false;
   }
-  auto gbtId = 0;
   bool isHBClosed = false;
   while (!isHBClosed) {
     // Read header
     size_t headerIndex = mBytes.size();
-    read(raw::sHeaderSizeInBytes);
+    read(sHeaderSize);
 
     // The check on the eof needs to be placed here and not at the beginning of the function.
     // The reason is that the eof flag is set if we try to read after the eof
@@ -132,7 +99,7 @@ bool RawFileReader<T>::readHB(bool sendCompleteHBs)
       if (mReadContinuous) {
         mFile.clear();
         mFile.seekg(0, std::ios::beg);
-        read(raw::sHeaderSizeInBytes);
+        read(sHeaderSize);
       } else {
         mState = 1;
         return false;
@@ -140,38 +107,23 @@ bool RawFileReader<T>::readHB(bool sendCompleteHBs)
     }
     replaceRDH(headerIndex);
     // We use the buffer only to correctly initialize the RDH
-    mBuffer.setBuffer(mBytes, RawBuffer<T>::ResetMode::bufferOnly);
-    mBuffer.nextHeader();
-    isHBClosed = mBuffer.isHBClosed();
-    gbtId = RDHUtils::getFEEID(*mBuffer.getRDH());
-    if (gbtId >= crateparams::sNGBTs) {
-      // FIXME: this is a problem of the header of some test files
-      gbtId = 0;
+    o2::framework::RawParser parser(mBytes.data(), mBytes.size());
+    auto lastIt = parser.begin();
+    for (auto it = parser.begin(), end = parser.end(); it != end; ++it) {
+      lastIt = it;
     }
-    if (RDHUtils::getOffsetToNext(*mBuffer.getRDH()) > raw::sHeaderSizeInBytes) {
-      read(RDHUtils::getOffsetToNext(*mBuffer.getRDH()) - raw::sHeaderSizeInBytes);
-      // CAVEAT: to save memory / CPU time, the RawBuffer does not hold a copy of the buffer,
-      // but just a span of it.
-      // If we add bytes to mBytes, the vector can go beyond the capacity
-      // and the memory is re-allocated.
-      // If this happens, the span is no longer valid, and we can no longer
-      // call mBuffer.getRDH() until we pass it mBytes again
-      // To do so, you need to call:
-      // mBuffer.setBuffer(mBytes, RawBuffer<T>::ResetMode::bufferOnly);
-      // mBuffer.nextHeader();
+    auto const* rdhPtr = reinterpret_cast<const o2::header::RDHAny*>(lastIt.raw());
+    isHBClosed = o2::raw::RDHUtils::getStop(rdhPtr);
+    auto offsetNext = o2::raw::RDHUtils::getOffsetToNext(rdhPtr);
+    if (offsetNext > sHeaderSize) {
+      read(offsetNext - sHeaderSize);
     }
     if (!sendCompleteHBs) {
       break;
     }
   }
-
-  ++mHBCounters[gbtId];
-
   return true;
 }
-
-template class RawFileReader<raw::RawUnit>;
-template class RawFileReader<uint8_t>;
 
 } // namespace mid
 } // namespace o2
