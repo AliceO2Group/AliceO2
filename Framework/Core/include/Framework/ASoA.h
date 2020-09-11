@@ -1242,7 +1242,7 @@ constexpr auto is_binding_compatible_v()
     template <typename T>                                                          \
     bool setCurrent(T* current)                                                    \
     {                                                                              \
-      if constexpr (soa::is_binding_compatible_v<T, binding_t>()) {                \
+      if constexpr (o2::soa::is_binding_compatible_v<T, binding_t>()) {            \
         assert(current != nullptr);                                                \
         this->mBinding = current;                                                  \
         return true;                                                               \
