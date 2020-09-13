@@ -172,6 +172,9 @@ int GPUCATracking::runTracking(GPUO2InterfaceIOPtrs* data, GPUInterfaceOutputs* 
   std::atomic_int clusterOffsetCounter;
   clusterOffsetCounter.store(0);
 
+  constexpr float MinDelta = 0.1;
+  float maxDriftTime = detParam.TPClength * vzbinInv;
+
 #ifdef WITH_OPENMP
 #pragma omp parallel for if(!outputTracksMCTruth) num_threads(4)
 #endif
@@ -179,7 +182,6 @@ int GPUCATracking::runTracking(GPUO2InterfaceIOPtrs* data, GPUInterfaceOutputs* 
     auto& oTrack = (*outputTracks)[iTmp];
     const int i = trackSort[iTmp].first;
     float time0 = 0.f, tFwd = 0.f, tBwd = 0.f;
-
     if (mTrackingCAO2Interface->GetParamContinuous()) {
       time0 = tracks[i].GetParam().GetTZOffset();
 
@@ -193,6 +195,9 @@ int GPUCATracking::runTracking(GPUO2InterfaceIOPtrs* data, GPUInterfaceOutputs* 
             auto& cl1 = data->clusters->clustersLinear[cacl1.num];
             auto& cl2 = data->clusters->clustersLinear[cacl2.num];
             delta = fabs(cl1.getTime() - cl2.getTime()) * 0.5f;
+            if (delta < MinDelta) {
+              delta = MinDelta;
+            }
             break;
           }
         }
@@ -205,7 +210,7 @@ int GPUCATracking::runTracking(GPUO2InterfaceIOPtrs* data, GPUInterfaceOutputs* 
         float t2 = data->clusters->clustersLinear[c2.num].getTime();
         auto times = std::minmax(t1, t2);
         tFwd = times.first - time0;
-        tBwd = time0 - (times.second - detParam.TPClength * vzbinInv);
+        tBwd = time0 - (times.second - maxDriftTime);
       }
     }
 
