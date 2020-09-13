@@ -59,10 +59,10 @@ class TrackTPC : public o2::track::TrackParCov
   void setHasCSideClusters() { mFlags |= HasCSideClusters; }
 
   float getTime0() const { return mTime0; }         ///< Reference time of the track, i.e. t-bins of a primary track with eta=0.
-  short getDeltaTBwd() const { return mDeltaTBwd; } ///< max possible decrement to getTimeVertex
-  short getDeltaTFwd() const { return mDeltaTFwd; } ///< max possible increment to getTimeVertex
-  void setDeltaTBwd(short t) { mDeltaTBwd = t; }    ///< set max possible decrement to getTimeVertex
-  void setDeltaTFwd(short t) { mDeltaTFwd = t; }    ///< set max possible increment to getTimeVertex
+  float getDeltaTBwd() const { return mDeltaTBwd; } ///< max possible decrement to getTimeVertex
+  float getDeltaTFwd() const { return mDeltaTFwd; } ///< max possible increment to getTimeVertex
+  void setDeltaTBwd(float t) { mDeltaTBwd = t; }    ///< set max possible decrement to getTimeVertex
+  void setDeltaTFwd(float t) { mDeltaTFwd = t; }    ///< set max possible increment to getTimeVertex
 
   float getChi2() const { return mChi2; }
   const o2::track::TrackParCov& getOuterParam() const { return mOuterParam; }
@@ -112,15 +112,15 @@ class TrackTPC : public o2::track::TrackParCov
   float mTime0 = 0.f;                 ///< Reference Z of the track assumed for the vertex, scaled with pseudo
                                       ///< VDrift and reference timeframe length, unless it was moved to be on the
                                       ///< side of TPC compatible with edge clusters sides.
-  short mDeltaTFwd = 0;               ///< max possible increment to track time
-  short mDeltaTBwd = 0;               ///< max possible decrement to track time
+  float mDeltaTFwd = 0;               ///< max possible increment to track time
+  float mDeltaTBwd = 0;               ///< max possible decrement to track time
   short mFlags = 0;                   ///< various flags, see Flags enum
   float mChi2 = 0.f;                  // Chi2 of the track
   o2::track::TrackParCov mOuterParam; // Track parameters at outer end of TPC.
   dEdxInfo mdEdx;                     // dEdx Information
   ClusRef mClustersReference;         // reference to externale cluster indices
 
-  ClassDefNV(TrackTPC, 3);
+  ClassDefNV(TrackTPC, 4);
 };
 
 } // namespace tpc
