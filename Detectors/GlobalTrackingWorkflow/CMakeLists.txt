@@ -17,6 +17,7 @@ o2_add_library(GlobalTrackingWorkflow
                        src/PrimaryVertexingSpec.cxx
                        src/PrimaryVertexWriterSpec.cxx
                        src/PrimaryVertexReaderSpec.cxx
+                       src/VertexTrackMatcherSpec.cxx
                PUBLIC_LINK_LIBRARIES O2::GlobalTracking
                                      O2::ITStracking
                                      O2::ITSWorkflow
@@ -40,6 +41,7 @@ o2_add_executable(vertex-reader-workflow
                   COMPONENT_NAME primary
                   SOURCES src/primary-vertex-reader-workflow.cxx
                   PUBLIC_LINK_LIBRARIES O2::GlobalTrackingWorkflow )
+
 
 add_subdirectory(tofworkflow)
 add_subdirectory(tpcinterpolationworkflow)
