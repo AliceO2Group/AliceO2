@@ -27,7 +27,7 @@ namespace vertexing
 void PrimaryVertexReader::init(InitContext& ic)
 {
   mFileName = ic.options().get<std::string>("primary-vertex-infile");
-  connectTree(mFileName);
+  connectTree();
 }
 
 void PrimaryVertexReader::run(ProcessingContext& pc)
@@ -37,12 +37,37 @@ void PrimaryVertexReader::run(ProcessingContext& pc)
   mTree->GetEntry(ent);
   LOG(INFO) << "Pushing " << mVerticesPtr->size() << " vertices at entry " << ent;
 
-  pc.outputs().snapshot(Output{"GLO", "PVERTEX", 0, Lifetime::Timeframe}, mVertices);
-  pc.outputs().snapshot(Output{"GLO", "PVERTEX_TRIDREFS", 0, Lifetime::Timeframe}, mPV2TrIdx);
-  pc.outputs().snapshot(Output{"GLO", "PVERTEX_TRID", 0, Lifetime::Timeframe}, mPVTrIdx);
+  pc.outputs().snapshot(Output{"GLO", "PVTX", 0, Lifetime::Timeframe}, mVertices);
+  pc.outputs().snapshot(Output{"GLO", "PVTX_TRMTC", 0, Lifetime::Timeframe}, mPV2MatchIdx);
+  pc.outputs().snapshot(Output{"GLO", "PVTX_TRMTCREF", 0, Lifetime::Timeframe}, mPV2MatchIdxRef);
 
   if (mUseMC) {
-    pc.outputs().snapshot(Output{"GLO", "PVERTEX_MCTR", 0, Lifetime::Timeframe}, mLabels);
+    pc.outputs().snapshot(Output{"GLO", "PVTX_MCTR", 0, Lifetime::Timeframe}, mLabels);
+  }
+
+  if (mVerbose) {
+    int cnt = 0;
+    for (const auto& vtx : mVertices) {
+      Label lb;
+      if (mUseMC) {
+        lb = mLabels[cnt];
+      }
+      LOG(INFO) << "#" << cnt << " " << vtx << "| NAttached= " << mPV2MatchIdxRef[cnt].getEntries() << " | MC:" << lb;
+      int idMin = mPV2MatchIdxRef[cnt].getFirstEntry(), idMax = idMin + mPV2MatchIdxRef[cnt].getEntries();
+      std::string trIDs;
+      int cntT = 0;
+      for (int i = idMin; i < idMax; i++) {
+        trIDs += mPV2MatchIdx[i].asString() + " ";
+        if (!((++cntT) % 15)) {
+          LOG(INFO) << trIDs;
+          trIDs = "";
+        }
+      }
+      if (!trIDs.empty()) {
+        LOG(INFO) << trIDs;
+      }
+      cnt++;
+    }
   }
 
   if (mTree->GetReadEntry() + 1 >= mTree->GetEntries()) {
@@ -51,10 +76,10 @@ void PrimaryVertexReader::run(ProcessingContext& pc)
   }
 }
 
-void PrimaryVertexReader::connectTree(const std::string& filename)
+void PrimaryVertexReader::connectTree()
 {
   mTree.reset(nullptr); // in case it was already loaded
-  mFile.reset(TFile::Open(filename.c_str()));
+  mFile.reset(TFile::Open(mFileName.c_str()));
   assert(mFile && !mFile->IsZombie());
   mTree.reset((TTree*)mFile->Get(mVertexTreeName.c_str()));
   assert(mTree);
@@ -63,25 +88,26 @@ void PrimaryVertexReader::connectTree(const std::string& filename)
   assert(mTree->GetBranch(mVertex2TrackIDRefsBranchName.c_str()));
 
   mTree->SetBranchAddress(mVertexBranchName.c_str(), &mVerticesPtr);
-  mTree->SetBranchAddress(mVertexTrackIDsBranchName.c_str(), &mPVTrIdxPtr);
-  mTree->SetBranchAddress(mVertex2TrackIDRefsBranchName.c_str(), &mPV2TrIdxPtr);
+  mTree->SetBranchAddress(mVertexTrackIDsBranchName.c_str(), &mPV2MatchIdxPtr);
+  mTree->SetBranchAddress(mVertex2TrackIDRefsBranchName.c_str(), &mPV2MatchIdxRefPtr);
 
   if (mUseMC) {
     assert(mTree->GetBranch(mVertexLabelsBranchName.c_str()));
     mTree->SetBranchAddress(mVertexLabelsBranchName.c_str(), &mLabelsPtr);
   }
 
-  LOG(INFO) << "Loaded tree from " << filename << " with " << mTree->GetEntries() << " entries";
+  LOG(INFO) << "Loaded " << mVertexTreeName << " tree from " << mFileName << " with " << mTree->GetEntries() << " entries";
 }
 
 DataProcessorSpec getPrimaryVertexReaderSpec(bool useMC)
 {
   std::vector<OutputSpec> outputs;
-  outputs.emplace_back("GLO", "PVERTEX", 0, Lifetime::Timeframe);
-  outputs.emplace_back("GLO", "PVERTEX_TRIDREFS", 0, Lifetime::Timeframe);
-  outputs.emplace_back("GLO", "PVERTEX_TRID", 0, Lifetime::Timeframe);
+  outputs.emplace_back("GLO", "PVTX", 0, Lifetime::Timeframe);
+  outputs.emplace_back("GLO", "PVTX_TRMTC", 0, Lifetime::Timeframe);
+  outputs.emplace_back("GLO", "PVTX_TRMTCREF", 0, Lifetime::Timeframe);
+
   if (useMC) {
-    outputs.emplace_back("GLO", "PVERTEX_MCTR", 0, Lifetime::Timeframe);
+    outputs.emplace_back("GLO", "PVTX_MCTR", 0, Lifetime::Timeframe);
   }
 
   return DataProcessorSpec{
@@ -90,7 +116,8 @@ DataProcessorSpec getPrimaryVertexReaderSpec(bool useMC)
     outputs,
     AlgorithmSpec{adaptFromTask<PrimaryVertexReader>(useMC)},
     Options{
-      {"primary-vertex-infile", VariantType::String, "o2_primary_vertex.root", {"Name of the input primary vertex file"}}}};
+      {"primary-vertex-infile", VariantType::String, "o2_primary_vertex.root", {"Name of the input primary vertex file"}},
+      {"vertex-track-matches-infile", VariantType::String, "o2_pvertex_track_matches.root", {"Name of the input file with primary vertex - tracks matches"}}}};
 }
 
 } // namespace vertexing
