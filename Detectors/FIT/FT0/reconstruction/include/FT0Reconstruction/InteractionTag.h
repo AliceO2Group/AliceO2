@@ -26,7 +26,6 @@ namespace ft0
 // These are configurable params for FT0 selection as interaction tag
 struct InteractionTag : public o2::conf::ConfigurableParamHelper<InteractionTag> {
   int minAmplitudeAC = 20; ///< use only FT0 triggers with high enough amplitude
-  float timeBiasMS = 35.0; ///< relative bias in ns to add
 
   bool isSelected(const RecPoints& rp) const
   {
@@ -35,7 +34,7 @@ struct InteractionTag : public o2::conf::ConfigurableParamHelper<InteractionTag>
 
   float getInteractionTimeNS(const RecPoints& rp, const o2::InteractionRecord& refIR) const
   {
-    return rp.getInteractionRecord().differenceInBC(refIR) * o2::constants::lhc::LHCBunchSpacingNS + timeBiasMS; // RS FIXME do we want use precise MeanTime?
+    return rp.getInteractionRecord().differenceInBCns(refIR); // RS FIXME do we want use precise MeanTime?
   }
 
   O2ParamDef(InteractionTag, "ft0tag");
