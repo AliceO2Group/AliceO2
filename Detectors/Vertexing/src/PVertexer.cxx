@@ -27,7 +27,7 @@ constexpr float PVertexer::kHugeF;
 
 //___________________________________________________________________
 int PVertexer::process(gsl::span<const o2d::TrackTPCITS> tracksITSTPC, gsl::span<const o2::ft0::RecPoints> ft0Data,
-                       std::vector<PVertex>& vertices, std::vector<int>& vertexTrackIDs, std::vector<V2TRef>& v2tRefs)
+                       std::vector<PVertex>& vertices, std::vector<GIndex>& vertexTrackIDs, std::vector<V2TRef>& v2tRefs)
 {
   createTracksPool(tracksITSTPC);
 
@@ -59,37 +59,46 @@ int PVertexer::process(gsl::span<const o2d::TrackTPCITS> tracksITSTPC, gsl::span
   vertexTrackIDs.clear();
   vertices.reserve(verticesLoc.size());
   v2tRefs.reserve(v2tRefsLoc.size());
-  vertexTrackIDs.resize(vertexTrackIDsLoc.size());
+  vertexTrackIDs.reserve(vertexTrackIDsLoc.size());
 
   int trCopied = 0, count = 0, vtimeID = 0;
   for (auto i : vtTimeSortID) {
     auto& vtx = verticesLoc[i];
+
+    bool irSet = setCompatibleIR(vtx);
+    if (!irSet) {
+      continue;
+    }
     // do we need to validate by FT0 ?
     if (mValidateWithFT0) {
       auto bestMatch = getBestFT0Trigger(vtx, ft0Data, vtimeID);
-      if (bestMatch >= 0) { // RS FIXME eventually, we should assign the IR to vertex?
+      if (bestMatch.first >= 0) {
         vtx.setFlags(PVertex::TimeValidated);
-        vtx.setIR(ft0Data[bestMatch].getInteractionRecord());
-        LOG(DEBUG) << "Validated with t0" << bestMatch;
+        if (bestMatch.second == 1) {
+          vtx.setIR(ft0Data[bestMatch.first].getInteractionRecord());
+        }
+        LOG(DEBUG) << "Validated with t0 " << bestMatch.first << " with " << bestMatch.second << " candidates";
       } else if (vtx.getNContributors() >= mPVParams->minNContributorsForFT0cut) {
         LOG(DEBUG) << "Discarding " << vtx;
         continue; // reject
       }
     }
     vertices.push_back(vtx);
-    memcpy(&vertexTrackIDs[trCopied], &vertexTrackIDsLoc[v2tRefsLoc[i].getFirstEntry()], v2tRefsLoc[i].getEntries() * sizeof(int));
-    v2tRefs.emplace_back(trCopied, v2tRefsLoc[i].getEntries());
-    trCopied += v2tRefsLoc[i].getEntries();
+    int it = v2tRefsLoc[i].getFirstEntry(), itEnd = it + v2tRefsLoc[i].getEntries(), dest0 = vertexTrackIDs.size();
+    for (; it < itEnd; it++) {
+      auto& gid = vertexTrackIDs.emplace_back(vertexTrackIDsLoc[it], GIndex::TPCITS);
+      gid.setBit(GIndex::Contributor);
+    }
+    v2tRefs.emplace_back(dest0, v2tRefsLoc[i].getEntries());
     LOG(DEBUG) << "#" << count++ << " " << vertices.back() << " | " << v2tRefs.back().getEntries() << " indices from " << v2tRefs.back().getFirstEntry(); // RS REM
   }
-  vertexTrackIDs.resize(trCopied);
 
   return vertices.size();
 }
 
 //___________________________________________________________________
 int PVertexer::process(gsl::span<const o2d::TrackTPCITS> tracksITSTPC, gsl::span<const o2::ft0::RecPoints> ft0Data,
-                       std::vector<PVertex>& vertices, std::vector<int>& vertexTrackIDs, std::vector<V2TRef>& v2tRefs,
+                       std::vector<PVertex>& vertices, std::vector<GIndex>& vertexTrackIDs, std::vector<V2TRef>& v2tRefs,
                        gsl::span<const o2::MCCompLabel> lblITS, gsl::span<const o2::MCCompLabel> lblTPC, std::vector<o2::MCEventLabel>& lblVtx)
 {
   auto nv = process(tracksITSTPC, ft0Data, vertices, vertexTrackIDs, v2tRefs);
@@ -604,7 +613,7 @@ void PVertexer::clusterizeTime(float binSize, float maxTDist)
 
 //___________________________________________________________________
 void PVertexer::createMCLabels(gsl::span<const o2::MCCompLabel> lblITS, gsl::span<const o2::MCCompLabel> lblTPC,
-                               const std::vector<PVertex> vertices, const std::vector<int> vertexTrackIDs, const std::vector<V2TRef> v2tRefs,
+                               const std::vector<PVertex> vertices, const std::vector<o2::dataformats::VtxTrackIndex> vertexTrackIDs, const std::vector<V2TRef> v2tRefs,
                                std::vector<o2::MCEventLabel>& lblVtx)
 {
   lblVtx.clear();
@@ -636,7 +645,7 @@ void PVertexer::createMCLabels(gsl::span<const o2::MCCompLabel> lblITS, gsl::spa
     labelOccurenceITS.clear();
     o2::MCEventLabel winner; // unset at the moment
     for (; tref < last; tref++) {
-      int tid = vertexTrackIDs[tref];
+      int tid = vertexTrackIDs[tref].getIndex();
       const auto& lITS = lblITS[tid];
       const auto& lTPC = lblTPC[tid];
       if (!lITS.isSet() || !lTPC.isSet()) {
@@ -658,23 +667,23 @@ void PVertexer::createMCLabels(gsl::span<const o2::MCCompLabel> lblITS, gsl::spa
 }
 
 //___________________________________________________________________
-int PVertexer::getBestFT0Trigger(const PVertex& vtx, gsl::span<const o2::ft0::RecPoints> ft0Data, int& currEntry) const
+std::pair<int, int> PVertexer::getBestFT0Trigger(const PVertex& vtx, gsl::span<const o2::ft0::RecPoints> ft0Data, int& currEntry) const
 {
-  // check if the times stamp is compatible with any entry startinge from currEntry in ft0Data vector, return best matching time
+  // select best matching FT0 recpoint
   int best = -1, n = ft0Data.size();
-  auto t = vtx.getTimeStamp();
-  float cut = mPVParams->nSigmaFT0cut * mPVParams->maxTError, bestDf = cut, df = 0;
-  while (currEntry < n && mFT0Params->getInteractionTimeNS(ft0Data[currEntry], mStartIR) * 1e-3 + cut < t.getTimeStamp()) {
+  while (currEntry < n && ft0Data[currEntry].getInteractionRecord() < vtx.getIRMin()) {
     currEntry++; // skip all times which have no chance to be matched
   }
-  cut = mPVParams->nSigmaFT0cut * std::min(mPVParams->maxTError, std::max(mPVParams->minTError, t.getTimeStampError()));
-  int i = currEntry;
+  int i = currEntry, nCompatible = 0;
+  float bestDf = 1e12;
+  auto tVtxNS = (vtx.getTimeStamp().getTimeStamp() + mPVParams->timeBiasMS) * 1e3; // time in ns
   while (i < n) {
-    if ((df = mFT0Params->getInteractionTimeNS(ft0Data[i], mStartIR) * 1e-3) > bestDf) {
+    if (ft0Data[i].getInteractionRecord() > vtx.getIRMax()) {
       break;
     }
     if (mFT0Params->isSelected(ft0Data[i])) {
-      auto dfa = std::abs(df);
+      nCompatible++;
+      auto dfa = std::abs(mFT0Params->getInteractionTimeNS(ft0Data[i], mStartIR) - tVtxNS);
       if (dfa <= bestDf) {
         bestDf = dfa;
         best = i;
@@ -682,5 +691,62 @@ int PVertexer::getBestFT0Trigger(const PVertex& vtx, gsl::span<const o2::ft0::Re
     }
     i++;
   }
-  return best;
+  return {best, nCompatible};
+}
+
+//___________________________________________________________________
+void PVertexer::setBunchFilling(const o2::BunchFilling& bf)
+{
+  mBunchFilling = bf;
+  // find closest (from above) filled bunch
+  int minBC = bf.getFirstFilledBC(), maxBC = bf.getLastFilledBC();
+  if (minBC < 0) {
+    throw std::runtime_error("Bunch filling is not set in PVertexer");
+  }
+  int bcAbove = minBC;
+  for (int i = o2::constants::lhc::LHCMaxBunches; i--;) {
+    if (bf.testBC(i)) {
+      bcAbove = i;
+    }
+    mClosestBunchAbove[i] = bcAbove;
+  }
+  int bcBelow = maxBC;
+  for (int i = 0; i < o2::constants::lhc::LHCMaxBunches; i++) {
+    if (bf.testBC(i)) {
+      bcBelow = i;
+    }
+    mClosestBunchBelow[i] = bcBelow;
+  }
+}
+
+//___________________________________________________________________
+bool PVertexer::setCompatibleIR(PVertex& vtx)
+{
+  // assign compatible IRs accounting for the bunch filling scheme
+  const auto& vtxT = vtx.getTimeStamp();
+  o2::InteractionRecord irMin(mStartIR), irMax(mStartIR);
+  auto rangeT = mPVParams->nSigmaTimeCut * std::max(mPVParams->minTError, std::min(mPVParams->maxTError, vtxT.getTimeStampError()));
+  float t = vtxT.getTimeStamp() + mPVParams->timeBiasMS;
+  if (t > rangeT) {
+    irMin += o2::InteractionRecord(1.e3 * (t - rangeT));
+  }
+  irMax += o2::InteractionRecord(1.e3 * (t + rangeT));
+  irMax++; // to account for rounding
+  // restrict using bunch filling
+  int bc = mClosestBunchAbove[irMin.bc];
+  if (bc < irMin.bc) {
+    irMin.orbit++;
+  }
+  irMin.bc = bc;
+  bc = mClosestBunchBelow[irMax.bc];
+  if (bc > irMax.bc) {
+    if (irMax.orbit == 0) {
+      return false;
+    }
+    irMax.orbit--;
+  }
+  irMax.bc = bc;
+  vtx.setIRMin(irMin);
+  vtx.setIRMax(irMax);
+  return irMax >= irMin;
 }

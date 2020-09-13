@@ -12,6 +12,9 @@
 /// \brief Index of track attached to vertx: index in its proper container, container source and flags
 /// \author ruben.shahoyan@cern.ch
 
+#ifndef O2_VERTEX_TRACK_INDEX
+#define O2_VERTEX_TRACK_INDEX
+
 #include "CommonDataFormat/AbstractRef.h"
 #include <iosfwd>
 #include <string>
@@ -32,7 +35,7 @@ class VtxTrackIndex : public AbstractRef<26, 3, 3>
   };
   enum Flags : uint8_t {
     Contributor, // flag that it contributes to vertex fit
-    Attached,    // flag that it is attached w/o contributing
+    Reserved,    //
     Ambiguous,   // flag that attachment is ambiguous
     NFlags
   };
@@ -49,3 +52,5 @@ std::ostream& operator<<(std::ostream& os, const o2::dataformats::VtxTrackIndex&
 
 } // namespace dataformats
 } // namespace o2
+
+#endif

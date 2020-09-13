@@ -41,7 +41,9 @@ struct PVertexerParams : public o2::conf::ConfigurableParamHelper<PVertexerParam
   int minNContributorsForFT0cut = 4;    ///< do not apply FT0 cut to vertice below FT0 efficiency threshold
   float maxTError = 0.2;                ///< use min of vertex time error or this for nsigma evaluation
   float minTError = 0.003;              ///< don't use error smaller than that (~BC/2/minNContributorsForFT0cut)
-  float nSigmaFT0cut = 4.;              ///< eliminate vertex if there is no FT0 signal within this cut
+  float nSigmaTimeCut = 4.;             ///< eliminate vertex if there is no FT0 signal within this cut
+  float timeBiasMS = -0.035;            ///< relative bias in ms to add to TPCITS-based time stamp
+
   //
   // stopping condition params
   float maxChi2Mean = 10.;          ///< max mean chi2 of vertex to accept
