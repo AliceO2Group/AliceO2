@@ -21,7 +21,13 @@
 #include <TH3.h>
 #include <THn.h>
 #include <THnSparse.h>
+#include <TProfile.h>
+#include <TProfile2D.h>
+#include <TProfile3D.h>
+
 #include <TObjArray.h>
+#include <TList.h>
+//#include <TDirectory.h>
 
 #include "Framework/Logger.h"
 
@@ -42,100 +48,145 @@ struct is_shared_ptr<std::shared_ptr<T>> : std::true_type {
 //**************************************************************************************************
 /**
  * Container class for storing and saving root histograms of any type.
- * TObjArray inheritance (and concomitant raw pointer gynmnastics) is used to interface with existing O2 file writing functionality.
+ * RootContainer (TObjArray or TList) inheritance is required to interface with O2 file writing functionality.
  */
 //**************************************************************************************************
-class HistContainer : public TObjArray
+template <class RootContainer>
+class HistContainer : public RootContainer
 {
  public:
-  HistContainer(const std::string& name) : TObjArray()
+  HistContainer(const std::string& name) : RootContainer()
   {
-    SetBit(TObject::kSingleKey, false); // not working; seems like WriteObjectAny ignores this...
-    SetOwner(false);                    // let container handle object deletion
-    SetName(name.data());
+    RootContainer::SetOwner(false); // let container handle object deletion
+    RootContainer::SetName(name.data());
+  }
+  HistContainer(const HistContainer& other)
+  {
+    // pseudo copy ctor to move around empty collection on construction (no real copy constructor!)
+    // this is needed to be able to put this in OutputObj
+    // Memo: default copy ctor does not work for TList based collections since
+    //       their copy constructor is implicitly deleted as opposed to TObjArrays
+    RootContainer::SetOwner(false);
+    RootContainer::SetName(other.GetName());
   }
 
-  using HistType = std::variant<std::shared_ptr<TH3>, std::shared_ptr<TH2>, std::shared_ptr<TH1>, std::shared_ptr<THn>, std::shared_ptr<THnSparse>>;
+  using HistType = std::variant<std::shared_ptr<THn>, std::shared_ptr<THnSparse>, std::shared_ptr<TH3>, std::shared_ptr<TH2>, std::shared_ptr<TH1>, std::shared_ptr<TProfile3D>, std::shared_ptr<TProfile2D>, std::shared_ptr<TProfile>>;
 
   template <typename T>
   void Add(uint8_t histID, T&& hist)
   {
     if (mHistos.find(histID) != mHistos.end()) {
-      LOGF(WARNING, "HistContainer %s already holds a histogram at histID = %d. Overriding it now...", GetName(), histID);
+      LOGF(WARNING, "HistContainer %s already holds a histogram at histID = %d. Overriding it now...", RootContainer::GetName(), histID);
       TObject* oldPtr = nullptr;
       std::visit([&](const auto& sharedPtr) { oldPtr = sharedPtr.get(); }, mHistos[histID]);
-      TObjArray::Remove(oldPtr);
+      RootContainer::Remove(oldPtr);
     }
-    // if shared poiner is provided as argument, object itself is used, otherwise copied
+    // if shared pointers or rvalue raw pointers are provided as argument, the existing object is used
+    // otherwise the existing object is copied
+    std::optional<HistType> histVariant{};
     if constexpr (is_shared_ptr<T>::value)
-      mHistos[histID] = DownCast(hist);
+      histVariant = GetHistVariant(hist);
+    else if constexpr (std::is_pointer_v<T> && std::is_rvalue_reference_v<decltype(std::forward<T>(hist))>)
+      histVariant = GetHistVariant(std::shared_ptr<std::remove_pointer_t<T>>(hist));
     else {
-      mHistos[histID] = DownCast(std::make_shared<T>(hist));
+      histVariant = GetHistVariant(std::make_shared<T>(hist));
     }
-    TObject* rawPtr = nullptr;
-    std::visit([&](const auto& sharedPtr) { rawPtr = sharedPtr.get(); }, mHistos[histID]);
-    TObjArray::Add(rawPtr);
+    if (histVariant) {
+      mHistos[histID] = *histVariant;
+      TObject* rawPtr = nullptr;
+      std::visit([&](const auto& sharedPtr) { rawPtr = sharedPtr.get(); }, mHistos[histID]);
+      RootContainer::Add(rawPtr);
+    } else {
+      LOGF(FATAL, "Could not create histogram.");
+    }
   }
 
   // gets the underlying histogram pointer
-  // unfortunately we cannot automatically infer type here
-  // so one has to use Get<TH1>(), Get<TH2>(), Get<TH3>(), Get<THn>(), Get<THnSparse>()
+  // we cannot automatically infer type here so it has to be explicitly specified
+  // -> Get<TH1>(), Get<TH2>(), Get<TH3>(), Get<THn>(), Get<THnSparse>(), Get<TProfile>(), Get<TProfile2D>(), Get<TProfile3D>()
   template <typename T>
   std::shared_ptr<T> Get(uint8_t histID)
   {
     return *std::get_if<std::shared_ptr<T>>(&mHistos[histID]);
   }
 
-  template <typename... Ts>
+  // fill histogram or profile with arguments x,y,z,... and weight if requested
+  template <bool fillWeight = false, typename... Ts>
   void Fill(uint8_t histID, Ts&&... position)
   {
-    std::visit([this, &position...](auto&& hist) { GenericFill(hist, std::forward<Ts>(position)...); }, mHistos[histID]);
+    std::visit([this, &position...](auto&& hist) { GenericFill<fillWeight>(hist, std::forward<Ts>(position)...); }, mHistos[histID]);
+  }
+  template <typename... Ts>
+  void FillWeight(uint8_t histID, Ts&&... positionAndWeight)
+  {
+    Fill<true>(histID, std::forward<Ts>(positionAndWeight)...);
   }
 
  private:
   std::map<uint8_t, HistType> mHistos;
 
-  // disallow user to call TObjArray::Add()
-  using TObjArray::Add;
+  // disallow user to call RootContainer::Add() to avoid memory leaks
+  using RootContainer::Add;
 
-  template <typename T, typename... Ts>
+  template <bool fillWeight = false, typename T, typename... Ts>
   void GenericFill(std::shared_ptr<T> hist, const Ts&... position)
   {
-    constexpr bool isValidTH3 = (std::is_same_v<TH3, T> && sizeof...(Ts) == 3);
-    constexpr bool isValidTH2 = (std::is_same_v<TH2, T> && sizeof...(Ts) == 2);
-    constexpr bool isValidTH1 = (std::is_same_v<TH1, T> && sizeof...(Ts) == 1);
-    constexpr bool isValidPrimitive = isValidTH1 || isValidTH2 || isValidTH3;
+    // filling with weights requires one additional argument
+    constexpr bool isTH3 = (std::is_same_v<TH3, T> && sizeof...(Ts) == 3 + fillWeight);
+    constexpr bool isTH2 = (std::is_same_v<TH2, T> && sizeof...(Ts) == 2 + fillWeight);
+    constexpr bool isTH1 = (std::is_same_v<TH1, T> && sizeof...(Ts) == 1 + fillWeight);
+    constexpr bool isTProfile3D = (std::is_same_v<TProfile3D, T> && sizeof...(Ts) == 4 + fillWeight);
+    constexpr bool isTProfile2D = (std::is_same_v<TProfile2D, T> && sizeof...(Ts) == 3 + fillWeight);
+    constexpr bool isTProfile = (std::is_same_v<TProfile, T> && sizeof...(Ts) == 2 + fillWeight);
+
+    constexpr bool isValidPrimitive = isTH1 || isTH2 || isTH3 || isTProfile || isTProfile2D || isTProfile3D;
     // unfortunately we dont know at compile the dimension of THn(Sparse)
-    constexpr bool isValidComplex = std::is_base_of<THnBase, T>::value;
+    constexpr bool isValidComplex = std::is_base_of_v<THnBase, T>;
 
     if constexpr (isValidPrimitive) {
       hist->Fill(static_cast<double>(position)...);
     } else if constexpr (isValidComplex) {
       // savety check for n dimensional histograms (runtime overhead)
-      // if(hist->GetNdimensions() != sizeof...(position)) return;
+      // if (hist->GetNdimensions() != sizeof...(position) - fillWeight) return;
       double tempArray[] = {static_cast<double>(position)...};
-      hist->Fill(tempArray);
+      if constexpr (fillWeight)
+        hist->Fill(tempArray, tempArray[sizeof...(Ts) - 1]);
+      else
+        hist->Fill(tempArray);
     }
   };
 
   template <typename T>
-  HistType DownCast(std::shared_ptr<T> hist)
+  std::optional<HistType> GetHistVariant(std::shared_ptr<TObject> obj)
   {
-    // since the variant HistType only knows the interface classes (TH1,TH2,TH3)
-    // assigning an actual derived type of TH2 and TH3 (e.g. TH2F, TH3I)
-    // will confuse the compiler since they are both TH2(3) and TH1 at the same time
-    // it will not know which alternative of HistType to select
-    // therefore, in these cases we have to explicitly cast to the correct interface type first
-    if constexpr (std::is_base_of_v<TH3, T>) {
-      return std::static_pointer_cast<TH3>(hist);
-    } else if constexpr (std::is_base_of_v<TH2, T>) {
-      return std::static_pointer_cast<TH2>(hist);
-    } else {
-      // all other cases can be left untouched
+    if (obj->InheritsFrom(T::Class())) {
+      return std::static_pointer_cast<T>(obj);
+    }
+    return std::nullopt;
+  }
+  template <typename T, typename Next, typename... Rest>
+  std::optional<HistType> GetHistVariant(std::shared_ptr<TObject> obj)
+  {
+    if (auto hist = GetHistVariant<T>(obj)) {
       return hist;
     }
+    return GetHistVariant<Next, Rest...>(obj);
+  }
+  std::optional<HistType> GetHistVariant(std::shared_ptr<TObject> obj)
+  {
+    // Remember: TProfile3D is TH3, TProfile2D is TH2, TH3 is TH1, TH2 is TH1, TProfile is TH1
+    if (obj) {
+      return GetHistVariant<THn, THnSparse, TProfile3D, TH3, TProfile2D, TH2, TProfile, TH1>(obj);
+    }
+    return std::nullopt;
   }
 };
+
+//**************************************************************************************************
+using HistArray = HistContainer<TObjArray>;
+using HistList = HistContainer<TList>;
+//using HistDirectory = HistContainer<TDirectory>;
+//**************************************************************************************************
 
 //**************************************************************************************************
 /**
@@ -147,34 +198,51 @@ struct Axis {
   std::string name{};
   std::string title{};
   std::vector<double> binEdges{};
-  int nBins{}; // 0 when bin edges are specified directly FIXME: make this std::optional
+  std::optional<int> nBins{};
 };
 
-template <typename RootHist_t>
-class HistBuilder
+template <typename RootHistType>
+class Hist
 {
  public:
-  HistBuilder() : mAxes{}, mHist{nullptr} {}
-  HistBuilder(const HistBuilder&) = delete;            // non construction-copyable
-  HistBuilder& operator=(const HistBuilder&) = delete; // non copyable
+  Hist() : mAxes{} {}
 
-  void AddAxis(const Axis& axis) { mAxes.push_back(axis); }
+  void AddAxis(const Axis& axis)
+  {
+    mAxes.push_back(axis);
+  }
+
+  void AddAxis(const std::string& name, const std::string& title, const int nBins,
+               const double lowerEdge, const double upperEdge)
+  {
+    mAxes.push_back({name, title, {lowerEdge, upperEdge}, nBins});
+  }
+
+  void AddAxis(const std::string& name, const std::string& title,
+               const std::vector<double>& binEdges)
+  {
+    mAxes.push_back({name, title, binEdges});
+  }
+
   void AddAxes(const std::vector<Axis>& axes)
   {
     mAxes.insert(mAxes.end(), axes.begin(), axes.end());
   }
-  void AddAxis(const std::string& name, const std::string& title, const int& nBins,
-               const double& lowerEdge, const double& upperEdge)
+
+  // add axes defined in other Hist object
+  template <typename T>
+  void AddAxes(const Hist<T>& other)
   {
-    mAxes.push_back({name, title, {lowerEdge, upperEdge}, nBins});
-  }
-  void AddAxis(const std::string& name, const std::string& title,
-               const std::vector<double>& binEdges)
-  {
-    mAxes.push_back({name, title, binEdges, 0});
+    mAxes.insert(mAxes.end(), other.GetAxes().begin(), other.GetAxes().end());
   }
 
-  std::shared_ptr<RootHist_t> GenerateHist(const std::string& name, bool hasWeights = false)
+  void Reset()
+  {
+    mAxes.clear();
+  }
+
+  // create histogram with the defined axes
+  std::shared_ptr<RootHistType> Create(const std::string& name, bool useWeights = false)
   {
     const std::size_t MAX_DIM{10};
     const std::size_t nAxes{mAxes.size()};
@@ -188,7 +256,7 @@ class HistBuilder
     // first figure out number of bins and dimensions
     std::string title = "[ ";
     for (std::size_t i = 0; i < nAxes; i++) {
-      nBins[i] = (mAxes[i].nBins) ? mAxes[i].nBins : mAxes[i].binEdges.size() - 1;
+      nBins[i] = (mAxes[i].nBins) ? *mAxes[i].nBins : mAxes[i].binEdges.size() - 1;
       lowerBounds[i] = mAxes[i].binEdges.front();
       upperBounds[i] = mAxes[i].binEdges.back();
       title += mAxes[i].name;
@@ -199,70 +267,70 @@ class HistBuilder
     }
 
     // create histogram
-    mHist.reset(HistFactory(name, title, nAxes, nBins, lowerBounds, upperBounds));
+    std::shared_ptr<RootHistType> hist(HistFactory(name, title, nAxes, nBins, lowerBounds, upperBounds));
 
-    if (!mHist) {
-      LOGF(WARNING, "ERROR: The number of specified dimensions does not match the type.");
+    if (!hist) {
+      LOGF(FATAL, "The number of specified dimensions does not match the type.");
       return nullptr;
     }
 
     // set axis properties
     for (std::size_t i = 0; i < nAxes; i++) {
-      TAxis* axis{GetAxis(i)};
+      TAxis* axis{GetAxis(i, hist)};
       if (axis) {
         axis->SetTitle(mAxes[i].title.data());
-        if constexpr (std::is_base_of_v<THnBase, RootHist_t>)
+        if constexpr (std::is_base_of_v<THnBase, RootHistType>)
           axis->SetName((std::to_string(i) + "-" + mAxes[i].name).data());
 
-        // move the bin edges in case a variable binnining was requested
+        // move the bin edges in case a variable binning was requested
         if (!mAxes[i].nBins) {
           if (!std::is_sorted(std::begin(mAxes[i].binEdges), std::end(mAxes[i].binEdges))) {
-            LOGF(WARNING, "ERROR: The bin edges specified for axis %s in histogram %s are not in increasing order!", mAxes[i].name, name);
+            LOGF(FATAL, "The bin edges specified for axis %s in histogram %s are not in increasing order!", mAxes[i].name, name);
             return nullptr;
           }
           axis->Set(nBins[i], mAxes[i].binEdges.data());
         }
       }
     }
-    if (hasWeights)
-      mHist->Sumw2();
-    mAxes.clear(); // clean up after creating the root histogram
-    return mHist;
+    if (useWeights)
+      hist->Sumw2();
+    return hist;
   }
+
+  const std::vector<Axis>& GetAxes() const { return mAxes; };
 
  private:
   std::vector<Axis> mAxes;
-  std::shared_ptr<RootHist_t> mHist;
 
-  RootHist_t* HistFactory(const std::string& name, const std::string& title, const std::size_t nDim,
-                          const int nBins[], const double lowerBounds[], const double upperBounds[])
+  RootHistType* HistFactory(const std::string& name, const std::string& title, const std::size_t nDim,
+                            const int nBins[], const double lowerBounds[], const double upperBounds[])
   {
-    if constexpr (std::is_base_of_v<THnBase, RootHist_t>) {
-      return new RootHist_t(name.data(), title.data(), nDim, nBins, lowerBounds, upperBounds);
-    } else if constexpr (std::is_base_of_v<TH3, RootHist_t>) {
+    if constexpr (std::is_base_of_v<THnBase, RootHistType>) {
+      return new RootHistType(name.data(), title.data(), nDim, nBins, lowerBounds, upperBounds);
+    } else if constexpr (std::is_base_of_v<TH3, RootHistType>) {
       return (nDim != 3) ? nullptr
-                         : new RootHist_t(name.data(), title.data(), nBins[0], lowerBounds[0],
-                                          upperBounds[0], nBins[1], lowerBounds[1], upperBounds[1],
-                                          nBins[2], lowerBounds[2], upperBounds[2]);
-    } else if constexpr (std::is_base_of_v<TH2, RootHist_t>) {
+                         : new RootHistType(name.data(), title.data(), nBins[0], lowerBounds[0],
+                                            upperBounds[0], nBins[1], lowerBounds[1], upperBounds[1],
+                                            nBins[2], lowerBounds[2], upperBounds[2]);
+    } else if constexpr (std::is_base_of_v<TH2, RootHistType>) {
       return (nDim != 2) ? nullptr
-                         : new RootHist_t(name.data(), title.data(), nBins[0], lowerBounds[0],
-                                          upperBounds[0], nBins[1], lowerBounds[1], upperBounds[1]);
-    } else if constexpr (std::is_base_of_v<TH1, RootHist_t>) {
+                         : new RootHistType(name.data(), title.data(), nBins[0], lowerBounds[0],
+                                            upperBounds[0], nBins[1], lowerBounds[1], upperBounds[1]);
+    } else if constexpr (std::is_base_of_v<TH1, RootHistType>) {
       return (nDim != 1)
                ? nullptr
-               : new RootHist_t(name.data(), title.data(), nBins[0], lowerBounds[0], upperBounds[0]);
+               : new RootHistType(name.data(), title.data(), nBins[0], lowerBounds[0], upperBounds[0]);
     }
     return nullptr;
   }
 
-  TAxis* GetAxis(const int i)
+  TAxis* GetAxis(const int i, std::shared_ptr<RootHistType> hist)
   {
-    if constexpr (std::is_base_of_v<THnBase, RootHist_t>) {
-      return mHist->GetAxis(i);
+    if constexpr (std::is_base_of_v<THnBase, RootHistType>) {
+      return hist->GetAxis(i);
     } else {
-      return (i == 0) ? mHist->GetXaxis()
-                      : (i == 1) ? mHist->GetYaxis() : (i == 2) ? mHist->GetZaxis() : nullptr;
+      return (i == 0) ? hist->GetXaxis()
+                      : (i == 1) ? hist->GetYaxis() : (i == 2) ? hist->GetZaxis() : nullptr;
     }
   }
 };
