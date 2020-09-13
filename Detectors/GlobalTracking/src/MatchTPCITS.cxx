@@ -834,6 +834,7 @@ void MatchTPCITS::doMatching(int sec)
       if (trefTPC.timeBins > timeITS) { // its bracket precedes TPC bracket
         continue;
       }
+
       nCheckITSControl++;
       float chi2 = -1;
       int rejFlag = compareTPCITSTracks(trefITS, trefTPC, chi2);
@@ -846,7 +847,7 @@ void MatchTPCITS::doMatching(int sec)
 
       if (rejFlag == RejectOnTgl) {
         // ITS tracks in each ROFrame are ordered in Tgl, hence if this check failed on Tgl check
-        // (i.e. tgl_its>tgl_tpc+tolerance), tnem all other ITS tracks in this ROFrame will also have tgl too large.
+        // (i.e. tgl_its>tgl_tpc+tolerance), then all other ITS tracks in this ROFrame will also have tgl too large.
         // Jump on the 1st ITS track of the next ROFrame
         int rof = trefITS.roFrame;
         bool stop = false;
@@ -865,16 +866,21 @@ void MatchTPCITS::doMatching(int sec)
       if (rejFlag != Accept) {
         continue;
       }
+      auto deltaT = (trefITS.getZ() - trefTPC.getZ()) * mZ2TPCBin; // time difference in TPC time bins corresponding to Z differences
+      auto timeTB = getTPCTrackCorrectedTimeBin(mTPCTracksArray[trefTPC.sourceID], deltaT);
+      auto timeTBErr = std::sqrt(trefITS.getSigmaZ2() + trefTPC.getSigmaZ2()) * t2nbs; // nsigma*error in number of TPC time bins
+      o2::utils::Bracket<float> trange(timeTB - timeTBErr, timeTB + timeTBErr);
+      // is corrected TPC track time compatible with ITS ROF expressed in TPC bins?
+      if (timeITS.isOutside(trange)) {
+        continue;
+      }
+
       int matchedIC = MinusOne;
       if (checkInteractionCandidates) {
         // check if corrected TPC track time is compatible with any of interaction times
         auto interactionRefs = mITSROFIntCandEntries[trefITS.roFrame]; // reference on interaction candidates compatible with this track
         int nic = interactionRefs.getEntries();
         if (nic) {
-          auto deltaT = (trefITS.getZ() - trefTPC.getZ()) * mZ2TPCBin; // time difference in TPC time bins corresponding to Z differences
-          auto timeTB = getTPCTrackCorrectedTimeBin(mTPCTracksArray[trefTPC.sourceID], deltaT);
-          auto timeTBErr = std::sqrt(trefITS.getSigmaZ2() + trefTPC.getSigmaZ2()) * t2nbs; // nsigma*error in number of TPC time bins
-          o2::utils::Bracket<float> trange(timeTB - timeTBErr, timeTB + timeTBErr);
           int idIC = interactionRefs.getFirstEntry(), maxIC = idIC + nic;
           for (; idIC < maxIC; idIC++) {
             auto cmp = mInteractions[idIC].timeBins.isOutside(trange);
