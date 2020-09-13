@@ -33,19 +33,20 @@ using Label = o2::MCEventLabel;
 
 using namespace o2::header;
 
-DataProcessorSpec getPrimaryVertexWriterSpec(bool useMC)
+DataProcessorSpec getPrimaryVertexWriterSpec(bool disableMatching, bool useMC)
 {
   auto logger = [](std::vector<PVertex> const& v) {
     LOG(INFO) << "PrimaryVertexWriter pulled " << v.size() << " vertices";
   };
-
+  auto inpID = disableMatching ? InputSpec{"vttrackID", "GLO", "PVTX_CONTID", 0} : InputSpec{"vttrackID", "GLO", "PVTX_TRMTC", 0};
+  auto inpIDRef = disableMatching ? InputSpec{"v2tref", "GLO", "PVTX_CONTIDREFS", 0} : InputSpec{"v2tref", "GLO", "PVTX_TRMTCREFS", 0};
   return MakeRootTreeWriterSpec("primary-vertex-writer",
                                 "o2_primary_vertex.root",
                                 MakeRootTreeWriterSpec::TreeAttributes{"o2sim", "Tree with Primary Vertices"},
-                                BranchDefinition<std::vector<PVertex>>{InputSpec{"vertices", "GLO", "PVERTEX", 0}, "PrimaryVertex", logger},
-                                BranchDefinition<std::vector<V2TRef>>{InputSpec{"v2tref", "GLO", "PVERTEX_TRIDREFS", 0}, "PV2TrackRefs"},
-                                BranchDefinition<std::vector<int>>{InputSpec{"vttrackID", "GLO", "PVERTEX_TRID", 0}, "PVTrackIndices"},
-                                BranchDefinition<std::vector<Label>>{InputSpec{"labels", "GLO", "PVERTEX_MCTR", 0}, "PVMCTruth", (useMC ? 1 : 0), ""})();
+                                BranchDefinition<std::vector<PVertex>>{InputSpec{"vertices", "GLO", "PVTX", 0}, "PrimaryVertex", logger},
+                                BranchDefinition<std::vector<V2TRef>>{inpIDRef, "PV2TrackRefs"},
+                                BranchDefinition<std::vector<GIndex>>{inpID, "PVTrackIndices"},
+                                BranchDefinition<std::vector<Label>>{InputSpec{"labels", "GLO", "PVTX_MCTR", 0}, "PVMCTruth", (useMC ? 1 : 0), ""})();
 }
 
 } // namespace vertexing

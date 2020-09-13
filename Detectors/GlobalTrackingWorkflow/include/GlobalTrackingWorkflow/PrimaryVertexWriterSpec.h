@@ -21,7 +21,7 @@ namespace vertexing
 {
 
 /// create a processor spec
-framework::DataProcessorSpec getPrimaryVertexWriterSpec(bool useMC);
+framework::DataProcessorSpec getPrimaryVertexWriterSpec(bool disableMatching, bool useMC);
 
 } // namespace vertexing
 } // namespace o2
