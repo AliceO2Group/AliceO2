@@ -29,6 +29,8 @@ class BunchFilling
   void setBCTrains(int nTrains, int trainSpacingInBC, int nBC, int bcSpacing, int firstBC);
   void print(int bcPerLine = 100) const;
   const auto& getPattern() const { return mPattern; }
+  int getFirstFilledBC() const;
+  int getLastFilledBC() const;
   // set BC filling a la TPC TDR, 12 50ns trains of 48 BCs
   // but instead of uniform train spacing we add 96empty BCs after each train
   void setDefault()
