@@ -51,13 +51,12 @@ struct lambdakzeroQA {
   void process(aod::Collision const& collision, soa::Join<aod::V0s, aod::V0Data> const& fullV0s)
   {
     for (auto& v0 : fullV0s) {
-        
       hMassLambda->Fill(v0.mLambda());
       hMassAntiLambda->Fill(v0.mAntiLambda());
       hMassK0Short->Fill(v0.mK0Short());
 
       hV0Radius->Fill(v0.v0radius());
-      hV0CosPA->Fill(v0.v0cosPA());
+      hV0CosPA->Fill(v0.v0cosPA(collision.posX(), collision.posY(), collision.posZ()));
          
       hDCAPosToPV->Fill(v0.dcapostopv());
       hDCANegToPV->Fill(v0.dcanegtopv());
