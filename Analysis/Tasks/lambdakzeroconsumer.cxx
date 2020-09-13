@@ -57,7 +57,7 @@ struct lambdakzeroQA {
 
       hV0Radius->Fill(v0.v0radius());
       hV0CosPA->Fill(v0.v0cosPA(collision.posX(), collision.posY(), collision.posZ()));
-         
+
       hDCAPosToPV->Fill(v0.dcapostopv());
       hDCANegToPV->Fill(v0.dcanegtopv());
       hDCAV0Dau->Fill(v0.dcaV0daughters());
@@ -77,14 +77,20 @@ struct lambdakzeroconsumer {
   Configurable<float> dcapostopv{"dcapostopv", .1, "DCA Pos To PV"};
   Configurable<float> v0radius{"v0radius", 5.0, "v0radius"};
 
-  void process(aod::Collision const& collision, soa::Join<aod::V0s, aod::V0Data> const& fullV0s)
+  Filter preFilterV0 = aod::v0data::dcapostopv > dcapostopv&&
+                                                   aod::v0data::dcanegtopv > dcanegtopv&& aod::v0data::dcaV0daughters > dcav0dau;
+
+  void process(aod::Collision const& collision, soa::Filtered<soa::Join<aod::V0s, aod::V0Data>> const& fullV0s)
   {
     for (auto& v0 : fullV0s) {
-        h2dMassLambda    ->Fill(v0.pt(), v0.mLambda());
+      //FIXME: could not find out how to filter cosPA and radius variables (dynamic columns)
+      if (v0.v0radius() > v0radius && v0.v0cosPA(collision.posX(), collision.posY(), collision.posZ()) > v0cospa) {
+        h2dMassLambda->Fill(v0.pt(), v0.mLambda());
         h2dMassAntiLambda->Fill(v0.pt(), v0.mAntiLambda());
-        h2dMassK0Short   ->Fill(v0.pt(), v0.mK0Short());
+        h2dMassK0Short->Fill(v0.pt(), v0.mK0Short());
       }
     }
+  }
 };
 
 WorkflowSpec defineDataProcessing(ConfigContext const&)
