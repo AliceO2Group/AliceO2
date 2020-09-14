@@ -310,7 +310,7 @@ void cleanupSHM(std::string const& uniqueWorkflowId)
 {
 #if __has_include(<fairmq/shmem/Monitor.h>)
   using namespace fair::mq::shmem;
-  Monitor::Cleanup(SessionId{"dpl_" + uniqueWorkflowId});
+  Monitor::Cleanup(SessionId{"dpl_" + uniqueWorkflowId}, false);
 #else
   // Old code, invoking external fairmq-shmmonitor
   auto shmCleanup = fmt::format("fairmq-shmmonitor --cleanup -s dpl_{} 2>&1 >/dev/null", uniqueWorkflowId);
