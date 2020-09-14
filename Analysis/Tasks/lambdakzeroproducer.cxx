@@ -38,14 +38,12 @@ using std::array;
 
 /// Cascade builder task: rebuilds cascades
 struct lambdakzeroproducer {
+
+    
   Produces<aod::V0Data> v0data;
 
   OutputObj<TH1F> hEventCounter{TH1F("hEventCounter", "", 1, 0, 1)};
   OutputObj<TH1F> hCascCandidate{TH1F("hCascCandidate", "", 10, 0, 10)};
-
-  OutputObj<TH1F> hMassK0Short{TH1F("hMassK0Short", "", 3000, 0.0, 3.0)};
-  OutputObj<TH1F> hMassLambda{TH1F("hMassLambda", "", 3000, 0.0, 3.0)};
-  OutputObj<TH1F> hMassAntiLambda{TH1F("hMassAntiLambda", "", 3000, 0.0, 3.0)};
 
   //Configurables
   Configurable<double> d_bz{"d_bz", -5.0, "bz field"};

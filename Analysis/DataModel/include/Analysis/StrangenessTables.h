@@ -41,7 +41,7 @@ DECLARE_SOA_DYNAMIC_COLUMN(Pt, pt, [](float pxpos, float pypos, float pxneg, flo
 DECLARE_SOA_DYNAMIC_COLUMN(V0Radius, v0radius, [](float x, float y) { return RecoDecay::sqrtSumOfSquares(x, y); });
 
 //CosPA
-DECLARE_SOA_DYNAMIC_COLUMN(V0CosPA, v0cosPA, [](float X, float Y, float Z, float pxpos, float pypos, float pzpos, float pxneg, float pyneg, float pzneg, float pvX, float pvY, float pvZ) { return RecoDecay::CPA(array{pvX, pvY, pvZ}, array{X, Y, Z}, array{pxpos+pxneg, pypos+pyneg, pzpos+pzneg}); });
+DECLARE_SOA_DYNAMIC_COLUMN(V0CosPA, v0cosPA, [](float X, float Y, float Z, float Px, float Py, float Pz, float pvX, float pvY, float pvZ) { return RecoDecay::CPA(array{pvX, pvY, pvZ}, array{X, Y, Z}, array{Px, Py, Pz}); });
 
 //Calculated on the fly with mass assumption + dynamic tables
 DECLARE_SOA_DYNAMIC_COLUMN(MLambda, mLambda, [](float pxpos, float pypos, float pzpos, float pxneg, float pyneg, float pzneg) { return RecoDecay::M(array{array{pxpos, pypos, pzpos}, array{pxneg, pyneg, pzneg}}, array{RecoDecay::getMassPDG(kProton), RecoDecay::getMassPDG(kPiPlus)}); });
@@ -65,7 +65,7 @@ DECLARE_SOA_TABLE(V0Data, "AOD", "V0DATA",
                   //Dynamic columns
                   v0data::Pt<v0data::PxPos,v0data::PyPos,v0data::PxNeg,v0data::PyNeg>,
                   v0data::V0Radius<v0data::X,v0data::Y>,
-                  v0data::V0CosPA<v0data::X, v0data::Y, v0data::Z, v0data::PxPos, v0data::PyPos, v0data::PzPos, v0data::PxNeg, v0data::PyNeg, v0data::PzNeg>,
+                  v0data::V0CosPA<v0data::X, v0data::Y, v0data::Z, v0dataext::Px, v0dataext::Py, v0dataext::Pz>,
                   
                   //Invariant masses
                   v0data::MLambda<v0data::PxPos, v0data::PyPos, v0data::PzPos, v0data::PxNeg, v0data::PyNeg, v0data::PzNeg>,
