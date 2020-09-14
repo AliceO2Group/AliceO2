@@ -78,7 +78,7 @@ struct lambdakzeroconsumer {
   Configurable<float> v0radius{"v0radius", 5.0, "v0radius"};
   
   Filter preFilterV0 = aod::v0data::dcapostopv > dcapostopv&&
-  aod::v0data::dcanegtopv > dcanegtopv&& aod::v0data::dcaV0daughters > dcav0dau;
+  aod::v0data::dcanegtopv > dcanegtopv&& aod::v0data::dcaV0daughters < dcav0dau;
   
   void process(aod::Collision const& collision, soa::Filtered<soa::Join<aod::V0s, aod::V0DataExt>> const& fullV0s)
   {
