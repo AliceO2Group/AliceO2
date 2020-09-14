@@ -69,6 +69,8 @@ class Bracket
   T min() const { return mMin; }
   T mean() const { return (mMin + mMax) / 2; }
   T delta() const { return mMax - mMin; }
+  bool isValid() const { return mMax >= mMin; }
+  bool isInvalid() const { return mMin > mMax; }
   void update(T v)
   {
     // update limits
@@ -91,7 +93,7 @@ class Bracket
   }
 
  private:
-  T mMin = 0, mMax = 0;
+  T mMin{}, mMax{};
 
   ClassDefNV(Bracket, 1);
 };
