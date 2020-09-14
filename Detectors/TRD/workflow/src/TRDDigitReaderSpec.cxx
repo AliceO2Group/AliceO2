@@ -24,7 +24,8 @@
 #include "Steer/HitProcessingManager.h" // for DigitizationContext
 #include "TChain.h"
 #include <SimulationDataFormat/MCCompLabel.h>
-#include <SimulationDataFormat/MCTruthContainer.h>
+#include <SimulationDataFormat/ConstMCTruthContainer.h>
+#include <SimulationDataFormat/IOMCTruthContainerView.h>
 #include "Framework/Task.h"
 #include "DataFormatsParameters/GRPObject.h"
 #include "TRDBase/Digit.h" // for the Digit type
@@ -82,16 +83,28 @@ void TRDDigitReaderSpec::run(ProcessingContext& pc)
     LOG(info) << "mState is not 1";
     return;
   }
-  TTree* DPLTree = ((TTree*)mFile->Get(mDigitTreeName.c_str()));
+  auto DPLTree = ((TTree*)mFile->Get(mDigitTreeName.c_str()));
   if (DPLTree) {
-    DPLTree->SetBranchAddress(mDigitBranchName.c_str(), &mPDigits);
-    DPLTree->SetBranchAddress(mTriggerRecordBranchName.c_str(), &mPTriggerRecords);
-    DPLTree->SetBranchAddress(mMCLabelsBranchName.c_str(), &mPMCLabels);
-    DPLTree->GetEntry(0);
-    pc.outputs().snapshot(Output{"TRD", "DIGITS", 0, Lifetime::Timeframe}, mDigits);
-    pc.outputs().snapshot(Output{"TRD", "TRGRDIG", 0, Lifetime::Timeframe}, mTriggerRecords);
-    pc.outputs().snapshot(Output{"TRD", "LABELS", 0, Lifetime::Timeframe}, mMCLabels);
-    LOG(info) << "TRDDigitReader digits size=" << mDigits.size() << " triggerrecords size=" << mTriggerRecords.size() << " mc labels size=" << mMCLabels.getNElements();
+    std::vector<o2::trd::Digit>* digits = nullptr;
+    o2::dataformats::IOMCTruthContainerView* ioLabels = nullptr;
+    std::vector<o2::trd::TriggerRecord>* triggerRecords = nullptr;
+
+    auto getFromBranch = [DPLTree](const char* name, void** ptr) {
+      auto br = DPLTree->GetBranch(name);
+      br->SetAddress(ptr);
+      br->GetEntry(0);
+      br->ResetAddress();
+    };
+    getFromBranch(mDigitBranchName.c_str(), (void**)&digits);
+    getFromBranch(mTriggerRecordBranchName.c_str(), (void**)&triggerRecords);
+    getFromBranch(mMCLabelsBranchName.c_str(), (void**)&ioLabels);
+
+    // publish labels in shared memory
+    auto& sharedlabels = pc.outputs().make<o2::dataformats::ConstMCTruthContainer<o2::trd::MCLabel>>(Output{"TRD", "LABELS", 0, Lifetime::Timeframe});
+    ioLabels->copyandflatten(sharedlabels);
+    pc.outputs().snapshot(Output{"TRD", "DIGITS", 0, Lifetime::Timeframe}, *digits);
+    pc.outputs().snapshot(Output{"TRD", "TRGRDIG", 0, Lifetime::Timeframe}, *triggerRecords);
+    LOG(info) << "TRDDigitReader digits size=" << digits->size() << " triggerrecords size=" << triggerRecords->size() << " mc labels size (in bytes) = " << sharedlabels.size();
   }
   //delete DPLTree; // next line will delete the pointer as well.
   mFile->Close();

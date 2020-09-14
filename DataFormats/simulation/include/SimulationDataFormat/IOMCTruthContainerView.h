@@ -41,6 +41,12 @@ class IOMCTruthContainerView
   /// container is just a split view on the original buffer.
   IOMCTruthContainerView(std::vector<char> const& input)
   {
+    adopt(input);
+  }
+
+  /// "adopt" (without taking ownership) from an existing buffer
+  void adopt(std::vector<char> const& input)
+  {
     const auto delta = input.size() / N;
     N2 = input.size() - (N - 1) * delta;
     N1 = delta;
@@ -74,6 +80,9 @@ class IOMCTruthContainerView
     copyhelper(part9, N1, output);
     copyhelper(part10, N2, output);
   }
+
+  /// return total size in bytes
+  size_t getSize() const { return N1 * (N - 1) + N2; }
 
  private:
   static constexpr int N = 10;
