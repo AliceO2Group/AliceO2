@@ -30,17 +30,25 @@ using std::endl;
 
 using namespace o2;
 using namespace o2::framework;
-//using namespace o2::framework::expressions;
+using namespace o2::framework::expressions;
 using namespace o2::aod;
 
 // Some definitions
 namespace o2::aod
 {
+  
+namespace reducedevent
+{
+DECLARE_SOA_COLUMN(Category, category, int);
+DECLARE_SOA_COLUMN(IsEventSelected, isEventSelected, int);
+}
+
 namespace reducedtrack
 {
 DECLARE_SOA_COLUMN(IsBarrelSelected, isBarrelSelected, int);
 DECLARE_SOA_COLUMN(IsMuonSelected, isMuonSelected, int);
 } // namespace reducedtrack
+
 namespace reducedpair
 {
 DECLARE_SOA_INDEX_COLUMN(ReducedEvent, reducedevent);
@@ -55,6 +63,8 @@ DECLARE_SOA_DYNAMIC_COLUMN(Pz, pz, [](float pt, float eta) -> float { return pt 
 DECLARE_SOA_DYNAMIC_COLUMN(Pmom, pmom, [](float pt, float eta) -> float { return pt * std::cosh(eta); });
 } // namespace reducedpair
 
+DECLARE_SOA_TABLE(EventCuts, "AOD", "EVENTCUTS", reducedevent::IsEventSelected);
+DECLARE_SOA_TABLE(EventCategories, "AOD", "EVENTCATEGORIES", reducedevent::Category);
 DECLARE_SOA_TABLE(BarrelTrackCuts, "AOD", "BARRELTRACKCUTS", reducedtrack::IsBarrelSelected);
 DECLARE_SOA_TABLE(MuonTrackCuts, "AOD", "MUONTRACKCUTS", reducedtrack::IsMuonSelected);
 DECLARE_SOA_TABLE(Dileptons, "AOD", "DILEPTON", reducedtrack::ReducedEventId, reducedpair::Mass, reducedpair::Pt, reducedpair::Eta, reducedpair::Phi, reducedpair::Charge,
@@ -63,8 +73,10 @@ DECLARE_SOA_TABLE(Dileptons, "AOD", "DILEPTON", reducedtrack::ReducedEventId, re
 using Dilepton = Dileptons::iterator;
 } // namespace o2::aod
 
-using MyEvent = soa::Join<aod::ReducedEvents, aod::ReducedEventsExtended>::iterator;
-using MyEventVtxCov = soa::Join<aod::ReducedEvents, aod::ReducedEventsExtended, aod::ReducedEventsVtxCov>::iterator;
+using MyEvents = soa::Join<aod::ReducedEvents, aod::ReducedEventsExtended>;
+using MyEventsSelected = soa::Join<aod::ReducedEvents, aod::ReducedEventsExtended, aod::EventCuts>;
+using MyEventsVtxCov = soa::Join<aod::ReducedEvents, aod::ReducedEventsExtended, aod::ReducedEventsVtxCov>;
+using MyEventsVtxCovSelected = soa::Join<aod::ReducedEvents, aod::ReducedEventsExtended, aod::ReducedEventsVtxCov, aod::EventCuts>;
 using MyBarrelTracks = soa::Join<aod::ReducedTracks, aod::ReducedTracksBarrel, aod::ReducedTracksBarrelCov, aod::ReducedTracksBarrelPID>;
 using MyBarrelTracksSelected = soa::Join<aod::ReducedTracks, aod::ReducedTracksBarrel, aod::ReducedTracksBarrelCov, aod::ReducedTracksBarrelPID, aod::BarrelTrackCuts>;
 using MyMuonTracks = soa::Join<aod::ReducedMuons, aod::ReducedMuonsExtended>;
@@ -83,13 +95,13 @@ constexpr static uint32_t fgEventFillMap = VarManager::ObjTypes::ReducedEvent | 
 constexpr static uint32_t fgTrackFillMap = VarManager::ObjTypes::ReducedTrack | VarManager::ObjTypes::ReducedTrackBarrel | VarManager::ObjTypes::ReducedTrackBarrelCov | VarManager::ObjTypes::ReducedTrackBarrelPID;
 constexpr static uint32_t fgMuonFillMap = VarManager::ObjTypes::ReducedTrack | VarManager::ObjTypes::ReducedTrackMuon;
 
-struct BarrelTrackSelection {
-  Produces<aod::BarrelTrackCuts> trackSel;
+struct EventSelection {
+  Produces<aod::EventCuts> eventSel;
   OutputObj<HistogramManager> fHistMan{"output"};
-  AnalysisCompositeCut* fTrackCut;
-
-  float* fValues; // array to be used by the VarManager
-
+  AnalysisCompositeCut* fEventCut;
+  
+  float* fValues;
+  
   void init(o2::framework::InitContext&)
   {
     fValues = new float[VarManager::kNVars];
@@ -98,8 +110,59 @@ struct BarrelTrackSelection {
     fHistMan->SetUseDefaultVariableNames(kTRUE);
     fHistMan->SetDefaultVarNames(VarManager::fgVariableNames, VarManager::fgVariableUnits);
 
-    DefineHistograms(fHistMan, "TrackBarrel_BeforeCuts;TrackBarrel_AfterCuts;");                                                                                       // define all histograms
-    VarManager::SetUseVars(fHistMan->GetUsedVars());                                                                                                                   // provide the list of required variables so that VarManager knows what to fill
+    DefineHistograms(fHistMan, "Event_BeforeCuts;Event_AfterCuts;");     // define all histograms
+    VarManager::SetUseVars(fHistMan->GetUsedVars());         // provide the list of required variables so that VarManager knows what to fill
+
+    DefineCuts();
+  }
+
+  void DefineCuts()
+  {
+    fEventCut = new AnalysisCompositeCut(true);
+
+    AnalysisCut* varCut = new AnalysisCut();
+    varCut->AddCut(VarManager::kVtxZ, -10.0, 10.0);
+
+    fEventCut->AddCut(varCut);
+    // TODO: Add more cuts, also enable cuts which are not easily possible via the VarManager (e.g. trigger selections)
+    
+    VarManager::SetUseVars(AnalysisCut::fgUsedVars); // provide the list of required variables so that VarManager knows what to fill
+  }
+  
+  void process(MyEvents::iterator const& event)
+  {
+    // Reset the fValues array
+    VarManager::ResetValues(0, VarManager::kNEventWiseVariables, fValues);
+
+    VarManager::FillEvent<fgEventFillMap>(event, fValues);
+    fHistMan->FillHistClass("Event_BeforeCuts", fValues); // automatically fill all the histograms in the class Event
+    if (fEventCut->IsSelected(fValues)) {
+      fHistMan->FillHistClass("Event_AfterCuts", fValues);
+      eventSel(1);
+    }
+    else
+      eventSel(0);
+  }
+};
+
+
+struct BarrelTrackSelection {
+  Produces<aod::BarrelTrackCuts> trackSel;
+  OutputObj<HistogramManager> fHistMan{"output"};
+  AnalysisCompositeCut* fTrackCut;
+
+  float* fValues; // array to be used by the VarManager
+  
+  void init(o2::framework::InitContext&)
+  {
+    fValues = new float[VarManager::kNVars];
+    VarManager::SetDefaultVarNames();
+    fHistMan.setObject(new HistogramManager("analysisHistos", "aa", VarManager::kNVars));
+    fHistMan->SetUseDefaultVariableNames(kTRUE);
+    fHistMan->SetDefaultVarNames(VarManager::fgVariableNames, VarManager::fgVariableUnits);
+
+    DefineHistograms(fHistMan, "TrackBarrel_BeforeCuts;TrackBarrel_AfterCuts;");   // define all histograms
+    VarManager::SetUseVars(fHistMan->GetUsedVars());            // provide the list of required variables so that VarManager knows what to fill
 
     DefineCuts();
   }
@@ -108,36 +171,49 @@ struct BarrelTrackSelection {
   {
     fTrackCut = new AnalysisCompositeCut(true); // true: use AND
     AnalysisCut* cut1 = new AnalysisCut();
-    cut1->AddCut(VarManager::kPt, 1.5, 20.0);
+    cut1->AddCut(VarManager::kPt, 1.0, 20.0);
     cut1->AddCut(VarManager::kEta, -0.9, 0.9);
     cut1->AddCut(VarManager::kTPCchi2, 0.0, 4.0);
-    cut1->AddCut(VarManager::kITSchi2, 0.0, 36.0);
+    cut1->AddCut(VarManager::kITSchi2, 0.1, 36.0);
     cut1->AddCut(VarManager::kITSncls, 2.5, 7.5);
-    cut1->AddCut(VarManager::kTPCncls, 69.5, 159.5);
-    AnalysisCut* cut2 = new AnalysisCut();
-    cut2->AddCut(VarManager::kPt, 0.5, 3.0);
+    cut1->AddCut(VarManager::kTPCncls, 69.5, 180.);
+    
+    AnalysisCompositeCut* pid = new AnalysisCompositeCut(false);
+    
+    AnalysisCut* tpcEleSelection = new AnalysisCut();
+    tpcEleSelection->AddCut(VarManager::kTPCnSigmaPi, -3.0, +3.0, true);
+    //tpcEleSelection->AddCut(VarManager::kTPCnSigmaKa, -3.0, +3.0, true);
+    tpcEleSelection->AddCut(VarManager::kTPCnSigmaPr, -3.0, +3.0, true);
+            
+    AnalysisCut* tofSelInProtonBand = new AnalysisCut();
+    tofSelInProtonBand->AddCut(VarManager::kTOFnSigmaEl, -3.0, 3.0, false, VarManager::kTPCnSigmaPr, -3.0, +3.0, false, VarManager::kTPCnSigmaEl, -3.0, +3.0);
+    
+    pid->AddCut(tpcEleSelection);
+    //pid->AddCut(tofSelInProtonBand);
+    
     fTrackCut->AddCut(cut1);
-    //fTrackCut->AddCut(cut2);
+    //fTrackCut->AddCut(pid);
+    //fTrackCut->AddCut(tpcEleSelection);
+    //fTrackCut->AddCut(tofSelInProtonBand);
 
     VarManager::SetUseVars(AnalysisCut::fgUsedVars); // provide the list of required variables so that VarManager knows what to fill
   }
 
-  void process(MyEvent event, MyBarrelTracks const& tracks)
+  void process(MyEventsSelected::iterator const& event, MyBarrelTracks const& tracks)
   {
-    for (int i = 0; i < VarManager::kNVars; ++i)
-      fValues[i] = -9999.0f;
+    VarManager::ResetValues(0, VarManager::kNBarrelTrackVariables, fValues);
     // fill event information which might be needed in histograms that combine track and event properties
     VarManager::FillEvent<fgEventFillMap>(event, fValues);
 
     for (auto& track : tracks) {
-      for (int i = VarManager::kNEventWiseVariables; i < VarManager::kNMuonTrackVariables; ++i)
-        fValues[i] = -9999.0f;
       VarManager::FillTrack<fgTrackFillMap>(track, fValues);
-      fHistMan->FillHistClass("TrackBarrel_BeforeCuts", fValues);
+      //if(event.isEventSelected()) 
+        fHistMan->FillHistClass("TrackBarrel_BeforeCuts", fValues);
 
       if (fTrackCut->IsSelected(fValues)) {
         trackSel(1);
-        fHistMan->FillHistClass("TrackBarrel_AfterCuts", fValues);
+        //if(event.isEventSelected())
+          fHistMan->FillHistClass("TrackBarrel_AfterCuts", fValues);
       } else
         trackSel(0);
     }
@@ -175,21 +251,21 @@ struct MuonTrackSelection {
     VarManager::SetUseVars(AnalysisCut::fgUsedVars); // provide the list of required variables so that VarManager knows what to fill
   }
 
-  void process(MyEvent event, MyMuonTracks const& muons)
+  void process(MyEventsSelected::iterator const& event, MyMuonTracks const& muons)
   {
-    for (int i = 0; i < VarManager::kNVars; ++i)
-      fValues[i] = -9999.0f;
+    VarManager::ResetValues(0, VarManager::kNMuonTrackVariables, fValues);
     VarManager::FillEvent<fgEventFillMap>(event, fValues);
 
     for (auto& muon : muons) {
-      for (int i = VarManager::kNBarrelTrackVariables; i < VarManager::kNMuonTrackVariables; ++i)
-        fValues[i] = -9999.0f;
+      //VarManager::ResetValues(VarManager::kNBarrelTrackVariables, VarManager::kNMuonTrackVariables, fValues);
       VarManager::FillTrack<fgMuonFillMap>(muon, fValues);
-      fHistMan->FillHistClass("TrackMuon_BeforeCuts", fValues);
+      //if(event.isEventSelected())
+        fHistMan->FillHistClass("TrackMuon_BeforeCuts", fValues);
 
       if (fTrackCut->IsSelected(fValues)) {
         trackSel(1);
-        fHistMan->FillHistClass("TrackMuon_AfterCuts", fValues);
+        //if(event.isEventSelected())
+          fHistMan->FillHistClass("TrackMuon_AfterCuts", fValues);
       } else
         trackSel(0);
     }
@@ -199,9 +275,12 @@ struct MuonTrackSelection {
 struct TableReader {
   Produces<aod::Dileptons> dileptonList;
   OutputObj<HistogramManager> fHistMan{"output"};
-  AnalysisCompositeCut* fEventCut;
   //NOTE: one could define also a dilepton cut, but for now basic selections can be supported using Partition
 
+  float* fValues;
+  
+  
+  
   Partition<MyBarrelTracksSelected> posTracks = aod::reducedtrack::charge > 0 && aod::reducedtrack::isBarrelSelected == 1;
   Partition<MyBarrelTracksSelected> negTracks = aod::reducedtrack::charge < 0 && aod::reducedtrack::isBarrelSelected == 1;
   Partition<MyMuonTracksSelected> posMuons = aod::reducedtrack::charge > 0 && aod::reducedtrack::isMuonSelected == 1;
@@ -217,46 +296,26 @@ struct TableReader {
   
   void init(o2::framework::InitContext&)
   {
+    fValues = new float[VarManager::kNVars];
     VarManager::SetDefaultVarNames();
     fHistMan.setObject(new HistogramManager("analysisHistos", "aa", VarManager::kNVars));
     fHistMan->SetUseDefaultVariableNames(kTRUE);
     fHistMan->SetDefaultVarNames(VarManager::fgVariableNames, VarManager::fgVariableUnits);
 
-    DefineHistograms(fHistMan, "Event_BeforeCuts;Event_AfterCuts;PairsBarrelPM;PairsBarrelPP;PairsBarrelMM;PairsMuon;"); // define all histograms
-    VarManager::SetUseVars(fHistMan->GetUsedVars());                                                                     // provide the list of required variables so that VarManager knows what to fill
-
-    DefineCuts();
+    DefineHistograms(fHistMan, "PairsBarrelPM;PairsBarrelPP;PairsBarrelMM;PairsMuon;"); // define all histograms
+    VarManager::SetUseVars(fHistMan->GetUsedVars());    // provide the list of required variables so that VarManager knows what to fill
   }
 
-  void DefineCuts()
+  //void process(soa::Filtered<MyEventsVtxCovSelected>::iterator const& event, MyBarrelTracksSelected const& tracks, MyMuonTracksSelected const& muons)
+  void process(MyEventsVtxCovSelected::iterator const& event, MyBarrelTracksSelected const& tracks, MyMuonTracksSelected const& muons)
   {
-    fEventCut = new AnalysisCompositeCut(true);
-
-    AnalysisCut* varCut = new AnalysisCut();
-    varCut->AddCut(VarManager::kVtxZ, -10.0, 10.0);
-
-    TF1* cutLow = new TF1("cutLow", "pol1", 0., 0.1);
-    cutLow->SetParameters(0.2635, 1.0);
-    //varCut->AddCut(VarManager::kVtxY, cutLow, 0.335, false, VarManager::kVtxX, 0.067, 0.070);
-
-    //varCut->AddCut(VarManager::kVtxY, 0.0, 0.335);
-    fEventCut->AddCut(varCut);
-
-    VarManager::SetUseVars(AnalysisCut::fgUsedVars); // provide the list of required variables so that VarManager knows what to fill
-  }
-
-  void process(MyEventVtxCov event, MyBarrelTracksSelected const& tracks, MyMuonTracksSelected const& muons)
-  {
-    // Reset the VarManager::fgValues array
-    // The reset can be done selectively, using arguments in the ResetValues() function
-    VarManager::ResetValues();
-
-    VarManager::FillEvent<fgEventFillMap>(event);
-    fHistMan->FillHistClass("Event_BeforeCuts", VarManager::fgValues); // automatically fill all the histograms in the class Event
-    if (!fEventCut->IsSelected(VarManager::fgValues))
+    if(!event.isEventSelected())
       return;
-    fHistMan->FillHistClass("Event_AfterCuts", VarManager::fgValues);
+    // Reset the fValues array
+    VarManager::ResetValues(0, VarManager::kNVars, fValues);
 
+    VarManager::FillEvent<fgEventFillMap>(event, fValues);
+    
     // Run the same event pairing for barrel tracks
     // TODO: Use combinations() when this will work for Partitions
     /* e.g.
@@ -268,32 +327,32 @@ struct TableReader {
 
     for (auto tpos : posTracks) {
       for (auto tneg : negTracks) { // +- pairs
-        VarManager::FillPair(tpos, tneg);
-        dileptonList(event, VarManager::fgValues[VarManager::kMass], VarManager::fgValues[VarManager::kPt], VarManager::fgValues[VarManager::kEta], VarManager::fgValues[VarManager::kPhi], 0);
-        fHistMan->FillHistClass("PairsBarrelPM", VarManager::fgValues);
+        VarManager::FillPair(tpos, tneg, fValues);
+        dileptonList(event, fValues[VarManager::kMass], fValues[VarManager::kPt], fValues[VarManager::kEta], fValues[VarManager::kPhi], 0);
+        fHistMan->FillHistClass("PairsBarrelPM", fValues);
       }
       for (auto tpos2 = tpos + 1; tpos2 != posTracks.end(); ++tpos2) { // ++ pairs
-        VarManager::FillPair(tpos, tpos2);
-        dileptonList(event, VarManager::fgValues[VarManager::kMass], VarManager::fgValues[VarManager::kPt], VarManager::fgValues[VarManager::kEta], VarManager::fgValues[VarManager::kPhi], 2);
-        fHistMan->FillHistClass("PairsBarrelPP", VarManager::fgValues);
+        VarManager::FillPair(tpos, tpos2, fValues);
+        dileptonList(event, fValues[VarManager::kMass], fValues[VarManager::kPt], fValues[VarManager::kEta], fValues[VarManager::kPhi], 2);
+        fHistMan->FillHistClass("PairsBarrelPP", fValues);
       }
     }
     for (auto tneg : negTracks) { // -- pairs
       for (auto tneg2 = tneg + 1; tneg2 != negTracks.end(); ++tneg2) {
-        VarManager::FillPair(tneg, tneg2);
-        dileptonList(event, VarManager::fgValues[VarManager::kMass], VarManager::fgValues[VarManager::kPt], VarManager::fgValues[VarManager::kEta], VarManager::fgValues[VarManager::kPhi], -2);
-        fHistMan->FillHistClass("PairsBarrelMM", VarManager::fgValues);
+        VarManager::FillPair(tneg, tneg2, fValues);
+        dileptonList(event, fValues[VarManager::kMass], fValues[VarManager::kPt], fValues[VarManager::kEta], fValues[VarManager::kPhi], -2);
+        fHistMan->FillHistClass("PairsBarrelMM", fValues);
       }
     }
 
     // same event pairing for muons
-    for (auto& tpos : posMuons) {
+    /*for (auto& tpos : posMuons) {
       for (auto& tneg : negMuons) {
         //dileptonList(event, VarManager::fgValues[VarManager::kMass], VarManager::fgValues[VarManager::kPt], VarManager::fgValues[VarManager::kEta], VarManager::fgValues[VarManager::kPhi], 1);
-        VarManager::FillPair(tpos, tneg);
-        fHistMan->FillHistClass("PairsMuon", VarManager::fgValues);
+        VarManager::FillPair(tpos, tneg, fValues);
+        fHistMan->FillHistClass("PairsMuon", fValues);
       }
-    }
+    }*/
   }
 };
 
@@ -305,13 +364,15 @@ struct DileptonHadronAnalysis {
   // It requires the TableReader task to be in the workflow and produce the dilepton table
   //
   OutputObj<HistogramManager> fHistMan{"output"};
-  AnalysisCompositeCut* fHadronCut;
+  AnalysisCompositeCut* fHadronCut;  // TODO: this cut will be moved into the barrel/muon track selection task
   //NOTE: no cut has been included for dileptons because that can be controlled via the TableReader task and the partition below
 
   // use two values array to avoid mixing up the quantities
   float* fValuesDilepton;
   float* fValuesHadron;
 
+  Filter eventFilter = aod::reducedevent::isEventSelected == 1;
+  
   Partition<aod::Dileptons> selDileptons = aod::reducedpair::charge == 0 && aod::reducedpair::mass > 2.92f && aod::reducedpair::mass<3.16f && aod::reducedpair::pt> 5.0f;
 
   constexpr static uint32_t fgDileptonFillMap = VarManager::ObjTypes::ReducedTrack | VarManager::ObjTypes::Pair;
@@ -338,7 +399,7 @@ struct DileptonHadronAnalysis {
     cut1->AddCut(VarManager::kPt, 4.0, 20.0);
     cut1->AddCut(VarManager::kEta, -0.9, 0.9);
     cut1->AddCut(VarManager::kTPCchi2, 0.0, 4.0);
-    cut1->AddCut(VarManager::kITSchi2, 0.0, 36.0);
+    cut1->AddCut(VarManager::kITSchi2, 0.1, 36.0);
     cut1->AddCut(VarManager::kITSncls, 2.5, 7.5);
     cut1->AddCut(VarManager::kTPCncls, 69.5, 159.5);
     fHadronCut->AddCut(cut1);
@@ -346,33 +407,30 @@ struct DileptonHadronAnalysis {
     VarManager::SetUseVars(AnalysisCut::fgUsedVars); // provide the list of required variables so that VarManager knows what to fill
   }
 
-  void process(MyEvent event, MyBarrelTracks const& hadrons, aod::Dileptons const& dileptons)
+  void process(soa::Filtered<MyEventsVtxCovSelected>::iterator const& event, MyBarrelTracks const& hadrons, aod::Dileptons const& dileptons)
   {
-    for (int i = 0; i < VarManager::kNVars; ++i)
-      fValuesHadron[i] = -9999.0f;
+    VarManager::ResetValues(0, VarManager::kNVars, fValuesHadron);
+    VarManager::ResetValues(0, VarManager::kNVars, fValuesDilepton);
     // fill event information which might be needed in histograms that combine track/pair and event properties
     VarManager::FillEvent<fgEventFillMap>(event, fValuesHadron);
-
+    VarManager::FillEvent<fgEventFillMap>(event, fValuesDilepton);   // TODO: check if needed (just for dilepton QA which might be depending on event wise variables)
+    
     // loop once over dileptons for QA purposes
     for (auto dilepton : selDileptons) {
-      for (int i = VarManager::kNEventWiseVariables; i < VarManager::kNMuonTrackVariables; ++i)
-        fValuesDilepton[i] = -9999.0f;
       VarManager::FillTrack<fgDileptonFillMap>(dilepton, fValuesDilepton);
       fHistMan->FillHistClass("DileptonsSelected", fValuesDilepton);
     }
 
     // loop over hadrons
     for (auto& hadron : hadrons) {
-      for (int i = VarManager::kNEventWiseVariables; i < VarManager::kNMuonTrackVariables; ++i)
-        fValuesHadron[i] = -9999.0f;
       VarManager::FillTrack<fgTrackFillMap>(hadron, fValuesHadron);
-      if (!fHadronCut->IsSelected(fValuesHadron))
+      if (!fHadronCut->IsSelected(fValuesHadron))   // TODO: this will be moved to a partition when the selection will be done in the barrel/muon track selection
         continue;
 
       fHistMan->FillHistClass("HadronsSelected", fValuesHadron);
 
       for (auto dilepton : selDileptons) {
-        // TODO: At the moment there is no check on whether this hadron is one of the dilepton daughters
+        // TODO: At the moment there is no check on whether this hadron is one of the dilepton daughters!
         VarManager::FillDileptonHadron(dilepton, hadron, fValuesHadron);
         fHistMan->FillHistClass("DileptonHadronInvMass", fValuesHadron);
         fHistMan->FillHistClass("DileptonHadronCorrelation", fValuesHadron);
@@ -384,10 +442,12 @@ struct DileptonHadronAnalysis {
 WorkflowSpec defineDataProcessing(ConfigContext const&)
 {
   return WorkflowSpec{
+    adaptAnalysisTask<EventSelection>("event-selection"),
     adaptAnalysisTask<BarrelTrackSelection>("barrel-track-selection"),
     adaptAnalysisTask<MuonTrackSelection>("muon-track-selection"),
-    adaptAnalysisTask<TableReader>("table-reader"),
-    adaptAnalysisTask<DileptonHadronAnalysis>("dilepton-hadron")};
+    adaptAnalysisTask<TableReader>("table-reader")
+    //adaptAnalysisTask<DileptonHadronAnalysis>("dilepton-hadron")
+  };
 }
 
 void DefineHistograms(o2::framework::OutputObj<HistogramManager> histMan, TString histClasses)
@@ -451,6 +511,7 @@ void DefineHistograms(o2::framework::OutputObj<HistogramManager> histMan, TStrin
       histMan->AddHistClass(classStr.Data());
       histMan->AddHistogram(classStr.Data(), "Pt", "p_{T} distribution", false, 200, 0.0, 20.0, VarManager::kPt);                                                // TH1F histogram
       histMan->AddHistogram(classStr.Data(), "Eta", "#eta distribution", false, 500, -5.0, 5.0, VarManager::kEta);                                               // TH1F histogram
+      histMan->AddHistogram(classStr.Data(), "Eta_VtxZ", "#eta vs Z", true, 30, -15.0, 15.0, VarManager::kVtxZ, 10, -1., 1., VarManager::kEta);
       histMan->AddHistogram(classStr.Data(), "Phi_Eta", "#phi vs #eta distribution", false, 200, -5.0, 5.0, VarManager::kEta, 200, -6.3, 6.3, VarManager::kPhi); // TH2F histogram
       histMan->AddHistogram(classStr.Data(), "P", "p distribution", false, 200, 0.0, 20.0, VarManager::kP);                                                      // TH1F histogram
       histMan->AddHistogram(classStr.Data(), "Px", "p_{x} distribution", false, 200, 0.0, 20.0, VarManager::kPx);
@@ -482,6 +543,7 @@ void DefineHistograms(o2::framework::OutputObj<HistogramManager> histMan, TStrin
         histMan->AddHistogram(classStr.Data(), "TOFnSigmaPr_pIN", "TOF #beta n#sigma_{p} vs pIN", false, 200, 0.0, 20.0, VarManager::kPin, 200, -10, +10, VarManager::kTOFnSigmaPr);   // TH2F histogram
         histMan->AddHistogram(classStr.Data(), "TOFnSigmaPr_Eta", "TOF #beta n#sigma_{p} vs #eta", false, 20, -1, +1, VarManager::kEta, 200, -10, +10, VarManager::kTOFnSigmaPr);      // TH2F histogram
 
+               
         histMan->AddHistogram(classStr.Data(), "Cov1Pt_Pt", "cov(1/pt,1/pt) vs p_{T} distribution", false, 20, 0.0, 5.0, VarManager::kPt, 100, 0.0, 1.0, VarManager::kTrackC1Pt21Pt2); // TH2F histogram
       }
 
@@ -522,6 +584,7 @@ void DefineHistograms(o2::framework::OutputObj<HistogramManager> histMan, TStrin
     if (classStr.Contains("Pairs")) {
       histMan->AddHistClass(classStr.Data());
       histMan->AddHistogram(classStr.Data(), "Mass_Pt", "", false, 100, 0.0, 5.0, VarManager::kMass, 100, 0.0, 20.0, VarManager::kPt);
+      histMan->AddHistogram(classStr.Data(), "Mass_VtxZ", "", true, 30, -15.0, 15.0, VarManager::kVtxZ, 10, -1.0, 1.0, VarManager::kMass);
     }
 
     if (classStr.Contains("DileptonHadronInvMass")) {
