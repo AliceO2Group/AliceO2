@@ -170,6 +170,8 @@ DECLARE_SOA_COLUMN(TRDSignal, trdSignal, float);
 DECLARE_SOA_COLUMN(TOFSignal, tofSignal, float);
 DECLARE_SOA_COLUMN(Length, length, float);
 DECLARE_SOA_COLUMN(TOFExpMom, tofExpMom, float);
+DECLARE_SOA_COLUMN(TrackEtaEMCAL, trackEtaEmcal, float);
+DECLARE_SOA_COLUMN(TrackPhiEMCAL, trackPhiEmcal, float);
 DECLARE_SOA_DYNAMIC_COLUMN(TPCNClsFound, tpcNClsFound, [](uint8_t tpcNClsFindable, uint8_t tpcNClsFindableMinusFound) -> int16_t { return tpcNClsFindable - tpcNClsFindableMinusFound; });
 DECLARE_SOA_DYNAMIC_COLUMN(TPCNClsCrossedRows, tpcNClsCrossedRows, [](uint8_t tpcNClsFindable, uint8_t TPCNClsFindableMinusCrossedRows) -> int16_t { return tpcNClsFindable - TPCNClsFindableMinusCrossedRows; });
 DECLARE_SOA_DYNAMIC_COLUMN(ITSNCls, itsNCls, [](uint8_t itsClusterMap) -> uint8_t {
@@ -253,7 +255,8 @@ DECLARE_SOA_TABLE(TracksExtra, "AOD", "TRACKEXTRA",
                   track::TPCNClsCrossedRows<track::TPCNClsFindable, track::TPCNClsFindableMinusCrossedRows>,
                   track::ITSNCls<track::ITSClusterMap>, track::ITSNClsInnerBarrel<track::ITSClusterMap>,
                   track::TPCCrossedRowsOverFindableCls<track::TPCNClsFindable, track::TPCNClsFindableMinusCrossedRows>,
-                  track::TPCFractionSharedCls<track::TPCNClsShared, track::TPCNClsFindable, track::TPCNClsFindableMinusFound>);
+                  track::TPCFractionSharedCls<track::TPCNClsShared, track::TPCNClsFindable, track::TPCNClsFindableMinusFound>,
+                  track::TrackEtaEMCAL, track::TrackPhiEMCAL);
 
 using Track = Tracks::iterator;
 using TrackCov = TracksCov::iterator;
