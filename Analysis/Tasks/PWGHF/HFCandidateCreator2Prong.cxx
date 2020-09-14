@@ -20,6 +20,11 @@
 #include "Analysis/SecondaryVertexHF.h"
 #include "Analysis/trackUtilities.h"
 #include "ReconstructionDataFormats/DCA.h"
+#include "Analysis/RecoDecay.h"
+#include "PID/PIDResponse.h"
+#include <cmath>
+#include <array>
+#include <cstdlib>
 
 using namespace o2;
 using namespace o2::framework;
@@ -48,7 +53,7 @@ struct HFCandidateCreator2Prong {
 
   void process(aod::Collision const& collision,
                aod::HfTrackIndexProng2 const& rowsTrackIndexProng2,
-               soa::Join<aod::Tracks, aod::TracksCov, aod::TracksExtra> const& tracks)
+               aod::BigTracks const& tracks)
   {
     // 2-prong vertex fitter
     o2::vertexing::DCAFitterN<2> df;
@@ -109,7 +114,8 @@ struct HFCandidateCreator2Prong {
                        pvec0[0], pvec0[1], pvec0[2],
                        pvec1[0], pvec1[1], pvec1[2],
                        impactParameter0.getY(), impactParameter1.getY(),
-                       std::sqrt(impactParameter0.getSigmaY2()), std::sqrt(impactParameter1.getSigmaY2()));
+                       std::sqrt(impactParameter0.getSigmaY2()), std::sqrt(impactParameter1.getSigmaY2()),
+                       rowTrackIndexProng2.index0Id(), rowTrackIndexProng2.index1Id());
 
       // fill histograms
       if (b_dovalplots) {
