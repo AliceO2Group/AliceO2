@@ -285,15 +285,15 @@ struct DptDptCorrelationsFilterAnalysisTask {
     using namespace filteranalyistask;
 
     /* update with the configurable values */
-    ptbins = cfgBinning->fPTbins;
-    ptlow = cfgBinning->fPTmin;
-    ptup = cfgBinning->fPTmax;
-    etabins = cfgBinning->fEtabins;
-    etalow = cfgBinning->fEtamin;
-    etaup = cfgBinning->fEtamax;
-    zvtxbins = cfgBinning->fZVtxbins;
-    zvtxlow = cfgBinning->fZVtxmin;
-    zvtxup = cfgBinning->fZVtxmax;
+    ptbins = cfgBinning->mPTbins;
+    ptlow = cfgBinning->mPTmin;
+    ptup = cfgBinning->mPTmax;
+    etabins = cfgBinning->mEtabins;
+    etalow = cfgBinning->mEtamin;
+    etaup = cfgBinning->mEtamax;
+    zvtxbins = cfgBinning->mZVtxbins;
+    zvtxlow = cfgBinning->mZVtxmin;
+    zvtxup = cfgBinning->mZVtxmax;
     tracktype = cfgTrackType.value;
     trackonecharge = cfgTrackOneCharge.value;
     tracktwocharge = cfgTrackTwoCharge.value;
@@ -460,19 +460,19 @@ struct DptDptCorrelationsTask {
     using namespace correlationstask;
 
     /* update with the configurable values */
-    ptbins = cfgBinning->fPTbins;
-    ptlow = cfgBinning->fPTmin;
-    ptup = cfgBinning->fPTmax;
-    etabins = cfgBinning->fEtabins;
-    etalow = cfgBinning->fEtamin;
-    etaup = cfgBinning->fEtamax;
-    zvtxbins = cfgBinning->fZVtxbins;
-    zvtxlow = cfgBinning->fZVtxmin;
-    zvtxup = cfgBinning->fZVtxmax;
-    phibins = cfgBinning->fPhibins;
-    philow = cfgBinning->fPhimin;
-    phiup = cfgBinning->fPhimax;
-    phibinshift = cfgBinning->fPhibinshift;
+    ptbins = cfgBinning->mPTbins;
+    ptlow = cfgBinning->mPTmin;
+    ptup = cfgBinning->mPTmax;
+    etabins = cfgBinning->mEtabins;
+    etalow = cfgBinning->mEtamin;
+    etaup = cfgBinning->mEtamax;
+    zvtxbins = cfgBinning->mZVtxbins;
+    zvtxlow = cfgBinning->mZVtxmin;
+    zvtxup = cfgBinning->mZVtxmax;
+    phibins = cfgBinning->mPhibins;
+    philow = cfgBinning->mPhimin;
+    phiup = cfgBinning->mPhimax;
+    phibinshift = cfgBinning->mPhibinshift;
     processpairs = cfgProcessPairs.value;
     /* update the potential binning change */
     etabinwidth = (etaup - etalow) / float(etabins);
