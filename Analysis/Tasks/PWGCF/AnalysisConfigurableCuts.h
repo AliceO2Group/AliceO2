@@ -66,7 +66,7 @@ class SimpleInclusiveCut : public TNamed
   SimpleInclusiveCut();
   SimpleInclusiveCut(const char*, int, float);
   SimpleInclusiveCut(const SimpleInclusiveCut&) = default;
-  ~SimpleInclusiveCut() = default;
+  ~SimpleInclusiveCut() override = default;
 
   SimpleInclusiveCut& operator=(const SimpleInclusiveCut&);
 
