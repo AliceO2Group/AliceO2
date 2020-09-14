@@ -25,17 +25,6 @@ using namespace o2::framework;
 using namespace o2::framework::expressions;
 using std::array;
 
-namespace o2::aod
-{
-namespace seltrack
-{
-DECLARE_SOA_COLUMN(IsSel, isSel, int);
-DECLARE_SOA_COLUMN(DCAPrim0, dcaPrim0, float);
-DECLARE_SOA_COLUMN(DCAPrim1, dcaPrim1, float);
-} // namespace seltrack
-DECLARE_SOA_TABLE(SelTrack, "AOD", "SELTRACK", seltrack::IsSel, seltrack::DCAPrim0, seltrack::DCAPrim1);
-} // namespace o2::aod
-
 /// Track selection
 struct SelectTracks {
   Produces<aod::SelTrack> rowSelectedTrack;
@@ -97,7 +86,7 @@ struct HFTrackIndexSkimsCreator {
   OutputObj<TH1F> hmass2{TH1F("hmass2", "; Inv Mass (GeV/c^{2})", 500, 0, 5.0)};
   OutputObj<TH1F> hmass3{TH1F("hmass3", "; Inv Mass (GeV/c^{2})", 500, 0, 5.0)};
 
-  Filter filterSelectTracks = aod::seltrack::isSel == 1;
+  Filter filterSelectTracks = aod::seltrack::issel == 1;
   using SelectedTracks = soa::Filtered<soa::Join<aod::Tracks, aod::TracksCov, aod::TracksExtra, aod::SelTrack>>;
   // FIXME
   //Partition<SelectedTracks> tracksPos = aod::track::signed1Pt > 0.f;

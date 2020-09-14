@@ -19,11 +19,22 @@
 
 #include "Framework/AnalysisDataModel.h"
 #include "Analysis/RecoDecay.h"
+#include "PID/PIDResponse.h"
 
 namespace o2::aod
 {
+namespace seltrack
+{
+DECLARE_SOA_COLUMN(IsSel, issel, int);
+DECLARE_SOA_COLUMN(DCAPrim0, dcaprim0, float);
+DECLARE_SOA_COLUMN(DCAPrim1, dcaprim1, float);
+} // namespace seltrack
+DECLARE_SOA_TABLE(SelTrack, "AOD", "SELTRACK", seltrack::IsSel, seltrack::DCAPrim0,
+                  seltrack::DCAPrim1);
+
+using BigTracks = soa::Join<Tracks, TracksCov, TracksExtra, SelTrack, pidRespTPC, pidRespTOF>;
+
 // FIXME: this is a workaround until we get the index columns to work with joins.
-using BigTracks = soa::Join<Tracks, TracksCov, TracksExtra>;
 
 namespace hf_track_index
 {
@@ -189,6 +200,8 @@ DECLARE_SOA_TABLE(HfCandBase, "AOD", "HFCANDBASE",
                   hf_cand::PxProng1, hf_cand::PyProng1, hf_cand::PzProng1,
                   hf_cand::ImpactParameter0, hf_cand::ImpactParameter1,
                   hf_cand::ErrorImpactParameter0, hf_cand::ErrorImpactParameter1,
+                  hf_track_index::Index0Id,
+                  hf_track_index::Index1Id,
                   /* dynamic columns */
                   hf_cand_prong2::ImpactParameterProduct<hf_cand::ImpactParameter0, hf_cand::ImpactParameter1>,
                   hf_cand_prong2::M<hf_cand::PxProng0, hf_cand::PyProng0, hf_cand::PzProng0, hf_cand::PxProng1, hf_cand::PyProng1, hf_cand::PzProng1>,
