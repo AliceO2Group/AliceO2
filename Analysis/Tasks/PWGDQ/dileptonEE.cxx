@@ -104,7 +104,8 @@ struct BarrelTrackSelection {
     cut1->AddCut(VarManager::kTPCchi2, 0.0, 4.0);
     cut1->AddCut(VarManager::kITSchi2, 0.0, 5.0);
     cut1->AddCut(VarManager::kITSncls, 3.5, 7.5);
-    cut1->AddCut(VarManager::kTPCncls, 79.5, 159.5);
+    cut1->AddCut(VarManager::kTPCncls, 69.5, 159.5);
+
     cut1->AddCut(VarManager::kTPCsignal, 70, 100, false);  //exclude = false
     cut1->AddCut(VarManager::kTOFnSigmaEl, -3, +3, false); //exclude = false
 
@@ -113,37 +114,38 @@ struct BarrelTrackSelection {
     //cut1->AddCut(VarManager::kTPCnSigmaPr, -3, +3, true); //exclude = false
     fTrackCut->AddCut(cut1);
 
-    //    //AnalysisCut* pid_TPChadrej = new AnalysisCut("pid_TPChadrej","PID TPC hadron band rejection");
-    //    //pid_TPChadrej->AddCut(VarManager::kTPCsignal, 70, 100,false);//exclude = false
-    //    //pid_TPChadrej->AddCut(VarManager::kTPCnSigmaPi,-1e+10,+3.5,true);
-    //    //pid_TPChadrej->AddCut(VarManager::kTPCnSigmaKa,   -3.,+3. ,true);
-    //    //pid_TPChadrej->AddCut(VarManager::kTPCnSigmaPr,   -3.,+3. ,true);
-    //
-    //    //AnalysisCut* pid_TOFrec = new AnalysisCut("pid_TOFrec","PID TOF recovery");
-    //    //pid_TOFrec->AddCut(VarManager::kTPCsignal, 70, 100,false);//exclude = false
-    //    //pid_TOFrec->AddCut(VarManager::kTOFnSigmaPi,-3,+3.,false);
-    //
-    //    AnalysisCut* pid_TOFrec_pi = new AnalysisCut("pid_TOFrec_pi","PID TOF recovery pion");
-    //    pid_TOFrec_pi->AddCut(VarManager::kTPCsignal, 70, 100,false);//exclude = false
-    //    pid_TOFrec_pi->AddCut(VarManager::kTOFnSigmaEl,-3,+3.,false,VarManager::kTPCnSigmaPi,-1e+10,+3.5,false);
-    //
-    //    AnalysisCut* pid_TOFrec_ka = new AnalysisCut("pid_TOFrec_ka","PID TOF recovery Kaon");
-    //    pid_TOFrec_ka->AddCut(VarManager::kTPCsignal, 70, 100,false);//exclude = false
-    //    pid_TOFrec_ka->AddCut(VarManager::kTOFnSigmaEl,-3,+3.,false,VarManager::kTPCnSigmaKa,-3.,+3.,false);
-    //
-    //    AnalysisCut* pid_TOFrec_pr = new AnalysisCut("pid_TOFrec_ka","PID TOF recovery Proton");
-    //    pid_TOFrec_pr->AddCut(VarManager::kTPCsignal, 70, 100,false);//exclude = false
-    //    pid_TOFrec_pr->AddCut(VarManager::kTOFnSigmaEl,-3,+3.,false,VarManager::kTPCnSigmaPr,-3.,+3.,false);
-    //
-    //    AnalysisCompositeCut *pidcut = new AnalysisCompositeCut(false); // false: use OR
-    //    //pidcut->AddCut(pid_TPChadrej);
-    //    //pidcut->AddCut(pid_TOFrec);
-    //    //pidcut->AddCut(pid_TOFrec_pi);
-    //    pidcut->AddCut(pid_TOFrec_ka);
-    //    pidcut->AddCut(pid_TOFrec_pr);
-    //    fTrackCut->AddCut(pidcut);
-    //
-    //    //fTrackCut->AddCut(pid_TOFrec_ka);
+    //AnalysisCut* pid_TPChadrej = new AnalysisCut("pid_TPChadrej","PID TPC hadron band rejection");
+    //pid_TPChadrej->AddCut(VarManager::kTPCsignal, 70, 100,false);//exclude = false
+    ////pid_TPChadrej->AddCut(VarManager::kTPCnSigmaPi,-1e+10,+3.5,true);
+    ////pid_TPChadrej->AddCut(VarManager::kTPCnSigmaKa,   -3.,+3. ,true);
+    ////pid_TPChadrej->AddCut(VarManager::kTPCnSigmaPr,   -3.,+3. ,true);
+
+    //AnalysisCut* pid_TOFrec = new AnalysisCut("pid_TOFrec","PID TOF recovery");
+    //pid_TOFrec->AddCut(VarManager::kTPCsignal, 70, 100,false);//exclude = false
+    ////pid_TOFrec->AddCut(VarManager::kTPCnSigmaPi,-1e+10,+3.5,true);
+    //pid_TOFrec->AddCut(VarManager::kTOFnSigmaEl,-3,+3.,false);
+
+    ////AnalysisCut* pid_TOFrec_pi = new AnalysisCut("pid_TOFrec_pi","PID TOF recovery pion");
+    ////pid_TOFrec_pi->AddCut(VarManager::kTPCsignal, 70, 100,false);//exclude = false
+    ////pid_TOFrec_pi->AddCut(VarManager::kTOFnSigmaEl,-3,+3.,false,VarManager::kTPCnSigmaPi,-1e+10,+3.5,false);
+
+    ////AnalysisCut* pid_TOFrec_ka = new AnalysisCut("pid_TOFrec_ka","PID TOF recovery Kaon");
+    ////pid_TOFrec_ka->AddCut(VarManager::kTPCsignal, 70, 100,false);//exclude = false
+    ////pid_TOFrec_ka->AddCut(VarManager::kTOFnSigmaEl,-3,+3.,false,VarManager::kTPCnSigmaKa,-3.,+3.,false);
+
+    ////AnalysisCut* pid_TOFrec_pr = new AnalysisCut("pid_TOFrec_ka","PID TOF recovery Proton");
+    ////pid_TOFrec_pr->AddCut(VarManager::kTPCsignal, 70, 100,false);//exclude = false
+    ////pid_TOFrec_pr->AddCut(VarManager::kTOFnSigmaEl,-3,+3.,false,VarManager::kTPCnSigmaPr,-3.,+3.,false);
+
+    //AnalysisCompositeCut *pidcut = new AnalysisCompositeCut(false); // false: use OR
+    //pidcut->AddCut(pid_TPChadrej);
+    //pidcut->AddCut(pid_TOFrec);
+    ////pidcut->AddCut(pid_TOFrec_pi);
+    ////pidcut->AddCut(pid_TOFrec_ka);
+    ////pidcut->AddCut(pid_TOFrec_pr);
+    //fTrackCut->AddCut(pidcut);
+
+    //fTrackCut->AddCut(pid_TOFrec_ka);
 
     VarManager::SetUseVars(AnalysisCut::fgUsedVars); // provide the list of required variables so that VarManager knows what to fill
   }
