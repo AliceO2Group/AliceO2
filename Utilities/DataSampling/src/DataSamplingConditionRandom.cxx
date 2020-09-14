@@ -13,15 +13,17 @@
 ///
 /// \author Piotr Konopka, piotr.jan.konopka@cern.ch
 
-#include "Framework/DataSamplingCondition.h"
-#include "Framework/DataSamplingConditionFactory.h"
+#include "DataSampling/DataSamplingCondition.h"
+#include "DataSampling/DataSamplingConditionFactory.h"
 #include "Framework/DataProcessingHeader.h"
 
 #include "PCG/pcg_random.hpp"
 
 #include <boost/property_tree/ptree.hpp>
 
-namespace o2::framework
+using namespace o2::framework;
+
+namespace o2::utilities
 {
 
 // todo: consider using run number as a seed
@@ -82,4 +84,4 @@ std::unique_ptr<DataSamplingCondition> DataSamplingConditionFactory::createDataS
   return std::make_unique<DataSamplingConditionRandom>();
 }
 
-} // namespace o2::framework
+} // namespace o2::utilities

@@ -13,9 +13,9 @@
 ///
 /// \author Piotr Konopka, piotr.jan.konopka@cern.ch
 
-#include "Framework/DataSampling.h"
-#include "Framework/DataSamplingPolicy.h"
-#include "Framework/Dispatcher.h"
+#include "DataSampling/DataSampling.h"
+#include "DataSampling/DataSamplingPolicy.h"
+#include "DataSampling/Dispatcher.h"
 #include "Framework/CompletionPolicyHelpers.h"
 #include "Framework/DataSpecUtils.h"
 #include "Framework/Logger.h"
@@ -24,9 +24,10 @@
 #include <Configuration/ConfigurationFactory.h>
 
 using namespace o2::configuration;
+using namespace o2::framework;
 using SubSpecificationType = o2::header::DataHeader::SubSpecificationType;
 
-namespace o2::framework
+namespace o2::utilities
 {
 
 std::string DataSampling::createDispatcherName()
@@ -194,4 +195,4 @@ std::vector<std::string> DataSampling::MachinesForPolicy(const std::string& poli
   return MachinesForPolicy(config.get(), policyName);
 }
 
-} // namespace o2::framework
+} // namespace o2::utilities

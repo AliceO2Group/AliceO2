@@ -9,11 +9,12 @@
 // or submit itself to any jurisdiction.
 
 #include "Framework/ConfigParamSpec.h"
-#include "Framework/DataSampling.h"
+#include "DataSampling/DataSampling.h"
 #include "Framework/CompletionPolicyHelpers.h"
 #include <vector>
 
 using namespace o2::framework;
+using namespace o2::utilities;
 
 void customize(std::vector<CompletionPolicy>& policies)
 {
@@ -62,12 +63,13 @@ void sysinfo(sysinfo* info)
 
 #include "Headers/DataHeader.h"
 #include "Framework/ControlService.h"
-#include "Framework/DataSampling.h"
-#include "Framework/DataSamplingPolicy.h"
+#include "DataSampling/DataSampling.h"
+#include "DataSampling/DataSamplingPolicy.h"
 #include "Framework/RawDeviceService.h"
 #include "Framework/runDataProcessing.h"
 
 using namespace o2::framework;
+using namespace o2::utilities;
 using SubSpec = o2::header::DataHeader::SubSpecificationType;
 
 namespace bipc = ::boost::interprocess;

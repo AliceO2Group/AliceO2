@@ -20,12 +20,12 @@
 #include "Framework/InputSpec.h"
 #include "Framework/Output.h"
 #include "Framework/OutputSpec.h"
-#include "Framework/DataSamplingCondition.h"
+#include "DataSampling/DataSamplingCondition.h"
 #include "Framework/DataSpecUtils.h"
 
 #include <boost/property_tree/ptree_fwd.hpp>
 
-namespace o2::framework
+namespace o2::utilities
 {
 
 /// A class representing certain policy of sampling data.
@@ -35,16 +35,16 @@ namespace o2::framework
 class DataSamplingPolicy
 {
  private:
-  using PathVectorBase = std::vector<std::pair<InputSpec, OutputSpec>>;
+  using PathVectorBase = std::vector<std::pair<framework::InputSpec, framework::OutputSpec>>;
   class PathMap : public PathVectorBase
   {
    public:
     ~PathMap() = default;
     PathMap() = default;
-    const PathVectorBase::const_iterator find(const ConcreteDataMatcher& input) const
+    const PathVectorBase::const_iterator find(const framework::ConcreteDataMatcher& input) const
     {
       return std::find_if(begin(), end(), [input](const auto& el) {
-        return DataSpecUtils::match(el.first, input);
+        return framework::DataSpecUtils::match(el.first, input);
       });
     }
   };
@@ -60,11 +60,11 @@ class DataSamplingPolicy
   /// \brief Configures a policy using structured configuration entry.
   void configure(const boost::property_tree::ptree&);
   /// \brief Returns true if this policy requires data with given InputSpec.
-  bool match(const ConcreteDataMatcher& input) const;
+  bool match(const framework::ConcreteDataMatcher& input) const;
   /// \brief Returns true if user-defined conditions of sampling are fulfilled.
   bool decide(const o2::framework::DataRef&);
   /// \brief Returns Output for given InputSpec to pass data forward.
-  const Output prepareOutput(const ConcreteDataMatcher& input, Lifetime lifetime = Lifetime::Timeframe) const;
+  const framework::Output prepareOutput(const framework::ConcreteDataMatcher& input, framework::Lifetime lifetime = framework::Lifetime::Timeframe) const;
 
   const std::string& getName() const;
   const PathMap& getPathMap() const;
@@ -88,6 +88,6 @@ class DataSamplingPolicy
   uint32_t mTotalEvaluatedMessages = 0;
 };
 
-} // namespace o2::framework
+} // namespace o2::utilities
 
 #endif // ALICEO2_DATASAMPLINGPOLICY_H
