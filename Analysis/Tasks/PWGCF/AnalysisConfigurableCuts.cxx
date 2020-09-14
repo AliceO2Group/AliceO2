@@ -15,8 +15,8 @@ using namespace o2::analysis;
 ClassImp(SimpleInclusiveCut);
 
 SimpleInclusiveCut::SimpleInclusiveCut() : TNamed(),
-                                           x(0),
-                                           y(0.0)
+                                           fX(0),
+                                           fY(0.0)
 {
   //
   // default constructor
@@ -24,8 +24,8 @@ SimpleInclusiveCut::SimpleInclusiveCut() : TNamed(),
 }
 
 SimpleInclusiveCut::SimpleInclusiveCut(const char* name, int _x, float _y) : TNamed(name, name),
-                                                                             x(_x),
-                                                                             y(_y)
+                                                                             fX(_x),
+                                                                             fY(_y)
 {
   //
   // explicit constructor
@@ -39,8 +39,8 @@ SimpleInclusiveCut& SimpleInclusiveCut::operator=(const SimpleInclusiveCut& sic)
   //
   if (this != &sic) {
     TNamed::operator=(sic);
-    x = sic.x;
-    y = sic.y;
+    fX = sic.fX;
+    fY = sic.fY;
   }
   return (*this);
 }

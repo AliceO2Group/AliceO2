@@ -25,10 +25,10 @@ namespace analysis
 class EventSelectionCuts
 {
  public:
-  int offlinetrigger = 1;                     /// offline trigger, default MB = 1
-  std::string centmultestmator = "V0M";       /// centrality / multiplicity estimation, default V0M
-  int removepileupcode = 1;                   /// Procedure for pile-up removal, default V0M vs TPCout tracks = 1
-  std::string removepileupfn = "-2500+5.0*x"; /// function for pile-up removal, procedure dependent, defaul V0M vs TPCout tracks for LHC15o HIR
+  int fOfflinetrigger = 1;                     ///< offline trigger, default MB = 1
+  std::string fCentmultestmator = "V0M";       ///< centrality / multiplicity estimation, default V0M
+  int fRemovepileupcode = 1;                   ///< Procedure for pile-up removal, default V0M vs TPCout tracks = 1
+  std::string fRemovepileupfn = "-2500+5.0*x"; ///< function for pile-up removal, procedure dependent, defaul V0M vs TPCout tracks for LHC15o HIR
 
  private:
   ClassDefNV(EventSelectionCuts, 1);
@@ -40,19 +40,19 @@ class EventSelectionCuts
 class DptDptBinningCuts
 {
  public:
-  int zVtxbins = 28;             /// the number of z_vtx bins default 28
-  float zVtxmin = -7.0;          /// the minimum z_vtx value, default -7.0 cm
-  float zVtxmax = 7.0;           /// the maximum z_vtx value, default 7.0 cm
-  int pTbins = 18;               /// the number of pT bins, default 18
-  float pTmin = 0.2;             /// the minimum pT value, default 0.2 GeV
-  float pTmax = 2.0;             /// the maximum pT value, default 2.0 GeV
-  int etabins = 16;              /// the number of eta bins default 16
-  float etamin = -0.8;           /// the minimum eta value, default -0.8
-  float etamax = 0.8;            /// the maximum eta value, default 0.8
-  int phibins = 72;              /// the number of phi bins, default 72
-  float phimin = 0.0;            /// the minimum phi value, default 0.0
-  float phimax = TMath::TwoPi(); /// the maximum phi value, default 2*pi
-  float phibinshift = 0.5;       /// the shift in the azimuthal origen, defoult 0.5, i.e half a bin
+  int fZVtxbins = 28;             ///< the number of z_vtx bins default 28
+  float fZVtxmin = -7.0;          ///< the minimum z_vtx value, default -7.0 cm
+  float fZVtxmax = 7.0;           ///< the maximum z_vtx value, default 7.0 cm
+  int fPTbins = 18;               ///< the number of pT bins, default 18
+  float fPTmin = 0.2;             ///< the minimum pT value, default 0.2 GeV
+  float fPTmax = 2.0;             ///< the maximum pT value, default 2.0 GeV
+  int fEtabins = 16;              ///< the number of eta bins default 16
+  float fEtamin = -0.8;           ///< the minimum eta value, default -0.8
+  float fEtamax = 0.8;            ///< the maximum eta value, default 0.8
+  int fPhibins = 72;              ///< the number of phi bins, default 72
+  float fPhimin = 0.0;            ///< the minimum phi value, default 0.0
+  float fPhimax = TMath::TwoPi(); ///< the maximum phi value, default 2*pi
+  float fPhibinshift = 0.5;       ///< the shift in the azimuthal origen, defoult 0.5, i.e half a bin
 
  private:
   ClassDefNV(DptDptBinningCuts, 1);
@@ -61,8 +61,8 @@ class DptDptBinningCuts
 class SimpleInclusiveCut : public TNamed
 {
  public:
-  int x = 1;
-  float y = 2.f;
+  int fX = 1;
+  float fY = 2.f;
   SimpleInclusiveCut();
   SimpleInclusiveCut(const char*, int, float);
   SimpleInclusiveCut(const SimpleInclusiveCut&) = default;
