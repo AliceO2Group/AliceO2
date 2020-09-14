@@ -442,7 +442,7 @@ struct DileptonHadronAnalysis {
 WorkflowSpec defineDataProcessing(ConfigContext const&)
 {
   return WorkflowSpec{
-    adaptAnalysisTask<EventSelection>("event-selection"),
+    adaptAnalysisTask<EventSelection>("my-event-selection"),
     adaptAnalysisTask<BarrelTrackSelection>("barrel-track-selection"),
     adaptAnalysisTask<MuonTrackSelection>("muon-track-selection"),
     adaptAnalysisTask<TableReader>("table-reader")
