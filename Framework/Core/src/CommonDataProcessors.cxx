@@ -163,12 +163,12 @@ DataProcessorSpec CommonDataProcessors::getHistogramRegistrySink(outputObjects c
       TNamed* named = static_cast<TNamed*>(obj.obj);
       obj.name = named->GetName();
       LOG(INFO) << "Object name: " << obj.name;
-      auto prefPos = obj.name.find(":", 0);
-      std::string prefix = obj.name.substr(0, prefPos);
-      std::string strippedName = obj.name.substr(prefPos + 1);
-      LOG(INFO) << "Name: " << obj.name << " prefix: " << prefix << " strippedName: " << strippedName;
-      obj.name = strippedName;
-      named->SetName(strippedName.c_str());
+      //auto prefPos = obj.name.find(":", 0);
+      //std::string prefix = obj.name.substr(0, prefPos);
+      //std::string strippedName = obj.name.substr(prefPos + 1);
+      //LOG(INFO) << "Name: " << obj.name << " prefix: " << prefix << " strippedName: " << strippedName;
+      //obj.name = strippedName;
+      //named->SetName(strippedName.c_str());
 
       auto hpos = std::find_if(tskmap.begin(), tskmap.end(), [&](auto&& x) { return x.first == hash; });
       if (hpos == tskmap.end()) {
@@ -188,8 +188,9 @@ DataProcessorSpec CommonDataProcessors::getHistogramRegistrySink(outputObjects c
         LOG(INFO) << o;
       }
       LOG(INFO) << "end of objects";
-      if (std::find(objects.begin(), objects.end(), prefix) == objects.end()) {
-        LOG(ERROR) << "No object " << obj.name << " with prefix " << prefix << " in map for task " << taskname;
+      if (std::find(objects.begin(), objects.end(), obj.name) == objects.end()) {
+        //LOG(ERROR) << "No object " << obj.name << " with prefix " << prefix << " in map for task " << taskname;
+        LOG(ERROR) << "No object " << obj.name << " in map for task " << taskname;
         return;
       }
       auto nameHash = compile_time_hash(obj.name.c_str());

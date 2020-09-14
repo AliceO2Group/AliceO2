@@ -360,7 +360,7 @@ void WorkflowHelpers::injectServiceDevices(WorkflowSpec& workflow, ConfigContext
   }
   // This is to inject a file sink so that any dangling HIST object is written
   // to a ROOT file.
-  if (providedHist.size() != 0) {
+  if (providedHist.empty() == false) {
     LOG(INFO) << "Provided hist size: " << providedHist.size();
     auto rootSink = CommonDataProcessors::getHistogramRegistrySink(outHistMap, outTskMap);
     extraSpecs.push_back(rootSink);

@@ -27,6 +27,7 @@
 #include "TH3.h"
 #include "THn.h"
 #include "THnSparse.h"
+#include "TList.h"
 
 #include <string>
 #include <variant>
@@ -309,6 +310,19 @@ class HistogramRegistry
       }
     }
     return histos;
+  }
+
+  TList* operator*()
+  {
+    TList* list = new TList();
+    list->SetName(this->name.c_str());
+    for (auto j = 0u; j < MAX_REGISTRY_SIZE; ++j) {
+      if (mRegistryValue[j].get() != nullptr) {
+        auto hist = mRegistryValue[j].get();
+        list->Add(hist);
+      }
+    }
+    return list;
   }
 
   /// lookup distance counter for benchmarking
