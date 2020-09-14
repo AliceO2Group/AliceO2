@@ -13,8 +13,8 @@
 ///
 /// \author Piotr Konopka, piotr.jan.konopka@cern.ch
 
-#include "Framework/DataSamplingCondition.h"
-#include "Framework/DataSamplingConditionFactory.h"
+#include "DataSampling/DataSamplingCondition.h"
+#include "DataSampling/DataSamplingConditionFactory.h"
 #include "Headers/DataHeader.h"
 
 #include <fairlogger/Logger.h>
@@ -24,7 +24,9 @@
 #include <TSystem.h>
 #include <boost/property_tree/ptree.hpp>
 
-namespace o2::framework
+using namespace o2::framework;
+
+namespace o2::utilities
 {
 
 /// \brief A DataSamplingCondition which makes decisions based on payload size.
@@ -81,4 +83,4 @@ std::unique_ptr<DataSamplingCondition> DataSamplingConditionFactory::createDataS
   return std::make_unique<DataSamplingConditionCustom>();
 }
 
-} // namespace o2::framework
+} // namespace o2::utilities

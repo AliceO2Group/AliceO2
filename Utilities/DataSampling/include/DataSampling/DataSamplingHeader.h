@@ -20,7 +20,7 @@
 
 #include "Headers/DataHeader.h"
 
-namespace o2::framework
+namespace o2::utilities
 {
 
 struct DataSamplingHeader : public header::BaseHeader {
@@ -48,6 +48,6 @@ struct DataSamplingHeader : public header::BaseHeader {
   static const DataSamplingHeader* Get(const BaseHeader* baseHeader);
 };
 
-} // namespace o2::framework
+} // namespace o2::utilities
 
 #endif //ALICEO2_DATASAMPLINGHEADER_H

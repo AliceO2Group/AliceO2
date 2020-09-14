@@ -13,16 +13,18 @@
 ///
 /// \author Piotr Konopka, piotr.jan.konopka@cern.ch
 
-#include "Framework/DataSamplingPolicy.h"
-#include "Framework/DataSamplingHeader.h"
-#include "Framework/DataSamplingConditionFactory.h"
+#include "DataSampling/DataSamplingPolicy.h"
+#include "DataSampling/DataSamplingHeader.h"
+#include "DataSampling/DataSamplingConditionFactory.h"
 #include "Framework/DataSpecUtils.h"
 #include "Framework/DataDescriptorQueryBuilder.h"
 #include "Framework/Logger.h"
 
 #include <boost/property_tree/ptree.hpp>
 
-namespace o2::framework
+using namespace o2::framework;
+
+namespace o2::utilities
 {
 
 using boost::property_tree::ptree;
@@ -166,4 +168,4 @@ header::DataDescription DataSamplingPolicy::createPolicyDataDescription(std::str
   return outputDescription;
 }
 
-} // namespace o2::framework
+} // namespace o2::utilities

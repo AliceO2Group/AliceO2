@@ -13,11 +13,11 @@
 
 #include <boost/test/unit_test.hpp>
 
-#include "Framework/DataSamplingHeader.h"
+#include "DataSampling/DataSamplingHeader.h"
 #include "Headers/Stack.h"
 #include "Headers/DataHeader.h"
 
-using namespace o2::framework;
+using namespace o2::utilities;
 using namespace o2::header;
 
 BOOST_AUTO_TEST_CASE(DataSamplingHeaderDefault)

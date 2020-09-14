@@ -15,13 +15,14 @@
 #include <boost/test/unit_test.hpp>
 #include <boost/property_tree/ptree.hpp>
 
-#include "Framework/DataSamplingConditionFactory.h"
+#include "DataSampling/DataSamplingConditionFactory.h"
 #include "Framework/DataRef.h"
 #include "Framework/DataProcessingHeader.h"
 #include "Headers/DataHeader.h"
 #include "Headers/Stack.h"
 
 using namespace o2::framework;
+using namespace o2::utilities;
 using namespace o2::header;
 
 BOOST_AUTO_TEST_CASE(DataSamplingConditionRandom)

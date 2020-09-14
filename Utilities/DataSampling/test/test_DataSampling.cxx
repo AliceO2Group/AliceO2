@@ -13,10 +13,10 @@
 
 #include <boost/test/unit_test.hpp>
 
-#include "Framework/DataSampling.h"
+#include "DataSampling/DataSampling.h"
 #include "Framework/DataProcessingHeader.h"
 #include "Framework/ExternalFairMQDeviceProxy.h"
-#include "Framework/DataSamplingReadoutAdapter.h"
+#include "DataSampling/DataSamplingReadoutAdapter.h"
 #include "Framework/DataSpecUtils.h"
 
 #include "Headers/DataHeader.h"
@@ -24,6 +24,7 @@
 #include <Configuration/ConfigurationFactory.h>
 
 using namespace o2::framework;
+using namespace o2::utilities;
 using namespace o2::configuration;
 
 using DataHeader = o2::header::DataHeader;

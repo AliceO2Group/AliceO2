@@ -31,13 +31,13 @@ namespace o2::monitoring
 class Monitoring;
 }
 
-namespace o2::framework
+namespace o2::utilities
 {
 
 class DataSamplingHeader;
 class DataSamplingPolicy;
 
-class Dispatcher : public Task
+class Dispatcher : public framework::Task
 {
  public:
   /// \brief Constructor
@@ -46,33 +46,33 @@ class Dispatcher : public Task
   ~Dispatcher() override;
 
   /// \brief Dispatcher init callback
-  void init(InitContext& ctx) override;
+  void init(framework::InitContext& ctx) override;
   /// \brief Dispatcher process callback
-  void run(ProcessingContext& ctx) override;
+  void run(framework::ProcessingContext& ctx) override;
 
   /// \brief Create appropriate inputSpecs and outputSpecs for sampled data during the workflow declaration phase.
-  void registerPath(const std::pair<InputSpec, OutputSpec>&);
+  void registerPath(const std::pair<framework::InputSpec, framework::OutputSpec>&);
 
   const std::string& getName();
-  Inputs getInputSpecs();
-  Outputs getOutputSpecs();
+  framework::Inputs getInputSpecs();
+  framework::Outputs getOutputSpecs();
 
  private:
-  DataSamplingHeader prepareDataSamplingHeader(const DataSamplingPolicy& policy, const DeviceSpec& spec);
+  DataSamplingHeader prepareDataSamplingHeader(const DataSamplingPolicy& policy, const framework::DeviceSpec& spec);
   header::Stack extractAdditionalHeaders(const char* inputHeaderStack) const;
   void reportStats(monitoring::Monitoring& monitoring) const;
-  void send(DataAllocator& dataAllocator, const DataRef& inputData, Output&& output) const;
-  void sendFairMQ(FairMQDevice* device, const DataRef& inputData, const std::string& fairMQChannel,
+  void send(framework::DataAllocator& dataAllocator, const framework::DataRef& inputData, framework::Output&& output) const;
+  void sendFairMQ(FairMQDevice* device, const framework::DataRef& inputData, const std::string& fairMQChannel,
                   header::Stack&& stack) const;
 
   std::string mName;
   std::string mReconfigurationSource;
-  Inputs inputs;
-  Outputs outputs;
+  framework::Inputs inputs;
+  framework::Outputs outputs;
   // policies should be shared between all pipeline threads
   std::vector<std::shared_ptr<DataSamplingPolicy>> mPolicies;
 };
 
-} // namespace o2::framework
+} // namespace o2::utilities
 
 #endif //ALICEO2_DISPATCHER_H

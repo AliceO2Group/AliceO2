@@ -7,14 +7,16 @@
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
-#include "Framework/DataSamplingReadoutAdapter.h"
+#include "DataSampling/DataSamplingReadoutAdapter.h"
 #include "Framework/DataProcessingHeader.h"
 #include "Headers/DataHeader.h"
 #include "Framework/DataSpecUtils.h"
 
 #include <Common/DataBlock.h>
 
-namespace o2::framework
+using namespace o2::framework;
+
+namespace o2::utilities
 {
 
 using DataHeader = o2::header::DataHeader;
@@ -42,4 +44,4 @@ InjectorFunction dataSamplingReadoutAdapter(OutputSpec const& spec)
   };
 }
 
-} // namespace o2::framework
+} // namespace o2::utilities

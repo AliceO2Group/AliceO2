@@ -8,11 +8,13 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#include "Framework/DataSampling.h"
+#include "DataSampling/DataSampling.h"
 
 #include <thread>
 
 using namespace o2::framework;
+using namespace o2::utilities;
+
 void customize(std::vector<CompletionPolicy>& policies)
 {
   DataSampling::CustomizeInfrastructure(policies);
@@ -24,15 +26,14 @@ void customize(std::vector<ChannelConfigurationPolicy>& policies)
 
 #include "Framework/InputSpec.h"
 #include "Framework/DataProcessorSpec.h"
-#include "Framework/DataSampling.h"
-#include "Framework/DataSpecUtils.h"
+#include "DataSampling/DataSampling.h"
 #include "Framework/ParallelContext.h"
 #include "Framework/runDataProcessing.h"
 
+#include <boost/algorithm/string.hpp>
+
 #include <chrono>
 #include <iostream>
-
-#include <boost/algorithm/string.hpp>
 
 using namespace o2::framework;
 
@@ -52,19 +53,16 @@ void someSinkAlgorithm(ProcessingContext& ctx);
 
 WorkflowSpec defineDataProcessing(ConfigContext const&)
 {
-  auto dataProducers = parallel(
-    DataProcessorSpec{
-      "dataProducer",
-      Inputs{},
-      {OutputSpec{"TPC", "CLUSTERS"}},
-      AlgorithmSpec{
-        (AlgorithmSpec::ProcessCallback)someDataProducerAlgorithm}},
-    parallelSize,
-    [](DataProcessorSpec& spec, size_t index) {
-      DataSpecUtils::updateMatchingSubspec(spec.outputs[0], index);
-    });
+  DataProcessorSpec dataProducer{
+    "dataProducer",
+    Inputs{},
+    {
+      OutputSpec{"TPC", "CLUSTERS"},
+    },
+    AlgorithmSpec{
+      (AlgorithmSpec::ProcessCallback)someDataProducerAlgorithm}};
 
-  auto processingStages = parallel(
+  auto processingStage = timePipeline(
     DataProcessorSpec{
       "processingStage",
       Inputs{
@@ -73,22 +71,12 @@ WorkflowSpec defineDataProcessing(ConfigContext const&)
         {"TPC", "CLUSTERS_P"}},
       AlgorithmSpec{
         (AlgorithmSpec::ProcessCallback)someProcessingStageAlgorithm}},
-    parallelSize,
-    [](DataProcessorSpec& spec, size_t index) {
-      DataSpecUtils::updateMatchingSubspec(spec.inputs[0], index);
-      DataSpecUtils::updateMatchingSubspec(spec.outputs[0], index);
-    });
-
-  auto inputsSink = mergeInputs(
-    {"dataTPC-proc", "TPC", "CLUSTERS_P"},
-    parallelSize,
-    [](InputSpec& input, size_t index) {
-      DataSpecUtils::updateMatchingSubspec(input, index);
-    });
+    parallelSize);
 
   DataProcessorSpec sink{
     "sink",
-    inputsSink,
+    Inputs{
+      {"dataTPC-proc", "TPC", "CLUSTERS_P", 0}},
     Outputs{},
     AlgorithmSpec{
       (AlgorithmSpec::ProcessCallback)someSinkAlgorithm}};
@@ -97,12 +85,12 @@ WorkflowSpec defineDataProcessing(ConfigContext const&)
   DataProcessorSpec simpleQcTask{
     "simpleQcTask",
     Inputs{
-      { "TPC_CLUSTERS_S",   { "DS", "simpleQcTask-0" } },
-      { "TPC_CLUSTERS_P_S", { "DS", "simpleQcTask-1" } }
+      { "TPC_CLUSTERS_S",   { "DS", "simpleQcTask0" } },
+      { "TPC_CLUSTERS_P_S", { "DS", "simpleQcTask1" } }
     },
     Outputs{},
     AlgorithmSpec{
-      (AlgorithmSpec::ProcessCallback) [](ProcessingContext& ctx){
+      (AlgorithmSpec::ProcessCallback) [](ProcessingContext& ctx) {
         auto inputDataTpc = reinterpret_cast<const FakeCluster*>(ctx.inputs().get("TPC_CLUSTERS_S").payload);
         auto inputDataTpcProcessed = reinterpret_cast<const FakeCluster*>(ctx.inputs().get(
           "TPC_CLUSTERS_P_S").payload);
@@ -120,8 +108,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const&)
             break;
           }
         }
-
-        LOG(INFO) << "simpleQcTask - received data is " << (dataGood ? "correct" : "wrong");
+        LOG(INFO) << "qcTaskTPC - received data is " << (dataGood ? "correct" : "wrong");
       }
     }
   };
@@ -136,19 +123,20 @@ WorkflowSpec defineDataProcessing(ConfigContext const&)
     AlgorithmSpec{[](ProcessingContext& ctx){}}
   };
 
-  WorkflowSpec specs;
-  specs.swap(dataProducers);
-  specs.insert(std::end(specs), std::begin(processingStages), std::end(processingStages));
-  specs.push_back(sink);
-  specs.push_back(simpleQcTask);
-  specs.push_back(dummyProducer);
-
+  WorkflowSpec specs = {
+    dataProducer,
+    processingStage,
+    sink,
+    simpleQcTask,
+    dummyProducer
+  };
   const char* o2Root = getenv("O2_ROOT");
   if (o2Root == nullptr) {
     throw std::runtime_error("The O2_ROOT environment variable is not set, probably the O2 environment has not been loaded.");
   }
   std::string configurationSource = std::string("json:/") + o2Root + "/share/etc/exampleDataSamplingConfig.json";
   DataSampling::GenerateInfrastructure(specs, configurationSource);
+
   return specs;
 }
 // clang-format on
@@ -178,6 +166,7 @@ void someProcessingStageAlgorithm(ProcessingContext& ctx)
   size_t index = ctx.services().get<ParallelContext>().index1D();
 
   const FakeCluster* inputDataTpc = reinterpret_cast<const FakeCluster*>(ctx.inputs().get("dataTPC").payload);
+
   auto& processedTpcClusters = ctx.outputs().make<FakeCluster>(
     Output{"TPC", "CLUSTERS_P", static_cast<o2::header::DataHeader::SubSpecificationType>(index)},
     collectionChunkSize);
