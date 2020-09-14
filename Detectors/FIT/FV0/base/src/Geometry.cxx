@@ -116,12 +116,12 @@ void Geometry::getGlobalPosition(float& x, float& y, float& z)
   z = sZGlobal;
 }
 
-Point3D<float>& Geometry::getCellCenter(UInt_t cellId)
+Point3Dsimple& Geometry::getCellCenter(UInt_t cellId)
 {
   return mCellCenter.at(cellId);
 }
 
-Point3D<float>& Geometry::getReadoutCenter(UInt_t cellId)
+Point3Dsimple& Geometry::getReadoutCenter(UInt_t cellId)
 {
   return mReadoutCenter.at(cellId);
 }
@@ -1222,7 +1222,7 @@ void Geometry::initializeCellCenters()
     double x = sXGlobal + r * TMath::Cos(lutSect2Phi[sCellToSector[cellId]]);
     double y = sYGlobal + r * TMath::Sin(lutSect2Phi[sCellToSector[cellId]]);
 
-    Point3D<float>* p = &mCellCenter.at(cellId);
+    Point3Dsimple* p = &mCellCenter.at(cellId);
     p->SetCoordinates(x, y, sZGlobal);
   }
 }
@@ -1230,9 +1230,9 @@ void Geometry::initializeCellCenters()
 void Geometry::initializeReadoutCenters()
 {
   for (int channelId = 0; channelId < sNumberOfReadoutChannels; channelId++) {
-    Point3D<float>* p = &mReadoutCenter.at(channelId);
+    Point3Dsimple* p = &mReadoutCenter.at(channelId);
     if (!isRing5(channelId)) {
-      p->SetCoordinates(getCellCenter(channelId).X(), getCellCenter(channelId).Y(), getCellCenter(channelId).Z());
+      p->SetCoordinates(getCellCenter(channelId).x, getCellCenter(channelId).y, getCellCenter(channelId).z);
     } else {
       const int numberOfSectorsR5 = sNumberOfCellSectors * 4; // from both halves of the detector
       const float phi0 = 78.75 * TMath::DegToRad();           // starting phi of one of the sectors

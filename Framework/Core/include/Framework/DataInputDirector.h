@@ -34,6 +34,7 @@ struct DataInputDescriptor {
   std::unique_ptr<data_matcher::DataDescriptorMatcher> matcher;
 
   DataInputDescriptor() = default;
+  DataInputDescriptor(bool alienSupport);
 
   void printOut();
 
@@ -57,6 +58,7 @@ struct DataInputDescriptor {
   TFile* getInputFile(int counter);
   void closeInputFile();
   std::string getInputFilename(int counter);
+  bool isAlienSupportOn() { return mAlienSupport; }
 
  private:
   std::string minputfilesFile = "";
@@ -66,6 +68,7 @@ struct DataInputDescriptor {
   std::vector<std::string> mfilenames;
   std::vector<std::string>* mdefaultFilenamesPtr = nullptr;
   TFile* mcurrentFile = nullptr;
+  bool mAlienSupport = false;
 };
 
 struct DataInputDirector {
@@ -75,6 +78,7 @@ struct DataInputDirector {
 
   DataInputDirector();
   DataInputDirector(std::string inputFile);
+  DataInputDirector(std::vector<std::string> inputFiles);
 
   void reset();
   void createDefaultDataInputDescriptor();
@@ -103,7 +107,8 @@ struct DataInputDirector {
   std::vector<std::string> mdefaultInputFiles;
   std::vector<DataInputDescriptor*> mdataInputDescriptors;
 
-  bool mdebugmode = false;
+  bool mDebugMode = false;
+  bool mAlienSupport = false;
 
   bool readJsonDocument(Document* doc);
   bool isValid();

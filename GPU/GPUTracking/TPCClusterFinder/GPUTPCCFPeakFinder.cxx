@@ -28,7 +28,7 @@ GPUdii() void GPUTPCCFPeakFinder::Thread<0>(int nBlocks, int nThreads, int iBloc
   findPeaksImpl(get_num_groups(0), get_local_size(0), get_group_id(0), get_local_id(0), smem, chargeMap, clusterer.mPpositions, clusterer.mPmemory->counters.nPositions, clusterer.mPisPeak, isPeakMap);
 }
 
-GPUdii() bool GPUTPCCFPeakFinder::isPeakScratchPad(
+GPUdii() bool GPUTPCCFPeakFinder::isPeak(
   GPUSharedMemory& smem,
   Charge q,
   const ChargePos& pos,
@@ -103,7 +103,7 @@ GPUd() void GPUTPCCFPeakFinder::findPeaksImpl(int nBlocks, int nThreads, int iBl
   Charge charge = pos.valid() ? chargeMap[pos].unpack() : Charge(0);
 
   uchar peak;
-  peak = isPeakScratchPad(smem, charge, pos, SCRATCH_PAD_SEARCH_N, chargeMap, smem.posBcast, smem.buf);
+  peak = isPeak(smem, charge, pos, SCRATCH_PAD_SEARCH_N, chargeMap, smem.posBcast, smem.buf);
 
   // Exit early if dummy. See comment above.
   bool iamDummy = (idx >= digitnum);

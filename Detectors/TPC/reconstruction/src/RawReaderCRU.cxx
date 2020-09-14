@@ -188,12 +188,14 @@ int RawReaderCRU::scanFile()
   // std::vector<PacketDescriptor> mPacketDescriptorMap;
   //const uint64_t RDH_HEADERWORD0 = 0x1ea04003;
   //const uint64_t RDH_HEADERWORD0 = 0x00004003;
-  const uint64_t RDH_HEADERWORD0 = 0x00004000 + RDHUtils::getVersion<o2::header::RAWDataHeader>();
+  const uint64_t RDH_HEADERWORD0 = 0x00004000; // + RDHUtils::getVersion<o2::header::RAWDataHeader>();
 
-  std::ifstream file;
-  file.open(mInputFileName, std::ifstream::binary);
-  if (!file.good())
-    throw std::runtime_error("Unable to open or access file " + mInputFileName);
+  std::ifstream& file = mFileHandle;
+  if (!file.is_open()) {
+    file.open(mInputFileName, std::ifstream::binary);
+    if (!file.good())
+      throw std::runtime_error("Unable to open or access file " + mInputFileName);
+  }
 
   // get length of file in bytes
   file.seekg(0, file.end);
@@ -227,10 +229,18 @@ int RawReaderCRU::scanFile()
     //   triggerType == 0x10 in the firt packet
     //
     if (mManager) {
-      if (mManager->mDataType == DataType::TryToDetect) {
+      if (mManager->mDetectDataType) {
         const uint64_t triggerTypeForTriggeredData = 0x10;
         const uint64_t triggerType = RDHUtils::getTriggerType(rdh);
         const uint64_t pageCnt = RDHUtils::getPageCounter(rdh);
+        const uint64_t linkID = RDHUtils::getLinkID(rdh);
+
+        if (pageCnt == 0) {
+          if (linkID == 15) {
+            mManager->mRawDataType = RAWDataType::LinkZS;
+            mManager->mDetectDataType = false;
+          }
+        }
 
         if (pageCnt == 1) {
           if (triggerType == triggerTypeForTriggeredData) {
@@ -240,6 +250,7 @@ int RawReaderCRU::scanFile()
             mManager->mDataType = DataType::HBScaling;
             O2INFO("Detected HB scaling");
           }
+          mManager->mDetectDataType = false;
         }
       }
     }
@@ -276,7 +287,7 @@ int RawReaderCRU::scanFile()
     // * create the packet descriptor
     // * set the mLinkPresent flag
     //
-    if ((rdh.word0 & 0x0000FFFF) == RDH_HEADERWORD0) {
+    if ((rdh.word0 & 0x0000FFF0) == RDH_HEADERWORD0) {
       // non 0 stop bit means data with payload
       if (RDHUtils::getStop(rdh) == 0) {
         mPacketDescriptorMaps[globalLinkID].emplace_back(currentPos, mCRU, linkID, dataWrapperID, memorySize, packetSize);
@@ -362,10 +373,12 @@ int RawReaderCRU::scanFile()
 
 void RawReaderCRU::findSyncPositions()
 {
-  std::ifstream file;
-  file.open(mInputFileName, std::ifstream::binary);
-  if (!file.good())
-    throw std::runtime_error("Unable to open or access file " + mInputFileName);
+  std::ifstream& file = mFileHandle;
+  if (!file.is_open()) {
+    file.open(mInputFileName, std::ifstream::binary);
+    if (!file.good())
+      throw std::runtime_error("Unable to open or access file " + mInputFileName);
+  }
 
   // loop over the MaxNumberOfLinks potential links in the data
   // only if data from the link is present and selected
@@ -422,10 +435,12 @@ void RawReaderCRU::findSyncPositions()
 int RawReaderCRU::processPacket(GBTFrame& gFrame, uint32_t startPos, uint32_t size, ADCRawData& rawData)
 {
   // open the data file
-  std::ifstream file;
-  file.open(mInputFileName, std::ifstream::binary);
-  if (!file.good())
-    throw std::runtime_error("Unable to open or access file " + mInputFileName);
+  std::ifstream& file = mFileHandle;
+  if (!file.is_open()) {
+    file.open(mInputFileName, std::ifstream::binary);
+    if (!file.good())
+      throw std::runtime_error("Unable to open or access file " + mInputFileName);
+  }
 
   // jump to the start position of the packet
   file.seekg(startPos, file.beg);
@@ -665,10 +680,12 @@ void RawReaderCRU::collectGBTData(std::vector<o2::byte>& data)
   const auto& mapper = Mapper::instance();
 
   const auto& linkInfoArray = mManager->mEventSync.getLinkInfoArrayForEvent(mEventNumber, mCRU);
-  std::ifstream file;
-  file.open(mInputFileName, std::ios::binary);
-  if (!file.good())
-    throw std::runtime_error("Unable to open or access file " + mInputFileName);
+  std::ifstream& file = mFileHandle;
+  if (!file.is_open()) {
+    file.open(mInputFileName, std::ios::binary);
+    if (!file.good())
+      throw std::runtime_error("Unable to open or access file " + mInputFileName);
+  }
 
   size_t presentDataPosition = 0;
 
@@ -768,10 +785,12 @@ void RawReaderCRU::copyEvents(const std::vector<uint32_t>& eventNumbers, std::st
   std::ofstream outputFile(outputFileName, std::ios_base::binary | mode);
 
   // open the input file
-  std::ifstream file;
-  file.open(mInputFileName, std::ifstream::binary);
-  if (!file.good()) {
-    throw std::runtime_error("Unable to open or access file " + mInputFileName);
+  std::ifstream& file = mFileHandle;
+  if (!file.is_open()) {
+    file.open(mInputFileName, std::ifstream::binary);
+    if (!file.good()) {
+      throw std::runtime_error("Unable to open or access file " + mInputFileName);
+    }
   }
 
   // data buffer. Maximum size is 8k

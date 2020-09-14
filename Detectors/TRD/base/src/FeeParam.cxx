@@ -33,15 +33,18 @@
 #include <TMath.h>
 #include <TVirtualMC.h>
 #include <fairlogger/Logger.h>
+#include <array>
 
 #include "DetectorsBase/GeometryManager.h"
 #include "TRDBase/TRDGeometry.h"
 #include "TRDBase/TRDPadPlane.h"
 #include "TRDBase/FeeParam.h"
 #include "TRDBase/TRDCommonParam.h"
+//#include "DataFormatsTRD/Constants.h"
 
 using namespace std;
 using namespace o2::trd;
+using namespace o2::trd::constants;
 
 //_____________________________________________________________________________
 
@@ -55,24 +58,24 @@ bool FeeParam::mgLUTPadNumberingFilled = false;
 std::vector<short> FeeParam::mgLUTPadNumbering;
 
 // definition of geometry constants
-std::array<float, 30> FeeParam::mgZrow = {
+std::array<float, NCHAMBERPERSEC> FeeParam::mgZrow = {
   301, 177, 53, -57, -181,
   301, 177, 53, -57, -181,
   315, 184, 53, -57, -188,
   329, 191, 53, -57, -195,
   343, 198, 53, -57, -202,
   347, 200, 53, -57, -204};
-std::array<float, 6> FeeParam::mgX = {300.65, 313.25, 325.85, 338.45, 351.05, 363.65};
-std::array<float, 6> FeeParam::mgTiltingAngle = {-2., 2., -2., 2., -2., 2.};
+std::array<float, NLAYER> FeeParam::mgX = {300.65, 313.25, 325.85, 338.45, 351.05, 363.65};
+std::array<float, NLAYER> FeeParam::mgTiltingAngle = {-2., 2., -2., 2., -2., 2.};
 int FeeParam::mgDyMax = 63;
 int FeeParam::mgDyMin = -64;
 float FeeParam::mgBinDy = 140e-4;
-std::array<float, 6> FeeParam::mgWidthPad = {0.635, 0.665, 0.695, 0.725, 0.755, 0.785};
-std::array<float, 6> FeeParam::mgLengthInnerPadC1 = {7.5, 7.5, 8.0, 8.5, 9.0, 9.0};
-std::array<float, 6> FeeParam::mgLengthOuterPadC1 = {7.5, 7.5, 7.5, 7.5, 7.5, 8.5};
-std::array<float, 6> FeeParam::mgInvX;
-std::array<float, 6> FeeParam::mgTiltingAngleTan;
-std::array<float, 6> FeeParam::mgInvWidthPad;
+std::array<float, NLAYER> FeeParam::mgWidthPad = {0.635, 0.665, 0.695, 0.725, 0.755, 0.785};
+std::array<float, NLAYER> FeeParam::mgLengthInnerPadC1 = {7.5, 7.5, 8.0, 8.5, 9.0, 9.0};
+std::array<float, NLAYER> FeeParam::mgLengthOuterPadC1 = {7.5, 7.5, 7.5, 7.5, 7.5, 8.5};
+std::array<float, NLAYER> FeeParam::mgInvX;
+std::array<float, NLAYER> FeeParam::mgTiltingAngleTan;
+std::array<float, NLAYER> FeeParam::mgInvWidthPad;
 
 float FeeParam::mgLengthInnerPadC0 = 9.0;
 float FeeParam::mgLengthOuterPadC0 = 8.0;
@@ -196,7 +199,7 @@ int FeeParam::getPadRowFromMCM(int irob, int imcm) const
   // Return on which pad row this mcm sits
   //
 
-  return mgkNmcmRobInRow * (irob / 2) + imcm / mgkNmcmRobInCol;
+  return NMCMROBINROW * (irob / 2) + imcm / NMCMROBINCOL;
 }
 
 //_____________________________________________________________________________
@@ -215,11 +218,11 @@ int FeeParam::getPadColFromADC(int irob, int imcm, int iadc) const
   // http://wiki.kip.uni-heidelberg.de/ti/TRD/index.php/Image:ROB_MCM_numbering.pdf
   //
 
-  if (iadc < 0 || iadc > mgkNadcMcm)
+  if (iadc < 0 || iadc > NADCMCM)
     return -100;
-  int mcmcol = imcm % mgkNmcmRobInCol + getRobSide(irob) * mgkNmcmRobInCol; // MCM column number on ROC [0..7]
-  int padcol = mcmcol * mgkNcolMcm + mgkNcolMcm + 1 - iadc;
-  if (padcol < 0 || padcol >= mgkNcol) {
+  int mcmcol = imcm % NMCMROBINCOL + getRobSide(irob) * NMCMROBINCOL; // MCM column number on ROC [0..7]
+  int padcol = mcmcol * NCOLMCM + NCOLMCM + 1 - iadc;
+  if (padcol < 0 || padcol >= NCOLUMN) {
     return -1; // this is commented because of reason above OK
   }
   return padcol;
@@ -234,10 +237,10 @@ int FeeParam::getExtendedPadColFromADC(int irob, int imcm, int iadc) const
   // so we have to introduce new virtual pad numbering scheme for this purpose.
   //
 
-  if (iadc < 0 || iadc > mgkNadcMcm)
+  if (iadc < 0 || iadc > NADCMCM)
     return -100;
-  int mcmcol = imcm % mgkNmcmRobInCol + getRobSide(irob) * mgkNmcmRobInCol; // MCM column number on ROC [0..7]
-  int padcol = mcmcol * mgkNadcMcm + mgkNcolMcm + 2 - iadc;
+  int mcmcol = imcm % NMCMROBINCOL + getRobSide(irob) * NMCMROBINCOL; // MCM column number on ROC [0..7]
+  int padcol = mcmcol * NADCMCM + NCOLMCM + 2 - iadc;
 
   return padcol;
 }
@@ -250,9 +253,9 @@ int FeeParam::getMCMfromPad(int irow, int icol) const
   // Return -1 for error.
   //
 
-  if (irow < 0 || icol < 0 || irow > mgkNrowC1 || icol > mgkNcol)
+  if (irow < 0 || icol < 0 || irow > NROWC1 || icol > NCOLUMN)
     return -1;
-  return (icol % (mgkNcol / 2)) / mgkNcolMcm + mgkNmcmRobInCol * (irow % mgkNmcmRobInRow);
+  return (icol % (NCOLUMN / 2)) / NCOLMCM + NMCMROBINCOL * (irow % NMCMROBINROW);
 }
 
 //_____________________________________________________________________________
@@ -263,7 +266,7 @@ int FeeParam::getMCMfromSharedPad(int irow, int icol) const
   // Return -1 for error.
   //
 
-  if (irow < 0 || icol < 0 || irow > mgkNrowC1 || icol > mgkNcol + 8 * 3)
+  if (irow < 0 || icol < 0 || irow > NROWC1 || icol > NCOLUMN + 8 * 3)
     return -1;
 
   int adc = 20 - (icol % 18) - 1;
@@ -282,7 +285,7 @@ int FeeParam::getMCMfromSharedPad(int irow, int icol) const
       break;
   }
 
-  return (icol % (mgkNcol / 2)) / mgkNcolMcm + mgkNmcmRobInCol * (irow % mgkNmcmRobInRow);
+  return (icol % (NCOLUMN / 2)) / NCOLMCM + NMCMROBINCOL * (irow % NMCMROBINROW);
 }
 
 //_____________________________________________________________________________
@@ -291,7 +294,7 @@ int FeeParam::getROBfromPad(int irow, int icol) const
   //
   // Return on which rob this pad is
   //
-  return (int)((int)irow / (int)mgkNmcmRobInRow) * 2 + getColSide(icol);
+  return (irow / NMCMROBINROW) * 2 + getColSide(icol);
 }
 
 //_____________________________________________________________________________
@@ -302,9 +305,9 @@ int FeeParam::getROBfromSharedPad(int irow, int icol) const
   //
 
   if (icol < 72) {
-    return (irow / mgkNmcmRobInRow) * 2 + getColSide(icol + 5);
+    return (irow / NMCMROBINROW) * 2 + getColSide(icol + 5);
   } else {
-    return (irow / mgkNmcmRobInRow) * 2 + getColSide(icol - 5);
+    return (irow / NMCMROBINROW) * 2 + getColSide(icol - 5);
   }
 }
 
@@ -315,7 +318,7 @@ int FeeParam::getRobSide(int irob) const
   // Return on which side this rob sits (A side = 0, B side = 1)
   //
 
-  if (irob < 0 || irob >= mgkNrobC1)
+  if (irob < 0 || irob >= NROBC1)
     return -1;
 
   return irob % 2;
@@ -328,10 +331,10 @@ int FeeParam::getColSide(int icol) const
   // Return on which side this column sits (A side = 0, B side = 1)
   //
 
-  if (icol < 0 || icol >= mgkNcol)
+  if (icol < 0 || icol >= NCOLUMN)
     return -1;
 
-  return icol / (mgkNcol / 2);
+  return icol / (NCOLUMN / 2);
 }
 
 unsigned int FeeParam::aliToExtAli(int rob, int aliid)
@@ -454,6 +457,98 @@ short FeeParam::getRobAB(unsigned short robsel, unsigned short linkpair)
 
   return 0;
 }
+/* 
+void FeeParam::createORILookUpTable()
+{
+    int ori;
+    for(int trdstack=0;trdstack<3;trdstack++)
+    {
+        for(int side=0;side<2;side++)
+        {
+
+            for(int trdlayer=5;trdlayer>=0;trdlayer++)
+            {
+                ori=trdstack*12  + (5-trdlayer + side*6) +trdlayer/6 + side; 
+                mgAsideLUT[ori]= (trdstack<<8) + (trdlayer<<4) + side;           // A side LUT to map ORI to stack/layer/side
+                if(ori==29) break;
+                
+            }
+                if(ori==29) break;
+        }
+                if(ori==29) break;
+    }
+    for(int trdstack=4;trdstack>1;trdstack--)
+    {
+        for(int side=0;side<2;side++)
+        {
+
+            for(int trdlayer=5;trdlayer>=0;trdlayer++)
+            {
+                ori = (4-trdstack)*12  + (5-trdlayer + side*5) +trdlayer/6 + side;
+                int newside;
+                if(ori >=24) newside=1; else newside=side; // a hack as I am not typing this all out.
+                mgCsideLUT[ori]= (trdstack<<8) + (trdlayer<<4) + newside;           // A side LUT to map ORI to stack/layer/side
+                if(ori==29) break;
+            }
+                if(ori==29) break;
+        }
+                if(ori==29) break;
+    }
+}
+*/
+
+int FeeParam::getORI(int detector, int readoutboard) const
+{
+  int supermodule = detector / 30;
+  LOG(debug3) << "getORI : " << detector << " :: " << readoutboard << getORIinSM(detector, readoutboard) + 60 * detector;
+  return getORIinSM(detector, readoutboard) + 2 * detector; // 2 ORI per detector
+}
+
+int FeeParam::getORIinSM(int detector, int readoutboard) const
+{
+  int ori = -1;
+  int chamberside = 0;
+  int trdstack = TRDGeometry::getStack(detector);
+  int trdlayer = TRDGeometry::getLayer(detector);
+  int side = getRobSide(readoutboard);
+  //see TDP for explanation of mapping TODO should probably come from CCDB for the instances where the mapping of ori fibers is misconfigured (accidental fibre swaps).
+  if (trdstack < 2 || (trdstack == 2 && side == 0)) // A Side
+  {
+    ori = trdstack * 12 + (5 - trdlayer + side * 5) + trdlayer / 6 + side; // <- that is correct for A side at least for now, probably not for very long LUT as that will come form CCDB ni anycase.
+  } else {
+    if (trdstack > 2 || (trdstack == 2 && side == 1)) // CSide
+    {
+      int newside = side;
+      if (trdstack == 2)
+        newside = 0; // the last part of C side CRU is a special case.
+      ori = (4 - trdstack) * 12 + (5 - trdlayer + newside * 5) + trdlayer / 6 + newside;
+    } else
+      LOG(warn) << " something wrong with calculation of ORI for detector " << detector << " and readoutboard" << readoutboard;
+  }
+  // now offset for supermodule (+60*supermodule);
+
+  return ori;
+}
+
+int FeeParam::getORIfromHCID(int hcid) const
+{
+  int detector = hcid / 2;
+  int side = hcid % 2; // 0 for side 0, 1 for side 1;
+  int ori = -1;
+  int chamberside = 0;
+  int trdstack = TRDGeometry::getStack(detector);
+  int trdlayer = TRDGeometry::getLayer(detector);
+  return getORIinSM(detector, side); // it takes readoutboard but only cares if its odd or even hence side here.
+  return 1;
+}
+int FeeParam::getHCIDfromORI(int ori, int readoutboard) const
+{
+  // ori = 60*SM+offset[0-29 A, 30-59 C]
+  // from the offset, we can derive the stack/layer/side combination giving the decector.
+  //TODO do we need this, currently I dont, others might? come back if need be.
+  //
+  return 1;
+}
 
 short FeeParam::chipmaskToMCMlist(unsigned int cmA, unsigned int cmB, unsigned short linkpair, int* mcmList, int listSize)
 {
@@ -491,22 +586,21 @@ void FeeParam::setRAWversion(int rawver)
   }
 }
 
-/* 
+/*
  * This was originally moved here from arrayADC, signalADC etc. We now longer use those classes
  * so removing this for now as its crashing.
-*/
+ */
 void FeeParam::createPad2MCMLookUpTable()
 {
-
   //
   // Initializes the Look Up Table to relate
   // pad numbering and mcm channel numbering
   //
   if (!mgLUTPadNumberingFilled) {
 
-    LOG(debug) << " resizing lookup array to : " << getNcol() << " elements previously : " << mgLUTPadNumbering.size();
-    mgLUTPadNumbering.resize(FeeParam::getNcol());
-    memset(&mgLUTPadNumbering[0], 0, sizeof(mgLUTPadNumbering[0]) * getNcol());
+    LOG(debug) << " resizing lookup array to : " << NCOLUMN << " elements previously : " << mgLUTPadNumbering.size();
+    mgLUTPadNumbering.resize(NCOLUMN);
+    memset(&mgLUTPadNumbering[0], 0, sizeof(mgLUTPadNumbering[0]) * NCOLUMN);
     for (int mcm = 0; mcm < 8; mcm++) {
       int lowerlimit = 0 + mcm * 18;
       int upperlimit = 18 + mcm * 18;
@@ -515,7 +609,6 @@ void FeeParam::createPad2MCMLookUpTable()
         mgLUTPadNumbering[index] = index + shiftposition;
       }
     }
-    mgLUTPadNumberingFilled = true;
   }
 }
 
@@ -524,7 +617,7 @@ int FeeParam::getDyCorrection(int det, int rob, int mcm) const
   // calculate the correction of the deflection
   // i.e. Lorentz angle and tilt correction (if active)
 
-  int layer = det % 6;
+  int layer = det % NLAYER;
 
   float dyTilt = (mgDriftLength * std::tan(mgTiltingAngle[layer] * M_PI / 180.) *
                   getLocalZ(det, rob, mcm) * mgInvX[layer]);
@@ -598,7 +691,7 @@ float FeeParam::getElongation(int det, int rob, int mcm, int ch) const
   // calculate the ratio of the distance to the primary vertex and the
   // distance in x-direction for the given ADC channel
 
-  int layer = det % 6;
+  int layer = det % NLAYER;
 
   float elongation = std::abs(getDist(det, rob, mcm, ch) * mgInvX[layer]);
 
@@ -638,7 +731,7 @@ float FeeParam::getX(int det, int /* rob */, int /* mcm */) const
 {
   // return the distance to the beam axis in x-direction
 
-  int layer = det % 6;
+  int layer = det % NLAYER;
   return mgX[layer];
 }
 
@@ -646,7 +739,7 @@ float FeeParam::getLocalY(int det, int rob, int mcm, int ch) const
 {
   // get local y-position (r-phi) w.r.t. the chamber centre
 
-  int layer = det % 6;
+  int layer = det % NLAYER;
   // calculate the pad position as in the TRAP
   float ypos = (-4 + 1 + (rob & 0x1) * 4 + (mcm & 0x3)) * 18 - ch - 0.5; // y position in bins of pad widths
   return ypos * mgWidthPad[layer];
@@ -656,24 +749,24 @@ float FeeParam::getLocalZ(int det, int rob, int mcm) const
 {
   // get local z-position w.r.t. to the chamber boundary
 
-  int stack = (det % 30) / 6;
-  int layer = det % 6;
+  int stack = (det % NCHAMBERPERSEC) / NLAYER;
+  int layer = det % NLAYER;
   int row = (rob / 2) * 4 + mcm / 4;
 
   if (stack == 2) {
     if (row == 0)
-      return (mgZrow[layer * 6 + stack] - 0.5 * mgLengthOuterPadC0);
+      return (mgZrow[layer * NLAYER + stack] - 0.5 * mgLengthOuterPadC0);
     else if (row == 11)
-      return (mgZrow[layer * 6 + stack] - 1.5 * mgLengthOuterPadC0 - (row - 1) * mgLengthInnerPadC0);
+      return (mgZrow[layer * NLAYER + stack] - 1.5 * mgLengthOuterPadC0 - (row - 1) * mgLengthInnerPadC0);
     else
-      return (mgZrow[layer * 6 + stack] - mgLengthOuterPadC0 - (row - 0.5) * mgLengthInnerPadC0);
+      return (mgZrow[layer * NLAYER + stack] - mgLengthOuterPadC0 - (row - 0.5) * mgLengthInnerPadC0);
   } else {
     if (row == 0)
-      return (mgZrow[layer * 6 + stack] - 0.5 * mgLengthOuterPadC1[layer]);
+      return (mgZrow[layer * NLAYER + stack] - 0.5 * mgLengthOuterPadC1[layer]);
     else if (row == 15)
-      return (mgZrow[layer * 6 + stack] - 1.5 * mgLengthOuterPadC1[layer] - (row - 1) * mgLengthInnerPadC1[layer]);
+      return (mgZrow[layer * NLAYER + stack] - 1.5 * mgLengthOuterPadC1[layer] - (row - 1) * mgLengthInnerPadC1[layer]);
     else
-      return (mgZrow[layer * 6 + stack] - mgLengthOuterPadC1[layer] - (row - 0.5) * mgLengthInnerPadC1[layer]);
+      return (mgZrow[layer * NLAYER + stack] - mgLengthOuterPadC1[layer] - (row - 0.5) * mgLengthInnerPadC1[layer]);
   }
 }
 

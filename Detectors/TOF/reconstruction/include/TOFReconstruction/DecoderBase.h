@@ -41,6 +41,10 @@ class DecoderBaseT
   inline bool run()
   {
     rewind();
+    if (mDecoderCONET) {
+      mDecoderPointerMax = reinterpret_cast<const uint32_t*>(mDecoderBuffer + mDecoderBufferSize);
+      return processDRM();
+    }
     while (!processHBF())
       ;
     return false;
@@ -54,24 +58,20 @@ class DecoderBaseT
   void setDecoderVerbose(bool val) { mDecoderVerbose = val; };
   void setDecoderBuffer(const char* val) { mDecoderBuffer = val; };
   void setDecoderBufferSize(long val) { mDecoderBufferSize = val; };
+  void setDecoderCONET(bool val) { mDecoderCONET = val; };
 
  private:
   /** handlers **/
 
-  virtual void rdhHandler(const RDH* rdh){};
-  virtual void headerHandler(const CrateHeader_t* crateHeader, const CrateOrbit_t* crateOrbit){};
+  virtual void rdhHandler(const RDH* rdh) = 0;
+  virtual void headerHandler(const CrateHeader_t* crateHeader, const CrateOrbit_t* crateOrbit) = 0;
 
   virtual void frameHandler(const CrateHeader_t* crateHeader, const CrateOrbit_t* crateOrbit,
-                            const FrameHeader_t* frameHeader, const PackedHit_t* packedHits){};
+                            const FrameHeader_t* frameHeader, const PackedHit_t* packedHits) = 0;
 
   virtual void trailerHandler(const CrateHeader_t* crateHeader, const CrateOrbit_t* crateOrbit,
                               const CrateTrailer_t* crateTrailer, const Diagnostic_t* diagnostics,
-                              const Error_t* errors){};
-
-  /** old API, deprecated **/
-
-  virtual void trailerHandler(const CrateHeader_t* crateHeader, const CrateOrbit_t* crateOrbit,
-                              const CrateTrailer_t* crateTrailer, const Diagnostic_t* diagnostics){};
+                              const Error_t* errors) = 0;
 
   bool processHBF();
   bool processDRM();
@@ -88,6 +88,7 @@ class DecoderBaseT
   bool mDecoderVerbose = false;
   bool mDecoderError = false;
   bool mDecoderFatal = false;
+  bool mDecoderCONET = false;
   char mDecoderSaveBuffer[1048576];
   uint32_t mDecoderSaveBufferDataSize = 0;
   uint32_t mDecoderSaveBufferDataLeft = 0;

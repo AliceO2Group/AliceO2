@@ -29,6 +29,7 @@
 #pragma link C++ class o2::eventgen::GeneratorTGenerator + ;
 #ifdef GENERATORS_WITH_HEPMC3
 #pragma link C++ class o2::eventgen::GeneratorHepMC + ;
+#pragma link C++ class o2::eventgen::GeneratorHepMCParam + ;
 #endif
 #ifdef GENERATORS_WITH_PYTHIA6
 #pragma link C++ class o2::eventgen::GeneratorPythia6 + ;
@@ -57,5 +58,7 @@
 #pragma link C++ class o2::conf::ConfigurableParamHelper < o2::eventgen::BoxGunParam > +;
 #pragma link C++ class o2::eventgen::QEDGenParam + ;
 #pragma link C++ class o2::conf::ConfigurableParamHelper < o2::eventgen::QEDGenParam > +;
+#pragma link C++ class o2::eventgen::GenCosmicsParam + ;
+#pragma link C++ class o2::conf::ConfigurableParamHelper < o2::eventgen::GenCosmicsParam> + ;
 
 #endif

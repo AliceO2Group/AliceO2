@@ -9,6 +9,7 @@
 // or submit itself to any jurisdiction.
 
 #include "ReconstructionDataFormats/Vertex.h"
+#include <fmt/printf.h>
 #include <iostream>
 
 namespace o2
@@ -17,14 +18,17 @@ namespace dataformats
 {
 
 #ifndef ALIGPU_GPUCODE
+
+std::string VertexBase::asString() const
+{
+  return fmt::format("Vtx {{{:+.4e},{:+.4e},{:+.4e}}} Cov.:{{{{{:.3e}..}},{{{:.3e},{:.3e}..}},{{{:.3e},{:.3e},{:.3e}}}}}",
+                     mPos.X(), mPos.Y(), mPos.Z(), mCov[0], mCov[1], mCov[2], mCov[3], mCov[4], mCov[5]);
+}
+
 std::ostream& operator<<(std::ostream& os, const o2::dataformats::VertexBase& v)
 {
   // stream itself
-  os << std::scientific << "Vertex X: " << v.getX() << " Y: " << v.getY() << " Z: " << v.getZ()
-     << " Cov.mat:\n"
-     << v.getSigmaX2() << '\n'
-     << v.getSigmaXY() << ' ' << v.getSigmaY2() << '\n'
-     << v.getSigmaXZ() << ' ' << v.getSigmaYZ() << ' ' << v.getSigmaZ2() << '\n';
+  os << v.asString();
   return os;
 }
 
@@ -32,6 +36,7 @@ void VertexBase::print() const
 {
   std::cout << *this << std::endl;
 }
+
 #endif
 
 } // namespace dataformats

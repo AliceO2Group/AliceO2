@@ -33,11 +33,10 @@ BranchIterator::BranchIterator(TTree* tree, std::shared_ptr<arrow::ChunkedArray>
   if (mFieldType == arrow::Type::type::FIXED_SIZE_LIST) {
 
     // element type
-    if (mField->type()->num_children() <= 0) {
+    if (mField->type()->num_fields() <= 0) {
       LOGP(FATAL, "Field {} of type {} has no children!", mField->name(), mField->type()->ToString().c_str());
     }
-    mElementType = mField->type()->child(0)->type()->id();
-
+    mElementType = mField->type()->field(0)->type()->id();
     // number of elements
     mNumberElements = static_cast<const arrow::FixedSizeListType*>(mField->type().get())->list_size();
     mLeaflistString += "[" + std::to_string(mNumberElements) + "]";
@@ -429,7 +428,7 @@ ColumnIterator::ColumnIterator(TTreeReader* reader, const char* colname)
         MAKE_FIELD_AND_BUILDER(uint32_t, 1, mTableBuilder_ui);
         break;
       case EDataType::kULong64_t:
-        mReaderValue_ul = new TTreeReaderValue<uint64_t>(*reader, mColumnName);
+        mReaderValue_ul = new TTreeReaderValue<ULong64_t>(*reader, mColumnName);
         MAKE_FIELD_AND_BUILDER(uint64_t, 1, mTableBuilder_ul);
         break;
       case EDataType::kChar_t:

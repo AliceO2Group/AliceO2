@@ -138,7 +138,7 @@ class ColumnIterator
   TTreeReaderValue<uint8_t>* mReaderValue_ub = nullptr;
   TTreeReaderValue<uint16_t>* mReaderValue_us = nullptr;
   TTreeReaderValue<uint32_t>* mReaderValue_ui = nullptr;
-  TTreeReaderValue<uint64_t>* mReaderValue_ul = nullptr;
+  TTreeReaderValue<ULong64_t>* mReaderValue_ul = nullptr;
   TTreeReaderValue<int8_t>* mReaderValue_b = nullptr;
   TTreeReaderValue<int16_t>* mReaderValue_s = nullptr;
   TTreeReaderValue<int32_t>* mReaderValue_i = nullptr;

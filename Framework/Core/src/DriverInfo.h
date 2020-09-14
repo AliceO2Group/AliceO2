@@ -11,9 +11,7 @@
 #ifndef O2_FRAMEWORK_DRIVERINFO_H_
 #define O2_FRAMEWORK_DRIVERINFO_H_
 
-#include <chrono>
 #include <cstddef>
-#include <map>
 #include <vector>
 
 #include <csignal>
@@ -22,6 +20,8 @@
 #include "Framework/ChannelConfigurationPolicy.h"
 #include "Framework/ConfigParamSpec.h"
 #include "Framework/TerminationPolicy.h"
+#include "Framework/CompletionPolicy.h"
+#include "Framework/DispatchPolicy.h"
 #include "DataProcessorInfo.h"
 
 namespace o2::framework
@@ -59,7 +59,6 @@ enum struct DriverState {
   INIT = 0,
   SCHEDULE,
   RUNNING,
-  GUI,
   REDEPLOY_GUI,
   QUIT_REQUESTED,
   HANDLE_CHILDREN,
@@ -77,12 +76,6 @@ enum struct DriverState {
 struct DriverInfo {
   /// Stack with the states to be processed next.
   std::vector<DriverState> states;
-  // Mapping between various pipes and the actual device information.
-  // Key is the file description, value is index in the previous vector.
-  std::map<int, size_t> socket2DeviceInfo;
-  /// The first unused file descriptor
-  int maxFd;
-  fd_set childFdset;
 
   // Signal handler for children
   struct sigaction sa_handle_child;
@@ -109,7 +102,7 @@ struct DriverInfo {
   /// What we should do when one device in the workflow has an error
   enum TerminationPolicy errorPolicy;
   /// The offset at which the process was started.
-  std::chrono::time_point<std::chrono::steady_clock> startTime;
+  uint64_t startTime;
   /// The optional timeout after which the driver will request
   /// all the children to quit.
   double timeout;
@@ -138,6 +131,10 @@ struct DriverInfo {
   float frameLatency;
   /// The unique id used for ipc communications
   std::string uniqueWorkflowId = "";
+  /// Metrics gathering interval
+  unsigned short resourcesMonitoringInterval;
+  /// Last port used for tracy
+  short tracyPort = 8086;
 };
 
 } // namespace o2::framework

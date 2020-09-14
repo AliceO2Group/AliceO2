@@ -38,10 +38,14 @@
 #pragma link C++ class o2::dataformats::RangeRefComp < 4> + ; // reference to a set with 15 entries max (ITS clusters)
 #pragma link C++ class o2::dataformats::RangeRefComp < 5> + ; // reference to a set with 15 entries max (ZDC BCData)
 #pragma link C++ class o2::dataformats::RangeRefComp < 6> + ; // reference to a set with 63 entries max (FV0 BCData)
-#pragma link C++ class o2::dataformats::RangeRefComp < 8> + ; // 
+#pragma link C++ class o2::dataformats::RangeRefComp < 8> + ; //
+
+#pragma link C++ class std::vector < o2::dataformats::RangeReference < int, int>> + ;
 
 #pragma link C++ class o2::InteractionRecord + ;
 #pragma link C++ class o2::InteractionTimeRecord + ;
 #pragma link C++ class o2::BunchFilling + ;
+
+#pragma link C++ class o2::dataformats::AbstractRef < 26, 3, 3> + ;
 
 #endif

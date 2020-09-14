@@ -62,6 +62,11 @@ o2_add_dpl_workflow(filters
                   PUBLIC_LINK_LIBRARIES O2::Framework
                   COMPONENT_NAME AnalysisTutorial)
 
+o2_add_dpl_workflow(partitions
+                  SOURCES src/partitions.cxx
+                  PUBLIC_LINK_LIBRARIES O2::Framework
+                  COMPONENT_NAME AnalysisTutorial)
+
 o2_add_dpl_workflow(aodwriter
                   SOURCES src/aodwriter.cxx
                   PUBLIC_LINK_LIBRARIES O2::Framework
@@ -94,5 +99,28 @@ o2_add_dpl_workflow(event-mixing
 
 o2_add_dpl_workflow(mc-histograms
                   SOURCES src/mcHistograms.cxx
-                  PUBLIC_LINK_LIBRARIES O2::Framework O2::AnalysisDataModel
+                  PUBLIC_LINK_LIBRARIES O2::Framework O2::AnalysisDataModel O2::AnalysisCore
                   COMPONENT_NAME AnalysisTutorial)
+
+o2_add_dpl_workflow(ccdbaccess
+                  SOURCES src/ccdbaccess.cxx
+                  PUBLIC_LINK_LIBRARIES O2::AnalysisCore O2::CCDB O2::Framework O2::AnalysisDataModel
+                  COMPONENT_NAME AnalysisTutorial)
+
+o2_add_dpl_workflow(weak-decay-iteration
+                  SOURCES src/weakDecayIteration.cxx
+                  COMPONENT_NAME AnalysisTutorial)
+
+o2_add_dpl_workflow(extended-columns
+                  SOURCES src/extendedColumns.cxx
+                  PUBLIC_LINK_LIBRARIES O2::Framework
+                  COMPONENT_NAME AnalysisTutorial)
+
+o2_add_dpl_workflow(zdc-vzero-iteration
+                  SOURCES src/ZDCVZeroIteration.cxx
+                  COMPONENT_NAME AnalysisTutorial)
+
+o2_add_dpl_workflow(hist-helpers-test
+                    SOURCES src/histHelpersTest.cxx
+                    PUBLIC_LINK_LIBRARIES O2::AnalysisDataModel O2::AnalysisCore
+                    COMPONENT_NAME AnalysisTutorial)

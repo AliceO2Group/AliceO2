@@ -65,7 +65,7 @@ class CalibDB
   /// - Incorrect path
   /// - Wrong timestamp
   /// - Meta data not set
-  class ObjectNotFoundException : public std::exception
+  class ObjectNotFoundException final : public std::exception
   {
    public:
     /// \brief Constructor with query parameters
@@ -123,7 +123,7 @@ class CalibDB
   /// a certain path and with a certain timestamp was valid, the object
   /// however has a different type than the expected one (something was
   /// screwed up when writing to the CCDB)
-  class TypeMismatchException : public std::exception
+  class TypeMismatchException final : public std::exception
   {
    public:
     /// \brief Constructor

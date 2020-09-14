@@ -34,6 +34,8 @@
 #include "DataFormatsITS/TrackITS.h"
 #include "SimulationDataFormat/MCCompLabel.h"
 
+#include "Framework/Logger.h"
+
 namespace o2
 {
 namespace gpu
@@ -60,7 +62,7 @@ class Tracker
   float getBz() const;
 
   std::vector<TrackITSExt>& getTracks();
-  dataformats::MCTruthContainer<MCCompLabel>& getTrackLabels();
+  auto& getTrackLabels() { return mTrackLabels; }
 
   void clustersToTracks(const ROframe&, std::ostream& = std::cout);
 
@@ -97,7 +99,7 @@ class Tracker
   float mBz = 5.f;
   std::uint32_t mROFrame = 0;
   std::vector<TrackITSExt> mTracks;
-  dataformats::MCTruthContainer<MCCompLabel> mTrackLabels;
+  std::vector<MCCompLabel> mTrackLabels;
   o2::gpu::GPUChainITS* mRecoChain = nullptr;
 };
 
@@ -128,11 +130,6 @@ inline std::vector<TrackITSExt>& Tracker::getTracks()
   return mTracks;
 }
 
-inline dataformats::MCTruthContainer<MCCompLabel>& Tracker::getTrackLabels()
-{
-  return mTrackLabels;
-}
-
 template <typename... T>
 float Tracker::evaluateTask(void (Tracker::*task)(T...), const char* taskName, std::ostream& ostream,
                             T&&... args)
@@ -147,10 +144,12 @@ float Tracker::evaluateTask(void (Tracker::*task)(T...), const char* taskName, s
     std::chrono::duration<double, std::milli> diff_t{end - start};
     diff = diff_t.count();
 
-    if (taskName == nullptr) {
-      ostream << diff << "\t";
-    } else {
-      ostream << std::setw(2) << " - " << taskName << " completed in: " << diff << " ms" << std::endl;
+    if (fair::Logger::Logging(fair::Severity::info)) {
+      if (taskName == nullptr) {
+        ostream << diff << "\t";
+      } else {
+        ostream << std::setw(2) << " - " << taskName << " completed in: " << diff << " ms" << std::endl;
+      }
     }
   } else {
     (this->*task)(std::forward<T>(args)...);

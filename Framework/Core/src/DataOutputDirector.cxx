@@ -108,9 +108,9 @@ void DataOutputDescriptor::printOut()
   LOGP(INFO, "  File name base : {}", getFilenameBase());
   LOGP(INFO, "  Tree name      : {}", treename);
   if (colnames.empty()) {
-    LOGP(INFO, "  Columns      : \"all\"");
+    LOGP(INFO, "  Columns        : \"all\"");
   } else {
-    LOGP(INFO, "  Columns      : {}", colnames.size());
+    LOGP(INFO, "  Columns        : {}", colnames.size());
   }
   for (auto cn : colnames)
     LOGP(INFO, "    {}", cn);
@@ -265,7 +265,7 @@ std::tuple<std::string, std::string, int> DataOutputDirector::readJsonDocument(D
   itemName = "OutputDirector";
   const Value& dodirItem = (*jsonDocument)[itemName];
   if (!dodirItem.IsObject()) {
-    LOGP(ERROR, "Check the JSON document! Couldn't find an \"{}\" object!", itemName);
+    LOGP(INFO, "No \"{}\" object found in the JSON document!", itemName);
     return memptyanswer;
   }
 

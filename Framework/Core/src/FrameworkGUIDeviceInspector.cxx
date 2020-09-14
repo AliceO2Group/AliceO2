@@ -16,10 +16,12 @@
 #include "Framework/DeviceInfo.h"
 #include "Framework/DeviceMetricsInfo.h"
 #include "Framework/ChannelSpec.h"
+#include "Framework/Logger.h"
 
 #include "DebugGUI/imgui.h"
 #include <csignal>
 #include <cstdlib>
+#include <iostream>
 
 namespace o2
 {
@@ -143,6 +145,41 @@ void optionsTable(const char* label, std::vector<ConfigParamSpec> const& options
   ImGui::Columns(1);
 }
 
+void servicesTable(const char* label, std::vector<ServiceSpec> const& services)
+{
+  if (services.empty()) {
+    return;
+  }
+  if (ImGui::CollapsingHeader(label, ImGuiTreeNodeFlags_DefaultOpen)) {
+    ImGui::Columns(2);
+    auto labels = {"Service", "Kind"};
+    for (auto& label : labels) {
+      ImGui::TextUnformatted(label);
+      ImGui::NextColumn();
+    }
+    for (auto& service : services) {
+      ImGui::TextUnformatted(service.name.c_str());
+      ImGui::NextColumn();
+      switch (service.kind) {
+        case ServiceKind::Serial:
+          ImGui::TextUnformatted("Serial");
+          break;
+        case ServiceKind::Global:
+          ImGui::TextUnformatted("Global");
+          break;
+        case ServiceKind::Stream:
+          ImGui::TextUnformatted("Stream");
+          break;
+        default:
+          ImGui::TextUnformatted("unknown");
+      }
+      ImGui::NextColumn();
+    }
+  }
+
+  ImGui::Columns(1);
+}
+
 void displayDeviceInspector(DeviceSpec const& spec,
                             DeviceInfo const& info,
                             DeviceMetricsInfo const& metrics,
@@ -156,6 +193,9 @@ void displayDeviceInspector(DeviceSpec const& spec,
   } else {
     ImGui::Text("Pid: %d (exit status: %d)", info.pid, info.exitStatus);
   }
+#ifdef DPL_ENABLE_TRACING
+  ImGui::Text("Tracy Port: %d", info.tracyPort);
+#endif
   ImGui::Text("Rank: %zu/%zu%%%zu/%zu", spec.rank, spec.nSlots, spec.inputTimesliceId, spec.maxInputTimeslices);
 
   if (ImGui::Button("Attach debugger")) {
@@ -194,12 +234,24 @@ void displayDeviceInspector(DeviceSpec const& spec,
     (void)retVal;
   }
 
+  ImGui::SameLine();
+#if DPL_ENABLE_TRACING
+  if (ImGui::Button("Tracy")) {
+    std::string tracyPort = std::to_string(info.tracyPort);
+    auto cmd = fmt::format("tracy-profiler -p {} -a 127.0.0.1 &", info.tracyPort);
+    LOG(debug) << cmd;
+    int retVal = system(cmd.c_str());
+    (void)retVal;
+  }
+#endif
+
   deviceInfoTable(info, metrics);
   for (auto& option : info.currentConfig) {
     ImGui::Text("%s: %s", option.first.c_str(), option.second.data().c_str());
   }
   configurationTable(info.currentConfig, info.currentProvenance);
   optionsTable("Workflow Options", metadata.workflowOptions, control);
+  servicesTable("Services", spec.services);
   if (ImGui::CollapsingHeader("Command line arguments", ImGuiTreeNodeFlags_DefaultOpen)) {
     for (auto& arg : metadata.cmdLineArgs) {
       ImGui::Text("%s", arg.c_str());

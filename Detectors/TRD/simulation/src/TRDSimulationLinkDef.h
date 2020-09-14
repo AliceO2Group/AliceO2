@@ -25,6 +25,7 @@
 #pragma link C++ class o2::trd::TrapConfig::TrapDmemWord + ;
 #pragma link C++ class o2::trd::TrapConfig::TrapRegister + ;
 #pragma link C++ class o2::trd::TrapSimulator + ;
+#pragma link C++ class o2::trd::Trap2CRU + ;
 
 #pragma link C++ class o2::trd::TRDSimParams + ;
 #pragma link C++ class o2::conf::ConfigurableParamHelper < o2::trd::TRDSimParams> + ;

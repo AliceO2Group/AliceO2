@@ -18,8 +18,10 @@
 #include "TRDBase/CalOnlineGainTables.h"
 #include "TRDBase/TRDGeometry.h"
 #include "TRDBase/FeeParam.h"
+#include "DataFormatsTRD/Constants.h"
 
 using namespace o2::trd;
+using namespace o2::trd::constants;
 using namespace std;
 
 float o2::trd::CalOnlineGainTables::UnDef = -999.0;
@@ -30,7 +32,7 @@ int CalOnlineGainTables::getArrayOffset(int det, int row, int col) const
   int rob = mFeeParam->getROBfromPad(row, col);
   int mcm = mFeeParam->getMCMfromPad(row, col);
   int detoffset = det * 128; //TODO find this constant from somewhere else max rob=8, max mcm=16, so 7x16+15=127
-  int mcmoffset = rob * (mFeeParam->mgkNmcmRob) + mcm;
+  int mcmoffset = rob * NMCMROB + mcm;
   return detoffset + mcmoffset;
 }
 
@@ -41,7 +43,7 @@ int CalOnlineGainTables::getChannel(int col) const
 
 int CalOnlineGainTables::getArrayOffsetrm(int det, int rob, int mcm) const
 {
-  return det * 128 + rob * FeeParam::instance()->mgkNmcmRob + mcm;
+  return det * 128 + rob * NMCMROB + mcm;
 }
 
 float CalOnlineGainTables::getGainCorrectionFactor(int det, int row, int col) const

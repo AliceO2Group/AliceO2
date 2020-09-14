@@ -10,6 +10,9 @@
 
 #include "TRDBase/TRDGeometryFlat.h"
 #include "TRDBase/TRDGeometry.h"
+#include "DataFormatsTRD/Constants.h"
+
+using namespace o2::trd::constants;
 
 TRDGeometryFlat::TRDGeometryFlat(const TRDGeometry& geo)
 {
@@ -17,7 +20,7 @@ TRDGeometryFlat::TRDGeometryFlat(const TRDGeometry& geo)
   const TRDGeometryBase& b2 = geo;
   memcpy((void*)&b1, (void*)&b2, sizeof(b1));
   int matrixCount = 0;
-  for (int i = 0; i < kNdet; i++) {
+  for (int i = 0; i < MAXCHAMBER; i++) {
     if (geo.chamberInGeometry(i)) {
       double v[12];
       geo.getMatrixT2L(i).GetComponents(v[0], v[1], v[2], v[3], v[4], v[5], v[6], v[7], v[8], v[9], v[10], v[11]);

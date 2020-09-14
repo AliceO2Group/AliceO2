@@ -22,7 +22,6 @@
 #include "GPUTRDTrackletWord.h"
 #include "GPUTRDGeometry.h"
 #include "GPUTRDTrackerDebug.h"
-#include "GPUReconstruction.h"
 #include "GPUMemoryResource.h"
 #include "GPUCommonMath.h"
 #include "GPUCommonAlgorithm.h"
@@ -33,7 +32,8 @@ class GPUTPCGMPolynomialField;
 
 #ifndef GPUCA_GPUCODE
 
-#ifndef __OPENCL__
+#ifndef GPUCA_GPUCODE_DEVICE
+#include "GPUReconstruction.h"
 #ifdef WITH_OPENMP
 #include <omp.h>
 #endif

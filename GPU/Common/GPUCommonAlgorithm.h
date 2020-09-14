@@ -212,7 +212,7 @@ typedef GPUCommonAlgorithm CAAlgo;
 } // namespace gpu
 } // namespace GPUCA_NAMESPACE
 
-#if (defined(__CUDACC__) && !defined(__clang__)) || defined(__HIPCC__)
+#if ((defined(__CUDACC__) && !defined(__clang__)) || defined(__HIPCC__))
 
 #include "GPUCommonAlgorithmThrust.h"
 
@@ -332,13 +332,15 @@ GPUdi() void GPUCommonAlgorithm::swap(T& a, T& b)
 #ifdef __OPENCL__
 // Nothing to do, work_group functions available
 
-#elif defined(__CUDACC__) || defined(__HIPCC__)
+#elif (defined(__CUDACC__) || defined(__HIPCC__))
 // CUDA and HIP work the same way using cub, need just different header
 
+#ifndef GPUCA_GPUCODE_GENRTC
 #if defined(__CUDACC__)
 #include <cub/cub.cuh>
 #elif defined(__HIPCC__)
 #include <hipcub/hipcub.hpp>
+#endif
 #endif
 
 #define work_group_scan_inclusive_add(v) work_group_scan_inclusive_add_FUNC(v, smem)
@@ -363,6 +365,16 @@ GPUdi() T work_group_broadcast_FUNC(T v, int i, S& smem)
   return retVal;
 }
 
+#define work_group_reduce_add(v) work_group_reduce_add_FUNC(v, smem)
+template <class T, class S>
+GPUdi() T work_group_reduce_add_FUNC(T v, S& smem)
+{
+  v = typename S::BlockReduce(smem.cubReduceTmpMem).Sum(v);
+  __syncthreads();
+  v = work_group_broadcast(v, 0);
+  return v;
+}
+
 #define warp_scan_inclusive_add(v) warp_scan_inclusive_add_FUNC(v, smem)
 template <class T, class S>
 GPUdi() T warp_scan_inclusive_add_FUNC(T v, S& smem)
@@ -376,6 +388,12 @@ GPUdi() T warp_scan_inclusive_add_FUNC(T v, S& smem)
 
 template <class T>
 GPUdi() T work_group_scan_inclusive_add(T v)
+{
+  return v;
+}
+
+template <class T>
+GPUdi() T work_group_reduce_add(T v)
 {
   return v;
 }

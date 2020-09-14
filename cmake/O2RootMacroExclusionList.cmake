@@ -17,8 +17,8 @@ include(O2GetListOfMacros)
 #
 
 list(APPEND O2_ROOT_MACRO_EXCLUSION_LIST
-            Detectors/ITSMFT/ITS/macros/EVE/rootlogon.C
-            Detectors/ITSMFT/ITS/macros/test/rootlogon.C
+            Detectors/ITSMFT/ITS/macros/test/CheckLUtime.C # temporary exclude until fix for full Clusters elimination
+            Detectors/ITSMFT/ITS/macros/test/dictionary_integrity_test.C     # temporary exclude until fix for full Clusters elimination       
             Detectors/MUON/MCH/Simulation/macros/rootlogon.C
             Detectors/Passive/macro/PutFrameInTop.C
             Detectors/TPC/reconstruction/macro/addInclude.C
@@ -28,6 +28,8 @@ list(APPEND O2_ROOT_MACRO_EXCLUSION_LIST
             Detectors/TRD/base/macros/Readocdb.C
             Detectors/TRD/base/macros/PrintTrapConfig.C
             Detectors/TRD/base/macros/ConvertRun2DigitsAndTracklets.C
+            Detectors/TRD/macros/convertRun2ToRun3Digits.C
+            Detectors/TRD/macros/ParseTrapRawOutput.C
             Detectors/EMCAL/calib/macros/ReadTestBadChannelMap_CCDBApi.C
             GPU/GPUTracking/Merger/macros/checkPropagation.C # Needs AliRoot AliExternalTrackParam
             GPU/GPUTracking/Merger/macros/fitPolynomialFieldIts.C # Needs AliRoot AliMagF
@@ -44,6 +46,7 @@ list(APPEND O2_ROOT_MACRO_EXCLUSION_LIST
 	    Detectors/TOF/prototyping/ConvertRun2CalibrationToO2.C
             Generators/share/external/hijing.C
 	    Generators/share/external/QEDepem.C
+	    Generators/share/external/GenCosmics.C
             macro/SetIncludePath.C
             macro/loadExtDepLib.C
             macro/load_all_libs.C
@@ -59,6 +62,7 @@ if(NOT BUILD_SIMULATION)
   o2_get_list_of_macros(${CMAKE_SOURCE_DIR}/Detectors/gconfig macros)
   list(APPEND O2_ROOT_MACRO_EXCLUSION_LIST ${macros})
   list(APPEND O2_ROOT_MACRO_EXCLUSION_LIST Generators/share/external/QEDLoader.C)
+  list(APPEND O2_ROOT_MACRO_EXCLUSION_LIST Generators/share/external/GenCosmicsLoader.C)
   list(APPEND O2_ROOT_MACRO_EXCLUSION_LIST Generators/share/egconfig/pythia8_userhooks_charm.C)
   list(APPEND O2_ROOT_MACRO_EXCLUSION_LIST Generators/share/external/trigger_mpi.C)
 endif()

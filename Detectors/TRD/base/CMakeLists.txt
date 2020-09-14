@@ -36,6 +36,7 @@ o2_add_library(TRDBase
                                      O2::DetectorsBase
                                      ROOT::Physics
                                      O2::SimulationDataFormat
+                                     O2::DataFormatsTRD
                                      O2::CCDB)
 
 o2_target_root_dictionary(TRDBase
@@ -75,6 +76,13 @@ o2_add_test(Geometry
             COMPONENT_NAME trd
             PUBLIC_LINK_LIBRARIES O2::TRDBase
             SOURCES test/testTRDGeometry.cxx
+            ENVIRONMENT O2_ROOT=${CMAKE_BINARY_DIR}/stage
+            LABELS trd
+            )
+o2_add_test(RawData
+            COMPONENT_NAME trd
+            PUBLIC_LINK_LIBRARIES O2::TRDBase O2::DataFormatsTRD
+            SOURCES test/testRawData.cxx
             ENVIRONMENT O2_ROOT=${CMAKE_BINARY_DIR}/stage
             LABELS trd
             )

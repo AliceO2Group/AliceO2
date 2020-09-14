@@ -38,12 +38,11 @@ class Table;
 class Array;
 } // namespace arrow
 
-namespace o2
-{
-namespace framework
+namespace o2::framework
 {
 namespace detail
 {
+/// FIXME: adapt type conversion to arrow 1.0
 // This is needed by Arrow 0.12.0 which dropped
 //
 //      using ArrowType = ArrowType_;
@@ -512,19 +511,17 @@ class TableBuilder
   template <typename T>
   auto cursor()
   {
-    using persistent_filter = soa::FilterPersistentColumns<T>;
-    using persistent_columns_pack = typename persistent_filter::persistent_columns_pack;
+    using persistent_columns_pack = typename T::table_t::persistent_columns_t;
     constexpr auto persistent_size = pack_size(persistent_columns_pack{});
-    return cursorHelper<typename persistent_filter::persistent_table_t>(std::make_index_sequence<persistent_size>());
+    return cursorHelper<typename soa::PackToTable<persistent_columns_pack>::table>(std::make_index_sequence<persistent_size>());
   }
 
   template <typename T, typename E>
   auto cursor()
   {
-    using persistent_filter = soa::FilterPersistentColumns<T>;
-    using persistent_columns_pack = typename persistent_filter::persistent_columns_pack;
+    using persistent_columns_pack = typename T::table_t::persistent_columns_t;
     constexpr auto persistent_size = pack_size(persistent_columns_pack{});
-    return cursorHelper<typename persistent_filter::persistent_table_t, E>(std::make_index_sequence<persistent_size>());
+    return cursorHelper<typename soa::PackToTable<persistent_columns_pack>::table, E>(std::make_index_sequence<persistent_size>());
   }
 
   template <typename... ARGS>
@@ -581,14 +578,14 @@ class TableBuilder
   /// template argument T is a o2::soa::Table which contains only the
   /// persistent columns.
   template <typename T, size_t... Is>
-  auto cursorHelper(std::index_sequence<Is...> s)
+  auto cursorHelper(std::index_sequence<Is...>)
   {
     std::vector<std::string> columnNames{pack_element_t<Is, typename T::columns>::columnLabel()...};
     return this->template persist<typename pack_element_t<Is, typename T::columns>::type...>(columnNames);
   }
 
   template <typename T, typename E, size_t... Is>
-  auto cursorHelper(std::index_sequence<Is...> s)
+  auto cursorHelper(std::index_sequence<Is...>)
   {
     std::vector<std::string> columnNames{pack_element_t<Is, typename T::columns>::columnLabel()...};
     return this->template persist<E>(columnNames);
@@ -601,6 +598,41 @@ class TableBuilder
   std::vector<std::shared_ptr<arrow::Array>> mArrays;
 };
 
-} // namespace framework
-} // namespace o2
+/// Helper to get a tuple tail
+template <typename Head, typename... Tail>
+std::tuple<Tail...> tuple_tail(std::tuple<Head, Tail...>& t)
+{
+  return apply([](auto const&, auto&... tail) { return std::tie(tail...); }, t);
+}
+
+/// Helpers to get type pack from tuple
+template <typename... T>
+constexpr auto pack_from_tuple(std::tuple<T...> const&)
+{
+  return framework::pack<T...>{};
+}
+
+/// Binary search for an index column
+template <typename Key, typename T>
+void lowerBound(int32_t value, T& start)
+{
+  static_assert(soa::is_soa_iterator_t<T>::value, "Argument needs to be a Table::iterator");
+  int step;
+  auto count = start.mMaxRow - start.globalIndex();
+
+  while (count > 0) {
+    step = count / 2;
+    start.moveByIndex(step);
+    if (start.template getId<Key>() < value) {
+      count -= step + 1;
+    } else {
+      start.moveByIndex(-step);
+      count = step;
+    }
+  }
+}
+
+template <typename... T>
+using iterator_tuple_t = std::tuple<typename T::iterator...>;
+} // namespace o2::framework
 #endif // FRAMEWORK_TABLEBUILDER_H

@@ -24,6 +24,7 @@
 #include "TRDBase/Digit.h"
 #include "TRDBase/TRDSimParam.h"
 #include "TRDBase/TRDCommonParam.h"
+#include "DataFormatsTRD/Constants.h"
 #endif
 
 using namespace o2::trd;
@@ -74,7 +75,7 @@ void CheckDigits(std::string digifile = "trddigits.root",
       hDet->Fill(det);
       hRow->Fill(row);
       hPad->Fill(pad);
-      for (int tb = 0; tb < kTimeBins; ++tb) {
+      for (int tb = 0; tb < o2::trd::constants::TIMEBINS; ++tb) {
         ADC_t adc = adcs[tb];
         if (adc == (ADC_t)TRDSimParam::Instance()->GetADCoutRange()) {
           // LOG(INFO) << "Out of range ADC " << adc;

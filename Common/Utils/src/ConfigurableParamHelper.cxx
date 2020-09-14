@@ -83,18 +83,18 @@ void loopOverMembers(TClass* cl, void* obj,
     }
 
     if (dm->IsaPointer()) {
-      LOG(WARNING) << "Pointer types not supported in ConfigurableParams";
+      LOG(WARNING) << "Pointer types not supported in ConfigurableParams: " << dm->GetFullTypeName() << " " << dm->GetName();
       continue;
     }
     if (!dm->IsBasic() && !isValidComplex()) {
-      LOG(WARNING) << "Generic complex types not supported in ConfigurableParams";
+      LOG(WARNING) << "Generic complex types not supported in ConfigurableParams: " << dm->GetFullTypeName() << " " << dm->GetName();
       continue;
     }
 
     const auto dim = dm->GetArrayDim();
     // we support very simple vectored data in 1D for now
     if (dim > 1) {
-      LOG(WARNING) << "We support at most 1 dimensional arrays in ConfigurableParams";
+      LOG(WARNING) << "We support at most 1 dimensional arrays in ConfigurableParams: " << dm->GetFullTypeName() << " " << dm->GetName();
       continue;
     }
 
@@ -116,6 +116,24 @@ std::string getName(const TDataMember* dm, int index, int size)
     namestream << "[" << index << "]";
   }
   return namestream.str();
+}
+
+// ----------------------------------------------------------------------
+size_t getSizeOfUnderlyingType(const TDataMember& dm)
+{
+  auto dt = dm.GetDataType();
+  if (dt) {
+    // if basic built-in type supported by ROOT
+    return dt->Size();
+  } else {
+    // for now only catch std::string as other supported type
+    auto tname = dm.GetFullTypeName();
+    if (strcmp(tname, "string") == 0 || strcmp(tname, "std::string")) {
+      return sizeof(std::string);
+    }
+    LOG(ERROR) << "ENCOUNTERED AN UNSUPPORTED TYPE " << tname << "IN A CONFIGURABLE PARAMETER";
+  }
+  return 0;
 }
 
 // ----------------------------------------------------------------------
@@ -165,8 +183,7 @@ std::vector<ParamDataMember>* _ParamHelper::getDataMembersImpl(std::string const
   std::vector<ParamDataMember>* members = new std::vector<ParamDataMember>;
 
   auto toDataMember = [&members, obj, mainkey, provmap](const TDataMember* dm, int index, int size) {
-    auto dt = dm->GetDataType();
-    auto TS = dt ? dt->Size() : 0;
+    auto TS = getSizeOfUnderlyingType(*dm);
     char* pointer = ((char*)obj) + dm->GetOffset() + index * TS;
     const std::string name = getName(dm, index, size);
     const char* value = asString(*dm, pointer);
@@ -259,7 +276,7 @@ void _ParamHelper::fillKeyValuesImpl(std::string const& mainkey, TClass* cl, voi
   auto fillMap = [obj, &mainkey, &localtree, &keytostoragemap, &enumRegistry](const TDataMember* dm, int index, int size) {
     const auto name = getName(dm, index, size);
     auto dt = dm->GetDataType();
-    auto TS = dt ? dt->Size() : 0;
+    auto TS = getSizeOfUnderlyingType(*dm);
     char* pointer = ((char*)obj) + dm->GetOffset() + index * TS;
     localtree.put(name, asString(*dm, pointer));
 
@@ -318,7 +335,7 @@ void _ParamHelper::assignmentImpl(std::string const& mainkey, TClass* cl, void* 
   auto assignifchanged = [to, from, &mainkey, provmap](const TDataMember* dm, int index, int size) {
     const auto name = getName(dm, index, size);
     auto dt = dm->GetDataType();
-    auto TS = dt ? dt->Size() : 0;
+    auto TS = getSizeOfUnderlyingType(*dm);
     char* pointerto = ((char*)to) + dm->GetOffset() + index * TS;
     char* pointerfrom = ((char*)from) + dm->GetOffset() + index * TS;
 
@@ -351,7 +368,7 @@ void _ParamHelper::assignmentImpl(std::string const& mainkey, TClass* cl, void* 
     if (!isMemblockDifferent(pointerto, pointerfrom, TS)) {
       updateProv();
       // actually copy
-      std::memcpy(pointerto, pointerfrom, dt->Size());
+      std::memcpy(pointerto, pointerfrom, getSizeOfUnderlyingType(*dm));
     }
   };
   loopOverMembers(cl, to, assignifchanged);

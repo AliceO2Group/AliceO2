@@ -11,7 +11,7 @@ set -x
 
 # PART a)
 NBGR=5
-o2-sim -j 20 -n ${NBGR} -g pythia8hi -m PIPE ITS -o bkg --configKeyValue \
+o2-sim -j 20 -n ${NBGR} -g pythia8hi -m PIPE ITS -o bkg --configKeyValues \
        "Diamond.position[2]=0.1;Diamond.width[2]=0.05"
 
 # PART b)

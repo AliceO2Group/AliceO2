@@ -15,57 +15,90 @@
 #include <vector>
 #include "RStringView.h"
 #include <Rtypes.h>
+#include "DetectorsRaw/RawFileReader.h"
+#include "DetectorsRaw/RDHUtils.h"
 #include "EMCALReconstruction/CaloFitResults.h"
 #include "EMCALReconstruction/Bunch.h"
 #include "EMCALReconstruction/CaloRawFitterStandard.h"
 #include "EMCALReconstruction/AltroDecoder.h"
+#include "EMCALReconstruction/CaloRawFitterGamma2.h"
 //#include "EMCALReconstruction/RawHeaderStream.h"
 #endif
 
 using namespace o2::emcal;
 
 /// \brief Testing the standard raw fitter on run2 to run3 converted data
-void RawFitterTESTs()
+void RawFitterTESTs(const char* filename = "")
 {
 
   const Int_t NoiseThreshold = 3;
 
-  // Use the RawReaderFile to read the raw data file
-  const char* aliceO2env = std::getenv("O2_ROOT");
-  std::string inputDir = " ";
-  if (aliceO2env)
-    inputDir = aliceO2env;
-  inputDir += "/share/Detectors/EMC/files/";
+  std::string inputfile = filename;
+  if (!inputfile.length()) {
+    // Use the RawReaderFile to read the raw data file
+    const char* aliceO2env = std::getenv("O2_ROOT");
+    std::string inputDir = " ";
+    if (aliceO2env)
+      inputDir = aliceO2env;
+    inputDir += "/share/Detectors/EMC/files/";
+    inputfile = inputDir + "emcal.raw";
+  }
 
-  o2::emcal::RawReaderFile<o2::header::RAWDataHeaderV4> rawreader(inputDir + "emcal.raw");
+  o2::raw::RawFileReader reader;
+  reader.setDefaultDataOrigin(o2::header::gDataOriginEMC);
+  reader.setDefaultDataDescription(o2::header::gDataDescriptionRawData);
+  reader.setDefaultReadoutCardType(o2::raw::RawFileReader::RORC);
+  reader.addFile(inputfile.data());
+  reader.init();
 
   // define the standard raw fitter
-  o2::emcal::CaloRawFitterStandard RawFitter;
+  //o2::emcal::CaloRawFitterStandard RawFitter;
+  o2::emcal::CaloRawFitterGamma2 RawFitter;
   RawFitter.setAmpCut(NoiseThreshold);
   RawFitter.setL1Phase(0.);
 
-  // loop over all the DMA pages
-  while (rawreader.hasNext()) {
-
-    rawreader.next();
-    std::cout << "next page \n";
-
-    //std::cout<<rawreader.getRawHeader()<<std::endl;
-
-    // use the altro decoder to decode the raw data, and extract the RCU trailer
-    o2::emcal::AltroDecoder<decltype(rawreader)> decoder(rawreader);
-    decoder.decode();
-
-    std::cout << decoder.getRCUTrailer() << std::endl;
-
-    // Loop over all the channels
-    for (auto& chan : decoder.getChannels()) {
-
-      // define the conatiner for the fit results, and perform the raw fitting using the stadnard raw fitter
-      o2::emcal::CaloFitResults fitResults = RawFitter.evaluate(chan.getBunches(), 0, 0);
-
-      // print the fit output
-      std::cout << "The Time is : " << fitResults.getTime() << " And the Amplitude is : " << fitResults.getAmp() << std::endl;
+  while (1) {
+    int tfID = reader.getNextTFToRead();
+    if (tfID >= reader.getNTimeFrames()) {
+      std::cerr << "nothing left to read after " << tfID << " TFs read" << std::endl;
+      break;
     }
+    std::vector<char> dataBuffer; // where to put extracted data
+    for (int il = 0; il < reader.getNLinks(); il++) {
+      auto& link = reader.getLink(il);
+      std::cout << "Decoding link " << il << std::endl;
+
+      auto sz = link.getNextTFSize(); // size in bytes needed for the next TF of this link
+      dataBuffer.resize(sz);
+      link.readNextTF(dataBuffer.data());
+
+      // Parse
+      o2::emcal::RawReaderMemory parser(dataBuffer);
+      while (parser.hasNext()) {
+        parser.next();
+        std::cout << "next page \n";
+        if (o2::raw::RDHUtils::getFEEID(parser.getRawHeader()) >= 40)
+          continue;
+
+        //std::cout<<rawreader.getRawHeader()<<std::endl;
+
+        // use the altro decoder to decode the raw data, and extract the RCU trailer
+        o2::emcal::AltroDecoder decoder(parser);
+        decoder.decode();
+
+        std::cout << decoder.getRCUTrailer() << std::endl;
+
+        // Loop over all the channels
+        for (auto& chan : decoder.getChannels()) {
+
+          // define the conatiner for the fit results, and perform the raw fitting using the stadnard raw fitter
+          o2::emcal::CaloFitResults fitResults = RawFitter.evaluate(chan.getBunches(), 0, 0);
+
+          // print the fit output
+          std::cout << "The Time is : " << fitResults.getTime() << " And the Amplitude is : " << fitResults.getAmp() << std::endl;
+        }
+      }
+    }
+    reader.setNextTFToRead(++tfID);
   }
 }

@@ -19,9 +19,7 @@
 
 // clang-format off
 
-#ifndef GPUDEF_H
-  #error Please include GPUDef.h
-#endif
+#include "GPUCommonDef.h"
 
 #if !defined(GPUCA_STANDALONE) && !defined(GPUCA_ALIROOT_LIB) && !defined(GPUCA_O2_LIB) && !defined(GPUCA_O2_INTERFACE)
   #error You are using the CA GPU tracking without defining the build type (O2/AliRoot/Standalone). If you are running an O2 ROOT macro, please include GPUO2Interface.h first!
@@ -63,8 +61,8 @@
 #if defined(HAVE_O2HEADERS) && (!defined(__OPENCL__) || defined(__OPENCLCPP__)) && !(defined(ROOT_VERSION_CODE) && ROOT_VERSION_CODE < 393216)
   //Use definitions from the O2 headers if available for nicer code and type safety
   #include "DataFormatsTPC/Constants.h"
-  #define GPUCA_NSLICES o2::tpc::Constants::MAXSECTOR
-  #define GPUCA_ROW_COUNT o2::tpc::Constants::MAXGLOBALPADROW
+  #define GPUCA_NSLICES o2::tpc::constants::MAXSECTOR
+  #define GPUCA_ROW_COUNT o2::tpc::constants::MAXGLOBALPADROW
 #else
   //Define it manually, if O2 headers not available, ROOT5, and OpenCL 1.2, which do not know C++11.
   #define GPUCA_NSLICES 36

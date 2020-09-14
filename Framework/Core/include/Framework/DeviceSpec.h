@@ -23,6 +23,7 @@
 #include "Framework/OutputRoute.h"
 #include "Framework/CompletionPolicy.h"
 #include "Framework/DispatchPolicy.h"
+#include "Framework/ServiceSpec.h"
 
 #include <vector>
 #include <string>
@@ -43,6 +44,7 @@ struct DeviceSpec {
   std::vector<OutputChannelSpec> outputChannels;
   std::vector<std::string> arguments;
   std::vector<ConfigParamSpec> options;
+  std::vector<ServiceSpec> services;
 
   AlgorithmSpec algorithm;
 
@@ -59,6 +61,7 @@ struct DeviceSpec {
   CompletionPolicy completionPolicy;
   DispatchPolicy dispatchPolicy;
   ComputingResource resource;
+  unsigned short resourceMonitoringInterval;
 };
 
 } // namespace framework

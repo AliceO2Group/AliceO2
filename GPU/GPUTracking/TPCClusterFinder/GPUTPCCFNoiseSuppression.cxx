@@ -48,7 +48,7 @@ GPUdii() void GPUTPCCFNoiseSuppression::noiseSuppressionImpl(int nBlocks, int nT
   Charge charge = chargeMap[pos].unpack();
 
   ulong minimas, bigger, peaksAround;
-  findMinimaAndPeaksScratchpad(
+  findMinimaAndPeaks(
     chargeMap,
     peakMap,
     charge,
@@ -91,7 +91,7 @@ GPUd() void GPUTPCCFNoiseSuppression::updatePeaksImpl(int nBlocks, int nThreads,
                               // So we can just set the bit and avoid rereading the charge
 }
 
-GPUd() void GPUTPCCFNoiseSuppression::checkForMinima(
+GPUdi() void GPUTPCCFNoiseSuppression::checkForMinima(
   float q,
   float epsilon,
   PackedCharge other,
@@ -108,7 +108,7 @@ GPUd() void GPUTPCCFNoiseSuppression::checkForMinima(
   *bigger |= (lq << pos);
 }
 
-GPUd() void GPUTPCCFNoiseSuppression::findMinimaScratchPad(
+GPUdi() void GPUTPCCFNoiseSuppression::findMinima(
   const PackedCharge* buf,
   const ushort ll,
   const int N,
@@ -118,6 +118,7 @@ GPUd() void GPUTPCCFNoiseSuppression::findMinimaScratchPad(
   ulong* minimas,
   ulong* bigger)
 {
+  GPUCA_UNROLL(U(), U())
   for (int i = 0; i < N; i++, pos++) {
     PackedCharge other = buf[N * ll + i];
 
@@ -125,13 +126,14 @@ GPUd() void GPUTPCCFNoiseSuppression::findMinimaScratchPad(
   }
 }
 
-GPUd() void GPUTPCCFNoiseSuppression::findPeaksScratchPad(
+GPUdi() void GPUTPCCFNoiseSuppression::findPeaks(
   const uchar* buf,
   const ushort ll,
   const int N,
   int pos,
   ulong* peaks)
 {
+  GPUCA_UNROLL(U(), U())
   for (int i = 0; i < N; i++, pos++) {
     ulong p = CfUtils::isPeak(buf[N * ll + i]);
 
@@ -139,12 +141,13 @@ GPUd() void GPUTPCCFNoiseSuppression::findPeaksScratchPad(
   }
 }
 
-GPUd() bool GPUTPCCFNoiseSuppression::keepPeak(
+GPUdi() bool GPUTPCCFNoiseSuppression::keepPeak(
   ulong minima,
   ulong peaks)
 {
   bool keepMe = true;
 
+  GPUCA_UNROLL(U(), U())
   for (int i = 0; i < NOISE_SUPPRESSION_NEIGHBOR_NUM; i++) {
     bool otherPeak = (peaks & (ulong(1) << i));
     bool minimaBetween = (minima & CfConsts::NoiseSuppressionMinima[i]);
@@ -155,7 +158,7 @@ GPUd() bool GPUTPCCFNoiseSuppression::keepPeak(
   return keepMe;
 }
 
-GPUd() void GPUTPCCFNoiseSuppression::findMinimaAndPeaksScratchpad(
+GPUd() void GPUTPCCFNoiseSuppression::findMinimaAndPeaks(
   const Array2D<PackedCharge>& chargeMap,
   const Array2D<uchar>& peakMap,
   float q,
@@ -195,7 +198,7 @@ GPUd() void GPUTPCCFNoiseSuppression::findMinimaAndPeaksScratchpad(
     posBcast,
     buf);
 
-  findMinimaScratchPad(
+  findMinima(
     buf,
     ll,
     2,
@@ -217,7 +220,7 @@ GPUd() void GPUTPCCFNoiseSuppression::findMinimaAndPeaksScratchpad(
     buf);
 
   if (inGroup1) {
-    findMinimaScratchPad(
+    findMinima(
       buf,
       llhalf,
       16,
@@ -240,7 +243,7 @@ GPUd() void GPUTPCCFNoiseSuppression::findMinimaAndPeaksScratchpad(
     buf);
 
   if (inGroup1) {
-    findMinimaScratchPad(
+    findMinima(
       buf,
       llhalf,
       16,
@@ -264,7 +267,7 @@ GPUd() void GPUTPCCFNoiseSuppression::findMinimaAndPeaksScratchpad(
     buf);
 
   if (!inGroup1) {
-    findMinimaScratchPad(
+    findMinima(
       buf,
       llhalf,
       16,
@@ -287,7 +290,7 @@ GPUd() void GPUTPCCFNoiseSuppression::findMinimaAndPeaksScratchpad(
     buf);
 
   if (!inGroup1) {
-    findMinimaScratchPad(
+    findMinima(
       buf,
       llhalf,
       16,
@@ -316,7 +319,7 @@ GPUd() void GPUTPCCFNoiseSuppression::findMinimaAndPeaksScratchpad(
     posBcast,
     bufp);
 
-  findPeaksScratchPad(
+  findPeaks(
     bufp,
     ll,
     16,
@@ -334,7 +337,7 @@ GPUd() void GPUTPCCFNoiseSuppression::findMinimaAndPeaksScratchpad(
     posBcast,
     bufp);
 
-  findPeaksScratchPad(
+  findPeaks(
     bufp,
     ll,
     16,

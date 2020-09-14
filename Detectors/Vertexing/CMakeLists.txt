@@ -10,12 +10,21 @@
 
 o2_add_library(DetectorsVertexing
                SOURCES src/DCAFitterN.cxx
+                       src/PVertexer.cxx
+                       src/PVertexerHelpers.cxx
+                       src/PVertexerParams.cxx
                PUBLIC_LINK_LIBRARIES ROOT::Core
 	                             O2::CommonUtils
-                                     O2::ReconstructionDataFormats)
+                                     O2::ReconstructionDataFormats
+                                     O2::SimulationDataFormat
+                                     O2::FT0Reconstruction
+                                     O2::DataFormatsFT0
+                                     ms_gsl::ms_gsl)
 
 o2_target_root_dictionary(DetectorsVertexing
                           HEADERS include/DetectorsVertexing/HelixHelper.h
+                                  include/DetectorsVertexing/PVertexer.h
+                                  include/DetectorsVertexing/PVertexerHelpers.h
                                   include/DetectorsVertexing/DCAFitterN.h)
 
 o2_add_test(

@@ -11,21 +11,15 @@
 /// \author R+Preghenella - August 2017
 
 #include "Generators/GeneratorHepMC.h"
-#include "HepMC/ReaderAscii.h"
-#include "HepMC/ReaderAsciiHepMC2.h"
-#include "HepMC/GenEvent.h"
-#include "HepMC/GenParticle.h"
-#include "HepMC/GenVertex.h"
-#include "HepMC/FourVector.h"
+#include "Generators/GeneratorHepMCParam.h"
+#include "HepMC3/ReaderAscii.h"
+#include "HepMC3/ReaderAsciiHepMC2.h"
+#include "HepMC3/GenEvent.h"
+#include "HepMC3/GenParticle.h"
+#include "HepMC3/GenVertex.h"
+#include "HepMC3/FourVector.h"
 #include "TParticle.h"
-
-/** 
-    HepMC/Errors.h of HepMC3 defines DEBUG as a logging macro, and this interferes with FairLogger.
-    Undefining it for the time being, while thinking about a possible solution for this issue.
-**/
-#ifdef DEBUG
-#undef DEBUG
-#endif
+#include "TSystem.h"
 
 #include "FairLogger.h"
 #include "FairPrimaryGenerator.h"
@@ -44,7 +38,7 @@ GeneratorHepMC::GeneratorHepMC()
 {
   /** default constructor **/
 
-  mEvent = new HepMC::GenEvent();
+  mEvent = new HepMC3::GenEvent();
   mInterface = reinterpret_cast<void*>(mEvent);
   mInterfaceName = "hepmc";
 }
@@ -56,7 +50,7 @@ GeneratorHepMC::GeneratorHepMC(const Char_t* name, const Char_t* title)
 {
   /** constructor **/
 
-  mEvent = new HepMC::GenEvent();
+  mEvent = new HepMC3::GenEvent();
   mInterface = reinterpret_cast<void*>(mEvent);
   mInterfaceName = "hepmc";
 }
@@ -89,7 +83,7 @@ Bool_t GeneratorHepMC::generateEvent()
   if (mReader->failed())
     return kFALSE;
   /** set units to desired output **/
-  mEvent->set_units(HepMC::Units::GEV, HepMC::Units::MM);
+  mEvent->set_units(HepMC3::Units::GEV, HepMC3::Units::MM);
 
   /** success **/
   return kTRUE;
@@ -153,9 +147,10 @@ Bool_t GeneratorHepMC::Init()
   Generator::Init();
 
   /** open file **/
-  mStream.open(mFileName);
+  std::string filename = gSystem->ExpandPathName(mFileName.c_str());
+  mStream.open(filename);
   if (!mStream.is_open()) {
-    LOG(FATAL) << "Cannot open input file: " << mFileName << std::endl;
+    LOG(FATAL) << "Cannot open input file: " << filename << std::endl;
     return kFALSE;
   }
 
@@ -163,10 +158,10 @@ Bool_t GeneratorHepMC::Init()
   switch (mVersion) {
     case 2:
       mStream.close();
-      mReader = new HepMC::ReaderAsciiHepMC2(mFileName);
+      mReader = new HepMC3::ReaderAsciiHepMC2(filename);
       break;
     case 3:
-      mReader = new HepMC::ReaderAscii(mStream);
+      mReader = new HepMC3::ReaderAscii(mStream);
       break;
     default:
       LOG(FATAL) << "Unsupported HepMC version: " << mVersion << std::endl;

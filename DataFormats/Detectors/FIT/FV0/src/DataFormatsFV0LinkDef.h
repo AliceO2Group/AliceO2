@@ -16,10 +16,21 @@
 
 #pragma link C++ class o2::fv0::Hit + ;
 #pragma link C++ class vector < o2::fv0::Hit> + ;
+#pragma link C++ class o2::fv0::MCLabel + ;
 
 #pragma link C++ class o2::fv0::ChannelData + ;
 #pragma link C++ class o2::fv0::BCData + ;
 #pragma link C++ class std::vector < o2::fv0::ChannelData> + ;
 #pragma link C++ class std::vector < o2::fv0::BCData> + ;
+
+#pragma link C++ class o2::fv0::RawEventData + ;
+#pragma link C++ class o2::fv0::EventHeader + ;
+#pragma link C++ class o2::fv0::EventData + ;
+#pragma link C++ class o2::fv0::TCMdata + ;
+#pragma link C++ class o2::fv0::Topo + ;
+
+#pragma link C++ class o2::fv0::CTFHeader + ;
+#pragma link C++ class o2::fv0::CTF + ;
+#pragma link C++ class o2::ctf::EncodedBlocks < o2::fv0::CTFHeader, 6, uint32_t> + ;
 
 #endif

@@ -21,9 +21,7 @@
 #include "Array2D.h"
 #include "PackedCharge.h"
 
-namespace GPUCA_NAMESPACE
-{
-namespace gpu
+namespace GPUCA_NAMESPACE::gpu
 {
 
 struct ChargePos;
@@ -63,18 +61,17 @@ class GPUTPCCFNoiseSuppression : public GPUKernelTemplate
 
   static GPUd() void updatePeaksImpl(int, int, int, int, const ChargePos*, const uchar*, const uint, Array2D<uchar>&);
 
-  static GPUd() void checkForMinima(float, float, PackedCharge, int, ulong*, ulong*);
+  static GPUdi() void checkForMinima(float, float, PackedCharge, int, ulong*, ulong*);
 
-  static GPUd() void findMinimaScratchPad(const PackedCharge*, const ushort, const int, int, const float, const float, ulong*, ulong*);
+  static GPUdi() void findMinima(const PackedCharge*, const ushort, const int, int, const float, const float, ulong*, ulong*);
 
-  static GPUd() void findPeaksScratchPad(const uchar*, const ushort, const int, int, ulong*);
+  static GPUdi() void findPeaks(const uchar*, const ushort, const int, int, ulong*);
 
-  static GPUd() bool keepPeak(ulong, ulong);
+  static GPUdi() bool keepPeak(ulong, ulong);
 
-  static GPUd() void findMinimaAndPeaksScratchpad(const Array2D<PackedCharge>&, const Array2D<uchar>&, float, const ChargePos&, ChargePos*, PackedCharge*, ulong*, ulong*, ulong*);
+  static GPUd() void findMinimaAndPeaks(const Array2D<PackedCharge>&, const Array2D<uchar>&, float, const ChargePos&, ChargePos*, PackedCharge*, ulong*, ulong*, ulong*);
 };
 
-} // namespace gpu
-} // namespace GPUCA_NAMESPACE
+} // namespace GPUCA_NAMESPACE::gpu
 
 #endif

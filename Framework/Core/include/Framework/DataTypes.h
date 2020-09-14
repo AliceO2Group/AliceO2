@@ -10,6 +10,8 @@
 #ifndef O2_FRAMEWORK_DATATYPES_H_
 #define O2_FRAMEWORK_DATATYPES_H_
 
+#include <cstdint>
+
 namespace o2::aod::track
 {
 enum TrackTypeEnum : uint8_t {

@@ -20,6 +20,7 @@
 #include "ITSMFTReconstruction/ChipMappingMFT.h"
 #include "DetectorsRaw/HBFUtils.h"
 #include "Headers/RAWDataHeader.h"
+#include "Headers/DataHeader.h"
 #include "CommonDataFormat/InteractionRecord.h"
 #include "ITSMFTReconstruction/GBTLink.h"
 #include "ITSMFTReconstruction/RUDecodeData.h"
@@ -39,7 +40,7 @@ namespace itsmft
 class ChipPixelData;
 
 template <class Mapping>
-class RawPixelDecoder : public PixelReader
+class RawPixelDecoder final : public PixelReader
 {
   using RDH = o2::header::RAWDataHeader;
 
@@ -63,6 +64,11 @@ class RawPixelDecoder : public PixelReader
   int fillDecodedDigits(DigitContainer& digits, ROFContainer& rofs);
 
   const RUDecodeData* getRUDecode(int ruSW) const { return mRUEntry[ruSW] < 0 ? nullptr : &mRUDecodeVec[mRUEntry[ruSW]]; }
+  const GBTLink* getGBTLink(int i) const { return i < 0 ? nullptr : &mGBTLinks[i]; }
+  int getNLinks() const { return mGBTLinks.size(); }
+
+  auto getUserDataOrigin() const { return mUserDataOrigin; }
+  void setUserDataOrigin(header::DataOrigin orig) { mUserDataOrigin = orig; }
 
   void setNThreads(int n);
   int getNThreads() const { return mNThreads; }
@@ -70,7 +76,9 @@ class RawPixelDecoder : public PixelReader
   void setVerbosity(int v);
   int getVerbosity() const { return mVerbosity; }
 
-  void printReport() const;
+  void printReport(bool decstat = false, bool skipEmpty = true) const;
+
+  void clearStat();
 
   TStopwatch& getTimerTFStart() { return mTimerTFStart; }
   TStopwatch& getTimerDecode() { return mTimerDecode; }
@@ -89,17 +97,16 @@ class RawPixelDecoder : public PixelReader
   int getRUEntrySW(int ruSW) const { return mRUEntry[ruSW]; }
   RUDecodeData* getRUDecode(int ruSW) { return &mRUDecodeVec[mRUEntry[ruSW]]; }
   GBTLink* getGBTLink(int i) { return i < 0 ? nullptr : &mGBTLinks[i]; }
-  const GBTLink* getGBTLink(int i) const { return i < 0 ? nullptr : &mGBTLinks[i]; }
   RUDecodeData& getCreateRUDecode(int ruSW);
 
   static constexpr uint16_t NORUDECODED = 0xffff; // this must be > than max N RUs
 
   std::vector<GBTLink> mGBTLinks;                           // active links pool
   std::unordered_map<uint32_t, LinkEntry> mSubsSpec2LinkID; // link subspec to link entry in the pool mapping
-
-  std::vector<RUDecodeData> mRUDecodeVec;       // set of active RUs
-  std::array<int, Mapping::getNRUs()> mRUEntry; // entry of the RU with given SW ID in the mRUDecodeVec
+  std::vector<RUDecodeData> mRUDecodeVec;                   // set of active RUs
+  std::array<short, Mapping::getNRUs()> mRUEntry;           // entry of the RU with given SW ID in the mRUDecodeVec
   std::string mSelfName;                        // self name
+  header::DataOrigin mUserDataOrigin = o2::header::gDataOriginInvalid; // alternative user-provided data origin to pick
   uint16_t mCurRUDecodeID = NORUDECODED;        // index of currently processed RUDecode container
   int mLastReadChipID = -1;                     // chip ID returned by previous getNextChipData call, used for ordering checks
   Mapping mMAP;                                 // chip mapping

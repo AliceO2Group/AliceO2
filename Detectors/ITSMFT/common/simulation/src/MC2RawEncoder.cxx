@@ -287,16 +287,19 @@ int MC2RawEncoder<Mapping>::carryOverMethod(const header::RDHAny* rdh, const gsl
   // make sure ptr and end of the suggested block are within the payload
   assert(offs >= 0 && size_t(offs + maxSize) <= data.size());
 
-  if ((maxSize <= TotServiceSize)) {  // we cannot split trigger+header
-    return 0;                         // suggest moving the whole payload to the new CRU page
-  }
-
   // this is where we would usually split: account for the trailer to add
   int actualSize = maxSize - sizeof(GBTDataTrailer);
-
   char* trailPtr = &data[data.size() - sizeof(GBTDataTrailer)]; // pointer on the payload trailer
-  if (ptr + actualSize >= trailPtr) {                           // we need to split at least 1 GBT word before the trailer
-    actualSize = trailPtr - ptr - GBTPaddedWordLength;
+
+  if ((maxSize <= TotServiceSize)) { // we cannot split trigger+header
+    actualSize = 0;                  // suggest moving the whole payload to the new CRU page
+    if (offs == 0) {                 // just carry over everything, trigger+header was not yet written
+      return actualSize;
+    }
+  } else {
+    if (ptr + actualSize >= trailPtr) { // we need to split at least 1 GBT word before the trailer
+      actualSize = trailPtr - ptr - GBTPaddedWordLength;
+    }
   }
   // copy the GBTTrigger and GBTHeader from the head of the payload
   header.resize(TrigHeadSize);

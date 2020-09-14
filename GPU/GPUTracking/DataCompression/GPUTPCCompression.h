@@ -22,9 +22,7 @@
 #ifdef HAVE_O2HEADERS
 #include "DataFormatsTPC/CompressedClusters.h"
 #else
-namespace o2
-{
-namespace tpc
+namespace o2::tpc
 {
 struct CompressedClustersPtrs {
 };
@@ -32,19 +30,17 @@ struct CompressedClusters {
 };
 struct CompressedClustersFlat {
 };
-} // namespace tpc
-} // namespace o2
+} // namespace o2::tpc
 #endif
 
-namespace GPUCA_NAMESPACE
-{
-namespace gpu
+namespace GPUCA_NAMESPACE::gpu
 {
 class GPUTPCGMMerger;
 
 class GPUTPCCompression : public GPUProcessor
 {
   friend class GPUTPCCompressionKernels;
+  friend class GPUTPCCompressionGatherKernels;
   friend class GPUChainTracking;
 
  public:
@@ -124,7 +120,6 @@ GPUdi() void GPUTPCCompression::truncateSignificantBits(T& v, unsigned int nBits
     v = val;
   }
 }
-} // namespace gpu
-} // namespace GPUCA_NAMESPACE
+} // namespace GPUCA_NAMESPACE::gpu
 
 #endif

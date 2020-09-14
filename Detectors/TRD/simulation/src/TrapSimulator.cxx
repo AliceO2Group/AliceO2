@@ -17,7 +17,6 @@
 //                                                                           //
 ///////////////////////////////////////////////////////////////////////////////
 
-//#include "TTreeStream.h"
 
 #include "TRDBase/TRDSimParam.h"
 #include "TRDBase/TRDCommonParam.h"
@@ -35,6 +34,8 @@
 #include "TRDSimulation/Digitizer.h"
 #include <SimulationDataFormat/MCCompLabel.h>
 #include <SimulationDataFormat/MCTruthContainer.h>
+#include <DataFormatsTRD/RawData.h>
+#include <DataFormatsTRD/Tracklet64.h>
 
 #include <iostream>
 #include <iomanip>
@@ -53,6 +54,7 @@
 
 using namespace o2::trd;
 using namespace std;
+using namespace o2::trd::constants;
 
 #define DEBUGTRAP 1
 
@@ -98,16 +100,16 @@ void TrapSimulator::init(TrapConfig* trapconfig, int det, int robPos, int mcmPos
 
   if (!mInitialized) {
     mNTimeBin = mTrapConfig->getTrapReg(TrapConfig::kC13CPUA, mDetector, mRobPos, mMcmPos);
-    mZSMap.resize(FeeParam::getNadcMcm());
+    mZSMap.resize(NADCMCM);
 
     // tracklet calculation
-    //now a 25 slot array mFitReg.resize(FeeParam::getNadcMcm()); //TODO for now this is constant size in an array not a vector
+    //now a 25 slot array mFitReg.resize(NADCMCM); //TODO for now this is constant size in an array not a vector
     //  mTrackletArray-.resize(mgkMaxTracklets);
     //now a 100 slot array as per run2  mHits.resize(50);
     mMCMT.resize(mgkMaxTracklets);
 
-    mADCR.resize(mNTimeBin * FeeParam::getNadcMcm());
-    mADCF.resize(mNTimeBin * FeeParam::getNadcMcm());
+    mADCR.resize(mNTimeBin * NADCMCM);
+    mADCF.resize(mNTimeBin * NADCMCM);
   }
 
   mInitialized = true;
@@ -139,7 +141,7 @@ void TrapSimulator::reset()
   for (auto filterreg : mInternalFilterRegisters)
     filterreg.ClearReg();
   // Default unread, low active bit mask
-  memset(&mZSMap[0], 0, sizeof(mZSMap[0]) * FeeParam::getNadcMcm());
+  memset(&mZSMap[0], 0, sizeof(mZSMap[0]) * NADCMCM);
   memset(&mMCMT[0], 0, sizeof(mMCMT[0]) * mgkMaxTracklets);
   //mDict1.clear();
   //mDict2.clear();
@@ -193,25 +195,25 @@ std::ostream& o2::trd::operator<<(std::ostream& os, const TrapSimulator& mcm)
 
     os << "----- Unfiltered ADC data (10 bit) -----" << std::endl;
     os << "ch    ";
-    for (int iChannel = 0; iChannel < FeeParam::getNadcMcm(); iChannel++)
+    for (int iChannel = 0; iChannel < NADCMCM; iChannel++)
       os << std::setw(5) << iChannel;
     os << std::endl;
     for (int iTimeBin = 0; iTimeBin < mcm.getNumberOfTimeBins(); iTimeBin++) {
       os << "tb " << std::setw(2) << iTimeBin << ":";
-      for (int iChannel = 0; iChannel < FeeParam::getNadcMcm(); iChannel++) {
+      for (int iChannel = 0; iChannel < NADCMCM; iChannel++) {
         os << std::setw(5) << (mcm.getDataRaw(iChannel, iTimeBin) >> mcm.mgkAddDigits);
       }
       os << std::endl;
     }
     os << "----- Filtered ADC data (10+2 bit) -----" << std::endl;
     os << "ch    ";
-    for (int iChannel = 0; iChannel < FeeParam::getNadcMcm(); iChannel++)
+    for (int iChannel = 0; iChannel < NADCMCM; iChannel++)
       os << std::setw(4) << iChannel
          << ((~mcm.getZeroSupressionMap(iChannel) != 0) ? "!" : " ");
     os << std::endl;
     for (int iTimeBin = 0; iTimeBin < mcm.getNumberOfTimeBins(); iTimeBin++) {
       os << "tb " << std::setw(2) << iTimeBin << ":";
-      for (int iChannel = 0; iChannel < FeeParam::getNadcMcm(); iChannel++) {
+      for (int iChannel = 0; iChannel < NADCMCM; iChannel++) {
         os << std::setw(4) << (mcm.getDataFiltered(iChannel, iTimeBin))
            << (((mcm.getZeroSupressionMap(iChannel) & (1 << iTimeBin)) == 0) ? "!" : " ");
       }
@@ -226,7 +228,7 @@ std::ostream& o2::trd::operator<<(std::ostream& os, const TrapSimulator& mcm)
     int addrStep = 0x80;
 
     for (int iTimeBin = 0; iTimeBin < mcm.getNumberOfTimeBins(); iTimeBin++) {
-      for (int iChannel = 0; iChannel < FeeParam::getNadcMcm(); iChannel++) {
+      for (int iChannel = 0; iChannel < NADCMCM; iChannel++) {
         os << std::setw(5) << 10
            << std::setw(5) << addrOffset + iChannel * addrStep + iTimeBin
            << std::setw(5) << (mcm.getDataFiltered(iChannel, iTimeBin))
@@ -240,9 +242,8 @@ std::ostream& o2::trd::operator<<(std::ostream& os, const TrapSimulator& mcm)
   else if (os.iword(TrapSimulator::mgkFormatIndex) == 2) {
     int bufSize = 300;
     std::vector<uint32_t> buf;
-    buf.resize(bufSize);
-
-    int bufLength = mcm.produceRawStream(buf);
+    buf.reserve(bufSize);
+    int bufLength = mcm.getRawStream(buf, 0);
 
     for (int i = 0; i < bufLength; i++)
       std::cout << "0x" << std::hex << buf[i] << std::dec << std::endl;
@@ -353,7 +354,7 @@ void TrapSimulator::printAdcDatTxt(ostream& os) const
   os << "# MCM " << mMcmPos << " on ROB " << mRobPos << " in detector " << mDetector << std::endl;
 
   for (int iTimeBin = 0; iTimeBin < mNTimeBin; iTimeBin++) {
-    for (int iChannel = 0; iChannel < FeeParam::getNadcMcm(); ++iChannel) {
+    for (int iChannel = 0; iChannel < NADCMCM; ++iChannel) {
       os << std::setw(5) << (getDataRaw(iChannel, iTimeBin) >> mgkAddDigits);
     }
     os << std::endl;
@@ -368,12 +369,12 @@ void TrapSimulator::printAdcDatHuman(ostream& os) const
 
   os << "----- Unfiltered ADC data (10 bit) -----" << std::endl;
   os << "ch    ";
-  for (int iChannel = 0; iChannel < FeeParam::getNadcMcm(); iChannel++)
+  for (int iChannel = 0; iChannel < NADCMCM; iChannel++)
     os << std::setw(5) << iChannel;
   os << std::endl;
   for (int iTimeBin = 0; iTimeBin < mNTimeBin; iTimeBin++) {
     os << "tb " << std::setw(2) << iTimeBin << ":";
-    for (int iChannel = 0; iChannel < FeeParam::getNadcMcm(); iChannel++) {
+    for (int iChannel = 0; iChannel < NADCMCM; iChannel++) {
       os << std::setw(5) << (getDataRaw(iChannel, iTimeBin) >> mgkAddDigits);
     }
     os << std::endl;
@@ -381,13 +382,13 @@ void TrapSimulator::printAdcDatHuman(ostream& os) const
 
   os << "----- Filtered ADC data (10+2 bit) -----" << std::endl;
   os << "ch    ";
-  for (int iChannel = 0; iChannel < FeeParam::getNadcMcm(); iChannel++)
+  for (int iChannel = 0; iChannel < NADCMCM; iChannel++)
     os << std::setw(4) << iChannel
        << ((~mZSMap[iChannel] != 0) ? "!" : " ");
   os << std::endl;
   for (int iTimeBin = 0; iTimeBin < mNTimeBin; iTimeBin++) {
     os << "tb " << std::setw(2) << iTimeBin << ":";
-    for (int iChannel = 0; iChannel < FeeParam::getNadcMcm(); iChannel++) {
+    for (int iChannel = 0; iChannel < NADCMCM; iChannel++) {
       os << std::setw(4) << (getDataFiltered(iChannel, iTimeBin))
          << (((mZSMap[iChannel] & (1 << iTimeBin)) == 0) ? "!" : " ");
     }
@@ -407,7 +408,7 @@ void TrapSimulator::printAdcDatXml(ostream& os) const
   os << " <ro-board rob=\"" << mRobPos << "\">" << std::endl;
   os << "  <m mcm=\"" << mMcmPos << "\">" << std::endl;
 
-  for (int iChannel = 0; iChannel < FeeParam::getNadcMcm(); iChannel++) {
+  for (int iChannel = 0; iChannel < NADCMCM; iChannel++) {
     os << "   <ch chnr=\"" << iChannel << "\">" << std::endl;
     for (int iTimeBin = 0; iTimeBin < mNTimeBin; iTimeBin++) {
       os << "<tb>" << mADCF[iChannel * mNTimeBin + iTimeBin] / 4 << "</tb>";
@@ -435,7 +436,7 @@ void TrapSimulator::printAdcDatDatx(ostream& os, bool broadcast, int timeBinOffs
   int addrOffsetEBSIA = 0x20;
 
   for (int iTimeBin = 0; iTimeBin < mNTimeBin; iTimeBin++) {
-    for (int iChannel = 0; iChannel < FeeParam::getNadcMcm(); iChannel++) {
+    for (int iChannel = 0; iChannel < NADCMCM; iChannel++) {
       if ((iTimeBin < timeBinOffset) || (iTimeBin >= mNTimeBin + timeBinOffset)) {
         if (broadcast == false)
           mTrapConfig->printDatx(os, addrOffset + iChannel * addrStep + addrOffsetEBSIA + iTimeBin, 10, getRobPos(), getMcmPos());
@@ -485,7 +486,7 @@ void TrapSimulator::setNTimebins(int ntimebins)
     return;
 
   mNTimeBin = ntimebins;
-  // for( int iAdc = 0 ; iAdc < FeeParam::getNadcMcm(); iAdc++ ) {
+  // for( int iAdc = 0 ; iAdc < NADCMCM; iAdc++ ) {
   //  delete [] mADCR[iAdc];
   //  delete [] mADCF[iAdc];
   //  mADCR[iAdc] = new int[mNTimeBin];
@@ -654,7 +655,7 @@ void TrapSimulator::print(int choice) const
   if ((choice & PRINTFOUND) != 0) {
     LOG(info) << "Found Tracklets:";
     for (int iTrkl = 0; iTrkl < mTrackletArray.size(); iTrkl++) {
-      LOG(info) << "tracklet " << iTrkl << ": 0x" << hex << std::setw(8) << mTrackletArray[iTrkl].getTrackletWord();
+      LOG(info) << "tracklet " << iTrkl << ": 0x" << hex << std::setw(16) << mTrackletArray[iTrkl].getTrackletWord();
     }
   }
 }
@@ -670,13 +671,13 @@ void TrapSimulator::draw(int choice, int index)
   // PLOTTRACKLETS - plot tracklets
   if (!checkInitialized())
     return;
-  TFile* rootfile = new TFile(Form("Spectra_%i.root", index), "RECREATE");
-  TCanvas* c1 = new TCanvas("c1");
+  TFile* rootfile = new TFile("trdtrackletplots.root", "UPDATE");
+  TCanvas* c1 = new TCanvas(Form("canvas_%i_%i:%i:%i_%i", index, mDetector, mRobPos, mMcmPos, (int)mTrackletArray.size()));
   TH2F* hist = new TH2F(Form("mcmdata_%i", index),
                         Form("Data of MCM %i on ROB %i in detector %i ", mMcmPos, mRobPos, mDetector),
-                        FeeParam::getNadcMcm(),
+                        NADCMCM,
                         -0.5,
-                        FeeParam::getNadcMcm() - 0.5,
+                        NADCMCM - 0.5,
                         getNumberOfTimeBins(),
                         -0.5,
                         getNumberOfTimeBins() - 0.5);
@@ -685,9 +686,9 @@ void TrapSimulator::draw(int choice, int index)
   hist->SetStats(false);
   TH2F* histfiltered = new TH2F(Form("mcmdataf_%i", index),
                                 Form("Data of MCM %i on ROB %i in detector %i filtered", mMcmPos, mRobPos, mDetector),
-                                FeeParam::getNadcMcm(),
+                                NADCMCM,
                                 -0.5,
-                                FeeParam::getNadcMcm() - 0.5,
+                                NADCMCM - 0.5,
                                 getNumberOfTimeBins(),
                                 -0.5,
                                 getNumberOfTimeBins() - 0.5);
@@ -696,19 +697,19 @@ void TrapSimulator::draw(int choice, int index)
 
   if ((choice & PLOTRAW) != 0) {
     for (int iTimeBin = 0; iTimeBin < mNTimeBin; iTimeBin++) {
-      for (int iAdc = 0; iAdc < FeeParam::getNadcMcm(); iAdc++) {
+      for (int iAdc = 0; iAdc < NADCMCM; iAdc++) {
         hist->SetBinContent(iAdc + 1, iTimeBin + 1, mADCR[iAdc * mNTimeBin + iTimeBin] >> mgkAddDigits);
       }
     }
+    hist->Draw("COLZ");
   } else {
     for (int iTimeBin = 0; iTimeBin < mNTimeBin; iTimeBin++) {
-      for (int iAdc = 0; iAdc < FeeParam::getNadcMcm(); iAdc++) {
+      for (int iAdc = 0; iAdc < NADCMCM; iAdc++) {
         histfiltered->SetBinContent(iAdc + 1, iTimeBin + 1, mADCF[iAdc * mNTimeBin + iTimeBin] >> mgkAddDigits);
       }
     }
+    histfiltered->Draw("COLZ");
   }
-  hist->Draw("CONT4Z");
-  histfiltered->Draw("CONT4Z");
 
   if ((choice & PLOTHITS) != 0) {
     TGraph* grHits = new TGraph();
@@ -722,6 +723,11 @@ void TrapSimulator::draw(int choice, int index)
 
   if ((choice & PLOTTRACKLETS) != 0) {
     TLine* trklLines = new TLine[4];
+    LOG(info) << "Tracklet start for index : " << index;
+    if (mTrackletArray.size() > 0)
+      LOG(info) << "Tracklet : for " << mTrackletArray[0].getDetector() << "::" << mTrackletArray[0].getROB() << " : " << mTrackletArray[0].getMCM();
+    else
+      LOG(info) << "Tracklet : for trackletarray size of zero ";
     for (int iTrkl = 0; iTrkl < mTrackletArray.size(); iTrkl++) {
       Tracklet trkl = mTrackletArray[iTrkl];
       float padWidth = 0.635 + 0.03 * (mDetector % 6);
@@ -741,12 +747,12 @@ void TrapSimulator::draw(int choice, int index)
       trklLines[iTrkl].SetY2(t1);
       trklLines[iTrkl].SetLineColor(2);
       trklLines[iTrkl].SetLineWidth(2);
-      LOG(info) << "Tracklet " << iTrkl << ": y = " << trkl.getY() << ", dy = " << (trkl.getdY() * 140e-4) << " offset : " << offset;
+      LOG(info) << "Tracklet " << iTrkl << ": y = " << trkl.getY() << ", dy = " << (((float)trkl.getdY()) * 140e-4) << " offset : " << offset << "for a det:rob:mcm combo of : " << mDetector << ":" << mRobPos << ":" << mMcmPos;
       LOG(info) << "Tracklet " << iTrkl << ": x1,y1,x2,y2 :: " << trklLines[iTrkl].GetX1() << "," << trklLines[iTrkl].GetY1() << "," << trklLines[iTrkl].GetX2() << "," << trklLines[iTrkl].GetY2();
-      LOG(info) << "Tracklet " << iTrkl << ": t0 : " << t0 << ", t1 " << t1 << ", padwidth:" << padWidth << ", slope:" << slope;
-
+      LOG(info) << "Tracklet " << iTrkl << ": t0 : " << t0 << ", t1 " << t1 << ", padwidth:" << padWidth << ", slope:" << slope << ", ndrift:" << ndrift << " which comes from : " << mTrapConfig->getDmemUnsigned(mgkDmemAddrNdrift, mDetector, mRobPos, mMcmPos) << " shifted 5 to the right ";
       trklLines[iTrkl].Draw();
     }
+    LOG(info) << "Tracklet end ...";
   }
   c1->Write();
   rootfile->Close();
@@ -761,8 +767,8 @@ void TrapSimulator::setData(int adc, const ArrayADC& data, std::vector<o2::MCCom
   if (!checkInitialized())
     return;
 
-  if (adc < 0 || adc >= FeeParam::getNadcMcm()) {
-    //    LOG(error) << "Error: ADC " << adc << " is out of range (0 .. " << FeeParam::getNadcMcm() - 1 << ")";
+  if (adc < 0 || adc >= NADCMCM) {
+    //    LOG(error) << "Error: ADC " << adc << " is out of range (0 .. " << NADCMCM - 1 << ")";
     return;
   }
 
@@ -792,8 +798,8 @@ void TrapSimulator::setData(int adc, int it, int data)
   if (!checkInitialized())
     return;
 
-  if (adc < 0 || adc >= FeeParam::getNadcMcm()) {
-    LOG(error) << "Error: ADC " << adc << " is out of range (0 .. " << FeeParam::getNadcMcm() - 1 << ")";
+  if (adc < 0 || adc >= NADCMCM) {
+    LOG(error) << "Error: ADC " << adc << " is out of range (0 .. " << NADCMCM - 1 << ")";
     return;
   }
 
@@ -811,7 +817,7 @@ void TrapSimulator::setBaselines()
 
   LOG(info) << "ENTER: " << __FILE__ << ":" << __func__ << ":" << __LINE__ << " for " << mDetector << ":" << mRobPos << ":" << mMcmPos;
   //loop over all adcs.
-  for (int adc = 0; adc < FeeParam::getNadcMcm(); adc++) {
+  for (int adc = 0; adc < NADCMCM; adc++) {
     LOG(info) << "Setting baselines for adc: " << adc << " of " << mDetector << ":" << mRobPos << ":" << mMcmPos << hex << mADCFilled << " if of : " << (mADCFilled & (1 << adc));
     if ((mADCFilled & (1 << adc)) == 0) { // adc is empty by construction of mADCFilled.
       LOG(info) << "past if Setting baselines for adc: " << adc << " of " << mDetector << ":" << mRobPos << ":" << mMcmPos;
@@ -832,7 +838,7 @@ void TrapSimulator::setDataPedestal(int adc)
   if (!checkInitialized())
     return;
 
-  if (adc < 0 || adc >= FeeParam::getNadcMcm()) {
+  if (adc < 0 || adc >= NADCMCM) {
     return;
   }
 
@@ -875,24 +881,101 @@ int TrapSimulator::getCol(int adc)
     return -1;
 
   int col = mFeeParam->getPadColFromADC(mRobPos, mMcmPos, adc);
-  if (col < 0 || col >= mFeeParam->getNcol())
+  if (col < 0 || col >= NCOLUMN)
     return -1;
   else
     return col;
 }
 
-int TrapSimulator::packData(std::vector<uint32_t>& buf)
+//TODO figure why I could not get span to work here
+int TrapSimulator::packData(std::vector<uint32_t>& rawdata, uint32_t offset)
 {
+  // return # of 32 bit words.
   //
   //given the, up to 3 tracklets, pack them according to the define data format.
   //
+  //  std::cout << "span size in packData is : " << rawdata.size() << std::endl;
   //TODO this is left blank so that the dataformats etc. can come in a seperate PR
   //to keep different work seperate.
-  LOG(fatal) << "Called packData of TrapSimualtor ... why? I am going to die, till next pr.";
-  return 1;
+  uint32_t wordswritten = 0; // count the 32 bit words written;
+                             //  std::cout << &raw[offset] << std::endl;
+                             //  std::cout << raw.data() << std::endl;;
+  TrackletMCMHeader mcmhead;
+  int trackletcount = 0;
+  // TrackletMCMHeader mcmhead;
+  offset++;
+  std::array<TrackletMCMData, 3> tracklets{};
+  mcmhead.oneb = 1;
+  mcmhead.onea = 1;
+  mcmhead.padrow = ((mRobPos >> 1) << 2) | (mMcmPos >> 2);
+  int mcmcol = mMcmPos % NMCMROBINCOL + (mRobPos % 2) * NMCMROBINCOL;
+  int padcol = mcmcol * NCOLMCM + NCOLMCM + 1;
+  mcmhead.col = 1; //TODO check this, cant call FeeParam due to virtual function
+  LOG(debug) << "packing data with trackletarry64 size of : " << mTrackletArray64.size();
+  for (int i = 0; i < 3; i++) {
+    if (i < mTrackletArray64.size()) { // we have  a tracklet
+      LOG(debug) << "we have a tracklet at i=" << i << " with trackletword 0x" << mTrackletArray64[i].getTrackletWord();
+      switch (i) {
+        case 0:
+          mcmhead.pid0 = ((mTrackletArray64[0].getQ2()) << 2) + ((mTrackletArray64[0].getQ1()) >> 5);
+          break; // all of Q2 and upper 2 bits of Q1.
+        case 1:
+          mcmhead.pid1 = ((mTrackletArray64[1].getQ2()) << 2) + ((mTrackletArray64[1].getQ1()) >> 5);
+          break; // all of Q2 and upper 2 bits of Q1.
+        case 2:
+          mcmhead.pid2 = ((mTrackletArray64[2].getQ2()) << 2) + ((mTrackletArray64[2].getQ1()) >> 5);
+          break; // all of Q2 and upper 2 bits of Q1.
+      }
+      tracklets[i].checkbit = 1;
+      uint32_t tmppid = mTrackletArray64[i].getPID() & 0x3fff;
+      LOG(debug) << "tracklet i " << i << " has pid of 0x" << std::hex << mTrackletArray64[i].getPID() << " and we are going to put in 0x" << std::hex << tmppid;
+      LOG(debug) << mTrackletArray64[i];
+      tracklets[i].pid = mTrackletArray64[i].getPID() & 0x3fff; // the bottom 12 bits of the pid
+      tracklets[i].slope = mTrackletArray64[i].getSlope();
+      tracklets[i].pos = mTrackletArray64[i].getPosition();
+      tracklets[i].checkbit = 0;
+      trackletcount++;
+    } else { // else we dont have a tracklet so mark it off in the header.
+      switch (i) {
+        case 1:
+          mcmhead.pid1 = 0xff;
+          LOG(debug) << "setting mcmhead pid1 to 0xff with tracklet array size of " << mTrackletArray64[i];
+          break; // set the pid to ff to signify not there
+        case 2:
+          mcmhead.pid2 = 0xff;
+          break; // set the pid to maximal to signify not there (6bits).
+      }
+    }
+  }
+  //  raw.push_back((uint32_t)mcmhead)
+  LOG(debug) << "pushing back mcm head of 0x" << std::hex << mcmhead.word << " with trackletcount of : " << std::dec << trackletcount << ":-:" << wordswritten;
+  rawdata.push_back(mcmhead.word); //memcpy(&rawdata[wordswritten++], &mcmhead, sizeof(mcmhead));
+  wordswritten++;
+  for (int i = 0; i < trackletcount; i++) {
+    LOG(debug) << "pushing back mcmtrackletword of 0x" << std::hex << tracklets[i].word;
+    rawdata.push_back(tracklets[i].word); //memcpy(&rawdata[wordswritten++], &tracklets[i], sizeof(TrackletMCMData));
+    wordswritten++;
+  }
+
+  //display the headers written
+  if (debugheaders) {
+    LOG(info) << ">>>>> START DEBUG OUTPUT OF packData trackletcount:-:wordcount" << trackletcount << ":-:" << wordswritten;
+    o2::trd::printTrackletMCMHeader(mcmhead);
+    o2::trd::printTrackletMCMData(tracklets[0]);
+    if (trackletcount > 1)
+      o2::trd::printTrackletMCMData(tracklets[1]);
+    if (trackletcount > 2)
+      o2::trd::printTrackletMCMData(tracklets[2]);
+    LOG(info) << "<<<<<  END DEBUG OUTPUT OF packData";
+  }
+  //must produce between 2 and 4 words ... 1 and 3 tracklets.
+  //  assert(wordswritten<5);
+  //  assert(wordswritten>1);
+  LOG(debug) << "now to leave pack data after passing asserts with wordswritten = " << wordswritten;
+  return wordswritten; // in units of 32 bits.
 }
 
-int TrapSimulator::produceRawStream(std::vector<uint32_t>& buf, unsigned int iEv) const
+int TrapSimulator::getRawStream(std::vector<uint32_t>& buf, uint32_t offset, unsigned int iEv) const
 {
   //
   // Produce raw data stream from this MCM and put in buf
@@ -923,7 +1006,7 @@ int TrapSimulator::produceRawStream(std::vector<uint32_t>& buf, unsigned int iEv
   if (rawVer >= 3 &&
       (mTrapConfig->getTrapReg(TrapConfig::kC15CPUA, mDetector, mRobPos, mMcmPos) & (1 << 13))) { // check for zs flag in TRAP configuration
     int nActiveADC = 0;                                                                           // number numberOverFlowWordsWritten activated ADC bits in a word
-    for (int iAdc = 0; iAdc < FeeParam::getNadcMcm(); iAdc++) {
+    for (int iAdc = 0; iAdc < NADCMCM; iAdc++) {
       if (~mZSMap[iAdc] != 0) {       //  0 means not suppressed
         adcMask |= (1 << (iAdc + 4)); // last 4 digit reserved for 1100=0xc
         nActiveADC++;                 // number numberOverFlowWordsWritten 1 in mmm....m
@@ -981,7 +1064,7 @@ int TrapSimulator::produceRawStream(std::vector<uint32_t>& buf, unsigned int iEv
     return numberWordsWritten;
 }
 
-int TrapSimulator::produceTrackletStream(std::vector<uint32_t>& buf)
+int TrapSimulator::getTrackletStream(std::vector<uint32_t>& buf, uint32_t offset)
 {
   //
   // Produce tracklet raw data stream from this MCM and put in buf
@@ -998,8 +1081,9 @@ int TrapSimulator::produceTrackletStream(std::vector<uint32_t>& buf)
   // Produce tracklet data.
   // A MCM Header followed by at most 3 tracklet words.
   // Although a little confusingly some of the tracklet data is in the header.
-
-  numberWordsWritten = packData(buf);
+  if (mTrackletArray64.size() != 0) { // meaningless if there are no tracklets
+    numberWordsWritten = packData(buf, offset);
+  }
 
   return numberWordsWritten;
 }
@@ -1040,7 +1124,7 @@ void TrapSimulator::filterPedestalInit(int baseline)
 
   unsigned short fptc = mTrapConfig->getTrapReg(TrapConfig::kFPTC, mDetector, mRobPos, mMcmPos); // 0..3, 0 - fastest, 3 - slowest
 
-  for (int adc = 0; adc < FeeParam::getNadcMcm(); adc++)
+  for (int adc = 0; adc < NADCMCM; adc++)
     mInternalFilterRegisters[adc].mPedAcc = (baseline << 2) * (1 << mgkFPshifts[fptc]);
   //  LOG(info) << "LEAVE: " << __FILE__ << ":" << __func__ << ":" << __LINE__ ;
 }
@@ -1096,7 +1180,7 @@ void TrapSimulator::filterPedestal()
   // LOG(info) << "BEGIN: " << __FILE__ << ":" << __func__ << ":" << __LINE__ ;
 
   for (int iTimeBin = 0; iTimeBin < mNTimeBin; iTimeBin++) {
-    for (int iAdc = 0; iAdc < FeeParam::getNadcMcm(); iAdc++) {
+    for (int iAdc = 0; iAdc < NADCMCM; iAdc++) {
       int oldadc = mADCF[iAdc * mNTimeBin + iTimeBin];
       mADCF[iAdc * mNTimeBin + iTimeBin] = filterPedestalNextSample(iAdc, iTimeBin, mADCR[iAdc * mNTimeBin + iTimeBin]);
       //    LOG(info) << "mADCF : time : " << iTimeBin << " adc : " << iAdc << " change : " << oldadc << " -> " << mADCF[iAdc * mNTimeBin + iTimeBin];
@@ -1110,7 +1194,7 @@ void TrapSimulator::filterGainInit()
   // Initializes the gain filter. In this case, only threshold
   // counters are reset.
 
-  for (int adc = 0; adc < FeeParam::getNadcMcm(); adc++) {
+  for (int adc = 0; adc < NADCMCM; adc++) {
     // these are counters which in hardware continue
     // until maximum or reset
     mInternalFilterRegisters[adc].mGainCounterA = 0;
@@ -1131,14 +1215,14 @@ unsigned short TrapSimulator::filterGainNextSample(int adc, unsigned short value
   unsigned short mga = mTrapConfig->getTrapReg(TrapConfig::TrapReg_t(TrapConfig::kFGA0 + adc), mDetector, mRobPos, mMcmPos); // 40;
   unsigned short mgta = mTrapConfig->getTrapReg(TrapConfig::kFGTA, mDetector, mRobPos, mMcmPos);                             // 20;
   unsigned short mgtb = mTrapConfig->getTrapReg(TrapConfig::kFGTB, mDetector, mRobPos, mMcmPos);                             // 2060;
-                                                                                                                             //  mgf=256;
-                                                                                                                             //  mga=8;
-                                                                                                                             //  mgta=20;
-                                                                                                                             //  mgtb=2060;
+  //  mgf=256;
+  //  mga=8;
+  //  mgta=20;
+  //  mgtb=2060;
 
   unsigned int mgfExtended = 0x700 + mgf; // The corr factor which is finally applied has to be extended by 0x700 (hex) or 0.875 (dec)
-                                          // because fgf=0 correspons to 0.875 and fgf=511 correspons to 1.125 - 2^(-11)
-                                          // (see TRAP User Manual for details)
+  // because fgf=0 correspons to 0.875 and fgf=511 correspons to 1.125 - 2^(-11)
+  // (see TRAP User Manual for details)
   //if(mDetector==75&& mRobPos==5 && mMcmPos==15) LOG(info) << "ENTER: " << __FILE__ << ":" << __func__ << ":" << __LINE__ << " with adc = " << adc << " value = " << value << " Trapconfig values :"  << mgby <<":"<<mgf<<":"<<mga<<":"<<mgta<<":"<<mgtb << ":"<< mgfExtended;
   unsigned int corr; // corrected value
 
@@ -1173,7 +1257,7 @@ void TrapSimulator::filterGain()
 {
   // Read data from mADCF and apply gain filter.
 
-  for (int adc = 0; adc < FeeParam::getNadcMcm(); adc++) {
+  for (int adc = 0; adc < NADCMCM; adc++) {
     for (int iTimeBin = 0; iTimeBin < mNTimeBin; iTimeBin++) {
       mADCF[adc * mNTimeBin + iTimeBin] = filterGainNextSample(adc, mADCF[adc * mNTimeBin + iTimeBin]);
     }
@@ -1207,7 +1291,7 @@ void TrapSimulator::filterTailInit(int baseline)
   ql = lambdaL * (1 - lambdaS) * alphaL;
   qs = lambdaS * (1 - lambdaL) * (1 - alphaL);
 
-  for (int adc = 0; adc < FeeParam::getNadcMcm(); adc++) {
+  for (int adc = 0; adc < NADCMCM; adc++) {
     int value = baseline & 0xFFF;
     int corr = (value * mTrapConfig->getTrapReg(TrapConfig::TrapReg_t(TrapConfig::kFGF0 + adc), mDetector, mRobPos, mMcmPos)) >> 11;
     corr = corr > 0xfff ? 0xfff : corr;
@@ -1274,7 +1358,7 @@ void TrapSimulator::filterTail()
   // Apply tail cancellation filter to all data.
 
   for (int iTimeBin = 0; iTimeBin < mNTimeBin; iTimeBin++) {
-    for (int iAdc = 0; iAdc < FeeParam::getNadcMcm(); iAdc++) {
+    for (int iAdc = 0; iAdc < NADCMCM; iAdc++) {
       mADCF[iAdc * mNTimeBin + iTimeBin] = filterTailNextSample(iAdc, mADCF[iAdc * mNTimeBin + iTimeBin]);
     }
   }
@@ -1298,7 +1382,7 @@ void TrapSimulator::zeroSupressionMapping()
   int eBIL = mTrapConfig->getTrapReg(TrapConfig::kEBIL, mDetector, mRobPos, mMcmPos);
   int eBIN = mTrapConfig->getTrapReg(TrapConfig::kEBIN, mDetector, mRobPos, mMcmPos);
 
-  for (int iAdc = 0; iAdc < FeeParam::getNadcMcm(); iAdc++)
+  for (int iAdc = 0; iAdc < NADCMCM; iAdc++)
     mZSMap[iAdc] = -1;
 
   for (int it = 0; it < mNTimeBin; it++) {
@@ -1328,7 +1412,7 @@ void TrapSimulator::zeroSupressionMapping()
     }
 
     // ----- last channel -----
-    iAdc = FeeParam::getNadcMcm() - 1;
+    iAdc = NADCMCM - 1;
 
     ap = mADCF[(iAdc - 1) * mNTimeBin + it] >> mgkAddDigits; // previous
     ac = mADCF[iAdc * mNTimeBin + it] >> mgkAddDigits;       // current
@@ -1346,7 +1430,7 @@ void TrapSimulator::zeroSupressionMapping()
     }
 
     // ----- middle channels -----
-    for (iAdc = 1; iAdc < FeeParam::getNadcMcm() - 1; iAdc++) {
+    for (iAdc = 1; iAdc < NADCMCM - 1; iAdc++) {
       ap = mADCF[(iAdc - 1) * mNTimeBin + it] >> mgkAddDigits; // previous
       ac = mADCF[iAdc * mNTimeBin + it] >> mgkAddDigits;       // current
       an = mADCF[(iAdc + 1) * mNTimeBin + it] >> mgkAddDigits; // next
@@ -1385,6 +1469,10 @@ void TrapSimulator::addHitToFitreg(int adc, unsigned short timebin, unsigned sho
   if ((timebin >= mTrapConfig->getTrapReg(TrapConfig::kTPQS1, mDetector, mRobPos, mMcmPos)) &&
       (timebin < mTrapConfig->getTrapReg(TrapConfig::kTPQE1, mDetector, mRobPos, mMcmPos))) {
     mFitReg[adc].mQ1 += qtot;
+  }
+  // Q2 is simply the addition of times from 3 to 5, for now consts in the header file till they come from a config.
+  if (timebin > mQ2Startbin && timebin < mQ2Endbin) {
+    mFitReg[adc].mQ2 += qtot;
   }
 
   if ((timebin >= mTrapConfig->getTrapReg(TrapConfig::kTPFS, mDetector, mRobPos, mMcmPos)) &&
@@ -1476,7 +1564,7 @@ void TrapSimulator::calcFitreg()
   for (timebin = timebin1; timebin < timebin2; timebin++) {
     // first find the hit candidates and store the total cluster charge in qTotal array
     // in case of not hit store 0 there.
-    for (adcch = 0; adcch < FeeParam::getNadcMcm() - 2; adcch++) {
+    for (adcch = 0; adcch < NADCMCM - 2; adcch++) {
       if (((adcMask >> adcch) & 7) == 7) //??? all 3 channels are present in case of ZS
       {
         adcLeft = mADCF[adcch * mNTimeBin + timebin];
@@ -1499,14 +1587,14 @@ void TrapSimulator::calcFitreg()
         // The accumulated charge is with the pedestal!!!
         qtotTemp = adcLeft + adcCentral + adcRight;
         /*       if ((qtotTemp > 130)) {
-          LOG(info) << "testtree "
-                     << "qtot=" << qtotTemp
-                     << " qleft=" << adcLeft
-                     << " qcent=" << adcCentral
-                     << " qright=" << adcRight
-                     << " for " << mDetector <<":"<<mRobPos<<":"<<mMcmPos << ":adcleft:"<<adcch<<":t"<<timebin;
-        }
-*/
+                         LOG(info) << "testtree "
+                         << "qtot=" << qtotTemp
+                         << " qleft=" << adcLeft
+                         << " qcent=" << adcCentral
+                         << " qright=" << adcRight
+                         << " for " << mDetector <<":"<<mRobPos<<":"<<mMcmPos << ":adcleft:"<<adcch<<":t"<<timebin;
+                         }
+                         */
         if ((hitQual) &&
             (qtotTemp >= mTrapConfig->getTrapReg(TrapConfig::kTPHT, mDetector, mRobPos, mMcmPos)) &&
             (adcLeft <= adcCentral) &&
@@ -1602,9 +1690,9 @@ void TrapSimulator::calcFitreg()
         // subtract the pedestal TPFP, clipping instead of wrapping
 
         int regTPFP = mTrapConfig->getTrapReg(TrapConfig::kTPFP, mDetector, mRobPos, mMcmPos); //TODO put this together with the others as members of trapsim, which is initiliased by det,rob,mcm.
-                                                                                               //     LOG(info) << "Hit found, time=" << timebin << ", adcch=" << adcch << "/" << adcch + 1 << "/"
-                                                                                               //              << adcch + 2 << ", adc values=" << adcLeft << "/" << adcCentral << "/"
-                                                                                               //              << adcRight << ", regTPFP=" << regTPFP << ", TPHT=" << mTrapConfig->getTrapReg(TrapConfig::kTPHT, mDetector, mRobPos, mMcmPos);
+        //     LOG(info) << "Hit found, time=" << timebin << ", adcch=" << adcch << "/" << adcch + 1 << "/"
+        //              << adcch + 2 << ", adc values=" << adcLeft << "/" << adcCentral << "/"
+        //              << adcRight << ", regTPFP=" << regTPFP << ", TPHT=" << mTrapConfig->getTrapReg(TrapConfig::kTPHT, mDetector, mRobPos, mMcmPos);
         if (adcLeft < regTPFP)
           adcLeft = 0;
         else
@@ -1631,23 +1719,23 @@ void TrapSimulator::calcFitreg()
         if (adcLeft > adcRight)
           ypos = -ypos;
         /*   TODO this is left in here as a ref for what was done with labels, its stored externally now figure something out.
-*/
+                */
         // add the hit to the fitregister
         //      int a=qTotal[adcch] >> mgkAddDigits;
         //      LOG(info) << "calling addHitToFitreg with :" << adcch << " :: " << timebin << " :: " << hex << qTotal[adcch] << dec << " :: shifted bits  :" << 2 << " :: " << ypos;
         //  addHitToFitreg(adcch, timebin, qTotal[adcch] >> 2, ypos);
         LOG(debug) << __func__ << "ADDING HIT FOR in adclabels : " << mADCLabels[adcch].size() << " with adcch of " << adcch << " qtot : " << qTotal[adcch] << " timebin :" << timebin;
         addHitToFitreg(adcch, timebin, qTotal[adcch] >> mgkAddDigits, ypos); //, mADCLabels[adcch]);
-        //     LOG(debug) << __FILE__ << ":" << __LINE__ << " :: added hit to fit re ";
+                                                                             //     LOG(debug) << __FILE__ << ":" << __LINE__ << " :: added hit to fit re ";
       }
     }
   }
-  /* 
-  for (int iAdc = 0; iAdc < FeeParam::getNadcMcm(); iAdc++) {
-    if (mFitReg[iAdc].mNhits != 0) {
-      LOG(debug) << "fitreg[" << iAdc << "]: nHits = " << mFitReg[iAdc].mNhits << "]: sumX = " << mFitReg[iAdc].mSumX << ", sumY = " << mFitReg[iAdc].mSumY << ", sumX2 = " << mFitReg[iAdc].mSumX2 << ", sumY2 = " << mFitReg[iAdc].mSumY2 << ", sumXY = " << mFitReg[iAdc].mSumXY;
-    }
-  }*/
+  /*
+       for (int iAdc = 0; iAdc < NADCMCM; iAdc++) {
+       if (mFitReg[iAdc].mNhits != 0) {
+       LOG(debug) << "fitreg[" << iAdc << "]: nHits = " << mFitReg[iAdc].mNhits << "]: sumX = " << mFitReg[iAdc].mSumX << ", sumY = " << mFitReg[iAdc].mSumY << ", sumX2 = " << mFitReg[iAdc].mSumX2 << ", sumY2 = " << mFitReg[iAdc].mSumY2 << ", sumXY = " << mFitReg[iAdc].mSumXY;
+       }
+       }*/
   //print(PRINTRAW);
   LOG(debug) << "LEAVING : " << __FILE__ << ":" << __func__ << ":" << __LINE__ << " :: " << getDetector() << ":" << getRobPos() << ":" << getMcmPos() << " and mNHits : " << mNHits;
 }
@@ -1713,9 +1801,9 @@ void TrapSimulator::trackletSelection()
     mFitPtr[i] = trackletCandch[i]; // pointer to the left channel with tracklet for CPU[i]
   for (i = ntracks; i < 4; i++)     // CPUs without tracklets
     mFitPtr[i] = 31;                // pointer to the left channel with tracklet for CPU[i] = 31 (invalid)
-                                    // LOG(info) << "-------------------------------------------- found " << ntracks << " tracklet candidates";
-                                    //  for (i = 0; i < 4; i++)
-                                    //   LOG(info) << "fitPtr[" << i << "]: " << mFitPtr[i];
+  // LOG(info) << "-------------------------------------------- found " << ntracks << " tracklet candidates";
+  //  for (i = 0; i < 4; i++)
+  //   LOG(info) << "fitPtr[" << i << "]: " << mFitPtr[i];
 
   // reject multiple tracklets
   if (FeeParam::instance()->getRejectMultipleTracklets()) {
@@ -1757,7 +1845,7 @@ void TrapSimulator::fitTracklet()
   // parameters in fitred.asm (fit program)
   int rndAdd = 0;
   int decPlaces = 5; // must be larger than 1 or change the following code
-                     // if (decPlaces >  1)
+  // if (decPlaces >  1)
   rndAdd = (1 << (decPlaces - 1)) + 1;
   // else if (decPlaces == 1)
   //   rndAdd = 1;
@@ -1785,7 +1873,7 @@ void TrapSimulator::fitTracklet()
 
   // local variables for calculation
   long mult, temp, denom;       //???
-  unsigned int q0, q1, pid;     // charges in the two windows and total charge
+  unsigned int q0, q1, q2 = 23, pid; // charges in the two windows and total charge
   float rawpid, rawz, rawy, rawslope, rawoffset;
   float rawslope4trackletword, rawoffset4trackletword;
   unsigned short nHits;         // number of hits
@@ -1944,6 +2032,8 @@ void TrapSimulator::fitTracklet()
               mHits[iHit].mTimebin < mTrapConfig->getTrapReg(TrapConfig::kTPQE1, mDetector, mRobPos, mMcmPos)) {
             nHits1++;
           }
+          //TODO nHits2 ???? to correspond to Q2 ???
+          //
           LOG(debug) << "setting bit pattern for chanel : " << mHits[iHit].mChannel << " of hit  : " << iHit << std::hex << " bitp before : " << adchitbp << std::dec;
           adchitbp |= (1 << mHits[iHit].mChannel);
           LOG(debug) << "after setting bit pattern for chanel : " << mHits[iHit].mChannel << " of hit  : " << iHit << std::hex << " bitp after : " << adchitbp << std::dec;
@@ -1971,8 +2061,15 @@ void TrapSimulator::fitTracklet()
 
         LOG(debug) << "TrapSim Trackletarray size is : " << mTrackletArray.size() << "  :: adding a track at " << mMCMT[cpu] << ":" << mDetector * 2 + mRobPos % 2 << ":" << mRobPos << ":" << mMcmPos << " LABELS size: " << localTrackletLabels.size();
         mTrackletArray.emplace_back(mDetector * 2 + mRobPos % 2, mRobPos, mMcmPos, rawpid, rawslope, rawoffset, rawslope4trackletword, rawoffset4trackletword);
+        uint32_t format = 0;
+        uint32_t hcid = mDetector * 2 + mRobPos % 2;
+        uint32_t padrow = ((mRobPos >> 1) << 2) | (mMcmPos >> 2);
+        uint32_t col = 0;
+        uint32_t position = rawoffset;
+        //uint32_t s
+        mTrackletArray64.emplace_back(format, hcid, padrow, col, position, slope, q2, q1, q0);
         int newtrackposition = mTrackletArray.size() - 1;
-        //        mTrackletArray[newtrackposition].setLabel(mcLabel);
+        //mTrackletArray[newtrackposition].setLabel(mcLabel);
         mTrackletArray[newtrackposition].setNHits(fit0->mNhits + fit1->mNhits);
         mTrackletArray[newtrackposition].setNHits0(nHits0);
         mTrackletArray[newtrackposition].setNHits1(nHits1);
@@ -2039,11 +2136,11 @@ void TrapSimulator::tracklet()
   fitTracklet();
 }
 
-void TrapSimulator::getTracklets(std::vector<Tracklet>& TrackletStore)
+void TrapSimulator::getTracklet64s(std::vector<Tracklet64>& TrackletStore)
 {
   // simply returns the found tracklets for the O2 dpl to then do its thing.
   //
-  TrackletStore.insert(std::end(TrackletStore), std::begin(mTrackletArray), std::end(mTrackletArray));
+  TrackletStore.insert(std::end(TrackletStore), std::begin(mTrackletArray64), std::end(mTrackletArray64));
   //std::copy(mTrackletArray.begin(),mTrackletArray.end(),std::back_inserter(TrackletStore));
 }
 
@@ -2051,7 +2148,7 @@ void TrapSimulator::getTracklets(std::vector<Tracklet>& TrackletStore)
 // PID section
 //
 // Memory area for the LUT: 0xC100 to 0xC3FF
-//
+// ??? TODO Q2 ??? Aso do we still need this function? We are sending back the charge sumations now.
 // The addresses for the parameters (the order is optimized for maximum calculation speed in the MCMs):
 // 0xC028: cor1
 // 0xC029: nBins(sF)
@@ -2100,7 +2197,7 @@ int TrapSimulator::getPID(int q0, int q1)
   addrQ0 = (((addrQ0 * q0) >> 16) >> 16); // because addrQ0 = (q0 * corrQ0) >> 32; does not work for unknown reasons
 
   if (addrQ0 >= nBinsQ0) { // check for overflow
-                           //    LOG(debug3) << "Overflow in q0: " << addrQ0 << "/4 is bigger then " << nBinsQ0;
+    //    LOG(debug3) << "Overflow in q0: " << addrQ0 << "/4 is bigger then " << nBinsQ0;
     addrQ0 = nBinsQ0 - 1;
   }
 
@@ -2433,4 +2530,3 @@ bool TrapSimulator::readPackedConfig(TrapConfig* cfg, int hc, unsigned int* data
   LOG(debug) << "no end marker! " << idx << " words read";
   return -err; // only if the max length of the block reached!
 }
-

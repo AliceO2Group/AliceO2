@@ -24,7 +24,6 @@
 #include "MFTTracking/ROframe.h"
 #include "ITSMFTBase/SegmentationAlpide.h"
 #include "DataFormatsITSMFT/ROFRecord.h"
-#include "DataFormatsITSMFT/CompCluster.h"
 #include "ReconstructionDataFormats/BaseCluster.h"
 
 namespace o2
@@ -55,14 +54,10 @@ constexpr float DefClusErrorCol = o2::itsmft::SegmentationAlpide::PitchCol * 0.5
 constexpr float DefClusError2Row = DefClusErrorRow * DefClusErrorRow;
 constexpr float DefClusError2Col = DefClusErrorCol * DefClusErrorCol;
 
-Int_t loadROFrameData(const o2::itsmft::ROFRecord& rof, ROframe& event, gsl::span<itsmft::Cluster const> const& clusters, const dataformats::MCTruthContainer<MCCompLabel>* mcLabels = nullptr);
-
 int loadROFrameData(const o2::itsmft::ROFRecord& rof, ROframe& events, gsl::span<const itsmft::CompClusterExt> clusters,
                     gsl::span<const unsigned char>::iterator& pattIt, const itsmft::TopologyDictionary& dict,
                     const dataformats::MCTruthContainer<MCCompLabel>* mClsLabels = nullptr);
 
-void loadEventData(ROframe& event, const std::vector<itsmft::Cluster>* clusters,
-                   const dataformats::MCTruthContainer<MCCompLabel>* mcLabels = nullptr);
 } // namespace ioutils
 } // namespace mft
 } // namespace o2

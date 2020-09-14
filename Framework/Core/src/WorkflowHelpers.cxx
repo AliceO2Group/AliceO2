@@ -19,7 +19,6 @@
 #include "Framework/RawDeviceService.h"
 #include "Framework/StringHelpers.h"
 
-#include "fairmq/FairMQDevice.h"
 #include "Headers/DataHeader.h"
 #include <algorithm>
 #include <list>
@@ -163,9 +162,10 @@ void WorkflowHelpers::injectServiceDevices(WorkflowSpec& workflow, ConfigContext
     LOG(INFO) << "To be hidden / removed at some point.";
     // mark this dummy process as ready-to-quit
     ic.services().get<ControlService>().readyToQuit(QuitRequest::Me);
+  
     return [](ProcessingContext& pc) {
       // this callback is never called since there is no expiring input
-      pc.services().get<RawDeviceService>().device()->WaitFor(std::chrono::seconds(2));
+      pc.services().get<RawDeviceService>().waitFor(2000);
     };
   }};
 
@@ -173,20 +173,19 @@ void WorkflowHelpers::injectServiceDevices(WorkflowSpec& workflow, ConfigContext
     "internal-dpl-ccdb-backend",
     {},
     {},
-    fakeCallback,
-  };
+    AlgorithmSpec::dummyAlgorithm()};
   DataProcessorSpec transientStore{"internal-dpl-transient-store",
                                    {},
                                    {},
-                                   fakeCallback};
+                                   AlgorithmSpec::dummyAlgorithm()};
   DataProcessorSpec qaStore{"internal-dpl-qa-store",
                             {},
                             {},
-                            fakeCallback};
+                            AlgorithmSpec::dummyAlgorithm()};
   DataProcessorSpec timer{"internal-dpl-clock",
                           {},
                           {},
-                          fakeCallback};
+                          AlgorithmSpec::dummyAlgorithm()};
 
   // In case InputSpec of origin AOD are
   // requested but not available as part of the workflow,
@@ -205,6 +204,7 @@ void WorkflowHelpers::injectServiceDevices(WorkflowSpec& workflow, ConfigContext
     readers::AODReaderHelpers::rootFileReaderCallback(),
     {ConfigParamSpec{"aod-file", VariantType::String, "aod.root", {"Input AOD file"}},
      ConfigParamSpec{"json-file", VariantType::String, {"json configuration file"}},
+     ConfigParamSpec{"time-limit", VariantType::Int64, 0ll, {"Maximum run time limit in seconds"}},
      ConfigParamSpec{"start-value-enumeration", VariantType::Int64, 0ll, {"initial value for the enumeration"}},
      ConfigParamSpec{"end-value-enumeration", VariantType::Int64, -1ll, {"final value for the enumeration"}},
      ConfigParamSpec{"step-value-enumeration", VariantType::Int64, 1ll, {"step between one value and the other"}}}};
@@ -334,7 +334,7 @@ void WorkflowHelpers::injectServiceDevices(WorkflowSpec& workflow, ConfigContext
 
   // This is to inject a file sink so that any dangling ATSK object is written
   // to a ROOT file.
-  if (providedOutputObj.size() != 0) {
+  if (providedOutputObj.empty() == false) {
     auto rootSink = CommonDataProcessors::getOutputObjSink(outObjMap, outTskMap);
     extraSpecs.push_back(rootSink);
   }
@@ -355,7 +355,7 @@ void WorkflowHelpers::injectServiceDevices(WorkflowSpec& workflow, ConfigContext
   // select outputs of type AOD
   std::vector<InputSpec> OutputsInputsAOD;
   std::vector<bool> isdangling;
-  for (int ii = 0; ii < OutputsInputs.size(); ii++) {
+  for (auto ii = 0u; ii < OutputsInputs.size(); ii++) {
     if ((outputtypes[ii] & 2) == 2) {
 
       // temporarily also request to be dangling
@@ -378,7 +378,7 @@ void WorkflowHelpers::injectServiceDevices(WorkflowSpec& workflow, ConfigContext
 
   // select dangling outputs which are not of type AOD
   std::vector<InputSpec> OutputsInputsDangling;
-  for (int ii = 0; ii < OutputsInputs.size(); ii++) {
+  for (auto ii = 0u; ii < OutputsInputs.size(); ii++) {
     if ((outputtypes[ii] & 1) == 1 && (outputtypes[ii] & 2) == 0)
       OutputsInputsDangling.emplace_back(OutputsInputs[ii]);
   }
@@ -782,7 +782,7 @@ std::vector<InputSpec> WorkflowHelpers::computeDanglingOutputs(WorkflowSpec cons
   auto [OutputsInputs, outputtypes] = analyzeOutputs(workflow);
 
   std::vector<InputSpec> results;
-  for (int ii = 0; ii < OutputsInputs.size(); ii++) {
+  for (auto ii = 0u; ii < OutputsInputs.size(); ii++) {
     if ((outputtypes[ii] & 1) == 1) {
       results.emplace_back(OutputsInputs[ii]);
     }

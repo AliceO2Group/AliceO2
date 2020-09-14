@@ -34,6 +34,11 @@
 #include "GPUTPCGMMergedTrackHit.h"
 #include "GPUHostDataTypes.h"
 
+#include <atomic>
+#ifdef WITH_OPENMP
+#include <omp.h>
+#endif
+
 using namespace o2::gpu;
 using namespace o2::tpc;
 using namespace o2;
@@ -41,7 +46,7 @@ using namespace o2::dataformats;
 
 using MCLabelContainer = MCTruthContainer<MCCompLabel>;
 
-GPUCATracking::GPUCATracking() : mTrackingCAO2Interface() {}
+GPUCATracking::GPUCATracking() = default;
 GPUCATracking::~GPUCATracking() { deinitialize(); }
 
 int GPUCATracking::initialize(const GPUO2InterfaceConfiguration& config)
@@ -61,13 +66,13 @@ void GPUCATracking::deinitialize()
 
 int GPUCATracking::runTracking(GPUO2InterfaceIOPtrs* data, GPUInterfaceOutputs* outputs)
 {
-  if ((int)(data->tpcZS != nullptr) + (int)(data->o2Digits != nullptr) + (int)(data->clusters != nullptr) + (int)(data->compressedClusters != nullptr) != 1) {
-    return 0;
+  if ((int)(data->tpcZS != nullptr) + (int)(data->o2Digits != nullptr && (data->tpcZS == nullptr || data->o2DigitsMC == nullptr)) + (int)(data->clusters != nullptr) + (int)(data->compressedClusters != nullptr) != 1) {
+    throw std::runtime_error("Invalid input for gpu tracking");
   }
 
   std::vector<TrackTPC>* outputTracks = data->outputTracks;
   std::vector<uint32_t>* outClusRefs = data->outputClusRefs;
-  MCLabelContainer* outputTracksMCTruth = data->outputTracksMCTruth;
+  std::vector<o2::MCCompLabel>* outputTracksMCTruth = data->outputTracksMCTruth;
 
   if (!outputTracks || !outClusRefs) {
     LOG(ERROR) << "Output tracks or clusRefs vectors are not initialized";
@@ -80,50 +85,63 @@ int GPUCATracking::runTracking(GPUO2InterfaceIOPtrs* data, GPUInterfaceOutputs* 
   float vzbinInv = 1.f / vzbin;
   Mapper& mapper = Mapper::instance();
 
-  const ClusterNativeAccess* clusters;
   std::vector<o2::tpc::Digit> gpuDigits[Sector::MAXSECTOR];
+  o2::dataformats::MCTruthContainer<o2::MCCompLabel> gpuDigitsMC[Sector::MAXSECTOR];
+
   GPUTrackingInOutDigits gpuDigitsMap;
-  GPUTPCDigitsMCInput gpuDigitsMC;
+  GPUTPCDigitsMCInput gpuDigitsMapMC;
   GPUTrackingInOutPointers ptrs;
 
-  if (data->compressedClusters) {
-    ptrs.tpcCompressedClusters = data->compressedClusters;
-  } else if (data->tpcZS) {
-    ptrs.tpcZS = data->tpcZS;
-  } else if (data->o2Digits) {
-    ptrs.clustersNative = nullptr;
+  ptrs.tpcCompressedClusters = data->compressedClusters;
+  ptrs.tpcZS = data->tpcZS;
+  if (data->o2Digits) {
     const float zsThreshold = mTrackingCAO2Interface->getConfig().configReconstruction.tpcZSthreshold;
     const int maxContTimeBin = mTrackingCAO2Interface->getConfig().configEvent.continuousMaxTimeBin;
     for (int i = 0; i < Sector::MAXSECTOR; i++) {
       const auto& d = (*(data->o2Digits))[i];
-      gpuDigits[i].reserve(d.size());
-      gpuDigitsMap.tpcDigits[i] = gpuDigits[i].data();
+      if (zsThreshold > 0 && data->tpcZS == nullptr) {
+        gpuDigits[i].reserve(d.size());
+      }
       for (int j = 0; j < d.size(); j++) {
         if (maxContTimeBin && d[j].getTimeStamp() >= maxContTimeBin) {
           throw std::runtime_error("Digit time bin exceeds time frame length");
         }
-        if (d[j].getChargeFloat() >= zsThreshold) {
-          gpuDigits[i].emplace_back(d[j]);
+        if (zsThreshold > 0 && data->tpcZS == nullptr) {
+          if (d[j].getChargeFloat() >= zsThreshold) {
+            if (data->o2DigitsMC) {
+              for (const auto& element : (*data->o2DigitsMC)[i]->getLabels(j)) {
+                gpuDigitsMC[i].addElement(gpuDigits[i].size(), element);
+              }
+            }
+            gpuDigits[i].emplace_back(d[j]);
+          }
         }
       }
-      gpuDigitsMap.nTPCDigits[i] = gpuDigits[i].size();
+      if (zsThreshold > 0 && data->tpcZS == nullptr) {
+        gpuDigitsMap.tpcDigits[i] = gpuDigits[i].data();
+        gpuDigitsMap.nTPCDigits[i] = gpuDigits[i].size();
+        if (data->o2DigitsMC) {
+          gpuDigitsMapMC.v[i] = &gpuDigitsMC[i];
+        }
+      } else {
+        gpuDigitsMap.tpcDigits[i] = (*(data->o2Digits))[i].data();
+        gpuDigitsMap.nTPCDigits[i] = (*(data->o2Digits))[i].size();
+        if (data->o2DigitsMC) {
+          gpuDigitsMapMC.v[i] = (*data->o2DigitsMC)[i];
+        }
+      }
     }
     if (data->o2DigitsMC) {
-      for (int i = 0; i < Sector::MAXSECTOR; i++) {
-        gpuDigitsMC.v[i] = (*data->o2DigitsMC)[i].get();
-      }
-      gpuDigitsMap.tpcDigitsMC = &gpuDigitsMC;
+      gpuDigitsMap.tpcDigitsMC = &gpuDigitsMapMC;
     }
     ptrs.tpcPackedDigits = &gpuDigitsMap;
-  } else {
-    clusters = data->clusters;
-    ptrs.clustersNative = clusters;
-    ptrs.tpcPackedDigits = nullptr;
   }
+  ptrs.clustersNative = data->clusters;
   int retVal = mTrackingCAO2Interface->RunTracking(&ptrs, outputs);
   if (data->o2Digits || data->tpcZS || data->compressedClusters) {
-    clusters = ptrs.clustersNative;
+    data->clusters = ptrs.clustersNative;
   }
+  data->compressedClusters = ptrs.tpcCompressedClusters;
   const GPUTPCGMMergedTrack* tracks = ptrs.mergedTracks;
   int nTracks = ptrs.nMergedTracks;
   const GPUTPCGMMergedTrackHit* trackClusters = ptrs.mergedTrackHits;
@@ -146,15 +164,17 @@ int GPUCATracking::runTracking(GPUO2InterfaceIOPtrs* data, GPUInterfaceOutputs* 
     std::sort(trackSort.data() + tmp2, trackSort.data() + tmp,
               [](const auto& a, const auto& b) { return (a.second > b.second); });
     tmp2 = tmp;
-    if (cside == 0)
-      mNTracksASide = tmp;
   }
   nTracks = tmp;
-
   outputTracks->resize(nTracks);
   outClusRefs->resize(clBuff);
-  clBuff = 0;
 
+  std::atomic_int clusterOffsetCounter;
+  clusterOffsetCounter.store(0);
+
+#ifdef WITH_OPENMP
+#pragma omp parallel for if(!outputTracksMCTruth) num_threads(4)
+#endif
   for (int iTmp = 0; iTmp < nTracks; iTmp++) {
     auto& oTrack = (*outputTracks)[iTmp];
     const int i = trackSort[iTmp].first;
@@ -170,8 +190,8 @@ int GPUCATracking::runTracking(GPUO2InterfaceIOPtrs* data, GPUInterfaceOutputs* 
           if (lastSide ^ (trackClusters[tracks[i].FirstClusterRef() + iCl].slice < Sector::MAXSECTOR / 2)) {
             auto& cacl1 = trackClusters[tracks[i].FirstClusterRef() + iCl];
             auto& cacl2 = trackClusters[tracks[i].FirstClusterRef() + iCl - 1];
-            auto& cl1 = clusters->clustersLinear[cacl1.num];
-            auto& cl2 = clusters->clustersLinear[cacl2.num];
+            auto& cl1 = data->clusters->clustersLinear[cacl1.num];
+            auto& cl2 = data->clusters->clustersLinear[cacl2.num];
             delta = fabs(cl1.getTime() - cl2.getTime()) * 0.5f;
             break;
           }
@@ -181,8 +201,8 @@ int GPUCATracking::runTracking(GPUO2InterfaceIOPtrs* data, GPUInterfaceOutputs* 
         // estimate max/min time increments which still keep track in the physical limits of the TPC
         auto& c1 = trackClusters[tracks[i].FirstClusterRef()];
         auto& c2 = trackClusters[tracks[i].FirstClusterRef() + tracks[i].NClusters() - 1];
-        float t1 = clusters->clustersLinear[c1.num].getTime();
-        float t2 = clusters->clustersLinear[c2.num].getTime();
+        float t1 = data->clusters->clustersLinear[c1.num].getTime();
+        float t2 = data->clusters->clustersLinear[c2.num].getTime();
         auto times = std::minmax(t1, t2);
         tFwd = times.first - time0;
         tBwd = time0 - (times.second - detParam.TPClength * vzbinInv);
@@ -225,12 +245,12 @@ int GPUCATracking::runTracking(GPUO2InterfaceIOPtrs* data, GPUInterfaceOutputs* 
         nOutCl++;
       }
     }
+    clBuff = clusterOffsetCounter.fetch_add(nOutCl + (nOutCl + 1) / 2);
     oTrack.setClusterRef(clBuff, nOutCl);         // register the references
     uint32_t* clIndArr = &(*outClusRefs)[clBuff]; // cluster indices start here
     uint8_t* sectorIndexArr = reinterpret_cast<uint8_t*>(clIndArr + nOutCl);
     uint8_t* rowIndexArr = sectorIndexArr + nOutCl;
 
-    clBuff += nOutCl + (nOutCl + 1) / 2;
     std::vector<std::pair<MCCompLabel, unsigned int>> labels;
     nOutCl = 0;
     for (int j = 0; j < tracks[i].NClusters(); j++) {
@@ -240,7 +260,7 @@ int GPUCATracking::runTracking(GPUO2InterfaceIOPtrs* data, GPUInterfaceOutputs* 
       int clusterIdGlobal = trackClusters[tracks[i].FirstClusterRef() + j].num;
       Sector sector = trackClusters[tracks[i].FirstClusterRef() + j].slice;
       int globalRow = trackClusters[tracks[i].FirstClusterRef() + j].row;
-      int clusterIdInRow = clusterIdGlobal - clusters->clusterOffset[sector][globalRow];
+      int clusterIdInRow = clusterIdGlobal - data->clusters->clusterOffset[sector][globalRow];
       int regionNumber = 0;
       while (globalRow > mapper.getGlobalRowOffsetRegion(regionNumber) + mapper.getNumberOfRowsRegion(regionNumber)) {
         regionNumber++;
@@ -249,8 +269,8 @@ int GPUCATracking::runTracking(GPUO2InterfaceIOPtrs* data, GPUInterfaceOutputs* 
       sectorIndexArr[nOutCl] = sector;
       rowIndexArr[nOutCl] = globalRow;
       nOutCl++;
-      if (outputTracksMCTruth && clusters->clustersMCTruth) {
-        for (const auto& element : clusters->clustersMCTruth->getLabels(clusterIdGlobal)) {
+      if (outputTracksMCTruth && data->clusters->clustersMCTruth) {
+        for (const auto& element : data->clusters->clustersMCTruth->getLabels(clusterIdGlobal)) {
           bool found = false;
           for (int l = 0; l < labels.size(); l++) {
             if (labels[l].first == element) {
@@ -266,7 +286,7 @@ int GPUCATracking::runTracking(GPUO2InterfaceIOPtrs* data, GPUInterfaceOutputs* 
     }
     if (outputTracksMCTruth) {
       if (labels.size() == 0) {
-        outputTracksMCTruth->addElement(iTmp, MCCompLabel()); //default constructor creates NotSet label
+        outputTracksMCTruth->emplace_back(); //default constructor creates NotSet label
       } else {
         int bestLabelNum = 0, bestLabelCount = 0;
         for (int j = 0; j < labels.size(); j++) {
@@ -279,16 +299,12 @@ int GPUCATracking::runTracking(GPUO2InterfaceIOPtrs* data, GPUInterfaceOutputs* 
         if (bestLabelCount < (1.f - sTrackMCMaxFake) * nOutCl) {
           bestLabel.setFakeFlag();
         }
-        outputTracksMCTruth->addElement(iTmp, bestLabel);
+        outputTracksMCTruth->emplace_back(bestLabel);
       }
     }
-    int lastSector = trackClusters[tracks[i].FirstClusterRef() + tracks[i].NClusters() - 1].slice;
   }
-  outClusRefs->resize(clBuff); // remove overhead
-  if (data->o2Digits || data->tpcZS || data->compressedClusters) {
-    data->clusters = ptrs.clustersNative;
-  }
-  data->compressedClusters = ptrs.tpcCompressedClusters;
+  outClusRefs->resize(clusterOffsetCounter.load()); // remove overhead
+
   mTrackingCAO2Interface->Clear(false);
 
   return (retVal);

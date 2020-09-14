@@ -8,7 +8,11 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 #include "Framework/AnalysisDataModel.h"
-#include "Analysis/SecondaryVertex.h"
+#include "Analysis/SecondaryVertexHF.h"
+#include "PID/PIDResponse.h"
+#include "Analysis/Multiplicity.h"
+#include "Analysis/Centrality.h"
+#include "Analysis/TrackSelectionTables.h"
 #include "Analysis/Jet.h"
 #include <fmt/printf.h>
 #include <map>
@@ -139,29 +143,37 @@ edge[dir=back, arrowtail=empty]
   (dumpIndex<Ts>(typename Ts::iterator::external_index_columns_t{}), ...);
 }
 
-int main(int argc, char** argv)
+int main(int, char**)
 {
   fmt::printf("%s", R"(digraph hierarchy {
 size="5,5"
 node[shape=plain,style=filled,fillcolor=gray95]
 edge[dir=back, arrowtail=empty]
 )");
-  dumpCluster<Tracks, TracksCov, TracksExtra>();
+  /// FIXME: topology should account for predefined Joins
+  dumpCluster<StoredTracks, TracksExtension, StoredTracksCov, TracksCovExtension, TracksExtra, TracksExtended, TrackSelection>();
   dumpTable<Collisions>();
   dumpTable<Calos>();
   dumpTable<CaloTriggers>();
-  dumpTable<Muons>();
+  dumpCluster<StoredMuons, MuonsExtension>();
   dumpTable<MuonClusters>();
   dumpTable<Zdcs>();
   dumpTable<Run2V0s>();
-  dumpTable<V0s>();
-  dumpTable<Cascades>();
+  dumpTable<StoredV0s>();
+  dumpTable<StoredCascades>();
   dumpTable<BCs>();
   dumpTable<FT0s>();
   dumpTable<FV0s>();
   dumpTable<FDDs>();
-  dumpTable<SecVtx2Prong>(true, StyleType::GREEN);
-  dumpTable<Cand2Prong>(true, StyleType::GREEN);
+  dumpTable<Timestamps>();
+  dumpTable<HfTrackIndexProng2>(true, StyleType::GREEN);
+  dumpTable<HfTrackIndexProng3>(true, StyleType::GREEN);
+
+  dumpTable<pidRespTOF>(true, StyleType::GREEN);
+  dumpTable<pidRespTPC>(true, StyleType::GREEN);
+  dumpTable<Mults>(true, StyleType::GREEN);
+  dumpTable<Cents>(true, StyleType::GREEN);
+
   dumpTable<Jets>(true, StyleType::BLUE);
   dumpTable<JetConstituents>(true, StyleType::BLUE);
   dumpTable<UnassignedTracks>();

@@ -11,13 +11,9 @@
 #include "Framework/AnalysisTask.h"
 #include "Framework/AnalysisDataModel.h"
 #include "Analysis/EventSelection.h"
-#include "CCDB/CcdbApi.h"
-#include "TFile.h"
-#include "TTree.h"
+#include "Analysis/TriggerAliases.h"
+#include <CCDB/BasicCCDBManager.h>
 #include <map>
-
-using std::map;
-using std::string;
 
 using namespace o2;
 using namespace o2::framework;
@@ -58,9 +54,9 @@ struct EvSelParameters {
 
 struct EventSelectionTask {
   Produces<aod::EvSels> evsel;
-  map<string, int>* pClassNameToIndexMap;
-  map<int, string> mAliases;
-  map<int, vector<int>> mAliasToClassIds;
+  Service<o2::ccdb::BasicCCDBManager> ccdb;
+  Configurable<bool> isMC{"isMC", 0, "0 - data, 1 - MC"};
+
   EvSelParameters par;
 
   aod::Run2V0 getVZero(aod::BC const& bc, aod::Run2V0s const& vzeros)
@@ -90,73 +86,31 @@ struct EventSelectionTask {
     return dummy;
   }
 
-  // TODO create aliases elsewhere (like BrowseAndFill macro)
-  void createAliases()
-  {
-    mAliases[kINT7] = "CINT7-B-NOPF-CENT,CINT7-B-NOPF-CENTNOTRD";
-    mAliases[kEMC7] = "CEMC7-B-NOPF-CENTNOPMD,CDMC7-B-NOPF-CENTNOPMD";
-    mAliases[kINT7inMUON] = "CINT7-B-NOPF-MUFAST";
-    mAliases[kMuonSingleLowPt7] = "CMSL7-B-NOPF-MUFAST";
-    mAliases[kMuonUnlikeLowPt7] = "CMUL7-B-NOPF-MUFAST";
-    mAliases[kMuonLikeLowPt7] = "CMLL7-B-NOPF-MUFAST";
-    mAliases[kCUP8] = "CCUP8-B-NOPF-CENTNOTRD";
-    mAliases[kCUP9] = "CCUP9-B-NOPF-CENTNOTRD";
-    mAliases[kMUP10] = "CMUP10-B-NOPF-MUFAST";
-    mAliases[kMUP11] = "CMUP11-B-NOPF-MUFAST";
-  }
-
   void init(InitContext&)
   {
-    // TODO read run number from configurables
-    int run = 244918;
-
-    // read ClassNameToIndexMap from ccdb
-    o2::ccdb::CcdbApi ccdb;
-    map<string, string> metadata;
-    ccdb.init("http://ccdb-test.cern.ch:8080");
-    pClassNameToIndexMap = ccdb.retrieveFromTFileAny<map<string, int>>("Trigger/ClassNameToIndexMap", metadata, run);
-
-    LOGF(debug, "List of trigger classes");
-    for (auto& cl : *pClassNameToIndexMap) {
-      LOGF(debug, "class %02d %s", cl.second, cl.first);
-    }
-
-    // TODO read aliases from CCDB
-    createAliases();
-
-    LOGF(debug, "Fill map of alias-to-class-indices");
-    for (auto& al : mAliases) {
-      LOGF(debug, "alias classes: %s", al.second.data());
-      TObjArray* tokens = TString(al.second).Tokenize(",");
-      for (int iClasses = 0; iClasses < tokens->GetEntriesFast(); iClasses++) {
-        string className = tokens->At(iClasses)->GetName();
-        int index = (*pClassNameToIndexMap)[className] - 1;
-        if (index < 0 || index > 63)
-          continue;
-        mAliasToClassIds[al.first].push_back(index);
-      }
-      delete tokens;
-    }
-
-    // TODO Fill EvSelParameters with configurable cuts from CCDB
+    ccdb->setURL("http://ccdb-test.cern.ch:8080");
+    ccdb->setCaching(true);
+    ccdb->setLocalObjectValidityChecking();
   }
 
-  void process(aod::Collision const& collision, aod::BCs const& bcs, aod::Zdcs const& zdcs, aod::Run2V0s const& vzeros, aod::FDDs const& fdds)
+  void process(aod::Collision const& collision, aod::BCs const& bcs, aod::Timestamps& timestamps, aod::Zdcs const& zdcs, aod::Run2V0s const& vzeros, aod::FDDs const& fdds)
   {
-    LOGF(debug, "Starting new event");
-    // CTP info
+    auto ts = timestamps.iteratorAt(collision.bcId());
+    LOGF(debug, "timestamp=%llu", ts.timestamp());
+    TriggerAliases* aliases = ccdb->getForTimeStamp<TriggerAliases>("Trigger/TriggerAliases", ts.timestamp());
+    if (!aliases) {
+      LOGF(fatal, "Trigger aliases are not available in CCDB for run=%d at timestamp=%llu", collision.bc().runNumber(), ts.timestamp());
+    }
     uint64_t triggerMask = collision.bc().triggerMask();
     LOGF(debug, "triggerMask=%llu", triggerMask);
+
     // fill fired aliases
-    int32_t alias[nAliases] = {0};
-    for (auto& al : mAliasToClassIds) {
+    int32_t alias[kNaliases] = {0};
+    for (auto& al : aliases->GetAliasToClassIdsMap()) {
       for (auto& classIndex : al.second) {
         alias[al.first] |= (triggerMask & (1ull << classIndex)) > 0;
       }
     }
-
-    // for (int i=0;i<64;i++) printf("%i",(triggerMask & (1ull << i)) > 0); printf("\n");
-    // for (int i=0;i<nAliases;i++) printf("%i ",alias[i]); printf("\n");
 
     // ZDC info
     auto zdc = getZdc(collision.bc(), zdcs);
@@ -185,6 +139,11 @@ struct EventSelectionTask {
     bool bbFDC = timeFDC > par.fFDCBBlower && timeFDC < par.fFDCBBupper;
     bool bgFDA = timeFDA > par.fFDABGlower && timeFDA < par.fFDABGupper;
     bool bgFDC = timeFDC > par.fFDCBGlower && timeFDC < par.fFDCBGupper;
+
+    if (isMC) {
+      bbZNA = 1;
+      bbZNC = 1;
+    }
 
     // Fill event selection columns
     evsel(alias, bbV0A, bbV0C, bgV0A, bgV0C, bbZNA, bbZNC, bbFDA, bbFDC, bgFDA, bgFDC);

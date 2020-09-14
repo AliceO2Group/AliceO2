@@ -17,12 +17,18 @@
 #if defined(__OPENCL__)
 #define LOG(...)
 #define LOGF(...)
+
+#elif defined(GPUCA_GPUCODE_DEVICE)
+#define LOG(...)
+#define LOGF(type, string, ...)         \
+  {                                     \
+    printf(string "\n", ##__VA_ARGS__); \
+  }
+
 #elif defined(GPUCA_STANDALONE) ||                    \
   defined(GPUCA_ALIROOT_LIB) ||                       \
-  defined(GPUCA_GPUCODE_DEVICE) ||                    \
   (!defined(__cplusplus) || __cplusplus < 201703L) || \
   (defined(__HIPCC__) && (!defined(_GLIBCXX_USE_CXX11_ABI) || _GLIBCXX_USE_CXX11_ABI == 0))
-
 #include <iostream>
 #include <cstdio>
 #define LOG(type) std::cout
@@ -32,7 +38,6 @@
   }
 
 #else
-
 #include <Framework/Logger.h>
 
 #endif

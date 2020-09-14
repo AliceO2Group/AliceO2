@@ -92,6 +92,7 @@ Important parameters influencing the transport simulation are:
 | Diamond | Parameter allowing to set the interaction vertex location and the spread/width. Is used in all event generators. |
 | Pythia6 | Parameters that influence the pythia6 generator. |
 | Pythia8 | Parameters that influence the pythia8 generator. |
+| HepMC | Parameters that influence the HepMC generator. |
 | TriggerParticle | Parameters influencing the trigger mechanism in particle generators. |
 
 Detectors may also have parameters influencing various pieces such geometry layout, material composition etc.
@@ -258,7 +259,7 @@ This functionality might be of use for users who want to be able to steer the ev
 An example of a configuration macro is this one
 
 ```
-//   usage: o2sim -g pythia8 --configKeyValue "Pythia8.hooksFileName=pythia8_userhooks_charm.C"
+//   usage: o2sim -g pythia8 --configKeyValues "Pythia8.hooksFileName=pythia8_userhooks_charm.C"
 
 #include "Generators/Trigger.h"
 #include "Pythia8/Pythia.h"
@@ -450,7 +451,9 @@ Other helpful resources are the scripts used for regression testing in [prodtest
 
 | Example               | Short Description                                                                      |
 | --------------------- | -------------------------------------------------------------------------------------- |
+| [HF_Embedding_Pythia8](../run/SimExamples/HF_Embedding_Pythia8) | Example showing how to setup a complex HF simulation for embedding |
 | [AliRoot_Hijing](../run/SimExamples/AliRoot_Hijing) | Example showing how to use Hijing from AliRoot for event generation |
+| [AliRoot_AMPT](../run/SimExamples/AliRoot_AMPT) | Example showing how to use AMPT from AliRoot for event generation |
 | [Adaptive_Pythia8](../run/SimExamples/Adaptive_Pythia8) | Complex example showing **generator configuration for embedding** that cat adapt the response based on the background event |
 | [Signal_ImpactB](../run/SimExamples/Signal_ImpactB) | Example showing **generator configuration for embedding** that cat adapt to the impact parameter of the background event |
 | [HepMC_STARlight](../run/SimExamples/HepMC_STARlight) | Simple example showing **generator configuration** that runs a standalone `STARlight` generation that couples to the `o2` via a `HepMC` file |

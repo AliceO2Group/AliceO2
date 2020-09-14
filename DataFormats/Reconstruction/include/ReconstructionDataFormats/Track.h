@@ -200,6 +200,9 @@ class TrackPar
 
   void invertParam();
 
+  bool isValid() const { return mX != InvalidX; }
+  void invalidate() { mX = InvalidX; }
+
 #ifndef GPUCA_ALIGPUCODE
   void printParam() const;
   std::string asString() const;
@@ -217,6 +220,7 @@ class TrackPar
 
  private:
   //
+  static constexpr float InvalidX = -99999.;
   float mX = 0.f;             /// X of track evaluation
   float mAlpha = 0.f;         /// track frame angle
   float mP[kNParams] = {0.f}; /// 5 parameters: Y,Z,sin(phi),tg(lambda),q/pT
@@ -256,6 +260,8 @@ class TrackParCov : public TrackPar
   float getSigma1Pt2() const { return mC[kSigQ2Pt2]; }
   float getCovarElem(int i, int j) const { return mC[CovarMap[i][j]]; }
   float getDiagError2(int i) const { return mC[DiagMap[i]]; }
+
+  bool getCovXYZPxPyPzGlo(std::array<float, 21>& c) const;
 
 #ifndef GPUCA_ALIGPUCODE
   void print() const;
@@ -348,7 +354,9 @@ inline void TrackPar::getCircleParamsLoc(float bz, o2::utils::CircleXY& c) const
 {
   // get circle params in track local frame, for straight line just set to local coordinates
   c.rC = getCurvature(bz);
-  if (std::abs(c.rC) > o2::constants::math::Almost0) {
+  // treat as straight track if sagitta between the vertex and middle of TPC is below 0.01 cm
+  constexpr float MinSagitta = 0.01, TPCMidR = 160., MinCurv = 8 * MinSagitta / (TPCMidR * TPCMidR);
+  if (std::abs(c.rC) > MinCurv) {
     c.rC = 1.f / getCurvature(bz);
     float sn = getSnp(), cs = sqrtf((1. - sn) * (1. + sn));
     c.xC = getX() - sn * c.rC; // center in tracking

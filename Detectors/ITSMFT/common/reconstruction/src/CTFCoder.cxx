@@ -20,19 +20,18 @@ using namespace o2::itsmft;
 
 ///___________________________________________________________________________________
 // Register encoded data in the tree (Fill is not called, will be done by caller)
-void CTFCoder::appendToTree(TTree& tree, o2::detectors::DetID id, CTF& ec)
+void CTFCoder::appendToTree(TTree& tree, CTF& ec)
 {
-  ec.appendToTree(tree, id.getName());
+  ec.appendToTree(tree, mDet.getName());
 }
 
 ///___________________________________________________________________________________
 // extract and decode data from the tree
-void CTFCoder::readFromTree(TTree& tree, int entry, o2::detectors::DetID id,
-                            std::vector<ROFRecord>& rofRecVec, std::vector<CompClusterExt>& cclusVec, std::vector<unsigned char>& pattVec)
+void CTFCoder::readFromTree(TTree& tree, int entry, std::vector<ROFRecord>& rofRecVec, std::vector<CompClusterExt>& cclusVec, std::vector<unsigned char>& pattVec)
 {
   assert(entry >= 0 && entry < tree.GetEntries());
   CTF ec;
-  ec.readFromTree(tree, id.getName(), entry);
+  ec.readFromTree(tree, mDet.getName(), entry);
   decode(ec, rofRecVec, cclusVec, pattVec);
 }
 
@@ -118,4 +117,72 @@ void CTFCoder::compress(CompressedClusters& cc,
   cc.header.nChips = cc.chipMul.size();
   // store explicit patters as they are
   memcpy(cc.pattMap.data(), pattVec.data(), cc.header.nPatternBytes); // RSTODO: do we need this?
+}
+
+///________________________________
+void CTFCoder::createCoders(const std::string& dictPath, o2::ctf::CTFCoderBase::OpType op)
+{
+  bool mayFail = true; // RS FIXME if the dictionary file is not there, do not produce exception
+  auto buff = readDictionaryFromFile<CTF>(dictPath, mayFail);
+  if (!buff.size()) {
+    if (mayFail) {
+      return;
+    }
+    throw std::runtime_error("Failed to create CTF dictionaty");
+  }
+  const auto* ctf = CTF::get(buff.data());
+
+  auto getFreq = [ctf](CTF::Slots slot) -> o2::rans::FrequencyTable {
+    o2::rans::FrequencyTable ft;
+    auto bl = ctf->getBlock(slot);
+    auto md = ctf->getMetadata(slot);
+    ft.addFrequencies(bl.getDict(), bl.getDict() + bl.getNDict(), md.min, md.max);
+    return std::move(ft);
+  };
+  auto getProbBits = [ctf](CTF::Slots slot) -> int {
+    return ctf->getMetadata(slot).probabilityBits;
+  };
+
+  CompressedClusters cc; // just to get member types
+#define MAKECODER(part, slot) createCoder<decltype(part)::value_type>(op, getFreq(slot), getProbBits(slot), int(slot))
+  // clang-format off
+  MAKECODER(cc.firstChipROF, CTF::BLCfirstChipROF);
+  MAKECODER(cc.bcIncROF,     CTF::BLCbcIncROF    );
+  MAKECODER(cc.orbitIncROF,  CTF::BLCorbitIncROF );
+  MAKECODER(cc.nclusROF,     CTF::BLCnclusROF    );
+  //
+  MAKECODER(cc.chipInc,      CTF::BLCchipInc     );
+  MAKECODER(cc.chipMul,      CTF::BLCchipMul     );
+  MAKECODER(cc.row,          CTF::BLCrow         );
+  MAKECODER(cc.colInc,       CTF::BLCcolInc      );
+  MAKECODER(cc.pattID,       CTF::BLCpattID      );
+  MAKECODER(cc.pattMap,      CTF::BLCpattMap     );
+  // clang-format on
+}
+
+///________________________________
+size_t CTFCoder::estimateCompressedSize(const CompressedClusters& cc)
+{
+  size_t sz = 0;
+  // clang-format off
+  // RS FIXME this is very crude estimate, instead, an empirical values should be used
+#define VTP(vec) typename std::remove_reference<decltype(vec)>::type::value_type
+#define ESTSIZE(vec, slot) mCoders[int(slot)] ?                         \
+  rans::calculateMaxBufferSize(vec.size(), reinterpret_cast<const o2::rans::LiteralEncoder64<VTP(vec)>*>(mCoders[int(slot)].get())->getAlphabetRangeBits(), sizeof(VTP(vec)) ) : vec.size()*sizeof(VTP(vec))
+  sz += ESTSIZE(cc.firstChipROF, CTF::BLCfirstChipROF);
+  sz += ESTSIZE(cc.bcIncROF,     CTF::BLCbcIncROF    );
+  sz += ESTSIZE(cc.orbitIncROF,  CTF::BLCorbitIncROF );
+  sz += ESTSIZE(cc.nclusROF,     CTF::BLCnclusROF    );
+  //
+  sz += ESTSIZE(cc.chipInc,      CTF::BLCchipInc     );
+  sz += ESTSIZE(cc.chipMul,      CTF::BLCchipMul     );
+  sz += ESTSIZE(cc.row,          CTF::BLCrow         );
+  sz += ESTSIZE(cc.colInc,       CTF::BLCcolInc      );
+  sz += ESTSIZE(cc.pattID,       CTF::BLCpattID      );
+  sz += ESTSIZE(cc.pattMap,      CTF::BLCpattMap     );
+
+  // clang-format on
+
+  LOG(INFO) << "Estimated output size is " << sz << " bytes";
+  return sz;
 }

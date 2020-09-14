@@ -9,8 +9,8 @@
 // or submit itself to any jurisdiction.
 
 /// \file PowerSupplyUnit.cxx
-/// \brief Class building the MFT heat exchanger
-/// \author P. Demongodin, Raphael Tieulent <raphael.tieulent@cern.ch>
+/// \brief Class building the MFT Power Supply Unit
+/// \author Satoshi Yano
 
 #include "TMath.h"
 #include "TGeoManager.h"
@@ -20,6 +20,7 @@
 #include "TGeoCone.h"
 #include "TGeoBoolNode.h"
 #include "TGeoBBox.h"
+#include "TGeoSphere.h"
 #include "TGeoVolume.h"
 #include "FairLogger.h"
 #include "MFTBase/Constants.h"
@@ -40,703 +41,1176 @@ PowerSupplyUnit::PowerSupplyUnit()
 TGeoVolumeAssembly* PowerSupplyUnit::create()
 {
 
-  //fm auto* mPowerSupplyUnit = new TGeoVolumeAssembly();
-
-  new TGeoBBox("dummy", 0, 0, 0);
+  //TGeoManager *gManager = new TGeoManager();
 
   TGeoMedium* kMedPeek = gGeoManager->GetMedium("MFT_PEEK$");
   TGeoMedium* kMed_Water = gGeoManager->GetMedium("MFT_Water$");
   TGeoMedium* kMedAlu = gGeoManager->GetMedium("MFT_Alu$");
-  TGeoMedium* kMedCu = gGeoManager->GetMedium("MFT_Cu$");
 
   TGeoVolumeAssembly* mHalfPSU = new TGeoVolumeAssembly("PSU");
 
+  Double_t delta_thickness = 0.2;
+
+  Double_t water_pipe_main_position_radius = (18.62 + 18.18) / 2.;
+
+  Double_t block_widest_angle = 126.07;
+  Double_t block_radius = (19.5 + 17.7) / 2.;
+  Double_t block_angle_index[] = {126.08, 114.03, 101.91, 89.96, 77.88, 66.06, 54.16, 42.06, 30, 17.99, 6.07};
+
   ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-  //Middle peek part
+  //Middle Spacer
   ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-  Double_t middle_board_thickness = 0.8;
-  Double_t middle_board_max_radius1 = 26.432;
-  Double_t middle_board_min_radius1 = 17.0;
-  Double_t middleBox_sub_angle2 = 112.26 * TMath::Pi() / 180.;
-  Double_t middleBox_sub_width1 = 20.8;
+  std::string name_middle_spacer_main_cover = "";
 
-  Double_t middleBox_sub_height1 = middle_board_max_radius1 * (1 - sqrt(1 - pow(middleBox_sub_width1 / 2. / middle_board_max_radius1, 2)));
+  //main
+  Double_t middle_spacer_main_thickness = 0.50;
+  Double_t middle_spacer_main_min_radius1 = 17.0;
+  Double_t middle_spacer_main_max_radius1 = 21.7;
+  Double_t middle_spacer_main_sub_rectangle_top_height = 5 + 2.787;
+  Double_t middle_spacer_main_sub_rectangle_top_width = middle_spacer_main_max_radius1 * 2;
 
-  Double_t middleBox_sub_width2 = 2 * middle_board_max_radius1;
-  Double_t middleBox_sub_height2 = 2 * middle_board_min_radius1 * TMath::Cos(middleBox_sub_angle2 / 2);
+  TGeoTubeSeg* middle_spacer_main_arc = new TGeoTubeSeg("middle_spacer_main_arc", middle_spacer_main_min_radius1, middle_spacer_main_max_radius1, middle_spacer_main_thickness / 2, 180, 0);
+  TGeoBBox* middle_spacer_main_sub_rectangle_top = new TGeoBBox("middle_spacer_main_sub_rectangle_top", middle_spacer_main_sub_rectangle_top_width / 2., middle_spacer_main_sub_rectangle_top_height / 2., middle_spacer_main_thickness / 2. + delta_thickness);
+  TGeoTranslation* trans_middle_spacer_main_sub_rectangle_top = new TGeoTranslation("trans_middle_spacer_main_sub_rectangle_top", 0, -middle_spacer_main_sub_rectangle_top_height / 2, 0);
+  trans_middle_spacer_main_sub_rectangle_top->RegisterYourself();
 
-  new TGeoTubeSeg("middleTubeSeg1", middle_board_min_radius1, middle_board_max_radius1, middle_board_thickness / 2, 180, 0);
-  new TGeoBBox("middleBox_sub1", middleBox_sub_width1 / 2, middleBox_sub_height1 / 2, middle_board_thickness);
-  new TGeoBBox("middleBox_sub2", middleBox_sub_width2 / 2, middleBox_sub_height2 / 2, middle_board_thickness);
+  Double_t middle_spacer_main_add_rectangle_side_height = 4.5 + 1.5;
+  Double_t middle_spacer_main_add_rectangle_side_width = 9.0;
+  TGeoBBox* middle_spacer_main_add_rectangle_side = new TGeoBBox("middle_spacer_main_add_rectangle_side", middle_spacer_main_add_rectangle_side_width / 2., middle_spacer_main_add_rectangle_side_height / 2., middle_spacer_main_thickness / 2.);
+  TGeoTranslation* trans_middle_spacer_main_add_rectangle_side_left = new TGeoTranslation("trans_middle_spacer_main_add_rectangle_side_left", 28.4 / 2. + middle_spacer_main_add_rectangle_side_width / 2., -5 - middle_spacer_main_add_rectangle_side_height / 2., 0);
+  TGeoTranslation* trans_middle_spacer_main_add_rectangle_side_right = new TGeoTranslation("trans_middle_spacer_main_add_rectangle_side_right", -(28.4 / 2. + middle_spacer_main_add_rectangle_side_width / 2.), -5 - middle_spacer_main_add_rectangle_side_height / 2., 0);
+  trans_middle_spacer_main_add_rectangle_side_left->RegisterYourself();
+  trans_middle_spacer_main_add_rectangle_side_right->RegisterYourself();
 
-  auto* tmiddleBox_sub1 = new TGeoTranslation("tmiddleBox_sub1", 0, -(middle_board_max_radius1 - middleBox_sub_height1 / 2), 0);
-  auto* tmiddleBox_sub2 = new TGeoTranslation("tmiddleBox_sub2", 0., 0., 0.);
-  tmiddleBox_sub1->RegisterYourself();
-  tmiddleBox_sub2->RegisterYourself();
+  Double_t middle_spacer_main_add_rectangle_side_small_thickness = 1.18;
+  Double_t middle_spacer_main_add_rectangle_side_small_height = 1.5;
+  Double_t middle_spacer_main_add_rectangle_side_small_width = 2.4;
+  TGeoBBox* middle_spacer_main_add_rectangle_side_small = new TGeoBBox("middle_spacer_main_add_rectangle_side_small", middle_spacer_main_add_rectangle_side_small_width / 2., middle_spacer_main_add_rectangle_side_small_height / 2., middle_spacer_main_add_rectangle_side_small_thickness / 2.);
+  TGeoTranslation* trans_middle_spacer_main_add_rectangle_side_small_left = new TGeoTranslation("trans_middle_spacer_main_add_rectangle_side_small_left", 28.4 / 2. + middle_spacer_main_add_rectangle_side_width + middle_spacer_main_add_rectangle_side_small_width / 2, -5 - middle_spacer_main_add_rectangle_side_small_height / 2., 0);
+  TGeoTranslation* trans_middle_spacer_main_add_rectangle_side_small_right = new TGeoTranslation("trans_middle_spacer_main_add_rectangle_side_small_right", -(28.4 / 2. + middle_spacer_main_add_rectangle_side_width + middle_spacer_main_add_rectangle_side_small_width / 2), -5 - middle_spacer_main_add_rectangle_side_small_height / 2., 0);
+  trans_middle_spacer_main_add_rectangle_side_small_left->RegisterYourself();
+  trans_middle_spacer_main_add_rectangle_side_small_right->RegisterYourself();
 
-  Double_t middleBox_edge_width1 = 11.4;
-  Double_t middleBox_edge_height1 = 4.996;
+  TGeoCompositeShape* middle_spacer_main = new TGeoCompositeShape("middle_spacer_main",
+                                                                  "middle_spacer_main_arc - middle_spacer_main_sub_rectangle_top:trans_middle_spacer_main_sub_rectangle_top"
+                                                                  " + middle_spacer_main_add_rectangle_side:trans_middle_spacer_main_add_rectangle_side_left + middle_spacer_main_add_rectangle_side:trans_middle_spacer_main_add_rectangle_side_right"
+                                                                  " + middle_spacer_main_add_rectangle_side_small:trans_middle_spacer_main_add_rectangle_side_small_left + middle_spacer_main_add_rectangle_side_small:trans_middle_spacer_main_add_rectangle_side_small_right");
 
-  Double_t middleBox_edge_sub_width1 = 1.8 + 0.5 * 2;
-  Double_t middleBox_edge_sub_height1 = 6.025 + 0.5 * 2;
+  //Cover
 
-  Double_t middleBox_edge_sub_width2 = 1.1;
-  Double_t middleBox_edge_sub_height2 = 1.0;
+  Double_t middle_spacer_cover_thickness = 0.15;
+  Double_t middle_spacer_cover_arc_max_radius = 19.5;
+  Double_t middle_spacer_cover_arc_min_radius = 17.0;
+  TGeoTubeSeg* middle_spacer_cover_arc = new TGeoTubeSeg("middle_spacer_cover_arc", middle_spacer_cover_arc_min_radius, middle_spacer_cover_arc_max_radius, middle_spacer_cover_thickness / 2, 180, 0);
+  TGeoTranslation* trans_middle_spacer_cover_arc = new TGeoTranslation("trans_middle_spacer_cover_arc", 0, 0, middle_spacer_main_thickness / 2 + middle_spacer_cover_thickness / 2);
+  trans_middle_spacer_cover_arc->RegisterYourself();
 
-  Double_t middleBox_edge_sub_height3 = 1.3;
+  Double_t middle_spacer_cover_sub_rectangle_top_height = 5.0 + 1.5 + 1.9;
+  Double_t middle_spacer_cover_sub_rectangle_top_width = middle_spacer_cover_arc_max_radius * 2;
+  TGeoBBox* middle_spacer_cover_sub_rectangle_top = new TGeoBBox("middle_spacer_cover_sub_rectangle_top", middle_spacer_cover_sub_rectangle_top_width / 2., middle_spacer_cover_sub_rectangle_top_height, middle_spacer_cover_thickness / 2. + delta_thickness);
+  TGeoTranslation* trans_middle_spacer_cover_sub_rectangle_top = new TGeoTranslation("trans_middle_spacer_cover_sub_rectangle_top", 0, 0, middle_spacer_main_thickness / 2 + middle_spacer_cover_thickness / 2);
+  trans_middle_spacer_cover_sub_rectangle_top->RegisterYourself();
 
-  new TGeoBBox("middleBox_edge1", middleBox_edge_width1 / 2, middleBox_edge_height1 / 2, middle_board_thickness / 2);
-  new TGeoBBox("middleBox_edge_sub1", middleBox_edge_sub_width1 / 2, middleBox_edge_sub_height1 / 2, middle_board_thickness);
-  new TGeoBBox("middleBox_edge_sub2", middleBox_edge_sub_width2 / 2, middleBox_edge_sub_height2 / 2, middle_board_thickness);
+  Double_t middle_spacer_cover_rectangle_side1_height = 1.9;
+  Double_t middle_spacer_cover_rectangle_side1_width_left = 4.2;  //rahgh
+  Double_t middle_spacer_cover_rectangle_side1_width_right = 8.8; //rahgh
+  TGeoBBox* middle_spacer_cover_rectangle_side1_left = new TGeoBBox("middle_spacer_cover_rectangle_side1_left", middle_spacer_cover_rectangle_side1_width_left / 2., middle_spacer_cover_rectangle_side1_height / 2., middle_spacer_cover_thickness / 2.);
+  TGeoBBox* middle_spacer_cover_rectangle_side1_right = new TGeoBBox("middle_spacer_cover_rectangle_side1_right", middle_spacer_cover_rectangle_side1_width_right / 2., middle_spacer_cover_rectangle_side1_height / 2., middle_spacer_cover_thickness / 2.);
+  TGeoTranslation* trans_middle_spacer_cover_rectangle_side1_left = new TGeoTranslation("trans_middle_spacer_cover_rectangle_side1_left", 28.4 / 2 + middle_spacer_cover_rectangle_side1_width_left / 2, -5 - 1.5 - 1.9 + middle_spacer_cover_rectangle_side1_height / 2, middle_spacer_main_thickness / 2 + middle_spacer_cover_thickness / 2);
+  TGeoTranslation* trans_middle_spacer_cover_rectangle_side1_right = new TGeoTranslation("trans_middle_spacer_cover_rectangle_side1_right", -(28.4 / 2 + middle_spacer_cover_rectangle_side1_width_right / 2), -5 - 1.5 - 1.9 + middle_spacer_cover_rectangle_side1_height / 2, middle_spacer_main_thickness / 2 + middle_spacer_cover_thickness / 2);
+  trans_middle_spacer_cover_rectangle_side1_left->RegisterYourself();
+  trans_middle_spacer_cover_rectangle_side1_right->RegisterYourself();
 
-  auto* tmiddleBox_edge_right1 = new TGeoTranslation("tmiddleBox_edge_right1",
-                                                     middle_board_min_radius1 * TMath::Sin(middleBox_sub_angle2 / 2) + middleBox_edge_width1 / 2,
-                                                     -(middle_board_min_radius1 * TMath::Cos(middleBox_sub_angle2 / 2) - middleBox_edge_height1 / 2), 0);
-  auto* tmiddleBox_edge_sub_right1 = new TGeoTranslation("tmiddleBox_edge_sub_right1",
-                                                         middle_board_min_radius1 * TMath::Sin(middleBox_sub_angle2 / 2) + middleBox_edge_width1 - middleBox_edge_sub_width1 / 2,
-                                                         -middle_board_min_radius1 * TMath::Cos(middleBox_sub_angle2 / 2) + middleBox_edge_height1 - middleBox_edge_sub_height2 - middleBox_edge_sub_height3 - middleBox_edge_sub_height1 / 2,
-                                                         0);
-  auto* tmiddleBox_edge_sub_right2 = new TGeoTranslation("tmiddleBox_edge_sub_right2",
-                                                         middle_board_min_radius1 * TMath::Sin(middleBox_sub_angle2 / 2) + middleBox_edge_width1 - middleBox_edge_sub_width2 / 2,
-                                                         -(middle_board_min_radius1 * TMath::Cos(middleBox_sub_angle2 / 2) - middleBox_edge_height1 / 2) + middleBox_edge_height1 / 2 - middleBox_edge_sub_height2 / 2,
-                                                         0);
+  Double_t middle_spacer_cover_rectangle_side2_height = 1.5;
+  Double_t middle_spacer_cover_rectangle_side2_width = 2.0; //rahgh
+  TGeoBBox* middle_spacer_cover_rectangle_side2 = new TGeoBBox("middle_spacer_cover_rectangle_side2", middle_spacer_cover_rectangle_side2_width / 2., middle_spacer_cover_rectangle_side2_height / 2., middle_spacer_cover_thickness / 2.);
+  TGeoTranslation* trans_middle_spacer_cover_rectangle_side2_left = new TGeoTranslation("trans_middle_spacer_cover_rectangle_side2_left", 28.4 / 2 + middle_spacer_cover_rectangle_side2_width / 2, -5 - 1.5 - 2.787 + middle_spacer_cover_rectangle_side2_height / 2, middle_spacer_main_thickness / 2 + middle_spacer_cover_thickness / 2);
+  TGeoTranslation* trans_middle_spacer_cover_rectangle_side2_right = new TGeoTranslation("trans_middle_spacer_cover_rectangle_side2_right", -(28.4 / 2 + middle_spacer_cover_rectangle_side2_width / 2), -5 - 1.5 - 2.787 + middle_spacer_cover_rectangle_side2_height / 2, middle_spacer_main_thickness / 2 + middle_spacer_cover_thickness / 2);
+  trans_middle_spacer_cover_rectangle_side2_left->RegisterYourself();
+  trans_middle_spacer_cover_rectangle_side2_right->RegisterYourself();
 
-  auto* tmiddleBox_edge_left1 = new TGeoTranslation("tmiddleBox_edge_left1",
-                                                    -(middle_board_min_radius1 * TMath::Sin(middleBox_sub_angle2 / 2) + middleBox_edge_width1 / 2),
-                                                    -(middle_board_min_radius1 * TMath::Cos(middleBox_sub_angle2 / 2) - middleBox_edge_height1 / 2), 0);
-  auto* tmiddleBox_edge_sub_left1 = new TGeoTranslation("tmiddleBox_edge_sub_left1",
-                                                        -(middle_board_min_radius1 * TMath::Sin(middleBox_sub_angle2 / 2) + middleBox_edge_width1 - middleBox_edge_sub_width1 / 2),
-                                                        -middle_board_min_radius1 * TMath::Cos(middleBox_sub_angle2 / 2) + middleBox_edge_height1 - middleBox_edge_sub_height2 - middleBox_edge_sub_height3 - middleBox_edge_sub_height1 / 2,
-                                                        0);
-  auto* tmiddleBox_edge_sub_left2 = new TGeoTranslation("tmiddleBox_edge_sub_left2",
-                                                        -(middle_board_min_radius1 * TMath::Sin(middleBox_sub_angle2 / 2) + middleBox_edge_width1 - middleBox_edge_sub_width2 / 2),
-                                                        -(middle_board_min_radius1 * TMath::Cos(middleBox_sub_angle2 / 2) - middleBox_edge_height1 / 2) + middleBox_edge_height1 / 2 - middleBox_edge_sub_height2 / 2,
-                                                        0);
+  Double_t middle_spacer_cover_rectangle_side3_height = 1.9;
+  Double_t middle_spacer_cover_rectangle_side3_width = 2.1; //rahgh
+  TGeoBBox* middle_spacer_cover_rectangle_side3 = new TGeoBBox("middle_spacer_cover_rectangle_side3", middle_spacer_cover_rectangle_side3_width / 2., middle_spacer_cover_rectangle_side3_height / 2., middle_spacer_cover_thickness / 2.);
+  TGeoTranslation* trans_middle_spacer_cover_rectangle_side3 = new TGeoTranslation("trans_middle_spacer_cover_rectangle_side3", 28.4 / 2 + 8.8 - middle_spacer_cover_rectangle_side3_width / 2, -5 - 1.5 - middle_spacer_cover_rectangle_side3_height / 2, middle_spacer_main_thickness / 2 + middle_spacer_cover_thickness / 2);
+  trans_middle_spacer_cover_rectangle_side3->RegisterYourself();
 
-  tmiddleBox_edge_right1->RegisterYourself();
-  tmiddleBox_edge_sub_right1->RegisterYourself();
-  tmiddleBox_edge_sub_right2->RegisterYourself();
+  name_middle_spacer_main_cover +=
+    " middle_spacer_cover_arc:trans_middle_spacer_cover_arc - middle_spacer_cover_sub_rectangle_top:trans_middle_spacer_cover_sub_rectangle_top"
+    " + middle_spacer_cover_rectangle_side1_left:trans_middle_spacer_cover_rectangle_side1_left + middle_spacer_cover_rectangle_side1_right:trans_middle_spacer_cover_rectangle_side1_right"
+    " + middle_spacer_cover_rectangle_side2:trans_middle_spacer_cover_rectangle_side2_left + middle_spacer_cover_rectangle_side2:trans_middle_spacer_cover_rectangle_side2_right"
+    " + middle_spacer_cover_rectangle_side3:trans_middle_spacer_cover_rectangle_side3";
 
-  tmiddleBox_edge_left1->RegisterYourself();
-  tmiddleBox_edge_sub_left1->RegisterYourself();
-  tmiddleBox_edge_sub_left2->RegisterYourself();
+  Double_t middle_spacer_cover_block_thickness = 0.19;
+  Double_t middle_spacer_cover_block_height = 1.0;
+  Double_t middle_spacer_cover_block_width = 1.0;
+  Double_t middle_spacer_cover_block_position_z = middle_spacer_main_thickness / 2. + middle_spacer_cover_thickness + middle_spacer_cover_block_thickness / 2.;
 
-  Double_t middleBox_side_lack_radius1 = 25.0;
-  Double_t middleBox_side_lack_height1 = 0.937 + 0.5;
-  Double_t middleBox_side_lack_angle1 = 24.75 + (2 * 0.5 * 360) / (2 * TMath::Pi() * middleBox_side_lack_radius1);
+  TGeoBBox* middle_spacer_cover_block = new TGeoBBox("middle_spacer_cover_block", middle_spacer_cover_block_width / 2, middle_spacer_cover_block_height / 2, middle_spacer_cover_block_thickness / 2);
 
-  Double_t middleBox_side_lack_position_angle_min_right1 = 270 - middleBox_side_lack_angle1 - 9.83 - TMath::ASin(middleBox_sub_width1 / 2 / middle_board_max_radius1) * 180 / TMath::Pi();
-  Double_t middleBox_side_lack_position_angle_max_right1 = 270 - 9.83 - TMath::ASin(middleBox_sub_width1 / 2 / middle_board_max_radius1) * 180 / TMath::Pi();
+  TGeoCompositeShape* rotated_middle_spacer_cover_block[24];
+  for (Int_t iB = 0; iB < 11; ++iB) {
 
-  new TGeoTubeSeg("middleBox_side_lack_right1", middleBox_side_lack_radius1, middle_board_max_radius1, middle_board_thickness, middleBox_side_lack_position_angle_min_right1, middleBox_side_lack_position_angle_max_right1);
+    Double_t block_angle = (180. - block_angle_index[iB]) / 2. * TMath::Pi() / 180.;
 
-  Double_t middleBox_side_lack_position_angle_min_left1 = 360 - middleBox_side_lack_angle1 - 9.83 - TMath::ASin(middleBox_sub_width1 / 2 / middle_board_max_radius1) * 180 / TMath::Pi();
-  Double_t middleBox_side_lack_position_angle_max_left1 = 360 - 9.83 - TMath::ASin(middleBox_sub_width1 / 2 / middle_board_max_radius1) * 180 / TMath::Pi();
+    TGeoRotation* rotate_electric_board_sub_box_left = new TGeoRotation(Form("rotate_middle_spacer_cover_block_No%d", iB * 2), 180 - block_angle * 180. / TMath::Pi(), 0, 0);
+    TGeoRotation* rotate_electric_board_sub_box_right = new TGeoRotation(Form("rotate_middle_spacer_cover_block_No%d", iB * 2 + 1), block_angle * 180. / TMath::Pi(), 0, 0);
+    rotate_electric_board_sub_box_left->RegisterYourself();
+    rotate_electric_board_sub_box_right->RegisterYourself();
 
-  new TGeoTubeSeg("middleBox_side_lack_left1", middleBox_side_lack_radius1, middle_board_max_radius1, middle_board_thickness, middleBox_side_lack_position_angle_min_left1, middleBox_side_lack_position_angle_max_left1);
+    Double_t cent_block_left[] = {block_radius * TMath::Cos(block_angle), -block_radius * TMath::Sin(block_angle), middle_spacer_cover_block_position_z};
+    Double_t cent_block_right[] = {block_radius * TMath::Cos(TMath::Pi() - block_angle), -block_radius * TMath::Sin(TMath::Pi() - block_angle), middle_spacer_cover_block_position_z};
 
-  new TGeoCompositeShape("middle_board_shape",
-                         "middleTubeSeg1"
-                         "-middleBox_sub1:tmiddleBox_sub1"
-                         "-middleBox_sub2:tmiddleBox_sub2"
-                         "+middleBox_edge1:tmiddleBox_edge_right1 - middleBox_edge_sub1:tmiddleBox_edge_sub_right1 - middleBox_edge_sub2:tmiddleBox_edge_sub_right2"
-                         "+middleBox_edge1:tmiddleBox_edge_left1 - middleBox_edge_sub1:tmiddleBox_edge_sub_left1 - middleBox_edge_sub2:tmiddleBox_edge_sub_left2"
-                         "-middleBox_side_lack_right1 - middleBox_side_lack_left1");
+    TGeoCombiTrans* combtrans_electric_board_sub_box_left = new TGeoCombiTrans(Form("combtrans_spacer_cover_block_No%d", 2 * iB), cent_block_left[0], cent_block_left[1], cent_block_left[2], rotate_electric_board_sub_box_left);
+    TGeoCombiTrans* combtrans_electric_board_sub_box_right = new TGeoCombiTrans(Form("combtrans_spacer_cover_block_No%d", 2 * iB + 1), cent_block_right[0], cent_block_right[1], cent_block_right[2], rotate_electric_board_sub_box_right);
+    combtrans_electric_board_sub_box_left->RegisterYourself();
+    combtrans_electric_board_sub_box_right->RegisterYourself();
 
-  Double_t pipe_sub_radius1 = 0.2;
-  Double_t center_pipe_sub_torus_radius1 = 18.7 - pipe_sub_radius1;
-  Double_t center_pipe_sub_torus_angle1 = 114.84;
+    name_middle_spacer_main_cover += Form("+middle_spacer_cover_block:combtrans_spacer_cover_block_No%d", 2 * iB);
+    name_middle_spacer_main_cover += Form("+middle_spacer_cover_block:combtrans_spacer_cover_block_No%d", 2 * iB + 1);
+  }
 
-  new TGeoTorus("middleCenterWaterPipeTorus_sub1", center_pipe_sub_torus_radius1, pipe_sub_radius1, pipe_sub_radius1, 0, center_pipe_sub_torus_angle1);
-  auto* rmiddleCenterWaterPipeTorus_sub1 = new TGeoRotation("rmiddleCenterWaterPipeTorus_sub1", -(180 - 0.5 * (180 - center_pipe_sub_torus_angle1)), 0, 0);
-  rmiddleCenterWaterPipeTorus_sub1->RegisterYourself();
+  TGeoTranslation* trans_spacer_cover_block_left = new TGeoTranslation("trans_spacer_cover_block_left", 22.259 - middle_spacer_cover_block_width / 2, -8.305 + middle_spacer_cover_block_height / 2, middle_spacer_cover_block_position_z);
+  trans_spacer_cover_block_left->RegisterYourself();
+  name_middle_spacer_main_cover += "+middle_spacer_cover_block:trans_spacer_cover_block_left";
 
-  Double_t side_pipe_sub_torus_radius1 = 1.2 - pipe_sub_radius1;
-  Double_t side_pipe_sub_torus_angle1 = 57.42;
+  TGeoTranslation* trans_spacer_cover_block_right = new TGeoTranslation("trans_spacer_cover_block_right", -22.247 + middle_spacer_cover_block_width / 2, -8.305 + middle_spacer_cover_block_height / 2, middle_spacer_cover_block_position_z);
+  trans_spacer_cover_block_right->RegisterYourself();
+  name_middle_spacer_main_cover += "+middle_spacer_cover_block:trans_spacer_cover_block_right";
 
-  new TGeoTorus("middleSideWaterPipeTorus_sub1", side_pipe_sub_torus_radius1, pipe_sub_radius1, pipe_sub_radius1, 0, side_pipe_sub_torus_angle1);
+  TGeoCompositeShape* middle_spacer_cover = new TGeoCompositeShape("middle_spacer_cover", name_middle_spacer_main_cover.c_str());
 
-  auto* rmiddleSideWaterPipeTorus_sub_right1 = new TGeoRotation("rmiddleSideWaterPipeTorus_sub_right1", 90, 0, 0);
-  auto* rmiddleSideWaterPipeTorus_sub_left1 = new TGeoRotation("rmiddleSideWaterPipeTorus_sub_left1", 90 - side_pipe_sub_torus_angle1, 0, 0);
-  rmiddleSideWaterPipeTorus_sub_right1->RegisterYourself();
-  rmiddleSideWaterPipeTorus_sub_left1->RegisterYourself();
+  TGeoRotation* rotate_middle_spacer_cover_back = new TGeoRotation("rotate_middle_spacer_cover_back", 180, 180, 0);
+  rotate_middle_spacer_cover_back->RegisterYourself();
 
-  new TGeoCompositeShape("rotated_middleSideWaterPipeTorus_sub_right1",
-                         "dummy + middleSideWaterPipeTorus_sub1:rmiddleSideWaterPipeTorus_sub_right1");
-  new TGeoCompositeShape("rotated_middleSideWaterPipeTorus_sub_left1",
-                         "dummy + middleSideWaterPipeTorus_sub1:rmiddleSideWaterPipeTorus_sub_left1");
+  TGeoCompositeShape* middle_spacer_cover_bothside = new TGeoCompositeShape("middle_spacer_cover_bothside", "middle_spacer_cover + middle_spacer_cover:rotate_middle_spacer_cover_back");
 
-  auto* tmiddleSideWaterPipeTorus_sub_right1 = new TGeoTranslation("tmiddleSideWaterPipeTorus_sub_right1",
-                                                                   center_pipe_sub_torus_radius1 * TMath::Sin(center_pipe_sub_torus_angle1 / 2 * TMath::Pi() / 180.) + side_pipe_sub_torus_radius1 * TMath::Sin(side_pipe_sub_torus_angle1 * TMath::Pi() / 180.),
-                                                                   -center_pipe_sub_torus_radius1 * TMath::Cos(center_pipe_sub_torus_angle1 / 2 * TMath::Pi() / 180.) - side_pipe_sub_torus_radius1 * TMath::Cos(side_pipe_sub_torus_angle1 * TMath::Pi() / 180.), 0);
-  tmiddleSideWaterPipeTorus_sub_right1->RegisterYourself();
+  //Water pipe hole
 
-  auto* tmiddleSideWaterPipeTorus_sub_left1 = new TGeoTranslation("tmiddleSideWaterPipeTorus_sub_left1",
-                                                                  -(center_pipe_sub_torus_radius1 * TMath::Sin(center_pipe_sub_torus_angle1 / 2 * TMath::Pi() / 180.) + side_pipe_sub_torus_radius1 * TMath::Sin(side_pipe_sub_torus_angle1 * TMath::Pi() / 180.)),
-                                                                  -center_pipe_sub_torus_radius1 * TMath::Cos(center_pipe_sub_torus_angle1 / 2 * TMath::Pi() / 180.) - side_pipe_sub_torus_radius1 * TMath::Cos(side_pipe_sub_torus_angle1 * TMath::Pi() / 180.), 0);
-  tmiddleSideWaterPipeTorus_sub_left1->RegisterYourself();
+  Double_t water_pipe_inner_radius = 0.3 / 2.;
+  Double_t water_pipe_outer_radius = 0.4 / 2.;
 
-  Double_t side_pipe_sub_tube_length1 = 6.568;
+  Double_t water_pipe_main_angle = 126.19;
 
-  new TGeoTube("middleSideWaterPipeTube_sub1", 0, pipe_sub_radius1, side_pipe_sub_tube_length1 / 2);
+  Double_t water_pipe_side_position_radius = (1.8 + 1.4) / 2;
+  Double_t water_pipe_side_angle = 63.1;
 
-  auto* rmiddleSideWaterPipeTube_sub1 = new TGeoRotation("rmiddleSideWaterPipeTube_sub1", 90, 90, 0);
-  rmiddleSideWaterPipeTube_sub1->RegisterYourself();
+  Double_t water_pipe_straight_tube_side1_length = 2.865 / 2.;
+  Double_t water_pipe_straight_tube_side2_length = 8.950 / 2;
 
-  new TGeoCompositeShape("rotated_middleSideWaterPipeTube_sub1", "dummy+middleSideWaterPipeTube_sub1:rmiddleSideWaterPipeTube_sub1");
+  TGeoTorus* middle_spacer_sub_water_pipe_main_torus = new TGeoTorus("middle_spacer_sub_water_pipe_main_torus", water_pipe_main_position_radius, 0., water_pipe_outer_radius, 180 + (180 - water_pipe_main_angle) / 2., water_pipe_main_angle);
 
-  TGeoTranslation* tmiddleSideWaterPipeTube_sub_right1 = new TGeoTranslation("tmiddleSideWaterPipeTube_sub_right1",
-                                                                             center_pipe_sub_torus_radius1 * TMath::Sin(center_pipe_sub_torus_angle1 / 2 * TMath::Pi() / 180) + side_pipe_sub_torus_radius1 * TMath::Sin(side_pipe_sub_torus_angle1 * TMath::Pi() / 180) + side_pipe_sub_tube_length1 / 2,
-                                                                             -center_pipe_sub_torus_radius1 * TMath::Cos(center_pipe_sub_torus_angle1 / 2 * TMath::Pi() / 180) + side_pipe_sub_torus_radius1 * (1 - TMath::Sin((90 - side_pipe_sub_torus_angle1) * TMath::Pi() / 180)),
-                                                                             0);
-  TGeoTranslation* tmiddleSideWaterPipeTube_sub_left1 = new TGeoTranslation("tmiddleSideWaterPipeTube_sub_left1",
-                                                                            -(center_pipe_sub_torus_radius1 * TMath::Sin(center_pipe_sub_torus_angle1 / 2 * TMath::Pi() / 180) + side_pipe_sub_torus_radius1 * TMath::Sin(side_pipe_sub_torus_angle1 * TMath::Pi() / 180) + side_pipe_sub_tube_length1 / 2),
-                                                                            -center_pipe_sub_torus_radius1 * TMath::Cos(center_pipe_sub_torus_angle1 / 2 * TMath::Pi() / 180) + side_pipe_sub_torus_radius1 * (1 - TMath::Sin((90 - side_pipe_sub_torus_angle1) * TMath::Pi() / 180)),
-                                                                            0);
-  tmiddleSideWaterPipeTube_sub_right1->RegisterYourself();
-  tmiddleSideWaterPipeTube_sub_left1->RegisterYourself();
+  TGeoTorus* middle_spacer_sub_water_pipe_side_torus_left1 = new TGeoTorus("middle_spacer_sub_water_pipe_side_torus_left1", water_pipe_side_position_radius, 0., water_pipe_outer_radius, 90, water_pipe_side_angle);
+  TGeoTorus* middle_spacer_sub_water_pipe_side_torus_right1 = new TGeoTorus("middle_spacer_sub_water_pipe_side_torus_right1", water_pipe_side_position_radius, 0., water_pipe_outer_radius, 90 - water_pipe_side_angle, water_pipe_side_angle);
 
-  new TGeoCompositeShape("middleWaterPipeTorus_sub_shape",
-                         "dummy + middleCenterWaterPipeTorus_sub1:rmiddleCenterWaterPipeTorus_sub1"
-                         "+rotated_middleSideWaterPipeTorus_sub_right1:tmiddleSideWaterPipeTorus_sub_right1"
-                         "+rotated_middleSideWaterPipeTube_sub1:tmiddleSideWaterPipeTube_sub_right1"
-                         "+rotated_middleSideWaterPipeTorus_sub_left1:tmiddleSideWaterPipeTorus_sub_left1"
-                         "+rotated_middleSideWaterPipeTube_sub1:tmiddleSideWaterPipeTube_sub_left1");
+  TGeoTranslation* trans_middle_spacer_sub_water_pipe_side_torus_left1 = new TGeoTranslation("trans_middle_spacer_sub_water_pipe_side_torus_left1", (water_pipe_main_position_radius + water_pipe_side_position_radius) * TMath::Cos((90 - water_pipe_side_angle) * TMath::Pi() / 180.), -(water_pipe_main_position_radius + water_pipe_side_position_radius) * TMath::Sin((90 - water_pipe_side_angle) * TMath::Pi() / 180.), 0);
+  TGeoTranslation* trans_middle_spacer_sub_water_pipe_side_torus_right1 = new TGeoTranslation("trans_middle_spacer_sub_water_pipe_side_torus_right1", -(water_pipe_main_position_radius + water_pipe_side_position_radius) * TMath::Cos((90 - water_pipe_side_angle) * TMath::Pi() / 180.), -(water_pipe_main_position_radius + water_pipe_side_position_radius) * TMath::Sin((90 - water_pipe_side_angle) * TMath::Pi() / 180.), 0);
+  trans_middle_spacer_sub_water_pipe_side_torus_left1->RegisterYourself();
+  trans_middle_spacer_sub_water_pipe_side_torus_right1->RegisterYourself();
 
-  TGeoTranslation* tmiddleWaterPipeTorus_sub_shape1 = new TGeoTranslation("tmiddleWaterPipeTorus_sub_shape1", 0, 0, middle_board_thickness / 2);
-  TGeoTranslation* tmiddleWaterPipeTorus_sub_shape2 = new TGeoTranslation("tmiddleWaterPipeTorus_sub_shape2", 0, 0, -middle_board_thickness / 2);
-  tmiddleWaterPipeTorus_sub_shape1->RegisterYourself();
-  tmiddleWaterPipeTorus_sub_shape2->RegisterYourself();
+  TGeoTubeSeg* middle_spacer_sub_water_pipe_straight_tube_side1 = new TGeoTubeSeg("middle_spacer_sub_water_pipe_straight_tube_side1", 0., water_pipe_outer_radius, water_pipe_straight_tube_side1_length, 0, 360);
+  TGeoRotation* rotate_middle_spacer_sub_water_pipe_straight_tube_side1 = new TGeoRotation("rotate_middle_spacer_sub_water_pipe_straight_tube_side1", 90, 90, 0);
+  rotate_middle_spacer_sub_water_pipe_straight_tube_side1->RegisterYourself();
 
-  TGeoCompositeShape* middle_board_pipeSubtracted_shape = new TGeoCompositeShape("middle_board_pipeSubtracted_shape",
-                                                                                 "middle_board_shape-middleWaterPipeTorus_sub_shape:tmiddleWaterPipeTorus_sub_shape1"
-                                                                                 "-middleWaterPipeTorus_sub_shape:tmiddleWaterPipeTorus_sub_shape2");
+  TGeoCombiTrans* combtrans_rotated_middle_spacer_sub_water_pipe_straight_tube_side1_left = new TGeoCombiTrans("combtrans_rotated_middle_spacer_sub_water_pipe_straight_tube_side1_left", (water_pipe_main_position_radius + water_pipe_side_position_radius) * TMath::Cos((90 - water_pipe_side_angle) * TMath::Pi() / 180.) + water_pipe_straight_tube_side1_length,
+                                                                                                               -(water_pipe_main_position_radius + water_pipe_side_position_radius) * TMath::Sin((90 - water_pipe_side_angle) * TMath::Pi() / 180.) + water_pipe_side_position_radius, 0, rotate_middle_spacer_sub_water_pipe_straight_tube_side1);
+  TGeoCombiTrans* combtrans_rotated_middle_spacer_sub_water_pipe_straight_tube_side1_right = new TGeoCombiTrans("combtrans_rotated_middle_spacer_sub_water_pipe_straight_tube_side1_right", -(water_pipe_main_position_radius + water_pipe_side_position_radius) * TMath::Cos((90 - water_pipe_side_angle) * TMath::Pi() / 180.) - water_pipe_straight_tube_side1_length,
+                                                                                                                -(water_pipe_main_position_radius + water_pipe_side_position_radius) * TMath::Sin((90 - water_pipe_side_angle) * TMath::Pi() / 180.) + water_pipe_side_position_radius, 0, rotate_middle_spacer_sub_water_pipe_straight_tube_side1);
+  combtrans_rotated_middle_spacer_sub_water_pipe_straight_tube_side1_left->RegisterYourself();
+  combtrans_rotated_middle_spacer_sub_water_pipe_straight_tube_side1_right->RegisterYourself();
 
-  TGeoVolume* middle_peek_board = new TGeoVolume("middle_peek_board", middle_board_pipeSubtracted_shape, kMedPeek);
+  TGeoTorus* middle_spacer_sub_water_pipe_side_torus_left2 = new TGeoTorus("middle_spacer_sub_water_pipe_side_torus_left2", water_pipe_side_position_radius, 0., water_pipe_outer_radius, 0, 90);
+  TGeoTorus* middle_spacer_sub_water_pipe_side_torus_right2 = new TGeoTorus("middle_spacer_sub_water_pipe_side_torus_right2", water_pipe_side_position_radius, 0., water_pipe_outer_radius, 90, 90);
 
-  mHalfPSU->AddNode(middle_peek_board, 0, nullptr);
+  TGeoTranslation* trans_middle_spacer_sub_water_pipe_side_torus_left2 = new TGeoTranslation("trans_middle_spacer_sub_water_pipe_side_torus_left2", +(water_pipe_main_position_radius + water_pipe_side_position_radius) * TMath::Cos((90 - water_pipe_side_angle) * TMath::Pi() / 180.) + water_pipe_straight_tube_side1_length * 2,
+                                                                                             -(water_pipe_main_position_radius + water_pipe_side_position_radius) * TMath::Sin((90 - water_pipe_side_angle) * TMath::Pi() / 180.) + water_pipe_side_position_radius - water_pipe_side_position_radius, 0);
+  TGeoTranslation* trans_middle_spacer_sub_water_pipe_side_torus_right2 = new TGeoTranslation("trans_middle_spacer_sub_water_pipe_side_torus_right2", -(water_pipe_main_position_radius + water_pipe_side_position_radius) * TMath::Cos((90 - water_pipe_side_angle) * TMath::Pi() / 180.) - water_pipe_straight_tube_side1_length * 2,
+                                                                                              -(water_pipe_main_position_radius + water_pipe_side_position_radius) * TMath::Sin((90 - water_pipe_side_angle) * TMath::Pi() / 180.) + water_pipe_side_position_radius - water_pipe_side_position_radius, 0);
+  trans_middle_spacer_sub_water_pipe_side_torus_left2->RegisterYourself();
+  trans_middle_spacer_sub_water_pipe_side_torus_right2->RegisterYourself();
 
-  ///////////////////////////////////////////////////////////////////////////////////////////////////////////
-  //water pipe part
-  ///////////////////////////////////////////////////////////////////////////////////////////////////////////
+  TGeoTubeSeg* middle_spacer_sub_water_pipe_straight_tube_side2 = new TGeoTubeSeg("middle_spacer_sub_water_pipe_straight_tube_side2", 0., water_pipe_outer_radius, water_pipe_straight_tube_side2_length, 0, 360);
 
-  Double_t pipe_min_radius1 = 0.075;
-  Double_t pipe_max_radius1 = 0.100;
-  Double_t center_pipe_torus_radius1 = 18.5;
-  Double_t center_pipe_torus_angle1 = 114.84;
+  TGeoRotation* rotate_middle_spacer_sub_water_pipe_straight_tube_side2 = new TGeoRotation("rotate_middle_spacer_sub_water_pipe_straight_tube_side2", 0, 90, 0);
+  rotate_middle_spacer_sub_water_pipe_straight_tube_side2->RegisterYourself();
 
-  new TGeoTorus("middleCenterWaterPipeTorus1", center_pipe_torus_radius1, pipe_min_radius1, pipe_max_radius1, 0, center_pipe_torus_angle1);
+  TGeoCombiTrans* combtrans_middle_spacer_sub_water_pipe_straight_tube_side_left2 = new TGeoCombiTrans("combtrans_middle_spacer_sub_water_pipe_straight_tube_side_left2", +(water_pipe_main_position_radius + water_pipe_side_position_radius) * TMath::Cos((90 - water_pipe_side_angle) * TMath::Pi() / 180.) + water_pipe_straight_tube_side1_length * 2 + water_pipe_side_position_radius,
+                                                                                                       -(water_pipe_main_position_radius + water_pipe_side_position_radius) * TMath::Sin((90 - water_pipe_side_angle) * TMath::Pi() / 180.) + water_pipe_side_position_radius - water_pipe_side_position_radius - water_pipe_straight_tube_side2_length, 0, rotate_middle_spacer_sub_water_pipe_straight_tube_side2);
 
-  auto* rmiddleCenterWaterPipeTorus1 = new TGeoRotation("rmiddleCenterWaterPipeTorus1", -(180 - 0.5 * (180 - center_pipe_torus_angle1)), 0, 0);
-  rmiddleCenterWaterPipeTorus1->RegisterYourself();
+  TGeoCombiTrans* combtrans_middle_spacer_sub_water_pipe_straight_tube_side_right2 = new TGeoCombiTrans("combtrans_middle_spacer_sub_water_pipe_straight_tube_side_right2", -(water_pipe_main_position_radius + water_pipe_side_position_radius) * TMath::Cos((90 - water_pipe_side_angle) * TMath::Pi() / 180.) - water_pipe_straight_tube_side1_length * 2 - water_pipe_side_position_radius,
+                                                                                                        -(water_pipe_main_position_radius + water_pipe_side_position_radius) * TMath::Sin((90 - water_pipe_side_angle) * TMath::Pi() / 180.) + water_pipe_side_position_radius - water_pipe_side_position_radius - water_pipe_straight_tube_side2_length, 0, rotate_middle_spacer_sub_water_pipe_straight_tube_side2);
 
-  Double_t side_pipe_torus_radius1 = 1.0;
-  Double_t side_pipe_torus_angle1 = 57.42;
+  combtrans_middle_spacer_sub_water_pipe_straight_tube_side_left2->RegisterYourself();
+  combtrans_middle_spacer_sub_water_pipe_straight_tube_side_right2->RegisterYourself();
 
-  new TGeoTorus("middleSideWaterPipeTorus1", side_pipe_torus_radius1, pipe_min_radius1, pipe_max_radius1, 0, side_pipe_torus_angle1);
+  TGeoCompositeShape* middle_spacer_shape = new TGeoCompositeShape("middle_spacer_shape",
+                                                                   "middle_spacer_main + middle_spacer_cover_bothside"
+                                                                   " - middle_spacer_sub_water_pipe_main_torus - middle_spacer_sub_water_pipe_side_torus_left1:trans_middle_spacer_sub_water_pipe_side_torus_left1 - middle_spacer_sub_water_pipe_side_torus_right1:trans_middle_spacer_sub_water_pipe_side_torus_right1"
+                                                                   " - middle_spacer_sub_water_pipe_straight_tube_side1:combtrans_rotated_middle_spacer_sub_water_pipe_straight_tube_side1_left - middle_spacer_sub_water_pipe_straight_tube_side1:combtrans_rotated_middle_spacer_sub_water_pipe_straight_tube_side1_right"
+                                                                   " - middle_spacer_sub_water_pipe_side_torus_left2:trans_middle_spacer_sub_water_pipe_side_torus_left2 - middle_spacer_sub_water_pipe_side_torus_right2:trans_middle_spacer_sub_water_pipe_side_torus_right2"
+                                                                   " - middle_spacer_sub_water_pipe_straight_tube_side2:combtrans_middle_spacer_sub_water_pipe_straight_tube_side_left2 - middle_spacer_sub_water_pipe_straight_tube_side2:combtrans_middle_spacer_sub_water_pipe_straight_tube_side_right2");
 
-  auto* rmiddleSideWaterPipeTorus_right1 = new TGeoRotation("rmiddleSideWaterPipeTorus_right1", 90, 0, 0);
-  auto* rmiddleSideWaterPipeTorus_left1 = new TGeoRotation("rmiddleSideWaterPipeTorus_left1", 90 - side_pipe_torus_angle1, 0, 0);
-  rmiddleSideWaterPipeTorus_right1->RegisterYourself();
-  rmiddleSideWaterPipeTorus_left1->RegisterYourself();
+  TGeoVolume* middle_spacer = new TGeoVolume("middle_spacer", middle_spacer_shape, kMedAlu);
+  middle_spacer->SetLineColor(kTeal - 4);
+  mHalfPSU->AddNode(middle_spacer, 0, nullptr);
 
-  new TGeoCompositeShape("rotated_middleSideWaterPipeTorus_right1",
-                         "dummy + middleSideWaterPipeTorus1:rmiddleSideWaterPipeTorus_right1");
-  new TGeoCompositeShape("rotated_middleSideWaterPipeTorus_left1",
-                         "dummy + middleSideWaterPipeTorus1:rmiddleSideWaterPipeTorus_left1");
+  ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+  //Electoric board
+  ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-  auto* tmiddleSideWaterPipeTorus_right1 = new TGeoTranslation("tmiddleSideWaterPipeTorus_right1",
-                                                               center_pipe_torus_radius1 * TMath::Sin(center_pipe_torus_angle1 / 2 * TMath::Pi() / 180.) + side_pipe_torus_radius1 * TMath::Sin(side_pipe_torus_angle1 * TMath::Pi() / 180.),
-                                                               -center_pipe_torus_radius1 * TMath::Cos(center_pipe_torus_angle1 / 2 * TMath::Pi() / 180.) - side_pipe_torus_radius1 * TMath::Cos(side_pipe_torus_angle1 * TMath::Pi() / 180.), 0);
-  auto* tmiddleSideWaterPipeTorus_left1 = new TGeoTranslation("tmiddleSideWaterPipeTorus_left1",
-                                                              -(center_pipe_torus_radius1 * TMath::Sin(center_pipe_torus_angle1 / 2 * TMath::Pi() / 180.) + side_pipe_torus_radius1 * TMath::Sin(side_pipe_torus_angle1 * TMath::Pi() / 180.)),
-                                                              -center_pipe_torus_radius1 * TMath::Cos(center_pipe_torus_angle1 / 2 * TMath::Pi() / 180.) - side_pipe_torus_radius1 * TMath::Cos(side_pipe_torus_angle1 * TMath::Pi() / 180.), 0);
-  tmiddleSideWaterPipeTorus_right1->RegisterYourself();
-  tmiddleSideWaterPipeTorus_left1->RegisterYourself();
+  Double_t electric_board_thickness = 0.171;
+  Double_t electric_board_max_radius1 = 26.706;
+  Double_t electric_board_min_radius1 = 17.0;
+  Double_t electric_board_sub_rectangle_middle_height = 5 + 4.347;
+  Double_t electric_board_sub_rectangle_middle_width = electric_board_max_radius1 * 2;
+  Double_t electric_board_sub_rectangle_bottom_height = 10.00; //laugh
+  Double_t electric_board_sub_rectangle_bottom_width = 20.80;
+  Double_t electric_board_position_z = middle_spacer_main_thickness / 2. + middle_spacer_cover_thickness + electric_board_thickness / 2;
 
-  Double_t side_pipe_tube_length1 = 6.868;
+  TGeoTubeSeg* electric_board_main = new TGeoTubeSeg("electric_board_main", electric_board_min_radius1, electric_board_max_radius1, electric_board_thickness / 2, 180, 0);
+  TGeoTranslation* trans_electric_board_main = new TGeoTranslation("trans_electric_board_main", 0, 0, electric_board_position_z);
+  trans_electric_board_main->RegisterYourself();
 
-  new TGeoTube("middleSideWaterPipeTube1", pipe_min_radius1, pipe_max_radius1, side_pipe_tube_length1 / 2);
-  auto* rmiddleSideWaterPipeTube1 = new TGeoRotation("rmiddleSideWaterPipeTube1", 90, 90, 0);
-  rmiddleSideWaterPipeTube1->RegisterYourself();
+  TGeoBBox* electric_board_sub_rectangle_middle = new TGeoBBox("electric_board_sub_rectangle_middle", electric_board_sub_rectangle_middle_width / 2., electric_board_sub_rectangle_middle_height / 2., electric_board_thickness / 2. + delta_thickness);
+  TGeoBBox* electric_board_sub_rectangle_bottom = new TGeoBBox("electric_board_sub_rectangle_bottom", electric_board_sub_rectangle_bottom_width / 2., electric_board_sub_rectangle_bottom_height / 2., electric_board_thickness / 2. + delta_thickness);
 
-  new TGeoCompositeShape("rotated_middleSideWaterPipeTube1", "dummy+middleSideWaterPipeTube1:rmiddleSideWaterPipeTube1");
+  TGeoTranslation* trans_electric_board_sub_rectangle_middle = new TGeoTranslation("trans_electric_board_sub_rectangle_middle", 0, -electric_board_sub_rectangle_middle_height / 2., electric_board_position_z);
+  TGeoTranslation* trans_electric_board_sub_rectangle_bottom = new TGeoTranslation("trans_electric_board_sub_rectangle_bottom", 0, -(24.6 + electric_board_sub_rectangle_bottom_height / 2.), electric_board_position_z);
+  trans_electric_board_sub_rectangle_middle->RegisterYourself();
+  trans_electric_board_sub_rectangle_bottom->RegisterYourself();
 
-  TGeoTranslation* tmiddleSideWaterPipeTube_right1 = new TGeoTranslation("tmiddleSideWaterPipeTube_right1",
-                                                                         center_pipe_torus_radius1 * TMath::Sin(center_pipe_torus_angle1 / 2 * TMath::Pi() / 180) + side_pipe_torus_radius1 * TMath::Sin(side_pipe_torus_angle1 * TMath::Pi() / 180) + side_pipe_tube_length1 / 2,
-                                                                         -center_pipe_torus_radius1 * TMath::Cos(center_pipe_torus_angle1 / 2 * TMath::Pi() / 180) + side_pipe_torus_radius1 * (1 - TMath::Sin((90 - side_pipe_torus_angle1) * TMath::Pi() / 180)),
-                                                                         0);
-  TGeoTranslation* tmiddleSideWaterPipeTube_left1 = new TGeoTranslation("tmiddleSideWaterPipeTube_left1",
-                                                                        -(center_pipe_torus_radius1 * TMath::Sin(center_pipe_torus_angle1 / 2 * TMath::Pi() / 180) + side_pipe_torus_radius1 * TMath::Sin(side_pipe_torus_angle1 * TMath::Pi() / 180) + side_pipe_tube_length1 / 2),
-                                                                        -center_pipe_torus_radius1 * TMath::Cos(center_pipe_torus_angle1 / 2 * TMath::Pi() / 180) + side_pipe_torus_radius1 * (1 - TMath::Sin((90 - side_pipe_torus_angle1) * TMath::Pi() / 180)),
-                                                                        0);
-  tmiddleSideWaterPipeTube_right1->RegisterYourself();
-  tmiddleSideWaterPipeTube_left1->RegisterYourself();
+  Double_t electric_board_add_rectangle_side_height = 4.347;
+  Double_t electric_board_add_rectangle_side_width = 8.800;
 
-  new TGeoCompositeShape("water_pipe_shape",
-                         "middleCenterWaterPipeTorus1:rmiddleCenterWaterPipeTorus1"
-                         " + rotated_middleSideWaterPipeTorus_right1:tmiddleSideWaterPipeTorus_right1 + rotated_middleSideWaterPipeTorus_left1:tmiddleSideWaterPipeTorus_left1"
-                         " + rotated_middleSideWaterPipeTube1:tmiddleSideWaterPipeTube_right1 + rotated_middleSideWaterPipeTube1:tmiddleSideWaterPipeTube_left1");
+  TGeoBBox* electric_board_add_rectangle_side = new TGeoBBox("electric_board_add_rectangle_side", electric_board_add_rectangle_side_width / 2., electric_board_add_rectangle_side_height / 2., electric_board_thickness / 2.);
+  TGeoTranslation* trans_electric_board_add_rectangle_side_left = new TGeoTranslation("trans_electric_board_add_rectangle_side_left", 28.4 / 2. + electric_board_add_rectangle_side_width / 2., -5.0 - electric_board_add_rectangle_side_height / 2., electric_board_position_z);
+  TGeoTranslation* trans_electric_board_add_rectangle_side_right = new TGeoTranslation("trans_electric_board_add_rectangle_side_right", -(28.4 / 2. + electric_board_add_rectangle_side_width / 2.), -5.0 - electric_board_add_rectangle_side_height / 2., electric_board_position_z);
+  trans_electric_board_add_rectangle_side_left->RegisterYourself();
+  trans_electric_board_add_rectangle_side_right->RegisterYourself();
 
-  TGeoTranslation* tmiddleWaterPipeTorus_shape1 = new TGeoTranslation("tmiddleWaterPipeTorus_shape1", 0, 0, middle_board_thickness / 2 - pipe_max_radius1);
-  TGeoTranslation* tmiddleWaterPipeTorus_shape2 = new TGeoTranslation("tmiddleWaterPipeTorus_shape2", 0, 0, -middle_board_thickness / 2 + pipe_max_radius1);
-  tmiddleWaterPipeTorus_shape1->RegisterYourself();
-  tmiddleWaterPipeTorus_shape2->RegisterYourself();
+  Double_t electric_board_sub_rectangle_side_width = 10.; //raugh
+  Double_t electric_board_sub_rectangle_side_height = 8.576;
 
-  TGeoCompositeShape* water_pipe_2side_shape = new TGeoCompositeShape("water_pipe_2side_shape", "water_pipe_shape:tmiddleWaterPipeTorus_shape1+water_pipe_shape:tmiddleWaterPipeTorus_shape2");
+  TGeoBBox* electric_board_sub_rectangle_side = new TGeoBBox("electric_board_sub_rectangle_side", electric_board_sub_rectangle_side_width / 2., electric_board_sub_rectangle_side_height / 2., electric_board_thickness / 2. + delta_thickness);
+  TGeoTranslation* trans_electric_board_sub_rectangle_side_left = new TGeoTranslation("trans_electric_board_sub_rectangle_side_left", 28.4 / 2 + 8.8 + electric_board_sub_rectangle_side_width / 2., -5.0 - electric_board_sub_rectangle_side_height / 2., electric_board_position_z);
+  TGeoTranslation* trans_electric_board_sub_rectangle_side_right = new TGeoTranslation("trans_electric_board_sub_rectangle_side_right", -(28.4 / 2 + 8.8 + electric_board_sub_rectangle_side_width / 2.), -5.0 - electric_board_sub_rectangle_side_height / 2., electric_board_position_z);
+  trans_electric_board_sub_rectangle_side_left->RegisterYourself();
+  trans_electric_board_sub_rectangle_side_right->RegisterYourself();
 
-  TGeoVolume* water_pipe = new TGeoVolume("water_pipe", water_pipe_2side_shape, kMedAlu);
+  Double_t electric_board_sub_box_height = 1.1;
+  Double_t electric_board_sub_box_width = 1.1;
+
+  TGeoBBox* electric_board_sub_box = new TGeoBBox("electric_board_sub_box", electric_board_sub_box_width / 2, electric_board_sub_box_height / 2, electric_board_thickness / 2 + delta_thickness);
+
+  TGeoCompositeShape* rotated_electric_board_sub_box[24];
+
+  std::string name_electric_board_shape =
+    "electric_board_main:trans_electric_board_main - electric_board_sub_rectangle_middle:trans_electric_board_sub_rectangle_middle - electric_board_sub_rectangle_bottom:trans_electric_board_sub_rectangle_bottom"
+    " + electric_board_add_rectangle_side:trans_electric_board_add_rectangle_side_left + electric_board_add_rectangle_side:trans_electric_board_add_rectangle_side_right"
+    " - electric_board_sub_rectangle_side:trans_electric_board_sub_rectangle_side_left - electric_board_sub_rectangle_side:trans_electric_board_sub_rectangle_side_right";
+
+  for (Int_t iB = 0; iB < 11; ++iB) {
+
+    Double_t block_angle = (180. - block_angle_index[iB]) / 2. * TMath::Pi() / 180.;
+
+    TGeoRotation* rotate_electric_board_sub_box_left = new TGeoRotation(Form("rotate_electric_board_sub_box_No%d", iB * 2), 180 - block_angle * 180. / TMath::Pi(), 0, 0);
+    TGeoRotation* rotate_electric_board_sub_box_right = new TGeoRotation(Form("rotate_electric_board_sub_box_No%d", iB * 2 + 1), block_angle * 180. / TMath::Pi(), 0, 0);
+    rotate_electric_board_sub_box_left->RegisterYourself();
+    rotate_electric_board_sub_box_right->RegisterYourself();
+
+    Double_t cent_block_left[] = {block_radius * TMath::Cos(block_angle), -block_radius * TMath::Sin(block_angle), electric_board_position_z};
+    Double_t cent_block_right[] = {block_radius * TMath::Cos(TMath::Pi() - block_angle), -block_radius * TMath::Sin(TMath::Pi() - block_angle), electric_board_position_z};
+
+    TGeoCombiTrans* combtrans_electric_board_sub_box_left = new TGeoCombiTrans(Form("combtrans_electric_board_sub_box_No%d", 2 * iB), cent_block_left[0], cent_block_left[1], cent_block_left[2], rotate_electric_board_sub_box_left);
+    TGeoCombiTrans* combtrans_electric_board_sub_box_right = new TGeoCombiTrans(Form("combtrans_electric_board_sub_box_No%d", 2 * iB + 1), cent_block_right[0], cent_block_right[1], cent_block_right[2], rotate_electric_board_sub_box_right);
+    combtrans_electric_board_sub_box_left->RegisterYourself();
+    combtrans_electric_board_sub_box_right->RegisterYourself();
+
+    name_electric_board_shape += Form("-electric_board_sub_box:combtrans_electric_board_sub_box_No%d", 2 * iB);
+    name_electric_board_shape += Form("-electric_board_sub_box:combtrans_electric_board_sub_box_No%d", 2 * iB + 1);
+  }
+
+  TGeoTranslation* trans_electric_board_sub_box_left = new TGeoTranslation("trans_electric_board_sub_box_left", 22.259 - electric_board_sub_box_width / 2, -8.305 + electric_board_sub_box_height / 2, electric_board_position_z);
+  trans_electric_board_sub_box_left->RegisterYourself();
+  name_electric_board_shape += "-electric_board_sub_box:trans_electric_board_sub_box_left";
+
+  TGeoTranslation* trans_electric_board_sub_box_right = new TGeoTranslation("trans_electric_board_sub_box_right", -22.247 + electric_board_sub_box_width / 2, -8.305 + electric_board_sub_box_height / 2, electric_board_position_z);
+  trans_electric_board_sub_box_right->RegisterYourself();
+  name_electric_board_shape += "-electric_board_sub_box:trans_electric_board_sub_box_right";
+
+  TGeoCompositeShape* electric_board_shape = new TGeoCompositeShape("electric_board_shape", name_electric_board_shape.c_str());
+
+  TGeoRotation* trans_electric_board_front = new TGeoRotation("trans_electric_board_front", 0, 0, 0);
+  TGeoRotation* trans_electric_board_back = new TGeoRotation("trans_electric_board_back", 180, 180, 0);
+
+  TGeoVolume* electric_board = new TGeoVolume("electric_board", electric_board_shape, kMedPeek);
+  electric_board->SetLineColor(kGreen + 2);
+  mHalfPSU->AddNode(electric_board, 0, trans_electric_board_front);
+  mHalfPSU->AddNode(electric_board, 0, trans_electric_board_back);
+
+  ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+  //Water pipe
+  ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+  TGeoTorus* water_pipe_main_torus = new TGeoTorus("water_pipe_main_torus", water_pipe_main_position_radius, water_pipe_inner_radius, water_pipe_outer_radius, 180 + (180 - water_pipe_main_angle) / 2., water_pipe_main_angle);
+
+  TGeoTorus* water_pipe_side_torus_left1 = new TGeoTorus("water_pipe_side_torus_left1", water_pipe_side_position_radius, water_pipe_inner_radius, water_pipe_outer_radius, 90, water_pipe_side_angle);
+  TGeoTorus* water_pipe_side_torus_right1 = new TGeoTorus("water_pipe_side_torus_right1", water_pipe_side_position_radius, water_pipe_inner_radius, water_pipe_outer_radius, 90 - water_pipe_side_angle, water_pipe_side_angle);
+
+  TGeoTranslation* trans_water_pipe_side_torus_left1 = new TGeoTranslation("trans_water_pipe_side_torus_left1", (water_pipe_main_position_radius + water_pipe_side_position_radius) * TMath::Cos((90 - water_pipe_side_angle) * TMath::Pi() / 180.), -(water_pipe_main_position_radius + water_pipe_side_position_radius) * TMath::Sin((90 - water_pipe_side_angle) * TMath::Pi() / 180.), 0);
+  TGeoTranslation* trans_water_pipe_side_torus_right1 = new TGeoTranslation("trans_water_pipe_side_torus_right1", -(water_pipe_main_position_radius + water_pipe_side_position_radius) * TMath::Cos((90 - water_pipe_side_angle) * TMath::Pi() / 180.), -(water_pipe_main_position_radius + water_pipe_side_position_radius) * TMath::Sin((90 - water_pipe_side_angle) * TMath::Pi() / 180.), 0);
+  trans_water_pipe_side_torus_left1->RegisterYourself();
+  trans_water_pipe_side_torus_right1->RegisterYourself();
+
+  TGeoTubeSeg* water_pipe_straight_tube_side1 = new TGeoTubeSeg("water_pipe_straight_tube_side1", water_pipe_inner_radius, water_pipe_outer_radius, water_pipe_straight_tube_side1_length, 0, 360);
+
+  TGeoRotation* rotate_water_pipe_straight_tube_side1 = new TGeoRotation("rotate_water_pipe_straight_tube_side1", 90, 90, 0);
+  rotate_water_pipe_straight_tube_side1->RegisterYourself();
+
+  TGeoCombiTrans* combtrans_rotated_water_pipe_straight_tube_side1_left = new TGeoCombiTrans("combtrans_rotated_water_pipe_straight_tube_side1_left", (water_pipe_main_position_radius + water_pipe_side_position_radius) * TMath::Cos((90 - water_pipe_side_angle) * TMath::Pi() / 180.) + water_pipe_straight_tube_side1_length,
+                                                                                             -(water_pipe_main_position_radius + water_pipe_side_position_radius) * TMath::Sin((90 - water_pipe_side_angle) * TMath::Pi() / 180.) + water_pipe_side_position_radius, 0, rotate_water_pipe_straight_tube_side1);
+  TGeoCombiTrans* combtrans_rotated_water_pipe_straight_tube_side1_right = new TGeoCombiTrans("combtrans_rotated_water_pipe_straight_tube_side1_right", -(water_pipe_main_position_radius + water_pipe_side_position_radius) * TMath::Cos((90 - water_pipe_side_angle) * TMath::Pi() / 180.) - water_pipe_straight_tube_side1_length,
+                                                                                              -(water_pipe_main_position_radius + water_pipe_side_position_radius) * TMath::Sin((90 - water_pipe_side_angle) * TMath::Pi() / 180.) + water_pipe_side_position_radius, 0, rotate_water_pipe_straight_tube_side1);
+  combtrans_rotated_water_pipe_straight_tube_side1_left->RegisterYourself();
+  combtrans_rotated_water_pipe_straight_tube_side1_right->RegisterYourself();
+
+  TGeoTorus* water_pipe_side_torus_left2 = new TGeoTorus("water_pipe_side_torus_left2", water_pipe_side_position_radius, water_pipe_inner_radius, water_pipe_outer_radius, 0, 90);
+  TGeoTorus* water_pipe_side_torus_right2 = new TGeoTorus("water_pipe_side_torus_right2", water_pipe_side_position_radius, water_pipe_inner_radius, water_pipe_outer_radius, 90, 90);
+  TGeoTranslation* trans_water_pipe_side_torus_left2 = new TGeoTranslation("trans_water_pipe_side_torus_left2", +(water_pipe_main_position_radius + water_pipe_side_position_radius) * TMath::Cos((90 - water_pipe_side_angle) * TMath::Pi() / 180.) + water_pipe_straight_tube_side1_length * 2, -(water_pipe_main_position_radius + water_pipe_side_position_radius) * TMath::Sin((90 - water_pipe_side_angle) * TMath::Pi() / 180.) + water_pipe_side_position_radius - water_pipe_side_position_radius, 0);
+  TGeoTranslation* trans_water_pipe_side_torus_right2 = new TGeoTranslation("trans_water_pipe_side_torus_right2", -(water_pipe_main_position_radius + water_pipe_side_position_radius) * TMath::Cos((90 - water_pipe_side_angle) * TMath::Pi() / 180.) - water_pipe_straight_tube_side1_length * 2, -(water_pipe_main_position_radius + water_pipe_side_position_radius) * TMath::Sin((90 - water_pipe_side_angle) * TMath::Pi() / 180.) + water_pipe_side_position_radius - water_pipe_side_position_radius, 0);
+  trans_water_pipe_side_torus_left2->RegisterYourself();
+  trans_water_pipe_side_torus_right2->RegisterYourself();
+
+  TGeoTubeSeg* water_pipe_straight_tube_side2 = new TGeoTubeSeg("water_pipe_straight_tube_side2", water_pipe_inner_radius, water_pipe_outer_radius, water_pipe_straight_tube_side2_length, 0, 360);
+  TGeoRotation* rotate_water_pipe_straight_tube_side2 = new TGeoRotation("rotate_water_pipe_straight_tube_side2", 0, 90, 0);
+
+  rotate_water_pipe_straight_tube_side2->RegisterYourself();
+
+  TGeoCombiTrans* combtrans_water_pipe_straight_tube_side_left2 = new TGeoCombiTrans("combtrans_water_pipe_straight_tube_side_left2", +(water_pipe_main_position_radius + water_pipe_side_position_radius) * TMath::Cos((90 - water_pipe_side_angle) * TMath::Pi() / 180.) + water_pipe_straight_tube_side1_length * 2 + water_pipe_side_position_radius,
+                                                                                     -(water_pipe_main_position_radius + water_pipe_side_position_radius) * TMath::Sin((90 - water_pipe_side_angle) * TMath::Pi() / 180.) + water_pipe_side_position_radius - water_pipe_side_position_radius - water_pipe_straight_tube_side2_length, 0, rotate_water_pipe_straight_tube_side2);
+
+  TGeoCombiTrans* combtrans_water_pipe_straight_tube_side_right2 = new TGeoCombiTrans("combtrans_water_pipe_straight_tube_side_right2", -(water_pipe_main_position_radius + water_pipe_side_position_radius) * TMath::Cos((90 - water_pipe_side_angle) * TMath::Pi() / 180.) - water_pipe_straight_tube_side1_length * 2 - water_pipe_side_position_radius,
+                                                                                      -(water_pipe_main_position_radius + water_pipe_side_position_radius) * TMath::Sin((90 - water_pipe_side_angle) * TMath::Pi() / 180.) + water_pipe_side_position_radius - water_pipe_side_position_radius - water_pipe_straight_tube_side2_length, 0, rotate_water_pipe_straight_tube_side2);
+
+  combtrans_water_pipe_straight_tube_side_left2->RegisterYourself();
+  combtrans_water_pipe_straight_tube_side_right2->RegisterYourself();
+
+  TGeoCompositeShape* water_pipe_shape = new TGeoCompositeShape("water_pipe_shape",
+                                                                "water_pipe_main_torus + water_pipe_side_torus_left1:trans_water_pipe_side_torus_left1 + water_pipe_side_torus_right1:trans_water_pipe_side_torus_right1"
+                                                                " + water_pipe_straight_tube_side1:combtrans_rotated_water_pipe_straight_tube_side1_left + water_pipe_straight_tube_side1:combtrans_rotated_water_pipe_straight_tube_side1_right"
+                                                                " + water_pipe_side_torus_left2:trans_water_pipe_side_torus_left2 + water_pipe_side_torus_right2:trans_water_pipe_side_torus_right2"
+                                                                " + water_pipe_straight_tube_side2:combtrans_water_pipe_straight_tube_side_left2 + water_pipe_straight_tube_side2:combtrans_water_pipe_straight_tube_side_right2");
+
+  TGeoVolume* water_pipe = new TGeoVolume("water_pipe", water_pipe_shape, kMedAlu);
   water_pipe->SetLineColor(kGray);
-
   mHalfPSU->AddNode(water_pipe, 1, nullptr);
 
-  ///////////////////////////////////////////////////////////////////////////////////////////////////////////
-  //water in the pipe part
-  ///////////////////////////////////////////////////////////////////////////////////////////////////////////
+  ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+  //Water
+  ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-  new TGeoTorus("middleCenterWaterTorus1", center_pipe_torus_radius1, 0, pipe_min_radius1, 0, center_pipe_torus_angle1);
-  auto* rmiddleCenterWaterTorus1 = new TGeoRotation("rmiddleCenterWaterTorus1", -(180 - 0.5 * (180 - center_pipe_torus_angle1)), 0, 0);
-  rmiddleCenterWaterTorus1->RegisterYourself();
+  TGeoTorus* water_main_torus = new TGeoTorus("water_main_torus", water_pipe_main_position_radius, 0, water_pipe_inner_radius, 180 + (180 - water_pipe_main_angle) / 2., water_pipe_main_angle);
 
-  new TGeoTorus("middleSideWaterTorus1", side_pipe_torus_radius1, 0, pipe_min_radius1, 0, side_pipe_torus_angle1);
+  TGeoTorus* water_side_torus_left1 = new TGeoTorus("water_side_torus_left1", water_pipe_side_position_radius, 0, water_pipe_inner_radius, 90, water_pipe_side_angle);
+  TGeoTorus* water_side_torus_right1 = new TGeoTorus("water_side_torus_right1", water_pipe_side_position_radius, 0, water_pipe_inner_radius, 90 - water_pipe_side_angle, water_pipe_side_angle);
 
-  auto* rmiddleSideWaterTorus_right1 = new TGeoRotation("rmiddleSideWaterTorus_right1", 90, 0, 0);
-  auto* rmiddleSideWaterTorus_left1 = new TGeoRotation("rmiddleSideWaterTorus_left1", 90 - side_pipe_torus_angle1, 0, 0);
-  rmiddleSideWaterTorus_right1->RegisterYourself();
-  rmiddleSideWaterTorus_left1->RegisterYourself();
+  TGeoTranslation* trans_water_side_torus_left1 = new TGeoTranslation("trans_water_side_torus_left1", (water_pipe_main_position_radius + water_pipe_side_position_radius) * TMath::Cos((90 - water_pipe_side_angle) * TMath::Pi() / 180.), -(water_pipe_main_position_radius + water_pipe_side_position_radius) * TMath::Sin((90 - water_pipe_side_angle) * TMath::Pi() / 180.), 0);
+  TGeoTranslation* trans_water_side_torus_right1 = new TGeoTranslation("trans_water_side_torus_right1", -(water_pipe_main_position_radius + water_pipe_side_position_radius) * TMath::Cos((90 - water_pipe_side_angle) * TMath::Pi() / 180.), -(water_pipe_main_position_radius + water_pipe_side_position_radius) * TMath::Sin((90 - water_pipe_side_angle) * TMath::Pi() / 180.), 0);
+  trans_water_side_torus_left1->RegisterYourself();
+  trans_water_side_torus_right1->RegisterYourself();
 
-  new TGeoCompositeShape("rotated_middleSideWaterTorus_right1", "dummy + middleSideWaterTorus1:rmiddleSideWaterTorus_right1");
-  new TGeoCompositeShape("rotated_middleSideWaterTorus_left1", "dummy + middleSideWaterTorus1:rmiddleSideWaterTorus_left1");
+  TGeoTubeSeg* water_straight_tube_side1 = new TGeoTubeSeg("water_straight_tube_side1", 0, water_pipe_inner_radius, water_pipe_straight_tube_side1_length, 0, 360);
+  TGeoRotation* rotate_water_straight_tube_side1 = new TGeoRotation("rotate_water_straight_tube_side1", 90, 90, 0);
+  rotate_water_straight_tube_side1->RegisterYourself();
 
-  auto* tmiddleSideWaterTorus_right1 = new TGeoTranslation("tmiddleSideWaterTorus_right1",
-                                                           center_pipe_torus_radius1 * TMath::Sin(center_pipe_torus_angle1 / 2 * TMath::Pi() / 180.) + side_pipe_torus_radius1 * TMath::Sin(side_pipe_torus_angle1 * TMath::Pi() / 180.),
-                                                           -center_pipe_torus_radius1 * TMath::Cos(center_pipe_torus_angle1 / 2 * TMath::Pi() / 180.) - side_pipe_torus_radius1 * TMath::Cos(side_pipe_torus_angle1 * TMath::Pi() / 180.), 0);
-  auto* tmiddleSideWaterTorus_left1 = new TGeoTranslation("tmiddleSideWaterTorus_left1",
-                                                          -(center_pipe_torus_radius1 * TMath::Sin(center_pipe_torus_angle1 / 2 * TMath::Pi() / 180.) + side_pipe_torus_radius1 * TMath::Sin(side_pipe_torus_angle1 * TMath::Pi() / 180.)),
-                                                          -center_pipe_torus_radius1 * TMath::Cos(center_pipe_torus_angle1 / 2 * TMath::Pi() / 180.) - side_pipe_torus_radius1 * TMath::Cos(side_pipe_torus_angle1 * TMath::Pi() / 180.), 0);
-  tmiddleSideWaterTorus_right1->RegisterYourself();
-  tmiddleSideWaterTorus_left1->RegisterYourself();
+  TGeoCombiTrans* combtrans_rotated_water_straight_tube_side1_left = new TGeoCombiTrans("combtrans_rotated_water_straight_tube_side1_left", (water_pipe_main_position_radius + water_pipe_side_position_radius) * TMath::Cos((90 - water_pipe_side_angle) * TMath::Pi() / 180.) + water_pipe_straight_tube_side1_length, -(water_pipe_main_position_radius + water_pipe_side_position_radius) * TMath::Sin((90 - water_pipe_side_angle) * TMath::Pi() / 180.) + water_pipe_side_position_radius, 0, rotate_water_straight_tube_side1);
+  TGeoCombiTrans* combtrans_rotated_water_straight_tube_side1_right = new TGeoCombiTrans("combtrans_rotated_water_straight_tube_side1_right", -(water_pipe_main_position_radius + water_pipe_side_position_radius) * TMath::Cos((90 - water_pipe_side_angle) * TMath::Pi() / 180.) - water_pipe_straight_tube_side1_length, -(water_pipe_main_position_radius + water_pipe_side_position_radius) * TMath::Sin((90 - water_pipe_side_angle) * TMath::Pi() / 180.) + water_pipe_side_position_radius, 0, rotate_water_straight_tube_side1);
+  combtrans_rotated_water_straight_tube_side1_left->RegisterYourself();
+  combtrans_rotated_water_straight_tube_side1_right->RegisterYourself();
 
-  new TGeoTube("middleSideWaterTube1", 0, pipe_min_radius1, side_pipe_tube_length1 / 2);
+  TGeoTorus* water_side_torus_left2 = new TGeoTorus("water_side_torus_left2", water_pipe_side_position_radius, 0, water_pipe_inner_radius, 0, 90);
+  TGeoTorus* water_side_torus_right2 = new TGeoTorus("water_side_torus_right2", water_pipe_side_position_radius, 0, water_pipe_inner_radius, 90, 90);
+  TGeoTranslation* trans_water_side_torus_left2 = new TGeoTranslation("trans_water_side_torus_left2", +(water_pipe_main_position_radius + water_pipe_side_position_radius) * TMath::Cos((90 - water_pipe_side_angle) * TMath::Pi() / 180.) + water_pipe_straight_tube_side1_length * 2, -(water_pipe_main_position_radius + water_pipe_side_position_radius) * TMath::Sin((90 - water_pipe_side_angle) * TMath::Pi() / 180.) + water_pipe_side_position_radius - water_pipe_side_position_radius, 0);
+  TGeoTranslation* trans_water_side_torus_right2 = new TGeoTranslation("trans_water_side_torus_right2", -(water_pipe_main_position_radius + water_pipe_side_position_radius) * TMath::Cos((90 - water_pipe_side_angle) * TMath::Pi() / 180.) - water_pipe_straight_tube_side1_length * 2, -(water_pipe_main_position_radius + water_pipe_side_position_radius) * TMath::Sin((90 - water_pipe_side_angle) * TMath::Pi() / 180.) + water_pipe_side_position_radius - water_pipe_side_position_radius, 0);
+  trans_water_side_torus_left2->RegisterYourself();
+  trans_water_side_torus_right2->RegisterYourself();
 
-  auto* rmiddleSideWaterTube1 = new TGeoRotation("rmiddleSideWaterTube1", 90, 90, 0);
-  rmiddleSideWaterTube1->RegisterYourself();
+  TGeoTubeSeg* water_straight_tube_side2 = new TGeoTubeSeg("water_straight_tube_side2", 0, water_pipe_inner_radius, water_pipe_straight_tube_side2_length, 0, 360);
+  TGeoRotation* rotate_water_straight_tube_side2 = new TGeoRotation("rotate_water_straight_tube_side2", 0, 90, 0);
+  rotate_water_straight_tube_side2->RegisterYourself();
 
-  new TGeoCompositeShape("rotated_middleSideWaterTube1", "dummy+middleSideWaterTube1:rmiddleSideWaterTube1");
+  TGeoCombiTrans* combtrans_water_straight_tube_side_left2 = new TGeoCombiTrans("combtrans_water_straight_tube_side_left2", +(water_pipe_main_position_radius + water_pipe_side_position_radius) * TMath::Cos((90 - water_pipe_side_angle) * TMath::Pi() / 180.) + water_pipe_straight_tube_side1_length * 2 + water_pipe_side_position_radius,
+                                                                                -(water_pipe_main_position_radius + water_pipe_side_position_radius) * TMath::Sin((90 - water_pipe_side_angle) * TMath::Pi() / 180.) + water_pipe_side_position_radius - water_pipe_side_position_radius - water_pipe_straight_tube_side2_length, 0, rotate_water_straight_tube_side2);
 
-  TGeoTranslation* tmiddleSideWaterTube_right1 = new TGeoTranslation("tmiddleSideWaterTube_right1",
-                                                                     center_pipe_torus_radius1 * TMath::Sin(center_pipe_torus_angle1 / 2 * TMath::Pi() / 180) + side_pipe_torus_radius1 * TMath::Sin(side_pipe_torus_angle1 * TMath::Pi() / 180) + side_pipe_tube_length1 / 2,
-                                                                     -center_pipe_torus_radius1 * TMath::Cos(center_pipe_torus_angle1 / 2 * TMath::Pi() / 180) + side_pipe_torus_radius1 * (1 - TMath::Sin((90 - side_pipe_torus_angle1) * TMath::Pi() / 180)),
-                                                                     0);
-  TGeoTranslation* tmiddleSideWaterTube_left1 = new TGeoTranslation("tmiddleSideWaterTube_left1",
-                                                                    -(center_pipe_torus_radius1 * TMath::Sin(center_pipe_torus_angle1 / 2 * TMath::Pi() / 180) + side_pipe_torus_radius1 * TMath::Sin(side_pipe_torus_angle1 * TMath::Pi() / 180) + side_pipe_tube_length1 / 2),
-                                                                    -center_pipe_torus_radius1 * TMath::Cos(center_pipe_torus_angle1 / 2 * TMath::Pi() / 180) + side_pipe_torus_radius1 * (1 - TMath::Sin((90 - side_pipe_torus_angle1) * TMath::Pi() / 180)),
-                                                                    0);
-  tmiddleSideWaterTube_right1->RegisterYourself();
-  tmiddleSideWaterTube_left1->RegisterYourself();
+  TGeoCombiTrans* combtrans_water_straight_tube_side_right2 = new TGeoCombiTrans("combtrans_water_straight_tube_side_right2", -(water_pipe_main_position_radius + water_pipe_side_position_radius) * TMath::Cos((90 - water_pipe_side_angle) * TMath::Pi() / 180.) - water_pipe_straight_tube_side1_length * 2 - water_pipe_side_position_radius,
+                                                                                 -(water_pipe_main_position_radius + water_pipe_side_position_radius) * TMath::Sin((90 - water_pipe_side_angle) * TMath::Pi() / 180.) + water_pipe_side_position_radius - water_pipe_side_position_radius - water_pipe_straight_tube_side2_length, 0, rotate_water_straight_tube_side2);
 
-  new TGeoCompositeShape("water_shape",
-                         "middleCenterWaterTorus1:rmiddleCenterWaterTorus1"
-                         " + rotated_middleSideWaterTorus_right1:tmiddleSideWaterTorus_right1 + rotated_middleSideWaterTorus_left1:tmiddleSideWaterTorus_left1"
-                         " + rotated_middleSideWaterTube1:tmiddleSideWaterTube_right1 + rotated_middleSideWaterTube1:tmiddleSideWaterTube_left1");
+  combtrans_water_straight_tube_side_left2->RegisterYourself();
+  combtrans_water_straight_tube_side_right2->RegisterYourself();
 
-  TGeoTranslation* tmiddleWaterTorus_shape1 = new TGeoTranslation("tmiddleWaterTorus_shape1", 0, 0, middle_board_thickness / 2 - pipe_max_radius1);
-  TGeoTranslation* tmiddleWaterTorus_shape2 = new TGeoTranslation("tmiddleWaterTorus_shape2", 0, 0, -middle_board_thickness / 2 + pipe_max_radius1);
-  tmiddleWaterTorus_shape1->RegisterYourself();
-  tmiddleWaterTorus_shape2->RegisterYourself();
+  TGeoCompositeShape* water_shape = new TGeoCompositeShape("water_shape",
+                                                           "water_main_torus + water_side_torus_left1:trans_water_side_torus_left1 + water_side_torus_right1:trans_water_side_torus_right1"
+                                                           " + water_straight_tube_side1:combtrans_rotated_water_straight_tube_side1_left + water_straight_tube_side1:combtrans_rotated_water_straight_tube_side1_right"
+                                                           " + water_side_torus_left2:trans_water_side_torus_left2 + water_side_torus_right2:trans_water_side_torus_right2"
+                                                           " + water_straight_tube_side2:combtrans_water_straight_tube_side_left2 + water_straight_tube_side2:combtrans_water_straight_tube_side_right2");
 
-  TGeoCompositeShape* water_2side_shape = new TGeoCompositeShape("water_2side_shape", "water_shape:tmiddleWaterTorus_shape1+water_shape:tmiddleWaterTorus_shape2");
-
-  TGeoVolume* water = new TGeoVolume("water", water_2side_shape, kMed_Water);
+  TGeoVolume* water = new TGeoVolume("water", water_shape, kMed_Water);
   water->SetLineColor(kBlue);
   mHalfPSU->AddNode(water, 1, nullptr);
 
-  ///////////////////////////////////////////////////////////////////////////////////////////////////////////
-  //PSU surface
-  ///////////////////////////////////////////////////////////////////////////////////////////////////////////
+  ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+  //DCDC cobverter
+  ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-  Double_t surface_board_thickness = 0.16;
-  Double_t surface_board_max_radius1 = 26.432;
-  Double_t surface_board_min_radius1 = 17.0;
-  Double_t surfaceBox_sub_angle2 = 113.29 * TMath::Pi() / 180.;
-  Double_t surfaceBox_sub_width1 = 20.8;
+  //Sheet1
 
-  Double_t surfaceBox_sub_height1 = surface_board_max_radius1 * (1 - sqrt(1 - pow(surfaceBox_sub_width1 / 2. / surface_board_max_radius1, 2)));
+  Double_t DCDC_sheet1_thickness = 0.040;
+  Double_t DCDC_sheet1_height = 1.694;
+  Double_t DCDC_sheet1_width = 4.348;
+  Double_t DCDC_sheet1_radius = (block_radius + DCDC_sheet1_width / 2. - 0.673 - 1.85 + 1.85 / 2.);
 
-  Double_t surfaceBox_sub_width2 = 2 * surface_board_max_radius1;
-  Double_t surfaceBox_sub_height2 = 2 * surface_board_min_radius1 * TMath::Cos(surfaceBox_sub_angle2 / 2);
+  Double_t DCDC_sheet1_position_z = middle_spacer_main_thickness / 2. + middle_spacer_cover_thickness + middle_spacer_cover_block_thickness + DCDC_sheet1_thickness / 2;
+  //Double_t DCDC_sheet1_position_z = electric_board_position_z + electric_board_thickness/2. + DCDC_sheet1_thickness/2.;
 
-  new TGeoTubeSeg("surfaceTubeSeg1", surface_board_min_radius1, surface_board_max_radius1, surface_board_thickness / 2, 180, 0);
-  new TGeoBBox("surfaceBox_sub1", surfaceBox_sub_width1 / 2, surfaceBox_sub_height1 / 2, surface_board_thickness);
-  new TGeoBBox("surfaceBox_sub2", surfaceBox_sub_width2 / 2, surfaceBox_sub_height2 / 2, surface_board_thickness);
+  TGeoBBox* DCDC_sheet1_box = new TGeoBBox("DCDC_sheet1_box", DCDC_sheet1_width / 2., DCDC_sheet1_height / 2., DCDC_sheet1_thickness / 2.);
 
-  auto* tsurfaceBox_sub1 = new TGeoTranslation("tsurfaceBox_sub1", 0, -(surface_board_max_radius1 - surfaceBox_sub_height1 / 2), 0);
-  auto* tsurfaceBox_sub2 = new TGeoTranslation("tsurfaceBox_sub2", 0., 0., 0.);
-  tsurfaceBox_sub1->RegisterYourself();
-  tsurfaceBox_sub2->RegisterYourself();
+  TGeoCompositeShape* rotated_DCDC_sheet1_box[24];
 
-  Double_t surfaceBox_edge_width1 = 8.8;
-  Double_t surfaceBox_edge_height1 = 4.347;
+  std::string name_DCDC_sheet1_box = "";
 
-  Double_t surfaceBox_edge_sub_width1 = 5.;
-  Double_t surfaceBox_edge_sub_height1 = 8.025;
+  for (Int_t iB = 0; iB < 11; ++iB) {
 
-  new TGeoBBox("surfaceBox_edge1", surfaceBox_edge_width1 / 2, surfaceBox_edge_height1 / 2, surface_board_thickness / 2);
-  new TGeoBBox("surfaceBox_sub_edge1", surfaceBox_edge_sub_width1 / 2, surfaceBox_edge_sub_height1 / 2, surface_board_thickness);
+    Double_t block_angle = (180. - block_angle_index[iB]) / 2. * TMath::Pi() / 180.;
 
-  auto* tsurfaceBox_edge_right1 = new TGeoTranslation("tsurfaceBox_edge_right1",
-                                                      surface_board_min_radius1 * TMath::Sin(surfaceBox_sub_angle2 / 2) + surfaceBox_edge_width1 / 2,
-                                                      -surface_board_min_radius1 * TMath::Cos(surfaceBox_sub_angle2 / 2) + surfaceBox_edge_height1 / 2, 0);
-  auto* tsurfaceBox_edge_sub_right1 = new TGeoTranslation("tsurfaceBox_edge_sub_right1",
-                                                          surface_board_min_radius1 * TMath::Sin(surfaceBox_sub_angle2 / 2) + surfaceBox_edge_width1 + surfaceBox_edge_sub_width1 / 2,
-                                                          -surface_board_min_radius1 * TMath::Cos(surfaceBox_sub_angle2 / 2) + surfaceBox_edge_height1 - surfaceBox_edge_sub_height1 / 2, 0);
-  auto* tsurfaceBox_edge_left1 = new TGeoTranslation("tsurfaceBox_edge_left1",
-                                                     -(surface_board_min_radius1 * TMath::Sin(surfaceBox_sub_angle2 / 2) + surfaceBox_edge_width1 / 2),
-                                                     -surface_board_min_radius1 * TMath::Cos(surfaceBox_sub_angle2 / 2) + surfaceBox_edge_height1 / 2, 0);
-  auto* tsurfaceBox_edge_sub_left1 = new TGeoTranslation("tsurfaceBox_edge_sub_left1",
-                                                         -(surface_board_min_radius1 * TMath::Sin(surfaceBox_sub_angle2 / 2) + surfaceBox_edge_width1 + surfaceBox_edge_sub_width1 / 2),
-                                                         -surface_board_min_radius1 * TMath::Cos(surfaceBox_sub_angle2 / 2) + surfaceBox_edge_height1 - surfaceBox_edge_sub_height1 / 2, 0);
+    TGeoRotation* rotate_DCDC_sheet1_box_left = new TGeoRotation(Form("rotate_DCDC_sheet1_box_No%d", iB * 2), 180 - block_angle * 180. / TMath::Pi(), 0, 0);
+    TGeoRotation* rotate_DCDC_sheet1_box_right = new TGeoRotation(Form("rotate_DCDC_sheet1_box_No%d", iB * 2 + 1), block_angle * 180. / TMath::Pi(), 0, 0);
+    rotate_DCDC_sheet1_box_left->RegisterYourself();
+    rotate_DCDC_sheet1_box_right->RegisterYourself();
 
-  tsurfaceBox_edge_right1->RegisterYourself();
-  tsurfaceBox_edge_sub_right1->RegisterYourself();
+    Double_t cent_block_left[] = {DCDC_sheet1_radius * TMath::Cos(block_angle), -DCDC_sheet1_radius * TMath::Sin(block_angle), DCDC_sheet1_position_z};
+    Double_t cent_block_right[] = {DCDC_sheet1_radius * TMath::Cos(TMath::Pi() - block_angle), -DCDC_sheet1_radius * TMath::Sin(TMath::Pi() - block_angle), DCDC_sheet1_position_z};
 
-  tsurfaceBox_edge_left1->RegisterYourself();
-  tsurfaceBox_edge_sub_left1->RegisterYourself();
+    TGeoCombiTrans* combtrans_DCDC_sheet1_box_left = new TGeoCombiTrans(Form("combtrans_DCDC_sheet1_box_No%d", 2 * iB), cent_block_left[0], cent_block_left[1], cent_block_left[2], rotate_DCDC_sheet1_box_left);
+    TGeoCombiTrans* combtrans_DCDC_sheet1_box_right = new TGeoCombiTrans(Form("combtrans_DCDC_sheet1_box_No%d", 2 * iB + 1), cent_block_right[0], cent_block_right[1], cent_block_right[2], rotate_DCDC_sheet1_box_right);
+    combtrans_DCDC_sheet1_box_left->RegisterYourself();
+    combtrans_DCDC_sheet1_box_right->RegisterYourself();
 
-  Double_t surfaceBox_center_sub_min_radius1 = 18.0;
-  Double_t surfaceBox_center_sub_max_radius1 = 19.0;
-  Double_t surfaceBox_center_sub_max_angle1 = 130;
-
-  new TGeoTubeSeg("surfaceCenterTubeSeg_sub1", surfaceBox_center_sub_min_radius1, surfaceBox_center_sub_max_radius1, middle_board_thickness,
-                  180 + (180 - surfaceBox_center_sub_max_angle1) / 2, 180 + (180 - surfaceBox_center_sub_max_angle1) / 2 + surfaceBox_center_sub_max_angle1);
-
-  Double_t surfaceBox_edge_sub_width2 = 1.;
-  Double_t surfaceBox_edge_sub_height2 = 1.;
-  Double_t surfaceBox_edge_sub_refposi_x = 0.76;
-  Double_t surfaceBox_edge_sub_refposi_y = 4.004;
-
-  new TGeoBBox("surfaceBox_square_sub2", surfaceBox_edge_sub_width2 / 2, surfaceBox_edge_sub_height2 / 2, surface_board_thickness);
-  auto* tsurfaceBox_square_sub_right2 = new TGeoTranslation("tsurfaceBox_square_sub_right2",
-                                                            surface_board_min_radius1 * TMath::Sin(surfaceBox_sub_angle2 / 2) + surfaceBox_edge_width1 - surfaceBox_edge_sub_refposi_x - surfaceBox_edge_sub_width2 / 2,
-                                                            -surface_board_min_radius1 * TMath::Cos(surfaceBox_sub_angle2 / 2) + surfaceBox_edge_height1 - surfaceBox_edge_sub_refposi_y - surfaceBox_edge_sub_height2 / 2, 0);
-  auto* tsurfaceBox_square_sub_left2 = new TGeoTranslation("tsurfaceBox_square_sub_left2",
-                                                           -(surface_board_min_radius1 * TMath::Sin(surfaceBox_sub_angle2 / 2) + surfaceBox_edge_width1 - surfaceBox_edge_sub_refposi_x - surfaceBox_edge_sub_width2 / 2),
-                                                           -surface_board_min_radius1 * TMath::Cos(surfaceBox_sub_angle2 / 2) + surfaceBox_edge_height1 - surfaceBox_edge_sub_refposi_y - surfaceBox_edge_sub_height2 / 2, 0);
-  tsurfaceBox_square_sub_right2->RegisterYourself();
-  tsurfaceBox_square_sub_left2->RegisterYourself();
-
-  new TGeoCompositeShape("surface_board_shape",
-                         "surfaceTubeSeg1 - surfaceBox_sub1:tsurfaceBox_sub1 - surfaceBox_sub2:tsurfaceBox_sub2"
-                         "+surfaceBox_edge1:tsurfaceBox_edge_right1 - surfaceBox_sub_edge1:tsurfaceBox_edge_sub_right1"
-                         "+surfaceBox_edge1:tsurfaceBox_edge_left1 - surfaceBox_sub_edge1:tsurfaceBox_edge_sub_left1"
-                         "-surfaceCenterTubeSeg_sub1 - surfaceBox_square_sub2:tsurfaceBox_square_sub_right2"
-                         "-surfaceCenterTubeSeg_sub1 - surfaceBox_square_sub2:tsurfaceBox_square_sub_left2");
-
-  auto* tsurface_board_shape1 = new TGeoTranslation("tsurface_board_shape1", 0, 0, middle_board_thickness / 2 + surface_board_thickness / 2);
-  auto* tsurface_board_shape2 = new TGeoTranslation("tsurface_board_shape2", 0, 0, -(middle_board_thickness / 2 + surface_board_thickness / 2));
-  tsurface_board_shape1->RegisterYourself();
-  tsurface_board_shape2->RegisterYourself();
-
-  TGeoCompositeShape* surface_board_2side_shape = new TGeoCompositeShape("surface_board_2side_shape", "surface_board_shape:tsurface_board_shape1 + surface_board_shape:tsurface_board_shape2");
-
-  TGeoVolume* surface_board = new TGeoVolume("surface_board", surface_board_2side_shape, kMedPeek);
-  surface_board->SetLineColor(kGreen + 3);
-
-  mHalfPSU->AddNode(surface_board, 1, nullptr);
-
-  ///////////////////////////////////////////////////////////////////////////////////////////////////////////
-  //PSU DCDC
-  ///////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-  Int_t nDCDC = 22;
-
-  Double_t DCDC_main_width1 = 1.4;
-  Double_t DCDC_main_height1 = 1.85;
-  Double_t DCDC_main_thickness1 = 0.8;
-
-  new TGeoBBox("DCDC_main_shape1", DCDC_main_width1 / 2, DCDC_main_height1 / 2, DCDC_main_thickness1 / 2);
-
-  Double_t DCDC_width2 = 1.694;
-  Double_t DCDC_height2 = 4.348;
-  Double_t DCDC_thickness2 = 0.04;
-
-  new TGeoBBox("DCDC_shape2", DCDC_width2 / 2, DCDC_height2 / 2, DCDC_thickness2 / 2);
-
-  Double_t DCDC_sub_edge_thickness1 = 0.02;
-  Double_t DCDC_sub_width1 = DCDC_main_width1 - DCDC_sub_edge_thickness1 * 2;
-  Double_t DCDC_sub_height1 = DCDC_main_height1 - DCDC_sub_edge_thickness1 * 2;
-  Double_t DCDC_sub_thickness1 = DCDC_main_thickness1;
-
-  new TGeoBBox("DCDC_sub_shape1", DCDC_sub_width1 / 2, DCDC_sub_height1 / 2, DCDC_sub_thickness1 / 2);
-
-  TGeoTranslation* tDCDC_sub_shape1 = new TGeoTranslation("tDCDC_sub_shape1", 0, 0, DCDC_sub_edge_thickness1);
-  tDCDC_sub_shape1->RegisterYourself();
-
-  new TGeoCompositeShape("DCDC_shape1", "DCDC_main_shape1 - DCDC_sub_shape1:tDCDC_sub_shape1");
-
-  Double_t full_angle = 126;
-  Double_t one_angle = 126. / (nDCDC - 1);
-  Double_t start_DCDC_angle = 180 + (180 - full_angle) / 2;
-
-  Double_t position_radius = 18.5;
-
-  TGeoRotation* rDCDC_shape1[22];
-  TGeoTranslation* tDCDC_shape1[22];
-  TGeoCompositeShape* rotated_DCDC_shape1[22];
-
-  TGeoRotation* rDCDC_shape2[22];
-  TGeoTranslation* tDCDC_shape2[22];
-  TGeoCompositeShape* rotated_DCDC_shape2[22];
-
-  TString string_all_DCDC_shape1 = "";
-  TString string_all_DCDC_shape2 = "";
-
-  for (Int_t iDCDC = 0; iDCDC < nDCDC; ++iDCDC) {
-    rDCDC_shape1[iDCDC] = new TGeoRotation(Form("rDCDC_shape1_angle%d", iDCDC + 1), full_angle / 2 - one_angle * iDCDC, 0, 0);
-    rDCDC_shape2[iDCDC] = new TGeoRotation(Form("rDCDC_shape2_angle%d", iDCDC + 1), full_angle / 2 - one_angle * iDCDC, 0, 0);
-    rDCDC_shape1[iDCDC]->RegisterYourself();
-    rDCDC_shape2[iDCDC]->RegisterYourself();
-
-    rotated_DCDC_shape1[iDCDC] = new TGeoCompositeShape(Form("rotated_DCDC_shape1_angle%d", iDCDC + 1), Form("dummy+DCDC_shape1:rDCDC_shape1_angle%d", iDCDC + 1));
-    rotated_DCDC_shape2[iDCDC] = new TGeoCompositeShape(Form("rotated_DCDC_shape2_angle%d", iDCDC + 1), Form("dummy+DCDC_shape2:rDCDC_shape2_angle%d", iDCDC + 1));
-
-    tDCDC_shape1[iDCDC] = new TGeoTranslation(Form("tDCDC_shape1_pos%d", iDCDC + 1),
-                                              -position_radius * TMath::Cos((start_DCDC_angle + one_angle * iDCDC) * TMath::Pi() / 180.),
-                                              position_radius * TMath::Sin((start_DCDC_angle + one_angle * iDCDC) * TMath::Pi() / 180.), 0);
-    tDCDC_shape2[iDCDC] = new TGeoTranslation(Form("tDCDC_shape2_pos%d", iDCDC + 1),
-                                              -(position_radius + DCDC_height2 / 5) * TMath::Cos((start_DCDC_angle + one_angle * iDCDC) * TMath::Pi() / 180.),
-                                              (position_radius + DCDC_height2 / 5) * TMath::Sin((start_DCDC_angle + one_angle * iDCDC) * TMath::Pi() / 180.), 0);
-    tDCDC_shape1[iDCDC]->RegisterYourself();
-    tDCDC_shape2[iDCDC]->RegisterYourself();
-
-    if (iDCDC + 1 == nDCDC) {
-      string_all_DCDC_shape1 += Form("rotated_DCDC_shape1_angle%d:tDCDC_shape1_pos%d", iDCDC + 1, iDCDC + 1);
-      string_all_DCDC_shape2 += Form("rotated_DCDC_shape2_angle%d:tDCDC_shape2_pos%d", iDCDC + 1, iDCDC + 1);
+    if (iB == 0) {
+      name_DCDC_sheet1_box += Form("DCDC_sheet1_box:combtrans_DCDC_sheet1_box_No%d", 2 * iB);
     } else {
-      string_all_DCDC_shape1 += Form("rotated_DCDC_shape1_angle%d:tDCDC_shape1_pos%d+", iDCDC + 1, iDCDC + 1);
-      string_all_DCDC_shape2 += Form("rotated_DCDC_shape2_angle%d:tDCDC_shape2_pos%d+", iDCDC + 1, iDCDC + 1);
+      name_DCDC_sheet1_box += Form("+DCDC_sheet1_box:combtrans_DCDC_sheet1_box_No%d", 2 * iB);
     }
+
+    name_DCDC_sheet1_box += Form("+DCDC_sheet1_box:combtrans_DCDC_sheet1_box_No%d", 2 * iB + 1);
   }
 
-  string_all_DCDC_shape1 += "+ DCDC_shape1:tsurfaceBox_square_sub_right2 + DCDC_shape1:tsurfaceBox_square_sub_left2";
+  TGeoBBox* DCDC_sheet1_box_side = new TGeoBBox("DCDC_sheet1_box_side", DCDC_sheet1_height / 2., DCDC_sheet1_width / 2., DCDC_sheet1_thickness / 2.);
 
-  auto* tDCDC_shape_side_right2 = new TGeoTranslation("tDCDC_shape_side_right2",
-                                                      surface_board_min_radius1 * TMath::Sin(surfaceBox_sub_angle2 / 2) + surfaceBox_edge_width1 - surfaceBox_edge_sub_refposi_x - surfaceBox_edge_sub_width2 / 2,
-                                                      -surface_board_min_radius1 * TMath::Cos(surfaceBox_sub_angle2 / 2) + surfaceBox_edge_height1 - surfaceBox_edge_sub_refposi_y - surfaceBox_edge_sub_height2 / 2 + DCDC_height2 / 5.,
-                                                      0);
+  TGeoTranslation* trans_DCDC_sheet1_box_left = new TGeoTranslation("trans_DCDC_sheet1_box_left", 22.259 - middle_spacer_cover_block_width / 2, -8.305 + middle_spacer_cover_block_height / 2 - 0.576, DCDC_sheet1_position_z);
+  trans_DCDC_sheet1_box_left->RegisterYourself();
+  name_DCDC_sheet1_box += "+DCDC_sheet1_box_side:trans_DCDC_sheet1_box_left";
 
-  auto* tDCDC_shape_side_left2 = new TGeoTranslation("tDCDC_shape_side_left2",
-                                                     -(surface_board_min_radius1 * TMath::Sin(surfaceBox_sub_angle2 / 2) + surfaceBox_edge_width1 - surfaceBox_edge_sub_refposi_x - surfaceBox_edge_sub_width2 / 2),
-                                                     -surface_board_min_radius1 * TMath::Cos(surfaceBox_sub_angle2 / 2) + surfaceBox_edge_height1 - surfaceBox_edge_sub_refposi_y - surfaceBox_edge_sub_height2 / 2 + DCDC_height2 / 5.,
-                                                     0);
-  tDCDC_shape_side_right2->RegisterYourself();
-  tDCDC_shape_side_left2->RegisterYourself();
+  TGeoTranslation* trans_DCDC_sheet1_box_right = new TGeoTranslation("trans_DCDC_sheet1_box_right", -22.247 + middle_spacer_cover_block_width / 2, -8.305 + middle_spacer_cover_block_height / 2 - 0.576, DCDC_sheet1_position_z);
+  trans_DCDC_sheet1_box_right->RegisterYourself();
+  name_DCDC_sheet1_box += "+DCDC_sheet1_box_side:trans_DCDC_sheet1_box_right";
 
-  string_all_DCDC_shape2 += "+ DCDC_shape2:tDCDC_shape_side_right2 + DCDC_shape2:tDCDC_shape_side_left2";
+  TGeoCompositeShape* DCDC_sheet1_shape = new TGeoCompositeShape("DCDC_sheet1_shape", name_DCDC_sheet1_box.c_str());
 
-  new TGeoCompositeShape("all_DCDC_shape1", string_all_DCDC_shape1);
+  TGeoVolume* DCDC_sheet1 = new TGeoVolume("DCDC_sheet1", DCDC_sheet1_shape, kMedPeek);
+  DCDC_sheet1->SetLineColor(kGreen);
 
-  TGeoRotation* rall_DCDC_shape1 = new TGeoRotation("rall_DCDC_shape1", 0, 180, 180);
-  rall_DCDC_shape1->RegisterYourself();
+  TGeoRotation* trans_DCDC_sheet1_front = new TGeoRotation("trans_DCDC_sheet1_front", 0, 0, 0);
+  TGeoRotation* trans_DCDC_sheet1_back = new TGeoRotation("trans_DCDC_sheet1_back", 180, 180, 0);
 
-  new TGeoCompositeShape("all_DCDC_shape_opposit", "dummy+all_DCDC_shape1:rall_DCDC_shape1");
+  mHalfPSU->AddNode(DCDC_sheet1, 0, trans_DCDC_sheet1_front);
+  mHalfPSU->AddNode(DCDC_sheet1, 0, trans_DCDC_sheet1_back);
 
-  new TGeoCompositeShape("all_DCDC_base_shape", string_all_DCDC_shape2);
+  //Cover box
 
-  auto* tall_DCDC_shape_shape1 = new TGeoTranslation("tall_DCDC_shape_shape1", 0, 0, middle_board_thickness / 2 + surface_board_thickness + DCDC_thickness2 + DCDC_main_thickness1 / 2);
-  auto* tall_DCDC_shape_shape2 = new TGeoTranslation("tall_DCDC_shape_shape2", 0, 0, -(middle_board_thickness / 2 + surface_board_thickness + DCDC_thickness2 + DCDC_main_thickness1 / 2));
-  tall_DCDC_shape_shape1->RegisterYourself();
-  tall_DCDC_shape_shape2->RegisterYourself();
+  Double_t DCDC_cover_thickness = 0.800;
+  Double_t DCDC_cover_outer_height = 1.400;
+  Double_t DCDC_cover_outer_width = 1.85;
+  Double_t DCDC_cover_depth = 0.05;
+  Double_t DCDC_cover_inner_width = DCDC_cover_outer_width - 2 * DCDC_cover_depth;
+  Double_t DCDC_cover_inner_height = DCDC_cover_outer_height - 2 * DCDC_cover_depth;
 
-  auto* tall_DCDC_base_shape_shape1 = new TGeoTranslation("tall_DCDC_base_shape_shape1", 0, 0, middle_board_thickness / 2 + surface_board_thickness + DCDC_thickness2 / 2);
-  auto* tall_DCDC_base_shape_shape2 = new TGeoTranslation("tall_DCDC_base_shape_shape2", 0, 0, -(middle_board_thickness / 2 + surface_board_thickness + DCDC_thickness2 / 2));
-  tall_DCDC_base_shape_shape1->RegisterYourself();
-  tall_DCDC_base_shape_shape2->RegisterYourself();
+  Double_t DCDC_cover_position_z = DCDC_sheet1_position_z + DCDC_sheet1_thickness / 2. + DCDC_cover_thickness / 2.;
 
-  TGeoCompositeShape* two_side_all_DCDC_shape = new TGeoCompositeShape("two_side_all_DCDC_shape", "all_DCDC_shape_opposit:tall_DCDC_shape_shape1 + all_DCDC_shape1:tall_DCDC_shape_shape2");
+  TGeoBBox* DCDC_cover_outer_box = new TGeoBBox("DCDC_cover_outer_box", DCDC_cover_outer_width / 2., DCDC_cover_outer_height / 2., DCDC_cover_thickness / 2.);
+  TGeoBBox* DCDC_cover_innner_box = new TGeoBBox("DCDC_cover_inner_box", DCDC_cover_inner_width / 2., DCDC_cover_inner_height / 2., DCDC_cover_thickness / 2.);
 
-  TGeoCompositeShape* two_side_all_DCDC_base_shape = new TGeoCompositeShape("two_side_all_DCDC_base_shape",
-                                                                            "all_DCDC_base_shape:tall_DCDC_base_shape_shape1 + all_DCDC_base_shape:tall_DCDC_base_shape_shape2");
+  TGeoCompositeShape* rotated_DCDC_cover_outer_box[23];
+  TGeoCompositeShape* rotated_DCDC_cover_inner_box[23];
 
-  TGeoVolume* DCDC1 = new TGeoVolume("DCDC1", two_side_all_DCDC_shape, kMedAlu);
-  DCDC1->SetLineColor(kGray);
+  std::string name_DCDC_cover_box = "";
 
-  TGeoVolume* DCDC2 = new TGeoVolume("DCDC2", two_side_all_DCDC_base_shape, kMedAlu);
-  DCDC2->SetLineColor(kSpring);
+  for (Int_t iB = 0; iB < 11; ++iB) {
 
-  mHalfPSU->AddNode(DCDC1, 1, nullptr);
-  mHalfPSU->AddNode(DCDC2, 1, nullptr);
+    Double_t block_angle = (180. - block_angle_index[iB]) / 2. * TMath::Pi() / 180.;
 
-  ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-  // DC-DC coil part
-  ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+    TGeoRotation* rotate_DCDC_cover_box_left = new TGeoRotation(Form("rotate_DCDC_cover_box_No%d", iB * 2), 180 - block_angle * 180. / TMath::Pi(), 0, 0);
+    TGeoRotation* rotate_DCDC_cover_box_right = new TGeoRotation(Form("rotate_DCDC_cover_box_No%d", iB * 2 + 1), block_angle * 180. / TMath::Pi(), 0, 0);
+    rotate_DCDC_cover_box_left->RegisterYourself();
+    rotate_DCDC_cover_box_right->RegisterYourself();
 
-  ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-  // Very detaild coil shape part
-  ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+    Double_t cent_block_left[] = {block_radius * TMath::Cos(block_angle), -block_radius * TMath::Sin(block_angle), DCDC_cover_position_z};
+    Double_t cent_block_right[] = {block_radius * TMath::Cos(TMath::Pi() - block_angle), -block_radius * TMath::Sin(TMath::Pi() - block_angle), DCDC_cover_position_z};
 
-  Double_t DCDC_coil_radius1 = 0.1;
-  Double_t DCDC_coil_min_radius1 = 0;
-  Double_t DCDC_coil_max_radius1 = DCDC_coil_radius1 - 0.075;
-  Double_t DCDC_coil_straight_gap = DCDC_coil_radius1 / 20.;
-  Double_t DCDC_coil_torus_part_radius = 2. / 5. * DCDC_width2 / 2.;
+    TGeoCombiTrans* combtrans_DCDC_cover_outer_box_left = new TGeoCombiTrans(Form("combtrans_DCDC_cover_outer_box_No%d", 2 * iB), cent_block_left[0], cent_block_left[1], cent_block_left[2], rotate_DCDC_cover_box_left);
+    TGeoCombiTrans* combtrans_DCDC_cover_outer_box_right = new TGeoCombiTrans(Form("combtrans_DCDC_cover_outer_box_No%d", 2 * iB + 1), cent_block_right[0], cent_block_right[1], cent_block_right[2], rotate_DCDC_cover_box_right);
+    combtrans_DCDC_cover_outer_box_left->RegisterYourself();
+    combtrans_DCDC_cover_outer_box_right->RegisterYourself();
 
-  new TGeoTorus("DCDC_coil_main_shape", DCDC_coil_radius1, 0, DCDC_coil_max_radius1, 0, 360);
+    TGeoCombiTrans* combtrans_DCDC_cover_inner_box_left = new TGeoCombiTrans(Form("combtrans_DCDC_cover_inner_box_No%d", 2 * iB), cent_block_left[0], cent_block_left[1], cent_block_left[2] - 2 * DCDC_cover_depth, rotate_DCDC_cover_box_left);
+    TGeoCombiTrans* combtrans_DCDC_cover_inner_box_right = new TGeoCombiTrans(Form("combtrans_DCDC_cover_inner_box_No%d", 2 * iB + 1), cent_block_right[0], cent_block_right[1], cent_block_right[2] - 2 * DCDC_cover_depth, rotate_DCDC_cover_box_right);
+    combtrans_DCDC_cover_inner_box_left->RegisterYourself();
+    combtrans_DCDC_cover_inner_box_right->RegisterYourself();
 
-  TGeoTranslation* tDCDC_coil_straight[9];
-  tDCDC_coil_straight[0] = new TGeoTranslation("tDCDC_coil_straight_No0", 0, 0, 0);
-  tDCDC_coil_straight[1] = new TGeoTranslation("tDCDC_coil_straight_No1", 0, 0, (DCDC_coil_max_radius1 * 2 + DCDC_coil_straight_gap) * 1);
-  tDCDC_coil_straight[2] = new TGeoTranslation("tDCDC_coil_straight_No2", 0, 0, (DCDC_coil_max_radius1 * 2 + DCDC_coil_straight_gap) * 2);
-  tDCDC_coil_straight[3] = new TGeoTranslation("tDCDC_coil_straight_No3", 0, 0, (DCDC_coil_max_radius1 * 2 + DCDC_coil_straight_gap) * 3);
-  tDCDC_coil_straight[4] = new TGeoTranslation("tDCDC_coil_straight_No4", 0, 0, (DCDC_coil_max_radius1 * 2 + DCDC_coil_straight_gap) * 4);
-  tDCDC_coil_straight[5] = new TGeoTranslation("tDCDC_coil_straight_No5", 0, 0, (DCDC_coil_max_radius1 * 2 + DCDC_coil_straight_gap) * -1);
-  tDCDC_coil_straight[6] = new TGeoTranslation("tDCDC_coil_straight_No6", 0, 0, (DCDC_coil_max_radius1 * 2 + DCDC_coil_straight_gap) * -2);
-  tDCDC_coil_straight[7] = new TGeoTranslation("tDCDC_coil_straight_No7", 0, 0, (DCDC_coil_max_radius1 * 2 + DCDC_coil_straight_gap) * -3);
-  tDCDC_coil_straight[8] = new TGeoTranslation("tDCDC_coil_straight_No8", 0, 0, (DCDC_coil_max_radius1 * 2 + DCDC_coil_straight_gap) * -4);
-
-  for (Int_t i = 0; i < 9; ++i)
-    tDCDC_coil_straight[i]->RegisterYourself();
-
-  new TGeoCompositeShape("DCDC_coil_straight_shape1",
-                         "DCDC_coil_main_shape:tDCDC_coil_straight_No0"
-                         "+ DCDC_coil_main_shape:tDCDC_coil_straight_No1 + DCDC_coil_main_shape:tDCDC_coil_straight_No2"
-                         "+ DCDC_coil_main_shape:tDCDC_coil_straight_No3 + DCDC_coil_main_shape:tDCDC_coil_straight_No4"
-                         "+ DCDC_coil_main_shape:tDCDC_coil_straight_No5 + DCDC_coil_main_shape:tDCDC_coil_straight_No6"
-                         "+ DCDC_coil_main_shape:tDCDC_coil_straight_No7 + DCDC_coil_main_shape:tDCDC_coil_straight_No8");
-  TGeoRotation* rDCDC_coil_torus[7];
-  Double_t DCDC_coil_torus_part_angle[] = {15, 30, 60, 90, 120, 150, 165};
-
-  TGeoCompositeShape* rotated_DCDC_coil_main_shape[7];
-  for (Int_t i = 0; i < 7; ++i) {
-    rDCDC_coil_torus[i] = new TGeoRotation(Form("rDCDC_coil_torus_No%d", i), -90, DCDC_coil_torus_part_angle[i], 0);
-    rDCDC_coil_torus[i]->RegisterYourself();
-    rotated_DCDC_coil_main_shape[i] = new TGeoCompositeShape(Form("rotated_DCDC_coil_main_shape_No%d", i), Form("dummy + DCDC_coil_main_shape:rDCDC_coil_torus_No%d", i));
+    if (iB == 0)
+      name_DCDC_cover_box += Form("DCDC_cover_outer_box:combtrans_DCDC_cover_outer_box_No%d - DCDC_cover_inner_box:combtrans_DCDC_cover_inner_box_No%d", 2 * iB, 2 * iB);
+    else
+      name_DCDC_cover_box += Form("+DCDC_cover_outer_box:combtrans_DCDC_cover_outer_box_No%d - DCDC_cover_inner_box:combtrans_DCDC_cover_inner_box_No%d", 2 * iB, 2 * iB);
+    name_DCDC_cover_box += Form("+DCDC_cover_outer_box:combtrans_DCDC_cover_outer_box_No%d - DCDC_cover_inner_box:combtrans_DCDC_cover_inner_box_No%d", 2 * iB + 1, 2 * iB + 1);
   }
 
-  TGeoTranslation* trotated_DCDC_coil_main_shape[7];
+  TGeoBBox* DCDC_cover_outer_box_side = new TGeoBBox("DCDC_cover_outer_box_side", DCDC_cover_outer_height / 2., DCDC_cover_outer_width / 2., DCDC_cover_thickness / 2.);
+  TGeoBBox* DCDC_cover_innner_box_side = new TGeoBBox("DCDC_cover_inner_box_side", DCDC_cover_inner_height / 2., DCDC_cover_inner_width / 2., DCDC_cover_thickness / 2.);
 
-  for (Int_t i = 0; i < 7; ++i) {
-    trotated_DCDC_coil_main_shape[i] = new TGeoTranslation(Form("trotated_DCDC_coil_main_shape_No%d", i),
-                                                           DCDC_coil_torus_part_radius * TMath::Cos(DCDC_coil_torus_part_angle[i] * TMath::Pi() / 180.),
-                                                           0,
-                                                           DCDC_coil_torus_part_radius * TMath::Sin(DCDC_coil_torus_part_angle[i] * TMath::Pi() / 180.));
-    trotated_DCDC_coil_main_shape[i]->RegisterYourself();
+  TGeoTranslation* trans_DCDC_cover_outer_box_left = new TGeoTranslation("trans_DCDC_cover_outer_box_left", 22.259 - middle_spacer_cover_block_width / 2, -8.305 + middle_spacer_cover_block_height / 2, DCDC_cover_position_z);
+  TGeoTranslation* trans_DCDC_cover_inner_box_left = new TGeoTranslation("trans_DCDC_cover_inner_box_left", 22.259 - middle_spacer_cover_block_width / 2, -8.305 + middle_spacer_cover_block_height / 2, DCDC_cover_position_z - 2 * DCDC_cover_depth);
+  trans_DCDC_cover_outer_box_left->RegisterYourself();
+  trans_DCDC_cover_inner_box_left->RegisterYourself();
+  name_DCDC_cover_box += "+DCDC_cover_outer_box_side:trans_DCDC_cover_outer_box_left - DCDC_cover_inner_box_side:trans_DCDC_cover_inner_box_left";
+
+  TGeoTranslation* trans_DCDC_cover_outer_box_right = new TGeoTranslation("trans_DCDC_cover_outer_box_right", -22.247 + middle_spacer_cover_block_width / 2, -8.305 + middle_spacer_cover_block_height / 2, DCDC_cover_position_z);
+  TGeoTranslation* trans_DCDC_cover_inner_box_right = new TGeoTranslation("trans_DCDC_cover_inner_box_right", -22.247 + middle_spacer_cover_block_width / 2, -8.305 + middle_spacer_cover_block_height / 2, DCDC_cover_position_z - 2 * DCDC_cover_depth);
+  trans_DCDC_cover_outer_box_right->RegisterYourself();
+  trans_DCDC_cover_inner_box_right->RegisterYourself();
+  name_DCDC_cover_box += "+DCDC_cover_outer_box_side:trans_DCDC_cover_outer_box_right - DCDC_cover_inner_box_side:trans_DCDC_cover_inner_box_right";
+
+  TGeoCompositeShape* DCDC_cover_shape = new TGeoCompositeShape("DCDC_cover_shape", name_DCDC_cover_box.c_str());
+  TGeoVolume* DCDC_cover = new TGeoVolume("DCDC_cover", DCDC_cover_shape, kMedAlu);
+  DCDC_cover->SetLineColor(kGray);
+
+  TGeoRotation* trans_DCDC_cover_front = new TGeoRotation("trans_DCDC_cover_front", 0, 0, 0);
+  TGeoRotation* trans_DCDC_cover_back = new TGeoRotation("trans_DCDC_cover_back", 180, 180, 0);
+
+  mHalfPSU->AddNode(DCDC_cover, 0, trans_DCDC_cover_front);
+  mHalfPSU->AddNode(DCDC_cover, 0, trans_DCDC_cover_back);
+
+  //DCDC converter connector
+
+  Double_t DCDC_connector_thickness = 0.225;
+  Double_t DCDC_connector_height = 1.44;
+  Double_t DCDC_connector_width = 0.305;
+  Double_t DCDC_connector_radius = (block_radius + DCDC_sheet1_width / 2. - 0.673 - 1.85 + 1.85 / 2. + DCDC_sheet1_width / 2 - 0.55 - 0.305 + 0.305 / 2.);
+  Double_t DCDC_connector_position_z = DCDC_sheet1_position_z + DCDC_sheet1_thickness / 2. + DCDC_connector_thickness / 2;
+
+  TGeoBBox* DCDC_connector_box = new TGeoBBox("DCDC_connector_box", DCDC_connector_width / 2., DCDC_connector_height / 2., DCDC_connector_thickness / 2.);
+
+  TGeoCompositeShape* rotated_DCDC_connector_box[23];
+
+  std::string name_DCDC_connector_box = "";
+
+  for (Int_t iB = 0; iB < 11; ++iB) {
+
+    Double_t block_angle = (180. - block_angle_index[iB]) / 2. * TMath::Pi() / 180.;
+
+    TGeoRotation* rotate_DCDC_connector_box_left = new TGeoRotation(Form("rotate_DCDC_connector_box_No%d", iB * 2), 180 - block_angle * 180. / TMath::Pi(), 0, 0);
+    TGeoRotation* rotate_DCDC_connector_box_right = new TGeoRotation(Form("rotate_DCDC_connector_box_No%d", iB * 2 + 1), block_angle * 180. / TMath::Pi(), 0, 0);
+    rotate_DCDC_connector_box_left->RegisterYourself();
+    rotate_DCDC_connector_box_right->RegisterYourself();
+    Double_t cent_block_left[] = {DCDC_connector_radius * TMath::Cos(block_angle), -DCDC_connector_radius * TMath::Sin(block_angle), DCDC_connector_position_z};
+    Double_t cent_block_right[] = {DCDC_connector_radius * TMath::Cos(TMath::Pi() - block_angle), -DCDC_connector_radius * TMath::Sin(TMath::Pi() - block_angle), DCDC_connector_position_z};
+
+    TGeoCombiTrans* combtrans_DCDC_connector_box_left = new TGeoCombiTrans(Form("combtrans_DCDC_connector_box_No%d", 2 * iB), cent_block_left[0], cent_block_left[1], cent_block_left[2], rotate_DCDC_connector_box_left);
+    TGeoCombiTrans* combtrans_DCDC_connector_box_right = new TGeoCombiTrans(Form("combtrans_DCDC_connector_box_No%d", 2 * iB + 1), cent_block_right[0], cent_block_right[1], cent_block_right[2], rotate_DCDC_connector_box_right);
+    combtrans_DCDC_connector_box_left->RegisterYourself();
+    combtrans_DCDC_connector_box_right->RegisterYourself();
+
+    if (iB == 0)
+      name_DCDC_connector_box += Form("DCDC_connector_box:combtrans_DCDC_connector_box_No%d", 2 * iB);
+    else
+      name_DCDC_connector_box += Form("+DCDC_connector_box:combtrans_DCDC_connector_box_No%d", 2 * iB);
+    name_DCDC_connector_box += Form("+DCDC_connector_box:combtrans_DCDC_connector_box_No%d", 2 * iB + 1);
   }
 
-  new TGeoCompositeShape("DCDC_coil_torus_shape1",
-                         "rotated_DCDC_coil_main_shape_No0:trotated_DCDC_coil_main_shape_No0"
-                         "+ rotated_DCDC_coil_main_shape_No1:trotated_DCDC_coil_main_shape_No1"
-                         "+ rotated_DCDC_coil_main_shape_No2:trotated_DCDC_coil_main_shape_No2"
-                         "+ rotated_DCDC_coil_main_shape_No3:trotated_DCDC_coil_main_shape_No3"
-                         "+ rotated_DCDC_coil_main_shape_No4:trotated_DCDC_coil_main_shape_No4"
-                         "+ rotated_DCDC_coil_main_shape_No5:trotated_DCDC_coil_main_shape_No5"
-                         "+ rotated_DCDC_coil_main_shape_No6:trotated_DCDC_coil_main_shape_No6");
+  TGeoBBox* DCDC_connector_box_side = new TGeoBBox("DCDC_connector_box_side", DCDC_connector_height / 2., DCDC_connector_width / 2., DCDC_connector_thickness / 2.);
 
-  TGeoTranslation* tDCDC_coil_straight_shape1[2];
-  tDCDC_coil_straight_shape1[0] = new TGeoTranslation("tDCDC_coil_straight_shape1_right", DCDC_coil_torus_part_radius, 0, 0);
-  tDCDC_coil_straight_shape1[1] = new TGeoTranslation("tDCDC_coil_straight_shape1_left", -DCDC_coil_torus_part_radius, 0, 0);
-  tDCDC_coil_straight_shape1[0]->RegisterYourself();
-  tDCDC_coil_straight_shape1[1]->RegisterYourself();
+  TGeoTranslation* trans_DCDC_connector_box_left = new TGeoTranslation("trans_DCDC_connector_box_left", 22.259 - middle_spacer_cover_block_width / 2, -8.305 + middle_spacer_cover_block_height / 2 - 2.019, DCDC_connector_position_z);
+  trans_DCDC_connector_box_left->RegisterYourself();
+  name_DCDC_connector_box += "+DCDC_connector_box_side:trans_DCDC_connector_box_left";
 
-  TGeoRotation* rDCDC_coil_torus_shape1[2];
-  rDCDC_coil_torus_shape1[0] = new TGeoRotation("rDCDC_coil_torus_shape1_top", 0, 0, 0);
-  rDCDC_coil_torus_shape1[1] = new TGeoRotation("rDCDC_coil_torus_shape1_bottom", 0, 180, 0);
-  rDCDC_coil_torus_shape1[0]->RegisterYourself();
-  rDCDC_coil_torus_shape1[1]->RegisterYourself();
+  TGeoTranslation* trans_DCDC_connector_box_right = new TGeoTranslation("trans_DCDC_connector_box_right", -22.247 + middle_spacer_cover_block_width / 2, -8.305 + middle_spacer_cover_block_height / 2 - 2.019, DCDC_connector_position_z);
+  trans_DCDC_connector_box_right->RegisterYourself();
+  name_DCDC_connector_box += "+DCDC_connector_box_side:trans_DCDC_connector_box_right";
 
-  TGeoCompositeShape* rotated_DCDC_coil_torus_shape1[2];
-  rotated_DCDC_coil_torus_shape1[0] = new TGeoCompositeShape("rotated_DCDC_coil_torus_shape1_top", "dummy+DCDC_coil_torus_shape1:rDCDC_coil_torus_shape1_top");
-  rotated_DCDC_coil_torus_shape1[1] = new TGeoCompositeShape("rotated_DCDC_coil_torus_shape1_bottom", "dummy+DCDC_coil_torus_shape1:rDCDC_coil_torus_shape1_bottom");
+  TGeoCompositeShape* DCDC_connector_shape = new TGeoCompositeShape("DCDC_connector_shape", name_DCDC_connector_box.c_str());
 
-  TGeoTranslation* trotated_DCDC_coil_torus_shape1[2];
-  trotated_DCDC_coil_torus_shape1[0] = new TGeoTranslation("trotated_DCDC_coil_torus_shape1_top", 0, 0, (DCDC_coil_max_radius1 + DCDC_coil_straight_gap / 4.) * 9);
-  trotated_DCDC_coil_torus_shape1[1] = new TGeoTranslation("trotated_DCDC_coil_torus_shape1_bottom", 0, 0, -(DCDC_coil_max_radius1 + DCDC_coil_straight_gap / 4.) * 9);
-  trotated_DCDC_coil_torus_shape1[0]->RegisterYourself();
-  trotated_DCDC_coil_torus_shape1[1]->RegisterYourself();
-  /*
-  TGeoCompositeShape *DCDC_coil_shape1 = new TGeoCompositeShape("DCDC_coil_shape1",
-								"DCDC_coil_straight_shape1:tDCDC_coil_straight_shape1_right + DCDC_coil_straight_shape1:tDCDC_coil_straight_shape1_left"
-								"+rotated_DCDC_coil_torus_shape1_top:trotated_DCDC_coil_torus_shape1_top"
-								"+rotated_DCDC_coil_torus_shape1_bottom:trotated_DCDC_coil_torus_shape1_bottom");
-  */
+  TGeoVolume* DCDC_connector = new TGeoVolume("DCDC_connector", DCDC_connector_shape, kMedPeek);
+  DCDC_connector->SetLineColor(kGray + 2);
+
+  TGeoRotation* trans_DCDC_connector_front = new TGeoRotation("trans_DCDC_connector_front", 0, 0, 0);
+  TGeoRotation* trans_DCDC_connector_back = new TGeoRotation("trans_DCDC_connector_back", 180, 180, 0);
+
+  mHalfPSU->AddNode(DCDC_connector, 0, trans_DCDC_connector_front);
+  mHalfPSU->AddNode(DCDC_connector, 0, trans_DCDC_connector_back);
+
+  ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+  //Mezzanine
+  ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+  //prop
+
+  Double_t mezzanine_prop_main_length = 1.615;
+  Double_t mezzanine_prop_main_radius = 0.476 / 2.;
+  Double_t mezzanine_prop_small_length = 0.16;
+  Double_t mezzanine_prop_small_radius = 0.3 / 2.;
+  Double_t mezzanine_prop_lid_radius = 0.57 / 2.;
+
+  Double_t mezzanine_prop_main_position_z = middle_spacer_main_thickness / 2. + middle_spacer_cover_thickness + electric_board_thickness + mezzanine_prop_main_length / 2;
+  Double_t mezzanine_prop_small_position_z = middle_spacer_main_thickness / 2. + middle_spacer_cover_thickness + electric_board_thickness + mezzanine_prop_main_length + mezzanine_prop_small_length / 2.;
+  Double_t mezzanine_prop_lid_position_z = middle_spacer_main_thickness / 2. + middle_spacer_cover_thickness + electric_board_thickness + mezzanine_prop_main_length + mezzanine_prop_small_length;
+
+  TGeoTubeSeg* mezzanine_prop_main_tube = new TGeoTubeSeg("mezzanine_prop_main_tube", 0, mezzanine_prop_main_radius, mezzanine_prop_main_length / 2., 0, 360);
+  TGeoTubeSeg* mezzanine_prop_small_tube = new TGeoTubeSeg("mezzanine_prop_small_tube", 0, mezzanine_prop_small_radius, mezzanine_prop_small_length / 2., 0, 360);
+  TGeoSphere* mezzanine_prop_lid_sphere = new TGeoSphere("mezzanine_prop_lid_sphere", 0, mezzanine_prop_lid_radius, 0, 90, 0, 360);
+  TGeoTranslation* trans_mezzanine_prop_main_tube = new TGeoTranslation("trans_mezzanine_prop_main_tube", 0, 0, mezzanine_prop_main_position_z);
+  TGeoTranslation* trans_mezzanine_prop_small_tube = new TGeoTranslation("trans_mezzanine_prop_small_tube", 0, 0, mezzanine_prop_small_position_z);
+  TGeoTranslation* trans_mezzanine_prop_lid_sphere = new TGeoTranslation("trans_mezzanine_prop_lid_sphere", 0, 0, mezzanine_prop_lid_position_z);
+  trans_mezzanine_prop_main_tube->RegisterYourself();
+  trans_mezzanine_prop_small_tube->RegisterYourself();
+  trans_mezzanine_prop_lid_sphere->RegisterYourself();
+
+  TGeoCompositeShape* mazzanine_prop_shape = new TGeoCompositeShape("mazzanine_prop_shape", "mezzanine_prop_main_tube:trans_mezzanine_prop_main_tube + mezzanine_prop_small_tube:trans_mezzanine_prop_small_tube + mezzanine_prop_lid_sphere:trans_mezzanine_prop_lid_sphere");
+  TGeoTranslation* trans_mezzanine_prop_left = new TGeoTranslation("trans_mezzanine_prop_left", +8, -21.5, 0);
+  TGeoTranslation* trans_mezzanine_prop_right = new TGeoTranslation("trans_mezzanine_prop_right", -8, -21.5, 0);
+  trans_mezzanine_prop_left->RegisterYourself();
+  trans_mezzanine_prop_right->RegisterYourself();
+  TGeoCompositeShape* mazzanine_prop_shape_bothside = new TGeoCompositeShape("mazzanine_prop_shape_bothside", "mazzanine_prop_shape:trans_mezzanine_prop_left+mazzanine_prop_shape:trans_mezzanine_prop_right");
+
+  TGeoVolume* mazzanine_prop = new TGeoVolume("mazzanine_prop", mazzanine_prop_shape_bothside, kMedAlu);
+  mazzanine_prop->SetLineColor(kAzure - 3);
+
+  TGeoRotation* trans_mazzanine_prop_front = new TGeoRotation("trans_mazzanine_prop_front", 0, 0, 0);
+  TGeoRotation* trans_mazzanine_prop_back = new TGeoRotation("trans_mazzanine_prop_back", 180, 180, 0);
+
+  mHalfPSU->AddNode(mazzanine_prop, 0, trans_mazzanine_prop_front);
+  mHalfPSU->AddNode(mazzanine_prop, 0, trans_mazzanine_prop_back);
+
+  //main
+
+  Double_t mezzanine_main_thickness = mezzanine_prop_small_length;
+  Double_t mezzanine_main_width = 20.7;
+  Double_t mezzanine_main_height = 9.5;
+  Double_t mezzanine_main_position_z = middle_spacer_main_thickness / 2. + middle_spacer_cover_thickness + electric_board_thickness + mezzanine_prop_main_length + mezzanine_main_thickness / 2.;
+
+  TGeoBBox* mezzanine_main_box = new TGeoBBox("mezzanine_main_box", mezzanine_main_width / 2., mezzanine_main_height / 2., mezzanine_main_thickness / 2.);
+  TGeoTubeSeg* mezzanine_main_sub_arc = new TGeoTubeSeg("mezzanine_main_sub_arc", 0, electric_board_min_radius1, mezzanine_main_thickness / 2 + delta_thickness, 180, 0);
+  TGeoTubeSeg* mezzanine_main_sub_hole = new TGeoTubeSeg("mezzanine_main_sub_hole", 0, mezzanine_prop_small_radius, mezzanine_main_thickness / 2 + delta_thickness, 0, 360);
+
+  TGeoTranslation* trans_mezzanine_main_box = new TGeoTranslation("trans_mezzanine_main_box", 0, -15.1 - mezzanine_main_height / 2., mezzanine_main_position_z);
+  TGeoTranslation* trans_mezzanine_main_sub_arc = new TGeoTranslation("trans_mezzanine_main_sub_arc", 0, 0, mezzanine_main_position_z);
+  TGeoTranslation* trans_mezzanine_main_sub_hole_left = new TGeoTranslation("trans_mezzanine_main_sub_hole_left", +8, -21.5, mezzanine_main_position_z);
+  TGeoTranslation* trans_mezzanine_main_sub_hole_right = new TGeoTranslation("trans_mezzanine_main_sub_hole_right", +8, -21.5, mezzanine_main_position_z);
+  trans_mezzanine_main_box->RegisterYourself();
+  trans_mezzanine_main_sub_arc->RegisterYourself();
+  trans_mezzanine_main_sub_hole_right->RegisterYourself();
+  trans_mezzanine_main_sub_hole_left->RegisterYourself();
+
+  TGeoCompositeShape* mezzanine_shape = new TGeoCompositeShape("mezzanine_shape", "mezzanine_main_box:trans_mezzanine_main_box - mezzanine_main_sub_arc:trans_mezzanine_main_sub_arc - mezzanine_main_sub_hole:trans_mezzanine_main_sub_hole_left - mezzanine_main_sub_hole:trans_mezzanine_main_sub_hole_right");
+  TGeoVolume* mezzanine = new TGeoVolume("mezzanine", mezzanine_shape, kMedPeek);
+  mezzanine->SetLineColor(kGreen + 2);
+
+  TGeoRotation* trans_mezzanine_front = new TGeoRotation("trans_mazzanine_front", 0, 0, 0);
+  TGeoRotation* trans_mazzanine_back = new TGeoRotation("trans_mazzanine_back", 180, 180, 0);
+
+  mHalfPSU->AddNode(mezzanine, 0, trans_mezzanine_front);
+  mHalfPSU->AddNode(mezzanine, 0, trans_mazzanine_back);
+
+  //connector
+
+  Double_t mezzanine_connector_base_box_thickness = 1.186;
+  Double_t mezzanine_connector_base_box_width = 6.778;
+  Double_t mezzanine_connector_base_box_height = 1.595;
+  Double_t mezzanine_connector_base_box_position_z = middle_spacer_main_thickness / 2. + middle_spacer_cover_thickness + electric_board_thickness + mezzanine_connector_base_box_thickness / 2;
+
+  Double_t mezzanine_connector_base_sub_box_thickness = mezzanine_connector_base_box_thickness - 0.307;
+  Double_t mezzanine_connector_base_sub_box_width = 6.778;
+  Double_t mezzanine_connector_base_sub_box_height = 1.468;
+
+  TGeoBBox* mezzanine_connector_base_box = new TGeoBBox("mezzanine_connector_base", mezzanine_connector_base_box_width / 2., mezzanine_connector_base_box_height / 2., mezzanine_connector_base_box_thickness / 2.);
+  TGeoBBox* mezzanine_connector_base_sub_box = new TGeoBBox("mezzanine_connector_base_sub_box", mezzanine_connector_base_sub_box_width / 2. + delta_thickness, mezzanine_connector_base_sub_box_height / 2., mezzanine_connector_base_sub_box_thickness / 2.);
+
+  TGeoTranslation* trans_mezzanine_connector_base_box = new TGeoTranslation("trans_mezzanine_connector_base_box", 0, -22.421 - mezzanine_connector_base_box_height / 2.0, mezzanine_connector_base_box_position_z);
+  TGeoTranslation* trans_mezzanine_connector_base_sub_box = new TGeoTranslation("trans_mezzanine_connector_base_sub_box", 0, -22.421 - mezzanine_connector_base_box_height / 2.0, mezzanine_connector_base_box_position_z + (mezzanine_connector_base_box_thickness - mezzanine_connector_base_sub_box_thickness) / 2.);
+  trans_mezzanine_connector_base_box->RegisterYourself();
+  trans_mezzanine_connector_base_sub_box->RegisterYourself();
+
+  TGeoCompositeShape* mezzanine_connector_base_shape = new TGeoCompositeShape("mezzanine_connector_base_shape", "mezzanine_connector_base:trans_mezzanine_connector_base_box - mezzanine_connector_base_sub_box:trans_mezzanine_connector_base_sub_box");
+  TGeoVolume* mezzanine_connector_base = new TGeoVolume("mezzanine_connector_base", mezzanine_connector_base_shape, kMedPeek);
+  mezzanine_connector_base->SetLineColor(kOrange + 7);
+
+  TGeoRotation* trans_mezzanine_connector_base_front = new TGeoRotation("trans_mezzanine_connector_base_front", 0, 0, 0);
+  TGeoRotation* trans_mezzanine_connector_base_back = new TGeoRotation("trans_mezzanine_connector_base_back", 180, 180, 0);
+  mHalfPSU->AddNode(mezzanine_connector_base, 0, trans_mezzanine_connector_base_front);
+  mHalfPSU->AddNode(mezzanine_connector_base, 0, trans_mezzanine_connector_base_back);
+
+  Double_t mezzanine_connector_lid_bottom_box_thickness = 0.112;
+  Double_t mezzanine_connector_lid_bottom_box_width = 6.778;
+  Double_t mezzanine_connector_lid_bottom_box_height = 1.468;
+  Double_t mezzanine_connector_lid_bottom_box_position_z = middle_spacer_main_thickness / 2. + middle_spacer_cover_thickness + electric_board_thickness + 0.967 + mezzanine_connector_lid_bottom_box_thickness / 2.;
+
+  TGeoBBox* mezzanine_connector_lid_bottom_box = new TGeoBBox("mezzanine_connector_lid_bottom_box", mezzanine_connector_lid_bottom_box_width / 2., mezzanine_connector_lid_bottom_box_height / 2., mezzanine_connector_lid_bottom_box_thickness / 2.);
+  TGeoVolume* mezzanine_connector_lid_bottom = new TGeoVolume("mezzanine_connector_lid_bottom", mezzanine_connector_lid_bottom_box, kMedPeek);
+  mezzanine_connector_lid_bottom->SetLineColor(kGray + 2);
+
+  TGeoTranslation* trans_mezzanine_connector_lid_bottom_front = new TGeoTranslation("trans_mezzanine_connector_lid_bottom_front", 0, 0 - 22.421 - mezzanine_connector_base_box_height / 2., mezzanine_connector_lid_bottom_box_position_z);
+  TGeoTranslation* trans_mezzanine_connector_lid_bottom_back = new TGeoTranslation("trans_mezzanine_connector_lid_bottom_back", 0, 0 - 22.421 - mezzanine_connector_base_box_height / 2., -mezzanine_connector_lid_bottom_box_position_z);
+  mHalfPSU->AddNode(mezzanine_connector_lid_bottom, 0, trans_mezzanine_connector_lid_bottom_front);
+  mHalfPSU->AddNode(mezzanine_connector_lid_bottom, 0, trans_mezzanine_connector_lid_bottom_back);
+
+  Double_t mezzanine_connector_lid_top_box_thickness = mezzanine_main_position_z - mezzanine_main_thickness / 2 - mezzanine_connector_lid_bottom_box_position_z - mezzanine_connector_lid_bottom_box_thickness / 2.;
+  Double_t mezzanine_connector_lid_top_box_width = 6.660;
+  Double_t mezzanine_connector_lid_top_box_height = 1.328;
+  Double_t mezzanine_connector_lid_top_box_position_z = middle_spacer_main_thickness / 2. + middle_spacer_cover_thickness + electric_board_thickness + 0.967 + mezzanine_connector_lid_bottom_box_thickness + mezzanine_connector_lid_top_box_thickness / 2.;
+  TGeoBBox* mezzanine_connector_lid_top_box = new TGeoBBox("mezzanine_connector_lid_top_box", mezzanine_connector_lid_top_box_width / 2., mezzanine_connector_lid_top_box_height / 2., mezzanine_connector_lid_top_box_thickness / 2.);
+  TGeoVolume* mezzanine_connector_lid_top = new TGeoVolume("mezzanine_connector_lid_top", mezzanine_connector_lid_top_box, kMedPeek);
+  mezzanine_connector_lid_top->SetLineColor(kGray + 2);
+
+  TGeoTranslation* trans_mezzanine_connector_lid_top_front = new TGeoTranslation("trans_mezzanine_connector_lid_top_front", 0, 0 - 22.421 - mezzanine_connector_base_box_height / 2., mezzanine_connector_lid_top_box_position_z);
+  TGeoTranslation* trans_mezzanine_connector_lid_top_back = new TGeoTranslation("trans_mezzanine_connector_lid_top_back", 0, 0 - 22.421 - mezzanine_connector_base_box_height / 2., -mezzanine_connector_lid_top_box_position_z);
+  mHalfPSU->AddNode(mezzanine_connector_lid_top, 0, trans_mezzanine_connector_lid_top_front);
+  mHalfPSU->AddNode(mezzanine_connector_lid_top, 0, trans_mezzanine_connector_lid_top_back);
+
+  //DCDC converter on mezzanine
+
+  Double_t spacer_sheet1_mezzanine_box_thickness = 0.086;
+  Double_t spacer_sheet1_mezzanine_box_width = 1.397;
+  Double_t spacer_sheet1_mezzanine_box_height = 0.343;
+  Double_t spacer_sheet1_mezzanine_box_position_z = middle_spacer_main_thickness / 2. + middle_spacer_cover_thickness + electric_board_thickness + mezzanine_prop_main_length - spacer_sheet1_mezzanine_box_thickness / 2.;
+  Double_t gap_sheet1_on_mezzanine = 0.1;
+
+  TGeoBBox* spacer_sheet1_mezzanine_box = new TGeoBBox("spacer_sheet1_mezzanine_box", spacer_sheet1_mezzanine_box_width / 2., spacer_sheet1_mezzanine_box_height / 2., spacer_sheet1_mezzanine_box_thickness / 2.);
+  TGeoTranslation* trans_spacer_sheet1_mezzanine_box_front[5];
+  trans_spacer_sheet1_mezzanine_box_front[0] = new TGeoTranslation("trans_spacer_sheet1_mezzanine_box_front_No0", +2 * (DCDC_sheet1_height + gap_sheet1_on_mezzanine), -17.952 - (spacer_sheet1_mezzanine_box_width / 2. + 0.531), spacer_sheet1_mezzanine_box_position_z);
+  trans_spacer_sheet1_mezzanine_box_front[1] = new TGeoTranslation("trans_spacer_sheet1_mezzanine_box_front_No1", +1 * (DCDC_sheet1_height + gap_sheet1_on_mezzanine), -17.952 - (spacer_sheet1_mezzanine_box_width / 2. + 0.531), spacer_sheet1_mezzanine_box_position_z);
+  trans_spacer_sheet1_mezzanine_box_front[2] = new TGeoTranslation("trans_spacer_sheet1_mezzanine_box_front_No2", 0 * (DCDC_sheet1_height + gap_sheet1_on_mezzanine), -17.952 - (spacer_sheet1_mezzanine_box_width / 2. + 0.531), spacer_sheet1_mezzanine_box_position_z);
+  trans_spacer_sheet1_mezzanine_box_front[3] = new TGeoTranslation("trans_spacer_sheet1_mezzanine_box_front_No3", -1 * (DCDC_sheet1_height + gap_sheet1_on_mezzanine), -17.952 - (spacer_sheet1_mezzanine_box_width / 2. + 0.531), spacer_sheet1_mezzanine_box_position_z);
+  trans_spacer_sheet1_mezzanine_box_front[4] = new TGeoTranslation("trans_spacer_sheet1_mezzanine_box_front_No4", -2 * (DCDC_sheet1_height + gap_sheet1_on_mezzanine), -17.952 - (spacer_sheet1_mezzanine_box_width / 2. + 0.531), spacer_sheet1_mezzanine_box_position_z);
+  TGeoTranslation* trans_spacer_sheet1_mezzanine_box_back[5];
+  trans_spacer_sheet1_mezzanine_box_back[0] = new TGeoTranslation("trans_spacer_sheet1_mezzanine_box_back_No0", +2 * (DCDC_sheet1_height + gap_sheet1_on_mezzanine), -17.952 - (spacer_sheet1_mezzanine_box_width / 2. + 0.531), -spacer_sheet1_mezzanine_box_position_z);
+  trans_spacer_sheet1_mezzanine_box_back[1] = new TGeoTranslation("trans_spacer_sheet1_mezzanine_box_back_No1", +1 * (DCDC_sheet1_height + gap_sheet1_on_mezzanine), -17.952 - (spacer_sheet1_mezzanine_box_width / 2. + 0.531), -spacer_sheet1_mezzanine_box_position_z);
+  trans_spacer_sheet1_mezzanine_box_back[2] = new TGeoTranslation("trans_spacer_sheet1_mezzanine_box_back_No2", 0 * (DCDC_sheet1_height + gap_sheet1_on_mezzanine), -17.952 - (spacer_sheet1_mezzanine_box_width / 2. + 0.531), -spacer_sheet1_mezzanine_box_position_z);
+  trans_spacer_sheet1_mezzanine_box_back[3] = new TGeoTranslation("trans_spacer_sheet1_mezzanine_box_back_No3", -1 * (DCDC_sheet1_height + gap_sheet1_on_mezzanine), -17.952 - (spacer_sheet1_mezzanine_box_width / 2. + 0.531), -spacer_sheet1_mezzanine_box_position_z);
+  trans_spacer_sheet1_mezzanine_box_back[4] = new TGeoTranslation("trans_spacer_sheet1_mezzanine_box_back_No4", -2 * (DCDC_sheet1_height + gap_sheet1_on_mezzanine), -17.952 - (spacer_sheet1_mezzanine_box_width / 2. + 0.531), -spacer_sheet1_mezzanine_box_position_z);
+
+  TGeoVolume* spacer_sheet1_mezzanine = new TGeoVolume("spacer_sheet1_mezzanine", spacer_sheet1_mezzanine_box, kMedPeek);
+  spacer_sheet1_mezzanine->SetLineColor(kGray + 2);
+  mHalfPSU->AddNode(spacer_sheet1_mezzanine, 0, trans_spacer_sheet1_mezzanine_box_front[0]);
+  mHalfPSU->AddNode(spacer_sheet1_mezzanine, 0, trans_spacer_sheet1_mezzanine_box_front[1]);
+  mHalfPSU->AddNode(spacer_sheet1_mezzanine, 0, trans_spacer_sheet1_mezzanine_box_front[2]);
+  mHalfPSU->AddNode(spacer_sheet1_mezzanine, 0, trans_spacer_sheet1_mezzanine_box_front[3]);
+  mHalfPSU->AddNode(spacer_sheet1_mezzanine, 0, trans_spacer_sheet1_mezzanine_box_front[4]);
+  mHalfPSU->AddNode(spacer_sheet1_mezzanine, 0, trans_spacer_sheet1_mezzanine_box_back[0]);
+  mHalfPSU->AddNode(spacer_sheet1_mezzanine, 0, trans_spacer_sheet1_mezzanine_box_back[1]);
+  mHalfPSU->AddNode(spacer_sheet1_mezzanine, 0, trans_spacer_sheet1_mezzanine_box_back[2]);
+  mHalfPSU->AddNode(spacer_sheet1_mezzanine, 0, trans_spacer_sheet1_mezzanine_box_back[3]);
+  mHalfPSU->AddNode(spacer_sheet1_mezzanine, 0, trans_spacer_sheet1_mezzanine_box_back[4]);
+
+  Double_t sheet1_on_mezzanine_box_position_z = middle_spacer_main_thickness / 2. + middle_spacer_cover_thickness + electric_board_thickness + mezzanine_prop_main_length - spacer_sheet1_mezzanine_box_thickness - DCDC_sheet1_thickness / 2.;
+
+  TGeoTranslation* trans_sheet1_on_mezzanine_box_front[5];
+  trans_sheet1_on_mezzanine_box_front[0] = new TGeoTranslation("trans_sheet1_on_mezzanine_box_front_No0", +2 * (DCDC_sheet1_height + gap_sheet1_on_mezzanine), -17.952 - (DCDC_sheet1_width / 2.), sheet1_on_mezzanine_box_position_z);
+  trans_sheet1_on_mezzanine_box_front[1] = new TGeoTranslation("trans_sheet1_on_mezzanine_box_front_No1", +1 * (DCDC_sheet1_height + gap_sheet1_on_mezzanine), -17.952 - (DCDC_sheet1_width / 2.), sheet1_on_mezzanine_box_position_z);
+  trans_sheet1_on_mezzanine_box_front[2] = new TGeoTranslation("trans_sheet1_on_mezzanine_box_front_No2", 0 * (DCDC_sheet1_height + gap_sheet1_on_mezzanine), -17.952 - (DCDC_sheet1_width / 2.), sheet1_on_mezzanine_box_position_z);
+  trans_sheet1_on_mezzanine_box_front[3] = new TGeoTranslation("trans_sheet1_on_mezzanine_box_front_No3", -1 * (DCDC_sheet1_height + gap_sheet1_on_mezzanine), -17.952 - (DCDC_sheet1_width / 2.), sheet1_on_mezzanine_box_position_z);
+  trans_sheet1_on_mezzanine_box_front[4] = new TGeoTranslation("trans_sheet1_on_mezzanine_box_front_No4", -2 * (DCDC_sheet1_height + gap_sheet1_on_mezzanine), -17.952 - (DCDC_sheet1_width / 2.), sheet1_on_mezzanine_box_position_z);
+  TGeoTranslation* trans_sheet1_on_mezzanine_box_back[5];
+  trans_sheet1_on_mezzanine_box_back[0] = new TGeoTranslation("trans_sheet1_on_mezzanine_box_back_No0", +2 * (DCDC_sheet1_height + gap_sheet1_on_mezzanine), -17.952 - (DCDC_sheet1_width / 2.), -sheet1_on_mezzanine_box_position_z);
+  trans_sheet1_on_mezzanine_box_back[1] = new TGeoTranslation("trans_sheet1_on_mezzanine_box_back_No1", +1 * (DCDC_sheet1_height + gap_sheet1_on_mezzanine), -17.952 - (DCDC_sheet1_width / 2.), -sheet1_on_mezzanine_box_position_z);
+  trans_sheet1_on_mezzanine_box_back[2] = new TGeoTranslation("trans_sheet1_on_mezzanine_box_back_No2", 0 * (DCDC_sheet1_height + gap_sheet1_on_mezzanine), -17.952 - (DCDC_sheet1_width / 2.), -sheet1_on_mezzanine_box_position_z);
+  trans_sheet1_on_mezzanine_box_back[3] = new TGeoTranslation("trans_sheet1_on_mezzanine_box_back_No3", -1 * (DCDC_sheet1_height + gap_sheet1_on_mezzanine), -17.952 - (DCDC_sheet1_width / 2.), -sheet1_on_mezzanine_box_position_z);
+  trans_sheet1_on_mezzanine_box_back[4] = new TGeoTranslation("trans_sheet1_on_mezzanine_box_back_No4", -2 * (DCDC_sheet1_height + gap_sheet1_on_mezzanine), -17.952 - (DCDC_sheet1_width / 2.), -sheet1_on_mezzanine_box_position_z);
+
+  TGeoVolume* sheet1_on_mezzanine = new TGeoVolume("sheet1_on_mezzanine", DCDC_sheet1_box_side, kMedPeek);
+  sheet1_on_mezzanine->SetLineColor(kGreen);
+
+  mHalfPSU->AddNode(sheet1_on_mezzanine, 0, trans_sheet1_on_mezzanine_box_front[0]);
+  mHalfPSU->AddNode(sheet1_on_mezzanine, 0, trans_sheet1_on_mezzanine_box_front[1]);
+  mHalfPSU->AddNode(sheet1_on_mezzanine, 0, trans_sheet1_on_mezzanine_box_front[2]);
+  mHalfPSU->AddNode(sheet1_on_mezzanine, 0, trans_sheet1_on_mezzanine_box_front[3]);
+  mHalfPSU->AddNode(sheet1_on_mezzanine, 0, trans_sheet1_on_mezzanine_box_front[4]);
+  mHalfPSU->AddNode(sheet1_on_mezzanine, 0, trans_sheet1_on_mezzanine_box_back[0]);
+  mHalfPSU->AddNode(sheet1_on_mezzanine, 0, trans_sheet1_on_mezzanine_box_back[1]);
+  mHalfPSU->AddNode(sheet1_on_mezzanine, 0, trans_sheet1_on_mezzanine_box_back[2]);
+  mHalfPSU->AddNode(sheet1_on_mezzanine, 0, trans_sheet1_on_mezzanine_box_back[3]);
+  mHalfPSU->AddNode(sheet1_on_mezzanine, 0, trans_sheet1_on_mezzanine_box_back[4]);
+
+  Double_t DCDC_connector_on_mezzanine_position_z = middle_spacer_main_thickness / 2. + middle_spacer_cover_thickness + electric_board_thickness + mezzanine_prop_main_length - spacer_sheet1_mezzanine_box_thickness - DCDC_sheet1_thickness - DCDC_connector_thickness / 2.;
+
+  TGeoVolume* DCDC_connector_on_mezzanine = new TGeoVolume("DCDC_connector_on_mezzanine", DCDC_connector_box_side, kMedPeek);
+  DCDC_connector_on_mezzanine->SetLineColor(kGray + 2);
+  TGeoTranslation* trans_DCDC_connector_on_mezzanine_front[5];
+  trans_DCDC_connector_on_mezzanine_front[0] = new TGeoTranslation("trans_DCDC_connector_on_mezzanine_front_No0", +2 * (DCDC_sheet1_height + gap_sheet1_on_mezzanine), -17.952 - (spacer_sheet1_mezzanine_box_width / 2. + 0.531), DCDC_connector_on_mezzanine_position_z);
+  trans_DCDC_connector_on_mezzanine_front[1] = new TGeoTranslation("trans_DCDC_connector_on_mezzanine_front_No1", +1 * (DCDC_sheet1_height + gap_sheet1_on_mezzanine), -17.952 - (spacer_sheet1_mezzanine_box_width / 2. + 0.531), DCDC_connector_on_mezzanine_position_z);
+  trans_DCDC_connector_on_mezzanine_front[2] = new TGeoTranslation("trans_DCDC_connector_on_mezzanine_front_No2", 0 * (DCDC_sheet1_height + gap_sheet1_on_mezzanine), -17.952 - (spacer_sheet1_mezzanine_box_width / 2. + 0.531), DCDC_connector_on_mezzanine_position_z);
+  trans_DCDC_connector_on_mezzanine_front[3] = new TGeoTranslation("trans_DCDC_connector_on_mezzanine_front_No3", -1 * (DCDC_sheet1_height + gap_sheet1_on_mezzanine), -17.952 - (spacer_sheet1_mezzanine_box_width / 2. + 0.531), DCDC_connector_on_mezzanine_position_z);
+  trans_DCDC_connector_on_mezzanine_front[4] = new TGeoTranslation("trans_DCDC_connector_on_mezzanine_front_No4", -2 * (DCDC_sheet1_height + gap_sheet1_on_mezzanine), -17.952 - (spacer_sheet1_mezzanine_box_width / 2. + 0.531), DCDC_connector_on_mezzanine_position_z);
+  TGeoTranslation* trans_DCDC_connector_on_mezzanine_back[5];
+  trans_DCDC_connector_on_mezzanine_back[0] = new TGeoTranslation("trans_DCDC_connector_on_mezzanine_back_No0", +2 * (DCDC_sheet1_height + gap_sheet1_on_mezzanine), -17.952 - (spacer_sheet1_mezzanine_box_width / 2. + 0.531), -DCDC_connector_on_mezzanine_position_z);
+  trans_DCDC_connector_on_mezzanine_back[1] = new TGeoTranslation("trans_DCDC_connector_on_mezzanine_back_No1", +1 * (DCDC_sheet1_height + gap_sheet1_on_mezzanine), -17.952 - (spacer_sheet1_mezzanine_box_width / 2. + 0.531), -DCDC_connector_on_mezzanine_position_z);
+  trans_DCDC_connector_on_mezzanine_back[2] = new TGeoTranslation("trans_DCDC_connector_on_mezzanine_back_No2", 0 * (DCDC_sheet1_height + gap_sheet1_on_mezzanine), -17.952 - (spacer_sheet1_mezzanine_box_width / 2. + 0.531), -DCDC_connector_on_mezzanine_position_z);
+  trans_DCDC_connector_on_mezzanine_back[3] = new TGeoTranslation("trans_DCDC_connector_on_mezzanine_back_No3", -1 * (DCDC_sheet1_height + gap_sheet1_on_mezzanine), -17.952 - (spacer_sheet1_mezzanine_box_width / 2. + 0.531), -DCDC_connector_on_mezzanine_position_z);
+  trans_DCDC_connector_on_mezzanine_back[4] = new TGeoTranslation("trans_DCDC_connector_on_mezzanine_back_No4", -2 * (DCDC_sheet1_height + gap_sheet1_on_mezzanine), -17.952 - (spacer_sheet1_mezzanine_box_width / 2. + 0.531), -DCDC_connector_on_mezzanine_position_z);
+  mHalfPSU->AddNode(DCDC_connector_on_mezzanine, 0, trans_DCDC_connector_on_mezzanine_front[0]);
+  mHalfPSU->AddNode(DCDC_connector_on_mezzanine, 0, trans_DCDC_connector_on_mezzanine_front[1]);
+  mHalfPSU->AddNode(DCDC_connector_on_mezzanine, 0, trans_DCDC_connector_on_mezzanine_front[2]);
+  mHalfPSU->AddNode(DCDC_connector_on_mezzanine, 0, trans_DCDC_connector_on_mezzanine_front[3]);
+  mHalfPSU->AddNode(DCDC_connector_on_mezzanine, 0, trans_DCDC_connector_on_mezzanine_front[4]);
+  mHalfPSU->AddNode(DCDC_connector_on_mezzanine, 0, trans_DCDC_connector_on_mezzanine_back[0]);
+  mHalfPSU->AddNode(DCDC_connector_on_mezzanine, 0, trans_DCDC_connector_on_mezzanine_back[1]);
+  mHalfPSU->AddNode(DCDC_connector_on_mezzanine, 0, trans_DCDC_connector_on_mezzanine_back[2]);
+  mHalfPSU->AddNode(DCDC_connector_on_mezzanine, 0, trans_DCDC_connector_on_mezzanine_back[3]);
+  mHalfPSU->AddNode(DCDC_connector_on_mezzanine, 0, trans_DCDC_connector_on_mezzanine_back[4]);
+
+  Double_t DCDC_cover_on_mezzanine_position_z = middle_spacer_main_thickness / 2. + middle_spacer_cover_thickness + electric_board_thickness + mezzanine_prop_main_length - spacer_sheet1_mezzanine_box_thickness - DCDC_sheet1_thickness - DCDC_cover_thickness / 2.;
+
+  TGeoTranslation* trans_DCDC_cover_innner_box_back = new TGeoTranslation("trans_DCDC_cover_innner_box_back", 0, 0, -2 * DCDC_cover_depth);
+  TGeoTranslation* trans_DCDC_cover_innner_box_front = new TGeoTranslation("trans_DCDC_cover_innner_box_front", 0, 0, +2 * DCDC_cover_depth);
+  trans_DCDC_cover_innner_box_back->RegisterYourself();
+  trans_DCDC_cover_innner_box_front->RegisterYourself();
+
+  TGeoRotation* rotate_DCDC_cover_on_mezzanine_shape = new TGeoRotation("rotate_DCDC_cover_on_mezzanine_shape", 0, 180, 180);
+  rotate_DCDC_cover_on_mezzanine_shape->RegisterYourself();
+
+  TGeoCompositeShape* DCDC_cover_on_mezzanine_shape_back = new TGeoCompositeShape("DCDC_cover_on_mezzanine_shape_back", "DCDC_cover_outer_box_side - DCDC_cover_inner_box_side:trans_DCDC_cover_innner_box_back");
+  TGeoCompositeShape* DCDC_cover_on_mezzanine_shape_front = new TGeoCompositeShape("DCDC_cover_on_mezzanine_shape_front", "DCDC_cover_outer_box_side - DCDC_cover_inner_box_side:trans_DCDC_cover_innner_box_front");
+
+  TGeoVolume* DCDC_cover_on_mezzanine_front = new TGeoVolume("DCDC_cover_on_mezzanine_front", DCDC_cover_on_mezzanine_shape_front, kMedPeek);
+  TGeoVolume* DCDC_cover_on_mezzanine_back = new TGeoVolume("DCDC_cover_on_mezzanine_back", DCDC_cover_on_mezzanine_shape_back, kMedPeek);
+  DCDC_cover_on_mezzanine_front->SetLineColor(kGray);
+  DCDC_cover_on_mezzanine_back->SetLineColor(kGray);
+
+  TGeoTranslation* trans_DCDC_cover_on_mezzanine_front[5];
+  trans_DCDC_cover_on_mezzanine_front[0] = new TGeoTranslation("trans_DCDC_cover_on_mezzanine_front_No0", +2 * (DCDC_sheet1_height + gap_sheet1_on_mezzanine), -17.952 - (DCDC_cover_outer_width / 2. + 1.825), DCDC_cover_on_mezzanine_position_z);
+  trans_DCDC_cover_on_mezzanine_front[1] = new TGeoTranslation("trans_DCDC_cover_on_mezzanine_front_No1", +1 * (DCDC_sheet1_height + gap_sheet1_on_mezzanine), -17.952 - (DCDC_cover_outer_width / 2. + 1.825), DCDC_cover_on_mezzanine_position_z);
+  trans_DCDC_cover_on_mezzanine_front[2] = new TGeoTranslation("trans_DCDC_cover_on_mezzanine_front_No2", 0 * (DCDC_sheet1_height + gap_sheet1_on_mezzanine), -17.952 - (DCDC_cover_outer_width / 2. + 1.825), DCDC_cover_on_mezzanine_position_z);
+  trans_DCDC_cover_on_mezzanine_front[3] = new TGeoTranslation("trans_DCDC_cover_on_mezzanine_front_No3", -1 * (DCDC_sheet1_height + gap_sheet1_on_mezzanine), -17.952 - (DCDC_cover_outer_width / 2. + 1.825), DCDC_cover_on_mezzanine_position_z);
+  trans_DCDC_cover_on_mezzanine_front[4] = new TGeoTranslation("trans_DCDC_cover_on_mezzanine_front_No4", -2 * (DCDC_sheet1_height + gap_sheet1_on_mezzanine), -17.952 - (DCDC_cover_outer_width / 2. + 1.825), DCDC_cover_on_mezzanine_position_z);
+  TGeoTranslation* trans_DCDC_cover_on_mezzanine_back[5];
+  trans_DCDC_cover_on_mezzanine_back[0] = new TGeoTranslation("trans_DCDC_cover_on_mezzanine_back_No0", +2 * (DCDC_sheet1_height + gap_sheet1_on_mezzanine), -17.952 - (DCDC_cover_outer_width / 2. + 1.825), -DCDC_cover_on_mezzanine_position_z);
+  trans_DCDC_cover_on_mezzanine_back[1] = new TGeoTranslation("trans_DCDC_cover_on_mezzanine_back_No1", +1 * (DCDC_sheet1_height + gap_sheet1_on_mezzanine), -17.952 - (DCDC_cover_outer_width / 2. + 1.825), -DCDC_cover_on_mezzanine_position_z);
+  trans_DCDC_cover_on_mezzanine_back[2] = new TGeoTranslation("trans_DCDC_cover_on_mezzanine_back_No2", 0 * (DCDC_sheet1_height + gap_sheet1_on_mezzanine), -17.952 - (DCDC_cover_outer_width / 2. + 1.825), -DCDC_cover_on_mezzanine_position_z);
+  trans_DCDC_cover_on_mezzanine_back[3] = new TGeoTranslation("trans_DCDC_cover_on_mezzanine_back_No3", -1 * (DCDC_sheet1_height + gap_sheet1_on_mezzanine), -17.952 - (DCDC_cover_outer_width / 2. + 1.825), -DCDC_cover_on_mezzanine_position_z);
+  trans_DCDC_cover_on_mezzanine_back[4] = new TGeoTranslation("trans_DCDC_cover_on_mezzanine_back_No4", -2 * (DCDC_sheet1_height + gap_sheet1_on_mezzanine), -17.952 - (DCDC_cover_outer_width / 2. + 1.825), -DCDC_cover_on_mezzanine_position_z);
+
+  mHalfPSU->AddNode(DCDC_cover_on_mezzanine_front, 0, trans_DCDC_cover_on_mezzanine_front[0]);
+  mHalfPSU->AddNode(DCDC_cover_on_mezzanine_front, 0, trans_DCDC_cover_on_mezzanine_front[1]);
+  mHalfPSU->AddNode(DCDC_cover_on_mezzanine_front, 0, trans_DCDC_cover_on_mezzanine_front[2]);
+  mHalfPSU->AddNode(DCDC_cover_on_mezzanine_front, 0, trans_DCDC_cover_on_mezzanine_front[3]);
+  mHalfPSU->AddNode(DCDC_cover_on_mezzanine_front, 0, trans_DCDC_cover_on_mezzanine_front[4]);
+  mHalfPSU->AddNode(DCDC_cover_on_mezzanine_back, 0, trans_DCDC_cover_on_mezzanine_back[0]);
+  mHalfPSU->AddNode(DCDC_cover_on_mezzanine_back, 0, trans_DCDC_cover_on_mezzanine_back[1]);
+  mHalfPSU->AddNode(DCDC_cover_on_mezzanine_back, 0, trans_DCDC_cover_on_mezzanine_back[2]);
+  mHalfPSU->AddNode(DCDC_cover_on_mezzanine_back, 0, trans_DCDC_cover_on_mezzanine_back[3]);
+  mHalfPSU->AddNode(DCDC_cover_on_mezzanine_back, 0, trans_DCDC_cover_on_mezzanine_back[4]);
+
+  ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+  //Connector
+  ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+  Double_t main_connector1_thickness = 0.752;
+  Double_t main_connector1_width = 2.350;
+  Double_t main_connector1_height = 0.160;
+  TGeoBBox* connector1_box = new TGeoBBox("connector1_box", main_connector1_width / 2., main_connector1_height / 2., main_connector1_thickness / 2.);
+
+  Double_t main_connector2_thickness = 0.564;
+  Double_t main_connector2_width = 2.086;
+  Double_t main_connector2_height = 0.499;
+  TGeoBBox* connector2_box = new TGeoBBox("connector2_box", main_connector2_width / 2., main_connector2_height / 2., main_connector2_thickness / 2.);
+
+  Double_t main_connector3_thickness = 0.742;
+  Double_t main_connector3_width = 2.567;
+  Double_t main_connector3_height = 0.579;
+  TGeoBBox* connector3_box = new TGeoBBox("connector3_box", main_connector3_width / 2., main_connector3_height / 2., main_connector3_thickness / 2.);
+
+  TGeoVolume* main_connector1 = new TGeoVolume("main_connector1", connector1_box, kMedPeek);
+  main_connector1->SetLineColor(kGray + 2);
+  TGeoVolume* main_connector2 = new TGeoVolume("main_connector2", connector2_box, kMedPeek);
+  main_connector2->SetLineColor(kGray + 2);
+  TGeoVolume* main_connector3 = new TGeoVolume("main_connector3", connector3_box, kMedPeek);
+  main_connector3->SetLineColor(kGray + 2);
+
+  TGeoTranslation* trans_main_connector1_front[10];
+  trans_main_connector1_front[0] = new TGeoTranslation("trans_main_connector1_front_No0", 14.462 + main_connector2_width / 2., -4.276 - main_connector1_height / 2., middle_spacer_main_add_rectangle_side_small_thickness / 2. + main_connector3_thickness / 2);
+  trans_main_connector1_front[1] = new TGeoTranslation("trans_main_connector1_front_No1", 14.462 + main_connector2_width / 2. + (0.766 + main_connector2_width) * 1, -4.276 - main_connector1_height / 2., middle_spacer_main_add_rectangle_side_small_thickness / 2. + main_connector3_thickness / 2);
+  trans_main_connector1_front[2] = new TGeoTranslation("trans_main_connector1_front_No2", 14.462 + main_connector2_width / 2. + (0.766 + main_connector2_width) * 2, -4.276 - main_connector1_height / 2., middle_spacer_main_add_rectangle_side_small_thickness / 2. + main_connector3_thickness / 2);
+  trans_main_connector1_front[3] = new TGeoTranslation("trans_main_connector1_front_No3", -(14.462 + main_connector2_width / 2.), -4.276 - main_connector1_height / 2., middle_spacer_main_add_rectangle_side_small_thickness / 2. + main_connector3_thickness / 2);
+  trans_main_connector1_front[4] = new TGeoTranslation("trans_main_connector1_front_No4", -(14.462 + main_connector2_width / 2. + (0.766 + main_connector2_width) * 1), -4.276 - main_connector1_height / 2., middle_spacer_main_add_rectangle_side_small_thickness / 2. + main_connector3_thickness / 2);
+  trans_main_connector1_front[5] = new TGeoTranslation("trans_main_connector1_front_No5", -(14.462 + main_connector2_width / 2. + (0.766 + main_connector2_width) * 2), -4.276 - main_connector1_height / 2., middle_spacer_main_add_rectangle_side_small_thickness / 2. + main_connector3_thickness / 2);
+  TGeoTranslation* trans_main_connector1_back[10];
+  trans_main_connector1_back[0] = new TGeoTranslation("trans_main_connector1_back_No0", 14.462 + main_connector2_width / 2., -4.276 - main_connector1_height / 2., -(middle_spacer_main_add_rectangle_side_small_thickness / 2. + main_connector3_thickness / 2));
+  trans_main_connector1_back[1] = new TGeoTranslation("trans_main_connector1_back_No1", 14.462 + main_connector2_width / 2. + (0.766 + main_connector2_width) * 1, -4.276 - main_connector1_height / 2., -(middle_spacer_main_add_rectangle_side_small_thickness / 2. + main_connector3_thickness / 2));
+  trans_main_connector1_back[2] = new TGeoTranslation("trans_main_connector1_back_No2", 14.462 + main_connector2_width / 2. + (0.766 + main_connector2_width) * 2, -4.276 - main_connector1_height / 2., -(middle_spacer_main_add_rectangle_side_small_thickness / 2. + main_connector3_thickness / 2));
+  trans_main_connector1_back[3] = new TGeoTranslation("trans_main_connector1_back_No3", -(14.462 + main_connector2_width / 2.), -4.276 - main_connector1_height / 2., -(middle_spacer_main_add_rectangle_side_small_thickness / 2. + main_connector3_thickness / 2));
+  trans_main_connector1_back[4] = new TGeoTranslation("trans_main_connector1_back_No4", -(14.462 + main_connector2_width / 2. + (0.766 + main_connector2_width) * 1), -4.276 - main_connector1_height / 2., -(middle_spacer_main_add_rectangle_side_small_thickness / 2. + main_connector3_thickness / 2));
+  trans_main_connector1_back[5] = new TGeoTranslation("trans_main_connector1_back_No5", -(14.462 + main_connector2_width / 2. + (0.766 + main_connector2_width) * 2), -4.276 - main_connector1_height / 2., -(middle_spacer_main_add_rectangle_side_small_thickness / 2. + main_connector3_thickness / 2));
+
+  TGeoTranslation* trans_main_connector2_front[10];
+  trans_main_connector2_front[0] = new TGeoTranslation("trans_main_connector2_front_No0", 14.462 + main_connector2_width / 2., -4.276 - main_connector1_height - main_connector2_height / 2., middle_spacer_main_add_rectangle_side_small_thickness / 2. + main_connector3_thickness / 2);
+  trans_main_connector2_front[1] = new TGeoTranslation("trans_main_connector2_front_No1", 14.462 + main_connector2_width / 2. + (0.766 + main_connector2_width) * 1, -4.276 - main_connector1_height - main_connector2_height / 2., middle_spacer_main_add_rectangle_side_small_thickness / 2. + main_connector3_thickness / 2);
+  trans_main_connector2_front[2] = new TGeoTranslation("trans_main_connector2_front_No2", 14.462 + main_connector2_width / 2. + (0.766 + main_connector2_width) * 2, -4.276 - main_connector1_height - main_connector2_height / 2., middle_spacer_main_add_rectangle_side_small_thickness / 2. + main_connector3_thickness / 2);
+  trans_main_connector2_front[3] = new TGeoTranslation("trans_main_connector2_front_No3", -(14.462 + main_connector2_width / 2.), -4.276 - main_connector1_height - main_connector2_height / 2., middle_spacer_main_add_rectangle_side_small_thickness / 2. + main_connector3_thickness / 2);
+  trans_main_connector2_front[4] = new TGeoTranslation("trans_main_connector2_front_No4", -(14.462 + main_connector2_width / 2. + (0.766 + main_connector2_width) * 1), -4.276 - main_connector1_height - main_connector2_height / 2., middle_spacer_main_add_rectangle_side_small_thickness / 2. + main_connector3_thickness / 2);
+  trans_main_connector2_front[5] = new TGeoTranslation("trans_main_connector2_front_No5", -(14.462 + main_connector2_width / 2. + (0.766 + main_connector2_width) * 2), -4.276 - main_connector1_height - main_connector2_height / 2., middle_spacer_main_add_rectangle_side_small_thickness / 2. + main_connector3_thickness / 2);
+  TGeoTranslation* trans_main_connector2_back[10];
+  trans_main_connector2_back[0] = new TGeoTranslation("trans_main_connector2_back_No0", 14.462 + main_connector2_width / 2., -4.276 - main_connector1_height - main_connector2_height / 2., -(middle_spacer_main_add_rectangle_side_small_thickness / 2. + main_connector3_thickness / 2));
+  trans_main_connector2_back[1] = new TGeoTranslation("trans_main_connector2_back_No1", 14.462 + main_connector2_width / 2. + (0.766 + main_connector2_width) * 1, -4.276 - main_connector1_height - main_connector2_height / 2., -(middle_spacer_main_add_rectangle_side_small_thickness / 2. + main_connector3_thickness / 2));
+  trans_main_connector2_back[2] = new TGeoTranslation("trans_main_connector2_back_No2", 14.462 + main_connector2_width / 2. + (0.766 + main_connector2_width) * 2, -4.276 - main_connector1_height - main_connector2_height / 2., -(middle_spacer_main_add_rectangle_side_small_thickness / 2. + main_connector3_thickness / 2));
+  trans_main_connector2_back[3] = new TGeoTranslation("trans_main_connector2_back_No3", -(14.462 + main_connector2_width / 2.), -4.276 - main_connector1_height - main_connector2_height / 2., -(middle_spacer_main_add_rectangle_side_small_thickness / 2. + main_connector3_thickness / 2));
+  trans_main_connector2_back[4] = new TGeoTranslation("trans_main_connector2_back_No4", -(14.462 + main_connector2_width / 2. + (0.766 + main_connector2_width) * 1), -4.276 - main_connector1_height - main_connector2_height / 2., -(middle_spacer_main_add_rectangle_side_small_thickness / 2. + main_connector3_thickness / 2));
+  trans_main_connector2_back[5] = new TGeoTranslation("trans_main_connector2_back_No5", -(14.462 + main_connector2_width / 2. + (0.766 + main_connector2_width) * 2), -4.276 - main_connector1_height - main_connector2_height / 2., -(middle_spacer_main_add_rectangle_side_small_thickness / 2. + main_connector3_thickness / 2));
+
+  TGeoTranslation* trans_main_connector3_front[10];
+  trans_main_connector3_front[0] = new TGeoTranslation("trans_main_connector3_front_No0", 14.462 + main_connector2_width / 2., -4.436 - main_connector2_height - main_connector3_height / 2., electric_board_position_z + electric_board_thickness / 2 + main_connector3_thickness / 2);
+  trans_main_connector3_front[1] = new TGeoTranslation("trans_main_connector3_front_No1", 14.462 + main_connector2_width / 2. + (0.766 + main_connector2_width) * 1, -4.436 - main_connector2_height - main_connector3_height / 2., electric_board_position_z + electric_board_thickness / 2 + main_connector3_thickness / 2);
+  trans_main_connector3_front[2] = new TGeoTranslation("trans_main_connector3_front_No2", 14.462 + main_connector2_width / 2. + (0.766 + main_connector2_width) * 2, -4.436 - main_connector2_height - main_connector3_height / 2., electric_board_position_z + electric_board_thickness / 2 + main_connector3_thickness / 2);
+  trans_main_connector3_front[3] = new TGeoTranslation("trans_main_connector3_front_No3", -(14.462 + main_connector2_width / 2.), -4.436 - main_connector2_height - main_connector3_height / 2., electric_board_position_z + electric_board_thickness / 2 + main_connector3_thickness / 2);
+  trans_main_connector3_front[4] = new TGeoTranslation("trans_main_connector3_front_No4", -(14.462 + main_connector2_width / 2. + (0.766 + main_connector2_width) * 1), -4.436 - main_connector2_height - main_connector3_height / 2., electric_board_position_z + electric_board_thickness / 2 + main_connector3_thickness / 2);
+  trans_main_connector3_front[5] = new TGeoTranslation("trans_main_connector3_front_No5", -(14.462 + main_connector2_width / 2. + (0.766 + main_connector2_width) * 2), -4.436 - main_connector2_height - main_connector3_height / 2., electric_board_position_z + electric_board_thickness / 2 + main_connector3_thickness / 2);
+  TGeoTranslation* trans_main_connector3_back[10];
+  trans_main_connector3_back[0] = new TGeoTranslation("trans_main_connector3_back_No0", 14.462 + main_connector2_width / 2., -4.436 - main_connector2_height - main_connector3_height / 2., -(electric_board_position_z + electric_board_thickness / 2 + main_connector3_thickness / 2));
+  trans_main_connector3_back[1] = new TGeoTranslation("trans_main_connector3_back_No1", 14.462 + main_connector2_width / 2. + (0.766 + main_connector2_width) * 1, -4.436 - main_connector2_height - main_connector3_height / 2., -(electric_board_position_z + electric_board_thickness / 2 + main_connector3_thickness / 2));
+  trans_main_connector3_back[2] = new TGeoTranslation("trans_main_connector3_back_No2", 14.462 + main_connector2_width / 2. + (0.766 + main_connector2_width) * 2, -4.436 - main_connector2_height - main_connector3_height / 2., -(electric_board_position_z + electric_board_thickness / 2 + main_connector3_thickness / 2));
+  trans_main_connector3_back[3] = new TGeoTranslation("trans_main_connector3_back_No3", -(14.462 + main_connector2_width / 2.), -4.436 - main_connector2_height - main_connector3_height / 2., -(electric_board_position_z + electric_board_thickness / 2 + main_connector3_thickness / 2));
+  trans_main_connector3_back[4] = new TGeoTranslation("trans_main_connector3_back_No4", -(14.462 + main_connector2_width / 2. + (0.766 + main_connector2_width) * 1), -4.436 - main_connector2_height - main_connector3_height / 2., -(electric_board_position_z + electric_board_thickness / 2 + main_connector3_thickness / 2));
+  trans_main_connector3_back[5] = new TGeoTranslation("trans_main_connector3_back_No5", -(14.462 + main_connector2_width / 2. + (0.766 + main_connector2_width) * 2), -4.436 - main_connector2_height - main_connector3_height / 2., -(electric_board_position_z + electric_board_thickness / 2 + main_connector3_thickness / 2));
+
+  mHalfPSU->AddNode(main_connector1, 0, trans_main_connector1_front[0]);
+  mHalfPSU->AddNode(main_connector1, 0, trans_main_connector1_front[1]);
+  mHalfPSU->AddNode(main_connector1, 0, trans_main_connector1_front[2]);
+  mHalfPSU->AddNode(main_connector1, 0, trans_main_connector1_front[3]);
+  mHalfPSU->AddNode(main_connector1, 0, trans_main_connector1_front[4]);
+  mHalfPSU->AddNode(main_connector1, 0, trans_main_connector1_front[5]);
+
+  mHalfPSU->AddNode(main_connector2, 0, trans_main_connector2_front[0]);
+  mHalfPSU->AddNode(main_connector2, 0, trans_main_connector2_front[1]);
+  mHalfPSU->AddNode(main_connector2, 0, trans_main_connector2_front[2]);
+  mHalfPSU->AddNode(main_connector2, 0, trans_main_connector2_front[3]);
+  mHalfPSU->AddNode(main_connector2, 0, trans_main_connector2_front[4]);
+  mHalfPSU->AddNode(main_connector2, 0, trans_main_connector2_front[5]);
+
+  mHalfPSU->AddNode(main_connector3, 0, trans_main_connector3_front[0]);
+  mHalfPSU->AddNode(main_connector3, 0, trans_main_connector3_front[1]);
+  mHalfPSU->AddNode(main_connector3, 0, trans_main_connector3_front[2]);
+  mHalfPSU->AddNode(main_connector3, 0, trans_main_connector3_front[3]);
+  mHalfPSU->AddNode(main_connector3, 0, trans_main_connector3_front[4]);
+  mHalfPSU->AddNode(main_connector3, 0, trans_main_connector3_front[5]);
+
+  mHalfPSU->AddNode(main_connector1, 0, trans_main_connector1_back[0]);
+  mHalfPSU->AddNode(main_connector1, 0, trans_main_connector1_back[1]);
+  mHalfPSU->AddNode(main_connector1, 0, trans_main_connector1_back[2]);
+  mHalfPSU->AddNode(main_connector1, 0, trans_main_connector1_back[3]);
+  mHalfPSU->AddNode(main_connector1, 0, trans_main_connector1_back[4]);
+  mHalfPSU->AddNode(main_connector1, 0, trans_main_connector1_back[5]);
+  mHalfPSU->AddNode(main_connector2, 0, trans_main_connector2_back[0]);
+  mHalfPSU->AddNode(main_connector2, 0, trans_main_connector2_back[1]);
+  mHalfPSU->AddNode(main_connector2, 0, trans_main_connector2_back[2]);
+  mHalfPSU->AddNode(main_connector2, 0, trans_main_connector2_back[3]);
+  mHalfPSU->AddNode(main_connector2, 0, trans_main_connector2_back[4]);
+  mHalfPSU->AddNode(main_connector2, 0, trans_main_connector2_back[5]);
+  mHalfPSU->AddNode(main_connector3, 0, trans_main_connector3_back[0]);
+  mHalfPSU->AddNode(main_connector3, 0, trans_main_connector3_back[1]);
+  mHalfPSU->AddNode(main_connector3, 0, trans_main_connector3_back[2]);
+  mHalfPSU->AddNode(main_connector3, 0, trans_main_connector3_back[3]);
+  mHalfPSU->AddNode(main_connector3, 0, trans_main_connector3_back[4]);
+  mHalfPSU->AddNode(main_connector3, 0, trans_main_connector3_back[5]);
+
   ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
   //Rough coil shape part
   ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-  //
-  new TGeoTorus("DCDC_rough_coil_torus_shape", DCDC_coil_torus_part_radius, DCDC_coil_radius1 - DCDC_coil_max_radius1,
-                DCDC_coil_radius1 + DCDC_coil_max_radius1, 0, 180);
-  new TGeoTube("DCDC_rough_coil_straight_shape", DCDC_coil_radius1 - DCDC_coil_max_radius1, DCDC_coil_radius1 + DCDC_coil_max_radius1,
-               DCDC_coil_max_radius1 * 9 + DCDC_coil_straight_gap * 4);
 
-  TGeoRotation* rDCDC_rough_coil_torus_shape1 = new TGeoRotation("rDCDC_rough_coil_torus_shape1", 0, 90, 0);
-  TGeoRotation* rDCDC_rough_coil_torus_shape2 = new TGeoRotation("rDCDC_rough_coil_torus_shape2", 0, -90, 0);
-  rDCDC_rough_coil_torus_shape1->RegisterYourself();
-  rDCDC_rough_coil_torus_shape2->RegisterYourself();
+  Double_t coil_torus_inner_radius1 = TMath::Min(DCDC_cover_inner_width, DCDC_cover_inner_height) / 10.0;
+  Double_t coil_torus_outer_radius1 = TMath::Min(DCDC_cover_inner_width, DCDC_cover_inner_height) / 8.0;
+  Double_t coil_radius1 = TMath::Min(DCDC_cover_inner_width, DCDC_cover_inner_height) / 3.0 - coil_torus_outer_radius1;
+  Double_t coil_position_z = DCDC_sheet1_position_z + DCDC_sheet1_thickness / 2. + coil_torus_outer_radius1;
 
-  new TGeoCompositeShape("rotated_DCDC_rough_coil_torus_shape1", "dummy+DCDC_rough_coil_torus_shape:rDCDC_rough_coil_torus_shape1");
-  new TGeoCompositeShape("rotated_DCDC_rough_coil_torus_shape2", "dummy+DCDC_rough_coil_torus_shape:rDCDC_rough_coil_torus_shape2");
+  TGeoTorus* coil_torus = new TGeoTorus("coil_torus", coil_radius1, coil_torus_inner_radius1, coil_torus_outer_radius1, 0, 360);
 
-  TGeoTranslation* tDCDC_rough_coil_straight_shape1 = new TGeoTranslation("tDCDC_rough_coil_straight_shape1", DCDC_coil_torus_part_radius, 0, 0);
-  TGeoTranslation* tDCDC_rough_coil_straight_shape2 = new TGeoTranslation("tDCDC_rough_coil_straight_shape2", -DCDC_coil_torus_part_radius, 0, 0);
-  tDCDC_rough_coil_straight_shape1->RegisterYourself();
-  tDCDC_rough_coil_straight_shape2->RegisterYourself();
-  TGeoTranslation* tDCDC_rough_coil_torus_shape1 = new TGeoTranslation("tDCDC_rough_coil_torus_shape1", 0, 0, DCDC_coil_max_radius1 * 9 + DCDC_coil_straight_gap * 4);
-  TGeoTranslation* tDCDC_rough_coil_torus_shape2 = new TGeoTranslation("tDCDC_rough_coil_torus_shape2", 0, 0, -(DCDC_coil_max_radius1 * 9 + DCDC_coil_straight_gap * 4));
-  tDCDC_rough_coil_torus_shape1->RegisterYourself();
-  tDCDC_rough_coil_torus_shape2->RegisterYourself();
+  std::string name_coil = "";
 
-  new TGeoCompositeShape("DCDC_coil_shape1",
-                         "DCDC_rough_coil_straight_shape:tDCDC_rough_coil_straight_shape1+"
-                         "DCDC_rough_coil_straight_shape:tDCDC_rough_coil_straight_shape2+"
-                         "rotated_DCDC_rough_coil_torus_shape1:tDCDC_rough_coil_torus_shape1+"
-                         "rotated_DCDC_rough_coil_torus_shape2:tDCDC_rough_coil_torus_shape2");
-  TGeoRotation* rDCDC_coil_shape1[nDCDC];
-  TGeoTranslation* tDCDC_coil_shape1[nDCDC];
-  TGeoCompositeShape* rotated_DCDC_coil_shape1[nDCDC];
-  TString string_all_DCDC_coil_shape1 = "";
+  TGeoCompositeShape* rotated_coil_torus[23];
 
-  for (Int_t iDCDC = 0; iDCDC < nDCDC; ++iDCDC) {
-    rDCDC_coil_shape1[iDCDC] = new TGeoRotation(Form("rDCDC_coil_shape1_angle%d", iDCDC + 1), full_angle / 2 - one_angle * iDCDC, 90, 0);
-    rDCDC_coil_shape1[iDCDC]->RegisterYourself();
+  for (Int_t iB = 0; iB < 11; ++iB) {
 
-    rotated_DCDC_coil_shape1[iDCDC] = new TGeoCompositeShape(Form("rotated_DCDC_coil_shape1_angle%d", iDCDC + 1), Form("dummy+DCDC_coil_shape1:rDCDC_coil_shape1_angle%d", iDCDC + 1));
+    Double_t block_angle = (180. - block_angle_index[iB]) / 2. * TMath::Pi() / 180.;
 
-    tDCDC_shape1[iDCDC] = new TGeoTranslation(Form("tDCDC_coil_shape1_pos%d", iDCDC + 1),
-                                              -position_radius * TMath::Cos((start_DCDC_angle + one_angle * iDCDC) * TMath::Pi() / 180.),
-                                              position_radius * TMath::Sin((start_DCDC_angle + one_angle * iDCDC) * TMath::Pi() / 180.), 0);
-    tDCDC_shape1[iDCDC]->RegisterYourself();
+    TGeoRotation* rotate_coil_torus_left = new TGeoRotation(Form("rotate_coil_torus_No%d", iB * 2), 180 - block_angle * 180. / TMath::Pi(), 0, 0);
+    TGeoRotation* rotate_coil_torus_right = new TGeoRotation(Form("rotate_coil_torus_No%d", iB * 2 + 1), block_angle * 180. / TMath::Pi(), 0, 0);
+    rotate_coil_torus_left->RegisterYourself();
+    rotate_coil_torus_right->RegisterYourself();
 
-    if (iDCDC + 1 == nDCDC) {
-      string_all_DCDC_coil_shape1 += Form("rotated_DCDC_coil_shape1_angle%d:tDCDC_shape1_pos%d", iDCDC + 1, iDCDC + 1);
-    } else {
-      string_all_DCDC_coil_shape1 += Form("rotated_DCDC_coil_shape1_angle%d:tDCDC_shape1_pos%d+", iDCDC + 1, iDCDC + 1);
-    }
+    Double_t cent_block_left[] = {block_radius * TMath::Cos(block_angle), -block_radius * TMath::Sin(block_angle), coil_position_z};
+    Double_t cent_block_right[] = {block_radius * TMath::Cos(TMath::Pi() - block_angle), -block_radius * TMath::Sin(TMath::Pi() - block_angle), coil_position_z};
+
+    TGeoCombiTrans* combtrans_coil_torus_left = new TGeoCombiTrans(Form("combtrans_coil_torus_No%d", 2 * iB), cent_block_left[0], cent_block_left[1], cent_block_left[2], rotate_coil_torus_left);
+    TGeoCombiTrans* combtrans_coil_torus_right = new TGeoCombiTrans(Form("combtrans_coil_torus_No%d", 2 * iB + 1), cent_block_right[0], cent_block_right[1], cent_block_right[2], rotate_coil_torus_right);
+    combtrans_coil_torus_left->RegisterYourself();
+    combtrans_coil_torus_right->RegisterYourself();
+
+    if (iB == 0)
+      name_coil += Form("coil_torus:combtrans_coil_torus_No%d", 2 * iB);
+    else
+      name_coil += Form("+coil_torus:combtrans_coil_torus_No%d", 2 * iB);
+    name_coil += Form("+coil_torus:combtrans_coil_torus_No%d", 2 * iB + 1);
   }
 
-  TGeoRotation* rDCDC_side_coil_shape1 = new TGeoRotation("rDCDC_side_coil_shape1", 0, 90, 0);
-  rDCDC_side_coil_shape1->RegisterYourself();
-  new TGeoCompositeShape("rotated_DCDC_side_coil_shape", "dummy+DCDC_coil_shape1:rDCDC_side_coil_shape1");
+  TGeoTorus* coil_torus_side = new TGeoTorus("coil_torus_side", coil_radius1, coil_torus_inner_radius1, coil_torus_outer_radius1, 0, 360);
 
-  string_all_DCDC_coil_shape1 += "+rotated_DCDC_side_coil_shape:tsurfaceBox_square_sub_right2 + rotated_DCDC_side_coil_shape:tsurfaceBox_square_sub_left2";
+  TGeoTranslation* trans_coil_torus_side_left = new TGeoTranslation("trans_coil_torus_side_left", 22.259 - middle_spacer_cover_block_width / 2, -8.305 + middle_spacer_cover_block_height / 2, coil_position_z);
+  trans_coil_torus_side_left->RegisterYourself();
+  name_coil += "+coil_torus_side:trans_coil_torus_side_left";
 
-  new TGeoCompositeShape("all_DCDC_coil_shape1", string_all_DCDC_coil_shape1);
+  TGeoTranslation* trans_coil_torus_side_right = new TGeoTranslation("trans_coil_torus_side_right", -22.247 + middle_spacer_cover_block_width / 2, -8.305 + middle_spacer_cover_block_height / 2, coil_position_z);
+  trans_coil_torus_side_right->RegisterYourself();
+  name_coil += "+coil_torus_side:trans_coil_torus_side_right";
 
-  auto* tall_DCDC_coil_shape1 = new TGeoTranslation("tall_DCDC_coil_shape1", 0, 0, middle_board_thickness / 2 + surface_board_thickness + DCDC_thickness2 + DCDC_coil_radius1);
-  auto* tall_DCDC_coil_shape2 = new TGeoTranslation("tall_DCDC_coil_shape2", 0, 0, -(middle_board_thickness / 2 + surface_board_thickness + DCDC_thickness2 + DCDC_coil_radius1));
-  tall_DCDC_coil_shape1->RegisterYourself();
-  tall_DCDC_coil_shape2->RegisterYourself();
+  TGeoCompositeShape* coil_shape = new TGeoCompositeShape("coil_shape", name_coil.c_str());
 
-  TGeoCompositeShape* two_side_all_DCDC_coil_shape1 = new TGeoCompositeShape("two_side_all_DCDC_coil_shape1",
-                                                                             "all_DCDC_coil_shape1:tall_DCDC_coil_shape1+"
-                                                                             "all_DCDC_coil_shape1:tall_DCDC_coil_shape2");
-  TGeoVolume* DCDC_coil1 = new TGeoVolume("DCDC_coil1", two_side_all_DCDC_coil_shape1, kMedCu);
+  TGeoVolume* coil = new TGeoVolume("coil", coil_shape, kMedAlu);
+  coil->SetLineColor(kYellow);
 
-  mHalfPSU->AddNode(DCDC_coil1, 1, nullptr);
-  //TGeoTranslation* tHalfPSU = new TGeoTranslation("tHalfPSU",0, -4.2 - (middleBox_sub_height1/2-surfaceBox_edge_height1/2), -72.6 + 46.0);
-  //TGeoTranslation* tHalfPSU = new TGeoTranslation("tHalfPSU",0,0, -72.6 + 46.0);
-  //tHalfPSU->RegisterYourself();
-  //mHalfVolume->AddNode(mHalfPSU,0,tHalfPSU);
+  TGeoRotation* trans_coil_front = new TGeoRotation("trans_coil_front", 0, 0, 0);
+  TGeoRotation* trans_coil_back = new TGeoRotation("trans_coil_back", 180, 180, 0);
+
+  mHalfPSU->AddNode(coil, 0, trans_coil_front);
+  mHalfPSU->AddNode(coil, 0, trans_coil_back);
+
+  //On Mazzenine
+
+  Double_t coil_on_mezzanine_position_z = middle_spacer_main_thickness / 2. + middle_spacer_cover_thickness + electric_board_thickness + mezzanine_prop_main_length - spacer_sheet1_mezzanine_box_thickness - DCDC_sheet1_thickness - coil_torus_outer_radius1;
+
+  TGeoTranslation* trans_coil_on_mezzanine_front[5];
+  trans_coil_on_mezzanine_front[0] = new TGeoTranslation("trans_coil_on_mezzanine_front_No0", +2 * (DCDC_sheet1_height + gap_sheet1_on_mezzanine), -17.952 - (DCDC_cover_outer_width / 2. + 1.825), coil_on_mezzanine_position_z);
+  trans_coil_on_mezzanine_front[1] = new TGeoTranslation("trans_coil_on_mezzanine_front_No1", +1 * (DCDC_sheet1_height + gap_sheet1_on_mezzanine), -17.952 - (DCDC_cover_outer_width / 2. + 1.825), coil_on_mezzanine_position_z);
+  trans_coil_on_mezzanine_front[2] = new TGeoTranslation("trans_coil_on_mezzanine_front_No2", 0 * (DCDC_sheet1_height + gap_sheet1_on_mezzanine), -17.952 - (DCDC_cover_outer_width / 2. + 1.825), coil_on_mezzanine_position_z);
+  trans_coil_on_mezzanine_front[3] = new TGeoTranslation("trans_coil_on_mezzanine_front_No3", -1 * (DCDC_sheet1_height + gap_sheet1_on_mezzanine), -17.952 - (DCDC_cover_outer_width / 2. + 1.825), coil_on_mezzanine_position_z);
+  trans_coil_on_mezzanine_front[4] = new TGeoTranslation("trans_coil_on_mezzanine_front_No4", -2 * (DCDC_sheet1_height + gap_sheet1_on_mezzanine), -17.952 - (DCDC_cover_outer_width / 2. + 1.825), coil_on_mezzanine_position_z);
+  TGeoTranslation* trans_coil_on_mezzanine_back[5];
+  trans_coil_on_mezzanine_back[0] = new TGeoTranslation("trans_coil_on_mezzanine_back_No0", +2 * (DCDC_sheet1_height + gap_sheet1_on_mezzanine), -17.952 - (DCDC_cover_outer_width / 2. + 1.825), -coil_on_mezzanine_position_z);
+  trans_coil_on_mezzanine_back[1] = new TGeoTranslation("trans_coil_on_mezzanine_back_No1", +1 * (DCDC_sheet1_height + gap_sheet1_on_mezzanine), -17.952 - (DCDC_cover_outer_width / 2. + 1.825), -coil_on_mezzanine_position_z);
+  trans_coil_on_mezzanine_back[2] = new TGeoTranslation("trans_coil_on_mezzanine_back_No2", 0 * (DCDC_sheet1_height + gap_sheet1_on_mezzanine), -17.952 - (DCDC_cover_outer_width / 2. + 1.825), -coil_on_mezzanine_position_z);
+  trans_coil_on_mezzanine_back[3] = new TGeoTranslation("trans_coil_on_mezzanine_back_No3", -1 * (DCDC_sheet1_height + gap_sheet1_on_mezzanine), -17.952 - (DCDC_cover_outer_width / 2. + 1.825), -coil_on_mezzanine_position_z);
+  trans_coil_on_mezzanine_back[4] = new TGeoTranslation("trans_coil_on_mezzanine_back_No4", -2 * (DCDC_sheet1_height + gap_sheet1_on_mezzanine), -17.952 - (DCDC_cover_outer_width / 2. + 1.825), -coil_on_mezzanine_position_z);
+
+  TGeoVolume* coil_on_mezzanine = new TGeoVolume("coil_on_mezzanine", coil_torus, kMedAlu);
+  coil_on_mezzanine->SetLineColor(kYellow);
+
+  mHalfPSU->AddNode(coil_on_mezzanine, 0, trans_coil_on_mezzanine_front[0]);
+  mHalfPSU->AddNode(coil_on_mezzanine, 0, trans_coil_on_mezzanine_front[1]);
+  mHalfPSU->AddNode(coil_on_mezzanine, 0, trans_coil_on_mezzanine_front[2]);
+  mHalfPSU->AddNode(coil_on_mezzanine, 0, trans_coil_on_mezzanine_front[3]);
+  mHalfPSU->AddNode(coil_on_mezzanine, 0, trans_coil_on_mezzanine_front[4]);
+  mHalfPSU->AddNode(coil_on_mezzanine, 0, trans_coil_on_mezzanine_back[0]);
+  mHalfPSU->AddNode(coil_on_mezzanine, 0, trans_coil_on_mezzanine_back[1]);
+  mHalfPSU->AddNode(coil_on_mezzanine, 0, trans_coil_on_mezzanine_back[2]);
+  mHalfPSU->AddNode(coil_on_mezzanine, 0, trans_coil_on_mezzanine_back[3]);
+  mHalfPSU->AddNode(coil_on_mezzanine, 0, trans_coil_on_mezzanine_back[4]);
+
+  //small connector borrom
+
+  Double_t main_connector_angle1 = 52 * TMath::Pi() / 180.;
+  Double_t main_connector_angle2 = 45 * TMath::Pi() / 180.;
+
+  //front
+
+  //left
+
+  TGeoRotation* rotate_main_connector_box_angle1_left = new TGeoRotation("rotate_main_connector_box_angle1_left", 0, 0, 90 - main_connector_angle1 * 180 / TMath::Pi());
+  TGeoRotation* rotate_main_connector_box_angle2_left = new TGeoRotation("rotate_main_connector_box_angle2_left", 0, 0, 90 - main_connector_angle2 * 180 / TMath::Pi());
+  TGeoRotation* rotate_main_connector_box_angle1_right = new TGeoRotation("rotate_main_connector_box_angle1_right", 0, 0, -90 + main_connector_angle1 * 180 / TMath::Pi());
+  TGeoRotation* rotate_main_connector_box_angle2_right = new TGeoRotation("rotate_main_connector_box_angle2_right", 0, 0, -90 + main_connector_angle2 * 180 / TMath::Pi());
+  rotate_main_connector_box_angle1_left->RegisterYourself();
+  rotate_main_connector_box_angle2_left->RegisterYourself();
+  rotate_main_connector_box_angle1_right->RegisterYourself();
+  rotate_main_connector_box_angle2_right->RegisterYourself();
+
+  TGeoTranslation* trans_connector1_box = new TGeoTranslation("trans_connector1_box", 0, -main_connector3_height / 2. - main_connector2_height - main_connector1_height / 2., 0);
+  TGeoTranslation* trans_connector2_box = new TGeoTranslation("trans_connector2_box", 0, -main_connector3_height / 2. - main_connector2_height / 2., 0);
+  TGeoTranslation* trans_connector3_box = new TGeoTranslation("trans_connector3_box", 0, 0, 0);
+  trans_connector1_box->RegisterYourself();
+  trans_connector2_box->RegisterYourself();
+  trans_connector3_box->RegisterYourself();
+
+  TGeoCompositeShape* comp_connector_box = new TGeoCompositeShape("comp_connector_box", "connector1_box:trans_connector1_box+connector2_box:trans_connector2_box+connector3_box:trans_connector3_box");
+
+  TGeoVolume* connector = new TGeoVolume("connector", comp_connector_box, kMedPeek);
+  connector->SetLineColor(kGray + 2);
+
+  TGeoCombiTrans* trans_connector1_front = new TGeoCombiTrans("trans_connector1_front", +(17.064 + 15.397) / 2., -(21.795 + 19.758) / 2, electric_board_position_z + electric_board_thickness / 2 + main_connector3_thickness / 2, rotate_main_connector_box_angle1_left);
+  TGeoCombiTrans* trans_connector2_front = new TGeoCombiTrans("trans_connector2_front", +(19.345 + 17.941) / 2, -(19.757 + 17.531) / 2, electric_board_position_z + electric_board_thickness / 2 + main_connector3_thickness / 2, rotate_main_connector_box_angle2_left);
+  TGeoCombiTrans* trans_connector3_front = new TGeoCombiTrans("trans_connector1_front", -(17.064 + 15.397) / 2., -(21.795 + 19.758) / 2, electric_board_position_z + electric_board_thickness / 2 + main_connector3_thickness / 2, rotate_main_connector_box_angle1_right);
+  TGeoCombiTrans* trans_connector4_front = new TGeoCombiTrans("trans_connector2_front", -(19.345 + 17.941) / 2, -(19.757 + 17.531) / 2, electric_board_position_z + electric_board_thickness / 2 + main_connector3_thickness / 2, rotate_main_connector_box_angle2_right);
+
+  mHalfPSU->AddNode(connector, 0, trans_connector1_front);
+  mHalfPSU->AddNode(connector, 0, trans_connector2_front);
+  mHalfPSU->AddNode(connector, 0, trans_connector3_front);
+  mHalfPSU->AddNode(connector, 0, trans_connector4_front);
+
+  TGeoCombiTrans* trans_connector1_back = new TGeoCombiTrans("trans_connector1_back", +(17.064 + 15.397) / 2., -(21.795 + 19.758) / 2, -(electric_board_position_z + electric_board_thickness / 2 + main_connector3_thickness / 2), rotate_main_connector_box_angle1_left);
+  TGeoCombiTrans* trans_connector2_back = new TGeoCombiTrans("trans_connector2_back", +(19.345 + 17.941) / 2, -(19.757 + 17.531) / 2, -(electric_board_position_z + electric_board_thickness / 2 + main_connector3_thickness / 2), rotate_main_connector_box_angle2_left);
+  TGeoCombiTrans* trans_connector3_back = new TGeoCombiTrans("trans_connector1_back", -(17.064 + 15.397) / 2., -(21.795 + 19.758) / 2, -(electric_board_position_z + electric_board_thickness / 2 + main_connector3_thickness / 2), rotate_main_connector_box_angle1_right);
+  TGeoCombiTrans* trans_connector4_back = new TGeoCombiTrans("trans_connector2_back", -(19.345 + 17.941) / 2, -(19.757 + 17.531) / 2, -(electric_board_position_z + electric_board_thickness / 2 + main_connector3_thickness / 2), rotate_main_connector_box_angle2_right);
+
+  mHalfPSU->AddNode(connector, 0, trans_connector1_back);
+  mHalfPSU->AddNode(connector, 0, trans_connector2_back);
+  mHalfPSU->AddNode(connector, 0, trans_connector3_back);
+  mHalfPSU->AddNode(connector, 0, trans_connector4_back);
+
+  //large connector bottom
+
+  Double_t main_large_connector_bottom_angle1 = 36 * TMath::Pi() / 180.;
+
+  Double_t main_large_connector1_thickness = 0.752;
+  Double_t main_large_connector1_width = 3.95;
+  Double_t main_large_connector1_height = 0.16;
+
+  Double_t main_large_connector2_thickness = 0.56;
+  Double_t main_large_connector2_width = 3.95;
+  Double_t main_large_connector2_height = 0.536;
+
+  Double_t main_large_connector3_thickness = 0.626;
+  Double_t main_large_connector3_width = 4.167;
+  Double_t main_large_connector3_height = 0.579;
+
+  TGeoBBox* large_connector_bottom1_box = new TGeoBBox("large_connector1_box", main_large_connector1_width / 2., main_large_connector1_height / 2., main_large_connector1_thickness / 2.);
+  TGeoBBox* large_connector_bottom2_box = new TGeoBBox("large_connector2_box", main_large_connector2_width / 2., main_large_connector2_height / 2., main_large_connector2_thickness / 2.);
+  TGeoBBox* large_connector_bottom3_box = new TGeoBBox("large_connector3_box", main_large_connector3_width / 2., main_large_connector3_height / 2., main_large_connector3_thickness / 2.);
+
+  TGeoTranslation* trans_large_connector1_box = new TGeoTranslation("trans_large_connector1_box", 0, -main_large_connector3_height / 2. - main_large_connector2_height - main_large_connector1_height / 2., 0);
+  TGeoTranslation* trans_large_connector2_box = new TGeoTranslation("trans_large_connector2_box", 0, -main_large_connector3_height / 2. - main_large_connector2_height / 2., 0);
+  TGeoTranslation* trans_large_connector3_box = new TGeoTranslation("trans_large_connector3_box", 0, 0, 0);
+  trans_large_connector1_box->RegisterYourself();
+  trans_large_connector2_box->RegisterYourself();
+  trans_large_connector3_box->RegisterYourself();
+
+  TGeoCompositeShape* comp_large_connector_box = new TGeoCompositeShape("comp_large_connector_box", "large_connector1_box:trans_large_connector1_box+large_connector2_box:trans_large_connector2_box+large_connector3_box:trans_large_connector3_box");
+
+  TGeoRotation* rotate_large_connector_bottom_box_front = new TGeoRotation("rotate_large_connector_bottom_box_front", 0, 0, -(90 - main_large_connector_bottom_angle1 * 180 / TMath::Pi()));
+  TGeoRotation* rotate_large_connector_bottom_box_back = new TGeoRotation("rotate_large_connector_bottom_box_back", 0, 0, (90 - main_large_connector_bottom_angle1 * 180 / TMath::Pi()));
+  rotate_large_connector_bottom_box_front->RegisterYourself();
+  rotate_large_connector_bottom_box_back->RegisterYourself();
+
+  TGeoCombiTrans* combtrans_rotated_large_connector_front = new TGeoCombiTrans("combtrans_rotated_large_connector_front", -(22.268 + 20.287) / 2, (-17.315 - 13.603) / 2, +(electric_board_position_z + electric_board_thickness / 2 + main_connector3_thickness / 2), rotate_large_connector_bottom_box_front);
+  TGeoCombiTrans* combtrans_rotated_large_connector_back = new TGeoCombiTrans("combtrans_rotated_large_connector_back", +(22.268 + 20.287) / 2, (-17.315 - 13.603) / 2, -(electric_board_position_z + electric_board_thickness / 2 + main_connector3_thickness / 2), rotate_large_connector_bottom_box_back);
+
+  TGeoVolume* large_connector = new TGeoVolume("large_connector", comp_large_connector_box, kMedPeek);
+  large_connector->SetLineColor(kGray + 2);
+
+  mHalfPSU->AddNode(large_connector, 0, combtrans_rotated_large_connector_front);
+  mHalfPSU->AddNode(large_connector, 0, combtrans_rotated_large_connector_back);
 
   return mHalfPSU;
 }

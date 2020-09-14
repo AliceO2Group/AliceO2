@@ -39,7 +39,7 @@ RawPixelDecoder<Mapping>::RawPixelDecoder()
 ///______________________________________________________________
 ///
 template <class Mapping>
-void RawPixelDecoder<Mapping>::printReport() const
+void RawPixelDecoder<Mapping>::printReport(bool decstat, bool skipEmpty) const
 {
   LOGF(INFO, "%s Decoded %zu hits in %zu non-empty chips in %u ROFs with %d threads", mSelfName, mNPixelsFired, mNChipsFired, mROFCounter, mNThreads);
   double cpu = 0, real = 0;
@@ -57,6 +57,15 @@ void RawPixelDecoder<Mapping>::printReport() const
   real += tmrF.RealTime();
   LOGF(INFO, "%s Timing Total:     CPU = %.3e Real = %.3e in %d slots in %s mode", mSelfName, cpu, real, tmrS.Counter() - 1,
        mDecodeNextAuto ? "AutoDecode" : "ExternalCall");
+
+  if (decstat) {
+    LOG(INFO) << "GBT Links decoding statistics";
+    for (auto& lnk : mGBTLinks) {
+      LOG(INFO) << lnk.describe();
+      lnk.statistics.print(skipEmpty);
+      lnk.chipStat.print(skipEmpty);
+    }
+  }
 }
 
 ///______________________________________________________________
@@ -70,12 +79,7 @@ int RawPixelDecoder<Mapping>::decodeNextTrigger()
   mInteractionRecord.clear();
   int nLinksWithData = 0, nru = mRUDecodeVec.size();
 #ifdef WITH_OPENMP
-  if (mNThreads > 0) { // otherwhise, rely on default
-    omp_set_num_threads(mNThreads);
-  } else {
-    mNThreads = omp_get_num_threads();
-    LOG(INFO) << mSelfName << " will use " << mNThreads << " threads";
-  }
+  omp_set_num_threads(mNThreads);
 #pragma omp parallel for schedule(dynamic) reduction(+ \
                                                      : nLinksWithData, mNChipsFiredROF, mNPixelsFiredROF)
 #endif
@@ -157,7 +161,8 @@ void RawPixelDecoder<Mapping>::setupLinks(InputRecord& inputs)
 {
   mCurRUDecodeID = NORUDECODED;
   auto nLinks = mGBTLinks.size();
-  std::vector<InputSpec> filter{InputSpec{"filter", ConcreteDataTypeMatcher{mMAP.getOrigin(), "RAWDATA"}, Lifetime::Timeframe}};
+  auto origin = (mUserDataOrigin == o2::header::gDataOriginInvalid) ? mMAP.getOrigin() : mUserDataOrigin;
+  std::vector<InputSpec> filter{InputSpec{"filter", ConcreteDataTypeMatcher{origin, "RAWDATA"}, Lifetime::Timeframe}};
   DPLRawParser parser(inputs, filter);
   uint32_t currSSpec = 0xffffffff; // dummy starting subspec
   int linksAdded = 0;
@@ -289,7 +294,7 @@ template <class Mapping>
 void RawPixelDecoder<Mapping>::setNThreads(int n)
 {
 #ifdef WITH_OPENMP
-  mNThreads = n;
+  mNThreads = n > 0 ? n : 1;
 #else
   LOG(WARNING) << mSelfName << " Multithreading is not supported, imposing single thread";
   mNThreads = 1;
@@ -302,6 +307,16 @@ void RawPixelDecoder<Mapping>::setFormat(GBTLink::Format f)
 {
   assert(int(f) >= 0 && int(f) < GBTLink::NFormats);
   mFormat = f;
+}
+
+///______________________________________________________________________
+template <class Mapping>
+void RawPixelDecoder<Mapping>::clearStat()
+{
+  // clear statistics
+  for (auto& lnk : mGBTLinks) {
+    lnk.clear(true, false);
+  }
 }
 
 template class o2::itsmft::RawPixelDecoder<o2::itsmft::ChipMappingITS>;

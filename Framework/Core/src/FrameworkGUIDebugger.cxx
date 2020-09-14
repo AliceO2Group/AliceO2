@@ -12,6 +12,7 @@
 #include <iostream>
 #include <set>
 #include <string>
+#include <cinttypes>
 #include "Framework/ConfigContext.h"
 #include "Framework/ConfigParamRegistry.h"
 #include "DebugGUI/imgui.h"
@@ -145,7 +146,11 @@ void displayHistory(const DeviceInfo& info, DeviceControl& control)
       // stream, a second time at display time, to avoid
       // showing unrelevant messages from past.
       if (logLevel >= control.logLevel) {
-        ImGui::TextColored(color, line.c_str(), line.c_str() + line.size());
+        if (line.find('%', 0) != std::string::npos) {
+          ImGui::TextUnformatted(line.c_str(), line.c_str() + line.size());
+        } else {
+          ImGui::TextColored(color, line.c_str(), line.c_str() + line.size());
+        }
       }
     }
     ji = (ji + 1) % historySize;
@@ -216,6 +221,13 @@ void displayDeviceMetrics(const char* label, ImVec2 canvasSize, std::string cons
         metricType = MetricType::Int;
         metricSize = metricsInfos[mi].intMetrics[metric.storeIdx].size();
       } break;
+      case MetricType::Uint64: {
+        data.size = metricsInfos[mi].uint64Metrics[metric.storeIdx].size();
+        data.Y = metricsInfos[mi].uint64Metrics[metric.storeIdx].data();
+        data.type = MetricType::Uint64;
+        metricType = MetricType::Uint64;
+        metricSize = metricsInfos[mi].uint64Metrics[metric.storeIdx].size();
+      } break;
       case MetricType::Float: {
         data.size = metricsInfos[mi].floatMetrics[metric.storeIdx].size();
         data.Y = metricsInfos[mi].floatMetrics[metric.storeIdx].data();
@@ -247,6 +259,8 @@ void displayDeviceMetrics(const char* label, ImVec2 canvasSize, std::string cons
     assert(pos >= 0 && pos < 1024);
     if (histoData->type == MetricType::Int) {
       return static_cast<const int*>(histoData->Y)[pos];
+    } else if (histoData->type == MetricType::Uint64) {
+      return static_cast<const uint64_t*>(histoData->Y)[pos];
     } else if (histoData->type == MetricType::Float) {
       return static_cast<const float*>(histoData->Y)[pos];
     } else {
@@ -324,6 +338,10 @@ void metricsTableRow(std::vector<ColumnInfo> columnInfos,
         ImGui::Text("%i (%i)", metricsInfo.intMetrics[info.index][row], info.index);
         ImGui::NextColumn();
       } break;
+      case MetricType::Uint64: {
+        ImGui::Text("%" PRIu64 " (%i)", metricsInfo.uint64Metrics[info.index][row], info.index);
+        ImGui::NextColumn();
+      } break;
       case MetricType::Float: {
         ImGui::Text("%f (%i)", metricsInfo.floatMetrics[info.index][row], info.index);
         ImGui::NextColumn();
@@ -378,6 +396,22 @@ void historyBar(gui::WorkspaceGUIState& globalGUIState,
 
       auto getter = [](void* hData, int idx) -> float {
         auto histoData = reinterpret_cast<HistoData<int>*>(hData);
+        size_t pos = (histoData->first + static_cast<size_t>(idx)) % histoData->mod;
+        assert(pos >= 0 && pos < 1024);
+        return histoData->points[pos];
+      };
+      ImGui::PlotLines(("##" + currentMetricName).c_str(), getter, &data, data.size);
+      ImGui::NextColumn();
+    } break;
+    case MetricType::Uint64: {
+      HistoData<uint64_t> data;
+      data.mod = metricsInfo.timestamps[i].size();
+      data.first = metric.pos - data.mod;
+      data.size = metricsInfo.uint64Metrics[metric.storeIdx].size();
+      data.points = metricsInfo.uint64Metrics[metric.storeIdx].data();
+
+      auto getter = [](void* hData, int idx) -> float {
+        auto histoData = reinterpret_cast<HistoData<uint64_t>*>(hData);
         size_t pos = (histoData->first + static_cast<size_t>(idx)) % histoData->mod;
         assert(pos >= 0 && pos < 1024);
         return histoData->points[pos];
@@ -642,7 +676,6 @@ struct DriverHelper {
 void displayDriverInfo(DriverInfo const& driverInfo, DriverControl& driverControl)
 {
   ImGui::Begin("Driver information");
-  ImGui::Text("Numer of running devices: %lu", driverInfo.socket2DeviceInfo.size() / 2);
 
   if (driverControl.state == DriverControlState::STEP) {
     driverControl.state = DriverControlState::PAUSE;
@@ -653,10 +686,6 @@ void displayDriverInfo(DriverInfo const& driverInfo, DriverControl& driverContro
   ImGui::RadioButton("Pause", state, static_cast<int>(DriverControlState::PAUSE));
   ImGui::SameLine();
   ImGui::RadioButton("Step", state, static_cast<int>(DriverControlState::STEP));
-
-  if (driverControl.state == DriverControlState::PAUSE) {
-    driverControl.forcedTransitions.push_back(DriverState::GUI);
-  }
 
   auto& registry = driverInfo.configContext->options();
   ImGui::Columns();

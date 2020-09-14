@@ -1228,3 +1228,122 @@ BOOST_AUTO_TEST_CASE(BlockCombinations)
   }
   BOOST_CHECK_EQUAL(count, 0);
 }
+
+BOOST_AUTO_TEST_CASE(CombinationsHelpers)
+{
+  TableBuilder builderA;
+  auto rowWriterA = builderA.persist<int32_t, int32_t>({"x", "y"});
+  rowWriterA(0, 0, 0);
+  rowWriterA(0, 1, 0);
+  rowWriterA(0, 2, 0);
+  rowWriterA(0, 3, 0);
+  rowWriterA(0, 4, 0);
+  rowWriterA(0, 5, 0);
+  rowWriterA(0, 6, 0);
+  rowWriterA(0, 7, 0);
+  auto tableA = builderA.finalize();
+  BOOST_REQUIRE_EQUAL(tableA->num_rows(), 8);
+
+  using TestA = o2::soa::Table<o2::soa::Index<>, test::X, test::Y>;
+
+  TestA testsA{tableA};
+
+  BOOST_REQUIRE_EQUAL(8, testsA.size());
+  int nA = testsA.size();
+
+  int count = 0;
+  int i = 0;
+  int j = 1;
+  for (auto& [t0, t1] : pairCombinations(testsA)) {
+    BOOST_CHECK_EQUAL(t0.x(), i);
+    BOOST_CHECK_EQUAL(t1.x(), j);
+    count++;
+    j++;
+    if (j == nA) {
+      i++;
+      j = i + 1;
+    }
+  }
+  BOOST_CHECK_EQUAL(count, 28);
+
+  count = 0;
+  i = 0;
+  j = 1;
+  int k = 2;
+  for (auto& [t0, t1, t2] : tripleCombinations(testsA)) {
+    BOOST_CHECK_EQUAL(t0.x(), i);
+    BOOST_CHECK_EQUAL(t1.x(), j);
+    BOOST_CHECK_EQUAL(t2.x(), k);
+    count++;
+    k++;
+    if (k == nA) {
+      if (j == nA - 2) {
+        i++;
+        j = i;
+      }
+      j++;
+      k = j + 1;
+    }
+  }
+  BOOST_CHECK_EQUAL(count, 56);
+
+  TableBuilder builderB;
+  auto rowWriterB = builderB.persist<int32_t, int32_t, float>({"x", "y", "floatZ"});
+  rowWriterB(0, 0, 25, -6.0f);
+  rowWriterB(0, 1, 18, 0.0f);
+  rowWriterB(0, 2, 48, 8.0f);
+  rowWriterB(0, 3, 103, 2.0f);
+  rowWriterB(0, 4, 28, -6.0f);
+  rowWriterB(0, 5, 102, 2.0f);
+  rowWriterB(0, 6, 12, 0.0f);
+  rowWriterB(0, 7, 24, -7.0f);
+  rowWriterB(0, 8, 41, 8.0f);
+  rowWriterB(0, 9, 49, 8.0f);
+  auto tableB = builderB.finalize();
+  BOOST_REQUIRE_EQUAL(tableB->num_rows(), 10);
+
+  using TestB = o2::soa::Table<o2::soa::Index<>, test::X, test::Y, test::FloatZ>;
+  TestB testB{tableB};
+  BOOST_REQUIRE_EQUAL(10, testB.size());
+
+  // Grouped data:
+  // [3, 5] [0, 4, 7], [1, 6], [2, 8, 9]
+  // Assuming bins intervals: [ , )
+  std::vector<uint32_t> yBins{0, 5, 10, 20, 30, 40, 50, 101};
+  std::vector<float> zBins{-7.0f, -5.0f, -3.0f, -1.0f, 1.0f, 3.0f, 5.0f, 7.0f};
+
+  TableBuilder builderAux;
+  auto rowWriterAux = builderAux.persist<int32_t, int32_t>({"x", "y"});
+  for (auto it = testB.begin(); it != testB.end(); it++) {
+    auto& elem = *it;
+    rowWriterAux(0, elem.x(), getHash(yBins, zBins, elem.y(), elem.floatZ()));
+  }
+  auto tableAux = builderAux.finalize();
+  BOOST_REQUIRE_EQUAL(tableAux->num_rows(), 10);
+
+  // Auxiliary table: testsAux with id and hash, hash is the category for grouping
+  using TestsAux = o2::soa::Table<o2::soa::Index<>, test::X, test::Y>;
+  TestsAux testAux{tableAux};
+  BOOST_REQUIRE_EQUAL(10, testAux.size());
+
+  std::vector<std::tuple<int32_t, int32_t>> expectedStrictlyUpperPairs{
+    {0, 4}, {0, 7}, {4, 7}, {1, 6}, {3, 5}, {2, 8}, {2, 9}, {8, 9}};
+  count = 0;
+  for (auto& [c0, c1] : selfPairCombinations("y", 2, -1, testAux)) {
+    BOOST_CHECK_EQUAL(c0.x(), std::get<0>(expectedStrictlyUpperPairs[count]));
+    BOOST_CHECK_EQUAL(c1.x(), std::get<1>(expectedStrictlyUpperPairs[count]));
+    count++;
+  }
+  BOOST_CHECK_EQUAL(count, expectedStrictlyUpperPairs.size());
+
+  std::vector<std::tuple<int32_t, int32_t, int32_t>> expectedStrictlyUpperTriples{
+    {0, 4, 7}, {2, 8, 9}};
+  count = 0;
+  for (auto& [c0, c1, c2] : selfTripleCombinations("y", 2, -1, testAux)) {
+    BOOST_CHECK_EQUAL(c0.x(), std::get<0>(expectedStrictlyUpperTriples[count]));
+    BOOST_CHECK_EQUAL(c1.x(), std::get<1>(expectedStrictlyUpperTriples[count]));
+    BOOST_CHECK_EQUAL(c2.x(), std::get<2>(expectedStrictlyUpperTriples[count]));
+    count++;
+  }
+  BOOST_CHECK_EQUAL(count, expectedStrictlyUpperTriples.size());
+}

@@ -40,6 +40,7 @@
 
 using namespace GPUCA_NAMESPACE::gpu;
 using namespace o2::tpc;
+using namespace o2::tpc::constants;
 
 void GPUReconstructionConvert::ConvertNativeToClusterData(o2::tpc::ClusterNativeAccess* native, std::unique_ptr<GPUTPCClusterData[]>* clusters, unsigned int* nClusters, const TPCFastTransform* transform, int continuousMaxTimeBin)
 {
@@ -160,7 +161,7 @@ int GPUReconstructionConvert::GetMaxTimeBin(const GPUTrackingInOutZS& zspages)
         for (unsigned int l = 0; l < zspages.slice[i].nZSPtr[j][k]; l++) {
           RAWDataHeaderGPU* rdh = (RAWDataHeaderGPU*)(page + l * TPCZSHDR::TPC_ZS_PAGE_SIZE);
           TPCZSHDR* hdr = (TPCZSHDR*)(page + l * TPCZSHDR::TPC_ZS_PAGE_SIZE + sizeof(RAWDataHeaderGPU));
-          unsigned int timeBin = (hdr->timeOffset + (o2::raw::RDHUtils::getHeartBeatOrbit(*rdh) - firstHBF) * o2::constants::lhc::LHCMaxBunches) / Constants::LHCBCPERTIMEBIN + hdr->nTimeBins;
+          unsigned int timeBin = (hdr->timeOffset + (o2::raw::RDHUtils::getHeartBeatOrbit(*rdh) - firstHBF) * o2::constants::lhc::LHCMaxBunches) / LHCBCPERTIMEBIN + hdr->nTimeBins;
           if (timeBin > retVal) {
             retVal = timeBin;
           }
@@ -308,7 +309,7 @@ void GPUReconstructionConvert::RunZSEncoder(const S& in, std::unique_ptr<unsigne
           lastEndpoint = -1;
         }
         if (ZSEncoderGetTime(tmpBuffer[k]) != lastTime) {
-          nexthbf = ((long)ZSEncoderGetTime(tmpBuffer[k]) * Constants::LHCBCPERTIMEBIN + bcShiftInFirstHBF) / o2::constants::lhc::LHCMaxBunches;
+          nexthbf = ((long)ZSEncoderGetTime(tmpBuffer[k]) * LHCBCPERTIMEBIN + bcShiftInFirstHBF) / o2::constants::lhc::LHCMaxBunches;
           if (hbf != nexthbf) {
             lastEndpoint = -2;
           }
@@ -389,7 +390,7 @@ void GPUReconstructionConvert::RunZSEncoder(const S& in, std::unique_ptr<unsigne
         hdr->cruID = i * 10 + region;
         rawcru = i * 10 + region;
         rawendpoint = endpoint & 1;
-        hdr->timeOffset = ZSEncoderGetTime(tmpBuffer[k]) * Constants::LHCBCPERTIMEBIN - (hbf - 0) * o2::constants::lhc::LHCMaxBunches;
+        hdr->timeOffset = ZSEncoderGetTime(tmpBuffer[k]) * LHCBCPERTIMEBIN - (hbf - 0) * o2::constants::lhc::LHCMaxBunches;
         lastTime = -1;
         tbHdr = nullptr;
         lastEndpoint = endpoint;
@@ -474,7 +475,7 @@ void GPUReconstructionConvert::RunZSEncoder(const S& in, std::unique_ptr<unsigne
           }
           int nRowsRegion = param.tpcGeometry.GetRegionRows(region);
 
-          int timeBin = (hdr->timeOffset + (o2::raw::RDHUtils::getHeartBeatOrbit(*rdh) - firstOrbit) * o2::constants::lhc::LHCMaxBunches) / Constants::LHCBCPERTIMEBIN;
+          int timeBin = (hdr->timeOffset + (o2::raw::RDHUtils::getHeartBeatOrbit(*rdh) - firstOrbit) * o2::constants::lhc::LHCMaxBunches) / LHCBCPERTIMEBIN;
           for (int l = 0; l < hdr->nTimeBins; l++) {
             if ((pagePtr - reinterpret_cast<unsigned char*>(page)) & 1) {
               pagePtr++;
@@ -566,7 +567,7 @@ void GPUReconstructionConvert::RunZSEncoderCreateMeta(const unsigned long long i
   }
 }
 
-void GPUReconstructionConvert::RunZSFilter(std::unique_ptr<o2::tpc::Digit[]>* buffers, const o2::tpc::Digit* const* ptrs, size_t* nsb, const size_t* ns, const GPUParam& param, bool zs12bit)
+void GPUReconstructionConvert::RunZSFilter(std::unique_ptr<o2::tpc::Digit[]>* buffers, const o2::tpc::Digit* const* ptrs, size_t* nsb, const size_t* ns, const GPUParam& param, bool zs12bit, float threshold)
 {
 #ifdef HAVE_O2HEADERS
   for (unsigned int i = 0; i < NSLICES; i++) {
@@ -577,7 +578,7 @@ void GPUReconstructionConvert::RunZSFilter(std::unique_ptr<o2::tpc::Digit[]>* bu
     const unsigned int decodeBits = zs12bit ? TPCZSHDR::TPC_ZS_NBITS_V2 : TPCZSHDR::TPC_ZS_NBITS_V1;
     const float decodeBitsFactor = (1 << (decodeBits - 10));
     for (unsigned int k = 0; k < ns[i]; k++) {
-      if (buffers[i][k].getChargeFloat() >= param.rec.tpcZSthreshold) {
+      if (buffers[i][k].getChargeFloat() >= threshold) {
         if (k > j) {
           buffers[i][j] = buffers[i][k];
         }

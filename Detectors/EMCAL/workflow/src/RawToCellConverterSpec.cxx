@@ -7,21 +7,27 @@
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
+#include <string>
+
 #include "FairLogger.h"
 
+#include "CommonDataFormat/InteractionRecord.h"
+#include "Framework/ConfigParamRegistry.h"
+#include "Framework/ControlService.h"
+#include "Framework/WorkflowSpec.h"
 #include "DataFormatsEMCAL/EMCALBlockHeader.h"
 #include "DataFormatsEMCAL/TriggerRecord.h"
-#include "EMCALWorkflow/RawToCellConverterSpec.h"
-#include "Framework/ControlService.h"
-#include "SimulationDataFormat/MCCompLabel.h"
-#include "SimulationDataFormat/MCTruthContainer.h"
+#include "DetectorsRaw/RDHUtils.h"
 #include "EMCALBase/Geometry.h"
 #include "EMCALBase/Mapper.h"
 #include "EMCALReconstruction/CaloFitResults.h"
 #include "EMCALReconstruction/Bunch.h"
 #include "EMCALReconstruction/CaloRawFitterStandard.h"
+#include "EMCALReconstruction/CaloRawFitterGamma2.h"
 #include "EMCALReconstruction/AltroDecoder.h"
-#include "CommonDataFormat/InteractionRecord.h"
+#include "EMCALWorkflow/RawToCellConverterSpec.h"
+#include "SimulationDataFormat/MCCompLabel.h"
+#include "SimulationDataFormat/MCTruthContainer.h"
 
 using namespace o2::emcal::reco_workflow;
 
@@ -42,84 +48,104 @@ void RawToCellConverterSpec::init(framework::InitContext& ctx)
     LOG(ERROR) << "Failed to initialize mapper";
   }
 
-  mRawFitter.setAmpCut(mNoiseThreshold);
-  mRawFitter.setL1Phase(0.);
+  auto fitmethod = ctx.options().get<std::string>("fitmethod");
+  if (fitmethod == "standard") {
+    LOG(INFO) << "Using standard raw fitter";
+    mRawFitter = std::unique_ptr<o2::emcal::CaloRawFitter>(new o2::emcal::CaloRawFitterStandard);
+  } else if (fitmethod == "gamma2") {
+    mRawFitter = std::unique_ptr<o2::emcal::CaloRawFitter>(new o2::emcal::CaloRawFitterGamma2);
+  }
+
+  mRawFitter->setAmpCut(mNoiseThreshold);
+  mRawFitter->setL1Phase(0.);
 }
 
 void RawToCellConverterSpec::run(framework::ProcessingContext& ctx)
 {
   LOG(DEBUG) << "[EMCALRawToCellConverter - run] called";
 
-  mOutputCells.clear();
-  mOutputTriggerRecords.clear();
+  // Cache cells from for bunch crossings as the component reads timeframes from many links consecutively
+  std::map<o2::InteractionRecord, std::shared_ptr<std::vector<o2::emcal::Cell>>> cellBuffer; // Internal cell buffer
 
   int firstEntry = 0;
   for (const auto& rawData : ctx.inputs()) {
 
     //o2::emcal::RawReaderMemory<o2::header::RAWDataHeaderV4> rawreader(gsl::span(rawData.payload, o2::framework::DataRefUtils::getPayloadSize(rawData)));
 
-    o2::emcal::RawReaderMemory<o2::header::RAWDataHeaderV4> rawreader(o2::framework::DataRefUtils::as<const char>(rawData));
-
-    bool first = true;
-    uint16_t currentTrigger = 0;
-    uint32_t currentorbit = 0;
+    o2::emcal::RawReaderMemory rawreader(o2::framework::DataRefUtils::as<const char>(rawData));
 
     // loop over all the DMA pages
     while (rawreader.hasNext()) {
 
       rawreader.next();
 
-      auto header = rawreader.getRawHeader();
+      auto& header = rawreader.getRawHeader();
+      auto triggerBC = o2::raw::RDHUtils::getTriggerBC(header);
+      auto triggerOrbit = o2::raw::RDHUtils::getTriggerOrbit(header);
+      auto feeID = o2::raw::RDHUtils::getFEEID(header);
 
-      if (!first) { // check if it is the first event in the payload
-        std::cout << " triggerBC " << header.triggerBC << " current Trigger " << currentTrigger << std::endl;
-        if (header.triggerBC > currentTrigger) { //new event
-          mOutputTriggerRecords.emplace_back(o2::InteractionRecord(currentTrigger, currentorbit), firstEntry, mOutputCells.size() - 1);
-          firstEntry = mOutputCells.size();
-
-          currentTrigger = header.triggerBC;
-          currentorbit = header.triggerOrbit;
-        }      //new event
-      } else { //first
-        currentTrigger = header.triggerBC;
-        std::cout << " first is true and I set triggerBC to currentTrigger " << currentTrigger << std::endl;
-        currentorbit = header.triggerOrbit;
-        std::cout << " and set first to false " << std::endl;
-        first = false;
+      o2::InteractionRecord currentIR(triggerBC, triggerOrbit);
+      std::shared_ptr<std::vector<o2::emcal::Cell>> currentCellContainer;
+      auto found = cellBuffer.find(currentIR);
+      if (found == cellBuffer.end()) {
+        currentCellContainer = std::make_shared<std::vector<o2::emcal::Cell>>();
+        cellBuffer[currentIR] = currentCellContainer;
+      } else {
+        currentCellContainer = found->second;
       }
 
-      if (header.feeId > 40)
+      if (feeID > 40)
         continue; //skip STU ddl
 
       //std::cout<<rawreader.getRawHeader()<<std::endl;
 
       // use the altro decoder to decode the raw data, and extract the RCU trailer
-      o2::emcal::AltroDecoder<decltype(rawreader)> decoder(rawreader);
+      o2::emcal::AltroDecoder decoder(rawreader);
       decoder.decode();
 
       std::cout << decoder.getRCUTrailer() << std::endl;
 
-      o2::emcal::Mapper map = mMapper->getMappingForDDL(header.feeId);
+      o2::emcal::Mapper map = mMapper->getMappingForDDL(feeID);
+      int iSM = feeID / 2;
 
       // Loop over all the channels
       for (auto& chan : decoder.getChannels()) {
 
-        int iRow = map.getRow(chan.getHardwareAddress());
-        int iCol = map.getColumn(chan.getHardwareAddress());
-        ChannelType_t chantype = map.getChannelType(chan.getHardwareAddress());
-        int iSM = header.feeId / 2;
+        int iRow, iCol;
+        ChannelType_t chantype;
+        try {
+          iRow = map.getRow(chan.getHardwareAddress());
+          iCol = map.getColumn(chan.getHardwareAddress());
+          chantype = map.getChannelType(chan.getHardwareAddress());
+        } catch (Mapper::AddressNotFoundException& ex) {
+          std::cerr << ex.what() << std::endl;
+          continue;
+        };
 
         int CellID = mGeometry->GetAbsCellIdFromCellIndexes(iSM, iRow, iCol);
 
         // define the conatiner for the fit results, and perform the raw fitting using the stadnard raw fitter
-        o2::emcal::CaloFitResults fitResults = mRawFitter.evaluate(chan.getBunches(), 0, 0);
-
-        if (fitResults.getAmp() < 0 && fitResults.getTime() < 0) {
+        double amp = 0., time = 0.;
+        o2::emcal::CaloFitResults fitResults = mRawFitter->evaluate(chan.getBunches(), 0, 0);
+        if (fitResults.getAmp() > 0)
           fitResults.setAmp(0.);
+        if (fitResults.getTime() < 0)
           fitResults.setTime(0.);
-        }
-        mOutputCells.emplace_back(CellID, fitResults.getAmp(), fitResults.getTime(), chantype);
+        currentCellContainer->emplace_back(CellID, amp, time, chantype);
       }
+    }
+  }
+
+  // Loop over BCs, sort cells with increasing tower ID and write to output containers
+  mOutputCells.clear();
+  mOutputTriggerRecords.clear();
+  for (auto [bc, cells] : cellBuffer) {
+    mOutputTriggerRecords.emplace_back(bc, mOutputCells.size(), cells->size());
+    if (cells->size()) {
+      // Sort cells according to cell ID
+      std::sort(cells->begin(), cells->end(), [](o2::emcal::Cell& lhs, o2::emcal::Cell& rhs) { return lhs.getTower() < rhs.getTower(); });
+      for (auto cell : *cells)
+        mOutputCells.push_back(cell);
     }
   }
 
@@ -133,12 +159,13 @@ o2::framework::DataProcessorSpec o2::emcal::reco_workflow::getRawToCellConverter
   std::vector<o2::framework::InputSpec> inputs;
   std::vector<o2::framework::OutputSpec> outputs;
 
-  inputs.emplace_back("readout-proxy", "FLP", "RAWDATA", 0, o2::framework::Lifetime::Timeframe);
   outputs.emplace_back("EMC", "CELLS", 0, o2::framework::Lifetime::Timeframe);
   outputs.emplace_back("EMC", "CELLSTRGR", 0, o2::framework::Lifetime::Timeframe);
 
   return o2::framework::DataProcessorSpec{"EMCALRawToCellConverterSpec",
-                                          inputs,
+                                          o2::framework::select("A:EMC/RAWDATA"),
                                           outputs,
-                                          o2::framework::adaptFromTask<o2::emcal::reco_workflow::RawToCellConverterSpec>()};
+                                          o2::framework::adaptFromTask<o2::emcal::reco_workflow::RawToCellConverterSpec>(),
+                                          o2::framework::Options{
+                                            {"fitmethod", o2::framework::VariantType::String, "standard", {"Fit method (standard or gamma2)"}}}};
 }

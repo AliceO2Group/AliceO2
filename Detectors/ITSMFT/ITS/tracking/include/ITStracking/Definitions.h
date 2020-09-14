@@ -17,7 +17,7 @@
 
 // #define _ALLOW_DEBUG_TREES_ITS_ // to allow debug (vertexer only)
 
-#ifndef __OPENCL__
+#ifndef GPUCA_GPUCODE_DEVICE
 #include <array>
 #endif
 
@@ -29,9 +29,9 @@
 #define CA_DEBUGGER(x) \
   do {                 \
   } while (0)
-#ifndef NDEBUG
-#define NDEBUG 1
-#endif
+// #ifndef NDEBUG
+// #define NDEBUG 1
+// #endif
 #endif
 
 #if defined(CUDA_ENABLED)
@@ -59,10 +59,12 @@
 
 #define MATH_CEIL ceil
 
+#ifndef GPUCA_GPUCODE_DEVICE
 #include <cstddef>
+#endif
 #include "ITStrackingCUDA/Array.h"
 
-template <typename T, std::size_t Size>
+template <typename T, size_t Size>
 using GPUArray = o2::its::GPU::Array<T, Size>;
 
 typedef cudaStream_t GPUStream;

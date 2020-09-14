@@ -27,8 +27,8 @@ string(TOUPPER "${ENABLE_HIP}" ENABLE_HIP)
 
 # Detect and enable CUDA
 if(ENABLE_CUDA)
-  set(CUDA_MINIMUM_VERSION "10.1")
-  set(CMAKE_CUDA_STANDARD 14)
+  set(CUDA_MINIMUM_VERSION "11.0")
+  set(CMAKE_CUDA_STANDARD 17)
   set(CMAKE_CUDA_STANDARD_REQUIRED TRUE)
   include(CheckLanguage)
   check_language(CUDA)
@@ -39,14 +39,8 @@ if(ENABLE_CUDA)
       set(CMAKE_CUDA_COMPILER "nvcc") #check_language does not treat the HOST_COMPILER flag correctly, we force it and will fail below if wrong.
     endif()
   endif()
-  if (ENABLE_CUDA STREQUAL "AUTO")
-    find_package(cub)
-    set_package_properties(cub PROPERTIES TYPE OPTIONAL)
-  else()
-    find_package(cub REQUIRED)
-    set_package_properties(cub PROPERTIES TYPE REQUIRED)
-  endif()
-  if(CMAKE_CUDA_COMPILER AND CUB_FOUND)
+  if(CMAKE_CUDA_COMPILER)
+    cmake_minimum_required(VERSION 3.18 FATAL_ERROR)
     enable_language(CUDA)
     get_property(LANGUAGES GLOBAL PROPERTY ENABLED_LANGUAGES)
     if(NOT CUDA IN_LIST LANGUAGES)
@@ -59,7 +53,7 @@ if(ENABLE_CUDA)
 
     # Forward CXX flags to CUDA C++ Host compiler (for warnings, gdb, etc.)
     STRING(REGEX REPLACE "\-std=[^ ]*" "" CMAKE_CXX_FLAGS_NOSTD ${CMAKE_CXX_FLAGS}) # Need to strip c++17 imposed by alidist defaults
-    set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} -Xcompiler \"${CMAKE_CXX_FLAGS_NOSTD}\" --expt-relaxed-constexpr -Xptxas -v")
+    set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} -Xcompiler \"${CMAKE_CXX_FLAGS_NOSTD}\" --expt-relaxed-constexpr --extended-lambda --allow-unsupported-compiler -Xptxas -v")
     set(CMAKE_CUDA_FLAGS_DEBUG "${CMAKE_CUDA_FLAGS_DEBUG} -lineinfo -Xcompiler \"${CMAKE_CXX_FLAGS_DEBUG}\" -Xptxas -O0 -Xcompiler -O0")
     if(NOT CMAKE_BUILD_TYPE STREQUAL "DEBUG")
       set(CMAKE_CUDA_FLAGS_${CMAKE_BUILD_TYPE} "${CMAKE_CUDA_FLAGS_${CMAKE_BUILD_TYPE}} -Xcompiler \"${CMAKE_CXX_FLAGS_${CMAKE_BUILD_TYPE}}\" -Xptxas -O4 -Xcompiler -O4 -use_fast_math --ftz=true")
@@ -68,16 +62,15 @@ if(ENABLE_CUDA)
       set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} -Werror=cross-execution-space-call")
     endif()
     if(CUDA_COMPUTETARGET)
-      set(
-        CMAKE_CUDA_FLAGS
-        "${CMAKE_CUDA_FLAGS} -gencode arch=compute_${CUDA_COMPUTETARGET},code=sm_${CUDA_COMPUTETARGET}"
-        )
+      set(CMAKE_CUDA_ARCHITECTURES ${CUDA_COMPUTETARGET})
+    else()
+      set(CMAKE_CUDA_ARCHITECTURES OFF)
     endif()
 
     set(CUDA_ENABLED ON)
     message(STATUS "CUDA found (Version ${CMAKE_CUDA_COMPILER_VERSION})")
   elseif(NOT ENABLE_CUDA STREQUAL "AUTO")
-    message(FATAL_ERROR "CUDA not found (Compiler: ${CMAKE_CUDA_COMPILER}, CUB: ${CUB_FOUND})")
+    message(FATAL_ERROR "CUDA not found (Compiler: ${CMAKE_CUDA_COMPILER})")
   endif()
 endif()
 
@@ -167,21 +160,9 @@ if(ENABLE_HIP)
           CACHE PATH "Path to which HIP has been installed")
     endif()
   endif()
-  if(NOT DEFINED HCC_HOME)
-    if(NOT DEFINED ENV{HCC_HOME})
-      set(HCC_HOME
-          "${HIP_PATH}/../hcc"
-          CACHE PATH "Path to which HCC has been installed")
-    else()
-      set(HCC_HOME
-          $ENV{HCC_HOME}
-          CACHE PATH "Path to which HCC has been installed")
-    endif()
-  endif()
 
-  if(EXISTS "${HIP_PATH}" AND EXISTS "${HCC_HOME}")
+  if(EXISTS "${HIP_PATH}")
     get_filename_component(hip_ROOT "${HIP_PATH}" ABSOLUTE)
-    get_filename_component(hcc_ROOT "${HCC_HOME}" ABSOLUTE)
     find_package(hip)
     find_package(hipcub)
     find_package(rocprim)
@@ -199,15 +180,18 @@ if(ENABLE_HIP)
     endif()
     if(hip_FOUND AND hipcub_FOUND AND rocthrust_FOUND AND rocprim_FOUND AND hip_HIPCC_EXECUTABLE)
       set(HIP_ENABLED ON)
-      set_target_properties(rocthrust PROPERTIES IMPORTED_GLOBAL TRUE)
-      add_library(ROCm::rocThrust ALIAS rocthrust)
+      set_target_properties(roc::rocthrust PROPERTIES IMPORTED_GLOBAL TRUE)
       message(STATUS "HIP Found (${hip_HIPCC_EXECUTABLE})")
+      set(O2_HIP_CMAKE_CXX_FLAGS "-fcuda-flush-denormals-to-zero -Wno-invalid-command-line-argument -Wno-unused-command-line-argument -Wno-invalid-constexpr -Wno-ignored-optimization-argument -Wno-unused-private-field")
+      if(HIP_AMDGPUTARGET)
+        set(O2_HIP_CMAKE_CXX_FLAGS "${O2_HIP_CMAKE_CXX_FLAGS} --amdgpu-target=${HIP_AMDGPUTARGET}")
+      endif()
     endif()
   endif()
   if(NOT HIP_ENABLED AND NOT ENABLE_HIP STREQUAL "AUTO")
     message(
       FATAL_ERROR
-        "HIP requested but HIP_PATH=${HIP_PATH} or HCC_HOME=${HCC_HOME} does not exist"
+        "HIP requested but HIP_PATH=${HIP_PATH} does not exist"
       )
   endif()
 

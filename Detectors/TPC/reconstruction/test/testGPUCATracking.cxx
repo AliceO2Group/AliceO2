@@ -51,13 +51,13 @@ BOOST_AUTO_TEST_CASE(CATracking_test1)
   bool continuous = false;     //time frame data v.s. triggered events
 
   GPUO2InterfaceConfiguration config;
-  config.configProcessing.deviceType = GPUDataTypes::DeviceType::CPU;
-  config.configProcessing.forceDeviceType = true;
+  config.configDeviceBackend.deviceType = GPUDataTypes::DeviceType::CPU;
+  config.configDeviceBackend.forceDeviceType = true;
 
-  config.configDeviceProcessing.nThreads = 4;           //4 threads if we run on the CPU, 1 = default, 0 = auto-detect
-  config.configDeviceProcessing.runQA = false;          //Run QA after tracking
-  config.configDeviceProcessing.eventDisplay = nullptr; //Ptr to event display backend, for running standalone OpenGL event display
-  //config.configDeviceProcessing.eventDisplay = new GPUDisplayBackendGlfw;
+  config.configProcessing.ompThreads = 4;         //4 threads if we run on the CPU, 1 = default, 0 = auto-detect
+  config.configProcessing.runQA = false;          //Run QA after tracking
+  config.configProcessing.eventDisplay = nullptr; //Ptr to event display backend, for running standalone OpenGL event display
+  //config.configProcessing.eventDisplay = new GPUDisplayBackendGlfw;
 
   config.configEvent.solenoidBz = solenoidBz;
   config.configEvent.continuousMaxTimeBin = continuous ? GPUSettings::TPC_MAX_TF_TIME_BIN : 0; //Number of timebins in timeframe if continuous, 0 otherwise
@@ -78,9 +78,9 @@ BOOST_AUTO_TEST_CASE(CATracking_test1)
   config.configCalib.dEdxSplines = dEdxSplines.get();
 
   tracker.initialize(config);
-  std::vector<ClusterNativeContainer> cont(Constants::MAXGLOBALPADROW);
+  std::vector<ClusterNativeContainer> cont(constants::MAXGLOBALPADROW);
 
-  for (int i = 0; i < Constants::MAXGLOBALPADROW; i++) {
+  for (int i = 0; i < constants::MAXGLOBALPADROW; i++) {
     cont[i].sector = 0;
     cont[i].globalPadRow = i;
     cont[i].clusters.resize(1);

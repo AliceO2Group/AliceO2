@@ -88,7 +88,7 @@ class EventHandler
 
   /// \class RangeException
   /// \brief Exception handling errors due to exceeding the range of triggers handled by the handler
-  class RangeException : public std::exception
+  class RangeException final : public std::exception
   {
    public:
     /// \brief Constructor defining the error
@@ -125,7 +125,7 @@ class EventHandler
 
   /// \class NotInitializedException
   /// \brief Exception handling unitialized event handler
-  class NotInitializedException : public std::exception
+  class NotInitializedException final : public std::exception
   {
    public:
     /// \brief Constructor initializing the exception
@@ -141,7 +141,7 @@ class EventHandler
 
   /// \class InteractionRecordInvalidException
   /// \brief Error handling in case the interaction records from various sources do not match
-  class InteractionRecordInvalidException : public std::exception
+  class InteractionRecordInvalidException final : public std::exception
   {
    public:
     /// \brief Constructor initializing the exception

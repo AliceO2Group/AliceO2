@@ -12,39 +12,33 @@
 #include "Framework/AnalysisDataModel.h"
 #include "Analysis/Multiplicity.h"
 #include "Analysis/Centrality.h"
-#include "CCDB/CcdbApi.h"
-#include "TFile.h"
+#include <CCDB/BasicCCDBManager.h>
 #include "TH1F.h"
-#include <map>
-using std::map;
-using std::string;
 
 using namespace o2;
 using namespace o2::framework;
 
 struct CentralityTableTask {
   Produces<aod::Cents> cent;
-  TH1F* hCumMultV0M;
+  Service<o2::ccdb::BasicCCDBManager> ccdb;
 
   void init(InitContext&)
   {
-    // TODO read run number from configurables
-    int run = 244918;
-
-    // read hMultV0M from ccdb
-    o2::ccdb::CcdbApi ccdb;
-    map<string, string> metadata;
-    ccdb.init("http://ccdb-test.cern.ch:8080");
-    TH1F* hMultV0M = ccdb.retrieveFromTFileAny<TH1F>("Multiplicity/MultV0M", metadata, run);
-
-    // TODO produce cumulative histos in the post processing macro
-    hCumMultV0M = (TH1F*)hMultV0M->GetCumulative(false);
-    hCumMultV0M->Scale(100. / hCumMultV0M->GetMaximum());
+    ccdb->setURL("http://ccdb-test.cern.ch:8080");
+    ccdb->setCaching(true);
+    ccdb->setLocalObjectValidityChecking();
   }
 
-  void process(aod::Mult const& mult)
+  void process(soa::Join<aod::Collisions, aod::Mults>::iterator const& collision, aod::Timestamps& timestamps, aod::BCs const& bcs)
   {
-    float centV0M = hCumMultV0M->GetBinContent(hCumMultV0M->FindFixBin(mult.multV0M()));
+    auto ts = timestamps.iteratorAt(collision.bcId());
+    LOGF(debug, "timestamp=%llu", ts.timestamp());
+    TH1F* hCumMultV0M = ccdb->getForTimeStamp<TH1F>("Multiplicity/CumMultV0M", ts.timestamp());
+    if (!hCumMultV0M) {
+      LOGF(fatal, "V0M centrality calibration is not available in CCDB for run=%d at timestamp=%llu", collision.bc().runNumber(), ts.timestamp());
+    }
+    float centV0M = hCumMultV0M->GetBinContent(hCumMultV0M->FindFixBin(collision.multV0M()));
+
     LOGF(debug, "centV0M=%.0f", centV0M);
     // fill centrality columns
     cent(centV0M);

@@ -13,15 +13,13 @@
 #include "Framework/ChannelConfigurationPolicy.h"
 #include "Framework/CompletionPolicy.h"
 #include "Framework/DispatchPolicy.h"
-#include "Framework/ConfigParamsHelper.h"
 #include "Framework/DataProcessorSpec.h"
 #include "Framework/WorkflowSpec.h"
 #include "Framework/ConfigContext.h"
 #include "Framework/BoostOptionsRetriever.h"
 #include "Framework/CustomWorkflowTerminationHook.h"
-
-#include <boost/program_options/options_description.hpp>
-#include <boost/program_options/variables_map.hpp>
+#include "Framework/CommonServices.h"
+#include "Framework/Logger.h"
 
 #include <unistd.h>
 #include <vector>
@@ -33,16 +31,12 @@ namespace boost
 class exception;
 }
 
-namespace o2
-{
-namespace framework
+namespace o2::framework
 {
 using Inputs = std::vector<InputSpec>;
 using Outputs = std::vector<OutputSpec>;
 using Options = std::vector<ConfigParamSpec>;
-
-} // namespace framework
-} // namespace o2
+} // namespace o2::framework
 
 /// To be implemented by the user to specify one or more DataProcessorSpec.
 ///
@@ -75,6 +69,11 @@ void defaultConfiguration(std::vector<o2::framework::ChannelConfigurationPolicy>
 void defaultConfiguration(std::vector<o2::framework::ConfigParamSpec>& globalWorkflowOptions) {}
 void defaultConfiguration(std::vector<o2::framework::CompletionPolicy>& completionPolicies) {}
 void defaultConfiguration(std::vector<o2::framework::DispatchPolicy>& dispatchPolicies) {}
+void defaultConfiguration(std::vector<o2::framework::ServiceSpec>& services)
+{
+  services = o2::framework::CommonServices::defaultServices();
+}
+
 void defaultConfiguration(o2::framework::OnWorkflowTerminationHook& hook)
 {
   hook = [](const char*) {};
@@ -152,6 +151,9 @@ int main(int argc, char** argv)
     ConfigContext configContext(workflowOptionsRegistry, argc, argv);
     o2::framework::WorkflowSpec specs = defineDataProcessing(configContext);
     overridePipeline(configContext, specs);
+    for (auto& spec : specs) {
+      UserCustomizationsHelper::userDefinedCustomization(spec.requiredServices, 0);
+    }
     result = doMain(argc, argv, specs, channelPolicies, completionPolicies, dispatchPolicies, workflowOptions, configContext);
   } catch (boost::exception& e) {
     doBoostException(e);

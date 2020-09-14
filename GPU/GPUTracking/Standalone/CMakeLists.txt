@@ -9,7 +9,7 @@
 # submit itself to any jurisdiction.
 
 # Some general CMake settings
-cmake_minimum_required(VERSION 3.14 FATAL_ERROR)
+cmake_minimum_required(VERSION 3.18 FATAL_ERROR)
 project(GPUTrackingStandalone)
 include(FeatureSummary)
 set(CMAKE_INSTALL_BINDIR "${CMAKE_INSTALL_PREFIX}")
@@ -126,6 +126,7 @@ include_directories(${CMAKE_SOURCE_DIR}/TPCClusterFinder
                     ${CMAKE_SOURCE_DIR}/../../../DataFormats/Detectors/Common/include
                     ${CMAKE_SOURCE_DIR}/../../../DataFormats/Detectors/ITSMFT/ITS/include
                     ${CMAKE_SOURCE_DIR}/../../../DataFormats/Detectors/TPC/include
+                    ${CMAKE_SOURCE_DIR}/../../../DataFormats/Detectors/TRD/include
                     ${CMAKE_SOURCE_DIR}/../../../DataFormats/Headers/include
                     ${CMAKE_SOURCE_DIR}/../../../DataFormats/MemoryResources/include
                     ${CMAKE_SOURCE_DIR}/../../../DataFormats/Reconstruction/include

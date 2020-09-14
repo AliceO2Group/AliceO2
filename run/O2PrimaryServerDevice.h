@@ -27,6 +27,8 @@
 #include <SimConfig/SimConfig.h>
 #include <CommonUtils/ConfigurableParam.h>
 #include <CommonUtils/RngHelper.h>
+#include "Field/MagneticField.h"
+#include <TGeoGlobalMagField.h>
 #include <typeinfo>
 #include <thread>
 #include <TROOT.h>
@@ -37,7 +39,7 @@ namespace o2
 namespace devices
 {
 
-class O2PrimaryServerDevice : public FairMQDevice
+class O2PrimaryServerDevice final : public FairMQDevice
 {
  public:
   /// Default constructor
@@ -60,7 +62,12 @@ class O2PrimaryServerDevice : public FairMQDevice
     TStopwatch timer;
     timer.Start();
     auto& conf = o2::conf::SimConfig::Instance();
-    o2::conf::ConfigurableParam::updateFromString(conf.getKeyValueString());
+
+    // init magnetic field as it might be needed by the generator
+    auto field = o2::field::MagneticField::createNominalField(conf.getConfigData().mField);
+    TGeoGlobalMagField::Instance()->SetField(field);
+    TGeoGlobalMagField::Instance()->Lock();
+
     o2::eventgen::GeneratorFactory::setPrimaryGenerator(conf, &mPrimGen);
     mPrimGen.SetEvent(&mEventHeader);
 
@@ -96,6 +103,11 @@ class O2PrimaryServerDevice : public FairMQDevice
     for (auto& keyvalue : vm) {
       LOG(INFO) << "///// " << keyvalue.first << " " << keyvalue.second.value().type().name();
     }
+    // update the parameters from an INI/JSON file, if given (overrides code-based version)
+    o2::conf::ConfigurableParam::updateFromFile(conf.getConfigFile());
+    // update the parameters from stuff given at command line (overrides file-based version)
+    o2::conf::ConfigurableParam::updateFromString(conf.getKeyValueString());
+
     // MC ENGINE
     LOG(INFO) << "ENGINE SET TO " << vm["mcEngine"].as<std::string>();
     // CHUNK SIZE

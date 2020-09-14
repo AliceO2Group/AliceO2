@@ -756,6 +756,8 @@ Int_t Geometry::GetAbsCellIdFromCellIndexes(Int_t nSupMod, Int_t iphi, Int_t iet
 
 std::tuple<int, int> Geometry::GlobalRowColFromIndex(int cellID) const
 {
+  if (cellID >= GetNCells())
+    throw InvalidCellIDException(cellID);
   auto [supermodule, module, phiInModule, etaInModule] = GetCellIndex(cellID);
   auto [row, col] = GetCellPhiEtaIndexInSModule(supermodule, module, phiInModule, etaInModule);
   // add offsets (row / col per supermodule)
@@ -774,6 +776,58 @@ std::tuple<int, int> Geometry::GlobalRowColFromIndex(int cellID) const
     }
   }
   return std::make_tuple(row, col);
+}
+
+std::tuple<int, int, int> Geometry::GetPositionInSupermoduleFromGlobalRowCol(int row, int col) const
+{
+  if (col < 0 || col >= 4 * GetNEta())
+    throw RowColException(row, col);
+  int side = col < GetNEta() * 2 ? 0 : 1,
+      colSM = col % (GetNEta() * 2);
+  int sector = -1,
+      rowSM = row;
+  for (int isec = 0; isec < GetNPhiSuperModule(); isec++) {
+    auto smtype = GetSMType(isec * 2);
+    auto nphism = GetNPhi() * 2;
+    if (smtype == EMCAL_THIRD || smtype == DCAL_EXT)
+      nphism /= 3;
+    if (rowSM < nphism) {
+      sector = isec;
+      break;
+    }
+    rowSM -= nphism;
+  }
+  if (sector < 0)
+    throw RowColException(row, col);
+  int supermodule = sector * 2 + side;
+  if (supermodule == 13 || supermodule == 15 || supermodule == 17) {
+    // DCal odd SMs need shift of the col. index as global col index includes PHOS hole
+    colSM -= 16;
+    if (colSM < 0)
+      throw RowColException(row, col); // Position inside PHOS hole specified
+  }
+  if (supermodule == 12 || supermodule == 14 || supermodule == 16) {
+    if (colSM > 32)
+      throw RowColException(row, col); // Position inside PHOS hole specified
+  }
+  return std::make_tuple(supermodule, rowSM, colSM);
+}
+
+int Geometry::GetCellAbsIDFromGlobalRowCol(int row, int col) const
+{
+  auto [supermodule, rowSM, colSM] = GetPositionInSupermoduleFromGlobalRowCol(row, col);
+  return GetAbsCellIdFromCellIndexes(supermodule, rowSM, colSM);
+}
+
+std::tuple<int, int, int, int> Geometry::GetCellIndexFromGlobalRowCol(int row, int col) const
+{
+  auto [supermodule, rowSM, colSM] = GetPositionInSupermoduleFromGlobalRowCol(row, col);
+  auto indexmod = GetModuleIndexesFromCellIndexesInSModule(supermodule, rowSM, colSM);
+
+  Int_t colInModule = colSM % mNETAdiv,
+        rowInMOdule = rowSM % mNPHIdiv;
+  colInModule = mNETAdiv - 1 - colInModule;
+  return std::make_tuple(supermodule, std::get<2>(indexmod), rowInMOdule, colInModule);
 }
 
 int Geometry::GlobalCol(int cellID) const

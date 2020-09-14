@@ -60,7 +60,7 @@ void TrackReader::accumulate(int from, int n)
     mTracksOut.swap(*mTracksInp);
     mCluRefVecOut.swap(*mCluRefVecInp);
     if (mUseMC) {
-      mMCTruthOut.mergeAtBack(*mMCTruthInp);
+      std::copy(mMCTruthInp->begin(), mMCTruthInp->end(), std::back_inserter(mMCTruthOut));
     }
   } else {
     for (int iev = 0; iev < n; iev++) {
@@ -83,7 +83,7 @@ void TrackReader::accumulate(int from, int n)
       std::copy(tr0, tr1, std::back_inserter(mTracksOut));
       // MC
       if (mUseMC) {
-        mMCTruthOut.mergeAtBack(*mMCTruthInp);
+        std::copy(mMCTruthInp->begin(), mMCTruthInp->end(), std::back_inserter(mMCTruthOut));
       }
     }
   }

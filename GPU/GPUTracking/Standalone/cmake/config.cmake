@@ -1,5 +1,5 @@
-#This is the configuration file for the standalone build
-#Its options do not affect the O2 build
+# This is the configuration file for the standalone build
+# Its options do not affect the O2 build !!!!
 
 set(ENABLE_CUDA AUTO)
 set(ENABLE_HIP AUTO)

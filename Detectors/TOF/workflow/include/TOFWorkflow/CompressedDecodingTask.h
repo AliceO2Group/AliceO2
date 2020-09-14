@@ -46,8 +46,12 @@ class CompressedDecodingTask : public DecoderBase, public Task
  private:
   /** decoding handlers **/
   void rdhHandler(const o2::header::RAWDataHeader* rdh) override;
+  void headerHandler(const CrateHeader_t* crateHeader, const CrateOrbit_t* crateOrbit) override{};
   void frameHandler(const CrateHeader_t* crateHeader, const CrateOrbit_t* crateOrbit,
                     const FrameHeader_t* frameHeader, const PackedHit_t* packedHits) override;
+  void trailerHandler(const CrateHeader_t* crateHeader, const CrateOrbit_t* crateOrbit,
+                      const CrateTrailer_t* crateTrailer, const Diagnostic_t* diagnostics,
+                      const Error_t* errors) override{};
 
   o2::tof::compressed::Decoder mDecoder;
   std::vector<std::vector<o2::tof::Digit>> mDigits;
@@ -55,7 +59,7 @@ class CompressedDecodingTask : public DecoderBase, public Task
   int mNCrateOpenTF = 0;
   int mNCrateCloseTF = 0;
   bool mHasToBePosted = false;
-  int mInitOrbit = 0;
+  uint32_t mInitOrbit = 0;
   TStopwatch mTimer;
 };
 

@@ -15,7 +15,7 @@
 #include "GPUCommonMath.h"
 using namespace GPUCA_NAMESPACE::gpu;
 
-#ifndef assert
+#if !defined(assert) && !defined(GPUCA_GPUCODE)
 #include <cassert>
 #endif
 

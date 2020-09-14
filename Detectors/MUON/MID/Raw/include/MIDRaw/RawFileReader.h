@@ -15,48 +15,40 @@
 #ifndef O2_MID_RAWFILEREADER_H
 #define O2_MID_RAWFILEREADER_H
 
+#include <cstdint>
 #include <fstream>
 #include <vector>
-#include <array>
-#include "MIDRaw/CrateParameters.h"
-#include "MIDRaw/RawBuffer.h"
-#include "MIDRaw/RawUnit.h"
+#include "Headers/RAWDataHeader.h"
 
 namespace o2
 {
 namespace mid
 {
-template <typename T>
 class RawFileReader
 {
  public:
   bool init(const char* inFilename, bool readContinuous = false);
-  bool readAllGBTs(bool reset = true);
-  bool readHB(bool sendCompleteHBs = true);
+  bool readHB(bool sendCompleteHBs = false);
   void clear();
-
-  /// Gets the number of HBs read
-  unsigned long int getNumberOfHBs(uint16_t feeId) { return mHBCounters.at(feeId); }
 
   /// Gets the state
   int getState() { return mState; }
 
   /// Gets the vector of data
-  const std::vector<T>& getData() { return mBytes; }
+  const std::vector<uint8_t>& getData() { return mBytes; }
 
   void setCustomRDH(const header::RAWDataHeader& rdh) { mCustomRDH = rdh; }
+  void setCustomPayloadSize(uint16_t memorySize = 0x2000, uint16_t offsetToNext = 0x2000);
 
  private:
   void read(size_t nBytes);
-  bool hasFullInfo();
   bool replaceRDH(size_t headerIndex);
 
-  std::ifstream mFile{};                                            /// Raw file
-  std::vector<T> mBytes;                                            /// Buffer
-  RawBuffer<T> mBuffer;                                             /// Raw buffer handler
-  std::array<unsigned long int, crateparams::sNGBTs> mHBCounters{}; /// HB counters per GBT
-  bool mReadContinuous{false};                                      /// Continuous readout mode
-  int mState{0};                                                    /// Status flag
+  std::ifstream mFile{};                         /// Raw file
+  std::vector<uint8_t> mBytes;                   /// Buffer
+  static constexpr unsigned int sHeaderSize{64}; /// Header size in bytes
+  bool mReadContinuous{false};                   /// Continuous readout mode
+  int mState{0};                                 /// Status flag
 
   header::RAWDataHeader mCustomRDH{}; /// Custom RDH
 };

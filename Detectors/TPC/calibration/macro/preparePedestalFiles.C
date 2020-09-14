@@ -14,6 +14,7 @@
 #include <fstream>
 #include <iostream>
 #include <tuple>
+#include <numeric>
 
 #include "TFile.h"
 #include "TROOT.h"
@@ -45,7 +46,7 @@ struct LinkInfo {
 using ValueArray = std::array<uint32_t, 80>;
 using DataMap = std::map<LinkInfo, ValueArray>;
 
-void writeValues(const std::string_view fileName, const DataMap& map);
+void writeValues(const std::string_view fileName, const DataMap& map, bool onlyFilled = false);
 int getHWChannel(int sampa, int channel, int regionIter);
 
 /// convert float to integer with fixed precision and max number of digits
@@ -72,7 +73,7 @@ constexpr float fixedSizeToFloat(uint32_t value)
   return float(value) * FloatConversion;
 }
 
-void preparePedestalFiles(const std::string_view pedestalFileName, const TString outputDir = "./", float sigmaNoise = 3, float minADC = 2, float pedestalOffset = 0)
+void preparePedestalFiles(const std::string_view pedestalFileName, const TString outputDir = "./", float sigmaNoise = 3, float minADC = 2, float pedestalOffset = 0, bool onlyFilled = false)
 {
   static constexpr float FloatConversion = 1.f / float(1 << 2);
 
@@ -126,13 +127,19 @@ void preparePedestalFiles(const std::string_view pedestalFileName, const TString
       const int globalLinkID = (fecInPartition % fecOffset) + dataWrapperID * 12;
 
       float pedestal = rocPedestal.getValue(ipad);
+      if ((pedestal > 0) && (pedestalOffset > pedestal)) {
+        printf("ROC: %2zu, pad: %3zu -- pedestal offset %.2f larger than the pedestal value %.2f. Pedestal and noise will be set to 0\n", iroc, ipad, pedestalOffset, pedestal);
+      } else {
+        pedestal -= pedestalOffset;
+      }
+
       float noise = std::abs(rocNoise.getValue(ipad)); // it seems with the new fitting procedure, the noise can also be negative, since in gaus sigma is quadratic
       if ((pedestal < 0) || (pedestal > 1023) || (noise < 0) || (noise > 1023)) {
         printf("Bad pedestal or noise value in ROC %2zu, CRU %3d, fec in CRU: %2d, SAMPA: %d, channel: %2d, pedestal: %.4f, noise %.4f, setting both to 0\n", iroc, cruID, fecInPartition, sampa, sampaChannel, pedestal, noise);
         pedestal = 0;
         noise = 0;
       }
-      const float threshold = std::max(sigmaNoise * noise, minADC);
+      const float threshold = (noise > 0) ? std::max(sigmaNoise * noise, minADC) : 0;
 
       const int hwChannel = getHWChannel(sampa, sampaChannel, region % 2);
       // for debugging
@@ -149,8 +156,8 @@ void preparePedestalFiles(const std::string_view pedestalFileName, const TString
     }
   }
 
-  writeValues((outputDir + "/pedestal_values.txt").Data(), pedestalValues);
-  writeValues((outputDir + "/threshold_values.txt").Data(), thresholdlValues);
+  writeValues((outputDir + "/pedestal_values.txt").Data(), pedestalValues, onlyFilled);
+  writeValues((outputDir + "/threshold_values.txt").Data(), thresholdlValues, onlyFilled);
 }
 
 /// return the hardware channel number as mapped in the CRU
@@ -167,11 +174,16 @@ int getHWChannel(int sampa, int channel, int regionIter)
 
 /// write values of map to fileName
 ///
-void writeValues(const std::string_view fileName, const DataMap& map)
+void writeValues(const std::string_view fileName, const DataMap& map, bool onlyFilled)
 {
   std::ofstream str(fileName.data(), std::ofstream::out);
 
   for (const auto& [linkInfo, data] : map) {
+    if (onlyFilled) {
+      if (!std::accumulate(data.begin(), data.end(), uint32_t(0))) {
+        continue;
+      }
+    }
     std::string values;
     for (const auto& val : data) {
       if (values.size()) {

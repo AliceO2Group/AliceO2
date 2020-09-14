@@ -322,7 +322,7 @@ GeometryManager::MatBudgetExt GeometryManager::meanMaterialBudgetExt(float x0, f
       // This means navigation has problems on one boundary
       // Try to cross by making a small step
       const double* curPos = gGeoManager->GetCurrentPoint();
-      LOG(ERROR) << "Cannot cross boundary at (" << curPos[0] << ',' << curPos[1] << ',' << curPos[2] << ')';
+      LOG(warning) << "Cannot cross boundary at (" << curPos[0] << ',' << curPos[1] << ',' << curPos[2] << ')';
       budTotal.normalize(stepTot);
       budTotal.nCross = -1; // flag failed navigation
       return MatBudgetExt(budTotal);
@@ -414,7 +414,7 @@ o2::base::MatBudget GeometryManager::meanMaterialBudget(float x0, float y0, floa
       // This means navigation has problems on one boundary
       // Try to cross by making a small step
       const double* curPos = gGeoManager->GetCurrentPoint();
-      LOG(ERROR) << "Cannot cross boundary at (" << curPos[0] << ',' << curPos[1] << ',' << curPos[2] << ')';
+      LOG(warning) << "Cannot cross boundary at (" << curPos[0] << ',' << curPos[1] << ',' << curPos[2] << ')';
       budTotal.meanRho /= stepTot;
       budTotal.length = stepTot;
       return o2::base::MatBudget(budTotal);

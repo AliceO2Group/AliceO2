@@ -29,6 +29,7 @@ void customize(std::vector<ChannelConfigurationPolicy>& policies)
 #include "Framework/DataSamplingHeader.h"
 #include "Framework/Logger.h"
 #include <TClonesArray.h>
+#include <TObjString.h>
 #include <TH1F.h>
 #include <TString.h>
 

@@ -27,8 +27,8 @@
 #include "Framework/ChannelInfo.h"
 #include "Framework/Logger.h"
 
-#include <FairMQDevice.h>
 #include <ROOT/RDataFrame.hxx>
+#include <TGrid.h>
 #include <TFile.h>
 
 #include <arrow/ipc/reader.h>
@@ -115,7 +115,7 @@ uint64_t getMask(header::DataDescription description)
   }
 }
 
-uint64_t calculateReadMask(std::vector<OutputRoute> const& routes, header::DataOrigin const& origin)
+uint64_t calculateReadMask(std::vector<OutputRoute> const& routes, header::DataOrigin const&)
 {
   uint64_t readMask = None;
   for (auto& route : routes) {
@@ -138,39 +138,6 @@ std::vector<OutputRoute> getListOfUnknown(std::vector<OutputRoute> const& routes
       unknows.push_back(route);
   }
   return unknows;
-}
-
-/// Expression-based column generator to materialize columns
-template <typename... C>
-auto spawner(framework::pack<C...> columns, arrow::Table* atable)
-{
-  arrow::TableBatchReader reader(*atable);
-  std::shared_ptr<arrow::RecordBatch> batch;
-  arrow::ArrayVector v;
-  std::vector<arrow::ArrayVector> chunks(sizeof...(C));
-
-  auto projectors = framework::expressions::createProjectors(columns, atable->schema());
-  while (true) {
-    auto s = reader.ReadNext(&batch);
-    if (!s.ok()) {
-      throw std::runtime_error(fmt::format("Cannot read batches from table {}", s.ToString()));
-    }
-    if (batch == nullptr) {
-      break;
-    }
-    s = projectors->Evaluate(*batch, arrow::default_memory_pool(), &v);
-    if (!s.ok()) {
-      throw std::runtime_error(fmt::format("Cannot apply projector {}", s.ToString()));
-    }
-    for (auto i = 0u; i < sizeof...(C); ++i) {
-      chunks[i].emplace_back(v.at(i));
-    }
-  }
-  std::vector<std::shared_ptr<arrow::ChunkedArray>> results(sizeof...(C));
-  for (auto i = 0u; i < sizeof...(C); ++i) {
-    results[i] = std::make_shared<arrow::ChunkedArray>(chunks[i]);
-  }
-  return results;
 }
 
 AlgorithmSpec AODReaderHelpers::aodSpawnerCallback(std::vector<InputSpec> requested)
@@ -203,23 +170,16 @@ AlgorithmSpec AODReaderHelpers::aodSpawnerCallback(std::vector<InputSpec> reques
         auto maker = [&](auto metadata) {
           using metadata_t = decltype(metadata);
           using expressions = typename metadata_t::expression_pack_t;
-          auto extra_schema = o2::soa::createSchemaFromColumns(expressions{});
           auto original_table = pc.inputs().get<TableConsumer>(input.binding)->asArrowTable();
-          auto original_fields = original_table->schema()->fields();
-          std::vector<std::shared_ptr<arrow::Field>> fields;
-          auto arrays = spawner(expressions{}, original_table.get());
-          std::vector<std::shared_ptr<arrow::ChunkedArray>> columns = original_table->columns();
-          std::copy(original_fields.begin(), original_fields.end(), std::back_inserter(fields));
-          for (auto i = 0u; i < framework::pack_size(expressions{}); ++i) {
-            columns.push_back(arrays[i]);
-            fields.emplace_back(extra_schema->field(i));
-          }
-          auto new_schema = std::make_shared<arrow::Schema>(fields);
-          return arrow::Table::Make(new_schema, columns);
+          return o2::soa::spawner(expressions{}, original_table.get());
         };
 
         if (description == header::DataDescription{"TRACKPAR"}) {
-          outputs.adopt(Output{origin, description}, maker(o2::aod::TracksMetadata{}));
+          outputs.adopt(Output{origin, description}, maker(o2::aod::TracksExtensionMetadata{}));
+        } else if (description == header::DataDescription{"TRACKPARCOV"}) {
+          outputs.adopt(Output{origin, description}, maker(o2::aod::TracksCovExtensionMetadata{}));
+        } else if (description == header::DataDescription{"MUON"}) {
+          outputs.adopt(Output{origin, description}, maker(o2::aod::MuonsExtensionMetadata{}));
         } else {
           throw std::runtime_error("Not an extended table");
         }
@@ -243,6 +203,9 @@ AlgorithmSpec AODReaderHelpers::rootFileReaderCallback()
       }
     }
 
+    // get the run time watchdog
+    auto* watchdog = new RuntimeWatchdog(options.get<int64_t>("time-limit"));
+
     // analyze type of requested tables
     uint64_t readMask = calculateReadMask(spec.outputs, header::DataOrigin{"AOD"});
     std::vector<OutputRoute> unknowns;
@@ -253,14 +216,24 @@ AlgorithmSpec AODReaderHelpers::rootFileReaderCallback()
     auto counter = std::make_shared<int>(0);
     return adaptStateless([readMask,
                            unknowns,
-                           counter,
+                           watchdog,
                            didir](DataAllocator& outputs, ControlService& control, DeviceSpec const& device) {
+      // check if RuntimeLimit is reached
+      if (!watchdog->update()) {
+        LOGP(INFO, "Run time exceeds run time limit of {} seconds!", watchdog->runTimeLimit);
+        LOGP(INFO, "Stopping after time frame {}.", watchdog->numberTimeFrames - 1);
+        didir->closeInputFiles();
+        control.endOfStream();
+        control.readyToQuit(QuitRequest::All);
+        return;
+      }
+
       // Each parallel reader reads the files whose index is associated to
       // their inputTimesliceId
       assert(device.inputTimesliceId < device.maxInputTimeslices);
-      size_t fi = (*counter * device.maxInputTimeslices) + device.inputTimesliceId;
-      *counter += 1;
+      size_t fi = (watchdog->numberTimeFrames * device.maxInputTimeslices) + device.inputTimesliceId;
 
+      // check if EoF is reached
       if (didir->atEnd(fi)) {
         LOGP(INFO, "All input files processed");
         didir->closeInputFiles();
@@ -286,11 +259,11 @@ AlgorithmSpec AODReaderHelpers::rootFileReaderCallback()
       };
       tableMaker(o2::aod::CollisionsMetadata{}, AODTypeMask::Collision, "O2collision");
       tableMaker(o2::aod::StoredTracksMetadata{}, AODTypeMask::Track, "O2track");
-      tableMaker(o2::aod::TracksCovMetadata{}, AODTypeMask::TrackCov, "O2track");
+      tableMaker(o2::aod::StoredTracksCovMetadata{}, AODTypeMask::TrackCov, "O2track");
       tableMaker(o2::aod::TracksExtraMetadata{}, AODTypeMask::TrackExtra, "O2track");
       tableMaker(o2::aod::CalosMetadata{}, AODTypeMask::Calo, "O2calo");
-      tableMaker(o2::aod::CaloTriggersMetadata{}, AODTypeMask::Calo, "O2calotrigger");
-      tableMaker(o2::aod::MuonsMetadata{}, AODTypeMask::Muon, "O2muon");
+      tableMaker(o2::aod::CaloTriggersMetadata{}, AODTypeMask::CaloTrigger, "O2calotrigger");
+      tableMaker(o2::aod::StoredMuonsMetadata{}, AODTypeMask::Muon, "O2muon");
       tableMaker(o2::aod::MuonClustersMetadata{}, AODTypeMask::Muon, "O2muoncluster");
       tableMaker(o2::aod::ZdcsMetadata{}, AODTypeMask::Zdc, "O2zdc");
       tableMaker(o2::aod::BCsMetadata{}, AODTypeMask::BC, "O2bc");

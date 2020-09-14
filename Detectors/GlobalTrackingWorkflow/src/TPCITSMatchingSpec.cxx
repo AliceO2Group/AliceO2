@@ -33,9 +33,14 @@
 #include "ITStracking/IOUtils.h"
 #include "DetectorsCommonDataFormats/NameConf.h"
 #include "DataFormatsParameters/GRPObject.h"
+#include "Headers/DataHeader.h"
+
+// RSTODO to remove once the framework will start propagating the header.firstTForbit
+#include "DetectorsRaw/HBFUtils.h"
 
 using namespace o2::framework;
-using MCLabelContainer = o2::dataformats::MCTruthContainer<o2::MCCompLabel>;
+using MCLabelsCl = o2::dataformats::MCTruthContainer<o2::MCCompLabel>;
+using MCLabelsTr = gsl::span<const o2::MCCompLabel>;
 
 namespace o2
 {
@@ -58,6 +63,7 @@ void TPCITSMatchingDPL::init(InitContext& ic)
     mMatching.setITSROFrameLengthInBC(alpParams.roFrameLengthInBC); // ITS ROFrame duration in \mus
   }
   mMatching.setMCTruthOn(mUseMC);
+  mMatching.setUseFT0(mUseFT0);
   //
   std::string dictPath = ic.options().get<std::string>("its-dictionary-path");
   std::string dictFile = o2::base::NameConf::getDictionaryFileName(o2::detectors::DetID::ITS, dictPath, ".bin");
@@ -97,7 +103,7 @@ void TPCITSMatchingDPL::run(ProcessingContext& pc)
   //---------------------------->> TPC Clusters loading >>------------------------------------------
   int operation = 0;
   uint64_t activeSectors = 0;
-  std::bitset<o2::tpc::Constants::MAXSECTOR> validSectors = 0;
+  std::bitset<o2::tpc::constants::MAXSECTOR> validSectors = 0;
   std::map<int, DataRef> datarefs;
   std::vector<InputSpec> filter = {
     {"check", ConcreteDataTypeMatcher{"TPC", "CLUSTERNATIVE"}, Lifetime::Timeframe},
@@ -110,7 +116,7 @@ void TPCITSMatchingDPL::run(ProcessingContext& pc)
       throw std::runtime_error("sector header missing on header stack");
     }
     int sector = sectorHeader->sector();
-    std::bitset<o2::tpc::Constants::MAXSECTOR> sectorMask(sectorHeader->sectorBits);
+    std::bitset<o2::tpc::constants::MAXSECTOR> sectorMask(sectorHeader->sectorBits);
     LOG(INFO) << "Reading TPC cluster data, sector mask is " << sectorMask;
     if ((validSectors & sectorMask).any()) {
       // have already data for this sector, this should not happen in the current
@@ -129,7 +135,7 @@ void TPCITSMatchingDPL::run(ProcessingContext& pc)
               << std::endl                                                                   //
               << "  input status:   " << validSectors                                        //
               << std::endl                                                                   //
-              << "  active sectors: " << std::bitset<o2::tpc::Constants::MAXSECTOR>(activeSectors);
+              << "  active sectors: " << std::bitset<o2::tpc::constants::MAXSECTOR>(activeSectors);
   };
 
   if (activeSectors == 0 || (activeSectors & validSectors.to_ulong()) != activeSectors) {
@@ -192,24 +198,18 @@ void TPCITSMatchingDPL::run(ProcessingContext& pc)
   //----------------------------<< TPC Clusters loading <<------------------------------------------
 
   //
-  const o2::dataformats::MCTruthContainer<o2::MCCompLabel>* lblITSPtr = nullptr;
-  std::unique_ptr<const o2::dataformats::MCTruthContainer<o2::MCCompLabel>> lblITS;
+  MCLabelsTr lblITS;
+  MCLabelsTr lblTPC;
 
-  const o2::dataformats::MCTruthContainer<o2::MCCompLabel>* lblClusITSPtr = nullptr;
-  std::unique_ptr<const o2::dataformats::MCTruthContainer<o2::MCCompLabel>> lblClusITS;
-
-  const o2::dataformats::MCTruthContainer<o2::MCCompLabel>* lblTPCPtr = nullptr;
-  std::unique_ptr<const o2::dataformats::MCTruthContainer<o2::MCCompLabel>> lblTPC;
+  const MCLabelsCl* lblClusITSPtr = nullptr;
+  std::unique_ptr<const MCLabelsCl> lblClusITS;
 
   if (mUseMC) {
-    lblITS = pc.inputs().get<const o2::dataformats::MCTruthContainer<o2::MCCompLabel>*>("trackITSMCTR");
-    lblITSPtr = lblITS.get();
+    lblITS = pc.inputs().get<gsl::span<o2::MCCompLabel>>("trackITSMCTR");
+    lblTPC = pc.inputs().get<gsl::span<o2::MCCompLabel>>("trackTPCMCTR");
 
     lblClusITS = pc.inputs().get<const o2::dataformats::MCTruthContainer<o2::MCCompLabel>*>("clusITSMCTR");
     lblClusITSPtr = lblClusITS.get();
-
-    lblTPC = pc.inputs().get<const o2::dataformats::MCTruthContainer<o2::MCCompLabel>*>("trackTPCMCTR");
-    lblTPCPtr = lblTPC.get();
   }
   //
   // create ITS clusters as spacepoints in tracking frame
@@ -229,16 +229,24 @@ void TPCITSMatchingDPL::run(ProcessingContext& pc)
   mMatching.setTPCClustersInp(&clusterIndex);
 
   if (mUseMC) {
-    mMatching.setITSTrkLabelsInp(lblITSPtr);
+    mMatching.setITSTrkLabelsInp(lblITS);
+    mMatching.setTPCTrkLabelsInp(lblTPC);
     mMatching.setITSClsLabelsInp(lblClusITSPtr);
-    mMatching.setTPCTrkLabelsInp(lblTPCPtr);
   }
 
-  if (o2::globaltracking::MatchITSTPCParams::Instance().runAfterBurner) {
+  if (mUseFT0) {
     // Note: the particular variable will go out of scope, but the span is passed by copy to the
     // worker and the underlying memory is valid throughout the whole computation
     auto fitInfo = pc.inputs().get<gsl::span<o2::ft0::RecPoints>>("fitInfo");
     mMatching.setFITInfoInp(fitInfo);
+  }
+
+  const auto* dh = o2::header::get<o2::header::DataHeader*>(pc.inputs().get("trackITSROF").header);
+  mMatching.setStartIR({0, dh->firstTForbit});
+
+  //RSTODO: below is a hack, to remove once the framework will start propagating the header.firstTForbit
+  if (tracksITSROF.size()) {
+    mMatching.setStartIR(o2::raw::HBFUtils::Instance().getFirstIRofTF(tracksITSROF[0].getBCData()));
   }
 
   mMatching.run();
@@ -257,7 +265,7 @@ void TPCITSMatchingDPL::endOfStream(EndOfStreamContext& ec)
        mTimer.CpuTime(), mTimer.RealTime(), mTimer.Counter() - 1);
 }
 
-DataProcessorSpec getTPCITSMatchingSpec(bool useMC, const std::vector<int>& tpcClusLanes)
+DataProcessorSpec getTPCITSMatchingSpec(bool useFT0, bool useMC, const std::vector<int>& tpcClusLanes)
 {
 
   std::vector<InputSpec> inputs;
@@ -273,7 +281,7 @@ DataProcessorSpec getTPCITSMatchingSpec(bool useMC, const std::vector<int>& tpcC
 
   inputs.emplace_back("clusTPC", ConcreteDataTypeMatcher{"TPC", "CLUSTERNATIVE"}, Lifetime::Timeframe);
 
-  if (o2::globaltracking::MatchITSTPCParams::Instance().runAfterBurner) {
+  if (useFT0) {
     inputs.emplace_back("fitInfo", "FT0", "RECPOINTS", 0, Lifetime::Timeframe);
   }
 
@@ -292,7 +300,7 @@ DataProcessorSpec getTPCITSMatchingSpec(bool useMC, const std::vector<int>& tpcC
     "itstpc-track-matcher",
     inputs,
     outputs,
-    AlgorithmSpec{adaptFromTask<TPCITSMatchingDPL>(useMC)},
+    AlgorithmSpec{adaptFromTask<TPCITSMatchingDPL>(useFT0, useMC)},
     Options{
       {"its-dictionary-path", VariantType::String, "", {"Path of the cluster-topology dictionary file"}},
       {"material-lut-path", VariantType::String, "", {"Path of the material LUT file"}}}};

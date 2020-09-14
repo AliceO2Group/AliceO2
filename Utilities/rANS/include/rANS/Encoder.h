@@ -16,26 +16,30 @@
 #ifndef RANS_ENCODER_H
 #define RANS_ENCODER_H
 
+#include "internal/Encoder.h"
+
 #include <memory>
 #include <algorithm>
+#include <iomanip>
 
 #include <fairlogger/Logger.h>
 #include <stdexcept>
 
-#include "SymbolTable.h"
-#include "EncoderSymbol.h"
-#include "Coder.h"
-#include "helper.h"
+#include "internal/EncoderSymbol.h"
+#include "internal/helper.h"
+#include "internal/SymbolTable.h"
+#include "FrequencyTable.h"
 
 namespace o2
 {
 namespace rans
 {
+
 template <typename coder_T, typename stream_T, typename source_T>
 class Encoder
 {
- private:
-  using encoderSymbolTable_t = SymbolTable<EncoderSymbol<coder_T>>;
+ protected:
+  using encoderSymbolTable_t = internal::SymbolTable<internal::EncoderSymbol<coder_T>>;
 
  public:
   Encoder() = delete;
@@ -47,21 +51,26 @@ class Encoder
 
   Encoder(const encoderSymbolTable_t& e, size_t probabilityBits);
   Encoder(encoderSymbolTable_t&& e, size_t probabilityBits);
-  Encoder(const SymbolStatistics& stats, size_t probabilityBits);
+  Encoder(const FrequencyTable& frequencies, size_t probabilityBits);
 
   template <typename stream_IT, typename source_IT>
   const stream_IT process(const stream_IT outputBegin, const stream_IT outputEnd,
                           const source_IT inputBegin, const source_IT inputEnd) const;
 
+  size_t getProbabilityBits() const { return mProbabilityBits; }
+  size_t getAlphabetRangeBits() const { return mSymbolTable->getAlphabetRangeBits(); }
+  int getMinSymbol() const { return mSymbolTable->getMinSymbol(); }
+  int getMaxSymbol() const { return mSymbolTable->getMaxSymbol(); }
+
   using coder_t = coder_T;
   using stream_t = stream_T;
   using source_t = source_T;
 
- private:
+ protected:
   std::unique_ptr<encoderSymbolTable_t> mSymbolTable;
   size_t mProbabilityBits;
 
-  using ransCoder = Coder<coder_T, stream_T>;
+  using ransCoder = internal::Encoder<coder_T, stream_T>;
 };
 
 template <typename coder_T, typename stream_T, typename source_T>
@@ -88,21 +97,26 @@ template <typename coder_T, typename stream_T, typename source_T>
 Encoder<coder_T, stream_T, source_T>::Encoder(encoderSymbolTable_t&& e, size_t probabilityBits) : mSymbolTable(std::move(e.mSymbolTable)), mProbabilityBits(probabilityBits){};
 
 template <typename coder_T, typename stream_T, typename source_T>
-Encoder<coder_T, stream_T, source_T>::Encoder(const SymbolStatistics& stats,
+Encoder<coder_T, stream_T, source_T>::Encoder(const FrequencyTable& frequencies,
                                               size_t probabilityBits) : mSymbolTable(nullptr), mProbabilityBits(probabilityBits)
 {
+  using namespace internal;
+
+  SymbolStatistics stats(frequencies, mProbabilityBits);
+  mProbabilityBits = stats.getSymbolTablePrecision();
+
   RANSTimer t;
   t.start();
-  mSymbolTable = std::make_unique<encoderSymbolTable_t>(stats, probabilityBits);
+  mSymbolTable = std::make_unique<encoderSymbolTable_t>(stats);
   t.stop();
   LOG(debug1) << "Encoder SymbolTable inclusive time (ms): " << t.getDurationMS();
 }
 
 template <typename coder_T, typename stream_T, typename source_T>
 template <typename stream_IT, typename source_IT>
-const stream_IT Encoder<coder_T, stream_T, source_T>::Encoder::process(
-  const stream_IT outputBegin, const stream_IT outputEnd, const source_IT inputBegin, const source_IT inputEnd) const
+const stream_IT Encoder<coder_T, stream_T, source_T>::Encoder::process(const stream_IT outputBegin, const stream_IT outputEnd, const source_IT inputBegin, const source_IT inputEnd) const
 {
+  using namespace internal;
   LOG(trace) << "start encoding";
   RANSTimer t;
   t.start();
@@ -122,30 +136,31 @@ const stream_IT Encoder<coder_T, stream_T, source_T>::Encoder::process(
   }
 
   ransCoder rans0, rans1;
-  rans0.encInit();
-  rans1.encInit();
 
   stream_IT outputIter = outputBegin;
   source_IT inputIT = inputEnd;
 
   const auto inputBufferSize = std::distance(inputBegin, inputEnd);
 
+  auto encode = [this](source_IT symbolIter, stream_IT outputIter, ransCoder& coder) {
+    const source_T symbol = *symbolIter;
+    const auto& encoderSymbol = (*this->mSymbolTable)[symbol];
+    return std::tuple(symbolIter, coder.putSymbol(outputIter, encoderSymbol, this->mProbabilityBits));
+  };
+
   // odd number of bytes?
   if (inputBufferSize & 1) {
-    const coder_T s = *(--inputIT);
-    outputIter = rans0.encPutSymbol(outputIter, (*mSymbolTable)[s], mProbabilityBits);
+    std::tie(inputIT, outputIter) = encode(--inputIT, outputIter, rans0);
     assert(outputIter < outputEnd);
   }
 
   while (inputIT > inputBegin) { // NB: working in reverse!
-    const coder_T s1 = *(--inputIT);
-    const coder_T s0 = *(--inputIT);
-    outputIter = rans1.encPutSymbol(outputIter, (*mSymbolTable)[s1], mProbabilityBits);
-    outputIter = rans0.encPutSymbol(outputIter, (*mSymbolTable)[s0], mProbabilityBits);
+    std::tie(inputIT, outputIter) = encode(--inputIT, outputIter, rans1);
+    std::tie(inputIT, outputIter) = encode(--inputIT, outputIter, rans0);
     assert(outputIter < outputEnd);
   }
-  outputIter = rans1.encFlush(outputIter);
-  outputIter = rans0.encFlush(outputIter);
+  outputIter = rans1.flush(outputIter);
+  outputIter = rans0.flush(outputIter);
   // first iterator past the range so that sizes, distances and iterators work correctly.
   ++outputIter;
 
@@ -164,17 +179,24 @@ const stream_IT Encoder<coder_T, stream_T, source_T>::Encoder::process(
   }
 
   t.stop();
-  LOG(debug1) << __func__ << " inclusive time (ms): " << t.getDurationMS();
+  LOG(debug1) << "Encoder::" << __func__ << " {ProcessedBytes: " << inputBufferSize * sizeof(source_T) << ","
+              << " inclusiveTimeMS: " << t.getDurationMS() << ","
+              << " BandwidthMiBPS: " << std::fixed << std::setprecision(2) << (inputBufferSize * sizeof(source_T) * 1.0) / (t.getDurationS() * 1.0 * (1 << 20)) << "}";
 
 // advanced diagnostics for debug builds
 #if !defined(NDEBUG)
+
+  const auto inputBufferSizeB = inputBufferSize * sizeof(source_T);
+  const auto outputBufferSizeB = std::distance(outputBegin, outputIter) * sizeof(stream_T);
+
   LOG(debug2) << "EncoderProperties: {"
               << "sourceTypeB: " << sizeof(source_T) << ", "
               << "streamTypeB: " << sizeof(stream_T) << ", "
               << "coderTypeB: " << sizeof(coder_T) << ", "
               << "probabilityBits: " << mProbabilityBits << ", "
-              << "inputBufferSizeB: " << inputBufferSize * sizeof(source_T) << ", "
-              << "outputBufferSizeB: " << std::distance(outputBegin, outputIter) * sizeof(stream_T) << "}";
+              << "inputBufferSizeB: " << inputBufferSizeB << ", "
+              << "outputBufferSizeB: " << outputBufferSizeB << ", "
+              << "compressionFactor: " << std::fixed << std::setprecision(2) << static_cast<double>(inputBufferSizeB) / static_cast<double>(outputBufferSizeB) << "}";
 #endif
 
   LOG(trace) << "done encoding";

@@ -25,4 +25,9 @@
 #pragma link C++ class std::vector < o2::dataformats::CalibInfoTOFshort> + ;
 #pragma link C++ class std::vector < o2::dataformats::CalibInfoTOF> + ;
 
+#pragma link C++ class o2::tof::CTFHeader + ;
+#pragma link C++ class o2::tof::CompressedInfos + ;
+#pragma link C++ class o2::tof::CTF + ;
+#pragma link C++ class o2::ctf::EncodedBlocks < o2::tof::CTFHeader, 10, uint32_t> + ;
+
 #endif

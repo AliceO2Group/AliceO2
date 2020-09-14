@@ -9,7 +9,7 @@
 // or submit itself to any jurisdiction.
 #include "Framework/DataRefUtils.h"
 #include "Framework/runDataProcessing.h"
-#include <Monitoring/Monitoring.h>
+#include "Framework/Monitoring.h"
 #include "Framework/Logger.h"
 
 #include <chrono>
@@ -81,7 +81,7 @@ std::vector<DataProcessorSpec> defineDataProcessing(ConfigContext const&)
       tpcSummary.at(0).inputCount = ctx.inputs().size();
     }},
     {ConfigParamSpec{"some-cut", VariantType::Float, 1.0f, {"some cut"}}},
-    {"CPUTimer"}};
+  };
 
   DataProcessorSpec itsClusterSummary{
     "its-cluster-summary",
@@ -94,7 +94,7 @@ std::vector<DataProcessorSpec> defineDataProcessing(ConfigContext const&)
       itsSummary.at(0).inputCount = ctx.inputs().size();
     }},
     {ConfigParamSpec{"some-cut", VariantType::Float, 1.0f, {"some cut"}}},
-    {"CPUTimer"}};
+  };
 
   DataProcessorSpec merger{
     "merger",

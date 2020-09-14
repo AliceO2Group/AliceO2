@@ -56,6 +56,9 @@
 #include <iomanip>
 #include <stdexcept>
 #include <regex>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <fcntl.h>
 #include "GPUReconstructionConvert.h"
 #include "DetectorsRaw/RDHUtils.h"
 
@@ -90,183 +93,68 @@ DataProcessorSpec getCATrackerSpec(ca::Config const& specconfig, std::vector<int
     std::vector<int> clusterOutputIds;
     bool readyToQuit = false;
     bool allocateOutputOnTheFly = false;
+    unsigned long outputBufferSize = 0;
     bool suppressOutput = false;
   };
 
   auto processAttributes = std::make_shared<ProcessAttributes>();
   auto initFunction = [processAttributes, specconfig](InitContext& ic) {
-    auto options = ic.options().get<std::string>("tracker-options");
+    GPUO2InterfaceConfiguration config;
+    GPUSettingsO2 confParam;
     {
       auto& parser = processAttributes->parser;
       auto& tracker = processAttributes->tracker;
       parser = std::make_unique<ClusterGroupParser>();
       tracker = std::make_unique<GPUCATracking>();
 
-      // Prepare initialization of CATracker - we parse the deprecated option string here,
-      // and create the proper configuration objects for compatibility.
-      // This should go away eventually.
-
-      // Default Settings
-      float solenoidBz = 5.00668;                // B-field
-      float refX = 83.;                          // transport tracks to this x after tracking, >500 for disabling
-      bool continuous = false;                   // time frame data v.s. triggered events
-      int nThreads = 1;                          // number of threads if we run on the CPU, 1 = default, 0 = auto-detect
-      bool useGPU = false;                       // use a GPU for processing, if false uses GPU
-      int debugLevel = 0;                        // Enable additional debug output
-      int dump = 0;                              // create memory dump of processed events for standalone runs, 2 to dump only and skip processing
-      char gpuType[1024] = "CUDA";               // Type of GPU device, if useGPU is set to true
-      int gpuDevice = -1;                        // Select GPU device id (-1 = auto-detect fastest, -2 = use pipeline-slice)
-      GPUDisplayBackend* display = nullptr;      // Ptr to display backend (enables event display)
-      bool qa = false;                           // Run the QA after tracking
-      bool readTransformationFromFile = false;   // Read the TPC transformation from the file
-      bool allocateOutputOnTheFly = true;        // Provide a callback to allocate output buffer on the fly instead of preallocating
-      char tpcTransformationFileName[1024] = ""; // A file with the TPC transformation
-      char matBudFileName[1024] = "";            // Material budget file name
-      char dEdxSplinesFile[1024] = "";           // File containing dEdx splines
-      int tpcRejectionMode = GPUSettings::RejectionStrategyA;
-      size_t memoryPoolSize = 1;
-
+      // Create configuration object and fill settings
       const auto grp = o2::parameters::GRPObject::loadFrom("o2sim_grp.root");
       if (grp) {
-        solenoidBz *= grp->getL3Current() / 30000.;
-        continuous = grp->isDetContinuousReadOut(o2::detectors::DetID::TPC);
-        LOG(INFO) << "Initializing run paramerers from GRP bz=" << solenoidBz << " cont=" << continuous;
+        config.configEvent.solenoidBz = 5.00668f * grp->getL3Current() / 30000.;
+        config.configEvent.continuousMaxTimeBin = grp->isDetContinuousReadOut(o2::detectors::DetID::TPC) ? -1 : 0; // Number of timebins in timeframe if continuous, 0 otherwise
+        LOG(INFO) << "Initializing run paramerers from GRP bz=" << config.configEvent.solenoidBz << " cont=" << grp->isDetContinuousReadOut(o2::detectors::DetID::TPC);
       } else {
         throw std::runtime_error("Failed to initialize run parameters from GRP");
       }
-
-      // Parse the config string
-      const char* opt = options.c_str();
-      if (opt && *opt) {
-        printf("Received options %s\n", opt);
-        const char* optPtr = opt;
-        while (optPtr && *optPtr) {
-          while (*optPtr == ' ') {
-            optPtr++;
-          }
-          const char* nextPtr = strstr(optPtr, " ");
-          const int optLen = nextPtr ? nextPtr - optPtr : strlen(optPtr);
-          if (strncmp(optPtr, "cont", optLen) == 0) {
-            continuous = true;
-            printf("Continuous tracking mode enabled\n");
-          } else if (strncmp(optPtr, "dump", optLen) == 0) {
-            dump = 1;
-            printf("Dumping of input events enabled\n");
-          } else if (strncmp(optPtr, "dumponly", optLen) == 0) {
-            dump = 2;
-            printf("Dumping of input events enabled, processing disabled\n");
-          } else if (strncmp(optPtr, "display", optLen) == 0) {
+      confParam = config.ReadConfigurableParam();
+      processAttributes->allocateOutputOnTheFly = confParam.allocateOutputOnTheFly;
+      processAttributes->outputBufferSize = confParam.outputBufferSize;
+      processAttributes->suppressOutput = (confParam.dump == 2);
+      config.configInterface.dumpEvents = confParam.dump;
+      if (confParam.display) {
 #ifdef GPUCA_BUILD_EVENT_DISPLAY
-            processAttributes->displayBackend.reset(new GPUDisplayBackendGlfw);
-            display = processAttributes->displayBackend.get();
-            printf("Event display enabled\n");
+        processAttributes->displayBackend.reset(new GPUDisplayBackendGlfw);
+        config.configProcessing.eventDisplay = processAttributes->displayBackend.get();
+        LOG(INFO) << "Event display enabled";
 #else
-            printf("Standalone Event Display not enabled at build time!\n");
+        throw std::runtime_error("Standalone Event Display not enabled at build time!");
 #endif
-          } else if (strncmp(optPtr, "qa", optLen) == 0) {
-            qa = true;
-            printf("Enabling TPC Standalone QA\n");
-          } else if (optLen > 3 && strncmp(optPtr, "bz=", 3) == 0) {
-            sscanf(optPtr + 3, "%f", &solenoidBz);
-            printf("Using solenoid field %f\n", solenoidBz);
-          } else if (optLen > 5 && strncmp(optPtr, "refX=", 5) == 0) {
-            sscanf(optPtr + 5, "%f", &refX);
-            printf("Propagating to reference X %f\n", refX);
-          } else if (optLen > 5 && strncmp(optPtr, "debug=", 6) == 0) {
-            sscanf(optPtr + 6, "%d", &debugLevel);
-            printf("Debug level set to %d\n", debugLevel);
-          } else if (optLen > 8 && strncmp(optPtr, "threads=", 8) == 0) {
-            sscanf(optPtr + 8, "%d", &nThreads);
-            printf("Using %d threads\n", nThreads);
-          } else if (optLen > 21 && strncmp(optPtr, "tpcRejectionStrategy=", 21) == 0) {
-            sscanf(optPtr + 21, "%d", &tpcRejectionMode);
-            tpcRejectionMode = tpcRejectionMode == 0 ? GPUSettings::RejectionNone : tpcRejectionMode == 1 ? GPUSettings::RejectionStrategyA : GPUSettings::RejectionStrategyB;
-            printf("TPC Rejection Mode: %d\n", tpcRejectionMode);
-          } else if (optLen > 8 && strncmp(optPtr, "gpuType=", 8) == 0) {
-            int len = std::min(optLen - 8, 1023);
-            memcpy(gpuType, optPtr + 8, len);
-            gpuType[len] = 0;
-            useGPU = true;
-            printf("Using GPU Type %s\n", gpuType);
-          } else if (optLen > 8 && strncmp(optPtr, "matBudFile=", 8) == 0) {
-            int len = std::min(optLen - 11, 1023);
-            memcpy(matBudFileName, optPtr + 11, len);
-            matBudFileName[len] = 0;
-          } else if (optLen > 8 && strncmp(optPtr, "gpuNum=", 7) == 0) {
-            sscanf(optPtr + 7, "%d", &gpuDevice);
-            printf("Using GPU device %d\n", gpuDevice);
-          } else if (optLen > 8 && strncmp(optPtr, "gpuMemorySize=", 14) == 0) {
-            sscanf(optPtr + 14, "%llu", (unsigned long long int*)&memoryPoolSize);
-            printf("GPU memory pool size set to %llu\n", (unsigned long long int)memoryPoolSize);
-          } else if (optLen > 8 && strncmp(optPtr, "dEdxFile=", 9) == 0) {
-            int len = std::min(optLen - 9, 1023);
-            memcpy(dEdxSplinesFile, optPtr + 9, len);
-            dEdxSplinesFile[len] = 0;
-          } else if (optLen > 15 && strncmp(optPtr, "transformation=", 15) == 0) {
-            int len = std::min(optLen - 15, 1023);
-            memcpy(tpcTransformationFileName, optPtr + 15, len);
-            tpcTransformationFileName[len] = 0;
-            readTransformationFromFile = true;
-            printf("Read TPC transformation from the file \"%s\"\n", tpcTransformationFileName);
-          } else {
-            printf("Unknown option: %s\n", optPtr);
-            throw std::invalid_argument("Unknown config string option");
-          }
-          optPtr = nextPtr;
-        }
       }
 
-      // Create configuration object and fill settings
-      processAttributes->allocateOutputOnTheFly = allocateOutputOnTheFly;
-      processAttributes->suppressOutput = (dump == 2);
-      GPUO2InterfaceConfiguration config;
-      if (useGPU) {
-        config.configProcessing.deviceType = GPUDataTypes::GetDeviceType(gpuType);
-      } else {
-        config.configProcessing.deviceType = GPUDataTypes::DeviceType::CPU;
+      if (config.configEvent.continuousMaxTimeBin == -1) {
+        config.configEvent.continuousMaxTimeBin = (o2::raw::HBFUtils::Instance().getNOrbitsPerTF() * o2::constants::lhc::LHCMaxBunches + 2 * constants::LHCBCPERTIMEBIN - 2) / constants::LHCBCPERTIMEBIN;
       }
-      config.configProcessing.forceDeviceType = true; // If we request a GPU, we force that it is available - no CPU fallback
-
-      if (gpuDevice == -2) {
+      if (config.configProcessing.deviceNum == -2) {
         int myId = ic.services().get<const o2::framework::DeviceSpec>().inputTimesliceId;
         int idMax = ic.services().get<const o2::framework::DeviceSpec>().maxInputTimeslices;
-        gpuDevice = myId;
+        config.configProcessing.deviceNum = myId;
         LOG(INFO) << "GPU device number selected from pipeline id: " << myId << " / " << idMax;
       }
-      config.configDeviceProcessing.deviceNum = gpuDevice;
-      config.configDeviceProcessing.nThreads = nThreads;
-      config.configDeviceProcessing.runQA = qa;                           // Run QA after tracking
-      config.configDeviceProcessing.runMC = specconfig.processMC;         // Propagate MC labels
-      config.configDeviceProcessing.eventDisplay = display;               // Ptr to event display backend, for running standalone OpenGL event display
-      config.configDeviceProcessing.debugLevel = debugLevel;              // Debug verbosity
-      config.configDeviceProcessing.forceMemoryPoolSize = memoryPoolSize; // Memory pool size, default = 1 = auto-detect
-
-      config.configEvent.solenoidBz = solenoidBz;
-      int maxContTimeBin = (o2::raw::HBFUtils::Instance().getNOrbitsPerTF() * o2::constants::lhc::LHCMaxBunches + 2 * Constants::LHCBCPERTIMEBIN - 2) / Constants::LHCBCPERTIMEBIN;
-      config.configEvent.continuousMaxTimeBin = continuous ? maxContTimeBin : 0; // Number of timebins in timeframe if continuous, 0 otherwise
-
-      config.configReconstruction.NWays = 3;               // Should always be 3!
-      config.configReconstruction.NWaysOuter = true;       // Will create outer param for TRD
-      config.configReconstruction.SearchWindowDZDR = 2.5f; // Should always be 2.5 for looper-finding and/or continuous tracking
-      config.configReconstruction.TrackReferenceX = refX;
-
-      // Settings for TPC Compression:
-      config.configReconstruction.tpcRejectionMode = tpcRejectionMode;                // Implement TPC Strategy A
-      config.configReconstruction.tpcRejectQPt = 1.f / 0.05f;                         // Reject clusters of tracks < 50 MeV
-      config.configReconstruction.tpcCompressionModes = GPUSettings::CompressionFull; // Activate all compression steps
-      config.configReconstruction.tpcCompressionSortOrder = GPUSettings::SortPad;     // Sort order for differences compression
-      config.configReconstruction.tpcSigBitsCharge = 4;                               // Number of significant bits in TPC cluster chargs
-      config.configReconstruction.tpcSigBitsWidth = 3;                                // Number of significant bits in TPC cluster width
-
-      config.configInterface.dumpEvents = dump;
+      config.configProcessing.runMC = specconfig.processMC;
+      config.configReconstruction.NWaysOuter = true;
       config.configInterface.outputToExternalBuffers = true;
 
       // Configure the "GPU workflow" i.e. which steps we run on the GPU (or CPU) with this instance of GPUCATracking
       config.configWorkflow.steps.set(GPUDataTypes::RecoStep::TPCConversion,
                                       GPUDataTypes::RecoStep::TPCSliceTracking,
                                       GPUDataTypes::RecoStep::TPCMerging,
-                                      GPUDataTypes::RecoStep::TPCCompression,
-                                      GPUDataTypes::RecoStep::TPCdEdx);
+                                      GPUDataTypes::RecoStep::TPCCompression);
+
+      config.configWorkflow.steps.setBits(GPUDataTypes::RecoStep::TPCdEdx, !confParam.synchronousProcessing);
+      if (confParam.synchronousProcessing) {
+        config.configReconstruction.useMatLUT = false;
+      }
+
       // Alternative steps: TRDTracking | ITSTracking
       config.configWorkflow.inputs.set(GPUDataTypes::InOutType::TPCClusters);
       // Alternative inputs: GPUDataTypes::InOutType::TRDTracklets
@@ -286,9 +174,9 @@ DataProcessorSpec getCATrackerSpec(ca::Config const& specconfig, std::vector<int
       }
 
       // Create and forward data objects for TPC transformation, material LUT, ...
-      if (readTransformationFromFile) {
+      if (confParam.transformationFile.size()) {
         processAttributes->fastTransform = nullptr;
-        config.configCalib.fastTransform = TPCFastTransform::loadFromFile(tpcTransformationFileName);
+        config.configCalib.fastTransform = TPCFastTransform::loadFromFile(confParam.transformationFile.c_str());
       } else {
         processAttributes->fastTransform = std::move(TPCFastTransformHelperO2::instance()->create(0));
         config.configCalib.fastTransform = processAttributes->fastTransform.get();
@@ -296,14 +184,15 @@ DataProcessorSpec getCATrackerSpec(ca::Config const& specconfig, std::vector<int
       if (config.configCalib.fastTransform == nullptr) {
         throw std::invalid_argument("GPUCATracking: initialization of the TPC transformation failed");
       }
-      if (strlen(matBudFileName)) {
-        config.configCalib.matLUT = o2::base::MatLayerCylSet::loadFromFile(matBudFileName, "MatBud");
+      if (confParam.matLUTFile.size()) {
+        config.configCalib.matLUT = o2::base::MatLayerCylSet::loadFromFile(confParam.matLUTFile.c_str(), "MatBud");
       }
-      processAttributes->dEdxSplines.reset(new TPCdEdxCalibrationSplines);
-      if (strlen(dEdxSplinesFile)) {
-        TFile dEdxFile(dEdxSplinesFile);
-        processAttributes->dEdxSplines->setSplinesFromFile(dEdxFile);
+      if (confParam.dEdxFile.size()) {
+        processAttributes->dEdxSplines.reset(new TPCdEdxCalibrationSplines(confParam.dEdxFile.c_str()));
+      } else {
+        processAttributes->dEdxSplines.reset(new TPCdEdxCalibrationSplines);
       }
+
       config.configCalib.dEdxSplines = processAttributes->dEdxSplines.get();
 
       // Sample code what needs to be done for the TRD Geometry, when we extend this to TRD tracking.
@@ -323,11 +212,27 @@ DataProcessorSpec getCATrackerSpec(ca::Config const& specconfig, std::vector<int
     }
 
     auto& callbacks = ic.services().get<CallbackService>();
-    callbacks.set(CallbackService::Id::RegionInfoCallback, [processAttributes](FairMQRegionInfo const& info) {
+    callbacks.set(CallbackService::Id::RegionInfoCallback, [&processAttributes, confParam](FairMQRegionInfo const& info) {
       if (info.size) {
+        int fd = 0;
+        if (confParam.mutexMemReg) {
+          fd = open("/tmp/o2_gpu_memlock_mutex.lock", O_RDWR | O_CREAT | O_CLOEXEC, S_IRUSR | S_IWUSR);
+          if (fd == -1) {
+            throw std::runtime_error("Error opening lock file");
+          }
+          if (lockf(fd, F_LOCK, 0)) {
+            throw std::runtime_error("Error locking file");
+          }
+        }
         auto& tracker = processAttributes->tracker;
         if (tracker->registerMemoryForGPU(info.ptr, info.size)) {
           throw std::runtime_error("Error registering memory for GPU");
+        }
+        if (confParam.mutexMemReg) {
+          if (lockf(fd, F_ULOCK, 0)) {
+            throw std::runtime_error("Error unlocking file");
+          }
+          close(fd);
         }
       }
     });
@@ -360,7 +265,8 @@ DataProcessorSpec getCATrackerSpec(ca::Config const& specconfig, std::vector<int
       const void** tpcZSmetaPointers2[GPUTrackingInOutZS::NSLICES][GPUTrackingInOutZS::NENDPOINTS];
       const unsigned int* tpcZSmetaSizes2[GPUTrackingInOutZS::NSLICES][GPUTrackingInOutZS::NENDPOINTS];
       std::array<gsl::span<const o2::tpc::Digit>, NSectors> inputDigits;
-      std::array<std::unique_ptr<const MCLabelContainer>, NSectors> inputDigitsMC;
+      std::vector<CachedMCLabelContainer> inputDigitsMC;
+      std::array<const MCLabelContainer*, constants::MAXSECTOR> inputDigitsMCPtrs;
       std::array<unsigned int, NEndpoints * NSectors> tpcZSonTheFlySizes;
       gsl::span<const ZeroSuppressedContainer8kb> inputZS;
 
@@ -390,8 +296,8 @@ DataProcessorSpec getCATrackerSpec(ca::Config const& specconfig, std::vector<int
           }
           inputrefs[sector].labels = ref;
           if (specconfig.caClusterer) {
-            inputDigitsMC[sector] = std::move(pc.inputs().get<const MCLabelContainer*>(ref));
-          } else {
+            inputDigitsMC.emplace_back(pc.inputs().get<const MCLabelContainer*>(ref));
+            inputDigitsMCPtrs[sector] = inputDigitsMC.back().get();
           }
           validMcInputs |= sectorMask;
           activeSectors |= sectorHeader->activeSectors;
@@ -432,9 +338,9 @@ DataProcessorSpec getCATrackerSpec(ca::Config const& specconfig, std::vector<int
         activeSectors |= sectorHeader->activeSectors;
         validInputs |= sectorMask;
         inputrefs[sector].data = ref;
-        if (specconfig.caClusterer && !specconfig.zsOnTheFly) {
+        if (specconfig.caClusterer && (!specconfig.zsOnTheFly || specconfig.processMC)) {
           inputDigits[sector] = pc.inputs().get<gsl::span<o2::tpc::Digit>>(ref);
-          LOG(INFO) << "GOT SPAN FOR SECTOR " << sector << " -> " << inputDigits[sector].size();
+          LOG(INFO) << "GOT DIGITS SPAN FOR SECTOR " << sector << " -> " << inputDigits[sector].size();
         }
       }
       if (specconfig.zsOnTheFly) {
@@ -510,6 +416,8 @@ DataProcessorSpec getCATrackerSpec(ca::Config const& specconfig, std::vector<int
                 continue;
               }
               ptr = current;
+            } else if (ptr == nullptr) {
+              ptr = current;
             }
             count++;
           }
@@ -554,7 +462,6 @@ DataProcessorSpec getCATrackerSpec(ca::Config const& specconfig, std::vector<int
           pCompClustersFlat = pc.inputs().get<CompressedClustersFlat*>("input").get();
         }
       } else if (!specconfig.zsOnTheFly) {
-        // FIXME: We can have digits input in zs decoder mode for MC labels
         // This code path should run optionally also for the zs decoder version
         auto printInputLog = [&verbosity, &validInputs, &activeSectors](auto& r, const char* comment, auto& s) {
           if (verbosity > 1) {
@@ -586,7 +493,7 @@ DataProcessorSpec getCATrackerSpec(ca::Config const& specconfig, std::vector<int
             continue;
           }
           if (refentry.second.labels.header != nullptr && refentry.second.labels.payload != nullptr) {
-            mcInputs.emplace_back(std::move(pc.inputs().get<const MCLabelContainer*>(refentry.second.labels)));
+            mcInputs.emplace_back(pc.inputs().get<const MCLabelContainer*>(refentry.second.labels));
           }
           inputs.emplace_back(gsl::span(ref.payload, DataRefUtils::getPayloadSize(ref)));
           printInputLog(ref, "received", sector);
@@ -632,7 +539,7 @@ DataProcessorSpec getCATrackerSpec(ca::Config const& specconfig, std::vector<int
 
       std::vector<TrackTPC> tracks;
       std::vector<uint32_t> clusRefs;
-      MCLabelContainer tracksMCTruth;
+      std::vector<o2::MCCompLabel> tracksMCTruth;
       GPUO2InterfaceIOPtrs ptrs;
       ClusterNativeAccess clusterIndex;
       std::unique_ptr<ClusterNative[]> clusterBuffer;
@@ -643,23 +550,22 @@ DataProcessorSpec getCATrackerSpec(ca::Config const& specconfig, std::vector<int
       ptrs.outputTracksMCTruth = (specconfig.processMC ? &tracksMCTruth : nullptr);
       if (specconfig.caClusterer) {
         if (specconfig.zsOnTheFly) {
-          std::cout << "inputZS size: " << inputZS.size() << std::endl;
           const unsigned long long int* buffer = reinterpret_cast<const unsigned long long int*>(&inputZS[0]);
           o2::gpu::GPUReconstructionConvert::RunZSEncoderCreateMeta(buffer, tpcZSonTheFlySizes.data(), *&ptrEp, &tpcZS);
           ptrs.tpcZS = &tpcZS;
           if (specconfig.processMC) {
-            throw std::runtime_error("Currently unable to process MC information, tpc-tracker crashing when MC propagated");
-            ptrs.o2DigitsMC = &inputDigitsMC;
+            ptrs.o2Digits = &inputDigits;
+            ptrs.o2DigitsMC = &inputDigitsMCPtrs;
           }
         } else if (specconfig.zsDecoder) {
           ptrs.tpcZS = &tpcZS;
           if (specconfig.processMC) {
-            throw std::runtime_error("Cannot process MC information, none available"); // In fact, passing in MC data with ZS TPC Raw is not yet available
+            throw std::runtime_error("Cannot process MC information, none available");
           }
         } else {
-          ptrs.o2Digits = &inputDigits; // TODO: We will also create ClusterNative as output stored in ptrs. Should be added to the output
+          ptrs.o2Digits = &inputDigits;
           if (specconfig.processMC) {
-            ptrs.o2DigitsMC = &inputDigitsMC;
+            ptrs.o2DigitsMC = &inputDigitsMCPtrs;
           }
         }
       } else if (specconfig.decompressTPC) {
@@ -671,8 +577,7 @@ DataProcessorSpec getCATrackerSpec(ca::Config const& specconfig, std::vector<int
       }
       // a byte size resizable vector object, the DataAllocator returns reference to internal object
       // initialize optional pointer to the vector object
-      using ClusterOutputChunkType = std::decay_t<decltype(pc.outputs().make<std::vector<char>>(Output{"", "", 0}))>;
-      ClusterOutputChunkType* clusterOutput = nullptr;
+      using O2CharVectorOutputType = std::decay_t<decltype(pc.outputs().make<std::vector<char>>(Output{"", "", 0}))>;
       TPCSectorHeader clusterOutputSectorHeader{0};
       if (processAttributes->clusterOutputIds.size() > 0) {
         if (activeSectors == 0) {
@@ -686,37 +591,37 @@ DataProcessorSpec getCATrackerSpec(ca::Config const& specconfig, std::vector<int
         clusterOutputSectorHeader.sectorBits = activeSectors;
         // subspecs [0, NSectors - 1] are used to identify sector data, we use NSectors
         // to indicate the full TPC
-        o2::header::DataHeader::SubSpecificationType subspec = NSectors;
         clusterOutputSectorHeader.activeSectors = activeSectors;
-        clusterOutput = &pc.outputs().make<std::vector<char>>({gDataOriginTPC, "CLUSTERNATIVE", subspec, Lifetime::Timeframe, {clusterOutputSectorHeader}});
       }
 
       GPUInterfaceOutputs outputRegions;
-      // TODO: For output to preallocated buffer, just allocated some large buffer for now.
-      // This should be estimated correctly, but it is not the default for now, so it doesn't matter much.
-      size_t bufferSize = 256ul * 1024 * 1024;
-      auto* bufferCompressedClusters = !processAttributes->allocateOutputOnTheFly && specconfig.outputCompClustersFlat ? &pc.outputs().make<std::vector<char>>(Output{gDataOriginTPC, "COMPCLUSTERSFLAT", 0}, bufferSize) : nullptr;
-      if (processAttributes->allocateOutputOnTheFly && specconfig.outputCompClustersFlat) {
-        outputRegions.compressedClusters.allocator = [&bufferCompressedClusters, &pc](size_t size) -> void* {bufferCompressedClusters = &pc.outputs().make<std::vector<char>>(Output{gDataOriginTPC, "COMPCLUSTERSFLAT", 0}, size); return bufferCompressedClusters->data(); };
-      } else if (specconfig.outputCompClustersFlat) {
-        outputRegions.compressedClusters.ptr = bufferCompressedClusters->data();
-        outputRegions.compressedClusters.size = bufferCompressedClusters->size();
-      }
-      if (clusterOutput != nullptr) {
+      std::optional<std::reference_wrapper<O2CharVectorOutputType>> clusterOutput = std::nullopt, bufferCompressedClusters = std::nullopt, bufferTPCTracks = std::nullopt;
+      char *clusterOutputChar = nullptr, *bufferCompressedClustersChar = nullptr, *bufferTPCTracksChar = nullptr;
+      if (specconfig.outputCompClustersFlat) {
         if (processAttributes->allocateOutputOnTheFly) {
-          outputRegions.clustersNative.allocator = [&clusterOutput, &pc](size_t size) -> void* {clusterOutput->resize(size + sizeof(ClusterCountIndex)); return (char*)clusterOutput->data() + sizeof(ClusterCountIndex); };
+          outputRegions.compressedClusters.allocator = [&bufferCompressedClustersChar, &pc](size_t size) -> void* {bufferCompressedClustersChar = pc.outputs().make<char>(Output{gDataOriginTPC, "COMPCLUSTERSFLAT", 0}, size).data(); return bufferCompressedClustersChar; };
         } else {
-          clusterOutput->resize(bufferSize);
-          outputRegions.clustersNative.ptr = (char*)clusterOutput->data() + sizeof(ClusterCountIndex);
-          outputRegions.clustersNative.size = clusterOutput->size() * sizeof(*clusterOutput->data()) - sizeof(ClusterCountIndex);
+          bufferCompressedClusters.emplace(pc.outputs().make<std::vector<char>>(Output{gDataOriginTPC, "COMPCLUSTERSFLAT", 0}, processAttributes->outputBufferSize));
+          outputRegions.compressedClusters.ptr = bufferCompressedClustersChar = bufferCompressedClusters->get().data();
+          outputRegions.compressedClusters.size = bufferCompressedClusters->get().size();
         }
       }
-      auto* bufferTPCTracks = !processAttributes->allocateOutputOnTheFly ? &pc.outputs().make<std::vector<char>>(Output{gDataOriginTPC, "TRACKSGPU", 0}, bufferSize) : nullptr;
+      if (processAttributes->clusterOutputIds.size() > 0) {
+        if (processAttributes->allocateOutputOnTheFly) {
+          outputRegions.clustersNative.allocator = [&clusterOutputChar, &pc, clusterOutputSectorHeader](size_t size) -> void* {clusterOutputChar = pc.outputs().make<char>({gDataOriginTPC, "CLUSTERNATIVE", NSectors, Lifetime::Timeframe, {clusterOutputSectorHeader}}, size + sizeof(ClusterCountIndex)).data(); return clusterOutputChar + sizeof(ClusterCountIndex); };
+        } else {
+          clusterOutput.emplace(pc.outputs().make<std::vector<char>>({gDataOriginTPC, "CLUSTERNATIVE", NSectors, Lifetime::Timeframe, {clusterOutputSectorHeader}}, processAttributes->outputBufferSize));
+          clusterOutputChar = clusterOutput->get().data();
+          outputRegions.clustersNative.ptr = clusterOutputChar + sizeof(ClusterCountIndex);
+          outputRegions.clustersNative.size = clusterOutput->get().size() - sizeof(ClusterCountIndex);
+        }
+      }
       if (processAttributes->allocateOutputOnTheFly) {
-        outputRegions.tpcTracks.allocator = [&bufferTPCTracks, &pc](size_t size) -> void* {bufferTPCTracks = &pc.outputs().make<std::vector<char>>(Output{gDataOriginTPC, "TRACKSGPU", 0}, size); return bufferTPCTracks->data(); };
+        outputRegions.tpcTracks.allocator = [&bufferTPCTracksChar, &pc](size_t size) -> void* {bufferTPCTracksChar = pc.outputs().make<char>(Output{gDataOriginTPC, "TRACKSGPU", 0}, size).data(); return bufferTPCTracksChar; };
       } else {
-        outputRegions.tpcTracks.ptr = bufferTPCTracks->data();
-        outputRegions.tpcTracks.size = bufferTPCTracks->size();
+        bufferTPCTracks.emplace(pc.outputs().make<std::vector<char>>(Output{gDataOriginTPC, "TRACKSGPU", 0}, processAttributes->outputBufferSize));
+        outputRegions.tpcTracks.ptr = bufferTPCTracksChar = bufferTPCTracks->get().data();
+        outputRegions.tpcTracks.size = bufferTPCTracks->get().size();
       }
 
       int retVal = tracker->runTracking(&ptrs, &outputRegions);
@@ -732,15 +637,17 @@ DataProcessorSpec getCATrackerSpec(ca::Config const& specconfig, std::vector<int
         pc.outputs().snapshot(OutputRef{"outTracks"}, tracks);
         pc.outputs().snapshot(OutputRef{"outClusRefs"}, clusRefs);
         if (specconfig.processMC) {
-          LOG(INFO) << "sending " << tracksMCTruth.getIndexedSize() << " track label(s)";
+          LOG(INFO) << "sending " << tracksMCTruth.size() << " track label(s)";
           pc.outputs().snapshot(OutputRef{"mclblout"}, tracksMCTruth);
         }
       }
 
       if (ptrs.compressedClusters != nullptr) {
         if (specconfig.outputCompClustersFlat) {
-          bufferCompressedClusters->resize(outputRegions.compressedClusters.size);
-          if ((void*)ptrs.compressedClusters != (void*)bufferCompressedClusters->data()) {
+          if (!processAttributes->allocateOutputOnTheFly) {
+            bufferCompressedClusters->get().resize(outputRegions.compressedClusters.size);
+          }
+          if ((void*)ptrs.compressedClusters != (void*)bufferCompressedClustersChar) {
             throw std::runtime_error("compressed cluster output ptrs out of sync"); // sanity check
           }
         }
@@ -758,17 +665,18 @@ DataProcessorSpec getCATrackerSpec(ca::Config const& specconfig, std::vector<int
       }
       // previously, clusters have been published individually for the enabled sectors
       // clusters are now published as one block, subspec is NSectors
-      if (clusterOutput != nullptr) {
-        clusterOutput->resize(sizeof(ClusterCountIndex) + outputRegions.clustersNative.size);
-        if ((void*)ptrs.clusters->clustersLinear != (void*)((char*)clusterOutput->data() + sizeof(ClusterCountIndex))) {
+      if (processAttributes->clusterOutputIds.size() > 0) {
+        if (!processAttributes->allocateOutputOnTheFly) {
+          clusterOutput->get().resize(sizeof(ClusterCountIndex) + outputRegions.clustersNative.size);
+        }
+        if ((void*)ptrs.clusters->clustersLinear != (void*)(clusterOutputChar + sizeof(ClusterCountIndex))) {
           throw std::runtime_error("cluster native output ptrs out of sync"); // sanity check
         }
 
         o2::header::DataHeader::SubSpecificationType subspec = NSectors;
         // doing a copy for now, in the future the tracker uses the output buffer directly
-        auto& target = *clusterOutput;
         ClusterNativeAccess const& accessIndex = *ptrs.clusters;
-        ClusterCountIndex* outIndex = reinterpret_cast<ClusterCountIndex*>(target.data());
+        ClusterCountIndex* outIndex = reinterpret_cast<ClusterCountIndex*>(clusterOutputChar);
         static_assert(sizeof(ClusterCountIndex) == sizeof(accessIndex.nClusters));
         memcpy(outIndex, &accessIndex.nClusters[0][0], sizeof(ClusterCountIndex));
         if (specconfig.processMC && accessIndex.clustersMCTruth) {
@@ -779,9 +687,6 @@ DataProcessorSpec getCATrackerSpec(ca::Config const& specconfig, std::vector<int
       validInputs.reset();
       if (specconfig.processMC) {
         validMcInputs.reset();
-        for (auto& mcInput : mcInputs) {
-          mcInput.reset();
-        }
       }
     };
 
@@ -798,16 +703,16 @@ DataProcessorSpec getCATrackerSpec(ca::Config const& specconfig, std::vector<int
       inputs.emplace_back(InputSpec{"input", ConcreteDataTypeMatcher{gDataOriginTPC, specconfig.decompressTPCFromROOT ? header::DataDescription("COMPCLUSTERS") : header::DataDescription("COMPCLUSTERSFLAT")}, Lifetime::Timeframe});
     } else if (specconfig.caClusterer) {
       // We accept digits and MC labels also if we run on ZS Raw data, since they are needed for MC label propagation
-      if (!specconfig.zsOnTheFly && !specconfig.zsDecoder) { // FIXME: We can have digits input in zs decoder mode for MC labels, to be made optional
+      if ((!specconfig.zsOnTheFly || specconfig.processMC) && !specconfig.zsDecoder) {
         inputs.emplace_back(InputSpec{"input", ConcreteDataTypeMatcher{gDataOriginTPC, "DIGITS"}, Lifetime::Timeframe});
       }
     } else {
       inputs.emplace_back(InputSpec{"input", ConcreteDataTypeMatcher{gDataOriginTPC, "CLUSTERNATIVE"}, Lifetime::Timeframe});
     }
     if (specconfig.processMC) {
-      if (!specconfig.zsOnTheFly && specconfig.caClusterer) {
+      if (specconfig.caClusterer) {
         constexpr o2::header::DataDescription datadesc("DIGITSMCTR");
-        if (!specconfig.zsDecoder) { // FIXME: We can have digits input in zs decoder mode for MC labels, to be made optional
+        if (!specconfig.zsDecoder) {
           inputs.emplace_back(InputSpec{"mclblin", ConcreteDataTypeMatcher{gDataOriginTPC, datadesc}, Lifetime::Timeframe});
         }
       } else {
@@ -867,10 +772,7 @@ DataProcessorSpec getCATrackerSpec(ca::Config const& specconfig, std::vector<int
   return DataProcessorSpec{"tpc-tracker", // process id
                            {createInputSpecs()},
                            {createOutputSpecs()},
-                           AlgorithmSpec(initFunction),
-                           Options{
-                             {"tracker-options", VariantType::String, "", {"Option string passed to tracker"}},
-                           }};
+                           AlgorithmSpec(initFunction)};
 }
 
 } // namespace tpc
