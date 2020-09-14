@@ -36,6 +36,7 @@
 #include "TChain.h"
 #include <SimulationDataFormat/MCCompLabel.h>
 #include <SimulationDataFormat/MCTruthContainer.h>
+#include <SimulationDataFormat/ConstMCTruthContainer.h>
 #include "fairlogger/Logger.h"
 #include "CCDB/BasicCCDBManager.h"
 
@@ -383,7 +384,7 @@ void TRDDPLTrapSimulatorTask::run(o2::framework::ProcessingContext& pc)
   auto inputDigits = pc.inputs().get<gsl::span<o2::trd::Digit>>("digitinput");
   std::vector<o2::trd::Digit> msgDigits(inputDigits.begin(), inputDigits.end());
   //  auto digits pc.outputs().make<std::vector<o2::trd::Digit>>(Output{"TRD", "TRKDIGITS", 0, Lifetime::Timeframe}, msgDigits.begin(), msgDigits.end());
-  auto digitMCLabels = pc.inputs().get<o2::dataformats::MCTruthContainer<o2::MCCompLabel>*>("labelinput");
+  auto digitMCLabels = pc.inputs().get<o2::dataformats::ConstMCTruthContainer<o2::MCCompLabel>>("labelinput");
 
   //  auto rawDataOut = pc.outputs().make<char>(Output{"TRD", "RAWDATA", 0, Lifetime::Timeframe}, 1000); //TODO number is just a place holder until we start using it.
   o2::dataformats::MCTruthContainer<o2::MCCompLabel> trackletMCLabels;
@@ -413,10 +414,10 @@ void TRDDPLTrapSimulatorTask::run(o2::framework::ProcessingContext& pc)
   std::vector<unsigned int> msgDigitsIndex;
   msgDigitsIndex.reserve(msgDigits.size());
 
-  LOG(debug) << "Read in msgDigits with size of : " << msgDigits.size() << " labels contain : " << digitMCLabels->getNElements() << " with and index size of  : " << digitMCLabels->getIndexedSize();
+  LOG(debug) << "Read in msgDigits with size of : " << msgDigits.size() << " labels contain : " << digitMCLabels.getNElements() << " with and index size of  : " << digitMCLabels.getIndexedSize();
 
-  if (digitMCLabels->getIndexedSize() != msgDigits.size()) {
-    LOG(warn) << "Digits and Labels coming into TrapSimulator are of differing sizes, labels will be jibberish. " << digitMCLabels->getIndexedSize() << "!=" << msgDigits.size();
+  if (digitMCLabels.getIndexedSize() != msgDigits.size()) {
+    LOG(warn) << "Digits and Labels coming into TrapSimulator are of differing sizes, labels will be jibberish. " << digitMCLabels.getIndexedSize() << "!=" << msgDigits.size();
   }
   //set up structures to hold the returning tracklets.
   std::vector<Tracklet64> trapTracklets; //vector to store the retrieved tracklets from an trapsim object
@@ -637,7 +638,7 @@ void TRDDPLTrapSimulatorTask::run(o2::framework::ProcessingContext& pc)
     }
     int adc = 20 - (pad % 18) - 1;
     std::vector<o2::MCCompLabel> tmplabels;
-    auto digitslabels = digitMCLabels->getLabels(digitcounter);
+    auto digitslabels = digitMCLabels.getLabels(digitcounter);
     for (auto& tmplabel : digitslabels) {
       tmplabels.push_back(tmplabel);
     }
