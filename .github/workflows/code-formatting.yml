@@ -62,9 +62,18 @@ jobs:
           git show | cat
           echo ${{ secrets.ALIBUILD_GITHUB_TOKEN }} | wc
           echo $ALIBUILD_GITHUB_TOKEN | wc
-          git push --set-upstream https://alibuild:$ALIBUILD_GITHUB_TOKEN@github.com/alibuild/AliceO2.git HEAD:refs/heads/alibot-cleanup-${{ github.event.pull_request.number }} -f
+          # git push --set-upstream https://alibuild:$ALIBUILD_GITHUB_TOKEN@github.com/alibuild/AliceO2.git HEAD:refs/heads/alibot-cleanup-${{ github.event.pull_request.number }} -f
           echo ::set-output name=clean::false
         fi
+
+    - name: Push changes
+      uses: ad-m/github-push-action@master
+      with:
+        github_token: ${{ secrets.ALIBUILD_GITHUB_TOKEN }}
+        branch: alibot-cleanup-${{ github.event.pull_request.number }}
+        force: true
+        repository: alibuild/AliceO2
+      continue-on-error: true # We do not create PRs if the branch is not there.
 
     - name: pull-request
       uses: alisw/pull-request@master
