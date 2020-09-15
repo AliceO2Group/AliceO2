@@ -44,6 +44,9 @@
 #pragma link C++ class o2::dataformats::VtxTrackIndex + ;
 #pragma link C++ class std::vector < o2::dataformats::VtxTrackIndex> + ;
 
+#pragma link C++ class o2::dataformats::VtxTrackRef + ;
+#pragma link C++ class std::vector < o2::dataformats::VtxTrackRef> + ;
+
 #pragma link C++ class o2::dataformats::DCA + ;
 
 #endif

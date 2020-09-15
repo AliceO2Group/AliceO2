@@ -18,6 +18,8 @@
 #include "CommonDataFormat/AbstractRef.h"
 #include <iosfwd>
 #include <string>
+#include <array>
+#include <string_view>
 
 namespace o2
 {
@@ -33,6 +35,11 @@ class VtxTrackIndex : public AbstractRef<26, 3, 3>
     TPC,
     NSources
   };
+  static constexpr std::array<std::string_view, NSources> SourceNames = {
+    "TPCITS",
+    "ITS",
+    "TPC"};
+
   enum Flags : uint8_t {
     Contributor, // flag that it contributes to vertex fit
     Reserved,    //
@@ -42,6 +49,7 @@ class VtxTrackIndex : public AbstractRef<26, 3, 3>
 
   using AbstractRef<26, 3, 3>::AbstractRef;
 
+  static constexpr std::string_view getSourceName(int i) { return SourceNames[i]; }
   void print() const;
   std::string asString() const;
 

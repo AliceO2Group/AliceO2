@@ -18,6 +18,7 @@
 #include "gsl/span"
 #include "ReconstructionDataFormats/PrimaryVertex.h"
 #include "ReconstructionDataFormats/VtxTrackIndex.h"
+#include "ReconstructionDataFormats/VtxTrackRef.h"
 #include "ReconstructionDataFormats/TrackTPCITS.h"
 #include "DataFormatsTPC/TrackTPC.h"
 #include "DataFormatsITS/TrackITS.h"
@@ -35,7 +36,7 @@ class VertexTrackMatcher
 {
  public:
   using GIndex = o2::dataformats::VtxTrackIndex;
-  using RRef = o2::dataformats::RangeReference<int, int>;
+  using VRef = o2::dataformats::VtxTrackRef;
   using PVertex = const o2::dataformats::PrimaryVertex;
   using TrackTPCITS = o2::dataformats::TrackTPCITS;
   using TrackITS = o2::its::TrackITS;
@@ -48,13 +49,13 @@ class VertexTrackMatcher
   void init();
   void process(const gsl::span<const PVertex>& vertices,   // vertices
                const gsl::span<const GIndex>& v2tfitIDs,   // IDs of contributor tracks used in fit
-               const gsl::span<const RRef>& v2tfitRefs,    // references on these tracks
+               const gsl::span<const VRef>& v2tfitRefs,    // references on these tracks (we used special reference with multiple sources, but currently only TPCITS used)
                const gsl::span<const TrackTPCITS>& tpcits, // global tracks
                const gsl::span<const TrackITS>& its,       // ITS tracks
                const gsl::span<const ITSROFR>& itsROFR,    // ITS tracks ROFRecords
                const gsl::span<const TrackTPC>& tpc,       // TPC tracks
                std::vector<GIndex>& trackIndex,            // Global ID's for associated tracks
-               std::vector<RRef>& vtxRefs);                // references on these tracks
+               std::vector<VRef>& vtxRefs);                // references on these tracks
 
   ///< set InteractionRecods for the beginning of the TF
   void setStartIR(const o2::InteractionRecord& ir) { mStartIR = ir; }

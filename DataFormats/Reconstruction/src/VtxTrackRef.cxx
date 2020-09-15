@@ -12,7 +12,7 @@
 /// \brief Index of track attached to vertx: index in its proper container, container source and flags
 /// \author ruben.shahoyan@cern.ch
 
-#include "ReconstructionDataFormats/VtxTrackIndex.h"
+#include "ReconstructionDataFormats/VtxTrackRef.h"
 #include "Framework/Logger.h"
 #include <fmt/printf.h>
 #include <iostream>
@@ -20,20 +20,23 @@
 
 using namespace o2::dataformats;
 
-std::string VtxTrackIndex::asString() const
+std::string VtxTrackRef::asString() const
 {
-  std::bitset<NBitsFlags()> bits{getFlags()};
-  return fmt::format("[{:d}/{:d}/{:s}]", getIndex(), getSource(), bits.to_string());
+  std::string str = fmt::format("1st entry: {:d} ", getFirstEntry());
+  for (int i = 0; i < VtxTrackIndex::NSources; i++) {
+    str += fmt::format(", N{:s} : {:d}", VtxTrackIndex::getSourceName(i), getEntriesOfSource(i));
+  }
+  return str;
 }
 
-std::ostream& o2::dataformats::operator<<(std::ostream& os, const o2::dataformats::VtxTrackIndex& v)
+std::ostream& o2::dataformats::operator<<(std::ostream& os, const o2::dataformats::VtxTrackRef& v)
 {
   // stream itself
   os << v.asString();
   return os;
 }
 
-void VtxTrackIndex::print() const
+void VtxTrackRef::print() const
 {
   LOG(INFO) << asString();
 }

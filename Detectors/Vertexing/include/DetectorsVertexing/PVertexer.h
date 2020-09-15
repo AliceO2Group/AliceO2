@@ -19,7 +19,6 @@
 #include <utility>
 #include "CommonConstants/LHCConstants.h"
 #include "CommonDataFormat/TimeStamp.h"
-#include "CommonDataFormat/RangeReference.h"
 #include "CommonDataFormat/BunchFilling.h"
 #include "SimulationDataFormat/MCEventLabel.h"
 #include "SimulationDataFormat/MCCompLabel.h"
