@@ -9,8 +9,8 @@
 # submit itself to any jurisdiction.
 
 o2_add_library(MCHRawDecoder
-        SOURCES src/PageDecoder.cxx src/RDHManip.cxx
-        PUBLIC_LINK_LIBRARIES O2::MCHRawCommon O2::MCHRawElecMap O2::DetectorsRaw
+        SOURCES src/PageDecoder.cxx src/RDHManip.cxx src/DigitsMerger.cxx src/DataDecoder.cxx
+        PUBLIC_LINK_LIBRARIES O2::DPLUtils O2::MCHBase O2::MCHMappingInterface O2::MCHMappingImpl4 O2::MCHRawCommon O2::MCHRawElecMap O2::DetectorsRaw
         PRIVATE_LINK_LIBRARIES O2::MCHRawImplHelpers)
 
 if(BUILD_TESTING)

@@ -72,6 +72,20 @@ uint16_t SampaCluster::nof10BitWords() const
   return n10;
 }
 
+uint32_t SampaCluster::sum() const
+{
+  uint32_t tot(0);
+  if (isClusterSum()) {
+    tot = chargeSum;
+  } else {
+    for (auto& s : samples) {
+      tot += s;
+    }
+  }
+
+  return tot;
+}
+
 std::ostream& operator<<(std::ostream& os, const SampaCluster& sc)
 {
   os << fmt::format("ts {:4d} ", sc.sampaTime);
