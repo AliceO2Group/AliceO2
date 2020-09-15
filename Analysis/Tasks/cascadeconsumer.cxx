@@ -115,11 +115,11 @@ struct cascadeconsumer {
           casc.casccosPA(collision.posX(), collision.posY(), collision.posZ()) > casccospa &&
           casc.dcav0topv(collision.posX(), collision.posY(), collision.posZ()) > dcav0topv) {
         if (casc.charge() < 0) { //FIXME: could be done better...
-          h2dMassXiMinus->Fill(casc.pt(), casc.mXi());
-          h2dMassOmegaMinus->Fill(casc.pt(), casc.mOmega());
+          if(TMath::Abs(casc.yXi())<0.5) h2dMassXiMinus->Fill(casc.pt(), casc.mXi());
+          if(TMath::Abs(casc.yOmega())<0.5) h2dMassOmegaMinus->Fill(casc.pt(), casc.mOmega());
         } else {
-          h2dMassXiPlus->Fill(casc.pt(), casc.mXi());
-          h2dMassOmegaPlus->Fill(casc.pt(), casc.mOmega());
+          if(TMath::Abs(casc.yXi())<0.5) h2dMassXiPlus->Fill(casc.pt(), casc.mXi());
+          if(TMath::Abs(casc.yOmega())<0.5) h2dMassOmegaPlus->Fill(casc.pt(), casc.mOmega());
         }
       }
     }

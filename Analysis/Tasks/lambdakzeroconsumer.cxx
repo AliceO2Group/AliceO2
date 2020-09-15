@@ -85,9 +85,11 @@ struct lambdakzeroconsumer {
     for (auto& v0 : fullV0s) {
       //FIXME: could not find out how to filter cosPA and radius variables (dynamic columns)
       if (v0.v0radius() > v0radius && v0.v0cosPA(collision.posX(), collision.posY(), collision.posZ()) > v0cospa) {
-        h2dMassLambda->Fill(v0.pt(), v0.mLambda());
-        h2dMassAntiLambda->Fill(v0.pt(), v0.mAntiLambda());
-        h2dMassK0Short->Fill(v0.pt(), v0.mK0Short());
+        if(TMath::Abs(v0.yLambda())<0.5){
+          h2dMassLambda->Fill(v0.pt(), v0.mLambda());
+          h2dMassAntiLambda->Fill(v0.pt(), v0.mAntiLambda());
+        }
+        if(TMath::Abs(v0.yK0Short())<0.5) h2dMassK0Short->Fill(v0.pt(), v0.mK0Short());
       }
     }
   }

@@ -47,6 +47,10 @@ DECLARE_SOA_DYNAMIC_COLUMN(V0CosPA, v0cosPA, [](float X, float Y, float Z, float
 DECLARE_SOA_DYNAMIC_COLUMN(MLambda, mLambda, [](float pxpos, float pypos, float pzpos, float pxneg, float pyneg, float pzneg) { return RecoDecay::M(array{array{pxpos, pypos, pzpos}, array{pxneg, pyneg, pzneg}}, array{RecoDecay::getMassPDG(kProton), RecoDecay::getMassPDG(kPiPlus)}); });
 DECLARE_SOA_DYNAMIC_COLUMN(MAntiLambda, mAntiLambda, [](float pxpos, float pypos, float pzpos, float pxneg, float pyneg, float pzneg) { return RecoDecay::M(array{array{pxpos, pypos, pzpos}, array{pxneg, pyneg, pzneg}}, array{RecoDecay::getMassPDG(kPiPlus), RecoDecay::getMassPDG(kProton)}); });
 DECLARE_SOA_DYNAMIC_COLUMN(MK0Short, mK0Short, [](float pxpos, float pypos, float pzpos, float pxneg, float pyneg, float pzneg) { return RecoDecay::M(array{array{pxpos, pypos, pzpos}, array{pxneg, pyneg, pzneg}}, array{RecoDecay::getMassPDG(kPiPlus), RecoDecay::getMassPDG(kPiPlus)}); });
+
+DECLARE_SOA_DYNAMIC_COLUMN(YK0Short, yK0Short, [](float Px, float Py, float Pz) { return RecoDecay::Y(array{Px,Py,Pz},RecoDecay::getMassPDG(kK0)); });
+DECLARE_SOA_DYNAMIC_COLUMN(YLambda, yLambda, [](float Px, float Py, float Pz) { return RecoDecay::Y(array{Px,Py,Pz},RecoDecay::getMassPDG(kLambda0)); });
+DECLARE_SOA_DYNAMIC_COLUMN(Eta, eta, [](float Px, float Py, float Pz) { return RecoDecay::Eta(array{Px,Py,Pz}); });
 } // namespace v0data
 
 namespace v0dataext
@@ -70,7 +74,13 @@ DECLARE_SOA_TABLE(V0Data, "AOD", "V0DATA",
                   //Invariant masses
                   v0data::MLambda<v0data::PxPos, v0data::PyPos, v0data::PzPos, v0data::PxNeg, v0data::PyNeg, v0data::PzNeg>,
                   v0data::MAntiLambda<v0data::PxPos, v0data::PyPos, v0data::PzPos, v0data::PxNeg, v0data::PyNeg, v0data::PzNeg>,
-                  v0data::MK0Short<v0data::PxPos, v0data::PyPos, v0data::PzPos, v0data::PxNeg, v0data::PyNeg, v0data::PzNeg>);
+                  v0data::MK0Short<v0data::PxPos, v0data::PyPos, v0data::PzPos, v0data::PxNeg, v0data::PyNeg, v0data::PzNeg>,
+
+                  //Longitudinal
+                  v0data::YK0Short<v0dataext::Px, v0dataext::Py, v0dataext::Pz>,
+                  v0data::YLambda<v0dataext::Px, v0dataext::Py, v0dataext::Pz>,
+                  v0data::Eta<v0dataext::Px, v0dataext::Py, v0dataext::Pz>)
+;
 
 using V0DataOrigin = V0Data;
 
@@ -132,8 +142,11 @@ DECLARE_SOA_DYNAMIC_COLUMN(MLambda, mLambda, [](int charge, float pxpos, float p
 //Calculated on the fly with mass assumption + dynamic tables
 
 DECLARE_SOA_DYNAMIC_COLUMN(MXi, mXi, [](float pxbach, float pybach, float pzbach, float PxLambda, float PyLambda, float PzLambda) { return RecoDecay::M(array{array{pxbach, pybach, pzbach}, array{PxLambda, PyLambda, PzLambda}}, array{RecoDecay::getMassPDG(kPiPlus), RecoDecay::getMassPDG(kLambda0)}); });
-
 DECLARE_SOA_DYNAMIC_COLUMN(MOmega, mOmega, [](float pxbach, float pybach, float pzbach, float PxLambda, float PyLambda, float PzLambda) { return RecoDecay::M(array{array{pxbach, pybach, pzbach}, array{PxLambda, PyLambda, PzLambda}}, array{RecoDecay::getMassPDG(kKPlus), RecoDecay::getMassPDG(kLambda0)}); });
+
+DECLARE_SOA_DYNAMIC_COLUMN(YXi, yXi, [](float Px, float Py, float Pz) { return RecoDecay::Y(array{Px,Py,Pz},1.32171); });
+DECLARE_SOA_DYNAMIC_COLUMN(YOmega, yOmega, [](float Px, float Py, float Pz) { return RecoDecay::Y(array{Px,Py,Pz},1.67245); });
+DECLARE_SOA_DYNAMIC_COLUMN(Eta, eta, [](float Px, float Py, float Pz) { return RecoDecay::Eta(array{Px,Py,Pz}); });
 } // namespace cascdata
 
 namespace cascdataext
@@ -168,7 +181,12 @@ DECLARE_SOA_TABLE(CascData, "AOD", "CASCDATA",
                   //Invariant masses
                   cascdata::MLambda<cascdata::Charge, cascdata::PxPos, cascdata::PyPos, cascdata::PzPos, cascdata::PxNeg, cascdata::PyNeg, cascdata::PzNeg>,
                   cascdata::MXi<cascdata::PxBach, cascdata::PyBach, cascdata::PzBach, cascdataext::PxLambda, cascdataext::PyLambda, cascdataext::PzLambda>,
-                  cascdata::MOmega<cascdata::PxBach, cascdata::PyBach, cascdata::PzBach, cascdataext::PxLambda, cascdataext::PyLambda, cascdataext::PzLambda>);
+                  cascdata::MOmega<cascdata::PxBach, cascdata::PyBach, cascdata::PzBach, cascdataext::PxLambda, cascdataext::PyLambda, cascdataext::PzLambda>,
+                  //Longitudinal
+                  cascdata::YXi<cascdataext::Px, cascdataext::Py, cascdataext::Pz>,
+                  cascdata::YOmega<cascdataext::Px, cascdataext::Py, cascdataext::Pz>,
+                  cascdata::Eta<cascdataext::Px, cascdataext::Py, cascdataext::Pz>
+                  );
 
 using CascDataOrigin = CascData;
 
