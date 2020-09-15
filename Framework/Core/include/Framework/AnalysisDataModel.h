@@ -172,8 +172,8 @@ DECLARE_SOA_COLUMN(Length, length, float);
 DECLARE_SOA_COLUMN(TOFExpMom, tofExpMom, float);
 DECLARE_SOA_COLUMN(TrackEtaEMCAL, trackEtaEmcal, float);
 DECLARE_SOA_COLUMN(TrackPhiEMCAL, trackPhiEmcal, float);
-DECLARE_SOA_DYNAMIC_COLUMN(TPCNClsFound, tpcNClsFound, [](uint8_t tpcNClsFindable, uint8_t tpcNClsFindableMinusFound) -> int16_t { return tpcNClsFindable - tpcNClsFindableMinusFound; });
-DECLARE_SOA_DYNAMIC_COLUMN(TPCNClsCrossedRows, tpcNClsCrossedRows, [](uint8_t tpcNClsFindable, uint8_t TPCNClsFindableMinusCrossedRows) -> int16_t { return tpcNClsFindable - TPCNClsFindableMinusCrossedRows; });
+DECLARE_SOA_DYNAMIC_COLUMN(TPCNClsFound, tpcNClsFound, [](uint8_t tpcNClsFindable, int8_t tpcNClsFindableMinusFound) -> int16_t { return (int16_t)tpcNClsFindable - tpcNClsFindableMinusFound; });
+DECLARE_SOA_DYNAMIC_COLUMN(TPCNClsCrossedRows, tpcNClsCrossedRows, [](uint8_t tpcNClsFindable, int8_t TPCNClsFindableMinusCrossedRows) -> int16_t { return (int16_t)tpcNClsFindable - TPCNClsFindableMinusCrossedRows; });
 DECLARE_SOA_DYNAMIC_COLUMN(ITSNCls, itsNCls, [](uint8_t itsClusterMap) -> uint8_t {
   uint8_t itsNcls = 0;
   constexpr uint8_t bit = 1;
@@ -192,16 +192,15 @@ DECLARE_SOA_DYNAMIC_COLUMN(ITSNClsInnerBarrel, itsNClsInnerBarrel, [](uint8_t it
 });
 
 DECLARE_SOA_DYNAMIC_COLUMN(TPCCrossedRowsOverFindableCls, tpcCrossedRowsOverFindableCls,
-                           [](uint8_t tpcNClsFindable, uint8_t tpcNClsFindableMinusCrossedRows) -> float {
+                           [](uint8_t tpcNClsFindable, int8_t tpcNClsFindableMinusCrossedRows) -> float {
                              // FIXME: use int16 tpcNClsCrossedRows from dynamic column as argument
-                             int16_t tpcNClsCrossedRows = tpcNClsFindable - tpcNClsFindableMinusCrossedRows;
+                             int16_t tpcNClsCrossedRows = (int16_t)tpcNClsFindable - tpcNClsFindableMinusCrossedRows;
                              return (float)tpcNClsCrossedRows / (float)tpcNClsFindable;
-                             ;
                            });
 
-DECLARE_SOA_DYNAMIC_COLUMN(TPCFractionSharedCls, tpcFractionSharedCls, [](uint8_t tpcNClsShared, uint8_t tpcNClsFindable, uint8_t tpcNClsFindableMinusFound) -> float {
+DECLARE_SOA_DYNAMIC_COLUMN(TPCFractionSharedCls, tpcFractionSharedCls, [](uint8_t tpcNClsShared, uint8_t tpcNClsFindable, int8_t tpcNClsFindableMinusFound) -> float {
   // FIXME: use tpcNClsFound from dynamic column as argument
-  int16_t tpcNClsFound = tpcNClsFindable - tpcNClsFindableMinusFound;
+  int16_t tpcNClsFound = (int16_t)tpcNClsFindable - tpcNClsFindableMinusFound;
   return (float)tpcNClsShared / (float)tpcNClsFound;
 });
 } // namespace track
