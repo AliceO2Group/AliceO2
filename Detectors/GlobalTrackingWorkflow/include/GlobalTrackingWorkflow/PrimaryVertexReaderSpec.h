@@ -20,8 +20,8 @@
 #include "Framework/Task.h"
 
 #include "CommonDataFormat/TimeStamp.h"
-#include "CommonDataFormat/RangeReference.h"
 #include "ReconstructionDataFormats/VtxTrackIndex.h"
+#include "ReconstructionDataFormats/VtxTrackRef.h"
 #include "ReconstructionDataFormats/PrimaryVertex.h"
 #include "SimulationDataFormat/MCEventLabel.h"
 
@@ -34,7 +34,7 @@ namespace vertexing
 class PrimaryVertexReader : public o2::framework::Task
 {
   using Label = o2::MCEventLabel;
-  using V2TRef = o2::dataformats::RangeReference<int, int>;
+  using V2TRef = o2::dataformats::VtxTrackRef;
   using PVertex = o2::dataformats::PrimaryVertex;
   using GIndex = o2::dataformats::VtxTrackIndex;
 

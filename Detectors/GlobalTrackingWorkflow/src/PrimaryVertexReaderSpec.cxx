@@ -52,19 +52,23 @@ void PrimaryVertexReader::run(ProcessingContext& pc)
       if (mUseMC) {
         lb = mLabels[cnt];
       }
-      LOG(INFO) << "#" << cnt << " " << vtx << "| NAttached= " << mPV2MatchIdxRef[cnt].getEntries() << " | MC:" << lb;
-      int idMin = mPV2MatchIdxRef[cnt].getFirstEntry(), idMax = idMin + mPV2MatchIdxRef[cnt].getEntries();
-      std::string trIDs;
-      int cntT = 0;
-      for (int i = idMin; i < idMax; i++) {
-        trIDs += mPV2MatchIdx[i].asString() + " ";
-        if (!((++cntT) % 15)) {
-          LOG(INFO) << trIDs;
-          trIDs = "";
+      LOG(INFO) << "#" << cnt << " " << vtx << " | MC:" << lb;
+      LOG(INFO) << "References: " << mPV2MatchIdxRef[cnt];
+      for (int is = 0; is < GIndex::NSources; is++) {
+        LOG(INFO) << GIndex::getSourceName(is) << " : " << mPV2MatchIdxRef[cnt].getEntriesOfSource(is) << " attached:";
+        int idMin = mPV2MatchIdxRef[cnt].getFirstEntryOfSource(is), idMax = idMin + mPV2MatchIdxRef[cnt].getEntriesOfSource(is);
+        std::string trIDs;
+        int cntT = 0;
+        for (int i = idMin; i < idMax; i++) {
+          trIDs += mPV2MatchIdx[i].asString() + " ";
+          if (!((++cntT) % 15)) {
+            LOG(INFO) << trIDs;
+            trIDs = "";
+          }
         }
-      }
-      if (!trIDs.empty()) {
-        LOG(INFO) << trIDs;
+        if (!trIDs.empty()) {
+          LOG(INFO) << trIDs;
+        }
       }
       cnt++;
     }
