@@ -19,13 +19,24 @@
 #include "CommonConstants/LHCConstants.h"
 #include "DetectorsBase/GeometryManager.h"
 #include "DetectorsBase/Propagator.h"
+#include "TRDBase/TRDGeometry.h"
 #include "ReconstructionDataFormats/TrackTPCITS.h"
-#include "TRDBase/Tracklet.h"
+#include "DataFormatsTRD/Tracklet64.h"
 #include "DataFormatsTRD/TriggerRecord.h"
 
 #endif
 
 using namespace GPUCA_NAMESPACE::gpu;
+
+unsigned int convertTrkltWordToRun2Format(uint64_t trkltWordRun3)
+{
+  // FIXME: this is currently a dummy function
+  // need proper functionality to convert the new tracklet data format to
+  // something compatible with the TRD tracker, but this macro is probably
+  // not the right place for this
+  unsigned int trkltWord = 0;
+  return trkltWord;
+}
 
 void run_trd_tracker(std::string path = "./",
                      std::string inputTracks = "o2match_itstpc.root",
@@ -96,7 +107,7 @@ void run_trd_tracker(std::string path = "./",
 
   std::vector<o2::trd::TriggerRecord>* triggerRecordsInArrayPtr = nullptr;
   trdTracklets.SetBranchAddress("TrackTrg", &triggerRecordsInArrayPtr);
-  std::vector<o2::trd::Tracklet>* trackletsInArrayPtr = nullptr;
+  std::vector<o2::trd::Tracklet64>* trackletsInArrayPtr = nullptr;
   trdTracklets.SetBranchAddress("Tracklet", &trackletsInArrayPtr);
   trdTracklets.GetEntry(0);
   int nCollisions = triggerRecordsInArrayPtr->size();
@@ -141,10 +152,10 @@ void run_trd_tracker(std::string path = "./",
 
   for (int iTrklt = 0; iTrklt < nTracklets; ++iTrklt) {
     auto trklt = trackletsInArrayPtr->at(iTrklt);
-    unsigned int trkltWord = trklt.getTrackletWord();
+    unsigned int trkltWord = convertTrkltWordToRun2Format(trklt.getTrackletWord());
     GPUTRDTrackletWord trkltLoad;
     trkltLoad.SetId(iTrklt);
-    trkltLoad.SetHCId(trklt.getHCId());
+    trkltLoad.SetHCId(trklt.getHCID());
     trkltLoad.SetTrackletWord(trkltWord);
     if (tracker->LoadTracklet(trkltLoad) > 0) {
       printf("Could not load tracklet %i\n", iTrklt);
