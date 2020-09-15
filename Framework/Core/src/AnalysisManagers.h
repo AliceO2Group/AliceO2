@@ -163,8 +163,9 @@ struct OutputManager<Produces<TABLE>> {
 /// HistogramRegistry specialization
 template <>
 struct OutputManager<HistogramRegistry> {
-  static bool appendOutput(std::vector<OutputSpec>& outputs, HistogramRegistry& what, uint32_t)
+  static bool appendOutput(std::vector<OutputSpec>& outputs, HistogramRegistry& what, uint32_t hash)
   {
+    what.setHash(hash);
     outputs.emplace_back(what.spec());
     return true;
   }
@@ -178,8 +179,10 @@ struct OutputManager<HistogramRegistry> {
     return true;
   }
 
-  static bool postRun(EndOfStreamContext&, HistogramRegistry&)
+  static bool postRun(EndOfStreamContext& context, HistogramRegistry& what)
   {
+    TList* list = *what;
+    context.outputs().snapshot(what.ref(), *list);
     return true;
   }
 };

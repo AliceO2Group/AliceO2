@@ -162,7 +162,7 @@ void WorkflowHelpers::injectServiceDevices(WorkflowSpec& workflow, ConfigContext
     LOG(INFO) << "To be hidden / removed at some point.";
     // mark this dummy process as ready-to-quit
     ic.services().get<ControlService>().readyToQuit(QuitRequest::Me);
-  
+
     return [](ProcessingContext& pc) {
       // this callback is never called since there is no expiring input
       pc.services().get<RawDeviceService>().waitFor(2000);
@@ -216,9 +216,11 @@ void WorkflowHelpers::injectServiceDevices(WorkflowSpec& workflow, ConfigContext
   std::vector<InputSpec> requestedCCDBs;
   std::vector<OutputSpec> providedCCDBs;
   std::vector<OutputSpec> providedOutputObj;
+  std::vector<OutputSpec> providedHist;
 
   outputTasks outTskMap;
   outputObjects outObjMap;
+  outputObjects outHistMap;
 
   for (size_t wi = 0; wi < workflow.size(); ++wi) {
     auto& processor = workflow[wi];
@@ -285,6 +287,14 @@ void WorkflowHelpers::injectServiceDevices(WorkflowSpec& workflow, ConfigContext
         } else {
           it->second.push_back(output.binding.value);
         }
+      } else if (DataSpecUtils::partialMatch(output, header::DataOrigin{"HIST"})) {
+        providedHist.emplace_back(output);
+        auto it = std::find_if(outHistMap.begin(), outHistMap.end(), [&](auto&& x) { return x.first == hash; });
+        if (it == outHistMap.end()) {
+          outHistMap.push_back({hash, {output.binding.value}});
+        } else {
+          it->second.push_back(output.binding.value);
+        }
       }
       if (output.lifetime == Lifetime::Condition) {
         providedCCDBs.push_back(output);
@@ -336,6 +346,12 @@ void WorkflowHelpers::injectServiceDevices(WorkflowSpec& workflow, ConfigContext
   // to a ROOT file.
   if (providedOutputObj.empty() == false) {
     auto rootSink = CommonDataProcessors::getOutputObjSink(outObjMap, outTskMap);
+    extraSpecs.push_back(rootSink);
+  }
+  // This is to inject a file sink so that any dangling HIST object is written
+  // to a ROOT file.
+  if (providedHist.empty() == false) {
+    auto rootSink = CommonDataProcessors::getHistogramRegistrySink(outHistMap, outTskMap);
     extraSpecs.push_back(rootSink);
   }
 
