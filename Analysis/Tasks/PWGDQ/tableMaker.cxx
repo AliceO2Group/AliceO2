@@ -103,9 +103,9 @@ struct TableMaker {
       globalX = track.x() * cosAlpha - track.y() * sinAlpha;
       globalY = track.x() * sinAlpha + track.y() * cosAlpha;
 
-      dcaXY = track.charge() * sqrt(pow((globalX - collision.posX()), 2) +
-                                    pow((globalY - collision.posY()), 2));
-      dcaZ = track.charge() * sqrt(pow(track.z() - collision.posZ(), 2));
+      dcaXY = sqrt(pow((globalX - collision.posX()), 2) +
+                   pow((globalY - collision.posY()), 2));
+      dcaZ = sqrt(pow(track.z() - collision.posZ(), 2));
 
       trackBasic(collision, track.globalIndex(), trackFilteringTag, track.pt(), track.eta(), track.phi(), track.charge());
       trackBarrel(track.tpcInnerParam(), track.flags(), track.itsClusterMap(), track.itsChi2NCl(),
