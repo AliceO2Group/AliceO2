@@ -31,7 +31,6 @@
 
 #include <string>
 #include <variant>
-#include <sstream>
 namespace o2
 {
 
@@ -291,25 +290,9 @@ class HistogramRegistry
   {
     return OutputRef{std::string{this->name}, 0, o2::header::Stack{OutputObjHeader{policy, taskHash}}};
   }
-
   void setHash(uint32_t hash)
   {
     taskHash = hash;
-  }
-
-  std::vector<ROOTSerialized<TH1&, TClass>> getHistogramsToWrite()
-  {
-    std::vector<ROOTSerialized<TH1&, TClass>> histos;
-    for (auto j = 0u; j < MAX_REGISTRY_SIZE; ++j) {
-      if (mRegistryValue[j].get() != nullptr) {
-        auto& hist = *(mRegistryValue[j].get());
-        TClass* hint = TClass::GetClass(typeid(hist));
-        std::string histPrefixedName = getHistName(hist.GetName());
-        hist.SetName(histPrefixedName.c_str());
-        histos.push_back(ROOTSerialized<TH1&, TClass>(hist, hint));
-      }
-    }
-    return histos;
   }
 
   TList* operator*()
@@ -347,13 +330,6 @@ class HistogramRegistry
   {
     return i & mask;
   }
-
-  std::string getHistName(const char* oldName) {
-    std::stringstream ss;
-    ss << name << ":" << oldName;
-    return ss.str();
-  }
-
   std::string name;
   bool enabled;
   OutputObjHandlingPolicy policy;

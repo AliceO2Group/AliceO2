@@ -72,14 +72,11 @@ const static std::unordered_map<OutputObjHandlingPolicy, std::string> ROOTfileNa
 // =============================================================================
 DataProcessorSpec CommonDataProcessors::getHistogramRegistrySink(outputObjects const& objmap, const outputTasks& tskmap)
 {
-  LOG(INFO) << "Get histogram registry sink";
   auto writerFunction = [objmap, tskmap](InitContext& ic) -> std::function<void(ProcessingContext&)> {
-    LOG(INFO) << "Start writer function";
     auto& callbacks = ic.services().get<CallbackService>();
     auto inputObjects = std::make_shared<std::vector<std::pair<InputObjectRoute, InputObject>>>();
 
     auto endofdatacb = [inputObjects](EndOfStreamContext& context) {
-      LOG(INFO) << "Start end of stream function";
       LOG(DEBUG) << "Writing merged histograms to file";
       if (inputObjects->empty()) {
         LOG(ERROR) << "Output object map is empty!";
@@ -92,11 +89,7 @@ DataProcessorSpec CommonDataProcessors::getHistogramRegistrySink(outputObjects c
       for (auto i = 0u; i < OutputObjHandlingPolicy::numPolicies; ++i) {
         f[i] = nullptr;
       }
-      LOG(INFO) << "Input objects count: " << inputObjects->size();
       for (auto& [route, entry] : *inputObjects) {
-        LOG(INFO) << "Route name: " << route.name << " directory: " << route.directory;
-        TNamed* named = static_cast<TNamed*>(entry.obj);
-        LOG(INFO) << "Entry name: " << entry.name << " entry object name: " << named->GetName();
         auto file = ROOTfileNames.find(route.policy);
         if (file != ROOTfileNames.end()) {
           auto filename = file->second;
@@ -125,7 +118,6 @@ DataProcessorSpec CommonDataProcessors::getHistogramRegistrySink(outputObjects c
 
     callbacks.set(CallbackService::Id::EndOfStream, endofdatacb);
     return [inputObjects, objmap, tskmap](ProcessingContext& pc) mutable -> void {
-      LOG(INFO) << "Start writer function lambda";
       auto const& ref = pc.inputs().get("y");
       if (!ref.header) {
         LOG(ERROR) << "Header not found";
@@ -135,7 +127,6 @@ DataProcessorSpec CommonDataProcessors::getHistogramRegistrySink(outputObjects c
         LOG(ERROR) << "Payload not found";
         return;
       }
-      LOG(INFO) << "Header: " << ref.header << " Payload: " << ref.payload;
       auto datah = o2::header::get<o2::header::DataHeader*>(ref.header);
       if (!datah) {
         LOG(ERROR) << "No data header in stack";
@@ -162,13 +153,6 @@ DataProcessorSpec CommonDataProcessors::getHistogramRegistrySink(outputObjects c
       obj.obj = tm.ReadObjectAny(obj.kind);
       TNamed* named = static_cast<TNamed*>(obj.obj);
       obj.name = named->GetName();
-      LOG(INFO) << "Object name: " << obj.name;
-      //auto prefPos = obj.name.find(":", 0);
-      //std::string prefix = obj.name.substr(0, prefPos);
-      //std::string strippedName = obj.name.substr(prefPos + 1);
-      //LOG(INFO) << "Name: " << obj.name << " prefix: " << prefix << " strippedName: " << strippedName;
-      //obj.name = strippedName;
-      //named->SetName(strippedName.c_str());
 
       auto hpos = std::find_if(tskmap.begin(), tskmap.end(), [&](auto&& x) { return x.first == hash; });
       if (hpos == tskmap.end()) {
@@ -176,20 +160,13 @@ DataProcessorSpec CommonDataProcessors::getHistogramRegistrySink(outputObjects c
         return;
       }
       auto taskname = hpos->second;
-      LOG(INFO) << "Task name: " << taskname;
       auto opos = std::find_if(objmap.begin(), objmap.end(), [&](auto&& x) { return x.first == hash; });
       if (opos == objmap.end()) {
         LOG(ERROR) << "No object list found for task " << taskname << " (hash=" << hash << ")";
         return;
       }
       auto objects = opos->second;
-      LOG(INFO) << "Objects size: " << objects.size() << " objects:";
-      for (auto& o : objects) {
-        LOG(INFO) << o;
-      }
-      LOG(INFO) << "end of objects";
       if (std::find(objects.begin(), objects.end(), obj.name) == objects.end()) {
-        //LOG(ERROR) << "No object " << obj.name << " with prefix " << prefix << " in map for task " << taskname;
         LOG(ERROR) << "No object " << obj.name << " in map for task " << taskname;
         return;
       }
@@ -198,10 +175,8 @@ DataProcessorSpec CommonDataProcessors::getHistogramRegistrySink(outputObjects c
       auto existing = std::find_if(inputObjects->begin(), inputObjects->end(), [&](auto&& x) { return (x.first.uniqueId == nameHash) && (x.first.taskHash == hash); });
       if (existing == inputObjects->end()) {
         inputObjects->push_back(std::make_pair(key, obj));
-        LOG(INFO) << "Adding new input object with name id: " << nameHash << " and task hash: " << hash;
         return;
       }
-      LOG(INFO) << "Object with name id: " << nameHash << " and task hash: " << hash << " already exists!";
       auto merger = existing->second.kind->GetMerge();
       if (!merger) {
         LOG(ERROR) << "Already one unmergeable object found for " << obj.name;
@@ -211,7 +186,6 @@ DataProcessorSpec CommonDataProcessors::getHistogramRegistrySink(outputObjects c
       TList coll;
       coll.Add(static_cast<TObject*>(obj.obj));
       merger(existing->second.obj, &coll, nullptr);
-      LOG(INFO) << "Finished writer lambda after merge";
     };
   };
 
@@ -227,14 +201,11 @@ DataProcessorSpec CommonDataProcessors::getHistogramRegistrySink(outputObjects c
 
 DataProcessorSpec CommonDataProcessors::getOutputObjSink(outputObjects const& objmap, outputTasks const& tskmap)
 {
-  LOG(INFO) << "Get output object sink";
   auto writerFunction = [objmap, tskmap](InitContext& ic) -> std::function<void(ProcessingContext&)> {
-    LOG(INFO) << "Start writer function";
     auto& callbacks = ic.services().get<CallbackService>();
     auto inputObjects = std::make_shared<std::vector<std::pair<InputObjectRoute, InputObject>>>();
 
     auto endofdatacb = [inputObjects](EndOfStreamContext& context) {
-      LOG(INFO) << "Start end of stream function";
       LOG(DEBUG) << "Writing merged objects to file";
       if (inputObjects->empty()) {
         LOG(ERROR) << "Output object map is empty!";
@@ -247,11 +218,7 @@ DataProcessorSpec CommonDataProcessors::getOutputObjSink(outputObjects const& ob
       for (auto i = 0u; i < OutputObjHandlingPolicy::numPolicies; ++i) {
         f[i] = nullptr;
       }
-      LOG(INFO) << "Input objects count: " << inputObjects->size();
       for (auto& [route, entry] : *inputObjects) {
-        LOG(INFO) << "Route name: " << route.name << " directory: " << route.directory;
-        TNamed* named = static_cast<TNamed*>(entry.obj);
-        LOG(INFO) << "Entry name: " << entry.name << " entry object name: " << named->GetName();
         auto file = ROOTfileNames.find(route.policy);
         if (file != ROOTfileNames.end()) {
           auto filename = file->second;
@@ -280,7 +247,6 @@ DataProcessorSpec CommonDataProcessors::getOutputObjSink(outputObjects const& ob
 
     callbacks.set(CallbackService::Id::EndOfStream, endofdatacb);
     return [inputObjects, objmap, tskmap](ProcessingContext& pc) mutable -> void {
-      LOG(INFO) << "Start writer function lambda";
       auto const& ref = pc.inputs().get("x");
       if (!ref.header) {
         LOG(ERROR) << "Header not found";
@@ -290,7 +256,6 @@ DataProcessorSpec CommonDataProcessors::getOutputObjSink(outputObjects const& ob
         LOG(ERROR) << "Payload not found";
         return;
       }
-      LOG(INFO) << "Header: " << ref.header << " Payload: " << ref.payload;
       auto datah = o2::header::get<o2::header::DataHeader*>(ref.header);
       if (!datah) {
         LOG(ERROR) << "No data header in stack";
@@ -317,25 +282,18 @@ DataProcessorSpec CommonDataProcessors::getOutputObjSink(outputObjects const& ob
       obj.obj = tm.ReadObjectAny(obj.kind);
       TNamed* named = static_cast<TNamed*>(obj.obj);
       obj.name = named->GetName();
-      LOG(INFO) << "Object name: " << obj.name;
       auto hpos = std::find_if(tskmap.begin(), tskmap.end(), [&](auto&& x) { return x.first == hash; });
       if (hpos == tskmap.end()) {
         LOG(ERROR) << "No task found for hash " << hash;
         return;
       }
       auto taskname = hpos->second;
-      LOG(INFO) << "Task name: " << taskname;
       auto opos = std::find_if(objmap.begin(), objmap.end(), [&](auto&& x) { return x.first == hash; });
       if (opos == objmap.end()) {
         LOG(ERROR) << "No object list found for task " << taskname << " (hash=" << hash << ")";
         return;
       }
       auto objects = opos->second;
-      LOG(INFO) << "Objects size: " << objects.size() << " objects:";
-      for (auto& o : objects) {
-        LOG(INFO) << o;
-      }
-      LOG(INFO) << "end of objects";
       if (std::find(objects.begin(), objects.end(), obj.name) == objects.end()) {
         LOG(ERROR) << "No object " << obj.name << " in map for task " << taskname;
         return;
@@ -345,20 +303,17 @@ DataProcessorSpec CommonDataProcessors::getOutputObjSink(outputObjects const& ob
       auto existing = std::find_if(inputObjects->begin(), inputObjects->end(), [&](auto&& x) { return (x.first.uniqueId == nameHash) && (x.first.taskHash == hash); });
       if (existing == inputObjects->end()) {
         inputObjects->push_back(std::make_pair(key, obj));
-        LOG(INFO) << "Adding new input object with name id: " << nameHash << " and task hash: " << hash;
         return;
       }
-      LOG(INFO) << "Object with name id: " << nameHash << " and task hash: " << hash << " already exists!";
       auto merger = existing->second.kind->GetMerge();
       if (!merger) {
-        LOG(error) << "Already one unmergeable object found for " << obj.name;
+        LOG(ERROR) << "Already one unmergeable object found for " << obj.name;
         return;
       }
 
       TList coll;
       coll.Add(static_cast<TObject*>(obj.obj));
       merger(existing->second.obj, &coll, nullptr);
-      LOG(INFO) << "Finished writer lambda after merge";
     };
   };
 

@@ -22,8 +22,6 @@
 #include "Framework/RootConfigParamHelpers.h"
 #include "../src/ExpressionHelpers.h"
 
-#include <iostream>
-
 namespace o2::framework
 {
 
@@ -183,10 +181,6 @@ struct OutputManager<HistogramRegistry> {
 
   static bool postRun(EndOfStreamContext& context, HistogramRegistry& what)
   {
-    //for (auto& hist : what.getHistogramsToWrite()) {
-    //  std::cout << "Writing histogram: " << hist().GetName() << std::endl;
-    //  context.outputs().snapshot(what.ref(), hist);
-    //}
     TList* list = *what;
     context.outputs().snapshot(what.ref(), *list);
     return true;

@@ -42,8 +42,4 @@ BOOST_AUTO_TEST_CASE(HistogramRegistryLookup)
   auto r = foo();
   auto histo2 = r.get("histo").get();
   BOOST_REQUIRE_EQUAL(histo2->GetNbinsX(), 100);
-
-  /// Get vector of all histograms in registry
-  auto histograms = registry.getHistogramsToWrite();
-  BOOST_REQUIRE_EQUAL(histograms.size(), 4);
 }
