@@ -11,6 +11,8 @@ jobs:
       with:
         ref: ${{ github.event.pull_request.head.sha }}
         token: "${{secrets.ALIBUILD_GITHUB_TOKEN}}"
+      env:
+        GITHUB_TOKEN: ${{ secrets.ALIBUILD_GITHUB_TOKEN }}
     - name: Run clang format
       id: clang_format
       run: |
