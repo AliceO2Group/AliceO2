@@ -231,7 +231,7 @@ struct CorrelationTask {
         eventValues[1] = collision1.centV0M();
         eventValues[2] = collision1.posZ();
 
-        mixed->getEventHist()->Fill(eventValues, CorrelationContainer::kCFStepReconstructed);
+        mixed->getTriggerHist()->Fill(eventValues, CorrelationContainer::kCFStepReconstructed);
 
         for (auto& track2 : tracks2) {
 
@@ -261,7 +261,7 @@ struct CorrelationTask {
 
           values[5] = collision1.posZ();
 
-          mixed->getTrackHist()->Fill(values, CorrelationContainer::kCFStepReconstructed);
+          mixed->getPairHist()->Fill(values, CorrelationContainer::kCFStepReconstructed);
         }
       }
     }

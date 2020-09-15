@@ -34,9 +34,10 @@ ClassImp(CorrelationContainer)
   const Int_t CorrelationContainer::fgkCFSteps = 11;
 
 CorrelationContainer::CorrelationContainer() : TNamed(),
-                                               mTrackHist(nullptr),
-                                               mEventHist(nullptr),
+                                               mPairHist(nullptr),
+                                               mTriggerHist(nullptr),
                                                mTrackHistEfficiency(nullptr),
+                                               mEventCount(nullptr),
                                                mEtaMin(0),
                                                mEtaMax(0),
                                                mPtMin(0),
@@ -60,9 +61,10 @@ CorrelationContainer::CorrelationContainer() : TNamed(),
 }
 
 CorrelationContainer::CorrelationContainer(const char* name, const char* objTitle, const char* reqHist, const char* binning) : TNamed(name, objTitle),
-                                                                                                                               mTrackHist(nullptr),
-                                                                                                                               mEventHist(nullptr),
+                                                                                                                               mPairHist(nullptr),
+                                                                                                                               mTriggerHist(nullptr),
                                                                                                                                mTrackHistEfficiency(nullptr),
+                                                                                                                               mEventCount(nullptr),
                                                                                                                                mEtaMin(0),
                                                                                                                                mEtaMax(0),
                                                                                                                                mPtMin(0),
@@ -249,9 +251,9 @@ CorrelationContainer::CorrelationContainer(const char* name, const char* objTitl
   }
 
   if (axis >= 2 && useAliTHn == 1)
-    mTrackHist = new StepTHnF("mTrackHist", title, nSteps, nTrackVars, iTrackBin, trackBins, trackAxisTitle);
+    mPairHist = new StepTHnF("mPairHist", title, nSteps, nTrackVars, iTrackBin, trackBins, trackAxisTitle);
   else if (axis >= 2 && useAliTHn == 2)
-    mTrackHist = new StepTHnD("mTrackHist", title, nSteps, nTrackVars, iTrackBin, trackBins, trackAxisTitle);
+    mPairHist = new StepTHnD("mPairHist", title, nSteps, nTrackVars, iTrackBin, trackBins, trackAxisTitle);
 
   // event level
   Int_t nEventVars = 2;
@@ -281,7 +283,7 @@ CorrelationContainer::CorrelationContainer(const char* name, const char* objTitl
     eventBins[3] = trackBins[6];
     eventAxisTitle[3] = trackAxisTitle[6];
   }
-  mEventHist = new StepTHnF("mEventHist", title, nSteps, nEventVars, iEventBin, eventBins, eventAxisTitle);
+  mTriggerHist = new StepTHnF("mTriggerHist", title, nSteps, nEventVars, iEventBin, eventBins, eventAxisTitle);
 
   // Efficiency histogram
 
@@ -302,6 +304,8 @@ CorrelationContainer::CorrelationContainer(const char* name, const char* objTitl
   trackAxisTitle[4] = vertexTitle;
 
   mTrackHistEfficiency = new StepTHnD("mTrackHistEfficiency", "Tracking efficiency", 6, 5, iTrackBin, trackBins, trackAxisTitle);
+
+  mEventCount = new TH2F("mEventCount", ";step;centrality;count", fgkCFSteps + 2, -2.5, -0.5 + fgkCFSteps, iEventBin[1], eventBins[1]);
 
   delete[] deltaEtaBins;
   delete[] pTBinsFine;
@@ -370,8 +374,8 @@ Double_t* CorrelationContainer::getBinning(const char* configuration, const char
 
 //_____________________________________________________________________________
 CorrelationContainer::CorrelationContainer(const CorrelationContainer& c) : TNamed(c),
-                                                                            mTrackHist(nullptr),
-                                                                            mEventHist(nullptr),
+                                                                            mPairHist(nullptr),
+                                                                            mTriggerHist(nullptr),
                                                                             mTrackHistEfficiency(nullptr),
                                                                             mEtaMin(0),
                                                                             mEtaMax(0),
@@ -404,14 +408,14 @@ CorrelationContainer::~CorrelationContainer()
 {
   // Destructor
 
-  if (mTrackHist) {
-    delete mTrackHist;
-    mTrackHist = nullptr;
+  if (mPairHist) {
+    delete mPairHist;
+    mPairHist = nullptr;
   }
 
-  if (mEventHist) {
-    delete mEventHist;
-    mEventHist = nullptr;
+  if (mTriggerHist) {
+    delete mTriggerHist;
+    mTriggerHist = nullptr;
   }
 
   if (mTrackHistEfficiency) {
@@ -443,11 +447,11 @@ void CorrelationContainer::Copy(TObject& c) const
 
   CorrelationContainer& target = (CorrelationContainer&)c;
 
-  if (mTrackHist)
-    target.mTrackHist = dynamic_cast<StepTHnBase*>(mTrackHist->Clone());
+  if (mPairHist)
+    target.mPairHist = dynamic_cast<StepTHnBase*>(mPairHist->Clone());
 
-  if (mEventHist)
-    target.mEventHist = dynamic_cast<StepTHnBase*>(mEventHist->Clone());
+  if (mTriggerHist)
+    target.mTriggerHist = dynamic_cast<StepTHnBase*>(mTriggerHist->Clone());
 
   if (mTrackHistEfficiency)
     target.mTrackHistEfficiency = dynamic_cast<StepTHnBase*>(mTrackHistEfficiency->Clone());
@@ -499,18 +503,18 @@ Long64_t CorrelationContainer::Merge(TCollection* list)
     if (entry == nullptr)
       continue;
 
-    if (entry->mTrackHist)
-      lists[0]->Add(entry->mTrackHist);
+    if (entry->mPairHist)
+      lists[0]->Add(entry->mPairHist);
 
-    lists[1]->Add(entry->mEventHist);
+    lists[1]->Add(entry->mTriggerHist);
     lists[2]->Add(entry->mTrackHistEfficiency);
 
     count++;
   }
-  if (mTrackHist)
-    mTrackHist->Merge(lists[0]);
+  if (mPairHist)
+    mPairHist->Merge(lists[0]);
 
-  mEventHist->Merge(lists[1]);
+  mTriggerHist->Merge(lists[1]);
   mTrackHistEfficiency->Merge(lists[2]);
 
   for (UInt_t i = 0; i < kMaxLists; i++)
@@ -556,26 +560,26 @@ void CorrelationContainer::countEmptyBins(CorrelationContainer::CFStep step, Flo
 
   for (Int_t i = 0; i < 4; i++) {
     binBegin[i] = 1;
-    binEnd[i] = mTrackHist->getTHn(step)->GetAxis(i)->GetNbins();
+    binEnd[i] = mPairHist->getTHn(step)->GetAxis(i)->GetNbins();
   }
 
   if (mEtaMax > mEtaMin) {
-    binBegin[0] = mTrackHist->getTHn(step)->GetAxis(0)->FindBin(mEtaMin);
-    binEnd[0] = mTrackHist->getTHn(step)->GetAxis(0)->FindBin(mEtaMax);
+    binBegin[0] = mPairHist->getTHn(step)->GetAxis(0)->FindBin(mEtaMin);
+    binEnd[0] = mPairHist->getTHn(step)->GetAxis(0)->FindBin(mEtaMax);
   }
 
   if (mPtMax > mPtMin) {
-    binBegin[1] = mTrackHist->getTHn(step)->GetAxis(1)->FindBin(mPtMin);
-    binEnd[1] = mTrackHist->getTHn(step)->GetAxis(1)->FindBin(mPtMax);
+    binBegin[1] = mPairHist->getTHn(step)->GetAxis(1)->FindBin(mPtMin);
+    binEnd[1] = mPairHist->getTHn(step)->GetAxis(1)->FindBin(mPtMax);
   }
 
   if (ptLeadMax > ptLeadMin) {
-    binBegin[2] = mTrackHist->getTHn(step)->GetAxis(2)->FindBin(ptLeadMin);
-    binEnd[2] = mTrackHist->getTHn(step)->GetAxis(2)->FindBin(ptLeadMax);
+    binBegin[2] = mPairHist->getTHn(step)->GetAxis(2)->FindBin(ptLeadMin);
+    binEnd[2] = mPairHist->getTHn(step)->GetAxis(2)->FindBin(ptLeadMax);
   }
 
   // start from multiplicity 1
-  binBegin[3] = mTrackHist->getTHn(step)->GetAxis(3)->FindBin(1);
+  binBegin[3] = mPairHist->getTHn(step)->GetAxis(3)->FindBin(1);
 
   Int_t total = 0;
   Int_t count = 0;
@@ -584,7 +588,7 @@ void CorrelationContainer::countEmptyBins(CorrelationContainer::CFStep step, Flo
   for (Int_t i = 0; i < 4; i++)
     vars[i] = binBegin[i];
 
-  THnBase* grid = mTrackHist->getTHn(step);
+  THnBase* grid = mPairHist->getTHn(step);
   while (1) {
     if (grid->GetBin(vars) == 0) {
       LOGF(warning, "Empty bin at eta=%.2f pt=%.2f pt_lead=%.2f mult=%.1f",
@@ -618,7 +622,7 @@ void CorrelationContainer::getHistsZVtxMult(CorrelationContainer::CFStep step, F
   // a 2d histogram on event level (as fct of zvtx, multiplicity)
   // Histograms has to be deleted by the caller of the function
 
-  THnBase* sparse = mTrackHist->getTHn(step);
+  THnBase* sparse = mPairHist->getTHn(step);
   if (mGetMultCacheOn) {
     if (!mGetMultCache) {
       mGetMultCache = changeToThn(sparse);
@@ -629,7 +633,7 @@ void CorrelationContainer::getHistsZVtxMult(CorrelationContainer::CFStep step, F
 
   // unzoom all axes
   resetBinLimits(sparse);
-  resetBinLimits(mEventHist->getTHn(step));
+  resetBinLimits(mTriggerHist->getTHn(step));
 
   setBinLimits(sparse);
 
@@ -637,7 +641,7 @@ void CorrelationContainer::getHistsZVtxMult(CorrelationContainer::CFStep step, F
   Int_t lastBin = sparse->GetAxis(2)->FindBin(ptLeadMax);
   LOGF(info, "Using pT range %d --> %d", firstBin, lastBin);
   sparse->GetAxis(2)->SetRange(firstBin, lastBin);
-  mEventHist->getTHn(step)->GetAxis(0)->SetRange(firstBin, lastBin);
+  mTriggerHist->getTHn(step)->GetAxis(0)->SetRange(firstBin, lastBin);
 
   // cut on the second trigger particle if there is a minimum set
   if (mPt2Min > 0) {
@@ -646,17 +650,17 @@ void CorrelationContainer::getHistsZVtxMult(CorrelationContainer::CFStep step, F
     if (mPt2Max > 0)
       lastBinPt2 = sparse->GetAxis(6)->FindBin(mPt2Max);
 
-    mEventHist->getTHn(step)->GetAxis(3)->SetRange(firstBinPt2, lastBinPt2);
+    mTriggerHist->getTHn(step)->GetAxis(3)->SetRange(firstBinPt2, lastBinPt2);
   }
 
   Bool_t hasVertex = kTRUE;
-  if (!mTrackHist->getTHn(step)->GetAxis(5))
+  if (!mPairHist->getTHn(step)->GetAxis(5))
     hasVertex = kFALSE;
 
   if (hasVertex) {
     Int_t dimensions[] = {4, 0, 5, 3};
     THnBase* tmpTrackHist = sparse->ProjectionND(4, dimensions, "E");
-    *eventHist = (TH2*)mEventHist->getTHn(step)->Projection(2, 1);
+    *eventHist = (TH2*)mTriggerHist->getTHn(step)->Projection(2, 1);
     // convert to THn
     *trackHist = changeToThn(tmpTrackHist);
     delete tmpTrackHist;
@@ -698,7 +702,7 @@ void CorrelationContainer::getHistsZVtxMult(CorrelationContainer::CFStep step, F
 
     delete tmpTrackHist;
 
-    TH1* projEventHist = (TH1*)mEventHist->getTHn(step)->Projection(1);
+    TH1* projEventHist = (TH1*)mTriggerHist->getTHn(step)->Projection(1);
     *eventHist = new TH2F(Form("%s_vtx", projEventHist->GetName()), projEventHist->GetTitle(), 1, vtxAxis, projEventHist->GetNbinsX(), projEventHist->GetXaxis()->GetXbins()->GetArray());
     for (Int_t binIdx = 1; binIdx <= projEventHist->GetNbinsX(); binIdx++) {
       (*eventHist)->SetBinContent(1, binIdx, projEventHist->GetBinContent(binIdx));
@@ -709,7 +713,7 @@ void CorrelationContainer::getHistsZVtxMult(CorrelationContainer::CFStep step, F
   }
 
   resetBinLimits(sparse);
-  resetBinLimits(mEventHist->getTHn(step));
+  resetBinLimits(mTriggerHist->getTHn(step));
 }
 
 //____________________________________________________________________
@@ -750,7 +754,7 @@ TH2* CorrelationContainer::getSumOfRatios(CorrelationContainer* mixed, Correlati
   // mixed-event normalization. If step6 is available, the normalization factor is read out from that one.
   // If step6 is not available we fallback to taking the normalization along all delta phi (WARNING requires a
   // flat delta phi distribution)
-  if (stepForMixed == -1 && step == kCFStepBiasStudy && mixed->mEventHist->getTHn(kCFStepReconstructed)->GetEntries() > 0 && !mSkipScaleMixedEvent) {
+  if (stepForMixed == -1 && step == kCFStepBiasStudy && mixed->mTriggerHist->getTHn(kCFStepReconstructed)->GetEntries() > 0 && !mSkipScaleMixedEvent) {
     LOGF(info, "Using mixed-event normalization factors from step %d", kCFStepReconstructed);
     mixed->getHistsZVtxMult(kCFStepReconstructed, ptLeadMin, ptLeadMax, &trackMixedAllStep6, &eventMixedAllStep6);
   }
@@ -996,21 +1000,21 @@ TH1* CorrelationContainer::getTriggersAsFunctionOfMultiplicity(CorrelationContai
 {
   // returns the distribution of triggers as function of centrality/multiplicity
 
-  resetBinLimits(mEventHist->getTHn(step));
+  resetBinLimits(mTriggerHist->getTHn(step));
 
-  Int_t firstBin = mEventHist->getTHn(step)->GetAxis(0)->FindBin(ptLeadMin);
-  Int_t lastBin = mEventHist->getTHn(step)->GetAxis(0)->FindBin(ptLeadMax);
+  Int_t firstBin = mTriggerHist->getTHn(step)->GetAxis(0)->FindBin(ptLeadMin);
+  Int_t lastBin = mTriggerHist->getTHn(step)->GetAxis(0)->FindBin(ptLeadMax);
   LOGF(info, "Using pT range %d --> %d", firstBin, lastBin);
-  mEventHist->getTHn(step)->GetAxis(0)->SetRange(firstBin, lastBin);
+  mTriggerHist->getTHn(step)->GetAxis(0)->SetRange(firstBin, lastBin);
 
   if (mZVtxMax > mZVtxMin) {
-    mEventHist->getTHn(step)->GetAxis(2)->SetRangeUser(mZVtxMin, mZVtxMax);
+    mTriggerHist->getTHn(step)->GetAxis(2)->SetRangeUser(mZVtxMin, mZVtxMax);
     LOGF(info, "Restricting z-vtx: %f-%f", mZVtxMin, mZVtxMax);
   }
 
-  TH1* eventHist = mEventHist->getTHn(step)->Projection(1);
+  TH1* eventHist = mTriggerHist->getTHn(step)->Projection(1);
 
-  resetBinLimits(mEventHist->getTHn(step));
+  resetBinLimits(mTriggerHist->getTHn(step));
 
   return eventHist;
 }
@@ -1209,7 +1213,7 @@ TH1* CorrelationContainer::getTrackEfficiency(CFStep step1, CFStep step2, Int_t 
 
   // rebin if required
   if (source == 2) {
-    TAxis* axis = mEventHist->getTHn(0)->GetAxis(0);
+    TAxis* axis = mTriggerHist->getTHn(0)->GetAxis(0);
 
     if (axis->GetNbins() < measured->GetNbinsX()) {
       if (axis2 != -1) {
@@ -1303,19 +1307,19 @@ TH1* CorrelationContainer::getEventEfficiency(CFStep step1, CFStep step2, Int_t 
   // projected to axis1 and axis2 (optional if >= 0)
 
   if (ptLeadMax > ptLeadMin) {
-    mEventHist->getTHn(step1)->GetAxis(0)->SetRangeUser(ptLeadMin, ptLeadMax);
-    mEventHist->getTHn(step2)->GetAxis(0)->SetRangeUser(ptLeadMin, ptLeadMax);
+    mTriggerHist->getTHn(step1)->GetAxis(0)->SetRangeUser(ptLeadMin, ptLeadMax);
+    mTriggerHist->getTHn(step2)->GetAxis(0)->SetRangeUser(ptLeadMin, ptLeadMax);
   }
 
   TH1* measured = nullptr;
   TH1* generated = nullptr;
 
   if (axis2 >= 0) {
-    generated = mEventHist->getTHn(step1)->Projection(axis1, axis2);
-    measured = mEventHist->getTHn(step2)->Projection(axis1, axis2);
+    generated = mTriggerHist->getTHn(step1)->Projection(axis1, axis2);
+    measured = mTriggerHist->getTHn(step2)->Projection(axis1, axis2);
   } else {
-    generated = mEventHist->getTHn(step1)->Projection(axis1);
-    measured = mEventHist->getTHn(step2)->Projection(axis1);
+    generated = mTriggerHist->getTHn(step1)->Projection(axis1);
+    measured = mTriggerHist->getTHn(step2)->Projection(axis1);
   }
 
   measured->Divide(measured, generated, 1, 1, "B");
@@ -1323,8 +1327,8 @@ TH1* CorrelationContainer::getEventEfficiency(CFStep step1, CFStep step2, Int_t 
   delete generated;
 
   if (ptLeadMax > ptLeadMin) {
-    mEventHist->getTHn(step1)->GetAxis(0)->SetRangeUser(0, -1);
-    mEventHist->getTHn(step2)->GetAxis(0)->SetRangeUser(0, -1);
+    mTriggerHist->getTHn(step1)->GetAxis(0)->SetRangeUser(0, -1);
+    mTriggerHist->getTHn(step2)->GetAxis(0)->SetRangeUser(0, -1);
   }
 
   return measured;
@@ -1367,22 +1371,22 @@ TH1* CorrelationContainer::getBias(CFStep step1, CFStep step2, const char* axis,
   //            1 = only track bias is returned
   //            2 = only event bias is returned
 
-  StepTHnBase* tmp = mTrackHist;
+  StepTHnBase* tmp = mPairHist;
 
   resetBinLimits(tmp->getTHn(step1));
-  resetBinLimits(mEventHist->getTHn(step1));
+  resetBinLimits(mTriggerHist->getTHn(step1));
   setBinLimits(tmp->getTHn(step1));
 
   resetBinLimits(tmp->getTHn(step2));
-  resetBinLimits(mEventHist->getTHn(step2));
+  resetBinLimits(mTriggerHist->getTHn(step2));
   setBinLimits(tmp->getTHn(step2));
 
-  TH1D* events1 = (TH1D*)mEventHist->getTHn(step1)->Projection(0);
+  TH1D* events1 = (TH1D*)mTriggerHist->getTHn(step1)->Projection(0);
   TH3D* hist1 = (TH3D*)tmp->getTHn(step1)->Projection(0, tmp->getNVar() - 1, 2);
   if (weighting == 0)
     weightHistogram(hist1, events1);
 
-  TH1D* events2 = (TH1D*)mEventHist->getTHn(step2)->Projection(0);
+  TH1D* events2 = (TH1D*)mTriggerHist->getTHn(step2)->Projection(0);
   TH3D* hist2 = (TH3D*)tmp->getTHn(step2)->Projection(0, tmp->getNVar() - 1, 2);
   if (weighting == 0)
     weightHistogram(hist2, events2);
@@ -1590,19 +1594,19 @@ void CorrelationContainer::deepCopy(CorrelationContainer* from)
   // copies the entries of this object's members from the object <from> to this object
   // fills using the fill function and thus allows that the objects have different binning
 
-  for (Int_t step = 0; step < mTrackHist->getNSteps(); step++) {
+  for (Int_t step = 0; step < mPairHist->getNSteps(); step++) {
     LOGF(info, "Copying step %d", step);
-    THnBase* target = mTrackHist->getTHn(step);
-    THnBase* source = from->mTrackHist->getTHn(step);
+    THnBase* target = mPairHist->getTHn(step);
+    THnBase* source = from->mPairHist->getTHn(step);
 
     target->Reset();
     target->RebinnedAdd(source);
   }
 
-  for (Int_t step = 0; step < mEventHist->getNSteps(); step++) {
+  for (Int_t step = 0; step < mTriggerHist->getNSteps(); step++) {
     LOGF(info, "Ev: Copying step %d", step);
-    THnBase* target = mEventHist->getTHn(step);
-    THnBase* source = from->mEventHist->getTHn(step);
+    THnBase* target = mTriggerHist->getTHn(step);
+    THnBase* source = from->mTriggerHist->getTHn(step);
 
     target->Reset();
     target->RebinnedAdd(source);
@@ -1625,9 +1629,9 @@ void CorrelationContainer::symmetrizepTBins()
 {
   // copy pt,a < pt,t bins to pt,a > pt,t (inverting deltaphi and delta eta as it should be) including symmetric bins
 
-  for (Int_t step = 0; step < mTrackHist->getNSteps(); step++) {
+  for (Int_t step = 0; step < mPairHist->getNSteps(); step++) {
     LOGF(info, "Copying step %d", step);
-    THnBase* target = mTrackHist->getTHn(step);
+    THnBase* target = mPairHist->getTHn(step);
     if (target->GetEntries() == 0)
       continue;
 
@@ -1832,11 +1836,11 @@ void CorrelationContainer::Reset()
 {
   // resets all contained histograms
 
-  for (Int_t step = 0; step < mTrackHist->getNSteps(); step++)
-    mTrackHist->getTHn(step)->Reset();
+  for (Int_t step = 0; step < mPairHist->getNSteps(); step++)
+    mPairHist->getTHn(step)->Reset();
 
-  for (Int_t step = 0; step < mEventHist->getNSteps(); step++)
-    mEventHist->getTHn(step)->Reset();
+  for (Int_t step = 0; step < mTriggerHist->getNSteps(); step++)
+    mTriggerHist->getTHn(step)->Reset();
 
   for (Int_t step = 0; step < mTrackHistEfficiency->getNSteps(); step++)
     mTrackHistEfficiency->getTHn(step)->Reset();
@@ -1861,4 +1865,10 @@ THnBase* CorrelationContainer::changeToThn(THnBase* sparse)
   tmpTHn->RebinnedAdd(sparse);
 
   return tmpTHn;
+}
+
+void CorrelationContainer::FillEvent(Float_t centrality, CFStep step)
+{
+  // Fill per-event information
+  mEventCount->Fill(step, centrality);
 }

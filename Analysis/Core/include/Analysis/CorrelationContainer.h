@@ -20,6 +20,7 @@ class TH1;
 class TH1F;
 class TH3;
 class TH3F;
+class TH2F;
 class TH1D;
 class TH2;
 class TH2D;
@@ -50,12 +51,13 @@ class CorrelationContainer : public TNamed
 
   const char* getStepTitle(CFStep step);
 
-  StepTHnBase* getTrackHist() { return mTrackHist; }
-  StepTHnBase* getEventHist() { return mEventHist; }
+  StepTHnBase* getPairHist() { return mPairHist; }
+  StepTHnBase* getTriggerHist() { return mTriggerHist; }
   StepTHnBase* getTrackHistEfficiency() { return mTrackHistEfficiency; }
+  TH2F* getEventCount() { return mEventCount; }
 
-  void setTrackHist(StepTHnBase* hist) { mTrackHist = hist; }
-  void setEventHist(StepTHnBase* hist) { mEventHist = hist; }
+  void setPairHist(StepTHnBase* hist) { mPairHist = hist; }
+  void setTriggerHist(StepTHnBase* hist) { mTriggerHist = hist; }
   void setTrackHistEfficiency(StepTHnBase* hist) { mTrackHistEfficiency = hist; }
 
   void deepCopy(CorrelationContainer* from);
@@ -86,6 +88,8 @@ class CorrelationContainer : public TNamed
   TH1D* getTrackingEfficiencyCorrection(Int_t axis);
   TH2D* getTrackingEfficiencyCorrection();
   TH2D* getTrackingEfficiencyCorrectionCentrality();
+
+  void FillEvent(Float_t centrality, CFStep step);
 
   void extendTrackingEfficiency(Bool_t verbose = kFALSE);
 
@@ -144,9 +148,11 @@ class CorrelationContainer : public TNamed
   void weightHistogram(TH3* hist1, TH1* hist2);
   void multiplyHistograms(THnBase* grid, THnBase* target, TH1* histogram, Int_t var1, Int_t var2);
 
-  StepTHnBase* mTrackHist;           // container for track level distributions at all analysis steps
-  StepTHnBase* mEventHist;           // container for event level distribution at all analysis steps
+  StepTHnBase* mPairHist;            // container for pair level distributions at all analysis steps
+  StepTHnBase* mTriggerHist;         // container for "trigger" particle (single-particle) level distribution at all analysis steps
   StepTHnBase* mTrackHistEfficiency; // container for tracking efficiency and contamination (all particles filled including leading one): axes: eta, pT, particle species
+
+  TH2F* mEventCount; // event count as function of step, (for pp: event type (plus additional step -1 for all events without vertex range even in MC)) (for PbPb: centrality)
 
   Float_t mEtaMin;        // eta min for projections
   Float_t mEtaMax;        // eta max for projections
