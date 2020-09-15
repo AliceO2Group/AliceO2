@@ -18,7 +18,7 @@ jobs:
       run: |
         set -x
         # We need to fetch the other commit.
-        git fetch --depth=1 origin ${{ github.event.pull_request.base.ref }}
+        git fetch origin ${{ github.event.pull_request.base.ref }}
         git fetch origin pull/${{ github.event.pull_request.number }}/head:${{ github.event.pull_request.head.ref }}
 
         # We create a new branch which we will use for the eventual PR.
