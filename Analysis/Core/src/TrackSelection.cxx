@@ -18,7 +18,7 @@
 ClassImp(TrackSelection)
 
   TrackSelection::TrackSelection()
-  : TObject(), mMinPt{0.}, mMaxPt{1e10}, mMinEta{0.}, mMaxEta{1e10}, mMinNClustersTPC{0}, mMinNCrossedRowsTPC{0}, mMinNClustersITS{0}, mMaxChi2PerClusterTPC{1e10}, mMaxChi2PerClusterITS{1e10}, mMinNCrossedRowsOverFindableClustersTPC{1e10}, mMaxDcaXY{1e10}, mMaxDcaZ{1e10}, mRequireITSRefit{false}, mRequireTPCRefit{false}
+  : TObject(), mMinPt{0.}, mMaxPt{1e10}, mMinEta{-1e10}, mMaxEta{1e10}, mMinNClustersTPC{0}, mMinNCrossedRowsTPC{0}, mMinNClustersITS{0}, mMaxChi2PerClusterTPC{1e10}, mMaxChi2PerClusterITS{1e10}, mMinNCrossedRowsOverFindableClustersTPC{0}, mMaxDcaXY{1e10}, mMaxDcaZ{1e10}, mRequireITSRefit{false}, mRequireTPCRefit{false}
 {
 }
 
