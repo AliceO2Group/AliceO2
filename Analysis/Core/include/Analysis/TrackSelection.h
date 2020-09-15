@@ -31,7 +31,7 @@ class TrackSelection : public TObject
   template <typename T>
   bool IsSelected(T const& track)
   {
-    if (track.trackType() == o2::aod::track::TrackTypeEnum::GlobalTrack &&
+    if (track.trackType() == mTrackType &&
         track.pt() >= mMinPt && track.pt() < mMaxPt && track.eta() >= mMinEta &&
         track.eta() < mMaxEta && track.tpcNClsFound() >= mMinNClustersTPC &&
         track.tpcNClsCrossedRows() >= mMinNCrossedRowsTPC &&
@@ -40,8 +40,8 @@ class TrackSelection : public TObject
         (track.itsNCls() >= mMinNClustersITS) &&
         (track.itsChi2NCl() < mMaxChi2PerClusterITS) &&
         (track.tpcChi2NCl() < mMaxChi2PerClusterTPC) &&
-        (mRequireITSRefit && (track.flags() & 0x4)) &&
-        (mRequireTPCRefit && (track.flags() & 0x40)) &&
+        ((mRequireITSRefit) ? (track.flags() & 0x4) : true) &&
+        ((mRequireTPCRefit) ? (track.flags() & 0x40) : true) &&
         FulfillsITSHitRequirements(track.itsClusterMap()) &&
         abs(track.dcaXY()) < mMaxDcaXY && abs(track.dcaZ()) < mMaxDcaZ) {
       return true;
@@ -50,6 +50,7 @@ class TrackSelection : public TObject
     }
   }
 
+  void SetTrackType(o2::aod::track::TrackTypeEnum trackType) { mTrackType = trackType; }
   void SetMinPt(float minPt) { mMinPt = minPt; }
   void SetMaxPt(float maxPt) { mMaxPt = maxPt; }
   void SetMinEta(float minEta) { mMinEta = minEta; }
@@ -109,6 +110,8 @@ class TrackSelection : public TObject
 
  private:
   bool FulfillsITSHitRequirements(uint8_t itsClusterMap);
+
+  o2::aod::track::TrackTypeEnum mTrackType;
 
   // kinematic cuts
   float mMinPt, mMaxPt;   // range in pT
