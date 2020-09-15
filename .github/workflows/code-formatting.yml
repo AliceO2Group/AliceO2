@@ -13,6 +13,8 @@ jobs:
         persist-credentials: false
     - name: Run clang format
       id: clang_format
+      env:
+        ALIBUILD_GITHUB_TOKEN: ${{secrets.ALIBUILD_GITHUB_TOKEN}}
       run: |
         set -x
         # We need to fetch the other commit.
@@ -60,7 +62,7 @@ jobs:
           git show | cat
           echo ${{ secrets.ALIBUILD_GITHUB_TOKEN }} | wc
           echo $ALIBUILD_GITHUB_TOKEN | wc
-          git push --set-upstream https://alibuild:${{ secrets.ALIBUILD_GITHUB_TOKEN }}@github.com/alibuild/AliceO2.git HEAD:refs/heads/alibot-cleanup-${{ github.event.pull_request.number }} -f
+          git push --set-upstream https://alibuild:$ALIBUILD_GITHUB_TOKEN@github.com/alibuild/AliceO2.git HEAD:refs/heads/alibot-cleanup-${{ github.event.pull_request.number }} -f
           echo ::set-output name=clean::false
         fi
 
