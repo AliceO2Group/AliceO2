@@ -32,7 +32,7 @@ using namespace o2::framework;
 //using namespace o2::framework::expressions;
 using namespace o2::aod;
 
-struct TableMaker {
+struct TableMaker_pp {
 
   Produces<ReducedEvents> event;
   Produces<ReducedEventsExtended> eventExtended;
@@ -68,7 +68,7 @@ struct TableMaker {
     VarManager::SetUseVars(fHistMan->GetUsedVars()); // provide the list of required variables so that VarManager knows what to fill
   }
 
-  void process(soa::Join<aod::Collisions, aod::EvSels, aod::Cents>::iterator collision, aod::MuonClusters const& clustersMuon, aod::Muons const& tracksMuon, aod::BCs const& bcs, soa::Join<aod::Tracks, aod::TracksExtra, aod::TracksCov, aod::pidRespTPC, aod::pidRespTOF, aod::pidRespTOFbeta> const& tracksBarrel)
+  void process(soa::Join<aod::Collisions, aod::EvSels>::iterator collision, aod::MuonClusters const& clustersMuon, aod::Muons const& tracksMuon, aod::BCs const& bcs, soa::Join<aod::Tracks, aod::TracksExtra, aod::TracksCov, aod::pidRespTPC, aod::pidRespTOF, aod::pidRespTOFbeta> const& tracksBarrel)
   {
     uint64_t tag = 0;
     uint32_t triggerAliases = 0;
@@ -81,7 +81,7 @@ struct TableMaker {
     fHistMan->FillHistClass("Event", VarManager::fgValues); // automatically fill all the histograms in the class Event
 
     event(tag, collision.bc().runNumber(), collision.posX(), collision.posY(), collision.posZ(), collision.numContrib());
-    eventExtended(collision.bc().globalBC(), collision.bc().triggerMask(), triggerAliases, collision.centV0M());
+    eventExtended(collision.bc().globalBC(), collision.bc().triggerMask(), triggerAliases, 0.0f);
     eventVtxCov(collision.covXX(), collision.covXY(), collision.covXZ(), collision.covYY(), collision.covYZ(), collision.covZZ(), collision.chi2());
 
     uint64_t trackFilteringTag = 0;
@@ -169,5 +169,5 @@ struct TableMaker {
 WorkflowSpec defineDataProcessing(ConfigContext const&)
 {
   return WorkflowSpec{
-    adaptAnalysisTask<TableMaker>("table-maker")};
+    adaptAnalysisTask<TableMaker_pp>("table-maker-pp")};
 }

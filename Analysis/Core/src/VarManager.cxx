@@ -171,6 +171,10 @@ void VarManager::SetDefaultVarNames()
   fgVariableUnits[kTOFbeta] = "";
   fgVariableNames[kTrackLength] = "track length";
   fgVariableUnits[kTrackLength] = "cm";
+  fgVariableNames[kTrackDCAxy] = "DCA_{xy}";
+  fgVariableUnits[kTrackDCAxy] = "cm";
+  fgVariableNames[kTrackDCAz] = "DCA_{z}";
+  fgVariableUnits[kTrackDCAz] = "cm";
   fgVariableNames[kTPCnSigmaEl] = "n #sigma_{e}^{TPC}";
   fgVariableUnits[kTPCnSigmaEl] = "";
   fgVariableNames[kTPCnSigmaMu] = "n #sigma_{#mu}^{TPC}";
