@@ -65,7 +65,7 @@ jobs:
           git show | cat
           echo ${{ secrets.ALIBUILD_GITHUB_TOKEN }} | wc
           echo $ALIBUILD_GITHUB_TOKEN | wc
-          git fetch --unshallow https://github.com/${{github.event.pull_request.user.login}}/AliceO2.git pull/${{ github.event.pull_request.number }}/head
+          git fetch --unshallow https://github.com/AliceO2Group/AliceO2.git pull/${{ github.event.pull_request.number }}/head
           git push --set-upstream https://alibuild:$ALIBUILD_GITHUB_TOKEN@github.com/alibuild/AliceO2.git HEAD:refs/heads/alibot-cleanup-${{ github.event.pull_request.number }} -f
           echo ::set-output name=clean::false
         fi
