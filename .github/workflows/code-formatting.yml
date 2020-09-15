@@ -10,9 +10,7 @@ jobs:
     - uses: actions/checkout@v2
       with:
         ref: ${{ github.event.pull_request.head.sha }}
-        token: "${{secrets.ALIBUILD_GITHUB_TOKEN}}"
-      env:
-        GITHUB_TOKEN: ${{ secrets.ALIBUILD_GITHUB_TOKEN }}
+        persist-credentials: false
     - name: Run clang format
       id: clang_format
       run: |
@@ -60,6 +58,8 @@ jobs:
           echo "Opening a PR to your branch with the fixes"
           git commit -m "Please consider the following formatting changes" -a
           git show | cat
+          echo ${{ secrets.ALIBUILD_GITHUB_TOKEN }} | wc
+          echo $ALIBUILD_GITHUB_TOKEN | wc
           git push --set-upstream https://alibuild:${{ secrets.ALIBUILD_GITHUB_TOKEN }}@github.com/alibuild/AliceO2.git HEAD:refs/heads/alibot-cleanup-${{ github.event.pull_request.number }} -f
           echo ::set-output name=clean::false
         fi
