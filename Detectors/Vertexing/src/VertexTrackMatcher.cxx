@@ -40,13 +40,13 @@ void VertexTrackMatcher::updateTPCTimeDependentParams()
 
 void VertexTrackMatcher::process(const gsl::span<const PVertex>& vertices,
                                  const gsl::span<const GIndex>& v2tfitIDs,
-                                 const gsl::span<const RRef>& v2tfitRefs,
+                                 const gsl::span<const VRef>& v2tfitRefs,
                                  const gsl::span<const TrackTPCITS>& tpcitsTracks,
                                  const gsl::span<const TrackITS>& itsTracks,
                                  const gsl::span<const ITSROFR>& itsROFR,
                                  const gsl::span<const TrackTPC>& tpcTracks,
                                  std::vector<GIndex>& trackIndex,
-                                 std::vector<RRef>& vtxRefs)
+                                 std::vector<VRef>& vtxRefs)
 {
 
   TmpMap tmpMap;
@@ -87,6 +87,7 @@ void VertexTrackMatcher::process(const gsl::span<const PVertex>& vertices,
     return tI < tJ;
   });
 
+  // Important: do this in the same order in which VtxTrackIndex::Source enums are defined!
   attachTPCITS(tmpMap, tpcitsTracks, idTPCITS, vertices);
   attachITS(tmpMap, itsTracks, itsROFR, flgITS, vertices, idVtxIRMin);
   attachTPC(tmpMap, tpcTimes, idTPC, vertices, idVtxIRMin);
@@ -109,22 +110,42 @@ void VertexTrackMatcher::process(const gsl::span<const PVertex>& vertices,
       (*vptr[gid.getSource()])[gid.getIndex()]++;
     }
   }
+
   for (int iv = 0; iv < nv; iv++) {
+    int srcStart[GIndex::NSources + 1];
     int entry = trackIndex.size();
+    srcStart[GIndex::TPCITS] = entry;
+    for (int is = 1; is < GIndex::NSources; is++) {
+      srcStart[is] = -1;
+    }
+
     // 1st: attach indices of global tracks used in vertex fit
     int idMin = v2tfitRefs[iv].getFirstEntry(), idMax = idMin + v2tfitRefs[iv].getEntries();
     for (int id = idMin; id < idMax; id++) {
       trackIndex.push_back(v2tfitIDs[id]);
     }
+
     // 2nd: attach non-contributing tracks
     const auto& trvec = tmpMap[iv];
     for (const auto gid0 : trvec) {
+      int src = gid0.getSource();
+      if (srcStart[src] == -1) {
+        srcStart[src] = trackIndex.size();
+      }
       auto& gid = trackIndex.emplace_back(gid0);
-      if ((*vptr[gid.getSource()])[gid.getIndex()] > 1) {
+      if ((*vptr[src])[gid.getIndex()] > 1) {
         gid.setBit(GIndex::Ambiguous);
       }
     }
-    vtxRefs.emplace_back(entry, trackIndex.size() - entry);
+
+    auto& vr = vtxRefs.emplace_back(entry, trackIndex.size() - entry);
+    srcStart[GIndex::NSources] = trackIndex.size();
+    for (int is = GIndex::NSources; is > 0; is--) {
+      if (srcStart[is] == -1) { // in case the source did not contribute
+        srcStart[is] = srcStart[is + 1];
+      }
+      vr.setFirstEntryOfSource(is, srcStart[is]);
+    }
   }
 }
 
