@@ -7,13 +7,14 @@
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
-#include "Framework/runDataProcessing.h"
+
 #include "Framework/AnalysisTask.h"
 #include "Framework/AnalysisDataModel.h"
 #include "Framework/ASoAHelpers.h"
 #include "Analysis/EventSelection.h"
 #include "Analysis/Centrality.h"
 #include "Analysis/TrackSelection.h"
+#include "AnalysisConfigurableCuts.h"
 #include "Analysis/TrackSelectionTables.h"
 #include <TROOT.h>
 #include <TParameter.h>
@@ -31,6 +32,20 @@ using namespace o2::framework;
 using namespace o2::soa;
 using namespace o2::framework::expressions;
 
+void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
+{
+  //  std::vector<ConfigParamSpec> options{
+  //    {"centralities", VariantType::String, "0-5,5-10,10-20,20-30,30-40,40-50,50-60,60-70,70-80", {"Centrality/multiplicity ranges in min-max separated by commas"}}};
+  //  std::swap(workflowOptions, options);
+  ConfigParamSpec centspec = {"centralities",
+                              VariantType::String,
+                              "0-5,5-10,10-20,20-30,30-40,40-50,50-60,60-70,70-80",
+                              {"Centrality/multiplicity ranges in min-max separated by commas"}};
+  workflowOptions.push_back(centspec);
+}
+
+#include "Framework/runDataProcessing.h"
+
 namespace o2
 {
 namespace aod
@@ -39,15 +54,17 @@ namespace aod
 namespace dptdptcorrelations
 {
 DECLARE_SOA_COLUMN(EventAccepted, eventaccepted, uint8_t);
+DECLARE_SOA_COLUMN(EventCentMult, centmult, float);
 DECLARE_SOA_COLUMN(TrackacceptedAsOne, trackacceptedasone, uint8_t);
 DECLARE_SOA_COLUMN(TrackacceptedAsTwo, trackacceptedastwo, uint8_t);
 } // namespace dptdptcorrelations
-DECLARE_SOA_TABLE(AcceptedEvents, "AOD", "ACCEPTEDEVENTS", dptdptcorrelations::EventAccepted);
+DECLARE_SOA_TABLE(AcceptedEvents, "AOD", "ACCEPTEDEVENTS", dptdptcorrelations::EventAccepted, dptdptcorrelations::EventCentMult);
 DECLARE_SOA_TABLE(ScannedTracks, "AOD", "SCANNEDTRACKS", dptdptcorrelations::TrackacceptedAsOne, dptdptcorrelations::TrackacceptedAsTwo);
 
 using CollisionEvSelCent = soa::Join<aod::Collisions, aod::EvSels, aod::Cents>::iterator;
 using TrackData = soa::Join<aod::Tracks, aod::TracksCov, aod::TracksExtra, aod::TracksExtended, aod::TrackSelection>::iterator;
 using FilteredTracks = soa::Filtered<soa::Join<aod::Tracks, aod::TracksExtra, aod::TracksExtended, aod::ScannedTracks>>;
+using FilteredTrackData = Partition<aod::FilteredTracks>::filtered_iterator;
 } // namespace aod
 } // namespace o2
 
@@ -60,11 +77,10 @@ int etabins = 16;
 float etalow = -0.8, etaup = 0.8;
 int zvtxbins = 40;
 float zvtxlow = -10.0, zvtxup = 10.0;
-/* this still panding of being configurable */
 int phibins = 72;
-
 float philow = 0.0;
 float phiup = TMath::TwoPi();
+float phibinshift = 0.5;
 float etabinwidth = (etaup - etalow) / float(etabins);
 float phibinwidth = (phiup - philow) / float(phibins);
 int tracktype = 1;
@@ -89,6 +105,8 @@ enum SystemType {
   knSystems      ///< number of handled systems
 };
 
+namespace filteranalyistask
+{
 //============================================================================================
 // The DptDptCorrelationsFilterAnalysisTask output objects
 //============================================================================================
@@ -115,7 +133,10 @@ TH2F* fhEtaVsPhiA = nullptr;
 
 TH2F* fhPtVsEtaB = nullptr;
 TH2F* fhPtVsEtaA = nullptr;
+} // namespace filteranalyistask
 
+namespace correlationstask
+{
 //============================================================================================
 // The DptDptCorrelationsAnalysisTask output objects
 //============================================================================================
@@ -150,6 +171,7 @@ TProfile* fhN2nw_12_vsC;       //!<! track 1 and 2 un-weighted two particle dist
 TProfile* fhSum2PtPtnw_12_vsC; //!<! track 1 and 2 un-weighted accumulated \f${p_T}_1 {p_T}_2\f$ distribution vs event centrality
 TProfile* fhSum2PtNnw_12_vsC;  //!<! track 1 and 2 un-weighted accumulated \f${p_T}_1 n_2\f$ distribution vs event centrality
 TProfile* fhSum2NPtnw_12_vsC;  //!<! track 1 and 2 un-weighted accumulated \f$n_1 {p_T}_2\f$ distribution vs event centrality
+} // namespace correlationstask
 
 SystemType getSystemType()
 {
@@ -157,12 +179,19 @@ SystemType getSystemType()
   return kPbPb;
 }
 
-bool IsEvtSelected(aod::CollisionEvSelCent const& collision)
+bool IsEvtSelected(aod::CollisionEvSelCent const& collision, const std::string estimator, float& centormult)
 {
   if (collision.alias()[kINT7]) {
     if (collision.sel7()) {
+      /* TODO: vertex quality checks */
       if (zvtxlow < collision.posZ() and collision.posZ() < zvtxup) {
-        return true;
+        if (estimator.compare("V0M") == 0) {
+          if (collision.centV0M() < 100 and 0 < collision.centV0M()) {
+            centormult = collision.centV0M();
+            return true;
+          }
+        }
+        return false;
       }
       return false;
     }
@@ -190,37 +219,40 @@ bool matchTrackType(aod::TrackData const& track)
   }
 }
 
-inline std::tuple<uint8_t, uint8_t> AcceptTrack(aod::TrackData const& track)
+inline void AcceptTrack(aod::TrackData const& track, uint8_t& asone, uint8_t& astwo)
 {
 
-  uint8_t asone = DPTDPT_FALSE;
-  uint8_t astwo = DPTDPT_FALSE;
+  asone = DPTDPT_FALSE;
+  astwo = DPTDPT_FALSE;
 
   /* TODO: incorporate a mask in the scanned tracks table for the rejecting track reason */
   if (matchTrackType(track)) {
     if (ptlow < track.pt() and track.pt() < ptup and etalow < track.eta() and track.eta() < etaup) {
       if (((track.charge() > 0) and (trackonecharge > 0)) or ((track.charge() < 0) and (trackonecharge < 0))) {
         asone = DPTDPT_TRUE;
-      } else if (((track.charge() > 0) and (tracktwocharge > 0)) or ((track.charge() < 0) and (tracktwocharge < 0))) {
+      }
+      if (((track.charge() > 0) and (tracktwocharge > 0)) or ((track.charge() < 0) and (tracktwocharge < 0))) {
         astwo = DPTDPT_TRUE;
       }
     }
   }
-  return std::make_tuple(asone, astwo);
 }
 
-/// \brief Returns the zero based bin index of the eta phi passed values
-/// \param eta the eta value
-/// \param phi the phi value
+/// \brief Returns the zero based bin index of the eta phi passed track
+/// \param t the intended track
 /// \return the zero based bin index
 ///
 /// According to the bining structure, to the track eta will correspond
 /// a zero based bin index and similarlly for the track phi
 /// The returned index is the composition of both considering eta as
 /// the first index component
-inline int GetEtaPhiIndex(float eta, float phi)
+inline int GetEtaPhiIndex(aod::FilteredTrackData const& t)
 {
-  int etaix = int((eta - etalow) / etabinwidth);
+  int etaix = int((t.eta() - etalow) / etabinwidth);
+  /* consider a potential phi origin shift */
+  float phi = t.phi();
+  if (not(phi < phiup))
+    phi = phi - 2 * TMath::Pi();
   int phiix = int((phi - philow) / phibinwidth);
   return etaix * phibins + phiix;
 }
@@ -237,16 +269,11 @@ struct DptDptCorrelationsFilterAnalysisTask {
   Configurable<int> cfgTrackType{"trktype", 1, "Type of selected tracks: 0 = no selection, 1 = global tracks loose DCA, 2 = global SDD tracks"};
   Configurable<int> cfgTrackOneCharge{"trk1charge", 1, "Trakc one charge: 1 = positive, -1 = negative"};
   Configurable<int> cfgTrackTwoCharge{"trk2charge", -1, "Trakc two charge: 1 = positive, -1 = negative"};
+  Configurable<std::string> cfgCentMultEstimator{"centmultestimator", "V0M", "Centrality/multiplicity estimator detector: default V0M"};
 
-  Configurable<int> cfgPtBins{"ptbins", 18, "Number of pT bins, default 18"};
-  Configurable<int> cfgZVtxBins{"zvtxbins", 28, "Number of z_vtx bins, default 28"};
-  Configurable<int> cfgEtaBins{"etabins", 16, "Number of eta bins, default 16"};
-  Configurable<float> cfgPtLow{"ptlow", 0.2f, "Lowest pT (GeV/c), default 0.2"};
-  Configurable<float> cfgPtHigh{"pthigh", 2.0f, "Highest pT (GeV/c), default 2.0"};
-  Configurable<float> cfgZVtxLow{"zvtxlow", -7.0f, "Lowest z_vtx distance (cm), default -7.0"};
-  Configurable<float> cfgZVtxHigh{"zvtxhigh", 7.0f, "Highest z_vtx distance (cm), default 7.0"};
-  Configurable<float> cfgEtaLow{"etalow", -0.8f, "Lowest eta value, default -0.8"};
-  Configurable<float> cfgEtaHigh{"etahigh", 0.8f, "Highest eta value, default 0.8"};
+  Configurable<o2::analysis::DptDptBinningCuts> cfgBinning{"binning",
+                                                           {28, -7.0, 7.0, 18, 0.2, 2.0, 16, -0.8, 0.8, 72, 0.0, TMath::TwoPi()},
+                                                           "triplets - nbins, min, max - for z_vtx, pT, eta and phi, binning plus bin fraction of phi origin shift"};
 
   OutputObj<TList> fOutput{"DptDptCorrelationsGlobalInfo", OutputObjHandlingPolicy::AnalysisObject};
 
@@ -255,22 +282,21 @@ struct DptDptCorrelationsFilterAnalysisTask {
 
   void init(InitContext const&)
   {
-    /* update the configurable values */
-    ptbins = cfgPtBins.value;
-    ptlow = cfgPtLow.value;
-    ptup = cfgPtHigh.value;
-    etabins = cfgEtaBins.value;
-    etalow = cfgEtaLow.value;
-    etaup = cfgEtaHigh.value;
-    zvtxbins = cfgZVtxBins.value;
-    zvtxlow = cfgZVtxLow.value;
-    zvtxup = cfgZVtxHigh.value;
+    using namespace filteranalyistask;
+
+    /* update with the configurable values */
+    ptbins = cfgBinning->mPTbins;
+    ptlow = cfgBinning->mPTmin;
+    ptup = cfgBinning->mPTmax;
+    etabins = cfgBinning->mEtabins;
+    etalow = cfgBinning->mEtamin;
+    etaup = cfgBinning->mEtamax;
+    zvtxbins = cfgBinning->mZVtxbins;
+    zvtxlow = cfgBinning->mZVtxmin;
+    zvtxup = cfgBinning->mZVtxmax;
     tracktype = cfgTrackType.value;
     trackonecharge = cfgTrackOneCharge.value;
     tracktwocharge = cfgTrackTwoCharge.value;
-
-    /* still missing configuration */
-    phibins = 72;
 
     /* if the system type is not known at this time, we have to put the initalization somewhere else */
     fSystem = getSystemType();
@@ -331,11 +357,14 @@ struct DptDptCorrelationsFilterAnalysisTask {
 
   void process(aod::CollisionEvSelCent const& collision, soa::Join<aod::Tracks, aod::TracksCov, aod::TracksExtra, aod::TracksExtended, aod::TrackSelection> const& ftracks)
   {
+    using namespace filteranalyistask;
+
     //    LOGF(INFO,"New collision with %d filtered tracks", ftracks.size());
     fhCentMultB->Fill(collision.centV0M());
     fhVertexZB->Fill(collision.posZ());
     int acceptedevent = DPTDPT_FALSE;
-    if (IsEvtSelected(collision)) {
+    float centormult = -100.0;
+    if (IsEvtSelected(collision, cfgCentMultEstimator, centormult)) {
       acceptedevent = DPTDPT_TRUE;
       fhCentMultA->Fill(collision.centV0M());
       fhVertexZA->Fill(collision.posZ());
@@ -356,7 +385,8 @@ struct DptDptCorrelationsFilterAnalysisTask {
 
         /* track selection */
         /* tricky because the boolean columns issue */
-        auto [asone, astwo] = AcceptTrack(track);
+        uint8_t asone, astwo;
+        AcceptTrack(track, asone, astwo);
         if ((asone == DPTDPT_TRUE) or (astwo == DPTDPT_TRUE)) {
           /* the track has been accepted */
           fhPtA->Fill(track.pt());
@@ -377,52 +407,76 @@ struct DptDptCorrelationsFilterAnalysisTask {
         scannedtracks(DPTDPT_FALSE, DPTDPT_FALSE);
       }
     }
-    acceptedevents(acceptedevent);
+    acceptedevents(acceptedevent, centormult);
   }
 };
 
 // Task for building <dpt,dpt> correlations
 struct DptDptCorrelationsTask {
+  /* the data memebers for this task */
+  /* the centrality / multiplicity limits for collecting data in this task instance */
+  float fCentMultMin;
+  float fCentMultMax;
 
-  Configurable<int> cfgTrackType{"trktype", 1, "Type of selected tracks: 0 = no selection, 1 = global tracks loose DCA, 2 = global SDD tracks"};
-  Configurable<int> cfgTrackOneCharge{"trk1charge", 1, "Trakc one charge: 1 = positive, -1 = negative"};
-  Configurable<int> cfgTrackTwoCharge{"trk2charge", -1, "Trakc two charge: 1 = positive, -1 = negative"};
   Configurable<bool> cfgProcessPairs{"processpairs", false, "Process pairs: false = no, just singles, true = yes, process pairs"};
 
-  Configurable<int> cfgPtBins{"ptbins", 18, "Number of pT bins, default 18"};
-  Configurable<int> cfgZVtxBins{"zvtxbins", 28, "Number of z_vtx bins, default 28"};
-  Configurable<int> cfgEtaBins{"etabins", 16, "Number of eta bins, default 16"};
-  Configurable<float> cfgPtLow{"ptlow", 0.2f, "Lowest pT (GeV/c), default 0.2"};
-  Configurable<float> cfgPtHigh{"pthigh", 2.0f, "Highest pT (GeV/c), default 2.0"};
-  Configurable<float> cfgZVtxLow{"zvtxlow", -7.0f, "Lowest z_vtx distance (cm), default -7.0"};
-  Configurable<float> cfgZVtxHigh{"zvtxhigh", 7.0f, "Highest z_vtx distance (cm), default 7.0"};
-  Configurable<float> cfgEtaLow{"etalow", -0.8f, "Lowest eta value, default -0.8"};
-  Configurable<float> cfgEtaHigh{"etahigh", 0.8f, "Highest eta value, default 0.8"};
+  Configurable<o2::analysis::DptDptBinningCuts> cfgBinning{"binning",
+                                                           {28, -7.0, 7.0, 18, 0.2, 2.0, 16, -0.8, 0.8, 72, 0.0, TMath::TwoPi()},
+                                                           "triplets - nbins, min, max - for z_vtx, pT, eta and phi, binning plus bin fraction of phi origin shift"};
 
   OutputObj<TList> fOutput{"DptDptCorrelationsData", OutputObjHandlingPolicy::AnalysisObject};
 
+  Filter onlyacceptedevents = (aod::dptdptcorrelations::eventaccepted == DPTDPT_TRUE);
+  Filter onlyacceptedtracks = ((aod::dptdptcorrelations::trackacceptedasone == DPTDPT_TRUE) or (aod::dptdptcorrelations::trackacceptedastwo == DPTDPT_TRUE));
+
+  Partition<aod::FilteredTracks> Tracks1 = aod::dptdptcorrelations::trackacceptedasone == DPTDPT_TRUE;
+  Partition<aod::FilteredTracks> Tracks2 = aod::dptdptcorrelations::trackacceptedastwo == DPTDPT_TRUE;
+
+  DptDptCorrelationsTask(float cmmin,
+                         float cmmax,
+                         Configurable<bool> _cfgProcessPairs = {"processpairs", false, "Process pairs: false = no, just singles, true = yes, process pairs"},
+                         Configurable<o2::analysis::DptDptBinningCuts> _cfgBinning = {"binning",
+                                                                                      {28, -7.0, 7.0, 18, 0.2, 2.0, 16, -0.8, 0.8, 72, 0.0, TMath::TwoPi()},
+                                                                                      "triplets - nbins, min, max - for z_vtx, pT, eta and phi, binning plus bin fraction of phi origin shift"},
+                         OutputObj<TList> _fOutput = {"DptDptCorrelationsData", OutputObjHandlingPolicy::AnalysisObject},
+                         Filter _onlyacceptedevents = (aod::dptdptcorrelations::eventaccepted == DPTDPT_TRUE),
+                         Filter _onlyacceptedtracks = ((aod::dptdptcorrelations::trackacceptedasone == DPTDPT_TRUE) or (aod::dptdptcorrelations::trackacceptedastwo == DPTDPT_TRUE)),
+                         Partition<aod::FilteredTracks> _Tracks1 = aod::dptdptcorrelations::trackacceptedasone == DPTDPT_TRUE,
+                         Partition<aod::FilteredTracks> _Tracks2 = aod::dptdptcorrelations::trackacceptedastwo == DPTDPT_TRUE)
+    : fCentMultMin(cmmin),
+      fCentMultMax(cmmax),
+      cfgProcessPairs(_cfgProcessPairs),
+      cfgBinning(_cfgBinning),
+      fOutput(_fOutput),
+      onlyacceptedevents((aod::dptdptcorrelations::eventaccepted == DPTDPT_TRUE) and (aod::dptdptcorrelations::centmult > fCentMultMin) and (aod::dptdptcorrelations::centmult < fCentMultMax)),
+      onlyacceptedtracks((aod::dptdptcorrelations::trackacceptedasone == DPTDPT_TRUE) or (aod::dptdptcorrelations::trackacceptedastwo == DPTDPT_TRUE)),
+      Tracks1(aod::dptdptcorrelations::trackacceptedasone == DPTDPT_TRUE),
+      Tracks2(aod::dptdptcorrelations::trackacceptedastwo == DPTDPT_TRUE)
+  {
+  }
+
   void init(InitContext const&)
   {
-    /* update the configurable values */
-    ptbins = cfgPtBins.value;
-    ptlow = cfgPtLow.value;
-    ptup = cfgPtHigh.value;
-    etabins = cfgEtaBins.value;
-    etalow = cfgEtaLow.value;
-    etaup = cfgEtaHigh.value;
-    zvtxbins = cfgZVtxBins.value;
-    zvtxlow = cfgZVtxLow.value;
-    zvtxup = cfgZVtxHigh.value;
-    tracktype = cfgTrackType.value;
-    trackonecharge = cfgTrackOneCharge.value;
-    tracktwocharge = cfgTrackTwoCharge.value;
-    processpairs = cfgProcessPairs.value;
+    using namespace correlationstask;
 
-    /* still missing configuration */
-    phibins = 72;
-    /* TODO: shift of the azimuthal angle origin */
-    philow = 0.0;
-    phiup = TMath::TwoPi();
+    /* update with the configurable values */
+    ptbins = cfgBinning->mPTbins;
+    ptlow = cfgBinning->mPTmin;
+    ptup = cfgBinning->mPTmax;
+    etabins = cfgBinning->mEtabins;
+    etalow = cfgBinning->mEtamin;
+    etaup = cfgBinning->mEtamax;
+    zvtxbins = cfgBinning->mZVtxbins;
+    zvtxlow = cfgBinning->mZVtxmin;
+    zvtxup = cfgBinning->mZVtxmax;
+    phibins = cfgBinning->mPhibins;
+    philow = cfgBinning->mPhimin;
+    phiup = cfgBinning->mPhimax;
+    phibinshift = cfgBinning->mPhibinshift;
+    processpairs = cfgProcessPairs.value;
+    /* update the potential binning change */
+    etabinwidth = (etaup - etalow) / float(etabins);
+    phibinwidth = (phiup - philow) / float(phibins);
 
     /* create the output list which will own the task histograms */
     TList* fOutputList = new TList();
@@ -442,8 +496,11 @@ struct DptDptCorrelationsTask {
     fOutputList->Add(new TParameter<Double_t>("MaxEta", etaup, 'f'));
     fOutputList->Add(new TParameter<Double_t>("MinPhi", philow, 'f'));
     fOutputList->Add(new TParameter<Double_t>("MaxPhi", phiup, 'f'));
+    fOutputList->Add(new TParameter<Double_t>("PhiBinShift", phibinshift, 'f'));
 
-    /* TODO: the shift in the origen of the azimuthal angle */
+    /* after the parameters dump the proper phi limits are set according to the phi shift */
+    phiup = phiup - phibinwidth * phibinshift;
+    philow = philow - phibinwidth * phibinshift;
 
     /* create the histograms */
     Bool_t oldstatus = TH1::AddDirectoryStatus();
@@ -451,12 +508,22 @@ struct DptDptCorrelationsTask {
 
     if (!processpairs) {
       fhN1_1_vsPt = new TH1F("n1_1_vsPt", "#LT n_{1} #GT;p_{t,1} (GeV/c);#LT n_{1} #GT", ptbins, ptlow, ptup);
+      fhN1_2_vsPt = new TH1F("n1_2_vsPt", "#LT n_{1} #GT;p_{t,2} (GeV/c);#LT n_{1} #GT", ptbins, ptlow, ptup);
+      /* we don't want the Sumw2 structure being created here */
+      bool defSumw2 = TH1::GetDefaultSumw2();
       fhN1_1_vsZEtaPhiPt = new TH3F("n1_1_vsZ_vsEtaPhi_vsPt", "#LT n_{1} #GT;vtx_{z};#eta_{1}#times#varphi_{1};p_{t,1} (GeV/c)",
                                     zvtxbins, zvtxlow, zvtxup, etabins * phibins, 0.0, double(etabins * phibins), ptbins, ptlow, ptup);
 
-      fhN1_2_vsPt = new TH1F("n1_2_vsPt", "#LT n_{1} #GT;p_{t,2} (GeV/c);#LT n_{1} #GT", ptbins, ptlow, ptup);
       fhN1_2_vsZEtaPhiPt = new TH3F("n1_2_vsZ_vsEtaPhi_vsPt", "#LT n_{2} #GT;vtx_{z};#eta_{2}#times#varphi_{2};p_{t,2} (GeV/c)",
                                     zvtxbins, zvtxlow, zvtxup, etabins * phibins, 0.0, double(etabins * phibins), ptbins, ptlow, ptup);
+      /* we return it back to previuos state */
+      TH1::SetDefaultSumw2(defSumw2);
+
+      /* the statistical uncertainties will be estimated by the subsamples method so let's get rid of the error tracking */
+      fhN1_1_vsZEtaPhiPt->SetBit(TH1::kIsNotW);
+      fhN1_1_vsZEtaPhiPt->Sumw2(false);
+      fhN1_2_vsZEtaPhiPt->SetBit(TH1::kIsNotW);
+      fhN1_2_vsZEtaPhiPt->Sumw2(false);
 
       fOutputList->Add(fhN1_1_vsPt);
       fOutputList->Add(fhN1_1_vsZEtaPhiPt);
@@ -481,6 +548,8 @@ struct DptDptCorrelationsTask {
       fhN1nw_2_vsC = new TProfile("n1Nw_2_vsM", "#LT n_{1} #GT;Centrality (%);#LT n_{1} #GT", 100, 0.0, 100.0);
       fhSum1Ptnw_2_vsC = new TProfile("sumPtNw_2_vsM", "#LT #Sigma p_{t,1} #GT;Centrality (%);#LT #Sigma p_{t,1} #GT (GeV/c)", 100, 0.0, 100.0);
 
+      /* we don't want the Sumw2 structure being created here */
+      bool defSumw2 = TH1::GetDefaultSumw2();
       fhN2_12_vsEtaPhi = new TH1F("n2_12_vsEtaPhi", "#LT n_{2} #GT;#eta_{1}#times#varphi_{1}#times#eta_{2}#times#varphi_{2};#LT n_{2} #GT",
                                   etabins * phibins * etabins * phibins, 0., double(etabins * phibins * etabins * phibins));
       fhSum2PtPt_12_vsEtaPhi = new TH1F("sumPtPt_12_vsEtaPhi", "#LT #Sigma p_{t,1}p_{t,2} #GT;#eta_{1}#times#varphi_{1}#times#eta_{2}#times#varphi_{2};#LT #Sigma p_{t,1}p_{t,2} #GT (GeV)^{2}",
@@ -489,6 +558,9 @@ struct DptDptCorrelationsTask {
                                        etabins * phibins * etabins * phibins, 0., double(etabins * phibins * etabins * phibins));
       fhSum2NPt_12_vsEtaPhi = new TH1F("sumNPt_12_vsEtaPhi", "#LT N#Sigma p_{t,2} #GT;#eta_{1}#times#varphi_{1}#times#eta_{2}#times#varphi_{2};#LT N#Sigma p_{t,2} #GT (GeV)",
                                        etabins * phibins * etabins * phibins, 0., double(etabins * phibins * etabins * phibins));
+      /* we return it back to previuos state */
+      TH1::SetDefaultSumw2(defSumw2);
+
       fhN2_12_vsPtPt = new TH2F("n2_12_vsPtVsPt", "#LT n_{2} #GT;p_{t,1} (GeV/c);p_{t,2} (GeV/c);#LT n_{2} #GT",
                                 ptbins, ptlow, ptup, ptbins, ptlow, ptup);
       fhN2_12_vsC = new TProfile("n2_12_vsM", "#LT n_{2} #GT (weighted);Centrality (%);#LT n_{2} #GT", 100, 0.0, 100.0);
@@ -500,10 +572,14 @@ struct DptDptCorrelationsTask {
       fhSum2PtNnw_12_vsC = new TProfile("sumPtNNw_12_vsM", "#LT #Sigma p_{t,1}N #GT;Centrality (%);#LT #Sigma p_{t,1}N #GT (GeV)", 100, 0.0, 100.0);
       fhSum2NPtnw_12_vsC = new TProfile("sumNPtNw_12_vsM", "#LT N#Sigma p_{t,2} #GT;Centrality (%);#LT N#Sigma p_{t,2} #GT (GeV)", 100, 0.0, 100.0);
 
-      /* the statistical uncertainties will be estimated by the subsamples method so let's get rid of error tracking */
+      /* the statistical uncertainties will be estimated by the subsamples method so let's get rid of the error tracking */
+      fhN2_12_vsEtaPhi->SetBit(TH1::kIsNotW);
       fhN2_12_vsEtaPhi->Sumw2(false);
+      fhSum2PtPt_12_vsEtaPhi->SetBit(TH1::kIsNotW);
       fhSum2PtPt_12_vsEtaPhi->Sumw2(false);
+      fhSum2PtN_12_vsEtaPhi->SetBit(TH1::kIsNotW);
       fhSum2PtN_12_vsEtaPhi->Sumw2(false);
+      fhSum2NPt_12_vsEtaPhi->SetBit(TH1::kIsNotW);
       fhSum2NPt_12_vsEtaPhi->Sumw2(false);
 
       fOutputList->Add(fhN1_1_vsEtaPhi);
@@ -537,46 +613,122 @@ struct DptDptCorrelationsTask {
     TH1::AddDirectory(oldstatus);
   }
 
-  Filter onlyacceptedevents = (aod::dptdptcorrelations::eventaccepted == DPTDPT_TRUE);
-  Filter onlyacceptedtracks = ((aod::dptdptcorrelations::trackacceptedasone == DPTDPT_TRUE) or (aod::dptdptcorrelations::trackacceptedastwo == DPTDPT_TRUE));
-
-  Partition<aod::FilteredTracks> Tracks1 = aod::dptdptcorrelations::trackacceptedasone == DPTDPT_TRUE;
-  Partition<aod::FilteredTracks> Tracks2 = aod::dptdptcorrelations::trackacceptedastwo == DPTDPT_TRUE;
-
   void process(soa::Filtered<soa::Join<aod::Collisions, aod::EvSels, aod::Cents, aod::AcceptedEvents>>::iterator const& collision,
                aod::FilteredTracks const& tracks)
   {
-    if (!processpairs) {
+    using namespace correlationstask;
+
+    if (not processpairs) {
       /* process single tracks */
       for (auto& track1 : Tracks1) {
         double corr = 1.0; /* TODO: track correction  weights */
         fhN1_1_vsPt->Fill(track1.pt(), corr);
-        fhN1_1_vsZEtaPhiPt->Fill(collision.posZ(), GetEtaPhiIndex(track1.eta(), track1.phi()) + 0.5, track1.pt(), corr);
+        fhN1_1_vsZEtaPhiPt->Fill(collision.posZ(), GetEtaPhiIndex(track1) + 0.5, track1.pt(), corr);
       }
       for (auto& track2 : Tracks2) {
         double corr = 1.0; /* TODO: track correction  weights */
         fhN1_2_vsPt->Fill(track2.pt(), corr);
-        fhN1_2_vsZEtaPhiPt->Fill(collision.posZ(), GetEtaPhiIndex(track2.eta(), track2.phi()) + 0.5, track2.pt(), corr);
+        fhN1_2_vsZEtaPhiPt->Fill(collision.posZ(), GetEtaPhiIndex(track2) + 0.5, track2.pt(), corr);
       }
     } else {
+      {
+        /* process track one magnitudes */
+        double n1_1 = 0;       ///< weighted number of track 1 tracks for current collision
+        double sum1Pt_1 = 0;   ///< accumulated sum of weighted track 1 \f$p_T\f$ for current collision
+        double n1nw_1 = 0;     ///< not weighted number of track 1 tracks for current collision
+        double sum1Ptnw_1 = 0; ///< accumulated sum of not weighted track 1 \f$p_T\f$ for current collision
+        for (auto& track1 : Tracks1) {
+          double corr = 1.0; /* TODO: track correction  weights */
+          n1_1 += corr;
+          sum1Pt_1 += track1.pt() * corr;
+          n1nw_1 += 1;
+          sum1Ptnw_1 += track1.pt();
+
+          fhN1_1_vsEtaPhi->Fill(track1.eta(), track1.phi(), corr);
+          fhSum1Pt_1_vsEtaPhi->Fill(track1.eta(), track1.phi(), track1.pt() * corr);
+        }
+        /* TODO: the centrality should be chosen non detector dependent */
+        fhN1_1_vsC->Fill(collision.centmult(), n1_1);
+        fhSum1Pt_1_vsC->Fill(collision.centmult(), sum1Pt_1);
+        fhN1nw_1_vsC->Fill(collision.centmult(), n1nw_1);
+        fhSum1Ptnw_1_vsC->Fill(collision.centmult(), sum1Ptnw_1);
+      }
+      {
+        /* process track two magnitudes */
+        double n1_2 = 0;       ///< weighted number of track 2 tracks for current collisiont
+        double sum1Pt_2 = 0;   ///< accumulated sum of weighted track 2 \f$p_T\f$ for current collision
+        double n1nw_2 = 0;     ///< not weighted number of track 2 tracks for current collision
+        double sum1Ptnw_2 = 0; ///< accumulated sum of not weighted track 2 \f$p_T\f$ for current collision
+        for (auto& track2 : Tracks2) {
+          double corr = 1.0; /* TODO: track correction  weights */
+          n1_2 += corr;
+          sum1Pt_2 += track2.pt() * corr;
+          n1nw_2 += 1;
+          sum1Ptnw_2 += track2.pt();
+
+          fhN1_2_vsEtaPhi->Fill(track2.eta(), track2.phi(), corr);
+          fhSum1Pt_2_vsEtaPhi->Fill(track2.eta(), track2.phi(), track2.pt() * corr);
+        }
+        /* TODO: the centrality should be chosen non detector dependent */
+        fhN1_2_vsC->Fill(collision.centmult(), n1_2);
+        fhSum1Pt_2_vsC->Fill(collision.centmult(), sum1Pt_2);
+        fhN1nw_2_vsC->Fill(collision.centmult(), n1nw_2);
+        fhSum1Ptnw_2_vsC->Fill(collision.centmult(), sum1Ptnw_2);
+      }
       /* process pairs of tracks */
       // this will be desireable
       //      for (auto& [track1, track2] : combinations(CombinationsFullIndexPolicy(Tracks1, Tracks2))) {
+      /* process pair magnitudes */
+      double n2_12 = 0;         ///< weighted number of track 1 track 2 pairs for current collision
+      double sum2PtPt_12 = 0;   ///< accumulated sum of weighted track 1 track 2 \f${p_T}_1 {p_T}_2\f$ for current collision
+      double sum2NPt_12 = 0;    ///< accumulated sum of weighted number of track 1 tracks times weighted track 2 \f$p_T\f$ for current collision
+      double sum2PtN_12 = 0;    ///< accumulated sum of weighted track 1 \f$p_T\f$ times weighted number of track 2 tracks for current collision
+      double n2nw_12 = 0;       ///< not weighted number of track1 track 2 pairs for current collision
+      double sum2PtPtnw_12 = 0; ///< accumulated sum of not weighted track 1 track 2 \f${p_T}_1 {p_T}_2\f$ for current collision
+      double sum2NPtnw_12 = 0;  ///< accumulated sum of not weighted number of track 1 tracks times not weighted track 2 \f$p_T\f$ for current collision
+      double sum2PtNnw_12 = 0;  ///< accumulated sum of not weighted track 1 \f$p_T\f$ times not weighted number of track  tracks for current collision
       for (auto& track1 : Tracks1) {
         for (auto& track2 : Tracks2) {
           /* checkiing the same track id condition */
           if (track1.index() == track2.index()) {
-            LOGF(INFO, "Tracks with the same Id: %d", track1.index());
+            /* exclude autocorrelations */
           } else {
+            /* process pair magnitudes */
+            double corr1 = 1.0; /* TODO: track correction  weights */
+            double corr2 = 1.0; /* TODO: track correction  weights */
+            double corr = corr1 * corr2;
+            n2_12 += corr;
+            sum2PtPt_12 += track1.pt() * track2.pt() * corr;
+            sum2NPt_12 += corr * track2.pt();
+            sum2PtN_12 += track1.pt() * corr;
+            n2nw_12 += 1;
+            sum2PtPtnw_12 += track1.pt() * track2.pt();
+            sum2NPtnw_12 += track2.pt();
+            sum2PtNnw_12 += track1.pt();
+            fhN2_12_vsEtaPhi->Fill(GetEtaPhiIndex(track1) * etabins * phibins + GetEtaPhiIndex(track2) + 0.5, corr);
+            fhSum2NPt_12_vsEtaPhi->Fill(GetEtaPhiIndex(track1) * etabins * phibins + GetEtaPhiIndex(track2) + 0.5, corr * track2.pt());
+            fhSum2PtN_12_vsEtaPhi->Fill(GetEtaPhiIndex(track1) * etabins * phibins + GetEtaPhiIndex(track2) + 0.5, track1.pt() * corr);
+            fhSum2PtPt_12_vsEtaPhi->Fill(GetEtaPhiIndex(track1) * etabins * phibins + GetEtaPhiIndex(track2) + 0.5, track1.pt() * track2.pt() * corr);
+            fhN2_12_vsPtPt->Fill(track1.pt(), track2.pt(), corr);
           }
         }
       }
+      fhN2_12_vsC->Fill(collision.centmult(), n2_12);
+      fhSum2PtPt_12_vsC->Fill(collision.centmult(), sum2PtPt_12);
+      fhSum2PtN_12_vsC->Fill(collision.centmult(), sum2PtN_12);
+      fhSum2NPt_12_vsC->Fill(collision.centmult(), sum2NPt_12);
+      fhN2nw_12_vsC->Fill(collision.centmult(), n2nw_12);
+      fhSum2PtPtnw_12_vsC->Fill(collision.centmult(), sum2PtPtnw_12);
+      fhSum2PtNnw_12_vsC->Fill(collision.centmult(), sum2PtNnw_12);
+      fhSum2NPtnw_12_vsC->Fill(collision.centmult(), sum2NPtnw_12);
     }
   }
 };
 
 // Task for building <dpt,dpt> correlations
 struct TracksAndEventClassificationQA {
+
+  Configurable<o2::analysis::SimpleInclusiveCut> cfg{"mycfg", {"mycfg", 3, 2.0f}, "A Configurable Object, default mycfg.x=3, mycfg.y=2.0"};
 
   OutputObj<TH1F> fTracksOne{TH1F("TracksOne", "Tracks as track one;number of tracks;events", 1500, 0.0, 1500.0)};
   OutputObj<TH1F> fTracksTwo{TH1F("TracksTwo", "Tracks as track two;number of tracks;events", 1500, 0.0, 1500.0)};
@@ -639,11 +791,21 @@ struct TracksAndEventClassificationQA {
   }
 };
 
-WorkflowSpec defineDataProcessing(ConfigContext const&)
+WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
 {
-  return WorkflowSpec{
+  std::string myoptcentralities = cfgc.options().get<std::string>("centralities");
+  TObjArray* tokens = TString(myoptcentralities.c_str()).Tokenize(",");
+  int nranges = tokens->GetEntries();
+
+  WorkflowSpec workflow{
     adaptAnalysisTask<DptDptCorrelationsFilterAnalysisTask>("DptDptCorrelationsFilterAnalysisTask"),
-    adaptAnalysisTask<DptDptCorrelationsTask>("DptDptCorrelationsTask"),
-    adaptAnalysisTask<TracksAndEventClassificationQA>("TracksAndEventClassificationQA"),
-  };
+    adaptAnalysisTask<TracksAndEventClassificationQA>("TracksAndEventClassificationQA")};
+  for (int i = 0; i < nranges; ++i) {
+    float cmmin = 0.0f;
+    float cmmax = 0.0f;
+    sscanf(tokens->At(i)->GetName(), "%f-%f", &cmmin, &cmmax);
+    workflow.push_back(adaptAnalysisTask<DptDptCorrelationsTask>(Form("DptDptCorrelationsTask-%s", tokens->At(i)->GetName()), cmmin, cmmax));
+  }
+  delete tokens;
+  return workflow;
 }
