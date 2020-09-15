@@ -124,3 +124,8 @@ o2_add_dpl_workflow(hist-helpers-test
                     SOURCES src/histHelpersTest.cxx
                     PUBLIC_LINK_LIBRARIES O2::AnalysisDataModel O2::AnalysisCore
                     COMPONENT_NAME AnalysisTutorial)
+
+o2_add_dpl_workflow(histogram-registry
+                  SOURCES src/histogramRegistry.cxx
+                  PUBLIC_LINK_LIBRARIES O2::Framework O2::AnalysisCore O2::AnalysisDataModel
+                  COMPONENT_NAME AnalysisTutorial)
