@@ -32,7 +32,9 @@
 static inline ImVec2 operator+(const ImVec2& lhs, const ImVec2& rhs) { return ImVec2(lhs.x + rhs.x, lhs.y + rhs.y); }
 static inline ImVec2 operator-(const ImVec2& lhs, const ImVec2& rhs) { return ImVec2(lhs.x - rhs.x, lhs.y - rhs.y); }
 
-namespace o2::framework::gui { struct NodeColor {
+namespace o2::framework::gui
+{
+struct NodeColor {
   ImVec4 normal;
   ImVec4 hovered;
   ImVec4 title;
