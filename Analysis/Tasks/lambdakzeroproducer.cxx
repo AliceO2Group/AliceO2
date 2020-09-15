@@ -39,7 +39,6 @@ using std::array;
 /// Cascade builder task: rebuilds cascades
 struct lambdakzeroproducer {
 
-    
   Produces<aod::V0Data> v0data;
 
   OutputObj<TH1F> hEventCounter{TH1F("hEventCounter", "", 1, 0, 1)};

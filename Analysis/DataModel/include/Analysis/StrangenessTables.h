@@ -35,7 +35,7 @@ DECLARE_SOA_COLUMN(DCANegToPV, dcanegtopv, float);
 
 //Derived expressions
 //Momenta
-DECLARE_SOA_DYNAMIC_COLUMN(Pt, pt, [](float pxpos, float pypos, float pxneg, float pyneg) { return RecoDecay::sqrtSumOfSquares(pxpos+pxneg,pypos+pyneg); });
+DECLARE_SOA_DYNAMIC_COLUMN(Pt, pt, [](float pxpos, float pypos, float pxneg, float pyneg) { return RecoDecay::sqrtSumOfSquares(pxpos + pxneg, pypos + pyneg); });
 
 //Length quantities
 DECLARE_SOA_DYNAMIC_COLUMN(V0Radius, v0radius, [](float x, float y) { return RecoDecay::sqrtSumOfSquares(x, y); });
@@ -51,27 +51,26 @@ DECLARE_SOA_DYNAMIC_COLUMN(MK0Short, mK0Short, [](float pxpos, float pypos, floa
 
 namespace v0dataext
 {
-DECLARE_SOA_EXPRESSION_COLUMN(Px, px, float, 1.f*aod::v0data::pxpos+1.f*aod::v0data::pxneg );
-DECLARE_SOA_EXPRESSION_COLUMN(Py, py, float, 1.f*aod::v0data::pypos+1.f*aod::v0data::pyneg );
-DECLARE_SOA_EXPRESSION_COLUMN(Pz, pz, float, 1.f*aod::v0data::pzpos+1.f*aod::v0data::pzneg );
-}
+DECLARE_SOA_EXPRESSION_COLUMN(Px, px, float, 1.f * aod::v0data::pxpos + 1.f * aod::v0data::pxneg);
+DECLARE_SOA_EXPRESSION_COLUMN(Py, py, float, 1.f * aod::v0data::pypos + 1.f * aod::v0data::pyneg);
+DECLARE_SOA_EXPRESSION_COLUMN(Pz, pz, float, 1.f * aod::v0data::pzpos + 1.f * aod::v0data::pzneg);
+} // namespace v0dataext
 
 DECLARE_SOA_TABLE(V0Data, "AOD", "V0DATA",
                   v0data::X, v0data::Y, v0data::Z,
                   v0data::PxPos, v0data::PyPos, v0data::PzPos,
                   v0data::PxNeg, v0data::PyNeg, v0data::PzNeg,
                   v0data::DCAV0Daughters, v0data::DCAPosToPV, v0data::DCANegToPV,
-                  
+
                   //Dynamic columns
-                  v0data::Pt<v0data::PxPos,v0data::PyPos,v0data::PxNeg,v0data::PyNeg>,
-                  v0data::V0Radius<v0data::X,v0data::Y>,
+                  v0data::Pt<v0data::PxPos, v0data::PyPos, v0data::PxNeg, v0data::PyNeg>,
+                  v0data::V0Radius<v0data::X, v0data::Y>,
                   v0data::V0CosPA<v0data::X, v0data::Y, v0data::Z, v0dataext::Px, v0dataext::Py, v0dataext::Pz>,
-                  
+
                   //Invariant masses
                   v0data::MLambda<v0data::PxPos, v0data::PyPos, v0data::PzPos, v0data::PxNeg, v0data::PyNeg, v0data::PzNeg>,
                   v0data::MAntiLambda<v0data::PxPos, v0data::PyPos, v0data::PzPos, v0data::PxNeg, v0data::PyNeg, v0data::PzNeg>,
-                  v0data::MK0Short<v0data::PxPos, v0data::PyPos, v0data::PzPos, v0data::PxNeg, v0data::PyNeg, v0data::PzNeg>
-                  );
+                  v0data::MK0Short<v0data::PxPos, v0data::PyPos, v0data::PzPos, v0data::PxNeg, v0data::PyNeg, v0data::PzNeg>);
 
 using V0DataOrigin = V0Data;
 

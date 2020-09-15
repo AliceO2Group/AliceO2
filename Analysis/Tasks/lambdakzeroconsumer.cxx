@@ -41,23 +41,23 @@ struct lambdakzeroQA {
   OutputObj<TH1F> hMassK0Short{TH1F("hMassK0Short", "", 3000, 0.0, 3.0)};
   OutputObj<TH1F> hMassLambda{TH1F("hMassLambda", "", 3000, 0.0, 3.0)};
   OutputObj<TH1F> hMassAntiLambda{TH1F("hMassAntiLambda", "", 3000, 0.0, 3.0)};
-  
+
   OutputObj<TH1F> hV0Radius{TH1F("hV0Radius", "", 1000, 0.0, 100)};
   OutputObj<TH1F> hV0CosPA{TH1F("hV0CosPA", "", 1000, 0.95, 1.0)};
   OutputObj<TH1F> hDCAPosToPV{TH1F("hDCAPosToPV", "", 1000, 0.0, 10.0)};
   OutputObj<TH1F> hDCANegToPV{TH1F("hDCANegToPV", "", 1000, 0.0, 10.0)};
   OutputObj<TH1F> hDCAV0Dau{TH1F("hDCAV0Dau", "", 1000, 0.0, 10.0)};
-  
+
   void process(aod::Collision const& collision, soa::Join<aod::V0s, aod::V0DataExt> const& fullV0s)
   {
     for (auto& v0 : fullV0s) {
       hMassLambda->Fill(v0.mLambda());
       hMassAntiLambda->Fill(v0.mAntiLambda());
       hMassK0Short->Fill(v0.mK0Short());
-      
+
       hV0Radius->Fill(v0.v0radius());
       hV0CosPA->Fill(v0.v0cosPA(collision.posX(), collision.posY(), collision.posZ()));
-      
+
       hDCAPosToPV->Fill(v0.dcapostopv());
       hDCANegToPV->Fill(v0.dcanegtopv());
       hDCAV0Dau->Fill(v0.dcaV0daughters());
@@ -69,17 +69,17 @@ struct lambdakzeroconsumer {
   OutputObj<TH2F> h2dMassK0Short{TH2F("h2dMassK0Short", "", 200, 0, 10, 200, 0.450, 0.550)};
   OutputObj<TH2F> h2dMassLambda{TH2F("h2dMassLambda", "", 200, 0, 10, 200, 1.115 - 0.100, 1.115 + 0.100)};
   OutputObj<TH2F> h2dMassAntiLambda{TH2F("h2dMassAntiLambda", "", 200, 0, 10, 200, 1.115 - 0.100, 1.115 + 0.100)};
-  
+
   //Selection criteria
   Configurable<double> v0cospa{"v0cospa", 0.995, "V0 CosPA"}; //double -> N.B. dcos(x)/dx = 0 at x=0)
   Configurable<float> dcav0dau{"dcav0dau", 1.0, "DCA V0 Daughters"};
   Configurable<float> dcanegtopv{"dcanegtopv", .1, "DCA Neg To PV"};
   Configurable<float> dcapostopv{"dcapostopv", .1, "DCA Pos To PV"};
   Configurable<float> v0radius{"v0radius", 5.0, "v0radius"};
-  
+
   Filter preFilterV0 = aod::v0data::dcapostopv > dcapostopv&&
-  aod::v0data::dcanegtopv > dcanegtopv&& aod::v0data::dcaV0daughters < dcav0dau;
-  
+                                                   aod::v0data::dcanegtopv > dcanegtopv&& aod::v0data::dcaV0daughters < dcav0dau;
+
   void process(aod::Collision const& collision, soa::Filtered<soa::Join<aod::V0s, aod::V0DataExt>> const& fullV0s)
   {
     for (auto& v0 : fullV0s) {
