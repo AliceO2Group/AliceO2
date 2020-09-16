@@ -45,13 +45,15 @@ void VarManager::SetVariableDependencies()
 }
 
 //__________________________________________________________________
-void VarManager::ResetValues(int startValue, int endValue)
+void VarManager::ResetValues(int startValue, int endValue, float* values)
 {
   //
   // reset all variables to an "innocent" value
   // NOTE: here we use -9999.0 as a neutral value, but depending on situation, this may not be the case
+  if (!values)
+    values = fgValues;
   for (Int_t i = startValue; i < endValue; ++i)
-    fgValues[i] = -9999.;
+    values[i] = -9999.;
 }
 
 //__________________________________________________________________
@@ -171,6 +173,10 @@ void VarManager::SetDefaultVarNames()
   fgVariableUnits[kTOFbeta] = "";
   fgVariableNames[kTrackLength] = "track length";
   fgVariableUnits[kTrackLength] = "cm";
+  fgVariableNames[kTrackDCAxy] = "DCA_{xy}";
+  fgVariableUnits[kTrackDCAxy] = "cm";
+  fgVariableNames[kTrackDCAz] = "DCA_{z}";
+  fgVariableUnits[kTrackDCAz] = "cm";
   fgVariableNames[kTPCnSigmaEl] = "n #sigma_{e}^{TPC}";
   fgVariableUnits[kTPCnSigmaEl] = "";
   fgVariableNames[kTPCnSigmaMu] = "n #sigma_{#mu}^{TPC}";

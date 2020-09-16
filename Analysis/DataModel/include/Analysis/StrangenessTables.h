@@ -196,7 +196,6 @@ DECLARE_SOA_EXTENDED_TABLE_USER(CascDataExt, CascDataOrigin, "CascDATAEXT",
                                 cascdataext::Px, cascdataext::Py, cascdataext::Pz);
 
 using CascDataFull = CascDataExt;
-
 } // namespace o2::aod
 
 #endif // O2_ANALYSIS_STRANGENESSTABLES_H_

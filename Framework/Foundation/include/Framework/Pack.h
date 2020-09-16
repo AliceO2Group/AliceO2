@@ -33,6 +33,13 @@ constexpr std::size_t pack_size(pack<Ts...> const&)
 template <std::size_t I, typename T>
 struct pack_element;
 
+#ifdef __clang__
+template <std::size_t I, typename... Ts>
+struct pack_element<I, pack<Ts...>> {
+  using type = __type_pack_element<I, Ts...>;
+};
+#else
+
 // recursive case
 template <std::size_t I, typename Head, typename... Tail>
 struct pack_element<I, pack<Head, Tail...>>
@@ -44,6 +51,7 @@ template <typename Head, typename... Tail>
 struct pack_element<0, pack<Head, Tail...>> {
   typedef Head type;
 };
+#endif
 
 template <std::size_t I, typename T>
 using pack_element_t = typename pack_element<I, T>::type;
@@ -151,6 +159,42 @@ constexpr size_t has_type_at(pack<T1, Ts...> const&)
   if constexpr (has_type_v<T, pack<T1, Ts...>>)
     return 1 + has_type_at<T>(pack<Ts...>{});
   return sizeof...(Ts) + 2;
+}
+
+namespace
+{
+template <std::size_t I, typename T>
+struct indexed {
+  using type = T;
+  constexpr static std::size_t index = I;
+};
+
+template <typename Is, typename... Ts>
+struct indexer;
+
+template <std::size_t... Is, typename... Ts>
+struct indexer<std::index_sequence<Is...>, Ts...>
+  : indexed<Is, Ts>... {
+};
+
+template <typename T, std::size_t I>
+indexed<I, T> select(indexed<I, T>);
+
+template <typename W, typename... Ts>
+constexpr std::size_t has_type_at_t = decltype(select<W>(
+  indexer<std::index_sequence_for<Ts...>, Ts...>{}))::index;
+} // namespace
+
+template <typename W>
+constexpr std::size_t has_type_at_v(o2::framework::pack<>)
+{
+  return -1;
+}
+
+template <typename W, typename... Ts>
+constexpr std::size_t has_type_at_v(o2::framework::pack<Ts...>)
+{
+  return has_type_at_t<W, Ts...>;
 }
 
 /// Intersect two packs

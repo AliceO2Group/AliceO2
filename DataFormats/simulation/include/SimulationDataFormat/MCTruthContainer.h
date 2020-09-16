@@ -310,7 +310,7 @@ class MCTruthContainer
   /// The flattened data starts with a specific header @ref FlatHeader describing
   /// size and content of the two vectors within the raw buffer.
   template <typename ContainerType>
-  size_t flatten_to(ContainerType& container)
+  size_t flatten_to(ContainerType& container) const
   {
     size_t bufferSize = sizeof(FlatHeader) + sizeof(MCTruthHeaderElement) * mHeaderArray.size() + sizeof(TruthElement) * mTruthArray.size();
     container.resize((bufferSize / sizeof(typename ContainerType::value_type)) + ((bufferSize % sizeof(typename ContainerType::value_type)) > 0 ? 1 : 0));

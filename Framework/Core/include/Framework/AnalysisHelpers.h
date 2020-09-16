@@ -219,7 +219,7 @@ struct IndexExclusive {
     int32_t idx = -1;
     auto setValue = [&](auto& x) -> bool {
       using type = std::decay_t<decltype(x)>;
-      constexpr auto position = framework::has_type_at<type>(rest_it_t{});
+      constexpr auto position = framework::has_type_at_v<type>(rest_it_t{});
 
       lowerBound<Key>(idx, x);
       if (x == soa::RowViewSentinel{static_cast<uint64_t>(x.mMaxRow)}) {
@@ -248,12 +248,12 @@ struct IndexExclusive {
       auto result = std::apply(
         [&](auto&... x) {
           std::array<bool, sizeof...(T)> results{setValue(x)...};
-          return (results[framework::has_type_at<std::decay_t<decltype(x)>>(rest_it_t{})] && ...);
+          return (results[framework::has_type_at_v<std::decay_t<decltype(x)>>(rest_it_t{})] && ...);
         },
         iterators);
 
       if (result) {
-        cursor(0, row.globalIndex(), values[framework::has_type_at<T>(tables_t{})]...);
+        cursor(0, row.globalIndex(), values[framework::has_type_at_v<T>(tables_t{})]...);
       }
     }
     return builder.finalize();
@@ -285,7 +285,7 @@ struct IndexSparse {
     int32_t idx = -1;
     auto setValue = [&](auto& x) -> bool {
       using type = std::decay_t<decltype(x)>;
-      constexpr auto position = framework::has_type_at<type>(rest_it_t{});
+      constexpr auto position = framework::has_type_at_v<type>(rest_it_t{});
 
       lowerBound<Key>(idx, x);
       if (x == soa::RowViewSentinel{static_cast<uint64_t>(x.mMaxRow)}) {
@@ -310,7 +310,7 @@ struct IndexSparse {
         },
         iterators);
 
-      cursor(0, row.globalIndex(), values[framework::has_type_at<T>(tables_t{})]...);
+      cursor(0, row.globalIndex(), values[framework::has_type_at_v<T>(tables_t{})]...);
     }
     return builder.finalize();
   }
@@ -528,24 +528,5 @@ struct Partition {
 };
 
 } // namespace o2::framework
-
-namespace o2
-{
-namespace analysis
-{
-
-/// Do a single loop on all the entries of the @a input table
-ROOT::RDataFrame doSingleLoopOn(std::unique_ptr<framework::TableConsumer>& input);
-
-/// Do a double loop on all the entries with the same value for the \a grouping
-/// of the @a input table, where the entries for the outer index are prefixed
-/// with `<name>_` while the entries for the inner loop are prefixed with
-/// `<name>bar_`.
-ROOT::RDataFrame doSelfCombinationsWith(std::unique_ptr<framework::TableConsumer>& input,
-                                        std::string name = "p",
-                                        std::string grouping = "eventID");
-
-} // namespace analysis
-} // namespace o2
 
 #endif // o2_framework_AnalysisHelpers_H_DEFINED

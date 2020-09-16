@@ -201,6 +201,12 @@ BOOST_AUTO_TEST_CASE(PartialMatching)
 
   BOOST_CHECK(DataSpecUtils::partialMatch(fullySpecifiedOutput, header::DataOrigin("FOO")) == false);
   BOOST_CHECK(DataSpecUtils::partialMatch(fullySpecifiedInput, header::DataOrigin("FOO")) == false);
+
+  BOOST_CHECK(DataSpecUtils::partialMatch(fullySpecifiedOutput, header::DataDescription("TEST")) == false);
+  BOOST_CHECK(DataSpecUtils::partialMatch(fullySpecifiedInput, header::DataDescription("TSET")) == false);
+
+  BOOST_CHECK(DataSpecUtils::partialMatch(fullySpecifiedOutput, header::DataDescription("FOOO")) == true);
+  BOOST_CHECK(DataSpecUtils::partialMatch(fullySpecifiedInput, header::DataDescription("FOOO")) == true);
 }
 
 BOOST_AUTO_TEST_CASE(GetOptionalSubSpecWithMatcher)

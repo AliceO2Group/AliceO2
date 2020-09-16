@@ -15,6 +15,8 @@
 #include "DetectorsBase/Propagator.h"
 #include "GlobalTrackingWorkflow/PrimaryVertexingSpec.h"
 #include "SimulationDataFormat/MCEventLabel.h"
+#include "CommonDataFormat/BunchFilling.h"
+#include "SimulationDataFormat/DigitizationContext.h"
 
 using namespace o2::framework;
 
@@ -30,6 +32,11 @@ void PrimaryVertexingSpec::init(InitContext& ic)
   mTimer.Stop();
   mTimer.Reset();
   mVertexer.setValidateWithFT0(mValidateWithFT0);
+
+  // set bunch filling. Eventually, this should come from CCDB
+  const auto* digctx = o2::steer::DigitizationContext::loadFromFile("collisioncontext.root");
+  const auto& bcfill = digctx->getBunchFilling();
+  mVertexer.setBunchFilling(bcfill);
   mVertexer.init();
 }
 
@@ -48,7 +55,7 @@ void PrimaryVertexingSpec::run(ProcessingContext& pc)
     lblTPC = pc.inputs().get<gsl::span<o2::MCCompLabel>>("lblTPC");
   }
   std::vector<PVertex> vertices;
-  std::vector<int> vertexTrackIDs;
+  std::vector<GIndex> vertexTrackIDs;
   std::vector<V2TRef> v2tRefs;
   std::vector<o2::MCEventLabel> lblVtx;
 
@@ -57,12 +64,12 @@ void PrimaryVertexingSpec::run(ProcessingContext& pc)
   mVertexer.setStartIR({0, dh->firstTForbit});
 
   mVertexer.process(tracksITSTPC, ft0Data, vertices, vertexTrackIDs, v2tRefs, lblITS, lblTPC, lblVtx);
-  pc.outputs().snapshot(Output{"GLO", "PVERTEX", 0, Lifetime::Timeframe}, vertices);
-  pc.outputs().snapshot(Output{"GLO", "PVERTEX_TRIDREFS", 0, Lifetime::Timeframe}, v2tRefs);
-  pc.outputs().snapshot(Output{"GLO", "PVERTEX_TRID", 0, Lifetime::Timeframe}, vertexTrackIDs);
+  pc.outputs().snapshot(Output{"GLO", "PVTX", 0, Lifetime::Timeframe}, vertices);
+  pc.outputs().snapshot(Output{"GLO", "PVTX_CONTIDREFS", 0, Lifetime::Timeframe}, v2tRefs);
+  pc.outputs().snapshot(Output{"GLO", "PVTX_CONTID", 0, Lifetime::Timeframe}, vertexTrackIDs);
 
   if (mUseMC) {
-    pc.outputs().snapshot(Output{"GLO", "PVERTEX_MCTR", 0, Lifetime::Timeframe}, lblVtx);
+    pc.outputs().snapshot(Output{"GLO", "PVTX_MCTR", 0, Lifetime::Timeframe}, lblVtx);
   }
 
   mTimer.Stop();
@@ -86,14 +93,14 @@ DataProcessorSpec getPrimaryVertexingSpec(bool validateWithFT0, bool useMC)
     inputs.emplace_back("fitInfo", "FT0", "RECPOINTS", 0, Lifetime::Timeframe);
   }
 
-  outputs.emplace_back("GLO", "PVERTEX", 0, Lifetime::Timeframe);
-  outputs.emplace_back("GLO", "PVERTEX_TRIDREFS", 0, Lifetime::Timeframe);
-  outputs.emplace_back("GLO", "PVERTEX_TRID", 0, Lifetime::Timeframe);
+  outputs.emplace_back("GLO", "PVTX", 0, Lifetime::Timeframe);
+  outputs.emplace_back("GLO", "PVTX_CONTID", 0, Lifetime::Timeframe);
+  outputs.emplace_back("GLO", "PVTX_CONTIDREFS", 0, Lifetime::Timeframe);
 
   if (useMC) {
     inputs.emplace_back("lblITS", "GLO", "TPCITS_ITSMC", 0, Lifetime::Timeframe);
     inputs.emplace_back("lblTPC", "GLO", "TPCITS_TPCMC", 0, Lifetime::Timeframe);
-    outputs.emplace_back("GLO", "PVERTEX_MCTR", 0, Lifetime::Timeframe);
+    outputs.emplace_back("GLO", "PVTX_MCTR", 0, Lifetime::Timeframe);
   }
 
   return DataProcessorSpec{

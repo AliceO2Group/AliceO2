@@ -100,6 +100,8 @@ class VarManager : public TObject
     kTOFsignal,
     kTOFbeta,
     kTrackLength,
+    kTrackDCAxy,
+    kTrackDCAz,
     kTrackCYY,
     kTrackCZZ,
     kTrackCSnpSnp,
@@ -193,7 +195,7 @@ class VarManager : public TObject
   ~VarManager() override;
 
   static float fgValues[kNVars]; // array holding all variables computed during analysis
-  static void ResetValues(int startValue = 0, int endValue = kNVars);
+  static void ResetValues(int startValue = 0, int endValue = kNVars, float* values = nullptr);
 
  private:
   static bool fgUsedVars[kNVars];        // holds flags for when the corresponding variable is needed (e.g., in the histogram manager, in cuts, mixing handler, etc.)
@@ -284,11 +286,9 @@ void VarManager::FillTrack(T const& track, float* values)
     values[kITSchi2] = track.itsChi2NCl();
     values[kTPCncls] = track.tpcNClsFound();
     values[kTPCchi2] = track.tpcChi2NCl();
-    //values[kTPCsignal] = track.tpcSignal();
-    //values[kTRDsignal] = track.trdSignal();
-    //values[kTOFsignal] = track.tofSignal();
-    //values[kTOFbeta] = track.beta();
     values[kTrackLength] = track.length();
+    values[kTrackDCAxy] = track.dcaXY();
+    values[kTrackDCAz] = track.dcaZ();
   }
 
   if constexpr ((fillMap & TrackCov) > 0) {
@@ -322,10 +322,9 @@ void VarManager::FillTrack(T const& track, float* values)
     values[kITSchi2] = track.itsChi2NCl();
     values[kTPCncls] = track.tpcNClsFound();
     values[kTPCchi2] = track.tpcChi2NCl();
-    //values[kTPCsignal] = track.tpcSignal();
-    //values[kTRDsignal] = track.trdSignal();
-    //values[kTOFsignal] = track.tofSignal();
     values[kTrackLength] = track.length();
+    values[kTrackDCAxy] = track.dcaXY();
+    values[kTrackDCAz] = track.dcaZ();
   }
 
   if constexpr ((fillMap & ReducedTrackBarrelCov) > 0) {

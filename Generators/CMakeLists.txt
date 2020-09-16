@@ -25,10 +25,12 @@ o2_add_library(Generators
 	       	       src/Trigger.cxx
 	       	       src/TriggerParticle.cxx
                        src/GeneratorTGenerator.cxx
+                       src/GeneratorExternalParam.cxx
                        src/GeneratorFromFile.cxx
                        src/PDG.cxx
                        src/PrimaryGenerator.cxx
                        src/InteractionDiamondParam.cxx
+                       src/TriggerExternalParam.cxx
                        src/TriggerParticleParam.cxx
                        src/BoxGunParam.cxx
 		       src/QEDGenParam.cxx
@@ -64,10 +66,12 @@ set(headers
     include/Generators/Trigger.h
     include/Generators/TriggerParticle.h
     include/Generators/GeneratorTGenerator.h
+    include/Generators/GeneratorExternalParam.h
     include/Generators/GeneratorFromFile.h
     include/Generators/PDG.h
     include/Generators/PrimaryGenerator.h
     include/Generators/InteractionDiamondParam.h
+    include/Generators/TriggerExternalParam.h
     include/Generators/TriggerParticleParam.h
     include/Generators/ConfigurationMacroHelper.h
     include/Generators/BoxGunParam.h

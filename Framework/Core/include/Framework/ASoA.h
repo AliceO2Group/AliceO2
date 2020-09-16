@@ -629,7 +629,7 @@ struct RowViewCore : public IP, C... {
 
   RowViewCore(arrow::ChunkedArray* columnData[sizeof...(C)], IP&& policy)
     : IP{policy},
-      C(columnData[framework::has_type_at<C>(all_columns{})])...
+      C(columnData[framework::has_type_at_v<C>(all_columns{})])...
   {
     bindIterators(persistent_columns_t{});
     bindAllDynamicColumns(dynamic_columns_t{});
@@ -862,7 +862,7 @@ class Table
     auto getId() const
     {
       if constexpr (framework::has_type_v<std::decay_t<TI>, bindings_pack_t>) {
-        constexpr auto idx = framework::has_type_at<std::decay_t<TI>>(bindings_pack_t{});
+        constexpr auto idx = framework::has_type_at_v<std::decay_t<TI>>(bindings_pack_t{});
         return framework::pack_element_t<idx, external_index_columns_t>::getId();
       } else if constexpr (std::is_same_v<std::decay_t<TI>, Parent>) {
         return this->globalIndex();
@@ -908,10 +908,10 @@ class Table
 
   Table(std::shared_ptr<arrow::Table> table, uint64_t offset = 0)
     : mTable(table),
-      mEnd{static_cast<uint64_t>(table->num_rows())},
+      mEnd{table == nullptr ? 0 : static_cast<uint64_t>(table->num_rows())},
       mOffset(offset)
   {
-    if (mTable->num_rows() == 0) {
+    if ((mTable == nullptr) or (mTable->num_rows() == 0)) {
       for (size_t ci = 0; ci < sizeof...(C); ++ci) {
         mColumnChunks[ci] = nullptr;
       }
@@ -1110,6 +1110,13 @@ using JoinBase = decltype(join(std::declval<Ts>()...));
 template <typename T1, typename T2>
 using ConcatBase = decltype(concat(std::declval<T1>(), std::declval<T2>()));
 
+template <typename T1, typename T2>
+constexpr auto is_binding_compatible_v()
+{
+  return framework::pack_size(
+           framework::intersected_pack_t<originals_pack_t<T1>, originals_pack_t<T2>>{}) > 0;
+}
+
 } // namespace o2::soa
 
 #define DECLARE_SOA_STORE()          \
@@ -1220,24 +1227,30 @@ using ConcatBase = decltype(concat(std::declval<T1>(), std::declval<T2>()));
       return *mColumnIterator >= 0;                                                \
     }                                                                              \
                                                                                    \
-    binding_t::iterator _Getter_() const                                           \
+    template <typename T>                                                          \
+    auto _Getter_##_as() const                                                     \
     {                                                                              \
       assert(mBinding != nullptr);                                                 \
-      return mBinding->begin() + *mColumnIterator;                                 \
+      return static_cast<T*>(mBinding)->begin() + *mColumnIterator;                \
+    }                                                                              \
+                                                                                   \
+    auto _Getter_() const                                                          \
+    {                                                                              \
+      return _Getter_##_as<binding_t>();                                           \
     }                                                                              \
                                                                                    \
     template <typename T>                                                          \
     bool setCurrent(T* current)                                                    \
     {                                                                              \
-      if constexpr (std::is_same_v<T, binding_t>) {                                \
+      if constexpr (o2::soa::is_binding_compatible_v<T, binding_t>()) {            \
         assert(current != nullptr);                                                \
         this->mBinding = current;                                                  \
         return true;                                                               \
       }                                                                            \
       return false;                                                                \
     }                                                                              \
-    binding_t* getCurrent() { return mBinding; }                                   \
-    binding_t* mBinding = nullptr;                                                 \
+    binding_t* getCurrent() { return static_cast<binding_t*>(mBinding); }          \
+    void* mBinding = nullptr;                                                      \
   };                                                                               \
   static const o2::framework::expressions::BindingNode _Getter_##Id { _Label_,     \
                                                                       o2::framework::expressions::selectArrowType<_Type_>() }
@@ -1766,26 +1779,12 @@ auto spawner(framework::pack<C...> columns, arrow::Table* atable)
       chunks[i].emplace_back(v.at(i));
     }
   }
-  std::array<std::shared_ptr<arrow::ChunkedArray>, sizeof...(C)> arrays;
+  std::vector<std::shared_ptr<arrow::ChunkedArray>> arrays;
   for (auto i = 0u; i < sizeof...(C); ++i) {
-    arrays[i] = std::make_shared<arrow::ChunkedArray>(chunks[i]);
+    arrays.push_back(std::make_shared<arrow::ChunkedArray>(chunks[i]));
   }
-
   auto new_schema = o2::soa::createSchemaFromColumns(columns);
-  std::vector<std::shared_ptr<arrow::ChunkedArray>> new_columns;
-  for (auto i = 0u; i < sizeof...(C); ++i) {
-    new_columns.push_back(arrays[i]);
-  }
-  return arrow::Table::Make(new_schema, new_columns);
-}
-
-/// On-the-fly adding of expression columns
-template <typename T, typename... Cs>
-auto Extend(T const& table)
-{
-  static_assert((soa::is_type_spawnable_v<Cs> && ...), "You can only extend a table with expression columns");
-  using output_t = JoinBase<T, soa::Table<Cs...>>;
-  return output_t{spawner(framework::pack<Cs...>{}, table.asArrowTable().get()), table.offset()};
+  return arrow::Table::Make(new_schema, arrays);
 }
 
 /// Template for building an index table to access matching rows from non-
@@ -1817,14 +1816,26 @@ struct IndexTable : Table<soa::Index<>, H, Ts...> {
 template <typename T>
 using is_soa_index_table_t = typename framework::is_base_of_template<soa::IndexTable, T>;
 
+/// On-the-fly adding of expression columns
+template <typename T, typename... Cs>
+auto Extend(T const& table)
+{
+  static_assert((soa::is_type_spawnable_v<Cs> && ...), "You can only extend a table with expression columns");
+  using output_t = Join<T, soa::Table<Cs...>>;
+  if (table.tableSize() > 0) {
+    return output_t{{spawner(framework::pack<Cs...>{}, table.asArrowTable().get()), table.asArrowTable()}, 0};
+  }
+  return output_t{{nullptr}, 0};
+}
+
 /// Template function to attach dynamic columns on-the-fly (e.g. inside
 /// process() function). Dynamic columns need to be compatible with the table.
 template <typename T, typename... Cs>
 auto Attach(T const& table)
 {
   static_assert((framework::is_base_of_template<o2::soa::DynamicColumn, Cs>::value && ...), "You can only attach dynamic columns");
-  using output_t = JoinBase<T, o2::soa::Table<Cs...>>;
-  return output_t{table.asArrowTable(), table.offset()};
+  using output_t = Join<T, o2::soa::Table<Cs...>>;
+  return output_t{{table.asArrowTable()}, table.offset()};
 }
 
 } // namespace o2::soa

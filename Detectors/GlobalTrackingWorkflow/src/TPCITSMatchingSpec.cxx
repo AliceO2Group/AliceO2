@@ -18,6 +18,7 @@
 #include "ReconstructionDataFormats/TrackTPCITS.h"
 #include "SimulationDataFormat/MCCompLabel.h"
 #include "SimulationDataFormat/MCTruthContainer.h"
+#include "SimulationDataFormat/DigitizationContext.h"
 #include "DataFormatsITS/TrackITS.h"
 #include "DataFormatsITSMFT/Cluster.h"
 #include "DataFormatsITSMFT/CompCluster.h"
@@ -34,6 +35,7 @@
 #include "DetectorsCommonDataFormats/NameConf.h"
 #include "DataFormatsParameters/GRPObject.h"
 #include "Headers/DataHeader.h"
+#include "CommonDataFormat/BunchFilling.h"
 
 // RSTODO to remove once the framework will start propagating the header.firstTForbit
 #include "DetectorsRaw/HBFUtils.h"
@@ -84,6 +86,12 @@ void TPCITSMatchingDPL::init(InitContext& ic)
   } else {
     LOG(INFO) << "Material LUT " << matLUTFile << " file is absent, only TGeo can be used";
   }
+
+  // set bunch filling. Eventually, this should come from CCDB
+  const auto* digctx = o2::steer::DigitizationContext::loadFromFile("collisioncontext.root");
+  const auto& bcfill = digctx->getBunchFilling();
+  mMatching.setBunchFilling(bcfill);
+
   mMatching.init();
   //
 }

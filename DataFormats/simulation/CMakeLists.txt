@@ -37,6 +37,7 @@ o2_target_root_dictionary(
           include/SimulationDataFormat/LabelContainer.h
           include/SimulationDataFormat/MCEventHeader.h
           include/SimulationDataFormat/MCEventStats.h
+          include/SimulationDataFormat/IOMCTruthContainerView.h
   LINKDEF src/SimulationDataLinkDef.h)
 # note the explicit LINKDEF as the linkdef in src is
 #

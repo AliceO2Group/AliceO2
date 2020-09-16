@@ -11,11 +11,5 @@
 o2_add_executable(
   rawdump
   COMPONENT_NAME mid
-  SOURCES mid-rawdump.cxx
-  PUBLIC_LINK_LIBRARIES O2::MIDRaw)
-
-o2_add_executable(
-  raw-checker
-  COMPONENT_NAME mid
-  SOURCES mid-raw-checker.cxx CRUBareDataChecker.cxx
+  SOURCES rawdump.cxx
   PUBLIC_LINK_LIBRARIES O2::MIDRaw)

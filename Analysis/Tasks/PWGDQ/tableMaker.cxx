@@ -85,6 +85,12 @@ struct TableMaker {
     eventVtxCov(collision.covXX(), collision.covXY(), collision.covXZ(), collision.covYY(), collision.covYZ(), collision.covZZ(), collision.chi2());
 
     uint64_t trackFilteringTag = 0;
+    float sinAlpha = 0.f;
+    float cosAlpha = 0.f;
+    float globalX = 0.f;
+    float globalY = 0.f;
+    float dcaXY = 0.f;
+    float dcaZ = 0.f;
     for (auto& track : tracksBarrel) {
 
       if (track.pt() < 0.15)
@@ -92,13 +98,21 @@ struct TableMaker {
       if (TMath::Abs(track.eta()) > 0.9)
         continue;
 
+      sinAlpha = sin(track.alpha());
+      cosAlpha = cos(track.alpha());
+      globalX = track.x() * cosAlpha - track.y() * sinAlpha;
+      globalY = track.x() * sinAlpha + track.y() * cosAlpha;
+
+      dcaXY = sqrt(pow((globalX - collision.posX()), 2) +
+                   pow((globalY - collision.posY()), 2));
+      dcaZ = sqrt(pow(track.z() - collision.posZ(), 2));
+
       trackBasic(collision, track.globalIndex(), trackFilteringTag, track.pt(), track.eta(), track.phi(), track.charge());
       trackBarrel(track.tpcInnerParam(), track.flags(), track.itsClusterMap(), track.itsChi2NCl(),
                   track.tpcNClsFindable(), track.tpcNClsFindableMinusFound(), track.tpcNClsFindableMinusCrossedRows(),
                   track.tpcNClsShared(), track.tpcChi2NCl(),
-                  //track.tpcSignal(), track.trdSignal(), track.tofSignal(),
                   track.trdChi2(), track.tofChi2(),
-                  track.length());
+                  track.length(), dcaXY, dcaZ);
       trackBarrelCov(track.cYY(), track.cZZ(), track.cSnpSnp(), track.cTglTgl(), track.c1Pt21Pt2());
       trackBarrelPID(
         track.tpcSignal(),

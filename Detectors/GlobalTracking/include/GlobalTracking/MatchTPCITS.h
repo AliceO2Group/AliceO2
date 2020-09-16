@@ -34,6 +34,7 @@
 #include "CommonDataFormat/EvIndex.h"
 #include "CommonDataFormat/InteractionRecord.h"
 #include "CommonDataFormat/RangeReference.h"
+#include "CommonDataFormat/BunchFilling.h"
 #include "SimulationDataFormat/MCCompLabel.h"
 #include "CommonUtils/TreeStreamRedirector.h"
 #include "DataFormatsITSMFT/Cluster.h"
@@ -267,6 +268,7 @@ struct ITSChipClustersRefs {
 
 class MatchTPCITS
 {
+ public:
   using ITSCluster = o2::BaseCluster<float>;
   using ClusRange = o2::dataformats::RangeReference<int, int>;
   using MCLabContCl = o2::dataformats::MCTruthContainer<o2::MCCompLabel>;
@@ -274,10 +276,10 @@ class MatchTPCITS
   using MCLabSpan = gsl::span<const o2::MCCompLabel>;
   using TPCTransform = o2::gpu::TPCFastTransform;
   using BracketF = o2::utils::Bracket<float>;
+  using BracketIR = o2::utils::Bracket<o2::InteractionRecord>;
   using Params = o2::globaltracking::MatchITSTPCParams;
   using MatCorrType = o2::base::Propagator::MatCorrType;
 
- public:
   MatchTPCITS(); // std::unique_ptr to forward declared type needs constructor / destructor in .cxx
   ~MatchTPCITS();
 
@@ -316,6 +318,9 @@ class MatchTPCITS
   void destroyLastABTrackLinksList();
   void refitABTrack(int ibest) const;
 
+  void setCosmics(bool v) { mCosmics = v; }
+  bool isCosmics() const { return mCosmics; }
+
   ///< perform all initializations
   void init();
 
@@ -324,6 +329,9 @@ class MatchTPCITS
 
   ///< set InteractionRecods for the beginning of the TF
   void setStartIR(const o2::InteractionRecord& ir) { mStartIR = ir; }
+
+  ///< set Bunch filling and init helpers for validation by BCs
+  void setBunchFilling(const o2::BunchFilling& bf);
 
   ///< ITS readout mode
   void setITSTriggered(bool v) { mITSTriggered = v; }
@@ -516,6 +524,9 @@ class MatchTPCITS
   ///< get number of matching records for ITS track
   int getNMatchRecordsITS(const TrackLocITS& tITS) const;
 
+  ///< convert TPC timebins bracket to IR bracket
+  BracketIR tpcTimeBin2IRBracket(const BracketF tbrange);
+
   ///< convert TPC time bin to ITS ROFrame units
   int tpcTimeBin2ITSROFrame(float tbin) const
   {
@@ -534,6 +545,18 @@ class MatchTPCITS
   float time2TPCTimeBin(float tms) const
   {
     return tms * mTPCTBinMUSInv;
+  }
+
+  ///< convert TPC time bin to microseconds
+  float tpcTimeBin2MUS(float tbn) const
+  {
+    return tbn * mTPCTBinMUS;
+  }
+
+  ///< convert TPC time bin to nanoseconds
+  float tpcTimeBin2NS(float tbn) const
+  {
+    return tbn * mTPCTBinNS;
   }
 
   ///< convert Interaction Record for TPC time bin units
@@ -572,6 +595,7 @@ class MatchTPCITS
 
   bool mInitDone = false; ///< flag init already done
   bool mFieldON = true;   ///< flag for field ON/OFF
+  bool mCosmics = false;  ///< flag cosmics mode
   bool mMCTruthON = false;        ///< flag availability of MC truth
 
   o2::InteractionRecord mStartIR{0, 0}; ///< IR corresponding to the start of the TF
@@ -599,6 +623,7 @@ class MatchTPCITS
   float mTPCVDrift0 = -1.;          ///< TPC nominal drift speed in cm/microseconds
   float mTPCVDrift0Inv = -1.;       ///< inverse TPC nominal drift speed in cm/microseconds
   float mTPCTBinMUS = 0.;           ///< TPC time bin duration in microseconds
+  float mTPCTBinNS = 0.;            ///< TPC time bin duration in ns
   float mTPCTBinMUSInv = 0.;        ///< inverse TPC time bin duration in microseconds
   float mITSROFrame2TPCBin = 0.;    ///< conversion coeff from ITS ROFrame units to TPC time-bin
   float mTPCBin2ITSROFrame = 0.;    ///< conversion coeff from TPC time-bin to ITS ROFrame units
@@ -612,6 +637,10 @@ class MatchTPCITS
 
   std::unique_ptr<TPCTransform> mTPCTransform;         ///< TPC cluster transformation
   std::unique_ptr<o2::gpu::GPUParam> mTPCClusterParam; ///< TPC clusters error param
+
+  o2::BunchFilling mBunchFilling;
+  std::array<int16_t, o2::constants::lhc::LHCMaxBunches> mClosestBunchAbove; // closest filled bunch from above
+  std::array<int16_t, o2::constants::lhc::LHCMaxBunches> mClosestBunchBelow; // closest filled bunch from below
 
   ///>>>------ these are input arrays which should not be modified by the matching code
   //           since this info is provided by external device
