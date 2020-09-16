@@ -26,7 +26,7 @@ std::string VtxTrackIndex::asString() const
   return fmt::format("[{:d}/{:d}/{:s}]", getIndex(), getSource(), bits.to_string());
 }
 
-std::ostream& operator<<(std::ostream& os, const o2::dataformats::VtxTrackIndex& v)
+std::ostream& o2::dataformats::operator<<(std::ostream& os, const o2::dataformats::VtxTrackIndex& v)
 {
   // stream itself
   os << v.asString();

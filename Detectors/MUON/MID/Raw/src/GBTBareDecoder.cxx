@@ -39,25 +39,29 @@ void GBTBareDecoder::process(gsl::span<const uint8_t> bytes, uint16_t bc, uint32
   uint8_t byte = 0;
   size_t ilink = 0, linkMask = 0, byteOffset = 0;
 
-  for (size_t idx = 0; idx < bytes.size(); idx += 16) {
-    for (int ireg = 0; ireg < 2; ++ireg) {
-      byteOffset = idx + 5 * ireg;
-      for (int ib = 0; ib < 4; ++ib) {
-        byte = bytes[byteOffset + ib];
-        ilink = ib + 4 * ireg;
-        linkMask = (1 << ilink);
-        if ((mMask & linkMask) && ((mIsFeeding & linkMask) || byte)) {
-          processLoc(ilink, byte);
-        }
-      } // loop on locs
-      byte = bytes[byteOffset + 4];
-      ilink = 8 + ireg;
-      linkMask = (1 << ilink);
+  for (int ireg = 0; ireg < 2; ++ireg) {
+    byteOffset = 5 * ireg;
+    ilink = 8 + ireg;
+    linkMask = (1 << ilink);
+    for (size_t idx = byteOffset + 4; idx < bytes.size(); idx += 16) {
+      byte = bytes[idx];
       if ((mIsFeeding & linkMask) || byte) {
         std::invoke(mProcessReg, this, ilink, byte);
       }
-    } // loop on half regional
-  }   // loop on buffer index
+    }
+    for (int ib = 0; ib < 4; ++ib) {
+      ilink = ib + 4 * ireg;
+      linkMask = (1 << ilink);
+      if (mMask & linkMask) {
+        for (size_t idx = byteOffset + ib; idx < bytes.size(); idx += 16) {
+          byte = bytes[idx];
+          if ((mIsFeeding & linkMask) || byte) {
+            processLoc(ilink, byte);
+          }
+        }
+      }
+    }
+  }
 }
 
 void GBTBareDecoder::processLoc(size_t ilink, uint8_t byte)

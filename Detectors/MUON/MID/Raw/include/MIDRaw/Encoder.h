@@ -49,6 +49,7 @@ class Encoder
   void hbTrigger(const InteractionRecord& ir);
 
   o2::raw::RawFileWriter mRawWriter{o2::header::gDataOriginMID}; /// Raw file writer
+
   std::map<uint16_t, LocalBoardRO> mROData{}; /// Map of data per board
   ColumnDataToLocalBoard mConverter{};        /// ColumnData to LocalBoardRO converter
   FEEIdConfig mFEEIdConfig{};                 /// Crate FEEId mapper

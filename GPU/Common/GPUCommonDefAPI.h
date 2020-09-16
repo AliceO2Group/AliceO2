@@ -52,20 +52,22 @@
   #define GPUconstantref()                          // reference / ptr to constant memory
   #define GPUconstexprref()                         // reference / ptr to variable declared as GPUconstexpr()
 
-  struct float4 { float x, y, z, w; };
-  struct float3 { float x, y, z; };
-  struct float2 { float x; float y; };
-  struct uchar2 { unsigned char x, y; };
-  struct short2 { short x, y; };
-  struct ushort2 { unsigned short x, y; };
-  struct int2 { int x, y; };
-  struct int3 { int x, y, z; };
-  struct int4 { int x, y, z, w; };
-  struct uint1 { unsigned int x; };
-  struct uint2 { unsigned int x, y; };
-  struct uint3 { unsigned int x, y, z; };
-  struct uint4 { unsigned int x, y, z, w; };
-  struct dim3 { unsigned int x, y, z; };
+  #ifndef __VECTOR_TYPES_H__ // ROOT will pull in these CUDA definitions if built against CUDA, so we have to add an ugly protection here
+    struct float4 { float x, y, z, w; };
+    struct float3 { float x, y, z; };
+    struct float2 { float x; float y; };
+    struct uchar2 { unsigned char x, y; };
+    struct short2 { short x, y; };
+    struct ushort2 { unsigned short x, y; };
+    struct int2 { int x, y; };
+    struct int3 { int x, y, z; };
+    struct int4 { int x, y, z, w; };
+    struct uint1 { unsigned int x; };
+    struct uint2 { unsigned int x, y; };
+    struct uint3 { unsigned int x, y, z; };
+    struct uint4 { unsigned int x, y, z, w; };
+    struct dim3 { unsigned int x, y, z; };
+  #endif
 #elif defined(__OPENCL__) // Defines for OpenCL
   #define GPUd()
   #define GPUdDefault()

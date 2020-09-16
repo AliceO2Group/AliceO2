@@ -15,15 +15,19 @@
 #include "Framework/FunctionalHelpers.h"
 #include "Framework/Logger.h"
 #include "Framework/OutputRef.h"
+#include "Framework/OutputObjHeader.h"
 #include "Framework/OutputSpec.h"
+#include "Framework/SerializationMethods.h"
 #include "Framework/StringHelpers.h"
 #include "Framework/TableBuilder.h"
 
+#include "TClass.h"
 #include "TH1.h"
 #include "TH2.h"
 #include "TH3.h"
 #include "THn.h"
 #include "THnSparse.h"
+#include "TList.h"
 
 #include <string>
 #include <variant>
@@ -230,8 +234,9 @@ struct HistogramCallbacks {
 class HistogramRegistry
 {
  public:
-  HistogramRegistry(char const* const name_, bool enable, std::vector<HistogramSpec> specs)
+  HistogramRegistry(char const* const name_, bool enable, std::vector<HistogramSpec> specs, OutputObjHandlingPolicy policy_ = OutputObjHandlingPolicy::AnalysisObject)
     : name(name_),
+      policy(policy_),
       enabled(enable),
       mRegistryKey(),
       mRegistryValue(),
@@ -283,7 +288,24 @@ class HistogramRegistry
 
   OutputRef ref()
   {
-    return OutputRef{this->name, 0};
+    return OutputRef{std::string{this->name}, 0, o2::header::Stack{OutputObjHeader{policy, taskHash}}};
+  }
+  void setHash(uint32_t hash)
+  {
+    taskHash = hash;
+  }
+
+  TList* operator*()
+  {
+    TList* list = new TList();
+    list->SetName(this->name.c_str());
+    for (auto j = 0u; j < MAX_REGISTRY_SIZE; ++j) {
+      if (mRegistryValue[j].get() != nullptr) {
+        auto hist = mRegistryValue[j].get();
+        list->Add(hist);
+      }
+    }
+    return list;
   }
 
   /// lookup distance counter for benchmarking
@@ -310,6 +332,8 @@ class HistogramRegistry
   }
   std::string name;
   bool enabled;
+  OutputObjHandlingPolicy policy;
+  uint32_t taskHash;
 
   /// The maximum number of histograms in buffer is currently set to 512
   /// which seems to be both reasonably large and allowing for very fast lookup

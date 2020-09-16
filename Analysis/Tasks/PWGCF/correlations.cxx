@@ -50,7 +50,7 @@ struct CorrelationTask {
 
   // Filters and input definitions
   Filter collisionFilter = nabs(aod::collision::posZ) < cfgCutVertex;
-  Filter trackFilter = (nabs(aod::track::eta) < cfgCutEta) && (aod::track::pt > cfgCutPt) && (aod::track::isGlobalTrack == (uint8_t)1);
+  Filter trackFilter = (nabs(aod::track::eta) < cfgCutEta) && (aod::track::pt > cfgCutPt) && ((aod::track::isGlobalTrack == (uint8_t)1) || (aod::track::isGlobalTrackSDD == (uint8_t)1));
   using myTracks = soa::Filtered<soa::Join<aod::Tracks, aod::TrackSelection>>;
 
   // Output definitions
@@ -116,8 +116,14 @@ struct CorrelationTask {
   {
     LOGF(info, "Tracks for collision: %d | Trigger mask: %lld | INT7: %d | V0M: %.1f", tracks.size(), collision.bc().triggerMask(), collision.sel7(), collision.centV0M());
 
+    const auto centrality = collision.centV0M();
+
+    same->FillEvent(centrality, CorrelationContainer::kCFStepAll);
+
     if (!collision.sel7())
       return;
+
+    same->FillEvent(centrality, CorrelationContainer::kCFStepTriggered);
 
     int bSign = 1; // TODO magnetic field from CCDB
 
@@ -130,11 +136,11 @@ struct CorrelationTask {
 
       double eventValues[3];
       eventValues[0] = track1.pt();
-      eventValues[1] = collision.centV0M();
+      eventValues[1] = centrality;
       eventValues[2] = collision.posZ();
 
-      same->getEventHist()->Fill(eventValues, CorrelationContainer::kCFStepReconstructed);
-      //mixed->getEventHist()->Fill(eventValues, CorrelationContainer::kCFStepReconstructed);
+      same->getTriggerHist()->Fill(eventValues, CorrelationContainer::kCFStepReconstructed);
+      //mixed->getTriggerHist()->Fill(eventValues, CorrelationContainer::kCFStepReconstructed);
 
       for (auto track2 = track1 + 1; track2 != tracks.end(); ++track2) {
 
@@ -154,7 +160,7 @@ struct CorrelationTask {
         values[0] = track1.eta() - track2.eta();
         values[1] = track1.pt();
         values[2] = track2.pt();
-        values[3] = collision.centV0M();
+        values[3] = centrality;
 
         values[4] = track1.phi() - track2.phi();
         if (values[4] > 1.5 * TMath::Pi())
@@ -164,8 +170,8 @@ struct CorrelationTask {
 
         values[5] = collision.posZ();
 
-        same->getTrackHist()->Fill(values, CorrelationContainer::kCFStepReconstructed);
-        //mixed->getTrackHist()->Fill(values, CorrelationContainer::kCFStepReconstructed);
+        same->getPairHist()->Fill(values, CorrelationContainer::kCFStepReconstructed);
+        //mixed->getPairHist()->Fill(values, CorrelationContainer::kCFStepReconstructed);
       }
     }
   }
@@ -189,8 +195,8 @@ struct CorrelationTask {
       eventValues[1] = 0; // collision.v0mult();
       eventValues[2] = collision.posZ();
 
-      same->getEventHist()->Fill(eventValues, CorrelationContainer::kCFStepReconstructed);
-      //mixed->getEventHist()->Fill(eventValues, CorrelationContainer::kCFStepReconstructed);
+      same->getTriggerHist()->Fill(eventValues, CorrelationContainer::kCFStepReconstructed);
+      //mixed->getTriggerHist()->Fill(eventValues, CorrelationContainer::kCFStepReconstructed);
     }
 
     for (auto& [track1, track2] : combinations(tracks, tracks)) {
@@ -224,8 +230,8 @@ struct CorrelationTask {
 
       values[5] = collision.posZ();
 
-      same->getTrackHist()->Fill(values, CorrelationContainer::kCFStepReconstructed);
-      //mixed->getTrackHist()->Fill(values, CorrelationContainer::kCFStepReconstructed);
+      same->getPairHist()->Fill(values, CorrelationContainer::kCFStepReconstructed);
+      //mixed->getPairHist()->Fill(values, CorrelationContainer::kCFStepReconstructed);
     }
   }
 
