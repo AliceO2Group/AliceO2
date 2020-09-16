@@ -23,6 +23,8 @@
 #include "Analysis/StrangenessTables.h"
 #include "Analysis/TrackSelection.h"
 #include "Analysis/TrackSelectionTables.h"
+#include "Analysis/EventSelection.h"
+#include "Analysis/Centrality.h"
 
 #include <TFile.h>
 #include <TLorentzVector.h>
@@ -70,8 +72,8 @@ struct lambdakzerofinder {
   //using myTracks = soa::Filtered<aod::Tracks>;
   //using myTracks = soa::Filtered<aod::fullTracks>;
   
-  //Partition<aod::FullTracks> goodPosTracks = aod::track::signed1Pt > 0.0f;
-  //Partition<aod::FullTracks> goodNegTracks = aod::track::signed1Pt < 0.0f;
+  Partition<aod::FullTracks> goodPosTracks = aod::track::signed1Pt > 0.0f;
+  Partition<aod::FullTracks> goodNegTracks = aod::track::signed1Pt < 0.0f;
   
   /// Extracts dca in the XY plane
   /// \return dcaXY
@@ -90,10 +92,6 @@ struct lambdakzerofinder {
   void process(aod::Collision const& collision,
                aod::FullTracks const& tracks)
   {
-    double massPi = TDatabasePDG::Instance()->GetParticle(kPiPlus)->Mass();
-    double massKa = TDatabasePDG::Instance()->GetParticle(kKPlus)->Mass();
-    double massPr = TDatabasePDG::Instance()->GetParticle(kProton)->Mass();
-    
     //Define o2 fitter, 2-prong
     o2::vertexing::DCAFitterN<2> fitter;
     fitter.setBz(d_bz);
@@ -109,30 +107,14 @@ struct lambdakzerofinder {
 
     std::array<float, 3> pVtx = {collision.posX(), collision.posY(), collision.posZ()};
     
-    //FIXME: why did the partition not work?
-    //auto& goodpostracks = goodPosTracks.getPartition();
-    //auto& goodnegtracks = goodNegTracks.getPartition();
-    //for (auto& t0 : goodpostracks(tracks)) {
-    //  for (auto& t1 : goodnegtracks(tracks)) {
-    
-    for (auto it1 = tracks.begin(); it1 != tracks.end(); ++it1) {
-      auto& t0 = *it1;
-      if( t0.charge() < 0 ) continue;
-      if( t0.tpcNClsCrossedRows() < 70 ) continue;
+    for (auto& t0 : goodPosTracks) {
       auto thisdcapostopv = getdcaXY(t0, pVtx);
       if(thisdcapostopv<dcapostopv) continue;
-      for (auto it2 = tracks.begin(); it2 != tracks.end(); ++it2) {
-        auto& t1 = *it2;
-        if( t1.charge() > 0 ) continue;
-        if( t1.tpcNClsCrossedRows() < 70 ) continue;
-        
-        //FIXME: this should really be done via filters!
-        //if( t0.tpcNClsCrossedRows() < 70 ) continue;
-        //if( t1.tpcNClsCrossedRows() < 70 ) continue;
-        
-        //FIXME: this is a single-track property. Doing this in a loop is stupid! Filter?
+      if( t0.tpcNClsCrossedRows() < 70 ) continue;
+      for (auto& t1 : goodPosTracks) {
         auto thisdcanegtopv = getdcaXY(t1, pVtx);
         if(thisdcanegtopv<dcanegtopv) continue;
+        if( t1.tpcNClsCrossedRows() < 70 ) continue;
         
         auto Track1 = getTrackParCov(t0);
         auto Track2 = getTrackParCov(t1);
@@ -201,29 +183,36 @@ struct lambdakzerofinderQA {
   OutputObj<TH1F> hDCANegToPV{TH1F("hDCANegToPV", "", 1000, 0.0, 10.0)};
   OutputObj<TH1F> hDCAV0Dau{TH1F("hDCAV0Dau", "", 1000, 0.0, 10.0)};
   
-  OutputObj<TH2F> h2dMassK0Short{TH2F("h2dMassK0Short", "", 200, 0, 10, 200, 0.450, 0.550)};
-  OutputObj<TH2F> h2dMassLambda{TH2F("h2dMassLambda", "", 200, 0, 10, 200, 1.115 - 0.100, 1.115 + 0.100)};
-  OutputObj<TH2F> h2dMassAntiLambda{TH2F("h2dMassAntiLambda", "", 200, 0, 10, 200, 1.115 - 0.100, 1.115 + 0.100)};
+  OutputObj<TH3F> h3dMassK0Short{TH3F("h3dMassK0Short", "", 20, 0, 100, 200, 0, 10, 200, 0.450, 0.550)};
+  OutputObj<TH3F> h3dMassLambda{TH3F("h3dMassLambda", "", 20, 0, 100, 200, 0, 10, 200, 1.115 - 0.100, 1.115 + 0.100)};
+  OutputObj<TH3F> h3dMassAntiLambda{TH3F("h3dMassAntiLambda", "", 20, 0, 100, 200, 0, 10, 200, 1.115 - 0.100, 1.115 + 0.100)};
   
   Filter preFilterV0 = aod::v0data::dcapostopv > dcapostopv&&
   aod::v0data::dcanegtopv > dcanegtopv && aod::v0data::dcaV0daughters < dcav0dau;
   
   ///Connect to V0FinderData: newly indexed, note: V0DataExt table incompatible with standard V0 table!
-  void process(aod::Collision const& collision, soa::Filtered<soa::Join<aod::V0FinderData, aod::V0DataExt>> const& fullV0s)
+  void process(soa::Join<aod::Collisions, aod::EvSels, aod::Cents>::iterator const& collision,
+               soa::Filtered<soa::Join<aod::V0FinderData, aod::V0DataExt>> const& fullV0s)
   {
+    if (!collision.alias()[kINT7])
+      return;
+    if (!collision.sel7())
+      return;
+    
     Long_t lNCand = 0;
     for (auto& v0 : fullV0s) {
       if (v0.v0radius() > v0radius && v0.v0cosPA(collision.posX(), collision.posY(), collision.posZ()) > v0cospa){
         hV0Radius->Fill(v0.v0radius());
         hV0CosPA->Fill(v0.v0cosPA(collision.posX(), collision.posY(), collision.posZ()));
-        
         hDCAPosToPV->Fill(v0.dcapostopv());
         hDCANegToPV->Fill(v0.dcanegtopv());
         hDCAV0Dau->Fill(v0.dcaV0daughters());
         
-        h2dMassLambda->Fill(v0.pt(), v0.mLambda());
-        h2dMassAntiLambda->Fill(v0.pt(), v0.mAntiLambda());
-        h2dMassK0Short->Fill(v0.pt(), v0.mK0Short());
+        if(TMath::Abs(v0.yLambda())<0.5){
+          h3dMassLambda->Fill(collision.centV0M(), v0.pt(), v0.mLambda());
+          h3dMassAntiLambda->Fill(collision.centV0M(), v0.pt(), v0.mAntiLambda());
+        }
+        if(TMath::Abs(v0.yK0Short())<0.5) h3dMassK0Short->Fill(collision.centV0M(), v0.pt(), v0.mK0Short());
         lNCand++;
       }
     }
