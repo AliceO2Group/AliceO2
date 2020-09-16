@@ -265,6 +265,18 @@ bool DataSpecUtils::partialMatch(InputSpec const& input, header::DataOrigin cons
   return DataSpecUtils::asConcreteOrigin(input) == origin;
 }
 
+bool DataSpecUtils::partialMatch(InputSpec const& input, header::DataDescription const& description)
+{
+  auto dataType = DataSpecUtils::asConcreteDataTypeMatcher(input);
+  return dataType.description == description;
+}
+
+bool DataSpecUtils::partialMatch(OutputSpec const& output, header::DataDescription const& description)
+{
+  auto dataType = DataSpecUtils::asConcreteDataTypeMatcher(output);
+  return dataType.description == description;
+}
+
 ConcreteDataMatcher DataSpecUtils::asConcreteDataMatcher(InputSpec const& spec)
 {
   return std::get<ConcreteDataMatcher>(spec.matcher);
