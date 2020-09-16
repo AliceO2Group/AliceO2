@@ -17,6 +17,8 @@
 #include "Analysis/StrangenessTables.h"
 #include "Analysis/TrackSelection.h"
 #include "Analysis/TrackSelectionTables.h"
+#include "Analysis/EventSelection.h"
+#include "Analysis/Centrality.h"
 
 #include <TFile.h>
 #include <TH2F.h>
@@ -66,9 +68,9 @@ struct lambdakzeroQA {
 };
 
 struct lambdakzeroconsumer {
-  OutputObj<TH2F> h2dMassK0Short{TH2F("h2dMassK0Short", "", 200, 0, 10, 200, 0.450, 0.550)};
-  OutputObj<TH2F> h2dMassLambda{TH2F("h2dMassLambda", "", 200, 0, 10, 200, 1.115 - 0.100, 1.115 + 0.100)};
-  OutputObj<TH2F> h2dMassAntiLambda{TH2F("h2dMassAntiLambda", "", 200, 0, 10, 200, 1.115 - 0.100, 1.115 + 0.100)};
+  OutputObj<TH3F> h3dMassK0Short{TH3F("h3dMassK0Short", "", 20, 0, 100, 200, 0, 10, 200, 0.450, 0.550)};
+  OutputObj<TH3F> h3dMassLambda{TH3F("h3dMassLambda", "", 20, 0, 100, 200, 0, 10, 200, 1.115 - 0.100, 1.115 + 0.100)};
+  OutputObj<TH3F> h3dMassAntiLambda{TH3F("h3dMassAntiLambda", "", 20, 0, 100, 200, 0, 10, 200, 1.115 - 0.100, 1.115 + 0.100)};
 
   //Selection criteria
   Configurable<double> v0cospa{"v0cospa", 0.995, "V0 CosPA"}; //double -> N.B. dcos(x)/dx = 0 at x=0)
@@ -80,14 +82,22 @@ struct lambdakzeroconsumer {
   Filter preFilterV0 = aod::v0data::dcapostopv > dcapostopv&&
                                                    aod::v0data::dcanegtopv > dcanegtopv&& aod::v0data::dcaV0daughters < dcav0dau;
 
-  void process(aod::Collision const& collision, soa::Filtered<soa::Join<aod::V0s, aod::V0DataExt>> const& fullV0s)
+  void process(soa::Join<aod::Collisions, aod::EvSels, aod::Cents>::iterator const& collision, soa::Filtered<soa::Join<aod::V0s, aod::V0DataExt>> const& fullV0s)
   {
+    if (!collision.alias()[kINT7])
+      return;
+    if (!collision.sel7())
+      return;
+
     for (auto& v0 : fullV0s) {
       //FIXME: could not find out how to filter cosPA and radius variables (dynamic columns)
       if (v0.v0radius() > v0radius && v0.v0cosPA(collision.posX(), collision.posY(), collision.posZ()) > v0cospa) {
-        h2dMassLambda->Fill(v0.pt(), v0.mLambda());
-        h2dMassAntiLambda->Fill(v0.pt(), v0.mAntiLambda());
-        h2dMassK0Short->Fill(v0.pt(), v0.mK0Short());
+        if (TMath::Abs(v0.yLambda()) < 0.5) {
+          h3dMassLambda->Fill(collision.centV0M(), v0.pt(), v0.mLambda());
+          h3dMassAntiLambda->Fill(collision.centV0M(), v0.pt(), v0.mAntiLambda());
+        }
+        if (TMath::Abs(v0.yK0Short()) < 0.5)
+          h3dMassK0Short->Fill(collision.centV0M(), v0.pt(), v0.mK0Short());
       }
     }
   }
