@@ -91,7 +91,7 @@ struct MuonTrackSelection {
     fHistMan->SetDefaultVarNames(VarManager::fgVariableNames, VarManager::fgVariableUnits);
 
     DefineHistograms(fHistMan, "TrackMuon_BeforeCuts;TrackMuon_AfterCuts;"); // define all histograms
-    VarManager::SetUseVars(fHistMan->GetUsedVars());                             // provide the list of required variables so that VarManager knows what to fill
+    VarManager::SetUseVars(fHistMan->GetUsedVars());                         // provide the list of required variables so that VarManager knows what to fill
 
     DefineCuts();
   }
@@ -100,12 +100,12 @@ struct MuonTrackSelection {
   {
     fMuonCut = new AnalysisCompositeCut(true);
     AnalysisCut kineMuonCut;
-      kineMuonCut.AddCut(VarManager::kPt, 1.0, 20);
-      kineMuonCut.AddCut(VarManager::kEta, -4.0, -2.5);
-      kineMuonCut.AddCut(VarManager::kMuonChi2, 0.0, 1e6);
-      kineMuonCut.AddCut(VarManager::kMuonRAtAbsorberEnd, 17.6, 89.5);
+    kineMuonCut.AddCut(VarManager::kPt, 1.0, 20);
+    kineMuonCut.AddCut(VarManager::kEta, -4.0, -2.5);
+    kineMuonCut.AddCut(VarManager::kMuonChi2, 0.0, 1e6);
+    kineMuonCut.AddCut(VarManager::kMuonRAtAbsorberEnd, 17.6, 89.5);
     fMuonCut->AddCut(&kineMuonCut);
-      
+
     VarManager::SetUseVars(AnalysisCut::fgUsedVars); // provide the list of required variables so that VarManager knows what to fill
   }
 
@@ -134,9 +134,9 @@ struct MuonTrackSelection {
 struct DileptonMuMu {
   OutputObj<HistogramManager> fHistMan{"outputMuons"};
   AnalysisCompositeCut* fEventCut;
-    AnalysisCompositeCut* fDiMuonCut;
+  AnalysisCompositeCut* fDiMuonCut;
   //NOTE: one could define also a dilepton cut, but for now basic selections can be supported using Partition
-    // NOTE TO THE NOTE: a dimuon cut is needed on the rapidity of the pair. So I added one. Hopefully this works
+  // NOTE TO THE NOTE: a dimuon cut is needed on the rapidity of the pair. So I added one. Hopefully this works
 
   Partition<MyMuonTracksSelected> posMuons = aod::reducedtrack::charge > 0 && aod::reducedtrack::isMuonSelected == 1;
   Partition<MyMuonTracksSelected> negMuons = aod::reducedtrack::charge < 0 && aod::reducedtrack::isMuonSelected == 1;
@@ -149,7 +149,7 @@ struct DileptonMuMu {
     fHistMan->SetDefaultVarNames(VarManager::fgVariableNames, VarManager::fgVariableUnits);
 
     DefineHistograms(fHistMan, "Event_BeforeCuts;Event_AfterCuts;PairsMuonULS;PairsMuonLSpp;PairsMuonLSnn;"); // define all histograms
-    VarManager::SetUseVars(fHistMan->GetUsedVars());                                                                // provide the list of required variables so that VarManager knows what to fill
+    VarManager::SetUseVars(fHistMan->GetUsedVars());                                                          // provide the list of required variables so that VarManager knows what to fill
 
     DefineCuts();
   }
@@ -162,11 +162,11 @@ struct DileptonMuMu {
     varCut->AddCut(VarManager::kVtxZ, -10.0, 10.0);
     varCut->AddCut(VarManager::kVtxNcontrib, 0.5, 1e+10);
     fEventCut->AddCut(varCut);
-      
-      fDiMuonCut = new AnalysisCompositeCut(true);
-      AnalysisCut* diMuonCut = new AnalysisCut();
-      diMuonCut->AddCut(VarManager::kRap, 2.5, 4.0);
-      fDiMuonCut->AddCut(diMuonCut);
+
+    fDiMuonCut = new AnalysisCompositeCut(true);
+    AnalysisCut* diMuonCut = new AnalysisCut();
+    diMuonCut->AddCut(VarManager::kRap, 2.5, 4.0);
+    fDiMuonCut->AddCut(diMuonCut);
 
     VarManager::SetUseVars(AnalysisCut::fgUsedVars); // provide the list of required variables so that VarManager knows what to fill
   }
@@ -188,24 +188,24 @@ struct DileptonMuMu {
       for (auto& tneg : negMuons) {
         //dileptonList(event, VarManager::fgValues[VarManager::kMass], VarManager::fgValues[VarManager::kPt], VarManager::fgValues[VarManager::kEta], VarManager::fgValues[VarManager::kPhi], 1);
         VarManager::FillPair(tpos, tneg);
-          if (!fDiMuonCut->IsSelected(VarManager::fgValues))
-             return;
+        if (!fDiMuonCut->IsSelected(VarManager::fgValues))
+          return;
         fHistMan->FillHistClass("PairsMuonULS", VarManager::fgValues);
       }
       for (auto tpos2 = tpos + 1; tpos2 != posMuons.end(); ++tpos2) { // ++ pairs
-            VarManager::FillPair(tpos, tpos2);
-            if (!fDiMuonCut->IsSelected(VarManager::fgValues))
-            return;
-            fHistMan->FillHistClass("PairsMuonLSpp", VarManager::fgValues);
-          }
+        VarManager::FillPair(tpos, tpos2);
+        if (!fDiMuonCut->IsSelected(VarManager::fgValues))
+          return;
+        fHistMan->FillHistClass("PairsMuonLSpp", VarManager::fgValues);
       }
-     for (auto tneg : negMuons) { // -- pairs
-        for (auto tneg2 = tneg + 1; tneg2 != negMuons.end(); ++tneg2) {
-          VarManager::FillPair(tneg, tneg2);
-            if (!fDiMuonCut->IsSelected(VarManager::fgValues))
-            return;
-          fHistMan->FillHistClass("PairsMuonLSnn", VarManager::fgValues);
-        }
+    }
+    for (auto tneg : negMuons) { // -- pairs
+      for (auto tneg2 = tneg + 1; tneg2 != negMuons.end(); ++tneg2) {
+        VarManager::FillPair(tneg, tneg2);
+        if (!fDiMuonCut->IsSelected(VarManager::fgValues))
+          return;
+        fHistMan->FillHistClass("PairsMuonLSnn", VarManager::fgValues);
+      }
     }
   }
 };
@@ -232,14 +232,14 @@ void DefineHistograms(o2::framework::OutputObj<HistogramManager> histMan, TStrin
       histMan->AddHistClass(classStr.Data());
       histMan->AddHistogram(classStr.Data(), "VtxZ", "Vtx Z", false, 60, -15.0, 15.0, VarManager::kVtxZ); // TH1F histogram
       histMan->AddHistogram(classStr.Data(), "VtxZ_Run", "Vtx Z", true,
-                             kNRuns, 0.5, 0.5 + kNRuns, VarManager::kRunId, 60, -15.0, 15.0, VarManager::kVtxZ, 10, 0., 0., VarManager::kNothing, runsStr.Data());                                        // TH1F histogram
+                            kNRuns, 0.5, 0.5 + kNRuns, VarManager::kRunId, 60, -15.0, 15.0, VarManager::kVtxZ, 10, 0., 0., VarManager::kNothing, runsStr.Data());                                        // TH1F histogram
       histMan->AddHistogram(classStr.Data(), "VtxX_VtxY", "Vtx X vs Vtx Y", false, 100, 0.055, 0.08, VarManager::kVtxX, 100, 0.31, 0.35, VarManager::kVtxY);                                             // TH2F histogram
       histMan->AddHistogram(classStr.Data(), "VtxX_VtxY_VtxZ", "vtx x - y - z", false, 100, 0.055, 0.08, VarManager::kVtxX, 100, 0.31, 0.35, VarManager::kVtxY, 60, -15.0, 15.0, VarManager::kVtxZ);     // TH3F histogram
       histMan->AddHistogram(classStr.Data(), "NContrib_vs_VtxZ_prof", "Vtx Z vs ncontrib", true, 30, -15.0, 15.0, VarManager::kVtxZ, 10, -1., 1., VarManager::kVtxNcontrib);                             // TProfile histogram
       histMan->AddHistogram(classStr.Data(), "VtxZ_vs_VtxX_VtxY_prof", "Vtx Z vs (x,y)", true, 100, 0.055, 0.08, VarManager::kVtxX, 100, 0.31, 0.35, VarManager::kVtxY, 10, -1., 1., VarManager::kVtxZ); // TProfile2D histogram
       histMan->AddHistogram(classStr.Data(), "Ncontrib_vs_VtxZ_VtxX_VtxY_prof", "n-contrib vs (x,y,z)", true,
-                             100, 0.055, 0.08, VarManager::kVtxX, 100, 0.31, 0.35, VarManager::kVtxY, 30, -15., 15., VarManager::kVtxZ,
-                             "", "", "", VarManager::kVtxNcontrib); // TProfile3D
+                            100, 0.055, 0.08, VarManager::kVtxX, 100, 0.31, 0.35, VarManager::kVtxY, 30, -15., 15., VarManager::kVtxZ,
+                            "", "", "", VarManager::kVtxNcontrib); // TProfile3D
 
       double vtxXbinLims[10] = {0.055, 0.06, 0.062, 0.064, 0.066, 0.068, 0.070, 0.072, 0.074, 0.08};
       double vtxYbinLims[7] = {0.31, 0.32, 0.325, 0.33, 0.335, 0.34, 0.35};
@@ -249,8 +249,8 @@ void DefineHistograms(o2::framework::OutputObj<HistogramManager> histMan, TStrin
       histMan->AddHistogram(classStr.Data(), "VtxX_VtxY_nonEqualBinning", "Vtx X vs Vtx Y", false, 9, vtxXbinLims, VarManager::kVtxX, 6, vtxYbinLims, VarManager::kVtxY); // THnF histogram with custom non-equal binning
 
       histMan->AddHistogram(classStr.Data(), "VtxZ_weights", "Vtx Z", false,
-                             60, -15.0, 15.0, VarManager::kVtxZ, 10, 0., 0., VarManager::kNothing, 10, 0., 0., VarManager::kNothing,
-                             "", "", "", VarManager::kNothing, VarManager::kVtxNcontrib); // TH1F histogram, filled with weights using the vtx n-contributors
+                            60, -15.0, 15.0, VarManager::kVtxZ, 10, 0., 0., VarManager::kNothing, 10, 0., 0., VarManager::kNothing,
+                            "", "", "", VarManager::kNothing, VarManager::kVtxNcontrib); // TH1F histogram, filled with weights using the vtx n-contributors
 
       Int_t vars[4] = {VarManager::kVtxX, VarManager::kVtxY, VarManager::kVtxZ, VarManager::kVtxNcontrib};
       TArrayD binLimits[4];
@@ -286,17 +286,17 @@ void DefineHistograms(o2::framework::OutputObj<HistogramManager> histMan, TStrin
         histMan->AddHistogram(classStr.Data(), "NonBendingCoor", "", false, 100, 0.065, 0.07, VarManager::kMuonNonBendingCoor);
         histMan->AddHistogram(classStr.Data(), "Chi2", "", false, 100, 0.0, 200.0, VarManager::kMuonChi2);
         histMan->AddHistogram(classStr.Data(), "Chi2MatchTrigger", "", false, 100, 0.0, 20.0, VarManager::kMuonChi2MatchTrigger);
-          histMan->AddHistogram(classStr.Data(), "RAtAbsorberEnd", "", false, 140, 10, 150, VarManager::kMuonRAtAbsorberEnd);
+        histMan->AddHistogram(classStr.Data(), "RAtAbsorberEnd", "", false, 140, 10, 150, VarManager::kMuonRAtAbsorberEnd);
       }
     }
 
     if (classStr.Contains("Pairs")) {
       histMan->AddHistClass(classStr.Data());
-        histMan->AddHistogram(classStr.Data(), "Mass", "", false, 100, 2.0, 12, VarManager::kMass);
-        histMan->AddHistogram(classStr.Data(), "Pt", "", false, 200, 0.0, 20.0, VarManager::kPt);
-        histMan->AddHistogram(classStr.Data(), "Rapidity", "", false, 19, 2.0, 4.3, VarManager::kRap);
-        histMan->AddHistogram(classStr.Data(), "Mass_Pt", "mass vs p_{T} distribution", false, 100, 0.0, 20.0, VarManager::kMass, 200, 0.0, 20.0, VarManager::kPt); // TH2F histogram
-        histMan->AddHistogram(classStr.Data(), "Mass_Y", "mass vs y distribution", false, 100, 0.0, 20.0, VarManager::kMass, 19, 2.0, 4.3, VarManager::kRap); // TH2F histogram
+      histMan->AddHistogram(classStr.Data(), "Mass", "", false, 100, 2.0, 12, VarManager::kMass);
+      histMan->AddHistogram(classStr.Data(), "Pt", "", false, 200, 0.0, 20.0, VarManager::kPt);
+      histMan->AddHistogram(classStr.Data(), "Rapidity", "", false, 19, 2.0, 4.3, VarManager::kRap);
+      histMan->AddHistogram(classStr.Data(), "Mass_Pt", "mass vs p_{T} distribution", false, 100, 0.0, 20.0, VarManager::kMass, 200, 0.0, 20.0, VarManager::kPt); // TH2F histogram
+      histMan->AddHistogram(classStr.Data(), "Mass_Y", "mass vs y distribution", false, 100, 0.0, 20.0, VarManager::kMass, 19, 2.0, 4.3, VarManager::kRap);       // TH2F histogram
     }
   } // end loop over histogram classes
 }

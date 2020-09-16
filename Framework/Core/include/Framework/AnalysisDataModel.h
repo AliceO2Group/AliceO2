@@ -338,14 +338,14 @@ DECLARE_SOA_DYNAMIC_COLUMN(Phi, phi, [](float thetaX, float thetaY) -> float {
   return (phi >= 0.0 ? phi : phi + twopi);
 });
 DECLARE_SOA_DYNAMIC_COLUMN(RAtAbsorberEnd, rAtAbsorberEnd, [](float bendingCoor, float nonBendingCoor, float zMu, float thetaX, float thetaY) -> float {
-    // linear extrapolation of the coordinates of the track to the position of the end of the absorber (-505 cm)
-    float dZ = -505. - zMu;
-    float NonBendingSlope = std::tan(thetaX);
-    float BendingSlope = std::tan(thetaY);
-    float xAbs = nonBendingCoor + NonBendingSlope * dZ;
-    float yAbs = bendingCoor + BendingSlope * dZ;
-    float rAtAbsorberEnd = std::sqrt(xAbs*xAbs + yAbs*yAbs);
-    return rAtAbsorberEnd;
+  // linear extrapolation of the coordinates of the track to the position of the end of the absorber (-505 cm)
+  float dZ = -505. - zMu;
+  float NonBendingSlope = std::tan(thetaX);
+  float BendingSlope = std::tan(thetaY);
+  float xAbs = nonBendingCoor + NonBendingSlope * dZ;
+  float yAbs = bendingCoor + BendingSlope * dZ;
+  float rAtAbsorberEnd = std::sqrt(xAbs * xAbs + yAbs * yAbs);
+  return rAtAbsorberEnd;
 });
 DECLARE_SOA_EXPRESSION_COLUMN(Pt, pt, float, nsqrt(1.0f + ntan(aod::muon::thetaY) * ntan(aod::muon::thetaY)) * nsqrt(ntan(aod::muon::thetaX) * ntan(aod::muon::thetaX) + ntan(aod::muon::thetaY) * ntan(aod::muon::thetaY)) / nabs(aod::muon::inverseBendingMomentum));
 DECLARE_SOA_EXPRESSION_COLUMN(Px, px, float, -1.0f * ntan(aod::muon::thetaX) * nsqrt(1.0f + ntan(aod::muon::thetaY) * ntan(aod::muon::thetaY)) / nabs(aod::muon::inverseBendingMomentum));
