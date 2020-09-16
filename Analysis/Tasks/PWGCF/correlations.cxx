@@ -35,6 +35,7 @@ struct CorrelationTask {
   O2_DEFINE_CONFIGURABLE(cfgCutPt, float, 0.5f, "Minimal pT for tracks")
   O2_DEFINE_CONFIGURABLE(cfgCutEta, float, 0.8f, "Eta range for tracks")
 
+  O2_DEFINE_CONFIGURABLE(cfgPtOrder, int, 1, "Only consider pairs for which pT,1 < pT,2 (0 = OFF, 1 = ON)");
   O2_DEFINE_CONFIGURABLE(cfgTriggerCharge, int, 0, "Select on charge of trigger particle: 0 = all; 1 = positive; -1 = negative");
   O2_DEFINE_CONFIGURABLE(cfgAssociatedCharge, int, 0, "Select on charge of associated particle: 0 = all; 1 = positive; -1 = negative");
   O2_DEFINE_CONFIGURABLE(cfgPairCharge, int, 0, "Select on charge of particle pair: 0 = all; 1 = like sign; -1 = unlike sign");
@@ -94,8 +95,8 @@ struct CorrelationTask {
       cfg.mPairCuts = true;
 
     // --- OBJECT INIT ---
-    same.setObject(new CorrelationContainer("sameEvent", "sameEvent", "NumberDensityPhiCentrality", binning));
-    mixed.setObject(new CorrelationContainer("mixedEvent", "mixedEvent", "NumberDensityPhiCentrality", binning));
+    same.setObject(new CorrelationContainer("sameEvent", "sameEvent", "NumberDensityPhiCentralityVtx", binning));
+    mixed.setObject(new CorrelationContainer("mixedEvent", "mixedEvent", "NumberDensityPhiCentralityVtx", binning));
     //qaOutput.setObject(new TDirectory("qa", "qa"));
 
     if (cfgTwoTrackCut > 0) {
@@ -112,27 +113,32 @@ struct CorrelationTask {
   }
 
   // Version with explicit nested loop
-  void process(soa::Join<aod::Collisions, aod::EvSels, aod::Cents>::iterator const& collision, aod::BCs const& bcs, aod::Run2V0s const& vzeros, myTracks const& tracks)
+  void process(soa::Filtered<soa::Join<aod::Collisions, aod::EvSels, aod::Cents>>::iterator const& collision, aod::BCs const& bcs, aod::Run2V0s const& vzeros, myTracks const& tracks)
   {
-    LOGF(info, "Tracks for collision: %d | Trigger mask: %lld | INT7: %d | V0M: %.1f", tracks.size(), collision.bc().triggerMask(), collision.sel7(), collision.centV0M());
+    LOGF(info, "Tracks for collision: %d | Vertex: %.1f | INT7: %d | V0M: %.1f", tracks.size(), collision.posZ(), collision.sel7(), collision.centV0M());
 
     const auto centrality = collision.centV0M();
 
-    same->FillEvent(centrality, CorrelationContainer::kCFStepAll);
+    same->fillEvent(centrality, CorrelationContainer::kCFStepAll);
 
     if (!collision.sel7())
       return;
 
-    same->FillEvent(centrality, CorrelationContainer::kCFStepTriggered);
+    same->fillEvent(centrality, CorrelationContainer::kCFStepTriggered);
+
+    // vertex already checked as filter
+    same->fillEvent(centrality, CorrelationContainer::kCFStepVertex);
+
+    same->fillEvent(centrality, CorrelationContainer::kCFStepReconstructed);
 
     int bSign = 1; // TODO magnetic field from CCDB
 
-    for (auto track1 = tracks.begin(); track1 != tracks.end(); ++track1) {
+    for (auto& track1 : tracks) {
+
+      // LOGF(info, "Track %f | %f | %f  %d %d", track1.eta(), track1.phi(), track1.pt(), track1.isGlobalTrack(), track1.isGlobalTrackSDD());
 
       if (cfgTriggerCharge != 0 && cfgTriggerCharge * track1.charge() < 0)
         continue;
-
-      //LOGF(info, "TRACK %f %f | %f %f | %f %f", track1.eta(), track1.eta(), track1.phi(), track1.phi2(), track1.pt(), track1.pt());
 
       double eventValues[3];
       eventValues[0] = track1.pt();
@@ -142,7 +148,12 @@ struct CorrelationTask {
       same->getTriggerHist()->Fill(eventValues, CorrelationContainer::kCFStepReconstructed);
       //mixed->getTriggerHist()->Fill(eventValues, CorrelationContainer::kCFStepReconstructed);
 
-      for (auto track2 = track1 + 1; track2 != tracks.end(); ++track2) {
+      for (auto& track2 : tracks) {
+        if (track1 == track2)
+          continue;
+
+        if (cfgPtOrder != 0 && track2.pt() >= track1.pt())
+          continue;
 
         if (cfgAssociatedCharge != 0 && cfgAssociatedCharge * track2.charge() < 0)
           continue;
@@ -158,8 +169,8 @@ struct CorrelationTask {
         double values[6] = {0};
 
         values[0] = track1.eta() - track2.eta();
-        values[1] = track1.pt();
-        values[2] = track2.pt();
+        values[1] = track2.pt();
+        values[2] = track1.pt();
         values[3] = centrality;
 
         values[4] = track1.phi() - track2.phi();
