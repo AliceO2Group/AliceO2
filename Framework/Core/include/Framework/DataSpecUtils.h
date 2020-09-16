@@ -72,6 +72,12 @@ struct DataSpecUtils {
   /// @return true if the OutputSpec will match at least the provided @a origin.
   static bool partialMatch(OutputSpec const& spec, o2::header::DataOrigin const& origin);
 
+  /// @return true if the OutputSpec will match at least the provided @a description.
+  static bool partialMatch(InputSpec const& spec, o2::header::DataDescription const& description);
+
+  /// @return true if the OutputSpec will match at least the provided @a description.
+  static bool partialMatch(OutputSpec const& spec, o2::header::DataDescription const& description);
+
   template <typename T>
   static bool match(const T& spec, const o2::header::DataHeader& header)
   {
