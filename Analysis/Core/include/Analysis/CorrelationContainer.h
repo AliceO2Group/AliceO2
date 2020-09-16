@@ -62,13 +62,14 @@ class CorrelationContainer : public TNamed
 
   void deepCopy(CorrelationContainer* from);
 
-  void getHistsZVtxMult(CorrelationContainer::CFStep step, Float_t ptLeadMin, Float_t ptLeadMax, THnBase** trackHist, TH2** eventHist);
-  TH2* getSumOfRatios(CorrelationContainer* mixed, CorrelationContainer::CFStep step, Float_t ptLeadMin, Float_t ptLeadMax, Int_t multBinBegin, Int_t multBinEnd, Bool_t normalizePerTrigger = kTRUE, Int_t stepForMixed = -1, Int_t* trigger = nullptr);
-  TH1* getTriggersAsFunctionOfMultiplicity(CorrelationContainer::CFStep step, Float_t ptLeadMin, Float_t ptLeadMax);
+  void getHistsZVtxMult(CorrelationContainer::CFStep step, Float_t ptTriggerMin, Float_t ptTriggerMax, THnBase** trackHist, TH2** eventHist);
+  TH2* getPerTriggerYield(CorrelationContainer::CFStep step, Float_t ptTriggerMin, Float_t ptTriggerMax, Bool_t normalizePerTrigger = kTRUE);
+  TH2* getSumOfRatios(CorrelationContainer* mixed, CorrelationContainer::CFStep step, Float_t ptTriggerMin, Float_t ptTriggerMax, Bool_t normalizePerTrigger = kTRUE, Int_t stepForMixed = -1, Int_t* trigger = nullptr);
+  TH1* getTriggersAsFunctionOfMultiplicity(CorrelationContainer::CFStep step, Float_t ptTriggerMin, Float_t ptTriggerMax);
 
   TH1* getTrackEfficiency(CFStep step1, CFStep step2, Int_t axis1, Int_t axis2 = -1, Int_t source = 1, Int_t axis3 = -1);
   THnBase* getTrackEfficiencyND(CFStep step1, CFStep step2);
-  TH1* getEventEfficiency(CFStep step1, CFStep step2, Int_t axis1, Int_t axis2 = -1, Float_t ptLeadMin = -1, Float_t ptLeadMax = -1);
+  TH1* getEventEfficiency(CFStep step1, CFStep step2, Int_t axis1, Int_t axis2 = -1, Float_t ptTriggerMin = -1, Float_t ptTriggerMax = -1);
   TH1* getBias(CFStep step1, CFStep step2, const char* axis, Float_t leadPtMin = 0, Float_t leadPtMax = -1, Int_t weighting = 0);
 
   TH1D* getTrackingEfficiency(Int_t axis);
@@ -89,7 +90,7 @@ class CorrelationContainer : public TNamed
   TH2D* getTrackingEfficiencyCorrection();
   TH2D* getTrackingEfficiencyCorrectionCentrality();
 
-  void FillEvent(Float_t centrality, CFStep step);
+  void fillEvent(Float_t centrality, CFStep step);
 
   void extendTrackingEfficiency(Bool_t verbose = kFALSE);
 
@@ -124,7 +125,7 @@ class CorrelationContainer : public TNamed
 
   void setHistogramType(const char* histogramType) { mHistogramType = histogramType; }
 
-  void countEmptyBins(CorrelationContainer::CFStep step, Float_t ptLeadMin, Float_t ptLeadMax);
+  void countEmptyBins(CorrelationContainer::CFStep step, Float_t ptTriggerMin, Float_t ptTriggerMax);
   void symmetrizepTBins();
 
   void setBinLimits(THnBase* grid);
