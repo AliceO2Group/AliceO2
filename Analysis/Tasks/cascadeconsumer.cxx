@@ -84,10 +84,10 @@ struct cascadeQA {
 };
 
 struct cascadeconsumer {
-  OutputObj<TH3F> h3dMassXiMinus{TH3F("h3dMassXiMinus", "", 20,0,100, 200, 0, 10, 200, 1.322 - 0.100, 1.322 + 0.100)};
-  OutputObj<TH3F> h3dMassXiPlus{TH3F("h3dMassXiPlus", "", 20,0,100, 200, 0, 10, 200, 1.322 - 0.100, 1.322 + 0.100)};
-  OutputObj<TH3F> h3dMassOmegaMinus{TH3F("h3dMassOmegaMinus", "", 20,0,100, 200, 0, 10, 200, 1.672 - 0.100, 1.672 + 0.100)};
-  OutputObj<TH3F> h3dMassOmegaPlus{TH3F("h3dMassOmegaPlus", "", 20,0,100, 200, 0, 10, 200, 1.672 - 0.100, 1.672 + 0.100)};
+  OutputObj<TH3F> h3dMassXiMinus{TH3F("h3dMassXiMinus", "", 20, 0, 100, 200, 0, 10, 200, 1.322 - 0.100, 1.322 + 0.100)};
+  OutputObj<TH3F> h3dMassXiPlus{TH3F("h3dMassXiPlus", "", 20, 0, 100, 200, 0, 10, 200, 1.322 - 0.100, 1.322 + 0.100)};
+  OutputObj<TH3F> h3dMassOmegaMinus{TH3F("h3dMassOmegaMinus", "", 20, 0, 100, 200, 0, 10, 200, 1.672 - 0.100, 1.672 + 0.100)};
+  OutputObj<TH3F> h3dMassOmegaPlus{TH3F("h3dMassOmegaPlus", "", 20, 0, 100, 200, 0, 10, 200, 1.672 - 0.100, 1.672 + 0.100)};
 
   //Selection criteria
   Configurable<double> v0cospa{"v0cospa", 0.999, "V0 CosPA"};       //double -> N.B. dcos(x)/dx = 0 at x=0)
@@ -121,11 +121,15 @@ struct cascadeconsumer {
           casc.casccosPA(collision.posX(), collision.posY(), collision.posZ()) > casccospa &&
           casc.dcav0topv(collision.posX(), collision.posY(), collision.posZ()) > dcav0topv) {
         if (casc.charge() < 0) { //FIXME: could be done better...
-          if(TMath::Abs(casc.yXi())<0.5) h3dMassXiMinus->Fill(collision.centV0M(),casc.pt(), casc.mXi());
-          if(TMath::Abs(casc.yOmega())<0.5) h3dMassOmegaMinus->Fill(collision.centV0M(),casc.pt(), casc.mOmega());
+          if (TMath::Abs(casc.yXi()) < 0.5)
+            h3dMassXiMinus->Fill(collision.centV0M(), casc.pt(), casc.mXi());
+          if (TMath::Abs(casc.yOmega()) < 0.5)
+            h3dMassOmegaMinus->Fill(collision.centV0M(), casc.pt(), casc.mOmega());
         } else {
-          if(TMath::Abs(casc.yXi())<0.5) h3dMassXiPlus->Fill(collision.centV0M(),casc.pt(), casc.mXi());
-          if(TMath::Abs(casc.yOmega())<0.5) h3dMassOmegaPlus->Fill(collision.centV0M(),casc.pt(), casc.mOmega());
+          if (TMath::Abs(casc.yXi()) < 0.5)
+            h3dMassXiPlus->Fill(collision.centV0M(), casc.pt(), casc.mXi());
+          if (TMath::Abs(casc.yOmega()) < 0.5)
+            h3dMassOmegaPlus->Fill(collision.centV0M(), casc.pt(), casc.mOmega());
         }
       }
     }
