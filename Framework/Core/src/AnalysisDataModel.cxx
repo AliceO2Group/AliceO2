@@ -59,42 +59,6 @@ std::vector<std::string> getColumnNames(header::DataHeader dh)
       return columnNamesTrait(typename StoredTracksCovMetadata::table_t::persistent_columns_t{});
     } else if (description == "TRACK:EXTRA") {
       return columnNamesTrait(typename TracksExtraMetadata::table_t::persistent_columns_t{});
-    } else if (description == "CALO") {
-      return columnNamesTrait(typename CalosMetadata::table_t::persistent_columns_t{});
-    } else if (description == "CALOTRIGGER") {
-      return columnNamesTrait(typename CaloTriggersMetadata::table_t::persistent_columns_t{});
-    } else if (description == "MUON") {
-      return columnNamesTrait(typename StoredMuonsMetadata::table_t::persistent_columns_t{});
-    } else if (description == "MUONCLUSTER") {
-      return columnNamesTrait(typename MuonClustersMetadata::table_t::persistent_columns_t{});
-    } else if (description == "ZDC") {
-      return columnNamesTrait(typename ZdcsMetadata::table_t::persistent_columns_t{});
-    } else if (description == "BC") {
-      return columnNamesTrait(typename BCsMetadata::table_t::persistent_columns_t{});
-    } else if (description == "COLLISION") {
-      return columnNamesTrait(typename CollisionsMetadata::table_t::persistent_columns_t{});
-    } else if (description == "FT0") {
-      return columnNamesTrait(typename FT0sMetadata::table_t::persistent_columns_t{});
-    } else if (description == "FV0") {
-      return columnNamesTrait(typename FV0sMetadata::table_t::persistent_columns_t{});
-    } else if (description == "FDD") {
-      return columnNamesTrait(typename FDDsMetadata::table_t::persistent_columns_t{});
-    } else if (description == "UNASSIGNEDTRACK") {
-      return columnNamesTrait(typename UnassignedTracksMetadata::table_t::persistent_columns_t{});
-    } else if (description == "MCCOLLISION") {
-      return columnNamesTrait(typename McCollisionsMetadata::table_t::persistent_columns_t{});
-    } else if (description == "MCTRACKLABEL") {
-      return columnNamesTrait(typename McTrackLabelsMetadata::table_t::persistent_columns_t{});
-    } else if (description == "MCCALOLABEL") {
-      return columnNamesTrait(typename McCaloLabelsMetadata::table_t::persistent_columns_t{});
-    } else if (description == "MCCOLLISLABEL") {
-      return columnNamesTrait(typename McCollisionLabelsMetadata::table_t::persistent_columns_t{});
-    } else if (description == "MCPARTICLE") {
-      return columnNamesTrait(typename McParticlesMetadata::table_t::persistent_columns_t{});
-    }
-  } else if (origin == "RN2") {
-    if (description == "V0") {
-      return columnNamesTrait(typename Run2V0sMetadata::table_t::persistent_columns_t{});
     }
   }
 
