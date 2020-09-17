@@ -62,6 +62,9 @@ class GBTOutputHandler
 
   void addLoc(size_t ilink, const ELinkDecoder& decoder, EventType eventType, uint16_t correctedClock);
   bool checkLoc(size_t ilink, const ELinkDecoder& decoder);
+  EventType processCalibrationTrigger(size_t ilink, uint16_t localClock);
+  void processOrbitTrigger(size_t ilink, uint16_t localClock, uint8_t triggerWord);
+  EventType processSelfTriggered(size_t ilink, uint16_t localClock, uint16_t& correctedClock);
   bool processTrigger(size_t ilink, const ELinkDecoder& decoder, EventType& eventType, uint16_t& correctedClock);
 };
 } // namespace mid
