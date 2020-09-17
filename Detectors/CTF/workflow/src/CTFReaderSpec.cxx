@@ -28,6 +28,7 @@
 #include "DataFormatsFT0/CTF.h"
 #include "DataFormatsFV0/CTF.h"
 #include "DataFormatsTOF/CTF.h"
+#include "DataFormatsMID/CTF.h"
 #include "Algorithm/RangeTokenizer.h"
 
 using namespace o2::framework;
@@ -146,6 +147,13 @@ void CTFReaderSpec::run(ProcessingContext& pc)
   if (detsTF[det]) {
     auto& bufVec = pc.outputs().make<std::vector<o2::ctf::BufferType>>({det.getName()}, sizeof(o2::tof::CTF));
     o2::tof::CTF::readFromTree(bufVec, *(tree.get()), det.getName());
+    setFirstTFOrbit(det.getName());
+  }
+
+  det = DetID::MID;
+  if (detsTF[det]) {
+    auto& bufVec = pc.outputs().make<std::vector<o2::ctf::BufferType>>({det.getName()}, sizeof(o2::mid::CTF));
+    o2::mid::CTF::readFromTree(bufVec, *(tree.get()), det.getName());
     setFirstTFOrbit(det.getName());
   }
 

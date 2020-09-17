@@ -7,7 +7,6 @@
 # In applying this license CERN does not waive the privileges and immunities
 # granted to it by virtue of its status as an Intergovernmental Organization or
 # submit itself to any jurisdiction.
-
 add_subdirectory(workflow)
 
 o2_add_test(itsmft
@@ -51,3 +50,10 @@ o2_add_test(tof
             COMPONENT_NAME ctf
             LABELS ctf)
 
+o2_add_test(mid
+            PUBLIC_LINK_LIBRARIES O2::CTFWorkflow
+                                  O2::DataFormatsMID
+                                  O2::MIDCTF
+            SOURCES test/test_ctf_io_mid.cxx
+            COMPONENT_NAME ctf
+            LABELS ctf)
