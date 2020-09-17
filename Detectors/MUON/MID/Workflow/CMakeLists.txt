@@ -23,6 +23,8 @@ o2_add_library(MIDWorkflow
 		       src/DigitReaderSpec.cxx
 		       src/DigitsToRawWorkflow.cxx
 		       src/RawWriterSpec.cxx
+                       src/EntropyDecoderSpec.cxx
+                       src/EntropyEncoderSpec.cxx
 		       PUBLIC_LINK_LIBRARIES
 		       O2::Framework
 		       O2::SimConfig
@@ -35,6 +37,7 @@ o2_add_library(MIDWorkflow
 		       O2::MIDClustering
 		       O2::MIDTracking
 		       O2::MIDRaw
+                       O2::MIDCTF
 		       )
 		     
 o2_add_executable(
@@ -69,3 +72,14 @@ o2_add_executable(
 
 target_include_directories(
   ${exenameraw} PRIVATE $<BUILD_INTERFACE:${CMAKE_CURRENT_LIST_DIR}/include>)
+
+o2_add_executable(
+  entropy-encoder-workflow
+  COMPONENT_NAME mid
+  SOURCES src/entropy-encoder-workflow.cxx
+  TARGETVARNAME exenameentropy
+  PUBLIC_LINK_LIBRARIES
+    O2::MIDWorkflow)
+
+target_include_directories(
+  ${exenameentropy} PRIVATE $<BUILD_INTERFACE:${CMAKE_CURRENT_LIST_DIR}/include>)
