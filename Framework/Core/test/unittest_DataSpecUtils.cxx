@@ -242,6 +242,16 @@ BOOST_AUTO_TEST_CASE(GetOptionalSubSpecWithMatcher)
   BOOST_CHECK_EQUAL(std::string(dataType2.description.as<std::string>()), "FOOO");
 }
 
+BOOST_AUTO_TEST_CASE(TestMatcherFromDescription)
+{
+  auto fromQueryInputSpec = DataSpecUtils::dataDescriptorMatcherFrom(header::DataDescription{"TSET"});
+  InputSpec ddSpec{
+    "binding",
+    std::move(fromQueryInputSpec)};
+
+  BOOST_CHECK_EQUAL(DataSpecUtils::asConcreteDataDescription(ddSpec).as<std::string>(), "TSET");
+}
+
 BOOST_AUTO_TEST_CASE(FindOutputSpec)
 {
   std::vector<OutputSpec> specs = {

@@ -185,6 +185,9 @@ struct DataSpecUtils {
 
   /// Build a DataDescriptMatcher which does not care about the subSpec and description.
   static data_matcher::DataDescriptorMatcher dataDescriptorMatcherFrom(header::DataOrigin const& origin);
+
+  /// Build a DataDescriptMatcher which does not care about the subSpec and origin.
+  static data_matcher::DataDescriptorMatcher dataDescriptorMatcherFrom(header::DataDescription const& origin);
 };
 
 } // namespace framework

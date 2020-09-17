@@ -480,6 +480,24 @@ DataDescriptorMatcher DataSpecUtils::dataDescriptorMatcherFrom(header::DataOrigi
   return std::move(matchOnlyOrigin);
 }
 
+DataDescriptorMatcher DataSpecUtils::dataDescriptorMatcherFrom(header::DataDescription const& description)
+{
+  char buf[17] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
+  strncpy(buf, description.str, 16);
+  DataDescriptorMatcher matchOnlyOrigin{
+    DataDescriptorMatcher::Op::And,
+    OriginValueMatcher{ContextRef{1}},
+    std::make_unique<DataDescriptorMatcher>(
+      DataDescriptorMatcher::Op::And,
+      DescriptionValueMatcher{buf},
+      std::make_unique<DataDescriptorMatcher>(
+        DataDescriptorMatcher::Op::And,
+        SubSpecificationTypeValueMatcher{ContextRef{2}},
+        std::make_unique<DataDescriptorMatcher>(DataDescriptorMatcher::Op::Just,
+                                                StartTimeValueMatcher{ContextRef{0}})))};
+  return std::move(matchOnlyOrigin);
+}
+
 InputSpec DataSpecUtils::matchingInput(OutputSpec const& spec)
 {
   return std::visit(overloaded{
