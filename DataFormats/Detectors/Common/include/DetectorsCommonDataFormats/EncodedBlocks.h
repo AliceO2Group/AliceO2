@@ -380,9 +380,8 @@ class EncodedBlocks
   }
 
   /// encode vector src to bloc at provided slot
-  template <typename S, typename VB>
-  void encode(const S* const srcBegin, const S* const srcEnd, int slot, uint8_t probabilityBits, Metadata::OptStore opt, VB* buffer = nullptr,
-              const void* encoderExt = nullptr);
+  template <typename S_IT, typename VB>
+  void encode(const S_IT srcBegin, const S_IT srcEnd, int slot, uint8_t probabilityBits, Metadata::OptStore opt, VB* buffer = nullptr, const void* encoderExt = nullptr);
 
   /// decode block at provided slot to destination vector (will be resized as needed)
   template <typename VD>
@@ -725,21 +724,21 @@ void EncodedBlocks<H, N, W>::decode(D* dest,                      // destination
 
 ///_____________________________________________________________________________
 template <typename H, int N, typename W>
-template <typename S, typename VB>
-void EncodedBlocks<H, N, W>::encode(const S* const srcBegin, // begin of source message
-                                    const S* const srcEnd,   // end of source message
+template <typename S_IT, typename VB>
+void EncodedBlocks<H, N, W>::encode(const S_IT srcBegin,     // iterator begin of source message
+                                    const S_IT srcEnd,       // iterator end of source message
                                     int slot,                // slot in encoded data to fill
                                     uint8_t probabilityBits, // encoding into
                                     Metadata::OptStore opt,  // option for data compression
                                     VB* buffer,              // optional buffer (vector) providing memory for encoded blocks
                                     const void* encoderExt)  // optional external encoder
-
 {
   // fill a new block
   assert(slot == mRegistry.nFilledBlocks);
   mRegistry.nFilledBlocks++;
-  using stream_t = typename o2::rans::Encoder64<S>::stream_t;
-
+  using STYP = typename std::iterator_traits<S_IT>::value_type;
+  using stream_t = typename o2::rans::Encoder64<STYP>::stream_t;
+  ;
   const size_t messageLength = std::distance(srcBegin, srcEnd);
   // cover three cases:
   // * empty source message: no entropy coding
@@ -776,29 +775,29 @@ void EncodedBlocks<H, N, W>::encode(const S* const srcBegin, // begin of source 
   // case 3: message where entropy coding should be applied
   if (opt == Metadata::OptStore::EENCODE) {
     // build symbol statistics
-    const o2::rans::LiteralEncoder64<S>* encoder = reinterpret_cast<const o2::rans::LiteralEncoder64<S>*>(encoderExt);
-    std::unique_ptr<o2::rans::LiteralEncoder64<S>> encoderLoc;
+    const o2::rans::LiteralEncoder64<STYP>* encoder = reinterpret_cast<const o2::rans::LiteralEncoder64<STYP>*>(encoderExt);
+    std::unique_ptr<o2::rans::LiteralEncoder64<STYP>> encoderLoc;
     std::unique_ptr<o2::rans::FrequencyTable> frequencies = nullptr;
     int dictSize = 0;
     if (!encoder) { // no external encoder provide, create one on spot
       frequencies = std::make_unique<o2::rans::FrequencyTable>();
       frequencies->addSamples(srcBegin, srcEnd);
-      encoderLoc = std::make_unique<o2::rans::LiteralEncoder64<S>>(*frequencies, probabilityBits);
+      encoderLoc = std::make_unique<o2::rans::LiteralEncoder64<STYP>>(*frequencies, probabilityBits);
       encoder = encoderLoc.get();
       dictSize = frequencies->size();
     }
 
     // estimate size of encode buffer
-    int dataSize = rans::calculateMaxBufferSize(messageLength, encoder->getAlphabetRangeBits(), sizeof(S)); // size in bytes
+    int dataSize = rans::calculateMaxBufferSize(messageLength, encoder->getAlphabetRangeBits(), sizeof(STYP)); // size in bytes
     // preliminary expansion of storage based on dict size + estimated size of encode buffer
-    dataSize = dataSize / sizeof(W) + (sizeof(S) < sizeof(W)); // size in words of output stream
+    dataSize = dataSize / sizeof(W) + (sizeof(STYP) < sizeof(W)); // size in words of output stream
     expandStorage(dictSize + dataSize);
     //store dictionary first
     if (dictSize) {
       bl->storeDict(dictSize, frequencies->data());
     }
     // vector of incompressible literal symbols
-    std::vector<S> literals;
+    std::vector<STYP> literals;
     // directly encode source message into block buffer.
     const auto encodedMessageEnd = encoder->process(bl->getCreateData(), bl->getCreateData() + dataSize, srcBegin, srcEnd, literals);
     dataSize = encodedMessageEnd - bl->getData();
@@ -809,7 +808,7 @@ void EncodedBlocks<H, N, W>::encode(const S* const srcBegin, // begin of source 
 
     int literalSize = 0;
     if (literals.size()) {
-      literalSize = (literals.size() * sizeof(S)) / sizeof(stream_t) + (sizeof(S) < sizeof(stream_t));
+      literalSize = (literals.size() * sizeof(STYP)) / sizeof(stream_t) + (sizeof(STYP) < sizeof(stream_t));
       expandStorage(literalSize);
       bl->storeLiterals(literalSize, reinterpret_cast<const stream_t*>(literals.data()));
     }
@@ -817,12 +816,14 @@ void EncodedBlocks<H, N, W>::encode(const S* const srcBegin, // begin of source 
                      encoder->getMinSymbol(), encoder->getMaxSymbol(), dictSize, dataSize, literalSize};
 
   } else { // store original data w/o EEncoding
-    const size_t szb = messageLength * sizeof(S);
-    const int dataSize = szb / sizeof(stream_t) + (sizeof(S) < sizeof(stream_t));
+    const size_t szb = messageLength * sizeof(STYP);
+    const int dataSize = szb / sizeof(stream_t) + (sizeof(STYP) < sizeof(stream_t));
     // no dictionary needed
     expandStorage(dataSize);
     *meta = Metadata{messageLength, 0, sizeof(uint64_t), sizeof(stream_t), probabilityBits, opt, 0, 0, 0, dataSize, 0};
-    bl->storeData(meta->nDataWords, reinterpret_cast<const W*>(srcBegin));
+    // provided iterator is not necessarily pointer, need to use intermediate vector!!!
+    std::vector<STYP> vtmp(srcBegin, srcEnd);
+    bl->storeData(meta->nDataWords, reinterpret_cast<const W*>(vtmp.data()));
   }
   // resize block if necessary
 }
