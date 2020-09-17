@@ -125,7 +125,11 @@ BOOST_AUTO_TEST_CASE(MatchingInputs)
   BOOST_CHECK(DataSpecUtils::match(matchingInput2, concreteExample3) == false);
   BOOST_CHECK(DataSpecUtils::match(matchingInput2, concreteExample4) == false);
 
-  BOOST_CHECK_THROW(DataSpecUtils::asConcreteDataMatcher(matchingInput2), std::bad_variant_access);
+  BOOST_CHECK_THROW(DataSpecUtils::asConcreteDataMatcher(matchingInput2), std::runtime_error);
+  auto concrete2 = DataSpecUtils::asConcreteDataMatcher(matchingInput1);
+  BOOST_CHECK_EQUAL(concrete.origin.as<std::string>(), "TEST");
+  BOOST_CHECK_EQUAL(concrete.description.as<std::string>(), "FOOO");
+  BOOST_CHECK_EQUAL(concrete.subSpec, 1);
 }
 
 BOOST_AUTO_TEST_CASE(MatchingOutputs)
