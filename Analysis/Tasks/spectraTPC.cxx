@@ -9,28 +9,35 @@
 // or submit itself to any jurisdiction.
 
 // O2 includes
-#include "Framework/runDataProcessing.h"
 #include "Framework/AnalysisTask.h"
 #include "Framework/AnalysisDataModel.h"
 #include "ReconstructionDataFormats/Track.h"
 #include "PID/PIDResponse.h"
 #include "Framework/ASoAHelpers.h"
+#include "Analysis/TrackSelectionTables.h"
 
 // ROOT includes
 #include <TH1F.h>
+
+using namespace o2;
+using namespace o2::framework;
+using namespace o2::framework::expressions;
+
+void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
+{
+  std::vector<ConfigParamSpec> options{
+    {"add-tof-histos", VariantType::Int, 0, {"Generate TPC with TOF histograms"}}};
+  std::swap(workflowOptions, options);
+}
+
+#include "Framework/runDataProcessing.h"
+
+#define O2_DEFINE_CONFIGURABLE(NAME, TYPE, DEFAULT, HELP) Configurable<TYPE> NAME{#NAME, DEFAULT, HELP};
 
 #define DOTH1F(OBJ, ...) \
   OutputObj<TH1F> OBJ{TH1F(#OBJ, __VA_ARGS__)};
 #define DOTH2F(OBJ, ...) \
   OutputObj<TH2F> OBJ{TH2F(#OBJ, __VA_ARGS__)};
-
-#define TRACKSELECTION                                                                                                \
-  UChar_t clustermap = i.itsClusterMap();                                                                             \
-  bool issel = (i.tpcNClsFindable() > 70) && (i.flags() & 0x4) && (TESTBIT(clustermap, 0) || TESTBIT(clustermap, 1)); \
-  if (!issel)                                                                                                         \
-    continue;
-
-// #define TRACKSELECTION 1;
 
 #define makelogaxis(h)                                            \
   {                                                               \
@@ -47,18 +54,11 @@
     h->GetXaxis()->Set(nbins, binp);                              \
   }
 
-using namespace o2;
-using namespace o2::framework;
-using namespace o2::framework::expressions;
-
-void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
-{
-  std::vector<ConfigParamSpec> options{
-    {"add-tof-histos", VariantType::Bool, false, {"Generate TPC with TOF histograms"}}};
-  std::swap(workflowOptions, options);
-}
-
 struct TPCPIDQAExpSignalTask {
+  // Options
+  O2_DEFINE_CONFIGURABLE(cfgCutVertex, float, 10.0f, "Accepted z-vertex range")
+  O2_DEFINE_CONFIGURABLE(cfgCutEta, float, 0.8f, "Eta range for tracks")
+
 #define BIN_AXIS 1000, 0.001, 20, 1000, 0, 1000
 
   DOTH2F(htpcsignal, ";#it{p} (GeV/#it{c});TPC Signal;Tracks", BIN_AXIS);
@@ -89,13 +89,12 @@ struct TPCPIDQAExpSignalTask {
     makelogaxis(hexpAl);
   }
 
-  void process(aod::Collision const& collision, soa::Join<aod::Tracks, aod::TracksExtra, aod::pidRespTPC> const& tracks)
+  // Filters
+  Filter collisionFilter = nabs(aod::collision::posZ) < cfgCutVertex;
+  Filter trackFilter = (nabs(aod::track::eta) < cfgCutEta) && ((aod::track::isGlobalTrack == (uint8_t)1) || (aod::track::isGlobalTrackSDD == (uint8_t)1));
+  void process(aod::Collision const& collision, soa::Filtered<soa::Join<aod::Tracks, aod::TracksExtra, aod::pidRespTPC, aod::TrackSelection>> const& tracks)
   {
     for (auto const& i : tracks) {
-      // Track selection
-      TRACKSELECTION;
-      //
-
       // const float mom = i.p();
       const float mom = i.tpcInnerParam();
       htpcsignal->Fill(mom, i.tpcSignal());
@@ -113,6 +112,10 @@ struct TPCPIDQAExpSignalTask {
 };
 
 struct TPCPIDQANSigmaTask {
+  // Options
+  O2_DEFINE_CONFIGURABLE(cfgCutVertex, float, 10.0f, "Accepted z-vertex range")
+  O2_DEFINE_CONFIGURABLE(cfgCutEta, float, 0.8f, "Eta range for tracks")
+
 #define BIN_AXIS 1000, 0.001, 20, 1000, -10, 10
 
   // TPC NSigma
@@ -142,13 +145,13 @@ struct TPCPIDQANSigmaTask {
     makelogaxis(hnsigmaAl);
   }
 
-  void process(aod::Collision const& collision, soa::Join<aod::Tracks, aod::TracksExtra, aod::pidRespTPC> const& tracks)
+  // Filters
+  Filter collisionFilter = nabs(aod::collision::posZ) < cfgCutVertex;
+  Filter trackFilter = (nabs(aod::track::eta) < cfgCutEta) && ((aod::track::isGlobalTrack == (uint8_t)1) || (aod::track::isGlobalTrackSDD == (uint8_t)1));
+
+  void process(aod::Collision const& collision, soa::Filtered<soa::Join<aod::Tracks, aod::TracksExtra, aod::pidRespTPC, aod::TrackSelection>> const& tracks)
   {
     for (auto const& i : tracks) {
-      // Track selection
-      TRACKSELECTION;
-      //
-
       hnsigmaEl->Fill(i.p(), i.tpcNSigmaEl());
       hnsigmaMu->Fill(i.p(), i.tpcNSigmaMu());
       hnsigmaPi->Fill(i.p(), i.tpcNSigmaPi());
@@ -163,6 +166,10 @@ struct TPCPIDQANSigmaTask {
 };
 
 struct TPCPIDQASignalwTOFTask {
+  // Options
+  O2_DEFINE_CONFIGURABLE(cfgCutVertex, float, 10.0f, "Accepted z-vertex range")
+  O2_DEFINE_CONFIGURABLE(cfgCutEta, float, 0.8f, "Eta range for tracks")
+
 #define BIN_AXIS 1000, 0.001, 20, 1000, 0, 1000
 
   DOTH2F(htpcsignalEl, ";#it{p} (GeV/#it{c});TPC Signal;Tracks", BIN_AXIS);
@@ -191,11 +198,13 @@ struct TPCPIDQASignalwTOFTask {
     makelogaxis(htpcsignalAl);
   }
 
-  void process(aod::Collision const& collision, soa::Join<aod::Tracks, aod::TracksExtra, aod::pidRespTPC, aod::pidRespTOF> const& tracks)
+  // Filters
+  Filter collisionFilter = nabs(aod::collision::posZ) < cfgCutVertex;
+  Filter trackFilter = (nabs(aod::track::eta) < cfgCutEta) && ((aod::track::isGlobalTrack == (uint8_t)1) || (aod::track::isGlobalTrackSDD == (uint8_t)1));
+
+  void process(aod::Collision const& collision, soa::Filtered<soa::Join<aod::Tracks, aod::TracksExtra, aod::pidRespTPC, aod::pidRespTOF, aod::TrackSelection>> const& tracks)
   {
     for (auto const& i : tracks) {
-      // Track selection
-      TRACKSELECTION;
       // Require kTIME and kTOFout
       if (!(i.flags() & 0x2000))
         continue;
@@ -255,9 +264,6 @@ struct TPCSpectraTask {
   void process(soa::Join<aod::Tracks, aod::TracksExtra, aod::pidRespTPC> const& tracks)
   {
     for (auto i : tracks) {
-      // Track selection
-      TRACKSELECTION;
-      //
       if (TMath::Abs(i.tpcNSigmaEl()) < 3) {
         hp_El->Fill(i.p());
         hpt_El->Fill(i.pt());
@@ -280,7 +286,7 @@ struct TPCSpectraTask {
 
 WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
 {
-  bool TPCwTOF = cfgc.options().get<bool>("add-tof-histos");
+  int TPCwTOF = cfgc.options().get<int>("add-tof-histos");
   WorkflowSpec workflow{adaptAnalysisTask<TPCPIDQAExpSignalTask>("TPCpidqa-expsignal-task"),
                         adaptAnalysisTask<TPCPIDQANSigmaTask>("TPCpidqa-nsigma-task"),
                         adaptAnalysisTask<TPCSpectraTask>("tpcspectra-task")};
