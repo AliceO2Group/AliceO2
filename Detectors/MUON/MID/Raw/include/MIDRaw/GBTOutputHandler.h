@@ -54,7 +54,7 @@ class GBTOutputHandler
   std::vector<ROFRecord> mROFRecords{}; /// List of ROF records
   uint16_t mFeeId{0};                   /// FEE ID
   InteractionRecord mIRFirstPage{};     /// Interaction record of the first page
-  uint16_t mReceivedCalibration{0};     /// Flag to test if a calibration trigger was received
+  uint16_t mReceivedCalibration{0};     /// Word with one bit per e-link indicating if the calibration trigger was received by the e-link
 
   std::array<InteractionRecord, crateparams::sNELinksPerGBT> mIRs{};     /// Interaction records per link
   std::array<uint16_t, crateparams::sNELinksPerGBT> mExpectedFETClock{}; /// Expected FET clock
