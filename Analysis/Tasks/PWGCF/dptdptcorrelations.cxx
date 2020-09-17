@@ -105,12 +105,24 @@ enum SystemType {
   knSystems      ///< number of handled systems
 };
 
+/// \enum CentMultEstimatorType
+/// \brief The detector used to estimate centrality/multiplicity
+enum CentMultEstimatorType {
+  kV0M = 0,            ///< V0M centrality/multiplicity estimator
+  kV0A,                ///< V0A centrality/multiplicity estimator
+  kV0C,                ///< V0C centrality/multiplicity estimator
+  kCL0,                ///< CL0 centrality/multiplicity estimator
+  kCL1,                ///< CL1 centrality/multiplicity estimator
+  knCentMultEstimators ///< number of centrality/mutiplicity estimator
+};
+
 namespace filteranalyistask
 {
 //============================================================================================
 // The DptDptCorrelationsFilterAnalysisTask output objects
 //============================================================================================
 SystemType fSystem = kNoSystem;
+CentMultEstimatorType fCentMultEstimator = kV0M;
 TH1F* fhCentMultB = nullptr;
 TH1F* fhCentMultA = nullptr;
 TH1F* fhVertexZB = nullptr;
@@ -179,17 +191,23 @@ SystemType getSystemType()
   return kPbPb;
 }
 
-bool IsEvtSelected(aod::CollisionEvSelCent const& collision, const std::string estimator, float& centormult)
+bool IsEvtSelected(aod::CollisionEvSelCent const& collision, float& centormult)
 {
+  using namespace filteranalyistask;
+
   if (collision.alias()[kINT7]) {
     if (collision.sel7()) {
       /* TODO: vertex quality checks */
       if (zvtxlow < collision.posZ() and collision.posZ() < zvtxup) {
-        if (estimator.compare("V0M") == 0) {
-          if (collision.centV0M() < 100 and 0 < collision.centV0M()) {
-            centormult = collision.centV0M();
-            return true;
-          }
+        switch (fCentMultEstimator) {
+          case kV0M:
+            if (collision.centV0M() < 100 and 0 < collision.centV0M()) {
+              centormult = collision.centV0M();
+              return true;
+            }
+            break;
+          default:
+            break;
         }
         return false;
       }
@@ -267,8 +285,9 @@ using namespace dptdptcorrelations;
 struct DptDptCorrelationsFilterAnalysisTask {
 
   Configurable<int> cfgTrackType{"trktype", 1, "Type of selected tracks: 0 = no selection, 1 = global tracks loose DCA, 2 = global SDD tracks"};
-  Configurable<int> cfgTrackOneCharge{"trk1charge", 1, "Trakc one charge: 1 = positive, -1 = negative"};
+  Configurable<int> cfgTrackOneCharge{"trk1charge", -1, "Trakc one charge: 1 = positive, -1 = negative"};
   Configurable<int> cfgTrackTwoCharge{"trk2charge", -1, "Trakc two charge: 1 = positive, -1 = negative"};
+  Configurable<bool> cfgProcessPairs{"processpairs", true, "Process pairs: false = no, just singles, true = yes, process pairs"};
   Configurable<std::string> cfgCentMultEstimator{"centmultestimator", "V0M", "Centrality/multiplicity estimator detector: default V0M"};
 
   Configurable<o2::analysis::DptDptBinningCuts> cfgBinning{"binning",
@@ -285,6 +304,7 @@ struct DptDptCorrelationsFilterAnalysisTask {
     using namespace filteranalyistask;
 
     /* update with the configurable values */
+    /* the binning */
     ptbins = cfgBinning->mPTbins;
     ptlow = cfgBinning->mPTmin;
     ptup = cfgBinning->mPTmax;
@@ -294,9 +314,16 @@ struct DptDptCorrelationsFilterAnalysisTask {
     zvtxbins = cfgBinning->mZVtxbins;
     zvtxlow = cfgBinning->mZVtxmin;
     zvtxup = cfgBinning->mZVtxmax;
+    /* the track types and combinations */
     tracktype = cfgTrackType.value;
     trackonecharge = cfgTrackOneCharge.value;
     tracktwocharge = cfgTrackTwoCharge.value;
+    /* the centrality/multiplicity estimation */
+    if (cfgCentMultEstimator->compare("V0M") == 0) {
+      fCentMultEstimator = kV0M;
+    } else {
+      LOGF(FATAL, "Centrality/Multiplicity estimator %s not supported yet", cfgCentMultEstimator->c_str());
+    }
 
     /* if the system type is not known at this time, we have to put the initalization somewhere else */
     fSystem = getSystemType();
@@ -305,6 +332,11 @@ struct DptDptCorrelationsFilterAnalysisTask {
     TList* fOutputList = new TList();
     fOutputList->SetOwner(true);
     fOutput.setObject(fOutputList);
+
+    /* incorporate configuration parameters to the output */
+    fOutputList->Add(new TParameter<Int_t>("TrackType", cfgTrackType, 'f'));
+    fOutputList->Add(new TParameter<Int_t>("TrackOneCharge", cfgTrackOneCharge, 'f'));
+    fOutputList->Add(new TParameter<Int_t>("TrackTwoCharge", cfgTrackTwoCharge, 'f'));
 
     /* create the histograms */
     if (fSystem > kPbp) {
@@ -364,7 +396,7 @@ struct DptDptCorrelationsFilterAnalysisTask {
     fhVertexZB->Fill(collision.posZ());
     int acceptedevent = DPTDPT_FALSE;
     float centormult = -100.0;
-    if (IsEvtSelected(collision, cfgCentMultEstimator, centormult)) {
+    if (IsEvtSelected(collision, centormult)) {
       acceptedevent = DPTDPT_TRUE;
       fhCentMultA->Fill(collision.centV0M());
       fhVertexZA->Fill(collision.posZ());
