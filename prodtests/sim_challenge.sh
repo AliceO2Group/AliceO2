@@ -53,6 +53,7 @@ taskwrapper() {
     pattern="-e \"xception\"                        \
              -e \"segmentation violation\"          \
              -e \"error while setting up workflow\" \
+             -e \"bus error\"                       \
              -e \"There was a crash.\""
       
     grepcommand="grep -H ${pattern} $logfile >> encountered_exceptions_list 2>/dev/null"
