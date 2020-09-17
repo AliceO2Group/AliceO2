@@ -14,6 +14,7 @@
 #include "Framework/DeviceInfo.h"
 #include "Framework/LogParsingHelpers.h"
 #include "Framework/PaletteHelpers.h"
+#include "Framework/Logger.h"
 #include "FrameworkGUIDeviceInspector.h"
 #include "Framework/Logger.h"
 #include "../src/WorkflowHelpers.h"
@@ -31,13 +32,8 @@
 static inline ImVec2 operator+(const ImVec2& lhs, const ImVec2& rhs) { return ImVec2(lhs.x + rhs.x, lhs.y + rhs.y); }
 static inline ImVec2 operator-(const ImVec2& lhs, const ImVec2& rhs) { return ImVec2(lhs.x - rhs.x, lhs.y - rhs.y); }
 
-namespace o2
+namespace o2::framework::gui
 {
-namespace framework
-{
-namespace gui
-{
-
 struct NodeColor {
   ImVec4 normal;
   ImVec4 hovered;
@@ -558,6 +554,4 @@ void showTopologyNodeGraph(WorkspaceGUIState& state,
   ImGui::End();
 }
 
-} // namespace gui
-} // namespace framework
-} // namespace o2
+} // namespace o2::framework::gui

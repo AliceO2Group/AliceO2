@@ -34,12 +34,12 @@ DataProcessorSpec getFT0DigitWriterSpec()
     LOG(INFO) << "FT0DigitWriter pulled " << digits.size() << " digits";
   };
   return MakeRootTreeWriterSpec(
-    "ft0-digit-writer", "o2digit_ft0.root", "o2digits",
+    "ft0-digit-writer", "o2digit_ft0.root", "o2sim",
     BranchDefinition<DigitType>{InputSpec{"digits", "FT0", "DIGITSBC", 0},
-                                "FT0Digits", "ft0-digits-branch-name", 1,
+                                "FT0DIGITSBC", "ft0-digits-branch-name", 1,
                                 logger},
     BranchDefinition<ChanDataType>{InputSpec{"digch", "FT0", "DIGITSCH", 0},
-                                   "FT0ChData", "ft0-chhdata-branch-name"})();
+                                   "FT0DIGITSCH", "ft0-chhdata-branch-name"})();
 }
 
 } // namespace ft0

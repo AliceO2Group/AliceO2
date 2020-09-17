@@ -59,10 +59,10 @@ void VertexTrackMatcherSpec::run(ProcessingContext& pc)
   const auto tracksITSROF = pc.inputs().get<gsl::span<o2::itsmft::ROFRecord>>("itsROF");
   const auto vertices = pc.inputs().get<gsl::span<o2::dataformats::PrimaryVertex>>("vertices");
   const auto vtxTracks = pc.inputs().get<gsl::span<o2::dataformats::VtxTrackIndex>>("vtxTracks");
-  const auto vtxTrackRefs = pc.inputs().get<gsl::span<o2::dataformats::RangeReference<int, int>>>("vtxTrackRefs");
+  const auto vtxTrackRefs = pc.inputs().get<gsl::span<o2::dataformats::VtxTrackRef>>("vtxTrackRefs");
 
   std::vector<o2::dataformats::VtxTrackIndex> trackIndex;
-  std::vector<o2::dataformats::RangeReference<int, int>> vtxRefs;
+  std::vector<o2::dataformats::VtxTrackRef> vtxRefs;
 
   mMatcher.process(vertices, vtxTracks, vtxTrackRefs, tracksITSTPC, tracksITS, tracksITSROF, tracksTPC, trackIndex, vtxRefs);
 

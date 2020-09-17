@@ -551,7 +551,7 @@ void CorrelationContainer::resetBinLimits(THnBase* grid)
 }
 
 //____________________________________________________________________
-void CorrelationContainer::countEmptyBins(CorrelationContainer::CFStep step, Float_t ptLeadMin, Float_t ptLeadMax)
+void CorrelationContainer::countEmptyBins(CorrelationContainer::CFStep step, Float_t ptTriggerMin, Float_t ptTriggerMax)
 {
   // prints the number of empty bins in the track end event histograms in the given step
 
@@ -573,9 +573,9 @@ void CorrelationContainer::countEmptyBins(CorrelationContainer::CFStep step, Flo
     binEnd[1] = mPairHist->getTHn(step)->GetAxis(1)->FindBin(mPtMax);
   }
 
-  if (ptLeadMax > ptLeadMin) {
-    binBegin[2] = mPairHist->getTHn(step)->GetAxis(2)->FindBin(ptLeadMin);
-    binEnd[2] = mPairHist->getTHn(step)->GetAxis(2)->FindBin(ptLeadMax);
+  if (ptTriggerMax > ptTriggerMin) {
+    binBegin[2] = mPairHist->getTHn(step)->GetAxis(2)->FindBin(ptTriggerMin);
+    binEnd[2] = mPairHist->getTHn(step)->GetAxis(2)->FindBin(ptTriggerMax);
   }
 
   // start from multiplicity 1
@@ -616,7 +616,7 @@ void CorrelationContainer::countEmptyBins(CorrelationContainer::CFStep step, Flo
 }
 
 //____________________________________________________________________
-void CorrelationContainer::getHistsZVtxMult(CorrelationContainer::CFStep step, Float_t ptLeadMin, Float_t ptLeadMax, THnBase** trackHist, TH2** eventHist)
+void CorrelationContainer::getHistsZVtxMult(CorrelationContainer::CFStep step, Float_t ptTriggerMin, Float_t ptTriggerMax, THnBase** trackHist, TH2** eventHist)
 {
   // Calculates a 4d histogram with deltaphi, deltaeta, zvtx, multiplicity on track level and
   // a 2d histogram on event level (as fct of zvtx, multiplicity)
@@ -637,9 +637,9 @@ void CorrelationContainer::getHistsZVtxMult(CorrelationContainer::CFStep step, F
 
   setBinLimits(sparse);
 
-  Int_t firstBin = sparse->GetAxis(2)->FindBin(ptLeadMin);
-  Int_t lastBin = sparse->GetAxis(2)->FindBin(ptLeadMax);
-  LOGF(info, "Using pT range %d --> %d", firstBin, lastBin);
+  Int_t firstBin = sparse->GetAxis(2)->FindBin(ptTriggerMin);
+  Int_t lastBin = sparse->GetAxis(2)->FindBin(ptTriggerMax);
+  LOGF(info, "Using trigger pT range %d --> %d", firstBin, lastBin);
   sparse->GetAxis(2)->SetRange(firstBin, lastBin);
   mTriggerHist->getTHn(step)->GetAxis(0)->SetRange(firstBin, lastBin);
 
@@ -716,10 +716,61 @@ void CorrelationContainer::getHistsZVtxMult(CorrelationContainer::CFStep step, F
   resetBinLimits(mTriggerHist->getTHn(step));
 }
 
-//____________________________________________________________________
-TH2* CorrelationContainer::getSumOfRatios(CorrelationContainer* mixed, CorrelationContainer::CFStep step, Float_t ptLeadMin, Float_t ptLeadMax, Int_t multBinBegin, Int_t multBinEnd, Bool_t normalizePerTrigger, Int_t stepForMixed, Int_t* trigger)
+TH2* CorrelationContainer::getPerTriggerYield(CorrelationContainer::CFStep step, Float_t ptTriggerMin, Float_t ptTriggerMax, Bool_t normalizePerTrigger)
 {
-  // Calls GetUEHist(...) for *each* vertex bin and multiplicity bin and performs a sum of ratios:
+  // Calculate per trigger yield without considering mixed event
+  // Sums over all vertex bins, and respects the pT and centrality limits set in the class
+  //
+  // returns a 2D histogram: deltaphi, deltaeta
+  //
+  // Parameters:
+  //   step: Step for which the histogram is received
+  //   ptTriggerMin, ptTriggerMax: trigger pT range
+  //   normalizePerTrigger: divide through number of triggers
+
+  THnBase* trackSameAll = nullptr;
+  TH2* eventSameAll = nullptr;
+
+  Long64_t totalEvents = 0;
+  Int_t nCorrelationFunctions = 0;
+
+  getHistsZVtxMult(step, ptTriggerMin, ptTriggerMax, &trackSameAll, &eventSameAll);
+
+  TAxis* multAxis = trackSameAll->GetAxis(3);
+  int multBinBegin = 1;
+  int multBinEnd = multAxis->GetNbins();
+  if (mCentralityMin < mCentralityMax) {
+    multBinBegin = multAxis->FindBin(mCentralityMin + 1e-4);
+    multBinEnd = multAxis->FindBin(mCentralityMax - 1e-4);
+    LOGF(info, "Using multiplicity range %d --> %d", multBinBegin, multBinEnd);
+  }
+
+  if (mCentralityMin < mCentralityMax) {
+    trackSameAll->GetAxis(3)->SetRange(multBinBegin, multBinEnd);
+  }
+
+  TH2* yield = trackSameAll->Projection(1, 0, "E");
+  Float_t triggers = eventSameAll->Integral(1, eventSameAll->GetXaxis()->GetNbins(), multBinBegin, multBinEnd);
+
+  if (normalizePerTrigger) {
+    LOGF(info, "Dividing %f tracks by %f triggers", yield->Integral(), triggers);
+    if (triggers > 0)
+      yield->Scale(1.0 / triggers);
+  }
+
+  // normalizate to dphi width
+  Float_t normalization = yield->GetXaxis()->GetBinWidth(1);
+  yield->Scale(1.0 / normalization);
+
+  delete trackSameAll;
+  delete eventSameAll;
+
+  return yield;
+}
+
+TH2* CorrelationContainer::getSumOfRatios(CorrelationContainer* mixed, CorrelationContainer::CFStep step, Float_t ptTriggerMin, Float_t ptTriggerMax, Bool_t normalizePerTrigger, Int_t stepForMixed, Int_t* trigger)
+{
+  // Extract 2D per trigger yield with mixed event correction. The quantity is calculated for *each* vertex bin and multiplicity bin and then a sum of ratios is performed:
   // 1_N [ (same/mixed)_1 + (same/mixed)_2 + (same/mixed)_3 + ... ]
   // where N is the total number of events/trigger particles and the subscript is the vertex/multiplicity bin
   // where mixed is normalized such that the information about the number of pairs in same is kept
@@ -728,8 +779,9 @@ TH2* CorrelationContainer::getSumOfRatios(CorrelationContainer* mixed, Correlati
   //
   // Parameters:
   //   mixed: CorrelationContainer containing mixed event corresponding to this object (the histograms are taken from step <stepForMixed> if defined otherwise from step <step>)
-  //   <other parameters> : check documentation of CorrelationContainer::GetUEHist
-  //  normalizePerTrigger: divide through number of triggers
+  //   step: Step for which the histogram is received
+  //   ptTriggerMin, ptTriggerMax: trigger pT range
+  //   normalizePerTrigger: divide through number of triggers
 
   // do not add this hists to the directory
   Bool_t oldStatus = TH1::AddDirectoryStatus();
@@ -747,8 +799,8 @@ TH2* CorrelationContainer::getSumOfRatios(CorrelationContainer* mixed, Correlati
   Long64_t totalEvents = 0;
   Int_t nCorrelationFunctions = 0;
 
-  getHistsZVtxMult(step, ptLeadMin, ptLeadMax, &trackSameAll, &eventSameAll);
-  mixed->getHistsZVtxMult((stepForMixed == -1) ? step : (CFStep)stepForMixed, ptLeadMin, ptLeadMax, &trackMixedAll, &eventMixedAll);
+  getHistsZVtxMult(step, ptTriggerMin, ptTriggerMax, &trackSameAll, &eventSameAll);
+  mixed->getHistsZVtxMult((stepForMixed == -1) ? step : (CFStep)stepForMixed, ptTriggerMin, ptTriggerMax, &trackMixedAll, &eventMixedAll);
 
   // If we ask for histograms from step8 (TTR cut applied) there is a hole at 0,0; so this cannot be used for the
   // mixed-event normalization. If step6 is available, the normalization factor is read out from that one.
@@ -756,7 +808,7 @@ TH2* CorrelationContainer::getSumOfRatios(CorrelationContainer* mixed, Correlati
   // flat delta phi distribution)
   if (stepForMixed == -1 && step == kCFStepBiasStudy && mixed->mTriggerHist->getTHn(kCFStepReconstructed)->GetEntries() > 0 && !mSkipScaleMixedEvent) {
     LOGF(info, "Using mixed-event normalization factors from step %d", kCFStepReconstructed);
-    mixed->getHistsZVtxMult(kCFStepReconstructed, ptLeadMin, ptLeadMax, &trackMixedAllStep6, &eventMixedAllStep6);
+    mixed->getHistsZVtxMult(kCFStepReconstructed, ptTriggerMin, ptTriggerMax, &trackMixedAllStep6, &eventMixedAllStep6);
   }
 
   //   Printf("%f %f %f %f", trackSameAll->GetEntries(), eventSameAll->GetEntries(), trackMixedAll->GetEntries(), eventMixedAll->GetEntries());
@@ -767,9 +819,11 @@ TH2* CorrelationContainer::getSumOfRatios(CorrelationContainer* mixed, Correlati
 
   TAxis* multAxis = trackSameAll->GetAxis(3);
 
-  if (multBinEnd < multBinBegin) {
-    multBinBegin = 1;
-    multBinEnd = multAxis->GetNbins();
+  int multBinBegin = 1;
+  int multBinEnd = multAxis->GetNbins();
+  if (mCentralityMin < mCentralityMax) {
+    multBinBegin = multAxis->FindBin(mCentralityMin);
+    multBinEnd = multAxis->FindBin(mCentralityMax);
   }
 
   for (Int_t multBin = TMath::Max(1, multBinBegin); multBin <= TMath::Min(multAxis->GetNbins(), multBinEnd); multBin++) {
@@ -996,14 +1050,14 @@ TH2* CorrelationContainer::getSumOfRatios(CorrelationContainer* mixed, Correlati
   return totalTracks;
 }
 
-TH1* CorrelationContainer::getTriggersAsFunctionOfMultiplicity(CorrelationContainer::CFStep step, Float_t ptLeadMin, Float_t ptLeadMax)
+TH1* CorrelationContainer::getTriggersAsFunctionOfMultiplicity(CorrelationContainer::CFStep step, Float_t ptTriggerMin, Float_t ptTriggerMax)
 {
   // returns the distribution of triggers as function of centrality/multiplicity
 
   resetBinLimits(mTriggerHist->getTHn(step));
 
-  Int_t firstBin = mTriggerHist->getTHn(step)->GetAxis(0)->FindBin(ptLeadMin);
-  Int_t lastBin = mTriggerHist->getTHn(step)->GetAxis(0)->FindBin(ptLeadMax);
+  Int_t firstBin = mTriggerHist->getTHn(step)->GetAxis(0)->FindBin(ptTriggerMin);
+  Int_t lastBin = mTriggerHist->getTHn(step)->GetAxis(0)->FindBin(ptTriggerMax);
   LOGF(info, "Using pT range %d --> %d", firstBin, lastBin);
   mTriggerHist->getTHn(step)->GetAxis(0)->SetRange(firstBin, lastBin);
 
@@ -1301,14 +1355,14 @@ TH1* CorrelationContainer::getTrackEfficiency(CFStep step1, CFStep step2, Int_t 
 }
 
 //____________________________________________________________________
-TH1* CorrelationContainer::getEventEfficiency(CFStep step1, CFStep step2, Int_t axis1, Int_t axis2, Float_t ptLeadMin, Float_t ptLeadMax)
+TH1* CorrelationContainer::getEventEfficiency(CFStep step1, CFStep step2, Int_t axis1, Int_t axis2, Float_t ptTriggerMin, Float_t ptTriggerMax)
 {
   // creates a event-level efficiency by dividing step2 by step1
   // projected to axis1 and axis2 (optional if >= 0)
 
-  if (ptLeadMax > ptLeadMin) {
-    mTriggerHist->getTHn(step1)->GetAxis(0)->SetRangeUser(ptLeadMin, ptLeadMax);
-    mTriggerHist->getTHn(step2)->GetAxis(0)->SetRangeUser(ptLeadMin, ptLeadMax);
+  if (ptTriggerMax > ptTriggerMin) {
+    mTriggerHist->getTHn(step1)->GetAxis(0)->SetRangeUser(ptTriggerMin, ptTriggerMax);
+    mTriggerHist->getTHn(step2)->GetAxis(0)->SetRangeUser(ptTriggerMin, ptTriggerMax);
   }
 
   TH1* measured = nullptr;
@@ -1326,7 +1380,7 @@ TH1* CorrelationContainer::getEventEfficiency(CFStep step1, CFStep step2, Int_t 
 
   delete generated;
 
-  if (ptLeadMax > ptLeadMin) {
+  if (ptTriggerMax > ptTriggerMin) {
     mTriggerHist->getTHn(step1)->GetAxis(0)->SetRangeUser(0, -1);
     mTriggerHist->getTHn(step2)->GetAxis(0)->SetRangeUser(0, -1);
   }
@@ -1867,7 +1921,7 @@ THnBase* CorrelationContainer::changeToThn(THnBase* sparse)
   return tmpTHn;
 }
 
-void CorrelationContainer::FillEvent(Float_t centrality, CFStep step)
+void CorrelationContainer::fillEvent(Float_t centrality, CFStep step)
 {
   // Fill per-event information
   mEventCount->Fill(step, centrality);
