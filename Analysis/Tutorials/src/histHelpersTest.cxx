@@ -55,7 +55,7 @@ struct HistHelpersTest {
 
   OutputObj<HistArray> test{HistArray("Test"), OutputObjHandlingPolicy::QAObject};
   OutputObj<HistArray> kine{HistArray("Kine"), OutputObjHandlingPolicy::QAObject};
-  OutputObj<HistArray> tpc{HistArray("TPC"), OutputObjHandlingPolicy::QAObject};
+  OutputObj<HistFolder> tpc{HistFolder("TPC"), OutputObjHandlingPolicy::QAObject};
   OutputObj<HistList> its{HistList("ITS"), OutputObjHandlingPolicy::QAObject};
 
   void init(o2::framework::InitContext&)

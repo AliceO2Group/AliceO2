@@ -25,9 +25,9 @@
 #include <TProfile2D.h>
 #include <TProfile3D.h>
 
+#include <TFolder.h>
 #include <TObjArray.h>
 #include <TList.h>
-//#include <TDirectory.h>
 
 #include "Framework/Logger.h"
 
@@ -154,7 +154,7 @@ class HistContainer : public RootContainer
       else
         hist->Fill(tempArray);
     }
-  };
+  }
 
   template <typename T>
   std::optional<HistType> GetHistVariant(std::shared_ptr<TObject> obj)
@@ -183,9 +183,9 @@ class HistContainer : public RootContainer
 };
 
 //**************************************************************************************************
+using HistFolder = HistContainer<TFolder>;
 using HistArray = HistContainer<TObjArray>;
 using HistList = HistContainer<TList>;
-//using HistDirectory = HistContainer<TDirectory>;
 //**************************************************************************************************
 
 //**************************************************************************************************
