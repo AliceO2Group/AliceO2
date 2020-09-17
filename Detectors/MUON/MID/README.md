@@ -13,4 +13,5 @@ This is a top page for the MID detector documentation.
 * \subpage refMUONMIDRawExe
 * \subpage refMUONMIDTracking
 * \subpage refMUONMIDWorkflow
+* \subpage refMUONMIDCTF
 /doxy -->
