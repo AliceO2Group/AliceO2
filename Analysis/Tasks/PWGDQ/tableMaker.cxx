@@ -68,7 +68,7 @@ struct TableMaker {
     VarManager::SetUseVars(fHistMan->GetUsedVars()); // provide the list of required variables so that VarManager knows what to fill
   }
 
-  void process(soa::Join<aod::Collisions, aod::EvSels, aod::Cents>::iterator collision, aod::MuonClusters const& clustersMuon, aod::Muons const& tracksMuon, aod::BCs const& bcs, soa::Join<aod::Tracks, aod::TracksExtra, aod::TracksCov, aod::pidRespTPC, aod::pidRespTOF, aod::pidRespTOFbeta> const& tracksBarrel)
+  void process(soa::Join<aod::Collisions, aod::EvSels, aod::Cents>::iterator collision, aod::MuonClusters const& clustersMuon, aod::Muons const& tracksMuon, aod::BCs const& bcs, soa::Join<aod::Tracks, aod::TracksExtra, aod::TracksCov /*, aod::pidRespTPC, aod::pidRespTOF, aod::pidRespTOFbeta*/> const& tracksBarrel)
   {
     uint64_t tag = 0;
     uint32_t triggerAliases = 0;
@@ -114,16 +114,17 @@ struct TableMaker {
                   track.trdChi2(), track.tofChi2(),
                   track.length(), dcaXY, dcaZ);
       trackBarrelCov(track.cYY(), track.cZZ(), track.cSnpSnp(), track.cTglTgl(), track.c1Pt21Pt2());
-      trackBarrelPID(
-        track.tpcSignal(),
-        track.tpcNSigmaEl(), track.tpcNSigmaMu(),
+      trackBarrelPID(track.tpcSignal(),
+                     0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
+                     0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0);
+      /*        track.tpcNSigmaEl(), track.tpcNSigmaMu(),
         track.tpcNSigmaPi(), track.tpcNSigmaKa(), track.tpcNSigmaPr(),
         track.tpcNSigmaDe(), track.tpcNSigmaTr(), track.tpcNSigmaHe(), track.tpcNSigmaAl(),
         track.tofSignal(), track.beta(),
         track.tofNSigmaEl(), track.tofNSigmaMu(),
         track.tofNSigmaPi(), track.tofNSigmaKa(), track.tofNSigmaPr(),
         track.tofNSigmaDe(), track.tofNSigmaTr(), track.tofNSigmaHe(), track.tofNSigmaAl(),
-        track.trdSignal());
+        track.trdSignal());*/
     }
 
     for (auto& muon : tracksMuon) {
