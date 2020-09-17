@@ -38,10 +38,8 @@ struct UPCAnalysis {
     bool checkFDD = col.bbFDA() || col.bbFDC() || col.bgFDA() || col.bgFDC();
     if (checkFDD)
       return;
-    // TODO:
-    // Add trigger class check
-    // if (!col.alias()[kCUP9])
-    //   return;
+    if (!col.alias()[kCUP9])
+      return;
     std::vector<soa::Join<aod::Tracks, aod::TracksExtra, aod::TrackSelection>::iterator> selTracks;
     for (auto track : tracks) {
       if (!track.isGlobalTrack())
