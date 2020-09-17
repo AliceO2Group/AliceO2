@@ -120,7 +120,7 @@ void FrequencyTable::addSamples(Source_IT begin, Source_IT end, value_t min, val
     resizeFrequencyTable(min, max);
   }
 
-  for (auto it = begin; it != end; it++) {
+  for (auto it = begin; it != end; ++it) {
     assert((*it - mMin) < mFrequencyTable.size());
     mFrequencyTable[*it - mMin]++;
   }
