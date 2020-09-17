@@ -8,25 +8,20 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-/// @file   TOFCalibWriterSpec.h
-
-#ifndef TOFWORKFLOW_TOFCALIBWRITER_H_
-#define TOFWORKFLOW_TOFCALIBWRITER_H_
+#ifndef TOF_RECOWORKFLOWWITHTPC_H_
+#define TOF_RECOWORKFLOWWITHTPC_H_
 
 #include "Framework/DataProcessorSpec.h"
-
-using namespace o2::framework;
+#include "ReconstructionDataFormats/MatchInfoTOF.h"
 
 namespace o2
 {
 namespace tof
 {
 
-/// create a processor spec
-/// write TOF calbi info in a root file
-o2::framework::DataProcessorSpec getTOFCalibWriterSpec(const char* outdef = "o2calib_tof.root");
+o2::framework::DataProcessorSpec getTOFRecoWorkflowWithTPCSpec(bool useMC, bool useFIT);
 
-} // namespace tof
-} // namespace o2
+} // end namespace tof
+} // end namespace o2
 
-#endif /* TOFWORKFLOW_TOFCALIBWRITER_H_ */
+#endif /* TOF_RECOWORKFLOWWITHTPC_H_ */

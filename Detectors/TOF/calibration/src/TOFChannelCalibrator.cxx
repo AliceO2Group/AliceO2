@@ -176,21 +176,21 @@ float TOFChannelData::integral(int chmin, int chmax, float binmin, float binmax)
   int chinsectormax = chmax % o2::tof::Geo::NPADSXSECTOR;
 
   float res2 = 0;
-  TStopwatch t3;
+  //TStopwatch t3;
   int ind = -1;
   int binxmin = findBin(binmin);
   int binxmax = findBin(binmax);
   LOG(DEBUG) << "binxmin = " << binxmin << ", binxmax = " << binxmax;
-  t3.Start();
+  //t3.Start();
   for (unsigned j = chinsectormin; j <= chinsectormax; ++j) {
     for (unsigned i = binxmin; i <= binxmax; ++i) {
       const auto& v = mHisto[sector].at(i, j);
       res2 += v;
     }
   }
-  t3.Stop();
+  //t3.Stop();
   LOG(DEBUG) << "Time for integral looping over axis (result = " << res2 << "):";
-  t3.Print();
+  //t3.Print();
 
   return res2;
 
@@ -299,17 +299,17 @@ float TOFChannelData::integral(int chmin, int chmax, int binxmin, int binxmax) c
   int chinsectormax = chmax % o2::tof::Geo::NPADSXSECTOR;
 
   float res2 = 0;
-  TStopwatch t3;
-  t3.Start();
+  //TStopwatch t3;
+  //t3.Start();
   for (unsigned j = chinsectormin; j <= chinsectormax; ++j) {
     for (unsigned i = binxmin; i <= binxmax; ++i) {
       const auto& v = mHisto[sector].at(i, j);
       res2 += v;
     }
   }
-  t3.Stop();
+  //t3.Stop();
   LOG(DEBUG) << "Time for integral looping over axis (result = " << res2 << "):";
-  t3.Print();
+  //t3.Print();
   return res2;
 
   /* // all that is below is alternative methods, all proved to be slower
