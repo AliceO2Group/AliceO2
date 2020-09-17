@@ -9,8 +9,12 @@
 # submit itself to any jurisdiction.
 
 o2_add_library(DataFormatsMID
-               SOURCES src/ColumnData.cxx src/Track.cxx
-               PUBLIC_LINK_LIBRARIES Boost::serialization O2::MathUtils
+               SOURCES src/ColumnData.cxx
+                       src/Track.cxx
+                       src/CTF.cxx
+	       PUBLIC_LINK_LIBRARIES Boost::serialization O2::MathUtils
+	                             O2::CommonDataFormat
+	                             O2::DetectorsCommonDataFormats
                                      O2::ReconstructionDataFormats)
 
 o2_target_root_dictionary(DataFormatsMID
@@ -18,4 +22,5 @@ o2_target_root_dictionary(DataFormatsMID
                                   include/DataFormatsMID/Cluster3D.h
                                   include/DataFormatsMID/ColumnData.h
                                   include/DataFormatsMID/ROFRecord.h
-                                  include/DataFormatsMID/Track.h)
+                                  include/DataFormatsMID/Track.h
+                                  include/DataFormatsMID/CTF.h)
