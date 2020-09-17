@@ -35,7 +35,7 @@ namespace mid
 class Encoder
 {
  public:
-  void init(const char* filename, int verbosity = 0);
+  void init(const char* filename, bool perLink = false, int verbosity = 0);
   void process(gsl::span<const ColumnData> data, const InteractionRecord& ir, EventType eventType = EventType::Standard);
   /// Sets the maximum size of the superpage
   void setSuperpageSize(int maxSize) { mRawWriter.setSuperPageSize(maxSize); }

@@ -85,9 +85,10 @@ std::tuple<std::vector<o2::mid::ColumnData>, std::vector<o2::mid::ROFRecord>> en
 {
   auto severity = fair::Logger::GetConsoleSeverity();
   fair::Logger::SetConsoleSeverity(fair::Severity::WARNING);
-  std::string tmpFilename = "tmp_mid_raw.dat";
+  std::string tmpFilename0 = "tmp_mid_raw";
+  std::string tmpFilename = tmpFilename0 + ".raw";
   o2::mid::Encoder encoder;
-  encoder.init(tmpFilename.c_str());
+  encoder.init(tmpFilename0.c_str());
   for (auto& item : inData) {
     encoder.process(item.second, item.first, inEventType);
   }
