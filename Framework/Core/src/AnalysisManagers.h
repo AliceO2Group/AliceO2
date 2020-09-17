@@ -181,8 +181,7 @@ struct OutputManager<HistogramRegistry> {
 
   static bool postRun(EndOfStreamContext& context, HistogramRegistry& what)
   {
-    TList* list = *what;
-    context.outputs().snapshot(what.ref(), *list);
+    context.outputs().snapshot(what.ref(), *(*what));
     return true;
   }
 };

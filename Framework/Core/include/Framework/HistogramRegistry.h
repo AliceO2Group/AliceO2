@@ -27,7 +27,7 @@
 #include "TH3.h"
 #include "THn.h"
 #include "THnSparse.h"
-#include "TList.h"
+#include "TFolder.h"
 
 #include <string>
 #include <variant>
@@ -295,17 +295,17 @@ class HistogramRegistry
     taskHash = hash;
   }
 
-  TList* operator*()
+  TFolder* operator*()
   {
-    TList* list = new TList();
-    list->SetName(this->name.c_str());
+    TFolder* folder = new TFolder(this->name.c_str(), this->name.c_str());
     for (auto j = 0u; j < MAX_REGISTRY_SIZE; ++j) {
       if (mRegistryValue[j].get() != nullptr) {
         auto hist = mRegistryValue[j].get();
-        list->Add(hist);
+        folder->Add(hist);
       }
     }
-    return list;
+    folder->SetOwner();
+    return folder;
   }
 
   /// lookup distance counter for benchmarking
