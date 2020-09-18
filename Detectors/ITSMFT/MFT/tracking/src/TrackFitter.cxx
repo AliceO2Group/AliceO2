@@ -132,7 +132,7 @@ bool TrackFitter::initTrack(TrackLTF& track, bool outward)
   double deltaR = TMath::Sqrt(deltaX * deltaX + deltaY * deltaY);
   double tanl = 0.5 * TMath::Sqrt(2) * (deltaZ / deltaR) *
                 TMath::Sqrt(TMath::Sqrt((invQPtSeed * deltaR * k) * (invQPtSeed * deltaR * k) + 1) + 1);
-  double phi0 = TMath::ATan2(y0, x0) + 0.5 * Hz * invQPtSeed * deltaZ * k / tanl;
+  double phi0 = TMath::ATan2(deltaY, deltaX) - 0.5 * Hz * invQPtSeed * deltaZ * k / tanl;
   double r0sq = x0 * x0 + y0 * y0;
   double r0cu = r0sq * TMath::Sqrt(r0sq);
   double invr0sq = 1.0 / r0sq;
@@ -187,27 +187,34 @@ bool TrackFitter::initTrack(TrackLTF& track, bool outward)
   double J1 = G1 * invDr2 / (k*deltaR);
   double L1 = C1 * C1 - 2 * D1 * (D1 + 1);
   double inv2rt2 = 0.25 * TMath::Sqrt(2);
+  double Mx = invDr2 * (inv2rt2 * track.getInvQPt() * E1 * F1 * L1 * deltaX - deltaY);
+  double My = invDr2 * (inv2rt2 * track.getInvQPt() * E1 * F1 * L1 * deltaY + deltaX);
+
+  double sigmax1sq = track.getSigmasX2()[0];
+  double sigmay1sq = track.getSigmasY2()[0];
+  double sigmaDeltaX = sigmax0sq + sigmax1sq;
+  double sigmaDeltaY = sigmay0sq + sigmay1sq;
 
   // compute the track parameter covariances at the last cluster (as if the other clusters did not exist)
   SMatrix55 lastParamCov;
   lastParamCov(0, 0) = sigmax0sq;                   // <X,X>
   lastParamCov(0, 1) = 0;                           // <Y,X>
-  lastParamCov(0, 2) = sigmax0sq * invDr2 * (inv2rt2 * track.getInvQPt() * F1 * E1 * L1 * deltaX - deltaY);	// <PHI,X>
+  lastParamCov(0, 2) = sigmax0sq * Mx;	// <PHI,X>
   lastParamCov(0, 3) = sigmax0sq * inv2rt2 * J1 * L1 * deltaX; 	// <TANL,X>
   lastParamCov(0, 4) = 0;    	// <INVQPT,X>
 
   lastParamCov(1, 1) = sigmay0sq;	// <Y,Y>
-  lastParamCov(1, 2) = sigmay0sq * invDr2 * (inv2rt2 * track.getInvQPt() * F1 * E1 * L1 * deltaY - deltaX);       // <PHI,Y>
+  lastParamCov(1, 2) = sigmay0sq * My;       // <PHI,Y>
   lastParamCov(1, 3) = sigmay0sq * inv2rt2 * J1 * L1 * deltaY; 	// <TANL,Y>
   lastParamCov(1, 4) = 0;       // <INVQPT,Y>
 
-  lastParamCov(2, 2) = sigmainvQPtsq * 0.125 * E1 * E1 * F1 * F1 * L1 * L1; // <PHI,PHI>
+  lastParamCov(2, 2) = sigmainvQPtsq * 0.125 * E1 * E1 * F1 * F1 * L1 * L1 + sigmaDeltaX * Mx * Mx + sigmaDeltaY * My * My; // <PHI,PHI>
 
-  lastParamCov(2, 3) = sigmainvQPtsq * 0.125 * C1 * E1 * F1 * G1 * L1;      //  <TANL,PHI>
+  lastParamCov(2, 3) = sigmainvQPtsq * 0.125 * C1 * E1 * F1 * G1 * L1 + inv2rt2 * J1 * L1 * (sigmaDeltaX * Mx + sigmaDeltaY * My);      //  <TANL,PHI>
 
   lastParamCov(2, 4) = sigmainvQPtsq * inv2rt2 * E1 * F1 * L1;           //  <INVQPT,PHI>
 
-  lastParamCov(3, 3) = sigmainvQPtsq * 0.125 * C1 * C1 * G1 * G1; // <TANL,TANL>
+  lastParamCov(3, 3) = sigmainvQPtsq * 0.125 * C1 * C1 * G1 * G1 + 0.125 * J1 * J1 * L1 * L1 * (sigmaDeltaX * deltaX * deltaX + sigmaDeltaY * deltaY * deltaY); // <TANL,TANL>
 
   lastParamCov(3, 4) = sigmainvQPtsq * inv2rt2 * C1 * G1;                                // <INVQPT,TANL>
 
@@ -363,7 +370,7 @@ Double_t invQPtFromFCF(const TrackLTF& track, Double_t bFieldZ, Double_t& sigmai
     vVal[i] = yVal[i + 1] * invx2y2;
     vErr[i] = std::sqrt(8. * xErr[i + 1] * xErr[i + 1] * x2 * y2 + 2. * yErr[i + 1] * yErr[i + 1] * (x2 - y2) * (x2 - y2)) * invx2y2 * invx2y2;
     u2 = uVal[i] * uVal[i];
-    fweight[i] = 1;//. / vErr[i];
+    fweight[i] = 1. / vErr[i];  
     F0 += fweight[i];   // f = fn(Hansroul) que é o peso de cada ponto Vn...inverso da incerteza? 
     F1 += fweight[i] * uVal[i];
     F2 += fweight[i] * u2;
@@ -380,14 +387,14 @@ Double_t invQPtFromFCF(const TrackLTF& track, Double_t bFieldZ, Double_t& sigmai
 
 	for (int j = 0; j < (nPoints - 1); j++) {
     Rn[j] = fweight[j] * (Rn_det1 - uVal[j]*Rn_det2 + uVal[j]*uVal[j]*Rn_det3);
-    SumSRn += Rn[j] * Rn[j] * vErr[j];
+    SumSRn += Rn[j] * Rn[j] * vErr[j] * vErr[j];
     SumRn += Rn[j];
 
     Pn[j] = fweight[j] * (-Pn_det1 + uVal[j]*Pn_det2 - uVal[j]*uVal[j]*Pn_det3);
-    SumSPn += Pn[j] * Pn[j] * vErr[j];
+    SumSPn += Pn[j] * Pn[j] * vErr[j] * vErr[j];
     SumUPn += uVal[j] * Pn[j];
   
-    SumRP += Rn[j] * Pn[j] * vErr[j] * vErr[j]; //falta um vErr?
+    SumRP += Rn[j] * Pn[j] * vErr[j] * vErr[j] * vErr[j];
   }
  
   Double_t invqpt_fcf;
