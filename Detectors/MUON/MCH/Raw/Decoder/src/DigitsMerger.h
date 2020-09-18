@@ -29,7 +29,6 @@ namespace raw
 
 struct MergerDigit {
   o2::mch::Digit digit;
-  o2::mch::Digit::Time stopTime;
   bool merged = {false};
   int solarId = {-1};
   int dsAddr = {-1};
@@ -47,7 +46,7 @@ struct MergerBuffer {
 //_________________________________________________________________
 class FeeIdMerger
 {
-  MergerBuffer buffers[2];
+  MergerBuffer currentBuffer, previousBuffer;
   int currentBufId = {1};
   int previousBufId = {0};
   int feeId = {0};
@@ -72,22 +71,12 @@ class FeeIdMerger
 
   MergerBuffer& getCurrentBuffer()
   {
-    return buffers[currentBufId];
+    return currentBuffer;
   }
 
   MergerBuffer& getPreviousBuffer()
   {
-    return buffers[previousBufId];
-  }
-
-  int getCurrentBufId()
-  {
-    return currentBufId;
-  }
-
-  int getPreviousBufId()
-  {
-    return previousBufId;
+    return previousBuffer;
   }
 
   void mergeDigits();

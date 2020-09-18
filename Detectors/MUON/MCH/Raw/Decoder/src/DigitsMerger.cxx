@@ -31,7 +31,7 @@ namespace raw
 MergerDigit& MergerDigit::operator+=(const MergerDigit& right)
 {
   digit.setADC(right.digit.getADC() + digit.getADC());
-  stopTime = right.stopTime;
+  digit.setNofSamples(right.digit.nofSamples() + digit.nofSamples());
   return (*this);
 }
 
@@ -39,7 +39,7 @@ void FeeIdMerger::setOrbit(uint32_t orbit, bool stop)
 {
   // perform the merging and send digits of previous orbit if either the stop RDH is received
   // or a new orbit is started
-  if ((orbit == buffers[currentBufId].orbit) && (!stop)) {
+  if ((orbit == currentBuffer.orbit) && (!stop)) {
     return;
   }
 
@@ -48,20 +48,20 @@ void FeeIdMerger::setOrbit(uint32_t orbit, bool stop)
 
   // send the merged digits
   int nSent = 0;
-  for (auto& d : buffers[previousBufId].digits) {
+  for (auto& d : previousBuffer.digits) {
     if (!d.merged && (d.digit.getPadID() >= 0)) {
       sendDigit(d.digit);
       nSent += 1;
     }
   }
   if (mPrint) {
-    std::cout << "[FeeIdMerger] sent " << nSent << " digits for orbit " << buffers[previousBufId].orbit << "  current orbit is " << orbit << std::endl;
+    std::cout << "[FeeIdMerger] sent " << nSent << " digits for orbit " << previousBuffer.orbit << "  current orbit is " << orbit << std::endl;
   }
 
-  currentBufId = 1 - currentBufId;
-  previousBufId = 1 - previousBufId;
-  buffers[currentBufId].digits.clear();
-  buffers[currentBufId].orbit = orbit;
+  // clear the contents of the buffer from the previous orbit, and swap the vectors
+  previousBuffer.digits.clear();
+  std::swap(previousBuffer.digits, currentBuffer.digits);
+  currentBuffer.orbit = orbit;
 }
 
 // helper function to check if two digits correspond to the same pad;
@@ -84,6 +84,7 @@ static bool areSamePad(const MergerDigit& d1, const MergerDigit& d2)
 void FeeIdMerger::mergeDigits()
 {
   const uint32_t bxCounterRollover = 0x100000;
+  const uint32_t oneADCclockCycle = 4;
 
   auto updateDigits = [](MergerDigit& d1, MergerDigit& d2) -> bool {
     // skip digits that are already merged
@@ -99,7 +100,8 @@ void FeeIdMerger::mergeDigits()
     // compute time difference
     Digit::Time startTime = d1.digit.getTime();
     uint32_t bxStart = startTime.bunchCrossing;
-    Digit::Time stopTime = d2.stopTime;
+    Digit::Time stopTime = d2.digit.getTime();
+    stopTime.sampaTime += d2.digit.nofSamples() - 1;
     uint32_t bxStop = stopTime.bunchCrossing;
     // correct for value rollover
     if (bxStart < bxStop) {
@@ -116,7 +118,7 @@ void FeeIdMerger::mergeDigits()
     }
 
     // skip if the time difference is not equal to 1 ADC clock cycle
-    if (timeDiff != 1) {
+    if (timeDiff != oneADCclockCycle) {
       return false;
     }
 
@@ -128,9 +130,7 @@ void FeeIdMerger::mergeDigits()
   };
 
   auto& currentBuffer = getCurrentBuffer();
-  auto currentBufId = getCurrentBufId();
   auto& previousBuffer = getPreviousBuffer();
-  auto previousBufId = getPreviousBufId();
 
   if (mPrint) {
     std::cout << "Merging digits in " << previousBufId << " (orbit=" << previousBuffer.orbit << ")\n";
@@ -167,8 +167,8 @@ void FeeIdMerger::mergeDigits()
   }
 
   if (mPrint) {
-    std::cout << "Merging digits from " << currentBufId << " (orbit=" << currentBuffer.orbit << ") into "
-              << previousBufId << " (orbit=" << previousBuffer.orbit << ")\n";
+    std::cout << "Merging digits from current buffer (orbit=" << currentBuffer.orbit
+              << ") into previous buffer (orbit=" << previousBuffer.orbit << ")\n";
   }
 
   for (size_t i = 0; i < currentBuffer.digits.size(); i++) {
@@ -212,13 +212,8 @@ void Merger::addDigit(int feeId, int solarId, int dsAddr, int chAddr,
     return;
   }
 
-  Digit::Time stopTime;
-  stopTime.sampaTime = time.sampaTime + nSamples - 1;
-  stopTime.bunchCrossing = time.bunchCrossing;
-  stopTime.orbit = time.orbit;
-
   mergers[feeId].getCurrentBuffer().digits.emplace_back(MergerDigit{o2::mch::Digit(deId, padId, adc, time, nSamples),
-                                                                    stopTime, false, solarId, dsAddr, chAddr});
+                                                                    false, solarId, dsAddr, chAddr});
 }
 
 void Merger::mergeDigits(int feeId)
