@@ -8,6 +8,7 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
+#include <string>
 #include "Framework/DataProcessorSpec.h"
 #include "Framework/Task.h"
 
@@ -29,6 +30,7 @@ namespace reco_workflow
 /// Example payload for workflows using o2::emcal::Digit as payload.
 /// Printing several digit-related information for each digit. Refer
 /// to run for the list of input spec to be specified.
+template <class InputType>
 class DigitsPrinterSpec : public framework::Task
 {
  public:
@@ -56,7 +58,10 @@ class DigitsPrinterSpec : public framework::Task
 ///
 /// Refer to DigitsPrinterSpec::run for a list of input
 /// specs
-o2::framework::DataProcessorSpec getEmcalDigitsPrinterSpec();
+o2::framework::DataProcessorSpec getEmcalDigitsPrinterSpec(std::string inputtype);
+
+//using DigitsPrinterSpecDigit = o2::emcal::reco_workflow::DigitsPrinterSpec<o2::emcal::Digit>;
+//using DigitsPrinterSpecCell = o2::emcal::reco_workflow::DigitsPrinterSpec<o2::emcal::Cell>;
 } // namespace reco_workflow
 } // namespace emcal
 

@@ -25,10 +25,11 @@ namespace itsmft
 
 class CompCluster
 {
- private:
+ public:
   static constexpr int NBitsRow = 9;     // number of bits for the row
   static constexpr int NBitsCol = 10;    // number of bits for the column
   static constexpr int NBitsPattID = 11; // number of bits for the pattern ID
+ private:
   static constexpr UInt_t RowMask = (0x1 << NBitsRow) - 1;
   static constexpr UInt_t ColMask = (0x1 << NBitsCol) - 1;
   static constexpr UInt_t PattIDMask = (0x1 << NBitsPattID) - 1;
@@ -40,6 +41,7 @@ class CompCluster
   void sanityCheck();
 
  public:
+  static constexpr unsigned short InvalidPatternID = (0x1 << NBitsPattID) - 1; // All 11 bits of pattern ID are 1
   CompCluster(UShort_t row = 0, UShort_t col = 0, UShort_t patt = 0)
   {
     set(row, col, patt);

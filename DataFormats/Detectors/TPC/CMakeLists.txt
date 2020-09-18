@@ -23,6 +23,7 @@ o2_add_library(
           src/LaserTrack.cxx
           src/TPCSectorHeader.cxx
           src/ClusterNativeHelper.cxx
+          src/CompressedClusters.cxx
   PUBLIC_LINK_LIBRARIES O2::GPUCommon
                         O2::SimulationDataFormat
                         O2::CommonDataFormat
@@ -35,6 +36,7 @@ o2_target_root_dictionary(
           include/DataFormatsTPC/ClusterNative.h
           include/DataFormatsTPC/ClusterNativeHelper.h
           include/DataFormatsTPC/ClusterHardware.h
+          include/DataFormatsTPC/Digit.h
           include/DataFormatsTPC/Helpers.h
           include/DataFormatsTPC/TrackTPC.h
           include/DataFormatsTPC/LaserTrack.h
@@ -42,7 +44,9 @@ o2_target_root_dictionary(
           include/DataFormatsTPC/Defs.h
           include/DataFormatsTPC/dEdxInfo.h
           include/DataFormatsTPC/CompressedClusters.h
-          include/DataFormatsTPC/ZeroSuppression.h)
+          include/DataFormatsTPC/CTF.h
+          include/DataFormatsTPC/ZeroSuppression.h
+          include/DataFormatsTPC/ZeroSuppressionLinkBased.h)
 
 o2_add_test(
   ClusterNative
@@ -54,6 +58,13 @@ o2_add_test(
 o2_add_test(
   ClusterHardware
   SOURCES test/testClusterHardware.cxx
+  COMPONENT_NAME DataFormats-TPC
+  PUBLIC_LINK_LIBRARIES O2::DataFormatsTPC
+  LABELS tpc dataformats)
+
+o2_add_test(
+  CompressedClusters
+  SOURCES test/testCompressedClusters.cxx
   COMPONENT_NAME DataFormats-TPC
   PUBLIC_LINK_LIBRARIES O2::DataFormatsTPC
   LABELS tpc dataformats)

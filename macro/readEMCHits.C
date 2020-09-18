@@ -10,7 +10,6 @@
 #include <memory>
 #include <iostream>
 #include "FairLogger.h"
-#include "SimulationDataFormat/RunContext.h"
 #include "SimulationDataFormat/MCTruthContainer.h"
 #include "SimulationDataFormat/MCCompLabel.h"
 #include "EMCALBase/Hit.h"
@@ -18,7 +17,7 @@
 
 /// read and draw the hits for EMC obtained from simulation
 void readEMCHits(std::string path = "./",
-                 std::string mcfileName = "o2sim.root")
+                 std::string mcfileName = "o2sim_EMChits.root")
 {
   if (path.back() != '/') {
     path += '/';

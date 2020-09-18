@@ -16,6 +16,7 @@
 #include "Generators/Generator.h"
 
 class TGenerator;
+class TClonesArray;
 
 namespace o2
 {
@@ -34,7 +35,7 @@ class GeneratorTGenerator : public Generator
   /** constructor with name and title **/
   GeneratorTGenerator(const Char_t* name, const Char_t* title = "ALICEo2 TGenerator Generator");
   /** destructor **/
-  ~GeneratorTGenerator() override = default;
+  ~GeneratorTGenerator() override;
 
   /** setters **/
   void setTGenerator(TGenerator* val) { mTGenerator = val; };
@@ -54,6 +55,7 @@ class GeneratorTGenerator : public Generator
 
   /** TGenerator interface **/
   TGenerator* mTGenerator;
+  TClonesArray* mCloneParticles;
 
   ClassDefOverride(GeneratorTGenerator, 1);
 

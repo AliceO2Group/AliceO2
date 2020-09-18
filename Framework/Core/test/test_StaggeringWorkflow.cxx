@@ -24,8 +24,6 @@
 #include "Framework/DispatchPolicy.h"
 #include "Framework/DeviceSpec.h"
 #include "Framework/Output.h"
-#include <FairMQDevice.h>
-#include <chrono>
 #include <cstring>
 #include <iostream>
 #include <regex>
@@ -83,24 +81,17 @@ std::vector<DataProcessorSpec> defineDataProcessing(ConfigContext const&)
   }
 
   auto producerFct = adaptStateless([subspecs](DataAllocator& outputs, RawDeviceService& device, ControlService& control) {
-    // static bool ready = false;
-    // if (ready) {
-    //   return;
-    // }
-
     for (auto const& subspec : subspecs) {
-      // since the snapshot copy is ready for sending it is scheduled but hald back
+      // since the snapshot copy is ready for sending it is scheduled but held back
       // because of the CompletionPolicy trigger matcher. This message will be
       // sent together with the second message.
       outputs.snapshot(Output{"PROD", "CHANNEL", subspec, Lifetime::Timeframe}, subspec);
-      device.device()->WaitFor(std::chrono::milliseconds(1000));
+      device.waitFor(100);
       outputs.snapshot(Output{"PROD", "TRIGGER", subspec, Lifetime::Timeframe}, subspec);
-      //  std::cout << "publishing channel " << subspec << std::endl;
-      device.device()->WaitFor(std::chrono::milliseconds(1000));
+      device.waitFor(100);
     }
     control.endOfStream();
     control.readyToQuit(QuitRequest::Me);
-    // ready = true;
   });
 
   auto processorFct = [](ProcessingContext& pc) {

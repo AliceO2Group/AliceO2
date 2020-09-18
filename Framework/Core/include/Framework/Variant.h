@@ -16,6 +16,8 @@
 #include <stdexcept>
 #include <iosfwd>
 #include <initializer_list>
+#include <string_view>
+#include <string>
 
 namespace o2
 {
@@ -32,50 +34,59 @@ enum class VariantType : int { Int = 0,
                                Unknown };
 
 template <typename T>
-struct variant_trait {
-  static VariantType type() { return VariantType::Unknown; }
+struct variant_trait : std::integral_constant<VariantType, VariantType::Unknown> {
 };
 
 template <>
-struct variant_trait<int> {
-  static VariantType type() { return VariantType::Int; }
+struct variant_trait<int> : std::integral_constant<VariantType, VariantType::Int> {
 };
+
 template <>
-struct variant_trait<long int> {
-  static VariantType type() { return VariantType::Int64; }
+struct variant_trait<long int> : std::integral_constant<VariantType, VariantType::Int64> {
 };
+
 template <>
-struct variant_trait<long long int> {
-  static VariantType type() { return VariantType::Int64; }
+struct variant_trait<long long int> : std::integral_constant<VariantType, VariantType::Int64> {
 };
+
 template <>
-struct variant_trait<float> {
-  static VariantType type() { return VariantType::Float; }
+struct variant_trait<float> : std::integral_constant<VariantType, VariantType::Float> {
 };
+
 template <>
-struct variant_trait<double> {
-  static VariantType type() { return VariantType::Double; }
+struct variant_trait<double> : std::integral_constant<VariantType, VariantType::Double> {
 };
+
 template <>
-struct variant_trait<const char*> {
-  static VariantType type() { return VariantType::String; }
+struct variant_trait<const char*> : std::integral_constant<VariantType, VariantType::String> {
 };
+
 template <>
-struct variant_trait<char*> {
-  static VariantType type() { return VariantType::String; }
+struct variant_trait<char*> : std::integral_constant<VariantType, VariantType::String> {
 };
+
 template <>
-struct variant_trait<char* const> {
-  static VariantType type() { return VariantType::String; }
+struct variant_trait<char* const> : std::integral_constant<VariantType, VariantType::String> {
 };
+
 template <>
-struct variant_trait<const char* const> {
-  static VariantType type() { return VariantType::String; }
+struct variant_trait<const char* const> : std::integral_constant<VariantType, VariantType::String> {
 };
+
 template <>
-struct variant_trait<bool> {
-  static VariantType type() { return VariantType::Bool; }
+struct variant_trait<std::string_view> : std::integral_constant<VariantType, VariantType::String> {
 };
+
+template <>
+struct variant_trait<std::string> : std::integral_constant<VariantType, VariantType::String> {
+};
+
+template <>
+struct variant_trait<bool> : std::integral_constant<VariantType, VariantType::Bool> {
+};
+
+template <typename T>
+inline constexpr VariantType variant_trait_v = variant_trait<T>::value;
 
 template <VariantType type>
 struct variant_type {
@@ -125,6 +136,20 @@ struct variant_helper<S, const char*> {
   static void set(S* store, const char* value) { *reinterpret_cast<char**>(store) = strdup(value); }
 };
 
+template <typename S>
+struct variant_helper<S, std::string_view> {
+  static std::string_view get(const S* store) { return std::string_view(*reinterpret_cast<const char* const*>(store)); }
+
+  static void set(S* store, std::string_view value) { *reinterpret_cast<char**>(store) = strdup(value.data()); }
+};
+
+template <typename S>
+struct variant_helper<S, std::string> {
+  static std::string get(const S* store) { return std::string(strdup(*reinterpret_cast<const char* const*>(store))); }
+
+  static void set(S* store, std::string value) { *reinterpret_cast<char**>(store) = strdup(value.data()); }
+};
+
 // Poor man variant class. Does not take ownership of anything passed to it.
 // FIXME: we should really use C++17 std::variant when it
 // comes about
@@ -136,7 +161,7 @@ class Variant
   Variant(VariantType type = VariantType::Unknown) : mType{type} {}
 
   template <typename T>
-  Variant(T value) : mType{variant_trait<T>::type()}
+  Variant(T value) : mType{variant_trait_v<T>}
   {
     variant_helper<storage_t, decltype(value)>::set(&mStore, value);
   }
@@ -153,7 +178,7 @@ class Variant
   {
     // In case this is a string we need to duplicate it to avoid
     // double deletion.
-    if (mType == variant_trait<const char*>::type()) {
+    if (mType == variant_trait_v<const char*>) {
       variant_helper<storage_t, const char*>::set(&mStore, other.get<const char*>());
     } else {
       mStore = other.mStore;
@@ -164,7 +189,7 @@ class Variant
   {
     // In case this is a string we need to duplicate it to avoid
     // double deletion.
-    if (mType == variant_trait<const char*>::type()) {
+    if (mType == variant_trait_v<const char*>) {
       mStore = other.mStore;
       *reinterpret_cast<char**>(&(other.mStore)) = nullptr;
     } else {
@@ -176,14 +201,14 @@ class Variant
   {
     // In case we allocated a string out of bound, we
     // should delete it.
-    if (mType == variant_trait<const char*>::type() || mType == variant_trait<char*>::type()) {
+    if (mType == variant_trait_v<const char*> || mType == variant_trait_v<char*>) {
       free(*reinterpret_cast<void**>(&mStore));
     }
   }
 
   void operator=(const Variant& other)
   {
-    if (mType == variant_trait<const char*>::type()) {
+    if (mType == variant_trait_v<const char*>) {
       variant_helper<storage_t, const char*>::set(&mStore, other.get<const char*>());
     } else {
       mStore = other.mStore;
@@ -193,7 +218,8 @@ class Variant
   template <typename T>
   T get() const
   {
-    if (mType != variant_trait<T>::type()) {
+    auto v = variant_trait_v<T>;
+    if (mType != variant_trait_v<T>) {
       throw std::runtime_error("Mismatch between types");
     }
     return variant_helper<storage_t, T>::get(&mStore);

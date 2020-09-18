@@ -13,7 +13,7 @@
 ///
 
 #include "CH.cxx"
-void fillElec2DetCH5L(std::map<uint16_t, uint32_t>& e2d)
+void fillElec2DetCH5L(std::map<uint32_t, uint32_t>& e2d)
 {
   add(e2d, 505, 16, 144, 0, 0);
   add(e2d, 505, 15, 144, 0, 1);
@@ -620,32 +620,32 @@ void fillElec2DetCH5L(std::map<uint16_t, uint32_t>& e2d)
   add(e2d, 513, 1131, 338, 7, 2);
   add(e2d, 513, 1130, 338, 7, 3);
 }
-void fillSolar2CruLinkCH5L(std::map<uint16_t, uint32_t>& s2c)
+void fillSolar2FeeLinkCH5L(std::map<uint16_t, uint32_t>& s2f)
 {
-  add_cru(s2c, 0, 6, 144, 505);
-  add_cru(s2c, 0, 7, 145, 506);
-  add_cru(s2c, 0, 8, 146, 506);
-  add_cru(s2c, 0, 9, 147, 507);
-  add_cru(s2c, 0, 10, 148, 507);
-  add_cru(s2c, 0, 0, 80, 507);
-  add_cru(s2c, 0, 1, 81, 507);
-  add_cru(s2c, 0, 2, 82, 508);
-  add_cru(s2c, 0, 3, 83, 508);
-  add_cru(s2c, 0, 4, 84, 508);
-  add_cru(s2c, 0, 5, 85, 508);
-  add_cru(s2c, 0, 12, 424, 509);
-  add_cru(s2c, 0, 13, 425, 509);
-  add_cru(s2c, 0, 14, 426, 509);
-  add_cru(s2c, 0, 15, 427, 509);
-  add_cru(s2c, 0, 16, 428, 510);
-  add_cru(s2c, 0, 17, 429, 510);
-  add_cru(s2c, 1, 0, 440, 510);
-  add_cru(s2c, 1, 1, 441, 510);
-  add_cru(s2c, 1, 2, 442, 511);
-  add_cru(s2c, 1, 3, 443, 511);
-  add_cru(s2c, 1, 4, 444, 511);
-  add_cru(s2c, 1, 5, 445, 511);
-  add_cru(s2c, 0, 18, 336, 512);
-  add_cru(s2c, 0, 19, 337, 512);
-  add_cru(s2c, 0, 20, 338, 513);
+  add_cru(s2f, 18, 6, 144);
+  add_cru(s2f, 18, 7, 145);
+  add_cru(s2f, 18, 8, 146);
+  add_cru(s2f, 18, 9, 147);
+  add_cru(s2f, 18, 10, 148);
+  add_cru(s2f, 18, 0, 80);
+  add_cru(s2f, 18, 1, 81);
+  add_cru(s2f, 18, 2, 82);
+  add_cru(s2f, 18, 3, 83);
+  add_cru(s2f, 18, 4, 84);
+  add_cru(s2f, 18, 5, 85);
+  add_cru(s2f, 19, 0, 424);
+  add_cru(s2f, 19, 1, 425);
+  add_cru(s2f, 19, 2, 426);
+  add_cru(s2f, 19, 3, 427);
+  add_cru(s2f, 19, 4, 428);
+  add_cru(s2f, 19, 5, 429);
+  add_cru(s2f, 20, 0, 440);
+  add_cru(s2f, 20, 1, 441);
+  add_cru(s2f, 20, 2, 442);
+  add_cru(s2f, 20, 3, 443);
+  add_cru(s2f, 20, 4, 444);
+  add_cru(s2f, 20, 5, 445);
+  add_cru(s2f, 19, 6, 336);
+  add_cru(s2f, 19, 7, 337);
+  add_cru(s2f, 19, 8, 338);
 }

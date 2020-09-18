@@ -18,7 +18,7 @@
 #include "Framework/Lifetime.h"
 #include "Headers/DataHeader.h"
 #include "TStopwatch.h"
-#include "Steer/HitProcessingManager.h" // for RunContext
+#include "Steer/HitProcessingManager.h" // for DigitizationContext
 #include "TChain.h"
 #include <SimulationDataFormat/MCTruthContainer.h>
 #include "Framework/Task.h"
@@ -26,66 +26,30 @@
 #include "ZDCSimulation/Digitizer.h"
 #include "ZDCSimulation/Detector.h"
 #include "ZDCSimulation/MCLabel.h"
-#include "DetectorsBase/GeometryManager.h"
+#include "DetectorsBase/BaseDPLDigitizer.h"
 #include "SimConfig/DigiParams.h"
 
 using namespace o2::framework;
 using SubSpecificationType = o2::framework::DataAllocator::SubSpecificationType;
-
-// helper function which will be offered as a service
-template <typename T>
-void retrieveHits(std::vector<TChain*> const& chains,
-                  const char* brname,
-                  int sourceID,
-                  int entryID,
-                  std::vector<T>* hits)
-{
-  auto br = chains[sourceID]->GetBranch(brname);
-  if (!br) {
-    LOG(ERROR) << "No branch found";
-    return;
-  }
-  br->SetAddress(&hits);
-  br->GetEntry(entryID);
-}
 
 namespace o2
 {
 namespace zdc
 {
 
-class ZDCDPLDigitizerTask
+class ZDCDPLDigitizerTask : public o2::base::BaseDPLDigitizer
 {
   using GRP = o2::parameters::GRPObject;
 
  public:
-  void init(framework::InitContext& ic)
+  ZDCDPLDigitizerTask() : o2::base::BaseDPLDigitizer(o2::base::InitServices::GEOM) {}
+
+  void initDigitizerTask(framework::InitContext& ic) override
   {
     LOG(INFO) << "Initializing ZDC digitization";
 
     auto& dopt = o2::conf::DigiParams::Instance();
 
-    // setup the input chain for the hits
-    mSimChains.emplace_back(new TChain("o2sim"));
-
-    // add the main (background) file
-    mSimChains.back()->AddFile(ic.options().get<std::string>("simFile").c_str());
-
-    // maybe add a particular signal file
-    auto signalfilename = ic.options().get<std::string>("simFileS");
-    if (signalfilename.size() > 0) {
-      mSimChains.emplace_back(new TChain("o2sim"));
-      mSimChains.back()->AddFile(signalfilename.c_str());
-    }
-
-    const std::string inputGRP = "o2sim_grp.root";
-    const std::string grpName = "GRP";
-    TFile flGRP(inputGRP.c_str());
-    if (flGRP.IsZombie()) {
-      LOG(FATAL) << "Failed to open " << inputGRP;
-    }
-    std::unique_ptr<GRP> grp(static_cast<GRP*>(flGRP.GetObjectChecked(grpName.c_str(), GRP::Class())));
-    mDigitizer.setTimeStamp(grp->getTimeStart());
     mDigitizer.setCCDBServer(dopt.ccdb);
     mDigitizer.init();
     mROMode = mDigitizer.isContinuous() ? o2::parameters::GRPObject::CONTINUOUS : o2::parameters::GRPObject::PRESENT;
@@ -102,7 +66,12 @@ class ZDCDPLDigitizerTask
     mDigitizer.refreshCCDB();
 
     // read collision context from input
-    auto context = pc.inputs().get<o2::steer::RunContext*>("collisioncontext");
+    auto context = pc.inputs().get<o2::steer::DigitizationContext*>("collisioncontext");
+    context->initSimChains(o2::detectors::DetID::ZDC, mSimChains);
+
+    const auto& grp = context->getGRP();
+    mDigitizer.setTimeStamp(grp.getTimeStart());
+
     auto& irecords = context->getEventRecords();
     auto& eventParts = context->getEventParts();
 
@@ -117,7 +86,7 @@ class ZDCDPLDigitizerTask
 
       for (auto& part : eventParts[collID]) {
 
-        retrieveHits(mSimChains, "ZDCHit", part.sourceID, part.entryID, &hits);
+        context->retrieveHits(mSimChains, "ZDCHit", part.sourceID, part.entryID, &hits);
         LOG(INFO) << "For collision " << collID << " eventID " << part.entryID << " found ZDC " << hits.size() << " hits ";
 
         mDigitizer.setEventID(part.entryID);
@@ -135,7 +104,9 @@ class ZDCDPLDigitizerTask
     // send out to next stage
     pc.outputs().snapshot(Output{"ZDC", "DIGITSBC", 0, Lifetime::Timeframe}, mDigitsBC);
     pc.outputs().snapshot(Output{"ZDC", "DIGITSCH", 0, Lifetime::Timeframe}, mDigitsCh);
-    pc.outputs().snapshot(Output{"ZDC", "DIGITLBL", 0, Lifetime::Timeframe}, mLabels);
+    if (pc.outputs().isAllowed({"ZDC", "DIGITLBL", 0})) {
+      pc.outputs().snapshot(Output{"ZDC", "DIGITLBL", 0, Lifetime::Timeframe}, mLabels);
+    }
 
     LOG(INFO) << "ZDC: Sending ROMode= " << mROMode << " to GRPUpdater";
     pc.outputs().snapshot(Output{"ZDC", "ROMode", 0, Lifetime::Timeframe}, mROMode);
@@ -157,26 +128,29 @@ class ZDCDPLDigitizerTask
   o2::parameters::GRPObject::ROMode mROMode = o2::parameters::GRPObject::CONTINUOUS; // readout mode
 };
 
-o2::framework::DataProcessorSpec getZDCDigitizerSpec(int channel)
+o2::framework::DataProcessorSpec getZDCDigitizerSpec(int channel, bool mctruth)
 {
   // create the full data processor spec using
   //  a name identifier
   //  input description
   //  algorithmic description (here a lambda getting called once to setup the actual processing function)
   //  options that can be used for this processor (here: input file names where to take the hits)
+  std::vector<OutputSpec> outputs;
+  outputs.emplace_back("ZDC", "DIGITSBC", 0, Lifetime::Timeframe);
+  outputs.emplace_back("ZDC", "DIGITSCH", 0, Lifetime::Timeframe);
+  if (mctruth) {
+    outputs.emplace_back("ZDC", "DIGITLBL", 0, Lifetime::Timeframe);
+  }
+  outputs.emplace_back("ZDC", "ROMode", 0, Lifetime::Timeframe);
+
   return DataProcessorSpec{
     "ZDCDigitizer",
     Inputs{InputSpec{"collisioncontext", "SIM", "COLLISIONCONTEXT", static_cast<SubSpecificationType>(channel), Lifetime::Timeframe}},
 
-    Outputs{OutputSpec{"ZDC", "DIGITSBC", 0, Lifetime::Timeframe},
-            OutputSpec{"ZDC", "DIGITSCH", 0, Lifetime::Timeframe},
-            OutputSpec{"ZDC", "DIGITLBL", 0, Lifetime::Timeframe},
-            OutputSpec{"ZDC", "ROMode", 0, Lifetime::Timeframe}},
+    outputs,
 
     AlgorithmSpec{adaptFromTask<ZDCDPLDigitizerTask>()},
-
-    Options{{"simFile", VariantType::String, "o2sim.root", {"Sim (background) input filename"}},
-            {"simFileS", VariantType::String, "", {"Sim (signal) input filename"}}}};
+    Options{}};
 }
 
 } // end namespace zdc

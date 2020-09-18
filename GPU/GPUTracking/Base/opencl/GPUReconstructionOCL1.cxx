@@ -11,7 +11,7 @@
 /// \file GPUReconstructionOCL1.cxx
 /// \author David Rohr
 
-#define GPUCA_GPUTYPE_RADEON
+#define GPUCA_GPUTYPE_OPENCL
 #define __OPENCL_HOST__
 
 #include "GPUReconstructionOCL1.h"
@@ -28,9 +28,9 @@ using namespace GPUCA_NAMESPACE::gpu;
 #include "../makefiles/opencl_obtain_program.h"
 extern "C" char _makefile_opencl_program_Base_opencl_common_GPUReconstructionOCL_cl[];
 
-GPUReconstruction* GPUReconstruction_Create_OCL(const GPUSettingsProcessing& cfg) { return new GPUReconstructionOCL1(cfg); }
+GPUReconstruction* GPUReconstruction_Create_OCL(const GPUSettingsDeviceBackend& cfg) { return new GPUReconstructionOCL1(cfg); }
 
-GPUReconstructionOCL1Backend::GPUReconstructionOCL1Backend(const GPUSettingsProcessing& cfg) : GPUReconstructionOCL(cfg)
+GPUReconstructionOCL1Backend::GPUReconstructionOCL1Backend(const GPUSettingsDeviceBackend& cfg) : GPUReconstructionOCL(cfg)
 {
 }
 
@@ -63,7 +63,8 @@ int GPUReconstructionOCL1Backend::GetOCLPrograms()
   }
 
 #define GPUCA_OPENCL1
-#define GPUCA_KRNL(x_class, x_attributes, x_arguments, x_forward) GPUCA_KRNL_WRAP(GPUCA_KRNL_LOAD_, x_class, x_attributes, x_arguments, x_forward)
+#define GPUCA_KRNL(x_class, x_attributes, x_arguments, x_forward) \
+  GPUCA_KRNL_WRAP(GPUCA_KRNL_LOAD_, x_class, x_attributes, x_arguments, x_forward)
 #define GPUCA_KRNL_LOAD_single(x_class, x_attributes, x_arguments, x_forward) \
   if (AddKernel<GPUCA_M_KRNL_TEMPLATE(x_class)>(false)) {                     \
     return 1;                                                                 \
@@ -90,7 +91,7 @@ bool GPUReconstructionOCL1Backend::CheckPlatform(unsigned int i)
     float ver = 0;
     sscanf(platform_version, "OpenCL 2.0 AMD-APP (%f)", &ver);
     if (ver < 2000.f) {
-      if (mDeviceProcessingSettings.debugLevel >= 2) {
+      if (mProcessingSettings.debugLevel >= 2) {
         GPUInfo("AMD APP OpenCL Platform found");
       }
       return true;

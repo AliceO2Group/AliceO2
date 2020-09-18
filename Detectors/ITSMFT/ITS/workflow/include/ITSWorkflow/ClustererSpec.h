@@ -15,15 +15,20 @@
 
 #include <fstream>
 
+#include "ITSMFTReconstruction/Clusterer.h"
 #include "Framework/DataProcessorSpec.h"
 #include "Framework/Task.h"
-
-#include "ITSMFTReconstruction/Clusterer.h"
 
 using namespace o2::framework;
 
 namespace o2
 {
+
+namespace itsmft
+{
+class Clusterer;
+}
+
 namespace its
 {
 
@@ -38,8 +43,8 @@ class ClustererDPL : public Task
  private:
   int mState = 0;
   bool mUseMC = true;
-  bool mFullClusters = true;
-  bool mCompactClusters = true;
+  bool mPatterns = true;
+  int mNThreads = 1;
   std::unique_ptr<std::ifstream> mFile = nullptr;
   std::unique_ptr<o2::itsmft::Clusterer> mClusterer = nullptr;
 };

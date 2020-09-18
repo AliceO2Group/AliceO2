@@ -63,20 +63,21 @@
 //  #include "AliTRDCalDCSFEEv2.h"
 #include "AliTRDCalTrapConfig.h"
 #include "CCDB/CcdbApi.h"
-#include "TRDBase/PadParameters.h"
-#include "TRDBase/PadCalibrations.h"
-#include "TRDBase/PadStatus.h"
-#include "TRDBase/PadNoise.h"
-#include "TRDBase/LocalVDrift.h"
-#include "TRDBase/LocalT0.h"
-#include "TRDBase/LocalGainFactor.h"
-#include "TRDBase/PadNoise.h"
-#include "TRDBase/ChamberCalibrations.h"
-#include "TRDBase/ChamberStatus.h"
-#include "TRDBase/ChamberNoise.h"
-#include "TRDBase/CalOnlineGainTables.h"
-#include "TRDBase/FeeParam.h"
-#include "TRDBase/TrapConfig.h"
+
+//#include "TRDBase/PadParameters.h"
+//#include "TRDBase/PadCalibrations.h"
+//#include "TRDBase/PadStatus.h"
+//#include "TRDBase/PadNoise.h"
+//#include "TRDBase/LocalVDrift.h"
+//#include "TRDBase/LocalT0.h"
+//#include "TRDBase/LocalGainFactor.h"
+//#include "TRDBase/PadNoise.h"
+//#include "TRDBase/ChamberCalibrations.h"
+//#include "TRDBase/ChamberStatus.h"
+//#include "TRDBase/ChamberNoise.h"
+//#include "TRDBase/CalOnlineGainTables.h"
+//#include "TRDBase/FeeParam.h"
+#include "TRDSimulation/TrapConfig.h"
 
 using namespace std;
 using namespace o2::ccdb;
@@ -102,7 +103,7 @@ void ParseTrapConfigs(TrapConfig* trapconfig, AliTRDtrapConfig* run2config)
 {
 
   for (int regvalue = 0; regvalue < AliTRDtrapConfig::kLastReg; regvalue++) {
-    //cout << "revalue of : " << regvalue << endl;
+    // cout << "revalue of : " << regvalue << endl;
     //  AliTRDtrapConfig::AliTRDTrapRegister a = fRegisterValue[regvalue];
     //copy fname, fAddr, fNbits and fResetValue
     //and inherited from trapvalue : fAllocMode fSize fData fValid
@@ -118,12 +119,15 @@ void ParseTrapConfigs(TrapConfig* trapconfig, AliTRDtrapConfig* run2config)
                                                       run2config->fRegisterValue[regvalue].fResetValue);
     // now for the inherited AliTRDtrapValue members;
     trapconfig->mRegisterValue[regvalue].allocatei((int)run2config->fRegisterValue[regvalue].fAllocMode);
-    cout << "size is : " << run2config->fRegisterValue[regvalue].fSize << endl;
+    //cout << "size is : " << run2config->fRegisterValue[regvalue].fSize << endl;
     //allocate will set the size of the arrays and resize them accordingly.
     //                cout<< "PROBLEM !! datacount " << datacount<<">="<<trapconfig->mRegisterValue.size() << " and run2 size is : "<< run2config->fRegisterValue[regvalue].fSize << " allocmode : "<< run2config->fRegisterValue[regvalue].fAllocMode << endl;
     for (int datacount = 0; datacount < run2config->fRegisterValue[regvalue].fSize; datacount++) {
       if (datacount < trapconfig->mRegisterValue[regvalue].getDataSize()) {
+        //      cout << " Writing :  " << run2config->fRegisterValue[regvalue].fData[datacount] << " :: with valid of " << run2config->fRegisterValue[regvalue].fValid[datacount] << endl;
         trapconfig->mRegisterValue[regvalue].setDataFromRun2(run2config->fRegisterValue[regvalue].fData[datacount], run2config->fRegisterValue[regvalue].fValid[datacount], datacount);
+        //       cout << "Reading back  : " << trapconfig->mRegisterValue[regvalue].getDataRaw(datacount) << " :: with valid of "<< trapconfig->mRegisterValue[regvalue].getValidRaw(datacount)<< endl;
+        //       exit(1);
       } else
         cout << " datacoutn : " << datacount << " >= " << trapconfig->mDmem[regvalue].getDataSize() << endl;
     }
@@ -137,15 +141,16 @@ void ParseTrapConfigs(TrapConfig* trapconfig, AliTRDtrapConfig* run2config)
     if (dmemwords > trapconfig->mDmem.size())
       cout << "!!!!!!!!!!!!! dmemwords = " << dmemwords << " while register array in trapconfig is :" << trapconfig->mDmem.size() << endl;
     trapconfig->mDmem[dmemwords].setAddress(run2config->fDmem[dmemwords].fAddr);
+    //TODO WHy did i have to comment this out ! trapconfig->mDmem[dmemwords].setName(run2config->fDmem[dmemwords].fName);
     // now for the inherited AliTRDtrapValue members;
     trapconfig->mDmem[dmemwords].allocatei((int)run2config->fDmem[dmemwords].fAllocMode);
-    cout << "size is : " << run2config->fDmem[dmemwords].fSize << endl;
+    //cout << "size is : " << run2config->fDmem[dmemwords].fSize << endl;
     //trapconfig->mDmem[dmemwords].mSize = run2config->fDmem[dmemwords].fSize;i// gets set via allocate method in line above
     for (int datacount = 0; datacount < run2config->fDmem[dmemwords].fSize; datacount++) {
       if (datacount < trapconfig->mDmem[dmemwords].getDataSize()) {
         trapconfig->mDmem[dmemwords].setDataFromRun2(run2config->fDmem[dmemwords].fData[datacount], run2config->fDmem[dmemwords].fValid[datacount], datacount);
       } else
-        cout << " datacoutn : " << datacount << " >= " << trapconfig->mDmem[dmemwords].getDataSize() << endl;
+        cout << " datacount : " << datacount << " >= " << trapconfig->mDmem[dmemwords].getDataSize() << endl;
     }
   }
   // now for static values,  static consts we obviously ignore
@@ -156,7 +161,7 @@ void ParseTrapConfigs(TrapConfig* trapconfig, AliTRDtrapConfig* run2config)
     }*/
 }
 //__________________________________________________________________________________________
-void OCDB2CCDBTrapConfig(Int_t run, const Char_t* storageURI = "alien://folder=/alice/data/2010/OCDB/")
+void OCDB2CCDBTrapConfig(Int_t run, const Char_t* storageURI = "alien://folder=/alice/data/2018/OCDB/")
 {
   //
   // Main function to steer the extraction of TRD OCDB information
@@ -202,7 +207,7 @@ its all going here unfortunately ....
 */
 
   vector<std::string> run2confignames = {
-    "cf_pg-fpnp32_zs-s16-deh_tb30_trkl-b5n-fs1e24-ht200-qs0e24s24e23-pidlinear-pt100_ptrg.r5505",
+    /* "cf_pg-fpnp32_zs-s16-deh_tb30_trkl-b5n-fs1e24-ht200-qs0e24s24e23-pidlinear-pt100_ptrg.r5505",
     "cf_pg-fpnp32_zs-s16-deh_tb24_trkl-b2p-fs1e24-ht200-qs0e24s24e23-pidlinear-pt100_ptrg.r5585",
     "cf_pg-fpnp32_zs-s16-deh_tb24_trkl-b5p-fs1e24-ht200-qs0e23s23e22-pidlhc11dv3en-pt100_ptrg.r5766",
     "cf_pg-fpnp32_zs-s16-deh_tb24_trkl-b0-fs1e24-ht200-qs0e23s23e22-pidlhc11dv3en_ptrg.r5767",
@@ -256,21 +261,21 @@ its all going here unfortunately ....
     "cf_pg-fpnp32_zs-s16-deh_tb26_trkl-b2n-fs1e24-ht200-qs0e23s23e22-pidlhc11dv3en-pt100_ptrg.r5771",
     "cf_pg-fpnp32_zs-s16-deh_tb24_trkl-b5n-fs1e24-ht200-qs0e23s23e22-pidlhc11dv1-pt100_ptrg.r5762",
     "cf_pg-fpnp32_zs-s16-deh_tb30_trkl-b0-fs1e24-ht200-qs0e24s24e23-pidlinear_ptrg.r5505",
-    "cf_pg-fpnp32_zs-s16-deh_tb24_trkl-b0-fs1e24-ht200-qs0e23s23e22-pidlhc11dv1_ptrg.r5762",
-  };
+    "cf_pg-fpnp32_zs-s16-deh_tb24_trkl-b0-fs1e24-ht200-qs0e23s23e22-pidlhc11dv1_ptrg.r5762",*/
+    "cf_pg-fpnp32_zs-s16-deh_tb30_trkl-b5n-fs1e24-ht200-qs0e24s24e23-pidlinear-pt100_ptrg.r5549"};
 
   // now we loop over these extracting the trapconfing and dumping it into the ccdb.
-
   AliTRDCalTrapConfig* run2caltrapconfig = 0;
   AliTRDtrapConfig* run2trapconfig = 0;
   if ((entry = GetCDBentry("TRD/Calib/TrapConfig", 0))) {
     if ((run2caltrapconfig = (AliTRDCalTrapConfig*)entry->GetObject())) {
       for (auto const& run2trapconfigname : run2confignames) {
-        auto o2trapconfig = new TrapConfig();
+        auto o2trapconfig = new TrapConfig(run2trapconfigname);
         run2trapconfig = run2caltrapconfig->Get(run2trapconfigname.c_str());
         ParseTrapConfigs(o2trapconfig, run2trapconfig);
-        ccdb.storeAsTFileAny(o2trapconfig, Form("%s/TrapConfig/%s", TRDCalBase.c_str(), run2trapconfigname.c_str()), metadata, 1, 1670700184549); //upper time chosen into the future else the server simply adds a year
-                                                                                                                                                  //AliTRDcalibDB *calibdb=AliTRDcalibDB::Instance();
+        //   ccdb.storeAsTFileAny(o2trapconfig, "TRD_test/TrapConfig2020/c", metadata, 1, 1670700184549); //upper time chosen into the future else the server simply adds a year
+        //    cout << "ccdb.storeAsTFileAny(o2trapconfig, Form(\"" << TRDCalBase.c_str() << "/TrapConfig/" << run2trapconfigname.c_str()<< endl; //upper time chosen into the future else the server simply adds a year
+        //AliTRDcalibDB *calibdb=AliTRDcalibDB::Instance();
       }
     }
   }

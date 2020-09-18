@@ -9,7 +9,7 @@
 # submit itself to any jurisdiction.
 
 # Some general CMake settings
-cmake_minimum_required(VERSION 3.14 FATAL_ERROR)
+cmake_minimum_required(VERSION 3.18 FATAL_ERROR)
 project(GPUTrackingStandalone)
 include(FeatureSummary)
 set(CMAKE_INSTALL_BINDIR "${CMAKE_INSTALL_PREFIX}")
@@ -104,6 +104,7 @@ include_directories(${CMAKE_SOURCE_DIR}
                     ${CMAKE_SOURCE_DIR}/Base
                     ${CMAKE_SOURCE_DIR}/Base/opencl-common
                     ${CMAKE_SOURCE_DIR}/Common
+                    ${CMAKE_SOURCE_DIR}/GPUUtils
                     ${CMAKE_SOURCE_DIR}/dEdx
                     ${CMAKE_SOURCE_DIR}/TPCConvert
                     ${CMAKE_SOURCE_DIR}/TPCFastTransformation
@@ -125,7 +126,9 @@ include_directories(${CMAKE_SOURCE_DIR}/TPCClusterFinder
                     ${CMAKE_SOURCE_DIR}/../../../DataFormats/Detectors/Common/include
                     ${CMAKE_SOURCE_DIR}/../../../DataFormats/Detectors/ITSMFT/ITS/include
                     ${CMAKE_SOURCE_DIR}/../../../DataFormats/Detectors/TPC/include
+                    ${CMAKE_SOURCE_DIR}/../../../DataFormats/Detectors/TRD/include
                     ${CMAKE_SOURCE_DIR}/../../../DataFormats/Headers/include
+                    ${CMAKE_SOURCE_DIR}/../../../DataFormats/MemoryResources/include
                     ${CMAKE_SOURCE_DIR}/../../../DataFormats/Reconstruction/include
                     ${CMAKE_SOURCE_DIR}/../../../DataFormats/simulation/include
                     ${CMAKE_SOURCE_DIR}/../../../Detectors/Base/include
@@ -135,6 +138,7 @@ include_directories(${CMAKE_SOURCE_DIR}/TPCClusterFinder
                     ${CMAKE_SOURCE_DIR}/../../../Detectors/ITSMFT/ITS/tracking/cuda/src
                     ${CMAKE_SOURCE_DIR}/../../../Detectors/ITSMFT/ITS/tracking/hip/include
                     ${CMAKE_SOURCE_DIR}/../../../Detectors/ITSMFT/ITS/tracking/hip/src
+                    ${CMAKE_SOURCE_DIR}/../../../Detectors/Raw/include
                     ${CMAKE_SOURCE_DIR}/../../../Detectors/TPC/base/include
                     ${CMAKE_SOURCE_DIR}/../../../Detectors/TRD/base/include
                     ${CMAKE_SOURCE_DIR}/../../../Detectors/TRD/base/src)
@@ -155,6 +159,7 @@ target_compile_definitions(standalone_support PUBLIC $<TARGET_PROPERTY:O2::GPUTr
 # Add all sources and dependencies to to support based on Config File
 if(CONFIG_O2_EXTENSIONS)
   target_sources(standalone_support PRIVATE
+               ../../..//DataFormats/Detectors/TPC/src/CompressedClusters.cxx
                ../../..//DataFormats/simulation/src/MCCompLabel.cxx
                ../../..//Detectors/TRD/base/src/TRDGeometryBase.cxx
                ../../..//Detectors/Base/src/MatLayerCylSet.cxx
@@ -192,9 +197,11 @@ if(BUILD_EVENT_DISPLAY)
   target_sources(GPUTracking PRIVATE display/GPUDisplayBackendX11.cxx
                              display/GPUDisplayBackendGlut.cxx)
   if(CONFIG_GL3W)
-    target_sources(GPUTracking PRIVATE display/gl3w/gl3w.c)
+    target_sources(GPUTracking PRIVATE display/3rdparty/gl3w.c)
     target_compile_definitions(GPUTracking PUBLIC GPUCA_DISPLAY_GL3W)
   endif()
+  target_sources(GPUTracking PRIVATE display/3rdparty/HandMadeMathImpl.cxx)
+  target_include_directories(GPUTracking SYSTEM PUBLIC display/3rdparty)
 endif()
 
 if(CONFIG_ROOT)

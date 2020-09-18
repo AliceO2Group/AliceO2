@@ -14,17 +14,16 @@
 #define ALICEO2_EVENTGEN_GENERATOR_H_
 
 #include "FairGenerator.h"
+#include "TParticle.h"
+#include "Generators/Trigger.h"
 #include <vector>
-#include <array>
 
-class TClonesArray;
+class FairMCEventHeader;
 
 namespace o2
 {
 namespace eventgen
 {
-
-class Trigger;
 
 /*****************************************************************/
 /*****************************************************************/
@@ -48,7 +47,7 @@ class Generator : public FairGenerator
   /** constructor **/
   Generator(const Char_t* name, const Char_t* title = "ALICEo2 Generator");
   /** destructor **/
-  ~Generator() override;
+  ~Generator() override = default;
 
   /** Initialize the generator if needed **/
   Bool_t Init() override;
@@ -69,7 +68,11 @@ class Generator : public FairGenerator
   void setTimeUnit(double val) { mTimeUnit = val; };
   void setBoost(Double_t val) { mBoost = val; };
   void setTriggerMode(ETriggerMode_t val) { mTriggerMode = val; };
-  void addTrigger(Trigger* trigger) { mTriggers.push_back(trigger); };
+  void addTrigger(Trigger trigger) { mTriggers.push_back(trigger); };
+  void addDeepTrigger(DeepTrigger trigger) { mDeepTriggers.push_back(trigger); };
+
+  /** notification methods **/
+  virtual void notifyEmbedding(const FairMCEventHeader* mcHeader){};
 
  protected:
   /** copy constructor **/
@@ -81,14 +84,22 @@ class Generator : public FairGenerator
   virtual Bool_t generateEvent() = 0;
   virtual Bool_t importParticles() = 0;
 
+  /** methods that can be overridded **/
+  virtual void updateHeader(FairMCEventHeader* eventHeader){};
+
   /** internal methods **/
   Bool_t addTracks(FairPrimaryGenerator* primGen);
   Bool_t boostEvent();
   Bool_t triggerEvent();
 
+  /** generator interface **/
+  void* mInterface = nullptr;
+  std::string mInterfaceName;
+
   /** trigger data members **/
   ETriggerMode_t mTriggerMode = kTriggerOFF;
-  std::vector<Trigger*> mTriggers;
+  std::vector<Trigger> mTriggers;         //!
+  std::vector<DeepTrigger> mDeepTriggers; //!
 
   /** conversion data members **/
   double mMomentumUnit = 1.;        // [GeV/c]
@@ -97,7 +108,7 @@ class Generator : public FairGenerator
   double mTimeUnit = 3.3356410e-12; // [s]
 
   /** particle array **/
-  TClonesArray* mParticles; //!
+  std::vector<TParticle> mParticles; //!
 
   /** lorentz boost data members **/
   Double_t mBoost;

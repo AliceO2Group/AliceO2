@@ -8,22 +8,101 @@
 # granted to it by virtue of its status as an Intergovernmental Organization or
 # submit itself to any jurisdiction.
 
-o2_add_executable(correlations
-                  SOURCES correlations.cxx 
-                  PUBLIC_LINK_LIBRARIES O2::Framework O2::AnalysisCore
-                  COMPONENT_NAME Analysis)
+add_subdirectory(PWGCF)
+add_subdirectory(PWGDQ)
+add_subdirectory(PWGHF)
+add_subdirectory(PWGLF)
+add_subdirectory(PWGUD)
 
-o2_add_executable(correlations-collection
-                  SOURCES correlationsCollection.cxx 
-                  PUBLIC_LINK_LIBRARIES O2::Framework O2::AnalysisCore
-                  COMPONENT_NAME Analysis)
-                  
-o2_add_executable(vertexing-hf
-	  	  SOURCES vertexerhf.cxx
-		  PUBLIC_LINK_LIBRARIES O2::Framework O2::DetectorsBase 
-	          COMPONENT_NAME Analysis)
+o2_add_dpl_workflow(trackselection
+                    SOURCES trackselection.cxx
+                    PUBLIC_LINK_LIBRARIES O2::Framework O2::AnalysisDataModel O2::AnalysisCore
+                    COMPONENT_NAME Analysis)
 
-o2_add_executable(validation
-	  	  SOURCES validation.cxx
-		  PUBLIC_LINK_LIBRARIES O2::Framework O2::DetectorsBase 
-	          COMPONENT_NAME Analysis)
+o2_add_dpl_workflow(qatask
+                    SOURCES qaTask.cxx
+                    PUBLIC_LINK_LIBRARIES O2::Framework O2::AnalysisDataModel O2::AnalysisCore
+                    COMPONENT_NAME Analysis)
+
+o2_add_dpl_workflow(spectra-tof
+                    SOURCES spectraTOF.cxx
+                    PUBLIC_LINK_LIBRARIES O2::Framework O2::DetectorsBase O2::AnalysisDataModel
+                    COMPONENT_NAME Analysis)
+
+o2_add_dpl_workflow(spectra-tpc
+                    SOURCES spectraTPC.cxx
+                    PUBLIC_LINK_LIBRARIES O2::Framework O2::DetectorsBase O2::AnalysisDataModel
+                    COMPONENT_NAME Analysis)
+
+o2_add_dpl_workflow(pid-tof
+                    SOURCES pidTOF.cxx
+                    PUBLIC_LINK_LIBRARIES O2::Framework O2::DetectorsBase O2::AnalysisDataModel
+                    COMPONENT_NAME Analysis)
+
+o2_add_dpl_workflow(pid-tpc
+                    SOURCES pidTPC.cxx
+                    PUBLIC_LINK_LIBRARIES O2::Framework O2::DetectorsBase O2::AnalysisDataModel
+                    COMPONENT_NAME Analysis)
+
+o2_add_dpl_workflow(validation
+                    SOURCES validation.cxx
+                    PUBLIC_LINK_LIBRARIES O2::Framework O2::DetectorsBase
+                    COMPONENT_NAME Analysis)
+
+if(FastJet_FOUND)
+o2_add_dpl_workflow(jetfinder
+                    SOURCES jetfinder.cxx
+                    PUBLIC_LINK_LIBRARIES O2::Framework O2::AnalysisCore O2::AnalysisDataModel
+                    FastJet::FastJet
+                    COMPONENT_NAME Analysis)
+endif()
+
+o2_add_dpl_workflow(event-selection
+                    SOURCES eventSelection.cxx
+                    PUBLIC_LINK_LIBRARIES O2::Framework O2::AnalysisDataModel O2::AnalysisCore O2::DetectorsBase O2::CCDB
+                    COMPONENT_NAME Analysis)
+
+o2_add_dpl_workflow(event-selection-qa
+                    SOURCES eventSelectionQa.cxx
+                    PUBLIC_LINK_LIBRARIES O2::Framework O2::AnalysisDataModel O2::AnalysisCore O2::DetectorsBase
+                    COMPONENT_NAME Analysis)
+
+o2_add_dpl_workflow(multiplicity-table
+                    SOURCES multiplicityTable.cxx
+                    PUBLIC_LINK_LIBRARIES O2::Framework O2::AnalysisDataModel O2::AnalysisCore O2::DetectorsBase
+                    COMPONENT_NAME Analysis)
+
+o2_add_dpl_workflow(multiplicity-qa
+                    SOURCES multiplicityQa.cxx
+                    PUBLIC_LINK_LIBRARIES O2::Framework O2::AnalysisDataModel O2::AnalysisCore O2::DetectorsBase
+                    COMPONENT_NAME Analysis)
+
+o2_add_dpl_workflow(centrality-table
+                    SOURCES centralityTable.cxx
+                    PUBLIC_LINK_LIBRARIES O2::Framework O2::AnalysisDataModel O2::AnalysisCore O2::DetectorsBase O2::CCDB
+                    COMPONENT_NAME Analysis)
+
+o2_add_dpl_workflow(centrality-qa
+                    SOURCES centralityQa.cxx
+                    PUBLIC_LINK_LIBRARIES O2::Framework O2::AnalysisDataModel O2::AnalysisCore O2::DetectorsBase
+                    COMPONENT_NAME Analysis)
+
+o2_add_dpl_workflow(timestamp
+                    SOURCES timestamp.cxx
+                    PUBLIC_LINK_LIBRARIES O2::Framework O2::DetectorsBase O2::AnalysisDataModel O2::DetectorsRaw O2::AnalysisCore O2::CommonDataFormat O2::CCDB
+                    COMPONENT_NAME Analysis)
+
+o2_add_dpl_workflow(weak-decay-indices
+                    SOURCES weakDecayIndices.cxx
+                    PUBLIC_LINK_LIBRARIES O2::Framework O2::DetectorsBase O2::AnalysisDataModel
+                    COMPONENT_NAME Analysis)
+
+o2_add_dpl_workflow(run2-matcher
+                    SOURCES run2Matcher.cxx
+                    PUBLIC_LINK_LIBRARIES O2::Framework O2::DetectorsBase O2::AnalysisDataModel
+                    COMPONENT_NAME Analysis)
+
+o2_add_dpl_workflow(run3-matcher
+                    SOURCES run3Matcher.cxx
+                    PUBLIC_LINK_LIBRARIES O2::Framework O2::DetectorsBase O2::AnalysisDataModel
+                    COMPONENT_NAME Analysis)

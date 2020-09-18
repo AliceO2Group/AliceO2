@@ -49,8 +49,10 @@ class Clusterer
   void setCalibApi(CalibApi* calibApi)
   {
     mCalibApi = calibApi;
-    Printf("mCalibApi = %p", mCalibApi);
   }
+
+  void setFirstOrbit(uint32_t orb);
+  uint32_t getFirstOrbit() const { return mFirstOrbit; }
 
  private:
   void calibrateStrip();
@@ -66,6 +68,8 @@ class Clusterer
   void addContributingDigit(Digit* dig);
   void buildCluster(Cluster& c, MCLabelContainer const* digitMCTruth);
   CalibApi* mCalibApi = nullptr; //! calib api to handle the TOF calibration
+  uint32_t mFirstOrbit = 0;      //! 1st orbit of the TF
+  uint64_t mBCOffset = 0;        //! 1st orbit of the TF converted to BCs
 };
 
 } // namespace tof

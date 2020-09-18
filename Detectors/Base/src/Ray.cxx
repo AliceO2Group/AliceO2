@@ -60,7 +60,7 @@ GPUd() int Ray::crossLayer(const MatLayerCyl& lr)
 
   if (tCross1Min > -0.f) {
     mCrossParams1[nCross] = tCross1Min < 1.f ? tCross1Min : 1.f;
-    mCrossParams1[nCross] = tCross0Min > 0.f ? tCross0Min : 0.f;
+    mCrossParams2[nCross] = tCross0Min > 0.f ? tCross0Min : 0.f;
     if (validateZRange(mCrossParams1[nCross], mCrossParams2[nCross], lr)) {
       nCross++;
     }

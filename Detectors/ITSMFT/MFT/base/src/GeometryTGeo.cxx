@@ -376,7 +376,7 @@ TGeoHMatrix* GeometryTGeo::extractMatrixSensor(Int_t index) const
   // LOG(INFO) << "extractMatrixSensor index " << index << " half " << half << " disk " << disk << " ladder " << ladder
   // << " ladderID " << ladderID;
 
-  TString path = Form("/cave_1/%s_0/", getMFTVolPattern());
+  TString path = Form("/cave_1/barrel_1/%s_0/", getMFTVolPattern());
   path += Form("%s_%d_%d/%s_%d_%d_%d/%s_%d_%d_%d_%d/%s_%d_%d_%d_%d/%s_1", getMFTHalfPattern(), half, half,
                getMFTDiskPattern(), half, disk, disk, getMFTLadderPattern(), half, disk, ladderID, ladderID,
                getMFTChipPattern(), half, disk, ladderID, sensor, getMFTSensorPattern());

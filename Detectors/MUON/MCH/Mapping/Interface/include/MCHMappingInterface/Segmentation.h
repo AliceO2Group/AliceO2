@@ -148,6 +148,24 @@ class Segmentation
   int mPadIndexOffset = 0;
 };
 
+/// segmentation(int) is a convenience function that
+/// returns a segmentation for a given detection element.
+///
+/// That segmentation is part of a pool of Segmentations
+/// (one per DE) handled by this module.
+///
+/// Note that this may be not what you want as this module
+/// will always create one (but only one) Segmentation for
+/// all 156 detection elements at once, even when only one
+/// Segmentation is requested.
+///
+/// For instance, if you know you'll be dealing with only
+/// one detection element, you'd be better using
+/// the Segmentation ctor simply, and ensure by yourself
+/// that you are only creating it once in order not to incur
+/// the (high) price of the construction time of that Segmentation.
+const Segmentation& segmentation(int detElemId);
+
 } // namespace mapping
 } // namespace mch
 } // namespace o2

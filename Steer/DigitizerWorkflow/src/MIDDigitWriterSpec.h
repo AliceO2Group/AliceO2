@@ -28,7 +28,7 @@ namespace mid
 template <typename T>
 using BranchDefinition = framework::MakeRootTreeWriterSpec::BranchDefinition<T>;
 
-o2::framework::DataProcessorSpec getMIDDigitWriterSpec()
+o2::framework::DataProcessorSpec getMIDDigitWriterSpec(bool mctruth)
 {
   using InputSpec = framework::InputSpec;
   using MakeRootTreeWriterSpec = framework::MakeRootTreeWriterSpec;
@@ -38,7 +38,7 @@ o2::framework::DataProcessorSpec getMIDDigitWriterSpec()
                                 1,
                                 BranchDefinition<std::vector<ColumnDataMC>>{InputSpec{"middigits", "MID", "DIGITS"}, "MIDDigit"},
                                 BranchDefinition<std::vector<ROFRecord>>{InputSpec{"midrofrecords", "MID", "DIGITSROF"}, "MIDROFRecords"},
-                                BranchDefinition<o2::dataformats::MCTruthContainer<MCLabel>>{InputSpec{"middigitlabels", "MID", "DIGITLABELS"}, "MIDDigitMCLabels"})();
+                                BranchDefinition<o2::dataformats::MCTruthContainer<MCLabel>>{InputSpec{"middigitlabels", "MID", "DIGITLABELS"}, "MIDDigitMCLabels", mctruth ? 1 : 0})();
 }
 
 } // namespace mid

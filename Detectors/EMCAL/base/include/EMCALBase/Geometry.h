@@ -186,9 +186,19 @@ class Geometry
   Float_t GetDCALStandardPhiMax() const { return mDCALStandardPhiMax; }
   Int_t GetNECLayers() const { return mNECLayers; }
   Float_t GetDCALInnerExtandedEta() const { return mDCALInnerExtandedEta; }
+
+  /// \brief Get the number of modules in supermodule in z- (beam) direction
+  /// \return Number of modules
   Int_t GetNZ() const { return mNZ; }
+
+  /// \brief Get the number of modules in supermodule in #eta direction
+  /// \return Number of modules
   Int_t GetNEta() const { return mNZ; }
+
+  /// \brief Get the number of modules in supermodule in #phi direction
+  /// \return Number of modules
   Int_t GetNPhi() const { return mNPhi; }
+
   Float_t GetECPbRadThick() const { return mECPbRadThickness; }
   Float_t GetECScintThick() const { return mECScintThick; }
   Float_t GetSampling() const { return mSampling; }
@@ -336,17 +346,41 @@ class Geometry
   /// \brief get (Column,Row) pair of cell in global numbering scheme
   /// \param cellID Absolute cell ID
   /// \return tuple with position in global numbering scheme (0 - row, 1 - column)
+  /// \throw InvalidCellIDException
   std::tuple<int, int> GlobalRowColFromIndex(int cellID) const;
 
   /// \brief Get column number of cell in global numbering scheme
   /// \param cellID Absolute cell ID
   /// \return Column number in global numbering scheme
+  /// \throw InvalidCellIDException
   int GlobalCol(int cellID) const;
 
   /// \brief Get row number of cell in global numbering scheme
   /// \param cellID Absolute cell ID
   /// \return Row number in global numbering scheme
+  /// \throw InvalidCellIDException
   int GlobalRow(int cellID) const;
+
+  /// \brief Get the absolute cell ID from global position in the EMCAL
+  /// \param row Global row ID
+  /// \param col Global col ID
+  /// \return absolute cell ID
+  /// \throw RowColException
+  int GetCellAbsIDFromGlobalRowCol(int row, int col) const;
+
+  /// \brief Get the posision (row, col) of a global row-col position
+  /// \param row Global row ID
+  /// \param col Global col ID
+  /// \return Position in supermodule: [0 - supermodule ID, 1 - row in supermodule - col in supermodule]
+  /// \throw RowColException
+  std::tuple<int, int, int> GetPositionInSupermoduleFromGlobalRowCol(int col, int row) const;
+
+  /// \brief Get the cell indices from global position in the EMCAL
+  /// \param row Global row ID
+  /// \param col Global col ID
+  /// \return Cell indices [0 - supermodule, 1 - module, 2 - phi in module, 3 - eta in module]
+  /// \throw RowColException
+  std::tuple<int, int, int, int> GetCellIndexFromGlobalRowCol(int row, int col) const;
 
   /// \brief Given a global eta/phi point check if it belongs to a supermodule covered region.
   /// \param eta pseudorapidity location
@@ -547,6 +581,14 @@ class Geometry
   /// \brief Init function of previous class EMCGeometry
   void DefineEMC(std::string_view mcname, std::string_view mctitle);
 
+  /// \brief Calculate cell SM, module numbers from absolute ID number
+  /// \param absId cell absolute id. number
+  /// \return tuple(supermodule ID, module number, index of cell in module in phi, index of cell in module in eta)
+  /// \throw InvalidCellIDException
+  ///
+  /// Used in order to fill the lookup table of cell indices
+  std::tuple<int, int, int, int> CalculateCellIndex(Int_t absId) const;
+
   std::string mGeoName;                     ///< Geometry name string
   Int_t mKey110DEG;                         ///< For calculation abs cell id; 19-oct-05
   Int_t mnSupModInDCAL;                     ///< For calculation abs cell id; 06-nov-12
@@ -626,7 +668,8 @@ class Geometry
 
   Float_t mSteelFrontThick; ///< Thickness of the front stell face of the support box - 9-sep-04; obsolete?
 
-  mutable const TGeoHMatrix* SMODULEMATRIX[EMCAL_MODULES]; ///< Orientations of EMCAL super modules
+  mutable const TGeoHMatrix* SMODULEMATRIX[EMCAL_MODULES];      ///< Orientations of EMCAL super modules
+  std::vector<std::tuple<int, int, int, int>> mCellIndexLookup; ///< Lookup table for cell indices
 
  private:
   static Geometry* sGeom; ///< Pointer to the unique instance of the singleton

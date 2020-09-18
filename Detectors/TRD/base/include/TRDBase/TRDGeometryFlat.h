@@ -11,7 +11,7 @@
 #ifndef O2_TRDGEOMETRYFLAT_H
 #define O2_TRDGEOMETRYFLAT_H
 
-#ifndef __OPENCL__
+#ifndef GPUCA_GPUCODE_DEVICE
 #include <cstring>
 #endif
 #include "FlatObject.h"
@@ -19,6 +19,7 @@
 #include "GPUCommonTransform3D.h"
 #include "TRDBase/TRDGeometryBase.h"
 #include "TRDBase/TRDPadPlane.h"
+#include "DataFormatsTRD/Constants.h"
 
 using namespace o2::trd;
 
@@ -58,7 +59,7 @@ class TRDGeometryFlat : public o2::gpu::FlatObject, public TRDGeometryBase
 
  private:
   o2::gpu::Transform3D mMatrixCache[MAXMATRICES];
-  short mMatrixIndirection[kNdet];
+  short mMatrixIndirection[constants::MAXCHAMBER];
 };
 
 } // namespace trd

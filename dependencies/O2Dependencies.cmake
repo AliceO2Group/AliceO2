@@ -36,13 +36,13 @@ include(FeatureSummary)
 
 include(FindThreads)
 
-find_package(arrow MODULE)
-set_package_properties(arrow PROPERTIES TYPE REQUIRED)
+find_package(O2arrow MODULE)
+set_package_properties(O2arrow PROPERTIES TYPE REQUIRED)
 
 find_package(Vc)
 set_package_properties(Vc PROPERTIES TYPE REQUIRED)
 
-find_package(ROOT 6.16.00 MODULE)
+find_package(ROOT 6.20.02)
 set_package_properties(ROOT PROPERTIES TYPE REQUIRED)
 
 find_package(fmt)
@@ -121,6 +121,8 @@ if (NOT OpenMP_CXX_FOUND AND CMAKE_SYSTEM_NAME MATCHES Darwin)
   find_package(OpenMPMacOS)
 endif()
 
+find_package(LibUV MODULE)
+set_package_properties(LibUV PROPERTIES TYPE REQUIRED)
 find_package(GLFW MODULE)
 set_package_properties(GLFW PROPERTIES TYPE RECOMMENDED)
 find_package(DebugGUI CONFIG)
@@ -147,5 +149,7 @@ endif()
 
 
 find_package(O2GPU)
+
+find_package(FastJet)
 
 feature_summary(WHAT ALL FATAL_ON_MISSING_REQUIRED_PACKAGES)

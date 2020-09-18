@@ -105,7 +105,7 @@ framework::DataProcessorSpec getTrackerMCSpec()
     {outputSpecs},
     of::adaptFromTask<o2::mid::TrackerMCDeviceDPL>(),
     of::Options{
-      {"geometry-filename", of::VariantType::String, "O2geometry.root", {"Name of the geometry file"}}}};
+      {"geometry-filename", of::VariantType::String, "", {"Name of the geometry file"}}}};
 }
 } // namespace mid
 } // namespace o2

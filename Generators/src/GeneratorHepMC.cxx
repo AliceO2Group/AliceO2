@@ -11,22 +11,15 @@
 /// \author R+Preghenella - August 2017
 
 #include "Generators/GeneratorHepMC.h"
-#include "HepMC/ReaderAscii.h"
-#include "HepMC/ReaderAsciiHepMC2.h"
-#include "HepMC/GenEvent.h"
-#include "HepMC/GenParticle.h"
-#include "HepMC/GenVertex.h"
-#include "HepMC/FourVector.h"
-#include "TClonesArray.h"
+#include "Generators/GeneratorHepMCParam.h"
+#include "HepMC3/ReaderAscii.h"
+#include "HepMC3/ReaderAsciiHepMC2.h"
+#include "HepMC3/GenEvent.h"
+#include "HepMC3/GenParticle.h"
+#include "HepMC3/GenVertex.h"
+#include "HepMC3/FourVector.h"
 #include "TParticle.h"
-
-/** 
-    HepMC/Errors.h of HepMC3 defines DEBUG as a logging macro, and this interferes with FairLogger.
-    Undefining it for the time being, while thinking about a possible solution for this issue.
-**/
-#ifdef DEBUG
-#undef DEBUG
-#endif
+#include "TSystem.h"
 
 #include "FairLogger.h"
 #include "FairPrimaryGenerator.h"
@@ -44,6 +37,10 @@ GeneratorHepMC::GeneratorHepMC()
   : Generator("ALICEo2", "ALICEo2 HepMC Generator"), mStream(), mFileName(), mVersion(3), mReader(nullptr), mEvent(nullptr)
 {
   /** default constructor **/
+
+  mEvent = new HepMC3::GenEvent();
+  mInterface = reinterpret_cast<void*>(mEvent);
+  mInterfaceName = "hepmc";
 }
 
 /*****************************************************************/
@@ -52,6 +49,10 @@ GeneratorHepMC::GeneratorHepMC(const Char_t* name, const Char_t* title)
   : Generator(name, title), mStream(), mFileName(), mVersion(3), mReader(nullptr), mEvent(nullptr)
 {
   /** constructor **/
+
+  mEvent = new HepMC3::GenEvent();
+  mInterface = reinterpret_cast<void*>(mEvent);
+  mInterfaceName = "hepmc";
 }
 
 /*****************************************************************/
@@ -82,7 +83,7 @@ Bool_t GeneratorHepMC::generateEvent()
   if (mReader->failed())
     return kFALSE;
   /** set units to desired output **/
-  mEvent->set_units(HepMC::Units::GEV, HepMC::Units::MM);
+  mEvent->set_units(HepMC3::Units::GEV, HepMC3::Units::MM);
 
   /** success **/
   return kTRUE;
@@ -93,9 +94,6 @@ Bool_t GeneratorHepMC::generateEvent()
 Bool_t GeneratorHepMC::importParticles()
 {
   /** import particles **/
-
-  TClonesArray& clonesParticles = *mParticles;
-  clonesParticles.Clear();
 
   /** loop over particles **/
   auto particles = mEvent->particles();
@@ -130,7 +128,8 @@ Bool_t GeneratorHepMC::importParticles()
     auto d1 = children.empty() ? -1 : children.front()->id() - 1;
     auto d2 = children.empty() ? -1 : children.back()->id() - 1;
 
-    new (clonesParticles[i]) TParticle(pdg, st, m1, m2, d1, d2, px, py, pz, et, vx, vy, vz, vt);
+    /** add to particle vector **/
+    mParticles.push_back(TParticle(pdg, st, m1, m2, d1, d2, px, py, pz, et, vx, vy, vz, vt));
 
   } /** end of loop over particles **/
 
@@ -148,9 +147,10 @@ Bool_t GeneratorHepMC::Init()
   Generator::Init();
 
   /** open file **/
-  mStream.open(mFileName);
+  std::string filename = gSystem->ExpandPathName(mFileName.c_str());
+  mStream.open(filename);
   if (!mStream.is_open()) {
-    LOG(FATAL) << "Cannot open input file: " << mFileName << std::endl;
+    LOG(FATAL) << "Cannot open input file: " << filename << std::endl;
     return kFALSE;
   }
 
@@ -158,18 +158,15 @@ Bool_t GeneratorHepMC::Init()
   switch (mVersion) {
     case 2:
       mStream.close();
-      mReader = new HepMC::ReaderAsciiHepMC2(mFileName);
+      mReader = new HepMC3::ReaderAsciiHepMC2(filename);
       break;
     case 3:
-      mReader = new HepMC::ReaderAscii(mStream);
+      mReader = new HepMC3::ReaderAscii(mStream);
       break;
     default:
       LOG(FATAL) << "Unsupported HepMC version: " << mVersion << std::endl;
       return kFALSE;
   }
-
-  /** create event **/
-  mEvent = new HepMC::GenEvent();
 
   /** success **/
   return !mReader->failed();

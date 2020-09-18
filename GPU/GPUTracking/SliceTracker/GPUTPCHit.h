@@ -38,6 +38,9 @@ class GPUTPCHit
 
  protected:
   float mY, mZ; // Y and Z position of the TPC cluster
+
+ private:
+  friend class GPUTPCNeighboursFinder;
 };
 } // namespace gpu
 } // namespace GPUCA_NAMESPACE

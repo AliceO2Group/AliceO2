@@ -13,11 +13,13 @@
 #include <vector>
 #include <string_view>
 #include "TFile.h"
+#include "TSystem.h"
+#include "TH2.h"
 #include "TPCCalibration/CalibPedestal.h"
 #include "TPCCalibration/CalibRawBase.h"
 #endif
 
-void runPedestal(std::vector<std::string_view> fileInfos, TString outputFileName = "", Int_t nevents = 100, Int_t adcMin = 0, Int_t adcMax = 1100, Int_t firstTimeBin = 0, Int_t lastTimeBin = 450, Int_t statisticsType = 0, uint32_t verbosity = 0, uint32_t debugLevel = 0, Int_t firstEvent = 0)
+void runPedestal(std::vector<std::string_view> fileInfos, TString outputFileName = "", Int_t nevents = 100, Int_t adcMin = 0, Int_t adcMax = 1100, Int_t firstTimeBin = 0, Int_t lastTimeBin = 450, Int_t statisticsType = 0, uint32_t verbosity = 0, uint32_t debugLevel = 0, Int_t firstEvent = 0, Bool_t debugOutput = false)
 {
   using namespace o2::tpc;
   CalibPedestal ped; //(PadSubset::Region);
@@ -35,7 +37,7 @@ void runPedestal(std::vector<std::string_view> fileInfos, TString outputFileName
 
     for (Int_t i = firstEvent; i < firstEvent + nevents; ++i) {
       status = ped.processEvent(i);
-      cout << "Processing event " << i << " with status " << int(status) << '\n';
+      std::cout << "Processing event " << i << " with status " << int(status) << '\n';
       if (status == CalibRawBase::ProcessStatus::IncompleteEvent) {
         continue;
       } else if (status != CalibRawBase::ProcessStatus::Ok) {
@@ -52,5 +54,26 @@ void runPedestal(std::vector<std::string_view> fileInfos, TString outputFileName
   }
   ped.dumpToFile(outputFileName.Data());
 
+  auto calibPedestal = ped.getPedestal();
+
+  if (debugOutput) {
+    TString debugFile = gSystem->DirName(outputFileName);
+    debugFile.Append("/");
+    debugFile.Append("pedestals_debug.root");
+    TFile f(debugFile, "recreate");
+    TObjArray arr(72);
+    for (int i = 0; i < 72; ++i) {
+      const auto& rocPedestal = calibPedestal.getCalArray(i);
+
+      if (!(std::abs(rocPedestal.getSum()) > 0)) {
+        continue;
+      }
+
+      auto ch = ped.createControlHistogram(ROC(i));
+      arr.Add(static_cast<TObject*>(ch));
+    }
+    arr.Write("histos", TObject::kSingleKey);
+    f.Write();
+  }
   std::cout << "To display the pedestals run: root.exe $calibMacroDir/drawNoiseAndPedestal.C'(\"" << outputFileName << "\")'\n";
 }

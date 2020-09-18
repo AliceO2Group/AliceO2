@@ -11,8 +11,8 @@
 #ifndef ALICEO2_SIMDATAFORMAT_STACKPARAM_H_
 #define ALICEO2_SIMDATAFORMAT_STACKPARAM_H_
 
-#include "SimConfig/ConfigurableParam.h"
-#include "SimConfig/ConfigurableParamHelper.h"
+#include "CommonUtils/ConfigurableParam.h"
+#include "CommonUtils/ConfigurableParamHelper.h"
 
 namespace o2
 {

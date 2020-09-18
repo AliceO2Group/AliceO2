@@ -86,6 +86,20 @@ auto& mgr = o2::ccdb::BasicCCDBManager::instance();
 auto alignment = mgr.get<o2::FOO::GeomAlignment>("/FOO/Alignment");
 ```
 
+By default loaded object are cached in the `BasicCCDBManager` and owned by it, therefore user should not delete retrieved objects.
+If the query is done for the object which is already in the cache, its pointer is returned instead of loading again the object from the CCDB server,
+unless the validity range of the cached object does not match to requested timestamp.
+In case user wants to enforce a fresh copy loading, the cache for particular CCDB path can be cleaned by invoking `mgr.clear(<path>)`.
+One can also reset whole cache using `mgr.clear()`.
+
+Uncached mode can be imposed by invoking `mgr.setCaching(false)`, in which case every query will retrieve a new copy of object from the server and
+the user should take care himself of deleting retrieved objects to avoid memory leaks.
+
+Upper and lower limits on the object creation time can be set by `mgr.setCreatedNotAfter(upper_limit_timestamp)` and `mgr.setCreatedNotBefore(lower_limit_timestamp)`, it specifies the fields "If-Not-After" and "If-Not-Before" when retrieving an object from CCDB.
+This feature is useful to avoid using newer objects if the CCDB is updated in parallel to the task execution.
+
+In cached mode, the manager can check that local objects are still valid by requiring `mgr.setLocalObjectValidityChecking(true)`, in this case a CCDB query is performed only if the cached object is no longer valid.
+
 ## Future ideas / todo:
 
 - [ ] offer improved error handling / exceptions
@@ -96,4 +110,44 @@ auto alignment = mgr.get<o2::FOO::GeomAlignment>("/FOO/Alignment");
 
 ## Note on the use of TFile to store data
 
-The reason for using a TFile to store the data in the CCDB is because it has the advantage of keeping the data together with the ROOT streamer info in the same place and because it makes it easy to open objects directly from a ROOT session. The streamers enable class schema evolution. 
+The reason for using a TFile to store the data in the CCDB is because it has the advantage of keeping the data together with the ROOT streamer info in the same place and because it makes it easy to open objects directly from a ROOT session. The streamers enable class schema evolution.
+
+## Command line tools
+
+A few prototypic command line tools are offered. These can be used in scriptable generic workflows
+and facilitate the following tasks:
+
+  1. Upload and annotate a generic C++ object serialized in a ROOT file
+  
+     ```bash
+     o2-ccdb-upload -f myRootFile.root --key histogram1 --path /Detector1/QA/ --meta "Description=Foo;Author=Person1;Uploader=Person2"
+     ```
+     This will upload the object serialized in `myRootFile.root` under the key `histogram1`. Object will be put to the CCDB path `/Detector1/QA`.
+     For full list of options see `o2-ccdb-upload --help`.
+  
+  2. Download a CCDB object to a local ROOT file (including its meta information)
+  
+     ```bash
+     o2-ccdb-downloadccdbfile --path /Detector1/QA/ --dest /tmp/CCDB --timestamp xxx
+     ```
+     This will download the CCDB object under path given by `--path` to a directory given by `--dest` on the disc.
+     (The final filename will be `/tmp/CCDB/Detector1/QA/snapshot.root` for the moment).
+     All meta-information as well as the information associated to this query will be appended to the file.
+     
+     For full list of options see `o2-ccdb-downloadccdbfile --help`.
+  
+  3. Inspect the content of a ROOT file and print summary about type of contained (CCDB) objects and its meta information
+  
+     ```bash
+     o2-ccdb-inspectccdbfile filename
+     ```
+     Lists all keys and stored types in a ROOT file (downloaded with tool `o2-ccdb-downloadccdbfile`) and prints a summary about the attached meta-information.
+
+
+### TODO command line tools
+
+- [ ] combine all tools into a single swiss-knife executable?
+- [ ] offer more tools mapping all REST functionality of the server: be able to browse, list, query online content, etc.
+- [ ] provide error diagnostics; different level of verbosity
+- [ ] provide json interaction modes (give meta-information; retrieve meta-information)
+- [ ] use meta-info filters when downloading

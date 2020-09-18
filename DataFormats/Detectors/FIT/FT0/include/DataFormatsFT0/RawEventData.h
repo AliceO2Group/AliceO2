@@ -16,11 +16,14 @@
 #define ALICEO2_FIT_RAWEVENTDATA_H_
 
 #include "DataFormatsFT0/Digit.h"
+#include "DataFormatsFT0/ChannelData.h"
+
 #include "Headers/RAWDataHeader.h"
 #include "DataFormatsFT0/LookUpTable.h"
 #include <CommonDataFormat/InteractionRecord.h>
 #include <Framework/Logger.h>
 #include <iostream>
+#include <utility>
 #include <cstring>
 #include "Rtypes.h"
 namespace o2
@@ -29,71 +32,203 @@ namespace ft0
 {
 constexpr int Nchannels_FT0 = 208;
 constexpr int Nchannels_PM = 12;
-constexpr int NPMs = 18;
+constexpr int NPMs = 19;
+constexpr size_t sizeWord = 16;
 
 struct EventHeader {
-  static constexpr int PayloadSize = 16;
+  static constexpr size_t PayloadSize = 16;       //should be equal to 10
+  static constexpr size_t PayloadPerGBTword = 16; //should be equal to 10
+  static constexpr int MinNelements = 1;
+  static constexpr int MaxNelements = 1;
   union {
     uint64_t word[2] = {};
     struct {
       uint64_t bc : 12;
       uint64_t orbit : 32;
-      uint64_t reservedField1 : 20;
+      uint64_t phase : 3;
+      uint64_t errorPhase : 1;
+      uint64_t reservedField1 : 16;
       uint64_t reservedField2 : 8;
       uint64_t nGBTWords : 4;
       uint64_t startDescriptor : 4;
       uint64_t reservedField3 : 48;
     };
   };
-  ClassDefNV(EventHeader, 1);
+  InteractionRecord getIntRec() const { return InteractionRecord{(uint16_t)bc, (uint32_t)orbit}; }
+
+  void print() const
+  {
+    std::cout << std::hex;
+    std::cout << "################EventHeader###############" << std::endl;
+    std::cout << "startDescriptor: " << startDescriptor << std::endl;
+    std::cout << "nGBTWords: " << nGBTWords << std::endl;
+    std::cout << "BC: " << bc << std::endl;
+    std::cout << "Orbit: " << orbit << std::endl;
+    std::cout << "##########################################" << std::endl;
+    std::cout << std::dec;
+  }
 };
 struct EventData {
+  static constexpr size_t PayloadSize = 5;
+  static constexpr size_t PayloadPerGBTword = 10;
+  static constexpr int MinNelements = 1; //additional static field
+  static constexpr int MaxNelements = 12;
+  //
+  static constexpr int BitFlagPos = 25; // position of first bit flag(numberADC)
+
   union {
-    uint64_t word;
+    uint64_t word = {0};
     struct {
       int64_t time : 12;
       int64_t charge : 13;
-      uint64_t numberADC : 1,
+      uint64_t numberADC : 1, //25 bit
         isDoubleEvent : 1,
-        is1TimeLostEvent : 1,
-        is2TimeLostEvent : 1,
-        isADCinGate : 1,
+        isTimeInfoNOTvalid : 1,
+        isCFDinADCgate : 1,
         isTimeInfoLate : 1,
         isAmpHigh : 1,
         isEventInTVDC : 1,
         isTimeInfoLost : 1,
-        reservedField : 2,
+        reservedField : 3,
         channelID : 4;
     };
   };
-  uint64_t word_zeros = 0x0;
-  static const size_t PayloadSizeSecondWord = 11;
-  static const size_t PayloadSizeFirstWord = 5;
+  void generateFlags()
+  {
+    numberADC = std::rand() % 2;
+    isDoubleEvent = 0;
+    isTimeInfoNOTvalid = 0;
+    isCFDinADCgate = 1;
+    isTimeInfoLate = 0;
+    isAmpHigh = 0;
+    isEventInTVDC = 1;
+    isTimeInfoLost = 0;
+  }
+  uint8_t getFlagWord() const
+  {
+    return uint8_t(word >> BitFlagPos);
+  }
+  void print() const
+  {
+    std::cout << std::hex;
+    std::cout << "###############EventData(PM)##############" << std::endl;
+    std::cout << "------------Channel " << channelID << "------------" << std::endl;
+    std::cout << "Charge: " << charge << std::endl;
+    std::cout << "Time: " << time << std::endl;
+    std::cout << "numberADC: " << numberADC << std::endl;
+    std::cout << "isDoubleEvent: " << isDoubleEvent << std::endl;
+    std::cout << "isTimeInfoNOTvalid: " << isTimeInfoNOTvalid << std::endl;
+    std::cout << "isCFDinADCgate: " << isCFDinADCgate << std::endl;
+    std::cout << "isTimeInfoLate: " << isTimeInfoLate << std::endl;
+    std::cout << "isAmpHigh: " << isAmpHigh << std::endl;
+    std::cout << "isEventInTVDC: " << isEventInTVDC << std::endl;
+    std::cout << "isTimeInfoLost: " << isTimeInfoLost << std::endl;
+    std::cout << "##########################################" << std::endl;
+    std::cout << std::dec;
+  }
 
-  ClassDefNV(EventData, 1);
+  //temporary, this method should be in ChannelData struct, TODO
+  void fillChannelData(ChannelData& channelData) const
+  {
+    channelData.ChainQTC = getFlagWord();
+  }
+
+  uint64_t word_zeros = 0x0;                      //to remove
+  static const size_t PayloadSizeSecondWord = 11; //to remove
+  static const size_t PayloadSizeFirstWord = 5;   //to remove
+};
+
+struct TCMdata {
+  static constexpr size_t PayloadSize = 16;       //should be equal to 10
+  static constexpr size_t PayloadPerGBTword = 16; //should be equal to 10
+  static constexpr int MinNelements = 1;
+  static constexpr int MaxNelements = 1;
+  uint64_t orC : 1,     // 0 bit (0 byte)
+    orA : 1,            //1 bit
+    sCen : 1,           //2 bit
+    cen : 1,            //3 bit
+    vertex : 1,         //4 bit
+    reservedField1 : 3, //5 bit
+    nChanA : 7,         //8 bit(1 byte)
+    reservedField2 : 1, //15 bit
+    nChanC : 7,         //16 bit(2 byte)
+    reservedField3 : 1; // 23 bit
+  int64_t amplA : 17,   //24 bit (3 byte)
+    reservedField4 : 1, //41 bit
+    amplC : 17,         //42 bit.
+    reservedField5 : 1, //59 bit.
+    //in standard case(without __atribute__((packed)) macros, or packing by using union)
+    //here will be empty 4 bits, end next field("timeA") will start from 64 bit.
+    timeA : 9,           //60 bit
+    reservedField6 : 1,  //69 bit
+    timeC : 9,           //70 bit
+    reservedField7 : 1,  //79 bit
+    reservedField8 : 48; //80 bit
+
+  void print() const
+  {
+    std::cout << std::hex;
+    std::cout << "################TCMdata###################" << std::endl;
+    std::cout << "orC: " << orC << std::endl;
+    std::cout << "orA: " << orA << std::endl;
+    std::cout << "sCen: " << sCen << std::endl;
+    std::cout << "cen: " << cen << std::endl;
+    std::cout << "vertex: " << vertex << std::endl;
+    std::cout << "nChanA: " << nChanA << std::endl;
+    std::cout << "nChanC: " << nChanC << std::endl;
+    std::cout << "amplA: " << amplA << std::endl;
+    std::cout << "amplC: " << amplC << std::endl;
+    std::cout << "timeA: " << timeA << std::endl;
+    std::cout << "timeC: " << timeC << std::endl;
+    std::cout << "##########################################" << std::endl;
+
+    std::cout << std::dec;
+  }
+
+  //temporary, this method should be in Triggers struct, TODO
+  void fillTrigger(Triggers& trg)
+  {
+    trg.triggersignals = ((bool)orA << Triggers::bitA) |
+                         ((bool)orC << Triggers::bitC) |
+                         ((bool)vertex << Triggers::bitVertex) |
+                         ((bool)cen << Triggers::bitCen) |
+                         ((bool)sCen << Triggers::bitSCen);
+    trg.nChanA = (int8_t)nChanA;
+    trg.nChanC = (int8_t)nChanC;
+    trg.amplA = (int32_t)amplA;
+    trg.amplC = (int32_t)amplC;
+    trg.timeA = (int16_t)timeA;
+    trg.timeC = (int16_t)timeC;
+  }
+} __attribute__((__packed__));
+
+struct TCMdataExtended {
+  static constexpr size_t PayloadSize = 4;
+  static constexpr size_t PayloadPerGBTword = 10;
+  static constexpr int MinNelements = 1;
+  static constexpr int MaxNelements = 20;
+  union {
+    uint32_t word[1] = {};
+    uint32_t triggerWord;
+  };
+
+  void print()
+  {
+
+    std::cout << std::hex;
+    std::cout << "############TCMdataExtended###############" << std::endl;
+    std::cout << "triggerWord: " << triggerWord << std::endl;
+    std::cout << "##########################################" << std::endl;
+
+    std::cout << std::dec;
+  }
 };
 
 class RawEventData
 {
  public:
   RawEventData() = default;
-  void GenerateHeader(int nChannels);
-  void GenerateData();
-  void GenerateRandomHeader(int nChannels);
-  void GenerateRandomData();
-  void GenerateRandomEvent(int nChannels);
-  EventHeader* GetEventHeaderPtr() { return &mEventHeader; }
-  EventData* GetEventDataPtr() { return mEventData; }
-  void Print(bool doPrintData = false);
-  enum EEventDataBit { kNumberADC,
-                       kIsDoubleEvent,
-                       kIs1TimeLostEvent,
-                       kIs2TimeLostEvent,
-                       kIsADCinGate,
-                       kIsTimeInfoLate,
-                       kIsAmpHigh,
-                       kIsEventInTVDC,
-                       kIsTimeInfoLost };
+  void print();
   const static int gStartDescriptor = 0x0000000f;
 
   int size() const
@@ -102,48 +237,41 @@ class RawEventData
            + mEventHeader.nGBTWords; // EventData
   }
 
-  static void printRDH(const o2::header::RAWDataHeader* h)
-  {
-    {
-      if (!h) {
-        printf("Provided RDH pointer is null\n");
-        return;
-      }
-      printf("RDH| Ver:%2u Hsz:%2u Blgt:%4u FEEId:0x%04x PBit:%u\n",
-             uint32_t(h->version), uint32_t(h->headerSize), uint32_t(h->blockLength), uint32_t(h->feeId), uint32_t(h->priority));
-      printf("RDH|[CRU: Offs:%5u Msz:%4u LnkId:0x%02x Packet:%3u CRUId:0x%04x]\n",
-             uint32_t(h->offsetToNext), uint32_t(h->memorySize), uint32_t(h->linkID), uint32_t(h->packetCounter), uint32_t(h->cruID));
-      printf("RDH| TrgOrb:%9u HBOrb:%9u TrgBC:%4u HBBC:%4u TrgType:%u\n",
-             uint32_t(h->triggerOrbit), uint32_t(h->heartbeatOrbit), uint32_t(h->triggerBC), uint32_t(h->heartbeatBC),
-             uint32_t(h->triggerType));
-      printf("RDH| DetField:0x%05x Par:0x%04x Stop:0x%04x PageCnt:%5u\n",
-             uint32_t(h->detectorField), uint32_t(h->par), uint32_t(h->stop), uint32_t(h->pageCnt));
-    }
-  }
-  std::vector<char> to_vector()
+  std::vector<char> to_vector(bool tcm)
   {
     constexpr int CRUWordSize = 16;
     const char padding[CRUWordSize] = {0};
 
     std::vector<char> result(size() * CRUWordSize);
     char* out = result.data();
-    std::memcpy(out, &mEventHeader, EventHeader::PayloadSize);
-    out += EventHeader::PayloadSize;
-    LOG(DEBUG) << "write header words " << (int)mEventHeader.nGBTWords << " orbit " << int(mEventHeader.orbit) << " bc " << int(mEventHeader.bc);
-    if (mIsPadded) {
-      out += CRUWordSize - EventHeader::PayloadSize;
-    }
-    for (int i = 0; i < mEventHeader.nGBTWords; ++i) {
-      std::memcpy(out, &mEventData[2 * i], EventData::PayloadSizeFirstWord);
-      LOG(DEBUG) << " 1st word " << mEventData[2 * i].channelID << " charge " << mEventData[2 * i].charge << " time " << mEventData[2 * i].time;
-      out += EventData::PayloadSizeFirstWord;
-      std::memcpy(out, &mEventData[2 * i + 1], EventData::PayloadSizeSecondWord);
-      out += EventData::PayloadSizeSecondWord;
-      LOG(DEBUG) << " 2nd word " << mEventData[2 * i + 1].channelID << " charge " << mEventData[2 * i + 1].charge << " time " << mEventData[2 * i + 1].time;
+    if (!tcm) {
+      std::memcpy(out, &mEventHeader, EventHeader::PayloadSize);
+      out += EventHeader::PayloadSize;
+      LOG(DEBUG) << "write header words " << (int)mEventHeader.nGBTWords << " orbit " << int(mEventHeader.orbit) << " bc " << int(mEventHeader.bc) << " out " << result.size();
       if (mIsPadded) {
-        out += CRUWordSize - EventData::PayloadSizeSecondWord - EventData::PayloadSizeFirstWord;
+        out += CRUWordSize - EventHeader::PayloadSize;
       }
+      for (int i = 0; i < mEventHeader.nGBTWords; ++i) {
+        std::memcpy(out, &mEventData[2 * i], EventData::PayloadSizeFirstWord);
+        LOG(DEBUG) << " 1st word " << mEventData[2 * i].channelID << " charge " << mEventData[2 * i].charge << " time " << mEventData[2 * i].time << " out " << result.size();
+        out += EventData::PayloadSizeFirstWord;
+        std::memcpy(out, &mEventData[2 * i + 1], EventData::PayloadSizeSecondWord);
+        out += EventData::PayloadSizeSecondWord;
+        LOG(DEBUG) << " 2nd word " << mEventData[2 * i + 1].channelID << " charge " << mEventData[2 * i + 1].charge << " time " << mEventData[2 * i + 1].time << " out " << result.size();
+        if (mIsPadded) {
+          out += CRUWordSize - EventData::PayloadSizeSecondWord - EventData::PayloadSizeFirstWord;
+        }
+      }
+    } else {
+      // TCM data
+      std::memcpy(out, &mEventHeader, EventHeader::PayloadSize);
+      out += EventHeader::PayloadSize;
+      LOG(DEBUG) << "write TCM header words " << (int)mEventHeader.nGBTWords << " orbit " << int(mEventHeader.orbit) << " bc " << int(mEventHeader.bc) << " out " << result.size();
+      std::memcpy(out, &mTCMdata, sizeof(TCMdata));
+      out += sizeof(TCMdata);
+      LOG(DEBUG) << "write TCM words " << sizeof(mTCMdata) << " orbit " << int(mEventHeader.orbit) << " bc " << int(mEventHeader.bc) << " out " << result.size() << " sum time A " << mTCMdata.timeA;
     }
+
     return result;
   }
   void setIsPadded(bool isPadding128)
@@ -154,9 +282,10 @@ class RawEventData
  public:
   EventHeader mEventHeader;
   EventData mEventData[Nchannels_PM];
+  TCMdata mTCMdata;
   bool mIsPadded = true;
   /////////////////////////////////////////////////
-  ClassDefNV(RawEventData, 1);
+  ClassDefNV(RawEventData, 2);
 };
 std::ostream& operator<<(std::ostream& stream, const RawEventData& data);
 
@@ -178,7 +307,6 @@ class DataPageWriter
       mRDH.memorySize = mPages[page].size() + mRDH.headerSize;
       mRDH.offsetToNext = mRDH.memorySize;
       mRDH.packetCounter = mNpackets[page];
-      RawEventData::printRDH(&mRDH);
       str.write(reinterpret_cast<const char*>(&mRDH), sizeof(mRDH));
       str.write(mPages[page].data(), mPages[page].size());
       mRDH.pageCnt++;
@@ -188,7 +316,6 @@ class DataPageWriter
       mRDH.offsetToNext = mRDH.memorySize;
       mRDH.stop = 1;
       mRDH.pageCnt++;
-      RawEventData::printRDH(&mRDH);
       str.write(reinterpret_cast<const char*>(&mRDH), sizeof(mRDH));
       mPages.clear();
       mNpackets.clear();
@@ -200,6 +327,7 @@ class DataPageWriter
     if (mBuffer.size() == 0)
       return;
     mPages.emplace_back(std::move(mBuffer));
+    LOG(DEBUG) << " writePage " << mBuffer.size();
     mNpackets.push_back(mNpacketsInBuffer);
     mNpacketsInBuffer = 0;
     mBuffer.clear();
@@ -207,10 +335,14 @@ class DataPageWriter
 
   void write(std::vector<char> const& new_data)
   {
-    if (mBuffer.size() + new_data.size() + mRDH.headerSize > MAX_Page_size)
+    if (mBuffer.size() + new_data.size() + mRDH.headerSize > MAX_Page_size) {
+      LOG(DEBUG) << " write rest " << mBuffer.size() << " " << new_data.size() << " " << mRDH.headerSize;
       writePage();
+    }
+    LOG(DEBUG) << "  write vector " << new_data.size() << " buffer " << mBuffer.size() << " RDH " << mRDH.headerSize << " new data " << new_data.data();
     mBuffer.insert(mBuffer.end(), new_data.begin(), new_data.end());
     mNpacketsInBuffer++;
+    LOG(DEBUG) << "  write vector end mBuffer.size " << mBuffer.size() << " mNpacketsInBuffer " << mNpacketsInBuffer << " newdtata " << new_data.size();
   }
 };
 } // namespace ft0

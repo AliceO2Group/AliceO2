@@ -17,14 +17,19 @@ o2_add_library(DetectorsBase
                        src/MatLayerCylSet.cxx
                        src/Ray.cxx
 		       src/DCAFitter.cxx
+                       src/BaseDPLDigitizer.cxx
+                       src/CTFCoderBase.cxx
                PUBLIC_LINK_LIBRARIES FairRoot::Base
                                      O2::CommonUtils
                                      O2::DetectorsCommonDataFormats
                                      O2::GPUCommon
+                                     O2::GPUUtils
                                      O2::ReconstructionDataFormats
                                      O2::Field
+                                     O2::Framework
                                      FairMQ::FairMQ
                                      O2::DataFormatsParameters
+				     O2::SimConfig
                                      ROOT::VMC)
 
 o2_target_root_dictionary(DetectorsBase
@@ -36,18 +41,28 @@ o2_target_root_dictionary(DetectorsBase
                                   include/DetectorsBase/Ray.h
                                   include/DetectorsBase/MatCell.h
                                   include/DetectorsBase/MatLayerCyl.h
-                                  include/DetectorsBase/MatLayerCylSet.h)
+                                  include/DetectorsBase/MatLayerCylSet.h
+                                  include/DetectorsBase/CTFCoderBase.h)
 
 if(BUILD_SIMULATION)
   o2_add_test(
     MatBudLUT
     SOURCES test/testMatBudLUT.cxx
     COMPONENT_NAME DetectorsBase
-    PUBLIC_LINK_LIBRARIES O2::DetectorsBase
+    PUBLIC_LINK_LIBRARIES O2::DetectorsBase O2::ITSMFTReconstruction
     LABELS detectorsbase
     ENVIRONMENT O2_ROOT=${CMAKE_BINARY_DIR}/stage
                 VMCWORKDIR=${CMAKE_BINARY_DIR}/stage/${CMAKE_INSTALL_DATADIR})
 endif()
+
+o2_add_test(
+  DCAFitter
+  SOURCES test/testDCAFitter.cxx
+  COMPONENT_NAME DetectorsBase
+  PUBLIC_LINK_LIBRARIES O2::DetectorsBase
+  LABELS detectorsbase
+  ENVIRONMENT O2_ROOT=${CMAKE_BINARY_DIR}/stage
+  VMCWORKDIR=${CMAKE_BINARY_DIR}/stage/${CMAKE_INSTALL_DATADIR})
 
 o2_add_test_root_macro(test/buildMatBudLUT.C
                        PUBLIC_LINK_LIBRARIES O2::DetectorsBase

@@ -8,7 +8,6 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 #include "Framework/DataProcessor.h"
-#include "Framework/RootObjectContext.h"
 #include "Framework/MessageContext.h"
 #include "Framework/StringContext.h"
 #include "Framework/ArrowContext.h"
@@ -39,7 +38,7 @@ void DataProcessor::doSend(FairMQDevice& device, FairMQParts&& parts, const char
 
 void DataProcessor::doSend(FairMQDevice& device, MessageContext& context)
 {
-  std::unordered_map<std::string, FairMQParts> outputs;
+  std::unordered_map<std::string const*, FairMQParts> outputs;
   auto contextMessages = context.getMessagesForSending();
   for (auto& message : contextMessages) {
     //     monitoringService.send({ message->parts.Size(), "outputs/total" });
@@ -47,30 +46,11 @@ void DataProcessor::doSend(FairMQDevice& device, MessageContext& context)
     assert(message->empty());
     assert(parts.Size() == 2);
     for (auto& part : parts) {
-      outputs[message->channel()].AddPart(std::move(part));
+      outputs[&(message->channel())].AddPart(std::move(part));
     }
   }
   for (auto& [channel, parts] : outputs) {
-    device.Send(parts, channel, 0);
-  }
-}
-
-void DataProcessor::doSend(FairMQDevice& device, RootObjectContext& context)
-{
-  for (auto& messageRef : context) {
-    assert(messageRef.payload.get());
-    FairMQParts parts;
-    FairMQMessagePtr payload(device.NewMessage());
-    auto a = messageRef.payload.get();
-    device.Serialize<TMessageSerializer>(*payload, a);
-    const DataHeader* cdh = o2::header::get<DataHeader*>(messageRef.header->GetData());
-    // sigh... See if we can avoid having it const by not
-    // exposing it to the user in the first place.
-    DataHeader* dh = const_cast<DataHeader*>(cdh);
-    dh->payloadSize = payload->GetSize();
-    parts.AddPart(std::move(messageRef.header));
-    parts.AddPart(std::move(payload));
-    device.Send(parts, messageRef.channel, 0);
+    device.Send(parts, *channel, 0);
   }
 }
 

@@ -62,7 +62,7 @@ bool isStation1(int detID)
 
 Response& response(bool isStation1)
 {
-  static std::array<Response, 2> resp = {Response(Station::Type1), Response(Station::Type2345)};
+  static std::array<Response, 2> resp = {Response(Station::Type2345), Response(Station::Type1)};
   return resp[isStation1];
 }
 
@@ -81,12 +81,12 @@ void Digitizer::init()
 }
 
 //______________________________________________________________________
-void Digitizer::process(const std::vector<Hit> hits, std::vector<Digit>& digits)
+void Digitizer::process(const std::vector<Hit> hits, std::vector<Digit>& digits, o2::dataformats::MCTruthContainer<o2::MCCompLabel>& mcContainer)
 {
   digits.clear();
   mDigits.clear();
   mTrackLabels.clear();
-
+  mcContainer.clear();
   //array of MCH hits for a given simulated event
   for (auto& hit : hits) {
     int detID = hit.GetDetectorID();
@@ -94,13 +94,11 @@ void Digitizer::process(const std::vector<Hit> hits, std::vector<Digit>& digits)
     MCCompLabel label(hit.GetTrackID(), mEventID, mSrcID, false);
     for (int i = 0; i < ndigits; ++i) {
       int digitIndex = mDigits.size() - ndigits + i;
-      mTrackLabels.emplace(mTrackLabels.begin() + digitIndex, label);
+      mMCTruthOutputContainer.addElement(digitIndex, label);
     } //loop over digits to generate MCdigits
   }   //loop over hits
-
-  //merge Digits
-  mergeDigits(mDigits, mTrackLabels);
-  fillOutputContainer(digits, mTrackLabels);
+  fillOutputContainer(digits);
+  provideMC(mcContainer);
 }
 //______________________________________________________________________
 int Digitizer::processHit(const Hit& hit, int detID, double event_time)
@@ -124,10 +122,10 @@ int Digitizer::processHit(const Hit& hit, int detID, double event_time)
   auto chargenon = charge / fracplane;
 
   //borders of charge gen.
-  auto xMin = anodpos - resp.getQspreadX() * 0.5;
-  auto xMax = anodpos + resp.getQspreadX() * 0.5;
-  auto yMin = lpos.Y() - resp.getQspreadY() * 0.5;
-  auto yMax = lpos.Y() + resp.getQspreadY() * 0.5;
+  auto xMin = anodpos - resp.getQspreadX() * resp.getSigmaIntegration() * 0.5;
+  auto xMax = anodpos + resp.getQspreadX() * resp.getSigmaIntegration() * 0.5;
+  auto yMin = lpos.Y() - resp.getQspreadY() * resp.getSigmaIntegration() * 0.5;
+  auto yMax = lpos.Y() + resp.getQspreadY() * resp.getSigmaIntegration() * 0.5;
 
   //get segmentation for detector element
   auto& seg = segmentation(detID);
@@ -142,7 +140,7 @@ int Digitizer::processHit(const Hit& hit, int detID, double event_time)
 
   bool padexists = seg.findPadPairByPosition(localX, localY, padidbendcent, padidnoncent);
   if (!padexists) {
-    LOG(ERROR) << "Did not find  _any_ pad for localX,Y=" << localX << "," << localY << ", for detID: " << detID;
+    LOG(WARNING) << "Did not find  _any_ pad for localX,Y=" << localX << "," << localY << ", for detID: " << detID;
     return 0;
   }
 
@@ -150,92 +148,105 @@ int Digitizer::processHit(const Hit& hit, int detID, double event_time)
     auto dx = seg.padSizeX(padid) * 0.5;
     auto dy = seg.padSizeY(padid) * 0.5;
     auto xmin = (localX - seg.padPositionX(padid)) - dx;
-    auto xmax = xmin + dx;
+    auto xmax = xmin + 2 * dx;
     auto ymin = (localY - seg.padPositionY(padid)) - dy;
-    auto ymax = ymin + dy;
+    auto ymax = ymin + 2 * dy;
     auto q = resp.chargePadfraction(xmin, xmax, ymin, ymax);
-    if (seg.isBendingPad(padid)) {
-      q *= chargebend;
-    } else {
-      q *= chargenon;
+    if (resp.aboveThreshold(q)) {
+      if (seg.isBendingPad(padid)) {
+        q *= chargebend;
+      } else {
+        q *= chargenon;
+      }
+      auto signal = (unsigned long)q * resp.getInverseChargeThreshold();
+      if (signal > 0) {
+        Digit::Time dtime;
+        dtime.sampaTime = static_cast<uint16_t>(time) & 0x3FF;
+        digits.emplace_back(detID, padid, signal, dtime);
+        ++ndigits;
+      }
     }
-    auto signal = resp.response(q);
-    digits.emplace_back(time, detID, padid, signal);
-    ++ndigits;
   });
   return ndigits;
 }
 //______________________________________________________________________
-void Digitizer::mergeDigits(const std::vector<Digit> digits, const std::vector<o2::MCCompLabel> labels)
+void Digitizer::mergeDigits()
 {
-  std::vector<int> indices(digits.size());
+  std::vector<int> indices(mDigits.size());
   std::iota(begin(indices), end(indices), 0);
-  std::sort(indices.begin(), indices.end(), [&digits, this](int a, int b) {
+  std::sort(indices.begin(), indices.end(), [& digits = this->mDigits, this](int a, int b) {
     return (getGlobalDigit(digits[a].getDetID(), digits[a].getPadID()) < getGlobalDigit(digits[b].getDetID(), digits[b].getPadID()));
   });
 
-  auto sortedDigits = [&digits, &indices](int i) {
+  auto sortedDigits = [digits = this->mDigits, &indices](int i) {
     return digits[indices[i]];
   };
 
-  auto sortedLabels = [&labels, &indices](int i) {
+  auto sortedLabels = [labels = this->mTrackLabels, &indices](int i) {
     return labels[indices[i]];
   };
 
+  auto sizedigits = mDigits.size();
+
   mDigits.clear();
-  mDigits.reserve(digits.size());
-  mTrackLabels.clear();
-  mTrackLabels.reserve(labels.size());
+  mDigits.reserve(sizedigits);
+  mMCTruthOutputContainer.clear();
+
   int count = 0;
 
   int i = 0;
   while (i < indices.size()) {
     int j = i + 1;
-    while (j < indices.size() && (getGlobalDigit(sortedDigits(i).getDetID(), sortedDigits(i).getPadID()) == (getGlobalDigit(sortedDigits(j).getDetID(), sortedDigits(j).getPadID())))) {
+    while (j < indices.size() && (getGlobalDigit(sortedDigits(i).getDetID(), sortedDigits(i).getPadID())) == (getGlobalDigit(sortedDigits(j).getDetID(), sortedDigits(j).getPadID())) && (std::fabs(sortedDigits(i).getTime().sampaTime - sortedDigits(j).getTime().sampaTime) < mDeltat)) {
       j++;
     }
-    float adc{0};
+    unsigned long adc{0};
+    float padc{0};
+    Response& resp = response(isStation1(sortedDigits(i).getDetID()));
+
     for (int k = i; k < j; k++) {
       adc += sortedDigits(k).getADC();
       if (k == i) {
-        mTrackLabels.emplace_back(sortedLabels(i).getTrackID(), sortedLabels(i).getEventID(), sortedLabels(i).getSourceID(), false);
+        MCCompLabel label(sortedLabels(i).getTrackID(), sortedLabels(i).getEventID(), sortedLabels(i).getSourceID(), false);
+        mMCTruthOutputContainer.addElement(count, label);
       } else {
         if ((sortedLabels(k).getTrackID() != sortedLabels(k - 1).getTrackID()) || (sortedLabels(k).getSourceID() != sortedLabels(k - 1).getSourceID())) {
-          mTrackLabels.emplace_back(sortedLabels(k).getTrackID(), sortedLabels(k).getEventID(), sortedLabels(k).getSourceID(), false);
+          MCCompLabel label(sortedLabels(k).getTrackID(), sortedLabels(k).getEventID(), sortedLabels(k).getSourceID(), false);
+          mMCTruthOutputContainer.addElement(count, label);
         }
       }
     }
-    mDigits.emplace_back(sortedDigits(i).getTimeStamp(), sortedDigits(i).getDetID(), sortedDigits(i).getPadID(), adc);
+    padc = adc * resp.getChargeThreshold();
+    adc = TMath::Nint(padc);
+    adc = resp.response(adc);
+    mDigits.emplace_back(sortedDigits(i).getDetID(), sortedDigits(i).getPadID(), adc, sortedDigits(i).getTime());
     i = j;
     ++count;
   }
   mDigits.resize(mDigits.size());
-  mTrackLabels.resize(mTrackLabels.size());
 }
 //______________________________________________________________________
 void Digitizer::mergeDigits(std::vector<Digit>& digits, o2::dataformats::MCTruthContainer<o2::MCCompLabel>& mcContainer)
 {
-
   mDigits.clear();
   mDigits.reserve(digits.size());
   mTrackLabels.clear();
 
   for (int index = 0; index < digits.size(); ++index) {
     auto digit = digits.at(index);
-    mDigits.emplace_back(digit.getTimeStamp(), digit.getDetID(), digit.getPadID(), digit.getADC());
+    mDigits.emplace_back(digit.getDetID(), digit.getPadID(), digit.getADC(), digit.getTime());
   }
-
   for (int index = 0; index < mcContainer.getNElements(); ++index) {
     auto label = mcContainer.getElement(index);
     mTrackLabels.emplace_back(label.getTrackID(), label.getEventID(), label.getSourceID(), false);
   }
 
-  mergeDigits(mDigits, mTrackLabels);
-  fillOutputContainer(digits, mTrackLabels);
+  mergeDigits();
+  fillOutputContainer(digits);
   provideMC(mcContainer);
 }
 //______________________________________________________________________
-void Digitizer::fillOutputContainer(std::vector<Digit>& digits, std::vector<o2::MCCompLabel>& trackLabels)
+void Digitizer::fillOutputContainer(std::vector<Digit>& digits)
 {
   // filling the digit container
   if (mDigits.empty())
@@ -250,10 +261,6 @@ void Digitizer::fillOutputContainer(std::vector<Digit>& digits, std::vector<o2::
     digits.emplace_back(*iter);
   }
   mDigits.erase(itBeg, iter);
-  mMCTruthOutputContainer.clear();
-  for (int index = 0; index < trackLabels.size(); ++index) {
-    mMCTruthOutputContainer.addElement(index, trackLabels.at(index));
-  }
 }
 //______________________________________________________________________
 void Digitizer::setSrcID(int v)
@@ -281,6 +288,9 @@ void Digitizer::provideMC(o2::dataformats::MCTruthContainer<o2::MCCompLabel>& mc
   if (mMCTruthOutputContainer.getNElements() == 0)
     return;
 
+  //need to fill groups of labels not only  single labels, since index in addElements
+  // is the data index
+  //write a map that fixes?
   for (int index = 0; index < mMCTruthOutputContainer.getIndexedSize(); ++index) {
     mcContainer.addElements(index, mMCTruthOutputContainer.getLabels(index));
   }

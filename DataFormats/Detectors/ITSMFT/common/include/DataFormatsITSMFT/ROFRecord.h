@@ -28,11 +28,12 @@ namespace itsmft
 
 class ROFRecord
 {
+
+ public:
   using EvIdx = o2::dataformats::RangeReference<int, int>;
   using BCData = o2::InteractionRecord;
   using ROFtype = unsigned int;
 
- public:
   ROFRecord() = default;
   ROFRecord(const BCData& bc, ROFtype rof, int idx, int n)
     : mBCData(bc), mROFEntry(idx, n), mROFrame(rof) {}
@@ -61,7 +62,7 @@ class ROFRecord
   template <typename T>
   gsl::span<const T> getROFData(const gsl::span<const T> tfdata) const
   {
-    return gsl::span<const T>(&tfdata[getFirstEntry()], getNEntries());
+    return getNEntries() ? gsl::span<const T>(&tfdata[getFirstEntry()], getNEntries()) : gsl::span<const T>();
   }
 
   template <typename T>
@@ -73,7 +74,7 @@ class ROFRecord
   template <typename T>
   gsl::span<const T> getROFData(const std::vector<T>& tfdata) const
   {
-    return gsl::span<const T>(&tfdata[getFirstEntry()], getNEntries());
+    return getNEntries() ? gsl::span<const T>(&tfdata[getFirstEntry()], getNEntries()) : gsl::span<const T>();
   }
 
   template <typename T>
@@ -102,7 +103,7 @@ struct MC2ROFRecord {
 
   MC2ROFRecord() = default;
   MC2ROFRecord(int evID, int rofRecID, ROFtype mnrof, ROFtype mxrof) : eventRecordID(evID), rofRecordID(rofRecID), minROF(mnrof), maxROF(mxrof) {}
-  int getNROFs() const { return eventRecordID < 0 ? 0 : (maxROF - minROF); }
+  int getNROFs() const { return (rofRecordID < 0 || minROF > maxROF) ? 0 : (maxROF - minROF); }
   void print() const;
   ClassDefNV(MC2ROFRecord, 1);
 };

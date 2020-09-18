@@ -7,28 +7,30 @@
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
-#ifndef FRAMEWORK_DATARELAYER_H
-#define FRAMEWORK_DATARELAYER_H
+#ifndef O2_FRAMEWORK_DATARELAYER_H_
+#define O2_FRAMEWORK_DATARELAYER_H_
 
+#include "Framework/RootSerializationSupport.h"
 #include "Framework/InputRoute.h"
 #include "Framework/DataDescriptorMatcher.h"
 #include "Framework/ForwardRoute.h"
 #include "Framework/CompletionPolicy.h"
-#include "Framework/PartRef.h"
+#include "Framework/MessageSet.h"
 #include "Framework/TimesliceIndex.h"
+#include "Framework/Tracing.h"
 
 #include <cstddef>
+#include <mutex>
 #include <vector>
 
 class FairMQMessage;
 
-namespace o2
-{
-namespace monitoring
+namespace o2::monitoring
 {
 class Monitoring;
 }
-namespace framework
+
+namespace o2::framework
 {
 
 /// Helper struct to hold statistics about the relaying process.
@@ -42,9 +44,18 @@ struct DataRelayerStats {
 class DataRelayer
 {
  public:
+  /// DataRelayer is thread safe because we have a lock around
+  /// each method and there is no particular order in which
+  /// methods need to be called.
+  constexpr static ServiceKind service_kind = ServiceKind::Global;
   enum RelayChoice {
     WillRelay,
     WillNotRelay
+  };
+
+  struct ActivityStats {
+    int newSlots = 0;
+    int expiredSlots = 0;
   };
 
   struct RecordAction {
@@ -60,8 +71,9 @@ class DataRelayer
   /// This invokes the appropriate `InputRoute::danglingChecker` on every
   /// entry in the cache and if it returns true, it creates a new
   /// cache entry by invoking the associated `InputRoute::expirationHandler`.
-  void processDanglingInputs(std::vector<ExpirationHandler> const&,
-                             ServiceRegistry& context);
+  /// @return true if there were expirations, false if not.
+  ActivityStats processDanglingInputs(std::vector<ExpirationHandler> const&,
+                                      ServiceRegistry& context);
 
   /// This is used to ask for relaying a given (header,payload) pair.
   /// Notice that we expect that the header is an O2 Header Stack
@@ -70,17 +82,12 @@ class DataRelayer
                     std::unique_ptr<FairMQMessage>&& payload);
 
   /// @returns the actions ready to be performed.
-  std::vector<RecordAction> getReadyToProcess();
+  void getReadyToProcess(std::vector<RecordAction>& completed);
 
   /// Returns an input registry associated to the given timeslice and gives
   /// ownership to the caller. This is because once the inputs are out of the
   /// DataRelayer they need to be deleted once the processing is concluded.
-  std::vector<std::unique_ptr<FairMQMessage>>
-    getInputsForTimeslice(TimesliceSlot id);
-
-  /// Returns the index of the arguments which have to be forwarded to
-  /// the next processor
-  const std::vector<int>& forwardingMask();
+  std::vector<MessageSet> getInputsForTimeslice(TimesliceSlot id);
 
   /// Returns how many timeslices we can handle in parallel
   size_t getParallelTimeslices() const;
@@ -95,6 +102,10 @@ class DataRelayer
   void sendContextState();
   void publishMetrics();
 
+  /// Get timeslice associated to a given slot.
+  /// Notice how this avoids exposing the timesliceIndex directly
+  /// so that we can mutex on it.
+  TimesliceId getTimesliceForSlot(TimesliceSlot slot);
   /// Remove all pending messages
   void clear();
 
@@ -105,7 +116,7 @@ class DataRelayer
   /// Notice that we store them as a NxM sized vector, where
   /// N is the maximum number of inflight timeslices, while
   /// M is the number of inputs which are requested.
-  std::vector<PartRef> mCache;
+  std::vector<MessageSet> mCache;
 
   /// This is the index which maps a given timestamp to the associated
   /// cacheline.
@@ -122,9 +133,9 @@ class DataRelayer
   static std::vector<std::string> sQueriesMetricsNames;
 
   DataRelayerStats mStats;
+  TracyLockableN(std::recursive_mutex, mMutex, "data relayer mutex");
 };
 
-} // namespace framework
-} // namespace o2
+} // namespace o2::framework
 
-#endif
+#endif // O2_FRAMEWORK_DATARELAYER_H_

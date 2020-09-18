@@ -51,49 +51,54 @@ class GPUProcessor
   GPUProcessor& operator=(const GPUProcessor&) CON_DELETE;
 #endif
 
-  GPUd() GPUconstantref() const MEM_CONSTANT(GPUConstantMem) * GetConstantMem() const
-  {
-    return mConstantMem;
-  }
-  GPUd() GPUconstantref() const MEM_CONSTANT(GPUParam) & Param() const;
+  GPUd() GPUconstantref() const MEM_CONSTANT(GPUConstantMem) * GetConstantMem() const; // Body in GPUConstantMem.h to avoid circular headers
+  GPUd() GPUconstantref() const MEM_CONSTANT(GPUParam) & Param() const;                // ...
+  GPUd() void raiseError(unsigned int code, unsigned int param1 = 0, unsigned int param2 = 0, unsigned int param3 = 0) const;
   const GPUReconstruction& GetRec() const { return *mRec; }
 
 #ifndef __OPENCL__
   void InitGPUProcessor(GPUReconstruction* rec, ProcessorType type = PROCESSOR_TYPE_CPU, GPUProcessor* slaveProcessor = nullptr);
   void Clear();
 
-  // Helpers for memory allocation
-  CONSTEXPR static size_t MIN_ALIGNMENT = 64;
-
-  template <size_t alignment = MIN_ALIGNMENT>
-  static inline size_t getAlignment(size_t addr)
+  template <size_t alignment = GPUCA_BUFFER_ALIGNMENT>
+  static inline size_t getAlignmentMod(size_t addr)
   {
     static_assert((alignment & (alignment - 1)) == 0, "Invalid alignment, not power of 2");
     if (alignment <= 1) {
       return 0;
     }
-    size_t mod = addr & (alignment - 1);
+    return addr & (alignment - 1);
+  }
+  template <size_t alignment = GPUCA_BUFFER_ALIGNMENT>
+  static inline size_t getAlignment(size_t addr)
+  {
+    size_t mod = getAlignmentMod<alignment>(addr);
     if (mod == 0) {
       return 0;
     }
     return (alignment - mod);
   }
-  template <size_t alignment = MIN_ALIGNMENT>
+  template <size_t alignment = GPUCA_BUFFER_ALIGNMENT>
   static inline size_t nextMultipleOf(size_t size)
   {
     return size + getAlignment<alignment>(size);
   }
-  template <size_t alignment = MIN_ALIGNMENT>
+  template <size_t alignment = GPUCA_BUFFER_ALIGNMENT>
   static inline void* alignPointer(void* ptr)
   {
     return (reinterpret_cast<void*>(nextMultipleOf<alignment>(reinterpret_cast<size_t>(ptr))));
   }
-  template <size_t alignment = MIN_ALIGNMENT>
+  template <size_t alignment = GPUCA_BUFFER_ALIGNMENT>
+  static inline size_t getAlignmentMod(void* addr)
+  {
+    return (getAlignmentMod<alignment>(reinterpret_cast<size_t>(addr)));
+  }
+  template <size_t alignment = GPUCA_BUFFER_ALIGNMENT>
   static inline size_t getAlignment(void* addr)
   {
     return (getAlignment<alignment>(reinterpret_cast<size_t>(addr)));
   }
-  template <size_t alignment = MIN_ALIGNMENT, class S>
+  template <size_t alignment = GPUCA_BUFFER_ALIGNMENT, class S>
   static inline S* getPointerWithAlignment(size_t& basePtr, size_t nEntries = 1)
   {
     if (basePtr == 0) {
@@ -105,21 +110,26 @@ class GPUProcessor
     basePtr += nEntries * sizeof(S);
     return retVal;
   }
-  template <size_t alignment = MIN_ALIGNMENT, class S>
+
+  template <size_t alignment = GPUCA_BUFFER_ALIGNMENT, class S>
   static inline S* getPointerWithAlignment(void*& basePtr, size_t nEntries = 1)
   {
     return getPointerWithAlignment<alignment, S>(reinterpret_cast<size_t&>(basePtr), nEntries);
   }
 
-  template <size_t alignment = MIN_ALIGNMENT, class T, class S>
-  static inline void computePointerWithAlignment(T*& basePtr, S*& objPtr, size_t nEntries = 1, bool runConstructor = false)
+  template <size_t alignment = GPUCA_BUFFER_ALIGNMENT, class T, class S>
+  static inline void computePointerWithAlignment(T*& basePtr, S*& objPtr, size_t nEntries = 1)
   {
     objPtr = getPointerWithAlignment<alignment, S>(reinterpret_cast<size_t&>(basePtr), nEntries);
-    if (runConstructor) {
-      for (size_t i = 0; i < nEntries; i++) {
-        new (objPtr + i) S;
-      }
+  }
+
+  template <class T, class S>
+  static inline void computePointerWithoutAlignment(T*& basePtr, S*& objPtr, size_t nEntries = 1)
+  {
+    if ((size_t)basePtr < GPUCA_BUFFER_ALIGNMENT) {
+      reinterpret_cast<size_t&>(basePtr) = GPUCA_BUFFER_ALIGNMENT;
     }
+    objPtr = reinterpret_cast<S*>(getPointerWithAlignment<1, char>(reinterpret_cast<size_t&>(basePtr), nEntries * sizeof(S)));
   }
 #endif
 
@@ -133,6 +143,8 @@ class GPUProcessor
 
  private:
   bool mAllocateAndInitializeLate;
+
+  friend class GPUTPCNeighboursFinder;
 };
 } // namespace gpu
 } // namespace GPUCA_NAMESPACE

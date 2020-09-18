@@ -26,7 +26,7 @@ namespace mid
 std::ostream& operator<<(std::ostream& os, const LocalBoardRO& loc)
 {
   /// Stream operator for LocalBoardRO
-  os << fmt::format("Crate ID: {:2d}  Loc ID: {:2d}  status: 0x{:2x}  event: 0x{:2x}  firedChambers: 0x{:1x}", static_cast<int>(crateparams::getCrateId(loc.boardId)), static_cast<int>(crateparams::getLocId(loc.boardId)), static_cast<int>(loc.statusWord), static_cast<int>(loc.eventWord), static_cast<int>(loc.firedChambers));
+  os << fmt::format("Crate ID: {:2d}  Loc ID: {:2d}  status: 0x{:2x}  trigger: 0x{:2x}  firedChambers: 0x{:1x}", static_cast<int>(crateparams::getCrateId(loc.boardId)), static_cast<int>(crateparams::getLocId(loc.boardId)), static_cast<int>(loc.statusWord), static_cast<int>(loc.triggerWord), static_cast<int>(loc.firedChambers));
   for (int ich = 0; ich < 4; ++ich) {
     os << fmt::format("  X: 0x{:4x} Y: 0x{:4x}", loc.patternsBP[ich], loc.patternsNBP[ich]);
   }

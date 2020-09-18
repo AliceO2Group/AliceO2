@@ -25,13 +25,14 @@ namespace mid
 class ELinkDecoder
 {
  public:
+  void add(const uint8_t byte);
   bool add(const uint8_t byte, uint8_t expectedStart);
   /// Checks if we have all of the information needed for the decoding
   bool isComplete() const { return mBytes.size() == mTotalSize; };
   /// Gets the status word
   uint8_t getStatusWord() const { return mBytes[0]; }
-  /// Gets the event word
-  uint8_t getEventWord() const { return mBytes[1]; }
+  /// Gets the trigger word
+  uint8_t getTriggerWord() const { return mBytes[1]; }
   /// Gets the counter
   uint16_t getCounter() const { return joinBytes(2); }
   // uint16_t getCounter() const { return (mBytes[2] << 8) | mBytes[3]; }

@@ -61,6 +61,14 @@ void Detector::ConstructGeometry()
   createGeometry(*top);
 }
 
+void Detector::addAlignableVolumes() const
+{
+  if (!gGeoManager) {
+    throw std::runtime_error("Cannot add alignable volumes without TGeoManager");
+  }
+  addAlignableVolumesMCH();
+}
+
 Bool_t Detector::ProcessHits(FairVolume* v)
 {
   mStepper->process(*fMC);

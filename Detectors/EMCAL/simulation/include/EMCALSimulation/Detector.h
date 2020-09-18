@@ -186,15 +186,15 @@ class Detector : public o2::base::DetImpl<Detector>
   Double_t mBirkC1; ///< Birk parameter C1
   Double_t mBirkC2; ///< Birk parameter C2
 
-  std::vector<std::string> mSensitive;               //!<! List of sensitive volumes
-  std::unordered_map<int, EMCALSMType> mSMVolumeID;  //!<! map of EMCAL supermodule volume IDs
+  std::vector<std::string> mSensitive;                      //!<! List of sensitive volumes
+  std::unordered_map<int, EMCALSMType> mSMVolumeID;         //!<! map of EMCAL supermodule volume IDs
   std::unordered_map<std::string, EMCALSMType> mSMVolNames; //!<! map of EMCAL supermodule names
-  Int_t mVolumeIDScintillator;                       //!<! Volume ID of the scintillator volume
-  std::vector<Hit>* mHits;                           //!<! Collection of EMCAL hits
-  Geometry* mGeometry;                               //!<! Geometry pointer
-  std::unordered_map<int, int> mSuperParentsIndices; //!<! Super parent indices (track index - superparent index)
-  std::unordered_map<int, Parent> mSuperParents;     //!<! Super parent kine info (superparent index - superparent object)
-  Parent* mCurrentSuperparent;                       //!<! Pointer to the current superparent
+  Int_t mVolumeIDScintillator;                              //!<! Volume ID of the scintillator volume
+  std::vector<Hit>* mHits;                                  //!<! Collection of EMCAL hits
+  Geometry* mGeometry;                                      //!<! Geometry pointer
+  std::unordered_map<int, int> mSuperParentsIndices;        //!<! Super parent indices (track index - superparent index)
+  std::unordered_map<int, Parent> mSuperParents;            //!<! Super parent kine info (superparent index - superparent object)
+  Parent* mCurrentSuperparent;                              //!<! Pointer to the current superparent
 
   // Worker variables during hit creation
   Int_t mCurrentTrack;     //!<! Current track

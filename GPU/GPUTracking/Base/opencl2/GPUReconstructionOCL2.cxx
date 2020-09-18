@@ -11,7 +11,7 @@
 /// \file GPUReconstructionOCL2.cxx
 /// \author David Rohr
 
-#define GPUCA_GPUTYPE_RADEON
+#define GPUCA_GPUTYPE_OPENCL
 #define __OPENCL_HOST__
 
 #include "GPUReconstructionOCL2.h"
@@ -36,9 +36,9 @@ extern "C" unsigned int _makefile_opencl_program_Base_opencl_GPUReconstructionOC
 extern "C" char _makefile_opencl_program_Base_opencl_GPUReconstructionOCL2_cl_src[];
 extern "C" unsigned int _makefile_opencl_program_Base_opencl_GPUReconstructionOCL2_cl_src_size;
 
-GPUReconstruction* GPUReconstruction_Create_OCL2(const GPUSettingsProcessing& cfg) { return new GPUReconstructionOCL2(cfg); }
+GPUReconstruction* GPUReconstruction_Create_OCL2(const GPUSettingsDeviceBackend& cfg) { return new GPUReconstructionOCL2(cfg); }
 
-GPUReconstructionOCL2Backend::GPUReconstructionOCL2Backend(const GPUSettingsProcessing& cfg) : GPUReconstructionOCL(cfg)
+GPUReconstructionOCL2Backend::GPUReconstructionOCL2Backend(const GPUSettingsDeviceBackend& cfg) : GPUReconstructionOCL(cfg)
 {
 }
 
@@ -107,6 +107,22 @@ int GPUReconstructionOCL2Backend::GetOCLPrograms()
     }
     return 1;
   }
+
+#define GPUCA_KRNL(x_class, x_attributes, x_arguments, x_forward) \
+  GPUCA_KRNL_WRAP(GPUCA_KRNL_LOAD_, x_class, x_attributes, x_arguments, x_forward)
+#define GPUCA_KRNL_LOAD_single(x_class, x_attributes, x_arguments, x_forward) \
+  if (AddKernel<GPUCA_M_KRNL_TEMPLATE(x_class)>(false)) {                     \
+    return 1;                                                                 \
+  }
+#define GPUCA_KRNL_LOAD_multi(x_class, x_attributes, x_arguments, x_forward) \
+  if (AddKernel<GPUCA_M_KRNL_TEMPLATE(x_class)>(true)) {                     \
+    return 1;                                                                \
+  }
+#include "GPUReconstructionKernels.h"
+#undef GPUCA_KRNL
+#undef GPUCA_KRNL_LOAD_single
+#undef GPUCA_KRNL_LOAD_multi
+
   return 0;
 }
 
@@ -118,7 +134,7 @@ bool GPUReconstructionOCL2Backend::CheckPlatform(unsigned int i)
   float ver1 = 0;
   sscanf(platform_version, "OpenCL %f", &ver1);
   if (ver1 >= 2.2f) {
-    if (mDeviceProcessingSettings.debugLevel >= 2) {
+    if (mProcessingSettings.debugLevel >= 2) {
       GPUInfo("OpenCL 2.2 capable platform found");
     }
     return true;
@@ -131,7 +147,7 @@ bool GPUReconstructionOCL2Backend::CheckPlatform(unsigned int i)
       sscanf(pos, "(%f)", &ver2);
     }
     if ((ver1 >= 2.f && ver2 >= 2000.f) || ver1 >= 2.1f) {
-      if (mDeviceProcessingSettings.debugLevel >= 2) {
+      if (mProcessingSettings.debugLevel >= 2) {
         GPUInfo("AMD ROCm OpenCL Platform found");
       }
       return true;

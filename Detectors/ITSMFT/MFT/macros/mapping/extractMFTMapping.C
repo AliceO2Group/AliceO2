@@ -71,9 +71,9 @@ Int_t ruHW, zoneID;
 Int_t nModules;
 std::vector<Int_t> modFirstChip, modNChips, RUNChips;
 
-void extractMFTMapping(const std::string inputGeom = "O2geometry.root")
+void extractMFTMapping(const std::string inputGeom = "")
 {
-  o2::base::GeometryManager::loadGeometry(inputGeom, "FAIRGeom");
+  o2::base::GeometryManager::loadGeometry(inputGeom);
   auto gm = o2::mft::GeometryTGeo::Instance(); // geometry manager for mapping
 
   createCXXfile(gm);

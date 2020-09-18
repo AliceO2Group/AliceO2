@@ -19,10 +19,13 @@
 #include "ITSMFTReconstruction/AlpideCoder.h"
 #include "ITSMFTReconstruction/ChipMappingITS.h"
 #include "ITSMFTReconstruction/ChipMappingMFT.h"
-#include "DetectorsRaw/HBFUtils.h"
+#include "ITSMFTReconstruction/RUDecodeData.h"
+#include "DetectorsRaw/RawFileWriter.h"
+#include "DetectorsRaw/RDHUtils.h"
 
 namespace o2
 {
+
 namespace itsmft
 {
 
@@ -30,14 +33,17 @@ template <class Mapping>
 class MC2RawEncoder
 {
   using Coder = o2::itsmft::AlpideCoder;
-  using RDH = o2::header::RAWDataHeader;
 
  public:
   MC2RawEncoder()
   {
     mRUEntry.fill(-1);
   }
-  ~MC2RawEncoder() = default;
+
+  ~MC2RawEncoder()
+  {
+    mWriter.close();
+  }
 
   void digits2raw(gsl::span<const Digit> digits, const o2::InteractionRecord& bcData);
   void finalize();
@@ -47,33 +53,12 @@ class MC2RawEncoder
 
   RUDecodeData* getRUDecode(int ruSW) { return mRUEntry[ruSW] < 0 ? nullptr : &mRUDecodeVec[mRUEntry[ruSW]]; }
 
-  void setBCData(const o2::InteractionRecord& bcData);
-
-  /// number of orbits per HBF (max 255)
-  void setNOrbitsPerHBF(uint8_t n) { mNOrbitsPerHBF = n; }
-  int getNOrbitsPerHBF() const { return mNOrbitsPerHBF; }
-
-  /// nominal size of the superpage in bytes
-  void setSuperPageSize(int n)
+  void setVerbosity(int v)
   {
-    constexpr int MinSize = 2 * MaxGBTPacketBytes;
-    mSuperPageSize = n < MinSize ? MinSize : n;
+    mVerbosity = v;
+    mWriter.setVerbosity(v);
   }
-  int getSuperPageSize() const { return mSuperPageSize; }
-
-  /// do we treat CRU pages as having max size?
-  bool isMaxPageImposed() const { return mImposeMaxPage; }
-  /// CRU pages are of max size of 8KB
-  void imposeMaxPage(bool v) { mImposeMaxPage = v; }
-
-  /// are we starting new superpage for each TF
-  bool isStartTFOnNewSPage(bool v) { return mStartTFOnNewSPage; }
-  void setStartTFOnNewSPage(bool v) { mStartTFOnNewSPage = v; }
-
-  void setVerbosity(int v) { mVerbose = v; }
-  int getVerbosity() const { return mVerbose; }
-
-  void setOutFile(FILE* outf) { mOutFile = outf; }
+  int getVerbosity() const { return mVerbosity; }
 
   Mapping& getMapping() { return mMAP; }
 
@@ -86,48 +71,55 @@ class MC2RawEncoder
   int getRUSWMin() const { return mRUSWMin; }
   int getRUSWMax() const { return mRUSWMax; }
 
-  void setContinuousReadout(bool v) { mROMode = v ? Continuous : Triggered; }
-  bool isContinuousReadout() const { return mROMode == Continuous; }
+  void setContinuousReadout(bool v) { mWriter.setContinuousReadout(v); }
+  bool isContinuousReadout() const { return mWriter.isContinuousReadout(); }
+
+  o2::raw::RawFileWriter& getWriter() { return mWriter; }
+
+  std::string getDefaultSinkName() const { return mDefaultSinkName; }
+  void setDefaultSinkName(const std::string& nm)
+  {
+    if (!nm.empty()) {
+      mDefaultSinkName = nm;
+    }
+  }
+
+  int carryOverMethod(const o2::header::RDHAny* rdh, const gsl::span<char> data, const char* ptr, int maxSize, int splitID,
+                      std::vector<char>& trailer, std::vector<char>& header) const;
+
+  // create new gbt link
+  int addGBTLink()
+  {
+    int sz = mGBTLinks.size();
+    mGBTLinks.emplace_back();
+    return sz;
+  }
+
+  // get the link pointer
+  GBTLink* getGBTLink(int i) { return i < 0 ? nullptr : &mGBTLinks[i]; }
+  const GBTLink* getGBTLink(int i) const { return i < 0 ? nullptr : &mGBTLinks[i]; }
 
  private:
   void convertEmptyChips(int fromChip, int uptoChip, RUDecodeData& ru);
   void convertChip(ChipPixelData& chipData, RUDecodeData& ru);
   void fillGBTLinks(RUDecodeData& ru);
-  void flushLinkSuperPage(GBTLink& link, FILE* outFl = nullptr);
-  void openPageLinkHBF(GBTLink& link);
-  void addPageLinkHBF(GBTLink& link, bool stop = false);
-  void closePageLinkHBF(GBTLink& link) { addPageLinkHBF(link, true); }
-  void openHBF();
-  void closeHBF();
-  void flushAllLinks();
 
- private:
   enum RoMode_t { NotSet,
                   Continuous,
                   Triggered };
-  o2::raw::HBFUtils mHBFUtils;
-  std::vector<o2::InteractionRecord> mHBIRVec; // workspace for HB IR generation
-  o2::InteractionRecord mLastIR;               // last IR processed (or 1st in TF if none)
   o2::InteractionRecord mCurrIR;               // currently processed int record
-  FILE* mOutFile = nullptr;
+  o2::raw::RawFileWriter mWriter{Mapping::getOrigin()}; // set origin of data
+  std::string mDefaultSinkName = "dataSink.raw";
   Mapping mMAP;
   Coder mCoder;
-  RDH mRDH;                         // current RDH
-  int mSuperPageSize = 1024 * 1024; // super page size
-  int mHBFCounter = -1;
-  int mVerbose = 0;                                          //! verbosity level
-  uint8_t mNOrbitsPerHBF = 0xff;                             ///< number of orbitd per HB frame
+  int mVerbosity = 0;                                        //! verbosity level
   uint8_t mRUSWMin = 0;                                      ///< min RU (SW) to convert
   uint8_t mRUSWMax = 0xff;                                   ///< max RU (SW) to convert
   int mNRUs = 0;                                             /// total number of RUs seen
   int mNLinks = 0;                                           /// total number of GBT links seen
   std::array<RUDecodeData, Mapping::getNRUs()> mRUDecodeVec; /// decoding buffers for all active RUs
   std::array<int, Mapping::getNRUs()> mRUEntry;              /// entry of the RU with given SW ID in the mRUDecodeVec
-  int mCurRUDecodeID = -1;
-  bool mImposeMaxPage = true; /// force (pad) all CRU pages to be 8KB
-  bool mStartTFOnNewSPage = true; /// user muse set explicitly RO mode
-  bool mImposeROModeFlag = true;  /// Propagate SOT or SOC to RDH.triggerType when true
-  RoMode_t mROMode = NotSet;
+  std::vector<GBTLink> mGBTLinks;
 
   ClassDefNV(MC2RawEncoder, 1);
 };

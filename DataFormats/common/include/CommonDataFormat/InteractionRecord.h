@@ -13,10 +13,12 @@
 #ifndef ALICEO2_INTERACTIONRECORD_H
 #define ALICEO2_INTERACTIONRECORD_H
 
-#include <Rtypes.h>
+#include "GPUCommonRtypes.h"
+#ifndef ALIGPU_GPUCODE
 #include <iosfwd>
-#include <cmath>
 #include <cstdint>
+#endif
+#include <cmath>
 #include "CommonConstants/LHCConstants.h"
 
 namespace o2
@@ -96,10 +98,27 @@ struct InteractionRecord {
     return diffBC;
   }
 
+  float differenceInBCns(const InteractionRecord& other) const
+  {
+    // return differenc in bunch-crossings
+    int64_t diffBC = int(bc) - other.bc;
+    if (orbit != other.orbit) {
+      diffBC += (int64_t(orbit) - other.orbit) * o2::constants::lhc::LHCMaxBunches;
+    }
+    return diffBC;
+  }
+
   int64_t toLong() const
   {
     // return as single long number
     return (int64_t(orbit) * o2::constants::lhc::LHCMaxBunches) + bc;
+  }
+
+  void setFromLong(int64_t l)
+  {
+    // set from long BC counter
+    bc = l % o2::constants::lhc::LHCMaxBunches;
+    orbit = l / o2::constants::lhc::LHCMaxBunches;
   }
 
   bool operator>(const InteractionRecord& other) const
@@ -225,42 +244,89 @@ struct InteractionRecord {
     return InteractionRecord(l % o2::constants::lhc::LHCMaxBunches, l / o2::constants::lhc::LHCMaxBunches);
   }
 
+#ifndef ALIGPU_GPUCODE
   void print() const;
-
+  std::string asString() const;
   friend std::ostream& operator<<(std::ostream& stream, InteractionRecord const& ir);
-
+#endif
   ClassDefNV(InteractionRecord, 3);
 };
 
 struct InteractionTimeRecord : public InteractionRecord {
-  double timeNS = 0.; ///< time in NANOSECONDS from start of run (orbit=0)
+  double timeInBCNS = 0.; ///< time in NANOSECONDS relative to orbit/bc
 
   InteractionTimeRecord() = default;
 
-  InteractionTimeRecord(const InteractionRecord& ir, double tNS) : InteractionRecord(ir), timeNS(tNS)
+  /// create from the interaction record and time in the bunch (in ns)
+  InteractionTimeRecord(const InteractionRecord& ir, double t_in_bc) : InteractionRecord(ir), timeInBCNS(t_in_bc)
   {
   }
 
-  InteractionTimeRecord(double tNS)
+  /// create from the abs. (since orbit=0/bc=0) time in NS
+  InteractionTimeRecord(double tNS) : InteractionRecord(tNS)
   {
-    setFromNS(tNS);
+    timeInBCNS = tNS - bc2ns();
   }
 
-  void setFromNS(double ns)
+  /// set the from the abs. (since orbit=0/bc=0) time in NS
+  void setFromNS(double tNS)
   {
-    timeNS = ns;
-    InteractionRecord::setFromNS(ns);
+    InteractionRecord::setFromNS(tNS);
+    timeInBCNS = tNS - bc2ns();
   }
 
   void clear()
   {
     InteractionRecord::clear();
-    timeNS = 0.;
+    timeInBCNS = 0.;
   }
 
-  void print() const;
+  double getTimeOffsetWrtBC() const
+  {
+    return timeInBCNS;
+  }
 
+  /// get time in ns from orbit=0/bc=0
+  double getTimeNS() const
+  {
+    return timeInBCNS + bc2ns();
+  }
+
+  bool operator==(const InteractionTimeRecord& other) const
+  {
+    return this->InteractionRecord::operator==(other) && (timeInBCNS == other.timeInBCNS);
+  }
+
+  bool operator!=(const InteractionTimeRecord& other) const
+  {
+    return this->InteractionRecord::operator!=(other) || (timeInBCNS != other.timeInBCNS);
+  }
+
+  bool operator>(const InteractionTimeRecord& other) const
+  {
+    return (this->InteractionRecord::operator>(other)) || (this->InteractionRecord::operator==(other) && (timeInBCNS > other.timeInBCNS));
+  }
+
+  bool operator>=(const InteractionTimeRecord& other) const
+  {
+    return !((*this) < other);
+  }
+
+  bool operator<(const InteractionTimeRecord& other) const
+  {
+    return (this->InteractionRecord::operator<(other)) || (this->InteractionRecord::operator==(other) && (timeInBCNS < other.timeInBCNS));
+  }
+
+  bool operator<=(const InteractionTimeRecord& other) const
+  {
+    return !((*this) > other);
+  }
+
+#ifndef ALIGPU_GPUCODE
+  void print() const;
+  std::string asString() const;
   friend std::ostream& operator<<(std::ostream& stream, InteractionTimeRecord const& ir);
+#endif
 
   ClassDefNV(InteractionTimeRecord, 1);
 };

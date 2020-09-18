@@ -51,6 +51,9 @@ using constants::its::LayersNumberVertexer;
 
 struct lightVertex {
   lightVertex(float x, float y, float z, std::array<float, 6> rms2, int cont, float avgdis2, int stamp);
+#ifdef _ALLOW_DEBUG_TREES_ITS_
+  lightVertex(float x, float y, float z, std::array<float, 6> rms2, int cont, float avgdis2, int stamp, int eId, float pur);
+#endif
   float mX;
   float mY;
   float mZ;
@@ -58,6 +61,10 @@ struct lightVertex {
   float mAvgDistance2;
   int mContributors;
   int mTimeStamp;
+#ifdef _ALLOW_DEBUG_TREES_ITS_
+  float mPurity;
+  int mEventId;
+#endif
 };
 
 struct ClusterMCLabelInfo {
@@ -75,9 +82,14 @@ enum class VertexerDebug : unsigned int {
   HistCentroids = 0x1 << 5
 };
 
-inline lightVertex::lightVertex(float x, float y, float z, std::array<float, 6> rms2, int cont, float avgdis2, int stamp) : mX(x), mY(y), mZ(z), mRMS2(rms2), mAvgDistance2(avgdis2), mContributors(cont), mTimeStamp(stamp)
+inline lightVertex::lightVertex(float x, float y, float z, std::array<float, 6> rms2, int cont, float avgdis2, int stamp) : mX{x}, mY{y}, mZ{z}, mRMS2{rms2}, mAvgDistance2{avgdis2}, mContributors{cont}, mTimeStamp{stamp}
 {
 }
+#ifdef _ALLOW_DEBUG_TREES_ITS_
+inline lightVertex::lightVertex(float x, float y, float z, std::array<float, 6> rms2, int cont, float avgdis2, int stamp, int eId, float pur) : mX{x}, mY{y}, mZ{z}, mRMS2{rms2}, mAvgDistance2{avgdis2}, mContributors{cont}, mTimeStamp{stamp}, mEventId{eId}, mPurity{pur}
+{
+}
+#endif
 
 class VertexerTraits
 {

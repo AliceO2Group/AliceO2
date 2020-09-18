@@ -23,7 +23,8 @@ o2_target_root_dictionary(TPCQC
                                   include/TPCQC/Helpers.h
                                   include/TPCQC/TrackCuts.h
                                   include/TPCQC/Clusters.h
-                                  include/TPCQC/Tracks.h)
+                                  include/TPCQC/Tracks.h
+                                  include/TPCQC/CalPadWrapper.h)
 
 o2_add_test(PID
             COMPONENT_NAME tpc
@@ -41,7 +42,8 @@ o2_add_test(Clusters
             COMPONENT_NAME tpc
             PUBLIC_LINK_LIBRARIES O2::TPCQC
             SOURCES test/test_Clusters.cxx
-            LABELS tpc)
+            LABELS tpc
+            ENVIRONMENT O2_ROOT=${CMAKE_BINARY_DIR}/stage)
 
 o2_add_test(Tracks
             COMPONENT_NAME tpc

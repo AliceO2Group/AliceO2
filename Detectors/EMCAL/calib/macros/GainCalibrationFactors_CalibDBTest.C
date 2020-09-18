@@ -18,6 +18,7 @@
 #include <string>
 #include <sstream>
 #include <fstream>
+#include <iostream>
 #endif
 
 /// \brief Converting time into numerical time stamp representation

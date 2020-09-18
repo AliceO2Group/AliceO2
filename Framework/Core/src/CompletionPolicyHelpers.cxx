@@ -10,12 +10,8 @@
 
 #include "Framework/CompletionPolicyHelpers.h"
 #include "Framework/CompletionPolicy.h"
-#include "Framework/InputRecord.h"
 #include "Framework/DeviceSpec.h"
-#include "Framework/PartRef.h"
 #include "Framework/CompilerBuiltins.h"
-
-#include <gsl/span>
 
 #include <cassert>
 #include <regex>
@@ -30,7 +26,7 @@ CompletionPolicy CompletionPolicyHelpers::defineByName(std::string const& name, 
   auto matcher = [name](DeviceSpec const& device) -> bool {
     return std::regex_match(device.name.begin(), device.name.end(), std::regex(name));
   };
-  auto callback = [op](gsl::span<PartRef const> const& inputs) -> CompletionPolicy::CompletionOp {
+  auto callback = [op](CompletionPolicy::InputSet) -> CompletionPolicy::CompletionOp {
     return op;
   };
   switch (op) {
@@ -50,38 +46,35 @@ CompletionPolicy CompletionPolicyHelpers::defineByName(std::string const& name, 
   O2_BUILTIN_UNREACHABLE();
 }
 
-CompletionPolicy CompletionPolicyHelpers::consumeWhenAll()
+CompletionPolicy CompletionPolicyHelpers::consumeWhenAll(const char* name, CompletionPolicy::Matcher matcher)
 {
-  auto matcher = [](DeviceSpec const&) -> bool { return true; };
-  auto callback = [](gsl::span<PartRef const> const& inputs) -> CompletionPolicy::CompletionOp {
+  auto callback = [](CompletionPolicy::InputSet inputs) -> CompletionPolicy::CompletionOp {
     for (auto& input : inputs) {
-      if (input.header == nullptr && input.payload == nullptr) {
+      if (input.header == nullptr) {
         return CompletionPolicy::CompletionOp::Wait;
       }
     }
     return CompletionPolicy::CompletionOp::Consume;
   };
-  return CompletionPolicy{"consume-all", matcher, callback};
+  return CompletionPolicy{name, matcher, callback};
 }
 
-CompletionPolicy CompletionPolicyHelpers::consumeWhenAny()
+CompletionPolicy CompletionPolicyHelpers::consumeWhenAny(const char* name, CompletionPolicy::Matcher matcher)
 {
-  auto matcher = [](DeviceSpec const&) -> bool { return true; };
-  auto callback = [](gsl::span<PartRef const> const& inputs) -> CompletionPolicy::CompletionOp {
+  auto callback = [](CompletionPolicy::InputSet inputs) -> CompletionPolicy::CompletionOp {
     for (auto& input : inputs) {
-      if (input.header != nullptr && input.payload != nullptr) {
+      if (input.header != nullptr) {
         return CompletionPolicy::CompletionOp::Consume;
       }
     }
     return CompletionPolicy::CompletionOp::Wait;
   };
-  return CompletionPolicy{"consume-any", matcher, callback};
+  return CompletionPolicy{name, matcher, callback};
 }
 
-CompletionPolicy CompletionPolicyHelpers::processWhenAny()
+CompletionPolicy CompletionPolicyHelpers::processWhenAny(const char* name, CompletionPolicy::Matcher matcher)
 {
-  auto matcher = [](DeviceSpec const&) -> bool { return true; };
-  auto callback = [](gsl::span<PartRef const> const& inputs) -> CompletionPolicy::CompletionOp {
+  auto callback = [](CompletionPolicy::InputSet inputs) -> CompletionPolicy::CompletionOp {
     size_t present = 0;
     for (auto& input : inputs) {
       if (input.header != nullptr) {
@@ -95,7 +88,7 @@ CompletionPolicy CompletionPolicyHelpers::processWhenAny()
     }
     return CompletionPolicy::CompletionOp::Process;
   };
-  return CompletionPolicy{"process-any", matcher, callback};
+  return CompletionPolicy{name, matcher, callback};
 }
 
 } // namespace framework

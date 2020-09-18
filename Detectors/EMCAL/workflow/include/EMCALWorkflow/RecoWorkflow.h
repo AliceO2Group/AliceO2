@@ -37,10 +37,11 @@ enum struct InputType { Digitizer, ///< directly read digits from channel {TPC:D
 /// \enum OutputType
 /// \brief Output types of the workflow
 /// \ingroup EMCALworkflow
-enum struct OutputType { Digits,  ///< EMCAL digits
-                         Cells,   ///< EMCAL cells
-                         Raw,     ///< EMCAL raw data
-                         Clusters ///< EMCAL clusters
+enum struct OutputType { Digits,          ///< EMCAL digits
+                         Cells,           ///< EMCAL cells
+                         Raw,             ///< EMCAL raw data
+                         Clusters,        ///< EMCAL clusters
+                         AnalysisClusters ///< EMCAL analysis clusters
 };
 
 /// \brief create the workflow for EMCAL reconstruction

@@ -72,7 +72,7 @@ BOOST_AUTO_TEST_CASE(Stack_test)
 {
   o2::data::Stack st;
   int a;
-  TMCProcess proc;
+  TMCProcess proc{kPPrimary};
   // add a 2 primary particles
   st.PushTrack(1, -1, 0, 0, 0., 0., 10., 5., 5., 5., 0.1, 0., 0., 0., proc, a, 1., 1);
   st.PushTrack(1, -1, 0, 0, 0., 0., 10., 5., 5., 5., 0.1, 0., 0., 0., proc, a, 1., 1);

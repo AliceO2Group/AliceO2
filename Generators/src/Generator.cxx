@@ -27,37 +27,19 @@ namespace eventgen
 /*****************************************************************/
 
 Generator::Generator() : FairGenerator("ALICEo2", "ALICEo2 Generator"),
-                         mParticles(nullptr),
                          mBoost(0.)
 {
   /** default constructor **/
 
-  /** array of generated particles **/
-  mParticles = new TClonesArray("TParticle");
-  mParticles->SetOwner(kTRUE);
 }
 
 /*****************************************************************/
 
 Generator::Generator(const Char_t* name, const Char_t* title) : FairGenerator(name, title),
-                                                                mParticles(nullptr),
                                                                 mBoost(0.)
 {
   /** constructor **/
 
-  /** array of generated particles **/
-  mParticles = new TClonesArray("TParticle");
-  mParticles->SetOwner(kTRUE);
-}
-
-/*****************************************************************/
-
-Generator::~Generator()
-{
-  /** default destructor **/
-
-  if (mParticles)
-    delete mParticles;
 }
 
 /*****************************************************************/
@@ -81,6 +63,9 @@ Bool_t
   /** endless generate-and-trigger loop **/
   while (true) {
 
+    /** clear particle vector **/
+    mParticles.clear();
+
     /** generate event **/
     if (!generateEvent())
       return kFALSE;
@@ -98,6 +83,9 @@ Bool_t
   if (!addTracks(primGen))
     return kFALSE;
 
+  /** update header **/
+  updateHeader(primGen->GetEvent());
+
   /** success **/
   return kTRUE;
 }
@@ -110,26 +98,19 @@ Bool_t
   /** add tracks **/
 
   /** loop over particles **/
-  Int_t nParticles = mParticles->GetEntries();
-  TParticle* particle = nullptr;
-  for (Int_t iparticle = 0; iparticle < nParticles; iparticle++) {
-    particle = (TParticle*)mParticles->At(iparticle);
-    if (!particle)
-      continue;
-    if (particle->GetStatusCode() != 1)
-      continue;
-    primGen->AddTrack(particle->GetPdgCode(),
-                      particle->Px() * mMomentumUnit,
-                      particle->Py() * mMomentumUnit,
-                      particle->Pz() * mMomentumUnit,
-                      particle->Vx() * mPositionUnit,
-                      particle->Vy() * mPositionUnit,
-                      particle->Vz() * mPositionUnit,
-                      particle->GetMother(0),
-                      particle->GetStatusCode() == 1,
-                      particle->Energy() * mEnergyUnit,
-                      particle->T() * mTimeUnit,
-                      particle->GetWeight());
+  for (const auto& particle : mParticles) {
+    primGen->AddTrack(particle.GetPdgCode(),
+                      particle.Px() * mMomentumUnit,
+                      particle.Py() * mMomentumUnit,
+                      particle.Pz() * mMomentumUnit,
+                      particle.Vx() * mPositionUnit,
+                      particle.Vy() * mPositionUnit,
+                      particle.Vz() * mPositionUnit,
+                      particle.GetMother(0),
+                      particle.GetStatusCode() == 1,
+                      particle.Energy() * mEnergyUnit,
+                      particle.T() * mTimeUnit,
+                      particle.GetWeight());
   }
 
   /** success **/
@@ -155,7 +136,7 @@ Bool_t
   /** trigger event **/
 
   /** check trigger presence **/
-  if (mTriggers.size() == 0)
+  if (mTriggers.size() == 0 && mDeepTriggers.size() == 0)
     return kTRUE;
 
   /** check trigger mode **/
@@ -171,7 +152,16 @@ Bool_t
 
   /** loop over triggers **/
   for (const auto& trigger : mTriggers) {
-    auto retval = trigger->fired(mParticles);
+    auto retval = trigger(mParticles);
+    if (mTriggerMode == kTriggerOR)
+      triggered |= retval;
+    if (mTriggerMode == kTriggerAND)
+      triggered &= retval;
+  }
+
+  /** loop over deep triggers **/
+  for (const auto& trigger : mDeepTriggers) {
+    auto retval = trigger(mInterface, mInterfaceName);
     if (mTriggerMode == kTriggerOR)
       triggered |= retval;
     if (mTriggerMode == kTriggerAND)

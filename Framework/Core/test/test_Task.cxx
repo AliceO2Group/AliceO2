@@ -10,8 +10,7 @@
 #include "Framework/runDataProcessing.h"
 #include "Framework/Task.h"
 #include "Framework/ControlService.h"
-#include <Monitoring/Monitoring.h>
-#include "Framework/ControlService.h"
+#include "Framework/Monitoring.h"
 
 #define ASSERT_ERROR(condition)                                                                      \
   if ((condition) == false) {                                                                        \
@@ -38,6 +37,7 @@ class ATask : public Task
     pc.services().get<ControlService>().endOfStream();
     pc.services().get<ControlService>().readyToQuit(QuitRequest::Me);
   }
+
  private:
   int mSomeState;
 };

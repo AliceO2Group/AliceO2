@@ -50,6 +50,13 @@ struct RDHFormatter {
 };
 
 template <>
+struct RDHFormatter<header::RAWDataHeaderV6> {
+  using type = header::RAWDataHeaderV6;
+  static const char* sFormatString;
+  static void apply(std::ostream&, type const&, FormatSpec, const char* = "");
+};
+
+template <>
 struct RDHFormatter<header::RAWDataHeaderV5> {
   using type = header::RAWDataHeaderV5;
   static const char* sFormatString;
@@ -81,7 +88,7 @@ class ConcreteRawParser
   using buffer_type = unsigned char;
   using header_type = HeaderType;
   using self_type = ConcreteRawParser;
-  size_t max_size = MAX_SIZE;
+  static constexpr size_t max_size = MAX_SIZE;
 
   ConcreteRawParser() = delete;
 
@@ -117,7 +124,9 @@ class ConcreteRawParser
       return 0;
     }
     header_type const& h = header();
-    // FIXME: block length disappeared in V5, check what can be used
+    if (h.memorySize >= h.headerSize) {
+      return h.memorySize - h.headerSize;
+    }
     return max_size - h.headerSize;
   }
 
@@ -231,12 +240,15 @@ class ConcreteRawParser
   size_t mSize;
 };
 
+using V6 = header::RAWDataHeaderV6;
 using V5 = header::RAWDataHeaderV5;
 using V4 = header::RAWDataHeaderV4;
 // FIXME v3 and v4 are basically the same with v4 defining a few more fields in the otherwise reserved parts
 // needs to be defined in the header, have to check if we need to support this
 //using V3 = header::RAWDataHeaderV3;
 
+template <size_t N>
+using V6Parser = ConcreteRawParser<header::RAWDataHeaderV6, N>;
 template <size_t N>
 using V5Parser = ConcreteRawParser<header::RAWDataHeaderV5, N>;
 template <size_t N>
@@ -247,7 +259,7 @@ using V4Parser = ConcreteRawParser<header::RAWDataHeaderV4, N>;
 /// Parser instance type for the raw parser main class, all supported versions of
 /// RAWDataHeader are handled in a variant
 template <size_t N>
-using ConcreteParserVariants = std::variant<V5Parser<N>, V4Parser<N>>;
+using ConcreteParserVariants = std::variant<V6Parser<N>, V5Parser<N>, V4Parser<N>>;
 
 /// create a raw parser depending on version of RAWDataHeader found at beginning of data
 template <size_t PageSize, typename T>
@@ -261,6 +273,8 @@ ConcreteParserVariants<PageSize> create(T const* buffer, size_t size)
   V5 const* v5 = reinterpret_cast<V5 const*>(buffer);
   if (v5->version == 5) {
     return ConcreteRawParser<V5, PageSize>(buffer, size);
+  } else if (v5->version == 6) {
+    return ConcreteRawParser<V6, PageSize>(buffer, size);
   } else if (v5->version == 4) {
     return ConcreteRawParser<V4, PageSize>(buffer, size);
     //} else if (v5->version == 3) {
@@ -357,7 +371,7 @@ class RawParser
   void parse(Processor&& processor)
   {
     constexpr size_t NofAlternatives = std::variant_size_v<decltype(mParser)>;
-    static_assert(NofAlternatives == 2);
+    static_assert(NofAlternatives == 3);
     raw_parser::walk_parse<NofAlternatives>(mParser, processor, mParser.index());
     // it turned out that using a iterative function is faster than using std::visit
     //std::visit([&processor](auto& parser) { return parser.parse(processor); }, mParser);
@@ -461,9 +475,11 @@ class RawParser
     }
 
     /// get header as specific type
+    /// Normal usage is get_if<T>() but in some rare cases the type can also be passed by parameter
+    /// get_if((T*)nullptr), the parameter is ignored
     /// @return pointer to header of the specified type, or nullptr if type does not match to actual type
     template <typename U>
-    U const* get_if() const
+    U const* get_if(U const* = nullptr) const
     {
       return raw_parser::get_if<U>(mParser);
     }
@@ -481,12 +497,12 @@ class RawParser
   // only define the const_iterator because the parser will allow read-only access
   using const_iterator = Iterator<RawDataHeaderInfo const, raw_parser::ConcreteParserVariants<MAX_SIZE>>;
 
-  const_iterator begin()
+  const_iterator begin() const
   {
     return const_iterator(mParser);
   }
 
-  const_iterator end()
+  const_iterator end() const
   {
     return const_iterator(mParser, -1);
   }

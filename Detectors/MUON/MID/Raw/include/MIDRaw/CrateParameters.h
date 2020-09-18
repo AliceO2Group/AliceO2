@@ -50,13 +50,7 @@ inline uint8_t makeUniqueLocID(uint8_t crateId, uint8_t locId) { return locId | 
 /// Gets the crate ID from the absolute local board ID
 inline uint8_t getCrateId(uint8_t uniqueLocId) { return (uniqueLocId >> 4) & 0xF; }
 /// Gets the loc ID in the crate from the unique local board ID
-inline uint8_t getLocId(uint16_t uniqueLocId) { return uniqueLocId & 0xF; }
-/// Tests the local card bit
-inline bool isLoc(uint8_t statusWord) { return (statusWord >> 6) & 0x1; }
-/// Tests if the calibration bit of the card
-inline bool isCalibration(uint8_t eventWord) { return ((eventWord & 0xc) == 0x8); }
-/// Tests if this is a Front End Test event
-inline bool isFET(uint8_t eventWord) { return ((eventWord & 0xc) == 0xc); }
+inline uint8_t getLocId(uint8_t uniqueLocId) { return uniqueLocId & 0xF; }
 } // namespace crateparams
 } // namespace mid
 } // namespace o2

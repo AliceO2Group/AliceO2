@@ -13,6 +13,7 @@
 /// \author matteo.concas@cern.ch
 
 #include <string>
+#include <iterator>
 #include "ITStracking/Cluster.h"
 #include "ITStracking/Tracklet.h"
 #include "ITStracking/ClusterLines.h"
@@ -20,6 +21,7 @@
 #include "ITStracking/ROframe.h"
 #include "ITStracking/StandaloneDebugger.h"
 #include "TH1I.h"
+#include "TMath.h"
 
 namespace o2
 {
@@ -35,6 +37,14 @@ StandaloneDebugger::StandaloneDebugger(const std::string debugTreeFileName)
 StandaloneDebugger::~StandaloneDebugger()
 {
   delete mTreeStream;
+}
+
+// Monte carlo oracle part
+int StandaloneDebugger::getEventId(int firstClusterId, int secondClusterId, ROframe* event)
+{
+  o2::MCCompLabel lblClus0 = event->getClusterLabels(0, firstClusterId);
+  o2::MCCompLabel lblClus1 = event->getClusterLabels(1, secondClusterId);
+  return lblClus0.compare(lblClus1) == 1 ? lblClus0.getEventID() : -1;
 }
 
 void StandaloneDebugger::fillCombinatoricsTree(std::array<std::vector<Cluster>, constants::its::LayersNumberVertexer>& clusters,
@@ -125,8 +135,10 @@ void StandaloneDebugger::fillLinesSummaryTree(std::vector<Line> lines, const ROf
   assert(event != nullptr);
   int id = event->getROFrameId();
   const o2::its::Line zAxis{std::array<float, 3>{0.f, 0.f, -1.f}, std::array<float, 3>{0.f, 0.f, 1.f}};
+  const std::array<float, 3> origin{0., 0., 0.};
   for (auto& tracklet : lines) {
     float dcaz = Line::getDCA(tracklet, zAxis);
+    float dcaorigin = Line::getDistanceFromPoint(tracklet, origin);
     (*mTreeStream)
       << "linesSummary"
       << "ROframeId=" << id
@@ -138,6 +150,7 @@ void StandaloneDebugger::fillLinesSummaryTree(std::vector<Line> lines, const ROf
       << "c2=" << tracklet.cosinesDirector[2]
       << "DCAZaxis=" << dcaz
       // TODO: Line::getDistanceFromPoint(line, MC_vertex)
+      << "DCAOrigin=" << dcaorigin
       << "\n";
   }
 }
@@ -152,21 +165,41 @@ void StandaloneDebugger::fillPairsInfoTree(std::vector<Line> lines, const ROfram
       auto line2 = lines[iLine2];
       ClusterLines cluster{-1, line1, -1, line2};
       auto vtx = cluster.getVertex();
-      if (std::hypot(vtx[0], vtx[1]) < 1.98 * 1.98) {
+      if (std::hypot(vtx[0], vtx[1]) < 1.98) {
         float dcaPair = Line::getDCA(line1, line2);
-        (*mTreeStream)
-          << "pairInfo"
-          << "centroids"
-          << "ROframeId=" << id
-          << "xCoord=" << vtx[0]
-          << "yCoord=" << vtx[1]
-          << "zCoord=" << vtx[2]
-          << "DCApair=" << dcaPair
-          << "\n";
+        if (dcaPair < 0.02) {
+          (*mTreeStream)
+            << "pairInfo"
+            << "centroids"
+            << "ROframeId=" << id
+            << "xCoord=" << vtx[0]
+            << "yCoord=" << vtx[1]
+            << "zCoord=" << vtx[2]
+            << "DCApair=" << dcaPair
+            << "\n";
+        }
       }
     }
     // TODO: get primary vertex montecarlo position
     // mLinesData.push_back(Line::getDCAComponents(line1, std::array<float, 3>{0., 0., 0.}));
+  }
+}
+
+void StandaloneDebugger::fillLineClustersTree(std::vector<ClusterLines> clusters, const ROframe* event)
+{
+  assert(event != nullptr);
+  int id = event->getROFrameId();
+  for (unsigned int iCluster{0}; iCluster < clusters.size(); ++iCluster) { // compute centroids for every line pair
+    auto cluster = clusters[iCluster];
+    auto vtx = cluster.getVertex();
+    (*mTreeStream)
+      << "clusterLinesInfo"
+      << "centroids"
+      << "ROframeId=" << id
+      << "xCoord=" << vtx[0]
+      << "yCoord=" << vtx[1]
+      << "zCoord=" << vtx[2]
+      << "\n";
   }
 }
 
@@ -196,6 +229,32 @@ void StandaloneDebugger::fillXYZHistogramTree(std::array<std::vector<int>, 3> ar
     << "histY=" << histoY
     << "histZ=" << histoZ
     << "\n";
+}
+
+void StandaloneDebugger::fillVerticesInfoTree(float x, float y, float z, int size, int rId, int eId, float pur)
+{
+  (*mTreeStream)
+    << "verticesInfo"
+    << "vertices"
+    << "xCoord=" << x
+    << "yCoord=" << y
+    << "zCoord=" << z
+    << "size=" << size
+    << "ROFrameId=" << rId
+    << "eventId=" << eId
+    << "purity=" << pur
+    << "\n";
+}
+
+int StandaloneDebugger::getBinIndex(const float value, const int size, const float min, const float max)
+{
+  std::vector<double> divisions;
+  const double binsize = (max - min) / size;
+  divisions.resize(size + 1);
+  for (int i{0}; i <= size; ++i) {
+    divisions[i] = min + i * binsize;
+  }
+  return std::distance(divisions.begin(), TMath::BinarySearch(divisions.begin(), divisions.end(), value));
 }
 
 } // namespace its

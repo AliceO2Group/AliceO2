@@ -22,10 +22,11 @@ namespace o2
 {
 namespace ft0
 {
-class HitType : public o2::BasicXYZEHit<float>
+class HitType : public o2::BasicXYZEHit<float, float, float>
 {
  public:
-  using BasicXYZEHit<float>::BasicXYZEHit;
+  using BasicXYZEHit<float, float, float>::BasicXYZEHit;
+  ClassDefNV(HitType, 1);
 };
 
 } // namespace ft0

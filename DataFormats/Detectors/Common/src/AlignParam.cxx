@@ -103,8 +103,8 @@ bool AlignParam::setRotation(const TGeoMatrix& m)
     double psi, theta, phi;
     if (!matrixToAngles(rot, psi, theta, phi)) {
       return false;
-      setRotation(psi, theta, phi);
     }
+    setRotation(psi, theta, phi);
   } else {
     mPsi = mTheta = mPhi = 0.;
   }
@@ -190,7 +190,8 @@ bool AlignParam::setLocalParams(const TGeoMatrix& m)
   m1.Multiply(&gprimeinv);
   m1.MultiplyLeft(&gprime);
 
-  return setLocalParams(m1);
+  setParams(m1);
+  return true;
 }
 
 //_____________________________________________________________________________

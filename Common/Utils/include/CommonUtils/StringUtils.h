@@ -16,6 +16,8 @@
 #ifndef ALICEO2_STRINGUTILS_H
 #define ALICEO2_STRINGUTILS_H
 
+#include <sstream>
+
 namespace o2
 {
 namespace utils
@@ -76,6 +78,15 @@ static inline std::string rtrim_copy(std::string s)
 {
   rtrim(s);
   return s;
+}
+
+// concatenate arbitrary number of strings
+template <typename... Ts>
+std::string concat_string(Ts const&... ts)
+{
+  std::stringstream s;
+  (s << ... << ts);
+  return s.str();
 }
 
 } // namespace utils

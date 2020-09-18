@@ -8,20 +8,21 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-/// \file   MID/Tracking/test/bench_Tracker.cxx
-/// \brief  Benchmark tracker device for MID
+/// \file   MID/Raw/test/bench_Raw.cxx
+/// \brief  Benchmark MID raw data decoder
 /// \author Diego Stocco <Diego.Stocco at cern.ch>
 /// \date   17 March 2018
 
 #include "benchmark/benchmark.h"
-#include <random>
-#include <array>
 #include <vector>
+#include "Framework/Logger.h"
 #include "CommonDataFormat/InteractionRecord.h"
-#include "DataFormatsMID/ROFRecord.h"
+#include "DetectorsRaw/RawFileReader.h"
+#include "DPLUtils/RawParser.h"
+#include "MIDBase/DetectorParameters.h"
 #include "MIDRaw/Decoder.h"
+#include "MIDRaw/GBTUserLogicDecoder.h"
 #include "MIDRaw/Encoder.h"
-#include "MIDRaw/RawUnit.h"
 
 o2::mid::ColumnData getColData(uint8_t deId, uint8_t columnId, uint16_t nbp = 0, uint16_t bp1 = 0, uint16_t bp2 = 0, uint16_t bp3 = 0, uint16_t bp4 = 0)
 {
@@ -36,9 +37,8 @@ o2::mid::ColumnData getColData(uint8_t deId, uint8_t columnId, uint16_t nbp = 0,
   return col;
 }
 
-std::vector<o2::mid::raw::RawUnit> generateTestData(size_t nTF, size_t nDataInTF, size_t nColDataInEvent, o2::mid::Encoder& encoder)
+std::vector<uint8_t> generateTestData(size_t nTF, size_t nDataInTF, size_t nColDataInEvent, size_t nLinks = o2::mid::crateparams::sNGBTs)
 {
-  encoder.clear();
   std::vector<o2::mid::ColumnData> colData;
   colData.reserve(nColDataInEvent);
   int maxNcols = 7;
@@ -47,40 +47,102 @@ std::vector<o2::mid::raw::RawUnit> generateTestData(size_t nTF, size_t nDataInTF
   if (nColLast > 0) {
     ++nDEs;
   }
+
   // Generate data
   for (int ide = 0; ide < nDEs; ++ide) {
     int nCol = (ide == nDEs - 1) ? nColLast : maxNcols;
-    for (int icol = 0; icol < nCol; ++icol) {
-      colData.emplace_back(getColData(ide, icol, 0xFF00, 0xFFFF));
+    auto rpcLine = o2::mid::detparams::getRPCLine(ide);
+    int firstCol = (rpcLine < 3 || rpcLine > 5) ? 0 : 1;
+    for (int icol = firstCol; icol < nCol; ++icol) {
+      colData.emplace_back(getColData(ide, icol, 0xFF00, 0xFF0));
     }
   }
+
+  auto severity = fair::Logger::GetConsoleSeverity();
+  fair::Logger::SetConsoleSeverity(fair::Severity::WARNING);
+  std::string tmpFilename = "tmp_mid_raw.dat";
+  o2::mid::Encoder encoder;
+  encoder.init(tmpFilename.c_str());
+
   // Fill TF
   for (size_t itf = 0; itf < nTF; ++itf) {
-    colData.clear();
     for (int ilocal = 0; ilocal < nDataInTF; ++ilocal) {
       o2::InteractionRecord ir(ilocal, itf);
       encoder.process(colData, ir, o2::mid::EventType::Standard);
     }
   }
+  encoder.finalize();
 
-  return encoder.getBuffer();
+  o2::raw::RawFileReader rawReader;
+  rawReader.addFile(tmpFilename.c_str());
+  rawReader.init();
+  size_t nActiveLinks = rawReader.getNLinks() < nLinks ? rawReader.getNLinks() : nLinks;
+  std::vector<char> buffer;
+  for (size_t itf = 0; itf < rawReader.getNTimeFrames(); ++itf) {
+    rawReader.setNextTFToRead(itf);
+    for (size_t ilink = 0; ilink < nActiveLinks; ++ilink) {
+      auto& link = rawReader.getLink(ilink);
+      auto tfsz = link.getNextTFSize();
+      if (!tfsz) {
+        continue;
+      }
+      std::vector<char> linkBuffer(tfsz);
+      link.readNextTF(linkBuffer.data());
+      buffer.insert(buffer.end(), linkBuffer.begin(), linkBuffer.end());
+    }
+  }
+  fair::Logger::SetConsoleSeverity(severity);
+
+  std::remove(tmpFilename.c_str());
+
+  std::vector<uint8_t> data(buffer.size());
+  memcpy(data.data(), buffer.data(), buffer.size());
+
+  return data;
 }
 
 static void BM_Decoder(benchmark::State& state)
 {
-  o2::mid::Encoder encoder;
-  o2::mid::Decoder decoder;
+  o2::mid::Decoder<o2::mid::GBTUserLogicDecoder> decoder;
 
   int nTF = state.range(0);
   int nEventPerTF = state.range(1);
   int nFiredPerEvent = state.range(2);
   double num{0};
 
-  auto inputData = generateTestData(nTF, nEventPerTF, nFiredPerEvent, encoder);
+  auto inputData = generateTestData(nTF, nEventPerTF, nFiredPerEvent);
 
   for (auto _ : state) {
     decoder.process(inputData);
+    ++num;
+  }
 
+  state.counters["num"] = benchmark::Counter(num, benchmark::Counter::kIsRate);
+}
+
+static void BM_GBTDecoder(benchmark::State& state)
+{
+  o2::mid::GBTUserLogicDecoder decoder;
+  decoder.init(0, false);
+
+  int nTF = state.range(0);
+  int nEventPerTF = state.range(1);
+  int nFiredPerEvent = state.range(2);
+  double num{0};
+
+  auto inputData = generateTestData(nTF, nEventPerTF, nFiredPerEvent, 1);
+
+  for (auto _ : state) {
+    decoder.clear();
+    o2::framework::RawParser parser(inputData.data(), inputData.size());
+    for (auto it = parser.begin(), end = parser.end(); it != end; ++it) {
+      if (it.size() == 0) {
+        continue;
+      }
+      auto* rdhPtr = it.template get_if<o2::header::RAWDataHeader>();
+      gsl::span<const uint8_t> payload(it.data(), it.size());
+      decoder.process(payload, *rdhPtr);
+    }
     ++num;
   }
 
@@ -89,9 +151,6 @@ static void BM_Decoder(benchmark::State& state)
 
 static void CustomArguments(benchmark::internal::Benchmark* bench)
 {
-  // Empty headers
-  bench->Args({1, 0, 0});
-  bench->Args({10, 0, 0});
   // One per event
   bench->Args({1, 1, 1});
   bench->Args({10, 1, 1});
@@ -101,6 +160,7 @@ static void CustomArguments(benchmark::internal::Benchmark* bench)
   bench->Args({1, 100, 4});
 }
 
+BENCHMARK(BM_GBTDecoder)->Apply(CustomArguments)->Unit(benchmark::kNanosecond);
 BENCHMARK(BM_Decoder)->Apply(CustomArguments)->Unit(benchmark::kNanosecond);
 
 BENCHMARK_MAIN();

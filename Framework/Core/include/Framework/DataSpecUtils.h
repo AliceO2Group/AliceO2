@@ -72,6 +72,12 @@ struct DataSpecUtils {
   /// @return true if the OutputSpec will match at least the provided @a origin.
   static bool partialMatch(OutputSpec const& spec, o2::header::DataOrigin const& origin);
 
+  /// @return true if the OutputSpec will match at least the provided @a description.
+  static bool partialMatch(InputSpec const& spec, o2::header::DataDescription const& description);
+
+  /// @return true if the OutputSpec will match at least the provided @a description.
+  static bool partialMatch(OutputSpec const& spec, o2::header::DataDescription const& description);
+
   template <typename T>
   static bool match(const T& spec, const o2::header::DataHeader& header)
   {
@@ -150,6 +156,12 @@ struct DataSpecUtils {
   /// and we can add corner cases as we go.
   static header::DataOrigin asConcreteOrigin(InputSpec const& spec);
 
+  /// If possible extract the DataDescription from an InputSpec.
+  /// This will not always be possible, depending on how complex of
+  /// a query the InputSpec does, however in most cases it should be ok
+  /// and we can add corner cases as we go.
+  static header::DataDescription asConcreteDataDescription(InputSpec const& spec);
+
   /// If possible extract either ConcreteTypeDataMatcher or ConcreteDataMatcher
   /// from an InputSpec and assign it to the matcher of the OutputSpec together
   /// with binding and lifetime
@@ -173,6 +185,9 @@ struct DataSpecUtils {
 
   /// Build a DataDescriptMatcher which does not care about the subSpec and description.
   static data_matcher::DataDescriptorMatcher dataDescriptorMatcherFrom(header::DataOrigin const& origin);
+
+  /// Build a DataDescriptMatcher which does not care about the subSpec and origin.
+  static data_matcher::DataDescriptorMatcher dataDescriptorMatcherFrom(header::DataDescription const& origin);
 };
 
 } // namespace framework

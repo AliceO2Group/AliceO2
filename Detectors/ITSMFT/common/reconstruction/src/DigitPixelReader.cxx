@@ -26,17 +26,33 @@ DigitPixelReader::~DigitPixelReader()
   clear();
 }
 
+//_____________________________________
+int DigitPixelReader::decodeNextTrigger()
+{
+  // prerare data of the next trigger, return number of digits
+  while (++mIdROF < mROFRecVec.size()) {
+    if (mROFRecVec[mIdROF].getNEntries() > 0) {
+      mIdDig = 0; // jump to the 1st digit of the trigger
+      mInteractionRecord = mROFRecVec[mIdROF].getBCData();
+      return mROFRecVec[mIdROF].getNEntries();
+    }
+  }
+  return 0;
+}
+
 //______________________________________________________________________________
 ChipPixelData* DigitPixelReader::getNextChipData(std::vector<ChipPixelData>& chipDataVec)
 {
   // decode data of single chip to corresponding slot of chipDataVec
-  if (!mLastDigit) {                 // new ROF record should be started
-    if (mIdDig >= mDigits.size()) {  // nothing left
+  if (mIdROF >= mROFRecVec.size()) {
+    return nullptr; // TF is done
+  }
+  if (mIdROF < 0 || mIdDig >= mROFRecVec[mIdROF].getNEntries()) {
+    if (!mDecodeNextAuto || !decodeNextTrigger()) { // no automatic decoding is asked or we are at the end of the TF
       return nullptr;
     }
-    mLastDigit = &mDigits[mIdDig++];
   }
-  auto chipID = mLastDigit->getChipIndex();
+  auto chipID = mDigits[mROFRecVec[mIdROF].getFirstEntry() + mIdDig].getChipIndex();
   return getNextChipData(chipDataVec[chipID]) ? &chipDataVec[chipID] : nullptr;
 }
 
@@ -44,40 +60,28 @@ ChipPixelData* DigitPixelReader::getNextChipData(std::vector<ChipPixelData>& chi
 bool DigitPixelReader::getNextChipData(ChipPixelData& chipData)
 {
   // decode data of single chip to chipData
-  if (!mLastDigit) {                 // new ROF record should be started
-    if (mIdDig >= mDigits.size()) {  // nothing left
+  if (mIdROF >= mROFRecVec.size()) {
+    return false; // TF is done
+  }
+  if (mIdROF < 0 || mIdDig >= mROFRecVec[mIdROF].getNEntries()) {
+    if (!mDecodeNextAuto || !decodeNextTrigger()) { // no automatic decoding is asked or we are at the end of the TF
       return false;
     }
-    mLastDigit = &mDigits[mIdDig++];
-  }
-  // get corresponding ROF record
-  int lim = -1;
-  if (mIdROF >= 0) {
-    const auto& rofRec = mROFRecVec[mIdROF];
-    lim = rofRec.getFirstEntry() + rofRec.getNEntries();
-  }
-  while (mIdDig > lim) {
-    const auto& rofRec = mROFRecVec[++mIdROF];
-    lim = rofRec.getFirstEntry() + rofRec.getNEntries();
-    mInteractionRecord = rofRec.getBCData(); // update interaction record
   }
   chipData.clear();
-  chipData.setStartID(mIdDig - 1); // for the MC references
-  chipData.setChipID(mLastDigit->getChipIndex());
+  int did = mROFRecVec[mIdROF].getFirstEntry() + mIdDig;
+  chipData.setStartID(did); // for the MC references
+  const auto* digit = &mDigits[did];
+  chipData.setChipID(digit->getChipIndex());
   chipData.setROFrame(mROFRecVec[mIdROF].getROFrame());
   chipData.setInteractionRecord(mInteractionRecord);
   chipData.setTrigger(mTrigger);
-  chipData.getData().emplace_back(mLastDigit);
-  mLastDigit = nullptr;
-
-  for (; mIdDig < lim;) {
-    mLastDigit = &mDigits[mIdDig++];
-    if (mLastDigit->getChipIndex() != chipData.getChipID()) { // new chip starts
-      return true;
-    }
-    chipData.getData().emplace_back(mLastDigit);
-    mLastDigit = nullptr; // reset pointer of already used digit
+  chipData.getData().emplace_back(digit);
+  int lim = mROFRecVec[mIdROF].getFirstEntry() + mROFRecVec[mIdROF].getNEntries();
+  while ((++did < lim) && (digit = &mDigits[did])->getChipIndex() == chipData.getChipID()) {
+    chipData.getData().emplace_back(digit);
   }
+  mIdDig = did - mROFRecVec[mIdROF].getFirstEntry();
   return true;
 }
 

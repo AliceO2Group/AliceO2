@@ -89,6 +89,7 @@ BOOST_AUTO_TEST_CASE(addDataBlockForEach_test)
   }
 
   {
+    int sizeofDataHeader = sizeof(o2::header::DataHeader);
     struct elem {
       int i;
       int j;
@@ -105,7 +106,7 @@ BOOST_AUTO_TEST_CASE(addDataBlockForEach_test)
                  std::move(vec));
     BOOST_CHECK(message.Size() == 2);
     BOOST_CHECK(vec.size() == 0);
-    BOOST_CHECK(message[0].GetSize() == 80);
+    BOOST_CHECK(message[0].GetSize() == sizeofDataHeader);
     BOOST_CHECK(message[1].GetSize() == 2 * sizeof(elem)); //check the size of the buffer is set correctly
 
     //check contents
@@ -122,7 +123,7 @@ BOOST_AUTO_TEST_CASE(addDataBlockForEach_test)
                  factoryZMQ->CreateMessage(10));
     int size{0};
     forEach(message, [&](auto header, auto data) { size += header.size() + data.size(); });
-    BOOST_CHECK(size == 80 + 2 * sizeof(elem) + 80 + 10);
+    BOOST_CHECK(size == sizeofDataHeader + 2 * sizeof(elem) + sizeofDataHeader + 10);
 
     //check contents (headers)
     int checkOK{0};

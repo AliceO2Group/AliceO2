@@ -12,11 +12,9 @@ o2_add_library(MCHBase
          SOURCES
 	       src/ClusterBlock.cxx
 	       src/Digit.cxx
-	       src/DigitBlock.cxx
-	       src/Mapping.cxx
-               src/PreClusterBlock.cxx
-               src/TrackBlock.cxx
-	       PUBLIC_LINK_LIBRARIES ROOT::Core FairRoot::Base FairMQ::FairMQ)
+         src/PreCluster.cxx
+         src/TrackBlock.cxx
+	       PUBLIC_LINK_LIBRARIES ROOT::Core FairRoot::Base FairMQ::FairMQ ms_gsl::ms_gsl)
 
 o2_target_root_dictionary(MCHBase
   HEADERS include/MCHBase/Digit.h)

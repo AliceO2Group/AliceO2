@@ -14,6 +14,7 @@
 #include "CCDB/CcdbApi.h"
 #include "CPVCalib/CalibParams.h"
 #include "CPVBase/Geometry.h"
+#include <iostream>
 #endif
 void PostCalibCCDB()
 {
@@ -35,7 +36,7 @@ void PostCalibCCDB()
 
     hGains[mod] = (TH2F*)fGains->Get(Form("mod%d", mod));
     if (!o2cpvCalib->setGain(hGains[mod], mod)) {
-      cout << " Can not set gain for module " << mod << endl;
+      std::cout << " Can not set gain for module " << mod << std::endl;
       return;
     }
   }

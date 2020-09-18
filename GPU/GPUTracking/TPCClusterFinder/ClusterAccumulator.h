@@ -28,15 +28,17 @@ struct ClusterNative;
 namespace gpu
 {
 
+struct ChargePos;
+
 class ClusterAccumulator
 {
 
  public:
-  GPUd() Charge updateInner(PackedCharge, Delta2);
-  GPUd() Charge updateOuter(PackedCharge, Delta2);
+  GPUd() tpccf::Charge updateInner(PackedCharge, tpccf::Delta2);
+  GPUd() tpccf::Charge updateOuter(PackedCharge, tpccf::Delta2);
 
-  GPUd() void finalize(const deprecated::Digit&);
-  GPUd() void toNative(const deprecated::Digit&, tpc::ClusterNative&) const;
+  GPUd() void finalize(const ChargePos&, tpccf::Charge, tpccf::TPCTime);
+  GPUd() void toNative(const ChargePos&, tpccf::Charge, tpc::ClusterNative&) const;
 
  private:
   float mQtot = 0;
@@ -47,7 +49,7 @@ class ClusterAccumulator
   uchar mSplitInTime = 0;
   uchar mSplitInPad = 0;
 
-  GPUd() void update(Charge, Delta2);
+  GPUd() void update(tpccf::Charge, tpccf::Delta2);
 };
 
 } // namespace gpu

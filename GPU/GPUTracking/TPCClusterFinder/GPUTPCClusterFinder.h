@@ -17,22 +17,32 @@
 #include "GPUDef.h"
 #include "GPUProcessor.h"
 #include "GPUDataTypes.h"
+#include "CfFragment.h"
 
-namespace GPUCA_NAMESPACE
+namespace o2
 {
+
+class MCCompLabel;
+
+namespace dataformats
+{
+template <typename TruthElement>
+class MCTruthContainer;
+} // namespace dataformats
 
 namespace tpc
 {
 struct ClusterNative;
-}
+class Digit;
+} // namespace tpc
 
-namespace gpu
-{
+} // namespace o2
 
-namespace deprecated
+namespace GPUCA_NAMESPACE::gpu
 {
-struct PackedDigit;
-} // namespace deprecated
+struct GPUTPCClusterMCInterim;
+
+struct ChargePos;
 
 class GPUTPCClusterFinder : public GPUProcessor
 {
@@ -40,13 +50,28 @@ class GPUTPCClusterFinder : public GPUProcessor
   struct Memory {
     struct counters_t {
       size_t nDigits = 0;
-      size_t nPeaks = 0;
-      size_t nClusters = 0;
+      tpccf::SizeT nDigitsInFragment = 0; // num of digits in fragment can differ from nPositions if ZS is active
+      tpccf::SizeT nPositions = 0;
+      tpccf::SizeT nPeaks = 0;
+      tpccf::SizeT nClusters = 0;
+      unsigned int maxTimeBin = 0;
+      unsigned int nPagesSubslice = 0;
     } counters;
-    unsigned int nDigitsOffset[GPUTrackingInOutZS::NENDPOINTS];
+    CfFragment fragment;
+  };
+
+  struct ZSOffset {
+    unsigned int offset;
+    unsigned short endpoint;
+    unsigned short num;
+  };
+
+  struct MinMaxCN {
+    unsigned int minC, minN, maxC, maxN;
   };
 
 #ifndef GPUCA_GPUCODE
+  ~GPUTPCClusterFinder();
   void InitializeProcessor();
   void RegisterMemoryAllocation();
   void SetMaxData(const GPUTrackingInOutPointers& io);
@@ -55,34 +80,56 @@ class GPUTPCClusterFinder : public GPUProcessor
   void* SetPointersOutput(void* mem);
   void* SetPointersScratch(void* mem);
   void* SetPointersMemory(void* mem);
+  void* SetPointersZS(void* mem);
+  void* SetPointersZSOffset(void* mem);
 
-  size_t getNSteps(size_t items) const;
-  void SetNMaxDigits(size_t nDigits, size_t nPages);
+  unsigned int getNSteps(size_t items) const;
+  void SetNMaxDigits(size_t nDigits, size_t nPages, size_t nDigitsFragment);
+
+  void PrepareMC();
+  void clearMCMemory();
 #endif
-
   unsigned char* mPzs = nullptr;
-  deprecated::PackedDigit* mPdigits = nullptr;
-  deprecated::PackedDigit* mPpeaks = nullptr;
-  deprecated::PackedDigit* mPfilteredPeaks = nullptr;
+  ZSOffset* mPzsOffsets = nullptr;
+  MinMaxCN* mMinMaxCN = nullptr;
+  tpc::Digit* mPdigits = nullptr; // input digits, only set if ZS is skipped
+  ChargePos* mPpositions = nullptr;
+  ChargePos* mPpeakPositions = nullptr;
+  ChargePos* mPfilteredPeakPositions = nullptr;
   unsigned char* mPisPeak = nullptr;
+  uint* mPclusterPosInRow = nullptr; // store the index where the corresponding cluster is stored in a bucket.
+                                     // Required when MC are enabled to write the mc data to the correct position.
+                                     // Set to >= mNMaxClusterPerRow if cluster was discarded.
   ushort* mPchargeMap = nullptr;
   unsigned char* mPpeakMap = nullptr;
+  uint* mPindexMap = nullptr;
   uint* mPclusterInRow = nullptr;
   tpc::ClusterNative* mPclusterByRow = nullptr;
+  GPUTPCClusterMCInterim* mPlabelsByRow = nullptr;
   int* mPbuf = nullptr;
   Memory* mPmemory = nullptr;
 
+  o2::dataformats::MCTruthContainer<o2::MCCompLabel> const* mPinputLabels = nullptr;
+  uint* mPlabelsInRow = nullptr;
+  uint mPlabelsHeaderGlobalOffset = 0;
+  uint mPlabelsDataGlobalOffset = 0;
+
   int mISlice = 0;
   constexpr static int mScanWorkGroupSize = GPUCA_THREAD_COUNT_SCAN;
-  size_t mNMaxClusterPerRow = 0;
+  unsigned int mNMaxClusterPerRow = 0;
+  unsigned int mNMaxClusters = 0;
   size_t mNMaxPages = 0;
   size_t mNMaxDigits = 0;
+  size_t mNMaxDigitsFragment = 0;
   size_t mNMaxPeaks = 0;
-  size_t mNMaxClusters = 0;
   size_t mBufSize = 0;
-  size_t mNBufs = 0;
+  unsigned int mNBufs = 0;
 
-  unsigned short mMemoryId = 0;
+  short mMemoryId = -1;
+  short mScratchId = -1;
+  short mZSId = -1;
+  short mZSOffsetId = -1;
+  short mOutputId = -1;
 
 #ifndef GPUCA_GPUCODE
   void DumpDigits(std::ostream& out);
@@ -96,7 +143,6 @@ class GPUTPCClusterFinder : public GPUProcessor
 #endif
 };
 
-} // namespace gpu
-} // namespace GPUCA_NAMESPACE
+} // namespace GPUCA_NAMESPACE::gpu
 
 #endif

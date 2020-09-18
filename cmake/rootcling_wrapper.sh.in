@@ -81,7 +81,7 @@ LOGFILE=${DICTIONARY_FILE}.log
 
 MSG="Warning: Unused class rule"
 if [[ -s ${LOGFILE} ]]; then
-  WARNINGS=$(grep -c "${MSG}" ${LOGFILE})
+  WARNINGS=$(grep -c "${MSG}" ${LOGFILE} || :)
   if [[ ! $WARNINGS == 0 ]]; then
     echo "ERROR: please fix the warnings below about unused class rule" >&2
     grep "$MSG" ${LOGFILE} >&2

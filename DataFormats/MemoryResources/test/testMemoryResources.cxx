@@ -207,6 +207,12 @@ BOOST_AUTO_TEST_CASE(test_SpectatorMemoryResource)
   BOOST_CHECK(vecclone.data() == vectordata);
   BOOST_CHECK(vecclone.size() == size);
   BOOST_CHECK_THROW(vecclone.resize(2 * size), std::runtime_error);
+
+  std::vector<int, o2::pmr::SpectatorAllocator<int>> vecmove;
+  vecmove = std::move(vecclone);
+  BOOST_CHECK(vecclone.size() == 0);
+  BOOST_CHECK(vecmove.data() == vectordata);
+  BOOST_CHECK(vecmove.size() == size);
 }
 
 }; // namespace o2::pmr

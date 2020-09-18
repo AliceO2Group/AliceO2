@@ -15,7 +15,7 @@
 #ifndef ALICEO2_COMMON_MATH_UTILS_
 #define ALICEO2_COMMON_MATH_UTILS_
 
-#ifndef __OPENCL__
+#ifndef GPUCA_GPUCODE_DEVICE
 #include <array>
 #include <cmath>
 #endif
@@ -53,6 +53,8 @@ inline void BringToPMPi(float& phi)
   // ensure angle in [-pi:pi] for the input in [-pi:pi] or [0:pi]
   if (phi > o2::constants::math::PI) {
     phi -= o2::constants::math::TwoPI;
+  } else if (phi < -o2::constants::math::PI) {
+    phi += o2::constants::math::TwoPI;
   }
 }
 
@@ -67,11 +69,19 @@ inline void BringToPMPiGen(float& phi)
   }
 }
 
-inline void sincosf(float ang, float& s, float& c)
+GPUdi() void sincosf(float ang, float& s, float& c)
 {
-  // consider speedup for simultaneus calculation
-  s = o2::gpu::CAMath::Sin(ang);
-  c = o2::gpu::CAMath::Cos(ang);
+  o2::gpu::GPUCommonMath::SinCos(ang, s, c);
+}
+
+GPUdi() void sincos(float ang, float& s, float& c)
+{
+  o2::gpu::GPUCommonMath::SinCos(ang, s, c);
+}
+
+GPUdi() void sincos(double ang, double& s, double& c)
+{
+  o2::gpu::GPUCommonMath::SinCos(ang, s, c);
 }
 
 inline void rotateZ(float xL, float yL, float& xG, float& yG, float snAlp, float csAlp)
@@ -100,12 +110,12 @@ inline void rotateZInv(double xG, double yG, double& xL, double& yL, double snAl
   rotateZ(xG, yG, xL, yL, -snAlp, csAlp);
 }
 
-#ifndef __OPENCL__
+#ifndef GPUCA_GPUCODE_DEVICE
 inline void RotateZ(std::array<float, 3>& xy, float alpha)
 {
   // transforms vector in tracking frame alpha to global frame
   float sn, cs, x = xy[0];
-  sincosf(alpha, sn, cs);
+  o2::gpu::GPUCommonMath::SinCos(alpha, sn, cs);
   xy[0] = x * cs - xy[1] * sn;
   xy[1] = x * sn + xy[1] * cs;
 }
@@ -199,6 +209,65 @@ GPUhdi() float FastATan2(float y, float x)
   // fast atan2(y,x) for any angle [-Pi,Pi]
   return o2::gpu::GPUCommonMath::Copysign(atan2P(o2::gpu::CAMath::Abs(y), x), y);
 }
+
+struct StatAccumulator {
+  // mean / RMS accumulator
+  double sum = 0.;
+  double sum2 = 0.;
+  double wsum = 0.;
+  int n = 0;
+  void add(float v, float w = 1.)
+  {
+    auto c = v * w;
+    sum += c;
+    sum2 += c * v;
+    wsum += w;
+    n++;
+  }
+  double getMean() const { return wsum > 0. ? sum / wsum : 0.; }
+  bool getMeanRMS2(double& mean, double& rms2) const
+  {
+    if (!wsum) {
+      mean = rms2 = 0;
+      return false;
+    }
+    auto wi = 1. / wsum;
+    mean = sum * wi;
+    rms2 = sum2 * wi - mean * mean;
+    return true;
+  }
+  bool getMeanRMS2(float& mean, float& rms2) const
+  {
+    if (!wsum) {
+      mean = rms2 = 0;
+      return false;
+    }
+    auto wi = 1. / wsum;
+    mean = sum * wi;
+    rms2 = sum2 * wi - mean * mean;
+    return true;
+  }
+  StatAccumulator& operator+=(const StatAccumulator& other)
+  {
+    sum += other.sum;
+    sum2 += other.sum2;
+    wsum += other.wsum;
+    return *this;
+  }
+
+  StatAccumulator operator+(const StatAccumulator& other) const
+  {
+    StatAccumulator res = *this;
+    res += other;
+    return res;
+  }
+
+  void clear()
+  {
+    sum = sum2 = wsum = 0.;
+    n = 0;
+  }
+};
 
 } // namespace utils
 //}

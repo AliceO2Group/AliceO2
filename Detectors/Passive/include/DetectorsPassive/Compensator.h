@@ -11,7 +11,7 @@
 #ifndef ALICEO2_PASSIVE_COMPENSATOR_H
 #define ALICEO2_PASSIVE_COMPENSATOR_H
 
-#include "FairModule.h"
+#include "DetectorsPassive/PassiveBase.h"
 #include "Rtypes.h"
 
 namespace o2
@@ -19,7 +19,7 @@ namespace o2
 namespace passive
 {
 // The dipole compensator on the A side
-class Compensator : public FairModule
+class Compensator : public PassiveBase
 {
  public:
   Compensator(const char* name, const char* Title = "ALICE Compensator");
@@ -37,7 +37,6 @@ class Compensator : public FairModule
   void createMaterials();
   void createCompensator();
   TGeoVolume* createMagnetYoke();
-  void SetSpecialPhysicsCuts() override;
 
   ClassDefOverride(o2::passive::Compensator, 1);
 };

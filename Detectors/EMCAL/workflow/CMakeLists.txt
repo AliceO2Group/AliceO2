@@ -14,6 +14,8 @@ o2_add_library(EMCALWorkflow
                        src/CellConverterSpec.cxx
                        src/ClusterizerSpec.cxx
                        src/DigitsPrinterSpec.cxx
+                       src/AnalysisClusterSpec.cxx
+                       src/RawToCellConverterSpec.cxx
                PUBLIC_LINK_LIBRARIES O2::Framework O2::DataFormatsEMCAL
                                      O2::DPLUtils O2::EMCALBase O2::EMCALReconstruction O2::Algorithm)
 

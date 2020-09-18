@@ -57,6 +57,9 @@ void PrimaryVertexContext::initialise(const MemoryParameters& memParam, const st
       cHelper.clear();
       cHelper.resize(clustersNum);
 
+      mMinR[iLayer] = 1000.f;
+      mMaxR[iLayer] = -1.f;
+
       for (int iCluster{0}; iCluster < clustersNum; ++iCluster) {
         const Cluster& c = currentLayer[iCluster];
         ClusterHelper& h = cHelper[iCluster];
@@ -67,6 +70,8 @@ void PrimaryVertexContext::initialise(const MemoryParameters& memParam, const st
                                                  index_table_utils::getPhiBinIndex(phi));
         h.phi = phi;
         h.r = math_utils::calculateRCoordinate(x, y);
+        mMinR[iLayer] = gpu::GPUCommonMath::Min(h.r, mMinR[iLayer]);
+        mMaxR[iLayer] = gpu::GPUCommonMath::Max(h.r, mMaxR[iLayer]);
         h.bin = bin;
         h.ind = clsPerBin[bin]++;
       }

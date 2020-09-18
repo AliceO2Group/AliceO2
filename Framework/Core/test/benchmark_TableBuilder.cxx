@@ -41,8 +41,25 @@ static void BM_TableBuilderScalar(benchmark::State& state)
   }
 }
 
-BENCHMARK(BM_TableBuilderScalar)->Arg(1 << 20);
+BENCHMARK(BM_TableBuilderScalar)->Arg(1 << 21);
 BENCHMARK(BM_TableBuilderScalar)->Range(8, 8 << 16);
+
+static void BM_TableBuilderScalarReserved(benchmark::State& state)
+{
+  using namespace o2::framework;
+  for (auto _ : state) {
+    TableBuilder builder;
+    auto rowWriter = builder.persist<float>({"x"});
+    builder.reserve(o2::framework::pack<float>{}, state.range(0));
+    for (size_t i = 0; i < state.range(0); ++i) {
+      rowWriter(0, 0.f);
+    }
+    auto table = builder.finalize();
+  }
+}
+
+BENCHMARK(BM_TableBuilderScalarReserved)->Arg(1 << 21);
+BENCHMARK(BM_TableBuilderScalarReserved)->Range(8, 8 << 16);
 
 static void BM_TableBuilderScalarPresized(benchmark::State& state)
 {
@@ -109,9 +126,9 @@ BENCHMARK(BM_TableBuilderSimple2)->Range(8, 8 << 16);
 
 namespace test
 {
-DECLARE_SOA_COLUMN(X, x, float, "x");
-DECLARE_SOA_COLUMN(Y, y, float, "y");
-DECLARE_SOA_COLUMN(Z, z, float, "z");
+DECLARE_SOA_COLUMN(X, x, float);
+DECLARE_SOA_COLUMN(Y, y, float);
+DECLARE_SOA_COLUMN(Z, z, float);
 } // namespace test
 
 using TestVectors = o2::soa::Table<test::X, test::Y, test::Z>;

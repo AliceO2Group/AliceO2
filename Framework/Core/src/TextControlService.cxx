@@ -31,12 +31,14 @@ TextControlService::TextControlService(ServiceRegistry& registry, DeviceState& d
 // This will send an end of stream to all the devices downstream.
 void TextControlService::endOfStream()
 {
+  std::scoped_lock lock(mMutex);
   mDeviceState.streaming = StreamingState::EndOfStreaming;
 }
 
 // All we do is to printout
 void TextControlService::readyToQuit(QuitRequest what)
 {
+  std::scoped_lock lock(mMutex);
   if (mOnce == true) {
     return;
   }
@@ -55,6 +57,7 @@ void TextControlService::readyToQuit(QuitRequest what)
 
 void TextControlService::notifyStreamingState(StreamingState state)
 {
+  std::scoped_lock lock(mMutex);
   switch (state) {
     case StreamingState::Idle:
       LOG(INFO) << "CONTROL_ACTION: NOTIFY_STREAMING_STATE IDLE";
@@ -72,6 +75,10 @@ void TextControlService::notifyStreamingState(StreamingState state)
 
 bool parseControl(std::string const& s, std::smatch& match)
 {
+  char const* action = strstr(s.data(), "CONTROL_ACTION:");
+  if (action == nullptr) {
+    return false;
+  }
   const static std::regex controlRE1(".*CONTROL_ACTION: READY_TO_(QUIT)_(ME|ALL)", std::regex::optimize);
   const static std::regex controlRE2(".*CONTROL_ACTION: (NOTIFY_STREAMING_STATE) (IDLE|STREAMING|EOS)", std::regex::optimize);
   return std::regex_search(s, match, controlRE1) || std::regex_search(s, match, controlRE2);

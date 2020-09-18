@@ -16,32 +16,27 @@
 
 #include "GPUTPCCompression.h"
 #include <vector>
+#include <functional>
 
-namespace o2
-{
-namespace tpc
+namespace o2::tpc
 {
 struct ClusterNativeAccess;
 struct ClusterNative;
-} // namespace tpc
-} // namespace o2
+} // namespace o2::tpc
 
-namespace GPUCA_NAMESPACE
+namespace GPUCA_NAMESPACE::gpu
 {
-namespace gpu
-{
-using CompressedClusters = o2::tpc::CompressedClusters;
 struct GPUParam;
 
 class TPCClusterDecompressor
 {
  public:
   static constexpr unsigned int NSLICES = GPUCA_NSLICES;
-  int decompress(const CompressedClusters* clustersCompressed, o2::tpc::ClusterNativeAccess& clustersNative, std::vector<o2::tpc::ClusterNative>& clusterBuffer, const GPUParam& param);
+  int decompress(const o2::tpc::CompressedClustersFlat* clustersCompressed, o2::tpc::ClusterNativeAccess& clustersNative, std::function<o2::tpc::ClusterNative*(size_t)> allocator, const GPUParam& param);
+  int decompress(const o2::tpc::CompressedClusters* clustersCompressed, o2::tpc::ClusterNativeAccess& clustersNative, std::function<o2::tpc::ClusterNative*(size_t)> allocator, const GPUParam& param);
 
  protected:
 };
-} // namespace gpu
-} // namespace GPUCA_NAMESPACE
+} // namespace GPUCA_NAMESPACE::gpu
 
 #endif

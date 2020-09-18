@@ -16,16 +16,14 @@
 #include "Framework/DeviceInfo.h"
 #include "Framework/DeviceMetricsInfo.h"
 #include "Framework/ChannelSpec.h"
+#include "Framework/Logger.h"
 
 #include "DebugGUI/imgui.h"
 #include <csignal>
 #include <cstdlib>
+#include <iostream>
 
-namespace o2
-{
-namespace framework
-{
-namespace gui
+namespace o2::framework::gui
 {
 
 struct ChannelsTableHelper {
@@ -60,6 +58,39 @@ void deviceInfoTable(DeviceInfo const& info, DeviceMetricsInfo const& metrics)
         ImGui::EndTooltip();
       }
     }
+  }
+}
+
+void configurationTable(boost::property_tree::ptree const& currentConfig,
+                        boost::property_tree::ptree const& currentProvenance)
+{
+  if (currentConfig.empty()) {
+    return;
+  }
+  if (ImGui::CollapsingHeader("Current Config", ImGuiTreeNodeFlags_DefaultOpen)) {
+    ImGui::Columns(2);
+    auto labels = {"Name", "Value"};
+    for (auto& label : labels) {
+      ImGui::TextUnformatted(label);
+      ImGui::NextColumn();
+    }
+    for (auto& option : currentConfig) {
+      ImGui::TextUnformatted(option.first.c_str());
+      if (ImGui::IsItemHovered()) {
+        ImGui::BeginTooltip();
+        ImGui::TextUnformatted(option.first.c_str());
+        ImGui::EndTooltip();
+      }
+      ImGui::NextColumn();
+      ImGui::Text("%s (%s)", option.second.data().c_str(), currentProvenance.get<std::string>(option.first).c_str());
+      if (ImGui::IsItemHovered()) {
+        ImGui::BeginTooltip();
+        ImGui::Text("%s (%s)", option.second.data().c_str(), currentProvenance.get<std::string>(option.first).c_str());
+        ImGui::EndTooltip();
+      }
+      ImGui::NextColumn();
+    }
+    ImGui::Columns(1);
   }
 }
 
@@ -110,6 +141,41 @@ void optionsTable(const char* label, std::vector<ConfigParamSpec> const& options
   ImGui::Columns(1);
 }
 
+void servicesTable(const char* label, std::vector<ServiceSpec> const& services)
+{
+  if (services.empty()) {
+    return;
+  }
+  if (ImGui::CollapsingHeader(label, ImGuiTreeNodeFlags_DefaultOpen)) {
+    ImGui::Columns(2);
+    auto labels = {"Service", "Kind"};
+    for (auto& label : labels) {
+      ImGui::TextUnformatted(label);
+      ImGui::NextColumn();
+    }
+    for (auto& service : services) {
+      ImGui::TextUnformatted(service.name.c_str());
+      ImGui::NextColumn();
+      switch (service.kind) {
+        case ServiceKind::Serial:
+          ImGui::TextUnformatted("Serial");
+          break;
+        case ServiceKind::Global:
+          ImGui::TextUnformatted("Global");
+          break;
+        case ServiceKind::Stream:
+          ImGui::TextUnformatted("Stream");
+          break;
+        default:
+          ImGui::TextUnformatted("unknown");
+      }
+      ImGui::NextColumn();
+    }
+  }
+
+  ImGui::Columns(1);
+}
+
 void displayDeviceInspector(DeviceSpec const& spec,
                             DeviceInfo const& info,
                             DeviceMetricsInfo const& metrics,
@@ -118,7 +184,14 @@ void displayDeviceInspector(DeviceSpec const& spec,
 {
   ImGui::Text("Name: %s", spec.name.c_str());
   ImGui::Text("Executable: %s", metadata.executable.c_str());
-  ImGui::Text("Pid: %d", info.pid);
+  if (info.active) {
+    ImGui::Text("Pid: %d", info.pid);
+  } else {
+    ImGui::Text("Pid: %d (exit status: %d)", info.pid, info.exitStatus);
+  }
+#ifdef DPL_ENABLE_TRACING
+  ImGui::Text("Tracy Port: %d", info.tracyPort);
+#endif
   ImGui::Text("Rank: %zu/%zu%%%zu/%zu", spec.rank, spec.nSlots, spec.inputTimesliceId, spec.maxInputTimeslices);
 
   if (ImGui::Button("Attach debugger")) {
@@ -137,9 +210,44 @@ void displayDeviceInspector(DeviceSpec const& spec,
     (void)retVal;
   }
 
+  ImGui::SameLine();
+  if (ImGui::Button("Profile 30s")) {
+    std::string pid = std::to_string(info.pid);
+    setenv("O2PROFILEDPID", pid.c_str(), 1);
+#ifdef __APPLE__
+    std::string defaultAppleProfileCommand =
+      "osascript -e 'tell application \"Terminal\" to activate'"
+      " -e 'tell application \"Terminal\" to do script \"instruments -D dpl-profile-" +
+      pid +
+      ".trace -l 30000 -t Time\\\\ Profiler -p " +
+      pid + " && open dpl-profile-" + pid + ".trace && exit\"'";
+    setenv("O2DPLPROFILE", defaultAppleProfileCommand.c_str(), 0);
+#else
+    setenv("O2DPLPROFILE", "xterm -hold -e perf record -a -g -p $O2PROFILEDPID > perf-$O2PROFILEDPID.data &", 0);
+#endif
+    LOG(ERROR) << getenv("O2DPLPROFILE");
+    int retVal = system(getenv("O2DPLPROFILE"));
+    (void)retVal;
+  }
+
+  ImGui::SameLine();
+#if DPL_ENABLE_TRACING
+  if (ImGui::Button("Tracy")) {
+    std::string tracyPort = std::to_string(info.tracyPort);
+    auto cmd = fmt::format("tracy-profiler -p {} -a 127.0.0.1 &", info.tracyPort);
+    LOG(debug) << cmd;
+    int retVal = system(cmd.c_str());
+    (void)retVal;
+  }
+#endif
+
   deviceInfoTable(info, metrics);
-  optionsTable("Options", spec.options, control);
+  for (auto& option : info.currentConfig) {
+    ImGui::Text("%s: %s", option.first.c_str(), option.second.data().c_str());
+  }
+  configurationTable(info.currentConfig, info.currentProvenance);
   optionsTable("Workflow Options", metadata.workflowOptions, control);
+  servicesTable("Services", spec.services);
   if (ImGui::CollapsingHeader("Command line arguments", ImGuiTreeNodeFlags_DefaultOpen)) {
     for (auto& arg : metadata.cmdLineArgs) {
       ImGui::Text("%s", arg.c_str());
@@ -180,6 +288,4 @@ void displayDeviceInspector(DeviceSpec const& spec,
   }
 }
 
-} // namespace gui
-} // namespace framework
-} // namespace o2
+} // namespace o2::framework::gui

@@ -29,11 +29,10 @@ o2_add_executable(raw-parser
                   SOURCES src/raw-parser.cxx
                   PUBLIC_LINK_LIBRARIES O2::Framework O2::DPLUtils)
 
-# Converter can now be a separate workflow which we merge if needed
-o2_add_executable(esd-2-arrow-converter
+o2_add_executable(output-proxy
                   COMPONENT_NAME dpl
-                  SOURCES src/esd-2-arrow-converter.cxx
-                  PUBLIC_LINK_LIBRARIES O2::Framework)
+                  SOURCES src/dpl-output-proxy.cxx
+                  PUBLIC_LINK_LIBRARIES O2::Framework O2::DPLUtils)
 
 o2_add_test(DPLBroadcasterMerger
             SOURCES test/test_DPLBroadcasterMerger.cxx src/Utils.cxx
@@ -78,6 +77,12 @@ o2_add_test(RootTreeReader
 
 o2_add_test(RawParser
             SOURCES test/test_RawParser.cxx
+            PUBLIC_LINK_LIBRARIES O2::DPLUtils
+            COMPONENT_NAME DPLUtils
+            LABELS dplutils)
+
+o2_add_test(DPLRawParser
+            SOURCES test/test_DPLRawParser.cxx
             PUBLIC_LINK_LIBRARIES O2::DPLUtils
             COMPONENT_NAME DPLUtils
             LABELS dplutils)

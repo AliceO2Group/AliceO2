@@ -31,7 +31,11 @@
 
 using namespace GPUCA_NAMESPACE::gpu;
 
-static auto& config = configStandalone.configTF;
+namespace GPUCA_NAMESPACE::gpu
+{
+extern GPUSettingsStandalone configStandalone;
+}
+static auto& config = configStandalone.TF;
 
 GPUReconstructionTimeframe::GPUReconstructionTimeframe(GPUChainTracking* chain, int (*read)(int), int nEvents) : mChain(chain), mReadEvent(read), mNEventsInDirectory(nEvents), mDisUniReal(0., 1.), mRndGen1(configStandalone.seed), mRndGen2(mDisUniInt(mRndGen1))
 {
@@ -214,7 +218,7 @@ void GPUReconstructionTimeframe::MergeShiftedEvents()
 
 int GPUReconstructionTimeframe::LoadCreateTimeFrame(int iEvent)
 {
-  if (config.nTotalInTFEvents && mNTotalCollisions >= config.nTotalInTFEvents) {
+  if (config.nTotalEventsInTF && mNTotalCollisions >= config.nTotalEventsInTF) {
     return (2);
   }
 
@@ -229,7 +233,7 @@ int GPUReconstructionTimeframe::LoadCreateTimeFrame(int iEvent)
     for (int iTrain = 0; iTrain < config.bunchTrainCount && nBunch < lastBunch; iTrain++) {
       int nCollisionsInTrain = 0;
       for (int iBunch = 0; iBunch < config.bunchCount && nBunch < lastBunch; iBunch++) {
-        const bool inTF = nBunch >= 0 && nBunch < lastTFBunch && (config.nTotalInTFEvents == 0 || nCollisions < mNTotalCollisions + config.nTotalInTFEvents);
+        const bool inTF = nBunch >= 0 && nBunch < lastTFBunch && (config.nTotalEventsInTF == 0 || nCollisions < mNTotalCollisions + config.nTotalEventsInTF);
         if (mcMin == -1 && inTF) {
           mcMin = mChain->mIOPtrs.nMCInfosTPC;
         }

@@ -26,11 +26,11 @@
 #pragma link C++ class o2::tpc::CalDet < unsigned> + ;
 #pragma link C++ class o2::tpc::CalDet < short> + ;
 #pragma link C++ class o2::tpc::CalDet < bool> + ;
+#pragma link C++ class std::vector < o2::tpc::CalDet < float>> + ;
+#pragma link C++ class std::unordered_map < std::string, o2::tpc::CalDet < float>> + ;
 #pragma link C++ class o2::tpc::CDBInterface;
 #pragma link C++ class o2::tpc::ContainerFactory;
 #pragma link C++ class o2::tpc::CRU;
-#pragma link C++ class o2::tpc::Digit + ;
-#pragma link C++ class std::vector < o2::tpc::Digit> + ;
 #pragma link C++ class o2::tpc::DigitPos;
 #pragma link C++ class o2::tpc::ModelGEM;
 #pragma link C++ class o2::tpc::FECInfo;
@@ -45,18 +45,25 @@
 #pragma link C++ class o2::tpc::Sector;
 
 #pragma link C++ namespace o2::tpc::painter;
-#pragma link C++ function o2::tpc::painter::draw(o2::tpc::CalArray <float>);
-#pragma link C++ function o2::tpc::painter::draw(o2::tpc::CalArray <double>);
-#pragma link C++ function o2::tpc::painter::draw(o2::tpc::CalArray <int>);
-#pragma link C++ function o2::tpc::painter::draw(o2::tpc::CalArray <short>);
-#pragma link C++ function o2::tpc::painter::draw(o2::tpc::CalArray <bool>);
+#pragma link C++ function o2::tpc::painter::draw(o2::tpc::CalArray <float>&);
+#pragma link C++ function o2::tpc::painter::draw(o2::tpc::CalArray <double>&);
+#pragma link C++ function o2::tpc::painter::draw(o2::tpc::CalArray <int>&);
+#pragma link C++ function o2::tpc::painter::draw(o2::tpc::CalArray <short>&);
+#pragma link C++ function o2::tpc::painter::draw(o2::tpc::CalArray <bool>&);
 
-#pragma link C++ function o2::tpc::painter::draw(o2::tpc::CalDet <float>);
-#pragma link C++ function o2::tpc::painter::draw(o2::tpc::CalDet <double>);
-#pragma link C++ function o2::tpc::painter::draw(o2::tpc::CalDet <int>);
-#pragma link C++ function o2::tpc::painter::draw(o2::tpc::CalDet <short>);
-#pragma link C++ function o2::tpc::painter::draw(o2::tpc::CalDet <bool>);
+#pragma link C++ function o2::tpc::painter::draw(o2::tpc::CalDet <float>&, int, float, float);
+#pragma link C++ function o2::tpc::painter::draw(o2::tpc::CalDet <double>&, int, float, float);
+#pragma link C++ function o2::tpc::painter::draw(o2::tpc::CalDet <int>&, int, float, float);
+#pragma link C++ function o2::tpc::painter::draw(o2::tpc::CalDet <short>&, int, float, float);
+#pragma link C++ function o2::tpc::painter::draw(o2::tpc::CalDet <bool>&, int, float, float);
 
+#pragma link C++ function o2::tpc::painter::makeSummaryCanvases(o2::tpc::CalDet <float>&, int, float, float, bool);
+#pragma link C++ function o2::tpc::painter::makeSummaryCanvases(o2::tpc::CalDet <double>&, int, float, float, bool);
+#pragma link C++ function o2::tpc::painter::makeSummaryCanvases(o2::tpc::CalDet <int>&, int, float, float, bool);
+#pragma link C++ function o2::tpc::painter::makeSummaryCanvases(o2::tpc::CalDet <short>&, int, float, float, bool);
+#pragma link C++ function o2::tpc::painter::makeSummaryCanvases(o2::tpc::CalDet <bool>&, int, float, float, bool);
+
+//#pragma link C++ class std::vector <TCanvas*> + ;
 #pragma link C++ class o2::tpc::ParameterDetector;
 #pragma link C++ class o2::conf::ConfigurableParamHelper < o2::tpc::ParameterDetector> + ;
 #pragma link C++ class o2::tpc::ParameterElectronics;
@@ -68,4 +75,10 @@
 #pragma link C++ struct o2::tpc::ParameterGEM;
 #pragma link C++ class o2::conf::ConfigurableParamHelper < o2::tpc::ParameterGEM> + ;
 
+#pragma link C++ namespace o2::tpc::utils;
+#pragma link C++ function o2::tpc::utils::tokenize(const std::string_view, const std::string_view);
+#pragma link C++ function o2::tpc::utils::getBinInfoXY(int&, int&, float&, float&);
+#pragma link C++ function o2::tpc::utils::addFECInfo();
+#pragma link C++ function o2::tpc::utils::saveCanvases(TObjArray*, std::string_view, std::string_view, std::string_view);
+#pragma link C++ function o2::tpc::utils::saveCanvas(TCanvas*, std::string_view, std::string_view);
 #endif

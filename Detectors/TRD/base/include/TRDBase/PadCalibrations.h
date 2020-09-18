@@ -22,7 +22,7 @@
 
 #include "TRDBase/PadParameters.h"
 #include "TRDBase/TRDSimParam.h"
-#include "fairlogger/Logger.h"
+#include "DataFormatsTRD/Constants.h"
 
 class TRDGeometry;
 
@@ -46,9 +46,8 @@ class PadCalibrations
   void setPadValue(int roc, int channel, T value) { mreadOutChamber[roc].setValue(channel, value); }
   void reset(int roc, int col, int row, std::vector<T>& data);
   void init();
-  void dumpAllNonZeroValues(); // helps for debugging.
  protected:
-  std::array<PadParameters<T>, TRDSimParam::kNdet> mreadOutChamber;
+  std::array<PadParameters<T>, constants::MAXCHAMBER> mreadOutChamber;
 };
 
 template <class T>
@@ -60,7 +59,6 @@ PadCalibrations<T>::PadCalibrations()
   //TRDGeometry fgeom;
   int chamberindex = 0;
   for (auto& roc : mreadOutChamber) { // Range-for!
-    LOG(debug3) << "initialising readout chamber " << chamberindex;
     roc.init(chamberindex++);
   }
 }
@@ -73,7 +71,6 @@ void PadCalibrations<T>::init()
   //
   int chamberindex = 0;
   for (auto& roc : mreadOutChamber) { // Range-for!
-    LOG(debug3) << "initialising readout chamber " << chamberindex;
     roc.init(chamberindex++);
   }
 }
@@ -85,19 +82,6 @@ void PadCalibrations<T>::reset(int roc, int col, int row, std::vector<T>& data)
   //primarily here for setting the values incoming from run2 ocdb, but might find other use cases.
   // you need to send it the roc as it is used to calculate internal parameters.
   mreadOutChamber[roc].reset(roc, col, row, data); // it *should* not actually matter as this *should* be set correctly via init.
-}
-
-template <class T>
-void PadCalibrations<T>::dumpAllNonZeroValues()
-{
-  //
-  // TRDCalPadStatus constructor
-  //
-  int chamberindex = 0;
-  for (auto& roc : mreadOutChamber) { // Range-for!
-    roc.dumpNonZeroValues(chamberindex);
-    chamberindex++;
-  }
 }
 
 } // namespace trd

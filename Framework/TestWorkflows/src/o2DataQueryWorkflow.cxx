@@ -16,6 +16,7 @@
 #include <chrono>
 #include <thread>
 #include <vector>
+#include <iostream>
 
 using namespace o2::framework;
 

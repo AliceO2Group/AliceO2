@@ -13,10 +13,12 @@
 
 #include "ITSMFTReconstruction/AlpideCoder.h"
 #include <TClass.h>
-
-//#define _RAW_READER_DEBUG_ // to produce debug output during decoding
+#include <TFile.h>
 
 using namespace o2::itsmft;
+
+const NoiseMap* AlpideCoder::mNoisyPixels = nullptr;
+int AlpideCoder::mNoiseThreshold = 3;
 
 //_____________________________________
 void AlpideCoder::print() const
@@ -147,3 +149,8 @@ void AlpideCoder::resetMap()
 }
 
 //_____________________________________
+int AlpideCoder::unexpectedEOF(const std::string& message)
+{
+  LOG(ERROR) << message;
+  return Error;
+}

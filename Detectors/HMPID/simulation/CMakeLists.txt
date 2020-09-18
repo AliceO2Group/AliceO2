@@ -15,3 +15,6 @@ o2_add_library(HMPIDSimulation
 o2_target_root_dictionary(HMPIDSimulation
                           HEADERS include/HMPIDSimulation/Detector.h
                                   include/HMPIDSimulation/HMPIDDigitizer.h)
+
+
+o2_data_file(COPY data  DESTINATION Detectors/HMP/simulation)

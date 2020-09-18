@@ -14,13 +14,27 @@
 #include "Framework/DataSpecUtils.h"
 #include "Framework/EndOfStreamContext.h"
 #include "Framework/ParallelContext.h"
-#include "Framework/runDataProcessing.h"
 #include "Framework/ControlService.h"
+#include "Framework/RawDeviceService.h"
 #include "Framework/ParallelContext.h"
+#include "Framework/CompletionPolicy.h"
+#include "Framework/CompletionPolicyHelpers.h"
+#include "Framework/DataRefUtils.h"
+#include <FairMQDevice.h>
 #include <iostream>
 #include <algorithm>
 #include <memory>
 #include <unordered_map>
+
+// customize clusterers and cluster decoders to process immediately what comes in
+void customize(std::vector<o2::framework::CompletionPolicy>& policies)
+{
+  // we customize the pipeline processors to consume data as it comes
+  using CompletionPolicy = o2::framework::CompletionPolicy;
+  using CompletionPolicyHelpers = o2::framework::CompletionPolicyHelpers;
+  policies.push_back(CompletionPolicyHelpers::defineByName("consumer", CompletionPolicy::CompletionOp::Consume));
+}
+#include "Framework/runDataProcessing.h"
 
 #define ASSERT_ERROR(condition)                                   \
   if ((condition) == false) {                                     \
@@ -84,6 +98,19 @@ std::vector<DataProcessorSpec> defineDataProcessing(ConfigContext const&)
   // nParallelChannels and is distributed among the pipelines
   std::vector<o2::header::DataHeader::SubSpecificationType> subspecs(nParallelChannels);
   std::generate(subspecs.begin(), subspecs.end(), [counter = std::make_shared<int>(0)]() { return 0x1 << (*counter)++; });
+  // correspondence between the subspec and the instance which serves this particular subspec
+  // this is checked in the final consumer
+  auto checkMap = std::make_shared<std::unordered_map<o2::header::DataHeader::SubSpecificationType, int>>();
+  {
+    size_t pipeline = 0;
+    for (auto const& subspec : subspecs) {
+      (*checkMap)[subspec] = pipeline;
+      pipeline++;
+      if (pipeline >= nPipelines) {
+        pipeline = 0;
+      }
+    }
+  }
   workflowSpecs = parallelPipeline(
     workflowSpecs, nPipelines,
     [&subspecs]() { return subspecs.size(); },
@@ -98,14 +125,11 @@ std::vector<DataProcessorSpec> defineDataProcessing(ConfigContext const&)
     return outputs;
   };
 
-  // we keep the correspondence between the subspec and the instance which serves this particular subspec
-  // this is checked in the final consumer
-  auto checkMap = std::make_shared<std::unordered_map<o2::header::DataHeader::SubSpecificationType, int>>();
   workflowSpecs.emplace_back(DataProcessorSpec{
     "trigger",
     Inputs{},
     producerOutputs(),
-    AlgorithmSpec{[subspecs, checkMap, counter = std::make_shared<int>(0)](ProcessingContext& ctx) {
+    AlgorithmSpec{[subspecs, counter = std::make_shared<int>(0)](ProcessingContext& ctx) {
       if (*counter < nRolls) {
         size_t pipeline = 0;
         size_t channels = subspecs.size();
@@ -122,7 +146,6 @@ std::vector<DataProcessorSpec> defineDataProcessing(ConfigContext const&)
             continue;
           }
           ctx.outputs().make<int>(Output{"TST", "TRIGGER", subspecs[index], Lifetime::Timeframe}) = pipeline;
-          (*checkMap)[subspecs[index]] = pipeline;
           multiplicities[pipeline++]--;
           if (pipeline >= nPipelines) {
             pipeline = 0;
@@ -138,26 +161,63 @@ std::vector<DataProcessorSpec> defineDataProcessing(ConfigContext const&)
     }}});
 
   // the final consumer
+  // map of bindings is used to check the channel names, note that the object is captured by
+  // reference in mergeInputs which is a helper executed at construction of DataProcessorSpec,
+  // while the AlgorithmSpec stores a lambda to be called later on, and the object must be
+  // passed by copy or move in order to have a valid object upon invocation
+  std::unordered_map<o2::header::DataHeader::SubSpecificationType, std::string> bindings;
   workflowSpecs.emplace_back(DataProcessorSpec{
     "consumer",
     mergeInputs({{"datain", "TST", "DATA", 0, Lifetime::Timeframe},
                  {"metain", "TST", "META", 0, Lifetime::Timeframe}},
                 subspecs.size(),
-                [&subspecs](InputSpec& input, size_t index) {
+                [&subspecs, &bindings](InputSpec& input, size_t index) {
+                  input.binding += std::to_string(index);
                   DataSpecUtils::updateMatchingSubspec(input, subspecs[index]);
+                  if (input.binding.compare(0, 6, "datain") == 0) {
+                    bindings[subspecs[index]] = input.binding;
+                  }
                 }),
     Outputs(),
-    AlgorithmSpec{adaptStateless([checkMap](InputRecord& inputs, CallbackService& callbacks, ControlService&) {
-      callbacks.set(CallbackService::Id::EndOfStream, [](EndOfStreamContext& ctx) {
-        ctx.services().get<ControlService>().readyToQuit(QuitRequest::All);
-      });
-      for (auto const& input : inputs) {
-        LOG(DEBUG) << "consuming : " << *input.spec << ": " << *((int*)input.payload);
-        auto const* dataheader = DataRefUtils::getHeader<o2::header::DataHeader*>(input);
-        if (input.spec->binding.compare(0, 6, "datain") == 0) {
-          ASSERT_ERROR((*checkMap)[dataheader->subSpecification] == inputs.get<int>(input.spec->binding.c_str()));
+    AlgorithmSpec{adaptStateful([checkMap, bindings = std::move(bindings)](CallbackService& callbacks) {
+      callbacks.set(CallbackService::Id::EndOfStream, [checkMap](EndOfStreamContext& ctx) {
+        for (auto const& [subspec, pipeline] : *checkMap) {
+          // we require all checks to be invalidated
+          ASSERT_ERROR(pipeline == -1);
         }
-      }
+        checkMap->clear();
+      });
+      callbacks.set(CallbackService::Id::Stop, [checkMap]() {
+        ASSERT_ERROR(checkMap->size() == 0);
+      });
+      return adaptStateless([checkMap, bindings = std::move(bindings)](InputRecord& inputs) {
+        bool haveDataIn = false;
+        for (auto const& input : inputs) {
+          if (!DataRefUtils::isValid(input)) {
+            continue;
+          }
+          LOG(DEBUG) << "consuming : " << *input.spec << ": " << *((int*)input.payload);
+          auto const* dataheader = DataRefUtils::getHeader<o2::header::DataHeader*>(input);
+          if (input.spec->binding.compare(0, 6, "datain") == 0) {
+            if (input.spec->binding != bindings.at(dataheader->subSpecification)) {
+              LOG(ERROR) << "data with subspec " << dataheader->subSpecification << " at unexpected binding " << input.spec->binding << ", expected " << bindings.at(dataheader->subSpecification);
+            }
+            haveDataIn = true;
+            ASSERT_ERROR(checkMap->at(dataheader->subSpecification) == inputs.get<int>(input.spec->binding.c_str()));
+            // keep a backup before invalidating, the backup is used in the check below, which can throw and therefor
+            // must be after invalidation
+            auto pipeline = checkMap->at(dataheader->subSpecification);
+            // invalidate, we check in the end of stream callback that all are invalidated
+            (*checkMap)[dataheader->subSpecification] = -1;
+            // check if we can access channels by binding
+            if (inputs.isValid(bindings.at(dataheader->subSpecification))) {
+              ASSERT_ERROR(inputs.get<int>(bindings.at(dataheader->subSpecification)) == pipeline);
+            }
+          }
+        }
+        // we require each input cycle to have data on datain channel
+        ASSERT_ERROR(haveDataIn);
+      });
     })}});
 
   return workflowSpecs;

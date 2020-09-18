@@ -17,8 +17,6 @@
 #include <array>
 #endif
 #ifndef ALIGPU_GPUCODE
-#include <iomanip>
-#include <ios>
 #include <iosfwd>
 #endif
 
@@ -27,33 +25,27 @@ namespace o2
 namespace dataformats
 {
 
-// Base primary vertex class, with position, error, N candidates and flags field
-// The Stamp template parameter allows to define vertex (time)stamp in different
-// formats (ITS ROFrame ID, real time + error etc)
-
-template <typename Stamp = o2::dataformats::TimeStamp<int>>
-class Vertex
+// Base primary vertex class, with position, error
+class VertexBase
 {
-  using ushort = unsigned short;
-
  public:
   enum CovElems : int { kCovXX,
                         kCovXY,
                         kCovYY,
                         kCovXZ,
                         kCovYZ,
-                        kCovZZ,
-                        kNCov };
-  static ushort constexpr FlagsMask = 0xffff;
-
-  Vertex() = default;
-  ~Vertex() = default;
-  Vertex(const Point3D<float>& pos, const std::array<float, kNCov>& cov, ushort nCont, float chi2)
-    : mPos(pos), mCov(cov), mNContributors(nCont), mChi2(chi2)
+                        kCovZZ };
+  static constexpr int kNCov = 6;
+  VertexBase() = default;
+  ~VertexBase() = default;
+  VertexBase(const Point3D<float>& pos, const std::array<float, kNCov>& cov) : mPos(pos), mCov(cov)
   {
   }
 
+#ifndef ALIGPU_GPUCODE
   void print() const;
+  std::string asString() const;
+#endif
 
   // getting the cartesian coordinates and errors
   float getX() const { return mPos.X(); }
@@ -99,14 +91,42 @@ class Vertex
   }
   void setCov(const std::array<float, kNCov>& cov) { mCov = cov; }
 
+ protected:
+  Point3D<float> mPos{0., 0., 0.}; ///< cartesian position
+  std::array<float, kNCov> mCov{}; ///< errors, see CovElems enum
+
+  ClassDefNV(VertexBase, 1);
+};
+
+// Base primary vertex class, with position, error, N candidates and flags field
+// The Stamp template parameter allows to define vertex (time)stamp in different
+// formats (ITS ROFrame ID, real time + error etc)
+
+template <typename Stamp>
+class Vertex : public VertexBase
+{
+ public:
+  using ushort = unsigned short;
+  enum Flags : ushort {
+    TimeValidated = 0x1 << 0, // Flag that the vertex was validated by external time measurement (e.g. FIT)
+    FlagsMask = 0xffff
+  };
+
+  Vertex() = default;
+  ~Vertex() = default;
+  Vertex(const Point3D<float>& pos, const std::array<float, kNCov>& cov, ushort nCont, float chi2)
+    : VertexBase(pos, cov), mNContributors(nCont), mChi2(chi2)
+  {
+  }
+
   ushort getNContributors() const { return mNContributors; }
   void setNContributors(ushort v) { mNContributors = v; }
+  void addContributor() { mNContributors++; }
 
-  ushort getBits() const { return mBits; }
-  bool isBitSet(int bit) const { return mBits & (FlagsMask & (0x1 << bit)); }
-  void setBits(ushort b) { mBits = b; }
-  void setBit(int bit) { mBits |= FlagsMask & (0x1 << bit); }
-  void resetBit(int bit) { mBits &= ~(FlagsMask & (0x1 << bit)); }
+  ushort getFlags() const { return mBits; }
+  bool isFlagSet(uint f) const { return mBits & (FlagsMask & f); }
+  void setFlags(ushort f) { mBits |= FlagsMask & f; }
+  void resetFrags(ushort f = FlagsMask) { mBits &= ~(FlagsMask & f); }
 
   void setChi2(float v) { mChi2 = v; }
   float getChi2() const { return mChi2; }
@@ -115,37 +135,19 @@ class Vertex
   Stamp& getTimeStamp() { return mTimeStamp; }
   void setTimeStamp(const Stamp& v) { mTimeStamp = v; }
 
- private:
-  Point3D<float> mPos;           ///< cartesian position
-  std::array<float, kNCov> mCov; ///< errors, see CovElems enum
+ protected:
   float mChi2 = 0;               ///< chi2 or quality of tracks to vertex attachment
   ushort mNContributors = 0;     ///< N contributors
   ushort mBits = 0;              ///< bit field for flags
   Stamp mTimeStamp;              ///< vertex time-stamp
 
-  ClassDefNV(Vertex, 1);
+  ClassDefNV(Vertex, 3);
 };
 
 #ifndef ALIGPU_GPUCODE
-template <typename Stamp>
-std::ostream& operator<<(std::ostream& os, const Vertex<Stamp>& v)
-{
-  // stream itself
-  os << std::scientific << "Vertex X: " << v.getX() << " Y: " << v.getY() << " Z: " << v.getZ()
-     << " NCont: " << v.getNContributors() << " Chi2: " << v.getChi2() << "\nCov.mat:\n"
-     << v.getSigmaX2() << '\n'
-     << v.getSigmaXY() << ' ' << v.getSigmaY2() << '\n'
-     << v.getSigmaXZ() << ' ' << v.getSigmaYZ() << ' ' << v.getSigmaZ2() << '\n'
-     << "TimeStamp: " << v.getTimeStamp();
-  return os;
-}
-
-template <typename Stamp>
-void Vertex<Stamp>::print() const
-{
-  std::cout << *this << std::endl;
-}
+std::ostream& operator<<(std::ostream& os, const o2::dataformats::VertexBase& v);
 #endif
+
 } // namespace dataformats
 } // namespace o2
 #endif

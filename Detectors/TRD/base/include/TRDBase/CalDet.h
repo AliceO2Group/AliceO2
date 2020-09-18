@@ -18,6 +18,8 @@
 //                                                                           //
 ///////////////////////////////////////////////////////////////////////////////
 
+#include "DataFormatsTRD/Constants.h"
+
 class TRDGeometry;
 class TRDPadPlane;
 
@@ -31,10 +33,6 @@ namespace trd
 class CalDet
 {
  public:
-  enum { kNplan = 6,
-         kNcham = 5,
-         kNsect = 18,
-         kNdet = 540 };
   CalDet(std::string name = "CalDet", std::string title = "CalDet") : mName(name), mTitle(title){};
   ~CalDet() = default;
   //
@@ -71,7 +69,7 @@ class CalDet
   void divide(const CalDet* calDet);
 
  protected:
-  std::array<float, kNdet> mData{}; // Data
+  std::array<float, constants::NSECTOR> mData{}; // Data
   std::string mName;                // name for spectra, carried over originally from inheritence from TNamed
   std::string mTitle;               // title prepend for spectra, carried over originally from inheritence from TNamed
 };

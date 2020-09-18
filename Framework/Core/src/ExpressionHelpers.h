@@ -13,12 +13,13 @@
 
 #include <vector>
 #include <iosfwd>
+#include <fmt/format.h>
 
 namespace o2::framework::expressions
 {
 /// a map between BasicOp and gandiva node definitions
 /// note that logical 'and' and 'or' are created separately
-static std::array<std::string, BasicOp::NotEqual + 1> binaryOperationsMap = {
+static std::array<std::string, BasicOp::Abs + 1> binaryOperationsMap = {
   "and",
   "or",
   "add",
@@ -30,17 +31,29 @@ static std::array<std::string, BasicOp::NotEqual + 1> binaryOperationsMap = {
   "greater_than",
   "greater_than_or_equal_to",
   "equal",
-  "not_equal"};
+  "not_equal",
+  "powerf",
+  "sqrtf",
+  "expf",
+  "logf",
+  "log10f",
+  "sinf",
+  "cosf",
+  "tanf",
+  "asinf",
+  "acosf",
+  "atanf",
+  "absf"};
 
 struct DatumSpec {
   /// datum spec either contains an index, a value of a literal or a binding label
   using datum_t = std::variant<std::monostate, size_t, LiteralNode::var_t, std::string>;
-  datum_t datum;
+  datum_t datum = std::monostate{};
   atype::type type = atype::NA;
   explicit DatumSpec(size_t index, atype::type type_) : datum{index}, type{type_} {}
   explicit DatumSpec(LiteralNode::var_t literal, atype::type type_) : datum{literal}, type{type_} {}
   explicit DatumSpec(std::string binding, atype::type type_) : datum{binding}, type{type_} {}
-  DatumSpec() : datum{std::monostate{}} {}
+  DatumSpec() = default;
   DatumSpec(DatumSpec const&) = default;
   DatumSpec(DatumSpec&&) = default;
   DatumSpec& operator=(DatumSpec const&) = default;
@@ -58,6 +71,7 @@ struct ColumnOperationSpec {
   DatumSpec result;
   atype::type type = atype::NA;
   ColumnOperationSpec() = default;
+  // TODO: extend this to support unary ops seamlessly
   explicit ColumnOperationSpec(BasicOp op_) : op{op_},
                                               left{},
                                               right{},
@@ -74,11 +88,21 @@ struct ColumnOperationSpec {
       case BasicOp::NotEqual:
         type = atype::BOOL;
         break;
+      case BasicOp::Division:
+        type = atype::FLOAT;
       default:
         type = atype::NA;
     }
     result.type = type;
   }
+};
+
+/// helper struct used to parse trees
+struct NodeRecord {
+  /// pointer to the actual tree node
+  Node* node_ptr = nullptr;
+  size_t index = 0;
+  explicit NodeRecord(Node* node_, size_t index_) : node_ptr(node_), index{index_} {}
 };
 } // namespace o2::framework::expressions
 

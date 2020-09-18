@@ -39,8 +39,8 @@ using namespace o2::passive;
 
 Magnet::~Magnet() = default;
 
-Magnet::Magnet() : FairModule("Magnet", "") {}
-Magnet::Magnet(const char* name, const char* Title) : FairModule(name, Title) {}
+Magnet::Magnet() : PassiveBase("MAG", "") {}
+Magnet::Magnet(const char* name, const char* Title) : PassiveBase(name, Title) {}
 Magnet::Magnet(const Magnet& rhs) = default;
 
 Magnet& Magnet::operator=(const Magnet& rhs)
@@ -50,7 +50,7 @@ Magnet& Magnet::operator=(const Magnet& rhs)
     return *this;
 
   // base class assignment
-  FairModule::operator=(rhs);
+  PassiveBase::operator=(rhs);
 
   return *this;
 }
@@ -172,7 +172,7 @@ void Magnet::ConstructGeometry()
 
   //
   // Top volume
-  TGeoVolume* top = gGeoManager->GetVolume("cave");
+  TGeoVolume* top = gGeoManager->GetVolume("barrel");
   assert(top);
 
   // Media
@@ -393,7 +393,7 @@ void Magnet::ConstructGeometry()
   l3->AddNode(voL3PlugSPR, 2, new TGeoCombiTrans(0., 0., 0., rotxz));
   l3->AddNode(voL3PlugSPL, 1, new TGeoTranslation(0., 0., 0.));
   l3->AddNode(voL3PlugSPL, 2, new TGeoCombiTrans(0., 0., 0., rotxz));
-  top->AddNode(l3, 1, new TGeoTranslation(0., os, 0.));
+  top->AddNode(l3, 1, new TGeoTranslation(0., 0., 0.));
 }
 
 FairModule* Magnet::CloneModule() const { return new Magnet(*this); }

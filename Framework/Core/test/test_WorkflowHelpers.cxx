@@ -28,9 +28,14 @@ std::unique_ptr<ConfigContext> makeEmptyConfigContext()
 {
   // FIXME: Ugly... We need to fix ownership and make sure the ConfigContext
   //        either owns or shares ownership of the registry.
-  static std::unique_ptr<ParamRetriever> retriever(new SimpleOptionsRetriever);
-  static ConfigParamRegistry registry{std::move(retriever)};
-  auto context = std::make_unique<ConfigContext>(registry);
+  std::vector<std::unique_ptr<ParamRetriever>> retrievers;
+  static std::vector<ConfigParamSpec> specs;
+  specs.push_back(ConfigParamSpec{"dangling-outputs-policy", VariantType::String, "file", {"what to do with dangling outputs. file: write to file, fairmq: send to output proxy"}});
+  auto store = std::make_unique<ConfigParamStore>(specs, std::move(retrievers));
+  store->preload();
+  store->activate();
+  static ConfigParamRegistry registry(std::move(store));
+  auto context = std::make_unique<ConfigContext>(registry, 0, nullptr);
   return context;
 }
 
@@ -325,7 +330,7 @@ BOOST_AUTO_TEST_CASE(TestGraphConstruction)
   std::vector<ConcreteDataMatcher> expectedMatchers = {
     ConcreteDataMatcher{"TST", "A", 0},
     ConcreteDataMatcher{"TST", "B", 0},
-    ConcreteDataMatcher{"DPL", "ENUM", 1}, // Enums value
+    ConcreteDataMatcher{"DPL", "ENUM", compile_time_hash("A")}, // Enums value
   };
 
   std::vector<Lifetime> expectedLifetimes = {

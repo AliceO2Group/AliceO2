@@ -16,16 +16,21 @@ using namespace o2::tof;
 
 ClassImp(o2::tof::Digit);
 
-Digit::Digit(Int_t channel, Int_t tdc, Int_t tot, Int_t bc, Int_t label)
-  : mChannel(channel), mTDC(tdc), mTOT(tot), mBC(bc), mLabel(label), mIsUsedInCluster(kFALSE)
+Digit::Digit(Int_t channel, Int_t tdc, Int_t tot, uint64_t bc, Int_t label, uint32_t triggerorbit, uint16_t triggerbunch)
+  : mChannel(channel), mTDC(tdc), mTOT(tot), mIR(0, 0), mLabel(label), mTriggerOrbit(triggerorbit), mTriggerBunch(triggerbunch), mIsUsedInCluster(kFALSE)
+{
+  mIR.setFromLong(bc);
+}
+//______________________________________________________________________
+Digit::Digit(Int_t channel, Int_t tdc, Int_t tot, uint32_t orbit, uint16_t bc, Int_t label, uint32_t triggerorbit, uint16_t triggerbunch)
+  : mChannel(channel), mTDC(tdc), mTOT(tot), mIR(bc, orbit), mLabel(label), mTriggerOrbit(triggerorbit), mTriggerBunch(triggerbunch), mIsUsedInCluster(kFALSE)
 {
 }
-
 //______________________________________________________________________
 
 void Digit::printStream(std::ostream& stream) const
 {
-  stream << "TOF Digit: Channel " << mChannel << " TDC " << mTDC << " TOT " << mTOT << "Bunch Crossing index" << mBC << " Label " << mLabel << "\n";
+  stream << "TOF Digit: Channel " << mChannel << " TDC " << mTDC << " TOT " << mTOT << "Bunch Crossing index" << mIR.toLong() << " Label " << mLabel << "\n";
 }
 
 //______________________________________________________________________
@@ -53,7 +58,7 @@ void Digit::merge(Int_t tdc, Int_t tot)
 
 //______________________________________________________________________
 
-void Digit::getPhiAndEtaIndex(int& phi, int& eta)
+void Digit::getPhiAndEtaIndex(int& phi, int& eta) const
 {
 
   // method that returns the index in phi and eta of the digit

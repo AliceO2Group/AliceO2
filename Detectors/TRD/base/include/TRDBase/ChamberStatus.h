@@ -23,6 +23,7 @@
 #include <array>
 #include "TRDBase/TRDGeometry.h"
 #include "TRDBase/TRDSimParam.h"
+#include "DataFormatsTRD/Constants.h"
 class TH2D;
 
 namespace o2
@@ -39,7 +40,6 @@ class ChamberStatus
          kNoDataHalfChamberSideB = 3,
          kBadCalibrated = 4,
          kNotCalibrated = 5 };
-  // the above it the bitth position of the status, i.e. kGood is the 0th bit being true
   enum { kGoodpat = 1,
          kNoDatapat = 2,
          kNoDataHalfChamberSideApat = 4,
@@ -68,7 +68,7 @@ class ChamberStatus
   TH2D* plotBadCalibrated(int sm, int rphi); // Plot calibration status for sm and halfchamberside
   TH2D* plot(int sm);                        // Plot mStatus for sm
  protected:
-  std::array<char, TRDSimParam::kNdet> mStatus{};
+  std::array<char, constants::MAXCHAMBER> mStatus{};
 };
 } // namespace trd
 } // namespace o2

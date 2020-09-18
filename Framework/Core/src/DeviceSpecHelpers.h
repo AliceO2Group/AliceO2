@@ -35,6 +35,8 @@ namespace o2
 {
 namespace framework
 {
+struct InputChannelSpec;
+struct OutputChannelSpec;
 
 struct DeviceSpecHelpers {
   /// Helper to convert from an abstract dataflow specification, @a workflow,
@@ -46,7 +48,9 @@ struct DeviceSpecHelpers {
     std::vector<DispatchPolicy> const& dispatchPolicies,
     std::vector<DeviceSpec>& devices,
     ResourceManager& resourceManager,
-    std::string const& uniqueWorkflowId);
+    std::string const& uniqueWorkflowId,
+    bool optimizeTopology = false,
+    unsigned short resourcesMonitoringInterval = 0);
 
   static void dataProcessorSpecs2DeviceSpecs(
     const WorkflowSpec& workflow,
@@ -54,12 +58,24 @@ struct DeviceSpecHelpers {
     std::vector<CompletionPolicy> const& completionPolicies,
     std::vector<DeviceSpec>& devices,
     ResourceManager& resourceManager,
-    std::string const& uniqueWorkflowId)
+    std::string const& uniqueWorkflowId,
+    bool optimizeTopology = false,
+    unsigned short resourcesMonitoringInterval = 0)
   {
     std::vector<DispatchPolicy> dispatchPolicies = DispatchPolicy::createDefaultPolicies();
-    dataProcessorSpecs2DeviceSpecs(workflow, channelPolicies, completionPolicies, dispatchPolicies, devices, resourceManager, uniqueWorkflowId);
+    dataProcessorSpecs2DeviceSpecs(workflow, channelPolicies, completionPolicies,
+                                   dispatchPolicies, devices, resourceManager, uniqueWorkflowId, optimizeTopology, resourcesMonitoringInterval);
   }
 
+  /// Helper to provide the channel configuration string for an input channel
+  static std::string inputChannel2String(const InputChannelSpec& channel);
+
+  /// Helper to provide the channel configuration string for an output channel
+  static std::string outputChannel2String(const OutputChannelSpec& channel);
+
+  /// Rework the infos so that they have a consisten --shm-section-size
+  /// which is the maximum of the specified value.
+  static void reworkShmSegmentSize(std::vector<DataProcessorInfo>& infos);
   /// Helper to prepare the arguments which will be used to
   /// start the various devices.
   static void prepareArguments(
@@ -68,7 +84,8 @@ struct DeviceSpecHelpers {
     std::vector<DataProcessorInfo> const& processorInfos,
     std::vector<DeviceSpec> const& deviceSpecs,
     std::vector<DeviceExecution>& deviceExecutions,
-    std::vector<DeviceControl>& deviceControls);
+    std::vector<DeviceControl>& deviceControls,
+    std::string const& uniqueWorkflowId);
 
   /// This takes the list of preprocessed edges of a graph
   /// and creates Devices and Channels which are related

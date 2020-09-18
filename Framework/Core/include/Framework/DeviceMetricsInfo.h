@@ -27,6 +27,7 @@ enum class MetricType {
   Int = 0,
   String = 1,
   Float = 2,
+  Uint64 = 3,
   Unknown
 };
 
@@ -36,6 +37,7 @@ struct MetricInfo {
   enum MetricType type;
   size_t storeIdx; // Index in the actual store
   size_t pos;      // Last position in the circular buffer
+  size_t filledMetrics;
 };
 
 // We keep only fixed lenght strings for metrics, as in the end this is not
@@ -61,6 +63,7 @@ struct ParsedMetricMatch {
   MetricType type;
   int intValue;
   float floatValue;
+  uint64_t uint64Value;
   char const* beginStringValue;
   char const* endStringValue;
 };
@@ -71,6 +74,7 @@ struct DeviceMetricsInfo {
   // We keep the size of each metric to 4096 bytes. No need for more
   // for the debug GUI
   std::vector<std::array<int, 1024>> intMetrics;
+  std::vector<std::array<uint64_t, 1024>> uint64Metrics;
   std::vector<std::array<StringMetric, 32>> stringMetrics; // We do not keep so many strings as metrics as history is less relevant.
   std::vector<std::array<float, 1024>> floatMetrics;
   std::vector<std::array<size_t, 1024>> timestamps;

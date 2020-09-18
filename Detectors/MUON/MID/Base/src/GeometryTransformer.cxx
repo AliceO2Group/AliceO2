@@ -90,7 +90,11 @@ GeometryTransformer createTransformationFromManager(const TGeoManager* geoManage
   for (int ide = 0; ide < detparams::NDetectionElements; ++ide) {
     int ichamber = detparams::getChamber(ide);
     std::stringstream volPath;
-    volPath << geoManager->GetTopVolume()->GetName() << "/" << geoparams::getChamberVolumeName(ichamber) << "_1/" << geoparams::getRPCVolumeName(geoparams::getRPCType(ide), ichamber) << "_" << std::to_string(ide);
+    volPath << geoManager->GetTopVolume()->GetName() << "/";
+    if (geoManager->GetVolume("YOUT2")) {
+      volPath << "YOUT2_1/";
+    }
+    volPath << geoparams::getChamberVolumeName(ichamber) << "_1/" << geoparams::getRPCVolumeName(geoparams::getRPCType(ide), ichamber) << "_" << std::to_string(ide);
     if (!navig->cd(volPath.str().c_str())) {
       throw std::runtime_error("Could not get to volPathName=" + volPath.str());
     }

@@ -72,6 +72,4 @@ void SetCuts()
   const char* settingCut = mgr.specialCutsEnabled() ? "enabled" : "disabled";
   LOG(INFO) << "Special process settings are " << settingProc << ".";
   LOG(INFO) << "Special cut settings are " << settingCut << ".";
-  mgr.printProcesses();
-  mgr.printCuts();
 }

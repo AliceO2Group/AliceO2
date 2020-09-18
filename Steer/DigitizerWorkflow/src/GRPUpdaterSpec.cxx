@@ -38,6 +38,8 @@ class GRPDPLUpdatedTask
   using GRP = o2::parameters::GRPObject;
 
  public:
+  GRPDPLUpdatedTask(const std::string& grpfilename) : mGRPFileName{grpfilename} {}
+
   void init(framework::InitContext& ic)
   {
     // nothing special to be set up
@@ -45,15 +47,14 @@ class GRPDPLUpdatedTask
 
   void run(framework::ProcessingContext& pc)
   {
-    const std::string inputGRP = "o2sim_grp.root";
     const std::string grpName = "GRP";
     if (mFinished) {
       return;
     }
 
-    TFile flGRP(inputGRP.c_str(), "update");
+    TFile flGRP(mGRPFileName.c_str(), "update");
     if (flGRP.IsZombie()) {
-      LOG(ERROR) << "Failed to open  in update mode " << inputGRP;
+      LOG(ERROR) << "Failed to open  in update mode " << mGRPFileName;
       return;
     }
     std::unique_ptr<GRP> grp(static_cast<GRP*>(flGRP.GetObjectChecked(grpName.c_str(), GRP::Class())));
@@ -65,7 +66,7 @@ class GRPDPLUpdatedTask
       }
       grp->setDetROMode(det, roMode);
     }
-    LOG(INFO) << "Updated GRP in " << inputGRP << " for detectors RO mode";
+    LOG(INFO) << "Updated GRP in " << mGRPFileName << " for detectors RO mode";
     grp->print();
     flGRP.WriteObjectAny(grp.get(), grp->Class(), grpName.c_str());
     flGRP.Close();
@@ -76,32 +77,26 @@ class GRPDPLUpdatedTask
 
  private:
   bool mFinished = false;
+  std::string mGRPFileName = "o2sim_grp.root";
 };
 
 /// create the processor spec
-o2::framework::DataProcessorSpec getGRPUpdaterSpec(const std::vector<o2::detectors::DetID>& detList)
+o2::framework::DataProcessorSpec getGRPUpdaterSpec(const std::string& grpfilename, const std::vector<o2::detectors::DetID>& detList)
 {
   sDetList = detList;
-  static constexpr std::array<o2::header::DataOrigin, o2::detectors::DetID::nDetectors> sOrigins = {
-    o2::header::gDataOriginITS, o2::header::gDataOriginTPC, o2::header::gDataOriginTRD,
-    o2::header::gDataOriginTOF, o2::header::gDataOriginPHS, o2::header::gDataOriginCPV,
-    o2::header::gDataOriginEMC, o2::header::gDataOriginHMP, o2::header::gDataOriginMFT,
-    o2::header::gDataOriginMCH, o2::header::gDataOriginMID, o2::header::gDataOriginZDC,
-    o2::header::gDataOriginFT0, o2::header::gDataOriginFV0, o2::header::gDataOriginFDD,
-    o2::header::gDataOriginACO};
 
   // prepare specs
   std::vector<InputSpec> inputs;
   for (const auto det : detList) {
-    inputs.emplace_back(InputSpec{det.getName(), sOrigins[det], "ROMode",
-                                  static_cast<SubSpecificationType>(0 /*det.second*/), Lifetime::Timeframe});
+    inputs.emplace_back(InputSpec{det.getName(), det.getDataOrigin(), "ROMode",
+                                  static_cast<SubSpecificationType>(0), Lifetime::Timeframe});
   }
 
   return DataProcessorSpec{
     "GRPUpdater",
     inputs, // input status from each detector
     {},     // no output
-    AlgorithmSpec{adaptFromTask<GRPDPLUpdatedTask>()},
+    AlgorithmSpec{adaptFromTask<GRPDPLUpdatedTask>(grpfilename)},
     Options{/* for the moment no options */}};
 }
 

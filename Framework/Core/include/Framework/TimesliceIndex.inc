@@ -117,13 +117,13 @@ inline TimesliceId TimesliceIndex::getTimesliceForSlot(TimesliceSlot slot) const
   return TimesliceId{*pval};
 }
 
-inline data_matcher::VariableContext &TimesliceIndex::getVariablesForSlot(TimesliceSlot slot)
+inline data_matcher::VariableContext& TimesliceIndex::getVariablesForSlot(TimesliceSlot slot)
 {
   assert(mVariables.size() > slot.index);
   return mVariables[slot.index];
 }
 
-inline data_matcher::VariableContext &TimesliceIndex::getPublishedVariablesForSlot(TimesliceSlot slot)
+inline data_matcher::VariableContext& TimesliceIndex::getPublishedVariablesForSlot(TimesliceSlot slot)
 {
   assert(mPublishedVariables.size() > slot.index);
   return mPublishedVariables[slot.index];

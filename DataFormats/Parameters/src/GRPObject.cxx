@@ -108,19 +108,19 @@ GRPObject::ROMode GRPObject::getDetROMode(o2::detectors::DetID id) const
 }
 
 //_______________________________________________
-GRPObject* GRPObject::loadFrom(const std::string grpFileName, std::string grpName)
+GRPObject* GRPObject::loadFrom(const std::string& grpFileName, const std::string& grpName)
 {
   // load object from file
   TFile flGRP(grpFileName.data());
   if (flGRP.IsZombie()) {
     LOG(ERROR) << "Failed to open " << grpFileName;
-    return nullptr;
+    throw std::runtime_error("Failed to open GRP file");
   }
   auto grp = reinterpret_cast<o2::parameters::GRPObject*>(
     flGRP.GetObjectChecked(grpName.data(), o2::parameters::GRPObject::Class()));
   if (!grp) {
     LOG(ERROR) << "Did not find GRP object named " << grpName;
-    return nullptr;
+    throw std::runtime_error("Failed to load GRP object");
   }
   return grp;
 }

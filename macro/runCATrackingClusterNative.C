@@ -58,7 +58,7 @@ int runCATrackingClusterNative(TString inputFile, TString outputFile)
   // Just some default options to keep the macro running for now
   // Should be deprecated anyway in favor of the TPC workflow
   GPUO2InterfaceConfiguration config;
-  config.configEvent.continuousMaxTimeBin = 0.023 * 5e6;
+  config.configEvent.continuousMaxTimeBin = GPUSettings::TPC_MAX_TF_TIME_BIN;
   config.configReconstruction.NWays = 3;
   config.configReconstruction.NWaysOuter = true;
   config.configReconstruction.SearchWindowDZDR = 2.5f;
@@ -74,8 +74,8 @@ int runCATrackingClusterNative(TString inputFile, TString outputFile)
   bool doMC = true;
 
   TFile fin(inputFile);
-  for (int i = 0; i < Constants::MAXSECTOR; i++) {
-    for (int j = 0; j < Constants::MAXGLOBALPADROW; j++) {
+  for (int i = 0; i < o2::tpc::constants::MAXSECTOR; i++) {
+    for (int j = 0; j < o2::tpc::constants::MAXGLOBALPADROW; j++) {
       TString contName = Form("clusters_sector_%d_row_%d", i, j);
       TObject* tmp = fin.FindObjectAny(contName);
       if (tmp == nullptr) {
@@ -100,7 +100,7 @@ int runCATrackingClusterNative(TString inputFile, TString outputFile)
 
   vector<TrackTPC> tracks;
   vector<TPCClRefElem> trackClusRefs;
-  MCLabelContainer tracksMC;
+  std::vector<o2::MCCompLabel> tracksMC;
 
   TFile fout(outputFile, "recreate");
   TTree tout("events", "events");
@@ -121,7 +121,6 @@ int runCATrackingClusterNative(TString inputFile, TString outputFile)
   }
 
   float artificialVDrift = tracker.getPseudoVDrift();
-  float tfReferenceLength = tracker.getTFReferenceLength();
 
   // partial printout of 100 tracks
   int step = tracks.size() / 100;

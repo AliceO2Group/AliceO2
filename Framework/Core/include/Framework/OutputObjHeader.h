@@ -30,16 +30,19 @@ enum OutputObjHandlingPolicy : unsigned int {
 /// @brief O2 header for OutputObj metadata
 struct OutputObjHeader : public BaseHeader {
   constexpr static const uint32_t sVersion = 1;
-  constexpr static const o2::header::HeaderType sHeaderType = "OytObjMD";
+  constexpr static const o2::header::HeaderType sHeaderType = "OutObjMD";
   constexpr static const o2::header::SerializationMethod sSerializationMethod = o2::header::gSerializationMethodNone;
   OutputObjHandlingPolicy mPolicy;
+  uint32_t mTaskHash;
 
   constexpr OutputObjHeader()
     : BaseHeader(sizeof(OutputObjHeader), sHeaderType, sSerializationMethod, sVersion),
-      mPolicy{OutputObjHandlingPolicy::AnalysisObject} {}
-  constexpr OutputObjHeader(OutputObjHandlingPolicy policy)
+      mPolicy{OutputObjHandlingPolicy::AnalysisObject},
+      mTaskHash{0} {}
+  constexpr OutputObjHeader(OutputObjHandlingPolicy policy, uint32_t hash)
     : BaseHeader(sizeof(OutputObjHeader), sHeaderType, sSerializationMethod, sVersion),
-      mPolicy{policy} {}
+      mPolicy{policy},
+      mTaskHash{hash} {}
   constexpr OutputObjHeader(OutputObjHeader const&) = default;
 };
 

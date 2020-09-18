@@ -56,7 +56,7 @@ DeviceStoreVertexerGPU::DeviceStoreVertexerGPU()
     mNFoundDuplets[iPair] = Vector<int>{mGPUConf.clustersPerLayerCapacity, mGPUConf.clustersPerLayerCapacity}; // 4e4 * 2 * sizeof(int) = 320KB
   }
   for (int iHisto{0}; iHisto < 3; ++iHisto) {
-    mHistogramXYZ[iHisto] = Vector<int>{mGPUConf.nBinsXYZ[iHisto], mGPUConf.nBinsXYZ[iHisto]};
+    mHistogramXYZ[iHisto] = Vector<int>{mGPUConf.histConf.nBinsXYZ[iHisto], mGPUConf.histConf.nBinsXYZ[iHisto]};
   }
 
 #ifdef _ALLOW_DEBUG_TREES_ITS_
@@ -71,9 +71,12 @@ UniquePointer<DeviceStoreVertexerGPU> DeviceStoreVertexerGPU::initialise(const s
                                                                          const std::array<std::array<int, constants::index_table::ZBins * constants::index_table::PhiBins + 1>,
                                                                                           constants::its::LayersNumberVertexer>& indexTables)
 {
+#ifdef _ALLOW_DEBUG_TREES_ITS_
   std::array<int, constants::its::LayersNumberVertexer> tmpSizes = {static_cast<int>(clusters[0].size()),
                                                                     static_cast<int>(clusters[1].size()),
                                                                     static_cast<int>(clusters[2].size())};
+  mSizes.reset(tmpSizes.data(), static_cast<int>(3));
+#endif
   for (int iLayer{0}; iLayer < constants::its::LayersNumberVertexer; ++iLayer) {
     mClusters[iLayer].reset(clusters[iLayer].data(), static_cast<int>(clusters[iLayer].size()));
   }

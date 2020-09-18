@@ -14,6 +14,7 @@
 #define O2_ITS_TRACKREADER
 
 #include "TFile.h"
+#include "TTree.h"
 
 #include "Framework/DataProcessorSpec.h"
 #include "Framework/Task.h"
@@ -40,20 +41,21 @@ class TrackReader : public o2::framework::Task
   void run(o2::framework::ProcessingContext& pc) final;
 
  protected:
-  void accumulate();
+  void connectTree(const std::string& filename);
 
   std::vector<o2::itsmft::ROFRecord> mROFRec, *mROFRecInp = &mROFRec;
   std::vector<o2::itsmft::ROFRecord> mVerticesROFRec, *mVerticesROFRecInp = &mVerticesROFRec;
   std::vector<o2::its::TrackITS> mTracks, *mTracksInp = &mTracks;
   std::vector<Vertex> mVertices, *mVerticesInp = &mVertices;
   std::vector<int> mClusInd, *mClusIndInp = &mClusInd;
-  o2::dataformats::MCTruthContainer<o2::MCCompLabel> mMCTruth, *mMCTruthInp = &mMCTruth;
+  std::vector<o2::MCCompLabel> mMCTruth, *mMCTruthInp = &mMCTruth;
 
   o2::header::DataOrigin mOrigin = o2::header::gDataOriginITS;
 
-  bool mFinished = false;
   bool mUseMC = true; // use MC truth
 
+  std::unique_ptr<TFile> mFile;
+  std::unique_ptr<TTree> mTree;
   std::string mInputFileName = "";
   std::string mTrackTreeName = "o2sim";
   std::string mROFBranchName = "ITSTracksROF";

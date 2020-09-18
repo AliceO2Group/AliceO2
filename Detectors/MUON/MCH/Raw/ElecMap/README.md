@@ -14,12 +14,17 @@ detection elements.
 The solar board based id is represented by the class [DsElecId](include/MCHRawElecMap/DsElecId.h)
 while the detection element based one is represented by the class [DsDetId](include/MCHRawElecMap/DsDetId.h)
 
-In addition, one must know to which CRU a given solar board is connected.
+In addition, one must know to which CRU a given solar board is connected.  This
+is currently handled with the help of the
+[FeeLinkId](include/MCHRawElecMap/FeeLinkId.h) class which store a pair
+`(FeeId,LinkId)`, where the `FeeId` is basically `cruId * 2 + endpoint`
+(remember here that each CRU has two endpoints, each handling 12 links out of
+the 24 of a CRU).
 
 As the time of this writing the electronic mapping is still a bit in flux, as :
 
 -   the detector electronic is still being (re)installed
--   the CRU to Solar part is still to be clarified
+-   the FeeId,LinkId to Solar part is still to be implemented at Pt2
 
 so things might evolve...
 

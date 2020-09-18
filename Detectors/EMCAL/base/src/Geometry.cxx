@@ -83,7 +83,8 @@ Geometry::Geometry(const Geometry& geo)
     mTrd1BondPaperThick(geo.mTrd1BondPaperThick),
     mILOSS(geo.mILOSS),
     mIHADR(geo.mIHADR),
-    mSteelFrontThick(geo.mSteelFrontThick) // obsolete data member?
+    mSteelFrontThick(geo.mSteelFrontThick), // obsolete data member?
+    mCellIndexLookup(geo.mCellIndexLookup)
 {
   memcpy(mEnvelop, geo.mEnvelop, sizeof(Float_t) * 3);
   memcpy(mParSM, geo.mParSM, sizeof(Float_t) * 3);
@@ -154,6 +155,11 @@ Geometry::Geometry(const std::string_view name, const std::string_view mcname, c
   mNCellsInModule = mNPHIdiv * mNETAdiv;
 
   CreateListOfTrd1Modules();
+
+  mCellIndexLookup.resize(mNCells);
+  for (auto icell = 0; icell < mNCells; icell++) {
+    mCellIndexLookup[icell] = CalculateCellIndex(icell);
+  }
 
   memset(SMODULEMATRIX, 0, sizeof(TGeoHMatrix*) * EMCAL_MODULES);
 
@@ -750,26 +756,78 @@ Int_t Geometry::GetAbsCellIdFromCellIndexes(Int_t nSupMod, Int_t iphi, Int_t iet
 
 std::tuple<int, int> Geometry::GlobalRowColFromIndex(int cellID) const
 {
-  auto indexes = GetCellIndex(cellID);
-  auto supermodule = std::get<0>(indexes),
-       module = std::get<1>(indexes),
-       nPhiInMod = std::get<2>(indexes),
-       nEtaInMod = std::get<3>(indexes);
-  auto rcSupermodule = GetCellPhiEtaIndexInSModule(supermodule, nPhiInMod, nPhiInMod, nEtaInMod);
-  auto row = std::get<0>(rcSupermodule),
-       col = std::get<1>(rcSupermodule);
+  if (cellID >= GetNCells())
+    throw InvalidCellIDException(cellID);
+  auto [supermodule, module, phiInModule, etaInModule] = GetCellIndex(cellID);
+  auto [row, col] = GetCellPhiEtaIndexInSModule(supermodule, module, phiInModule, etaInModule);
   // add offsets (row / col per supermodule)
+  if (supermodule == 13 || supermodule == 15 || supermodule == 17) {
+    // DCal odd SMs need shift of the col. index in oder to get the global col. index
+    col += 16;
+  }
   if (supermodule % 2)
     col += mNZ * 2;
   int sector = supermodule / 2;
   if (sector > 0) {
-    for (int isec = 0; isec < sector - 1; isec++) {
+    for (int isec = 0; isec < sector; isec++) {
       auto smtype = GetSMType(isec * 2);
       auto nphism = (smtype == EMCAL_THIRD || smtype == DCAL_EXT) ? GetNPhi() / 3 : GetNPhi();
       row += 2 * nphism;
     }
   }
   return std::make_tuple(row, col);
+}
+
+std::tuple<int, int, int> Geometry::GetPositionInSupermoduleFromGlobalRowCol(int row, int col) const
+{
+  if (col < 0 || col >= 4 * GetNEta())
+    throw RowColException(row, col);
+  int side = col < GetNEta() * 2 ? 0 : 1,
+      colSM = col % (GetNEta() * 2);
+  int sector = -1,
+      rowSM = row;
+  for (int isec = 0; isec < GetNPhiSuperModule(); isec++) {
+    auto smtype = GetSMType(isec * 2);
+    auto nphism = GetNPhi() * 2;
+    if (smtype == EMCAL_THIRD || smtype == DCAL_EXT)
+      nphism /= 3;
+    if (rowSM < nphism) {
+      sector = isec;
+      break;
+    }
+    rowSM -= nphism;
+  }
+  if (sector < 0)
+    throw RowColException(row, col);
+  int supermodule = sector * 2 + side;
+  if (supermodule == 13 || supermodule == 15 || supermodule == 17) {
+    // DCal odd SMs need shift of the col. index as global col index includes PHOS hole
+    colSM -= 16;
+    if (colSM < 0)
+      throw RowColException(row, col); // Position inside PHOS hole specified
+  }
+  if (supermodule == 12 || supermodule == 14 || supermodule == 16) {
+    if (colSM > 32)
+      throw RowColException(row, col); // Position inside PHOS hole specified
+  }
+  return std::make_tuple(supermodule, rowSM, colSM);
+}
+
+int Geometry::GetCellAbsIDFromGlobalRowCol(int row, int col) const
+{
+  auto [supermodule, rowSM, colSM] = GetPositionInSupermoduleFromGlobalRowCol(row, col);
+  return GetAbsCellIdFromCellIndexes(supermodule, rowSM, colSM);
+}
+
+std::tuple<int, int, int, int> Geometry::GetCellIndexFromGlobalRowCol(int row, int col) const
+{
+  auto [supermodule, rowSM, colSM] = GetPositionInSupermoduleFromGlobalRowCol(row, col);
+  auto indexmod = GetModuleIndexesFromCellIndexesInSModule(supermodule, rowSM, colSM);
+
+  Int_t colInModule = colSM % mNETAdiv,
+        rowInMOdule = rowSM % mNPHIdiv;
+  colInModule = mNETAdiv - 1 - colInModule;
+  return std::make_tuple(supermodule, std::get<2>(indexmod), rowInMOdule, colInModule);
 }
 
 int Geometry::GlobalCol(int cellID) const
@@ -871,7 +929,7 @@ Int_t Geometry::GetAbsCellIdFromEtaPhi(Double_t eta, Double_t phi) const
   return GetAbsCellIdFromCellIndexes(nSupMod, iphi, ieta);
 }
 
-std::tuple<int, int, int, int> Geometry::GetCellIndex(Int_t absId) const
+std::tuple<int, int, int, int> Geometry::CalculateCellIndex(Int_t absId) const
 {
   if (!CheckAbsCellId(absId))
     throw InvalidCellIDException(absId);
@@ -904,6 +962,13 @@ std::tuple<int, int, int, int> Geometry::GetCellIndex(Int_t absId) const
   return std::make_tuple(nSupMod, nModule, nIphi, nIeta);
 }
 
+std::tuple<int, int, int, int> Geometry::GetCellIndex(Int_t absId) const
+{
+  if (!CheckAbsCellId(absId))
+    throw InvalidCellIDException(absId);
+  return mCellIndexLookup[absId];
+}
+
 Int_t Geometry::GetSuperModuleNumber(Int_t absId) const { return std::get<0>(GetCellIndex(absId)); }
 
 std::tuple<int, int> Geometry::GetModulePhiEtaIndexInSModule(Int_t nSupMod, Int_t nModule) const
@@ -931,9 +996,10 @@ std::tuple<int, int> Geometry::GetCellPhiEtaIndexInSModule(Int_t nSupMod, Int_t 
   Int_t ieta = ietam * mNETAdiv + (mNETAdiv - 1 - nIeta); // x(module) = -z(SM)
   Int_t iphi = iphim * mNPHIdiv + nIphi;                  // y(module) =  y(SM)
 
-  if (iphi < 0 || ieta < 0)
+  if (iphi < 0 || ieta < 0) {
     LOG(DEBUG) << " nSupMod " << nSupMod << " nModule " << nModule << " nIphi " << nIphi << " nIeta " << nIeta
                << " => ieta " << ieta << " iphi " << iphi;
+  }
   return std::make_tuple(iphi, ieta);
 }
 
@@ -1380,19 +1446,21 @@ o2::emcal::AcceptanceType_t Geometry::IsInEMCALOrDCAL(const Point3D<double>& pnt
 
 const TGeoHMatrix* Geometry::GetMatrixForSuperModule(Int_t smod) const
 {
-  if (smod < 0 || smod > mNumberOfSuperModules)
+  if (smod < 0 || smod > mNumberOfSuperModules) {
     LOG(FATAL) << "Wrong supermodule index -> " << smod;
+  }
 
   if (!SMODULEMATRIX[smod]) {
-    if (gGeoManager)
+    if (gGeoManager) {
       SetMisalMatrix(GetMatrixForSuperModuleFromGeoManager(smod), smod);
-    else
+    } else {
       LOG(FATAL) << "Cannot find EMCAL misalignment matrices! Recover them either: \n"
                  << "\t - importing TGeoManager from file geometry.root or \n"
                  << "\t - from OADB in file OADB/EMCAL/EMCALlocal2master.root or \n"
                  << "\t - from OCDB in directory OCDB/EMCAL/Align/Data/ or \n"
                  << "\t - from AliESDs (not in AliAOD) via AliESDRun::GetEMCALMatrix(Int_t superModIndex). \n"
                  << "Store them via AliEMCALGeometry::SetMisalMatrix(Int_t superModIndex)";
+    }
   }
 
   return SMODULEMATRIX[smod];
@@ -1400,8 +1468,9 @@ const TGeoHMatrix* Geometry::GetMatrixForSuperModule(Int_t smod) const
 
 const TGeoHMatrix* Geometry::GetMatrixForSuperModuleFromArray(Int_t smod) const
 {
-  if (smod < 0 || smod > mNumberOfSuperModules)
+  if (smod < 0 || smod > mNumberOfSuperModules) {
     LOG(FATAL) << "Wrong supermodule index -> " << smod;
+  }
 
   return SMODULEMATRIX[smod];
 }
@@ -1426,23 +1495,25 @@ const TGeoHMatrix* Geometry::GetMatrixForSuperModuleFromGeoManager(Int_t smod) c
   Int_t smType = GetSMType(smod);
   TString smName = "";
 
-  if (smType == EMCAL_STANDARD)
+  if (smType == EMCAL_STANDARD) {
     smName = "SMOD";
-  else if (smType == EMCAL_HALF)
+  } else if (smType == EMCAL_HALF) {
     smName = "SM10";
-  else if (smType == EMCAL_THIRD)
+  } else if (smType == EMCAL_THIRD) {
     smName = "SM3rd";
-  else if (smType == DCAL_STANDARD)
+  } else if (smType == DCAL_STANDARD) {
     smName = "DCSM";
-  else if (smType == DCAL_EXT)
+  } else if (smType == DCAL_EXT) {
     smName = "DCEXT";
-  else
+  } else {
     LOG(ERROR) << "Unkown SM Type!!\n";
+  }
 
-  snprintf(path, buffersize, "/ALIC_1/XEN1_1/%s_%d", smName.Data(), smOrder);
+  snprintf(path, buffersize, "/cave/barrel_1/%s_%d", smName.Data(), smOrder);
 
-  if (!gGeoManager->cd(path))
+  if (!gGeoManager->cd(path)) {
     LOG(FATAL) << "Geo manager can not find path " << path << "!\n";
+  }
 
   return gGeoManager->GetCurrentMatrix();
 }
@@ -1460,7 +1531,7 @@ void Geometry::RecalculateTowerPosition(Float_t drow, Float_t dcol, const Int_t 
 
     const Int_t nSMod = mNumberOfSuperModules;
 
-    gGeoManager->cd("ALIC_1/XEN1_1");
+    gGeoManager->cd("/cave/barrel_1/");
     TGeoNode* geoXEn1 = gGeoManager->GetCurrentNode();
     TGeoNodeMatrix* geoSM[nSMod];
     TGeoVolume* geoSMVol[nSMod];

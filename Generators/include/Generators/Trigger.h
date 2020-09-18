@@ -13,42 +13,16 @@
 #ifndef ALICEO2_EVENTGEN_TRIGGER_H_
 #define ALICEO2_EVENTGEN_TRIGGER_H_
 
-#include "TNamed.h"
-
-class TClonesArray;
+#include <functional>
+#include "TParticle.h"
 
 namespace o2
 {
 namespace eventgen
 {
 
-/*****************************************************************/
-/*****************************************************************/
-
-class Trigger : public TNamed
-{
-
- public:
-  /** default constructor **/
-  Trigger() = default;
-  /** destructor **/
-  ~Trigger() override = default;
-
-  /** methods to override **/
-  virtual Bool_t fired(TClonesArray* particles) = 0;
-
- protected:
-  /** copy constructor **/
-  Trigger(const Trigger&);
-  /** operator= **/
-  Trigger& operator=(const Trigger&);
-
-  ClassDefOverride(Trigger, 1);
-
-}; /** class Trigger **/
-
-/*****************************************************************/
-/*****************************************************************/
+typedef std::function<bool(const std::vector<TParticle>&)> Trigger;
+typedef std::function<bool(void*, std::string)> DeepTrigger;
 
 } // namespace eventgen
 } // namespace o2

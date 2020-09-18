@@ -11,29 +11,37 @@
 /// \file  ClusterizerTask.cxx
 /// \brief Implementation of the EMCAL cluster finder task
 
+#include <iostream>
+#include <vector>
+#include <algorithm>
+#include <iterator>
+#include <gsl/span>
 #include "FairLogger.h"      // for LOG
 #include "FairRootManager.h" // for FairRootManager
 #include "EMCALReconstruction/ClusterizerTask.h"
+#include "DataFormatsEMCAL/Cluster.h"
 
 #include <TFile.h>
 
-ClassImp(o2::emcal::ClusterizerTask);
+//ClassImp(o2::emcal::ClusterizerTask);
 
 using namespace o2::emcal;
 
 //_____________________________________________________________________
-ClusterizerTask::ClusterizerTask(ClusterizerParameters* parameters) : mClusterizer(parameters->getTimeCut(), parameters->getTimeMin(), parameters->getTimeMax(), parameters->getGradientCut(), parameters->getDoEnergyGradientCut(), parameters->getThresholdSeedEnergy(), parameters->getThresholdCellEnergy())
+template <class InputType>
+ClusterizerTask<InputType>::ClusterizerTask(ClusterizerParameters* parameters) : mClusterizer(parameters->getTimeCut(), parameters->getTimeMin(), parameters->getTimeMax(), parameters->getGradientCut(), parameters->getDoEnergyGradientCut(), parameters->getThresholdSeedEnergy(), parameters->getThresholdCellEnergy())
 {
 }
 
 //_____________________________________________________________________
 /// \brief Init function
-/// Inititializes the digit reader & geometry in cluster finder
-void ClusterizerTask::init()
+/// Inititializes the cell/digit reader & geometry in cluster finder
+template <class InputType>
+void ClusterizerTask<InputType>::init()
 {
-  // Initialize digit reader
-  if (!mDigitReader) {
-    mDigitReader = std::make_unique<DigitReader>();
+  // Initialize cell/digit reader
+  if (!mInputReader) {
+    mInputReader = std::make_unique<DigitReader<InputType>>();
   }
 
   // Get default geometry object if not yet set
@@ -51,10 +59,16 @@ void ClusterizerTask::init()
   if (!mClusterizer.getGeometry()) {
     LOG(ERROR) << "Could not set geometry in clusterizer";
   }
+
+  mClustersArray = new std::vector<o2::emcal::Cluster>();
+  mClustersInputIndices = new std::vector<o2::emcal::ClusterIndex>();
+  mClusterTriggerRecordsClusters = new std::vector<o2::emcal::TriggerRecord>();
+  mClusterTriggerRecordsIndices = new std::vector<o2::emcal::TriggerRecord>();
 }
 
 //_____________________________________________________________________
-void ClusterizerTask::process(const std::string inputFileName, const std::string outputFileName)
+template <class InputType>
+void ClusterizerTask<InputType>::process(const std::string inputFileName, const std::string outputFileName)
 {
   LOG(DEBUG) << "Running clusterization on new event";
 
@@ -69,17 +83,41 @@ void ClusterizerTask::process(const std::string inputFileName, const std::string
 
   // Create output tree
   std::unique_ptr<TTree> outTree = std::make_unique<TTree>("o2sim", "EMCAL clusters");
-  outTree->Branch("EMCALCluster", &mClustersArray);
-  outTree->Branch("EMCALClusterDigitIndices", &mClustersDigitIndices);
+  outTree->Branch("EMCCluster", &mClustersArray);
+  outTree->Branch("EMCClusterInputIndex", &mClustersInputIndices);
+  outTree->Branch("EMCClusterTRGR", &mClusterTriggerRecordsClusters);
+  outTree->Branch("EMCIndicesTRGR", &mClusterTriggerRecordsIndices);
+
+  mClustersArray->clear();
+  mClustersInputIndices->clear();
+  mClusterTriggerRecordsClusters->clear();
+  mClusterTriggerRecordsIndices->clear();
 
   // Loop over entries of the input tree
-  mDigitReader->openInput(inputFileName);
-  while (mDigitReader->readNextEntry()) {
-    mClusterizer.findClusters(*mDigitReader->getDigitArray()); // Find clusters on digits given in reader::mDigitArray (pass by ref)
+  mInputReader->openInput(inputFileName);
+  while (mInputReader->readNextEntry()) {
 
-    // Get found clusters + digit indices for output
-    mClustersArray = mClusterizer.getFoundClusters();
-    mClustersDigitIndices = mClusterizer.getFoundClustersDigitIndices();
+    auto InputVector = mInputReader->getInputArray();
+
+    int currentStartClusters = mClustersArray->size();
+    int currentStartIndices = mClustersInputIndices->size();
+
+    for (auto iTrgRcrd = mInputReader->getTriggerArray()->begin(); iTrgRcrd != mInputReader->getTriggerArray()->end(); ++iTrgRcrd) {
+
+      mClusterizer.findClusters(gsl::span<const InputType>(InputVector->data() + iTrgRcrd->getFirstEntry(), iTrgRcrd->getNumberOfObjects())); // Find clusters on cells/digits given in reader::mInputArray (pass by ref)
+
+      // Get found clusters + cell/digit indices for output
+      auto clusterstmp = mClusterizer.getFoundClusters();
+      auto clusterIndecestmp = mClusterizer.getFoundClustersInputIndices();
+      std::copy(clusterstmp->begin(), clusterstmp->end(), std::back_inserter(*mClustersArray));
+      std::copy(clusterIndecestmp->begin(), clusterIndecestmp->end(), std::back_inserter(*mClustersInputIndices));
+
+      mClusterTriggerRecordsClusters->emplace_back(iTrgRcrd->getBCData(), currentStartClusters, clusterstmp->size());
+      mClusterTriggerRecordsIndices->emplace_back(iTrgRcrd->getBCData(), currentStartIndices, clusterIndecestmp->size());
+
+      currentStartClusters = mClustersArray->size();
+      currentStartIndices = mClustersInputIndices->size();
+    }
     outTree->Fill();
   }
 
@@ -88,3 +126,6 @@ void ClusterizerTask::process(const std::string inputFileName, const std::string
   outTree.reset(); // here we reset the unique ptr, not the tree!
   outFile->Close();
 }
+
+template class o2::emcal::ClusterizerTask<o2::emcal::Cell>;
+template class o2::emcal::ClusterizerTask<o2::emcal::Digit>;

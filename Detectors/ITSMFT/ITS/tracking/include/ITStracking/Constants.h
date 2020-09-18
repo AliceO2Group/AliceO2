@@ -15,7 +15,7 @@
 #ifndef TRACKINGITSU_INCLUDE_CONSTANTS_H_
 #define TRACKINGITSU_INCLUDE_CONSTANTS_H_
 
-#ifndef __OPENCL__
+#ifndef GPUCA_GPUCODE_DEVICE
 #include <climits>
 #include <vector>
 #endif
@@ -66,8 +66,8 @@ GPU_HOST_DEVICE constexpr GPUArray<float, 3> VertexerHistogramVolume()
 
 namespace index_table
 {
-constexpr int ZBins{20};
-constexpr int PhiBins{20};
+constexpr int ZBins{256};
+constexpr int PhiBins{128};
 constexpr float InversePhiBinSize{constants::index_table::PhiBins / constants::math::TwoPi};
 GPU_HOST_DEVICE constexpr GPUArray<float, its::LayersNumber> InverseZBinSize()
 {

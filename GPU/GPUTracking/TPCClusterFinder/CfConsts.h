@@ -23,7 +23,7 @@ namespace gpu
 namespace CfConsts
 {
 
-GPUconstexpr() Delta2 InnerNeighbors[8] =
+GPUconstexpr() tpccf::Delta2 InnerNeighbors[8] =
   {
     {-1, -1},
 
@@ -43,7 +43,7 @@ GPUconstexpr() bool InnerTestEq[8] =
     true, true, true, true,
     false, false, false, false};
 
-GPUconstexpr() Delta2 OuterNeighbors[16] =
+GPUconstexpr() tpccf::Delta2 OuterNeighbors[16] =
   {
     {-2, -1},
     {-2, -2},
@@ -110,7 +110,7 @@ GPUconstexpr() uchar OuterToInnerInv[16] =
 
 #define NOISE_SUPPRESSION_NEIGHBOR_NUM 34
 
-GPUconstexpr() Delta2 NoiseSuppressionNeighbors[NOISE_SUPPRESSION_NEIGHBOR_NUM] =
+GPUconstexpr() tpccf::Delta2 NoiseSuppressionNeighbors[NOISE_SUPPRESSION_NEIGHBOR_NUM] =
   {
     {-2, -3},
     {-2, -2},
@@ -173,7 +173,7 @@ GPUconstexpr() uint NoiseSuppressionMinima[NOISE_SUPPRESSION_NEIGHBOR_NUM] =
     0,
     0,
     (1 << 17),
-    (1 << 18) | (1 << 19),
+    (1 << 17) | (1 << 18),
     (1 << 21) | (1 << 22),
     (1 << 22),
     0,

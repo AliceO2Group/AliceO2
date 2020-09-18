@@ -12,6 +12,7 @@
 #define O2_FRAMEWORK_KERNELS_H_
 
 #include "Framework/BasicOps.h"
+#include "Framework/TableBuilder.h"
 
 #include <arrow/compute/kernel.h>
 #include <arrow/status.h>
@@ -20,90 +21,76 @@
 
 #include <string>
 
-namespace arrow
-{
-class Array;
-class DataType;
-
-namespace compute
-{
-class FunctionContext;
-} // namespace compute
-} // namespace arrow
-
 namespace o2::framework
 {
-
-struct ARROW_EXPORT HashByColumnOptions {
-  std::string columnName;
-};
-
-/// A kernel which provides a unique hash based on the contents of a given
-/// column
-/// * The input datum has to be a table like object.
-/// * The output datum will be a column of integers which define the
-///   category.
-class ARROW_EXPORT HashByColumnKernel : public arrow::compute::UnaryKernel
-{
- public:
-  HashByColumnKernel(HashByColumnOptions options = {});
-  arrow::Status Call(arrow::compute::FunctionContext* ctx,
-                     arrow::compute::Datum const& table,
-                     arrow::compute::Datum* hashes) override;
-
-#pragma GCC diagnostic push
-#ifdef __clang__
-#pragma GCC diagnostic ignored "-Winconsistent-missing-override"
-#endif // __clang__
-
-  std::shared_ptr<arrow::DataType> out_type() const final
-  {
-    return mType;
-  }
-#pragma GCC diagnostic pop
-
- private:
-  HashByColumnOptions mOptions;
-  std::shared_ptr<arrow::DataType> mType;
-};
-
-struct ARROW_EXPORT GroupByOptions {
-  std::string columnName;
-};
-
-/// Build ranges
-class ARROW_EXPORT SortedGroupByKernel : public arrow::compute::UnaryKernel
-{
- public:
-  explicit SortedGroupByKernel(GroupByOptions options = {});
-  arrow::Status Call(arrow::compute::FunctionContext* ctx,
-                     arrow::compute::Datum const& table,
-                     arrow::compute::Datum* outputRanges) override;
-#pragma GCC diagnostic push
-#ifdef __clang__
-#pragma GCC diagnostic ignored "-Winconsistent-missing-override"
-#endif // __clang__
-  std::shared_ptr<arrow::DataType> out_type() const final
-  {
-    return mType;
-  }
-#pragma GCC diagnostic pop
-
- private:
-  std::shared_ptr<arrow::DataType> mType;
-  GroupByOptions mOptions;
-};
-
-/// Slice a given table is a vector of tables each containing a slice.
-/// @a outputSlices the arrow tables in which the original @a inputTable
+/// Slice a given table in a vector of tables each containing a slice.
+/// @a slices the arrow tables in which the original @a input
 /// is split into.
 /// @a offset the offset in the original table at which the corresponding
 /// slice was split.
-arrow::Status sliceByColumn(arrow::compute::FunctionContext* context,
-                            std::string const& key,
-                            arrow::compute::Datum const& inputTable,
-                            std::vector<arrow::compute::Datum>* outputSlices,
-                            std::vector<uint64_t>* offsets = nullptr);
+template <typename T>
+auto sliceByColumn(char const* key,
+                   std::shared_ptr<arrow::Table> const& input,
+                   T fullSize,
+                   std::vector<arrow::Datum>* slices,
+                   std::vector<uint64_t>* offsets = nullptr)
+{
+  arrow::Datum value_counts;
+  auto options = arrow::compute::CountOptions::Defaults();
+  ARROW_ASSIGN_OR_RAISE(value_counts,
+                        arrow::compute::CallFunction("value_counts", {input->GetColumnByName(key)},
+                                                     &options));
+  auto pair = static_cast<arrow::StructArray>(value_counts.array());
+  auto values = static_cast<arrow::NumericArray<typename detail::ConversionTraits<T>::ArrowType>>(pair.field(0)->data());
+  auto counts = static_cast<arrow::NumericArray<arrow::Int64Type>>(pair.field(1)->data());
+
+  // create slices and offsets
+  auto offset = 0;
+  auto count = 0;
+
+  auto size = values.length();
+  std::shared_ptr<arrow::Schema> schema(input->schema());
+  std::vector<std::shared_ptr<arrow::ChunkedArray>> sliceArray;
+
+  auto injectSlice = [&](T count) {
+    for (auto ci = 0; ci < schema->num_fields(); ++ci) {
+      sliceArray.emplace_back(input->column(ci)->Slice(offset, count));
+    }
+    slices->emplace_back(arrow::Datum(arrow::Table::Make(schema, sliceArray)));
+    if (offsets) {
+      offsets->emplace_back(offset);
+    }
+    sliceArray.clear();
+  };
+
+  auto current = 0;
+  auto v = values.Value(0);
+  while (v - current >= 1) {
+    injectSlice(0);
+    ++current;
+  }
+
+  for (auto r = 0; r < size - 1; ++r) {
+    count = counts.Value(r);
+    injectSlice(count);
+    offset += count;
+    auto nextValue = values.Value(r + 1);
+    auto value = values.Value(r);
+    while (nextValue - value > 1) {
+      injectSlice(0);
+      ++value;
+    }
+  }
+  injectSlice(counts.Value(size - 1));
+
+  if (values.Value(size - 1) < fullSize - 1) {
+    for (auto v = values.Value(size - 1) + 1; v < fullSize; ++v) {
+      injectSlice(0);
+    }
+  }
+
+  return arrow::Status::OK();
+}
 
 } // namespace o2::framework
 

@@ -16,6 +16,8 @@
 
 #pragma link C++ class o2::track::TrackPar + ;
 #pragma link C++ class o2::track::TrackParCov + ;
+#pragma link C++ class o2::track::TrackParFwd + ;
+#pragma link C++ class o2::track::TrackParCovFwd + ;
 #pragma link C++ class o2::track::PID + ;
 #pragma link C++ class o2::track::TrackLTIntegral + ;
 
@@ -29,9 +31,22 @@
 #pragma link C++ class std::vector < std::pair < int, float>> + ;
 #pragma link C++ class std::vector < int> + ;
 
+#pragma link C++ class o2::dataformats::VertexBase + ;
 #pragma link C++ class o2::dataformats::Vertex < int> + ;
 #pragma link C++ class o2::dataformats::Vertex < o2::dataformats::TimeStamp < int>> + ;
-#pragma link C++ class o2::dataformats::Vertex < o2::dataformats::TimeStampWithError < double, double>> + ;
+#pragma link C++ class o2::dataformats::Vertex < o2::dataformats::TimeStampWithError < float, float>> + ;
+#pragma link C++ class o2::dataformats::PrimaryVertex + ;
+
 #pragma link C++ class std::vector < o2::dataformats::Vertex < o2::dataformats::TimeStamp < int>>> + ;
+#pragma link C++ class std::vector < o2::dataformats::Vertex < o2::dataformats::TimeStampWithError < float, float>>> + ;
+#pragma link C++ class std::vector < o2::dataformats::PrimaryVertex> + ;
+
+#pragma link C++ class o2::dataformats::VtxTrackIndex + ;
+#pragma link C++ class std::vector < o2::dataformats::VtxTrackIndex> + ;
+
+#pragma link C++ class o2::dataformats::VtxTrackRef + ;
+#pragma link C++ class std::vector < o2::dataformats::VtxTrackRef> + ;
+
+#pragma link C++ class o2::dataformats::DCA + ;
 
 #endif

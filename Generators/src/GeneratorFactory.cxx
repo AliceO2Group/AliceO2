@@ -17,20 +17,27 @@
 #include <FairLogger.h>
 #include <SimConfig/SimConfig.h>
 #include <Generators/GeneratorFromFile.h>
+#ifdef GENERATORS_WITH_PYTHIA6
+#include <Generators/GeneratorPythia6.h>
+#include <Generators/GeneratorPythia6Param.h>
+#endif
 #ifdef GENERATORS_WITH_PYTHIA8
 #include <Generators/GeneratorPythia8.h>
+#include <Generators/GeneratorPythia8Param.h>
 #endif
 #include <Generators/GeneratorTGenerator.h>
+#include <Generators/GeneratorExternalParam.h>
 #ifdef GENERATORS_WITH_HEPMC3
 #include <Generators/GeneratorHepMC.h>
+#include <Generators/GeneratorHepMCParam.h>
 #endif
 #include <Generators/BoxGunParam.h>
 #include <Generators/TriggerParticle.h>
+#include <Generators/TriggerExternalParam.h>
 #include <Generators/TriggerParticleParam.h>
-#include "TROOT.h"
-#include "TSystem.h"
-#include "TGlobal.h"
-#include "TFunction.h"
+#include "Generators/ConfigurationMacroHelper.h"
+
+#include "TRandom.h"
 
 namespace o2
 {
@@ -58,7 +65,12 @@ void GeneratorFactory::setPrimaryGenerator(o2::conf::SimConfig const& conf, Fair
 #ifdef GENERATORS_WITH_PYTHIA8
   auto makePythia8Gen = [](std::string& config) {
     auto gen = new o2::eventgen::GeneratorPythia8();
+    LOG(INFO) << "Reading \'Pythia8\' base configuration: " << config << std::endl;
     gen->readFile(config);
+    auto seed = (gRandom->GetSeed() % 900000000);
+    LOG(INFO) << "Using random seed from gRandom % 900000000: " << seed;
+    gen->readString("Random:setSeed on");
+    gen->readString("Random:seed " + std::to_string(seed));
     return gen;
   };
 #endif
@@ -76,7 +88,7 @@ void GeneratorFactory::setPrimaryGenerator(o2::conf::SimConfig const& conf, Fair
   } else if (genconfig.compare("fwmugen") == 0) {
     // a simple "box" generator for forward muons
     LOG(INFO) << "Init box forward muons generator";
-    auto boxGen = makeBoxGen(13, 100, -2.5, -4.0, 1000, 1000, 0., 360);
+    auto boxGen = makeBoxGen(13, 1, -4, -2.5, 50., 50., 0., 360);
     primGen->AddGenerator(boxGen);
   } else if (genconfig.compare("hmpidgun") == 0) {
     // a simple "box" generator for forward muons
@@ -85,19 +97,19 @@ void GeneratorFactory::setPrimaryGenerator(o2::conf::SimConfig const& conf, Fair
     primGen->AddGenerator(boxGen);
   } else if (genconfig.compare("fwpigen") == 0) {
     // a simple "box" generator for forward pions
-    LOG(INFO) << "Init box forward muons generator";
-    auto boxGen = makeBoxGen(-211, 100, -2.5, -4.5, 7, 7, 0, 360);
+    LOG(INFO) << "Init box forward pions generator";
+    auto boxGen = makeBoxGen(-211, 10, -4, -2.5, 7, 7, 0, 360);
     primGen->AddGenerator(boxGen);
   } else if (genconfig.compare("fwrootino") == 0) {
     // a simple "box" generator for forward rootinos
     LOG(INFO) << "Init box forward rootinos generator";
-    auto boxGen = makeBoxGen(0, 1, -2.5, -4.0, 1, 5, 0, 360);
+    auto boxGen = makeBoxGen(0, 1, -4, -2.5, 1, 5, 0, 360);
     primGen->AddGenerator(boxGen);
   } else if (genconfig.compare("zdcgen") == 0) {
     // a simple "box" generator for forward neutrons
     LOG(INFO) << "Init box forward/backward zdc generator";
-    auto boxGenC = makeBoxGen(2122 /*neutrons*/, 10, -8, -9999, 500, 1000, 0., 360.);
-    auto boxGenA = makeBoxGen(2212 /*neutrons*/, 1, 8.0, 9999, 500, 1000, 0., 360.);
+    auto boxGenC = makeBoxGen(2112 /*neutrons*/, 1, -8, -9999, 500, 1000, 0., 360.);
+    auto boxGenA = makeBoxGen(2112 /*neutrons*/, 1, 8, 9999, 500, 1000, 0., 360.);
     primGen->AddGenerator(boxGenC);
     primGen->AddGenerator(boxGenA);
   } else if (genconfig.compare("emcgenele") == 0) {
@@ -127,10 +139,28 @@ void GeneratorFactory::setPrimaryGenerator(o2::conf::SimConfig const& conf, Fair
 #ifdef GENERATORS_WITH_HEPMC3
   } else if (genconfig.compare("hepmc") == 0) {
     // external HepMC file
+    auto& param = GeneratorHepMCParam::Instance();
+    LOG(INFO) << "Init \'GeneratorHepMC\' with following parameters";
+    LOG(INFO) << param;
     auto hepmcGen = new o2::eventgen::GeneratorHepMC();
-    hepmcGen->setFileName(conf.getHepMCFileName());
-    hepmcGen->setVersion(2);
+    hepmcGen->setFileName(param.fileName);
+    hepmcGen->setVersion(param.version);
     primGen->AddGenerator(hepmcGen);
+#endif
+#ifdef GENERATORS_WITH_PYTHIA6
+  } else if (genconfig.compare("pythia6") == 0) {
+    // pythia6 pp
+    // configures pythia6 according to param
+    auto& param = GeneratorPythia6Param::Instance();
+    LOG(INFO) << "Init \'Pythia6\' generator with following parameters";
+    LOG(INFO) << param;
+    auto py6Gen = new o2::eventgen::GeneratorPythia6();
+    py6Gen->setConfig(param.config);
+    py6Gen->setFrame(param.frame);
+    py6Gen->setBeam(param.beam);
+    py6Gen->setTarget(param.target);
+    py6Gen->setWin(param.win);
+    primGen->AddGenerator(py6Gen);
 #endif
 #ifdef GENERATORS_WITH_PYTHIA8
   } else if (genconfig.compare("alldets") == 0) {
@@ -162,37 +192,18 @@ void GeneratorFactory::setPrimaryGenerator(o2::conf::SimConfig const& conf, Fair
     auto py8 = makePythia8Gen(py8config);
     primGen->AddGenerator(py8);
 #endif
-  } else if (genconfig.compare("extgen") == 0) {
+  } else if (genconfig.compare("external") == 0 || genconfig.compare("extgen") == 0) {
     // external generator via configuration macro
-    auto extgen_filename = conf.getExtGeneratorFileName();
-    auto extgen_func = conf.getExtGeneratorFuncName();
-    if (extgen_func.empty()) {
-      auto size = extgen_filename.size();
-      auto firstindex = extgen_filename.find_last_of("/") + 1;
-      auto lastindex = extgen_filename.find_last_of(".");
-      extgen_func = extgen_filename.substr(firstindex < size ? firstindex : 0,
-                                           lastindex < size ? lastindex - firstindex : size - firstindex) +
-                    "()";
+    auto& params = GeneratorExternalParam::Instance();
+    LOG(INFO) << "Setting up external generator with following parameters";
+    LOG(INFO) << params;
+    auto extgen_filename = params.fileName;
+    auto extgen_func = params.funcName;
+    auto extgen = GetFromMacro<FairGenerator*>(extgen_filename, extgen_func, "FairGenerator*", "extgen");
+    if (!extgen) {
+      LOG(FATAL) << "Failed to retrieve \'extgen\': problem with configuration ";
     }
-    if (gROOT->LoadMacro(extgen_filename.c_str()) != 0) {
-      LOG(FATAL) << "Cannot find " << extgen_filename;
-      return;
-    }
-    /** retrieve FairGenerator **/
-    auto extgen_gfunc = extgen_func.substr(0, extgen_func.find_first_of('('));
-    if (!gROOT->GetGlobalFunction(extgen_gfunc.c_str())) {
-      LOG(FATAL) << "Global function '"
-                 << extgen_gfunc
-                 << "' not defined";
-    }
-    if (strcmp(gROOT->GetGlobalFunction(extgen_gfunc.c_str())->GetReturnTypeName(), "FairGenerator*")) {
-      LOG(FATAL) << "Global function '"
-                 << extgen_gfunc
-                 << "' does not return a 'FairGenerator*' type";
-    }
-    gROOT->ProcessLine(Form("FairGenerator *__extgen = dynamic_cast<FairGenerator *>(%s);", extgen_func.c_str()));
-    auto extgen_ptr = (FairGenerator**)gROOT->GetGlobal("__extgen")->GetAddress();
-    primGen->AddGenerator(*extgen_ptr);
+    primGen->AddGenerator(extgen);
   } else if (genconfig.compare("toftest") == 0) { // 1 muon per sector and per module
     LOG(INFO) << "Init tof test generator -> 1 muon per sector and per module";
     for (int i = 0; i < 18; i++) {
@@ -211,53 +222,29 @@ void GeneratorFactory::setPrimaryGenerator(o2::conf::SimConfig const& conf, Fair
 
   /** triggers **/
 
-  o2::eventgen::Trigger* trigger = nullptr;
+  Trigger trigger = nullptr;
+  DeepTrigger deeptrigger = nullptr;
 
   auto trgconfig = conf.getTrigger();
   if (trgconfig.empty()) {
     return;
   } else if (trgconfig.compare("particle") == 0) {
-    auto& param = TriggerParticleParam::Instance();
-    LOG(INFO) << "Init trigger \'particle\' with following parameters";
-    LOG(INFO) << param;
-    auto trg = new TriggerParticle();
-    trg->setPDG(param.pdg);
-    trg->setPtRange(param.ptMin, param.ptMax);
-    trg->setEtaRange(param.etaMin, param.etaMax);
-    trg->setPhiRange(param.phiMin, param.phiMax);
-    trg->setYRange(param.yMin, param.yMax);
-    trigger = trg;
+    trigger = TriggerParticle(TriggerParticleParam::Instance());
   } else if (trgconfig.compare("external") == 0) {
     // external trigger via configuration macro
-    auto external_trigger_filename = conf.getExtTriggerFileName();
-    auto external_trigger_func = conf.getExtTriggerFuncName();
-    if (external_trigger_func.empty()) {
-      auto size = external_trigger_filename.size();
-      auto firstindex = external_trigger_filename.find_last_of("/") + 1;
-      auto lastindex = external_trigger_filename.find_last_of(".");
-      external_trigger_func = external_trigger_filename.substr(firstindex < size ? firstindex : 0,
-                                                               lastindex < size ? lastindex - firstindex : size - firstindex) +
-                              "()";
+    auto& params = TriggerExternalParam::Instance();
+    LOG(INFO) << "Setting up external trigger with following parameters";
+    LOG(INFO) << params;
+    auto external_trigger_filename = params.fileName;
+    auto external_trigger_func = params.funcName;
+    trigger = GetFromMacro<o2::eventgen::Trigger>(external_trigger_filename, external_trigger_func, "o2::eventgen::Trigger", "trigger");
+    if (!trigger) {
+      LOG(INFO) << "Trying to retrieve a \'o2::eventgen::DeepTrigger\' type" << std::endl;
+      deeptrigger = GetFromMacro<o2::eventgen::DeepTrigger>(external_trigger_filename, external_trigger_func, "o2::eventgen::DeepTrigger", "deeptrigger");
     }
-    if (gROOT->LoadMacro(external_trigger_filename.c_str()) != 0) {
-      LOG(FATAL) << "Cannot find " << external_trigger_filename;
-      return;
+    if (!trigger && !deeptrigger) {
+      LOG(FATAL) << "Failed to retrieve \'external trigger\': problem with configuration ";
     }
-    /** retrieve Trigger **/
-    auto external_trigger_gfunc = external_trigger_func.substr(0, external_trigger_func.find_first_of('('));
-    if (!gROOT->GetGlobalFunction(external_trigger_gfunc.c_str())) {
-      LOG(FATAL) << "Global function '"
-                 << external_trigger_gfunc
-                 << "' not defined";
-    }
-    if (strcmp(gROOT->GetGlobalFunction(external_trigger_gfunc.c_str())->GetReturnTypeName(), "o2::eventgen::Trigger*")) {
-      LOG(FATAL) << "Global function '"
-                 << external_trigger_gfunc
-                 << "' does not return a 'o2::eventgen::Trigger*' type";
-    }
-    gROOT->ProcessLine(Form("o2::eventgen::Trigger *__external_trigger__ = dynamic_cast<o2::eventgen::Trigger *>(%s);", external_trigger_func.c_str()));
-    auto external_trigger_ptr = (o2::eventgen::Trigger**)gROOT->GetGlobal("__external_trigger__")->GetAddress();
-    trigger = *external_trigger_ptr;
   } else {
     LOG(FATAL) << "Invalid trigger";
   }
@@ -271,7 +258,10 @@ void GeneratorFactory::setPrimaryGenerator(o2::conf::SimConfig const& conf, Fair
       return;
     }
     generator->setTriggerMode(o2::eventgen::Generator::kTriggerOR);
-    generator->addTrigger(trigger);
+    if (trigger)
+      generator->addTrigger(trigger);
+    if (deeptrigger)
+      generator->addDeepTrigger(deeptrigger);
   }
 }
 

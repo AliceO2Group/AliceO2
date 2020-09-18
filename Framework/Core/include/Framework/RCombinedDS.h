@@ -336,7 +336,9 @@ class RCombinedDS final : public ROOT::RDF::RDataSource
       colName.remove_prefix(fRightPrefix.size());
       return fRight->GetColumnReaders<T>(colName);
     }
-    throw std::runtime_error("Column not found: " + colName);
+    std::string dummy("Column not found: ");
+    dummy += colName.data();
+    throw std::runtime_error(dummy);
   }
   const std::vector<std::string>& GetColumnNames() const override;
   std::vector<std::pair<ULong64_t, ULong64_t>> GetEntryRanges() override;

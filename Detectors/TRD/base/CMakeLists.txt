@@ -28,13 +28,15 @@ o2_add_library(TRDBase
                        src/Calibrations.cxx
                        src/ChamberNoise.cxx
                        src/CalOnlineGainTables.cxx
-                       src/TrapConfig.cxx
+                       src/Tracklet.cxx
                PUBLIC_LINK_LIBRARIES O2::GPUCommon
+                                     O2::GPUUtils
                                      O2::DetectorsCommonDataFormats
                                      O2::Field
                                      O2::DetectorsBase
                                      ROOT::Physics
                                      O2::SimulationDataFormat
+                                     O2::DataFormatsTRD
                                      O2::CCDB)
 
 o2_target_root_dictionary(TRDBase
@@ -61,7 +63,7 @@ o2_target_root_dictionary(TRDBase
                                   include/TRDBase/Calibrations.h
                                   include/TRDBase/ChamberNoise.h
                                   include/TRDBase/CalOnlineGainTables.h
-                                  include/TRDBase/TrapConfig.h)
+                                  include/TRDBase/Tracklet.h)
 
 o2_add_test(DiffusionCoefficient
             SOURCES test/testTRDDiffusionCoefficient.cxx
@@ -69,3 +71,18 @@ o2_add_test(DiffusionCoefficient
             PUBLIC_LINK_LIBRARIES O2::TRDBase
             ENVIRONMENT VMCWORKDIR=${CMAKE_BINARY_DIR}/stage/share
             LABELS trd)
+
+o2_add_test(Geometry
+            COMPONENT_NAME trd
+            PUBLIC_LINK_LIBRARIES O2::TRDBase
+            SOURCES test/testTRDGeometry.cxx
+            ENVIRONMENT O2_ROOT=${CMAKE_BINARY_DIR}/stage
+            LABELS trd
+            )
+o2_add_test(RawData
+            COMPONENT_NAME trd
+            PUBLIC_LINK_LIBRARIES O2::TRDBase O2::DataFormatsTRD
+            SOURCES test/testRawData.cxx
+            ENVIRONMENT O2_ROOT=${CMAKE_BINARY_DIR}/stage
+            LABELS trd
+            )

@@ -20,7 +20,7 @@
 #include <TGeoShape.h>
 #include <TMath.h>
 #include <TObject.h> // for TObject
-#include <string>
+#include <string_view>
 #include "DetectorsCommonDataFormats/DetID.h"
 #include "FairLogger.h" // for LOG
 #include "MathUtils/Cartesian3D.h"
@@ -48,7 +48,8 @@ class GeometryManager : public TObject
 {
  public:
   ///< load geometry from file
-  static void loadGeometry(std::string geomFileName = "O2geometry.root", std::string geomName = "FAIRGeom");
+  static void loadGeometry(std::string_view geomFilePath = "");
+  static bool isGeometryLoaded() { return gGeoManager != nullptr; }
 
   ///< Get the global transformation matrix (ideal geometry) for a given alignable volume
   ///< The alignable volume is identified by 'symname' which has to be either a valid symbolic
@@ -127,8 +128,12 @@ class GeometryManager : public TObject
   static Bool_t getOriginalMatrixFromPath(const char* path, TGeoHMatrix& m);
 
  private:
-  /// sensitive volume identifier composed from (det_mask<<sDetOffset)|(sensid&sSensorMask)
+/// sensitive volume identifier composed from (det_mask<<sDetOffset)|(sensid&sSensorMask)
+#ifdef ENABLE_UPGRADES
+  static constexpr UInt_t sDetOffset = 13; /// detector identifier will start from this bit
+#else
   static constexpr UInt_t sDetOffset = 15; /// detector identifier will start from this bit
+#endif
   static constexpr UInt_t sSensorMask =
     (0x1 << sDetOffset) - 1; /// mask=max sensitive volumes allowed per detector (0xffff)
 

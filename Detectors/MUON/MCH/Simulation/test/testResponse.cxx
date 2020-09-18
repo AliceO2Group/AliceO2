@@ -26,6 +26,7 @@ namespace o2
 namespace mch
 {
 
+BOOST_TEST_DECORATOR(*boost::unit_test::disabled())
 BOOST_AUTO_TEST_CASE(Response_test)
 {
   //check transition between energy and charge

@@ -19,6 +19,9 @@
 #pragma link C++ class o2::conf::SimCutParams + ;
 #pragma link C++ class o2::conf::ConfigurableParamHelper < o2::conf::SimCutParams> + ;
 
+#pragma link C++ class o2::conf::SimUserDecay + ;
+#pragma link C++ class o2::conf::ConfigurableParamHelper < o2::conf::SimUserDecay> + ;
+
 #pragma link C++ class o2::conf::DigiParams + ;
 #pragma link C++ class o2::conf::ConfigurableParamHelper < o2::conf::DigiParams> + ;
 

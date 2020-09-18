@@ -56,6 +56,10 @@ class CalibTOFapi
   bool isProblematic(int ich);
   float getFractionUnderPeak(int ich) const { return mSlewParam->getFractionUnderPeak(ich); }
 
+  SlewParam* getSlewParam() { return mSlewParam; }
+  SlewParam& getSlewParamObj() { return *mSlewParam; }
+  LhcPhase* getLhcPhase() { return mLHCphase; }
+
  private:
   long mTimeStamp;                 ///< timeStamp for queries
   LhcPhase* mLHCphase = nullptr;   ///< object for LHC phase

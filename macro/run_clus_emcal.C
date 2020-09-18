@@ -15,7 +15,7 @@ void run_clus_emcal(std::string outputfile = "EMCALClusters.root", std::string i
 
   // Setup clusterizer
   o2::emcal::ClusterizerParameters parameters(10000, 0, 10000, true, 0.03, 0.1, 0.05);
-  o2::emcal::ClusterizerTask* clus = new o2::emcal::ClusterizerTask(&parameters);
+  o2::emcal::ClusterizerTask<o2::emcal::Digit>* clus = new o2::emcal::ClusterizerTask<o2::emcal::Digit>(&parameters);
 
   clus->process(inputfile, outputfile);
 

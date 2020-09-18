@@ -73,7 +73,7 @@ void Digitizer::process(const std::vector<o2::zdc::Hit>& hits,
     }
 
     double hTime = hit.GetTime() - getTOFCorrection(detID); // account for TOF to detector
-    hTime += mIR.timeNS;
+    hTime += mIR.getTimeNS();
     //
     o2::InteractionRecord irHit(hTime); // BC in which the hit appears (might be different from interaction BC for slow particles)
 

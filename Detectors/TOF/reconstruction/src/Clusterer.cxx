@@ -40,9 +40,6 @@ void Clusterer::process(DataReader& reader, std::vector<Cluster>& clusters, MCLa
 
   LOG(DEBUG) << "We had " << totNumDigits << " digits in this event";
   timerProcess.Stop();
-  printf("Timing:\n");
-  printf("Clusterer::process:        ");
-  timerProcess.Print();
 }
 
 //__________________________________________________
@@ -53,6 +50,7 @@ void Clusterer::calibrateStrip()
   for (int idig = 0; idig < mStripData.digits.size(); idig++) {
     //    LOG(DEBUG) << "Checking digit " << idig;
     Digit* dig = &mStripData.digits[idig];
+    dig->setBC(dig->getBC() - mBCOffset); // RS Don't use raw BC, always start from the beginning of the TF
     double calib = mCalibApi->getTimeCalibration(dig->getChannel(), dig->getTOT() * Geo::TOTBIN_NS);
     //printf("channel %d) isProblematic = %d, fractionUnderPeak = %f\n",dig->getChannel(),mCalibApi->isProblematic(dig->getChannel()),mCalibApi->getFractionUnderPeak(dig->getChannel())); // toberem
     dig->setIsProblematic(mCalibApi->isProblematic(dig->getChannel()));
@@ -81,8 +79,9 @@ void Clusterer::processStrip(std::vector<Cluster>& clusters, MCLabelContainer co
 
     mNumberOfContributingDigits = 0;
     dig->getPhiAndEtaIndex(iphi, ieta);
-    if (mStripData.digits.size() > 1)
+    if (mStripData.digits.size() > 1) {
       LOG(DEBUG) << "idig = " << idig;
+    }
 
     // first we make a cluster out of the digit
     int noc = clusters.size();
@@ -126,17 +125,17 @@ void Clusterer::addContributingDigit(Digit* dig)
   // adding a digit to the array that stores the contributing ones
 
   if (mNumberOfContributingDigits == 6) {
-    LOG(ERROR) << "The cluster has already 6 digits associated to it, we cannot add more; returning without doing anything";
+    LOG(WARNING) << "The cluster has already 6 digits associated to it, we cannot add more; returning without doing anything";
 
     int phi, eta;
     for (int i = 0; i < mNumberOfContributingDigits; i++) {
       mContributingDigit[i]->getPhiAndEtaIndex(phi, eta);
-      LOG(ERROR) << "digit already in " << i << ", channel = " << mContributingDigit[i]->getChannel() << ",phi,eta = (" << phi << "," << eta << "), TDC = " << mContributingDigit[i]->getTDC() << ", calibrated time = " << mContributingDigit[i]->getCalibratedTime();
+      LOG(WARNING) << "digit already in " << i << ", channel = " << mContributingDigit[i]->getChannel() << ",phi,eta = (" << phi << "," << eta << "), TDC = " << mContributingDigit[i]->getTDC() << ", calibrated time = " << mContributingDigit[i]->getCalibratedTime();
     }
 
     dig->getPhiAndEtaIndex(phi, eta);
-    LOG(ERROR) << "skipped digit"
-               << ", channel = " << dig->getChannel() << ",phi,eta = (" << phi << "," << eta << "), TDC = " << dig->getTDC() << ", calibrated time = " << dig->getCalibratedTime();
+    LOG(WARNING) << "skipped digit"
+                 << ", channel = " << dig->getChannel() << ",phi,eta = (" << phi << "," << eta << "), TDC = " << dig->getTDC() << ", calibrated time = " << dig->getCalibratedTime();
 
     dig->setIsUsedInCluster(); // flag is at used in any case
 
@@ -219,16 +218,16 @@ void Clusterer::buildCluster(Cluster& c, MCLabelContainer const* digitMCTruth)
   // filling the MC labels of this cluster; the first will be those of the main digit; then the others
   if (digitMCTruth != nullptr) {
     int lbl = mClsLabels->getIndexedSize(); // this should correspond to the number of digits also;
-    printf("lbl = %d\n", lbl);
+    //printf("lbl = %d\n", lbl);
     for (int i = 0; i < mNumberOfContributingDigits; i++) {
-      printf("contributing digit = %d\n", i);
+      //printf("contributing digit = %d\n", i);
       int digitLabel = mContributingDigit[i]->getLabel();
-      printf("digitLabel = %d\n", digitLabel);
+      //printf("digitLabel = %d\n", digitLabel);
       gsl::span<const o2::MCCompLabel> mcArray = digitMCTruth->getLabels(digitLabel);
       for (int j = 0; j < static_cast<int>(mcArray.size()); j++) {
-        printf("checking element %d in the array of labels\n", j);
+        //printf("checking element %d in the array of labels\n", j);
         auto label = digitMCTruth->getElement(digitMCTruth->getMCTruthHeader(digitLabel).index + j);
-        printf("EventID = %d\n", label.getEventID());
+        //printf("EventID = %d\n", label.getEventID());
         mClsLabels->addElement(lbl, label);
       }
     }
@@ -256,4 +255,11 @@ void Clusterer::buildCluster(Cluster& c, MCLabelContainer const* digitMCTruth)
   c.setErrors(errY2, errZ2, errYZ);
 
   return;
+}
+
+//_____________________________________________________________________
+void Clusterer::setFirstOrbit(uint32_t orb)
+{
+  mFirstOrbit = orb;
+  mBCOffset = orb * o2::constants::lhc::LHCMaxBunches;
 }

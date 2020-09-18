@@ -8,7 +8,7 @@
 #include "FairLogger.h"
 #include "DataFormatsITSMFT/ROFRecord.h"
 #include "DataFormatsITSMFT/Digit.h"
-#include "SimulationDataFormat/RunContext.h"
+#include "SimulationDataFormat/DigitizationContext.h"
 #include "SimulationDataFormat/MCTruthContainer.h"
 #include "SimulationDataFormat/MCCompLabel.h"
 
@@ -16,8 +16,7 @@
 
 void readITSDigits(std::string path = "./",
                    std::string digiFName = "itsdigits.root",
-                   std::string runContextFName = "collisioncontext.root",
-                   std::string mctruthFName = "o2sim.root")
+                   std::string runContextFName = "collisioncontext.root")
 {
   if (path.back() != '/') {
     path += '/';
@@ -56,9 +55,9 @@ void readITSDigits(std::string path = "./",
   digiTree->GetEntry(0);
 
   // MC collisions record
-  auto runContext = reinterpret_cast<o2::steer::RunContext*>(rcFile->GetObjectChecked("RunContext", "o2::steer::RunContext"));
+  auto runContext = reinterpret_cast<o2::steer::DigitizationContext*>(rcFile->GetObjectChecked("DigitizationContext", "o2::steer::DigitizationContext"));
   if (!runContext) {
-    LOG(WARNING) << "Did not find RunContext";
+    LOG(WARNING) << "Did not find DigitizationContext";
     return;
   }
 

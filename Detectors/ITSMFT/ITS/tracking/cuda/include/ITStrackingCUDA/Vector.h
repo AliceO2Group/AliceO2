@@ -203,17 +203,18 @@ void Vector<T>::reset(const T* const source, const int size, const int initialSi
     if (mArrayPointer != nullptr) {
       Utils::Host::gpuFree(mArrayPointer);
     }
-
     Utils::Host::gpuMalloc(reinterpret_cast<void**>(&mArrayPointer), size * sizeof(T));
     mCapacity = size;
   }
 
   if (source != nullptr) {
-
     Utils::Host::gpuMemcpyHostToDevice(mArrayPointer, source, size * sizeof(T));
     Utils::Host::gpuMemcpyHostToDevice(mDeviceSize, &size, sizeof(int));
 
   } else {
+    if (mDeviceSize == nullptr) {
+      Utils::Host::gpuMalloc(reinterpret_cast<void**>(&mDeviceSize), sizeof(int));
+    }
     Utils::Host::gpuMemcpyHostToDevice(mDeviceSize, &initialSize, sizeof(int));
   }
 }

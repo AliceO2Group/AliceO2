@@ -8,12 +8,10 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#ifndef FRAMEWORK_DRIVER_INFO_H
-#define FRAMEWORK_DRIVER_INFO_H
+#ifndef O2_FRAMEWORK_DRIVERINFO_H_
+#define O2_FRAMEWORK_DRIVERINFO_H_
 
-#include <chrono>
 #include <cstddef>
-#include <map>
 #include <vector>
 
 #include <csignal>
@@ -21,11 +19,12 @@
 
 #include "Framework/ChannelConfigurationPolicy.h"
 #include "Framework/ConfigParamSpec.h"
+#include "Framework/TerminationPolicy.h"
+#include "Framework/CompletionPolicy.h"
+#include "Framework/DispatchPolicy.h"
 #include "DataProcessorInfo.h"
 
-namespace o2
-{
-namespace framework
+namespace o2::framework
 {
 
 class ConfigContext;
@@ -60,7 +59,6 @@ enum struct DriverState {
   INIT = 0,
   SCHEDULE,
   RUNNING,
-  GUI,
   REDEPLOY_GUI,
   QUIT_REQUESTED,
   HANDLE_CHILDREN,
@@ -73,24 +71,11 @@ enum struct DriverState {
   LAST
 };
 
-/// These are the possible actions we can do
-/// when a workflow is deemed complete (e.g. when we are done
-/// reading from file).
-enum struct TerminationPolicy { QUIT,
-                                WAIT,
-                                RESTART };
-
 /// Information about the driver process (i.e.  / the one which calculates the
 /// topology and actually spawns the devices )
 struct DriverInfo {
   /// Stack with the states to be processed next.
   std::vector<DriverState> states;
-  // Mapping between various pipes and the actual device information.
-  // Key is the file description, value is index in the previous vector.
-  std::map<int, size_t> socket2DeviceInfo;
-  /// The first unused file descriptor
-  int maxFd;
-  fd_set childFdset;
 
   // Signal handler for children
   struct sigaction sa_handle_child;
@@ -114,8 +99,10 @@ struct DriverInfo {
   bool batch;
   /// What we should do when the workflow is completed.
   enum TerminationPolicy terminationPolicy;
+  /// What we should do when one device in the workflow has an error
+  enum TerminationPolicy errorPolicy;
   /// The offset at which the process was started.
-  std::chrono::time_point<std::chrono::steady_clock> startTime;
+  uint64_t startTime;
   /// The optional timeout after which the driver will request
   /// all the children to quit.
   double timeout;
@@ -144,9 +131,12 @@ struct DriverInfo {
   float frameLatency;
   /// The unique id used for ipc communications
   std::string uniqueWorkflowId = "";
+  /// Metrics gathering interval
+  unsigned short resourcesMonitoringInterval;
+  /// Last port used for tracy
+  short tracyPort = 8086;
 };
 
-} // namespace framework
-} // namespace o2
+} // namespace o2::framework
 
-#endif
+#endif // O2_FRAMEWORK_DRIVERINFO_H_

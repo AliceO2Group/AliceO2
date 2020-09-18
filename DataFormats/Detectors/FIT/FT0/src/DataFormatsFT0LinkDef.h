@@ -15,12 +15,18 @@
 #pragma link off all functions;
 
 #pragma link C++ class o2::ft0::Digit + ;
+#pragma link C++ class o2::ft0::DigitsTemp + ;
 #pragma link C++ class o2::ft0::ChannelData + ;
+#pragma link C++ class o2::ft0::Triggers + ;
 #pragma link C++ class vector < o2::ft0::ChannelData> + ;
 #pragma link C++ class vector < o2::ft0::Digit> + ;
+#pragma link C++ class vector < o2::ft0::DigitsTemp> + ;
+#pragma link C++ class vector < o2::ft0::Triggers> + ;
 
 #pragma link C++ class o2::ft0::RecPoints + ;
 #pragma link C++ class vector < o2::ft0::RecPoints> + ;
+#pragma link C++ class o2::ft0::ChannelDataFloat + ;
+#pragma link C++ class vector < o2::ft0::ChannelDataFloat> + ;
 
 #pragma link C++ class o2::ft0::MCLabel + ;
 #pragma link C++ class o2::dataformats::MCTruthContainer < o2::ft0::MCLabel> + ;
@@ -32,5 +38,10 @@
 #pragma link C++ class o2::ft0::EventHeader + ;
 #pragma link C++ class o2::ft0::EventData + ;
 #pragma link C++ class o2::ft0::Topo + ;
+
+#pragma link C++ class o2::ft0::CTFHeader + ;
+#pragma link C++ class o2::ft0::CompressedDigits + ;
+#pragma link C++ class o2::ft0::CTF + ;
+#pragma link C++ class o2::ctf::EncodedBlocks < o2::ft0::CTFHeader, 8, uint32_t> + ;
 
 #endif

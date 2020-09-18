@@ -27,7 +27,7 @@ void plot_hit_phos(int ievent = 0, TString inputfile = "AliceO2_TGeant3.phos.mc_
   //  digTree->SetBranchAddress("PHSDigitMCTruth", &labels);
 
   if (!mHitsArray) {
-    cout << "PHOS hits not present. Exiting ..." << endl;
+    std::cout << "PHOS hits not present. Exiting ..." << std::endl;
     return;
   }
   hitTree->GetEvent(ievent);

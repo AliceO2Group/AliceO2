@@ -80,7 +80,8 @@ void check(const std::vector<std::string>& arguments,
                                       dataProcessorInfos,
                                       deviceSpecs,
                                       deviceExecutions,
-                                      deviceControls);
+                                      deviceControls,
+                                      "workflow-id");
 
   std::cout << "created execution for " << deviceSpecs.size() << " device(s)" << std::endl;
 

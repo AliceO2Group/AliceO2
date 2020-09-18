@@ -11,6 +11,7 @@
 /// \file makefile_opencl_compiler.cxx
 /// \author David Rohr
 
+#define CL_TARGET_OPENCL_VERSION 220
 #define _CRT_SECURE_NO_WARNINGS
 #include "CL/opencl.h"
 #include <cstdlib>

@@ -16,7 +16,6 @@
 #ifndef O2_MID_COLUMNDATAMC_H
 #define O2_MID_COLUMNDATAMC_H
 
-#include "CommonDataFormat/TimeStamp.h"
 #include "DataFormatsMID/ColumnData.h"
 
 namespace o2
@@ -24,7 +23,7 @@ namespace o2
 namespace mid
 {
 /// Column data structure for MID simulations
-class ColumnDataMC : public ColumnData, public o2::dataformats::TimeStamp<int>
+class ColumnDataMC : public ColumnData
 {
   ClassDefNV(ColumnDataMC, 1);
 };

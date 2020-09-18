@@ -9,6 +9,7 @@
 # submit itself to any jurisdiction.
 
 o2_add_library(TPCReconstruction
+               TARGETVARNAME targetName
                SOURCES src/AdcClockMonitor.cxx
                        src/ClustererTask.cxx
                        src/GBTFrame.cxx
@@ -16,6 +17,7 @@ o2_add_library(TPCReconstruction
                        src/HalfSAMPAData.cxx
                        src/HwClusterer.cxx
                        src/HwClustererParam.cxx
+                       src/KrBoxClusterFinder.cxx
                        src/RawReader.cxx
                        src/RawReaderCRU.cxx
                        src/RawReaderEventSync.cxx
@@ -24,8 +26,10 @@ o2_add_library(TPCReconstruction
                        src/HardwareClusterDecoder.cxx
                        src/DigitalCurrentClusterIntegrator.cxx
                        src/TPCFastTransformHelperO2.cxx
+                       src/CTFCoder.cxx
                PUBLIC_LINK_LIBRARIES FairRoot::Base O2::SimulationDataFormat
-                                     O2::TPCBase O2::GPUTracking)
+                                     O2::TPCBase O2::GPUTracking
+                                     O2::DetectorsRaw)
 
 o2_target_root_dictionary(
   TPCReconstruction
@@ -37,6 +41,8 @@ o2_target_root_dictionary(
           include/TPCReconstruction/HalfSAMPAData.h
           include/TPCReconstruction/HwClusterer.h
           include/TPCReconstruction/HwClustererParam.h
+          include/TPCReconstruction/KrBoxClusterFinder.h
+          include/TPCReconstruction/KrCluster.h
           include/TPCReconstruction/RawReader.h
           include/TPCReconstruction/RawReaderCRU.h
           include/TPCReconstruction/RawReaderEventSync.h
@@ -44,7 +50,8 @@ o2_target_root_dictionary(
           include/TPCReconstruction/GPUCATracking.h
           include/TPCReconstruction/HardwareClusterDecoder.h
           include/TPCReconstruction/DigitalCurrentClusterIntegrator.h
-          include/TPCReconstruction/TPCFastTransformHelperO2.h)
+          include/TPCReconstruction/TPCFastTransformHelperO2.h
+          include/TPCReconstruction/CTFCoder.h)
 
 o2_add_executable(read-gbtframes
                   COMPONENT_NAME tpc
@@ -89,13 +96,13 @@ o2_add_test(HwClusterer
 
 # The FastTransform  test seems really slow in Debug mode, so use it only in
 # release mode (use CONFIGURATIONS keyword)
+# update: currently it is fast, switch the test on also for debug
 o2_add_test(FastTransform
             COMPONENT_NAME tpc
             LABELS tpc
             PUBLIC_LINK_LIBRARIES O2::TPCReconstruction
             SOURCES test/testTPCFastTransform.cxx
-            ENVIRONMENT O2_ROOT=${CMAKE_BINARY_DIR}/stage CONFIGURATIONS
-                        RelWithDebInfo)
+            ENVIRONMENT O2_ROOT=${CMAKE_BINARY_DIR}/stage) # CONFIGURATIONS RelWithDebInfo)
 
 # FIXME: should be moved to TPCCalibration as it requires O2::TPCCalibration
 # which is built after TPCReconstruction
@@ -111,7 +118,26 @@ o2_add_test_root_macro(macro/testRawRead.C
                        PUBLIC_LINK_LIBRARIES O2::TPCReconstruction
                        LABELS tpc)
 
+o2_add_test_root_macro(macro/createTPCSpaceChargeCorrection.C
+                       COMPILE_ONLY
+                       PUBLIC_LINK_LIBRARIES O2::TPCReconstruction
+                                             O2::CommonConstants
+                                             O2::CommonUtils
+                                             O2::TPCSpaceChargeBase
+                       LABELS tpc)
+
+o2_add_test_root_macro(macro/findKrBoxCluster.C
+                      PUBLIC_LINK_LIBRARIES O2::TPCReconstruction
+                      LABELS tpc)
+
 # FIXME: should be moved to TPCSimulation as it requires O2::TPCSimulation
 # target which is built after reconstruction
 # o2_add_test_root_macro(macro/testTracks.C PUBLIC_LINK_LIBRARIES
 # ReconstructionDataFormats O2::TPCBase O2::DataFormatsTPC O2::TPCSimulation)
+
+if(OpenMP_CXX_FOUND)
+  message(STATUS "GPU: Using OpenMP: ${OpenMP_CXX_SPEC_DATE}")
+  # Must be private, depending libraries might be compiled by compiler not understanding -fopenmp
+  target_compile_definitions(${targetName} PRIVATE WITH_OPENMP)
+  target_link_libraries(${targetName} PRIVATE OpenMP::OpenMP_CXX)
+endif()

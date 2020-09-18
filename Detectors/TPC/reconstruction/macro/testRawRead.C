@@ -51,7 +51,7 @@ void testRawRead(std::string filename)
     digits.clear();
   }
 
-  cout << "MaxPad: " << maxPad << "\n";
+  std::cout << "MaxPad: " << maxPad << "\n";
   TCanvas* c1 = new TCanvas("c1", "c1");
   hDigits->Draw();
   TCanvas* c2 = new TCanvas("c2", "c2");

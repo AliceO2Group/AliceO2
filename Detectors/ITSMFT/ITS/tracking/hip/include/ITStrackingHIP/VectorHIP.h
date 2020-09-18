@@ -123,7 +123,7 @@ VectorHIP<T>::VectorHIP(const T* const source, const int size, const int initial
 }
 
 template <typename T>
-VectorHIP<T>::VectorHIP(const VectorHIP& other, const bool isWeak)
+GPUhdi() VectorHIP<T>::VectorHIP(const VectorHIP& other, const bool isWeak)
   : mArrayPointer{other.mArrayPointer},
     mDeviceSize{other.mDeviceSize},
     mCapacity{other.mCapacity},

@@ -21,7 +21,7 @@ void runPulser(std::vector<std::string_view> fileInfos, TString outputFileName =
                Int_t adcMin = 0, Int_t adcMax = 1100,
                Int_t firstTimeBin = 0, Int_t lastTimeBin = 500,
                TString pedestalAndNoiseFile = "",
-               uint32_t verbosity = 0, uint32_t debugLevel = 0)
+               uint32_t verbosity = 0, uint32_t debugLevel = 0, int type = 0)
 {
   using namespace o2::tpc;
   // ===| set up calibration class |============================================
@@ -29,6 +29,13 @@ void runPulser(std::vector<std::string_view> fileInfos, TString outputFileName =
   calib.setADCRange(adcMin, adcMax);
   calib.setTimeBinRange(firstTimeBin, lastTimeBin);
   calib.setDebugLevel();
+  calib.setQtotBinning(140, 22, 302);
+  if (type == 1) {
+    calib.setQtotBinning(150, 2, 302);
+    calib.setMinQtot(8);
+    calib.setMinQmax(6);
+    calib.setMaxTimeBinRange(6);
+  }
   //calib.setDebugLevel(debugLevel);
 
   // ===| load pedestal if requested |==========================================
@@ -58,7 +65,7 @@ void runPulser(std::vector<std::string_view> fileInfos, TString outputFileName =
 
     for (Int_t i = 0; i < nevents; ++i) {
       status = calib.processEvent(i);
-      cout << "Processing event " << i << " with status " << int(status) << '\n';
+      std::cout << "Processing event " << i << " with status " << int(status) << '\n';
       if (status == CalibRawBase::ProcessStatus::IncompleteEvent) {
         continue;
       } else if (status != CalibRawBase::ProcessStatus::Ok) {

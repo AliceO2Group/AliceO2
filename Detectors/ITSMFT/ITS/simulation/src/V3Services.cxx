@@ -48,6 +48,7 @@ const Double_t V3Services::sIBCYSSFlangeCZPos = 171.5 * sMm; // Computed from di
 const Double_t V3Services::sOBWheelThickness = 2.0 * sMm;
 const Double_t V3Services::sMBWheelsZpos = 457.0 * sMm;
 const Double_t V3Services::sOBWheelsZpos = 770.0 * sMm;
+const Double_t V3Services::sOBConesZpos = 798.0 * sMm;
 
 ClassImp(V3Services);
 
@@ -128,7 +129,7 @@ TGeoVolume* V3Services::createCYSSAssembly(const TGeoManager* mgr)
   //         a TGeoVolume(Assembly) with all the elements
   //
   // Created:      21 Oct 2019  Mario Sitta
-  // Updated:      21 Oct 2019  Mario Sitta   Full cylinder implemented
+  // Updated:      02 Dec 2019  Mario Sitta   Full cylinder implemented
   //
 
   static const Double_t sCyssFlangeAZpos = 9.0 * sMm;
@@ -243,6 +244,45 @@ void V3Services::createOBEndWheelsSideC(TGeoVolume* mother, const TGeoManager* m
 
   for (Int_t jLay = 0; jLay < sNumberOuterLayers; jLay++)
     obEndWheelSideC(jLay, mother, mgr);
+}
+
+void V3Services::createOBConeSideA(TGeoVolume* mother, const TGeoManager* mgr)
+{
+  //
+  // Creates the Outer Barrel Cone on Side A
+  //
+  // Input:
+  //         mother : the volume hosting the cones
+  //         mgr : the GeoManager (used only to get the proper material)
+  //
+  // Output:
+  //
+  // Return:
+  //
+  // Created:      03 Feb 2020  Mario Sitta
+  //
+
+  obConeSideA(mother, mgr);
+  obConeTraysSideA(mother, mgr);
+}
+
+void V3Services::createOBConeSideC(TGeoVolume* mother, const TGeoManager* mgr)
+{
+  //
+  // Creates the Outer Barrel Cone on Side C
+  //
+  // Input:
+  //         mother : the volume hosting the cones
+  //         mgr : the GeoManager (used only to get the proper material)
+  //
+  // Output:
+  //
+  // Return:
+  //
+  // Created:      26 Jan 2020  Mario Sitta
+  //
+
+  obConeSideC(mother, mgr);
 }
 
 void V3Services::ibEndWheelSideA(const Int_t iLay, TGeoVolume* endWheel, const TGeoManager* mgr)
@@ -1892,4 +1932,409 @@ void V3Services::obEndWheelSideC(const Int_t iLay, TGeoVolume* mother, const TGe
   if (iLay == 1)
     zpos -= (sOBWheelThickness + (static_cast<TGeoTube*>(upperRingSh))->GetDz());
   mother->AddNode(ringUpperVol, 1, new TGeoTranslation(0, 0, -zpos));
+}
+
+void V3Services::obConeSideA(TGeoVolume* mother, const TGeoManager* mgr)
+{
+  //
+  // Creates the Cone structure on Side A of the Outer Barrel
+  // (ALICE-W4-04-Cone_4A)
+  //
+  // Input:
+  //         mother : the volume where to place the current created cone
+  //         mgr : the GeoManager (used only to get the proper material)
+  //
+  // Output:
+  //
+  // Return:
+  //
+  // Created:      03 Feb 2020  Mario Sitta
+  //
+
+  static const Double_t sOBConeATotZlen = 350.0 * sMm;
+  static const Double_t sOBConeAStartCyl2 = 170.0 * sMm;
+  static const Double_t sOBConeAEndCyl1 = 160.8 * sMm;
+  static const Double_t sOBConeAThinCylZ = 36.0 * sMm;
+
+  static const Double_t sOBConeAIntR = 291.5 * sMm;
+  static const Double_t sOBConeAExtR = 302.5 * sMm;
+
+  static const Double_t sOBConeARingExtR = 339.5 * sMm;
+  static const Double_t sOBConeARingZlen = 55.0 * sMm;
+  static const Double_t sOBConeARingZout = 35.0 * sMm;
+
+  static const Double_t sOBConeAThickAll = 2.0 * sMm;
+  static const Double_t sOBConeAThickThin = 1.0 * sMm;
+
+  static const Double_t sOBConeAReinfZIn = 1.0 * sMm;
+  static const Double_t sOBConeAReinfRIn = 301.6 * sMm;
+
+  static const Double_t sOBConeAReinfThick = 6.5 * sMm;
+
+  static const Int_t sOBConeARibNVert = 8;
+
+  // Local variables
+  Double_t rmin, rmax, zlen;
+  Double_t xpos, ypos, zpos;
+
+  // The OB Cone on Side A is physically a single piece.
+  // It is implemented using two Pcon plus a Xtru for the reinforcements
+
+  Double_t phi = sOBConeAReinfThick / sOBConeAIntR;
+  phi *= TMath::RadToDeg();
+
+  // The main cone: a Pcon
+  TGeoPcon* obConeSh = new TGeoPcon(phi, 180 - 2 * phi, 10);
+
+  rmin = sOBConeAIntR;
+  rmax = sOBConeAReinfRIn;
+  obConeSh->DefineSection(0, 0., rmin, rmax);
+  obConeSh->DefineSection(1, sOBConeAReinfZIn, rmin, rmax);
+  rmax = rmin + sOBConeAThickThin;
+  obConeSh->DefineSection(2, sOBConeAReinfZIn, rmin, rmax);
+  obConeSh->DefineSection(3, sOBConeAThinCylZ, rmin, rmax);
+  rmax = rmin + sOBConeAThickAll;
+  obConeSh->DefineSection(4, sOBConeAThinCylZ, rmin, rmax);
+  zlen = sOBConeATotZlen - sOBConeAStartCyl2;
+  obConeSh->DefineSection(5, zlen, rmin, rmax);
+  rmin = sOBConeAExtR;
+  rmax = rmin + sOBConeAThickAll;
+  zlen = sOBConeATotZlen - sOBConeAEndCyl1;
+  obConeSh->DefineSection(6, zlen, rmin, rmax);
+  zlen = sOBConeATotZlen - sOBConeAThickAll;
+  obConeSh->DefineSection(7, zlen, rmin, rmax);
+  rmax = sOBConeARingExtR;
+  obConeSh->DefineSection(8, zlen, rmin, rmax);
+  obConeSh->DefineSection(9, sOBConeATotZlen, rmin, rmax);
+
+  // The external ring: a Pcon
+  TGeoPcon* obConeRingSh = new TGeoPcon(phi, 180 - 2 * phi, 6);
+
+  rmin = obConeSh->GetRmax(7);
+  rmax = rmin + sOBConeAThickAll;
+  obConeRingSh->DefineSection(0, 0., rmin, rmax);
+  zlen = sOBConeARingZlen - sOBConeARingZout;
+  obConeRingSh->DefineSection(1, zlen, rmin, rmax);
+  rmax = sOBConeARingExtR;
+  obConeRingSh->DefineSection(2, zlen, rmin, rmax);
+  zlen += sOBConeAThickAll;
+  obConeRingSh->DefineSection(3, zlen, rmin, rmax);
+  rmin = rmax - sOBConeAThickAll;
+  obConeRingSh->DefineSection(4, zlen, rmin, rmax);
+  zlen = sOBConeARingZlen - sOBConeAThickAll;
+  obConeRingSh->DefineSection(5, zlen, rmin, rmax);
+
+  // The reinforcement rib: a Xtru
+  Double_t xr[sOBConeARibNVert], yr[sOBConeARibNVert];
+
+  xr[0] = 0;
+  yr[0] = 0;
+  xr[1] = obConeSh->GetRmax(0) - obConeSh->GetRmin(0);
+  yr[1] = yr[0];
+  xr[2] = xr[1];
+  yr[2] = obConeSh->GetZ(5);
+  xr[7] = xr[0];
+  yr[7] = yr[2];
+  xr[6] = obConeSh->GetRmin(6) - obConeSh->GetRmin(5);
+  yr[6] = obConeSh->GetZ(6);
+  xr[3] = xr[6] + (xr[1] - xr[0]);
+  yr[3] = yr[6];
+  xr[5] = xr[6];
+  yr[5] = sOBConeATotZlen - sOBConeARingZout + sOBConeAThickAll;
+  xr[4] = xr[3];
+  yr[4] = yr[5];
+
+  TGeoXtru* obConeRibSh = new TGeoXtru(2);
+  obConeRibSh->DefinePolygon(sOBConeARibNVert, xr, yr);
+  obConeRibSh->DefineSection(0, 0);
+  obConeRibSh->DefineSection(1, sOBConeAThickAll);
+
+  // We have all shapes: now create the real volumes
+  TGeoMedium* medCarbon = mgr->GetMedium("ITS_M55J6K$"); // TO BE CHECKED
+
+  TGeoVolume* obConeVol = new TGeoVolume("OBConeSideA", obConeSh, medCarbon);
+  obConeVol->SetFillColor(kBlue);
+  obConeVol->SetLineColor(kBlue);
+
+  TGeoVolume* obConeRingVol = new TGeoVolume("OBConeRingSideA", obConeRingSh, medCarbon);
+  obConeRingVol->SetFillColor(kBlue);
+  obConeRingVol->SetLineColor(kBlue);
+
+  TGeoVolume* obConeRibVol = new TGeoVolume("OBConeRibSideA", obConeRibSh, medCarbon);
+  obConeRibVol->SetFillColor(kBlue);
+  obConeRibVol->SetLineColor(kBlue);
+
+  // Finally put everything in the mother volume
+  zpos = sOBConesZpos - sOBConeATotZlen;
+
+  mother->AddNode(obConeVol, 1, new TGeoTranslation(0, 0, zpos));
+  mother->AddNode(obConeVol, 2, new TGeoCombiTrans(0, 0, zpos, new TGeoRotation("", 180, 0, 0)));
+
+  zpos = sOBConesZpos - sOBConeARingZlen;
+
+  mother->AddNode(obConeRingVol, 1, new TGeoTranslation(0, 0, zpos));
+  mother->AddNode(obConeRingVol, 2, new TGeoCombiTrans(0, 0, zpos, new TGeoRotation("", 180, 0, 0)));
+
+  xpos = obConeSh->GetRmin(0);
+  ypos = sOBConeAReinfThick;
+  zpos = sOBConesZpos - sOBConeATotZlen;
+
+  mother->AddNode(obConeRibVol, 1, new TGeoCombiTrans(xpos, ypos, zpos, new TGeoRotation("", 0, 90, 0)));
+  mother->AddNode(obConeRibVol, 4, new TGeoCombiTrans(-xpos, -ypos, zpos, new TGeoRotation("", 0, -90, 180)));
+
+  ypos = sOBConeAReinfThick - sOBConeAThickAll;
+
+  mother->AddNode(obConeRibVol, 3, new TGeoCombiTrans(-xpos, ypos, zpos, new TGeoRotation("", 0, -90, -180)));
+  mother->AddNode(obConeRibVol, 4, new TGeoCombiTrans(xpos, -ypos, zpos, new TGeoRotation("", 0, 90, 0)));
+}
+
+void V3Services::obConeTraysSideA(TGeoVolume* mother, const TGeoManager* mgr)
+{
+  //
+  // Creates the Cone Trays on Side A of the Outer Barrel
+  // (ALICE-W3-08-vassoio+ALICE-W5-08_vassoio)
+  //
+  // Input:
+  //         mother : the volume where to place the current created cone
+  //         mgr : the GeoManager (used only to get the proper material)
+  //
+  // Output:
+  //
+  // Return:
+  //
+  // Created:      05 Feb 2020  Mario Sitta
+  //
+
+  static const Double_t sOBTrayZlen[2] = {112.0 * sMm, 115.0 * sMm};
+  static const Double_t sOBTrayRmin[2] = {222.0 * sMm, 370.0 * sMm};
+  static const Double_t sOBTrayRmax[2] = {240.0 * sMm, 386.0 * sMm};
+
+  static const Double_t sOBTrayZpos[2] = {181.0 * sMm, 20.0 * sMm};
+
+  static const Double_t sOBTrayThick = 2.0 * sMm;
+
+  static const Double_t sOBTrayReinfWide[2] = {27.0 * sMm, 24.0 * sMm};
+  static const Double_t sOBTrayReinfYpos = 6.0 * sMm;
+
+  // Local variables
+  Double_t rmin, rmax, zlen;
+  Double_t xpos, ypos, zpos;
+
+  // Each OB Tray on Side A is physically a single piece.
+  // It is implemented using a Pcon plus a BBox for the reinforcements
+
+  TGeoPcon* obTraySh[2];
+  TGeoBBox* obTrayRibSh[2];
+
+  for (Int_t j = 0; j < 2; j++) {
+    Double_t phi = (sOBTrayReinfYpos + sOBTrayThick) / sOBTrayRmin[j];
+    phi *= TMath::RadToDeg();
+
+    // The main body: a Pcon
+    obTraySh[j] = new TGeoPcon(180 + phi, 180 - 2 * phi, 4);
+
+    rmin = sOBTrayRmin[j];
+    rmax = sOBTrayRmax[j];
+    obTraySh[j]->DefineSection(0, 0., rmin, rmax);
+    obTraySh[j]->DefineSection(1, sOBTrayThick, rmin, rmax);
+    rmin = rmax - sOBTrayThick;
+    obTraySh[j]->DefineSection(2, sOBTrayThick, rmin, rmax);
+    obTraySh[j]->DefineSection(3, sOBTrayZlen[j], rmin, rmax);
+
+    // The reinforcement rib: a BBox
+    obTrayRibSh[j] = new TGeoBBox(sOBTrayReinfWide[j] / 2,
+                                  sOBTrayThick / 2,
+                                  sOBTrayZlen[j] / 2);
+  } // for (j = 0,1)
+
+  // We have all shapes: now create the real volumes
+  TGeoMedium* medCarbon = mgr->GetMedium("ITS_M55J6K$"); // TO BE CHECKED
+
+  TGeoVolume *obTrayVol[2], *obTrayRibVol[2];
+
+  for (Int_t j = 0; j < 2; j++) {
+    obTrayVol[j] = new TGeoVolume(Form("OBConeTray%d", j), obTraySh[j], medCarbon);
+    obTrayVol[j]->SetFillColor(kBlue);
+    obTrayVol[j]->SetLineColor(kBlue);
+
+    obTrayRibVol[j] = new TGeoVolume(Form("OBConeTrayRib%d", j), obTrayRibSh[j], medCarbon);
+    obTrayRibVol[j]->SetFillColor(kBlue);
+    obTrayRibVol[j]->SetLineColor(kBlue);
+  }
+
+  // Finally put everything in the mother volume
+
+  for (Int_t j = 0; j < 2; j++) {
+    if (j == 0)
+      zpos = sOBConesZpos - sOBTrayZpos[j] - sOBTrayZlen[j];
+    else
+      zpos = sOBConesZpos + sOBTrayZpos[j];
+
+    mother->AddNode(obTrayVol[j], 1, new TGeoTranslation(0, 0, zpos));
+    mother->AddNode(obTrayVol[j], 2, new TGeoCombiTrans(0, 0, zpos, new TGeoRotation("", 180, 0, 0)));
+
+    xpos = obTraySh[j]->GetRmin(0) + obTrayRibSh[j]->GetDX();
+    ypos = sOBTrayReinfYpos + obTrayRibSh[j]->GetDY();
+    zpos += obTrayRibSh[j]->GetDZ();
+
+    mother->AddNode(obTrayRibVol[j], 1, new TGeoTranslation(xpos, -ypos, zpos));
+    mother->AddNode(obTrayRibVol[j], 2, new TGeoTranslation(-xpos, -ypos, zpos));
+    mother->AddNode(obTrayRibVol[j], 3, new TGeoTranslation(xpos, ypos, zpos));
+    mother->AddNode(obTrayRibVol[j], 4, new TGeoTranslation(-xpos, ypos, zpos));
+  }
+}
+
+void V3Services::obConeSideC(TGeoVolume* mother, const TGeoManager* mgr)
+{
+  //
+  // Creates the Cone structure on Side C of the Outer Barrel
+  // (ALICE-W4-06-Cone_4C)
+  //
+  // Input:
+  //         mother : the volume where to place the current created cone
+  //         mgr : the GeoManager (used only to get the proper material)
+  //
+  // Output:
+  //
+  // Return:
+  //
+  // Created:      26 Jan 2020  Mario Sitta
+  //
+
+  static const Double_t sOBConeCTotZlen = 332.5 * sMm;
+  static const Double_t sOBConeCStartCyl2 = 132.8 * sMm;
+  static const Double_t sOBConeCEndCyl1 = 82.4 * sMm;
+  static const Double_t sOBConeCThinCylZ = 36.0 * sMm;
+
+  static const Double_t sOBConeCIntR = 291.5 * sMm;
+  static const Double_t sOBConeCExtR = 315.0 * sMm;
+
+  static const Double_t sOBConeCRingExtR = 333.0 * sMm;
+  static const Double_t sOBConeCRingZlen = 61.0 * sMm;
+  static const Double_t sOBConeCRingZout = 42.0 * sMm;
+
+  static const Double_t sOBConeCThickAll = 2.0 * sMm;
+  static const Double_t sOBConeCThickThin = 1.0 * sMm;
+
+  static const Double_t sOBConeCReinfZIn = 2.0 * sMm;
+  static const Double_t sOBConeCReinfRIn = 301.6 * sMm;
+  static const Double_t sOBConeCReinfROut = 351.5 * sMm;
+
+  static const Double_t sOBConeCReinfThick = 6.5 * sMm;
+
+  static const Int_t sOBConeCRibNVert = 8;
+
+  // Local variables
+  Double_t rmin, rmax, zlen;
+  Double_t xpos, ypos, zpos;
+
+  // The OB Cone on Side C is physically a single piece.
+  // It is implemented using two Pcon plus a Xtru for the reinforcements
+
+  Double_t phi = sOBConeCReinfThick / sOBConeCIntR;
+  phi *= TMath::RadToDeg();
+
+  // The main cone: a Pcon
+  TGeoPcon* obConeSh = new TGeoPcon(phi, 180 - 2 * phi, 10);
+
+  rmin = sOBConeCExtR;
+  rmax = sOBConeCReinfROut;
+  obConeSh->DefineSection(0, 0., rmin, rmax);
+  obConeSh->DefineSection(1, sOBConeCThickAll, rmin, rmax);
+  rmax = rmin + sOBConeCThickAll;
+  obConeSh->DefineSection(2, sOBConeCThickAll, rmin, rmax);
+  obConeSh->DefineSection(3, sOBConeCEndCyl1, rmin, rmax);
+  rmin = sOBConeCIntR;
+  rmax = rmin + sOBConeCThickAll;
+  obConeSh->DefineSection(4, sOBConeCStartCyl2, rmin, rmax);
+  zlen = sOBConeCTotZlen - sOBConeCThinCylZ;
+  obConeSh->DefineSection(5, zlen, rmin, rmax);
+  rmax = rmin + sOBConeCThickThin;
+  obConeSh->DefineSection(6, zlen, rmin, rmax);
+  zlen = sOBConeCTotZlen - sOBConeCReinfZIn;
+  obConeSh->DefineSection(7, zlen, rmin, rmax);
+  rmax = sOBConeCReinfRIn;
+  obConeSh->DefineSection(8, zlen, rmin, rmax);
+  obConeSh->DefineSection(9, sOBConeCTotZlen, rmin, rmax);
+
+  // The external ring: a Pcon
+  TGeoPcon* obConeRingSh = new TGeoPcon(phi, 180 - 2 * phi, 8);
+
+  rmin = sOBConeCRingExtR - sOBConeCThickAll;
+  rmax = sOBConeCReinfROut;
+  obConeRingSh->DefineSection(0, 0., rmin, rmax);
+  obConeRingSh->DefineSection(1, sOBConeCThickAll, rmin, rmax);
+  rmax = sOBConeCRingExtR;
+  obConeRingSh->DefineSection(2, sOBConeCThickAll, rmin, rmax);
+  zlen = sOBConeCRingZout - sOBConeCThickAll;
+  obConeRingSh->DefineSection(3, zlen, rmin, rmax);
+  rmin = sOBConeCExtR + sOBConeCThickAll;
+  obConeRingSh->DefineSection(4, zlen, rmin, rmax);
+  obConeRingSh->DefineSection(5, sOBConeCRingZout, rmin, rmax);
+  rmax = rmin + sOBConeCThickAll;
+  obConeRingSh->DefineSection(6, sOBConeCRingZout, rmin, rmax);
+  obConeRingSh->DefineSection(7, sOBConeCRingZlen, rmin, rmax);
+
+  // The reinforcement rib: a Xtru
+  Double_t xr[sOBConeCRibNVert], yr[sOBConeCRibNVert];
+
+  xr[0] = 0;
+  yr[0] = 0;
+  xr[1] = obConeSh->GetRmax(9) - obConeSh->GetRmin(9);
+  yr[1] = yr[0];
+  xr[2] = xr[1];
+  yr[2] = obConeSh->GetZ(9) - obConeSh->GetZ(4);
+  xr[7] = xr[0];
+  yr[7] = yr[2];
+  xr[6] = obConeSh->GetRmin(3) - obConeSh->GetRmin(4);
+  yr[6] = obConeSh->GetZ(9) - obConeSh->GetZ(3);
+  xr[3] = xr[6] + (xr[1] - xr[0]);
+  yr[3] = yr[6];
+  xr[5] = xr[6];
+  yr[5] = sOBConeCTotZlen - sOBConeCRingZout;
+  xr[4] = xr[3];
+  yr[4] = yr[5];
+
+  TGeoXtru* obConeRibSh = new TGeoXtru(2);
+  obConeRibSh->DefinePolygon(sOBConeCRibNVert, xr, yr);
+  obConeRibSh->DefineSection(0, 0);
+  obConeRibSh->DefineSection(1, sOBConeCThickAll);
+
+  // We have all shapes: now create the real volumes
+  TGeoMedium* medCarbon = mgr->GetMedium("ITS_M55J6K$"); // TO BE CHECKED
+
+  TGeoVolume* obConeVol = new TGeoVolume("OBConeSideC", obConeSh, medCarbon);
+  obConeVol->SetFillColor(kBlue);
+  obConeVol->SetLineColor(kBlue);
+
+  TGeoVolume* obConeRingVol = new TGeoVolume("OBConeRingSideC", obConeRingSh, medCarbon);
+  obConeRingVol->SetFillColor(kBlue);
+  obConeRingVol->SetLineColor(kBlue);
+
+  TGeoVolume* obConeRibVol = new TGeoVolume("OBConeRibSideC", obConeRibSh, medCarbon);
+  obConeRibVol->SetFillColor(kBlue);
+  obConeRibVol->SetLineColor(kBlue);
+
+  // Finally put everything in the mother volume
+  zpos = sOBConesZpos;
+
+  mother->AddNode(obConeVol, 1, new TGeoTranslation(0, 0, -zpos));
+  mother->AddNode(obConeVol, 2, new TGeoCombiTrans(0, 0, -zpos, new TGeoRotation("", 180, 0, 0)));
+
+  zpos -= sOBConeCThickAll;
+
+  mother->AddNode(obConeRingVol, 1, new TGeoTranslation(0, 0, -zpos));
+  mother->AddNode(obConeRingVol, 2, new TGeoCombiTrans(0, 0, -zpos, new TGeoRotation("", 180, 0, 0)));
+
+  xpos = obConeSh->GetRmin(9);
+  ypos = sOBConeCReinfThick;
+  zpos = sOBConesZpos - obConeSh->GetZ(9);
+
+  mother->AddNode(obConeRibVol, 1, new TGeoCombiTrans(xpos, -ypos, -zpos, new TGeoRotation("", 0, -90, 0)));
+  mother->AddNode(obConeRibVol, 2, new TGeoCombiTrans(-xpos, ypos, -zpos, new TGeoRotation("", 0, 90, 180)));
+
+  ypos = sOBConeCReinfThick - sOBConeCThickAll;
+
+  mother->AddNode(obConeRibVol, 3, new TGeoCombiTrans(xpos, ypos, -zpos, new TGeoRotation("", 0, -90, 0)));
+  mother->AddNode(obConeRibVol, 4, new TGeoCombiTrans(-xpos, -ypos, -zpos, new TGeoRotation("", 0, 90, 180)));
 }

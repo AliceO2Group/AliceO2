@@ -25,7 +25,6 @@
 #pragma link C++ class o2::trd::CalDet + ;
 #pragma link C++ class o2::trd::CalROC + ;
 #pragma link C++ class o2::trd::PadResponse + ;
-#pragma link C++ class o2::trd::MCLabel + ;
 #pragma link C++ class o2::trd::PadParameters < unsigned short > +;
 #pragma link C++ class o2::trd::PadParameters < float > +;
 #pragma link C++ class o2::trd::PadParameters < char > +;
@@ -41,11 +40,15 @@
 #pragma link C++ class o2::trd::Calibrations + ;
 #pragma link C++ class o2::trd::ChamberNoise + ;
 #pragma link C++ class o2::trd::CalOnlineGainTables + ;
-#pragma link C++ class o2::trd::TrapConfig + ;
 #pragma link C++ class o2::trd::PadNoise + ;
+#pragma link C++ class o2::trd::PadResponse + ;
+#pragma link C++ class o2::trd::Tracklet + ;
+#pragma link C++ class std::vector < o2::trd::Tracklet > +;
 
 #include "SimulationDataFormat/MCTruthContainer.h"
+#include "SimulationDataFormat/ConstMCTruthContainer.h"
 
-#pragma link C++ class o2::dataformats::MCTruthContainer < o2::trd::MCLabel> + ;
+// this is just needed to please the DPL ROOTTreeWriter facility
+#pragma link C++ class o2::dataformats::ConstMCTruthContainer < o2::trd::MCLabel> + ;
 
 #endif

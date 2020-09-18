@@ -22,12 +22,17 @@ o2_add_library(MFTBase
                        src/HalfDisk.cxx
                        src/Ladder.cxx
                        src/Flex.cxx
+                       src/PCBSupport.cxx
                        src/Support.cxx
                        src/HeatExchanger.cxx
                        src/HalfCone.cxx
+                       src/MFTBaseParam.cxx
                        src/PowerSupplyUnit.cxx
                        src/Barrel.cxx
-               PUBLIC_LINK_LIBRARIES O2::DetectorsBase O2::ITSMFTBase
+                       src/PatchPanel.cxx
+               PUBLIC_LINK_LIBRARIES O2::DetectorsBase
+                                     O2::ITSMFTBase
+                                     O2::SimConfig               
                                      O2::ITSMFTSimulation ROOT::XMLIO)
 
 o2_target_root_dictionary(MFTBase
@@ -41,12 +46,15 @@ o2_target_root_dictionary(MFTBase
                                   include/MFTBase/HalfDiskSegmentation.h
                                   include/MFTBase/LadderSegmentation.h
                                   include/MFTBase/ChipSegmentation.h
+                                  include/MFTBase/MFTBaseParam.h
                                   include/MFTBase/HalfDetector.h
                                   include/MFTBase/HalfDisk.h
                                   include/MFTBase/Ladder.h
                                   include/MFTBase/Flex.h
                                   include/MFTBase/Support.h
+                                  include/MFTBase/PCBSupport.h
                                   include/MFTBase/HeatExchanger.h
                                   include/MFTBase/HalfCone.h
                                   include/MFTBase/PowerSupplyUnit.h
-                                  include/MFTBase/Barrel.h )
+                                  include/MFTBase/Barrel.h
+                                  include/MFTBase/PatchPanel.h )

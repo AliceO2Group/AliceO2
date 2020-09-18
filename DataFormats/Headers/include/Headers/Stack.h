@@ -57,14 +57,27 @@ struct Stack {
   size_t size() const { return bufferSize; }
   allocator_type get_allocator() const { return allocator; }
   const BaseHeader* first() const { return reinterpret_cast<const BaseHeader*>(this->data()); }
-  static const BaseHeader* firstHeader(o2::byte* buf) { return BaseHeader::get(buf); }
-  static const BaseHeader* lastHeader(o2::byte* buf)
+  static const BaseHeader* firstHeader(o2::byte const* buf) { return BaseHeader::get(buf); }
+  static const BaseHeader* lastHeader(o2::byte const* buf)
   {
     const BaseHeader* last{firstHeader(buf)};
     while (last && last->flagsNextHeader) {
       last = last->next();
     }
     return last;
+  }
+  static size_t headerStackSize(o2::byte const* buf)
+  {
+    size_t result = 0;
+    const BaseHeader* last{firstHeader(buf)};
+    if (last) {
+      while (last->flagsNextHeader) {
+        result += last->size();
+        last = last->next();
+      }
+      result += last->size();
+    }
+    return result;
   }
 
   //______________________________________________________________________________________________
@@ -103,6 +116,7 @@ struct Stack {
   template <typename T>
   constexpr static size_t calculateSize(T&& h) noexcept
   {
+    //if it's a pointer (to a stack) traverse it
     if constexpr (std::is_convertible_v<T, o2::byte*>) {
       const BaseHeader* next = BaseHeader::get(std::forward<T>(h));
       if (!next) {
@@ -113,6 +127,7 @@ struct Stack {
         size += next->size();
       }
       return size;
+      //otherwise get the size directly
     } else {
       return h.size();
     }
@@ -143,6 +158,10 @@ struct Stack {
       if (!last)
         return here;
       last->flagsNextHeader = more;
+      return here + h.size();
+    } else if constexpr (std::is_same_v<BaseHeader, headerType>) {
+      std::copy(h.data(), h.data() + h.size(), here);
+      reinterpret_cast<BaseHeader*>(here)->flagsNextHeader = more;
       return here + h.size();
     } else if constexpr (std::is_base_of_v<BaseHeader, headerType>) {
       ::new (static_cast<void*>(here)) headerType(std::forward<T>(h));

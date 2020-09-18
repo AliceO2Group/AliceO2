@@ -81,6 +81,16 @@ class V3Services : public V11Geometry
   /// \param mgr  The GeoManager (used only to get the proper material)
   void createOBEndWheelsSideC(TGeoVolume* mother, const TGeoManager* mgr = gGeoManager);
 
+  /// Creates the Outer Barrel Cone on Side A
+  /// \param mother the TGeoVolume owing the volume structure
+  /// \param mgr  The GeoManager (used only to get the proper material)
+  void createOBConeSideA(TGeoVolume* mother, const TGeoManager* mgr = gGeoManager);
+
+  /// Creates the Outer Barrel Cone on Side C
+  /// \param mother the TGeoVolume owing the volume structure
+  /// \param mgr  The GeoManager (used only to get the proper material)
+  void createOBConeSideC(TGeoVolume* mother, const TGeoManager* mgr = gGeoManager);
+
  private:
   /// Creates a single Inner Barrel End Wheel on Side A
   /// \param iLay  the layer number
@@ -136,6 +146,21 @@ class V3Services : public V11Geometry
   /// \param mgr  The GeoManager (used only to get the proper material)
   void obEndWheelSideC(const Int_t iLay, TGeoVolume* mother, const TGeoManager* mgr = gGeoManager);
 
+  /// Creates the Outer Barrel Cone on Side A
+  /// \param mother  the volume containing the created wheel
+  /// \param mgr  The GeoManager (used only to get the proper material)
+  void obConeSideA(TGeoVolume* mother, const TGeoManager* mgr = gGeoManager);
+
+  /// Creates the Outer Barrel Cone on Side C
+  /// \param mother  the volume containing the created wheel
+  /// \param mgr  The GeoManager (used only to get the proper material)
+  void obConeSideC(TGeoVolume* mother, const TGeoManager* mgr = gGeoManager);
+
+  /// Creates the Outer Barrel Cone Trays on Side A
+  /// \param mother  the volume containing the created wheel
+  /// \param mgr  The GeoManager (used only to get the proper material)
+  void obConeTraysSideA(TGeoVolume* mother, const TGeoManager* mgr = gGeoManager);
+
   // Parameters
   static constexpr Int_t sNumberInnerLayers = 3; ///< Number of inner layers in ITSU
   static constexpr Int_t sNumberMiddlLayers = 2; ///< Number of middle layers in ITSU
@@ -149,6 +174,7 @@ class V3Services : public V11Geometry
   static const Double_t sOBWheelThickness; ///< MB/OB Wheels Thickness
   static const Double_t sMBWheelsZpos;     ///< MB Wheels Z position
   static const Double_t sOBWheelsZpos;     ///< OB Wheels Z position
+  static const Double_t sOBConesZpos;      ///< OB Cones A & C Z position
 
   ClassDefOverride(V3Services, 0); // ITS v3 support geometry
 };

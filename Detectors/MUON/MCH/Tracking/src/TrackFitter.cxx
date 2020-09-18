@@ -85,21 +85,13 @@ void TrackFitter::fit(Track& track, bool smooth, bool finalize,
   // recusively add the upstream clusters and update the track parameters
   TrackParam* startingParam = &*itParam;
   while (++itParam != track.rend()) {
-    try {
-      addCluster(*startingParam, *itParam->getClusterPtr(), *itParam);
-      startingParam = &*itParam;
-    } catch (exception const&) {
-      throw;
-    }
+    addCluster(*startingParam, *itParam->getClusterPtr(), *itParam);
+    startingParam = &*itParam;
   }
 
   // smooth the track if requested and the smoother enabled
   if (smooth && mSmooth) {
-    try {
-      smoothTrack(track, finalize);
-    } catch (exception const&) {
-      throw;
-    }
+    smoothTrack(track, finalize);
   }
 }
 
@@ -210,11 +202,7 @@ void TrackFitter::addCluster(const TrackParam& startingParam, const Cluster& cl,
 
   // recompute the parameters
   param.setClusterPtr(&cl);
-  try {
-    runKalmanFilter(param);
-  } catch (exception const&) {
-    throw;
-  }
+  runKalmanFilter(param);
 }
 
 //_________________________________________________________________________________________________
@@ -238,11 +226,7 @@ void TrackFitter::smoothTrack(Track& track, bool finalize)
 
   // recursively smooth the next parameters and covariances
   do {
-    try {
-      runSmoother(*itPreviousParam, *itCurrentParam);
-    } catch (exception const&) {
-      throw;
-    }
+    runSmoother(*itPreviousParam, *itCurrentParam);
     ++itPreviousParam;
   } while (++itCurrentParam != track.end());
 

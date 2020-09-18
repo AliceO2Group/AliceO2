@@ -26,6 +26,7 @@
 #include "Framework/DataProcessorSpec.h"
 #include "Framework/Lifetime.h"
 #include "Framework/Task.h"
+#include "Framework/Logger.h"
 
 namespace o2
 {

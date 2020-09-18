@@ -36,6 +36,7 @@
 #include "FairTask.h"             // for FairTask
 #include "FairTrajFilter.h"       // for FairTrajFilter
 #include "TRandom.h"
+#include <TObjString.h>
 #include <Steer/O2MCApplication.h>
 
 namespace o2
