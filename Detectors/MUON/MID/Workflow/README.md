@@ -45,3 +45,16 @@ Processing time / 90 ROFs: full: 3.55542 us  tracking: 2.02182 us
 ```
 Two timing values are provided: one is for the full execution of the device (including retrieval and sending of the DPL messages) and one which concerns only the execution of the algorithm (the tracking algorithm in the above example)
 The timing refers to the time needed to process one read-out-frame, i.e. one event.
+
+## Operations with CTF 
+
+The MID contribution can be added to CTF by attaching the ``o2-mid-entropy-encoder-workflow`` device to reconstruction workflow ending by CTF writer, e.g.:
+```bash
+o2-raw-file-reader-workflow --input-conf raw/MID/MIDraw.cfg | o2-mid-reco-workflow | o2-mid-entropy-encoder-workflow | o2-ctf-writer-workflow
+```
+
+The reconstruction staring from CTF can be done as (option ``--input-ctf`` will prevent the ``o2-mid-reco-workflow`` from
+adding raw data decoding/aggregation to the workflow):
+```bash
+o2-ctf-reader-workflow --ctf-input o2_ctf_0000000000.root  --onlyDet MID | o2-mid-reco-workflow --input-ctf
+```

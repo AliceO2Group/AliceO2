@@ -8,23 +8,8 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-/// \file   MIDWorkflow/RecoWorkflow.h
-/// \brief  Definition of the reconstruction workflow for MID
-/// \author Diego Stocco <Diego.Stocco at cern.ch>
-/// \date   11 April 2019
+#include <stdexcept>
+#include <cstring>
+#include "DataFormatsMID/CTF.h"
 
-#ifndef O2_MID_RECOWORKFLOWSPEC_H
-#define O2_MID_RECOWORKFLOWSPEC_H
-
-#include "Framework/RootSerializationSupport.h"
-#include "Framework/WorkflowSpec.h"
-
-namespace o2
-{
-namespace mid
-{
-framework::WorkflowSpec getRecoWorkflow(bool ctfInput);
-}
-} // namespace o2
-
-#endif //O2_MID_RECOWORKFLOWSPEC_H
+using namespace o2::mid;
