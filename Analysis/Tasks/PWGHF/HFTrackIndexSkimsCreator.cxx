@@ -55,7 +55,7 @@ struct SelectTracks {
       array<float, 2> dca;
       auto trackparvar0 = getTrackParCov(track);
       bool isprop = trackparvar0.propagateParamToDCA(vtxXYZ, d_bz, &dca, 100.); // get impact parameters
-      if(!isprop)
+      if (!isprop)
         status = 0;
       if (abs(dca[0]) < dcatoprimxymin)
         status = 0;
