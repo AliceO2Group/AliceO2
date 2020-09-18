@@ -29,6 +29,8 @@
 #include "Framework/OutputObjHeader.h"
 #include "Framework/TableTreeHelpers.h"
 #include "Framework/StringHelpers.h"
+#include "Framework/ChannelSpec.h"
+#include "Framework/ExternalFairMQDeviceProxy.h"
 
 #include "TFile.h"
 #include "TTree.h"
@@ -572,6 +574,30 @@ DataProcessorSpec
      {"keep", VariantType::String, "", {"Comma separated list of ORIGIN/DESCRIPTION/SUBSPECIFICATION to save in outfile"}}}};
 
   return spec;
+}
+
+DataProcessorSpec CommonDataProcessors::getGlobalFairMQSink(std::vector<InputSpec> const& danglingOutputInputs)
+{
+
+  // we build the default channel configuration from the binding of the first input
+  // in order to have more than one we would need to possibility to have support for
+  // vectored options
+  // use the OutputChannelSpec as a tool to create the default configuration for the out-of-band channel
+  OutputChannelSpec externalChannelSpec;
+  externalChannelSpec.name = "output_0_0";
+  externalChannelSpec.type = ChannelType::Push;
+  externalChannelSpec.method = ChannelMethod::Bind;
+  externalChannelSpec.hostname = "localhost";
+  externalChannelSpec.port = 0;
+  externalChannelSpec.listeners = 0;
+  // in principle, protocol and transport are two different things but fur simplicity
+  // we use ipc when shared memory is selected and the normal tcp url whith zeromq,
+  // this is for building the default configuration which can be simply changed from the
+  // command line
+  externalChannelSpec.protocol = ChannelProtocol::IPC;
+  std::string defaultChannelConfig = formatExternalChannelConfiguration(externalChannelSpec);
+  // at some point the formatting tool might add the transport as well so we have to check
+  return specifyFairMQDeviceOutputProxy("internal-dpl-output-proxy", danglingOutputInputs, defaultChannelConfig.c_str());
 }
 
 DataProcessorSpec CommonDataProcessors::getDummySink(std::vector<InputSpec> const& danglingOutputInputs)
