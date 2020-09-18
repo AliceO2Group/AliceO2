@@ -24,13 +24,22 @@ Digit::Digit(int detid, int pad, unsigned long adc, Time time, uint16_t nSamples
 {
 }
 
+bool Digit::Time::operator==(const Digit::Time& other) const
+{
+  return sampaTime == other.sampaTime &&
+         bunchCrossing == other.bunchCrossing &&
+         orbit == other.orbit;
+}
+
 bool Digit::operator==(const Digit& other) const
 {
   return mDetID == other.mDetID &&
          mPadID == other.mPadID &&
          mADC == other.mADC &&
-         mTime.time == other.mTime.time &&
+         mTime == other.mTime &&
          mNofSamples == other.mNofSamples;
 }
+
+
 
 } // namespace o2::mch

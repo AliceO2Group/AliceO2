@@ -43,6 +43,8 @@ class Digit
     {
       return (bunchCrossing + (sampaTime * 4));
     }
+
+    bool operator==(const Time&) const;
   };
 
   Digit() = default;
