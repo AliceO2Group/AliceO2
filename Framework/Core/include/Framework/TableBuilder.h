@@ -435,8 +435,8 @@ class TableBuilder
   template <typename... ARGS>
   auto makeFinalizer()
   {
-    mFinalizer = [schema = mSchema, &arrays = mArrays, builders = (BuildersTuple<ARGS...>*)mBuilders]() -> std::shared_ptr<arrow::Table> {
-      auto status = TableBuilderHelpers::finalize(arrays, *builders, std::make_index_sequence<sizeof...(ARGS)>{});
+    mFinalizer = [schema = mSchema, &arrays = mArrays, builders = mBuilders]() -> std::shared_ptr<arrow::Table> {
+      auto status = TableBuilderHelpers::finalize(arrays, *(BuildersTuple<ARGS...>*)builders, std::make_index_sequence<sizeof...(ARGS)>{});
       if (status == false) {
         throw std::runtime_error("Unable to finalize");
       }
@@ -498,8 +498,8 @@ class TableBuilder
 
     // Callback used to fill the builders
     using FillTuple = std::tuple<typename BuilderMaker<ARGS>::FillType...>;
-    return [builders = (BuildersTuple<ARGS...>*)mBuilders](unsigned int slot, FillTuple const& t) -> void {
-      auto status = TableBuilderHelpers::append(*builders, std::index_sequence_for<ARGS...>{}, t);
+    return [builders = mBuilders](unsigned int slot, FillTuple const& t) -> void {
+      auto status = TableBuilderHelpers::append(*(BuildersTuple<ARGS...>*)builders, std::index_sequence_for<ARGS...>{}, t);
       if (status == false) {
         throw std::runtime_error("Unable to append");
       }
@@ -534,8 +534,8 @@ class TableBuilder
     makeFinalizer<ARGS...>();
 
     // Callback used to fill the builders
-    return [builders = (BuildersTuple<ARGS...>*)mBuilders](unsigned int slot, typename BuilderMaker<ARGS>::FillType... args) -> void {
-      TableBuilderHelpers::unsafeAppend(*builders, std::index_sequence_for<ARGS...>{}, std::forward_as_tuple(args...));
+    return [builders = mBuilders](unsigned int slot, typename BuilderMaker<ARGS>::FillType... args) -> void {
+      TableBuilderHelpers::unsafeAppend(*(BuildersTuple<ARGS...>*)builders, std::index_sequence_for<ARGS...>{}, std::forward_as_tuple(args...));
     };
   }
 
@@ -548,8 +548,8 @@ class TableBuilder
     makeBuilders<ARGS...>(columnNames, nRows);
     makeFinalizer<ARGS...>();
 
-    return [builders = (BuildersTuple<ARGS...>*)mBuilders](unsigned int slot, size_t batchSize, typename BuilderMaker<ARGS>::FillType const*... args) -> void {
-      TableBuilderHelpers::bulkAppend(*builders, batchSize, std::index_sequence_for<ARGS...>{}, std::forward_as_tuple(args...));
+    return [builders = mBuilders](unsigned int slot, size_t batchSize, typename BuilderMaker<ARGS>::FillType const*... args) -> void {
+      TableBuilderHelpers::bulkAppend(*(BuildersTuple<ARGS...>*)builders, batchSize, std::index_sequence_for<ARGS...>{}, std::forward_as_tuple(args...));
     };
   }
 
