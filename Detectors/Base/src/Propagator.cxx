@@ -315,7 +315,7 @@ bool Propagator::propagateToDCA(const o2::dataformats::VertexBase& vtx, o2::trac
   auto tmpT(track); // operate on the copy to recover after the failure
   alp += std::asin(sn);
   if (!tmpT.rotate(alp) || !propagateToX(tmpT, xv, bZ, mass, 0.85, maxStep, matCorr, tofInfo, signCorr)) {
-    LOG(ERROR) << "failed to propagate to alpha=" << alp << " X=" << xv << vtx << " | Track is: ";
+    LOG(WARNING) << "failed to propagate to alpha=" << alp << " X=" << xv << vtx << " | Track is: ";
     tmpT.print();
     return false;
   }
@@ -360,7 +360,7 @@ bool Propagator::propagateToDCABxByBz(const o2::dataformats::VertexBase& vtx, o2
   auto tmpT(track); // operate on the copy to recover after the failure
   alp += std::asin(sn);
   if (!tmpT.rotate(alp) || !PropagateToXBxByBz(tmpT, xv, mass, 0.85, maxStep, matCorr, tofInfo, signCorr)) {
-    LOG(ERROR) << "failed to propagate to alpha=" << alp << " X=" << xv << vtx << " | Track is: ";
+    LOG(WARNING) << "failed to propagate to alpha=" << alp << " X=" << xv << vtx << " | Track is: ";
     tmpT.print();
     return false;
   }
@@ -405,8 +405,8 @@ bool Propagator::propagateToDCA(const Point3D<float>& vtx, o2::track::TrackPar& 
   auto tmpT(track); // operate on the copy to recover after the failure
   alp += std::asin(sn);
   if (!tmpT.rotateParam(alp) || !propagateToX(tmpT, xv, bZ, mass, 0.85, maxStep, matCorr, tofInfo, signCorr)) {
-    LOG(ERROR) << "failed to propagate to alpha=" << alp << " X=" << xv << " for vertex "
-               << vtx.X() << ' ' << vtx.Y() << ' ' << vtx.Z() << " | Track is: ";
+    LOG(WARNING) << "failed to propagate to alpha=" << alp << " X=" << xv << " for vertex "
+                 << vtx.X() << ' ' << vtx.Y() << ' ' << vtx.Z() << " | Track is: ";
     tmpT.printParam();
     return false;
   }
@@ -449,8 +449,8 @@ bool Propagator::propagateToDCABxByBz(const Point3D<float>& vtx, o2::track::Trac
   auto tmpT(track); // operate on the copy to recover after the failure
   alp += std::asin(sn);
   if (!tmpT.rotateParam(alp) || !PropagateToXBxByBz(tmpT, xv, mass, 0.85, maxStep, matCorr, tofInfo, signCorr)) {
-    LOG(ERROR) << "failed to propagate to alpha=" << alp << " X=" << xv << " for vertex "
-               << vtx.X() << ' ' << vtx.Y() << ' ' << vtx.Z() << " | Track is: ";
+    LOG(WARNING) << "failed to propagate to alpha=" << alp << " X=" << xv << " for vertex "
+                 << vtx.X() << ' ' << vtx.Y() << ' ' << vtx.Z() << " | Track is: ";
     tmpT.printParam();
     return false;
   }
