@@ -10,7 +10,7 @@
 
 #include "Framework/TableTreeHelpers.h"
 #include "Framework/AODReaderHelpers.h"
-#include "Framework/AnalysisDataModel.h"
+#include "AnalysisDataModelHelpers.h"
 #include "DataProcessingHelpers.h"
 #include "ExpressionHelpers.h"
 #include "Framework/RootTableBuilderHelpers.h"

@@ -138,10 +138,10 @@ void addMissingOutputsToReader(std::vector<OutputSpec> const& providedOutputs,
       continue;
     }
 
-    auto inlist = std::find_if(publisher.outputs.begin(),
+    auto inList = std::find_if(publisher.outputs.begin(),
                                publisher.outputs.end(),
                                matchingOutputFor(requested));
-    if (inlist != publisher.outputs.end()) {
+    if (inList != publisher.outputs.end()) {
       continue;
     }
 
@@ -374,8 +374,8 @@ void WorkflowHelpers::injectServiceDevices(WorkflowSpec& workflow, ConfigContext
   ///   . dangling, not AOD     - getGlobalFileSink
   ///
   // First analyze all ouputs
-  //  outputtypes = isAOD*2 + isdangling*1 + 0
-  auto [outputsInputs, outputtypes] = analyzeOutputs(workflow);
+  //  outputTypes = isAOD*2 + isdangling*1 + 0
+  auto [OutputsInputs, outputTypes] = analyzeOutputs(workflow);
 
   // file sink for any AOD output
   extraSpecs.clear();
@@ -383,13 +383,13 @@ void WorkflowHelpers::injectServiceDevices(WorkflowSpec& workflow, ConfigContext
   // select outputs of type AOD
   std::vector<InputSpec> outputsInputsAOD;
   std::vector<bool> isdangling;
-  for (auto ii = 0u; ii < outputsInputs.size(); ii++) {
-    if ((outputtypes[ii] & 2) == 2) {
+  for (auto ii = 0u; ii < OutputsInputs.size(); ii++) {
+    if ((outputTypes[ii] & 2) == 2) {
 
       // temporarily also request to be dangling
-      if ((outputtypes[ii] & 1) == 1) {
-        outputsInputsAOD.emplace_back(outputsInputs[ii]);
-        isdangling.emplace_back((outputtypes[ii] & 1) == 1);
+      if ((outputTypes[ii] & 1) == 1) {
+        outputsInputsAOD.emplace_back(OutputsInputs[ii]);
+        isdangling.emplace_back((outputTypes[ii] & 1) == 1);
       }
     }
   }
@@ -406,9 +406,9 @@ void WorkflowHelpers::injectServiceDevices(WorkflowSpec& workflow, ConfigContext
 
   // select dangling outputs which are not of type AOD
   std::vector<InputSpec> outputsInputsDangling;
-  for (auto ii = 0u; ii < outputsInputs.size(); ii++) {
-    if ((outputtypes[ii] & 1) == 1 && (outputtypes[ii] & 2) == 0)
-      outputsInputsDangling.emplace_back(outputsInputs[ii]);
+  for (auto ii = 0u; ii < OutputsInputs.size(); ii++) {
+    if ((outputTypes[ii] & 1) == 1 && (outputTypes[ii] & 2) == 0)
+      outputsInputsDangling.emplace_back(OutputsInputs[ii]);
   }
 
   std::vector<InputSpec> unmatched;
@@ -745,9 +745,9 @@ std::tuple<std::vector<InputSpec>, std::vector<unsigned char>> WorkflowHelpers::
   outputs.reserve(totalOutputs);
 
   std::vector<InputSpec> results;
-  std::vector<unsigned char> outputtypes;
+  std::vector<unsigned char> outputTypes;
   results.reserve(totalOutputs);
-  outputtypes.reserve(totalOutputs);
+  outputTypes.reserve(totalOutputs);
 
   /// Prepare an index to do the iterations quickly.
   for (size_t wi = 0, we = workflow.size(); wi != we; ++wi) {
@@ -765,15 +765,15 @@ std::tuple<std::vector<InputSpec>, std::vector<unsigned char>> WorkflowHelpers::
     auto& outputSpec = workflow[output.workflowId].outputs[output.id];
 
     // compute output type
-    unsigned char outputtype = 0;
+    unsigned char outputType = 0;
 
     // is AOD?
     if (DataSpecUtils::partialMatch(outputSpec, header::DataOrigin("AOD"))) {
-      outputtype += 2;
+      outputType += 2;
     }
     // is RN2?
     if (DataSpecUtils::partialMatch(outputSpec, header::DataOrigin("RN2"))) {
-      outputtype += 2;
+      outputType += 2;
     }
 
     // is dangling output?
@@ -791,10 +791,10 @@ std::tuple<std::vector<InputSpec>, std::vector<unsigned char>> WorkflowHelpers::
       }
     }
     if (!matched) {
-      outputtype += 1;
+      outputType += 1;
     }
 
-    // update results and outputtypes
+    // update results and outputTypes
     auto input = DataSpecUtils::matchingInput(outputSpec);
     char buf[64];
     input.binding = (snprintf(buf, 63, "output_%zu_%zu", output.workflowId, output.id), buf);
@@ -802,23 +802,23 @@ std::tuple<std::vector<InputSpec>, std::vector<unsigned char>> WorkflowHelpers::
     // make sure that entries are unique
     if (std::find(results.begin(), results.end(), input) == results.end()) {
       results.emplace_back(input);
-      outputtypes.emplace_back(outputtype);
+      outputTypes.emplace_back(outputType);
     }
   }
 
   // make sure that results is unique
 
-  return std::make_tuple(results, outputtypes);
+  return std::make_tuple(results, outputTypes);
 }
 
 std::vector<InputSpec> WorkflowHelpers::computeDanglingOutputs(WorkflowSpec const& workflow)
 {
 
-  auto [OutputsInputs, outputtypes] = analyzeOutputs(workflow);
+  auto [OutputsInputs, outputTypes] = analyzeOutputs(workflow);
 
   std::vector<InputSpec> results;
   for (auto ii = 0u; ii < OutputsInputs.size(); ii++) {
-    if ((outputtypes[ii] & 1) == 1) {
+    if ((outputTypes[ii] & 1) == 1) {
       results.emplace_back(OutputsInputs[ii]);
     }
   }

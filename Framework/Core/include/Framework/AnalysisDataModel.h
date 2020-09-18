@@ -24,18 +24,6 @@ namespace aod
 // the o2::aod namespace.
 DECLARE_SOA_STORE();
 
-// This is required to make
-//  o2::aod::datamodel::getTreeName
-//  o2::aod::datamodel::getColumnNames
-// available
-// ATTENTION: getTreeName and getColumnNames must be updated
-//            in accordance with changes of the AnalysisDataModel!
-namespace datamodel
-{
-std::string getTreeName(header::DataHeader dh);
-std::vector<std::string> getColumnNames(header::DataHeader dh);
-} // namespace datamodel
-
 namespace bc
 {
 DECLARE_SOA_COLUMN(RunNumber, runNumber, int);

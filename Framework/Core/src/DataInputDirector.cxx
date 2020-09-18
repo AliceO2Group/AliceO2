@@ -8,9 +8,9 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 #include "Framework/DataInputDirector.h"
-#include "Framework/AnalysisDataModel.h"
 #include "Framework/DataDescriptorQueryBuilder.h"
 #include "Framework/Logger.h"
+#include "AnalysisDataModelHelpers.h"
 
 #include "rapidjson/document.h"
 #include "rapidjson/prettywriter.h"
