@@ -1762,7 +1762,7 @@ auto spawner(framework::pack<C...> columns, arrow::Table* atable)
   arrow::ArrayVector v;
   std::array<arrow::ArrayVector, sizeof...(C)> chunks;
 
-  auto projectors = framework::expressions::createProjectors(columns, atable->schema());
+  static auto projectors = framework::expressions::createProjectors(columns, atable->schema());
   while (true) {
     auto s = reader.ReadNext(&batch);
     if (!s.ok()) {
@@ -1783,7 +1783,7 @@ auto spawner(framework::pack<C...> columns, arrow::Table* atable)
   for (auto i = 0u; i < sizeof...(C); ++i) {
     arrays.push_back(std::make_shared<arrow::ChunkedArray>(chunks[i]));
   }
-  auto new_schema = o2::soa::createSchemaFromColumns(columns);
+  static auto new_schema = o2::soa::createSchemaFromColumns(columns);
   return arrow::Table::Make(new_schema, arrays);
 }
 
