@@ -358,8 +358,8 @@ bool TrackPar::propagateParamToDCA(const Point3D<float>& vtx, float b, std::arra
   auto tmpT(*this); // operate on the copy to recover after the failure
   alp += std::asin(sn);
   if (!tmpT.rotateParam(alp) || !tmpT.propagateParamTo(xv, b)) {
-    LOG(ERROR) << "failed to propagate to alpha=" << alp << " X=" << xv << " for vertex "
-               << vtx.X() << ' ' << vtx.Y() << ' ' << vtx.Z() << " | Track is: ";
+    LOG(WARNING) << "failed to propagate to alpha=" << alp << " X=" << xv << " for vertex "
+                 << vtx.X() << ' ' << vtx.Y() << ' ' << vtx.Z() << " | Track is: ";
     tmpT.printParam();
     return false;
   }
@@ -826,7 +826,7 @@ bool TrackParCov::rotate(float alpha)
 {
   // rotate to alpha frame
   if (fabs(getSnp()) > Almost1) {
-    LOGF(ERROR, "Precondition is not satisfied: |sin(phi)|>1 ! {:f}", getSnp());
+    LOGF(WARNING, "Precondition is not satisfied: |sin(phi)|>1 ! {:f}", getSnp());
     return false;
   }
   //
@@ -903,7 +903,7 @@ bool TrackParCov::propagateToDCA(const o2::dataformats::VertexBase& vtx, float b
   auto tmpT(*this); // operate on the copy to recover after the failure
   alp += std::asin(sn);
   if (!tmpT.rotate(alp) || !tmpT.propagateTo(xv, b)) {
-    LOG(ERROR) << "failed to propagate to alpha=" << alp << " X=" << xv << vtx << " | Track is: ";
+    LOG(WARNING) << "failed to propagate to alpha=" << alp << " X=" << xv << vtx << " | Track is: ";
     tmpT.print();
     return false;
   }
@@ -1381,7 +1381,7 @@ float TrackParCov::getPredictedChi2(const TrackParCov& rhs, MatrixDSym5& covToSe
   }
   buildCombinedCovMatrix(rhs, covToSet);
   if (!covToSet.Invert()) {
-    LOG(ERROR) << "Cov.matrix inversion failed: " << covToSet;
+    LOG(WARNING) << "Cov.matrix inversion failed: " << covToSet;
     return 2. * HugeF;
   }
   double chi2diag = 0., chi2ndiag = 0., diff[kNParams];
@@ -1471,7 +1471,7 @@ bool TrackParCov::update(const TrackParCov& rhs)
   MatrixDSym5 covI; // perform matrix operations in double!
   buildCombinedCovMatrix(rhs, covI);
   if (!covI.Invert()) {
-    LOG(ERROR) << "Cov.matrix inversion failed: " << covI;
+    LOG(WARNING) << "Cov.matrix inversion failed: " << covI;
     return false;
   }
   return update(rhs, covI);
