@@ -67,6 +67,14 @@ TrackSelection getGlobalTrackSelectionSDD()
   return selectedTracks;
 }
 
+// Default track selection requiring a cluster matched in TOF
+TrackSelection getGlobalTrackSelectionwTOF()
+{
+  TrackSelection selectedTracks = getGlobalTrackSelection();
+  selectedTracks.SetRequireTOF(kTRUE);
+  return selectedTracks;
+}
+
 //****************************************************************************************
 /**
  * Produce the derived track quantities needed for track selection.
@@ -111,18 +119,21 @@ struct TrackSelectionTask {
 
   TrackSelection globalTracks;
   TrackSelection globalTracksSDD;
+  TrackSelection globalTrackswTOF;
 
   void init(InitContext&)
   {
     globalTracks = getGlobalTrackSelection();
     globalTracksSDD = getGlobalTrackSelectionSDD();
+    globalTrackswTOF = getGlobalTrackSelectionwTOF();
   }
 
   void process(soa::Join<aod::FullTracks, aod::TracksExtended> const& tracks)
   {
     for (auto& track : tracks) {
       filterTable((uint8_t)globalTracks.IsSelected(track),
-                  (uint8_t)globalTracksSDD.IsSelected(track));
+                  (uint8_t)globalTracksSDD.IsSelected(track),
+                  (uint8_t)globalTrackswTOF.IsSelected(track));
     }
   }
 };

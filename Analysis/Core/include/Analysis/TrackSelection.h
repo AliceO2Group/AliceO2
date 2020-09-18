@@ -42,6 +42,7 @@ class TrackSelection : public TObject
         (track.tpcChi2NCl() < mMaxChi2PerClusterTPC) &&
         ((mRequireITSRefit) ? (track.flags() & 0x4) : true) &&
         ((mRequireTPCRefit) ? (track.flags() & 0x40) : true) &&
+        ((mRequireTOF) ? ((track.flags() & 0x2000) && (track.flags() & 0x80000000)) : true) &&
         FulfillsITSHitRequirements(track.itsClusterMap()) &&
         abs(track.dcaXY()) < mMaxDcaXY && abs(track.dcaZ()) < mMaxDcaZ) {
       return true;
@@ -63,6 +64,7 @@ class TrackSelection : public TObject
   {
     mRequireTPCRefit = requireTPCRefit;
   }
+  void SetRequireTOF(bool requireTOF = true) { mRequireTOF = requireTOF; }
   void SetMinNClustersTPC(int minNClustersTPC)
   {
     mMinNClustersTPC = minNClustersTPC;
@@ -131,6 +133,7 @@ class TrackSelection : public TObject
 
   bool mRequireITSRefit; // require refit in ITS
   bool mRequireTPCRefit; // require refit in TPC
+  bool mRequireTOF;      // require that track exits the TOF and that it has an associated time measurement (kTIME and kTOFOUT)
 
   std::vector<std::pair<int8_t, std::set<uint8_t>>>
     mRequiredITSHits; // vector of ITS requirements (minNRequiredHits in
