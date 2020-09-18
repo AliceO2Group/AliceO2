@@ -400,11 +400,14 @@ void WorkflowHelpers::injectServiceDevices(WorkflowSpec& workflow, ConfigContext
   }
 
   std::vector<InputSpec> unmatched;
-  if (outputsInputsDangling.size() > 0) {
+  if (outputsInputsDangling.size() > 0 && ctx.options().get<std::string>("dangling-outputs-policy") == "file") {
     auto fileSink = CommonDataProcessors::getGlobalFileSink(outputsInputsDangling, unmatched);
     if (unmatched.size() != outputsInputsDangling.size()) {
       extraSpecs.push_back(fileSink);
     }
+  } else if (outputsInputsDangling.size() > 0 && ctx.options().get<std::string>("dangling-outputs-policy") == "fairmq") {
+    auto fairMQSink = CommonDataProcessors::getGlobalFairMQSink(outputsInputsDangling);
+    extraSpecs.push_back(fairMQSink);
   }
   if (unmatched.size() > 0) {
     extraSpecs.push_back(CommonDataProcessors::getDummySink(unmatched));

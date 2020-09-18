@@ -126,6 +126,8 @@ int main(int argc, char** argv)
     UserCustomizationsHelper::userDefinedCustomization(workflowOptions, 0);
     workflowOptions.push_back(ConfigParamSpec{"readers", VariantType::Int64, 1ll, {"number of parallel readers to use"}});
     workflowOptions.push_back(ConfigParamSpec{"pipeline", VariantType::String, "", {"override default pipeline size"}});
+    workflowOptions.push_back(ConfigParamSpec{"dangling-outputs-policy", VariantType::String, "file", {"what to do with dangling outputs. file: write to file, fairmq: send to output proxy"}});
+
     std::vector<ChannelConfigurationPolicy> channelPolicies;
     UserCustomizationsHelper::userDefinedCustomization(channelPolicies, 0);
     auto defaultChannelPolicies = ChannelConfigurationPolicy::createDefaultPolicies();
