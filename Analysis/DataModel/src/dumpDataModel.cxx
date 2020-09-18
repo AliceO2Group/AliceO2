@@ -14,6 +14,7 @@
 #include "Analysis/Centrality.h"
 #include "Analysis/TrackSelectionTables.h"
 #include "Analysis/Jet.h"
+#include "Analysis/StrangenessTables.h"
 #include <fmt/printf.h>
 #include <map>
 
@@ -22,57 +23,16 @@ using namespace o2::aod;
 using namespace o2::soa;
 
 static int count = 0;
+static int width = 10;
+static int height = 10;
 
-template <typename C>
-void printColumn(char const* fg, char const* bg)
+void inline graphSize()
 {
-  if constexpr (!is_index_column_v<C>) {
-    fmt::printf("<TR><TD color='%s' bgcolor='%s'>%s</TD></TR>", fg, bg, C::columnLabel());
-  }
-}
-
-template <typename C>
-void printIndexColumn(char const* fg, char const* bg)
-{
-  if constexpr (is_index_column_v<C>) {
-    fmt::printf("<TR><TD color='%s' bgcolor='%s'>%s</TD></TR>", fg, bg, C::columnLabel());
-  }
-}
-
-template <typename C, typename T>
-void printIndex()
-{
-  if constexpr (!is_type_with_originals_v<typename C::binding_t>) {
-    auto a = MetadataTrait<typename C::binding_t>::metadata::tableLabel();
-    auto b = MetadataTrait<T>::metadata::tableLabel();
-    fmt::printf("%s -> %s []\n", a, b);
-  } else {
-    using main_original = pack_element_t<0, typename C::binding_t::originals>;
-    auto a = MetadataTrait<main_original>::metadata::tableLabel();
-    auto b = MetadataTrait<T>::metadata::tableLabel();
-    fmt::printf("%s -> %s []\n", a, b);
-  }
-}
-
-template <typename... C>
-void dumpColumns(pack<C...>, const char* fg, const char* bg)
-{
-  (printColumn<C>(fg, bg), ...);
-  fmt::printf("%s", "\n");
-}
-
-template <typename... C>
-void dumpIndexColumns(pack<C...>, char const* fg, char const* bg)
-{
-  (printIndexColumn<C>(fg, bg), ...);
-  fmt::printf("%s", "\n");
-}
-
-template <typename T, typename... C>
-void dumpIndex(pack<C...>)
-{
-  (printIndex<C, T>(), ...);
-  fmt::printf("%s", "\n");
+  fmt::printf(
+    R"(
+size="%d,%d";
+)",
+    width, height);
 }
 
 struct Style {
@@ -99,88 +59,214 @@ Style const& getDefaultStyle()
   return styles[0];
 }
 
-enum struct StyleType : int {
+enum StyleType : int {
   DEFAULT = 0,
   RED = 1,
   GREEN = 2,
   BLUE = 3,
 };
 
+static std::vector<std::pair<std::string, StyleType>> tableStyles = {
+  {"HfTrackIndexProng", StyleType::GREEN},
+  {"pidResp", StyleType::GREEN},
+  {"Mults", StyleType::GREEN},
+  {"Cents", StyleType::GREEN},
+  {"Jet", StyleType::BLUE},
+  {"Mc", StyleType::RED},
+  {"V0Data", StyleType::GREEN},
+  {"CascData", StyleType::GREEN}};
+
 template <typename T>
-void dumpTable(bool index = true, enum StyleType styleId = StyleType::DEFAULT)
+Style getStyleFor()
 {
-  auto style = styles[static_cast<int>(styleId)];
-  //  nodes.push_back({MetadataTrait<T>::metadata::label(), nodeCount});
+  auto label = MetadataTrait<T>::metadata::tableLabel();
+  auto entry = std::find_if(tableStyles.begin(), tableStyles.end(), [&](auto&& x) { if (std::string(label).find(x.first) != std::string::npos) return true; return false; });
+  if (entry != tableStyles.end()) {
+    auto value = *entry;
+    return styles[value.second];
+  }
+  return styles[StyleType::DEFAULT];
+}
+
+void inline nodeEmpty()
+{
+  fmt::printf(
+    R"(node[shape=none,height=0,width=0,label=""])");
+}
+
+void inline nodeNormal()
+{
+  fmt::printf(
+    R"(node[shape=plain,style=filled,fillcolor=gray95])");
+}
+
+void inline graphHeader(char const* type, char const* name)
+{
+  fmt::printf(R"(%s %s {
+edge[dir=back, arrowtail=empty]
+)",
+              type, name);
+  nodeNormal();
+}
+
+void inline graphFooter()
+{
+  fmt::printf("}\n");
+}
+
+template <typename T>
+void displayEntity();
+
+template <typename... Ts>
+void displayOriginals(pack<Ts...>)
+{
+  graphHeader("subgraph", fmt::format("cluster_{}", count++).c_str());
+  fmt::printf("label = %s;\n", MetadataTrait<pack_element_t<1, pack<Ts...>>>::metadata::tableLabel());
+  (..., displayEntity<Ts>());
+  graphFooter();
+}
+
+template <typename C>
+void printColumn(char const* fg, char const* bg)
+{
+  if constexpr (!is_index_column_v<C>) {
+    fmt::printf("<TR><TD color='%s' bgcolor='%s'>%s</TD></TR>", fg, bg, C::columnLabel());
+  }
+}
+
+template <typename C>
+void printIndexColumn(char const* fg, char const* bg)
+{
+  if constexpr (is_index_column_v<C>) {
+    fmt::printf("<TR><TD color='%s' bgcolor='%s'>%s</TD></TR>", fg, bg, C::columnLabel());
+  }
+}
+
+template <typename... C>
+void displayColumns(pack<C...>, const char* fg, const char* bg)
+{
+  (printColumn<C>(fg, bg), ...);
+  fmt::printf("%s", "\n");
+}
+
+template <typename... C>
+void displayIndexColumns(pack<C...>, char const* fg, char const* bg)
+{
+  (printIndexColumn<C>(fg, bg), ...);
+  fmt::printf("%s", "\n");
+}
+
+template <typename C, typename T>
+void printIndex()
+{
+  if constexpr (!is_type_with_originals_v<typename C::binding_t>) {
+    auto a = MetadataTrait<typename C::binding_t>::metadata::tableLabel();
+    auto b = MetadataTrait<T>::metadata::tableLabel();
+    fmt::printf("%s -> %s []\n", a, b);
+  } else {
+    using main_original = pack_element_t<1, typename C::binding_t::originals>;
+    auto a = MetadataTrait<main_original>::metadata::tableLabel();
+    auto b = MetadataTrait<T>::metadata::tableLabel();
+    fmt::printf("%s -> %s []\n", a, b);
+  }
+}
+
+template <typename T, typename... C>
+void dumpIndex(pack<C...>)
+{
+  (printIndex<C, T>(), ...);
+  fmt::printf("%s", "\n");
+}
+
+template <typename T>
+void displayTable()
+{
+  auto style = getStyleFor<T>();
   auto label = MetadataTrait<T>::metadata::tableLabel();
   fmt::printf(R"(%s[color="%s" cellpadding="0" fillcolor="%s" fontcolor="%s" label = <
 <TABLE cellpadding='2' cellspacing='0' cellborder='0' ><TH cellpadding='0' bgcolor="black"><TD bgcolor="%s"><font color="%s">%s</font></TD></TH>)",
               label, style.color, style.background, style.fontcolor, style.headerbgcolor, style.headerfontcolor, label);
   if (pack_size(typename T::iterator::persistent_columns_t{}) -
-      pack_size(typename T::iterator::external_index_columns_t{})) {
-    dumpColumns(typename T::iterator::persistent_columns_t{}, style.color, style.background);
+        pack_size(typename T::iterator::external_index_columns_t{}) >
+      0) {
+    displayColumns(typename T::iterator::persistent_columns_t{}, style.color, style.background);
     fmt::printf("%s", "HR");
   }
   if (pack_size(typename T::iterator::dynamic_columns_t{})) {
-    dumpColumns(typename T::iterator::dynamic_columns_t{}, style.methodcolor, style.methodbgcolor);
+    displayColumns(typename T::iterator::dynamic_columns_t{}, style.methodcolor, style.methodbgcolor);
     fmt::printf("%s", "HR");
   }
-  dumpIndexColumns(typename T::iterator::external_index_columns_t{}, style.indexcolor, style.indexbgcolor);
+  displayIndexColumns(typename T::iterator::external_index_columns_t{}, style.indexcolor, style.indexbgcolor);
   fmt::printf("%s", "</TABLE>\n>]\n");
-  if (index)
-    dumpIndex<T>(typename T::iterator::external_index_columns_t{});
+  dumpIndex<T>(typename T::iterator::external_index_columns_t{});
 }
 
-template <typename... Ts>
-void dumpCluster()
+template <typename T>
+void displayEntity()
 {
-  fmt::printf(R"(subgraph cluster_%d {
-node[shape=plain,style=filled,fillcolor=gray95]
-edge[dir=back, arrowtail=empty]
-)",
-              count++);
-  (dumpTable<Ts>(false), ...);
-  fmt::printf("%s", "}\n");
-  (dumpIndex<Ts>(typename Ts::iterator::external_index_columns_t{}), ...);
+  if constexpr (is_soa_join_t<T>::value) {
+    displayOriginals(typename T::originals{});
+  } else {
+    displayTable<T>();
+  }
+}
+
+template <typename... T>
+void displayEntities()
+{
+  graphHeader("subgraph", fmt::format("cluster_{}", count++).c_str());
+  (..., displayEntity<T>());
+  graphFooter();
 }
 
 int main(int, char**)
 {
-  fmt::printf("%s", R"(digraph hierarchy {
-size="5,5"
-node[shape=plain,style=filled,fillcolor=gray95]
-edge[dir=back, arrowtail=empty]
+  graphHeader("digraph", "hierarchy");
+  graphSize();
+  fmt::printf(R"(compound = true;
 )");
-  /// FIXME: topology should account for predefined Joins
-  dumpCluster<StoredTracks, TracksExtension, StoredTracksCov, TracksCovExtension, TracksExtra, TracksExtended, TrackSelection>();
-  dumpTable<Collisions>();
-  dumpTable<Calos>();
-  dumpTable<CaloTriggers>();
-  dumpCluster<StoredMuons, MuonsExtension>();
-  dumpTable<MuonClusters>();
-  dumpTable<Zdcs>();
-  dumpTable<Run2V0s>();
-  dumpTable<StoredV0s>();
-  dumpTable<StoredCascades>();
-  dumpTable<BCs>();
-  dumpTable<FT0s>();
-  dumpTable<FV0s>();
-  dumpTable<FDDs>();
-  dumpTable<Timestamps>();
-  dumpTable<HfTrackIndexProng2>(true, StyleType::GREEN);
-  dumpTable<HfTrackIndexProng3>(true, StyleType::GREEN);
 
-  dumpTable<pidRespTOF>(true, StyleType::GREEN);
-  dumpTable<pidRespTPC>(true, StyleType::GREEN);
-  dumpTable<Mults>(true, StyleType::GREEN);
-  dumpTable<Cents>(true, StyleType::GREEN);
+  displayEntity<BCs>();
+  /// rank trick to avoid BCs moving
+  nodeEmpty();
+  fmt::printf(R"({rank = same; BCs -> root[style=invis];};)");
+  nodeNormal();
 
-  dumpTable<Jets>(true, StyleType::BLUE);
-  dumpTable<JetConstituents>(true, StyleType::BLUE);
-  dumpTable<UnassignedTracks>();
-  dumpTable<McCollisions>(true, StyleType::RED);
-  dumpTable<McTrackLabels>(true, StyleType::RED);
-  dumpTable<McCaloLabels>(true, StyleType::RED);
-  dumpTable<McCollisionLabels>(true, StyleType::RED);
-  dumpTable<McParticles>(true, StyleType::RED);
-  fmt::printf("%s\n", R"(})");
+  displayEntity<Zdcs>();
+  displayEntity<FT0s>();
+  displayEntity<FV0s>();
+  displayEntity<FDDs>();
+
+  displayEntities<Collisions, Cents, Mults, Timestamps>();
+  displayEntity<McCollisions>();
+  displayEntity<McCollisionLabels>();
+
+  displayEntity<Calos>();
+  displayEntity<CaloTriggers>();
+  displayEntity<McCaloLabels>();
+
+  displayEntity<Run2V0s>();
+
+  displayEntities<Tracks, TracksCov, TracksExtra, TracksExtended, TrackSelection, pidRespTOF, pidRespTPC>();
+  displayEntity<UnassignedTracks>();
+
+  displayEntity<McParticles>();
+  displayEntity<McTrackLabels>();
+
+  displayEntity<HfTrackIndexProng2>();
+  displayEntity<HfTrackIndexProng3>();
+
+  displayEntity<Jets>();
+  displayEntity<JetConstituents>();
+
+  displayEntities<V0s, V0DataFull>();
+  displayEntity<V0FinderData>();
+
+  displayEntities<Cascades, CascDataFull>();
+
+  displayEntity<Muons>();
+  displayEntity<MuonClusters>();
+
+  graphFooter();
+  return 0;
 }
