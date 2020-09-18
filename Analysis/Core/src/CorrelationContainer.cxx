@@ -490,7 +490,7 @@ Long64_t CorrelationContainer::Merge(TCollection* list)
   TObject* obj = nullptr;
 
   // collections of objects
-  const UInt_t kMaxLists = 3;
+  const UInt_t kMaxLists = 4;
   TList** lists = new TList*[kMaxLists];
 
   for (UInt_t i = 0; i < kMaxLists; i++)
@@ -508,6 +508,7 @@ Long64_t CorrelationContainer::Merge(TCollection* list)
 
     lists[1]->Add(entry->mTriggerHist);
     lists[2]->Add(entry->mTrackHistEfficiency);
+    lists[3]->Add(entry->mEventCount);
 
     count++;
   }
