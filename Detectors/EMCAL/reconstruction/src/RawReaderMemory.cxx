@@ -92,11 +92,18 @@ void RawReaderMemory::nextPage(bool doResetPayload)
   try {
     mRawHeader = decodeRawHeader(mRawMemoryBuffer.data() + mCurrentPosition);
     RDHDecoder::printRDH(mRawHeader);
+    if (RDHDecoder::getOffsetToNext(mRawHeader) == RDHDecoder::getHeaderSize(mRawHeader)) {
+      // No Payload - jump to next rawheader
+      // This will eventually move, depending on whether for events without payload in the SRU we send the RCU trailer
+      mCurrentPosition += RDHDecoder::getHeaderSize(mRawHeader);
+      mRawHeader = decodeRawHeader(mRawMemoryBuffer.data() + mCurrentPosition);
+      RDHDecoder::printRDH(mRawHeader);
+    }
     mRawHeaderInitialized = true;
   } catch (...) {
     throw RawDecodingError(RawDecodingError::ErrorType_t::HEADER_DECODING);
   }
-  if (mCurrentPosition + RDHDecoder::getMemorySize(mRawHeader) >= mRawMemoryBuffer.size()) {
+  if (mCurrentPosition + RDHDecoder::getMemorySize(mRawHeader) > mRawMemoryBuffer.size()) {
     // Payload incomplete
     throw RawDecodingError(RawDecodingError::ErrorType_t::PAYLOAD_DECODING);
   } else {
