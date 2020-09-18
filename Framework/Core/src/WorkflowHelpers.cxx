@@ -363,27 +363,27 @@ void WorkflowHelpers::injectServiceDevices(WorkflowSpec& workflow, ConfigContext
   ///
   // First analyze all ouputs
   //  outputtypes = isAOD*2 + isdangling*1 + 0
-  auto [OutputsInputs, outputtypes] = analyzeOutputs(workflow);
+  auto [outputsInputs, outputtypes] = analyzeOutputs(workflow);
 
   // file sink for any AOD output
   extraSpecs.clear();
 
   // select outputs of type AOD
-  std::vector<InputSpec> OutputsInputsAOD;
+  std::vector<InputSpec> outputsInputsAOD;
   std::vector<bool> isdangling;
-  for (auto ii = 0u; ii < OutputsInputs.size(); ii++) {
+  for (auto ii = 0u; ii < outputsInputs.size(); ii++) {
     if ((outputtypes[ii] & 2) == 2) {
 
       // temporarily also request to be dangling
       if ((outputtypes[ii] & 1) == 1) {
-        OutputsInputsAOD.emplace_back(OutputsInputs[ii]);
+        outputsInputsAOD.emplace_back(outputsInputs[ii]);
         isdangling.emplace_back((outputtypes[ii] & 1) == 1);
       }
     }
   }
 
-  if (OutputsInputsAOD.size() > 0) {
-    auto fileSink = CommonDataProcessors::getGlobalAODSink(OutputsInputsAOD,
+  if (outputsInputsAOD.size() > 0) {
+    auto fileSink = CommonDataProcessors::getGlobalAODSink(outputsInputsAOD,
                                                            isdangling);
     extraSpecs.push_back(fileSink);
   }
@@ -393,16 +393,16 @@ void WorkflowHelpers::injectServiceDevices(WorkflowSpec& workflow, ConfigContext
   extraSpecs.clear();
 
   // select dangling outputs which are not of type AOD
-  std::vector<InputSpec> OutputsInputsDangling;
-  for (auto ii = 0u; ii < OutputsInputs.size(); ii++) {
+  std::vector<InputSpec> outputsInputsDangling;
+  for (auto ii = 0u; ii < outputsInputs.size(); ii++) {
     if ((outputtypes[ii] & 1) == 1 && (outputtypes[ii] & 2) == 0)
-      OutputsInputsDangling.emplace_back(OutputsInputs[ii]);
+      outputsInputsDangling.emplace_back(outputsInputs[ii]);
   }
 
   std::vector<InputSpec> unmatched;
-  if (OutputsInputsDangling.size() > 0) {
-    auto fileSink = CommonDataProcessors::getGlobalFileSink(OutputsInputsDangling, unmatched);
-    if (unmatched.size() != OutputsInputsDangling.size()) {
+  if (outputsInputsDangling.size() > 0) {
+    auto fileSink = CommonDataProcessors::getGlobalFileSink(outputsInputsDangling, unmatched);
+    if (unmatched.size() != outputsInputsDangling.size()) {
       extraSpecs.push_back(fileSink);
     }
   }
