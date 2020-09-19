@@ -108,8 +108,45 @@ struct BarrelTrackSelection {
     cut1->AddCut(VarManager::kTrackDCAxy, -1.0, +1.0);
     cut1->AddCut(VarManager::kTrackDCAz, -3.0, +3.0);
 
-    cut1->AddCut(VarManager::kTPCsignal, 70, 100, false);  //exclude = false
-    cut1->AddCut(VarManager::kTOFnSigmaEl, -3, +3, false); //exclude = false
+    cut1->AddCut(VarManager::kTPCsignal, 70, 90, false);                              //exclude = false
+    cut1->AddCut(VarManager::kTPCsignal, 75, 90, false, VarManager::kPt, 2.0, 1e+10); //exclude = false
+    //cut1->AddCut(VarManager::kTOFnSigmaEl, -3, +3, false); //exclude = false
+    //fTrackCut->AddCut(cut1);
+
+    AnalysisCompositeCut* pidcut = new AnalysisCompositeCut(false); // false : use OR
+    AnalysisCut* pidcut_high = new AnalysisCut("pidcut_high", "e high");
+    pidcut_high->AddCut(VarManager::kTPCsignal, 75, 90, false, VarManager::kPin, 2.0, 1e+10, false); //exclude = false
+    pidcut_high->AddCut(VarManager::kTPCsignal, 70, 90, false);                                      //exclude = false
+
+    AnalysisCut* pidcut_rejPr = new AnalysisCut("pidcut_rejPr", "proton rejection");
+    TF1* f1minPr = new TF1("f1minPr", "[0]+[1]*x", 0, 10);
+    f1minPr->SetParameters(220, -150);
+    TF1* f1maxPr = new TF1("f1maxPr", "[0]+[1]*x", 0, 10);
+    f1maxPr->SetParameters(195, -100);
+    pidcut_rejPr->AddCut(VarManager::kTPCsignal, f1minPr, f1maxPr, true, VarManager::kPin, 0.8, 1.25, false); //exclude = false
+
+    AnalysisCut* pidcut_rejKa = new AnalysisCut("pidcut_rejKa", "kaon rejection");
+    TF1* f1minKa = new TF1("f1minKa", "[0]+[1]*x", 0, 10);
+    f1minKa->SetParameters(220, -300);
+    TF1* f1maxKa = new TF1("f1maxKa", "[0]+[1]*x", 0, 10);
+    f1maxKa->SetParameters(182.5, -150);
+    pidcut_rejKa->AddCut(VarManager::kTPCsignal, f1minKa, f1maxKa, true, VarManager::kPin, 0.4, 0.8, false); //exclude = false
+
+    AnalysisCut* pidcut_rejPi = new AnalysisCut("pidcut_rejPi", "pion rejection");
+    TF1* f1maxPi = new TF1("f1maxPi", "[0]+[1]*x", 0, 10);
+    f1maxPi->SetParameters(85, -50);
+    pidcut_rejPi->AddCut(VarManager::kTPCsignal, 70, f1maxPi, true, VarManager::kPin, 0.0, 0.4, false); //exclude = false
+
+    cut1->AddCut(VarManager::kTPCsignal, f1minPr, f1maxPr, true, VarManager::kPin, 0.8, 1.25, false); //exclude = false
+    cut1->AddCut(VarManager::kTPCsignal, f1minKa, f1maxKa, true, VarManager::kPin, 0.4, 0.8, false);  //exclude = false
+    cut1->AddCut(VarManager::kTPCsignal, 70, f1maxPi, true, VarManager::kPin, 0.0, 0.4, false);       //exclude = false
+
+    //pidcut->AddCut(pidcut_high);
+    //pidcut->AddCut(pidcut_rejPr);
+    //pidcut->AddCut(pidcut_rejKa);
+    //pidcut->AddCut(pidcut_rejPi);
+    //fTrackCut->AddCut(pidcut);
+
     fTrackCut->AddCut(cut1);
 
     VarManager::SetUseVars(AnalysisCut::fgUsedVars); // provide the list of required variables so that VarManager knows what to fill
