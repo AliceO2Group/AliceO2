@@ -27,6 +27,7 @@
 
 // TODO: create an array holding these constants for all needed particles or check for a place where these are already defined
 static const float fgkElectronMass = 0.000511; // GeV
+static const float fgkMuonMass = 0.105;        // GeV
 
 //_________________________________________________________________________
 class VarManager : public TObject
@@ -126,6 +127,7 @@ class VarManager : public TObject
     kMuonZMu,
     kMuonBendingCoor,
     kMuonNonBendingCoor,
+    kMuonRAtAbsorberEnd,
     kMuonChi2,
     kMuonChi2MatchTrigger,
     kNMuonTrackVariables,
@@ -359,6 +361,7 @@ void VarManager::FillTrack(T const& track, float* values)
     values[kMuonZMu] = track.zMu();
     values[kMuonBendingCoor] = track.bendingCoor();
     values[kMuonNonBendingCoor] = track.nonBendingCoor();
+    values[kMuonRAtAbsorberEnd] = track.rAtAbsorberEnd();
     values[kMuonChi2] = track.chi2();
     values[kMuonChi2MatchTrigger] = track.chi2MatchTrigger();
   }
@@ -376,13 +379,27 @@ void VarManager::FillPair(T const& t1, T const& t2, float* values)
   if (!values)
     values = fgValues;
 
-  ROOT::Math::PtEtaPhiMVector v1(t1.pt(), t1.eta(), t1.phi(), fgkElectronMass);
-  ROOT::Math::PtEtaPhiMVector v2(t2.pt(), t2.eta(), t2.phi(), fgkElectronMass);
+  float mass1;
+  float mass2;
+
+  if (t1.filteringFlags() > 0)
+    mass1 = fgkElectronMass;
+  else
+    mass1 = fgkMuonMass;
+
+  if (t1.filteringFlags() > 0)
+    mass2 = fgkElectronMass;
+  else
+    mass2 = fgkMuonMass;
+
+  ROOT::Math::PtEtaPhiMVector v1(t1.pt(), t1.eta(), t1.phi(), mass1);
+  ROOT::Math::PtEtaPhiMVector v2(t2.pt(), t2.eta(), t2.phi(), mass2);
   ROOT::Math::PtEtaPhiMVector v12 = v1 + v2;
   values[kMass] = v12.M();
   values[kPt] = v12.Pt();
   values[kEta] = v12.Eta();
   values[kPhi] = v12.Phi();
+  values[kRap] = -v12.Rapidity();
 }
 
 template <typename T1, typename T2>
