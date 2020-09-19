@@ -113,7 +113,7 @@ struct lambdakzerofinder {
         continue;
       if (t0.tpcNClsCrossedRows() < 70)
         continue;
-      for (auto& t1 : goodPosTracks) {
+      for (auto& t1 : goodNegTracks) {
         auto thisdcanegtopv = getdcaXY(t1, pVtx);
         if (thisdcanegtopv < dcanegtopv)
           continue;
