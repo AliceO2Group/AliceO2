@@ -13,7 +13,6 @@
 #include "Framework/ASoA.h"
 #include "MathUtils/Utils.h"
 #include <cmath>
-#include "Headers/DataHeader.h"
 #include "Framework/DataTypes.h"
 
 namespace o2
