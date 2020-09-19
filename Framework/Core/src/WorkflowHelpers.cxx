@@ -128,7 +128,6 @@ void addMissingOutputsToReader(std::vector<OutputSpec> const& providedOutputs,
       return DataSpecUtils::match(requested, provided);
     };
   };
-
   for (InputSpec const& requested : requestedInputs) {
     auto provided = std::find_if(providedOutputs.begin(),
                                  providedOutputs.end(),

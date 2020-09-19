@@ -382,7 +382,7 @@ ColumnIterator::ColumnIterator(TTreeReader* reader, const char* colname)
 
   auto br = tree->GetBranch(colname);
   if (!br) {
-    LOGP(INFO, "Can not locate branch {}", colname);
+    LOGP(WARNING, "Can not locate branch {}", colname);
     return;
   }
   mColumnName = colname;
