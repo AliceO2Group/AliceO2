@@ -28,7 +28,7 @@
 #include "EMCALWorkflow/PublisherSpec.h"
 #include "EMCALWorkflow/RawToCellConverterSpec.h"
 #include "Framework/DataSpecUtils.h"
-#include "SimulationDataFormat/MCCompLabel.h"
+#include "DataFormatsEMCAL/MCLabel.h"
 #include "SimulationDataFormat/MCTruthContainer.h"
 
 namespace o2
@@ -243,11 +243,12 @@ o2::framework::WorkflowSpec getWorkflow(bool propagateMC,
                                                            std::move(CellsBranch),
                                                            std::move(TriggerRecordBranch)));
   };
-
+  /*
+    // RS getting input digits and outputing them under the same outputspec will create dependency loop when piping the workflows
   if (isEnabled(OutputType::Digits) && !disableRootOutput) {
     using DigitOutputType = std::vector<o2::emcal::Digit>;
     using TriggerOutputType = std::vector<o2::emcal::TriggerRecord>;
-    using MCLabelContainer = o2::dataformats::MCTruthContainer<o2::MCCompLabel>;
+    using MCLabelContainer = o2::dataformats::MCTruthContainer<o2::emcal::MCLabel>;
     specs.push_back(makeWriterSpec("emcal-digits-writer",
                                    inputType == InputType::Digits ? "emc-filtered-digits.root" : "emcdigits.root",
                                    "o2sim",
@@ -261,12 +262,12 @@ o2::framework::WorkflowSpec getWorkflow(bool propagateMC,
                                                                       "EMCDigitMCTruth",
                                                                       "digitmc-branch-name"})());
   }
-
+  */
   if (isEnabled(OutputType::Cells) && !disableRootOutput) {
     if (inputType == InputType::Digits) {
       using DigitOutputType = std::vector<o2::emcal::Cell>;
       using TriggerOutputType = std::vector<o2::emcal::TriggerRecord>;
-      using MCLabelContainer = o2::dataformats::MCTruthContainer<o2::MCCompLabel>;
+      using MCLabelContainer = o2::dataformats::MCTruthContainer<o2::emcal::MCLabel>;
       specs.push_back(makeWriterSpec("emcal-cells-writer", "emccells.root", "o2sim",
                                      BranchDefinition<DigitOutputType>{o2::framework::InputSpec{"data", "EMC", "CELLS", 0},
                                                                        "EMCALCell",
