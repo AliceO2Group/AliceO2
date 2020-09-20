@@ -109,12 +109,13 @@ struct GBTLinkDecodingStat {
     ErrInvalidActiveLanes,       // active lanes pattern conflicts with expected for given RU type
     ErrPacketCounterJump,        // jump in RDH.packetCounter
     ErrPacketDoneMissing,        // packet done is missing in the trailer while CRU page is not over
+    ErrMissingDiagnosticWord,    // missing diagnostic word after RDH with stop
     NErrorsDefined
   };
   static constexpr std::array<std::string_view, NErrorsDefined> ErrNames = {
     "Page data not start with expected RDH",                             // ErrNoRDHAtStart
     "New HB/trigger page started w/o stopping previous one",             // ErrPageNotStopped
-    "Page with RDH.stop is not empty",                                   // ErrStopPageNotEmpty
+    "Page with RDH.stop does not contain diagnostic word only",          // ErrStopPageNotEmpty
     "RDH page counters for the same RU/trigger are not continuous",      // ErrPageCounterDiscontinuity
     "RDH and GBT header page counters are not consistent",               // ErrRDHvsGBTHPageCnt
     "GBT trigger word was expected but not found",                       // ErrMissingGBTTrigger
@@ -128,7 +129,8 @@ struct GBTLinkDecodingStat {
     "Cable data does not start with chip header or empty chip",          // ErrCableDataHeadWrong
     "Active lanes pattern conflicts with expected for given RU type",    // ErrInvalidActiveLanes
     "Jump in RDH_packetCounter",                                         // ErrPacketCounterJump
-    "Packet done is missing in the trailer while CRU page is not over"   // ErrPacketDoneMissing
+    "Packet done is missing in the trailer while CRU page is not over",  // ErrPacketDoneMissing
+    "Missing diagnostic GBT word after RDH with stop"                    // ErrMissingDiagnosticWord
   };
 
   uint32_t ruLinkID = 0; // Link ID within RU
