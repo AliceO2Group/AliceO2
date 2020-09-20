@@ -41,9 +41,6 @@ struct HFCandidateCreator2Prong {
   Configurable<double> d_minparamchange{"d_minparamchange", 1.e-3, "stop iterations if largest change of any X is smaller than this"};
   Configurable<double> d_minrelchi2change{"d_minrelchi2change", 0.9, "stop iterations is chi2/chi2old > this"};
   Configurable<bool> b_dovalplots{"b_dovalplots", true, "do validation plots"};
-  OutputObj<TH1F> hvtx_x_out{TH1F("hvtx_x", "2-track vtx", 100, -0.1, 0.1)};
-  OutputObj<TH1F> hvtx_y_out{TH1F("hvtx_y", "2-track vtx", 100, -0.1, 0.1)};
-  OutputObj<TH1F> hvtx_z_out{TH1F("hvtx_z", "2-track vtx", 100, -0.1, 0.1)};
   OutputObj<TH1F> hmass2{TH1F("hmass2", "2-track inv mass", 500, 0., 5.0)};
 
   double massPi = RecoDecay::getMassPDG(kPiPlus);
@@ -119,9 +116,6 @@ struct HFCandidateCreator2Prong {
 
       // fill histograms
       if (b_dovalplots) {
-        hvtx_x_out->Fill(secondaryVertex[0]);
-        hvtx_y_out->Fill(secondaryVertex[1]);
-        hvtx_z_out->Fill(secondaryVertex[2]);
         hmass2->Fill(massPiK);
         hmass2->Fill(massKPi);
       }
