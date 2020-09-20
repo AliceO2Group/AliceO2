@@ -304,6 +304,14 @@ void RawFileWriter::LinkData::addData(const IR& ir, const gsl::span<char> data, 
     addPreformattedCRUPage(data);
     return;
   }
+
+  // if we are at the beginning of the page, detector may want to add some header
+  if (isNewPage() && writer->newRDHFunc) {
+    std::vector<char> newPageHeader;
+    writer->newRDHFunc(getLastRDH(), false, newPageHeader);
+    pushBack(newPageHeader.data(), newPageHeader.size());
+  }
+
   const char* ptr = &data[0];
   // in case particular detector CRU pages need to be self-consistent, when carrying-over
   // large payload to new CRU page we may need to write optional trailer and header before
@@ -312,8 +320,15 @@ void RawFileWriter::LinkData::addData(const IR& ir, const gsl::span<char> data, 
   int splitID = 0;
   std::vector<char> carryOverHeader;
   while (dataSize > 0) {
+
     if (carryOver) { // check if there is carry-over header to write in the buffer
       addHBFPage();  // start new CRU page, if needed, the completed superpage is flushed
+      if (writer->newRDHFunc) {
+        std::vector<char> newPageHeader;
+        writer->newRDHFunc(getLastRDH(), false, newPageHeader);
+        pushBack(newPageHeader.data(), newPageHeader.size());
+      }
+
       // for sure after the carryOver we have space on the CRU page, no need to check
       LOG(DEBUG) << "Adding carryOverHeader " << carryOverHeader.size()
                  << " bytes in IR " << ir << " to " << describe();
@@ -326,6 +341,11 @@ void RawFileWriter::LinkData::addData(const IR& ir, const gsl::span<char> data, 
     int sizeLeft = sizeLeftCRUPage < sizeLeftSupPage ? sizeLeftCRUPage : sizeLeftSupPage;
     if (!sizeLeft) { // this page is just over, open a new one
       addHBFPage();  // start new CRU page, if needed, the completed superpage is flushed
+      if (writer->newRDHFunc) {
+        std::vector<char> newPageHeader;
+        writer->newRDHFunc(getLastRDH(), false, newPageHeader);
+        pushBack(newPageHeader.data(), newPageHeader.size());
+      }
       continue;
     }
 
@@ -404,9 +424,10 @@ void RawFileWriter::LinkData::addHBFPage(bool stop)
   }
   // finalize last RDH
   auto& lastRDH = *getLastRDH();
-  int psize = buffer.size() - lastRDHoffset;                  // set the size for the previous header RDH
-  if (stop && psize == sizeof(RDHAny) && writer->emptyHBFFunc) { // we are closing an empty page, does detector want to add something?
-    std::vector<char> emtyHBFFiller;                          // working space for optional empty HBF filler
+  int psize = getCurrentPageSize(); // set the size for the previous header RDH
+  bool emptyPage = psize == sizeof(RDHAny);
+  if (stop && emptyPage && writer->emptyHBFFunc) { // we are closing an empty page, does detector want to add something?
+    std::vector<char> emtyHBFFiller;               // working space for optional empty HBF filler
     writer->emptyHBFFunc(&lastRDH, emtyHBFFiller);
     if (emtyHBFFiller.size()) {
       LOG(DEBUG) << "Adding empty HBF filler of size " << emtyHBFFiller.size() << " for " << describe();
@@ -437,9 +458,18 @@ void RawFileWriter::LinkData::addHBFPage(bool stop)
     RDHUtils::setPacketCounter(rdhCopy, packetCounter++);
     RDHUtils::setPageCounter(rdhCopy, pageCnt++);
     RDHUtils::setStop(rdhCopy, stop);
-    RDHUtils::setOffsetToNext(rdhCopy, sizeof(RDHAny));
-    RDHUtils::setMemorySize(rdhCopy, sizeof(RDHAny));
+    std::vector<char> userData;
+    int sz = sizeof(RDHAny);
+    if (stop && writer->newRDHFunc) { // detector may want to write something in closing page
+      writer->newRDHFunc(&rdhCopy, emptyPage, userData);
+      sz += userData.size();
+    }
+    RDHUtils::setOffsetToNext(rdhCopy, sz);
+    RDHUtils::setMemorySize(rdhCopy, sz);
     lastRDHoffset = pushBack(rdhCopy); // entry of the new RDH
+    if (!userData.empty()) {
+      pushBack(userData.data(), userData.size());
+    }
   }
   if (stop) {
     if (RDHUtils::getTriggerType(rdhCopy) & o2::trigger::TF) {

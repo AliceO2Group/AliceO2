@@ -83,11 +83,26 @@ void GBTLink::printHeader(const GBTDataHeader* gbtH)
 }
 
 ///_________________________________________________________________
+void GBTLink::printHeader(const GBTDataHeaderL* gbtH)
+{
+  gbtH->printX();
+  std::bitset<28> LA(gbtH->activeLanesL);
+  LOG(INFO) << "HeaderL : Active Lanes " << LA;
+}
+
+///_________________________________________________________________
 void GBTLink::printTrailer(const GBTDataTrailer* gbtT)
 {
   gbtT->printX();
   std::bitset<28> LT(gbtT->lanesTimeout), LS(gbtT->lanesStops); // RSTODO
   LOG(INFO) << "Trailer: Done=" << gbtT->packetDone << " Lanes TO: " << LT << " | Lanes ST: " << LS;
+}
+
+///_________________________________________________________________
+void GBTLink::printDiagnostic(const GBTDiagnostic* gbtD)
+{
+  gbtD->printX();
+  LOG(INFO) << "Diagnostic word";
 }
 
 ///====================================================================
@@ -98,20 +113,23 @@ void GBTLink::printTrailer(const GBTDataTrailer* gbtT)
 /// Check RDH correctness
 GBTLink::ErrorType GBTLink::checkErrorsRDH(const RDH& rdh)
 {
+  ErrorType err = NoError;
   if (!RDHUtils::checkRDH(rdh, true)) {
     statistics.errorCounts[GBTLinkDecodingStat::ErrNoRDHAtStart]++;
     if (verbosity >= VerboseErrors) {
       LOG(ERROR) << describe() << ' ' << statistics.ErrNames[GBTLinkDecodingStat::ErrNoRDHAtStart];
     }
     errorBits |= 0x1 << int(GBTLinkDecodingStat::ErrNoRDHAtStart);
-    return Abort; // fatal error
+    err = Abort;
+    return err; // fatal error
   }
   if (format == OldFormat && RDHUtils::getVersion(rdh) > 4) {
     if (verbosity >= VerboseErrors) {
       LOG(ERROR) << "Requested old format requires data with RDH version 3 or 4, RDH version "
                  << RDHUtils::getVersion(rdh) << " is found";
     }
-    return Abort;
+    err = Abort;
+    return err;
   }
   if ((RDHUtils::getPacketCounter(rdh) > packetCounter + 1) && packetCounter >= 0) {
     statistics.errorCounts[GBTLinkDecodingStat::ErrPacketCounterJump]++;
@@ -120,10 +138,10 @@ GBTLink::ErrorType GBTLink::checkErrorsRDH(const RDH& rdh)
                  << " : jump from " << int(packetCounter) << " to " << int(RDHUtils::getPacketCounter(rdh));
     }
     errorBits |= 0x1 << int(GBTLinkDecodingStat::ErrPacketCounterJump);
-    return Warning;
+    err = Warning;
   }
   packetCounter = RDHUtils::getPacketCounter(rdh);
-  return NoError;
+  return err;
 }
 
 ///_________________________________________________________________
@@ -148,7 +166,7 @@ GBTLink::ErrorType GBTLink::checkErrorsRDHStop(const RDH& rdh)
 /// Check if the RDH Stop page is empty
 GBTLink::ErrorType GBTLink::checkErrorsRDHStopPageEmpty(const RDH& rdh)
 {
-  if (format == NewFormat && RDHUtils::getStop(rdh) && RDHUtils::getMemorySize(rdh) != sizeof(RDH)) {
+  if (format == NewFormat && RDHUtils::getStop(rdh) && RDHUtils::getMemorySize(rdh) != sizeof(RDH) + sizeof(GBTDiagnostic)) {
     statistics.errorCounts[GBTLinkDecodingStat::ErrStopPageNotEmpty]++;
     if (verbosity >= VerboseErrors) {
       LOG(ERROR) << describe() << ' ' << statistics.ErrNames[GBTLinkDecodingStat::ErrStopPageNotEmpty];
@@ -189,9 +207,25 @@ GBTLink::ErrorType GBTLink::checkErrorsHeaderWord(const GBTDataHeader* gbtH)
     errorBits |= 0x1 << int(GBTLinkDecodingStat::ErrMissingGBTHeader);
     return Abort;
   }
+  return NoError;
+}
+
+///_________________________________________________________________
+/// Check the GBT Header word correctness
+GBTLink::ErrorType GBTLink::checkErrorsHeaderWord(const GBTDataHeaderL* gbtH)
+{
+  if (!gbtH->isDataHeader()) { // check header word
+    statistics.errorCounts[GBTLinkDecodingStat::ErrMissingGBTHeader]++;
+    gbtH->printX();
+    if (verbosity >= VerboseErrors) {
+      LOG(ERROR) << describe() << ' ' << statistics.ErrNames[GBTLinkDecodingStat::ErrMissingGBTHeader];
+    }
+    errorBits |= 0x1 << int(GBTLinkDecodingStat::ErrMissingGBTHeader);
+    return Abort;
+  }
   int cnt = RDHUtils::getPageCounter(*lastRDH);
   // RSTODO: this makes sense only for old format, where every trigger has its RDH
-  if (format == OldFormat && gbtH->packetIdx != cnt) {
+  if (gbtH->packetIdx != cnt) {
     statistics.errorCounts[GBTLinkDecodingStat::ErrRDHvsGBTHPageCnt]++;
     if (verbosity >= VerboseErrors) {
       LOG(ERROR) << describe() << ' ' << statistics.ErrNames[GBTLinkDecodingStat::ErrRDHvsGBTHPageCnt] << ": diff in GBT header "
@@ -224,7 +258,7 @@ GBTLink::ErrorType GBTLink::checkErrorsActiveLanes(int cbl)
     statistics.errorCounts[GBTLinkDecodingStat::ErrInvalidActiveLanes]++;
     std::bitset<32> expectL(cbl), gotL(lanesActive);
     if (verbosity >= VerboseErrors) {
-      LOG(ERROR) << describe() << ' ' << statistics.ErrNames[GBTLinkDecodingStat::ErrInvalidActiveLanes]
+      LOG(ERROR) << describe() << ' ' << statistics.ErrNames[GBTLinkDecodingStat::ErrInvalidActiveLanes] << ' '
                  << gotL << " vs " << expectL << " skip page";
     }
     errorBits |= 0x1 << int(GBTLinkDecodingStat::ErrInvalidActiveLanes);
@@ -314,6 +348,22 @@ GBTLink::ErrorType GBTLink::checkErrorsLanesStops()
     err = Warning;
   }
   return err;
+}
+
+///_________________________________________________________________
+/// Check diagnostic word
+GBTLink::ErrorType GBTLink::checkErrorsDiagnosticWord(const GBTDiagnostic* gbtD)
+{
+  if (RDHUtils::getMemorySize(lastRDH) != sizeof(RDH) + sizeof(GBTDiagnostic) || !gbtD->isDiagnosticWord()) { //
+    statistics.errorCounts[GBTLinkDecodingStat::ErrMissingDiagnosticWord]++;
+    gbtD->printX();
+    if (verbosity >= VerboseErrors) {
+      LOG(ERROR) << describe() << ' ' << statistics.ErrNames[GBTLinkDecodingStat::ErrMissingDiagnosticWord];
+    }
+    errorBits |= 0x1 << int(GBTLinkDecodingStat::ErrMissingDiagnosticWord);
+    return Abort;
+  }
+  return NoError;
 }
 
 #endif
