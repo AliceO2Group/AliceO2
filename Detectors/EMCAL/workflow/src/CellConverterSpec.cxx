@@ -14,7 +14,7 @@
 #include "DataFormatsEMCAL/EMCALBlockHeader.h"
 #include "EMCALWorkflow/CellConverterSpec.h"
 #include "Framework/ControlService.h"
-#include "SimulationDataFormat/MCCompLabel.h"
+#include "DataFormatsEMCAL/MCLabel.h"
 #include "SimulationDataFormat/MCTruthContainer.h"
 
 using namespace o2::emcal::reco_workflow;
@@ -62,7 +62,7 @@ void CellConverterSpec::run(framework::ProcessingContext& ctx)
   if (mPropagateMC) {
     // copy mc truth container without modification
     // as indexing doesn't change
-    auto truthcont = ctx.inputs().get<o2::dataformats::MCTruthContainer<o2::MCCompLabel>*>("digitsmctr");
+    auto truthcont = ctx.inputs().get<o2::dataformats::MCTruthContainer<o2::emcal::MCLabel>*>("digitsmctr");
     ctx.outputs().snapshot(o2::framework::Output{"EMC", "CELLSMCTR", 0, o2::framework::Lifetime::Timeframe}, *truthcont);
   }
 }
