@@ -27,11 +27,10 @@ namespace reco_workflow
 /// \enum InputType
 /// \brief Input types of the workflow
 /// \ingroup EMCALworkflow
-enum struct InputType { Digitizer, ///< directly read digits from channel {TPC:DIGITS)
-                        Digits,    ///< read digits from file
-                        Cells,     ///< read compressed cells from file
-                        Raw,       ///< read data in raw page format from file
-                        Clusters   ///< read native clusters from file
+enum struct InputType { Digits,  ///< read digits from file
+                        Cells,   ///< read compressed cells from file
+                        Raw,     ///< read data in raw page format from file
+                        Clusters ///< read native clusters from file
 };
 
 /// \enum OutputType
@@ -53,9 +52,10 @@ enum struct OutputType { Digits,          ///< EMCAL digits
 /// \ingroup EMCALwokflow
 framework::WorkflowSpec getWorkflow(bool propagateMC = true,
                                     bool enableDigitsPrinter = false,
-                                    std::string const& cfgInput = "digits",   //
-                                    std::string const& cfgOutput = "clusters" //
-);
+                                    std::string const& cfgInput = "digits",    //
+                                    std::string const& cfgOutput = "clusters", //
+                                    bool disableRootInput = false,
+                                    bool disableRootOutput = false);
 } // namespace reco_workflow
 
 } // namespace emcal
