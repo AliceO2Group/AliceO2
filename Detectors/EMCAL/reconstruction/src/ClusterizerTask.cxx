@@ -83,9 +83,9 @@ void ClusterizerTask<InputType>::process(const std::string inputFileName, const 
 
   // Create output tree
   std::unique_ptr<TTree> outTree = std::make_unique<TTree>("o2sim", "EMCAL clusters");
-  outTree->Branch("EMCCluster", &mClustersArray);
-  outTree->Branch("EMCClusterInputIndex", &mClustersInputIndices);
-  outTree->Branch("EMCClusterTRGR", &mClusterTriggerRecordsClusters);
+  outTree->Branch("EMCALCluster", &mClustersArray);
+  outTree->Branch("EMCALClusterInputIndex", &mClustersInputIndices);
+  outTree->Branch("EMCALClusterTRGR", &mClusterTriggerRecordsClusters);
   outTree->Branch("EMCIndicesTRGR", &mClusterTriggerRecordsIndices);
 
   mClustersArray->clear();
