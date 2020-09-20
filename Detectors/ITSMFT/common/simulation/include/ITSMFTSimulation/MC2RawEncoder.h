@@ -22,6 +22,7 @@
 #include "ITSMFTReconstruction/RUDecodeData.h"
 #include "DetectorsRaw/RawFileWriter.h"
 #include "DetectorsRaw/RDHUtils.h"
+#include <unordered_map>
 
 namespace o2
 {
@@ -87,6 +88,8 @@ class MC2RawEncoder
   int carryOverMethod(const o2::header::RDHAny* rdh, const gsl::span<char> data, const char* ptr, int maxSize, int splitID,
                       std::vector<char>& trailer, std::vector<char>& header) const;
 
+  void newRDHMethod(const header::RDHAny* rdh, bool empty, std::vector<char>& toAdd) const;
+
   // create new gbt link
   int addGBTLink()
   {
@@ -120,7 +123,8 @@ class MC2RawEncoder
   std::array<RUDecodeData, Mapping::getNRUs()> mRUDecodeVec; /// decoding buffers for all active RUs
   std::array<int, Mapping::getNRUs()> mRUEntry;              /// entry of the RU with given SW ID in the mRUDecodeVec
   std::vector<GBTLink> mGBTLinks;
-
+  std::unordered_map<uint16_t, const GBTLink*> mFEEId2Link;
+  std::unordered_map<uint16_t, GBTDataHeader> mFEEId2GBTHeader;
   ClassDefNV(MC2RawEncoder, 1);
 };
 

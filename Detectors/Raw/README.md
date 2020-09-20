@@ -149,10 +149,16 @@ empty HBF the writer will call it with
 rdh     : RDH of the CRU page opening empty RDH
 toAdd   : a vector (supplied empty) to be filled to a size multipe of 16 bytes
 ```
+The data `toAdd` will be inserted between the star/stop RDHs of the empty HBF.
 
 Adding empty HBF pages for HB's w/o data can be avoided by setting `writer.setDontFillEmptyHBF(true)` before starting conversion. Note that the empty HBFs still will be added for HBs which are supposed to open a new TF.
 
-The data `toAdd` will be inserted between the star/stop RDHs of the empty HBF.
+Some detectors (ITS/MFT) write a special header word after the RDH of every new CRU page (actually, different GBT words for pages w/o and with ``RDH.stop``) in non-empty HBFs. This can be achieved by
+another call back method
+```cpp
+void newRDHMethod(const RDHAny* rdh, bool prevEmpty, std::vector<char>& toAdd) const;
+```
+It proveds the ``RDH`` of the page for which it is called, information if the previous had some payload and buffer to be filled by the used algorithm.
 
 The behaviour described above can be modified by providing an extra argument in the `addData` method
 ```cpp

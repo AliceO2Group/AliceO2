@@ -371,7 +371,7 @@ class RawPixelReader : public PixelReader
       link->data.ensureFreeCapacity(MaxGBTPacketBytes);
       link->data.addFast(reinterpret_cast<uint8_t*>(&rdh), RDHUtils::getHeaderSize(rdh)); // write RDH for current packet
       link->nTriggers++;                                                    // acknowledge the page, note: here we count pages, not triggers
-      o2::itsmft::GBTDataHeader gbtHeader(0, link->lanes);
+      o2::itsmft::GBTDataHeaderL gbtHeader(0, link->lanes);
       o2::itsmft::GBTDataTrailer gbtTrailer; // lanes will be set on closing the last page
 
       gbtHeader.packetIdx = RDHUtils::getPageCounter(rdh);
@@ -780,7 +780,7 @@ class RawPixelReader : public PixelReader
       mDecodingStat.nPagesProcessed++;
       raw += RDHUtils::getHeaderSize(rdh);
       int nGBTWords = (RDHUtils::getMemorySize(rdh) - RDHUtils::getHeaderSize(rdh)) / mGBTWordSize - 2; // number of GBT words excluding header/trailer
-      auto gbtH = reinterpret_cast<const o2::itsmft::GBTDataHeader*>(raw);    // process GBT header
+      auto gbtH = reinterpret_cast<const o2::itsmft::GBTDataHeaderL*>(raw);                             // process GBT header
 
 #ifdef _RAW_READER_ERROR_CHECKS_
       if (mVerbose) {
@@ -1049,7 +1049,7 @@ class RawPixelReader : public PixelReader
       raw += RDHUtils::getHeaderSize(rdh);
       // number of 128 b GBT words excluding header/trailer
       int nGBTWords = (RDHUtils::getMemorySize(rdh) - RDHUtils::getHeaderSize(rdh)) / o2::itsmft::GBTPaddedWordLength - 2;
-      auto gbtH = reinterpret_cast<const o2::itsmft::GBTDataHeader*>(raw); // process GBT header
+      auto gbtH = reinterpret_cast<const o2::itsmft::GBTDataHeaderL*>(raw); // process GBT header
 
 #ifdef _RAW_READER_ERROR_CHECKS_
       if (mVerbose) {

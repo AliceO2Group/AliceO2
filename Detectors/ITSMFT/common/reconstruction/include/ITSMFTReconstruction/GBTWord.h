@@ -29,7 +29,9 @@ constexpr uint8_t GBTFlagDataHeader = 0xe0;
 /// GBT payload trailer flag
 constexpr uint8_t GBTFlagDataTrailer = 0xf0;
 /// GBT trigger status word flag
-constexpr uint8_t GBTFlagTrigger = 0xc0;
+constexpr uint8_t GBTFlagTrigger = 0xe8;
+/// GBT diagnostic status word flag
+constexpr uint8_t GBTFlagDiagnostic = 0xe4;
 
 // GBT header flag in the RDH
 constexpr uint8_t GBTFlagRDH = 0x00;
@@ -44,18 +46,24 @@ constexpr int GBTPaddedWordLength = 16; // lentgh in bytes with padding
 struct GBTWord {
   /// GBT word of 80 bits, bits 72:79 are reserver for GBT Header flag, the rest depends on specifications
   union {
-    struct {
-      uint64_t packetIdx : 16;   ///  0:15  Index of Data Packet within trigger
-      uint64_t activeLanes : 28; /// 16:43  Bit map of lanes active and eligible for readout
-      uint64_t na0h : 20;        /// 44:71  reserved
-      uint64_t na1h : 8;         /// 44:71  reserved
+    // RS: packing will be needed only if some of the members cross 64 bit boundary
+    struct /*__attribute__((packed))*/ {
+      uint64_t activeLanes : 28; /// 0:27   Bit map of lanes active and eligible for readout
+      uint64_t na0hn : 36;       /// 28:71  reserved
+      uint64_t na1hn : 8;        /// 28:71  reserved
       uint64_t id : 8;           /// 72:79  0xe0; Header Status Word (HSW) identifier
-    };                           // HEADER
-    struct {
-      uint64_t lanesStops : 28;         ///  0:27  Bit map of “Valid Lane stops received”, 1 bit per lane
-      uint64_t na0t : 4;                /// 28:32  reserved
-      uint64_t lanesTimeout : 28;       /// 32:59  Bit map of “Lane timeouts received”, 1 bit per lane
-      uint64_t na1t : 4;                /// 60:63  reserved
+    };                           // HEADER NEW
+    struct /*__attribute__((packed))*/ {
+      uint64_t packetIdx : 16;    ///  0:15  Index of Data Packet within trigger
+      uint64_t activeLanesL : 28; /// 16:43  Bit map of lanes active and eligible for readout
+      uint64_t na0h : 20;         /// 44:64  reserved
+      uint64_t na1h : 8;          /// 64:71  reserved
+      //      uint64_t id : 8;           /// 72:79  0xe0; Header Status Word (HSW) identifier
+    }; // HEADER Legacy
+    struct /*__attribute__((packed))*/ {
+      uint64_t lanesStops : 28;         ///  0:27  Bit map of “Valid Lane stops received”, 1 bit per lane, NOT USED
+      uint64_t lanesTimeout : 28;       /// 28:55  Bit map of “Lane timeouts received”, 1 bit per lane, NOT USED
+      uint64_t na1t : 8;                /// 56:63  reserved
       uint64_t packetDone : 1;          /// 64     = 1 when current trigger packets transmission done
       uint64_t transmissionTimeout : 1; /// 65     = 1 if timeout while waiting for data on lanes
       uint64_t packetOverflow : 1;      /// 66     = 1 if max number of packets reached
@@ -64,7 +72,7 @@ struct GBTWord {
       uint64_t na2t : 3;                /// 69:71  reserved
       //  uint8_t  id : 8;                /// = 0xf0; Trailer Status Word (TSW) identifier
     }; // TRAILER
-    struct {
+    struct /*__attribute__((packed))*/ {
       uint64_t triggerType : 12; /// 0:11   12 lowest bits of trigger type received from CTP
       uint64_t internal : 1;     /// 12     Used in Continuous Mode for internally generated trigger
       uint64_t noData : 1;       /// 13     No data expected (too close to previous trigger or error)
@@ -76,6 +84,10 @@ struct GBTWord {
       uint64_t na3tr : 6;        /// 64:71  reserved
       //  uint8_t  id : 8;                /// = 0xc0; Trigger Status Word (TSW) identifier
     }; // TRIGGER
+    struct /*__attribute__((packed))*/ {
+      uint64_t na0diag : 64; ///
+      //      uint64_t id : 8;           /// 72:79  0xe4; diagnostic word identifier
+    }; // HEADER Legacy
 
     uint8_t data8[16]; // 80 bits GBT word + optional padding to 128 bits
     uint64_t data64[2] = {0};
@@ -91,6 +103,9 @@ struct GBTWord {
 
   /// check if the GBT Header corresponds to GBT trigger word
   bool isTriggerWord() const { return id == GBTFlagTrigger; }
+
+  /// check if the GBT Header corresponds to Diagnostic data
+  bool isDiagnosticWord() const { return id == GBTFlagDiagnostic; }
 
   /// check if the GBT Header corresponds to ITS IB data (header is combined with lanes info)
   bool isDataIB() const { return (id & 0xe0) == GBTFlagDataIB; }
@@ -113,29 +128,45 @@ struct GBTDataHeader : public GBTWord {
   /// Definition of ITS/MFT GBT Header: 80 bits long word
   /// In CRU data it must be the 1st word of the payload
   ///
+  /// bits  0 : 27, Active lanes pattern
+  /// bits 28 : 71, not used
+  /// bits 72 : 79, header/trailer indicator
+
+  GBTDataHeader() { id = GBTFlagDataHeader; }
+  GBTDataHeader(uint32_t lanes)
+  {
+    id = GBTFlagDataHeader;
+    activeLanes = lanes;
+  }
+  ClassDefNV(GBTDataHeader, 1);
+};
+
+struct GBTDataHeaderL : public GBTWord { // legacy version
+  /// Definition of ITS/MFT GBT Header: 80 bits long word
+  /// In CRU data it must be the 1st word of the payload
+  ///
   /// bits  0 : 15, Index of GBT packet within trigger
   /// bits 16 : 43, Active lanes pattern
   /// bits 44 : 71, not used
   /// bits 72 : 79, header/trailer indicator
 
-  GBTDataHeader() { id = GBTFlagDataHeader; }
-  GBTDataHeader(int packetID, uint32_t lanes)
+  GBTDataHeaderL() { id = GBTFlagDataHeader; }
+  GBTDataHeaderL(int packetID, uint32_t lanes)
   {
     id = GBTFlagDataHeader;
-    activeLanes = lanes;
+    activeLanesL = lanes;
     packetIdx = packetID;
   }
-  ClassDefNV(GBTDataHeader, 1);
+  ClassDefNV(GBTDataHeaderL, 1);
 };
 
 struct GBTDataTrailer : public GBTWord {
   /// Definition of ITS/MFT GBT trailer: 80 bits long word
   /// In CRU data it must be the last word of the payload
   ///
-  /// bits  0 : 27, Lanes stops received
-  /// bits 28 : 31, not used
-  /// bits 32 : 59, Lane timeouts received
-  /// bits 60 : 63, not used
+  /// bits  0 : 27, Lanes stops received   // not used at the moment
+  /// bits 28 : 55, Lane timeouts received // not used at the moment
+  /// bits 56 : 63, not used
   /// bits 64 : 71, State of GBT_Packet:
   ///               4: lane_timeouts,  if at least 1 lane timed out
   ///               3: lane_starts_violation,  if at least 1 lane had a start violation
@@ -219,6 +250,18 @@ struct GBTData : public GBTWord {
 
   ClassDefNV(GBTData, 1);
 };
+
+struct GBTDiagnostic : public GBTWord {
+  /// Definition of GBT diagnostic word
+  /// In CRU data it must be the only word after the RDH with stop
+  ///
+  /// bits  0 : 71, reserved
+  /// bits 72 : 79, diagnostic flag
+
+  GBTDiagnostic() { id = GBTFlagDiagnostic; }
+  ClassDefNV(GBTDiagnostic, 1);
+};
+
 } // namespace itsmft
 } // namespace o2
 

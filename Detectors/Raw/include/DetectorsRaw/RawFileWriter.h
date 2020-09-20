@@ -48,6 +48,7 @@ class RawFileWriter
                                               const char* ptr, int size, int splitID,
                                               std::vector<char>& trailer, std::vector<char>& header)>;
   using EmptyPageCallBack = std::function<void(const RDHAny* rdh, std::vector<char>& emptyHBF)>;
+  using NewRDHCallBack = std::function<void(const RDHAny* rdh, bool prevEmpty, std::vector<char>& filler)>;
 
   ///=====================================================================================
   /// output file handler with its own lock
@@ -76,7 +77,7 @@ class RawFileWriter
   ///=====================================================================================
   /// Single GBT link helper
   struct LinkData {
-    static constexpr int MarginToFlush = 2 * sizeof(RDHAny); // flush superpage if free space left <= this margin
+    static constexpr int MarginToFlush = 10 * sizeof(RDHAny); // flush superpage if free space left <= this margin
     RDHAny rdhCopy;                                          // RDH with the running info of the last RDH seen
     IR updateIR;                                          // IR at which new HBF needs to be created
     int lastRDHoffset = -1;                               // position of last RDH in the link buffer
@@ -107,6 +108,9 @@ class RawFileWriter
     void print() const;
     void addData(const IR& ir, const gsl::span<char> data, bool preformatted = false, uint32_t trigger = 0);
     RDHAny* getLastRDH() { return lastRDHoffset < 0 ? nullptr : reinterpret_cast<RDHAny*>(&buffer[lastRDHoffset]); }
+    int getCurrentPageSize() const { return lastRDHoffset < 0 ? -1 : int(buffer.size()) - lastRDHoffset; }
+    // check if we are at the beginning of new page
+    bool isNewPage() const { return getCurrentPageSize() == sizeof(RDHAny); }
     std::string describe() const;
 
    protected:
@@ -261,6 +265,14 @@ class RawFileWriter
     };
   }
 
+  template <class T>
+  void setNewRDHCallBack(const T* t)
+  {
+    newRDHFunc = [=](const RDHAny* rdh, bool prevEmpty, std::vector<char>& toAdd) {
+      t->newRDHMethod(rdh, prevEmpty, toAdd);
+    };
+  }
+
   // This is a placeholder for the function responsible to split large payload to pieces
   // fitting 8kB CRU pages.
   // The RawFileWriter receives from the encoder the payload to format according to the CRU format
@@ -313,6 +325,18 @@ class RawFileWriter
   {
   }
 
+  // This is a placeholder for the optional callback function to provide a detector-specific filler to be added right
+  // after the page starting by RDH (might be with RDH.stop=1 !) for the normal data filling (!! not automatic open/close RDHs for empty pages)
+  //
+  // It provides to the newRDHMethod method the following info:
+  // rdh       : RDH of the CRU page to be opened
+  // prevEmpty : true is previous RDH page did not receive any data
+  // toAdd     : a vector (supplied empty) to be filled to a size multipe of 16 bytes
+  //
+  void newRDHMethod(const RDHAny* rdh, bool prevEmpty, std::vector<char>& toAdd) const
+  {
+  }
+
   int getUsedRDHVersion() const { return mUseRDHVersion; }
   void useRDHVersion(int v)
   {
@@ -361,7 +385,7 @@ class RawFileWriter
 
   CarryOverCallBack carryOverFunc = nullptr; // default call back for large payload splitting (does nothing)
   EmptyPageCallBack emptyHBFFunc = nullptr;  // default call back for empty HBF (does nothing)
-
+  NewRDHCallBack newRDHFunc = nullptr;       // default call back for new page opening (does nothing)
   // options
   int mVerbosity = 0;
   o2::header::DataOrigin mOrigin = o2::header::gDataOriginInvalid;
