@@ -221,7 +221,7 @@ struct HFTrackIndexSkimsCreator {
             df3.getTrack(0).getPxPyPzGlo(pvec0);
             df3.getTrack(1).getPxPyPzGlo(pvec1);
             df3.getTrack(2).getPxPyPzGlo(pvec2);
-	    const auto& secondaryVertex3 = df3.getPCACandidate();
+            const auto& secondaryVertex3 = df3.getPCACandidate();
 
             // calculate invariant mass
             arr3Mom = array{pvec0, pvec1, pvec2};
@@ -229,9 +229,9 @@ struct HFTrackIndexSkimsCreator {
 
             if (b_dovalplots) {
               hmass3->Fill(mass3PiKPi);
-	      hvtx3_x_out->Fill(secondaryVertex3[0]);
-	      hvtx3_y_out->Fill(secondaryVertex3[1]);
-	      hvtx3_z_out->Fill(secondaryVertex3[2]);
+              hvtx3_x_out->Fill(secondaryVertex3[0]);
+              hvtx3_y_out->Fill(secondaryVertex3[1]);
+              hvtx3_z_out->Fill(secondaryVertex3[2]);
             }
 
             // fill table row
