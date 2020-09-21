@@ -517,6 +517,7 @@ Long64_t CorrelationContainer::Merge(TCollection* list)
 
   mTriggerHist->Merge(lists[1]);
   mTrackHistEfficiency->Merge(lists[2]);
+  mEventCount->Merge(lists[3]);
 
   for (UInt_t i = 0; i < kMaxLists; i++)
     delete lists[i];
