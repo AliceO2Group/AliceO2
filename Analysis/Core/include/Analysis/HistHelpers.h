@@ -48,11 +48,11 @@ struct is_shared_ptr<std::shared_ptr<T>> : std::true_type {
 //**************************************************************************************************
 /**
  * Container class for storing and saving root histograms of any type.
- * RootContainer (TObjArray or TList) inheritance is required to interface with O2 file writing functionality.
+ * RootContainer (TObjArray, TList or TFolder) inheritance is used to interface with O2 file writing functionality.
  */
 //**************************************************************************************************
 template <class RootContainer>
-class HistContainer : public RootContainer
+class HistContainer : private RootContainer
 {
  public:
   HistContainer(const std::string& name) : RootContainer()
@@ -122,11 +122,13 @@ class HistContainer : public RootContainer
     Fill<true>(histID, std::forward<Ts>(positionAndWeight)...);
   }
 
- private:
-  std::map<uint8_t, HistType> mHistos;
+  // make accessible only the RootContainer functions needed for writing to file
+  using RootContainer::Class;
+  using RootContainer::GetName;
 
-  // disallow user to call RootContainer::Add() to avoid memory leaks
-  using RootContainer::Add;
+ private:
+  // FIXME: map is most likely not the fastest -> array?
+  std::map<uint8_t, HistType> mHistos;
 
   template <bool fillWeight = false, typename T, typename... Ts>
   void GenericFill(std::shared_ptr<T> hist, const Ts&... position)
