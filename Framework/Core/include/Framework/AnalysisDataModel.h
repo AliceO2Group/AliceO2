@@ -93,8 +93,7 @@ DECLARE_SOA_DYNAMIC_COLUMN(NormalizedPhi, phi, [](float phi) -> float {
     phi -= twopi;
   return phi;
 });
-// FIXME: have float constants like pi defined somewhere
-DECLARE_SOA_EXPRESSION_COLUMN(Eta, eta, float, nlog(ntan(0.25f * static_cast<float>(M_PI) - 0.5f * natan(aod::track::tgl))));
+DECLARE_SOA_EXPRESSION_COLUMN(Eta, eta, float, -1.f * nlog(ntan(0.25f * static_cast<float>(M_PI) - 0.5f * natan(aod::track::tgl))));
 DECLARE_SOA_EXPRESSION_COLUMN(Pt, pt, float, nabs(1.f / aod::track::signed1Pt));
 
 DECLARE_SOA_DYNAMIC_COLUMN(Charge, charge, [](float signed1Pt) -> short { return (signed1Pt > 0) ? 1 : -1; });
