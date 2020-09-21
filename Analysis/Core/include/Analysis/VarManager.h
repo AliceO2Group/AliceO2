@@ -379,18 +379,21 @@ void VarManager::FillPair(T const& t1, T const& t2, float* values)
   if (!values)
     values = fgValues;
 
-  float mass1;
-  float mass2;
+  float mass1 = fgkElectronMass;
+  float mass2 = fgkElectronMass;
 
-  if (t1.filteringFlags() > 0)
-    mass1 = fgkElectronMass;
-  else
+  bool isMuon1 = t1.filteringFlags() & (1 << 0);
+  bool isMuon2 = t2.filteringFlags() & (1 << 0);
+
+  if (isMuon1)
     mass1 = fgkMuonMass;
-
-  if (t1.filteringFlags() > 0)
-    mass2 = fgkElectronMass;
   else
+    mass1 = fgkElectronMass;
+
+  if (isMuon2)
     mass2 = fgkMuonMass;
+  else
+    mass2 = fgkElectronMass;
 
   ROOT::Math::PtEtaPhiMVector v1(t1.pt(), t1.eta(), t1.phi(), mass1);
   ROOT::Math::PtEtaPhiMVector v2(t2.pt(), t2.eta(), t2.phi(), mass2);
