@@ -30,7 +30,7 @@
 namespace o2::aod
 {
 
-namespace pidTOFbeta
+namespace pidtofbeta
 {
 DECLARE_SOA_COLUMN(Beta, beta, float);
 DECLARE_SOA_COLUMN(BetaError, betaerror, float);
@@ -40,9 +40,9 @@ DECLARE_SOA_COLUMN(ExpBetaElError, expbetaelerror, float);
 //
 DECLARE_SOA_COLUMN(SeparationBetaEl, separationbetael, float);
 DECLARE_SOA_DYNAMIC_COLUMN(DiffBetaEl, diffbetael, [](float beta, float expbetael) -> float { return beta - expbetael; });
-} // namespace pidTOFbeta
+} // namespace pidtofbeta
 
-namespace pidTOF
+namespace pidtof
 {
 // Expected times
 DECLARE_SOA_COLUMN(TOFExpSignalEl, tofExpSignalEl, float);
@@ -74,21 +74,21 @@ DECLARE_SOA_COLUMN(TOFNSigmaDe, tofNSigmaDe, float);
 DECLARE_SOA_COLUMN(TOFNSigmaTr, tofNSigmaTr, float);
 DECLARE_SOA_COLUMN(TOFNSigmaHe, tofNSigmaHe, float);
 DECLARE_SOA_COLUMN(TOFNSigmaAl, tofNSigmaAl, float);
-} // namespace pidTOF
+} // namespace pidtof
 
-using namespace pidTOFbeta;
+using namespace pidtofbeta;
 DECLARE_SOA_TABLE(pidRespTOFbeta, "AOD", "pidRespTOFbeta",
                   Beta, BetaError,
                   ExpBetaEl, ExpBetaElError,
                   SeparationBetaEl,
                   DiffBetaEl<Beta, ExpBetaEl>);
-using namespace pidTOF;
+using namespace pidtof;
 DECLARE_SOA_TABLE(pidRespTOF, "AOD", "pidRespTOF",
                   TOFExpSignalEl, TOFExpSignalMu, TOFExpSignalPi, TOFExpSignalKa, TOFExpSignalPr, TOFExpSignalDe, TOFExpSignalTr, TOFExpSignalHe, TOFExpSignalAl,
                   TOFExpSigmaEl, TOFExpSigmaMu, TOFExpSigmaPi, TOFExpSigmaKa, TOFExpSigmaPr, TOFExpSigmaDe, TOFExpSigmaTr, TOFExpSigmaHe, TOFExpSigmaAl,
                   TOFNSigmaEl, TOFNSigmaMu, TOFNSigmaPi, TOFNSigmaKa, TOFNSigmaPr, TOFNSigmaDe, TOFNSigmaTr, TOFNSigmaHe, TOFNSigmaAl);
 
-namespace pidTPC
+namespace pidtpc
 {
 // Expected signals
 DECLARE_SOA_COLUMN(TPCExpSignalEl, tpcExpSignalEl, float);
@@ -120,9 +120,9 @@ DECLARE_SOA_COLUMN(TPCNSigmaDe, tpcNSigmaDe, float);
 DECLARE_SOA_COLUMN(TPCNSigmaTr, tpcNSigmaTr, float);
 DECLARE_SOA_COLUMN(TPCNSigmaHe, tpcNSigmaHe, float);
 DECLARE_SOA_COLUMN(TPCNSigmaAl, tpcNSigmaAl, float);
-} // namespace pidTPC
+} // namespace pidtpc
 
-using namespace pidTPC;
+using namespace pidtpc;
 DECLARE_SOA_TABLE(pidRespTPC, "AOD", "pidRespTPC",
                   TPCExpSignalEl, TPCExpSignalMu, TPCExpSignalPi, TPCExpSignalKa, TPCExpSignalPr, TPCExpSignalDe, TPCExpSignalTr, TPCExpSignalHe, TPCExpSignalAl,
                   TPCExpSigmaEl, TPCExpSigmaMu, TPCExpSigmaPi, TPCExpSigmaKa, TPCExpSigmaPr, TPCExpSigmaDe, TPCExpSigmaTr, TPCExpSigmaHe, TPCExpSigmaAl,
