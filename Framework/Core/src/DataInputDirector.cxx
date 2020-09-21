@@ -10,6 +10,7 @@
 #include "Framework/DataInputDirector.h"
 #include "Framework/DataDescriptorQueryBuilder.h"
 #include "Framework/Logger.h"
+#include "AnalysisDataModelHelpers.h"
 
 #include "rapidjson/document.h"
 #include "rapidjson/prettywriter.h"
@@ -457,24 +458,24 @@ std::string DataInputDirector::getInputFilename(header::DataHeader dh, int count
 
 TTree* DataInputDirector::getDataTree(header::DataHeader dh, int counter)
 {
-  const char* treename;
+  std::string treename;
   TTree* tree = nullptr;
 
   auto didesc = getDataInputDescriptor(dh);
   if (didesc) {
     // if match then use filename and treename from DataInputDescriptor
-    treename = didesc->treename.c_str();
+    treename = didesc->treename;
   } else {
     // if NOT match then use
     //  . filename from defaultDataInputDescriptor
     //  . treename from DataHeader
     didesc = mdefaultDataInputDescriptor;
-    treename = dh.dataDescription.str;
+    treename = aod::datamodel::getTreeName(dh);
   }
 
   auto file = didesc->getInputFile(counter);
   if (file) {
-    tree = (TTree*)file->Get(treename);
+    tree = (TTree*)file->Get(treename.c_str());
     if (!tree) {
       throw std::runtime_error(fmt::format(R"(Couldn't get TTree "{}" from "{}")", treename, file->GetName()));
     }
