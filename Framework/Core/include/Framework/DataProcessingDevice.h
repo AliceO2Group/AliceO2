@@ -28,6 +28,7 @@
 #include <fairmq/FairMQParts.h>
 
 #include <memory>
+#include <mutex>
 
 namespace o2::framework
 {
@@ -129,6 +130,7 @@ class DataProcessingDevice : public FairMQDevice
   uint64_t mBeginIterationTimestamp = 0;             /// The timestamp of when the current ConditionalRun was started
   DataProcessingStats mStats;                        /// Stats about the actual data processing.
   std::vector<FairMQRegionInfo> mPendingRegionInfos; /// A list of the region infos not yet notified.
+  std::mutex mRegionInfoMutex;
   enum TerminationPolicy mErrorPolicy = TerminationPolicy::WAIT; /// What to do when an error arises
   bool mWasActive = false;                                       /// Whether or not the device was active at last iteration.
 };
