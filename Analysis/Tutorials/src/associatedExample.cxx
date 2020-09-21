@@ -74,7 +74,8 @@ struct BTask {
 
 struct TTask {
   using myCol = soa::Join<aod::Collisions, aod::CollisionsExtra>;
-  void process(soa::Join<aod::Collisions, aod::CollisionsExtra>::iterator const& col, aod::Tracks const& tracks)
+  expressions::Filter multfilter = aod::collision::mult > 10;
+  void process(soa::Filtered<soa::Join<aod::Collisions, aod::CollisionsExtra>>::iterator const& col, aod::Tracks const& tracks)
   {
     LOGF(INFO, "[direct] ID: %d; %d == %d", col.globalIndex(), col.mult(), tracks.size());
     if (tracks.size() > 0) {

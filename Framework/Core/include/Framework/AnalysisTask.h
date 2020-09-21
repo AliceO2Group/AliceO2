@@ -240,7 +240,7 @@ struct AnalysisDataProcessorBuilder {
           if (hasIndexTo<std::decay_t<G>>(typename xt::persistent_columns_t{})) {
             auto result = o2::framework::sliceByColumn(indexColumnName.c_str(),
                                                        x.asArrowTable(),
-                                                       static_cast<int32_t>(gt.size()),
+                                                       static_cast<int32_t>(gt.tableSize()),
                                                        &groups[index],
                                                        &offsets[index]);
             if (result.ok() == false) {
