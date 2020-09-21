@@ -26,7 +26,7 @@ class StepTHnBase : public TNamed
 {
  public:
   StepTHnBase() : TNamed() {}
-  StepTHnBase(const Char_t* name, const Char_t* title, const Int_t nSteps, const Int_t nAxis, Int_t* nBins, Double_t** binLimits, const char** axisTitles) : TNamed(name, title) {}
+  StepTHnBase(const Char_t* name, const Char_t* title, const Int_t nSteps, const Int_t nAxis, Int_t* nBins, std::vector<Double_t> binLimits[], const char** axisTitles) : TNamed(name, title) {}
 
   virtual void Fill(const Double_t* var, Int_t istep, Double_t weight = 1.) = 0;
 
@@ -44,14 +44,12 @@ class StepTHnBase : public TNamed
   ClassDef(StepTHnBase, 1) // StepTHn base class
 };
 
-// TODO equidistant binning for THn
-
 template <class TemplateArray, typename TemplateType>
 class StepTHn : public StepTHnBase
 {
  public:
   StepTHn();
-  StepTHn(const Char_t* name, const Char_t* title, const Int_t nSteps, const Int_t nAxis, Int_t* nBins, Double_t** binLimits, const char** axisTitles);
+  StepTHn(const Char_t* name, const Char_t* title, const Int_t nSteps, const Int_t nAxis, Int_t* nBins, std::vector<Double_t> binLimits[], const char** axisTitles);
   ~StepTHn() override;
 
   void Fill(const Double_t* var, Int_t istep, Double_t weight = 1.) override;

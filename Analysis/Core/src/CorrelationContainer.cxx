@@ -86,6 +86,8 @@ CorrelationContainer::CorrelationContainer(const char* name, const char* objTitl
 {
   // Constructor
 
+  using BinList = std::vector<Double_t>;
+
   if (strlen(reqHist) == 0)
     return;
 
@@ -96,12 +98,12 @@ CorrelationContainer::CorrelationContainer(const char* name, const char* objTitl
   // track level
   Int_t nTrackVars = 4; // eta vs pT vs pT,lead (vs delta phi) vs multiplicity
   Int_t iTrackBin[7];
-  Double_t* trackBins[7];
+  BinList trackBins[7];
   const char* trackAxisTitle[7];
 
   // eta
   Int_t nEtaBins = -1;
-  Double_t* etaBins = getBinning(binning, "eta", nEtaBins);
+  BinList etaBins = getBinning(binning, "eta", nEtaBins);
   const char* etaTitle = "#eta";
 
   iTrackBin[0] = nEtaBins;
@@ -110,7 +112,7 @@ CorrelationContainer::CorrelationContainer(const char* name, const char* objTitl
 
   // delta eta
   Int_t nDeltaEtaBins = -1;
-  Double_t* deltaEtaBins = getBinning(binning, "delta_eta", nDeltaEtaBins);
+  BinList deltaEtaBins = getBinning(binning, "delta_eta", nDeltaEtaBins);
 
   // pT
   trackBins[1] = getBinning(binning, "p_t_assoc", iTrackBin[1]);
@@ -118,33 +120,33 @@ CorrelationContainer::CorrelationContainer(const char* name, const char* objTitl
 
   // pT, fine
   Int_t npTBinsFine = -1;
-  Double_t* pTBinsFine = getBinning(binning, "p_t_eff", npTBinsFine);
+  BinList pTBinsFine = getBinning(binning, "p_t_eff", npTBinsFine);
 
   // pT,lead binning 1
   Int_t nLeadingpTBins = -1;
-  Double_t* leadingpTBins = getBinning(binning, "p_t_leading", nLeadingpTBins);
+  BinList leadingpTBins = getBinning(binning, "p_t_leading", nLeadingpTBins);
 
   // pT,lead binning 2
   Int_t nLeadingpTBins2 = -1;
-  Double_t* leadingpTBins2 = getBinning(binning, "p_t_leading_course", nLeadingpTBins2);
+  BinList leadingpTBins2 = getBinning(binning, "p_t_leading_course", nLeadingpTBins2);
 
   // phi,lead
   Int_t nLeadingPhiBins = -1;
-  Double_t* leadingPhiBins = getBinning(binning, "delta_phi", nLeadingPhiBins);
+  BinList leadingPhiBins = getBinning(binning, "delta_phi", nLeadingPhiBins);
 
   trackBins[3] = getBinning(binning, "multiplicity", iTrackBin[3]);
   trackAxisTitle[3] = "multiplicity";
 
   // particle species
   const Int_t kNSpeciesBins = 4; // pi, K, p, rest
-  Double_t speciesBins[] = {-0.5, 0.5, 1.5, 2.5, 3.5};
+  BinList speciesBins = {-0.5, 0.5, 1.5, 2.5, 3.5};
 
   // vtx-z axis
   const char* vertexTitle = "z-vtx (cm)";
   Int_t nVertexBins = -1;
-  Double_t* vertexBins = getBinning(binning, "vertex", nVertexBins);
+  BinList vertexBins = getBinning(binning, "vertex", nVertexBins);
   Int_t nVertexBinsEff = -1;
-  Double_t* vertexBinsEff = getBinning(binning, "vertex_eff", nVertexBinsEff);
+  BinList vertexBinsEff = getBinning(binning, "vertex_eff", nVertexBinsEff);
 
   Int_t useVtxAxis = 0;
   Int_t useAliTHn = 1; // 0 = don't use | 1 = with float | 2 = with double
@@ -258,7 +260,7 @@ CorrelationContainer::CorrelationContainer(const char* name, const char* objTitl
   // event level
   Int_t nEventVars = 2;
   Int_t iEventBin[4] = {0};
-  Double_t* eventBins[4] = {nullptr};
+  BinList eventBins[4];
   const char* eventAxisTitle[4] = {nullptr};
 
   // track 3rd and 4th axis --> event 1st and 2nd axis
@@ -305,15 +307,7 @@ CorrelationContainer::CorrelationContainer(const char* name, const char* objTitl
 
   mTrackHistEfficiency = new StepTHnD("mTrackHistEfficiency", "Tracking efficiency", 6, 5, iTrackBin, trackBins, trackAxisTitle);
 
-  mEventCount = new TH2F("mEventCount", ";step;centrality;count", fgkCFSteps + 2, -2.5, -0.5 + fgkCFSteps, iEventBin[1], eventBins[1]);
-
-  delete[] deltaEtaBins;
-  delete[] pTBinsFine;
-  delete[] leadingpTBins;
-  delete[] leadingpTBins2;
-  delete[] leadingPhiBins;
-  delete[] vertexBins;
-  delete[] vertexBinsEff;
+  mEventCount = new TH2F("mEventCount", ";step;centrality;count", fgkCFSteps + 2, -2.5, -0.5 + fgkCFSteps, iEventBin[1], &(eventBins[1])[0]);
 }
 
 TString CorrelationContainer::combineBinning(TString defaultBinning, TString customBinning)
@@ -338,15 +332,18 @@ TString CorrelationContainer::combineBinning(TString defaultBinning, TString cus
   return binningStr;
 }
 
-Double_t* CorrelationContainer::getBinning(const char* configuration, const char* tag, Int_t& nBins)
+std::vector<Double_t> CorrelationContainer::getBinning(const char* configuration, const char* tag, Int_t& nBins)
 {
   // takes the binning from <configuration> identified by <tag>
   // configuration syntax example:
-  // eta: 2.4, -2.3, -2.2, -2.1, -2.0, -1.9, -1.8, -1.7, -1.6, -1.5, -1.4, -1.3, -1.2, -1.1, -1.0, -0.9, -0.8, -0.7, -0.6, -0.5, -0.4, -0.3, -0.2, -0.1, 0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0, 1.1, 1.2, 1.3, 1.4, 1.5, 1.6, 1.7, 1.8, 1.9, 2.0, 2.1, 2.2, 2.3, 2.4
-  // phi: .....
+  // equidistant binning:
+  // eta: 48 | -2.4, 2.4
+  // variable-width binning:
+  // eta: -2.4, -2.3, -2.2, -2.1, -2.0, -1.9, -1.8, -1.7, -1.6, -1.5, -1.4, -1.3, -1.2, -1.1, -1.0, -0.9, -0.8, -0.7, -0.6, -0.5, -0.4, -0.3, -0.2, -0.1, 0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0, 1.1, 1.2, 1.3, 1.4, 1.5, 1.6, 1.7, 1.8, 1.9, 2.0, 2.1, 2.2, 2.3, 2.4
   //
   // returns bin edges which have to be deleted by the caller
 
+  std::vector<Double_t> bins;
   TString config(configuration);
   TObjArray* lines = config.Tokenize("\n");
   for (Int_t i = 0; i < lines->GetEntriesFast(); i++) {
@@ -354,13 +351,19 @@ Double_t* CorrelationContainer::getBinning(const char* configuration, const char
     if (line.BeginsWith(TString(tag) + ":")) {
       line.Remove(0, strlen(tag) + 1);
       line.ReplaceAll(" ", "");
+      if (line.Contains("|")) {
+        // equidistant binning
+        nBins = TString(line(0, line.Index("|"))).Atoi();
+        line.Remove(0, line.Index("|") + 1);
+      } else {
+        // variable-width binning
+        nBins = line.CountChar(',');
+      }
       TObjArray* binning = line.Tokenize(",");
-      Double_t* bins = new Double_t[binning->GetEntriesFast()];
-      for (Int_t j = 0; j < binning->GetEntriesFast(); j++)
-        bins[j] = TString(binning->At(j)->GetName()).Atof();
-
-      nBins = binning->GetEntriesFast() - 1;
-
+      //Double_t* bins = new Double_t[binning->GetEntriesFast()];
+      for (Int_t j = 0; j < binning->GetEntriesFast(); j++) {
+        bins.push_back(TString(binning->At(j)->GetName()).Atof());
+      }
       delete binning;
       delete lines;
       return bins;
@@ -369,7 +372,7 @@ Double_t* CorrelationContainer::getBinning(const char* configuration, const char
 
   delete lines;
   LOGF(fatal, "Tag %s not found in %s", tag, configuration);
-  return nullptr;
+  return bins;
 }
 
 //_____________________________________________________________________________
@@ -1906,21 +1909,7 @@ THnBase* CorrelationContainer::changeToThn(THnBase* sparse)
 {
   // change the object to THn for faster processing
 
-  // convert to THn (SEGV's for some strange reason...)
-  // x = THn::CreateHn("a", "a", sparse);
-
-  // own implementation
-  Int_t nBins[10];
-  for (Int_t i = 0; i < sparse->GetNdimensions(); i++)
-    nBins[i] = sparse->GetAxis(i)->GetNbins();
-  THn* tmpTHn = new THnF(Form("%s_thn", sparse->GetName()), sparse->GetTitle(), sparse->GetNdimensions(), nBins, nullptr, nullptr);
-  for (Int_t i = 0; i < sparse->GetNdimensions(); i++) {
-    tmpTHn->SetBinEdges(i, sparse->GetAxis(i)->GetXbins()->GetArray());
-    tmpTHn->GetAxis(i)->SetTitle(sparse->GetAxis(i)->GetTitle());
-  }
-  tmpTHn->RebinnedAdd(sparse);
-
-  return tmpTHn;
+  return THn::CreateHn(Form("%s_thn", sparse->GetName()), sparse->GetTitle(), sparse);
 }
 
 void CorrelationContainer::fillEvent(Float_t centrality, CFStep step)
