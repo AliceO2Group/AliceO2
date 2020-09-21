@@ -120,7 +120,7 @@ GPUdii() void GPUTPCGMMergerMergeBorders::Thread(int nBlocks, int nThreads, int 
 }
 template GPUd() void GPUTPCGMMergerMergeBorders::Thread<0>(int nBlocks, int nThreads, int iBlock, int iThread, GPUsharedref() GPUSharedMemory& GPUrestrict() smem, processorType& GPUrestrict() merger, int iSlice, char withinSlice, char mergeMode);
 template GPUd() void GPUTPCGMMergerMergeBorders::Thread<2>(int nBlocks, int nThreads, int iBlock, int iThread, GPUsharedref() GPUSharedMemory& GPUrestrict() smem, processorType& GPUrestrict() merger, int iSlice, char withinSlice, char mergeMode);
-template GPUd() void GPUTPCGMMergerMergeBorders::Thread<3>(int nBlocks, int nThreads, int iBlock, int iThread, GPUsharedref() GPUSharedMemory& GPUrestrict() smem, processorType& GPUrestrict() merger, GPUTPCGMMergerTypes::GPUTPCGMBorderRange* range, int N, int cmpMax);
+template GPUd() void GPUTPCGMMergerMergeBorders::Thread<3>(int nBlocks, int nThreads, int iBlock, int iThread, GPUsharedref() GPUSharedMemory& GPUrestrict() smem, processorType& GPUrestrict() merger, gputpcgmmergertypes::GPUTPCGMBorderRange* range, int N, int cmpMax);
 template <>
 GPUdii() void GPUTPCGMMergerMergeBorders::Thread<1>(int nBlocks, int nThreads, int iBlock, int iThread, GPUsharedref() GPUSharedMemory& GPUrestrict() smem, processorType& GPUrestrict() merger, int iSlice, char withinSlice, char mergeMode)
 {

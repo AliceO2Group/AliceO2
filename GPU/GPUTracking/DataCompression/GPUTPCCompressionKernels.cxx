@@ -53,10 +53,10 @@ GPUdii() void GPUTPCCompressionKernels::Thread<GPUTPCCompressionKernels::step0at
 
       int hitId = hit.num;
       int attach = merger.ClusterAttachment()[hitId];
-      if ((attach & GPUTPCGMMergerTypes::attachTrackMask) != i) {
+      if ((attach & gputpcgmmergertypes::attachTrackMask) != i) {
         continue; // Main attachment to different track
       }
-      bool rejectCluster = processors.param.rec.tpcRejectionMode && (rejectTrk || ((attach & GPUTPCGMMergerTypes::attachGoodLeg) == 0) || (attach & GPUTPCGMMergerTypes::attachHighIncl));
+      bool rejectCluster = processors.param.rec.tpcRejectionMode && (rejectTrk || ((attach & gputpcgmmergertypes::attachGoodLeg) == 0) || (attach & gputpcgmmergertypes::attachHighIncl));
       if (rejectCluster) {
         compressor.mClusterStatus[hitId] = 1; // Cluster rejected, do not store
         continue;
@@ -214,13 +214,13 @@ GPUdii() void GPUTPCCompressionKernels::Thread<GPUTPCCompressionKernels::step1un
             break;
           }
         } else if (processors.param.rec.tpcRejectionMode >= GPUSettings::RejectionStrategyA) {
-          if ((attach & GPUTPCGMMergerTypes::attachGoodLeg) == 0) {
+          if ((attach & gputpcgmmergertypes::attachGoodLeg) == 0) {
             break;
           }
-          if (attach & GPUTPCGMMergerTypes::attachHighIncl) {
+          if (attach & gputpcgmmergertypes::attachHighIncl) {
             break;
           }
-          int id = attach & GPUTPCGMMergerTypes::attachTrackMask;
+          int id = attach & gputpcgmmergertypes::attachTrackMask;
           if (CAMath::Abs(merger.OutputTracks()[id].GetParam().GetQPt()) > processors.param.rec.tpcRejectQPt) {
             break;
           }

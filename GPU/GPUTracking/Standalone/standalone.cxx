@@ -553,7 +553,7 @@ void OutputStat(GPUChainTracking* t, long long int* nTracksTotal = nullptr, long
   unsigned int nCls = configStandalone.proc.doublePipeline ? t->mIOPtrs.clustersNative->nClustersTotal : t->GetTPCMerger().NMaxClusters();
   for (unsigned int k = 0; k < nCls; k++) {
     int attach = t->mIOPtrs.mergedTrackHitAttachment[k];
-    if (attach & GPUTPCGMMergerTypes::attachFlagMask) {
+    if (attach & gputpcgmmergertypes::attachFlagMask) {
       nAdjacentClusters++;
     }
   }

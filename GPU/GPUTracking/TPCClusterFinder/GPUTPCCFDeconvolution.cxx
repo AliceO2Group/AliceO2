@@ -63,7 +63,7 @@ GPUdii() void GPUTPCCFDeconvolution::deconvolutionImpl(int nBlocks, int nThreads
     ll,
     0,
     8,
-    CfConsts::InnerNeighbors,
+    cfconsts::InnerNeighbors,
     smem.posBcast1,
     smem.buf);
 
@@ -88,7 +88,7 @@ GPUdii() void GPUTPCCFDeconvolution::deconvolutionImpl(int nBlocks, int nThreads
     ll,
     0,
     16,
-    CfConsts::OuterNeighbors,
+    cfconsts::OuterNeighbors,
     smem.posBcast1,
     smem.aboveThresholdBcast,
     smem.buf);

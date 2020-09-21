@@ -118,7 +118,7 @@ GPUdii() void GPUTPCCFClusterizer::updateClusterInner(
 
   GPUCA_UNROLL(U(), U())
   for (ushort i = 0; i < N; i++) {
-    Delta2 d = CfConsts::InnerNeighbors[i];
+    Delta2 d = cfconsts::InnerNeighbors[i];
 
     PackedCharge p = buf[N * lid + i];
 
@@ -149,7 +149,7 @@ GPUdii() void GPUTPCCFClusterizer::updateClusterOuter(
   for (ushort i = offset; i < M + offset; i++) {
     PackedCharge p = buf[N * lid + i];
 
-    Delta2 d = CfConsts::OuterNeighbors[i];
+    Delta2 d = cfconsts::OuterNeighbors[i];
 
     Charge q = cluster->updateOuter(p, d);
     static_cast<void>(q); // Avoid unused varible warning on GPU.
@@ -180,7 +180,7 @@ GPUdii() void GPUTPCCFClusterizer::buildCluster(
     ll,
     0,
     8,
-    CfConsts::InnerNeighbors,
+    cfconsts::InnerNeighbors,
     posBcast,
     buf);
   updateClusterInner(
@@ -205,7 +205,7 @@ GPUdii() void GPUTPCCFClusterizer::buildCluster(
     ll,
     0,
     16,
-    CfConsts::OuterNeighbors,
+    cfconsts::OuterNeighbors,
     posBcast,
     innerAboveThreshold,
     buf);
@@ -230,7 +230,7 @@ GPUdii() void GPUTPCCFClusterizer::buildCluster(
     ll,
     0,
     16,
-    CfConsts::OuterNeighbors,
+    cfconsts::OuterNeighbors,
     posBcast + wgSizeHalf,
     innerAboveThreshold + wgSizeHalf,
     buf);
