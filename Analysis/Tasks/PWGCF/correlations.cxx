@@ -75,6 +75,14 @@ struct CorrelationTask {
     TH2F* mControlConvResoncances = nullptr;  // control histograms for cuts on conversions and resonances
   } qa;
 
+  // HistogramRegistry registry{"qa", true, {
+  //   {"yields", "centrality vs pT vs eta",  {HistogramType::kTH3F, { {100, 0, 100, "centrality"}, {40, 0, 20, "p_{T}"}, {100, -2, 2, "#eta"} }}},
+  //   {"etaphi", "centrality vs eta vs phi", {HistogramType::kTH3F, { {100, 0, 100, "centrality"}, {100, -2, 2, "#eta"}, {200, 0, 2 * M_PI, "#varphi"} }}}
+  // }};
+
+  OutputObj<TH3F> yields{TH3F("yields", "centrality vs pT vs eta", 100, 0, 100, 40, 0, 20, 100, -2, 2)};
+  OutputObj<TH3F> etaphi{TH3F("etaphi", "centrality vs eta vs phi", 100, 0, 100, 100, -2, 2, 200, 0, 2 * M_PI)};
+
   void init(o2::framework::InitContext&)
   {
     // --- CONFIGURATION ---
@@ -136,6 +144,12 @@ struct CorrelationTask {
     for (auto& track1 : tracks) {
 
       // LOGF(info, "Track %f | %f | %f  %d %d", track1.eta(), track1.phi(), track1.pt(), track1.isGlobalTrack(), track1.isGlobalTrackSDD());
+
+      // control histograms
+      // ((TH3*) (registry.get("yields").get()))->Fill(centrality, track1.pt(), track1.eta());
+      // ((TH3*) (registry.get("etaphi").get()))->Fill(centrality, track1.eta(), track1.phi());
+      yields->Fill(centrality, track1.pt(), track1.eta());
+      etaphi->Fill(centrality, track1.eta(), track1.phi());
 
       if (cfgTriggerCharge != 0 && cfgTriggerCharge * track1.charge() < 0)
         continue;
