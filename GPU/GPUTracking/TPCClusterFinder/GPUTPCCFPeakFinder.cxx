@@ -61,7 +61,7 @@ GPUdii() bool GPUTPCCFPeakFinder::isPeak(
     ll,
     0,
     N,
-    CfConsts::InnerNeighbors,
+    cfconsts::InnerNeighbors,
     posBcast,
     buf);
 

@@ -92,7 +92,7 @@ class GPUTPCGMMergerUnpackResetIds : public GPUTPCGMMergerGeneral
 class GPUTPCGMMergerResolve : public GPUTPCGMMergerGeneral
 {
  public:
-  struct GPUSharedMemory : public GPUTPCGMMergerTypes::GPUResolveSharedMemory {
+  struct GPUSharedMemory : public gputpcgmmergertypes::GPUResolveSharedMemory {
   };
 
 #if !defined(GPUCA_ALIROOT_LIB) || !defined(GPUCA_GPUCODE)

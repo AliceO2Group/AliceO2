@@ -150,7 +150,7 @@ GPUdi() bool GPUTPCCFNoiseSuppression::keepPeak(
   GPUCA_UNROLL(U(), U())
   for (int i = 0; i < NOISE_SUPPRESSION_NEIGHBOR_NUM; i++) {
     bool otherPeak = (peaks & (ulong(1) << i));
-    bool minimaBetween = (minima & CfConsts::NoiseSuppressionMinima[i]);
+    bool minimaBetween = (minima & cfconsts::NoiseSuppressionMinima[i]);
 
     keepMe &= (!otherPeak || minimaBetween);
   }
@@ -194,7 +194,7 @@ GPUd() void GPUTPCCFNoiseSuppression::findMinimaAndPeaks(
     ll,
     16,
     2,
-    CfConsts::NoiseSuppressionNeighbors,
+    cfconsts::NoiseSuppressionNeighbors,
     posBcast,
     buf);
 
@@ -215,7 +215,7 @@ GPUd() void GPUTPCCFNoiseSuppression::findMinimaAndPeaks(
     ll,
     0,
     16,
-    CfConsts::NoiseSuppressionNeighbors,
+    cfconsts::NoiseSuppressionNeighbors,
     posBcast,
     buf);
 
@@ -238,7 +238,7 @@ GPUd() void GPUTPCCFNoiseSuppression::findMinimaAndPeaks(
     ll,
     18,
     16,
-    CfConsts::NoiseSuppressionNeighbors,
+    cfconsts::NoiseSuppressionNeighbors,
     posBcast,
     buf);
 
@@ -262,7 +262,7 @@ GPUd() void GPUTPCCFNoiseSuppression::findMinimaAndPeaks(
     ll,
     0,
     16,
-    CfConsts::NoiseSuppressionNeighbors,
+    cfconsts::NoiseSuppressionNeighbors,
     posBcast + wgSizeHalf,
     buf);
 
@@ -285,7 +285,7 @@ GPUd() void GPUTPCCFNoiseSuppression::findMinimaAndPeaks(
     ll,
     18,
     16,
-    CfConsts::NoiseSuppressionNeighbors,
+    cfconsts::NoiseSuppressionNeighbors,
     posBcast + wgSizeHalf,
     buf);
 
@@ -315,7 +315,7 @@ GPUd() void GPUTPCCFNoiseSuppression::findMinimaAndPeaks(
     ll,
     0,
     16,
-    CfConsts::NoiseSuppressionNeighbors,
+    cfconsts::NoiseSuppressionNeighbors,
     posBcast,
     bufp);
 
@@ -333,7 +333,7 @@ GPUd() void GPUTPCCFNoiseSuppression::findMinimaAndPeaks(
     ll,
     18,
     16,
-    CfConsts::NoiseSuppressionNeighbors,
+    cfconsts::NoiseSuppressionNeighbors,
     posBcast,
     bufp);
 

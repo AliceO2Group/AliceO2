@@ -20,7 +20,7 @@ namespace GPUCA_NAMESPACE
 {
 namespace gpu
 {
-namespace CfConsts
+namespace cfconsts
 {
 
 GPUconstexpr() tpccf::Delta2 InnerNeighbors[8] =
@@ -189,7 +189,7 @@ GPUconstexpr() uint NoiseSuppressionMinima[NOISE_SUPPRESSION_NEIGHBOR_NUM] =
     (1 << 24),
     (1 << 24) | (1 << 25)};
 
-} // namespace CfConsts
+} // namespace cfconsts
 } // namespace gpu
 } // namespace GPUCA_NAMESPACE
 
