@@ -460,6 +460,13 @@ DataProcessorSpec
           // get the TableConsumer and corresponding arrow table
           auto s = pc.inputs().get<TableConsumer>(ref.spec->binding);
           auto table = s->asArrowTable();
+          if (!table->Validate().ok()) {
+            LOGP(ERROR, "The table \"{}\" is not valid and will not be saved!", dh->description.str);
+            continue;
+          } else if (table->num_rows() <= 0) {
+            LOGP(WARNING, "The table \"{}\" is empty and will not be saved!", dh->description.str);
+            continue;
+          }
 
           // loop over all DataOutputDescriptors
           // a table can be saved in multiple ways

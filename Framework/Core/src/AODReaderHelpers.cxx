@@ -10,7 +10,7 @@
 
 #include "Framework/TableTreeHelpers.h"
 #include "Framework/AODReaderHelpers.h"
-#include "Framework/AnalysisDataModel.h"
+#include "AnalysisDataModelHelpers.h"
 #include "DataProcessingHelpers.h"
 #include "ExpressionHelpers.h"
 #include "Framework/RootTableBuilderHelpers.h"
@@ -41,105 +41,6 @@
 
 namespace o2::framework::readers
 {
-enum AODTypeMask : uint64_t {
-  None = 0,
-  Track = 1 << 0,
-  TrackCov = 1 << 1,
-  TrackExtra = 1 << 2,
-  Calo = 1 << 3,
-  CaloTrigger = 1 << 4,
-  Muon = 1 << 5,
-  MuonCluster = 1 << 6,
-  Zdc = 1 << 7,
-  BC = 1 << 8,
-  Collision = 1 << 9,
-  FT0 = 1 << 10,
-  FV0 = 1 << 11,
-  FDD = 1 << 12,
-  UnassignedTrack = 1 << 13,
-  Run2V0 = 1 << 14,
-  McCollision = 1 << 15,
-  McTrackLabel = 1 << 16,
-  McCaloLabel = 1 << 17,
-  McCollisionLabel = 1 << 18,
-  McParticle = 1 << 19,
-  Unknown = 1 << 20
-};
-
-uint64_t getMask(header::DataDescription description)
-{
-
-  if (description == header::DataDescription{"TRACKPAR"}) {
-    return AODTypeMask::Track;
-  } else if (description == header::DataDescription{"TRACKPARCOV"}) {
-    return AODTypeMask::TrackCov;
-  } else if (description == header::DataDescription{"TRACKEXTRA"}) {
-    return AODTypeMask::TrackExtra;
-  } else if (description == header::DataDescription{"CALO"}) {
-    return AODTypeMask::Calo;
-  } else if (description == header::DataDescription{"CALOTRIGGER"}) {
-    return AODTypeMask::CaloTrigger;
-  } else if (description == header::DataDescription{"MUON"}) {
-    return AODTypeMask::Muon;
-  } else if (description == header::DataDescription{"MUONCLUSTER"}) {
-    return AODTypeMask::MuonCluster;
-  } else if (description == header::DataDescription{"ZDC"}) {
-    return AODTypeMask::Zdc;
-  } else if (description == header::DataDescription{"BC"}) {
-    return AODTypeMask::BC;
-  } else if (description == header::DataDescription{"COLLISION"}) {
-    return AODTypeMask::Collision;
-  } else if (description == header::DataDescription{"FT0"}) {
-    return AODTypeMask::FT0;
-  } else if (description == header::DataDescription{"FV0"}) {
-    return AODTypeMask::FV0;
-  } else if (description == header::DataDescription{"FDD"}) {
-    return AODTypeMask::FDD;
-  } else if (description == header::DataDescription{"UNASSIGNEDTRACK"}) {
-    return AODTypeMask::UnassignedTrack;
-  } else if (description == header::DataDescription{"RUN2V0"}) {
-    return AODTypeMask::Run2V0;
-  } else if (description == header::DataDescription{"MCCOLLISION"}) {
-    return AODTypeMask::McCollision;
-  } else if (description == header::DataDescription{"MCTRACKLABEL"}) {
-    return AODTypeMask::McTrackLabel;
-  } else if (description == header::DataDescription{"MCCALOLABEL"}) {
-    return AODTypeMask::McCaloLabel;
-  } else if (description == header::DataDescription{"MCCOLLISLABEL"}) {
-    return AODTypeMask::McCollisionLabel;
-  } else if (description == header::DataDescription{"MCPARTICLE"}) {
-    return AODTypeMask::McParticle;
-  } else {
-    LOG(DEBUG) << "This is a tree of unknown type! " << description.str;
-    return AODTypeMask::Unknown;
-  }
-}
-
-uint64_t calculateReadMask(std::vector<OutputRoute> const& routes, header::DataOrigin const&)
-{
-  uint64_t readMask = None;
-  for (auto& route : routes) {
-    auto concrete = DataSpecUtils::asConcreteDataTypeMatcher(route.matcher);
-    auto description = concrete.description;
-
-    readMask |= getMask(description);
-  }
-  return readMask;
-}
-
-std::vector<OutputRoute> getListOfUnknown(std::vector<OutputRoute> const& routes)
-{
-
-  std::vector<OutputRoute> unknows;
-  for (auto& route : routes) {
-    auto concrete = DataSpecUtils::asConcreteDataTypeMatcher(route.matcher);
-
-    if (getMask(concrete.description) == AODTypeMask::Unknown)
-      unknows.push_back(route);
-  }
-  return unknows;
-}
-
 AlgorithmSpec AODReaderHelpers::aodSpawnerCallback(std::vector<InputSpec> requested)
 {
   return AlgorithmSpec::InitCallback{[requested](InitContext& ic) {
@@ -174,9 +75,9 @@ AlgorithmSpec AODReaderHelpers::aodSpawnerCallback(std::vector<InputSpec> reques
           return o2::soa::spawner(expressions{}, original_table.get());
         };
 
-        if (description == header::DataDescription{"TRACKPAR"}) {
+        if (description == header::DataDescription{"TRACK:PAR"}) {
           outputs.adopt(Output{origin, description}, maker(o2::aod::TracksExtensionMetadata{}));
-        } else if (description == header::DataDescription{"TRACKPARCOV"}) {
+        } else if (description == header::DataDescription{"TRACK:PARCOV"}) {
           outputs.adopt(Output{origin, description}, maker(o2::aod::TracksCovExtensionMetadata{}));
         } else if (description == header::DataDescription{"MUON"}) {
           outputs.adopt(Output{origin, description}, maker(o2::aod::MuonsExtensionMetadata{}));
@@ -206,16 +107,11 @@ AlgorithmSpec AODReaderHelpers::rootFileReaderCallback()
     // get the run time watchdog
     auto* watchdog = new RuntimeWatchdog(options.get<int64_t>("time-limit"));
 
-    // analyze type of requested tables
-    uint64_t readMask = calculateReadMask(spec.outputs, header::DataOrigin{"AOD"});
-    std::vector<OutputRoute> unknowns;
-    if (readMask & AODTypeMask::Unknown) {
-      unknowns = getListOfUnknown(spec.outputs);
-    }
+    // create list of requested tables
+    std::vector<OutputRoute> requestedTables(spec.outputs);
 
     auto counter = std::make_shared<int>(0);
-    return adaptStateless([readMask,
-                           unknowns,
+    return adaptStateless([requestedTables,
                            watchdog,
                            didir](DataAllocator& outputs, ControlService& control, DeviceSpec const& device) {
       // check if RuntimeLimit is reached
@@ -242,66 +138,36 @@ AlgorithmSpec AODReaderHelpers::rootFileReaderCallback()
         return;
       }
 
-      auto tableMaker = [&readMask, &outputs, fi, didir](auto metadata, AODTypeMask mask, char const* treeName) {
-        if (readMask & mask) {
+      // loop over requested tables
+      for (auto route : requestedTables) {
 
-          auto dh = header::DataHeader(decltype(metadata)::description(), decltype(metadata)::origin(), 0);
-          auto reader = didir->getTreeReader(dh, fi, treeName);
+        // create a TreeToTable object
+        auto concrete = DataSpecUtils::asConcreteDataMatcher(route.matcher);
+        auto dh = header::DataHeader(concrete.description, concrete.origin, concrete.subSpec);
 
-          using table_t = typename decltype(metadata)::table_t;
-          if (!reader || (reader->IsInvalid())) {
-            LOGP(ERROR, "Requested \"{}\" tree not found in input file \"{}\"", treeName, didir->getInputFilename(dh, fi));
-          } else {
-            auto& builder = outputs.make<TableBuilder>(Output{decltype(metadata)::origin(), decltype(metadata)::description()});
-            RootTableBuilderHelpers::convertASoA<table_t>(builder, *reader);
+        auto tr = didir->getDataTree(dh, fi);
+        if (!tr) {
+          char* table;
+          sprintf(table, "%s/%s/%" PRIu32, concrete.origin.str, concrete.description.str, concrete.subSpec);
+          LOGP(ERROR, "Error while retrieving the tree for \"{}\"!", table);
+          return;
+        }
+
+        auto o = Output(dh);
+        auto& t2t = outputs.make<TreeToTable>(o, tr);
+
+        // add branches to read
+        auto colnames = aod::datamodel::getColumnNames(dh);
+        if (colnames.size() == 0) {
+          t2t.addAllColumns();
+        } else {
+          for (auto colname : colnames) {
+            t2t.addColumn(colname.c_str());
           }
         }
-      };
-      tableMaker(o2::aod::CollisionsMetadata{}, AODTypeMask::Collision, "O2collision");
-      tableMaker(o2::aod::StoredTracksMetadata{}, AODTypeMask::Track, "O2track");
-      tableMaker(o2::aod::StoredTracksCovMetadata{}, AODTypeMask::TrackCov, "O2track");
-      tableMaker(o2::aod::TracksExtraMetadata{}, AODTypeMask::TrackExtra, "O2track");
-      tableMaker(o2::aod::CalosMetadata{}, AODTypeMask::Calo, "O2calo");
-      tableMaker(o2::aod::CaloTriggersMetadata{}, AODTypeMask::CaloTrigger, "O2calotrigger");
-      tableMaker(o2::aod::StoredMuonsMetadata{}, AODTypeMask::Muon, "O2muon");
-      tableMaker(o2::aod::MuonClustersMetadata{}, AODTypeMask::Muon, "O2muoncluster");
-      tableMaker(o2::aod::ZdcsMetadata{}, AODTypeMask::Zdc, "O2zdc");
-      tableMaker(o2::aod::BCsMetadata{}, AODTypeMask::BC, "O2bc");
-      tableMaker(o2::aod::FT0sMetadata{}, AODTypeMask::FT0, "O2ft0");
-      tableMaker(o2::aod::FV0sMetadata{}, AODTypeMask::FV0, "O2fv0");
-      tableMaker(o2::aod::FDDsMetadata{}, AODTypeMask::FDD, "O2fdd");
-      tableMaker(o2::aod::UnassignedTracksMetadata{}, AODTypeMask::UnassignedTrack, "O2unassignedtrack");
-      tableMaker(o2::aod::Run2V0sMetadata{}, AODTypeMask::Run2V0, "Run2v0");
-      tableMaker(o2::aod::McCollisionsMetadata{}, AODTypeMask::McCollision, "O2mccollision");
-      tableMaker(o2::aod::McTrackLabelsMetadata{}, AODTypeMask::McTrackLabel, "O2mctracklabel");
-      tableMaker(o2::aod::McCaloLabelsMetadata{}, AODTypeMask::McCaloLabel, "O2mccalolabel");
-      tableMaker(o2::aod::McCollisionLabelsMetadata{}, AODTypeMask::McCollisionLabel, "O2mccollisionlabel");
-      tableMaker(o2::aod::McParticlesMetadata{}, AODTypeMask::McParticle, "O2mcparticle");
 
-      // tables not included in the DataModel
-      if (readMask & AODTypeMask::Unknown) {
-
-        // loop over unknowns
-        for (auto route : unknowns) {
-
-          // create a TreeToTable object
-          auto concrete = DataSpecUtils::asConcreteDataMatcher(route.matcher);
-          auto dh = header::DataHeader(concrete.description, concrete.origin, concrete.subSpec);
-
-          auto tr = didir->getDataTree(dh, fi);
-          if (!tr) {
-            char* table;
-            sprintf(table, "%s/%s/%" PRIu32, concrete.origin.str, concrete.description.str, concrete.subSpec);
-            LOGP(ERROR, "Error while retrieving the tree for \"{}\"!", table);
-            return;
-          }
-
-          auto o = Output(dh);
-          auto& t2t = outputs.make<TreeToTable>(o, tr);
-
-          // fill the table
-          t2t.fill();
-        }
+        // fill the table
+        t2t.fill();
       }
     });
   })};
