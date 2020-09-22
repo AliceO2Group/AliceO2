@@ -53,7 +53,7 @@ class DigitBlockBase//:public DigitBlock
   //,typename enable_if<boost::mpl::contains<ProcessBlockTypes,DataBlockType>::type::value>::type >  //TODO traits
   void process(DataBlockType& dataBlock, int linkID)
   {
-    static_cast<DigitBlock*>(this)->processDigits(DataBlockType& dataBlock, int linkID);
+    static_cast<DigitBlock*>(this)->processDigits(dataBlock, linkID);
    /*
     if constexpr (std::is_same<DataBlockType, DataBlockPM>::value) { //Filling data from PM
       for (int iEventData = 0; iEventData < dataBlock.DataBlockWrapper<RawDataPM>::mNelements; iEventData++) {
@@ -72,7 +72,7 @@ class DigitBlockBase//:public DigitBlock
     */
   }
   template<class... DigitType>
-  void popData(std::vector<DigitType>&... vecDigits)
+  void pop(std::vector<DigitType>&... vecDigits)
   {
     static_cast<DigitBlock*>(this)->getDigits(vecDigits...);
 /*

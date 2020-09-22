@@ -67,7 +67,7 @@ template <typename T>
 struct DataBlockWrapper {
   DataBlockWrapper() = default;
   DataBlockWrapper(const DataBlockWrapper&) = default;
-
+  static constexpr size_t sizeWord = 16;// should be changed to gloabal variable
   std::vector<uint8_t> serialize(int nWords)
   {
     std::vector<uint8_t> vecBytes(sizeWord * nWords);
