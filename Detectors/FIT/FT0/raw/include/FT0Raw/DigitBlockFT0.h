@@ -22,7 +22,7 @@
 #include <vector>
 #include <algorithm>
 #include <Rtypes.h>
-#include "FT0Raw/DataBlockRaw.h"
+#include "FT0Raw/DataBlockRawFT0.h"
 #include <CommonDataFormat/InteractionRecord.h>
 #include "DataFormatsFT0/Digit.h"
 #include "DataFormatsFT0/ChannelData.h"

@@ -23,7 +23,7 @@
 #include <iostream>
 #include <vector>
 #include <Rtypes.h>
-#include "FT0Raw/DataBlockRaw.h"
+#include "FT0Raw/DataBlockRawFT0.h"
 #include "FT0Raw/DigitBlockFT0.h"
 #include <boost/mpl/inherit.hpp>
 #include <boost/mpl/vector.hpp>
