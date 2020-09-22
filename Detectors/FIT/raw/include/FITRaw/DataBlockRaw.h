@@ -43,7 +43,7 @@
 #include <gsl/span>
 #include <boost/mpl/inherit.hpp>
 #include <boost/mpl/vector.hpp>
-
+#include <Framework/Logger.h>
 #include <vector>
 #include <tuple>
 #include <array>
