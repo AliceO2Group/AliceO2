@@ -138,6 +138,7 @@ struct DigitExt:Digit
   DigitExt() = default;
   o2::dataformats::RangeReference<int, int> refExt;//range reference to container with TriggerExt objects
   ClassDefNV(DigitExt, 1);
+};
 } // namespace ft0
 } // namespace o2
 
