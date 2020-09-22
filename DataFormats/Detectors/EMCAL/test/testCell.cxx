@@ -27,25 +27,26 @@ namespace emcal
 /// - verify that set and get functions return consistent values
 BOOST_AUTO_TEST_CASE(Cell_test)
 {
-  Cell c;
+  Cell c(0, 0, 0, o2::emcal::ChannelType_t::HIGH_GAIN);
 
   for (short j = 0; j < 17664; j++) {
     c.setTower(j);
     BOOST_CHECK_EQUAL(c.getTower(), j);
-    BOOST_CHECK_EQUAL(c.getTimeStamp(), 0);
+    BOOST_CHECK_SMALL(double(c.getTimeStamp()), 0.73);
     BOOST_CHECK_EQUAL(c.getEnergy(), 0);
-    BOOST_CHECK_EQUAL(c.getLowGain(), true);
+    BOOST_CHECK_EQUAL(c.getHighGain(), true);
   }
 
   c.setTower(0);
-  std::vector<int> times = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 20, 50, 100, 200};
+  // Test time over the full range
+  std::vector<int> times = {-500, -200, -100, -50, -20, -10, -9, -8, -7, -6, -5, -4, -3, -2, -1, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 20, 50, 100, 200, 500, 900};
 
   for (auto t : times) {
     c.setTimeStamp(t);
     BOOST_CHECK_EQUAL(c.getTower(), 0);
-    BOOST_CHECK_EQUAL(c.getTimeStamp(), t);
+    BOOST_CHECK_SMALL(double(c.getTimeStamp() - t), 0.73);
     BOOST_CHECK_EQUAL(c.getEnergy(), 0);
-    BOOST_CHECK_EQUAL(c.getLowGain(), true);
+    BOOST_CHECK_EQUAL(c.getHighGain(), true);
   }
 
   c.setTimeStamp(0);
@@ -53,35 +54,40 @@ BOOST_AUTO_TEST_CASE(Cell_test)
 
   for (auto e : energies) {
     c.setEnergy(e);
+    if (e > 16)
+      c.setLowGain();
     BOOST_CHECK_EQUAL(c.getTower(), 0);
-    BOOST_CHECK_EQUAL(c.getTimeStamp(), 0);
+    BOOST_CHECK_SMALL(double(c.getTimeStamp()), 0.73);
     BOOST_CHECK_SMALL(e - c.getEnergy(), 0.02); // Require 20 MeV resolution
-    BOOST_CHECK_EQUAL(c.getLowGain(), true);
+    if (e > 16)
+      BOOST_CHECK_EQUAL(c.getLowGain(), true);
+    else
+      BOOST_CHECK_EQUAL(c.getHighGain(), true);
   }
 
   c.setEnergy(0);
 
   c.setLowGain();
   BOOST_CHECK_EQUAL(c.getTower(), 0);
-  BOOST_CHECK_EQUAL(c.getTimeStamp(), 0);
+  BOOST_CHECK_SMALL(double(c.getTimeStamp()), 0.73);
   BOOST_CHECK_EQUAL(c.getEnergy(), 0);
-  BOOST_CHECK_EQUAL(c.getLowGain(), true);
   BOOST_CHECK_EQUAL(c.getHighGain(), false);
+  BOOST_CHECK_EQUAL(c.getLowGain(), true);
   BOOST_CHECK_EQUAL(c.getLEDMon(), false);
   BOOST_CHECK_EQUAL(c.getTRU(), false);
 
   c.setHighGain();
   BOOST_CHECK_EQUAL(c.getTower(), 0);
-  BOOST_CHECK_EQUAL(c.getTimeStamp(), 0);
+  BOOST_CHECK_SMALL(double(c.getTimeStamp()), 0.73);
   BOOST_CHECK_EQUAL(c.getEnergy(), 0);
-  BOOST_CHECK_EQUAL(c.getLowGain(), false);
   BOOST_CHECK_EQUAL(c.getHighGain(), true);
+  BOOST_CHECK_EQUAL(c.getLowGain(), false);
   BOOST_CHECK_EQUAL(c.getLEDMon(), false);
   BOOST_CHECK_EQUAL(c.getTRU(), false);
 
   c.setLEDMon();
   BOOST_CHECK_EQUAL(c.getTower(), 0);
-  BOOST_CHECK_EQUAL(c.getTimeStamp(), 0);
+  BOOST_CHECK_SMALL(double(c.getTimeStamp()), 0.73);
   BOOST_CHECK_EQUAL(c.getEnergy(), 0);
   BOOST_CHECK_EQUAL(c.getLowGain(), false);
   BOOST_CHECK_EQUAL(c.getHighGain(), false);
@@ -90,7 +96,7 @@ BOOST_AUTO_TEST_CASE(Cell_test)
 
   c.setTRU();
   BOOST_CHECK_EQUAL(c.getTower(), 0);
-  BOOST_CHECK_EQUAL(c.getTimeStamp(), 0);
+  BOOST_CHECK_SMALL(double(c.getTimeStamp()), 0.73);
   BOOST_CHECK_EQUAL(c.getEnergy(), 0);
   BOOST_CHECK_EQUAL(c.getLowGain(), false);
   BOOST_CHECK_EQUAL(c.getHighGain(), false);
