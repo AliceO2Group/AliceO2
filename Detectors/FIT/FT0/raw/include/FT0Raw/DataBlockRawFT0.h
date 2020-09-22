@@ -51,7 +51,7 @@ using namespace std;
 //FT0 DATA BLOCK DEFINITIONS
 
 //standard data block from PM
-class DataBlockPM : public o2::fit::DataBlockBase<DataBlockPM, RawHeaderPM, RawDataPM>
+class DataBlockPM : public DataBlockBase<DataBlockPM, RawHeaderPM, RawDataPM>
 {
  public:
   DataBlockPM() = default;
@@ -72,7 +72,7 @@ class DataBlockPM : public o2::fit::DataBlockBase<DataBlockPM, RawHeaderPM, RawD
 };
 
 //standard data block from TCM
-class DataBlockTCM : public o2::fit::DataBlockBase<DataBlockTCM, RawHeaderTCM, RawDataTCM>
+class DataBlockTCM : public DataBlockBase<DataBlockTCM, RawHeaderTCM, RawDataTCM>
 {
  public:
   DataBlockTCM() = default;
@@ -91,7 +91,7 @@ class DataBlockTCM : public o2::fit::DataBlockBase<DataBlockTCM, RawHeaderTCM, R
 };
 
 //extended TCM mode, 1 TCMdata + 8 TCMdataExtendedstructs
-class DataBlockTCMext : public o2::fit::DataBlockBase<DataBlockTCMext, RawHeaderTCMext, RawDataTCM, RawDataTCMext>
+class DataBlockTCMext : public DataBlockBase<DataBlockTCMext, RawHeaderTCMext, RawDataTCM, RawDataTCMext>
 {
  public:
   DataBlockTCMext() = default;
