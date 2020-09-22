@@ -152,7 +152,7 @@ struct HFD0CandidateSelector {
       return false;
     }
     if (hfCandProng2.decayLengthNormalised() * hfCandProng2.decayLengthNormalised() < 1.0) {
-      return false;
+      //return false; //add back when getter fixed
     }
     return true;
   }
@@ -182,7 +182,7 @@ struct HFD0CandidateSelector {
       }
     }
 
-    if (TMath::Abs(trackPion.signed1Pt()) < TMath::Abs(cuts[pTBin][4]) || TMath::Abs(trackKaon.signed1Pt()) < TMath::Abs(cuts[pTBin][3])) {
+    if (TMath::Abs(trackPion.pt()) < TMath::Abs(cuts[pTBin][4]) || TMath::Abs(trackKaon.pt()) < TMath::Abs(cuts[pTBin][3])) {
       return false; //cut on daughter pT
     }
     if (TMath::Abs(trackPion.dcaprim0()) > cuts[pTBin][6] || TMath::Abs(trackKaon.dcaprim0()) > cuts[pTBin][5]) {
@@ -209,7 +209,7 @@ struct HFD0CandidateSelector {
   template <typename T>
   bool validTPCPID(const T& track)
   {
-    if (TMath::Abs(track.signed1Pt()) < d_pidTPCMinpT || TMath::Abs(track.signed1Pt()) >= d_pidTPCMaxpT) {
+    if (TMath::Abs(track.pt()) < d_pidTPCMinpT || TMath::Abs(track.pt()) >= d_pidTPCMaxpT) {
       return false;
     }
     //if (track.TPCNClsFindable() < d_TPCNClsFindablePIDCut) return false;
@@ -223,7 +223,7 @@ struct HFD0CandidateSelector {
   template <typename T>
   bool validTOFPID(const T& track)
   {
-    if (TMath::Abs(track.signed1Pt()) < d_pidTOFMinpT || TMath::Abs(track.signed1Pt()) >= d_pidTOFMaxpT) {
+    if (TMath::Abs(track.pt()) < d_pidTOFMinpT || TMath::Abs(track.pt()) >= d_pidTOFMaxpT) {
       return false;
     }
     return true;
