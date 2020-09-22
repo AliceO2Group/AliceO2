@@ -15,192 +15,62 @@
 
 using namespace o2::emcal;
 
-Cell::Cell(Short_t tower, Double_t energy, Double_t time, ChannelType_t ctype)
+const float TIME_SHIFT = 600.,
+            TIME_RANGE = 1500.,
+            TIME_RESOLUTION = TIME_RANGE / 2047.,
+            ENERGY_TRUNCATION = 250.,
+            ENERGY_RESOLUTION = ENERGY_TRUNCATION / 16383.;
+
+Cell::Cell()
 {
+  memset(mCellWords, 0, sizeof(uint16_t) * 3);
+}
+
+Cell::Cell(short tower, float energy, float time, ChannelType_t ctype)
+{
+  memset(mCellWords, 0, sizeof(uint16_t) * 3);
   setTower(tower);
   setTimeStamp(time);
   setEnergy(energy);
   setType(ctype);
 }
 
-void Cell::setTower(Short_t tower)
+void Cell::setTimeStamp(float timestamp)
 {
-  if (tower > 0x7fff || tower < 0) {
-    tower = 0x7fff;
+  // truncate:
+  const float TIME_MIN = -1. * TIME_SHIFT,
+              TIME_MAX = TIME_RANGE - TIME_SHIFT;
+  if (timestamp < TIME_MIN)
+    timestamp = TIME_MIN;
+  else if (timestamp > TIME_MAX)
+    timestamp = TIME_MAX;
+  getDataRepresentation()->mTime = static_cast<uint16_t>((timestamp + TIME_SHIFT) / TIME_RESOLUTION);
+}
+
+float Cell::getTimeStamp() const
+{
+  return (static_cast<float>(getDataRepresentation()->mTime) * TIME_RESOLUTION) - TIME_SHIFT;
+}
+
+void Cell::setEnergy(float energy)
+{
+  double truncatedEnergy = energy;
+  if (truncatedEnergy < 0.) {
+    truncatedEnergy = 0.;
+  } else if (truncatedEnergy > ENERGY_TRUNCATION) {
+    truncatedEnergy = ENERGY_TRUNCATION;
   }
-  ULong_t t = (ULong_t)tower;
-
-  ULong_t b = getLong() & 0xffffff8000; // 1111111111111111111111111000000000000000
-  mBits = b + t;
+  getDataRepresentation()->mEnergy = static_cast<int16_t>(truncatedEnergy / ENERGY_RESOLUTION);
 }
 
-Short_t Cell::getTower() const
+float Cell::getEnergy() const
 {
-  ULong_t t = getLong();
-  t &= 0x7fff;
-  return ((Short_t)t);
-}
-
-void Cell::setTimeStamp(Double_t time)
-{
-  ULong_t t = 0;
-  if (time > 0x1ff) {
-    t = 0x1ff;
-  } else if (time < 0) {
-    t = 0;
-  } else {
-    t = (ULong_t)time;
-  }
-
-  t <<= 15;
-  ULong_t b = getLong() & 0xffff007fff; // 1111111111111111000000000111111111111111
-  mBits = b + t;
-}
-
-Short_t Cell::getTimeStamp() const
-{
-  ULong_t t = getLong();
-  t >>= 15;
-  t &= 0x1ff;
-  return ((Short_t)t);
-}
-
-void Cell::setEnergyBits(Short_t ebits)
-{
-  if (ebits > 0x3fff) {
-    ebits = 0x3fff;
-  } else if (ebits < 0) {
-    ebits = 0;
-  }
-  ULong_t a = (ULong_t)ebits;
-
-  a <<= 24;
-  ULong_t b = getLong() & 0xc00ffffff; // 1100000000000000111111111111111111111111
-  mBits = b + a;
-}
-
-Short_t Cell::getEnergyBits() const
-{
-  ULong_t a = getLong();
-  a >>= 24;
-  a &= 0x3fff;
-  return ((Short_t)a);
-}
-
-void Cell::setEnergy(Double_t energy)
-{
-  ULong_t a = static_cast<ULong_t>(energy / 0.0153);
-  a = a & 0x3FFF;
-
-  a <<= 24;
-  ULong_t b = getLong() & 0xc000ffffff; // 1100000000000000111111111111111111111111
-  mBits = b + a;
-}
-
-Double_t Cell::getEnergy() const
-{
-  return double(getEnergyBits() * 0.0153);
-}
-
-void Cell::setType(ChannelType_t ctype)
-{
-  switch (ctype) {
-    case ChannelType_t::HIGH_GAIN:
-      setHighGain();
-      break;
-    case ChannelType_t::LOW_GAIN:
-      setLowGain();
-      break;
-    case ChannelType_t::TRU:
-      setTRU();
-      break;
-    case ChannelType_t::LEDMON:
-      setHighGain();
-      break;
-  };
-}
-
-ChannelType_t Cell::getType() const
-{
-  if (getHighGain()) {
-    return ChannelType_t::HIGH_GAIN;
-  } else if (getLEDMon()) {
-    return ChannelType_t::LEDMON;
-  } else if (getTRU()) {
-    return ChannelType_t::TRU;
-  }
-  return ChannelType_t::LOW_GAIN;
-}
-
-void Cell::setLowGain()
-{
-  std::bitset<40> b(0x3fffffffff); // 0011111111111111111111111111111111111111
-  mBits = (mBits & b);
-}
-
-Bool_t Cell::getLowGain() const
-{
-  ULong_t t = (getLong() >> 38);
-  if (t) {
-    return false;
-  }
-  return true;
-}
-
-void Cell::setHighGain()
-{
-  ULong_t b = getLong() & 0x3fffffffff; // 0011111111111111111111111111111111111111
-  mBits = b + 0x4000000000;             // 0100000000000000000000000000000000000000
-}
-
-Bool_t Cell::getHighGain() const
-{
-  ULong_t t = (getLong() >> 38);
-  if (t == 1) {
-    return true;
-  }
-  return false;
-}
-
-void Cell::setLEDMon()
-{
-  ULong_t b = getLong() & 0x3fffffffff; // 0011111111111111111111111111111111111111
-  mBits = b + 0x8000000000;             // 1000000000000000000000000000000000000000
-}
-
-Bool_t Cell::getLEDMon() const
-{
-  ULong_t t = (getLong() >> 38);
-  if (t == 2) {
-    return true;
-  }
-  return false;
-}
-
-void Cell::setTRU()
-{
-  ULong_t b = getLong() & 0x3fffffffff; // 0011111111111111111111111111111111111111
-  mBits = b + 0xc000000000;             // 1100000000000000000000000000000000000000
-}
-
-Bool_t Cell::getTRU() const
-{
-  ULong_t t = (getLong() >> 38);
-  if (t == 3) {
-    return true;
-  }
-  return false;
-}
-
-void Cell::setLong(ULong_t l)
-{
-  std::bitset<40> b(l);
-  mBits = b;
+  return static_cast<float>(getDataRepresentation()->mEnergy) * ENERGY_RESOLUTION;
 }
 
 void Cell::PrintStream(std::ostream& stream) const
 {
-  stream << "EMCAL Cell: Type " << getType() << ", Energy " << getEnergy() << ", Time " << getTimeStamp() << ", Tower " << getTower() << ", Bits " << mBits;
+  stream << "EMCAL Cell: Type " << getType() << ", Energy " << getEnergy() << ", Time " << getTimeStamp() << ", Tower " << getTower();
 }
 
 std::ostream& operator<<(std::ostream& stream, const Cell& c)
