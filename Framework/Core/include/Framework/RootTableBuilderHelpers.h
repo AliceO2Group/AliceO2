@@ -56,7 +56,7 @@ struct TreeReaderValueTraits<TTreeReaderArray<VALUE>> {
   using ArrowType = arrow::ListType;
 };
 
-static constexpr int PREBUFFER_SIZE = 32*1024;
+static constexpr int PREBUFFER_SIZE = 32 * 1024;
 
 // When reading from a ROOT file special care must happen
 // because uint64_t is platform specific while ULong64_t is
@@ -207,7 +207,7 @@ struct RootTableBuilderHelpers {
     std::vector<std::string> branchNames = {holders.reader->GetBranchName()...};
     TTree* tree = reader.GetTree();
     size_t maxExtries = reader.GetEntries(true);
-    tree->SetCacheSize(maxExtries*(holders.itemSize + ...));
+    tree->SetCacheSize(maxExtries * (holders.itemSize + ...));
     (tree->AddBranchToCache(tree->GetBranch(holders.reader->GetBranchName()), true), ...);
     tree->StopCacheLearningPhase();
 
