@@ -38,6 +38,9 @@ struct TaskD0 {
   OutputObj<TH1F> hCt{TH1F("hCt", "proper lifetime * #it{c} (cm)", 120, -20, 100)};
   OutputObj<TH1F> hEta{TH1F("hEta", "#it{#eta}", 100, -2, 2)};
   OutputObj<TH1F> hselectionstatus{TH1F("selectionstatus", "selection status", 5, -0.5, 4.5)};
+  OutputObj<TH1F> hImpParErr{TH1F("hImpParErr", "impact parameter error", 100, -1.0, 1.0)};
+  OutputObj<TH1F> hDecLenErr{TH1F("hDecLenErr", "decay length error", 100, 0., 1.0)};
+  OutputObj<TH1F> hDecLenXYErr{TH1F("hDecLenXYErr", "decay length XY error", 100, 0., 1.0)};
 
   Configurable<int> d_selectionFlagD0{"d_selectionFlagD0", 1, "Selection Flag for D0"};
   Configurable<int> d_selectionFlagD0bar{"d_selectionFlagD0bar", 1, "Selection Flag for D0bar"};
@@ -65,6 +68,10 @@ struct TaskD0 {
       hCt->Fill(CtD0(candidate));
       hEta->Fill(candidate.eta());
       hselectionstatus->Fill(candidate.isSelD0() + (candidate.isSelD0bar() * 2));
+      hImpParErr->Fill(candidate.errorImpactParameter0());
+      hImpParErr->Fill(candidate.errorImpactParameter1());
+      hDecLenErr->Fill(candidate.errorDecayLength());
+      hDecLenXYErr->Fill(candidate.errorDecayLengthXY());
     }
   }
 };
