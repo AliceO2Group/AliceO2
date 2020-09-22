@@ -165,6 +165,16 @@ class MCTruthContainer
     mTruthArray.clear();
   }
 
+  // clear and force freeing the memory
+  void clear_andfreememory()
+  {
+    clear();
+    // this forces the desctructor being called on existing buffers
+    mHeaderArray = std::vector<MCTruthHeaderElement>();
+    mTruthArray = std::vector<TruthElement>();
+    mStreamerData = std::vector<char>();
+  }
+
   // add element for a particular dataindex
   // at the moment only strictly consecutive modes are supported
   void addElement(uint32_t dataindex, TruthElement const& element)
