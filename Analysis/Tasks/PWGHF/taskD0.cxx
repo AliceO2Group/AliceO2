@@ -39,10 +39,10 @@ struct TaskD0 {
   OutputObj<TH1F> hptcand{TH1F("hptcand", "pt candidate", 100, 0, 10.0)};
   OutputObj<TH1F> hptprong0{TH1F("hptprong0", "pt prong0", 100, 0, 10.0)};
   OutputObj<TH1F> hptprong1{TH1F("hptprong1", "pt prong1", 100, 0, 10.0)};
-  OutputObj<TH1F> hdeclength{TH1F("declength", "decay length", 100, 0., 1.0)};
-  OutputObj<TH1F> hdeclengthxy{TH1F("declengthxy", "decay length xy", 100, 0., 1.0)};
+  OutputObj<TH1F> hdeclength{TH1F("declength", "decay length", 200, 0., 2.0)};
+  OutputObj<TH1F> hdeclengthxy{TH1F("declengthxy", "decay length xy", 200, 0., 2.0)};
   OutputObj<TH1F> hd0{TH1F("hd0", "dca xy to prim. vertex (cm)", 100, -1.0, 1.0)};
-  OutputObj<TH1F> hd0d0{TH1F("hd0d0", "product of dca xy to prim. vertex (cm^{2})", 100, -1.0, 1.0)};
+  OutputObj<TH1F> hd0d0{TH1F("hd0d0", "product of dca xy to prim. vertex (cm^{2})", 500, -1.0, 1.0)};
   OutputObj<TH1F> hCTS{TH1F("hCTS", "cos #it{#theta}*", 120, -1.1, 1.1)};
   OutputObj<TH1F> hCt{TH1F("hCt", "proper lifetime * #it{c} (cm)", 120, -20, 100)};
   OutputObj<TH1F> hEta{TH1F("hEta", "#it{#eta}", 100, -2, 2)};
