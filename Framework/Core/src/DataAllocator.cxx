@@ -181,9 +181,6 @@ void DataAllocator::adopt(const Output& spec, TreeToTable* t2t)
   std::shared_ptr<TreeToTable> p(t2t);
   auto finalizer = [payload = p](std::shared_ptr<FairMQResizableBuffer> b) -> void {
     auto table = payload->finalize();
-    LOG(INFO) << "DataAllocator Table created!";
-    LOG(INFO) << "Number of columns " << table->num_columns();
-    LOG(INFO) << "Number of rows    " << table->num_rows();
 
     auto stream = std::make_shared<arrow::io::BufferOutputStream>(b);
     std::shared_ptr<arrow::ipc::RecordBatchWriter> writer;
