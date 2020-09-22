@@ -16,8 +16,8 @@
 //  traites for classes and structs
 //
 
-#ifndef ALICEO2_FIT_DATABLOCKRAW_H_
-#define ALICEO2_FIT_DATABLOCKRAW_H_
+#ifndef ALICEO2_FT0_DATABLOCKRAW_H_
+#define ALICEO2_FT0_DATABLOCKRAW_H_
 #include <iostream>
 #include <vector>
 #include <Rtypes.h>
@@ -34,7 +34,7 @@
 #include <array>
 #include <iostream>
 #include <cassert>
-using namespace o2::fit;
+//using namespace o2::fit;
 namespace o2
 {
 namespace ft0
