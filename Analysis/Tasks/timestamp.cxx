@@ -28,26 +28,29 @@ using namespace o2;
 struct TimestampTask {
   Produces<aod::Timestamps> ts_table;          /// Table with SOR timestamps produced by the task
   Service<o2::ccdb::BasicCCDBManager> ccdb;    /// Object manager in CCDB
-  o2::ccdb::CcdbApi api;                       /// API to access CCDB
+  o2::ccdb::CcdbApi ccdb_api;                  /// API to access CCDB
   std::map<int, int>* mapStartOrbit = nullptr; /// Map of the starting orbit for the run
   std::pair<int, long> lastCall;               /// Last run number processed and its timestamp, needed for caching
   std::map<int, long> mapRunToTimestamp;       /// Cache of processed run numbers
 
   // Configurables
   Configurable<bool> verbose{"verbose", false, "verbose mode"};
-  Configurable<std::string> path{"ccdb-path", "RCT/RunInformation/", "path to the ccdb object"};
+  Configurable<std::string> rct_path{"rct-path", "RCT/RunInformation/", "path to the ccdb RCT objects for the SOR timestamps"};
+  Configurable<std::string> start_orbit_path{"start-orbit-path", "Trigger/StartOrbit", "path to the ccdb SOR orbit objects"};
   Configurable<std::string> url{"ccdb-url", "http://ccdb-test.cern.ch:8080", "URL of the CCDB database"};
   Configurable<bool> isMC{"isMC", 0, "0 - data, 1 - MC"};
 
   void init(o2::framework::InitContext&)
   {
     LOGF(info, "Initializing TimestampTask");
-    mapStartOrbit = ccdb->get<std::map<int, int>>("Trigger/StartOrbit");
+    ccdb->setURL(url.value); // Setting URL of CCDB manager from configuration
+    LOGF(debug, "Getting SOR orbit map from CCDB url '%s' path '%s'", url.value, start_orbit_path.value);
+    mapStartOrbit = ccdb->get<std::map<int, int>>(start_orbit_path.value);
     if (!mapStartOrbit) {
-      LOGF(fatal, "Cannot find map of SOR orbits in CCDB in path Trigger/StartOrbit");
+      LOGF(fatal, "Cannot find map of SOR orbits in CCDB in path %s", start_orbit_path.value.data());
     }
-    api.init(url.value);
-    if (!api.isHostReachable()) {
+    ccdb_api.init(url.value);
+    if (!ccdb_api.isHostReachable()) {
       LOGF(fatal, "CCDB host %s is not reacheable, cannot go forward", url.value.data());
     }
   }
@@ -64,8 +67,8 @@ struct TimestampTask {
     } else { // The run was not requested before: need to acccess CCDB!
       LOGF(debug, "Getting timestamp from CCDB");
       std::map<std::string, std::string> metadata, headers;
-      const std::string run_path = Form("%s/%i", path.value.data(), bc.runNumber());
-      headers = api.retrieveHeaders(run_path, metadata, -1);
+      const std::string run_path = Form("%s/%i", rct_path.value.data(), bc.runNumber());
+      headers = ccdb_api.retrieveHeaders(run_path, metadata, -1);
       if (headers.count("SOR") == 0) {
         LOGF(fatal, "Cannot find run-number to timestamp in path '%s'.", run_path.data());
       }
@@ -86,12 +89,15 @@ struct TimestampTask {
     if (verbose.value) {
       LOGF(info, "Run-number to timestamp found! %i %llu ms", bc.runNumber(), ts);
     }
-    uint16_t initialBC = 0; // exact bc number not relevant due to ms precision of timestamps
-    uint32_t initialOrbit = mapStartOrbit->at(bc.runNumber());
-    uint16_t currentBC = isMC ? initialBC : bc.globalBC() % o2::constants::lhc::LHCMaxBunches;
-    uint32_t currentOrbit = isMC ? initialOrbit : bc.globalBC() / o2::constants::lhc::LHCMaxBunches;
-    InteractionRecord current(currentBC, currentOrbit);
-    InteractionRecord initial(initialBC, initialOrbit);
+    const uint16_t initialBC = 0; // exact bc number not relevant due to ms precision of timestamps
+    if (!mapStartOrbit->count(bc.runNumber())) {
+      LOGF(fatal, "Cannot find run %i in mapStartOrbit map", bc.runNumber());
+    }
+    const uint32_t initialOrbit = mapStartOrbit->at(bc.runNumber());
+    const uint16_t currentBC = isMC ? initialBC : bc.globalBC() % o2::constants::lhc::LHCMaxBunches;
+    const uint32_t currentOrbit = isMC ? initialOrbit : bc.globalBC() / o2::constants::lhc::LHCMaxBunches;
+    const InteractionRecord current(currentBC, currentOrbit);
+    const InteractionRecord initial(initialBC, initialOrbit);
     ts += (current - initial).bc2ns() / 1000000;
     ts_table(ts);
   }
