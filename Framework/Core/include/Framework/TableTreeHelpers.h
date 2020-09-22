@@ -178,19 +178,22 @@ class ColumnIterator
   EDataType mElementType;
   int64_t mNumberElements;
   const char* mColumnName;
+  int mPos = 0;
+  int mNumEntries = 0;
+  TBranch* mBranch = nullptr;
 
   std::shared_ptr<arrow::Field> mField;
   std::shared_ptr<arrow::Array> mArray;
 
  public:
-  ColumnIterator(TTreeReader* reader, const char* colname);
+  ColumnIterator(TTree* reader, const char* colname);
   ~ColumnIterator();
 
   // has the iterator been properly initialized
   bool getStatus();
 
   // copy the TTreeReaderValue to the arrow::TBuilder
-  void push();
+  size_t push();
 
   // reserve enough space to push s elements without reallocating
   void reserve(size_t s);
@@ -205,18 +208,15 @@ class ColumnIterator
 
 class TreeToTable
 {
-
  private:
-  // the TTreeReader allows to efficiently loop over
-  // the rows of a TTree
-  TTreeReader* mTreeReader;
+  TTree* mTree;
 
   // a list of ColumnIterator*
   std::vector<std::shared_ptr<ColumnIterator>> mColumnIterators;
 
   // Append next set of branch values to the
   // corresponding table columns
-  void push();
+  size_t push();
 
  public:
   TreeToTable(TTree* tree);
