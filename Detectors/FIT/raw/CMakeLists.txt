@@ -10,4 +10,4 @@
 
 o2_add_library(FITRaw
                SOURCES src/DataBlockRaw.cxx src/DigitBlockBase.cxx src/DataBlockReader.cxx
-               PUBLIC_LINK_LIBRARIES O2::CommonDataFormat O2::Headers)
+               PUBLIC_LINK_LIBRARIES O2::CommonDataFormat O2::Headers ms_gsl::ms_gsl)

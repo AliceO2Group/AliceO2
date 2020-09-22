@@ -72,9 +72,9 @@ class DigitBlockBase//:public DigitBlock
     */
   }
   template<class... DigitType>
-  void popData(std::vector<DigitType>& vecDigits, ...)
+  void popData(std::vector<DigitType>&... vecDigits)
   {
-    static_cast<DigitBlock*>(this)->getDigits(std::vector<DigitType>& vecDigits, ...);
+    static_cast<DigitBlock*>(this)->getDigits(vecDigits...);
 /*
     //last digit filling
     mDigit.ref.set(vecChannelData.size(), mVecChannelData.size());

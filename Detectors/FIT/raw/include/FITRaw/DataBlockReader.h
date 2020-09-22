@@ -89,11 +89,11 @@ class RawReaderBase : public boost::mpl::inherit<DataBlockReader<DataBlockTypes>
   }
   //pop digits
   template<class... DigitType>
-  int getDigits(std::vector<DigitType>& vecDigit, ...)
+  int getDigits(std::vector<DigitType>&... vecDigit)
   {
     int digitCounter = RawReaderBaseType::mMapDigits.size();
     for (auto& digit : (RawReaderBaseType::mMapDigits)) {
-      digit.second.pop(vecDigit, ...);
+      digit.second.pop(vecDigit...);
     }
     (RawReaderBaseType::mMapDigits).clear();
     return digitCounter;
