@@ -184,17 +184,21 @@ struct TrackQATask {
     TH1F("track-dcaZ", "distance of closest approach in z;dca-z [cm];", 200, -3., 3.),
     OutputObjHandlingPolicy::QAObject};
 
-  OutputObj<TH1F> flag{TH1F("track-flags", "track flag;flag bit", 64, -0.5, 63.5),
-                       OutputObjHandlingPolicy::QAObject};
+  OutputObj<TH1F> flag{
+    TH1F("track-flags", "track flag;flag bit", 64, -0.5, 63.5),
+    OutputObjHandlingPolicy::QAObject};
 
-  OutputObj<TH1F> pt{TH1F("track-pt", "p_{T};p_{T} [GeV/c]", 100, 0., 50.),
-                     OutputObjHandlingPolicy::QAObject};
+  OutputObj<TH1F> pt{
+    TH1F("track-pt", "p_{T};p_{T} [GeV/c]", 100, 0., 50.),
+    OutputObjHandlingPolicy::QAObject};
 
-  OutputObj<TH1F> eta{TH1F("track-eta", "#eta;#eta", 101, -1.0, 1.0),
-                      OutputObjHandlingPolicy::QAObject};
+  OutputObj<TH1F> eta{
+    TH1F("track-eta", "#eta;#eta", 101, -1.0, 1.0),
+    OutputObjHandlingPolicy::QAObject};
 
-  OutputObj<TH1F> phi{TH1F("track-phi", "#phi;#phi [rad]", 100, 0., 2 * M_PI),
-                      OutputObjHandlingPolicy::QAObject};
+  OutputObj<TH1F> phi{
+    TH1F("track-phi", "#phi;#phi [rad]", 100, 0., 2 * M_PI),
+    OutputObjHandlingPolicy::QAObject};
 
   // ITS related quantities
   OutputObj<TH1F> itsFoundClusters{
@@ -215,15 +219,15 @@ struct TrackQATask {
     OutputObjHandlingPolicy::QAObject};
 
   OutputObj<TH1F> tpcFoundClusters{
-    TH1F("tpc-foundClusters", "number of found TPC clusters;# clusters TPC", 165, -0.5, 164.5), OutputObjHandlingPolicy::QAObject};
+    TH1F("tpc-foundClusters", "number of found TPC clusters;# clusters TPC", 165, -0.5, 164.5),
+    OutputObjHandlingPolicy::QAObject};
 
   OutputObj<TH1F> tpcSharedClusters{
     TH1F("tpc-sharedClusters", "number of shared TPC clusters;;# shared clusters TPC", 165, -0.5, 164.5),
     OutputObjHandlingPolicy::QAObject};
 
   OutputObj<TH1F> tpcFractionSharedClusters{
-    TH1F("tpc-fractionSharedClusters",
-         "fraction of shared TPC clusters;fraction shared clusters TPC", 100, 0., 1.),
+    TH1F("tpc-fractionSharedClusters", "fraction of shared TPC clusters;fraction shared clusters TPC", 100, 0., 1.),
     OutputObjHandlingPolicy::QAObject};
 
   OutputObj<TH1F> tpcCrossedRows{
