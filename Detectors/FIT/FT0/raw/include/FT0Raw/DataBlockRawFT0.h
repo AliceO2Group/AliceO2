@@ -34,7 +34,7 @@
 #include <array>
 #include <iostream>
 #include <cassert>
-//using namespace o2::fit;
+using namespace o2::fit;
 namespace o2
 {
 namespace ft0
