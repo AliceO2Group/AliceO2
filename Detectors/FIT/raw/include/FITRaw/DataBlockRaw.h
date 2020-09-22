@@ -256,7 +256,7 @@ struct DataBlockWrapper {
     }
     return readingScheme;
   }
-  static constexpr std::array<std::tuple<unsigned int, unsigned int, bool>, MaxNwords> sReadingLookupTable = GetReadingLookupTable();
+  static constexpr std::array<std::tuple<unsigned int, unsigned int, bool>, MaxNwords+1> sReadingLookupTable = GetReadingLookupTable();
   //
   //Printing LookupTables
   static void printLUT()
