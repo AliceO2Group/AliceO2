@@ -117,13 +117,12 @@ struct Digit {
 
 //For TCM extended mode (calibration mode), TCMdataExtended digit
 struct TriggersExt {
-/*  TriggersExt(uint32_t triggerWord)
+  TriggersExt(uint32_t triggerWord)
   {
     mTriggerWord=triggerWord;
   }
-*/
   TriggersExt() = default;
-  uint32_t mTriggerWords[20];//change to gsl::span??
+  uint32_t mTriggerWord;
   ClassDefNV(TriggersExt, 1);
 };
 

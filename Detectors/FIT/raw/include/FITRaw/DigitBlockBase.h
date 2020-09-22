@@ -44,7 +44,6 @@ class DigitBlockBase//:public DigitBlock
   DigitBlockBase() = default;
   DigitBlockBase(const DigitBlockBase& other) = default;
   ~DigitBlockBase() = default;
-
   //Digit mDigit;
   //std::vector<ChannelData> mVecChannelData;
   //static o2::ft0::LookUpTable sLookupTable;

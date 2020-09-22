@@ -205,7 +205,7 @@ struct TCMdata {
 struct TCMdataExtended {
   static constexpr size_t PayloadSize = 4;
   static constexpr size_t PayloadPerGBTword = 10;
-  static constexpr int MinNelements = 1;
+  static constexpr int MinNelements = 0;
   static constexpr int MaxNelements = 20;
   union {
     uint32_t word[1] = {};
