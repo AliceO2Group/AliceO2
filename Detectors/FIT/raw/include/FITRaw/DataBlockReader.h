@@ -22,6 +22,8 @@
 #define ALICEO2_FIT_DATABLOCKREADER_H_
 #include <iostream>
 #include <vector>
+#include <map>
+
 #include <Rtypes.h>
 //#include "FT0Raw/DataBlockRaw.h"
 //#include "FT0Raw/DigitBlockFT0.h"
@@ -91,11 +93,11 @@ class RawReaderBase : public boost::mpl::inherit<DataBlockReader<DataBlockTypes>
   template<class... DigitType>
   int getDigits(std::vector<DigitType>&... vecDigit)
   {
-    int digitCounter = RawReaderBaseType::mMapDigits.size();
-    for (auto& digit : (RawReaderBaseType::mMapDigits)) {
+    int digitCounter = mMapDigits.size();
+    for (auto& digit : mMapDigits) {
       digit.second.pop(vecDigit...);
     }
-    (RawReaderBaseType::mMapDigits).clear();
+    mMapDigits.clear();
     return digitCounter;
   }
 
