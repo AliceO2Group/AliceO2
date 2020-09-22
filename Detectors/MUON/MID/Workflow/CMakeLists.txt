@@ -12,34 +12,33 @@ o2_add_library(MIDWorkflow
                TARGETVARNAME targetName
                SOURCES src/RecoWorkflow.cxx
                        src/ClusterizerMCSpec.cxx
+                       src/ClusterizerSpec.cxx
                        src/DigitReaderSpec.cxx
-                       src/RecoWorkflowMC.cxx
-                       src/TrackerMCSpec.cxx
-		       src/ClusterizerSpec.cxx
-		       src/RecoWorkflow.cxx
-		       src/RawDecoderSpec.cxx
-		       src/RawAggregatorSpec.cxx
-		       src/TrackerSpec.cxx
-		       src/DigitReaderSpec.cxx
-		       src/DigitsToRawWorkflow.cxx
-		       src/RawWriterSpec.cxx
+                       src/DigitsToRawWorkflow.cxx
                        src/EntropyDecoderSpec.cxx
                        src/EntropyEncoderSpec.cxx
-		       PUBLIC_LINK_LIBRARIES
-		       O2::Framework
-		       O2::SimConfig
-		       ms_gsl::ms_gsl
-		       O2::DetectorsBase
-		       O2::SimulationDataFormat
-		       O2::DataFormatsMID
-		       O2::DPLUtils
-		       O2::MIDSimulation
-		       O2::MIDClustering
-		       O2::MIDTracking
-		       O2::MIDRaw
+                       src/RawAggregatorSpec.cxx
+                       src/RawDecoderSpec.cxx
+                       src/RecoWorkflow.cxx
+                       src/RecoWorkflowMC.cxx
+                       src/RawWriterSpec.cxx
+                       src/TrackerMCSpec.cxx
+                       src/TrackerSpec.cxx
+               PUBLIC_LINK_LIBRARIES
+                       O2::Framework
+                       O2::SimConfig
+                       ms_gsl::ms_gsl
+                       O2::DetectorsBase
+                       O2::DPLUtils
+                       O2::SimulationDataFormat
+                       O2::DataFormatsMID
+                       O2::MIDClustering
                        O2::MIDCTF
-		       )
-		     
+                       O2::MIDRaw
+                       O2::MIDSimulation
+                       O2::MIDTracking
+              )
+
 o2_add_executable(
   reco-workflow-mc
   COMPONENT_NAME mid
@@ -83,3 +82,14 @@ o2_add_executable(
 
 target_include_directories(
   ${exenameentropy} PRIVATE $<BUILD_INTERFACE:${CMAKE_CURRENT_LIST_DIR}/include>)
+
+o2_add_executable(
+  raw-to-digits-workflow
+  COMPONENT_NAME mid
+  SOURCES src/raw-to-digits-workflow.cxx
+  TARGETVARNAME exanamedigitstoraw
+  PUBLIC_LINK_LIBRARIES O2::MIDWorkflow)
+
+target_include_directories(
+  ${exanamedigitstoraw}
+  PRIVATE $<BUILD_INTERFACE:${CMAKE_CURRENT_LIST_DIR}/include>)
