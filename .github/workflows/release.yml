@@ -25,7 +25,7 @@ jobs:
       run: |
         set -x
         git fetch origin
-        git checkout -B ${{ steps.decide_release_branch.outputs.branch }} origin/${{ steps.decide_release_branch.outputs.branch }}
+        git checkout -B ${{ steps.decide_release_branch.outputs.branch }}
         git config --global user.email "alibuild@cern.ch"
         git config --global user.name "ALICE Action Bot"
         git tag ${{ github.event.inputs.tag }}
