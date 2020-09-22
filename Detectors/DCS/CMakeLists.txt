@@ -16,11 +16,16 @@ o2_add_library(DetectorsDCS
 		       src/DataPointValue.cxx
 		       src/DeliveryType.cxx
 		       src/GenericFunctions.cxx
-		       src/StringUtils.cxx)
+		       src/StringUtils.cxx
+		       src/DCSProcessor.cxx
+               PUBLIC_LINK_LIBRARIES O2::Headers
+	                             O2::CommonUtils
+	                             ms_gsl::ms_gsl)
 
 o2_target_root_dictionary(DetectorsDCS
                           HEADERS include/DetectorsDCS/DataPointCompositeObject.h
 			          include/DetectorsDCS/DataPointIdentifier.h
-				  include/DetectorsDCS/DataPointValue.h)
+				  include/DetectorsDCS/DataPointValue.h
+				  include/DetectorsDCS/DCSProcessor.h)
 
 

@@ -17,5 +17,6 @@
 #pragma link C++ struct o2::dcs::DataPointCompositeObject + ;
 #pragma link C++ class o2::dcs::DataPointIdentifier + ;
 #pragma link C++ struct o2::dcs::DataPointValue + ;
+#pragma link C++ class o2::dcs::DCSProcessor + ;
 
 #endif

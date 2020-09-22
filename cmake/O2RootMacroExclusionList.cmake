@@ -52,7 +52,8 @@ list(APPEND O2_ROOT_MACRO_EXCLUSION_LIST
             macro/loadExtDepLib.C
             macro/load_all_libs.C
             macro/putCondition.C
-            macro/rootlogon.C)
+            macro/rootlogon.C
+	    Detectors/DCS/test/processor_dpcom_o2.C)
 
 if(NOT BUILD_SIMULATION)
   # some complete sub_directories are not added to the build when not building
