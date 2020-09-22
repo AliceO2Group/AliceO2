@@ -15,12 +15,7 @@
 #include "Analysis/TrackSelection.h"
 #include <TH1F.h>
 
-ClassImp(TrackSelection)
-
-  TrackSelection::TrackSelection()
-  : TObject(), mTrackType{o2::aod::track::TrackTypeEnum::GlobalTrack}, mMinPt{0.}, mMaxPt{1e10}, mMinEta{-1e10}, mMaxEta{1e10}, mMinNClustersTPC{0}, mMinNCrossedRowsTPC{0}, mMinNClustersITS{0}, mMaxChi2PerClusterTPC{1e10}, mMaxChi2PerClusterITS{1e10}, mMinNCrossedRowsOverFindableClustersTPC{0}, mMaxDcaXY{1e10}, mMaxDcaZ{1e10}, mRequireITSRefit{false}, mRequireTPCRefit{false}, mRequiredITSHits{}
-{
-}
+ClassImp(TrackSelection);
 
 bool TrackSelection::FulfillsITSHitRequirements(uint8_t itsClusterMap)
 {
