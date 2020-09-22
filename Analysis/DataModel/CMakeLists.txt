@@ -46,7 +46,7 @@ install(FILES
 
 o2_add_executable(aod-data-model-graph
                   SOURCES src/aodDataModelGraph.cxx
-                  PUBLIC_LINK_LIBRARIES O2::Framework O2::AnalysisDataModel
+                  PUBLIC_LINK_LIBRARIES O2::Framework O2::AnalysisDataModel O2::AnalysisCore
                  )
 
 o2_add_executable(pidparam-tpc-bethe-bloch
