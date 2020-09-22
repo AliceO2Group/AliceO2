@@ -88,9 +88,12 @@ struct HFTrackIndexSkimsCreator {
 
   OutputObj<TH1F> hvtx_x_out{TH1F("hvtx_x", "2-track vtx", 1000, -2.0, 2.0)};
   OutputObj<TH1F> hvtx_y_out{TH1F("hvtx_y", "2-track vtx", 1000, -2.0, 2.0)};
-  OutputObj<TH1F> hvtx_z_out{TH1F("hvtx_z", "2-track vtx", 1000, -10.0, 10.0)};
+  OutputObj<TH1F> hvtx_z_out{TH1F("hvtx_z", "2-track vtx", 1000, -20.0, 20.0)};
   OutputObj<TH1F> hmass2{TH1F("hmass2", "; Inv Mass (GeV/c^{2})", 500, 0, 5.0)};
   OutputObj<TH1F> hmass3{TH1F("hmass3", "; Inv Mass (GeV/c^{2})", 500, 1.6, 2.1)};
+  OutputObj<TH1F> hvtx3_x_out{TH1F("hvtx3_x", "3-track vtx", 1000, -2.0, 2.0)};
+  OutputObj<TH1F> hvtx3_y_out{TH1F("hvtx3_y", "3-track vtx", 1000, -2.0, 2.0)};
+  OutputObj<TH1F> hvtx3_z_out{TH1F("hvtx3_z", "3-track vtx", 1000, -20.0, 20.0)};
 
   Filter filterSelectTracks = aod::seltrack::issel == 1;
   using SelectedTracks = soa::Filtered<soa::Join<aod::Tracks, aod::TracksCov, aod::TracksExtra, aod::SelTrack>>;
@@ -218,6 +221,7 @@ struct HFTrackIndexSkimsCreator {
             df3.getTrack(0).getPxPyPzGlo(pvec0);
             df3.getTrack(1).getPxPyPzGlo(pvec1);
             df3.getTrack(2).getPxPyPzGlo(pvec2);
+            const auto& secondaryVertex3 = df3.getPCACandidate();
 
             // calculate invariant mass
             arr3Mom = array{pvec0, pvec1, pvec2};
@@ -225,6 +229,9 @@ struct HFTrackIndexSkimsCreator {
 
             if (b_dovalplots) {
               hmass3->Fill(mass3PiKPi);
+              hvtx3_x_out->Fill(secondaryVertex3[0]);
+              hvtx3_y_out->Fill(secondaryVertex3[1]);
+              hvtx3_z_out->Fill(secondaryVertex3[2]);
             }
 
             // fill table row
