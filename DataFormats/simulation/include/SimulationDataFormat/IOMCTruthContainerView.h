@@ -41,11 +41,16 @@ class IOMCTruthContainerView
   /// container is just a split view on the original buffer.
   IOMCTruthContainerView(std::vector<char> const& input)
   {
+    adopt(gsl::span<const char>(&(input[0]), input.size()));
+  }
+
+  IOMCTruthContainerView(gsl::span<const char> const input)
+  {
     adopt(input);
   }
 
   /// "adopt" (without taking ownership) from an existing buffer
-  void adopt(std::vector<char> const& input)
+  void adopt(gsl::span<const char> const input)
   {
     const auto delta = input.size() / N;
     N2 = input.size() - (N - 1) * delta;
