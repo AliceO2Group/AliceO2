@@ -112,6 +112,20 @@ void GBTLink::printDiagnostic(const GBTDiagnostic* gbtD)
   LOG(INFO) << "Diagnostic word";
 }
 
+///_________________________________________________________________
+void GBTLink::printCableDiagnostic(const GBTCableDiagnostic* gbtD)
+{
+  gbtD->printX();
+  LOGF(INFO, "Diagnostic for %s Lane %d | errorID: %d data 0x%016lx", gbtD->isIB() ? "IB" : "OB", gbtD->getCableID(), gbtD->laneErrorID, gbtD->diagnosticData);
+}
+
+///_________________________________________________________________
+void GBTLink::printCableStatus(const GBTCableStatus* gbtS)
+{
+  gbtS->printX();
+  LOGF(INFO, "Status data, not processed at the moment");
+}
+
 ///====================================================================
 
 #ifdef _RAW_READER_ERROR_CHECKS_
@@ -298,6 +312,21 @@ GBTLink::ErrorType GBTLink::checkErrorsGBTData(int cablePos)
   }
 
   return NoError;
+}
+
+///_________________________________________________________________
+/// Check GBT Data word ID: it might be diagnostic or status data
+GBTLink::ErrorType GBTLink::checkErrorsGBTDataID(const GBTData* gbtD)
+{
+  if (gbtD->isData()) {
+    return NoError;
+  }
+  if (gbtD->isCableDiagnostic()) {
+    printCableDiagnostic((GBTCableDiagnostic*)gbtD);
+  } else if (gbtD->isStatus()) {
+    printCableStatus((GBTCableStatus*)gbtD);
+  }
+  return Skip;
 }
 
 ///_________________________________________________________________

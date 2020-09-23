@@ -37,6 +37,8 @@
 #pragma link C++ class o2::itsmft::GBTDataTrailer + ;
 #pragma link C++ class o2::itsmft::GBTTrigger + ;
 #pragma link C++ class o2::itsmft::GBTDiagnostic + ;
+#pragma link C++ class o2::itsmft::GBTCableDiagnostic + ;
+#pragma link C++ class o2::itsmft::GBTCableStatus + ;
 #pragma link C++ class o2::itsmft::GBTCalibration + ;
 #pragma link C++ class o2::itsmft::GBTData + ;
 #pragma link C++ class o2::itsmft::PayLoadCont + ;
