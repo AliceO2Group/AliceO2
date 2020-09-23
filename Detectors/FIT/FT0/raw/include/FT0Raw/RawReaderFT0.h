@@ -33,6 +33,8 @@
 //#include "DataFormatsFT0/ChannelData.h"
 
 #include <gsl/span>
+
+using namespace o2::fit;
 namespace o2
 {
 namespace ft0

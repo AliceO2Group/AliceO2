@@ -50,7 +50,7 @@ class DigitBlockFT0: public DigitBlockBase<DigitBlockFT0>
   DigitBlockFT0() = default;
   DigitBlockFT0(const DigitBlockFT0& other) = default;
   ~DigitBlockFT0() = default;
-  void setIntRec(o2::InteractionRecord intRec) {mDigit.mIntRecord = intRec;};
+  void setIntRec(o2::InteractionRecord intRec) {mDigit.mIntRecord = intRec;}
   Digit mDigit;
   std::vector<ChannelData> mVecChannelData;
   static o2::ft0::LookUpTable sLookupTable;
@@ -145,7 +145,7 @@ class DigitBlockFT0ext: public DigitBlockBase<DigitBlockFT0ext>
   DigitBlockFT0() = default;
   DigitBlockFT0(const DigitBlockFT0& other) = default;
   ~DigitBlockFT0() = default;
-  void setIntRec(o2::InteractionRecord intRec) {mDigit.mIntRecord = intRec;};
+  void setIntRec(o2::InteractionRecord intRec) {mDigit.mIntRecord = intRec;}
   DigitExt mDigit;
   std::vector<ChannelData> mVecChannelData;
   std::vector<TriggersExt> mVecTriggersExt;
