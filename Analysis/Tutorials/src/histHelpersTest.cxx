@@ -55,8 +55,10 @@ struct HistHelpersTest {
 
   OutputObj<HistArray> test{HistArray("Test"), OutputObjHandlingPolicy::QAObject};
   OutputObj<HistArray> kine{HistArray("Kine"), OutputObjHandlingPolicy::QAObject};
-  OutputObj<HistArray> tpc{HistArray("TPC"), OutputObjHandlingPolicy::QAObject};
+  OutputObj<HistFolder> tpc{HistFolder("TPC"), OutputObjHandlingPolicy::QAObject};
   OutputObj<HistList> its{HistList("ITS"), OutputObjHandlingPolicy::QAObject};
+
+  OutputObj<THnF> standaloneHist{"standaloneHist", OutputObjHandlingPolicy::QAObject};
 
   void init(o2::framework::InitContext&)
   {
@@ -157,6 +159,13 @@ struct HistHelpersTest {
     thirdHist.AddAxes(baseDimensions);
     thirdHist.AddAxis("myLastDimension", "a (m/(s*s))", 10, -1, 1);
     its->Add(Hist_test_8d_THnC_third, thirdHist.Create("thirdHist"));
+
+    // we can also use the Hist heleper tool independent of the HistCollections:
+    Hist<THnF> myHist;
+    myHist.AddAxis(ptAxis);
+    myHist.AddAxis(etaAxis);
+    myHist.AddAxis(phiAxis);
+    standaloneHist.setObject(myHist.Create("standaloneHist"));
   }
 
   void process(soa::Join<aod::Tracks, aod::TracksExtra>::iterator const& track)
@@ -189,12 +198,17 @@ struct HistHelpersTest {
     tpc->Fill(Hist_Chi2PerClTPC, track.itsChi2NCl());
 
     its->Fill(Hist_Chi2PerClITS, track.tpcChi2NCl());
+
+    double dummyArray[] = {track.pt(), track.eta(), track.phi()};
+    standaloneHist->Fill(dummyArray);
   }
 };
 
-//--------------------------------------------------------------------
-// Workflow definition
-//--------------------------------------------------------------------
+//****************************************************************************************
+/**
+ * Workflow definition.
+ */
+//****************************************************************************************
 WorkflowSpec defineDataProcessing(ConfigContext const&)
 {
   return WorkflowSpec{
