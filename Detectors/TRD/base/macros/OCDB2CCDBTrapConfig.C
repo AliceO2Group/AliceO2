@@ -207,7 +207,7 @@ its all going here unfortunately ....
 */
 
   vector<std::string> run2confignames = {
-    /* "cf_pg-fpnp32_zs-s16-deh_tb30_trkl-b5n-fs1e24-ht200-qs0e24s24e23-pidlinear-pt100_ptrg.r5505",
+    "cf_pg-fpnp32_zs-s16-deh_tb30_trkl-b5n-fs1e24-ht200-qs0e24s24e23-pidlinear-pt100_ptrg.r5505",
     "cf_pg-fpnp32_zs-s16-deh_tb24_trkl-b2p-fs1e24-ht200-qs0e24s24e23-pidlinear-pt100_ptrg.r5585",
     "cf_pg-fpnp32_zs-s16-deh_tb24_trkl-b5p-fs1e24-ht200-qs0e23s23e22-pidlhc11dv3en-pt100_ptrg.r5766",
     "cf_pg-fpnp32_zs-s16-deh_tb24_trkl-b0-fs1e24-ht200-qs0e23s23e22-pidlhc11dv3en_ptrg.r5767",
@@ -261,7 +261,7 @@ its all going here unfortunately ....
     "cf_pg-fpnp32_zs-s16-deh_tb26_trkl-b2n-fs1e24-ht200-qs0e23s23e22-pidlhc11dv3en-pt100_ptrg.r5771",
     "cf_pg-fpnp32_zs-s16-deh_tb24_trkl-b5n-fs1e24-ht200-qs0e23s23e22-pidlhc11dv1-pt100_ptrg.r5762",
     "cf_pg-fpnp32_zs-s16-deh_tb30_trkl-b0-fs1e24-ht200-qs0e24s24e23-pidlinear_ptrg.r5505",
-    "cf_pg-fpnp32_zs-s16-deh_tb24_trkl-b0-fs1e24-ht200-qs0e23s23e22-pidlhc11dv1_ptrg.r5762",*/
+    "cf_pg-fpnp32_zs-s16-deh_tb24_trkl-b0-fs1e24-ht200-qs0e23s23e22-pidlhc11dv1_ptrg.r5762",
     "cf_pg-fpnp32_zs-s16-deh_tb30_trkl-b5n-fs1e24-ht200-qs0e24s24e23-pidlinear-pt100_ptrg.r5549"};
 
   // now we loop over these extracting the trapconfing and dumping it into the ccdb.
@@ -270,10 +270,10 @@ its all going here unfortunately ....
   if ((entry = GetCDBentry("TRD/Calib/TrapConfig", 0))) {
     if ((run2caltrapconfig = (AliTRDCalTrapConfig*)entry->GetObject())) {
       for (auto const& run2trapconfigname : run2confignames) {
-        auto o2trapconfig = new TrapConfig(run2trapconfigname);
+        auto o2trapconfig = new TrapConfig();
         run2trapconfig = run2caltrapconfig->Get(run2trapconfigname.c_str());
         ParseTrapConfigs(o2trapconfig, run2trapconfig);
-        //   ccdb.storeAsTFileAny(o2trapconfig, "TRD_test/TrapConfig2020/c", metadata, 1, 1670700184549); //upper time chosen into the future else the server simply adds a year
+        ccdb.storeAsTFileAny(o2trapconfig, "TRD_test/TrapConfig", metadata, 1, 1670700184549); //upper time chosen into the future else the server simply adds a year
         //    cout << "ccdb.storeAsTFileAny(o2trapconfig, Form(\"" << TRDCalBase.c_str() << "/TrapConfig/" << run2trapconfigname.c_str()<< endl; //upper time chosen into the future else the server simply adds a year
         //AliTRDcalibDB *calibdb=AliTRDcalibDB::Instance();
       }
