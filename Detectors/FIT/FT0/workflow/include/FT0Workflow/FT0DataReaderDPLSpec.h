@@ -23,7 +23,7 @@
 #include "Framework/WorkflowSpec.h"
 #include "Framework/SerializationMethods.h"
 #include "DPLUtils/DPLRawParser.h"
-#include "FT0Raw/DataBlockReader.h"
+#include "FT0Raw/RawReaderFT0.h"
 #include "FT0Raw/DigitBlockFT0.h"
 
 #include "DataFormatsFT0/Digit.h"
