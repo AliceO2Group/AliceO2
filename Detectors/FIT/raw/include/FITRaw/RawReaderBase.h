@@ -24,6 +24,7 @@
 #include <Rtypes.h>
 #include <CommonDataFormat/InteractionRecord.h>
 #include "Headers/RAWDataHeader.h"
+#include <Framework/Logger.h>
 
 #include <gsl/span>
 namespace o2
