@@ -223,11 +223,12 @@ struct DataBlockWrapper {
   {
     std::array<std::tuple<unsigned int, unsigned int, bool>, MaxNwords+1> readingScheme{};
     size_t payloadPerElem = T::PayloadSize;
+    std::get<kNSTEPS>(readingScheme[0])=0;
     std::get<kNELEMENTS>(readingScheme[0])=0;
     std::get<kISPARTED>(readingScheme[0]) = false;
     int countWord = 1;
     for (int iStep = 0; iStep < getNsteps(); iStep++) {
-      if (countWord < std::get<kWORDINDEX>((GetByteLookupTable())[iStep])) { //new word
+      if (countWord-1 < std::get<kWORDINDEX>((GetByteLookupTable())[iStep])) { //new word
         std::get<kNSTEPS>(readingScheme[countWord]) = iStep;
         std::get<kNELEMENTS>(readingScheme[countWord]) = std::get<kELEMENTINDEX>((GetByteLookupTable())[iStep]);
         if (payloadPerElem > 0) {
@@ -341,7 +342,6 @@ class DataBlockBase : public boost::mpl::inherit<DataBlockWrapper<Header>, DataB
     mIsCorrect = true;
     checkDeserialization(mIsCorrect, DataBlockWrapper<Header>::mIsIncorrect);                // checking deserialization status for header
     (checkDeserialization(mIsCorrect, DataBlockWrapper<DataStructures>::mIsIncorrect), ...); // checking deserialization status for sub-block 
-    
     static_cast<DataBlock*>(this)->sanityCheck(mIsCorrect);
   }
 

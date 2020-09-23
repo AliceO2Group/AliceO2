@@ -212,7 +212,7 @@ struct TCMdataExtended {
     uint32_t triggerWord;
   };
 
-  void print()
+  void print() const
   {
 
     std::cout << std::hex;
