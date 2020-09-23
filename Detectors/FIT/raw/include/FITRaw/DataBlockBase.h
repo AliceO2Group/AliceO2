@@ -17,7 +17,8 @@
 //  payloadSize - actual payload size per one raw data struct element (can be larger than GBTword size!)
 //  payloadPerGBTword - maximum payload per one GBT word
 //  MaxNelements - maximum number of elements per data block(for header it should be equal to 1)
-//
+//  MinNelements - minimum number of elements per data block(for header it should be equal to 1)
+
 //Also it requares several methods:
 //  print() - for printing raw data structs
 //  getIntRec() - for InteractionRecord extraction, should be in Header struct
