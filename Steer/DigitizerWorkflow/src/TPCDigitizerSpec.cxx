@@ -199,14 +199,12 @@ class TPCDPLDigitizerTask : public BaseDPLDigitizer
     uint64_t activeSectors = 0;
     activeSectors = sectorHeader->activeSectors;
 
-    // lambda that snapshots digits to be sent out; prepares and attaches header with sector information
-    auto snapshotDigits = [this, sector, &pc, activeSectors, &dh](std::vector<o2::tpc::Digit> const& digits) {
+    // lambda that creates a DPL owned buffer to accumulate the digits (in shared memory)
+    auto makeDigitBuffer = [this, sector, &pc, activeSectors, &dh]() {
       o2::tpc::TPCSectorHeader header{sector};
       header.activeSectors = activeSectors;
-      // note that snapshoting only works with non-const references (to be fixed?)
-      pc.outputs().snapshot(Output{"TPC", "DIGITS", static_cast<SubSpecificationType>(dh->subSpecification), Lifetime::Timeframe,
-                                   header},
-                            const_cast<std::vector<o2::tpc::Digit>&>(digits));
+      return &pc.outputs().make<std::vector<o2::tpc::Digit>>(Output{"TPC", "DIGITS", static_cast<SubSpecificationType>(dh->subSpecification), Lifetime::Timeframe,
+                                                                    header});
     };
     // lambda that snapshots the common mode vector to be sent out; prepares and attaches header with sector information
     auto snapshotCommonMode = [this, sector, &pc, activeSectors, &dh](std::vector<o2::tpc::CommonMode> const& commonMode) {
@@ -237,7 +235,7 @@ class TPCDPLDigitizerTask : public BaseDPLDigitizer
                             const_cast<std::vector<DigiGroupRef>&>(events));
     };
 
-    std::vector<o2::tpc::Digit> digitsAccum;                       // accumulator for digits
+    auto digitsAccum = makeDigitBuffer();                          // accumulator for digits
     o2::dataformats::MCTruthContainer<o2::MCCompLabel> labelAccum; // timeframe accumulator for labels
     std::vector<CommonMode> commonModeAccum;
     std::vector<DigiGroupRef> eventAccum;
@@ -260,14 +258,14 @@ class TPCDPLDigitizerTask : public BaseDPLDigitizer
 
     auto& eventParts = context->getEventParts();
 
-    auto flushDigitsAndLabels = [this, &digitsAccum, &labelAccum, &commonModeAccum](bool finalFlush = false) {
+    auto flushDigitsAndLabels = [this, digitsAccum, &labelAccum, &commonModeAccum](bool finalFlush = false) {
       // flush previous buffer
       mDigits.clear();
       mLabels.clear();
       mCommonMode.clear();
       mDigitizer.flush(mDigits, mLabels, mCommonMode, finalFlush);
       LOG(INFO) << "TPC: Flushed " << mDigits.size() << " digits, " << mLabels.getNElements() << " labels and " << mCommonMode.size() << " common mode entries";
-      std::copy(mDigits.begin(), mDigits.end(), std::back_inserter(digitsAccum));
+      std::copy(mDigits.begin(), mDigits.end(), std::back_inserter(*digitsAccum));
       if (mWithMCTruth) {
         labelAccum.mergeAtBack(mLabels);
       }
@@ -289,7 +287,7 @@ class TPCDPLDigitizerTask : public BaseDPLDigitizer
       if (!isContinuous) {
         mDigitizer.setStartTime(sampaProcessing.getTimeBinFromTime(eventTime));
       }
-      int startSize = digitsAccum.size();
+      int startSize = digitsAccum->size();
 
       // for each collision, loop over the constituents event and source IDs
       // (background signal merging is basically taking place here)
@@ -310,7 +308,7 @@ class TPCDPLDigitizerTask : public BaseDPLDigitizer
         flushDigitsAndLabels();
 
         if (!isContinuous) {
-          eventAccum.emplace_back(startSize, digitsAccum.size() - startSize);
+          eventAccum.emplace_back(startSize, digitsAccum->size() - startSize);
         }
       }
     }
@@ -319,12 +317,12 @@ class TPCDPLDigitizerTask : public BaseDPLDigitizer
     if (isContinuous) {
       LOG(INFO) << "TPC: Final flush";
       flushDigitsAndLabels(true);
-      eventAccum.emplace_back(0, digitsAccum.size()); // all digits are grouped to 1 super-event pseudo-triggered mode
+      eventAccum.emplace_back(0, digitsAccum->size()); // all digits are grouped to 1 super-event pseudo-triggered mode
     }
 
     // send out to next stage
     snapshotEvents(eventAccum);
-    snapshotDigits(digitsAccum);
+    // snapshotDigits(digitsAccum); --> done automatically
     snapshotCommonMode(commonModeAccum);
     snapshotLabels(labelAccum);
 
