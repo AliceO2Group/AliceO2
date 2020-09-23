@@ -38,7 +38,7 @@ void FT0DataReaderDPLSpec<IsExtendedMode>::run(ProcessingContext& pc)
     count++;
     auto rdhPtr = it.get_if<o2::header::RAWDataHeader>();
     gsl::span<const uint8_t> payload(it.data(), it.size());
-    mRawReaderFT0.proccess(rdhPtr->linkID, payload);
+    mRawReaderFT0.process(rdhPtr->linkID, payload);
   }
 
   mRawReaderFT0.getDigits(mVecDigits, mVecChannelData);
