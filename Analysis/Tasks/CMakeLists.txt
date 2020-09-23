@@ -14,6 +14,7 @@ add_subdirectory(PWGHF)
 add_subdirectory(PWGLF)
 add_subdirectory(PWGUD)
 
+
 o2_add_dpl_workflow(trackselection
                     SOURCES trackselection.cxx
                     PUBLIC_LINK_LIBRARIES O2::Framework O2::AnalysisDataModel O2::AnalysisCore
@@ -95,4 +96,10 @@ o2_add_dpl_workflow(run2-matcher
 o2_add_dpl_workflow(run3-matcher
                     SOURCES run3Matcher.cxx
                     PUBLIC_LINK_LIBRARIES O2::Framework O2::DetectorsBase O2::AnalysisDataModel
+                    COMPONENT_NAME Analysis)
+
+
+o2_add_dpl_workflow(track-checks
+                    SOURCES trackchecks.cxx
+                    PUBLIC_LINK_LIBRARIES O2::Framework O2::AnalysisDataModel O2::AnalysisCore O2::DetectorsBase
                     COMPONENT_NAME Analysis)
