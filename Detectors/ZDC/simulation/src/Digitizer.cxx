@@ -251,7 +251,7 @@ bool Digitizer::triggerBC(int ibc)
     }
   }
 
-  if (bcCached.trigChanMask & triggerableChanMask) { // there are triggered channels, flag modules/channels to read
+  if (bcCached.trigChanMask & mTriggerableChanMask) { // there are triggered channels, flag modules/channels to read
     for (int ibcr = ibc - mNBCAHead; ibcr <= ibc; ibcr++) {
       auto& bcr = mStoreChanMask[ibcr + mNBCAHead];
       for (const auto& mdh : mModConfAux) {
@@ -415,7 +415,7 @@ void Digitizer::refreshCCDB()
               mTriggerConfig.emplace_back(trgChanConf);
 	      if(md.trigChannel[ic]){
         	LOG(INFO) << "Adding channel " << int(trgChanConf.id) << '(' << channelName(trgChanConf.id) << ") as triggering one";
-		triggerableChanMask |= 0x1 << trgChanConf.id;
+		mTriggerableChanMask |= 0x1 << trgChanConf.id;
 	      }else{
         	LOG(INFO) << "Adding channel " << int(trgChanConf.id) << '(' << channelName(trgChanConf.id) << ") as discriminator";
 	      }
