@@ -23,7 +23,14 @@ using namespace o2::framework;
 //        we need GCC 7.4+ for that
 struct ATask {
   /// Construct a registry object with direct declaration
-  HistogramRegistry registry{"registry", true, {{"eta", "#eta", {HistogramType::kTH1F, {{102, -2.01, 2.01}}}}, {"phi", "#varphi", {HistogramType::kTH1F, {{100, 0., 2. * M_PI}}}}}};
+  HistogramRegistry registry{
+    "registry",
+    true,
+    {
+      {"eta", "#eta", {HistogramType::kTH1F, {{102, -2.01, 2.01}}}},     //
+      {"phi", "#varphi", {HistogramType::kTH1F, {{100, 0., 2. * M_PI}}}} //
+    }                                                                    //
+  };
 
   void process(aod::Tracks const& tracks)
   {
