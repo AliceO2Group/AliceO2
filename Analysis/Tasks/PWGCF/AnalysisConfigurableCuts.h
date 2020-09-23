@@ -40,19 +40,17 @@ class EventSelectionCuts
 class DptDptBinningCuts
 {
  public:
-  int mZVtxbins = 28;             ///< the number of z_vtx bins default 28
-  float mZVtxmin = -7.0;          ///< the minimum z_vtx value, default -7.0 cm
-  float mZVtxmax = 7.0;           ///< the maximum z_vtx value, default 7.0 cm
-  int mPTbins = 18;               ///< the number of pT bins, default 18
-  float mPTmin = 0.2;             ///< the minimum pT value, default 0.2 GeV
-  float mPTmax = 2.0;             ///< the maximum pT value, default 2.0 GeV
-  int mEtabins = 16;              ///< the number of eta bins default 16
-  float mEtamin = -0.8;           ///< the minimum eta value, default -0.8
-  float mEtamax = 0.8;            ///< the maximum eta value, default 0.8
-  int mPhibins = 72;              ///< the number of phi bins, default 72
-  float mPhimin = 0.0;            ///< the minimum phi value, default 0.0
-  float mPhimax = TMath::TwoPi(); ///< the maximum phi value, default 2*pi
-  float mPhibinshift = 0.5;       ///< the shift in the azimuthal origen, defoult 0.5, i.e half a bin
+  int mZVtxbins = 28;       ///< the number of z_vtx bins default 28
+  float mZVtxmin = -7.0;    ///< the minimum z_vtx value, default -7.0 cm
+  float mZVtxmax = 7.0;     ///< the maximum z_vtx value, default 7.0 cm
+  int mPTbins = 18;         ///< the number of pT bins, default 18
+  float mPTmin = 0.2;       ///< the minimum pT value, default 0.2 GeV
+  float mPTmax = 2.0;       ///< the maximum pT value, default 2.0 GeV
+  int mEtabins = 16;        ///< the number of eta bins default 16
+  float mEtamin = -0.8;     ///< the minimum eta value, default -0.8
+  float mEtamax = 0.8;      ///< the maximum eta value, default 0.8
+  int mPhibins = 72;        ///< the number of phi bins, default 72
+  float mPhibinshift = 0.5; ///< the shift in the azimuthal origen, defoult 0.5, i.e half a bin
 
  private:
   ClassDefNV(DptDptBinningCuts, 1);

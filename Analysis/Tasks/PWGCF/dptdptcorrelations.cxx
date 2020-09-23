@@ -34,9 +34,6 @@ using namespace o2::framework::expressions;
 
 void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
 {
-  //  std::vector<ConfigParamSpec> options{
-  //    {"centralities", VariantType::String, "0-5,5-10,10-20,20-30,30-40,40-50,50-60,60-70,70-80", {"Centrality/multiplicity ranges in min-max separated by commas"}}};
-  //  std::swap(workflowOptions, options);
   ConfigParamSpec centspec = {"centralities",
                               VariantType::String,
                               "0-5,5-10,10-20,20-30,30-40,40-50,50-60,60-70,70-80",
@@ -221,13 +218,7 @@ bool matchTrackType(aod::TrackData const& track)
 {
   switch (tracktype) {
     case 1:
-      if (track.isGlobalTrack() != 0)
-        return true;
-      else
-        return false;
-      break;
-    case 2:
-      if (track.isGlobalTrackSDD() != 0)
+      if (track.isGlobalTrack() != 0 || track.isGlobalTrackSDD() != 0)
         return true;
       else
         return false;
@@ -284,14 +275,14 @@ using namespace dptdptcorrelations;
 
 struct DptDptCorrelationsFilterAnalysisTask {
 
-  Configurable<int> cfgTrackType{"trktype", 1, "Type of selected tracks: 0 = no selection, 1 = global tracks loose DCA, 2 = global SDD tracks"};
+  Configurable<int> cfgTrackType{"trktype", 1, "Type of selected tracks: 0 = no selection, 1 = global tracks FB96"};
   Configurable<int> cfgTrackOneCharge{"trk1charge", -1, "Trakc one charge: 1 = positive, -1 = negative"};
   Configurable<int> cfgTrackTwoCharge{"trk2charge", -1, "Trakc two charge: 1 = positive, -1 = negative"};
   Configurable<bool> cfgProcessPairs{"processpairs", true, "Process pairs: false = no, just singles, true = yes, process pairs"};
   Configurable<std::string> cfgCentMultEstimator{"centmultestimator", "V0M", "Centrality/multiplicity estimator detector: default V0M"};
 
   Configurable<o2::analysis::DptDptBinningCuts> cfgBinning{"binning",
-                                                           {28, -7.0, 7.0, 18, 0.2, 2.0, 16, -0.8, 0.8, 72, 0.0, TMath::TwoPi()},
+                                                           {28, -7.0, 7.0, 18, 0.2, 2.0, 16, -0.8, 0.8, 72},
                                                            "triplets - nbins, min, max - for z_vtx, pT, eta and phi, binning plus bin fraction of phi origin shift"};
 
   OutputObj<TList> fOutput{"DptDptCorrelationsGlobalInfo", OutputObjHandlingPolicy::AnalysisObject};
@@ -453,7 +444,7 @@ struct DptDptCorrelationsTask {
   Configurable<bool> cfgProcessPairs{"processpairs", false, "Process pairs: false = no, just singles, true = yes, process pairs"};
 
   Configurable<o2::analysis::DptDptBinningCuts> cfgBinning{"binning",
-                                                           {28, -7.0, 7.0, 18, 0.2, 2.0, 16, -0.8, 0.8, 72, 0.0, TMath::TwoPi()},
+                                                           {28, -7.0, 7.0, 18, 0.2, 2.0, 16, -0.8, 0.8, 72},
                                                            "triplets - nbins, min, max - for z_vtx, pT, eta and phi, binning plus bin fraction of phi origin shift"};
 
   OutputObj<TList> fOutput{"DptDptCorrelationsData", OutputObjHandlingPolicy::AnalysisObject};
@@ -468,7 +459,7 @@ struct DptDptCorrelationsTask {
                          float cmmax,
                          Configurable<bool> _cfgProcessPairs = {"processpairs", false, "Process pairs: false = no, just singles, true = yes, process pairs"},
                          Configurable<o2::analysis::DptDptBinningCuts> _cfgBinning = {"binning",
-                                                                                      {28, -7.0, 7.0, 18, 0.2, 2.0, 16, -0.8, 0.8, 72, 0.0, TMath::TwoPi()},
+                                                                                      {28, -7.0, 7.0, 18, 0.2, 2.0, 16, -0.8, 0.8, 72},
                                                                                       "triplets - nbins, min, max - for z_vtx, pT, eta and phi, binning plus bin fraction of phi origin shift"},
                          OutputObj<TList> _fOutput = {"DptDptCorrelationsData", OutputObjHandlingPolicy::AnalysisObject},
                          Filter _onlyacceptedevents = (aod::dptdptcorrelations::eventaccepted == DPTDPT_TRUE),
@@ -502,8 +493,8 @@ struct DptDptCorrelationsTask {
     zvtxlow = cfgBinning->mZVtxmin;
     zvtxup = cfgBinning->mZVtxmax;
     phibins = cfgBinning->mPhibins;
-    philow = cfgBinning->mPhimin;
-    phiup = cfgBinning->mPhimax;
+    philow = 0.0f;
+    phiup = TMath::TwoPi();
     phibinshift = cfgBinning->mPhibinshift;
     processpairs = cfgProcessPairs.value;
     /* update the potential binning change */
