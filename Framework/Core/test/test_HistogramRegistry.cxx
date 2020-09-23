@@ -79,17 +79,11 @@ BOOST_AUTO_TEST_CASE(HistogramRegistryExpressionFill)
                                                  {"xy", "test xy", {HistogramType::kTH2F, {{100, -10.0f, 10.01f}, {100, -10.0f, 10.01f}}}} //
                                                }};
 
-  /// Get a pointer to the histogram
-  auto histx = registry.get("x").get();
+  /// Fill histogram with expression and table
+  registry.fill<test::X>("x", tests, test::x > 3.0f);
+  BOOST_CHECK_EQUAL(registry.get("x")->GetEntries(), 4);
 
   /// Fill histogram with expression and table
-  fill<test::X>(histx, tests, test::x > 3.0f);
-  BOOST_CHECK_EQUAL(histx->GetEntries(), 4);
-
-  /// Get a pointer to the histogram
-  auto histxy = registry.get("xy").get();
-
-  /// Fill histogram with expression and table
-  fill<test::X, test::Y>(histxy, tests, test::x > 3.0f && test::y > -5.0f);
-  BOOST_CHECK_EQUAL(histxy->GetEntries(), 2);
+  registry.fill<test::X, test::Y>("xy", tests, test::x > 3.0f && test::y > -5.0f);
+  BOOST_CHECK_EQUAL(registry.get("xy")->GetEntries(), 2);
 }
