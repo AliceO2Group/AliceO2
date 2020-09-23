@@ -10,6 +10,3 @@
 
 #include "FITRaw/DigitBlockBase.h"
 using namespace o2::fit;
-
-//int DigitBlock::sEventID = 0;
-//o2::fit::LookUpTable DigitBlockFT0::sLookupTable = o2::ft0::LookUpTable::linear();
