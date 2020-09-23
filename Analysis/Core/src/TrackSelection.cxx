@@ -13,9 +13,6 @@
 //
 
 #include "Analysis/TrackSelection.h"
-#include <TH1F.h>
-
-ClassImp(TrackSelection);
 
 bool TrackSelection::FulfillsITSHitRequirements(uint8_t itsClusterMap)
 {

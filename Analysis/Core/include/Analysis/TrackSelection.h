@@ -18,24 +18,24 @@
 #include "Framework/Logger.h"
 #include "Framework/DataTypes.h"
 #include <set>
-#include "TObject.h"
+#include <vector>
+#include "Rtypes.h"
 
-class TrackSelection : public TObject
+class TrackSelection
 {
  public:
   TrackSelection() = default;
 
-  // Temporary function to check if track passes selection criteria. To be
-  // replaced by framework filters
+  // Temporary function to check if track passes selection criteria. To be replaced by framework filters.
   template <typename T>
   bool IsSelected(T const& track)
   {
     if (track.trackType() == mTrackType &&
-        track.pt() >= mMinPt && track.pt() <= mMaxPt && track.eta() >= mMinEta &&
-        track.eta() <= mMaxEta && track.tpcNClsFound() >= mMinNClustersTPC &&
+        track.pt() >= mMinPt && track.pt() <= mMaxPt &&
+        track.eta() >= mMinEta && track.eta() <= mMaxEta &&
+        track.tpcNClsFound() >= mMinNClustersTPC &&
         track.tpcNClsCrossedRows() >= mMinNCrossedRowsTPC &&
-        track.tpcCrossedRowsOverFindableCls() >=
-          mMinNCrossedRowsOverFindableClustersTPC &&
+        track.tpcCrossedRowsOverFindableCls() >= mMinNCrossedRowsOverFindableClustersTPC &&
         (track.itsNCls() >= mMinNClustersITS) &&
         (track.itsChi2NCl() <= mMaxChi2PerClusterITS) &&
         (track.tpcChi2NCl() <= mMaxChi2PerClusterTPC) &&
@@ -44,7 +44,7 @@ class TrackSelection : public TObject
         ((mRequireTOF) ? ((track.flags() & 0x2000) && (track.flags() & 0x80000000)) : true) &&
         FulfillsITSHitRequirements(track.itsClusterMap()) &&
         abs(track.dcaXY()) <= ((mMaxDcaXYPtDep) ? mMaxDcaXYPtDep(track.pt()) : mMaxDcaXY) &&
-        abs(track.dcaZ()) < mMaxDcaZ) {
+        abs(track.dcaZ()) <= mMaxDcaZ) {
       return true;
     } else {
       return false;
@@ -79,8 +79,7 @@ class TrackSelection : public TObject
   {
     mMinNCrossedRowsTPC = minNCrossedRowsTPC;
   }
-  void SetMinNCrossedRowsOverFindableClustersTPC(
-    float minNCrossedRowsOverFindableClustersTPC)
+  void SetMinNCrossedRowsOverFindableClustersTPC(float minNCrossedRowsOverFindableClustersTPC)
   {
     mMinNCrossedRowsOverFindableClustersTPC = minNCrossedRowsOverFindableClustersTPC;
   }
@@ -111,12 +110,12 @@ class TrackSelection : public TObject
     } else {
       mRequiredITSHits.push_back(std::make_pair(minNRequiredHits, requiredLayers));
     }
-  };
+  }
   void SetRequireNoHitsInITSLayers(std::set<uint8_t> excludedLayers)
   {
     mRequiredITSHits.push_back(std::make_pair(-1, excludedLayers));
-  };
-  void ResetITSRequirements() { mRequiredITSHits.clear(); };
+  }
+  void ResetITSRequirements() { mRequiredITSHits.clear(); }
 
  private:
   bool FulfillsITSHitRequirements(uint8_t itsClusterMap);
@@ -128,16 +127,16 @@ class TrackSelection : public TObject
   float mMinEta{-1e10f}, mMaxEta{1e10f}; // range in eta
 
   // track quality cuts
-  int mMinNClustersTPC{0};                          // min number of TPC clusters
-  int mMinNCrossedRowsTPC{0};                       // min number of crossed rows in TPC
-  int mMinNClustersITS{0};                          // min number of ITS clusters
-  float mMaxChi2PerClusterTPC{1e10f};               // max tpc fit chi2 per TPC cluster
-  float mMaxChi2PerClusterITS{1e10f};               // max its fit chi2 per ITS cluster
-  float mMinNCrossedRowsOverFindableClustersTPC{0}; // min ratio crossed rows / findable clusters
+  int mMinNClustersTPC{0};                            // min number of TPC clusters
+  int mMinNCrossedRowsTPC{0};                         // min number of crossed rows in TPC
+  int mMinNClustersITS{0};                            // min number of ITS clusters
+  float mMaxChi2PerClusterTPC{1e10f};                 // max tpc fit chi2 per TPC cluster
+  float mMaxChi2PerClusterITS{1e10f};                 // max its fit chi2 per ITS cluster
+  float mMinNCrossedRowsOverFindableClustersTPC{0.f}; // min ratio crossed rows / findable clusters
 
-  float mMaxDcaXY{1e10f};
-  float mMaxDcaZ{1e10f};
-  std::function<float(float)> mMaxDcaXYPtDep{};
+  float mMaxDcaXY{1e10f};                       // max dca in xy plane
+  float mMaxDcaZ{1e10f};                        // max dca in z direction
+  std::function<float(float)> mMaxDcaXYPtDep{}; // max dca in xy plane as function of pT
 
   bool mRequireITSRefit{false}; // require refit in ITS
   bool mRequireTPCRefit{false}; // require refit in TPC
