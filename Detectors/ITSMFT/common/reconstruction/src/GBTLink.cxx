@@ -75,6 +75,13 @@ void GBTLink::printTrigger(const GBTTrigger* gbtTrg)
 }
 
 ///_________________________________________________________________
+void GBTLink::printCalibrationWord(const GBTCalibration* gbtCal)
+{
+  gbtCal->printX();
+  LOGF(INFO, "Calibration word %5d | user_data 0x%012lx", gbtCal->calibCounter, gbtCal->bc);
+}
+
+///_________________________________________________________________
 void GBTLink::printHeader(const GBTDataHeader* gbtH)
 {
   gbtH->printX();
@@ -191,6 +198,14 @@ GBTLink::ErrorType GBTLink::checkErrorsTriggerWord(const GBTTrigger* gbtTrg)
     errorBits |= 0x1 << int(GBTLinkDecodingStat::ErrMissingGBTTrigger);
     return Abort;
   }
+  return NoError;
+}
+
+///_________________________________________________________________
+/// Check the GBT Calibration word correctness
+GBTLink::ErrorType GBTLink::checkErrorsCalibrationWord(const GBTCalibration* gbtCal)
+{
+  // at the moment do nothing
   return NoError;
 }
 
