@@ -133,9 +133,6 @@ class RawReaderSpecs : public o2f::Task
       tfID = mMinTFID;
     }
     mReader->setNextTFToRead(tfID);
-    for (int il = 0; il < nlinks; il++) {
-      mReader->getLink(il).rewindToTF(tfID);
-    }
     std::vector<RawFileReader::PartStat> partsSP;
     const auto& hbfU = HBFUtils::Instance();
 
@@ -147,7 +144,9 @@ class RawReaderSpecs : public o2f::Task
 
     for (int il = 0; il < nlinks; il++) {
       auto& link = mReader->getLink(il);
-
+      if (!link.rewindToTF(tfID)) {
+        continue; // this link has no data for wanted TF
+      }
       if (!findOutputChannel(link, mTFCounter)) { // no output channel
         continue;
       }
