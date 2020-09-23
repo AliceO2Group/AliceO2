@@ -616,15 +616,15 @@ class RootTreeWriter
 
       // a low level hack to make a gsl::span appear as a std::vector so that ROOT serializes the correct type
       // but without the need for an extra copy
-      auto adopt=[](auto const& data, value_type& v) {
+      auto adopt = [](auto const& data, value_type& v) {
         static_assert(sizeof(v) == 24);
         if (data.size() == 0) {
           return;
         }
         VecBase impl;
-        impl.start=&(data[0]);
-        impl.end=&(data[data.size()-1]) + 1; // end pointer (beyond last element)
-        impl.cap=impl.end;
+        impl.start = &(data[0]);
+        impl.end = &(data[data.size() - 1]) + 1; // end pointer (beyond last element)
+        impl.cap = impl.end;
         std::memcpy(&v, &impl, sizeof(VecBase));
       };
 
@@ -635,15 +635,15 @@ class RootTreeWriter
         // if message is serialized
         auto data = context.get<gsl::span<ElementType>>(ref);
         // take an ordinary std::vector "view" on the data
-        auto *dataview = new value_type;
+        auto* dataview = new value_type;
         adopt(data, *dataview);
         if (!runCallback(branch, *dataview, ref)) {
           mStore[branchIdx] = dataview;
           branch->Fill();
         }
         // we delete JUST the view without deleting the data (which is handled by DPL)
-        auto ptr=(VecBase*)dataview;
-        if(ptr) {
+        auto ptr = (VecBase*)dataview;
+        if (ptr) {
           delete ptr;
         }
       } catch (const std::runtime_error& e) {
