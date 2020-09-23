@@ -69,12 +69,6 @@ class DigitBlockFT0: public DigitBlockBase<DigitBlockFT0>
     } else if constexpr (std::is_same<DataBlockType, DataBlockTCM>::value) { //Filling data from TCM (normal/extended mode)
       dataBlock.DataBlockWrapper<RawDataTCM>::mData[0].fillTrigger(mDigit.mTriggers);
     }
-    /*
-    else if constexpr (std::is_same<DataBlockType, DataBlockTCMext>::value) { //Filling data from TCM, extended mode. Same proccess as for normal mode, for now.
-      dataBlock.DataBlockWrapper<RawDataTCM>::mData[0].fillTrigger(mDigit.mTriggers);
-    }
-    */
-    
   }
   void getDigits(std::vector<Digit>& vecDigits, std::vector<ChannelData>& vecChannelData)
   {
@@ -143,7 +137,7 @@ class DigitBlockFT0ext: public DigitBlockBase<DigitBlockFT0ext>
 
   DigitBlockFT0ext(o2::InteractionRecord intRec) {setIntRec(intRec);}
   DigitBlockFT0ext() = default;
-  DigitBlockFT0ext(const DigitBlockFT0& other) = default;
+  DigitBlockFT0ext(const DigitBlockFT0ext& other) = default;
   ~DigitBlockFT0ext() = default;
   void setIntRec(o2::InteractionRecord intRec) {mDigit.mIntRecord = intRec;}
   DigitExt mDigit;
@@ -163,14 +157,12 @@ class DigitBlockFT0ext: public DigitBlockBase<DigitBlockFT0ext>
                                      int(dataBlock.DataBlockWrapper<RawDataPM>::mData[iEventData].charge),
                                      dataBlock.DataBlockWrapper<RawDataPM>::mData[iEventData].getFlagWord());
       }
-    else if constexpr (std::is_same<DataBlockType, DataBlockTCMext>::value) { //Filling data from TCM, extended mode. Same proccess as for normal mode, for now.
+    } else if constexpr (std::is_same<DataBlockType, DataBlockTCMext>::value) { //Filling data from TCM, extended mode. Same proccess as for normal mode, for now.
       dataBlock.DataBlockWrapper<RawDataTCM>::mData[0].fillTrigger(mDigit.mTriggers);
       for(int iTriggerWord=0;iTriggerWord<dataBlock.DataBlockWrapper<RawDataTCMext>::mNelements; iTriggerWord++) {
         mVecTriggersExt.emplace_back(dataBlock.DataBlockWrapper<RawDataTCMext>::mData[iTriggerWord].triggerWord);
       }
     }
-    
-    
   }
   void getDigits(std::vector<Digit>& vecDigits, std::vector<ChannelData>& vecChannelData)
   {

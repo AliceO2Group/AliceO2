@@ -31,7 +31,7 @@ namespace o2
 {
 namespace fit
 {
-template <class RawReader,class DigitBlockType>
+template <class DigitBlockType>
 class RawReaderBase
 {
  public:
