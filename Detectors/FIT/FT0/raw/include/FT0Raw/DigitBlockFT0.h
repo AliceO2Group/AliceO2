@@ -46,7 +46,7 @@ class DigitBlockFT0: public DigitBlockBase<DigitBlockFT0>
 {
  public:
   typedef DigitBlockBase<DigitBlockFT0> DigitBlockBaseType;
-  DigitBlockFT0(o2::InteractionRecord intRec)/*:DigitBlockBaseType(intRec)*/ {setIntRec(intRec);}
+  DigitBlockFT0(o2::InteractionRecord intRec) {setIntRec(intRec);}
   DigitBlockFT0() = default;
   DigitBlockFT0(const DigitBlockFT0& other) = default;
   ~DigitBlockFT0() = default;
@@ -141,10 +141,10 @@ class DigitBlockFT0ext: public DigitBlockBase<DigitBlockFT0ext>
  public:
   typedef DigitBlockBase<DigitBlockFT0ext> DigitBlockBaseType;
 
-  DigitBlockFT0(o2::InteractionRecord intRec)/*:DigitBlockBaseType(intRec)*/ {setIntRec(intRec);}
-  DigitBlockFT0() = default;
-  DigitBlockFT0(const DigitBlockFT0& other) = default;
-  ~DigitBlockFT0() = default;
+  DigitBlockFT0ext(o2::InteractionRecord intRec) {setIntRec(intRec);}
+  DigitBlockFT0ext() = default;
+  DigitBlockFT0ext(const DigitBlockFT0& other) = default;
+  ~DigitBlockFT0ext() = default;
   void setIntRec(o2::InteractionRecord intRec) {mDigit.mIntRecord = intRec;}
   DigitExt mDigit;
   std::vector<ChannelData> mVecChannelData;
