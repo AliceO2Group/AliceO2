@@ -33,6 +33,8 @@
   if ((what) == Abort) {                \
     discardData();                      \
     return AbortedOnError;              \
+  } else if ((what) == Skip) {          \
+    continue;                           \
   }
 
 namespace o2
@@ -59,6 +61,7 @@ struct GBTLink {
 
   enum ErrorType : int8_t { NoError,
                             Warning,
+                            Skip,
                             Abort };
 
   enum Verbosity : int8_t { Silent = -1,
@@ -126,7 +129,9 @@ struct GBTLink {
   void printHeader(const GBTDataHeaderL* gbtH);
   void printTrailer(const GBTDataTrailer* gbtT);
   void printDiagnostic(const GBTDiagnostic* gbtD);
+  void printCableDiagnostic(const GBTCableDiagnostic* gbtD);
   void printCalibrationWord(const GBTCalibration* gbtCal);
+  void printCableStatus(const GBTCableStatus* gbtS);
   bool nextCRUPage();
 
 #ifndef _RAW_READER_ERROR_CHECKS_ // define dummy inline check methods, will be compiled out
@@ -161,6 +166,7 @@ struct GBTLink {
   ErrorType checkErrorsDiagnosticWord(const GBTDiagnostic* gbtD);
   ErrorType checkErrorsCalibrationWord(const GBTCalibration* gbtCal);
 #endif
+  ErrorType checkErrorsGBTDataID(const GBTData* dbtD);
 
   ClassDefNV(GBTLink, 1);
 };
@@ -260,6 +266,7 @@ GBTLink::CollectedDataStatus GBTLink::collectROFCableData(const Mapping& chmap)
 
     while (!gbtD->isDataTrailer()) { // start reading real payload
       nw++;
+      GBTLINK_DECODE_ERRORCHECK(checkErrorsGBTDataID(gbtD));
       int cableHW = gbtD->getCableID(), cableSW = chmap.cableHW2SW(ruPtr->ruInfo->ruType, cableHW);
       if (verbosity >= VerboseData) {
         gbtD->printX();
