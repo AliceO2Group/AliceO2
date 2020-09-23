@@ -172,6 +172,7 @@ DataProcessorSpec getTPCDigitRootWriterSpec(std::vector<int> const& laneConfigur
           branch.SetAddress(&ptr);
           branch.Fill();
           branch.ResetAddress();
+          branch.DropBaskets("all");
         } else {                                // triggered mode (>1 entries will be written)
           std::vector<o2::tpc::Digit> digGroup; // group of digits related to single trigger
           auto ptr = &digGroup;
@@ -184,6 +185,7 @@ DataProcessorSpec getTPCDigitRootWriterSpec(std::vector<int> const& laneConfigur
             branch.Fill();
           }
           branch.ResetAddress();
+          branch.DropBaskets("all");
         }
       }
     }
@@ -215,6 +217,7 @@ DataProcessorSpec getTPCDigitRootWriterSpec(std::vector<int> const& laneConfigur
           branch.SetAddress(&ptr);
           branch.Fill();
           branch.ResetAddress();
+          branch.DropBaskets("all");
         } else {
           o2::dataformats::MCTruthContainer<o2::MCCompLabel> lblGroup; // labels for group of digits related to single trigger
           auto ptr = &lblGroup;
@@ -228,6 +231,7 @@ DataProcessorSpec getTPCDigitRootWriterSpec(std::vector<int> const& laneConfigur
             branch.Fill();
           }
           branch.ResetAddress();
+          branch.DropBaskets("all");
         }
       }
     }
