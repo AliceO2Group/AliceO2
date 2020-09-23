@@ -17,6 +17,12 @@
 using namespace o2;
 using namespace o2::framework;
 
+namespace test
+{
+DECLARE_SOA_COLUMN_FULL(X, x, float, "x");
+DECLARE_SOA_COLUMN_FULL(Y, y, float, "y");
+} // namespace test
+
 HistogramRegistry foo()
 {
   return {"r", true, {{"histo", "histo", {HistogramType::kTH1F, {{100, 0, 1}}}}}};
@@ -47,4 +53,43 @@ BOOST_AUTO_TEST_CASE(HistogramRegistryLookup)
   auto r = foo();
   auto histo2 = r.get("histo").get();
   BOOST_REQUIRE_EQUAL(histo2->GetNbinsX(), 100);
+}
+
+BOOST_AUTO_TEST_CASE(HistogramRegistryExpressionFill)
+{
+  TableBuilder builderA;
+  auto rowWriterA = builderA.persist<float, float>({"x", "y"});
+  rowWriterA(0, 0.0f, -2.0f);
+  rowWriterA(0, 1.0f, -4.0f);
+  rowWriterA(0, 2.0f, -1.0f);
+  rowWriterA(0, 3.0f, -5.0f);
+  rowWriterA(0, 4.0f, 0.0f);
+  rowWriterA(0, 5.0f, -9.0f);
+  rowWriterA(0, 6.0f, -7.0f);
+  rowWriterA(0, 7.0f, -4.0f);
+  auto tableA = builderA.finalize();
+  BOOST_REQUIRE_EQUAL(tableA->num_rows(), 8);
+  using TestA = o2::soa::Table<o2::soa::Index<>, test::X, test::Y>;
+  TestA tests{tableA};
+  BOOST_REQUIRE_EQUAL(8, tests.size());
+
+  /// Construct a registry object with direct declaration
+  HistogramRegistry registry{"registry", true, {
+                                                 {"x", "test x", {HistogramType::kTH1F, {{100, 0.0f, 10.0f}}}},                              //
+                                                 {"xy", "test xy", {HistogramType::kTH2F, {{100, -10.0f, 10.01f}, {100, -10.0f, 10.01f}}}} //
+                                               }};
+
+  /// Get a pointer to the histogram
+  auto histx = registry.get("x").get();
+
+  /// Fill histogram with expression and table
+  fill<test::X>(histx, tests, test::x > 3.0f);
+  BOOST_CHECK_EQUAL(histx->GetEntries(), 4);
+
+  /// Get a pointer to the histogram
+  auto histxy = registry.get("xy").get();
+
+  /// Fill histogram with expression and table
+  fill<test::X, test::Y>(histxy, tests, test::x > 3.0f && test::y > -5.0f);
+  BOOST_CHECK_EQUAL(histxy->GetEntries(), 2);
 }

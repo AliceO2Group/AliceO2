@@ -344,6 +344,33 @@ class HistogramRegistry
   std::vector<HistogramCreationCallback> mHistogramCreationCallbacks;
 };
 
+template <typename C1, typename C2, typename C3, typename T>
+void fill(TH1* hist, const T& table, const o2::framework::expressions::Filter& filter)
+{
+  auto filtered = o2::soa::Filtered<T>{{table.asArrowTable()}, o2::framework::expressions::createSelection(table.asArrowTable(), filter)};
+  for (auto& t : filtered) {
+    hist->Fill(*(static_cast<C1>(t).getIterator()), *(static_cast<C2>(t).getIterator()), *(static_cast<C3>(t).getIterator()));
+  }
+}
+
+template <typename C1, typename C2, typename T>
+void fill(TH1* hist, const T& table, const o2::framework::expressions::Filter& filter)
+{
+  auto filtered = o2::soa::Filtered<T>{{table.asArrowTable()}, o2::framework::expressions::createSelection(table.asArrowTable(), filter)};
+  for (auto& t : filtered) {
+    hist->Fill(*(static_cast<C1>(t).getIterator()), *(static_cast<C2>(t).getIterator()));
+  }
+}
+
+template <typename C, typename T>
+void fill(TH1* hist, const T& table, const o2::framework::expressions::Filter& filter)
+{
+  auto filtered = o2::soa::Filtered<T>{{table.asArrowTable()}, o2::framework::expressions::createSelection(table.asArrowTable(), filter)};
+  for (auto& t : filtered) {
+    hist->Fill(*(static_cast<C>(t).getIterator()));
+  }
+}
+
 } // namespace framework
 
 } // namespace o2
