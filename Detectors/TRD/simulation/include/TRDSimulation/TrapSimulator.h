@@ -23,17 +23,14 @@
 #include <fstream>
 #include <gsl/span>
 
-#include "TRDBase/Tracklet.h"
 #include "TRDBase/FeeParam.h"
 #include "TRDBase/Digit.h"
-#include "TRDBase/Tracklet.h"
 #include "TRDSimulation/Digitizer.h"
-#include "TRDSimulation/TrapConfigHandler.h" //TODO I think i can dump this.
 #include "TRDSimulation/TrapConfig.h"
 #include "TRDBase/MCLabel.h"
 #include "SimulationDataFormat/MCTruthContainer.h"
-//#include "DataFormatsTRD/RawData.h"
 #include "DataFormatsTRD/Tracklet64.h"
+#include "DataFormatsTRD/RawData.h"
 #include "DataFormatsTRD/Constants.h"
 
 class TH2F;
@@ -89,12 +86,16 @@ class TrapSimulator
       tmplabel.clear();      // clear MC Labels sent in from the digits coming in.
     }
     mTrackletLabels.clear(); // clear the stored labels.
-    mTrackletArray.clear();
     mTrackletArray64.clear();
+    for (auto& trackletdetail : mTrackletDetails) {
+      trackletdetail.clear();
+    }
   };
-  //  void setData(int iadc, const std::vector<int>& adc);                                                                              // set ADC data with array
-  void setData(int iadc, const ArrayADC& adc, std::vector<o2::MCCompLabel>& labels); // set ADC data with array
-  //void setData(int iadc, const ArrayADC& adc, gsl::span<o2::MCCompLabel,-1>& labels);                                                                                      // set ADC data with array
+  // set ADC data with array
+  //  void setData(int iadc, const std::vector<int>& adc);
+  void setData(int iadc, const ArrayADC& adc, std::vector<o2::MCCompLabel>& labels);
+  // set ADC data with array
+  //void setData(int iadc, const ArrayADC& adc, gsl::span<o2::MCCompLabel,-1>& labels);
   void setBaselines();                                                                                                              // set the baselines as done in setDataByPad which is bypassed due to using setData in line above.
   void setData(int iadc, int it, int adc);                                                                                          // set ADC data
   void setDataFromDigitizerAndRun(std::vector<o2::trd::Digit>& data, o2::dataformats::MCTruthContainer<MCLabel>&);                  // data coming in manually from the the digitizer.
@@ -207,7 +208,6 @@ class TrapSimulator
   static constexpr int mQ2Startbin = 3;              // Start range of Q2, for now here. TODO pull from a revised TrapConfig?
   static constexpr int mQ2Endbin = 5;                // End range of Q2, also pull from a revised trapconfig at some point.
 
-  std::vector<Tracklet>& getTrackletArray() { return mTrackletArray; }
   std::vector<Tracklet64>& getTrackletArray64() { return mTrackletArray64; }
   void getTracklet64s(std::vector<Tracklet64>& TrackletStore); // place the trapsim 64 bit tracklets nto the incoming vector
   o2::dataformats::MCTruthContainer<o2::MCCompLabel>& getTrackletLabels() { return mTrackletLabels; }
@@ -240,9 +240,10 @@ class TrapSimulator
       mQtot = 0;
       mYpos = 0;
     }
-  }; //mHits[mgkNHitsMC];
-  //std::array<Hit, 50> mHits;
+  };
+
   std::array<Hit, mgkNHitsMC> mHits{}; // was 100 in the run2 via fgkNHitsMC;
+
   class FilterReg
   {
    public:
@@ -271,7 +272,7 @@ class TrapSimulator
     int mNhits;          // number of hits
     unsigned int mQ0;    // charge accumulated in first window
     unsigned int mQ1;    // charge accumulated in second window
-    unsigned int mQ2;    // charge accumulated in some other windows TODO find or write the documentation for window3
+    unsigned int mQ2;    // charge accumulated in third windows currently timebin 3 to 5
     unsigned int mSumX;  // sum x
     int mSumY;           // sum y
     unsigned int mSumX2; // sum x**2
@@ -289,8 +290,63 @@ class TrapSimulator
       mSumY2 = 0;
       mSumXY = 0;
     }
+    void Print()
+    {
+      LOG(info) << "FitReg : ";
+      LOG(info) << "\t Q 0:1:2 : " << mQ0 << ":" << mQ1 << ":" << mQ2;
+      LOG(info) << "\t SumX:SumY:SumX2:SumY2:SumXY : " << mSumX << ":" << mSumY << ":" << mSumX2 << ":" << mSumY2 << ":" << mSumXY;
+    }
   };
   std::array<FitReg, constants::NADCMCM> mFitReg{};
+  //class to store the tracklet details that are not stored in tracklet64.
+  //used for later debugging purposes or in depth analysis of some part of tracklet creation or properties.
+  class TrackletDetail
+  {
+   public:
+    TrackletDetail() = default;
+    TrackletDetail(float slope, float position, int q0, int q1, int q2, std::array<int, 3> hits, float error)
+    {
+      mSlope = slope;
+      mPosition = position;
+      mError = error;
+      mCharges[0] = q0;
+      mCharges[1] = q1;
+      mCharges[2] = q2;
+      mPidHits = hits;
+    };
+    ~TrackletDetail() = default;
+    std::array<int, 3> mPidHits;    // no. of contributing clusters in each pid window.
+    std::array<int, 3> mCharges;    // Q0,Q1,Q2, charges in each pid window.
+    float mSlope;                   // tracklet slope
+    float mPosition;                // tracklet offset
+    float mError;                   // tracklet error
+    int mNClusters;                 // no. of clusters
+    std::vector<float> mResiduals;  //[mNClusters] cluster to tracklet residuals
+    std::vector<float> mClsCharges; //[mNClusters] cluster charge
+    void clear()
+    {
+      mPidHits[0] = 0;
+      mPidHits[1] = 0;
+      mPidHits[2] = 0;
+      mCharges[0] = 0;
+      mCharges[1] = 0;
+      mCharges[2] = 0;
+      mSlope = 0;
+      mPosition = 0;
+      mError = 0;
+      mNClusters = 0;
+      mResiduals.clear();
+      mClsCharges.clear();
+    }
+    void setHits(std::array<int, 3> hits) { mPidHits = hits; }
+
+    void setClusters(std::vector<float> res, std::vector<float> charges, int nclusters)
+    {
+      mResiduals = res;
+      mClsCharges = charges;
+      mNClusters = nclusters;
+    }
+  };
 
  protected:
   void setNTimebins(int ntimebins); // allocate data arrays corr. to the no. of timebins
@@ -307,9 +363,9 @@ class TrapSimulator
   std::vector<int> mADCF; // Array with MCM ADC values (Filtered, 12 bit) 2d with dimension mNTimeBin
   std::array<std::vector<o2::MCCompLabel>, constants::NADCMCM> mADCLabels{}; // MC Labels sent in from the digits coming in.
   std::vector<unsigned int> mMCMT;      // tracklet word for one mcm/trap-chip
-  std::vector<Tracklet> mTrackletArray; // Array of TRDtrackletMCM which contains MC information in addition to the tracklet word
-  std::vector<Tracklet64> mTrackletArray64; // Array of TRDtrackletMCM which contains MC information in addition to the tracklet word
+  std::vector<Tracklet64> mTrackletArray64; // Array of 64 bit tracklets
   o2::dataformats::MCTruthContainer<o2::MCCompLabel> mTrackletLabels;
+  std::vector<TrackletDetail> mTrackletDetails; // store additional tracklet information for eventual debug output.
   std::vector<int> mZSMap;              // Zero suppression map (1 dimensional projection)
 
   std::array<int, mgkNCPU> mFitPtr{}; // pointer to the tracklet to be calculated by CPU i
@@ -317,9 +373,8 @@ class TrapSimulator
   std::string mTrklBranchName; // name of the tracklet branch to write to
 
   // Parameter classes
-  FeeParam* mFeeParam;     // FEE parameters
+  FeeParam* mFeeParam;     // FEE parameters, a singleton
   TrapConfig* mTrapConfig; // TRAP config
-  TrapConfigHandler mTrapConfigHandler;
   //  CalOnlineGainTables mGainTable;
 
   static const int NOfAdcPerMcm = constants::NADCMCM;
@@ -354,12 +409,20 @@ class TrapSimulator
   static int mgAddBaseline; // add baseline to the ADC values
 
   static bool mgStoreClusters; // whether to store all clusters in the tracklets
+
+  bool mdebugStream = false; // whether or not to keep all the additional info for eventual dumping to a tree.
+
   bool mDataIsSet = false;
-  Calibrations* mCalib;
+  Calibrations* mCalib; // connection to caiibrations class to pull in info from ccdb.
+
+  std::array<TrackletMCMData, 3> mTracklets;
+  TrackletMCMHeader mMCMHeader;
   static constexpr bool debugheaders = false;
 };
 
 std::ostream& operator<<(std::ostream& os, const TrapSimulator& mcm);
+std::ostream& operator<<(std::ostream& os, TrapSimulator::FitReg& fitreg);
+
 } //namespace trd
 } //namespace o2
 #endif

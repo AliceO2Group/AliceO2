@@ -50,6 +50,14 @@ uint16_t buildTRDFeeID(int supermodule, int side, int endpoint)
   return feeid.word;
 }
 
+void buildTrackletMCMData(TrackletMCMData& trackletword, const uint slope, const uint pos, const uint q0, const uint q1, const uint q2)
+{
+  trackletword.slope = slope;
+  trackletword.pos = pos;
+  trackletword.pid = q0 | ((q1 & 0xff) << 8); //q2 sits with a bit of q1 in the header pid word.
+  trackletword.checkbit = 1;
+}
+
 uint32_t getlinkerrorflag(const HalfCRUHeader& cruhead, const uint32_t link)
 {
   // link is the link you are requesting information on, 0-14

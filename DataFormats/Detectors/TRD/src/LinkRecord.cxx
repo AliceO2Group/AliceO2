@@ -29,17 +29,18 @@ uint32_t LinkRecord::getHalfChamberLinkId(uint32_t detector, uint32_t rob)
 
 uint32_t LinkRecord::getHalfChamberLinkId(uint32_t sector, uint32_t stack, uint32_t layer, uint32_t side)
 {
-  LinkRecord tmplinkid;
-  tmplinkid.setLinkId(sector, stack, layer, side);
-  return tmplinkid.getLinkId();
+  LinkRecord a;
+  a.setLinkId(sector, stack, layer, side);
+  return a.mLinkId;
 }
 
 void LinkRecord::setLinkId(const uint32_t sector, const uint32_t stack, const uint32_t layer, const uint32_t side)
 {
-  mLinkId |= sector << 11;
-  mLinkId |= stack << 8;
-  mLinkId |= layer << 5;
-  mLinkId |= side << 4;
+  setSector(sector);
+  setStack(stack);
+  setLayer(layer);
+  setSide(side);
+  setSpare();
 }
 
 void LinkRecord::printStream(std::ostream& stream)

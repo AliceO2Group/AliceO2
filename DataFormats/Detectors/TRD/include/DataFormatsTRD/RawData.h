@@ -182,7 +182,7 @@ struct TrackletMCMHeader {
 //  \structure TrackletMCMData.
 //  \brief Raw Data of a tracklet, part is how ever in the MCM Header hence both are grouped together in the same file
 
-struct TrackletMCMData { // This is a bad name as part of the tracklet data is in the MCMHeader.
+struct TrackletMCMData {
   union {
     uint32_t word;
     struct {
@@ -223,6 +223,7 @@ void buildTrackletHCHeaderd(TrackletHCHeader& header, int detector, int rob, int
 uint16_t buildTRDFeeID(int supermodule, int side, int endpoint);
 uint32_t setHalfCRUHeader(HalfCRUHeader& cruhead, int crurdhversion, int bunchcrossing, int stopbits, int endpoint, int eventtype, int feeid, int cruid);
 uint32_t setHalfCRUHeaderLinkData(HalfCRUHeader& cruhead, int link, int size, int errors);
+void buildTrackletMCMData(TrackletMCMData& trackletword, const uint slope, const uint pos, const uint q0, const uint q1, const uint q2);
 uint32_t unpacklinkinfo(const HalfCRUHeader& cruhead, const uint32_t link, const bool data);
 uint32_t getlinkerrorflag(const HalfCRUHeader& cruhead, const uint32_t link);
 uint32_t getlinkdatasize(const HalfCRUHeader& cruhead, const uint32_t link);

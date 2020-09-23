@@ -58,6 +58,7 @@ class Tracklet64
   }
 
   ~Tracklet64() = default;
+  Tracklet64& operator=(const Tracklet64& rhs) = default;
 
   //TODO convert to the actual number  regarding compliments.
   // ----- Getters for contents of tracklet word -----
@@ -73,6 +74,7 @@ class Tracklet64
 
   uint64_t buildTrackletWord(uint64_t format, uint64_t hcid, uint64_t padrow, uint64_t col, uint64_t position, uint64_t slope, uint64_t Q2, uint64_t Q1, uint64_t Q0)
   {
+    LOG(debug) << "Build tracklet with format:" << format << " hcid:" << hcid << " padrow: " << padrow << " col:" << col << " position:" << position << " slope:" << slope << " Q0:1:2:: " << Q0 << ":" << Q1 << ":" << Q2;
     mtrackletWord = ((format << formatbs) & formatmask) + ((hcid << hcidbs) & hcidmask) + ((padrow << padrowbs) & padrowmask) + ((col << colbs) & colmask) + ((position << posbs) & posmask) + ((slope << slopebs) & slopemask) + ((Q2 << Q2bs) & Q2mask) + ((Q1 << Q1bs) & Q1mask) + ((Q0 << Q0bs) & Q0mask);
     return 0;
   }
