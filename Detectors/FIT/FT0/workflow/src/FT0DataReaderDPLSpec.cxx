@@ -41,7 +41,7 @@ void FT0DataReaderDPLSpec<IsExtendedMode>::run(ProcessingContext& pc)
     mRawReaderFT0.proccess(rdhPtr->linkID, payload);
   }
 
-  mRawReaderFT0.popDigits(mVecDigits, mVecChannelData);
+  mRawReaderFT0.getDigits(mVecDigits, mVecChannelData);
   LOG(INFO) << "Number of Digits: " << mVecDigits.size();
   LOG(INFO) << "Number of ChannelData: " << mVecChannelData.size();
   if (mDumpEventBlocks)

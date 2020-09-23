@@ -22,7 +22,7 @@
 #include <vector>
 #include <algorithm>
 #include <Rtypes.h>
-#include "FT0Raw/DataBlockRawFT0.h"
+#include "FT0Raw/DataBlockFT0.h"
 #include "FITRaw/DigitBlockBase.h"
 
 #include <CommonDataFormat/InteractionRecord.h>
@@ -36,6 +36,7 @@
 #include <gsl/span>
 
 using namespace o2::fit;
+
 namespace o2
 {
 namespace ft0
@@ -43,9 +44,9 @@ namespace ft0
 //Normal data taking mode
 class DigitBlockFT0: public DigitBlockBase<DigitBlockFT0>
 {
-  typedef DigitBlockBase<DigitBlockFT0> DigitBlockBaseType;
  public:
-  DigitBlockFT0(o2::InteractionRecord intRec):DigitBlockBaseType(intRec) {}
+  typedef DigitBlockBase<DigitBlockFT0> DigitBlockBaseType;
+  DigitBlockFT0(o2::InteractionRecord intRec)/*:DigitBlockBaseType(intRec)*/ {setIntRec(intRec);}
   DigitBlockFT0() = default;
   DigitBlockFT0(const DigitBlockFT0& other) = default;
   ~DigitBlockFT0() = default;
@@ -137,9 +138,10 @@ class DigitBlockFT0: public DigitBlockBase<DigitBlockFT0>
 //TCM extended data taking mode
 class DigitBlockFT0ext: public DigitBlockBase<DigitBlockFT0ext>
 {
-  typedef DigitBlockBase<DigitBlockFT0ext> DigitBlockBaseType;
  public:
-  DigitBlockFT0(o2::InteractionRecord intRec):DigitBlockBaseType(intRec) {}
+  typedef DigitBlockBase<DigitBlockFT0ext> DigitBlockBaseType;
+
+  DigitBlockFT0(o2::InteractionRecord intRec)/*:DigitBlockBaseType(intRec)*/ {setIntRec(intRec);}
   DigitBlockFT0() = default;
   DigitBlockFT0(const DigitBlockFT0& other) = default;
   ~DigitBlockFT0() = default;
