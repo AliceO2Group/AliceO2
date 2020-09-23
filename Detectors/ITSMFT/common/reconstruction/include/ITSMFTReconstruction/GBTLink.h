@@ -126,6 +126,7 @@ struct GBTLink {
   void printHeader(const GBTDataHeaderL* gbtH);
   void printTrailer(const GBTDataTrailer* gbtT);
   void printDiagnostic(const GBTDiagnostic* gbtD);
+  void printCalibrationWord(const GBTCalibration* gbtCal);
   bool nextCRUPage();
 
 #ifndef _RAW_READER_ERROR_CHECKS_ // define dummy inline check methods, will be compiled out
@@ -144,6 +145,7 @@ struct GBTLink {
   ErrorType checkErrorsPacketDoneMissing(const GBTDataTrailer* gbtT, bool notEnd) const { return NoError; }
   ErrorType checkErrorsLanesStops() const { return NoError; }
   ErrorType checkErrorsDiagnosticWord(const GBTDiagnostic* gbtD) const { return NoError; }
+  ErrorType checkErrorsCalibrationWord(const GBTCalibration* gbtCal) const { return NoError; }
 #else
   ErrorType checkErrorsRDH(const RDH& rdh);
   ErrorType checkErrorsRDHStop(const RDH& rdh);
@@ -157,6 +159,7 @@ struct GBTLink {
   ErrorType checkErrorsPacketDoneMissing(const GBTDataTrailer* gbtT, bool notEnd);
   ErrorType checkErrorsLanesStops();
   ErrorType checkErrorsDiagnosticWord(const GBTDiagnostic* gbtD);
+  ErrorType checkErrorsCalibrationWord(const GBTCalibration* gbtCal);
 #endif
 
   ClassDefNV(GBTLink, 1);
@@ -244,8 +247,17 @@ GBTLink::CollectedDataStatus GBTLink::collectROFCableData(const Mapping& chmap)
       lanesStop = 0;
       lanesWithData = 0;
     }
-
+    if (format == NewFormat) { // at the moment just check if calibration word is there
+      auto gbtC = reinterpret_cast<const o2::itsmft::GBTCalibration*>(&currRawPiece->data[dataOffset]);
+      if (gbtC->isCalibrationWord()) {
+        if (verbosity >= VerboseHeaders) {
+          printCalibrationWord(gbtC);
+        }
+        dataOffset += GBTPaddedWordLength;
+      }
+    }
     auto gbtD = reinterpret_cast<const o2::itsmft::GBTData*>(&currRawPiece->data[dataOffset]);
+
     while (!gbtD->isDataTrailer()) { // start reading real payload
       nw++;
       int cableHW = gbtD->getCableID(), cableSW = chmap.cableHW2SW(ruPtr->ruInfo->ruType, cableHW);

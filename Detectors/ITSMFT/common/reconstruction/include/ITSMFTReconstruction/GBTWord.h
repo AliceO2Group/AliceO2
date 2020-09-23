@@ -32,6 +32,8 @@ constexpr uint8_t GBTFlagDataTrailer = 0xf0;
 constexpr uint8_t GBTFlagTrigger = 0xe8;
 /// GBT diagnostic status word flag
 constexpr uint8_t GBTFlagDiagnostic = 0xe4;
+/// GBT calibration status word flag
+constexpr uint8_t GBTFlagCalibration = 0xf8;
 
 // GBT header flag in the RDH
 constexpr uint8_t GBTFlagRDH = 0x00;
@@ -88,6 +90,11 @@ struct GBTWord {
       uint64_t na0diag : 64; ///
       //      uint64_t id : 8;           /// 72:79  0xe4; diagnostic word identifier
     }; // HEADER Legacy
+    struct __attribute__((packed)) {
+      uint64_t calibUserField : 48; /// 0:47   user field
+      uint64_t calibCounter : 24;   /// 48:71  elf-incrementing counter of
+      //  uint64_t id : 8;            /// 72:79  0xf8; Calibration Status Word (HSW) identifier
+    }; /// Calibration Data Word
 
     uint8_t data8[16]; // 80 bits GBT word + optional padding to 128 bits
     uint64_t data64[2] = {0};
@@ -106,6 +113,9 @@ struct GBTWord {
 
   /// check if the GBT Header corresponds to Diagnostic data
   bool isDiagnosticWord() const { return id == GBTFlagDiagnostic; }
+
+  /// check if the GBT Header corresponds to Calibration word
+  bool isCalibrationWord() const { return id == GBTFlagCalibration; }
 
   /// check if the GBT Header corresponds to ITS IB data (header is combined with lanes info)
   bool isDataIB() const { return (id & 0xe0) == GBTFlagDataIB; }
@@ -260,6 +270,21 @@ struct GBTDiagnostic : public GBTWord {
 
   GBTDiagnostic() { id = GBTFlagDiagnostic; }
   ClassDefNV(GBTDiagnostic, 1);
+};
+
+struct GBTCalibration : public GBTWord { // calibration data word
+  /// bits  0 : 47, user-written tagging fields
+  /// bits 48 : 71, self-incrementing counter of CDW words
+  /// bits 72 : 79, calibration indicator
+
+  GBTCalibration() { id = GBTFlagCalibration; }
+  GBTCalibration(uint64_t userData, uint16_t counter = 0)
+  {
+    id = GBTFlagCalibration;
+    calibUserField = userData & ((0x1UL << 48) - 1);
+    calibCounter = counter & ((0x1 << 24) - 1);
+  }
+  ClassDefNV(GBTCalibration, 1);
 };
 
 } // namespace itsmft
