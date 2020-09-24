@@ -49,7 +49,7 @@ struct lambdakzerofinder {
   Produces<aod::V0FinderData> v0finderdata;
 
   OutputObj<TH1F> hCandPerEvent{TH1F("hCandPerEvent", "", 1000, 0, 1000)};
-  
+
   //Configurables
   Configurable<double> d_bz{"d_bz", +5.0, "bz field"};
   Configurable<double> d_UseAbsDCA{"d_UseAbsDCA", kTRUE, "Use Abs DCAs"};
@@ -99,7 +99,7 @@ struct lambdakzerofinder {
 
     std::array<float, 3> pVtx = {collision.posX(), collision.posY(), collision.posZ()};
 
-    for (auto& t0 : goodPosTracks) { //FIXME: turn into combination(...) 
+    for (auto& t0 : goodPosTracks) { //FIXME: turn into combination(...)
       if (t0.tpcNClsCrossedRows() < 70)
         continue; //FIXME: turn into extra filter
       for (auto& t1 : goodNegTracks) {
@@ -144,7 +144,7 @@ struct lambdakzerofinder {
                pvec0[0], pvec0[1], pvec0[2],
                pvec1[0], pvec1[1], pvec1[2],
                fitter.getChi2AtPCACandidate(),
-               t0.dcaXY(),-t1.dcaXY());
+               t0.dcaXY(), -t1.dcaXY());
       }
     }
     hCandPerEvent->Fill(lNCand);
@@ -173,7 +173,7 @@ struct lambdakzerofinderQA {
   OutputObj<TH3F> h3dMassAntiLambda{TH3F("h3dMassAntiLambda", "", 20, 0, 100, 200, 0, 10, 200, 1.115 - 0.100, 1.115 + 0.100)};
 
   OutputObj<TH1F> hTest{TH1F("hTest", "", 1000, 0, 1000)};
-  
+
   Filter preFilterV0 = aod::v0data::dcapostopv > dcapostopv&&
                                                    aod::v0data::dcanegtopv > dcanegtopv&& aod::v0data::dcaV0daughters < dcav0dau;
 
@@ -194,7 +194,7 @@ struct lambdakzerofinderQA {
         hDCAPosToPV->Fill(v0.dcapostopv());
         hDCANegToPV->Fill(v0.dcanegtopv());
         hDCAV0Dau->Fill(v0.dcaV0daughters());
-        
+
         hTest->Fill(v0.posTrack().pt());
 
         if (TMath::Abs(v0.yLambda()) < 0.5) {
@@ -221,6 +221,5 @@ WorkflowSpec defineDataProcessing(ConfigContext const&)
   return WorkflowSpec{
     adaptAnalysisTask<lambdakzerofinder>("lf-lambdakzerofinder"),
     adaptAnalysisTask<lambdakzeroinitializer>("lf-lambdakzeroinitializer"),
-    adaptAnalysisTask<lambdakzerofinderQA>("lf-lambdakzerofinderQA")
-    };
+    adaptAnalysisTask<lambdakzerofinderQA>("lf-lambdakzerofinderQA")};
 }
