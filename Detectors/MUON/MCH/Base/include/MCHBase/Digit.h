@@ -39,6 +39,11 @@ class Digit
         uint32_t orbit;              /// bit 32 to 63: orbit
       };                             ///
     };
+
+    Time() = default;
+    Time(uint32_t s, uint32_t b, uint32_t o) : sampaTime(s), bunchCrossing(b), orbit(o) { }
+    Time(uint64_t t) : time(t) { }
+
     uint64_t getBXTime()
     {
       return (bunchCrossing + (sampaTime * 4));
