@@ -53,29 +53,23 @@ o2::framework::DataProcessorSpec getTRDDigitWriterSpec(bool mctruth)
 
   // custom handler for labels:
   // essentially transform the input container (as registered in the branch definition) to the special output format for labels
-  auto customlabelhandler = [](TBranch& branch, o2::dataformats::ConstMCTruthContainer<o2::trd::MCLabel> const& labeldata, DataRef const& ref) {
+  auto customlabelhandler = [](TBranch& branch, std::vector<char> const& labeldata, DataRef const& ref) {
     // make the actual output object by adopting/casting the buffer
     // into a split format
     o2::dataformats::IOMCTruthContainerView outputcontainer(labeldata);
     auto tree = branch.GetTree();
-    auto name = branch.GetName();
-    // we need to make something ugly since the original branch is already registered with a different type
-    // (communicated by Philippe Canal / ROOT team)
-    branch.DeleteBaskets("all");
-    // remove the existing branch and make a new one with the correct type
-    tree->GetListOfBranches()->Remove(&branch);
-    auto br = tree->Branch(name, &outputcontainer);
+    auto br = tree->Branch("TRDMCLabels", &outputcontainer);
     br->Fill();
     br->ResetAddress();
   };
 
-  auto labelsdef = BranchDefinition<o2::dataformats::ConstMCTruthContainer<o2::trd::MCLabel>>{InputSpec{"labelinput", "TRD", "LABELS"},
-                                                                                              "TRDMCLabels", "labels-branch-name",
-                                                                                              // this branch definition is disabled if MC labels are not processed
-                                                                                              (mctruth ? 1 : 0),
-                                                                                              customlabelhandler,
-                                                                                              getIndex,
-                                                                                              getName};
+  auto labelsdef = BranchDefinition<std::vector<char>>{InputSpec{"labelinput", "TRD", "LABELS"},
+                                                       "TRDMCLabels_TMP", "labels-branch-name",
+                                                       // this branch definition is disabled if MC labels are not processed
+                                                       (mctruth ? 1 : 0),
+                                                       customlabelhandler,
+                                                       getIndex,
+                                                       getName};
 
   return MakeRootTreeWriterSpec("TRDDigitWriter",
                                 "trddigits.root",
