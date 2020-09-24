@@ -10,6 +10,8 @@
 #include "DataFormatsITSMFT/Digit.h"
 #include "SimulationDataFormat/DigitizationContext.h"
 #include "SimulationDataFormat/MCTruthContainer.h"
+#include "SimulationDataFormat/ConstMCTruthContainer.h"
+#include "SimulationDataFormat/IOMCTruthContainerView.h"
 #include "SimulationDataFormat/MCCompLabel.h"
 
 /// Example of accessing the digits of MCEvent digitized with continous readout
@@ -42,7 +44,20 @@ void readITSDigits(std::string path = "./",
   std::vector<o2::itsmft::Digit>* dv = nullptr;
   digiTree->SetBranchAddress("ITSDigit", &dv);
   o2::dataformats::MCTruthContainer<o2::MCCompLabel>* labels = nullptr;
-  digiTree->SetBranchAddress("ITSDigitMCTruth", &labels);
+  o2::dataformats::IOMCTruthContainerView* labelROOTbuffer = nullptr;
+  o2::dataformats::ConstMCTruthContainer<o2::MCCompLabel> constlabels;
+
+  // for backward compatibility we check what is stored in the file
+  auto labelClass = digiTree->GetBranch("ITSDigitMCTruth")->GetClassName();
+  bool oldlabelformat = false;
+  if (TString(labelClass).Contains("IOMCTruth")) {
+    // new format
+    digiTree->SetBranchAddress("ITSDigitMCTruth", &labelROOTbuffer);
+  } else {
+    // old format
+    digiTree->SetBranchAddress("ITSDigitMCTruth", &labels);
+    oldlabelformat = true;
+  }
 
   // ROF record entries in the digit tree
   std::vector<o2::itsmft::ROFRecord>* rofRecVec = nullptr;
@@ -53,6 +68,9 @@ void readITSDigits(std::string path = "./",
   digiTree->SetBranchAddress("ITSDigitMC2ROF", &mc2rofVec);
 
   digiTree->GetEntry(0);
+  if (!oldlabelformat) {
+    labelROOTbuffer->copyandflatten(constlabels);
+  }
 
   // MC collisions record
   auto runContext = reinterpret_cast<o2::steer::DigitizationContext*>(rcFile->GetObjectChecked("DigitizationContext", "o2::steer::DigitizationContext"));
@@ -89,7 +107,7 @@ void readITSDigits(std::string path = "./",
 
       int dgid = rofrec.getFirstEntry();
       const auto& digit0 = (*dv)[dgid];
-      const auto& labs0 = labels->getLabels(dgid);
+      const auto& labs0 = oldlabelformat ? labels->getLabels(dgid) : constlabels.getLabels(dgid);
       printf("1st digit of this ROF (Entry: %6d) :", dgid);
       digit0.print(std::cout);
       printf(" MCinfo: ");
@@ -97,7 +115,7 @@ void readITSDigits(std::string path = "./",
 
       dgid = rofrec.getFirstEntry() + rofrec.getNEntries() - 1;
       const auto& digit1 = (*dv)[dgid];
-      const auto& labs1 = labels->getLabels(dgid);
+      const auto& labs1 = oldlabelformat ? labels->getLabels(dgid) : constlabels.getLabels(dgid);
       printf("1st digit of this ROF (Entry: %6d) :", dgid);
       digit1.print(std::cout);
       printf(" MCinfo: ");

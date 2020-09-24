@@ -17,7 +17,7 @@
 #include <Rtypes.h>
 #include "ITSMFTReconstruction/PixelData.h"
 #include "SimulationDataFormat/MCCompLabel.h"
-#include "SimulationDataFormat/MCTruthContainer.h"
+#include "SimulationDataFormat/ConstMCTruthContainer.h"
 #include "CommonDataFormat/InteractionRecord.h"
 #include <vector>
 
@@ -45,7 +45,7 @@ class PixelReader
 
   // prepare data of next trigger, return number of non-empty links or chips
   virtual int decodeNextTrigger() = 0;
-  virtual const o2::dataformats::MCTruthContainer<o2::MCCompLabel>* getDigitsMCTruth() const
+  virtual const o2::dataformats::ConstMCTruthContainerView<o2::MCCompLabel>* getDigitsMCTruth() const
   {
     return nullptr;
   }
