@@ -43,6 +43,7 @@
 #include "CommonConstants/MathConstants.h"
 #include "MathUtils/Utils.h"
 #include "MathUtils/Primitive2D.h"
+#include "ReconstructionDataFormats/PID.h"
 
 //Forward declarations, since we cannot include the headers if we eventually want to use track.h on GPU
 namespace ROOT
@@ -153,6 +154,13 @@ class TrackPar
   float getTgl() const { return mP[kTgl]; }
   float getQ2Pt() const { return mP[kQ2Pt]; }
   float getCharge2Pt() const { return mAbsCharge ? mP[kQ2Pt] : 0.; }
+  int getAbsCharge() const { return mAbsCharge; }
+  PID getPID() const { return mPID; }
+  void setPID(const PID pid)
+  {
+    mPID = pid;
+    setAbsCharge(pid.getCharge());
+  }
 
   /// calculate cos^2 and cos of track direction in rphi-tracking
   float getCsp2() const
@@ -178,7 +186,6 @@ class TrackPar
   void getCircleParams(float bz, o2::utils::CircleXY& circle, float& sna, float& csa) const;
   void getLineParams(o2::utils::IntervalXY& line, float& sna, float& csa) const;
   float getCurvature(float b) const { return mAbsCharge ? mP[kQ2Pt] * b * o2::constants::math::B2C : 0.; }
-  int getAbsCharge() const { return mAbsCharge; }
   int getCharge() const { return getSign() > 0 ? mAbsCharge : -mAbsCharge; }
   int getSign() const { return mAbsCharge ? (mP[kQ2Pt] > 0.f ? 1 : -1) : 0; }
   float getPhi() const;
@@ -239,6 +246,7 @@ class TrackPar
   float mAlpha = 0.f;         /// track frame angle
   float mP[kNParams] = {0.f}; /// 5 parameters: Y,Z,sin(phi),tg(lambda),q/pT
   char mAbsCharge = 1;        /// Extra info about the abs charge, to be taken into account only if not 1
+  PID mPID{};                 /// 8 bit PID
 
   ClassDefNV(TrackPar, 2);
 };
