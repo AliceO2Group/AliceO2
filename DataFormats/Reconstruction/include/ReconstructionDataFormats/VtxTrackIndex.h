@@ -53,6 +53,8 @@ class VtxTrackIndex : public AbstractRef<26, 3, 3>
   void print() const;
   std::string asString() const;
 
+  operator auto() const { return AbstractRef<26, 3, 3>(); }
+
   ClassDefNV(VtxTrackIndex, 1);
 };
 
