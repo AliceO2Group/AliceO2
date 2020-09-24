@@ -154,6 +154,20 @@ class GenericRootTreeReader
     /// start over at entry 0
     Loop,
   };
+
+  /// A struct holding a callback to specialize publishing based on branch name. This might be useful
+  /// when the read data needs to be transformed before publishing.
+  /// The hook gets the following input:
+  /// name: name of branch (may be used for selecting filtering)
+  /// context: The processing context (so that we can snapshot or publish)
+  /// Output: The DPL output channel on which to publish
+  /// data: pointer to the data object read by the TreeReader
+  /// The hook should return true when publishing succeeded and false when the ordinary publishing procedure
+  /// should proceed.
+  struct SpecialPublishHook {
+    std::function<bool(std::string_view name, ProcessingContext& context, Output const&, char* data)> hook;
+  };
+
   // the key must not be of type const char* to make sure that the variable argument
   // list of the constructor can be parsed
   static_assert(std::is_same<KeyType, const char*>::value == false, "the key type must not be const char*");
@@ -189,7 +203,7 @@ class GenericRootTreeReader
     virtual ~BranchConfigurationInterface() = default;
 
     /// Setup the branch configuration, namely get the branch and class information from the tree
-    virtual void setup(TTree&) {}
+    virtual void setup(TTree&, SpecialPublishHook* h = nullptr) {}
     /// Run the reader process
     /// This will recursively run every level of the the branch configuration and fetch the object
     /// at position \a entry. The object is published via the DPL ProcessingContext. A creator callback
@@ -226,20 +240,21 @@ class GenericRootTreeReader
 
     /// Setup branch configuration
     /// This is the virtal overload entry point to the upper most stage of the branch configuration
-    void setup(TTree& tree) override
+    void setup(TTree& tree, SpecialPublishHook* publishhook = nullptr) override
     {
-      setupInstance(tree);
+      setupInstance(tree, publishhook);
     }
 
     /// Run the setup, first recursively for all lower stages, and then the current stage
     /// This fetches the branch corresponding to the configured name
-    void setupInstance(TTree& tree)
+    void setupInstance(TTree& tree, SpecialPublishHook* publishhook = nullptr)
     {
       // recursing through the tree structure by simply using method of the previous type,
       // i.e. the base class method.
       if constexpr (STAGE > 1) {
-        PrevT::setupInstance(tree);
+        PrevT::setupInstance(tree, publishhook);
       }
+      mPublishHook = publishhook;
 
       // right now we allow the same key to appear for multiple branches
       mBranch = tree.GetBranch(mName.c_str());
@@ -292,30 +307,39 @@ class GenericRootTreeReader
       char* data = nullptr;
       mBranch->SetAddress(&data);
       mBranch->GetEntry(entry);
-      if (mSizeBranch != nullptr) {
-        size_t datasize = 0;
-        mSizeBranch->SetAddress(&datasize);
-        mSizeBranch->GetEntry(entry);
-        auto* buffer = reinterpret_cast<BinaryDataStoreType*>(data);
-        if (buffer->size() == datasize) {
-          LOG(INFO) << "branch " << mName << ": publishing binary chunk of " << datasize << " bytes(s)";
-          snapshot(mKey, std::move(*buffer));
+
+      // execute hook if it was registered; if this return true do not proceed further
+      if (mPublishHook != nullptr && (*mPublishHook).hook(mName, context, Output{mKey.origin, mKey.description, mKey.subSpec, mKey.lifetime, std::move(stackcreator())}, data)) {
+
+      }
+      // try to figureout when we need to do something special
+      else {
+        if (mSizeBranch != nullptr) {
+          size_t datasize = 0;
+          mSizeBranch->SetAddress(&datasize);
+          mSizeBranch->GetEntry(entry);
+          auto* buffer = reinterpret_cast<BinaryDataStoreType*>(data);
+          if (buffer->size() == datasize) {
+            LOG(INFO) << "branch " << mName << ": publishing binary chunk of " << datasize << " bytes(s)";
+            snapshot(mKey, std::move(*buffer));
+          } else {
+            LOG(ERROR) << "branch " << mName << ": inconsitent size of binary chunk "
+                       << buffer->size() << " vs " << datasize;
+            BinaryDataStoreType empty;
+            snapshot(mKey, empty);
+          }
         } else {
-          LOG(ERROR) << "branch " << mName << ": inconsitent size of binary chunk "
-                     << buffer->size() << " vs " << datasize;
-          BinaryDataStoreType empty;
-          snapshot(mKey, empty);
-        }
-      } else {
-        if constexpr (std::is_void<value_type>::value == true) {
-          // the default branch configuration publishes the object ROOT serialized
-          snapshot(mKey, std::move(ROOTSerializedByClass(*data, mClassInfo)));
-        } else {
-          // if type is specified in the branch configuration, the allocator API decides
-          // upon serialization
-          snapshot(mKey, *reinterpret_cast<value_type*>(data));
+          if constexpr (std::is_void<value_type>::value == true) {
+            // the default branch configuration publishes the object ROOT serialized
+            snapshot(mKey, std::move(ROOTSerializedByClass(*data, mClassInfo)));
+          } else {
+            // if type is specified in the branch configuration, the allocator API decides
+            // upon serialization
+            snapshot(mKey, *reinterpret_cast<value_type*>(data));
+          }
         }
       }
+      // cleanup the memory
       auto* delfunc = mClassInfo->GetDelete();
       if (delfunc) {
         (*delfunc)(data);
@@ -329,6 +353,7 @@ class GenericRootTreeReader
     TBranch* mBranch = nullptr;
     TBranch* mSizeBranch = nullptr;
     TClass* mClassInfo = nullptr;
+    SpecialPublishHook* mPublishHook = nullptr;
   };
 
   /// branch definition structure
@@ -372,7 +397,7 @@ class GenericRootTreeReader
   {
     mInput.SetCacheSize(0);
     parseConstructorArgs<0>(std::forward<Args>(args)...);
-    mBranchConfiguration->setup(mInput);
+    mBranchConfiguration->setup(mInput, mPublishHook);
   }
 
   /// add a file as source for the tree
@@ -481,6 +506,8 @@ class GenericRootTreeReader
       mMaxEntries = def;
     } else if constexpr (std::is_same<U, PublishingMode>::value) {
       mPublishingMode = def;
+    } else if constexpr (std::is_same<U, SpecialPublishHook*>::value) {
+      mPublishHook = def;
     } else if constexpr (is_specialization<U, BranchDefinition>::value) {
       cargs.emplace_back(key_type(def.key), def.name);
       using type = BranchConfigurationElement<typename U::type, BASE>;
@@ -522,6 +549,8 @@ class GenericRootTreeReader
   int mMaxEntries = -1;
   /// publishing mode
   PublishingMode mPublishingMode = PublishingMode::Single;
+  /// special user hook
+  SpecialPublishHook* mPublishHook = nullptr;
 };
 
 using RootTreeReader = GenericRootTreeReader<rtr::DefaultKey>;
