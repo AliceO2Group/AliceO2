@@ -63,7 +63,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& config)
   // vectored options
   // use the OutputChannelSpec as a tool to create the default configuration for the out-of-band channel
   OutputChannelSpec externalChannelSpec;
-  externalChannelSpec.name = inputs[0].binding;
+  externalChannelSpec.name = "downstream";
   externalChannelSpec.type = ChannelType::Push;
   externalChannelSpec.method = ChannelMethod::Bind;
   externalChannelSpec.hostname = "localhost";

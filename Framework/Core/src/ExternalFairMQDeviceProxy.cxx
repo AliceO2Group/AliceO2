@@ -395,6 +395,15 @@ DataProcessorSpec specifyExternalFairMQDeviceProxy(char const* name,
   return spec;
 }
 
+namespace
+{
+// Decide where to sent the output. Everything to "downstream" for now
+std::string decideChannel(InputSpec const&)
+{
+  return "downstream";
+}
+} // namespace
+
 DataProcessorSpec specifyFairMQDeviceOutputProxy(char const* name,
                                                  Inputs const& inputSpecs,
                                                  const char* defaultChannelConfig)
@@ -411,8 +420,9 @@ DataProcessorSpec specifyFairMQDeviceOutputProxy(char const* name,
     auto channelConfigurationChecker = [inputSpecs = std::move(inputSpecs), device]() {
       LOG(INFO) << "checking channel configuration";
       for (auto const& spec : inputSpecs) {
-        if (device->fChannels.count(spec.binding) == 0) {
-          throw std::runtime_error("no corresponding output channel found for input '" + spec.binding + "'");
+        auto channel = decideChannel(spec);
+        if (device->fChannels.count(channel) == 0) {
+          throw std::runtime_error("no corresponding output channel found for input '" + channel + "'");
         }
       }
     };
@@ -443,12 +453,13 @@ DataProcessorSpec specifyFairMQDeviceOutputProxy(char const* name,
           }
           size_t payloadMsgSize = dh->payloadSize;
 
-          auto headerMessage = device.NewMessageFor(first.spec->binding, index, headerMsgSize);
+          auto channel = decideChannel(*first.spec);
+          auto headerMessage = device.NewMessageFor(channel, index, headerMsgSize);
           memcpy(headerMessage->GetData(), part.header, headerMsgSize);
-          auto payloadMessage = device.NewMessageFor(first.spec->binding, index, payloadMsgSize);
+          auto payloadMessage = device.NewMessageFor(channel, index, payloadMsgSize);
           memcpy(payloadMessage->GetData(), part.payload, payloadMsgSize);
-          outputs[first.spec->binding].AddPart(std::move(headerMessage));
-          outputs[first.spec->binding].AddPart(std::move(payloadMessage));
+          outputs[channel].AddPart(std::move(headerMessage));
+          outputs[channel].AddPart(std::move(payloadMessage));
         }
       }
       for (auto& [channelName, channelParts] : outputs) {
@@ -461,7 +472,8 @@ DataProcessorSpec specifyFairMQDeviceOutputProxy(char const* name,
   });
   const char* d = strdup(((std::string(defaultChannelConfig).find("name=") == std::string::npos ? (std::string("name=") + name + ",") : "") + std::string(defaultChannelConfig)).c_str());
   spec.options = {
-    ConfigParamSpec{"channel-config", VariantType::String, d, {"Out-of-band channel config"}}};
+    ConfigParamSpec{"channel-config", VariantType::String, d, {"Out-of-band channel config"}},
+  };
 
   return spec;
 }

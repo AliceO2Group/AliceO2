@@ -75,8 +75,8 @@ std::vector<DataProcessorSpec> defineDataProcessing(ConfigContext const& config)
 
   // use the OutputChannelSpec as a tool to create the default configuration for the out-of-band channel
   OutputChannelSpec externalChannelSpec;
-  // Note: the name has to match the binding of the input spec
-  externalChannelSpec.name = "external";
+  // Note: the name is hardcoded for now
+  externalChannelSpec.name = "downstream";
   externalChannelSpec.type = ChannelType::Push;
   externalChannelSpec.method = ChannelMethod::Bind;
   externalChannelSpec.hostname = "localhost";
