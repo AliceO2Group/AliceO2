@@ -79,7 +79,8 @@ TrackPar::TrackPar(const array<float, 3>& xyz, const array<float, 3>& pxpypz, in
   mP[kZ] = ver[2];
   mP[kSnp] = mom[1] * ptI;
   mP[kTgl] = mom[2] * ptI;
-  mP[kQ2Pt] = ptI * charge;
+  mAbsCharge = std::abs(charge);
+  mP[kQ2Pt] = charge ? ptI * charge : ptI;
   //
   if (fabs(1 - getSnp()) < kSafe) {
     mP[kSnp] = 1. - kSafe; // Protection
@@ -96,7 +97,7 @@ bool TrackPar::getPxPyPzGlo(array<float, 3>& pxyz) const
   if (fabs(getQ2Pt()) < Almost0 || fabs(getSnp()) > Almost1) {
     return false;
   }
-  float cs, sn, pt = fabs(1.f / getQ2Pt());
+  float cs, sn, pt = getPt();
   float r = std::sqrt((1.f - getSnp()) * (1.f + getSnp()));
   utils::sincos(getAlpha(), sn, cs);
   pxyz[0] = pt * (r * cs - getSnp() * sn);
@@ -183,7 +184,7 @@ bool TrackPar::propagateParamTo(float xk, const array<float, 3>& b)
     //    print();
     return false;
   }
-  float crv = (fabs(b[2]) < Almost0) ? 0.f : getCurvature(b[2]);
+  float crv = getCurvature(b[2]);
   float x2r = crv * dx;
   float f1 = getSnp(), f2 = f1 + x2r;
   if (fabs(f1) > Almost1 || fabs(f2) > Almost1) {
@@ -231,8 +232,8 @@ bool TrackPar::propagateParamTo(float xk, const array<float, 3>& b)
                        vecLab[6]};
 
   // Do the helix step
-  float sgn = getSign();
-  g3helx3(sgn * bb, step, vect);
+  float q = getCharge();
+  g3helx3(q * bb, step, vect);
 
   // rotate back to the Global System
   vecLab[0] = cosphi * costet * vect[0] - sinphi * vect[1] + cosphi * sintet * vect[2];
@@ -271,7 +272,7 @@ bool TrackPar::propagateParamTo(float xk, const array<float, 3>& b)
   mP[kZ] = z;
   mP[kSnp] = vecLab[4] * t;
   mP[kTgl] = vecLab[5] * t;
-  mP[kQ2Pt] = sgn * t / vecLab[6];
+  mP[kQ2Pt] = q * t / vecLab[6];
 
   return true;
 }
@@ -381,13 +382,10 @@ bool TrackPar::getYZAt(float xk, float b, float& y, float& z) const
   if (fabs(dx) < Almost0) {
     return true;
   }
-  float crv = (fabs(b) < Almost0) ? 0.f : getCurvature(b);
+  float crv = getCurvature(b);
   float x2r = crv * dx;
   float f1 = getSnp(), f2 = f1 + x2r;
   if ((fabs(f1) > Almost1) || (fabs(f2) > Almost1)) {
-    return false;
-  }
-  if (fabs(getQ2Pt()) < Almost0) {
     return false;
   }
   float r1 = std::sqrt((1.f - f1) * (1.f + f1));
@@ -460,7 +458,7 @@ float TrackPar::getYAt(float xk, float b) const
 std::string TrackPar::asString() const
 {
   // print parameters as string
-  return fmt::format("X:{:+.4e} Alp:{:+.3e} Par: {:+.4e} {:+.4e} {:+.4e} {:+.4e} {:+.4e}", getX(), getAlpha(), getY(), getZ(), getSnp(), getTgl(), getQ2Pt());
+  return fmt::format("X:{:+.4e} Alp:{:+.3e} Par: {:+.4e} {:+.4e} {:+.4e} {:+.4e} {:+.4e} |Q|:{:d}", getX(), getAlpha(), getY(), getZ(), getSnp(), getTgl(), getQ2Pt(), getAbsCharge());
 }
 
 //______________________________________________________________
@@ -655,7 +653,7 @@ bool TrackPar::correctForELoss(float xrho, float mass, bool anglecorr, float ded
   // "xrho" - is the product length*density (g/cm^2).
   //     It should be passed as negative when propagating tracks
   //     from the intreaction point to the outside of the central barrel.
-  // "mass" - the mass of this particle (GeV/c^2). Negative mass means charge=2 particle
+  // "mass" - the mass of this particle (GeV/c^2).
   // "dedx" - mean enery loss (GeV/(g/cm^2), if <=kCalcdEdxAuto : calculate on the fly
   // "anglecorr" - switch for the angular correction
   //------------------------------------------------------------------
@@ -682,8 +680,8 @@ bool TrackPar::correctForELoss(float xrho, float mass, bool anglecorr, float ded
   if ((xrho != 0.f) && (beta2 < 1.f)) {
     if (dedx < kCalcdEdxAuto + Almost1) { // request to calculate dedx on the fly
       dedx = BetheBlochSolid(p / fabs(mass));
-      if (mass < 0) {
-        dedx *= 4.f; // z=2 particle
+      if (mAbsCharge != 1) {
+        dedx *= mAbsCharge * mAbsCharge;
       }
     }
 
@@ -727,7 +725,7 @@ bool TrackParCov::propagateTo(float xk, float b)
   if (fabs(dx) < Almost0) {
     return true;
   }
-  float crv = (fabs(b) < Almost0) ? 0.f : getCurvature(b);
+  float crv = getCurvature(b);
   float x2r = crv * dx;
   float f1 = getSnp(), f2 = f1 + x2r;
   if ((fabs(f1) > Almost1) || (fabs(f2) > Almost1)) {
@@ -974,7 +972,8 @@ TrackParCov::TrackParCov(const array<float, 3>& xyz, const array<float, 3>& pxpy
   setZ(ver[2]);
   setSnp(mom[1] * ptI); // cos(phi)
   setTgl(mom[2] * ptI); // tg(lambda)
-  setQ2Pt(ptI * charge);
+  setAbsCharge(std::abs(charge));
+  setQ2Pt(charge ? ptI * charge : ptI);
   //
   if (fabs(1.f - getSnp()) < kSafe) {
     setSnp(1.f - kSafe); // Protection
@@ -1556,7 +1555,7 @@ bool TrackParCov::correctForMaterial(float x2x0, float xrho, float mass, bool an
   // "xrho" - is the product length*density (g/cm^2).
   //     It should be passed as negative when propagating tracks
   //     from the intreaction point to the outside of the central barrel.
-  // "mass" - the mass of this particle (GeV/c^2). Negative mass means charge=2 particle
+  // "mass" - the mass of this particle (GeV/c^2).
   // "dedx" - mean enery loss (GeV/(g/cm^2), if <=kCalcdEdxAuto : calculate on the fly
   // "anglecorr" - switch for the angular correction
   //------------------------------------------------------------------
@@ -1579,9 +1578,6 @@ bool TrackParCov::correctForMaterial(float x2x0, float xrho, float mass, bool an
   }
 
   float p = getP();
-  if (mass < 0) {
-    p += p; // q=2 particle
-  }
   float p2 = p * p, mass2 = mass * mass;
   float e2 = p2 + mass2;
   float beta2 = p2 / e2;
@@ -1590,13 +1586,13 @@ bool TrackParCov::correctForMaterial(float x2x0, float xrho, float mass, bool an
   float cC22(0.f), cC33(0.f), cC43(0.f), cC44(0.f);
   if (x2x0 != 0.f) {
     float theta2 = kMSConst2 / (beta2 * p2) * fabs(x2x0);
-    if (mass < 0) {
-      theta2 *= 4.f; // q=2 particle
+    if (getAbsCharge() != 1) {
+      theta2 *= getAbsCharge() * getAbsCharge();
     }
     if (theta2 > PI * PI) {
       return false;
     }
-    float fp34 = getTgl() * getQ2Pt();
+    float fp34 = getTgl() * getCharge2Pt();
     float t2c2I = theta2 * cst2I;
     cC22 = t2c2I * csp2;
     cC33 = t2c2I * cst2I;
@@ -1614,8 +1610,8 @@ bool TrackParCov::correctForMaterial(float x2x0, float xrho, float mass, bool an
   if ((xrho != 0.f) && (beta2 < 1.f)) {
     if (dedx < kCalcdEdxAuto + Almost1) { // request to calculate dedx on the fly
       dedx = BetheBlochSolid(p / fabs(mass));
-      if (mass < 0) {
-        dedx *= 4.f; // z=2 particle
+      if (getAbsCharge() != 1) {
+        dedx *= getAbsCharge() * getAbsCharge();
       }
     }
 
@@ -1633,7 +1629,7 @@ bool TrackParCov::correctForMaterial(float x2x0, float xrho, float mass, bool an
     //
     // Approximate energy loss fluctuation (M.Ivanov)
     constexpr float knst = 0.07f; // To be tuned.
-    float sigmadE = knst * std::sqrt(fabs(dE)) * e / p2 * getQ2Pt();
+    float sigmadE = knst * std::sqrt(fabs(dE)) * e / p2 * getCharge2Pt();
     cC44 += sigmadE * sigmadE;
   }
 

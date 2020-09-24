@@ -12,6 +12,15 @@
 /// \brief Base track model for the Barrel, params only, w/o covariance
 /// \author ruben.shahoyan@cern.ch
 
+/*
+  24/09/2020: Added new data member for abs. charge. This is needed for uniform treatment of tracks with non-standard
+  charge: 0 (for V0s) and e.g. 2 for hypernuclei. 
+  In the aliroot AliExternalTrackParam this was treated by derived classes using virtual methods, which we don't use in O2.
+  The meaning of mP[kQ2Pt] remains exactly the same, except for q=0 case: in this case the mP[kQ2Pt] is just an alias to
+  1/pT, regardless of its sign, and the getCurvature() will 0 (because mAbsCharge is 0).
+  The methods returning lab momentum or its combination account for eventual q>1.
+ */
+
 #ifndef ALICEO2_BASE_TRACK
 #define ALICEO2_BASE_TRACK
 
@@ -128,8 +137,8 @@ class TrackPar
 { // track parameterization, kinematics only.
  public:
   TrackPar() = default;
-  TrackPar(float x, float alpha, const std::array<float, kNParams>& par);
-  TrackPar(const std::array<float, 3>& xyz, const std::array<float, 3>& pxpypz, int sign, bool sectorAlpha = true);
+  TrackPar(float x, float alpha, const std::array<float, kNParams>& par, int charge = 1);
+  TrackPar(const std::array<float, 3>& xyz, const std::array<float, 3>& pxpypz, int charge, bool sectorAlpha = true);
   TrackPar(const TrackPar&) = default;
   TrackPar& operator=(const TrackPar& src) = default;
   ~TrackPar() = default;
@@ -143,6 +152,7 @@ class TrackPar
   float getSnp() const { return mP[kSnp]; }
   float getTgl() const { return mP[kTgl]; }
   float getQ2Pt() const { return mP[kQ2Pt]; }
+  float getCharge2Pt() const { return mAbsCharge ? mP[kQ2Pt] : 0.; }
 
   /// calculate cos^2 and cos of track direction in rphi-tracking
   float getCsp2() const
@@ -160,17 +170,21 @@ class TrackPar
   void setSnp(float v) { mP[kSnp] = v; }
   void setTgl(float v) { mP[kTgl] = v; }
   void setQ2Pt(float v) { mP[kQ2Pt] = v; }
+  void setAbsCharge(int q) { mAbsCharge = std::abs(q); }
 
   // derived getters
   bool getXatLabR(float r, float& x, float bz, DirType dir = DirAuto) const;
   void getCircleParamsLoc(float bz, o2::utils::CircleXY& circle) const;
   void getCircleParams(float bz, o2::utils::CircleXY& circle, float& sna, float& csa) const;
   void getLineParams(o2::utils::IntervalXY& line, float& sna, float& csa) const;
-  float getCurvature(float b) const { return mP[kQ2Pt] * b * o2::constants::math::B2C; }
-  float getSign() const { return mP[kQ2Pt] > 0 ? 1.f : -1.f; }
+  float getCurvature(float b) const { return mAbsCharge ? mP[kQ2Pt] * b * o2::constants::math::B2C : 0.; }
+  int getAbsCharge() const { return mAbsCharge; }
+  int getCharge() const { return getSign() > 0 ? mAbsCharge : -mAbsCharge; }
+  int getSign() const { return mAbsCharge ? (mP[kQ2Pt] > 0.f ? 1 : -1) : 0; }
   float getPhi() const;
   float getPhiPos() const;
 
+  float getPtInv() const;
   float getP2Inv() const;
   float getP2() const;
   float getPInv() const;
@@ -224,8 +238,9 @@ class TrackPar
   float mX = 0.f;             /// X of track evaluation
   float mAlpha = 0.f;         /// track frame angle
   float mP[kNParams] = {0.f}; /// 5 parameters: Y,Z,sin(phi),tg(lambda),q/pT
+  char mAbsCharge = 1;        /// Extra info about the abs charge, to be taken into account only if not 1
 
-  ClassDefNV(TrackPar, 1);
+  ClassDefNV(TrackPar, 2);
 };
 
 class TrackParCov : public TrackPar
@@ -235,7 +250,7 @@ class TrackParCov : public TrackPar
 
  public:
   TrackParCov() : TrackPar{} {}
-  TrackParCov(float x, float alpha, const std::array<float, kNParams>& par, const std::array<float, kCovMatSize>& cov);
+  TrackParCov(float x, float alpha, const std::array<float, kNParams>& par, const std::array<float, kCovMatSize>& cov, int charge = 1);
   TrackParCov(const std::array<float, 3>& xyz, const std::array<float, 3>& pxpypz,
               const std::array<float, kLabCovMatSize>& cv, int sign, bool sectorAlpha = true);
   TrackParCov(const TrackParCov& src) = default;
@@ -319,11 +334,12 @@ class TrackParCov : public TrackPar
  protected:
   float mC[kCovMatSize] = {0.f}; // 15 covariance matrix elements
 
-  ClassDefNV(TrackParCov, 1);
+  ClassDefNV(TrackParCov, 2);
 };
 
 //____________________________________________________________
-inline TrackPar::TrackPar(float x, float alpha, const std::array<float, kNParams>& par) : mX{x}, mAlpha{alpha}
+inline TrackPar::TrackPar(float x, float alpha, const std::array<float, kNParams>& par, int charge)
+  : mX{x}, mAlpha{alpha}, mAbsCharge{char(std::abs(charge))}
 {
   // explicit constructor
   std::copy(par.begin(), par.end(), mP);
@@ -420,14 +436,24 @@ inline float TrackPar::getPhiPos() const
 inline float TrackPar::getP2Inv() const
 {
   // return the inverted track momentum^2
-  return getQ2Pt() * getQ2Pt() / (1.f + getTgl() * getTgl());
+  auto p2 = mP[kQ2Pt] * mP[kQ2Pt] / (1.f + getTgl() * getTgl());
+  return (mAbsCharge > 1) ? p2 * mAbsCharge * mAbsCharge : p2;
+}
+
+//____________________________________________________________
+inline float TrackPar::getPtInv() const
+{
+  // return the inverted track pT
+  auto ptInv = fabs(mP[kQ2Pt]);
+  return (mAbsCharge > 1) ? ptInv / mAbsCharge : ptInv;
 }
 
 //____________________________________________________________
 inline float TrackPar::getPInv() const
 {
   // return the inverted track momentum^2
-  return fabs(getQ2Pt()) / sqrtf(1.f + getTgl() * getTgl());
+  auto pInv = fabs(mP[kQ2Pt]) / sqrtf(1.f + getTgl() * getTgl());
+  return (mAbsCharge > 1) ? pInv / mAbsCharge : pInv;
 }
 
 //____________________________________________________________
@@ -450,7 +476,10 @@ inline float TrackPar::getP() const
 inline float TrackPar::getPt() const
 {
   // return the track transverse momentum
-  float ptI = fabs(getQ2Pt());
+  float ptI = fabs(mP[kQ2Pt]);
+  if (mAbsCharge > 1) {
+    ptI /= mAbsCharge;
+  }
   return (ptI > o2::constants::math::Almost0) ? 1.f / ptI : o2::constants::math::VeryBig;
 }
 
@@ -458,8 +487,8 @@ inline float TrackPar::getPt() const
 
 //____________________________________________________________
 inline TrackParCov::TrackParCov(float x, float alpha, const std::array<float, kNParams>& par,
-                                const std::array<float, kCovMatSize>& cov)
-  : TrackPar{x, alpha, par}
+                                const std::array<float, kCovMatSize>& cov, int charge)
+  : TrackPar{x, alpha, par, charge}
 {
   // explicit constructor
   std::copy(cov.begin(), cov.end(), mC);
