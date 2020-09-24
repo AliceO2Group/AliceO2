@@ -591,7 +591,7 @@ DataProcessorSpec CommonDataProcessors::getGlobalFairMQSink(std::vector<InputSpe
   // vectored options
   // use the OutputChannelSpec as a tool to create the default configuration for the out-of-band channel
   OutputChannelSpec externalChannelSpec;
-  externalChannelSpec.name = "output_0_0";
+  externalChannelSpec.name = "downstream";
   externalChannelSpec.type = ChannelType::Push;
   externalChannelSpec.method = ChannelMethod::Bind;
   externalChannelSpec.hostname = "localhost";
