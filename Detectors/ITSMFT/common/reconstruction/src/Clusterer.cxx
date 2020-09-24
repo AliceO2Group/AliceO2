@@ -156,7 +156,7 @@ void Clusterer::process(int nThreads, PixelReader& reader, CompClusCont* compClu
 
 //__________________________________________________
 void Clusterer::ClustererThread::process(uint16_t chip, uint16_t nChips, CompClusCont* compClusPtr, PatternCont* patternsPtr,
-                                         const MCTruth* labelsDigPtr, MCTruth* labelsClPtr, const ROFRecord& rofPtr)
+                                         const ConstMCTruth* labelsDigPtr, MCTruth* labelsClPtr, const ROFRecord& rofPtr)
 {
   if (stats.empty() || stats.back().firstChip + stats.back().nChips < chip) { // there is a jump, register new block
     stats.emplace_back(ThreadStat{chip, 0, uint32_t(compClusPtr->size()), patternsPtr ? uint32_t(patternsPtr->size()) : 0, 0, 0});
@@ -199,7 +199,7 @@ void Clusterer::ClustererThread::process(uint16_t chip, uint16_t nChips, CompClu
 
 //__________________________________________________
 void Clusterer::ClustererThread::finishChip(ChipPixelData* curChipData, CompClusCont* compClusPtr,
-                                            PatternCont* patternsPtr, const MCTruth* labelsDigPtr, MCTruth* labelsClusPtr)
+                                            PatternCont* patternsPtr, const ConstMCTruth* labelsDigPtr, MCTruth* labelsClusPtr)
 {
   auto clustersCount = compClusPtr->size();
   const auto& pixData = curChipData->getData();
@@ -325,7 +325,7 @@ void Clusterer::ClustererThread::streamCluster(const std::vector<PixelData>& pix
 
 //__________________________________________________
 void Clusterer::ClustererThread::finishChipSingleHitFast(uint32_t hit, ChipPixelData* curChipData, CompClusCont* compClusPtr,
-                                                         PatternCont* patternsPtr, const MCTruth* labelsDigPtr, MCTruth* labelsClusPtr)
+                                                         PatternCont* patternsPtr, const ConstMCTruth* labelsDigPtr, MCTruth* labelsClusPtr)
 {
   auto clustersCount = compClusPtr->size();
   auto pix = curChipData->getData()[hit];
@@ -435,7 +435,7 @@ void Clusterer::ClustererThread::updateChip(const ChipPixelData* curChipData, ui
 }
 
 //__________________________________________________
-void Clusterer::ClustererThread::fetchMCLabels(int digID, const MCTruth* labelsDig, int& nfilled)
+void Clusterer::ClustererThread::fetchMCLabels(int digID, const ConstMCTruth* labelsDig, int& nfilled)
 {
   // transfer MC labels to cluster
   if (nfilled >= MaxLabels) {

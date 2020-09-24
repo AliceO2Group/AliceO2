@@ -20,6 +20,7 @@
 #include "DataFormatsITSMFT/CompCluster.h"
 #include "SimulationDataFormat/MCCompLabel.h"
 #include "SimulationDataFormat/MCTruthContainer.h"
+#include "SimulationDataFormat/ConstMCTruthContainer.h"
 #include "DataFormatsITSMFT/ROFRecord.h"
 #include "DataFormatsParameters/GRPObject.h"
 #include "ITSMFTReconstruction/DigitPixelReader.h"
@@ -85,12 +86,13 @@ void ClustererDPL::run(ProcessingContext& pc)
   auto digits = pc.inputs().get<gsl::span<o2::itsmft::Digit>>("digits");
   auto rofs = pc.inputs().get<gsl::span<o2::itsmft::ROFRecord>>("ROframes");
 
-  std::unique_ptr<const o2::dataformats::MCTruthContainer<o2::MCCompLabel>> labels;
   gsl::span<const o2::itsmft::MC2ROFRecord> mc2rofs;
+  gsl::span<const char> labelbuffer;
   if (mUseMC) {
-    labels = pc.inputs().get<o2::dataformats::MCTruthContainer<o2::MCCompLabel>*>("labels");
+    labelbuffer = pc.inputs().get<gsl::span<char>>("labels");
     mc2rofs = pc.inputs().get<gsl::span<o2::itsmft::MC2ROFRecord>>("MC2ROframes");
   }
+  const o2::dataformats::ConstMCTruthContainerView<o2::MCCompLabel> labels(labelbuffer);
 
   LOG(INFO) << "MFTClusterer pulled " << digits.size() << " digits, in "
             << rofs.size() << " RO frames";
@@ -100,7 +102,7 @@ void ClustererDPL::run(ProcessingContext& pc)
   reader.setROFRecords(rofs);
   if (mUseMC) {
     reader.setMC2ROFRecords(mc2rofs);
-    reader.setDigitsMCTruth(labels.get());
+    reader.setDigitsMCTruth(labels.getIndexedSize() > 0 ? &labels : nullptr);
   }
   reader.init();
   auto orig = o2::header::gDataOriginMFT;
