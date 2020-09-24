@@ -55,18 +55,14 @@ class PrimaryGenerator : public FairPrimaryGenerator
       **/
   Bool_t GenerateEvent(FairGenericStack* pStack) override;
 
-  /** Public method AddTrack
-      Adding a track to the MC stack. To be called within the ReadEvent
-      methods of the registered generators.
-      *@param pdgid Particle ID (PDG code)
-      *@param px,py,pz Momentum coordinates [GeV]
-      *@param vx,vy,vz Track origin relative to event vertex
-      **/
+  /** ALICE-o2 AddTrack with mother/daughter indices **/
   void AddTrack(Int_t pdgid, Double_t px, Double_t py, Double_t pz,
                 Double_t vx, Double_t vy, Double_t vz,
-                Int_t parent = -1, Bool_t wanttracking = true,
+                Int_t mother1 = -1, Int_t mother2 = -1,
+                Int_t daughter1 = -1, Int_t daughter2 = -1,
+                Bool_t wanttracking = true,
                 Double_t e = -9e9, Double_t tof = 0.,
-                Double_t weight = 0., TMCProcess proc = kPPrimary) override;
+                Double_t weight = 0., TMCProcess proc = kPPrimary);
 
   /** initialize the generator **/
   Bool_t Init() override;
