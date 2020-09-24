@@ -258,7 +258,7 @@ This functionality might be of use for users who want to be able to steer the ev
 An example of a configuration macro is this one
 
 ```
-//   usage: o2sim -g pythia8 --configKeyValues "Pythia8.hooksFileName=pythia8_userhooks_charm.C"
+//   usage: o2sim -g pythia8 --configKeyValues "GeneratorPythia8.hooksFileName=pythia8_userhooks_charm.C"
 
 #include "Generators/Trigger.h"
 #include "Pythia8/Pythia.h"
