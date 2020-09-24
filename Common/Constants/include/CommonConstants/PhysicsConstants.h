@@ -22,6 +22,7 @@ namespace constants
 namespace physics
 {
 // particles masses
+constexpr float MassPhoton = 0.0;
 constexpr float MassElectron = 0.000511;
 constexpr float MassMuon = 0.105658;
 constexpr float MassPionCharged = 0.139570;
@@ -29,10 +30,12 @@ constexpr float MassPionNeutral = 0.134976;
 constexpr float MassKaonCharged = 0.493677;
 constexpr float MassKaonNeutral = 0.497648;
 constexpr float MassProton = 0.938272;
+constexpr float MassLambda = 1.115683;
 constexpr float MassDeuteron = 1.875613;
 constexpr float MassTriton = 2.809250;
 constexpr float MassHelium3 = 2.809230;
 constexpr float MassAlpha = 3.727379;
+constexpr float MassHyperTriton = 2.992;
 
 constexpr float LightSpeedCm2S = 299792458.e2;           // C in cm/s
 constexpr float LightSpeedCm2NS = LightSpeedCm2S * 1e-9; // C in cm/ns
