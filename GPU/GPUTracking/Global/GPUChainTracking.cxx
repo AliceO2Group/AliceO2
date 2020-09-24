@@ -1817,8 +1817,8 @@ void GPUChainTracking::RunTPCTrackingMerger_MergeBorderTracks(char withinSlice, 
       GPUTPCGMBorderTrack *b1, *b2;
       int jSlice;
       Merger.MergeBorderTracksSetup(n1, n2, b1, b2, jSlice, i, withinSlice, mergeMode);
-      GPUTPCGMMergerTypes::GPUTPCGMBorderRange* range1 = MergerShadow.BorderRange(i);
-      GPUTPCGMMergerTypes::GPUTPCGMBorderRange* range2 = MergerShadow.BorderRange(jSlice) + *processors()->tpcTrackers[jSlice].NTracks();
+      gputpcgmmergertypes::GPUTPCGMBorderRange* range1 = MergerShadow.BorderRange(i);
+      gputpcgmmergertypes::GPUTPCGMBorderRange* range2 = MergerShadow.BorderRange(jSlice) + *processors()->tpcTrackers[jSlice].NTracks();
       runKernel<GPUTPCGMMergerMergeBorders, 3>({1, -WarpSize(), stream, deviceType}, krnlRunRangeNone, krnlEventNone, range1, n1, 0);
       runKernel<GPUTPCGMMergerMergeBorders, 3>({1, -WarpSize(), stream, deviceType}, krnlRunRangeNone, krnlEventNone, range2, n2, 1);
       deviceEvent** e = nullptr;

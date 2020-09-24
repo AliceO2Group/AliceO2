@@ -400,6 +400,12 @@ struct OutputObj {
     object->SetName(label.c_str());
   }
 
+  void setObject(std::shared_ptr<T> t)
+  {
+    object = t;
+    object->SetName(label.c_str());
+  }
+
   void setHash(uint32_t hash)
   {
     mTaskHash = hash;
