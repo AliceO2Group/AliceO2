@@ -603,18 +603,48 @@ class RootTreeWriter
     template <typename S, typename std::enable_if_t<std::is_same<S, MessageableVectorSpecialization>::value, int> = 0>
     void fillData(InputContext& context, DataRef const& ref, TBranch* branch, size_t branchIdx)
     {
-      using ValueType = typename value_type::value_type;
-      static_assert(is_messageable<ValueType>::value, "logical error: should be correctly selected by StructureElementTypeTrait");
+      using ElementType = typename value_type::value_type;
+      static_assert(is_messageable<ElementType>::value, "logical error: should be correctly selected by StructureElementTypeTrait");
+
+      // A helper struct mimicking data layout of std::vector containers
+      // We assume a standard layout of begin, end, end_capacity
+      struct VecBase {
+        const ElementType* start;
+        const ElementType* end;
+        const ElementType* cap;
+      };
+
+      // a low level hack to make a gsl::span appear as a std::vector so that ROOT serializes the correct type
+      // but without the need for an extra copy
+      auto adopt = [](auto const& data, value_type& v) {
+        static_assert(sizeof(v) == 24);
+        if (data.size() == 0) {
+          return;
+        }
+        VecBase impl;
+        impl.start = &(data[0]);
+        impl.end = &(data[data.size() - 1]) + 1; // end pointer (beyond last element)
+        impl.cap = impl.end;
+        std::memcpy(&v, &impl, sizeof(VecBase));
+      };
+
       // if the value type is messagable and has a ROOT dictionary, two serialization methods are possible
       // for the moment, the InputRecord API can not handle both with the same call
       try {
         // try extracting from message with serialization method NONE, throw runtime error
         // if message is serialized
-        auto data = context.get<gsl::span<ValueType>>(ref);
-        value_type clone(data.begin(), data.end());
-        if (!runCallback(branch, clone, ref)) {
-          mStore[branchIdx] = &clone;
+        auto data = context.get<gsl::span<ElementType>>(ref);
+        // take an ordinary std::vector "view" on the data
+        auto* dataview = new value_type;
+        adopt(data, *dataview);
+        if (!runCallback(branch, *dataview, ref)) {
+          mStore[branchIdx] = dataview;
           branch->Fill();
+        }
+        // we delete JUST the view without deleting the data (which is handled by DPL)
+        auto ptr = (VecBase*)dataview;
+        if (ptr) {
+          delete ptr;
         }
       } catch (const std::runtime_error& e) {
         if constexpr (has_root_dictionary<value_type>::value == true) {
