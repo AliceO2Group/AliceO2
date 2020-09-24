@@ -452,13 +452,18 @@ class InputRecord
   bool isValid(char const* s) const;
   bool isValid(int pos) const;
 
-  /// Return the total number of inputs in the InputRecord. Notice that these will include
+  /// @return the total number of inputs in the InputRecord. Notice that these will include
   /// both valid and invalid inputs (i.e. inputs which have not arrived yet), depending
-  /// on the ChannelPolicy you have (using the default policy all inputs will be valid).
+  /// on the CompletionPolicy you have (using the default policy all inputs will be valid).
   size_t size() const
   {
     return mSpan.size();
   }
+
+  /// @return the total number of valid inputs in the InputRecord.
+  /// Invalid inputs might happen if the CompletionPolicy allows
+  /// incomplete records to be consumed or processed.
+  size_t countValidInputs() const;
 
   template <typename T>
   using IteratorBase = std::iterator<std::forward_iterator_tag, T>;

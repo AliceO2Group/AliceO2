@@ -114,6 +114,8 @@ BOOST_AUTO_TEST_CASE(TestInputRecord)
   BOOST_CHECK_EQUAL(record.isValid("x"), true);
   BOOST_CHECK_EQUAL(record.isValid("y"), true);
   BOOST_CHECK_EQUAL(record.isValid("z"), false);
+  BOOST_CHECK_EQUAL(record.size(), 3);
+  BOOST_CHECK_EQUAL(record.countValidInputs(), 2);
 
   BOOST_CHECK_EQUAL(record.isValid(0), true);
   BOOST_CHECK_EQUAL(record.isValid(1), true);
