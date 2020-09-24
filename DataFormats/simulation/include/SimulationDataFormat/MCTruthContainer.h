@@ -165,6 +165,16 @@ class MCTruthContainer
     mTruthArray.clear();
   }
 
+  // clear and force freeing the memory
+  void clear_andfreememory()
+  {
+    clear();
+    // this forces the desctructor being called on existing buffers
+    mHeaderArray = std::vector<MCTruthHeaderElement>();
+    mTruthArray = std::vector<TruthElement>();
+    mStreamerData = std::vector<char>();
+  }
+
   // add element for a particular dataindex
   // at the moment only strictly consecutive modes are supported
   void addElement(uint32_t dataindex, TruthElement const& element)
@@ -310,7 +320,7 @@ class MCTruthContainer
   /// The flattened data starts with a specific header @ref FlatHeader describing
   /// size and content of the two vectors within the raw buffer.
   template <typename ContainerType>
-  size_t flatten_to(ContainerType& container)
+  size_t flatten_to(ContainerType& container) const
   {
     size_t bufferSize = sizeof(FlatHeader) + sizeof(MCTruthHeaderElement) * mHeaderArray.size() + sizeof(TruthElement) * mTruthArray.size();
     container.resize((bufferSize / sizeof(typename ContainerType::value_type)) + ((bufferSize % sizeof(typename ContainerType::value_type)) > 0 ? 1 : 0));

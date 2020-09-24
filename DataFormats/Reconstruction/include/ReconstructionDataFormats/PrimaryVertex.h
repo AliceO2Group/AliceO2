@@ -29,8 +29,12 @@ class PrimaryVertex : public Vertex<TimeStampWithError<float, float>>
   PrimaryVertex(const PrimaryVertex&) = default;
   ~PrimaryVertex() = default;
 
-  const InteractionRecord& getIR() const { return mIR; }
-  void setIR(const InteractionRecord& ir) { mIR = ir; }
+  const InteractionRecord& getIRMax() const { return mIRMax; }
+  void setIRMax(const InteractionRecord& ir) { mIRMax = ir; }
+  const InteractionRecord& getIRMin() const { return mIRMin; }
+  void setIRMin(const InteractionRecord& ir) { mIRMin = ir; }
+  void setIR(const InteractionRecord& ir) { mIRMin = mIRMax = ir; }
+  bool hasUniqueIR() const { return !mIRMin.isDummy() && (mIRMin == mIRMax); }
 
 #ifndef ALIGPU_GPUCODE
   void print() const;
@@ -38,7 +42,8 @@ class PrimaryVertex : public Vertex<TimeStampWithError<float, float>>
 #endif
 
  protected:
-  InteractionRecord mIR{}; ///< by default not assigned!
+  InteractionRecord mIRMin{}; ///< by default not assigned!
+  InteractionRecord mIRMax{}; ///< by default not assigned!
 
   ClassDefNV(PrimaryVertex, 1);
 };
@@ -48,5 +53,16 @@ std::ostream& operator<<(std::ostream& os, const o2::dataformats::PrimaryVertex&
 #endif
 
 } // namespace dataformats
+
+/// Defining PrimaryVertex explicitly as messageable
+namespace framework
+{
+template <typename T>
+struct is_messageable;
+template <>
+struct is_messageable<o2::dataformats::PrimaryVertex> : std::true_type {
+};
+} // namespace framework
+
 } // namespace o2
 #endif

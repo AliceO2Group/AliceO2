@@ -20,6 +20,11 @@
 #include "Analysis/SecondaryVertexHF.h"
 #include "Analysis/trackUtilities.h"
 #include "ReconstructionDataFormats/DCA.h"
+#include "Analysis/RecoDecay.h"
+#include "PID/PIDResponse.h"
+#include <cmath>
+#include <array>
+#include <cstdlib>
 
 using namespace o2;
 using namespace o2::framework;
@@ -36,9 +41,6 @@ struct HFCandidateCreator2Prong {
   Configurable<double> d_minparamchange{"d_minparamchange", 1.e-3, "stop iterations if largest change of any X is smaller than this"};
   Configurable<double> d_minrelchi2change{"d_minrelchi2change", 0.9, "stop iterations is chi2/chi2old > this"};
   Configurable<bool> b_dovalplots{"b_dovalplots", true, "do validation plots"};
-  OutputObj<TH1F> hvtx_x_out{TH1F("hvtx_x", "2-track vtx", 100, -0.1, 0.1)};
-  OutputObj<TH1F> hvtx_y_out{TH1F("hvtx_y", "2-track vtx", 100, -0.1, 0.1)};
-  OutputObj<TH1F> hvtx_z_out{TH1F("hvtx_z", "2-track vtx", 100, -0.1, 0.1)};
   OutputObj<TH1F> hmass2{TH1F("hmass2", "2-track inv mass", 500, 0., 5.0)};
 
   double massPi = RecoDecay::getMassPDG(kPiPlus);
@@ -48,7 +50,7 @@ struct HFCandidateCreator2Prong {
 
   void process(aod::Collision const& collision,
                aod::HfTrackIndexProng2 const& rowsTrackIndexProng2,
-               soa::Join<aod::Tracks, aod::TracksCov, aod::TracksExtra> const& tracks)
+               aod::BigTracks const& tracks)
   {
     // 2-prong vertex fitter
     o2::vertexing::DCAFitterN<2> df;
@@ -109,13 +111,11 @@ struct HFCandidateCreator2Prong {
                        pvec0[0], pvec0[1], pvec0[2],
                        pvec1[0], pvec1[1], pvec1[2],
                        impactParameter0.getY(), impactParameter1.getY(),
-                       std::sqrt(impactParameter0.getSigmaY2()), std::sqrt(impactParameter1.getSigmaY2()));
+                       std::sqrt(impactParameter0.getSigmaY2()), std::sqrt(impactParameter1.getSigmaY2()),
+                       rowTrackIndexProng2.index0Id(), rowTrackIndexProng2.index1Id());
 
       // fill histograms
       if (b_dovalplots) {
-        hvtx_x_out->Fill(secondaryVertex[0]);
-        hvtx_y_out->Fill(secondaryVertex[1]);
-        hvtx_z_out->Fill(secondaryVertex[2]);
         hmass2->Fill(massPiK);
         hmass2->Fill(massKPi);
       }

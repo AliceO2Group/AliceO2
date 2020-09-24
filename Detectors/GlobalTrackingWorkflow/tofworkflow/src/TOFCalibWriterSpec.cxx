@@ -43,7 +43,7 @@ DataProcessorSpec getTOFCalibWriterSpec()
   return MakeRootTreeWriterSpec("TOFCalibWriter",
                                 "o2calib_tof.root",
                                 "calibTOF",
-                                BranchDefinition<CalibInfosType>{InputSpec{"input", o2::header::gDataOriginTOF, "CALIBINFOS", 0},
+                                BranchDefinition<CalibInfosType>{InputSpec{"input", o2::header::gDataOriginTOF, "CALIBDATA", 0},
                                                                  "TOFCalibInfo",
                                                                  "calibinfo-branch-name",
                                                                  1,

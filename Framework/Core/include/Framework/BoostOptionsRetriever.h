@@ -14,8 +14,16 @@
 #include "Framework/ParamRetriever.h"
 
 #include <boost/property_tree/ptree_fwd.hpp>
-#include <boost/program_options/options_description.hpp>
+#include <memory>
 #include <vector>
+
+namespace boost
+{
+namespace program_options
+{
+class options_description;
+}
+} // namespace boost
 
 namespace o2::framework
 {
@@ -32,7 +40,7 @@ class BoostOptionsRetriever : public ParamRetriever
               boost::property_tree::ptree& provenance) override;
 
  private:
-  boost::program_options::options_description mDescription;
+  std::unique_ptr<boost::program_options::options_description> mDescription;
   int mArgc;
   char** mArgv;
   bool mIgnoreUnknown;

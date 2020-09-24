@@ -20,6 +20,7 @@ class TH1;
 class TH1F;
 class TH3;
 class TH3F;
+class TH2F;
 class TH1D;
 class TH2;
 class TH2D;
@@ -50,23 +51,25 @@ class CorrelationContainer : public TNamed
 
   const char* getStepTitle(CFStep step);
 
-  StepTHnBase* getTrackHist() { return mTrackHist; }
-  StepTHnBase* getEventHist() { return mEventHist; }
+  StepTHnBase* getPairHist() { return mPairHist; }
+  StepTHnBase* getTriggerHist() { return mTriggerHist; }
   StepTHnBase* getTrackHistEfficiency() { return mTrackHistEfficiency; }
+  TH2F* getEventCount() { return mEventCount; }
 
-  void setTrackHist(StepTHnBase* hist) { mTrackHist = hist; }
-  void setEventHist(StepTHnBase* hist) { mEventHist = hist; }
+  void setPairHist(StepTHnBase* hist) { mPairHist = hist; }
+  void setTriggerHist(StepTHnBase* hist) { mTriggerHist = hist; }
   void setTrackHistEfficiency(StepTHnBase* hist) { mTrackHistEfficiency = hist; }
 
   void deepCopy(CorrelationContainer* from);
 
-  void getHistsZVtxMult(CorrelationContainer::CFStep step, Float_t ptLeadMin, Float_t ptLeadMax, THnBase** trackHist, TH2** eventHist);
-  TH2* getSumOfRatios(CorrelationContainer* mixed, CorrelationContainer::CFStep step, Float_t ptLeadMin, Float_t ptLeadMax, Int_t multBinBegin, Int_t multBinEnd, Bool_t normalizePerTrigger = kTRUE, Int_t stepForMixed = -1, Int_t* trigger = nullptr);
-  TH1* getTriggersAsFunctionOfMultiplicity(CorrelationContainer::CFStep step, Float_t ptLeadMin, Float_t ptLeadMax);
+  void getHistsZVtxMult(CorrelationContainer::CFStep step, Float_t ptTriggerMin, Float_t ptTriggerMax, THnBase** trackHist, TH2** eventHist);
+  TH2* getPerTriggerYield(CorrelationContainer::CFStep step, Float_t ptTriggerMin, Float_t ptTriggerMax, Bool_t normalizePerTrigger = kTRUE);
+  TH2* getSumOfRatios(CorrelationContainer* mixed, CorrelationContainer::CFStep step, Float_t ptTriggerMin, Float_t ptTriggerMax, Bool_t normalizePerTrigger = kTRUE, Int_t stepForMixed = -1, Int_t* trigger = nullptr);
+  TH1* getTriggersAsFunctionOfMultiplicity(CorrelationContainer::CFStep step, Float_t ptTriggerMin, Float_t ptTriggerMax);
 
   TH1* getTrackEfficiency(CFStep step1, CFStep step2, Int_t axis1, Int_t axis2 = -1, Int_t source = 1, Int_t axis3 = -1);
   THnBase* getTrackEfficiencyND(CFStep step1, CFStep step2);
-  TH1* getEventEfficiency(CFStep step1, CFStep step2, Int_t axis1, Int_t axis2 = -1, Float_t ptLeadMin = -1, Float_t ptLeadMax = -1);
+  TH1* getEventEfficiency(CFStep step1, CFStep step2, Int_t axis1, Int_t axis2 = -1, Float_t ptTriggerMin = -1, Float_t ptTriggerMax = -1);
   TH1* getBias(CFStep step1, CFStep step2, const char* axis, Float_t leadPtMin = 0, Float_t leadPtMax = -1, Int_t weighting = 0);
 
   TH1D* getTrackingEfficiency(Int_t axis);
@@ -86,6 +89,8 @@ class CorrelationContainer : public TNamed
   TH1D* getTrackingEfficiencyCorrection(Int_t axis);
   TH2D* getTrackingEfficiencyCorrection();
   TH2D* getTrackingEfficiencyCorrectionCentrality();
+
+  void fillEvent(Float_t centrality, CFStep step);
 
   void extendTrackingEfficiency(Bool_t verbose = kFALSE);
 
@@ -120,7 +125,7 @@ class CorrelationContainer : public TNamed
 
   void setHistogramType(const char* histogramType) { mHistogramType = histogramType; }
 
-  void countEmptyBins(CorrelationContainer::CFStep step, Float_t ptLeadMin, Float_t ptLeadMax);
+  void countEmptyBins(CorrelationContainer::CFStep step, Float_t ptTriggerMin, Float_t ptTriggerMax);
   void symmetrizepTBins();
 
   void setBinLimits(THnBase* grid);
@@ -140,13 +145,15 @@ class CorrelationContainer : public TNamed
   static TString combineBinning(TString defaultBinning, TString customBinning);
 
  protected:
-  Double_t* getBinning(const char* configuration, const char* tag, Int_t& nBins);
+  std::vector<Double_t> getBinning(const char* configuration, const char* tag, Int_t& nBins);
   void weightHistogram(TH3* hist1, TH1* hist2);
   void multiplyHistograms(THnBase* grid, THnBase* target, TH1* histogram, Int_t var1, Int_t var2);
 
-  StepTHnBase* mTrackHist;           // container for track level distributions at all analysis steps
-  StepTHnBase* mEventHist;           // container for event level distribution at all analysis steps
+  StepTHnBase* mPairHist;            // container for pair level distributions at all analysis steps
+  StepTHnBase* mTriggerHist;         // container for "trigger" particle (single-particle) level distribution at all analysis steps
   StepTHnBase* mTrackHistEfficiency; // container for tracking efficiency and contamination (all particles filled including leading one): axes: eta, pT, particle species
+
+  TH2F* mEventCount; // event count as function of step, (for pp: event type (plus additional step -1 for all events without vertex range even in MC)) (for PbPb: centrality)
 
   Float_t mEtaMin;        // eta min for projections
   Float_t mEtaMax;        // eta max for projections

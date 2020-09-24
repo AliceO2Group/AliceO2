@@ -18,8 +18,9 @@
 #include "gsl/span"
 #include "ReconstructionDataFormats/PrimaryVertex.h"
 #include "ReconstructionDataFormats/Track.h"
+#include "ReconstructionDataFormats/VtxTrackIndex.h"
+#include "ReconstructionDataFormats/VtxTrackRef.h"
 #include "CommonDataFormat/TimeStamp.h"
-#include "CommonDataFormat/RangeReference.h"
 
 namespace o2
 {
@@ -28,7 +29,8 @@ namespace vertexing
 
 using PVertex = o2::dataformats::PrimaryVertex;
 using TimeEst = o2::dataformats::TimeStampWithError<float, float>;
-using V2TRef = o2::dataformats::RangeReference<int, int>;
+using V2TRef = o2::dataformats::VtxTrackRef;
+using GIndex = o2::dataformats::VtxTrackIndex;
 
 ///< weights and scaling params for current vertex
 struct VertexSeed : public PVertex {

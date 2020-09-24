@@ -25,17 +25,6 @@ using namespace o2::framework;
 using namespace o2::framework::expressions;
 using std::array;
 
-namespace o2::aod
-{
-namespace seltrack
-{
-DECLARE_SOA_COLUMN(IsSel, isSel, int);
-DECLARE_SOA_COLUMN(DCAPrim0, dcaPrim0, float);
-DECLARE_SOA_COLUMN(DCAPrim1, dcaPrim1, float);
-} // namespace seltrack
-DECLARE_SOA_TABLE(SelTrack, "AOD", "SELTRACK", seltrack::IsSel, seltrack::DCAPrim0, seltrack::DCAPrim1);
-} // namespace o2::aod
-
 /// Track selection
 struct SelectTracks {
   Produces<aod::SelTrack> rowSelectedTrack;
@@ -65,7 +54,9 @@ struct SelectTracks {
         status = 0;
       array<float, 2> dca;
       auto trackparvar0 = getTrackParCov(track);
-      trackparvar0.propagateParamToDCA(vtxXYZ, d_bz, &dca); // get impact parameters
+      bool isprop = trackparvar0.propagateParamToDCA(vtxXYZ, d_bz, &dca, 100.); // get impact parameters
+      if (!isprop)
+        status = 0;
       if (abs(dca[0]) < dcatoprimxymin)
         status = 0;
       if (b_dovalplots) {
@@ -94,10 +85,17 @@ struct HFTrackIndexSkimsCreator {
   Configurable<double> d_minmassDp{"d_minmassDp", 1.5, "min mass dplus presel"};
   Configurable<double> d_maxmassDp{"d_maxmassDp", 2.1, "max mass dplus presel"};
   Configurable<bool> b_dovalplots{"b_dovalplots", true, "do validation plots"};
-  OutputObj<TH1F> hmass2{TH1F("hmass2", "; Inv Mass (GeV/c^{2})", 500, 0, 5.0)};
-  OutputObj<TH1F> hmass3{TH1F("hmass3", "; Inv Mass (GeV/c^{2})", 500, 0, 5.0)};
 
-  Filter filterSelectTracks = aod::seltrack::isSel == 1;
+  OutputObj<TH1F> hvtx_x_out{TH1F("hvtx_x", "2-track vtx", 1000, -2.0, 2.0)};
+  OutputObj<TH1F> hvtx_y_out{TH1F("hvtx_y", "2-track vtx", 1000, -2.0, 2.0)};
+  OutputObj<TH1F> hvtx_z_out{TH1F("hvtx_z", "2-track vtx", 1000, -20.0, 20.0)};
+  OutputObj<TH1F> hmass2{TH1F("hmass2", "; Inv Mass (GeV/c^{2})", 500, 0, 5.0)};
+  OutputObj<TH1F> hmass3{TH1F("hmass3", "; Inv Mass (GeV/c^{2})", 500, 1.6, 2.1)};
+  OutputObj<TH1F> hvtx3_x_out{TH1F("hvtx3_x", "3-track vtx", 1000, -2.0, 2.0)};
+  OutputObj<TH1F> hvtx3_y_out{TH1F("hvtx3_y", "3-track vtx", 1000, -2.0, 2.0)};
+  OutputObj<TH1F> hvtx3_z_out{TH1F("hvtx3_z", "3-track vtx", 1000, -20.0, 20.0)};
+
+  Filter filterSelectTracks = aod::seltrack::issel == 1;
   using SelectedTracks = soa::Filtered<soa::Join<aod::Tracks, aod::TracksCov, aod::TracksExtra, aod::SelTrack>>;
   // FIXME
   //Partition<SelectedTracks> tracksPos = aod::track::signed1Pt > 0.f;
@@ -169,6 +167,7 @@ struct HFTrackIndexSkimsCreator {
         array<float, 3> pvec1;
         df.getTrack(0).getPxPyPzGlo(pvec0);
         df.getTrack(1).getPxPyPzGlo(pvec1);
+        const auto& secondaryVertex = df.getPCACandidate();
 
         // calculate invariant masses
         auto arrMom = array{pvec0, pvec1};
@@ -178,6 +177,9 @@ struct HFTrackIndexSkimsCreator {
         if (b_dovalplots) {
           hmass2->Fill(mass2PiK);
           hmass2->Fill(mass2KPi);
+          hvtx_x_out->Fill(secondaryVertex[0]);
+          hvtx_y_out->Fill(secondaryVertex[1]);
+          hvtx_z_out->Fill(secondaryVertex[2]);
         }
 
         // fill table row
@@ -219,6 +221,7 @@ struct HFTrackIndexSkimsCreator {
             df3.getTrack(0).getPxPyPzGlo(pvec0);
             df3.getTrack(1).getPxPyPzGlo(pvec1);
             df3.getTrack(2).getPxPyPzGlo(pvec2);
+            const auto& secondaryVertex3 = df3.getPCACandidate();
 
             // calculate invariant mass
             arr3Mom = array{pvec0, pvec1, pvec2};
@@ -226,6 +229,9 @@ struct HFTrackIndexSkimsCreator {
 
             if (b_dovalplots) {
               hmass3->Fill(mass3PiKPi);
+              hvtx3_x_out->Fill(secondaryVertex3[0]);
+              hvtx3_y_out->Fill(secondaryVertex3[1]);
+              hvtx3_z_out->Fill(secondaryVertex3[2]);
             }
 
             // fill table row

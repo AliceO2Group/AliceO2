@@ -629,7 +629,7 @@ struct RowViewCore : public IP, C... {
 
   RowViewCore(arrow::ChunkedArray* columnData[sizeof...(C)], IP&& policy)
     : IP{policy},
-      C(columnData[framework::has_type_at<C>(all_columns{})])...
+      C(columnData[framework::has_type_at_v<C>(all_columns{})])...
   {
     bindIterators(persistent_columns_t{});
     bindAllDynamicColumns(dynamic_columns_t{});
@@ -862,7 +862,7 @@ class Table
     auto getId() const
     {
       if constexpr (framework::has_type_v<std::decay_t<TI>, bindings_pack_t>) {
-        constexpr auto idx = framework::has_type_at<std::decay_t<TI>>(bindings_pack_t{});
+        constexpr auto idx = framework::has_type_at_v<std::decay_t<TI>>(bindings_pack_t{});
         return framework::pack_element_t<idx, external_index_columns_t>::getId();
       } else if constexpr (std::is_same_v<std::decay_t<TI>, Parent>) {
         return this->globalIndex();
@@ -908,10 +908,10 @@ class Table
 
   Table(std::shared_ptr<arrow::Table> table, uint64_t offset = 0)
     : mTable(table),
-      mEnd{static_cast<uint64_t>(table->num_rows())},
+      mEnd{table == nullptr ? 0 : static_cast<uint64_t>(table->num_rows())},
       mOffset(offset)
   {
-    if (mTable->num_rows() == 0) {
+    if ((mTable == nullptr) or (mTable->num_rows() == 0)) {
       for (size_t ci = 0; ci < sizeof...(C); ++ci) {
         mColumnChunks[ci] = nullptr;
       }
@@ -1032,16 +1032,10 @@ struct PackToTable<framework::pack<C...>> {
   using table = o2::soa::Table<C...>;
 };
 
-template <typename T>
-struct FilterPersistentColumns {
-  static_assert(framework::always_static_assert_v<T>, "Not a soa::Table");
-};
-
-template <typename... C>
-struct FilterPersistentColumns<soa::Table<C...>> {
-  using columns = typename soa::Table<C...>::columns;
-  using persistent_columns_pack = framework::selected_pack<is_persistent_t, C...>;
-  using persistent_table_t = typename PackToTable<persistent_columns_pack>::table;
+template <typename... T>
+struct TableWrap {
+  using all_columns = framework::concatenated_pack_unique_t<typename T::columns...>;
+  using table_t = typename PackToTable<all_columns>::table;
 };
 
 /// Template trait which allows to map a given
@@ -1056,9 +1050,45 @@ class TableMetadata
 };
 
 template <typename... C1, typename... C2>
-constexpr auto join(o2::soa::Table<C1...> const& t1, o2::soa::Table<C2...> const& t2)
+constexpr auto joinTables(o2::soa::Table<C1...> const& t1, o2::soa::Table<C2...> const& t2)
 {
   return o2::soa::Table<C1..., C2...>(ArrowHelpers::joinTables({t1.asArrowTable(), t2.asArrowTable()}));
+}
+
+template <typename T, typename... C, typename... O>
+constexpr auto joinLeft(T const& t1, o2::soa::Table<C...> const& t2, framework::pack<O...>)
+{
+  return typename o2::soa::TableWrap<O..., o2::soa::Table<C...>>::table_t(ArrowHelpers::joinTables({t1.asArrowTable(), t2.asArrowTable()}));
+}
+
+template <typename T, typename... C, typename... O>
+constexpr auto joinRight(o2::soa::Table<C...> const& t1, T const& t2, framework::pack<O...>)
+{
+  return typename o2::soa::TableWrap<o2::soa::Table<C...>, O...>::table_t(ArrowHelpers::joinTables({t1.asArrowTable(), t2.asArrowTable()}));
+}
+
+template <typename T1, typename T2, typename... O1, typename... O2>
+constexpr auto joinBoth(T1 const& t1, T2 const& t2, framework::pack<O1...>, framework::pack<O2...>)
+{
+  return typename o2::soa::TableWrap<O1..., O2...>::table_t(ArrowHelpers::joinTables({t1.asArrowTable(), t2.asArrowTable()}));
+}
+
+template <typename T1, typename T2>
+constexpr auto join(T1 const& t1, T2 const& t2)
+{
+  if constexpr (soa::is_type_with_originals_v<T1>) {
+    if constexpr (soa::is_type_with_originals_v<T2>) {
+      return joinBoth(t1, t2, typename T1::originals{}, typename T2::originals{});
+    } else {
+      return joinLeft(t1, t2, typename T1::originals{});
+    }
+  } else {
+    if constexpr (soa::is_type_with_originals_v<T2>) {
+      return joinRight(t1, t2, typename T2::originals{});
+    } else {
+      return joinTables(t1, t2);
+    }
+  }
 }
 
 template <typename T1, typename T2, typename... Ts>
@@ -1079,6 +1109,13 @@ using JoinBase = decltype(join(std::declval<Ts>()...));
 
 template <typename T1, typename T2>
 using ConcatBase = decltype(concat(std::declval<T1>(), std::declval<T2>()));
+
+template <typename T1, typename T2>
+constexpr auto is_binding_compatible_v()
+{
+  return framework::pack_size(
+           framework::intersected_pack_t<originals_pack_t<T1>, originals_pack_t<T2>>{}) > 0;
+}
 
 } // namespace o2::soa
 
@@ -1190,24 +1227,30 @@ using ConcatBase = decltype(concat(std::declval<T1>(), std::declval<T2>()));
       return *mColumnIterator >= 0;                                                \
     }                                                                              \
                                                                                    \
-    binding_t::iterator _Getter_() const                                           \
+    template <typename T>                                                          \
+    auto _Getter_##_as() const                                                     \
     {                                                                              \
       assert(mBinding != nullptr);                                                 \
-      return mBinding->begin() + *mColumnIterator;                                 \
+      return static_cast<T*>(mBinding)->begin() + *mColumnIterator;                \
+    }                                                                              \
+                                                                                   \
+    auto _Getter_() const                                                          \
+    {                                                                              \
+      return _Getter_##_as<binding_t>();                                           \
     }                                                                              \
                                                                                    \
     template <typename T>                                                          \
     bool setCurrent(T* current)                                                    \
     {                                                                              \
-      if constexpr (std::is_same_v<T, binding_t>) {                                \
+      if constexpr (o2::soa::is_binding_compatible_v<T, binding_t>()) {            \
         assert(current != nullptr);                                                \
         this->mBinding = current;                                                  \
         return true;                                                               \
       }                                                                            \
       return false;                                                                \
     }                                                                              \
-    binding_t* getCurrent() { return mBinding; }                                   \
-    binding_t* mBinding = nullptr;                                                 \
+    binding_t* getCurrent() { return static_cast<binding_t*>(mBinding); }          \
+    void* mBinding = nullptr;                                                      \
   };                                                                               \
   static const o2::framework::expressions::BindingNode _Getter_##Id { _Label_,     \
                                                                       o2::framework::expressions::selectArrowType<_Type_>() }
@@ -1306,27 +1349,23 @@ using ConcatBase = decltype(concat(std::declval<T1>(), std::declval<T2>()));
 #define DECLARE_SOA_TABLE(_Name_, _Origin_, _Description_, ...) \
   DECLARE_SOA_TABLE_FULL(_Name_, #_Name_, _Origin_, _Description_, __VA_ARGS__);
 
-#define DECLARE_SOA_EXTENDED_TABLE_FULL(_Name_, _Table_, _Origin_, _Description_, ...)      \
-  using _Name_ = o2::soa::JoinBase<typename _Table_::table_t, o2::soa::Table<__VA_ARGS__>>; \
-                                                                                            \
-  struct _Name_##Metadata : o2::soa::TableMetadata<_Name_##Metadata> {                      \
-    using table_t = _Name_;                                                                 \
-    using base_table_t = _Table_;                                                           \
-    using expression_pack_t = framework::pack<__VA_ARGS__>;                                 \
-    using originals = soa::originals_pack_t<_Table_>;                                       \
-    static constexpr char const* mLabel = #_Name_;                                          \
-    static constexpr char const mOrigin[4] = _Origin_;                                      \
-    static constexpr char const mDescription[16] = _Description_;                           \
-  };                                                                                        \
-                                                                                            \
-  template <>                                                                               \
-  struct MetadataTrait<_Name_> {                                                            \
-    using metadata = _Name_##Metadata;                                                      \
-  };                                                                                        \
-                                                                                            \
-  template <>                                                                               \
-  struct MetadataTrait<_Name_::unfiltered_iterator> {                                       \
-    using metadata = _Name_##Metadata;                                                      \
+#define DECLARE_SOA_EXTENDED_TABLE_FULL(_Name_, _Table_, _Origin_, _Description_, ...)   \
+  using _Name_##Extension = o2::soa::Table<__VA_ARGS__>;                                 \
+  using _Name_ = o2::soa::Join<_Name_##Extension, _Table_>;                              \
+                                                                                         \
+  struct _Name_##ExtensionMetadata : o2::soa::TableMetadata<_Name_##ExtensionMetadata> { \
+    using table_t = _Name_##Extension;                                                   \
+    using base_table_t = typename _Table_::table_t;                                      \
+    using expression_pack_t = framework::pack<__VA_ARGS__>;                              \
+    using originals = soa::originals_pack_t<_Table_>;                                    \
+    static constexpr char const* mLabel = #_Name_ "Extension";                           \
+    static constexpr char const mOrigin[4] = _Origin_;                                   \
+    static constexpr char const mDescription[16] = _Description_;                        \
+  };                                                                                     \
+                                                                                         \
+  template <>                                                                            \
+  struct MetadataTrait<_Name_##Extension> {                                              \
+    using metadata = _Name_##ExtensionMetadata;                                          \
   };
 
 #define DECLARE_SOA_EXTENDED_TABLE(_Name_, _Table_, _Description_, ...) \
@@ -1723,7 +1762,7 @@ auto spawner(framework::pack<C...> columns, arrow::Table* atable)
   arrow::ArrayVector v;
   std::array<arrow::ArrayVector, sizeof...(C)> chunks;
 
-  auto projectors = framework::expressions::createProjectors(columns, atable->schema());
+  static auto projectors = framework::expressions::createProjectors(columns, atable->schema());
   while (true) {
     auto s = reader.ReadNext(&batch);
     if (!s.ok()) {
@@ -1740,30 +1779,12 @@ auto spawner(framework::pack<C...> columns, arrow::Table* atable)
       chunks[i].emplace_back(v.at(i));
     }
   }
-  std::array<std::shared_ptr<arrow::ChunkedArray>, sizeof...(C)> arrays;
+  std::vector<std::shared_ptr<arrow::ChunkedArray>> arrays;
   for (auto i = 0u; i < sizeof...(C); ++i) {
-    arrays[i] = std::make_shared<arrow::ChunkedArray>(chunks[i]);
+    arrays.push_back(std::make_shared<arrow::ChunkedArray>(chunks[i]));
   }
-
-  auto extra_schema = o2::soa::createSchemaFromColumns(columns);
-  auto original_fields = atable->schema()->fields();
-  auto original_columns = atable->columns();
-  std::vector<std::shared_ptr<arrow::Field>> new_fields(original_fields);
-  std::vector<std::shared_ptr<arrow::ChunkedArray>> new_columns(original_columns);
-  for (auto i = 0u; i < sizeof...(C); ++i) {
-    new_fields.emplace_back(extra_schema->field(i));
-    new_columns.push_back(arrays[i]);
-  }
-  return arrow::Table::Make(std::make_shared<arrow::Schema>(new_fields), new_columns);
-}
-
-/// On-the-fly adding of expression columns
-template <typename T, typename... Cs>
-auto Extend(T const& table)
-{
-  static_assert((soa::is_type_spawnable_v<Cs> && ...), "You can only extend a table with expression columns");
-  using output_t = JoinBase<T, soa::Table<Cs...>>;
-  return output_t{spawner(framework::pack<Cs...>{}, table.asArrowTable().get()), table.offset()};
+  static auto new_schema = o2::soa::createSchemaFromColumns(columns);
+  return arrow::Table::Make(new_schema, arrays);
 }
 
 /// Template for building an index table to access matching rows from non-
@@ -1795,14 +1816,26 @@ struct IndexTable : Table<soa::Index<>, H, Ts...> {
 template <typename T>
 using is_soa_index_table_t = typename framework::is_base_of_template<soa::IndexTable, T>;
 
+/// On-the-fly adding of expression columns
+template <typename T, typename... Cs>
+auto Extend(T const& table)
+{
+  static_assert((soa::is_type_spawnable_v<Cs> && ...), "You can only extend a table with expression columns");
+  using output_t = Join<T, soa::Table<Cs...>>;
+  if (table.tableSize() > 0) {
+    return output_t{{spawner(framework::pack<Cs...>{}, table.asArrowTable().get()), table.asArrowTable()}, 0};
+  }
+  return output_t{{nullptr}, 0};
+}
+
 /// Template function to attach dynamic columns on-the-fly (e.g. inside
 /// process() function). Dynamic columns need to be compatible with the table.
 template <typename T, typename... Cs>
 auto Attach(T const& table)
 {
   static_assert((framework::is_base_of_template<o2::soa::DynamicColumn, Cs>::value && ...), "You can only attach dynamic columns");
-  using output_t = JoinBase<T, o2::soa::Table<Cs...>>;
-  return output_t{table.asArrowTable(), table.offset()};
+  using output_t = Join<T, o2::soa::Table<Cs...>>;
+  return output_t{{table.asArrowTable()}, table.offset()};
 }
 
 } // namespace o2::soa

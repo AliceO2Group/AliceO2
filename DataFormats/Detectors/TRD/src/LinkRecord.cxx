@@ -10,6 +10,7 @@
 
 #include <iostream>
 #include "DataFormatsTRD/LinkRecord.h"
+#include "DataFormatsTRD/Constants.h"
 
 namespace o2
 {
@@ -17,12 +18,41 @@ namespace o2
 namespace trd
 {
 
-void LinkRecord::printStream(std::ostream& stream) const
+uint32_t LinkRecord::getHalfChamberLinkId(uint32_t detector, uint32_t rob)
 {
-  stream << "Data for link 0x" << std::hex << mLinkId << std::dec << ", starting from entry " << getFirstEntry() << " with " << getNumberOfObjects() << " objects";
+  int sector = (detector % (constants::NLAYER * constants::NSTACK));
+  int stack = (detector % constants::NLAYER);
+  int layer = ((detector % (constants::NLAYER * constants::NSTACK)) / constants::NLAYER);
+  int side = rob % 2;
+  return getHalfChamberLinkId(sector, stack, layer, side);
 }
 
-std::ostream& operator<<(std::ostream& stream, const LinkRecord& trg)
+uint32_t LinkRecord::getHalfChamberLinkId(uint32_t sector, uint32_t stack, uint32_t layer, uint32_t side)
+{
+  LinkId tmplinkid;
+  tmplinkid.supermodule = sector;
+  tmplinkid.stack = stack;
+  tmplinkid.layer = layer;
+  ;
+  tmplinkid.side = side;
+  return tmplinkid.word;
+}
+
+void LinkRecord::setLinkId(const uint32_t sector, const uint32_t stack, const uint32_t layer, const uint32_t side)
+{
+  mLinkId.supermodule = sector;
+  mLinkId.stack = stack;
+  mLinkId.layer = layer;
+  ;
+  mLinkId.side = side;
+}
+
+void LinkRecord::printStream(std::ostream& stream)
+{
+  stream << "Data for link from supermodule:" << this->getSector() << " stack:" << this->getStack() << " layer:" << this->getLayer() << "side :" << this->getSide() << ", starting from entry " << this->getFirstEntry() << " with " << this->getNumberOfObjects() << " objects";
+}
+
+std::ostream& operator<<(std::ostream& stream, LinkRecord& trg)
 {
   trg.printStream(stream);
   return stream;

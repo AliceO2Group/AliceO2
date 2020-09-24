@@ -11,34 +11,11 @@
 /// \file GPUReconstructionCUDA.cu
 /// \author David Rohr
 
-#define GPUCA_GPUTYPE_TURING
-#define GPUCA_UNROLL(CUDA, HIP) GPUCA_M_UNROLL_##CUDA
-#define GPUdic(CUDA, HIP) GPUCA_GPUdic_select_##CUDA()
+#include "GPUReconstructionCUDADef.h"
+#include "GPUReconstructionCUDAIncludes.h"
 
-#include <cuda.h>
 #include <cuda_profiler_api.h>
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wshadow"
-#include <thrust/sort.h>
-#include <thrust/device_ptr.h>
-#pragma GCC diagnostic pop
-
-#ifdef __clang__
-#define assert(...)
-#endif
-
-#include "GPUDef.h"
-
-#ifndef GPUCA_NO_CONSTANT_MEMORY
-#define GPUCA_CONSMEM_PTR
-#define GPUCA_CONSMEM_CALL
-#define GPUCA_CONSMEM (gGPUConstantMemBuffer.v)
-#else
-#define GPUCA_CONSMEM_PTR const GPUConstantMem *gGPUConstantMemBuffer,
-#define GPUCA_CONSMEM_CALL me->mDeviceConstantMem,
-#define GPUCA_CONSMEM ((GPUConstantMem&)(*gGPUConstantMemBuffer))
-#endif
-#define GPUCA_KRNL_BACKEND_CLASS GPUReconstructionCUDABackend
+#include <unistd.h>
 
 #include "GPUReconstructionCUDA.h"
 #include "GPUReconstructionCUDAInternals.h"
@@ -114,6 +91,12 @@ class GPUDebugTiming
 
 #include "GPUReconstructionIncludesDevice.h"
 
+#ifndef GPUCA_ALIROOT_LIB
+extern "C" char _curtc_GPUReconstructionCUDArtc_cu_src[];
+extern "C" unsigned int _curtc_GPUReconstructionCUDArtc_cu_src_size;
+extern "C" char _curtc_GPUReconstructionCUDArtc_cu_command[];
+#endif
+
 /*
 // Not using templated kernel any more, since nvidia profiler does not resolve template names
 template <class T, int I, typename... Args>
@@ -137,6 +120,16 @@ GPUg() void runKernelCUDA(GPUCA_CONSMEM_PTR int iSlice_internal, Args... args)
 #include "GPUReconstructionKernels.h"
 #undef GPUCA_KRNL
 
+template <bool multi, class T, int I>
+int GPUReconstructionCUDAInternals::getRTCkernelNum(int k)
+{
+  static int num = k;
+  if (num < 0) {
+    throw std::runtime_error("Invalid kernel");
+  }
+  return num;
+}
+
 template <>
 void GPUReconstructionCUDABackend::runKernelBackendInternal<GPUMemClean16, 0>(krnlSetup& _xyz, void* const& ptr, unsigned long const& size)
 {
@@ -144,11 +137,36 @@ void GPUReconstructionCUDABackend::runKernelBackendInternal<GPUMemClean16, 0>(kr
   GPUFailedMsg(cudaMemsetAsync(ptr, 0, size, mInternals->Streams[_xyz.x.stream]));
 }
 
+static void getArgPtrs(const void** pArgs) {}
+template <typename T, typename... Args>
+static void getArgPtrs(const void** pArgs, const T& arg, const Args&... args)
+{
+  *pArgs = &arg;
+  getArgPtrs(pArgs + 1, args...);
+}
+
 template <class T, int I, typename... Args>
 void GPUReconstructionCUDABackend::runKernelBackendInternal(krnlSetup& _xyz, const Args&... args)
 {
   GPUDebugTiming timer(mProcessingSettings.deviceTimers && mProcessingSettings.debugLevel > 0, (void**)mDebugEvents, mInternals->Streams, _xyz);
-  backendInternal<T, I>::runKernelBackendMacro(_xyz, this, args...);
+  if (mProcessingSettings.enableRTC) {
+    auto& x = _xyz.x;
+    auto& y = _xyz.y;
+    if (y.num <= 1) {
+      const void* pArgs[sizeof...(Args) + 1];
+      pArgs[0] = &y.start;
+      getArgPtrs(&pArgs[1], args...);
+      GPUFailedMsg(cuLaunchKernel(*mInternals->rtcFunctions[mInternals->getRTCkernelNum<false, T, I>()], x.nBlocks, 1, 1, x.nThreads, 1, 1, 0, mInternals->Streams[x.stream], (void**)pArgs, nullptr));
+    } else {
+      const void* pArgs[sizeof...(Args) + 2];
+      pArgs[0] = &y.start;
+      pArgs[1] = &y.num;
+      getArgPtrs(&pArgs[2], args...);
+      GPUFailedMsg(cuLaunchKernel(*mInternals->rtcFunctions[mInternals->getRTCkernelNum<true, T, I>()], x.nBlocks, 1, 1, x.nThreads, 1, 1, 0, mInternals->Streams[x.stream], (void**)pArgs, nullptr));
+    }
+  } else {
+    backendInternal<T, I>::runKernelBackendMacro(_xyz, this, args...);
+  }
 }
 
 template <class T, int I, typename... Args>
@@ -409,25 +427,74 @@ int GPUReconstructionCUDABackend::InitDevice_Runtime()
       }
     }
 
-    void* devPtrConstantMem;
-#ifndef GPUCA_NO_CONSTANT_MEMORY
-    if (GPUFailedMsgI(cudaGetSymbolAddress(&devPtrConstantMem, gGPUConstantMemBuffer))) {
-      GPUError("Error getting ptr to constant memory");
-      GPUFailedMsgI(cudaDeviceReset());
-      return 1;
-    }
-#else
-    if (GPUFailedMsgI(cudaMalloc(&devPtrConstantMem, gGPUConstantMemBufferSize))) {
-      GPUError("CUDA Memory Allocation Error");
-      GPUFailedMsgI(cudaDeviceReset());
-      return (1);
-    }
-#endif
-    mDeviceConstantMem = (GPUConstantMem*)devPtrConstantMem;
-
     dummyInitKernel<<<mBlockCount, 256>>>(mDeviceMemoryBase);
     GPUInfo("CUDA Initialisation successfull (Device %d: %s (Frequency %d, Cores %d), %lld / %lld bytes host / global memory, Stack frame %d, Constant memory %lld)", mDeviceId, cudaDeviceProp.name, cudaDeviceProp.clockRate, cudaDeviceProp.multiProcessorCount, (long long int)mHostMemorySize,
             (long long int)mDeviceMemorySize, (int)GPUCA_GPU_STACK_SIZE, (long long int)gGPUConstantMemBufferSize);
+
+#ifndef GPUCA_ALIROOT_LIB
+    if (mProcessingSettings.enableRTC) {
+      if (mProcessingSettings.debugLevel >= 0) {
+        GPUInfo("Starting CUDA RTC Compilation");
+      }
+      HighResTimer rtcTimer;
+      rtcTimer.ResetStart();
+      std::string filename = "/tmp/o2cagpu_rtc_";
+      filename += std::to_string(getpid());
+      filename += "_";
+      filename += std::to_string(rand());
+      if (mProcessingSettings.debugLevel >= 3) {
+        printf("Writing to %s\n", filename.c_str());
+      }
+      FILE* fp = fopen((filename + ".cu").c_str(), "w+b");
+      if (fp == nullptr) {
+        throw std::runtime_error("Error opening file");
+      }
+      if (fwrite(_curtc_GPUReconstructionCUDArtc_cu_src, 1, _curtc_GPUReconstructionCUDArtc_cu_src_size, fp) != _curtc_GPUReconstructionCUDArtc_cu_src_size) {
+        throw std::runtime_error("Error writing file");
+      }
+      fclose(fp);
+      std::string command = _curtc_GPUReconstructionCUDArtc_cu_command;
+      command += " -cubin -c " + filename + ".cu -o " + filename + ".o";
+      if (mProcessingSettings.debugLevel >= 3) {
+        printf("Running command %s\n", command.c_str());
+      }
+      if (system(command.c_str())) {
+        throw std::runtime_error("Runtime compilation failed");
+      }
+      GPUFailedMsg(cuModuleLoad(&mInternals->rtcModule, (filename + ".o").c_str()));
+
+#define GPUCA_KRNL(x_class, x_attributes, x_arguments, x_forward) GPUCA_KRNL_WRAP(GPUCA_KRNL_LOAD_, x_class, x_attributes, x_arguments, x_forward)
+#define GPUCA_KRNL_LOAD_single(x_class, x_attributes, x_arguments, x_forward)                          \
+  mInternals->getRTCkernelNum<false, GPUCA_M_KRNL_TEMPLATE(x_class)>(mInternals->rtcFunctions.size()); \
+  mInternals->rtcFunctions.emplace_back(new CUfunction);                                               \
+  GPUFailedMsg(cuModuleGetFunction(mInternals->rtcFunctions.back().get(), mInternals->rtcModule, GPUCA_M_STR(GPUCA_M_CAT(krnl_, GPUCA_M_KRNL_NAME(x_class)))));
+#define GPUCA_KRNL_LOAD_multi(x_class, x_attributes, x_arguments, x_forward)                          \
+  mInternals->getRTCkernelNum<true, GPUCA_M_KRNL_TEMPLATE(x_class)>(mInternals->rtcFunctions.size()); \
+  mInternals->rtcFunctions.emplace_back(new CUfunction);                                              \
+  GPUFailedMsg(cuModuleGetFunction(mInternals->rtcFunctions.back().get(), mInternals->rtcModule, GPUCA_M_STR(GPUCA_M_CAT3(krnl_, GPUCA_M_KRNL_NAME(x_class), _multi))));
+#include "GPUReconstructionKernels.h"
+#undef GPUCA_KRNL
+#undef GPUCA_KRNL_LOAD_single
+#undef GPUCA_KRNL_LOAD_multi
+
+      remove((filename + ".cu").c_str());
+      remove((filename + ".o").c_str());
+      if (mProcessingSettings.debugLevel >= 0) {
+        GPUInfo("RTC Compilation finished (%f seconds)", rtcTimer.GetCurrentElapsedTime());
+      }
+    }
+#endif
+    void* devPtrConstantMem;
+#ifndef GPUCA_NO_CONSTANT_MEMORY
+    if (mProcessingSettings.enableRTC) {
+      GPUFailedMsg(cuModuleGetGlobal((CUdeviceptr*)&devPtrConstantMem, nullptr, mInternals->rtcModule, "gGPUConstantMemBuffer"));
+    } else {
+      GPUFailedMsg(cudaGetSymbolAddress(&devPtrConstantMem, gGPUConstantMemBuffer));
+    }
+#else
+    GPUFailedMsg(cudaMalloc(&devPtrConstantMem, gGPUConstantMemBufferSize));
+#endif
+    mDeviceConstantMem = (GPUConstantMem*)devPtrConstantMem;
   } else {
     GPUReconstructionCUDABackend* master = dynamic_cast<GPUReconstructionCUDABackend*>(mMaster);
     mDeviceId = master->mDeviceId;
@@ -546,15 +613,15 @@ size_t GPUReconstructionCUDABackend::WriteToConstantMemory(size_t offset, const 
   } else {
     GPUFailedMsg(cudaMemcpyToSymbolAsync(gGPUConstantMemBuffer, src, size, offset, cudaMemcpyHostToDevice, mInternals->Streams[stream]));
   }
-
-#else
-  if (stream == -1) {
-    GPUFailedMsg(cudaMemcpy(((char*)mDeviceConstantMem) + offset, src, size, cudaMemcpyHostToDevice));
-  } else {
-    GPUFailedMsg(cudaMemcpyAsync(((char*)mDeviceConstantMem) + offset, src, size, cudaMemcpyHostToDevice, mInternals->Streams[stream]));
-  }
-
+  if (mProcessingSettings.enableRTC)
 #endif
+  {
+    if (stream == -1) {
+      GPUFailedMsg(cudaMemcpy(((char*)mDeviceConstantMem) + offset, src, size, cudaMemcpyHostToDevice));
+    } else {
+      GPUFailedMsg(cudaMemcpyAsync(((char*)mDeviceConstantMem) + offset, src, size, cudaMemcpyHostToDevice, mInternals->Streams[stream]));
+    }
+  }
   if (ev && stream != -1) {
     GPUFailedMsg(cudaEventRecord(*(cudaEvent_t*)ev, mInternals->Streams[stream]));
   }

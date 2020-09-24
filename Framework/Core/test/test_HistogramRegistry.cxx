@@ -25,7 +25,12 @@ HistogramRegistry foo()
 BOOST_AUTO_TEST_CASE(HistogramRegistryLookup)
 {
   /// Construct a registry object with direct declaration
-  HistogramRegistry registry{"registry", true, {{"eta", "#Eta", {HistogramType::kTH1F, {{100, -2.0, 2.0}}}}, {"phi", "#Phi", {HistogramType::kTH1D, {{102, 0, 2 * M_PI}}}}, {"pt", "p_{T}", {HistogramType::kTH1D, {{1002, -0.01, 50.1}}}}, {"ptToPt", "#ptToPt", {HistogramType::kTH2F, {{100, -0.01, 10.01}, {100, -0.01, 10.01}}}}}};
+  HistogramRegistry registry{"registry", true, {
+                                                 {"eta", "#Eta", {HistogramType::kTH1F, {{100, -2.0, 2.0}}}},                              //
+                                                 {"phi", "#Phi", {HistogramType::kTH1D, {{102, 0, 2 * M_PI}}}},                            //
+                                                 {"pt", "p_{T}", {HistogramType::kTH1D, {{1002, -0.01, 50.1}}}},                           //
+                                                 {"ptToPt", "#ptToPt", {HistogramType::kTH2F, {{100, -0.01, 10.01}, {100, -0.01, 10.01}}}} //
+                                               }};
 
   /// Get histograms by name
   BOOST_REQUIRE_EQUAL(registry.get("eta")->GetNbinsX(), 100);

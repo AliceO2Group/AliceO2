@@ -11,16 +11,13 @@
 #ifndef O2_TRDTRAPSIMULATORRAWREADERSPEC_H
 #define O2_TRDTRAPSIMULATORRAWREADERSPEC_H
 
-#include "TRDBase/Digit.h"
 #include "Framework/ConfigParamRegistry.h"
 #include "Framework/ControlService.h"
 #include "Framework/DataProcessorSpec.h"
 #include "Framework/DataRefUtils.h"
 #include "Framework/Lifetime.h"
 #include "Framework/Task.h"
-#include <SimulationDataFormat/MCTruthContainer.h>
 #include "TRDBase/MCLabel.h"
-#include "DataFormatsTRD/TriggerRecord.h"
 #include "TFile.h"
 #include "TTree.h"
 
@@ -44,9 +41,6 @@ class TRDDigitReaderSpec : public o2::framework::Task
   int mChannels;
   std::unique_ptr<TFile> mFile = nullptr;
   //std::unique_ptr<TTree> DPLTree;
-  std::vector<o2::trd::Digit> mDigits, *mPDigits = &mDigits;
-  o2::dataformats::MCTruthContainer<o2::trd::MCLabel> mMCLabels, *mPMCLabels = &mMCLabels;
-  std::vector<o2::trd::TriggerRecord> mTriggerRecords, *mPTriggerRecords = &mTriggerRecords;
   std::string mInputFileName = "";
   std::string mDigitTreeName = "o2sim";
   std::string mDigitBranchName = "TRDDigit";

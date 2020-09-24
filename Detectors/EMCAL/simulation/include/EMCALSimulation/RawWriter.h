@@ -89,17 +89,13 @@ class RawWriter
   void setOutputLocation(const char* outputdir) { mOutputLocation = outputdir; }
   void setDigits(gsl::span<o2::emcal::Digit> digits) { mDigits = digits; }
   void setFileFor(FileFor_t filefor) { mFileFor = filefor; }
-  void setTriggerRecords(gsl::span<o2::emcal::TriggerRecord> triggers);
   void setNumberOfADCSamples(int nsamples) { mNADCSamples = nsamples; }
   void setPedestal(int pedestal) { mPedestal = pedestal; }
   void setGeometry(o2::emcal::Geometry* geo) { mGeometry = geo; }
 
-  bool hasNextTrigger() const { return mCurrentTrigger != mTriggers.end(); }
-
   void init();
-  void process();
   void digitsToRaw(gsl::span<o2::emcal::Digit> digits, gsl::span<o2::emcal::TriggerRecord> triggers);
-  bool processNextTrigger();
+  bool processTrigger(const o2::emcal::TriggerRecord& trg);
 
   int carryOverMethod(const header::RDHAny* rdh, const gsl::span<char> data,
                       const char* ptr, int maxSize, int splitID,
@@ -115,17 +111,15 @@ class RawWriter
   std::vector<int> encodeBunchData(const std::vector<int>& data);
 
  private:
-  int mNADCSamples = 15;                                         ///< Number of time samples
-  int mPedestal = 0;                                             ///< Pedestal
-  FileFor_t mFileFor = FileFor_t::kFullDet;                      ///< Granularity of the output files
-  o2::emcal::Geometry* mGeometry = nullptr;                      ///< EMCAL geometry
-  std::string mOutputLocation;                                   ///< Rawfile name
-  std::unique_ptr<o2::emcal::MappingHandler> mMappingHandler;    ///< Mapping handler
-  gsl::span<o2::emcal::Digit> mDigits;                           ///< Digits input vector - must be in digitized format including the time response
-  gsl::span<o2::emcal::TriggerRecord> mTriggers;                 ///< Trigger records, separating the data from different triggers
-  std::vector<SRUDigitContainer> mSRUdata;                       ///< Internal helper of digits assigned to SRUs
-  gsl::span<o2::emcal::TriggerRecord>::iterator mCurrentTrigger; ///< Current trigger in the trigger records
-  std::unique_ptr<o2::raw::RawFileWriter> mRawWriter;            ///< Raw writer
+  int mNADCSamples = 15;                                      ///< Number of time samples
+  int mPedestal = 0;                                          ///< Pedestal
+  FileFor_t mFileFor = FileFor_t::kFullDet;                   ///< Granularity of the output files
+  o2::emcal::Geometry* mGeometry = nullptr;                   ///< EMCAL geometry
+  std::string mOutputLocation;                                ///< Rawfile name
+  std::unique_ptr<o2::emcal::MappingHandler> mMappingHandler; ///< Mapping handler
+  gsl::span<o2::emcal::Digit> mDigits;                        ///< Digits input vector - must be in digitized format including the time response
+  std::vector<SRUDigitContainer> mSRUdata;                    ///< Internal helper of digits assigned to SRUs
+  std::unique_ptr<o2::raw::RawFileWriter> mRawWriter;         ///< Raw writer
 
   ClassDefNV(RawWriter, 1);
 };

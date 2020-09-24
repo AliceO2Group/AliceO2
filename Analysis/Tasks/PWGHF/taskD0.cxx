@@ -17,10 +17,20 @@
 #include "Framework/runDataProcessing.h"
 #include "Framework/AnalysisTask.h"
 #include "Analysis/SecondaryVertexHF.h"
+#include "DetectorsVertexing/DCAFitterN.h"
+#include "ReconstructionDataFormats/Track.h"
+#include "Analysis/CandidateSelectionTables.h"
+
+#include <TFile.h>
+#include <TH1F.h>
+#include <cmath>
+#include <array>
+#include <cstdlib>
 
 using namespace o2;
 using namespace o2::framework;
 using namespace o2::aod::hf_cand_prong2;
+using namespace o2::framework::expressions;
 using std::array;
 
 /// D0 analysis task
@@ -29,19 +39,29 @@ struct TaskD0 {
   OutputObj<TH1F> hptcand{TH1F("hptcand", "pt candidate", 100, 0, 10.0)};
   OutputObj<TH1F> hptprong0{TH1F("hptprong0", "pt prong0", 100, 0, 10.0)};
   OutputObj<TH1F> hptprong1{TH1F("hptprong1", "pt prong1", 100, 0, 10.0)};
-  OutputObj<TH1F> hdeclength{TH1F("declength", "decay length", 100, 0., 1.0)};
-  OutputObj<TH1F> hdeclengthxy{TH1F("declengthxy", "decay length xy", 100, 0., 1.0)};
+  OutputObj<TH1F> hdeclength{TH1F("declength", "decay length", 200, 0., 2.0)};
+  OutputObj<TH1F> hdeclengthxy{TH1F("declengthxy", "decay length xy", 200, 0., 2.0)};
   OutputObj<TH1F> hd0{TH1F("hd0", "dca xy to prim. vertex (cm)", 100, -1.0, 1.0)};
-  OutputObj<TH1F> hd0d0{TH1F("hd0d0", "product of dca xy to prim. vertex (cm^{2})", 100, -1.0, 1.0)};
+  OutputObj<TH1F> hd0d0{TH1F("hd0d0", "product of dca xy to prim. vertex (cm^{2})", 500, -1.0, 1.0)};
   OutputObj<TH1F> hCTS{TH1F("hCTS", "cos #it{#theta}*", 120, -1.1, 1.1)};
   OutputObj<TH1F> hCt{TH1F("hCt", "proper lifetime * #it{c} (cm)", 120, -20, 100)};
   OutputObj<TH1F> hEta{TH1F("hEta", "#it{#eta}", 100, -2, 2)};
+  OutputObj<TH1F> hselectionstatus{TH1F("selectionstatus", "selection status", 5, -0.5, 4.5)};
 
-  void process(aod::HfCandProng2 const& candidates)
+  Configurable<int> d_selectionFlagD0{"d_selectionFlagD0", 1, "Selection Flag for D0"};
+  Configurable<int> d_selectionFlagD0bar{"d_selectionFlagD0bar", 1, "Selection Flag for D0bar"};
+
+  Filter seltrack = (aod::hfselcandidate::isSelD0 >= d_selectionFlagD0 || aod::hfselcandidate::isSelD0bar >= d_selectionFlagD0bar);
+
+  void process(soa::Filtered<soa::Join<aod::HfCandProng2, aod::HFSelD0Candidate>> const& candidates)
   {
     for (auto& candidate : candidates) {
-      hmass->Fill(InvMassD0(candidate));
-      hmass->Fill(InvMassD0bar(candidate));
+      if (candidate.isSelD0() >= d_selectionFlagD0) {
+        hmass->Fill(InvMassD0(candidate));
+      }
+      if (candidate.isSelD0bar() >= d_selectionFlagD0bar) {
+        hmass->Fill(InvMassD0bar(candidate));
+      }
       hptcand->Fill(candidate.pt());
       hptprong0->Fill(candidate.ptProng0());
       hptprong1->Fill(candidate.ptProng1());
@@ -53,6 +73,7 @@ struct TaskD0 {
       hCTS->Fill(CosThetaStarD0(candidate));
       hCt->Fill(CtD0(candidate));
       hEta->Fill(candidate.eta());
+      hselectionstatus->Fill(candidate.isSelD0() + (candidate.isSelD0bar() * 2));
     }
   }
 };

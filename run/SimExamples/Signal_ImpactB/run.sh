@@ -21,6 +21,6 @@ o2-sim -j 20 -n ${NBGR} -g pythia8hi -m PIPE ITS -o bkg --configKeyValues \
 # of subsequent actions. In this case, the impact paramereter from the backgorund event
 # is used to calculate the number of particles to be generated as signal
 NSGN=10
-o2-sim -j 20 -n ${NSGN} extgen -m PIPE ITS \
-       -g extgen --extGenFile signal_impactb.macro --extGenFunc "signal_impactb(333, \"20. / (x + 1.)\")" \
+o2-sim -j 20 -n ${NSGN} -m PIPE ITS \
+       -g external --configKeyValues 'GeneratorExternal.fileName=signal_impactb.macro;GeneratorExternal.funcName=signal_impactb(333, "20. / (x + 1.)")' \
        --embedIntoFile bkg_Kine.root -o sgn > logsgn 2>&1

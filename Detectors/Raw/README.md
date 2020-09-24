@@ -149,10 +149,16 @@ empty HBF the writer will call it with
 rdh     : RDH of the CRU page opening empty RDH
 toAdd   : a vector (supplied empty) to be filled to a size multipe of 16 bytes
 ```
+The data `toAdd` will be inserted between the star/stop RDHs of the empty HBF.
 
 Adding empty HBF pages for HB's w/o data can be avoided by setting `writer.setDontFillEmptyHBF(true)` before starting conversion. Note that the empty HBFs still will be added for HBs which are supposed to open a new TF.
 
-The data `toAdd` will be inserted between the star/stop RDHs of the empty HBF.
+Some detectors (ITS/MFT) write a special header word after the RDH of every new CRU page (actually, different GBT words for pages w/o and with ``RDH.stop``) in non-empty HBFs. This can be achieved by
+another call back method
+```cpp
+void newRDHMethod(const RDHAny* rdh, bool prevEmpty, std::vector<char>& toAdd) const;
+```
+It proveds the ``RDH`` of the page for which it is called, information if the previous had some payload and buffer to be filled by the used algorithm.
 
 The behaviour described above can be modified by providing an extra argument in the `addData` method
 ```cpp
@@ -312,7 +318,7 @@ o2-raw-file-reader-workflow
   --part-per-hbf                        FMQ parts per superpage (default) of HBF
   --raw-channel-config arg              optional raw FMQ channel for non-DPL output
   --cache-data                          cache data at 1st reading, may require excessive memory!!!
-
+  --detect-tf0                          autodetect HBFUtils start Orbit/BC from 1st TF seen
   --configKeyValues arg                 semicolon separated key=value strings
 
   # to suppress various error checks / reporting
@@ -362,7 +368,9 @@ Options:
   -m [ --max-tf] arg (=0xffffffff)  max. TF ID to read (counts from 0)
   -v [ --verbosity ] arg (=0)    1: long report, 2 or 3: print or dump all RDH
   -s [ --spsize ]    arg (=1048576) nominal super-page size in bytes
-  -t [ --hbfpertf ]  arg (=256)     nominal number of HBFs per TF
+  --detect-tf0                      autodetect HBFUtils start Orbit/BC from 1st TF seen
+  --rorc                            impose RORC as default detector mode
+  --configKeyValues arg             semicolon separated key=value strings
   --nocheck-packet-increment        ignore /Wrong RDH.packetCounter increment/
   --nocheck-page-increment          ignore /Wrong RDH.pageCnt increment/
   --check-stop-on-page0             check  /RDH.stop set of 1st HBF page/

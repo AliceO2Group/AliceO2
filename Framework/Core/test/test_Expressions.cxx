@@ -12,6 +12,7 @@
 #define BOOST_TEST_MAIN
 #define BOOST_TEST_DYN_LINK
 
+#include "Framework/Configurable.h"
 #include "../src/ExpressionHelpers.h"
 #include "Framework/AnalysisDataModel.h"
 #include "Framework/AODReaderHelpers.h"
@@ -28,6 +29,7 @@ static BindingNode eta{"eta", atype::FLOAT};
 
 static BindingNode tgl{"tgl", atype::FLOAT};
 static BindingNode signed1Pt{"signed1Pt", atype::FLOAT};
+static BindingNode testInt{"testInt", atype::INT32};
 } // namespace nodes
 
 namespace o2::aod::track
@@ -121,6 +123,16 @@ BOOST_AUTO_TEST_CASE(TestTreeParsing)
   BOOST_REQUIRE_EQUAL(uspecs[5].left, (DatumSpec{std::string{"eta"}, atype::FLOAT}));
   BOOST_REQUIRE_EQUAL(uspecs[5].right, (DatumSpec{}));
   BOOST_REQUIRE_EQUAL(uspecs[5].result, (DatumSpec{5u, atype::FLOAT}));
+
+  Configurable<float> pTCut{"pTCut", 0.5f, "Lower pT limit"};
+  Filter ptfilter = o2::aod::track::pt > pTCut;
+  BOOST_REQUIRE_EQUAL(ptfilter.node->self.index(), 2);
+  BOOST_REQUIRE_EQUAL(ptfilter.node->left->self.index(), 1);
+  BOOST_REQUIRE_EQUAL(ptfilter.node->right->self.index(), 3);
+  auto ptfilterspecs = createOperations(ptfilter);
+  BOOST_REQUIRE_EQUAL(ptfilterspecs[0].left, (DatumSpec{std::string{"fPt"}, atype::FLOAT}));
+  BOOST_REQUIRE_EQUAL(ptfilterspecs[0].right, (DatumSpec{LiteralNode::var_t{0.5f}, atype::FLOAT}));
+  BOOST_REQUIRE_EQUAL(ptfilterspecs[0].result, (DatumSpec{0u, atype::BOOL}));
 }
 
 BOOST_AUTO_TEST_CASE(TestGandivaTreeCreation)

@@ -76,3 +76,6 @@ bazel-*
 
 # direnv
 .envrc
+
+# LSP support on macOS with vim
+.clangd

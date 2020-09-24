@@ -166,7 +166,7 @@ class ChipMappingITS
   int getNCablesOnRUType(int ruType) const { return NCablesPerStaveSB[ruType]; }
 
   ///< get pattern of lanes on the RU served by a given RU type
-  int getCablesOnRUType(int ruType) const { return CablesOnStaveSB[ruType]; }
+  int getCablesOnRUType(int ruType) const { return mCablesOnStaveSB[ruType]; }
 
   ///< get number of chips served by RU of given type (i.e. RU type for ITS)
   int getNChipsOnRUType(int ruType) const { return NChipsPerStaveSB[ruType]; }
@@ -252,11 +252,6 @@ class ChipMappingITS
                                                                NCablesPerModule[MB] * NModulesPerStaveSB[MB],
                                                                NCablesPerModule[OB] * NModulesPerStaveSB[OB]};
 
-  ///< pattern of cables per stave of sub-barrel
-  static constexpr std::array<int, NSubB> CablesOnStaveSB = {(0x1 << NCablesPerModule[IB] * NModulesPerStaveSB[IB]) - 1,
-                                                             (0x1 << NCablesPerModule[MB] * NModulesPerStaveSB[MB]) - 1,
-                                                             (0x1 << NCablesPerModule[OB] * NModulesPerStaveSB[OB]) - 1};
-
   ///< number of chips per sub-barrel
   static constexpr std::array<int, NSubB> NChipsSB = {NChipsPerStaveSB[IB] * NStavesSB[IB],
                                                       NChipsPerStaveSB[MB] * NStavesSB[MB],
@@ -287,6 +282,8 @@ class ChipMappingITS
   std::vector<uint8_t> mCableHW2SW[NSubB];       ///< table of cables HW to SW conversion for each RU type
   std::vector<uint8_t> mCableHW2Pos[NSubB];      ///< table of cables positions in the ActiveLanes mask for each RU type
   std::vector<uint8_t> mCableHWFirstChip[NSubB]; ///< 1st chip of module (relative to the 1st chip of the stave) served by each cable
+
+  std::array<int, NSubB> mCablesOnStaveSB = {0}; ///< pattern of cables per stave of sub-barrel
 
   ClassDefNV(ChipMappingITS, 1);
 };

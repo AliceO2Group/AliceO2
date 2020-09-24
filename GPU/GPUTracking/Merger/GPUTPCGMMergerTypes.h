@@ -21,7 +21,7 @@ namespace GPUCA_NAMESPACE
 {
 namespace gpu
 {
-namespace GPUTPCGMMergerTypes
+namespace gputpcgmmergertypes
 {
 
 enum attachTypes { attachAttached = 0x40000000,
@@ -53,7 +53,7 @@ struct GPUTPCGMBorderRange {
   float fMin, fMax;
 };
 
-} // namespace GPUTPCGMMergerTypes
+} // namespace gputpcgmmergertypes
 } // namespace gpu
 } // namespace GPUCA_NAMESPACE
 

@@ -36,6 +36,7 @@
 #include "TChain.h"
 #include <SimulationDataFormat/MCCompLabel.h>
 #include <SimulationDataFormat/MCTruthContainer.h>
+#include <SimulationDataFormat/ConstMCTruthContainer.h>
 #include "fairlogger/Logger.h"
 #include "CCDB/BasicCCDBManager.h"
 
@@ -383,7 +384,7 @@ void TRDDPLTrapSimulatorTask::run(o2::framework::ProcessingContext& pc)
   auto inputDigits = pc.inputs().get<gsl::span<o2::trd::Digit>>("digitinput");
   std::vector<o2::trd::Digit> msgDigits(inputDigits.begin(), inputDigits.end());
   //  auto digits pc.outputs().make<std::vector<o2::trd::Digit>>(Output{"TRD", "TRKDIGITS", 0, Lifetime::Timeframe}, msgDigits.begin(), msgDigits.end());
-  auto digitMCLabels = pc.inputs().get<o2::dataformats::MCTruthContainer<o2::MCCompLabel>*>("labelinput");
+  auto digitMCLabels = pc.inputs().get<o2::dataformats::ConstMCTruthContainer<o2::MCCompLabel>>("labelinput");
 
   //  auto rawDataOut = pc.outputs().make<char>(Output{"TRD", "RAWDATA", 0, Lifetime::Timeframe}, 1000); //TODO number is just a place holder until we start using it.
   o2::dataformats::MCTruthContainer<o2::MCCompLabel> trackletMCLabels;
@@ -413,10 +414,10 @@ void TRDDPLTrapSimulatorTask::run(o2::framework::ProcessingContext& pc)
   std::vector<unsigned int> msgDigitsIndex;
   msgDigitsIndex.reserve(msgDigits.size());
 
-  LOG(debug) << "Read in msgDigits with size of : " << msgDigits.size() << " labels contain : " << digitMCLabels->getNElements() << " with and index size of  : " << digitMCLabels->getIndexedSize();
+  LOG(debug) << "Read in msgDigits with size of : " << msgDigits.size() << " labels contain : " << digitMCLabels.getNElements() << " with and index size of  : " << digitMCLabels.getIndexedSize();
 
-  if (digitMCLabels->getIndexedSize() != msgDigits.size()) {
-    LOG(warn) << "Digits and Labels coming into TrapSimulator are of differing sizes, labels will be jibberish. " << digitMCLabels->getIndexedSize() << "!=" << msgDigits.size();
+  if (digitMCLabels.getIndexedSize() != msgDigits.size()) {
+    LOG(warn) << "Digits and Labels coming into TrapSimulator are of differing sizes, labels will be jibberish. " << digitMCLabels.getIndexedSize() << "!=" << msgDigits.size();
   }
   //set up structures to hold the returning tracklets.
   std::vector<Tracklet64> trapTracklets; //vector to store the retrieved tracklets from an trapsim object
@@ -456,7 +457,7 @@ void TRDDPLTrapSimulatorTask::run(o2::framework::ProcessingContext& pc)
                 << digit.getDetector() << ":" << digit.getRow() << ":" << digit.getPad() << ":"
                 << mFeeParam->getROBfromPad(digit.getRow(), digit.getPad()) << ":"
                 << mFeeParam->getMCMfromPad(digit.getRow(), digit.getPad())
-                << " HCID:" << getHalfChamberID(digit.getDetector(), mFeeParam->getROBfromPad(digit.getRow(), digit.getPad())) << "\t\t  SM:stack:layer:side  "
+                << " LinkId:" << LinkRecord::getHalfChamberLinkId(digit.getDetector(), mFeeParam->getROBfromPad(digit.getRow(), digit.getPad())) << "\t\t  SM:stack:layer:side  "
                 << digit.getDetector() / 30 << ":" << TRDGeometry::getStack(digit.getDetector())
                 << ":" << TRDGeometry::getLayer(digit.getDetector()) << ":" << FeeParam::instance()->getRobSide(mFeeParam->getROBfromPad(digit.getRow(), digit.getPad()))
                 << " with ORI# : " << mFeeParam->getORI(digit.getDetector(), mFeeParam->getROBfromPad(digit.getRow(), digit.getPad()))
@@ -473,7 +474,7 @@ void TRDDPLTrapSimulatorTask::run(o2::framework::ProcessingContext& pc)
   double trackletrate;
   unsigned long oldtrackletcount = 0;
   mTotalRawWordsWritten = 0; // words written for the raw format of 4x32bits, where 4 can be 2 to 4 depending on # of tracklets in the block.
-  mOldHalfChamberID = 0;
+  mOldHalfChamberLinkId = 0;
   mNewTrackletHCHeaderHasBeenWritten = false;
 
   // now to loop over the incoming digits.
@@ -495,9 +496,10 @@ void TRDDPLTrapSimulatorTask::run(o2::framework::ProcessingContext& pc)
     int trdstack = TRDGeometry::getStack(detector);
     int trdlayer = TRDGeometry::getLayer(detector);
     int fibreside = FeeParam::instance()->getRobSide(rob);
+
     LOG(debug) << "calculated rob and mcm at top of loop with detector:row:pad:rob:mcm ::"
                << detector << ":" << row << ":" << pad << ":" << rob << ":" << mcm
-               << " HCID:" << getHalfChamberID(detector, rob) << "\t\t  SM:stack:layer:side  " << detector / 30 << ":" << trdstack << ":" << trdlayer << ":" << fibreside
+               << " LinkId:" << LinkRecord::getHalfChamberLinkId(detector, rob) << "\t\t  SM:stack:layer:side  " << detector / 30 << ":" << trdstack << ":" << trdlayer << ":" << fibreside
                << " with ORI : " << mFeeParam->getORI(detector, rob) << " and within supermodule ori index:" << mFeeParam->getORIinSM(detector, rob);
     LOG(debug) << "digit time :  " << digittime;
     if (row == 4 && pad == 17 && rob == 2 & mcm == 0) {
@@ -509,14 +511,12 @@ void TRDDPLTrapSimulatorTask::run(o2::framework::ProcessingContext& pc)
       olddetector = detector;
     }
     //Are we on a new half chamber ?
-    if (mOldHalfChamberID != getHalfChamberID(detector, rob)) {
+    if (mOldHalfChamberLinkId != LinkRecord::getHalfChamberLinkId(detector, rob)) {
       //     hcid= detector*2 + robpos%2;
       // new half chamber so add the header to the raw data stream.
-      mTrackletHCHeader.HCID = getHalfChamberID(detector, rob);
-      mTrackletHCHeader.one = 1;
-      mTrackletHCHeader.MCLK = currentTriggerRecord * 42; // 42 because its the universally true answer, this is fake in anycase, so long as its always bigger than the previous one and increasing.
-      mTrackletHCHeader.format = 4;
-      mOldHalfChamberID = getHalfChamberID(detector, rob);
+      buildTrackletHCHeaderd(mTrackletHCHeader, detector, rob, currentTriggerRecord * 42, 4);
+      //buildTrackletHCHeader(mTrackletHCHeader,sector,stack,layer,side,currentTriggerRecord*42,4);
+      mOldHalfChamberLinkId = LinkRecord::getHalfChamberLinkId(detector, rob);
       // now we have a problem. We must only write the halfchamberheader if a tracklet is written i.e. if the digits for this half chamber actually produce 1 or more tracklets!
       mNewTrackletHCHeaderHasBeenWritten = false;
     }
@@ -557,10 +557,10 @@ void TRDDPLTrapSimulatorTask::run(o2::framework::ProcessingContext& pc)
             // .. fix the previous linkrecord to note its end of range.
             if (mLinkRecords.size() == 0) { // special case for the first entry into the linkrecords vector.
               mLinkRecords.emplace_back(mTrackletHCHeader.word, 0, -1);
-              LOG(debug) << " added HCID :[record.size==0] " << mTrackletHCHeader.HCID << " with number of bytes : " << mTotalRawWordsWritten << "-" << mLinkRecords.back().getFirstEntry();
+              //   LOG(debug) << " added HCID :[record.size==0] " << mTrackletHCHeader.HCID << " with number of bytes : " << mTotalRawWordsWritten << "-" << mLinkRecords.back().getFirstEntry();
             } else {
               mLinkRecords.back().setNumberOfObjects(mTotalRawWordsWritten - mLinkRecords.back().getFirstEntry()); // current number of words written - the start of this index record.
-              LOG(debug) << " added HCID : " << mTrackletHCHeader.HCID << " with number of bytes : " << mTotalRawWordsWritten << "-" << mLinkRecords.back().getFirstEntry();
+                                                                                                                   //  LOG(debug) << " added HCID : " << mTrackletHCHeader.HCID << " with number of bytes : " << mTotalRawWordsWritten << "-" << mLinkRecords.back().getFirstEntry();
               //..... so write the new one thing
               mLinkRecords.emplace_back(mTrackletHCHeader.word, mTotalRawWordsWritten, -1); // set the number of elements to -1 for an error condition
             }
@@ -638,7 +638,7 @@ void TRDDPLTrapSimulatorTask::run(o2::framework::ProcessingContext& pc)
     }
     int adc = 20 - (pad % 18) - 1;
     std::vector<o2::MCCompLabel> tmplabels;
-    auto digitslabels = digitMCLabels->getLabels(digitcounter);
+    auto digitslabels = digitMCLabels.getLabels(digitcounter);
     for (auto& tmplabel : digitslabels) {
       tmplabels.push_back(tmplabel);
     }

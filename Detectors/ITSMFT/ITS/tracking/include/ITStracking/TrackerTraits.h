@@ -49,7 +49,7 @@ class TrackerTraits
   virtual ~TrackerTraits() = default;
 
   GPU_HOST_DEVICE static constexpr int4 getEmptyBinsRect() { return int4{0, 0, 0, 0}; }
-  GPU_DEVICE static const int4 getBinsRect(const Cluster&, const int, const float, float maxdeltaz, float maxdeltaphi);
+  GPU_DEVICE static const int4 getBinsRect(const Cluster&, const int, const float, const float, float maxdeltaz, float maxdeltaphi);
 
   void SetRecoChain(o2::gpu::GPUChainITS* chain, FuncRunITSTrackFit_t&& funcRunITSTrackFit)
   {
@@ -78,11 +78,11 @@ inline void TrackerTraits::UpdateTrackingParameters(const TrackingParameters& tr
 }
 
 inline GPU_DEVICE const int4 TrackerTraits::getBinsRect(const Cluster& currentCluster, const int layerIndex,
-                                                        const float directionZIntersection, float maxdeltaz, float maxdeltaphi)
+                                                        const float z1, const float z2, float maxdeltaz, float maxdeltaphi)
 {
-  const float zRangeMin = directionZIntersection - 2 * maxdeltaz;
+  const float zRangeMin = gpu::GPUCommonMath::Min(z1, z2) - maxdeltaz;
   const float phiRangeMin = currentCluster.phiCoordinate - maxdeltaphi;
-  const float zRangeMax = directionZIntersection + 2 * maxdeltaz;
+  const float zRangeMax = gpu::GPUCommonMath::Max(z1, z2) + maxdeltaz;
   const float phiRangeMax = currentCluster.phiCoordinate + maxdeltaphi;
 
   if (zRangeMax < -constants::its::LayersZCoordinate()[layerIndex + 1] ||

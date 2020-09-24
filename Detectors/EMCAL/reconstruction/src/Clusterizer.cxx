@@ -124,8 +124,7 @@ void Clusterizer<InputType>::getTopologicalRowColumn(const InputType& input, int
 template <class InputType>
 void Clusterizer<InputType>::findClusters(const gsl::span<InputType const>& inputArray)
 {
-  mFoundClusters.clear();
-  mInputIndices.clear();
+  clear();
 
   // Algorithm
   // - Fill cells/digits in 2D topological map

@@ -378,6 +378,7 @@ void MatchTPCITS::updateTPCTimeDependentParams()
   auto& elParam = o2::tpc::ParameterElectronics::Instance();
   auto& detParam = o2::tpc::ParameterDetector::Instance();
   mTPCTBinMUS = elParam.ZbinWidth;
+  mTPCTBinNS = mTPCTBinMUS * 1e3;
   mTPCVDrift0 = gasParam.DriftV;
   mTPCZMax = detParam.TPClength;
   mTPCTBinMUSInv = 1. / mTPCTBinMUS;
@@ -834,6 +835,7 @@ void MatchTPCITS::doMatching(int sec)
       if (trefTPC.timeBins > timeITS) { // its bracket precedes TPC bracket
         continue;
       }
+
       nCheckITSControl++;
       float chi2 = -1;
       int rejFlag = compareTPCITSTracks(trefITS, trefTPC, chi2);
@@ -846,7 +848,7 @@ void MatchTPCITS::doMatching(int sec)
 
       if (rejFlag == RejectOnTgl) {
         // ITS tracks in each ROFrame are ordered in Tgl, hence if this check failed on Tgl check
-        // (i.e. tgl_its>tgl_tpc+tolerance), tnem all other ITS tracks in this ROFrame will also have tgl too large.
+        // (i.e. tgl_its>tgl_tpc+tolerance), then all other ITS tracks in this ROFrame will also have tgl too large.
         // Jump on the 1st ITS track of the next ROFrame
         int rof = trefITS.roFrame;
         bool stop = false;
@@ -865,31 +867,44 @@ void MatchTPCITS::doMatching(int sec)
       if (rejFlag != Accept) {
         continue;
       }
+      auto deltaT = (trefITS.getZ() - trefTPC.getZ()) * mZ2TPCBin; // time difference in TPC time bins corresponding to Z differences
+      auto timeTB = getTPCTrackCorrectedTimeBin(mTPCTracksArray[trefTPC.sourceID], deltaT);
+      auto timeTBErr = std::sqrt(trefITS.getSigmaZ2() + trefTPC.getSigmaZ2()) * t2nbs; // nsigma*error in number of TPC time bins
+      o2::utils::Bracket<float> trange(timeTB - timeTBErr, timeTB + timeTBErr);
+      // is corrected TPC track time compatible with ITS ROF expressed in TPC bins?
+      if (timeITS.isOutside(trange)) {
+        continue;
+      }
+
       int matchedIC = MinusOne;
-      if (checkInteractionCandidates) {
-        // check if corrected TPC track time is compatible with any of interaction times
-        auto interactionRefs = mITSROFIntCandEntries[trefITS.roFrame]; // reference on interaction candidates compatible with this track
-        int nic = interactionRefs.getEntries();
-        if (nic) {
-          auto deltaT = (trefITS.getZ() - trefTPC.getZ()) * mZ2TPCBin; // time difference in TPC time bins corresponding to Z differences
-          auto timeTB = getTPCTrackCorrectedTimeBin(mTPCTracksArray[trefTPC.sourceID], deltaT);
-          auto timeTBErr = std::sqrt(trefITS.getSigmaZ2() + trefTPC.getSigmaZ2()) * t2nbs; // nsigma*error in number of TPC time bins
-          o2::utils::Bracket<float> trange(timeTB - timeTBErr, timeTB + timeTBErr);
-          int idIC = interactionRefs.getFirstEntry(), maxIC = idIC + nic;
-          for (; idIC < maxIC; idIC++) {
-            auto cmp = mInteractions[idIC].timeBins.isOutside(trange);
-            if (cmp == o2::utils::Bracket<float>::Above) { // trange is above this interaction candidate, the following ones may match
-              continue;
+      if (!isCosmics()) {
+        // validate by bunch filling scheme
+        auto irBracket = tpcTimeBin2IRBracket(trange);
+        if (irBracket.isInvalid()) {
+          continue;
+        }
+
+        if (checkInteractionCandidates) {
+          // check if corrected TPC track time is compatible with any of interaction times
+          auto interactionRefs = mITSROFIntCandEntries[trefITS.roFrame]; // reference on interaction candidates compatible with this track
+          int nic = interactionRefs.getEntries();
+          if (nic) {
+            int idIC = interactionRefs.getFirstEntry(), maxIC = idIC + nic;
+            for (; idIC < maxIC; idIC++) {
+              auto cmp = mInteractions[idIC].timeBins.isOutside(trange);
+              if (cmp == o2::utils::Bracket<float>::Above) { // trange is above this interaction candidate, the following ones may match
+                continue;
+              }
+              if (cmp == o2::utils::Bracket<float>::Inside) {
+                matchedIC = idIC;
+              }
+              break; // we loop till 1st matching IC or the one above the trange (since IC are ordered, all others will be above too)
             }
-            if (cmp == o2::utils::Bracket<float>::Inside) {
-              matchedIC = idIC;
-            }
-            break; // we loop till 1st matching IC or the one above the trange (since IC are ordered, all others will be above too)
           }
         }
-      }
-      if (mParams->validateMatchByFIT == MatchITSTPCParams::Require && matchedIC == MinusOne) {
-        continue;
+        if (mParams->validateMatchByFIT == MatchITSTPCParams::Require && matchedIC == MinusOne) {
+          continue;
+        }
       }
       registerMatchRecordTPC(cacheITS[iits], cacheTPC[itpc], chi2, matchedIC); // register matching candidate
       nMatchesControl++;
@@ -2644,6 +2659,58 @@ void MatchTPCITS::setITSROFrameLengthInBC(int nbc)
 {
   mITSROFrameLengthInBC = nbc;
   mITSROFrameLengthMUS = nbc * o2::constants::lhc::LHCBunchSpacingNS * 1e-3;
+}
+
+//___________________________________________________________________
+void MatchTPCITS::setBunchFilling(const o2::BunchFilling& bf)
+{
+  mBunchFilling = bf;
+  // find closest (from above) filled bunch
+  int minBC = bf.getFirstFilledBC(), maxBC = bf.getLastFilledBC();
+  if (minBC < 0) {
+    throw std::runtime_error("Bunch filling is not set in MatchTPCITS");
+  }
+  int bcAbove = minBC;
+  for (int i = o2::constants::lhc::LHCMaxBunches; i--;) {
+    if (bf.testBC(i)) {
+      bcAbove = i;
+    }
+    mClosestBunchAbove[i] = bcAbove;
+  }
+  int bcBelow = maxBC;
+  for (int i = 0; i < o2::constants::lhc::LHCMaxBunches; i++) {
+    if (bf.testBC(i)) {
+      bcBelow = i;
+    }
+    mClosestBunchBelow[i] = bcBelow;
+  }
+}
+
+//___________________________________________________________________
+MatchTPCITS::BracketIR MatchTPCITS::tpcTimeBin2IRBracket(const BracketF tbrange)
+{
+  // convert TPC timebins bracket to IR bracket
+  o2::InteractionRecord irMin(mStartIR), irMax(mStartIR);
+  if (tbrange.min() > 0) {
+    irMin += o2::InteractionRecord(tpcTimeBin2NS(tbrange.min()));
+  }
+  irMax += o2::InteractionRecord(tpcTimeBin2NS(tbrange.max()));
+  irMax++; // to account for rounding
+  int bc = mClosestBunchAbove[irMin.bc];
+  if (bc < irMin.bc) {
+    irMin.orbit++;
+  }
+  irMin.bc = bc;
+  bc = mClosestBunchBelow[irMax.bc];
+  if (bc > irMax.bc) {
+    if (irMax.orbit == 0) {
+      bc = 0;
+    } else {
+      irMax.orbit--;
+    }
+  }
+  irMax.bc = bc;
+  return {irMin, irMax};
 }
 
 //<<============================= AfterBurner for TPC-track / ITS cluster matching ===================<<

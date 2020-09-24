@@ -7,16 +7,14 @@
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
-#ifndef FRAMEWORK_RAWDEVICESERVICE_H
-#define FRAMEWORK_RAWDEVICESERVICE_H
+#ifndef O2_FRAMEWORK_RAWDEVICESERVICE_H_
+#define O2_FRAMEWORK_RAWDEVICESERVICE_H_
 
 #include "Framework/ServiceHandle.h"
 
 class FairMQDevice;
 
-namespace o2
-{
-namespace framework
+namespace o2::framework
 {
 class DeviceSpec;
 
@@ -33,8 +31,12 @@ class RawDeviceService
   virtual FairMQDevice* device() = 0;
   virtual void setDevice(FairMQDevice* device) = 0;
   virtual DeviceSpec const& spec() = 0;
+  /// Expose FairMQDevice::WaitFor method to avoid having to include
+  /// FairMQDevice.h.
+  ///
+  ///  @a time in millisecond to sleep
+  virtual void waitFor(unsigned int time) = 0;
 };
 
-} // namespace framework
-} // namespace o2
-#endif // FRAMEWORK_RAWDEVICESERVICE_H
+} // namespace o2::framework
+#endif // O2_FRAMEWORK_RAWDEVICESERVICE_H_

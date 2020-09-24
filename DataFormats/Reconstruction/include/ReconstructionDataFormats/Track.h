@@ -200,6 +200,9 @@ class TrackPar
 
   void invertParam();
 
+  bool isValid() const { return mX != InvalidX; }
+  void invalidate() { mX = InvalidX; }
+
 #ifndef GPUCA_ALIGPUCODE
   void printParam() const;
   std::string asString() const;
@@ -217,6 +220,7 @@ class TrackPar
 
  private:
   //
+  static constexpr float InvalidX = -99999.;
   float mX = 0.f;             /// X of track evaluation
   float mAlpha = 0.f;         /// track frame angle
   float mP[kNParams] = {0.f}; /// 5 parameters: Y,Z,sin(phi),tg(lambda),q/pT

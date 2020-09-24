@@ -16,6 +16,7 @@
 #include "Framework/PaletteHelpers.h"
 #include "Framework/Logger.h"
 #include "FrameworkGUIDeviceInspector.h"
+#include "Framework/Logger.h"
 #include "../src/WorkflowHelpers.h"
 #include "DebugGUI/imgui.h"
 #if __has_include("DebugGUI/icons_font_awesome.h")
@@ -33,7 +34,6 @@ static inline ImVec2 operator-(const ImVec2& lhs, const ImVec2& rhs) { return Im
 
 namespace o2::framework::gui
 {
-
 struct NodeColor {
   ImVec4 normal;
   ImVec4 hovered;

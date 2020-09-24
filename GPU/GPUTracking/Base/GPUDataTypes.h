@@ -20,9 +20,9 @@
 // Please add complex data types required on the host but not GPU to GPUHostDataTypes.h and forward-declare!
 #ifndef GPUCA_GPUCODE_DEVICE
 #include <cstddef>
-#endif
 #ifdef GPUCA_NOCOMPAT_ALLOPENCL
 #include <type_traits>
+#endif
 #endif
 #ifdef GPUCA_NOCOMPAT
 #include "GPUTRDDef.h"

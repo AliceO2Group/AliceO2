@@ -68,4 +68,6 @@
 #pragma link C++ class o2::dataformats::MCEventStats + ;
 #pragma link C++ class o2::dataformats::MCEventHeader + ;
 
+#pragma link C++ class o2::dataformats::IOMCTruthContainerView + ;
+
 #endif

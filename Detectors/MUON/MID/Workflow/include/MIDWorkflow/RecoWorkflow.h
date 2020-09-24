@@ -23,7 +23,7 @@ namespace o2
 {
 namespace mid
 {
-framework::WorkflowSpec getRecoWorkflow();
+framework::WorkflowSpec getRecoWorkflow(bool ctfInput);
 }
 } // namespace o2
 

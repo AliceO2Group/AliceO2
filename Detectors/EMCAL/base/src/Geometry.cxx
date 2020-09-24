@@ -1509,7 +1509,7 @@ const TGeoHMatrix* Geometry::GetMatrixForSuperModuleFromGeoManager(Int_t smod) c
     LOG(ERROR) << "Unkown SM Type!!\n";
   }
 
-  snprintf(path, buffersize, "/cave/%s_%d", smName.Data(), smOrder);
+  snprintf(path, buffersize, "/cave/barrel_1/%s_%d", smName.Data(), smOrder);
 
   if (!gGeoManager->cd(path)) {
     LOG(FATAL) << "Geo manager can not find path " << path << "!\n";
@@ -1531,7 +1531,7 @@ void Geometry::RecalculateTowerPosition(Float_t drow, Float_t dcol, const Int_t 
 
     const Int_t nSMod = mNumberOfSuperModules;
 
-    gGeoManager->cd("/cave/barrel/");
+    gGeoManager->cd("/cave/barrel_1/");
     TGeoNode* geoXEn1 = gGeoManager->GetCurrentNode();
     TGeoNodeMatrix* geoSM[nSMod];
     TGeoVolume* geoSMVol[nSMod];

@@ -19,6 +19,8 @@
 #include "Framework/Task.h"
 #include "DataFormatsTOF/CalibInfoTOF.h"
 
+class TTree;
+
 using namespace o2::framework;
 
 namespace o2
@@ -40,6 +42,7 @@ class CalibInfoReader : public Task
   int mNinstances;
   const char* mFileName = nullptr;
   FILE* mFile = nullptr;
+  TTree* mTree = nullptr;
   int mCurrentEntry = 0;
   int mGlobalEntry = 0;
   std::vector<o2::dataformats::CalibInfoTOF> mVect, *mPvect = &mVect;

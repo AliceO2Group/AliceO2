@@ -107,7 +107,7 @@ DataProcessorSpec getLHCClockCalibDeviceSpec()
   outputs.emplace_back(ConcreteDataTypeMatcher{clbUtils::gDataOriginCLB, clbUtils::gDataDescriptionCLBInfo});
   return DataProcessorSpec{
     "calib-lhcclock-calibration",
-    Inputs{{"input", "DUM", "CALIBDATA"}},
+    Inputs{{"input", "TOF", "CALIBDATA"}},
     outputs,
     AlgorithmSpec{adaptFromTask<device>()},
     Options{
