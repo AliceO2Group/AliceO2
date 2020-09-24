@@ -49,9 +49,26 @@ class IOMCTruthContainerView
     adopt(input);
   }
 
+  ~IOMCTruthContainerView()
+  {
+    if (!mIsView) {
+      delete[] part1;
+      delete[] part2;
+      delete[] part3;
+      delete[] part4;
+      delete[] part5;
+      delete[] part6;
+      delete[] part7;
+      delete[] part8;
+      delete[] part9;
+      delete[] part10;
+    }
+  }
+
   /// "adopt" (without taking ownership) from an existing buffer
   void adopt(gsl::span<const char> const input)
   {
+    mIsView = true;
     const auto delta = input.size() / N;
     N2 = input.size() - (N - 1) * delta;
     N1 = delta;
@@ -103,6 +120,9 @@ class IOMCTruthContainerView
   const char* part8 = nullptr;  //[N1]
   const char* part9 = nullptr;  //[N1]
   const char* part10 = nullptr; //[N2]
+
+  bool mIsView = false; //! if this was merely adopted from an existing container or actually owns the memory
+                        //  we need to know this for the destructor
 
   template <typename Alloc>
   void copyhelper(const char* input, int size, std::vector<char, Alloc>& output) const

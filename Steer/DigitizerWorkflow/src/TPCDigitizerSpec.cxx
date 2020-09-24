@@ -23,6 +23,7 @@
 #include "TSystem.h"
 #include <SimulationDataFormat/MCCompLabel.h>
 #include <SimulationDataFormat/MCTruthContainer.h>
+#include <SimulationDataFormat/ConstMCTruthContainer.h>
 #include "Framework/Task.h"
 #include "DataFormatsParameters/GRPObject.h"
 #include "DataFormatsTPC/TPCSectorHeader.h"
@@ -220,9 +221,8 @@ class TPCDPLDigitizerTask : public BaseDPLDigitizer
       o2::tpc::TPCSectorHeader header{sector};
       header.activeSectors = activeSectors;
       if (mWithMCTruth) {
-        pc.outputs().snapshot(Output{"TPC", "DIGITSMCTR", static_cast<SubSpecificationType>(dh->subSpecification),
-                                     Lifetime::Timeframe, header},
-                              const_cast<o2::dataformats::MCTruthContainer<o2::MCCompLabel>&>(labels));
+        auto& sharedlabels = pc.outputs().make<o2::dataformats::ConstMCTruthContainer<o2::MCCompLabel>>(Output{"TPC", "DIGITSMCTR", static_cast<SubSpecificationType>(dh->subSpecification), Lifetime::Timeframe, header});
+        labels.flatten_to(sharedlabels);
       }
     };
     // lambda that snapshots digits grouping (triggers) to be sent out; prepares and attaches header with sector information
