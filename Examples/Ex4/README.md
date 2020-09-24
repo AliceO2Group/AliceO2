@@ -4,4 +4,4 @@
 
 ## Ex4 Adding tests
 
-See [CMakeInstructions](../doc/CMakeInstructions.md) for an explanation about this directory.
+See [CMakeInstructions](/doc/CMakeInstructions.md) for an explanation about this directory.
