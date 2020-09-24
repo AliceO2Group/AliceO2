@@ -41,8 +41,27 @@ struct ATask {
   }
 };
 
+struct BTask {
+  /// Construct a registry object with direct declaration
+  HistogramRegistry registry{
+    "registry",
+    true,
+    {
+      {"eta", "#eta", {HistogramType::kTH1F, {{102, -2.01, 2.01}}}},                            //
+      {"ptToPt", "#ptToPt", {HistogramType::kTH2F, {{100, -0.01, 10.01}, {100, -0.01, 10.01}}}} //
+    }                                                                                           //
+  };
+
+  void process(aod::Tracks const& tracks)
+  {
+    registry.fill<aod::track::Eta>("eta", tracks, aod::track::eta > 0.0f);
+    registry.fill<aod::track::Pt, aod::track::Pt>("ptToPt", tracks, aod::track::pt < 5.0f);
+  }
+};
+
 WorkflowSpec defineDataProcessing(ConfigContext const&)
 {
   return WorkflowSpec{
-    adaptAnalysisTask<ATask>("eta-and-phi-histograms")};
+    adaptAnalysisTask<ATask>("eta-and-phi-histograms"),
+    adaptAnalysisTask<BTask>("filtered-histograms")};
 }
