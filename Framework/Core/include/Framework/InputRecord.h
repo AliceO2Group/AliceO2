@@ -452,6 +452,9 @@ class InputRecord
   bool isValid(char const* s) const;
   bool isValid(int pos) const;
 
+  /// Return the total number of inputs in the InputRecord. Notice that these will include
+  /// both valid and invalid inputs (i.e. inputs which have not arrived yet), depending
+  /// on the ChannelPolicy you have (using the default policy all inputs will be valid).
   size_t size() const
   {
     return mSpan.size();
