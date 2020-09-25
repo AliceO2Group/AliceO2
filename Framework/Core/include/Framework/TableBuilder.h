@@ -435,12 +435,11 @@ class TableBuilder
   template <typename... ARGS>
   auto makeFinalizer()
   {
-    mFinalizer = [schema = mSchema, &arrays = mArrays, builders = mBuilders]() -> std::shared_ptr<arrow::Table> {
+    mFinalizer = [schema = mSchema, &arrays = mArrays, builders = mBuilders]() -> void {
       auto status = TableBuilderHelpers::finalize(arrays, *(BuildersTuple<ARGS...>*)builders, std::make_index_sequence<sizeof...(ARGS)>{});
       if (status == false) {
         throw std::runtime_error("Unable to finalize");
       }
-      return arrow::Table::Make(schema, arrays);
     };
   }
 

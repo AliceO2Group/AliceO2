@@ -150,6 +150,9 @@ void DataAllocator::adopt(const Output& spec, TableBuilder* tb)
   std::shared_ptr<TableBuilder> p(tb);
   auto finalizer = [payload = p](std::shared_ptr<FairMQResizableBuffer> b) -> void {
     auto table = payload->finalize();
+    if (O2_BUILTIN_UNLIKELY(table->num_rows() == 0)) {
+      LOG(WARN) << "Adopting empty table: " << table->ToString();
+    }
 
     auto stream = std::make_shared<arrow::io::BufferOutputStream>(b);
     auto outBatch = arrow::ipc::NewStreamWriter(stream.get(), table->schema());
@@ -181,6 +184,9 @@ void DataAllocator::adopt(const Output& spec, TreeToTable* t2t)
   std::shared_ptr<TreeToTable> p(t2t);
   auto finalizer = [payload = p](std::shared_ptr<FairMQResizableBuffer> b) -> void {
     auto table = payload->finalize();
+    if (O2_BUILTIN_UNLIKELY(table->num_rows() == 0)) {
+      LOG(WARN) << "Adopting empty table: " << table->ToString();
+    }
 
     auto stream = std::make_shared<arrow::io::BufferOutputStream>(b);
     std::shared_ptr<arrow::ipc::RecordBatchWriter> writer;
