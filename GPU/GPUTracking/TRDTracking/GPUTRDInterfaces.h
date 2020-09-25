@@ -200,7 +200,7 @@ class propagatorInterface<o2::base::Propagator>
   propagatorInterface<o2::base::Propagator>(const propagatorInterface<o2::base::Propagator>&) = delete;
   propagatorInterface<o2::base::Propagator>& operator=(const propagatorInterface<o2::base::Propagator>&) = delete;
 
-  bool propagateToX(float x, float maxSnp, float maxStep) { return mProp->PropagateToXBxByBz(*mParam, x, 0.13957, maxSnp, maxStep, o2::base::Propagator::MatCorrType::USEMatCorrNONE); }
+  bool propagateToX(float x, float maxSnp, float maxStep) { return mProp->PropagateToXBxByBz(*mParam, x, 0.13957, maxSnp, maxStep); }
   int getPropagatedYZ(My_Float x, My_Float& projY, My_Float& projZ) { return static_cast<int>(mParam->getYZAt(x, mProp->getNominalBz(), projY, projZ)); }
 
   void setTrack(trackInterface<o2::dataformats::TrackTPCITS>* trk) { mParam = trk; }
