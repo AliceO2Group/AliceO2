@@ -91,9 +91,11 @@ using V0DataFull = V0DataExt;
 
 namespace v0finderdata
 {
+DECLARE_SOA_INDEX_COLUMN_FULL(PosTrack, posTrack, int, FullTracks, "fPosTrackID");
+DECLARE_SOA_INDEX_COLUMN_FULL(NegTrack, negTrack, int, FullTracks, "fNegTrackID");
 DECLARE_SOA_INDEX_COLUMN(Collision, collision);
-}
-DECLARE_SOA_TABLE(V0FinderData, "AOD", "V0FINDERDATA", o2::soa::Index<>, v0finderdata::CollisionId);
+} // namespace v0finderdata
+DECLARE_SOA_TABLE(V0FinderData, "AOD", "V0FINDERDATA", o2::soa::Index<>, v0finderdata::PosTrackId, v0finderdata::NegTrackId, v0finderdata::CollisionId);
 
 namespace cascdata
 {
