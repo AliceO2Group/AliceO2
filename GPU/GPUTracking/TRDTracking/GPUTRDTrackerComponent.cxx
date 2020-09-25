@@ -191,7 +191,7 @@ int GPUTRDTrackerComponent::DoInit(int argc, const char** argv)
   cfgRecoStep.inputs.clear();
   cfgRecoStep.outputs.clear();
   fRec = GPUReconstruction::CreateInstance("CPU", true);
-  fRec->SetSettings(GetBz());
+  fRec->SetSettings(&cfgEvent, &cfgRec, &cfgDeviceProcessing, &cfgRecoStep);
   fChain = fRec->AddChain<GPUChainTracking>();
 
   fGeo = new GPUTRDGeometry();
