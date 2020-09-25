@@ -27,39 +27,36 @@ static const int sampaWindowSize = 100;
 
 
 /// \brief Helper function for creating two digits that can be merged together
-static void makeMergeableDigits(MergerDigit& d1, MergerDigit& d2)
+static void makeMergeableDigits(Digit& d1, Digit& d2)
 {
-  int solarId = 0;
-  int dsAddr = 0;
-  int chAddr = 0;
   int deId = 100;
   int padId = 0;
   int adc = 100;
-  int orbit = 0;
-  int sampaTime = 50;
-  int bunchCrossing = 0;
-  int nSamples = sampaWindowSize - sampaTime;
+  uint32_t orbit = 0;
+  uint32_t sampaTime = 50;
+  uint32_t bunchCrossing = 0;
+  uint32_t nSamples = sampaWindowSize - sampaTime;
   Digit::Time time{sampaTime, bunchCrossing, orbit};
 
-  d1 = MergerDigit{o2::mch::Digit(deId, padId, adc, time, nSamples), false/*, solarId, dsAddr, chAddr*/};
+  d1 = o2::mch::Digit(deId, padId, adc, time, nSamples);
 
   int adc2 = 10;
-  int sampaTime2 = 0;
-  int bunchCrossing2 = sampaWindowSize * 4;
-  int nSamples2 = 10;
+  uint32_t sampaTime2 = 0;
+  uint32_t bunchCrossing2 = sampaWindowSize * 4;
+  uint32_t nSamples2 = 10;
   Digit::Time time2{sampaTime2, bunchCrossing2, orbit};
 
-  d2 = MergerDigit{o2::mch::Digit(deId, padId, adc2, time2, nSamples2), false/*, solarId, dsAddr, chAddr*/};
+  d2 = o2::mch::Digit(deId, padId, adc2, time2, nSamples2);
 }
 
 
 /// \brief Helper function for adding one digit to the merger object
-static void addDigit(Merger& merger, int feeId, MergerDigit& d)
+static void addDigit(Merger& merger, int feeId, Digit& d)
 {
   int solarId = 0;
   int dsAddr = 0;
   int chAddr = 0;
-  merger.addDigit(feeId, solarId, dsAddr, chAddr, d.digit.getDetID(), d.digit.getPadID(), d.digit.getADC(), d.digit.getTime(), d.digit.nofSamples());
+  merger.addDigit(feeId, solarId, dsAddr, chAddr, d.getDetID(), d.getPadID(), d.getADC(), d.getTime(), d.nofSamples());
 }
 
 
@@ -111,14 +108,14 @@ void incrementBunchCrossing(o2::mch::Digit& d, int delta)
 
 /// \brief Helper function for running the digits merger on two input digits, and store the result in a vector object.
 /// \brief The two digits are inserted in the same orbit.
-void runMergerSameOrbit(MergerDigit& d1, MergerDigit& d2, std::vector<Digit>& digitsOut)
+void runMergerSameOrbit(Digit& d1, Digit& d2, std::vector<Digit>& digitsOut)
 {
   const auto storeDigit = [&](const Digit& d) {
     digitsOut.emplace_back(d);
   };
 
   int feeId = 0;
-  int orbit = d1.digit.getTime().orbit;
+  int orbit = d1.getTime().orbit;
 
   // initialize the merger object
   Merger merger;
@@ -138,14 +135,14 @@ void runMergerSameOrbit(MergerDigit& d1, MergerDigit& d2, std::vector<Digit>& di
 
 /// \brief Helper function for running the digits merger on two input digits, and store the result in a vector object.
 /// \brief The two digits are inserted in two consecutive orbits.
-void runMergerConsecutiveOrbits(MergerDigit& d1, MergerDigit& d2, std::vector<Digit>& digitsOut)
+void runMergerConsecutiveOrbits(Digit& d1, Digit& d2, std::vector<Digit>& digitsOut)
 {
   const auto storeDigit = [&](const Digit& d) {
     digitsOut.emplace_back(d);
   };
 
   int feeId = 0;
-  int orbit = d1.digit.getTime().orbit;
+  int orbit = d1.getTime().orbit;
 
   // initialize the merger object
   Merger merger;
@@ -195,7 +192,7 @@ void runMergerConsecutiveOrbits(MergerDigit& d1, MergerDigit& d2, std::vector<Di
 BOOST_AUTO_TEST_CASE(MergeDigits)
 {
   std::vector<Digit> digitsOut;
-  MergerDigit d1, d2;
+  Digit d1, d2;
   makeMergeableDigits(d1, d2);
 
   runMergerSameOrbit(d1, d2, digitsOut);
@@ -204,7 +201,7 @@ BOOST_AUTO_TEST_CASE(MergeDigits)
   BOOST_CHECK_EQUAL(digitsOut.size(), 1);
 
   Digit& d = digitsOut[0];
-  CHECK_MERGED_DIGIT(d, d1.digit, d2.digit);
+  CHECK_MERGED_DIGIT(d, d1, d2);
 }
 
 
@@ -212,10 +209,10 @@ BOOST_AUTO_TEST_CASE(MergeDigits)
 BOOST_AUTO_TEST_CASE(MergeDigitsConsecutiveOrbits)
 {
   std::vector<Digit> digitsOut;
-  MergerDigit d1, d2;
+  Digit d1, d2;
   makeMergeableDigits(d1, d2);
 
-  incrementOrbit(d2.digit);
+  incrementOrbit(d2);
 
   runMergerConsecutiveOrbits(d1, d2, digitsOut);
 
@@ -223,7 +220,7 @@ BOOST_AUTO_TEST_CASE(MergeDigitsConsecutiveOrbits)
   BOOST_CHECK_EQUAL(digitsOut.size(), 1);
 
   Digit& d = digitsOut[0];
-  CHECK_MERGED_DIGIT(d, d1.digit, d2.digit);
+  CHECK_MERGED_DIGIT(d, d1, d2);
 }
 
 
@@ -231,10 +228,10 @@ BOOST_AUTO_TEST_CASE(MergeDigitsConsecutiveOrbits)
 BOOST_AUTO_TEST_CASE(MergeDigitsWrongDetID)
 {
   std::vector<Digit> digitsOut;
-  MergerDigit d1, d2;
+  Digit d1, d2;
   makeMergeableDigits(d1, d2);
 
-  incrementDetID(d2.digit);
+  incrementDetID(d2);
 
   runMergerSameOrbit(d1, d2, digitsOut);
 
@@ -244,8 +241,8 @@ BOOST_AUTO_TEST_CASE(MergeDigitsWrongDetID)
   // check that the two output digits are identical to the input ones
   Digit& do1 = digitsOut[0];
   Digit& do2 = digitsOut[1];
-  CHECK_DIGIT(do1, d1.digit);
-  CHECK_DIGIT(do2, d2.digit);
+  CHECK_DIGIT(do1, d1);
+  CHECK_DIGIT(do2, d2);
 }
 
 
@@ -253,10 +250,10 @@ BOOST_AUTO_TEST_CASE(MergeDigitsWrongDetID)
 BOOST_AUTO_TEST_CASE(MergeDigitsWrongPadID)
 {
   std::vector<Digit> digitsOut;
-  MergerDigit d1, d2;
+  Digit d1, d2;
   makeMergeableDigits(d1, d2);
 
-  incrementPadID(d2.digit);
+  incrementPadID(d2);
 
   runMergerSameOrbit(d1, d2, digitsOut);
 
@@ -266,8 +263,8 @@ BOOST_AUTO_TEST_CASE(MergeDigitsWrongPadID)
   // check that the two output digits are identical to the input ones
   Digit& do1 = digitsOut[0];
   Digit& do2 = digitsOut[1];
-  CHECK_DIGIT(do1, d1.digit);
-  CHECK_DIGIT(do2, d2.digit);
+  CHECK_DIGIT(do1, d1);
+  CHECK_DIGIT(do2, d2);
 }
 
 
@@ -275,10 +272,10 @@ BOOST_AUTO_TEST_CASE(MergeDigitsWrongPadID)
 BOOST_AUTO_TEST_CASE(MergeDigitsWrongSampaTime)
 {
   std::vector<Digit> digitsOut;
-  MergerDigit d1, d2;
+  Digit d1, d2;
   makeMergeableDigits(d1, d2);
 
-  incrementSampaTime(d1.digit, -1);
+  incrementSampaTime(d1, -1);
 
   runMergerSameOrbit(d1, d2, digitsOut);
 
@@ -288,8 +285,8 @@ BOOST_AUTO_TEST_CASE(MergeDigitsWrongSampaTime)
   // check that the two output digits are identical to the input ones
   Digit& do1 = digitsOut[0];
   Digit& do2 = digitsOut[1];
-  CHECK_DIGIT(do1, d1.digit);
-  CHECK_DIGIT(do2, d2.digit);
+  CHECK_DIGIT(do1, d1);
+  CHECK_DIGIT(do2, d2);
 }
 
 
@@ -297,10 +294,10 @@ BOOST_AUTO_TEST_CASE(MergeDigitsWrongSampaTime)
 BOOST_AUTO_TEST_CASE(MergeDigitsWrongBunchCrossing)
 {
   std::vector<Digit> digitsOut;
-  MergerDigit d1, d2;
+  Digit d1, d2;
   makeMergeableDigits(d1, d2);
 
-  incrementBunchCrossing(d2.digit, 40);
+  incrementBunchCrossing(d2, 40);
 
   runMergerSameOrbit(d1, d2, digitsOut);
 
@@ -310,8 +307,8 @@ BOOST_AUTO_TEST_CASE(MergeDigitsWrongBunchCrossing)
   // check that the two output digits are identical to the input ones
   Digit& do1 = digitsOut[0];
   Digit& do2 = digitsOut[1];
-  CHECK_DIGIT(do1, d1.digit);
-  CHECK_DIGIT(do2, d2.digit);
+  CHECK_DIGIT(do1, d1);
+  CHECK_DIGIT(do2, d2);
 }
 
 BOOST_AUTO_TEST_SUITE_END()

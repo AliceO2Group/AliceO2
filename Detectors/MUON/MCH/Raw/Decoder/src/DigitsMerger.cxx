@@ -28,13 +28,6 @@ namespace mch
 namespace raw
 {
 
-MergerDigit& MergerDigit::operator+=(const MergerDigit& right)
-{
-  digit.setADC(right.digit.getADC() + digit.getADC());
-  digit.setNofSamples(right.digit.nofSamples() + digit.nofSamples());
-  return (*this);
-}
-
 void FeeIdMerger::setOrbit(uint32_t orbit, bool stop)
 {
   // perform the merging and send digits of previous orbit if either the stop RDH is received
@@ -49,8 +42,8 @@ void FeeIdMerger::setOrbit(uint32_t orbit, bool stop)
   // send the merged digits
   int nSent = 0;
   for (auto& d : previousBuffer.digits) {
-    if (!d.merged && (d.digit.getPadID() >= 0)) {
-      sendDigit(d.digit);
+    if (!d.second && (d.first.getPadID() >= 0)) {
+      sendDigit(d.first);
       nSent += 1;
     }
   }
@@ -65,43 +58,40 @@ void FeeIdMerger::setOrbit(uint32_t orbit, bool stop)
 }
 
 // helper function to check if two digits correspond to the same pad;
-static bool areSamePad(const MergerDigit& d1, const MergerDigit& d2)
+static bool areSamePad(const Digit& d1, const Digit& d2)
 {
-  if (d1.solarId != d2.solarId)
+  if (d1.getDetID() != d2.getDetID())
     return false;
-  if (d1.dsAddr != d2.dsAddr)
-    return false;
-  if (d1.chAddr != d2.chAddr)
-    return false;
-  if (d1.digit.getDetID() != d2.digit.getDetID())
-    return false;
-  if (d1.digit.getPadID() != d2.digit.getPadID())
+  if (d1.getPadID() != d2.getPadID())
     return false;
 
   return true;
 }
+
+
+static void mergeTwoDigits(const Digit& d1, Digit& d2)
+{
+  d2.setADC(d1.getADC() + d2.getADC());
+  d2.setNofSamples(d1.nofSamples() + d2.nofSamples());
+}
+
 
 void FeeIdMerger::mergeDigits()
 {
   const uint32_t bxCounterRollover = 0x100000;
   const uint32_t oneADCclockCycle = 4;
 
-  auto updateDigits = [](MergerDigit& d1, MergerDigit& d2) -> bool {
-    // skip digits that are already merged
-    if (d1.merged || d2.merged) {
-      return false;
-    }
-
+  auto updateDigits = [](Digit& d1, Digit& d2) -> bool {
     // skip all digits not matching the detId/padId
     if (!areSamePad(d1, d2)) {
       return false;
     }
 
     // compute time difference
-    Digit::Time startTime = d1.digit.getTime();
+    Digit::Time startTime = d1.getTime();
     uint32_t bxStart = startTime.bunchCrossing;
-    Digit::Time stopTime = d2.digit.getTime();
-    stopTime.sampaTime += d2.digit.nofSamples() - 1;
+    Digit::Time stopTime = d2.getTime();
+    stopTime.sampaTime += d2.nofSamples() - 1;
     uint32_t bxStop = stopTime.bunchCrossing;
     // correct for value rollover
     if (bxStart < bxStop) {
@@ -113,7 +103,7 @@ void FeeIdMerger::mergeDigits()
     uint32_t timeDiff = startTimeFull - stopTimeFull;
 
     if (mPrint) {
-      std::cout << "updateDigits: " << d1.digit.getDetID() << "  " << d1.digit.getPadID() << "  " << bxStop << "  " << stopTime.sampaTime
+      std::cout << "updateDigits: " << d1.getDetID() << "  " << d1.getPadID() << "  " << bxStop << "  " << stopTime.sampaTime
                 << "  " << bxStart << "  " << startTime.sampaTime << "  " << timeDiff << std::endl;
     }
 
@@ -123,8 +113,7 @@ void FeeIdMerger::mergeDigits()
     }
 
     // merge digits
-    d2 += d1;
-    d1.merged = true;
+    mergeTwoDigits(d1, d2);
 
     return true;
   };
@@ -137,10 +126,15 @@ void FeeIdMerger::mergeDigits()
   }
 
   for (size_t i = 0; i < previousBuffer.digits.size(); i++) {
-    MergerDigit& d1 = previousBuffer.digits[i];
+    auto& d1 = previousBuffer.digits[i];
+
+    // skip already merged digits
+    if (d1.second) {
+      continue;
+    }
 
     // skip digits that do not start at the beginning of the time window
-    Digit::Time startTime = d1.digit.getTime();
+    Digit::Time startTime = d1.first.getTime();
     if (startTime.sampaTime != 0) {
       continue;
     }
@@ -149,8 +143,17 @@ void FeeIdMerger::mergeDigits()
       if (i == j) {
         continue;
       }
-      MergerDigit& d2 = previousBuffer.digits[j];
-      if (updateDigits(d1, d2)) {
+
+      auto& d2 = previousBuffer.digits[j];
+
+      // skip already merged digits
+      if (d2.second) {
+        continue;
+      }
+
+      if (updateDigits(d1.first, d2.first)) {
+        // mark d1 as merged
+        d1.second = true;
         break;
       }
     }
@@ -172,17 +175,30 @@ void FeeIdMerger::mergeDigits()
   }
 
   for (size_t i = 0; i < currentBuffer.digits.size(); i++) {
-    MergerDigit& d1 = currentBuffer.digits[i];
+    auto& d1 = currentBuffer.digits[i];
+
+    // skip already merged digits
+    if (d1.second) {
+      continue;
+    }
 
     // skip digits that do not start at the beginning of the time window
-    Digit::Time startTime = d1.digit.getTime();
+    Digit::Time startTime = d1.first.getTime();
     if (startTime.sampaTime != 0) {
       continue;
     }
 
     for (size_t j = 0; j < previousBuffer.digits.size(); j++) {
-      MergerDigit& d2 = previousBuffer.digits[j];
-      if (updateDigits(d1, d2)) {
+      auto& d2 = previousBuffer.digits[j];
+
+      // skip already merged digits
+      if (d2.second) {
+        continue;
+      }
+
+      if (updateDigits(d1.first, d2.first)) {
+        // mark d1 as merged
+        d1.second = true;
         break;
       }
     }
@@ -212,8 +228,7 @@ void Merger::addDigit(int feeId, int solarId, int dsAddr, int chAddr,
     return;
   }
 
-  mergers[feeId].getCurrentBuffer().digits.emplace_back(MergerDigit{o2::mch::Digit(deId, padId, adc, time, nSamples),
-                                                                    false, solarId, dsAddr, chAddr});
+  mergers[feeId].getCurrentBuffer().digits.emplace_back(std::make_pair(o2::mch::Digit{deId, padId, adc, time, nSamples}, false));
 }
 
 void Merger::mergeDigits(int feeId)

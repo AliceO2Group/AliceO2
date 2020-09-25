@@ -27,19 +27,9 @@ namespace mch
 namespace raw
 {
 
-struct MergerDigit {
-  o2::mch::Digit digit;
-  bool merged = {false};
-  int solarId = {-1};
-  int dsAddr = {-1};
-  int chAddr = {-1};
-
-  MergerDigit& operator+=(const MergerDigit& right);
-};
-
 //_________________________________________________________________
 struct MergerBuffer {
-  std::vector<MergerDigit> digits;
+  std::vector<std::pair<Digit,bool>> digits;
   uint32_t orbit = {0};
 };
 
