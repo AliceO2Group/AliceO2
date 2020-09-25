@@ -25,7 +25,7 @@
 #include "FairLogger.h" // for LOG
 #include "MathUtils/Cartesian3D.h"
 #include "DetectorsBase/MatCell.h"
-
+#include <mutex>
 class TGeoHMatrix; // lines 11-11
 class TGeoManager; // lines 9-9
 
@@ -126,7 +126,6 @@ class GeometryManager : public TObject
   /// detector geometry. The output global matrix is stored in 'm'.
   /// Returns kFALSE in case TGeo has not been initialized or the volume path is not valid.
   static Bool_t getOriginalMatrixFromPath(const char* path, TGeoHMatrix& m);
-
  private:
 /// sensitive volume identifier composed from (det_mask<<sDetOffset)|(sensid&sSensorMask)
 #ifdef ENABLE_UPGRADES
@@ -136,6 +135,7 @@ class GeometryManager : public TObject
 #endif
   static constexpr UInt_t sSensorMask =
     (0x1 << sDetOffset) - 1; /// mask=max sensitive volumes allowed per detector (0xffff)
+  static std::mutex sTGMutex;
 
   ClassDefOverride(GeometryManager, 0); // Manager of geometry information for alignment
 };
