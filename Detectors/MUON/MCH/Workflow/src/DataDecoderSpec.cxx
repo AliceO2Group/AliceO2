@@ -85,7 +85,6 @@ struct OrbitInfoHash {
   }
 };
 
-
 //=======================
 // Data decoder
 class DataDecoderTask
