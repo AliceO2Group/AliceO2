@@ -593,7 +593,7 @@ inline const DigitPos Mapper::findDigitPosFromGlobalPosition(const GlobalPositio
   if (phi < 0.)
     phi += TWOPI;
   const unsigned char secNum = std::floor(phi / SECPHIWIDTH);
-  const float secPhi = secNum * SECPHIWIDTH + SECPHIWIDTH / 2.;
+  // const float secPhi = secNum * SECPHIWIDTH + SECPHIWIDTH / 2.;
   Sector sec(secNum + (pos.Z() < 0) * SECTORSPERSIDE);
 
   // ===| rotated position |====================================================
