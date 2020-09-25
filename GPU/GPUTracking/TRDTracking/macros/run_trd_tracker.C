@@ -135,7 +135,8 @@ void run_trd_tracker(std::string path = "./",
   printf("Start loading input into TRD tracker\n");
   // load everything into the tracker
   for (int iTrk = 0; iTrk < nTracks; ++iTrk) {
-    auto trk = tracksInArrayPtr->at(iTrk);
+    const auto& match = (*tracksInArrayPtr)[iTrk];
+    const auto& trk = match.getParamOut();
     GPUTRDTrack trkLoad;
     trkLoad.setX(trk.getX());
     trkLoad.setAlpha(trk.getAlpha());
@@ -145,7 +146,7 @@ void run_trd_tracker(std::string path = "./",
     for (int i = 0; i < 15; ++i) {
       trkLoad.setCov(trk.getCov()[i], i);
     }
-    trkLoad.setTime(trk.getTimeMUS().getTimeStamp());
+    trkLoad.setTime(match.getTimeMUS().getTimeStamp());
     tracker->LoadTrack(trkLoad);
     printf("Loaded track %i with time %f\n", iTrk, trkLoad.getTime());
   }
