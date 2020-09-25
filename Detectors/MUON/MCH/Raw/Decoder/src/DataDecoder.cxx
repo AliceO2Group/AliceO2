@@ -115,6 +115,18 @@ DataDecoder::DataDecoder(SampaChannelHandler channelHandler, RdhHandler rdhHandl
   init();
 }
 
+
+static bool isValidDeID(int deId)
+{
+  for(auto id: deIdsForAllMCH) {
+    if(id == deId) {
+      return true;
+    }
+  }
+
+  return false;
+}
+
 void DataDecoder::decodeBuffer(gsl::span<const std::byte> page)
 {
   size_t ndigits{0};
@@ -156,15 +168,12 @@ void DataDecoder::decodeBuffer(gsl::span<const std::byte> page)
                 << "deId " << deId << "  dsIddet " << dsIddet << std::endl;
     }
 
-    if (deId < 0 || dsIddet < 0) {
+    if (deId < 0 || dsIddet < 0 || !isValidDeID(deId)) {
       return;
     }
 
     int padId = -1;
     const Segmentation& segment = segmentation(deId);
-    if ((&segment) == nullptr) {
-      return;
-    }
 
     padId = segment.findPadByFEE(dsIddet, int(channel));
     if (mPrint) {
