@@ -254,6 +254,10 @@ bool GPUChainTracking::ValidateSteps()
     GPUError("Cannot run dE/dx without calibration splines");
     return false;
   }
+  if ((GetRecoSteps() & GPUDataTypes::RecoStep::TPCClusterFinding) && processors()->calibObjects.tpcCalibration == nullptr) {
+    GPUError("Cannot run gain calibration without calibration object");
+    return false;
+  }
   return true;
 }
 
