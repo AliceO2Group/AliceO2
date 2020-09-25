@@ -156,21 +156,21 @@ void CalArray<T>::initData()
     case PadSubset::ROC: {
       mData.resize(ROC(mPadSubsetNumber).rocType() == RocType::IROC ? mapper.getPadsInIROC() : mapper.getPadsInOROC());
       if (mName.empty()) {
-        setName(boost::str(format("ROC_%1$02d") % mPadSubsetNumber));
+        setName(boost::str(boost::format("ROC_%1$02d") % mPadSubsetNumber));
       }
       break;
     }
     case PadSubset::Partition: {
       mData.resize(mapper.getPartitionInfo(mPadSubsetNumber % mapper.getNumberOfPartitions()).getNumberOfPads());
       if (mName.empty()) {
-        setName(boost::str(format("Partition_%1$03d") % mPadSubsetNumber));
+        setName(boost::str(boost::format("Partition_%1$03d") % mPadSubsetNumber));
       }
       break;
     }
     case PadSubset::Region: {
       mData.resize(mapper.getPadRegionInfo(mPadSubsetNumber % mapper.getNumberOfPadRegions()).getNumberOfPads());
       if (mName.empty()) {
-        setName(boost::str(format("Region_%1$03d") % mPadSubsetNumber));
+        setName(boost::str(boost::format("Region_%1$03d") % mPadSubsetNumber));
       }
       break;
     }
