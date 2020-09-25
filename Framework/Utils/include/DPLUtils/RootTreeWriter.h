@@ -340,6 +340,31 @@ class RootTreeWriter
     return (mTreeStructure != nullptr ? mTreeStructure->size() : 0);
   }
 
+  /// A static helper function to change the type of a (yet unused) branch.
+  /// Removes the old branch from the TTree system and creates a new branch.
+  /// The function is useful for situations in which we want to transform data after
+  /// the RootTreeWriter was created and change the type of the branch - such as in user callbacks.
+  /// The function needs to be used with care. The user should ensure that "branch" is no longer used
+  /// after a call to this function.
+  template <typename T>
+  static TBranch* remapBranch(TBranch& branch, T* newdata)
+  {
+    auto name = branch.GetName();
+    auto branchleaves = branch.GetListOfLeaves();
+    auto tree = branch.GetTree();
+    branch.DropBaskets("all");
+    branch.DeleteBaskets("all");
+    tree->GetListOfBranches()->Remove(&branch);
+    for (auto entry : *branchleaves) {
+      tree->GetListOfLeaves()->Remove(entry);
+    }
+    // ROOT leaves holes in the arrays so we need to compress as well
+    tree->GetListOfBranches()->Compress();
+    tree->GetListOfLeaves()->Compress();
+    // create a new branch with the same original name but attached to the new data
+    return tree->Branch(name, newdata);
+  }
+
  private:
   /// internal input and branch properties
   struct BranchSpec {
