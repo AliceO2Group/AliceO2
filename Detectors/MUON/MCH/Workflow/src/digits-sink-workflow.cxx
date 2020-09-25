@@ -38,7 +38,7 @@
 
 #include "DPLUtils/DPLRawParser.h"
 #include "MCHBase/Digit.h"
-#include "MCHBase/OrbitInfo.h"
+#include "MCHRawDecoder/OrbitInfo.h"
 
 using namespace o2;
 using namespace o2::framework;

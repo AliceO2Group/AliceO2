@@ -35,7 +35,7 @@ class OrbitInfo
   OrbitInfo(gsl::span<const std::byte> rdhBuffer);
   ~OrbitInfo() = default;
 
-  uint64_t get() { return mOrbitInfo; }
+  uint64_t get() const { return mOrbitInfo; }
   uint32_t getOrbit() const { return (mOrbitInfo & 0xFFFFFFFF); }
   uint8_t getLinkID() const { return ((mOrbitInfo >> 32) & 0xFF); }
   uint16_t getFeeID() const { return ((mOrbitInfo >> 40) & 0xFF); }

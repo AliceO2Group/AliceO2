@@ -10,7 +10,7 @@
 
 #include "Headers/RAWDataHeader.h"
 #include "DetectorsRaw/RDHUtils.h"
-#include "MCHBase/OrbitInfo.h"
+#include "MCHRawDecoder/OrbitInfo.h"
 
 namespace o2::mch
 {

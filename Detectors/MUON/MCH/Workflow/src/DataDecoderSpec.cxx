@@ -20,6 +20,9 @@
 #include <iostream>
 #include <fstream>
 #include <stdexcept>
+#include <array>
+#include <functional>
+
 #include "Framework/CallbackService.h"
 #include "Framework/ConfigParamRegistry.h"
 #include "Framework/ControlService.h"
@@ -31,14 +34,13 @@
 
 #include "DPLUtils/DPLRawParser.h"
 #include "MCHBase/Digit.h"
-#include "MCHBase/OrbitInfo.h"
 #include "Headers/RAWDataHeader.h"
 #include "MCHRawCommon/DataFormats.h"
+#include "MCHRawDecoder/OrbitInfo.h"
 #include "MCHRawDecoder/PageDecoder.h"
 #include "MCHRawElecMap/Mapper.h"
 #include "MCHMappingInterface/Segmentation.h"
 #include "MCHWorkflow/DataDecoderSpec.h"
-#include <array>
 #include "DetectorsRaw/RDHUtils.h"
 
 namespace o2::header
@@ -74,6 +76,15 @@ int ds2manu(int i)
 {
   return refDs2manu_st345[i];
 }
+
+// custom hash can be a standalone function object:
+struct OrbitInfoHash {
+  std::size_t operator()(OrbitInfo const& info) const noexcept
+  {
+    return std::hash<uint64_t>{}(info.get());
+  }
+};
+
 
 //=======================
 // Data decoder
@@ -163,13 +174,7 @@ class DataDecoderTask
     patchPage(page);
 
     // add orbit to vector if not present yet
-    OrbitInfo orbitInfo(page);
-    if (std::find(mOrbits.begin(), mOrbits.end(), orbitInfo) == mOrbits.end()) {
-      if (mPrint) {
-        printf("Orbit info: %lX (%u %u %u)\n", orbitInfo.get(), (uint32_t)orbitInfo.getOrbit(), (uint32_t)orbitInfo.getLinkID(), (uint32_t)orbitInfo.getFeeID());
-      }
-      mOrbits.push_back(orbitInfo);
-    }
+    mOrbits.emplace(page);
 
     if (!mDecoder) {
       mDecoder = mFee2Solar ? o2::mch::raw::createPageDecoder(page, channelHandler, mFee2Solar)
@@ -312,12 +317,17 @@ class DataDecoderTask
     }
 
     auto createBuffer = [&](auto& vec, size_t& size) {
-      size = vec.empty() ? 0 : sizeof(vec[0]) * vec.size(); //vec.size() * sizeof(decltype(vec)::value_type);
+      size = vec.empty() ? 0 : sizeof(*(vec.begin())) * vec.size();
       char* buf = nullptr;
       if (size > 0) {
         buf = (char*)malloc(size);
         if (buf) {
-          memcpy(buf, vec.data(), size);
+          char* p = buf;
+          size_t sizeofElement = sizeof(*(vec.begin()));
+          for (auto& element : vec) {
+            memcpy(p, &element, sizeofElement);
+            p += sizeofElement;
+          }
         }
       }
       return buf;
@@ -339,7 +349,7 @@ class DataDecoderTask
   FeeLink2SolarMapper mFee2Solar{nullptr};
   o2::mch::raw::PageDecoder mDecoder;
   size_t mNrdhs{0};
-  std::vector<OrbitInfo> mOrbits; ///< list of orbits in the processed buffer
+  std::unordered_set<OrbitInfo, OrbitInfoHash> mOrbits; ///< list of orbits in the processed buffer
 
   std::ifstream mInputFile{}; ///< input file
   bool mDs2manu = false;      ///< print convert channel numbering from Run3 to Run1-2 order
