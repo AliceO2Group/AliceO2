@@ -16,7 +16,10 @@
 #include <sstream>
 #include <array>
 #include <assert.h>
+
+#ifndef GPUCA_GPUCODE_GENRTC
 #include <cub/cub.cuh>
+#endif
 
 #include "ITStracking/MathUtils.h"
 #include "ITStracking/Configuration.h"

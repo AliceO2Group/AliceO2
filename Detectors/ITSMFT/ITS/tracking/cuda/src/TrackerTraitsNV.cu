@@ -18,9 +18,10 @@
 #include <sstream>
 #include <iostream>
 
+#ifndef GPUCA_GPUCODE_GENRTC
 #include <cooperative_groups.h>
-
 #include "cub/cub.cuh"
+#endif
 
 #include "ITStracking/Constants.h"
 #include "ITStracking/Configuration.h"

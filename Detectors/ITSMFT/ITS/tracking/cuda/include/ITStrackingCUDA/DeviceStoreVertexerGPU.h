@@ -16,7 +16,9 @@
 #ifndef O2_ITS_TRACKING_DEVICE_STORE_VERTEXER_GPU_H_
 #define O2_ITS_TRACKING_DEVICE_STORE_VERTEXER_GPU_H_
 
+#ifndef GPUCA_GPUCODE_GENRTC
 #include <cub/cub.cuh>
+#endif
 
 #include "ITStracking/Cluster.h"
 #include "ITStracking/Constants.h"
