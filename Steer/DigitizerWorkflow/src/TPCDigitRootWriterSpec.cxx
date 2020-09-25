@@ -56,24 +56,12 @@ DataProcessorSpec getTPCDigitRootWriterSpec(std::vector<int> const& laneConfigur
   // the callback to be set as hook for custom action when the writer is closed
   auto finishWriting = [](TFile* outputfile, TTree* outputtree) {
     // check/verify number of entries (it should be same in all branches)
-    auto leavelist = outputtree->GetListOfLeaves();
-    for (auto entry : *leavelist) {
-      if (TString(entry->GetName()).Contains("_TMP")) {
-        leavelist->Remove(entry);
-      }
-    }
 
     // will return a TObjArray
     const auto brlist = outputtree->GetListOfBranches();
     int entries = -1; // init to -1 (as unitialized)
     for (TObject* entry : *brlist) {
       auto br = static_cast<TBranch*>(entry);
-      if (TString(entry->GetName()).Contains("_TMP")) {
-        br->DeleteBaskets("all");
-        brlist->Remove(br);
-        continue;
-      }
-
       int brentries = br->GetEntries();
       entries = std::max(entries, brentries);
       if (brentries != entries && !TString(br->GetName()).Contains("CommonMode")) {
@@ -216,9 +204,7 @@ DataProcessorSpec getTPCDigitRootWriterSpec(std::vector<int> const& laneConfigur
     // first of all redefine the output format (special to labels)
     auto tree = branch.GetTree();
     auto sector = extractSector(ref);
-    std::stringstream str;
-    str << "TPCDigitMCTruth_" << sector;
-    auto br = tree->Branch(str.str().c_str(), &outputcontainer);
+    auto br = framework::RootTreeWriter::remapBranch(branch, &outputcontainer);
 
     auto const* dh = DataRefUtils::getHeader<DataHeader*>(ref);
     LOG(INFO) << "HAVE LABEL DATA FOR SECTOR " << sector << " ON CHANNEL " << dh->subSpecification;
@@ -242,6 +228,7 @@ DataProcessorSpec getTPCDigitRootWriterSpec(std::vector<int> const& laneConfigur
           outputcontainer.adopt(labelbuffer);
           br->Fill();
           br->ResetAddress();
+          br->DropBaskets("all");
           entries = 1;
         } else {
           o2::dataformats::MCTruthContainer<o2::MCCompLabel> lblGroup; // labels for group of digits related to single trigger
@@ -256,6 +243,7 @@ DataProcessorSpec getTPCDigitRootWriterSpec(std::vector<int> const& laneConfigur
             lblGroup.flatten_to(flatbuffer);
             outputcontainer.adopt(flatbuffer);
             br->Fill();
+            br->DropBaskets("all");
             entries++;
           }
           br->ResetAddress();
@@ -282,7 +270,7 @@ DataProcessorSpec getTPCDigitRootWriterSpec(std::vector<int> const& laneConfigur
                                                       getName};
 
   auto labelsdef = BranchDefinition<std::vector<char>>{InputSpec{"labelinput", ConcreteDataTypeMatcher{"TPC", "DIGITSMCTR"}},
-                                                       "TPCDigitMCTruth_TMP", "labels-branch-name",
+                                                       "TPCDigitMCTruth", "labels-branch-name",
                                                        // this branch definition is disabled if MC labels are not processed
                                                        (mctruth ? laneConfiguration.size() : 0),
                                                        fillLabels,
