@@ -336,7 +336,7 @@ void CalDet<T>::initData()
 
   for (size_t i = 0; i < size; ++i) {
     mData.push_back(CalType(mPadSubset, i));
-    mData.back().setName(boost::str(format(frmt) % mName % i));
+    mData.back().setName(boost::str(boost::format(frmt) % mName % i));
   }
 }
 
