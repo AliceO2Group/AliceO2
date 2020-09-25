@@ -39,7 +39,7 @@ void FeeIdMerger::setOrbit(uint32_t orbit, bool stop)
   // do the merging
   mergeDigits();
 
-  // send the merged digits
+  // send the digits that are not merged into others
   int nSent = 0;
   for (auto& d : previousBuffer.digits) {
     if (!d.second && (d.first.getPadID() >= 0)) {
@@ -69,140 +69,109 @@ static bool areSamePad(const Digit& d1, const Digit& d2)
 }
 
 
-static void mergeTwoDigits(const Digit& d1, Digit& d2)
+static void mergeTwoDigits(Digit& d1, const Digit& d2)
 {
-  d2.setADC(d1.getADC() + d2.getADC());
-  d2.setNofSamples(d1.nofSamples() + d2.nofSamples());
+  d1.setADC(d1.getADC() + d2.getADC());
+  d1.setNofSamples(d1.nofSamples() + d2.nofSamples());
+}
+
+
+static uint32_t digitsTimeDiff(const Digit& d1, const Digit& d2)
+{
+  const uint32_t bxCounterRollover = 0x100000;
+
+  // compute time difference
+  Digit::Time startTime = d2.getTime();
+  uint32_t bxStart = startTime.bunchCrossing;
+  Digit::Time stopTime = d1.getTime();
+  stopTime.sampaTime += d1.nofSamples() - 1;
+  uint32_t bxStop = stopTime.bunchCrossing;
+  // correct for value rollover
+  if (bxStart < bxStop) {
+    bxStart += bxCounterRollover;
+  }
+
+  uint32_t stopTimeFull = bxStop + (stopTime.sampaTime << 2);
+  uint32_t startTimeFull = bxStart + (startTime.sampaTime << 2);
+  uint32_t timeDiff = startTimeFull - stopTimeFull;
+
+  return timeDiff;
+}
+
+
+static bool updateDigits(Digit& d1, Digit& d2)
+{
+  const uint32_t oneADCclockCycle = 4;
+
+  // skip all digits not matching the detId/padId
+  if (!areSamePad(d1, d2)) {
+    return false;
+  }
+
+  // compute time difference
+  uint32_t timeDiff = digitsTimeDiff(d1, d2);
+
+  // skip if the time difference is not equal to 1 ADC clock cycle
+  if (timeDiff != oneADCclockCycle) {
+    return false;
+  }
+
+  // merge digits
+  mergeTwoDigits(d1, d2);
+
+  return true;
+}
+
+
+static void mergeBuffers(MergerBuffer& buf1, MergerBuffer& buf2)
+{
+  for (size_t i = 0; i < buf2.digits.size(); i++) {
+    auto& d2 = buf2.digits[i];
+
+    // skip already merged digits
+    if (d2.second) {
+      continue;
+    }
+
+    // skip digits that do not start at the beginning of the time window
+    Digit::Time startTime = d2.first.getTime();
+    if (startTime.sampaTime != 0) {
+      continue;
+    }
+
+    for (size_t j = 0; j < buf1.digits.size(); j++) {
+      auto& d1 = buf1.digits[j];
+
+      // skip already merged digits
+      if (d1.second) {
+        continue;
+      }
+
+      if (updateDigits(d1.first, d2.first)) {
+        // mark d2 as merged
+        d2.second = true;
+        break;
+      }
+    }
+  }
 }
 
 
 void FeeIdMerger::mergeDigits()
 {
-  const uint32_t bxCounterRollover = 0x100000;
-  const uint32_t oneADCclockCycle = 4;
-
-  auto updateDigits = [](Digit& d1, Digit& d2) -> bool {
-    // skip all digits not matching the detId/padId
-    if (!areSamePad(d1, d2)) {
-      return false;
-    }
-
-    // compute time difference
-    Digit::Time startTime = d1.getTime();
-    uint32_t bxStart = startTime.bunchCrossing;
-    Digit::Time stopTime = d2.getTime();
-    stopTime.sampaTime += d2.nofSamples() - 1;
-    uint32_t bxStop = stopTime.bunchCrossing;
-    // correct for value rollover
-    if (bxStart < bxStop) {
-      bxStart += bxCounterRollover;
-    }
-
-    uint32_t stopTimeFull = bxStop + (stopTime.sampaTime << 2);
-    uint32_t startTimeFull = bxStart + (startTime.sampaTime << 2);
-    uint32_t timeDiff = startTimeFull - stopTimeFull;
-
-    if (mPrint) {
-      std::cout << "updateDigits: " << d1.getDetID() << "  " << d1.getPadID() << "  " << bxStop << "  " << stopTime.sampaTime
-                << "  " << bxStart << "  " << startTime.sampaTime << "  " << timeDiff << std::endl;
-    }
-
-    // skip if the time difference is not equal to 1 ADC clock cycle
-    if (timeDiff != oneADCclockCycle) {
-      return false;
-    }
-
-    // merge digits
-    mergeTwoDigits(d1, d2);
-
-    return true;
-  };
-
   auto& currentBuffer = getCurrentBuffer();
   auto& previousBuffer = getPreviousBuffer();
 
-  if (mPrint) {
-    std::cout << "Merging digits in " << previousBufId << " (orbit=" << previousBuffer.orbit << ")\n";
-  }
-
-  for (size_t i = 0; i < previousBuffer.digits.size(); i++) {
-    auto& d1 = previousBuffer.digits[i];
-
-    // skip already merged digits
-    if (d1.second) {
-      continue;
-    }
-
-    // skip digits that do not start at the beginning of the time window
-    Digit::Time startTime = d1.first.getTime();
-    if (startTime.sampaTime != 0) {
-      continue;
-    }
-
-    for (size_t j = 0; j < previousBuffer.digits.size(); j++) {
-      if (i == j) {
-        continue;
-      }
-
-      auto& d2 = previousBuffer.digits[j];
-
-      // skip already merged digits
-      if (d2.second) {
-        continue;
-      }
-
-      if (updateDigits(d1.first, d2.first)) {
-        // mark d1 as merged
-        d1.second = true;
-        break;
-      }
-    }
-  }
+  mergeBuffers(previousBuffer, previousBuffer);
 
   // only merge digits from consecutive orbits
-  uint32_t orbit_p = previousBuffer.orbit;
-  uint32_t orbit_c = currentBuffer.orbit;
-  if (mPrint) {
-    std::cout << "orbit_c: " << orbit_c << "  orbit_p: " << orbit_p << std::endl;
-  }
-  if ((orbit_c >= orbit_p) && ((orbit_c - orbit_p) > 1)) {
+  uint32_t orbit1 = previousBuffer.orbit;
+  uint32_t orbit2 = currentBuffer.orbit;
+  if ((orbit2 >= orbit1) && ((orbit2 - orbit1) > 1)) {
     return;
   }
 
-  if (mPrint) {
-    std::cout << "Merging digits from current buffer (orbit=" << currentBuffer.orbit
-              << ") into previous buffer (orbit=" << previousBuffer.orbit << ")\n";
-  }
-
-  for (size_t i = 0; i < currentBuffer.digits.size(); i++) {
-    auto& d1 = currentBuffer.digits[i];
-
-    // skip already merged digits
-    if (d1.second) {
-      continue;
-    }
-
-    // skip digits that do not start at the beginning of the time window
-    Digit::Time startTime = d1.first.getTime();
-    if (startTime.sampaTime != 0) {
-      continue;
-    }
-
-    for (size_t j = 0; j < previousBuffer.digits.size(); j++) {
-      auto& d2 = previousBuffer.digits[j];
-
-      // skip already merged digits
-      if (d2.second) {
-        continue;
-      }
-
-      if (updateDigits(d1.first, d2.first)) {
-        // mark d1 as merged
-        d1.second = true;
-        break;
-      }
-    }
-  }
+  mergeBuffers(previousBuffer, currentBuffer);
 }
 
 void Merger::setOrbit(int feeId, uint32_t orbit, bool stop)

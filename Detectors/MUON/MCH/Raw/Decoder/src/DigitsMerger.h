@@ -37,8 +37,6 @@ struct MergerBuffer {
 class FeeIdMerger
 {
   MergerBuffer currentBuffer, previousBuffer;
-  int currentBufId = {1};
-  int previousBufId = {0};
   int feeId = {0};
 
   std::function<void(const Digit&)> sendDigit;
