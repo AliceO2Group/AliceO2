@@ -40,11 +40,11 @@ void CreateSimCondition(std::string sourceDataPath = "signal_shapes.root",
   std::string ShapeName[o2::zdc::NChannels] = {
     "znatc", "znatc", "znatc", "znatc", "znatc", "znatc", // ZNAC, ZNA1, ZNA2, ZNA3, ZNA4, ZNAS (shape not used)
     "zpatc", "zpatc", "zpatc", "zpatc", "zpatc", "zpatc", // ZPAC, ZPA1, ZPA2, ZPA3, ZPA4, ZPAS (shape not used)
-    "zem2","zem2",					  // ZEM1, ZEM2
+    "zem2", "zem2",                                       // ZEM1, ZEM2
     "znctc", "znctc", "znctc", "znctc", "znctc", "znctc", // ZNCC, ZNC1, ZNC2, ZNC3, ZNC4, ZNCS (shape not used)
     "zpatc", "zpatc", "zpatc", "zpatc", "zpatc", "zpatc"  // ZPCC, ZPC1, ZPC2, ZPC3, ZPC4, ZPCS (shape not used)
   };
-  
+
   for (int ic = 0; ic < o2::zdc::NChannels; ic++) {
 
     auto& channel = conf.channels[ic];

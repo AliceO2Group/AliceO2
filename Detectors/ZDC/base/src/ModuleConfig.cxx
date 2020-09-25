@@ -26,7 +26,7 @@ void Module::print() const
     const auto& cnf = trigChannelConf[ic];
     if (trigChannel[ic]) {
       printf("[TRIG %s: F:%2d L:%2d S:%2d T:%2d] ", channelName(channelID[ic]), cnf.first, cnf.last, cnf.shift, cnf.threshold);
-    }else if (cnf.shift > 0 && cnf.threshold > 0){
+    } else if (cnf.shift > 0 && cnf.threshold > 0) {
       printf("[DISC %s: F:%2d L:%2d S:%2d T:%2d] ", channelName(channelID[ic]), cnf.first, cnf.last, cnf.shift, cnf.threshold);
     }
   }
@@ -76,7 +76,7 @@ void Module::setChannel(int slot, int8_t chID, int16_t lID, bool read, bool trig
   // Therefore we put the trig flag just for the triggering channels
   // Discriminator parameters are stored for all modules
   trigChannel[slot] = trig;
-  if (tS>0 && tT>0) { 
+  if (tS > 0 && tT > 0) {
     if (tL + tS + 1 >= NTimeBinsPerBC) {
       LOG(FATAL) << "Sum of Last and Shift trigger parameters exceed allowed range";
     }

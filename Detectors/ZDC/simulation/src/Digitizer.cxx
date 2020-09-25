@@ -399,9 +399,9 @@ void Digitizer::refreshCCDB()
       if (md.id >= 0) {
         mModConfAux.emplace_back(md);
         for (int ic = Module::MaxChannels; ic--;) {
-          if (md.trigChannel[ic] || (md.trigChannelConf[ic].shift>0 && md.trigChannelConf[ic].threshold>0)) {
+          if (md.trigChannel[ic] || (md.trigChannelConf[ic].shift > 0 && md.trigChannelConf[ic].threshold > 0)) {
             bool skip = false;
-            for (int is = mTriggerConfig.size(); is--;) {  // check if this triggering channel was already registered
+            for (int is = mTriggerConfig.size(); is--;) { // check if this triggering channel was already registered
               if (mTriggerConfig[is].id == md.channelID[ic]) {
                 skip = true;
                 break;
@@ -413,12 +413,12 @@ void Digitizer::refreshCCDB()
                 LOG(FATAL) << "Wrong trigger settings";
               }
               mTriggerConfig.emplace_back(trgChanConf);
-	      if(md.trigChannel[ic]){
-        	LOG(INFO) << "Adding channel " << int(trgChanConf.id) << '(' << channelName(trgChanConf.id) << ") as triggering one";
-		mTriggerableChanMask |= 0x1 << trgChanConf.id;
-	      }else{
-        	LOG(INFO) << "Adding channel " << int(trgChanConf.id) << '(' << channelName(trgChanConf.id) << ") as discriminator";
-	      }
+              if (md.trigChannel[ic]) {
+                LOG(INFO) << "Adding channel " << int(trgChanConf.id) << '(' << channelName(trgChanConf.id) << ") as triggering one";
+                mTriggerableChanMask |= 0x1 << trgChanConf.id;
+              } else {
+                LOG(INFO) << "Adding channel " << int(trgChanConf.id) << '(' << channelName(trgChanConf.id) << ") as discriminator";
+              }
               if (trgChanConf.first < mTrigBinMin) {
                 mTrigBinMin = trgChanConf.first;
               }
