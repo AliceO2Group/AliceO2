@@ -408,12 +408,14 @@ int GPUTRDTrackerComponent::DoEvent(const AliHLTComponentEventData& evtData, con
 
     GPUTRDTrackData* outTracks = (GPUTRDTrackData*)(outputPtr);
     outTracks->fCount = 0;
+    int assignedTracklets = 0;
 
     for (int iTrk = 0; iTrk < nTracks; ++iTrk) {
       GPUTRDTrack& t = trackArray[iTrk];
       if (t.GetNtracklets() == 0) {
         continue;
       }
+      assignedTracklets += t.GetNtracklets();
       GPUTRDTrackDataRecord& currOutTrack = outTracks->fTracks[outTracks->fCount];
       t.ConvertTo(currOutTrack);
       outTracks->fCount++;
@@ -477,7 +479,7 @@ int GPUTRDTrackerComponent::DoEvent(const AliHLTComponentEventData& evtData, con
     size += blockSize;
     outputPtr += resultDataSP.fSize;
 
-    HLTInfo("TRD tracker: output %d tracks and %d track points", outTracks->fCount, outTrackPoints->fCount);
+    HLTInfo("TRD tracker: output %d tracks (%d assigned tracklets) and %d track points", outTracks->fCount, assignedTracklets, outTrackPoints->fCount);
   }
 
   fBenchmark.Stop(0);
