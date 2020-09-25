@@ -187,7 +187,7 @@ o2_add_test_root_macro(
                                              O2::CPVSimulation
                                              O2::ZDCSimulation)
 
-if(Geant4_FOUND)
+if(Geant4_FOUND AND BUILD_SIMULATION)
 o2_add_test_root_macro(o2sim.C
                        PUBLIC_LINK_LIBRARIES O2::Generators
                                              O2::DetectorsPassive
