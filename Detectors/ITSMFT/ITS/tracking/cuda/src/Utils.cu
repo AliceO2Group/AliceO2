@@ -17,8 +17,10 @@
 #include <sstream>
 #include <stdexcept>
 
+#ifndef GPUCA_GPUCODE_GENRTC
 #include <cuda_profiler_api.h>
 #include <cooperative_groups.h>
+#endif
 
 #include "ITStrackingCUDA/Context.h"
 
