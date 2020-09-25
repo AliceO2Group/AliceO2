@@ -19,6 +19,11 @@ o2_add_dpl_workflow(trackselection
                     PUBLIC_LINK_LIBRARIES O2::Framework O2::AnalysisDataModel O2::AnalysisCore
                     COMPONENT_NAME Analysis)
 
+o2_add_dpl_workflow(trackqa
+                    SOURCES trackqa.cxx
+                    PUBLIC_LINK_LIBRARIES O2::Framework O2::AnalysisDataModel O2::AnalysisCore
+                    COMPONENT_NAME Analysis)
+
 o2_add_dpl_workflow(qatask
                     SOURCES qaTask.cxx
                     PUBLIC_LINK_LIBRARIES O2::Framework O2::AnalysisDataModel O2::AnalysisCore
