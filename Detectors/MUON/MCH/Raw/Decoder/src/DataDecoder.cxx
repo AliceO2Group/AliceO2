@@ -212,7 +212,7 @@ void DataDecoder::decodeBuffer(gsl::span<const std::byte> page)
       if (linkId == 15) {
         mMerger = new Merger;
       } else {
-        mMerger = new SimpleMerger;
+        mMerger = new NoOpMerger;
       }
 
       mMerger->setDigitHandler(storeDigit);

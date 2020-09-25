@@ -82,17 +82,17 @@ class BaseMerger
   virtual void setDigitHandler(std::function<void(const Digit&)> h) = 0;
   virtual void setOrbit(int feeId, uint32_t orbit, bool stop) = 0;
   virtual void addDigit(int feeId, int solarId, int dsAddr, int chAddr,
-                        int deId, int padId, int adc, Digit::Time time, uint16_t nSamples) = 0;
+                        int deId, int padId, unsigned long adc, Digit::Time time, uint16_t nSamples) = 0;
   virtual void mergeDigits(int feeId) = 0;
 };
 
-class SimpleMerger : public BaseMerger
+class NoOpMerger : public BaseMerger
 {
   std::function<void(const Digit&)> sendDigit;
 
  public:
-  SimpleMerger() = default;
-  ~SimpleMerger() = default;
+  NoOpMerger() = default;
+  ~NoOpMerger() = default;
 
   void setOrbit(int feeId, uint32_t orbit, bool stop)
   {
@@ -104,7 +104,7 @@ class SimpleMerger : public BaseMerger
   }
 
   void addDigit(int feeId, int solarId, int dsAddr, int chAddr,
-                int deId, int padId, int adc, Digit::Time time, uint16_t nSamples)
+                int deId, int padId, unsigned long adc, Digit::Time time, uint16_t nSamples)
   {
     sendDigit(o2::mch::Digit(deId, padId, adc, time, nSamples));
   }
@@ -127,7 +127,7 @@ class Merger : public BaseMerger
   void setDigitHandler(std::function<void(const Digit&)> h);
 
   void addDigit(int feeId, int solarId, int dsAddr, int chAddr,
-                int deId, int padId, int adc, Digit::Time time, uint16_t nSamples);
+                int deId, int padId, unsigned long adc, Digit::Time time, uint16_t nSamples);
 
   void mergeDigits(int feeId);
 };

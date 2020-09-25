@@ -222,7 +222,7 @@ void Merger::setDigitHandler(std::function<void(const Digit&)> h)
 }
 
 void Merger::addDigit(int feeId, int solarId, int dsAddr, int chAddr,
-                      int deId, int padId, int adc, Digit::Time time, uint16_t nSamples)
+                      int deId, int padId, unsigned long adc, Digit::Time time, uint16_t nSamples)
 {
   if (feeId < 0 || feeId > MCH_MERGER_FEEID_MAX) {
     return;
