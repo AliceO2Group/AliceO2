@@ -17,13 +17,13 @@
 #include <string>
 #include <numeric>
 #include <type_traits>
-#include <boost/format.hpp>
-
-#include "FairLogger.h"
 
 #include "TPCBase/Mapper.h"
 
-using boost::format;
+#ifndef GPUCA_ALIGPUCODE
+#include "FairLogger.h"
+#include <boost/format.hpp>
+#endif
 
 namespace o2
 {
@@ -145,6 +145,8 @@ class CalArray
   /// initialize the data array depending on what is set as PadSubset
   void initData();
 };
+
+#ifndef GPUCA_ALIGPUCODE
 
 // ===| pad region etc. initialisation |========================================
 template <class T>
@@ -298,6 +300,9 @@ inline const CalArray<T>& CalArray<T>::operator/=(const T& val)
 }
 
 using CalROC = CalArray<float>;
+
+#endif // GPUCA_ALIGPUCODE
+
 } // namespace tpc
 } // namespace o2
 
