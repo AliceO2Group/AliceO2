@@ -102,7 +102,7 @@ class ITSMFTDPLDigitizerTask : BaseDPLDigitizer
     mDigitizer.setMCLabels(&mLabels);
 
     // digits are directly put into DPL owned resource
-    auto digitsAccum = pc.outputs().make<std::vector<itsmft::Digit>>(Output{mOrigin, "DIGITS", 0, Lifetime::Timeframe});
+    auto& digitsAccum = pc.outputs().make<std::vector<itsmft::Digit>>(Output{mOrigin, "DIGITS", 0, Lifetime::Timeframe});
 
     auto accumulate = [this, &digitsAccum]() {
       // accumulate result of single event processing, called after processing every event supplied
