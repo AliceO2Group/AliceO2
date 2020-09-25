@@ -17,6 +17,7 @@
 #include <stdint.h>
 #include <cuda_runtime.h>
 #include <cuda.h>
+#include <cooperative_groups.h>
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wshadow"
 #include <cub/cub.cuh>
