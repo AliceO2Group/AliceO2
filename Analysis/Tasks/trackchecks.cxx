@@ -13,6 +13,8 @@
 #include "Analysis/EventSelection.h"
 #include "Analysis/MC.h"
 #include "Analysis/HistHelpers.h"
+#include "Analysis/TrackSelection.h"
+#include "Analysis/TrackSelectionTables.h"
 
 #include <cmath>
 #include <array>
@@ -98,7 +100,9 @@ struct TrackCheckTask1 {
     fCutDCAxy->SetParameter(2, 1.1);
   } //init
 
-  void process(soa::Join<aod::Collisions, aod::EvSels>::iterator const& col, soa::Join<aod::Tracks, aod::TracksExtra, aod::McTrackLabels>& tracks, aod::McParticles& mcParticles)
+  //Filters
+  Filter collfilter = nabs(aod::collision::posZ) < (float)10.;
+  void process(soa::Filtered<soa::Join<aod::Collisions, aod::EvSels>>::iterator const& col, soa::Join<aod::Tracks, aod::TracksExtra, aod::McTrackLabels>& tracks, aod::McParticles& mcParticles)
   {
 
     if (isMC) {
@@ -111,8 +115,6 @@ struct TrackCheckTask1 {
     if (!isMC && !col.alias()[kINT7]) // trigger (should be skipped in MC)
       return;
     if (!col.sel7()) //additional cuts
-      return;
-    if (abs(col.posZ()) > 10.) // |v_z|<10cm
       return;
 
     //Loop on tracks
