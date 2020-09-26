@@ -35,6 +35,16 @@ void CreateSimCondition(std::string sourceDataPath = "signal_shapes.root",
   const float Gains[5] = {15.e-3, 30.e-3, 100.e-3, 15.e-3, 30.e-3}; // gain (response per photoelectron)
   const float fudgeFactor = 2.7;                                    // ad hoc factor to tune the gain in the MC
 
+  // Source of line shapes, pedestal and noise for each channel
+  // Missing histos for: towers 1-4 of all calorimeters, zem1, all towers of zpc
+  std::string ShapeName[o2::zdc::NChannels] = {
+    "znatc", "znatc", "znatc", "znatc", "znatc", "znatc", // ZNAC, ZNA1, ZNA2, ZNA3, ZNA4, ZNAS (shape not used)
+    "zpatc", "zpatc", "zpatc", "zpatc", "zpatc", "zpatc", // ZPAC, ZPA1, ZPA2, ZPA3, ZPA4, ZPAS (shape not used)
+    "zem2", "zem2",                                       // ZEM1, ZEM2
+    "znctc", "znctc", "znctc", "znctc", "znctc", "znctc", // ZNCC, ZNC1, ZNC2, ZNC3, ZNC4, ZNCS (shape not used)
+    "zpatc", "zpatc", "zpatc", "zpatc", "zpatc", "zpatc"  // ZPCC, ZPC1, ZPC2, ZPC3, ZPC4, ZPCS (shape not used)
+  };
+
   for (int ic = 0; ic < o2::zdc::NChannels; ic++) {
 
     auto& channel = conf.channels[ic];
@@ -43,9 +53,7 @@ void CreateSimCondition(std::string sourceDataPath = "signal_shapes.root",
     //
     channel.gain = (tower != o2::zdc::Sum) ? fudgeFactor * Gains[det - 1] : 1.0;
     //
-    // at the moment we use wf_znatc histo for all channels, to be fixed when
-    // more histos are created. So, we read in the loop the same histo
-    std::string histoShapeName = "hw_znatc";
+    std::string histoShapeName = "hw_" + ShapeName[ic];
     TH1* histoShape = (TH1*)sourceData.GetObjectUnchecked(histoShapeName.c_str());
     if (!histoShape) {
       LOG(FATAL) << "Failed to extract the shape histogram  " << histoShapeName;
@@ -72,14 +80,14 @@ void CreateSimCondition(std::string sourceDataPath = "signal_shapes.root",
     //
     channel.pedestal = gRandom->Gaus(1800., 30.);
     //
-    std::string histoPedNoiseName = "hb_znatc"; // same comment here (at the moment the same histo used)
+    std::string histoPedNoiseName = "hb_" + ShapeName[ic];
     TH1* histoPedNoise = (TH1*)sourceData.GetObjectUnchecked(histoPedNoiseName.c_str());
     if (!histoPedNoise) {
       LOG(FATAL) << "Failed to extract the pedestal noise histogram  " << histoPedNoise;
     }
     channel.pedestalNoise = histoPedNoise->GetRMS();
     //
-    std::string histoPedFluctName = "hp_znatc"; // same comment here (at the moment the same histo used)
+    std::string histoPedFluctName = "hp_" + ShapeName[ic];
     TH1* histoPedFluct = (TH1*)sourceData.GetObjectUnchecked(histoPedFluctName.c_str());
     if (!histoPedFluct) {
       LOG(FATAL) << "Failed to extract the pedestal fluctuation histogram  " << histoPedFluct;
