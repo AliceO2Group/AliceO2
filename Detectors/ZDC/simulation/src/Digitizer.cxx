@@ -181,7 +181,7 @@ void Digitizer::digitizeBC(BCCache& bc)
   auto& bcdata = bc.data;
   // apply gain
   for (int idet : {ZNA, ZPA, ZNC, ZPC}) {
-    for (int ic : {Ch1, Ch2, Ch3, Ch4}) {
+    for (int ic : {Common, Ch1, Ch2, Ch3, Ch4}) {
       int chan = toChannel(idet, ic);
       auto gain = mSimCondition->channels[chan].gain;
       for (int ib = NTimeBinsPerBC; ib--;) {
@@ -226,7 +226,7 @@ bool Digitizer::triggerBC(int ibc)
     for (int ic = mTriggerConfig.size(); ic--;) {
       const auto& trigCh = mTriggerConfig[ic];
       bool okPrev = false;
-      int last1 = trigCh.last + 2;
+      int last1 = trigCh.last + 2; // To be modified. The new requirement is 3 consecutive samples
       // look for 2 consecutive bins (the 1st one spanning trigCh.first : trigCh.last range) so that
       // signal[bin]-signal[bin+trigCh.shift] > trigCh.threshold
       for (int ib = trigCh.first; ib < last1; ib++) { // ib may be negative, so we shift by offs and look in the ADC cache
@@ -237,7 +237,7 @@ bool Digitizer::triggerBC(int ibc)
         bool ok = bcF.data[trigCh.id][binF] - bcL.data[trigCh.id][binL] > trigCh.threshold;
         if (ok && okPrev) {                          // trigger ok!
           bcCached.trigChanMask |= 0x1 << trigCh.id; // register trigger mask
-          LOG(DEBUG) << " triggering channel " << int(trigCh.id) << " => " << bcCached.trigChanMask;
+          LOG(DEBUG) << " triggering channel " << int(trigCh.id) << "(" << ChannelNames[trigCh.id] << ") => " << bcCached.trigChanMask;
           break;
         }
         okPrev = ok;
@@ -251,7 +251,7 @@ bool Digitizer::triggerBC(int ibc)
     }
   }
 
-  if (bcCached.trigChanMask) { // there are triggered channels, flag modules/channels to read
+  if (bcCached.trigChanMask & mTriggerableChanMask) { // there are triggered channels, flag modules/channels to read
     for (int ibcr = ibc - mNBCAHead; ibcr <= ibc; ibcr++) {
       auto& bcr = mStoreChanMask[ibcr + mNBCAHead];
       for (const auto& mdh : mModConfAux) {
@@ -314,7 +314,7 @@ void Digitizer::phe2Sample(int nphe, int parID, double timeHit, std::array<o2::I
         break;
       }
       if (sample >= 0) {
-        auto signal = chanConfig.shape[sample] * nphe; // signal accounting for the gain
+        auto signal = chanConfig.shape[sample] * nphe; // signal not accounting for the gain
         (*bcCache).data[channel][ib] += signal;
         added = true;
       }
@@ -398,11 +398,10 @@ void Digitizer::refreshCCDB()
     for (const auto& md : mModuleConfig->modules) {
       if (md.id >= 0) {
         mModConfAux.emplace_back(md);
-        //
         for (int ic = Module::MaxChannels; ic--;) {
-          if (md.trigChannel[ic]) { // check if this triggering channel was already registered
+          if (md.trigChannel[ic] || (md.trigChannelConf[ic].shift > 0 && md.trigChannelConf[ic].threshold > 0)) {
             bool skip = false;
-            for (int is = mTriggerConfig.size(); is--;) {
+            for (int is = mTriggerConfig.size(); is--;) { // check if this triggering channel was already registered
               if (mTriggerConfig[is].id == md.channelID[ic]) {
                 skip = true;
                 break;
@@ -414,7 +413,12 @@ void Digitizer::refreshCCDB()
                 LOG(FATAL) << "Wrong trigger settings";
               }
               mTriggerConfig.emplace_back(trgChanConf);
-              LOG(INFO) << "Adding channel " << int(trgChanConf.id) << '(' << channelName(trgChanConf.id) << ") as triggering one";
+              if (md.trigChannel[ic]) {
+                LOG(INFO) << "Adding channel " << int(trgChanConf.id) << '(' << channelName(trgChanConf.id) << ") as triggering one";
+                mTriggerableChanMask |= 0x1 << trgChanConf.id;
+              } else {
+                LOG(INFO) << "Adding channel " << int(trgChanConf.id) << '(' << channelName(trgChanConf.id) << ") as discriminator";
+              }
               if (trgChanConf.first < mTrigBinMin) {
                 mTrigBinMin = trgChanConf.first;
               }

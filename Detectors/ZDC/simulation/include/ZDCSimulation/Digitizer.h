@@ -41,7 +41,7 @@ class Digitizer
     bool digitized = false;
     bool triggerChecked = false;
     uint32_t trigChanMask = 0; // mask of triggered channels IDs
-    static constexpr uint32_t AllChannelsMask = 0x1 << NChannels;
+    static constexpr uint32_t AllChannelsMask = 0x80000000;
 
     BCCache();
 
@@ -133,7 +133,7 @@ class Digitizer
   o2::InteractionTimeRecord mIR;
   std::deque<o2::InteractionRecord> mIRExternalTrigger; // IRs of externally provided triggered (at the moment MC sampled interactions)
 
-  std::deque<BCCache> mCache; // cached BCs data
+  std::deque<BCCache> mCache;                                    // cached BCs data
   std::array<std::vector<int16_t>, NChannels> mTrigChannelsData; // buffer for fast access to triggered channels data
   int mTrigBinMin = 0xffff;                                      // prefetched min and max
   int mTrigBinMax = -0xffff;                                     // bins to be checked for trigger
@@ -143,6 +143,7 @@ class Digitizer
   const SimCondition* mSimCondition = nullptr;      ///< externally set SimCondition
   const ModuleConfig* mModuleConfig = nullptr;      ///< externally set ModuleConfig
   std::vector<TriggerChannelConfig> mTriggerConfig; ///< triggering channels
+  uint32_t mTriggerableChanMask = 0;                ///< mask of digital discriminators that can actually trigger a module
   std::vector<ModuleConfAux> mModConfAux;           ///< module check helper
   std::vector<BCCache*> mFastCache;                 ///< for the fast iteration over cached BCs + dummy
   std::vector<uint32_t> mStoreChanMask;             ///< pattern of channels to store
