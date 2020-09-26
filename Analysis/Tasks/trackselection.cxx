@@ -68,7 +68,7 @@ TrackSelection getGlobalTrackSelectionwTOF()
 /**
  * Produce the more complicated derived track quantities needed for track selection.
  * FIXME: we shall run this only if all other selections are passed to avoid
- * FIXME: computing overhead and errors in calculations done with wrong tracks
+ * FIXME: computing overhead and errors in calculations
  */
 //****************************************************************************************
 struct TrackExtensionTask {
@@ -80,11 +80,11 @@ struct TrackExtensionTask {
     for (auto& track : tracks) {
 
       std::array<float, 2> dca{1e10f, 1e10f};
-      if (track.itsChi2NCl() != 0.f && track.tpcChi2NCl() != 0.f) {
-        // FIXME: can we simplify this knowing that track is already at dca without copying code from TrackPar?
+      // FIXME: temporary solution to remove tracks that should not be there after conversion
+      if (track.trackType() == o2::aod::track::TrackTypeEnum::GlobalTrack && track.itsChi2NCl() != 0.f && track.tpcChi2NCl() != 0.f && track.x() < 150.f) {
         float magField = 5.0; // in kG (FIXME: get this from CCDB)
         auto trackPar = getTrackPar(track);
-        bool test = trackPar.propagateParamToDCA({collision.posX(), collision.posY(), collision.posZ()}, magField, &dca);
+        trackPar.propagateParamToDCA({collision.posX(), collision.posY(), collision.posZ()}, magField, &dca);
       }
       extendedTrackQuantities(dca[0], dca[1]);
 
