@@ -78,12 +78,15 @@ struct TrackExtensionTask {
   void process(aod::Collision const& collision, aod::FullTracks const& tracks)
   {
     for (auto& track : tracks) {
-      // FIXME: can we simplify this knowing that track is already at dca without copying code from TrackPar?
-      float magField = 5.0; // in kG (FIXME: get this from CCDB)
-      std::array<float, 2> dca{};
-      auto trackPar = getTrackParCov(track);
-      trackPar.propagateParamToDCA({collision.posX(), collision.posY(), collision.posZ()}, magField, &dca);
-      // FIXME: this way dca will be filled with zeros on error. This should not happen! -> put 1e10 as default?
+
+      std::array<float, 2> dca{1e10f, 1e10f};
+      if(track.itsChi2NCl() != 0.f && track.tpcChi2NCl() != 0.f)
+      {
+        // FIXME: can we simplify this knowing that track is already at dca without copying code from TrackPar?
+        float magField = 5.0; // in kG (FIXME: get this from CCDB)
+        auto trackPar = getTrackParCov(track);
+        trackPar.propagateParamToDCA({collision.posX(), collision.posY(), collision.posZ()}, magField, &dca);
+      }
       extendedTrackQuantities(dca[0], dca[1]);
 
       // TODO: add realtive pt resolution sigma(pt)/pt \approx pt * sigma(1/pt)
