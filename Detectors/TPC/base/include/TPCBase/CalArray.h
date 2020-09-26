@@ -17,13 +17,13 @@
 #include <string>
 #include <numeric>
 #include <type_traits>
-#include <boost/format.hpp>
-
-#include "FairLogger.h"
 
 #include "TPCBase/Mapper.h"
 
-using boost::format;
+#ifndef GPUCA_ALIGPUCODE
+#include "FairLogger.h"
+#include <boost/format.hpp>
+#endif
 
 namespace o2
 {
@@ -146,6 +146,8 @@ class CalArray
   void initData();
 };
 
+#ifndef GPUCA_ALIGPUCODE
+
 // ===| pad region etc. initialisation |========================================
 template <class T>
 void CalArray<T>::initData()
@@ -156,21 +158,21 @@ void CalArray<T>::initData()
     case PadSubset::ROC: {
       mData.resize(ROC(mPadSubsetNumber).rocType() == RocType::IROC ? mapper.getPadsInIROC() : mapper.getPadsInOROC());
       if (mName.empty()) {
-        setName(boost::str(format("ROC_%1$02d") % mPadSubsetNumber));
+        setName(boost::str(boost::format("ROC_%1$02d") % mPadSubsetNumber));
       }
       break;
     }
     case PadSubset::Partition: {
       mData.resize(mapper.getPartitionInfo(mPadSubsetNumber % mapper.getNumberOfPartitions()).getNumberOfPads());
       if (mName.empty()) {
-        setName(boost::str(format("Partition_%1$03d") % mPadSubsetNumber));
+        setName(boost::str(boost::format("Partition_%1$03d") % mPadSubsetNumber));
       }
       break;
     }
     case PadSubset::Region: {
       mData.resize(mapper.getPadRegionInfo(mPadSubsetNumber % mapper.getNumberOfPadRegions()).getNumberOfPads());
       if (mName.empty()) {
-        setName(boost::str(format("Region_%1$03d") % mPadSubsetNumber));
+        setName(boost::str(boost::format("Region_%1$03d") % mPadSubsetNumber));
       }
       break;
     }
@@ -298,6 +300,9 @@ inline const CalArray<T>& CalArray<T>::operator/=(const T& val)
 }
 
 using CalROC = CalArray<float>;
+
+#endif // GPUCA_ALIGPUCODE
+
 } // namespace tpc
 } // namespace o2
 

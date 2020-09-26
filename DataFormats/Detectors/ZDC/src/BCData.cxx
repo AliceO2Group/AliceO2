@@ -24,7 +24,7 @@ void BCData::print() const
       printf("%s ", channelName(ic));
     }
   }
-  printf("] Triggered: [");
+  printf("] Hits: [");
   for (int ic = 0; ic < NChannels; ic++) {
     if (triggers & (0x1 << ic)) {
       printf("%s ", channelName(ic));

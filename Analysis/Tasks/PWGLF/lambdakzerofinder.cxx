@@ -222,6 +222,8 @@ struct lambdakzerofinderQA {
         hDCANegToPV->Fill(v0.dcanegtopv());
         hDCAV0Dau->Fill(v0.dcaV0daughters());
 
+        hTest->Fill(v0.posTrack().pt());
+
         if (TMath::Abs(v0.yLambda()) < 0.5) {
           h3dMassLambda->Fill(collision.centV0M(), v0.pt(), v0.mLambda());
           h3dMassAntiLambda->Fill(collision.centV0M(), v0.pt(), v0.mAntiLambda());

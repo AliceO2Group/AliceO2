@@ -565,12 +565,14 @@ void OutputStat(GPUChainTracking* t, long long int* nTracksTotal = nullptr, long
 
   char trdText[1024] = "";
   if (t->GetRecoSteps() & GPUDataTypes::RecoStep::TRDTracking) {
-    int nTracklets = 0;
+    int nTRDTracks = 0;
+    int nTRDTracklets = 0;
     for (unsigned int k = 0; k < t->mIOPtrs.nTRDTracks; k++) {
       auto& trk = t->mIOPtrs.trdTracks[k];
-      nTracklets += trk.GetNtracklets();
+      nTRDTracklets += trk.GetNtracklets();
+      nTRDTracks += trk.GetNtracklets() != 0;
     }
-    snprintf(trdText, 1024, " - TRD Tracker reconstructed %d tracks (%d tracklets)", t->mIOPtrs.nTRDTracks, nTracklets);
+    snprintf(trdText, 1024, " - TRD Tracker reconstructed %d tracks (%d tracklets)", nTRDTracks, nTRDTracklets);
   }
   printf("Output Tracks: %d (%d / %d / %d / %d clusters (fitted / attached / adjacent / total))%s\n", nTracks, nAttachedClustersFitted, nAttachedClusters, nAdjacentClusters, nCls, trdText);
 }

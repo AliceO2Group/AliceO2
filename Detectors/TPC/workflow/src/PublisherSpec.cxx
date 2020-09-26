@@ -138,8 +138,8 @@ DataProcessorSpec createPublisherSpec(PublisherConf const& config, bool propagat
                                   publishingMode,
                                   subSpec,
                                   clusterbranchname.c_str(), // name of data branch
-                                  mcbranchname.c_str()       // name of mc label branch
-        );
+                                  mcbranchname.c_str(),      // name of mc label branch
+                                  config.hook);
         if (sectorMode == SectorMode::Full) {
           break;
         }

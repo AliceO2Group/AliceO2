@@ -87,9 +87,6 @@ class TrackITS : public o2::track::TrackParCov
   o2::track::TrackParCov& getParamOut() { return mParamOut; }
   const o2::track::TrackParCov& getParamOut() const { return mParamOut; }
 
-  void setPID(uint8_t p) { mPID = p; }
-  int getPID() const { return mPID; }
-
   void setPattern(uint8_t p) { mPattern = p; }
   int getPattern() const { return mPattern; }
   bool hasHitOnLayer(int i) { return mPattern & (0x1 << i); }
@@ -98,7 +95,6 @@ class TrackITS : public o2::track::TrackParCov
   o2::track::TrackParCov mParamOut; ///< parameter at largest radius
   ClusRefs mClusRef;                ///< references on clusters
   float mChi2 = 0.;                 ///< Chi2 for this track
-  uint8_t mPID = 0;                 ///< pid info (at the moment not used)
   uint8_t mPattern = 0;             ///< layers pattern
 
   ClassDefNV(TrackITS, 4);
@@ -137,7 +133,7 @@ class TrackITSExt : public TrackITS
 
  private:
   std::array<int, MaxClusters> mIndex = {-1}; ///< Indices of associated clusters
-  ClassDefNV(TrackITSExt, 1);
+  ClassDefNV(TrackITSExt, 2);
 };
 } // namespace its
 } // namespace o2
