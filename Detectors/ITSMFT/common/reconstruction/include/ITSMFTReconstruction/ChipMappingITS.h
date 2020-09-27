@@ -28,6 +28,8 @@ namespace o2
 namespace itsmft
 {
 
+#define _OVERRIDE_RUID_HACK_
+
 class ChipMappingITS
 {
  public:
@@ -67,6 +69,9 @@ class ChipMappingITS
     lr = feeID >> 12;
     ruOnLr = feeID & 0x3f;
     link = (feeID >> 8) & 0x3;
+#ifdef _OVERRIDE_RUID_HACK_
+    ruOnLr %= NStavesOnLr[lr];
+#endif
   }
 
   ///< impose user defined FEEId -> ruSW (staveID) conversion, to be used only for forced decoding of corrupted data
@@ -129,7 +134,15 @@ class ChipMappingITS
   }
 
   ///< get SW id of the RU from RU HW id
-  uint8_t FEEId2RUSW(uint16_t hw) const { return mFEEId2RUSW[hw]; }
+  uint8_t FEEId2RUSW(uint16_t hw) const
+  {
+#ifdef _OVERRIDE_RUID_HACK_
+    uint16_t lr, ruOnLr, link;
+    expandFEEId(hw, lr, ruOnLr, link);
+    hw = composeFEEId(lr, ruOnLr, link);
+#endif
+    return mFEEId2RUSW[hw];
+  }
 
   ///< get FEEId of the RU (software id of the RU), read via given link
   uint16_t RUSW2FEEId(uint16_t sw, uint16_t linkID = 0) const
