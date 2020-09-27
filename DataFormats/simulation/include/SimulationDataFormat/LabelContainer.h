@@ -38,18 +38,18 @@ class LabelContainer
  public:
   struct HeaderElementContinuous {
     HeaderElementContinuous() = default; // for ROOT IO
-    HeaderElementContinuous(ushort s, uint i) : size(s), index(i) {}
-    uint index = 0;  // index of first label in the actual label storage
-    ushort size = 0; // total number of labels
+    HeaderElementContinuous(unsigned short s, unsigned int i) : size(s), index(i) {}
+    unsigned int index = 0;  // index of first label in the actual label storage
+    unsigned short size = 0; // total number of labels
     ClassDefNV(HeaderElementContinuous, 1);
   };
 
   struct HeaderElementLinked {
     HeaderElementLinked() = default; // for ROOT IO
-    HeaderElementLinked(uint i, int l, ushort s) : index(i), lastindex(l), size(s) {}
-    uint index = 0;     // index of first label in the actual label storage
-    uint lastindex = 0; // index of last label in the actual label storage
-    ushort size = 0;    // total number of labels
+    HeaderElementLinked(unsigned int i, int l, unsigned short s) : index(i), lastindex(l), size(s) {}
+    unsigned int index = 0;     // index of first label in the actual label storage
+    unsigned int lastindex = 0; // index of last label in the actual label storage
+    unsigned short size = 0;    // total number of labels
     ClassDefNV(HeaderElementLinked, 1);
   };
 
@@ -57,11 +57,11 @@ class LabelContainer
   using StoredLabelType = typename std::conditional<isContiguousStorage, LabelType, std::pair<LabelType, int>>::type;
 
   // internal functions allowing the iterator implementation to be completely generic
-  static uint getNextIndex(uint index, std::vector<LabelType> const& /*labels*/)
+  static unsigned int getNextIndex(unsigned int index, std::vector<LabelType> const& /*labels*/)
   {
     return index + 1;
   }
-  static uint getNextIndex(uint index, std::vector<std::pair<LabelType, int>> const& labels)
+  static unsigned int getNextIndex(unsigned int index, std::vector<std::pair<LabelType, int>> const& labels)
   {
     return labels[index].second;
   }
@@ -202,7 +202,7 @@ class LabelContainer
   }
 
   /// add a label for a dataindex
-  void addLabel(uint dataindex, LabelType const& label)
+  void addLabel(unsigned int dataindex, LabelType const& label)
   {
     // refer to concrete specialized implementation
     addLabelImpl(dataindex, mHeaderArray, mLabelArray, label);
