@@ -155,13 +155,13 @@ struct ClusterNative {
 // This is an index struct to access TPC clusters inside sectors and rows. It shall not own the data, but just point to
 // the data inside a buffer.
 struct ClusterNativeAccess {
-  const ClusterNative* clustersLinear = nullptr;
+  const ClusterNative* clustersLinear;
   const ClusterNative* clusters[constants::MAXSECTOR][constants::MAXGLOBALPADROW];
-  const o2::dataformats::MCTruthContainer<o2::MCCompLabel>* clustersMCTruth = nullptr;
+  const o2::dataformats::MCTruthContainer<o2::MCCompLabel>* clustersMCTruth;
   unsigned int nClusters[constants::MAXSECTOR][constants::MAXGLOBALPADROW];
   unsigned int nClustersSector[constants::MAXSECTOR];
   unsigned int clusterOffset[constants::MAXSECTOR][constants::MAXGLOBALPADROW];
-  unsigned int nClustersTotal = 0;
+  unsigned int nClustersTotal;
 
   void setOffsetPtrs();
 };
