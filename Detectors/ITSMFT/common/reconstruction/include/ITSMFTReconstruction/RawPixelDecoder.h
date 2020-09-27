@@ -117,6 +117,7 @@ class RawPixelDecoder final : public PixelReader
   o2::itsmft::ROFRecord::ROFtype mROFCounter = 0; // RSTODO is this needed? eliminate from ROFRecord ?
   uint32_t mNChipsFiredROF = 0;                   // counter within the ROF
   uint32_t mNPixelsFiredROF = 0;                  // counter within the ROF
+  uint32_t mNLinksDone = 0;                       // number of links reached end of data
   size_t mNChipsFired = 0;                        // global counter
   size_t mNPixelsFired = 0;                       // global counter
   TStopwatch mTimerTFStart;

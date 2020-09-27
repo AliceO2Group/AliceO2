@@ -32,6 +32,7 @@
 #define GBTLINK_DECODE_ERRORCHECK(what) \
   if ((what) == Abort) {                \
     discardData();                      \
+    LOG(ERROR) << "Aborting decoding";  \
     return AbortedOnError;              \
   } else if ((what) == Skip) {          \
     continue;                           \

@@ -78,37 +78,41 @@ int RawPixelDecoder<Mapping>::decodeNextTrigger()
   mNPixelsFiredROF = 0;
   mInteractionRecord.clear();
   int nLinksWithData = 0, nru = mRUDecodeVec.size();
+  do {
 #ifdef WITH_OPENMP
-  omp_set_num_threads(mNThreads);
+    omp_set_num_threads(mNThreads);
 #pragma omp parallel for schedule(dynamic) reduction(+ \
                                                      : nLinksWithData, mNChipsFiredROF, mNPixelsFiredROF)
 #endif
-  for (int iru = 0; iru < nru; iru++) {
-    nLinksWithData += decodeNextTrigger(iru);
-    mNChipsFiredROF += mRUDecodeVec[iru].nChipsFired;
-    int npix = 0;
-    for (int ic = mRUDecodeVec[iru].nChipsFired; ic--;) {
-      npix += mRUDecodeVec[iru].chipsData[ic].getData().size();
-    }
-    mNPixelsFiredROF += npix;
-  }
-
-  if (nLinksWithData) { // fill some statistics
-    mROFCounter++;
-    mNChipsFired += mNChipsFiredROF;
-    mNPixelsFired += mNPixelsFiredROF;
-    mCurRUDecodeID = 0; // getNextChipData will start from here
-    mLastReadChipID = -1;
-    // set IR and trigger from the 1st non empty link
-    for (const auto& link : mGBTLinks) {
-      if (link.status == GBTLink::DataSeen) {
-        mInteractionRecord = link.ir;
-        mInteractionRecordHB = o2::raw::RDHUtils::getHeartBeatIR(*link.lastRDH);
-        mTrigger = link.trigger;
-        break;
+    for (int iru = 0; iru < nru; iru++) {
+      nLinksWithData += decodeNextTrigger(iru);
+      mNChipsFiredROF += mRUDecodeVec[iru].nChipsFired;
+      int npix = 0;
+      for (int ic = mRUDecodeVec[iru].nChipsFired; ic--;) {
+        npix += mRUDecodeVec[iru].chipsData[ic].getData().size();
       }
+      mNPixelsFiredROF += npix;
     }
-  }
+
+    if (nLinksWithData) { // fill some statistics
+      mROFCounter++;
+      mNChipsFired += mNChipsFiredROF;
+      mNPixelsFired += mNPixelsFiredROF;
+      mCurRUDecodeID = 0; // getNextChipData will start from here
+      mLastReadChipID = -1;
+      // set IR and trigger from the 1st non empty link
+      for (const auto& link : mGBTLinks) {
+        if (link.status == GBTLink::DataSeen) {
+          mInteractionRecord = link.ir;
+          mInteractionRecordHB = o2::raw::RDHUtils::getHeartBeatIR(*link.lastRDH);
+          mTrigger = link.trigger;
+          break;
+        }
+      }
+      break;
+    }
+
+  } while (mNLinksDone < mGBTLinks.size());
   mTimerDecode.Stop();
   // LOG(INFO) << "Chips Fired: " << mNChipsFiredROF << " NPixels: " << mNPixelsFiredROF << " at IR " << mInteractionRecord << " of HBF " << mInteractionRecordHB;
   return nLinksWithData;
@@ -128,6 +132,7 @@ void RawPixelDecoder<Mapping>::startNewTF(InputRecord& inputs)
     ru.clear();
   }
   setupLinks(inputs);
+  mNLinksDone = 0;
   mTimerTFStart.Stop();
 }
 
@@ -145,6 +150,8 @@ int RawPixelDecoder<Mapping>::decodeNextTrigger(int iru)
       auto res = link->collectROFCableData(mMAP);
       if (res == GBTLink::DataSeen) { // at the moment process only DataSeen
         ndec++;
+      } else if (res == GBTLink::StoppedOnEndOfData || res == GBTLink::AbortedOnError) { // this link has exhausted its data or it has to be discarded due to the error
+        mNLinksDone++;
       }
     }
   }
