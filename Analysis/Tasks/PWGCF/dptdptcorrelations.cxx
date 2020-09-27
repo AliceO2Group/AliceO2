@@ -36,7 +36,7 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
 {
   ConfigParamSpec centspec = {"centralities",
                               VariantType::String,
-                              "0-5,5-10,10-20,20-30,30-40,40-50,50-60,60-70,70-80",
+                              "00-05,05-10,10-20,20-30,30-40,40-50,50-60,60-70,70-80",
                               {"Centrality/multiplicity ranges in min-max separated by commas"}};
   workflowOptions.push_back(centspec);
 }
@@ -247,6 +247,17 @@ inline void AcceptTrack(aod::TrackData const& track, uint8_t& asone, uint8_t& as
   }
 }
 
+/// \brief Returns the potentially phi origin shifted phi
+/// \param phi the track azimuthal angle
+/// \return the track phi origin shifted azimuthal angle
+inline float GetShiftedPhi(float phi)
+{
+  if (not(phi < phiup))
+    return phi - TMath::TwoPi();
+  else
+    return phi;
+}
+
 /// \brief Returns the zero based bin index of the eta phi passed track
 /// \param t the intended track
 /// \return the zero based bin index
@@ -255,13 +266,15 @@ inline void AcceptTrack(aod::TrackData const& track, uint8_t& asone, uint8_t& as
 /// a zero based bin index and similarlly for the track phi
 /// The returned index is the composition of both considering eta as
 /// the first index component
+/// WARNING: for performance reasons no checks are done about the consistency
+/// of track's eta and phin with the corresponding ranges so, it is suppossed
+/// the track has been accepted and it is within that ranges
+/// IF THAT IS NOT THE CASE THE ROUTINE WILL PRODUCE NONSENSE RESULTS
 inline int GetEtaPhiIndex(aod::FilteredTrackData const& t)
 {
   int etaix = int((t.eta() - etalow) / etabinwidth);
   /* consider a potential phi origin shift */
-  float phi = t.phi();
-  if (not(phi < phiup))
-    phi = phi - 2 * TMath::Pi();
+  float phi = GetShiftedPhi(t.phi());
   int phiix = int((phi - philow) / phibinwidth);
   return etaix * phibins + phiix;
 }
@@ -282,7 +295,7 @@ struct DptDptCorrelationsFilterAnalysisTask {
   Configurable<std::string> cfgCentMultEstimator{"centmultestimator", "V0M", "Centrality/multiplicity estimator detector: default V0M"};
 
   Configurable<o2::analysis::DptDptBinningCuts> cfgBinning{"binning",
-                                                           {28, -7.0, 7.0, 18, 0.2, 2.0, 16, -0.8, 0.8, 72},
+                                                           {28, -7.0, 7.0, 18, 0.2, 2.0, 16, -0.8, 0.8, 72, 0.5},
                                                            "triplets - nbins, min, max - for z_vtx, pT, eta and phi, binning plus bin fraction of phi origin shift"};
 
   OutputObj<TList> fOutput{"DptDptCorrelationsGlobalInfo", OutputObjHandlingPolicy::AnalysisObject};
@@ -348,7 +361,7 @@ struct DptDptCorrelationsFilterAnalysisTask {
     fhPtPosA = new TH1F("fHistPtPosA", "P_{T} distribution for reconstructed (#{+});P_{T} (GeV/c);dN/dP_{T} (c/GeV)", ptbins, ptlow, ptup);
     fhPtNegB = new TH1F("fHistPtNegB", "P_{T} distribution for reconstructed (#{-}) before;P_{T} (GeV/c);dN/dP_{T} (c/GeV)", 100, 0.0, 15.0);
     fhPtNegA = new TH1F("fHistPtNegA", "P_{T} distribution for reconstructed (#{-});P_{T} (GeV/c);dN/dP_{T} (c/GeV)", ptbins, ptlow, ptup);
-    fhEtaB = new TH1F("fHistEtaB", "#eta distribution for reconstructed before;#eta;counts", 40, 2.0, 2.0);
+    fhEtaB = new TH1F("fHistEtaB", "#eta distribution for reconstructed before;#eta;counts", 40, -2.0, 2.0);
     fhEtaA = new TH1F("fHistEtaA", "#eta distribution for reconstructed;#eta;counts", etabins, etalow, etaup);
     fhPhiB = new TH1F("fHistPhiB", "#phi distribution for reconstructed before;#phi;counts", 360, 0.0, 2 * M_PI);
     fhPhiA = new TH1F("fHistPhiA", "#phi distribution for reconstructed;#phi;counts", 360, 0.0, 2 * M_PI);
@@ -444,7 +457,7 @@ struct DptDptCorrelationsTask {
   Configurable<bool> cfgProcessPairs{"processpairs", false, "Process pairs: false = no, just singles, true = yes, process pairs"};
 
   Configurable<o2::analysis::DptDptBinningCuts> cfgBinning{"binning",
-                                                           {28, -7.0, 7.0, 18, 0.2, 2.0, 16, -0.8, 0.8, 72},
+                                                           {28, -7.0, 7.0, 18, 0.2, 2.0, 16, -0.8, 0.8, 72, 0.5},
                                                            "triplets - nbins, min, max - for z_vtx, pT, eta and phi, binning plus bin fraction of phi origin shift"};
 
   OutputObj<TList> fOutput{"DptDptCorrelationsData", OutputObjHandlingPolicy::AnalysisObject};
@@ -459,7 +472,7 @@ struct DptDptCorrelationsTask {
                          float cmmax,
                          Configurable<bool> _cfgProcessPairs = {"processpairs", false, "Process pairs: false = no, just singles, true = yes, process pairs"},
                          Configurable<o2::analysis::DptDptBinningCuts> _cfgBinning = {"binning",
-                                                                                      {28, -7.0, 7.0, 18, 0.2, 2.0, 16, -0.8, 0.8, 72},
+                                                                                      {28, -7.0, 7.0, 18, 0.2, 2.0, 16, -0.8, 0.8, 72, 0.5},
                                                                                       "triplets - nbins, min, max - for z_vtx, pT, eta and phi, binning plus bin fraction of phi origin shift"},
                          OutputObj<TList> _fOutput = {"DptDptCorrelationsData", OutputObjHandlingPolicy::AnalysisObject},
                          Filter _onlyacceptedevents = (aod::dptdptcorrelations::eventaccepted == DPTDPT_TRUE),
@@ -534,6 +547,7 @@ struct DptDptCorrelationsTask {
       fhN1_2_vsPt = new TH1F("n1_2_vsPt", "#LT n_{1} #GT;p_{t,2} (GeV/c);#LT n_{1} #GT", ptbins, ptlow, ptup);
       /* we don't want the Sumw2 structure being created here */
       bool defSumw2 = TH1::GetDefaultSumw2();
+      TH1::SetDefaultSumw2(false);
       fhN1_1_vsZEtaPhiPt = new TH3F("n1_1_vsZ_vsEtaPhi_vsPt", "#LT n_{1} #GT;vtx_{z};#eta_{1}#times#varphi_{1};p_{t,1} (GeV/c)",
                                     zvtxbins, zvtxlow, zvtxup, etabins * phibins, 0.0, double(etabins * phibins), ptbins, ptlow, ptup);
 
@@ -573,6 +587,7 @@ struct DptDptCorrelationsTask {
 
       /* we don't want the Sumw2 structure being created here */
       bool defSumw2 = TH1::GetDefaultSumw2();
+      TH1::SetDefaultSumw2(false);
       fhN2_12_vsEtaPhi = new TH1F("n2_12_vsEtaPhi", "#LT n_{2} #GT;#eta_{1}#times#varphi_{1}#times#eta_{2}#times#varphi_{2};#LT n_{2} #GT",
                                   etabins * phibins * etabins * phibins, 0., double(etabins * phibins * etabins * phibins));
       fhSum2PtPt_12_vsEtaPhi = new TH1F("sumPtPt_12_vsEtaPhi", "#LT #Sigma p_{t,1}p_{t,2} #GT;#eta_{1}#times#varphi_{1}#times#eta_{2}#times#varphi_{2};#LT #Sigma p_{t,1}p_{t,2} #GT (GeV)^{2}",
@@ -667,8 +682,8 @@ struct DptDptCorrelationsTask {
           n1nw_1 += 1;
           sum1Ptnw_1 += track1.pt();
 
-          fhN1_1_vsEtaPhi->Fill(track1.eta(), track1.phi(), corr);
-          fhSum1Pt_1_vsEtaPhi->Fill(track1.eta(), track1.phi(), track1.pt() * corr);
+          fhN1_1_vsEtaPhi->Fill(track1.eta(), GetShiftedPhi(track1.phi()), corr);
+          fhSum1Pt_1_vsEtaPhi->Fill(track1.eta(), GetShiftedPhi(track1.phi()), track1.pt() * corr);
         }
         /* TODO: the centrality should be chosen non detector dependent */
         fhN1_1_vsC->Fill(collision.centmult(), n1_1);
@@ -689,8 +704,8 @@ struct DptDptCorrelationsTask {
           n1nw_2 += 1;
           sum1Ptnw_2 += track2.pt();
 
-          fhN1_2_vsEtaPhi->Fill(track2.eta(), track2.phi(), corr);
-          fhSum1Pt_2_vsEtaPhi->Fill(track2.eta(), track2.phi(), track2.pt() * corr);
+          fhN1_2_vsEtaPhi->Fill(track2.eta(), GetShiftedPhi(track2.phi()), corr);
+          fhSum1Pt_2_vsEtaPhi->Fill(track2.eta(), GetShiftedPhi(track2.phi()), track2.pt() * corr);
         }
         /* TODO: the centrality should be chosen non detector dependent */
         fhN1_2_vsC->Fill(collision.centmult(), n1_2);
@@ -728,10 +743,11 @@ struct DptDptCorrelationsTask {
             sum2PtPtnw_12 += track1.pt() * track2.pt();
             sum2NPtnw_12 += track2.pt();
             sum2PtNnw_12 += track1.pt();
-            fhN2_12_vsEtaPhi->Fill(GetEtaPhiIndex(track1) * etabins * phibins + GetEtaPhiIndex(track2) + 0.5, corr);
-            fhSum2NPt_12_vsEtaPhi->Fill(GetEtaPhiIndex(track1) * etabins * phibins + GetEtaPhiIndex(track2) + 0.5, corr * track2.pt());
-            fhSum2PtN_12_vsEtaPhi->Fill(GetEtaPhiIndex(track1) * etabins * phibins + GetEtaPhiIndex(track2) + 0.5, track1.pt() * corr);
-            fhSum2PtPt_12_vsEtaPhi->Fill(GetEtaPhiIndex(track1) * etabins * phibins + GetEtaPhiIndex(track2) + 0.5, track1.pt() * track2.pt() * corr);
+            /* we already know the bin in the flattened histograms, let's use it to update them */
+            fhN2_12_vsEtaPhi->AddBinContent(GetEtaPhiIndex(track1) * etabins * phibins + GetEtaPhiIndex(track2) + 1, corr);
+            fhSum2NPt_12_vsEtaPhi->AddBinContent(GetEtaPhiIndex(track1) * etabins * phibins + GetEtaPhiIndex(track2) + 1, corr * track2.pt());
+            fhSum2PtN_12_vsEtaPhi->AddBinContent(GetEtaPhiIndex(track1) * etabins * phibins + GetEtaPhiIndex(track2) + 1, track1.pt() * corr);
+            fhSum2PtPt_12_vsEtaPhi->AddBinContent(GetEtaPhiIndex(track1) * etabins * phibins + GetEtaPhiIndex(track2) + 1, track1.pt() * track2.pt() * corr);
             fhN2_12_vsPtPt->Fill(track1.pt(), track2.pt(), corr);
           }
         }
@@ -744,6 +760,11 @@ struct DptDptCorrelationsTask {
       fhSum2PtPtnw_12_vsC->Fill(collision.centmult(), sum2PtPtnw_12);
       fhSum2PtNnw_12_vsC->Fill(collision.centmult(), sum2PtNnw_12);
       fhSum2NPtnw_12_vsC->Fill(collision.centmult(), sum2NPtnw_12);
+      /* let's also update the number of entries in the flattened histograms */
+      fhN2_12_vsEtaPhi->SetEntries(fhN2_12_vsEtaPhi->GetEntries() + n2nw_12);
+      fhSum2NPt_12_vsEtaPhi->SetEntries(fhSum2NPt_12_vsEtaPhi->GetEntries() + n2nw_12);
+      fhSum2PtN_12_vsEtaPhi->SetEntries(fhSum2PtN_12_vsEtaPhi->GetEntries() + n2nw_12);
+      fhSum2PtPt_12_vsEtaPhi->SetEntries(fhSum2PtPt_12_vsEtaPhi->GetEntries() + n2nw_12);
     }
   }
 };
