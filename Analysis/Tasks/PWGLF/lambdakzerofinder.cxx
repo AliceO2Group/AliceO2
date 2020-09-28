@@ -46,20 +46,20 @@ using namespace ROOT::Math;
 
 namespace o2::aod
 {
-namespace v0GoodPosTracks
+namespace v0goodpostracks
 {
 DECLARE_SOA_INDEX_COLUMN_FULL(GoodTrack, goodTrack, int, FullTracks, "fGoodTrackID");
 DECLARE_SOA_INDEX_COLUMN(Collision, collision);
 DECLARE_SOA_COLUMN(DCAXY, dcaXY, float);
-} // namespace v0GoodPosTracks
-DECLARE_SOA_TABLE(V0GoodPosTracks, "AOD", "V0GOODPOSTRACKS", o2::soa::Index<>, v0GoodPosTracks::GoodTrackId, v0GoodPosTracks::CollisionId, v0GoodPosTracks::DCAXY);
-namespace v0GoodNegTracks
+} // namespace v0goodpostracks
+DECLARE_SOA_TABLE(V0GoodPosTracks, "AOD", "V0GOODPOSTRACKS", o2::soa::Index<>, v0goodpostracks::GoodTrackId, v0goodpostracks::CollisionId, v0goodpostracks::DCAXY);
+namespace v0goodnegtracks
 {
 DECLARE_SOA_INDEX_COLUMN_FULL(GoodTrack, goodTrack, int, FullTracks, "fGoodTrackID");
 DECLARE_SOA_INDEX_COLUMN(Collision, collision);
 DECLARE_SOA_COLUMN(DCAXY, dcaXY, float);
-} // namespace v0GoodNegTracks
-DECLARE_SOA_TABLE(V0GoodNegTracks, "AOD", "V0GOODNEGTRACKS", o2::soa::Index<>, v0GoodNegTracks::GoodTrackId, v0GoodNegTracks::CollisionId, v0GoodNegTracks::DCAXY);
+} // namespace v0goodnegtracks
+DECLARE_SOA_TABLE(V0GoodNegTracks, "AOD", "V0GOODNEGTRACKS", o2::soa::Index<>, v0goodnegtracks::GoodTrackId, v0goodnegtracks::CollisionId, v0goodnegtracks::DCAXY);
 } // namespace o2::aod
 
 struct lambdakzeroprefilter {
@@ -196,8 +196,6 @@ struct lambdakzerofinderQA {
   OutputObj<TH3F> h3dMassLambda{TH3F("h3dMassLambda", "", 20, 0, 100, 200, 0, 10, 200, 1.115 - 0.100, 1.115 + 0.100)};
   OutputObj<TH3F> h3dMassAntiLambda{TH3F("h3dMassAntiLambda", "", 20, 0, 100, 200, 0, 10, 200, 1.115 - 0.100, 1.115 + 0.100)};
 
-  OutputObj<TH1F> hTest{TH1F("hTest", "", 1000, 0, 1000)};
-
   //FIXME: figure out why this does not work?
   //Filter preFilter1 = aod::v0data::dcapostopv > dcapostopv;
   //Filter preFilter2 = aod::v0data::dcanegtopv > dcanegtopv;
@@ -221,8 +219,6 @@ struct lambdakzerofinderQA {
         hDCAPosToPV->Fill(v0.dcapostopv());
         hDCANegToPV->Fill(v0.dcanegtopv());
         hDCAV0Dau->Fill(v0.dcaV0daughters());
-
-        hTest->Fill(v0.posTrack().pt());
 
         if (TMath::Abs(v0.yLambda()) < 0.5) {
           h3dMassLambda->Fill(collision.centV0M(), v0.pt(), v0.mLambda());
