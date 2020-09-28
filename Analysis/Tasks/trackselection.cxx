@@ -31,10 +31,12 @@ using namespace o2::framework::expressions;
 TrackSelection getGlobalTrackSelection()
 {
   TrackSelection selectedTracks;
+  selectedTracks.SetTrackType(aod::track::Run2GlobalTrack);
   selectedTracks.SetPtRange(0.1f, 1e10f);
   selectedTracks.SetEtaRange(-0.8f, 0.8f);
   selectedTracks.SetRequireITSRefit(true);
   selectedTracks.SetRequireTPCRefit(true);
+  selectedTracks.SetRequireGoldenChi2(true);
   selectedTracks.SetMinNCrossedRowsTPC(70);
   selectedTracks.SetMinNCrossedRowsOverFindableClustersTPC(0.8f);
   selectedTracks.SetMaxChi2PerClusterTPC(4.f);
@@ -56,14 +58,6 @@ TrackSelection getGlobalTrackSelectionSDD()
   return selectedTracks;
 }
 
-// Default track selection requiring a cluster matched in TOF
-TrackSelection getGlobalTrackSelectionwTOF()
-{
-  TrackSelection selectedTracks = getGlobalTrackSelection();
-  selectedTracks.SetRequireTOF(true);
-  return selectedTracks;
-}
-
 //****************************************************************************************
 /**
  * Produce the more complicated derived track quantities needed for track selection.
@@ -81,7 +75,7 @@ struct TrackExtensionTask {
 
       std::array<float, 2> dca{1e10f, 1e10f};
       // FIXME: temporary solution to remove tracks that should not be there after conversion
-      if (track.trackType() == o2::aod::track::TrackTypeEnum::GlobalTrack && track.itsChi2NCl() != 0.f && track.tpcChi2NCl() != 0.f && track.x() < 150.f) {
+      if (track.trackType() == o2::aod::track::TrackTypeEnum::Run2GlobalTrack && track.itsChi2NCl() != 0.f && track.tpcChi2NCl() != 0.f && track.x() < 150.f) {
         float magField = 5.0; // in kG (FIXME: get this from CCDB)
         auto trackPar = getTrackPar(track);
         trackPar.propagateParamToDCA({collision.posX(), collision.posY(), collision.posZ()}, magField, &dca);
@@ -104,21 +98,18 @@ struct TrackSelectionTask {
 
   TrackSelection globalTracks;
   TrackSelection globalTracksSDD;
-  TrackSelection globalTrackswTOF;
 
   void init(InitContext&)
   {
     globalTracks = getGlobalTrackSelection();
     globalTracksSDD = getGlobalTrackSelectionSDD();
-    globalTrackswTOF = getGlobalTrackSelectionwTOF();
   }
 
   void process(soa::Join<aod::FullTracks, aod::TracksExtended> const& tracks)
   {
     for (auto& track : tracks) {
       filterTable((uint8_t)globalTracks.IsSelected(track),
-                  (uint8_t)globalTracksSDD.IsSelected(track),
-                  (uint8_t)globalTrackswTOF.IsSelected(track));
+                  (uint8_t)globalTracksSDD.IsSelected(track));
     }
   }
 };

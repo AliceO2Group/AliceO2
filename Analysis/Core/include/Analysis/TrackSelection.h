@@ -39,9 +39,9 @@ class TrackSelection
         (track.itsNCls() >= mMinNClustersITS) &&
         (track.itsChi2NCl() <= mMaxChi2PerClusterITS) &&
         (track.tpcChi2NCl() <= mMaxChi2PerClusterTPC) &&
-        ((mRequireITSRefit) ? (track.flags() & 0x4) : true) &&
-        ((mRequireTPCRefit) ? (track.flags() & 0x40) : true) &&
-        ((mRequireTOF) ? ((track.flags() & 0x2000) && (track.flags() & 0x80000000)) : true) &&
+        ((mRequireITSRefit) ? (track.flags() & o2::aod::track::ITSrefit) : true) &&
+        ((mRequireTPCRefit) ? (track.flags() & o2::aod::track::TPCrefit) : true) &&
+        ((mRequireGoldenChi2) ? (track.flags() & o2::aod::track::GoldenChi2) : true) &&
         FulfillsITSHitRequirements(track.itsClusterMap()) &&
         abs(track.dcaXY()) <= ((mMaxDcaXYPtDep) ? mMaxDcaXYPtDep(track.pt()) : mMaxDcaXY) &&
         abs(track.dcaZ()) <= mMaxDcaZ) {
@@ -70,7 +70,10 @@ class TrackSelection
   {
     mRequireTPCRefit = requireTPCRefit;
   }
-  void SetRequireTOF(bool requireTOF = true) { mRequireTOF = requireTOF; }
+  void SetRequireGoldenChi2(bool requireGoldenChi2 = true)
+  {
+    mRequireGoldenChi2 = requireGoldenChi2;
+  }
   void SetMinNClustersTPC(int minNClustersTPC)
   {
     mMinNClustersTPC = minNClustersTPC;
@@ -138,9 +141,9 @@ class TrackSelection
   float mMaxDcaZ{1e10f};                        // max dca in z direction
   std::function<float(float)> mMaxDcaXYPtDep{}; // max dca in xy plane as function of pT
 
-  bool mRequireITSRefit{false}; // require refit in ITS
-  bool mRequireTPCRefit{false}; // require refit in TPC
-  bool mRequireTOF{false};      // require that track exits the TOF and that it has an associated time measurement (kTIME and kTOFOUT)
+  bool mRequireITSRefit{false};   // require refit in ITS
+  bool mRequireTPCRefit{false};   // require refit in TPC
+  bool mRequireGoldenChi2{false}; // require golden chi2 cut (Run 2 only)
 
   // vector of ITS requirements (minNRequiredHits in specific requiredLayers)
   std::vector<std::pair<int8_t, std::set<uint8_t>>> mRequiredITSHits{};
