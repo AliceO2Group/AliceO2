@@ -16,6 +16,7 @@
 #include "Framework/FunctionalHelpers.h"
 #include "Framework/VariantHelpers.h"
 #include "arrow/type_traits.h"
+#include "arrow/stl.h"
 
 // Apparently needs to be on top of the arrow includes.
 #include <sstream>
@@ -40,66 +41,70 @@ namespace arrow
 class ArrayBuilder;
 class Table;
 class Array;
+
+/// Extend arrow STL type matching
+#define O2_ARROW_PRIMITIVE_CTYPE(CType, ArrowType_)           \
+  template <>                                                 \
+  struct CTypeTraits<CType> : public TypeTraits<ArrowType_> { \
+    using ArrowType = ArrowType_;                             \
+  };
+
+template <typename T, int N>
+struct CTypeTraits<T (&)[N]> {
+  using ArrowType = ::arrow::FixedSizeListType;
+};
+
+template <typename T, int N>
+struct CTypeTraits<T[N]> {
+  using ArrowType = ::arrow::FixedSizeListType;
+};
+
+O2_ARROW_PRIMITIVE_CTYPE(long, Int64Type)
+O2_ARROW_PRIMITIVE_CTYPE(long unsigned, UInt64Type)
+namespace stl
+{
+#define O2_ARROW_STL_CONVERSION(CType_, CType_equiv, ArrowType_)                    \
+  template <>                                                                       \
+  struct ConversionTraits<CType_> : public CTypeTraits<CType_> {                    \
+    static Status AppendRow(typename TypeTraits<ArrowType_>::BuilderType& builder,  \
+                            CType_ cell)                                            \
+    {                                                                               \
+      return builder.Append(cell);                                                  \
+    }                                                                               \
+    static CType_ GetEntry(const typename TypeTraits<ArrowType_>::ArrayType& array, \
+                           size_t j)                                                \
+    {                                                                               \
+      return array.Value(j);                                                        \
+    }                                                                               \
+  };                                                                                \
+                                                                                    \
+  template <>                                                                       \
+  inline Status AppendListValues<CType_, const std::vector<CType_equiv>&>(          \
+    typename TypeTraits<ArrowType_>::BuilderType & value_builder,                   \
+    const std::vector<CType_equiv>& cell_range)                                     \
+  {                                                                                 \
+    return value_builder.AppendValues(cell_range);                                  \
+  }
+
+O2_ARROW_STL_CONVERSION(long, int64_t, Int64Type)
+O2_ARROW_STL_CONVERSION(unsigned long, uint64_t, UInt64Type)
+
+} // namespace stl
 } // namespace arrow
 
+namespace o2::framework
+{
 template <typename T>
 struct BulkInfo {
   const T ptr;
   size_t size;
 };
 
-namespace o2::framework
-{
-namespace detail
-{
-/// FIXME: adapt type conversion to arrow 1.0
-// This is needed by Arrow 0.12.0 which dropped
-//
-//      using ArrowType = ArrowType_;
-//
-// from ARROW_STL_CONVERSION
-template <typename T>
-struct ConversionTraits {
-};
-
-template <typename T, int N>
-struct ConversionTraits<T (&)[N]> {
-  using ArrowType = ::arrow::FixedSizeListType;
-};
-
-template <typename T, int N>
-struct ConversionTraits<T[N]> {
-  using ArrowType = ::arrow::FixedSizeListType;
-};
-
-#define O2_ARROW_STL_CONVERSION(c_type, ArrowType_) \
-  template <>                                       \
-  struct ConversionTraits<c_type> {                 \
-    using ArrowType = ::arrow::ArrowType_;          \
-  };
-
-// FIXME: for now we use Int8 to store booleans
-O2_ARROW_STL_CONVERSION(bool, BooleanType)
-O2_ARROW_STL_CONVERSION(int8_t, Int8Type)
-O2_ARROW_STL_CONVERSION(int16_t, Int16Type)
-O2_ARROW_STL_CONVERSION(int32_t, Int32Type)
-O2_ARROW_STL_CONVERSION(long long, Int64Type)
-O2_ARROW_STL_CONVERSION(long, Int64Type)
-O2_ARROW_STL_CONVERSION(uint8_t, UInt8Type)
-O2_ARROW_STL_CONVERSION(uint16_t, UInt16Type)
-O2_ARROW_STL_CONVERSION(uint32_t, UInt32Type)
-O2_ARROW_STL_CONVERSION(long long unsigned, UInt64Type)
-O2_ARROW_STL_CONVERSION(long unsigned, UInt64Type)
-O2_ARROW_STL_CONVERSION(float, FloatType)
-O2_ARROW_STL_CONVERSION(double, DoubleType)
-O2_ARROW_STL_CONVERSION(std::string, StringType)
-} // namespace detail
-
 struct BuilderUtils {
   template <typename T>
   static arrow::Status appendToList(std::unique_ptr<arrow::FixedSizeListBuilder>& builder, T* data, int size = 1)
   {
-    using ArrowType = typename detail::ConversionTraits<std::decay_t<T>>::ArrowType;
+    using ArrowType = typename arrow::stl::ConversionTraits<T>::ArrowType;
     using BuilderType = typename arrow::TypeTraits<ArrowType>::BuilderType;
     size_t numElements = static_cast<const arrow::FixedSizeListType*>(builder->type().get())->list_size();
 
@@ -195,7 +200,7 @@ struct BuilderUtils {
   template <typename HolderType, typename ITERATOR>
   static arrow::Status append(HolderType& holder, std::pair<ITERATOR, ITERATOR> ip)
   {
-    using ArrowType = typename detail::ConversionTraits<typename ITERATOR::value_type>::ArrowType;
+    using ArrowType = typename arrow::stl::ConversionTraits<typename ITERATOR::value_type>::ArrowType;
     using ValueBuilderType = typename arrow::TypeTraits<ArrowType>::BuilderType;
     // FIXME: for the moment we do not fill things.
     auto status = holder.builder->Append();
@@ -207,7 +212,7 @@ struct BuilderUtils {
   template <typename HolderType, typename ITERATOR>
   static void unsafeAppend(HolderType& holder, std::pair<ITERATOR, ITERATOR> ip)
   {
-    using ArrowType = typename detail::ConversionTraits<typename ITERATOR::value_type>::ArrowType;
+    using ArrowType = typename arrow::stl::ConversionTraits<typename ITERATOR::value_type>::ArrowType;
     using ValueBuilderType = typename arrow::TypeTraits<ArrowType>::BuilderType;
     // FIXME: for the moment we do not fill things.
     auto status = holder.builder->Append();
@@ -224,7 +229,7 @@ template <typename T>
 struct BuilderMaker {
   using FillType = T;
   using STLValueType = T;
-  using ArrowType = typename detail::ConversionTraits<T>::ArrowType;
+  using ArrowType = typename arrow::stl::ConversionTraits<T>::ArrowType;
   using BuilderType = typename arrow::TypeTraits<ArrowType>::BuilderType;
 
   static std::unique_ptr<BuilderType> make(arrow::MemoryPool* pool)
@@ -253,7 +258,7 @@ template <>
 struct BuilderMaker<bool> {
   using FillType = bool;
   using STLValueType = bool;
-  using ArrowType = typename detail::ConversionTraits<bool>::ArrowType;
+  using ArrowType = typename arrow::stl::ConversionTraits<bool>::ArrowType;
   using BuilderType = typename arrow::TypeTraits<ArrowType>::BuilderType;
 
   static std::unique_ptr<BuilderType> make(arrow::MemoryPool* pool)
@@ -277,7 +282,7 @@ struct BuilderMaker<std::pair<ITERATOR, ITERATOR>> {
   using FillType = std::pair<ITERATOR, ITERATOR>;
   using STLValueType = typename ITERATOR::value_type;
   using ArrowType = arrow::ListType;
-  using ValueType = typename detail::ConversionTraits<typename ITERATOR::value_type>::ArrowType;
+  using ValueType = typename arrow::stl::ConversionTraits<typename ITERATOR::value_type>::ArrowType;
   using BuilderType = arrow::ListBuilder;
   using ValueBuilder = typename arrow::TypeTraits<ValueType>::BuilderType;
 
@@ -299,7 +304,7 @@ struct BuilderMaker<T (&)[N]> {
   using STLValueType = T;
   using BuilderType = arrow::FixedSizeListBuilder;
   using ArrowType = arrow::FixedSizeListType;
-  using ElementType = typename detail::ConversionTraits<T>::ArrowType;
+  using ElementType = typename arrow::stl::ConversionTraits<T>::ArrowType;
 
   static std::unique_ptr<BuilderType> make(arrow::MemoryPool* pool)
   {
@@ -320,7 +325,7 @@ struct BuilderMaker<T[N]> {
   using FillType = T*;
   using BuilderType = arrow::FixedSizeListBuilder;
   using ArrowType = arrow::FixedSizeListType;
-  using ElementType = typename detail::ConversionTraits<T>::ArrowType;
+  using ElementType = typename arrow::stl::ConversionTraits<T>::ArrowType;
 
   static std::unique_ptr<BuilderType> make(arrow::MemoryPool* pool)
   {
@@ -343,7 +348,7 @@ auto make_builders()
 
 template <typename T>
 struct BuilderTraits {
-  using ArrowType = typename detail::ConversionTraits<T>::ArrowType;
+  using ArrowType = typename arrow::stl::ConversionTraits<T>::ArrowType;
   using BuilderType = typename arrow::TypeTraits<ArrowType>::BuilderType;
 };
 
@@ -408,7 +413,7 @@ struct CachedInsertion {
 template <typename T, template <typename U> typename InsertionPolicy>
 struct BuilderHolder : InsertionPolicy<T> {
   using Policy = InsertionPolicy<T>;
-  using ArrowType = typename detail::ConversionTraits<T>::ArrowType;
+  using ArrowType = typename arrow::CTypeTraits<T>::ArrowType;
   using BuilderType = typename arrow::TypeTraits<ArrowType>::BuilderType;
 
   BuilderHolder(arrow::MemoryPool* pool)
@@ -462,7 +467,7 @@ struct TableBuilderHelpers {
 
   /// Invokes the append method for each entry in the tuple
   template <typename HOLDERS, std::size_t... Is>
-  static bool finalize(std::vector<std::shared_ptr<arrow::Array>>& arrays, HOLDERS& holders, std::index_sequence<Is...> seq)
+  static bool finalize(std::vector<std::shared_ptr<arrow::Array>>& arrays, HOLDERS& holders, std::index_sequence<Is...>)
   {
     bool ok = (BuilderUtils::flush(std::get<Is>(holders)).ok() && ...);
     return ok && (std::get<Is>(holders).builder->Finish(&arrays[Is]).ok() && ...);
@@ -478,7 +483,7 @@ struct TableBuilderHelpers {
 template <typename... ARGS>
 auto tuple_to_pack(std::tuple<ARGS...>&&)
 {
-  return framework::pack<ARGS...>{};
+  return pack<ARGS...>{};
 }
 
 /// Detect if this is a fixed size array
@@ -562,7 +567,7 @@ class TableBuilder
   /// Get the builders, assumning they were created with a given pack
   ///  of basic types
   template <typename... ARGS>
-  auto getBuilders(o2::framework::pack<ARGS...> pack)
+  auto getBuilders(pack<ARGS...>)
   {
     return (HoldersTuple<ARGS...>*)mHolders;
   }
@@ -615,11 +620,11 @@ class TableBuilder
   template <typename... ARGS>
   auto persist(std::vector<std::string> const& columnNames)
   {
-    using args_pack_t = framework::pack<ARGS...>;
+    using args_pack_t = pack<ARGS...>;
     if constexpr (sizeof...(ARGS) == 1 &&
                   is_bounded_array<pack_element_t<0, args_pack_t>>::value == false &&
                   std::is_arithmetic_v<pack_element_t<0, args_pack_t>> == false) {
-      using objType_t = pack_element_t<0, framework::pack<ARGS...>>;
+      using objType_t = pack_element_t<0, pack<ARGS...>>;
       using argsPack_t = decltype(tuple_to_pack(framework::to_tuple(std::declval<objType_t>())));
       auto persister = persistTuple(argsPack_t{}, columnNames);
       return [persister = persister](unsigned int slot, objType_t const& obj) -> void {
@@ -628,14 +633,14 @@ class TableBuilder
       };
     } else if constexpr (sizeof...(ARGS) == 1 &&
                          is_bounded_array<pack_element_t<0, args_pack_t>>::value == true) {
-      using objType_t = pack_element_t<0, framework::pack<ARGS...>>;
-      auto persister = persistTuple(framework::pack<objType_t>{}, columnNames);
+      using objType_t = pack_element_t<0, pack<ARGS...>>;
+      auto persister = persistTuple(pack<objType_t>{}, columnNames);
       // Callback used to fill the builders
       return [persister = persister](unsigned int slot, typename BuilderMaker<objType_t>::FillType const& arg) -> void {
         persister(slot, std::forward_as_tuple(arg));
       };
     } else if constexpr (sizeof...(ARGS) >= 1) {
-      auto persister = persistTuple(framework::pack<ARGS...>{}, columnNames);
+      auto persister = persistTuple(pack<ARGS...>{}, columnNames);
       // Callback used to fill the builders
       return [persister = persister](unsigned int slot, typename BuilderMaker<ARGS>::FillType... args) -> void {
         persister(slot, std::forward_as_tuple(args...));
@@ -647,7 +652,7 @@ class TableBuilder
 
   /// Same a the above, but use a tuple to persist stuff.
   template <typename... ARGS>
-  auto persistTuple(framework::pack<ARGS...>, std::vector<std::string> const& columnNames)
+  auto persistTuple(pack<ARGS...>, std::vector<std::string> const& columnNames)
   {
     constexpr int nColumns = sizeof...(ARGS);
     validate<ARGS...>(columnNames);
@@ -728,14 +733,14 @@ class TableBuilder
 
   /// Reserve method to expand the columns as needed.
   template <typename... ARGS>
-  auto reserve(o2::framework::pack<ARGS...> pack, int s)
+  auto reserve(pack<ARGS...> pack, int s)
   {
     visitBuilders(pack, [s](auto& holder) { return holder.builder->Reserve(s).ok(); });
   }
 
   /// Invoke the appropriate visitor on the various builders
   template <typename... ARGS, typename V>
-  auto visitBuilders(o2::framework::pack<ARGS...> pack, V&& visitor)
+  auto visitBuilders(pack<ARGS...> pack, V&& visitor)
   {
     auto builders = getBuilders(pack);
     return std::apply(overloaded{
@@ -831,7 +836,7 @@ std::tuple<Tail...> tuple_tail(std::tuple<Head, Tail...>& t)
 template <typename... T>
 constexpr auto pack_from_tuple(std::tuple<T...> const&)
 {
-  return framework::pack<T...>{};
+  return pack<T...>{};
 }
 
 /// Binary search for an index column

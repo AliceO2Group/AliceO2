@@ -41,7 +41,7 @@ auto sliceByColumn(char const* key,
                         arrow::compute::CallFunction("value_counts", {input->GetColumnByName(key)},
                                                      &options));
   auto pair = static_cast<arrow::StructArray>(value_counts.array());
-  auto values = static_cast<arrow::NumericArray<typename detail::ConversionTraits<T>::ArrowType>>(pair.field(0)->data());
+  auto values = static_cast<arrow::NumericArray<typename arrow::CTypeTraits<T>::ArrowType>>(pair.field(0)->data());
   auto counts = static_cast<arrow::NumericArray<arrow::Int64Type>>(pair.field(1)->data());
 
   // create slices and offsets
