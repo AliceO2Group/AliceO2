@@ -120,7 +120,7 @@ AlgorithmSpec AODReaderHelpers::rootFileReaderCallback()
         LOGP(INFO, "Stopping after time frame {}.", watchdog->numberTimeFrames - 1);
         didir->closeInputFiles();
         control.endOfStream();
-        control.readyToQuit(QuitRequest::All);
+        control.readyToQuit(QuitRequest::Me);
         return;
       }
 
