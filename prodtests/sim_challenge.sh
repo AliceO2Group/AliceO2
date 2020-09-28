@@ -222,10 +222,10 @@ if [ "$doreco" == "1" ]; then
   taskwrapper mftreco.log  o2-mft-reco-workflow  $gloOpt
   echo "Return status of mftreco: $?"
 
-  echo "Running FIT(FT0) reco flow"
-  #needs FIT digitized data
-  taskwrapper fitreco.log o2-fit-reco-workflow $gloOpt
-  echo "Return status of fitreco: $?"
+  echo "Running FT0 reco flow"
+  #needs FT0 digitized data
+  taskwrapper ft0reco.log o2-ft0-reco-workflow $gloOpt
+  echo "Return status of ft0reco: $?"
 
   echo "Running ITS-TPC macthing flow"
   #needs results of o2-tpc-reco-workflow, o2-its-reco-workflow and o2-fit-reco-workflow
