@@ -22,6 +22,16 @@
 #include "ReconstructionDataFormats/Vertex.h"
 #include "Analysis/RecoDecay.h"
 
+/// Extracts track parameters from a track.
+/// \return o2::track::TrackPar
+template <typename T>
+auto getTrackPar(const T& track)
+{
+  std::array<float, 5> arraypar = {track.y(), track.z(), track.snp(),
+                                   track.tgl(), track.signed1Pt()};
+  return o2::track::TrackPar(track.x(), track.alpha(), std::move(arraypar));
+}
+
 /// Extracts track parameters and covariance matrix from a track.
 /// \return o2::track::TrackParCov
 template <typename T>
