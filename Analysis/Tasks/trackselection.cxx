@@ -21,6 +21,7 @@
 #include "Analysis/TrackSelection.h"
 #include "Analysis/TrackSelectionTables.h"
 #include "Framework/runDataProcessing.h"
+#include "Analysis/trackUtilities.h"
 
 using namespace o2;
 using namespace o2::framework;
@@ -65,7 +66,9 @@ TrackSelection getGlobalTrackSelectionwTOF()
 
 //****************************************************************************************
 /**
- * Produce the derived track quantities needed for track selection.
+ * Produce the more complicated derived track quantities needed for track selection.
+ * FIXME: we shall run this only if all other selections are passed to avoid
+ * FIXME: computing overhead and errors in calculations
  */
 //****************************************************************************************
 struct TrackExtensionTask {
@@ -74,25 +77,19 @@ struct TrackExtensionTask {
 
   void process(aod::Collision const& collision, aod::FullTracks const& tracks)
   {
-    float sinAlpha = 0.f;
-    float cosAlpha = 0.f;
-    float globalX = 0.f;
-    float globalY = 0.f;
-    float dcaXY = 0.f;
-    float dcaZ = 0.f;
-
     for (auto& track : tracks) {
 
-      sinAlpha = sin(track.alpha());
-      cosAlpha = cos(track.alpha());
-      globalX = track.x() * cosAlpha - track.y() * sinAlpha;
-      globalY = track.x() * sinAlpha + track.y() * cosAlpha;
+      std::array<float, 2> dca{1e10f, 1e10f};
+      // FIXME: temporary solution to remove tracks that should not be there after conversion
+      if (track.trackType() == o2::aod::track::TrackTypeEnum::GlobalTrack && track.itsChi2NCl() != 0.f && track.tpcChi2NCl() != 0.f && track.x() < 150.f) {
+        float magField = 5.0; // in kG (FIXME: get this from CCDB)
+        auto trackPar = getTrackPar(track);
+        trackPar.propagateParamToDCA({collision.posX(), collision.posY(), collision.posZ()}, magField, &dca);
+      }
+      extendedTrackQuantities(dca[0], dca[1]);
 
-      dcaXY = track.charge() * sqrt(pow((globalX - collision.posX()), 2) +
-                                    pow((globalY - collision.posY()), 2));
-      dcaZ = track.charge() * sqrt(pow(track.z() - collision.posZ(), 2));
-
-      extendedTrackQuantities(dcaXY, dcaZ);
+      // TODO: add realtive pt resolution sigma(pt)/pt \approx pt * sigma(1/pt)
+      // TODO: add geometrical length / fiducial volume
     }
   }
 };
