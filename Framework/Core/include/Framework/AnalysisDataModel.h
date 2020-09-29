@@ -153,7 +153,7 @@ DECLARE_SOA_EXPRESSION_COLUMN(C1Pt21Pt2, c1Pt21Pt2, float, aod::track::sigma1Pt*
 
 // TRACKEXTRA TABLE definition
 DECLARE_SOA_COLUMN(TPCInnerParam, tpcInnerParam, float);
-DECLARE_SOA_COLUMN(Flags, flags, uint64_t);
+DECLARE_SOA_COLUMN(Flags, flags, uint32_t);
 DECLARE_SOA_COLUMN(ITSClusterMap, itsClusterMap, uint8_t);
 DECLARE_SOA_COLUMN(TPCNClsFindable, tpcNClsFindable, uint8_t);
 DECLARE_SOA_COLUMN(TPCNClsFindableMinusFound, tpcNClsFindableMinusFound, int8_t);

@@ -23,15 +23,13 @@ DECLARE_SOA_COLUMN(DcaZ, dcaZ, float);
 // Columns to store track filter decisions
 DECLARE_SOA_COLUMN(IsGlobalTrack, isGlobalTrack, uint8_t);
 DECLARE_SOA_COLUMN(IsGlobalTrackSDD, isGlobalTrackSDD, uint8_t);
-DECLARE_SOA_COLUMN(IsGlobalTrackwTOF, isGlobalTrackwTOF, uint8_t);
 
 } // namespace track
 DECLARE_SOA_TABLE(TracksExtended, "AOD", "TRACKEXTENDED", track::DcaXY,
                   track::DcaZ);
 
 DECLARE_SOA_TABLE(TrackSelection, "AOD", "TRACKSELECTION", track::IsGlobalTrack,
-                  track::IsGlobalTrackSDD,
-                  track::IsGlobalTrackwTOF);
+                  track::IsGlobalTrackSDD);
 } // namespace o2::aod
 
 #endif // O2_ANALYSIS_TRACKSELECTIONTABLES_H_
