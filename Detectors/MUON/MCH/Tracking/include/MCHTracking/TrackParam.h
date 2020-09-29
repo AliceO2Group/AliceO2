@@ -36,8 +36,8 @@ class TrackParam
 
   TrackParam(const TrackParam& tp);
   TrackParam& operator=(const TrackParam& tp);
-  TrackParam(TrackParam&&) = delete;
-  TrackParam& operator=(TrackParam&&) = delete;
+  TrackParam(TrackParam&&) = default;
+  TrackParam& operator=(TrackParam&&) = default;
 
   /// return Z coordinate (cm)
   Double_t getZ() const { return mZ; }
