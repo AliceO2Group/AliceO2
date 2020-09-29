@@ -84,7 +84,7 @@ struct TrackQATask {
   //OutputObj<HistFolder> tof{HistFolder("TOF"), OutputObjHandlingPolicy::QAObject};
   //OutputObj<HistFolder> emcal{HistFolder("EMCAL"), OutputObjHandlingPolicy::QAObject};
 
-  Configurable<int> selectedTracks{"select", 1, "Choice of track selection. 0 = no selection, 1 = globalTracks, 2 = globalTracksSDD, 3 = globalTrackswTOF"};
+  Configurable<int> selectedTracks{"select", 1, "Choice of track selection. 0 = no selection, 1 = globalTracks, 2 = globalTracksSDD"};
 
   Filter trackFilter = aod::track::isGlobalTrack == (uint8_t)1;
   /*
