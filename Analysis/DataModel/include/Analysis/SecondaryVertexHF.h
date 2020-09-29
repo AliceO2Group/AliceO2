@@ -25,7 +25,7 @@ namespace o2::aod
 {
 namespace seltrack
 {
-DECLARE_SOA_COLUMN(IsSel, issel, int);
+DECLARE_SOA_COLUMN(IsSel, issel_2prong, int);
 DECLARE_SOA_COLUMN(DCAPrim0, dcaprim0, float);
 DECLARE_SOA_COLUMN(DCAPrim1, dcaprim1, float);
 } // namespace seltrack
