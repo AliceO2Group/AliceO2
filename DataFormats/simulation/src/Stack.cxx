@@ -148,7 +148,7 @@ void Stack::PushTrack(Int_t toBeDone, Int_t parentId, Int_t pdgCode, Double_t px
 
 void Stack::PushTrack(Int_t toBeDone, Int_t parentId, Int_t pdgCode, Double_t px, Double_t py, Double_t pz, Double_t e,
                       Double_t vx, Double_t vy, Double_t vz, Double_t time, Double_t polx, Double_t poly, Double_t polz,
-                      TMCProcess proc, Int_t& ntr, Double_t weight, Int_t is, Int_t secondparentID)
+                      TMCProcess proc, Int_t& ntr, Double_t weight, Int_t is, Int_t secondparentId)
 {
   //  printf("Pushing %s toBeDone %5d parentId %5d pdgCode %5d is %5d entries %5d \n",
   //	 proc == kPPrimary ? "Primary:   " : "Secondary: ",
@@ -167,11 +167,10 @@ void Stack::PushTrack(Int_t toBeDone, Int_t parentId, Int_t pdgCode, Double_t px
   Int_t trackId = mNumberOfEntriesInParticles;
   // Set track variable
   ntr = trackId;
-  Int_t nPoints = 0;
   Int_t daughter1Id = -1;
   Int_t daughter2Id = -1;
   Int_t iStatus = (proc == kPPrimary) ? is : trackId;
-  TParticle p(pdgCode, iStatus, parentId, nPoints, daughter1Id, daughter2Id, px, py, pz, e, vx, vy, vz, time);
+  TParticle p(pdgCode, iStatus, parentId, secondparentId, daughter1Id, daughter2Id, px, py, pz, e, vx, vy, vz, time);
   p.SetPolarisation(polx, poly, polz);
   p.SetWeight(weight);
   p.SetUniqueID(proc); // using the unique ID to transfer process ID
@@ -535,6 +534,7 @@ void Stack::UpdateTrackIndex(TRefArray* detList)
 
 void Stack::Reset()
 {
+
   mIndexOfCurrentTrack = -1;
   mNumberOfPrimaryParticles = mNumberOfEntriesInParticles = mNumberOfEntriesInTracks = 0;
   while (!mStack.empty()) {
