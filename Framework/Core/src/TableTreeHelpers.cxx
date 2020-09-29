@@ -738,7 +738,7 @@ TreeToTable::~TreeToTable()
 
 bool TreeToTable::addColumn(const char* colname)
 {
-  auto colit = std::make_shared<ColumnIterator>(mTreeReader, colname);
+  auto colit = std::make_unique<ColumnIterator>(mTreeReader, colname);
   auto stat = colit->getStatus();
   if (stat) {
     mColumnIterators.push_back(std::move(colit));
@@ -763,7 +763,7 @@ bool TreeToTable::addAllColumns()
     auto br = (TBranch*)branchList->At(ii);
 
     // IMPROVE: make sure that a column is not added more than one time
-    auto colit = std::make_shared<ColumnIterator>(mTreeReader, br->GetName());
+    auto colit = std::make_unique<ColumnIterator>(mTreeReader, br->GetName());
     if (colit->getStatus()) {
       mColumnIterators.push_back(std::move(colit));
     } else {
@@ -776,14 +776,14 @@ bool TreeToTable::addAllColumns()
 
 void TreeToTable::push()
 {
-  for (auto colit : mColumnIterators) {
+  for (auto&& colit : mColumnIterators) {
     colit->push();
   }
 }
 
 void TreeToTable::reserve(size_t s)
 {
-  for (auto column : mColumnIterators) {
+  for (auto&& column : mColumnIterators) {
     column->reserve(s);
   }
 }
@@ -805,7 +805,7 @@ std::shared_ptr<arrow::Table> TreeToTable::finalize()
   // prepare the elements needed to create the final table
   std::vector<std::shared_ptr<arrow::Array>> array_vector;
   std::vector<std::shared_ptr<arrow::Field>> schema_vector;
-  for (auto colit : mColumnIterators) {
+  for (auto&& colit : mColumnIterators) {
     colit->finish();
     array_vector.push_back(colit->getArray());
     schema_vector.push_back(colit->getSchema());

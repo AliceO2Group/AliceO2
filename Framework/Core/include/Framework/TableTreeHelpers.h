@@ -212,7 +212,7 @@ class TreeToTable
   TTreeReader* mTreeReader;
 
   // a list of ColumnIterator*
-  std::vector<std::shared_ptr<ColumnIterator>> mColumnIterators;
+  std::vector<std::unique_ptr<ColumnIterator>> mColumnIterators;
 
   // Append next set of branch values to the
   // corresponding table columns
