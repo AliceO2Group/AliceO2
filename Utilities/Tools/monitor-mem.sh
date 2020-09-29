@@ -39,7 +39,8 @@ while [ 1 ] ; do
   ps -p $PID > /dev/null
   [ $? == 1 ] && echo "Job finished; Exiting " && break
 
-  sleep 0.005
+  # take a measurement at some defined rate (can be customized)
+  sleep ${JOBUTILS_MONITORMEM_SLEEP:-0.005}
 done
 
 
