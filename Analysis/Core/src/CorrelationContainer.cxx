@@ -748,14 +748,23 @@ TH2* CorrelationContainer::getPerTriggerYield(CorrelationContainer::CFStep step,
     multBinBegin = multAxis->FindBin(mCentralityMin + 1e-4);
     multBinEnd = multAxis->FindBin(mCentralityMax - 1e-4);
     LOGF(info, "Using multiplicity range %d --> %d", multBinBegin, multBinEnd);
-  }
 
-  if (mCentralityMin < mCentralityMax) {
     trackSameAll->GetAxis(3)->SetRange(multBinBegin, multBinEnd);
   }
 
+  TAxis* vertexAxis = trackSameAll->GetAxis(2);
+  int vertexBinBegin = 1;
+  int vertexBinEnd = vertexAxis->GetNbins();
+  if (mZVtxMax > mZVtxMin) {
+    vertexBinBegin = vertexAxis->FindBin(mZVtxMin);
+    vertexBinEnd = vertexAxis->FindBin(mZVtxMax);
+    LOGF(info, "Using vertex range %d --> %d", vertexBinBegin, vertexBinEnd);
+
+    trackSameAll->GetAxis(2)->SetRange(vertexBinBegin, vertexBinEnd);
+  }
+
   TH2* yield = trackSameAll->Projection(1, 0, "E");
-  Float_t triggers = eventSameAll->Integral(1, eventSameAll->GetXaxis()->GetNbins(), multBinBegin, multBinEnd);
+  Float_t triggers = eventSameAll->Integral(multBinBegin, multBinEnd, vertexBinBegin, vertexBinEnd);
 
   if (normalizePerTrigger) {
     LOGF(info, "Dividing %f tracks by %f triggers", yield->Integral(), triggers);
