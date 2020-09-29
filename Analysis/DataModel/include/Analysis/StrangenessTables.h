@@ -42,6 +42,7 @@ DECLARE_SOA_DYNAMIC_COLUMN(V0Radius, v0radius, [](float x, float y) { return Rec
 
 //CosPA
 DECLARE_SOA_DYNAMIC_COLUMN(V0CosPA, v0cosPA, [](float X, float Y, float Z, float Px, float Py, float Pz, float pvX, float pvY, float pvZ) { return RecoDecay::CPA(array{pvX, pvY, pvZ}, array{X, Y, Z}, array{Px, Py, Pz}); });
+DECLARE_SOA_DYNAMIC_COLUMN(DCAV0ToPV, dcav0topv, [](float X, float Y, float Z, float Px, float Py, float Pz, float pvX, float pvY, float pvZ) { return TMath::Sqrt((TMath::Power((pvY - Y) * Pz - (pvZ - Z) * Py, 2) + TMath::Power((pvX - X) * Pz - (pvZ - Z) * Px, 2) + TMath::Power((pvX - X) * Py - (pvY - Y) * Px, 2)) / (Px * Px + Py * Py + Pz * Pz)); });
 
 //Calculated on the fly with mass assumption + dynamic tables
 DECLARE_SOA_DYNAMIC_COLUMN(MLambda, mLambda, [](float pxpos, float pypos, float pzpos, float pxneg, float pyneg, float pzneg) { return RecoDecay::M(array{array{pxpos, pypos, pzpos}, array{pxneg, pyneg, pzneg}}, array{RecoDecay::getMassPDG(kProton), RecoDecay::getMassPDG(kPiPlus)}); });
@@ -70,6 +71,7 @@ DECLARE_SOA_TABLE(V0Data, "AOD", "V0DATA",
                   v0data::Pt<v0data::PxPos, v0data::PyPos, v0data::PxNeg, v0data::PyNeg>,
                   v0data::V0Radius<v0data::X, v0data::Y>,
                   v0data::V0CosPA<v0data::X, v0data::Y, v0data::Z, v0dataext::Px, v0dataext::Py, v0dataext::Pz>,
+                  v0data::DCAV0ToPV<v0data::X, v0data::Y, v0data::Z, v0dataext::Px, v0dataext::Py, v0dataext::Pz>,
 
                   //Invariant masses
                   v0data::MLambda<v0data::PxPos, v0data::PyPos, v0data::PzPos, v0data::PxNeg, v0data::PyNeg, v0data::PzNeg>,
@@ -196,6 +198,14 @@ DECLARE_SOA_EXTENDED_TABLE_USER(CascDataExt, CascDataOrigin, "CascDATAEXT",
                                 cascdataext::Px, cascdataext::Py, cascdataext::Pz);
 
 using CascDataFull = CascDataExt;
+
+namespace cascfinderdata
+{
+DECLARE_SOA_INDEX_COLUMN_FULL(V0, v0, int, V0FinderData, "fV0ID");
+DECLARE_SOA_INDEX_COLUMN_FULL(BachTrack, bachTrack, int, FullTracks, "fBachTrackID");
+DECLARE_SOA_INDEX_COLUMN(Collision, collision);
+} // namespace cascfinderdata
+DECLARE_SOA_TABLE(CascFinderData, "AOD", "CASCFINDERDATA", o2::soa::Index<>, cascfinderdata::V0Id, cascfinderdata::BachTrackId, cascfinderdata::CollisionId);
 } // namespace o2::aod
 
 #endif // O2_ANALYSIS_STRANGENESSTABLES_H_
