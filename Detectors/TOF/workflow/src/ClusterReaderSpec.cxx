@@ -14,7 +14,7 @@
 
 #include "Framework/ControlService.h"
 #include "Framework/ConfigParamRegistry.h"
-#include "TOFWorkflow/ClusterReaderSpec.h"
+#include "TOFWorkflowUtils/ClusterReaderSpec.h"
 #include "DataFormatsParameters/GRPObject.h"
 
 using namespace o2::framework;

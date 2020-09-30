@@ -10,7 +10,7 @@
 
 /// @file   TODClusterWriterSpec.cxx
 
-#include "TOFWorkflow/TOFClusterWriterSpec.h"
+#include "TOFWorkflowUtils/TOFClusterWriterSpec.h"
 #include "DPLUtils/MakeRootTreeWriterSpec.h"
 #include "SimulationDataFormat/MCCompLabel.h"
 #include "SimulationDataFormat/MCTruthContainer.h"
