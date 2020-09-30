@@ -14,7 +14,7 @@
 
 #include "Framework/ControlService.h"
 #include "Framework/ConfigParamRegistry.h"
-#include "TOFWorkflow/EntropyDecoderSpec.h"
+#include "TOFWorkflowUtils/EntropyDecoderSpec.h"
 
 using namespace o2::framework;
 

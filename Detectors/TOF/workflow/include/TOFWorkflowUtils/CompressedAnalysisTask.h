@@ -17,7 +17,7 @@
 #define O2_TOF_COMPRESSEDANALYSISTASK
 
 #include "Framework/Task.h"
-#include "TOFWorkflow/CompressedAnalysis.h"
+#include "TOFWorkflowUtils/CompressedAnalysis.h"
 
 #include "TROOT.h"
 #include "TSystem.h"
