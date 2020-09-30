@@ -91,7 +91,7 @@ struct TPCPIDQAExpSignalTask {
 
   // Filters
   Filter collisionFilter = nabs(aod::collision::posZ) < cfgCutVertex;
-  Filter trackFilter = (nabs(aod::track::eta) < cfgCutEta) && ((aod::track::isGlobalTrack == (uint8_t)1) || (aod::track::isGlobalTrackSDD == (uint8_t)1));
+  Filter trackFilter = (nabs(aod::track::eta) < cfgCutEta) && ((aod::track::isGlobalTrack == true) || (aod::track::isGlobalTrackSDD == true));
   void process(aod::Collision const& collision, soa::Filtered<soa::Join<aod::Tracks, aod::TracksExtra, aod::pidRespTPC, aod::TrackSelection>> const& tracks)
   {
     for (auto const& i : tracks) {
@@ -147,7 +147,7 @@ struct TPCPIDQANSigmaTask {
 
   // Filters
   Filter collisionFilter = nabs(aod::collision::posZ) < cfgCutVertex;
-  Filter trackFilter = (nabs(aod::track::eta) < cfgCutEta) && ((aod::track::isGlobalTrack == (uint8_t)1) || (aod::track::isGlobalTrackSDD == (uint8_t)1));
+  Filter trackFilter = (nabs(aod::track::eta) < cfgCutEta) && ((aod::track::isGlobalTrack == true) || (aod::track::isGlobalTrackSDD == true));
 
   void process(aod::Collision const& collision, soa::Filtered<soa::Join<aod::Tracks, aod::TracksExtra, aod::pidRespTPC, aod::TrackSelection>> const& tracks)
   {
@@ -200,7 +200,7 @@ struct TPCPIDQASignalwTOFTask {
 
   // Filters
   Filter collisionFilter = nabs(aod::collision::posZ) < cfgCutVertex;
-  Filter trackFilter = (nabs(aod::track::eta) < cfgCutEta) && ((aod::track::isGlobalTrack == (uint8_t)1) || (aod::track::isGlobalTrackSDD == (uint8_t)1));
+  Filter trackFilter = (nabs(aod::track::eta) < cfgCutEta) && ((aod::track::isGlobalTrack == true) || (aod::track::isGlobalTrackSDD == true));
 
   void process(aod::Collision const& collision, soa::Filtered<soa::Join<aod::Tracks, aod::TracksExtra, aod::pidRespTPC, aod::pidRespTOF, aod::TrackSelection>> const& tracks)
   {
