@@ -49,7 +49,7 @@ void CompressedAnalysisTask::init(InitContext& ic)
     return;
   }
 
-  mAnalysis = GetFromMacro<CompressedAnalysis*>(filename, function, "CompressedAnalysis*", "compressed_analysis");
+  mAnalysis = GetFromMacro<CompressedAnalysis*>(filename, function, "o2::tof::CompressedAnalysis*", "compressed_analysis");
   if (!mAnalysis) {
     LOG(ERROR) << "Could not retrieve analysis from file: " << filename;
     mStatus = true;
