@@ -113,7 +113,7 @@ if [ "$doreco" == "1" ]; then
   echo "Return status of tpcreco: $?"
 
   echo "Running ITS reco flow"
-  taskwrapper itsreco.log  o2-its-reco-workflow  $gloOpt
+  taskwrapper itsreco.log  o2-its-reco-workflow --trackerCA --async-phase $gloOpt
   echo "Return status of itsreco: $?"
 
   # existing checks
@@ -139,6 +139,11 @@ if [ "$doreco" == "1" ]; then
   #needs results of TOF digitized data and results of o2-tpcits-match-workflow
   taskwrapper tofMatch.log o2-tof-reco-workflow $gloOpt
   echo "Return status of its-tpc-tof match: $?"
+
+  echo "Running primary vertex finding flow"
+  #needs results of TPC-ITS matching and FIT workflows
+  taskwrapper pvfinder.log o2-primary-vertexing-workflow $gloOpt
+  echo "Return status of primary vertexing: $?"
 
   echo "Running TOF matching QA"
   #need results of ITSTPC-TOF matching (+ TOF clusters and ITS-TPC tracks)
