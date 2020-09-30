@@ -13,7 +13,7 @@
 /// @since  2020-01-25
 /// @brief  TOF compressed data inspector task
 
-#include "TOFWorkflow/CompressedInspectorTask.h"
+#include "TOFWorkflowUtils/CompressedInspectorTask.h"
 #include "Framework/ControlService.h"
 #include "Framework/ConfigParamRegistry.h"
 #include "Framework/Logger.h"

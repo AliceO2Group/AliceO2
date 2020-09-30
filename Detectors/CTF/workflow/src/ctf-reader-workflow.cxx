@@ -24,7 +24,7 @@
 #include "TPCWorkflow/EntropyDecoderSpec.h"
 #include "FT0Workflow/EntropyDecoderSpec.h"
 #include "FV0Workflow/EntropyDecoderSpec.h"
-#include "TOFWorkflow/EntropyDecoderSpec.h"
+#include "TOFWorkflowUtils/EntropyDecoderSpec.h"
 #include "MIDWorkflow/EntropyDecoderSpec.h"
 
 using namespace o2::framework;

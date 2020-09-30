@@ -13,7 +13,7 @@
 /// @since  2020-09-04
 /// @brief  TOF compressed data analysis task
 
-#include "TOFWorkflow/CompressedAnalysisTask.h"
+#include "TOFWorkflowUtils/CompressedAnalysisTask.h"
 #include "Framework/Task.h"
 #include "Framework/ConfigParamRegistry.h"
 #include "Framework/ControlService.h"

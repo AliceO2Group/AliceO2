@@ -8,7 +8,7 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#include "TOFWorkflow/TOFClusterizerSpec.h"
+#include "TOFWorkflowUtils/TOFClusterizerSpec.h"
 #include "Framework/ControlService.h"
 #include "Framework/DataProcessorSpec.h"
 #include "Framework/DataRefUtils.h"
