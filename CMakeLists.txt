@@ -69,6 +69,7 @@ include(O2TargetRootDictionary)
 include(O2DataFile)
 include(O2TargetManPage)
 include(O2AddWorkflow)
+include(O2SetROOTPCMDependencies)
 
 # Main targets of the project in various subdirectories. Order matters.
 add_subdirectory(Common)
@@ -112,5 +113,6 @@ if(CMAKE_SOURCE_DIR STREQUAL CMAKE_CURRENT_SOURCE_DIR)
     o2_report_non_tested_macros()
   endif()
   add_subdirectory(packaging)
-
 endif()
+
+set_root_pcm_dependencies()
