@@ -144,6 +144,7 @@ function(add_root_dictionary target)
       --include_dirs -I$<JOIN:${includeDirs},$<SEMICOLON>-I>
       $<$<BOOL:${prop}>:--compile_defs>
       $<$<BOOL:${prop}>:-D$<JOIN:${prop},$<SEMICOLON>-D>>
+      --pcmdeps "$<REMOVE_DUPLICATES:${list_pcm_deps_${target}}>"
       --headers "${headers}"
     COMMAND
     ${CMAKE_COMMAND} -E copy_if_different ${CMAKE_CURRENT_BINARY_DIR}/${pcmBase} ${pcmFile}
