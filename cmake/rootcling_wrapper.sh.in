@@ -37,6 +37,10 @@ while [[ $# -gt 0 ]]; do
     ROOTMAP_FILE="$2"
     shift 2
     ;;
+  --pcmdeps)
+    PCMDEPS="$2"
+    shift 2
+    ;;
   *)
     if [[ -z "$1" ]]; then
       shift
@@ -77,7 +81,14 @@ LOGFILE=${DICTIONARY_FILE}.log
   -rml ${ROOTMAP_LIBRARY_NAME} \
   ${INCLUDE_DIRS//;/ } \
   ${COMPILE_DEFINITIONS//;/ } \
-  ${HEADERS//;/ } > ${LOGFILE} 2>&1 || cat ${LOGFILE} >&2
+  ${PCMDEPS:+-m }${PCMDEPS//;/ -m } \
+  ${HEADERS//;/ } \
+  > ${LOGFILE} 2>&1 || cat ${LOGFILE} >&2
+
+if [[ $? != "0" ]]; then
+  rm $DICTIONARY_FILE
+  exit 1
+fi
 
 MSG="Warning: Unused class rule"
 if [[ -s ${LOGFILE} ]]; then
