@@ -181,8 +181,7 @@ void DataAllocator::adopt(const Output& spec, TreeToTable* t2t)
   /// To finalise this we write the table to the buffer.
   /// FIXME: most likely not a great idea. We should probably write to the buffer
   ///        directly in the TableBuilder, incrementally.
-  std::shared_ptr<TreeToTable> p(t2t);
-  auto finalizer = [payload = p](std::shared_ptr<FairMQResizableBuffer> b) -> void {
+  auto finalizer = [payload = t2t](std::shared_ptr<FairMQResizableBuffer> b) -> void {
     auto table = payload->finalize();
 
     auto stream = std::make_shared<arrow::io::BufferOutputStream>(b);
@@ -192,6 +191,7 @@ void DataAllocator::adopt(const Output& spec, TreeToTable* t2t)
     if (outStatus.ok() == false) {
       throw std::runtime_error("Unable to Write table");
     }
+    delete payload;
   };
 
   context.addBuffer(std::move(header), buffer, std::move(finalizer), channel);
