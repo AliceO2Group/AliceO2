@@ -341,13 +341,13 @@ TTree* TableToTree::process()
 }
 
 // -----------------------------------------------------------------------------
-#define MAKE_LIST_BUILDER(ElementType, NumElements)                   \
-  std::unique_ptr<arrow::ArrayBuilder> ValueBuilder;                  \
-  arrow::MemoryPool* MemoryPool = arrow::default_memory_pool();       \
-  auto stat = MakeBuilder(MemoryPool, ElementType, &ValueBuilder);    \
-  mTableBuilder_list = std::make_shared<arrow::FixedSizeListBuilder>( \
-    MemoryPool,                                                       \
-    std::move(ValueBuilder),                                          \
+#define MAKE_LIST_BUILDER(ElementType, NumElements)                \
+  std::unique_ptr<arrow::ArrayBuilder> ValueBuilder;               \
+  arrow::MemoryPool* MemoryPool = arrow::default_memory_pool();    \
+  auto stat = MakeBuilder(MemoryPool, ElementType, &ValueBuilder); \
+  mTableBuilder_list = new arrow::FixedSizeListBuilder(            \
+    MemoryPool,                                                    \
+    std::move(ValueBuilder),                                       \
     NumElements);
 
 #define MAKE_FIELD(ElementType, NumElements)                                                         \
@@ -538,6 +538,22 @@ ColumnIterator::~ColumnIterator()
   delete mReaderArray_l;
   delete mReaderArray_f;
   delete mReaderArray_d;
+
+  if (mTableBuilder_list) {
+    delete mTableBuilder_list;
+  } else {
+    delete mTableBuilder_o;
+    delete mTableBuilder_ub;
+    delete mTableBuilder_us;
+    delete mTableBuilder_ui;
+    delete mTableBuilder_ul;
+    delete mTableBuilder_b;
+    delete mTableBuilder_s;
+    delete mTableBuilder_i;
+    delete mTableBuilder_l;
+    delete mTableBuilder_f;
+    delete mTableBuilder_d;
+  }
 };
 
 bool ColumnIterator::getStatus()

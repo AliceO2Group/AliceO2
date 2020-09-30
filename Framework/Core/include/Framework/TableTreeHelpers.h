@@ -160,7 +160,7 @@ class ColumnIterator
   TTreeReaderArray<double>* mReaderArray_d = nullptr;
 
   // all the possible arrow::TBuilder types
-  std::shared_ptr<arrow::FixedSizeListBuilder> mTableBuilder_list;
+  arrow::FixedSizeListBuilder* mTableBuilder_list = nullptr;
 
   arrow::BooleanBuilder* mTableBuilder_o = nullptr;
   arrow::UInt8Builder* mTableBuilder_ub = nullptr;
