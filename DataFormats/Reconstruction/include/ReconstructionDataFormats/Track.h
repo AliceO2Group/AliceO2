@@ -161,6 +161,8 @@ class TrackPar
     mPID = pid;
     setAbsCharge(pid.getCharge());
   }
+  uint16_t getUserField() const { return mUserField; }
+  void setUserField(uint16_t v) { mUserField = v; }
 
   /// calculate cos^2 and cos of track direction in rphi-tracking
   float getCsp2() const
@@ -247,8 +249,8 @@ class TrackPar
   float mP[kNParams] = {0.f}; /// 5 parameters: Y,Z,sin(phi),tg(lambda),q/pT
   char mAbsCharge = 1;        /// Extra info about the abs charge, to be taken into account only if not 1
   PID mPID{};                 /// 8 bit PID
-
-  ClassDefNV(TrackPar, 2);
+  uint16_t mUserField = 0;    /// field provided to user
+  ClassDefNV(TrackPar, 3);
 };
 
 class TrackParCov : public TrackPar
