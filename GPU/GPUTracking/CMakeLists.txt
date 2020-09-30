@@ -137,6 +137,7 @@ set(HDRS_INSTALL
 if(ALIGPU_BUILD_TYPE STREQUAL "O2")
   set(SRCS ${SRCS} Interface/GPUO2Interface.cxx Interface/GPUO2InterfaceConfigurableParam.cxx)
   set(HDRS_CINT_O2 ${HDRS_CINT_O2} Interface/GPUO2Interface.h Interface/GPUO2InterfaceConfigurableParam.h dEdx/TPCdEdxCalibrationSplines.h)
+  set(HDRS_CINT_O2_ADDITIONAL Base/GPUSettings.h Base/GPUSettingsList.h) # Manual depencies for ROOT dictionary generation
 endif()
 
 # Sources for O2 and for Standalone if requested in config file
@@ -279,7 +280,7 @@ if(ALIGPU_BUILD_TYPE STREQUAL "O2")
     PRIVATE $<TARGET_PROPERTY:O2::Framework,INTERFACE_INCLUDE_DIRECTORIES>)
 
   o2_target_root_dictionary(${MODULE}
-                            HEADERS ${HDRS_CINT_O2}
+                            HEADERS ${HDRS_CINT_O2} ${HDRS_CINT_O2_ADDITIONAL}
                             LINKDEF GPUTrackingLinkDef_O2.h)
 
   target_compile_definitions(${targetName} PRIVATE GPUCA_O2_LIB
