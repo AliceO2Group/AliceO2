@@ -26,6 +26,7 @@
 #ifdef QCONFIG_INSTANCE
 using namespace GPUCA_NAMESPACE::gpu;
 #endif
+#ifdef BeginNamespace // File should not be included without defining the macros, but rootcling will do for dictionary generation
 BeginNamespace(GPUCA_NAMESPACE)
 BeginNamespace(gpu)
 
@@ -271,4 +272,5 @@ EndConfig()
 
 EndNamespace() // gpu
 EndNamespace() // GPUCA_NAMESPACE
+#endif
   // clang-format on
