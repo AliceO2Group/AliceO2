@@ -1491,6 +1491,9 @@ int GPUChainTracking::RunTPCTrackingSlices_internal()
   bool error = false;
   GPUCA_OPENMP(parallel for if(!(doGPU || GetProcessingSettings().ompKernels)) num_threads(GetProcessingSettings().ompThreads))
   for (unsigned int iSlice = 0; iSlice < NSLICES; iSlice++) {
+    if (mRec->GetDeviceType() == GPUReconstruction::DeviceType::HIP) {
+      SynchronizeGPU(); // BUG: Workaround for probable bug in AMD runtime, crashes randomly if not synchronized here
+    }
     GPUTPCTracker& trk = processors()->tpcTrackers[iSlice];
     GPUTPCTracker& trkShadow = doGPU ? processorsShadow()->tpcTrackers[iSlice] : trk;
     int useStream = (iSlice % mRec->NStreams());
