@@ -72,6 +72,14 @@ if [[ ! $ROOTMAP_FILE ]]; then
   exit 1
 fi
 
+case $OSTYPE in
+  darwin*)
+    unset PCMDEPS
+    ;;
+  *)
+    ;;
+esac
+
 LOGFILE=${DICTIONARY_FILE}.log
 
 @CMAKE_COMMAND@ -E env LD_LIBRARY_PATH=${LD_LIBRARY_PATH} @ROOT_rootcling_CMD@ \
