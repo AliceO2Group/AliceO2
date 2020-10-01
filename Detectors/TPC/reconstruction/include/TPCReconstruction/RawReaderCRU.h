@@ -391,13 +391,15 @@ class RawReaderCRUEventSync
   /// get link information for a specific event and cru
   LinkInfo& getLinkInfo(const RDH& rdh, DataType dataType)
   {
-    // check if event is already registered. If not create a new one.
-    auto& event = createEvent(rdh, dataType);
+    if (!mLastEvent) {
+      createEvent(rdh, dataType);
+    }
 
     const auto dataWrapperID = RDHUtils::getEndPointID(rdh);
     const auto linkID = RDHUtils::getLinkID(rdh);
     const auto globalLinkID = linkID + dataWrapperID * 12;
-    return event.CRUInfoArray[RDHUtils::getCRUID(rdh)].LinkInformation[globalLinkID];
+
+    return mLastEvent->CRUInfoArray[RDHUtils::getCRUID(rdh)].LinkInformation[globalLinkID];
   }
 
   /// get array with all link informaiton for a specific event number and cru
@@ -465,6 +467,7 @@ class RawReaderCRUEventSync
 
  private:
   EventInfoVector mEventInformation{}; ///< event information
+  EventInfo* mLastEvent{nullptr};      ///< Last event that was created
   std::bitset<CRU::MaxCRU> mCRUSeen{}; ///< if cru was seen
 
   ClassDefNV(RawReaderCRUEventSync, 0); // event synchronisation for raw reader instances
@@ -647,10 +650,10 @@ class RawReaderCRU
   class PacketDescriptor
   {
    public:
-    PacketDescriptor(uint32_t headOff, uint32_t cruID, uint32_t linkID, uint32_t dataWrapperID, uint16_t memorySize = 7840, uint16_t packetSize = 8192) : mHeaderOffset(headOff),
-                                                                                                                                                          mFEEID(cruID + (linkID << 9) + (dataWrapperID << 13)),
-                                                                                                                                                          mMemorySize(memorySize),
-                                                                                                                                                          mPacketSize(packetSize)
+    PacketDescriptor(size_t headOff, uint32_t cruID, uint32_t linkID, uint32_t dataWrapperID, uint16_t memorySize = 7840, uint16_t packetSize = 8192) : mHeaderOffset(headOff),
+                                                                                                                                                        mFEEID(cruID + (linkID << 9) + (dataWrapperID << 13)),
+                                                                                                                                                        mMemorySize(memorySize),
+                                                                                                                                                        mPacketSize(packetSize)
     {
     }
 
@@ -678,10 +681,10 @@ class RawReaderCRU
     }
 
    private:
-    uint32_t mHeaderOffset; ///< header offset
-    uint16_t mMemorySize;   ///< payload size
-    uint16_t mPacketSize;   ///< packet size
-    uint16_t mFEEID;        ///< link ID -- BIT 0-8: CRUid -- BIT 9-12: LinkID -- BIT 13: DataWrapperID -- BIT 14,15: unused
+    size_t mHeaderOffset; ///< header offset
+    uint16_t mMemorySize; ///< payload size
+    uint16_t mPacketSize; ///< packet size
+    uint16_t mFEEID;      ///< link ID -- BIT 0-8: CRUid -- BIT 9-12: LinkID -- BIT 13: DataWrapperID -- BIT 14,15: unused
   };
 
   // ===========================================================================
@@ -697,7 +700,7 @@ class RawReaderCRU
   uint32_t mStream;                                                        ///< present stream being processed
   uint32_t mEventNumber = 0;                                               ///< current event number to process
   CRU mCRU;                                                                ///< CRU
-  int mFileSize;                                                           ///< size of the input file
+  size_t mFileSize;                                                        ///< size of the input file
   bool mDumpTextFiles = false;                                             ///< dump debugging text files
   bool mFillADCdataMap = true;                                             ///< fill the ADC data map
   bool mForceCRU = false;                                                  ///< force CRU: overwrite value from RDH

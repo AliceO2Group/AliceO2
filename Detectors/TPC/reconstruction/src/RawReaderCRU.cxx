@@ -47,16 +47,25 @@ RawReaderCRUEventSync::EventInfo& RawReaderCRUEventSync::createEvent(const RDH& 
 {
   const auto heartbeatOrbit = RDHUtils::getHeartBeatOrbit(rdh);
 
+  // TODO: might be that reversing the loop below has the same effect as using mLastEvent
+  if (mLastEvent && mLastEvent->hasHearbeatOrbit(heartbeatOrbit)) {
+    return *mLastEvent;
+  }
+
   for (auto& ev : mEventInformation) {
     const auto hbMatch = ev.hasHearbeatOrbit(heartbeatOrbit);
     if (hbMatch) {
+      mLastEvent = &ev;
       return ev;
     } else if (ev.HeartbeatOrbits.back() == heartbeatOrbit - 1) {
       ev.HeartbeatOrbits.emplace_back(heartbeatOrbit);
+      mLastEvent = &ev;
       return ev;
     }
   }
-  return mEventInformation.emplace_back(heartbeatOrbit);
+  auto& ev = mEventInformation.emplace_back(heartbeatOrbit);
+  mLastEvent = &ev;
+  return ev;
 }
 
 void RawReaderCRUEventSync::analyse()
@@ -211,9 +220,10 @@ int RawReaderCRU::scanFile()
   // read in the RDH, then jump to the next RDH position
   RDH rdh;
   uint32_t currentPacket = 0;
+  uint32_t lastHeartbeatOrbit = 0;
 
-  while (currentPacket < numPackets) {
-    const uint32_t currentPos = file.tellg();
+  while ((currentPacket < numPackets) && !file.eof()) {
+    const size_t currentPos = file.tellg();
 
     // ===| read in the RawDataHeader at the current position |=================
     file >> rdh;
@@ -256,7 +266,7 @@ int RawReaderCRU::scanFile()
     }
 
     // ===| get relavant data information |=====================================
-    //const auto heartbeatOrbit = rdh.heartbeatOrbit;
+    const auto heartbeatOrbit = RDHUtils::getHeartBeatOrbit(rdh);
     const auto dataWrapperID = RDHUtils::getEndPointID(rdh);
     const auto linkID = RDHUtils::getLinkID(rdh);
     const auto globalLinkID = linkID + dataWrapperID * 12;
@@ -276,6 +286,10 @@ int RawReaderCRU::scanFile()
     RawReaderCRUEventSync::LinkInfo* linkInfo = nullptr;
     if (mManager) {
       // in case of triggered mode, we use the first heartbeat orbit as event identifier
+      if ((lastHeartbeatOrbit == 0) || (heartbeatOrbit != lastHeartbeatOrbit)) {
+        mManager->mEventSync.createEvent(rdh, mManager->getDataType());
+        lastHeartbeatOrbit = heartbeatOrbit;
+      }
       linkInfo = &mManager->mEventSync.getLinkInfo(rdh, mManager->getDataType());
       mManager->mEventSync.setCRUSeen(mCRU);
     }
