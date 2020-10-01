@@ -65,7 +65,6 @@ DataProcessorSpec getZSEncoderSpec(std::vector<int> const& inputIds, bool zs10bi
   struct ProcessAttributes {
     std::unique_ptr<unsigned long long int[]> zsoutput;
     std::vector<unsigned int> sizes;
-    std::unique_ptr<o2::gpu::GPUReconstructionConvert> zsEncoder;
     std::vector<int> inputIds;
     bool verify = false;
     int verbosity = 1;
@@ -74,7 +73,6 @@ DataProcessorSpec getZSEncoderSpec(std::vector<int> const& inputIds, bool zs10bi
 
   auto initFunction = [inputIds, zs10bit, threshold, outRaw](InitContext& ic) {
     auto processAttributes = std::make_shared<ProcessAttributes>();
-    auto& zsEncoder = processAttributes->zsEncoder;
     auto& zsoutput = processAttributes->zsoutput;
     processAttributes->inputIds = inputIds;
     auto& verify = processAttributes->verify;
@@ -87,7 +85,6 @@ DataProcessorSpec getZSEncoderSpec(std::vector<int> const& inputIds, bool zs10bi
         return;
       }
 
-      auto& zsEncoder = processAttributes->zsEncoder;
       auto& zsoutput = processAttributes->zsoutput;
       auto& verify = processAttributes->verify;
       auto& sizes = processAttributes->sizes;
@@ -130,7 +127,7 @@ DataProcessorSpec getZSEncoderSpec(std::vector<int> const& inputIds, bool zs10bi
       sizes.resize(NSectors * NEndpoints);
       bool zs12bit = !zs10bit;
       o2::InteractionRecord ir = o2::raw::HBFUtils::Instance().getFirstIR();
-      zsEncoder->RunZSEncoder<o2::tpc::Digit, DigitArray>(inputDigits, &zsoutput, sizes.data(), nullptr, &ir, _GPUParam, zs12bit, verify, threshold);
+      o2::gpu::GPUReconstructionConvert::RunZSEncoder<o2::tpc::Digit, DigitArray>(inputDigits, &zsoutput, sizes.data(), nullptr, &ir, _GPUParam, zs12bit, verify, threshold);
       ZeroSuppressedContainer8kb* page = reinterpret_cast<ZeroSuppressedContainer8kb*>(zsoutput.get());
       unsigned int offset = 0;
       for (unsigned int i = 0; i < NSectors; i++) {
@@ -181,7 +178,7 @@ DataProcessorSpec getZSEncoderSpec(std::vector<int> const& inputIds, bool zs10bi
         if (useGrouping != LinksGrouping::Link) {
           writer.useCaching();
         }
-        zsEncoder->RunZSEncoder<o2::tpc::Digit>(inputDigits, nullptr, nullptr, &writer, &ir, _GPUParam, zs12bit, false, threshold);
+        o2::gpu::GPUReconstructionConvert::RunZSEncoder<o2::tpc::Digit>(inputDigits, nullptr, nullptr, &writer, &ir, _GPUParam, zs12bit, false, threshold);
         writer.writeConfFile("TPC", "RAWDATA", fmt::format("{}tpcraw.cfg", outDir));
       }
       zsoutput.reset(nullptr);
