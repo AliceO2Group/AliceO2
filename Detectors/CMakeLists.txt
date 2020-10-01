@@ -32,6 +32,7 @@ add_subdirectory(TPC)
 add_subdirectory(GlobalTracking)
 add_subdirectory(GlobalTrackingWorkflow)
 add_subdirectory(Vertexing)
+add_subdirectory(AOD)
 
 add_subdirectory(Calibration)
 add_subdirectory(DCS)
