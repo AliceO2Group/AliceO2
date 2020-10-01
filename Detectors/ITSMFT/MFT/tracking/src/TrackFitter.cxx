@@ -206,12 +206,12 @@ bool TrackFitter::initTrack(TrackLTF& track, bool outward)
   lastParamCov(1, 3) = 0;         // <TANL,Y>
   lastParamCov(1, 4) = 0;         // <INVQPT,Y>
 
-  lastParamCov(2, 2) = D * (J * K * K * sigmainvQPtsq + L0 * L0 * sigmaDeltaXsq + M0 * M0 * sigmaDeltaYsq); // <PHI,PHI>
+  lastParamCov(2, 2) = D * (J * K * K * sigmainvQPtsq + L0 * L0 * sigmaDeltaXsq + M0 * M0 * sigmaDeltaYsq);                              // <PHI,PHI>
   lastParamCov(2, 3) = E * K * (TMath::Sqrt2() * B52 * (L0 * deltaX * sigmaDeltaXsq - deltaY * sigmaDeltaYsq * M0) + N * sigmainvQPtsq); //  <TANL,PHI>
-  lastParamCov(2, 4) = P * sigmainvQPtsq * TMath::Sqrt2() / B32; //  <INVQPT,PHI>
+  lastParamCov(2, 4) = P * sigmainvQPtsq * TMath::Sqrt2() / B32;                                                                         //  <INVQPT,PHI>
 
   lastParamCov(3, 3) = Q * (2 * K * K * (deltaX * deltaX * sigmaDeltaXsq + deltaY * deltaY * sigmaDeltaYsq) + O * sigmainvQPtsq); // <TANL,TANL>
-  lastParamCov(3, 4) = R * sigmainvQPtsq; // <INVQPT,TANL>
+  lastParamCov(3, 4) = R * sigmainvQPtsq;                                                                                         // <INVQPT,TANL>
 
   lastParamCov(4, 4) = sigmainvQPtsq; // <INVQPT,INVQPT>
 
@@ -263,7 +263,7 @@ bool TrackFitter::computeCluster(TrackLTF& track, int cluster)
   else
     NDisksMS = (startingLayerID % 2 == 0) ? (newLayerID - startingLayerID + 1) / 2 : (newLayerID - startingLayerID) / 2;
 
-  auto MFTDiskThicknessInX0 = mftTrackingParam.MFTRadLenghts / 5.0;
+  auto MFTDiskThicknessInX0 = mftTrackingParam.MFTRadLength / 5.0;
   if (mftTrackingParam.verbose) {
     std::cout << "startingLayerID = " << startingLayerID << " ; "
               << "newLayerID = " << newLayerID << " ; ";
@@ -367,7 +367,7 @@ Double_t invQPtFromFCF(const TrackLTF& track, Double_t bFieldZ, Double_t& sigmai
     vErr[i] = std::sqrt(8. * xErr[i + 1] * xErr[i + 1] * x2 * y2 + 2. * yErr[i + 1] * yErr[i + 1] * (x2 - y2) * (x2 - y2)) * invx2y2 * invx2y2;
     u2 = uVal[i] * uVal[i];
     fweight[i] = 1. / vErr[i];
-    F0 += fweight[i]; // f = fn(Hansroul) que é o peso de cada ponto Vn...inverso da incerteza?
+    F0 += fweight[i];
     F1 += fweight[i] * uVal[i];
     F2 += fweight[i] * u2;
     F3 += fweight[i] * uVal[i] * u2;
@@ -446,9 +446,6 @@ Double_t invQPtFromFCF(const TrackLTF& track, Double_t bFieldZ, Double_t& sigmai
     double sigma2R = invR * invR * (b * b * sigmaasq_FCF + a * a * sigmabsq_FCF + 2 * a * b * TMath::Sqrt(sigmaasq_FCF) * TMath::Sqrt(sigmabsq_FCF));
 
     sigmainvqptsq = sigma2R * invpt * invpt * invR * invR;
-
-    std::cout << " Sigma^2_A " << sigmaAsq << " Sigma^2_B " << sigmaBsq << " Sigma_AB " << sigmaAB << std::endl;
-    std::cout << " Sigma^2_a " << sigmaasq_FCF << " Sigma^2_b " << sigmabsq_FCF << " Sigma^2_R " << sigma2R << std::endl;
 
   } else { // the linear regression failed...
     LOG(WARN) << "LinearRegression failed!";
