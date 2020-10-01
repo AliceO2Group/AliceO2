@@ -95,75 +95,75 @@ struct TrackQATask {
   void init(o2::framework::InitContext&)
   {
     // kine histograms
-    kine->Add(pt, new TH1D("pt", "#it{p}_{T};#it{p}_{T} [GeV/c]", 200, 0., 5.));
-    kine->Add(eta, new TH1D("eta", "#eta;#eta", 180, -0.9, 0.9));
-    kine->Add(phi, new TH1D("phi", "#phi;#phi [rad]", 180, 0., 2 * M_PI));
+    kine->Add<pt>(new TH1D("pt", "#it{p}_{T};#it{p}_{T} [GeV/c]", 200, 0., 5.));
+    kine->Add<eta>(new TH1D("eta", "#eta;#eta", 180, -0.9, 0.9));
+    kine->Add<phi>(new TH1D("phi", "#phi;#phi [rad]", 180, 0., 2 * M_PI));
 
     // track histograms
-    trackpar->Add(x, new TH1D("x", "track #it{x} position at dca in local coordinate system;#it{x} [cm]", 200, -0.36, 0.36));
-    trackpar->Add(y, new TH1D("y", "track #it{y} position at dca in local coordinate system;#it{y} [cm]", 200, -0.5, 0.5));
-    trackpar->Add(z, new TH1D("z", "track #it{z} position at dca in local coordinate system;#it{z} [cm]", 200, -11., 11.));
-    trackpar->Add(alpha, new TH1D("alpha", "rotation angle of local wrt. global coordinate system;#alpha [rad]", 36, -M_PI, M_PI));
-    trackpar->Add(signed1Pt, new TH1D("signed1Pt", "track signed 1/#it{p}_{T};#it{q}/#it{p}_{T}", 200, -8, 8));
-    trackpar->Add(snp, new TH1D("snp", "sinus of track momentum azimuthal angle;snp", 11, -0.1, 0.1));
-    trackpar->Add(tgl, new TH1D("tgl", "tangent of the track momentum dip angle;tgl;", 200, -1., 1.));
-    trackpar->Add(flags, new TH1D("flags", "track flag;flag bit", 64, -0.5, 63.5));
-    trackpar->Add(dcaXY, new TH1D("dcaXY", "distance of closest approach in #it{xy} plane;#it{dcaXY} [cm];", 200, -0.15, 0.15));
-    trackpar->Add(dcaZ, new TH1D("dcaZ", "distance of closest approach in #it{z};#it{dcaZ} [cm];", 200, -0.15, 0.15));
+    trackpar->Add<x>(new TH1D("x", "track #it{x} position at dca in local coordinate system;#it{x} [cm]", 200, -0.36, 0.36));
+    trackpar->Add<y>(new TH1D("y", "track #it{y} position at dca in local coordinate system;#it{y} [cm]", 200, -0.5, 0.5));
+    trackpar->Add<z>(new TH1D("z", "track #it{z} position at dca in local coordinate system;#it{z} [cm]", 200, -11., 11.));
+    trackpar->Add<alpha>(new TH1D("alpha", "rotation angle of local wrt. global coordinate system;#alpha [rad]", 36, -M_PI, M_PI));
+    trackpar->Add<signed1Pt>(new TH1D("signed1Pt", "track signed 1/#it{p}_{T};#it{q}/#it{p}_{T}", 200, -8, 8));
+    trackpar->Add<snp>(new TH1D("snp", "sinus of track momentum azimuthal angle;snp", 11, -0.1, 0.1));
+    trackpar->Add<tgl>(new TH1D("tgl", "tangent of the track momentum dip angle;tgl;", 200, -1., 1.));
+    trackpar->Add<flags>(new TH1D("flags", "track flag;flag bit", 64, -0.5, 63.5));
+    trackpar->Add<dcaXY>(new TH1D("dcaXY", "distance of closest approach in #it{xy} plane;#it{dcaXY} [cm];", 200, -0.15, 0.15));
+    trackpar->Add<dcaZ>(new TH1D("dcaZ", "distance of closest approach in #it{z};#it{dcaZ} [cm];", 200, -0.15, 0.15));
 
     // its histograms
-    its->Add(itsNCls, new TH1D("itsNCls", "number of found ITS clusters;# clusters ITS", 8, -0.5, 7.5));
-    its->Add(itsChi2NCl, new TH1D("itsChi2NCl", "chi2 per ITS cluster;chi2 / cluster ITS", 100, 0, 40));
-    its->Add(itsHits, new TH1D("itsHits", "hitmap ITS;layer ITS", 7, -0.5, 6.5));
+    its->Add<itsNCls>(new TH1D("itsNCls", "number of found ITS clusters;# clusters ITS", 8, -0.5, 7.5));
+    its->Add<itsChi2NCl>(new TH1D("itsChi2NCl", "chi2 per ITS cluster;chi2 / cluster ITS", 100, 0, 40));
+    its->Add<itsHits>(new TH1D("itsHits", "hitmap ITS;layer ITS", 7, -0.5, 6.5));
 
     // tpc histograms
-    tpc->Add(tpcNClsFindable, new TH1D("tpcNClsFindable", "number of findable TPC clusters;# findable clusters TPC", 165, -0.5, 164.5));
-    tpc->Add(tpcNClsFound, new TH1D("tpcNClsFound", "number of found TPC clusters;# clusters TPC", 165, -0.5, 164.5));
-    tpc->Add(tpcNClsShared, new TH1D("tpcNClsShared", "number of shared TPC clusters;# shared clusters TPC", 165, -0.5, 164.5));
-    tpc->Add(tpcNClsCrossedRows, new TH1D("tpcNClsCrossedRows", "number of crossed TPC rows;# crossed rows TPC", 165, -0.5, 164.5));
-    tpc->Add(tpcFractionSharedCls, new TH1D("tpcFractionSharedCls", "fraction of shared TPC clusters;fraction shared clusters TPC", 100, 0., 1.));
-    tpc->Add(tpcCrossedRowsOverFindableCls, new TH1D("tpcCrossedRowsOverFindableCls", "crossed TPC rows over findable clusters;crossed rows / findable clusters TPC", 120, 0.0, 1.2));
-    tpc->Add(tpcChi2NCl, new TH1D("tpcChi2NCl", "chi2 per cluster in TPC;chi2 / cluster TPC", 100, 0, 10));
+    tpc->Add<tpcNClsFindable>(new TH1D("tpcNClsFindable", "number of findable TPC clusters;# findable clusters TPC", 165, -0.5, 164.5));
+    tpc->Add<tpcNClsFound>(new TH1D("tpcNClsFound", "number of found TPC clusters;# clusters TPC", 165, -0.5, 164.5));
+    tpc->Add<tpcNClsShared>(new TH1D("tpcNClsShared", "number of shared TPC clusters;# shared clusters TPC", 165, -0.5, 164.5));
+    tpc->Add<tpcNClsCrossedRows>(new TH1D("tpcNClsCrossedRows", "number of crossed TPC rows;# crossed rows TPC", 165, -0.5, 164.5));
+    tpc->Add<tpcFractionSharedCls>(new TH1D("tpcFractionSharedCls", "fraction of shared TPC clusters;fraction shared clusters TPC", 100, 0., 1.));
+    tpc->Add<tpcCrossedRowsOverFindableCls>(new TH1D("tpcCrossedRowsOverFindableCls", "crossed TPC rows over findable clusters;crossed rows / findable clusters TPC", 120, 0.0, 1.2));
+    tpc->Add<tpcChi2NCl>(new TH1D("tpcChi2NCl", "chi2 per cluster in TPC;chi2 / cluster TPC", 100, 0, 10));
   }
 
   void process(soa::Filtered<soa::Join<aod::FullTracks, aod::TracksExtended, aod::TrackSelection>>::iterator const& track)
   {
     // fill kinematic variables
-    kine->Fill(pt, track.pt());
-    kine->Fill(eta, track.eta());
-    kine->Fill(phi, track.phi());
+    kine->Fill<pt>(track.pt());
+    kine->Fill<eta>(track.eta());
+    kine->Fill<phi>(track.phi());
 
     // fill track parameters
-    trackpar->Fill(alpha, track.alpha());
-    trackpar->Fill(x, track.x());
-    trackpar->Fill(y, track.y());
-    trackpar->Fill(z, track.z());
-    trackpar->Fill(signed1Pt, track.signed1Pt());
-    trackpar->Fill(snp, track.snp());
-    trackpar->Fill(tgl, track.tgl());
+    trackpar->Fill<alpha>(track.alpha());
+    trackpar->Fill<x>(track.x());
+    trackpar->Fill<y>(track.y());
+    trackpar->Fill<z>(track.z());
+    trackpar->Fill<signed1Pt>(track.signed1Pt());
+    trackpar->Fill<snp>(track.snp());
+    trackpar->Fill<tgl>(track.tgl());
     for (unsigned int i = 0; i < 64; i++) {
       if (track.flags() & (1 << i))
-        trackpar->Fill(flags, i);
+        trackpar->Fill<flags>(i);
     }
-    trackpar->Fill(dcaXY, track.dcaXY());
-    trackpar->Fill(dcaZ, track.dcaZ());
+    trackpar->Fill<dcaXY>(track.dcaXY());
+    trackpar->Fill<dcaZ>(track.dcaZ());
 
     // fill ITS variables
-    its->Fill(itsNCls, track.itsNCls());
-    its->Fill(itsChi2NCl, track.itsChi2NCl());
+    its->Fill<itsNCls>(track.itsNCls());
+    its->Fill<itsChi2NCl>(track.itsChi2NCl());
     for (unsigned int i = 0; i < 7; i++) {
       if (track.itsClusterMap() & (1 << i))
-        its->Fill(itsHits, i);
+        its->Fill<itsHits>(i);
     }
 
     // fill TPC variables
-    tpc->Fill(tpcNClsFindable, track.tpcNClsFindable());
-    tpc->Fill(tpcNClsFound, track.tpcNClsFound());
-    tpc->Fill(tpcNClsShared, track.tpcNClsShared());
-    tpc->Fill(tpcNClsCrossedRows, track.tpcNClsCrossedRows());
-    tpc->Fill(tpcCrossedRowsOverFindableCls, track.tpcCrossedRowsOverFindableCls());
-    tpc->Fill(tpcFractionSharedCls, track.tpcFractionSharedCls());
-    tpc->Fill(tpcChi2NCl, track.tpcChi2NCl());
+    tpc->Fill<tpcNClsFindable>(track.tpcNClsFindable());
+    tpc->Fill<tpcNClsFound>(track.tpcNClsFound());
+    tpc->Fill<tpcNClsShared>(track.tpcNClsShared());
+    tpc->Fill<tpcNClsCrossedRows>(track.tpcNClsCrossedRows());
+    tpc->Fill<tpcCrossedRowsOverFindableCls>(track.tpcCrossedRowsOverFindableCls());
+    tpc->Fill<tpcFractionSharedCls>(track.tpcFractionSharedCls());
+    tpc->Fill<tpcChi2NCl>(track.tpcChi2NCl());
 
     // fill TRD variables
 
