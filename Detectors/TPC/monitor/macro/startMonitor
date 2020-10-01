@@ -42,9 +42,10 @@ verbosity=0
 debugLevel=0
 selectedSector=0
 showOverview=0
+tool=""
 
 # ===| parse command line options |=============================================
-OPTIONS=$(getopt -l "fileInfo:,pedestalFile:,firstTimeBin:,lastTimeBin:,timeBins:,verbosity:,debugLevel:,sector:,overview,help" -o "i:p:f:l:t:v:d:s:oh" -n "startMonitor" -- "$@")
+OPTIONS=$(getopt -l "fileInfo:,pedestalFile:,firstTimeBin:,lastTimeBin:,timeBins:,verbosity:,debugLevel:,sector:,overview,valgrind,callgrind,help" -o "i:p:f:l:t:v:d:s:oh" -n "startMonitor" -- "$@")
 
 if [ $? != 0 ] ; then
   usageAndExit
@@ -64,6 +65,8 @@ while true; do
     -d|--debugLevel) debugLevel=$2; shift 2;;
     -s|--sector) selectedSector=$2; shift 2;;
     -o|--overview) showOverview=1; shift;;
+    --valgrind) tool="valgrind --log-file=valgrind.log"; shift;;
+    --callgrind) tool="valgrind --tool=callgrind"; shift;;
     -h|--help) usageAndExit;;
      *) echo "Internal error!" ; exit 1 ;;
    esac
@@ -83,8 +86,6 @@ else
 fi
 
 # ===| command building and execution |=========================================
-
-#cmd="valgrind --log-file=valgrind.log root.exe -l $O2_SRC/Detectors/TPC/reconstruction/macro/addInclude.C $O2_SRC/Detectors/TPC/monitor/macro/RunSimpleEventDisplay.C+g'(\"$fileInfo\",\"$pedestalFile\",$timeBins,$verbosity,$debugLevel,$selectedSector,$showOverview)'"
-cmd="root.exe -l $O2_SRC/Detectors/TPC/reconstruction/macro/addInclude.C $O2_SRC/Detectors/TPC/monitor/macro/RunSimpleEventDisplay.C+g'(\"$fileInfo\", \"$pedestalFile\", $firstTimeBin, $lastTimeBin, $timeBins, $verbosity, $debugLevel, $selectedSector, $showOverview)'"
+cmd="$tool root.exe -l $O2_SRC/Detectors/TPC/reconstruction/macro/addInclude.C $O2_SRC/Detectors/TPC/monitor/macro/RunSimpleEventDisplay.C+g'(\"$fileInfo\", \"$pedestalFile\", $firstTimeBin, $lastTimeBin, $timeBins, $verbosity, $debugLevel, $selectedSector, $showOverview)'"
 echo "running: $cmd"
 eval $cmd
