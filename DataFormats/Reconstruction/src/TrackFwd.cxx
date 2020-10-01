@@ -325,7 +325,7 @@ void TrackParCovFwd::addMCSEffect(double dZ, double x_over_X0)
   auto pathLengthOverX0 = x_over_X0 * csclambda; //
 
   // Angular dispersion square of the track (variance) in a plane perpendicular to the trajectory
-  auto sigmathetasq = 0.0136 * getInverseMomentum() * (1 + 0.038 * TMath::Log(pathLengthOverX0));
+  auto sigmathetasq = 0.0136 * getInverseMomentum();
   sigmathetasq *= sigmathetasq * pathLengthOverX0;
 
   // Get covariance matrix
