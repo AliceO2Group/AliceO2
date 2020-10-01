@@ -151,4 +151,8 @@ if [ "$doreco" == "1" ]; then
   #need results of ITSTPC-TOF matching (+ TOF clusters and ITS-TPC tracks)
   root -b -q -l $O2_ROOT/share/macro/checkTOFMatching.C 1>tofmatch_qa.log 2>&1
   echo "Return status of TOF matching qa: $?"
+
+  echo "Producing AOD"
+  taskwrapper aod.log o2-reco-standalone-aod-producer
+  echo "Return status of AOD production: $?"
 fi

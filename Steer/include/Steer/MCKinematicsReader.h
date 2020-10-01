@@ -11,12 +11,14 @@
 #include "SimulationDataFormat/DigitizationContext.h"
 #include "SimulationDataFormat/MCTrack.h"
 #include "SimulationDataFormat/MCCompLabel.h"
+#include "SimulationDataFormat/MCEventHeader.h"
 #include <vector>
 
 class TChain;
 
 namespace o2
 {
+
 namespace steer
 {
 
@@ -77,8 +79,17 @@ class MCKinematicsReader
 
   /// get all mothers/daughters of the given label
 
+  /// retrieves the MCEventHeader for a given eventID and sourceID
+  o2::dataformats::MCEventHeader const& getMCEventHeader(int source, int event) const;
+
+  DigitizationContext const* getDigitizationContext() const
+  {
+    return mDigitizationContext;
+  }
+
  private:
   void loadTracksForSource(int source) const;
+  void loadHeadersForSource(int source) const;
 
   DigitizationContext const* mDigitizationContext = nullptr;
 
@@ -87,6 +98,7 @@ class MCKinematicsReader
 
   // a vector of tracks foreach source and each collision
   mutable std::vector<std::vector<std::vector<o2::MCTrack>>> mTracks; // the in-memory track container
+  mutable std::vector<std::vector<o2::dataformats::MCEventHeader>> mHeaders; // the in-memory header container
 
   bool mInitialized = false; // whether initialized
 };
@@ -123,6 +135,14 @@ inline std::vector<MCTrack> const& MCKinematicsReader::getTracks(int source, int
 inline std::vector<MCTrack> const& MCKinematicsReader::getTracks(int event) const
 {
   return getTracks(0, event);
+}
+
+inline o2::dataformats::MCEventHeader const& MCKinematicsReader::getMCEventHeader(int source, int event) const
+{
+  if (mHeaders.at(source).size() == 0) {
+    loadHeadersForSource(source);
+  }
+  return mHeaders.at(source)[event];
 }
 
 } // namespace steer
