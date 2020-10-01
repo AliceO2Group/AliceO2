@@ -543,6 +543,10 @@ bool MatchTOF::prepareTPCTracks()
   // copy the track params, propagate to reference X and build sector tables
   mTracksWork.clear();
   mTracksWork.reserve(mNumOfTracks);
+  mSideTPC.clear();
+  mSideTPC.reserve(mNumOfTracks);
+  mExtraTPCFwdTime.clear();
+  mExtraTPCFwdTime.reserve(mNumOfTracks);
 
   for (int sec = o2::constants::math::NSectors; sec--;) {
     mTPCTracksSectIndexCache[sec].clear();
@@ -568,6 +572,9 @@ bool MatchTOF::prepareTPCTracks()
     // set
     timeInfo.setTimeStamp(trcOrig.getTime0() * o2::tpc::ParameterElectronics::Instance().ZbinWidth);
     timeInfo.setTimeStampError(trcOrig.getDeltaTBwd() * o2::tpc::ParameterElectronics::Instance().ZbinWidth);
+    mSideTPC.push_back(trcOrig.hasASideClustersOnly() ? 1 : (trcOrig.hasCSideClustersOnly() ? -1 : 0));
+    mExtraTPCFwdTime.push_back(trcOrig.getDeltaTFwd() * o2::tpc::ParameterElectronics::Instance().ZbinWidth);
+
     o2::track::TrackLTIntegral intLT0; //mTPCTracksWork.back().getLTIntegralOut(); // we get the integrated length from TPC-ITC outward propagation
     // make a copy of the TPC track that we have to propagate
     //o2::tpc::TrackTPC* trc = new o2::tpc::TrackTPC(trcTPCOrig); // this would take the TPCout track
@@ -1139,12 +1146,12 @@ void MatchTOF::doMatchingForTPC(int sec)
     BCcand.clear();
     nStripsCrossedInPropagation.clear();
 
-    int side = (trefTrk.getZ() > 0) ? 1 : -1;
+    int side = mSideTPC[cacheTrk[itrk]];
 
     // look at BC candidates for the track
     itof0 = 0;
     double minTrkTime = (trackWork.second.getTimeStamp() - trackWork.second.getTimeStampError()) * 1.E6; // minimum time in ps
-    double maxTrkTime = (trackWork.second.getTimeStamp() + trackWork.second.getTimeStampError()) * 1.E6; // maximum time in ps
+    double maxTrkTime = (trackWork.second.getTimeStamp() + mExtraTPCFwdTime[cacheTrk[itrk]]) * 1.E6;     // maximum time in ps
 
     for (auto itof = itof0; itof < nTOFCls; itof++) {
       auto& trefTOF = mTOFClusWork[cacheTOF[itof]];
@@ -1240,8 +1247,10 @@ void MatchTOF::doMatchingForTPC(int sec)
 
         if (side > 0)
           posFloat[2] = pos[2] - vdrift * (trackWork.second.getTimeStamp() - BCcand[ibc] * Geo::BC_TIME_INPS * 1E-6);
-        else
+        else if (side < 0)
           posFloat[2] = pos[2] + vdrift * (trackWork.second.getTimeStamp() - BCcand[ibc] * Geo::BC_TIME_INPS * 1E-6);
+        else
+          posFloat[2] = pos[2];
 
         Geo::getPadDxDyDz(posFloat, detIdTemp, deltaPosTemp);
 
