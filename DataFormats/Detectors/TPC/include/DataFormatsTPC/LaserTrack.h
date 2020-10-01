@@ -32,7 +32,7 @@ class LaserTrack : public o2::track::TrackPar
   static constexpr int TracksPerBundle = 7;  ///< number of micro-mirrors per bundle
 
   LaserTrack() = default;
-  LaserTrack(int id, float x, float alpha, const std::array<float, o2::track::kNParams>& par) : mID(id), TrackPar(x, alpha, par) { ; }
+  LaserTrack(int id, float x, float alpha, const std::array<float, o2::track::kNParams>& par) : mID(id), o2::track::TrackPar(x, alpha, par) { ; }
   LaserTrack(LaserTrack const&) = default;
 
   /// set laser track ID
