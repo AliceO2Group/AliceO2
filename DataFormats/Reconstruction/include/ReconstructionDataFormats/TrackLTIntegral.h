@@ -24,8 +24,6 @@ namespace o2
 namespace track
 {
 
-class TrackPar;
-
 class TrackLTIntegral
 {
  public:

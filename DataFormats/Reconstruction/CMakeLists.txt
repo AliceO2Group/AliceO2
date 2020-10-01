@@ -9,7 +9,8 @@
 # submit itself to any jurisdiction.
 
 o2_add_library(ReconstructionDataFormats
-               SOURCES src/Track.cxx
+               SOURCES src/TrackParametrization.cxx
+                       src/TrackParametrizationWithError.cxx
                        src/TrackFwd.cxx
                        src/BaseCluster.cxx
                        src/TrackTPCITS.cxx

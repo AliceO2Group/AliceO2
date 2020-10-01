@@ -401,7 +401,7 @@ bool Tracker::fitTrack(const ROframe& event, TrackITSExt& track, int start, int 
 
     track.setChi2(track.getChi2() +
                   track.getPredictedChi2(trackingHit.positionTrackingFrame, trackingHit.covarianceTrackingFrame));
-    if (!track.TrackParCov::update(trackingHit.positionTrackingFrame, trackingHit.covarianceTrackingFrame))
+    if (!track.o2::track::TrackParCov::update(trackingHit.positionTrackingFrame, trackingHit.covarianceTrackingFrame))
       return false;
 
     const float xx0 = (iLayer > 2) ? 0.008f : 0.003f; // Rough layer thickness
