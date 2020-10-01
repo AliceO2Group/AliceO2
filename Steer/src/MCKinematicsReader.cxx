@@ -10,6 +10,7 @@
 
 #include "DetectorsCommonDataFormats/NameConf.h"
 #include "Steer/MCKinematicsReader.h"
+#include "SimulationDataFormat/MCEventHeader.h"
 #include <TChain.h>
 #include <vector>
 #include "FairLogger.h"
@@ -35,6 +36,26 @@ void MCKinematicsReader::loadTracksForSource(int source) const
   }
 }
 
+void MCKinematicsReader::loadHeadersForSource(int source) const
+{
+  auto chain = mInputChains[source];
+  if (chain) {
+    // todo: get name from NameConfig
+    auto br = chain->GetBranch("MCEventHeader.");
+    if (br) {
+      o2::dataformats::MCEventHeader* header = nullptr;
+      br->SetAddress(&header);
+      mHeaders[source].resize(br->GetEntries());
+      for (int event = 0; event < br->GetEntries(); ++event) {
+        br->GetEntry(event);
+        mHeaders[source][event] = *header;
+      }
+    } else {
+      LOG(WARN) << "MCHeader branch not found";
+    }
+  }
+}
+
 bool MCKinematicsReader::initFromDigitContext(std::string_view name)
 {
   if (mInitialized) {
@@ -54,6 +75,7 @@ bool MCKinematicsReader::initFromDigitContext(std::string_view name)
 
   // load the kinematics information
   mTracks.resize(mInputChains.size());
+  mHeaders.resize(mInputChains.size());
 
   // actual loading will be done only if someone asks
   // the first time for a particular source ...
@@ -70,6 +92,7 @@ bool MCKinematicsReader::initFromKinematics(std::string_view name)
   mInputChains.emplace_back(new TChain("o2sim"));
   mInputChains.back()->AddFile(o2::base::NameConf::getMCKinematicsFileName(name.data()).c_str());
   mTracks.resize(1);
+  mHeaders.resize(1);
   mInitialized = true;
 
   return true;
