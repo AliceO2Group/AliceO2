@@ -1161,7 +1161,7 @@ GPUd() void GPUTRDTracker_t<TRDTRK, PROP>::FindChambersInRoad(const TRDTRK* t, c
     const GPUTRDpadPlane* pp = mGeo->GetPadPlane(iLayer, currStack);
     int lastPadRow = mGeo->GetRowMax(iLayer, currStack, 0);
     float zCenter = pp->GetRowPos(lastPadRow / 2);
-    if ((t->getZ() + roadZ) > pp->GetRowPos(0) || (t->getZ() - roadZ) < pp->GetRowPos(lastPadRow)) {
+    if ((t->getZ() + roadZ) > pp->GetRow0() || (t->getZ() - roadZ) < pp->GetRowEnd()) {
       int addStack = t->getZ() > zCenter ? currStack - 1 : currStack + 1;
       if (addStack < kNStacks && addStack > -1) {
         det[nDets++] = mGeo->GetDetector(iLayer, addStack, currSec);
