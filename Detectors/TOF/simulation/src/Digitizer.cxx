@@ -277,7 +277,7 @@ void Digitizer::addDigit(Int_t channel, UInt_t istrip, Double_t time, Float_t x,
 
   // let's move from time to bc, tdc
 
-  Int_t nbc = Int_t(time * Geo::BC_TIME_INPS_INV); // time elapsed in number of bunch crossing
+  uint64_t nbc = (uint64_t)(time * Geo::BC_TIME_INPS_INV); // time elapsed in number of bunch crossing
   //Digit newdigit(time, channel, (time - Geo::BC_TIME_INPS * nbc) * Geo::NTDCBIN_PER_PS, tot * Geo::NTOTBIN_PER_NS, nbc);
 
   int tdc = int((time - Geo::BC_TIME_INPS * nbc) * Geo::NTDCBIN_PER_PS);
@@ -368,7 +368,7 @@ void Digitizer::addDigit(Int_t channel, UInt_t istrip, Double_t time, Float_t x,
   }
 }
 //______________________________________________________________________
-void Digitizer::fillDigitsInStrip(std::vector<Strip>* strips, o2::dataformats::MCTruthContainer<o2::tof::MCLabel>* mcTruthContainer, int channel, int tdc, int tot, int nbc, UInt_t istrip, Int_t trackID, Int_t eventID, Int_t sourceID)
+void Digitizer::fillDigitsInStrip(std::vector<Strip>* strips, o2::dataformats::MCTruthContainer<o2::tof::MCLabel>* mcTruthContainer, int channel, int tdc, int tot, uint64_t nbc, UInt_t istrip, Int_t trackID, Int_t eventID, Int_t sourceID)
 {
   int lblCurrent;
   if (mcTruthContainer) {
@@ -856,13 +856,12 @@ void Digitizer::flushOutputContainer(std::vector<Digit>& digits)
 //______________________________________________________________________
 void Digitizer::checkIfReuseFutureDigits()
 {
+  uint64_t bclimit = 999999999999999999;
+
   // check if digits stored very far in future match the new readout windows currently available
   int idigit = mFutureDigits.size() - 1;
 
-  int bclimit = 999999; // if bc is larger than this value stop the search  in the next loop since bc are ordered in descending order
-
   for (std::vector<Digit>::reverse_iterator digit = mFutureDigits.rbegin(); digit != mFutureDigits.rend(); ++digit) {
-
     if (digit->getBC() > bclimit)
       break;
 

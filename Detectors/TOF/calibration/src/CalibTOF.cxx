@@ -269,11 +269,11 @@ void CalibTOF::fillOutput(int flag)
   if (mFillCCDB) {
     if (flag & kLHCphase) {
       std::map<std::string, std::string> metadataLHCphase;                                                                                  // can be empty
-      mCalibTOFapi.writeLHCphase(mLHCphaseObj, metadataLHCphase, (unsigned long)mMinTimestamp * 1000, (unsigned long)mMaxTimestamp * 1000); // we use as validity the timestamps that we got from the input for the calibration; but we need to convert to ms for the CCDB (at least for now that we use an integer for the timestamp)
+      mCalibTOFapi.writeLHCphase(mLHCphaseObj, metadataLHCphase, (uint64_t)mMinTimestamp * 1000, (uint64_t)mMaxTimestamp * 1000);           // we use as validity the timestamps that we got from the input for the calibration; but we need to convert to ms for the CCDB (at least for now that we use an integer for the timestamp)
     }
     if (flag & kChannelOffset || flag & kChannelTimeSlewing) {
       std::map<std::string, std::string> metadataChannelCalib;                                                        // can be empty
-      mCalibTOFapi.writeTimeSlewingParam(mTimeSlewingObj, metadataChannelCalib, (unsigned long)mMinTimestamp * 1000); // contains both offset and time slewing; we use as validity the START ONLY timestamp that we got from the input for the calibration; but we need to convert to ms for the CCDB (at least for now that we use an integer for the timestamp), END is default
+      mCalibTOFapi.writeTimeSlewingParam(mTimeSlewingObj, metadataChannelCalib, (uint64_t)mMinTimestamp * 1000);      // contains both offset and time slewing; we use as validity the START ONLY timestamp that we got from the input for the calibration; but we need to convert to ms for the CCDB (at least for now that we use an integer for the timestamp), END is default
     }
   }
 }
