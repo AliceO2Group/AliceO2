@@ -408,7 +408,13 @@ struct alignas(64) DataPointValue final {
         break;
       case RAW_STRING:
       case DPVAL_STRING:
-        std::strncpy((char*)&payload_pt1, (char*)data, 56);
+        std::strncpy((char*)&payload_pt1, (char*)data, 8);
+        std::strncpy((char*)&payload_pt2, (char*)data + 8, 8);
+        std::strncpy((char*)&payload_pt3, (char*)data + 16, 8);
+        std::strncpy((char*)&payload_pt4, (char*)data + 24, 8);
+        std::strncpy((char*)&payload_pt5, (char*)data + 32, 8);
+        std::strncpy((char*)&payload_pt6, (char*)data + 40, 8);
+        std::strncpy((char*)&payload_pt7, (char*)data + 48, 8);
         break;
       case RAW_BINARY:
       case DPVAL_BINARY:
