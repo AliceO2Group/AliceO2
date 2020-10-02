@@ -25,11 +25,12 @@ namespace o2::aod
 {
 namespace seltrack
 {
-DECLARE_SOA_COLUMN(IsSel, issel, int);
+DECLARE_SOA_COLUMN(IsSel_2prong, issel_2prong, int);
+DECLARE_SOA_COLUMN(IsSel_3prong, issel_3prong, int);
 DECLARE_SOA_COLUMN(DCAPrim0, dcaprim0, float);
 DECLARE_SOA_COLUMN(DCAPrim1, dcaprim1, float);
 } // namespace seltrack
-DECLARE_SOA_TABLE(SelTrack, "AOD", "SELTRACK", seltrack::IsSel, seltrack::DCAPrim0,
+DECLARE_SOA_TABLE(SelTrack, "AOD", "SELTRACK", seltrack::IsSel_2prong, seltrack::IsSel_3prong, seltrack::DCAPrim0,
                   seltrack::DCAPrim1);
 
 using BigTracks = soa::Join<Tracks, TracksCov, TracksExtra, SelTrack, pidRespTPC, pidRespTOF>;
