@@ -290,6 +290,38 @@ BOOST_AUTO_TEST_CASE(GroupSlicerMismatchedFilteredGroups)
   }
 }
 
+BOOST_AUTO_TEST_CASE(EmptySliceables)
+{
+  TableBuilder builderE;
+  auto evtsWriter = builderE.cursor<aod::Events>();
+  for (auto i = 0; i < 20; ++i) {
+    evtsWriter(0, i, 0.5f * i, 2.f * i, 3.f * i);
+  }
+  auto evtTable = builderE.finalize();
+
+  TableBuilder builderT;
+  auto trksWriter = builderT.cursor<aod::TrksX>();
+  auto trkTable = builderT.finalize();
+
+  aod::Events e{evtTable};
+  aod::TrksX t{trkTable};
+  BOOST_CHECK_EQUAL(e.size(), 20);
+  BOOST_CHECK_EQUAL(t.size(), 0);
+
+  auto tt = std::make_tuple(t);
+  o2::framework::AnalysisDataProcessorBuilder::GroupSlicer g(e, tt);
+
+  unsigned int count = 0;
+  for (auto& slice : g) {
+    auto as = slice.associatedTables();
+    auto gg = slice.groupingElement();
+    auto trks = std::get<aod::TrksX>(as);
+    BOOST_CHECK_EQUAL(gg.globalIndex(), count);
+    BOOST_CHECK_EQUAL(trks.size(), 0);
+    ++count;
+  }
+}
+
 BOOST_AUTO_TEST_CASE(ArrowDirectSlicing)
 {
   int counts[] = {5, 5, 5, 4, 1};

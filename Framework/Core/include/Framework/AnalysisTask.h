@@ -237,7 +237,7 @@ struct AnalysisDataProcessorBuilder {
         auto splitter = [&](auto&& x) {
           using xt = std::decay_t<decltype(x)>;
           constexpr auto index = framework::has_type_at_v<std::decay_t<decltype(x)>>(associated_pack_t{});
-          if (hasIndexTo<std::decay_t<G>>(typename xt::persistent_columns_t{})) {
+          if (x.size() != 0 && hasIndexTo<std::decay_t<G>>(typename xt::persistent_columns_t{})) {
             auto result = o2::framework::sliceByColumn(indexColumnName.c_str(),
                                                        x.asArrowTable(),
                                                        static_cast<int32_t>(gt.tableSize()),
@@ -342,7 +342,7 @@ struct AnalysisDataProcessorBuilder {
       auto prepareArgument()
       {
         constexpr auto index = framework::has_type_at_v<A1>(associated_pack_t{});
-        if (hasIndexTo<G>(typename std::decay_t<A1>::persistent_columns_t{})) {
+        if (std::get<A1>(*mAt).size() != 0 && hasIndexTo<G>(typename std::decay_t<A1>::persistent_columns_t{})) {
           uint64_t pos;
           if constexpr (soa::is_soa_filtered_t<std::decay_t<G>>::value) {
             pos = (*groupSelection)[position];
