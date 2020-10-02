@@ -685,8 +685,7 @@ GPUd() bool GPUTRDTracker_t<TRDTRK, PROP>::FollowProlongation(PROP* prop, TRDTRK
         }
         int currSec = mGeo->GetSector(currDet);
         if (currSec != GetSector(prop->getAlpha())) {
-          float currAlpha = GetAlphaOfSector(currSec);
-          if (!prop->rotate(currAlpha)) {
+          if (!prop->rotate(GetAlphaOfSector(currSec))) {
             if (ENABLE_WARNING) {
               Warning("FollowProlongation", "Track could not be rotated in tracklet coordinate system");
             }
@@ -1075,7 +1074,13 @@ GPUd() bool GPUTRDTracker_t<TRDTRK, PROP>::AdjustSector(PROP* prop, TRDTRK* t, c
       return false;
     }
     int sign = (y > 0) ? 1 : -1;
-    if (!prop->rotate(alphaCurr + alpha * sign)) {
+    float alphaNew = alphaCurr + alpha * sign;
+    if (alphaNew > M_PI) {
+      alphaNew -= 2 * M_PI;
+    } else if (alphaNew < -M_PI) {
+      alphaNew += 2 * M_PI;
+    }
+    if (!prop->rotate(alphaNew)) {
       return false;
     }
     if (!prop->propagateToX(xTmp, .8f, 2.f)) {
@@ -1107,7 +1112,11 @@ GPUd() float GPUTRDTracker_t<TRDTRK, PROP>::GetAlphaOfSector(const int sec) cons
   //--------------------------------------------------------------------
   // rotation angle for TRD sector sec
   //--------------------------------------------------------------------
-  return (2.0f * M_PI / (float)kNSectors * ((float)sec + 0.5f));
+  float alpha = 2.0f * M_PI / (float)kNSectors * ((float)sec + 0.5f);
+  if (alpha > M_PI) {
+    alpha -= 2 * M_PI;
+  }
+  return alpha;
 }
 
 template <class TRDTRK, class PROP>
