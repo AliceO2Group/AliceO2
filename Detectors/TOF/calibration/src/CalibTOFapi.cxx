@@ -48,7 +48,7 @@ void CalibTOFapi::readTimeSlewingParam()
 
 //______________________________________________________________________
 
-void CalibTOFapi::writeLHCphase(LhcPhase* phase, std::map<std::string, std::string> metadataLHCphase, unsigned long minTimeStamp, unsigned long maxTimeStamp)
+void CalibTOFapi::writeLHCphase(LhcPhase* phase, std::map<std::string, std::string> metadataLHCphase, uint64_t minTimeStamp, uint64_t maxTimeStamp)
 {
 
   // write LHCphase object to CCDB
@@ -61,7 +61,7 @@ void CalibTOFapi::writeLHCphase(LhcPhase* phase, std::map<std::string, std::stri
 
 //______________________________________________________________________
 
-void CalibTOFapi::writeTimeSlewingParam(SlewParam* param, std::map<std::string, std::string> metadataChannelCalib, unsigned long minTimeStamp, unsigned long maxTimeStamp)
+void CalibTOFapi::writeTimeSlewingParam(SlewParam* param, std::map<std::string, std::string> metadataChannelCalib, uint64_t minTimeStamp, uint64_t maxTimeStamp)
 {
 
   // write TiemSlewing object to CCDB (it includes offset + problematic)
