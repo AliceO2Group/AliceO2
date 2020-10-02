@@ -9,7 +9,7 @@
 // or submit itself to any jurisdiction.
 
 //< Loader macro to run QED background generator from QEDepem.C macro, use it as e.g.
-//< o2-sim -n10000 -m PIPE ITS TPC -g extgen --extGenFile $O2_ROOT/share/Generators/external/GenCosmicsLoader.C
+//< o2-sim -n10000 -m PIPE ITS TPC -g extgen --configKeyValues "GeneratorExternal.fileName=$O2_ROOT/share/Generators/external/GenCosmicsLoader.C"
 //< Generation options can be changed by providing --configKeyValues "cosmics.maxAngle=30.;cosmics.accept=ITS0" etc.
 //< See GenCosmicsParam for available options
 

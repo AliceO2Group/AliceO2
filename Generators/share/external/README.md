@@ -21,12 +21,12 @@ The x-section of the process depends on the applied cuts, it is calculated on th
 
 -  Invokes GenerateCosmics generators from [AEGIS](https://github.com/AliceO2Group/AEGIS) package.
 
-``o2-sim -n1000 -m PIPE ITS TPC -g extgen --extGenFile $O2_ROOT/share/Generators/external/GenCosmicsLoader.C``
+``o2-sim -n1000 -m PIPE ITS TPC -g extgen --configKeyValues "GeneratorExternal.fileName=$O2_ROOT/share/Generators/external/GenCosmicsLoader.C"``
 
 Generation options can be changed by providing ``--configKeyValues "cosmics.maxAngle=30.;cosmics.accept=ITS0"`` etc.
 For instance, to generate track defined at radius 500 cm, with maximal angle wrt the azimuth of 40 degress and passing via ITS layer 0 at Y=0:
 
-``o2-sim -n100 -m PIPE ITS TPC --configKeyValues "cosmics.maxAngle=40.;cosmics.accept=ITS0;cosmics.origin=500" -g extgen --extGenFile $O2_ROOT/share/Generators/external/GenCosmicsLoader.C``
+``o2-sim -n100 -m PIPE ITS TPC -g extgen --configKeyValues "cosmics.maxAngle=40.;cosmics.accept=ITS0;cosmics.origin=500;GeneratorExternal.fileName=$O2_ROOT/share/Generators/external/GenCosmicsLoader.C"``
 
 See GenCosmicsParam class for available options.
 ------------
