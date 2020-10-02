@@ -16,8 +16,9 @@
 #define O2_MID_GBTUSERLOGICENCODER_H
 
 #include <cstdint>
-#include <vector>
+#include <map>
 #include <gsl/gsl>
+#include "CommonDataFormat/InteractionRecord.h"
 #include "DataFormatsMID/ROFRecord.h"
 #include "MIDRaw/ElectronicsDelay.h"
 #include "MIDRaw/LocalBoardRO.h"
@@ -29,14 +30,13 @@ namespace mid
 class GBTUserLogicEncoder
 {
  public:
-  void process(gsl::span<const LocalBoardRO> data, const uint16_t bc, uint8_t triggerWord = 0);
-  void processTrigger(uint16_t bc, uint8_t triggerWord);
+  void process(gsl::span<const LocalBoardRO> data, const InteractionRecord& ir);
+  void processTrigger(const InteractionRecord& ir, uint8_t triggerWord);
 
-  /// Gets the buffer
-  const std::vector<uint8_t>& getBuffer() { return mBytes; }
+  void flush(std::vector<char>& buffer, const InteractionRecord& ir);
 
-  /// Gets the buffer size in bytes
-  size_t getBufferSize() const { return mBytes.size(); }
+  // Encoder has no data left
+  bool isEmpty() { return mBoards.empty(); }
 
   /// Sets the mask
   void setMask(uint8_t mask) { mMask = mask; }
@@ -44,26 +44,17 @@ class GBTUserLogicEncoder
   /// Sets the feeID
   void setFeeId(uint16_t feeId) { mFeeId = feeId; }
 
-  /// Clears the buffer
-  void clear() { mBytes.clear(); }
-
   /// Sets the delay in the electronics
   void setElectronicsDelay(const ElectronicsDelay& electronicsDelay) { mElectronicsDelay = electronicsDelay; }
 
  private:
-  /// Adds the board id and the fired chambers
-  inline void addIdAndChambers(uint8_t id, uint8_t firedChambers) { mBytes.emplace_back((id << 4) | firedChambers); }
+  void addRegionalBoards(uint8_t activeBoards, InteractionRecord ir);
+  void addShort(std::vector<char>& buffer, uint16_t shortWord) const;
 
-  void addBoard(uint8_t statusWord, uint8_t triggerWord, uint16_t localClock, uint8_t id, uint8_t firedChambers);
-  void addLoc(const LocalBoardRO& loc, uint16_t bc, uint8_t triggerWord);
-  void addReg(uint16_t bc, uint8_t triggerWord, uint8_t id, uint8_t firedChambers);
-  void addShort(uint16_t shortWord);
-  bool checkAndAdd(gsl::span<const LocalBoardRO> data, uint16_t bc, uint8_t triggerWord);
-
-  std::vector<uint8_t> mBytes{};      /// Vector with encoded information
-  uint16_t mFeeId{0};                 /// FEE ID
-  uint8_t mMask{0xFF};                /// GBT mask
-  ElectronicsDelay mElectronicsDelay; /// Delays in the electronics
+  std::map<InteractionRecord, std::vector<LocalBoardRO>> mBoards{}; /// Vector with boards
+  uint16_t mFeeId{0};                                               /// FEE ID
+  uint8_t mMask{0xFF};                                              /// GBT mask
+  ElectronicsDelay mElectronicsDelay;                               /// Delays in the electronics
 };
 } // namespace mid
 } // namespace o2

@@ -34,13 +34,18 @@ class ColumnDataToLocalBoard
   void process(gsl::span<const ColumnData> data);
   /// Gets the output data per GBT link
   const std::unordered_map<uint16_t, std::vector<LocalBoardRO>> getData() { return mGBTMap; }
+  /// Sets debug mode
+  void setDebugMode(bool debugMode = true) { mDebugMode = debugMode; }
 
  private:
+  bool keepBoard(const LocalBoardRO& loc) const;
   std::unordered_map<uint16_t, LocalBoardRO> mLocalBoardsMap{};      /// Map of data per board
   std::unordered_map<uint16_t, std::vector<LocalBoardRO>> mGBTMap{}; /// Map of data per GBT link
   CrateMapper mCrateMapper{};                                        /// Crate mapper
   Mapping mMapping{};                                                /// Segmentation
+  bool mDebugMode{false};                                            /// Debug mode (no zero suppression)
 };
+
 } // namespace mid
 } // namespace o2
 
