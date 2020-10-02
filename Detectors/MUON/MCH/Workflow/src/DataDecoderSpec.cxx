@@ -245,13 +245,9 @@ class DataDecoderTask
     DPLRawParser parser(inputs, o2::framework::select("TF:MCH/RAWDATA"));
 
     for (auto it = parser.begin(), end = parser.end(); it != end; ++it) {
-      // retrieving RDH v4
       auto const* rdh = it.get_if<RDH>();
-      // retrieving the raw pointer of the page
       auto const* raw = it.raw();
-      // size of payload
       size_t payloadSize = it.size();
-
       if (payloadSize == 0) {
         continue;
       }
