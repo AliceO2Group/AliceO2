@@ -571,9 +571,9 @@ bool MatchTOF::prepareTPCTracks()
     timeEst timeInfo;
     // set
     timeInfo.setTimeStamp(trcOrig.getTime0() * o2::tpc::ParameterElectronics::Instance().ZbinWidth);
-    timeInfo.setTimeStampError(trcOrig.getDeltaTBwd() * o2::tpc::ParameterElectronics::Instance().ZbinWidth);
+    timeInfo.setTimeStampError((trcOrig.getDeltaTBwd() + 5) * o2::tpc::ParameterElectronics::Instance().ZbinWidth);
     mSideTPC.push_back(trcOrig.hasASideClustersOnly() ? 1 : (trcOrig.hasCSideClustersOnly() ? -1 : 0));
-    mExtraTPCFwdTime.push_back(trcOrig.getDeltaTFwd() * o2::tpc::ParameterElectronics::Instance().ZbinWidth);
+    mExtraTPCFwdTime.push_back((trcOrig.getDeltaTFwd() + 5) * o2::tpc::ParameterElectronics::Instance().ZbinWidth);
 
     o2::track::TrackLTIntegral intLT0; //mTPCTracksWork.back().getLTIntegralOut(); // we get the integrated length from TPC-ITC outward propagation
     // make a copy of the TPC track that we have to propagate
@@ -1165,8 +1165,9 @@ void MatchTOF::doMatchingForTPC(int sec)
         break;
       }
 
-      if (trefTOF.getZ() * side < 0)
+      if ((trefTOF.getZ() * side < 0) && ((side > 0) != (trackWork.first.getTgl() > 0))) {
         continue;
+      }
 
       unsigned long bc = (unsigned long)(trefTOF.getTime() * Geo::BC_TIME_INPS_INV);
 

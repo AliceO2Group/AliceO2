@@ -274,7 +274,7 @@ class MatchTOF
   std::vector<float> mExtraTPCFwdTime;                   ///<track extra params for TPC tracks: Fws Max time
   std::vector<o2::track::TrackLTIntegral> mLTinfos;      ///<expected times and others
   std::vector<Cluster> mTOFClusWork;                     ///<track params prepared for matching
-  std::vector<int> mSideTPC;                             ///<track side for TPC tracks
+  std::vector<int8_t> mSideTPC;                          ///<track side for TPC tracks
 
   ///< per sector indices of track entry in mTracksWork
   std::array<std::vector<int>, o2::constants::math::NSectors> mTracksSectIndexCache;
