@@ -59,7 +59,7 @@ class ConstMCTruthContainer : public std::vector<char>
   // return the number of original data indexed here
   size_t getIndexedSize() const { return size() >= sizeof(FlatHeader) ? getHeader().nofHeaderElements : 0; }
 
-  // return the number of labels  managed in this container
+  // return the number of labels managed in this container
   size_t getNElements() const { return size() >= sizeof(FlatHeader) ? getHeader().nofTruthElements : 0; }
 
  private:
@@ -126,6 +126,9 @@ class ConstMCTruthContainerView
 {
  public:
   ConstMCTruthContainerView(gsl::span<const char> const bufferview) : mStorage(bufferview){};
+  ConstMCTruthContainerView(ConstMCTruthContainer<TruthElement> const& cont) : mStorage(gsl::span<const char>(cont)){};
+  ConstMCTruthContainerView() = default;
+  ConstMCTruthContainerView(const ConstMCTruthContainerView&) = default;
 
   // const data access
   // get individual const "view" container for a given data index
