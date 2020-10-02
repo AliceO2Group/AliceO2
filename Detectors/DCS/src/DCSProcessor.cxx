@@ -11,7 +11,7 @@
 #include <DetectorsDCS/DCSProcessor.h>
 #include "Rtypes.h"
 #include <deque>
-#include <string.h>
+#include <string>
 
 using namespace o2::dcs;
 
