@@ -59,12 +59,21 @@ taskwrapper() {
     eval "${hook}"
   fi
 
-  # with or without memory monitoring ?
-  finalcommand="TIME=\"#walltime %e\" /usr/bin/time --output=${logfile}_time ${command}"
-  if [ "${JOBUTILS_MONITORMEM}" ]; then
-    finalcommand="TIME=\"#walltime %e\" ${O2_ROOT}/share/scripts/monitor-mem.sh /usr/bin/time --output=${logfile}_time '${command}'"
+  # the time command is non-standard on MacOS
+  if [ "$(uname)" == "Darwin" ]; then
+    GTIME=$(which gtime)
+    TIMECOMMAND=${GTIME:+"${GTIME} --output=${logfile}_time"}
+  else
+    TIMECOMMAND="/usr/bin/time --output=${logfile}_time"
   fi
-  eval ${finalcommand} &> $logfile &
+
+  # with or without memory monitoring ?
+  finalcommand="TIME=\"#walltime %e\" ${TIMECOMMAND} ${command}"
+  if [[ "$(uname)" != "Darwin" && "${JOBUTILS_MONITORMEM}" ]]; then
+    finalcommand="TIME=\"#walltime %e\" ${O2_ROOT}/share/scripts/monitor-mem.sh ${TIMECOMMAND} '${command}'"
+  fi
+  echo "Running: ${finalcommand}" > ${logfile}
+  eval ${finalcommand} >> ${logfile} 2>&1 &
 
   # THE NEXT PART IS THE SUPERVISION PART
   # get the PID
