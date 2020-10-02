@@ -55,7 +55,8 @@ while [ $# -gt 0 ] ; do
     esac
 done
 
-collSyst="${collSyst,,}" # convert to lower case
+# convert to lower case (the bash construct ${collSyst,,} is less portable)
+collSyst=`echo "$collSyst" | awk '{print tolower($0)}'`
 if [ "$collSyst" == "pp" ]; then
     gener="$generPP"
     [[ "nev" -lt "1"  ]] && nev="$nevPP"
@@ -72,7 +73,8 @@ fi
 dosim="0"
 dodigi="0"
 doreco="0"
-fromstage="${fromstage,,}"
+# convert to lowercase
+fromstage=`echo "$fromstage" | awk '{print tolower($0)}'`
 if [ "$fromstage" == "sim" ]; then
   dosim="1"
   dodigi="1"
