@@ -41,7 +41,15 @@ class Compressor
     rewind();
     if (mDecoderCONET) {
       mDecoderPointerMax = reinterpret_cast<const uint32_t*>(mDecoderBuffer + mDecoderBufferSize);
-      return processDRM();
+      while (mDecoderPointer < mDecoderPointerMax) {
+        mEventCounter++;
+        processDRM();
+        if (mDecoderFatal)
+          mFatalCounter++;
+        if (mDecoderError)
+          mErrorCounter++;
+      }
+      return false;
     }
     while (!processHBF())
       ;
