@@ -151,14 +151,18 @@ void DataAllocator::adopt(const Output& spec, TableBuilder* tb)
   auto finalizer = [payload = p](std::shared_ptr<FairMQResizableBuffer> b) -> void {
     auto table = payload->finalize();
     if (O2_BUILTIN_UNLIKELY(table->num_rows() == 0)) {
-      LOG(WARN) << "Empty table was produced: " << table->ToString();
+      LOG(DEBUG) << "Empty table was produced: " << table->ToString();
     }
 
     auto stream = std::make_shared<arrow::io::BufferOutputStream>(b);
     auto outBatch = arrow::ipc::NewStreamWriter(stream.get(), table->schema());
-    auto outStatus = outBatch.ValueOrDie()->WriteTable(*table);
-    if (outStatus.ok() == false) {
-      throw std::runtime_error("Unable to Write table");
+    if (outBatch.ok() == true) {
+      auto outStatus = outBatch.ValueOrDie()->WriteTable(*table);
+      if (outStatus.ok() == false) {
+        throw std::runtime_error("Unable to Write table");
+      }
+    } else {
+      throw ::std::runtime_error("Unable to create batch writer");
     }
   };
 
@@ -187,9 +191,13 @@ void DataAllocator::adopt(const Output& spec, TreeToTable* t2t)
     auto stream = std::make_shared<arrow::io::BufferOutputStream>(b);
     std::shared_ptr<arrow::ipc::RecordBatchWriter> writer;
     auto outBatch = arrow::ipc::NewStreamWriter(stream.get(), table->schema());
-    auto outStatus = outBatch.ValueOrDie()->WriteTable(*table);
-    if (outStatus.ok() == false) {
-      throw std::runtime_error("Unable to Write table");
+    if (outBatch.ok() == true) {
+      auto outStatus = outBatch.ValueOrDie()->WriteTable(*table);
+      if (outStatus.ok() == false) {
+        throw std::runtime_error("Unable to Write table");
+      }
+    } else {
+      throw ::std::runtime_error("Unable to create batch writer");
     }
     delete payload;
   };
@@ -211,9 +219,13 @@ void DataAllocator::adopt(const Output& spec, std::shared_ptr<arrow::Table> ptr)
   auto writer = [table = ptr](std::shared_ptr<FairMQResizableBuffer> b) -> void {
     auto stream = std::make_shared<arrow::io::BufferOutputStream>(b);
     auto outBatch = arrow::ipc::NewStreamWriter(stream.get(), table->schema());
-    auto outStatus = outBatch.ValueOrDie()->WriteTable(*table);
-    if (outStatus.ok() == false) {
-      throw std::runtime_error("Unable to Write table");
+    if (outBatch.ok() == true) {
+      auto outStatus = outBatch.ValueOrDie()->WriteTable(*table);
+      if (outStatus.ok() == false) {
+        throw std::runtime_error("Unable to Write table");
+      }
+    } else {
+      throw ::std::runtime_error("Unable to create batch writer");
     }
   };
 
