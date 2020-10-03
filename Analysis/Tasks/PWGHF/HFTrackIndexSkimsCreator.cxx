@@ -28,44 +28,69 @@ using std::array;
 /// Track selection
 struct SelectTracks {
   Produces<aod::SelTrack> rowSelectedTrack;
-  Configurable<double> ptmintrack{"ptmintrack", -1, "ptmin single track"};
-  Configurable<double> dcatoprimxymin{"dcatoprimxymin", 0, "dca xy to prim vtx min"};
+  Configurable<double> ptmintrack_2prong{"ptmintrack_2prong", -1, "ptmin single track"};
+  Configurable<double> dcatoprimxymin_2prong{"dcatoprimxymin_2prong", 0, "dca xy to prim vtx min"};
+  Configurable<double> etamax_2prong{"etamax_2prong", 999, "maximum pseudorapidity value"};
+  Configurable<double> ptmintrack_3prong{"ptmintrack_3prong", -1, "ptmin single track"};
+  Configurable<double> dcatoprimxymin_3prong{"dcatoprimxymin_3prong", 0, "dca xy to prim vtx min"};
+  Configurable<double> etamax_3prong{"etamax_3prong", 999, "maximum pseudorapidity value"};
   Configurable<int> d_tpcnclsfound{"d_tpcnclsfound", 70, "min number of tpc cls >="};
   Configurable<double> d_bz{"d_bz", 5.0, "bz field"};
   Configurable<bool> b_dovalplots{"b_dovalplots", true, "do validation plots"};
   OutputObj<TH1F> hpt_nocuts{TH1F("hpt_nocuts", "pt tracks (#GeV)", 100, 0., 10.)};
-  OutputObj<TH1F> hpt_cuts{TH1F("hpt_cuts", "pt tracks (#GeV)", 100, 0., 10.)};
-  OutputObj<TH1F> hdcatoprimxy_cuts{TH1F("hdcatoprimxy_cuts", "dca xy to prim. vertex (cm)", 100, -1.0, 1.0)};
+  OutputObj<TH1F> hpt_cuts_2prong{TH1F("hpt_cuts_2prong", "pt tracks (#GeV)", 100, 0., 10.)};
+  OutputObj<TH1F> hdcatoprimxy_cuts_2prong{TH1F("hdcatoprimxy_cuts_2prong", "dca xy to prim. vertex (cm)", 100, -1.0, 1.0)};
+  OutputObj<TH1F> hpt_cuts_3prong{TH1F("hpt_cuts_3prong", "pt tracks (#GeV)", 100, 0., 10.)};
+  OutputObj<TH1F> hdcatoprimxy_cuts_3prong{TH1F("hdcatoprimxy_cuts_3prong", "dca xy to prim. vertex (cm)", 100, -1.0, 1.0)};
+  OutputObj<TH1F> heta_cuts_2prong{TH1F("heta_cuts_2prong", "pseudorapidity", 100, -1.0, 1.0)};
+  OutputObj<TH1F> heta_cuts_3prong{TH1F("heta_cuts_3prong", "pseudorapidity", 100, -1.0, 1.0)};
 
   void process(aod::Collision const& collision,
                soa::Join<aod::Tracks, aod::TracksCov, aod::TracksExtra> const& tracks)
   {
     Point3D<float> vtxXYZ(collision.posX(), collision.posY(), collision.posZ());
     for (auto& track : tracks) {
-      int status = 1; // selection flag
+      int status_2prong = 1; // selection flag
+      int status_3prong = 1; // selection flag
       if (b_dovalplots)
         hpt_nocuts->Fill(track.pt());
-      if (track.pt() < ptmintrack)
-        status = 0;
+      if (track.pt() < ptmintrack_2prong)
+        status_2prong = 0;
+      if (track.pt() < ptmintrack_3prong)
+        status_3prong = 0;
+      if (abs(track.eta()) > etamax_2prong)
+        status_2prong = 0;
+      if (abs(track.eta()) > etamax_3prong)
+        status_3prong = 0;
       UChar_t clustermap_0 = track.itsClusterMap();
       bool isselected_0 = track.tpcNClsFound() >= d_tpcnclsfound && track.flags() & 0x4;
       isselected_0 = isselected_0 && (TESTBIT(clustermap_0, 0) || TESTBIT(clustermap_0, 1));
-      if (!isselected_0)
-        status = 0;
+      if (!isselected_0) {
+        status_2prong = 0;
+        status_3prong = 0;
+      }
       array<float, 2> dca;
       auto trackparvar0 = getTrackParCov(track);
       bool isprop = trackparvar0.propagateParamToDCA(vtxXYZ, d_bz, &dca, 100.); // get impact parameters
-      if (!isprop)
-        status = 0;
-      if (abs(dca[0]) < dcatoprimxymin)
-        status = 0;
+      if (!isprop) {
+        status_2prong = 0;
+        status_3prong = 0;
+      }
+      if (abs(dca[0]) < dcatoprimxymin_2prong)
+        status_2prong = 0;
+      if (abs(dca[0]) < dcatoprimxymin_3prong)
+        status_3prong = 0;
       if (b_dovalplots) {
-        if (status == 1) {
-          hpt_cuts->Fill(track.pt());
-          hdcatoprimxy_cuts->Fill(dca[0]);
+        if (status_2prong == 1) {
+          hpt_cuts_2prong->Fill(track.pt());
+          hdcatoprimxy_cuts_2prong->Fill(dca[0]);
+        }
+        if (status_3prong == 1) {
+          hpt_cuts_3prong->Fill(track.pt());
+          hdcatoprimxy_cuts_3prong->Fill(dca[0]);
         }
       }
-      rowSelectedTrack(status, dca[0], dca[1]);
+      rowSelectedTrack(status_2prong, status_3prong, dca[0], dca[1]);
     }
   }
 };
@@ -95,7 +120,7 @@ struct HFTrackIndexSkimsCreator {
   OutputObj<TH1F> hvtx3_y_out{TH1F("hvtx3_y", "3-track vtx", 1000, -2.0, 2.0)};
   OutputObj<TH1F> hvtx3_z_out{TH1F("hvtx3_z", "3-track vtx", 1000, -20.0, 20.0)};
 
-  Filter filterSelectTracks = aod::seltrack::issel == 1;
+  Filter filterSelectTracks = aod::seltrack::issel_2prong == 1;
   using SelectedTracks = soa::Filtered<soa::Join<aod::Tracks, aod::TracksCov, aod::TracksExtra, aod::SelTrack>>;
   // FIXME
   //Partition<SelectedTracks> tracksPos = aod::track::signed1Pt > 0.f;
@@ -191,8 +216,14 @@ struct HFTrackIndexSkimsCreator {
         if (do3prong == 1) {
           // second loop over positive tracks
           //for (auto trackPos2 = trackPos1 + 1; trackPos2 != tracksPos.end(); ++trackPos2) {
+          if (trackPos1.issel_3prong() == 0)
+            continue;
+          if (trackNeg1.issel_3prong() == 0)
+            continue;
           for (auto trackPos2 = trackPos1 + 1; trackPos2 != tracks.end(); ++trackPos2) {
             if (trackPos2.signed1Pt() < 0)
+              continue;
+            if (trackPos2.issel_3prong() == 0)
               continue;
 
             // calculate invariant mass
@@ -244,6 +275,8 @@ struct HFTrackIndexSkimsCreator {
           //for (auto trackNeg2 = trackNeg1 + 1; trackNeg2 != tracksNeg.end(); ++trackNeg2) {
           for (auto trackNeg2 = trackNeg1 + 1; trackNeg2 != tracks.end(); ++trackNeg2) {
             if (trackNeg2.signed1Pt() > 0)
+              continue;
+            if (trackNeg2.issel_3prong() == 0)
               continue;
 
             // calculate invariant mass
