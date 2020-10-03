@@ -49,43 +49,37 @@ auto sliceByColumn(char const* key,
   auto count = 0;
 
   auto size = values.length();
-  std::shared_ptr<arrow::Schema> schema(input->schema());
-  std::vector<std::shared_ptr<arrow::ChunkedArray>> sliceArray;
 
-  auto injectSlice = [&](T count) {
-    for (auto ci = 0; ci < schema->num_fields(); ++ci) {
-      sliceArray.emplace_back(input->column(ci)->Slice(offset, count));
-    }
-    slices->emplace_back(arrow::Datum(arrow::Table::Make(schema, sliceArray)));
+  auto makeSlice = [&](T count) {
+    slices->emplace_back(arrow::Datum{input->Slice(offset, count)});
     if (offsets) {
       offsets->emplace_back(offset);
     }
-    sliceArray.clear();
   };
 
   auto current = 0;
   auto v = values.Value(0);
   while (v - current >= 1) {
-    injectSlice(0);
+    makeSlice(0);
     ++current;
   }
 
   for (auto r = 0; r < size - 1; ++r) {
     count = counts.Value(r);
-    injectSlice(count);
+    makeSlice(count);
     offset += count;
     auto nextValue = values.Value(r + 1);
     auto value = values.Value(r);
     while (nextValue - value > 1) {
-      injectSlice(0);
+      makeSlice(0);
       ++value;
     }
   }
-  injectSlice(counts.Value(size - 1));
+  makeSlice(counts.Value(size - 1));
 
   if (values.Value(size - 1) < fullSize - 1) {
     for (auto v = values.Value(size - 1) + 1; v < fullSize; ++v) {
-      injectSlice(0);
+      makeSlice(0);
     }
   }
 
