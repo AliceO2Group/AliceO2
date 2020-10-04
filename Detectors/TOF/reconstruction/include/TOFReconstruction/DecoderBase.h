@@ -43,7 +43,10 @@ class DecoderBaseT
     rewind();
     if (mDecoderCONET) {
       mDecoderPointerMax = reinterpret_cast<const uint32_t*>(mDecoderBuffer + mDecoderBufferSize);
-      return processDRM();
+      while (mDecoderPointer < mDecoderPointerMax) {
+        processDRM();
+      }
+      return false;
     }
     while (!processHBF())
       ;
