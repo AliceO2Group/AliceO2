@@ -197,7 +197,6 @@ struct Axis {
   std::optional<int> nBins{};
 };
 
-template <typename RootHistType>
 class Hist
 {
  public:
@@ -226,8 +225,7 @@ class Hist
   }
 
   // add axes defined in other Hist object
-  template <typename T>
-  void AddAxes(const Hist<T>& other)
+  void AddAxes(const Hist& other)
   {
     mAxes.insert(mAxes.end(), other.GetAxes().begin(), other.GetAxes().end());
   }
@@ -238,6 +236,7 @@ class Hist
   }
 
   // create histogram with the defined axes
+  template <typename RootHistType>
   std::shared_ptr<RootHistType> Create(const std::string& name, bool useWeights = false)
   {
     const std::size_t MAX_DIM{10};
@@ -246,8 +245,8 @@ class Hist
       return nullptr;
 
     int nBins[MAX_DIM]{0};
-    double lowerBounds[MAX_DIM]{0.0};
-    double upperBounds[MAX_DIM]{0.0};
+    double lowerBounds[MAX_DIM]{0.};
+    double upperBounds[MAX_DIM]{0.};
 
     // first figure out number of bins and dimensions
     std::string title = "[ ";
@@ -263,7 +262,7 @@ class Hist
     }
 
     // create histogram
-    std::shared_ptr<RootHistType> hist(HistFactory(name, title, nAxes, nBins, lowerBounds, upperBounds));
+    std::shared_ptr<RootHistType> hist(HistFactory<RootHistType>(name, title, nAxes, nBins, lowerBounds, upperBounds));
 
     if (!hist) {
       LOGF(FATAL, "The number of specified dimensions does not match the type.");
@@ -298,6 +297,7 @@ class Hist
  private:
   std::vector<Axis> mAxes;
 
+  template <typename RootHistType>
   RootHistType* HistFactory(const std::string& name, const std::string& title, const std::size_t nDim,
                             const int nBins[], const double lowerBounds[], const double upperBounds[])
   {
@@ -320,6 +320,7 @@ class Hist
     return nullptr;
   }
 
+  template <typename RootHistType>
   TAxis* GetAxis(const int i, std::shared_ptr<RootHistType> hist)
   {
     if constexpr (std::is_base_of_v<THnBase, RootHistType>) {

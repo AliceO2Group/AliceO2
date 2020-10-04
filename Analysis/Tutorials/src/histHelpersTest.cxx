@@ -71,18 +71,18 @@ struct HistHelpersTest {
     test->Add<test_3d_TH3I>(new TH3I("test_3d_TH3I", ";x;y;z", 100, 0., 20., 100, 0., 20., 100, 0., 20.));
 
     // alternatively use Hist to generate the histogram and add it to container afterwards
-    Hist<TH1D> sameAsBefore;
+    Hist sameAsBefore;
     sameAsBefore.AddAxis("x", "x", 100, 0., 50.);
     // via Hist::Create() we can generate the actual root histogram with the requested axes
     // Parameters: the name and optionally the decision wether to call SumW2 in case we want to fill this histogram with weights
-    test->Add<test_1d_TH1D_Weight>(sameAsBefore.Create("test_1d_TH1D_Weight", true));
+    test->Add<test_1d_TH1D_Weight>(sameAsBefore.Create<TH1D>("test_1d_TH1D_Weight", true));
 
     // this helper enables us to have combinations of flexible + fixed binning in 2d or 3d histograms
     // (which are not available via default root constructors)
-    Hist<TH2F> sameButDifferent;
+    Hist sameButDifferent;
     sameButDifferent.AddAxis("x", "x", 100, -0.5, 0.5);
     sameButDifferent.AddAxis("y", "y", {-0.5, -0.48, -0.3, 0.4, 0.5}); // use variable binning for y axsis this time
-    test->Add<test_2d_TH2F_VarBinningY>(sameButDifferent.Create("test_2d_TH2F_VarBinningY"));
+    test->Add<test_2d_TH2F_VarBinningY>(sameButDifferent.Create<TH2F>("test_2d_TH2F_VarBinningY"));
 
     // also for n dimensional histograms things become much simpler:
     std::vector<double> ptBins = {0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0,
@@ -98,41 +98,41 @@ struct HistHelpersTest {
     const int nCuts = 5;
     Axis cutAxis = {"cut", "cut setting", {-0.5, nCuts - 0.5}, nCuts};
 
-    Hist<THnI> myHistogram;
+    Hist myHistogram;
     myHistogram.AddAxis(ptAxis);
     myHistogram.AddAxis(etaAxis);
     myHistogram.AddAxis("signed1Pt", "q/p_{T}", 200, -8, 8);
-    test->Add<test_3d_THnI>(myHistogram.Create("test_3d_THnI"));
+    test->Add<test_3d_THnI>(myHistogram.Create<THnI>("test_3d_THnI"));
 
-    Hist<THnSparseI> testSparseHist;
+    Hist testSparseHist;
     testSparseHist.AddAxis(ptAxis);
     testSparseHist.AddAxis(etaAxis);
     testSparseHist.AddAxis(phiAxis);
     testSparseHist.AddAxis(centAxis);
     testSparseHist.AddAxis(cutAxis);
-    test->Add<test_5d_THnSparseI>(testSparseHist.Create("test_5d_THnSparseI"));
+    test->Add<test_5d_THnSparseI>(testSparseHist.Create<THnSparseI>("test_5d_THnSparseI"));
 
-    Hist<TProfile> testProfile;
+    Hist testProfile;
     testProfile.AddAxis(ptAxis);
-    test->Add<test_1d_TProfile>(testProfile.Create("test_1d_TProfile"));
+    test->Add<test_1d_TProfile>(testProfile.Create<TProfile>("test_1d_TProfile"));
     test->Get<TProfile>(test_1d_TProfile)->GetYaxis()->SetTitle("eta profile");
 
     // now add same histogram but intended for weighted filling
-    test->Add<test_1d_TProfile_Weight>(testProfile.Create("test_1d_TProfile_Weight", true));
+    test->Add<test_1d_TProfile_Weight>(testProfile.Create<TProfile>("test_1d_TProfile_Weight", true));
 
-    Hist<TProfile2D> testProfile2d;
+    Hist testProfile2d;
     testProfile2d.AddAxis(ptAxis);
     testProfile2d.AddAxis(etaAxis);
-    test->Add<test_2d_TProfile2D>(testProfile2d.Create("test_2d_TProfile2D"));
+    test->Add<test_2d_TProfile2D>(testProfile2d.Create<TProfile2D>("test_2d_TProfile2D"));
 
-    Hist<TProfile3D> testProfile3d;
+    Hist testProfile3d;
     testProfile3d.AddAxis(ptAxis);
     testProfile3d.AddAxis(etaAxis);
     testProfile3d.AddAxis(phiAxis);
-    test->Add<test_3d_TProfile3D>(testProfile3d.Create("test_3d_TProfile3D"));
+    test->Add<test_3d_TProfile3D>(testProfile3d.Create<TProfile3D>("test_3d_TProfile3D"));
 
     // we can also re-use axis definitions in case they are similar in many histograms:
-    Hist<THnF> baseDimensions;
+    Hist baseDimensions;
     baseDimensions.AddAxis(ptAxis);
     baseDimensions.AddAxis(etaAxis);
     baseDimensions.AddAxis(phiAxis);
@@ -140,27 +140,27 @@ struct HistHelpersTest {
     baseDimensions.AddAxis(cutAxis);
     baseDimensions.AddAxis(centAxis);
 
-    Hist<THnF> firstHist = baseDimensions;
+    Hist firstHist = baseDimensions;
     firstHist.AddAxis("something", "v (m/s)", 10, -1, 1);
-    test->Add<test_7d_THnF_first>(firstHist.Create("test_7d_THnF_first"));
+    test->Add<test_7d_THnF_first>(firstHist.Create<THnF>("test_7d_THnF_first"));
 
-    Hist<THnF> secondHist = baseDimensions;
+    Hist secondHist = baseDimensions;
     secondHist.AddAxis("somethingElse", "a (m/(s*s))", 10, -1, 1);
-    test->Add<test_7d_THnF_second>(secondHist.Create("test_7d_THnF_second"));
+    test->Add<test_7d_THnF_second>(secondHist.Create<THnF>("test_7d_THnF_second"));
 
     // or if we want to have the baseDimensions somewhere in between:
-    Hist<THnC> thirdHist;
+    Hist thirdHist;
     thirdHist.AddAxis("myFirstDimension", "a (m/(s*s))", 10, -1, 1);
     thirdHist.AddAxes(baseDimensions);
     thirdHist.AddAxis("myLastDimension", "a (m/(s*s))", 10, -1, 1);
-    test->Add<test_8d_THnC_third>(thirdHist.Create("test_8d_THnC_third"));
+    test->Add<test_8d_THnC_third>(thirdHist.Create<THnC>("test_8d_THnC_third"));
 
     // we can also use the Hist helper tool independent of the HistCollections:
-    Hist<THnF> myHist;
+    Hist myHist;
     myHist.AddAxis(ptAxis);
     myHist.AddAxis(etaAxis);
     myHist.AddAxis(phiAxis);
-    standaloneHist.setObject(myHist.Create("standaloneHist"));
+    standaloneHist.setObject(myHist.Create<THnF>("standaloneHist"));
 
     // now add some more useful histograms
     kine->Add<pt>(new TH1F("pt", "p_{T};p_{T} [GeV/c]", 100, 0., 5.));
