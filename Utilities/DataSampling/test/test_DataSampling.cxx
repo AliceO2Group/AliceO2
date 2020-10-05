@@ -216,3 +216,11 @@ BOOST_AUTO_TEST_CASE(InputSpecsForPolicy)
 
   BOOST_CHECK_EQUAL(inputs.size(), 2);
 }
+
+BOOST_AUTO_TEST_CASE(DataSamplingEmptyConfig)
+{
+  std::string configFilePath = "json:/" + std::string(getenv("O2_ROOT")) + "/share/tests/test_DataSamplingEmpty.json";
+
+  WorkflowSpec workflow;
+  BOOST_CHECK_NO_THROW(DataSampling::GenerateInfrastructure(workflow, configFilePath));
+}
