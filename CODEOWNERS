@@ -114,10 +114,10 @@
 
 /Utilities  @AliceO2Group/framework-admins
 /Utilities/Mergers @Barthelemy @knopers8
+/Utilities/DataSampling @Barthelemy @knopers8
 #/Utilities/DataCompression
 #/Utilities/DataFlow
 #/Utilities/MCStepLogger
-#/Utilities/Mergers
 #/Utilities/O2Device
 #/Utilities/O2MessageMonitor
 #/Utilities/PCG
