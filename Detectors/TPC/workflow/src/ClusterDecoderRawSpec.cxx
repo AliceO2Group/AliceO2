@@ -23,6 +23,7 @@
 #include "DataFormatsTPC/Helpers.h"
 #include "TPCReconstruction/HardwareClusterDecoder.h"
 #include "SimulationDataFormat/MCTruthContainer.h"
+#include "SimulationDataFormat/ConstMCTruthContainer.h"
 #include "SimulationDataFormat/MCCompLabel.h"
 #include <FairMQLogger.h>
 #include <memory> // for make_shared
@@ -42,6 +43,8 @@ namespace tpc
 {
 
 using MCLabelContainer = o2::dataformats::MCTruthContainer<o2::MCCompLabel>;
+using ConstMCLabelContainer = o2::dataformats::ConstMCTruthContainer<o2::MCCompLabel>;
+using ConstMCLabelContainerView = o2::dataformats::ConstMCTruthContainerView<o2::MCCompLabel>;
 
 /// create the processor spec for TPC raw cluster decoder converting TPC raw to native clusters
 /// Input: raw pages of TPC raw clusters
@@ -115,13 +118,15 @@ DataProcessorSpec getClusterDecoderRawSpec(bool sendMC)
 
       // MC labels are received as one container of labels in the sequence matching clusters
       // in the raw pages
-      std::vector<MCLabelContainer> mcinCopies;
-      std::unique_ptr<const MCLabelContainer> mcin;
+      std::vector<ConstMCLabelContainer> mcinCopiesFlat;
+      std::vector<ConstMCLabelContainerView> mcinCopiesFlatView;
+      ConstMCLabelContainerView mcin;
       if (DataRefUtils::isValid(mclabelref)) {
-        mcin = std::move(pc.inputs().get<MCLabelContainer*>(mclabelref));
-        mcinCopies.resize(nPages);
+        mcin = pc.inputs().get<gsl::span<char>>(mclabelref);
+        mcinCopiesFlat.resize(nPages);
+        mcinCopiesFlatView.reserve(nPages);
         if (verbosity > 0) {
-          LOG(INFO) << "Decoder input: " << size << ", " << nPages << " pages, " << mcin->getIndexedSize() << " MC label sets for sector " << sectorHeader->sector();
+          LOG(INFO) << "Decoder input: " << size << ", " << nPages << " pages, " << mcin.getIndexedSize() << " MC label sets for sector " << sectorHeader->sector();
         }
       }
 
@@ -133,6 +138,7 @@ DataProcessorSpec getClusterDecoderRawSpec(bool sendMC)
       size_t mcinPos = 0;
       size_t totalNumberOfClusters = 0;
       for (size_t page = 0; page < nPages; page++) {
+        MCLabelContainer mcinCopy;
         inputList.emplace_back(reinterpret_cast<const ClusterHardwareContainer*>(ref.payload + page * 8192), 1);
         const ClusterHardwareContainer& container = *(inputList.back().first);
         if (verbosity > 1) {
@@ -141,22 +147,24 @@ DataProcessorSpec getClusterDecoderRawSpec(bool sendMC)
                     << std::setw(3) << container.numberOfClusters << " cluster(s)"; //
         }
         totalNumberOfClusters += container.numberOfClusters;
-        if (mcin) {
+        if (mcin.getBuffer().size()) {
           for (size_t mccopyPos = 0;
-               mccopyPos < container.numberOfClusters && mcinPos < mcin->getIndexedSize();
+               mccopyPos < container.numberOfClusters && mcinPos < mcin.getIndexedSize();
                mccopyPos++, mcinPos++) {
-            for (auto const& label : mcin->getLabels(mcinPos)) {
-              mcinCopies[page].addElement(mccopyPos, label);
+            for (auto const& label : mcin.getLabels(mcinPos)) {
+              mcinCopy.addElement(mccopyPos, label);
             }
           }
         }
+        mcinCopy.flatten_to(mcinCopiesFlat[page]);
+        mcinCopiesFlatView.emplace_back(mcinCopiesFlat[page]);
       }
       // FIXME: introduce error handling policy: throw, ignore, warn
       //assert(!mcin || mcinPos == mcin->getIndexedSize());
-      if (mcin && mcinPos != totalNumberOfClusters) {
+      if (mcin.getBuffer().size() && mcinPos != totalNumberOfClusters) {
         LOG(ERROR) << "inconsistent number of MC label objects processed"
                    << ", expecting MC label objects for " << totalNumberOfClusters << " cluster(s)"
-                   << ", got " << mcin->getIndexedSize();
+                   << ", got " << mcin.getIndexedSize();
       }
       // output of the decoder is sorted in (sector,globalPadRow) coordinates, individual
       // containers are created for clusters and MC labels per (sector,globalPadRow) address
@@ -166,7 +174,7 @@ DataProcessorSpec getClusterDecoderRawSpec(bool sendMC)
         return outputBuffer;
       };
       MCLabelContainer mcout;
-      decoder->decodeClusters(inputList, outputAllocator, (mcin ? &mcinCopies : nullptr), &mcout);
+      decoder->decodeClusters(inputList, outputAllocator, (mcin.getBuffer().size() ? &mcinCopiesFlatView : nullptr), &mcout);
 
       // TODO: reestablish the logging messages on the raw buffer
       // if (verbosity > 1) {
@@ -181,7 +189,9 @@ DataProcessorSpec getClusterDecoderRawSpec(bool sendMC)
                     << " label object(s)" << std::endl;
         }
         // serialize the complete list of MC label containers
-        pc.outputs().snapshot(Output{gDataOriginTPC, DataDescription("CLNATIVEMCLBL"), fanSpec, Lifetime::Timeframe, std::move(mcHeaderStack)}, mcout);
+        ConstMCLabelContainer labelsFlat;
+        mcout.flatten_to(labelsFlat);
+        pc.outputs().snapshot(Output{gDataOriginTPC, DataDescription("CLNATIVEMCLBL"), fanSpec, Lifetime::Timeframe, std::move(mcHeaderStack)}, labelsFlat);
       }
     };
 

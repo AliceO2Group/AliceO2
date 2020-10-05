@@ -18,6 +18,7 @@
 #include <memory>
 
 #include "SimulationDataFormat/MCTruthContainer.h"
+#include "SimulationDataFormat/ConstMCTruthContainer.h"
 #include "SimulationDataFormat/MCCompLabel.h"
 
 #include "TPCBase/CalDet.h"
@@ -34,7 +35,7 @@ class Digit;
 class Clusterer
 {
  protected:
-  using MCLabelContainer = o2::dataformats::MCTruthContainer<o2::MCCompLabel>;
+  using ConstMCLabelContainerView = o2::dataformats::ConstMCTruthContainerView<o2::MCCompLabel>;
 
  public:
   /// Default Constructor
@@ -49,8 +50,8 @@ class Clusterer
   /// Processing all digits
   /// \param digits Container with TPC digits
   /// \param mcDigitTruth MC Digit Truth container
-  virtual void process(gsl::span<o2::tpc::Digit const> const& digits, MCLabelContainer const* mcDigitTruth) = 0;
-  virtual void finishProcess(gsl::span<o2::tpc::Digit const> const& digits, MCLabelContainer const* mcDigitTruth) = 0;
+  virtual void process(gsl::span<o2::tpc::Digit const> const& digits, ConstMCLabelContainerView const& mcDigitTruth) = 0;
+  virtual void finishProcess(gsl::span<o2::tpc::Digit const> const& digits, ConstMCLabelContainerView const& mcDigitTruth) = 0;
 
   /// Setter for noise object, noise will be added before cluster finding
   /// \param noiseObject CalDet object, containing noise simulation
