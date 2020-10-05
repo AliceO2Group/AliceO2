@@ -35,7 +35,7 @@ class Digitizer
 
  public:
   Digitizer()
-    : mTimeStamp(0), mIntRecord(), mEventId(-1), mSrcId(-1), mMCLabels(), mCache(), mPmtChargeVsTime(), mNBins(), NTimeBinsPerBC(), mPmtResponseGlobal(), mPmtResponseTemp()
+    : mTimeStamp(0), mIntRecord(), mEventId(-1), mSrcId(-1), mMCLabels(), mCache(), mPmtChargeVsTime(), mNBins(), mNTimeBinsPerBC(), mPmtResponseGlobal(), mPmtResponseTemp()
   {
   }
 
@@ -69,8 +69,6 @@ class Digitizer
 
   struct BCCache : public o2::InteractionRecord {
     std::vector<o2::fv0::MCLabel> labels;
-    //std::array<float, Constants::nFv0Channels> Cfd_times;
-    //std::array<float, Constants::nFv0Channels> Charges;
     std::array<ChannelBCDataF, Constants::nFv0Channels> mPmtChargeVsTime = {};
 
     void clear()
@@ -81,11 +79,6 @@ class Digitizer
       labels.clear();
     }
 
-    //bool IsCounted = false;
-    //bool isWritten = 0;
-    //int EvID;
-    // void setEvID (const int ev) {EvID = ev;}
-    //BCCache();
     BCCache& operator=(const o2::InteractionRecord& ir)
     {
       o2::InteractionRecord::operator=(ir);
@@ -96,8 +89,8 @@ class Digitizer
 
  private:
   static constexpr int BCCacheMin = 0, BCCacheMax = 7, NBC2Cache = 1 + BCCacheMax - BCCacheMin;
-  void createPulse(float mipFraction, int parID, double hitTime, std::array<o2::InteractionRecord, NBC2Cache> const& cachedIR,
-                   int nCachedIR, const int& detID);
+  void createPulse(float mipFraction, int parID, const double hitTime, std::array<o2::InteractionRecord, NBC2Cache> const& cachedIR,
+                   int nCachedIR, const int detID);
 
   long mTimeStamp;              // TF (run) timestamp
   InteractionTimeRecord mIntRecord; // Interaction record (orbit, bc) -> InteractionTimeRecord
@@ -114,7 +107,7 @@ class Digitizer
 
   std::array<std::vector<Float_t>, Constants::nFv0Channels> mPmtChargeVsTime; // Charge time series aka analogue signal pulse from PM
   UInt_t mNBins;                                                              //
-  UInt_t NTimeBinsPerBC;
+  UInt_t mNTimeBinsPerBC;
   Float_t mBinSize;                                                           // Time width of the pulse bin - HPTDC resolution
 
   /// vectors to store the PMT signal from cosmic muons

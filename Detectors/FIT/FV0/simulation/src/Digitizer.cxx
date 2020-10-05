@@ -37,7 +37,7 @@ void Digitizer::init()
   mNBins = FV0DigParam::Instance().waveformNbins;      //Will be computed using detector set-up from CDB
   mBinSize = FV0DigParam::Instance().waveformBinWidth; //Will be set-up from CDB
 
-  NTimeBinsPerBC = int(o2::constants::lhc::LHCBunchSpacingNS / mBinSize);
+  mNTimeBinsPerBC = int(o2::constants::lhc::LHCBunchSpacingNS / mBinSize);
 
   for (Int_t detID = 0; detID < Constants::nFv0Channels; detID++) {
     mPmtChargeVsTime[detID].resize(mNBins);
@@ -79,8 +79,9 @@ void Digitizer::process(const std::vector<o2::fv0::Hit>& hits, std::vector<o2::f
     const auto& hit = hits[ids];
     Int_t detId = hit.GetDetectorID();
     Double_t hitEdep = hit.GetHitValue() * 1e3; //convert to MeV
+    Float_t const hitTime = hit.GetTime() * 1e9;
     // TODO: check how big is inaccuracy if more than 1 'below-threshold' particles hit the same detector cell
-    if (hitEdep < FV0DigParam::Instance().singleMipThreshold) {
+    if (hitEdep < FV0DigParam::Instance().singleMipThreshold || hitTime > FV0DigParam::Instance().singleHitTimeThreshold) {
       continue;
     }
     float distanceFromXc = 0;
@@ -107,11 +108,9 @@ void Digitizer::process(const std::vector<o2::fv0::Hit>& hits, std::vector<o2::f
       Double_t const nPhotons = hitEdep * DP::N_PHOTONS_PER_MEV;
       float const nPhE = SimulateLightYield(detId, nPhotons);
       float mipFraction = float(nPhE / FV0DigParam::Instance().avgNumberPhElectronPerMip);
-      Float_t const hitTime = hit.GetTime() * 1e9;
       Float_t timeHit = hitTime;
       timeHit += mIntRecord.getTimeNS();
       o2::InteractionTimeRecord irHit(timeHit);
-
       std::array<o2::InteractionRecord, NBC2Cache> cachedIR;
       int nCachedIR = 0;
 
@@ -124,12 +123,13 @@ void Digitizer::process(const std::vector<o2::fv0::Hit>& hits, std::vector<o2::f
         setBCCache(cachedIR[nCachedIR++]); // ensure existence of cached container
       }                                    //BCCache loop
       createPulse(mipFraction, hit.GetTrackID(), hitTime, cachedIR, nCachedIR, detId);
+
     } //while loop
   }   //hitloop
 }
 
-void Digitizer::createPulse(float mipFraction, int parID, double hitTime,
-                            std::array<o2::InteractionRecord, NBC2Cache> const& cachedIR, int nCachedIR, const int& detId)
+void Digitizer::createPulse(float mipFraction, int parID,const double hitTime,
+                            std::array<o2::InteractionRecord, NBC2Cache> const& cachedIR, int nCachedIR, const int detId)
 {
 
   bool added[nCachedIR];
@@ -140,25 +140,20 @@ void Digitizer::createPulse(float mipFraction, int parID, double hitTime,
   for (int ir = 0; ir < NBC2Cache; ir++) {
     auto bcCache = getBCCache(cachedIR[ir]);
     for (int ich = 0; ich < Constants::nFv0Channels; ich++) {
-      (*bcCache).mPmtChargeVsTime[ich].resize(NTimeBinsPerBC);
+      (*bcCache).mPmtChargeVsTime[ich].resize(mNTimeBinsPerBC);
     }
   }
-  mPmtResponseTemp = mPmtResponseGlobal;
+
   ///Time of flight subtracted from Hit time //TODO have different TOF according to thr ring number
   Size_t NBinShift = std::lround((hitTime - FV0DigParam::Instance().globalTimeOfFlight) / FV0DigParam::Instance().waveformBinWidth);
+  mPmtResponseTemp.resize(FV0DigParam::Instance().waveformNbins, 0.);
+  std::memcpy(&mPmtResponseTemp[NBinShift], &mPmtResponseGlobal[0], sizeof(double)*(FV0DigParam::Instance().waveformNbins-NBinShift));
 
-  for (int m = 0; m < NBinShift; m++) {
-    mPmtResponseTemp.push_back(0);
-  }
-  /// rotate the vector element to shift all the elements by hit time
-  std::rotate(mPmtResponseTemp.rbegin(), mPmtResponseTemp.rbegin() + NBinShift, mPmtResponseTemp.rend());
-  mPmtResponseTemp.resize(FV0DigParam::Instance().waveformNbins);
-
-  for (int ir = 0; ir < int(mPmtResponseTemp.size() / NTimeBinsPerBC); ir++) {
+  for (int ir = 0; ir < int(mPmtResponseTemp.size() / mNTimeBinsPerBC); ir++) {
     auto bcCache = getBCCache(cachedIR[ir]);
 
-    for (int iBin = 0; iBin < NTimeBinsPerBC; iBin++) {
-      (*bcCache).mPmtChargeVsTime[detId][iBin] += (mPmtResponseTemp[ir * NTimeBinsPerBC + iBin] * mipFraction);
+    for (int iBin = 0; iBin < mNTimeBinsPerBC; iBin++) {
+      (*bcCache).mPmtChargeVsTime[detId][iBin] += (mPmtResponseTemp[ir * mNTimeBinsPerBC + iBin] * mipFraction);
     }
     added[ir] = true;
   }
@@ -240,7 +235,7 @@ Int_t Digitizer::SimulateLightYield(Int_t pmt, Int_t nPhot) const
 Float_t Digitizer::IntegrateCharge(const ChannelBCDataF& pulse) const
 {
   int chargeIntMin = FV0DigParam::Instance().isIntegrateFull ? 0 : FV0DigParam::Instance().chargeIntBinMin;
-  int chargeIntMax = FV0DigParam::Instance().isIntegrateFull ? NTimeBinsPerBC : FV0DigParam::Instance().chargeIntBinMax;
+  int chargeIntMax = FV0DigParam::Instance().isIntegrateFull ? mNTimeBinsPerBC : FV0DigParam::Instance().chargeIntBinMax;
 
   Float_t totalCharge = 0.0f;
   for (int iTimeBin = chargeIntMin; iTimeBin < chargeIntMax; iTimeBin++) {
@@ -263,7 +258,7 @@ Float_t Digitizer::SimulateTimeCfd(/*Int_t channel, */ const ChannelBCDataF& pul
 
   Int_t const binShift = TMath::Nint(FV0DigParam::Instance().timeShiftCfd / mBinSize);
   Float_t sigPrev = -pulse[0]; //[0];
-  for (Int_t iTimeBin = 1; iTimeBin < NTimeBinsPerBC; ++iTimeBin) {
+  for (Int_t iTimeBin = 1; iTimeBin < mNTimeBinsPerBC; ++iTimeBin) {
     Float_t const sigCurrent = (iTimeBin >= binShift ? 5.0f * pulse[iTimeBin - binShift] - pulse[iTimeBin] : -pulse[iTimeBin]);
     if (sigPrev < 0.0f && sigCurrent >= 0.0f) {
       timeCfd = Float_t(iTimeBin) * mBinSize;
