@@ -38,6 +38,10 @@ std::string DataSampling::createDispatcherName()
 void DataSampling::GenerateInfrastructure(WorkflowSpec& workflow, const std::string& policiesSource, size_t threads)
 {
   std::unique_ptr<ConfigurationInterface> cfg = ConfigurationFactory::getConfiguration(policiesSource);
+  if (cfg->getRecursive("").count("dataSamplingPolicies") == 0) {
+    LOG(WARN) << "No \"dataSamplingPolicies\" structure found in the config file. If no Data Sampling is expected, then it is completely fine.";
+    return;
+  }
   auto policiesTree = cfg->getRecursive("dataSamplingPolicies");
   Dispatcher dispatcher(createDispatcherName(), policiesSource);
   DataSampling::DoGenerateInfrastructure(dispatcher, workflow, policiesTree, threads);
