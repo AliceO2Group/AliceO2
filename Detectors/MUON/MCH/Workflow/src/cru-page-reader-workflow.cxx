@@ -9,7 +9,6 @@
 // or submit itself to any jurisdiction.
 
 ///
-///
 /// \file    cru-page-reader-workflow.cxx
 /// \author  Andrea Ferrero
 ///
