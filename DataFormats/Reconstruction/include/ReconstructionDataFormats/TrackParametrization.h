@@ -117,7 +117,7 @@ constexpr float kCY2max = 100 * 100, // SigmaY<=100cm
   kCSnp2max = 1 * 1,                 // SigmaSin<=1
   kCTgl2max = 1 * 1,                 // SigmaTan<=1
   kC1Pt2max = 100 * 100,             // Sigma1/Pt<=100 1/GeV
-  kMostProbablePt = 0.6,             // Most Probable Pt (GeV), for running with Bz=0
+  kMostProbablePt = 0.6f,            // Most Probable Pt (GeV), for running with Bz=0
   kCalcdEdxAuto = -999.f;            // value indicating request for dedx calculation
 
 // access to covariance matrix by row and column
@@ -138,13 +138,15 @@ class TrackParametrization
 
  public:
   using value_t = value_T;
-  using dim3v_t = std::array<value_t, 3>;
+  using dim2_t = std::array<value_t, 2>;
+  using dim3_t = std::array<value_t, 3>;
+  using params_t = std::array<value_t, kNParams>;
 
   static_assert(std::is_floating_point_v<value_t>);
 
   TrackParametrization() = default;
-  TrackParametrization(value_t x, value_t alpha, const std::array<value_t, kNParams>& par, int charge = 1);
-  TrackParametrization(const std::array<value_t, 3>& xyz, const std::array<value_t, 3>& pxpypz, int charge, bool sectorAlpha = true);
+  TrackParametrization(value_t x, value_t alpha, const params_t& par, int charge = 1);
+  TrackParametrization(const dim3_t& xyz, const dim3_t& pxpypz, int charge, bool sectorAlpha = true);
   TrackParametrization(const TrackParametrization&) = default;
   TrackParametrization(TrackParametrization&&) = default;
   TrackParametrization& operator=(const TrackParametrization& src) = default;
@@ -200,8 +202,8 @@ class TrackParametrization
   value_t getTheta() const;
   value_t getEta() const;
   Point3D<value_t> getXYZGlo() const;
-  void getXYZGlo(std::array<value_t, 3>& xyz) const;
-  bool getPxPyPzGlo(std::array<value_t, 3>& pxyz) const;
+  void getXYZGlo(dim3_t& xyz) const;
+  bool getPxPyPzGlo(dim3_t& pxyz) const;
   bool getPosDirGlo(std::array<value_t, 9>& posdirp) const;
 
   // methods for track params estimate at other point
@@ -214,9 +216,9 @@ class TrackParametrization
   bool correctForELoss(value_t xrho, value_t mass, bool anglecorr = false, value_t dedx = kCalcdEdxAuto);
   bool rotateParam(value_t alpha);
   bool propagateParamTo(value_t xk, value_t b);
-  bool propagateParamTo(value_t xk, const std::array<value_t, 3>& b);
+  bool propagateParamTo(value_t xk, const dim3_t& b);
 
-  bool propagateParamToDCA(const Point3D<value_t>& vtx, value_t b, std::array<value_t, 2>* dca = nullptr, value_t maxD = 999.f);
+  bool propagateParamToDCA(const Point3D<value_t>& vtx, value_t b, dim2_t* dca = nullptr, value_t maxD = 999.f);
 
   void invertParam();
 
@@ -237,7 +239,7 @@ class TrackParametrization
 
  private:
   //
-  static constexpr value_t InvalidX = -99999.;
+  static constexpr value_t InvalidX = -99999.f;
   value_t mX = 0.f;             /// X of track evaluation
   value_t mAlpha = 0.f;         /// track frame angle
   value_t mP[kNParams] = {0.f}; /// 5 parameters: Y,Z,sin(phi),tg(lambda),q/pT
@@ -250,7 +252,7 @@ class TrackParametrization
 
 //____________________________________________________________
 template <typename value_T>
-inline TrackParametrization<value_T>::TrackParametrization(value_t x, value_t alpha, const std::array<value_t, kNParams>& par, int charge)
+inline TrackParametrization<value_T>::TrackParametrization(value_t x, value_t alpha, const params_t& par, int charge)
   : mX{x}, mAlpha{alpha}, mAbsCharge{char(std::abs(charge))}
 {
   // explicit constructor
@@ -324,7 +326,7 @@ inline typename TrackParametrization<value_T>::value_t TrackParametrization<valu
 template <typename value_T>
 inline typename TrackParametrization<value_T>::value_t TrackParametrization<value_T>::getCharge2Pt() const
 {
-  return mAbsCharge ? mP[kQ2Pt] : 0.;
+  return mAbsCharge ? mP[kQ2Pt] : 0.f;
 }
 
 //____________________________________________________________
@@ -353,7 +355,7 @@ inline void TrackParametrization<value_T>::setPID(const PID pid)
 template <typename value_T>
 inline typename TrackParametrization<value_T>::value_t TrackParametrization<value_T>::getCsp2() const
 {
-  value_t csp2 = (1. - mP[kSnp]) * (1. + mP[kSnp]);
+  value_t csp2 = (1.f - mP[kSnp]) * (1.f + mP[kSnp]);
   return csp2 > o2::constants::math::Almost0 ? csp2 : o2::constants::math::Almost0;
 }
 
@@ -434,10 +436,10 @@ inline void TrackParametrization<value_T>::getCircleParamsLoc(value_t bz, o2::ut
   // get circle params in track local frame, for straight line just set to local coordinates
   c.rC = getCurvature(bz);
   // treat as straight track if sagitta between the vertex and middle of TPC is below 0.01 cm
-  constexpr value_t MinSagitta = 0.01, TPCMidR = 160., MinCurv = 8 * MinSagitta / (TPCMidR * TPCMidR);
+  constexpr value_t MinSagitta = 0.01f, TPCMidR = 160.f, MinCurv = 8 * MinSagitta / (TPCMidR * TPCMidR);
   if (std::abs(c.rC) > MinCurv) {
     c.rC = 1.f / getCurvature(bz);
-    value_t sn = getSnp(), cs = sqrtf((1. - sn) * (1. + sn));
+    value_t sn = getSnp(), cs = sqrtf((1.f - sn) * (1.f + sn));
     c.xC = getX() - sn * c.rC; // center in tracking
     c.yC = getY() + cs * c.rC; // frame. Note: r is signed!!!
     c.rC = fabs(c.rC);
@@ -516,7 +518,7 @@ template <typename value_T>
 inline typename TrackParametrization<value_T>::value_t TrackParametrization<value_T>::getPtInv() const
 {
   // return the inverted track pT
-  auto ptInv = fabs(mP[kQ2Pt]);
+  const value_t ptInv = fabs(mP[kQ2Pt]);
   return (mAbsCharge > 1) ? ptInv / mAbsCharge : ptInv;
 }
 
@@ -525,7 +527,7 @@ template <typename value_T>
 inline typename TrackParametrization<value_T>::value_t TrackParametrization<value_T>::getP2Inv() const
 {
   // return the inverted track momentum^2
-  auto p2 = mP[kQ2Pt] * mP[kQ2Pt] / (1.f + getTgl() * getTgl());
+  const value_t p2 = mP[kQ2Pt] * mP[kQ2Pt] / (1.f + getTgl() * getTgl());
   return (mAbsCharge > 1) ? p2 * mAbsCharge * mAbsCharge : p2;
 }
 
@@ -534,8 +536,8 @@ template <typename value_T>
 inline typename TrackParametrization<value_T>::value_t TrackParametrization<value_T>::getP2() const
 {
   // return the track momentum^2
-  auto p2inv = getP2Inv();
-  return (p2inv > o2::constants::math::Almost0) ? 1. / p2inv : o2::constants::math::VeryBig;
+  const value_t p2inv = getP2Inv();
+  return (p2inv > o2::constants::math::Almost0) ? 1.f / p2inv : o2::constants::math::VeryBig;
 }
 
 //____________________________________________________________
@@ -543,7 +545,7 @@ template <typename value_T>
 inline typename TrackParametrization<value_T>::value_t TrackParametrization<value_T>::getPInv() const
 {
   // return the inverted track momentum^2
-  auto pInv = fabs(mP[kQ2Pt]) / sqrtf(1.f + getTgl() * getTgl());
+  const value_t pInv = fabs(mP[kQ2Pt]) / sqrtf(1.f + getTgl() * getTgl());
   return (mAbsCharge > 1) ? pInv / mAbsCharge : pInv;
 }
 
@@ -552,8 +554,8 @@ template <typename value_T>
 inline typename TrackParametrization<value_T>::value_t TrackParametrization<value_T>::getP() const
 {
   // return the track momentum
-  value_t pInv = getPInv();
-  return (pInv > o2::constants::math::Almost0) ? 1. / pInv : o2::constants::math::VeryBig;
+  const value_t pInv = getPInv();
+  return (pInv > o2::constants::math::Almost0) ? 1.f / pInv : o2::constants::math::VeryBig;
 }
 
 //____________________________________________________________
@@ -579,7 +581,7 @@ inline typename TrackParametrization<value_T>::value_t TrackParametrization<valu
 template <typename value_T>
 inline typename TrackParametrization<value_T>::value_t TrackParametrization<value_T>::getEta() const
 {
-  return -std::log(std::tan(0.5 * getTheta()));
+  return -std::log(std::tan(0.5f * getTheta()));
 }
 
 #ifndef GPUCA_ALIGPUCODE //These functions clash with GPU code and are thus hidden
@@ -593,7 +595,7 @@ inline Point3D<typename TrackParametrization<value_T>::value_t> TrackParametriza
 
 //_______________________________________________________
 template <typename value_T>
-inline void TrackParametrization<value_T>::getXYZGlo(std::array<value_t, 3>& xyz) const
+inline void TrackParametrization<value_T>::getXYZGlo(dim3_t& xyz) const
 {
   // track coordinates in lab frame
   xyz[0] = getX();
