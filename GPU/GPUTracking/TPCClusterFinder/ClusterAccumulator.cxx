@@ -22,12 +22,13 @@ GPUd() void ClusterAccumulator::toNative(const ChargePos& pos, Charge q, int min
   bool isEdgeCluster = CfUtils::isAtEdge(pos);
   bool wasSplitInTime = mSplitInTime >= minSplitNum;
   bool wasSplitInPad = mSplitInPad >= minSplitNum;
+  bool isSingleCluster = (mPadSigma == 0) || (mTimeSigma == 0);
 
   uchar flags = 0;
   flags |= (isEdgeCluster) ? tpc::ClusterNative::flagEdge : 0;
   flags |= (wasSplitInTime) ? tpc::ClusterNative::flagSplitTime : 0;
   flags |= (wasSplitInPad) ? tpc::ClusterNative::flagSplitPad : 0;
-  // TODO: set single flag!
+  flags |= (isSingleCluster) ? tpc::ClusterNative::flagSingle : 0;
 
   cn.qMax = q;
   cn.qTot = mQtot;
