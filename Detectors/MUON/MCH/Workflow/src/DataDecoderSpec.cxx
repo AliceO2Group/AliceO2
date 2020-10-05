@@ -43,11 +43,6 @@
 #include "MCHWorkflow/DataDecoderSpec.h"
 #include "DetectorsRaw/RDHUtils.h"
 
-namespace o2::header
-{
-extern std::ostream& operator<<(std::ostream&, const o2::header::RAWDataHeaderV4&);
-}
-
 namespace o2
 {
 namespace mch
@@ -250,18 +245,14 @@ class DataDecoderTask
     DPLRawParser parser(inputs, o2::framework::select("TF:MCH/RAWDATA"));
 
     for (auto it = parser.begin(), end = parser.end(); it != end; ++it) {
-      // retrieving RDH v4
-      auto const* rdh = it.get_if<o2::header::RAWDataHeaderV4>();
-      // retrieving the raw pointer of the page
+      auto const* rdh = it.get_if<RDH>();
       auto const* raw = it.raw();
-      // size of payload
       size_t payloadSize = it.size();
-
       if (payloadSize == 0) {
         continue;
       }
 
-      gsl::span<const std::byte> buffer(reinterpret_cast<const std::byte*>(raw), sizeof(o2::header::RAWDataHeaderV4) + payloadSize);
+      gsl::span<const std::byte> buffer(reinterpret_cast<const std::byte*>(raw), sizeof(RDH) + payloadSize);
       decodeBuffer(buffer, digits);
     }
   }
@@ -356,12 +347,11 @@ class DataDecoderTask
 };                            // namespace raw
 
 //_________________________________________________________________________________________________
-o2::framework::DataProcessorSpec getDecodingSpec()
+o2::framework::DataProcessorSpec getDecodingSpec(std::string inputSpec)
 {
   return DataProcessorSpec{
     "DataDecoder",
-    //o2::framework::select("TF:MCH/RAWDATA, re:ROUT/RAWDATA"),
-    o2::framework::select("readout:ROUT/RAWDATA"),
+    o2::framework::select(inputSpec.c_str()),
     Outputs{OutputSpec{"MCH", "DIGITS", 0, Lifetime::Timeframe}, OutputSpec{"MCH", "ORBITS", 0, Lifetime::Timeframe}},
     AlgorithmSpec{adaptFromTask<DataDecoderTask>()},
     Options{{"print", VariantType::Bool, false, {"print digits"}},
