@@ -32,9 +32,6 @@
 #include <fmt/printf.h>
 #include "Framework/Logger.h"
 
-using std::array;
-using namespace o2::constants::math;
-
 namespace o2
 {
 namespace track
@@ -63,21 +60,21 @@ bool TrackParametrizationWithError<value_T>::propagateTo(value_t xk, value_t b)
   // propagate this track to the plane X=xk (cm) in the field "b" (kG)
   //----------------------------------------------------------------
   value_t dx = xk - this->getX();
-  if (fabs(dx) < Almost0) {
+  if (std::fabs(dx) < constants::math::Almost0) {
     return true;
   }
   value_t crv = this->getCurvature(b);
   value_t x2r = crv * dx;
   value_t f1 = this->getSnp(), f2 = f1 + x2r;
-  if ((fabs(f1) > Almost1) || (fabs(f2) > Almost1)) {
+  if ((std::fabs(f1) > constants::math::Almost1) || (std::fabs(f2) > constants::math::Almost1)) {
     return false;
   }
   value_t r1 = std::sqrt((1.f - f1) * (1.f + f1));
-  if (fabs(r1) < Almost0) {
+  if (std::fabs(r1) < constants::math::Almost0) {
     return false;
   }
   value_t r2 = std::sqrt((1.f - f2) * (1.f + f2));
-  if (fabs(r2) < Almost0) {
+  if (std::fabs(r2) < constants::math::Almost0) {
     return false;
   }
   this->setX(xk);
@@ -85,7 +82,7 @@ bool TrackParametrizationWithError<value_T>::propagateTo(value_t xk, value_t b)
   value_t dP[kNParams] = {0.f};
   dP[kY] = dx * dy2dx;
   dP[kSnp] = x2r;
-  if (fabs(x2r) < 0.05f) {
+  if (std::fabs(x2r) < 0.05f) {
     dP[kZ] = dx * (r2 + f2 * dy2dx) * this->getTgl();
   } else {
     // for small dx/R the linear apporximation of the arc by the segment is OK,
@@ -96,12 +93,12 @@ bool TrackParametrizationWithError<value_T>::propagateTo(value_t xk, value_t b)
     //    double rot = 2*TMath::ASin(0.5*chord*crv); // angular difference seen from the circle center
     //    mP1 += rot/crv*mP3;
     //
-    value_t rot = asinf(r1 * f2 - r2 * f1);         // more economic version from Yura.
+    value_t rot = std::asin(r1 * f2 - r2 * f1);     // more economic version from Yura.
     if (f1 * f1 + f2 * f2 > 1.f && f1 * f2 < 0.f) { // special cases of large rotations or large abs angles
       if (f2 > 0.f) {
-        rot = PI - rot; //
+        rot = constants::math::PI - rot; //
       } else {
-        rot = -PI - rot;
+        rot = -constants::math::PI - rot;
       }
     }
     dP[kZ] = this->getTgl() / crv * rot;
@@ -117,7 +114,7 @@ bool TrackParametrizationWithError<value_T>::propagateTo(value_t xk, value_t b)
   // evaluate matrix in double prec.
   double rinv = 1. / r1;
   double r3inv = rinv * rinv * rinv;
-  double f24 = dx * b * B2C; // x2r/mP[kQ2Pt];
+  double f24 = dx * b * constants::math::B2C; // x2r/mP[kQ2Pt];
   double f02 = dx * r3inv;
   double f04 = 0.5 * f24 * f02;
   double f12 = f02 * this->getTgl() * f1;
@@ -165,7 +162,7 @@ template <typename value_T>
 bool TrackParametrizationWithError<value_T>::rotate(value_t alpha)
 {
   // rotate to alpha frame
-  if (fabs(this->getSnp()) > Almost1) {
+  if (std::fabs(this->getSnp()) > constants::math::Almost1) {
     LOGF(WARNING, "Precondition is not satisfied: |sin(phi)|>1 ! {:f}", this->getSnp());
     return false;
   }
@@ -184,7 +181,7 @@ bool TrackParametrizationWithError<value_T>::rotate(value_t alpha)
   //
 
   value_t updSnp = snp * ca - csp * sa;
-  if (fabs(updSnp) > Almost1) {
+  if (std::fabs(updSnp) > constants::math::Almost1) {
     LOGF(WARNING, "Rotation failed: new snp {:.2f}", updSnp);
     return false;
   }
@@ -194,9 +191,9 @@ bool TrackParametrizationWithError<value_T>::rotate(value_t alpha)
   this->setY(-xold * sa + yold * ca);
   this->setSnp(updSnp);
 
-  if (fabs(csp) < Almost0) {
+  if (std::fabs(csp) < constants::math::Almost0) {
     LOGF(WARNING, "Too small cosine value {:f}", csp);
-    csp = Almost0;
+    csp = constants::math::Almost0;
   }
 
   value_t rr = (ca + snp / csp * sa);
@@ -234,8 +231,8 @@ bool TrackParametrizationWithError<value_T>::propagateToDCA(const o2::dataformat
   value_t crv = this->getCurvature(b);
   value_t tgfv = -(crv * x - snp) / (crv * y + csp);
   sn = tgfv / std::sqrt(1.f + tgfv * tgfv);
-  cs = std::sqrt((1. - sn) * (1. + sn));
-  cs = (std::abs(tgfv) > Almost0) ? sn / tgfv : Almost1;
+  cs = std::sqrt((1.f - sn) * (1.f + sn));
+  cs = (std::abs(tgfv) > constants::math::Almost0) ? sn / tgfv : constants::math::Almost1;
 
   x = xv * cs + yv * sn;
   yv = -xv * sn + yv * cs;
@@ -259,8 +256,8 @@ bool TrackParametrizationWithError<value_T>::propagateToDCA(const o2::dataformat
 
 //______________________________________________________________
 template <typename value_T>
-TrackParametrizationWithError<value_T>::TrackParametrizationWithError(const array<value_t, 3>& xyz, const array<value_t, 3>& pxpypz,
-                                                                      const array<value_t, kLabCovMatSize>& cv, int charge, bool sectorAlpha)
+TrackParametrizationWithError<value_T>::TrackParametrizationWithError(const dim3_t& xyz, const dim3_t& pxpypz,
+                                                                      const std::array<value_t, kLabCovMatSize>& cv, int charge, bool sectorAlpha)
 {
   // construct track param and covariance from kinematics and lab errors
 
@@ -274,9 +271,9 @@ TrackParametrizationWithError<value_T>::TrackParametrizationWithError(const arra
   value_t radPos2 = xyz[0] * xyz[0] + xyz[1] * xyz[1];
   value_t alp = 0;
   if (sectorAlpha || radPos2 < 1) {
-    alp = atan2f(pxpypz[1], pxpypz[0]);
+    alp = std::atan2(pxpypz[1], pxpypz[0]);
   } else {
-    alp = atan2f(xyz[1], xyz[0]);
+    alp = std::atan2(xyz[1], xyz[0]);
   }
   if (sectorAlpha) {
     alp = utils::Angle2Alpha(alp);
@@ -285,24 +282,24 @@ TrackParametrizationWithError<value_T>::TrackParametrizationWithError(const arra
   value_t sn, cs;
   utils::sincos(alp, sn, cs);
   // protection:  avoid alpha being too close to 0 or +-pi/2
-  if (fabs(sn) < 2.f * kSafe) {
+  if (std::fabs(sn) < 2.f * kSafe) {
     if (alp > 0) {
-      alp += alp < PIHalf ? 2.f * kSafe : -2.f * kSafe;
+      alp += alp < constants::math::PIHalf ? 2.f * kSafe : -2.f * kSafe;
     } else {
-      alp += alp > -PIHalf ? -2.f * kSafe : 2.f * kSafe;
+      alp += alp > -constants::math::PIHalf ? -2.f * kSafe : 2.f * kSafe;
     }
     utils::sincos(alp, sn, cs);
-  } else if (fabs(cs) < 2.f * kSafe) {
+  } else if (std::fabs(cs) < 2.f * kSafe) {
     if (alp > 0) {
-      alp += alp > PIHalf ? 2.f * kSafe : -2.f * kSafe;
+      alp += alp > constants::math::PIHalf ? 2.f * kSafe : -2.f * kSafe;
     } else {
-      alp += alp > -PIHalf ? 2.f * kSafe : -2.f * kSafe;
+      alp += alp > -constants::math::PIHalf ? 2.f * kSafe : -2.f * kSafe;
     }
     utils::sincos(alp, sn, cs);
   }
   // get the vertex of origin and the momentum
-  array<value_t, 3> ver{xyz[0], xyz[1], xyz[2]};
-  array<value_t, 3> mom{pxpypz[0], pxpypz[1], pxpypz[2]};
+  dim3_t ver{xyz[0], xyz[1], xyz[2]};
+  dim3_t mom{pxpypz[0], pxpypz[1], pxpypz[2]};
   //
   // Rotate to the local coordinate system
   utils::RotateZ(ver, -alp);
@@ -319,9 +316,9 @@ TrackParametrizationWithError<value_T>::TrackParametrizationWithError(const arra
   this->setAbsCharge(std::abs(charge));
   this->setQ2Pt(charge ? ptI * charge : ptI);
   //
-  if (fabs(1.f - this->getSnp()) < kSafe) {
+  if (std::fabs(1.f - this->getSnp()) < kSafe) {
     this->setSnp(1.f - kSafe); // Protection
-  } else if (fabs(-1.f - this->getSnp()) < kSafe) {
+  } else if (std::fabs(-1.f - this->getSnp()) < kSafe) {
     this->setSnp(-1.f + kSafe); // Protection
   }
   //
@@ -331,10 +328,10 @@ TrackParametrizationWithError<value_T>::TrackParametrizationWithError(const arra
   //
   int special = 0;
   value_t sgcheck = r * sn + this->getSnp() * cs;
-  if (fabs(sgcheck) > 1 - kSafe) { // special case: lab phi is +-pi/2
+  if (std::fabs(sgcheck) > 1 - kSafe) { // special case: lab phi is +-pi/2
     special = 1;
     sgcheck = sgcheck < 0 ? -1.f : 1.f;
-  } else if (fabs(sgcheck) < kSafe) {
+  } else if (std::fabs(sgcheck) < kSafe) {
     sgcheck = cs < 0 ? -1.0f : 1.0f;
     special = 2; // special case: lab phi is 0
   }
@@ -348,29 +345,29 @@ TrackParametrizationWithError<value_T>::TrackParametrizationWithError(const arra
   if (special == 1) {
     mC[kSigSnpY] = cv[6] * ptI;
     mC[kSigSnpZ] = -sgcheck * cv[8] * r * ptI;
-    mC[kSigSnp2] = fabs(cv[9] * r * r * ptI2);
+    mC[kSigSnp2] = std::fabs(cv[9] * r * r * ptI2);
     mC[kSigTglY] = (cv[10] * this->getTgl() - sgcheck * cv[15]) * ptI / r;
     mC[kSigTglZ] = (cv[17] - sgcheck * cv[12] * this->getTgl()) * ptI;
     mC[kSigTglSnp] = (-sgcheck * cv[18] + cv[13] * this->getTgl()) * r * ptI2;
-    mC[kSigTgl2] = fabs(cv[20] - 2 * sgcheck * cv[19] * mC[4] + cv[14] * tgl2) * ptI2;
+    mC[kSigTgl2] = std::fabs(cv[20] - 2 * sgcheck * cv[19] * mC[4] + cv[14] * tgl2) * ptI2;
     mC[kSigQ2PtY] = cv[10] * ptI2 / r * charge;
     mC[kSigQ2PtZ] = -sgcheck * cv[12] * ptI2 * charge;
     mC[kSigQ2PtSnp] = cv[13] * r * ptI * ptI2 * charge;
     mC[kSigQ2PtTgl] = (-sgcheck * cv[19] + cv[14] * this->getTgl()) * r * ptI2 * ptI;
-    mC[kSigQ2Pt2] = fabs(cv[14] * ptI2 * ptI2);
+    mC[kSigQ2Pt2] = std::fabs(cv[14] * ptI2 * ptI2);
   } else if (special == 2) {
     mC[kSigSnpY] = -cv[10] * ptI * cs / sn;
     mC[kSigSnpZ] = cv[12] * cs * ptI;
-    mC[kSigSnp2] = fabs(cv[14] * cs * cs * ptI2);
+    mC[kSigSnp2] = std::fabs(cv[14] * cs * cs * ptI2);
     mC[kSigTglY] = (sgcheck * cv[6] * this->getTgl() - cv[15]) * ptI / sn;
     mC[kSigTglZ] = (cv[17] - sgcheck * cv[8] * this->getTgl()) * ptI;
     mC[kSigTglSnp] = (cv[19] - sgcheck * cv[13] * this->getTgl()) * cs * ptI2;
-    mC[kSigTgl2] = fabs(cv[20] - 2 * sgcheck * cv[18] * this->getTgl() + cv[9] * tgl2) * ptI2;
+    mC[kSigTgl2] = std::fabs(cv[20] - 2 * sgcheck * cv[18] * this->getTgl() + cv[9] * tgl2) * ptI2;
     mC[kSigQ2PtY] = sgcheck * cv[6] * ptI2 / sn * charge;
     mC[kSigQ2PtZ] = -sgcheck * cv[8] * ptI2 * charge;
     mC[kSigQ2PtSnp] = -sgcheck * cv[13] * cs * ptI * ptI2 * charge;
     mC[kSigQ2PtTgl] = (-sgcheck * cv[18] + cv[9] * this->getTgl()) * ptI2 * ptI * charge;
-    mC[kSigQ2Pt2] = fabs(cv[9] * ptI2 * ptI2);
+    mC[kSigQ2Pt2] = std::fabs(cv[9] * ptI2 * ptI2);
   } else {
     double m00 = -sn; // m10=cs;
     double m23 = -pt * (sn + this->getSnp() * cs / r), m43 = -pt * pt * (r * cs - this->getSnp() * sn);
@@ -394,8 +391,8 @@ TrackParametrizationWithError<value_T>::TrackParametrizationWithError(const arra
     mC[kSigSnpZ] = (cv[12] * m43 - cv[8] * m44) / (m24 * m43 - m23 * m44);
     mC[kSigQ2PtZ] = (cv[8] - mC[kSigSnpZ] * m23) / m43;
     mC[kSigTglZ] = cv[17] / m35 - mC[kSigQ2PtZ] * m45 / m35;
-    mC[kSigSnp2] = fabs((a4 * a3 - a6 * a1) / (a5 * a3 - a6 * a2));
-    mC[kSigQ2Pt2] = fabs((a1 - a2 * mC[kSigSnp2]) / a3);
+    mC[kSigSnp2] = std::fabs((a4 * a3 - a6 * a1) / (a5 * a3 - a6 * a2));
+    mC[kSigQ2Pt2] = std::fabs((a1 - a2 * mC[kSigSnp2]) / a3);
     mC[kSigQ2PtSnp] = (cv[9] - mC[kSigSnp2] * m23 * m23 - mC[kSigQ2Pt2] * m43 * m43) / m23 / m43;
     double b1 = cv[18] - mC[kSigQ2PtSnp] * m23 * m45 - mC[kSigQ2Pt2] * m43 * m45;
     double b2 = m23 * m35;
@@ -405,14 +402,14 @@ TrackParametrizationWithError<value_T>::TrackParametrizationWithError(const arra
     double b6 = m44 * m35;
     mC[kSigTglSnp] = (b4 - b6 * b1 / b3) / (b5 - b6 * b2 / b3);
     mC[kSigQ2PtTgl] = b1 / b3 - b2 * mC[kSigTglSnp] / b3;
-    mC[kSigTgl2] = fabs((cv[20] - mC[kSigQ2Pt2] * (m45 * m45) - mC[kSigQ2PtTgl] * 2. * m35 * m45) / (m35 * m35));
+    mC[kSigTgl2] = std::fabs((cv[20] - mC[kSigQ2Pt2] * (m45 * m45) - mC[kSigQ2PtTgl] * 2.f * m35 * m45) / (m35 * m35));
   }
   checkCovariance();
 }
 
 //____________________________________________________________
 template <typename value_T>
-bool TrackParametrizationWithError<value_T>::propagateTo(value_t xk, const array<value_t, 3>& b)
+bool TrackParametrizationWithError<value_T>::propagateTo(value_t xk, const dim3_t& b)
 {
   //----------------------------------------------------------------
   // Extrapolate this track to the plane X=xk in the field b[].
@@ -422,37 +419,37 @@ bool TrackParametrizationWithError<value_T>::propagateTo(value_t xk, const array
   //----------------------------------------------------------------
 
   value_t dx = xk - this->getX();
-  if (fabs(dx) < Almost0) {
+  if (std::fabs(dx) < constants::math::Almost0) {
     return true;
   }
   // Do not propagate tracks outside the ALICE detector
-  if (fabs(dx) > 1e5 || fabs(this->getY()) > 1e5 || fabs(this->getZ()) > 1e5) {
+  if (std::fabs(dx) > 1e5 || std::fabs(this->getY()) > 1e5 || std::fabs(this->getZ()) > 1e5) {
     LOGF(WARNING, "Anomalous track, target X:{:f}", xk);
     //    print();
     return false;
   }
-  value_t crv = (fabs(b[2]) < Almost0) ? 0.f : this->getCurvature(b[2]);
+  value_t crv = (std::fabs(b[2]) < constants::math::Almost0) ? 0.f : this->getCurvature(b[2]);
   value_t x2r = crv * dx;
   value_t f1 = this->getSnp(), f2 = f1 + x2r;
-  if ((fabs(f1) > Almost1) || (fabs(f2) > Almost1)) {
+  if ((std::fabs(f1) > constants::math::Almost1) || (std::fabs(f2) > constants::math::Almost1)) {
     return false;
   }
   value_t r1 = std::sqrt((1.f - f1) * (1.f + f1));
-  if (fabs(r1) < Almost0) {
+  if (std::fabs(r1) < constants::math::Almost0) {
     return false;
   }
   value_t r2 = std::sqrt((1.f - f2) * (1.f + f2));
-  if (fabs(r2) < Almost0) {
+  if (std::fabs(r2) < constants::math::Almost0) {
     return false;
   }
 
   value_t dy2dx = (f1 + f2) / (r1 + r2);
-  value_t step = (fabs(x2r) < 0.05f) ? dx * fabs(r2 + f2 * dy2dx)                                           // chord
-                                     : 2.f * asinf(0.5f * dx * std::sqrt(1.f + dy2dx * dy2dx) * crv) / crv; // arc
+  value_t step = (std::fabs(x2r) < 0.05f) ? dx * std::fabs(r2 + f2 * dy2dx)                                          // chord
+                                          : 2.f * std::asin(0.5f * dx * std::sqrt(1.f + dy2dx * dy2dx) * crv) / crv; // arc
   step *= std::sqrt(1.f + this->getTgl() * this->getTgl());
   //
   // get the track x,y,z,px/p,py/p,pz/p,p,sinAlpha,cosAlpha in the Global System
-  array<value_t, 9> vecLab{0.f};
+  std::array<value_t, 9> vecLab{0.f};
   if (!this->getPosDirGlo(vecLab)) {
     return false;
   }
@@ -465,7 +462,7 @@ bool TrackParametrizationWithError<value_T>::propagateTo(value_t xk, const array
   // evaluate matrix in double prec.
   double rinv = 1. / r1;
   double r3inv = rinv * rinv * rinv;
-  double f24 = dx * b[2] * B2C; // x2r/track[kQ2Pt];
+  double f24 = dx * b[2] * constants::math::B2C; // x2r/track[kQ2Pt];
   double f02 = dx * r3inv;
   double f04 = 0.5 * f24 * f02;
   double f12 = f02 * this->getTgl() * f1;
@@ -509,23 +506,23 @@ bool TrackParametrizationWithError<value_T>::propagateTo(value_t xk, const array
   value_t bxy2 = b[0] * b[0] + b[1] * b[1];
   value_t bt = std::sqrt(bxy2);
   value_t cosphi = 1.f, sinphi = 0.f;
-  if (bt > Almost0) {
+  if (bt > constants::math::Almost0) {
     cosphi = b[0] / bt;
     sinphi = b[1] / bt;
   }
   value_t bb = std::sqrt(bxy2 + b[2] * b[2]);
   value_t costet = 1., sintet = 0.;
-  if (bb > Almost0) {
+  if (bb > constants::math::Almost0) {
     costet = b[2] / bb;
     sintet = bt / bb;
   }
-  array<value_t, 7> vect{costet * cosphi * vecLab[0] + costet * sinphi * vecLab[1] - sintet * vecLab[2],
-                         -sinphi * vecLab[0] + cosphi * vecLab[1],
-                         sintet * cosphi * vecLab[0] + sintet * sinphi * vecLab[1] + costet * vecLab[2],
-                         costet * cosphi * vecLab[3] + costet * sinphi * vecLab[4] - sintet * vecLab[5],
-                         -sinphi * vecLab[3] + cosphi * vecLab[4],
-                         sintet * cosphi * vecLab[3] + sintet * sinphi * vecLab[4] + costet * vecLab[5],
-                         vecLab[6]};
+  std::array<value_t, 7> vect{costet * cosphi * vecLab[0] + costet * sinphi * vecLab[1] - sintet * vecLab[2],
+                              -sinphi * vecLab[0] + cosphi * vecLab[1],
+                              sintet * cosphi * vecLab[0] + sintet * sinphi * vecLab[1] + costet * vecLab[2],
+                              costet * cosphi * vecLab[3] + costet * sinphi * vecLab[4] - sintet * vecLab[5],
+                              -sinphi * vecLab[3] + cosphi * vecLab[4],
+                              sintet * cosphi * vecLab[3] + sintet * sinphi * vecLab[4] + costet * vecLab[5],
+                              vecLab[6]};
 
   // Do the helix step
   value_t sgn = this->getSign();
@@ -551,8 +548,8 @@ bool TrackParametrizationWithError<value_T>::propagateTo(value_t xk, const array
 
   // Do the final correcting step to the target plane (linear approximation)
   value_t x = vecLab[0], y = vecLab[1], z = vecLab[2];
-  if (fabs(dx) > Almost0) {
-    if (fabs(vecLab[3]) < Almost0) {
+  if (std::fabs(dx) > constants::math::Almost0) {
+    if (std::fabs(vecLab[3]) < constants::math::Almost0) {
       return false;
     }
     dx = xk - vecLab[0];
@@ -581,7 +578,7 @@ void TrackParametrizationWithError<value_T>::checkCovariance()
   // In case the diagonal element is bigger than the maximal allowed value, it is set to
   // the limit and the off-diagonal elements that correspond to it are set to zero.
 
-  mC[kSigY2] = fabs(mC[kSigY2]);
+  mC[kSigY2] = std::fabs(mC[kSigY2]);
   if (mC[kSigY2] > kCY2max) {
     value_t scl = std::sqrt(kCY2max / mC[kSigY2]);
     mC[kSigY2] = kCY2max;
@@ -590,7 +587,7 @@ void TrackParametrizationWithError<value_T>::checkCovariance()
     mC[kSigTglY] *= scl;
     mC[kSigQ2PtY] *= scl;
   }
-  mC[kSigZ2] = fabs(mC[kSigZ2]);
+  mC[kSigZ2] = std::fabs(mC[kSigZ2]);
   if (mC[kSigZ2] > kCZ2max) {
     value_t scl = std::sqrt(kCZ2max / mC[kSigZ2]);
     mC[kSigZ2] = kCZ2max;
@@ -599,7 +596,7 @@ void TrackParametrizationWithError<value_T>::checkCovariance()
     mC[kSigTglZ] *= scl;
     mC[kSigQ2PtZ] *= scl;
   }
-  mC[kSigSnp2] = fabs(mC[kSigSnp2]);
+  mC[kSigSnp2] = std::fabs(mC[kSigSnp2]);
   if (mC[kSigSnp2] > kCSnp2max) {
     value_t scl = std::sqrt(kCSnp2max / mC[kSigSnp2]);
     mC[kSigSnp2] = kCSnp2max;
@@ -608,7 +605,7 @@ void TrackParametrizationWithError<value_T>::checkCovariance()
     mC[kSigTglSnp] *= scl;
     mC[kSigQ2PtSnp] *= scl;
   }
-  mC[kSigTgl2] = fabs(mC[kSigTgl2]);
+  mC[kSigTgl2] = std::fabs(mC[kSigTgl2]);
   if (mC[kSigTgl2] > kCTgl2max) {
     value_t scl = std::sqrt(kCTgl2max / mC[kSigTgl2]);
     mC[kSigTgl2] = kCTgl2max;
@@ -617,7 +614,7 @@ void TrackParametrizationWithError<value_T>::checkCovariance()
     mC[kSigTglSnp] *= scl;
     mC[kSigQ2PtTgl] *= scl;
   }
-  mC[kSigQ2Pt2] = fabs(mC[kSigQ2Pt2]);
+  mC[kSigQ2Pt2] = std::fabs(mC[kSigQ2Pt2]);
   if (mC[kSigQ2Pt2] > kC1Pt2max) {
     value_t scl = std::sqrt(kC1Pt2max / mC[kSigQ2Pt2]);
     mC[kSigQ2Pt2] = kC1Pt2max;
@@ -634,7 +631,7 @@ void TrackParametrizationWithError<value_T>::resetCovariance(value_t s2)
 {
   // Reset the covarince matrix to "something big"
   double d0(kCY2max), d1(kCZ2max), d2(kCSnp2max), d3(kCTgl2max), d4(kC1Pt2max);
-  if (s2 > Almost0) {
+  if (s2 > constants::math::Almost0) {
     d0 = getSigmaY2() * s2;
     d1 = getSigmaZ2() * s2;
     d2 = getSigmaSnp2() * s2;
@@ -666,7 +663,7 @@ void TrackParametrizationWithError<value_T>::resetCovariance(value_t s2)
 
 //______________________________________________
 template <typename value_T>
-typename TrackParametrizationWithError<value_T>::value_t TrackParametrizationWithError<value_T>::getPredictedChi2(const array<value_t, 2>& p, const array<value_t, 3>& cov) const
+typename TrackParametrizationWithError<value_T>::value_t TrackParametrizationWithError<value_T>::getPredictedChi2(const dim2_t& p, const dim3_t& cov) const
 {
   // Estimate the chi2 of the space point "p" with the cov. matrix "cov"
   auto sdd = static_cast<double>(getSigmaY2()) + static_cast<double>(cov[0]);
@@ -674,8 +671,8 @@ typename TrackParametrizationWithError<value_T>::value_t TrackParametrizationWit
   auto szz = static_cast<double>(getSigmaZ2()) + static_cast<double>(cov[2]);
   auto det = sdd * szz - sdz * sdz;
 
-  if (fabs(det) < Almost0) {
-    return VeryBig;
+  if (std::fabs(det) < constants::math::Almost0) {
+    return constants::math::VeryBig;
   }
 
   value_t d = this->getY() - p[0];
@@ -723,16 +720,16 @@ typename TrackParametrizationWithError<value_T>::value_t TrackParametrizationWit
 
   if (std::abs(this->getAlpha() - rhs.getAlpha()) > FLT_EPSILON) {
     LOG(ERROR) << "The reference Alpha of the tracks differ: " << this->getAlpha() << " : " << rhs.getAlpha();
-    return 2. * HugeF;
+    return 2.f * HugeF;
   }
   if (std::abs(this->getX() - rhs.getX()) > FLT_EPSILON) {
     LOG(ERROR) << "The reference X of the tracks differ: " << this->getX() << " : " << rhs.getX();
-    return 2. * HugeF;
+    return 2.f * HugeF;
   }
   buildCombinedCovMatrix(rhs, covToSet);
   if (!covToSet.Invert()) {
     LOG(WARNING) << "Cov.matrix inversion failed: " << covToSet;
-    return 2. * HugeF;
+    return 2.f * HugeF;
   }
   double chi2diag = 0., chi2ndiag = 0., diff[kNParams];
   for (int i = kNParams; i--;) {
@@ -831,7 +828,7 @@ bool TrackParametrizationWithError<value_T>::update(const TrackParametrizationWi
 
 //______________________________________________
 template <typename value_T>
-bool TrackParametrizationWithError<value_T>::update(const array<value_t, 2>& p, const array<value_t, 3>& cov)
+bool TrackParametrizationWithError<value_T>::update(const dim2_t& p, const dim3_t& cov)
 {
   // Update the track parameters with the space point "p" having
   // the covariance matrix "cov"
@@ -847,7 +844,7 @@ bool TrackParametrizationWithError<value_T>::update(const array<value_t, 2>& p, 
   double r11 = static_cast<double>(cov[2]) + static_cast<double>(cm11);
   double det = r00 * r11 - r01 * r01;
 
-  if (fabs(det) < Almost0) {
+  if (std::fabs(det) < constants::math::Almost0) {
     return false;
   }
   double detI = 1. / det;
@@ -864,7 +861,7 @@ bool TrackParametrizationWithError<value_T>::update(const array<value_t, 2>& p, 
 
   value_t dy = p[kY] - this->getY(), dz = p[kZ] - this->getZ();
   value_t dsnp = k20 * dy + k21 * dz;
-  if (fabs(this->getSnp() + dsnp) > Almost1) {
+  if (std::fabs(this->getSnp() + dsnp) > constants::math::Almost1) {
     return false;
   }
 
@@ -927,7 +924,7 @@ bool TrackParametrizationWithError<value_T>::correctForMaterial(value_t x2x0, va
   value_t cst2I = (1.f + this->getTgl() * this->getTgl());        // 1/cos(lambda)^2
   // Apply angle correction, if requested
   if (anglecorr) {
-    value_t angle = std::sqrt(cst2I / (csp2));
+    value_t angle = std::sqrt(cst2I / csp2);
     x2x0 *= angle;
     xrho *= angle;
   }
@@ -940,11 +937,11 @@ bool TrackParametrizationWithError<value_T>::correctForMaterial(value_t x2x0, va
   // Calculating the multiple scattering corrections******************
   value_t cC22(0.f), cC33(0.f), cC43(0.f), cC44(0.f);
   if (x2x0 != 0.f) {
-    value_t theta2 = kMSConst2 / (beta2 * p2) * fabs(x2x0);
+    value_t theta2 = kMSConst2 / (beta2 * p2) * std::fabs(x2x0);
     if (this->getAbsCharge() != 1) {
       theta2 *= this->getAbsCharge() * this->getAbsCharge();
     }
-    if (theta2 > PI * PI) {
+    if (theta2 > constants::math::PI * constants::math::PI) {
       return false;
     }
     value_t fp34 = this->getTgl() * this->getCharge2Pt();
@@ -963,8 +960,8 @@ bool TrackParametrizationWithError<value_T>::correctForMaterial(value_t x2x0, va
   // Calculating the energy loss corrections************************
   value_t cP4 = 1.f;
   if ((xrho != 0.f) && (beta2 < 1.f)) {
-    if (dedx < kCalcdEdxAuto + Almost1) { // request to calculate dedx on the fly
-      dedx = BetheBlochSolid(p / fabs(mass));
+    if (dedx < kCalcdEdxAuto + constants::math::Almost1) { // request to calculate dedx on the fly
+      dedx = BetheBlochSolid(p / std::fabs(mass));
       if (this->getAbsCharge() != 1) {
         dedx *= this->getAbsCharge() * this->getAbsCharge();
       }
@@ -972,7 +969,7 @@ bool TrackParametrizationWithError<value_T>::correctForMaterial(value_t x2x0, va
 
     value_t dE = dedx * xrho;
     value_t e = std::sqrt(e2);
-    if (fabs(dE) > kMaxELossFrac * e) {
+    if (std::fabs(dE) > kMaxELossFrac * e) {
       return false; // 30% energy loss is too much!
     }
     value_t eupd = e + dE;
@@ -984,7 +981,7 @@ bool TrackParametrizationWithError<value_T>::correctForMaterial(value_t x2x0, va
     //
     // Approximate energy loss fluctuation (M.Ivanov)
     constexpr value_t knst = 0.07f; // To be tuned.
-    value_t sigmadE = knst * std::sqrt(fabs(dE)) * e / p2 * this->getCharge2Pt();
+    value_t sigmadE = knst * std::sqrt(std::fabs(dE)) * e / p2 * this->getCharge2Pt();
     cC44 += sigmadE * sigmadE;
   }
 
@@ -1002,7 +999,7 @@ bool TrackParametrizationWithError<value_T>::correctForMaterial(value_t x2x0, va
 
 //______________________________________________________________
 template <typename value_T>
-bool TrackParametrizationWithError<value_T>::getCovXYZPxPyPzGlo(std::array<value_t, 21>& cv) const
+bool TrackParametrizationWithError<value_T>::getCovXYZPxPyPzGlo(std::array<value_t, kLabCovMatSize>& cv) const
 {
   //---------------------------------------------------------------------
   // This function returns the global covariance matrix of the track params
@@ -1016,7 +1013,7 @@ bool TrackParametrizationWithError<value_T>::getCovXYZPxPyPzGlo(std::array<value
   //
   // Results for (nearly) straight tracks are meaningless !
   //---------------------------------------------------------------------
-  if (std::abs(this->getQ2Pt()) <= Almost0 || std::abs(this->getSnp()) > Almost1) {
+  if (std::abs(this->getQ2Pt()) <= constants::math::Almost0 || std::abs(this->getSnp()) > constants::math::Almost1) {
     for (int i = 0; i < 21; i++) {
       cv[i] = 0.;
     }

@@ -70,11 +70,11 @@ void g3helx3(value_T qfield, value_T step, std::array<value_T, 7>& vect)
   value_T tet = rho * step;
 
   value_T tsint, sintt, sint, cos1t;
-  if (fabs(tet) > 0.03f) {
-    sint = sinf(tet);
+  if (std::fabs(tet) > 0.03f) {
+    sint = std::sin(tet);
     sintt = sint / tet;
     tsint = (tet - sint) / tet;
-    value_T t = sinf(0.5f * tet);
+    value_T t = std::sin(0.5f * tet);
     cos1t = 2 * t * t / tet;
   } else {
     tsint = tet * tet / 6.f;
@@ -126,15 +126,15 @@ value_T BetheBlochSolid(value_T bg, value_T rho, value_T kp1, value_T kp2, value
 
   //*** Density effect
   value_T d2 = 0.;
-  const value_T x = log(bg);
-  const value_T lhwI = log(28.816 * 1e-9 * std::sqrt(rho * meanZA) / meanI);
+  const value_T x = std::log(bg);
+  const value_T lhwI = std::log(28.816f * 1e-9f * std::sqrt(rho * meanZA) / meanI);
   if (x > kp2) {
-    d2 = lhwI + x - 0.5;
+    d2 = lhwI + x - 0.5f;
   } else if (x > kp1) {
     double r = (kp2 - x) / (kp2 - kp1);
-    d2 = lhwI + x - 0.5 + (0.5 - lhwI - kp1) * r * r * r;
+    d2 = lhwI + x - 0.5f + (0.5f - lhwI - kp1) * r * r * r;
   }
-  return mK * meanZA * (1 + bg2) / bg2 * (0.5 * log(2 * me * bg2 * maxT / (meanI * meanI)) - bg2 / (1 + bg2) - d2);
+  return mK * meanZA * (1 + bg2) / bg2 * (0.5f * std::log(2 * me * bg2 * maxT / (meanI * meanI)) - bg2 / (1 + bg2) - d2);
 }
 
 } // namespace track

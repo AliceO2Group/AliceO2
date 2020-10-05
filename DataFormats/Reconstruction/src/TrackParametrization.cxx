@@ -32,9 +32,6 @@
 #include <fmt/printf.h>
 #include "Framework/Logger.h"
 
-using std::array;
-using namespace o2::constants::math;
-
 namespace o2
 {
 namespace track
@@ -42,7 +39,7 @@ namespace track
 
 //______________________________________________________________
 template <typename value_T>
-TrackParametrization<value_T>::TrackParametrization(const array<value_t, 3>& xyz, const array<value_t, 3>& pxpypz, int charge, bool sectorAlpha)
+TrackParametrization<value_T>::TrackParametrization(const dim3_t& xyz, const dim3_t& pxpypz, int charge, bool sectorAlpha)
   : mX{0.f}, mAlpha{0.f}, mP{0.f}
 {
   // construct track param from kinematics
@@ -53,7 +50,7 @@ TrackParametrization<value_T>::TrackParametrization(const array<value_t, 3>& xyz
   //                           angle of pt direction for r==0
   //
   //
-  constexpr value_t kSafe = 1e-5f;
+  constexpr value_t kSafe = 1e-5;
   value_t radPos2 = xyz[0] * xyz[0] + xyz[1] * xyz[1];
   value_t alp = 0;
   if (sectorAlpha || radPos2 < 1) {
@@ -68,24 +65,24 @@ TrackParametrization<value_T>::TrackParametrization(const array<value_t, 3>& xyz
   value_t sn, cs;
   utils::sincos(alp, sn, cs);
   // protection:  avoid alpha being too close to 0 or +-pi/2
-  if (fabs(sn) < 2 * kSafe) {
+  if (std::fabs(sn) < 2 * kSafe) {
     if (alp > 0) {
-      alp += alp < PIHalf ? 2 * kSafe : -2 * kSafe;
+      alp += alp < constants::math::PIHalf ? 2 * kSafe : -2 * kSafe;
     } else {
-      alp += alp > -PIHalf ? -2 * kSafe : 2 * kSafe;
+      alp += alp > -constants::math::PIHalf ? -2 * kSafe : 2 * kSafe;
     }
     utils::sincos(alp, sn, cs);
-  } else if (fabs(cs) < 2 * kSafe) {
+  } else if (std::fabs(cs) < 2 * kSafe) {
     if (alp > 0) {
-      alp += alp > PIHalf ? 2 * kSafe : -2 * kSafe;
+      alp += alp > constants::math::PIHalf ? 2 * kSafe : -2 * kSafe;
     } else {
-      alp += alp > -PIHalf ? 2 * kSafe : -2 * kSafe;
+      alp += alp > -constants::math::PIHalf ? 2 * kSafe : -2 * kSafe;
     }
     utils::sincos(alp, sn, cs);
   }
   // get the vertex of origin and the momentum
-  array<value_t, 3> ver{xyz[0], xyz[1], xyz[2]};
-  array<value_t, 3> mom{pxpypz[0], pxpypz[1], pxpypz[2]};
+  dim3_t ver{xyz[0], xyz[1], xyz[2]};
+  dim3_t mom{pxpypz[0], pxpypz[1], pxpypz[2]};
   //
   // Rotate to the local coordinate system
   utils::RotateZ(ver, -alp);
@@ -101,20 +98,20 @@ TrackParametrization<value_T>::TrackParametrization(const array<value_t, 3>& xyz
   mAbsCharge = std::abs(charge);
   mP[kQ2Pt] = charge ? ptI * charge : ptI;
   //
-  if (fabs(1 - getSnp()) < kSafe) {
-    mP[kSnp] = 1. - kSafe; // Protection
-  } else if (fabs(-1 - getSnp()) < kSafe) {
-    mP[kSnp] = -1. + kSafe; // Protection
+  if (std::fabs(1 - getSnp()) < kSafe) {
+    mP[kSnp] = 1.f - kSafe; // Protection
+  } else if (std::fabs(-1 - getSnp()) < kSafe) {
+    mP[kSnp] = -1.f + kSafe; // Protection
   }
   //
 }
 
 //_______________________________________________________
 template <typename value_T>
-bool TrackParametrization<value_T>::getPxPyPzGlo(array<value_t, 3>& pxyz) const
+bool TrackParametrization<value_T>::getPxPyPzGlo(dim3_t& pxyz) const
 {
   // track momentum
-  if (fabs(getQ2Pt()) < Almost0 || fabs(getSnp()) > Almost1) {
+  if (std::fabs(getQ2Pt()) < constants::math::Almost0 || std::fabs(getSnp()) > constants::math::Almost1) {
     return false;
   }
   value_t cs, sn, pt = getPt();
@@ -128,12 +125,12 @@ bool TrackParametrization<value_T>::getPxPyPzGlo(array<value_t, 3>& pxyz) const
 
 //____________________________________________________
 template <typename value_T>
-bool TrackParametrization<value_T>::getPosDirGlo(array<value_t, 9>& posdirp) const
+bool TrackParametrization<value_T>::getPosDirGlo(std::array<value_t, 9>& posdirp) const
 {
   // fill vector with lab x,y,z,px/p,py/p,pz/p,p,sinAlpha,cosAlpha
-  value_t ptI = fabs(getQ2Pt());
+  value_t ptI = std::fabs(getQ2Pt());
   value_t snp = getSnp();
-  if (ptI < Almost0 || fabs(snp) > Almost1) {
+  if (ptI < constants::math::Almost0 || std::fabs(snp) > constants::math::Almost1) {
     return false;
   }
   value_t &sn = posdirp[7], &cs = posdirp[8];
@@ -156,7 +153,7 @@ template <typename value_T>
 bool TrackParametrization<value_T>::rotateParam(value_t alpha)
 {
   // rotate to alpha frame
-  if (fabs(getSnp()) > Almost1) {
+  if (std::fabs(getSnp()) > constants::math::Almost1) {
     LOGF(WARNING, "Precondition is not satisfied: |sin(phi)|>1 ! {:f}", getSnp());
     return false;
   }
@@ -174,7 +171,7 @@ bool TrackParametrization<value_T>::rotateParam(value_t alpha)
   }
   //
   value_t tmp = snp * ca - csp * sa;
-  if (fabs(tmp) > Almost1) {
+  if (std::fabs(tmp) > constants::math::Almost1) {
     LOGF(WARNING, "Rotation failed: new snp {:.2f}", tmp);
     return false;
   }
@@ -188,7 +185,7 @@ bool TrackParametrization<value_T>::rotateParam(value_t alpha)
 
 //____________________________________________________________
 template <typename value_T>
-bool TrackParametrization<value_T>::propagateParamTo(value_t xk, const array<value_t, 3>& b)
+bool TrackParametrization<value_T>::propagateParamTo(value_t xk, const dim3_t& b)
 {
   //----------------------------------------------------------------
   // Extrapolate this track params (w/o cov matrix) to the plane X=xk in the field b[].
@@ -198,11 +195,11 @@ bool TrackParametrization<value_T>::propagateParamTo(value_t xk, const array<val
   //----------------------------------------------------------------
 
   value_t dx = xk - getX();
-  if (fabs(dx) < Almost0) {
+  if (std::fabs(dx) < constants::math::Almost0) {
     return true;
   }
   // Do not propagate tracks outside the ALICE detector
-  if (fabs(dx) > 1e5 || fabs(getY()) > 1e5 || fabs(getZ()) > 1e5) {
+  if (std::fabs(dx) > 1e5 || std::fabs(getY()) > 1e5 || std::fabs(getZ()) > 1e5) {
     LOGF(WARNING, "Anomalous track, target X:{:f}", xk);
     //    print();
     return false;
@@ -210,24 +207,24 @@ bool TrackParametrization<value_T>::propagateParamTo(value_t xk, const array<val
   value_t crv = getCurvature(b[2]);
   value_t x2r = crv * dx;
   value_t f1 = getSnp(), f2 = f1 + x2r;
-  if (fabs(f1) > Almost1 || fabs(f2) > Almost1) {
+  if (std::fabs(f1) > constants::math::Almost1 || std::fabs(f2) > constants::math::Almost1) {
     return false;
   }
   value_t r1 = std::sqrt((1.f - f1) * (1.f + f1));
-  if (fabs(r1) < Almost0) {
+  if (std::fabs(r1) < constants::math::Almost0) {
     return false;
   }
   value_t r2 = std::sqrt((1.f - f2) * (1.f + f2));
-  if (fabs(r2) < Almost0) {
+  if (std::fabs(r2) < constants::math::Almost0) {
     return false;
   }
   value_t dy2dx = (f1 + f2) / (r1 + r2);
-  value_t step = (fabs(x2r) < 0.05f) ? dx * fabs(r2 + f2 * dy2dx)                                           // chord
-                                     : 2.f * asinf(0.5f * dx * std::sqrt(1.f + dy2dx * dy2dx) * crv) / crv; // arc
+  value_t step = (std::fabs(x2r) < 0.05f) ? dx * std::fabs(r2 + f2 * dy2dx)                                      // chord
+                                          : 2.f * asinf(0.5f * dx * std::sqrt(1.f + dy2dx * dy2dx) * crv) / crv; // arc
   step *= std::sqrt(1.f + getTgl() * getTgl());
   //
   // get the track x,y,z,px/p,py/p,pz/p,p,sinAlpha,cosAlpha in the Global System
-  array<value_t, 9> vecLab{0.f};
+  std::array<value_t, 9> vecLab{0.f};
   if (!getPosDirGlo(vecLab)) {
     return false;
   }
@@ -236,23 +233,23 @@ bool TrackParametrization<value_T>::propagateParamTo(value_t xk, const array<val
   value_t bxy2 = b[0] * b[0] + b[1] * b[1];
   value_t bt = std::sqrt(bxy2);
   value_t cosphi = 1.f, sinphi = 0.f;
-  if (bt > Almost0) {
+  if (bt > constants::math::Almost0) {
     cosphi = b[0] / bt;
     sinphi = b[1] / bt;
   }
   value_t bb = std::sqrt(bxy2 + b[2] * b[2]);
-  value_t costet = 1., sintet = 0.;
-  if (bb > Almost0) {
+  value_t costet = 1.f, sintet = 0.f;
+  if (bb > constants::math::Almost0) {
     costet = b[2] / bb;
     sintet = bt / bb;
   }
-  array<value_t, 7> vect{costet * cosphi * vecLab[0] + costet * sinphi * vecLab[1] - sintet * vecLab[2],
-                         -sinphi * vecLab[0] + cosphi * vecLab[1],
-                         sintet * cosphi * vecLab[0] + sintet * sinphi * vecLab[1] + costet * vecLab[2],
-                         costet * cosphi * vecLab[3] + costet * sinphi * vecLab[4] - sintet * vecLab[5],
-                         -sinphi * vecLab[3] + cosphi * vecLab[4],
-                         sintet * cosphi * vecLab[3] + sintet * sinphi * vecLab[4] + costet * vecLab[5],
-                         vecLab[6]};
+  std::array<value_t, 7> vect{costet * cosphi * vecLab[0] + costet * sinphi * vecLab[1] - sintet * vecLab[2],
+                              -sinphi * vecLab[0] + cosphi * vecLab[1],
+                              sintet * cosphi * vecLab[0] + sintet * sinphi * vecLab[1] + costet * vecLab[2],
+                              costet * cosphi * vecLab[3] + costet * sinphi * vecLab[4] - sintet * vecLab[5],
+                              -sinphi * vecLab[3] + cosphi * vecLab[4],
+                              sintet * cosphi * vecLab[3] + sintet * sinphi * vecLab[4] + costet * vecLab[5],
+                              vecLab[6]};
 
   // Do the helix step
   value_t q = getCharge();
@@ -278,8 +275,8 @@ bool TrackParametrization<value_T>::propagateParamTo(value_t xk, const array<val
 
   // Do the final correcting step to the target plane (linear approximation)
   value_t x = vecLab[0], y = vecLab[1], z = vecLab[2];
-  if (fabs(dx) > Almost0) {
-    if (fabs(vecLab[3]) < Almost0) {
+  if (std::fabs(dx) > constants::math::Almost0) {
+    if (std::fabs(vecLab[3]) < constants::math::Almost0) {
       return false;
     }
     dx = xk - vecLab[0];
@@ -310,28 +307,28 @@ bool TrackParametrization<value_T>::propagateParamTo(value_t xk, value_t b)
   // distances only (<mm, i.e. misalignment)
   //----------------------------------------------------------------
   value_t dx = xk - getX();
-  if (fabs(dx) < Almost0) {
+  if (std::fabs(dx) < constants::math::Almost0) {
     return true;
   }
-  value_t crv = (fabs(b) < Almost0) ? 0.f : getCurvature(b);
+  value_t crv = (std::fabs(b) < constants::math::Almost0) ? 0.f : getCurvature(b);
   value_t x2r = crv * dx;
   value_t f1 = getSnp(), f2 = f1 + x2r;
-  if ((fabs(f1) > Almost1) || (fabs(f2) > Almost1)) {
+  if ((std::fabs(f1) > constants::math::Almost1) || (std::fabs(f2) > constants::math::Almost1)) {
     return false;
   }
   value_t r1 = std::sqrt((1.f - f1) * (1.f + f1));
-  if (fabs(r1) < Almost0) {
+  if (std::fabs(r1) < constants::math::Almost0) {
     return false;
   }
   value_t r2 = std::sqrt((1.f - f2) * (1.f + f2));
-  if (fabs(r2) < Almost0) {
+  if (std::fabs(r2) < constants::math::Almost0) {
     return false;
   }
   mX = xk;
   double dy2dx = (f1 + f2) / (r1 + r2);
   mP[kY] += dx * dy2dx;
   mP[kSnp] += x2r;
-  if (fabs(x2r) < 0.05f) {
+  if (std::fabs(x2r) < 0.05f) {
     mP[kZ] += dx * (r2 + f2 * dy2dx) * getTgl();
   } else {
     // for small dx/R the linear apporximation of the arc by the segment is OK,
@@ -345,9 +342,9 @@ bool TrackParametrization<value_T>::propagateParamTo(value_t xk, value_t b)
     value_t rot = asinf(r1 * f2 - r2 * f1);         // more economic version from Yura.
     if (f1 * f1 + f2 * f2 > 1.f && f1 * f2 < 0.f) { // special cases of large rotations or large abs angles
       if (f2 > 0.f) {
-        rot = PI - rot; //
+        rot = constants::math::PI - rot; //
       } else {
-        rot = -PI - rot;
+        rot = -constants::math::PI - rot;
       }
     }
     mP[kZ] += getTgl() / crv * rot;
@@ -357,11 +354,11 @@ bool TrackParametrization<value_T>::propagateParamTo(value_t xk, value_t b)
 
 //_______________________________________________________________________
 template <typename value_T>
-bool TrackParametrization<value_T>::propagateParamToDCA(const Point3D<value_t>& vtx, value_t b, std::array<value_t, 2>* dca, value_t maxD)
+bool TrackParametrization<value_T>::propagateParamToDCA(const Point3D<value_t>& vtx, value_t b, dim2_t* dca, value_t maxD)
 {
   // propagate track to DCA to the vertex
   value_t sn, cs, alp = getAlpha();
-  o2::utils::sincos(alp, sn, cs);
+  utils::sincos(alp, sn, cs);
   value_t x = getX(), y = getY(), snp = getSnp(), csp = std::sqrt((1.f - snp) * (1.f + snp));
   value_t xv = vtx.X() * cs + vtx.Y() * sn, yv = -vtx.X() * sn + vtx.Y() * cs, zv = vtx.Z();
   x -= xv;
@@ -374,8 +371,8 @@ bool TrackParametrization<value_T>::propagateParamToDCA(const Point3D<value_t>& 
   value_t crv = getCurvature(b);
   value_t tgfv = -(crv * x - snp) / (crv * y + csp);
   sn = tgfv / std::sqrt(1.f + tgfv * tgfv);
-  cs = std::sqrt((1. - sn) * (1. + sn));
-  cs = (std::abs(tgfv) > Almost0) ? sn / tgfv : Almost1;
+  cs = std::sqrt((1.f - sn) * (1.f + sn));
+  cs = (std::abs(tgfv) > constants::math::Almost0) ? sn / tgfv : constants::math::Almost1;
 
   x = xv * cs + yv * sn;
   yv = -xv * sn + yv * cs;
@@ -405,27 +402,27 @@ bool TrackParametrization<value_T>::getYZAt(value_t xk, value_t b, value_t& y, v
   // estimate Y,Z in tracking frame at given X
   //----------------------------------------------------------------
   value_t dx = xk - getX();
-  if (fabs(dx) < Almost0) {
+  if (std::fabs(dx) < constants::math::Almost0) {
     return true;
   }
   value_t crv = getCurvature(b);
   value_t x2r = crv * dx;
   value_t f1 = getSnp(), f2 = f1 + x2r;
-  if ((fabs(f1) > Almost1) || (fabs(f2) > Almost1)) {
+  if ((std::fabs(f1) > constants::math::Almost1) || (std::fabs(f2) > constants::math::Almost1)) {
     return false;
   }
   value_t r1 = std::sqrt((1.f - f1) * (1.f + f1));
-  if (fabs(r1) < Almost0) {
+  if (std::fabs(r1) < constants::math::Almost0) {
     return false;
   }
   value_t r2 = std::sqrt((1.f - f2) * (1.f + f2));
-  if (fabs(r2) < Almost0) {
+  if (std::fabs(r2) < constants::math::Almost0) {
     return false;
   }
   double dy2dx = (f1 + f2) / (r1 + r2);
   y = mP[kY] + dx * dy2dx;
   z = mP[kZ];
-  if (fabs(x2r) < 0.05f) {
+  if (std::fabs(x2r) < 0.05f) {
     z += dx * (r2 + f2 * dy2dx) * getTgl();
   } else {
     // for small dx/R the linear apporximation of the arc by the segment is OK,
@@ -439,9 +436,9 @@ bool TrackParametrization<value_T>::getYZAt(value_t xk, value_t b, value_t& y, v
     value_t rot = asinf(r1 * f2 - r2 * f1);         // more economic version from Yura.
     if (f1 * f1 + f2 * f2 > 1.f && f1 * f2 < 0.f) { // special cases of large rotations or large abs angles
       if (f2 > 0.f) {
-        rot = PI - rot; //
+        rot = constants::math::PI - rot; //
       } else {
-        rot = -PI - rot;
+        rot = -constants::math::PI - rot;
       }
     }
     z += getTgl() / crv * rot;
@@ -455,7 +452,7 @@ void TrackParametrization<value_T>::invertParam()
 {
   // Transform this track to the local coord. system rotated by 180 deg.
   mX = -mX;
-  mAlpha += PI;
+  mAlpha += constants::math::PI;
   utils::BringToPMPi(mAlpha);
   //
   mP[0] = -mP[0];
@@ -470,7 +467,7 @@ typename TrackParametrization<value_T>::value_t TrackParametrization<value_T>::g
 {
   ///< this method is just an alias for obtaining Z @ X in the tree->Draw()
   value_t y, z;
-  return getYZAt(xk, b, y, z) ? z : -9999.;
+  return getYZAt(xk, b, y, z) ? z : -9999.f;
 }
 
 //______________________________________________________________
@@ -479,7 +476,7 @@ typename TrackParametrization<value_T>::value_t TrackParametrization<value_T>::g
 {
   ///< this method is just an alias for obtaining Z @ X in the tree->Draw()
   value_t y, z;
-  return getYZAt(xk, b, y, z) ? y : -9999.;
+  return getYZAt(xk, b, y, z) ? y : -9999.f;
 }
 
 #ifndef GPUCA_ALIGPUCODE
@@ -503,7 +500,7 @@ void TrackParametrization<value_T>::printParam() const
 
 //______________________________________________________________
 template <typename value_T>
-bool TrackParametrization<value_T>::getXatLabR(value_t r, value_t& x, value_t bz, o2::track::DirType dir) const
+bool TrackParametrization<value_T>::getXatLabR(value_t r, value_t& x, value_t bz, track::DirType dir) const
 {
   // Get local X of the track position estimated at the radius lab radius r.
   // The track curvature is accounted exactly
@@ -517,26 +514,26 @@ bool TrackParametrization<value_T>::getXatLabR(value_t r, value_t& x, value_t bz
   const value_t kEps = 1.e-6;
   //
   auto crv = getCurvature(bz);
-  if (fabs(crv) > o2::constants::math::Almost0) { // helix
+  if (std::fabs(crv) > constants::math::Almost0) { // helix
     // get center of the track circle
-    o2::utils::CircleXY circle;
+    utils::CircleXY circle;
     getCircleParamsLoc(bz, circle);
-    auto r0 = std::sqrt(circle.getCenterD2());
-    if (r0 <= o2::constants::math::Almost0) {
+    value_t r0 = std::sqrt(circle.getCenterD2());
+    if (r0 <= constants::math::Almost0) {
       return false; // the track is concentric to circle
     }
-    value_t tR2r0 = 1., g = 0., tmp = 0.;
-    if (fabs(circle.rC - r0) > kEps) {
+    value_t tR2r0 = 1.f, g = 0.f, tmp = 0.f;
+    if (std::fabs(circle.rC - r0) > kEps) {
       tR2r0 = circle.rC / r0;
-      g = 0.5 * (r * r / (r0 * circle.rC) - tR2r0 - 1. / tR2r0);
-      tmp = 1. + g * tR2r0;
+      g = 0.5f * (r * r / (r0 * circle.rC) - tR2r0 - 1.f / tR2r0);
+      tmp = 1.f + g * tR2r0;
     } else {
       tR2r0 = 1.0;
-      g = 0.5 * r * r / (r0 * circle.rC) - 1.;
-      tmp = 0.5 * r * r / (r0 * r0);
+      g = 0.5f * r * r / (r0 * circle.rC) - 1.f;
+      tmp = 0.5f * r * r / (r0 * r0);
     }
-    auto det = (1. - g) * (1. + g);
-    if (det < 0.) {
+    value_t det = (1.f - g) * (1.f + g);
+    if (det < 0.f) {
       return false; // does not reach raduis r
     }
     det = std::sqrt(det);
@@ -546,42 +543,42 @@ bool TrackParametrization<value_T>::getXatLabR(value_t r, value_t& x, value_t bz
     // where s0 and c0 make direction for the circle center (=circle.xC/r0 and circle.yC/r0)
     //
     x = circle.xC * tmp;
-    auto y = circle.yC * tmp;
-    if (fabs(circle.yC) > o2::constants::math::Almost0) { // when circle.yC==0 the x,y is unique
-      auto dfx = tR2r0 * fabs(circle.yC) * det;
-      auto dfy = tR2r0 * circle.xC * (circle.yC > 0. ? det : -det);
-      if (dir == DirAuto) {                           // chose the one which corresponds to smallest step
-        auto delta = (x - mX) * dfx - (y - fy) * dfy; // the choice of + in C will lead to smaller step if delta<0
-        x += delta < 0. ? dfx : -dfx;
+    value_t y = circle.yC * tmp;
+    if (std::fabs(circle.yC) > constants::math::Almost0) { // when circle.yC==0 the x,y is unique
+      value_t dfx = tR2r0 * std::fabs(circle.yC) * det;
+      value_t dfy = tR2r0 * circle.xC * (circle.yC > 0.f ? det : -det);
+      if (dir == DirAuto) {                              // chose the one which corresponds to smallest step
+        value_t delta = (x - mX) * dfx - (y - fy) * dfy; // the choice of + in C will lead to smaller step if delta<0
+        x += delta < 0.f ? dfx : -dfx;
       } else if (dir == DirOutward) { // along track direction: x must be > mX
         x -= dfx;                     // try the smallest step (dfx is positive)
-        auto dfeps = mX - x;          // handle special case of very small step
+        value_t dfeps = mX - x;       // handle special case of very small step
         if (dfeps < -kEps) {
           return true;
         }
-        if (fabs(dfeps) < kEps && fabs(mX * mX + fy * fy - r * r) < kEps) { // are we already in right r?
+        if (std::fabs(dfeps) < kEps && std::fabs(mX * mX + fy * fy - r * r) < kEps) { // are we already in right r?
           return mX;
         }
         x += dfx + dfx;
-        auto dxm = x - mX;
-        if (dxm > 0.) {
+        value_t dxm = x - mX;
+        if (dxm > 0.f) {
           return true;
         } else if (dxm < -kEps) {
           return false;
         }
-        x = mX;              // don't move
-      } else {               // backward: x must be < mX
-        x += dfx;            // try the smallest step (dfx is positive)
-        auto dfeps = x - mX; // handle special case of very small step
+        x = mX;                 // don't move
+      } else {                  // backward: x must be < mX
+        x += dfx;               // try the smallest step (dfx is positive)
+        value_t dfeps = x - mX; // handle special case of very small step
         if (dfeps < -kEps) {
           return true;
         }
-        if (fabs(dfeps) < kEps && fabs(mX * mX + fy * fy - r * r) < kEps) { // are we already in right r?
+        if (std::fabs(dfeps) < kEps && std::fabs(mX * mX + fy * fy - r * r) < kEps) { // are we already in right r?
           return mX;
         }
         x -= dfx + dfx;
-        auto dxm = x - mX;
-        if (dxm < 0.) {
+        value_t dxm = x - mX;
+        if (dxm < 0.f) {
           return true;
         }
         if (dxm > kEps) {
@@ -594,10 +591,10 @@ bool TrackParametrization<value_T>::getXatLabR(value_t r, value_t& x, value_t bz
         return false;
       }
     }
-  } else {                                          // this is a straight track
-    if (fabs(sn) >= o2::constants::math::Almost1) { // || to Y axis
-      auto det = (r - mX) * (r + mX);
-      if (det < 0.) {
+  } else {                                           // this is a straight track
+    if (std::fabs(sn) >= constants::math::Almost1) { // || to Y axis
+      value_t det = (r - mX) * (r + mX);
+      if (det < 0.f) {
         return false; // does not reach raduis r
       }
       x = mX;
@@ -606,7 +603,7 @@ bool TrackParametrization<value_T>::getXatLabR(value_t r, value_t& x, value_t bz
       }
       det = std::sqrt(det);
       if (dir == DirOutward) { // along the track direction
-        if (sn > 0.) {
+        if (sn > 0.f) {
           if (fy > det) {
             return false; // track is along Y axis and above the circle
           }
@@ -616,7 +613,7 @@ bool TrackParametrization<value_T>::getXatLabR(value_t r, value_t& x, value_t bz
           }
         }
       } else if (dir == DirInward) { // against track direction
-        if (sn > 0.) {
+        if (sn > 0.f) {
           if (fy < -det) {
             return false; // track is along Y axis
           }
@@ -624,14 +621,14 @@ bool TrackParametrization<value_T>::getXatLabR(value_t r, value_t& x, value_t bz
           return false; // track is against Y axis
         }
       }
-    } else if (fabs(sn) <= o2::constants::math::Almost0) { // || to X axis
-      auto det = (r - fy) * (r + fy);
-      if (det < 0.) {
+    } else if (std::fabs(sn) <= constants::math::Almost0) { // || to X axis
+      value_t det = (r - fy) * (r + fy);
+      if (det < 0.f) {
         return false; // does not reach raduis r
       }
       det = std::sqrt(det);
       if (dir == DirAuto) {
-        x = mX > 0. ? det : -det; // choose the solution requiring the smalest step
+        x = mX > 0.f ? det : -det; // choose the solution requiring the smalest step
         return true;
       } else if (dir == DirOutward) { // along the track direction
         if (mX > det) {
@@ -647,18 +644,18 @@ bool TrackParametrization<value_T>::getXatLabR(value_t r, value_t& x, value_t bz
         }
       }
     } else { // general case of straight line
-      auto cs = std::sqrt((1 - sn) * (1 + sn));
-      auto xsyc = mX * sn - fy * cs;
-      auto det = (r - xsyc) * (r + xsyc);
-      if (det < 0.) {
+      value_t cs = std::sqrt((1.f - sn) * (1.f + sn));
+      value_t xsyc = mX * sn - fy * cs;
+      value_t det = (r - xsyc) * (r + xsyc);
+      if (det < 0.f) {
         return false; // does not reach raduis r
       }
       det = std::sqrt(det);
-      auto xcys = mX * cs + fy * sn;
-      auto t = -xcys;
+      value_t xcys = mX * cs + fy * sn;
+      value_t t = -xcys;
       if (dir == DirAuto) {
-        t += t > 0. ? -det : det; // chose the solution requiring the smalest step
-      } else if (dir > 0) {       // go in increasing mX direction. ( t+-det > 0)
+        t += t > 0.f ? -det : det; // chose the solution requiring the smalest step
+      } else if (dir > 0) {        // go in increasing mX direction. ( t+-det > 0)
         if (t >= -det) {
           t += -det; // take minimal step giving t>0
         } else {
@@ -712,8 +709,8 @@ bool TrackParametrization<value_T>::correctForELoss(value_t xrho, value_t mass, 
 
   // Calculating the energy loss corrections************************
   if ((xrho != 0.f) && (beta2 < 1.f)) {
-    if (dedx < kCalcdEdxAuto + Almost1) { // request to calculate dedx on the fly
-      dedx = BetheBlochSolid(p / fabs(mass));
+    if (dedx < kCalcdEdxAuto + constants::math::Almost1) { // request to calculate dedx on the fly
+      dedx = BetheBlochSolid(p / std::fabs(mass));
       if (mAbsCharge != 1) {
         dedx *= mAbsCharge * mAbsCharge;
       }
@@ -721,7 +718,7 @@ bool TrackParametrization<value_T>::correctForELoss(value_t xrho, value_t mass, 
 
     value_t dE = dedx * xrho;
     value_t e = std::sqrt(e2);
-    if (fabs(dE) > kMaxELossFrac * e) {
+    if (std::fabs(dE) > kMaxELossFrac * e) {
       return false; // 30% energy loss is too much!
     }
     value_t eupd = e + dE;
