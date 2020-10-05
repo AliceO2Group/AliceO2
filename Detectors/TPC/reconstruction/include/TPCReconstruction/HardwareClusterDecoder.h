@@ -30,6 +30,8 @@ namespace dataformats
 {
 template <typename TruthElement>
 class MCTruthContainer;
+template <typename TruthElement>
+class ConstMCTruthContainerView;
 }
 
 /// @class HardwareClusterDecoder
@@ -76,7 +78,7 @@ class HardwareClusterDecoder
   /// @param outMCLabels     optional pointer to MC output container
   int decodeClusters(std::vector<std::pair<const o2::tpc::ClusterHardwareContainer*, std::size_t>>& inputClusters,
                      OutputAllocator outputAllocator,
-                     const std::vector<o2::dataformats::MCTruthContainer<o2::MCCompLabel>>* inMCLabels = nullptr,
+                     const std::vector<o2::dataformats::ConstMCTruthContainerView<o2::MCCompLabel>>* inMCLabels = nullptr,
                      o2::dataformats::MCTruthContainer<o2::MCCompLabel>* outMCLabels = nullptr);
 
   /// @brief Sort clusters and MC labels in place

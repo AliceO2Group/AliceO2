@@ -129,7 +129,7 @@ void HwClusterer::init()
 }
 
 //______________________________________________________________________________
-void HwClusterer::process(gsl::span<o2::tpc::Digit const> const& digits, MCLabelContainer const* mcDigitTruth, bool clearContainerFirst)
+void HwClusterer::process(gsl::span<o2::tpc::Digit const> const& digits, ConstMCLabelContainerView const& mcDigitTruth, bool clearContainerFirst)
 {
   if (clearContainerFirst) {
     if (mClusterArray)
@@ -226,9 +226,11 @@ void HwClusterer::process(gsl::span<o2::tpc::Digit const> const& digits, MCLabel
       // we have to copy the MC truth container because we need the information
       // maybe only in the next events (we store permanently 5 timebins), where
       // the original pointer could already point to the next container.
-      if (mcDigitTruth) {
+      if (mcDigitTruth.getBuffer().size()) {
         if (mCurrentMcContainerInBuffer == 0) {
-          mMCtruth[mapTimeInRange(timeBin)] = std::make_shared<MCLabelContainer const>(*mcDigitTruth);
+          auto tmp = std::make_shared<MCLabelContainer>();
+          tmp->restore_from(mcDigitTruth.getBuffer().data(), mcDigitTruth.getBuffer().size());
+          mMCtruth[mapTimeInRange(timeBin)] = tmp;
         } else {
           mMCtruth[mapTimeInRange(timeBin)] = std::shared_ptr<MCLabelContainer const>(mMCtruth[getFirstSetBitOfField()]);
         }
@@ -272,7 +274,7 @@ void HwClusterer::process(gsl::span<o2::tpc::Digit const> const& digits, MCLabel
 }
 
 //______________________________________________________________________________
-void HwClusterer::finishProcess(gsl::span<o2::tpc::Digit const> const& digits, MCLabelContainer const* mcDigitTruth, bool clearContainerFirst)
+void HwClusterer::finishProcess(gsl::span<o2::tpc::Digit const> const& digits, ConstMCLabelContainerView const& mcDigitTruth, bool clearContainerFirst)
 {
   // Process the last digits (if there are any)
   process(digits, mcDigitTruth, clearContainerFirst);

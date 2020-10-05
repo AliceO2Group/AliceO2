@@ -127,7 +127,7 @@ class ConstMCTruthContainerView
  public:
   ConstMCTruthContainerView(gsl::span<const char> const bufferview) : mStorage(bufferview){};
   ConstMCTruthContainerView(ConstMCTruthContainer<TruthElement> const& cont) : mStorage(gsl::span<const char>(cont)){};
-  ConstMCTruthContainerView() = default;
+  ConstMCTruthContainerView() : mStorage(nullptr, (gsl::span<const char>::index_type)0){}; // be explicit that we want nullptr / 0 for an uninitialized container
   ConstMCTruthContainerView(const ConstMCTruthContainerView&) = default;
 
   // const data access
@@ -151,8 +151,11 @@ class ConstMCTruthContainerView
   // return the number of original data indexed here
   size_t getIndexedSize() const { return mStorage.size() >= sizeof(FlatHeader) ? getHeader().nofHeaderElements : 0; }
 
-  // return the number of labels  managed in this container
+  // return the number of labels managed in this container
   size_t getNElements() const { return mStorage.size() >= sizeof(FlatHeader) ? getHeader().nofTruthElements : 0; }
+
+  // return underlying buffer
+  const gsl::span<const char>& getBuffer() const { return mStorage; }
 
  private:
   gsl::span<const char> mStorage;

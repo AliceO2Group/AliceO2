@@ -107,7 +107,7 @@ void calibGainMacroTrk(const float momMin, const float momMax, const std::string
 
   ClusterNativeAccess clusterIndex{};
   std::unique_ptr<ClusterNative[]> clusterBuffer{};
-  MCLabelContainer clusterMCBuffer;
+  o2::tpc::ClusterNativeHelper::ConstMCLabelContainerViewWithBuffer clusterMCBuffer;
   memset(&clusterIndex, 0, sizeof(clusterIndex));
 
   CalibPadGainTracks cGain{};

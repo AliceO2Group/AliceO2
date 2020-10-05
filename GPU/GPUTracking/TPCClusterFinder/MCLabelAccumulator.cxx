@@ -33,7 +33,7 @@ void MCLabelAccumulator::collect(const ChargePos& pos, Charge q)
 
   uint index = mIndexMap[pos];
 
-  auto labels = mLabels->getLabels(index);
+  const auto& labels = mLabels->getLabels(index);
 
   for (const auto& label : labels) {
     int h = label.getRawValue() % mMaybeHasLabel.size();

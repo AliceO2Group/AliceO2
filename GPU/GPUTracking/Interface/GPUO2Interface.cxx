@@ -64,6 +64,10 @@ int GPUTPCO2Interface::Initialize(const GPUO2InterfaceConfiguration& config)
     mOutputTPCTracks.reset(new GPUOutputControl);
     mChain->SetOutputControlTPCTracks(mOutputTPCTracks.get());
   }
+  if (mConfig->configProcessing.runMC) {
+    mOutputTPCClusterLabels.reset(new GPUOutputControl);
+    mChain->SetOutputControlClusterLabels(mOutputTPCClusterLabels.get());
+  }
 
   if (mRec->Init()) {
     return (1);
@@ -129,6 +133,13 @@ int GPUTPCO2Interface::RunTracking(GPUTrackingInOutPointers* data, GPUInterfaceO
       mOutputTPCTracks->set(outputs->tpcTracks.ptr, outputs->tpcTracks.size);
     } else {
       mOutputTPCTracks->reset();
+    }
+  }
+  if (mConfig->configProcessing.runMC) {
+    if (outputs->clusterLabels.allocator) {
+      mOutputTPCClusterLabels->set(outputs->clusterLabels.allocator);
+    } else {
+      mOutputTPCClusterLabels->reset();
     }
   }
   int retVal = mRec->RunChains();

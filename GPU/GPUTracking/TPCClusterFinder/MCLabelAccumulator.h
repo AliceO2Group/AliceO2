@@ -23,7 +23,7 @@
 namespace o2::dataformats
 {
 template <typename T>
-class MCTruthContainer;
+class ConstMCTruthContainerView;
 } // namespace o2::dataformats
 
 namespace GPUCA_NAMESPACE::gpu
@@ -45,7 +45,7 @@ class MCLabelAccumulator
   void commit(tpccf::Row, uint, uint);
 
  private:
-  using MCLabelContainer = o2::dataformats::MCTruthContainer<o2::MCCompLabel>;
+  using MCLabelContainer = o2::dataformats::ConstMCTruthContainerView<o2::MCCompLabel>;
 
   Array2D<const uint> mIndexMap;
   const MCLabelContainer* mLabels = nullptr;

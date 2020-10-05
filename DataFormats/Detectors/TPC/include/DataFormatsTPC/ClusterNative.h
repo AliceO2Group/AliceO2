@@ -16,6 +16,7 @@
 #ifndef GPUCA_GPUCODE_DEVICE
 #include <cstdint>
 #include <cstddef> // for size_t
+#include <utility>
 #endif
 #include "DataFormatsTPC/Constants.h"
 #include "GPUCommonDef.h"
@@ -26,7 +27,9 @@ class MCCompLabel;
 namespace dataformats
 {
 template <class T>
-class MCTruthContainer;
+class ConstMCTruthContainer;
+template <class T>
+class ConstMCTruthContainerView;
 }
 } // namespace o2
 
@@ -157,13 +160,19 @@ struct ClusterNative {
 struct ClusterNativeAccess {
   const ClusterNative* clustersLinear;
   const ClusterNative* clusters[constants::MAXSECTOR][constants::MAXGLOBALPADROW];
-  const o2::dataformats::MCTruthContainer<o2::MCCompLabel>* clustersMCTruth;
+  const o2::dataformats::ConstMCTruthContainerView<o2::MCCompLabel>* clustersMCTruth;
   unsigned int nClusters[constants::MAXSECTOR][constants::MAXGLOBALPADROW];
   unsigned int nClustersSector[constants::MAXSECTOR];
   unsigned int clusterOffset[constants::MAXSECTOR][constants::MAXGLOBALPADROW];
   unsigned int nClustersTotal;
 
   void setOffsetPtrs();
+
+#ifndef GPUCA_GPUCODE
+  using ConstMCLabelContainer = o2::dataformats::ConstMCTruthContainer<o2::MCCompLabel>;
+  using ConstMCLabelContainerView = o2::dataformats::ConstMCTruthContainerView<o2::MCCompLabel>;
+  using ConstMCLabelContainerViewWithBuffer = std::pair<ConstMCLabelContainer, ConstMCLabelContainerView>;
+#endif
 };
 
 inline void ClusterNativeAccess::setOffsetPtrs()

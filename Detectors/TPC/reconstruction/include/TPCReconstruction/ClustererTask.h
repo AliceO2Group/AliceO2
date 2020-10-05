@@ -21,6 +21,7 @@
 #include "DataFormatsTPC/Digit.h"
 #include "TPCReconstruction/HwClusterer.h"
 #include "SimulationDataFormat/MCTruthContainer.h"
+#include "SimulationDataFormat/ConstMCTruthContainer.h"
 #include "SimulationDataFormat/MCCompLabel.h"
 #include "DataFormatsTPC/Helpers.h"
 #include "DataFormatsTPC/ClusterHardware.h"
@@ -36,6 +37,8 @@ class ClustererTask : public FairTask
 {
 
   using MCLabelContainer = o2::dataformats::MCTruthContainer<o2::MCCompLabel>;
+  using ConstMCLabelContainer = o2::dataformats::ConstMCTruthContainer<o2::MCCompLabel>;
+  using ConstMCLabelContainerView = o2::dataformats::ConstMCTruthContainerView<o2::MCCompLabel>;
   using OutputType = ClusterHardwareContainer8kb;
 
  public:
@@ -68,7 +71,7 @@ class ClustererTask : public FairTask
 
   // Digit arrays
   std::unique_ptr<const std::vector<Digit>> mDigitsArray;     ///< Array of TPC digits
-  std::unique_ptr<const MCLabelContainer> mDigitMCTruthArray; ///< Array for MCTruth information associated to digits in mDigitsArrray
+  std::unique_ptr<const ConstMCLabelContainerView> mDigitMCTruthArray; ///< Array for MCTruth information associated to digits in mDigitsArrray
 
   // Cluster arrays
   std::unique_ptr<std::vector<OutputType>> mHwClustersArray; ///< Array of clusters found by Hw Clusterfinder

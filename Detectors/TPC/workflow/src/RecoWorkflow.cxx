@@ -139,30 +139,27 @@ framework::WorkflowSpec getWorkflow(std::vector<int> const& tpcSectors, std::vec
 
   WorkflowSpec specs;
 
+  // We provide a special publishing method for labels which have been stored in a split format and need
+  // to be transformed into a contiguous shareable container before publishing. For other branches/types this returns
+  // false and the generic RootTreeWriter publishing proceeds
+  static Reader::SpecialPublishHook hook{[](std::string_view name, ProcessingContext& context, o2::framework::Output const& output, char* data) -> bool {
+    if (TString(name.data()).Contains("TPCDigitMCTruth") || TString(name.data()).Contains("TPCClusterHwMCTruth") || TString(name.data()).Contains("TPCClusterNativeMCTruth")) {
+      auto storedlabels = reinterpret_cast<o2::dataformats::IOMCTruthContainerView const*>(data);
+      o2::dataformats::ConstMCTruthContainer<o2::MCCompLabel> flatlabels;
+      storedlabels->copyandflatten(flatlabels);
+      LOG(INFO) << "PUBLISHING CONST LABELS " << flatlabels.getNElements();
+      context.outputs().snapshot(output, flatlabels);
+      return true;
+    }
+    return false;
+  }};
+
   // The OutputSpec of the PublisherSpec is configured depending on the input
   // type. Note that the configuration of the dispatch trigger in the main file
   // needs to be done in accordance. This means, if a new input option is added
   // also the dispatch trigger needs to be updated.
   if (inputType == InputType::Digits) {
     using Type = std::vector<o2::tpc::Digit>;
-
-    // We provide a special publishing method for labels which have been stored in a split format and need
-    // to be transformed into a contiguous shareable container before publishing. For other branches/types this returns
-    // false and the generic RootTreeWriter publishing proceeds
-    static Reader::SpecialPublishHook hook{[](std::string_view name, ProcessingContext& context, o2::framework::Output const& output, char* data) -> bool {
-      if (TString(name.data()).Contains("TPCDigitMCTruth")) {
-        auto storedlabels = reinterpret_cast<o2::dataformats::IOMCTruthContainerView const*>(data);
-        o2::dataformats::ConstMCTruthContainer<o2::MCCompLabel> flatlabels;
-        storedlabels->copyandflatten(flatlabels);
-        LOG(INFO) << "PUBLISHING CONST LABELS " << flatlabels.getNElements();
-        // for the moment make real MCTruthContainer since this is still expected by reconstruction
-        o2::dataformats::MCTruthContainer<o2::MCCompLabel> labels;
-        labels.restore_from(flatlabels.data(), flatlabels.size());
-        context.outputs().snapshot(output, labels);
-        return true;
-      }
-      return false;
-    }};
 
     specs.emplace_back(o2::tpc::getPublisherSpec<Type>(PublisherConf{
                                                          "tpc-digit-reader",
@@ -185,7 +182,7 @@ framework::WorkflowSpec getWorkflow(std::vector<int> const& tpcSectors, std::vec
                                                    OutputSpec{"TPC", "CLUSTERHWMCLBL"},
                                                    tpcSectors,
                                                    laneConfiguration,
-                                                 },
+                                                   &hook},
                                                  propagateMC));
   } else if (inputType == InputType::Clusters) {
     specs.emplace_back(o2::tpc::getPublisherSpec(PublisherConf{
@@ -197,7 +194,7 @@ framework::WorkflowSpec getWorkflow(std::vector<int> const& tpcSectors, std::vec
                                                    OutputSpec{"TPC", "CLNATIVEMCLBL"},
                                                    tpcSectors,
                                                    laneConfiguration,
-                                                 },
+                                                   &hook},
                                                  propagateMC));
   } else if (inputType == InputType::CompClusters) {
     // TODO: need to check if we want to store the MC labels alongside with compressed clusters
@@ -210,10 +207,10 @@ framework::WorkflowSpec getWorkflow(std::vector<int> const& tpcSectors, std::vec
                                                    {"clusterbranch", "TPCCompClusters", "Branch with TPC compressed clusters"},
                                                    {"clustermcbranch", "TPCClusterNativeMCTruth", "MC label branch"},
                                                    OutputSpec{"TPC", "COMPCLUSTERS"},
-                                                   OutputSpec{"TPC", "CLNATIVEMCLBL"},
+                                                   OutputSpec{"TPC", "CLNATIVEMCLBL"}, // This does not work with labels!
                                                    std::vector<int>(1, 0),
                                                    std::vector<int>(1, 0),
-                                                 },
+                                                   &hook},
                                                  false));
   } else if (inputType == InputType::EncodedClusters) {
     // TODO: need to check if we want to store the MC labels alongside with encoded clusters
@@ -224,10 +221,10 @@ framework::WorkflowSpec getWorkflow(std::vector<int> const& tpcSectors, std::vec
                                                    {"clusterbranch", "TPCEncodedClusters", "Branch with TPC encoded clusters"},
                                                    {"clustermcbranch", "TPCClusterNativeMCTruth", "MC label branch"},
                                                    OutputSpec{"TPC", "ENCCLUSTERS"},
-                                                   OutputSpec{"TPC", "CLNATIVEMCLBL"},
+                                                   OutputSpec{"TPC", "CLNATIVEMCLBL"}, // This does not work with labels!
                                                    std::vector<int>(1, 0),
                                                    std::vector<int>(1, 0),
-                                                 },
+                                                   &hook},
                                                  false));
   }
 
@@ -318,6 +315,15 @@ framework::WorkflowSpec getWorkflow(std::vector<int> const& tpcSectors, std::vec
 
   // -------------------------------------------------------------------------------------------
   // helper to create writer specs for different types of output
+  auto fillLabels = [](TBranch& branch, std::vector<char> const& labelbuffer, DataRef const& /*ref*/) {
+    o2::dataformats::ConstMCTruthContainerView<o2::MCCompLabel> labels(labelbuffer);
+    o2::dataformats::IOMCTruthContainerView outputcontainer;
+    auto br = framework::RootTreeWriter::remapBranch(branch, &outputcontainer);
+    outputcontainer.adopt(labelbuffer);
+    br->Fill();
+    br->ResetAddress();
+  };
+
   auto makeWriterSpec = [tpcSectors, laneConfiguration, propagateMC, getIndex, getName](const char* processName,
                                                                                         const char* defaultFileName,
                                                                                         const char* defaultTreeName,
@@ -403,9 +409,9 @@ framework::WorkflowSpec getWorkflow(std::vector<int> const& tpcSectors, std::vec
                                    BranchDefinition<const char*>{InputSpec{"data", ConcreteDataTypeMatcher{"TPC", "CLUSTERNATIVE"}},
                                                                  "TPCClusterNative",
                                                                  "databranch"},
-                                   BranchDefinition<MCLabelContainer>{InputSpec{"mc", ConcreteDataTypeMatcher{"TPC", "CLNATIVEMCLBL"}},
-                                                                      "TPCClusterNativeMCTruth",
-                                                                      "mcbranch"},
+                                   BranchDefinition<std::vector<char>>{InputSpec{"mc", ConcreteDataTypeMatcher{"TPC", "CLNATIVEMCLBL"}},
+                                                                       "TPCClusterNativeMCTruth",
+                                                                       "mcbranch", fillLabels},
                                    caClusterer || decompressTPC));
   }
 

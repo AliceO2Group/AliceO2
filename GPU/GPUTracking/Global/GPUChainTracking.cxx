@@ -1328,12 +1328,23 @@ int GPUChainTracking::RunTPCClusterizer(bool synchronizeOutput)
     }
   }
 
-  static o2::dataformats::MCTruthContainer<o2::MCCompLabel> mcLabels;
+  ClusterNativeAccess::ConstMCLabelContainerView* mcLabelsConstView = nullptr;
+  if (propagateMCLabels) {
+    // TODO: write to buffer directly
+    o2::dataformats::MCTruthContainer<o2::MCCompLabel> mcLabels;
+    if (mOutputClusterLabels == nullptr || !mOutputClusterLabels->OutputAllocator) {
+      throw std::runtime_error("Cluster MC Label buffer missing");
+    }
+    ClusterNativeAccess::ConstMCLabelContainerViewWithBuffer* container = reinterpret_cast<ClusterNativeAccess::ConstMCLabelContainerViewWithBuffer*>(mOutputClusterLabels->OutputAllocator(0));
 
-  assert(propagateMCLabels ? mcLinearLabels.header.size() == nClsTotal : true);
-  assert(propagateMCLabels ? mcLinearLabels.data.size() >= nClsTotal : true);
+    assert(propagateMCLabels ? mcLinearLabels.header.size() == nClsTotal : true);
+    assert(propagateMCLabels ? mcLinearLabels.data.size() >= nClsTotal : true);
 
-  mcLabels.setFrom(mcLinearLabels.header, mcLinearLabels.data);
+    mcLabels.setFrom(mcLinearLabels.header, mcLinearLabels.data);
+    mcLabels.flatten_to(container->first);
+    container->second = container->first;
+    mcLabelsConstView = &container->second;
+  }
 
   if (buildNativeHost && buildNativeGPU && GetProcessingSettings().delayedOutput) {
     mInputsHost->mNClusterNative = mInputsShadow->mNClusterNative = nClsTotal;
@@ -1345,7 +1356,7 @@ int GPUChainTracking::RunTPCClusterizer(bool synchronizeOutput)
 
   if (buildNativeHost) {
     tmpNative->clustersLinear = mInputsHost->mPclusterNativeOutput;
-    tmpNative->clustersMCTruth = propagateMCLabels ? &mcLabels : nullptr;
+    tmpNative->clustersMCTruth = mcLabelsConstView;
     tmpNative->setOffsetPtrs();
     mIOPtrs.clustersNative = tmpNative;
   }

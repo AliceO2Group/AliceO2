@@ -22,6 +22,7 @@
 #include "TPCReconstruction/HwClusterer.h"
 
 #include "SimulationDataFormat/MCTruthContainer.h"
+#include "SimulationDataFormat/ConstMCTruthContainer.h"
 #include "SimulationDataFormat/MCCompLabel.h"
 
 #include <vector>
@@ -156,8 +157,10 @@ BOOST_AUTO_TEST_CASE(HwClusterer_test1)
 
   auto digits = std::make_unique<const std::vector<Digit>>(digitVec);
   auto mcDigitTruth = std::make_unique<const MCLabelContainer>(labelContainer);
+  o2::dataformats::ConstMCTruthContainer<o2::MCCompLabel> flatLabels;
+  mcDigitTruth->flatten_to(flatLabels);
 
-  clusterer.process(*digits.get(), mcDigitTruth.get());
+  clusterer.process(*digits.get(), flatLabels);
 
   // check if clusters were found
   BOOST_CHECK_EQUAL(clusterArray->size(), 1);
@@ -216,7 +219,8 @@ BOOST_AUTO_TEST_CASE(HwClusterer_test2)
   std::sort(digits->begin(), digits->end(), sortTime());
 
   // Search clusters
-  clusterer.process(*digits.get(), nullptr);
+  o2::dataformats::ConstMCTruthContainerView<o2::MCCompLabel> flatLabelsViewEmpty;
+  clusterer.process(*digits.get(), flatLabelsViewEmpty);
 
   // Check result
   BOOST_CHECK_EQUAL(clusterArray->size(), 47);
@@ -314,7 +318,8 @@ BOOST_AUTO_TEST_CASE(HwClusterer_test3)
   std::sort(digits->begin(), digits->end(), sortTime());
 
   // Search clusters
-  clusterer.process(*digits.get(), nullptr);
+  o2::dataformats::ConstMCTruthContainerView<o2::MCCompLabel> flatLabelsViewEmpty;
+  clusterer.process(*digits.get(), flatLabelsViewEmpty);
 
   // Check outcome
   BOOST_CHECK_EQUAL(clusterArray->size(), 1);
@@ -416,7 +421,8 @@ BOOST_AUTO_TEST_CASE(HwClusterer_test4)
   std::cout << "testing without thresholds..." << std::endl;
   clusterer.setRejectSinglePadClusters(false);
   clusterer.setRejectSingleTimeClusters(false);
-  clusterer.process(*digits.get(), nullptr);
+  o2::dataformats::ConstMCTruthContainerView<o2::MCCompLabel> flatLabelsViewEmpty;
+  clusterer.process(*digits.get(), flatLabelsViewEmpty);
   BOOST_CHECK_EQUAL(clusterArray->size(), 1);
   auto clusterContainer = (*clusterArray)[0].getContainer();
   BOOST_CHECK_EQUAL(clusterContainer->numberOfClusters, 4);
@@ -456,7 +462,7 @@ BOOST_AUTO_TEST_CASE(HwClusterer_test4)
   std::cout << "testing with pad threshold..." << std::endl;
   clusterer.setRejectSinglePadClusters(true);
   clusterer.setRejectSingleTimeClusters(false);
-  clusterer.process(*digits.get(), nullptr);
+  clusterer.process(*digits.get(), flatLabelsViewEmpty);
   BOOST_CHECK_EQUAL(clusterArray->size(), 1);
   clusterContainer = (*clusterArray)[0].getContainer();
   BOOST_CHECK_EQUAL(clusterContainer->numberOfClusters, 2);
@@ -496,7 +502,7 @@ BOOST_AUTO_TEST_CASE(HwClusterer_test4)
   std::cout << "testing with time threshold..." << std::endl;
   clusterer.setRejectSinglePadClusters(false);
   clusterer.setRejectSingleTimeClusters(true);
-  clusterer.process(*digits.get(), nullptr);
+  clusterer.process(*digits.get(), flatLabelsViewEmpty);
   BOOST_CHECK_EQUAL(clusterArray->size(), 1);
   clusterContainer = (*clusterArray)[0].getContainer();
   BOOST_CHECK_EQUAL(clusterContainer->numberOfClusters, 2);
@@ -536,7 +542,7 @@ BOOST_AUTO_TEST_CASE(HwClusterer_test4)
   std::cout << "testing both thresholds..." << std::endl;
   clusterer.setRejectSinglePadClusters(true);
   clusterer.setRejectSingleTimeClusters(true);
-  clusterer.process(*digits.get(), nullptr);
+  clusterer.process(*digits.get(), flatLabelsViewEmpty);
   BOOST_CHECK_EQUAL(clusterArray->size(), 1);
   clusterContainer = (*clusterArray)[0].getContainer();
   BOOST_CHECK_EQUAL(clusterContainer->numberOfClusters, 1);
@@ -620,7 +626,8 @@ BOOST_AUTO_TEST_CASE(HwClusterer_test5)
   // Search clusters without rejection, all 4 clusters shoud be found
   std::cout << "testing without rejection..." << std::endl;
   clusterer.setRejectLaterTimebin(false);
-  clusterer.process(*digits.get(), nullptr);
+  o2::dataformats::ConstMCTruthContainerView<o2::MCCompLabel> flatLabelsViewEmpty;
+  clusterer.process(*digits.get(), flatLabelsViewEmpty);
   BOOST_CHECK_EQUAL(clusterArray->size(), 1);
   auto clusterContainer = (*clusterArray)[0].getContainer();
   BOOST_CHECK_EQUAL(clusterContainer->numberOfClusters, 4);
@@ -632,7 +639,7 @@ BOOST_AUTO_TEST_CASE(HwClusterer_test5)
   // Search clusters with rejection, cluster with peak charge 13 should be surpressed
   std::cout << "testing with with rejection..." << std::endl;
   clusterer.setRejectLaterTimebin(true);
-  clusterer.process(*digits.get(), nullptr);
+  clusterer.process(*digits.get(), flatLabelsViewEmpty);
   BOOST_CHECK_EQUAL(clusterArray->size(), 1);
   clusterContainer = (*clusterArray)[0].getContainer();
   BOOST_CHECK_EQUAL(clusterContainer->numberOfClusters, 3);
@@ -904,7 +911,8 @@ BOOST_AUTO_TEST_CASE(HwClusterer_test6)
   clustersToCompare.emplace_back();
   clustersToCompare.back().setCluster(2, 7 + 100, p_pre_fp(clustersMode0[10]), t_pre_fp(clustersMode0[10]), sigma_p_pre_fp(clustersMode0[10]), sigma_t_pre_fp(clustersMode0[10]), (clustersMode0[10][12] * 2), (std::accumulate(clustersMode0[10].begin(), clustersMode0[10].end(), 0.0) * 16), 0, 0);
   clusterer.setSplittingMode(0);
-  clusterer.process(*digits.get(), nullptr);
+  o2::dataformats::ConstMCTruthContainerView<o2::MCCompLabel> flatLabelsViewEmpty;
+  clusterer.process(*digits.get(), flatLabelsViewEmpty);
   BOOST_CHECK_EQUAL(clusterArray->size(), 1);
   auto clusterContainer = (*clusterArray)[0].getContainer();
   BOOST_CHECK_EQUAL(clusterContainer->numberOfClusters, 11);
@@ -962,7 +970,7 @@ BOOST_AUTO_TEST_CASE(HwClusterer_test6)
   clustersToCompare.emplace_back();
   clustersToCompare.back().setCluster(2, 7 + 100, p_pre_fp(clustersMode1[10]), t_pre_fp(clustersMode1[10]), sigma_p_pre_fp(clustersMode1[10]), sigma_t_pre_fp(clustersMode1[10]), (clustersMode1[10][12] * 2), (std::accumulate(clustersMode1[10].begin(), clustersMode1[10].end(), 0.0) * 16), 0, 0);
   clusterer.setSplittingMode(1);
-  clusterer.process(*digits.get(), nullptr);
+  clusterer.process(*digits.get(), flatLabelsViewEmpty);
   BOOST_CHECK_EQUAL(clusterArray->size(), 1);
   clusterContainer = (*clusterArray)[0].getContainer();
   BOOST_CHECK_EQUAL(clusterContainer->numberOfClusters, 11);
