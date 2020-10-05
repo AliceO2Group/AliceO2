@@ -29,7 +29,7 @@ void runClusters(std::string_view outputFile = "ClusterQC.root", std::string_vie
   ClusterNativeAccess clusterIndex;
   std::unique_ptr<ClusterNative[]> clusterBuffer;
   memset(&clusterIndex, 0, sizeof(clusterIndex));
-  MCLabelContainer clusterMCBuffer;
+  o2::tpc::ClusterNativeHelper::ConstMCLabelContainerViewWithBuffer clusterMCBuffer;
 
   qc::Clusters clusters;
 

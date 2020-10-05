@@ -43,6 +43,7 @@
 #include "GPUParam.inc"
 #ifdef GPUCA_O2_LIB
 #include "SimulationDataFormat/MCTruthContainer.h"
+#include "SimulationDataFormat/ConstMCTruthContainer.h"
 #include "SimulationDataFormat/MCCompLabel.h"
 #include "SimulationDataFormat/MCTrack.h"
 #include "SimulationDataFormat/TrackReference.h"
@@ -160,6 +161,7 @@ static const GPUQA::configQA& GPUQA_GetConfig(GPUChainTracking* rec)
 #ifdef GPUCA_TPC_GEOMETRY_O2
 #include "SimulationDataFormat/MCCompLabel.h"
 #include "SimulationDataFormat/MCTruthContainer.h"
+#include "SimulationDataFormat/ConstMCTruthContainer.h"
 
 inline unsigned int GPUQA::GetNMCCollissions()
 {

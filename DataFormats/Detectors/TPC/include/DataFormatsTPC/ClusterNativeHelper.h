@@ -19,6 +19,7 @@
 #include "DataFormatsTPC/ClusterGroupAttribute.h"
 #include "DataFormatsTPC/Constants.h"
 #include "SimulationDataFormat/MCTruthContainer.h"
+#include "SimulationDataFormat/ConstMCTruthContainer.h"
 #include "SimulationDataFormat/MCCompLabel.h"
 #include <gsl/gsl>
 #include <TFile.h>
@@ -33,7 +34,6 @@ namespace o2
 {
 namespace tpc
 {
-using MCLabelContainer = o2::dataformats::MCTruthContainer<o2::MCCompLabel>;
 
 /// @struct ClusterNativeContainer
 /// A container class for a collection of ClusterNative object
@@ -132,6 +132,11 @@ struct alignas(64) ClusterIndexBuffer {
 class ClusterNativeHelper
 {
  public:
+  using MCLabelContainer = o2::dataformats::MCTruthContainer<o2::MCCompLabel>;
+  using ConstMCLabelContainer = ClusterNativeAccess::ConstMCLabelContainer;
+  using ConstMCLabelContainerView = ClusterNativeAccess::ConstMCLabelContainerView;
+  using ConstMCLabelContainerViewWithBuffer = ClusterNativeAccess::ConstMCLabelContainerViewWithBuffer;
+
   ClusterNativeHelper() = default;
   ~ClusterNativeHelper() = default;
 
@@ -187,7 +192,7 @@ class ClusterNativeHelper
     // Fill the ClusterNative access structure from data and corresponding mc label arrays
     // from the internal data structures of the reader.
     int fillIndex(ClusterNativeAccess& clusterIndex, std::unique_ptr<ClusterNative[]>& clusterBuffer,
-                  MCLabelContainer& mcBuffer);
+                  ConstMCLabelContainerViewWithBuffer& mcBuffer);
 
     // Fill the ClusterNative access structure from data and corresponding mc label arrays.
     // Both cluster data input and mc containers are provided as a collection with one entry per
@@ -211,10 +216,10 @@ class ClusterNativeHelper
     // @param inputs         data arrays, fixed array, one per sector
     // @param mcinputs       vectors mc truth container, fixed array, one per sector
     // @param checkFct       check whether a sector index is valid
-    template <typename DataArrayType, typename MCArrayType, typename CheckFct>
+    template <typename DataArrayType, typename MCArrayType, typename CheckFct = std::function<bool(size_t&)>>
     static int fillIndex(
       ClusterNativeAccess& clusterIndex, std::unique_ptr<ClusterNative[]>& clusterBuffer,
-      MCLabelContainer& mcBuffer, DataArrayType& inputs, MCArrayType const& mcinputs,
+      ConstMCLabelContainerViewWithBuffer& mcBuffer, DataArrayType& inputs, MCArrayType const& mcinputs,
       CheckFct checkFct = [](auto const&) { return true; });
 
     template <typename DataArrayType, typename CheckFct = std::function<bool(size_t&)>>
@@ -226,7 +231,7 @@ class ClusterNativeHelper
       // TODO: maybe do in one function with conditional template parameter
       std::vector<std::unique_ptr<MCLabelContainer>> dummy;
       // another default, nothing will be added to the container
-      MCLabelContainer mcBuffer;
+      ConstMCLabelContainerViewWithBuffer mcBuffer;
       return fillIndex(clusterIndex, clusterBuffer, mcBuffer, inputs, dummy, checkFct);
     }
 
@@ -234,17 +239,17 @@ class ClusterNativeHelper
     // This function does not copy any data but sets the corresponding poiters in the index.
     // Cluster data are provided as a raw buffer of consecutive ClusterNative arrays preceded by ClusterGroupHeader
     // MC labels are provided as a span of MCLabelContainers, one per sector.
-    static int parseSector(const char* buffer, size_t size, gsl::span<MCLabelContainer const> const& mcinput, //
-                           ClusterNativeAccess& clusterIndex,                                                 //
-                           const MCLabelContainer* (&clustersMCTruth)[NSectors]);                             //
+    static int parseSector(const char* buffer, size_t size, gsl::span<ConstMCLabelContainerView const> const& mcinput, //
+                           ClusterNativeAccess& clusterIndex,                                                          //
+                           const ConstMCLabelContainerView* (&clustersMCTruth)[NSectors]);                             //
 
     // Process data for one sector
     // Helper method receiving raw buffer provided as container
     // This function does not copy any data but sets the corresponding poiters in the index.
     template <typename ContainerT>
-    static int parseSector(ContainerT const cont, gsl::span<MCLabelContainer const> const& mcinput, //
-                           ClusterNativeAccess& clusterIndex,                                       //
-                           const MCLabelContainer* (&clustersMCTruth)[NSectors])                    //
+    static int parseSector(ContainerT const cont, gsl::span<ConstMCLabelContainerView const> const& mcinput, //
+                           ClusterNativeAccess& clusterIndex,                                                //
+                           const ConstMCLabelContainerView* (&clustersMCTruth)[NSectors])                    //
     {
       using T = typename std::remove_pointer<ContainerT>::type;
       static_assert(sizeof(typename T::value_type) == 1, "raw container must be byte-type");
@@ -346,7 +351,7 @@ class ClusterNativeHelper
 
 template <typename DataArrayType, typename MCArrayType, typename CheckFct>
 int ClusterNativeHelper::Reader::fillIndex(ClusterNativeAccess& clusterIndex,
-                                           std::unique_ptr<ClusterNative[]>& clusterBuffer, MCLabelContainer& mcBuffer,
+                                           std::unique_ptr<ClusterNative[]>& clusterBuffer, ConstMCLabelContainerViewWithBuffer& mcBuffer,
                                            DataArrayType& inputs, MCArrayType const& mcinputs, CheckFct checkFct)
 {
   if (mcinputs.size() > 0 && mcinputs.size() != inputs.size()) {
@@ -361,7 +366,7 @@ int ClusterNativeHelper::Reader::fillIndex(ClusterNativeAccess& clusterIndex,
       clusterIndex.clustersLinear = reinterpret_cast<const ClusterNative*>(inputs[0].data() + sizeof(*hdr));
       clusterIndex.setOffsetPtrs();
       if (mcinputs.size() > 0) {
-        clusterIndex.clustersMCTruth = mcinputs[0].get();
+        clusterIndex.clustersMCTruth = &mcinputs[0];
       }
     }
     if (sizeof(ClusterCountIndex) + clusterIndex.nClustersTotal * sizeof(ClusterNative) > inputs[0].size()) {
@@ -371,16 +376,16 @@ int ClusterNativeHelper::Reader::fillIndex(ClusterNativeAccess& clusterIndex,
   }
 
   // multiple data blocks need to be merged into the single block
-  const MCLabelContainer* clustersMCTruth[NSectors] = {nullptr};
+  const ConstMCLabelContainerView* clustersMCTruth[NSectors] = {nullptr};
   int result = 0;
   for (size_t index = 0, end = inputs.size(); index < end; index++) {
     if (!checkFct(index)) {
       continue;
     }
-    MCLabelContainer const* labelsptr = nullptr;
+    o2::dataformats::ConstMCTruthContainerView<o2::MCCompLabel> const* labelsptr = nullptr;
     int extent = 0;
     if (index < mcinputs.size()) {
-      labelsptr = mcinputs[index].get();
+      labelsptr = &mcinputs[index];
       extent = 1;
     }
     int locres = parseSector(inputs[index], {labelsptr, extent}, clusterIndex, clustersMCTruth);
@@ -393,7 +398,8 @@ int ClusterNativeHelper::Reader::fillIndex(ClusterNativeAccess& clusterIndex,
   // Now move all data to a new consecutive buffer
   ClusterNativeAccess old = clusterIndex;
   clusterBuffer.reset(new ClusterNative[result]);
-  mcBuffer.clear();
+  MCLabelContainer tmpMCBuffer;
+  tmpMCBuffer.clear();
   bool mcPresent = false;
   clusterIndex.clustersLinear = clusterBuffer.get();
   clusterIndex.setOffsetPtrs();
@@ -405,14 +411,16 @@ int ClusterNativeHelper::Reader::fillIndex(ClusterNativeAccess& clusterIndex,
         mcPresent = true;
         for (unsigned int k = 0; k < old.nClusters[i][j]; k++, sectorLabelId++) {
           for (auto const& label : clustersMCTruth[i]->getLabels(sectorLabelId)) {
-            mcBuffer.addElement(clusterIndex.clusterOffset[i][j] + k, label);
+            tmpMCBuffer.addElement(clusterIndex.clusterOffset[i][j] + k, label);
           }
         }
       }
     }
   }
   if (mcPresent) {
-    clusterIndex.clustersMCTruth = &mcBuffer;
+    tmpMCBuffer.flatten_to(mcBuffer.first);
+    mcBuffer.second = mcBuffer.first;
+    clusterIndex.clustersMCTruth = &mcBuffer.second;
   }
 
   return result;

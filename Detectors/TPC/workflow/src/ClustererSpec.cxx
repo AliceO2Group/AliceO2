@@ -39,6 +39,8 @@ namespace tpc
 {
 
 using MCLabelContainer = o2::dataformats::MCTruthContainer<o2::MCCompLabel>;
+using ConstMCLabelContainer = o2::dataformats::ConstMCTruthContainer<o2::MCCompLabel>;
+using ConstMCLabelContainerView = o2::dataformats::ConstMCTruthContainerView<o2::MCCompLabel>;
 
 /// create a processor spec
 /// runs the TPC HwClusterer in a DPL process with digits and mc as input
@@ -87,14 +89,14 @@ DataProcessorSpec getClustererSpec(bool sendMC)
         }
         return;
       }
-      std::unique_ptr<const MCLabelContainer> inMCLabels;
+      ConstMCLabelContainerView inMCLabels;
       if (DataRefUtils::isValid(mclabelref)) {
-        inMCLabels = std::move(pc.inputs().get<const MCLabelContainer*>(mclabelref));
+        inMCLabels = pc.inputs().get<gsl::span<char>>(mclabelref);
       }
       auto inDigits = pc.inputs().get<gsl::span<o2::tpc::Digit>>(dataref);
-      if (verbosity > 0 && inMCLabels) {
+      if (verbosity > 0 && inMCLabels.getBuffer().size()) {
         LOG(INFO) << "received " << inDigits.size() << " digits, "
-                  << inMCLabels->getIndexedSize() << " MC label objects"
+                  << inMCLabels.getIndexedSize() << " MC label objects"
                   << " input MC label size " << DataRefUtils::getPayloadSize(mclabelref);
       }
       if (!clusterers[sector]) {
@@ -115,9 +117,10 @@ DataProcessorSpec getClustererSpec(bool sendMC)
       // are cleared but also the cluster counter. Clearing the containers externally leaves the
       // cluster counter unchanged and leads to an inconsistency between cluster container and
       // MC label container (the latter just grows with every call).
-      clusterer->process(inDigits, inMCLabels.get(), true /* clear output containers and cluster counter */);
+      clusterer->process(inDigits, inMCLabels, true /* clear output containers and cluster counter */);
       const std::vector<o2::tpc::Digit> emptyDigits;
-      clusterer->finishProcess(emptyDigits, nullptr, false); // keep here the false, otherwise the clusters are lost of they are not stored in the meantime
+      ConstMCLabelContainerView emptyLabels;
+      clusterer->finishProcess(emptyDigits, emptyLabels, false); // keep here the false, otherwise the clusters are lost of they are not stored in the meantime
       if (verbosity > 0) {
         LOG(INFO) << "clusterer produced "
                   << std::accumulate(clusterArray.begin(), clusterArray.end(), size_t(0), [](size_t l, auto const& r) { return l + r.getContainer()->numberOfClusters; })
@@ -133,7 +136,9 @@ DataProcessorSpec getClustererSpec(bool sendMC)
       auto outputPages = pc.outputs().make<ClusterHardwareContainer8kb>(Output{gDataOriginTPC, "CLUSTERHW", fanSpec, Lifetime::Timeframe, {*sectorHeader}}, clusterArray.size());
       std::copy(clusterArray.begin(), clusterArray.end(), outputPages.begin());
       if (DataRefUtils::isValid(mclabelref)) {
-        pc.outputs().snapshot(Output{gDataOriginTPC, "CLUSTERHWMCLBL", fanSpec, Lifetime::Timeframe, {*sectorHeader}}, mctruthArray);
+        ConstMCLabelContainer mcflat;
+        mctruthArray.flatten_to(mcflat);
+        pc.outputs().snapshot(Output{gDataOriginTPC, "CLUSTERHWMCLBL", fanSpec, Lifetime::Timeframe, {*sectorHeader}}, mcflat);
       }
     };
 
