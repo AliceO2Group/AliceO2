@@ -21,7 +21,11 @@ namespace o2
 namespace its
 {
 
-ROframe::ROframe(const int ROframeId) : mROframeId{ROframeId}
+ROframe::ROframe(int ROframeId, int nLayers) : mROframeId{ROframeId},
+                                               mClusters{nLayers},
+                                               mTrackingFrameInfo{nLayers},
+                                               mClusterLabels{nLayers},
+                                               mClusterExternalIndices{nLayers}
 {
 }
 

@@ -21,8 +21,8 @@ namespace o2
 namespace its
 {
 
-void PrimaryVertexContext::initialise(const MemoryParameters& memParam, const std::array<std::vector<Cluster>, constants::its::LayersNumber>& cl,
-                                      const std::array<float, 3>& pVtx, const int iteration)
+void PrimaryVertexContext::initialise(const MemoryParameters& memParam, const TrackingParameters& trkParam,
+                                      const std::vector<std::vector<Cluster>>& cl, const std::array<float, 3>& pVtx, const int iteration)
 {
 
   struct ClusterHelper {
@@ -38,7 +38,20 @@ void PrimaryVertexContext::initialise(const MemoryParameters& memParam, const st
 
     std::vector<ClusterHelper> cHelper;
 
-    for (int iLayer{0}; iLayer < constants::its::LayersNumber; ++iLayer) {
+    mMinR.resize(trkParam.LayerRadii.size(), 10000.);
+    mMaxR.resize(trkParam.LayerRadii.size(), -1.);
+    mUnsortedClusters.resize(trkParam.LayerRadii.size());
+    mClusters.resize(trkParam.NLayers);
+    mUsedClusters.resize(trkParam.NLayers);
+    mCells.resize(trkParam.NLayers - 2);
+    mCellsLookupTable.resize(trkParam.NLayers - 3);
+    mCellsNeighbours.resize(trkParam.NLayers - 3);
+    mIndexTables.resize(trkParam.NLayers - 1, std::vector<int>(trkParam.ZBins * trkParam.PhiBins + 1, 0));
+    mTracklets.resize(trkParam.NLayers - 1);
+    mTrackletsLookupTable.resize(trkParam.NLayers - 2);
+    mIndexTableUtils.setTrackingParameters(trkParam);
+
+    for (unsigned int iLayer{0}; iLayer < mClusters.size(); ++iLayer) {
 
       const auto& currentLayer{cl[iLayer]};
       const int clustersNum{static_cast<int>(currentLayer.size())};
@@ -48,11 +61,7 @@ void PrimaryVertexContext::initialise(const MemoryParameters& memParam, const st
       mUsedClusters[iLayer].clear();
       mUsedClusters[iLayer].resize(clustersNum, false);
 
-      constexpr int _size = constants::index_table::PhiBins * constants::index_table::ZBins;
-      std::array<int, _size> clsPerBin;
-      for (int iB{0}; iB < _size; ++iB) {
-        clsPerBin[iB] = 0;
-      }
+      std::vector<int> clsPerBin(trkParam.PhiBins * trkParam.ZBins, 0);
 
       cHelper.clear();
       cHelper.resize(clustersNum);
@@ -66,8 +75,8 @@ void PrimaryVertexContext::initialise(const MemoryParameters& memParam, const st
         float x = c.xCoordinate - mPrimaryVertex.x;
         float y = c.yCoordinate - mPrimaryVertex.y;
         float phi = math_utils::calculatePhiCoordinate(x, y);
-        int bin = index_table_utils::getBinIndex(index_table_utils::getZBinIndex(iLayer, c.zCoordinate),
-                                                 index_table_utils::getPhiBinIndex(phi));
+        int bin = mIndexTableUtils.getBinIndex(mIndexTableUtils.getZBinIndex(iLayer, c.zCoordinate),
+                                               mIndexTableUtils.getPhiBinIndex(phi));
         h.phi = phi;
         h.r = math_utils::calculateRCoordinate(x, y);
         mMinR[iLayer] = gpu::GPUCommonMath::Min(h.r, mMinR[iLayer]);
@@ -76,9 +85,9 @@ void PrimaryVertexContext::initialise(const MemoryParameters& memParam, const st
         h.ind = clsPerBin[bin]++;
       }
 
-      std::array<int, _size> lutPerBin;
+      std::vector<int> lutPerBin(clsPerBin.size());
       lutPerBin[0] = 0;
-      for (int iB{1}; iB < _size; ++iB) {
+      for (unsigned int iB{1}; iB < lutPerBin.size(); ++iB) {
         lutPerBin[iB] = lutPerBin[iB - 1] + clsPerBin[iB - 1];
       }
 
@@ -92,10 +101,10 @@ void PrimaryVertexContext::initialise(const MemoryParameters& memParam, const st
       }
 
       if (iLayer > 0) {
-        for (int iB{0}; iB < _size; ++iB) {
+        for (unsigned int iB{0}; iB < clsPerBin.size(); ++iB) {
           mIndexTables[iLayer - 1][iB] = lutPerBin[iB];
         }
-        for (int iB{_size}; iB < (int)mIndexTables[iLayer - 1].size(); iB++) {
+        for (auto iB{clsPerBin.size()}; iB < (int)mIndexTables[iLayer - 1].size(); iB++) {
           mIndexTables[iLayer - 1][iB] = clustersNum;
         }
       }
@@ -104,8 +113,8 @@ void PrimaryVertexContext::initialise(const MemoryParameters& memParam, const st
 
   mRoads.clear();
 
-  for (int iLayer{0}; iLayer < constants::its::LayersNumber; ++iLayer) {
-    if (iLayer < constants::its::CellsPerRoad) {
+  for (unsigned int iLayer{0}; iLayer < mClusters.size(); ++iLayer) {
+    if (iLayer < mCells.size()) {
       mCells[iLayer].clear();
       float cellsMemorySize =
         memParam.MemoryOffset +
@@ -118,7 +127,7 @@ void PrimaryVertexContext::initialise(const MemoryParameters& memParam, const st
       }
     }
 
-    if (iLayer < constants::its::CellsPerRoad - 1) {
+    if (iLayer < mCells.size() - 1) {
       mCellsLookupTable[iLayer].clear();
       mCellsLookupTable[iLayer].resize(
         std::max(cl[iLayer + 1].size(), cl[iLayer + 2].size()) +
@@ -130,8 +139,8 @@ void PrimaryVertexContext::initialise(const MemoryParameters& memParam, const st
     }
   }
 
-  for (int iLayer{0}; iLayer < constants::its::LayersNumber; ++iLayer) {
-    if (iLayer < constants::its::TrackletsPerRoad) {
+  for (unsigned int iLayer{0}; iLayer < mClusters.size(); ++iLayer) {
+    if (iLayer < mTracklets.size()) {
       mTracklets[iLayer].clear();
       float trackletsMemorySize =
         std::max(cl[iLayer].size(), cl[iLayer + 1].size()) +
@@ -143,7 +152,7 @@ void PrimaryVertexContext::initialise(const MemoryParameters& memParam, const st
       }
     }
 
-    if (iLayer < constants::its::CellsPerRoad) {
+    if (iLayer < mCells.size()) {
       mTrackletsLookupTable[iLayer].clear();
       mTrackletsLookupTable[iLayer].resize(cl[iLayer + 1].size(), constants::its::UnusedIndex);
     }

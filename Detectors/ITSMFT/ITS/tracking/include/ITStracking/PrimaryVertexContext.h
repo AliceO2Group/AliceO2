@@ -24,6 +24,7 @@
 #include "ITStracking/Configuration.h"
 #include "ITStracking/Constants.h"
 #include "ITStracking/Definitions.h"
+#include "ITStracking/IndexTableUtils.h"
 #include "ITStracking/Road.h"
 #include "ITStracking/Tracklet.h"
 
@@ -42,98 +43,55 @@ class PrimaryVertexContext
   PrimaryVertexContext(const PrimaryVertexContext&) = delete;
   PrimaryVertexContext& operator=(const PrimaryVertexContext&) = delete;
 
-  virtual void initialise(const MemoryParameters& memParam, const std::array<std::vector<Cluster>, constants::its::LayersNumber>& cl,
-                          const std::array<float, 3>& pv, const int iteration);
-  const float3& getPrimaryVertex() const;
-  std::array<std::vector<Cluster>, constants::its::LayersNumber>& getClusters();
-  std::array<std::vector<Cell>, constants::its::CellsPerRoad>& getCells();
-  std::array<std::vector<int>, constants::its::CellsPerRoad - 1>& getCellsLookupTable();
-  std::array<std::vector<std::vector<int>>, constants::its::CellsPerRoad - 1>& getCellsNeighbours();
-  std::vector<Road>& getRoads();
+  virtual void initialise(const MemoryParameters& memParam, const TrackingParameters& trkParam,
+                          const std::vector<std::vector<Cluster>>& cl, const std::array<float, 3>& pv, const int iteration);
+  const float3& getPrimaryVertex() const { return mPrimaryVertex; }
+  auto& getClusters() { return mClusters; }
+  auto& getCells() { return mCells; }
+  auto& getCellsLookupTable() { return mCellsLookupTable; }
+  auto& getCellsNeighbours() { return mCellsNeighbours; }
+  auto& getRoads() { return mRoads; }
 
   float getMinR(int layer) { return mMinR[layer]; }
   float getMaxR(int layer) { return mMaxR[layer]; }
 
-  bool isClusterUsed(int layer, int clusterId) const;
+  bool isClusterUsed(int layer, int clusterId) const { return mUsedClusters[layer][clusterId]; }
   void markUsedCluster(int layer, int clusterId);
 
-  std::array<std::array<int, constants::index_table::ZBins * constants::index_table::PhiBins + 1>,
-             constants::its::TrackletsPerRoad>&
-    getIndexTables();
-  std::array<std::vector<Tracklet>, constants::its::TrackletsPerRoad>& getTracklets();
-  std::array<std::vector<int>, constants::its::CellsPerRoad>& getTrackletsLookupTable();
+  auto& getIndexTables() { return mIndexTables; }
+  auto& getTracklets() { return mTracklets; }
+  auto& getTrackletsLookupTable() { return mTrackletsLookupTable; }
 
   void initialiseRoadLabels();
   void setRoadLabel(int i, const unsigned long long& lab, bool fake);
   const unsigned long long& getRoadLabel(int i) const;
   bool isRoadFake(int i) const;
 
+  IndexTableUtils mIndexTableUtils;
+
  protected:
   float3 mPrimaryVertex;
-  std::array<float, constants::its::LayersNumber> mMinR;
-  std::array<float, constants::its::LayersNumber> mMaxR;
-  std::array<std::vector<Cluster>, constants::its::LayersNumber> mUnsortedClusters;
-  std::array<std::vector<Cluster>, constants::its::LayersNumber> mClusters;
-  std::array<std::vector<bool>, constants::its::LayersNumber> mUsedClusters;
-  std::array<std::vector<Cell>, constants::its::CellsPerRoad> mCells;
-  std::array<std::vector<int>, constants::its::CellsPerRoad - 1> mCellsLookupTable;
-  std::array<std::vector<std::vector<int>>, constants::its::CellsPerRoad - 1> mCellsNeighbours;
+  std::vector<float> mMinR;
+  std::vector<float> mMaxR;
+  std::vector<std::vector<Cluster>> mUnsortedClusters;
+  std::vector<std::vector<Cluster>> mClusters;
+  std::vector<std::vector<bool>> mUsedClusters;
+  std::vector<std::vector<Cell>> mCells;
+  std::vector<std::vector<int>> mCellsLookupTable;
+  std::vector<std::vector<std::vector<int>>> mCellsNeighbours;
   std::vector<Road> mRoads;
 
-  std::array<std::array<int, constants::index_table::ZBins * constants::index_table::PhiBins + 1>,
-             constants::its::TrackletsPerRoad>
-    mIndexTables;
-  std::array<std::vector<Tracklet>, constants::its::TrackletsPerRoad> mTracklets;
-  std::array<std::vector<int>, constants::its::CellsPerRoad> mTrackletsLookupTable;
+  // std::array<std::array<int, constants::index_table::ZBins * constants::index_table::PhiBins + 1>,
+  //            constants::its::TrackletsPerRoad>
+  std::vector<std::vector<int>> mIndexTables;
+  std::vector<std::vector<Tracklet>> mTracklets;
+  std::vector<std::vector<int>> mTrackletsLookupTable;
 
   std::vector<std::pair<unsigned long long, bool>> mRoadLabels;
 };
 
-inline const float3& PrimaryVertexContext::getPrimaryVertex() const { return mPrimaryVertex; }
-
-inline std::array<std::vector<Cluster>, constants::its::LayersNumber>& PrimaryVertexContext::getClusters()
-{
-  return mClusters;
-}
-
-inline std::array<std::vector<Cell>, constants::its::CellsPerRoad>& PrimaryVertexContext::getCells() { return mCells; }
-
-inline std::array<std::vector<int>, constants::its::CellsPerRoad - 1>& PrimaryVertexContext::getCellsLookupTable()
-{
-  return mCellsLookupTable;
-}
-
-inline std::array<std::vector<std::vector<int>>, constants::its::CellsPerRoad - 1>&
-  PrimaryVertexContext::getCellsNeighbours()
-{
-  return mCellsNeighbours;
-}
-
-inline std::vector<Road>& PrimaryVertexContext::getRoads() { return mRoads; }
-
-inline bool PrimaryVertexContext::isClusterUsed(int layer, int clusterId) const
-{
-  return mUsedClusters[layer][clusterId];
-}
 
 inline void PrimaryVertexContext::markUsedCluster(int layer, int clusterId) { mUsedClusters[layer][clusterId] = true; }
-
-inline std::array<std::array<int, constants::index_table::ZBins * constants::index_table::PhiBins + 1>,
-                  constants::its::TrackletsPerRoad>&
-  PrimaryVertexContext::getIndexTables()
-{
-  return mIndexTables;
-}
-
-inline std::array<std::vector<Tracklet>, constants::its::TrackletsPerRoad>& PrimaryVertexContext::getTracklets()
-{
-  return mTracklets;
-}
-
-inline std::array<std::vector<int>, constants::its::CellsPerRoad>& PrimaryVertexContext::getTrackletsLookupTable()
-{
-  return mTrackletsLookupTable;
-}
 
 inline void PrimaryVertexContext::initialiseRoadLabels()
 {

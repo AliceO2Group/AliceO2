@@ -70,13 +70,13 @@ int GPUChainITS::Finalize() { return 0; }
 
 int GPUChainITS::RunChain() { return 0; }
 
-int GPUChainITS::PrepareAndRunITSTrackFit(std::vector<Road>& roads, std::array<const Cluster*, 7> clusters, std::array<const Cell*, 5> cells, const std::array<std::vector<TrackingFrameInfo>, 7>& tf, std::vector<TrackITSExt>& tracks)
+int GPUChainITS::PrepareAndRunITSTrackFit(std::vector<o2::its::Road>& roads, std::vector<const o2::its::Cluster*>& clusters, std::vector<const o2::its::Cell*>& cells, const std::vector<std::vector<o2::its::TrackingFrameInfo>>& tf, std::vector<o2::its::TrackITSExt>& tracks)
 {
   mRec->PrepareEvent();
   return RunITSTrackFit(roads, clusters, cells, tf, tracks);
 }
 
-int GPUChainITS::RunITSTrackFit(std::vector<Road>& roads, std::array<const Cluster*, 7> clusters, std::array<const Cell*, 5> cells, const std::array<std::vector<TrackingFrameInfo>, 7>& tf, std::vector<TrackITSExt>& tracks)
+int GPUChainITS::RunITSTrackFit(std::vector<o2::its::Road>& roads, std::vector<const o2::its::Cluster*>& clusters, std::vector<const o2::its::Cell*>& cells, const std::vector<std::vector<o2::its::TrackingFrameInfo>>& tf, std::vector<o2::its::TrackITSExt>& tracks)
 {
   auto threadContext = GetThreadContext();
   bool doGPU = GetRecoStepsGPU() & RecoStep::ITSTracking;
@@ -85,7 +85,7 @@ int GPUChainITS::RunITSTrackFit(std::vector<Road>& roads, std::array<const Clust
 
   Fitter.clearMemory();
   Fitter.SetNumberOfRoads(roads.size());
-  for (int i = 0; i < 7; i++) {
+  for (int i = 0; i < clusters.size(); i++) {
     Fitter.SetNumberTF(i, tf[i].size());
   }
   Fitter.SetMaxData(processors()->ioPtrs);
@@ -93,7 +93,7 @@ int GPUChainITS::RunITSTrackFit(std::vector<Road>& roads, std::array<const Clust
   std::copy(cells.begin(), cells.end(), Fitter.cells());
   SetupGPUProcessor(&Fitter, true);
   std::copy(roads.begin(), roads.end(), Fitter.roads());
-  for (int i = 0; i < 7; i++) {
+  for (int i = 0; i < clusters.size(); i++) {
     std::copy(tf[i].begin(), tf[i].end(), Fitter.trackingFrame()[i]);
   }
 

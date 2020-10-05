@@ -34,7 +34,7 @@ namespace its
 void TrackerTraitsCPU::computeLayerTracklets()
 {
   PrimaryVertexContext* primaryVertexContext = mPrimaryVertexContext;
-  for (int iLayer{0}; iLayer < constants::its::TrackletsPerRoad; ++iLayer) {
+  for (int iLayer{0}; iLayer < mTrkParams.TrackletsPerRoad(); ++iLayer) {
     if (primaryVertexContext->getClusters()[iLayer].empty() || primaryVertexContext->getClusters()[iLayer + 1].empty()) {
       return;
     }
@@ -67,12 +67,12 @@ void TrackerTraitsCPU::computeLayerTracklets()
       int phiBinsNum{selectedBinsRect.w - selectedBinsRect.y + 1};
 
       if (phiBinsNum < 0) {
-        phiBinsNum += constants::index_table::PhiBins;
+        phiBinsNum += mTrkParams.PhiBins;
       }
 
       for (int iPhiBin{selectedBinsRect.y}, iPhiCount{0}; iPhiCount < phiBinsNum;
-           iPhiBin = ++iPhiBin == constants::index_table::PhiBins ? 0 : iPhiBin, iPhiCount++) {
-        const int firstBinIndex{index_table_utils::getBinIndex(selectedBinsRect.x, iPhiBin)};
+           iPhiBin = ++iPhiBin == mTrkParams.PhiBins ? 0 : iPhiBin, iPhiCount++) {
+        const int firstBinIndex{primaryVertexContext->mIndexTableUtils.getBinIndex(selectedBinsRect.x, iPhiBin)};
         const int maxBinIndex{firstBinIndex + selectedBinsRect.z - selectedBinsRect.x + 1};
         const int firstRowClusterIndex = primaryVertexContext->getIndexTables()[iLayer][firstBinIndex];
         const int maxRowClusterIndex = primaryVertexContext->getIndexTables()[iLayer][maxBinIndex];
@@ -113,7 +113,7 @@ void TrackerTraitsCPU::computeLayerTracklets()
 void TrackerTraitsCPU::computeLayerCells()
 {
   PrimaryVertexContext* primaryVertexContext = mPrimaryVertexContext;
-  for (int iLayer{0}; iLayer < constants::its::CellsPerRoad; ++iLayer) {
+  for (int iLayer{0}; iLayer < mTrkParams.CellsPerRoad(); ++iLayer) {
 
     if (primaryVertexContext->getTracklets()[iLayer + 1].empty() ||
         primaryVertexContext->getTracklets()[iLayer].empty()) {
@@ -231,15 +231,15 @@ void TrackerTraitsCPU::computeLayerCells()
   }
 }
 
-void TrackerTraitsCPU::refitTracks(const std::array<std::vector<TrackingFrameInfo>, 7>& tf, std::vector<TrackITSExt>& tracks)
+void TrackerTraitsCPU::refitTracks(const std::vector<std::vector<TrackingFrameInfo>>& tf, std::vector<TrackITSExt>& tracks)
 {
-  std::array<const Cell*, 5> cells;
-  for (int iLayer = 0; iLayer < 5; iLayer++) {
-    cells[iLayer] = mPrimaryVertexContext->getCells()[iLayer].data();
+  std::vector<const Cell*> cells;
+  for (int iLayer = 0; iLayer < mTrkParams.CellsPerRoad(); iLayer++) {
+    cells.push_back(mPrimaryVertexContext->getCells()[iLayer].data());
   }
-  std::array<const Cluster*, 7> clusters;
-  for (int iLayer = 0; iLayer < 7; iLayer++) {
-    clusters[iLayer] = mPrimaryVertexContext->getClusters()[iLayer].data();
+  std::vector<const Cluster*> clusters;
+  for (int iLayer = 0; iLayer < mTrkParams.NLayers; iLayer++) {
+    clusters.push_back(mPrimaryVertexContext->getClusters()[iLayer].data());
   }
   mChainRunITSTrackFit(*mChain, mPrimaryVertexContext->getRoads(), clusters, cells, tf, tracks);
 }
