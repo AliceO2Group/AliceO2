@@ -30,13 +30,18 @@ class TrackParametrizationWithError : public TrackParametrization<value_T>
   using MatrixD5 = ROOT::Math::SMatrix<double, kNParams, kNParams, ROOT::Math::MatRepStd<double, kNParams, kNParams>>;
 
   using typename TrackParametrization<value_T>::value_t;
+  using typename TrackParametrization<value_T>::dim3_t;
+  using typename TrackParametrization<value_T>::dim2_t;
+  using typename TrackParametrization<value_T>::params_t;
 
   static_assert(std::is_floating_point_v<value_t>);
 
  public:
+  using covMat_t = std::array<value_t, kCovMatSize>;
+
   TrackParametrizationWithError();
-  TrackParametrizationWithError(value_t x, value_t alpha, const std::array<value_t, kNParams>& par, const std::array<value_t, kCovMatSize>& cov, int charge = 1);
-  TrackParametrizationWithError(const std::array<value_t, 3>& xyz, const std::array<value_t, 3>& pxpypz,
+  TrackParametrizationWithError(value_t x, value_t alpha, const params_t& par, const std::array<value_t, kCovMatSize>& cov, int charge = 1);
+  TrackParametrizationWithError(const dim3_t& xyz, const dim3_t& pxpypz,
                                 const std::array<value_t, kLabCovMatSize>& cv, int sign, bool sectorAlpha = true);
 
   TrackParametrizationWithError(const TrackParametrizationWithError& src) = default;
@@ -64,7 +69,7 @@ class TrackParametrizationWithError : public TrackParametrization<value_T>
   value_t getCovarElem(int i, int j) const;
   value_t getDiagError2(int i) const;
 
-  bool getCovXYZPxPyPzGlo(std::array<value_t, 21>& c) const;
+  bool getCovXYZPxPyPzGlo(std::array<value_t, kLabCovMatSize>& c) const;
 
 #ifndef GPUCA_ALIGPUCODE
   void print() const;
@@ -74,11 +79,11 @@ class TrackParametrizationWithError : public TrackParametrization<value_T>
   // parameters + covmat manipulation
   bool rotate(value_t alpha);
   bool propagateTo(value_t xk, value_t b);
-  bool propagateTo(value_t xk, const std::array<value_t, 3>& b);
+  bool propagateTo(value_t xk, const dim3_t& b);
   bool propagateToDCA(const o2::dataformats::VertexBase& vtx, value_t b, o2::dataformats::DCA* dca = nullptr, value_t maxD = 999.f);
   void invert();
 
-  value_t getPredictedChi2(const std::array<value_t, 2>& p, const std::array<value_t, 3>& cov) const;
+  value_t getPredictedChi2(const dim2_t& p, const dim3_t& cov) const;
 
   template <typename T>
   value_t getPredictedChi2(const BaseCluster<T>& p) const;
@@ -89,7 +94,7 @@ class TrackParametrizationWithError : public TrackParametrization<value_T>
   value_t getPredictedChi2(const TrackParametrizationWithError& rhs, MatrixDSym5& covToSet) const;
   bool update(const TrackParametrizationWithError& rhs, const MatrixDSym5& covInv);
 
-  bool update(const std::array<value_t, 2>& p, const std::array<value_t, 3>& cov);
+  bool update(const dim2_t& p, const dim3_t& cov);
 
   template <typename T>
   bool update(const BaseCluster<T>& p);
@@ -119,7 +124,7 @@ inline TrackParametrizationWithError<value_T>::TrackParametrizationWithError() :
 
 //__________________________________________________________________________
 template <typename value_T>
-inline TrackParametrizationWithError<value_T>::TrackParametrizationWithError(value_t x, value_t alpha, const std::array<value_t, kNParams>& par,
+inline TrackParametrizationWithError<value_T>::TrackParametrizationWithError(value_t x, value_t alpha, const params_t& par,
                                                                              const std::array<value_t, kCovMatSize>& cov, int charge)
   : TrackParametrization<value_T>{x, alpha, par, charge}
 {
@@ -258,8 +263,8 @@ template <typename value_T>
 template <typename T>
 typename TrackParametrizationWithError<value_T>::value_t TrackParametrizationWithError<value_T>::getPredictedChi2(const BaseCluster<T>& p) const
 {
-  const std::array<value_t, 2> pyz = {p.getY(), p.getZ()};
-  const std::array<value_t, 3> cov = {p.getSigmaY2(), p.getSigmaYZ(), p.getSigmaZ2()};
+  const dim2_t pyz = {p.getY(), p.getZ()};
+  const dim3_t cov = {p.getSigmaY2(), p.getSigmaYZ(), p.getSigmaZ2()};
   return getPredictedChi2(pyz, cov);
 }
 
@@ -268,8 +273,8 @@ template <typename value_T>
 template <typename T>
 bool TrackParametrizationWithError<value_T>::update(const BaseCluster<T>& p)
 {
-  const std::array<value_t, 2> pyz = {p.getY(), p.getZ()};
-  const std::array<value_t, 3> cov = {p.getSigmaY2(), p.getSigmaYZ(), p.getSigmaZ2()};
+  const dim2_t pyz = {p.getY(), p.getZ()};
+  const dim3_t cov = {p.getSigmaY2(), p.getSigmaYZ(), p.getSigmaZ2()};
   return update(pyz, cov);
 }
 
