@@ -128,7 +128,7 @@ void Digitizer::process(const std::vector<o2::fv0::Hit>& hits, std::vector<o2::f
   }   //hitloop
 }
 
-void Digitizer::createPulse(float mipFraction, int parID,const double hitTime,
+void Digitizer::createPulse(float mipFraction, int parID, const double hitTime,
                             std::array<o2::InteractionRecord, NBC2Cache> const& cachedIR, int nCachedIR, const int detId)
 {
 
@@ -147,7 +147,7 @@ void Digitizer::createPulse(float mipFraction, int parID,const double hitTime,
   ///Time of flight subtracted from Hit time //TODO have different TOF according to thr ring number
   Size_t NBinShift = std::lround((hitTime - FV0DigParam::Instance().globalTimeOfFlight) / FV0DigParam::Instance().waveformBinWidth);
   mPmtResponseTemp.resize(FV0DigParam::Instance().waveformNbins, 0.);
-  std::memcpy(&mPmtResponseTemp[NBinShift], &mPmtResponseGlobal[0], sizeof(double)*(FV0DigParam::Instance().waveformNbins-NBinShift));
+  std::memcpy(&mPmtResponseTemp[NBinShift], &mPmtResponseGlobal[0], sizeof(double) * (FV0DigParam::Instance().waveformNbins - NBinShift));
 
   for (int ir = 0; ir < int(mPmtResponseTemp.size() / mNTimeBinsPerBC); ir++) {
     auto bcCache = getBCCache(cachedIR[ir]);
