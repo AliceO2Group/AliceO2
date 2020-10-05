@@ -114,8 +114,8 @@ struct HFTrackIndexSkimsCreator {
   OutputObj<TH1F> hvtx_x_out{TH1F("hvtx_x", "2-track vtx", 1000, -2.0, 2.0)};
   OutputObj<TH1F> hvtx_y_out{TH1F("hvtx_y", "2-track vtx", 1000, -2.0, 2.0)};
   OutputObj<TH1F> hvtx_z_out{TH1F("hvtx_z", "2-track vtx", 1000, -20.0, 20.0)};
-  OutputObj<TH1F> hmass2{TH1F("hmass2", "; Inv Mass (GeV/c^{2})", 500, 0, 5.0)};
-  OutputObj<TH1F> hmass3{TH1F("hmass3", "; Inv Mass (GeV/c^{2})", 500, 1.6, 2.1)};
+  OutputObj<TH1F> hmass2{TH1F("hmass2", ";Inv Mass (GeV/#it{c}^{2})", 500, 0, 5.0)};
+  OutputObj<TH1F> hmass3{TH1F("hmass3", ";Inv Mass (GeV/#it{c}^{2})", 500, 1.6, 2.1)};
   OutputObj<TH1F> hvtx3_x_out{TH1F("hvtx3_x", "3-track vtx", 1000, -2.0, 2.0)};
   OutputObj<TH1F> hvtx3_y_out{TH1F("hvtx3_y", "3-track vtx", 1000, -2.0, 2.0)};
   OutputObj<TH1F> hvtx3_z_out{TH1F("hvtx3_z", "3-track vtx", 1000, -20.0, 20.0)};
@@ -214,12 +214,13 @@ struct HFTrackIndexSkimsCreator {
 
         // 3-prong vertex reconstruction
         if (do3prong == 1) {
-          // second loop over positive tracks
-          //for (auto trackPos2 = trackPos1 + 1; trackPos2 != tracksPos.end(); ++trackPos2) {
           if (trackPos1.isSel3Prong() == 0)
             continue;
           if (trackNeg1.isSel3Prong() == 0)
             continue;
+
+          // second loop over positive tracks
+          //for (auto trackPos2 = trackPos1 + 1; trackPos2 != tracksPos.end(); ++trackPos2) {
           for (auto trackPos2 = trackPos1 + 1; trackPos2 != tracks.end(); ++trackPos2) {
             if (trackPos2.signed1Pt() < 0)
               continue;
@@ -271,6 +272,7 @@ struct HFTrackIndexSkimsCreator {
                                 trackNeg1.globalIndex(),
                                 trackPos2.globalIndex(), 2);
           }
+
           // second loop over negative tracks
           //for (auto trackNeg2 = trackNeg1 + 1; trackNeg2 != tracksNeg.end(); ++trackNeg2) {
           for (auto trackNeg2 = trackNeg1 + 1; trackNeg2 != tracks.end(); ++trackNeg2) {
