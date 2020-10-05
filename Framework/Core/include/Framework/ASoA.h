@@ -1757,12 +1757,20 @@ auto filter(T&& t, framework::expressions::Filter const& expr)
 template <typename... C>
 auto spawner(framework::pack<C...> columns, arrow::Table* atable)
 {
+  static auto new_schema = o2::soa::createSchemaFromColumns(columns);
+  static auto projectors = framework::expressions::createProjectors(columns, atable->schema());
+
+  std::vector<std::shared_ptr<arrow::ChunkedArray>> arrays;
+
+  if (atable->num_rows() == 0) {
+    return arrow::Table::Make(new_schema, arrays);
+  }
+
   arrow::TableBatchReader reader(*atable);
   std::shared_ptr<arrow::RecordBatch> batch;
   arrow::ArrayVector v;
   std::array<arrow::ArrayVector, sizeof...(C)> chunks;
 
-  static auto projectors = framework::expressions::createProjectors(columns, atable->schema());
   while (true) {
     auto s = reader.ReadNext(&batch);
     if (!s.ok()) {
@@ -1779,11 +1787,10 @@ auto spawner(framework::pack<C...> columns, arrow::Table* atable)
       chunks[i].emplace_back(v.at(i));
     }
   }
-  std::vector<std::shared_ptr<arrow::ChunkedArray>> arrays;
+
   for (auto i = 0u; i < sizeof...(C); ++i) {
     arrays.push_back(std::make_shared<arrow::ChunkedArray>(chunks[i]));
   }
-  static auto new_schema = o2::soa::createSchemaFromColumns(columns);
   return arrow::Table::Make(new_schema, arrays);
 }
 
@@ -1822,10 +1829,7 @@ auto Extend(T const& table)
 {
   static_assert((soa::is_type_spawnable_v<Cs> && ...), "You can only extend a table with expression columns");
   using output_t = Join<T, soa::Table<Cs...>>;
-  if (table.tableSize() > 0) {
-    return output_t{{spawner(framework::pack<Cs...>{}, table.asArrowTable().get()), table.asArrowTable()}, 0};
-  }
-  return output_t{{nullptr}, 0};
+  return output_t{{spawner(framework::pack<Cs...>{}, table.asArrowTable().get()), table.asArrowTable()}, 0};
 }
 
 /// Template function to attach dynamic columns on-the-fly (e.g. inside

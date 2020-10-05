@@ -14,6 +14,8 @@
 
 #include "Framework/ASoA.h"
 #include "Framework/ASoAHelpers.h"
+#include "Framework/Expressions.h"
+#include "../src/ExpressionHelpers.h"
 #include "gandiva/tree_expr_builder.h"
 #include "arrow/status.h"
 #include "gandiva/filter.h"
@@ -30,6 +32,7 @@ DECLARE_SOA_COLUMN_FULL(X, x, int32_t, "x");
 DECLARE_SOA_COLUMN_FULL(Y, y, int32_t, "y");
 DECLARE_SOA_COLUMN_FULL(Z, z, int32_t, "z");
 DECLARE_SOA_DYNAMIC_COLUMN(Sum, sum, [](int32_t x, int32_t y) { return x + y; });
+DECLARE_SOA_EXPRESSION_COLUMN(ESum, esum, int32_t, 1 * test::x + test::y);
 } // namespace test
 
 DECLARE_SOA_TABLE(Points, "TST", "POINTS", test::X, test::Y);
@@ -621,4 +624,24 @@ BOOST_AUTO_TEST_CASE(TestNestedFiltering)
     i++;
   }
   BOOST_CHECK_EQUAL(i, 1);
+}
+
+BOOST_AUTO_TEST_CASE(TestEmptyTables)
+{
+  TableBuilder bPoints;
+  auto pwriter = bPoints.cursor<Points>();
+  auto pempty = bPoints.finalize();
+
+  TableBuilder bInfos;
+  auto iwriter = bInfos.cursor<Infos>();
+  auto iempty = bInfos.finalize();
+
+  Points p{pempty};
+  Infos i{iempty};
+
+  using PI = Join<Points, Infos>;
+  PI pi{0, pempty, iempty};
+  BOOST_CHECK_EQUAL(pi.size(), 0);
+  auto spawned = Extend<Points, test::ESum>(p);
+  BOOST_CHECK_EQUAL(spawned.size(), 0);
 }
