@@ -53,6 +53,12 @@ using o2::itsmft::Hit;
 using Segmentation = o2::itsmft::SegmentationAlpide;
 using namespace o2::its4;
 
+float getDetLengthFromEta(const float eta, const float radius)
+{
+  float len =  2. * (10. + radius * std::cos(2 * std::atan(std::exp(-eta))));
+  return len;
+}
+
 Detector::Detector()
   : o2::base::DetImpl<Detector>("IT4", kTRUE),
     mTrackData(),
@@ -140,16 +146,16 @@ void Detector::configITS(Detector* its)
 
   // From Mario Sitta's hack
   std::vector<std::array<double, 2>> tdr5data;
-  tdr5data.emplace_back(std::array<double, 2>{1.8f, 27.15});
-  tdr5data.emplace_back(std::array<double, 2>{2.4f, 27.15});
-  tdr5data.emplace_back(std::array<double, 2>{3.0f, 27.15});
-  tdr5data.emplace_back(std::array<double, 2>{4.0f, 27.15});
-  tdr5data.emplace_back(std::array<double, 2>{5.0f, 27.15});
-  tdr5data.emplace_back(std::array<double, 2>{6.0f, 27.15});
-  tdr5data.emplace_back(std::array<double, 2>{7.0f, 27.15});
-  tdr5data.emplace_back(std::array<double, 2>{8.0f, 27.15});
-  tdr5data.emplace_back(std::array<double, 2>{9.0f, 27.15});
-  tdr5data.emplace_back(std::array<double, 2>{10.0f, 27.15});
+  tdr5data.emplace_back(std::array<double, 2>{1.8f, getDetLengthFromEta(1.44f, 1.8f)});
+  tdr5data.emplace_back(std::array<double, 2>{2.8f, getDetLengthFromEta(1.44f, 2.8f)});
+  tdr5data.emplace_back(std::array<double, 2>{3.8f, getDetLengthFromEta(1.44f, 3.8f)});
+  tdr5data.emplace_back(std::array<double, 2>{8.0f, getDetLengthFromEta(1.44f, 8.0f)});
+  tdr5data.emplace_back(std::array<double, 2>{20.0f, getDetLengthFromEta(1.44f, 20.0f)});
+  tdr5data.emplace_back(std::array<double, 2>{25.0f, getDetLengthFromEta(1.44f, 25.0f)});
+  tdr5data.emplace_back(std::array<double, 2>{40.0f, getDetLengthFromEta(1.44f, 40.0f)});
+  tdr5data.emplace_back(std::array<double, 2>{55.f, getDetLengthFromEta(1.44f, 55.f)});
+  tdr5data.emplace_back(std::array<double, 2>{80.0f, getDetLengthFromEta(1.44f, 80.0f)});
+  tdr5data.emplace_back(std::array<double, 2>{100.f, getDetLengthFromEta(1.44f, 100.f)});
 
   static constexpr float SensorLayerThickness = 30.e-4;
   its->setStaveModelOB(o2::its4::Detector::kOBModel2);
