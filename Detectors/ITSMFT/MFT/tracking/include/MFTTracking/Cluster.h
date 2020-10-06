@@ -26,6 +26,7 @@ namespace mft
 {
 
 struct Cluster : public o2::BaseCluster<float> {
+  Cluster() = default;
   Cluster(const Float_t x, const Float_t y, const Float_t z, const Float_t phi, const Float_t r, const Int_t id, const Int_t bin, const Float_t sigX2, const Float_t sigY2, const Int_t sensorID)
     : BaseCluster(sensorID, x, y, z),
       phiCoordinate{phi},
