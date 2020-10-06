@@ -87,6 +87,12 @@ inline int TrackingParameters::CellMinimumLevel()
 
 inline TrackingParameters& TrackingParameters::operator=(const TrackingParameters& t)
 {
+  this->NLayers = t.NLayers;
+  this->LayerZ = t.LayerZ;
+  this->LayerRadii = t.LayerRadii;
+  this->ZBins = t.ZBins;
+  this->PhiBins = t.PhiBins;
+  /// General parameters
   this->ClusterSharing = t.ClusterSharing;
   this->MinTrackLength = t.MinTrackLength;
   /// Trackleting cuts

@@ -21,12 +21,12 @@ namespace o2
 namespace its
 {
 
-ROframe::ROframe(int ROframeId, int nLayers) : mROframeId{ROframeId},
-                                               mClusters{nLayers},
-                                               mTrackingFrameInfo{nLayers},
-                                               mClusterLabels{nLayers},
-                                               mClusterExternalIndices{nLayers}
+ROframe::ROframe(int ROframeId, int nLayers) : mROframeId{ROframeId}
 {
+  mClusters.resize(nLayers);
+  mTrackingFrameInfo.resize(nLayers);
+  mClusterLabels.resize(nLayers);
+  mClusterExternalIndices.resize(nLayers);
 }
 
 void ROframe::addPrimaryVertex(const float xCoordinate, const float yCoordinate, const float zCoordinate)

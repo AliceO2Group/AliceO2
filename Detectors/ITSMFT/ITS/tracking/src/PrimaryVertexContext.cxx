@@ -38,19 +38,20 @@ void PrimaryVertexContext::initialise(const MemoryParameters& memParam, const Tr
 
     std::vector<ClusterHelper> cHelper;
 
-    mMinR.resize(trkParam.LayerRadii.size(), 10000.);
-    mMaxR.resize(trkParam.LayerRadii.size(), -1.);
-    mUnsortedClusters.resize(trkParam.LayerRadii.size());
+    mMinR.resize(trkParam.NLayers, 10000.);
+    mMaxR.resize(trkParam.NLayers, -1.);
+    mUnsortedClusters.resize(trkParam.NLayers);
     mClusters.resize(trkParam.NLayers);
     mUsedClusters.resize(trkParam.NLayers);
-    mCells.resize(trkParam.NLayers - 2);
-    mCellsLookupTable.resize(trkParam.NLayers - 3);
-    mCellsNeighbours.resize(trkParam.NLayers - 3);
-    mIndexTables.resize(trkParam.NLayers - 1, std::vector<int>(trkParam.ZBins * trkParam.PhiBins + 1, 0));
-    mTracklets.resize(trkParam.NLayers - 1);
-    mTrackletsLookupTable.resize(trkParam.NLayers - 2);
+    mCells.resize(trkParam.CellsPerRoad());
+    mCellsLookupTable.resize(trkParam.CellsPerRoad() - 1);
+    mCellsNeighbours.resize(trkParam.CellsPerRoad() - 1);
+    mIndexTables.resize(trkParam.TrackletsPerRoad(), std::vector<int>(trkParam.ZBins * trkParam.PhiBins + 1, 0));
+    mTracklets.resize(trkParam.TrackletsPerRoad());
+    mTrackletsLookupTable.resize(trkParam.CellsPerRoad());
     mIndexTableUtils.setTrackingParameters(trkParam);
 
+    std::vector<int> clsPerBin(trkParam.PhiBins * trkParam.ZBins, 0);
     for (unsigned int iLayer{0}; iLayer < mClusters.size(); ++iLayer) {
 
       const auto& currentLayer{cl[iLayer]};
@@ -61,7 +62,7 @@ void PrimaryVertexContext::initialise(const MemoryParameters& memParam, const Tr
       mUsedClusters[iLayer].clear();
       mUsedClusters[iLayer].resize(clustersNum, false);
 
-      std::vector<int> clsPerBin(trkParam.PhiBins * trkParam.ZBins, 0);
+      std::fill(clsPerBin.begin(), clsPerBin.end(), 0);
 
       cHelper.clear();
       cHelper.resize(clustersNum);
@@ -75,8 +76,9 @@ void PrimaryVertexContext::initialise(const MemoryParameters& memParam, const Tr
         float x = c.xCoordinate - mPrimaryVertex.x;
         float y = c.yCoordinate - mPrimaryVertex.y;
         float phi = math_utils::calculatePhiCoordinate(x, y);
-        int bin = mIndexTableUtils.getBinIndex(mIndexTableUtils.getZBinIndex(iLayer, c.zCoordinate),
-                                               mIndexTableUtils.getPhiBinIndex(phi));
+        const int zBin{mIndexTableUtils.getZBinIndex(iLayer, c.zCoordinate)};
+        int bin = mIndexTableUtils.getBinIndex(zBin, mIndexTableUtils.getPhiBinIndex(phi));
+        CA_DEBUGGER(assert(zBin > 0));
         h.phi = phi;
         h.r = math_utils::calculateRCoordinate(x, y);
         mMinR[iLayer] = gpu::GPUCommonMath::Min(h.r, mMinR[iLayer]);
