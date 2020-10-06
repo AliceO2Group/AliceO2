@@ -59,7 +59,7 @@ class Digitizer
 
   void setNoise(bool val) { mNoise = val; }
   bool isNoise() const { return mNoise; }
-  
+
   //for debugging
   std::vector<Digit> getDigits() { return mDigits; }
   std::vector<o2::MCCompLabel> getTrackLabels() { return mTrackLabels; }
@@ -71,7 +71,7 @@ class Digitizer
 
   bool mContinuous = false;
   bool mNoise = true;
-  
+
   //time difference allowed for pileup (in ns (assuming that event time is in ns))
   float mDeltat = 100.;
 
