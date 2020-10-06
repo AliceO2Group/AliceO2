@@ -18,6 +18,7 @@
 #include <TDatime.h>
 #include "DetectorsDCS/DataPointIdentifier.h"
 #include "DetectorsDCS/DataPointValue.h"
+#include "DetectorsDCS/DataPointCompositeObject.h"
 #include "DetectorsDCS/DeliveryType.h"
 #include "Framework/DeviceSpec.h"
 #include "Framework/ConfigParamRegistry.h"
@@ -25,6 +26,8 @@
 #include "Framework/WorkflowSpec.h"
 #include "Framework/Task.h"
 #include "Framework/Logger.h"
+
+using namespace o2::framework;
 
 namespace o2
 {
@@ -35,6 +38,7 @@ class DCSDataGenerator : public o2::framework::Task
 
   using DPID = o2::dcs::DataPointIdentifier;
   using DPVAL = o2::dcs::DataPointValue;
+  using DPCOM = o2::dcs::DataPointCompositeObject;
 
  public:
   void init(o2::framework::InitContext& ic) final
@@ -42,27 +46,42 @@ class DCSDataGenerator : public o2::framework::Task
     mMaxTF = ic.options().get<int64_t>("max-timeframes");
 
     LOG(INFO) << "mMaxTF = " << mMaxTF;
-    std::string dpAliaschar = "TestChar0";
-    DPID::FILL(mcharVar, dpAliaschar, mtypechar);
 
-    std::string dpAliasint0 = "TestInt0";
-    DPID::FILL(mintVar0, dpAliasint0, mtypeint);
-    std::string dpAliasint1 = "TestInt1";
-    DPID::FILL(mintVar1, dpAliasint1, mtypeint);
-    std::string dpAliasint2 = "TestInt2";
-    DPID::FILL(mintVar2, dpAliasint2, mtypeint);
+    DPID dpidtmp;
 
-    std::string dpAliasdouble0 = "TestDouble0";
-    DPID::FILL(mdoubleVar0, dpAliasdouble0, mtypedouble);
-    std::string dpAliasdouble1 = "TestDouble1";
-    DPID::FILL(mdoubleVar1, dpAliasdouble1, mtypedouble);
-    std::string dpAliasdouble2 = "TestDouble2";
-    DPID::FILL(mdoubleVar2, dpAliasdouble2, mtypedouble);
-    std::string dpAliasdouble3 = "TestDouble3";
-    DPID::FILL(mdoubleVar3, dpAliasdouble3, mtypedouble);
+    // chars
+    std::string dpAliaschar = "TestChar_0";
+    DPID::FILL(dpidtmp, dpAliaschar, mtypechar);
+    mDPIDvect.push_back(dpidtmp);
+    mNumDPs++;
+    mNumDPschar++;
 
-    std::string dpAliasstring0 = "TestString0";
-    DPID::FILL(mstringVar0, dpAliasstring0, mtypestring);
+    // ints
+    for (int i = 0; i < 3; i++) {
+      std::string dpAliasint = "TestInt_" + std::to_string(i);
+      DPID::FILL(dpidtmp, dpAliasint, mtypeint);
+      mDPIDvect.push_back(dpidtmp);
+      mNumDPs++;
+      mNumDPsint++;
+    }
+
+    // doubles
+    for (int i = 0; i < 4; i++) {
+      std::string dpAliasdouble = "TestDouble_" + std::to_string(i);
+      DPID::FILL(dpidtmp, dpAliasdouble, mtypedouble);
+      mDPIDvect.push_back(dpidtmp);
+      mNumDPs++;
+      mNumDPsdouble++;
+    }
+
+    // strings
+    std::string dpAliasstring0 = "TestString_0";
+    DPID::FILL(dpidtmp, dpAliasstring0, mtypestring);
+    mDPIDvect.push_back(dpidtmp);
+    mNumDPs++;
+    mNumDPsstring++;
+
+    LOG(INFO) << "Number of DCS data points = " << mNumDPs;
   }
 
   void run(o2::framework::ProcessingContext& pc) final
@@ -76,8 +95,8 @@ class DCSDataGenerator : public o2::framework::Task
         LOG(INFO) << "Data generator reached TF " << tfid << ", stopping";
         pc.services().get<o2::framework::ControlService>().endOfStream();
         pc.services().get<o2::framework::ControlService>().readyToQuit(o2::framework::QuitRequest::Me);
-        break;
       }
+      break; // we break because one input is enough to get the TF ID
     }
 
     uint16_t flags = 0;
@@ -94,26 +113,52 @@ class DCSDataGenerator : public o2::framework::Task
     DPVAL valdouble(flags, milliseconds + tfid * 10, seconds + tfid, payload, mtypedouble);
     DPVAL valstring(flags, milliseconds + tfid * 10, seconds + tfid, payload, mtypestring);
 
-    LOG(DEBUG) << mcharVar;
-    LOG(DEBUG) << valchar << " --> " << (char)valchar.payload_pt1;
-    LOG(DEBUG) << mintVar0;
-    LOG(DEBUG) << valint << " --> " << (int)valint.payload_pt1;
-    LOG(DEBUG) << mintVar1;
-    LOG(DEBUG) << valint << " --> " << (int)valint.payload_pt1;
-    LOG(DEBUG) << mintVar2;
-    LOG(DEBUG) << valint << " --> " << (int)valint.payload_pt1;
-    LOG(DEBUG) << mdoubleVar0;
-    LOG(DEBUG) << valdouble << " --> " << (double)valdouble.payload_pt1;
-    LOG(DEBUG) << mdoubleVar1;
-    LOG(DEBUG) << valdouble << " --> " << (double)valdouble.payload_pt1;
-    LOG(DEBUG) << mdoubleVar2;
-    LOG(DEBUG) << valdouble << " --> " << (double)valdouble.payload_pt1;
-    LOG(DEBUG) << mdoubleVar3;
-    LOG(DEBUG) << valdouble << " --> " << (double)valdouble.payload_pt1;
+    LOG(INFO) << "Value used for char DPs:";
+    LOG(INFO) << valchar << " --> " << (char)valchar.payload_pt1;
+    LOG(INFO) << "Value used for int DPs:";
+    LOG(INFO) << valint << " --> " << (int)valint.payload_pt1;
+    LOG(INFO) << "Value used for double DPs:";
+    LOG(INFO) << valdouble << " --> " << (double)valdouble.payload_pt1;
     char tt[56];
     memcpy(&tt[0], &valstring.payload_pt1, 56);
-    LOG(DEBUG) << mstringVar0;
-    LOG(DEBUG) << valstring << " --> " << tt;
+    LOG(INFO) << "Value used for string DPs:";
+    LOG(INFO) << valstring << " --> " << tt;
+
+    std::vector<DPCOM> dpcomVect;
+    for (int i = 0; i < mNumDPschar; i++) {
+      dpcomVect.emplace_back(mDPIDvect[i], valchar);
+    }
+    for (int i = 0; i < mNumDPsint; i++) {
+      dpcomVect.emplace_back(mDPIDvect[mNumDPschar + i], valint);
+    }
+    for (int i = 0; i < mNumDPsdouble; i++) {
+      dpcomVect.emplace_back(mDPIDvect[mNumDPschar + mNumDPsint + i], valdouble);
+    }
+    for (int i = 0; i < mNumDPsstring; i++) {
+      dpcomVect.emplace_back(mDPIDvect[mNumDPschar + mNumDPsint + mNumDPsdouble + i], valstring);
+    }
+
+    auto svect = dpcomVect.size();
+    LOG(INFO) << "dpcomVect has size " << svect;
+    for (int i = 0; i < svect; i++) {
+      LOG(INFO) << "i = " << i << ", DPCOM = " << dpcomVect[i];
+    }
+    std::vector<char> buff(mNumDPs * sizeof(DPCOM));
+    char* dptr = buff.data();
+    for (int i = 0; i < svect; i++) {
+      memcpy(dptr + i * sizeof(DPCOM), &dpcomVect[i], sizeof(DPCOM));
+    }
+    auto sbuff = buff.size();
+    LOG(INFO) << "size of output buffer = " << sbuff;
+    pc.outputs().snapshot(Output{"DCS", "DATAPOINTS", 0, Lifetime::Timeframe}, buff.data(), sbuff);
+
+    LOG(INFO) << "Reading back";
+    DPCOM dptmp;
+    for (int i = 0; i < svect; i++) {
+      memcpy(&dptmp, dptr + i * sizeof(DPCOM), sizeof(DPCOM));
+      LOG(INFO) << "Check: Reading from generator: i = " << i << ", DPCOM = " << dptmp;
+    }
+    /*
     auto& tmpDPmap = pc.outputs().make<std::unordered_map<DPID, DPVAL>>(o2::framework::OutputRef{"output", 0});
     tmpDPmap[mcharVar] = valchar;
     tmpDPmap[mintVar0] = valint;
@@ -125,12 +170,19 @@ class DCSDataGenerator : public o2::framework::Task
     if (tfid % 3 == 0)
       tmpDPmap[mdoubleVar3] = valdouble; // to test the case when a DP is not updated, we skip some updates
     tmpDPmap[mstringVar0] = valstring;
+    */
     delete payload;
   }
 
  private:
   uint64_t mMaxTF = 1;
-  o2::dcs::DataPointIdentifier mcharVar;
+  uint64_t mNumDPs = 0;
+  uint64_t mNumDPschar = 0;
+  uint64_t mNumDPsint = 0;
+  uint64_t mNumDPsdouble = 0;
+  uint64_t mNumDPsstring = 0;
+  /*
+  DPID mcharVar;
   DPID mintVar0;
   DPID mintVar1;
   DPID mintVar2;
@@ -139,6 +191,8 @@ class DCSDataGenerator : public o2::framework::Task
   DPID mdoubleVar2;
   DPID mdoubleVar3;
   DPID mstringVar0;
+  */
+  std::vector<DPID> mDPIDvect;
   DeliveryType mtypechar = RAW_CHAR;
   DeliveryType mtypeint = RAW_INT;
   DeliveryType mtypedouble = RAW_DOUBLE;
@@ -155,7 +209,7 @@ DataProcessorSpec getDCSDataGeneratorSpec()
   return DataProcessorSpec{
     "dcs-data-generator",
     Inputs{},
-    Outputs{{{"output"}, "DCS", "DATAPOINTS"}},
+    Outputs{{{"outputDCS"}, "DCS", "DATAPOINTS"}},
     AlgorithmSpec{adaptFromTask<o2::dcs::DCSDataGenerator>()},
     Options{{"max-timeframes", VariantType::Int64, 99999999999ll, {"max TimeFrames to generate"}}}};
 }

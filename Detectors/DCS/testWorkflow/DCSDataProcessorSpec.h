@@ -18,6 +18,7 @@
 #include <TRandom.h>
 #include "DetectorsDCS/DataPointIdentifier.h"
 #include "DetectorsDCS/DataPointValue.h"
+#include "DetectorsDCS/DataPointCompositeObject.h"
 #include "DetectorsDCS/DeliveryType.h"
 #include "DetectorsDCS/DCSProcessor.h"
 #include "Framework/DeviceSpec.h"
@@ -35,6 +36,7 @@ namespace dcs
 using namespace o2::dcs;
 using DPID = o2::dcs::DataPointIdentifier;
 using DPVAL = o2::dcs::DataPointValue;
+using DPCOM = o2::dcs::DataPointCompositeObject;
 
 class DCSDataProcessor : public o2::framework::Task
 {
@@ -43,40 +45,30 @@ class DCSDataProcessor : public o2::framework::Task
   {
     std::vector<DPID> aliasVect;
 
+    DPID dpidtmp;
     DeliveryType typechar = RAW_CHAR;
-    std::string dpAliaschar = "TestChar0";
-    DPID charVar(dpAliaschar, typechar);
-    aliasVect.push_back(charVar);
+    std::string dpAliaschar = "TestChar_0";
+    DPID::FILL(dpidtmp, dpAliaschar, typechar);
+    aliasVect.push_back(dpidtmp);
 
     DeliveryType typeint = RAW_INT;
-    std::string dpAliasint0 = "TestInt0";
-    DPID intVar0(dpAliasint0, typeint);
-    aliasVect.push_back(intVar0);
-    std::string dpAliasint1 = "TestInt1";
-    DPID intVar1(dpAliasint1, typeint);
-    aliasVect.push_back(intVar1);
-    std::string dpAliasint2 = "TestInt2";
-    DPID intVar2(dpAliasint2, typeint);
-    aliasVect.push_back(intVar2);
+    for (int i = 0; i < 3; i++) {
+      std::string dpAliasint = "TestInt_" + std::to_string(i);
+      DPID::FILL(dpidtmp, dpAliasint, typeint);
+      aliasVect.push_back(dpidtmp);
+    }
 
     DeliveryType typedouble = RAW_DOUBLE;
-    std::string dpAliasdouble0 = "TestDouble0";
-    DPID doubleVar0(dpAliasdouble0, typedouble);
-    aliasVect.push_back(doubleVar0);
-    std::string dpAliasdouble1 = "TestDouble1";
-    DPID doubleVar1(dpAliasdouble1, typedouble);
-    aliasVect.push_back(doubleVar1);
-    std::string dpAliasdouble2 = "TestDouble2";
-    DPID doubleVar2(dpAliasdouble2, typedouble);
-    aliasVect.push_back(doubleVar2);
-    std::string dpAliasdouble3 = "TestDouble3";
-    DPID doubleVar3(dpAliasdouble3, typedouble);
-    aliasVect.push_back(doubleVar3);
+    for (int i = 0; i < 4; i++) {
+      std::string dpAliasdouble = "TestDouble_" + std::to_string(i);
+      DPID::FILL(dpidtmp, dpAliasdouble, typedouble);
+      aliasVect.push_back(dpidtmp);
+    }
 
     DeliveryType typestring = RAW_STRING;
-    std::string dpAliasstring0 = "TestString0";
-    DPID stringVar0(dpAliasstring0, typestring);
-    aliasVect.push_back(stringVar0);
+    std::string dpAliasstring0 = "TestString_0";
+    DPID::FILL(dpidtmp, dpAliasstring0, typestring);
+    aliasVect.push_back(dpidtmp);
 
     mDCSproc.init(aliasVect);
   }
@@ -84,8 +76,20 @@ class DCSDataProcessor : public o2::framework::Task
   void run(o2::framework::ProcessingContext& pc) final
   {
     auto tfcounter = o2::header::get<o2::framework::DataProcessingHeader*>(pc.inputs().get("input").header)->startTime;
-    auto dcsmap = pc.inputs().get<std::unordered_map<DPID, DPVAL>*>("input");
-    mDCSproc.process(*dcsmap);
+    auto rawchar = pc.inputs().get<const char*>("input");
+    const auto* dh = o2::header::get<o2::header::DataHeader*>(pc.inputs().get("input").header);
+    auto sz = dh->payloadSize;
+    int nDPs = sz / sizeof(DPCOM);
+    LOG(INFO) << "Number of DPs received = " << nDPs;
+    std::unordered_map<DPID, DPVAL> dcsmap;
+    DPCOM dptmp;
+    for (int i = 0; i < nDPs; i++) {
+      memcpy(&dptmp, rawchar + i * sizeof(DPCOM), sizeof(DPCOM));
+      dcsmap[dptmp.id] = dptmp.data;
+      LOG(INFO) << "Reading from generator: i = " << i << ", DPCOM = " << dptmp;
+      LOG(INFO) << "Reading from generator: i = " << i << ", DPID = " << dptmp.id;
+    }
+    mDCSproc.process(dcsmap);
   }
 
  private:
