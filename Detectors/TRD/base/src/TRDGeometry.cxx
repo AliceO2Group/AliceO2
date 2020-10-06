@@ -2751,7 +2751,7 @@ bool TRDGeometry::createClusterMatrixArray()
     return true; // already initialized
   }
 
-  setSize(MAXMATRICES, MAXCHAMBER); //Only MAXMATRICES=521 of MAXCHAMBER matrices are filled
+  setSize(NCHAMBER, MAXCHAMBER); //Only NCHAMBER=521 of MAXCHAMBER matrices are filled
   fillMatrixCache(o2::utils::bit2Mask(o2::TransformType::T2L) | o2::utils::bit2Mask(o2::TransformType::L2G) |
                   o2::utils::bit2Mask(o2::TransformType::T2G) | o2::utils::bit2Mask(o2::TransformType::T2GRot));
   return true;

@@ -149,7 +149,7 @@ class GPUTRDTracker_t : public GPUProcessor
   GPUd() bool CalculateSpacePoints(int iCollision = 0);
   GPUd() bool FollowProlongation(PROP* prop, TRDTRK* t, int threadId, int collisionId);
   GPUd() int GetDetectorNumber(const float zPos, const float alpha, const int layer) const;
-  GPUd() bool AdjustSector(PROP* prop, TRDTRK* t, const int layer) const;
+  GPUd() bool AdjustSector(PROP* prop, TRDTRK* t) const;
   GPUd() int GetSector(float alpha) const;
   GPUd() float GetAlphaOfSector(const int sec) const;
   GPUd() float GetRPhiRes(float snp) const { return (mRPhiA2 + mRPhiC2 * (snp - mRPhiB) * (snp - mRPhiB)); }           // parametrization obtained from track-tracklet residuals:
