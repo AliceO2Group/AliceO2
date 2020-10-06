@@ -347,7 +347,7 @@ void DCSProcessor::processInts()
     }
     bool isSMA = false;
     LOG(INFO) << "get alias = " << id.get_alias();
-    if (strcmp(id.get_alias(), "TestInt0") == 0) {
+    if (strcmp(id.get_alias(), "TestInt_0") == 0) {
       doSimpleMovingAverage(2, vint, mAvgTestInt0, isSMA);
       LOG(INFO) << "Moving average = " << mAvgTestInt0;
       if (isSMA) {
