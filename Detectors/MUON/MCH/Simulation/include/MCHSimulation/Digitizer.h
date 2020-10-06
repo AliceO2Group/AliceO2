@@ -40,6 +40,7 @@ class Digitizer
   void process(const std::vector<Hit> hits, std::vector<Digit>& digits, o2::dataformats::MCTruthContainer<o2::MCCompLabel>& mcContainer);
   void provideMC(o2::dataformats::MCTruthContainer<o2::MCCompLabel>& mcContainer);
   void mergeDigits();
+  void generateNoiseDigits();
   //external pile-up adding up
   void mergeDigits(std::vector<Digit>& digits, o2::dataformats::MCTruthContainer<o2::MCCompLabel>& mcContainer);
 
@@ -56,22 +57,33 @@ class Digitizer
   void setEventID(int v);
   int getEventID() const { return mEventID; }
 
+  void setNoise(bool val) { mNoise = val; }
+  bool isNoise() const { return mNoise; }
+  
   //for debugging
   std::vector<Digit> getDigits() { return mDigits; }
   std::vector<o2::MCCompLabel> getTrackLabels() { return mTrackLabels; }
 
  private:
-  double mEventTime;
+  int mEventTime;
   int mEventID = 0;
   int mSrcID = 0;
 
   bool mContinuous = false;
-
+  bool mNoise = true;
+  
   //time difference allowed for pileup (in ns (assuming that event time is in ns))
   float mDeltat = 100.;
 
   //number of detector elements
   const static int mNdE = 156;
+
+  //noise above threshold probability within read-out window
+  float mProbNoise = 1e-5;
+  //sum_i 1/padcount_i where i is the detelemID
+  float mInvPadSum = 0.0450832;
+  float mNormProbNoise = mProbNoise / mInvPadSum;
+
   // digit per pad
   std::vector<Digit> mDigits;
 
@@ -80,7 +92,7 @@ class Digitizer
   //MCLabel container (output)
   o2::dataformats::MCTruthContainer<o2::MCCompLabel> mMCTruthOutputContainer;
 
-  int processHit(const Hit& hit, int detID, double event_time);
+  int processHit(const Hit& hit, int detID, int event_time);
 };
 
 } // namespace mch
