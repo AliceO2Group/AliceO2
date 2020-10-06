@@ -17,6 +17,7 @@
 #include "Analysis/Centrality.h"
 #include "Analysis/StepTHn.h"
 #include "Analysis/CorrelationContainer.h"
+#include "Analysis/CFDerived.h"
 
 #include <TH1F.h>
 #include <cmath>
@@ -51,8 +52,7 @@ struct CorrelationTask {
 
   // Filters and input definitions
   Filter collisionFilter = nabs(aod::collision::posZ) < cfgCutVertex;
-  Filter trackFilter = (nabs(aod::track::eta) < cfgCutEta) && (aod::track::pt > cfgCutPt) && ((aod::track::isGlobalTrack == true) || (aod::track::isGlobalTrackSDD == true));
-  using myTracks = soa::Filtered<soa::Join<aod::Tracks, aod::TrackSelection>>;
+  Filter trackFilter = (nabs(aod::cftrack::eta) < cfgCutEta) && (aod::cftrack::pt > cfgCutPt);
 
   // Output definitions
   OutputObj<CorrelationContainer> same{"sameEvent"};
@@ -121,21 +121,11 @@ struct CorrelationTask {
   }
 
   // Version with explicit nested loop
-  void process(soa::Filtered<soa::Join<aod::Collisions, aod::EvSels, aod::Cents>>::iterator const& collision, myTracks const& tracks)
+  void process(soa::Filtered<aod::CFCollisions>::iterator const& collision, soa::Filtered<aod::CFTracks> const& tracks)
   {
-    LOGF(info, "Tracks for collision: %d | Vertex: %.1f | INT7: %d | V0M: %.1f", tracks.size(), collision.posZ(), collision.sel7(), collision.centV0M());
+    LOGF(info, "Tracks for collision: %d | Vertex: %.1f | V0M: %.1f", tracks.size(), collision.posZ(), collision.centV0M());
 
     const auto centrality = collision.centV0M();
-
-    same->fillEvent(centrality, CorrelationContainer::kCFStepAll);
-
-    if (!collision.sel7())
-      return;
-
-    same->fillEvent(centrality, CorrelationContainer::kCFStepTriggered);
-
-    // vertex already checked as filter
-    same->fillEvent(centrality, CorrelationContainer::kCFStepVertex);
 
     same->fillEvent(centrality, CorrelationContainer::kCFStepReconstructed);
 
@@ -198,65 +188,6 @@ struct CorrelationTask {
         same->getPairHist()->Fill(values, CorrelationContainer::kCFStepReconstructed);
         //mixed->getPairHist()->Fill(values, CorrelationContainer::kCFStepReconstructed);
       }
-    }
-  }
-
-  // Version with combinations
-  void process2(aod::Collision const& collision, soa::Filtered<aod::Tracks> const& tracks)
-  {
-    LOGF(info, "Tracks for collision (Combination run): %d", tracks.size());
-
-    int bSign = 1; // TODO magnetic field from CCDB
-
-    for (auto track1 = tracks.begin(); track1 != tracks.end(); ++track1) {
-
-      if (cfgTriggerCharge != 0 && cfgTriggerCharge * track1.charge() < 0)
-        continue;
-
-      //       LOGF(info, "TRACK %f %f | %f %f | %f %f", track1.eta(), track1.eta(), track1.phi(), track1.phi2(), track1.pt(), track1.pt());
-
-      double eventValues[3];
-      eventValues[0] = track1.pt();
-      eventValues[1] = 0; // collision.v0mult();
-      eventValues[2] = collision.posZ();
-
-      same->getTriggerHist()->Fill(eventValues, CorrelationContainer::kCFStepReconstructed);
-      //mixed->getTriggerHist()->Fill(eventValues, CorrelationContainer::kCFStepReconstructed);
-    }
-
-    for (auto& [track1, track2] : combinations(tracks, tracks)) {
-      //LOGF(info, "Combination %d %d", track1.index(), track2.index());
-
-      if (cfgTriggerCharge != 0 && cfgTriggerCharge * track1.charge() < 0)
-        continue;
-      if (cfgAssociatedCharge != 0 && cfgAssociatedCharge * track2.charge() < 0)
-        continue;
-      if (cfgPairCharge != 0 && cfgPairCharge * track1.charge() * track2.charge() < 0)
-        continue;
-
-      if (cfg.mPairCuts && conversionCuts(track1, track2))
-        continue;
-
-      if (cfgTwoTrackCut > 0 && twoTrackCut(track1, track2, bSign))
-        continue;
-
-      double values[6] = {0};
-
-      values[0] = track1.eta() - track2.eta();
-      values[1] = track1.pt();
-      values[2] = track2.pt();
-      values[3] = 0; // collision.v0mult();
-
-      values[4] = track1.phi() - track2.phi();
-      if (values[4] > 1.5 * TMath::Pi())
-        values[4] -= TMath::TwoPi();
-      if (values[4] < -0.5 * TMath::Pi())
-        values[4] += TMath::TwoPi();
-
-      values[5] = collision.posZ();
-
-      same->getPairHist()->Fill(values, CorrelationContainer::kCFStepReconstructed);
-      //mixed->getPairHist()->Fill(values, CorrelationContainer::kCFStepReconstructed);
     }
   }
 
