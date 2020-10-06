@@ -58,7 +58,7 @@ class TRDGeometryFlat : public o2::gpu::FlatObject, public TRDGeometryBase
   }
 
  private:
-  o2::gpu::Transform3D mMatrixCache[MAXMATRICES];
+  o2::gpu::Transform3D mMatrixCache[constants::NCHAMBER];
   short mMatrixIndirection[constants::MAXCHAMBER];
 };
 
