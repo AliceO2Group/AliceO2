@@ -42,6 +42,8 @@ DECLARE_SOA_COLUMN(Timestamp, timestamp, uint64_t);
 
 DECLARE_SOA_TABLE(Timestamps, "AOD", "TIMESTAMPS", timestamp::Timestamp);
 
+using BCsWithTimestamps = soa::Join<aod::BCs, aod::Timestamps>;
+
 namespace collision
 {
 DECLARE_SOA_INDEX_COLUMN(BC, bc);
