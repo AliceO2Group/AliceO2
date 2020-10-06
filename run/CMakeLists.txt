@@ -103,11 +103,16 @@ o2_data_file(COPY o2simtopology.json DESTINATION config)
 #   perform
 # * # some checks on kinematics and track references
 
+
+# make workspace for simulation tests
+set(SIMTESTDIR ${CMAKE_BINARY_DIR}/o2sim_tests)
+file(MAKE_DIRECTORY ${SIMTESTDIR})
+
 o2_name_target(sim NAME o2simExecutable IS_EXE)
 o2_name_target(sim-serial NAME o2simSerialExecutable IS_EXE)
 
 o2_add_test_wrapper(NAME o2sim_G4
-                    WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
+                    WORKING_DIRECTORY ${SIMTESTDIR}
                     DONT_FAIL_ON_TIMEOUT
                     MAX_ATTEMPTS 2
                     TIMEOUT 400
@@ -134,7 +139,7 @@ set_property(TEST o2sim_G4 APPEND PROPERTY ENVIRONMENT ${G4ENV})
 
 # # note that the MT is currently only supported in the non FairMQ version
 o2_add_test_wrapper(NAME o2sim_G4_mt
-                    WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
+                    WORKING_DIRECTORY ${SIMTESTDIR}
                     DONT_FAIL_ON_TIMEOUT
                     MAX_ATTEMPTS 2
                     TIMEOUT 400
@@ -160,7 +165,7 @@ set_property(TEST o2sim_G4_mt APPEND PROPERTY ENVIRONMENT ${G4ENV})
 o2_add_test(CheckStackG4
   SOURCES checkStack.cxx
   NAME o2sim_checksimkinematics_G4
-  WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
+  WORKING_DIRECTORY ${SIMTESTDIR}
   COMMAND_LINE_ARGS o2simG4
   PUBLIC_LINK_LIBRARIES O2::SimulationDataFormat
   NO_BOOST_TEST
@@ -170,7 +175,7 @@ set_tests_properties(o2sim_checksimkinematics_G4
                      PROPERTIES FIXTURES_REQUIRED G4)
 
 o2_add_test_wrapper(NAME o2sim_G3
-                    WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
+                    WORKING_DIRECTORY ${SIMTESTDIR}
                     DONT_FAIL_ON_TIMEOUT
                     MAX_ATTEMPTS 3
                     COMMAND $<TARGET_FILE:${o2simExecutable}>
@@ -199,7 +204,7 @@ set_property(TEST o2sim_G3 APPEND PROPERTY ENVIRONMENT "ALICE_O2SIM_DUMPLOG=ON")
 o2_add_test(CheckStackG3
   SOURCES checkStack.cxx
   NAME o2sim_checksimkinematics_G3
-  WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
+  WORKING_DIRECTORY ${SIMTESTDIR}
   COMMAND_LINE_ARGS o2simG3
   PUBLIC_LINK_LIBRARIES O2::SimulationDataFormat
   NO_BOOST_TEST
@@ -210,7 +215,7 @@ set_tests_properties(o2sim_checksimkinematics_G3
                      PROPERTIES FIXTURES_REQUIRED G3)
 
 o2_add_test_wrapper(NAME o2sim_hepmc
-                    WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
+                    WORKING_DIRECTORY ${SIMTESTDIR}
                     DONT_FAIL_ON_TIMEOUT
                     MAX_ATTEMPTS 2
                     TIMEOUT 400
