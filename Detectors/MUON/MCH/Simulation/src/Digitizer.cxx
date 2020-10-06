@@ -103,7 +103,8 @@ void Digitizer::process(const std::vector<Hit> hits, std::vector<Digit>& digits,
   }   //loop over hits
 
   //generate noise-only digits
-  if(mNoise) generateNoiseDigits();
+  if (mNoise)
+    generateNoiseDigits();
 
   fillOutputContainer(digits);
   provideMC(mcContainer);
@@ -117,9 +118,9 @@ int Digitizer::processHit(const Hit& hit, int detID, int event_time)
 
   //convert energy to charge
   auto charge = resp.etocharge(hit.GetEnergyLoss());
-  
+
   //convert float ns time to BC counts
-  auto time = event_time & int(hit.GetTime()/25.);
+  auto time = event_time & int(hit.GetTime() / 25.);
 
   //transformation from global to local
   auto t = o2::mch::getTransformation(detID, *gGeoManager);
@@ -183,7 +184,7 @@ int Digitizer::processHit(const Hit& hit, int detID, int event_time)
 void Digitizer::generateNoiseDigits()
 {
 
-  o2::mch::mapping::forEachDetectionElement([& digits = this->mDigits, &normProbNoise = this->mNormProbNoise,
+  o2::mch::mapping::forEachDetectionElement([&digits = this->mDigits, &normProbNoise = this->mNormProbNoise,
                                              &eventTime = this->mEventTime, &eventID = this->mEventID,
                                              &srcID = this->mSrcID, &mcTruthOutputContainer = this->mMCTruthOutputContainer](int detID) {
     auto& seg = segmentation(detID);
@@ -209,7 +210,7 @@ void Digitizer::mergeDigits()
 {
   std::vector<int> indices(mDigits.size());
   std::iota(begin(indices), end(indices), 0);
-  std::sort(indices.begin(), indices.end(), [& digits = this->mDigits, this](int a, int b) {
+  std::sort(indices.begin(), indices.end(), [&digits = this->mDigits, this](int a, int b) {
     return (getGlobalDigit(digits[a].getDetID(), digits[a].getPadID()) < getGlobalDigit(digits[b].getDetID(), digits[b].getPadID()));
   });
 
