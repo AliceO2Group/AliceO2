@@ -505,15 +505,17 @@ GPUd() bool GPUTRDTracker_t<TRDTRK, PROP>::CalculateSpacePoints(int iCollision)
   int idxOffset = iCollision * (kNChambers + 1);
 
   for (int iDet = 0; iDet < kNChambers; ++iDet) {
-
     int nTracklets = mTrackletIndexArray[idxOffset + iDet + 1] - mTrackletIndexArray[idxOffset + iDet];
     if (nTracklets == 0) {
       continue;
     }
-
+    if (!mGeo->ChamberInGeometry(iDet)) {
+      GPUError("Found TRD tracklets in chamber %i which is not included in the geometry", iDet);
+      return false;
+    }
     auto* matrix = mGeo->GetClusterMatrix(iDet);
     if (!matrix) {
-      Error("CalculateSpacePoints", "Invalid TRD cluster matrix, skipping detector  %i", iDet);
+      GPUError("No cluster matrix available for chamber %i. Skipping it...", iDet);
       result = false;
       continue;
     }
@@ -645,7 +647,7 @@ GPUd() bool GPUTRDTracker_t<TRDTRK, PROP>::FollowProlongation(PROP* prop, TRDTRK
       }
 
       // rotate track in new sector in case of sector crossing
-      if (!AdjustSector(prop, trkWork, iLayer)) {
+      if (!AdjustSector(prop, trkWork)) {
         if (ENABLE_INFO) {
           GPUInfo("FollowProlongation: Adjusting sector failed for track %i candidate %i in layer %i", iTrack, iCandidate, iLayer);
         }
@@ -1048,11 +1050,11 @@ GPUd() int GPUTRDTracker_t<TRDTRK, PROP>::GetDetectorNumber(const float zPos, co
 }
 
 template <class TRDTRK, class PROP>
-GPUd() bool GPUTRDTracker_t<TRDTRK, PROP>::AdjustSector(PROP* prop, TRDTRK* t, const int layer) const
+GPUd() bool GPUTRDTracker_t<TRDTRK, PROP>::AdjustSector(PROP* prop, TRDTRK* t) const
 {
   //--------------------------------------------------------------------
   // rotate track in new sector if necessary and
-  // propagate to correct x of layer
+  // propagate to previous x afterwards
   // cancel if track crosses two sector boundaries
   //--------------------------------------------------------------------
   float alpha = mGeo->GetAlpha();
