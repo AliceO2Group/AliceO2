@@ -214,25 +214,26 @@ o2_add_test(CheckStackG3
 set_tests_properties(o2sim_checksimkinematics_G3
                      PROPERTIES FIXTURES_REQUIRED G3)
 
-o2_add_test_wrapper(NAME o2sim_hepmc
-                    WORKING_DIRECTORY ${SIMTESTDIR}
-                    DONT_FAIL_ON_TIMEOUT
-                    MAX_ATTEMPTS 2
-                    TIMEOUT 400
-                    COMMAND $<TARGET_FILE:${o2simExecutable}>
-                    COMMAND_LINE_ARGS -n
-                                      2
-                                      -j
-                                      2
-				      -g
-				      hepmc
-				      --configKeyValues
-				      "HepMC.fileName=${CMAKE_SOURCE_DIR}/Generators/share/data/pythia.hepmc;HepMC.version=2"
-                                      -o
-                                      o2simhepmc
-                    LABELS long sim hepmc3
-                    ENVIRONMENT "O2_ROOT=${CMAKE_BINARY_DIR}/stage;VMCWORKDIR=${CMAKE_BINARY_DIR}/stage/share")
 
-set_tests_properties(o2sim_hepmc
-                     PROPERTIES PASS_REGULAR_EXPRESSION
-                                "SIMULATION RETURNED SUCCESFULLY")
+#o2_add_test_wrapper(NAME o2sim_hepmc
+#                    WORKING_DIRECTORY ${SIMTESTDIR}
+#                    DONT_FAIL_ON_TIMEOUT
+#                    MAX_ATTEMPTS 2
+#                    TIMEOUT 400
+#                    COMMAND $<TARGET_FILE:${o2simExecutable}>
+#                    COMMAND_LINE_ARGS -n
+#                                      2
+#                                      -j
+#                                      2
+#				      -g
+#				      hepmc
+#				      --configKeyValues
+#				      "HepMC.fileName=${CMAKE_SOURCE_DIR}/Generators/share/data/pythia.hepmc;HepMC.version=2"
+#                                      -o
+#                                      o2simhepmc
+#                    LABELS long sim hepmc3
+#                    ENVIRONMENT "O2_ROOT=${CMAKE_BINARY_DIR}/stage;VMCWORKDIR=${CMAKE_BINARY_DIR}/stage/share")
+#
+#set_tests_properties(o2sim_hepmc
+#                     PROPERTIES PASS_REGULAR_EXPRESSION
+#                                "SIMULATION RETURNED SUCCESFULLY")
