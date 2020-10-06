@@ -10,6 +10,7 @@
 
 o2_add_library(ITSWorkflow
                SOURCES src/RecoWorkflow.cxx
+                       src/ClusterWriterWorkflow.cxx
                        src/DigitReaderSpec.cxx
                        src/ClustererSpec.cxx
                        src/ClusterWriterSpec.cxx
@@ -30,6 +31,11 @@ o2_add_library(ITSWorkflow
 
 o2_add_executable(reco-workflow
                   SOURCES src/its-reco-workflow.cxx
+                  COMPONENT_NAME its
+                  PUBLIC_LINK_LIBRARIES O2::ITSWorkflow)
+
+o2_add_executable(cluster-writer-workflow
+                  SOURCES src/its-cluster-writer-workflow.cxx
                   COMPONENT_NAME its
                   PUBLIC_LINK_LIBRARIES O2::ITSWorkflow)
 
