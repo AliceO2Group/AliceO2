@@ -10,7 +10,7 @@
 
 // jet finder task
 //
-// Author: Jochen Klein
+// Author: Nima Zardoshti
 
 #include "Framework/runDataProcessing.h"
 #include "Framework/AnalysisTask.h"
@@ -34,7 +34,7 @@ struct JetFinderHadronRecoilTask {
 
   Configurable<float> f_trackTTMin{"f_trackTTMin", 8.0, "TT hadron min pT"};
   Configurable<float> f_trackTTMax{"f_trackTTMax", 9.0, "TT hadron max pT"};
-  Configurable<float> f_recoilWindow{"f_recoilWindow", 0.6, "jet finding reecoil window phi distance from TT hadrom"};
+  Configurable<float> f_recoilWindow{"f_recoilWindow", 0.6, "jet finding phi window reecoilling from hadron"};
 
   Filter trackCuts = aod::track::pt >= 0.15f && aod::track::eta > -0.9f && aod::track::eta < 0.9f;
   int collisionSplit = 0; //can we partition the collisions?
@@ -96,7 +96,7 @@ struct JetFinderHadronRecoilTask {
           trackTTPhi = track.phi();
         }
       }
-      auto energy = std::sqrt(track.p() * track.p() + mPion * mPion);
+      auto energy = std::sqrt(track.p() * track.p() + JetFinder::mPion * JetFinder::mPion);
       inputParticles.emplace_back(track.px(), track.py(), track.pz(), energy);
       inputParticles.back().set_user_index(track.globalIndex());
     }

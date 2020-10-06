@@ -12,32 +12,27 @@
 if(FastJet_FOUND)
 o2_add_dpl_workflow(jet-finder
                     SOURCES jetfinder.cxx
-                    PUBLIC_LINK_LIBRARIES O2::Framework O2::AnalysisCore O2::AnalysisDataModel
-                    FastJet::FastJet FastJet::ConstituentSubtractor
+                    PUBLIC_LINK_LIBRARIES O2::Framework O2::AnalysisJets O2::AnalysisDataModel
                     COMPONENT_NAME Analysis)
 
 o2_add_dpl_workflow(jet-finder-hf
                     SOURCES jetfinderhf.cxx
-                    PUBLIC_LINK_LIBRARIES O2::Framework O2::AnalysisCore O2::AnalysisDataModel
-                    FastJet::FastJet FastJet::ConstituentSubtractor
+                    PUBLIC_LINK_LIBRARIES O2::Framework O2::AnalysisJets O2::AnalysisDataModel
                     COMPONENT_NAME Analysis)
 		    
 o2_add_dpl_workflow(jet-finder-hadron-recoil
                     SOURCES jetfinderhadronrecoil.cxx
-                    PUBLIC_LINK_LIBRARIES O2::Framework O2::AnalysisCore O2::AnalysisDataModel
-		    FastJet::FastJet FastJet::ConstituentSubtractor
+                    PUBLIC_LINK_LIBRARIES O2::Framework O2::AnalysisJets O2::AnalysisDataModel
                     COMPONENT_NAME Analysis)
 		    
 o2_add_dpl_workflow(jet-substructure
                     SOURCES jetsubstructure.cxx
-                    PUBLIC_LINK_LIBRARIES O2::Framework O2::AnalysisCore O2::AnalysisDataModel
-		    FastJet::FastJet FastJet::ConstituentSubtractor
+                    PUBLIC_LINK_LIBRARIES O2::Framework O2::AnalysisJets O2::AnalysisDataModel
                     COMPONENT_NAME Analysis)
 
 o2_add_dpl_workflow(jet-skimmer
                     SOURCES jetskimming.cxx
-                    PUBLIC_LINK_LIBRARIES O2::Framework O2::AnalysisCore O2::AnalysisDataModel
-		    FastJet::FastJet FastJet::ConstituentSubtractor
+                    PUBLIC_LINK_LIBRARIES O2::Framework O2::AnalysisJets O2::AnalysisDataModel
                     COMPONENT_NAME Analysis)
 endif()
 

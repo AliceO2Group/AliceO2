@@ -17,8 +17,8 @@
 #include "Framework/AnalysisDataModel.h"
 #include "Framework/ASoA.h"
 
-#include "Analysis/SecondaryVertexHF.h"
-#include "Analysis/CandidateSelectionTables.h"
+#include "Analysis/HFSecondaryVertex.h"
+#include "Analysis/HFCandidateSelectionTables.h"
 
 #include "fastjet/PseudoJet.hh"
 #include "fastjet/ClusterSequenceArea.hh"
@@ -55,10 +55,11 @@ struct JetFinderHFTask {
   enum pdgCode { pdgD0 = 421 };
 
   Filter trackCuts = (aod::track::pt > 0.15f && aod::track::eta > -0.9f && aod::track::eta < 0.9f);
-  Filter seltrack = (aod::hfselcandidate::isSelD0 >= d_selectionFlagD0 || aod::hfselcandidate::isSelD0bar >= d_selectionFlagD0bar);
+  Filter seltrack = (aod::hf_selcandidate::isSelD0 >= d_selectionFlagD0 || aod::hf_selcandidate::isSelD0bar >= d_selectionFlagD0bar);
 
   void process(aod::Collision const& collision,
-               soa::Filtered<aod::Tracks> const& tracks, soa::Filtered<soa::Join<aod::HfCandProng2, aod::HFSelD0Candidate>> const& candidates)
+               soa::Filtered<aod::Tracks> const& tracks,
+               soa::Filtered<soa::Join<aod::HfCandProng2, aod::HFSelD0Candidate>> const& candidates)
   {
     std::cout << "Per Event" << std::endl;
     // TODO: retrieve pion mass from somewhere
@@ -69,7 +70,7 @@ struct JetFinderHFTask {
       jets.clear();
       inputParticles.clear();
       for (auto& track : tracks) {
-        auto energy = std::sqrt(track.p() * track.p() + mPion * mPion);
+        auto energy = std::sqrt(track.p() * track.p() + JetFinder::mPion * JetFinder::mPion);
         if (candidate.index0().globalIndex() == track.globalIndex() || candidate.index1().globalIndex() == track.globalIndex()) { //is it global index?
           continue;
         }
