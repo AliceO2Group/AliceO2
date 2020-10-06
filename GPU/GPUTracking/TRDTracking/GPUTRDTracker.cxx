@@ -711,7 +711,7 @@ GPUd() bool GPUTRDTracker_t<TRDTRK, PROP>::FollowProlongation(PROP* prop, TRDTRK
             // although the radii of space points and tracks may differ by ~ few mm the roads are large enough to allow no efficiency loss by this cut
             continue;
           }
-          My_Float projY, projZ;
+          float projY, projZ;
           prop->getPropagatedYZ(mSpacePoints[trkltIdx].mR, projY, projZ);
           // correction for tilted pads (only applied if deltaZ < l_pad && track z err << l_pad)
           float tiltCorr = tilt * (mSpacePoints[trkltIdx].mX[1] - projZ);
@@ -1268,13 +1268,12 @@ namespace GPUCA_NAMESPACE
 {
 namespace gpu
 {
-// instatiate the tracker for both for GPU data types and for AliRoot/O2 data types
 #if !defined(GPUCA_STANDALONE) && !defined(GPUCA_GPUCODE)
+// instantiate version for non-GPU data types
 template class GPUTRDTracker_t<GPUTRDTrack, GPUTRDPropagator>;
 #endif
-#ifndef GPUCA_ALIROOT_LIB
+// always instantiate version for GPU data types
 template class GPUTRDTracker_t<GPUTRDTrackGPU, GPUTRDPropagatorGPU>;
-#endif
 } // namespace gpu
 } // namespace GPUCA_NAMESPACE
 #endif
