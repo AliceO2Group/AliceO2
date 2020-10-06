@@ -110,6 +110,8 @@ struct HFTrackIndexSkimsCreator {
   Configurable<double> d_minmassDp{"d_minmassDp", 1.5, "min mass dplus presel"};
   Configurable<double> d_maxmassDp{"d_maxmassDp", 2.1, "max mass dplus presel"};
   Configurable<bool> b_dovalplots{"b_dovalplots", true, "do validation plots"};
+  Configurable<double> ptmincand_2prong{"ptmincand_2prong", -1, "ptmin 2prong candidate"};
+  Configurable<double> ptmincand_3prong{"ptmincand_3prong", -1, "ptmin 3prong candidate"};
 
   OutputObj<TH1F> hvtx_x_out{TH1F("hvtx_x", "2-track vtx", 1000, -2.0, 2.0)};
   OutputObj<TH1F> hvtx_y_out{TH1F("hvtx_y", "2-track vtx", 1000, -2.0, 2.0)};
@@ -131,6 +133,8 @@ struct HFTrackIndexSkimsCreator {
   double mass2PiK{0};
   double mass2KPi{0};
   double mass3PiKPi{0};
+  double ptcand_2prong{0};
+  double ptcand_3prong{0};
 
   void process(aod::Collision const& collision,
                aod::BCs const& bcs,
@@ -198,7 +202,10 @@ struct HFTrackIndexSkimsCreator {
         auto arrMom = array{pvec0, pvec1};
         mass2PiK = RecoDecay::M(arrMom, array{massPi, massK});
         mass2KPi = RecoDecay::M(arrMom, array{massK, massPi});
+        ptcand_2prong = RecoDecay::Pt(pvec0, pvec1);
 
+        if (ptcand_2prong < ptmincand_2prong)
+          continue;
         if (b_dovalplots) {
           hmass2->Fill(mass2PiK);
           hmass2->Fill(mass2KPi);
@@ -258,7 +265,10 @@ struct HFTrackIndexSkimsCreator {
             // calculate invariant mass
             arr3Mom = array{pvec0, pvec1, pvec2};
             mass3PiKPi = RecoDecay::M(std::move(arr3Mom), array{massPi, massK, massPi});
+            ptcand_3prong = RecoDecay::Pt(pvec0, pvec1, pvec2);
 
+            if (ptcand_3prong < ptmincand_3prong)
+              continue;
             if (b_dovalplots) {
               hmass3->Fill(mass3PiKPi);
               hvtx3_x_out->Fill(secondaryVertex3[0]);
@@ -311,7 +321,10 @@ struct HFTrackIndexSkimsCreator {
             // calculate invariant mass
             arr3Mom = array{pvec0, pvec1, pvec2};
             mass3PiKPi = RecoDecay::M(std::move(arr3Mom), array{massPi, massK, massPi});
+            ptcand_3prong = RecoDecay::Pt(pvec0, pvec1, pvec2);
 
+            if (ptcand_3prong < ptmincand_3prong)
+              continue;
             if (b_dovalplots) {
               hmass3->Fill(mass3PiKPi);
             }
