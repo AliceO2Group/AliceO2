@@ -131,7 +131,7 @@ class GPUTRDTrackerComponent : public AliHLTProcessor
  *                             Members - private
  * ---------------------------------------------------------------------------------
  */
-  GPUCA_NAMESPACE::gpu::GPUTRDTracker* fTracker;  // the tracker itself
+  GPUCA_NAMESPACE::gpu::GPUTRDTrackerGPU* fTracker; // the tracker itself
   GPUCA_NAMESPACE::gpu::GPUTRDGeometry* fGeo;     // TRD geometry needed by the tracker
   GPUCA_NAMESPACE::gpu::GPUReconstruction* fRec;  // GPU Reconstruction object
   GPUCA_NAMESPACE::gpu::GPUChainTracking* fChain; // Tracking Chain Object
