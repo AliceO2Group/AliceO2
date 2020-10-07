@@ -1053,6 +1053,8 @@ bool Compressor<RDH, verbose>::checkerCheck()
       if (verbose && mCheckerVerbose) {
         printf(" Missing TRM Data Header (slotId=%u) \n", slotId);
       }
+      mDecoderSummary.trmErrors[itrm][0] = 0;
+      mDecoderSummary.trmErrors[itrm][1] = 0;
       continue;
     }
 
@@ -1063,6 +1065,8 @@ bool Compressor<RDH, verbose>::checkerCheck()
         printf(" Missing TRM Trailer (slotId=%u) \n", slotId);
       }
       mDecoderSummary.trmDataHeader[itrm] = nullptr;
+      mDecoderSummary.trmErrors[itrm][0] = 0;
+      mDecoderSummary.trmErrors[itrm][1] = 0;
       continue;
     }
 
@@ -1123,6 +1127,7 @@ bool Compressor<RDH, verbose>::checkerCheck()
         if (verbose && mCheckerVerbose) {
           printf(" Missing TRM Chain Header (slotId=%u, chain=%d) \n", slotId, ichain);
         }
+        mDecoderSummary.trmErrors[itrm][ichain] = 0;
         continue;
       }
 
@@ -1133,6 +1138,7 @@ bool Compressor<RDH, verbose>::checkerCheck()
           printf(" Missing TRM Chain Trailer (slotId=%u, chain=%d) \n", slotId, ichain);
         }
         mDecoderSummary.trmChainHeader[itrm][ichain] = nullptr;
+        mDecoderSummary.trmErrors[itrm][ichain] = 0;
         continue;
       }
 
