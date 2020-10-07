@@ -8,6 +8,21 @@
 # granted to it by virtue of its status as an Intergovernmental Organization or
 # submit itself to any jurisdiction.
 
+o2_add_dpl_workflow(mc-spectra-efficiency
+                    SOURCES mcspectraefficiency.cxx
+                    PUBLIC_LINK_LIBRARIES O2::Framework O2::DetectorsBase O2::AnalysisDataModel O2::AnalysisCore
+                    COMPONENT_NAME Analysis)
+
+o2_add_dpl_workflow(spectra-tof
+                    SOURCES spectraTOF.cxx
+                    PUBLIC_LINK_LIBRARIES O2::Framework O2::DetectorsBase O2::AnalysisDataModel
+                    COMPONENT_NAME Analysis)
+
+o2_add_dpl_workflow(spectra-tpc
+                    SOURCES spectraTPC.cxx
+                    PUBLIC_LINK_LIBRARIES O2::Framework O2::DetectorsBase O2::AnalysisDataModel
+                    COMPONENT_NAME Analysis)
+
 o2_add_dpl_workflow(nuclei-spectra
                     SOURCES NucleiSpectraTask.cxx
                     PUBLIC_LINK_LIBRARIES O2::Framework O2::DetectorsBase O2::AnalysisDataModel
@@ -37,3 +52,14 @@ o2_add_dpl_workflow(cascadeconsumer
                     SOURCES cascadeconsumer
                     PUBLIC_LINK_LIBRARIES O2::Framework O2::DetectorsBase O2::AnalysisDataModel O2::AnalysisCore O2::DetectorsVertexing
                     COMPONENT_NAME Analysis)
+
+o2_add_dpl_workflow(cascadefinder
+                    SOURCES cascadefinder
+                    PUBLIC_LINK_LIBRARIES O2::Framework O2::DetectorsBase O2::AnalysisDataModel O2::AnalysisCore O2::DetectorsVertexing
+                    COMPONENT_NAME Analysis)
+
+o2_add_dpl_workflow(raacharged
+                    SOURCES raacharged.cxx
+                    PUBLIC_LINK_LIBRARIES O2::Framework O2::AnalysisDataModel O2::AnalysisCore
+                    COMPONENT_NAME Analysis)
+

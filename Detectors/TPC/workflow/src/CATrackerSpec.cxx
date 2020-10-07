@@ -42,15 +42,18 @@
 #include "DetectorsRaw/HBFUtils.h"
 #include "TPCBase/RDHUtils.h"
 #include "GPUO2InterfaceConfiguration.h"
+#include "TPCCFCalibration.h"
 #include "GPUDisplayBackend.h"
 #ifdef GPUCA_BUILD_EVENT_DISPLAY
 #include "GPUDisplayBackendGlfw.h"
 #endif
 #include "DataFormatsParameters/GRPObject.h"
 #include "TPCBase/Sector.h"
+#include "TPCBase/Utils.h"
 #include "SimulationDataFormat/MCTruthContainer.h"
 #include "SimulationDataFormat/MCCompLabel.h"
 #include "Algorithm/Parser.h"
+#include <boost/filesystem.hpp>
 #include <memory> // for make_shared
 #include <vector>
 #include <iomanip>
@@ -89,6 +92,7 @@ DataProcessorSpec getCATrackerSpec(ca::Config const& specconfig, std::vector<int
     std::unique_ptr<GPUDisplayBackend> displayBackend;
     std::unique_ptr<TPCFastTransform> fastTransform;
     std::unique_ptr<TPCdEdxCalibrationSplines> dEdxSplines;
+    std::unique_ptr<TPCCFCalibration> tpcCalibration;
     int verbosity = 1;
     std::vector<int> clusterOutputIds;
     bool readyToQuit = false;
@@ -194,6 +198,18 @@ DataProcessorSpec getCATrackerSpec(ca::Config const& specconfig, std::vector<int
       }
 
       config.configCalib.dEdxSplines = processAttributes->dEdxSplines.get();
+
+      if (boost::filesystem::exists(confParam.gainCalibFile)) {
+        LOG(INFO) << "Loading tpc gain correction from file " << confParam.gainCalibFile;
+        const auto* gainMap = o2::tpc::utils::readCalPads(confParam.gainCalibFile, "GainMap")[0];
+        processAttributes->tpcCalibration.reset(new TPCCFCalibration{*gainMap});
+      } else {
+        if (not confParam.gainCalibFile.empty()) {
+          LOG(WARN) << "Couldn't find tpc gain correction file " << confParam.gainCalibFile << ". Not applying any gain correction.";
+        }
+        processAttributes->tpcCalibration.reset(new TPCCFCalibration{});
+      }
+      config.configCalib.tpcCalibration = processAttributes->tpcCalibration.get();
 
       // Sample code what needs to be done for the TRD Geometry, when we extend this to TRD tracking.
       /*o2::base::GeometryManager::loadGeometry();

@@ -78,9 +78,11 @@ void ClusterizerSpec<InputType>::run(framework::ProcessingContext& ctx)
   int currentStartClusters = mOutputClusters->size();
   int currentStartIndices = mOutputCellDigitIndices->size();
   for (auto iTrgRcrd : InputTriggerRecord) {
-
-    mClusterizer.findClusters(gsl::span<const InputType>(&Inputs[iTrgRcrd.getFirstEntry()], iTrgRcrd.getNumberOfObjects())); // Find clusters on cells/digits (pass by ref)
-
+    if (Inputs.size() && iTrgRcrd.getNumberOfObjects()) {
+      mClusterizer.findClusters(gsl::span<const InputType>(&Inputs[iTrgRcrd.getFirstEntry()], iTrgRcrd.getNumberOfObjects())); // Find clusters on cells/digits (pass by ref)
+    } else {
+      mClusterizer.clear();
+    }
     // Get found clusters + cell/digit indices for output
     // * A cluster contains a range that correspond to the vector of cell/digit indices
     // * The cell/digit index vector contains the indices of the clusterized cells/digits wrt to the original cell/digit array

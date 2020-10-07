@@ -34,14 +34,14 @@ namespace tof
 template <typename T>
 using BranchDefinition = MakeRootTreeWriterSpec::BranchDefinition<T>;
 using CalibInfosType = std::vector<o2::dataformats::CalibInfoTOF>;
-DataProcessorSpec getTOFCalibWriterSpec()
+DataProcessorSpec getTOFCalibWriterSpec(const char* outdef)
 {
   // A spectator for logging
   auto logger = [](CalibInfosType const& indata) {
     LOG(INFO) << "RECEIVED MATCHED SIZE " << indata.size();
   };
   return MakeRootTreeWriterSpec("TOFCalibWriter",
-                                "o2calib_tof.root",
+                                outdef,
                                 "calibTOF",
                                 BranchDefinition<CalibInfosType>{InputSpec{"input", o2::header::gDataOriginTOF, "CALIBDATA", 0},
                                                                  "TOFCalibInfo",

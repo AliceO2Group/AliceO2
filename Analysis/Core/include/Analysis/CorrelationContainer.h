@@ -145,7 +145,7 @@ class CorrelationContainer : public TNamed
   static TString combineBinning(TString defaultBinning, TString customBinning);
 
  protected:
-  Double_t* getBinning(const char* configuration, const char* tag, Int_t& nBins);
+  std::vector<Double_t> getBinning(const char* configuration, const char* tag, Int_t& nBins);
   void weightHistogram(TH3* hist1, TH1* hist2);
   void multiplyHistograms(THnBase* grid, THnBase* target, TH1* histogram, Int_t var1, Int_t var2);
 

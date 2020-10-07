@@ -16,7 +16,7 @@
 #include "TPCWorkflow/TrackReaderSpec.h"
 #include "TPCWorkflow/PublisherSpec.h"
 #include "GlobalTrackingWorkflow/TrackTPCITSReaderSpec.h"
-#include "TOFWorkflow/ClusterReaderSpec.h"
+#include "TOFWorkflowUtils/ClusterReaderSpec.h"
 #include "TOFWorkflow/TOFMatchedReaderSpec.h"
 #include "Algorithm/RangeTokenizer.h"
 #include "TPCInterpolationWorkflow/TPCResidualWriterSpec.h"

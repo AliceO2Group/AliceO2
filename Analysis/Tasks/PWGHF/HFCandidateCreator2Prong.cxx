@@ -8,7 +8,7 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-/// \file hfcandidatecreator2prong.cxx
+/// \file HFCandidateCreator2Prong.cxx
 /// \brief Reconstruction of heavy-flavour 2-prong decay candidates
 ///
 /// \author Gian Michele Innocenti <gian.michele.innocenti@cern.ch>, CERN
@@ -20,15 +20,9 @@
 #include "Analysis/SecondaryVertexHF.h"
 #include "Analysis/trackUtilities.h"
 #include "ReconstructionDataFormats/DCA.h"
-#include "Analysis/RecoDecay.h"
-#include "PID/PIDResponse.h"
-#include <cmath>
-#include <array>
-#include <cstdlib>
 
 using namespace o2;
 using namespace o2::framework;
-using std::array;
 
 /// Reconstruction of heavy-flavour 2-prong decay candidates
 struct HFCandidateCreator2Prong {
@@ -41,10 +35,9 @@ struct HFCandidateCreator2Prong {
   Configurable<double> d_minparamchange{"d_minparamchange", 1.e-3, "stop iterations if largest change of any X is smaller than this"};
   Configurable<double> d_minrelchi2change{"d_minrelchi2change", 0.9, "stop iterations is chi2/chi2old > this"};
   Configurable<bool> b_dovalplots{"b_dovalplots", true, "do validation plots"};
-  OutputObj<TH1F> hvtx_x_out{TH1F("hvtx_x", "2-track vtx", 100, -0.1, 0.1)};
-  OutputObj<TH1F> hvtx_y_out{TH1F("hvtx_y", "2-track vtx", 100, -0.1, 0.1)};
-  OutputObj<TH1F> hvtx_z_out{TH1F("hvtx_z", "2-track vtx", 100, -0.1, 0.1)};
   OutputObj<TH1F> hmass2{TH1F("hmass2", "2-track inv mass", 500, 0., 5.0)};
+  OutputObj<TH1F> hCovPVXX{TH1F("hCovPVXX", "XX element of PV cov. matrix", 100, 0., 1.0e-4)};
+  OutputObj<TH1F> hCovSVXX{TH1F("hCovSVXX", "XX element of SV cov. matrix", 100, 0., 0.2)};
 
   double massPi = RecoDecay::getMassPDG(kPiPlus);
   double massK = RecoDecay::getMassPDG(kKPlus);
@@ -76,6 +69,7 @@ struct HFCandidateCreator2Prong {
       const auto& secondaryVertex = df.getPCACandidate();
       auto chi2PCA = df.getChi2AtPCACandidate();
       auto covMatrixPCA = df.calcPCACovMatrix().Array();
+      hCovSVXX->Fill(covMatrixPCA[0]); // FIXME: Calculation of errorDecayLength(XY) gives wrong values without this line.
       auto trackParVar0 = df.getTrack(0);
       auto trackParVar1 = df.getTrack(1);
 
@@ -94,6 +88,7 @@ struct HFCandidateCreator2Prong {
       // This modifies track momenta!
       auto primaryVertex = getPrimaryVertex(collision);
       auto covMatrixPV = primaryVertex.getCov();
+      hCovPVXX->Fill(covMatrixPV[0]);
       o2::dataformats::DCA impactParameter0;
       o2::dataformats::DCA impactParameter1;
       trackParVar0.propagateToDCA(primaryVertex, magneticField, &impactParameter0);
@@ -119,9 +114,6 @@ struct HFCandidateCreator2Prong {
 
       // fill histograms
       if (b_dovalplots) {
-        hvtx_x_out->Fill(secondaryVertex[0]);
-        hvtx_y_out->Fill(secondaryVertex[1]);
-        hvtx_z_out->Fill(secondaryVertex[2]);
         hmass2->Fill(massPiK);
         hmass2->Fill(massKPi);
       }

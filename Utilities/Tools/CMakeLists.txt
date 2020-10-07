@@ -10,3 +10,4 @@
 
 
 install(PROGRAMS monitor-mem.sh DESTINATION share/scripts/)
+install(PROGRAMS jobutils.sh DESTINATION share/scripts/)

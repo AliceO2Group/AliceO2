@@ -19,7 +19,7 @@
 #include "DataFormatsITSMFT/ROFRecord.h"
 #include "DataFormatsITSMFT/Digit.h"
 #include "DetectorsCommonDataFormats/DetID.h"
-#include "SimulationDataFormat/MCTruthContainer.h"
+#include "SimulationDataFormat/ConstMCTruthContainer.h"
 #include "SimulationDataFormat/MCCompLabel.h"
 #include <TTree.h>
 #include <vector>
@@ -59,12 +59,12 @@ class DigitPixelReader : public PixelReader
     mIdDig = 0;
   }
 
-  void setDigitsMCTruth(const o2::dataformats::MCTruthContainer<o2::MCCompLabel>* m)
+  void setDigitsMCTruth(const o2::dataformats::ConstMCTruthContainerView<o2::MCCompLabel>* m)
   {
     mDigitsMCTruth = m;
   }
 
-  const o2::dataformats::MCTruthContainer<o2::MCCompLabel>* getDigitsMCTruth() const override
+  const o2::dataformats::ConstMCTruthContainerView<o2::MCCompLabel>* getDigitsMCTruth() const override
   {
     return mDigitsMCTruth;
   }
@@ -99,13 +99,13 @@ class DigitPixelReader : public PixelReader
   std::vector<o2::itsmft::Digit>* mDigitsSelf = nullptr;
   std::vector<o2::itsmft::ROFRecord>* mROFRecVecSelf = nullptr;
   std::vector<o2::itsmft::MC2ROFRecord>* mMC2ROFRecVecSelf = nullptr;
-  o2::dataformats::MCTruthContainer<o2::MCCompLabel>* mDigitsMCTruthSelf = nullptr;
+  const o2::dataformats::ConstMCTruthContainerView<o2::MCCompLabel>* mDigitsMCTruthSelf = nullptr;
 
   gsl::span<const o2::itsmft::Digit> mDigits;
   gsl::span<const o2::itsmft::ROFRecord> mROFRecVec;
   gsl::span<const o2::itsmft::MC2ROFRecord> mMC2ROFRecVec;
 
-  const o2::dataformats::MCTruthContainer<o2::MCCompLabel>* mDigitsMCTruth = nullptr;
+  const o2::dataformats::ConstMCTruthContainerView<o2::MCCompLabel>* mDigitsMCTruth = nullptr;
   Int_t mIdDig = 0; // Digits slot read within ROF
   Int_t mIdROF = 0; // ROFRecord being red
 

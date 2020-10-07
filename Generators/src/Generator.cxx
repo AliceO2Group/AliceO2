@@ -12,6 +12,7 @@
 
 #include "Generators/Generator.h"
 #include "Generators/Trigger.h"
+#include "Generators/PrimaryGenerator.h"
 #include "FairPrimaryGenerator.h"
 #include "FairLogger.h"
 #include <cmath>
@@ -97,20 +98,29 @@ Bool_t
 {
   /** add tracks **/
 
+  auto o2primGen = dynamic_cast<PrimaryGenerator*>(primGen);
+  if (!o2primGen) {
+    LOG(FATAL) << "PrimaryGenerator is not a o2::eventgen::PrimaryGenerator";
+    return kFALSE;
+  }
+
   /** loop over particles **/
   for (const auto& particle : mParticles) {
-    primGen->AddTrack(particle.GetPdgCode(),
-                      particle.Px() * mMomentumUnit,
-                      particle.Py() * mMomentumUnit,
-                      particle.Pz() * mMomentumUnit,
-                      particle.Vx() * mPositionUnit,
-                      particle.Vy() * mPositionUnit,
-                      particle.Vz() * mPositionUnit,
-                      particle.GetMother(0),
-                      particle.GetStatusCode() == 1,
-                      particle.Energy() * mEnergyUnit,
-                      particle.T() * mTimeUnit,
-                      particle.GetWeight());
+    o2primGen->AddTrack(particle.GetPdgCode(),
+                        particle.Px() * mMomentumUnit,
+                        particle.Py() * mMomentumUnit,
+                        particle.Pz() * mMomentumUnit,
+                        particle.Vx() * mPositionUnit,
+                        particle.Vy() * mPositionUnit,
+                        particle.Vz() * mPositionUnit,
+                        particle.GetMother(0),
+                        particle.GetMother(1),
+                        particle.GetDaughter(0),
+                        particle.GetDaughter(1),
+                        particle.GetStatusCode() == 1,
+                        particle.Energy() * mEnergyUnit,
+                        particle.T() * mTimeUnit,
+                        particle.GetWeight());
   }
 
   /** success **/

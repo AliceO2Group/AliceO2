@@ -115,7 +115,7 @@ void EventSampler::Run()
   /// inherited from FairMQDevice
   int iResult=0;
 
-  boost::thread samplerThread(boost::bind(&EventSampler::samplerLoop, this));
+  boost::thread samplerThread([this] { EventSampler::samplerLoop(); });
 
   unique_ptr<FairMQPoller> poller(fTransportFactory->CreatePoller(fChannels["data-in"]));
 

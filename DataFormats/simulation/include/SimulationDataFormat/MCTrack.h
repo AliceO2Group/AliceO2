@@ -40,7 +40,7 @@ class MCTrackT
   MCTrackT();
 
   ///  Standard constructor
-  MCTrackT(Int_t pdgCode, Int_t motherID, Int_t firstDaighterID, Int_t lastDaughterID,
+  MCTrackT(Int_t pdgCode, Int_t motherID, Int_t secondMotherID, Int_t firstDaughterID, Int_t lastDaughterID,
            Double_t px, Double_t py, Double_t pz, Double_t x, Double_t y, Double_t z, Double_t t,
            Int_t nPoints);
 
@@ -59,6 +59,7 @@ class MCTrackT
   ///  Accessors
   Int_t GetPdgCode() const { return mPdgCode; }
   Int_t getMotherTrackId() const { return mMotherTrackId; }
+  Int_t getSecondMotherTrackId() const { return mSecondMotherTrackId; }
   bool isSecondary() const { return mMotherTrackId != -1; }
   Int_t getFirstDaughterTrackId() const { return mFirstDaughterTrackId; }
   Int_t getLastDaughterTrackId() const { return mLastDaughterTrackId; }
@@ -133,6 +134,7 @@ class MCTrackT
   void setHitMask(Int_t m) { ((PropEncoding)mProp).hitmask = m; }
   ///  Modifiers
   void SetMotherTrackId(Int_t id) { mMotherTrackId = id; }
+  void SetSecondMotherTrackId(Int_t id) { mSecondMotherTrackId = id; }
   void SetFirstDaughterTrackId(Int_t id) { mFirstDaughterTrackId = id; }
   void SetLastDaughterTrackId(Int_t id) { mLastDaughterTrackId = id; }
   // set bit indicating that this track
@@ -193,8 +195,9 @@ class MCTrackT
   ///  PDG particle code
   Int_t mPdgCode;
 
-  ///  Index of mother track.
+  ///  Index of mother tracks
   Int_t mMotherTrackId;
+  Int_t mSecondMotherTrackId;
 
   Int_t mFirstDaughterTrackId;
   Int_t mLastDaughterTrackId;
@@ -215,7 +218,7 @@ class MCTrackT
     };
   };
 
-  ClassDefNV(MCTrackT, 2);
+  ClassDefNV(MCTrackT, 3);
 };
 
 template <typename T>
@@ -248,6 +251,7 @@ template <typename T>
 inline MCTrackT<T>::MCTrackT()
   : mPdgCode(0),
     mMotherTrackId(-1),
+    mSecondMotherTrackId(-1),
     mFirstDaughterTrackId(-1),
     mLastDaughterTrackId(-1),
     mStartVertexMomentumX(0.),
@@ -262,11 +266,12 @@ inline MCTrackT<T>::MCTrackT()
 }
 
 template <typename T>
-inline MCTrackT<T>::MCTrackT(Int_t pdgCode, Int_t motherId, Int_t firstDaughterId, Int_t lastDaughterId,
+inline MCTrackT<T>::MCTrackT(Int_t pdgCode, Int_t motherId, Int_t secondMotherId, Int_t firstDaughterId, Int_t lastDaughterId,
                              Double_t px, Double_t py, Double_t pz, Double_t x,
                              Double_t y, Double_t z, Double_t t, Int_t mask)
   : mPdgCode(pdgCode),
     mMotherTrackId(motherId),
+    mSecondMotherTrackId(secondMotherId),
     mFirstDaughterTrackId(firstDaughterId),
     mLastDaughterTrackId(lastDaughterId),
     mStartVertexMomentumX(px),
@@ -284,6 +289,7 @@ template <typename T>
 inline MCTrackT<T>::MCTrackT(const TParticle& part)
   : mPdgCode(part.GetPdgCode()),
     mMotherTrackId(part.GetMother(0)),
+    mSecondMotherTrackId(part.GetMother(1)),
     mFirstDaughterTrackId(part.GetFirstDaughter()),
     mLastDaughterTrackId(part.GetLastDaughter()),
     mStartVertexMomentumX(part.Px()),

@@ -400,6 +400,12 @@ struct OutputObj {
     object->SetName(label.c_str());
   }
 
+  void setObject(std::shared_ptr<T> t)
+  {
+    object = t;
+    object->SetName(label.c_str());
+  }
+
   void setHash(uint32_t hash)
   {
     mTaskHash = hash;
@@ -455,6 +461,25 @@ struct Service {
 };
 
 template <typename T>
+o2::soa::Filtered<T>* getTableFromFilter(const T& table, const expressions::Filter& filter)
+{
+  auto schema = table.asArrowTable()->schema();
+  expressions::Operations ops = createOperations(filter);
+  gandiva::NodePtr tree = nullptr;
+  if (isSchemaCompatible(schema, ops)) {
+    tree = createExpressionTree(ops, schema);
+  } else {
+    throw std::runtime_error("Partition filter does not match declared table type");
+  }
+
+  if constexpr (soa::is_soa_filtered_t<std::decay_t<T>>::value) {
+    return new o2::soa::Filtered<T>{{table}, tree};
+  } else {
+    return new o2::soa::Filtered<T>{{table.asArrowTable()}, tree};
+  }
+}
+
+template <typename T>
 struct Partition {
   Partition(expressions::Node&& filter_) : filter{std::move(filter_)}
   {
@@ -462,19 +487,7 @@ struct Partition {
 
   void setTable(const T& table)
   {
-    auto schema = table.asArrowTable()->schema();
-    expressions::Operations ops = createOperations(filter);
-    if (isSchemaCompatible(schema, ops)) {
-      mTree = createExpressionTree(ops, schema);
-    } else {
-      throw std::runtime_error("Partition filter does not match declared table type");
-    }
-
-    if constexpr (soa::is_soa_filtered_t<std::decay_t<T>>::value) {
-      mFiltered.reset(new o2::soa::Filtered<T>{{table}, mTree});
-    } else {
-      mFiltered.reset(new o2::soa::Filtered<T>{{table.asArrowTable()}, mTree});
-    }
+    mFiltered.reset(getTableFromFilter(table, filter));
   }
 
   template <typename... Ts>
@@ -499,7 +512,6 @@ struct Partition {
   }
 
   expressions::Filter filter;
-  gandiva::NodePtr mTree = nullptr;
   std::unique_ptr<o2::soa::Filtered<T>> mFiltered = nullptr;
 
   using filtered_iterator = typename o2::soa::Filtered<T>::iterator;

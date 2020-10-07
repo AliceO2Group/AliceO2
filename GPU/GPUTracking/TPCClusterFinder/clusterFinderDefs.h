@@ -23,9 +23,6 @@ using uchar = unsigned char;
 using ulong = unsigned long;
 #endif
 
-#define QMAX_CUTOFF 3
-#define QTOT_CUTOFF 0
-#define NOISE_SUPPRESSION_MINIMA_EPSILON 10
 #define SCRATCH_PAD_WORK_GROUP_SIZE GPUCA_GET_THREAD_COUNT(GPUCA_LB_CLUSTER_FINDER)
 
 /* #define CHARGEMAP_TIME_MAJOR_LAYOUT */
@@ -50,6 +47,7 @@ using ulong = unsigned long;
 #define TPC_PADS_PER_ROW 138
 #define TPC_PADS_PER_ROW_PADDED (TPC_PADS_PER_ROW + PADDING_PAD)
 #define TPC_NUM_OF_PADS (TPC_NUM_OF_ROWS * TPC_PADS_PER_ROW_PADDED + PADDING_PAD)
+#define TPC_PADS_IN_SECTOR 14560
 #define TPC_MAX_FRAGMENT_LEN 4000
 #define TPC_MAX_FRAGMENT_LEN_PADDED (TPC_MAX_FRAGMENT_LEN + 2 * PADDING_TIME)
 
@@ -67,11 +65,7 @@ using ulong = unsigned long;
 #define CPU_PTR(x) x
 #endif
 
-namespace GPUCA_NAMESPACE
-{
-namespace gpu
-{
-namespace tpccf
+namespace GPUCA_NAMESPACE::gpu::tpccf
 {
 
 using SizeT = size_t;
@@ -89,13 +83,6 @@ using Delta2 = short2;
 
 using local_id = short2;
 
-GPUconstexpr() float CHARGE_THRESHOLD = 0.f;
-GPUconstexpr() float OUTER_CHARGE_THRESHOLD = 0.f;
-GPUconstexpr() float QTOT_THRESHOLD = 500.f;
-GPUconstexpr() int MIN_SPLIT_NUM = 1;
-
-} // namespace tpccf
-} // namespace gpu
-} // namespace GPUCA_NAMESPACE
+} // namespace GPUCA_NAMESPACE::gpu::tpccf
 
 #endif

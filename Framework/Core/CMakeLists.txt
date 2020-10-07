@@ -28,6 +28,7 @@ o2_add_library(Framework
                        src/ASoA.cxx
                        ${GUI_SOURCES}
                        src/AnalysisHelpers.cxx
+                       src/AnalysisDataModelHelpers.cxx
                        src/BoostOptionsRetriever.cxx
                        src/ChannelConfigurationPolicy.cxx
                        src/ChannelMatching.cxx

@@ -14,11 +14,7 @@
 #include <memory>
 #include <vector>
 #include <string>
-#include <boost/format.hpp>
-#include <boost/range/combine.hpp>
 #include <cassert>
-
-#include <FairLogger.h>
 
 #include "DataFormatsTPC/Defs.h"
 #include "TPCBase/Mapper.h"
@@ -26,7 +22,11 @@
 #include "TPCBase/Sector.h"
 #include "TPCBase/CalArray.h"
 
-using boost::format;
+#ifndef GPUCA_ALIGPUCODE
+#include <Framework/Logger.h>
+#include <boost/format.hpp>
+#include <boost/range/combine.hpp>
+#endif
 
 namespace o2
 {
@@ -182,6 +182,8 @@ inline const T CalDet<T>::getValue(const CRU cru, const size_t row, const size_t
   return T{};
 }
 
+#ifndef GPUCA_ALIGPUCODE // hide from GPU standalone compilation
+
 //______________________________________________________________________________
 template <class T>
 inline const CalDet<T>& CalDet<T>::operator+=(const CalDet& other)
@@ -336,9 +338,11 @@ void CalDet<T>::initData()
 
   for (size_t i = 0; i < size; ++i) {
     mData.push_back(CalType(mPadSubset, i));
-    mData.back().setName(boost::str(format(frmt) % mName % i));
+    mData.back().setName(boost::str(boost::format(frmt) % mName % i));
   }
 }
+
+#endif // GPUCA_ALIGPUCODE
 
 using CalPad = CalDet<float>;
 } // namespace tpc

@@ -25,7 +25,7 @@ GPUdii() void GPUTPCCFNoiseSuppression::Thread<GPUTPCCFNoiseSuppression::noiseSu
 {
   Array2D<PackedCharge> chargeMap(reinterpret_cast<PackedCharge*>(clusterer.mPchargeMap));
   Array2D<uchar> isPeakMap(clusterer.mPpeakMap);
-  noiseSuppressionImpl(get_num_groups(0), get_local_size(0), get_group_id(0), get_local_id(0), smem, chargeMap, isPeakMap, clusterer.mPpeakPositions, clusterer.mPmemory->counters.nPeaks, clusterer.mPisPeak);
+  noiseSuppressionImpl(get_num_groups(0), get_local_size(0), get_group_id(0), get_local_id(0), smem, clusterer.Param().rec, chargeMap, isPeakMap, clusterer.mPpeakPositions, clusterer.mPmemory->counters.nPeaks, clusterer.mPisPeak);
 }
 
 template <>
@@ -36,6 +36,7 @@ GPUdii() void GPUTPCCFNoiseSuppression::Thread<GPUTPCCFNoiseSuppression::updateP
 }
 
 GPUdii() void GPUTPCCFNoiseSuppression::noiseSuppressionImpl(int nBlocks, int nThreads, int iBlock, int iThread, GPUSharedMemory& smem,
+                                                             const GPUSettingsRec& calibration,
                                                              const Array2D<PackedCharge>& chargeMap,
                                                              const Array2D<uchar>& peakMap,
                                                              const ChargePos* peakPositions,
@@ -51,6 +52,7 @@ GPUdii() void GPUTPCCFNoiseSuppression::noiseSuppressionImpl(int nBlocks, int nT
   findMinimaAndPeaks(
     chargeMap,
     peakMap,
+    calibration,
     charge,
     pos,
     smem.posBcast,
@@ -150,7 +152,7 @@ GPUdi() bool GPUTPCCFNoiseSuppression::keepPeak(
   GPUCA_UNROLL(U(), U())
   for (int i = 0; i < NOISE_SUPPRESSION_NEIGHBOR_NUM; i++) {
     bool otherPeak = (peaks & (ulong(1) << i));
-    bool minimaBetween = (minima & CfConsts::NoiseSuppressionMinima[i]);
+    bool minimaBetween = (minima & cfconsts::NoiseSuppressionMinima[i]);
 
     keepMe &= (!otherPeak || minimaBetween);
   }
@@ -161,6 +163,7 @@ GPUdi() bool GPUTPCCFNoiseSuppression::keepPeak(
 GPUd() void GPUTPCCFNoiseSuppression::findMinimaAndPeaks(
   const Array2D<PackedCharge>& chargeMap,
   const Array2D<uchar>& peakMap,
+  const GPUSettingsRec& calibration,
   float q,
   const ChargePos& pos,
   ChargePos* posBcast,
@@ -194,7 +197,7 @@ GPUd() void GPUTPCCFNoiseSuppression::findMinimaAndPeaks(
     ll,
     16,
     2,
-    CfConsts::NoiseSuppressionNeighbors,
+    cfconsts::NoiseSuppressionNeighbors,
     posBcast,
     buf);
 
@@ -204,7 +207,7 @@ GPUd() void GPUTPCCFNoiseSuppression::findMinimaAndPeaks(
     2,
     16,
     q,
-    NOISE_SUPPRESSION_MINIMA_EPSILON,
+    calibration.tpcCFnoiseSuppressionEpsilon,
     minimas,
     bigger);
 
@@ -215,7 +218,7 @@ GPUd() void GPUTPCCFNoiseSuppression::findMinimaAndPeaks(
     ll,
     0,
     16,
-    CfConsts::NoiseSuppressionNeighbors,
+    cfconsts::NoiseSuppressionNeighbors,
     posBcast,
     buf);
 
@@ -226,7 +229,7 @@ GPUd() void GPUTPCCFNoiseSuppression::findMinimaAndPeaks(
       16,
       0,
       q,
-      NOISE_SUPPRESSION_MINIMA_EPSILON,
+      calibration.tpcCFnoiseSuppressionEpsilon,
       minimas,
       bigger);
   }
@@ -238,7 +241,7 @@ GPUd() void GPUTPCCFNoiseSuppression::findMinimaAndPeaks(
     ll,
     18,
     16,
-    CfConsts::NoiseSuppressionNeighbors,
+    cfconsts::NoiseSuppressionNeighbors,
     posBcast,
     buf);
 
@@ -249,7 +252,7 @@ GPUd() void GPUTPCCFNoiseSuppression::findMinimaAndPeaks(
       16,
       18,
       q,
-      NOISE_SUPPRESSION_MINIMA_EPSILON,
+      calibration.tpcCFnoiseSuppressionEpsilon,
       minimas,
       bigger);
   }
@@ -262,7 +265,7 @@ GPUd() void GPUTPCCFNoiseSuppression::findMinimaAndPeaks(
     ll,
     0,
     16,
-    CfConsts::NoiseSuppressionNeighbors,
+    cfconsts::NoiseSuppressionNeighbors,
     posBcast + wgSizeHalf,
     buf);
 
@@ -273,7 +276,7 @@ GPUd() void GPUTPCCFNoiseSuppression::findMinimaAndPeaks(
       16,
       0,
       q,
-      NOISE_SUPPRESSION_MINIMA_EPSILON,
+      calibration.tpcCFnoiseSuppressionEpsilon,
       minimas,
       bigger);
   }
@@ -285,7 +288,7 @@ GPUd() void GPUTPCCFNoiseSuppression::findMinimaAndPeaks(
     ll,
     18,
     16,
-    CfConsts::NoiseSuppressionNeighbors,
+    cfconsts::NoiseSuppressionNeighbors,
     posBcast + wgSizeHalf,
     buf);
 
@@ -296,7 +299,7 @@ GPUd() void GPUTPCCFNoiseSuppression::findMinimaAndPeaks(
       16,
       18,
       q,
-      NOISE_SUPPRESSION_MINIMA_EPSILON,
+      calibration.tpcCFnoiseSuppressionEpsilon,
       minimas,
       bigger);
   }
@@ -315,7 +318,7 @@ GPUd() void GPUTPCCFNoiseSuppression::findMinimaAndPeaks(
     ll,
     0,
     16,
-    CfConsts::NoiseSuppressionNeighbors,
+    cfconsts::NoiseSuppressionNeighbors,
     posBcast,
     bufp);
 
@@ -333,7 +336,7 @@ GPUd() void GPUTPCCFNoiseSuppression::findMinimaAndPeaks(
     ll,
     18,
     16,
-    CfConsts::NoiseSuppressionNeighbors,
+    cfconsts::NoiseSuppressionNeighbors,
     posBcast,
     bufp);
 

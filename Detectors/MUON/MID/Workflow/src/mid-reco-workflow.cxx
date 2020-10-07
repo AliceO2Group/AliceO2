@@ -26,6 +26,10 @@ using namespace o2::framework;
 // we need to add workflow options before including Framework/runDataProcessing
 void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
 {
+  std::vector<ConfigParamSpec> options{
+    {"input-ctf", VariantType::Bool, false, {"Input data comes from CTF"}}};
+  std::swap(workflowOptions, options);
+
   std::string keyvaluehelp("Semicolon separated key=value strings ...");
   workflowOptions.push_back(ConfigParamSpec{"configKeyValues", VariantType::String, "", {keyvaluehelp}});
 }
@@ -41,6 +45,6 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   o2::conf::ConfigurableParam::updateFromString(configcontext.options().get<std::string>("configKeyValues"));
   // write the configuration used for the digitizer workflow
   o2::conf::ConfigurableParam::writeINI("o2mid-recoflow_configuration.ini");
-
-  return std::move(o2::mid::getRecoWorkflow());
+  auto ctf = configcontext.options().get<bool>("input-ctf");
+  return std::move(o2::mid::getRecoWorkflow(ctf));
 }
