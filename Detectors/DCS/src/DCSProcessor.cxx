@@ -100,6 +100,7 @@ void DCSProcessor::init(const std::vector<DPID>& aliaseschars, const std::vector
   mLatestTimestampstrings.resize(aliasesstrings.size(), 0);
   mLatestTimestamptimes.resize(aliasestimes.size(), 0);
   mLatestTimestampbinaries.resize(aliasesbinaries.size(), 0);
+  mAvgTestInt.resize(aliasesints.size(), 0);
 }
 
 //______________________________________________________________________
@@ -152,6 +153,7 @@ void DCSProcessor::init(const std::vector<DPID>& aliases)
   mLatestTimestampstrings.resize(nstrings, 0);
   mLatestTimestamptimes.resize(ntimes, 0);
   mLatestTimestampbinaries.resize(nbinaries, 0);
+  mAvgTestInt.resize(nints, 0);
 }
 
 //__________________________________________________________________
@@ -249,7 +251,7 @@ int DCSProcessor::processArrayType(const std::vector<DPID>& array, DeliveryType 
       if (processFlag(flags, array[i].get_alias()) == 0) {
         auto etime = val.get_epoch_time();
         // fill only if new value has a timestamp different from the timestamp of the previous one
-        LOG(INFO) << "destmap[array[" << i << "]].size() = " << destmap[array[i]].size();
+        LOG(DEBUG) << "destmap[array[" << i << "]].size() = " << destmap[array[i]].size();
         if (destmap[array[i]].size() == 0 || etime != latestTimeStamp[i]) {
           auto& tmp = destmap[array[i]].emplace_back();
           std::strncpy(tmp.data(), (char*)&(val.payload_pt1), 56);
@@ -284,7 +286,7 @@ int DCSProcessor::processArrayType(const std::vector<DPID>& array, DeliveryType 
       if (processFlag(flags, array[i].get_alias()) == 0) {
         auto etime = val.get_epoch_time();
         // fill only if new value has a timestamp different from the timestamp of the previous one
-        LOG(INFO) << "destmap[array[" << i << "]].size() = " << destmap[array[i]].size();
+        LOG(DEBUG) << "destmap[array[" << i << "]].size() = " << destmap[array[i]].size();
         if (destmap[array[i]].size() == 0 || etime != latestTimeStamp[i]) {
           auto& tmp = destmap[array[i]].emplace_back();
           memcpy(tmp.data(), &(val.payload_pt1), 7);
@@ -303,7 +305,7 @@ std::unordered_map<DPID, DPVAL>::const_iterator DCSProcessor::processAlias(const
 
   // processing basic checks for map: all needed aliases must be present
 
-  LOG(INFO) << "Processing " << alias;
+  LOG(DEBUG) << "Processing " << alias;
   auto it = map.find(alias);
   DeliveryType tt = alias.get_type();
   if (tt != type) {
@@ -320,12 +322,12 @@ void DCSProcessor::processChars()
   // function to process aliases of Char type; it will just print them
 
   for (size_t i = 0; i != mAliaseschars.size(); ++i) {
-    LOG(INFO) << "processChars: mAliaseschars[" << i << "] = " << mAliaseschars[i];
+    LOG(DEBUG) << "processChars: mAliaseschars[" << i << "] = " << mAliaseschars[i];
     auto& id = mAliaseschars[i];
     auto& vchar = getVectorForAliasChar(id);
-    LOG(INFO) << "vchar size = " << vchar.size();
+    LOG(DEBUG) << "vchar size = " << vchar.size();
     for (size_t j = 0; j < vchar.size(); j++) {
-      LOG(INFO) << "DP = " << mAliaseschars[i] << " , value[" << j << "] = " << vchar[j];
+      LOG(DEBUG) << "DP = " << mAliaseschars[i] << " , value[" << j << "] = " << vchar[j];
     }
   }
 }
@@ -338,21 +340,19 @@ void DCSProcessor::processInts()
   // function to process aliases of Int type
 
   for (size_t i = 0; i != mAliasesints.size(); ++i) {
-    LOG(INFO) << "processInts: mAliasesints[" << i << "] = " << mAliasesints[i];
+    LOG(DEBUG) << "processInts: mAliasesints[" << i << "] = " << mAliasesints[i];
     auto& id = mAliasesints[i];
     auto& vint = getVectorForAliasInt(id);
-    LOG(INFO) << "vint size = " << vint.size();
+    LOG(DEBUG) << "vint size = " << vint.size();
     for (size_t j = 0; j < vint.size(); j++) {
-      LOG(INFO) << "DP = " << mAliasesints[i] << " , value[" << j << "] = " << vint[j];
+      LOG(DEBUG) << "DP = " << mAliasesints[i] << " , value[" << j << "] = " << vint[j];
     }
     bool isSMA = false;
-    LOG(INFO) << "get alias = " << id.get_alias();
-    if (strcmp(id.get_alias(), "TestInt_0") == 0) {
-      doSimpleMovingAverage(2, vint, mAvgTestInt0, isSMA);
-      LOG(INFO) << "Moving average = " << mAvgTestInt0;
-      if (isSMA) {
-        // populate CCDB
-      }
+    LOG(DEBUG) << "get alias = " << id.get_alias();
+    doSimpleMovingAverage(2, vint, mAvgTestInt[i], isSMA);
+    LOG(DEBUG) << "Moving average = " << mAvgTestInt[i];
+    if (isSMA) {
+      // populate CCDB
     }
   }
 }
