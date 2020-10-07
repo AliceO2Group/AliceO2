@@ -56,8 +56,10 @@ DataOutputDescriptor::DataOutputDescriptor(std::string inString)
   }
 
   // get the tree name
-  // defaul tree name is the table name
+  // default tree name is the O2 + table name (lower case)
   treename = tablename;
+  std::transform(treename.begin(), treename.end(), treename.begin(), [](unsigned char c) { return std::tolower(c); });
+  treename = std::string("O2") + treename;
   ++iter1;
   if (iter1 == end) {
     return;
@@ -500,7 +502,7 @@ void DataOutputDirector::setFilenameBase(std::string dfn)
   auto it = std::unique(mtreeFilenames.begin(), mtreeFilenames.end());
   if (it != mtreeFilenames.end()) {
     printOut();
-    LOG(FATAL) << "Dublicate tree names in a file!";
+    LOG(FATAL) << "Duplicate tree names in a file!";
   }
 
   // make unique/sorted list of filenameBases
