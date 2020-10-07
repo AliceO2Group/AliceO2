@@ -42,8 +42,6 @@ struct FilterCF {
   Produces<aod::CFCollisions> outputCollisions;
   Produces<aod::CFTracks> outputTracks;
 
-  uint64_t eventCounter = 0;
-
   void init(o2::framework::InitContext&)
   {
   }
@@ -64,14 +62,11 @@ struct FilterCF {
       else if (track.isGlobalTrackSDD())
         trackType = 2;
 
-      // TODO can we get the eventCounter from the previous filling to collisions(...)?
-      outputTracks(eventCounter, track.pt(), track.eta(), track.phi(), track.charge(), trackType);
+      outputTracks(outputCollisions.lastIndex(), track.pt(), track.eta(), track.phi(), track.charge(), trackType);
 
       yields->Fill(collision.centV0M(), track.pt(), track.eta());
       etaphi->Fill(collision.centV0M(), track.eta(), track.phi());
     }
-
-    eventCounter++;
   }
 };
 
