@@ -15,7 +15,6 @@
 #include "Framework/StructToTuple.h"
 #include "Framework/FunctionalHelpers.h"
 #include "Framework/VariantHelpers.h"
-#include "Framework/Logger.h"
 #include "arrow/type_traits.h"
 
 // Apparently needs to be on top of the arrow includes.
