@@ -40,10 +40,11 @@ class TRDArraySignal;
 class PadResponse;
 
 struct SignalArray {
-  double firstTBtime;                     // first TB time
+  double firstTBtime;                               // first TB time
   std::array<float, constants::TIMEBINS> signals{}; // signals
-  std::unordered_map<int, int> trackIds;  // tracks Ids associated to the signal
-  std::vector<MCLabel> labels;            // labels associated to the signal
+  std::unordered_map<int, int> trackIds;            // tracks Ids associated to the signal
+  std::vector<MCLabel> labels;                      // labels associated to the signal
+  bool isDigit = false;                             // flag a signal converted to a digit
 };
 
 using DigitContainer = std::vector<Digit>;
@@ -114,8 +115,8 @@ class Digitizer
   int mMaxTimeBinsTRAP = 30;                               // Maximum number of time bins for processing adcs; should be read from the CCDB or the TRAP config
 
   // Digitization containers
-  std::vector<HitType> mHitContainer;                            // the container of hits in a given detector
-  std::vector<MCLabel> mMergedLabels;                            // temporary label container
+  std::vector<HitType> mHitContainer;                                            // the container of hits in a given detector
+  std::vector<MCLabel> mMergedLabels;                                            // temporary label container
   std::array<SignalContainer, constants::MAXCHAMBER> mSignalsMapCollection;      // container for caching signals over a timeframe
   std::deque<std::array<SignalContainer, constants::MAXCHAMBER>> mPileupSignals; // container for piled up signals
 
@@ -128,7 +129,7 @@ class Digitizer
   SignalContainer addSignalsFromPileup();
   void clearContainers();
   bool convertHits(const int, const std::vector<HitType>&, SignalContainer&, int thread = 0); // True if hit-to-signal conversion is successful
-  bool convertSignalsToADC(const SignalContainer&, DigitContainer&, int thread = 0);          // True if signal-to-ADC conversion is successful
+  bool convertSignalsToADC(SignalContainer&, DigitContainer&, int thread = 0);                // True if signal-to-ADC conversion is successful
   void addLabel(const o2::trd::HitType& hit, std::vector<o2::trd::MCLabel>&, std::unordered_map<int, int>&);
   bool diffusion(float, float, float, float, float, float, double&, double&, double&, int thread = 0); // True if diffusion is applied successfully
 

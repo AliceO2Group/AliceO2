@@ -100,6 +100,7 @@ class TRDDPLDigitizerTask : public o2::base::BaseDPLDigitizer
         LOG(INFO) << "For collision " << collID << " eventID " << part.entryID << " found TRD " << hits.size() << " hits ";
 
         mDigitizer.process(hits, digits, labels);
+        assert(digits.size() == labels.getIndexedSize());
 
         // Add trigger record
         triggers.emplace_back(irecords[collID], digitsAccum.size(), digits.size());
@@ -114,6 +115,8 @@ class TRDDPLDigitizerTask : public o2::base::BaseDPLDigitizer
     }
     // Force flush of the digits that remain in the digitizer cache
     mDigitizer.flush(digits, labels);
+    assert(digits.size() == labels.getIndexedSize());
+
     triggers.emplace_back(irecords[irecords.size() - 1], digitsAccum.size(), digits.size());
     std::copy(digits.begin(), digits.end(), std::back_inserter(digitsAccum));
     if (mctruth) {

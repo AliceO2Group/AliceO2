@@ -96,19 +96,21 @@ void Digitizer::flush(DigitContainer& digits, o2::dataformats::MCTruthContainer<
         LOG(WARN) << "TRD conversion of signals to digits failed";
       }
       for (const auto& iter : smc) {
-        labels.addElements(labels.getIndexedSize(), iter.second.labels);
+        if (iter.second.isDigit)
+          labels.addElements(labels.getIndexedSize(), iter.second.labels);
       }
     }
   } else {
     // since we don't have any pileup signals just flush the signals for each chamber
     // we avoid flattening the array<map, ndets> to a single map
-    for (const auto& smc : mSignalsMapCollection) {
+    for (auto& smc : mSignalsMapCollection) {
       bool status = convertSignalsToADC(smc, digits);
       if (!status) {
         LOG(WARN) << "TRD conversion of signals to digits failed";
       }
       for (const auto& iter : smc) {
-        labels.addElements(labels.getIndexedSize(), iter.second.labels);
+        if (iter.second.isDigit)
+          labels.addElements(labels.getIndexedSize(), iter.second.labels);
       }
     }
   }
@@ -482,7 +484,7 @@ float drawGaus(o2::math_utils::RandomRing<>& normaldistRing, float mu, float sig
   return mu + sigma * normaldistRing.getNextValue();
 }
 
-bool Digitizer::convertSignalsToADC(const SignalContainer& signalMapCont, DigitContainer& digits, int thread)
+bool Digitizer::convertSignalsToADC(SignalContainer& signalMapCont, DigitContainer& digits, int thread)
 {
   //
   // Converts the sampled electron signals to ADC values for a given chamber
@@ -495,7 +497,7 @@ bool Digitizer::convertSignalsToADC(const SignalContainer& signalMapCont, DigitC
   double baseline = mSimParam->GetADCbaseline() / adcConvert;                   // The electronics baseline in mV
   double baselineEl = baseline / convert;                                       // The electronics baseline in electrons
 
-  for (const auto& signalMapIter : signalMapCont) {
+  for (auto& signalMapIter : signalMapCont) {
     const auto key = signalMapIter.first;
     const int det = getDetectorFromKey(key);
     const int row = getRowFromKey(key);
@@ -522,6 +524,7 @@ bool Digitizer::convertSignalsToADC(const SignalContainer& signalMapCont, DigitC
       LOG(FATAL) << "Not a valid gain " << padgain << ", " << det << ", " << col << ", " << row;
     }
 
+    signalMapIter.second.isDigit = true; // flag the signal as digit
     // Loop over the all timebins in the ADC array
     const auto& signalArray = signalMapIter.second.signals;
     ArrayADC adcs{};
