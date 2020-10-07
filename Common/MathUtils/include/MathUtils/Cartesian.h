@@ -20,15 +20,22 @@
 #include <Math/GenVector/Rotation3D.h>
 #include <Math/GenVector/Transform3D.h>
 #include <Math/GenVector/Translation3D.h>
+#include <Math/GenVector/DisplacementVector2D.h>
+#include <Math/GenVector/PositionVector2D.h>
 #include <Rtypes.h>
 #include <TGeoMatrix.h>
 #include <iosfwd>
-#include "MathUtils/Cartesian2D.h"
+
+template <typename T>
+using Point2D = ROOT::Math::PositionVector2D<ROOT::Math::Cartesian2D<T>, ROOT::Math::DefaultCoordinateSystemTag>;
+template <typename T>
+using Vector2D = ROOT::Math::DisplacementVector2D<ROOT::Math::Cartesian2D<T>, ROOT::Math::DefaultCoordinateSystemTag>;
 
 template <typename T>
 using Point3D = ROOT::Math::PositionVector3D<ROOT::Math::Cartesian3D<T>, ROOT::Math::DefaultCoordinateSystemTag>;
 template <typename T>
 using Vector3D = ROOT::Math::DisplacementVector3D<ROOT::Math::Cartesian3D<T>, ROOT::Math::DefaultCoordinateSystemTag>;
+
 // more typedefs can follow
 
 namespace o2

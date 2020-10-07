@@ -24,8 +24,7 @@
 
 #include "GPUROOTCartesianFwd.h"
 #ifndef GPUCA_ALIGPUCODE
-#include "MathUtils/Cartesian2D.h"
-#include "MathUtils/Cartesian3D.h"
+#include "MathUtils/Cartesian.h"
 #endif
 
 namespace o2

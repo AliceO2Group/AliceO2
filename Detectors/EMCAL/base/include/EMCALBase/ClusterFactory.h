@@ -18,7 +18,7 @@
 #include "DataFormatsEMCAL/Cell.h"
 #include "DataFormatsEMCAL/AnalysisCluster.h"
 #include "EMCALBase/Geometry.h"
-#include "MathUtils/Cartesian3D.h"
+#include "MathUtils/Cartesian.h"
 
 namespace o2
 {

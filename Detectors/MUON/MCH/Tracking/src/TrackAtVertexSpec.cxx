@@ -31,7 +31,7 @@
 #include "Framework/Task.h"
 
 #include "DetectorsBase/GeometryManager.h"
-#include "MathUtils/Cartesian3D.h"
+#include "MathUtils/Cartesian.h"
 #include "Field/MagneticField.h"
 #include "MCHBase/ClusterBlock.h"
 #include "MCHBase/TrackBlock.h"

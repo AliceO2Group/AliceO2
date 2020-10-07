@@ -18,7 +18,7 @@
 #include "MFTBase/GeometryTGeo.h"
 
 #include "DetectorsBase/GeometryManager.h"
-#include "MathUtils/Cartesian3D.h"
+#include "MathUtils/Cartesian.h"
 
 #include "FairLogger.h" // for LOG
 
