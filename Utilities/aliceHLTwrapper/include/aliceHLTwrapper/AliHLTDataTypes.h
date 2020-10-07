@@ -1579,12 +1579,16 @@ namespace std
  */
 inline bool MatchExactly(const AliHLTComponentDataType& dt1, const AliHLTComponentDataType& dt2)
 {
-  for (int i = 0; i < kAliHLTComponentDataTypefIDsize; i++)
-    if (dt1.fID[i] != dt2.fID[i])
+  for (int i = 0; i < kAliHLTComponentDataTypefIDsize; i++) {
+    if (dt1.fID[i] != dt2.fID[i]) {
       return false;
-  for (int i = 0; i < kAliHLTComponentDataTypefOriginSize; i++)
-    if (dt1.fOrigin[i] != dt2.fOrigin[i])
+    }
+  }
+  for (int i = 0; i < kAliHLTComponentDataTypefOriginSize; i++) {
+    if (dt1.fOrigin[i] != dt2.fOrigin[i]) {
       return false;
+    }
+  }
   return true;
 }
 
@@ -1595,10 +1599,12 @@ inline bool MatchExactly(const AliHLTComponentDataType& dt1, const AliHLTCompone
  */
 inline bool operator==(const AliHLTComponentDataType& dt1, const AliHLTComponentDataType& dt2)
 {
-  if (MatchExactly(dt1, kAliHLTAllDataTypes))
+  if (MatchExactly(dt1, kAliHLTAllDataTypes)) {
     return true;
-  if (MatchExactly(dt2, kAliHLTAllDataTypes))
+  }
+  if (MatchExactly(dt2, kAliHLTAllDataTypes)) {
     return true;
+  }
 
   bool any1 = true, any2 = true, void1 = true, void2 = true, match = true;
   for (int i = 0; i < kAliHLTComponentDataTypefOriginSize; i++) {
@@ -1607,8 +1613,9 @@ inline bool operator==(const AliHLTComponentDataType& dt1, const AliHLTComponent
     void1 &= (dt1.fOrigin[i] == kAliHLTDataOriginVoid[i]);
     void2 &= (dt2.fOrigin[i] == kAliHLTDataOriginVoid[i]);
     match &= dt1.fOrigin[i] == dt2.fOrigin[i];
-    if (!(match || (any2 && !void1) || (any1 && !void2)))
+    if (!(match || (any2 && !void1) || (any1 && !void2))) {
       return false;
+    }
   }
 
   any1 = true, any2 = true, match = true;
@@ -1618,8 +1625,9 @@ inline bool operator==(const AliHLTComponentDataType& dt1, const AliHLTComponent
     void1 &= (dt1.fID[i] == kAliHLTVoidDataTypeID[i]);
     void2 &= (dt2.fID[i] == kAliHLTVoidDataTypeID[i]);
     match &= dt1.fID[i] == dt2.fID[i];
-    if (!(match || (any2 && !void1) || (any1 && !void2)))
+    if (!(match || (any2 && !void1) || (any1 && !void2))) {
       return false;
+    }
   }
   return true;
 }
@@ -1639,8 +1647,9 @@ inline bool operator!=(const AliHLTComponentDataType& dt1, const AliHLTComponent
 inline AliHLTComponentDataType operator|(const AliHLTComponentDataType srcdt, const char origin[kAliHLTComponentDataTypefOriginSize])
 {
   AliHLTComponentDataType dt = srcdt;
-  for (int i = 0; i < kAliHLTComponentDataTypefOriginSize; i++)
+  for (int i = 0; i < kAliHLTComponentDataTypefOriginSize; i++) {
     dt.fOrigin[i] = origin[i];
+  }
   return dt;
 }
 
@@ -1653,10 +1662,12 @@ inline AliHLTComponentDataType AliHLTComponentDataTypeInitializer(const char id[
 {
   AliHLTComponentDataType dt = kAliHLTVoidDataType;
   int i = 0;
-  for (i = 0; i < kAliHLTComponentDataTypefIDsize && id[i] != 0; i++)
+  for (i = 0; i < kAliHLTComponentDataTypefIDsize && id[i] != 0; i++) {
     dt.fID[i] = id[i];
-  for (i = 0; i < kAliHLTComponentDataTypefOriginSize && origin[i] != 0; i++)
+  }
+  for (i = 0; i < kAliHLTComponentDataTypefOriginSize && origin[i] != 0; i++) {
     dt.fOrigin[i] = origin[i];
+  }
   return dt;
 }
 
