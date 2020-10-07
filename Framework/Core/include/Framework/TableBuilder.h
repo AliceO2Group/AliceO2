@@ -20,12 +20,14 @@
 // Apparently needs to be on top of the arrow includes.
 #include <sstream>
 
+#include <arrow/status.h>
 #include <arrow/stl.h>
 #include <arrow/type_traits.h>
 #include <arrow/table.h>
 #include <arrow/builder.h>
 
 #include <functional>
+#include <stdexcept>
 #include <vector>
 #include <string>
 #include <memory>
@@ -37,6 +39,12 @@ class ArrayBuilder;
 class Table;
 class Array;
 } // namespace arrow
+
+template <typename T>
+struct BulkInfo {
+  const T ptr;
+  size_t size;
+};
 
 namespace o2::framework
 {
@@ -87,15 +95,15 @@ O2_ARROW_STL_CONVERSION(std::string, StringType)
 
 struct BuilderUtils {
   template <typename T>
-  static arrow::Status appendToList(std::unique_ptr<arrow::FixedSizeListBuilder>& builder, T* data)
+  static arrow::Status appendToList(std::unique_ptr<arrow::FixedSizeListBuilder>& builder, T* data, int size = 1)
   {
-    using ArrowType = typename detail::ConversionTraits<T>::ArrowType;
+    using ArrowType = typename detail::ConversionTraits<std::decay_t<T>>::ArrowType;
     using BuilderType = typename arrow::TypeTraits<ArrowType>::BuilderType;
     size_t numElements = static_cast<const arrow::FixedSizeListType*>(builder->type().get())->list_size();
 
-    auto status = builder->AppendValues(1);
+    auto status = builder->AppendValues(size);
     auto ValueBuilder = static_cast<BuilderType*>(builder->value_builder());
-    status &= ValueBuilder->AppendValues(data, numElements, nullptr);
+    status &= ValueBuilder->AppendValues(data, numElements * size, nullptr);
 
     return status;
   }
@@ -154,6 +162,28 @@ struct BuilderUtils {
     return builder->AppendValues(ptr, bulkSize, nullptr);
   }
 
+  template <typename BuilderType, typename PTR>
+  static arrow::Status bulkAppendChunked(BuilderType& builder, BulkInfo<PTR> info)
+  {
+    // Appending nullptr is a no-op.
+    if (info.ptr == nullptr) {
+      return arrow::Status::OK();
+    }
+    if constexpr (std::is_same_v<BuilderType, std::unique_ptr<arrow::FixedSizeListBuilder>>) {
+      if (appendToList<std::remove_pointer_t<decltype(info.ptr)>>(builder, info.ptr, info.size).ok() == false) {
+        throw std::runtime_error("Unable to append to column");
+      } else {
+        return arrow::Status::OK();
+      }
+    } else {
+      if (builder->AppendValues(info.ptr, info.size, nullptr).ok() == false) {
+        throw std::runtime_error("Unable to append to column");
+      } else {
+        return arrow::Status::OK();
+      }
+    }
+  }
+
   template <typename BuilderType, typename ITERATOR>
   static arrow::Status append(BuilderType& builder, std::pair<ITERATOR, ITERATOR> ip)
   {
@@ -185,6 +215,7 @@ struct BuilderUtils {
 template <typename T>
 struct BuilderMaker {
   using FillType = T;
+  using STLValueType = T;
   using ArrowType = typename detail::ConversionTraits<T>::ArrowType;
   using BuilderType = typename arrow::TypeTraits<ArrowType>::BuilderType;
 
@@ -213,6 +244,7 @@ struct BuilderMaker {
 template <>
 struct BuilderMaker<bool> {
   using FillType = bool;
+  using STLValueType = bool;
   using ArrowType = typename detail::ConversionTraits<bool>::ArrowType;
   using BuilderType = typename arrow::TypeTraits<ArrowType>::BuilderType;
 
@@ -235,6 +267,7 @@ struct BuilderMaker<bool> {
 template <typename ITERATOR>
 struct BuilderMaker<std::pair<ITERATOR, ITERATOR>> {
   using FillType = std::pair<ITERATOR, ITERATOR>;
+  using STLValueType = typename ITERATOR::value_type;
   using ArrowType = arrow::ListType;
   using ValueType = typename detail::ConversionTraits<typename ITERATOR::value_type>::ArrowType;
   using BuilderType = arrow::ListBuilder;
@@ -255,6 +288,7 @@ struct BuilderMaker<std::pair<ITERATOR, ITERATOR>> {
 template <typename T, int N>
 struct BuilderMaker<T (&)[N]> {
   using FillType = T*;
+  using STLValueType = T;
   using BuilderType = arrow::FixedSizeListBuilder;
   using ArrowType = arrow::FixedSizeListType;
   using ElementType = typename detail::ConversionTraits<T>::ArrowType;
@@ -354,6 +388,13 @@ struct TableBuilderHelpers {
   static bool bulkAppend(BUILDERS& builders, size_t bulkSize, std::index_sequence<Is...>, PTRS ptrs)
   {
     return (BuilderUtils::bulkAppend(std::get<Is>(builders), bulkSize, std::get<Is>(ptrs)).ok() && ...);
+  }
+
+  /// Return true if all columns are done.
+  template <std::size_t... Is, typename BUILDERS, typename INFOS>
+  static bool bulkAppendChunked(BUILDERS& builders, std::index_sequence<Is...>, INFOS infos)
+  {
+    return (BuilderUtils::bulkAppendChunked(std::get<Is>(builders), std::get<Is>(infos)).ok() && ...);
   }
 
   /// Invokes the append method for each entry in the tuple
@@ -549,6 +590,20 @@ class TableBuilder
 
     return [builders = mBuilders](unsigned int slot, size_t batchSize, typename BuilderMaker<ARGS>::FillType const*... args) -> void {
       TableBuilderHelpers::bulkAppend(*(BuildersTuple<ARGS...>*)builders, batchSize, std::index_sequence_for<ARGS...>{}, std::forward_as_tuple(args...));
+    };
+  }
+
+  template <typename... ARGS>
+  auto bulkPersistChunked(std::vector<std::string> const& columnNames, size_t nRows)
+  {
+    constexpr int nColumns = sizeof...(ARGS);
+    validate<ARGS...>(columnNames);
+    mArrays.resize(nColumns);
+    makeBuilders<ARGS...>(columnNames, nRows);
+    makeFinalizer<ARGS...>();
+
+    return [builders = mBuilders](unsigned int slot, BulkInfo<typename BuilderMaker<ARGS>::STLValueType const*>... args) -> bool {
+      return TableBuilderHelpers::bulkAppendChunked(*(BuildersTuple<ARGS...>*)builders, std::index_sequence_for<ARGS...>{}, std::forward_as_tuple(args...));
     };
   }
 
