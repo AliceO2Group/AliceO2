@@ -188,7 +188,6 @@ void DataAllocator::adopt(const Output& spec, TreeToTable* t2t)
     auto table = payload->finalize();
 
     auto stream = std::make_shared<arrow::io::BufferOutputStream>(b);
-    std::shared_ptr<arrow::ipc::RecordBatchWriter> writer;
     auto outBatch = arrow::ipc::NewStreamWriter(stream.get(), table->schema());
     if (outBatch.ok() == true) {
       auto outStatus = outBatch.ValueOrDie()->WriteTable(*table);

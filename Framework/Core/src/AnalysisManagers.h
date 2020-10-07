@@ -236,7 +236,12 @@ struct OutputManager<Spawns<T>> {
   static bool prepare(ProcessingContext& pc, Spawns<T>& what)
   {
     auto original_table = soa::ArrowHelpers::joinTables(extractOriginals(what.sources_pack(), pc));
-    what.extension = std::make_shared<typename Spawns<T>::extension_t>(o2::soa::spawner(what.pack(), original_table.get()));
+    if (original_table->schema()->fields().empty() == true) {
+      using base_table_t = typename Spawns<T>::base_table_t;
+      original_table = makeEmptyTable<base_table_t>();
+    }
+
+    what.extension = std::make_shared<typename Spawns<T>::extension_t>(o2::framework::spawner(what.pack(), original_table.get()));
     what.table = std::make_shared<typename T::table_t>(soa::ArrowHelpers::joinTables({what.extension->asArrowTable(), original_table}));
     return true;
   }

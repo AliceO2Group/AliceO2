@@ -15,6 +15,7 @@
 #include "Framework/ASoA.h"
 #include "Framework/ASoAHelpers.h"
 #include "Framework/Expressions.h"
+#include "Framework/AnalysisHelpers.h"
 #include "../src/ExpressionHelpers.h"
 #include "gandiva/tree_expr_builder.h"
 #include "arrow/status.h"

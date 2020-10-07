@@ -597,6 +597,55 @@ class TableBuilder
   std::vector<std::shared_ptr<arrow::Array>> mArrays;
 };
 
+template <typename T>
+auto makeEmptyTable()
+{
+  TableBuilder b;
+  auto writer = b.cursor<T>();
+  return b.finalize();
+}
+
+/// Expression-based column generator to materialize columns
+template <typename... C>
+auto spawner(framework::pack<C...> columns, arrow::Table* atable)
+{
+  static auto new_schema = o2::soa::createSchemaFromColumns(columns);
+  static auto projectors = framework::expressions::createProjectors(columns, atable->schema());
+
+  if (atable->num_rows() == 0) {
+    return makeEmptyTable<soa::Table<C...>>();
+  }
+
+  arrow::TableBatchReader reader(*atable);
+  std::shared_ptr<arrow::RecordBatch> batch;
+  arrow::ArrayVector v;
+  std::array<arrow::ArrayVector, sizeof...(C)> chunks;
+  std::vector<std::shared_ptr<arrow::ChunkedArray>> arrays;
+
+  while (true) {
+    auto s = reader.ReadNext(&batch);
+    if (!s.ok()) {
+      throw std::runtime_error(fmt::format("Cannot read batches from table: {}", s.ToString()));
+    }
+    if (batch == nullptr) {
+      break;
+    }
+    s = projectors->Evaluate(*batch, arrow::default_memory_pool(), &v);
+    if (!s.ok()) {
+      throw std::runtime_error(fmt::format("Cannot apply projector: {}", s.ToString()));
+    }
+    for (auto i = 0u; i < sizeof...(C); ++i) {
+      chunks[i].emplace_back(v.at(i));
+    }
+  }
+
+  for (auto i = 0u; i < sizeof...(C); ++i) {
+    arrays.push_back(std::make_shared<arrow::ChunkedArray>(chunks[i]));
+  }
+
+  return arrow::Table::Make(new_schema, arrays);
+}
+
 /// Helper to get a tuple tail
 template <typename Head, typename... Tail>
 std::tuple<Tail...> tuple_tail(std::tuple<Head, Tail...>& t)
