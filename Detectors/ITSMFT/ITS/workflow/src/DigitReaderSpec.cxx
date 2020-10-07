@@ -11,7 +11,6 @@
 /// @file   DigitReaderSpec.cxx
 
 #include <vector>
-#include <SimulationDataFormat/ConstMCTruthContainer.h>
 
 #include "TTree.h"
 

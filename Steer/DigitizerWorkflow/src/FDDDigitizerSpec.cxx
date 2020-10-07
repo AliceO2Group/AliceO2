@@ -18,7 +18,6 @@
 #include "Headers/DataHeader.h"
 #include "Steer/HitProcessingManager.h" // for DigitizationContext
 #include "DetectorsBase/BaseDPLDigitizer.h"
-#include "SimulationDataFormat/MCTruthContainer.h"
 #include "SimulationDataFormat/ConstMCTruthContainer.h"
 #include "Framework/Task.h"
 #include "DataFormatsParameters/GRPObject.h"

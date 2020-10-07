@@ -27,7 +27,6 @@
 #include <vector>
 #include <array>
 #include "DataFormatsTPC/Constants.h"
-#include "SimulationDataFormat/MCTruthContainer.h"
 #include "SimulationDataFormat/ConstMCTruthContainer.h"
 #include "SimulationDataFormat/MCCompLabel.h"
 
