@@ -52,7 +52,7 @@ class DCSDataProcessor : public o2::framework::Task
     aliasVect.push_back(dpidtmp);
 
     DeliveryType typeint = RAW_INT;
-    for (int i = 0; i < 3; i++) {
+    for (int i = 0; i < 50000; i++) {
       std::string dpAliasint = "TestInt_" + std::to_string(i);
       DPID::FILL(dpidtmp, dpAliasint, typeint);
       aliasVect.push_back(dpidtmp);
@@ -86,8 +86,8 @@ class DCSDataProcessor : public o2::framework::Task
     for (int i = 0; i < nDPs; i++) {
       memcpy(&dptmp, rawchar + i * sizeof(DPCOM), sizeof(DPCOM));
       dcsmap[dptmp.id] = dptmp.data;
-      LOG(INFO) << "Reading from generator: i = " << i << ", DPCOM = " << dptmp;
-      LOG(INFO) << "Reading from generator: i = " << i << ", DPID = " << dptmp.id;
+      LOG(DEBUG) << "Reading from generator: i = " << i << ", DPCOM = " << dptmp;
+      LOG(DEBUG) << "Reading from generator: i = " << i << ", DPID = " << dptmp.id;
     }
     mDCSproc.process(dcsmap);
   }

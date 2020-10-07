@@ -57,7 +57,7 @@ class DCSDataGenerator : public o2::framework::Task
     mNumDPschar++;
 
     // ints
-    for (int i = 0; i < 3; i++) {
+    for (int i = 0; i < 50000; i++) {
       std::string dpAliasint = "TestInt_" + std::to_string(i);
       DPID::FILL(dpidtmp, dpAliasint, mtypeint);
       mDPIDvect.push_back(dpidtmp);
@@ -141,7 +141,7 @@ class DCSDataGenerator : public o2::framework::Task
     auto svect = dpcomVect.size();
     LOG(INFO) << "dpcomVect has size " << svect;
     for (int i = 0; i < svect; i++) {
-      LOG(INFO) << "i = " << i << ", DPCOM = " << dpcomVect[i];
+      LOG(DEBUG) << "i = " << i << ", DPCOM = " << dpcomVect[i];
     }
     std::vector<char> buff(mNumDPs * sizeof(DPCOM));
     char* dptr = buff.data();
@@ -149,15 +149,17 @@ class DCSDataGenerator : public o2::framework::Task
       memcpy(dptr + i * sizeof(DPCOM), &dpcomVect[i], sizeof(DPCOM));
     }
     auto sbuff = buff.size();
-    LOG(INFO) << "size of output buffer = " << sbuff;
+    LOG(DEBUG) << "size of output buffer = " << sbuff;
     pc.outputs().snapshot(Output{"DCS", "DATAPOINTS", 0, Lifetime::Timeframe}, buff.data(), sbuff);
 
+    /*
     LOG(INFO) << "Reading back";
     DPCOM dptmp;
     for (int i = 0; i < svect; i++) {
       memcpy(&dptmp, dptr + i * sizeof(DPCOM), sizeof(DPCOM));
-      LOG(INFO) << "Check: Reading from generator: i = " << i << ", DPCOM = " << dptmp;
+      LOG(DEBUG) << "Check: Reading from generator: i = " << i << ", DPCOM = " << dptmp;
     }
+    */
     /*
     auto& tmpDPmap = pc.outputs().make<std::unordered_map<DPID, DPVAL>>(o2::framework::OutputRef{"output", 0});
     tmpDPmap[mcharVar] = valchar;
