@@ -16,7 +16,9 @@
 #define O2_CONSTMCTRUTHCONTAINER_H
 
 #include <SimulationDataFormat/MCTruthContainer.h>
+#ifndef GPUCA_STANDALONE
 #include <Framework/Traits.h>
+#endif
 
 namespace o2
 {
@@ -77,7 +79,7 @@ class ConstMCTruthContainer : public std::vector<char>
   /// Restore internal vectors from a raw buffer
   /// The two vectors are resized according to the information in the \a FlatHeader
   /// struct at the beginning of the buffer. Data is copied to the vectors.
-  TruthElement const* const getLabelStart() const
+  TruthElement const* getLabelStart() const
   {
     auto* source = &(*this)[0];
     auto flatheader = getHeader();
@@ -94,7 +96,7 @@ class ConstMCTruthContainer : public std::vector<char>
     return flatheader;
   }
 
-  MCTruthHeaderElement const* const getHeaderStart() const
+  MCTruthHeaderElement const* getHeaderStart() const
   {
     auto* source = &(*this)[0];
     source += sizeof(FlatHeader);
@@ -108,12 +110,14 @@ class ConstMCTruthContainer : public std::vector<char>
 // In particular in enables
 // a) --> snapshot without ROOT dictionary (as a flat buffer)
 // b) --> requesting the resource in shared mem using make<T>
+#ifndef GPUCA_STANDALONE
 namespace o2::framework
 {
 template <typename T>
 struct is_specialization<o2::dataformats::ConstMCTruthContainer<T>, std::vector> : std::true_type {
 };
 } // namespace o2::framework
+#endif
 
 namespace o2
 {
@@ -149,10 +153,10 @@ class ConstMCTruthContainerView
   }
 
   // return the number of original data indexed here
-  size_t getIndexedSize() const { return mStorage.size() >= sizeof(FlatHeader) ? getHeader().nofHeaderElements : 0; }
+  size_t getIndexedSize() const { return (size_t)mStorage.size() >= sizeof(FlatHeader) ? getHeader().nofHeaderElements : 0; }
 
   // return the number of labels managed in this container
-  size_t getNElements() const { return mStorage.size() >= sizeof(FlatHeader) ? getHeader().nofTruthElements : 0; }
+  size_t getNElements() const { return (size_t)mStorage.size() >= sizeof(FlatHeader) ? getHeader().nofTruthElements : 0; }
 
   // return underlying buffer
   const gsl::span<const char>& getBuffer() const { return mStorage; }
@@ -174,7 +178,7 @@ class ConstMCTruthContainerView
   /// Restore internal vectors from a raw buffer
   /// The two vectors are resized according to the information in the \a FlatHeader
   /// struct at the beginning of the buffer. Data is copied to the vectors.
-  TruthElement const* const getLabelStart() const
+  TruthElement const* getLabelStart() const
   {
     auto* source = &(mStorage)[0];
     auto flatheader = getHeader();
@@ -191,7 +195,7 @@ class ConstMCTruthContainerView
     return flatheader;
   }
 
-  MCTruthHeaderElement const* const getHeaderStart() const
+  MCTruthHeaderElement const* getHeaderStart() const
   {
     auto* source = &(mStorage)[0];
     source += sizeof(FlatHeader);

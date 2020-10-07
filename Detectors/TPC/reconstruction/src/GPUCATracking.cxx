@@ -16,7 +16,6 @@
 #include "FairLogger.h"
 #include "ReconstructionDataFormats/Track.h"
 #include "SimulationDataFormat/MCCompLabel.h"
-#include "SimulationDataFormat/MCTruthContainer.h"
 #include "SimulationDataFormat/ConstMCTruthContainer.h"
 #include "TChain.h"
 #include "TClonesArray.h"

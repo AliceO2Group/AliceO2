@@ -20,7 +20,6 @@
 #include "TPCReconstruction/Clusterer.h"
 #include "DataFormatsTPC/Helpers.h"
 
-#include "SimulationDataFormat/MCTruthContainer.h"
 #include "SimulationDataFormat/ConstMCTruthContainer.h"
 #include "SimulationDataFormat/MCCompLabel.h"
 

@@ -19,7 +19,6 @@
 #include "Steer/HitProcessingManager.h" // for DigitizationContext
 #include "TChain.h"
 #include <SimulationDataFormat/MCCompLabel.h>
-#include <SimulationDataFormat/MCTruthContainer.h>
 #include <SimulationDataFormat/ConstMCTruthContainer.h>
 #include "Framework/Task.h"
 #include "DataFormatsParameters/GRPObject.h"

@@ -21,7 +21,6 @@
 #include "TPCBase/Mapper.h"
 #include "TPCReconstruction/HwClusterer.h"
 
-#include "SimulationDataFormat/MCTruthContainer.h"
 #include "SimulationDataFormat/ConstMCTruthContainer.h"
 #include "SimulationDataFormat/MCCompLabel.h"
 
