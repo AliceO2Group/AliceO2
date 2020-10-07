@@ -16,7 +16,6 @@
 #include "Framework/DataProcessorSpec.h"
 #include "Framework/DataRefUtils.h"
 #include "Framework/Lifetime.h"
-#include <SimulationDataFormat/MCTruthContainer.h>
 #include <SimulationDataFormat/ConstMCTruthContainer.h>
 #include <SimulationDataFormat/MCCompLabel.h>
 #include "SimulationDataFormat/IOMCTruthContainerView.h"
