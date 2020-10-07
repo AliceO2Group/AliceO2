@@ -68,6 +68,7 @@ class AliHLTGPUDumpComponent : public AliHLTProcessor
   AliRecoParam fOfflineRecoParam;
   AliTPCTransform* fOrigTransform;
   bool fIsMC;
+  long fInitTimestamp;
 };
 
 #endif

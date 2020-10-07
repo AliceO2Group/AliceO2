@@ -54,7 +54,7 @@
 
 using namespace GPUCA_NAMESPACE::gpu;
 
-AliHLTGPUDumpComponent::AliHLTGPUDumpComponent() : fSolenoidBz(0.f), fRec(nullptr), fChain(nullptr), fFastTransformManager(new TPCFastTransformManager), fCalib(nullptr), fRecParam(nullptr), fOfflineRecoParam(), fOrigTransform(nullptr), fIsMC(false)
+AliHLTGPUDumpComponent::AliHLTGPUDumpComponent() : fSolenoidBz(0.f), fRec(nullptr), fChain(nullptr), fFastTransformManager(new TPCFastTransformManager), fCalib(nullptr), fRecParam(nullptr), fOfflineRecoParam(), fOrigTransform(nullptr), fIsMC(false), fInitTimestamp(0.)
 {
   fRec = GPUReconstruction::CreateInstance();
   fChain = fRec->AddChain<GPUChainTracking>();
@@ -150,6 +150,7 @@ int AliHLTGPUDumpComponent::DoInit(int argc, const char** argv)
     HLTFatal("No TPC Reco Param entry found for the given event specification");
   }
   fCalib->GetTransform()->SetCurrentRecoParam(fRecParam);
+  fInitTimestamp = GetTimeStamp();
 
   return 0;
 }
@@ -460,7 +461,7 @@ int AliHLTGPUDumpComponent::DoEvent(const AliHLTComponentEventData& evtData, con
 
   if (nEvent == 0) {
     std::unique_ptr<TPCFastTransform> fFastTransformIRS(new TPCFastTransform);
-    long TimeStamp = GetTimeStamp();
+    long TimeStamp = (getenv("DUMP_TIMESTAMP_SOR") && atoi(getenv("DUMP_TIMESTAMP_SOR"))) ? fInitTimestamp : GetTimeStamp();
     if (fIsMC && !fRecParam->GetUseCorrectionMap()) {
       TimeStamp = 0;
     }
