@@ -44,7 +44,7 @@ class VertexTrackMatcher
   using TrackTPC = o2::tpc::TrackTPC;
   using TmpMap = std::unordered_map<int, std::vector<GIndex>>;
   using TimeEst = o2::dataformats::TimeStampWithError<float, float>;
-  using TBracket = o2::utils::Bracket<float>;
+  using TBracket = o2::math_utils::Bracket<float>;
 
   void init();
   void process(const gsl::span<const PVertex>& vertices,   // vertices

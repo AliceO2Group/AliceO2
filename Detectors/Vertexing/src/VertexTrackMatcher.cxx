@@ -82,8 +82,8 @@ void VertexTrackMatcher::process(const gsl::span<const PVertex>& vertices,
     tpcTimes.emplace_back(tpcTimeBin2MUS(trc.getTime0() - trc.getDeltaTBwd()), tpcTimeBin2MUS(trc.getTime0() + trc.getDeltaTFwd()));
   }
   std::sort(idTPC.begin(), idTPC.end(), [&tpcTimes](int i, int j) { // sort according to max time
-    float tI = (i < 0) ? 1e9 : tpcTimes[i].max();
-    float tJ = (j < 0) ? 1e9 : tpcTimes[j].max();
+    float tI = (i < 0) ? 1e9 : tpcTimes[i].getMax();
+    float tJ = (j < 0) ? 1e9 : tpcTimes[j].getMax();
     return tI < tJ;
   });
 
@@ -244,7 +244,7 @@ void VertexTrackMatcher::attachTPC(TmpMap& tmpMap, const std::vector<TBracket>& 
         itrCurr = itr;
       } else if (rel == TBracket::Inside) {
         tmpMap[ivtCurr].emplace_back(idTPC[itr], GIndex::TPC);
-      } else if (tT.max() - mMaxTPCDriftTimeMUS > tV.max()) {
+      } else if (tT.getMax() - mMaxTPCDriftTimeMUS > tV.getMax()) {
         break;
       }
       itr++;

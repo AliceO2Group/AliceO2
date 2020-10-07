@@ -59,7 +59,7 @@ namespace globaltracking
 ///< original track in the currently loaded TPC-ITS reco output
 struct TrackLocTPCITS : public o2::track::TrackParCov {
   o2::dataformats::EvIndex<int, int> source; ///< track origin id
-  o2::utils::Bracket<float> timeBins;        ///< bracketing time-bins
+  o2::math_utils::Bracket<float> timeBins;   ///< bracketing time-bins
   float zMin = 0;                            // min possible Z of this track
   float zMax = 0;                            // max possible Z of this track
   int matchID = MinusOne;                    ///< entry (none if MinusOne) of TOF matchTOF struct in the mMatchesTOF
@@ -256,9 +256,9 @@ class MatchTOF
   gsl::span<const Cluster> mTOFClustersArrayInp;                  ///< input TOF clusters
   std::vector<Cluster>* mTOFClustersArrayInpVect;                 ///< input TOF clusters (vector to read from tree)
 
-  o2::dataformats::MCTruthContainer<o2::MCCompLabel> mTOFClusLabels;                  ///< input TOF clusters MC labels
-  o2::dataformats::MCTruthContainer<o2::MCCompLabel>* mTOFClusLabelsPtr;              ///< input TOF clusters MC labels (pointer to read from tree)
-  std::vector<o2::MCCompLabel> mTracksLblWork;                                        ///<TPCITS track labels
+  o2::dataformats::MCTruthContainer<o2::MCCompLabel> mTOFClusLabels;     ///< input TOF clusters MC labels
+  o2::dataformats::MCTruthContainer<o2::MCCompLabel>* mTOFClusLabelsPtr; ///< input TOF clusters MC labels (pointer to read from tree)
+  std::vector<o2::MCCompLabel> mTracksLblWork;                           ///<TPCITS track labels
 
   gsl::span<const o2::MCCompLabel> mTPCLabels;  ///< TPC label of input tracks
   gsl::span<const o2::MCCompLabel> mITSLabels;  ///< ITS label of input tracks
@@ -270,11 +270,11 @@ class MatchTOF
   /// <<<-----
 
   ///<working copy of the input tracks
-  std::vector<matchTrack> mTracksWork;                   ///<track params prepared for matching + time value
-  std::vector<float> mExtraTPCFwdTime;                   ///<track extra params for TPC tracks: Fws Max time
-  std::vector<o2::track::TrackLTIntegral> mLTinfos;      ///<expected times and others
-  std::vector<Cluster> mTOFClusWork;                     ///<track params prepared for matching
-  std::vector<int8_t> mSideTPC;                          ///<track side for TPC tracks
+  std::vector<matchTrack> mTracksWork;              ///<track params prepared for matching + time value
+  std::vector<float> mExtraTPCFwdTime;              ///<track extra params for TPC tracks: Fws Max time
+  std::vector<o2::track::TrackLTIntegral> mLTinfos; ///<expected times and others
+  std::vector<Cluster> mTOFClusWork;                ///<track params prepared for matching
+  std::vector<int8_t> mSideTPC;                     ///<track side for TPC tracks
 
   ///< per sector indices of track entry in mTracksWork
   std::array<std::vector<int>, o2::constants::math::NSectors> mTracksSectIndexCache;
@@ -301,17 +301,17 @@ class MatchTOF
   int mNumOfClusters;                   // number of clusters to be matched
   int* mMatchedClustersIndex = nullptr; //[mNumOfClusters]
 
-  std::string mTracksBranchName = "TPCITS";                 ///< name of branch containing input matched tracks
-  std::string mTPCTracksBranchName = "Tracks";              ///< name of branch containing actual TPC tracks
-  std::string mTPCMCTruthBranchName = "MatchTPCMCTruth";    ///< name of branch containing TPC labels
-  std::string mITSMCTruthBranchName = "MatchITSMCTruth";    ///< name of branch containing ITS labels
-  std::string mTOFMCTruthBranchName = "TOFClusterMCTruth";  ///< name of branch containing TOF clusters labels
-  std::string mTOFClusterBranchName = "TOFCluster";         ///< name of branch containing input ITS clusters
-  std::string mOutTracksBranchName = "TOFMatchInfo";        ///< name of branch containing output matched tracks
-  std::string mOutCalibBranchName = "TOFCalibInfo";         ///< name of branch containing output calibration infos
-  std::string mOutTOFMCTruthBranchName = "MatchTOFMCTruth"; ///< name of branch containing TOF labels for output matched tracks
-  std::string mOutTPCMCTruthBranchName = "MatchTPCMCTruth"; ///< name of branch containing TOF labels for output matched tracks
-  std::string mOutITSMCTruthBranchName = "MatchITSMCTruth"; ///< name of branch containing TOF labels for output matched tracks
+  std::string mTracksBranchName = "TPCITS";                    ///< name of branch containing input matched tracks
+  std::string mTPCTracksBranchName = "Tracks";                 ///< name of branch containing actual TPC tracks
+  std::string mTPCMCTruthBranchName = "MatchTPCMCTruth";       ///< name of branch containing TPC labels
+  std::string mITSMCTruthBranchName = "MatchITSMCTruth";       ///< name of branch containing ITS labels
+  std::string mTOFMCTruthBranchName = "TOFClusterMCTruth";     ///< name of branch containing TOF clusters labels
+  std::string mTOFClusterBranchName = "TOFCluster";            ///< name of branch containing input ITS clusters
+  std::string mOutTracksBranchName = "TOFMatchInfo";           ///< name of branch containing output matched tracks
+  std::string mOutCalibBranchName = "TOFCalibInfo";            ///< name of branch containing output calibration infos
+  std::string mOutTOFMCTruthBranchName = "MatchTOFMCTruth";    ///< name of branch containing TOF labels for output matched tracks
+  std::string mOutTPCMCTruthBranchName = "MatchTPCMCTruth";    ///< name of branch containing TOF labels for output matched tracks
+  std::string mOutITSMCTruthBranchName = "MatchITSMCTruth";    ///< name of branch containing TOF labels for output matched tracks
   std::string mOutTPCTrackMCTruthBranchName = "TracksMCTruth"; ///< name of branch containing TPC labels for input TPC tracks
 
   std::unique_ptr<o2::utils::TreeStreamRedirector> mDBGOut;

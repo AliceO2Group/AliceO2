@@ -35,6 +35,6 @@
 
 #pragma link C++ class o2::utils::CircleXY + ;
 #pragma link C++ class o2::utils::IntervalXY + ;
-#pragma link C++ class o2::utils::Bracket < float> + ;
+#pragma link C++ class o2::math_utils::Bracket < float> + ;
 
 #endif

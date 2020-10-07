@@ -30,7 +30,7 @@ void RecoGeomHelper::RecoChip::updateLimits(const Point3D<float>& pntTra)
 void RecoGeomHelper::RecoChip::print() const
 {
   printf("Ch#%4d Alp: %+.3f X:%5.2f %+6.3f<y<%+6.3f  %+6.3f<z<%+6.3f | XYEdges: {%+6.3f,%+6.3f}{%+6.3f,%+6.3f}\n",
-         id, alp, xRef, yRange.min(), yRange.max(), zRange.min(), zRange.max(),
+         id, alp, xRef, yRange.getMin(), yRange.getMax(), zRange.getMin(), zRange.getMax(),
          xyEdges.getX0(), xyEdges.getY0(), xyEdges.getX1(), xyEdges.getY1());
 }
 
@@ -40,18 +40,18 @@ void RecoGeomHelper::RecoLadder::updateLimits(const Point3D<float>& pntGlo)
   // update limits from the point in Global frame
   float phi = pntGlo.phi();    // -pi:pi range
   o2::utils::BringTo02Pi(phi); // temporary bring to 0:2pi range
-  o2::utils::BringTo02Pi(phiRange.min());
-  o2::utils::BringTo02Pi(phiRange.max());
+  o2::utils::BringTo02Pi(phiRange.getMin());
+  o2::utils::BringTo02Pi(phiRange.getMax());
   phiRange.update(phi);
   phiMean = phiRange.mean();
   dphiH = 0.5 * phiRange.delta();
-  if (phiRange.delta() > o2::constants::math::PI) { // wrapping, swap
-    phiRange.set(phiRange.max(), phiRange.min());   // swap
+  if (phiRange.delta() > o2::constants::math::PI) {     // wrapping, swap
+    phiRange.set(phiRange.getMax(), phiRange.getMin()); // swap
     phiMean -= o2::constants::math::PI;
     dphiH = o2::constants::math::PI - dphiH;
   }
-  o2::utils::BringToPMPi(phiRange.min()); // -pi:pi range
-  o2::utils::BringToPMPi(phiRange.max());
+  o2::utils::BringToPMPi(phiRange.getMin()); // -pi:pi range
+  o2::utils::BringToPMPi(phiRange.getMax());
   o2::utils::BringToPMPi(phiMean);
   //
   zRange.update(pntGlo.Z());
@@ -77,7 +77,7 @@ void RecoGeomHelper::RecoLadder::print() const
 {
   assert(overlapWithNext != Undefined || chips.size() == 0); // make sure there are no undefined ladders after init is done
   printf("Ladder %3d  %.3f<phi[<%.3f>]<%.3f dPhiH:%.3f | XYEdges: {%+6.3f,%+6.3f}{%+6.3f,%+6.3f} | %3d chips | OvlNext: %s\n",
-         id, phiRange.min(), phiMean, phiRange.max(), dphiH,
+         id, phiRange.getMin(), phiMean, phiRange.getMax(), dphiH,
          xyEdges.getX0(), xyEdges.getY0(), xyEdges.getX1(), xyEdges.getY1(), (int)chips.size(),
          overlapWithNext == Undefined ? "N/A" : ((overlapWithNext == NoOverlap ? "NO" : (overlapWithNext == Above ? "Above" : "Below"))));
   for (const auto& ch : chips) {
@@ -144,7 +144,7 @@ void RecoGeomHelper::RecoLayer::init()
   // make sure chips within the ladder are ordered in Z, renumber ladders
   for (int i = nLadders; i--;) {
     auto& lad = ladders[i];
-    std::sort(lad.chips.begin(), lad.chips.end(), [](auto& a, auto& b) { return a.zRange.min() < b.zRange.min(); });
+    std::sort(lad.chips.begin(), lad.chips.end(), [](auto& a, auto& b) { return a.zRange.getMin() < b.zRange.getMin(); });
     lad.id = i;
     lad.init();
   }
@@ -218,7 +218,7 @@ void RecoGeomHelper::RecoLayer::updateLimits(const Point3D<float>& pntGlo)
 void RecoGeomHelper::RecoLayer::print() const
 {
   printf("\nLayer %d %.2f<r<%.2f %+.2f<z<%+.2f  %d ladders\n",
-         id, rRange.min(), rRange.max(), zRange.min(), zRange.max(), (int)ladders.size());
+         id, rRange.getMin(), rRange.getMax(), zRange.getMin(), zRange.getMax(), (int)ladders.size());
   for (const auto& ld : ladders) {
     ld.print();
   }

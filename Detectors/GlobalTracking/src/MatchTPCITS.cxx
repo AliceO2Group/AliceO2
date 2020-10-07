@@ -361,7 +361,7 @@ void MatchTPCITS::init()
 
   mRGHelper.init(); // prepare helper for TPC track / ITS clusters matching
   const auto& zr = mRGHelper.layers.back().zRange;
-  mITSFiducialZCut = std::max(std::abs(zr.min()), std::abs(zr.max())) + 20.;
+  mITSFiducialZCut = std::max(std::abs(zr.getMin()), std::abs(zr.getMax())) + 20.;
 
   clear();
 
@@ -580,13 +580,13 @@ bool MatchTPCITS::prepareTPCTracks()
     std::sort(indexCache.begin(), indexCache.end(), [this](int a, int b) {
       auto& trcA = mTPCWork[a];
       auto& trcB = mTPCWork[b];
-      return (trcA.timeBins.max() - trcB.timeBins.max()) < 0.;
+      return (trcA.timeBins.getMax() - trcB.timeBins.getMax()) < 0.;
     });
 
     // build array of 1st entries with tmax corresponding to each ITS ROF (or trigger),
     // TPC tracks below this entry cannot match to ITS tracks of this and higher ROFs
 
-    float tmax = mTPCWork[indexCache.back()].timeBins.max();
+    float tmax = mTPCWork[indexCache.back()].timeBins.getMax();
     if (maxTimeBin < tmax) {
       maxTimeBin = tmax;
     }
@@ -616,13 +616,13 @@ bool MatchTPCITS::prepareTPCTracks()
   // create mapping from TPC time-bins to ITS ROFs
 
   if (mITSROFTimes.back() < maxTimeBin) {
-    maxTimeBin = mITSROFTimes.back().max();
+    maxTimeBin = mITSROFTimes.back().getMax();
   }
   int nb = int(maxTimeBin) + 1;
   mITSROFofTPCBin.resize(nb, -1);
   int itsROF = 0;
   for (int ib = 0; ib < nb; ib++) {
-    while (itsROF < nITSROFs && ib < mITSROFTimes[itsROF].min()) {
+    while (itsROF < nITSROFs && ib < mITSROFTimes[itsROF].getMin()) {
       itsROF++;
     }
     mITSROFofTPCBin[ib] = itsROF;
@@ -680,8 +680,8 @@ bool MatchTPCITS::prepareITSTracks()
     }
 
     int cluROFOffset = mITSClusterROFRec[irof].getFirstEntry(); // clusters of this ROF start at this offset
-    float tmn = intRecord2TPCTimeBin(rofRec.getBCData());     // ITS track min time in TPC time-bins
-    mITSROFTimes.emplace_back(tmn, tmn + mITSROFrame2TPCBin); // ITS track min/max time in TPC time-bins
+    float tmn = intRecord2TPCTimeBin(rofRec.getBCData());       // ITS track min time in TPC time-bins
+    mITSROFTimes.emplace_back(tmn, tmn + mITSROFrame2TPCBin);   // ITS track min/max time in TPC time-bins
 
     for (int sec = o2::constants::math::NSectors; sec--;) {         // start of sector's tracks for this ROF
       mITSTimeBinStart[sec][irof] = mITSSectIndexCache[sec].size(); // The sorting does not affect this
@@ -782,7 +782,6 @@ bool MatchTPCITS::prepareFITInfo()
   return true;
 }
 
-
 //_____________________________________________________
 void MatchTPCITS::doMatching(int sec)
 {
@@ -809,14 +808,14 @@ void MatchTPCITS::doMatching(int sec)
   }
 
   int nCheckTPCControl = 0, nCheckITSControl = 0, nMatchesControl = 0; // temporary
-  int idxMinTPC = tbinStartTPC[minROFITS]; // index of 1st cached TPC track within cached ITS ROFrames
+  int idxMinTPC = tbinStartTPC[minROFITS];                             // index of 1st cached TPC track within cached ITS ROFrames
   auto t2nbs = mZ2TPCBin * mParams->tpcTimeICMatchingNSigma;
   bool checkInteractionCandidates = mUseFT0 && mParams->validateMatchByFIT != MatchITSTPCParams::Disable;
   for (int itpc = idxMinTPC; itpc < nTracksTPC; itpc++) {
     auto& trefTPC = mTPCWork[cacheTPC[itpc]];
     // estimate ITS 1st ROframe bin this track may match to: TPC track are sorted according to their
     // timeMax, hence the timeMax - MaxmNTPCBinsFullDrift are non-decreasing
-    int itsROBin = tpcTimeBin2ITSROFrame(trefTPC.timeBins.max() - maxTDriftSafe);
+    int itsROBin = tpcTimeBin2ITSROFrame(trefTPC.timeBins.getMax() - maxTDriftSafe);
 
     if (itsROBin >= int(tbinStartITS.size())) { // time of TPC track exceeds the max time of ITS in the cache
       break;
@@ -870,7 +869,7 @@ void MatchTPCITS::doMatching(int sec)
       auto deltaT = (trefITS.getZ() - trefTPC.getZ()) * mZ2TPCBin; // time difference in TPC time bins corresponding to Z differences
       auto timeTB = getTPCTrackCorrectedTimeBin(mTPCTracksArray[trefTPC.sourceID], deltaT);
       auto timeTBErr = std::sqrt(trefITS.getSigmaZ2() + trefTPC.getSigmaZ2()) * t2nbs; // nsigma*error in number of TPC time bins
-      o2::utils::Bracket<float> trange(timeTB - timeTBErr, timeTB + timeTBErr);
+      o2::math_utils::Bracket<float> trange(timeTB - timeTBErr, timeTB + timeTBErr);
       // is corrected TPC track time compatible with ITS ROF expressed in TPC bins?
       if (timeITS.isOutside(trange)) {
         continue;
@@ -892,10 +891,10 @@ void MatchTPCITS::doMatching(int sec)
             int idIC = interactionRefs.getFirstEntry(), maxIC = idIC + nic;
             for (; idIC < maxIC; idIC++) {
               auto cmp = mInteractions[idIC].timeBins.isOutside(trange);
-              if (cmp == o2::utils::Bracket<float>::Above) { // trange is above this interaction candidate, the following ones may match
+              if (cmp == o2::math_utils::Bracket<float>::Above) { // trange is above this interaction candidate, the following ones may match
                 continue;
               }
-              if (cmp == o2::utils::Bracket<float>::Inside) {
+              if (cmp == o2::math_utils::Bracket<float>::Inside) {
                 matchedIC = idIC;
               }
               break; // we loop till 1st matching IC or the one above the trange (since IC are ordered, all others will be above too)
@@ -921,8 +920,8 @@ void MatchTPCITS::suppressMatchRecordITS(int itsID, int tpcID)
 {
   ///< suppress the reference on the tpcID in the list of matches recorded for itsID
   auto& tITS = mITSWork[itsID];
-  int topID = MinusOne, recordID = tITS.matchID;   // 1st entry in mMatchRecordsITS
-  while (recordID > MinusOne) {                    // navigate over records for given ITS track
+  int topID = MinusOne, recordID = tITS.matchID; // 1st entry in mMatchRecordsITS
+  while (recordID > MinusOne) {                  // navigate over records for given ITS track
     if (mMatchRecordsITS[recordID].partnerID == tpcID) {
       // unlink this record, connecting its child to its parrent
       if (topID < 0) {
@@ -942,10 +941,10 @@ bool MatchTPCITS::registerMatchRecordTPC(int iITS, int iTPC, float chi2, int can
 {
   ///< record matching candidate, making sure that number of ITS candidates per TPC track, sorted
   ///< in matching chi2 does not exceed allowed number
-  auto& tTPC = mTPCWork[iTPC];                 // get MatchRecord structure of this TPC track, create if none
-  if (tTPC.matchID < 0) {                      // no matches yet, just add new record
-    registerMatchRecordITS(iITS, iTPC, chi2, candIC); // register TPC track in the ITS records
-    tTPC.matchID = mMatchRecordsTPC.size();    // new record will be added in the end
+  auto& tTPC = mTPCWork[iTPC];                                   // get MatchRecord structure of this TPC track, create if none
+  if (tTPC.matchID < 0) {                                        // no matches yet, just add new record
+    registerMatchRecordITS(iITS, iTPC, chi2, candIC);            // register TPC track in the ITS records
+    tTPC.matchID = mMatchRecordsTPC.size();                      // new record will be added in the end
     mMatchRecordsTPC.emplace_back(iITS, chi2, MinusOne, candIC); // create new record with empty reference on next match
     return true;
   }
@@ -956,8 +955,8 @@ bool MatchTPCITS::registerMatchRecordTPC(int iITS, int iTPC, float chi2, int can
     count++;
     if (!nextMatchRec.isBetter(chi2, candIC)) { // need to insert new record before nextMatchRec?
       if (count < mParams->maxMatchCandidates) {
-        break; // will insert in front of nextID
-      } else { // max number of candidates reached, will overwrite the last one
+        break;                                                // will insert in front of nextID
+      } else {                                                // max number of candidates reached, will overwrite the last one
         suppressMatchRecordITS(nextMatchRec.partnerID, iTPC); // flag as disabled the overriden ITS match
         registerMatchRecordITS(iITS, iTPC, chi2, candIC);     // register TPC track entry in the ITS records
         // reuse the record of suppressed ITS match to store better one
@@ -1019,7 +1018,7 @@ void MatchTPCITS::registerMatchRecordITS(int iITS, int iTPC, float chi2, int can
   do {
     auto& nextMatchRec = mMatchRecordsITS[nextRecord];
     if (!nextMatchRec.isBetter(chi2, candIC)) { // need to insert new record before nextMatchRec?
-      newRecord.nextRecID = nextRecord; // new one will refer to old one it overtook
+      newRecord.nextRecID = nextRecord;         // new one will refer to old one it overtook
       if (topID < 0) {
         tITS.matchID = idnew; // the new one is the best match, track will refer to it
       } else {
@@ -1774,7 +1773,7 @@ int MatchTPCITS::prepareTPCTracksAfterBurner()
   mTPCABTimeBinStart.clear();
   const auto& outerLr = mRGHelper.layers.back();
   // to avoid difference between 3D field propagation and Bz-bazed getXatLabR we propagate RMax+margin
-  const float ROuter = outerLr.rRange.max() + 0.5f;
+  const float ROuter = outerLr.rRange.getMax() + 0.5f;
 
   auto propagator = o2::base::Propagator::Instance();
 
@@ -1797,7 +1796,7 @@ int MatchTPCITS::prepareTPCTracksAfterBurner()
   std::sort(mTPCABIndexCache.begin(), mTPCABIndexCache.end(), [this](int a, int b) {
     auto& trcA = mTPCWork[a];
     auto& trcB = mTPCWork[b];
-    return (trcA.timeBins.min() - trcB.timeBins.min()) < 0.;
+    return (trcA.timeBins.getMin() - trcB.timeBins.getMin()) < 0.;
   });
 
   return mTPCABIndexCache.size();
@@ -1825,7 +1824,7 @@ int MatchTPCITS::prepareInteractionTimes()
         if (mITSROFTimes[rof] < fitTime) {
           continue;
         }
-        if (fitTime >= mITSROFTimes[rof].min()) { // belongs to this ROF
+        if (fitTime >= mITSROFTimes[rof].getMin()) { // belongs to this ROF
           auto& ref = mITSROFIntCandEntries[rof];
           if (!ref.getEntries()) {
             ref.setFirstEntry(mInteractions.size()); // register entry
@@ -1886,7 +1885,7 @@ void MatchTPCITS::runAfterBurner()
     } else if (iCRes > 0) {
       continue; // TPC track precedes the interaction (means orphan track?), no need to check it
     } else {
-      LOG(INFO) << "All interaction candidates precede track " << itr << " [" << tTPC.timeBins.min() << ":" << tTPC.timeBins.max() << "]";
+      LOG(INFO) << "All interaction candidates precede track " << itr << " [" << tTPC.timeBins.getMin() << ":" << tTPC.timeBins.getMax() << "]";
       break; // all interaction candidates precede TPC track
     }
   }
@@ -1930,8 +1929,8 @@ bool MatchTPCITS::runAfterBurner(int tpcWID, int iCStart, int iCEnd)
     /*
     // tmp
     LOG(INFO) << "Check track TPC mtc=" << tTPC.matchID << " int.cand. " << iCC
-              << " [" << tTPC.timeBins.min() << ":" << tTPC.timeBins.max() << "] for interaction "
-              << " [" << iCCand.timeBins.min() << ":" << iCCand.timeBins.max() << "]";
+              << " [" << tTPC.timeBins.getMin() << ":" << tTPC.timeBins.getMax() << "] for interaction "
+              << " [" << iCCand.timeBins.getMin() << ":" << iCCand.timeBins.getMax() << "]";
     */
     if (std::abs(topLink.getZ()) > mITSFiducialZCut) { // we can discard this seed
       topLink.disable();
@@ -1979,7 +1978,7 @@ int MatchTPCITS::checkABSeedFromLr(int lrSeed, int seedID, ABTrackLinksList& lli
   auto propagator = o2::base::Propagator::Instance();
   float xTgt;
   const auto& lr = mRGHelper.layers[lrTgt];
-  if (!seed.getXatLabR(lr.rRange.max(), xTgt, propagator->getNominalBz(), o2::track::DirInward) ||
+  if (!seed.getXatLabR(lr.rRange.getMax(), xTgt, propagator->getNominalBz(), o2::track::DirInward) ||
       !propagator->PropagateToXBxByBz(seed, xTgt, o2::constants::physics::MassPionCharged, MaxSnp, 2., mUseMatCorrFlag)) {
     return 0;
   }
@@ -2050,7 +2049,7 @@ int MatchTPCITS::checkABSeedFromLr(int lrSeed, int seedID, ABTrackLinksList& lli
       printf("Lr %d #%d/%d LadID: %d (phi:%+d) ChipID: %d [%d Ncl: %d from %d] (rRhi:%d Z:%+d[%+.1f:%+.1f]) | %+.3f %+.3f -> %+.3f %+.3f %+.3f (zErr: %.3f)\n",
              lrTgt, ilad, ich, ladID, lad.isPhiOutside(phi, errPhi), chipID,
              chipGID, clRange.getEntries(), clRange.getFirstEntry(),
-             lad.chips[chipID].xyEdges.seenByCircle(trcCircle, errYFrac), lad.chips[chipID].zRange.isOutside(zCross, 3 * errZ), lad.chips[chipID].zRange.min(), lad.chips[chipID].zRange.max(),
+             lad.chips[chipID].xyEdges.seenByCircle(trcCircle, errYFrac), lad.chips[chipID].zRange.isOutside(zCross, 3 * errZ), lad.chips[chipID].zRange.getMin(), lad.chips[chipID].zRange.getMax(),
              xCurr, yCurr, xCross, yCross, zCross, errZ);
       */
       // track Y error in chip frame
@@ -2691,10 +2690,10 @@ MatchTPCITS::BracketIR MatchTPCITS::tpcTimeBin2IRBracket(const BracketF tbrange)
 {
   // convert TPC timebins bracket to IR bracket
   o2::InteractionRecord irMin(mStartIR), irMax(mStartIR);
-  if (tbrange.min() > 0) {
-    irMin += o2::InteractionRecord(tpcTimeBin2NS(tbrange.min()));
+  if (tbrange.getMin() > 0) {
+    irMin += o2::InteractionRecord(tpcTimeBin2NS(tbrange.getMin()));
   }
-  irMax += o2::InteractionRecord(tpcTimeBin2NS(tbrange.max()));
+  irMax += o2::InteractionRecord(tpcTimeBin2NS(tbrange.getMax()));
   irMax++; // to account for rounding
   int bc = mClosestBunchAbove[irMin.bc];
   if (bc < irMin.bc) {
