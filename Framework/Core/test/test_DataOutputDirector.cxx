@@ -43,7 +43,7 @@ BOOST_AUTO_TEST_CASE(TestDataOutputDirector)
   BOOST_CHECK_EQUAL(ds[0]->getFilenameBase(), std::string("fn1"));
 
   BOOST_CHECK_EQUAL(ds[1]->tablename, std::string("UNO"));
-  BOOST_CHECK_EQUAL(ds[1]->treename, std::string("UNO"));
+  BOOST_CHECK_EQUAL(ds[1]->treename, std::string("O2uno"));
   BOOST_CHECK_EQUAL(ds[1]->colnames.size(), 1);
   BOOST_CHECK_EQUAL(ds[1]->getFilenameBase(), std::string("myresultfile"));
 
