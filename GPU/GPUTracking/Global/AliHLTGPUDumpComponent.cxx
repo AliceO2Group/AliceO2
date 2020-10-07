@@ -252,8 +252,21 @@ int AliHLTGPUDumpComponent::DoEvent(const AliHLTComponentEventData& evtData, con
 #endif
           AliHLTTPCRawCluster tmp = cRaw;
           tmp.fPadRow += firstRow;
+          if ((unsigned int)cluster.amp >= 25 * 1024) {
+            GPUError("Invalid cluster charge, truncating (%d >= %d)", (int)cluster.amp, 25 * 1024);
+            cluster.amp = 25 * 1024 - 1;
+          }
+          if ((unsigned int)tmp.GetCharge() >= 25 * 1024) {
+            GPUError("Invalid raw cluster charge, truncating (%d >= %d)", (int)tmp.GetCharge(), 25 * 1024);
+            tmp.SetCharge(25 * 1024 - 1);
+          }
+          if ((unsigned int)tmp.GetQMax() >= 1024) {
+            GPUError("Invalid raw cluster charge max, truncating (%d >= %d)", (int)tmp.GetQMax(), 1024);
+            tmp.SetQMax(1024 - 1);
+          }
           clusterData[slice].emplace_back(cluster);
           rawClusters[slice].emplace_back(tmp);
+
           nClustersTotal++;
         }
       }
