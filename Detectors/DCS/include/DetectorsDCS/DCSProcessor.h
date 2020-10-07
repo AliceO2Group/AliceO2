@@ -90,7 +90,7 @@ class DCSProcessor
   DQBinaries& getVectorForAliasBinary(const DPID& id) { return mDpsbinariesmap[id]; }
 
  private:
-  float mAvgTestInt0 = 0; // moving average for DP named TestInt0
+  std::vector<float> mAvgTestInt; // moving average for DP named TestInt0
   std::unordered_map<DPID, DQChars> mDpscharsmap;
   std::unordered_map<DPID, DQInts> mDpsintsmap;
   std::unordered_map<DPID, DQDoubles> mDpsdoublesmap;
@@ -152,9 +152,9 @@ int DCSProcessor::processArrayType(const std::vector<DPID>& array, DeliveryType 
       if (processFlag(flags, array[i].get_alias()) == 0) {
         auto etime = val.get_epoch_time();
         // fill only if new value has a timestamp different from the timestamp of the previous one
-        LOG(INFO) << "destmap[array[" << i << "]].size() = " << destmap[array[i]].size();
+        LOG(DEBUG) << "destmap[array[" << i << "]].size() = " << destmap[array[i]].size();
         if (destmap[array[i]].size() == 0 || etime != latestTimeStamp[i]) {
-          LOG(INFO) << "adding new value";
+          LOG(DEBUG) << "adding new value";
           destmap[array[i]].push_back(val.payload_pt1);
           latestTimeStamp[i] = etime;
         }
