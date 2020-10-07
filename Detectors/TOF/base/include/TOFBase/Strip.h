@@ -22,7 +22,7 @@
 #include <map>
 #include <sstream>
 #include <vector>
-#include "MathUtils/Cartesian3D.h"
+#include "MathUtils/Cartesian.h"
 
 namespace o2
 {

@@ -15,7 +15,7 @@
 #include "MFTTracking/IndexTableUtils.h"
 
 #include "MathUtils/Utils.h"
-#include "MathUtils/Cartesian2D.h"
+#include "MathUtils/Cartesian.h"
 
 namespace o2
 {

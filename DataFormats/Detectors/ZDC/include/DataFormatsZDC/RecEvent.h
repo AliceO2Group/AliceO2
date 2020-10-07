@@ -12,7 +12,7 @@
 #define _ZDC_RECEVENT_H_
 
 #include "CommonDataFormat/InteractionRecord.h"
-#include "MathUtils/Cartesian2D.h"
+#include "MathUtils/Cartesian.h"
 #include "ZDCBase/Constants.h"
 #include <Rtypes.h>
 #include <array>

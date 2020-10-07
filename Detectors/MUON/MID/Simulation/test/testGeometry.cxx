@@ -22,7 +22,7 @@
 #include <boost/test/data/test_case.hpp>
 #include <fstream>
 #include <iostream>
-#include "MathUtils/Cartesian3D.h"
+#include "MathUtils/Cartesian.h"
 #include "TGeoManager.h"
 #include "MIDSimulation/Geometry.h"
 #include "MIDBase/GeometryTransformer.h"

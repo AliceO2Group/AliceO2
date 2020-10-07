@@ -34,7 +34,7 @@
 #include <string>
 #include <unordered_map>
 #include <vector>
-#include "MathUtils/Cartesian3D.h"
+#include "MathUtils/Cartesian.h"
 #include "DataFormatsITSMFT/CompCluster.h"
 #include "TH1F.h"
 

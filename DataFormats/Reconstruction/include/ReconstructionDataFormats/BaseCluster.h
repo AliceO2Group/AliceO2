@@ -11,13 +11,13 @@
 #ifndef ALICEO2_BASE_BASECLUSTER_H
 #define ALICEO2_BASE_BASECLUSTER_H
 
+#include <MathUtils/Cartesian.h>
 #include <TObject.h>
 #include <bitset>
 #include <iomanip>
 #include <ios>
 #include <iosfwd>
 #include "DetectorsCommonDataFormats/DetMatrixCache.h"
-#include "MathUtils/Cartesian3D.h"
 
 namespace o2
 {
