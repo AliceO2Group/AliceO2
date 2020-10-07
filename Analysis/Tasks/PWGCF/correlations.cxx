@@ -17,6 +17,7 @@
 #include "Analysis/Centrality.h"
 #include "Analysis/StepTHn.h"
 #include "Analysis/CorrelationContainer.h"
+#include "Analysis/PairCuts.h"
 
 #include <TH1F.h>
 #include <cmath>
@@ -40,7 +41,7 @@ struct CorrelationTask {
   O2_DEFINE_CONFIGURABLE(cfgAssociatedCharge, int, 0, "Select on charge of associated particle: 0 = all; 1 = positive; -1 = negative");
   O2_DEFINE_CONFIGURABLE(cfgPairCharge, int, 0, "Select on charge of particle pair: 0 = all; 1 = like sign; -1 = unlike sign");
 
-  O2_DEFINE_CONFIGURABLE(cfgTwoTrackCut, float, -1, "Two track cut: -1 = off; >0 otherwise distance value");
+  O2_DEFINE_CONFIGURABLE(cfgTwoTrackCut, float, -1, "Two track cut: -1 = off; >0 otherwise distance value (suggested: 0.02)");
   O2_DEFINE_CONFIGURABLE(cfgTwoTrackCutMinRadius, float, 0.8f, "Two track cut: radius in m from which two track cuts are applied");
 
   O2_DEFINE_CONFIGURABLE(cfgPairCutPhoton, float, -1, "Pair cut on photons: -1 = off; >0 otherwise distance value (suggested: 0.004)")
@@ -59,21 +60,11 @@ struct CorrelationTask {
   OutputObj<CorrelationContainer> mixed{"mixedEvent"};
   //OutputObj<TDirectory> qaOutput{"qa"};
 
-  enum PairCuts { Photon = 0,
-                  K0,
-                  Lambda,
-                  Phi,
-                  Rho };
   struct Config {
     bool mPairCuts = false;
     //THn* mEfficiencyTrigger = nullptr;
     //THn* mEfficiencyAssociated = nullptr;
   } cfg;
-
-  struct QA {
-    TH3F* mTwoTrackDistancePt[2] = {nullptr}; // control histograms for two-track efficiency study: dphi*_min vs deta (0 = before cut, 1 = after cut)
-    TH2F* mControlConvResoncances = nullptr;  // control histograms for cuts on conversions and resonances
-  } qa;
 
   // HistogramRegistry registry{"qa", true, {
   //   {"yields", "centrality vs pT vs eta",  {HistogramType::kTH3F, { {100, 0, 100, "centrality"}, {40, 0, 20, "p_{T}"}, {100, -2, 2, "#eta"} }}},
@@ -82,6 +73,8 @@ struct CorrelationTask {
 
   OutputObj<TH3F> yields{TH3F("yields", "centrality vs pT vs eta", 100, 0, 100, 40, 0, 20, 100, -2, 2)};
   OutputObj<TH3F> etaphi{TH3F("etaphi", "centrality vs eta vs phi", 100, 0, 100, 100, -2, 2, 200, 0, 2 * M_PI)};
+
+  PairCuts mPairCuts;
 
   void init(o2::framework::InitContext&)
   {
@@ -99,25 +92,23 @@ struct CorrelationTask {
       "p_t_eff: 0.5, 0.6, 0.7, 0.8, 0.9, 1.0, 1.25, 1.5, 1.75, 2.0, 2.25, 2.5, 2.75, 3.0, 3.25, 3.5, 3.75, 4.0, 4.5, 5.0, 6.0, 7.0, 8.0\n"
       "vertex_eff: 10 | -10, 10\n";
 
-    if (cfgPairCutPhoton > 0 || cfgPairCutK0 > 0 || cfgPairCutLambda > 0 || cfgPairCutPhi > 0 || cfgPairCutRho > 0)
+    if (cfgPairCutPhoton > 0 || cfgPairCutK0 > 0 || cfgPairCutLambda > 0 || cfgPairCutPhi > 0 || cfgPairCutRho > 0) {
+      mPairCuts.SetPairCut(PairCuts::Photon, cfgPairCutPhoton);
+      mPairCuts.SetPairCut(PairCuts::K0, cfgPairCutK0);
+      mPairCuts.SetPairCut(PairCuts::Lambda, cfgPairCutLambda);
+      mPairCuts.SetPairCut(PairCuts::Phi, cfgPairCutPhi);
+      mPairCuts.SetPairCut(PairCuts::Rho, cfgPairCutRho);
       cfg.mPairCuts = true;
+    }
+
+    if (cfgTwoTrackCut > 0) {
+      mPairCuts.SetTwoTrackCuts(cfgTwoTrackCut, cfgTwoTrackCutMinRadius);
+    }
 
     // --- OBJECT INIT ---
     same.setObject(new CorrelationContainer("sameEvent", "sameEvent", "NumberDensityPhiCentralityVtx", binning));
     mixed.setObject(new CorrelationContainer("mixedEvent", "mixedEvent", "NumberDensityPhiCentralityVtx", binning));
     //qaOutput.setObject(new TDirectory("qa", "qa"));
-
-    if (cfgTwoTrackCut > 0) {
-      qa.mTwoTrackDistancePt[0] = new TH3F("TwoTrackDistancePt[0]", ";#Delta#eta;#Delta#varphi^{*}_{min};#Delta p_{T}", 100, -0.15, 0.15, 100, -0.05, 0.05, 20, 0, 10);
-      qa.mTwoTrackDistancePt[1] = (TH3F*)qa.mTwoTrackDistancePt[0]->Clone("TwoTrackDistancePt[1]");
-      //qaOutput->Add(qa.mTwoTrackDistancePt[0]);
-      //qaOutput->Add(qa.mTwoTrackDistancePt[1]);
-    }
-
-    if (cfg.mPairCuts) {
-      qa.mControlConvResoncances = new TH2F("ControlConvResoncances", ";id;delta mass", 6, -0.5, 5.5, 500, -0.5, 0.5);
-      //qaOutput->Add(qa.mControlConvResoncances);
-    }
   }
 
   // Version with explicit nested loop
@@ -174,10 +165,10 @@ struct CorrelationTask {
         if (cfgPairCharge != 0 && cfgPairCharge * track1.charge() * track2.charge() < 0)
           continue;
 
-        if (cfg.mPairCuts && conversionCuts(track1, track2))
+        if (cfg.mPairCuts && mPairCuts.conversionCuts(track1, track2))
           continue;
 
-        if (cfgTwoTrackCut > 0 && twoTrackCut(track1, track2, bSign))
+        if (cfgTwoTrackCut > 0 && mPairCuts.twoTrackCut(track1, track2, bSign))
           continue;
 
         double values[6] = {0};
@@ -234,10 +225,10 @@ struct CorrelationTask {
       if (cfgPairCharge != 0 && cfgPairCharge * track1.charge() * track2.charge() < 0)
         continue;
 
-      if (cfg.mPairCuts && conversionCuts(track1, track2))
+      if (cfg.mPairCuts && mPairCuts.conversionCuts(track1, track2))
         continue;
 
-      if (cfgTwoTrackCut > 0 && twoTrackCut(track1, track2, bSign))
+      if (cfgTwoTrackCut > 0 && mPairCuts.twoTrackCut(track1, track2, bSign))
         continue;
 
       double values[6] = {0};
@@ -258,239 +249,6 @@ struct CorrelationTask {
       same->getPairHist()->Fill(values, CorrelationContainer::kCFStepReconstructed);
       //mixed->getPairHist()->Fill(values, CorrelationContainer::kCFStepReconstructed);
     }
-  }
-
-  template <typename T>
-  bool conversionCuts(T const& track1, T const& track2)
-  {
-    // skip if like sign
-    if (track1.charge() * track2.charge() > 0)
-      return false;
-
-    bool decision = false;
-
-    if (conversionCut(track1, track2, Photon, cfgPairCutPhoton))
-      decision = true;
-    if (conversionCut(track1, track2, K0, cfgPairCutK0))
-      decision = true;
-    if (conversionCut(track1, track2, Lambda, cfgPairCutLambda))
-      decision = true;
-    if (conversionCut(track2, track1, Lambda, cfgPairCutLambda))
-      decision = true;
-    if (conversionCut(track1, track2, Phi, cfgPairCutPhi))
-      decision = true;
-    if (conversionCut(track1, track2, Rho, cfgPairCutRho))
-      decision = true;
-
-    return decision;
-  }
-
-  template <typename T>
-  bool conversionCut(T const& track1, T const& track2, PairCuts conv, double cut)
-  {
-    //LOGF(info, "pt is %f %f", track1.pt(), track2.pt());
-
-    if (cut < 0)
-      return false;
-
-    double massD1, massD2, massM;
-
-    switch (conv) {
-      case Photon:
-        massD1 = 0.51e-3;
-        massD2 = 0.51e-3;
-        massM = 0;
-        break;
-      case K0:
-        massD1 = 0.1396;
-        massD2 = 0.1396;
-        massM = 0.4976;
-        break;
-      case Lambda:
-        massD1 = 0.9383;
-        massD2 = 0.1396;
-        massM = 1.115;
-        break;
-      case Phi:
-        massD1 = 0.4937;
-        massD2 = 0.4937;
-        massM = 1.019;
-        break;
-      case Rho:
-        massD1 = 0.1396;
-        massD2 = 0.1396;
-        massM = 0.770;
-        break;
-    }
-
-    auto massC = getInvMassSquaredFast(track1, massD1, track2, massD2);
-
-    if (TMath::Abs(massC - massM * massM) > cut * 5)
-      return false;
-
-    massC = getInvMassSquared(track1, massD1, track2, massD2);
-    qa.mControlConvResoncances->Fill(static_cast<int>(conv), massC - massM * massM);
-    if (massC > (massM - cut) * (massM - cut) && massC < (massM + cut) * (massM + cut))
-      return true;
-
-    return false;
-  }
-
-  template <typename T>
-  double getInvMassSquared(T const& track1, double m0_1, T const& track2, double m0_2)
-  {
-    // calculate inv mass squared
-    // same can be achieved, but with more computing time with
-    /*TLorentzVector photon, p1, p2;
-     p1.SetPtEtaPhiM(triggerParticle->Pt(), triggerEta, triggerParticle->Phi(), 0.510e-3);
-     p2.SetPtEtaPhiM(particle->Pt(), eta[j], particle->Phi(), 0.510e-3);
-     photon = p1+p2;
-     photon.M()*/
-
-    float tantheta1 = 1e10;
-
-    if (track1.eta() < -1e-10 || track1.eta() > 1e-10) {
-      float expTmp = TMath::Exp(-track1.eta());
-      tantheta1 = 2.0 * expTmp / (1.0 - expTmp * expTmp);
-    }
-
-    float tantheta2 = 1e10;
-    if (track2.eta() < -1e-10 || track2.eta() > 1e-10) {
-      float expTmp = TMath::Exp(-track2.eta());
-      tantheta2 = 2.0 * expTmp / (1.0 - expTmp * expTmp);
-    }
-
-    float e1squ = m0_1 * m0_1 + track1.pt() * track1.pt() * (1.0 + 1.0 / tantheta1 / tantheta1);
-    float e2squ = m0_2 * m0_2 + track2.pt() * track2.pt() * (1.0 + 1.0 / tantheta2 / tantheta2);
-
-    float mass2 = m0_1 * m0_1 + m0_2 * m0_2 + 2 * (TMath::Sqrt(e1squ * e2squ) - (track1.pt() * track2.pt() * (TMath::Cos(track1.phi() - track2.phi()) + 1.0 / tantheta1 / tantheta2)));
-
-    // Printf(Form("%f %f %f %f %f %f %f %f %f", pt1, eta1, phi1, pt2, eta2, phi2, m0_1, m0_2, mass2));
-
-    return mass2;
-  }
-
-  template <typename T>
-  double getInvMassSquaredFast(T const& track1, double m0_1, T const& track2, double m0_2)
-  {
-    // calculate inv mass squared approximately
-
-    const float eta1 = track1.eta();
-    const float eta2 = track2.eta();
-    const float phi1 = track1.phi();
-    const float phi2 = track2.phi();
-    const float pt1 = track1.pt();
-    const float pt2 = track2.pt();
-
-    float tantheta1 = 1e10;
-
-    if (eta1 < -1e-10 || eta1 > 1e-10) {
-      float expTmp = 1.0 - eta1 + eta1 * eta1 / 2 - eta1 * eta1 * eta1 / 6 + eta1 * eta1 * eta1 * eta1 / 24;
-      tantheta1 = 2.0 * expTmp / (1.0 - expTmp * expTmp);
-    }
-
-    float tantheta2 = 1e10;
-    if (eta2 < -1e-10 || eta2 > 1e-10) {
-      float expTmp = 1.0 - eta2 + eta2 * eta2 / 2 - eta2 * eta2 * eta2 / 6 + eta2 * eta2 * eta2 * eta2 / 24;
-      tantheta2 = 2.0 * expTmp / (1.0 - expTmp * expTmp);
-    }
-
-    float e1squ = m0_1 * m0_1 + pt1 * pt1 * (1.0 + 1.0 / tantheta1 / tantheta1);
-    float e2squ = m0_2 * m0_2 + pt2 * pt2 * (1.0 + 1.0 / tantheta2 / tantheta2);
-
-    // fold onto 0...pi
-    float deltaPhi = TMath::Abs(phi1 - phi2);
-    while (deltaPhi > TMath::TwoPi())
-      deltaPhi -= TMath::TwoPi();
-    if (deltaPhi > TMath::Pi())
-      deltaPhi = TMath::TwoPi() - deltaPhi;
-
-    float cosDeltaPhi = 0;
-    if (deltaPhi < TMath::Pi() / 3)
-      cosDeltaPhi = 1.0 - deltaPhi * deltaPhi / 2 + deltaPhi * deltaPhi * deltaPhi * deltaPhi / 24;
-    else if (deltaPhi < 2 * TMath::Pi() / 3)
-      cosDeltaPhi = -(deltaPhi - TMath::Pi() / 2) + 1.0 / 6 * TMath::Power((deltaPhi - TMath::Pi() / 2), 3);
-    else
-      cosDeltaPhi = -1.0 + 1.0 / 2.0 * (deltaPhi - TMath::Pi()) * (deltaPhi - TMath::Pi()) - 1.0 / 24.0 * TMath::Power(deltaPhi - TMath::Pi(), 4);
-
-    double mass2 = m0_1 * m0_1 + m0_2 * m0_2 + 2 * (TMath::Sqrt(e1squ * e2squ) - (pt1 * pt2 * (cosDeltaPhi + 1.0 / tantheta1 / tantheta2)));
-
-    //   Printf(Form("%f %f %f %f %f %f %f %f %f", pt1, eta1, phi1, pt2, eta2, phi2, m0_1, m0_2, mass2));
-
-    return mass2;
-  }
-
-  template <typename T>
-  bool twoTrackCut(T const& track1, T const& track2, int bSign)
-  {
-    // the variables & cuthave been developed by the HBT group
-    // see e.g. https://indico.cern.ch/materialDisplay.py?contribId=36&sessionId=6&materialId=slides&confId=142700
-
-    auto deta = track1.eta() - track2.eta();
-
-    // optimization
-    if (TMath::Abs(deta) < cfgTwoTrackCut * 2.5 * 3) {
-      // check first boundaries to see if is worth to loop and find the minimum
-      float dphistar1 = getDPhiStar(track1, track2, cfgTwoTrackCutMinRadius, bSign);
-      float dphistar2 = getDPhiStar(track1, track2, 2.5, bSign);
-
-      const float kLimit = cfgTwoTrackCut * 3;
-
-      if (TMath::Abs(dphistar1) < kLimit || TMath::Abs(dphistar2) < kLimit || dphistar1 * dphistar2 < 0) {
-        float dphistarminabs = 1e5;
-        float dphistarmin = 1e5;
-        for (Double_t rad = cfgTwoTrackCutMinRadius; rad < 2.51; rad += 0.01) {
-          float dphistar = getDPhiStar(track1, track2, rad, bSign);
-
-          float dphistarabs = TMath::Abs(dphistar);
-
-          if (dphistarabs < dphistarminabs) {
-            dphistarmin = dphistar;
-            dphistarminabs = dphistarabs;
-          }
-        }
-
-        qa.mTwoTrackDistancePt[0]->Fill(deta, dphistarmin, TMath::Abs(track1.pt() - track2.pt()));
-
-        if (dphistarminabs < cfgTwoTrackCut && TMath::Abs(deta) < cfgTwoTrackCut) {
-          //Printf("Removed track pair %ld %ld with %f %f %f %f %d %f %f %d %d", track1.index(), track2.index(), deta, dphistarminabs, track1.phi2(), track1.pt(), track1.charge(), track2.phi2(), track2.pt(), track2.charge(), bSign);
-          return true;
-        }
-
-        qa.mTwoTrackDistancePt[1]->Fill(deta, dphistarmin, TMath::Abs(track1.pt() - track2.pt()));
-      }
-    }
-
-    return false;
-  }
-
-  template <typename T>
-  float getDPhiStar(T const& track1, T const& track2, float radius, float bSign)
-  {
-    //
-    // calculates dphistar
-    //
-
-    auto phi1 = track1.phi();
-    auto pt1 = track1.pt();
-    auto charge1 = track1.charge();
-
-    auto phi2 = track2.phi();
-    auto pt2 = track2.pt();
-    auto charge2 = track2.charge();
-
-    float dphistar = phi1 - phi2 - charge1 * bSign * TMath::ASin(0.075 * radius / pt1) + charge2 * bSign * TMath::ASin(0.075 * radius / pt2);
-
-    static const Double_t kPi = TMath::Pi();
-
-    if (dphistar > kPi)
-      dphistar = kPi * 2 - dphistar;
-    if (dphistar < -kPi)
-      dphistar = -kPi * 2 - dphistar;
-    if (dphistar > kPi) // might look funny but is needed
-      dphistar = kPi * 2 - dphistar;
-
-    return dphistar;
   }
 };
 
