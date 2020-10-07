@@ -36,16 +36,6 @@ using namespace o2::base;
 std::mutex GeometryManager::sTGMutex;
 
 //______________________________________________________________________
-GeometryManager::GeometryManager()
-{
-  /// default constructor
-
-  /// make sure detectors masks can be encoded in the combined det+sensor id
-  static_assert(sizeof(Int_t) * 8 - sDetOffset > DetID::getNDetectors(),
-                "N detectors exceeds available N bits for their encoding");
-}
-
-//______________________________________________________________________
 Bool_t GeometryManager::getOriginalMatrix(const char* symname, TGeoHMatrix& m)
 {
   m.Clear();
