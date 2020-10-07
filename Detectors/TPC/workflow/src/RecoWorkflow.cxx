@@ -117,6 +117,9 @@ framework::WorkflowSpec getWorkflow(std::vector<int> const& tpcSectors, std::vec
     zsOnTheFly = false;
     propagateMC = false;
   }
+  if (inputType == InputType::ClustersHardware || inputType == InputType::Clusters) {
+    caClusterer = false;
+  }
   if (!caClusterer) {
     zsOnTheFly = false;
   }
