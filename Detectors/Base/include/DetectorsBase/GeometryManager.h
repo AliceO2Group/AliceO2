@@ -128,11 +128,7 @@ class GeometryManager : public TObject
   static Bool_t getOriginalMatrixFromPath(const char* path, TGeoHMatrix& m);
  private:
 /// sensitive volume identifier composed from (det_mask<<sDetOffset)|(sensid&sSensorMask)
-#ifdef ENABLE_UPGRADES
-  static constexpr UInt_t sDetOffset = 13; /// detector identifier will start from this bit
-#else
   static constexpr UInt_t sDetOffset = 15; /// detector identifier will start from this bit
-#endif
   static constexpr UInt_t sSensorMask =
     (0x1 << sDetOffset) - 1; /// mask=max sensitive volumes allowed per detector (0xffff)
   static std::mutex sTGMutex;
