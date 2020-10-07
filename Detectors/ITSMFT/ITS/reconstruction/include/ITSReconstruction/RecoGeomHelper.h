@@ -32,7 +32,7 @@ namespace its
 {
 struct RecoGeomHelper {
   //
-  using BracketF = o2::utils::Bracket<float>;
+  using BracketF = o2::math_utils::Bracket<float>;
   using Vec2D = o2::utils::IntervalXY;
 
   enum Relation : int { Below = -1,
@@ -131,7 +131,7 @@ inline int RecoGeomHelper::RecoLayer::getChipID(float z) const
 {
   // Get chip ID within the ladder corresponding to this phi
   // Note: this is an approximate method, one should check also the neighbouring ladders +/-1
-  int ic = (z - zRange.min()) * z2chipID;
+  int ic = (z - zRange.getMin()) * z2chipID;
   return ic < 0 ? 0 : (ic < lastChipInLadder ? ic : lastChipInLadder);
 }
 
