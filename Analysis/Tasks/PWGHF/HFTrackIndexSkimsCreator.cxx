@@ -204,21 +204,19 @@ struct HFTrackIndexSkimsCreator {
         mass2KPi = RecoDecay::M(arrMom, array{massK, massPi});
         ptcand_2prong = RecoDecay::Pt(pvec0, pvec1);
 
-        if (ptcand_2prong < ptmincand_2prong)
-          continue;
-        if (b_dovalplots) {
-          hmass2->Fill(mass2PiK);
-          hmass2->Fill(mass2KPi);
-          hvtx_x_out->Fill(secondaryVertex[0]);
-          hvtx_y_out->Fill(secondaryVertex[1]);
-          hvtx_z_out->Fill(secondaryVertex[2]);
+        if (ptcand_2prong >= ptmincand_2prong) {
+          if (b_dovalplots) {
+            hmass2->Fill(mass2PiK);
+            hmass2->Fill(mass2KPi);
+            hvtx_x_out->Fill(secondaryVertex[0]);
+            hvtx_y_out->Fill(secondaryVertex[1]);
+            hvtx_z_out->Fill(secondaryVertex[2]);
+          }
+          // fill table row
+          rowTrackIndexProng2(trackPos1.collisionId(),
+                              trackPos1.globalIndex(),
+                              trackNeg1.globalIndex(), 1);
         }
-
-        // fill table row
-        rowTrackIndexProng2(trackPos1.collisionId(),
-                            trackPos1.globalIndex(),
-                            trackNeg1.globalIndex(), 1);
-
         // 3-prong vertex reconstruction
         if (do3prong == 1) {
           if (trackPos1.isSel3Prong() == 0)
