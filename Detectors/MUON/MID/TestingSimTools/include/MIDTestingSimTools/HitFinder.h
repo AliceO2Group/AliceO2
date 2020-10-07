@@ -16,7 +16,7 @@
 #ifndef O2_MID_HITFINDER_H
 #define O2_MID_HITFINDER_H
 
-#include "MathUtils/Cartesian3D.h"
+#include "MathUtils/Cartesian.h"
 #include "DataFormatsMID/Cluster2D.h"
 #include "DataFormatsMID/Track.h"
 #include "MIDBase/GeometryTransformer.h"

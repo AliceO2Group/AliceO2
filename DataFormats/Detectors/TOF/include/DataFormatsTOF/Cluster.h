@@ -136,7 +136,7 @@ std::ostream& operator<<(std::ostream& os, Cluster& c);
 /// std::is_trivially_copyable<ROOT::Math::Cartesian3D<float>> fails because the class
 /// implements a copy constructor, although it does not much more than the default copy
 /// constructor. Have been trying to specialize std::is_trivially_copyable for Point3D
-/// alias in MathUtils/Cartesian3D.h, but structures with a member of Point3D are
+/// alias in MathUtils/Cartesian.h, but structures with a member of Point3D are
 /// still not fulfilling the condition. Need to understand how the type trait checks
 /// the condition for members.
 /// We believe that o2::tof::Cluster is messageable and explicitly specialize the

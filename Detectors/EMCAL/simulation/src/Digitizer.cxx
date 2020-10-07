@@ -14,7 +14,7 @@
 #include "EMCALBase/Geometry.h"
 #include "EMCALBase/GeometryBase.h"
 #include "EMCALBase/Hit.h"
-#include "MathUtils/Cartesian3D.h"
+#include "MathUtils/Cartesian.h"
 #include "SimulationDataFormat/MCCompLabel.h"
 
 #include <climits>

@@ -18,7 +18,7 @@
 #include <Rtypes.h>
 #include <vector>
 #include <array>
-#include "MathUtils/Cartesian3D.h"
+#include "MathUtils/Cartesian.h"
 #include "MathUtils/Utils.h"
 #include "MathUtils/Primitive2D.h"
 #include "CommonConstants/MathConstants.h"

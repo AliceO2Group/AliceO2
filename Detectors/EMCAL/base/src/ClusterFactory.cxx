@@ -18,7 +18,7 @@
 #include "DataFormatsEMCAL/AnalysisCluster.h"
 #include "DataFormatsEMCAL/Constants.h"
 #include "EMCALBase/Geometry.h"
-#include "MathUtils/Cartesian3D.h"
+#include "MathUtils/Cartesian.h"
 
 #include "EMCALBase/ClusterFactory.h"
 

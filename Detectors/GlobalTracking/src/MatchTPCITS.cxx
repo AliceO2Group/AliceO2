@@ -24,7 +24,7 @@
 #include "TPCBase/ParameterElectronics.h"
 #include "TPCBase/ParameterDetector.h"
 #include "TPCBase/ParameterGas.h"
-#include "MathUtils/Cartesian3D.h"
+#include "MathUtils/Cartesian.h"
 #include "MathUtils/Utils.h"
 #include "CommonConstants/MathConstants.h"
 #include "CommonConstants/PhysicsConstants.h"

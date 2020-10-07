@@ -12,7 +12,7 @@
 #define ALICEO2_CPV_DETECTOR_H_
 
 #include "DetectorsBase/Detector.h"
-#include "MathUtils/Cartesian3D.h"
+#include "MathUtils/Cartesian.h"
 #include "CPVBase/Hit.h"
 #include "RStringView.h"
 #include "Rtypes.h"

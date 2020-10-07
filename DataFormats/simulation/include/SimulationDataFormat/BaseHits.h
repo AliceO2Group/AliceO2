@@ -10,7 +10,7 @@
 
 #ifndef ALICEO2_BASE_HIT_H
 #define ALICEO2_BASE_HIT_H
-#include "MathUtils/Cartesian3D.h"
+#include "MathUtils/Cartesian.h"
 
 namespace o2
 {

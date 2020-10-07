@@ -27,7 +27,7 @@
 #include "ITSBase/GeometryTGeo.h"
 #include "ITSMFTBase/SegmentationAlpide.h"
 #include "ITSMFTSimulation/Hit.h"
-#include "MathUtils/Cartesian3D.h"
+#include "MathUtils/Cartesian.h"
 #include "MathUtils/Utils.h"
 
 using Segmentation = o2::itsmft::SegmentationAlpide;

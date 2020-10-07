@@ -20,7 +20,7 @@
 #include "MFTTracking/Cluster.h"
 
 #include "MathUtils/Utils.h"
-#include "MathUtils/Cartesian2D.h"
+#include "MathUtils/Cartesian.h"
 #include "DataFormatsMFT/TrackMFT.h"
 #include "SimulationDataFormat/MCCompLabel.h"
 #include "SimulationDataFormat/MCTruthContainer.h"

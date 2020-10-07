@@ -18,7 +18,7 @@
 
 #include <array>
 #include "MIDBase/DetectorParameters.h"
-#include "MathUtils/Cartesian3D.h"
+#include "MathUtils/Cartesian.h"
 
 class TGeoManager;
 

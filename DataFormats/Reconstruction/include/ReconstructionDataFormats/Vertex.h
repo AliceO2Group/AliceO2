@@ -11,7 +11,7 @@
 #ifndef ALICEO2_VERTEX_H
 #define ALICEO2_VERTEX_H
 
-#include "MathUtils/Cartesian3D.h"
+#include <MathUtils/Cartesian.h>
 #include "CommonDataFormat/TimeStamp.h"
 #ifndef __OPENCL__
 #include <array>

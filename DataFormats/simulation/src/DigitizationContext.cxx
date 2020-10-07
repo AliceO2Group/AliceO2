@@ -15,7 +15,7 @@
 #include <TFile.h>
 #include <iostream>
 #include <numeric> // for iota
-#include <MathUtils/Cartesian3D.h>
+#include <MathUtils/Cartesian.h>
 
 using namespace o2::steer;
 

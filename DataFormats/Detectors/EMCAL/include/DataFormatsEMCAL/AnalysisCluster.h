@@ -15,7 +15,7 @@
 #include <gsl/span>
 #include <array>
 #include "Rtypes.h"
-#include "MathUtils/Cartesian3D.h"
+#include "MathUtils/Cartesian.h"
 #include "TLorentzVector.h"
 
 namespace o2

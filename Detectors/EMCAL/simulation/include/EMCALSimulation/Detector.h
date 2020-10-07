@@ -14,7 +14,7 @@
 #include "DetectorsBase/Detector.h"
 #include "EMCALBase/Hit.h"
 #include "EMCALBase/GeometryBase.h"
-#include "MathUtils/Cartesian3D.h"
+#include "MathUtils/Cartesian.h"
 #include "RStringView.h"
 #include "Rtypes.h"
 #include <vector>

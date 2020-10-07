@@ -24,7 +24,7 @@
 
 #include "DataFormatsEMCAL/Constants.h"
 #include "EMCALBase/GeometryBase.h"
-#include "MathUtils/Cartesian3D.h"
+#include "MathUtils/Cartesian.h"
 
 namespace o2
 {

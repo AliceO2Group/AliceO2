@@ -18,7 +18,7 @@
 #include <random>
 #include <vector>
 #include <array>
-#include "MathUtils/Cartesian3D.h"
+#include "MathUtils/Cartesian.h"
 #include "SimulationDataFormat/MCTruthContainer.h"
 #include "MIDBase/Mapping.h"
 #include "MIDBase/GeometryTransformer.h"

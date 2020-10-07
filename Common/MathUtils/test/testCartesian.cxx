@@ -17,11 +17,11 @@
 #include <algorithm>
 #include <memory>
 #include <cstring>
-#include "MathUtils/Cartesian3D.h"
+#include "MathUtils/Cartesian.h"
 
 using namespace o2;
 
-BOOST_AUTO_TEST_CASE(Cartesian3D_test)
+BOOST_AUTO_TEST_CASE(Cartesian_test)
 {
   // we create Transform3D by conversion from TGeoHMatrix
   TGeoRotation rotg("r", 10., 20., 30.);

@@ -21,7 +21,7 @@
 #include "MathUtils/Utils.h"
 
 #ifndef GPUCA_ALIGPUCODE // this part is unvisible on GPU version
-#include "MathUtils/Cartesian3D.h"
+#include "MathUtils/Cartesian.h"
 #endif // !GPUCA_ALIGPUCODE
 
 /**********************************************************************

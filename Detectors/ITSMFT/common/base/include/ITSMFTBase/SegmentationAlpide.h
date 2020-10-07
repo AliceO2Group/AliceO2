@@ -15,7 +15,7 @@
 #define ALICEO2_ITSMFT_SEGMENTATIONALPIDE_H_
 
 #include <Rtypes.h>
-#include "MathUtils/Cartesian3D.h"
+#include "MathUtils/Cartesian.h"
 
 namespace o2
 {
