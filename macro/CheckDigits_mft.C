@@ -43,7 +43,7 @@ void CheckDigits_mft(Int_t nEvents = 1, Int_t nMuons = 10, TString mcEngine = "T
   gFile->Get("FairGeoParSet");
 
   auto* gman = o2::mft::GeometryTGeo::Instance();
-  gman->fillMatrixCache(o2::utils::bit2Mask(o2::math_utils::TransformType::L2G));
+  gman->fillMatrixCache(o2::math_utils::bit2Mask(o2::math_utils::TransformType::L2G));
 
   SegmentationAlpide seg;
 

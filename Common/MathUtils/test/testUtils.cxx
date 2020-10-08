@@ -20,7 +20,6 @@
 #include "MathUtils/Utils.h"
 
 using namespace o2;
-using namespace utils;
 
 BOOST_AUTO_TEST_CASE(Utils_test)
 {
@@ -34,7 +33,7 @@ BOOST_AUTO_TEST_CASE(Utils_test)
       double phi0 = -TMath::Pi() + i * TMath::TwoPi() / n;
       float x = TMath::Cos(phi0);
       float y = TMath::Sin(phi0);
-      float phi = utils::FastATan2(y, x);
+      float phi = math_utils::FastATan2(y, x);
       double diff = phi - phi0;
       p->Fill(phi0, diff);
       diff = fabs(diff);
@@ -109,7 +108,7 @@ BOOST_AUTO_TEST_CASE(Utils_test)
     begin = std::chrono::high_resolution_clock::now();
     for (int i = 0; i < iterations; ++i) {
       for (int j = 0; j < M; ++j) {
-        sum += utils::FastATan2(vy[j], vx[j]);
+        sum += math_utils::FastATan2(vy[j], vx[j]);
       }
     }
     end = std::chrono::high_resolution_clock::now();

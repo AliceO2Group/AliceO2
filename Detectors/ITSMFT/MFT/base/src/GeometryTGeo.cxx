@@ -43,7 +43,6 @@
 using namespace TMath;
 using namespace o2::mft;
 using namespace o2::detectors;
-using namespace o2::utils;
 
 using AlpideSegmentation = o2::itsmft::SegmentationAlpide;
 
@@ -414,10 +413,10 @@ void GeometryTGeo::fillMatrixCache(Int_t mask)
     Build(mask);
     return;
   }
-  // LOG(INFO) << "mask " << mask << " o2::utils::bit2Mask " << o2::utils::bit2Mask(o2::math_utils::TransformType::L2G) <<
+  // LOG(INFO) << "mask " << mask << " o2::math_utils::bit2Mask " << o2::math_utils::bit2Mask(o2::math_utils::TransformType::L2G) <<
   // FairLogger::endl;
   // build matrices
-  if ((mask & o2::utils::bit2Mask(o2::math_utils::TransformType::L2G)) && !getCacheL2G().isFilled()) {
+  if ((mask & o2::math_utils::bit2Mask(o2::math_utils::TransformType::L2G)) && !getCacheL2G().isFilled()) {
     LOG(INFO) << "Loading MFT L2G matrices from TGeo";
     auto& cacheL2G = getCacheL2G();
     cacheL2G.setSize(mSize);
@@ -427,7 +426,7 @@ void GeometryTGeo::fillMatrixCache(Int_t mask)
     }
   }
 
-  if ((mask & o2::utils::bit2Mask(o2::math_utils::TransformType::T2L)) && !getCacheT2L().isFilled()) {
+  if ((mask & o2::math_utils::bit2Mask(o2::math_utils::TransformType::T2L)) && !getCacheT2L().isFilled()) {
     // matrices for Tracking to Local frame transformation
     LOG(INFO) << "Loading MFT T2L matrices from TGeo";
     auto& cacheT2L = getCacheT2L();
@@ -438,7 +437,7 @@ void GeometryTGeo::fillMatrixCache(Int_t mask)
     }
   }
 
-  if ((mask & o2::utils::bit2Mask(o2::math_utils::TransformType::T2G)) && !getCacheT2G().isFilled()) {
+  if ((mask & o2::math_utils::bit2Mask(o2::math_utils::TransformType::T2G)) && !getCacheT2G().isFilled()) {
     // matrices for Tracking to Global frame transformation
     LOG(INFO) << "Loading MFT T2G matrices from TGeo";
     auto& cacheT2G = getCacheT2G();

@@ -20,7 +20,6 @@
 #include <TTree.h>
 
 using namespace o2::its;
-using namespace o2::utils;
 
 //_____________________________________________________________________
 ClustererTask::ClustererTask(bool useMC, bool raw) : mRawDataMode(raw),

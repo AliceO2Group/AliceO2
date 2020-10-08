@@ -409,7 +409,7 @@ float PVertexer::getTukey() const
 //___________________________________________________________________
 TimeEst PVertexer::timeEstimate(const VertexingInput& input) const
 {
-  o2::utils::StatAccumulator test;
+  o2::math_utils::StatAccumulator test;
   for (int i : input.idRange) {
     if (mTracksPool[i].canUse()) {
       const auto& timeT = mTracksPool[i].timeEst;

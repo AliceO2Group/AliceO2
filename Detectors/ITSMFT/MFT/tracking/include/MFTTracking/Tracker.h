@@ -120,7 +120,7 @@ inline void Tracker::getRPhiProjectionBin(const Cluster& cluster1, const Int_t l
   auto clsPoint2D = math_utils::Point2D<Float_t>(x_proj, y_proj);
   r_proj = clsPoint2D.R();
   phi_proj = clsPoint2D.Phi();
-  o2::utils::BringTo02PiGen(phi_proj);
+  o2::math_utils::BringTo02PiGen(phi_proj);
   binR_proj = constants::index_table::getRBinIndex(r_proj);
   binPhi_proj = constants::index_table::getPhiBinIndex(phi_proj);
   return;

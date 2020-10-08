@@ -135,7 +135,7 @@ void MatLayerCylSet::dumpToTree(const std::string outName) const
         merge = ips == ips1 ? -1 : lr.canMergePhiSlices(ips, ips1); // -1 for already merged
       } else
         merge = -2; // last one
-      o2::utils::sincosf(phi, sn, cs);
+      o2::math_utils::sincosf(phi, sn, cs);
       float x = r * cs, y = r * sn;
       for (int iz = 0; iz < lr.getNZBins(); iz++) {
         float z = 0.5 * (lr.getZBinMin(iz) + lr.getZBinMax(iz));

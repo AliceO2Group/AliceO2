@@ -166,7 +166,7 @@ void DisplayTrack(Int_t event = 0, Int_t track = 0, std::string tracfile = "o2tr
 
 found:
   o2::its::GeometryTGeo* gman = GeometryTGeo::Instance();
-  gman->fillMatrixCache(o2::utils::bit2Mask(o2::math_utils::TransformType::L2G)); // request cached transforms
+  gman->fillMatrixCache(o2::math_utils::bit2Mask(o2::math_utils::TransformType::L2G)); // request cached transforms
 
   nc = clusArr->size();
   n = 0;
