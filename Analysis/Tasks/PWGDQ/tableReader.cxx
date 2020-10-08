@@ -487,8 +487,9 @@ WorkflowSpec defineDataProcessing(ConfigContext const&)
     adaptAnalysisTask<EventSelection>("my-event-selection"),
     adaptAnalysisTask<BarrelTrackSelection>("barrel-track-selection"),
     adaptAnalysisTask<MuonTrackSelection>("muon-track-selection"),
-    adaptAnalysisTask<TableReader>("table-reader"),
-    adaptAnalysisTask<DileptonHadronAnalysis>("dilepton-hadron")};
+    adaptAnalysisTask<TableReader>("table-reader")
+    //adaptAnalysisTask<DileptonHadronAnalysis>("dilepton-hadron")
+  };
 }
 
 void DefineHistograms(HistogramManager* histMan, TString histClasses)
