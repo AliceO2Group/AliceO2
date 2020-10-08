@@ -80,7 +80,7 @@ void RawReaderCRUEventSync::analyse()
     for (size_t iCRU = 0; iCRU < event.CRUInfoArray.size(); ++iCRU) {
       const auto& cruInfo = event.CRUInfoArray[iCRU];
       if (!cruInfo.isPresent()) {
-        if (mCRUSeen[iCRU]) {
+        if (mCRUSeen[iCRU] >= 0) {
           event.IsComplete = false;
           break;
         }
@@ -124,6 +124,14 @@ void RawReaderCRUEventSync::streamTo(std::ostream& output) const
   const std::string green("\033[32m");
   const std::string bold("\033[1m");
   const std::string clear("\033[0m");
+
+  std::cout << "CRU information";
+  for (size_t iCRU = 0; iCRU < mCRUSeen.size(); ++iCRU) {
+    const auto readerNumber = mCRUSeen[iCRU];
+    if (readerNumber >= 0) {
+      std::cout << fmt::format("CRU {:2} found in reader {}\n", iCRU, readerNumber);
+    }
+  }
 
   std::cout << "Detailed event information\n";
   // event loop
@@ -291,7 +299,7 @@ int RawReaderCRU::scanFile()
         lastHeartbeatOrbit = heartbeatOrbit;
       }
       linkInfo = &mManager->mEventSync.getLinkInfo(rdh, mManager->getDataType());
-      mManager->mEventSync.setCRUSeen(mCRU);
+      mManager->mEventSync.setCRUSeen(mCRU, mReaderNumber);
     }
     //std::cout << "block length: " << blockLength << '\n';
 
@@ -1021,6 +1029,7 @@ void RawReaderCRUManager::setupReaders(const std::string_view inputFileNames,
   for (auto file : *arr) {
     // fix the number of time bins
     auto& reader = createReader(file->GetName(), numTimeBins);
+    reader.setReaderNumber(mRawReadersCRU.size() - 1);
     reader.setVerbosity(verbosity);
     reader.setDebugLevel(debugLevel);
     O2INFO("Adding file: %s\n", file->GetName());
@@ -1041,4 +1050,26 @@ void RawReaderCRUManager::copyEvents(const std::string_view inputFileNames, cons
   RawReaderCRUManager manager;
   manager.setupReaders(inputFileNames);
   manager.copyEvents(eventNumbers, outputDirectory, mode);
+}
+
+void RawReaderCRUManager::processEvent(uint32_t eventNumber, EndReaderCallback endReader)
+{
+  const auto& cruSeen = mEventSync.getCRUSeen();
+
+  for (size_t iCRU = 0; iCRU < cruSeen.size(); ++iCRU) {
+    const auto readerNumber = cruSeen[iCRU];
+    if (readerNumber >= 0) {
+      auto& reader = mRawReadersCRU[readerNumber];
+      if (reader->getFillADCdataMap()) {
+        LOGF(warning, "Filling of ADC data map not supported in RawReaderCRUManager::processEvent, it is disabled now. use ADCDataCallback");
+        reader->setFillADCdataMap(false);
+      }
+      reader->setEventNumber(eventNumber);
+      reader->forceCRU(iCRU);
+      reader->processLinks();
+      if (endReader) {
+        endReader();
+      }
+    }
+  }
 }

@@ -303,6 +303,9 @@ class RawReaderCRUEventSync
 
   using RDH = o2::header::RAWDataHeader;
 
+  /// default ctor
+  RawReaderCRUEventSync() { reset(); }
+
   // ---------------------------------------------------------------------------
   /// \struct LinkInfo
   /// \brief helper to store link information in an event
@@ -449,13 +452,19 @@ class RawReaderCRUEventSync
   void setLinksSeen(const CRU cru, const std::bitset<MaxNumberOfLinks>& links);
 
   /// set a cru as seen
-  void setCRUSeen(const CRU cru) { mCRUSeen[cru] = true; }
+  void setCRUSeen(const CRU cru, const uint16_t reader = 0) { mCRUSeen[cru] = reader; }
+
+  /// return CRU seen information
+  const auto& getCRUSeen() const { return mCRUSeen; }
+
+  /// get the reader associated to the CRU
+  uint32_t getReaderNumber(uint32_t cru) { return mCRUSeen[cru]; }
 
   /// reset all information
   void reset()
   {
     mEventInformation.clear();
-    mCRUSeen.reset();
+    mCRUSeen.fill(-1);
   }
 
   /// overloading output stream operator
@@ -466,9 +475,9 @@ class RawReaderCRUEventSync
   }
 
  private:
-  EventInfoVector mEventInformation{}; ///< event information
-  EventInfo* mLastEvent{nullptr};      ///< Last event that was created
-  std::bitset<CRU::MaxCRU> mCRUSeen{}; ///< if cru was seen
+  EventInfoVector mEventInformation{};         ///< event information
+  EventInfo* mLastEvent{nullptr};              ///< Last event that was created
+  std::array<int16_t, CRU::MaxCRU> mCRUSeen{}; ///< if cru was seen, number is for which decoder
 
   ClassDefNV(RawReaderCRUEventSync, 0); // event synchronisation for raw reader instances
 };                                      // class RawReaderCRUEventSync
@@ -493,12 +502,14 @@ class RawReaderCRU
                uint32_t stream = 0,
                uint32_t debugLevel = 0,
                uint32_t verbosity = 0,
-               const std::string_view outputFilePrefix = "")
+               const std::string_view outputFilePrefix = "",
+               uint32_t readerNumber = 0)
     : mDebugLevel(debugLevel),
       mVerbosity(verbosity),
       mNumTimeBins(numTimeBins),
       mLink(link),
       mStream(stream),
+      mReaderNumber(readerNumber),
       mCRU(),
       mFileSize(-1),
       mPacketsPerLink(),
@@ -544,8 +555,14 @@ class RawReaderCRU
   /// set event number
   void setEventNumber(uint32_t eventNumber = 0) { mEventNumber = eventNumber; }
 
+  /// set the reader number in the manager
+  void setReaderNumber(uint32_t readerNumber) { mReaderNumber = readerNumber; }
+
   /// set filling of ADC data map
   void setFillADCdataMap(bool fill) { mFillADCdataMap = fill; }
+
+  /// get filling of ADC data map
+  bool getFillADCdataMap() const { return mFillADCdataMap; }
 
   /// get event number
   uint32_t getEventNumber() const { return mEventNumber; }
@@ -699,6 +716,7 @@ class RawReaderCRU
   uint32_t mLink;                                                          ///< present link being processed
   uint32_t mStream;                                                        ///< present stream being processed
   uint32_t mEventNumber = 0;                                               ///< current event number to process
+  uint32_t mReaderNumber = 0;                                              ///< raw reader number in manager
   CRU mCRU;                                                                ///< CRU
   size_t mFileSize;                                                        ///< size of the input file
   bool mDumpTextFiles = false;                                             ///< dump debugging text files
@@ -851,6 +869,7 @@ class RawReaderCRUManager
 {
  public:
   using ADCDataCallback = std::function<Int_t(const PadROCPos&, const CRU&, const gsl::span<const uint32_t>)>;
+  using EndReaderCallback = std::function<void()>;
 
   /// constructor
   RawReaderCRUManager() = default;
@@ -865,7 +884,7 @@ class RawReaderCRUManager
                              const std::string_view outputFilePrefix = "")
   //RawReaderCRU& createReader(std::string_view fileName, uint32_t numTimeBins)
   {
-    mRawReadersCRU.emplace_back(std::make_unique<RawReaderCRU>(inputFileName, numTimeBins, 0, stream, debugLevel, verbosity, outputFilePrefix));
+    mRawReadersCRU.emplace_back(std::make_unique<RawReaderCRU>(inputFileName, numTimeBins, 0, stream, debugLevel, verbosity, outputFilePrefix, mRawReadersCRU.size()));
     mRawReadersCRU.back()->setManager(this);
     return *mRawReadersCRU.back().get();
   }
@@ -947,6 +966,9 @@ class RawReaderCRUManager
 
   /// set a callback function
   void setADCDataCallback(ADCDataCallback function) { mADCDataCallback = function; }
+
+  /// process event calling mADCDataCallback to process values
+  void processEvent(uint32_t eventNumber, EndReaderCallback endReader = nullptr);
 
  private:
   std::vector<std::unique_ptr<RawReaderCRU>> mRawReadersCRU{}; ///< cru type raw readers
