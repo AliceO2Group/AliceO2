@@ -43,6 +43,7 @@ struct TableMaker {
   Produces<ReducedTracksBarrelPID> trackBarrelPID;
   Produces<ReducedMuons> muonBasic;
   Produces<ReducedMuonsExtended> muonExtended;
+  Partition<soa::Join<aod::Tracks, aod::TracksExtra, aod::TracksCov>> selectedTracks = o2::aod::track::pt >= 0.15f && nabs(o2::aod::track::eta) <= 0.9f;
 
   OutputObj<HistogramManager> fHistMan{"output"};
 
@@ -91,12 +92,11 @@ struct TableMaker {
     float globalY = 0.f;
     float dcaXY = 0.f;
     float dcaZ = 0.f;
-    for (auto& track : tracksBarrel) {
-
-      if (track.pt() < 0.15)
-        continue;
-      if (TMath::Abs(track.eta()) > 0.9)
-        continue;
+    trackBasic.reserve(selectedTracks.size());
+    trackBarrel.reserve(selectedTracks.size());
+    trackBarrelCov.reserve(selectedTracks.size());
+    trackBarrelPID.reserve(selectedTracks.size());
+    for (auto& track : selectedTracks) {
 
       sinAlpha = sin(track.alpha());
       cosAlpha = cos(track.alpha());
@@ -129,7 +129,7 @@ struct TableMaker {
 
     for (auto& muon : tracksMuon) {
       // TODO: add proper information for muon tracks
-      if (muon.bc() != collision.bc())
+      if (muon.bcId() != collision.bcId())
         continue;
       trackFilteringTag |= (uint64_t(1) << 0); // this is a MUON arm track
       muonBasic(collision, trackFilteringTag, muon.pt(), muon.eta(), muon.phi(), muon.charge());
