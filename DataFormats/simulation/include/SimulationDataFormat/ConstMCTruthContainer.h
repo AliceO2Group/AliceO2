@@ -203,6 +203,9 @@ class ConstMCTruthContainerView
   }
 };
 
+using ConstMCLabelContainer = o2::dataformats::ConstMCTruthContainer<o2::MCCompLabel>;
+using ConstMCLabelContainerView = o2::dataformats::ConstMCTruthContainerView<o2::MCCompLabel>;
+
 } // namespace dataformats
 } // namespace o2
 

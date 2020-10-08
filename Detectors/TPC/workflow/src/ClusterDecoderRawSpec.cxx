@@ -35,16 +35,12 @@
 
 using namespace o2::framework;
 using namespace o2::header;
+using namespace o2::dataformats;
 
 namespace o2
 {
 namespace tpc
 {
-
-using MCLabelContainer = o2::dataformats::MCTruthContainer<o2::MCCompLabel>;
-using ConstMCLabelContainer = o2::dataformats::ConstMCTruthContainer<o2::MCCompLabel>;
-using ConstMCLabelContainerView = o2::dataformats::ConstMCTruthContainerView<o2::MCCompLabel>;
-
 /// create the processor spec for TPC raw cluster decoder converting TPC raw to native clusters
 /// Input: raw pages of TPC raw clusters
 /// Output: vector of containers with clusters in ClusterNative format, one container per

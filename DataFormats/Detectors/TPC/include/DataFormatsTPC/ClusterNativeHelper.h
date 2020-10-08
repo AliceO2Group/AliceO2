@@ -131,9 +131,8 @@ struct alignas(64) ClusterIndexBuffer {
 class ClusterNativeHelper
 {
  public:
-  using MCLabelContainer = o2::dataformats::MCTruthContainer<o2::MCCompLabel>;
-  using ConstMCLabelContainer = ClusterNativeAccess::ConstMCLabelContainer;
-  using ConstMCLabelContainerView = ClusterNativeAccess::ConstMCLabelContainerView;
+  using MCLabelContainer = o2::dataformats::MCLabelContainer;
+  using ConstMCLabelContainerView = o2::dataformats::ConstMCLabelContainerView;
   using ConstMCLabelContainerViewWithBuffer = ClusterNativeAccess::ConstMCLabelContainerViewWithBuffer;
 
   ClusterNativeHelper() = default;

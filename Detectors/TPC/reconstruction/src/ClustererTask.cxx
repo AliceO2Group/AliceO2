@@ -19,6 +19,7 @@
 ClassImp(o2::tpc::ClustererTask);
 
 using namespace o2::tpc;
+using namespace o2::dataformats;
 
 //_____________________________________________________________________
 ClustererTask::ClustererTask(int sectorid)

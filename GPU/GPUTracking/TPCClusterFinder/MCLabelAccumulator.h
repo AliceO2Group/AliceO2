@@ -16,15 +16,20 @@
 
 #include "clusterFinderDefs.h"
 #include "Array2D.h"
-#include "SimulationDataFormat/MCCompLabel.h"
 #include <bitset>
 #include <vector>
 
-namespace o2::dataformats
+namespace o2
 {
+class MCCompLabel;
+namespace dataformats
+{
+class MCCompLabel;
 template <typename T>
 class ConstMCTruthContainerView;
-} // namespace o2::dataformats
+using ConstMCLabelContainerView = o2::dataformats::ConstMCTruthContainerView<o2::MCCompLabel>;
+} // namespace dataformats
+} // namespace o2
 
 namespace GPUCA_NAMESPACE::gpu
 {
@@ -45,10 +50,8 @@ class MCLabelAccumulator
   void commit(tpccf::Row, uint, uint);
 
  private:
-  using MCLabelContainer = o2::dataformats::ConstMCTruthContainerView<o2::MCCompLabel>;
-
   Array2D<const uint> mIndexMap;
-  const MCLabelContainer* mLabels = nullptr;
+  const o2::dataformats::ConstMCLabelContainerView* mLabels = nullptr;
   GPUTPCClusterMCInterim* mOutput = nullptr;
 
   std::bitset<64> mMaybeHasLabel;

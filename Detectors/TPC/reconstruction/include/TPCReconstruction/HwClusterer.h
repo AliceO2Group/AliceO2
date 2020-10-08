@@ -39,12 +39,9 @@ class ClusterHardware;
 /// \brief Class for TPC HW cluster finding
 class HwClusterer : public Clusterer
 {
-
  private:
-  using MCLabelContainer = o2::dataformats::MCTruthContainer<o2::MCCompLabel>;
-  using ConstMCLabelContainer = o2::dataformats::ConstMCTruthContainer<o2::MCCompLabel>;
-  using ConstMCLabelContainerView = o2::dataformats::ConstMCTruthContainerView<o2::MCCompLabel>;
-
+  using MCLabelContainer = o2::dataformats::MCLabelContainer;
+  using ConstMCLabelContainerView = o2::dataformats::ConstMCLabelContainerView;
   /// Main Constructor
   HwClusterer(
     std::vector<ClusterHardwareContainer8kb>* clusterOutputContainer,
