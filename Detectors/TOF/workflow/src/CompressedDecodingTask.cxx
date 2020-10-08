@@ -198,6 +198,7 @@ void CompressedDecodingTask::trailerHandler(const CrateHeader_t* crateHeader, co
     const uint32_t* val = reinterpret_cast<const uint32_t*>(&(diagnostics[i]));
     mDecoder.addPattern(*val, crateHeader->drmID, crateOrbit->orbitID, crateHeader->bunchID);
 
+    /*
     int islot = (*val & 15);
     printf("DRM = %d (orbit = %d) slot = %d: \n", crateHeader->drmID, crateOrbit->orbitID, islot);
     if (islot == 1) {
@@ -317,6 +318,7 @@ void CompressedDecodingTask::trailerHandler(const CrateHeader_t* crateHeader, co
       }
     }
     printf("------\n");
+    */
   }
   for (int i = 0; i < numberOfErrors; i++) {
     const uint32_t* val = reinterpret_cast<const uint32_t*>(&(errors[i]));
