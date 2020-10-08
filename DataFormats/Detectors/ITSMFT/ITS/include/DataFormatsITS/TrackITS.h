@@ -41,7 +41,7 @@ class TrackITS : public o2::track::TrackParCov
 
   TrackITS() = default;
   TrackITS(const TrackITS& t) = default;
-  TrackITS(const o2::track::TrackParCov& parcov) : TrackParCov{parcov} {}
+  TrackITS(const o2::track::TrackParCov& parcov) : o2::track::TrackParCov{parcov} {}
   TrackITS(const o2::track::TrackParCov& parCov, float chi2, const o2::track::TrackParCov& outer)
     : o2::track::TrackParCov{parCov}, mParamOut{outer}, mChi2{chi2} {}
   TrackITS& operator=(const TrackITS& tr) = default;

@@ -505,15 +505,17 @@ GPUd() bool GPUTRDTracker_t<TRDTRK, PROP>::CalculateSpacePoints(int iCollision)
   int idxOffset = iCollision * (kNChambers + 1);
 
   for (int iDet = 0; iDet < kNChambers; ++iDet) {
-
     int nTracklets = mTrackletIndexArray[idxOffset + iDet + 1] - mTrackletIndexArray[idxOffset + iDet];
     if (nTracklets == 0) {
       continue;
     }
-
+    if (!mGeo->ChamberInGeometry(iDet)) {
+      GPUError("Found TRD tracklets in chamber %i which is not included in the geometry", iDet);
+      return false;
+    }
     auto* matrix = mGeo->GetClusterMatrix(iDet);
     if (!matrix) {
-      Error("CalculateSpacePoints", "Invalid TRD cluster matrix, skipping detector  %i", iDet);
+      GPUError("No cluster matrix available for chamber %i. Skipping it...", iDet);
       result = false;
       continue;
     }
@@ -645,7 +647,7 @@ GPUd() bool GPUTRDTracker_t<TRDTRK, PROP>::FollowProlongation(PROP* prop, TRDTRK
       }
 
       // rotate track in new sector in case of sector crossing
-      if (!AdjustSector(prop, trkWork, iLayer)) {
+      if (!AdjustSector(prop, trkWork)) {
         if (ENABLE_INFO) {
           GPUInfo("FollowProlongation: Adjusting sector failed for track %i candidate %i in layer %i", iTrack, iCandidate, iLayer);
         }
@@ -709,7 +711,7 @@ GPUd() bool GPUTRDTracker_t<TRDTRK, PROP>::FollowProlongation(PROP* prop, TRDTRK
             // although the radii of space points and tracks may differ by ~ few mm the roads are large enough to allow no efficiency loss by this cut
             continue;
           }
-          My_Float projY, projZ;
+          float projY, projZ;
           prop->getPropagatedYZ(mSpacePoints[trkltIdx].mR, projY, projZ);
           // correction for tilted pads (only applied if deltaZ < l_pad && track z err << l_pad)
           float tiltCorr = tilt * (mSpacePoints[trkltIdx].mX[1] - projZ);
@@ -1048,11 +1050,11 @@ GPUd() int GPUTRDTracker_t<TRDTRK, PROP>::GetDetectorNumber(const float zPos, co
 }
 
 template <class TRDTRK, class PROP>
-GPUd() bool GPUTRDTracker_t<TRDTRK, PROP>::AdjustSector(PROP* prop, TRDTRK* t, const int layer) const
+GPUd() bool GPUTRDTracker_t<TRDTRK, PROP>::AdjustSector(PROP* prop, TRDTRK* t) const
 {
   //--------------------------------------------------------------------
   // rotate track in new sector if necessary and
-  // propagate to correct x of layer
+  // propagate to previous x afterwards
   // cancel if track crosses two sector boundaries
   //--------------------------------------------------------------------
   float alpha = mGeo->GetAlpha();
@@ -1266,13 +1268,12 @@ namespace GPUCA_NAMESPACE
 {
 namespace gpu
 {
-// instatiate the tracker for both for GPU data types and for AliRoot/O2 data types
 #if !defined(GPUCA_STANDALONE) && !defined(GPUCA_GPUCODE)
+// instantiate version for non-GPU data types
 template class GPUTRDTracker_t<GPUTRDTrack, GPUTRDPropagator>;
 #endif
-#ifndef GPUCA_ALIROOT_LIB
+// always instantiate version for GPU data types
 template class GPUTRDTracker_t<GPUTRDTrackGPU, GPUTRDPropagatorGPU>;
-#endif
 } // namespace gpu
 } // namespace GPUCA_NAMESPACE
 #endif

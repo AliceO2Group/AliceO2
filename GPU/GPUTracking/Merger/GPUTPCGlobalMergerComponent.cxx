@@ -120,7 +120,7 @@ void GPUTPCGlobalMergerComponent::SetDefaultConfiguration()
 
   fSolenoidBz = -5.00668;
   fClusterErrorCorrectionY = 0;
-  fClusterErrorCorrectionZ = 1.1;
+  fClusterErrorCorrectionZ = 0;
   fNWays = 1;
   fNWaysOuter = 0;
   fNoClear = false;
