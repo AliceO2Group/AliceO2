@@ -50,6 +50,8 @@
 #include <array>
 #include <gsl/span>
 
+using namespace o2::dataformats;
+
 namespace o2
 {
 namespace tpc
@@ -366,7 +368,6 @@ framework::WorkflowSpec getWorkflow(std::vector<int> const& tpcSectors, std::vec
   // selected by output type 'difits'
   if (isEnabled(OutputType::Digits) && !isEnabled(OutputType::DisableWriter)) {
     using DigitOutputType = std::vector<o2::tpc::Digit>;
-    using MCLabelContainer = o2::dataformats::MCTruthContainer<o2::MCCompLabel>;
     specs.push_back(makeWriterSpec("tpc-digits-writer",
                                    inputType == InputType::ZSRaw ? "tpc-zs-digits.root" : inputType == InputType::Digits ? "tpc-filtered-digits.root" : "tpcdigits.root",
                                    "o2sim",
@@ -384,7 +385,6 @@ framework::WorkflowSpec getWorkflow(std::vector<int> const& tpcSectors, std::vec
   //
   // selected by output type 'clustershardware'
   if (isEnabled(OutputType::ClustersHardware) && !isEnabled(OutputType::DisableWriter)) {
-    using MCLabelContainer = o2::dataformats::MCTruthContainer<o2::MCCompLabel>;
     specs.push_back(makeWriterSpec("tpc-clusterhardware-writer",
                                    inputType == InputType::ClustersHardware ? "tpc-filtered-clustershardware.root" : "tpc-clustershardware.root",
                                    "tpcclustershardware",
@@ -402,7 +402,6 @@ framework::WorkflowSpec getWorkflow(std::vector<int> const& tpcSectors, std::vec
   //
   // selected by output type 'clusters'
   if (isEnabled(OutputType::Clusters) && !isEnabled(OutputType::DisableWriter)) {
-    using MCLabelContainer = o2::dataformats::MCTruthContainer<o2::MCCompLabel>;
     // if the caClusterer is enabled, only one data set with the full TPC is produced, and the writer
     // is configured to write one single branch
     specs.push_back(makeWriterSpec("tpc-native-cluster-writer",
@@ -472,23 +471,21 @@ framework::WorkflowSpec getWorkflow(std::vector<int> const& tpcSectors, std::vec
     using TrackOutputType = std::vector<o2::tpc::TrackTPC>;
 
     using ClusRefsOutputType = std::vector<o2::tpc::TPCClRefElem>;
-
-    using MCLabelContainer = std::vector<o2::MCCompLabel>;
     // a spectator callback which will be invoked by the tree writer with the extracted object
     // we are using it for printing a log message
     auto logger = BranchDefinition<TrackOutputType>::Spectator([](TrackOutputType const& tracks) {
       LOG(INFO) << "writing " << tracks.size() << " track(s)";
     });
-    auto tracksdef = BranchDefinition<TrackOutputType>{InputSpec{"inputTracks", "TPC", "TRACKS", 0},      //
-                                                       "TPCTracks", "track-branch-name",                  //
-                                                       1,                                                 //
-                                                       logger};                                           //
-    auto clrefdef = BranchDefinition<ClusRefsOutputType>{InputSpec{"inputClusRef", "TPC", "CLUSREFS", 0}, //
-                                                         "ClusRefs", "trackclusref-branch-name"};         //
-    auto mcdef = BranchDefinition<MCLabelContainer>{InputSpec{"mcinput", "TPC", "TRACKSMCLBL", 0},        //
-                                                    "TPCTracksMCTruth",                                   //
-                                                    (propagateMC ? 1 : 0),                                //
-                                                    "trackmc-branch-name"};                               //
+    auto tracksdef = BranchDefinition<TrackOutputType>{InputSpec{"inputTracks", "TPC", "TRACKS", 0},           //
+                                                       "TPCTracks", "track-branch-name",                       //
+                                                       1,                                                      //
+                                                       logger};                                                //
+    auto clrefdef = BranchDefinition<ClusRefsOutputType>{InputSpec{"inputClusRef", "TPC", "CLUSREFS", 0},      //
+                                                         "ClusRefs", "trackclusref-branch-name"};              //
+    auto mcdef = BranchDefinition<std::vector<o2::MCCompLabel>>{InputSpec{"mcinput", "TPC", "TRACKSMCLBL", 0}, //
+                                                                "TPCTracksMCTruth",                            //
+                                                                (propagateMC ? 1 : 0),                         //
+                                                                "trackmc-branch-name"};                        //
 
     // depending on the MC propagation flag, branch definition for MC labels is disabled
     specs.push_back(MakeRootTreeWriterSpec(processName, defaultFileName, defaultTreeName,

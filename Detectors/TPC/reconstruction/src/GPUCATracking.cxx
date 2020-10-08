@@ -45,8 +45,6 @@ using namespace o2::tpc;
 using namespace o2;
 using namespace o2::dataformats;
 
-using MCLabelContainer = MCTruthContainer<MCCompLabel>;
-
 GPUCATracking::GPUCATracking() = default;
 GPUCATracking::~GPUCATracking() { deinitialize(); }
 

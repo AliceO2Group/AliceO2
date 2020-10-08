@@ -28,6 +28,8 @@
 #include <memory>
 #include <iostream>
 
+using MCLabelContainer = o2::dataformats::MCLabelContainer;
+
 namespace o2
 {
 namespace tpc
@@ -133,7 +135,6 @@ BOOST_AUTO_TEST_CASE(HwClusterer_test1)
 {
   std::cout << "##" << std::endl;
   std::cout << "## Starting test 1, basic class tests." << std::endl;
-  using MCLabelContainer = o2::dataformats::MCTruthContainer<o2::MCCompLabel>;
   auto clusterArray = std::make_unique<std::vector<ClusterHardwareContainer8kb>>();
   auto labelArray = std::make_unique<MCLabelContainer>();
 
@@ -188,7 +189,6 @@ BOOST_AUTO_TEST_CASE(HwClusterer_test2)
 {
   std::cout << "##" << std::endl;
   std::cout << "## Starting test 2, finding single pad clusters." << std::endl;
-  using MCLabelContainer = o2::dataformats::MCTruthContainer<o2::MCCompLabel>;
   auto clusterArray = std::make_unique<std::vector<o2::tpc::ClusterHardwareContainer8kb>>();
   auto labelArray = std::make_unique<o2::dataformats::MCTruthContainer<o2::MCCompLabel>>();
 
@@ -263,7 +263,6 @@ BOOST_AUTO_TEST_CASE(HwClusterer_test3)
 {
   std::cout << "##" << std::endl;
   std::cout << "## Starting test 3, computing cluster properties." << std::endl;
-  using MCLabelContainer = o2::dataformats::MCTruthContainer<o2::MCCompLabel>;
   auto clusterArray = std::make_unique<std::vector<o2::tpc::ClusterHardwareContainer8kb>>();
   auto labelArray = std::make_unique<o2::dataformats::MCTruthContainer<o2::MCCompLabel>>();
 
@@ -367,7 +366,6 @@ BOOST_AUTO_TEST_CASE(HwClusterer_test4)
 {
   std::cout << "##" << std::endl;
   std::cout << "## Starting test 4, rejecting single pad clusters." << std::endl;
-  using MCLabelContainer = o2::dataformats::MCTruthContainer<o2::MCCompLabel>;
   auto clusterArray = std::make_unique<std::vector<o2::tpc::ClusterHardwareContainer8kb>>();
   auto labelArray = std::make_unique<o2::dataformats::MCTruthContainer<o2::MCCompLabel>>();
 
@@ -587,7 +585,6 @@ BOOST_AUTO_TEST_CASE(HwClusterer_test5)
 {
   std::cout << "##" << std::endl;
   std::cout << "## Starting test 5, rejecting peaks in subsequent." << std::endl;
-  using MCLabelContainer = o2::dataformats::MCTruthContainer<o2::MCCompLabel>;
   auto clusterArray = std::make_unique<std::vector<o2::tpc::ClusterHardwareContainer8kb>>();
   auto labelArray = std::make_unique<o2::dataformats::MCTruthContainer<o2::MCCompLabel>>();
 
@@ -656,7 +653,6 @@ BOOST_AUTO_TEST_CASE(HwClusterer_test6)
 {
   std::cout << "##" << std::endl;
   std::cout << "## Starting test 6, split charge among nearby clusters." << std::endl;
-  using MCLabelContainer = o2::dataformats::MCTruthContainer<o2::MCCompLabel>;
   auto clusterArray = std::make_unique<std::vector<o2::tpc::ClusterHardwareContainer8kb>>();
   auto labelArray = std::make_unique<o2::dataformats::MCTruthContainer<o2::MCCompLabel>>();
 
