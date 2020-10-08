@@ -71,6 +71,9 @@ class Decoder : public WindowFiller
 
   char* nextPage(void* current, int shift = 8192);
 
+  std::vector<uint32_t>& getErrors() { return mErrors; }
+  void addError(const uint32_t val, int icrate) { mErrors.push_back(val); }
+
  protected:
   static const int NCRU = 4;
 

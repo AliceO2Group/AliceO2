@@ -147,6 +147,7 @@ void Encoder::encodeTRM(const std::vector<Digit>& summary, Int_t icrate, Int_t i
     printf("Crate %d: encode TRM %d \n", icrate, itrm);
 
   // TRM HEADER
+  Union_t* trmheader = mUnion[icrate];
   mUnion[icrate]->trmDataHeader.slotId = itrm;
   mUnion[icrate]->trmDataHeader.eventWords = 0; // to be filled at the end
   mUnion[icrate]->trmDataHeader.eventCnt = mEventCounter;
@@ -205,6 +206,11 @@ void Encoder::encodeTRM(const std::vector<Digit>& summary, Int_t icrate, Int_t i
     mUnion[icrate]->trmChainTrailer.dataId = 1 + 2 * ichain;
     nextWord(icrate);
   }
+
+  // set TRM data size
+  int neventwords = getSize(trmheader, mUnion[icrate]) / 4 + 1;
+  neventwords -= neventwords / 4 * 2;
+  trmheader->trmDataHeader.eventWords = neventwords;
 
   // TRM TRAILER
   mUnion[icrate]->trmDataTrailer.trailerMark = 3;
@@ -330,12 +336,14 @@ bool Encoder::encode(std::vector<std::vector<o2::tof::Digit>> digitWindow, int t
       mUnion[i]->drmDataTrailer.locEvCnt = mEventCounter;
       mUnion[i]->drmDataTrailer.mbz = 0;
       mUnion[i]->drmDataTrailer.dataId = 5;
+      int neventwords = getSize(mDRMDataHeader[i], mUnion[i]) / 4 + 1;
+      neventwords -= neventwords / 4 * 2 + 6;
+      mDRMDataHeader[i]->eventWords = neventwords;
       nextWord(i);
       mUnion[i]->data = 0x70000000;
       nextWord(i);
 
       mTOFDataHeader[i]->bytePayload = getSize(mTOFDataHeader[i], mUnion[i]);
-      mDRMDataHeader[i]->eventWords = mTOFDataHeader[i]->bytePayload / 4;
     }
 
     // check that all digits were used

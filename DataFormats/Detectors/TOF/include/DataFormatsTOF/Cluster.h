@@ -63,7 +63,7 @@ class Cluster : public o2::BaseCluster<float>
   double getTime() const { return mTime; }                  // Cluster ToF getter
   void setTime(double time) { mTime = time; }               // Cluster ToF setter
   float getTot() const { return mTot; }                     // Cluster Charge getter
-  void setTot(int tot) { mTot = tot; }                      // Cluster ToT setter
+  void setTot(float tot) { mTot = tot; }                    // Cluster ToT setter
   int getL0L1Latency() const { return mL0L1Latency; };      // L0L1 latency
   void setL0L1Latency(int value) { mL0L1Latency = value; }; // L0-L1 latency
   int getDeltaBC() const { return mDeltaBC; };              // deltaBC

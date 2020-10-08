@@ -36,7 +36,12 @@ using namespace compressed;
 class CompressedDecodingTask : public DecoderBase, public Task
 {
  public:
-  CompressedDecodingTask() = default;
+  CompressedDecodingTask(bool conet = false)
+  {
+    mConetMode = conet;
+    setDecoderCONET(conet);
+  }
+
   ~CompressedDecodingTask() override = default;
   void init(InitContext& ic) final;
   void run(ProcessingContext& pc) final;
@@ -46,12 +51,12 @@ class CompressedDecodingTask : public DecoderBase, public Task
  private:
   /** decoding handlers **/
   void rdhHandler(const o2::header::RAWDataHeader* rdh) override;
-  void headerHandler(const CrateHeader_t* crateHeader, const CrateOrbit_t* crateOrbit) override{};
+  void headerHandler(const CrateHeader_t* crateHeader, const CrateOrbit_t* crateOrbit) override;
   void frameHandler(const CrateHeader_t* crateHeader, const CrateOrbit_t* crateOrbit,
                     const FrameHeader_t* frameHeader, const PackedHit_t* packedHits) override;
   void trailerHandler(const CrateHeader_t* crateHeader, const CrateOrbit_t* crateOrbit,
                       const CrateTrailer_t* crateTrailer, const Diagnostic_t* diagnostics,
-                      const Error_t* errors) override{};
+                      const Error_t* errors) override;
 
   o2::tof::compressed::Decoder mDecoder;
   std::vector<std::vector<o2::tof::Digit>> mDigits;
@@ -59,11 +64,15 @@ class CompressedDecodingTask : public DecoderBase, public Task
   int mNCrateOpenTF = 0;
   int mNCrateCloseTF = 0;
   bool mHasToBePosted = false;
+  bool mConetMode = false;
   uint32_t mInitOrbit = 0;
+  bool mRowFilter = false;
+  bool mMaskNoise = false;
+  int mNoiseRate = 1000;
   TStopwatch mTimer;
 };
 
-framework::DataProcessorSpec getCompressedDecodingSpec(const std::string& inputDesc);
+framework::DataProcessorSpec getCompressedDecodingSpec(const std::string& inputDesc, bool conet = false);
 
 } // namespace tof
 } // namespace o2
