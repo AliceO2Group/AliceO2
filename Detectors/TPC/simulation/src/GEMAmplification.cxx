@@ -59,14 +59,14 @@ GEMAmplification::GEMAmplification()
     float s = mGEMParam->AbsoluteGain[i] / kappa;
     polya % kappa % s % s % (kappa - 1) % s;
     std::string name = polya.str();
-    o2::base::CachingTF1* polyaDistribution = nullptr;
+    o2::math_utils::CachingTF1* polyaDistribution = nullptr;
     if (!cacheexists) {
-      polyaDistribution = new o2::base::CachingTF1("polya", name.c_str(), 0, 10.f * mGEMParam->AbsoluteGain[i]);
+      polyaDistribution = new o2::math_utils::CachingTF1("polya", name.c_str(), 0, 10.f * mGEMParam->AbsoluteGain[i]);
       /// this dramatically alters the speed with which the filling is executed...
       /// without this, the distribution makes discrete steps at every int
       polyaDistribution->SetNpx(100000);
     } else {
-      polyaDistribution = (o2::base::CachingTF1*)outfile->Get(TString::Format("func%d", i).Data());
+      polyaDistribution = (o2::math_utils::CachingTF1*)outfile->Get(TString::Format("func%d", i).Data());
       // FIXME: verify that distribution corresponds to the parameters used here
     }
     mGain[i].initialize(*polyaDistribution);
@@ -84,12 +84,12 @@ GEMAmplification::GEMAmplification()
   const float sStack = gainStack / (kappaStack * (1.f - effStack));
   polya % kappaStack % sStack % sStack % (kappaStack - 1) % sStack;
   std::string name = polya.str();
-  o2::base::CachingTF1* polyaDistribution = nullptr;
+  o2::math_utils::CachingTF1* polyaDistribution = nullptr;
   if (!cacheexists) {
-    polyaDistribution = new o2::base::CachingTF1("polya", name.c_str(), 0, 50000);
+    polyaDistribution = new o2::math_utils::CachingTF1("polya", name.c_str(), 0, 50000);
     polyaDistribution->SetNpx(50000);
   } else {
-    polyaDistribution = (o2::base::CachingTF1*)outfile->Get("polyaStack");
+    polyaDistribution = (o2::math_utils::CachingTF1*)outfile->Get("polyaStack");
   }
   mGainFullStack.initialize(*polyaDistribution);
 
