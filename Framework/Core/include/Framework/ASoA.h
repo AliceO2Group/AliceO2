@@ -813,6 +813,7 @@ class Table
  public:
   using table_t = Table<C...>;
   using columns = framework::pack<C...>;
+  using column_types = framework::pack<typename C::type...>;
   using persistent_columns_t = framework::selected_pack<is_persistent_t, C...>;
 
   template <typename IP, typename Parent, typename... T>

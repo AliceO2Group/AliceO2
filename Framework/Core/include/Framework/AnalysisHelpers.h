@@ -64,7 +64,7 @@ struct WritingCursor<soa::Table<PC...>> {
   /// spend time reallocating the buffers.
   void reserve(int64_t size)
   {
-    mBuilder->reserve(typename persistent_table_t::columns{}, size);
+    mBuilder->reserve(typename persistent_table_t::column_types{}, size);
   }
 
   decltype(FFL(std::declval<cursor_t>())) cursor;
