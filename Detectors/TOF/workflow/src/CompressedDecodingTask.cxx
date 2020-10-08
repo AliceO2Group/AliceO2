@@ -39,6 +39,13 @@ void CompressedDecodingTask::init(InitContext& ic)
 {
   LOG(INFO) << "CompressedDecoding init";
 
+  mMaskNoise = ic.options().get<bool>("mask-noise");
+  mNoiseRate = ic.options().get<int>("noise-counts");
+  mRowFilter = ic.options().get<bool>("row-filter");
+
+  if (mMaskNoise)
+    mDecoder.maskNoiseRate(mNoiseRate);
+
   auto finishFunction = [this]() {
     LOG(INFO) << "CompressedDecoding finish";
   };
@@ -55,6 +62,8 @@ void CompressedDecodingTask::postData(ProcessingContext& pc)
   // send output message
   std::vector<o2::tof::Digit>* alldigits = mDecoder.getDigitPerTimeFrame();
   std::vector<o2::tof::ReadoutWindowData>* row = mDecoder.getReadoutWindowData();
+  if (mRowFilter)
+    row = mDecoder.getReadoutWindowDataFiltered();
 
   ReadoutWindowData* last = nullptr;
   o2::InteractionRecord lastIR;
@@ -82,15 +91,17 @@ void CompressedDecodingTask::postData(ProcessingContext& pc)
   int n_orbits = n_tof_window / 3;
   int digit_size = alldigits->size();
 
-  LOG(INFO) << "TOF: N tof window decoded = " << n_tof_window << "(orbits = " << n_orbits << ") with " << digit_size << " digits";
+  // LOG(INFO) << "TOF: N tof window decoded = " << n_tof_window << "(orbits = " << n_orbits << ") with " << digit_size << " digits";
 
   // add digits in the output snapshot
   pc.outputs().snapshot(Output{o2::header::gDataOriginTOF, "DIGITS", 0, Lifetime::Timeframe}, *alldigits);
   pc.outputs().snapshot(Output{o2::header::gDataOriginTOF, "READOUTWINDOW", 0, Lifetime::Timeframe}, *row);
 
-  // RS FIXME: At the moment dummy output to comply with CTF encoded inputs
-  std::vector<uint32_t> patterns;
+  std::vector<uint32_t> patterns = mDecoder.getPatterns();
   pc.outputs().snapshot(Output{o2::header::gDataOriginTOF, "PATTERNS", 0, Lifetime::Timeframe}, patterns);
+
+  std::vector<uint32_t> errors = mDecoder.getErrors();
+  pc.outputs().snapshot(Output{o2::header::gDataOriginTOF, "ERRORS", 0, Lifetime::Timeframe}, errors);
 
   // RS this is a hack to be removed once we have correct propagation of the firstTForbit by the framework
   auto setFirstTFOrbit = [&](const Output& spec, uint32_t orb) {
@@ -106,8 +117,6 @@ void CompressedDecodingTask::postData(ProcessingContext& pc)
 
   mDecoder.clear();
 
-  LOG(INFO) << "TOF: TF = " << mNTF << " - Crate in " << mNCrateOpenTF;
-
   mNTF++;
   mNCrateOpenTF = 0;
   mNCrateCloseTF = 0;
@@ -115,10 +124,9 @@ void CompressedDecodingTask::postData(ProcessingContext& pc)
 
 void CompressedDecodingTask::run(ProcessingContext& pc)
 {
-  LOG(INFO) << "CompressedDecoding run";
   mTimer.Start(false);
 
-  if (pc.inputs().getNofParts(0)) {
+  if (pc.inputs().getNofParts(0) && !mConetMode) {
     //RS set the 1st orbit of the TF from the O2 header, relying on rdhHandler is not good (in fact, the RDH might be eliminated in the derived data)
     const auto* dh = o2::header::get<o2::header::DataHeader*>(pc.inputs().getByPos(0).header);
     mInitOrbit = dh->firstTForbit;
@@ -133,7 +141,6 @@ void CompressedDecodingTask::run(ProcessingContext& pc)
 
     /** loop over input parts **/
     for (auto const& ref : iit) {
-
       const auto* headerIn = DataRefUtils::getHeader<o2::header::DataHeader*>(ref);
       auto payloadIn = ref.payload;
       auto payloadInSize = headerIn->payloadSize;
@@ -144,7 +151,7 @@ void CompressedDecodingTask::run(ProcessingContext& pc)
     }
   }
 
-  if (mNCrateOpenTF == 72 && mNCrateOpenTF == mNCrateCloseTF)
+  if ((mNCrateOpenTF == 72 || mConetMode) && mNCrateOpenTF == mNCrateCloseTF)
     mHasToBePosted = true;
 
   if (mHasToBePosted) {
@@ -157,6 +164,121 @@ void CompressedDecodingTask::endOfStream(EndOfStreamContext& ec)
 {
   LOGF(INFO, "TOF CompressedDecoding total timing: Cpu: %.3e Real: %.3e s in %d slots",
        mTimer.CpuTime(), mTimer.RealTime(), mTimer.Counter() - 1);
+}
+
+void CompressedDecodingTask::headerHandler(const CrateHeader_t* crateHeader, const CrateOrbit_t* crateOrbit)
+{
+  if (mConetMode) {
+    LOG(DEBUG) << "Crate found" << crateHeader->drmID;
+
+    mInitOrbit = crateOrbit->orbitID;
+
+    mNCrateOpenTF++;
+  }
+}
+void CompressedDecodingTask::trailerHandler(const CrateHeader_t* crateHeader, const CrateOrbit_t* crateOrbit,
+                                            const CrateTrailer_t* crateTrailer, const Diagnostic_t* diagnostics,
+                                            const Error_t* errors)
+{
+  if (mConetMode) {
+    LOG(DEBUG) << "Crate closed" << crateHeader->drmID;
+    mNCrateCloseTF++;
+  }
+
+  // Diagnostics used to fill digit patterns
+  auto numberOfDiagnostics = crateTrailer->numberOfDiagnostics;
+  auto numberOfErrors = crateTrailer->numberOfErrors;
+  for (int i = 0; i < numberOfDiagnostics; i++) {
+    const uint32_t* val = reinterpret_cast<const uint32_t*>(&(diagnostics[i]));
+    mDecoder.addPattern(*val, crateHeader->drmID);
+
+    int islot = (*val & 15);
+    printf("DRM = %d (orbit = %d) slot = %d: \n", crateHeader->drmID, crateOrbit->orbitID, islot);
+    if (islot == 1) {
+      if (o2::tof::diagnostic::DRM_HEADER_MISSING & *val)
+        printf("DRM_HEADER_MISSING\n");
+      if (o2::tof::diagnostic::DRM_TRAILER_MISSING & *val)
+        printf("DRM_TRAILER_MISSING\n");
+      if (o2::tof::diagnostic::DRM_FEEID_MISMATCH & *val)
+        printf("DRM_FEEID_MISMATCH\n");
+      if (o2::tof::diagnostic::DRM_ORBIT_MISMATCH & *val)
+        printf("DRM_ORBIT_MISMATCH\n");
+      if (o2::tof::diagnostic::DRM_CRC_MISMATCH & *val)
+        printf("DRM_CRC_MISMATCH\n");
+      if (o2::tof::diagnostic::DRM_ENAPARTMASK_DIFFER & *val)
+        printf("DRM_ENAPARTMASK_DIFFER\n");
+      if (o2::tof::diagnostic::DRM_CLOCKSTATUS_WRONG & *val)
+        printf("DRM_CLOCKSTATUS_WRONG\n");
+      if (o2::tof::diagnostic::DRM_FAULTSLOTMASK_NOTZERO & *val)
+        printf("DRM_FAULTSLOTMASK_NOTZERO\n");
+      if (o2::tof::diagnostic::DRM_READOUTTIMEOUT_NOTZERO & *val)
+        printf("DRM_READOUTTIMEOUT_NOTZERO\n");
+      if (o2::tof::diagnostic::DRM_EVENTWORDS_MISMATCH & *val)
+        printf("DRM_EVENTWORDS_MISMATCH\n");
+      if (o2::tof::diagnostic::DRM_MAXDIAGNOSTIC_BIT & *val)
+        printf("DRM_MAXDIAGNOSTIC_BIT\n");
+    } else if (islot == 2) {
+      if (o2::tof::diagnostic::LTM_HEADER_MISSING & *val)
+        printf("LTM_HEADER_MISSING\n");
+      if (o2::tof::diagnostic::LTM_TRAILER_MISSING & *val)
+        printf("LTM_TRAILER_MISSING\n");
+      if (o2::tof::diagnostic::LTM_HEADER_UNEXPECTED & *val)
+        printf("LTM_HEADER_UNEXPECTED\n");
+      if (o2::tof::diagnostic::LTM_MAXDIAGNOSTIC_BIT & *val)
+        printf("LTM_MAXDIAGNOSTIC_BIT\n");
+    } else if (islot < 13) {
+      if (o2::tof::diagnostic::TRM_HEADER_MISSING & *val)
+        printf("TRM_HEADER_MISSING\n");
+      if (o2::tof::diagnostic::TRM_TRAILER_MISSING & *val)
+        printf("TRM_TRAILER_MISSING\n");
+      if (o2::tof::diagnostic::TRM_CRC_MISMATCH & *val)
+        printf("TRM_CRC_MISMATCH\n");
+      if (o2::tof::diagnostic::TRM_HEADER_UNEXPECTED & *val)
+        printf("TRM_HEADER_UNEXPECTED\n");
+      if (o2::tof::diagnostic::TRM_EVENTCNT_MISMATCH & *val)
+        printf("TRM_EVENTCNT_MISMATCH\n");
+      if (o2::tof::diagnostic::TRM_EMPTYBIT_NOTZERO & *val)
+        printf("TRM_EMPTYBIT_NOTZERO\n");
+      if (o2::tof::diagnostic::TRM_LBIT_NOTZERO & *val)
+        printf("TRM_LBIT_NOTZERO\n");
+      if (o2::tof::diagnostic::TRM_FAULTSLOTBIT_NOTZERO & *val)
+        printf("TRM_FAULTSLOTBIT_NOTZERO\n");
+      if (o2::tof::diagnostic::TRM_EVENTWORDS_MISMATCH & *val)
+        printf("TRM_EVENTWORDS_MISMATCH\n");
+      if (o2::tof::diagnostic::TRM_DIAGNOSTIC_SPARE1 & *val)
+        printf("TRM_DIAGNOSTIC_SPARE1\n");
+      if (o2::tof::diagnostic::TRM_DIAGNOSTIC_SPARE2 & *val)
+        printf("TRM_DIAGNOSTIC_SPARE2\n");
+      if (o2::tof::diagnostic::TRM_DIAGNOSTIC_SPARE3 & *val)
+        printf("TRM_DIAGNOSTIC_SPARE3\n");
+      if (o2::tof::diagnostic::TRM_MAXDIAGNOSTIC_BIT & *val)
+        printf("TRM_MAXDIAGNOSTIC_BIT\n");
+
+      if (o2::tof::diagnostic::TRMCHAIN_HEADER_MISSING & *val)
+        printf("TRMCHAIN_HEADER_MISSING\n");
+      if (o2::tof::diagnostic::TRMCHAIN_TRAILER_MISSING & *val)
+        printf("TRMCHAIN_TRAILER_MISSING\n");
+      if (o2::tof::diagnostic::TRMCHAIN_STATUS_NOTZERO & *val)
+        printf("TRMCHAIN_STATUS_NOTZERO\n");
+      if (o2::tof::diagnostic::TRMCHAIN_EVENTCNT_MISMATCH & *val)
+        printf("TRMCHAIN_EVENTCNT_MISMATCH\n");
+      if (o2::tof::diagnostic::TRMCHAIN_TDCERROR_DETECTED & *val)
+        printf("TRMCHAIN_TDCERROR_DETECTED\n");
+      if (o2::tof::diagnostic::TRMCHAIN_BUNCHCNT_MISMATCH & *val)
+        printf("TRMCHAIN_BUNCHCNT_MISMATCH\n");
+      if (o2::tof::diagnostic::TRMCHAIN_DIAGNOSTIC_SPARE1 & *val)
+        printf("TRMCHAIN_DIAGNOSTIC_SPARE1\n");
+      if (o2::tof::diagnostic::TRMCHAIN_DIAGNOSTIC_SPARE2 & *val)
+        printf("TRMCHAIN_DIAGNOSTIC_SPARE2\n");
+      if (o2::tof::diagnostic::TRMCHAIN_MAXDIAGNOSTIC_BIT & *val)
+        printf("TRMCHAIN_MAXDIAGNOSTIC_BIT\n");
+    }
+    printf("------\n");
+  }
+  for (int i = 0; i < numberOfErrors; i++) {
+    const uint32_t* val = reinterpret_cast<const uint32_t*>(&(errors[i]));
+    mDecoder.addError(*val, crateHeader->drmID);
+  }
 }
 
 void CompressedDecodingTask::rdhHandler(const o2::header::RAWDataHeader* rdh)
@@ -187,19 +309,23 @@ void CompressedDecodingTask::frameHandler(const CrateHeader_t* crateHeader, cons
   }
 };
 
-DataProcessorSpec getCompressedDecodingSpec(const std::string& inputDesc)
+DataProcessorSpec getCompressedDecodingSpec(const std::string& inputDesc, bool conet)
 {
   std::vector<OutputSpec> outputs;
   outputs.emplace_back(o2::header::gDataOriginTOF, "DIGITS", 0, Lifetime::Timeframe);
   outputs.emplace_back(o2::header::gDataOriginTOF, "READOUTWINDOW", 0, Lifetime::Timeframe);
-  outputs.emplace_back(o2::header::gDataOriginTOF, "PATTERNS", 0, Lifetime::Timeframe); // RS FIXME: At the moment dummy output to comply with CTF encoded inputs
+  outputs.emplace_back(o2::header::gDataOriginTOF, "PATTERNS", 0, Lifetime::Timeframe);
+  outputs.emplace_back(o2::header::gDataOriginTOF, "ERRORS", 0, Lifetime::Timeframe);
 
   return DataProcessorSpec{
     "tof-compressed-decoder",
     select(std::string("x:TOF/" + inputDesc).c_str()),
     outputs,
-    AlgorithmSpec{adaptFromTask<CompressedDecodingTask>()},
-    Options{}};
+    AlgorithmSpec{adaptFromTask<CompressedDecodingTask>(conet)},
+    Options{
+      {"row-filter", VariantType::Bool, false, {"Filter empty row"}},
+      {"mask-noise", VariantType::Bool, false, {"Flag to mask noisy digits"}},
+      {"noise-counts", VariantType::Int, 1000, {"Counts in a single (TF) payload"}}}};
 }
 
 } // namespace tof
