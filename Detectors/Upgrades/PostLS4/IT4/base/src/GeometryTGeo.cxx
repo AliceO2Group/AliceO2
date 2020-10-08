@@ -385,7 +385,7 @@ void GeometryTGeo::fillMatrixCache(int mask)
   }
 
   // build matrices
-  if ((mask & o2::utils::bit2Mask(o2::TransformType::L2G)) && !getCacheL2G().isFilled()) {
+  if ((mask & o2::utils::bit2Mask(o2::math_utils::TransformType::L2G)) && !getCacheL2G().isFilled()) {
     // Matrices for Local (Sensor!!! rather than the full chip) to Global frame transformation
     LOG(INFO) << "Loading ITS L2G matrices from TGeo";
     auto& cacheL2G = getCacheL2G();
@@ -397,7 +397,7 @@ void GeometryTGeo::fillMatrixCache(int mask)
     }
   }
 
-  if ((mask & o2::utils::bit2Mask(o2::TransformType::T2L)) && !getCacheT2L().isFilled()) {
+  if ((mask & o2::utils::bit2Mask(o2::math_utils::TransformType::T2L)) && !getCacheT2L().isFilled()) {
     // matrices for Tracking to Local (Sensor!!! rather than the full chip) frame transformation
     LOG(INFO) << "Loading ITS T2L matrices from TGeo";
     auto& cacheT2L = getCacheT2L();
@@ -408,7 +408,7 @@ void GeometryTGeo::fillMatrixCache(int mask)
     }
   }
 
-  if ((mask & o2::utils::bit2Mask(o2::TransformType::T2G)) && !getCacheT2G().isFilled()) {
+  if ((mask & o2::utils::bit2Mask(o2::math_utils::TransformType::T2G)) && !getCacheT2G().isFilled()) {
     LOG(WARNING) << "It is faster to use 2D rotation for T2G instead of full Transform3D matrices";
     // matrices for Tracking to Global frame transformation
     LOG(INFO) << "Loading ITS T2G matrices from TGeo";
@@ -422,7 +422,7 @@ void GeometryTGeo::fillMatrixCache(int mask)
     }
   }
 
-  if ((mask & o2::utils::bit2Mask(o2::TransformType::T2GRot)) && !getCacheT2GRot().isFilled()) {
+  if ((mask & o2::utils::bit2Mask(o2::math_utils::TransformType::T2GRot)) && !getCacheT2GRot().isFilled()) {
     // 2D rotation matrices for Tracking frame to Global rotations
     LOG(INFO) << "Loading ITS T2G rotation 2D matrices";
     auto& cacheT2Gr = getCacheT2GRot();

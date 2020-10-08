@@ -183,7 +183,7 @@ class TrackParametrization
 
   value_t getTheta() const;
   value_t getEta() const;
-  Point3D<value_t> getXYZGlo() const;
+  math_utils::Point3D<value_t> getXYZGlo() const;
   void getXYZGlo(dim3_t& xyz) const;
   bool getPxPyPzGlo(dim3_t& pxyz) const;
   bool getPosDirGlo(std::array<value_t, 9>& posdirp) const;
@@ -192,7 +192,7 @@ class TrackParametrization
   bool getYZAt(value_t xk, value_t b, value_t& y, value_t& z) const;
   value_t getZAt(value_t xk, value_t b) const;
   value_t getYAt(value_t xk, value_t b) const;
-  Point3D<value_t> getXYZGloAt(value_t xk, value_t b, bool& ok) const;
+  math_utils::Point3D<value_t> getXYZGloAt(value_t xk, value_t b, bool& ok) const;
 
   // parameters manipulation
   bool correctForELoss(value_t xrho, value_t mass, bool anglecorr = false, value_t dedx = kCalcdEdxAuto);
@@ -200,7 +200,7 @@ class TrackParametrization
   bool propagateParamTo(value_t xk, value_t b);
   bool propagateParamTo(value_t xk, const dim3_t& b);
 
-  bool propagateParamToDCA(const Point3D<value_t>& vtx, value_t b, dim2_t* dca = nullptr, value_t maxD = 999.f);
+  bool propagateParamToDCA(const math_utils::Point3D<value_t>& vtx, value_t b, dim2_t* dca = nullptr, value_t maxD = 999.f);
 
   void invertParam();
 
@@ -569,9 +569,9 @@ inline typename TrackParametrization<value_T>::value_t TrackParametrization<valu
 #ifndef GPUCA_ALIGPUCODE //These functions clash with GPU code and are thus hidden
 //_______________________________________________________
 template <typename value_T>
-inline Point3D<typename TrackParametrization<value_T>::value_t> TrackParametrization<value_T>::getXYZGlo() const
+inline math_utils::Point3D<typename TrackParametrization<value_T>::value_t> TrackParametrization<value_T>::getXYZGlo() const
 {
-  return Rotation2D(getAlpha())(Point3D<value_t>(getX(), getY(), getZ()));
+  return math_utils::Rotation2D(getAlpha())(math_utils::Point3D<value_t>(getX(), getY(), getZ()));
 }
 #endif
 
@@ -589,14 +589,14 @@ inline void TrackParametrization<value_T>::getXYZGlo(dim3_t& xyz) const
 #ifndef GPUCA_ALIGPUCODE //These functions clash with GPU code and are thus hidden
 //_______________________________________________________
 template <typename value_T>
-inline Point3D<typename TrackParametrization<value_T>::value_t> TrackParametrization<value_T>::getXYZGloAt(value_t xk, value_t b, bool& ok) const
+inline math_utils::Point3D<typename TrackParametrization<value_T>::value_t> TrackParametrization<value_T>::getXYZGloAt(value_t xk, value_t b, bool& ok) const
 {
   //----------------------------------------------------------------
   // estimate global X,Y,Z in global frame at given X
   //----------------------------------------------------------------
   value_t y = 0.f, z = 0.f;
   ok = getYZAt(xk, b, y, z);
-  return ok ? Rotation2D(getAlpha())(Point3D<value_t>(xk, y, z)) : Point3D<value_t>();
+  return ok ? math_utils::Rotation2D(getAlpha())(math_utils::Point3D<value_t>(xk, y, z)) : math_utils::Point3D<value_t>();
 }
 #endif
 

@@ -88,7 +88,7 @@ class Detector : public o2::base::DetImpl<Detector>
   ///
   /// Internally adding hits coming from the same track
   Hit* AddHit(Int_t trackID, Int_t primary, Double_t initialEnergy, Int_t detID,
-              const Point3D<float>& pos, const Vector3D<float>& mom, Double_t time, Double_t energyloss);
+              const math_utils::Point3D<float>& pos, const math_utils::Vector3D<float>& mom, Double_t time, Double_t energyloss);
 
   Parent* AddSuperparent(Int_t trackID, Int_t pdg, Double_t energy);
 

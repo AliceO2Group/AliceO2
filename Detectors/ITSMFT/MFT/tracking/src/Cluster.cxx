@@ -29,7 +29,7 @@ Cluster::Cluster(const Float_t x, const Float_t y, const Float_t z, const Int_t 
     clusterId{index},
     indexTableBin{0}
 {
-  auto clsPoint2D = Point2D<Float_t>(x, y);
+  auto clsPoint2D = math_utils::Point2D<Float_t>(x, y);
   rCoordinate = clsPoint2D.R();
   phiCoordinate = clsPoint2D.Phi();
   o2::utils::BringTo02PiGen(phiCoordinate);
@@ -43,7 +43,7 @@ Cluster::Cluster(const Int_t layerIndex, const Cluster& other)
     indexTableBin{index_table_utils::getBinIndex(index_table_utils::getRBinIndex(layerIndex, rCoordinate),
                                                  index_table_utils::getPhiBinIndex(phiCoordinate))}
 {
-  auto clsPoint2D = Point2D<Float_t>(other.getX(), other.getY());
+  auto clsPoint2D = math_utils::Point2D<Float_t>(other.getX(), other.getY());
   rCoordinate = clsPoint2D.R();
   phiCoordinate = clsPoint2D.Phi();
   o2::utils::BringTo02PiGen(phiCoordinate);

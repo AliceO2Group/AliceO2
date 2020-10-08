@@ -28,7 +28,7 @@ namespace detectors
 {
 /// MatrixCache is a vector of cached transform matrices (per sensor) for specific Transformation type
 
-template <typename T = o2::Transform3D>
+template <typename T = o2::math_utils::Transform3D>
 class MatrixCache
 {
   // matrices (per sensor) for specific transformation type
@@ -73,8 +73,8 @@ class MatrixCache
 class DetMatrixCache
 {
  public:
-  typedef o2::Transform3D Mat3D;
-  typedef o2::Rotation2D Rot2D;
+  typedef o2::math_utils::Transform3D Mat3D;
+  typedef o2::math_utils::Rotation2D Rot2D;
 
   DetMatrixCache() = default;
   DetMatrixCache(const o2::detectors::DetID& id) : mDetID(id) {}
@@ -129,8 +129,8 @@ class DetMatrixCache
 class DetMatrixCacheIndirect : private DetMatrixCache
 {
  public:
-  typedef o2::Transform3D Mat3D;
-  typedef o2::Rotation2D Rot2D;
+  typedef o2::math_utils::Transform3D Mat3D;
+  typedef o2::math_utils::Rotation2D Rot2D;
 
   DetMatrixCacheIndirect() = default;
   DetMatrixCacheIndirect(const o2::detectors::DetID& id) : DetMatrixCache(id) {}

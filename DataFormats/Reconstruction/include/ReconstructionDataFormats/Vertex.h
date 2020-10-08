@@ -38,7 +38,7 @@ class VertexBase
   static constexpr int kNCov = 6;
   VertexBase() = default;
   ~VertexBase() = default;
-  VertexBase(const Point3D<float>& pos, const std::array<float, kNCov>& cov) : mPos(pos), mCov(cov)
+  VertexBase(const math_utils::Point3D<float>& pos, const std::array<float, kNCov>& cov) : mPos(pos), mCov(cov)
   {
   }
 
@@ -59,8 +59,8 @@ class VertexBase
   float getSigmaYZ() const { return mCov[kCovYZ]; }
   const std::array<float, kNCov>& getCov() const { return mCov; }
 
-  Point3D<float> getXYZ() const { return mPos; }
-  Point3D<float>& getXYZ() { return mPos; }
+  math_utils::Point3D<float> getXYZ() const { return mPos; }
+  math_utils::Point3D<float>& getXYZ() { return mPos; }
 
   void setX(float x) { mPos.SetX(x); }
   void setY(float y) { mPos.SetY(y); }
@@ -72,7 +72,7 @@ class VertexBase
     setY(y);
     setZ(z);
   }
-  void setPos(const Point3D<float>& p) { mPos = p; }
+  void setPos(const math_utils::Point3D<float>& p) { mPos = p; }
 
   void setSigmaX2(float v) { mCov[kCovXX] = v; }
   void setSigmaY2(float v) { mCov[kCovYY] = v; }
@@ -92,8 +92,8 @@ class VertexBase
   void setCov(const std::array<float, kNCov>& cov) { mCov = cov; }
 
  protected:
-  Point3D<float> mPos{0., 0., 0.}; ///< cartesian position
-  std::array<float, kNCov> mCov{}; ///< errors, see CovElems enum
+  math_utils::Point3D<float> mPos{0., 0., 0.}; ///< cartesian position
+  std::array<float, kNCov> mCov{};             ///< errors, see CovElems enum
 
   ClassDefNV(VertexBase, 1);
 };
@@ -114,7 +114,7 @@ class Vertex : public VertexBase
 
   Vertex() = default;
   ~Vertex() = default;
-  Vertex(const Point3D<float>& pos, const std::array<float, kNCov>& cov, ushort nCont, float chi2)
+  Vertex(const math_utils::Point3D<float>& pos, const std::array<float, kNCov>& cov, ushort nCont, float chi2)
     : VertexBase(pos, cov), mNContributors(nCont), mChi2(chi2)
   {
   }
@@ -136,10 +136,10 @@ class Vertex : public VertexBase
   void setTimeStamp(const Stamp& v) { mTimeStamp = v; }
 
  protected:
-  float mChi2 = 0;               ///< chi2 or quality of tracks to vertex attachment
-  ushort mNContributors = 0;     ///< N contributors
-  ushort mBits = 0;              ///< bit field for flags
-  Stamp mTimeStamp;              ///< vertex time-stamp
+  float mChi2 = 0;           ///< chi2 or quality of tracks to vertex attachment
+  ushort mNContributors = 0; ///< N contributors
+  ushort mBits = 0;          ///< bit field for flags
+  Stamp mTimeStamp;          ///< vertex time-stamp
 
   ClassDefNV(Vertex, 3);
 };

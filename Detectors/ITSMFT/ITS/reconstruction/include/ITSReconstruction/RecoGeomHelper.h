@@ -47,7 +47,7 @@ struct RecoGeomHelper {
     BracketF yRange = {1.e9, -1.e9}, zRange = {1.e9, -1.e9}; // bounding box in tracking frame
     Vec2D xyEdges;
 
-    void updateLimits(const Point3D<float>& pnt);
+    void updateLimits(const o2::math_utils::Point3D<float>& pnt);
     void print() const;
     ClassDefNV(RecoChip, 0);
   };
@@ -67,7 +67,7 @@ struct RecoGeomHelper {
     std::vector<RecoChip> chips;
 
     Relation isPhiOutside(float phi, float toler = 0) const;
-    void updateLimits(const Point3D<float>& pnt);
+    void updateLimits(const o2::math_utils::Point3D<float>& pnt);
     void init();
     void print() const;
     ClassDefNV(RecoLadder, 0);
@@ -87,7 +87,7 @@ struct RecoGeomHelper {
 
     const RecoLadder& getLadder(int id) const { return ladders[id % nLadders]; }
     void init();
-    void updateLimits(const Point3D<float>& pnt);
+    void updateLimits(const o2::math_utils::Point3D<float>& pnt);
     void print() const;
     int getLadderID(float phi) const;
     int getChipID(float z) const;

@@ -49,7 +49,7 @@ o2::track::TrackParCov getTrackParCov(const T& track)
 template <typename T>
 o2::dataformats::VertexBase getPrimaryVertex(const T& collision)
 {
-  Point3D<float> vtxXYZ(collision.posX(), collision.posY(), collision.posZ());
+  o2::math_utils::Point3D<float> vtxXYZ(collision.posX(), collision.posY(), collision.posZ());
   std::array<float, 6> vtxCov{collision.covXX(), collision.covXY(), collision.covYY(), collision.covXZ(), collision.covYZ(), collision.covZZ()};
   return o2::dataformats::VertexBase{std::move(vtxXYZ), std::move(vtxCov)};
 }

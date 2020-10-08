@@ -36,7 +36,7 @@ std::vector<TGeoVolume*> getSensitiveVolumes();
 void addAlignableVolumesMCH();
 
 /// get the local-to-global transformation for a given detection element
-o2::Transform3D getTransformation(int detElemId, const TGeoManager& geo);
+o2::math_utils::Transform3D getTransformation(int detElemId, const TGeoManager& geo);
 
 } // namespace mch
 } // namespace o2

@@ -76,11 +76,11 @@ enum class StatisticsType {
 
 /// Pad centres as 2D float
 // For some reason cling does not like the nested using statement, typedef works ...
-typedef Point2D<float> PadCentre;
-typedef Point2D<float> GlobalPosition2D;
-typedef Point2D<float> LocalPosition2D;
-typedef Point3D<float> GlobalPosition3D;
-typedef Point3D<float> LocalPosition3D;
+typedef math_utils::Point2D<float> PadCentre;
+typedef math_utils::Point2D<float> GlobalPosition2D;
+typedef math_utils::Point2D<float> LocalPosition2D;
+typedef math_utils::Point3D<float> GlobalPosition3D;
+typedef math_utils::Point3D<float> LocalPosition3D;
 
 /// global pad number
 typedef unsigned short GlobalPadNumber;

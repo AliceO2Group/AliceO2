@@ -48,8 +48,8 @@ void CheckClusters(std::string clusfile = "o2clus_its.root", std::string hitfile
   // Geometry
   o2::base::GeometryManager::loadGeometry(inputGeom);
   auto gman = o2::its::GeometryTGeo::Instance();
-  gman->fillMatrixCache(o2::utils::bit2Mask(o2::TransformType::T2L, o2::TransformType::T2GRot,
-                                            o2::TransformType::L2G)); // request cached transforms
+  gman->fillMatrixCache(o2::utils::bit2Mask(o2::math_utils::TransformType::T2L, o2::math_utils::TransformType::T2GRot,
+                                            o2::math_utils::TransformType::L2G)); // request cached transforms
 
   // Hits
   TFile fileH(hitfile.data());
@@ -149,7 +149,7 @@ void CheckClusters(std::string clusfile = "o2clus_its.root", std::string hitfile
 
       int npix = 0;
       auto pattID = cluster.getPatternID();
-      Point3D<float> locC;
+      o2::math_utils::Point3D<float> locC;
       if (pattID == o2::itsmft::CompCluster::InvalidPatternID || dict.isGroup(pattID)) {
         o2::itsmft::ClusterPattern patt(pattIt);
         locC = dict.getClusterCoordinates(cluster, patt);
@@ -180,7 +180,7 @@ void CheckClusters(std::string clusfile = "o2clus_its.root", std::string hitfile
       //
       float dx = 0, dz = 0;
       int ievH = lab.getEventID();
-      Point3D<float> locH, locHsta;
+      o2::math_utils::Point3D<float> locH, locHsta;
 
       // mean local position of the hit
       locH = gman->getMatrixL2G(chipID) ^ (hit.GetPos()); // inverse conversion from global to local

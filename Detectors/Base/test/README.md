@@ -26,7 +26,7 @@ float xyz0[3] = {0.,0.,0.};
 float xyz1[3] = {70.,80.,20.};
 
 auto mb = mbl.getMatBudget(xyz0[0],xyz0[1],xyz0[2], xyz1[0],xyz1[1],xyz1[2]);
-// alternatively, use MatCell getMatBudget(const Point3D<float> &point0,const Point3D<float> &point1) method
+// alternatively, use MatCell getMatBudget(const math_utils::Point3D<float> &point0,const math_utils::Point3D<float> &point1) method
 
 std::cout << "<rho>= " << mb.meanRho << " <x/X0>= " << mb.meanX2X0 << "\n";
 ```

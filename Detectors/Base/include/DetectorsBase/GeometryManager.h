@@ -92,21 +92,21 @@ class GeometryManager : public TObject
   };
 
   static o2::base::MatBudget meanMaterialBudget(float x0, float y0, float z0, float x1, float y1, float z1);
-  static o2::base::MatBudget meanMaterialBudget(const Point3D<float>& start, const Point3D<float>& end)
+  static o2::base::MatBudget meanMaterialBudget(const math_utils::Point3D<float>& start, const math_utils::Point3D<float>& end)
   {
     return meanMaterialBudget(start.X(), start.Y(), start.Z(), end.X(), end.Y(), end.Z());
   }
-  static o2::base::MatBudget meanMaterialBudget(const Point3D<double>& start, const Point3D<double>& end)
+  static o2::base::MatBudget meanMaterialBudget(const math_utils::Point3D<double>& start, const math_utils::Point3D<double>& end)
   {
     return meanMaterialBudget(start.X(), start.Y(), start.Z(), end.X(), end.Y(), end.Z());
   }
 
   static MatBudgetExt meanMaterialBudgetExt(float x0, float y0, float z0, float x1, float y1, float z1);
-  static MatBudgetExt meanMaterialBudgetExt(const Point3D<float>& start, const Point3D<float>& end)
+  static MatBudgetExt meanMaterialBudgetExt(const math_utils::Point3D<float>& start, const math_utils::Point3D<float>& end)
   {
     return meanMaterialBudgetExt(start.X(), start.Y(), start.Z(), end.X(), end.Y(), end.Z());
   }
-  static MatBudgetExt meanMaterialBudgetExt(const Point3D<double>& start, const Point3D<double>& end)
+  static MatBudgetExt meanMaterialBudgetExt(const math_utils::Point3D<double>& start, const math_utils::Point3D<double>& end)
   {
     return meanMaterialBudgetExt(start.X(), start.Y(), start.Z(), end.X(), end.Y(), end.Z());
   }

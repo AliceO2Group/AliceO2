@@ -95,7 +95,7 @@ class Detector : public o2::base::DetImpl<Detector>
   /// \param[in] time Time of the hit
   /// \param[in] energyloss Energy deposited in this step
   ///
-  Hit* addHit(Int_t trackID, Int_t detID, const Point3D<float>& pos, const Vector3D<float>& mom, Double_t totE,
+  Hit* addHit(Int_t trackID, Int_t detID, const math_utils::Point3D<float>& pos, const math_utils::Vector3D<float>& mom, Double_t totE,
               Double_t time, Double_t eLoss);
 
   ///
