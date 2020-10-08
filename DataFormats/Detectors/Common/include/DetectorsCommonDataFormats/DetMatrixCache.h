@@ -101,7 +101,7 @@ class DetMatrixCache
   // detector derived class must define its implementation for the method to populate the matrix cache, as an
   // example, see ITS implementation GeometryTGeo.
   // The method can be called multiple times to init caches for different transformations, i.e.
-  // with differen mask as  o2::utils::bit2Mask(T2L), or bit2Mask(L2G,T2L), but for the consistency
+  // with differen mask as  o2::math_utils::bit2Mask(T2L), or bit2Mask(L2G,T2L), but for the consistency
   // check the nsens must be always the same.
   virtual void fillMatrixCache(int mask) = 0;
 

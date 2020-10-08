@@ -139,13 +139,13 @@ class DetID
 #endif
   // detector names, will be defined in DataSources
   static constexpr std::array<mask_t, nDetectors> sMasks = ///< detectot masks
-    {utils::bit2Mask(ITS), utils::bit2Mask(TPC), utils::bit2Mask(TRD), utils::bit2Mask(TOF), utils::bit2Mask(PHS),
-     utils::bit2Mask(CPV), utils::bit2Mask(EMC), utils::bit2Mask(HMP), utils::bit2Mask(MFT), utils::bit2Mask(MCH),
-     utils::bit2Mask(MID), utils::bit2Mask(ZDC), utils::bit2Mask(FT0), utils::bit2Mask(FV0), utils::bit2Mask(FDD),
-     utils::bit2Mask(ACO)
+    {math_utils::bit2Mask(ITS), math_utils::bit2Mask(TPC), math_utils::bit2Mask(TRD), math_utils::bit2Mask(TOF), math_utils::bit2Mask(PHS),
+     math_utils::bit2Mask(CPV), math_utils::bit2Mask(EMC), math_utils::bit2Mask(HMP), math_utils::bit2Mask(MFT), math_utils::bit2Mask(MCH),
+     math_utils::bit2Mask(MID), math_utils::bit2Mask(ZDC), math_utils::bit2Mask(FT0), math_utils::bit2Mask(FV0), math_utils::bit2Mask(FDD),
+     math_utils::bit2Mask(ACO)
 #ifdef ENABLE_UPGRADES
        ,
-     utils::bit2Mask(IT3), utils::bit2Mask(IT4)
+     math_utils::bit2Mask(IT3), math_utils::bit2Mask(IT4)
 #endif
   };
 

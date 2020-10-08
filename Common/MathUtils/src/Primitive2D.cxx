@@ -15,8 +15,10 @@
 #include "MathUtils/Primitive2D.h"
 #include <cmath>
 
-using namespace o2::utils;
-
+namespace o2
+{
+namespace math_utils
+{
 //_____________________________________________________________________
 bool IntervalXY::seenByCircle(const CircleXY& circle, float eps) const
 {
@@ -108,3 +110,5 @@ void IntervalXY::getLineCoefs(float& a, float& b, float& c) const
     c = xP;
   }
 }
+} // namespace math_utils
+} // namespace o2

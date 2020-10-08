@@ -52,8 +52,8 @@ void TrackerDPL::init(InitContext& ic)
 
     o2::base::GeometryManager::loadGeometry();
     o2::mft::GeometryTGeo* geom = o2::mft::GeometryTGeo::Instance();
-    geom->fillMatrixCache(o2::utils::bit2Mask(o2::math_utils::TransformType::T2L, o2::math_utils::TransformType::T2GRot,
-                                              o2::math_utils::TransformType::T2G));
+    geom->fillMatrixCache(o2::math_utils::bit2Mask(o2::math_utils::TransformType::T2L, o2::math_utils::TransformType::T2GRot,
+                                                   o2::math_utils::TransformType::T2G));
 
     mTracker = std::make_unique<o2::mft::Tracker>(mUseMC);
     double centerMFT[3] = {0, 0, -61.4}; // Field at center of MFT

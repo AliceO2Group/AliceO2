@@ -102,14 +102,14 @@ DECLARE_SOA_DYNAMIC_COLUMN(Charge, charge, [](float signed1Pt) -> short { return
 DECLARE_SOA_DYNAMIC_COLUMN(Px, px, [](float signed1Pt, float snp, float alpha) -> float {
   auto pt = 1.f / std::abs(signed1Pt);
   float cs, sn;
-  utils::sincosf(alpha, sn, cs);
+  math_utils::sincosf(alpha, sn, cs);
   auto r = std::sqrt((1.f - snp) * (1.f + snp));
   return pt * (r * cs - snp * sn);
 });
 DECLARE_SOA_DYNAMIC_COLUMN(Py, py, [](float signed1Pt, float snp, float alpha) -> float {
   auto pt = 1.f / std::abs(signed1Pt);
   float cs, sn;
-  utils::sincosf(alpha, sn, cs);
+  math_utils::sincosf(alpha, sn, cs);
   auto r = std::sqrt((1.f - snp) * (1.f + snp));
   return pt * (snp * cs + r * sn);
 });

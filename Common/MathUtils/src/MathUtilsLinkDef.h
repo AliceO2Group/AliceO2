@@ -33,8 +33,8 @@
 #pragma link C++ class o2::math_utils::Rotation2D + ;
 #pragma link C++ class o2::base::CachingTF1 + ;
 
-#pragma link C++ class o2::utils::CircleXY + ;
-#pragma link C++ class o2::utils::IntervalXY + ;
+#pragma link C++ class o2::math_utils::CircleXY + ;
+#pragma link C++ class o2::math_utils::IntervalXY + ;
 #pragma link C++ class o2::math_utils::Bracket < float> + ;
 
 #endif

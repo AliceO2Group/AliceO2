@@ -19,7 +19,7 @@
 
 namespace o2
 {
-namespace utils
+namespace math_utils
 {
 
 struct CircleXY {
@@ -63,7 +63,7 @@ struct IntervalXY {
   ClassDefNV(IntervalXY, 1);
 };
 
-} // namespace utils
+} // namespace math_utils
 } // namespace o2
 
 #endif

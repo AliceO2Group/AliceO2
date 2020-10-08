@@ -61,8 +61,8 @@ void TrackerDPL::init(InitContext& ic)
 
     base::GeometryManager::loadGeometry();
     GeometryTGeo* geom = GeometryTGeo::Instance();
-    geom->fillMatrixCache(utils::bit2Mask(o2::math_utils::TransformType::T2L, o2::math_utils::TransformType::T2GRot,
-                                          o2::math_utils::TransformType::T2G));
+    geom->fillMatrixCache(o2::math_utils::bit2Mask(o2::math_utils::TransformType::T2L, o2::math_utils::TransformType::T2GRot,
+                                                   o2::math_utils::TransformType::T2G));
 
     auto* chainITS = mRecChain->AddChain<o2::gpu::GPUChainITS>();
     mRecChain->Init();

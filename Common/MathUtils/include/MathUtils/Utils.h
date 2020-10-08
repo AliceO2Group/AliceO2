@@ -25,9 +25,7 @@
 
 namespace o2
 {
-// namespace common
-//{
-namespace utils
+namespace math_utils
 {
 GPUdi() void BringTo02Pi(float& phi)
 {
@@ -269,8 +267,7 @@ struct StatAccumulator {
   }
 };
 
-} // namespace utils
-//}
+} // namespace math_utils
 } // namespace o2
 
 #endif

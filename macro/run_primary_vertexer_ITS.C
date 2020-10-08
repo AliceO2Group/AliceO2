@@ -73,8 +73,8 @@ int run_primary_vertexer_ITS(const GPUDataTypes::DeviceType dtype = GPUDataTypes
 
   o2::base::GeometryManager::loadGeometry(path);
   o2::its::GeometryTGeo* geom = o2::its::GeometryTGeo::Instance();
-  geom->fillMatrixCache(o2::utils::bit2Mask(o2::math_utils::TransformType::T2L, o2::math_utils::TransformType::T2GRot,
-                                            o2::math_utils::TransformType::L2G)); // request cached transforms
+  geom->fillMatrixCache(o2::math_utils::bit2Mask(o2::math_utils::TransformType::T2L, o2::math_utils::TransformType::T2GRot,
+                                                 o2::math_utils::TransformType::L2G)); // request cached transforms
 
   // Get event header
   TChain mcHeaderTree("o2sim");

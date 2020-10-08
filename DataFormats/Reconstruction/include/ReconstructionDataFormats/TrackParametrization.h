@@ -165,9 +165,9 @@ class TrackParametrization
 
   // derived getters
   bool getXatLabR(value_t r, value_t& x, value_t bz, DirType dir = DirAuto) const;
-  void getCircleParamsLoc(value_t bz, o2::utils::CircleXY& circle) const;
-  void getCircleParams(value_t bz, o2::utils::CircleXY& circle, value_t& sna, value_t& csa) const;
-  void getLineParams(o2::utils::IntervalXY& line, value_t& sna, value_t& csa) const;
+  void getCircleParamsLoc(value_t bz, o2::math_utils::CircleXY& circle) const;
+  void getCircleParams(value_t bz, o2::math_utils::CircleXY& circle, value_t& sna, value_t& csa) const;
+  void getLineParams(o2::math_utils::IntervalXY& line, value_t& sna, value_t& csa) const;
   value_t getCurvature(value_t b) const;
   int getCharge() const;
   int getSign() const;
@@ -413,7 +413,7 @@ inline void TrackParametrization<value_T>::setAbsCharge(int q)
 
 //_______________________________________________________
 template <typename value_T>
-inline void TrackParametrization<value_T>::getCircleParamsLoc(value_t bz, o2::utils::CircleXY& c) const
+inline void TrackParametrization<value_T>::getCircleParamsLoc(value_t bz, o2::math_utils::CircleXY& c) const
 {
   // get circle params in track local frame, for straight line just set to local coordinates
   c.rC = getCurvature(bz);
@@ -434,21 +434,21 @@ inline void TrackParametrization<value_T>::getCircleParamsLoc(value_t bz, o2::ut
 
 //_______________________________________________________
 template <typename value_T>
-inline void TrackParametrization<value_T>::getCircleParams(value_t bz, o2::utils::CircleXY& c, value_t& sna, value_t& csa) const
+inline void TrackParametrization<value_T>::getCircleParams(value_t bz, o2::math_utils::CircleXY& c, value_t& sna, value_t& csa) const
 {
   // get circle params in loc and lab frame, for straight line just set to global coordinates
   getCircleParamsLoc(bz, c);
-  o2::utils::sincos(getAlpha(), sna, csa);
-  o2::utils::rotateZ(c.xC, c.yC, c.xC, c.yC, sna, csa); // center in global frame
+  o2::math_utils::sincos(getAlpha(), sna, csa);
+  o2::math_utils::rotateZ(c.xC, c.yC, c.xC, c.yC, sna, csa); // center in global frame
 }
 
 //_______________________________________________________
 template <typename value_T>
-inline void TrackParametrization<value_T>::getLineParams(o2::utils::IntervalXY& ln, value_t& sna, value_t& csa) const
+inline void TrackParametrization<value_T>::getLineParams(o2::math_utils::IntervalXY& ln, value_t& sna, value_t& csa) const
 {
   // get line parameterization as { x = x0 + xSlp*t, y = y0 + ySlp*t }
-  o2::utils::sincos(getAlpha(), sna, csa);
-  o2::utils::rotateZ(getX(), getY(), ln.xP, ln.yP, sna, csa); // reference point in global frame
+  o2::math_utils::sincos(getAlpha(), sna, csa);
+  o2::math_utils::rotateZ(getX(), getY(), ln.xP, ln.yP, sna, csa); // reference point in global frame
   value_t snp = getSnp(), csp = sqrtf((1.f - snp) * (1.f + snp));
   ln.dxP = csp * csa - snp * sna;
   ln.dyP = snp * csa + csp * sna;
@@ -481,7 +481,7 @@ inline typename TrackParametrization<value_T>::value_t TrackParametrization<valu
 {
   // track pt direction phi (in 0:2pi range)
   value_t phi = asinf(getSnp()) + getAlpha();
-  utils::BringTo02Pi(phi);
+  math_utils::BringTo02Pi(phi);
   return phi;
 }
 
@@ -491,7 +491,7 @@ inline typename TrackParametrization<value_T>::value_t TrackParametrization<valu
 {
   // angle of track position (in -pi:pi range)
   value_t phi = atan2f(getY(), getX()) + getAlpha();
-  utils::BringTo02Pi(phi);
+  math_utils::BringTo02Pi(phi);
   return phi;
 }
 
@@ -583,7 +583,7 @@ inline void TrackParametrization<value_T>::getXYZGlo(dim3_t& xyz) const
   xyz[0] = getX();
   xyz[1] = getY();
   xyz[2] = getZ();
-  utils::RotateZ(xyz, getAlpha());
+  math_utils::RotateZ(xyz, getAlpha());
 }
 
 #ifndef GPUCA_ALIGPUCODE //These functions clash with GPU code and are thus hidden
