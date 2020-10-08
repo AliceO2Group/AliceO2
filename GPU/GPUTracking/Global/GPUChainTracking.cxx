@@ -2283,7 +2283,7 @@ int GPUChainTracking::RunTRDTracking()
   }
 
   for (unsigned int iTrack = 0; iTrack < tracksTPC.size(); ++iTrack) {
-    if (Tracker.LoadTrack(tracksTPC[iTrack], tracksTPCLab[iTrack])) {
+    if (Tracker.LoadTrack(tracksTPC[iTrack], tracksTPCLab[iTrack], nullptr, -1, tracksTPC[iTrack].GetTPCtrackId())) {
       return 1;
     }
   }
