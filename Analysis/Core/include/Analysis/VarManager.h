@@ -243,17 +243,17 @@ void VarManager::FillEvent(T const& event, float* values)
   }
 
   if constexpr ((fillMap & Collision) > 0) {
-    if(fgUsedVars[kIsINT7])
+    if (fgUsedVars[kIsINT7])
       values[kIsINT7] = (event.alias()[kINT7] > 0);
-    if(fgUsedVars[kIsEMC7])
+    if (fgUsedVars[kIsEMC7])
       values[kIsEMC7] = (event.alias()[kEMC7] > 0);
-    if(fgUsedVars[kIsINT7inMUON])
+    if (fgUsedVars[kIsINT7inMUON])
       values[kIsINT7inMUON] = (event.alias()[kINT7inMUON] > 0);
-    if(fgUsedVars[kIsMuonSingleLowPt7])
+    if (fgUsedVars[kIsMuonSingleLowPt7])
       values[kIsMuonSingleLowPt7] = (event.alias()[kMuonSingleLowPt7] > 0);
-    if(fgUsedVars[kIsMuonUnlikeLowPt7])
+    if (fgUsedVars[kIsMuonUnlikeLowPt7])
       values[kIsMuonUnlikeLowPt7] = (event.alias()[kMuonUnlikeLowPt7] > 0);
-    if(fgUsedVars[kIsMuonLikeLowPt7])
+    if (fgUsedVars[kIsMuonLikeLowPt7])
       values[kIsMuonLikeLowPt7] = (event.alias()[kMuonLikeLowPt7] > 0);
     values[kVtxX] = event.posX();
     values[kVtxY] = event.posY();
@@ -286,17 +286,17 @@ void VarManager::FillEvent(T const& event, float* values)
   if constexpr ((fillMap & ReducedEventExtended) > 0) {
     values[kBC] = event.globalBC();
     values[kCentVZERO] = event.centV0M();
-    if(fgUsedVars[kIsINT7])
+    if (fgUsedVars[kIsINT7])
       values[kIsINT7] = event.triggerAlias() & (uint32_t(1) << kINT7);
-    if(fgUsedVars[kIsEMC7])
+    if (fgUsedVars[kIsEMC7])
       values[kIsEMC7] = event.triggerAlias() & (uint32_t(1) << kEMC7);
-    if(fgUsedVars[kIsINT7inMUON])
+    if (fgUsedVars[kIsINT7inMUON])
       values[kIsINT7inMUON] = event.triggerAlias() & (uint32_t(1) << kINT7inMUON);
-    if(fgUsedVars[kIsMuonSingleLowPt7])
+    if (fgUsedVars[kIsMuonSingleLowPt7])
       values[kIsMuonSingleLowPt7] = event.triggerAlias() & (uint32_t(1) << kMuonSingleLowPt7);
-    if(fgUsedVars[kIsMuonUnlikeLowPt7])
+    if (fgUsedVars[kIsMuonUnlikeLowPt7])
       values[kIsMuonUnlikeLowPt7] = event.triggerAlias() & (uint32_t(1) << kMuonUnlikeLowPt7);
-    if(fgUsedVars[kIsMuonLikeLowPt7])
+    if (fgUsedVars[kIsMuonLikeLowPt7])
       values[kIsMuonLikeLowPt7] = event.triggerAlias() & (uint32_t(1) << kMuonLikeLowPt7);
   }
 

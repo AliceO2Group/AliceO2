@@ -118,7 +118,7 @@ struct EventSelection {
     DefineHistograms(fHistMan, "Event_BeforeCuts;Event_AfterCuts;"); // define all histograms
     VarManager::SetUseVars(fHistMan->GetUsedVars());                 // provide the list of required variables so that VarManager knows what to fill
     fOutputList.setObject(fHistMan->GetMainHistogramList());
-    
+
     DefineCuts();
   }
 
@@ -130,7 +130,7 @@ struct EventSelection {
     varCut->AddCut(VarManager::kVtxZ, -10.0, 10.0);
     varCut->AddCut(VarManager::kIsINT7, 0.5, 1.5);
     varCut->AddCut(VarManager::kCentVZERO, 0.0, 10.0);
-    
+
     fEventCut->AddCut(varCut);
     // TODO: Add more cuts, also enable cuts which are not easily possible via the VarManager (e.g. trigger selections)
 
@@ -193,7 +193,7 @@ struct BarrelTrackSelection {
     commonCuts->AddCut(VarManager::kTPCncls, 100.0, 161.);
     commonCuts->AddCut(VarManager::kTrackDCAxy, -1.0, 1.0);
     commonCuts->AddCut(VarManager::kTrackDCAz, -3.0, 3.0);
-    
+
     AnalysisCut* pidCut1 = new AnalysisCut();
     TF1* cutLow1 = new TF1("cutLow1", "pol1", 0., 10.);
     cutLow1->SetParameters(130., -40.0);
@@ -488,8 +488,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const&)
     adaptAnalysisTask<BarrelTrackSelection>("barrel-track-selection"),
     adaptAnalysisTask<MuonTrackSelection>("muon-track-selection"),
     adaptAnalysisTask<TableReader>("table-reader"),
-    adaptAnalysisTask<DileptonHadronAnalysis>("dilepton-hadron")
-  };
+    adaptAnalysisTask<DileptonHadronAnalysis>("dilepton-hadron")};
 }
 
 void DefineHistograms(HistogramManager* histMan, TString histClasses)
