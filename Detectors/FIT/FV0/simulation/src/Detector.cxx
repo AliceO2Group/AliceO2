@@ -129,9 +129,9 @@ Bool_t Detector::ProcessHits(FairVolume* v)
     // Get unique ID of the detector cell (sensitive volume)
     Int_t cellId = mGeometry->getCurrentCellId(fMC);
 
-    Point3D<float> posStart(mTrackData.mPositionStart.X(), mTrackData.mPositionStart.Y(), mTrackData.mPositionStart.Z());
-    Point3D<float> posStop(positionStop.X(), positionStop.Y(), positionStop.Z());
-    Vector3D<float> momStart(mTrackData.mMomentumStart.Px(), mTrackData.mMomentumStart.Py(), mTrackData.mMomentumStart.Pz());
+    math_utils::Point3D<float> posStart(mTrackData.mPositionStart.X(), mTrackData.mPositionStart.Y(), mTrackData.mPositionStart.Z());
+    math_utils::Point3D<float> posStop(positionStop.X(), positionStop.Y(), positionStop.Z());
+    math_utils::Vector3D<float> momStart(mTrackData.mMomentumStart.Px(), mTrackData.mMomentumStart.Py(), mTrackData.mMomentumStart.Pz());
     addHit(trackID, cellId, posStart, posStop, momStart,
            mTrackData.mMomentumStart.E(), positionStop.T(),
            mTrackData.mEnergyLoss, particlePdg);
@@ -278,8 +278,8 @@ void Detector::ConstructGeometry()
 }
 
 o2::fv0::Hit* Detector::addHit(Int_t trackId, Int_t cellId,
-                               const Point3D<float>& startPos, const Point3D<float>& endPos,
-                               const Vector3D<float>& startMom, double startE,
+                               const math_utils::Point3D<float>& startPos, const math_utils::Point3D<float>& endPos,
+                               const math_utils::Vector3D<float>& startMom, double startE,
                                double endTime, double eLoss, Int_t particlePdg)
 {
   mHits->emplace_back(trackId, cellId, startPos, endPos, startMom, startE, endTime, eLoss, particlePdg);

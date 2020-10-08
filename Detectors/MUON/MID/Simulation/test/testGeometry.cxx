@@ -72,7 +72,7 @@ bool areEqual(double a, double b)
   return std::fabs(b - a) < 1E-4; // 1E-4 cm = 1 micron
 }
 
-bool areEqual(const Point3D<double>& p1, const Point3D<double>& p2)
+bool areEqual(const o2::math_utils::Point3D<double>& p1, const o2::math_utils::Point3D<double>& p2)
 {
   if (!areEqual(p1.x(), p2.x()))
     return false;

@@ -214,14 +214,14 @@ void Digitizer::processHit(const o2::itsmft::Hit& hit, UInt_t& maxFr, int evID, 
   float nStepsInv = mParams.getNSimStepsInv();
   int nSteps = mParams.getNSimSteps();
   const auto& matrix = mGeometry->getMatrixL2G(hit.GetDetectorID());
-  Vector3D<float> xyzLocS(matrix ^ (hit.GetPosStart())); // start position in sensor frame
-  Vector3D<float> xyzLocE(matrix ^ (hit.GetPos()));      // end position in sensor frame
+  math_utils::Vector3D<float> xyzLocS(matrix ^ (hit.GetPosStart())); // start position in sensor frame
+  math_utils::Vector3D<float> xyzLocE(matrix ^ (hit.GetPos()));      // end position in sensor frame
 
-  Vector3D<float> step(xyzLocE);
+  math_utils::Vector3D<float> step(xyzLocE);
   step -= xyzLocS;
   step *= nStepsInv; // position increment at each step
   // the electrons will injected in the middle of each step
-  Vector3D<float> stepH(step * 0.5);
+  math_utils::Vector3D<float> stepH(step * 0.5);
   xyzLocS += stepH;
   xyzLocE -= stepH;
 

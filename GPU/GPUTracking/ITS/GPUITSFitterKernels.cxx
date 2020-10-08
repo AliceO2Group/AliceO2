@@ -121,16 +121,16 @@ GPUdii() void GPUITSFitterKernel::Thread<0>(int nBlocks, int nThreads, int iBloc
       const float y3 = cluster3.positionTrackingFrame[0];
       const float z3 = cluster3.positionTrackingFrame[1];
 
-      const float crv = math_utils::computeCurvature(x1, y1, x2, y2, x3, y3);
-      const float x0 = math_utils::computeCurvatureCentreX(x1, y1, x2, y2, x3, y3);
-      const float tgl12 = math_utils::computeTanDipAngle(x1, y1, x2, y2, z1, z2);
-      const float tgl23 = math_utils::computeTanDipAngle(x2, y2, x3, y3, z2, z3);
+      const float crv = o2::its::math_utils::computeCurvature(x1, y1, x2, y2, x3, y3);
+      const float x0 = o2::its::math_utils::computeCurvatureCentreX(x1, y1, x2, y2, x3, y3);
+      const float tgl12 = o2::its::math_utils::computeTanDipAngle(x1, y1, x2, y2, z1, z2);
+      const float tgl23 = o2::its::math_utils::computeTanDipAngle(x2, y2, x3, y3, z2, z3);
 
       const float r2 = CAMath::Sqrt(cluster2.xCoordinate * cluster2.xCoordinate + cluster2.yCoordinate * cluster2.yCoordinate);
       const float r3 = CAMath::Sqrt(cluster3.xCoordinate * cluster3.xCoordinate + cluster3.yCoordinate * cluster3.yCoordinate);
       const float fy = 1. / (r2 - r3);
       const float& tz = fy;
-      const float cy = (math_utils::computeCurvature(x1, y1, x2, y2 + o2::its::constants::its::Resolution, x3, y3) - crv) / (o2::its::constants::its::Resolution * bz * constants::math::B2C) * 20.f; // FIXME: MS contribution to the cov[14] (*20 added)
+      const float cy = (o2::its::math_utils::computeCurvature(x1, y1, x2, y2 + o2::its::constants::its::Resolution, x3, y3) - crv) / (o2::its::constants::its::Resolution * bz * constants::math::B2C) * 20.f; // FIXME: MS contribution to the cov[14] (*20 added)
       constexpr float s2 = o2::its::constants::its::Resolution * o2::its::constants::its::Resolution;
 
       temporaryTrack.X() = cluster3.xTrackingFrame;

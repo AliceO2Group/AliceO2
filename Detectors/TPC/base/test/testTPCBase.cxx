@@ -23,7 +23,7 @@ namespace tpc
 
 BOOST_AUTO_TEST_CASE(Point3D_test)
 {
-  Point3D<double> testpoint(2., 3., 4.);
+  math_utils::Point3D<double> testpoint(2., 3., 4.);
   BOOST_CHECK_CLOSE(testpoint.X(), 2., 1E-12);
   BOOST_CHECK_CLOSE(testpoint.Y(), 3., 1E-12);
   BOOST_CHECK_CLOSE(testpoint.Z(), 4., 1E-12);

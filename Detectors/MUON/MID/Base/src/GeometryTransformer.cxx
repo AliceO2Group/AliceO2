@@ -98,7 +98,7 @@ GeometryTransformer createTransformationFromManager(const TGeoManager* geoManage
     if (!navig->cd(volPath.str().c_str())) {
       throw std::runtime_error("Could not get to volPathName=" + volPath.str());
     }
-    geoTrans.setMatrix(ide, o2::Transform3D{*(navig->GetCurrentMatrix())});
+    geoTrans.setMatrix(ide, o2::math_utils::Transform3D{*(navig->GetCurrentMatrix())});
   }
   return geoTrans;
 }

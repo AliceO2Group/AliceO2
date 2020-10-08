@@ -55,7 +55,7 @@ struct SelectTracks {
   void process(aod::Collision const& collision,
                soa::Join<aod::Tracks, aod::TracksCov, aod::TracksExtra> const& tracks)
   {
-    Point3D<float> vtxXYZ(collision.posX(), collision.posY(), collision.posZ());
+    math_utils::Point3D<float> vtxXYZ(collision.posX(), collision.posY(), collision.posZ());
     for (auto& track : tracks) {
       int status_2prong = 1; // selection flag
       int status_3prong = 1; // selection flag

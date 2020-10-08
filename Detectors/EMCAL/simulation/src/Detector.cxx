@@ -265,7 +265,7 @@ Bool_t Detector::ProcessHits(FairVolume* v)
         smTypeID = 3; //one third (installed in 2012) supermodule
       }
       if (supermoduletype == DCAL_EXT) {
-        smTypeID = 3;                                                          //one third (installed in 2012) supermodule
+        smTypeID = 3; //one third (installed in 2012) supermodule
       }
       iphi = ((geom->GetCentersOfCellsPhiDir()).size() / smTypeID - 1) - iphi; // 23/7-iphi, revert the ordering on C side in order to keep convention.
     }
@@ -303,8 +303,8 @@ Bool_t Detector::ProcessHits(FairVolume* v)
       LOG(DEBUG3) << "Adding new hit for parent " << mCurrentParentID << " and cell " << detID << std::endl;
 
       /// check handling of primary particles
-      AddHit(mCurrentParentID, mCurrentPrimaryID, mCurrentSuperparent->mEnergy, detID, Point3D<float>(posX, posY, posZ),
-             Vector3D<float>(momX, momY, momZ), time, lightyield);
+      AddHit(mCurrentParentID, mCurrentPrimaryID, mCurrentSuperparent->mEnergy, detID, math_utils::Point3D<float>(posX, posY, posZ),
+             math_utils::Vector3D<float>(momX, momY, momZ), time, lightyield);
       o2stack->addHit(GetDetId());
     } else {
       LOG(DEBUG3) << "Adding energy to the current hit" << std::endl;
@@ -316,7 +316,7 @@ Bool_t Detector::ProcessHits(FairVolume* v)
 }
 
 Hit* Detector::AddHit(Int_t trackID, Int_t primary, Double_t initialEnergy, Int_t detID,
-                      const Point3D<float>& pos, const Vector3D<float>& mom, Double_t time, Double_t eLoss)
+                      const math_utils::Point3D<float>& pos, const math_utils::Vector3D<float>& mom, Double_t time, Double_t eLoss)
 {
   LOG(DEBUG3) << "Adding hit for track " << trackID << " with position (" << pos.X() << ", "
               << pos.Y() << ", " << pos.Z() << ") and momentum (" << mom.X() << ", " << mom.Y() << ", " << mom.Z()

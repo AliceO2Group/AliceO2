@@ -38,7 +38,7 @@ class Hit : public o2::BasicXYZEHit<float>
   /// \param initialEnergy Energy of the primary particle enering the EMCAL
   /// \param tof Time of the hit
   /// \param length Length of the segment
-  Hit(Int_t trackID, Int_t detID, const Point3D<float>& pos, const Vector3D<float>& mom, Double_t totE, Double_t tof,
+  Hit(Int_t trackID, Int_t detID, const math_utils::Point3D<float>& pos, const math_utils::Vector3D<float>& mom, Double_t totE, Double_t tof,
       Double_t eLoss)
     : o2::BasicXYZEHit<float>(pos.X(), pos.Y(), pos.Z(), tof, eLoss, trackID, detID),
       mPvector(mom),
@@ -84,8 +84,8 @@ class Hit : public o2::BasicXYZEHit<float>
   void PrintStream(std::ostream& stream) const;
 
  private:
-  Vector3D<float> mPvector;  // Momentum Vector
-  Double32_t mInitialEnergy; // Energy of the parent particle that entered the PHOS front surface
+  math_utils::Vector3D<float> mPvector; // Momentum Vector
+  Double32_t mInitialEnergy;            // Energy of the parent particle that entered the PHOS front surface
 
   ClassDefNV(Hit, 1);
 };

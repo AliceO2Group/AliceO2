@@ -29,13 +29,13 @@ BOOST_AUTO_TEST_CASE(Cartesian_test)
   TGeoHMatrix hmat = trag;
   hmat *= rotg;
 
-  Transform3D tr(hmat);
-  Point3D<double> pd(10., 20., 30.);
-  Point3D<float> pf(10.f, 20.f, 30.f);
+  math_utils::Transform3D tr(hmat);
+  math_utils::Point3D<double> pd(10., 20., 30.);
+  math_utils::Point3D<float> pf(10.f, 20.f, 30.f);
   //
   // local to master
   auto pdt = tr(pd); // operator form
-  Point3D<float> pft;
+  math_utils::Point3D<float> pft;
   tr.LocalToMaster(pf, pft); // TGeoHMatrix form
 
   std::cout << "Create Transform3D " << std::endl
@@ -56,7 +56,7 @@ BOOST_AUTO_TEST_CASE(Cartesian_test)
 
   // inverse transform
   auto pfti = tr ^ (pft); // operator form
-  Point3D<double> pdti;
+  math_utils::Point3D<double> pdti;
   tr.MasterToLocal(pdt, pdti); // TGeoHMatrix form
 
   std::cout << " Transforming back to local" << std::endl;
@@ -75,7 +75,7 @@ BOOST_AUTO_TEST_CASE(Cartesian_test)
 
 BOOST_AUTO_TEST_CASE(Point3D_messageable)
 {
-  using ElementType = Point3D<int>;
+  using ElementType = math_utils::Point3D<int>;
   static_assert(std::is_trivially_copyable<ElementType>::value == true);
   std::vector<ElementType> pts(10);
   auto makeElement = [](int idx) {

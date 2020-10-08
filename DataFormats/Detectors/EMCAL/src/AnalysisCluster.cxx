@@ -50,7 +50,7 @@ TLorentzVector AnalysisCluster::getMomentum(std::array<const float, 3> vertex) c
 }
 
 //______________________________________________________________________________
-void AnalysisCluster::setGlobalPosition(Point3D<float> x)
+void AnalysisCluster::setGlobalPosition(math_utils::Point3D<float> x)
 {
   mGlobalPos.SetX(x.X());
   mGlobalPos.SetY(x.Y());
@@ -58,7 +58,7 @@ void AnalysisCluster::setGlobalPosition(Point3D<float> x)
 }
 
 //______________________________________________________________________________
-void AnalysisCluster::setLocalPosition(Point3D<float> x)
+void AnalysisCluster::setLocalPosition(math_utils::Point3D<float> x)
 {
   mLocalPos.SetX(x.X());
   mLocalPos.SetY(x.Y());

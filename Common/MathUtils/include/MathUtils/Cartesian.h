@@ -26,6 +26,12 @@
 #include <TGeoMatrix.h>
 #include <iosfwd>
 
+namespace o2
+{
+
+namespace math_utils
+{
+
 template <typename T>
 using Point2D = ROOT::Math::PositionVector2D<ROOT::Math::Cartesian2D<T>, ROOT::Math::DefaultCoordinateSystemTag>;
 template <typename T>
@@ -38,8 +44,6 @@ using Vector3D = ROOT::Math::DisplacementVector3D<ROOT::Math::Cartesian3D<T>, RO
 
 // more typedefs can follow
 
-namespace o2
-{
 /// predefined transformations: Tracking->Local, Tracking->Global, Local->Global etc
 /// The IDs must be < 32
 
@@ -229,9 +233,10 @@ class Transform3D : public ROOT::Math::Transform3D
 
   ClassDefNV(Transform3D, 1);
 };
+} // namespace math_utils
 } // namespace o2
 
-std::ostream& operator<<(std::ostream& os, const o2::Rotation2D& t);
+std::ostream& operator<<(std::ostream& os, const o2::math_utils::Rotation2D& t);
 
 namespace std
 {
@@ -248,7 +253,7 @@ namespace std
 /// This is a workaround, we will also make suggestions to fix the cause in ROOT itself
 /// TODO: delete once it is fixed in ROOT
 template <typename T>
-struct is_trivially_copyable<Point3D<T>> : std::true_type {
+struct is_trivially_copyable<o2::math_utils::Point3D<T>> : std::true_type {
 };
 } // namespace std
 #endif

@@ -86,7 +86,7 @@ class Detector : public o2::base::DetImpl<Detector>
   /// \param[in] time Time of the hit
   /// \param[in] qdep charge deposited in this pad
   ///
-  void addHit(int trackID, short detID, const Point3D<float>& pos, double time, float qdep);
+  void addHit(int trackID, short detID, const math_utils::Point3D<float>& pos, double time, float qdep);
 
   ///
   /// Register vector with hits

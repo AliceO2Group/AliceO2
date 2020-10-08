@@ -205,7 +205,7 @@ Bool_t Detector::ProcessHits(FairVolume* v)
   Double_t estart = fMC->Etot();
   Double_t time = fMC->TrackTime() * 1.e+9; // time in ns?? To be consistent with EMCAL
 
-  mCurrentHit = addHit(superParent, detID, Point3D<float>(posX, posY, posZ), Vector3D<float>(momX, momY, momZ), estart,
+  mCurrentHit = addHit(superParent, detID, math_utils::Point3D<float>(posX, posY, posZ), math_utils::Vector3D<float>(momX, momY, momZ), estart,
                        time, lostenergy);
   mCurentSuperParent = superParent;
   mCurrentTrackID = partID;
@@ -214,7 +214,7 @@ Bool_t Detector::ProcessHits(FairVolume* v)
   return true;
 }
 
-Hit* Detector::addHit(Int_t trackID, Int_t detID, const Point3D<float>& pos, const Vector3D<float>& mom, Double_t totE,
+Hit* Detector::addHit(Int_t trackID, Int_t detID, const math_utils::Point3D<float>& pos, const math_utils::Vector3D<float>& mom, Double_t totE,
                       Double_t time, Double_t eLoss)
 {
   LOG(DEBUG4) << "Adding hit for track " << trackID << " with position (" << pos.X() << ", " << pos.Y() << ", "

@@ -45,7 +45,7 @@ class Hit : public o2::BasicXYZEHit<Float_t, Float_t>
   /// \param nphePMC light output on common PMT
   /// \param nphePMQ light output on sector PMT
   Hit(int trackID, int parent, Bool_t sFlag, Float_t primaryEnergy, Int_t detID, Int_t sectorID,
-      Vector3D<float> pos, Vector3D<float> mom, Float_t tof, Vector3D<float> xImpact, Float_t energyloss, Int_t nphePMC,
+      math_utils::Vector3D<float> pos, math_utils::Vector3D<float> mom, Float_t tof, math_utils::Vector3D<float> xImpact, Float_t energyloss, Int_t nphePMC,
       Int_t nphePMQ);
 
   void setPMCLightYield(float val) { mNphePMC = val; }
@@ -64,8 +64,8 @@ class Hit : public o2::BasicXYZEHit<Float_t, Float_t>
   Float_t mPrimaryEnergy;
   Int_t mNoContributingSteps = 1;
   Int_t mSectorID;
-  Vector3D<float> mMomentum;
-  Vector3D<float> mXImpact;
+  math_utils::Vector3D<float> mMomentum;
+  math_utils::Vector3D<float> mXImpact;
   Int_t mNphePMC;
   Int_t mNphePMQ;
 
@@ -73,7 +73,7 @@ class Hit : public o2::BasicXYZEHit<Float_t, Float_t>
 };
 
 inline Hit::Hit(int trackID, int parent, Bool_t sFlag, Float_t primaryEnergy, Int_t detID, Int_t sectorID,
-                Vector3D<float> pos, Vector3D<float> mom, Float_t tof, Vector3D<float> xImpact, Float_t energyloss,
+                math_utils::Vector3D<float> pos, math_utils::Vector3D<float> mom, Float_t tof, math_utils::Vector3D<float> xImpact, Float_t energyloss,
                 Int_t nphePMC, Int_t nphePMQ)
   : BasicXYZEHit(pos.X(), pos.Y(), pos.Z(), tof, energyloss, trackID, detID),
     mParentID(parent),

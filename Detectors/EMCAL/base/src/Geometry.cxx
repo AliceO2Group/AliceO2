@@ -1057,7 +1057,7 @@ std::tuple<int, int> Geometry::ShiftOfflineToOnlineCellIndexes(Int_t supermodule
   return std::tuple<int, int>(iphi, ieta);
 }
 
-Point3D<double> Geometry::RelPosCellInSModule(Int_t absId) const
+o2::math_utils::Point3D<double> Geometry::RelPosCellInSModule(Int_t absId) const
 {
   // Shift index taking into account the difference between standard SM
   // and SM of half (or one third) size in phi direction
@@ -1103,7 +1103,7 @@ Point3D<double> Geometry::RelPosCellInSModule(Int_t absId) const
     if (nSupMod % 2 != 0) {
       iphi2 = (phiindex / 2 - 1) - iphi; // 11-iphi [1/2SM], revert the ordering on C side in order to keep
     }
-                                         // convention.
+    // convention.
     yr = mCentersOfCellsPhiDir[iphi2 + phiindex / 4];
   } else if (GetSMType(nSupMod) == EMCAL_THIRD) {
     if (nSupMod % 2 != 0) {
@@ -1119,10 +1119,10 @@ Point3D<double> Geometry::RelPosCellInSModule(Int_t absId) const
 
   LOG(DEBUG) << "absId " << absId << " nSupMod " << nSupMod << " iphi " << iphi << " ieta " << ieta << " xr " << xr
              << " yr " << yr << " zr " << zr;
-  return Point3D<double>(xr, yr, zr);
+  return o2::math_utils::Point3D<double>(xr, yr, zr);
 }
 
-Point3D<double> Geometry::RelPosCellInSModule(Int_t absId, Double_t distEff) const
+o2::math_utils::Point3D<double> Geometry::RelPosCellInSModule(Int_t absId, Double_t distEff) const
 {
   // Shift index taking into account the difference between standard SM
   // and SM of half (or one third) size in phi direction
@@ -1179,7 +1179,7 @@ Point3D<double> Geometry::RelPosCellInSModule(Int_t absId, Double_t distEff) con
     if (nSupMod % 2 != 0) {
       iphi2 = (nphiIndex / 2 - 1) - iphi; // 11-iphi [1/2SM], revert the ordering on C side in order to keep
     }
-                                          // convention.
+    // convention.
     yr = mCentersOfCellsPhiDir[iphi2 + nphiIndex / 2];
   } else if (GetSMType(nSupMod) == EMCAL_THIRD) {
     if (nSupMod % 2 != 0) {
@@ -1195,7 +1195,7 @@ Point3D<double> Geometry::RelPosCellInSModule(Int_t absId, Double_t distEff) con
 
   LOG(DEBUG) << "absId " << absId << " nSupMod " << nSupMod << " iphi " << iphi << " ieta " << ieta << " xr " << xr
              << " yr " << yr << " zr " << zr;
-  return Point3D<double>(xr, yr, zr);
+  return math_utils::Point3D<double>(xr, yr, zr);
 }
 
 void Geometry::CreateListOfTrd1Modules()
@@ -1323,7 +1323,7 @@ Bool_t Geometry::Impact(const TParticle* particle) const
 {
   Bool_t in = kFALSE;
   Int_t absID = 0;
-  Point3D<double> vimpact = {0, 0, 0};
+  math_utils::Point3D<double> vimpact = {0, 0, 0};
 
   ImpactOnEmcal({particle->Vx(), particle->Vy(), particle->Vz()}, particle->Theta(), particle->Phi(), absID, vimpact);
 
@@ -1334,9 +1334,9 @@ Bool_t Geometry::Impact(const TParticle* particle) const
   return in;
 }
 
-void Geometry::ImpactOnEmcal(const Point3D<double>& vtx, Double_t theta, Double_t phi, Int_t& absId, Point3D<double>& vimpact) const
+void Geometry::ImpactOnEmcal(const math_utils::Point3D<double>& vtx, Double_t theta, Double_t phi, Int_t& absId, math_utils::Point3D<double>& vimpact) const
 {
-  Vector3D<double> p(TMath::Sin(theta) * TMath::Cos(phi), TMath::Sin(theta) * TMath::Sin(phi), TMath::Cos(theta));
+  math_utils::Vector3D<double> p(TMath::Sin(theta) * TMath::Cos(phi), TMath::Sin(theta) * TMath::Sin(phi), TMath::Cos(theta));
 
   vimpact.SetXYZ(0, 0, 0);
   absId = -1;
@@ -1344,7 +1344,7 @@ void Geometry::ImpactOnEmcal(const Point3D<double>& vtx, Double_t theta, Double_
     return;
   }
 
-  Vector3D<double> direction;
+  math_utils::Vector3D<double> direction;
   Double_t factor = (mIPDistance - vtx.Y()) / p.Y();
   direction = vtx + factor * p;
 
@@ -1421,8 +1421,8 @@ void Geometry::ImpactOnEmcal(const Point3D<double>& vtx, Double_t theta, Double_
   Double_t dist = mLongModuleSize / 2.;
   Double_t norm = TMath::Sqrt(a * a + b * b + c * c);
   Double_t glob4[3] = {};
-  Vector3D<double> dir = {a, b, c};
-  Point3D<double> point = {glob[0], glob[1], glob[2]};
+  math_utils::Vector3D<double> dir = {a, b, c};
+  math_utils::Point3D<double> point = {glob[0], glob[1], glob[2]};
   if (point.Dot(dir) < 0) {
     dist *= -1;
   }
@@ -1450,7 +1450,7 @@ void Geometry::ImpactOnEmcal(const Point3D<double>& vtx, Double_t theta, Double_
   vimpact.SetXYZ(vimpact.Z() + dist * a / norm, vimpact.Y() + dist * b / norm, vimpact.Z() + dist * c / norm);
 }
 
-Bool_t Geometry::IsInEMCAL(const Point3D<double>& pnt) const
+Bool_t Geometry::IsInEMCAL(const math_utils::Point3D<double>& pnt) const
 {
   if (IsInEMCALOrDCAL(pnt) == EMCAL_ACCEPTANCE) {
     return kTRUE;
@@ -1459,7 +1459,7 @@ Bool_t Geometry::IsInEMCAL(const Point3D<double>& pnt) const
   }
 }
 
-Bool_t Geometry::IsInDCAL(const Point3D<double>& pnt) const
+Bool_t Geometry::IsInDCAL(const math_utils::Point3D<double>& pnt) const
 {
   if (IsInEMCALOrDCAL(pnt) == DCAL_ACCEPTANCE) {
     return kTRUE;
@@ -1468,7 +1468,7 @@ Bool_t Geometry::IsInDCAL(const Point3D<double>& pnt) const
   }
 }
 
-o2::emcal::AcceptanceType_t Geometry::IsInEMCALOrDCAL(const Point3D<double>& pnt) const
+o2::emcal::AcceptanceType_t Geometry::IsInEMCALOrDCAL(const math_utils::Point3D<double>& pnt) const
 {
   Double_t r = sqrt(pnt.X() * pnt.X() + pnt.Y() * pnt.Y());
 

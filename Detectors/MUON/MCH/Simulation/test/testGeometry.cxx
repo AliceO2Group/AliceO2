@@ -196,7 +196,7 @@ bool operator==(const CoarseLocation& a, const CoarseLocation& b)
 CoarseLocation getDetElemCoarseLocation(int detElemId)
 {
   auto t = o2::mch::getTransformation(detElemId, *gGeoManager);
-  Point3D<double> localTestPos{0.0, 0.0, 0.0}; // slat center
+  o2::math_utils::Point3D<double> localTestPos{0.0, 0.0, 0.0}; // slat center
 
   if (detElemId < 500) {
     // in the rough ballpark of the center
@@ -228,7 +228,7 @@ CoarseLocation getDetElemCoarseLocation(int detElemId)
       localTestPos.SetXYZ(95.0, -19.75, 0); // ds 104
       break;
   }
-  Point3D<double> master;
+  o2::math_utils::Point3D<double> master;
 
   t.LocalToMaster(localTestPos, master);
   bool right = master.x() > 10.;

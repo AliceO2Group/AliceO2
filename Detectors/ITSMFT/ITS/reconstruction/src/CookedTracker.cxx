@@ -41,7 +41,7 @@ using namespace o2::constants::math;
 using namespace o2::utils;
 using o2::field::MagneticField;
 using Label = o2::MCCompLabel;
-using Point3Df = Point3D<float>;
+using Point3Df = o2::math_utils::Point3D<float>;
 
 //************************************************
 // Constants hardcoded for the moment:
@@ -488,7 +488,7 @@ void CookedTracker::process(gsl::span<const o2::itsmft::CompClusterExt> const& c
   for (const auto& comp : clusters_in_frame) {
 
     auto pattID = comp.getPatternID();
-    Point3D<float> locXYZ;
+    o2::math_utils::Point3D<float> locXYZ;
     float sigmaY2 = 0.0015 * 0.0015, sigmaZ2 = sigmaY2, sigmaYZ = 0; //Dummy COG errors (about half pixel size)
     if (pattID != itsmft::CompCluster::InvalidPatternID) {
       sigmaY2 = dict.getErr2X(pattID);

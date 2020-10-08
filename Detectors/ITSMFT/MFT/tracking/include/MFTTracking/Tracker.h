@@ -117,7 +117,7 @@ inline void Tracker::getRPhiProjectionBin(const Cluster& cluster1, const Int_t l
   dz = constants::mft::LayerZCoordinate()[layer] - constants::mft::LayerZCoordinate()[layer1];
   x_proj = cluster1.getX() + dz * cluster1.getX() * constants::mft::InverseLayerZCoordinate()[layer1];
   y_proj = cluster1.getY() + dz * cluster1.getY() * constants::mft::InverseLayerZCoordinate()[layer1];
-  auto clsPoint2D = Point2D<Float_t>(x_proj, y_proj);
+  auto clsPoint2D = math_utils::Point2D<Float_t>(x_proj, y_proj);
   r_proj = clsPoint2D.R();
   phi_proj = clsPoint2D.Phi();
   o2::utils::BringTo02PiGen(phi_proj);

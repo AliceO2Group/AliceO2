@@ -354,7 +354,7 @@ bool TrackParametrization<value_T>::propagateParamTo(value_t xk, value_t b)
 
 //_______________________________________________________________________
 template <typename value_T>
-bool TrackParametrization<value_T>::propagateParamToDCA(const Point3D<value_t>& vtx, value_t b, dim2_t* dca, value_t maxD)
+bool TrackParametrization<value_T>::propagateParamToDCA(const math_utils::Point3D<value_t>& vtx, value_t b, dim2_t* dca, value_t maxD)
 {
   // propagate track to DCA to the vertex
   value_t sn, cs, alp = getAlpha();

@@ -41,7 +41,7 @@ void CheckDigits(std::string digifile = "itsdigits.root", std::string hitfile = 
   // Geometry
   o2::base::GeometryManager::loadGeometry(inputGeom);
   auto* gman = o2::its::GeometryTGeo::Instance();
-  gman->fillMatrixCache(o2::utils::bit2Mask(o2::TransformType::L2G));
+  gman->fillMatrixCache(o2::utils::bit2Mask(o2::math_utils::TransformType::L2G));
 
   SegmentationAlpide seg;
 
@@ -146,7 +146,7 @@ void CheckDigits(std::string digifile = "itsdigits.root", std::string hitfile = 
 
       seg.detectorToLocal(ix, iz, x, z);
 
-      const Point3D<float> locD(x, 0., z);
+      const o2::math_utils::Point3D<float> locD(x, 0., z);
 
       Int_t chipID = (*digArr)[iDigit].getChipIndex();
       auto lab = (labels->getLabels(iDigit))[0];

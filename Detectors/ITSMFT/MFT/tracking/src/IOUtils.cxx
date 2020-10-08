@@ -39,14 +39,14 @@ int ioutils::loadROFrameData(const o2::itsmft::ROFRecord& rof, ROframe& event, g
 {
   event.clear();
   GeometryTGeo* geom = GeometryTGeo::Instance();
-  geom->fillMatrixCache(utils::bit2Mask(TransformType::T2L, TransformType::L2G));
+  geom->fillMatrixCache(utils::bit2Mask(o2::math_utils::TransformType::T2L, o2::math_utils::TransformType::L2G));
   int clusterId{0};
   auto first = rof.getFirstEntry();
   auto clusters_in_frame = rof.getROFData(clusters);
   for (auto& c : clusters_in_frame) {
     int layer = geom->getLayer(c.getSensorID());
     auto pattID = c.getPatternID();
-    Point3D<float> locXYZ;
+    o2::math_utils::Point3D<float> locXYZ;
     float sigmaX2 = ioutils::DefClusError2Row, sigmaY2 = ioutils::DefClusError2Col; //Dummy COG errors (about half pixel size)
     if (pattID != itsmft::CompCluster::InvalidPatternID) {
       //sigmaX2 = dict.getErr2X(pattID); // ALPIDE local X coordinate => MFT global X coordinate (ALPIDE rows)
@@ -68,7 +68,7 @@ int ioutils::loadROFrameData(const o2::itsmft::ROFRecord& rof, ROframe& event, g
     // Transformation to the local --> global
     auto gloXYZ = geom->getMatrixL2G(sensorID) * locXYZ;
 
-    auto clsPoint2D = Point2D<Float_t>(gloXYZ.x(), gloXYZ.y());
+    auto clsPoint2D = math_utils::Point2D<Float_t>(gloXYZ.x(), gloXYZ.y());
     Float_t rCoord = clsPoint2D.R();
     Float_t phiCoord = clsPoint2D.Phi();
     o2::utils::BringTo02PiGen(phiCoord);

@@ -33,13 +33,13 @@ HitFinder::HitFinder(const GeometryTransformer& geoTrans)
 }
 
 //______________________________________________________________________________
-Point3D<double> HitFinder::getIntersectInDefaultPlane(const Track& track, int chamber) const
+math_utils::Point3D<double> HitFinder::getIntersectInDefaultPlane(const Track& track, int chamber) const
 {
   /// Get the intersection point in the default chamber plane
   double defaultZ = geoparams::DefaultChamberZ[chamber];
   double linePar = ((track.getPositionZ() - defaultZ) * mTanTheta - track.getPositionY()) /
                    (track.getDirectionY() - track.getDirectionZ() * mTanTheta);
-  Point3D<double> point;
+  math_utils::Point3D<double> point;
   point.SetX(track.getPositionX() + linePar * track.getDirectionX());
   point.SetY(track.getPositionY() + linePar * track.getDirectionY());
   point.SetZ(track.getPositionZ() + linePar * track.getDirectionZ());
@@ -51,16 +51,16 @@ Cluster2D HitFinder::getIntersect(const Track& track, int deId) const
 {
   /// Get the intersection point in the specified detection elements
   /// The point is expressed in local coordinates
-  Point3D<float> localPoint = mGeometryTransformer.globalToLocal(deId, track.getPositionX(), track.getPositionY(), track.getPositionZ());
+  math_utils::Point3D<float> localPoint = mGeometryTransformer.globalToLocal(deId, track.getPositionX(), track.getPositionY(), track.getPositionZ());
 
   // Track localTrack(track);
   // localTrack.propagateToZ(localTrack.getPosition().z() + 20.);
-  // Point3D<float> localPoint2 = mGeometryTransformer.globalToLocal(deId, localTrack.getPosition());
+  // math_utils::Point3D<float> localPoint2 = mGeometryTransformer.globalToLocal(deId, localTrack.getPosition());
   // localTrack.setPosition(localPoint.x(), localPoint.y(), localPoint.z());
   // float dZ = localPoint2.z() - localPoint.z();
   // localTrack.setDirection((localPoint2.x() - localPoint.x()) / dZ, (localPoint2.y() - localPoint.y()) / dZ, 1.);
 
-  Vector3D<float> localDirection = mGeometryTransformer.globalToLocal(deId, Vector3D<float>(track.getDirectionX(), track.getDirectionY(), track.getDirectionZ()));
+  math_utils::Vector3D<float> localDirection = mGeometryTransformer.globalToLocal(deId, math_utils::Vector3D<float>(track.getDirectionX(), track.getDirectionY(), track.getDirectionZ()));
   Track localTrack;
   localTrack.setPosition(localPoint.x(), localPoint.y(), localPoint.z());
   localTrack.setDirection(localDirection.x() / localDirection.z(), localDirection.y() / localDirection.z(), 1.);
@@ -88,7 +88,7 @@ std::vector<int> HitFinder::getFiredDE(const Track& track, int chamber) const
   /// @param chamber Chamber ID (0-3)
   /// @return Vector with the list of the detection element IDs potentially fired
   std::vector<int> deIdList;
-  Point3D<double> defPos = getIntersectInDefaultPlane(track, chamber);
+  math_utils::Point3D<double> defPos = getIntersectInDefaultPlane(track, chamber);
   double xPos = defPos.x();
   double xErr = std::sqrt(track.getCovarianceParameter(Track::CovarianceParamIndex::VarX));
   double yPos = defPos.y() / mCosTheta;

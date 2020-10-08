@@ -99,7 +99,7 @@ bool Propagator::PropagateToXBxByBz(o2::track::TrackParCov& track, float xToGo, 
       }
     } else if (tofInfo) { // if tofInfo filling was requested w/o material correction, we need to calculate the step lenght
       auto xyz1 = track.getXYZGlo();
-      Vector3D<float> stepV(xyz1.X() - xyz0.X(), xyz1.Y() - xyz0.Y(), xyz1.Z() - xyz0.Z());
+      math_utils::Vector3D<float> stepV(xyz1.X() - xyz0.X(), xyz1.Y() - xyz0.Y(), xyz1.Z() - xyz0.Z());
       tofInfo->addStep(stepV.R(), track);
     }
     dx = xToGo - track.getX();
@@ -158,7 +158,7 @@ bool Propagator::PropagateToXBxByBz(o2::track::TrackPar& track, float xToGo, flo
       }
     } else if (tofInfo) { // if tofInfo filling was requested w/o material correction, we need to calculate the step lenght
       auto xyz1 = track.getXYZGlo();
-      Vector3D<float> stepV(xyz1.X() - xyz0.X(), xyz1.Y() - xyz0.Y(), xyz1.Z() - xyz0.Z());
+      math_utils::Vector3D<float> stepV(xyz1.X() - xyz0.X(), xyz1.Y() - xyz0.Y(), xyz1.Z() - xyz0.Z());
       tofInfo->addStep(stepV.R(), track);
     }
     dx = xToGo - track.getX();
@@ -217,7 +217,7 @@ bool Propagator::propagateToX(o2::track::TrackParCov& track, float xToGo, float 
       }
     } else if (tofInfo) { // if tofInfo filling was requested w/o material correction, we need to calculate the step lenght
       auto xyz1 = track.getXYZGlo();
-      Vector3D<float> stepV(xyz1.X() - xyz0.X(), xyz1.Y() - xyz0.Y(), xyz1.Z() - xyz0.Z());
+      math_utils::Vector3D<float> stepV(xyz1.X() - xyz0.X(), xyz1.Y() - xyz0.Y(), xyz1.Z() - xyz0.Z());
       tofInfo->addStep(stepV.R(), track);
     }
     dx = xToGo - track.getX();
@@ -276,7 +276,7 @@ bool Propagator::propagateToX(o2::track::TrackPar& track, float xToGo, float bZ,
       }
     } else if (tofInfo) { // if tofInfo filling was requested w/o material correction, we need to calculate the step lenght
       auto xyz1 = track.getXYZGlo();
-      Vector3D<float> stepV(xyz1.X() - xyz0.X(), xyz1.Y() - xyz0.Y(), xyz1.Z() - xyz0.Z());
+      math_utils::Vector3D<float> stepV(xyz1.X() - xyz0.X(), xyz1.Y() - xyz0.Y(), xyz1.Z() - xyz0.Z());
       tofInfo->addStep(stepV.R(), track);
     }
     dx = xToGo - track.getX();
@@ -375,7 +375,7 @@ bool Propagator::propagateToDCABxByBz(const o2::dataformats::VertexBase& vtx, o2
 }
 
 //_______________________________________________________________________
-bool Propagator::propagateToDCA(const Point3D<float>& vtx, o2::track::TrackPar& track, float bZ,
+bool Propagator::propagateToDCA(const math_utils::Point3D<float>& vtx, o2::track::TrackPar& track, float bZ,
                                 float mass, float maxStep, Propagator::MatCorrType matCorr,
                                 std::array<float, 2>* dca, o2::track::TrackLTIntegral* tofInfo,
                                 int signCorr, float maxD) const
@@ -419,7 +419,7 @@ bool Propagator::propagateToDCA(const Point3D<float>& vtx, o2::track::TrackPar& 
 }
 
 //_______________________________________________________________________
-bool Propagator::propagateToDCABxByBz(const Point3D<float>& vtx, o2::track::TrackPar& track,
+bool Propagator::propagateToDCABxByBz(const math_utils::Point3D<float>& vtx, o2::track::TrackPar& track,
                                       float mass, float maxStep, Propagator::MatCorrType matCorr,
                                       std::array<float, 2>* dca, o2::track::TrackLTIntegral* tofInfo,
                                       int signCorr, float maxD) const
@@ -507,7 +507,7 @@ int Propagator::initFieldFromGRP(const o2::parameters::GRPObject* grp, bool verb
 }
 
 //____________________________________________________________
-MatBudget Propagator::getMatBudget(Propagator::MatCorrType corrType, const Point3D<float>& p0, const Point3D<float>& p1) const
+MatBudget Propagator::getMatBudget(Propagator::MatCorrType corrType, const math_utils::Point3D<float>& p0, const math_utils::Point3D<float>& p1) const
 {
   return (corrType == MatCorrType::USEMatCorrTGeo) ? GeometryManager::meanMaterialBudget(p0, p1) : mMatLUT->getMatBudget(p0.X(), p0.Y(), p0.Z(), p1.X(), p1.Y(), p1.Z());
 }

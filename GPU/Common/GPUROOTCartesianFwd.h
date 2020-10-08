@@ -38,9 +38,18 @@ class Cartesian3D;
 class DefaultCoordinateSystemTag;
 } // namespace Math
 } // namespace ROOT
+
+namespace o2
+{
+namespace math_utils
+{
+
 template <typename T>
 using Point2D = ROOT::Math::PositionVector2D<ROOT::Math::Cartesian2D<T>, ROOT::Math::DefaultCoordinateSystemTag>;
 template <typename T>
 using Point3D = ROOT::Math::PositionVector3D<ROOT::Math::Cartesian3D<T>, ROOT::Math::DefaultCoordinateSystemTag>;
+
+} // namespace math_utils
+} // namespace o2
 
 #endif

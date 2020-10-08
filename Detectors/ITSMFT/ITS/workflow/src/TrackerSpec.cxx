@@ -61,8 +61,8 @@ void TrackerDPL::init(InitContext& ic)
 
     base::GeometryManager::loadGeometry();
     GeometryTGeo* geom = GeometryTGeo::Instance();
-    geom->fillMatrixCache(utils::bit2Mask(TransformType::T2L, TransformType::T2GRot,
-                                          TransformType::T2G));
+    geom->fillMatrixCache(utils::bit2Mask(o2::math_utils::TransformType::T2L, o2::math_utils::TransformType::T2GRot,
+                                          o2::math_utils::TransformType::T2G));
 
     auto* chainITS = mRecChain->AddChain<o2::gpu::GPUChainITS>();
     mRecChain->Init();
@@ -212,7 +212,7 @@ void TrackerDPL::run(ProcessingContext& pc)
         LOG(INFO) << "Found tracks: " << tracks.size();
         int number = tracks.size();
         trackLabels.swap(mTracker->getTrackLabels()); /// FIXME: assignment ctor is not optimal.
-        int shiftIdx = -rof.getFirstEntry();      // cluster entry!!!
+        int shiftIdx = -rof.getFirstEntry();          // cluster entry!!!
         rof.setFirstEntry(first);
         rof.setNEntries(number);
         copyTracks(tracks, allTracks, allClusIdx, shiftIdx);

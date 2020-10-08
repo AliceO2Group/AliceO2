@@ -82,7 +82,7 @@ class VertexSamplerSpec
 
     // read the corresponding vertex or set it to (0,0,0)
     int eventVtx(-1);
-    Point3D<double> vertex(0., 0., 0.);
+    math_utils::Point3D<double> vertex(0., 0., 0.);
     if (mInputFile.is_open()) {
       do {
         mInputFile.read(reinterpret_cast<char*>(&eventVtx), SSizeOfInt);
@@ -116,7 +116,7 @@ class VertexSamplerSpec
   };
   static constexpr int SSizeOfInt = sizeof(int);
   static constexpr int SSizeOfVertexStruct = sizeof(VertexStruct);
-  static constexpr int SSizeOfPoint3D = sizeof(Point3D<double>);
+  static constexpr int SSizeOfPoint3D = sizeof(math_utils::Point3D<double>);
 
   std::ifstream mInputFile{}; ///< input file
 };

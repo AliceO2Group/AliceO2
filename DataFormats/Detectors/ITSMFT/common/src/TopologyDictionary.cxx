@@ -126,20 +126,20 @@ void TopologyDictionary::getTopologyDistribution(const TopologyDictionary& dict,
   }
 }
 
-Point3D<float> TopologyDictionary::getClusterCoordinates(const CompCluster& cl) const
+math_utils::Point3D<float> TopologyDictionary::getClusterCoordinates(const CompCluster& cl) const
 {
-  Point3D<float> locCl;
+  math_utils::Point3D<float> locCl;
   o2::itsmft::SegmentationAlpide::detectorToLocalUnchecked(cl.getRow(), cl.getCol(), locCl);
   locCl.SetX(locCl.X() + this->getXCOG(cl.getPatternID()));
   locCl.SetZ(locCl.Z() + this->getZCOG(cl.getPatternID()));
   return locCl;
 }
 
-Point3D<float> TopologyDictionary::getClusterCoordinates(const CompCluster& cl, const ClusterPattern& patt)
+math_utils::Point3D<float> TopologyDictionary::getClusterCoordinates(const CompCluster& cl, const ClusterPattern& patt)
 {
   float xCOG = 0, zCOG = 0;
   patt.getCOG(xCOG, zCOG);
-  Point3D<float> locCl;
+  math_utils::Point3D<float> locCl;
   o2::itsmft::SegmentationAlpide::detectorToLocalUnchecked(cl.getRow() - round(xCOG) + xCOG, cl.getCol() - round(zCOG) + zCOG, locCl);
   return locCl;
 }

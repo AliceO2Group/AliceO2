@@ -19,7 +19,7 @@
 using namespace o2::its;
 
 //_____________________________________________________________________
-void RecoGeomHelper::RecoChip::updateLimits(const Point3D<float>& pntTra)
+void RecoGeomHelper::RecoChip::updateLimits(const o2::math_utils::Point3D<float>& pntTra)
 {
   // update limits from the edge point in tracking frame
   yRange.update(pntTra.Y());
@@ -35,7 +35,7 @@ void RecoGeomHelper::RecoChip::print() const
 }
 
 //_____________________________________________________________________
-void RecoGeomHelper::RecoLadder::updateLimits(const Point3D<float>& pntGlo)
+void RecoGeomHelper::RecoLadder::updateLimits(const o2::math_utils::Point3D<float>& pntGlo)
 {
   // update limits from the point in Global frame
   float phi = pntGlo.phi();    // -pi:pi range
@@ -89,7 +89,7 @@ void RecoGeomHelper::RecoLadder::print() const
 void RecoGeomHelper::RecoLayer::init()
 {
   auto gm = o2::its::GeometryTGeo::Instance();
-  gm->fillMatrixCache(o2::utils::bit2Mask(o2::TransformType::T2GRot, o2::TransformType::T2L)); // more matrices ?
+  gm->fillMatrixCache(o2::utils::bit2Mask(o2::math_utils::TransformType::T2GRot, o2::math_utils::TransformType::T2L)); // more matrices ?
 
   int nHStaves = gm->getNumberOfHalfStaves(id);
   int nStaves = gm->getNumberOfStaves(id);
@@ -117,7 +117,7 @@ void RecoGeomHelper::RecoLayer::init()
     gm->getSensorXAlphaRefPlane(chipID, chip.xRef, chip.alp);
     o2::utils::sincosf(chip.alp, chip.snAlp, chip.csAlp);
 
-    Point3D<float> edgeLoc(-dxH, 0.f, -dzH);
+    o2::math_utils::Point3D<float> edgeLoc(-dxH, 0.f, -dzH);
     auto edgeTra = gm->getMatrixT2L(chipID) ^ (edgeLoc); // edge in tracking frame
     chip.updateLimits(edgeTra);
     auto edgeGloM = gm->getMatrixT2GRot(chipID)(edgeTra); // edge in global frame
@@ -207,7 +207,7 @@ void RecoGeomHelper::RecoLayer::init()
 }
 
 //_____________________________________________________________________
-void RecoGeomHelper::RecoLayer::updateLimits(const Point3D<float>& pntGlo)
+void RecoGeomHelper::RecoLayer::updateLimits(const o2::math_utils::Point3D<float>& pntGlo)
 {
   // update limits from the point in global frame
   rRange.update(pntGlo.Rho());

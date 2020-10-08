@@ -82,7 +82,7 @@ class MatLayerCylSet : public o2::gpu::FlatObject
 #endif // !GPUCA_ALIGPUCODE
 
 #ifndef GPUCA_ALIGPUCODE // this part is unvisible on GPU version
-  MatBudget getMatBudget(const Point3D<float>& point0, const Point3D<float>& point1) const
+  MatBudget getMatBudget(const math_utils::Point3D<float>& point0, const math_utils::Point3D<float>& point1) const
   {
     // get material budget traversed on the line between point0 and point1
     return getMatBudget(point0.X(), point0.Y(), point0.Z(), point1.X(), point1.Y(), point1.Z());

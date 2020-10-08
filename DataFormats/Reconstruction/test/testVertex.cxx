@@ -25,7 +25,7 @@ using myVtx = o2::dataformats::Vertex<myTS>;
 // basic Vertex tests
 BOOST_AUTO_TEST_CASE(Vertex)
 {
-  const Point3D<float> pos(0.1, 0.2, 3.0);
+  const math_utils::Point3D<float> pos(0.1, 0.2, 3.0);
   const std::array<float, myVtx::kNCov> cov = {1e-4, -1e-9, 2e-4, -1e-9, 1e-9, 1e-4};
   int nc = 10;
   float chi2 = 5.5f;

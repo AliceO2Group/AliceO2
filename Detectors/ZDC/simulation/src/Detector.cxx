@@ -188,19 +188,19 @@ void Detector::defineSensitiveVolumes()
 }
 
 // determines detectorID and sectorID from volume and coordinates
-void Detector::getDetIDandSecID(TString const& volname, Vector3D<float> const& x,
-                                Vector3D<float>& xDet, int& detector, int& sector) const
+void Detector::getDetIDandSecID(TString const& volname, math_utils::Vector3D<float> const& x,
+                                math_utils::Vector3D<float>& xDet, int& detector, int& sector) const
 {
   if (volname.BeginsWith("ZN")) {
     // for the neutron calorimeter
 
     if (x.Z() > 0) {
       detector = ZNA;
-      xDet = x - Vector3D<float>(Geometry::ZNAPOSITION[0], Geometry::ZNAPOSITION[1], Geometry::ZNAPOSITION[2]);
+      xDet = x - math_utils::Vector3D<float>(Geometry::ZNAPOSITION[0], Geometry::ZNAPOSITION[1], Geometry::ZNAPOSITION[2]);
 
     } else if (x.Z() < 0) {
       detector = ZNC;
-      xDet = x - Vector3D<float>(Geometry::ZNCPOSITION[0], Geometry::ZNCPOSITION[1], Geometry::ZNCPOSITION[2]);
+      xDet = x - math_utils::Vector3D<float>(Geometry::ZNCPOSITION[0], Geometry::ZNCPOSITION[1], Geometry::ZNCPOSITION[2]);
     }
     // now determine sector/tower
     if (xDet.X() <= 0.) {
@@ -221,10 +221,10 @@ void Detector::getDetIDandSecID(TString const& volname, Vector3D<float> const& x
     // proton calorimeter
     if (x.Z() > 0) {
       detector = ZPA; // (NB -> DIFFERENT FROM AliRoot!!!)
-      xDet = x - Vector3D<float>(Geometry::ZPAPOSITION[0], Geometry::ZPAPOSITION[1], Geometry::ZPAPOSITION[2]);
+      xDet = x - math_utils::Vector3D<float>(Geometry::ZPAPOSITION[0], Geometry::ZPAPOSITION[1], Geometry::ZPAPOSITION[2]);
     } else if (x.Z() < 0) {
       detector = ZPC; // (NB -> DIFFERENT FROM AliRoot!!!)
-      xDet = x - Vector3D<float>(Geometry::ZPCPOSITION[0], Geometry::ZPCPOSITION[1], Geometry::ZPCPOSITION[2]);
+      xDet = x - math_utils::Vector3D<float>(Geometry::ZPCPOSITION[0], Geometry::ZPCPOSITION[1], Geometry::ZPCPOSITION[2]);
     }
 
     // determine sector/tower
@@ -246,7 +246,7 @@ void Detector::getDetIDandSecID(TString const& volname, Vector3D<float> const& x
   } else if (volname.BeginsWith("ZE")) {
     // electromagnetic calorimeter
     detector = ZEM;
-    xDet = x - Vector3D<float>(Geometry::ZEMPOSITION[0], Geometry::ZEMPOSITION[1], Geometry::ZEMPOSITION[2]);
+    xDet = x - math_utils::Vector3D<float>(Geometry::ZEMPOSITION[0], Geometry::ZEMPOSITION[1], Geometry::ZEMPOSITION[2]);
     sector = (x.X() > 0.) ? Ch1 : Ch2;
     return;
   }
@@ -292,8 +292,8 @@ Bool_t Detector::ProcessHits(FairVolume* v)
   // determine detectorID and sectorID
   int detector = -1;
   int sector = -1;
-  Vector3D<float> xImp;
-  getDetIDandSecID(volname, Vector3D<float>(x[0], x[1], x[2]), xImp, detector, sector);
+  math_utils::Vector3D<float> xImp;
+  getDetIDandSecID(volname, math_utils::Vector3D<float>(x[0], x[1], x[2]), xImp, detector, sector);
 
   auto stack = (o2::data::Stack*)fMC->GetStack();
   int trackn = stack->GetCurrentTrackNumber();
@@ -388,8 +388,8 @@ Bool_t Detector::ProcessHits(FairVolume* v)
       mTotLightPMQ = nphe;
     }
 
-    Vector3D<float> pos(x[0], x[1], x[2]);
-    Vector3D<float> mom(p[0], p[1], p[2]);
+    math_utils::Vector3D<float> pos(x[0], x[1], x[2]);
+    math_utils::Vector3D<float> mom(p[0], p[1], p[2]);
     addHit(trackn, mLastPrincipalTrackEntered, issecondary, trackenergy, detector, sector,
            pos, mom, tof, xImp, eDep, mTotLightPMC, mTotLightPMQ);
     stack->addHit(GetDetId());
@@ -430,7 +430,7 @@ Bool_t Detector::ProcessHits(FairVolume* v)
 bool Detector::createHitsFromImage(SpatialPhotonResponse const& image, int detector)
 {
   // one image will make one hit per sector
-  Vector3D<float> xImp(0., 0., 0.); // good value
+  math_utils::Vector3D<float> xImp(0., 0., 0.); // good value
 
   const int Nx = image.getNx();
   const int Ny = image.getNy();
@@ -496,7 +496,7 @@ bool Detector::createHitsFromImage(SpatialPhotonResponse const& image, int detec
 
 //_____________________________________________________________________________
 o2::zdc::Hit* Detector::addHit(Int_t trackID, Int_t parentID, Int_t sFlag, Float_t primaryEnergy, Int_t detID,
-                               Int_t secID, Vector3D<float> pos, Vector3D<float> mom, Float_t tof, Vector3D<float> xImpact,
+                               Int_t secID, math_utils::Vector3D<float> pos, math_utils::Vector3D<float> mom, Float_t tof, math_utils::Vector3D<float> xImpact,
                                Double_t energyloss, Int_t nphePMC, Int_t nphePMQ)
 {
   LOG(DEBUG4) << "Adding hit for track " << trackID << " X (" << pos.X() << ", " << pos.Y() << ", "

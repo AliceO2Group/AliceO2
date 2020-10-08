@@ -43,7 +43,7 @@ class Stepper
   float mTrackEloss{0.0};
   float mTrackLength{0.0};
   std::vector<o2::mch::Hit>* mHits{nullptr};
-  Point3D<float> mEntrancePoint;
+  math_utils::Point3D<float> mEntrancePoint;
 };
 
 } // namespace mch

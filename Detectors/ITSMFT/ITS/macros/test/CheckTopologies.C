@@ -61,8 +61,8 @@ void CheckTopologies(std::string clusfile = "o2clus_its.root",
   // Geometry
   o2::base::GeometryManager::loadGeometry(inputGeom);
   auto gman = o2::its::GeometryTGeo::Instance();
-  gman->fillMatrixCache(o2::utils::bit2Mask(o2::TransformType::T2L, o2::TransformType::T2GRot,
-                                            o2::TransformType::L2G)); // request cached transforms
+  gman->fillMatrixCache(o2::utils::bit2Mask(o2::math_utils::TransformType::T2L, o2::math_utils::TransformType::T2GRot,
+                                            o2::math_utils::TransformType::L2G)); // request cached transforms
 
   // Hits
   TFile* fileH = nullptr;

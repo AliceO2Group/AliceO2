@@ -15,8 +15,8 @@
 using namespace o2::detectors;
 using namespace o2::utils;
 
-ClassImp(o2::detectors::MatrixCache<o2::Transform3D>);
-ClassImp(o2::detectors::MatrixCache<o2::Rotation2D>);
+ClassImp(o2::detectors::MatrixCache<o2::math_utils::Transform3D>);
+ClassImp(o2::detectors::MatrixCache<o2::math_utils::Rotation2D>);
 ClassImp(o2::detectors::DetMatrixCache);
 
 //_______________________________________________________

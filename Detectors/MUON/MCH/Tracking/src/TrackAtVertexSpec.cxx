@@ -86,7 +86,7 @@ class TrackAtVertexTask
     /// propagate them to the corresponding vertex and send the new version
 
     // get the vertex
-    Point3D<double> vertex(0., 0., 0.);
+    math_utils::Point3D<double> vertex(0., 0., 0.);
     int eventVtx = readVertex(pc.inputs().get<gsl::span<char>>("vertex"), vertex);
 
     // get the tracks
@@ -136,7 +136,7 @@ class TrackAtVertexTask
   };
 
   //_________________________________________________________________________________________________
-  int readVertex(const gsl::span<const char>& msgIn, Point3D<double>& vertex) const
+  int readVertex(const gsl::span<const char>& msgIn, math_utils::Point3D<double>& vertex) const
   {
     /// get the vertex and return the event number
     /// throw an exception in case of error
@@ -151,7 +151,7 @@ class TrackAtVertexTask
     const int& event = *reinterpret_cast<const int*>(bufferPtr);
     bufferPtr += SSizeOfInt;
 
-    vertex = *reinterpret_cast<const Point3D<double>*>(bufferPtr);
+    vertex = *reinterpret_cast<const math_utils::Point3D<double>*>(bufferPtr);
 
     return event;
   }
@@ -232,7 +232,7 @@ class TrackAtVertexTask
   }
 
   //_________________________________________________________________________________________________
-  bool extrapTrackToVertex(TrackStruct& track, Point3D<double>& vertex)
+  bool extrapTrackToVertex(TrackStruct& track, math_utils::Point3D<double>& vertex)
   {
     /// compute the track parameters at vertex, at DCA and at the end of the absorber
 
@@ -357,7 +357,7 @@ class TrackAtVertexTask
   static constexpr int SSizeOfDouble = sizeof(double);
   static constexpr int SSizeOfTrackParamStruct = sizeof(TrackParamStruct);
   static constexpr int SSizeOfClusterStruct = sizeof(ClusterStruct);
-  static constexpr int SSizeOfPoint3D = sizeof(Point3D<double>);
+  static constexpr int SSizeOfPoint3D = sizeof(math_utils::Point3D<double>);
 
   std::chrono::duration<double> mElapsedTime{}; ///< timer
 };

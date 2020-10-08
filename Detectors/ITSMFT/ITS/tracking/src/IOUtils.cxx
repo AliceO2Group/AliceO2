@@ -60,7 +60,7 @@ void ioutils::convertCompactClusters(gsl::span<const itsmft::CompClusterExt> clu
   GeometryTGeo* geom = GeometryTGeo::Instance();
   for (auto& c : clusters) {
     auto pattID = c.getPatternID();
-    Point3D<float> locXYZ;
+    o2::math_utils::Point3D<float> locXYZ;
     float sigmaY2 = ioutils::DefClusError2Row, sigmaZ2 = ioutils::DefClusError2Col, sigmaYZ = 0; //Dummy COG errors (about half pixel size)
     if (pattID != itsmft::CompCluster::InvalidPatternID) {
       sigmaY2 = dict.getErr2X(pattID);
@@ -152,14 +152,14 @@ void ioutils::loadEventData(ROframe& event, gsl::span<const itsmft::CompClusterE
   }
   event.clear();
   GeometryTGeo* geom = GeometryTGeo::Instance();
-  geom->fillMatrixCache(utils::bit2Mask(TransformType::T2L, TransformType::L2G));
+  geom->fillMatrixCache(utils::bit2Mask(o2::math_utils::TransformType::T2L, o2::math_utils::TransformType::L2G));
   int clusterId{0};
 
   for (auto& c : clusters) {
     int layer = geom->getLayer(c.getSensorID());
 
     auto pattID = c.getPatternID();
-    Point3D<float> locXYZ;
+    o2::math_utils::Point3D<float> locXYZ;
     float sigmaY2 = ioutils::DefClusError2Row, sigmaZ2 = ioutils::DefClusError2Col, sigmaYZ = 0; //Dummy COG errors (about half pixel size)
     if (pattID != itsmft::CompCluster::InvalidPatternID) {
       sigmaY2 = dict.getErr2X(pattID);
@@ -199,7 +199,7 @@ int ioutils::loadROFrameData(const o2::itsmft::ROFRecord& rof, ROframe& event, g
 {
   event.clear();
   GeometryTGeo* geom = GeometryTGeo::Instance();
-  geom->fillMatrixCache(utils::bit2Mask(TransformType::T2L, TransformType::L2G));
+  geom->fillMatrixCache(utils::bit2Mask(o2::math_utils::TransformType::T2L, o2::math_utils::TransformType::L2G));
   int clusterId{0};
 
   auto first = rof.getFirstEntry();
@@ -208,7 +208,7 @@ int ioutils::loadROFrameData(const o2::itsmft::ROFRecord& rof, ROframe& event, g
     int layer = geom->getLayer(c.getSensorID());
 
     auto pattID = c.getPatternID();
-    Point3D<float> locXYZ;
+    o2::math_utils::Point3D<float> locXYZ;
     float sigmaY2 = ioutils::DefClusError2Row, sigmaZ2 = ioutils::DefClusError2Col, sigmaYZ = 0; //Dummy COG errors (about half pixel size)
     if (pattID != itsmft::CompCluster::InvalidPatternID) {
       sigmaY2 = dict.getErr2X(pattID);
