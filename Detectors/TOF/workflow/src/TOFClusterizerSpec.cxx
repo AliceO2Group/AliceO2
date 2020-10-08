@@ -32,6 +32,7 @@
 #include "DetectorsRaw/HBFUtils.h"
 
 using namespace o2::framework;
+using namespace o2::dataformats;
 
 namespace o2
 {
@@ -42,7 +43,6 @@ namespace tof
 // just need to implement 2 special methods init + run (there is no need to inherit from anything)
 class TOFDPLClustererTask
 {
-  using MCLabelContainer = o2::dataformats::MCTruthContainer<o2::MCCompLabel>;
   bool mUseMC = true;
   bool mUseCCDB = false;
 

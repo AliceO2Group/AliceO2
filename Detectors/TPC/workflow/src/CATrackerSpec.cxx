@@ -69,9 +69,7 @@ using namespace o2::framework;
 using namespace o2::header;
 using namespace o2::gpu;
 using namespace o2::base;
-
-using ConstMCLabelContainer = o2::dataformats::ConstMCTruthContainer<o2::MCCompLabel>;
-using ConstMCLabelContainerView = o2::dataformats::ConstMCTruthContainerView<o2::MCCompLabel>;
+using namespace o2::dataformats;
 
 namespace o2
 {

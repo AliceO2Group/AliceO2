@@ -32,15 +32,12 @@
 
 using namespace o2::framework;
 using namespace o2::header;
+using namespace o2::dataformats;
 
 namespace o2
 {
 namespace tpc
 {
-
-using MCLabelContainer = o2::dataformats::MCTruthContainer<o2::MCCompLabel>;
-using ConstMCLabelContainer = o2::dataformats::ConstMCTruthContainer<o2::MCCompLabel>;
-using ConstMCLabelContainerView = o2::dataformats::ConstMCTruthContainerView<o2::MCCompLabel>;
 
 /// create a processor spec
 /// runs the TPC HwClusterer in a DPL process with digits and mc as input

@@ -32,9 +32,6 @@ namespace tof
 
 class ClustererTask : public FairTask
 {
-
-  using MCLabelContainer = o2::dataformats::MCTruthContainer<o2::MCCompLabel>;
-
  public:
   ClustererTask(Bool_t useMCTruth = kTRUE);
   ~ClustererTask() override;
@@ -46,9 +43,9 @@ class ClustererTask : public FairTask
   DigitDataReader mReader; ///< Digit reader
   Clusterer mClusterer;    ///< Cluster finder
 
-  std::vector<Cluster>* mClustersArray = nullptr;                           ///< Array of clusters
-  o2::dataformats::MCTruthContainer<o2::MCCompLabel>* mClsLabels = nullptr; ///< MC labels for output
-  MCLabelContainer const* mDigitMCTruth;                                    ///< Array for MCTruth information associated to digits
+  std::vector<Cluster>* mClustersArray = nullptr;          ///< Array of clusters
+  o2::dataformats::MCLabelContainer* mClsLabels = nullptr; ///< MC labels for output
+  o2::dataformats::MCLabelContainer const* mDigitMCTruth;  ///< Array for MCTruth information associated to digits
 
   ClassDefOverride(ClustererTask, 1);
 };

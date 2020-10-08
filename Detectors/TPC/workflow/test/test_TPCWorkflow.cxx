@@ -21,6 +21,7 @@
 #include <TTree.h>
 
 using namespace o2;
+using namespace o2::dataformats;
 
 BOOST_AUTO_TEST_CASE(TPCWorkflow_types)
 {
@@ -30,8 +31,7 @@ BOOST_AUTO_TEST_CASE(TPCWorkflow_types)
   // even though std::vector < o2::dataformats::MCTruthContainer < o2::MCCompLabel >>
   // has not been specified in the LinkDef file. But it can only e serialized to a
   // tree branch if it has been defined.
-  using MCLabelContainer = o2::dataformats::MCTruthContainer<o2::MCCompLabel>;
-  MCLabelContainer labels;
+  dataformats::MCLabelContainer labels;
   std::vector<MCLabelContainer> containers;
   const char* filename = "testTPCWorkflowTypes.root";
   const char* treename = "testtree";

@@ -34,10 +34,6 @@ namespace tpc
 
 class ClustererTask : public FairTask
 {
-
-  using MCLabelContainer = o2::dataformats::MCTruthContainer<o2::MCCompLabel>;
-  using ConstMCLabelContainer = o2::dataformats::ConstMCTruthContainer<o2::MCCompLabel>;
-  using ConstMCLabelContainerView = o2::dataformats::ConstMCTruthContainerView<o2::MCCompLabel>;
   using OutputType = ClusterHardwareContainer8kb;
 
  public:
@@ -70,11 +66,11 @@ class ClustererTask : public FairTask
 
   // Digit arrays
   std::unique_ptr<const std::vector<Digit>> mDigitsArray;     ///< Array of TPC digits
-  std::unique_ptr<const ConstMCLabelContainerView> mDigitMCTruthArray; ///< Array for MCTruth information associated to digits in mDigitsArrray
+  std::unique_ptr<const o2::dataformats::ConstMCLabelContainerView> mDigitMCTruthArray; ///< Array for MCTruth information associated to digits in mDigitsArrray
 
   // Cluster arrays
   std::unique_ptr<std::vector<OutputType>> mHwClustersArray; ///< Array of clusters found by Hw Clusterfinder
-  std::unique_ptr<MCLabelContainer> mHwClustersMCTruthArray; ///< Array for MCTruth information associated to cluster in mHwClustersArrays
+  std::unique_ptr<o2::dataformats::MCLabelContainer> mHwClustersMCTruthArray; ///< Array for MCTruth information associated to cluster in mHwClustersArrays
 
   ClassDefOverride(ClustererTask, 1);
 };

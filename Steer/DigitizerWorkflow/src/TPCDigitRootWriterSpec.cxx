@@ -78,7 +78,6 @@ DataProcessorSpec getTPCDigitRootWriterSpec(std::vector<int> const& laneConfigur
 
   //branch definitions for RootTreeWriter spec
   using DigitsOutputType = std::vector<o2::tpc::Digit>;
-  using MCLabelContainer = o2::dataformats::ConstMCTruthContainer<o2::MCCompLabel>;
   using CommonModeOutputType = std::vector<o2::tpc::CommonMode>;
 
   // extracts the sector from header of an input
