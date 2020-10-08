@@ -25,7 +25,7 @@ namespace track
 
 ///__________________________________________________________________________
 //< precalculated track radius, center, alpha sin,cos and their combinations
-struct TrackAuxPar : public o2::utils::CircleXY {
+struct TrackAuxPar : public o2::math_utils::CircleXY {
   using Track = o2::track::TrackPar;
 
   float c, s, cc, ss, cs; // cos ans sin of track alpha and their products

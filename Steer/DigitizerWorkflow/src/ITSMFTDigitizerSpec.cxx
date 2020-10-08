@@ -63,7 +63,7 @@ class ITSMFTDPLDigitizerTask : BaseDPLDigitizer
     } else {
       geom = o2::mft::GeometryTGeo::Instance();
     }
-    geom->fillMatrixCache(o2::utils::bit2Mask(o2::math_utils::TransformType::L2G)); // make sure L2G matrices are loaded
+    geom->fillMatrixCache(o2::math_utils::bit2Mask(o2::math_utils::TransformType::L2G)); // make sure L2G matrices are loaded
     mDigitizer.setGeometry(geom);
 
     mDisableQED = ic.options().get<bool>("disable-qed");

@@ -476,9 +476,9 @@ class MatchTPCITS
  private:
   void updateTPCTimeDependentParams();
 
-  int findLaddersToCheckBOn(int ilr, int lad0, const o2::utils::CircleXY& circle, float errYFrac,
+  int findLaddersToCheckBOn(int ilr, int lad0, const o2::math_utils::CircleXY& circle, float errYFrac,
                             std::array<int, MaxLadderCand>& lad2Check) const;
-  int findLaddersToCheckBOff(int ilr, int lad0, const o2::utils::IntervalXY& trcLinPar, float errYFrac,
+  int findLaddersToCheckBOff(int ilr, int lad0, const o2::math_utils::IntervalXY& trcLinPar, float errYFrac,
                              std::array<int, MatchTPCITS::MaxLadderCand>& lad2Check) const;
 
   int prepareTPCTracksAfterBurner();

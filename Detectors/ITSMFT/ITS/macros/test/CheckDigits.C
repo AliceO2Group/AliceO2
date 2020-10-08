@@ -41,7 +41,7 @@ void CheckDigits(std::string digifile = "itsdigits.root", std::string hitfile = 
   // Geometry
   o2::base::GeometryManager::loadGeometry(inputGeom);
   auto* gman = o2::its::GeometryTGeo::Instance();
-  gman->fillMatrixCache(o2::utils::bit2Mask(o2::math_utils::TransformType::L2G));
+  gman->fillMatrixCache(o2::math_utils::bit2Mask(o2::math_utils::TransformType::L2G));
 
   SegmentationAlpide seg;
 

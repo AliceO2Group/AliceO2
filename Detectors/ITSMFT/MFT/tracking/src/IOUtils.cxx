@@ -39,7 +39,7 @@ int ioutils::loadROFrameData(const o2::itsmft::ROFRecord& rof, ROframe& event, g
 {
   event.clear();
   GeometryTGeo* geom = GeometryTGeo::Instance();
-  geom->fillMatrixCache(utils::bit2Mask(o2::math_utils::TransformType::T2L, o2::math_utils::TransformType::L2G));
+  geom->fillMatrixCache(o2::math_utils::bit2Mask(o2::math_utils::TransformType::T2L, o2::math_utils::TransformType::L2G));
   int clusterId{0};
   auto first = rof.getFirstEntry();
   auto clusters_in_frame = rof.getROFData(clusters);
@@ -71,7 +71,7 @@ int ioutils::loadROFrameData(const o2::itsmft::ROFRecord& rof, ROframe& event, g
     auto clsPoint2D = math_utils::Point2D<Float_t>(gloXYZ.x(), gloXYZ.y());
     Float_t rCoord = clsPoint2D.R();
     Float_t phiCoord = clsPoint2D.Phi();
-    o2::utils::BringTo02PiGen(phiCoord);
+    o2::math_utils::BringTo02PiGen(phiCoord);
     int rBinIndex = constants::index_table::getRBinIndex(rCoord);
     int phiBinIndex = constants::index_table::getPhiBinIndex(phiCoord);
     int binIndex = constants::index_table::getBinIndex(rBinIndex, phiBinIndex);

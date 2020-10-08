@@ -100,8 +100,8 @@ TLorentzVector generate(Vec3D& vtx, std::vector<o2::track::TrackParCov>& vctr, f
       dt->GetXYZT(p);
       float s, c, x;
       std::array<float, 5> params;
-      o2::utils::sincosf(dt->Phi(), s, c);
-      o2::utils::rotateZInv(vtx[0], vtx[1], x, params[0], s, c);
+      o2::math_utils::sincosf(dt->Phi(), s, c);
+      o2::math_utils::rotateZInv(vtx[0], vtx[1], x, params[0], s, c);
 
       params[1] = vtx[2];
       params[2] = 0.; // since alpha = phi
