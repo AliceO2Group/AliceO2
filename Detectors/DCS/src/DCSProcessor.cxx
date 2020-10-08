@@ -349,6 +349,7 @@ void DCSProcessor::processInts()
     }
     bool isSMA = false;
     LOG(DEBUG) << "get alias = " << id.get_alias();
+    // I do the moving average always of the last 2 points, no matter if it was updated or not
     doSimpleMovingAverage(2, vint, mAvgTestInt[i], isSMA);
     LOG(DEBUG) << "Moving average = " << mAvgTestInt[i];
     if (isSMA) {
@@ -358,7 +359,7 @@ void DCSProcessor::processInts()
 }
 
 //______________________________________________________________________
-
+/*
 void DCSProcessor::doSimpleMovingAverage(int nelements, std::deque<int>& vect, float& avg, bool& isSMA)
 {
 
@@ -377,7 +378,7 @@ void DCSProcessor::doSimpleMovingAverage(int nelements, std::deque<int>& vect, f
   vect.pop_front();
   isSMA = true;
 }
-
+*/
 //______________________________________________________________________
 
 void DCSProcessor::processDoubles()
@@ -484,4 +485,18 @@ uint64_t DCSProcessor::processFlag(const uint64_t flags, const char* alias)
   }
 
   return 0;
+}
+
+//______________________________________________________________________
+
+void DCSProcessor::setNThreads(int n) {
+
+  // to set number of threads used to process the DPs
+  
+#ifdef WITH_OPENMP
+  mNThreads = n > 0 ? n : 1;
+#else
+  LOG(WARNING) << " Multithreading is not supported, imposing single thread";
+  mNThreads = 1;
+#endif
 }

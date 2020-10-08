@@ -16,6 +16,7 @@
 #include <unistd.h>
 #include <TRandom.h>
 #include <TDatime.h>
+#include <TStopwatch.h>
 #include "DetectorsDCS/DataPointIdentifier.h"
 #include "DetectorsDCS/DataPointValue.h"
 #include "DetectorsDCS/DataPointCompositeObject.h"
@@ -87,10 +88,11 @@ class DCSDataGenerator : public o2::framework::Task
   void run(o2::framework::ProcessingContext& pc) final
   {
 
+    TStopwatch s; 
     uint64_t tfid;
     for (auto& input : pc.inputs()) {
       tfid = header::get<o2::framework::DataProcessingHeader*>(input.header)->startTime;
-      LOG(INFO) << "tfid = " << tfid;
+      LOG(DEBUG) << "tfid = " << tfid;
       if (tfid >= mMaxTF) {
         LOG(INFO) << "Data generator reached TF " << tfid << ", stopping";
         pc.services().get<o2::framework::ControlService>().endOfStream();
@@ -99,6 +101,8 @@ class DCSDataGenerator : public o2::framework::Task
       break; // we break because one input is enough to get the TF ID
     }
 
+    LOG(INFO) << "TF: " << tfid << " --> building binary blob...";
+    s.Start();
     uint16_t flags = 0;
     uint16_t milliseconds = 0;
     TDatime currentTime;
@@ -113,16 +117,16 @@ class DCSDataGenerator : public o2::framework::Task
     DPVAL valdouble(flags, milliseconds + tfid * 10, seconds + tfid, payload, mtypedouble);
     DPVAL valstring(flags, milliseconds + tfid * 10, seconds + tfid, payload, mtypestring);
 
-    LOG(INFO) << "Value used for char DPs:";
-    LOG(INFO) << valchar << " --> " << (char)valchar.payload_pt1;
-    LOG(INFO) << "Value used for int DPs:";
-    LOG(INFO) << valint << " --> " << (int)valint.payload_pt1;
-    LOG(INFO) << "Value used for double DPs:";
-    LOG(INFO) << valdouble << " --> " << (double)valdouble.payload_pt1;
+    LOG(DEBUG) << "Value used for char DPs:";
+    LOG(DEBUG) << valchar << " --> " << (char)valchar.payload_pt1;
+    LOG(DEBUG) << "Value used for int DPs:";
+    LOG(DEBUG) << valint << " --> " << (int)valint.payload_pt1;
+    LOG(DEBUG) << "Value used for double DPs:";
+    LOG(DEBUG) << valdouble << " --> " << (double)valdouble.payload_pt1;
     char tt[56];
     memcpy(&tt[0], &valstring.payload_pt1, 56);
-    LOG(INFO) << "Value used for string DPs:";
-    LOG(INFO) << valstring << " --> " << tt;
+    LOG(DEBUG) << "Value used for string DPs:";
+    LOG(DEBUG) << valstring << " --> " << tt;
 
     std::vector<DPCOM> dpcomVect;
     for (int i = 0; i < mNumDPschar; i++) {
@@ -139,7 +143,7 @@ class DCSDataGenerator : public o2::framework::Task
     }
 
     auto svect = dpcomVect.size();
-    LOG(INFO) << "dpcomVect has size " << svect;
+    LOG(DEBUG) << "dpcomVect has size " << svect;
     for (int i = 0; i < svect; i++) {
       LOG(DEBUG) << "i = " << i << ", DPCOM = " << dpcomVect[i];
     }
@@ -150,7 +154,13 @@ class DCSDataGenerator : public o2::framework::Task
     }
     auto sbuff = buff.size();
     LOG(DEBUG) << "size of output buffer = " << sbuff;
+    s.Stop();
+    LOG(INFO) << "TF: " << tfid << " --> ...binary blob prepared: realTime = " << s.RealTime() << ", cpuTime = " << s.CpuTime();
+    LOG(INFO) << "TF: " << tfid << " --> sending snapshot...";
+    s.Start();
     pc.outputs().snapshot(Output{"DCS", "DATAPOINTS", 0, Lifetime::Timeframe}, buff.data(), sbuff);
+    s.Stop();
+    LOG(INFO) << "TF: " << tfid << " --> ...snapshot sent: realTime = " << s.RealTime() << ", cpuTime = " << s.CpuTime();
 
     /*
     LOG(INFO) << "Reading back";

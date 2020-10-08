@@ -8,8 +8,8 @@
 # granted to it by virtue of its status as an Intergovernmental Organization or
 # submit itself to any jurisdiction.
 
-
 o2_add_library(DetectorsDCS
+               TARGETVARNAME targetName
                SOURCES src/Clock.cxx
 		       src/DataPointCompositeObject.cxx
 		       src/DataPointIdentifier.cxx
@@ -33,3 +33,8 @@ o2_add_executable(dcs-data-workflow
 		  SOURCES testWorkflow/dcs-data-workflow.cxx
 		  PUBLIC_LINK_LIBRARIES O2::Framework
 					O2::DetectorsDCS)
+
+if (OpenMP_CXX_FOUND)
+    target_compile_definitions(${targetName} PRIVATE WITH_OPENMP)
+    target_link_libraries(${targetName} PRIVATE OpenMP::OpenMP_CXX)
+endif()

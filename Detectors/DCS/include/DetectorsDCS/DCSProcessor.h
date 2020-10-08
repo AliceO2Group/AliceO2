@@ -21,6 +21,10 @@
 #include "DetectorsDCS/DataPointValue.h"
 #include "DetectorsDCS/DeliveryType.h"
 
+//#ifdef WITH_OPENMP
+//#include <omp.h>
+//#endif
+
 /// @brief Class to process DCS data points
 
 namespace o2
@@ -68,6 +72,9 @@ class DCSProcessor
   template <typename T>
   int processArrayType(const std::vector<DPID>& array, DeliveryType type, const std::unordered_map<DPID, DPVAL>& map, std::vector<uint64_t>& latestTimeStamp, std::unordered_map<DPID, T>& destmap);
 
+  template <typename T>
+  void doSimpleMovingAverage(int nelements, std::deque<T>& vect, float& avg, bool& isSMA);
+
   virtual void processChars();
   virtual void processInts();
   virtual void processDoubles();
@@ -78,8 +85,6 @@ class DCSProcessor
   virtual void processBinaries();
   virtual uint64_t processFlag(uint64_t flag, const char* alias);
 
-  void doSimpleMovingAverage(int nelements, std::deque<int>& vect, float& avg, bool& isSMA);
-
   DQChars& getVectorForAliasChar(const DPID& id) { return mDpscharsmap[id]; }
   DQInts& getVectorForAliasInt(const DPID& id) { return mDpsintsmap[id]; }
   DQDoubles& getVectorForAliasDouble(const DPID& id) { return mDpsdoublesmap[id]; }
@@ -88,9 +93,13 @@ class DCSProcessor
   DQStrings& getVectorForAliasString(const DPID& id) { return mDpsstringsmap[id]; }
   DQTimes& getVectorForAliasTime(const DPID& id) { return mDpstimesmap[id]; }
   DQBinaries& getVectorForAliasBinary(const DPID& id) { return mDpsbinariesmap[id]; }
-
+  
+  void setNThreads(int n);
+  int getNThreads() const { return mNThreads; }
+  
  private:
-  std::vector<float> mAvgTestInt; // moving average for DP named TestInt0
+  std::vector<float> mAvgTestInt; // moving average for int DPs 
+  std::vector<float> mAvgTestDouble; // moving average for double DPs
   std::unordered_map<DPID, DQChars> mDpscharsmap;
   std::unordered_map<DPID, DQInts> mDpsintsmap;
   std::unordered_map<DPID, DQDoubles> mDpsdoublesmap;
@@ -115,7 +124,8 @@ class DCSProcessor
   std::vector<uint64_t> mLatestTimestampstrings;
   std::vector<uint64_t> mLatestTimestamptimes;
   std::vector<uint64_t> mLatestTimestampbinaries;
-
+  int mNThreads = 1; // number of  threads
+  
   ClassDefNV(DCSProcessor, 0);
 };
 
@@ -140,6 +150,10 @@ int DCSProcessor::processArrayType(const std::vector<DPID>& array, DeliveryType 
   int found = 0;
   auto s = array.size();
   if (s > 0) {
+    //#ifdef WITH_OPENMP
+    //omp_set_num_threads(mNThreads);
+    //#pragma omp parallel for schedule(dynamic)
+    //#endif
     for (size_t i = 0; i != s; ++i) {
       auto it = processAlias(array[i], type, map);
       if (it == map.end()) {
@@ -169,6 +183,26 @@ int DCSProcessor::processArrayType(const std::vector<DCSProcessor::DPID>& array,
 
 template <>
 int DCSProcessor::processArrayType(const std::vector<DCSProcessor::DPID>& array, DeliveryType type, const std::unordered_map<DCSProcessor::DPID, DCSProcessor::DPVAL>& map, std::vector<uint64_t>& latestTimeStamp, std::unordered_map<DCSProcessor::DPID, DCSProcessor::DQBinaries>& destmap);
+
+template <typename T>
+void DCSProcessor::doSimpleMovingAverage(int nelements, std::deque<T>& vect, float& avg, bool& isSMA) {
+
+  // Do simple moving average on vector of type T
+
+  if (vect.size() < nelements) {
+    avg += vect[vect.size() - 1];
+    return;
+  }
+  if (vect.size() == nelements) {
+    avg += vect[vect.size() - 1];
+    avg /= nelements;
+    isSMA = true;
+    return;
+  }
+  avg += (vect[vect.size() - 1] - vect[0]) / nelements;
+  vect.pop_front();
+  isSMA = true;
+}
 
 } // namespace dcs
 } // namespace o2
