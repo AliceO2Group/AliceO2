@@ -883,6 +883,16 @@ bool Compressor<RDH, verbose>::checkerCheck()
     }
     mDecoderSummary = {nullptr};
     mCheckerSummary.nDiagnosticWords++;
+    for (int itrm = 0; itrm < 10; ++itrm) {
+      mDecoderSummary.trmDataHeader[itrm] = nullptr;
+      mDecoderSummary.trmDataTrailer[itrm] = nullptr;
+      for (int ichain = 0; ichain < 2; ++ichain) {
+        mDecoderSummary.trmChainHeader[itrm][ichain] = nullptr;
+        mDecoderSummary.trmChainTrailer[itrm][ichain] = nullptr;
+        mDecoderSummary.trmErrors[itrm][ichain] = 0;
+        mDecoderSummary.trmErrors[itrm][ichain] = 0;
+      }
+    }
     return true;
   }
 
@@ -897,6 +907,7 @@ bool Compressor<RDH, verbose>::checkerCheck()
     }
     mDecoderSummary = {nullptr};
     mCheckerSummary.nDiagnosticWords++;
+
     return true;
   }
 
