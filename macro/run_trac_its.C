@@ -74,7 +74,7 @@ void run_trac_its(std::string path = "./", std::string outputfile = "o2trac_its.
 
   o2::base::GeometryManager::loadGeometry(inputGeom);
   auto gman = o2::its::GeometryTGeo::Instance();
-  gman->fillMatrixCache(o2::utils::bit2Mask(o2::TransformType::T2GRot)); // request cached transforms
+  gman->fillMatrixCache(o2::utils::bit2Mask(o2::math_utils::TransformType::T2GRot)); // request cached transforms
 
   o2::base::Propagator::initFieldFromGRP(grp);
   auto field = static_cast<o2::field::MagneticField*>(TGeoGlobalMagField::Instance()->GetField());

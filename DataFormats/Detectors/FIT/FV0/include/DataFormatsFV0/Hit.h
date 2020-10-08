@@ -43,16 +43,16 @@ class Hit : public o2::BasicXYZEHit<Float_t, Float_t>
   /// \param particlePdg PDG code of the partcile associated with the track
   inline Hit(int trackID,
              int cellID,
-             const Point3D<float>& startPos,
-             const Point3D<float>& endPos,
-             const Vector3D<float>& startMom,
+             const math_utils::Point3D<float>& startPos,
+             const math_utils::Point3D<float>& endPos,
+             const math_utils::Vector3D<float>& startMom,
              double startE,
              double endTime,
              double eLoss,
              Int_t particlePdg);
 
   // Entrance position getters
-  Point3D<Float_t> const& GetPosStart() const { return mPositionStart; }
+  math_utils::Point3D<Float_t> const& GetPosStart() const { return mPositionStart; }
   Float_t GetStartX() const { return mPositionStart.X(); }
   Float_t GetStartY() const { return mPositionStart.Y(); }
   Float_t GetStartZ() const { return mPositionStart.Z(); }
@@ -65,8 +65,8 @@ class Hit : public o2::BasicXYZEHit<Float_t, Float_t>
   }
 
   // Momentum getters
-  Vector3D<Float_t> const& GetMomentum() const { return mMomentumStart; }
-  Vector3D<Float_t>& GetMomentum() { return mMomentumStart; }
+  math_utils::Vector3D<Float_t> const& GetMomentum() const { return mMomentumStart; }
+  math_utils::Vector3D<Float_t>& GetMomentum() { return mMomentumStart; }
   Float_t GetPx() const { return mMomentumStart.X(); }
   Float_t GetPy() const { return mMomentumStart.Y(); }
   Float_t GetPz() const { return mMomentumStart.Z(); }
@@ -77,19 +77,19 @@ class Hit : public o2::BasicXYZEHit<Float_t, Float_t>
   void Print(const Option_t* opt) const;
 
  private:
-  Vector3D<float> mMomentumStart; ///< momentum at entrance
-  Point3D<float> mPositionStart;  ///< position at entrance (base mPos give position on exit)
-  float mEnergyStart;             ///< total energy at entrance
-  int mParticlePdg;               ///< PDG code of the particle associated with this track
+  math_utils::Vector3D<float> mMomentumStart; ///< momentum at entrance
+  math_utils::Point3D<float> mPositionStart;  ///< position at entrance (base mPos give position on exit)
+  float mEnergyStart;                         ///< total energy at entrance
+  int mParticlePdg;                           ///< PDG code of the particle associated with this track
 
   ClassDefNV(Hit, 2);
 };
 
 Hit::Hit(int trackID,
          int detID,
-         const Point3D<float>& startPos,
-         const Point3D<float>& endPos,
-         const Vector3D<float>& startMom,
+         const math_utils::Point3D<float>& startPos,
+         const math_utils::Point3D<float>& endPos,
+         const math_utils::Vector3D<float>& startMom,
          double startE,
          double endTime,
          double eLoss,

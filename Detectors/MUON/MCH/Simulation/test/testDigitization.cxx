@@ -39,10 +39,10 @@ struct GEOMETRY {
 
 namespace
 {
-Point3D<float> entrancePoint1(-17.7993, 8.929883, -522.201); //x,y,z coordinates in cm
-Point3D<float> exitPoint1(-17.8136, 8.93606, -522.62);
-Point3D<float> entrancePoint2(-49.2793, 28.8673, -1441.25);
-Point3D<float> exitPoint2(-49.2965, 28.8806, -1441.75);
+o2::math_utils::Point3D<float> entrancePoint1(-17.7993, 8.929883, -522.201); //x,y,z coordinates in cm
+o2::math_utils::Point3D<float> exitPoint1(-17.8136, 8.93606, -522.62);
+o2::math_utils::Point3D<float> entrancePoint2(-49.2793, 28.8673, -1441.25);
+o2::math_utils::Point3D<float> exitPoint2(-49.2965, 28.8806, -1441.75);
 } // namespace
 
 /// \brief Test of the Digitization
@@ -99,8 +99,8 @@ BOOST_AUTO_TEST_CASE(DigitizerTest)
       double padsizeY = seg1.padSizeY(padid);
       auto t = o2::mch::getTransformation(detElemId1, *gGeoManager);
 
-      Point3D<float> pos(hits.at(0).GetX(), hits.at(0).GetY(), hits.at(0).GetZ());
-      Point3D<float> lpos;
+      o2::math_utils::Point3D<float> pos(hits.at(0).GetX(), hits.at(0).GetY(), hits.at(0).GetZ());
+      o2::math_utils::Point3D<float> lpos;
       t.MasterToLocal(pos, lpos);
 
       BOOST_CHECK_CLOSE(lpos.x(), padposX, padsizeX * 4.0);
@@ -117,8 +117,8 @@ BOOST_AUTO_TEST_CASE(DigitizerTest)
       double padsizeY = seg2.padSizeY(padid);
       auto t = o2::mch::getTransformation(detElemId2, *gGeoManager);
 
-      Point3D<float> pos(hits.at(1).GetX(), hits.at(1).GetY(), hits.at(1).GetZ());
-      Point3D<float> lpos;
+      o2::math_utils::Point3D<float> pos(hits.at(1).GetX(), hits.at(1).GetY(), hits.at(1).GetZ());
+      o2::math_utils::Point3D<float> lpos;
       t.MasterToLocal(pos, lpos);
 
       BOOST_CHECK_CLOSE(lpos.x(), padposX, padsizeX * 4.0);

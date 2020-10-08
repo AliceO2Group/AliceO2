@@ -44,7 +44,7 @@ DataInterpreterITS::DataInterpreterITS()
   //Prepare coordinate translator
   base::GeometryManager::loadGeometry();
   its::GeometryTGeo* gman = its::GeometryTGeo::Instance();
-  gman->fillMatrixCache(o2::utils::bit2Mask(o2::TransformType::T2GRot));
+  gman->fillMatrixCache(o2::utils::bit2Mask(o2::math_utils::TransformType::T2GRot));
 }
 
 std::unique_ptr<VisualisationEvent> DataInterpreterITS::interpretDataForType(TObject* data, EVisualisationDataType type)

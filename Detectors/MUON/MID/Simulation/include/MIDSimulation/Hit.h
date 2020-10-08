@@ -29,18 +29,18 @@ class Hit : public ::o2::BasicXYZEHit<float>
 {
 
  public:
-  Hit(int trackId = 0, short deId = 0, Point3D<float> entrancePoint = {}, Point3D<float> exitPoint = {},
+  Hit(int trackId = 0, short deId = 0, math_utils::Point3D<float> entrancePoint = {}, math_utils::Point3D<float> exitPoint = {},
       float eloss = 0.0, float length = 0.0, float tof = 0.0);
 
-  Point3D<float> entrancePoint() const { return GetPos(); }
-  Point3D<float> exitPoint() const { return mExitPoint; }
-  Point3D<float> middlePoint() const;
+  math_utils::Point3D<float> entrancePoint() const { return GetPos(); }
+  math_utils::Point3D<float> exitPoint() const { return mExitPoint; }
+  math_utils::Point3D<float> middlePoint() const;
 
   short detElemId() const { return GetDetectorID(); }
 
  private:
   float mLength = {};
-  Point3D<float> mExitPoint = {};
+  math_utils::Point3D<float> mExitPoint = {};
   ClassDefNV(Hit, 1);
 };
 

@@ -62,7 +62,7 @@ class Strip
   /// @param index New chip index
   void setStripIndex(Int_t index) { mStripIndex = index; }
   void init(Int_t index)
-  //, const o2::Transform3D* mat)
+  //, const o2::math_utils::Transform3D* mat)
   {
     mStripIndex = index;
     //mMat = mat;

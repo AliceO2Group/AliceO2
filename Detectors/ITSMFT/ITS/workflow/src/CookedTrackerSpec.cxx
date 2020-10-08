@@ -63,8 +63,8 @@ void CookedTrackerDPL::init(InitContext& ic)
 
     o2::base::GeometryManager::loadGeometry();
     o2::its::GeometryTGeo* geom = o2::its::GeometryTGeo::Instance();
-    geom->fillMatrixCache(o2::utils::bit2Mask(o2::TransformType::T2L, o2::TransformType::T2GRot,
-                                              o2::TransformType::T2G));
+    geom->fillMatrixCache(o2::utils::bit2Mask(o2::math_utils::TransformType::T2L, o2::math_utils::TransformType::T2GRot,
+                                              o2::math_utils::TransformType::T2G));
     mTracker.setGeometry(geom);
 
     double origD[3] = {0., 0., 0.};

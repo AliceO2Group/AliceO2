@@ -36,44 +36,44 @@ class GeometryTransformer
   inline const ROOT::Math::Transform3D getMatrix(int deId) { return mTransformations[deId]; }
 
   template <typename T>
-  Point3D<T> localToGlobal(int deId, const Point3D<T>& position) const
+  math_utils::Point3D<T> localToGlobal(int deId, const math_utils::Point3D<T>& position) const
   {
     /// Converts local coordinates into global ones
     return mTransformations[deId](position);
   }
   template <typename T>
-  Point3D<T> globalToLocal(int deId, const Point3D<T>& position) const
+  math_utils::Point3D<T> globalToLocal(int deId, const math_utils::Point3D<T>& position) const
   {
     /// Converts global coordinates into local ones
     return mTransformations[deId].ApplyInverse(position);
   }
   template <typename T>
-  Point3D<T> localToGlobal(int deId, T xPos, T yPos) const
+  math_utils::Point3D<T> localToGlobal(int deId, T xPos, T yPos) const
   {
     /// Converts local coordinates into global ones
-    return localToGlobal(deId, Point3D<T>(xPos, yPos, 0.));
+    return localToGlobal(deId, math_utils::Point3D<T>(xPos, yPos, 0.));
   }
   template <typename T>
-  Point3D<T> globalToLocal(int deId, T xPos, T yPos, T zPos) const
+  math_utils::Point3D<T> globalToLocal(int deId, T xPos, T yPos, T zPos) const
   {
     /// Converts global coordinates into local ones
-    return globalToLocal(deId, Point3D<T>(xPos, yPos, zPos));
+    return globalToLocal(deId, math_utils::Point3D<T>(xPos, yPos, zPos));
   }
   template <typename T>
-  Vector3D<T> localToGlobal(int deId, const Vector3D<T>& direction) const
+  math_utils::Vector3D<T> localToGlobal(int deId, const math_utils::Vector3D<T>& direction) const
   {
     /// Converts direction in local coordinates into global ones
     return mTransformations[deId](direction);
   }
   template <typename T>
-  Vector3D<T> globalToLocal(int deId, const Vector3D<T>& direction) const
+  math_utils::Vector3D<T> globalToLocal(int deId, const math_utils::Vector3D<T>& direction) const
   {
     /// Converts direction in global coordinates into a local ones
     return mTransformations[deId].ApplyInverse(direction);
   }
 
  private:
-  std::array<o2::Transform3D, detparams::NDetectionElements> mTransformations; ///< Array of transformation matrices
+  std::array<o2::math_utils::Transform3D, detparams::NDetectionElements> mTransformations; ///< Array of transformation matrices
 };
 
 ROOT::Math::Transform3D getDefaultChamberTransform(int ichamber);

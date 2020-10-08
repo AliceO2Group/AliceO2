@@ -36,8 +36,8 @@ struct RecEvent {
   std::array<float, NChannelsZN> energyZNC;         /// reco E in 5 ZNC sectors + sum
   std::array<float, NChannelsZP> energyZPA;         /// reco E in 5 ZPA sectors + sum
   std::array<float, NChannelsZP> energyZPC;         /// reco E in 5 ZPC sectors + sum
-  Point2D<float> centroidZNA;                       /// centroid coordinates for ZNA
-  Point2D<float> centroidZNC;                       /// centroid coordinates for ZNC
+  math_utils::Point2D<float> centroidZNA;           /// centroid coordinates for ZNA
+  math_utils::Point2D<float> centroidZNC;           /// centroid coordinates for ZNC
   std::array<TDCChannel, NTDCChannels> tdcChannels; /// At most MaxTDCValues Values in ns per TDC channel
 
   void print() const;

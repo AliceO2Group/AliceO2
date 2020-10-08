@@ -30,7 +30,7 @@ template <typename T>
 class BaseCluster
 {
  private:
-  Point3D<T> mPos;             // cartesian position
+  math_utils::Point3D<T> mPos; // cartesian position
   T mSigmaY2;                  // error in Y direction (usually rphi)
   T mSigmaZ2;                  // error in Z direction (usually Z)
   T mSigmaYZ;                  // non-diagonal term of error matrix
@@ -44,9 +44,9 @@ class BaseCluster
   ~BaseCluster() = default;
 
   // constructor
-  BaseCluster(std::uint16_t sensid, const Point3D<T>& xyz) : mPos(xyz), mSensorID(sensid) {}
+  BaseCluster(std::uint16_t sensid, const math_utils::Point3D<T>& xyz) : mPos(xyz), mSensorID(sensid) {}
   BaseCluster(std::uint16_t sensid, T x, T y, T z) : mPos(x, y, z), mSensorID(sensid) {}
-  BaseCluster(std::uint16_t sensid, const Point3D<T>& xyz, T sy2, T sz2, T syz)
+  BaseCluster(std::uint16_t sensid, const math_utils::Point3D<T>& xyz, T sy2, T sz2, T syz)
     : mPos(xyz), mSigmaY2(sy2), mSigmaZ2(sz2), mSigmaYZ(syz), mSensorID(sensid)
   {
   }
@@ -62,16 +62,16 @@ class BaseCluster
   T getSigmaY2() const { return mSigmaY2; }
   T getSigmaZ2() const { return mSigmaZ2; }
   T getSigmaYZ() const { return mSigmaYZ; }
-  Point3D<T> getXYZ() const { return mPos; }
-  Point3D<T>& getXYZ() { return mPos; }
+  math_utils::Point3D<T> getXYZ() const { return mPos; }
+  math_utils::Point3D<T>& getXYZ() { return mPos; }
   // position in local frame, no check for matrices cache validity
-  Point3D<T> getXYZLoc(const o2::detectors::DetMatrixCache& dm) const { return dm.getMatrixT2L(mSensorID)(mPos); }
+  math_utils::Point3D<T> getXYZLoc(const o2::detectors::DetMatrixCache& dm) const { return dm.getMatrixT2L(mSensorID)(mPos); }
   // position in global frame, no check for matrices cache validity
-  Point3D<T> getXYZGlo(const o2::detectors::DetMatrixCache& dm) const { return dm.getMatrixT2G(mSensorID)(mPos); }
+  math_utils::Point3D<T> getXYZGlo(const o2::detectors::DetMatrixCache& dm) const { return dm.getMatrixT2G(mSensorID)(mPos); }
   // position in global frame obtained as simple rotation from tracking one:
   // much faster for barrel detectors than using full 3D matrix.
   // no check for matrices cache validity
-  Point3D<T> getXYZGloRot(const o2::detectors::DetMatrixCache& dm) const { return dm.getMatrixT2GRot(mSensorID)(mPos); }
+  math_utils::Point3D<T> getXYZGloRot(const o2::detectors::DetMatrixCache& dm) const { return dm.getMatrixT2GRot(mSensorID)(mPos); }
   // get sensor id
   std::int16_t getSensorID() const { return mSensorID; }
   // get count field
@@ -80,7 +80,7 @@ class BaseCluster
   std::uint8_t getBits() const { return mBits; }
   bool isBitSet(int bit) const { return mBits & (0xff & (0x1 << bit)); }
   // cast to Point3D
-  operator Point3D<T>&() { return mPos; }
+  operator math_utils::Point3D<T>&() { return mPos; }
   // modifiers
 
   // set sensor id
@@ -101,7 +101,7 @@ class BaseCluster
     setY(y);
     setZ(z);
   }
-  void setPos(const Point3D<T>& p) { mPos = p; }
+  void setPos(const math_utils::Point3D<T>& p) { mPos = p; }
   void setSigmaY2(T v) { mSigmaY2 = v; }
   void setSigmaZ2(T v) { mSigmaZ2 = v; }
   void setSigmaYZ(T v) { mSigmaYZ = v; }
@@ -113,7 +113,6 @@ class BaseCluster
   }
 
  protected:
-
   ClassDefNV(BaseCluster, 2);
 };
 

@@ -140,21 +140,21 @@ class Geometry
   /// Calculates the impact coordinates on EMCAL (centre of a tower/not on EMCAL surface)
   /// of a neutral particle emitted in the vertex vtx[3] with direction theta and phi in
   /// the global coordinate system
-  void ImpactOnEmcal(const Point3D<double>& vtx, Double_t theta, Double_t phi, Int_t& absId, Point3D<double>& vimpact) const;
+  void ImpactOnEmcal(const math_utils::Point3D<double>& vtx, Double_t theta, Double_t phi, Int_t& absId, math_utils::Point3D<double>& vimpact) const;
 
   /// \brief Checks whether point is inside the EMCal volume
   /// \param pnt Point to be checked
   /// \return True if the point is inside EMCAL, false otherwise
   ///
   /// See IsInEMCALOrDCAL for the definition of the acceptance check
-  Bool_t IsInEMCAL(const Point3D<double>& pnt) const;
+  Bool_t IsInEMCAL(const math_utils::Point3D<double>& pnt) const;
 
   /// \brief Checks whether point is inside the DCal volume
   /// \param pnt Point to be checked
   /// \return True if the point is inside DCAL, false otherwise
   ///
   /// See IsInEMCALOrDCAL for the definition of the acceptance check
-  Bool_t IsInDCAL(const Point3D<double>& pnt) const;
+  Bool_t IsInDCAL(const math_utils::Point3D<double>& pnt) const;
 
   /// \brief Checks whether point is inside the EMCal volume (included DCal)
   /// \param pnt Point to be checked
@@ -164,7 +164,7 @@ class Geometry
   ///
   /// Points behind EMCAl/DCal, i.e. R > outer radius, but eta, phi in acceptance
   /// are considered to inside
-  AcceptanceType_t IsInEMCALOrDCAL(const Point3D<double>& pnt) const;
+  AcceptanceType_t IsInEMCALOrDCAL(const math_utils::Point3D<double>& pnt) const;
 
   //////////////////////////////////////
   // Return EMCAL geometrical parameters
@@ -493,13 +493,13 @@ class Geometry
   ///
   /// Same as RelPosCellInSModule(Int_t absId, Double_t &xr, Double_t &yr, Double_t &zr)
   /// but taking into account position of shower max.
-  Point3D<double> RelPosCellInSModule(Int_t absId, Double_t distEf) const;
+  math_utils::Point3D<double> RelPosCellInSModule(Int_t absId, Double_t distEf) const;
 
   /// \brief Look to see what the relative position inside a given cell is for a recpoint.
   /// \param absId cell absolute id. number, input
   /// \return Point3D with x,y,z coordinates of cell with absId inside SM
   /// \throw InvalidCellIDException if cell ID does not exist
-  Point3D<double> RelPosCellInSModule(Int_t absId) const;
+  math_utils::Point3D<double> RelPosCellInSModule(Int_t absId) const;
 
   std::vector<EMCALSMType> GetEMCSystem() const { return mEMCSMSystem; } // EMC System, SM type list
   // Local Coordinates of SM

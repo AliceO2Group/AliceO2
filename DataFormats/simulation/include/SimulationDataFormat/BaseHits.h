@@ -45,10 +45,10 @@ class BaseHit
 template <typename T, typename E, typename V = float>
 class BasicXYZVHit : public BaseHit
 {
-  Point3D<T> mPos;   // cartesian position of Hit
-  E mTime;           // time of flight
-  V mHitValue;       // hit value
-  short mDetectorID; // the detector/sensor id
+  math_utils::Point3D<T> mPos; // cartesian position of Hit
+  E mTime;                     // time of flight
+  V mHitValue;                 // hit value
+  short mDetectorID;           // the detector/sensor id
 
  public:
   BasicXYZVHit() = default; // for ROOT IO
@@ -63,7 +63,7 @@ class BasicXYZVHit : public BaseHit
   T GetX() const { return mPos.X(); }
   T GetY() const { return mPos.Y(); }
   T GetZ() const { return mPos.Z(); }
-  Point3D<T> GetPos() const { return mPos; }
+  math_utils::Point3D<T> GetPos() const { return mPos; }
   // getting hit value
   V GetHitValue() const { return mHitValue; }
   // getting the time
@@ -84,7 +84,7 @@ class BasicXYZVHit : public BaseHit
     SetY(y);
     SetZ(z);
   }
-  void SetPos(Point3D<T> const& p) { mPos = p; }
+  void SetPos(math_utils::Point3D<T> const& p) { mPos = p; }
 
   ClassDefNV(BasicXYZVHit, 1);
 };

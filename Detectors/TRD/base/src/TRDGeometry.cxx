@@ -2548,16 +2548,16 @@ void TRDGeometry::assembleChamber(int ilayer, int istack)
 
 void TRDGeometry::fillMatrixCache(int mask)
 {
-  if (mask & o2::utils::bit2Mask(o2::TransformType::T2L)) {
+  if (mask & o2::utils::bit2Mask(o2::math_utils::TransformType::T2L)) {
     useT2LCache();
   }
-  if (mask & o2::utils::bit2Mask(o2::TransformType::L2G)) {
+  if (mask & o2::utils::bit2Mask(o2::math_utils::TransformType::L2G)) {
     useL2GCache();
   }
-  if (mask & o2::utils::bit2Mask(o2::TransformType::T2G)) {
+  if (mask & o2::utils::bit2Mask(o2::math_utils::TransformType::T2G)) {
     useT2GCache();
   }
-  if (mask & o2::utils::bit2Mask(o2::TransformType::T2GRot)) {
+  if (mask & o2::utils::bit2Mask(o2::math_utils::TransformType::T2GRot)) {
     useT2GRotCache();
   }
 
@@ -2614,20 +2614,20 @@ void TRDGeometry::fillMatrixCache(int mask)
         rotMatrix.RotateY(-90);
         rotMatrix.MultiplyLeft(m);
         const TGeoHMatrix& t2l = rotMatrix.Inverse();
-        if (mask & o2::utils::bit2Mask(o2::TransformType::L2G)) {
+        if (mask & o2::utils::bit2Mask(o2::math_utils::TransformType::L2G)) {
           setMatrixL2G(Mat3D(t2l), lid);
         }
 
         Double_t sectorAngle = 20.0 * (isector % 18) + 10.0;
         TGeoHMatrix rotSector;
         rotSector.RotateZ(sectorAngle);
-        if (mask & o2::utils::bit2Mask(o2::TransformType::T2G)) {
+        if (mask & o2::utils::bit2Mask(o2::math_utils::TransformType::T2G)) {
           setMatrixT2G(Mat3D(rotSector), lid);
         }
-        if (mask & o2::utils::bit2Mask(o2::TransformType::T2GRot)) {
+        if (mask & o2::utils::bit2Mask(o2::math_utils::TransformType::T2GRot)) {
           setMatrixT2GRot(Rot2D(sectorAngle), lid);
         }
-        if (mask & o2::utils::bit2Mask(o2::TransformType::T2L)) {
+        if (mask & o2::utils::bit2Mask(o2::math_utils::TransformType::T2L)) {
           const TGeoMatrix& inv = rotSector.Inverse();
           rotMatrix.MultiplyLeft(&inv);
           setMatrixT2L(Mat3D(rotMatrix.Inverse()), lid);
@@ -2752,8 +2752,8 @@ bool TRDGeometry::createClusterMatrixArray()
   }
 
   setSize(NCHAMBER, MAXCHAMBER); //Only NCHAMBER=521 of MAXCHAMBER matrices are filled
-  fillMatrixCache(o2::utils::bit2Mask(o2::TransformType::T2L) | o2::utils::bit2Mask(o2::TransformType::L2G) |
-                  o2::utils::bit2Mask(o2::TransformType::T2G) | o2::utils::bit2Mask(o2::TransformType::T2GRot));
+  fillMatrixCache(o2::utils::bit2Mask(o2::math_utils::TransformType::T2L) | o2::utils::bit2Mask(o2::math_utils::TransformType::L2G) |
+                  o2::utils::bit2Mask(o2::math_utils::TransformType::T2G) | o2::utils::bit2Mask(o2::math_utils::TransformType::T2GRot));
   return true;
 }
 

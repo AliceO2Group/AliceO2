@@ -95,7 +95,7 @@ bool Digitizer::hitToDigits(const Hit& hit)
   // Convert point from global to local coordinates
   auto midPt = hit.middlePoint();
   int deId = hit.GetDetectorID();
-  Point3D<double> localPoint = mTransformer.globalToLocal(deId, (double)midPt.x(), (double)midPt.y(), (double)midPt.z());
+  math_utils::Point3D<double> localPoint = mTransformer.globalToLocal(deId, (double)midPt.x(), (double)midPt.y(), (double)midPt.z());
 
   // First get the touched BP strip
   Mapping::MpStripIndex stripIndex = mMapping.stripByPosition(localPoint.x(), localPoint.y(), 0, deId);

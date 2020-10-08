@@ -21,15 +21,15 @@ namespace o2
 {
 namespace mid
 {
-Hit::Hit(int trackId, short deId, Point3D<float> entrancePoint, Point3D<float> exitPoint,
+Hit::Hit(int trackId, short deId, math_utils::Point3D<float> entrancePoint, math_utils::Point3D<float> exitPoint,
          float eloss, float length, float tof) : o2::BasicXYZEHit<float>(entrancePoint.x(), entrancePoint.y(), entrancePoint.z(), tof, eloss, trackId, deId), mLength{length}, mExitPoint(exitPoint)
 {
 }
 
-Point3D<float> Hit::middlePoint() const
+math_utils::Point3D<float> Hit::middlePoint() const
 {
   /// Returns the point in between the entrance and exit
-  Point3D<float> middle(0.5 * (entrancePoint().x() + exitPoint().x()), 0.5 * (entrancePoint().y() + exitPoint().y()), 0.5 * (entrancePoint().z() + exitPoint().z()));
+  math_utils::Point3D<float> middle(0.5 * (entrancePoint().x() + exitPoint().x()), 0.5 * (entrancePoint().y() + exitPoint().y()), 0.5 * (entrancePoint().z() + exitPoint().z()));
   return std::move(middle);
 }
 

@@ -56,7 +56,7 @@ class Hit : public o2::BasicXYZEHit<Float_t, Float_t>
              double endTime, double eLoss, unsigned char statusStart, unsigned char status);
 
   // Entrance position getters
-  Point3D<Float_t> GetPosStart() const { return mPosStart; }
+  math_utils::Point3D<Float_t> GetPosStart() const { return mPosStart; }
   Float_t GetStartX() const { return mPosStart.X(); }
   Float_t GetStartY() const { return mPosStart.Y(); }
   Float_t GetStartZ() const { return mPosStart.Z(); }
@@ -68,8 +68,8 @@ class Hit : public o2::BasicXYZEHit<Float_t, Float_t>
     z = GetStartZ();
   }
   // momentum getters
-  Vector3D<Float_t> GetMomentum() const { return mMomentum; }
-  Vector3D<Float_t>& GetMomentum() { return mMomentum; }
+  math_utils::Vector3D<Float_t> GetMomentum() const { return mMomentum; }
+  math_utils::Vector3D<Float_t>& GetMomentum() { return mMomentum; }
   Float_t GetPx() const { return mMomentum.X(); }
   Float_t GetPy() const { return mMomentum.Y(); }
   Float_t GetPz() const { return mMomentum.Z(); }
@@ -108,11 +108,11 @@ class Hit : public o2::BasicXYZEHit<Float_t, Float_t>
   }
 
  private:
-  Vector3D<Float_t> mMomentum; ///< momentum at entrance
-  Point3D<Float_t> mPosStart;  ///< position at entrance (base mPos give position on exit)
-  Float_t mE;                  ///< total energy at entrance
-  UChar_t mTrackStatusEnd;     ///< MC status flag at exit
-  UChar_t mTrackStatusStart;   ///< MC status at starting point
+  math_utils::Vector3D<Float_t> mMomentum; ///< momentum at entrance
+  math_utils::Point3D<Float_t> mPosStart;  ///< position at entrance (base mPos give position on exit)
+  Float_t mE;                              ///< total energy at entrance
+  UChar_t mTrackStatusEnd;                 ///< MC status flag at exit
+  UChar_t mTrackStatusStart;               ///< MC status at starting point
 
   ClassDefNV(Hit, 3);
 };

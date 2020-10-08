@@ -78,12 +78,12 @@ class SegmentationAlpide
   /// or -0.5*Dz() is returned.
   static bool detectorToLocal(int iRow, int iCol, float& xRow, float& zCol);
   static bool detectorToLocal(float row, float col, float& xRow, float& zCol);
-  static bool detectorToLocal(float row, float col, Point3D<float>& loc);
+  static bool detectorToLocal(float row, float col, math_utils::Point3D<float>& loc);
 
   // same but w/o check for row/col range
   static void detectorToLocalUnchecked(int iRow, int iCol, float& xRow, float& zCol);
   static void detectorToLocalUnchecked(float row, float col, float& xRow, float& zCol);
-  static void detectorToLocalUnchecked(float row, float col, Point3D<float>& loc);
+  static void detectorToLocalUnchecked(float row, float col, math_utils::Point3D<float>& loc);
 
   static constexpr float getFirstRowCoordinate()
   {
@@ -140,7 +140,7 @@ inline void SegmentationAlpide::detectorToLocalUnchecked(float row, float col, f
 }
 
 //_________________________________________________________________________________________________
-inline void SegmentationAlpide::detectorToLocalUnchecked(float row, float col, Point3D<float>& loc)
+inline void SegmentationAlpide::detectorToLocalUnchecked(float row, float col, math_utils::Point3D<float>& loc)
 {
   loc.SetCoordinates(getFirstRowCoordinate() - row * PitchRow, 0.f, col * PitchCol + getFirstColCoordinate());
 }
@@ -164,7 +164,7 @@ inline bool SegmentationAlpide::detectorToLocal(float row, float col, float& xRo
 }
 
 //_________________________________________________________________________________________________
-inline bool SegmentationAlpide::detectorToLocal(float row, float col, Point3D<float>& loc)
+inline bool SegmentationAlpide::detectorToLocal(float row, float col, math_utils::Point3D<float>& loc)
 {
   if (row < 0 || row >= NRows || col < 0 || col >= NCols)
     return false;
