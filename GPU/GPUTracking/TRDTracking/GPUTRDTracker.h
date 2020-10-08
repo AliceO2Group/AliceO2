@@ -109,7 +109,7 @@ class GPUTRDTracker_t : public GPUProcessor
   void Reset();
   GPUd() int LoadTracklet(const GPUTRDTrackletWord& tracklet, const int* labels = nullptr);
   //template <class T>
-  GPUd() int LoadTrack(const TRDTRK& trk, const int label = -1, const int* nTrkltsOffline = nullptr, const int labelOffline = -1)
+  GPUd() int LoadTrack(const TRDTRK& trk, const int label = -1, const int* nTrkltsOffline = nullptr, const int labelOffline = -1, int tpcTrackId = -1)
   {
     if (mNTracks >= mNMaxTracks) {
 #ifndef GPUCA_GPUCODE
@@ -131,7 +131,7 @@ class GPUTRDTracker_t : public GPUProcessor
 #else
     mTracks[mNTracks] = trk;
 #endif
-    mTracks[mNTracks].SetTPCtrackId(mNTracks);
+    mTracks[mNTracks].SetTPCtrackId(tpcTrackId >= 0 ? tpcTrackId : mNTracks);
     if (label >= 0) {
       mTracks[mNTracks].SetLabel(label);
     }
