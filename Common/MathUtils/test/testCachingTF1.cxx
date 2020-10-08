@@ -15,12 +15,10 @@
 #include "MathUtils/CachingTF1.h"
 #include <TFile.h>
 
-using namespace o2::base;
-
 BOOST_AUTO_TEST_CASE(CachingTF1_test)
 {
   std::string s("std::pow(x, 1.2)*std::exp(-x/3.)");
-  CachingTF1 func("testfunction", s.c_str(), 0, 100.);
+  o2::math_utils::CachingTF1 func("testfunction", s.c_str(), 0, 100.);
   const int kNPoints = 500;
   func.SetNpx(kNPoints);
   BOOST_CHECK(func.getIntegralVector().size() == 0);
@@ -33,7 +31,7 @@ BOOST_AUTO_TEST_CASE(CachingTF1_test)
   // open for reading and verify that integral was cached
   f = TFile::Open("tmpTF1Cache.root");
   BOOST_CHECK(f);
-  volatile auto func2 = (CachingTF1*)f->Get("func");
+  volatile auto func2 = (o2::math_utils::CachingTF1*)f->Get("func");
   BOOST_CHECK(func2);
   BOOST_CHECK(func2->getIntegralVector().size() == kNPoints + 1);
 
