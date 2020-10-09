@@ -20,7 +20,7 @@ using namespace o2::framework;
 using namespace o2::framework::expressions;
 
 struct Run2Matcher {
-  Builds<aod::Run2MatchedExclusive> matched_e;
+  BuildsExclusive<aod::Run2MatchedExclusive> matched_e;
   Builds<aod::Run2MatchedSparse> matched_s;
   void init(o2::framework::InitContext&)
   {

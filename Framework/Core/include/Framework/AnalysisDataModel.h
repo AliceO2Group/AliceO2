@@ -619,7 +619,7 @@ DECLARE_SOA_INDEX_COLUMN(FDD, fdd);
 DECLARE_SOA_INDEX_COLUMN(Run2V0, run2v0);
 } // namespace indices
 
-#define INDEX_LIST_RUN2 indices::CollisionId, indices::ZdcId, indices::BCId, indices::Run2V0Id
+#define INDEX_LIST_RUN2 indices::CollisionId, indices::ZdcId, indices::BCId, indices::Run2V0Id, indices::FDDId
 DECLARE_SOA_INDEX_TABLE(Run2MatchedExclusive, BCs, "MATCHED", INDEX_LIST_RUN2);
 DECLARE_SOA_INDEX_TABLE(Run2MatchedSparse, BCs, "MATCHED", INDEX_LIST_RUN2);
 

@@ -51,39 +51,12 @@ struct EvSelParameters {
   float fZNCBBupper = 2.0;  // ns
 };
 
-struct EventSelectionTask {
+struct EventSelectionTaskIndexed {
   Produces<aod::EvSels> evsel;
   Service<o2::ccdb::BasicCCDBManager> ccdb;
   Configurable<bool> isMC{"isMC", 0, "0 - data, 1 - MC"};
 
-  EvSelParameters par;
-
-  aod::Run2V0 getVZero(aod::BC const& bc, aod::Run2V0s const& vzeros)
-  {
-    for (auto& vzero : vzeros)
-      if (vzero.bc() == bc)
-        return vzero;
-    aod::Run2V0 dummy;
-    return dummy;
-  }
-
-  aod::Zdc getZdc(aod::BC const& bc, aod::Zdcs const& zdcs)
-  {
-    for (auto& zdc : zdcs)
-      if (zdc.bc() == bc)
-        return zdc;
-    aod::Zdc dummy;
-    return dummy;
-  }
-
-  aod::FDD getFDD(aod::BC const& bc, aod::FDDs const& fdds)
-  {
-    for (auto& fdd : fdds)
-      if (fdd.bc() == bc)
-        return fdd;
-    aod::FDD dummy;
-    return dummy;
-  }
+  static constexpr EvSelParameters par;
 
   void init(InitContext&)
   {
@@ -92,7 +65,7 @@ struct EventSelectionTask {
     ccdb->setLocalObjectValidityChecking();
   }
 
-  void process(aod::Collision const& collision, aod::BCsWithTimestamps const&, aod::Zdcs const& zdcs, aod::Run2V0s const& vzeros, aod::FDDs const& fdds)
+  void process(aod::Run2MatchedSparse::iterator const& collision, aod::BCsWithTimestamps const&, aod::Zdcs const&, aod::Run2V0s const&, aod::FDDs const&)
   {
     auto bc = collision.bc_as<aod::BCsWithTimestamps>();
     LOGF(debug, "timestamp=%llu", bc.timestamp());
@@ -112,17 +85,29 @@ struct EventSelectionTask {
     }
 
     // ZDC info
-    auto zdc = getZdc(collision.bc(), zdcs);
-    float timeZNA = zdc.timeZNA();
-    float timeZNC = zdc.timeZNC();
+    float timeZNA = -1.f;
+    float timeZNC = -1.f;
+    if (collision.has_zdc()) {
+      auto zdc = collision.zdc();
+      timeZNA = zdc.timeZNA();
+      timeZNC = zdc.timeZNC();
+    }
     // VZERO info
-    auto vzero = getVZero(collision.bc(), vzeros);
-    float timeV0A = vzero.timeA();
-    float timeV0C = vzero.timeC();
+    float timeV0A = -1.f;
+    float timeV0C = -1.f;
+    if (collision.has_run2v0()) {
+      auto vzero = collision.run2v0();
+      timeV0A = vzero.timeA();
+      timeV0C = vzero.timeC();
+    }
     // FDD info
-    auto fdd = getFDD(collision.bc(), fdds);
-    float timeFDA = fdd.timeA();
-    float timeFDC = fdd.timeC();
+    float timeFDA = -1.f;
+    float timeFDC = -1.f;
+    if (collision.has_fdd()) {
+      auto fdd = collision.fdd();
+      timeFDA = fdd.timeA();
+      timeFDC = fdd.timeC();
+    }
 
     LOGF(debug, "timeZNA=%f timeZNC=%f", timeZNA, timeZNC);
     LOGF(debug, "timeV0A=%f timeV0C=%f", timeV0A, timeV0C);
@@ -152,5 +137,5 @@ struct EventSelectionTask {
 WorkflowSpec defineDataProcessing(ConfigContext const&)
 {
   return WorkflowSpec{
-    adaptAnalysisTask<EventSelectionTask>("event-selection")};
+    adaptAnalysisTask<EventSelectionTaskIndexed>("event-selection")};
 }
