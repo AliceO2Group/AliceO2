@@ -53,42 +53,47 @@ class DCSDataGenerator : public o2::framework::Task
     // chars
     std::string dpAliaschar = "TestChar_0";
     DPID::FILL(dpidtmp, dpAliaschar, mtypechar);
-    mDPIDvect.push_back(dpidtmp);
-    mNumDPs++;
-    mNumDPschar++;
+    mDPIDvectFull.push_back(dpidtmp);
+    mNumDPsFull++;
+    mNumDPscharFull++;
 
     // ints
     for (int i = 0; i < 50000; i++) {
       std::string dpAliasint = "TestInt_" + std::to_string(i);
       DPID::FILL(dpidtmp, dpAliasint, mtypeint);
-      mDPIDvect.push_back(dpidtmp);
-      mNumDPs++;
-      mNumDPsint++;
+      mDPIDvectFull.push_back(dpidtmp);
+      mNumDPsFull++;
+      mNumDPsintFull++;
+      if (i < 100) {
+        mDPIDvectDelta.push_back(dpidtmp);
+        mNumDPsDelta++;
+        mNumDPsintDelta++;
+      }
     }
 
     // doubles
     for (int i = 0; i < 4; i++) {
       std::string dpAliasdouble = "TestDouble_" + std::to_string(i);
       DPID::FILL(dpidtmp, dpAliasdouble, mtypedouble);
-      mDPIDvect.push_back(dpidtmp);
-      mNumDPs++;
-      mNumDPsdouble++;
+      mDPIDvectFull.push_back(dpidtmp);
+      mNumDPsFull++;
+      mNumDPsdoubleFull++;
     }
 
     // strings
     std::string dpAliasstring0 = "TestString_0";
     DPID::FILL(dpidtmp, dpAliasstring0, mtypestring);
-    mDPIDvect.push_back(dpidtmp);
-    mNumDPs++;
-    mNumDPsstring++;
+    mDPIDvectFull.push_back(dpidtmp);
+    mNumDPsFull++;
+    mNumDPsstringFull++;
 
-    LOG(INFO) << "Number of DCS data points = " << mNumDPs;
+    LOG(INFO) << "Number of DCS data points: " << mNumDPsFull << " (full map); " << mNumDPsDelta << " (delta map)";
   }
 
   void run(o2::framework::ProcessingContext& pc) final
   {
 
-    TStopwatch s; 
+    TStopwatch s;
     uint64_t tfid;
     for (auto& input : pc.inputs()) {
       tfid = header::get<o2::framework::DataProcessingHeader*>(input.header)->startTime;
@@ -107,7 +112,7 @@ class DCSDataGenerator : public o2::framework::Task
     uint16_t milliseconds = 0;
     TDatime currentTime;
     uint32_t seconds = currentTime.Get();
-    uint64_t* payload = new uint64_t[7];
+    uint64_t payload[7];
     memset(payload, 0, sizeof(uint64_t) * 7);
 
     payload[0] = (uint64_t)tfid + 33; // adding 33 to have visible chars and strings
@@ -128,29 +133,46 @@ class DCSDataGenerator : public o2::framework::Task
     LOG(DEBUG) << "Value used for string DPs:";
     LOG(DEBUG) << valstring << " --> " << tt;
 
-    std::vector<DPCOM> dpcomVect;
-    for (int i = 0; i < mNumDPschar; i++) {
-      dpcomVect.emplace_back(mDPIDvect[i], valchar);
+    // full map (all DPs)
+    std::vector<DPCOM> dpcomVectFull;
+    for (int i = 0; i < mNumDPscharFull; i++) {
+      dpcomVectFull.emplace_back(mDPIDvectFull[i], valchar);
     }
-    for (int i = 0; i < mNumDPsint; i++) {
-      dpcomVect.emplace_back(mDPIDvect[mNumDPschar + i], valint);
+    for (int i = 0; i < mNumDPsintFull; i++) {
+      dpcomVectFull.emplace_back(mDPIDvectFull[mNumDPscharFull + i], valint);
     }
-    for (int i = 0; i < mNumDPsdouble; i++) {
-      dpcomVect.emplace_back(mDPIDvect[mNumDPschar + mNumDPsint + i], valdouble);
+    for (int i = 0; i < mNumDPsdoubleFull; i++) {
+      dpcomVectFull.emplace_back(mDPIDvectFull[mNumDPscharFull + mNumDPsintFull + i], valdouble);
     }
-    for (int i = 0; i < mNumDPsstring; i++) {
-      dpcomVect.emplace_back(mDPIDvect[mNumDPschar + mNumDPsint + mNumDPsdouble + i], valstring);
+    for (int i = 0; i < mNumDPsstringFull; i++) {
+      dpcomVectFull.emplace_back(mDPIDvectFull[mNumDPscharFull + mNumDPsintFull + mNumDPsdoubleFull + i], valstring);
     }
 
-    auto svect = dpcomVect.size();
-    LOG(DEBUG) << "dpcomVect has size " << svect;
-    for (int i = 0; i < svect; i++) {
-      LOG(DEBUG) << "i = " << i << ", DPCOM = " << dpcomVect[i];
+    // delta map (only DPs that changed)
+    std::vector<DPCOM> dpcomVectDelta;
+    for (int i = 0; i < mNumDPscharDelta; i++) {
+      dpcomVectDelta.emplace_back(mDPIDvectDelta[i], valchar);
     }
-    std::vector<char> buff(mNumDPs * sizeof(DPCOM));
+    for (int i = 0; i < mNumDPsintDelta; i++) {
+      dpcomVectDelta.emplace_back(mDPIDvectDelta[mNumDPscharDelta + i], valint);
+    }
+    for (int i = 0; i < mNumDPsdoubleDelta; i++) {
+      dpcomVectDelta.emplace_back(mDPIDvectDelta[mNumDPscharDelta + mNumDPsintDelta + i], valdouble);
+    }
+    for (int i = 0; i < mNumDPsstringDelta; i++) {
+      dpcomVectDelta.emplace_back(mDPIDvectDelta[mNumDPscharDelta + mNumDPsintDelta + mNumDPsdoubleDelta + i], valstring);
+    }
+
+    // Full map
+    auto svect = dpcomVectFull.size();
+    LOG(DEBUG) << "dpcomVectFull has size " << svect;
+    for (int i = 0; i < svect; i++) {
+      LOG(DEBUG) << "i = " << i << ", DPCOM = " << dpcomVectFull[i];
+    }
+    std::vector<char> buff(mNumDPsFull * sizeof(DPCOM));
     char* dptr = buff.data();
     for (int i = 0; i < svect; i++) {
-      memcpy(dptr + i * sizeof(DPCOM), &dpcomVect[i], sizeof(DPCOM));
+      memcpy(dptr + i * sizeof(DPCOM), &dpcomVectFull[i], sizeof(DPCOM));
     }
     auto sbuff = buff.size();
     LOG(DEBUG) << "size of output buffer = " << sbuff;
@@ -161,6 +183,27 @@ class DCSDataGenerator : public o2::framework::Task
     pc.outputs().snapshot(Output{"DCS", "DATAPOINTS", 0, Lifetime::Timeframe}, buff.data(), sbuff);
     s.Stop();
     LOG(INFO) << "TF: " << tfid << " --> ...snapshot sent: realTime = " << s.RealTime() << ", cpuTime = " << s.CpuTime();
+
+    // Delta map
+    auto svectDelta = dpcomVectDelta.size();
+    LOG(DEBUG) << "dpcomVectDelta has size " << svect;
+    for (int i = 0; i < svectDelta; i++) {
+      LOG(DEBUG) << "i = " << i << ", DPCOM = " << dpcomVectDelta[i];
+    }
+    std::vector<char> buffDelta(mNumDPsDelta * sizeof(DPCOM));
+    char* dptrDelta = buffDelta.data();
+    for (int i = 0; i < svectDelta; i++) {
+      memcpy(dptrDelta + i * sizeof(DPCOM), &dpcomVectDelta[i], sizeof(DPCOM));
+    }
+    auto sbuffDelta = buffDelta.size();
+    LOG(DEBUG) << "size of output (delta) buffer = " << sbuffDelta;
+    s.Stop();
+    LOG(INFO) << "TF: " << tfid << " --> ...binary (delta) blob prepared: realTime = " << s.RealTime() << ", cpuTime = " << s.CpuTime();
+    LOG(INFO) << "TF: " << tfid << " --> sending (delta) snapshot...";
+    s.Start();
+    pc.outputs().snapshot(Output{"DCS", "DATAPOINTSdelta", 0, Lifetime::Timeframe}, buffDelta.data(), sbuffDelta);
+    s.Stop();
+    LOG(INFO) << "TF: " << tfid << " --> ...snapshot (delta) sent: realTime = " << s.RealTime() << ", cpuTime = " << s.CpuTime();
 
     /*
     LOG(INFO) << "Reading back";
@@ -183,16 +226,22 @@ class DCSDataGenerator : public o2::framework::Task
       tmpDPmap[mdoubleVar3] = valdouble; // to test the case when a DP is not updated, we skip some updates
     tmpDPmap[mstringVar0] = valstring;
     */
-    delete payload;
   }
 
  private:
   uint64_t mMaxTF = 1;
-  uint64_t mNumDPs = 0;
-  uint64_t mNumDPschar = 0;
-  uint64_t mNumDPsint = 0;
-  uint64_t mNumDPsdouble = 0;
-  uint64_t mNumDPsstring = 0;
+
+  uint64_t mNumDPsFull = 0;
+  uint64_t mNumDPscharFull = 0;
+  uint64_t mNumDPsintFull = 0;
+  uint64_t mNumDPsdoubleFull = 0;
+  uint64_t mNumDPsstringFull = 0;
+
+  uint64_t mNumDPsDelta = 0;
+  uint64_t mNumDPscharDelta = 0;
+  uint64_t mNumDPsintDelta = 0;
+  uint64_t mNumDPsdoubleDelta = 0;
+  uint64_t mNumDPsstringDelta = 0;
   /*
   DPID mcharVar;
   DPID mintVar0;
@@ -204,7 +253,8 @@ class DCSDataGenerator : public o2::framework::Task
   DPID mdoubleVar3;
   DPID mstringVar0;
   */
-  std::vector<DPID> mDPIDvect;
+  std::vector<DPID> mDPIDvectFull;  // for full map
+  std::vector<DPID> mDPIDvectDelta; // for delta map (containing only DPs that changed)
   DeliveryType mtypechar = RAW_CHAR;
   DeliveryType mtypeint = RAW_INT;
   DeliveryType mtypedouble = RAW_DOUBLE;
@@ -221,7 +271,7 @@ DataProcessorSpec getDCSDataGeneratorSpec()
   return DataProcessorSpec{
     "dcs-data-generator",
     Inputs{},
-    Outputs{{{"outputDCS"}, "DCS", "DATAPOINTS"}},
+    Outputs{{{"outputDCS"}, "DCS", "DATAPOINTS"}, {{"outputDCSdelta"}, "DCS", "DATAPOINTSdelta"}},
     AlgorithmSpec{adaptFromTask<o2::dcs::DCSDataGenerator>()},
     Options{{"max-timeframes", VariantType::Int64, 99999999999ll, {"max TimeFrames to generate"}}}};
 }

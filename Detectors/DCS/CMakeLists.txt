@@ -20,6 +20,8 @@ o2_add_library(DetectorsDCS
 		       src/DCSProcessor.cxx
                PUBLIC_LINK_LIBRARIES O2::Headers
 	                             O2::CommonUtils
+				     O2::CCDB
+				     O2::DetectorsCalibration
 	                             ms_gsl::ms_gsl)
 
 o2_target_root_dictionary(DetectorsDCS
