@@ -16,7 +16,7 @@
 #include "FairLogger.h"
 #include "ReconstructionDataFormats/Track.h"
 #include "SimulationDataFormat/MCCompLabel.h"
-#include "SimulationDataFormat/MCTruthContainer.h"
+#include "SimulationDataFormat/ConstMCTruthContainer.h"
 #include "TChain.h"
 #include "TClonesArray.h"
 #include "TPCBase/Mapper.h"
@@ -26,6 +26,7 @@
 #include "TPCBase/ParameterGas.h"
 #include "TPCBase/Sector.h"
 #include "DataFormatsTPC/Digit.h"
+#include "DataFormatsTPC/ClusterNativeHelper.h"
 #include "DetectorsRaw/HBFUtils.h"
 
 #include "GPUO2Interface.h"
@@ -43,8 +44,6 @@ using namespace o2::gpu;
 using namespace o2::tpc;
 using namespace o2;
 using namespace o2::dataformats;
-
-using MCLabelContainer = MCTruthContainer<MCCompLabel>;
 
 GPUCATracking::GPUCATracking() = default;
 GPUCATracking::~GPUCATracking() { deinitialize(); }
@@ -87,6 +86,7 @@ int GPUCATracking::runTracking(GPUO2InterfaceIOPtrs* data, GPUInterfaceOutputs* 
 
   std::vector<o2::tpc::Digit> gpuDigits[Sector::MAXSECTOR];
   o2::dataformats::MCTruthContainer<o2::MCCompLabel> gpuDigitsMC[Sector::MAXSECTOR];
+  ClusterNativeAccess::ConstMCLabelContainerViewWithBuffer gpuDigitsMCConst[Sector::MAXSECTOR];
 
   GPUTrackingInOutDigits gpuDigitsMap;
   GPUTPCDigitsMCInput gpuDigitsMapMC;
@@ -121,7 +121,9 @@ int GPUCATracking::runTracking(GPUO2InterfaceIOPtrs* data, GPUInterfaceOutputs* 
         gpuDigitsMap.tpcDigits[i] = gpuDigits[i].data();
         gpuDigitsMap.nTPCDigits[i] = gpuDigits[i].size();
         if (data->o2DigitsMC) {
-          gpuDigitsMapMC.v[i] = &gpuDigitsMC[i];
+          gpuDigitsMC[i].flatten_to(gpuDigitsMCConst[i].first);
+          gpuDigitsMCConst[i].second = gpuDigitsMCConst[i].first;
+          gpuDigitsMapMC.v[i] = &gpuDigitsMCConst[i].second;
         }
       } else {
         gpuDigitsMap.tpcDigits[i] = (*(data->o2Digits))[i].data();
@@ -164,8 +166,6 @@ int GPUCATracking::runTracking(GPUO2InterfaceIOPtrs* data, GPUInterfaceOutputs* 
     std::sort(trackSort.data() + tmp2, trackSort.data() + tmp,
               [](const auto& a, const auto& b) { return (a.second > b.second); });
     tmp2 = tmp;
-    if (cside == 0)
-      mNTracksASide = tmp;
   }
   nTracks = tmp;
   outputTracks->resize(nTracks);
@@ -174,6 +174,9 @@ int GPUCATracking::runTracking(GPUO2InterfaceIOPtrs* data, GPUInterfaceOutputs* 
   std::atomic_int clusterOffsetCounter;
   clusterOffsetCounter.store(0);
 
+  constexpr float MinDelta = 0.1;
+  float maxDriftTime = detParam.TPClength * vzbinInv;
+
 #ifdef WITH_OPENMP
 #pragma omp parallel for if(!outputTracksMCTruth) num_threads(4)
 #endif
@@ -181,7 +184,6 @@ int GPUCATracking::runTracking(GPUO2InterfaceIOPtrs* data, GPUInterfaceOutputs* 
     auto& oTrack = (*outputTracks)[iTmp];
     const int i = trackSort[iTmp].first;
     float time0 = 0.f, tFwd = 0.f, tBwd = 0.f;
-
     if (mTrackingCAO2Interface->GetParamContinuous()) {
       time0 = tracks[i].GetParam().GetTZOffset();
 
@@ -195,6 +197,9 @@ int GPUCATracking::runTracking(GPUO2InterfaceIOPtrs* data, GPUInterfaceOutputs* 
             auto& cl1 = data->clusters->clustersLinear[cacl1.num];
             auto& cl2 = data->clusters->clustersLinear[cacl2.num];
             delta = fabs(cl1.getTime() - cl2.getTime()) * 0.5f;
+            if (delta < MinDelta) {
+              delta = MinDelta;
+            }
             break;
           }
         }
@@ -207,7 +212,7 @@ int GPUCATracking::runTracking(GPUO2InterfaceIOPtrs* data, GPUInterfaceOutputs* 
         float t2 = data->clusters->clustersLinear[c2.num].getTime();
         auto times = std::minmax(t1, t2);
         tFwd = times.first - time0;
-        tBwd = time0 - (times.second - detParam.TPClength * vzbinInv);
+        tBwd = time0 - (times.second - maxDriftTime);
       }
     }
 

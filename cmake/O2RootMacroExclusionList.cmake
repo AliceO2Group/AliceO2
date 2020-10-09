@@ -36,6 +36,7 @@ list(APPEND O2_ROOT_MACRO_EXCLUSION_LIST
             GPU/GPUTracking/Merger/macros/fitPolynomialFieldTpc.C # Needs AliRoot AliMagF
             GPU/GPUTracking/Merger/macros/fitPolynomialFieldTrd.C # Needs AliRoot AliMagF
             GPU/GPUTracking/Standalone/tools/dump.C # Needs AliRoot ALiHLTSystem
+            GPU/GPUTracking/Standalone/tools/dumpTRDClusterMatrices.C # Needs AliRoot AliCDBManager, AliGeomManager and AliTRDgeometry
             GPU/GPUTracking/TRDTracking/macros/checkDbgOutput.C # Needs AliRoot TStatToolkit
             GPU/TPCFastTransformation/alirootMacro/createTPCFastTransform.C # Needs AliTPCCalibDB
             GPU/TPCFastTransformation/alirootMacro/generateTPCDistortionNTupleAliRoot.C # Needs AliTPCCalibDB
@@ -46,6 +47,7 @@ list(APPEND O2_ROOT_MACRO_EXCLUSION_LIST
 	    Detectors/TOF/prototyping/ConvertRun2CalibrationToO2.C
             Generators/share/external/hijing.C
 	    Generators/share/external/QEDepem.C
+	    Generators/share/external/GenCosmics.C
             macro/SetIncludePath.C
             macro/loadExtDepLib.C
             macro/load_all_libs.C
@@ -61,6 +63,7 @@ if(NOT BUILD_SIMULATION)
   o2_get_list_of_macros(${CMAKE_SOURCE_DIR}/Detectors/gconfig macros)
   list(APPEND O2_ROOT_MACRO_EXCLUSION_LIST ${macros})
   list(APPEND O2_ROOT_MACRO_EXCLUSION_LIST Generators/share/external/QEDLoader.C)
+  list(APPEND O2_ROOT_MACRO_EXCLUSION_LIST Generators/share/external/GenCosmicsLoader.C)
   list(APPEND O2_ROOT_MACRO_EXCLUSION_LIST Generators/share/egconfig/pythia8_userhooks_charm.C)
   list(APPEND O2_ROOT_MACRO_EXCLUSION_LIST Generators/share/external/trigger_mpi.C)
 endif()

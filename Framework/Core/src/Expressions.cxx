@@ -46,6 +46,13 @@ struct OpNodeHelper {
     return ColumnOperationSpec{node.op};
   }
 };
+
+struct PlaceholderNodeHelper {
+  DatumSpec operator()(PlaceholderNode node) const
+  {
+    return DatumSpec{node.value, node.type};
+  }
+};
 } // namespace
 
 std::shared_ptr<arrow::DataType> concreteArrowType(atype::type type)
@@ -107,16 +114,47 @@ std::ostream& operator<<(std::ostream& os, DatumSpec const& spec)
   return os;
 }
 
-namespace
+void updatePlaceholders(Filter& filter, InitContext& context)
 {
-/// helper struct used to parse trees
-struct NodeRecord {
-  /// pointer to the actual tree node
-  Node* node_ptr = nullptr;
-  size_t index = 0;
-  explicit NodeRecord(Node* node_, size_t index_) : node_ptr(node_), index{index_} {}
-};
-} // namespace
+  std::stack<NodeRecord> path;
+
+  // insert the top node into stack
+  path.emplace(filter.node.get(), 0);
+
+  auto updateNode = [&](Node* node) {
+    if (node->self.index() == 3) {
+      std::get_if<3>(&node->self)->reset(context);
+    }
+  };
+
+  auto isLeaf = [](Node const* const node) {
+    return ((node->left == nullptr) && (node->right == nullptr));
+  };
+
+  // while the stack is not empty
+  while (path.empty() == false) {
+    auto& top = path.top();
+
+    updateNode(top.node_ptr);
+
+    path.pop();
+
+    if (top.node_ptr->left != nullptr) {
+      if (isLeaf(top.node_ptr->left.get())) {
+        updateNode(top.node_ptr->left.get());
+      } else {
+        path.emplace(top.node_ptr->left.get(), 0);
+      }
+    }
+    if (top.node_ptr->right != nullptr) {
+      if (isLeaf(top.node_ptr->right.get())) {
+        updateNode(top.node_ptr->right.get());
+      } else {
+        path.emplace(top.node_ptr->right.get(), 0);
+      }
+    }
+  }
+}
 
 Operations createOperations(Filter const& expression)
 {
@@ -131,6 +169,7 @@ Operations createOperations(Filter const& expression)
       overloaded{
         [lh = LiteralNodeHelper{}](LiteralNode node) { return lh(node); },
         [bh = BindingNodeHelper{}](BindingNode node) { return bh(node); },
+        [ph = PlaceholderNodeHelper{}](PlaceholderNode node) { return ph(node); },
         [](auto&&) { return DatumSpec{}; }},
       node->self);
   };

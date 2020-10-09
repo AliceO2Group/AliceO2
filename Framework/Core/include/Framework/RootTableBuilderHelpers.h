@@ -14,6 +14,7 @@
 #include "Framework/TableBuilder.h"
 #include "Framework/Logger.h"
 
+#include <Rtypes.h>
 #include <arrow/stl.h>
 #include <arrow/type_traits.h>
 #include <arrow/table.h>
@@ -22,6 +23,8 @@
 #include <TTreeReader.h>
 #include <TTreeReaderValue.h>
 #include <TTreeReaderArray.h>
+#include <TBuffer.h>
+#include <TBufferFile.h>
 
 #include <vector>
 #include <string>
@@ -53,45 +56,7 @@ struct TreeReaderValueTraits<TTreeReaderArray<VALUE>> {
   using ArrowType = arrow::ListType;
 };
 
-template <typename T>
-struct ReaderHolder {
-  using Reader = TTreeReaderValue<T>;
-  using Type = T;
-  std::unique_ptr<Reader> reader;
-};
-
-template <typename T, int N>
-struct ReaderHolder<T[N]> {
-  using Reader = TTreeReaderArray<T>;
-  using Type = T (&)[N];
-  std::unique_ptr<Reader> reader;
-};
-
-struct ValueExtractor {
-  template <typename T>
-  static T deref(TTreeReaderValue<T>& rv)
-  {
-    return *rv;
-  }
-
-  template <typename T>
-  static std::pair<typename TTreeReaderArray<T>::iterator, typename TTreeReaderArray<T>::iterator> deref(TTreeReaderArray<T>& rv)
-  {
-    return std::make_pair(rv.begin(), rv.end());
-  }
-
-  template <typename T>
-  static T deref(ReaderHolder<T>& holder)
-  {
-    return **holder.reader;
-  }
-
-  template <typename T, int N>
-  static T* deref(ReaderHolder<T[N]>& holder)
-  {
-    return &((*holder.reader)[0]);
-  }
-};
+static constexpr int PREBUFFER_SIZE = 32 * 1024;
 
 // When reading from a ROOT file special care must happen
 // because uint64_t is platform specific while ULong64_t is
@@ -127,11 +92,91 @@ template <typename T>
 using Remap64Bit_t = typename Remap64Bit<T>::type;
 
 template <typename T>
+struct ReaderHolder {
+  using Reader = TTreeReaderValue<T>;
+  using Type = T;
+
+  ReaderHolder(TBranch* branch, std::unique_ptr<Reader> reader_)
+    : reader{std::move(reader_)}
+  {
+  }
+
+  ReaderHolder(ReaderHolder&& other)
+    : reader{std::move(other.reader)},
+      pos{other.pos}
+  {
+  }
+
+  ReaderHolder& operator=(ReaderHolder&& other) = delete;
+
+  std::unique_ptr<Reader> reader;
+  int pos = 0;
+  Remap64Bit_t<T> buffer[PREBUFFER_SIZE];
+  int itemSize = sizeof(T);
+};
+
+template <typename T, int N>
+struct ReaderHolder<T[N]> {
+  using Reader = TTreeReaderArray<T>;
+  using Type = T (&)[N];
+
+  ReaderHolder(TBranch* branch, std::unique_ptr<Reader> reader_)
+    : reader{std::move(reader_)}
+  {
+  }
+
+  ReaderHolder(ReaderHolder&& other)
+    : reader{std::move(other.reader)},
+      pos{other.pos}
+  {
+  }
+
+  ReaderHolder& operator=(ReaderHolder&& other) = delete;
+
+  std::unique_ptr<Reader> reader;
+  int pos = 0;
+  Remap64Bit_t<T> buffer[PREBUFFER_SIZE * N];
+  int itemSize = sizeof(T) * N;
+};
+
+struct BulkExtractor {
+  template <typename T>
+  static auto deref(ReaderHolder<T>& holder, size_t maxSize)
+  {
+    holder.buffer[holder.pos % PREBUFFER_SIZE] = **holder.reader;
+    holder.pos++;
+    if (holder.pos == maxSize) {
+      return BulkInfo<Remap64Bit_t<T> const*>{holder.buffer, maxSize % PREBUFFER_SIZE};
+    }
+    // We flush only after PREBUFFER_SIZE items have been inserted
+    if ((holder.pos % PREBUFFER_SIZE) != 0) {
+      return BulkInfo<Remap64Bit_t<T> const*>{nullptr, 0};
+    }
+    return BulkInfo<Remap64Bit_t<T> const*>{holder.buffer, PREBUFFER_SIZE};
+  }
+
+  template <typename T, int N>
+  static auto deref(ReaderHolder<T[N]>& holder, size_t maxSize)
+  {
+    memcpy(&holder.buffer[(holder.pos % PREBUFFER_SIZE) * N], &((*holder.reader)[0]), N * sizeof(T));
+    holder.pos++;
+    if (holder.pos == maxSize) {
+      return BulkInfo<Remap64Bit_t<T> const*>{holder.buffer, maxSize % PREBUFFER_SIZE};
+    }
+    // We flush only after PREBUFFER_SIZE items have been inserted
+    if ((holder.pos % PREBUFFER_SIZE) != 0) {
+      return BulkInfo<Remap64Bit_t<T> const*>{nullptr, 0};
+    }
+    return BulkInfo<Remap64Bit_t<T> const*>{reinterpret_cast<T const*>(holder.buffer), PREBUFFER_SIZE};
+  }
+};
+
+template <typename T>
 struct HolderMaker {
   static auto make(TTreeReader& reader, char const* branchName)
   {
     using Reader = TTreeReaderValue<T>;
-    return std::move(ReaderHolder<T>{std::move(std::make_unique<Reader>(reader, branchName))});
+    return ReaderHolder<T>{reader.GetTree()->GetBranch(branchName), std::move(std::make_unique<Reader>(reader, branchName))};
   }
 };
 
@@ -140,7 +185,7 @@ struct HolderMaker<T[N]> {
   static auto make(TTreeReader& reader, char const* branchName)
   {
     using Reader = TTreeReaderArray<T>;
-    return std::move(ReaderHolder<T[N]>{std::move(std::make_unique<Reader>(reader, branchName))});
+    return ReaderHolder<T[N]>{reader.GetTree()->GetBranch(branchName), std::move(std::make_unique<Reader>(reader, branchName))};
   }
 };
 
@@ -148,22 +193,27 @@ template <typename C>
 struct ColumnReaderTrait {
   static auto createReader(TTreeReader& reader)
   {
-    return std::move(HolderMaker<Remap64Bit_t<typename C::type>>::make(reader, C::base::columnLabel()));
+    return HolderMaker<Remap64Bit_t<typename C::type>>::make(reader, C::base::columnLabel());
   }
 };
 
 struct RootTableBuilderHelpers {
-  template <typename... TTREEREADERVALUE>
+  /// Use bulk insertion when TTreeReaderValue everywhere
+  template <typename... T>
   static void convertTTree(TableBuilder& builder,
                            TTreeReader& reader,
-                           ReaderHolder<TTREEREADERVALUE>... holders)
+                           ReaderHolder<T>... holders)
   {
     std::vector<std::string> branchNames = {holders.reader->GetBranchName()...};
+    TTree* tree = reader.GetTree();
+    size_t maxExtries = reader.GetEntries(true);
+    tree->SetCacheSize(maxExtries * (holders.itemSize + ...));
+    (tree->AddBranchToCache(tree->GetBranch(holders.reader->GetBranchName()), true), ...);
+    tree->StopCacheLearningPhase();
 
-    auto filler = builder.preallocatedPersist<typename std::decay_t<decltype(holders)>::Type...>(branchNames, reader.GetEntries(true));
-    reader.Restart();
+    auto filler = builder.bulkPersistChunked<Remap64Bit_t<typename std::decay_t<decltype(holders)>::Type>...>(branchNames, maxExtries);
     while (reader.Next()) {
-      filler(0, ValueExtractor::deref(holders)...);
+      filler(0, BulkExtractor::deref(holders, maxExtries)...);
     }
   }
 

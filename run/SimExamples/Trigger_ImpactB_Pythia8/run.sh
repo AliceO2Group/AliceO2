@@ -14,12 +14,12 @@
 # the function `trigger_impactb_pythia8(double bMin = 0., double bMax = 20.)`
 # defined in the macro `trigger_impactb_pythia8.macro`.
 
-# The macro file is specified via the argument of `--extTrgFile` whereas the specific
-# function call to retrieve the configuration is specified via the argument of `--extTrgFunc`.
+# The macro file and function names are specified via `--configKeyValues` setting
+# `TriggerExternal.fileName` and `TriggerExternal.funcName`, respectively.
  
 set -x
 
 NEV=10
 BMIN=15.
 BMAX=20.
-o2-sim -j 20 -n ${NEV} -g pythia8hi -m PIPE ITS TPC --trigger external --extTrgFile trigger_impactb_pythia8.macro --extTrgFunc "trigger_impactb_pythia8(${BMIN}, ${BMAX})"
+o2-sim -j 20 -n ${NEV} -g pythia8hi -m PIPE ITS TPC --trigger external --configKeyValues "TriggerExternal.fileName=trigger_impactb_pythia8.macro;TriggerExternal.funcName=trigger_impactb_pythia8(${BMIN}, ${BMAX})"

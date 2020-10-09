@@ -274,7 +274,8 @@ void on_signal_callback(uv_signal_t* handle, int signum)
 void DataProcessingDevice::InitTask()
 {
   for (auto& channel : fChannels) {
-    channel.second.at(0).Transport()->SubscribeToRegionEvents([& pendingRegionInfos = mPendingRegionInfos](FairMQRegionInfo info) {
+    channel.second.at(0).Transport()->SubscribeToRegionEvents([& pendingRegionInfos = mPendingRegionInfos, &regionInfoMutex = mRegionInfoMutex](FairMQRegionInfo info) {
+      std::lock_guard<std::mutex> lock(regionInfoMutex);
       LOG(debug) << ">>> Region info event" << info.event;
       LOG(debug) << "id: " << info.id;
       LOG(debug) << "ptr: " << info.ptr;
@@ -426,7 +427,7 @@ bool DataProcessingDevice::ConditionalRun()
   if (mState.loop) {
     ZoneScopedN("uv idle");
     TracyPlot("past activity", (int64_t)mWasActive);
-    uv_run(mState.loop, mWasActive ? UV_RUN_NOWAIT : UV_RUN_ONCE);
+    uv_run(mState.loop, mWasActive && (mDataProcessorContexes.at(0).state->streaming != StreamingState::Idle) ? UV_RUN_NOWAIT : UV_RUN_ONCE);
   }
 
   // Notify on the main thread the new region callbacks, making sure

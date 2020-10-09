@@ -20,7 +20,6 @@
 #include "DataFormatsFDD/Digit.h"
 #include "DataFormatsFDD/ChannelData.h"
 #include "DataFormatsFDD/MCLabel.h"
-#include "SimulationDataFormat/MCTruthContainer.h"
 
 using namespace o2::framework;
 
@@ -41,10 +40,6 @@ class DigitReader : public Task
   bool mFinished = false;
   bool mUseMC = true; // use MC truth
   o2::header::DataOrigin mOrigin = o2::header::gDataOriginFDD;
-
-  std::vector<o2::fdd::Digit>* mDigitsBC = nullptr;
-  std::vector<o2::fdd::ChannelData>* mDigitsCh = nullptr;
-  o2::dataformats::MCTruthContainer<o2::fdd::MCLabel>* mMCTruth = nullptr;
 
   std::string mInputFileName = "";
   std::string mDigitTreeName = "o2sim";

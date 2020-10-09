@@ -17,15 +17,16 @@
 
 #include <vector>
 
-namespace o2
-{
-namespace framework
+namespace o2::framework
 {
 using outputTasks = std::vector<std::pair<uint32_t, std::string>>;
 using outputObjects = std::vector<std::pair<uint32_t, std::vector<std::string>>>;
 
 /// Helpers to create a few general data processors
 struct CommonDataProcessors {
+  /// Match all inputs of kind HIST and write them to a ROOT file,
+  /// one root file per originating task.
+  static DataProcessorSpec getHistogramRegistrySink(outputObjects const& objmap, const outputTasks& tskmap);
   /// Match all inputs of kind ATSK and write them to a ROOT file,
   /// one root file per originating task.
   static DataProcessorSpec getOutputObjSink(outputObjects const& objmap, const outputTasks& tskmap);
@@ -35,6 +36,12 @@ struct CommonDataProcessors {
   /// not going to be used by the returned DataProcessorSpec.
   static DataProcessorSpec getGlobalFileSink(std::vector<InputSpec> const& danglingInputs,
                                              std::vector<InputSpec>& unmatched);
+  /// Given the list of @a danglingInputs @return a DataProcessor which
+  /// exposes them through a FairMQ channel.
+  /// @fixme: for now we only support shmem and ipc
+  /// @fixme: for now only the dangling inputs are forwarded.
+  static DataProcessorSpec getGlobalFairMQSink(std::vector<InputSpec> const& danglingInputs);
+
   /// writes inputs of kind AOD to file
   static DataProcessorSpec getGlobalAODSink(std::vector<InputSpec> const& OutputInputs,
                                             std::vector<bool> const& isdangling);
@@ -43,7 +50,6 @@ struct CommonDataProcessors {
   static DataProcessorSpec getDummySink(std::vector<InputSpec> const& danglingInputs);
 };
 
-} // namespace framework
-} // namespace o2
+} // namespace o2::framework
 
 #endif // o2_framework_CommonDataProcessors_H_INCLUDED

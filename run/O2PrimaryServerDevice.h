@@ -27,6 +27,8 @@
 #include <SimConfig/SimConfig.h>
 #include <CommonUtils/ConfigurableParam.h>
 #include <CommonUtils/RngHelper.h>
+#include "Field/MagneticField.h"
+#include <TGeoGlobalMagField.h>
 #include <typeinfo>
 #include <thread>
 #include <TROOT.h>
@@ -60,6 +62,12 @@ class O2PrimaryServerDevice final : public FairMQDevice
     TStopwatch timer;
     timer.Start();
     auto& conf = o2::conf::SimConfig::Instance();
+
+    // init magnetic field as it might be needed by the generator
+    auto field = o2::field::MagneticField::createNominalField(conf.getConfigData().mField);
+    TGeoGlobalMagField::Instance()->SetField(field);
+    TGeoGlobalMagField::Instance()->Lock();
+
     o2::eventgen::GeneratorFactory::setPrimaryGenerator(conf, &mPrimGen);
     mPrimGen.SetEvent(&mEventHeader);
 

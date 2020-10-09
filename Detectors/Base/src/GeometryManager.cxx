@@ -33,28 +33,18 @@ using namespace o2::base;
 /// Implementation of GeometryManager, the geometry manager class which interfaces to TGeo and
 /// the look-up table mapping unique volume indices to symbolic volume names. For that, it
 /// collects several static methods
-
-//______________________________________________________________________
-GeometryManager::GeometryManager()
-{
-  /// default constructor
-
-  /// make sure detectors masks can be encoded in the combined det+sensor id
-  static_assert(sizeof(Int_t) * 8 - sDetOffset > DetID::getNDetectors(),
-                "N detectors exceeds available N bits for their encoding");
-}
+std::mutex GeometryManager::sTGMutex;
 
 //______________________________________________________________________
 Bool_t GeometryManager::getOriginalMatrix(const char* symname, TGeoHMatrix& m)
 {
   m.Clear();
-
   if (!gGeoManager || !gGeoManager->IsClosed()) {
     LOG(ERROR) << "No active geometry or geometry not yet closed!";
     ;
     return kFALSE;
   }
-
+  std::lock_guard<std::mutex> guard(sTGMutex);
   if (!gGeoManager->GetListOfPhysicalNodes()) {
     LOG(WARNING) << "gGeoManager doesn't contain any aligned nodes!";
 
@@ -91,7 +81,7 @@ Bool_t GeometryManager::getOriginalMatrixFromPath(const char* path, TGeoHMatrix&
     LOG(ERROR) << "Can't get the original global matrix! gGeoManager doesn't exist or it is still opened!";
     return kFALSE;
   }
-
+  std::lock_guard<std::mutex> guard(sTGMutex);
   if (!gGeoManager->CheckPath(path)) {
     LOG(ERROR) << "Volume path " << path << " not valid!";
     return kFALSE;
@@ -288,7 +278,7 @@ GeometryManager::MatBudgetExt GeometryManager::meanMaterialBudgetExt(float x0, f
   for (int i = 3; i--;) {
     dir[i] *= invlen;
   }
-
+  std::lock_guard<std::mutex> guard(sTGMutex);
   // Initialize start point and direction
   TGeoNode* currentnode = gGeoManager->InitTrack(startD, dir);
   if (!currentnode) {
@@ -380,7 +370,7 @@ o2::base::MatBudget GeometryManager::meanMaterialBudget(float x0, float y0, floa
   for (int i = 3; i--;) {
     dir[i] *= invlen;
   }
-
+  std::lock_guard<std::mutex> guard(sTGMutex);
   // Initialize start point and direction
   TGeoNode* currentnode = gGeoManager->InitTrack(startD, dir);
   if (!currentnode) {

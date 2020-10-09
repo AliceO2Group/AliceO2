@@ -26,9 +26,7 @@
 #pragma GCC diagnostic pop
 #endif
 
-namespace o2
-{
-namespace framework
+namespace o2::framework
 {
 
 InputRecord::InputRecord(std::vector<InputRoute> const& inputsSchema,
@@ -80,5 +78,13 @@ bool InputRecord::isValid(int s) const
   return true;
 }
 
-} // namespace framework
-} // namespace o2
+size_t InputRecord::countValidInputs() const
+{
+  size_t count = 0;
+  for (auto&& _ : *this) {
+    ++count;
+  }
+  return count;
+}
+
+} // namespace o2::framework

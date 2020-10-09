@@ -16,17 +16,14 @@
 #include "Framework/DeviceInfo.h"
 #include "Framework/DeviceMetricsInfo.h"
 #include "Framework/ChannelSpec.h"
+#include "Framework/Logger.h"
 
 #include "DebugGUI/imgui.h"
 #include <csignal>
 #include <cstdlib>
 #include <iostream>
 
-namespace o2
-{
-namespace framework
-{
-namespace gui
+namespace o2::framework::gui
 {
 
 struct ChannelsTableHelper {
@@ -291,6 +288,4 @@ void displayDeviceInspector(DeviceSpec const& spec,
   }
 }
 
-} // namespace gui
-} // namespace framework
-} // namespace o2
+} // namespace o2::framework::gui

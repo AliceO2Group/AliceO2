@@ -17,6 +17,7 @@
 #include "Framework/ASoA.h"
 #include "Framework/AnalysisDataModel.h"
 #include "Analysis/Centrality.h"
+#include "Analysis/EventSelection.h"
 #include "PID/PIDResponse.h"
 #include "MathUtils/Utils.h"
 #include <cmath>
@@ -59,7 +60,9 @@ DECLARE_SOA_COLUMN(FilteringFlags, filteringFlags, uint64_t);
 DECLARE_SOA_COLUMN(Pt, pt, float);
 DECLARE_SOA_COLUMN(Eta, eta, float);
 DECLARE_SOA_COLUMN(Phi, phi, float);
-DECLARE_SOA_COLUMN(Charge, charge, short);
+DECLARE_SOA_COLUMN(Charge, charge, int);
+DECLARE_SOA_COLUMN(DcaXY, dcaXY, float);
+DECLARE_SOA_COLUMN(DcaZ, dcaZ, float);
 DECLARE_SOA_DYNAMIC_COLUMN(Px, px, [](float pt, float phi) -> float { return pt * std::cos(phi); });
 DECLARE_SOA_DYNAMIC_COLUMN(Py, py, [](float pt, float phi) -> float { return pt * std::sin(phi); });
 DECLARE_SOA_DYNAMIC_COLUMN(Pz, pz, [](float pt, float eta) -> float { return pt * std::sinh(eta); });
@@ -82,8 +85,7 @@ DECLARE_SOA_TABLE(ReducedTracksBarrel, "AOD", "RTBARREL",
                   track::ITSClusterMap, track::ITSChi2NCl,
                   track::TPCNClsFindable, track::TPCNClsFindableMinusFound, track::TPCNClsFindableMinusCrossedRows,
                   track::TPCNClsShared, track::TPCChi2NCl,
-                  //                  track::TPCSignal, track::TRDSignal, track::TOFSignal,
-                  track::TRDChi2, track::TOFChi2, track::Length,
+                  track::TRDChi2, track::TOFChi2, track::Length, reducedtrack::DcaXY, reducedtrack::DcaZ,
                   track::TPCNClsFound<track::TPCNClsFindable, track::TPCNClsFindableMinusFound>,
                   track::TPCNClsCrossedRows<track::TPCNClsFindable, track::TPCNClsFindableMinusCrossedRows>);
 
@@ -95,13 +97,13 @@ DECLARE_SOA_TABLE(ReducedTracksBarrelCov, "AOD", "RTBARRELCOV",
 // barrel PID information
 DECLARE_SOA_TABLE(ReducedTracksBarrelPID, "AOD", "RTBARRELPID",
                   track::TPCSignal,
-                  pidTPC::TPCNSigmaEl, pidTPC::TPCNSigmaMu,
-                  pidTPC::TPCNSigmaPi, pidTPC::TPCNSigmaKa, pidTPC::TPCNSigmaPr,
-                  pidTPC::TPCNSigmaDe, pidTPC::TPCNSigmaTr, pidTPC::TPCNSigmaHe, pidTPC::TPCNSigmaAl,
-                  track::TOFSignal, pidTOFbeta::Beta,
-                  pidTOF::TOFNSigmaEl, pidTOF::TOFNSigmaMu,
-                  pidTOF::TOFNSigmaPi, pidTOF::TOFNSigmaKa, pidTOF::TOFNSigmaPr,
-                  pidTOF::TOFNSigmaDe, pidTOF::TOFNSigmaTr, pidTOF::TOFNSigmaHe, pidTOF::TOFNSigmaAl,
+                  pidtpc::TPCNSigmaEl, pidtpc::TPCNSigmaMu,
+                  pidtpc::TPCNSigmaPi, pidtpc::TPCNSigmaKa, pidtpc::TPCNSigmaPr,
+                  pidtpc::TPCNSigmaDe, pidtpc::TPCNSigmaTr, pidtpc::TPCNSigmaHe, pidtpc::TPCNSigmaAl,
+                  track::TOFSignal, pidtofbeta::Beta,
+                  pidtof::TOFNSigmaEl, pidtof::TOFNSigmaMu,
+                  pidtof::TOFNSigmaPi, pidtof::TOFNSigmaKa, pidtof::TOFNSigmaPr,
+                  pidtof::TOFNSigmaDe, pidtof::TOFNSigmaTr, pidtof::TOFNSigmaHe, pidtof::TOFNSigmaAl,
                   track::TRDSignal);
 
 // muon quantities
@@ -113,7 +115,7 @@ DECLARE_SOA_COLUMN(FilteringFlags, filteringFlags, uint64_t);
 DECLARE_SOA_COLUMN(Pt, pt, float);
 DECLARE_SOA_COLUMN(Eta, eta, float);
 DECLARE_SOA_COLUMN(Phi, phi, float);
-DECLARE_SOA_COLUMN(Charge, charge, short);
+DECLARE_SOA_COLUMN(Charge, charge, int);
 DECLARE_SOA_DYNAMIC_COLUMN(Px, px, [](float pt, float phi) -> float { return pt * std::cos(phi); });
 DECLARE_SOA_DYNAMIC_COLUMN(Py, py, [](float pt, float phi) -> float { return pt * std::sin(phi); });
 DECLARE_SOA_DYNAMIC_COLUMN(Pz, pz, [](float pt, float eta) -> float { return pt * std::sinh(eta); });
@@ -132,7 +134,8 @@ DECLARE_SOA_TABLE(ReducedMuonsExtended, "AOD", "RTMUONEXTENDED",
                   muon::InverseBendingMomentum,
                   muon::ThetaX, muon::ThetaY, muon::ZMu,
                   muon::BendingCoor, muon::NonBendingCoor,
-                  muon::Chi2, muon::Chi2MatchTrigger);
+                  muon::Chi2, muon::Chi2MatchTrigger,
+                  muon::RAtAbsorberEnd<muon::BendingCoor, muon::NonBendingCoor, muon::ThetaX, muon::ThetaY, muon::ZMu>);
 
 // iterators
 using ReducedTrack = ReducedTracks::iterator;

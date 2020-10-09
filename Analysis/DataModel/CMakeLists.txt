@@ -44,9 +44,9 @@ install(FILES
         DESTINATION
         include/PID)
 
-o2_add_executable(dump-aod-data-model
-                  SOURCES src/dumpDataModel.cxx
-                  PUBLIC_LINK_LIBRARIES O2::Framework O2::AnalysisDataModel
+o2_add_executable(aod-data-model-graph
+                  SOURCES src/aodDataModelGraph.cxx
+                  PUBLIC_LINK_LIBRARIES O2::Framework O2::AnalysisDataModel O2::AnalysisCore
                  )
 
 o2_add_executable(pidparam-tpc-bethe-bloch

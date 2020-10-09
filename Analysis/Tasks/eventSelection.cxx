@@ -13,7 +13,6 @@
 #include "Analysis/EventSelection.h"
 #include "Analysis/TriggerAliases.h"
 #include <CCDB/BasicCCDBManager.h>
-#include <map>
 
 using namespace o2;
 using namespace o2::framework;
@@ -55,6 +54,8 @@ struct EvSelParameters {
 struct EventSelectionTask {
   Produces<aod::EvSels> evsel;
   Service<o2::ccdb::BasicCCDBManager> ccdb;
+  Configurable<bool> isMC{"isMC", 0, "0 - data, 1 - MC"};
+
   EvSelParameters par;
 
   aod::Run2V0 getVZero(aod::BC const& bc, aod::Run2V0s const& vzeros)
@@ -91,15 +92,15 @@ struct EventSelectionTask {
     ccdb->setLocalObjectValidityChecking();
   }
 
-  void process(aod::Collision const& collision, aod::BCs const& bcs, aod::Timestamps& timestamps, aod::Zdcs const& zdcs, aod::Run2V0s const& vzeros, aod::FDDs const& fdds)
+  void process(aod::Collision const& collision, aod::BCsWithTimestamps const&, aod::Zdcs const& zdcs, aod::Run2V0s const& vzeros, aod::FDDs const& fdds)
   {
-    auto ts = timestamps.iteratorAt(collision.bcId());
-    LOGF(debug, "timestamp=%llu", ts.timestamp());
-    TriggerAliases* aliases = ccdb->getForTimeStamp<TriggerAliases>("Trigger/TriggerAliases", ts.timestamp());
+    auto bc = collision.bc_as<aod::BCsWithTimestamps>();
+    LOGF(debug, "timestamp=%llu", bc.timestamp());
+    TriggerAliases* aliases = ccdb->getForTimeStamp<TriggerAliases>("Trigger/TriggerAliases", bc.timestamp());
     if (!aliases) {
-      LOGF(fatal, "Trigger aliases are not available in CCDB for run=%d at timestamp=%llu", collision.bc().runNumber(), ts.timestamp());
+      LOGF(fatal, "Trigger aliases are not available in CCDB for run=%d at timestamp=%llu", bc.runNumber(), bc.timestamp());
     }
-    uint64_t triggerMask = collision.bc().triggerMask();
+    uint64_t triggerMask = bc.triggerMask();
     LOGF(debug, "triggerMask=%llu", triggerMask);
 
     // fill fired aliases
@@ -137,6 +138,11 @@ struct EventSelectionTask {
     bool bbFDC = timeFDC > par.fFDCBBlower && timeFDC < par.fFDCBBupper;
     bool bgFDA = timeFDA > par.fFDABGlower && timeFDA < par.fFDABGupper;
     bool bgFDC = timeFDC > par.fFDCBGlower && timeFDC < par.fFDCBGupper;
+
+    if (isMC) {
+      bbZNA = 1;
+      bbZNC = 1;
+    }
 
     // Fill event selection columns
     evsel(alias, bbV0A, bbV0C, bgV0A, bgV0C, bbZNA, bbZNC, bbFDA, bbFDC, bgFDA, bgFDC);

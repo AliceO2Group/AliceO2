@@ -9,16 +9,16 @@
 #
 # The main focus in this example is on PART c). PART b) just relaces some template values in the Pythia8 configuration file.
 #
-# An external event generator configuration  `-g extgen` is loaded from the file `--extGenFile "GeneratorHF.macro"`
-# by running the code defined in the function `--extGenFunc "GeneratorHF()"`.
+# An external event generator configuration  `-g external` is loaded from the file defined via `--configKeyValues` setting
+# `GeneratorExternal.fileName=GeneratorHF.macro` by running the code defined in the function `GeneratorExternal.funcName="GeneratorHF()"`.
 # Special configuration parameters are loaded from the INI file `--configFile o2sim_configuration_sgn.ini`.
 #
-# Pythia8.config defines the Pythia8 configuration file name.
+# GeneratorPythia8.config defines the Pythia8 configuration file name.
 #
 # We configured to bias towards c-cbar processes where we can select them baed on pt-hat bins.
 #
-# Pythia8.hooksFileName defines the file name where to load the custom Pythia8 hooks
-# Pythia8.hooskFuncName defines the function call to be run to retrieve the custom Pythia8 hools.
+# GeneratorPythia8.hooksFileName defines the file name where to load the custom Pythia8 hooks
+# GeneratorPythia8.hooskFuncName defines the function call to be run to retrieve the custom Pythia8 hools.
 #
 # Hooks are used in this example to speedup the event generation. Event generation is paused at parton level.
 # We check if there are the partons of our interest, if not we veto the event. This saves time because we
@@ -57,8 +57,8 @@ sed -e "s/\${rndSeed}/$RNDSEED/" \
 
 # PART c)
 
-o2-sim -j ${NWORKERS} -n ${SIGEVENTS} -g extgen -m ${MODULES} -o sgn \
-       --extGenFile "GeneratorHF.macro" --extGenFunc "GeneratorHF()" \
+o2-sim -j ${NWORKERS} -n ${SIGEVENTS} -g external -m ${MODULES} -o sgn \
+       --configKeyValues "GeneratorExternal.fileName=GeneratorHF.macro;GeneratorExternal.funcName=GeneratorHF()" \
        --configFile o2sim_configuration_sgn.ini \
        --embedIntoFile bkg_Kine.root \
        > logsgn 2>&1

@@ -21,17 +21,17 @@ using namespace o2::framework::expressions;
 //        we need GCC 7.4+ for that
 struct ATask {
   float fPI = static_cast<float>(M_PI);
-  float ptlow = 0.5f;
-  float ptup = 2.0f;
+  Configurable<float> ptlow{"pTlow", 0.5f, "Lowest pT"};
+  Configurable<float> ptup{"pTup", 2.0f, "highest pT"};
   Filter ptFilter_a = aod::track::pt > ptlow;
   Filter ptFilter_b = aod::track::pt < ptup;
 
-  float etalow = -1.0f;
-  float etaup = 1.0f;
+  Configurable<float> etalow{"etaLow", -1.0f, "lowest eta"};
+  Configurable<float> etaup{"etaUp", 1.0f, "highest eta"};
   Filter etafilter = (aod::track::eta < etaup) && (aod::track::eta > etalow);
 
-  float philow = 1.0f;
-  float phiup = 2.0f;
+  Configurable<float> philow{"phiLow", 1.0f, "lowest phi"};
+  Configurable<float> phiup{"phiUp", 2.0f, "highest phi"};
 
   using myTracks = soa::Filtered<aod::Tracks>;
 
@@ -46,15 +46,15 @@ struct ATask {
 
     for (auto& track : leftPhi) {
       LOGF(INFO, "id = %d, from collision: %d, collision: %d; eta:  %.3f < %.3f < %.3f; phi: %.3f < %.3f; pt: %.3f < %.3f < %.3f",
-           track.collisionId(), track.collision().globalIndex(), collision.globalIndex(), etalow, track.eta(), etaup, track.phiraw(), philow, ptlow, track.pt(), ptup);
+           track.collisionId(), track.collision().globalIndex(), collision.globalIndex(), (float)etalow, track.eta(), (float)etaup, track.phiraw(), (float)philow, (float)ptlow, track.pt(), (float)ptup);
     }
     for (auto& track : midPhi) {
       LOGF(INFO, "id = %d, from collision: %d, collision: %d; eta: %.3f < %.3f < %.3f; phi: %.3f <= %.3f < %.3f; pt: %.3f < %.3f < %.3f",
-           track.collisionId(), track.collision().globalIndex(), collision.globalIndex(), etalow, track.eta(), etaup, philow, track.phiraw(), phiup, ptlow, track.pt(), ptup);
+           track.collisionId(), track.collision().globalIndex(), collision.globalIndex(), (float)etalow, track.eta(), (float)etaup, (float)philow, track.phiraw(), (float)phiup, (float)ptlow, track.pt(), (float)ptup);
     }
     for (auto& track : rightPhi) {
       LOGF(INFO, "id = %d, from collision: %d, collision: %d; eta: %.3f < %.3f < %.3f; phi: %.3f < %.3f; pt: %.3f < %.3f < %.3f",
-           track.collisionId(), track.collision().globalIndex(), collision.globalIndex(), etalow, track.eta(), etaup, phiup, track.phiraw(), ptlow, track.pt(), ptup);
+           track.collisionId(), track.collision().globalIndex(), collision.globalIndex(), (float)etalow, track.eta(), (float)etaup, (float)phiup, track.phiraw(), (float)ptlow, track.pt(), (float)ptup);
     }
   }
 };

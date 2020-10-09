@@ -15,15 +15,19 @@
 #include "Framework/FunctionalHelpers.h"
 #include "Framework/Logger.h"
 #include "Framework/OutputRef.h"
+#include "Framework/OutputObjHeader.h"
 #include "Framework/OutputSpec.h"
+#include "Framework/SerializationMethods.h"
 #include "Framework/StringHelpers.h"
 #include "Framework/TableBuilder.h"
 
+#include "TClass.h"
 #include "TH1.h"
 #include "TH2.h"
 #include "TH3.h"
 #include "THn.h"
 #include "THnSparse.h"
+#include "TFolder.h"
 
 #include <string>
 #include <variant>
@@ -157,6 +161,34 @@ std::unique_ptr<TH3> createTH3FromSpec(HistogramSpec const& spec)
   return std::make_unique<T>(spec.name.data(), spec.readableName.data(), spec.config.axes[0].nBins, spec.config.axes[0].bins.data(), spec.config.axes[1].nBins, spec.config.axes[1].bins.data(), spec.config.axes[2].nBins, spec.config.axes[2].bins.data());
 }
 
+/// Helper functions to fill histograms with expressions
+template <typename C1, typename C2, typename C3, typename T>
+void fill(TH1* hist, const T& table, const o2::framework::expressions::Filter& filter)
+{
+  auto filtered = o2::soa::Filtered<T>{{table.asArrowTable()}, o2::framework::expressions::createSelection(table.asArrowTable(), filter)};
+  for (auto& t : filtered) {
+    hist->Fill(*(static_cast<C1>(t).getIterator()), *(static_cast<C2>(t).getIterator()), *(static_cast<C3>(t).getIterator()));
+  }
+}
+
+template <typename C1, typename C2, typename T>
+void fill(TH1* hist, const T& table, const o2::framework::expressions::Filter& filter)
+{
+  auto filtered = o2::soa::Filtered<T>{{table.asArrowTable()}, o2::framework::expressions::createSelection(table.asArrowTable(), filter)};
+  for (auto& t : filtered) {
+    hist->Fill(*(static_cast<C1>(t).getIterator()), *(static_cast<C2>(t).getIterator()));
+  }
+}
+
+template <typename C, typename T>
+void fill(TH1* hist, const T& table, const o2::framework::expressions::Filter& filter)
+{
+  auto filtered = o2::soa::Filtered<T>{{table.asArrowTable()}, o2::framework::expressions::createSelection(table.asArrowTable(), filter)};
+  for (auto& t : filtered) {
+    hist->Fill(*(static_cast<C>(t).getIterator()));
+  }
+}
+
 using HistogramCreationCallback = std::function<std::unique_ptr<TH1>(HistogramSpec const& spec)>;
 
 // Wrapper to avoid multiple function definitinions error
@@ -230,8 +262,9 @@ struct HistogramCallbacks {
 class HistogramRegistry
 {
  public:
-  HistogramRegistry(char const* const name_, bool enable, std::vector<HistogramSpec> specs)
+  HistogramRegistry(char const* const name_, bool enable, std::vector<HistogramSpec> specs, OutputObjHandlingPolicy policy_ = OutputObjHandlingPolicy::AnalysisObject)
     : name(name_),
+      policy(policy_),
       enabled(enable),
       mRegistryKey(),
       mRegistryValue(),
@@ -273,7 +306,7 @@ class HistogramRegistry
     return get(name);
   }
 
-  // @return the associated OutputSpec
+  /// @return the associated OutputSpec
   OutputSpec const spec()
   {
     ConcreteDataMatcher matcher{"HIST", "\0", 0};
@@ -283,7 +316,46 @@ class HistogramRegistry
 
   OutputRef ref()
   {
-    return OutputRef{this->name, 0};
+    return OutputRef{std::string{this->name}, 0, o2::header::Stack{OutputObjHeader{policy, taskHash}}};
+  }
+  void setHash(uint32_t hash)
+  {
+    taskHash = hash;
+  }
+
+  TFolder* operator*()
+  {
+    TFolder* folder = new TFolder(this->name.c_str(), this->name.c_str());
+    for (auto j = 0u; j < MAX_REGISTRY_SIZE; ++j) {
+      if (mRegistryValue[j].get() != nullptr) {
+        auto hist = mRegistryValue[j].get();
+        folder->Add(hist);
+      }
+    }
+    folder->SetOwner();
+    return folder;
+  }
+
+  /// fill the histogram with an expression
+  template <typename C1, typename C2, typename C3, typename T>
+  void fill(char const* const name, const T& table, const o2::framework::expressions::Filter& filter)
+  {
+    TH1* hist = get(name).get();
+    framework::fill<C1, C2, C3>(hist, table, filter);
+  }
+
+  template <typename C1, typename C2, typename T>
+  void fill(char const* const name, const T& table, const o2::framework::expressions::Filter& filter)
+  {
+    TH1* hist = get(name).get();
+    framework::fill<C1, C2>(hist, table, filter);
+  }
+
+  template <typename C, typename T>
+  void fill(char const* const name, const T& table, const o2::framework::expressions::Filter& filter)
+  {
+    TH1* hist = get(name).get();
+    framework::fill<C>(hist, table, filter);
   }
 
   /// lookup distance counter for benchmarking
@@ -310,6 +382,8 @@ class HistogramRegistry
   }
   std::string name;
   bool enabled;
+  OutputObjHandlingPolicy policy;
+  uint32_t taskHash;
 
   /// The maximum number of histograms in buffer is currently set to 512
   /// which seems to be both reasonably large and allowing for very fast lookup

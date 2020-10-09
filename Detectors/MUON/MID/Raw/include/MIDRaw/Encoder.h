@@ -35,7 +35,7 @@ namespace mid
 class Encoder
 {
  public:
-  void init(const char* filename, int verbosity = 0);
+  void init(const char* filename, bool perLink = false, int verbosity = 0);
   void process(gsl::span<const ColumnData> data, const InteractionRecord& ir, EventType eventType = EventType::Standard);
   /// Sets the maximum size of the superpage
   void setSuperpageSize(int maxSize) { mRawWriter.setSuperPageSize(maxSize); }
@@ -49,6 +49,7 @@ class Encoder
   void hbTrigger(const InteractionRecord& ir);
 
   o2::raw::RawFileWriter mRawWriter{o2::header::gDataOriginMID}; /// Raw file writer
+
   std::map<uint16_t, LocalBoardRO> mROData{}; /// Map of data per board
   ColumnDataToLocalBoard mConverter{};        /// ColumnData to LocalBoardRO converter
   FEEIdConfig mFEEIdConfig{};                 /// Crate FEEId mapper

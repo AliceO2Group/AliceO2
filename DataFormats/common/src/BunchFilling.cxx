@@ -16,6 +16,28 @@
 using namespace o2;
 
 //_________________________________________________
+int BunchFilling::getFirstFilledBC() const
+{
+  for (int bc = 0; bc < o2::constants::lhc::LHCMaxBunches; bc++) {
+    if (testBC(bc)) {
+      return bc;
+    }
+  }
+  return -1;
+}
+
+//_________________________________________________
+int BunchFilling::getLastFilledBC() const
+{
+  for (int bc = o2::constants::lhc::LHCMaxBunches; bc--;) {
+    if (testBC(bc)) {
+      return bc;
+    }
+  }
+  return -1;
+}
+
+//_________________________________________________
 void BunchFilling::setBC(int bcID, bool active)
 {
   // add interacting BC slot

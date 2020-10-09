@@ -25,29 +25,34 @@ namespace
 {
 o2::header::DataDescription lookupDataDescription(const char* key)
 {
-  if (strcmp(key, "RAWDATA") == 0)
+  if (strcmp(key, "RAWDATA") == 0) {
     return o2::header::gDataDescriptionRawData;
-  else if (strcmp(key, "CLUSTERS") == 0)
+  } else if (strcmp(key, "CLUSTERS") == 0) {
     return o2::header::gDataDescriptionClusters;
-  else if (strcmp(key, "TRACKS") == 0)
+  } else if (strcmp(key, "TRACKS") == 0) {
     return o2::header::gDataDescriptionTracks;
-  else if (strcmp(key, "CONFIG") == 0)
+  } else if (strcmp(key, "CONFIG") == 0) {
     return o2::header::gDataDescriptionConfig;
-  else if (strcmp(key, "INFO") == 0)
+  } else if (strcmp(key, "INFO") == 0) {
     return o2::header::gDataDescriptionInfo;
+  }
   return o2::header::gDataDescriptionInvalid;
 }
 
 o2::header::DataOrigin lookupDataOrigin(const char* key)
 {
-  if (strcmp(key, "TPC") == 0)
+  if (strcmp(key, "TPC") == 0) {
     return o2::header::gDataOriginTPC;
-  if (strcmp(key, "TRD") == 0)
+  }
+  if (strcmp(key, "TRD") == 0) {
     return o2::header::gDataOriginTRD;
-  if (strcmp(key, "TOF") == 0)
+  }
+  if (strcmp(key, "TOF") == 0) {
     return o2::header::gDataOriginTOF;
-  if (strcmp(key, "ITS") == 0)
+  }
+  if (strcmp(key, "ITS") == 0) {
     return o2::header::gDataOriginITS;
+  }
   return o2::header::gDataOriginInvalid;
 }
 

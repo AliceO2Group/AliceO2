@@ -38,6 +38,7 @@
 
 #include "DPLUtils/DPLRawParser.h"
 #include "MCHBase/Digit.h"
+#include "MCHRawDecoder/OrbitInfo.h"
 
 using namespace o2;
 using namespace o2::framework;
@@ -82,8 +83,14 @@ class DigitsSinkTask
   {
     // get the input digits
     auto digits = pc.inputs().get<gsl::span<Digit>>("digits");
+    auto orbits = pc.inputs().get<gsl::span<OrbitInfo>>("orbits");
 
     if (mText) {
+      for (auto o : orbits) {
+        mOutputFile << std::endl
+                    << " FEEID " << o.getFeeID() << "  LINK " << (int)o.getLinkID() << "  ORBIT " << o.getOrbit() << std::endl;
+      }
+      mOutputFile << "---------------" << std::endl;
       for (auto d : digits) {
         mOutputFile << " DE# " << d.getDetID() << " PadId " << d.getPadID() << " ADC " << d.getADC() << " time " << d.getTime().sampaTime << std::endl;
       }
@@ -111,7 +118,7 @@ WorkflowSpec defineDataProcessing(const ConfigContext&)
   // The producer to generate some data in the workflow
   DataProcessorSpec producer{
     "DigitsSink",
-    Inputs{InputSpec{"digits", "MCH", "DIGITS", 0, Lifetime::Timeframe}},
+    Inputs{InputSpec{"digits", "MCH", "DIGITS", 0, Lifetime::Timeframe}, InputSpec{"orbits", "MCH", "ORBITS", 0, Lifetime::Timeframe}},
     Outputs{},
     AlgorithmSpec{adaptFromTask<o2::mch::raw::DigitsSinkTask>()},
     Options{ { "outfile", VariantType::String, "digits.out", { "output file name" } },

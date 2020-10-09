@@ -10,9 +10,10 @@
 
 /// @file   TODRawWriterSpec.cxx
 
-#include "TOFWorkflow/TOFRawWriterSpec.h"
+#include "TOFWorkflowUtils/TOFRawWriterSpec.h"
 #include "Framework/ControlService.h"
 #include "Framework/ConfigParamRegistry.h"
+#include "Framework/Logger.h"
 #include "DetectorsRaw/HBFUtils.h"
 #include "TOFBase/Geo.h"
 #include "CommonUtils/StringUtils.h"

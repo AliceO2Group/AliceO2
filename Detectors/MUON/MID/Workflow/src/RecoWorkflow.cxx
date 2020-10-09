@@ -29,7 +29,7 @@ namespace o2
 namespace mid
 {
 
-of::WorkflowSpec getRecoWorkflow()
+of::WorkflowSpec getRecoWorkflow(bool ctf)
 {
 
   auto checkReady = [](o2::framework::DataRef const& ref) {
@@ -44,8 +44,10 @@ of::WorkflowSpec getRecoWorkflow()
 
   of::WorkflowSpec specs;
 
-  specs.emplace_back(getRawDecoderSpec(false));
-  specs.emplace_back(getRawAggregatorSpec());
+  if (!ctf) {
+    specs.emplace_back(getRawDecoderSpec(false));
+    specs.emplace_back(getRawAggregatorSpec());
+  }
   specs.emplace_back(getClusterizerSpec());
   specs.emplace_back(getTrackerSpec());
   specs.emplace_back(of::MakeRootTreeWriterSpec("MIDTracksWriter",

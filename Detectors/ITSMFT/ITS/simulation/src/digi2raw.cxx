@@ -250,10 +250,10 @@ void setupLinks(o2::itsmft::MC2RawEncoder<MAP>& m2r, std::string_view outDir, st
           if (acceptRU && lnkAs[il]) {
             nLinks++;
             auto& ru = *m2r.getRUDecode(ruID);
-            uint32_t lanes = mp.getCablesOnRUType(ru.ruInfo->ruType); // lanes patter of this RU
+            uint32_t lanes = mp.getCablesOnRUType(ru.ruInfo->ruType); // lanes pattern of this RU
             ru.links[il] = m2r.addGBTLink();
             auto link = m2r.getGBTLink(ru.links[il]);
-            link->lanes = lanes & ((0x1 << lnkAs[il]) - 1) << (accL);
+            link->lanes = lanes & (((0x1 << lnkAs[il]) - 1) << (accL)); // RS FIXME
             link->idInCRU = linkID;
             link->cruID = cruID;
             link->feeID = mp.RUSW2FEEId(ruID, il);

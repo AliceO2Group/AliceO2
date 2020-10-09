@@ -25,7 +25,7 @@
 #include "FairLogger.h" // for LOG
 #include "MathUtils/Cartesian3D.h"
 #include "DetectorsBase/MatCell.h"
-
+#include <mutex>
 class TGeoHMatrix; // lines 11-11
 class TGeoManager; // lines 9-9
 
@@ -64,7 +64,7 @@ class GeometryManager : public TObject
   static int getSensID(o2::detectors::DetID detid, int sensid)
   {
     /// compose combined detector+sensor ID for sensitive volumes
-    return (detid.getMask().to_ulong() << sDetOffset) | (sensid & sSensorMask);
+    return (detid << sDetOffset) | (sensid & sSensorMask);
   }
 
   /// Default destructor
@@ -113,7 +113,7 @@ class GeometryManager : public TObject
 
  private:
   /// Default constructor
-  GeometryManager();
+  GeometryManager() = default;
 
   static void accountMaterial(const TGeoMaterial* material, MatBudgetExt& bd);
   static void accountMaterial(const TGeoMaterial* material, o2::base::MatBudget& bd)
@@ -126,16 +126,12 @@ class GeometryManager : public TObject
   /// detector geometry. The output global matrix is stored in 'm'.
   /// Returns kFALSE in case TGeo has not been initialized or the volume path is not valid.
   static Bool_t getOriginalMatrixFromPath(const char* path, TGeoHMatrix& m);
-
  private:
-/// sensitive volume identifier composed from (det_mask<<sDetOffset)|(sensid&sSensorMask)
-#ifdef ENABLE_UPGRADES
-  static constexpr UInt_t sDetOffset = 13; /// detector identifier will start from this bit
-#else
+  /// sensitive volume identifier composed from (det_ID<<sDetOffset)|(sensid&sSensorMask)
   static constexpr UInt_t sDetOffset = 15; /// detector identifier will start from this bit
-#endif
   static constexpr UInt_t sSensorMask =
     (0x1 << sDetOffset) - 1; /// mask=max sensitive volumes allowed per detector (0xffff)
+  static std::mutex sTGMutex;
 
   ClassDefOverride(GeometryManager, 0); // Manager of geometry information for alignment
 };

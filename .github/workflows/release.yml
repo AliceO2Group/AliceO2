@@ -1,0 +1,42 @@
+name: Prepare O2 tag
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Tag to prepare'
+        required: true
+        default: 'vX.Y.Z'
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Decide which branch to use
+      run: |
+        cat << EOF
+        ::set-output name=branch::$(echo ${{ github.event.inputs.tag }}-patches | tr . - | sed -e's/-[0-9]*-patches$/-patches/')
+        EOF
+      id: decide_release_branch
+    - uses: actions/checkout@v2
+      with:
+        ref: "dev"
+    - name: Tag branch (or create one before tagging if does not exists)
+      run: |
+        set -x
+        git fetch origin
+        git checkout -B ${{ steps.decide_release_branch.outputs.branch }}
+        git config --global user.email "alibuild@cern.ch"
+        git config --global user.name "ALICE Action Bot"
+        git tag ${{ github.event.inputs.tag }}
+        git push --set-upstream origin ${{ github.event.inputs.tag }}
+    - name: Create Release
+      id: create_release
+      uses: actions/create-release@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} # This token is provided by Actions, you do not need to create your own token
+      with:
+        tag_name: ${{ github.event.inputs.tag }}
+        release_name: ${{ github.event.inputs.tag }}
+        draft: false
+        prerelease: false

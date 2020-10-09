@@ -63,6 +63,7 @@ struct GPUInterfaceOutputs {
   GPUInterfaceOutputRegion compressedClusters;
   GPUInterfaceOutputRegion clustersNative;
   GPUInterfaceOutputRegion tpcTracks;
+  GPUInterfaceOutputRegion clusterLabels;
 };
 
 // Full configuration structure with all available settings of GPU...
@@ -108,7 +109,7 @@ struct GPUO2InterfaceIOPtrs {
   // Input: TPC clusters in cluster native format, or digits, or list of ZS pages -  const as it can only be input
   const o2::tpc::ClusterNativeAccess* clusters = nullptr;
   const std::array<gsl::span<const o2::tpc::Digit>, o2::tpc::constants::MAXSECTOR>* o2Digits = nullptr;
-  std::array<const o2::dataformats::MCTruthContainer<o2::MCCompLabel>*, o2::tpc::constants::MAXSECTOR>* o2DigitsMC = nullptr;
+  std::array<const o2::dataformats::ConstMCTruthContainerView<o2::MCCompLabel>*, o2::tpc::constants::MAXSECTOR>* o2DigitsMC = nullptr;
   const o2::gpu::GPUTrackingInOutZS* tpcZS = nullptr;
 
   // Input / Output for Merged TPC tracks, two ptrs, for the tracks themselves, and for the MC labels.

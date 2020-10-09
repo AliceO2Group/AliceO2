@@ -10,8 +10,10 @@
 
 include_guard()
 
-include(O2RootMacroExclusionList)
 include(O2GetListOfMacros)
+
+set(LIST_OF_ROOT_MACRO_TESTS "" CACHE INTERNAL "List of macros to test for loading")
+set(LIST_OF_ROOT_MACRO_TESTS_COMPILED "" CACHE INTERNAL "List of macros to test for compilation")
 
 #
 # Loop over the Root macros that exists in the repository and check whether
@@ -24,6 +26,7 @@ include(O2GetListOfMacros)
 # simply reported).
 #
 function(o2_report_non_tested_macros)
+  include(O2RootMacroExclusionList)
 
   cmake_parse_arguments(PARSE_ARGV
                         0

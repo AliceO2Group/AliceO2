@@ -18,13 +18,14 @@
 #include "DetectorsRaw/HBFUtils.h"
 #include "DetectorsRaw/RDHUtils.h"
 #include "MIDRaw/CrateMasks.h"
+#include <fmt/format.h>
 
 namespace o2
 {
 namespace mid
 {
 
-void Encoder::init(const char* filename, int verbosity)
+void Encoder::init(const char* filename, bool perLink, int verbosity)
 {
   /// Initializes links
 
@@ -32,12 +33,15 @@ void Encoder::init(const char* filename, int verbosity)
   auto gbtIds = mFEEIdConfig.getConfiguredGBTIds();
 
   mRawWriter.setVerbosity(verbosity);
+  int lcnt = 0;
   for (auto& gbtId : gbtIds) {
     auto feeId = mFEEIdConfig.getFeeId(gbtId);
-    mRawWriter.registerLink(feeId, mFEEIdConfig.getCRUId(gbtId), mFEEIdConfig.getLinkId(gbtId), mFEEIdConfig.getEndPointId(gbtId), filename);
+    mRawWriter.registerLink(feeId, mFEEIdConfig.getCRUId(gbtId), mFEEIdConfig.getLinkId(gbtId), mFEEIdConfig.getEndPointId(gbtId),
+                            perLink ? fmt::format("{:s}_L{:d}.raw", filename, lcnt) : fmt::format("{:s}.raw", filename));
     mGBTEncoders[feeId].setFeeId(feeId);
     mGBTEncoders[feeId].setMask(masks.getMask(feeId));
     mGBTIds[feeId] = gbtId;
+    lcnt++;
   }
 }
 
@@ -45,12 +49,7 @@ void Encoder::hbTrigger(const InteractionRecord& ir)
 {
   /// Processes HB trigger
   if (mLastIR.isDummy()) {
-    // This is the first HB
-    for (uint16_t feeId = 0; feeId < crateparams::sNGBTs; ++feeId) {
-      mGBTEncoders[feeId].processTrigger(o2::constants::lhc::LHCMaxBunches, raw::sORB);
-    }
     mLastIR = o2::raw::HBFUtils::Instance().getFirstIR();
-    return;
   }
 
   std::vector<InteractionRecord> HBIRVec;

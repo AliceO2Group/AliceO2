@@ -60,7 +60,7 @@ std::unique_ptr<VisualisationEvent> DataInterpreterTPC::interpretDataForType(TOb
 
     auto access = std::make_unique<o2::tpc::ClusterNativeAccess>();
     std::unique_ptr<tpc::ClusterNative[]> clusterBuffer;
-    tpc::MCLabelContainer clusterMCBuffer;
+    tpc::ClusterNativeHelper::ConstMCLabelContainerViewWithBuffer clusterMCBuffer;
 
     reader->fillIndex(*access, clusterBuffer, clusterMCBuffer);
 

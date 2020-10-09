@@ -29,6 +29,7 @@
 #include "Framework/Lifetime.h"
 #include "Framework/Output.h"
 #include "Framework/Task.h"
+#include "Framework/Logger.h"
 
 #include "MCHBase/Digit.h"
 #include "MCHBase/PreCluster.h"
