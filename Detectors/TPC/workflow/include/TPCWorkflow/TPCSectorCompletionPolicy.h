@@ -28,7 +28,6 @@
 
 namespace o2
 {
-using namespace framework;
 namespace tpc
 {
 
@@ -64,6 +63,8 @@ namespace tpc
 class TPCSectorCompletionPolicy
 {
  public:
+  using CompletionPolicyData = std::vector<framework::InputSpec>;
+
   enum struct Config {
     // require data on all other inputs in addition to the ones checked for the sector completion
     RequireAll,
@@ -80,15 +81,15 @@ class TPCSectorCompletionPolicy
   {
     constexpr static size_t NSectors = o2::tpc::Sector::MAXSECTOR;
 
-    auto matcher = [expression = mProcessorName](DeviceSpec const& device) -> bool {
+    auto matcher = [expression = mProcessorName](framework::DeviceSpec const& device) -> bool {
       return std::regex_match(device.name.begin(), device.name.end(), std::regex(expression.c_str()));
     };
 
-    auto callback = [inputMatchers = mInputMatchers, bRequireAll = this->mRequireAll](CompletionPolicy::InputSet inputs) -> CompletionPolicy::CompletionOp {
-      auto op = CompletionPolicy::CompletionOp::Wait;
+    auto callback = [bRequireAll = mRequireAll, inputMatchers = mInputMatchers, externalInputMatchers = mExternalInputMatchers](framework::CompletionPolicy::InputSet inputs) -> framework::CompletionPolicy::CompletionOp {
       std::bitset<NSectors> validSectors = 0;
       bool haveMatchedInput = false;
       uint64_t activeSectors = 0;
+      std::vector<uint64_t> validSectorsExternal(externalInputMatchers ? externalInputMatchers->size() : 0);
       size_t nActiveInputRoutes = 0;
       size_t nMaxPartsPerRoute = 0;
       int inputType = -1;
@@ -96,17 +97,17 @@ class TPCSectorCompletionPolicy
         nMaxPartsPerRoute = it.size() > nMaxPartsPerRoute ? it.size() : nMaxPartsPerRoute;
         bool haveActivePart = false;
         for (auto const& ref : it) {
-          if (!DataRefUtils::isValid(ref)) {
+          if (!framework::DataRefUtils::isValid(ref)) {
             continue;
           }
           haveActivePart = true;
-          auto const* dh = DataRefUtils::getHeader<o2::header::DataHeader*>(ref);
+          auto const* dh = framework::DataRefUtils::getHeader<o2::header::DataHeader*>(ref);
           // check if the O2 message matches on of the input specs to be matched and
           // if it matches, check for the sector header, retrieve the active sector information
-          // and mark the sector as valid
+          // and mark the sector as valid, we require to match exactly one of the inputs in the list
           for (size_t idx = 0, end = inputMatchers.size(); idx < end; idx++) {
             auto const& spec = inputMatchers[idx];
-            if (DataRefUtils::match(ref, spec)) {
+            if (framework::DataRefUtils::match(ref, spec)) {
               haveMatchedInput = true;
               if (inputType == -1) {
                 // we bind to the index of the first match and require all other inputs to match the same spec
@@ -119,20 +120,43 @@ class TPCSectorCompletionPolicy
                       << dh->dataDescription.as<std::string>() + "/" + dh->subSpecification;
                 throw std::runtime_error(error.str());
               }
-              auto const* sectorHeader = DataRefUtils::getHeader<o2::tpc::TPCSectorHeader*>(ref);
+              auto const* sectorHeader = framework::DataRefUtils::getHeader<o2::tpc::TPCSectorHeader*>(ref);
               if (sectorHeader == nullptr) {
-                // FIXME: think about error policy
                 throw std::runtime_error("TPC sector header missing on header stack");
               }
               activeSectors |= sectorHeader->activeSectors;
-              std::bitset<NSectors> sectorMask(sectorHeader->sectorBits);
-              validSectors |= sectorMask;
+              validSectors |= sectorHeader->sectorBits;
               break;
+            }
+          }
+
+          // We require to match all inputs in the external list
+          if (externalInputMatchers) {
+            for (size_t idx = 0, end = externalInputMatchers->size(); idx < end; idx++) {
+              auto const& spec = (*externalInputMatchers)[idx];
+              if (framework::DataRefUtils::match(ref, spec)) {
+                auto const* sectorHeader = framework::DataRefUtils::getHeader<o2::tpc::TPCSectorHeader*>(ref);
+                if (sectorHeader == nullptr) {
+                  throw std::runtime_error("TPC sector header missing on header stack");
+                }
+                activeSectors |= sectorHeader->activeSectors;
+                validSectorsExternal[idx] |= sectorHeader->sectorBits;
+                break;
+              }
             }
           }
         }
         if (haveActivePart) {
           ++nActiveInputRoutes;
+        }
+      }
+
+      if (externalInputMatchers) {
+        // We require all external matchers to have all sectors present, if not we wait
+        for (size_t idx = 0, end = externalInputMatchers->size(); idx < end; idx++) {
+          if (validSectorsExternal[idx] == 0 || validSectorsExternal[idx] != activeSectors) {
+            return framework::CompletionPolicy::CompletionOp::Wait;
+          }
         }
       }
 
@@ -142,11 +166,11 @@ class TPCSectorCompletionPolicy
       // into the TPC policy, but that is not possible for the moment. That's why there is a possibly
       // unhandled case if multiple TPC input routes are defined but a complete data set is coming over
       // one of them. Not likely to be a use case, though.
-      if (haveMatchedInput && activeSectors == validSectors.to_ulong() &&
+      if ((inputMatchers.size() == 0 || (haveMatchedInput && activeSectors == validSectors.to_ulong())) &&
           (!bRequireAll || nActiveInputRoutes == inputs.size())) {
         // we can process if there is input for all sectors, the required sectors are
         // transported as part of the sector header
-        op = CompletionPolicy::CompletionOp::Consume;
+        return framework::CompletionPolicy::CompletionOp::Consume;
       } else if (activeSectors == 0 && nActiveInputRoutes == inputs.size()) {
         // no sector header is transmitted, this is the case for e.g. the ZS raw data
         // we simply require input on all routes, this is also the default of DPL DataRelayer
@@ -158,12 +182,12 @@ class TPCSectorCompletionPolicy
         //if (nMaxPartsPerRoute > 1) {
         //  LOG(WARNING) << "No sector information is provided with the data, data set is complete with data on all input routes. But there are multiple parts on at least one route and this policy might not be complete, no check possible if other parts on some routes are still missing. It is adviced to add a custom policy.";
         //}
-        op = CompletionPolicy::CompletionOp::Consume;
+        return framework::CompletionPolicy::CompletionOp::Consume;
       }
 
-      return op;
+      return framework::CompletionPolicy::CompletionOp::Wait;
     };
-    return CompletionPolicy{"TPCSectorCompletionPolicy", matcher, callback};
+    return framework::CompletionPolicy{"TPCSectorCompletionPolicy", matcher, callback};
   }
 
  private:
@@ -172,7 +196,7 @@ class TPCSectorCompletionPolicy
   void init(Arg&& arg, Args&&... args)
   {
     using Type = std::decay_t<Arg>;
-    if constexpr (std::is_same<Type, InputSpec>::value) {
+    if constexpr (std::is_same<Type, framework::InputSpec>::value) {
       mInputMatchers.emplace_back(std::move(arg));
     } else if constexpr (std::is_same<Type, TPCSectorCompletionPolicy::Config>::value) {
       switch (arg) {
@@ -180,8 +204,10 @@ class TPCSectorCompletionPolicy
           mRequireAll = true;
           break;
       }
+    } else if constexpr (std::is_same<Type, std::vector<o2::framework::InputSpec>*>::value) {
+      mExternalInputMatchers = arg;
     } else {
-      static_assert(always_static_assert_v<Type>);
+      static_assert(framework::always_static_assert_v<Type>);
     }
     if constexpr (sizeof...(args) > 0) {
       init(std::forward<Args>(args)...);
@@ -189,7 +215,11 @@ class TPCSectorCompletionPolicy
   }
 
   std::string mProcessorName;
-  std::vector<InputSpec> mInputMatchers;
+  std::vector<framework::InputSpec> mInputMatchers;
+  // The external input matchers behave as the internal ones with the following differences:
+  // - They are controlled externally and the external entity can modify them, e.g. after parsing command line arguments.
+  // - They are all matched independently, it is not sufficient that one of them is present for all sectors
+  const std::vector<framework::InputSpec>* mExternalInputMatchers = nullptr;
   bool mRequireAll = false;
 };
 } // namespace tpc

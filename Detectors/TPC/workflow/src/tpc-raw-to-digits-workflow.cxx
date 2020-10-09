@@ -126,7 +126,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
     recoOuput = tpcRecoOutputType.c_str();
   }
 
-  auto tpcRecoWorkflow = o2::tpc::reco_workflow::getWorkflow(tpcSectors, tpcSectors, false, lanes, "digitizer", recoOuput.data());
+  auto tpcRecoWorkflow = o2::tpc::reco_workflow::getWorkflow(nullptr, tpcSectors, tpcSectors, false, lanes, "digitizer", recoOuput.data());
   specs.insert(specs.end(), tpcRecoWorkflow.begin(), tpcRecoWorkflow.end());
 
   return specs;

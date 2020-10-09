@@ -86,7 +86,7 @@ const std::unordered_map<std::string, OutputType> OutputMap{
   {"zsraw", OutputType::ZSRaw},
 };
 
-framework::WorkflowSpec getWorkflow(std::vector<int> const& tpcSectors, std::vector<int> const& laneConfiguration,
+framework::WorkflowSpec getWorkflow(CompletionPolicyData* policyData, std::vector<int> const& tpcSectors, std::vector<int> const& laneConfiguration,
                                     bool propagateMC, unsigned nLanes, std::string const& cfgInput, std::string const& cfgOutput,
                                     int caClusterer, int zsOnTheFly, int zs10bit, float zsThreshold)
 {
@@ -430,18 +430,18 @@ framework::WorkflowSpec getWorkflow(std::vector<int> const& tpcSectors, std::vec
   //
   // selected by output type 'tracks'
   if (runTracker) {
-    specs.emplace_back(o2::tpc::getCATrackerSpec(ca::Config{
-                                                   propagateMC ? ca::Operation::ProcessMC : ca::Operation::Noop,
-                                                   decompressTPC ? ca::Operation::DecompressTPC : ca::Operation::Noop,
-                                                   decompressTPC && inputType == InputType::CompClusters ? ca::Operation::DecompressTPCFromROOT : ca::Operation::Noop,
-                                                   caClusterer ? ca::Operation::CAClusterer : ca::Operation::Noop,
-                                                   zsDecoder ? ca::Operation::ZSDecoder : ca::Operation::Noop,
-                                                   zsOnTheFly ? ca::Operation::ZSOnTheFly : ca::Operation::Noop,
-                                                   produceTracks ? ca::Operation::OutputTracks : ca::Operation::Noop,
-                                                   produceCompClusters ? ca::Operation::OutputCompClusters : ca::Operation::Noop,
-                                                   runClusterEncoder ? ca::Operation::OutputCompClustersFlat : ca::Operation::Noop,
-                                                   isEnabled(OutputType::Clusters) && (caClusterer || decompressTPC) ? ca::Operation::OutputCAClusters : ca::Operation::Noop,
-                                                 },
+    specs.emplace_back(o2::tpc::getCATrackerSpec(policyData, ca::Config{
+                                                               propagateMC ? ca::Operation::ProcessMC : ca::Operation::Noop,
+                                                               decompressTPC ? ca::Operation::DecompressTPC : ca::Operation::Noop,
+                                                               decompressTPC && inputType == InputType::CompClusters ? ca::Operation::DecompressTPCFromROOT : ca::Operation::Noop,
+                                                               caClusterer ? ca::Operation::CAClusterer : ca::Operation::Noop,
+                                                               zsDecoder ? ca::Operation::ZSDecoder : ca::Operation::Noop,
+                                                               zsOnTheFly ? ca::Operation::ZSOnTheFly : ca::Operation::Noop,
+                                                               produceTracks ? ca::Operation::OutputTracks : ca::Operation::Noop,
+                                                               produceCompClusters ? ca::Operation::OutputCompClusters : ca::Operation::Noop,
+                                                               runClusterEncoder ? ca::Operation::OutputCompClustersFlat : ca::Operation::Noop,
+                                                               isEnabled(OutputType::Clusters) && (caClusterer || decompressTPC) ? ca::Operation::OutputCAClusters : ca::Operation::Noop,
+                                                             },
                                                  tpcSectors));
   }
 
