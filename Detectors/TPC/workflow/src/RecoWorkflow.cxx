@@ -417,11 +417,11 @@ framework::WorkflowSpec getWorkflow(std::vector<int> const& tpcSectors, std::vec
   }
 
   if (zsOnTheFly) {
-    specs.emplace_back(o2::tpc::getZSEncoderSpec(laneConfiguration, zs10bit, zsThreshold, outRaw));
+    specs.emplace_back(o2::tpc::getZSEncoderSpec(tpcSectors, zs10bit, zsThreshold, outRaw));
   }
 
   if (zsToDigit) {
-    specs.emplace_back(o2::tpc::getZStoDigitsSpec(laneConfiguration));
+    specs.emplace_back(o2::tpc::getZStoDigitsSpec(tpcSectors));
   }
 
   //////////////////////////////////////////////////////////////////////////////////////////////
@@ -442,7 +442,7 @@ framework::WorkflowSpec getWorkflow(std::vector<int> const& tpcSectors, std::vec
                                                    runClusterEncoder ? ca::Operation::OutputCompClustersFlat : ca::Operation::Noop,
                                                    isEnabled(OutputType::Clusters) && (caClusterer || decompressTPC) ? ca::Operation::OutputCAClusters : ca::Operation::Noop,
                                                  },
-                                                 laneConfiguration));
+                                                 tpcSectors));
   }
 
   //////////////////////////////////////////////////////////////////////////////////////////////
