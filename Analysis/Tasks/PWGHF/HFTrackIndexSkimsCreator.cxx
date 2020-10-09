@@ -183,28 +183,27 @@ struct HFTrackIndexSkimsCreator {
           continue;
 
         auto trackParVarNeg1 = getTrackParCov(trackNeg1);
+        Double_t px_Cand = trackPos1.px() + trackNeg1.px();
+        Double_t py_Cand = trackPos1.py() + trackNeg1.py();
+        Double_t pt_Cand_before2vertex = TMath::Sqrt(px_Cand * px_Cand + py_Cand * py_Cand);
 
-        // reconstruct the 2-prong secondary vertex
-        if (df.process(trackParVarPos1, trackParVarNeg1) == 0)
-          continue;
+        if (pt_Cand_before2vertex >= ptmincand_2prong) {
+          // reconstruct the 2-prong secondary vertex
+          if (df.process(trackParVarPos1, trackParVarNeg1) == 0)
+            continue;
 
-        // get vertex
-        //const auto& vtx = df.getPCACandidate();
+          // get track momenta
+          array<float, 3> pvec0;
+          array<float, 3> pvec1;
+          df.getTrack(0).getPxPyPzGlo(pvec0);
+          df.getTrack(1).getPxPyPzGlo(pvec1);
+          const auto& secondaryVertex = df.getPCACandidate();
 
-        // get track momenta
-        array<float, 3> pvec0;
-        array<float, 3> pvec1;
-        df.getTrack(0).getPxPyPzGlo(pvec0);
-        df.getTrack(1).getPxPyPzGlo(pvec1);
-        const auto& secondaryVertex = df.getPCACandidate();
+          // calculate invariant masses
+          auto arrMom = array{pvec0, pvec1};
+          mass2PiK = RecoDecay::M(arrMom, array{massPi, massK});
+          mass2KPi = RecoDecay::M(arrMom, array{massK, massPi});
 
-        // calculate invariant masses
-        auto arrMom = array{pvec0, pvec1};
-        mass2PiK = RecoDecay::M(arrMom, array{massPi, massK});
-        mass2KPi = RecoDecay::M(arrMom, array{massK, massPi});
-        ptcand_2prong = RecoDecay::Pt(pvec0, pvec1);
-
-        if (ptcand_2prong >= ptmincand_2prong) {
           if (b_dovalplots) {
             hmass2->Fill(mass2PiK);
             hmass2->Fill(mass2KPi);
@@ -217,6 +216,7 @@ struct HFTrackIndexSkimsCreator {
                               trackPos1.globalIndex(),
                               trackNeg1.globalIndex(), 1);
         }
+
         // 3-prong vertex reconstruction
         if (do3prong == 1) {
           if (trackPos1.isSel3Prong() == 0)
@@ -243,42 +243,41 @@ struct HFTrackIndexSkimsCreator {
               continue;
 
             auto trackParVarPos2 = getTrackParCov(trackPos2);
+            Double_t px_Cand3 = trackPos1.px() + trackNeg1.px() + trackPos2.px();
+            Double_t py_Cand3 = trackPos1.py() + trackNeg1.py() + trackPos2.py();
+            Double_t pt_Cand3_before2vertex = TMath::Sqrt(px_Cand * px_Cand + py_Cand * py_Cand);
 
-            // reconstruct the 3-prong secondary vertex
-            if (df3.process(trackParVarPos1, trackParVarNeg1, trackParVarPos2) == 0)
-              continue;
+            if (pt_Cand3_before2vertex >= ptmincand_3prong) {
+              // reconstruct the 3-prong secondary vertex
+              if (df3.process(trackParVarPos1, trackParVarNeg1, trackParVarPos2) == 0)
+                continue;
 
-            // get vertex
-            //const auto& vtx3 = df3.getPCACandidate();
+              // get track momenta
+              array<float, 3> pvec0;
+              array<float, 3> pvec1;
+              array<float, 3> pvec2;
+              df3.getTrack(0).getPxPyPzGlo(pvec0);
+              df3.getTrack(1).getPxPyPzGlo(pvec1);
+              df3.getTrack(2).getPxPyPzGlo(pvec2);
+              const auto& secondaryVertex3 = df3.getPCACandidate();
 
-            // get track momenta
-            array<float, 3> pvec0;
-            array<float, 3> pvec1;
-            array<float, 3> pvec2;
-            df3.getTrack(0).getPxPyPzGlo(pvec0);
-            df3.getTrack(1).getPxPyPzGlo(pvec1);
-            df3.getTrack(2).getPxPyPzGlo(pvec2);
-            const auto& secondaryVertex3 = df3.getPCACandidate();
+              // calculate invariant mass
+              arr3Mom = array{pvec0, pvec1, pvec2};
+              mass3PiKPi = RecoDecay::M(std::move(arr3Mom), array{massPi, massK, massPi});
 
-            // calculate invariant mass
-            arr3Mom = array{pvec0, pvec1, pvec2};
-            mass3PiKPi = RecoDecay::M(std::move(arr3Mom), array{massPi, massK, massPi});
-            ptcand_3prong = RecoDecay::Pt(pvec0, pvec1, pvec2);
+              if (b_dovalplots) {
+                hmass3->Fill(mass3PiKPi);
+                hvtx3_x_out->Fill(secondaryVertex3[0]);
+                hvtx3_y_out->Fill(secondaryVertex3[1]);
+                hvtx3_z_out->Fill(secondaryVertex3[2]);
+              }
 
-            if (ptcand_3prong < ptmincand_3prong)
-              continue;
-            if (b_dovalplots) {
-              hmass3->Fill(mass3PiKPi);
-              hvtx3_x_out->Fill(secondaryVertex3[0]);
-              hvtx3_y_out->Fill(secondaryVertex3[1]);
-              hvtx3_z_out->Fill(secondaryVertex3[2]);
+              // fill table row
+              rowTrackIndexProng3(trackPos1.collisionId(),
+                                  trackPos1.globalIndex(),
+                                  trackNeg1.globalIndex(),
+                                  trackPos2.globalIndex(), 2);
             }
-
-            // fill table row
-            rowTrackIndexProng3(trackPos1.collisionId(),
-                                trackPos1.globalIndex(),
-                                trackNeg1.globalIndex(),
-                                trackPos2.globalIndex(), 2);
           }
 
           // second loop over negative tracks
@@ -300,38 +299,40 @@ struct HFTrackIndexSkimsCreator {
               continue;
 
             auto trackParVarNeg2 = getTrackParCov(trackNeg2);
+            Double_t px_Cand3 = trackPos1.px() + trackNeg1.px() + trackNeg2.px();
+            Double_t py_Cand3 = trackPos1.py() + trackNeg1.py() + trackNeg2.py();
+            Double_t pt_Cand3_before2vertex = TMath::Sqrt(px_Cand3 * px_Cand3 + py_Cand3 * py_Cand3);
 
-            // reconstruct the 3-prong secondary vertex
-            if (df3.process(trackParVarNeg1, trackParVarPos1, trackParVarNeg2) == 0)
-              continue;
+            if (pt_Cand3_before2vertex >= ptmincand_3prong) {
+              // reconstruct the 3-prong secondary vertex
+              if (df3.process(trackParVarNeg1, trackParVarPos1, trackParVarNeg2) == 0)
+                continue;
 
-            // get vertex
-            //const auto& vtx3 = df3.getPCACandidate();
+              // get vertex
+              //const auto& vtx3 = df3.getPCACandidate();
 
-            // get track momenta
-            array<float, 3> pvec0;
-            array<float, 3> pvec1;
-            array<float, 3> pvec2;
-            df3.getTrack(0).getPxPyPzGlo(pvec0);
-            df3.getTrack(1).getPxPyPzGlo(pvec1);
-            df3.getTrack(2).getPxPyPzGlo(pvec2);
+              // get track momenta
+              array<float, 3> pvec0;
+              array<float, 3> pvec1;
+              array<float, 3> pvec2;
+              df3.getTrack(0).getPxPyPzGlo(pvec0);
+              df3.getTrack(1).getPxPyPzGlo(pvec1);
+              df3.getTrack(2).getPxPyPzGlo(pvec2);
 
-            // calculate invariant mass
-            arr3Mom = array{pvec0, pvec1, pvec2};
-            mass3PiKPi = RecoDecay::M(std::move(arr3Mom), array{massPi, massK, massPi});
-            ptcand_3prong = RecoDecay::Pt(pvec0, pvec1, pvec2);
+              // calculate invariant mass
+              arr3Mom = array{pvec0, pvec1, pvec2};
+              mass3PiKPi = RecoDecay::M(std::move(arr3Mom), array{massPi, massK, massPi});
 
-            if (ptcand_3prong < ptmincand_3prong)
-              continue;
-            if (b_dovalplots) {
-              hmass3->Fill(mass3PiKPi);
+              if (b_dovalplots) {
+                hmass3->Fill(mass3PiKPi);
+              }
+
+              // fill table row
+              rowTrackIndexProng3(trackNeg1.collisionId(),
+                                  trackNeg1.globalIndex(),
+                                  trackPos1.globalIndex(),
+                                  trackNeg2.globalIndex(), 2);
             }
-
-            // fill table row
-            rowTrackIndexProng3(trackNeg1.collisionId(),
-                                trackNeg1.globalIndex(),
-                                trackPos1.globalIndex(),
-                                trackNeg2.globalIndex(), 2);
           }
         }
       }
