@@ -43,6 +43,12 @@ namespace mch
 using namespace std;
 using namespace o2::framework;
 
+enum tCheckNoLeftoverDigits {
+  CHECK_NO_LEFTOVER_DIGITS_OFF,
+  CHECK_NO_LEFTOVER_DIGITS_ERROR,
+  CHECK_NO_LEFTOVER_DIGITS_FATAL
+};
+
 class PreClusterFinderTask
 {
  public:
@@ -67,6 +73,15 @@ class PreClusterFinderTask
                 << std::chrono::duration<double, std::milli>(tEnd - tStart).count() << " ms";
     };
     ic.services().get<CallbackService>().set(CallbackService::Id::Stop, stop);
+
+    auto checkNoLeftoverDigits = ic.options().get<std::string>("check-no-leftover-digits");
+    if (checkNoLeftoverDigits == "off") {
+      mCheckNoLeftoverDigits = CHECK_NO_LEFTOVER_DIGITS_OFF;
+    } else if (checkNoLeftoverDigits == "error") {
+      mCheckNoLeftoverDigits = CHECK_NO_LEFTOVER_DIGITS_ERROR;
+    } else if (checkNoLeftoverDigits == "fatal") {
+      mCheckNoLeftoverDigits = CHECK_NO_LEFTOVER_DIGITS_FATAL;
+    }
   }
 
   //_________________________________________________________________________________________________
@@ -102,9 +117,24 @@ class PreClusterFinderTask
     mPreClusters.reserve(nPreClusters); // to avoid reallocation if
     mUsedDigits.reserve(digits.size()); // the capacity is exceeded
     mPreClusterFinder.getPreClusters(mPreClusters, mUsedDigits);
-    if (mUsedDigits.size() != digits.size()) {
-      throw runtime_error("some digits have been lost during the preclustering");
-    }
+
+    // check sizes of input and output digits vectors
+    bool digitsSizesDiffer = (mUsedDigits.size() != digits.size());
+    switch (mCheckNoLeftoverDigits) {
+      case CHECK_NO_LEFTOVER_DIGITS_OFF:
+        break;
+      case CHECK_NO_LEFTOVER_DIGITS_ERROR:
+        if (digitsSizesDiffer) {
+          LOG(ERROR) << "some digits have been lost during the preclustering";
+        }
+        break;
+      case CHECK_NO_LEFTOVER_DIGITS_FATAL:
+        if (digitsSizesDiffer) {
+          throw runtime_error("some digits have been lost during the preclustering");
+        }
+        break;
+    };
+
     tEnd = std::chrono::high_resolution_clock::now();
     mTimeStorePreClusters += tEnd - tStart;
 
@@ -117,6 +147,8 @@ class PreClusterFinderTask
   PreClusterFinder mPreClusterFinder{};   ///< preclusterizer
   std::vector<PreCluster> mPreClusters{}; ///< vector of preclusters
   std::vector<Digit> mUsedDigits{};       ///< vector of digits in the preclusters
+
+  int mCheckNoLeftoverDigits{CHECK_NO_LEFTOVER_DIGITS_ERROR}; ///< digits vector size check option
 
   std::chrono::duration<double, std::milli> mTimeResetPreClusterFinder{}; ///< timer
   std::chrono::duration<double, std::milli> mTimeLoadDigits{};            ///< timer
@@ -133,7 +165,7 @@ o2::framework::DataProcessorSpec getPreClusterFinderSpec()
     Outputs{OutputSpec{"MCH", "PRECLUSTERS", 0, Lifetime::Timeframe},
             OutputSpec{"MCH", "PRECLUSTERDIGITS", 0, Lifetime::Timeframe}},
     AlgorithmSpec{adaptFromTask<PreClusterFinderTask>()},
-    Options{}};
+    Options{{"check-no-leftover-digits", VariantType::String, "error", {"check if any digits are excluded from the pre-clusters"}}}};
 }
 
 } // end namespace mch
