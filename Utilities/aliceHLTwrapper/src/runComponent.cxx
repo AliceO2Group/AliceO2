@@ -59,10 +59,11 @@ int main(int argc, char** argv)
           if (arg[1] == 'i' || arg[1] == 'o') {
             if (i + 1 >= argc) {
               cerr << "missing file name for option " << arg << endl;
-            } else if (arg[1] == 'i')
+            } else if (arg[1] == 'i') {
               inputFileName = argv[i + 1];
-            else
+            } else {
               outputFileName = argv[i + 1];
+            }
             break;
           }
         }
@@ -101,11 +102,13 @@ int main(int argc, char** argv)
   if ((iResult = component.process(blockData)) < 0) {
     cerr << "error: init failed with " << iResult << endl;
   }
-  if (inputBuffer)
+  if (inputBuffer) {
     delete[] inputBuffer;
+  }
   inputBuffer = nullptr;
-  if (iResult < 0)
+  if (iResult < 0) {
     return -iResult;
+  }
 
   // for now, only the first buffer is written
   if (blockData.size() > 0) {

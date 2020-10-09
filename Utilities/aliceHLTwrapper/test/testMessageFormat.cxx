@@ -50,8 +50,9 @@ BOOST_AUTO_TEST_CASE(test_createMessagesModeMultiPart)
   for (auto& desc : dataDescriptors) {
     totalPayloadSize += desc.fSize;
     hexDump("HLT data descriptor", &desc, sizeof(desc));
-    if (!desc.fPtr)
+    if (!desc.fPtr) {
       continue;
+    }
     hexDump("  data payload", (char*)desc.fPtr + desc.fOffset, desc.fSize);
   }
 
@@ -100,8 +101,9 @@ BOOST_AUTO_TEST_CASE(test_createMessagesModeSequence)
   for (auto& desc : dataDescriptors) {
     totalPayloadSize += desc.fSize;
     hexDump("HLT data descriptor", &desc, sizeof(desc));
-    if (!desc.fPtr)
+    if (!desc.fPtr) {
       continue;
+    }
     hexDump("  data payload", (char*)desc.fPtr + desc.fOffset, desc.fSize);
   }
 
@@ -142,8 +144,9 @@ BOOST_AUTO_TEST_CASE(test_createMessagesModeO2)
   for (auto& desc : dataDescriptors) {
     totalPayloadSize += desc.fSize;
     hexDump("HLT data descriptor", &desc, sizeof(desc));
-    if (!desc.fPtr)
+    if (!desc.fPtr) {
       continue;
+    }
     hexDump("  data payload", (char*)desc.fPtr + desc.fOffset, desc.fSize);
   }
 
@@ -173,8 +176,9 @@ BOOST_AUTO_TEST_CASE(test_createMessagesModeO2)
   dataidx = 0;
   for (auto& desc : descriptors) {
     hexDump("Readback: HLT data descriptor", &desc, sizeof(desc));
-    if (!desc.fPtr)
+    if (!desc.fPtr) {
       continue;
+    }
     const char* data = (char*)desc.fPtr + desc.fOffset;
     hexDump("  data payload", data, desc.fSize);
     BOOST_CHECK(dataFields[dataidx++] == data);
@@ -226,8 +230,9 @@ BOOST_AUTO_TEST_CASE(test_createHeartbeatFrame)
   for (auto& desc : dataDescriptors) {
     totalPayloadSize += desc.fSize;
     hexDump("HLT data descriptor", &desc, sizeof(desc));
-    if (!desc.fPtr)
+    if (!desc.fPtr) {
       continue;
+    }
     hexDump("  data payload", (char*)desc.fPtr + desc.fOffset, desc.fSize);
   }
 

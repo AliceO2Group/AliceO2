@@ -94,8 +94,9 @@ void EPNReceiverDevice::Run()
 
   while (compatibility::FairMQ13<FairMQDevice>::IsRunning(this)) {
     FairMQParts subtimeframeParts;
-    if (Receive(subtimeframeParts, mInChannelName, 0, 100) <= 0)
+    if (Receive(subtimeframeParts, mInChannelName, 0, 100) <= 0) {
       continue;
+    }
 
     assert(subtimeframeParts.Size() >= 2);
 

@@ -88,8 +88,9 @@ HOMERFactory::~HOMERFactory() = default;
 AliHLTHOMERReader* HOMERFactory::OpenReader(const char* hostname, unsigned short port)
 {
   // Open Reader instance for host
-  if (sLibraryStatus < 0)
+  if (sLibraryStatus < 0) {
     return nullptr;
+  }
 
   sLibraryStatus = LoadHOMERLibrary();
   if (sLibraryStatus <= 0) {
@@ -107,8 +108,9 @@ AliHLTHOMERReader* HOMERFactory::OpenReader(const char* hostname, unsigned short
 AliHLTHOMERReader* HOMERFactory::OpenReader(unsigned int tcpCnt, const char** hostnames, unsigned short* ports)
 {
   // Open Reader instance for a list of hosts
-  if (sLibraryStatus < 0)
+  if (sLibraryStatus < 0) {
     return nullptr;
+  }
 
   sLibraryStatus = LoadHOMERLibrary();
   if (sLibraryStatus <= 0) {
@@ -127,8 +129,9 @@ AliHLTHOMERReader* HOMERFactory::OpenReader(unsigned int tcpCnt, const char** ho
 AliHLTHOMERReader* HOMERFactory::OpenReaderBuffer(const AliHLTUInt8_t* pBuffer, int size)
 {
   // Open Reader instance for a data buffer
-  if (sLibraryStatus < 0)
+  if (sLibraryStatus < 0) {
     return nullptr;
+  }
 
   sLibraryStatus = LoadHOMERLibrary();
   if (sLibraryStatus <= 0) {
@@ -148,8 +151,9 @@ int HOMERFactory::DeleteReader(AliHLTHOMERReader* pReader)
   // delete a reader
 
   // the actual deletion function is inside the HOMER library
-  if (sLibraryStatus < 0)
+  if (sLibraryStatus < 0) {
     return sLibraryStatus;
+  }
 
   sLibraryStatus = LoadHOMERLibrary();
   if (sLibraryStatus <= 0) {
@@ -166,8 +170,9 @@ int HOMERFactory::DeleteReader(AliHLTHOMERReader* pReader)
 AliHLTHOMERWriter* HOMERFactory::OpenWriter()
 {
   // open a Writer instance
-  if (sLibraryStatus < 0)
+  if (sLibraryStatus < 0) {
     return nullptr;
+  }
 
   sLibraryStatus = LoadHOMERLibrary();
   if (sLibraryStatus <= 0) {
@@ -185,8 +190,9 @@ AliHLTHOMERWriter* HOMERFactory::OpenWriter()
 int HOMERFactory::DeleteWriter(AliHLTHOMERWriter* pWriter)
 {
   // see header file for class documentation
-  if (sLibraryStatus < 0)
+  if (sLibraryStatus < 0) {
     return sLibraryStatus;
+  }
 
   sLibraryStatus = LoadHOMERLibrary();
   if (sLibraryStatus <= 0) {
@@ -262,15 +268,17 @@ int HOMERFactory::UnloadHOMERLibrary()
     const char** library = &sLibraries[0];
     int* refcount = &sLibRefCount[0];
     while (*library != nullptr) {
-      if (strcmp(*library, mLoadedLib) == 0)
+      if (strcmp(*library, mLoadedLib) == 0) {
         break;
+      }
       ++library;
       ++refcount;
     }
 
     // Decrease the reference count and remove the library if it is zero.
-    if (*refcount >= 0)
+    if (*refcount >= 0) {
       --(*refcount);
+    }
     if (*refcount == 0) { /* Matthias 2014-05-08 that part of the code has been disabled for the ROOT-independent
          version.
          TODO: dlopen is maintaining an internal reference count, which also makes the

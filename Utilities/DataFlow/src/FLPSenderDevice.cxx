@@ -50,8 +50,9 @@ void FLPSenderDevice::Run()
     // - Add the current FLP id to the SubtimeframeMetadata
     // - Forward to the EPN the whole subtimeframe
     FairMQParts subtimeframeParts;
-    if (Receive(subtimeframeParts, mInChannelName, 0, 100) <= 0)
+    if (Receive(subtimeframeParts, mInChannelName, 0, 100) <= 0) {
       continue;
+    }
 
     assert(subtimeframeParts.Size() != 0);
     assert(subtimeframeParts.Size() >= 2);

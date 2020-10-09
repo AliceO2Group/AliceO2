@@ -58,8 +58,9 @@ MessageFormat::MessageFormat()
 
 MessageFormat::~MessageFormat()
 {
-  if (mpFactory)
+  if (mpFactory) {
     delete mpFactory;
+  }
   mpFactory = nullptr;
 }
 
@@ -144,9 +145,9 @@ int MessageFormat::addMessages(const std::vector<BufferDesc_t>& list)
     if (data.mSize > 0) {
       unsigned nofEventHeaders = mListEvtData.size();
       int result = addMessage(data.mP, data.mSize);
-      if (result >= 0)
+      if (result >= 0) {
         totalCount += result;
-      else {
+      } else {
         cerr << "warning: no valid data blocks in message " << i << endl;
       }
     } else {
@@ -161,8 +162,9 @@ int MessageFormat::readBlockSequence(uint8_t* buffer, unsigned size,
 {
   // read a sequence of blocks consisting of AliHLTComponentBlockData followed by payload
   // from a buffer
-  if (buffer == nullptr)
+  if (buffer == nullptr) {
     return 0;
+  }
   unsigned position = 0;
   std::vector<BlockDescriptor> input;
   while (position + sizeof(AliHLTComponentBlockData) < size) {
@@ -197,13 +199,16 @@ int MessageFormat::readHOMERFormat(uint8_t* buffer, unsigned size,
                                    std::vector<BlockDescriptor>& descriptorList) const
 {
   // read message payload in HOMER format
-  if (mpFactory == nullptr)
+  if (mpFactory == nullptr) {
     const_cast<MessageFormat*>(this)->mpFactory = new o2::alice_hlt::HOMERFactory;
-  if (buffer == nullptr || mpFactory == nullptr)
+  }
+  if (buffer == nullptr || mpFactory == nullptr) {
     return -EINVAL;
+  }
   unique_ptr<AliHLTHOMERReader> reader(mpFactory->OpenReaderBuffer(buffer, size));
-  if (reader.get() == nullptr)
+  if (reader.get() == nullptr) {
     return -ENOMEM;
+  }
 
   unsigned nofBlocks = 0;
   if (reader->ReadNextEvent() == 0) {
@@ -377,14 +382,16 @@ std::vector<MessageFormat::BufferDesc_t> MessageFormat::createMessages(const Ali
       pTarget = MakeTarget(msgSize, position, cbAllocate);
       memcpy(pTarget, headerMessage.data(), msgSize);
       mMessages.emplace_back(pTarget, msgSize);
-      if (cbAllocate == nullptr)
+      if (cbAllocate == nullptr) {
         position += msgSize;
+      }
       msgSize = dh.payloadSize;
       pTarget = MakeTarget(msgSize, position, cbAllocate);
       memcpy(pTarget, &hbfPayload, msgSize);
       mMessages.emplace_back(pTarget, msgSize);
-      if (cbAllocate == nullptr)
+      if (cbAllocate == nullptr) {
         position += msgSize;
+      }
     }
     unsigned msgSize = 0;
     do {
@@ -442,8 +449,9 @@ std::vector<MessageFormat::BufferDesc_t> MessageFormat::createMessages(const Ali
         if (mOutputMode == kOutputModeMultiPart) {
           // send one descriptor per block back to device
           mMessages.emplace_back(pTarget, offset);
-          if (cbAllocate == nullptr)
+          if (cbAllocate == nullptr) {
             position += offset;
+          }
           offset = 0;
         } else if (mOutputMode == kOutputModeO2) {
           o2::header::DataHeader dh;
@@ -454,8 +462,9 @@ std::vector<MessageFormat::BufferDesc_t> MessageFormat::createMessages(const Ali
           memcpy(pTarget, &dh, sizeof(o2::header::DataHeader));
           offset += sizeof(o2::header::DataHeader);
           mMessages.emplace_back(pTarget, offset);
-          if (cbAllocate == nullptr)
+          if (cbAllocate == nullptr) {
             position += offset;
+          }
           offset = 0;
           if (mHeartbeatHeader.headerWord == 0) {
             // no heartbeat information availalbe, send the buffer
@@ -472,8 +481,9 @@ std::vector<MessageFormat::BufferDesc_t> MessageFormat::createMessages(const Ali
             memcpy(pTarget + offset, &mHeartbeatTrailer, sizeof(mHeartbeatTrailer));
             offset += sizeof(mHeartbeatTrailer);
             mMessages.emplace_back(pTarget, offset);
-            if (cbAllocate == nullptr)
+            if (cbAllocate == nullptr) {
               position += offset;
+            }
             offset = 0;
           }
         }
@@ -518,13 +528,16 @@ AliHLTHOMERWriter* MessageFormat::createHOMERFormat(const AliHLTComponentBlockDa
 {
   // send data blocks in HOMER format in one message
   int iResult = 0;
-  if (mpFactory == nullptr)
+  if (mpFactory == nullptr) {
     const_cast<MessageFormat*>(this)->mpFactory = new o2::alice_hlt::HOMERFactory;
-  if (!mpFactory)
+  }
+  if (!mpFactory) {
     return nullptr;
+  }
   unique_ptr<AliHLTHOMERWriter> writer(mpFactory->OpenWriter());
-  if (writer.get() == nullptr)
+  if (writer.get() == nullptr) {
     return nullptr;
+  }
 
   homer_uint64 homerHeader[kCount_64b_Words];
   HOMERBlockDescriptor homerDescriptor(homerHeader);

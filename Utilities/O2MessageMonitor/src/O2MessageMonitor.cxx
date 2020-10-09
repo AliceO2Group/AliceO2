@@ -45,8 +45,9 @@ void O2MessageMonitor::InitTask()
   mIterations = GetConfig()->GetValue<int>("n");
   mPayload = GetConfig()->GetValue<std::string>("payload");
   std::string tmp = GetConfig()->GetValue<std::string>("name");
-  if (!tmp.empty())
+  if (!tmp.empty()) {
     mName = tmp;
+  }
   mLimitOutputCharacters = GetConfig()->GetValue<int>("limit");
 }
 

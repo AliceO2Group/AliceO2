@@ -70,8 +70,9 @@ void TimeframeWriterDevice::Run()
     }
 
     FairMQParts timeframeParts;
-    if (Receive(timeframeParts, mInChannelName, 0, 100) <= 0)
+    if (Receive(timeframeParts, mInChannelName, 0, 100) <= 0) {
       continue;
+    }
 
     streamTimeframe(mFile, timeframeParts);
     if ((mFile.tellp() > mMaxFileSize) || (streamedTimeframes++ > mMaxTimeframes)) {
