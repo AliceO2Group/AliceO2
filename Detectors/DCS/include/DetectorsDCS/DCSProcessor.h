@@ -20,6 +20,9 @@
 #include "DetectorsDCS/DataPointIdentifier.h"
 #include "DetectorsDCS/DataPointValue.h"
 #include "DetectorsDCS/DeliveryType.h"
+#include "CCDB/CcdbObjectInfo.h"
+#include "CommonUtils/MemFileHelper.h"
+#include "CCDB/CcdbApi.h"
 
 //#ifdef WITH_OPENMP
 //#include <omp.h>
@@ -54,6 +57,9 @@ class DCSProcessor
   using DPID = o2::dcs::DataPointIdentifier;
   using DPVAL = o2::dcs::DataPointValue;
   using DPCOM = o2::dcs::DataPointCompositeObject;
+
+  using TFType = uint64_t;
+  using CcdbObjectInfo = o2::ccdb::CcdbObjectInfo;
 
   DCSProcessor() = default;
   ~DCSProcessor() = default;
@@ -93,12 +99,20 @@ class DCSProcessor
   DQStrings& getVectorForAliasString(const DPID& id) { return mDpsstringsmap[id]; }
   DQTimes& getVectorForAliasTime(const DPID& id) { return mDpstimesmap[id]; }
   DQBinaries& getVectorForAliasBinary(const DPID& id) { return mDpsbinariesmap[id]; }
-  
+
   void setNThreads(int n);
   int getNThreads() const { return mNThreads; }
-  
+  const std::unordered_map<std::string, float>& getCCDBint() const { return mccdbInt; }
+  const CcdbObjectInfo& getCCDBintInfo() const { return mccdbIntInfo; }
+  CcdbObjectInfo& getCCDBintInfo() { return mccdbIntInfo; }
+
+  void setTF(TFType tf) { mTF = tf; }
+
+  template <typename T>
+  void prepareCCDBobject(T& obj, CcdbObjectInfo& info, const std::string& path, TFType tf, const std::map<std::string, std::string>& md);
+
  private:
-  std::vector<float> mAvgTestInt; // moving average for int DPs 
+  std::vector<float> mAvgTestInt;    // moving average for int DPs
   std::vector<float> mAvgTestDouble; // moving average for double DPs
   std::unordered_map<DPID, DQChars> mDpscharsmap;
   std::unordered_map<DPID, DQInts> mDpsintsmap;
@@ -124,8 +138,11 @@ class DCSProcessor
   std::vector<uint64_t> mLatestTimestampstrings;
   std::vector<uint64_t> mLatestTimestamptimes;
   std::vector<uint64_t> mLatestTimestampbinaries;
-  int mNThreads = 1; // number of  threads
-  
+  int mNThreads = 1;                               // number of  threads
+  std::unordered_map<std::string, float> mccdbInt; // unordered map in which to store the CCDB entry
+  CcdbObjectInfo mccdbIntInfo;                     // info to store the output of teh calibration on int values
+  TFType mTF = 0;                                  // TF index for processing, used to store CCDB object
+
   ClassDefNV(DCSProcessor, 0);
 };
 
@@ -185,7 +202,8 @@ template <>
 int DCSProcessor::processArrayType(const std::vector<DCSProcessor::DPID>& array, DeliveryType type, const std::unordered_map<DCSProcessor::DPID, DCSProcessor::DPVAL>& map, std::vector<uint64_t>& latestTimeStamp, std::unordered_map<DCSProcessor::DPID, DCSProcessor::DQBinaries>& destmap);
 
 template <typename T>
-void DCSProcessor::doSimpleMovingAverage(int nelements, std::deque<T>& vect, float& avg, bool& isSMA) {
+void DCSProcessor::doSimpleMovingAverage(int nelements, std::deque<T>& vect, float& avg, bool& isSMA)
+{
 
   // Do simple moving average on vector of type T
 
@@ -204,6 +222,20 @@ void DCSProcessor::doSimpleMovingAverage(int nelements, std::deque<T>& vect, flo
   isSMA = true;
 }
 
+template <typename T>
+void DCSProcessor::prepareCCDBobject(T& obj, CcdbObjectInfo& info, const std::string& path, TFType tf, const std::map<std::string, std::string>& md)
+{
+
+  // prepare all info to be sent to CCDB for object obj
+  auto clName = o2::utils::MemFileHelper::getClassName(obj);
+  auto flName = o2::ccdb::CcdbApi::generateFileName(clName);
+  info.setPath(path);
+  info.setObjectType(clName);
+  info.setFileName(flName);
+  info.setStartValidityTimestamp(tf);
+  info.setEndValidityTimestamp(99999999999999);
+  info.setMetaData(md);
+}
 } // namespace dcs
 } // namespace o2
 
