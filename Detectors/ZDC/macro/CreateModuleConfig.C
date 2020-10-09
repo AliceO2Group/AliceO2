@@ -38,10 +38,10 @@ void CreateModuleConfig(long tmin = 0, long tmax = -1,
     modID = 0;
     auto& module = conf.modules[modID];
     module.id = modID;
-    module.setChannel(0, IdZNAC,   2*modID,   true , true , -5, 6, 4, 12);
-    module.setChannel(1, IdZNASum, 2*modID,   false, false, -5, 6, 4, 12);
-    module.setChannel(2, IdZNA1,   2*modID+1, true , false, -5, 6, 4, 12);
-    module.setChannel(3, IdZNA2,   2*modID+1, true , false, -5, 6, 4, 12);
+    module.setChannel(0, IdZNAC, 2 * modID, true, true, -5, 6, 4, 12);
+    module.setChannel(1, IdZNASum, 2 * modID, false, false, -5, 6, 4, 12);
+    module.setChannel(2, IdZNA1, 2 * modID + 1, true, false, -5, 6, 4, 12);
+    module.setChannel(3, IdZNA2, 2 * modID + 1, true, false, -5, 6, 4, 12);
     //
   }
   //-------------------------------------------
@@ -49,10 +49,10 @@ void CreateModuleConfig(long tmin = 0, long tmax = -1,
     modID = 1;
     auto& module = conf.modules[modID];
     module.id = modID;
-    module.setChannel(0, IdZNAC,   2*modID,   false, true , -5, 6, 4, 12);
-    module.setChannel(1, IdZNASum, 2*modID,   true , false, -5, 6, 4, 12);
-    module.setChannel(2, IdZNA3,   2*modID+1, true , false, -5, 6, 4, 12);
-    module.setChannel(3, IdZNA4,   2*modID+1, true , false, -5, 6, 4, 12);
+    module.setChannel(0, IdZNAC, 2 * modID, false, true, -5, 6, 4, 12);
+    module.setChannel(1, IdZNASum, 2 * modID, true, false, -5, 6, 4, 12);
+    module.setChannel(2, IdZNA3, 2 * modID + 1, true, false, -5, 6, 4, 12);
+    module.setChannel(3, IdZNA4, 2 * modID + 1, true, false, -5, 6, 4, 12);
     //
   }
   //-------------------------------------------
@@ -60,10 +60,10 @@ void CreateModuleConfig(long tmin = 0, long tmax = -1,
     modID = 2;
     auto& module = conf.modules[modID];
     module.id = modID;
-    module.setChannel(0, IdZNCC,   2*modID,   true , true , -5, 6, 4, 12);
-    module.setChannel(1, IdZNCSum, 2*modID,   false, false, -5, 6, 4, 12);
-    module.setChannel(2, IdZNC1,   2*modID+1, true , false, -5, 6, 4, 12);
-    module.setChannel(3, IdZNC2,   2*modID+1, true , false, -5, 6, 4, 12);
+    module.setChannel(0, IdZNCC, 2 * modID, true, true, -5, 6, 4, 12);
+    module.setChannel(1, IdZNCSum, 2 * modID, false, false, -5, 6, 4, 12);
+    module.setChannel(2, IdZNC1, 2 * modID + 1, true, false, -5, 6, 4, 12);
+    module.setChannel(3, IdZNC2, 2 * modID + 1, true, false, -5, 6, 4, 12);
     //
   }
   //-------------------------------------------
@@ -71,10 +71,10 @@ void CreateModuleConfig(long tmin = 0, long tmax = -1,
     modID = 3;
     auto& module = conf.modules[modID];
     module.id = modID;
-    module.setChannel(0, IdZNCC,   2*modID,   false, true , -5, 6, 4, 12);
-    module.setChannel(1, IdZNCSum, 2*modID,   true , false, -5, 6, 4, 12);
-    module.setChannel(2, IdZNC3,   2*modID+1, true , false, -5, 6, 4, 12);
-    module.setChannel(3, IdZNC4,   2*modID+1, true , false, -5, 6, 4, 12);
+    module.setChannel(0, IdZNCC, 2 * modID, false, true, -5, 6, 4, 12);
+    module.setChannel(1, IdZNCSum, 2 * modID, true, false, -5, 6, 4, 12);
+    module.setChannel(2, IdZNC3, 2 * modID + 1, true, false, -5, 6, 4, 12);
+    module.setChannel(3, IdZNC4, 2 * modID + 1, true, false, -5, 6, 4, 12);
     //
   }
   //-------------------------------------------
@@ -82,10 +82,10 @@ void CreateModuleConfig(long tmin = 0, long tmax = -1,
     modID = 4;
     auto& module = conf.modules[modID];
     module.id = modID;
-    module.setChannel(0, IdZPAC,   2*modID,   true , true , -5, 6, 4, 12);
-    module.setChannel(1, IdZEM1,   2*modID,   true , true , -5, 6, 4, 12);
-    module.setChannel(2, IdZPA1,   2*modID+1, true , false, -5, 6, 4, 12);
-    module.setChannel(3, IdZPA2,   2*modID+1, true , false, -5, 6, 4, 12);
+    module.setChannel(0, IdZPAC, 2 * modID, true, true, -5, 6, 4, 12);
+    module.setChannel(1, IdZEM1, 2 * modID, true, true, -5, 6, 4, 12);
+    module.setChannel(2, IdZPA1, 2 * modID + 1, true, false, -5, 6, 4, 12);
+    module.setChannel(3, IdZPA2, 2 * modID + 1, true, false, -5, 6, 4, 12);
     //
   }
   //-------------------------------------------
@@ -93,10 +93,10 @@ void CreateModuleConfig(long tmin = 0, long tmax = -1,
     modID = 5;
     auto& module = conf.modules[modID];
     module.id = modID;
-    module.setChannel(0, IdZPAC,   2*modID,   false, true , -5, 6, 4, 12);
-    module.setChannel(1, IdZPASum, 2*modID,   true , false, -5, 6, 4, 12);
-    module.setChannel(2, IdZPA3,   2*modID+1, true , false, -5, 6, 4, 12);
-    module.setChannel(3, IdZPA4,   2*modID+1, true , false, -5, 6, 4, 12);
+    module.setChannel(0, IdZPAC, 2 * modID, false, true, -5, 6, 4, 12);
+    module.setChannel(1, IdZPASum, 2 * modID, true, false, -5, 6, 4, 12);
+    module.setChannel(2, IdZPA3, 2 * modID + 1, true, false, -5, 6, 4, 12);
+    module.setChannel(3, IdZPA4, 2 * modID + 1, true, false, -5, 6, 4, 12);
     //
   }
   //-------------------------------------------
@@ -104,10 +104,10 @@ void CreateModuleConfig(long tmin = 0, long tmax = -1,
     modID = 6;
     auto& module = conf.modules[modID];
     module.id = modID;
-    module.setChannel(0, IdZPCC,   2*modID,   true , true , -5, 6, 4, 12);
-    module.setChannel(1, IdZEM2,   2*modID,   true , true , -5, 6, 4, 12);
-    module.setChannel(2, IdZPC1,   2*modID+1, true , false, -5, 6, 4, 12);
-    module.setChannel(3, IdZPC2,   2*modID+1, true , false, -5, 6, 4, 12);
+    module.setChannel(0, IdZPCC, 2 * modID, true, true, -5, 6, 4, 12);
+    module.setChannel(1, IdZEM2, 2 * modID, true, true, -5, 6, 4, 12);
+    module.setChannel(2, IdZPC1, 2 * modID + 1, true, false, -5, 6, 4, 12);
+    module.setChannel(3, IdZPC2, 2 * modID + 1, true, false, -5, 6, 4, 12);
     //
   }
   //-------------------------------------------
@@ -115,10 +115,10 @@ void CreateModuleConfig(long tmin = 0, long tmax = -1,
     modID = 7;
     auto& module = conf.modules[modID];
     module.id = modID;
-    module.setChannel(0, IdZPCC,   2*modID,   false, true , -5, 6, 4, 12);
-    module.setChannel(1, IdZPCSum, 2*modID,   true , false, -5, 6, 4, 12);
-    module.setChannel(2, IdZPC3,   2*modID+1, true , false, -5, 6, 4, 12);
-    module.setChannel(3, IdZPC4,   2*modID+1, true , false, -5, 6, 4, 12);
+    module.setChannel(0, IdZPCC, 2 * modID, false, true, -5, 6, 4, 12);
+    module.setChannel(1, IdZPCSum, 2 * modID, true, false, -5, 6, 4, 12);
+    module.setChannel(2, IdZPC3, 2 * modID + 1, true, false, -5, 6, 4, 12);
+    module.setChannel(3, IdZPC4, 2 * modID + 1, true, false, -5, 6, 4, 12);
     //
   }
   conf.check();
