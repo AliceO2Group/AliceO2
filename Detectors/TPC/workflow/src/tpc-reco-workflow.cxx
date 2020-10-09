@@ -35,6 +35,9 @@
 // publisher will trigger on. This is dependent on the input type
 o2::framework::Output gDispatchTrigger{"", ""};
 
+// Global variable used to transport data to the completion policy
+o2::tpc::reco_workflow::CompletionPolicyData gPolicyData;
+
 // add workflow options, note that customization needs to be declared before
 // including Framework/runDataProcessing
 void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
@@ -85,9 +88,7 @@ void customize(std::vector<o2::framework::CompletionPolicy>& policies)
   policies.push_back(CompletionPolicyHelpers::defineByName("tpc-cluster-decoder.*", CompletionPolicy::CompletionOp::Consume));
   policies.push_back(CompletionPolicyHelpers::defineByName("tpc-clusterer.*", CompletionPolicy::CompletionOp::Consume));
   // the custom completion policy for the tracker
-  policies.push_back(o2::tpc::TPCSectorCompletionPolicy("tpc-tracker.*",
-                                                        o2::framework::InputSpec{"cluster", o2::framework::ConcreteDataTypeMatcher{"TPC", "CLUSTERNATIVE"}},
-                                                        o2::framework::InputSpec{"digits", o2::framework::ConcreteDataTypeMatcher{"TPC", "DIGITS"}})());
+  policies.push_back(o2::tpc::TPCSectorCompletionPolicy("tpc-tracker.*", o2::tpc::TPCSectorCompletionPolicy::Config::RequireAll, &gPolicyData)());
 }
 
 #include "Framework/runDataProcessing.h" // the main driver
@@ -140,7 +141,8 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
   o2::conf::ConfigurableParam::writeINI("o2tpcrecoworkflow_configuration.ini");
 
   bool doMC = not cfgc.options().get<bool>("disable-mc");
-  return o2::tpc::reco_workflow::getWorkflow(tpcSectors,                                        // sector configuration
+  return o2::tpc::reco_workflow::getWorkflow(&gPolicyData,                                      //
+                                             tpcSectors,                                        // sector configuration
                                              laneConfiguration,                                 // lane configuration
                                              doMC,                                              //
                                              nLanes,                                            //
