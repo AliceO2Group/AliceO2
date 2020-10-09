@@ -41,6 +41,8 @@ constexpr uint8_t GBTFlagRDH = 0x00;
 constexpr uint8_t GBTFlagDataIB = 0x20;
 // GBT header flag for the ITS OB: 010 bb ccc with bb -> Connector Number (00,01,10,11), ccc -> Lane Number (0-6)
 constexpr uint8_t GBTFlagDataOB = 0x40;
+// GBT header flag for the MFT
+constexpr uint8_t GBTFlagDataMFT = 0x80;
 // GBT header flag for the ITS IB idagnostic : 101 bbbbb with bbbbb -> Lane Number (0-8)
 constexpr uint8_t GBTFlagDiagnosticIB = 0xa0;
 // GBT header flag for the ITS OB diagnostic word: 110 bb ccc with bb -> Connector Number (00,01,10,11), ccc -> Lane Number (0-6)
@@ -144,11 +146,14 @@ struct GBTWord {
   /// check if the GBT Header corresponds to ITS OB data (header is combined with lanes/connector info)
   bool isDataOB() const { return (id & 0xe0) == GBTFlagDataOB; }
 
+  /// check if the GBT Header corresponds to MFT data (header is combined with cable number)
+  bool isDataMFT() const { return (id & 0xe0) == GBTFlagDataMFT; }
+
   /// check if the GBT Header corresponds to ITS OB diagnostics data (header is combined with lanes info)
   bool isCableDiagnosticOB() const { return (id & 0xe0) == GBTFlagDiagnosticIB; }
 
   /// check if the GBT Header corresponds to ITS IB or OB data (header is combined with lanes/connector info)
-  bool isData() const { return isDataIB() || isDataOB(); }
+  bool isData() const { return isDataIB() || isDataOB() || isDataMFT(); }
 
   bool isCableDiagnostic() const { return isCableDiagnosticIB() || isCableDiagnosticIB(); }
 

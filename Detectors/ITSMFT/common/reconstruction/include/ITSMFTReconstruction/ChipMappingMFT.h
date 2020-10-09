@@ -99,7 +99,7 @@ class ChipMappingMFT
   ///< get number of chips served by single cable on given RU type
   uint8_t getGBTHeaderRUType(Int_t ruType, Int_t cableHW)
   {
-    return (cableHW & 0x1f);
+    return ((0x1 << 7) + (cableHW & 0x1f));
   }
 
   ///< convert HW cable ID to its position on the ActiveLanes word in the GBT.header for given RU type
