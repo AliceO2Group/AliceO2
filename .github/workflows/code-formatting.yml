@@ -11,6 +11,10 @@ jobs:
       with:
         ref: ${{ github.event.pull_request.head.sha }}
         persist-credentials: false
+        # We need the history of the dev branch all the way back to where the PR
+        # diverged. We're fetching everything here, as we don't know how many
+        # commits back that point is.
+        fetch-depth: 0
     - name: Run clang format
       id: clang_format
       env:
