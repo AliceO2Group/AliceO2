@@ -32,8 +32,9 @@ void ConfigParamsHelper::populateBoostProgramOptions(
   auto proxy = options.add_options();
   for (auto& spec : specs) {
     // skip everything found in the veto definition
-    if (vetos.find_nothrow(spec.name, false))
+    if (vetos.find_nothrow(spec.name, false)) {
       continue;
+    }
     const char* name = spec.name.c_str();
     const char* help = spec.help.c_str();
 
@@ -75,8 +76,9 @@ bool ConfigParamsHelper::dpl2BoostOptions(const std::vector<ConfigParamSpec>& sp
   for (const auto& configSpec : spec) {
     // skip everything found in the veto definition
     try {
-      if (vetos.find_nothrow(configSpec.name, false))
+      if (vetos.find_nothrow(configSpec.name, false)) {
         continue;
+      }
     } catch (boost::program_options::ambiguous_option& e) {
       for (auto& alternative : e.alternatives()) {
         std::cerr << alternative << std::endl;

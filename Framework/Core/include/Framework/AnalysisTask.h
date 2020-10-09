@@ -144,14 +144,16 @@ struct AnalysisDataProcessorBuilder {
 
     if constexpr (soa::is_soa_filtered_t<decayed>::value) {
       for (auto& info : infos) {
-        if (info.index == at)
+        if (info.index == at) {
           return extractFilteredFromRecord<decayed>(record, info, soa::make_originals_from_type<decayed>());
+        }
       }
     } else if constexpr (soa::is_soa_iterator_t<decayed>::value) {
       if constexpr (std::is_same_v<typename decayed::policy_t, soa::FilteredIndexPolicy>) {
         for (auto& info : infos) {
-          if (info.index == at)
+          if (info.index == at) {
             return extractFilteredFromRecord<decayed>(record, info, soa::make_originals_from_type<decayed>());
+          }
         }
       } else {
         return extractFromRecord<decayed>(record, soa::make_originals_from_type<decayed>());
