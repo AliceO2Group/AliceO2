@@ -78,7 +78,7 @@ class HistContainer : private RootContainer
     // if shared pointers or rvalue raw pointers are provided as argument, the existing object is used
     // otherwise the existing object is copied
     std::optional<HistType> histVariant{};
-    if constexpr (is_shared_ptr<T>::value)
+    if constexpr (is_shared_ptr<typename std::remove_reference<T>::type>::value)
       histVariant = GetHistVariant(hist);
     else if constexpr (std::is_pointer_v<T> && std::is_rvalue_reference_v<decltype(std::forward<T>(hist))>)
       histVariant = GetHistVariant(std::shared_ptr<std::remove_pointer_t<T>>(hist));
@@ -201,6 +201,7 @@ class Hist
 {
  public:
   Hist() : mAxes{} {}
+  Hist(const std::vector<Axis>& axes) : mAxes{axes} {}
 
   void AddAxis(const Axis& axis)
   {
