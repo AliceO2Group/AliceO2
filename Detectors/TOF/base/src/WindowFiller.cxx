@@ -95,6 +95,7 @@ void WindowFiller::reset()
 
   mDigitsPerTimeFrame.clear();
   mReadoutWindowData.clear();
+  mReadoutWindowDataFiltered.clear();
 
   mFirstIR.bc = 0;
   mFirstIR.orbit = 0;
@@ -124,8 +125,19 @@ void WindowFiller::fillOutputContainer(std::vector<Digit>& digits)
     int orbit_shift = mReadoutWindowData.size() / 3;
     int bc_shift = (mReadoutWindowData.size() % 3) * Geo::BC_IN_WINDOW;
     info.setBCData(mFirstIR.orbit + orbit_shift, mFirstIR.bc + bc_shift);
-    if (digits.size())
+    int firstPattern = 0;
+    int npatterns = mPatterns.size();
+    if (mReadoutWindowData.size()) {
+      auto prevROW = mReadoutWindowData[mReadoutWindowData.size() - 1];
+      firstPattern = prevROW.firstDia() + prevROW.sizeDia();
+      npatterns -= firstPattern;
+    }
+    info.setFirstEntryDia(firstPattern);
+    info.setNEntriesDia(npatterns);
+    if (digits.size()) {
       mDigitsPerTimeFrame.insert(mDigitsPerTimeFrame.end(), digits.begin(), digits.end());
+      mReadoutWindowDataFiltered.push_back(info);
+    }
     mReadoutWindowData.push_back(info);
   }
 
@@ -294,7 +306,8 @@ void WindowFiller::checkIfReuseFutureDigitsRO() // the same but using readout in
         strips = mStripsNext[isnext - 1];
       }
 
-      fillDigitsInStrip(strips, digit->getChannel(), digit->getTDC(), digit->getTOT(), digit->getBC(), digit->getChannel() / Geo::NPADS);
+      if (mMaskNoiseRate < 0 || mChannelCounts[digit->getChannel()] < mMaskNoiseRate)
+        fillDigitsInStrip(strips, digit->getChannel(), digit->getTDC(), digit->getTOT(), digit->getBC(), digit->getChannel() / Geo::NPADS);
 
       // int labelremoved = digit->getLabel();
       mFutureDigits.erase(mFutureDigits.begin() + idigit);
