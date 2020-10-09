@@ -18,7 +18,7 @@
 
 using namespace o2::emcal;
 
-void TimeCalibrationParams::addTimeCalibParam(unsigned short cellID, unsigned short time, bool isLowGain)
+void TimeCalibrationParams::addTimeCalibParam(unsigned short cellID, short time, bool isLowGain)
 {
   if (!isLowGain)
     mTimeCalibParamsHG[cellID] = time;
@@ -26,7 +26,7 @@ void TimeCalibrationParams::addTimeCalibParam(unsigned short cellID, unsigned sh
     mTimeCalibParamsLG[cellID] = time;
 }
 
-unsigned short TimeCalibrationParams::getTimeCalibParam(unsigned short cellID, bool isLowGain) const
+short TimeCalibrationParams::getTimeCalibParam(unsigned short cellID, bool isLowGain) const
 {
   if (isLowGain)
     return mTimeCalibParamsLG[cellID];
