@@ -62,13 +62,13 @@ class TimeCalibrationParams
   /// \param cellID Absolute ID of cell
   /// \param time is the calibration coefficient
   /// \param isLowGain is flag whether this cell is LG or HG
-  void addTimeCalibParam(unsigned short cellID, unsigned short time, bool isLowGain);
+  void addTimeCalibParam(unsigned short cellID, short time, bool isLowGain);
 
   /// \brief Get the time calibration coefficient for a certain cell
   /// \param cellID Absolute ID of cell
   /// \param isLowGain is flag whether this cell is LG or HG
   /// \return time calibration coefficient of the cell
-  unsigned short getTimeCalibParam(unsigned short cellID, bool isLowGain) const;
+  short getTimeCalibParam(unsigned short cellID, bool isLowGain) const;
 
   /// \brief Convert the time calibration coefficient array to a histogram
   /// \param isLowGain is flag whether to draw for LG or HG
@@ -76,8 +76,8 @@ class TimeCalibrationParams
   TH1* getHistogramRepresentation(bool isLowGain) const;
 
  private:
-  std::array<unsigned short, 17664> mTimeCalibParamsHG; ///< Container for the time calibration coefficient for the High Gain cells
-  std::array<unsigned short, 17664> mTimeCalibParamsLG; ///< Container for the time calibration coefficient for the Low Gain cells
+  std::array<short, 17664> mTimeCalibParamsHG; ///< Container for the time calibration coefficient for the High Gain cells
+  std::array<short, 17664> mTimeCalibParamsLG; ///< Container for the time calibration coefficient for the Low Gain cells
 
   ClassDefNV(TimeCalibrationParams, 1);
 };
