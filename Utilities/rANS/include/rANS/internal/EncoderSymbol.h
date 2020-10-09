@@ -92,8 +92,9 @@ struct EncoderSymbol {
       // Alverson, "Integer Division using reciprocals"
       // shift=ceil(log2(freq))
       uint32_t shift = 0;
-      while (freq > (1u << shift))
+      while (freq > (1u << shift)) {
         shift++;
+      }
 
       if constexpr (needs64Bit<T>()) {
         uint64_t x0, x1, t0, t1;
