@@ -463,7 +463,6 @@ void Digitizer::refreshCCDB()
       }
     }
     mModuleConfig->print();
-    // TODO: Dove si mettono i readout channels?
   }
 
   if (!mSimCondition) { // load this only once
