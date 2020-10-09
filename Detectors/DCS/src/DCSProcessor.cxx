@@ -163,7 +163,10 @@ int DCSProcessor::process(const std::unordered_map<DPID, DPVAL>& map)
 
   // process function to do "something" with the DCS map that is passed
 
-  // first, we need to check if there are the Data Points that we need
+  // resetting the content of the CCDB object to be sent
+  mccdbInt.clear();
+
+  // we need to check if there are the Data Points that we need
 
   int foundChars = 0, foundInts = 0, foundDoubles = 0, foundUInts = 0,
       foundBools = 0, foundStrings = 0, foundTimes = 0, foundBinaries = 0;
@@ -353,32 +356,14 @@ void DCSProcessor::processInts()
     doSimpleMovingAverage(2, vint, mAvgTestInt[i], isSMA);
     LOG(DEBUG) << "Moving average = " << mAvgTestInt[i];
     if (isSMA) {
-      // populate CCDB
+      // create CCDB object
+      mccdbInt[id.get_alias()] = mAvgTestInt[i];
     }
   }
+  std::map<std::string, std::string> md;
+  prepareCCDBobject(mccdbInt, mccdbIntInfo, "TestDCS/IntDPs", mTF, md);
 }
 
-//______________________________________________________________________
-/*
-void DCSProcessor::doSimpleMovingAverage(int nelements, std::deque<int>& vect, float& avg, bool& isSMA)
-{
-
-  // Do simple moving average on vector of ints
-  if (vect.size() < nelements) {
-    avg += vect[vect.size() - 1];
-    return;
-  }
-  if (vect.size() == nelements) {
-    avg += vect[vect.size() - 1];
-    avg /= nelements;
-    isSMA = true;
-    return;
-  }
-  avg += (vect[vect.size() - 1] - vect[0]) / nelements;
-  vect.pop_front();
-  isSMA = true;
-}
-*/
 //______________________________________________________________________
 
 void DCSProcessor::processDoubles()
@@ -489,10 +474,11 @@ uint64_t DCSProcessor::processFlag(const uint64_t flags, const char* alias)
 
 //______________________________________________________________________
 
-void DCSProcessor::setNThreads(int n) {
+void DCSProcessor::setNThreads(int n)
+{
 
   // to set number of threads used to process the DPs
-  
+
 #ifdef WITH_OPENMP
   mNThreads = n > 0 ? n : 1;
 #else
