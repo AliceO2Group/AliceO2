@@ -17,6 +17,7 @@
 #include "Framework/ASoA.h"
 #include "Framework/AnalysisDataModel.h"
 #include "Analysis/Centrality.h"
+#include "Analysis/EventSelection.h"
 #include "PID/PIDResponse.h"
 #include "MathUtils/Utils.h"
 #include <cmath>
