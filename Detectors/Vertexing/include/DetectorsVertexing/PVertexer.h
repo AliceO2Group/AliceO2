@@ -16,9 +16,10 @@
 #define O2_PVERTEXER_H
 
 #include <array>
+#include <utility>
 #include "CommonConstants/LHCConstants.h"
 #include "CommonDataFormat/TimeStamp.h"
-#include "CommonDataFormat/RangeReference.h"
+#include "CommonDataFormat/BunchFilling.h"
 #include "SimulationDataFormat/MCEventLabel.h"
 #include "SimulationDataFormat/MCCompLabel.h"
 #include "MathUtils/Utils.h"
@@ -50,12 +51,14 @@ class PVertexer
 
   void init();
   int process(gsl::span<const o2d::TrackTPCITS> tracksITSTPC, gsl::span<const o2::ft0::RecPoints> ft0Data,
-              std::vector<PVertex>& vertices, std::vector<int>& vertexTrackIDs, std::vector<V2TRef>& v2tRefs,
+              std::vector<PVertex>& vertices, std::vector<o2d::VtxTrackIndex>& vertexTrackIDs, std::vector<V2TRef>& v2tRefs,
               gsl::span<const o2::MCCompLabel> lblITS, gsl::span<const o2::MCCompLabel> lblTPC, std::vector<o2::MCEventLabel>& lblVtx);
+
   int process(gsl::span<const o2d::TrackTPCITS> tracksITSTPC, gsl::span<const o2::ft0::RecPoints> ft0Data,
-              std::vector<PVertex>& vertices, std::vector<int>& vertexTrackIDs, std::vector<V2TRef>& v2tRefs);
+              std::vector<PVertex>& vertices, std::vector<o2d::VtxTrackIndex>& vertexTrackIDs, std::vector<V2TRef>& v2tRefs);
+
   static void createMCLabels(gsl::span<const o2::MCCompLabel> lblITS, gsl::span<const o2::MCCompLabel> lblTPC,
-                             const std::vector<PVertex> vertices, const std::vector<int> vertexTrackIDs, const std::vector<V2TRef> v2tRefs,
+                             const std::vector<PVertex> vertices, const std::vector<o2d::VtxTrackIndex> vertexTrackIDs, const std::vector<V2TRef> v2tRefs,
                              std::vector<o2::MCEventLabel>& lblVtx);
   bool findVertex(const VertexingInput& input, PVertex& vtx);
 
@@ -68,6 +71,9 @@ class PVertexer
   float getTukey() const;
 
   void finalizeVertex(const VertexingInput& input, const PVertex& vtx, std::vector<PVertex>& vertices, std::vector<V2TRef>& v2tRefs, std::vector<int>& vertexTrackIDs, SeedHisto& histo);
+  bool setCompatibleIR(PVertex& vtx);
+
+  void setBunchFilling(const o2::BunchFilling& bf);
 
   void setBz(float bz) { mBz = bz; }
   void setValidateWithFT0(bool v) { mValidateWithFT0 = v; }
@@ -105,8 +111,11 @@ class PVertexer
   void clusterizeTimeBruteForce(float margin = 0.1, float cut = 25);
   void clusterizeTime(float binSize = 0.1, float maxTDist = 0.6);
   int findVertices(const VertexingInput& input, std::vector<PVertex>& vertices, std::vector<int>& vertexTrackIDs, std::vector<V2TRef>& v2tRefs);
-  int getBestFT0Trigger(const PVertex& vtx, gsl::span<const o2::ft0::RecPoints> ft0Data, int& currEntry) const;
+  std::pair<int, int> getBestFT0Trigger(const PVertex& vtx, gsl::span<const o2::ft0::RecPoints> ft0Data, int& currEntry) const;
 
+  o2::BunchFilling mBunchFilling;
+  std::array<int16_t, o2::constants::lhc::LHCMaxBunches> mClosestBunchAbove; // closest filled bunch from above
+  std::array<int16_t, o2::constants::lhc::LHCMaxBunches> mClosestBunchBelow; // closest filled bunch from below
   o2d::VertexBase mMeanVertex{{0., 0., 0.}, {0.1 * 0.1, 0., 0.1 * 0.1, 0., 0., 6. * 6.}};
   std::array<float, 3> mXYConstraintInvErr = {1.0f, 0.f, 1.0f}; ///< nominal vertex constraint inverted errors^2
   //

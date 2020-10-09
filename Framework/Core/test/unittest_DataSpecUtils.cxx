@@ -125,7 +125,11 @@ BOOST_AUTO_TEST_CASE(MatchingInputs)
   BOOST_CHECK(DataSpecUtils::match(matchingInput2, concreteExample3) == false);
   BOOST_CHECK(DataSpecUtils::match(matchingInput2, concreteExample4) == false);
 
-  BOOST_CHECK_THROW(DataSpecUtils::asConcreteDataMatcher(matchingInput2), std::bad_variant_access);
+  BOOST_CHECK_THROW(DataSpecUtils::asConcreteDataMatcher(matchingInput2), std::runtime_error);
+  auto concrete2 = DataSpecUtils::asConcreteDataMatcher(matchingInput1);
+  BOOST_CHECK_EQUAL(concrete.origin.as<std::string>(), "TEST");
+  BOOST_CHECK_EQUAL(concrete.description.as<std::string>(), "FOOO");
+  BOOST_CHECK_EQUAL(concrete.subSpec, 1);
 }
 
 BOOST_AUTO_TEST_CASE(MatchingOutputs)
@@ -201,6 +205,12 @@ BOOST_AUTO_TEST_CASE(PartialMatching)
 
   BOOST_CHECK(DataSpecUtils::partialMatch(fullySpecifiedOutput, header::DataOrigin("FOO")) == false);
   BOOST_CHECK(DataSpecUtils::partialMatch(fullySpecifiedInput, header::DataOrigin("FOO")) == false);
+
+  BOOST_CHECK(DataSpecUtils::partialMatch(fullySpecifiedOutput, header::DataDescription("TEST")) == false);
+  BOOST_CHECK(DataSpecUtils::partialMatch(fullySpecifiedInput, header::DataDescription("TSET")) == false);
+
+  BOOST_CHECK(DataSpecUtils::partialMatch(fullySpecifiedOutput, header::DataDescription("FOOO")) == true);
+  BOOST_CHECK(DataSpecUtils::partialMatch(fullySpecifiedInput, header::DataDescription("FOOO")) == true);
 }
 
 BOOST_AUTO_TEST_CASE(GetOptionalSubSpecWithMatcher)
@@ -234,6 +244,16 @@ BOOST_AUTO_TEST_CASE(GetOptionalSubSpecWithMatcher)
   auto dataType2 = DataSpecUtils::asConcreteDataTypeMatcher(wildcardInputSpec);
   BOOST_CHECK_EQUAL(std::string(dataType2.origin.as<std::string>()), "TSET");
   BOOST_CHECK_EQUAL(std::string(dataType2.description.as<std::string>()), "FOOO");
+}
+
+BOOST_AUTO_TEST_CASE(TestMatcherFromDescription)
+{
+  auto fromQueryInputSpec = DataSpecUtils::dataDescriptorMatcherFrom(header::DataDescription{"TSET"});
+  InputSpec ddSpec{
+    "binding",
+    std::move(fromQueryInputSpec)};
+
+  BOOST_CHECK_EQUAL(DataSpecUtils::asConcreteDataDescription(ddSpec).as<std::string>(), "TSET");
 }
 
 BOOST_AUTO_TEST_CASE(FindOutputSpec)

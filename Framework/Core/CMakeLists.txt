@@ -28,6 +28,7 @@ o2_add_library(Framework
                        src/ASoA.cxx
                        ${GUI_SOURCES}
                        src/AnalysisHelpers.cxx
+                       src/AnalysisDataModelHelpers.cxx
                        src/BoostOptionsRetriever.cxx
                        src/ChannelConfigurationPolicy.cxx
                        src/ChannelMatching.cxx
@@ -54,22 +55,11 @@ o2_add_library(Framework
                        src/DataProcessor.cxx
                        src/DataRelayer.cxx
                        src/DataRelayerHelpers.cxx
-                       src/DataSampling.cxx
-                       src/DataSamplingConditionFactory.cxx
-                       src/DataSamplingHeader.cxx
-                       src/DataSamplingConditionCustom.cxx
-                       src/DataSamplingConditionNConsecutive.cxx
-                       src/DataSamplingConditionPayloadSize.cxx
-                       src/DataSamplingConditionRandom.cxx
-                       src/DataSamplingHeader.cxx
-                       src/DataSamplingPolicy.cxx
-                       src/DataSamplingReadoutAdapter.cxx
                        src/DataSpecUtils.cxx
                        src/DeviceConfigInfo.cxx
                        src/DeviceMetricsInfo.cxx
                        src/DeviceSpec.cxx
                        src/DeviceSpecHelpers.cxx
-                       src/Dispatcher.cxx
                        src/DriverControl.cxx
                        src/DriverInfo.cxx
                        src/Expressions.cxx
@@ -97,6 +87,7 @@ o2_add_library(Framework
                        src/ResourcesMonitoringHelper.cxx
                        src/ServiceRegistry.cxx
                        src/SimpleResourceManager.cxx
+                       src/SimpleRawDeviceService.cxx
                        src/StreamOperators.cxx
                        src/TMessageSerializer.cxx
                        src/TableBuilder.cxx
@@ -160,9 +151,6 @@ foreach(t
         DataProcessorSpec
         DataRefUtils
         DataRelayer
-        DataSamplingCondition
-        DataSamplingHeader
-        DataSamplingPolicy
         DeviceConfigInfo
         DeviceMetricsInfo
         DeviceSpec
@@ -211,6 +199,11 @@ foreach(t
               PUBLIC_LINK_LIBRARIES O2::Framework)
 endforeach()
 
+o2_add_executable(dpl-null-sink
+                  SOURCES src/o2NullSink.cxx
+                  PUBLIC_LINK_LIBRARIES O2::Framework
+                 )
+
 o2_add_executable(dpl-run
                   SOURCES src/dplRun.cxx
                   PUBLIC_LINK_LIBRARIES O2::Framework
@@ -220,17 +213,6 @@ o2_add_executable(verify-aod-file
                   SOURCES src/verifyAODFile.cxx
                   PUBLIC_LINK_LIBRARIES O2::Framework
                   COMPONENT_NAME Framework)
-
-# tests with input data
-
-o2_data_file(COPY test/test_DataSampling.json DESTINATION tests)
-
-o2_add_test(DataSampling NAME test_Framework_test_DataSampling
-            SOURCES test/test_DataSampling.cxx
-            COMPONENT_NAME Framework
-            LABELS framework
-            PUBLIC_LINK_LIBRARIES O2::Framework
-            ENVIRONMENT O2_ROOT=${CMAKE_BINARY_DIR}/stage)
 
 # tests with a name not starting with test_...
 

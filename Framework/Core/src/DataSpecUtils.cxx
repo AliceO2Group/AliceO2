@@ -11,6 +11,7 @@
 #include "Framework/DataDescriptorMatcher.h"
 #include "Framework/DataMatcherWalker.h"
 #include "Framework/VariantHelpers.h"
+#include "Framework/Logger.h"
 #include <cstring>
 #include <cinttypes>
 
@@ -264,22 +265,16 @@ bool DataSpecUtils::partialMatch(InputSpec const& input, header::DataOrigin cons
   return DataSpecUtils::asConcreteOrigin(input) == origin;
 }
 
-ConcreteDataMatcher DataSpecUtils::asConcreteDataMatcher(InputSpec const& spec)
+bool DataSpecUtils::partialMatch(InputSpec const& input, header::DataDescription const& description)
 {
-  return std::get<ConcreteDataMatcher>(spec.matcher);
+  auto dataType = DataSpecUtils::asConcreteDataTypeMatcher(input);
+  return dataType.description == description;
 }
 
-ConcreteDataMatcher DataSpecUtils::asConcreteDataMatcher(OutputSpec const& spec)
+bool DataSpecUtils::partialMatch(OutputSpec const& output, header::DataDescription const& description)
 {
-  return std::get<ConcreteDataMatcher>(spec.matcher);
-}
-
-ConcreteDataTypeMatcher DataSpecUtils::asConcreteDataTypeMatcher(OutputSpec const& spec)
-{
-  return std::visit([](auto const& concrete) {
-    return ConcreteDataTypeMatcher{concrete.origin, concrete.description};
-  },
-                    spec.matcher);
+  auto dataType = DataSpecUtils::asConcreteDataTypeMatcher(output);
+  return dataType.description == description;
 }
 
 struct MatcherInfo {
@@ -368,6 +363,36 @@ MatcherInfo extractMatcherInfo(DataDescriptorMatcher const& top)
     [](auto t) {}};
   DataMatcherWalker::walk(top, nodeWalker, leafWalker);
   return state;
+}
+
+ConcreteDataMatcher DataSpecUtils::asConcreteDataMatcher(InputSpec const& spec)
+{
+  return std::visit(overloaded{[](ConcreteDataMatcher const& concrete) {
+                                 return concrete;
+                               },
+                               [&binding = spec.binding](DataDescriptorMatcher const& matcher) {
+                                 auto info = extractMatcherInfo(matcher);
+                                 if (info.hasOrigin && info.hasUniqueOrigin &&
+                                     info.hasDescription && info.hasDescription &&
+                                     info.hasSubSpec && info.hasUniqueSubSpec) {
+                                   return ConcreteDataMatcher{info.origin, info.description, info.subSpec};
+                                 }
+                                 throw std::runtime_error("Cannot convert " + binding + " to ConcreteDataMatcher");
+                               }},
+                    spec.matcher);
+}
+
+ConcreteDataMatcher DataSpecUtils::asConcreteDataMatcher(OutputSpec const& spec)
+{
+  return std::get<ConcreteDataMatcher>(spec.matcher);
+}
+
+ConcreteDataTypeMatcher DataSpecUtils::asConcreteDataTypeMatcher(OutputSpec const& spec)
+{
+  return std::visit([](auto const& concrete) {
+    return ConcreteDataTypeMatcher{concrete.origin, concrete.description};
+  },
+                    spec.matcher);
 }
 
 ConcreteDataTypeMatcher DataSpecUtils::asConcreteDataTypeMatcher(InputSpec const& spec)
@@ -459,6 +484,24 @@ DataDescriptorMatcher DataSpecUtils::dataDescriptorMatcherFrom(header::DataOrigi
     std::make_unique<DataDescriptorMatcher>(
       DataDescriptorMatcher::Op::And,
       DescriptionValueMatcher{ContextRef{1}},
+      std::make_unique<DataDescriptorMatcher>(
+        DataDescriptorMatcher::Op::And,
+        SubSpecificationTypeValueMatcher{ContextRef{2}},
+        std::make_unique<DataDescriptorMatcher>(DataDescriptorMatcher::Op::Just,
+                                                StartTimeValueMatcher{ContextRef{0}})))};
+  return std::move(matchOnlyOrigin);
+}
+
+DataDescriptorMatcher DataSpecUtils::dataDescriptorMatcherFrom(header::DataDescription const& description)
+{
+  char buf[17] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
+  strncpy(buf, description.str, 16);
+  DataDescriptorMatcher matchOnlyOrigin{
+    DataDescriptorMatcher::Op::And,
+    OriginValueMatcher{ContextRef{1}},
+    std::make_unique<DataDescriptorMatcher>(
+      DataDescriptorMatcher::Op::And,
+      DescriptionValueMatcher{buf},
       std::make_unique<DataDescriptorMatcher>(
         DataDescriptorMatcher::Op::And,
         SubSpecificationTypeValueMatcher{ContextRef{2}},

@@ -18,6 +18,7 @@
 #include "Framework/RootSerializationSupport.h"
 #include "Framework/InputRecord.h"
 #include "Framework/DataRef.h"
+#include "Framework/Logger.h"
 #include <TFile.h>
 #include <TTree.h>
 #include <TBranch.h>
@@ -339,6 +340,31 @@ class RootTreeWriter
     return (mTreeStructure != nullptr ? mTreeStructure->size() : 0);
   }
 
+  /// A static helper function to change the type of a (yet unused) branch.
+  /// Removes the old branch from the TTree system and creates a new branch.
+  /// The function is useful for situations in which we want to transform data after
+  /// the RootTreeWriter was created and change the type of the branch - such as in user callbacks.
+  /// The function needs to be used with care. The user should ensure that "branch" is no longer used
+  /// after a call to this function.
+  template <typename T>
+  static TBranch* remapBranch(TBranch& branch, T* newdata)
+  {
+    auto name = branch.GetName();
+    auto branchleaves = branch.GetListOfLeaves();
+    auto tree = branch.GetTree();
+    branch.DropBaskets("all");
+    branch.DeleteBaskets("all");
+    tree->GetListOfBranches()->Remove(&branch);
+    for (auto entry : *branchleaves) {
+      tree->GetListOfLeaves()->Remove(entry);
+    }
+    // ROOT leaves holes in the arrays so we need to compress as well
+    tree->GetListOfBranches()->Compress();
+    tree->GetListOfLeaves()->Compress();
+    // create a new branch with the same original name but attached to the new data
+    return tree->Branch(name, newdata);
+  }
+
  private:
   /// internal input and branch properties
   struct BranchSpec {
@@ -602,18 +628,49 @@ class RootTreeWriter
     template <typename S, typename std::enable_if_t<std::is_same<S, MessageableVectorSpecialization>::value, int> = 0>
     void fillData(InputContext& context, DataRef const& ref, TBranch* branch, size_t branchIdx)
     {
-      using ValueType = typename value_type::value_type;
-      static_assert(is_messageable<ValueType>::value, "logical error: should be correctly selected by StructureElementTypeTrait");
+      using ElementType = typename value_type::value_type;
+      static_assert(is_messageable<ElementType>::value, "logical error: should be correctly selected by StructureElementTypeTrait");
+
+      // A helper struct mimicking data layout of std::vector containers
+      // We assume a standard layout of begin, end, end_capacity
+      struct VecBase {
+        VecBase() = default;
+        const ElementType* start = nullptr;
+        const ElementType* end = nullptr;
+        const ElementType* cap = nullptr;
+      };
+
+      // a low level hack to make a gsl::span appear as a std::vector so that ROOT serializes the correct type
+      // but without the need for an extra copy
+      auto adopt = [](auto const& data, value_type& v) {
+        static_assert(sizeof(v) == 24);
+        if (data.size() == 0) {
+          return;
+        }
+        VecBase impl;
+        impl.start = &(data[0]);
+        impl.end = &(data[data.size() - 1]) + 1; // end pointer (beyond last element)
+        impl.cap = impl.end;
+        std::memcpy(&v, &impl, sizeof(VecBase));
+      };
+
       // if the value type is messagable and has a ROOT dictionary, two serialization methods are possible
       // for the moment, the InputRecord API can not handle both with the same call
       try {
         // try extracting from message with serialization method NONE, throw runtime error
         // if message is serialized
-        auto data = context.get<gsl::span<ValueType>>(ref);
-        value_type clone(data.begin(), data.end());
-        if (!runCallback(branch, clone, ref)) {
-          mStore[branchIdx] = &clone;
+        auto data = context.get<gsl::span<ElementType>>(ref);
+        // take an ordinary std::vector "view" on the data
+        auto* dataview = new value_type;
+        adopt(data, *dataview);
+        if (!runCallback(branch, *dataview, ref)) {
+          mStore[branchIdx] = dataview;
           branch->Fill();
+        }
+        // we delete JUST the view without deleting the data (which is handled by DPL)
+        auto ptr = (VecBase*)dataview;
+        if (ptr) {
+          delete ptr;
         }
       } catch (const std::runtime_error& e) {
         if constexpr (has_root_dictionary<value_type>::value == true) {

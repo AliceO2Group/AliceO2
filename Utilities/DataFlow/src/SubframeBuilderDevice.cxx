@@ -86,8 +86,9 @@ bool o2::data_flow::SubframeBuilderDevice::BuildAndSendFrame(FairMQParts& inPart
   size_t outSize = mMerger->finalise(outBuffer, id);
   // In this case we do not have enough subtimeframes for id,
   // so we simply return.
-  if (outSize == 0)
+  if (outSize == 0) {
     return true;
+  }
   // If we reach here, it means we do have enough subtimeframes.
 
   // top level subframe header, the DataHeader is going to be used with

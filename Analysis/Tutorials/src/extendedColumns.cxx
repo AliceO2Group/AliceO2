@@ -28,7 +28,9 @@ struct ATask {
     auto table_extension = soa::Extend<aod::Tracks, aod::extension::P2>(tracks);
     for (auto& row : table_extension) {
       if (row.trackType() != 3) {
-        LOGF(info, "P^2 = %.3f", row.p2());
+        if (row.index() % 100 == 0) {
+          LOGF(info, "P^2 = %.3f", row.p2());
+        }
       }
     }
   }

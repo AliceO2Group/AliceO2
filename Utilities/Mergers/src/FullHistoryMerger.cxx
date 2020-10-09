@@ -20,7 +20,7 @@
 
 #include "Headers/DataHeader.h"
 #include "Framework/InputRecordWalker.h"
-
+#include "Framework/Logger.h"
 #include <Monitoring/MonitoringFactory.h>
 
 using namespace o2::header;

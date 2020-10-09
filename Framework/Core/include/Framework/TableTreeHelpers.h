@@ -160,7 +160,7 @@ class ColumnIterator
   TTreeReaderArray<double>* mReaderArray_d = nullptr;
 
   // all the possible arrow::TBuilder types
-  std::shared_ptr<arrow::FixedSizeListBuilder> mTableBuilder_list;
+  arrow::FixedSizeListBuilder* mTableBuilder_list = nullptr;
 
   arrow::BooleanBuilder* mTableBuilder_o = nullptr;
   arrow::UInt8Builder* mTableBuilder_ub = nullptr;
@@ -192,6 +192,9 @@ class ColumnIterator
   // copy the TTreeReaderValue to the arrow::TBuilder
   void push();
 
+  // reserve enough space to push s elements without reallocating
+  void reserve(size_t s);
+
   std::shared_ptr<arrow::Array> getArray() { return mArray; }
   std::shared_ptr<arrow::Field> getSchema() { return mField; }
 
@@ -209,7 +212,7 @@ class TreeToTable
   TTreeReader* mTreeReader;
 
   // a list of ColumnIterator*
-  std::vector<std::shared_ptr<ColumnIterator>> mColumnIterators;
+  std::vector<std::unique_ptr<ColumnIterator>> mColumnIterators;
 
   // Append next set of branch values to the
   // corresponding table columns
@@ -224,6 +227,9 @@ class TreeToTable
 
   // add all columns
   bool addAllColumns();
+
+  // reserve enough space to push s rows without reallocating
+  void reserve(size_t s);
 
   // do the looping with the TTreeReader
   void fill();

@@ -44,6 +44,7 @@ class RawWriterDeviceDPL
   {
     auto filename = ic.options().get<std::string>("mid-raw-outfile");
     auto dirname = ic.options().get<std::string>("mid-raw-outdir");
+    auto perLink = ic.options().get<bool>("mid-raw-perlink");
     if (gSystem->AccessPathName(dirname.c_str())) {
       if (gSystem->mkdir(dirname.c_str(), kTRUE)) {
         LOG(FATAL) << "could not create output directory " << dirname;
@@ -53,7 +54,7 @@ class RawWriterDeviceDPL
     }
 
     std::string fullFName = o2::utils::concat_string(dirname, "/", filename);
-    mEncoder.init(fullFName.c_str());
+    mEncoder.init(fullFName.c_str(), perLink);
 
     std::string inputGRP = o2::base::NameConf::getGRPFileName();
     std::unique_ptr<o2::parameters::GRPObject> grp{o2::parameters::GRPObject::loadFrom(inputGRP)};
@@ -97,7 +98,8 @@ framework::DataProcessorSpec getRawWriterSpec()
     of::AlgorithmSpec{of::adaptFromTask<o2::mid::RawWriterDeviceDPL>()},
     of::Options{
       {"mid-raw-outdir", of::VariantType::String, ".", {"Raw file output directory"}},
-      {"mid-raw-outfile", of::VariantType::String, "mid.raw", {"Raw output file name"}},
+      {"mid-raw-outfile", of::VariantType::String, "mid", {"Raw output file name"}},
+      {"mid-raw-perlink", of::VariantType::Bool, false, {"Output file per link"}},
       {"mid-raw-header-offset", of::VariantType::Bool, false, {"Header offset in bytes"}}}};
 }
 } // namespace mid

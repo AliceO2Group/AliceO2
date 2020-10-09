@@ -675,6 +675,9 @@ class TrapConfig
   const std::array<int, 3> mgkRegisterAddressBlockSize = {0x0400, 0x0200, 0x0004};
   std::string mTrapConfigName;
   std::string mTrapConfigVersion;
+  void PrintDmemValue3(TrapConfig::TrapDmemWord* trapval, std::ofstream& output);
+  void PrintRegisterValue3(TrapConfig::TrapRegister* trapval, std::ofstream& output);
+  void DumpTrapConfig2File(std::string filename);
 
  private:
   //  TrapConfig& operator=(const TrapConfig& rhs); // not implemented

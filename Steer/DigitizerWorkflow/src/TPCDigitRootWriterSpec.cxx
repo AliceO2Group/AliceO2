@@ -24,7 +24,8 @@
 #include "DataFormatsTPC/Digit.h"
 #include "TPCSimulation/CommonMode.h"
 #include <SimulationDataFormat/MCCompLabel.h>
-#include <SimulationDataFormat/MCTruthContainer.h>
+#include <SimulationDataFormat/ConstMCTruthContainer.h>
+#include <SimulationDataFormat/IOMCTruthContainerView.h>
 #include <TFile.h>
 #include <TTree.h>
 #include <TBranch.h>
@@ -62,24 +63,21 @@ DataProcessorSpec getTPCDigitRootWriterSpec(std::vector<int> const& laneConfigur
     for (TObject* entry : *brlist) {
       auto br = static_cast<TBranch*>(entry);
       int brentries = br->GetEntries();
-      if (entries == -1) {
-        entries = brentries;
-      } else {
-        if (brentries != entries && !TString(br->GetName()).Contains("CommonMode")) {
-          LOG(WARNING) << "INCONSISTENT NUMBER OF ENTRIES IN BRANCH " << br->GetName() << ": " << entries << " vs " << brentries;
-        }
+      entries = std::max(entries, brentries);
+      if (brentries != entries && !TString(br->GetName()).Contains("CommonMode")) {
+        LOG(WARNING) << "INCONSISTENT NUMBER OF ENTRIES IN BRANCH " << br->GetName() << ": " << entries << " vs " << brentries;
       }
     }
     if (entries > 0) {
+      LOG(INFO) << "Setting entries to " << entries;
       outputtree->SetEntries(entries);
+      // outputtree->Write("", TObject::kOverwrite);
+      outputfile->Close();
     }
-    outputtree->Write();
-    outputfile->Close();
   };
 
   //branch definitions for RootTreeWriter spec
   using DigitsOutputType = std::vector<o2::tpc::Digit>;
-  using MCLabelContainer = o2::dataformats::MCTruthContainer<o2::MCCompLabel>;
   using CommonModeOutputType = std::vector<o2::tpc::CommonMode>;
 
   // extracts the sector from header of an input
@@ -156,6 +154,7 @@ DataProcessorSpec getTPCDigitRootWriterSpec(std::vector<int> const& laneConfigur
     if (sector >= 0) {
       LOG(INFO) << "DIGIT SIZE " << digiData.size();
       const auto& trigS = (*trigP2Sect.get())[sector];
+      int entries = 0;
       if (!trigS.size()) {
         std::runtime_error("Digits for sector " + std::to_string(sector) + " are received w/o info on grouping in triggers");
       } else { // check consistency of Ndigits with that of expected from the trigger
@@ -171,7 +170,9 @@ DataProcessorSpec getTPCDigitRootWriterSpec(std::vector<int> const& laneConfigur
           auto ptr = &digiData;
           branch.SetAddress(&ptr);
           branch.Fill();
+          entries++;
           branch.ResetAddress();
+          branch.DropBaskets("all");
         } else {                                // triggered mode (>1 entries will be written)
           std::vector<o2::tpc::Digit> digGroup; // group of digits related to single trigger
           auto ptr = &digGroup;
@@ -182,19 +183,31 @@ DataProcessorSpec getTPCDigitRootWriterSpec(std::vector<int> const& laneConfigur
               digGroup.emplace_back(digiData[group.getFirstEntry() + i]); // fetch digits of given trigger
             }
             branch.Fill();
+            entries++;
           }
           branch.ResetAddress();
+          branch.DropBaskets("all");
         }
       }
+      auto tree = branch.GetTree();
+      tree->SetEntries(entries);
+      tree->Write("", TObject::kOverwrite);
     }
   };
 
   // handler for labels
   // TODO: this is almost a copy of the above, reduce to a single methods with amends
-  auto fillLabels = [extractSector, trigP2Sect](TBranch& branch, MCLabelContainer const& labeldata, DataRef const& ref) {
+  auto fillLabels = [extractSector, trigP2Sect](TBranch& branch, std::vector<char> const& labelbuffer, DataRef const& ref) {
+    o2::dataformats::IOMCTruthContainerView outputcontainer;
+    o2::dataformats::ConstMCTruthContainerView<o2::MCCompLabel> labeldata(labelbuffer);
+    // first of all redefine the output format (special to labels)
+    auto tree = branch.GetTree();
     auto sector = extractSector(ref);
+    auto br = framework::RootTreeWriter::remapBranch(branch, &outputcontainer);
+
     auto const* dh = DataRefUtils::getHeader<DataHeader*>(ref);
     LOG(INFO) << "HAVE LABEL DATA FOR SECTOR " << sector << " ON CHANNEL " << dh->subSpecification;
+    int entries = 0;
     if (sector >= 0) {
       LOG(INFO) << "MCTRUTH ELEMENTS " << labeldata.getIndexedSize()
                 << " WITH " << labeldata.getNElements() << " LABELS";
@@ -211,25 +224,32 @@ DataProcessorSpec getTPCDigitRootWriterSpec(std::vector<int> const& laneConfigur
       }
       {
         if (trigS.size() == 1) { // just 1 entry (continous mode?), use labels directly
-          auto ptr = &labeldata;
-          branch.SetAddress(&ptr);
-          branch.Fill();
-          branch.ResetAddress();
+          outputcontainer.adopt(labelbuffer);
+          br->Fill();
+          br->ResetAddress();
+          br->DropBaskets("all");
+          entries = 1;
         } else {
           o2::dataformats::MCTruthContainer<o2::MCCompLabel> lblGroup; // labels for group of digits related to single trigger
-          auto ptr = &lblGroup;
-          branch.SetAddress(&ptr);
           for (auto const& group : trigS) {
             lblGroup.clear();
             for (int i = 0; i < group.getEntries(); i++) {
               auto lbls = labeldata.getLabels(group.getFirstEntry() + i);
               lblGroup.addElements(i, lbls);
             }
-            branch.Fill();
+            // init the output container
+            std::vector<char> flatbuffer;
+            lblGroup.flatten_to(flatbuffer);
+            outputcontainer.adopt(flatbuffer);
+            br->Fill();
+            br->DropBaskets("all");
+            entries++;
           }
-          branch.ResetAddress();
+          br->ResetAddress();
         }
       }
+      tree->SetEntries(entries);
+      tree->Write("", TObject::kOverwrite);
     }
   };
 
@@ -248,13 +268,13 @@ DataProcessorSpec getTPCDigitRootWriterSpec(std::vector<int> const& laneConfigur
                                                       getIndex,
                                                       getName};
 
-  auto labelsdef = BranchDefinition<MCLabelContainer>{InputSpec{"labelinput", ConcreteDataTypeMatcher{"TPC", "DIGITSMCTR"}},
-                                                      "TPCDigitMCTruth", "labels-branch-name",
-                                                      // this branch definition is disabled if MC labels are not processed
-                                                      (mctruth ? laneConfiguration.size() : 0),
-                                                      fillLabels,
-                                                      getIndex,
-                                                      getName};
+  auto labelsdef = BranchDefinition<std::vector<char>>{InputSpec{"labelinput", ConcreteDataTypeMatcher{"TPC", "DIGITSMCTR"}},
+                                                       "TPCDigitMCTruth", "labels-branch-name",
+                                                       // this branch definition is disabled if MC labels are not processed
+                                                       (mctruth ? laneConfiguration.size() : 0),
+                                                       fillLabels,
+                                                       getIndex,
+                                                       getName};
 
   auto commddef = BranchDefinition<CommonModeOutputType>{InputSpec{"commonmode", ConcreteDataTypeMatcher{"TPC", "COMMONMODE"}},
                                                          "TPCCommonMode", "common-mode-branch-name",

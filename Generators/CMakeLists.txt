@@ -25,13 +25,16 @@ o2_add_library(Generators
 	       	       src/Trigger.cxx
 	       	       src/TriggerParticle.cxx
                        src/GeneratorTGenerator.cxx
+                       src/GeneratorExternalParam.cxx
                        src/GeneratorFromFile.cxx
                        src/PDG.cxx
                        src/PrimaryGenerator.cxx
                        src/InteractionDiamondParam.cxx
+                       src/TriggerExternalParam.cxx
                        src/TriggerParticleParam.cxx
                        src/BoxGunParam.cxx
 		       src/QEDGenParam.cxx
+                       src/GenCosmicsParam.cxx
                        src/GeneratorFactory.cxx
                        $<$<BOOL:${pythia6_FOUND}>:src/GeneratorPythia6.cxx>
                        $<$<BOOL:${pythia6_FOUND}>:src/GeneratorPythia6Param.cxx>
@@ -63,14 +66,17 @@ set(headers
     include/Generators/Trigger.h
     include/Generators/TriggerParticle.h
     include/Generators/GeneratorTGenerator.h
+    include/Generators/GeneratorExternalParam.h
     include/Generators/GeneratorFromFile.h
     include/Generators/PDG.h
     include/Generators/PrimaryGenerator.h
     include/Generators/InteractionDiamondParam.h
+    include/Generators/TriggerExternalParam.h
     include/Generators/TriggerParticleParam.h
     include/Generators/ConfigurationMacroHelper.h
     include/Generators/BoxGunParam.h
-    include/Generators/QEDGenParam.h)
+    include/Generators/QEDGenParam.h
+    include/Generators/GenCosmicsParam.h)
 
 if (pythia6_FOUND)
    list(APPEND headers include/Generators/GeneratorPythia6.h
@@ -104,6 +110,11 @@ endif()
 
 if(doBuildSimulation)
   o2_add_test_root_macro(share/external/QEDLoader.C
+                         PUBLIC_LINK_LIBRARIES O2::Generators
+                                               O2::SimConfig
+                                               LABELS generators)
+
+  o2_add_test_root_macro(share/external/GenCosmicsLoader.C
                          PUBLIC_LINK_LIBRARIES O2::Generators
                                                O2::SimConfig
                                                LABELS generators)

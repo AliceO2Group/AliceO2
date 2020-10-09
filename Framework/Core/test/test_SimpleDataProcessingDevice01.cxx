@@ -14,7 +14,6 @@
 #include "Framework/RawDeviceService.h"
 #include "Framework/runDataProcessing.h"
 #include <Monitoring/Monitoring.h>
-#include <FairMQDevice.h>
 
 using namespace o2::framework;
 
@@ -40,7 +39,7 @@ std::vector<DataProcessorSpec> defineDataProcessing(ConfigContext const&)
       {OutputSpec{"TPC", "CLUSTERS"},
        OutputSpec{"ITS", "CLUSTERS"}},
       adaptStateless([](DataAllocator& outputs, ControlService& control, RawDeviceService& service) {
-        service.device()->WaitFor(std::chrono::milliseconds(1000));
+        service.waitFor(1000);
         // Creates a new message of size 1000 which
         // has "TPC" as data origin and "CLUSTERS" as data description.
         auto& tpcClusters = outputs.make<FakeCluster>(Output{"TPC", "CLUSTERS", 0}, 1000);

@@ -16,7 +16,7 @@
 
 #include "GPUCommonDef.h"
 
-#if defined(__CUDACC__) && !defined(__clang__)
+#if defined(__CUDACC__) && !defined(__clang__) && !defined(GPUCA_GPUCODE_GENRTC)
 #include <sm_20_atomic_functions.h>
 #endif
 
@@ -47,6 +47,11 @@ class GPUCommonMath
   GPUd() static T MaxWithRef(T x, T y, S refX, S refY, R& r);
   template <class T, class S, class R>
   GPUd() static T MaxWithRef(T x, T y, T z, T w, S refX, S refY, S refZ, S refW, R& r);
+  template <class T>
+  GPUdi() static T Clamp(const T v, const T lo, const T hi)
+  {
+    return Max(lo, Min(v, hi));
+  }
   GPUhdni() static float Sqrt(float x);
   GPUd() static float FastInvSqrt(float x);
   template <class T>

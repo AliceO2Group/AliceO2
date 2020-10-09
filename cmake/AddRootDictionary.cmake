@@ -111,8 +111,11 @@ function(add_root_dictionary target)
   set(pcmBase ${dictionary}_rdict.pcm)
   set(pcmFile ${lib_output_dir}/${pcmBase})
   set(rootmapFile ${lib_output_dir}/lib${basename}.rootmap)
+  
+  set(O2_TARGETPCMMAP_TARGET "${O2_TARGETPCMMAP_TARGET};${target}" CACHE INTERNAL "target/PCM map (target)")
+  set(O2_TARGETPCMMAP_PCM "${O2_TARGETPCMMAP_PCM};${pcmFile}" CACHE INTERNAL "target/PCM map (pcm)")
 
-  # get the list of compile_definitions 
+  # get the list of compile_definitions
   set(prop $<TARGET_PROPERTY:${target},COMPILE_DEFINITIONS>)
 
   # Build the LD_LIBRARY_PATH required to get rootcling running fine
@@ -141,10 +144,11 @@ function(add_root_dictionary target)
       --include_dirs -I$<JOIN:${includeDirs},$<SEMICOLON>-I>
       $<$<BOOL:${prop}>:--compile_defs>
       $<$<BOOL:${prop}>:-D$<JOIN:${prop},$<SEMICOLON>-D>>
+      --pcmdeps "$<REMOVE_DUPLICATES:${list_pcm_deps_${target}}>"
       --headers "${headers}"
     COMMAND
     ${CMAKE_COMMAND} -E copy_if_different ${CMAKE_CURRENT_BINARY_DIR}/${pcmBase} ${pcmFile}
-    DEPENDS ${headers})
+    DEPENDS ${headers} "$<REMOVE_DUPLICATES:${list_pcm_deps_${target}}>")
   # cmake-format: on
 
   # add dictionary source to the target sources

@@ -35,7 +35,7 @@ using OutputType = std::vector<o2::dataformats::MatchInfoTOF>;
 using LabelsType = std::vector<o2::MCCompLabel>;
 using namespace o2::header;
 
-DataProcessorSpec getTOFMatchedWriterSpec(bool useMC)
+DataProcessorSpec getTOFMatchedWriterSpec(bool useMC, const char* outdef)
 {
   // spectators for logging
   auto loggerMatched = [](OutputType const& indata) {
@@ -54,7 +54,7 @@ DataProcessorSpec getTOFMatchedWriterSpec(bool useMC)
   // RS why do we need to repead ITS/TPC labels ?
   // They can be extracted from TPC-ITS matches
   return MakeRootTreeWriterSpec("TOFMatchedWriter",
-                                "o2match_tof.root",
+                                outdef,
                                 "matchTOF",
                                 BranchDefinition<OutputType>{InputSpec{"tofmatching", gDataOriginTOF, "MATCHINFOS", 0},
                                                              "TOFMatchInfo",

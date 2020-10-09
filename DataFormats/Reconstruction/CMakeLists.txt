@@ -9,7 +9,8 @@
 # submit itself to any jurisdiction.
 
 o2_add_library(ReconstructionDataFormats
-               SOURCES src/Track.cxx
+               SOURCES src/TrackParametrization.cxx
+                       src/TrackParametrizationWithError.cxx
                        src/TrackFwd.cxx
                        src/BaseCluster.cxx
                        src/TrackTPCITS.cxx
@@ -19,6 +20,8 @@ o2_add_library(ReconstructionDataFormats
                        src/TrackLTIntegral.cxx
                        src/PID.cxx
                        src/DCA.cxx
+                       src/VtxTrackIndex.cxx
+                       src/VtxTrackRef.cxx
                PUBLIC_LINK_LIBRARIES O2::GPUCommon
                                      O2::DetectorsCommonDataFormats
                                      O2::CommonDataFormat)
@@ -34,7 +37,9 @@ o2_target_root_dictionary(
           include/ReconstructionDataFormats/MatchInfoTOF.h
           include/ReconstructionDataFormats/TrackLTIntegral.h
           include/ReconstructionDataFormats/PID.h
-          include/ReconstructionDataFormats/DCA.h)
+          include/ReconstructionDataFormats/DCA.h
+          include/ReconstructionDataFormats/VtxTrackIndex.h
+          include/ReconstructionDataFormats/VtxTrackRef.h)
 
 o2_add_test(Vertex
             SOURCES test/testVertex.cxx

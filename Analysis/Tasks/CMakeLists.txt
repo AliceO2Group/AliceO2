@@ -11,40 +11,22 @@
 add_subdirectory(PWGCF)
 add_subdirectory(PWGDQ)
 add_subdirectory(PWGHF)
+add_subdirectory(PWGLF)
+add_subdirectory(PWGUD)
 
 o2_add_dpl_workflow(trackselection
                     SOURCES trackselection.cxx
                     PUBLIC_LINK_LIBRARIES O2::Framework O2::AnalysisDataModel O2::AnalysisCore
                     COMPONENT_NAME Analysis)
 
-o2_add_dpl_workflow(correlations
-                    SOURCES correlations.cxx
-                    PUBLIC_LINK_LIBRARIES O2::Framework O2::AnalysisCore
-                    COMPONENT_NAME Analysis)
-
-o2_add_dpl_workflow(correlations-collection
-                    SOURCES correlationsCollection.cxx
-                    PUBLIC_LINK_LIBRARIES O2::Framework O2::AnalysisCore
-                    COMPONENT_NAME Analysis)
-
-o2_add_dpl_workflow(correlations-mixed
-                    SOURCES correlationsMixed.cxx
-                    PUBLIC_LINK_LIBRARIES O2::Framework O2::AnalysisCore
+o2_add_dpl_workflow(trackqa
+                    SOURCES trackqa.cxx
+                    PUBLIC_LINK_LIBRARIES O2::Framework O2::AnalysisDataModel O2::AnalysisCore
                     COMPONENT_NAME Analysis)
 
 o2_add_dpl_workflow(qatask
                     SOURCES qaTask.cxx
                     PUBLIC_LINK_LIBRARIES O2::Framework O2::AnalysisDataModel O2::AnalysisCore
-                    COMPONENT_NAME Analysis)
-
-o2_add_dpl_workflow(spectra-tof
-                    SOURCES spectraTOF.cxx
-                    PUBLIC_LINK_LIBRARIES O2::Framework O2::DetectorsBase O2::AnalysisDataModel
-                    COMPONENT_NAME Analysis)
-
-o2_add_dpl_workflow(spectra-tpc
-                    SOURCES spectraTPC.cxx
-                    PUBLIC_LINK_LIBRARIES O2::Framework O2::DetectorsBase O2::AnalysisDataModel
                     COMPONENT_NAME Analysis)
 
 o2_add_dpl_workflow(pid-tof
@@ -69,11 +51,6 @@ o2_add_dpl_workflow(jetfinder
                     FastJet::FastJet
                     COMPONENT_NAME Analysis)
 endif()
-
-o2_add_dpl_workflow(upc-an
-                    SOURCES upcAnalysis.cxx
-                    PUBLIC_LINK_LIBRARIES O2::Framework O2::AnalysisDataModel O2::AnalysisCore O2::DetectorsBase
-                    COMPONENT_NAME Analysis)
 
 o2_add_dpl_workflow(event-selection
                     SOURCES eventSelection.cxx

@@ -20,7 +20,8 @@
 #include "Framework/Task.h"
 
 #include "CommonDataFormat/TimeStamp.h"
-#include "CommonDataFormat/RangeReference.h"
+#include "ReconstructionDataFormats/VtxTrackIndex.h"
+#include "ReconstructionDataFormats/VtxTrackRef.h"
 #include "ReconstructionDataFormats/PrimaryVertex.h"
 #include "SimulationDataFormat/MCEventLabel.h"
 
@@ -33,8 +34,9 @@ namespace vertexing
 class PrimaryVertexReader : public o2::framework::Task
 {
   using Label = o2::MCEventLabel;
-  using V2TRef = o2::dataformats::RangeReference<int, int>;
+  using V2TRef = o2::dataformats::VtxTrackRef;
   using PVertex = o2::dataformats::PrimaryVertex;
+  using GIndex = o2::dataformats::VtxTrackIndex;
 
  public:
   PrimaryVertexReader(bool useMC) : mUseMC(useMC) {}
@@ -43,18 +45,20 @@ class PrimaryVertexReader : public o2::framework::Task
   void run(o2::framework::ProcessingContext& pc) final;
 
  protected:
-  void connectTree(const std::string& filename);
+  void connectTree();
 
+  bool mVerbose = false;
   bool mUseMC = false;
 
   std::vector<PVertex> mVertices, *mVerticesPtr = &mVertices;
-  std::vector<int> mPVTrIdx, *mPVTrIdxPtr = &mPVTrIdx;
-  std::vector<V2TRef> mPV2TrIdx, *mPV2TrIdxPtr = &mPV2TrIdx;
   std::vector<Label> mLabels, *mLabelsPtr = &mLabels;
+  std::vector<V2TRef> mPV2MatchIdxRef, *mPV2MatchIdxRefPtr = &mPV2MatchIdxRef;
+  std::vector<GIndex> mPV2MatchIdx, *mPV2MatchIdxPtr = &mPV2MatchIdx;
 
   std::unique_ptr<TFile> mFile;
   std::unique_ptr<TTree> mTree;
   std::string mFileName = "";
+  std::string mFileNameMatches = "";
   std::string mVertexTreeName = "o2sim";
   std::string mVertexBranchName = "PrimaryVertex";
   std::string mVertexTrackIDsBranchName = "PVTrackIndices";

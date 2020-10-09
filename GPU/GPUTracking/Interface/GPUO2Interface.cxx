@@ -52,6 +52,7 @@ int GPUTPCO2Interface::Initialize(const GPUO2InterfaceConfiguration& config)
   }
   mRec->SetSettings(&mConfig->configEvent, &mConfig->configReconstruction, &mConfig->configProcessing, &mConfig->configWorkflow);
   mChain->SetTPCFastTransform(mConfig->configCalib.fastTransform);
+  mChain->SetTPCCFCalibration(mConfig->configCalib.tpcCalibration);
   mChain->SetdEdxSplines(mConfig->configCalib.dEdxSplines);
   mChain->SetMatLUT(mConfig->configCalib.matLUT);
   mChain->SetTRDGeometry(mConfig->configCalib.trdGeometry);
@@ -62,6 +63,10 @@ int GPUTPCO2Interface::Initialize(const GPUO2InterfaceConfiguration& config)
     mChain->SetOutputControlClustersNative(mOutputClustersNative.get());
     mOutputTPCTracks.reset(new GPUOutputControl);
     mChain->SetOutputControlTPCTracks(mOutputTPCTracks.get());
+  }
+  if (mConfig->configProcessing.runMC) {
+    mOutputTPCClusterLabels.reset(new GPUOutputControl);
+    mChain->SetOutputControlClusterLabels(mOutputTPCClusterLabels.get());
   }
 
   if (mRec->Init()) {
@@ -128,6 +133,13 @@ int GPUTPCO2Interface::RunTracking(GPUTrackingInOutPointers* data, GPUInterfaceO
       mOutputTPCTracks->set(outputs->tpcTracks.ptr, outputs->tpcTracks.size);
     } else {
       mOutputTPCTracks->reset();
+    }
+  }
+  if (mConfig->configProcessing.runMC) {
+    if (outputs->clusterLabels.allocator) {
+      mOutputTPCClusterLabels->set(outputs->clusterLabels.allocator);
+    } else {
+      mOutputTPCClusterLabels->reset();
     }
   }
   int retVal = mRec->RunChains();

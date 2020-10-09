@@ -15,7 +15,7 @@
 #ifndef ALICEO2_track_PID_H_
 #define ALICEO2_track_PID_H_
 
-#include <Rtypes.h>
+#include "GPUCommonRtypes.h"
 #include "CommonConstants/PhysicsConstants.h"
 
 namespace o2
@@ -26,7 +26,7 @@ class PID
 {
  public:
   // particle identifiers, continuos starting from 0
-  typedef std::int32_t ID;
+  typedef uint8_t ID;
 
   static constexpr ID Electron = 0;
   static constexpr ID Muon = 1;
@@ -40,7 +40,17 @@ class PID
 
   static constexpr ID First = Electron;
   static constexpr ID Last = Alpha;     ///< if extra IDs added, update this !!!
-  static constexpr int NIDs = Last + 1; ///< number of defined IDs
+  static constexpr ID NIDs = Last + 1;  ///< number of defined IDs
+
+  // PID for derived particles
+  static constexpr ID PI0 = 9;
+  static constexpr ID Photon = 10;
+  static constexpr ID K0 = 11;
+  static constexpr ID Lambda = 12;
+  static constexpr ID HyperTriton = 13;
+  static constexpr ID FirstExt = PI0;
+  static constexpr ID LastExt = HyperTriton;
+  static constexpr ID NIDsTot = LastExt + 1; ///< total number of defined IDs
 
   PID() = default;
   PID(ID id) : mID(id) {}
@@ -49,6 +59,7 @@ class PID
   PID& operator=(const PID& src) = default;
 
   ID getID() const { return mID; }
+  operator ID() const { return getID(); }
 
   float getMass() const { return getMass(mID); }
   float getMass2Z() const { return getMass2Z(mID); }
@@ -69,32 +80,39 @@ class PID
     return !*x && !*y ? true : /* default */ (*x == *y && sameStr(x + 1, y + 1));
   }
 
-  inline static constexpr int nameToID(char const* name, int id)
+  inline static constexpr ID nameToID(char const* name, ID id)
   {
-    return id > Last ? id : sameStr(name, sNames[id]) ? id : nameToID(name, id + 1);
+    return id > LastExt ? id : sameStr(name, sNames[id]) ? id : nameToID(name, id + 1);
   }
 
-  static constexpr const char* sNames[NIDs + 1] = ///< defined particle names
-    {"Electron", "Muon", "Pion", "Kaon", "Proton", "Deuteron", "Triton", "He3", "Alpha", nullptr};
+  static constexpr const char* sNames[NIDsTot + 1] = ///< defined particle names
+    {"Electron", "Muon", "Pion", "Kaon", "Proton", "Deuteron", "Triton", "He3", "Alpha",
+     "Pion0", "Photon", "K0", "Lambda", "HyperTriton",
+     nullptr};
 
-  static constexpr const float sMasses[NIDs] = ///< defined particle masses
+  static constexpr const float sMasses[NIDsTot] = ///< defined particle masses
     {o2::constants::physics::MassElectron, o2::constants::physics::MassMuon,
      o2::constants::physics::MassPionCharged, o2::constants::physics::MassKaonCharged,
      o2::constants::physics::MassProton, o2::constants::physics::MassDeuteron,
      o2::constants::physics::MassTriton, o2::constants::physics::MassHelium3,
-     o2::constants::physics::MassAlpha};
+     o2::constants::physics::MassAlpha,
+     o2::constants::physics::MassPionNeutral, o2::constants::physics::MassPhoton,
+     o2::constants::physics::MassKaonNeutral, o2::constants::physics::MassLambda,
+     o2::constants::physics::MassHyperTriton};
 
-  static constexpr const float sMasses2Z[NIDs] = ///< defined particle masses / Z
+  static constexpr const float sMasses2Z[NIDsTot] = ///< defined particle masses / Z
     {o2::constants::physics::MassElectron, o2::constants::physics::MassMuon,
      o2::constants::physics::MassPionCharged, o2::constants::physics::MassKaonCharged,
      o2::constants::physics::MassProton, o2::constants::physics::MassDeuteron,
      o2::constants::physics::MassTriton, o2::constants::physics::MassHelium3 / 2.,
-     o2::constants::physics::MassAlpha / 2.};
+     o2::constants::physics::MassAlpha / 2.,
+     0, 0, 0, 0, o2::constants::physics::MassHyperTriton};
 
-  static constexpr const int sCharges[NIDs] = ///< defined particle charges
-    {1, 1, 1, 1, 1, 1, 1, 2, 2};
+  static constexpr const int sCharges[NIDsTot] = ///< defined particle charges
+    {1, 1, 1, 1, 1, 1, 1, 2, 2,
+     0, 0, 0, 0, 1};
 
-  ClassDefNV(PID, 1);
+  ClassDefNV(PID, 2);
 };
 } // namespace track
 } // namespace o2

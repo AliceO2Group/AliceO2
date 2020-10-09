@@ -51,13 +51,8 @@ std::shared_ptr<arrow::Table>
   TableBuilder::finalize()
 {
   mFinalizer();
-  std::vector<std::shared_ptr<arrow::ChunkedArray>> columns;
-  columns.reserve(mArrays.size());
-  for (auto i = 0; i < mSchema->num_fields(); ++i) {
-    auto column = std::make_shared<arrow::ChunkedArray>(mArrays[i]);
-    columns.emplace_back(column);
-  }
-  return arrow::Table::Make(mSchema, columns);
+  assert(mSchema->num_fields() > 0 && "Schema needs to be non-empty");
+  return arrow::Table::Make(mSchema, mArrays);
 }
 
 } // namespace o2::framework

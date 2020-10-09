@@ -19,6 +19,7 @@
 #include "Framework/InputRecord.h"
 #include "Framework/DataRef.h"
 #include "Framework/DataRefUtils.h"
+#include "Framework/Logger.h"
 #include "Headers/DataHeader.h"
 #include <utility> // std::declval
 

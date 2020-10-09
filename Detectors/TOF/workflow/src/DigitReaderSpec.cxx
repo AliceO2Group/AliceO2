@@ -16,7 +16,8 @@
 
 #include "Framework/ControlService.h"
 #include "Framework/ConfigParamRegistry.h"
-#include "TOFWorkflow/DigitReaderSpec.h"
+#include "Framework/Logger.h"
+#include "TOFWorkflowUtils/DigitReaderSpec.h"
 #include "DataFormatsParameters/GRPObject.h"
 
 using namespace o2::framework;

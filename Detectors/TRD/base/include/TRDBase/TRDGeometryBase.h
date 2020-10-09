@@ -25,7 +25,6 @@ class TRDGeometryBase
  public:
   ~TRDGeometryBase() = default;
 
-  static constexpr int MAXMATRICES = 521;
 
   GPUd() int isVersion() { return 1; }
   GPUd() bool isHole(int la, int st, int se) const { return (((se == 13) || (se == 14) || (se == 15)) && (st == 2)); }

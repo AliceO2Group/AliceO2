@@ -43,13 +43,13 @@ class TOFChannelCalibDevice : public o2::framework::Task
   void init(o2::framework::InitContext& ic) final
   {
 
-    int minEnt = std::max(50, ic.options().get<int>("min-entries"));
+    int minEnt = ic.options().get<int>("min-entries"); //std::max(50, ic.options().get<int>("min-entries"));
     int nb = std::max(500, ic.options().get<int>("nbins"));
     float range = ic.options().get<float>("range");
     int isTest = ic.options().get<bool>("do-TOF-channel-calib-in-test-mode");
     mCalibrator = std::make_unique<o2::tof::TOFChannelCalibrator>(minEnt, nb, range);
     mCalibrator->setUpdateAtTheEndOfRunOnly();
-    mCalibrator->isTest(isTest);
+    mCalibrator->setIsTest(isTest);
 
     // calibration objects set to zero
     mPhase.addLHCphase(0, 0);
@@ -186,7 +186,7 @@ DataProcessorSpec getTOFChannelCalibDeviceSpec(bool useCCDB, bool attachChannelO
   outputs.emplace_back(ConcreteDataTypeMatcher{clbUtils::gDataOriginCLB, clbUtils::gDataDescriptionCLBInfo});
 
   std::vector<InputSpec> inputs;
-  inputs.emplace_back("input", "DUM", "CALIBDATA");
+  inputs.emplace_back("input", "TOF", "CALIBDATA");
   if (useCCDB) {
     inputs.emplace_back("tofccdbLHCphase", o2::header::gDataOriginTOF, "LHCphase");
     inputs.emplace_back("tofccdbChannelCalib", o2::header::gDataOriginTOF, "ChannelCalib");

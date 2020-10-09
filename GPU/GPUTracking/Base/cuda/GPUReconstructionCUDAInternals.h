@@ -17,15 +17,22 @@
 #define GPURECONSTRUCTIONCUDAINTERNALS_H
 
 #include "GPULogging.h"
+#include <vector>
+#include <memory>
 
 namespace GPUCA_NAMESPACE
 {
 namespace gpu
 {
 struct GPUReconstructionCUDAInternals {
-  CUcontext CudaContext;                       // Pointer to CUDA context
-  unsigned int cudaContextObtained = 0;        // If multiple instances of GPUThreadContextCUDA are obtained, we count them and return the context only after all are destroyed
-  cudaStream_t Streams[GPUCA_MAX_STREAMS];     // Pointer to array of CUDA Streams
+  CUcontext CudaContext;                                 // CUDA context
+  CUmodule rtcModule;                                    // module for RTC compilation
+  std::vector<std::unique_ptr<CUfunction>> rtcFunctions; // vector of ptrs to RTC kernels
+  unsigned int cudaContextObtained = 0;                  // If multiple instances of GPUThreadContextCUDA are obtained, we count them and return the context only after all are destroyed
+  cudaStream_t Streams[GPUCA_MAX_STREAMS];               // Pointer to array of CUDA Streams
+
+  template <bool multi, class T, int I = 0>
+  static int getRTCkernelNum(int k = -1);
 };
 
 #define GPUFailedMsg(x) GPUFailedMsgA(x, __FILE__, __LINE__)

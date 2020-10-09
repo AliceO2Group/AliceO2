@@ -27,6 +27,7 @@
 
 #pragma link C++ class o2::eventgen::Generator + ;
 #pragma link C++ class o2::eventgen::GeneratorTGenerator + ;
+#pragma link C++ class o2::eventgen::GeneratorExternalParam + ;
 #ifdef GENERATORS_WITH_HEPMC3
 #pragma link C++ class o2::eventgen::GeneratorHepMC + ;
 #pragma link C++ class o2::eventgen::GeneratorHepMCParam + ;
@@ -52,11 +53,15 @@
 #pragma link C++ enum o2::eventgen::EVertexDistribution;
 #pragma link C++ class o2::eventgen::InteractionDiamondParam + ;
 #pragma link C++ class o2::conf::ConfigurableParamHelper < o2::eventgen::InteractionDiamondParam > +;
+#pragma link C++ class o2::eventgen::TriggerExternalParam + ;
+#pragma link C++ class o2::conf::ConfigurableParamHelper < o2::eventgen::TriggerExternalParam> + ;
 #pragma link C++ class o2::eventgen::TriggerParticleParam + ;
 #pragma link C++ class o2::conf::ConfigurableParamHelper < o2::eventgen::TriggerParticleParam > +;
 #pragma link C++ class o2::eventgen::BoxGunParam + ;
 #pragma link C++ class o2::conf::ConfigurableParamHelper < o2::eventgen::BoxGunParam > +;
 #pragma link C++ class o2::eventgen::QEDGenParam + ;
 #pragma link C++ class o2::conf::ConfigurableParamHelper < o2::eventgen::QEDGenParam > +;
+#pragma link C++ class o2::eventgen::GenCosmicsParam + ;
+#pragma link C++ class o2::conf::ConfigurableParamHelper < o2::eventgen::GenCosmicsParam> + ;
 
 #endif

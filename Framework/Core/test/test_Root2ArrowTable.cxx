@@ -91,6 +91,8 @@ BOOST_AUTO_TEST_CASE(RootTree2Table)
     auto chunkToUse = table->column(0)->chunk(0);
     chunkToUse = std::dynamic_pointer_cast<arrow::FixedSizeListArray>(chunkToUse)->values();
     auto array = std::static_pointer_cast<arrow::FloatArray>(chunkToUse);
+    // array of 3 floats, time 1000.
+    BOOST_REQUIRE_EQUAL(array->length(), 3000);
     const float* c = reinterpret_cast<float const*>(array->values()->data());
 
     //auto array = std::static_pointer_cast<arrow::FixedSizeBinaryArray>(table->column(0)->chunk(0));

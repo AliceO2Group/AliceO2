@@ -33,7 +33,13 @@
 #pragma link C++ class o2::itsmft::AlpideCoder + ;
 #pragma link C++ class o2::itsmft::GBTWord + ;
 #pragma link C++ class o2::itsmft::GBTDataHeader + ;
+#pragma link C++ class o2::itsmft::GBTDataHeaderL + ;
 #pragma link C++ class o2::itsmft::GBTDataTrailer + ;
+#pragma link C++ class o2::itsmft::GBTTrigger + ;
+#pragma link C++ class o2::itsmft::GBTDiagnostic + ;
+#pragma link C++ class o2::itsmft::GBTCableDiagnostic + ;
+#pragma link C++ class o2::itsmft::GBTCableStatus + ;
+#pragma link C++ class o2::itsmft::GBTCalibration + ;
 #pragma link C++ class o2::itsmft::GBTData + ;
 #pragma link C++ class o2::itsmft::PayLoadCont + ;
 #pragma link C++ class o2::itsmft::PayLoadSG + ;
@@ -41,6 +47,7 @@
 #pragma link C++ class o2::itsmft::GBTLink + ;
 #pragma link C++ class o2::itsmft::RUDecodeData + ;
 #pragma link C++ class o2::itsmft::RawDecodingStat + ;
+#pragma link C++ class o2::itsmft::ChipStat + ;
 
 #pragma link C++ class std::map < unsigned long, std::pair < o2::itsmft::ClusterTopology, unsigned long>> + ;
 

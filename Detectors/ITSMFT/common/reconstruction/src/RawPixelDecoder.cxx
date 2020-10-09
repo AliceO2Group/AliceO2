@@ -39,7 +39,7 @@ RawPixelDecoder<Mapping>::RawPixelDecoder()
 ///______________________________________________________________
 ///
 template <class Mapping>
-void RawPixelDecoder<Mapping>::printReport() const
+void RawPixelDecoder<Mapping>::printReport(bool decstat, bool skipEmpty) const
 {
   LOGF(INFO, "%s Decoded %zu hits in %zu non-empty chips in %u ROFs with %d threads", mSelfName, mNPixelsFired, mNChipsFired, mROFCounter, mNThreads);
   double cpu = 0, real = 0;
@@ -57,6 +57,15 @@ void RawPixelDecoder<Mapping>::printReport() const
   real += tmrF.RealTime();
   LOGF(INFO, "%s Timing Total:     CPU = %.3e Real = %.3e in %d slots in %s mode", mSelfName, cpu, real, tmrS.Counter() - 1,
        mDecodeNextAuto ? "AutoDecode" : "ExternalCall");
+
+  if (decstat) {
+    LOG(INFO) << "GBT Links decoding statistics";
+    for (auto& lnk : mGBTLinks) {
+      LOG(INFO) << lnk.describe();
+      lnk.statistics.print(skipEmpty);
+      lnk.chipStat.print(skipEmpty);
+    }
+  }
 }
 
 ///______________________________________________________________
@@ -69,37 +78,41 @@ int RawPixelDecoder<Mapping>::decodeNextTrigger()
   mNPixelsFiredROF = 0;
   mInteractionRecord.clear();
   int nLinksWithData = 0, nru = mRUDecodeVec.size();
+  do {
 #ifdef WITH_OPENMP
-  omp_set_num_threads(mNThreads);
+    omp_set_num_threads(mNThreads);
 #pragma omp parallel for schedule(dynamic) reduction(+ \
                                                      : nLinksWithData, mNChipsFiredROF, mNPixelsFiredROF)
 #endif
-  for (int iru = 0; iru < nru; iru++) {
-    nLinksWithData += decodeNextTrigger(iru);
-    mNChipsFiredROF += mRUDecodeVec[iru].nChipsFired;
-    int npix = 0;
-    for (int ic = mRUDecodeVec[iru].nChipsFired; ic--;) {
-      npix += mRUDecodeVec[iru].chipsData[ic].getData().size();
-    }
-    mNPixelsFiredROF += npix;
-  }
-
-  if (nLinksWithData) { // fill some statistics
-    mROFCounter++;
-    mNChipsFired += mNChipsFiredROF;
-    mNPixelsFired += mNPixelsFiredROF;
-    mCurRUDecodeID = 0; // getNextChipData will start from here
-    mLastReadChipID = -1;
-    // set IR and trigger from the 1st non empty link
-    for (const auto& link : mGBTLinks) {
-      if (link.status == GBTLink::DataSeen) {
-        mInteractionRecord = link.ir;
-        mInteractionRecordHB = o2::raw::RDHUtils::getHeartBeatIR(*link.lastRDH);
-        mTrigger = link.trigger;
-        break;
+    for (int iru = 0; iru < nru; iru++) {
+      nLinksWithData += decodeNextTrigger(iru);
+      mNChipsFiredROF += mRUDecodeVec[iru].nChipsFired;
+      int npix = 0;
+      for (int ic = mRUDecodeVec[iru].nChipsFired; ic--;) {
+        npix += mRUDecodeVec[iru].chipsData[ic].getData().size();
       }
+      mNPixelsFiredROF += npix;
     }
-  }
+
+    if (nLinksWithData) { // fill some statistics
+      mROFCounter++;
+      mNChipsFired += mNChipsFiredROF;
+      mNPixelsFired += mNPixelsFiredROF;
+      mCurRUDecodeID = 0; // getNextChipData will start from here
+      mLastReadChipID = -1;
+      // set IR and trigger from the 1st non empty link
+      for (const auto& link : mGBTLinks) {
+        if (link.status == GBTLink::DataSeen) {
+          mInteractionRecord = link.ir;
+          mInteractionRecordHB = o2::raw::RDHUtils::getHeartBeatIR(*link.lastRDH);
+          mTrigger = link.trigger;
+          break;
+        }
+      }
+      break;
+    }
+
+  } while (mNLinksDone < mGBTLinks.size());
   mTimerDecode.Stop();
   // LOG(INFO) << "Chips Fired: " << mNChipsFiredROF << " NPixels: " << mNPixelsFiredROF << " at IR " << mInteractionRecord << " of HBF " << mInteractionRecordHB;
   return nLinksWithData;
@@ -119,6 +132,7 @@ void RawPixelDecoder<Mapping>::startNewTF(InputRecord& inputs)
     ru.clear();
   }
   setupLinks(inputs);
+  mNLinksDone = 0;
   mTimerTFStart.Stop();
 }
 
@@ -136,6 +150,8 @@ int RawPixelDecoder<Mapping>::decodeNextTrigger(int iru)
       auto res = link->collectROFCableData(mMAP);
       if (res == GBTLink::DataSeen) { // at the moment process only DataSeen
         ndec++;
+      } else if (res == GBTLink::StoppedOnEndOfData || res == GBTLink::AbortedOnError) { // this link has exhausted its data or it has to be discarded due to the error
+        mNLinksDone++;
       }
     }
   }
@@ -298,6 +314,16 @@ void RawPixelDecoder<Mapping>::setFormat(GBTLink::Format f)
 {
   assert(int(f) >= 0 && int(f) < GBTLink::NFormats);
   mFormat = f;
+}
+
+///______________________________________________________________________
+template <class Mapping>
+void RawPixelDecoder<Mapping>::clearStat()
+{
+  // clear statistics
+  for (auto& lnk : mGBTLinks) {
+    lnk.clear(true, false);
+  }
 }
 
 template class o2::itsmft::RawPixelDecoder<o2::itsmft::ChipMappingITS>;

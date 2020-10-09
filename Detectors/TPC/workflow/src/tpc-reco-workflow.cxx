@@ -44,14 +44,14 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
   std::vector<ConfigParamSpec> options{
     {"input-type", VariantType::String, "digits", {"digitizer, digits, zsraw, clustershw, clustersnative, compressed-clusters, compressed-clusters-ctf"}},
     {"output-type", VariantType::String, "tracks", {"digits, zsraw, clustershw, clustersnative, tracks, compressed-clusters, encoded-clusters, disable-writer"}},
-    {"ca-clusterer", VariantType::Bool, true, {"Use clusterer of GPUCATracking"}},
+    {"no-ca-clusterer", VariantType::Bool, false, {"Use HardwareClusterer instead of clusterer of GPUCATracking"}},
     {"disable-mc", VariantType::Bool, false, {"disable sending of MC information"}},
     {"tpc-sectors", VariantType::String, "0-35", {"TPC sector range, e.g. 5-7,8,9"}},
     {"tpc-lanes", VariantType::Int, 1, {"number of parallel lanes up to the tracker"}},
     {"dispatching-mode", VariantType::String, "prompt", {"determines when to dispatch: prompt, complete"}},
-    {"tpc-zs-on-the-fly", VariantType::Bool, true, {"use TPC zero suppression on the fly, true/false"}},
+    {"no-tpc-zs-on-the-fly", VariantType::Bool, false, {"Do not use TPC zero suppression on the fly"}},
     {"zs-threshold", VariantType::Float, 2.0f, {"zero suppression threshold"}},
-    {"zs-10bit", VariantType::Bool, false, {"use 10 bit ADCs for TPC zero suppression, true/false, default/false = 12 bit ADC"}},
+    {"zs-10bit", VariantType::Bool, false, {"use 10 bit ADCs for TPC zero suppression, default = 12 bit ADC"}},
     {"configKeyValues", VariantType::String, "", {"Semicolon separated key=value strings (e.g.: 'TPCHwClusterer.peakChargeThreshold=4;...')"}},
     {"configFile", VariantType::String, "", {"configuration file for configurable parameters"}}};
 
@@ -139,15 +139,15 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
   o2::conf::ConfigurableParam::writeINI("o2tpcrecoworkflow_configuration.ini");
 
   bool doMC = not cfgc.options().get<bool>("disable-mc");
-  return o2::tpc::reco_workflow::getWorkflow(tpcSectors,                                     // sector configuration
-                                             laneConfiguration,                              // lane configuration
-                                             doMC,                                           //
-                                             nLanes,                                         //
-                                             inputType,                                      //
-                                             cfgc.options().get<std::string>("output-type"), //
-                                             cfgc.options().get<bool>("ca-clusterer"),       //
-                                             cfgc.options().get<bool>("tpc-zs-on-the-fly"),  //
-                                             cfgc.options().get<bool>("zs-10bit"),           //
-                                             cfgc.options().get<float>("zs-threshold")       //
+  return o2::tpc::reco_workflow::getWorkflow(tpcSectors,                                        // sector configuration
+                                             laneConfiguration,                                 // lane configuration
+                                             doMC,                                              //
+                                             nLanes,                                            //
+                                             inputType,                                         //
+                                             cfgc.options().get<std::string>("output-type"),    //
+                                             !cfgc.options().get<bool>("no-ca-clusterer"),      //
+                                             !cfgc.options().get<bool>("no-tpc-zs-on-the-fly"), //
+                                             cfgc.options().get<bool>("zs-10bit"),              //
+                                             cfgc.options().get<float>("zs-threshold")          //
   );
 }

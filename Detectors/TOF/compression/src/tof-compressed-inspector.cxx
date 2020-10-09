@@ -13,7 +13,7 @@
 /// @since  2019-12-18
 /// @brief  Basic DPL workflow for TOF raw data compression
 
-#include "TOFWorkflow/CompressedInspectorTask.h"
+#include "TOFWorkflowUtils/CompressedInspectorTask.h"
 #include "Framework/WorkflowSpec.h"
 #include "Framework/ConfigParamSpec.h"
 #include "FairLogger.h"

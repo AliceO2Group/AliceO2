@@ -57,6 +57,11 @@ o2_add_dpl_workflow(histograms
                   PUBLIC_LINK_LIBRARIES O2::Framework
                   COMPONENT_NAME AnalysisTutorial)
 
+o2_add_dpl_workflow(histograms-full-tracks
+                  SOURCES src/histogramsFullTracks.cxx
+                  PUBLIC_LINK_LIBRARIES O2::Framework
+                  COMPONENT_NAME AnalysisTutorial)
+
 o2_add_dpl_workflow(filters
                   SOURCES src/filters.cxx
                   PUBLIC_LINK_LIBRARIES O2::Framework
@@ -118,4 +123,14 @@ o2_add_dpl_workflow(extended-columns
 
 o2_add_dpl_workflow(zdc-vzero-iteration
                   SOURCES src/ZDCVZeroIteration.cxx
+                  COMPONENT_NAME AnalysisTutorial)
+
+o2_add_dpl_workflow(hist-helpers-test
+                    SOURCES src/histHelpersTest.cxx
+                    PUBLIC_LINK_LIBRARIES O2::AnalysisDataModel O2::AnalysisCore
+                    COMPONENT_NAME AnalysisTutorial)
+
+o2_add_dpl_workflow(histogram-registry
+                  SOURCES src/histogramRegistry.cxx
+                  PUBLIC_LINK_LIBRARIES O2::Framework O2::AnalysisCore O2::AnalysisDataModel
                   COMPONENT_NAME AnalysisTutorial)

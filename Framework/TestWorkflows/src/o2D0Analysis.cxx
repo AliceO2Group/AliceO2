@@ -9,6 +9,7 @@
 // or submit itself to any jurisdiction.
 #include "Framework/runDataProcessing.h"
 #include "Framework/AnalysisHelpers.h"
+#include "Framework/RootAnalysisHelpers.h"
 
 #include <ROOT/RDataFrame.hxx>
 

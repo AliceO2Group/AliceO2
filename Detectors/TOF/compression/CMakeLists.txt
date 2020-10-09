@@ -27,4 +27,10 @@ o2_add_executable(compressed-inspector
                   PUBLIC_LINK_LIBRARIES O2::TOFWorkflowUtils
 		  )
 
+o2_add_executable(compressed-analysis
+                  COMPONENT_NAME tof
+                  SOURCES src/tof-compressed-analysis.cxx
+                  PUBLIC_LINK_LIBRARIES O2::TOFWorkflowUtils
+		  )
+
 
