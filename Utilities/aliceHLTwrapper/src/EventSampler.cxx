@@ -115,7 +115,7 @@ void EventSampler::Run()
   /// inherited from FairMQDevice
   int iResult=0;
 
-  boost::thread samplerThread(boost::bind(&EventSampler::samplerLoop, this));
+  boost::thread samplerThread([this] { EventSampler::samplerLoop(); });
 
   unique_ptr<FairMQPoller> poller(fTransportFactory->CreatePoller(fChannels["data-in"]));
 
@@ -216,7 +216,9 @@ void EventSampler::samplerLoop()
   unsigned initialDelayInSeconds=mInitialDelay/1000;
   unsigned initialDelayInUSeconds=mInitialDelay%1000;
   unsigned eventPeriodInSeconds=mEventPeriod/1000000;
-  if (initialDelayInSeconds>0) sleep(initialDelayInSeconds);
+  if (initialDelayInSeconds > 0) {
+    sleep(initialDelayInSeconds);
+  }
   usleep(initialDelayInUSeconds);
 
   unique_ptr<FairMQMessage> msg(fTransportFactory->CreateMessage());
@@ -253,7 +255,10 @@ void EventSampler::samplerLoop()
     }
 
     mNEvents++;
-    if (eventPeriodInSeconds>0) sleep(eventPeriodInSeconds);
-    else usleep(mEventPeriod);
+    if (eventPeriodInSeconds > 0) {
+      sleep(eventPeriodInSeconds);
+    } else {
+      usleep(mEventPeriod);
+    }
   }
 }

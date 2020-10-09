@@ -42,6 +42,8 @@ DECLARE_SOA_COLUMN(Timestamp, timestamp, uint64_t);
 
 DECLARE_SOA_TABLE(Timestamps, "AOD", "TIMESTAMPS", timestamp::Timestamp);
 
+using BCsWithTimestamps = soa::Join<aod::BCs, aod::Timestamps>;
+
 namespace collision
 {
 DECLARE_SOA_INDEX_COLUMN(BC, bc);
@@ -153,7 +155,7 @@ DECLARE_SOA_EXPRESSION_COLUMN(C1Pt21Pt2, c1Pt21Pt2, float, aod::track::sigma1Pt*
 
 // TRACKEXTRA TABLE definition
 DECLARE_SOA_COLUMN(TPCInnerParam, tpcInnerParam, float);
-DECLARE_SOA_COLUMN(Flags, flags, uint64_t);
+DECLARE_SOA_COLUMN(Flags, flags, uint32_t);
 DECLARE_SOA_COLUMN(ITSClusterMap, itsClusterMap, uint8_t);
 DECLARE_SOA_COLUMN(TPCNClsFindable, tpcNClsFindable, uint8_t);
 DECLARE_SOA_COLUMN(TPCNClsFindableMinusFound, tpcNClsFindableMinusFound, int8_t);

@@ -71,7 +71,15 @@ void GBTLink::clear(bool resetStat, bool resetTFRaw)
 void GBTLink::printTrigger(const GBTTrigger* gbtTrg)
 {
   gbtTrg->printX();
-  LOG(INFO) << "Trigger : Orbit " << gbtTrg->orbit << " BC: " << gbtTrg->bc;
+  std::bitset<12> trb(gbtTrg->triggerType);
+  LOG(INFO) << "Trigger : Orbit " << gbtTrg->orbit << " BC: " << gbtTrg->bc << " Trigger: " << trb << " noData:" << gbtTrg->noData << " internal:" << gbtTrg->internal;
+}
+
+///_________________________________________________________________
+void GBTLink::printCalibrationWord(const GBTCalibration* gbtCal)
+{
+  gbtCal->printX();
+  LOGF(INFO, "Calibration word %5d | user_data 0x%012lx", gbtCal->calibCounter, gbtCal->bc);
 }
 
 ///_________________________________________________________________
@@ -103,6 +111,20 @@ void GBTLink::printDiagnostic(const GBTDiagnostic* gbtD)
 {
   gbtD->printX();
   LOG(INFO) << "Diagnostic word";
+}
+
+///_________________________________________________________________
+void GBTLink::printCableDiagnostic(const GBTCableDiagnostic* gbtD)
+{
+  gbtD->printX();
+  LOGF(INFO, "Diagnostic for %s Lane %d | errorID: %d data 0x%016lx", gbtD->isIB() ? "IB" : "OB", gbtD->getCableID(), gbtD->laneErrorID, gbtD->diagnosticData);
+}
+
+///_________________________________________________________________
+void GBTLink::printCableStatus(const GBTCableStatus* gbtS)
+{
+  gbtS->printX();
+  LOGF(INFO, "Status data, not processed at the moment");
 }
 
 ///====================================================================
@@ -195,6 +217,14 @@ GBTLink::ErrorType GBTLink::checkErrorsTriggerWord(const GBTTrigger* gbtTrg)
 }
 
 ///_________________________________________________________________
+/// Check the GBT Calibration word correctness
+GBTLink::ErrorType GBTLink::checkErrorsCalibrationWord(const GBTCalibration* gbtCal)
+{
+  // at the moment do nothing
+  return NoError;
+}
+
+///_________________________________________________________________
 /// Check the GBT Header word correctness
 GBTLink::ErrorType GBTLink::checkErrorsHeaderWord(const GBTDataHeader* gbtH)
 {
@@ -283,6 +313,21 @@ GBTLink::ErrorType GBTLink::checkErrorsGBTData(int cablePos)
   }
 
   return NoError;
+}
+
+///_________________________________________________________________
+/// Check GBT Data word ID: it might be diagnostic or status data
+GBTLink::ErrorType GBTLink::checkErrorsGBTDataID(const GBTData* gbtD)
+{
+  if (gbtD->isData()) {
+    return NoError;
+  }
+  if (gbtD->isCableDiagnostic()) {
+    printCableDiagnostic((GBTCableDiagnostic*)gbtD);
+  } else if (gbtD->isStatus()) {
+    printCableStatus((GBTCableStatus*)gbtD);
+  }
+  return Skip;
 }
 
 ///_________________________________________________________________

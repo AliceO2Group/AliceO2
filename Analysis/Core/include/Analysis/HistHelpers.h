@@ -25,17 +25,13 @@
 #include <TProfile2D.h>
 #include <TProfile3D.h>
 
+#include <TFolder.h>
 #include <TObjArray.h>
 #include <TList.h>
-//#include <TDirectory.h>
 
 #include "Framework/Logger.h"
 
-namespace o2
-{
-namespace experimental
-{
-namespace histhelpers
+namespace o2::experimental::histhelpers
 {
 
 template <typename T>
@@ -48,11 +44,11 @@ struct is_shared_ptr<std::shared_ptr<T>> : std::true_type {
 //**************************************************************************************************
 /**
  * Container class for storing and saving root histograms of any type.
- * RootContainer (TObjArray or TList) inheritance is required to interface with O2 file writing functionality.
+ * RootContainer (TObjArray, TList or TFolder) inheritance is used to interface with O2 file writing functionality.
  */
 //**************************************************************************************************
 template <class RootContainer>
-class HistContainer : public RootContainer
+class HistContainer : private RootContainer
 {
  public:
   HistContainer(const std::string& name) : RootContainer()
@@ -62,18 +58,16 @@ class HistContainer : public RootContainer
   }
   HistContainer(const HistContainer& other)
   {
-    // pseudo copy ctor to move around empty collection on construction (no real copy constructor!)
-    // this is needed to be able to put this in OutputObj
-    // Memo: default copy ctor does not work for TList based collections since
-    //       their copy constructor is implicitly deleted as opposed to TObjArrays
+    // pseudo copy ctor to move around empty collection on construction (e.g. when put in OutputObj)
+    // this is needed to make HistContainer also work with TLists since these dont have a copy constructor (as opposed to TObjArrays)
     RootContainer::SetOwner(false);
     RootContainer::SetName(other.GetName());
   }
 
   using HistType = std::variant<std::shared_ptr<THn>, std::shared_ptr<THnSparse>, std::shared_ptr<TH3>, std::shared_ptr<TH2>, std::shared_ptr<TH1>, std::shared_ptr<TProfile3D>, std::shared_ptr<TProfile2D>, std::shared_ptr<TProfile>>;
 
-  template <typename T>
-  void Add(uint8_t histID, T&& hist)
+  template <uint8_t histID, typename T>
+  void Add(T&& hist)
   {
     if (mHistos.find(histID) != mHistos.end()) {
       LOGF(WARNING, "HistContainer %s already holds a histogram at histID = %d. Overriding it now...", RootContainer::GetName(), histID);
@@ -111,22 +105,24 @@ class HistContainer : public RootContainer
   }
 
   // fill histogram or profile with arguments x,y,z,... and weight if requested
-  template <bool fillWeight = false, typename... Ts>
-  void Fill(uint8_t histID, Ts&&... position)
+  template <uint8_t histID, bool fillWeight = false, typename... Ts>
+  void Fill(Ts&&... position)
   {
     std::visit([this, &position...](auto&& hist) { GenericFill<fillWeight>(hist, std::forward<Ts>(position)...); }, mHistos[histID]);
   }
-  template <typename... Ts>
-  void FillWeight(uint8_t histID, Ts&&... positionAndWeight)
+  template <uint8_t histID, typename... Ts>
+  void FillWeight(Ts&&... positionAndWeight)
   {
-    Fill<true>(histID, std::forward<Ts>(positionAndWeight)...);
+    Fill<histID, true>(std::forward<Ts>(positionAndWeight)...);
   }
 
- private:
-  std::map<uint8_t, HistType> mHistos;
+  // make accessible only the RootContainer functions needed for writing to file
+  using RootContainer::Class;
+  using RootContainer::GetName;
 
-  // disallow user to call RootContainer::Add() to avoid memory leaks
-  using RootContainer::Add;
+ private:
+  // FIXME: map is most likely not the fastest -> array?
+  std::map<uint8_t, HistType> mHistos;
 
   template <bool fillWeight = false, typename T, typename... Ts>
   void GenericFill(std::shared_ptr<T> hist, const Ts&... position)
@@ -154,7 +150,7 @@ class HistContainer : public RootContainer
       else
         hist->Fill(tempArray);
     }
-  };
+  }
 
   template <typename T>
   std::optional<HistType> GetHistVariant(std::shared_ptr<TObject> obj)
@@ -174,8 +170,8 @@ class HistContainer : public RootContainer
   }
   std::optional<HistType> GetHistVariant(std::shared_ptr<TObject> obj)
   {
-    // Remember: TProfile3D is TH3, TProfile2D is TH2, TH3 is TH1, TH2 is TH1, TProfile is TH1
     if (obj) {
+      // TProfile3D is TH3, TProfile2D is TH2, TH3 is TH1, TH2 is TH1, TProfile is TH1
       return GetHistVariant<THn, THnSparse, TProfile3D, TH3, TProfile2D, TH2, TProfile, TH1>(obj);
     }
     return std::nullopt;
@@ -183,9 +179,9 @@ class HistContainer : public RootContainer
 };
 
 //**************************************************************************************************
+using HistFolder = HistContainer<TFolder>;
 using HistArray = HistContainer<TObjArray>;
 using HistList = HistContainer<TList>;
-//using HistDirectory = HistContainer<TDirectory>;
 //**************************************************************************************************
 
 //**************************************************************************************************
@@ -201,7 +197,6 @@ struct Axis {
   std::optional<int> nBins{};
 };
 
-template <typename RootHistType>
 class Hist
 {
  public:
@@ -230,8 +225,7 @@ class Hist
   }
 
   // add axes defined in other Hist object
-  template <typename T>
-  void AddAxes(const Hist<T>& other)
+  void AddAxes(const Hist& other)
   {
     mAxes.insert(mAxes.end(), other.GetAxes().begin(), other.GetAxes().end());
   }
@@ -242,6 +236,7 @@ class Hist
   }
 
   // create histogram with the defined axes
+  template <typename RootHistType>
   std::shared_ptr<RootHistType> Create(const std::string& name, bool useWeights = false)
   {
     const std::size_t MAX_DIM{10};
@@ -250,8 +245,8 @@ class Hist
       return nullptr;
 
     int nBins[MAX_DIM]{0};
-    double lowerBounds[MAX_DIM]{0.0};
-    double upperBounds[MAX_DIM]{0.0};
+    double lowerBounds[MAX_DIM]{0.};
+    double upperBounds[MAX_DIM]{0.};
 
     // first figure out number of bins and dimensions
     std::string title = "[ ";
@@ -267,7 +262,7 @@ class Hist
     }
 
     // create histogram
-    std::shared_ptr<RootHistType> hist(HistFactory(name, title, nAxes, nBins, lowerBounds, upperBounds));
+    std::shared_ptr<RootHistType> hist(HistFactory<RootHistType>(name, title, nAxes, nBins, lowerBounds, upperBounds));
 
     if (!hist) {
       LOGF(FATAL, "The number of specified dimensions does not match the type.");
@@ -302,6 +297,7 @@ class Hist
  private:
   std::vector<Axis> mAxes;
 
+  template <typename RootHistType>
   RootHistType* HistFactory(const std::string& name, const std::string& title, const std::size_t nDim,
                             const int nBins[], const double lowerBounds[], const double upperBounds[])
   {
@@ -324,6 +320,7 @@ class Hist
     return nullptr;
   }
 
+  template <typename RootHistType>
   TAxis* GetAxis(const int i, std::shared_ptr<RootHistType> hist)
   {
     if constexpr (std::is_base_of_v<THnBase, RootHistType>) {
@@ -335,8 +332,6 @@ class Hist
   }
 };
 
-} // namespace histhelpers
-} // namespace experimental
-} // namespace o2
+} // namespace o2::experimental::histhelpers
 
 #endif

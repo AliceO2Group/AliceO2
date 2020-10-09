@@ -31,3 +31,13 @@ o2_add_dpl_workflow(correlations-mixed
                     PUBLIC_LINK_LIBRARIES O2::Framework O2::AnalysisCore
                     COMPONENT_NAME Analysis)
 
+o2_add_dpl_workflow(filter-cf
+                    SOURCES filterCF.cxx
+                    PUBLIC_LINK_LIBRARIES O2::Framework O2::AnalysisCore
+                    COMPONENT_NAME Analysis)
+
+o2_add_dpl_workflow(correlations-filtered
+                    SOURCES correlationsFiltered.cxx
+                    PUBLIC_LINK_LIBRARIES O2::Framework O2::AnalysisCore
+                    COMPONENT_NAME Analysis)
+

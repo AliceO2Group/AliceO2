@@ -18,7 +18,7 @@
 #include "Headers/DataHeader.h"
 #include "Steer/HitProcessingManager.h" // for DigitizationContext
 #include "DataFormatsITSMFT/Digit.h"
-#include "SimulationDataFormat/MCTruthContainer.h"
+#include "SimulationDataFormat/ConstMCTruthContainer.h"
 #include "DetectorsBase/BaseDPLDigitizer.h"
 #include "DetectorsCommonDataFormats/DetID.h"
 #include "DetectorsCommonDataFormats/SimTraits.h"
@@ -100,6 +100,51 @@ class ITSMFTDPLDigitizerTask : BaseDPLDigitizer
     mDigitizer.setROFRecords(&mROFRecords);
     mDigitizer.setMCLabels(&mLabels);
 
+    // digits are directly put into DPL owned resource
+    auto& digitsAccum = pc.outputs().make<std::vector<itsmft::Digit>>(Output{mOrigin, "DIGITS", 0, Lifetime::Timeframe});
+
+    auto accumulate = [this, &digitsAccum]() {
+      // accumulate result of single event processing, called after processing every event supplied
+      // AND after the final flushing via digitizer::fillOutputContainer
+      if (!mDigits.size()) {
+        return; // no digits were flushed, nothing to accumulate
+      }
+      static int fixMC2ROF = 0; // 1st entry in mc2rofRecordsAccum to be fixed for ROFRecordID
+      auto ndigAcc = digitsAccum.size();
+      std::copy(mDigits.begin(), mDigits.end(), std::back_inserter(digitsAccum));
+
+      // fix ROFrecords references on ROF entries
+      auto nROFRecsOld = mROFRecordsAccum.size();
+
+      for (int i = 0; i < mROFRecords.size(); i++) {
+        auto& rof = mROFRecords[i];
+        rof.setFirstEntry(ndigAcc + rof.getFirstEntry());
+        rof.print();
+
+        if (mFixMC2ROF < mMC2ROFRecordsAccum.size()) { // fix ROFRecord entry in MC2ROF records
+          for (int m2rid = mFixMC2ROF; m2rid < mMC2ROFRecordsAccum.size(); m2rid++) {
+            // need to register the ROFRecors entry for MC event starting from this entry
+            auto& mc2rof = mMC2ROFRecordsAccum[m2rid];
+            if (rof.getROFrame() == mc2rof.minROF) {
+              mFixMC2ROF++;
+              mc2rof.rofRecordID = nROFRecsOld + i;
+              mc2rof.print();
+            }
+          }
+        }
+      }
+
+      std::copy(mROFRecords.begin(), mROFRecords.end(), std::back_inserter(mROFRecordsAccum));
+      if (mWithMCTruth) {
+        mLabelsAccum.mergeAtBack(mLabels);
+      }
+      LOG(INFO) << "Added " << mDigits.size() << " digits ";
+      // clean containers from already accumulated stuff
+      mLabels.clear();
+      mDigits.clear();
+      mROFRecords.clear();
+    }; // and accumulate lambda
+
     auto& eventParts = context->getEventParts(withQED);
     // loop over all composite collisions given from context (aka loop over all the interaction records)
     for (int collID = 0; collID < timesview.size(); ++collID) {
@@ -128,11 +173,15 @@ class ITSMFTDPLDigitizerTask : BaseDPLDigitizer
     accumulate();
 
     // here we have all digits and labels and we can send them to consumer (aka snapshot it onto output)
-    pc.outputs().snapshot(Output{mOrigin, "DIGITS", 0, Lifetime::Timeframe}, mDigitsAccum);
+
     pc.outputs().snapshot(Output{mOrigin, "DIGITSROF", 0, Lifetime::Timeframe}, mROFRecordsAccum);
     if (mWithMCTruth) {
       pc.outputs().snapshot(Output{mOrigin, "DIGITSMC2ROF", 0, Lifetime::Timeframe}, mMC2ROFRecordsAccum);
-      pc.outputs().snapshot(Output{mOrigin, "DIGITSMCTR", 0, Lifetime::Timeframe}, mLabelsAccum);
+      auto& sharedlabels = pc.outputs().make<o2::dataformats::ConstMCTruthContainer<o2::MCCompLabel>>(Output{mOrigin, "DIGITSMCTR", 0, Lifetime::Timeframe});
+      mLabelsAccum.flatten_to(sharedlabels);
+      // free space of existing label containers
+      mLabels.clear_andfreememory();
+      mLabelsAccum.clear_andfreememory();
     }
     LOG(INFO) << mID.getName() << ": Sending ROMode= " << mROMode << " to GRPUpdater";
     pc.outputs().snapshot(Output{mOrigin, "ROMode", 0, Lifetime::Timeframe}, mROMode);
@@ -149,48 +198,6 @@ class ITSMFTDPLDigitizerTask : BaseDPLDigitizer
  protected:
   ITSMFTDPLDigitizerTask(bool mctruth = true) : BaseDPLDigitizer(InitServices::FIELD | InitServices::GEOM), mWithMCTruth(mctruth) {}
 
-  void accumulate()
-  {
-    // accumulate result of single event processing, called after processing every event supplied
-    // AND after the final flushing via digitizer::fillOutputContainer
-    if (!mDigits.size()) {
-      return; // no digits were flushed, nothing to accumulate
-    }
-    static int fixMC2ROF = 0; // 1st entry in mc2rofRecordsAccum to be fixed for ROFRecordID
-    auto ndigAcc = mDigitsAccum.size();
-    std::copy(mDigits.begin(), mDigits.end(), std::back_inserter(mDigitsAccum));
-
-    // fix ROFrecords references on ROF entries
-    auto nROFRecsOld = mROFRecordsAccum.size();
-
-    for (int i = 0; i < mROFRecords.size(); i++) {
-      auto& rof = mROFRecords[i];
-      rof.setFirstEntry(ndigAcc + rof.getFirstEntry());
-      rof.print();
-
-      if (mFixMC2ROF < mMC2ROFRecordsAccum.size()) { // fix ROFRecord entry in MC2ROF records
-        for (int m2rid = mFixMC2ROF; m2rid < mMC2ROFRecordsAccum.size(); m2rid++) {
-          // need to register the ROFRecors entry for MC event starting from this entry
-          auto& mc2rof = mMC2ROFRecordsAccum[m2rid];
-          if (rof.getROFrame() == mc2rof.minROF) {
-            mFixMC2ROF++;
-            mc2rof.rofRecordID = nROFRecsOld + i;
-            mc2rof.print();
-          }
-        }
-      }
-    }
-    std::copy(mROFRecords.begin(), mROFRecords.end(), std::back_inserter(mROFRecordsAccum));
-    if (mWithMCTruth) {
-      mLabelsAccum.mergeAtBack(mLabels);
-    }
-    LOG(INFO) << "Added " << mDigits.size() << " digits ";
-    // clean containers from already accumulated stuff
-    mLabels.clear();
-    mDigits.clear();
-    mROFRecords.clear();
-  }
-
   bool mWithMCTruth = true;
   bool mFinished = false;
   bool mDisableQED = false;
@@ -198,7 +205,6 @@ class ITSMFTDPLDigitizerTask : BaseDPLDigitizer
   o2::header::DataOrigin mOrigin = o2::header::gDataOriginInvalid;
   o2::itsmft::Digitizer mDigitizer;
   std::vector<o2::itsmft::Digit> mDigits;
-  std::vector<o2::itsmft::Digit> mDigitsAccum;
   std::vector<o2::itsmft::ROFRecord> mROFRecords;
   std::vector<o2::itsmft::ROFRecord> mROFRecordsAccum;
   std::vector<o2::itsmft::Hit> mHits;

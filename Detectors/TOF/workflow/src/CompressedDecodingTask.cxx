@@ -13,7 +13,7 @@
 /// @since  2020-02-25
 /// @brief  TOF compressed data decoding task
 
-#include "TOFWorkflow/CompressedDecodingTask.h"
+#include "TOFWorkflowUtils/CompressedDecodingTask.h"
 #include "Framework/ControlService.h"
 #include "Framework/ConfigParamRegistry.h"
 

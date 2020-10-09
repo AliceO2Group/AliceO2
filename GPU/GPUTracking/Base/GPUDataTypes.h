@@ -58,6 +58,8 @@ namespace dataformats
 {
 template <class T>
 class MCTruthContainer;
+template <class T>
+class ConstMCTruthContainerView;
 } // namespace dataformats
 } // namespace o2
 
@@ -67,6 +69,7 @@ namespace gpu
 {
 class TPCFastTransform;
 class TPCdEdxCalibrationSplines;
+class TPCCFCalibration;
 } // namespace gpu
 } // namespace GPUCA_NAMESPACE
 
@@ -171,6 +174,7 @@ struct GPUCalibObjectsTemplate {
   typename S<o2::base::MatLayerCylSet>::type* matLUT = nullptr;
   typename S<o2::trd::TRDGeometryFlat>::type* trdGeometry = nullptr;
   typename S<TPCdEdxCalibrationSplines>::type* dEdxSplines = nullptr;
+  typename S<TPCCFCalibration>::type* tpcCalibration = nullptr;
 };
 typedef GPUCalibObjectsTemplate<DefaultPtr> GPUCalibObjects;
 typedef GPUCalibObjectsTemplate<ConstPtr> GPUCalibObjectsConst;

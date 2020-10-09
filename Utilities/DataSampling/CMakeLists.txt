@@ -34,7 +34,7 @@ o2_add_library(DataSampling
 
 # tests with input data
 
-o2_data_file(COPY test/test_DataSampling.json DESTINATION tests)
+o2_data_file(COPY test/test_DataSampling.json test/test_DataSamplingEmpty.json DESTINATION tests)
 
 o2_add_test(DataSampling NAME test_DataSampling_test_DataSampling
   SOURCES test/test_DataSampling.cxx

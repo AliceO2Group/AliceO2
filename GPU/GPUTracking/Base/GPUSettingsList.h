@@ -26,6 +26,7 @@
 #ifdef QCONFIG_INSTANCE
 using namespace GPUCA_NAMESPACE::gpu;
 #endif
+#ifdef BeginNamespace // File should not be included without defining the macros, but rootcling will do for dictionary generation
 BeginNamespace(GPUCA_NAMESPACE)
 BeginNamespace(gpu)
 
@@ -42,6 +43,11 @@ AddOption(MaxTrackQPt, float, 1.f / GPUCA_MIN_TRACK_PT_DEFAULT, "", 0, "required
 AddOption(SearchWindowDZDR, float, 2.5, "", 0, "Use DZDR window for seeding instead of vertex window")
 AddOption(TrackReferenceX, float, 1000.f, "", 0, "Transport all tracks to this X after tracking (disabled if > 500, auto = 1000)")
 AddOption(tpcZSthreshold, float, 2.0f, "", 0, "Zero-Suppression threshold")
+AddOption(tpcCFqmaxCutoff, unsigned char, 3, "", 0, "Cluster Finder rejects cluster with qmax below this threshold")
+AddOption(tpcCFqtotCutoff, unsigned char, 0, "", 0, "Cluster Finder rejects cluster with qtot below this threshold")
+AddOption(tpcCFinnerThreshold, unsigned char, 0, "", 0, "Cluster Finder extends cluster if inner charge above this threshold")
+AddOption(tpcCFminSplitNum, unsigned char, 1, "", 0, "Minimum number of split charges in a cluster for the cluster to be marked as split")
+AddOption(tpcCFnoiseSuppressionEpsilon, unsigned char, 10, "", 0, "Cluster Finder: Difference between peak and charge for the charge to count as a minima during noise suppression")
 AddOption(NWays, char, 3, "", 0, "Do N fit passes in final fit of merger")
 AddOption(NWaysOuter, char, 0, "", 0, "Store outer param")
 AddOption(RejectMode, char, 5, "", 0, "0: no limit on rejection or missed hits, >0: break after n rejected hits, <0: reject at max -n hits")
@@ -208,7 +214,6 @@ AddOption(runsInit, int, 1, "", 0, "Number of initial iterations excluded from a
 AddOption(EventsDir, const char*, "pp", "events", 'e', "Directory with events to process", message("Reading events from Directory events/%s"))
 AddOption(eventDisplay, int, 0, "display", 'd', "Show standalone event display", def(1)) //1: default display (Windows / X11), 2: glut, 3: glfw
 AddOption(eventGenerator, bool, false, "", 0, "Run event generator")
-AddOption(nways7, bool, false, "", 0, "Create OuterParam")
 AddOption(cont, bool, false, "", 0, "Process continuous timeframe data")
 AddOption(outputcontrolmem, unsigned long, 0, "outputMemory", 0, "Use predefined output buffer of this size", min(0ul), message("Using %lld bytes as output memory"))
 AddOption(inputcontrolmem, unsigned long, 0, "inputMemory", 0, "Use predefined input buffer of this size", min(0ul), message("Using %lld bytes as input memory"))
@@ -259,6 +264,7 @@ AddOption(runDisplay, bool, false, "", 0, "Run event visualization after process
 AddOption(dEdxFile, std::string, "", "", 0, "File name of dEdx Splines file")
 AddOption(transformationFile, std::string, "", "", 0, "File name of TPC fast transformation map")
 AddOption(matLUTFile, std::string, "", "", 0, "File name of material LUT file")
+AddOption(gainCalibFile, std::string, "", "", 0, "File name of TPC pad gain calibration")
 AddOption(allocateOutputOnTheFly, bool, true, "", 0, "Allocate shm output buffers on the fly, instead of using preallocated buffer with upper bound size")
 AddOption(outputBufferSize, unsigned long, 200000000ul, "", 0, "Size of the output buffers to be allocated")
 AddOption(synchronousProcessing, bool, false, "", 0, "Apply performance shortcuts for synchronous processing, disable unneeded steps")
@@ -270,4 +276,5 @@ EndConfig()
 
 EndNamespace() // gpu
 EndNamespace() // GPUCA_NAMESPACE
+#endif
   // clang-format on

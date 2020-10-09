@@ -33,7 +33,7 @@
 #include "GPUReconstruction.h"
 
 using namespace GPUCA_NAMESPACE::gpu;
-using namespace GPUTPCGMMergerTypes;
+using namespace gputpcgmmergertypes;
 
 static std::vector<int> trackOrder, trackOrderReverse;
 static int getTrackOrderReverse(int i) { return i == -1 ? -1 : trackOrderReverse[i]; }

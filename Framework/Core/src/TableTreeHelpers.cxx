@@ -341,13 +341,13 @@ TTree* TableToTree::process()
 }
 
 // -----------------------------------------------------------------------------
-#define MAKE_LIST_BUILDER(ElementType, NumElements)                   \
-  std::unique_ptr<arrow::ArrayBuilder> ValueBuilder;                  \
-  arrow::MemoryPool* MemoryPool = arrow::default_memory_pool();       \
-  auto stat = MakeBuilder(MemoryPool, ElementType, &ValueBuilder);    \
-  mTableBuilder_list = std::make_shared<arrow::FixedSizeListBuilder>( \
-    MemoryPool,                                                       \
-    std::move(ValueBuilder),                                          \
+#define MAKE_LIST_BUILDER(ElementType, NumElements)                \
+  std::unique_ptr<arrow::ArrayBuilder> ValueBuilder;               \
+  arrow::MemoryPool* MemoryPool = arrow::default_memory_pool();    \
+  auto stat = MakeBuilder(MemoryPool, ElementType, &ValueBuilder); \
+  mTableBuilder_list = new arrow::FixedSizeListBuilder(            \
+    MemoryPool,                                                    \
+    std::move(ValueBuilder),                                       \
     NumElements);
 
 #define MAKE_FIELD(ElementType, NumElements)                                                         \
@@ -538,11 +538,71 @@ ColumnIterator::~ColumnIterator()
   delete mReaderArray_l;
   delete mReaderArray_f;
   delete mReaderArray_d;
+
+  if (mTableBuilder_list) {
+    delete mTableBuilder_list;
+  } else {
+    delete mTableBuilder_o;
+    delete mTableBuilder_ub;
+    delete mTableBuilder_us;
+    delete mTableBuilder_ui;
+    delete mTableBuilder_ul;
+    delete mTableBuilder_b;
+    delete mTableBuilder_s;
+    delete mTableBuilder_i;
+    delete mTableBuilder_l;
+    delete mTableBuilder_f;
+    delete mTableBuilder_d;
+  }
 };
 
 bool ColumnIterator::getStatus()
 {
   return mStatus;
+}
+
+void ColumnIterator::reserve(size_t s)
+{
+  arrow::Status stat;
+
+  switch (mElementType) {
+    case EDataType::kBool_t:
+      stat = mTableBuilder_o->Reserve(s * mNumberElements);
+      break;
+    case EDataType::kUChar_t:
+      stat = mTableBuilder_ub->Reserve(s * mNumberElements);
+      break;
+    case EDataType::kUShort_t:
+      stat = mTableBuilder_us->Reserve(s * mNumberElements);
+      break;
+    case EDataType::kUInt_t:
+      stat = mTableBuilder_ui->Reserve(s * mNumberElements);
+      break;
+    case EDataType::kULong64_t:
+      stat = mTableBuilder_ul->Reserve(s * mNumberElements);
+      break;
+    case EDataType::kChar_t:
+      stat = mTableBuilder_b->Reserve(s * mNumberElements);
+      break;
+    case EDataType::kShort_t:
+      stat = mTableBuilder_s->Reserve(s * mNumberElements);
+      break;
+    case EDataType::kInt_t:
+      stat = mTableBuilder_i->Reserve(s * mNumberElements);
+      break;
+    case EDataType::kLong64_t:
+      stat = mTableBuilder_l->Reserve(s * mNumberElements);
+      break;
+    case EDataType::kFloat_t:
+      stat = mTableBuilder_f->Reserve(s * mNumberElements);
+      break;
+    case EDataType::kDouble_t:
+      stat = mTableBuilder_d->Reserve(s * mNumberElements);
+      break;
+    default:
+      LOGP(FATAL, "Type {} not handled!", mElementType);
+      break;
+  }
 }
 
 void ColumnIterator::push()
@@ -553,37 +613,37 @@ void ColumnIterator::push()
   if (mNumberElements == 1) {
     switch (mElementType) {
       case EDataType::kBool_t:
-        stat = mTableBuilder_o->Append((bool)**mReaderValue_o);
+        mTableBuilder_o->UnsafeAppend((bool)**mReaderValue_o);
         break;
       case EDataType::kUChar_t:
-        stat = mTableBuilder_ub->Append(**mReaderValue_ub);
+        mTableBuilder_ub->UnsafeAppend(**mReaderValue_ub);
         break;
       case EDataType::kUShort_t:
-        stat = mTableBuilder_us->Append(**mReaderValue_us);
+        mTableBuilder_us->UnsafeAppend(**mReaderValue_us);
         break;
       case EDataType::kUInt_t:
-        stat = mTableBuilder_ui->Append(**mReaderValue_ui);
+        mTableBuilder_ui->UnsafeAppend(**mReaderValue_ui);
         break;
       case EDataType::kULong64_t:
-        stat = mTableBuilder_ul->Append(**mReaderValue_ul);
+        mTableBuilder_ul->UnsafeAppend(**mReaderValue_ul);
         break;
       case EDataType::kChar_t:
-        stat = mTableBuilder_b->Append(**mReaderValue_b);
+        mTableBuilder_b->UnsafeAppend(**mReaderValue_b);
         break;
       case EDataType::kShort_t:
-        stat = mTableBuilder_s->Append(**mReaderValue_s);
+        mTableBuilder_s->UnsafeAppend(**mReaderValue_s);
         break;
       case EDataType::kInt_t:
-        stat = mTableBuilder_i->Append(**mReaderValue_i);
+        mTableBuilder_i->UnsafeAppend(**mReaderValue_i);
         break;
       case EDataType::kLong64_t:
-        stat = mTableBuilder_l->Append(**mReaderValue_l);
+        mTableBuilder_l->UnsafeAppend(**mReaderValue_l);
         break;
       case EDataType::kFloat_t:
-        stat = mTableBuilder_f->Append(**mReaderValue_f);
+        mTableBuilder_f->UnsafeAppend(**mReaderValue_f);
         break;
       case EDataType::kDouble_t:
-        stat = mTableBuilder_d->Append(**mReaderValue_d);
+        mTableBuilder_d->UnsafeAppend(**mReaderValue_d);
         break;
       default:
         LOGP(FATAL, "Type {} not handled!", mElementType);
@@ -694,7 +754,7 @@ TreeToTable::~TreeToTable()
 
 bool TreeToTable::addColumn(const char* colname)
 {
-  auto colit = std::make_shared<ColumnIterator>(mTreeReader, colname);
+  auto colit = std::make_unique<ColumnIterator>(mTreeReader, colname);
   auto stat = colit->getStatus();
   if (stat) {
     mColumnIterators.push_back(std::move(colit));
@@ -719,7 +779,7 @@ bool TreeToTable::addAllColumns()
     auto br = (TBranch*)branchList->At(ii);
 
     // IMPROVE: make sure that a column is not added more than one time
-    auto colit = std::make_shared<ColumnIterator>(mTreeReader, br->GetName());
+    auto colit = std::make_unique<ColumnIterator>(mTreeReader, br->GetName());
     if (colit->getStatus()) {
       mColumnIterators.push_back(std::move(colit));
     } else {
@@ -732,13 +792,23 @@ bool TreeToTable::addAllColumns()
 
 void TreeToTable::push()
 {
-  for (auto colit : mColumnIterators) {
+  for (auto&& colit : mColumnIterators) {
     colit->push();
+  }
+}
+
+void TreeToTable::reserve(size_t s)
+{
+  for (auto&& column : mColumnIterators) {
+    column->reserve(s);
   }
 }
 
 void TreeToTable::fill()
 {
+  auto numEntries = mTreeReader->GetEntries(true);
+
+  this->reserve(numEntries);
   // copy all values from the tree to the table builders
   mTreeReader->Restart();
   while (mTreeReader->Next()) {
@@ -751,7 +821,7 @@ std::shared_ptr<arrow::Table> TreeToTable::finalize()
   // prepare the elements needed to create the final table
   std::vector<std::shared_ptr<arrow::Array>> array_vector;
   std::vector<std::shared_ptr<arrow::Field>> schema_vector;
-  for (auto colit : mColumnIterators) {
+  for (auto&& colit : mColumnIterators) {
     colit->finish();
     array_vector.push_back(colit->getArray());
     schema_vector.push_back(colit->getSchema());

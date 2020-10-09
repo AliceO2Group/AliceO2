@@ -42,6 +42,8 @@ class MCCompLabel;
 namespace dataformats
 {
 template <typename T>
+class ConstMCTruthContainerView;
+template <typename T>
 class MCTruthContainer;
 }
 
@@ -63,6 +65,7 @@ class Clusterer
   using CompClusterExt = o2::itsmft::CompClusterExt;
   using Label = o2::MCCompLabel;
   using MCTruth = o2::dataformats::MCTruthContainer<o2::MCCompLabel>;
+  using ConstMCTruth = o2::dataformats::ConstMCTruthContainerView<o2::MCCompLabel>;
 
  public:
   static constexpr int MaxLabels = 10;
@@ -134,15 +137,15 @@ class Clusterer
                        CompClusCont* compClusPtr, PatternCont* patternsPtr,
                        MCTruth* labelsClusPtr, int nlab, bool isHuge = false);
 
-    void fetchMCLabels(int digID, const MCTruth* labelsDig, int& nfilled);
+    void fetchMCLabels(int digID, const ConstMCTruth* labelsDig, int& nfilled);
     void initChip(const ChipPixelData* curChipData, uint32_t first);
     void updateChip(const ChipPixelData* curChipData, uint32_t ip);
     void finishChip(ChipPixelData* curChipData, CompClusCont* compClus, PatternCont* patterns,
-                    const MCTruth* labelsDig, MCTruth* labelsClus);
+                    const ConstMCTruth* labelsDig, MCTruth* labelsClus);
     void finishChipSingleHitFast(uint32_t hit, ChipPixelData* curChipData, CompClusCont* compClusPtr,
-                                 PatternCont* patternsPtr, const MCTruth* labelsDigPtr, MCTruth* labelsClusPTr);
+                                 PatternCont* patternsPtr, const ConstMCTruth* labelsDigPtr, MCTruth* labelsClusPTr);
     void process(uint16_t chip, uint16_t nChips, CompClusCont* compClusPtr, PatternCont* patternsPtr,
-                 const MCTruth* labelsDigPtr, MCTruth* labelsClPtr, const ROFRecord& rofPtr);
+                 const ConstMCTruth* labelsDigPtr, MCTruth* labelsClPtr, const ROFRecord& rofPtr);
 
     ClustererThread(Clusterer* par = nullptr) : parent(par), curr(column2 + 1), prev(column1 + 1)
     {

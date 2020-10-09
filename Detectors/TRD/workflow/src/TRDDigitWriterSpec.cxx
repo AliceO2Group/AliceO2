@@ -35,15 +35,6 @@ o2::framework::DataProcessorSpec getTRDDigitWriterSpec(bool mctruth)
   using MakeRootTreeWriterSpec = framework::MakeRootTreeWriterSpec;
   using DataRef = framework::DataRef;
 
-  auto getIndex = [](o2::framework::DataRef const& ref) -> size_t {
-    return 0;
-  };
-
-  // callback to create branch name
-  auto getName = [](std::string base, size_t index) -> std::string {
-    return base;
-  };
-
   // the callback to be set as hook for custom action when the writer is closed
   auto finishWriting = [](TFile* outputfile, TTree* outputtree) {
     outputtree->SetEntries(1);
@@ -52,30 +43,21 @@ o2::framework::DataProcessorSpec getTRDDigitWriterSpec(bool mctruth)
   };
 
   // custom handler for labels:
-  // essentially transform the input container (as registered in the branch definition) to the special output format for labels
-  auto customlabelhandler = [](TBranch& branch, o2::dataformats::ConstMCTruthContainer<o2::trd::MCLabel> const& labeldata, DataRef const& ref) {
+  // essentially transform the input container (as registered in the original branch definition) to the special output format for labels
+  auto customlabelhandler = [](TBranch& branch, std::vector<char> const& labeldata, DataRef const& ref) {
     // make the actual output object by adopting/casting the buffer
     // into a split format
     o2::dataformats::IOMCTruthContainerView outputcontainer(labeldata);
-    auto tree = branch.GetTree();
-    auto name = branch.GetName();
-    // we need to make something ugly since the original branch is already registered with a different type
-    // (communicated by Philippe Canal / ROOT team)
-    branch.DeleteBaskets("all");
-    // remove the existing branch and make a new one with the correct type
-    tree->GetListOfBranches()->Remove(&branch);
-    auto br = tree->Branch(name, &outputcontainer);
+    auto br = framework::RootTreeWriter::remapBranch(branch, &outputcontainer);
     br->Fill();
     br->ResetAddress();
   };
 
-  auto labelsdef = BranchDefinition<o2::dataformats::ConstMCTruthContainer<o2::trd::MCLabel>>{InputSpec{"labelinput", "TRD", "LABELS"},
-                                                                                              "TRDMCLabels", "labels-branch-name",
-                                                                                              // this branch definition is disabled if MC labels are not processed
-                                                                                              (mctruth ? 1 : 0),
-                                                                                              customlabelhandler,
-                                                                                              getIndex,
-                                                                                              getName};
+  auto labelsdef = BranchDefinition<std::vector<char>>{InputSpec{"labelinput", "TRD", "LABELS"},
+                                                       "TRDMCLabels", "labels-branch-name",
+                                                       // this branch definition is disabled if MC labels are not processed
+                                                       (mctruth ? 1 : 0),
+                                                       customlabelhandler};
 
   return MakeRootTreeWriterSpec("TRDDigitWriter",
                                 "trddigits.root",

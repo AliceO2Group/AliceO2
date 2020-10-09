@@ -227,15 +227,17 @@ size_t RawFileReader::LinkData::skipNextTF()
 }
 
 //_____________________________________________________________________
-void RawFileReader::LinkData::rewindToTF(uint32_t tf)
+bool RawFileReader::LinkData::rewindToTF(uint32_t tf)
 {
   // go to given TF
   if (tf < tfStartBlock.size()) {
     nextBlock2Read = tfStartBlock[tf].first;
   } else {
-    LOG(WARNING) << "No TF " << tf << " for link " << describe();
+    LOG(WARNING) << "No TF " << tf << " for " << describe();
     nextBlock2Read = -1;
+    return false;
   }
+  return true;
 }
 
 //____________________________________________

@@ -19,6 +19,8 @@
 #ifndef O2_ANALYSIS_PID_DETECTORRESPONSE_H_
 #define O2_ANALYSIS_PID_DETECTORRESPONSE_H_
 
+#include <array>
+#include <vector>
 // ROOT includes
 #include "Rtypes.h"
 #include "TMath.h"

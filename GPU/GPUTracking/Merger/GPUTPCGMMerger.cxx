@@ -47,7 +47,7 @@
 
 using namespace GPUCA_NAMESPACE::gpu;
 using namespace o2::tpc;
-using namespace GPUTPCGMMergerTypes;
+using namespace gputpcgmmergertypes;
 
 static constexpr int kMaxParts = 400;
 static constexpr int kMaxClusters = GPUCA_MERGER_MAX_TRACK_CLUSTERS;

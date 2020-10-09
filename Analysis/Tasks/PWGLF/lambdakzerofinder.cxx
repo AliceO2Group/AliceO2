@@ -44,19 +44,60 @@ using namespace o2::framework::expressions;
 using std::array;
 using namespace ROOT::Math;
 
+namespace o2::aod
+{
+namespace v0goodpostracks
+{
+DECLARE_SOA_INDEX_COLUMN_FULL(GoodTrack, goodTrack, int, FullTracks, "fGoodTrackID");
+DECLARE_SOA_INDEX_COLUMN(Collision, collision);
+DECLARE_SOA_COLUMN(DCAXY, dcaXY, float);
+} // namespace v0goodpostracks
+DECLARE_SOA_TABLE(V0GoodPosTracks, "AOD", "V0GOODPOSTRACKS", o2::soa::Index<>, v0goodpostracks::GoodTrackId, v0goodpostracks::CollisionId, v0goodpostracks::DCAXY);
+namespace v0goodnegtracks
+{
+DECLARE_SOA_INDEX_COLUMN_FULL(GoodTrack, goodTrack, int, FullTracks, "fGoodTrackID");
+DECLARE_SOA_INDEX_COLUMN(Collision, collision);
+DECLARE_SOA_COLUMN(DCAXY, dcaXY, float);
+} // namespace v0goodnegtracks
+DECLARE_SOA_TABLE(V0GoodNegTracks, "AOD", "V0GOODNEGTRACKS", o2::soa::Index<>, v0goodnegtracks::GoodTrackId, v0goodnegtracks::CollisionId, v0goodnegtracks::DCAXY);
+} // namespace o2::aod
+
+struct lambdakzeroprefilter {
+  Configurable<float> dcanegtopv{"dcanegtopv", .1, "DCA Neg To PV"};
+  Configurable<float> dcapostopv{"dcapostopv", .1, "DCA Pos To PV"};
+  Configurable<int> mincrossedrows{"mincrossedrows", 70, "min crossed rows"};
+
+  Produces<aod::V0GoodPosTracks> v0GoodPosTracks;
+  Produces<aod::V0GoodNegTracks> v0GoodNegTracks;
+
+  Partition<soa::Join<aod::FullTracks, aod::TracksExtended>> goodPosTracks = aod::track::signed1Pt > 0.0f && aod::track::dcaXY > dcapostopv;
+  Partition<soa::Join<aod::FullTracks, aod::TracksExtended>> goodNegTracks = aod::track::signed1Pt < 0.0f && aod::track::dcaXY < -dcanegtopv;
+
+  void process(aod::Collision const& collision,
+               soa::Join<aod::FullTracks, aod::TracksExtended> const& tracks)
+  {
+    for (auto& t0 : goodPosTracks) {
+      if (!(t0.flags() & 0x40))
+        continue; //TPC refit
+      if (t0.tpcNClsCrossedRows() < mincrossedrows)
+        continue;
+      v0GoodPosTracks(t0.globalIndex(), t0.collisionId(), t0.dcaXY());
+    }
+    for (auto& t0 : goodNegTracks) {
+      if (!(t0.flags() & 0x40))
+        continue; //TPC refit
+      if (t0.tpcNClsCrossedRows() < mincrossedrows)
+        continue;
+      v0GoodNegTracks(t0.globalIndex(), t0.collisionId(), -t0.dcaXY());
+    }
+  }
+};
+
 struct lambdakzerofinder {
   Produces<aod::V0Data> v0data;
   Produces<aod::V0FinderData> v0finderdata;
 
   OutputObj<TH1F> hCandPerEvent{TH1F("hCandPerEvent", "", 1000, 0, 1000)};
-
-  OutputObj<TH1F> hV0PosCrossedRows{TH1F("hV0PosCrossedRows", "", 160, 0, 160)};
-  OutputObj<TH1F> hV0NegCrossedRows{TH1F("hV0NegCrossedRows", "", 160, 0, 160)};
-  OutputObj<TH1F> hV0CosPA{TH1F("hV0CosPA", "", 2000, 0.9, 1)};
-  OutputObj<TH1F> hV0Radius{TH1F("hV0Radius", "", 2000, 0, 200)};
-  OutputObj<TH1F> hV0DCADaughters{TH1F("hV0DCADaughters", "", 200, 0, 2)};
-  OutputObj<TH1F> hV0PosDCAxy{TH1F("hV0PosDCAxy", "", 200, 0, 5)};
-  OutputObj<TH1F> hV0NegDCAxy{TH1F("hV0NegDCAxy", "", 200, 0, 5)};
 
   //Configurables
   Configurable<double> d_bz{"d_bz", +5.0, "bz field"};
@@ -65,32 +106,10 @@ struct lambdakzerofinder {
   //Selection criteria
   Configurable<double> v0cospa{"v0cospa", 0.995, "V0 CosPA"}; //double -> N.B. dcos(x)/dx = 0 at x=0)
   Configurable<float> dcav0dau{"dcav0dau", 1.0, "DCA V0 Daughters"};
-  Configurable<float> dcanegtopv{"dcanegtopv", .1, "DCA Neg To PV"};
-  Configurable<float> dcapostopv{"dcapostopv", .1, "DCA Pos To PV"};
   Configurable<float> v0radius{"v0radius", 5.0, "v0radius"};
 
-  //using myTracks = soa::Filtered<aod::Tracks>;
-  //using myTracks = soa::Filtered<aod::fullTracks>;
-
-  Partition<aod::FullTracks> goodPosTracks = aod::track::signed1Pt > 0.0f;
-  Partition<aod::FullTracks> goodNegTracks = aod::track::signed1Pt < 0.0f;
-
-  /// Extracts dca in the XY plane
-  /// \return dcaXY
-  template <typename T, typename U>
-  auto getdcaXY(const T& track, const U& coll)
-  {
-    //Calculate DCAs
-    auto sinAlpha = sin(track.alpha());
-    auto cosAlpha = cos(track.alpha());
-    auto globalX = track.x() * cosAlpha - track.y() * sinAlpha;
-    auto globalY = track.x() * sinAlpha + track.y() * cosAlpha;
-    return sqrt(pow((globalX - coll[0]), 2) +
-                pow((globalY - coll[1]), 2));
-  }
-
-  void process(aod::Collision const& collision,
-               aod::FullTracks const& tracks)
+  void process(aod::Collision const& collision, aod::FullTracks const& tracks,
+               aod::V0GoodPosTracks const& ptracks, aod::V0GoodNegTracks const& ntracks)
   {
     //Define o2 fitter, 2-prong
     o2::vertexing::DCAFitterN<2> fitter;
@@ -107,20 +126,11 @@ struct lambdakzerofinder {
 
     std::array<float, 3> pVtx = {collision.posX(), collision.posY(), collision.posZ()};
 
-    for (auto& t0 : goodPosTracks) {
-      auto thisdcapostopv = getdcaXY(t0, pVtx);
-      if (thisdcapostopv < dcapostopv)
-        continue;
-      if (t0.tpcNClsCrossedRows() < 70)
-        continue;
-      for (auto& t1 : goodNegTracks) {
-        auto thisdcanegtopv = getdcaXY(t1, pVtx);
-        if (thisdcanegtopv < dcanegtopv)
-          continue;
-        if (t1.tpcNClsCrossedRows() < 70)
-          continue;
-
-        auto Track1 = getTrackParCov(t0);
+    for (auto& t0id : ptracks) { //FIXME: turn into combination(...)
+      auto t0 = t0id.goodTrack();
+      auto Track1 = getTrackParCov(t0);
+      for (auto& t1id : ntracks) {
+        auto t1 = t1id.goodTrack();
         auto Track2 = getTrackParCov(t1);
 
         //Try to progate to dca
@@ -152,22 +162,13 @@ struct lambdakzerofinder {
         if (thisv0cospa < v0cospa)
           continue;
 
-        hV0PosCrossedRows->Fill(t0.tpcNClsCrossedRows());
-        hV0NegCrossedRows->Fill(t1.tpcNClsCrossedRows());
-        hV0PosDCAxy->Fill(thisdcapostopv);
-        hV0NegDCAxy->Fill(thisdcanegtopv);
-        hV0CosPA->Fill(thisv0cospa);
-        hV0Radius->Fill(thisv0radius);
-        hV0DCADaughters->Fill(thisdcav0dau);
-
         lNCand++;
-        v0finderdata(t0.collisionId());
+        v0finderdata(t0.globalIndex(), t1.globalIndex(), t0.collisionId());
         v0data(pos[0], pos[1], pos[2],
                pvec0[0], pvec0[1], pvec0[2],
                pvec1[0], pvec1[1], pvec1[2],
                fitter.getChi2AtPCACandidate(),
-               getdcaXY(t0, pVtx),
-               getdcaXY(t1, pVtx));
+               t0id.dcaXY(), t1id.dcaXY());
       }
     }
     hCandPerEvent->Fill(lNCand);
@@ -195,12 +196,15 @@ struct lambdakzerofinderQA {
   OutputObj<TH3F> h3dMassLambda{TH3F("h3dMassLambda", "", 20, 0, 100, 200, 0, 10, 200, 1.115 - 0.100, 1.115 + 0.100)};
   OutputObj<TH3F> h3dMassAntiLambda{TH3F("h3dMassAntiLambda", "", 20, 0, 100, 200, 0, 10, 200, 1.115 - 0.100, 1.115 + 0.100)};
 
-  Filter preFilterV0 = aod::v0data::dcapostopv > dcapostopv&&
-                                                   aod::v0data::dcanegtopv > dcanegtopv&& aod::v0data::dcaV0daughters < dcav0dau;
+  //FIXME: figure out why this does not work?
+  //Filter preFilter1 = aod::v0data::dcapostopv > dcapostopv;
+  //Filter preFilter2 = aod::v0data::dcanegtopv > dcanegtopv;
+  //Filter preFilter3 = aod::v0data::dcaV0daughters < dcav0dau;
 
   ///Connect to V0FinderData: newly indexed, note: V0DataExt table incompatible with standard V0 table!
   void process(soa::Join<aod::Collisions, aod::EvSels, aod::Cents>::iterator const& collision,
-               soa::Filtered<soa::Join<aod::V0FinderData, aod::V0DataExt>> const& fullV0s)
+               //             soa::Filtered<soa::Join<aod::V0FinderData, aod::V0DataExt>> const& fullV0s)
+               soa::Join<aod::V0FinderData, aod::V0DataExt> const& fullV0s)
   {
     if (!collision.alias()[kINT7])
       return;
@@ -209,7 +213,7 @@ struct lambdakzerofinderQA {
 
     Long_t lNCand = 0;
     for (auto& v0 : fullV0s) {
-      if (v0.v0radius() > v0radius && v0.v0cosPA(collision.posX(), collision.posY(), collision.posZ()) > v0cospa) {
+      if (v0.v0radius() > v0radius && v0.v0cosPA(collision.posX(), collision.posY(), collision.posZ()) > v0cospa && v0.dcapostopv() > dcapostopv && v0.dcanegtopv() > dcanegtopv && v0.dcaV0daughters() > dcav0dau) {
         hV0Radius->Fill(v0.v0radius());
         hV0CosPA->Fill(v0.v0cosPA(collision.posX(), collision.posY(), collision.posZ()));
         hDCAPosToPV->Fill(v0.dcapostopv());
@@ -238,7 +242,8 @@ struct lambdakzeroinitializer {
 WorkflowSpec defineDataProcessing(ConfigContext const&)
 {
   return WorkflowSpec{
+    adaptAnalysisTask<lambdakzeroprefilter>("lf-lambdakzeroprefilter"),
     adaptAnalysisTask<lambdakzerofinder>("lf-lambdakzerofinder"),
-    adaptAnalysisTask<lambdakzerofinderQA>("lf-lambdakzerofinderQA"),
-    adaptAnalysisTask<lambdakzeroinitializer>("lf-lambdakzeroinitializer")};
+    adaptAnalysisTask<lambdakzeroinitializer>("lf-lambdakzeroinitializer"),
+    adaptAnalysisTask<lambdakzerofinderQA>("lf-lambdakzerofinderQA")};
 }

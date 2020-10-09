@@ -61,6 +61,7 @@
 #include <map>
 #include <vector>
 #include <csignal>
+#include <mutex>
 
 #ifdef ENABLE_UPGRADES
 #include <ITS3Simulation/Detector.h>
@@ -192,7 +193,7 @@ class O2HitMerger : public FairMQDevice
   void fillBranch(int eventID, std::string const& name, T* ptr)
   {
     // fetch tree into which to fill
-
+    const std::lock_guard<std::mutex> lock(mMapsMtx);
     auto iter = mEventToTTreeMap.find(eventID);
     if (iter == mEventToTTreeMap.end()) {
       {
@@ -307,6 +308,16 @@ class O2HitMerger : public FairMQDevice
       raise(SIGINT);
     }
     return expectmore;
+  }
+
+  void cleanEvent(int eventID)
+  {
+    // remove tree for that eventID
+    const std::lock_guard<std::mutex> lock(mMapsMtx);
+    delete mEventToTTreeMap[eventID];
+    delete mEventToTMemFileMap[eventID];
+    mEventToTTreeMap.erase(eventID);
+    mEventToTMemFileMap.erase(eventID); // remove memfile
   }
 
   template <typename T>
@@ -569,7 +580,7 @@ class O2HitMerger : public FairMQDevice
     if (confref.isFilterOutNoHitEvents()) {
       if (eventheader && eventheader->getMCEventStats().getNHits() == 0) {
         LOG(INFO) << " Taking out event " << eventID << " due to no hits ";
-
+        cleanEvent(eventID);
         return false;
       }
     }
@@ -618,12 +629,7 @@ class O2HitMerger : public FairMQDevice
     LOG(INFO) << "outtree has file " << mOutTree->GetDirectory()->GetFile()->GetName();
     mOutFile->Write("", TObject::kOverwrite);
 
-    // remove tree for that eventID
-    delete mEventToTTreeMap[eventID];
-    mEventToTTreeMap.erase(eventID);
-    // remove memfile
-    delete mEventToTMemFileMap[eventID];
-    mEventToTMemFileMap.erase(eventID);
+    cleanEvent(eventID);
 
     LOG(INFO) << "MERGING HITS TOOK " << timer.RealTime();
     return true;
@@ -643,7 +649,7 @@ class O2HitMerger : public FairMQDevice
   std::unordered_map<int, TTree*> mEventToTTreeMap;       //! in memory trees to collect / presort incoming data per event
   std::unordered_map<int, TMemFile*> mEventToTMemFileMap; //! files associated to the TTrees
   std::thread mMergerIOThread;                            //! a thread used to do hit merging and IO flushing asynchronously
-
+  std::mutex mMapsMtx;                                    //!
   int mEntries = 0;         //! counts the number of entries in the branches
   int mEventChecksum = 0;   //! checksum for events
   int mNExpectedEvents = 0; //! number of events that we expect to receive

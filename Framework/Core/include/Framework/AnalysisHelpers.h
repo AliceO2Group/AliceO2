@@ -64,7 +64,7 @@ struct WritingCursor<soa::Table<PC...>> {
   /// spend time reallocating the buffers.
   void reserve(int64_t size)
   {
-    mBuilder->reserve(typename persistent_table_t::columns{}, size);
+    mBuilder->reserve(typename persistent_table_t::column_types{}, size);
   }
 
   decltype(FFL(std::declval<cursor_t>())) cursor;
@@ -169,6 +169,7 @@ struct TableTransform {
 template <typename T>
 struct Spawns : TableTransform<typename aod::MetadataTrait<framework::pack_head_t<typename T::originals>>::metadata> {
   using extension_t = framework::pack_head_t<typename T::originals>;
+  using base_table_t = typename aod::MetadataTrait<extension_t>::metadata::base_table_t;
   using expression_pack_t = typename aod::MetadataTrait<extension_t>::metadata::expression_pack_t;
 
   constexpr auto pack()
@@ -400,6 +401,12 @@ struct OutputObj {
     object->SetName(label.c_str());
   }
 
+  void setObject(std::shared_ptr<T> t)
+  {
+    object = t;
+    object->SetName(label.c_str());
+  }
+
   void setHash(uint32_t hash)
   {
     mTaskHash = hash;
@@ -455,6 +462,25 @@ struct Service {
 };
 
 template <typename T>
+o2::soa::Filtered<T>* getTableFromFilter(const T& table, const expressions::Filter& filter)
+{
+  auto schema = table.asArrowTable()->schema();
+  expressions::Operations ops = createOperations(filter);
+  gandiva::NodePtr tree = nullptr;
+  if (isSchemaCompatible(schema, ops)) {
+    tree = createExpressionTree(ops, schema);
+  } else {
+    throw std::runtime_error("Partition filter does not match declared table type");
+  }
+
+  if constexpr (soa::is_soa_filtered_t<std::decay_t<T>>::value) {
+    return new o2::soa::Filtered<T>{{table}, tree};
+  } else {
+    return new o2::soa::Filtered<T>{{table.asArrowTable()}, tree};
+  }
+}
+
+template <typename T>
 struct Partition {
   Partition(expressions::Node&& filter_) : filter{std::move(filter_)}
   {
@@ -462,19 +488,7 @@ struct Partition {
 
   void setTable(const T& table)
   {
-    auto schema = table.asArrowTable()->schema();
-    expressions::Operations ops = createOperations(filter);
-    if (isSchemaCompatible(schema, ops)) {
-      mTree = createExpressionTree(ops, schema);
-    } else {
-      throw std::runtime_error("Partition filter does not match declared table type");
-    }
-
-    if constexpr (soa::is_soa_filtered_t<std::decay_t<T>>::value) {
-      mFiltered.reset(new o2::soa::Filtered<T>{{table}, mTree});
-    } else {
-      mFiltered.reset(new o2::soa::Filtered<T>{{table.asArrowTable()}, mTree});
-    }
+    mFiltered.reset(getTableFromFilter(table, filter));
   }
 
   template <typename... Ts>
@@ -499,7 +513,6 @@ struct Partition {
   }
 
   expressions::Filter filter;
-  gandiva::NodePtr mTree = nullptr;
   std::unique_ptr<o2::soa::Filtered<T>> mFiltered = nullptr;
 
   using filtered_iterator = typename o2::soa::Filtered<T>::iterator;
@@ -528,5 +541,27 @@ struct Partition {
 };
 
 } // namespace o2::framework
+
+namespace o2::soa
+{
+/// On-the-fly adding of expression columns
+template <typename T, typename... Cs>
+auto Extend(T const& table)
+{
+  static_assert((soa::is_type_spawnable_v<Cs> && ...), "You can only extend a table with expression columns");
+  using output_t = Join<T, soa::Table<Cs...>>;
+  return output_t{{o2::framework::spawner(framework::pack<Cs...>{}, table.asArrowTable().get()), table.asArrowTable()}, 0};
+}
+
+/// Template function to attach dynamic columns on-the-fly (e.g. inside
+/// process() function). Dynamic columns need to be compatible with the table.
+template <typename T, typename... Cs>
+auto Attach(T const& table)
+{
+  static_assert((framework::is_base_of_template<o2::soa::DynamicColumn, Cs>::value && ...), "You can only attach dynamic columns");
+  using output_t = Join<T, o2::soa::Table<Cs...>>;
+  return output_t{{table.asArrowTable()}, table.offset()};
+}
+} // namespace o2::soa
 
 #endif // o2_framework_AnalysisHelpers_H_DEFINED

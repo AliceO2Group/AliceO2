@@ -169,23 +169,26 @@ int SystemInterface::releaseSystem()
      bookkeeping of loaded libraries and unloading them before releasing the system?
    */
   int iResult = 0;
-  if (mpAliHLTExtFctDeinitSystem)
+  if (mpAliHLTExtFctDeinitSystem) {
     iResult = (*mpAliHLTExtFctDeinitSystem)();
+  }
   clear();
   return iResult;
 }
 
 int SystemInterface::loadLibrary(const char* libname)
 {
-  if (!mpAliHLTExtFctLoadLibrary)
+  if (!mpAliHLTExtFctLoadLibrary) {
     return -ENOSYS;
+  }
   return (*mpAliHLTExtFctLoadLibrary)(libname);
 }
 
 int SystemInterface::unloadLibrary(const char* libname)
 {
-  if (!mpAliHLTExtFctUnloadLibrary)
+  if (!mpAliHLTExtFctUnloadLibrary) {
     return -ENOSYS;
+  }
   return (*mpAliHLTExtFctUnloadLibrary)(libname);
 }
 
@@ -196,15 +199,17 @@ int SystemInterface::createComponent(const char* componentId,
                                      AliHLTComponentHandle* handle,
                                      const char* description)
 {
-  if (!mpAliHLTExtFctCreateComponent)
+  if (!mpAliHLTExtFctCreateComponent) {
     return -ENOSYS;
+  }
   return (*mpAliHLTExtFctCreateComponent)(componentId, environParam, argc, argv, handle, description);
 }
 
 int SystemInterface::destroyComponent(AliHLTComponentHandle handle)
 {
-  if (!mpAliHLTExtFctDestroyComponent)
+  if (!mpAliHLTExtFctDestroyComponent) {
     return -ENOSYS;
+  }
   return (*mpAliHLTExtFctDestroyComponent)(handle);
 }
 
@@ -215,24 +220,27 @@ int SystemInterface::processEvent(AliHLTComponentHandle handle,
                                   AliHLTUInt32_t* outputBlockCnt, AliHLTComponentBlockData** outputBlocks,
                                   AliHLTComponentEventDoneData** edd)
 {
-  if (!mpAliHLTExtFctProcessEvent)
+  if (!mpAliHLTExtFctProcessEvent) {
     return -ENOSYS;
+  }
   return (*mpAliHLTExtFctProcessEvent)(handle, evtData, blocks, trigData,
                                        outputPtr, size, outputBlockCnt, outputBlocks, edd);
 }
 
 int SystemInterface::getOutputDataType(AliHLTComponentHandle handle, AliHLTComponentDataType* dataType)
 {
-  if (!mpAliHLTExtFctGetOutputDataType)
+  if (!mpAliHLTExtFctGetOutputDataType) {
     return -ENOSYS;
+  }
   return (*mpAliHLTExtFctGetOutputDataType)(handle, dataType);
 }
 
 int SystemInterface::getOutputSize(AliHLTComponentHandle handle, unsigned long* constEventBase,
                                    unsigned long* constBlockBase, double* inputBlockMultiplier)
 {
-  if (!mpAliHLTExtFctGetOutputSize)
+  if (!mpAliHLTExtFctGetOutputSize) {
     return -ENOSYS;
+  }
   return (*mpAliHLTExtFctGetOutputSize)(handle, constEventBase, constEventBase, inputBlockMultiplier);
 }
 
@@ -264,7 +272,8 @@ void* SystemInterface::alloc(void* /*param*/, unsigned long size)
 void SystemInterface::dealloc(void* buffer, unsigned long /*size*/)
 {
   // deallocate memory
-  if (buffer == nullptr)
+  if (buffer == nullptr) {
     return;
+  }
   free(buffer);
 }

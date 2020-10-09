@@ -82,10 +82,11 @@ void SymbolStatistics::rescale()
          mCumulativeFrequencyTable.back() == newCumulatedFrequency);
 
   for (size_t i = 0; i < mFrequencyTable.size(); i++) {
-    if (mFrequencyTable[i] == 0)
+    if (mFrequencyTable[i] == 0) {
       assert(mCumulativeFrequencyTable[i + 1] == mCumulativeFrequencyTable[i]);
-    else
+    } else {
       assert(mCumulativeFrequencyTable[i + 1] > mCumulativeFrequencyTable[i]);
+    }
 
     // calc updated freq
     mFrequencyTable[i] = getFrequency(i);

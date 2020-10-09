@@ -16,7 +16,8 @@
 #include "Headers/DataHeader.h"
 #include "DetectorsCommonDataFormats/DetID.h"
 #include "DataFormatsITSMFT/ROFRecord.h"
-#include "SimulationDataFormat/MCTruthContainer.h"
+#include "SimulationDataFormat/ConstMCTruthContainer.h"
+#include "SimulationDataFormat/IOMCTruthContainerView.h"
 #include "SimulationDataFormat/MCCompLabel.h"
 #include <vector>
 #include <string>
@@ -32,7 +33,7 @@ namespace itsmft
 
 template <typename T>
 using BranchDefinition = MakeRootTreeWriterSpec::BranchDefinition<T>;
-using MCCont = o2::dataformats::MCTruthContainer<o2::MCCompLabel>;
+using MCCont = o2::dataformats::ConstMCTruthContainer<o2::MCCompLabel>;
 
 /// create the processor spec
 /// describing a processor receiving digits for ITS/MFT and writing them to file
@@ -44,12 +45,36 @@ DataProcessorSpec getDigitWriterSpec(bool mctruth, o2::header::DataOrigin detOri
   auto logger = [](std::vector<o2::itsmft::Digit> const& inDigits) {
     LOG(INFO) << "RECEIVED DIGITS SIZE " << inDigits.size();
   };
+
+  // the callback to be set as hook for custom action when the writer is closed
+  auto finishWriting = [](TFile* outputfile, TTree* outputtree) {
+    outputtree->SetEntries(1);
+    outputtree->Write("", TObject::kOverwrite);
+    outputfile->Close();
+  };
+
+  // handler for labels
+  // This is necessary since we can't store the original label buffer in a ROOT entry -- as is -- if it exceeds a certain size.
+  // We therefore convert it to a special split class.
+  auto fillLabels = [](TBranch& branch, std::vector<char> const& labelbuffer, DataRef const& /*ref*/) {
+    o2::dataformats::ConstMCTruthContainerView<o2::MCCompLabel> labels(labelbuffer);
+    LOG(INFO) << "WRITING " << labels.getNElements() << " LABELS ";
+
+    o2::dataformats::IOMCTruthContainerView outputcontainer;
+    auto br = framework::RootTreeWriter::remapBranch(branch, &outputcontainer);
+    outputcontainer.adopt(labelbuffer);
+    br->Fill();
+    br->ResetAddress();
+  };
+
   return MakeRootTreeWriterSpec((detStr + "DigitWriter").c_str(),
                                 (detStrL + "digits.root").c_str(),
                                 MakeRootTreeWriterSpec::TreeAttributes{"o2sim", "Digits tree"},
-                                BranchDefinition<MCCont>{InputSpec{"digitsMCTR", detOrig, "DIGITSMCTR", 0},
-                                                         (detStr + "DigitMCTruth").c_str(),
-                                                         (mctruth ? 1 : 0)},
+                                MakeRootTreeWriterSpec::CustomClose(finishWriting),
+                                // in case of labels we first read them as std::vector<char> and process them correctly in the fillLabels hook
+                                BranchDefinition<std::vector<char>>{InputSpec{"digitsMCTR", detOrig, "DIGITSMCTR", 0},
+                                                                    (detStr + "DigitMCTruth").c_str(),
+                                                                    (mctruth ? 1 : 0), fillLabels},
                                 BranchDefinition<std::vector<itsmft::MC2ROFRecord>>{InputSpec{"digitsMC2ROF", detOrig, "DIGITSMC2ROF", 0},
                                                                                     (detStr + "DigitMC2ROF").c_str(),
                                                                                     (mctruth ? 1 : 0)},

@@ -61,7 +61,7 @@ GPUd() bool GPUTPCGMTrackParam::Fit(const GPUTPCGMMerger* GPUrestrict() merger, 
 
   GPUdEdx dEdx;
   GPUTPCGMPropagator prop;
-  GPUTPCGMMergerTypes::InterpolationErrors interpolation;
+  gputpcgmmergertypes::InterpolationErrors interpolation;
   prop.SetMaterialTPC();
   prop.SetPolynomialField(&merger->Param().polynomialField);
   prop.SetMaxSinPhi(maxSinPhi);
@@ -505,10 +505,10 @@ GPUd() void GPUTPCGMTrackParam::AttachClusters(const GPUTPCGMMerger* GPUrestrict
   const int nBinsY = row.Grid().Ny();
   const int idOffset = tracker.Data().ClusterIdOffset();
   const int* ids = &(tracker.Data().ClusterDataIndex()[row.HitNumberOffset()]);
-  unsigned int myWeight = Merger->TrackOrderAttach()[iTrack] | GPUTPCGMMergerTypes::attachAttached | GPUTPCGMMergerTypes::attachTube;
+  unsigned int myWeight = Merger->TrackOrderAttach()[iTrack] | gputpcgmmergertypes::attachAttached | gputpcgmmergertypes::attachTube;
   GPUAtomic(unsigned int)* const weights = Merger->ClusterAttachment();
   if (goodLeg) {
-    myWeight |= GPUTPCGMMergerTypes::attachGoodLeg;
+    myWeight |= gputpcgmmergertypes::attachGoodLeg;
   }
   for (int k = 0; k <= nz; k++) {
     const int mybin = bin + k * nBinsY;

@@ -34,12 +34,12 @@ class CfUtils
 
   static GPUdi() bool innerAboveThreshold(uchar aboveThreshold, ushort outerIdx)
   {
-    return aboveThreshold & (1 << CfConsts::OuterToInner[outerIdx]);
+    return aboveThreshold & (1 << cfconsts::OuterToInner[outerIdx]);
   }
 
   static GPUdi() bool innerAboveThresholdInv(uchar aboveThreshold, ushort outerIdx)
   {
-    return aboveThreshold & (1 << CfConsts::OuterToInnerInv[outerIdx]);
+    return aboveThreshold & (1 << cfconsts::OuterToInnerInv[outerIdx]);
   }
 
   static GPUdi() bool isPeak(uchar peak) { return peak & 0x01; }

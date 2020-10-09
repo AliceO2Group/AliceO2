@@ -32,6 +32,8 @@ constexpr uint8_t GBTFlagDataTrailer = 0xf0;
 constexpr uint8_t GBTFlagTrigger = 0xe8;
 /// GBT diagnostic status word flag
 constexpr uint8_t GBTFlagDiagnostic = 0xe4;
+/// GBT calibration status word flag
+constexpr uint8_t GBTFlagCalibration = 0xf8;
 
 // GBT header flag in the RDH
 constexpr uint8_t GBTFlagRDH = 0x00;
@@ -39,6 +41,13 @@ constexpr uint8_t GBTFlagRDH = 0x00;
 constexpr uint8_t GBTFlagDataIB = 0x20;
 // GBT header flag for the ITS OB: 010 bb ccc with bb -> Connector Number (00,01,10,11), ccc -> Lane Number (0-6)
 constexpr uint8_t GBTFlagDataOB = 0x40;
+// GBT header flag for the ITS IB idagnostic : 101 bbbbb with bbbbb -> Lane Number (0-8)
+constexpr uint8_t GBTFlagDiagnosticIB = 0xa0;
+// GBT header flag for the ITS OB diagnostic word: 110 bb ccc with bb -> Connector Number (00,01,10,11), ccc -> Lane Number (0-6)
+constexpr uint8_t GBTFlagDiagnosticOB = 0x60;
+
+// GBT header flag for the ITS Status word : 111 bbbbb with bbbbb -> Lane Number
+constexpr uint8_t GBTFlagStatus = 0xe0;
 
 constexpr int GBTWordLength = 10;       // lentgh in bytes
 constexpr int GBTPaddedWordLength = 16; // lentgh in bytes with padding
@@ -53,6 +62,7 @@ struct GBTWord {
       uint64_t na1hn : 8;        /// 28:71  reserved
       uint64_t id : 8;           /// 72:79  0xe0; Header Status Word (HSW) identifier
     };                           // HEADER NEW
+
     struct /*__attribute__((packed))*/ {
       uint64_t packetIdx : 16;    ///  0:15  Index of Data Packet within trigger
       uint64_t activeLanesL : 28; /// 16:43  Bit map of lanes active and eligible for readout
@@ -60,6 +70,7 @@ struct GBTWord {
       uint64_t na1h : 8;          /// 64:71  reserved
       //      uint64_t id : 8;           /// 72:79  0xe0; Header Status Word (HSW) identifier
     }; // HEADER Legacy
+
     struct /*__attribute__((packed))*/ {
       uint64_t lanesStops : 28;         ///  0:27  Bit map of “Valid Lane stops received”, 1 bit per lane, NOT USED
       uint64_t lanesTimeout : 28;       /// 28:55  Bit map of “Lane timeouts received”, 1 bit per lane, NOT USED
@@ -72,6 +83,7 @@ struct GBTWord {
       uint64_t na2t : 3;                /// 69:71  reserved
       //  uint8_t  id : 8;                /// = 0xf0; Trailer Status Word (TSW) identifier
     }; // TRAILER
+
     struct /*__attribute__((packed))*/ {
       uint64_t triggerType : 12; /// 0:11   12 lowest bits of trigger type received from CTP
       uint64_t internal : 1;     /// 12     Used in Continuous Mode for internally generated trigger
@@ -84,9 +96,22 @@ struct GBTWord {
       uint64_t na3tr : 6;        /// 64:71  reserved
       //  uint8_t  id : 8;                /// = 0xc0; Trigger Status Word (TSW) identifier
     }; // TRIGGER
+
     struct /*__attribute__((packed))*/ {
       uint64_t na0diag : 64; ///
       //      uint64_t id : 8;           /// 72:79  0xe4; diagnostic word identifier
+    }; // HEADER Legacy
+
+    struct __attribute__((packed)) {
+      uint64_t calibUserField : 48; /// 0:47   user field
+      uint64_t calibCounter : 24;   /// 48:71  elf-incrementing counter of
+      //  uint64_t id : 8;            /// 72:79  0xf8; Calibration Status Word (HSW) identifier
+    }; /// Calibration Data Word
+
+    struct {
+      uint64_t diagnosticData : 64; /// 0:63   Error specific diagnostic data
+      uint64_t laneErrorID : 8;     /// 64:71  Identifier of the specific error condition
+      //      uint64_t id : 8;           /// 72:79  0xe0;  Status Word (HSW) identifier
     }; // HEADER Legacy
 
     uint8_t data8[16]; // 80 bits GBT word + optional padding to 128 bits
@@ -107,11 +132,27 @@ struct GBTWord {
   /// check if the GBT Header corresponds to Diagnostic data
   bool isDiagnosticWord() const { return id == GBTFlagDiagnostic; }
 
+  /// check if the GBT Header corresponds to Calibration word
+  bool isCalibrationWord() const { return id == GBTFlagCalibration; }
+
   /// check if the GBT Header corresponds to ITS IB data (header is combined with lanes info)
   bool isDataIB() const { return (id & 0xe0) == GBTFlagDataIB; }
 
+  /// check if the GBT Header corresponds to ITS IB diagnostics data (header is combined with lanes info)
+  bool isCableDiagnosticIB() const { return (id & 0xe0) == GBTFlagDiagnosticIB; }
+
   /// check if the GBT Header corresponds to ITS OB data (header is combined with lanes/connector info)
   bool isDataOB() const { return (id & 0xe0) == GBTFlagDataOB; }
+
+  /// check if the GBT Header corresponds to ITS OB diagnostics data (header is combined with lanes info)
+  bool isCableDiagnosticOB() const { return (id & 0xe0) == GBTFlagDiagnosticIB; }
+
+  /// check if the GBT Header corresponds to ITS IB or OB data (header is combined with lanes/connector info)
+  bool isData() const { return isDataIB() || isDataOB(); }
+
+  bool isCableDiagnostic() const { return isCableDiagnosticIB() || isCableDiagnosticIB(); }
+
+  bool isStatus() const { return (id & 0xe0) == GBTFlagStatus; }
 
   const uint64_t* getW64() const { return data64; }
   const uint8_t* getW8() const { return data8; }
@@ -260,6 +301,45 @@ struct GBTDiagnostic : public GBTWord {
 
   GBTDiagnostic() { id = GBTFlagDiagnostic; }
   ClassDefNV(GBTDiagnostic, 1);
+};
+
+struct GBTCableDiagnostic : public GBTWord {
+  /// Definition of cable diagnostic word
+  ///
+  /// bits  0 : 64, Error specific diagnostic data
+  /// bits 63 : 71, Identifier of the specific error condition
+  /// bits 72 : 79, IB or OB diagnostic flag + cable id
+
+  GBTCableDiagnostic(bool ib = true, int lane = 0) { id = (ib ? GBTFlagDiagnosticIB : GBTFlagDiagnosticOB) | (lane & 0x1f); }
+  int getCableID() const { return id & 0x1f; } // combined connector and lane
+  bool isIB() const { return (id & 0xe0) == GBTFlagDiagnosticIB; }
+  bool isOB() const { return (id & 0xe0) == GBTFlagDiagnosticOB; }
+  ClassDefNV(GBTCableDiagnostic, 1);
+};
+
+struct GBTCableStatus : public GBTWord { // not sure this is correct, FIXME
+  /// Definition of cable status word
+  ///
+  /// bits 72 : 79, Status flag + cable id
+
+  GBTCableStatus(int lane = 0) { id = GBTFlagStatus | (lane & 0x1f); }
+  int getCableID() const { return id & 0x1f; } // combined connector and lane
+  ClassDefNV(GBTCableStatus, 1);
+};
+
+struct GBTCalibration : public GBTWord { // calibration data word
+  /// bits  0 : 47, user-written tagging fields
+  /// bits 48 : 71, self-incrementing counter of CDW words
+  /// bits 72 : 79, calibration indicator
+
+  GBTCalibration() { id = GBTFlagCalibration; }
+  GBTCalibration(uint64_t userData, uint16_t counter = 0)
+  {
+    id = GBTFlagCalibration;
+    calibUserField = userData & ((0x1UL << 48) - 1);
+    calibCounter = counter & ((0x1 << 24) - 1);
+  }
+  ClassDefNV(GBTCalibration, 1);
 };
 
 } // namespace itsmft

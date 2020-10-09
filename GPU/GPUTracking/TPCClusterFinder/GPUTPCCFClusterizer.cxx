@@ -33,7 +33,7 @@ GPUdii() void GPUTPCCFClusterizer::Thread<0>(int nBlocks, int nThreads, int iBlo
 
   tpc::ClusterNative* clusterOut = (onlyMC) ? nullptr : clusterer.mPclusterByRow;
 
-  GPUTPCCFClusterizer::computeClustersImpl(get_num_groups(0), get_local_size(0), get_group_id(0), get_local_id(0), clusterer.mPmemory->fragment, smem, chargeMap, clusterer.mPfilteredPeakPositions, CPU_PTR(&labelAcc), clusterer.mPmemory->counters.nClusters, clusterer.mNMaxClusterPerRow, clusterer.mPclusterInRow, clusterOut, clusterer.mPclusterPosInRow);
+  GPUTPCCFClusterizer::computeClustersImpl(get_num_groups(0), get_local_size(0), get_group_id(0), get_local_id(0), clusterer.mPmemory->fragment, smem, chargeMap, clusterer.mPfilteredPeakPositions, clusterer.Param().rec, CPU_PTR(&labelAcc), clusterer.mPmemory->counters.nClusters, clusterer.mNMaxClusterPerRow, clusterer.mPclusterInRow, clusterOut, clusterer.mPclusterPosInRow);
 }
 
 GPUdii() void GPUTPCCFClusterizer::computeClustersImpl(int nBlocks, int nThreads, int iBlock, int iThread,
@@ -41,6 +41,7 @@ GPUdii() void GPUTPCCFClusterizer::computeClustersImpl(int nBlocks, int nThreads
                                                        GPUSharedMemory& smem,
                                                        const Array2D<PackedCharge>& chargeMap,
                                                        const ChargePos* filteredPeakPositions,
+                                                       const GPUSettingsRec& calib,
                                                        MCLabelAccumulator* labelAcc,
                                                        uint clusternum,
                                                        uint maxClusterPerRow,
@@ -60,6 +61,7 @@ GPUdii() void GPUTPCCFClusterizer::computeClustersImpl(int nBlocks, int nThreads
   CPU_ONLY(labelAcc->collect(pos, charge));
 
   buildCluster(
+    calib,
     chargeMap,
     pos,
     smem.posBcast,
@@ -74,13 +76,9 @@ GPUdii() void GPUTPCCFClusterizer::computeClustersImpl(int nBlocks, int nThreads
   pc.finalize(pos, charge, fragment.start);
 
   tpc::ClusterNative myCluster;
-  pc.toNative(pos, charge, myCluster);
+  pc.toNative(pos, charge, calib.tpcCFminSplitNum, myCluster);
 
-#if defined(CUT_QTOT)
-  bool aboveQTotCutoff = (pc.Q > QTOT_CUTOFF);
-#else
-  bool aboveQTotCutoff = true;
-#endif
+  bool aboveQTotCutoff = (myCluster.qTot > calib.tpcCFqtotCutoff);
 
   if (!aboveQTotCutoff) {
     clusterPosInRow[idx] = maxClusterPerRow;
@@ -106,6 +104,7 @@ GPUdii() void GPUTPCCFClusterizer::computeClustersImpl(int nBlocks, int nThreads
 }
 
 GPUdii() void GPUTPCCFClusterizer::updateClusterInner(
+  const GPUSettingsRec& calib,
   ushort lid,
   ushort N,
   const PackedCharge* buf,
@@ -118,7 +117,7 @@ GPUdii() void GPUTPCCFClusterizer::updateClusterInner(
 
   GPUCA_UNROLL(U(), U())
   for (ushort i = 0; i < N; i++) {
-    Delta2 d = CfConsts::InnerNeighbors[i];
+    Delta2 d = cfconsts::InnerNeighbors[i];
 
     PackedCharge p = buf[N * lid + i];
 
@@ -127,7 +126,7 @@ GPUdii() void GPUTPCCFClusterizer::updateClusterInner(
     CPU_ONLY(
       labelAcc->collect(pos.delta(d), q));
 
-    aboveThreshold |= (uchar(q > CHARGE_THRESHOLD) << i);
+    aboveThreshold |= (uchar(q > calib.tpcCFinnerThreshold) << i);
   }
 
   innerAboveThreshold[lid] = aboveThreshold;
@@ -149,7 +148,7 @@ GPUdii() void GPUTPCCFClusterizer::updateClusterOuter(
   for (ushort i = offset; i < M + offset; i++) {
     PackedCharge p = buf[N * lid + i];
 
-    Delta2 d = CfConsts::OuterNeighbors[i];
+    Delta2 d = cfconsts::OuterNeighbors[i];
 
     Charge q = cluster->updateOuter(p, d);
     static_cast<void>(q); // Avoid unused varible warning on GPU.
@@ -160,6 +159,7 @@ GPUdii() void GPUTPCCFClusterizer::updateClusterOuter(
 }
 
 GPUdii() void GPUTPCCFClusterizer::buildCluster(
+  const GPUSettingsRec& calib,
   const Array2D<PackedCharge>& chargeMap,
   ChargePos pos,
   ChargePos* posBcast,
@@ -180,10 +180,11 @@ GPUdii() void GPUTPCCFClusterizer::buildCluster(
     ll,
     0,
     8,
-    CfConsts::InnerNeighbors,
+    cfconsts::InnerNeighbors,
     posBcast,
     buf);
   updateClusterInner(
+    calib,
     ll,
     8,
     buf,
@@ -205,7 +206,7 @@ GPUdii() void GPUTPCCFClusterizer::buildCluster(
     ll,
     0,
     16,
-    CfConsts::OuterNeighbors,
+    cfconsts::OuterNeighbors,
     posBcast,
     innerAboveThreshold,
     buf);
@@ -230,7 +231,7 @@ GPUdii() void GPUTPCCFClusterizer::buildCluster(
     ll,
     0,
     16,
-    CfConsts::OuterNeighbors,
+    cfconsts::OuterNeighbors,
     posBcast + wgSizeHalf,
     innerAboveThreshold + wgSizeHalf,
     buf);

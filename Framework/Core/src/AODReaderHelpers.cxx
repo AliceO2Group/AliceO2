@@ -72,7 +72,7 @@ AlgorithmSpec AODReaderHelpers::aodSpawnerCallback(std::vector<InputSpec> reques
           using metadata_t = decltype(metadata);
           using expressions = typename metadata_t::expression_pack_t;
           auto original_table = pc.inputs().get<TableConsumer>(input.binding)->asArrowTable();
-          return o2::soa::spawner(expressions{}, original_table.get());
+          return o2::framework::spawner(expressions{}, original_table.get());
         };
 
         if (description == header::DataDescription{"TRACK:PAR"}) {
@@ -120,7 +120,7 @@ AlgorithmSpec AODReaderHelpers::rootFileReaderCallback()
         LOGP(INFO, "Stopping after time frame {}.", watchdog->numberTimeFrames - 1);
         didir->closeInputFiles();
         control.endOfStream();
-        control.readyToQuit(QuitRequest::All);
+        control.readyToQuit(QuitRequest::Me);
         return;
       }
 
