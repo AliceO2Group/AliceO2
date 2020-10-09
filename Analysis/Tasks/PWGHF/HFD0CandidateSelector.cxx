@@ -15,8 +15,8 @@
 
 #include "Framework/runDataProcessing.h"
 #include "Framework/AnalysisTask.h"
-#include "Analysis/SecondaryVertexHF.h"
-#include "Analysis/CandidateSelectionTables.h"
+#include "Analysis/HFSecondaryVertex.h"
+#include "Analysis/HFCandidateSelectionTables.h"
 
 using namespace o2;
 using namespace o2::framework;

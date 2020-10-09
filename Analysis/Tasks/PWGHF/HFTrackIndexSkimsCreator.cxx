@@ -17,7 +17,7 @@
 #include "Framework/runDataProcessing.h"
 #include "Framework/AnalysisTask.h"
 #include "DetectorsVertexing/DCAFitterN.h"
-#include "Analysis/SecondaryVertexHF.h"
+#include "Analysis/HFSecondaryVertex.h"
 #include "Analysis/trackUtilities.h"
 
 using namespace o2;
@@ -26,7 +26,7 @@ using namespace o2::framework::expressions;
 
 /// Track selection
 struct SelectTracks {
-  Produces<aod::SelTrack> rowSelectedTrack;
+  Produces<aod::HFSelTrack> rowSelectedTrack;
   Configurable<double> ptmintrack_2prong{"ptmintrack_2prong", -1, "ptmin single track"};
   Configurable<double> dcatoprimxymin_2prong{"dcatoprimxymin_2prong", 0, "dca xy to prim vtx min"};
   Configurable<double> etamax_2prong{"etamax_2prong", 999, "maximum pseudorapidity value"};
@@ -122,8 +122,8 @@ struct HFTrackIndexSkimsCreator {
   OutputObj<TH1F> hvtx3_y_out{TH1F("hvtx3_y", "3-track vtx", 1000, -2.0, 2.0)};
   OutputObj<TH1F> hvtx3_z_out{TH1F("hvtx3_z", "3-track vtx", 1000, -20.0, 20.0)};
 
-  Filter filterSelectTracks = aod::seltrack::isSel2Prong == 1;
-  using SelectedTracks = soa::Filtered<soa::Join<aod::Tracks, aod::TracksCov, aod::TracksExtra, aod::SelTrack>>;
+  Filter filterSelectTracks = aod::hf_seltrack::isSel2Prong == 1;
+  using SelectedTracks = soa::Filtered<soa::Join<aod::Tracks, aod::TracksCov, aod::TracksExtra, aod::HFSelTrack>>;
   // FIXME
   //Partition<SelectedTracks> tracksPos = aod::track::signed1Pt > 0.f;
   //Partition<SelectedTracks> tracksNeg = aod::track::signed1Pt < 0.f;
