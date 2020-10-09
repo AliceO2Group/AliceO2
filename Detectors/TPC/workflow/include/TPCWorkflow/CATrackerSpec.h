@@ -14,6 +14,7 @@
 /// @brief  Processor spec for running TPC CA tracking
 
 #include "Framework/DataProcessorSpec.h"
+#include "RecoWorkflow.h"
 #include <utility> // std::forward
 
 namespace o2
@@ -132,7 +133,7 @@ struct Config {
 ///
 /// @param specconfig configuration options for the processor spec
 /// @param tpcsectors list of sector numbers
-framework::DataProcessorSpec getCATrackerSpec(ca::Config const& specconfig, std::vector<int> const& tpcsectors);
+framework::DataProcessorSpec getCATrackerSpec(o2::tpc::reco_workflow::CompletionPolicyData* policyData, ca::Config const& specconfig, std::vector<int> const& tpcsectors);
 
 o2::framework::CompletionPolicy getCATrackerCompletionPolicy();
 } // end namespace tpc
