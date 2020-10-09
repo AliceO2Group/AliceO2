@@ -114,10 +114,9 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
   std::vector<int> tpcSectors(36);
   std::iota(tpcSectors.begin(), tpcSectors.end(), 0);
   // the lane configuration defines the subspecification ids to be distributed among the lanes.
-  std::vector<int> laneConfiguration;
+  std::vector<int> laneConfiguration = tpcSectors; // Currently just a copy of the tpcSectors, why?
   auto nLanes = cfgc.options().get<int>("tpc-lanes");
   auto inputType = cfgc.options().get<std::string>("input-type");
-  laneConfiguration = tpcSectors;
 
   // depending on whether to dispatch early (prompt) and on the input type, we
   // set the matcher. Note that this has to be in accordance with the OutputSpecs
