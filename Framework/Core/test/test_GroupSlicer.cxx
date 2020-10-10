@@ -334,8 +334,9 @@ BOOST_AUTO_TEST_CASE(ArrowDirectSlicing)
   auto evtsWriter = builderE.cursor<aod::Events>();
   auto step = 0;
   for (auto i = 0; i < 20; ++i) {
-    if (i >= offsets[step + 1])
+    if (i >= offsets[step + 1]) {
       ++step;
+    }
     evtsWriter(0, ids[step], 0.5f * i, 2.f * i, 3.f * i);
   }
   auto evtTable = builderE.finalize();

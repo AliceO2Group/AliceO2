@@ -56,8 +56,9 @@ WorkflowSpec defineDataProcessing(ConfigContext const&)
           // simply make a vector of pointers, snapshot will include the latest
           // change, but not the one which is done after taking the snapshot
           std::vector<XYZ*> p;
-          for (auto& i : v)
+          for (auto& i : v) {
             p.push_back(&i);
+          }
           ctx.outputs().snapshot(Output{"TST", "LINEARIZED"}, p);
           v[999] = XYZ{3, 4, 5};
 

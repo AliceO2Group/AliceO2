@@ -35,16 +35,19 @@ size_t levenshteinDistance(const char* s, int len_s, const char* t, int len_t)
   size_t cost;
 
   /* base case: empty strings */
-  if (len_s == 0)
+  if (len_s == 0) {
     return len_t;
-  if (len_t == 0)
+  }
+  if (len_t == 0) {
     return len_s;
+  }
 
   /* test if last characters of the strings match */
-  if (s[len_s - 1] == t[len_t - 1])
+  if (s[len_s - 1] == t[len_t - 1]) {
     cost = 0;
-  else
+  } else {
     cost = 1;
+  }
 
   return std::min(std::min(levenshteinDistance(s, len_s - 1, t, len_t) + 1,
                            levenshteinDistance(s, len_s, t, len_t - 1) + 1),

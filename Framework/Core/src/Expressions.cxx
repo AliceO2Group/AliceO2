@@ -204,11 +204,13 @@ Operations createOperations(Filter const& expression)
     }
 
     decltype(left) right = nullptr;
-    if (top.node_ptr->right != nullptr)
+    if (top.node_ptr->right != nullptr) {
       right = top.node_ptr->right.get();
+    }
     bool rightLeaf = true;
-    if (right != nullptr)
+    if (right != nullptr) {
       rightLeaf = isLeaf(right);
+    }
     size_t ri = 0;
     auto isUnary = false;
     if (top.node_ptr->right == nullptr) {
@@ -224,10 +226,12 @@ Operations createOperations(Filter const& expression)
     }
 
     OperationSpecs.push_back(std::move(operationSpec));
-    if (!leftLeaf)
+    if (!leftLeaf) {
       path.emplace(left, li);
-    if (!isUnary && !rightLeaf)
+    }
+    if (!isUnary && !rightLeaf) {
       path.emplace(right, ri);
+    }
   }
   // at this stage the operations vector is created, but the field types are
   // only set for the logical operations and leaf nodes
@@ -241,18 +245,21 @@ Operations createOperations(Filter const& expression)
     }
 
     // check if the datums are references
-    if (left.datum.index() == 1)
+    if (left.datum.index() == 1) {
       left.type = resultTypes[std::get<size_t>(left.datum)];
+    }
 
-    if (right.datum.index() == 1)
+    if (right.datum.index() == 1) {
       right.type = resultTypes[std::get<size_t>(right.datum)];
+    }
 
     auto t1 = left.type;
     auto t2 = right.type;
     // if the right datum is monostate (unary op)
     if (right.datum.index() == 0) {
-      if (t1 == atype::DOUBLE)
+      if (t1 == atype::DOUBLE) {
         return atype::DOUBLE;
+      }
       return atype::FLOAT;
     }
 
@@ -261,18 +268,23 @@ Operations createOperations(Filter const& expression)
     }
 
     if (t1 == atype::INT32 || t1 == atype::INT8 || t1 == atype::INT16 || t1 == atype::UINT8) {
-      if (t2 == atype::INT32 || t2 == atype::INT8 || t2 == atype::INT16 || t2 == atype::UINT8)
+      if (t2 == atype::INT32 || t2 == atype::INT8 || t2 == atype::INT16 || t2 == atype::UINT8) {
         return atype::FLOAT;
-      if (t2 == atype::FLOAT)
+      }
+      if (t2 == atype::FLOAT) {
         return atype::FLOAT;
-      if (t2 == atype::DOUBLE)
+      }
+      if (t2 == atype::DOUBLE) {
         return atype::DOUBLE;
+      }
     }
     if (t1 == atype::FLOAT) {
-      if (t2 == atype::INT32 || t2 == atype::INT8 || t2 == atype::INT16 || t2 == atype::UINT8)
+      if (t2 == atype::INT32 || t2 == atype::INT8 || t2 == atype::INT16 || t2 == atype::UINT8) {
         return atype::FLOAT;
-      if (t2 == atype::DOUBLE)
+      }
+      if (t2 == atype::DOUBLE) {
         return atype::DOUBLE;
+      }
     }
     if (t1 == atype::DOUBLE) {
       return atype::DOUBLE;
@@ -423,16 +435,21 @@ gandiva::NodePtr createExpressionTree(Operations const& opSpecs,
 
     if (spec.datum.index() == 2) {
       auto content = std::get<LiteralNode::var_t>(spec.datum);
-      if (content.index() == 0)
+      if (content.index() == 0) {
         return gandiva::TreeExprBuilder::MakeLiteral(static_cast<int32_t>(std::get<int>(content)));
-      if (content.index() == 1)
+      }
+      if (content.index() == 1) {
         return gandiva::TreeExprBuilder::MakeLiteral(std::get<bool>(content));
-      if (content.index() == 2)
+      }
+      if (content.index() == 2) {
         return gandiva::TreeExprBuilder::MakeLiteral(std::get<float>(content));
-      if (content.index() == 3)
+      }
+      if (content.index() == 3) {
         return gandiva::TreeExprBuilder::MakeLiteral(std::get<double>(content));
-      if (content.index() == 4)
+      }
+      if (content.index() == 4) {
         return gandiva::TreeExprBuilder::MakeLiteral(std::get<uint8_t>(content));
+      }
       throw std::runtime_error("Malformed LiteralNode");
     }
 
@@ -508,10 +525,12 @@ bool isSchemaCompatible(gandiva::SchemaPtr const& Schema, Operations const& opSp
 {
   std::set<std::string> opFieldNames;
   for (auto& spec : opSpecs) {
-    if (spec.left.datum.index() == 3)
+    if (spec.left.datum.index() == 3) {
       opFieldNames.insert(std::get<std::string>(spec.left.datum));
-    if (spec.right.datum.index() == 3)
+    }
+    if (spec.right.datum.index() == 3) {
       opFieldNames.insert(std::get<std::string>(spec.right.datum));
+    }
   }
 
   std::set<std::string> schemaFieldNames;

@@ -82,11 +82,10 @@ static void BM_TreeToTable(benchmark::State& state)
     }
 
     // clean up
-    if (tr2ta)
-      delete tr2ta;
+    delete tr2ta;
+
     f->Close();
-    if (f)
-      delete f;
+    delete f;
   }
 
   state.SetBytesProcessed(state.iterations() * state.range(0) * 24);

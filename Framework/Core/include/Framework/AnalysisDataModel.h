@@ -178,17 +178,19 @@ DECLARE_SOA_DYNAMIC_COLUMN(TPCNClsCrossedRows, tpcNClsCrossedRows, [](uint8_t tp
 DECLARE_SOA_DYNAMIC_COLUMN(ITSNCls, itsNCls, [](uint8_t itsClusterMap) -> uint8_t {
   uint8_t itsNcls = 0;
   constexpr uint8_t bit = 1;
-  for (int layer = 0; layer < 7; layer++)
+  for (int layer = 0; layer < 7; layer++) {
     if (itsClusterMap & (bit << layer))
       itsNcls++;
+  }
   return itsNcls;
 });
 DECLARE_SOA_DYNAMIC_COLUMN(ITSNClsInnerBarrel, itsNClsInnerBarrel, [](uint8_t itsClusterMap) -> uint8_t {
   uint8_t itsNclsInnerBarrel = 0;
   constexpr uint8_t bit = 1;
-  for (int layer = 0; layer < 3; layer++)
+  for (int layer = 0; layer < 3; layer++) {
     if (itsClusterMap & (bit << layer))
       itsNclsInnerBarrel++;
+  }
   return itsNclsInnerBarrel;
 });
 

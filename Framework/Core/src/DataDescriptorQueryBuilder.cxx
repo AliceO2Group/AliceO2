@@ -285,8 +285,9 @@ DataDescriptorQuery DataDescriptorQueryBuilder::buildFromExtendedKeepConfig(std:
                                      s.end(),
                                      delim2,
                                      -1);
-    if (iter2 == end)
+    if (iter2 == end) {
       continue;
+    }
     s = iter2->str();
 
     // create the corresponding DataDescriptorMatcher

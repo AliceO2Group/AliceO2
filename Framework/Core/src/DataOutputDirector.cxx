@@ -114,8 +114,9 @@ void DataOutputDescriptor::printOut()
   } else {
     LOGP(INFO, "  Columns        : {}", colnames.size());
   }
-  for (auto cn : colnames)
+  for (auto cn : colnames) {
     LOGP(INFO, "    {}", cn);
+  }
 }
 
 std::string DataOutputDescriptor::remove_ws(const std::string& s)
@@ -459,10 +460,11 @@ TFile* DataOutputDirector::getDataOutputFile(DataOutputDescriptor* dodesc,
 
 void DataOutputDirector::closeDataFiles()
 {
-  for (auto filePtr : mfilePtrs)
+  for (auto filePtr : mfilePtrs) {
     if (filePtr) {
       filePtr->Close();
     }
+  }
 }
 
 void DataOutputDirector::printOut()
@@ -472,12 +474,14 @@ void DataOutputDirector::printOut()
   LOGP(INFO, "  Number of files      : {}", mfilenameBases.size());
 
   LOGP(INFO, "  DataOutputDescriptors: {}", mDataOutputDescriptors.size());
-  for (auto const& ds : mDataOutputDescriptors)
+  for (auto const& ds : mDataOutputDescriptors) {
     ds->printOut();
+  }
 
   LOGP(INFO, "  File name bases      :");
-  for (auto const& fb : mfilenameBases)
+  for (auto const& fb : mfilenameBases) {
     LOGP(INFO, fb);
+  }
 }
 
 void DataOutputDirector::setFilenameBase(std::string dfn)

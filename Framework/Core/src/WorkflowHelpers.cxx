@@ -406,8 +406,9 @@ void WorkflowHelpers::injectServiceDevices(WorkflowSpec& workflow, ConfigContext
   // select dangling outputs which are not of type AOD
   std::vector<InputSpec> outputsInputsDangling;
   for (auto ii = 0u; ii < OutputsInputs.size(); ii++) {
-    if ((outputTypes[ii] & 1) == 1 && (outputTypes[ii] & 2) == 0)
+    if ((outputTypes[ii] & 1) == 1 && (outputTypes[ii] & 2) == 0) {
       outputsInputsDangling.emplace_back(OutputsInputs[ii]);
+    }
   }
 
   std::vector<InputSpec> unmatched;
@@ -695,8 +696,9 @@ void WorkflowHelpers::verifyWorkflow(const o2::framework::WorkflowSpec& workflow
   std::ostringstream ss;
 
   for (auto& spec : workflow) {
-    if (spec.name.empty())
+    if (spec.name.empty()) {
       throw std::runtime_error("Invalid DataProcessorSpec name");
+    }
     if (validNames.find(spec.name) != validNames.end()) {
       throw std::runtime_error("Name " + spec.name + " is used twice.");
     }

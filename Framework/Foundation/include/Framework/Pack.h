@@ -100,10 +100,11 @@ constexpr auto select_pack(Result result, pack<>)
 template <template <typename> typename Condition, typename Result, typename T, typename... Ts>
 constexpr auto select_pack(Result result, pack<T, Ts...>)
 {
-  if constexpr (Condition<T>())
+  if constexpr (Condition<T>()) {
     return select_pack<Condition>(concatenate_pack(result, pack<T>{}), pack<Ts...>{});
-  else
+  } else {
     return select_pack<Condition>(result, pack<Ts...>{});
+  }
 }
 
 template <template <typename> typename Condition, typename... Types>
@@ -119,10 +120,11 @@ constexpr auto filter_pack(Result result, pack<>)
 template <template <typename> typename Condition, typename Result, typename T, typename... Ts>
 constexpr auto filter_pack(Result result, pack<T, Ts...>)
 {
-  if constexpr (Condition<T>())
+  if constexpr (Condition<T>()) {
     return filter_pack<Condition>(result, pack<Ts...>{});
-  else
+  } else {
     return filter_pack<Condition>(concatenate_pack(result, pack<T>{}), pack<Ts...>{});
+  }
 }
 
 template <typename T>
@@ -154,10 +156,12 @@ constexpr size_t has_type_at(pack<> const&)
 template <typename T, typename T1, typename... Ts>
 constexpr size_t has_type_at(pack<T1, Ts...> const&)
 {
-  if constexpr (std::is_same_v<T, T1>)
+  if constexpr (std::is_same_v<T, T1>) {
     return 0;
-  if constexpr (has_type_v<T, pack<T1, Ts...>>)
+  }
+  if constexpr (has_type_v<T, pack<T1, Ts...>>) {
     return 1 + has_type_at<T>(pack<Ts...>{});
+  }
   return sizeof...(Ts) + 2;
 }
 
