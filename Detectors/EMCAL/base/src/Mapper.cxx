@@ -59,8 +59,9 @@ void Mapper::init(const std::string_view filename)
       throw FileFormatException(e.what());
     }
 
-    if (address > maxHardwareAddress)
+    if (address > maxHardwareAddress) {
       throw AddressRangeException(address, maxHardwareAddress);
+    }
 
     auto chantype = o2::emcal::intToChannelType(caloflag);
 
@@ -73,22 +74,26 @@ void Mapper::init(const std::string_view filename)
 
 Mapper::ChannelID Mapper::getChannelID(int hardawareaddress) const
 {
-  if (!mInitStatus)
+  if (!mInitStatus) {
     throw InitStatusException();
+  }
   auto res = mMapping.find(hardawareaddress);
-  if (res == mMapping.end())
+  if (res == mMapping.end()) {
     throw AddressNotFoundException(hardawareaddress);
+  }
   return res->second;
 }
 
 int Mapper::getHardwareAddress(int row, int col, ChannelType_t channeltype) const
 {
-  if (!mInitStatus)
+  if (!mInitStatus) {
     throw InitStatusException();
+  }
   ChannelID channelToFind{uint8_t(row), uint8_t(col), channeltype};
   auto found = mInverseMapping.find(channelToFind);
-  if (found == mInverseMapping.end())
+  if (found == mInverseMapping.end()) {
     throw ChannelNotFoundException(channelToFind);
+  }
   return found->second;
 }
 
@@ -105,8 +110,9 @@ MappingHandler::MappingHandler()
 
 Mapper& MappingHandler::getMappingForDDL(int ddl)
 {
-  if (ddl > 40)
+  if (ddl > 40) {
     throw MappingHandler::DDLInvalid(ddl);
+  }
   const int NDDLSM = 2, NSIDES = 2;
   int ddlInSM = ddl % NDDLSM,
       sideID = (ddl / NDDLSM) % NSIDES;

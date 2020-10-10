@@ -57,27 +57,31 @@ BOOST_AUTO_TEST_CASE(testTimeCalibration)
 
   const char* aliceO2env = std::getenv("O2_ROOT");
   std::string inputDir = " ";
-  if (aliceO2env)
+  if (aliceO2env) {
     inputDir = aliceO2env;
+  }
   inputDir += "/share/Detectors/EMC/files/";
 
   std::string fileHG = inputDir + "TimeCalibCoeffHG.txt";
   std::ifstream allTimeAvHG(fileHG, std::ifstream::in);
-  if (!allTimeAvHG.is_open())
+  if (!allTimeAvHG.is_open()) {
     std::cout << "The file TimeCalibCoeffHG was not opened\n";
+  }
 
   std::string fileLG = inputDir + "TimeCalibCoeffLG.txt";
   std::ifstream allTimeAvLG(fileLG, std::ifstream::in);
-  if (!allTimeAvLG.is_open())
+  if (!allTimeAvLG.is_open()) {
     std::cout << "The file TimeCalibCoeffLG was not opened\n";
+  }
 
   unsigned short TimeHG[17664], TimeLG[17664];
 
   unsigned short icell = 0;
   while (1) {
     allTimeAvHG >> TimeHG[icell];
-    if (!allTimeAvHG.good())
+    if (!allTimeAvHG.good()) {
       break;
+    }
     parameter.addTimeCalibParam(icell, TimeHG[icell], 0); //HG
     icell++;
   }
@@ -85,8 +89,9 @@ BOOST_AUTO_TEST_CASE(testTimeCalibration)
   icell = 0;
   while (1) {
     allTimeAvLG >> TimeLG[icell];
-    if (!allTimeAvLG.good())
+    if (!allTimeAvLG.good()) {
       break;
+    }
     parameter.addTimeCalibParam(icell, TimeLG[icell], 1); //LG
     icell++;
   }
@@ -102,21 +107,24 @@ BOOST_AUTO_TEST_CASE(testTimeCalibration)
 
   std::string fileHG_LHC17g = inputDir + "TimeCalibCoeffHG_LHC17g.txt";
   std::ifstream allTimeAvHG_LHC17g(fileHG_LHC17g, std::ifstream::in);
-  if (!allTimeAvHG_LHC17g.is_open())
+  if (!allTimeAvHG_LHC17g.is_open()) {
     std::cout << "The file TimeCalibCoeffHG_LHC17g was not opened\n";
+  }
 
   std::string fileLG_LHC17g = inputDir + "TimeCalibCoeffLG_LHC17g.txt";
   std::ifstream allTimeAvLG_LHC17g(fileLG_LHC17g, std::ifstream::in);
-  if (!allTimeAvLG_LHC17g.is_open())
+  if (!allTimeAvLG_LHC17g.is_open()) {
     std::cout << "The file TimeCalibCoeffLG_LHC17g was not opened\n";
+  }
 
   unsigned short TimeHG_LHC17g, TimeLG_LHC17g;
 
   icell = 0;
   while (0) {
     allTimeAvHG_LHC17g >> TimeHG_LHC17g;
-    if (!allTimeAvHG_LHC17g.good())
+    if (!allTimeAvHG_LHC17g.good()) {
       break;
+    }
     parameterLHC17g.addTimeCalibParam(icell, TimeHG_LHC17g, 0); //HG
     icell++;
   }
@@ -124,8 +132,9 @@ BOOST_AUTO_TEST_CASE(testTimeCalibration)
   icell = 0;
   while (0) {
     allTimeAvLG_LHC17g >> TimeLG_LHC17g;
-    if (!allTimeAvLG_LHC17g.good())
+    if (!allTimeAvLG_LHC17g.good()) {
       break;
+    }
     parameterLHC17g.addTimeCalibParam(icell, TimeLG_LHC17g, 1); //LG
     icell++;
   }

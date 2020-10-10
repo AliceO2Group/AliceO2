@@ -88,10 +88,11 @@ class ShishKebabTrd1Module
   //  ieta=0 or 1 - Jun 02, 2006
   const TVector2& GetCenterOfCellInLocalCoordinateofSM(Int_t ieta) const
   {
-    if (ieta <= 0)
+    if (ieta <= 0) {
       return mOK2;
-    else
+    } else {
       return mOK1;
+    }
   }
 
   void GetCenterOfCellInLocalCoordinateofSM(Int_t ieta, Double_t& xr, Double_t& zr) const
@@ -109,10 +110,12 @@ class ShishKebabTrd1Module
 
   void GetCenterOfCellInLocalCoordinateofSM3X3(Int_t ieta, Double_t& xr, Double_t& zr) const
   { // 3X3 case - Nov 9,2006
-    if (ieta < 0)
+    if (ieta < 0) {
       ieta = 0; // ieta = ieta<0? ieta=0 : ieta; // check index
-    if (ieta > 2)
+    }
+    if (ieta > 2) {
       ieta = 2; // ieta = ieta>2? ieta=2 : ieta;
+    }
     xr = mOK3X3[2 - ieta].Y();
     zr = mOK3X3[2 - ieta].X();
   }
@@ -127,10 +130,11 @@ class ShishKebabTrd1Module
   const TVector2& GetCenterOfModuleFace() const { return mOB; }
   const TVector2& GetCenterOfModuleFace(Int_t ieta) const
   {
-    if (ieta <= 0)
+    if (ieta <= 0) {
       return mOB2;
-    else
+    } else {
       return mOB1;
+    }
   }
 
   // Jul 30, 2007

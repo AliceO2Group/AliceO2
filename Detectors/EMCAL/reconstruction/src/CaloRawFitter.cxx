@@ -90,10 +90,12 @@ std::tuple<int, int> CaloRawFitter::selectSubarray(const gsl::span<double> data,
 
   // we keep one pre- or post- sample if we can (as in online)
   // check though if we ended up on a 'jump', or out of bounds: if so, back up
-  if (firstJump || tmpfirst < 0)
+  if (firstJump || tmpfirst < 0) {
     tmpfirst++;
-  if (lastJump || tmplast >= data.size())
+  }
+  if (lastJump || tmplast >= data.size()) {
     tmplast--;
+  }
 
   first = tmpfirst;
   last = tmplast;
@@ -266,8 +268,9 @@ std::tuple<int, int, float, short, short, float, int, int> CaloRawFitter::preFit
 
     for (int i = 0; i < length; i++) {
       mReversed[i] = sig[length - i - 1] - ped;
-      if (maxf < mReversed[i])
+      if (maxf < mReversed[i]) {
         maxf = mReversed[i];
+      }
     }
 
     if (maxf >= acut) // possibly significant signal

@@ -72,8 +72,9 @@ void DigitizerTask::Exec(Option_t* option)
 {
   FairRootManager* mgr = FairRootManager::Instance();
 
-  if (mDigitsArray)
+  if (mDigitsArray) {
     mDigitsArray->clear();
+  }
   mDigitizer.setEventTime(mgr->GetEventTime());
 
   LOG(DEBUG) << "Running digitization on new event " << mEventID << " from source " << mSourceID;
@@ -92,8 +93,9 @@ void DigitizerTask::FinishTask()
   // finalize digitization, if needed, flash remaining digits
   FairRootManager* mgr = FairRootManager::Instance();
   mgr->SetLastFill(kTRUE); /// necessary, otherwise the data is not written out
-  if (mDigitsArray)
+  if (mDigitsArray) {
     mDigitsArray->clear();
+  }
   // mDigitizer.fillOutputContainer(mDigitsArray);
   mDigitizer.finish();
 }

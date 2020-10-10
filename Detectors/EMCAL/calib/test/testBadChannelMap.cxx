@@ -49,12 +49,15 @@ BOOST_AUTO_TEST_CASE(BadChannelMap_test)
   // the inner function (used in comparisons) a cell ID.
   auto refChannelCombined = [](const std::vector<unsigned short>& deadcells, const std::vector<unsigned short>& badcells, const std::vector<unsigned short>& warmcells) {
     return [&deadcells, &badcells, &warmcells](unsigned short cellID) {
-      if (std::find(deadcells.begin(), deadcells.end(), cellID) != deadcells.end())
+      if (std::find(deadcells.begin(), deadcells.end(), cellID) != deadcells.end()) {
         return BadChannelMap::MaskType_t::DEAD_CELL;
-      if (std::find(badcells.begin(), badcells.end(), cellID) != badcells.end())
+      }
+      if (std::find(badcells.begin(), badcells.end(), cellID) != badcells.end()) {
         return BadChannelMap::MaskType_t::BAD_CELL;
-      if (std::find(warmcells.begin(), warmcells.end(), cellID) != warmcells.end())
+      }
+      if (std::find(warmcells.begin(), warmcells.end(), cellID) != warmcells.end()) {
         return BadChannelMap::MaskType_t::WARM_CELL;
+      }
       return BadChannelMap::MaskType_t::GOOD_CELL;
     };
   };
@@ -115,12 +118,15 @@ BOOST_AUTO_TEST_CASE(BadChannelMap_test)
   filterBad(combinedWarm, combinedBad);
   filterBad(combinedWarm, combinedDead);
   filterBad(combinedBad, combinedDead);
-  for (auto bc : badLHC17o)
+  for (auto bc : badLHC17o) {
     lhc17omap.addBadChannel(bc, BadChannelMap::MaskType_t::BAD_CELL);
-  for (auto wc : warmLHC7o)
+  }
+  for (auto wc : warmLHC7o) {
     lhc17omap.addBadChannel(wc, BadChannelMap::MaskType_t::WARM_CELL);
-  for (auto dc : deadLHC17o)
+  }
+  for (auto dc : deadLHC17o) {
     lhc17omap.addBadChannel(dc, BadChannelMap::MaskType_t::DEAD_CELL);
+  }
   BadChannelMap summed(lhc17omap);
   summed += patterntest;
   auto getRefChannelTypeCombined = refChannelCombined(combinedDead, combinedBad, combinedWarm);
@@ -143,12 +149,14 @@ BOOST_AUTO_TEST_CASE(BadChannelMap_test)
 std::vector<unsigned short> combineMaps(const std::vector<unsigned short>& list1, const std::vector<unsigned short> list2)
 {
   std::vector<unsigned short> combined;
-  for (auto l1 : list1)
+  for (auto l1 : list1) {
     combined.emplace_back(l1);
+  }
   for (auto l2 : list2) {
     auto found = std::find(combined.begin(), combined.end(), l2);
-    if (found == combined.end())
+    if (found == combined.end()) {
       combined.emplace_back(l2);
+    }
   }
   std::sort(combined.begin(), combined.end(), std::less<>());
   return combined;
@@ -157,9 +165,11 @@ std::vector<unsigned short> combineMaps(const std::vector<unsigned short>& list1
 void filterBad(std::vector<unsigned short> warmcells, const std::vector<unsigned short> badcells)
 {
   std::vector<unsigned short> todelete;
-  for (auto wc : warmcells)
-    if (std::find(badcells.begin(), badcells.end(), wc) != badcells.end())
+  for (auto wc : warmcells) {
+    if (std::find(badcells.begin(), badcells.end(), wc) != badcells.end()) {
       todelete.emplace_back(wc);
+    }
+  }
   for (auto td : todelete) {
     auto it = std::find(warmcells.begin(), warmcells.end(), td);
     warmcells.erase(it);

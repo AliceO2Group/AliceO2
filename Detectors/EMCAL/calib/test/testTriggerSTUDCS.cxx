@@ -44,8 +44,9 @@ void ConfigureReference(TriggerSTUDCS& testobject)
   testobject.setFw(0x2A012);
   testobject.setMedianMode(0);
   testobject.setRegion(0xffffffff);
-  for (int i = 0; i < 4; i++)
+  for (int i = 0; i < 4; i++) {
     testobject.setPHOSScale(i, 0);
+  }
 }
 
 BOOST_AUTO_TEST_CASE(TriggerSTUDCS_test)

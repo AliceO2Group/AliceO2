@@ -54,14 +54,16 @@ BOOST_AUTO_TEST_CASE(testTempCalibration)
 
   const char* aliceO2env = std::getenv("O2_ROOT");
   std::string inputDir = " ";
-  if (aliceO2env)
+  if (aliceO2env) {
     inputDir = aliceO2env;
+  }
   inputDir += "/share/Detectors/EMC/files/";
 
   std::string file = inputDir + "TempCalibCoeff.txt";
   std::ifstream fileTemp(file, std::ifstream::in);
-  if (!fileTemp.is_open())
+  if (!fileTemp.is_open()) {
     std::cout << "The file TempCalibCoeff was not opened\n";
+  }
 
   float Slope[17664], A0[17664];
 
@@ -89,8 +91,9 @@ BOOST_AUTO_TEST_CASE(testTempCalibration)
 
   std::string fileLHC17 = inputDir + "TempCalibCoeff_LHC17.txt";
   std::ifstream fileTempLHC17(fileLHC17, std::ifstream::in);
-  if (!fileTempLHC17.is_open())
+  if (!fileTempLHC17.is_open()) {
     std::cout << "The file TempCalibCoeff_LHC17 was not opened\n";
+  }
 
   float Slope_LHC17, A0_LHC17;
 

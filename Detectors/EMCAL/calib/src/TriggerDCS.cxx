@@ -58,8 +58,9 @@ std::string TriggerDCS::toJSON() const
   jsonstring << "mTRUArr:[";
   for (int ien = 0; ien < mTRUArr.size(); ien++) {
     jsonstring << "{\"TRU" << ien << "\":" << mTRUArr.at(ien).toJSON() << "}";
-    if (ien != mTRUArr.size() - 1)
+    if (ien != mTRUArr.size() - 1) {
       jsonstring << ",";
+    }
   }
   jsonstring << "]}";
   return jsonstring.str();

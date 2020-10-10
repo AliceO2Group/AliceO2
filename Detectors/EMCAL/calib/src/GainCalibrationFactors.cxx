@@ -33,8 +33,9 @@ TH1* GainCalibrationFactors::getHistogramRepresentation() const
   auto hist = new TH1F("GainCalibrationFactors", "GainCalibrationFactors", 17664, 0, 17664);
   hist->SetDirectory(nullptr);
 
-  for (std::size_t icell{0}; icell < mGainCalibFactors.size(); ++icell)
+  for (std::size_t icell{0}; icell < mGainCalibFactors.size(); ++icell) {
     hist->SetBinContent(icell + 1, mGainCalibFactors[icell]);
+  }
 
   return hist;
 }

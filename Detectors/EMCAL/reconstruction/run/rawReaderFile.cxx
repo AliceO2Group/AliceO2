@@ -94,8 +94,9 @@ int main(int argc, char** argv)
       while (parser.hasNext()) {
         parser.next();
         // Exclude STU DDLs
-        if (o2::raw::RDHUtils::getFEEID(parser.getRawHeader()) >= 40)
+        if (o2::raw::RDHUtils::getFEEID(parser.getRawHeader()) >= 40) {
           continue;
+        }
         o2::emcal::AltroDecoder decoder(parser);
         decoder.decode();
 

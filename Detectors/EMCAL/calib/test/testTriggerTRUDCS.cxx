@@ -63,8 +63,9 @@ BOOST_AUTO_TEST_CASE(TriggerTRUDCS_test)
   BOOST_CHECK_EQUAL(testobject.getGTHRL0(), GTHRL0);
   BOOST_CHECK_EQUAL(testobject.getRLBKSTU(), RLBKSTU);
 
-  for (int ireg = 0; ireg < 6; ireg++)
+  for (int ireg = 0; ireg < 6; ireg++) {
     BOOST_CHECK_EQUAL(testobject.getMaskReg(ireg), MaskReg[ireg]);
+  }
 
   BOOST_CHECK_EQUAL(testobject.getFw(), Fw);
 

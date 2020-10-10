@@ -36,11 +36,11 @@ void DigitsPrinterSpec<InputType>::run(framework::ProcessingContext& pc)
   // Get the EMCAL block header and check whether it contains digits
   LOG(DEBUG) << "[EMCALDigitsPrinter - process] called";
   std::string objectbranch;
-  if constexpr (std::is_same<InputType, o2::emcal::Digit>::value)
+  if constexpr (std::is_same<InputType, o2::emcal::Digit>::value) {
     objectbranch = "digits";
-  else if constexpr (std::is_same<InputType, o2::emcal::Cell>::value)
+  } else if constexpr (std::is_same<InputType, o2::emcal::Cell>::value) {
     objectbranch = "cells";
-  else {
+  } else {
     LOG(ERROR) << "Unsupported input type ... ";
     return;
   }

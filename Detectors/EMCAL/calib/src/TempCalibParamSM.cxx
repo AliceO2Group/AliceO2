@@ -33,8 +33,9 @@ TH1* TempCalibParamSM::getHistogramRepresentation() const
   auto hist = new TH1F("TempCalibParamSM", "Temp Calibration Params per SM", 19, 0, 19);
   hist->SetDirectory(nullptr);
 
-  for (std::size_t iSM{0}; iSM < mTempCalibParamsPerSM.size(); ++iSM)
+  for (std::size_t iSM{0}; iSM < mTempCalibParamsPerSM.size(); ++iSM) {
     hist->SetBinContent(iSM + 1, mTempCalibParamsPerSM[iSM]);
+  }
 
   return hist;
 }
