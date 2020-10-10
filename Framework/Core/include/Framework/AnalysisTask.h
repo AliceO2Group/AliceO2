@@ -110,7 +110,11 @@ struct AnalysisDataProcessorBuilder {
   static auto extractTableFromRecord(InputRecord& record)
   {
     if constexpr (soa::is_type_with_metadata_v<aod::MetadataTrait<T>>) {
-      return record.get<TableConsumer>(aod::MetadataTrait<T>::metadata::tableLabel())->asArrowTable();
+      auto table = record.get<TableConsumer>(aod::MetadataTrait<T>::metadata::tableLabel())->asArrowTable();
+      if (table->num_rows() == 0) {
+        table = makeEmptyTable<T>();
+      }
+      return table;
     } else if constexpr (soa::is_type_with_originals_v<T>) {
       return extractFromRecord<T>(record, typename T::originals{});
     }
