@@ -20,6 +20,7 @@
 
 #include <list>
 #include <cstddef>
+#include <atomic>
 
 #include <boost/interprocess/managed_external_buffer.hpp>
 #include <boost/interprocess/allocators/allocator.hpp>
