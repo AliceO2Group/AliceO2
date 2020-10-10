@@ -239,8 +239,9 @@ class Geometry
   //
   EMCALSMType GetSMType(Int_t nSupMod) const
   {
-    if (nSupMod >= mNumberOfSuperModules)
+    if (nSupMod >= mNumberOfSuperModules) {
       throw SupermoduleIndexException(nSupMod, mNumberOfSuperModules);
+    }
     return mEMCSMSystem[nSupMod];
   }
 
@@ -455,14 +456,15 @@ class Geometry
   Int_t GetSuperModuleNumber(Int_t absId) const;
   Int_t GetNumberOfModuleInPhiDirection(Int_t nSupMod) const
   {
-    if (GetSMType(nSupMod) == EMCAL_HALF)
+    if (GetSMType(nSupMod) == EMCAL_HALF) {
       return mNPhi / 2;
-    else if (GetSMType(nSupMod) == EMCAL_THIRD)
+    } else if (GetSMType(nSupMod) == EMCAL_THIRD) {
       return mNPhi / 3;
-    else if (GetSMType(nSupMod) == DCAL_EXT)
+    } else if (GetSMType(nSupMod) == DCAL_EXT) {
       return mNPhi / 3;
-    else
+    } else {
       return mNPhi;
+    }
   }
 
   /// \brief Transition from cell indexes (iphi, ieta) to module indexes (iphim, ietam, nModule)
@@ -677,10 +679,11 @@ class Geometry
 
 inline Bool_t Geometry::CheckAbsCellId(Int_t absId) const
 {
-  if (absId < 0 || absId >= mNCells)
+  if (absId < 0 || absId >= mNCells) {
     return kFALSE;
-  else
+  } else {
     return kTRUE;
+  }
 }
 } // namespace emcal
 } // namespace o2

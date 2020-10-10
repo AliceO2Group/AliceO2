@@ -48,12 +48,13 @@ void BadChannelMap::addBadChannel(unsigned short channelID, MaskType_t mask)
 BadChannelMap::MaskType_t BadChannelMap::getChannelStatus(unsigned short channelID) const
 {
   auto status = MaskType_t::GOOD_CELL;
-  if (mDeadCells.test(channelID))
+  if (mDeadCells.test(channelID)) {
     status = MaskType_t::DEAD_CELL;
-  else if (mBadCells.test(channelID))
+  } else if (mBadCells.test(channelID)) {
     status = MaskType_t::BAD_CELL;
-  else if (mWarmCells.test(channelID))
+  } else if (mWarmCells.test(channelID)) {
     status = MaskType_t::WARM_CELL;
+  }
   return status;
 }
 
@@ -71,12 +72,13 @@ TH2* BadChannelMap::getHistogramRepresentation() const
 
   for (size_t cellID = 0; cellID < mBadCells.size(); cellID++) {
     int value(0);
-    if (mBadCells.test(cellID))
+    if (mBadCells.test(cellID)) {
       value = 1;
-    else if (mDeadCells.test(cellID))
+    } else if (mDeadCells.test(cellID)) {
       value = 2;
-    else if (mWarmCells.test(cellID))
+    } else if (mWarmCells.test(cellID)) {
       value = 3;
+    }
     if (value) {
       auto position = geo->GlobalRowColFromIndex(cellID);
       hist->Fill(std::get<1>(position), std::get<0>(position), value);
@@ -90,18 +92,22 @@ BadChannelMap& BadChannelMap::operator+=(const BadChannelMap& rhs)
   for (size_t cellID = 0; cellID < mDeadCells.size(); cellID++) {
     if (rhs.mDeadCells.test(cellID)) {
       mDeadCells.set(cellID);
-      if (mBadCells.test(cellID))
+      if (mBadCells.test(cellID)) {
         mBadCells.reset(cellID);
-      if (mWarmCells.test(cellID))
+      }
+      if (mWarmCells.test(cellID)) {
         mWarmCells.reset(cellID);
+      }
     }
     if (rhs.mBadCells.test(cellID) && !mDeadCells.test(cellID)) {
       mBadCells.set(cellID);
-      if (mWarmCells.test(cellID))
+      if (mWarmCells.test(cellID)) {
         mWarmCells.reset(cellID);
+      }
     }
-    if (rhs.mWarmCells.test(cellID) && !(mBadCells.test(cellID) || mDeadCells.test(cellID)))
+    if (rhs.mWarmCells.test(cellID) && !(mBadCells.test(cellID) || mDeadCells.test(cellID))) {
       mWarmCells.set(cellID);
+    }
   }
   return *this;
 }
@@ -118,12 +124,15 @@ void BadChannelMap::PrintStream(std::ostream& stream) const
   stream << "Number of dead cells: " << mDeadCells.count() << "\n";
   stream << "Number of warm cells: " << mWarmCells.count() << "\n";
   for (size_t cellID = 0; cellID < mBadCells.size(); cellID++) {
-    if (mBadCells.test(cellID))
+    if (mBadCells.test(cellID)) {
       stream << "Channel " << cellID << ": Bad cell\n";
-    if (mDeadCells.test(cellID))
+    }
+    if (mDeadCells.test(cellID)) {
       stream << "Channel " << cellID << ": Dead cell\n";
-    if (mWarmCells.test(cellID))
+    }
+    if (mWarmCells.test(cellID)) {
       stream << "Channel " << cellID << ": Warm cell\n";
+    }
   }
 }
 

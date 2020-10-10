@@ -33,8 +33,9 @@ BOOST_AUTO_TEST_CASE(Mapper_test)
 
   const char* aliceO2env = std::getenv("O2_ROOT");
   std::string inputDir = " ";
-  if (aliceO2env)
+  if (aliceO2env) {
     inputDir = aliceO2env;
+  }
   inputDir += "/share/Detectors/EMC/files/";
 
   std::string mappingfile = inputDir + "RCU0A.data";

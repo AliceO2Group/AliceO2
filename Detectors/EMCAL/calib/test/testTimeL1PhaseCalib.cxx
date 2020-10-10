@@ -49,14 +49,16 @@ BOOST_AUTO_TEST_CASE(testTimeL1PhaseCalib)
 
   const char* aliceO2env = std::getenv("O2_ROOT");
   std::string inputDir = " ";
-  if (aliceO2env)
+  if (aliceO2env) {
     inputDir = aliceO2env;
+  }
   inputDir += "/share/Detectors/EMC/files/";
 
   std::string file = inputDir + "TimeL1Phase_LHC18q_295585.txt";
   std::ifstream fileL1Phase(file, std::ifstream::in);
-  if (!fileL1Phase.is_open())
+  if (!fileL1Phase.is_open()) {
     std::cout << "The file TimeL1Phase_LHC18q_295585 was not opened\n";
+  }
 
   unsigned char L1Phase[20];
 
@@ -72,8 +74,9 @@ BOOST_AUTO_TEST_CASE(testTimeL1PhaseCalib)
     iSM++;
   }
 
-  for (unsigned short iSM = 0; iSM < 20; iSM++)
+  for (unsigned short iSM = 0; iSM < 20; iSM++) {
     BOOST_CHECK_EQUAL(parameter.getTimeCalibParamL1Phase(iSM), L1Phase[iSM]);
+  }
 
   // Comparison test
 
@@ -82,8 +85,9 @@ BOOST_AUTO_TEST_CASE(testTimeL1PhaseCalib)
 
   std::string fileLHC18q = inputDir + "TimeL1Phase_LHC18q_296623.txt";
   std::ifstream fileL1PhaseLHC18q(fileLHC18q, std::ifstream::in);
-  if (!fileL1PhaseLHC18q.is_open())
+  if (!fileL1PhaseLHC18q.is_open()) {
     std::cout << "The file TimeL1Phase_LHC18q_296623 was not opened\n";
+  }
 
   unsigned char L1Phase_LHC18q;
 

@@ -53,14 +53,16 @@ BOOST_AUTO_TEST_CASE(testGainCalibration)
 
   const char* aliceO2env = std::getenv("O2_ROOT");
   std::string inputDir = " ";
-  if (aliceO2env)
+  if (aliceO2env) {
     inputDir = aliceO2env;
+  }
   inputDir += "/share/Detectors/EMC/files/";
 
   std::string fileNameGainCalib = inputDir + "GainCalibrationFactors_LHC18q.txt";
   std::ifstream fileGainCalib(fileNameGainCalib, std::ifstream::in);
-  if (!fileGainCalib.is_open())
+  if (!fileGainCalib.is_open()) {
     std::cout << "The file GainCalibrationFactors_LHC18q was not opened\n";
+  }
 
   float GainCalibFactors[17664];
 
@@ -78,16 +80,18 @@ BOOST_AUTO_TEST_CASE(testGainCalibration)
     icell++;
   }
 
-  for (unsigned short icell = 0; icell < 17664; icell++)
+  for (unsigned short icell = 0; icell < 17664; icell++) {
     BOOST_CHECK_EQUAL(parameter.getGainCalibFactors(icell), GainCalibFactors[icell]);
+  }
 
   // Writing to the other container which will be used for comparison
   GainCalibrationFactors parameterLHC15;
 
   std::string fileNameGainCalib_LHC15 = inputDir + "GainCalibrationFactors_LHC15.txt";
   std::ifstream fileGainCalib_LHC15(fileNameGainCalib_LHC15, std::ifstream::in);
-  if (!fileGainCalib_LHC15.is_open())
+  if (!fileGainCalib_LHC15.is_open()) {
     std::cout << "The file GainCalibrationFactors_LHC15 was not opened\n";
+  }
 
   // Write to the container
   icell = 0;

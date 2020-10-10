@@ -46,8 +46,9 @@ void ClusterFactory<InputType>::reset()
 template <class InputType>
 o2::emcal::AnalysisCluster ClusterFactory<InputType>::buildCluster(int clusterIndex) const
 {
-  if (clusterIndex >= mClustersContainer.size())
+  if (clusterIndex >= mClustersContainer.size()) {
     throw ClusterRangeException(clusterIndex, mClustersContainer.size());
+  }
 
   o2::emcal::AnalysisCluster clusterAnalysis;
   clusterAnalysis.setID(clusterIndex);
@@ -124,8 +125,9 @@ void ClusterFactory<InputType>::evalDispersion(gsl::span<const int> inputsIndice
 
       // In case of a shared cluster, index of SM in C side, columns start at 48 and ends at 48*2
       // C Side impair SM, nSupMod%2=1; A side pair SM nSupMod%2=0
-      if (mSharedCluster && nSupMod % 2)
+      if (mSharedCluster && nSupMod % 2) {
         ieta += EMCAL_COLS;
+      }
 
       double etai = (double)ieta;
       double phii = (double)iphi;
@@ -142,8 +144,9 @@ void ClusterFactory<InputType>::evalDispersion(gsl::span<const int> inputsIndice
   if (wtot > 0) {
     phiMean /= wtot;
     etaMean /= wtot;
-  } else
+  } else {
     LOG(ERROR) << Form("Wrong weight %f\n", wtot);
+  }
 
   // Calculate dispersion
   for (auto iInput : inputsIndices) {
@@ -154,8 +157,9 @@ void ClusterFactory<InputType>::evalDispersion(gsl::span<const int> inputsIndice
 
       // In case of a shared cluster, index of SM in C side, columns start at 48 and ends at 48*2
       // C Side impair SM, nSupMod%2=1; A side pair SM, nSupMod%2=0
-      if (mSharedCluster && nSupMod % 2)
+      if (mSharedCluster && nSupMod % 2) {
         ieta += EMCAL_COLS;
+      }
 
       double etai = (double)ieta;
       double phii = (double)iphi;
@@ -168,10 +172,11 @@ void ClusterFactory<InputType>::evalDispersion(gsl::span<const int> inputsIndice
     }
   }
 
-  if (wtot > 0 && nstat > 1)
+  if (wtot > 0 && nstat > 1) {
     d /= wtot;
-  else
+  } else {
     d = 0.;
+  }
 
   clusterAnalysis.setDispersion(TMath::Sqrt(d));
 }
@@ -199,13 +204,15 @@ void ClusterFactory<InputType>::evalLocalPosition(gsl::span<const int> inputsInd
     }
 
     //Temporal patch, due to mapping problem, need to swap "y" in one of the 2 SM, although no effect in position calculation. GCB 05/2010
-    if (mSharedCluster && mSuperModuleNumber != mGeomPtr->GetSuperModuleNumber(mInputsContainer[iInput].getTower()))
+    if (mSharedCluster && mSuperModuleNumber != mGeomPtr->GetSuperModuleNumber(mInputsContainer[iInput].getTower())) {
       xyzi[1] *= -1;
+    }
 
-    if (mLogWeight > 0.0)
+    if (mLogWeight > 0.0) {
       w = TMath::Max(0., mLogWeight + TMath::Log(mInputsContainer[iInput].getEnergy() / clusterAnalysis.E()));
-    else
+    } else {
       w = mInputsContainer[iInput].getEnergy(); // just energy
+    }
 
     if (w > 0.0) {
       wtot += w;
@@ -229,12 +236,14 @@ void ClusterFactory<InputType>::evalLocalPosition(gsl::span<const int> inputsInd
         clRmsXYZ[i] /= (wtot * wtot);
         clRmsXYZ[i] = clRmsXYZ[i] - clXYZ[i] * clXYZ[i];
 
-        if (clRmsXYZ[i] > 0.0)
+        if (clRmsXYZ[i] > 0.0) {
           clRmsXYZ[i] = TMath::Sqrt(clRmsXYZ[i]);
-        else
+        } else {
           clRmsXYZ[i] = 0;
-      } else
+        }
+      } else {
         clRmsXYZ[i] = 0;
+      }
     }
   } else {
     for (int i = 0; i < 3; i++) {
@@ -271,10 +280,11 @@ void ClusterFactory<InputType>::evalGlobalPosition(gsl::span<const int> inputsIn
     // Now get the global coordinate
     mGeomPtr->GetGlobal(lxyzi, xyzi, mGeomPtr->GetSuperModuleNumber(mInputsContainer[iInput].getTower()));
 
-    if (mLogWeight > 0.0)
+    if (mLogWeight > 0.0) {
       w = TMath::Max(0., mLogWeight + TMath::Log(mInputsContainer[iInput].getEnergy() / clusterAnalysis.E()));
-    else
+    } else {
       w = mInputsContainer[iInput].getEnergy(); // just energy
+    }
 
     if (w > 0.0) {
       wtot += w;
@@ -298,12 +308,14 @@ void ClusterFactory<InputType>::evalGlobalPosition(gsl::span<const int> inputsIn
         clRmsXYZ[i] /= (wtot * wtot);
         clRmsXYZ[i] = clRmsXYZ[i] - clXYZ[i] * clXYZ[i];
 
-        if (clRmsXYZ[i] > 0.0)
+        if (clRmsXYZ[i] > 0.0) {
           clRmsXYZ[i] = TMath::Sqrt(clRmsXYZ[i]);
-        else
+        } else {
           clRmsXYZ[i] = 0;
-      } else
+        }
+      } else {
         clRmsXYZ[i] = 0;
+      }
     }
   } else {
     for (i = 0; i < 3; i++) {
@@ -333,10 +345,11 @@ void ClusterFactory<InputType>::evalLocalPositionFit(double deff, double mLogWei
       continue;
     }
 
-    if (mLogWeight > 0.0)
+    if (mLogWeight > 0.0) {
       w = TMath::Max(0., mLogWeight + TMath::Log(mInputsContainer[iInput].getEnergy() / clusterAnalysis.E()));
-    else
+    } else {
       w = mInputsContainer[iInput].getEnergy(); // just energy
+    }
 
     if (w > 0.0) {
       wtot += w;
@@ -360,12 +373,14 @@ void ClusterFactory<InputType>::evalLocalPositionFit(double deff, double mLogWei
         clRmsXYZ[i] /= (wtot * wtot);
         clRmsXYZ[i] = clRmsXYZ[i] - clXYZ[i] * clXYZ[i];
 
-        if (clRmsXYZ[i] > 0.0)
+        if (clRmsXYZ[i] > 0.0) {
           clRmsXYZ[i] = TMath::Sqrt(clRmsXYZ[i]);
-        else
+        } else {
           clRmsXYZ[i] = 0;
-      } else
+        }
+      } else {
         clRmsXYZ[i] = 0;
+      }
     }
   } else {
     for (i = 0; i < 3; i++) {
@@ -421,8 +436,9 @@ void ClusterFactory<InputType>::evalCoreEnergy(gsl::span<const int> inputsIndice
 
   float coreEnergy = 0.;
 
-  if (!clusterAnalysis.getLocalPosition().Mag2())
+  if (!clusterAnalysis.getLocalPosition().Mag2()) {
     evalLocalPosition(inputsIndices, clusterAnalysis);
+  }
 
   double phiPoint = clusterAnalysis.getLocalPosition().Phi();
   double etaPoint = clusterAnalysis.getLocalPosition().Eta();
@@ -433,8 +449,9 @@ void ClusterFactory<InputType>::evalCoreEnergy(gsl::span<const int> inputsIndice
 
     double distance = TMath::Sqrt((eta - etaPoint) * (eta - etaPoint) + (phi - phiPoint) * (phi - phiPoint));
 
-    if (distance < mCoreRadius)
+    if (distance < mCoreRadius) {
       coreEnergy += mInputsContainer[iInput].getEnergy();
+    }
   }
   clusterAnalysis.setCoreEnergy(coreEnergy);
 }
@@ -464,8 +481,9 @@ void ClusterFactory<InputType>::evalElipsAxis(gsl::span<const int> inputsIndices
 
     // In case of a shared cluster, index of SM in C side, columns start at 48 and ends at 48*2
     // C Side impair SM, nSupMod%2=1; A side pair SM, nSupMod%2=0
-    if (mSharedCluster && nSupMod % 2)
+    if (mSharedCluster && nSupMod % 2) {
       ieta += EMCAL_COLS;
+    }
 
     double etai = (double)ieta;
     double phii = (double)iphi;
@@ -497,17 +515,19 @@ void ClusterFactory<InputType>::evalElipsAxis(gsl::span<const int> inputsIndices
 
     lambda[0] = 0.5 * (dxx + dzz) + TMath::Sqrt(0.25 * (dxx - dzz) * (dxx - dzz) + dxz * dxz);
 
-    if (lambda[0] > 0)
+    if (lambda[0] > 0) {
       lambda[0] = TMath::Sqrt(lambda[0]);
-    else
+    } else {
       lambda[0] = 0;
+    }
 
     lambda[1] = 0.5 * (dxx + dzz) - TMath::Sqrt(0.25 * (dxx - dzz) * (dxx - dzz) + dxz * dxz);
 
-    if (lambda[1] > 0) //To avoid exception if numerical errors lead to negative lambda.
+    if (lambda[1] > 0) { //To avoid exception if numerical errors lead to negative lambda.
       lambda[1] = TMath::Sqrt(lambda[1]);
-    else
+    } else {
       lambda[1] = 0.;
+    }
   } else {
     lambda[0] = 0.;
     lambda[1] = 0.;
@@ -528,8 +548,9 @@ std::tuple<int, float, float> ClusterFactory<InputType>::getMaximalEnergyIndex(g
   int mid = 0;
   float cellAmp = 0;
   for (auto iInput : inputsIndices) {
-    if (iInput >= mInputsContainer.size())
+    if (iInput >= mInputsContainer.size()) {
       throw CellIndexRangeException(iInput, mInputsContainer.size());
+    }
     cellAmp += mInputsContainer[iInput].getEnergy();
     if (mInputsContainer[iInput].getEnergy() > energy) {
       energy = mInputsContainer[iInput].getEnergy();
@@ -548,8 +569,9 @@ int ClusterFactory<InputType>::getMultiplicityAtLevel(float H, gsl::span<const i
 {
   int multipl = 0;
   for (auto iInput : inputsIndices) {
-    if (mInputsContainer[iInput].getEnergy() > H * clusterAnalysis.E())
+    if (mInputsContainer[iInput].getEnergy() > H * clusterAnalysis.E()) {
       multipl++;
+    }
   }
 
   return multipl;
@@ -587,10 +609,11 @@ double ClusterFactory<InputType>::tMaxInCm(const double e, const int key) const
 
   if (e > 0.1) {
     tmax = TMath::Log(e) + ca;
-    if (key == 0)
+    if (key == 0) {
       tmax += 0.5;
-    else
+    } else {
       tmax -= 0.5;
+    }
     tmax *= x0; // convert to cm
   }
 
@@ -633,10 +656,11 @@ bool ClusterFactory<InputType>::ClusterIterator::operator==(const ClusterFactory
 template <class InputType>
 typename ClusterFactory<InputType>::ClusterIterator& ClusterFactory<InputType>::ClusterIterator::operator++()
 {
-  if (mForward)
+  if (mForward) {
     mClusterID++;
-  else
+  } else {
     mClusterID--;
+  }
   mCurrentCluster = mClusterFactory.buildCluster(mClusterID);
   return *this;
 }
@@ -652,10 +676,11 @@ typename ClusterFactory<InputType>::ClusterIterator ClusterFactory<InputType>::C
 template <class InputType>
 typename ClusterFactory<InputType>::ClusterIterator& ClusterFactory<InputType>::ClusterIterator::operator--()
 {
-  if (mForward)
+  if (mForward) {
     mClusterID--;
-  else
+  } else {
     mClusterID++;
+  }
   mCurrentCluster = mClusterFactory.buildCluster(mClusterID);
   return *this;
 }
