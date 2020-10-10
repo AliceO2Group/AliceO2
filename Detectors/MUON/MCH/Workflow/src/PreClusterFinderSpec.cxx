@@ -166,8 +166,7 @@ o2::framework::DataProcessorSpec getPreClusterFinderSpec()
     Outputs{OutputSpec{"MCH", "PRECLUSTERS", 0, Lifetime::Timeframe},
             OutputSpec{"MCH", "PRECLUSTERDIGITS", 0, Lifetime::Timeframe}},
     AlgorithmSpec{adaptFromTask<PreClusterFinderTask>()},
-    Options{{"check-no-leftover-digits", VariantType::String, "error", {helpstr}}}
-  };
+    Options{{"check-no-leftover-digits", VariantType::String, "error", {helpstr}}}};
 }
 
 } // end namespace mch
