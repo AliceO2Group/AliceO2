@@ -159,13 +159,14 @@ class PreClusterFinderTask
 //_________________________________________________________________________________________________
 o2::framework::DataProcessorSpec getPreClusterFinderSpec()
 {
+  std::string helpstr = "check that all digits are included in pre-clusters";
   return DataProcessorSpec{
     "PreClusterFinder",
     Inputs{InputSpec{"digits", "MCH", "DIGITS", 0, Lifetime::Timeframe}},
     Outputs{OutputSpec{"MCH", "PRECLUSTERS", 0, Lifetime::Timeframe},
             OutputSpec{"MCH", "PRECLUSTERDIGITS", 0, Lifetime::Timeframe}},
     AlgorithmSpec{adaptFromTask<PreClusterFinderTask>()},
-    Options{{"check-no-leftover-digits", VariantType::String, "error", {"check that all digits are included in pre-clusters"}}}
+    Options{{"check-no-leftover-digits", VariantType::String, "error", {helpstr}}}
   };
 }
 
