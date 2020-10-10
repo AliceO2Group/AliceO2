@@ -138,8 +138,9 @@ void DataInputDescriptor::printOut()
   LOGP(INFO, "  Input files file  : {}", getInputfilesFilename());
   LOGP(INFO, "  File name regex   : {}", getFilenamesRegexString());
   LOGP(INFO, "  Input files       : {}", mfilenames.size());
-  for (auto fn : mfilenames)
+  for (auto fn : mfilenames) {
     LOGP(INFO, "    {}", fn);
+  }
 }
 
 DataInputDirector::DataInputDirector()
@@ -519,13 +520,15 @@ void DataInputDirector::printOut()
   LOGP(INFO, "  Default input files file   : {}", minputfilesFile);
   LOGP(INFO, "  Default file name regex    : {}", mFilenameRegex);
   LOGP(INFO, "  Default file names         : {}", mdefaultInputFiles.size());
-  for (auto const& fn : mdefaultInputFiles)
+  for (auto const& fn : mdefaultInputFiles) {
     LOGP(INFO, "    {}", fn);
+  }
   LOGP(INFO, "  Default DataInputDescriptor:");
   mdefaultDataInputDescriptor->printOut();
   LOGP(INFO, "  DataInputDescriptors       : {}", getNumberInputDescriptors());
-  for (auto const& didesc : mdataInputDescriptors)
+  for (auto const& didesc : mdataInputDescriptors) {
     didesc->printOut();
+  }
 }
 
 } // namespace framework
