@@ -27,9 +27,18 @@ struct Run2Matcher {
   }
 };
 
+struct BCMatcher {
+  BuildsExclusive<aod::BCCollisionsExclusive> matched_e;
+  Builds<aod::BCCollisionsSparse> matched;
+  void init(o2::framework::InitContext&)
+  {
+  }
+};
+
 WorkflowSpec defineDataProcessing(ConfigContext const&)
 {
   return WorkflowSpec{
     adaptAnalysisTask<Run2Matcher>("produce-run2-bc-matching"),
+    adaptAnalysisTask<BCMatcher>("bc-matcher"),
   };
 }

@@ -17,7 +17,7 @@
 #include "Framework/runDataProcessing.h"
 #include "Framework/AnalysisTask.h"
 #include "DetectorsVertexing/DCAFitterN.h"
-#include "Analysis/SecondaryVertexHF.h"
+#include "Analysis/HFSecondaryVertex.h"
 #include "Analysis/trackUtilities.h"
 #include "ReconstructionDataFormats/DCA.h"
 

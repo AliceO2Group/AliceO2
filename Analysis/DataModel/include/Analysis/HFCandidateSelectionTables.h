@@ -8,17 +8,17 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#ifndef O2_ANALYSIS_CANDIDATESELECTIONTABLES_H_
-#define O2_ANALYSIS_CANDIDATESELECTIONTABLES_H_
+#ifndef O2_ANALYSIS_HFCANDIDATESELECTIONTABLES_H_
+#define O2_ANALYSIS_HFCANDIDATESELECTIONTABLES_H_
 
 namespace o2::aod
 {
-namespace hfselcandidate
+namespace hf_selcandidate
 {
 DECLARE_SOA_COLUMN(IsSelD0, isSelD0, int);
 DECLARE_SOA_COLUMN(IsSelD0bar, isSelD0bar, int);
-} // namespace hfselcandidate
-DECLARE_SOA_TABLE(HFSelD0Candidate, "AOD", "HFSELD0CAND", hfselcandidate::IsSelD0, hfselcandidate::IsSelD0bar);
+} // namespace hf_selcandidate
+DECLARE_SOA_TABLE(HFSelD0Candidate, "AOD", "HFSELD0CAND", hf_selcandidate::IsSelD0, hf_selcandidate::IsSelD0bar);
 } // namespace o2::aod
 
-#endif // O2_ANALYSIS_CANDIDATESELECTIONTABLES_H_
+#endif // O2_ANALYSIS_HFCANDIDATESELECTIONTABLES_H_
