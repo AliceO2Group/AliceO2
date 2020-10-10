@@ -37,10 +37,12 @@ class Digitizer
  public:
   struct BCCache : public o2::InteractionRecord {
     std::array<ChannelBCDataF, NChannels> data = {};
+    std::array<ChannelBCDataF, NDigiChannels> digi = {};
     std::vector<o2::zdc::MCLabel> labels;
     bool digitized = false;
     bool triggerChecked = false;
-    uint32_t trigChanMask = 0; // mask of triggered channels IDs
+    uint32_t trigChanMask = 0; // mask of triggered channels
+    uint8_t extTrig = 0;       // external trigger
     static constexpr uint32_t AllChannelsMask = 0x80000000;
 
     BCCache();

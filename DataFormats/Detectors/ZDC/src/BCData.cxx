@@ -18,16 +18,32 @@ void BCData::print() const
 {
   ir.print();
   printf("%d channels starting from %d\n", ref.getEntries(), ref.getFirstEntry());
-  printf("Read : [");
-  for (int ic = 0; ic < NChannels; ic++) {
+  printf("Read:");
+  for (int ic = 0; ic < NDigiChannels; ic++) {
+    if (ic % NChPerModule == 0) {
+      if (ic == 0)
+        printf(" %d[", ic / NChPerModule);
+      else
+        printf("] %d[", ic / NChPerModule);
+    }
     if (channels & (0x1 << ic)) {
-      printf("%s ", channelName(ic));
+      printf("R");
+    } else {
+      printf(" ");
     }
   }
-  printf("] Hits: [");
-  for (int ic = 0; ic < NChannels; ic++) {
+  printf("]\nHits:");
+  for (int ic = 0; ic < NDigiChannels; ic++) {
+    if (ic % NChPerModule == 0) {
+      if (ic == 0)
+        printf(" %d[", ic / NChPerModule);
+      else
+        printf("] %d[", ic / NChPerModule);
+    }
     if (triggers & (0x1 << ic)) {
-      printf("%s ", channelName(ic));
+      printf("H");
+    } else {
+      printf(" ");
     }
   }
   printf("]\n");

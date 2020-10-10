@@ -14,14 +14,18 @@
 
 using namespace o2::zdc;
 
-void Module::print() const
+void Module::printCh() const
 {
   printf("Module %d [ChID/LinkID R:T ]", id);
   for (int ic = 0; ic < MaxChannels; ic++) {
-    printf("[%s{%2d}/L%02d %c:%c ]", channelName(channelID[ic]), channelID[ic], linkID[ic], readChannel[ic] ? '+' : '-', trigChannel[ic] ? '+' : '-');
+    printf("[%s{%2d}/L%02d %c:%c ]", channelName(channelID[ic]), channelID[ic], linkID[ic], readChannel[ic] ? 'R' : ' ', trigChannel[ic] ? 'T' : ' ');
   }
   printf("\n");
-  printf("Trigger conf: ");
+}
+
+void Module::printTrig() const
+{
+  printf("Trigger conf %d: ", id);
   for (int ic = 0; ic < MaxChannels; ic++) {
     const auto& cnf = trigChannelConf[ic];
     if (trigChannel[ic]) {
@@ -33,12 +37,23 @@ void Module::print() const
   printf("\n");
 }
 
+void Module::print() const
+{
+  printCh();
+  printTrig();
+}
+
 void ModuleConfig::print() const
 {
   printf("Modules configuration:\n");
   for (const auto& md : modules) {
     if (md.id >= 0) {
-      md.print();
+      md.printCh();
+    }
+  }
+  for (const auto& md : modules) {
+    if (md.id >= 0) {
+      md.printTrig();
     }
   }
 }

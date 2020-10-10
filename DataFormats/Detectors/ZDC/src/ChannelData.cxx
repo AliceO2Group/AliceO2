@@ -14,7 +14,7 @@ using namespace o2::zdc;
 
 void ChannelData::print() const
 {
-  printf("Ch%2d | ", id);
+  printf("Sig %2d | ", id);
   for (int i = 0; i < NTimeBinsPerBC; i++) {
     printf("%+5d ", data[i]);
   }

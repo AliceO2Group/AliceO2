@@ -31,17 +31,19 @@ struct BCData {
   /// we are going to refer to at most 26 channels, so 5 bits for the NChannels and 27 for the reference
   o2::dataformats::RangeRefComp<5> ref;
   o2::InteractionRecord ir;
-  uint32_t channels = 0; // pattern of channels it refers to
-  uint32_t triggers = 0; // pattern of triggered channels (not necessarily stored) in this BC
+  uint32_t channels = 0;    // pattern of channels it refers to
+  uint32_t triggers = 0;    // pattern of triggered channels (not necessarily stored) in this BC
+  uint8_t ext_triggers = 0; // pattern of ALICE triggers
 
   BCData() = default;
-  BCData(int first, int ne, o2::InteractionRecord iRec, uint32_t chSto, uint32_t chTrig)
+  BCData(int first, int ne, o2::InteractionRecord iRec, uint32_t chSto, uint32_t chTrig, uint8_t extTrig)
   {
     ref.setFirstEntry(first);
     ref.setEntries(ne);
     ir = iRec;
     channels = chSto;
     triggers = chTrig;
+    ext_triggers = extTrig;
   }
 
   gsl::span<const ChannelData> getBunchChannelData(const gsl::span<const ChannelData> tfdata) const;
