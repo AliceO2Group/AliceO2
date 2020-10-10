@@ -69,9 +69,11 @@ struct BTask {
 
   void process(soa::Filtered<aod::Collisions>::iterator const& collision, soa::Filtered<soa::Join<aod::Tracks, aod::TPhi>> const& tracks)
   {
-    LOGF(INFO, "Collision: %d [N = %d], -10 < %.3f < 10", collision.globalIndex(), tracks.size(), collision.posZ());
+    LOGF(INFO, "Collision: %d [N = %d out of %d], -10 < %.3f < 10",
+         collision.globalIndex(), tracks.size(), tracks.tableSize(), collision.posZ());
     for (auto& track : tracks) {
-      LOGF(INFO, "id = %d; eta:  %.3f < %.3f < %.3f; phi: %.3f < %.3f < %.3f; pt: %.3f < %.3f < %.3f", track.collisionId(), etalow, track.eta(), etaup, philow, track.nphi(), phiup, ptlow, track.pt(), ptup);
+      LOGF(INFO, "id = %d; eta:  %.3f < %.3f < %.3f; phi: %.3f < %.3f < %.3f; pt: %.3f < %.3f < %.3f",
+           track.collisionId(), etalow, track.eta(), etaup, philow, track.nphi(), phiup, ptlow, track.pt(), ptup);
     }
   }
 };

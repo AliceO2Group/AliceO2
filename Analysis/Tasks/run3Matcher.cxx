@@ -21,7 +21,7 @@ using namespace o2::framework;
 using namespace o2::framework::expressions;
 
 struct Run3Matcher {
-  Builds<aod::Run3MatchedExclusive> matched_e;
+  BuildsExclusive<aod::Run3MatchedExclusive> matched_e;
   Builds<aod::Run3MatchedSparse> matched_s;
   void init(o2::framework::InitContext&)
   {
