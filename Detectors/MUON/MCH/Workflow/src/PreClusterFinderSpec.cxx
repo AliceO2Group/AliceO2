@@ -165,8 +165,7 @@ o2::framework::DataProcessorSpec getPreClusterFinderSpec()
     Outputs{OutputSpec{"MCH", "PRECLUSTERS", 0, Lifetime::Timeframe},
             OutputSpec{"MCH", "PRECLUSTERDIGITS", 0, Lifetime::Timeframe}},
     AlgorithmSpec{adaptFromTask<PreClusterFinderTask>()},
-    Options{{"check-no-leftover-digits", VariantType::String, "error",
-             {"check if any digits are excluded from the pre-clusters"}}}
+    Options{{"check-no-leftover-digits", VariantType::String, "error", {"check that all digits are included in pre-clusters"}}}
   };
 }
 
