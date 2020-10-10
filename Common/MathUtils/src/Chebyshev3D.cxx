@@ -524,8 +524,9 @@ Int_t Chebyshev3D::chebyshevFit(int dmOut)
   Chebyshev3DCalc* cheb = getChebyshevCalc(dmOut);
 
   Float_t prec = cheb->getPrecision();
-  if (prec < sMinimumPrecision)
+  if (prec < sMinimumPrecision) {
     prec = mPrecision;                          // no specific precision for this dim.
+  }
   Float_t rTiny = 0.1 * prec / Float_t(maxDim); // neglect coefficient below this threshold
 
   float ncals2count = mNumberOfPoints[2] * mNumberOfPoints[1] * mNumberOfPoints[0];
@@ -864,8 +865,9 @@ TH1* Chebyshev3D::TestRMS(int idim, int npoints, TH1* histo)
   }
 
   float prc = getChebyshevCalc(idim)->getPrecision();
-  if (prc < sMinimumPrecision)
+  if (prc < sMinimumPrecision) {
     prc = mPrecision; // no dimension specific precision
+  }
 
   for (int ip = npoints; ip--;) {
     gRandom->RndmArray(3, (Float_t*)mTemporaryCoefficient);

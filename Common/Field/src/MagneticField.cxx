@@ -185,16 +185,18 @@ void MagneticField::CreateField()
                  << "; Helix tracking chosen instead";
     mDefaultIntegration = 2;
   }
-  if (mDefaultIntegration == 0)
+  if (mDefaultIntegration == 0) {
     mPrecisionInteg = 0;
+  }
 
   if (mBeamEnergy <= 0 && mBeamType != MagFieldParam::kNoBeamField) {
-    if (mBeamType == MagFieldParam::kBeamTypepp)
+    if (mBeamType == MagFieldParam::kBeamTypepp) {
       mBeamEnergy = 7000.; // max proton energy
-    else if (mBeamType == MagFieldParam::kBeamTypeAA)
+    } else if (mBeamType == MagFieldParam::kBeamTypeAA) {
       mBeamEnergy = 2760; // max PbPb energy
-    else if (mBeamType == MagFieldParam::kBeamTypepA || mBeamType == MagFieldParam::kBeamTypeAp)
+    } else if (mBeamType == MagFieldParam::kBeamTypepA || mBeamType == MagFieldParam::kBeamTypeAp) {
       mBeamEnergy = 2760; // same rigitiy max PbPb energy
+    }
     //
     LOG(INFO) << "MagneticField::CreateField: Maximim possible beam energy for requested beam is assumed";
   }
@@ -257,8 +259,9 @@ void MagneticField::Field(const Double_t* __restrict__ xyz, Double_t* __restrict
    */
 
   //  b[0]=b[1]=b[2]=0.0;
-  if (mFastField && mFastField->Field(xyz, b))
+  if (mFastField && mFastField->Field(xyz, b)) {
     return;
+  }
 
   if (mMeasuredMap && xyz[2] > mMeasuredMap->getMinZ() && xyz[2] < mMeasuredMap->getMaxZ()) {
     mMeasuredMap->Field(xyz, b);
@@ -284,8 +287,9 @@ Double_t MagneticField::getBz(const Double_t* xyz) const
 
   if (mFastField) {
     double bz = 0;
-    if (mFastField->GetBz(xyz, bz))
+    if (mFastField->GetBz(xyz, bz)) {
       return bz;
+    }
   }
   if (mMeasuredMap && xyz[2] > mMeasuredMap->getMinZ() && xyz[2] < mMeasuredMap->getMaxZ()) {
     double bz = mMeasuredMap->getBz(xyz);
@@ -478,8 +482,9 @@ void MagneticField::setFactorSolenoid(Float_t fc)
       mMultipicativeFactorSolenoid = fc;
       break; // case kConvMap2005: mMultipicativeFactorSolenoid =  fc; break;
   }
-  if (mFastField)
+  if (mFastField) {
     mFastField->setFactorSol(getFactorSolenoid());
+  }
 }
 
 void MagneticField::setFactorDipole(Float_t fc)
@@ -665,8 +670,9 @@ void MagneticField::FillParContainer()
 void MagneticField::AllowFastField(bool v)
 {
   if (v) {
-    if (!mFastField)
+    if (!mFastField) {
       mFastField = std::make_unique<MagFieldFast>(getFactorSolenoid(), mMapType == MagFieldParam::k2kG ? 2 : 5);
+    }
   } else {
     mFastField.reset(nullptr);
   }
