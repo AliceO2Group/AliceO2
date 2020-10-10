@@ -94,10 +94,12 @@ std::tuple<float, bool> CaloRawFitterGamma2::doFit_1peak(int firstTimeBin, int n
   float chi2(0.);
 
   // fit using gamma-2 function 	(ORDER =2 assumed)
-  if (nSamples < 3)
+  if (nSamples < 3) {
     return std::make_tuple(chi2, false);
-  if (mNiter > mNiterationsMax)
+  }
+  if (mNiter > mNiterationsMax) {
     return std::make_tuple(chi2, false);
+  }
 
   double D, dA, dt;
   double c11 = 0;
@@ -112,8 +114,9 @@ std::tuple<float, bool> CaloRawFitterGamma2::doFit_1peak(int firstTimeBin, int n
   for (int itbin = 0; itbin < nSamples; itbin++) {
 
     double ti = (itbin - time) / constants::TAU;
-    if ((ti + 1) < 0)
+    if ((ti + 1) < 0) {
       continue;
+    }
 
     double g_1i = (ti + 1) * TMath::Exp(-2 * ti);
     double g_i = (ti + 1) * g_1i;
@@ -132,8 +135,9 @@ std::tuple<float, bool> CaloRawFitterGamma2::doFit_1peak(int firstTimeBin, int n
 
   D = c11 * c22 - c12 * c21;
 
-  if (TMath::Abs(D) < DBL_EPSILON)
+  if (TMath::Abs(D) < DBL_EPSILON) {
     return std::make_tuple(chi2, false);
+  }
 
   dt = (d1 * c22 - d2 * c12) / D * constants::TAU;
   dA = (d1 * c21 - d2 * c11) / D;
@@ -143,8 +147,9 @@ std::tuple<float, bool> CaloRawFitterGamma2::doFit_1peak(int firstTimeBin, int n
 
   bool res = true;
 
-  if (TMath::Abs(dA) > 1 || TMath::Abs(dt) > 0.01)
+  if (TMath::Abs(dA) > 1 || TMath::Abs(dt) > 0.01) {
     std::tie(chi2, res) = doFit_1peak(firstTimeBin, nSamples, ampl, time);
+  }
 
   return std::make_tuple(chi2, res);
 }

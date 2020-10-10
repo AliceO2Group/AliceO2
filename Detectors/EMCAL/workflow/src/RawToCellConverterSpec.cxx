@@ -94,8 +94,9 @@ void RawToCellConverterSpec::run(framework::ProcessingContext& ctx)
         currentCellContainer = found->second;
       }
 
-      if (feeID > 40)
+      if (feeID > 40) {
         continue; //skip STU ddl
+      }
 
       //std::cout<<rawreader.getRawHeader()<<std::endl;
 
@@ -127,10 +128,12 @@ void RawToCellConverterSpec::run(framework::ProcessingContext& ctx)
         // define the conatiner for the fit results, and perform the raw fitting using the stadnard raw fitter
         double amp = 0., time = 0.;
         o2::emcal::CaloFitResults fitResults = mRawFitter->evaluate(chan.getBunches(), 0, 0);
-        if (fitResults.getAmp() > 0)
+        if (fitResults.getAmp() > 0) {
           fitResults.setAmp(0.);
-        if (fitResults.getTime() < 0)
+        }
+        if (fitResults.getTime() < 0) {
           fitResults.setTime(0.);
+        }
         currentCellContainer->emplace_back(CellID, amp, time, chantype);
       }
     }
@@ -144,8 +147,9 @@ void RawToCellConverterSpec::run(framework::ProcessingContext& ctx)
     if (cells->size()) {
       // Sort cells according to cell ID
       std::sort(cells->begin(), cells->end(), [](o2::emcal::Cell& lhs, o2::emcal::Cell& rhs) { return lhs.getTower() < rhs.getTower(); });
-      for (auto cell : *cells)
+      for (auto cell : *cells) {
         mOutputCells.push_back(cell);
+      }
     }
   }
 

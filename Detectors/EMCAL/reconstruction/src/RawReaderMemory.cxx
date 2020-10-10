@@ -70,10 +70,12 @@ void RawReaderMemory::next()
       auto nextpagecounter = RDHDecoder::getPageCounter(nextheader);
       if (nextpagecounter == 0) {
         isDataTerminated = true;
-      } else
+      } else {
         isDataTerminated = false;
-    } else
+      }
+    } else {
       isDataTerminated = true;
+    }
     // Check if the data continues
   } while (!isDataTerminated);
   // add combined trailer to payload
@@ -82,10 +84,12 @@ void RawReaderMemory::next()
 
 void RawReaderMemory::nextPage(bool doResetPayload)
 {
-  if (!hasNext())
+  if (!hasNext()) {
     throw RawDecodingError(RawDecodingError::ErrorType_t::PAGE_NOTFOUND);
-  if (doResetPayload)
+  }
+  if (doResetPayload) {
     mRawPayload.reset();
+  }
   mRawHeaderInitialized = false;
   mPayloadInitialized = false;
   // Read header
@@ -131,8 +135,9 @@ void RawReaderMemory::nextPage(bool doResetPayload)
 void RawReaderMemory::readPage(int page)
 {
   int currentposition = 8192 * page;
-  if (currentposition >= mRawMemoryBuffer.size())
+  if (currentposition >= mRawMemoryBuffer.size()) {
     throw RawDecodingError(RawDecodingError::ErrorType_t::PAGE_NOTFOUND);
+  }
   mRawHeaderInitialized = false;
   mPayloadInitialized = false;
   // Read header
@@ -152,14 +157,16 @@ void RawReaderMemory::readPage(int page)
 
 const o2::header::RDHAny& RawReaderMemory::getRawHeader() const
 {
-  if (!mRawHeaderInitialized)
+  if (!mRawHeaderInitialized) {
     throw RawDecodingError(RawDecodingError::ErrorType_t::HEADER_INVALID);
+  }
   return mRawHeader;
 }
 
 const RawBuffer& RawReaderMemory::getRawBuffer() const
 {
-  if (!mPayloadInitialized)
+  if (!mPayloadInitialized) {
     throw RawDecodingError(RawDecodingError::ErrorType_t::PAYLOAD_INVALID);
+  }
   return mRawBuffer;
 }

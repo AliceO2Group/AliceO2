@@ -38,15 +38,17 @@ void RCUTrailer::constructFromRawPayload(const gsl::span<const uint32_t> payload
   reset();
   int index = payloadwords.size();
   auto word = payloadwords[--index];
-  if ((word >> 30) != 3)
+  if ((word >> 30) != 3) {
     throw Error(Error::ErrorType_t::DECODING_INVALID, "Last RCU trailer word not found!");
+  }
   mFirmwareVersion = (word >> 16) & 0xFF;
 
   mRCUId = (int)((word >> 7) & 0x1FF);
   int trailerSize = (word & 0x7F);
 
-  if (trailerSize < 2)
+  if (trailerSize < 2) {
     throw Error(Error::ErrorType_t::SIZE_INVALID, fmt::format("Invalid trailer size found (%d bytes) !", trailerSize * 4).data());
+  }
   mTrailerSize = trailerSize;
 
   trailerSize -= 2; // Cut first and last trailer words as they are handled separately
@@ -124,14 +126,15 @@ double RCUTrailer::getTimeSample() const
 void RCUTrailer::setTimeSample(double timesample)
 {
   int fq = 0;
-  if (std::abs(timesample - 50) < DBL_EPSILON)
+  if (std::abs(timesample - 50) < DBL_EPSILON) {
     fq = 0;
-  else if (std::abs(timesample - 100) < DBL_EPSILON)
+  } else if (std::abs(timesample - 100) < DBL_EPSILON) {
     fq = 1;
-  else if (std::abs(timesample - 200) < DBL_EPSILON)
+  } else if (std::abs(timesample - 200) < DBL_EPSILON) {
     fq = 2;
-  else
+  } else {
     throw Error(Error::ErrorType_t::SAMPLINGFREQ_INVALID, fmt::format("invalid time sample: %f", timesample).data());
+  }
   mAltroCFG2 = (mAltroCFG2 & 0x1F) | fq << 5;
 }
 
