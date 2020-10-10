@@ -813,6 +813,7 @@ class Table
  public:
   using table_t = Table<C...>;
   using columns = framework::pack<C...>;
+  using column_types = framework::pack<typename C::type...>;
   using persistent_columns_t = framework::selected_pack<is_persistent_t, C...>;
 
   template <typename IP, typename Parent, typename... T>
@@ -908,10 +909,10 @@ class Table
 
   Table(std::shared_ptr<arrow::Table> table, uint64_t offset = 0)
     : mTable(table),
-      mEnd{table == nullptr ? 0 : static_cast<uint64_t>(table->num_rows())},
+      mEnd{static_cast<uint64_t>(table->num_rows())},
       mOffset(offset)
   {
-    if ((mTable == nullptr) or (mTable->num_rows() == 0)) {
+    if (mTable->num_rows() == 0) {
       for (size_t ci = 0; ci < sizeof...(C); ++ci) {
         mColumnChunks[ci] = nullptr;
       }

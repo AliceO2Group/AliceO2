@@ -98,22 +98,13 @@ struct HistHelpersTest {
     const int nCuts = 5;
     Axis cutAxis = {"cut", "cut setting", {-0.5, nCuts - 0.5}, nCuts};
 
-    Hist myHistogram;
-    myHistogram.AddAxis(ptAxis);
-    myHistogram.AddAxis(etaAxis);
-    myHistogram.AddAxis("signed1Pt", "q/p_{T}", 200, -8, 8);
+    Hist myHistogram({ptAxis, etaAxis, {"signed1Pt", "q/p_{T}", {-8, 8}, 200}});
     test->Add<test_3d_THnI>(myHistogram.Create<THnI>("test_3d_THnI"));
 
-    Hist testSparseHist;
-    testSparseHist.AddAxis(ptAxis);
-    testSparseHist.AddAxis(etaAxis);
-    testSparseHist.AddAxis(phiAxis);
-    testSparseHist.AddAxis(centAxis);
-    testSparseHist.AddAxis(cutAxis);
+    Hist testSparseHist({ptAxis, etaAxis, phiAxis, centAxis, cutAxis});
     test->Add<test_5d_THnSparseI>(testSparseHist.Create<THnSparseI>("test_5d_THnSparseI"));
 
-    Hist testProfile;
-    testProfile.AddAxis(ptAxis);
+    Hist testProfile({ptAxis});
     test->Add<test_1d_TProfile>(testProfile.Create<TProfile>("test_1d_TProfile"));
     test->Get<TProfile>(test_1d_TProfile)->GetYaxis()->SetTitle("eta profile");
 
@@ -132,19 +123,13 @@ struct HistHelpersTest {
     test->Add<test_3d_TProfile3D>(testProfile3d.Create<TProfile3D>("test_3d_TProfile3D"));
 
     // we can also re-use axis definitions in case they are similar in many histograms:
-    Hist baseDimensions;
-    baseDimensions.AddAxis(ptAxis);
-    baseDimensions.AddAxis(etaAxis);
-    baseDimensions.AddAxis(phiAxis);
-    baseDimensions.AddAxis(centAxis);
-    baseDimensions.AddAxis(cutAxis);
-    baseDimensions.AddAxis(centAxis);
+    Hist baseDimensions({ptAxis, etaAxis, phiAxis, centAxis, cutAxis, centAxis});
 
-    Hist firstHist = baseDimensions;
+    Hist firstHist{baseDimensions};
     firstHist.AddAxis("something", "v (m/s)", 10, -1, 1);
     test->Add<test_7d_THnF_first>(firstHist.Create<THnF>("test_7d_THnF_first"));
 
-    Hist secondHist = baseDimensions;
+    Hist secondHist{baseDimensions};
     secondHist.AddAxis("somethingElse", "a (m/(s*s))", 10, -1, 1);
     test->Add<test_7d_THnF_second>(secondHist.Create<THnF>("test_7d_THnF_second"));
 

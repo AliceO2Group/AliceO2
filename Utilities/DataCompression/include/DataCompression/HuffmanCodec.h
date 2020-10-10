@@ -436,8 +436,9 @@ class HuffmanModel : public _BASE
       }
       node->getLeftChild()->setBinaryCode(codelen + 1, c);
       int branchlen = assignCode(node->getLeftChild());
-      if (retcodelen < branchlen)
+      if (retcodelen < branchlen) {
         retcodelen = branchlen;
+      }
     }
     if (node->getRightChild()) { // bit '0' branch
       code_type c = node->getBinaryCode();
@@ -449,8 +450,9 @@ class HuffmanModel : public _BASE
       }
       node->getRightChild()->setBinaryCode(codelen + 1, c);
       int branchlen = assignCode(node->getRightChild());
-      if (retcodelen < branchlen)
+      if (retcodelen < branchlen) {
         retcodelen = branchlen;
+      }
     }
     return retcodelen;
   }

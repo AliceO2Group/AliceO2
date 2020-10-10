@@ -48,12 +48,12 @@ namespace bpo = boost::program_options;
 
 using namespace o2::tpc;
 using namespace o2::gpu;
+using namespace o2::dataformats;
 using o2::MCCompLabel;
 
 constexpr static size_t NSectors = o2::tpc::Sector::MAXSECTOR;
 constexpr static size_t NEndpoints = o2::gpu::GPUTrackingInOutZS::NENDPOINTS;
 using DigitArray = std::array<gsl::span<const o2::tpc::Digit>, Sector::MAXSECTOR>;
-using MCLabelContainer = o2::dataformats::MCTruthContainer<MCCompLabel>;
 
 struct ProcessAttributes {
   std::unique_ptr<unsigned long long int[]> zsoutput;

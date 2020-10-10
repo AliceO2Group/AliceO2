@@ -9,7 +9,6 @@
 #include "DataFormatsITSMFT/ROFRecord.h"
 #include "DataFormatsITSMFT/Digit.h"
 #include "SimulationDataFormat/DigitizationContext.h"
-#include "SimulationDataFormat/MCTruthContainer.h"
 #include "SimulationDataFormat/ConstMCTruthContainer.h"
 #include "SimulationDataFormat/IOMCTruthContainerView.h"
 #include "SimulationDataFormat/MCCompLabel.h"

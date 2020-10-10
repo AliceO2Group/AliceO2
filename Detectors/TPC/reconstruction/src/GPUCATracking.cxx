@@ -16,7 +16,7 @@
 #include "FairLogger.h"
 #include "ReconstructionDataFormats/Track.h"
 #include "SimulationDataFormat/MCCompLabel.h"
-#include "SimulationDataFormat/MCTruthContainer.h"
+#include "SimulationDataFormat/ConstMCTruthContainer.h"
 #include "TChain.h"
 #include "TClonesArray.h"
 #include "TPCBase/Mapper.h"
@@ -26,6 +26,7 @@
 #include "TPCBase/ParameterGas.h"
 #include "TPCBase/Sector.h"
 #include "DataFormatsTPC/Digit.h"
+#include "DataFormatsTPC/ClusterNativeHelper.h"
 #include "DetectorsRaw/HBFUtils.h"
 
 #include "GPUO2Interface.h"
@@ -43,8 +44,6 @@ using namespace o2::gpu;
 using namespace o2::tpc;
 using namespace o2;
 using namespace o2::dataformats;
-
-using MCLabelContainer = MCTruthContainer<MCCompLabel>;
 
 GPUCATracking::GPUCATracking() = default;
 GPUCATracking::~GPUCATracking() { deinitialize(); }
@@ -87,6 +86,7 @@ int GPUCATracking::runTracking(GPUO2InterfaceIOPtrs* data, GPUInterfaceOutputs* 
 
   std::vector<o2::tpc::Digit> gpuDigits[Sector::MAXSECTOR];
   o2::dataformats::MCTruthContainer<o2::MCCompLabel> gpuDigitsMC[Sector::MAXSECTOR];
+  ClusterNativeAccess::ConstMCLabelContainerViewWithBuffer gpuDigitsMCConst[Sector::MAXSECTOR];
 
   GPUTrackingInOutDigits gpuDigitsMap;
   GPUTPCDigitsMCInput gpuDigitsMapMC;
@@ -121,7 +121,9 @@ int GPUCATracking::runTracking(GPUO2InterfaceIOPtrs* data, GPUInterfaceOutputs* 
         gpuDigitsMap.tpcDigits[i] = gpuDigits[i].data();
         gpuDigitsMap.nTPCDigits[i] = gpuDigits[i].size();
         if (data->o2DigitsMC) {
-          gpuDigitsMapMC.v[i] = &gpuDigitsMC[i];
+          gpuDigitsMC[i].flatten_to(gpuDigitsMCConst[i].first);
+          gpuDigitsMCConst[i].second = gpuDigitsMCConst[i].first;
+          gpuDigitsMapMC.v[i] = &gpuDigitsMCConst[i].second;
         }
       } else {
         gpuDigitsMap.tpcDigits[i] = (*(data->o2Digits))[i].data();

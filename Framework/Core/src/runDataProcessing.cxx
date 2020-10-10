@@ -162,8 +162,9 @@ std::istream& operator>>(std::istream& in, enum TerminationPolicy& policy)
     policy = TerminationPolicy::QUIT;
   } else if (token == "wait") {
     policy = TerminationPolicy::WAIT;
-  } else
+  } else {
     in.setstate(std::ios_base::failbit);
+  }
   return in;
 }
 
@@ -173,8 +174,9 @@ std::ostream& operator<<(std::ostream& out, const enum TerminationPolicy& policy
     out << "quit";
   } else if (policy == TerminationPolicy::WAIT) {
     out << "wait";
-  } else
+  } else {
     out.setstate(std::ios_base::failbit);
+  }
   return out;
 }
 } // namespace framework

@@ -43,8 +43,9 @@ void o2::data_flow::TimeframeValidatorDevice::Run()
 {
   while (compatibility::FairMQ13<FairMQDevice>::IsRunning(this)) {
     FairMQParts timeframeParts;
-    if (Receive(timeframeParts, mInChannelName, 0, 100) <= 0)
+    if (Receive(timeframeParts, mInChannelName, 0, 100) <= 0) {
       continue;
+    }
 
     if (timeframeParts.Size() < 2) {
       LOG(ERROR) << "Expecting at least 2 parts\n";

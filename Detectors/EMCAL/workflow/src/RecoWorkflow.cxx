@@ -248,7 +248,6 @@ o2::framework::WorkflowSpec getWorkflow(bool propagateMC,
   if (isEnabled(OutputType::Digits) && !disableRootOutput) {
     using DigitOutputType = std::vector<o2::emcal::Digit>;
     using TriggerOutputType = std::vector<o2::emcal::TriggerRecord>;
-    using MCLabelContainer = o2::dataformats::MCTruthContainer<o2::emcal::MCLabel>;
     specs.push_back(makeWriterSpec("emcal-digits-writer",
                                    inputType == InputType::Digits ? "emc-filtered-digits.root" : "emcdigits.root",
                                    "o2sim",
@@ -258,7 +257,7 @@ o2::framework::WorkflowSpec getWorkflow(bool propagateMC,
                                    BranchDefinition<TriggerOutputType>{o2::framework::InputSpec{"trigger", "EMC", "DIGITSTRGR", 0},
                                                                        "EMCALDigitTRGR",
                                                                        "digittrigger-branch-name"},
-                                   BranchDefinition<MCLabelContainer>{o2::framework::InputSpec{"mc", "EMC", "DIGITSMCTR", 0},
+                                   BranchDefinition<o2::dataformats::MCTruthContainer<o2::emcal::MCLabel>>{o2::framework::InputSpec{"mc", "EMC", "DIGITSMCTR", 0},
                                                                       "EMCDigitMCTruth",
                                                                       "digitmc-branch-name"})());
   }
@@ -267,7 +266,6 @@ o2::framework::WorkflowSpec getWorkflow(bool propagateMC,
     if (inputType == InputType::Digits) {
       using DigitOutputType = std::vector<o2::emcal::Cell>;
       using TriggerOutputType = std::vector<o2::emcal::TriggerRecord>;
-      using MCLabelContainer = o2::dataformats::MCTruthContainer<o2::emcal::MCLabel>;
       specs.push_back(makeWriterSpec("emcal-cells-writer", "emccells.root", "o2sim",
                                      BranchDefinition<DigitOutputType>{o2::framework::InputSpec{"data", "EMC", "CELLS", 0},
                                                                        "EMCALCell",
@@ -275,9 +273,9 @@ o2::framework::WorkflowSpec getWorkflow(bool propagateMC,
                                      BranchDefinition<TriggerOutputType>{o2::framework::InputSpec{"trigger", "EMC", "CELLSTRGR", 0},
                                                                          "EMCALCellTRGR",
                                                                          "celltrigger-branch-name"},
-                                     BranchDefinition<MCLabelContainer>{o2::framework::InputSpec{"mc", "EMC", "CELLSMCTR", 0},
-                                                                        "EMCALCellMCTruth",
-                                                                        "cellmc-branch-name"})());
+                                     BranchDefinition<o2::dataformats::MCTruthContainer<o2::emcal::MCLabel>>{o2::framework::InputSpec{"mc", "EMC", "CELLSMCTR", 0},
+                                                                                                             "EMCALCellMCTruth",
+                                                                                                             "cellmc-branch-name"})());
     } else {
       using CellsDataType = std::vector<o2::emcal::Cell>;
       using TriggerRecordDataType = std::vector<o2::emcal::TriggerRecord>;

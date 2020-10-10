@@ -31,7 +31,7 @@ void ClusterNativeHelper::convert(const char* fromFile, const char* toFile, cons
   size_t nEntries = reader.getTreeSize();
   ClusterNativeAccess clusterIndex;
   std::unique_ptr<ClusterNative[]> clusterBuffer;
-  MCLabelContainer mcBuffer;
+  ConstMCLabelContainerViewWithBuffer mcBuffer;
 
   int result = 0;
   int nClusters = 0;
@@ -161,7 +161,7 @@ void ClusterNativeHelper::Reader::clear()
 }
 
 int ClusterNativeHelper::Reader::fillIndex(ClusterNativeAccess& clusterIndex, std::unique_ptr<ClusterNative[]>& clusterBuffer,
-                                           MCLabelContainer& mcBuffer)
+                                           ConstMCLabelContainerViewWithBuffer& mcBuffer)
 {
   for (size_t index = 0; index < mSectorRaw.size(); ++index) {
     if (mSectorRaw[index] && mSectorRaw[index]->size() != mSectorRawSize[index]) {
@@ -177,8 +177,8 @@ int ClusterNativeHelper::Reader::fillIndex(ClusterNativeAccess& clusterIndex, st
   return 0;
 }
 
-int ClusterNativeHelper::Reader::parseSector(const char* buffer, size_t size, gsl::span<MCLabelContainer const> const& mcinput, ClusterNativeAccess& clusterIndex,
-                                             const MCLabelContainer* (&clustersMCTruth)[MAXSECTOR])
+int ClusterNativeHelper::Reader::parseSector(const char* buffer, size_t size, gsl::span<ConstMCLabelContainerView const> const& mcinput, ClusterNativeAccess& clusterIndex,
+                                             const ConstMCLabelContainerView* (&clustersMCTruth)[MAXSECTOR])
 {
   if (!buffer || size < sizeof(ClusterCountIndex)) {
     return 0;
