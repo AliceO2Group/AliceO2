@@ -16,8 +16,8 @@
 
 #include "Framework/runDataProcessing.h"
 #include "Framework/AnalysisTask.h"
-#include "Analysis/SecondaryVertexHF.h"
-#include "Analysis/CandidateSelectionTables.h"
+#include "Analysis/HFSecondaryVertex.h"
+#include "Analysis/HFCandidateSelectionTables.h"
 
 using namespace o2;
 using namespace o2::framework;
@@ -43,7 +43,7 @@ struct TaskDPlus {
 
   Configurable<int> d_selectionFlagDPlus{"d_selectionFlagDPlus", 1, "Selection Flag for DPlus"};
 
-  //Filter seltrack = (aod::hfselcandidate::isSelDPlus >= d_selectionFlagDPlus);
+  //Filter filterSelectCandidates = (aod::hf_selcandidate::isSelDPlus >= d_selectionFlagDPlus);
 
   //void process(soa::Filtered<soa::Join<aod::HfCandProng3, aod::HFSelDPlusCandidate>> const& candidates)
   void process(aod::HfCandProng3 const& candidates)

@@ -8,14 +8,14 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-/// \file SecondaryVertexHF.h
+/// \file HFSecondaryVertex.h
 /// \brief Definitions of tables of heavy-flavour decay candidates.
 ///
 /// \author Gian Michele Innocenti <gian.michele.innocenti@cern.ch>, CERN
 /// \author Vít Kučera <vit.kucera@cern.ch>, CERN
 
-#ifndef O2_ANALYSIS_SECONDARYVERTEXHF_H_
-#define O2_ANALYSIS_SECONDARYVERTEXHF_H_
+#ifndef O2_ANALYSIS_HFSECONDARYVERTEX_H_
+#define O2_ANALYSIS_HFSECONDARYVERTEX_H_
 
 #include "Framework/AnalysisDataModel.h"
 #include "Analysis/RecoDecay.h"
@@ -23,20 +23,20 @@
 
 namespace o2::aod
 {
-namespace seltrack
+namespace hf_seltrack
 {
 DECLARE_SOA_COLUMN(IsSel2Prong, isSel2Prong, int);
 DECLARE_SOA_COLUMN(IsSel3Prong, isSel3Prong, int);
 DECLARE_SOA_COLUMN(DCAPrim0, dcaPrim0, float);
 DECLARE_SOA_COLUMN(DCAPrim1, dcaPrim1, float);
-} // namespace seltrack
-DECLARE_SOA_TABLE(SelTrack, "AOD", "SELTRACK",
-                  seltrack::IsSel2Prong,
-                  seltrack::IsSel3Prong,
-                  seltrack::DCAPrim0,
-                  seltrack::DCAPrim1);
+} // namespace hf_seltrack
+DECLARE_SOA_TABLE(HFSelTrack, "AOD", "SELTRACK",
+                  hf_seltrack::IsSel2Prong,
+                  hf_seltrack::IsSel3Prong,
+                  hf_seltrack::DCAPrim0,
+                  hf_seltrack::DCAPrim1);
 
-using BigTracks = soa::Join<Tracks, TracksCov, TracksExtra, SelTrack, pidRespTPC, pidRespTOF>;
+using BigTracks = soa::Join<Tracks, TracksCov, TracksExtra, HFSelTrack, pidRespTPC, pidRespTOF>;
 
 // FIXME: this is a workaround until we get the index columns to work with joins.
 
@@ -330,4 +330,4 @@ using HfCandProng3 = HfCandProng3Ext;
 
 } // namespace o2::aod
 
-#endif // O2_ANALYSIS_SECONDARYVERTEXHF_H_
+#endif // O2_ANALYSIS_HFSECONDARYVERTEX_H_
