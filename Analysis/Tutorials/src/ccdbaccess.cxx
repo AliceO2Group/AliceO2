@@ -8,13 +8,18 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-//
-// A tutorial task to retrieve objects from CCDB given a run number
-//
-// Author: Nicolo' Jacazio on 2020-06-22
+///
+/// \brief A tutorial task to retrieve objects from CCDB given a run number.
+///        The tutorial shows also how to use timestamps in your analysis.
+///        This task requires to access the timestamp table in order to be working.
+///        Currently this is done by adding `o2-analysis-timestamp` to the workflow
+/// \author Nicolo' Jacazio
+/// \since 2020-06-22
+///
 
 #include "Framework/runDataProcessing.h"
 #include "Framework/AnalysisTask.h"
+#include "Framework/AnalysisDataModel.h"
 #include <CCDB/BasicCCDBManager.h>
 #include "CommonDataFormat/InteractionRecord.h"
 
@@ -40,16 +45,16 @@ struct TimestampUserTask {
     ccdb->setCreatedNotAfter(nolaterthan.value);
   }
 
-  void process(soa::Join<aod::BCs, aod::Timestamps> const& iter)
+  void process(aod::Collision const& collision, aod::BCsWithTimestamps const& /*bc*/)
   {
-    for (auto i : iter) {
-      auto obj = ccdb->getForTimeStamp<TH2F>(path.value, i.timestamp());
-      if (obj) {
-        LOGF(info, "Found object!");
-        obj->Print("all");
-      } else {
-        LOGF(warning, "Object not found!");
-      }
+    auto bc = collision.bc_as<aod::BCsWithTimestamps>();
+    LOGF(info, "Getting object %s for run number %i from timestamp=%llu", path.value.data(), bc.runNumber(), bc.timestamp());
+    auto obj = ccdb->getForTimeStamp<TH2F>(path.value, bc.timestamp());
+    if (obj) {
+      LOGF(info, "Found object!");
+      obj->Print("all");
+    } else {
+      LOGF(warning, "Object not found!");
     }
   }
 };
