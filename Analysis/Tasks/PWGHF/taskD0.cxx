@@ -16,8 +16,8 @@
 
 #include "Framework/runDataProcessing.h"
 #include "Framework/AnalysisTask.h"
-#include "Analysis/SecondaryVertexHF.h"
-#include "Analysis/CandidateSelectionTables.h"
+#include "Analysis/HFSecondaryVertex.h"
+#include "Analysis/HFCandidateSelectionTables.h"
 
 using namespace o2;
 using namespace o2::framework;
@@ -32,7 +32,8 @@ struct TaskD0 {
   OutputObj<TH1F> hptprong1{TH1F("hptprong1", "pt prong1", 100, 0, 10.0)};
   OutputObj<TH1F> hdeclength{TH1F("declength", "decay length", 200, 0., 2.0)};
   OutputObj<TH1F> hdeclengthxy{TH1F("declengthxy", "decay length xy", 200, 0., 2.0)};
-  OutputObj<TH1F> hd0{TH1F("hd0", "dca xy to prim. vertex (cm)", 100, -1.0, 1.0)};
+  OutputObj<TH1F> hd0Prong0{TH1F("hd0Prong0", "prong 0 dca xy to prim. vertex (cm)", 100, -1.0, 1.0)};
+  OutputObj<TH1F> hd0Prong1{TH1F("hd0Prong1", "prong 1 dca xy to prim. vertex (cm)", 100, -1.0, 1.0)};
   OutputObj<TH1F> hd0d0{TH1F("hd0d0", "product of dca xy to prim. vertex (cm^{2})", 500, -1.0, 1.0)};
   OutputObj<TH1F> hCTS{TH1F("hCTS", "cos #it{#theta}*", 120, -1.1, 1.1)};
   OutputObj<TH1F> hCt{TH1F("hCt", "proper lifetime * #it{c} (cm)", 120, -20, 100)};
@@ -45,7 +46,7 @@ struct TaskD0 {
   Configurable<int> d_selectionFlagD0{"d_selectionFlagD0", 1, "Selection Flag for D0"};
   Configurable<int> d_selectionFlagD0bar{"d_selectionFlagD0bar", 1, "Selection Flag for D0bar"};
 
-  Filter seltrack = (aod::hfselcandidate::isSelD0 >= d_selectionFlagD0 || aod::hfselcandidate::isSelD0bar >= d_selectionFlagD0bar);
+  Filter filterSelectCandidates = (aod::hf_selcandidate::isSelD0 >= d_selectionFlagD0 || aod::hf_selcandidate::isSelD0bar >= d_selectionFlagD0bar);
 
   void process(soa::Filtered<soa::Join<aod::HfCandProng2, aod::HFSelD0Candidate>> const& candidates)
   {
@@ -61,8 +62,8 @@ struct TaskD0 {
       hptprong1->Fill(candidate.ptProng1());
       hdeclength->Fill(candidate.decayLength());
       hdeclengthxy->Fill(candidate.decayLengthXY());
-      hd0->Fill(candidate.impactParameter0());
-      hd0->Fill(candidate.impactParameter1());
+      hd0Prong0->Fill(candidate.impactParameter0());
+      hd0Prong1->Fill(candidate.impactParameter1());
       hd0d0->Fill(candidate.impactParameterProduct());
       hCTS->Fill(CosThetaStarD0(candidate));
       hCt->Fill(CtD0(candidate));
