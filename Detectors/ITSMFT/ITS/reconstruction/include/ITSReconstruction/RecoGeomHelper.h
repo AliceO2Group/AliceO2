@@ -33,7 +33,7 @@ namespace its
 struct RecoGeomHelper {
   //
   using BracketF = o2::math_utils::Bracket<float>;
-  using Vec2D = o2::math_utils::IntervalXY;
+  using Vec2D = o2::math_utils::IntervalXYf_t;
 
   enum Relation : int { Below = -1,
                         Inside = 0,
