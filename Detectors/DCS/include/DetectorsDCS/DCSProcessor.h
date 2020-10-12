@@ -15,6 +15,7 @@
 #include <Rtypes.h>
 #include <unordered_map>
 #include <deque>
+#include <numeric>
 #include "Framework/Logger.h"
 #include "DetectorsDCS/DataPointCompositeObject.h"
 #include "DetectorsDCS/DataPointIdentifier.h"
@@ -73,10 +74,13 @@ class DCSProcessor
 
   int process(const std::unordered_map<DPID, DPVAL>& map, bool isDelta = false);
 
-  std::unordered_map<DPID, DPVAL>::const_iterator processAlias(const DPID& alias, DeliveryType type, const std::unordered_map<DPID, DPVAL>& map);
+  std::unordered_map<DPID, DPVAL>::const_iterator findAndCheckAlias(const DPID& alias, DeliveryType type, const std::unordered_map<DPID, DPVAL>& map);
 
   template <typename T>
-  int processArrayType(const std::vector<DPID>& array, DeliveryType type, const std::unordered_map<DPID, DPVAL>& map, std::vector<int64_t>& latestTimeStamp, std::unordered_map<DPID, T>& destmap);
+  int processArrayType(const std::vector<DPID>& array, DeliveryType type, const std::unordered_map<DPID, DPVAL>& map, std::vector<int64_t>& latestTimeStamp, std::unordered_map<DPID, std::deque<T>>& destmap);
+
+  template <typename T>
+  void processDP(const DPID& alias, std::deque<T>& aliasDeque);
 
   template <typename T>
   void doSimpleMovingAverage(int nelements, std::deque<T>& vect, float& avg, bool& isSMA);
@@ -102,9 +106,9 @@ class DCSProcessor
 
   void setNThreads(int n);
   int getNThreads() const { return mNThreads; }
-  const std::unordered_map<std::string, float>& getCCDBint() const { return mccdbInt; }
-  const CcdbObjectInfo& getCCDBintInfo() const { return mccdbIntInfo; }
-  CcdbObjectInfo& getCCDBintInfo() { return mccdbIntInfo; }
+  const std::unordered_map<std::string, float>& getCCDBSimpleMovingAverage() const { return mccdbSimpleMovingAverage; }
+  const CcdbObjectInfo& getCCDBSimpleMovingAverageInfo() const { return mccdbSimpleMovingAverageInfo; }
+  CcdbObjectInfo& getCCDBSimpleMovingAverageInfo() { return mccdbSimpleMovingAverageInfo; }
 
   void setTF(TFType tf) { mTF = tf; }
 
@@ -112,13 +116,20 @@ class DCSProcessor
   void isDelta() { mIsDelta = true; }
   bool getIsDelta() const { return mIsDelta; }
 
+  void setMaxCyclesNoFullMap(uint64_t maxCycles) { mMaxCyclesNoFullMap = maxCycles; }
+  uint64_t getMaxCyclesNoFullMap() const { return mMaxCyclesNoFullMap; }
+
+  uint64_t getNCyclesNoFullMap() const { return mNCyclesNoFullMap; }
+
   template <typename T>
   void prepareCCDBobject(T& obj, CcdbObjectInfo& info, const std::string& path, TFType tf, const std::map<std::string, std::string>& md);
 
  private:
+  bool mFullMapSent = false;         // set to true as soon as a full map was sent. No delta can be received if there was never a full map sent
+  int64_t mNCyclesNoFullMap = 0;     // number of times the delta was sent withoug a full map
+  int64_t mMaxCyclesNoFullMap = 6000; // max number of times when the delta can be sent between two full maps (assuming DCS sends data every 50 ms, this means a 5 minutes threshold)
   bool mIsDelta = false;             // set to true in case you are processing  delta map (containing only DPs that changed)
-  std::vector<float> mAvgTestInt;    // moving average for int DPs
-  std::vector<float> mAvgTestDouble; // moving average for double DPs
+  std::unordered_map<DPID, float> mSimpleMovingAverage;    // moving average for several DPs
   std::unordered_map<DPID, DQChars> mDpscharsmap;
   std::unordered_map<DPID, DQInts> mDpsintsmap;
   std::unordered_map<DPID, DQDoubles> mDpsdoublesmap;
@@ -144,8 +155,8 @@ class DCSProcessor
   std::vector<int64_t> mLatestTimestamptimes;
   std::vector<int64_t> mLatestTimestampbinaries;
   int mNThreads = 1;                               // number of  threads
-  std::unordered_map<std::string, float> mccdbInt; // unordered map in which to store the CCDB entry
-  CcdbObjectInfo mccdbIntInfo;                     // info to store the output of teh calibration on int values
+  std::unordered_map<std::string, float> mccdbSimpleMovingAverage; // unordered map in which to store the CCDB entry for the DPs for which we calculated the simple moving average
+  CcdbObjectInfo mccdbSimpleMovingAverageInfo;                     // info to store the output of the calibration for the DPs for which we calculated the simple moving average
   TFType mTF = 0;                                  // TF index for processing, used to store CCDB object
 
   ClassDefNV(DCSProcessor, 0);
@@ -164,20 +175,20 @@ using DPID = o2::dcs::DataPointIdentifier;
 using DPVAL = o2::dcs::DataPointValue;
 
 template <typename T>
-int DCSProcessor::processArrayType(const std::vector<DPID>& array, DeliveryType type, const std::unordered_map<DPID, DPVAL>& map, std::vector<int64_t>& latestTimeStamp, std::unordered_map<DPID, T>& destmap)
+int DCSProcessor::processArrayType(const std::vector<DPID>& array, DeliveryType type, const std::unordered_map<DPID, DPVAL>& map, std::vector<int64_t>& latestTimeStamp, std::unordered_map<DPID, std::deque<T>>& destmap)
 {
 
   // processing the array of type T
 
   int found = 0;
   auto s = array.size();
-  if (s > 0) {
+  if (s > 0) { // we have at least one DP of type T
     //#ifdef WITH_OPENMP
     //omp_set_num_threads(mNThreads);
     //#pragma omp parallel for schedule(dynamic)
     //#endif
     for (size_t i = 0; i != s; ++i) {
-      auto it = processAlias(array[i], type, map);
+      auto it = findAndCheckAlias(array[i], type, map);
       if (it == map.end()) {
         if (!mIsDelta) {
           LOG(ERROR) << "Element " << array[i] << " not found " << std::endl;
@@ -199,7 +210,9 @@ int DCSProcessor::processArrayType(const std::vector<DPID>& array, DeliveryType 
           latestTimeStamp[i] = etime;
         }
       }
-    }
+      processDP(array[i], destmap[array[i]]);
+      // todo: better to move the "found++" after the process, in case it fails?
+    }    
   }
   return found;
 }
@@ -209,6 +222,16 @@ int DCSProcessor::processArrayType(const std::vector<DCSProcessor::DPID>& array,
 
 template <>
 int DCSProcessor::processArrayType(const std::vector<DCSProcessor::DPID>& array, DeliveryType type, const std::unordered_map<DCSProcessor::DPID, DCSProcessor::DPVAL>& map, std::vector<int64_t>& latestTimeStamp, std::unordered_map<DCSProcessor::DPID, DCSProcessor::DQBinaries>& destmap);
+
+template <typename T>
+void DCSProcessor::processDP(const DPID& alias, std::deque<T>& aliasdeque)
+{
+  // processing the single alias
+  return;
+}
+
+template <>
+void DCSProcessor::processDP(const DPID& alias, std::deque<int>& aliasdeque);
 
 template <typename T>
 void DCSProcessor::doSimpleMovingAverage(int nelements, std::deque<T>& vect, float& avg, bool& isSMA)
@@ -226,6 +249,13 @@ void DCSProcessor::doSimpleMovingAverage(int nelements, std::deque<T>& vect, flo
     isSMA = true;
     return;
   }
+  /*
+if (vect.size() <= nelements) {
+    //avg = std::accumulate(vect.begin(), vect.end(), 0.0) / vect.size();
+    avg = (avg * (vect.size() - 1) + vect[vect.size() - 1]) / vect.size();
+    return;
+  }
+  */
   avg += (vect[vect.size() - 1] - vect[0]) / nelements;
   vect.pop_front();
   isSMA = true;
