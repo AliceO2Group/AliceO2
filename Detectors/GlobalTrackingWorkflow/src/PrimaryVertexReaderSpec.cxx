@@ -39,7 +39,7 @@ void PrimaryVertexReader::run(ProcessingContext& pc)
 
   pc.outputs().snapshot(Output{"GLO", "PVTX", 0, Lifetime::Timeframe}, mVertices);
   pc.outputs().snapshot(Output{"GLO", "PVTX_TRMTC", 0, Lifetime::Timeframe}, mPV2MatchIdx);
-  pc.outputs().snapshot(Output{"GLO", "PVTX_TRMTCREF", 0, Lifetime::Timeframe}, mPV2MatchIdxRef);
+  pc.outputs().snapshot(Output{"GLO", "PVTX_TRMTCREFS", 0, Lifetime::Timeframe}, mPV2MatchIdxRef);
 
   if (mUseMC) {
     pc.outputs().snapshot(Output{"GLO", "PVTX_MCTR", 0, Lifetime::Timeframe}, mLabels);
@@ -108,7 +108,7 @@ DataProcessorSpec getPrimaryVertexReaderSpec(bool useMC)
   std::vector<OutputSpec> outputs;
   outputs.emplace_back("GLO", "PVTX", 0, Lifetime::Timeframe);
   outputs.emplace_back("GLO", "PVTX_TRMTC", 0, Lifetime::Timeframe);
-  outputs.emplace_back("GLO", "PVTX_TRMTCREF", 0, Lifetime::Timeframe);
+  outputs.emplace_back("GLO", "PVTX_TRMTCREFS", 0, Lifetime::Timeframe);
 
   if (useMC) {
     outputs.emplace_back("GLO", "PVTX_MCTR", 0, Lifetime::Timeframe);
