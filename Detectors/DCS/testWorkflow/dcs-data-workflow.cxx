@@ -11,13 +11,13 @@
 #include "DetectorsDCS/DataPointIdentifier.h"
 #include "DetectorsDCS/DataPointValue.h"
 #include "Framework/TypeTraits.h"
+#include <unordered_map>
 namespace o2::framework
 {
 template <>
 struct has_root_dictionary<std::unordered_map<o2::dcs::DataPointIdentifier, o2::dcs::DataPointValue>, void> : std::true_type {
 };
 } // namespace o2::framework
-#include <unordered_map>
 #include "Framework/DataProcessorSpec.h"
 #include "DCSDataGeneratorSpec.h"
 #include "DCSDataProcessorSpec.h"

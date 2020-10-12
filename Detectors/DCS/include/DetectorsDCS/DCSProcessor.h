@@ -71,12 +71,12 @@ class DCSProcessor
 
   void init(const std::vector<DPID>& aliases);
 
-  int process(const std::unordered_map<DPID, DPVAL>& map);
+  int process(const std::unordered_map<DPID, DPVAL>& map, bool isDelta = false);
 
   std::unordered_map<DPID, DPVAL>::const_iterator processAlias(const DPID& alias, DeliveryType type, const std::unordered_map<DPID, DPVAL>& map);
 
   template <typename T>
-  int processArrayType(const std::vector<DPID>& array, DeliveryType type, const std::unordered_map<DPID, DPVAL>& map, std::vector<uint64_t>& latestTimeStamp, std::unordered_map<DPID, T>& destmap);
+  int processArrayType(const std::vector<DPID>& array, DeliveryType type, const std::unordered_map<DPID, DPVAL>& map, std::vector<int64_t>& latestTimeStamp, std::unordered_map<DPID, T>& destmap);
 
   template <typename T>
   void doSimpleMovingAverage(int nelements, std::deque<T>& vect, float& avg, bool& isSMA);
@@ -108,10 +108,15 @@ class DCSProcessor
 
   void setTF(TFType tf) { mTF = tf; }
 
+  void setIsDelta(bool isDelta) { mIsDelta = isDelta; }
+  void isDelta() { mIsDelta = true; }
+  bool getIsDelta() const { return mIsDelta; }
+
   template <typename T>
   void prepareCCDBobject(T& obj, CcdbObjectInfo& info, const std::string& path, TFType tf, const std::map<std::string, std::string>& md);
 
  private:
+  bool mIsDelta = false;             // set to true in case you are processing  delta map (containing only DPs that changed)
   std::vector<float> mAvgTestInt;    // moving average for int DPs
   std::vector<float> mAvgTestDouble; // moving average for double DPs
   std::unordered_map<DPID, DQChars> mDpscharsmap;
@@ -130,14 +135,14 @@ class DCSProcessor
   std::vector<DPID> mAliasesstrings;
   std::vector<DPID> mAliasestimes;
   std::vector<DPID> mAliasesbinaries;
-  std::vector<uint64_t> mLatestTimestampchars;
-  std::vector<uint64_t> mLatestTimestampints;
-  std::vector<uint64_t> mLatestTimestampdoubles;
-  std::vector<uint64_t> mLatestTimestampUints;
-  std::vector<uint64_t> mLatestTimestampbools;
-  std::vector<uint64_t> mLatestTimestampstrings;
-  std::vector<uint64_t> mLatestTimestamptimes;
-  std::vector<uint64_t> mLatestTimestampbinaries;
+  std::vector<int64_t> mLatestTimestampchars;
+  std::vector<int64_t> mLatestTimestampints;
+  std::vector<int64_t> mLatestTimestampdoubles;
+  std::vector<int64_t> mLatestTimestampUints;
+  std::vector<int64_t> mLatestTimestampbools;
+  std::vector<int64_t> mLatestTimestampstrings;
+  std::vector<int64_t> mLatestTimestamptimes;
+  std::vector<int64_t> mLatestTimestampbinaries;
   int mNThreads = 1;                               // number of  threads
   std::unordered_map<std::string, float> mccdbInt; // unordered map in which to store the CCDB entry
   CcdbObjectInfo mccdbIntInfo;                     // info to store the output of teh calibration on int values
@@ -159,7 +164,7 @@ using DPID = o2::dcs::DataPointIdentifier;
 using DPVAL = o2::dcs::DataPointValue;
 
 template <typename T>
-int DCSProcessor::processArrayType(const std::vector<DPID>& array, DeliveryType type, const std::unordered_map<DPID, DPVAL>& map, std::vector<uint64_t>& latestTimeStamp, std::unordered_map<DPID, T>& destmap)
+int DCSProcessor::processArrayType(const std::vector<DPID>& array, DeliveryType type, const std::unordered_map<DPID, DPVAL>& map, std::vector<int64_t>& latestTimeStamp, std::unordered_map<DPID, T>& destmap)
 {
 
   // processing the array of type T
@@ -174,7 +179,11 @@ int DCSProcessor::processArrayType(const std::vector<DPID>& array, DeliveryType 
     for (size_t i = 0; i != s; ++i) {
       auto it = processAlias(array[i], type, map);
       if (it == map.end()) {
-        LOG(ERROR) << "Element " << array[i] << " not found " << std::endl;
+        if (!mIsDelta) {
+          LOG(ERROR) << "Element " << array[i] << " not found " << std::endl;
+        } else {
+          latestTimeStamp[i] = -latestTimeStamp[i];
+        }
         continue;
       }
       found++;
@@ -196,10 +205,10 @@ int DCSProcessor::processArrayType(const std::vector<DPID>& array, DeliveryType 
 }
 
 template <>
-int DCSProcessor::processArrayType(const std::vector<DCSProcessor::DPID>& array, DeliveryType type, const std::unordered_map<DCSProcessor::DPID, DCSProcessor::DPVAL>& map, std::vector<uint64_t>& latestTimeStamp, std::unordered_map<DCSProcessor::DPID, DCSProcessor::DQStrings>& destmap);
+int DCSProcessor::processArrayType(const std::vector<DCSProcessor::DPID>& array, DeliveryType type, const std::unordered_map<DCSProcessor::DPID, DCSProcessor::DPVAL>& map, std::vector<int64_t>& latestTimeStamp, std::unordered_map<DCSProcessor::DPID, DCSProcessor::DQStrings>& destmap);
 
 template <>
-int DCSProcessor::processArrayType(const std::vector<DCSProcessor::DPID>& array, DeliveryType type, const std::unordered_map<DCSProcessor::DPID, DCSProcessor::DPVAL>& map, std::vector<uint64_t>& latestTimeStamp, std::unordered_map<DCSProcessor::DPID, DCSProcessor::DQBinaries>& destmap);
+int DCSProcessor::processArrayType(const std::vector<DCSProcessor::DPID>& array, DeliveryType type, const std::unordered_map<DCSProcessor::DPID, DCSProcessor::DPVAL>& map, std::vector<int64_t>& latestTimeStamp, std::unordered_map<DCSProcessor::DPID, DCSProcessor::DQBinaries>& destmap);
 
 template <typename T>
 void DCSProcessor::doSimpleMovingAverage(int nelements, std::deque<T>& vect, float& avg, bool& isSMA)
