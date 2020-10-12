@@ -49,6 +49,7 @@ class TrackParametrizationWithError : public TrackParametrization<value_T>
   TrackParametrizationWithError& operator=(const TrackParametrizationWithError& src) = default;
   TrackParametrizationWithError& operator=(TrackParametrizationWithError&& src) = default;
   ~TrackParametrizationWithError() = default;
+  using TrackParametrization<value_T>::TrackParametrization;
 
   const value_t* getCov() const;
   value_t getSigmaY2() const;
