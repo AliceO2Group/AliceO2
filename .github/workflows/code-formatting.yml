@@ -49,7 +49,8 @@ jobs:
               # to avoid extra work.
               # 120 characters are allowed, meaning the error should start with 122,
               # to allow for the starting + at the end of the line.
-              git diff $BASE_COMMIT $x | tail -n +6 | grep -e '^+' | grep '.\{122,\}' && { echo "Line longer than 120 chars in $x." && exit 1; } || true ;;
+              # Disabled for now, since people don't like the convention.
+              # git diff $BASE_COMMIT $x | tail -n +6 | grep -e '^+' | grep '.\{122,\}' && { echo "Line longer than 120 chars in $x." && exit 1; } || true ;;
             *.hxx|*.cc|*.hpp) echo "$x uses non-allowed extension." && exit 1 ;;
             *) ;;
           esac
