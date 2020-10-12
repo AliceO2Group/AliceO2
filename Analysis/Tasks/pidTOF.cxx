@@ -26,7 +26,7 @@ using namespace o2::track;
 struct pidTOFTask {
   Produces<aod::pidRespTOF> tofpid;
   Produces<aod::pidRespTOFbeta> tofpidbeta;
-  tof::Response resp = tof::Response();
+  DetectorResponse<tof::Response> resp = DetectorResponse<tof::Response>();
   Service<o2::ccdb::BasicCCDBManager> ccdb;
   Configurable<std::string> paramfile{"param-file", "", "Path to the parametrization object, if emtpy the parametrization is not taken from file"};
   Configurable<std::string> sigmaname{"param-sigma", "TOFReso", "Name of the parametrization for the expected sigma, used in both file and CCDB mode"};
@@ -43,13 +43,13 @@ struct pidTOFTask {
     ccdb->setCreatedNotAfter(std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count());
     //
     const std::vector<float> p = {0.008, 0.008, 0.002, 40.0};
-    resp.SetParameters(DetectorResponse::kSigma, p);
+    resp.SetParameters(DetectorResponse<tof::Response>::kSigma, p);
     const std::string fname = paramfile.value;
     if (!fname.empty()) { // Loading the parametrization from file
-      resp.LoadParamFromFile(fname.data(), sigmaname.value, DetectorResponse::kSigma);
+      resp.LoadParamFromFile(fname.data(), sigmaname.value, DetectorResponse<tof::Response>::kSigma);
     } else { // Loading it from CCDB
       const std::string path = "Analysis/PID/TOF";
-      resp.LoadParam(DetectorResponse::kSigma, ccdb->getForTimeStamp<Parametrization>(path + "/" + sigmaname.value, timestamp.value));
+      resp.LoadParam(DetectorResponse<tof::Response>::kSigma, ccdb->getForTimeStamp<Parametrization>(path + "/" + sigmaname.value, timestamp.value));
     }
   }
 
@@ -60,6 +60,9 @@ struct pidTOFTask {
     evt.SetEvTimeReso(0, collision.collisionTimeRes());
     evt.SetEvTimeMask(0, collision.collisionTimeMask());
     resp.SetEventTime(evt);
+
+    tofpidbeta.reserve(tracks.size());
+    tofpid.reserve(tracks.size());
     for (auto const& i : tracks) {
       resp.UpdateTrack(i.p(), i.tofExpMom() / tof::Response::kCSPEED, i.length(), i.tofSignal());
       tofpidbeta(resp.GetBeta(),
@@ -77,24 +80,24 @@ struct pidTOFTask {
         resp.GetExpectedSignal(PID::Triton),
         resp.GetExpectedSignal(PID::Helium3),
         resp.GetExpectedSignal(PID::Alpha),
-        resp.GetExpectedSigma(PID::Electron),
-        resp.GetExpectedSigma(PID::Muon),
-        resp.GetExpectedSigma(PID::Pion),
-        resp.GetExpectedSigma(PID::Kaon),
-        resp.GetExpectedSigma(PID::Proton),
-        resp.GetExpectedSigma(PID::Deuteron),
-        resp.GetExpectedSigma(PID::Triton),
-        resp.GetExpectedSigma(PID::Helium3),
-        resp.GetExpectedSigma(PID::Alpha),
-        resp.GetSeparation(PID::Electron),
-        resp.GetSeparation(PID::Muon),
-        resp.GetSeparation(PID::Pion),
-        resp.GetSeparation(PID::Kaon),
-        resp.GetSeparation(PID::Proton),
-        resp.GetSeparation(PID::Deuteron),
-        resp.GetSeparation(PID::Triton),
-        resp.GetSeparation(PID::Helium3),
-        resp.GetSeparation(PID::Alpha));
+        resp.GetExpectedSigma(resp, PID::Electron),
+        resp.GetExpectedSigma(resp, PID::Muon),
+        resp.GetExpectedSigma(resp, PID::Pion),
+        resp.GetExpectedSigma(resp, PID::Kaon),
+        resp.GetExpectedSigma(resp, PID::Proton),
+        resp.GetExpectedSigma(resp, PID::Deuteron),
+        resp.GetExpectedSigma(resp, PID::Triton),
+        resp.GetExpectedSigma(resp, PID::Helium3),
+        resp.GetExpectedSigma(resp, PID::Alpha),
+        resp.GetSeparation(resp, PID::Electron),
+        resp.GetSeparation(resp, PID::Muon),
+        resp.GetSeparation(resp, PID::Pion),
+        resp.GetSeparation(resp, PID::Kaon),
+        resp.GetSeparation(resp, PID::Proton),
+        resp.GetSeparation(resp, PID::Deuteron),
+        resp.GetSeparation(resp, PID::Triton),
+        resp.GetSeparation(resp, PID::Helium3),
+        resp.GetSeparation(resp, PID::Alpha));
     }
   }
 };
