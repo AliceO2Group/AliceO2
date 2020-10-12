@@ -16,52 +16,22 @@
 #define ALICEO2_COMMON_MATH_PRIMITIVE2D_H
 
 #include "GPUCommonRtypes.h"
+#include "MathUtils/detail/CircleXY.h"
+#include "MathUtils/detail/IntervalXY.h"
 
 namespace o2
 {
 namespace math_utils
 {
+template <typename T>
+using CircleXY = detail::CircleXY<T>;
+using CircleXYf_t = CircleXY<float>;
+using CircleXYd_t = CircleXY<double>;
 
-struct CircleXY {
-  float rC, xC, yC; // circle radius, x-center, y-center
-  CircleXY(float r = 0., float x = 0., float y = 0.) : rC(r), xC(x), yC(y) {}
-  float getCenterD2() const { return xC * xC + yC * yC; }
-  ClassDefNV(CircleXY, 1);
-};
-
-struct IntervalXY {
-  ///< 2D interval in lab frame defined by its one edge and signed projection lengths on X,Y axes
-  float xP, yP;   ///< one of edges
-  float dxP, dyP; ///< other edge minus provided
-  IntervalXY(float x = 0, float y = 0, float dx = 0, float dy = 0) : xP(x), yP(y), dxP(dx), dyP(dy) {}
-  float getX0() const { return xP; }
-  float getY0() const { return yP; }
-  float getX1() const { return xP + dxP; }
-  float getY1() const { return yP + dyP; }
-  float getDX() const { return dxP; }
-  float getDY() const { return dyP; }
-  void eval(float t, float& x, float& y) const
-  {
-    x = xP + t * dxP;
-    y = yP + t * dyP;
-  }
-  void getLineCoefs(float& a, float& b, float& c) const;
-
-  void setEdges(float x0, float y0, float x1, float y1)
-  {
-    xP = x0;
-    yP = y0;
-    dxP = x1 - x0;
-    dyP = y1 - y0;
-  }
-  bool seenByCircle(const CircleXY& circle, float eps) const;
-  bool circleCrossParam(const CircleXY& cicle, float& t) const;
-
-  bool seenByLine(const IntervalXY& other, float eps) const;
-  bool lineCrossParam(const IntervalXY& other, float& t) const;
-
-  ClassDefNV(IntervalXY, 1);
-};
+template <typename T>
+using IntervalXY = detail::IntervalXY<T>;
+using IntervalXYf_t = IntervalXY<float>;
+using IntervalXYd_t = IntervalXY<double>;
 
 } // namespace math_utils
 } // namespace o2

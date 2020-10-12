@@ -16,7 +16,6 @@ o2_add_library(
           src/Chebyshev3DCalc.cxx
           src/MathBase.cxx
           src/RandomRing.cxx
-          src/Primitive2D.cxx
   PUBLIC_LINK_LIBRARIES
     ROOT::Hist
     FairRoot::Base

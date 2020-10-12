@@ -165,9 +165,9 @@ class TrackParametrization
 
   // derived getters
   bool getXatLabR(value_t r, value_t& x, value_t bz, DirType dir = DirAuto) const;
-  void getCircleParamsLoc(value_t bz, o2::math_utils::CircleXY& circle) const;
-  void getCircleParams(value_t bz, o2::math_utils::CircleXY& circle, value_t& sna, value_t& csa) const;
-  void getLineParams(o2::math_utils::IntervalXY& line, value_t& sna, value_t& csa) const;
+  void getCircleParamsLoc(value_t bz, o2::math_utils::CircleXY<value_t>& circle) const;
+  void getCircleParams(value_t bz, o2::math_utils::CircleXY<value_t>& circle, value_t& sna, value_t& csa) const;
+  void getLineParams(o2::math_utils::IntervalXY<value_t>& line, value_t& sna, value_t& csa) const;
   value_t getCurvature(value_t b) const;
   int getCharge() const;
   int getSign() const;
@@ -337,7 +337,7 @@ inline void TrackParametrization<value_T>::setPID(const PID pid)
 template <typename value_T>
 inline typename TrackParametrization<value_T>::value_t TrackParametrization<value_T>::getCsp2() const
 {
-  value_t csp2 = (1.f - mP[kSnp]) * (1.f + mP[kSnp]);
+  const value_t csp2 = (1.f - mP[kSnp]) * (1.f + mP[kSnp]);
   return csp2 > o2::constants::math::Almost0 ? csp2 : o2::constants::math::Almost0;
 }
 
@@ -345,7 +345,7 @@ inline typename TrackParametrization<value_T>::value_t TrackParametrization<valu
 template <typename value_T>
 inline typename TrackParametrization<value_T>::value_t TrackParametrization<value_T>::getCsp() const
 {
-  return sqrtf(getCsp2());
+  return std::sqrt(getCsp2());
 }
 
 //____________________________________________________________
@@ -413,7 +413,7 @@ inline void TrackParametrization<value_T>::setAbsCharge(int q)
 
 //_______________________________________________________
 template <typename value_T>
-inline void TrackParametrization<value_T>::getCircleParamsLoc(value_t bz, o2::math_utils::CircleXY& c) const
+inline void TrackParametrization<value_T>::getCircleParamsLoc(value_t bz, o2::math_utils::CircleXY<value_t>& c) const
 {
   // get circle params in track local frame, for straight line just set to local coordinates
   c.rC = getCurvature(bz);
@@ -421,10 +421,10 @@ inline void TrackParametrization<value_T>::getCircleParamsLoc(value_t bz, o2::ma
   constexpr value_t MinSagitta = 0.01f, TPCMidR = 160.f, MinCurv = 8 * MinSagitta / (TPCMidR * TPCMidR);
   if (std::abs(c.rC) > MinCurv) {
     c.rC = 1.f / getCurvature(bz);
-    value_t sn = getSnp(), cs = sqrtf((1.f - sn) * (1.f + sn));
+    value_t sn = getSnp(), cs = std::sqrt((1.f - sn) * (1.f + sn));
     c.xC = getX() - sn * c.rC; // center in tracking
     c.yC = getY() + cs * c.rC; // frame. Note: r is signed!!!
-    c.rC = fabs(c.rC);
+    c.rC = std::abs(c.rC);
   } else {
     c.rC = 0.f; // signal straight line
     c.xC = getX();
@@ -434,7 +434,7 @@ inline void TrackParametrization<value_T>::getCircleParamsLoc(value_t bz, o2::ma
 
 //_______________________________________________________
 template <typename value_T>
-inline void TrackParametrization<value_T>::getCircleParams(value_t bz, o2::math_utils::CircleXY& c, value_t& sna, value_t& csa) const
+inline void TrackParametrization<value_T>::getCircleParams(value_t bz, o2::math_utils::CircleXY<value_t>& c, value_t& sna, value_t& csa) const
 {
   // get circle params in loc and lab frame, for straight line just set to global coordinates
   getCircleParamsLoc(bz, c);
@@ -444,14 +444,14 @@ inline void TrackParametrization<value_T>::getCircleParams(value_t bz, o2::math_
 
 //_______________________________________________________
 template <typename value_T>
-inline void TrackParametrization<value_T>::getLineParams(o2::math_utils::IntervalXY& ln, value_t& sna, value_t& csa) const
+inline void TrackParametrization<value_T>::getLineParams(o2::math_utils::IntervalXY<value_t>& ln, value_t& sna, value_t& csa) const
 {
   // get line parameterization as { x = x0 + xSlp*t, y = y0 + ySlp*t }
   o2::math_utils::sincos(getAlpha(), sna, csa);
-  o2::math_utils::rotateZ(getX(), getY(), ln.xP, ln.yP, sna, csa); // reference point in global frame
-  value_t snp = getSnp(), csp = sqrtf((1.f - snp) * (1.f + snp));
-  ln.dxP = csp * csa - snp * sna;
-  ln.dyP = snp * csa + csp * sna;
+  o2::math_utils::rotateZ(getX(), getY(), ln.getX0(), ln.getY0(), sna, csa); // reference point in global frame
+  value_t snp = getSnp(), csp = std::sqrt((1.f - snp) * (1.f + snp));
+  ln.setDX(csp * csa - snp * sna);
+  ln.setDY(snp * csa + csp * sna);
 }
 
 //____________________________________________________________
@@ -480,7 +480,7 @@ template <typename value_T>
 inline typename TrackParametrization<value_T>::value_t TrackParametrization<value_T>::getPhi() const
 {
   // track pt direction phi (in 0:2pi range)
-  value_t phi = asinf(getSnp()) + getAlpha();
+  value_t phi = std::asin(getSnp()) + getAlpha();
   math_utils::BringTo02Pi(phi);
   return phi;
 }
@@ -490,7 +490,7 @@ template <typename value_T>
 inline typename TrackParametrization<value_T>::value_t TrackParametrization<value_T>::getPhiPos() const
 {
   // angle of track position (in -pi:pi range)
-  value_t phi = atan2f(getY(), getX()) + getAlpha();
+  value_t phi = std::atan2(getY(), getX()) + getAlpha();
   math_utils::BringTo02Pi(phi);
   return phi;
 }
@@ -500,7 +500,7 @@ template <typename value_T>
 inline typename TrackParametrization<value_T>::value_t TrackParametrization<value_T>::getPtInv() const
 {
   // return the inverted track pT
-  const value_t ptInv = fabs(mP[kQ2Pt]);
+  const value_t ptInv = std::fabs(mP[kQ2Pt]);
   return (mAbsCharge > 1) ? ptInv / mAbsCharge : ptInv;
 }
 
@@ -527,7 +527,7 @@ template <typename value_T>
 inline typename TrackParametrization<value_T>::value_t TrackParametrization<value_T>::getPInv() const
 {
   // return the inverted track momentum^2
-  const value_t pInv = fabs(mP[kQ2Pt]) / sqrtf(1.f + getTgl() * getTgl());
+  const value_t pInv = std::fabs(mP[kQ2Pt]) / std::sqrt(1.f + getTgl() * getTgl());
   return (mAbsCharge > 1) ? pInv / mAbsCharge : pInv;
 }
 
@@ -545,7 +545,7 @@ template <typename value_T>
 inline typename TrackParametrization<value_T>::value_t TrackParametrization<value_T>::getPt() const
 {
   // return the track transverse momentum
-  value_t ptI = fabs(mP[kQ2Pt]);
+  value_t ptI = std::fabs(mP[kQ2Pt]);
   if (mAbsCharge > 1) {
     ptI /= mAbsCharge;
   }

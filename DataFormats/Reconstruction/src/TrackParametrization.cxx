@@ -516,7 +516,7 @@ bool TrackParametrization<value_T>::getXatLabR(value_t r, value_t& x, value_t bz
   auto crv = getCurvature(bz);
   if (std::fabs(crv) > constants::math::Almost0) { // helix
     // get center of the track circle
-    math_utils::CircleXY circle;
+    math_utils::CircleXY<value_t> circle;
     getCircleParamsLoc(bz, circle);
     value_t r0 = std::sqrt(circle.getCenterD2());
     if (r0 <= constants::math::Almost0) {
