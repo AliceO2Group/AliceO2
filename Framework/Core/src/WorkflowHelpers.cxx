@@ -386,7 +386,7 @@ void WorkflowHelpers::injectServiceDevices(WorkflowSpec& workflow, ConfigContext
     if ((outputTypes[ii] & 2) == 2) {
       outputsInputsAOD.emplace_back(OutputsInputs[ii]);
 
-      // is this dangling
+      // is this dangling ?
       if ((outputTypes[ii] & 1) == 1) {
         isdangling.emplace_back((outputTypes[ii] & 1) == 1);
       }
