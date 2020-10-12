@@ -130,9 +130,15 @@ class DCSDataProcessor : public o2::framework::Task
 
     LOG(INFO) << "TF: " << tfid << " -->  starting processing...";
     s.Start();
-    mDCSproc.process(dcsmap);
+    mDCSproc.process(dcsmap, false);
     s.Stop();
     LOG(INFO) << "TF: " << tfid << " -->  ...processing done: realTime = " << s.RealTime() << ", cpuTime = " << s.CpuTime();
+
+    LOG(INFO) << "TF: " << tfid << " -->  starting (delta) processing...";
+    s.Start();
+    mDCSproc.process(dcsmapDelta, true);
+    s.Stop();
+    LOG(INFO) << "TF: " << tfid << " -->  ...processing (delta) done: realTime = " << s.RealTime() << ", cpuTime = " << s.CpuTime();
 
     sendOutput(pc.outputs());
   }

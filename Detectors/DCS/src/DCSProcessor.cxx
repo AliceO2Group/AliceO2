@@ -158,13 +158,14 @@ void DCSProcessor::init(const std::vector<DPID>& aliases)
 
 //__________________________________________________________________
 
-int DCSProcessor::process(const std::unordered_map<DPID, DPVAL>& map)
+int DCSProcessor::process(const std::unordered_map<DPID, DPVAL>& map, bool isDelta)
 {
 
   // process function to do "something" with the DCS map that is passed
 
   // resetting the content of the CCDB object to be sent
   mccdbInt.clear();
+  mIsDelta = isDelta;
 
   // we need to check if there are the Data Points that we need
 
@@ -211,22 +212,24 @@ int DCSProcessor::process(const std::unordered_map<DPID, DPVAL>& map)
   if (foundBinaries > 0)
     processBinaries();
 
-  if (foundChars != mAliaseschars.size())
-    LOG(INFO) << "Not all expected char-typed DPs found!";
-  if (foundInts != mAliasesints.size())
-    LOG(INFO) << "Not all expected int-typed DPs found!";
-  if (foundDoubles != mAliasesdoubles.size())
-    LOG(INFO) << "Not all expected double-typed DPs found!";
-  if (foundUInts != mAliasesUints.size())
-    LOG(INFO) << "Not all expected uint-typed DPs found!";
-  if (foundBools != mAliasesbools.size())
-    LOG(INFO) << "Not all expected bool-typed DPs found!";
-  if (foundStrings != mAliasesstrings.size())
-    LOG(INFO) << "Not all expected string-typed DPs found!";
-  if (foundTimes != mAliasestimes.size())
-    LOG(INFO) << "Not all expected time-typed DPs found!";
-  if (foundBinaries != mAliasesbinaries.size())
-    LOG(INFO) << "Not all expected binary-typed DPs found!";
+  if (!isDelta) {
+    if (foundChars != mAliaseschars.size())
+      LOG(INFO) << "Not all expected char-typed DPs found!";
+    if (foundInts != mAliasesints.size())
+      LOG(INFO) << "Not all expected int-typed DPs found!";
+    if (foundDoubles != mAliasesdoubles.size())
+      LOG(INFO) << "Not all expected double-typed DPs found!";
+    if (foundUInts != mAliasesUints.size())
+      LOG(INFO) << "Not all expected uint-typed DPs found!";
+    if (foundBools != mAliasesbools.size())
+      LOG(INFO) << "Not all expected bool-typed DPs found!";
+    if (foundStrings != mAliasesstrings.size())
+      LOG(INFO) << "Not all expected string-typed DPs found!";
+    if (foundTimes != mAliasestimes.size())
+      LOG(INFO) << "Not all expected time-typed DPs found!";
+    if (foundBinaries != mAliasesbinaries.size())
+      LOG(INFO) << "Not all expected binary-typed DPs found!";
+  }
 
   return 0;
 }
@@ -234,7 +237,7 @@ int DCSProcessor::process(const std::unordered_map<DPID, DPVAL>& map)
 //______________________________________________________________________
 
 template <>
-int DCSProcessor::processArrayType(const std::vector<DPID>& array, DeliveryType type, const std::unordered_map<DPID, DPVAL>& map, std::vector<uint64_t>& latestTimeStamp, std::unordered_map<DPID, DQStrings>& destmap)
+int DCSProcessor::processArrayType(const std::vector<DPID>& array, DeliveryType type, const std::unordered_map<DPID, DPVAL>& map, std::vector<int64_t>& latestTimeStamp, std::unordered_map<DPID, DQStrings>& destmap)
 {
 
   // processing the array of type T
@@ -245,7 +248,11 @@ int DCSProcessor::processArrayType(const std::vector<DPID>& array, DeliveryType 
     for (size_t i = 0; i != s; ++i) {
       auto it = processAlias(array[i], type, map);
       if (it == map.end()) {
-        LOG(ERROR) << "Element " << array[i] << " not found " << std::endl;
+        if (!mIsDelta) {
+          LOG(ERROR) << "Element " << array[i] << " not found " << std::endl;
+        } else {
+          latestTimeStamp[i] = -std::abs(latestTimeStamp[i]); // we keep it negative, in case it was already negative
+        }
         continue;
       }
       found++;
@@ -255,7 +262,7 @@ int DCSProcessor::processArrayType(const std::vector<DPID>& array, DeliveryType 
         auto etime = val.get_epoch_time();
         // fill only if new value has a timestamp different from the timestamp of the previous one
         LOG(DEBUG) << "destmap[array[" << i << "]].size() = " << destmap[array[i]].size();
-        if (destmap[array[i]].size() == 0 || etime != latestTimeStamp[i]) {
+        if (destmap[array[i]].size() == 0 || etime != std::abs(latestTimeStamp[i])) {
           auto& tmp = destmap[array[i]].emplace_back();
           std::strncpy(tmp.data(), (char*)&(val.payload_pt1), 56);
           latestTimeStamp[i] = etime;
@@ -269,7 +276,7 @@ int DCSProcessor::processArrayType(const std::vector<DPID>& array, DeliveryType 
 //______________________________________________________________________
 
 template <>
-int DCSProcessor::processArrayType(const std::vector<DPID>& array, DeliveryType type, const std::unordered_map<DPID, DPVAL>& map, std::vector<uint64_t>& latestTimeStamp, std::unordered_map<DPID, DQBinaries>& destmap)
+int DCSProcessor::processArrayType(const std::vector<DPID>& array, DeliveryType type, const std::unordered_map<DPID, DPVAL>& map, std::vector<int64_t>& latestTimeStamp, std::unordered_map<DPID, DQBinaries>& destmap)
 {
 
   // processing the array of type T
@@ -280,7 +287,11 @@ int DCSProcessor::processArrayType(const std::vector<DPID>& array, DeliveryType 
     for (size_t i = 0; i != s; ++i) {
       auto it = processAlias(array[i], type, map);
       if (it == map.end()) {
-        LOG(ERROR) << "Element " << array[i] << " not found " << std::endl;
+        if (!mIsDelta) {
+          LOG(ERROR) << "Element " << array[i] << " not found " << std::endl;
+        } else {
+          latestTimeStamp[i] = -latestTimeStamp[i];
+        }
         continue;
       }
       found++;
@@ -344,6 +355,9 @@ void DCSProcessor::processInts()
 
   for (size_t i = 0; i != mAliasesints.size(); ++i) {
     LOG(DEBUG) << "processInts: mAliasesints[" << i << "] = " << mAliasesints[i];
+    if (mIsDelta && mLatestTimestampints[i] < 0) { // we have received only the delta map, and the alias "i" was not present --> we don't process, but keep the old value in the mAvgTestInt vector
+      continue;
+    }
     auto& id = mAliasesints[i];
     auto& vint = getVectorForAliasInt(id);
     LOG(DEBUG) << "vint size = " << vint.size();
