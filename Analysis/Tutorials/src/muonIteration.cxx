@@ -23,7 +23,7 @@ using namespace o2::framework::expressions;
 // Note that one has to subscribe to aod::Collisions const& to load
 // the relevant data even if you access the data itself through m.collision()
 // This uses the exclusive matcher, so you only get BCs which have a collision
-// If you want also BCs without collision, you should use BCCollisionsSparse and check for m.has_collision()
+// If you want also BCs without collision, see the example IterateMuonsSparse below
 struct IterateMuons {
   void process(aod::BCCollisionsExclusive::iterator const& m, aod::Collisions const&, aod::Muons const& muons)
   {
@@ -34,9 +34,26 @@ struct IterateMuons {
   }
 };
 
+// This uses the sparase matcher, so you also get BCs without a collision.
+// You need to check with m.has_collision()
+struct IterateMuonsSparse {
+  void process(aod::BCCollisionsSparse::iterator const& m, aod::Collisions const&, aod::Muons const& muons)
+  {
+    if (m.has_collision()) {
+      LOGF(INFO, "Vertex = %f has %d muons", m.collision().posZ(), muons.size());
+    } else {
+      LOGF(INFO, "BC without collision has %d muons", muons.size());
+    }
+    for (auto& muon : muons) {
+      LOGF(info, "  pT = %.2f", muon.pt());
+    }
+  }
+};
+
 WorkflowSpec defineDataProcessing(ConfigContext const&)
 {
   return WorkflowSpec{
     adaptAnalysisTask<IterateMuons>("iterate-muons"),
+    adaptAnalysisTask<IterateMuonsSparse>("iterate-muons-sparse"),
   };
 }
