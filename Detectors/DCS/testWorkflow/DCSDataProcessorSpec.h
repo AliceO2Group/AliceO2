@@ -44,6 +44,13 @@ using DPCOM = o2::dcs::DataPointCompositeObject;
 class DCSDataProcessor : public o2::framework::Task
 {
  public:
+
+  enum Detectors {
+    kTest,
+    kTPC,
+    kNdetectors
+  };
+  
   void init(o2::framework::InitContext& ic) final
   {
     std::vector<DPID> aliasVect;
@@ -54,11 +61,15 @@ class DCSDataProcessor : public o2::framework::Task
     DPID::FILL(dpidtmp, dpAliaschar, typechar);
     aliasVect.push_back(dpidtmp);
 
+    std::vector<int> vectDet{kTest, kTPC};
+    mDetectorAlias[dpidtmp] = vectDet;
+    
     DeliveryType typeint = RAW_INT;
     for (int i = 0; i < 50000; i++) {
       std::string dpAliasint = "TestInt_" + std::to_string(i);
       DPID::FILL(dpidtmp, dpAliasint, typeint);
       aliasVect.push_back(dpidtmp);
+      mDetectorAlias[dpidtmp] = vectDet;
     }
 
     DeliveryType typedouble = RAW_DOUBLE;
@@ -66,14 +77,18 @@ class DCSDataProcessor : public o2::framework::Task
       std::string dpAliasdouble = "TestDouble_" + std::to_string(i);
       DPID::FILL(dpidtmp, dpAliasdouble, typedouble);
       aliasVect.push_back(dpidtmp);
+      mDetectorAlias[dpidtmp] = vectDet;
     }
 
     DeliveryType typestring = RAW_STRING;
     std::string dpAliasstring0 = "TestString_0";
     DPID::FILL(dpidtmp, dpAliasstring0, typestring);
     aliasVect.push_back(dpidtmp);
+    mDetectorAlias[dpidtmp] = vectDet;
 
     mDCSproc.init(aliasVect);
+    mDCSproc.setMaxCyclesNoFullMap(ic.options().get<int64_t>("max-cycles-no-full-map"));
+    //mDCSprocVect[kTest] = mDCSproc;
   }
 
   void run(o2::framework::ProcessingContext& pc) final
@@ -128,32 +143,48 @@ class DCSDataProcessor : public o2::framework::Task
     s.Stop();
     LOG(INFO) << "TF: " << tfid << " -->  ...unordered_map (delta) built = " << s.RealTime() << ", cpuTime = " << s.CpuTime();
 
-    LOG(INFO) << "TF: " << tfid << " -->  starting processing...";
-    s.Start();
-    mDCSproc.process(dcsmap, false);
-    s.Stop();
-    LOG(INFO) << "TF: " << tfid << " -->  ...processing done: realTime = " << s.RealTime() << ", cpuTime = " << s.CpuTime();
+    if (tfid % 6000 == 0) {
+      LOG(INFO) << "TF: " << tfid << " -->  starting processing...";
+      s.Start();
+      mDCSproc.process(dcsmap, false);
+      s.Stop();
+      LOG(INFO) << "TF: " << tfid << " -->  ...processing done: realTime = " << s.RealTime() << ", cpuTime = " << s.CpuTime();
+    }
+    else {
+      LOG(INFO) << "TF: " << tfid << " -->  starting (delta) processing...";
+      s.Start();
+      mDCSproc.process(dcsmapDelta, true);
+      s.Stop();
+      LOG(INFO) << "TF: " << tfid << " -->  ...processing (delta) done: realTime = " << s.RealTime() << ", cpuTime = " << s.CpuTime();
 
-    LOG(INFO) << "TF: " << tfid << " -->  starting (delta) processing...";
-    s.Start();
-    mDCSproc.process(dcsmapDelta, true);
-    s.Stop();
-    LOG(INFO) << "TF: " << tfid << " -->  ...processing (delta) done: realTime = " << s.RealTime() << ", cpuTime = " << s.CpuTime();
+      // processing per DP found in the map, to be done in case of a delta map
+
+      for (const auto& dpid : dcsmapDelta) {
+	std::vector<int> detVect = mDetectorAlias[dpid.first];
+	for (int idet = 0; idet < detVect.size(); idet++) {
+	}
+      }
+
+    
+    }
 
     sendOutput(pc.outputs());
   }
 
  private:
+  std::unordered_map<DPID, std::vector<int>> mDetectorAlias;   
+  std::array<DCSProcessor, kNdetectors> mDCSprocVect;
   o2::dcs::DCSProcessor mDCSproc;
 
+ 
   //________________________________________________________________
   void sendOutput(DataAllocator& output)
   {
     // extract CCDB infos and calibration objects, convert it to TMemFile and send them to the output
     // copied from LHCClockCalibratorSpec.cxx
     using clbUtils = o2::calibration::Utils;
-    const auto& payload = mDCSproc.getCCDBint();
-    auto& info = mDCSproc.getCCDBintInfo();
+    const auto& payload = mDCSproc.getCCDBSimpleMovingAverage();
+    auto& info = mDCSproc.getCCDBSimpleMovingAverageInfo();
     auto image = o2::ccdb::CcdbApi::createObjectImage(&payload, &info);
     LOG(INFO) << "Sending object " << info.getPath() << "/" << info.getFileName() << " of size " << image->size() << " bytes, valid for " << info.getStartValidityTimestamp() << " : " << info.getEndValidityTimestamp();
 
@@ -180,7 +211,7 @@ DataProcessorSpec getDCSDataProcessorSpec()
     Inputs{{"input", "DCS", "DATAPOINTS"}, {"inputDelta", "DCS", "DATAPOINTSdelta"}},
     outputs,
     AlgorithmSpec{adaptFromTask<o2::dcs::DCSDataProcessor>()},
-    Options{}};
+    Options{{"max-cycles-no-full-map", VariantType::Int64, 6000ll, {"max number of cycles between the sending of two full maps"}}}};
 }
 
 } // namespace framework
