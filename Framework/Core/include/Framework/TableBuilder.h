@@ -85,10 +85,6 @@ namespace stl
   {                                                                                 \
     return value_builder.AppendValues(cell_range);                                  \
   }
-
-O2_ARROW_STL_CONVERSION(long, int64_t, Int64Type)
-O2_ARROW_STL_CONVERSION(unsigned long, uint64_t, UInt64Type)
-
 } // namespace stl
 } // namespace arrow
 
