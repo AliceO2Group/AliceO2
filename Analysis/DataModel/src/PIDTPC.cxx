@@ -20,16 +20,16 @@ void Response::UpdateTrack(float mom, float tpcsignal, float tpcpoints)
   mTPCPoints = tpcpoints;
 };
 
-float Response::GetExpectedSignal(o2::track::PID::ID id) const
+float Response::GetExpectedSignal(DetectorResponse<Response>& response, o2::track::PID::ID id) const
 {
   const float x[2] = {mMomentum / o2::track::PID::getMass(id), (float)o2::track::PID::getCharge(id)};
-  return this->operator()(kSignal, x);
+  return response(DetectorResponse<Response>::kSignal, x);
 }
 
-float Response::GetExpectedSigma(o2::track::PID::ID id) const
+float Response::GetExpectedSigma(DetectorResponse<Response>& response, o2::track::PID::ID id) const
 {
   const float x[2] = {mTPCSignal, mTPCPoints};
-  return this->operator()(kSigma, x);
+  return response(DetectorResponse<Response>::kSigma, x);
 }
 
 } // namespace o2::pid::tpc

@@ -25,7 +25,7 @@ using namespace o2::track;
 
 struct pidTPCTask {
   Produces<aod::pidRespTPC> tpcpid;
-  tpc::Response resp = tpc::Response();
+  DetectorResponse<tpc::Response> resp = DetectorResponse<tpc::Response>();
   Service<o2::ccdb::BasicCCDBManager> ccdb;
   Configurable<std::string> paramfile{"param-file", "", "Path to the parametrization object, if emtpy the parametrization is not taken from file"};
   Configurable<std::string> signalname{"param-signal", "BetheBloch", "Name of the parametrization for the expected signal, used in both file and CCDB mode"};
@@ -44,47 +44,48 @@ struct pidTPCTask {
     //
     const std::string fname = paramfile.value;
     if (!fname.empty()) { // Loading the parametrization from file
-      resp.LoadParamFromFile(fname.data(), signalname.value, DetectorResponse::kSignal);
-      resp.LoadParamFromFile(fname.data(), sigmaname.value, DetectorResponse::kSigma);
+      resp.LoadParamFromFile(fname.data(), signalname.value, DetectorResponse<tpc::Response>::kSignal);
+      resp.LoadParamFromFile(fname.data(), sigmaname.value, DetectorResponse<tpc::Response>::kSigma);
     } else { // Loading it from CCDB
       const std::string path = "Analysis/PID/TPC";
-      resp.LoadParam(DetectorResponse::kSignal, ccdb->getForTimeStamp<Parametrization>(path + "/" + signalname.value, timestamp.value));
-      resp.LoadParam(DetectorResponse::kSigma, ccdb->getForTimeStamp<Parametrization>(path + "/" + sigmaname.value, timestamp.value));
+      resp.LoadParam(DetectorResponse<tpc::Response>::kSignal, ccdb->getForTimeStamp<Parametrization>(path + "/" + signalname.value, timestamp.value));
+      resp.LoadParam(DetectorResponse<tpc::Response>::kSigma, ccdb->getForTimeStamp<Parametrization>(path + "/" + sigmaname.value, timestamp.value));
     }
   }
 
   void process(aod::Collision const& collision, soa::Join<aod::Tracks, aod::TracksExtra> const& tracks)
   {
+    tpcpid.reserve(tracks.size());
     for (auto const& i : tracks) {
       resp.UpdateTrack(i.tpcInnerParam(), i.tpcSignal(), i.tpcNClsShared());
       tpcpid(
-        resp.GetExpectedSignal(PID::Electron),
-        resp.GetExpectedSignal(PID::Muon),
-        resp.GetExpectedSignal(PID::Pion),
-        resp.GetExpectedSignal(PID::Kaon),
-        resp.GetExpectedSignal(PID::Proton),
-        resp.GetExpectedSignal(PID::Deuteron),
-        resp.GetExpectedSignal(PID::Triton),
-        resp.GetExpectedSignal(PID::Helium3),
-        resp.GetExpectedSignal(PID::Alpha),
-        resp.GetExpectedSigma(PID::Electron),
-        resp.GetExpectedSigma(PID::Muon),
-        resp.GetExpectedSigma(PID::Pion),
-        resp.GetExpectedSigma(PID::Kaon),
-        resp.GetExpectedSigma(PID::Proton),
-        resp.GetExpectedSigma(PID::Deuteron),
-        resp.GetExpectedSigma(PID::Triton),
-        resp.GetExpectedSigma(PID::Helium3),
-        resp.GetExpectedSigma(PID::Alpha),
-        resp.GetSeparation(PID::Electron),
-        resp.GetSeparation(PID::Muon),
-        resp.GetSeparation(PID::Pion),
-        resp.GetSeparation(PID::Kaon),
-        resp.GetSeparation(PID::Proton),
-        resp.GetSeparation(PID::Deuteron),
-        resp.GetSeparation(PID::Triton),
-        resp.GetSeparation(PID::Helium3),
-        resp.GetSeparation(PID::Alpha));
+        resp.GetExpectedSignal(resp, PID::Electron),
+        resp.GetExpectedSignal(resp, PID::Muon),
+        resp.GetExpectedSignal(resp, PID::Pion),
+        resp.GetExpectedSignal(resp, PID::Kaon),
+        resp.GetExpectedSignal(resp, PID::Proton),
+        resp.GetExpectedSignal(resp, PID::Deuteron),
+        resp.GetExpectedSignal(resp, PID::Triton),
+        resp.GetExpectedSignal(resp, PID::Helium3),
+        resp.GetExpectedSignal(resp, PID::Alpha),
+        resp.GetExpectedSigma(resp, PID::Electron),
+        resp.GetExpectedSigma(resp, PID::Muon),
+        resp.GetExpectedSigma(resp, PID::Pion),
+        resp.GetExpectedSigma(resp, PID::Kaon),
+        resp.GetExpectedSigma(resp, PID::Proton),
+        resp.GetExpectedSigma(resp, PID::Deuteron),
+        resp.GetExpectedSigma(resp, PID::Triton),
+        resp.GetExpectedSigma(resp, PID::Helium3),
+        resp.GetExpectedSigma(resp, PID::Alpha),
+        resp.GetSeparation(resp, PID::Electron),
+        resp.GetSeparation(resp, PID::Muon),
+        resp.GetSeparation(resp, PID::Pion),
+        resp.GetSeparation(resp, PID::Kaon),
+        resp.GetSeparation(resp, PID::Proton),
+        resp.GetSeparation(resp, PID::Deuteron),
+        resp.GetSeparation(resp, PID::Triton),
+        resp.GetSeparation(resp, PID::Helium3),
+        resp.GetSeparation(resp, PID::Alpha));
     }
   }
 };

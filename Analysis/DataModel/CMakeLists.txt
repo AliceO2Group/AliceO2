@@ -10,7 +10,6 @@
 
 o2_add_library(AnalysisDataModel
                SOURCES src/ParamBase.cxx
-                       src/DetectorResponse.cxx
                        src/PIDTOF.cxx
                        src/PIDTPC.cxx
                PRIVATE_INCLUDE_DIRECTORIES ${CMAKE_CURRENT_LIST_DIR}/src

@@ -31,11 +31,10 @@ namespace o2::pid::tpc
 {
 
 /// \brief Class to handle the the TPC detector response
-class Response : public DetectorResponse
+class Response
 {
  public:
   Response() = default;
-  ~Response() override = default;
 
   /// Updater for the TPC response to setup the track parameters
   /// i.e. sets the track of interest
@@ -43,14 +42,14 @@ class Response : public DetectorResponse
 
   // Expected resolution
   /// Gets the expected resolution of the measurement
-  float GetExpectedSigma(o2::track::PID::ID id) const override;
+  float GetExpectedSigma(DetectorResponse<Response>& response, o2::track::PID::ID id) const;
 
   // Expected signal
   /// Gets the expected signal of the measurement
-  float GetExpectedSignal(o2::track::PID::ID id) const override;
+  float GetExpectedSignal(DetectorResponse<Response>& response, o2::track::PID::ID id) const;
 
   // Nsigma
-  float GetSeparation(o2::track::PID::ID id) const override { return (mTPCSignal - GetExpectedSignal(id)) / GetExpectedSigma(id); }
+  float GetSeparation(DetectorResponse<Response>& response, o2::track::PID::ID id) const { return (mTPCSignal - GetExpectedSignal(response, id)) / GetExpectedSigma(response, id); }
 
  private:
   // Event of interest information

@@ -21,9 +21,11 @@
 
 #include <array>
 #include <vector>
+#include "Framework/Logger.h"
 // ROOT includes
 #include "Rtypes.h"
 #include "TMath.h"
+#include "TFile.h"
 
 // O2 includes
 #include "ReconstructionDataFormats/PID.h"
@@ -32,7 +34,8 @@
 namespace o2::pid
 {
 /// \brief Class to handle the general detector response
-class DetectorResponse
+template <typename DetectorImpl>
+class DetectorResponse : public DetectorImpl
 {
  public:
   DetectorResponse() = default;
@@ -43,22 +46,7 @@ class DetectorResponse
                  kSigma,
                  kNParams };
 
-  static const std::array<TString, kNParams> ParamName;
-
-  /// Getter for the expected resolution, purely virtual and reimplemented in derived classes
-  /// @param id particle index to compute the expected sigma
-  /// @return Returns the expected resolution for the hypothesis id
-  virtual pidvar_t GetExpectedSigma(o2::track::PID::ID id) const = 0;
-
-  /// Getter for the expected signal, purely virtual and reimplemented in derived classes
-  /// @param id particle index to compute the expected signal
-  /// @return Returns the expected signal for the hypothesis id
-  virtual pidvar_t GetExpectedSignal(o2::track::PID::ID id) const = 0;
-
-  /// Getter for the expected discriminating value, can be Nsigmas, probabilities or whatever, purely virtual and reimplemented in derived classes
-  /// @param id particle index to compute the separation
-  /// @return Returns the discriminating value for the hypothesis id
-  virtual pidvar_t GetSeparation(o2::track::PID::ID id) const = 0;
+  static constexpr std::array<char const*, kNParams> ParamName = {{"Signal", "Sigma"}};
 
   /// Setter for the parametrization from input TFile
   /// \param fname File name used for input
@@ -88,6 +76,32 @@ class DetectorResponse
   /// Parametrizations for the expected signal and sigma
   std::array<Parametrization*, kNParams> mParam;
 };
+
+template <typename DetectorImpl>
+inline void DetectorResponse<DetectorImpl>::LoadParamFromFile(const TString fname, const TString pname, const Param_t ptype)
+{
+  TFile f(fname, "READ");
+  if (!f.Get(pname)) {
+    LOG(fatal) << "Did not find parametrization " << pname << " in file " << fname;
+  }
+  LOG(info) << "Loading parametrization " << pname << " from TFile " << fname;
+  f.GetObject(pname, mParam[ptype]);
+  f.Close();
+  mParam[ptype]->Print();
+  mParam[ptype]->PrintParametrization();
+}
+
+template <typename DetectorImpl>
+inline void DetectorResponse<DetectorImpl>::SetParameters(const DetectorResponse<DetectorImpl>::Param_t ptype, std::vector<pidvar_t> p)
+{
+  if (!mParam[ptype]) {
+    const std::string pname = std::string(ParamName[ptype]) + "_default_param";
+    LOG(info) << "Creating new parametrization " << pname << " of size " << p.size();
+    mParam[ptype] = new Parametrization(pname, p.size());
+    mParam[ptype]->Print();
+  }
+  mParam[ptype]->SetParameters(p);
+}
 
 } // namespace o2::pid
 
