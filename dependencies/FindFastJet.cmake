@@ -107,6 +107,13 @@ if(${${PKGNAME}_FOUND})
   foreach(incdir ${${PKGNAME}_INCLUDE_DIRS})
     target_include_directories(${PKGNAME}::${PKGNAME} INTERFACE ${incdir})
   endforeach()
+
+  find_library(lib_contrib NAMES "fastjetcontribfragile" PATHS ${${PKGNAME}_LIB_DIRS} NO_DEFAULT_PATH)
+  if(lib_contrib)
+    message(STATUS "adding FastJet contrib")
+    add_library(${PKGNAME}::Contrib IMPORTED INTERFACE GLOBAL)
+    target_link_libraries(${PKGNAME}::Contrib INTERFACE ${lib_contrib})
+  endif()
 endif()
 
 unset(PKGNAME)
