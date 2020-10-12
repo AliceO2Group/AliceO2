@@ -24,28 +24,28 @@ namespace framework
 {
 using namespace rapidjson;
 
-FileNameHolder* makeFileNameHolder(std::string fileName) {
+FileNameHolder* makeFileNameHolder(std::string fileName)
+{
   auto fileNameHolder = new FileNameHolder();
   fileNameHolder->fileName = fileName;
-  
-  TFile file = TFile(fileName.c_str(),"R");
+
+  TFile file = TFile(fileName.c_str(), "R");
   if (!file.IsOpen()) {
-    LOGP(ERROR, "\"{}\" can not be opened.",fileName);
+    LOGP(ERROR, "\"{}\" can not be opened.", fileName);
     return fileNameHolder;
   }
 
   // find TimeFrame folders
   std::regex TFRegex = std::regex("TF_[0-9]+");
-  TList *keyList = file.GetListOfKeys(); 
+  TList* keyList = file.GetListOfKeys();
   for (auto key : *keyList) {
-    if (std::regex_match(((TObjString*)key)->GetString().Data(),TFRegex)) {
+    if (std::regex_match(((TObjString*)key)->GetString().Data(), TFRegex)) {
       fileNameHolder->listOfTimeFrameKeys.emplace_back(std::string(((TObjString*)key)->GetString().Data()));
     }
   }
   fileNameHolder->numberOfTimeFrames = fileNameHolder->listOfTimeFrameKeys.size();
 
   return fileNameHolder;
-
 }
 
 DataInputDescriptor::DataInputDescriptor(bool alienSupport)
@@ -88,26 +88,26 @@ void DataInputDescriptor::addFileNameHolder(FileNameHolder* fn)
     TGrid::Connect("alien://");
     mAlienSupport = true;
   }
-  
+
   mtotalNumberTimeFrames += fn->numberOfTimeFrames;
   mfilenames.emplace_back(fn);
 }
 
-std::tuple<TFile*,std::string> DataInputDescriptor::getFileFolder(int counter)
+std::tuple<TFile*, std::string> DataInputDescriptor::getFileFolder(int counter)
 {
   std::string filename("");
   std::string directoryName("");
-  
+
   int cnt = mfilenames[0]->numberOfTimeFrames;
   if (counter >= 0 && counter < getNumberTimeFrames()) {
-    for (int ii=0; ii<getNumberInputfiles(); ii++) {
+    for (int ii = 0; ii < getNumberInputfiles(); ii++) {
       if (counter < cnt) {
         filename = mfilenames[ii]->fileName;
         cnt -= mfilenames[ii]->numberOfTimeFrames;
-        directoryName = (mfilenames[ii]->listOfTimeFrameKeys)[counter-cnt];
+        directoryName = (mfilenames[ii]->listOfTimeFrameKeys)[counter - cnt];
         break;
       } else {
-        cnt += mfilenames[ii+1]->numberOfTimeFrames;
+        cnt += mfilenames[ii + 1]->numberOfTimeFrames;
       }
     }
 
@@ -467,7 +467,7 @@ std::unique_ptr<TTreeReader> DataInputDirector::getTreeReader(header::DataHeader
 
   auto [file, directory] = didesc->getFileFolder(counter);
   if (file) {
-    treename = directory+"/"+treename;
+    treename = directory + "/" + treename;
     reader = std::make_unique<TTreeReader>(treename.c_str(), file);
     if (!reader) {
       throw std::runtime_error(fmt::format(R"(Couldn't create TTreeReader for tree "{}" in file "{}")", treename, file->GetName()));
@@ -477,14 +477,14 @@ std::unique_ptr<TTreeReader> DataInputDirector::getTreeReader(header::DataHeader
   return reader;
 }
 
-std::tuple<TFile*,std::string> DataInputDirector::getFileFolder(header::DataHeader dh, int counter)
+std::tuple<TFile*, std::string> DataInputDirector::getFileFolder(header::DataHeader dh, int counter)
 {
   auto didesc = getDataInputDescriptor(dh);
   // if NOT match then use defaultDataInputDescriptor
   if (!didesc) {
     didesc = mdefaultDataInputDescriptor;
   }
-  auto [filename,directory] = didesc->getFileFolder(counter);
+  auto [filename, directory] = didesc->getFileFolder(counter);
 
   return std::make_tuple(filename, directory);
 }
@@ -508,7 +508,7 @@ TTree* DataInputDirector::getDataTree(header::DataHeader dh, int counter)
 
   auto [file, directory] = didesc->getFileFolder(counter);
   if (file) {
-    treename = directory+"/"+treename;
+    treename = directory + "/" + treename;
     tree = (TTree*)file->Get(treename.c_str());
     if (!tree) {
       throw std::runtime_error(fmt::format(R"(Couldn't get TTree "{}" from "{}")", treename, file->GetName()));
@@ -554,7 +554,7 @@ void DataInputDirector::printOut()
   LOGP(INFO, "  Default file name regex    : {}", mFilenameRegex);
   LOGP(INFO, "  Default file names         : {}", mdefaultInputFiles.size());
   for (auto const& fn : mdefaultInputFiles)
-    LOGP(INFO, "    {} {}", fn->fileName,fn->numberOfTimeFrames);
+    LOGP(INFO, "    {} {}", fn->fileName, fn->numberOfTimeFrames);
   LOGP(INFO, "  Default DataInputDescriptor:");
   mdefaultDataInputDescriptor->printOut();
   LOGP(INFO, "  DataInputDescriptors       : {}", getNumberInputDescriptors());
