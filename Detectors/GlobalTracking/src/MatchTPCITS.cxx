@@ -1996,8 +1996,8 @@ int MatchTPCITS::checkABSeedFromLr(int lrSeed, int seedID, ABTrackLinksList& lli
     return 0;
   }
   std::vector<int> chipSelClusters; // preliminary cluster candidates //RS TODO do we keep this local / consider array instead of vector
-  o2::math_utils::CircleXY trcCircle;
-  o2::math_utils::IntervalXY trcLinPar; // line parameters for B OFF data
+  o2::math_utils::CircleXYf_t trcCircle;
+  o2::math_utils::IntervalXYf_t trcLinPar; // line parameters for B OFF data
   // approximate errors
   float errY = std::sqrt(seed.getSigmaY2() + YErr2Extra), errYFrac = errY * mRGHelper.ladderWidthInv(), errPhi = errY * lr.rInv;
   if (mFieldON) {
@@ -2126,7 +2126,7 @@ void MatchTPCITS::mergeABSeedsOnOverlaps(int ilrPar, ABTrackLinksList& llist)
 }
 
 //______________________________________________
-int MatchTPCITS::findLaddersToCheckBOn(int ilr, int lad0, const o2::math_utils::CircleXY& circle, float errYFrac,
+int MatchTPCITS::findLaddersToCheckBOn(int ilr, int lad0, const o2::math_utils::CircleXYf_t& circle, float errYFrac,
                                        std::array<int, MatchTPCITS::MaxLadderCand>& lad2Check) const
 {
   // check if ladder lad0 and at most +-MaxUpDnLadders around it are compatible with circular track of
@@ -2162,7 +2162,7 @@ int MatchTPCITS::findLaddersToCheckBOn(int ilr, int lad0, const o2::math_utils::
 }
 
 //______________________________________________
-int MatchTPCITS::findLaddersToCheckBOff(int ilr, int lad0, const o2::math_utils::IntervalXY& trcLinPar, float errYFrac,
+int MatchTPCITS::findLaddersToCheckBOff(int ilr, int lad0, const o2::math_utils::IntervalXYf_t& trcLinPar, float errYFrac,
                                         std::array<int, MatchTPCITS::MaxLadderCand>& lad2Check) const
 {
   // check if ladder lad0 and at most +-MaxUpDnLadders around it are compatible with linear track
