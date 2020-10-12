@@ -618,6 +618,7 @@ DECLARE_SOA_INDEX_TABLE(Run2MatchedSparse, BCs, "MATCHED", INDEX_LIST_RUN2);
 DECLARE_SOA_INDEX_TABLE(Run3MatchedExclusive, BCs, "MATCHED", INDEX_LIST_RUN3);
 DECLARE_SOA_INDEX_TABLE(Run3MatchedSparse, BCs, "MATCHED", INDEX_LIST_RUN3);
 
+
 DECLARE_SOA_INDEX_TABLE(BCCollisionsExclusive, BCs, "MA_BCCOL_EX", indices::BCId, indices::CollisionId);
 DECLARE_SOA_INDEX_TABLE(BCCollisionsSparse, BCs, "MA_BCCOL_SP", indices::BCId, indices::CollisionId);
 
