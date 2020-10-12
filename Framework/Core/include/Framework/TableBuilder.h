@@ -104,7 +104,7 @@ struct BuilderUtils {
   template <typename T>
   static arrow::Status appendToList(std::unique_ptr<arrow::FixedSizeListBuilder>& builder, T* data, int size = 1)
   {
-    using ArrowType = typename arrow::stl::ConversionTraits<T>::ArrowType;
+    using ArrowType = typename arrow::stl::ConversionTraits<std::decay_t<T>>::ArrowType;
     using BuilderType = typename arrow::TypeTraits<ArrowType>::BuilderType;
     size_t numElements = static_cast<const arrow::FixedSizeListType*>(builder->type().get())->list_size();
 
