@@ -55,6 +55,14 @@ bool RawDataChecker::process(gsl::span<const LocalBoardRO> localBoards, gsl::spa
   return isOk;
 }
 
+void RawDataChecker::setSyncTrigger(uint32_t syncTrigger)
+{
+  /// Sets the trigger use to verify if all data of an event where received
+  for (auto& checker : mCheckers) {
+    checker.setSyncTrigger(syncTrigger);
+  }
+}
+
 unsigned int RawDataChecker::getNEventsProcessed() const
 {
   /// Gets the number of processed events
