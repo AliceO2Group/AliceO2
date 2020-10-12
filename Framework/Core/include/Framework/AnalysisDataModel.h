@@ -432,7 +432,7 @@ DECLARE_SOA_COLUMN(Time, time, float);
 DECLARE_SOA_COLUMN(TriggerMask, triggerMask, uint8_t);
 } // namespace fv0a
 
-DECLARE_SOA_TABLE(FV0As, "AOD", "FV0A", o2::soa::Index<>, fv0a::BCId,fv0a::Amplitude, fv0a::Time, fv0a::TriggerMask);
+DECLARE_SOA_TABLE(FV0As, "AOD", "FV0A", o2::soa::Index<>, fv0a::BCId, fv0a::Amplitude, fv0a::Time, fv0a::TriggerMask);
 using FV0A = FV0As::iterator;
 
 // V0C table for Run2 only
@@ -443,7 +443,7 @@ DECLARE_SOA_COLUMN(Amplitude, amplitude, float[32]);
 DECLARE_SOA_COLUMN(Time, time, float);
 } // namespace fv0c
 
-DECLARE_SOA_TABLE(FV0Cs, "AOD", "FV0C", o2::soa::Index<>, fv0c::BCId,fv0c::Amplitude, fv0c::Time);
+DECLARE_SOA_TABLE(FV0Cs, "AOD", "FV0C", o2::soa::Index<>, fv0c::BCId, fv0c::Amplitude, fv0c::Time);
 using FV0C = FV0Cs::iterator;
 
 namespace ft0
@@ -457,7 +457,7 @@ DECLARE_SOA_COLUMN(TriggerMask, triggerMask, uint8_t);
 } // namespace ft0
 
 DECLARE_SOA_TABLE(FT0s, "AOD", "FT0", o2::soa::Index<>, ft0::BCId,
-                  ft0::AmplitudeA,ft0::AmplitudeC, ft0::TimeA, ft0::TimeC,
+                  ft0::AmplitudeA, ft0::AmplitudeC, ft0::TimeA, ft0::TimeC,
                   ft0::TriggerMask);
 using FT0 = FT0s::iterator;
 
@@ -617,7 +617,6 @@ DECLARE_SOA_INDEX_TABLE(Run2MatchedSparse, BCs, "MATCHED", INDEX_LIST_RUN2);
 #define INDEX_LIST_RUN3 indices::CollisionId, indices::ZdcId, indices::BCId, indices::FT0Id, indices::FV0AId, indices::FV0CId, indices::FDDId
 DECLARE_SOA_INDEX_TABLE(Run3MatchedExclusive, BCs, "MATCHED", INDEX_LIST_RUN3);
 DECLARE_SOA_INDEX_TABLE(Run3MatchedSparse, BCs, "MATCHED", INDEX_LIST_RUN3);
-
 
 DECLARE_SOA_INDEX_TABLE(BCCollisionsExclusive, BCs, "MA_BCCOL_EX", indices::BCId, indices::CollisionId);
 DECLARE_SOA_INDEX_TABLE(BCCollisionsSparse, BCs, "MA_BCCOL_SP", indices::BCId, indices::CollisionId);

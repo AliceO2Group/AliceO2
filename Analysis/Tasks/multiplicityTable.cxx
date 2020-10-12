@@ -27,17 +27,17 @@ struct MultiplicityTableTaskIndexed {
     float multZNA = -1.f;
     float multZNC = -1.f;
     int multTracklets = tracklets.size();
-        
+
     if (collision.has_fv0a()) {
       auto v0a = collision.fv0a();
-      for (int i=0;i<48;i++) {
-        multV0A+=fv0a.amplitude()[i];
+      for (int i = 0; i < 48; i++) {
+        multV0A += v0a.amplitude()[i];
       }
     }
     if (collision.has_fv0c()) {
       auto v0c = collision.fv0c();
-      for (int i=0;i<32;i++) {
-        multV0C+=fv0c.amplitude()[i];
+      for (int i = 0; i < 32; i++) {
+        multV0C += v0c.amplitude()[i];
       }
     }
     if (collision.has_zdc()) {

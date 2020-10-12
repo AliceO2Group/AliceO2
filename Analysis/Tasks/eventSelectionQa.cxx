@@ -33,7 +33,7 @@ struct EventSelectionTask {
     aod::FV0C dummy;
     return dummy;
   }
-  
+
   aod::Zdc getZdc(aod::BC const& bc, aod::Zdcs const& zdcs)
   {
     for (auto& zdc : zdcs)

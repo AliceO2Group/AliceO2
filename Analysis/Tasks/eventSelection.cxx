@@ -58,42 +58,6 @@ struct EventSelectionTask {
 
   EvSelParameters par;
 
-  aod::FV0A getVZeroA(aod::BC const& bc, aod::FV0As const& vzeros)
-  {
-    for (auto& vzero : vzeros)
-      if (vzero.bc() == bc)
-        return vzero;
-    aod::FV0A dummy;
-    return dummy;
-  }
-
-  aod::FV0C getVZeroC(aod::BC const& bc, aod::FV0Cs const& vzeros)
-  {
-    for (auto& vzero : vzeros)
-      if (vzero.bc() == bc)
-        return vzero;
-    aod::FV0C dummy;
-    return dummy;
-  }
-  
-  aod::Zdc getZdc(aod::BC const& bc, aod::Zdcs const& zdcs)
-  {
-    for (auto& zdc : zdcs)
-      if (zdc.bc() == bc)
-        return zdc;
-    aod::Zdc dummy;
-    return dummy;
-  }
-
-  aod::FDD getFDD(aod::BC const& bc, aod::FDDs const& fdds)
-  {
-    for (auto& fdd : fdds)
-      if (fdd.bc() == bc)
-        return fdd;
-    aod::FDD dummy;
-    return dummy;
-  }
-
   void init(InitContext&)
   {
     ccdb->setURL("http://ccdb-test.cern.ch:8080");
@@ -101,7 +65,7 @@ struct EventSelectionTask {
     ccdb->setLocalObjectValidityChecking();
   }
 
-  void process(aod::Collision const& collision, aod::BCsWithTimestamps const&, aod::Zdcs const& zdcs, aod::FV0As const& fv0as, aod::FV0Cs const& fv0cs, aod::FDDs const& fdds)
+  void process(aod::Run2MatchedSparse::iterator const& collision, aod::BCsWithTimestamps const&, aod::Zdcs const& zdcs, aod::FV0As const& fv0as, aod::FV0Cs const& fv0cs, aod::FDDs const& fdds)
   {
     auto bc = collision.bc_as<aod::BCsWithTimestamps>();
     LOGF(debug, "timestamp=%llu", bc.timestamp());
@@ -120,19 +84,12 @@ struct EventSelectionTask {
       }
     }
 
-    // ZDC info
-    auto zdc = getZdc(collision.bc(), zdcs);
-    float timeZNA = zdc.timeZNA();
-    float timeZNC = zdc.timeZNC();
-    // VZERO info
-    auto fv0a = getVZeroA(collision.bc(), fv0as);
-    float timeV0A = fv0a.time();
-    auto fv0c = getVZeroC(collision.bc(), fv0cs);
-    float timeV0C = fv0c.time();
-    // FDD info
-    auto fdd = getFDD(collision.bc(), fdds);
-    float timeFDA = fdd.timeA();
-    float timeFDC = fdd.timeC();
+    float timeZNA = collision.has_zdc() ? collision.zdc().timeZNA() : -999.f;
+    float timeZNC = collision.has_zdc() ? collision.zdc().timeZNC() : -999.f;
+    float timeV0A = collision.has_fv0a() ? collision.fv0a().time() : -999.f;
+    float timeV0C = collision.has_fv0c() ? collision.fv0c().time() : -999.f;
+    float timeFDA = collision.has_fdd() ? collision.fdd().timeA() : -999.f;
+    float timeFDC = collision.has_fdd() ? collision.fdd().timeC() : -999.f;
 
     LOGF(debug, "timeZNA=%f timeZNC=%f", timeZNA, timeZNC);
     LOGF(debug, "timeV0A=%f timeV0C=%f", timeV0A, timeV0C);
