@@ -66,6 +66,10 @@ int process(po::variables_map& vm)
     checker.setElectronicsDelay(electronicsDelay);
   }
 
+  if (vm.count("sync-trigger")) {
+    checker.setSyncTrigger(vm["sync-trigger"].as<uint32_t>());
+  }
+
   if (vm.count("crate-masks-file")) {
     o2::mid::CrateMasks crateMasks(vm["crate-masks-file"].as<std::string>().c_str());
     decoder.setCrateMasks(crateMasks);
@@ -165,7 +169,8 @@ int main(int argc, char* argv[])
           ("crate-masks-file", po::value<std::string>(),"Filename with crate masks")
           ("electronics-delay-file", po::value<std::string>(),"Filename with electronics delay")
           ("output-dir", po::value<std::string>()->default_value(""),"Output directory")
-          ("bare", po::value<bool>()->implicit_value(true),"Use bare decoder");
+          ("bare", po::value<bool>()->implicit_value(true),"Use bare decoder")
+          ("sync-trigger", po::value<unsigned int>(),"Trigger used for synchronisation (default is orbit 0x1)");
 
 
   po::options_description hidden("hidden options");

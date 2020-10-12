@@ -46,6 +46,8 @@ class RawDataChecker
   /// Sets the delay in the electronics
   void setElectronicsDelay(const ElectronicsDelay& electronicsDelay) { mElectronicsDelay = electronicsDelay; }
 
+  void setSyncTrigger(uint32_t syncTrigger);
+
  private:
   std::array<GBTRawDataChecker, crateparams::sNGBTs> mCheckers{}; /// GBT raw data checker
   std::string mDebugMsg{};                                        /// Debug message
