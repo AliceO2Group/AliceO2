@@ -41,7 +41,7 @@ jobs:
 
         for x in $COMMIT_FILES; do
           case $x in
-            *.h|*.cxx)
+            # *.h|*.cxx)
               # We remove the header from the diff as it contains +++ then
               # we only select the added lines to check for the long ones.
               # We do not need to check for the lines which have been removed
