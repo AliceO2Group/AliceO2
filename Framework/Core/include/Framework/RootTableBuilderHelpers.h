@@ -232,7 +232,7 @@ struct RootTableBuilderHelpers {
 
 namespace arrow::stl
 {
-O2_ARROW_STL_CONVERSION(Remap64bit<long>::type, int64_t, Int64Type)
-O2_ARROW_STL_CONVERSION(Remap64bit<unsigned long>::type, uint64_t, UInt64Type)
+O2_ARROW_STL_CONVERSION(o2::framework::Remap64Bit<long>::type, int64_t, Int64Type)
+O2_ARROW_STL_CONVERSION(o2::framework::Remap64Bit<unsigned long>::type, uint64_t, UInt64Type)
 } // namespace arrow::stl
 #endif // FRAMEWORK_ROOTTABLEBUILDERHELPERS_H
