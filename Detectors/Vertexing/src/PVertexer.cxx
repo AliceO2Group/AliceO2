@@ -14,6 +14,7 @@
 
 #include "DetectorsVertexing/PVertexer.h"
 #include "ReconstructionDataFormats/DCA.h"
+#include "DetectorsBase/Propagator.h"
 #include "Math/SMatrix.h"
 #include "Math/SVector.h"
 #include <numeric>
@@ -87,7 +88,7 @@ int PVertexer::process(gsl::span<const o2d::TrackTPCITS> tracksITSTPC, gsl::span
     int it = v2tRefsLoc[i].getFirstEntry(), itEnd = it + v2tRefsLoc[i].getEntries(), dest0 = vertexTrackIDs.size();
     for (; it < itEnd; it++) {
       auto& gid = vertexTrackIDs.emplace_back(vertexTrackIDsLoc[it], GIndex::TPCITS);
-      gid.setBit(GIndex::Contributor);
+      gid.setPVContributor();
     }
     v2tRefs.emplace_back(dest0, v2tRefsLoc[i].getEntries());
     LOG(DEBUG) << "#" << count++ << " " << vertices.back() << " | " << v2tRefs.back().getEntries() << " indices from " << v2tRefs.back().getFirstEntry(); // RS REM
@@ -429,6 +430,9 @@ void PVertexer::init()
   mFT0Params = &o2::ft0::InteractionTag::Instance();
   setTukey(mPVParams->tukey);
   initMeanVertexConstraint();
+
+  auto* prop = o2::base::Propagator::Instance();
+  setBz(prop->getNominalBz());
 }
 
 //___________________________________________________________________

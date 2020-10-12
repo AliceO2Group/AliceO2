@@ -13,10 +13,13 @@
 #include <vector>
 #include "ReconstructionDataFormats/TrackTPCITS.h"
 #include "DetectorsBase/Propagator.h"
+#include "DetectorsBase/GeometryManager.h"
 #include "GlobalTrackingWorkflow/PrimaryVertexingSpec.h"
 #include "SimulationDataFormat/MCEventLabel.h"
 #include "CommonDataFormat/BunchFilling.h"
 #include "SimulationDataFormat/DigitizationContext.h"
+#include "DetectorsCommonDataFormats/NameConf.h"
+#include "Framework/ConfigParamRegistry.h"
 
 using namespace o2::framework;
 
@@ -28,7 +31,18 @@ namespace vertexing
 void PrimaryVertexingSpec::init(InitContext& ic)
 {
   //-------- init geometry and field --------//
+  o2::base::GeometryManager::loadGeometry();
   o2::base::Propagator::initFieldFromGRP("o2sim_grp.root");
+  // this is a hack to provide Mat.LUT from the local file, in general will be provided by the framework from CCDB
+  std::string matLUTPath = ic.options().get<std::string>("material-lut-path");
+  std::string matLUTFile = o2::base::NameConf::getMatLUTFileName(matLUTPath);
+  if (o2::base::NameConf::pathExists(matLUTFile)) {
+    auto* lut = o2::base::MatLayerCylSet::loadFromFile(matLUTFile);
+    o2::base::Propagator::Instance()->setMatLUT(lut);
+    LOG(INFO) << "Loaded material LUT from " << matLUTFile;
+  } else {
+    LOG(INFO) << "Material LUT " << matLUTFile << " file is absent, only TGeo can be used";
+  }
   mTimer.Stop();
   mTimer.Reset();
   mVertexer.setValidateWithFT0(mValidateWithFT0);
@@ -108,7 +122,7 @@ DataProcessorSpec getPrimaryVertexingSpec(bool validateWithFT0, bool useMC)
     inputs,
     outputs,
     AlgorithmSpec{adaptFromTask<PrimaryVertexingSpec>(validateWithFT0, useMC)},
-    Options{}};
+    Options{{"material-lut-path", VariantType::String, "", {"Path of the material LUT file"}}}};
 }
 
 } // namespace vertexing
