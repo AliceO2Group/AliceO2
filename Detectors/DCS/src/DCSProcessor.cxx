@@ -100,7 +100,7 @@ void DCSProcessor::init(const std::vector<DPID>& aliaseschars, const std::vector
   mLatestTimestampstrings.resize(aliasesstrings.size(), 0);
   mLatestTimestamptimes.resize(aliasestimes.size(), 0);
   mLatestTimestampbinaries.resize(aliasesbinaries.size(), 0);
-  mAvgTestInt.resize(aliasesints.size(), 0);
+  //  mAvgTestInt.resize(aliasesints.size(), 0);
 }
 
 //______________________________________________________________________
@@ -153,7 +153,7 @@ void DCSProcessor::init(const std::vector<DPID>& aliases)
   mLatestTimestampstrings.resize(nstrings, 0);
   mLatestTimestamptimes.resize(ntimes, 0);
   mLatestTimestampbinaries.resize(nbinaries, 0);
-  mAvgTestInt.resize(nints, 0);
+  //  mAvgTestInt.resize(nints, 0);
 }
 
 //__________________________________________________________________
@@ -164,7 +164,22 @@ int DCSProcessor::process(const std::unordered_map<DPID, DPVAL>& map, bool isDel
   // process function to do "something" with the DCS map that is passed
 
   // resetting the content of the CCDB object to be sent
-  mccdbInt.clear();
+
+  if (!isDelta) {
+    // full map sent
+    mFullMapSent = true;
+  }
+  else {    
+    if (!mFullMapSent) {
+      LOG(ERROR) << "We need first a full map!";
+    }
+    mNCyclesNoFullMap++;
+    if (mNCyclesNoFullMap > mMaxCyclesNoFullMap) {
+      LOG(ERROR) << "We expected a full map!";
+    }
+  }
+  
+  //mccdbSimpleMovingAverage.clear();
   mIsDelta = isDelta;
 
   // we need to check if there are the Data Points that we need
@@ -179,8 +194,8 @@ int DCSProcessor::process(const std::unordered_map<DPID, DPVAL>& map, bool isDel
 
   // int type
   foundInts = processArrayType(mAliasesints, DeliveryType::RAW_INT, map, mLatestTimestampints, mDpsintsmap);
-  if (foundInts > 0)
-    processInts();
+  //  if (foundInts > 0)
+  //  processInts();
 
   // double type
   foundDoubles = processArrayType(mAliasesdoubles, DeliveryType::RAW_DOUBLE, map, mLatestTimestampdoubles, mDpsdoublesmap);
@@ -231,6 +246,16 @@ int DCSProcessor::process(const std::unordered_map<DPID, DPVAL>& map, bool isDel
       LOG(INFO) << "Not all expected binary-typed DPs found!";
   }
 
+  // filling CCDB info to be sent in output
+  std::map<std::string, std::string> md;
+  prepareCCDBobject(mccdbSimpleMovingAverage, mccdbSimpleMovingAverageInfo, "TestDCS/SimpleMovingAverageDPs", mTF, md);
+
+  LOG(DEBUG) << "Size of unordered_map for CCDB = " << mccdbSimpleMovingAverage.size(); 
+  LOG(DEBUG) << "CCDB entry for TF " << mTF << " will be:";
+  for (const auto& i : mccdbSimpleMovingAverage){
+    LOG(DEBUG) << i.first << " --> " << i.second;
+  }
+  
   return 0;
 }
 
@@ -246,7 +271,7 @@ int DCSProcessor::processArrayType(const std::vector<DPID>& array, DeliveryType 
   auto s = array.size();
   if (s > 0) {
     for (size_t i = 0; i != s; ++i) {
-      auto it = processAlias(array[i], type, map);
+      auto it = findAndCheckAlias(array[i], type, map);
       if (it == map.end()) {
         if (!mIsDelta) {
           LOG(ERROR) << "Element " << array[i] << " not found " << std::endl;
@@ -285,7 +310,7 @@ int DCSProcessor::processArrayType(const std::vector<DPID>& array, DeliveryType 
   auto s = array.size();
   if (s > 0) {
     for (size_t i = 0; i != s; ++i) {
-      auto it = processAlias(array[i], type, map);
+      auto it = findAndCheckAlias(array[i], type, map);
       if (it == map.end()) {
         if (!mIsDelta) {
           LOG(ERROR) << "Element " << array[i] << " not found " << std::endl;
@@ -314,7 +339,23 @@ int DCSProcessor::processArrayType(const std::vector<DPID>& array, DeliveryType 
 
 //______________________________________________________________________
 
-std::unordered_map<DPID, DPVAL>::const_iterator DCSProcessor::processAlias(const DPID& alias, DeliveryType type, const std::unordered_map<DPID, DPVAL>& map)
+template <>
+void DCSProcessor::processDP(const DPID& alias, std::deque<int>& aliasdeque)
+{
+  // processing the single alias of type int
+  bool isSMA = false;
+  doSimpleMovingAverage(2, aliasdeque, mSimpleMovingAverage[alias], isSMA);
+  LOG(DEBUG) << "Moving average = " << mSimpleMovingAverage[alias];
+  // create CCDB object
+  //if (isSMA) {
+    mccdbSimpleMovingAverage[alias.get_alias()] = mSimpleMovingAverage[alias];
+    //}
+  return;
+}
+
+//______________________________________________________________________
+
+std::unordered_map<DPID, DPVAL>::const_iterator DCSProcessor::findAndCheckAlias(const DPID& alias, DeliveryType type, const std::unordered_map<DPID, DPVAL>& map)
 {
 
   // processing basic checks for map: all needed aliases must be present
@@ -367,15 +408,15 @@ void DCSProcessor::processInts()
     bool isSMA = false;
     LOG(DEBUG) << "get alias = " << id.get_alias();
     // I do the moving average always of the last 2 points, no matter if it was updated or not
-    doSimpleMovingAverage(2, vint, mAvgTestInt[i], isSMA);
-    LOG(DEBUG) << "Moving average = " << mAvgTestInt[i];
+    doSimpleMovingAverage(2, vint, mSimpleMovingAverage[id], isSMA);
+    LOG(DEBUG) << "Moving average = " << mSimpleMovingAverage[id];
     if (isSMA) {
       // create CCDB object
-      mccdbInt[id.get_alias()] = mAvgTestInt[i];
+      mccdbSimpleMovingAverage[id.get_alias()] = mSimpleMovingAverage[id];
     }
   }
   std::map<std::string, std::string> md;
-  prepareCCDBobject(mccdbInt, mccdbIntInfo, "TestDCS/IntDPs", mTF, md);
+  prepareCCDBobject(mccdbSimpleMovingAverage, mccdbSimpleMovingAverageInfo, "TestDCS/IntDPs", mTF, md);
 }
 
 //______________________________________________________________________
