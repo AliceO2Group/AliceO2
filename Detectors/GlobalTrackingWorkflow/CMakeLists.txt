@@ -18,6 +18,9 @@ o2_add_library(GlobalTrackingWorkflow
                        src/PrimaryVertexWriterSpec.cxx
                        src/PrimaryVertexReaderSpec.cxx
                        src/VertexTrackMatcherSpec.cxx
+                       src/SecondaryVertexingSpec.cxx
+                       src/SecondaryVertexWriterSpec.cxx
+                       src/SecondaryVertexReaderSpec.cxx
                PUBLIC_LINK_LIBRARIES O2::GlobalTracking
                                      O2::ITStracking
                                      O2::ITSWorkflow
@@ -36,10 +39,20 @@ o2_add_executable(vertexing-workflow
                   COMPONENT_NAME primary
                   SOURCES src/primary-vertexing-workflow.cxx
                   PUBLIC_LINK_LIBRARIES O2::GlobalTrackingWorkflow )
-
+                
 o2_add_executable(vertex-reader-workflow
                   COMPONENT_NAME primary
                   SOURCES src/primary-vertex-reader-workflow.cxx
+                  PUBLIC_LINK_LIBRARIES O2::GlobalTrackingWorkflow )
+
+o2_add_executable(vertex-reader-workflow
+                  COMPONENT_NAME secondary
+                  SOURCES src/secondary-vertex-reader-workflow.cxx
+                  PUBLIC_LINK_LIBRARIES O2::GlobalTrackingWorkflow )
+
+o2_add_executable(vertexing-workflow
+                  COMPONENT_NAME secondary
+                  SOURCES src/secondary-vertexing-workflow.cxx
                   PUBLIC_LINK_LIBRARIES O2::GlobalTrackingWorkflow )
 
 

@@ -20,6 +20,7 @@ o2_add_library(ReconstructionDataFormats
                        src/TrackLTIntegral.cxx
                        src/PID.cxx
                        src/DCA.cxx
+                       src/V0.cxx
                        src/VtxTrackIndex.cxx
                        src/VtxTrackRef.cxx
                PUBLIC_LINK_LIBRARIES O2::GPUCommon
@@ -39,6 +40,7 @@ o2_target_root_dictionary(
           include/ReconstructionDataFormats/TrackLTIntegral.h
           include/ReconstructionDataFormats/PID.h
           include/ReconstructionDataFormats/DCA.h
+          include/ReconstructionDataFormats/V0.h
           include/ReconstructionDataFormats/VtxTrackIndex.h
           include/ReconstructionDataFormats/VtxTrackRef.h)
 
