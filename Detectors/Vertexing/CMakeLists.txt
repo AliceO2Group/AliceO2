@@ -14,6 +14,9 @@ o2_add_library(DetectorsVertexing
                        src/PVertexerHelpers.cxx
                        src/PVertexerParams.cxx
                        src/VertexTrackMatcher.cxx
+                       src/SVertexer.cxx
+                       src/SVertexerParams.cxx
+                       src/V0Hypothesis.cxx
                PUBLIC_LINK_LIBRARIES ROOT::Core
 	                             O2::CommonUtils
                                      O2::ReconstructionDataFormats
@@ -29,8 +32,12 @@ o2_target_root_dictionary(DetectorsVertexing
                           HEADERS include/DetectorsVertexing/HelixHelper.h
                                   include/DetectorsVertexing/PVertexer.h
                                   include/DetectorsVertexing/PVertexerHelpers.h
+                                  include/DetectorsVertexing/PVertexerParams.h
                                   include/DetectorsVertexing/VertexTrackMatcher.h
-                                  include/DetectorsVertexing/DCAFitterN.h)
+                                  include/DetectorsVertexing/DCAFitterN.h
+                                  include/DetectorsVertexing/SVertexer.h
+                                  include/DetectorsVertexing/SVertexerParams.h
+                                  include/DetectorsVertexing/V0Hypothesis.h)
 
 o2_add_test(
   DCAFitterN
