@@ -234,7 +234,7 @@ int main(int, char**)
 
   displayEntity<Zdcs>();
   displayEntity<FT0s>();
-  displayEntity<FV0s>();
+  displayEntity<FV0As>();
   displayEntity<FDDs>();
 
   displayEntities<Collisions, Cents, Mults, Timestamps>();
@@ -245,7 +245,7 @@ int main(int, char**)
   displayEntity<CaloTriggers>();
   displayEntity<McCaloLabels>();
 
-  displayEntity<Run2V0s>();
+  displayEntity<FV0Cs>();
 
   displayEntities<Tracks, TracksCov, TracksExtra, TracksExtended, TrackSelection, pidRespTOF, pidRespTPC>();
   displayEntity<UnassignedTracks>();

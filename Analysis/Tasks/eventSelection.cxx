@@ -58,15 +58,24 @@ struct EventSelectionTask {
 
   EvSelParameters par;
 
-  aod::Run2V0 getVZero(aod::BC const& bc, aod::Run2V0s const& vzeros)
+  aod::FV0A getVZeroA(aod::BC const& bc, aod::FV0As const& vzeros)
   {
     for (auto& vzero : vzeros)
       if (vzero.bc() == bc)
         return vzero;
-    aod::Run2V0 dummy;
+    aod::FV0A dummy;
     return dummy;
   }
 
+  aod::FV0C getVZeroC(aod::BC const& bc, aod::FV0Cs const& vzeros)
+  {
+    for (auto& vzero : vzeros)
+      if (vzero.bc() == bc)
+        return vzero;
+    aod::FV0C dummy;
+    return dummy;
+  }
+  
   aod::Zdc getZdc(aod::BC const& bc, aod::Zdcs const& zdcs)
   {
     for (auto& zdc : zdcs)
@@ -92,7 +101,7 @@ struct EventSelectionTask {
     ccdb->setLocalObjectValidityChecking();
   }
 
-  void process(aod::Collision const& collision, aod::BCsWithTimestamps const&, aod::Zdcs const& zdcs, aod::Run2V0s const& vzeros, aod::FDDs const& fdds)
+  void process(aod::Collision const& collision, aod::BCsWithTimestamps const&, aod::Zdcs const& zdcs, aod::FV0As const& fv0as, aod::FV0Cs const& fv0cs, aod::FDDs const& fdds)
   {
     auto bc = collision.bc_as<aod::BCsWithTimestamps>();
     LOGF(debug, "timestamp=%llu", bc.timestamp());
@@ -116,9 +125,10 @@ struct EventSelectionTask {
     float timeZNA = zdc.timeZNA();
     float timeZNC = zdc.timeZNC();
     // VZERO info
-    auto vzero = getVZero(collision.bc(), vzeros);
-    float timeV0A = vzero.timeA();
-    float timeV0C = vzero.timeC();
+    auto fv0a = getVZeroA(collision.bc(), fv0as);
+    float timeV0A = fv0a.time();
+    auto fv0c = getVZeroC(collision.bc(), fv0cs);
+    float timeV0C = fv0c.time();
     // FDD info
     auto fdd = getFDD(collision.bc(), fdds);
     float timeFDA = fdd.timeA();
