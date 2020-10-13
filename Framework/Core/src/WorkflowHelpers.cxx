@@ -384,10 +384,10 @@ void WorkflowHelpers::injectServiceDevices(WorkflowSpec& workflow, ConfigContext
   std::vector<bool> isdangling;
   for (auto ii = 0u; ii < OutputsInputs.size(); ii++) {
     if ((outputTypes[ii] & 2) == 2) {
-      outputsInputsAOD.emplace_back(OutputsInputs[ii]);
 
-      // is this dangling
+      // temporarily also request to be dangling
       if ((outputTypes[ii] & 1) == 1) {
+        outputsInputsAOD.emplace_back(OutputsInputs[ii]);
         isdangling.emplace_back((outputTypes[ii] & 1) == 1);
       }
     }
