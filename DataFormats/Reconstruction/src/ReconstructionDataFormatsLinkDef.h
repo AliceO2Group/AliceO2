@@ -16,10 +16,10 @@
 
 #pragma link C++ class o2::track::TrackPar + ;
 #pragma link C++ class o2::track::TrackParametrization < float> + ;
-//#pragma link C++ class o2::track::TrackParametrization < double> + ;
+#pragma link C++ class o2::track::TrackParametrization < double> + ;
 #pragma link C++ class o2::track::TrackParCov + ;
 #pragma link C++ class o2::track::TrackParametrizationWithError < float> + ;
-//#pragma link C++ class o2::track::TrackParametrizationWithError < double> + ;
+#pragma link C++ class o2::track::TrackParametrizationWithError < double> + ;
 #pragma link C++ class o2::track::TrackParFwd + ;
 #pragma link C++ class o2::track::TrackParCovFwd + ;
 #pragma link C++ class o2::track::PID + ;
