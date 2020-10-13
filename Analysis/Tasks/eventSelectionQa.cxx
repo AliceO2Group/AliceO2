@@ -16,12 +16,21 @@ using namespace o2;
 using namespace o2::framework;
 
 struct EventSelectionTask {
-  aod::Run2V0 getVZero(aod::BC const& bc, aod::Run2V0s const& vzeros)
+  aod::FV0A getVZeroA(aod::BC const& bc, aod::FV0As const& vzeros)
   {
     for (auto& vzero : vzeros)
       if (vzero.bc() == bc)
         return vzero;
-    aod::Run2V0 dummy;
+    aod::FV0A dummy;
+    return dummy;
+  }
+
+  aod::FV0C getVZeroC(aod::BC const& bc, aod::FV0Cs const& vzeros)
+  {
+    for (auto& vzero : vzeros)
+      if (vzero.bc() == bc)
+        return vzero;
+    aod::FV0C dummy;
     return dummy;
   }
 
@@ -58,14 +67,15 @@ struct EventSelectionTask {
 
   Configurable<bool> isMC{"isMC", 0, "0 - data, 1 - MC"};
 
-  void process(soa::Join<aod::Collisions, aod::EvSels>::iterator const& col, aod::BCs const& bcs, aod::Zdcs const& zdcs, aod::Run2V0s const& vzeros, aod::FDDs fdds)
+  void process(soa::Join<aod::Collisions, aod::EvSels>::iterator const& col, aod::BCs const& bcs, aod::Zdcs const& zdcs, aod::FV0As const& fv0as, aod::FV0Cs const& fv0cs, aod::FDDs fdds)
   {
     if (!isMC && !col.alias()[kINT7])
       return;
 
-    auto vzero = getVZero(col.bc(), vzeros);
-    hTimeV0Aall->Fill(vzero.timeA());
-    hTimeV0Call->Fill(vzero.timeC());
+    auto fv0a = getVZeroA(col.bc(), fv0as);
+    auto fv0c = getVZeroC(col.bc(), fv0cs);
+    hTimeV0Aall->Fill(fv0a.time());
+    hTimeV0Call->Fill(fv0c.time());
 
     auto zdc = getZdc(col.bc(), zdcs);
     hTimeZNAall->Fill(zdc.timeZNA());
@@ -78,8 +88,8 @@ struct EventSelectionTask {
     if (!col.sel7())
       return;
 
-    hTimeV0Aacc->Fill(vzero.timeA());
-    hTimeV0Cacc->Fill(vzero.timeC());
+    hTimeV0Aacc->Fill(fv0a.time());
+    hTimeV0Cacc->Fill(fv0c.time());
     hTimeZNAacc->Fill(zdc.timeZNA());
     hTimeZNCacc->Fill(zdc.timeZNC());
     hTimeFDAacc->Fill(fdd.timeA());
