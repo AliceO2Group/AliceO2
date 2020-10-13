@@ -120,6 +120,7 @@ AddOption(registerStandaloneInputMemory, bool, false, "registerInputMemory", 0, 
 AddOption(memoryScalingFactor, float, 1.f, "", 0, "Factor to apply to all memory scalers")
 AddOption(alternateBorderSort, int, -1, "", 0, "Alternative implementation for sorting of border tracks")
 AddOption(enableRTC, bool, false, "", 0, "Use RTC to optimize GPU code")
+AddOption(showOutputStat, bool, false, "", 0, "Print some track output statistics")
 AddVariable(eventDisplay, GPUCA_NAMESPACE::gpu::GPUDisplayBackend*, nullptr)
 AddHelp("help", 'h')
 EndConfig()
