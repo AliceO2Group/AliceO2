@@ -83,6 +83,7 @@ const std::unordered_map<std::string, OutputType> OutputMap{
   {"compressed-clusters", OutputType::CompClusters},
   {"encoded-clusters", OutputType::EncodedClusters},
   {"disable-writer", OutputType::DisableWriter},
+  {"send-clusters-per-sector", OutputType::SendClustersPerSector},
   {"zsraw", OutputType::ZSRaw},
 };
 
@@ -413,7 +414,7 @@ framework::WorkflowSpec getWorkflow(CompletionPolicyData* policyData, std::vecto
                                    BranchDefinition<std::vector<char>>{InputSpec{"mc", ConcreteDataTypeMatcher{"TPC", "CLNATIVEMCLBL"}},
                                                                        "TPCClusterNativeMCTruth",
                                                                        "mcbranch", fillLabels},
-                                   caClusterer || decompressTPC));
+                                   (caClusterer || decompressTPC) && !isEnabled(OutputType::SendClustersPerSector)));
   }
 
   if (zsOnTheFly) {
@@ -440,6 +441,7 @@ framework::WorkflowSpec getWorkflow(CompletionPolicyData* policyData, std::vecto
                                                                produceTracks ? ca::Operation::OutputTracks : ca::Operation::Noop,
                                                                produceCompClusters ? ca::Operation::OutputCompClusters : ca::Operation::Noop,
                                                                runClusterEncoder ? ca::Operation::OutputCompClustersFlat : ca::Operation::Noop,
+                                                               isEnabled(OutputType::SendClustersPerSector) ? ca::Operation::SendClustersPerSector : ca::Operation::Noop,
                                                                isEnabled(OutputType::Clusters) && (caClusterer || decompressTPC) ? ca::Operation::OutputCAClusters : ca::Operation::Noop,
                                                              },
                                                  tpcSectors));
