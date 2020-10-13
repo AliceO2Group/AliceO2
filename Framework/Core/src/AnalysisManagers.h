@@ -246,14 +246,14 @@ struct OutputManager<Spawns<T>> {
     return true;
   }
 
-  static bool finalize(ProcessingContext&, Spawns<T>&)
+  static bool finalize(ProcessingContext& pc, Spawns<T>& what)
   {
+    pc.outputs().adopt(what.output(), what.asArrowTable());
     return true;
   }
 
-  static bool postRun(EndOfStreamContext& eosc, Spawns<T>& what)
+  static bool postRun(EndOfStreamContext&, Spawns<T>&)
   {
-    eosc.outputs().adopt(what.output(), what.asArrowTable());
     return true;
   }
 };
@@ -287,14 +287,14 @@ struct OutputManager<Builds<T, P>> {
                       extractOriginalsTuple(what.sources_pack(), pc));
   }
 
-  static bool finalize(ProcessingContext&, Builds<T, P>&)
+  static bool finalize(ProcessingContext& pc, Builds<T, P>& what)
   {
+    pc.outputs().adopt(what.output(), what.asArrowTable());
     return true;
   }
 
-  static bool postRun(EndOfStreamContext& eosc, Builds<T, P>& what)
+  static bool postRun(EndOfStreamContext&, Builds<T, P>&)
   {
-    eosc.outputs().adopt(what.output(), what.asArrowTable());
     return true;
   }
 };
