@@ -238,6 +238,7 @@ class GPUDisplay
   void SetInfo(Args... args)
   {
     snprintf(mInfoText2, 1024, args...);
+    GPUInfo("%s", mInfoText2);
     mInfoText2Timer.ResetStart();
   }
   void PrintGLHelpText(float colorValue);
@@ -354,6 +355,7 @@ class GPUDisplay
   int mHideRejectedTracks = 1;
   int mMarkAdjacentClusters = 0;
   int mMarkFakeClusters = 0;
+  int mTrackFilter = 0;
 
   vecpod<std::array<int, 37>> mCollisionClusters;
   int mNCollissions = 1;
