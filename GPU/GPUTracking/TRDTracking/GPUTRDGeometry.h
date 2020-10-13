@@ -62,12 +62,15 @@ class GPUTRDpadPlane : private o2::trd::TRDPadPlane
  public:
   GPUd() float GetTiltingAngle() const { return getTiltingAngle(); }
   GPUd() float GetRowSize(int row) const { return getRowSize(row); }
+  GPUd() float GetColSize(int col) const { return getColSize(col); }
   GPUd() float GetRow0() const { return getRow0(); }
+  GPUd() float GetCol0() const { return getCol0(); }
   GPUd() float GetRowEnd() const { return getRowEnd(); }
   GPUd() float GetColEnd() const { return getColEnd(); }
   GPUd() float GetRowPos(int row) const { return getRowPos(row); }
   GPUd() float GetColPos(int col) const { return getColPos(col); }
   GPUd() float GetNrows() const { return getNrows(); }
+  GPUd() float GetNcols() const { return getNcols(); }
 };
 
 class GPUTRDGeometry : private o2::trd::TRDGeometryFlat
