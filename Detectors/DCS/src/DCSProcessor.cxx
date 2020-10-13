@@ -187,8 +187,6 @@ int DCSProcessor::processMap(const std::unordered_map<DPID, DPVAL>& map, bool is
 
   // char type
   foundChars = processArrayType(mAliaseschars, DeliveryType::RAW_CHAR, map, mLatestTimestampchars, mDpscharsmap);
-  if (foundChars > 0)
-    processChars();
 
   // int type
   foundInts = processArrayType(mAliasesints, DeliveryType::RAW_INT, map, mLatestTimestampints, mDpsintsmap);
@@ -232,7 +230,7 @@ int DCSProcessor::processMap(const std::unordered_map<DPID, DPVAL>& map, bool is
 
   // filling CCDB info to be sent in output
   std::map<std::string, std::string> md;
-  prepareCCDBobject(mccdbSimpleMovingAverage, mccdbSimpleMovingAverageInfo, "TestDCS/SimpleMovingAverageDPs", mTF, md);
+  prepareCCDBobject(mccdbSimpleMovingAverage, mccdbSimpleMovingAverageInfo, mName + "/TestDCS/SimpleMovingAverageDPs", mTF, md);
 
   LOG(DEBUG) << "Size of unordered_map for CCDB = " << mccdbSimpleMovingAverage.size();
   LOG(DEBUG) << "CCDB entry for TF " << mTF << " will be:";
@@ -262,7 +260,7 @@ int DCSProcessor::processDP(const std::pair<DPID, DPVAL>& dpcom)
     }
     int index = std::distance(mAliaseschars.begin(), it);
     checkFlagsAndFill(dpcom, mLatestTimestampchars[index], mDpscharsmap);
-    process(dpid, mDpscharsmap[dpid]);
+    processCharDP(dpid);
   }
 
   else if (type == DeliveryType::RAW_INT) {
@@ -273,7 +271,7 @@ int DCSProcessor::processDP(const std::pair<DPID, DPVAL>& dpcom)
     }
     int index = std::distance(mAliasesints.begin(), it);
     checkFlagsAndFill(dpcom, mLatestTimestampints[index], mDpsintsmap);
-    process(dpid, mDpsintsmap[dpid]);
+    processIntDP(dpid);
   }
 
   else if (type == DeliveryType::RAW_DOUBLE) {
@@ -284,7 +282,7 @@ int DCSProcessor::processDP(const std::pair<DPID, DPVAL>& dpcom)
     }
     int index = std::distance(mAliasesdoubles.begin(), it);
     checkFlagsAndFill(dpcom, mLatestTimestampdoubles[index], mDpsdoublesmap);
-    process(dpid, mDpsdoublesmap[dpid]);
+    processDoubleDP(dpid);
   }
 
   else if (type == DeliveryType::RAW_UINT) {
@@ -295,7 +293,7 @@ int DCSProcessor::processDP(const std::pair<DPID, DPVAL>& dpcom)
     }
     int index = std::distance(mAliasesUints.begin(), it);
     checkFlagsAndFill(dpcom, mLatestTimestampUints[index], mDpsUintsmap);
-    process(dpid, mDpsUintsmap[dpid]);
+    processUIntDP(dpid);
   }
 
   else if (type == DeliveryType::RAW_BOOL) {
@@ -306,7 +304,7 @@ int DCSProcessor::processDP(const std::pair<DPID, DPVAL>& dpcom)
     }
     int index = std::distance(mAliasesbools.begin(), it);
     checkFlagsAndFill(dpcom, mLatestTimestampbools[index], mDpsboolsmap);
-    process(dpid, mDpsboolsmap[dpid]);
+    processBoolDP(dpid);
   }
 
   else if (type == DeliveryType::RAW_STRING) {
@@ -317,8 +315,10 @@ int DCSProcessor::processDP(const std::pair<DPID, DPVAL>& dpcom)
     }
     int index = std::distance(mAliasesstrings.begin(), it);
     checkFlagsAndFill(dpcom, mLatestTimestampstrings[index], mDpsstringsmap);
-    process(dpid, mDpsstringsmap[dpid]);
-  } else if (type == DeliveryType::RAW_TIME) {
+    processStringDP(dpid);
+  }
+
+  else if (type == DeliveryType::RAW_TIME) {
     auto it = std::find(mAliasestimes.begin(), mAliasestimes.end(), dpid);
     if (it == mAliasestimes.end()) {
       LOG(ERROR) << "DP not found for this detector, please check";
@@ -326,8 +326,10 @@ int DCSProcessor::processDP(const std::pair<DPID, DPVAL>& dpcom)
     }
     int index = std::distance(mAliasestimes.begin(), it);
     checkFlagsAndFill(dpcom, mLatestTimestamptimes[index], mDpstimesmap);
-    process(dpid, mDpstimesmap[dpid]);
-  } else if (type == DeliveryType::RAW_BINARY) {
+    processTimeDP(dpid);
+  }
+
+  else if (type == DeliveryType::RAW_BINARY) {
     auto it = std::find(mAliasesbinaries.begin(), mAliasesbinaries.end(), dpid);
     if (it == mAliasesbinaries.end()) {
       LOG(ERROR) << "DP not found for this detector, please check";
@@ -335,7 +337,7 @@ int DCSProcessor::processDP(const std::pair<DPID, DPVAL>& dpcom)
     }
     int index = std::distance(mAliasesbinaries.begin(), it);
     checkFlagsAndFill(dpcom, mLatestTimestampbinaries[index], mDpsbinariesmap);
-    process(dpid, mDpsbinariesmap[dpid]);
+    processBinaryDP(dpid);
   }
 
   return 0;
@@ -389,17 +391,72 @@ void DCSProcessor::checkFlagsAndFill(const std::pair<DPID, DPVAL>& dpcom, int64_
 
 //______________________________________________________________________
 
-template <>
-void DCSProcessor::process(const DPID& alias, std::deque<int>& aliasdeque)
+void DCSProcessor::processCharDP(const DPID& alias)
+{
+  // empty for the example
+  return;
+}
+
+//______________________________________________________________________
+
+void DCSProcessor::processIntDP(const DPID& alias)
 {
   // processing the single alias of type int
   bool isSMA = false;
-  doSimpleMovingAverage(2, aliasdeque, mSimpleMovingAverage[alias], isSMA);
-  LOG(DEBUG) << "Moving average = " << mSimpleMovingAverage[alias];
+  doSimpleMovingAverage(2, mDpsintsmap[alias], mSimpleMovingAverage[alias], isSMA);
+  LOG(DEBUG) << "dpid = " << alias << " --> Moving average = " << mSimpleMovingAverage[alias];
   // create CCDB object
   //if (isSMA) {
   mccdbSimpleMovingAverage[alias.get_alias()] = mSimpleMovingAverage[alias];
   //}
+  return;
+}
+
+//______________________________________________________________________
+
+void DCSProcessor::processDoubleDP(const DPID& alias)
+{
+  // empty for the example
+  return;
+}
+
+//______________________________________________________________________
+
+void DCSProcessor::processUIntDP(const DPID& alias)
+{
+  // empty for the example
+  return;
+}
+
+//______________________________________________________________________
+
+void DCSProcessor::processBoolDP(const DPID& alias)
+{
+  // empty for the example
+  return;
+}
+
+//______________________________________________________________________
+
+void DCSProcessor::processStringDP(const DPID& alias)
+{
+  // empty for the example
+  return;
+}
+
+//______________________________________________________________________
+
+void DCSProcessor::processTimeDP(const DPID& alias)
+{
+  // empty for the example
+  return;
+}
+
+//______________________________________________________________________
+
+void DCSProcessor::processBinaryDP(const DPID& alias)
+{
+  // empty for the example
   return;
 }
 
@@ -418,104 +475,6 @@ std::unordered_map<DPID, DPVAL>::const_iterator DCSProcessor::findAndCheckAlias(
     LOG(FATAL) << "Delivery Type of alias " << alias.get_alias() << " does not match definition in DCSProcessor (" << type << ")! Please fix";
   }
   return it;
-}
-
-//______________________________________________________________________
-
-void DCSProcessor::processChars()
-{
-
-  // function to process aliases of Char type; it will just print them
-
-  for (size_t i = 0; i != mAliaseschars.size(); ++i) {
-    LOG(DEBUG) << "processChars: mAliaseschars[" << i << "] = " << mAliaseschars[i];
-    auto& id = mAliaseschars[i];
-    auto& vchar = getVectorForAliasChar(id);
-    LOG(DEBUG) << "vchar size = " << vchar.size();
-    for (size_t j = 0; j < vchar.size(); j++) {
-      LOG(DEBUG) << "DP = " << mAliaseschars[i] << " , value[" << j << "] = " << vchar[j];
-    }
-  }
-}
-
-//______________________________________________________________________
-
-void DCSProcessor::processInts()
-{
-
-  // function to process aliases of Int type
-
-  for (size_t i = 0; i != mAliasesints.size(); ++i) {
-    LOG(DEBUG) << "processInts: mAliasesints[" << i << "] = " << mAliasesints[i];
-    if (mIsDelta && mLatestTimestampints[i] < 0) { // we have received only the delta map, and the alias "i" was not present --> we don't process, but keep the old value in the mAvgTestInt vector
-      continue;
-    }
-    auto& id = mAliasesints[i];
-    auto& vint = getVectorForAliasInt(id);
-    LOG(DEBUG) << "vint size = " << vint.size();
-    for (size_t j = 0; j < vint.size(); j++) {
-      LOG(DEBUG) << "DP = " << mAliasesints[i] << " , value[" << j << "] = " << vint[j];
-    }
-    bool isSMA = false;
-    LOG(DEBUG) << "get alias = " << id.get_alias();
-    // I do the moving average always of the last 2 points, no matter if it was updated or not
-    doSimpleMovingAverage(2, vint, mSimpleMovingAverage[id], isSMA);
-    LOG(DEBUG) << "Moving average = " << mSimpleMovingAverage[id];
-    if (isSMA) {
-      // create CCDB object
-      mccdbSimpleMovingAverage[id.get_alias()] = mSimpleMovingAverage[id];
-    }
-  }
-  std::map<std::string, std::string> md;
-  prepareCCDBobject(mccdbSimpleMovingAverage, mccdbSimpleMovingAverageInfo, "TestDCS/IntDPs", mTF, md);
-}
-
-//______________________________________________________________________
-
-void DCSProcessor::processDoubles()
-{
-
-  // function to process aliases of Double type
-}
-
-//______________________________________________________________________
-
-void DCSProcessor::processUInts()
-{
-
-  // function to process aliases of UInt type
-}
-
-//______________________________________________________________________
-
-void DCSProcessor::processBools()
-{
-
-  // function to process aliases of Bool type
-}
-
-//______________________________________________________________________
-
-void DCSProcessor::processStrings()
-{
-
-  // function to process aliases of String type
-}
-
-//______________________________________________________________________
-
-void DCSProcessor::processTimes()
-{
-
-  // function to process aliases of Time type
-}
-
-//______________________________________________________________________
-
-void DCSProcessor::processBinaries()
-{
-
-  // function to process aliases of Time binary
 }
 
 //______________________________________________________________________

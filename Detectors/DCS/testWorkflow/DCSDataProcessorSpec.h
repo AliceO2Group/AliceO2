@@ -87,8 +87,10 @@ class DCSDataProcessor : public o2::framework::Task
 
     mDCSproc.init(aliasVect);
     mDCSproc.setMaxCyclesNoFullMap(ic.options().get<int64_t>("max-cycles-no-full-map"));
+    mDCSproc.setName("Test0Det");
     mDCSprocVect[kTest].init(aliasVect);
     mDCSprocVect[kTest].setMaxCyclesNoFullMap(ic.options().get<int64_t>("max-cycles-no-full-map"));
+    mDCSprocVect[kTest].setName("Test1Det");
     mProcessFullDeltaMap = ic.options().get<bool>("process-full-delta-map");
   }
 
@@ -180,6 +182,12 @@ class DCSDataProcessor : public o2::framework::Task
           }
         }
         LOG(INFO) << "TF: " << tfid << " -->  ...processing (delta) in detector loop done: realTime = " << s.RealTime() << ", cpuTime = " << s.CpuTime();
+        // now preparing CCDB object
+        //for (int idet = 0; idet < detVect.size(); idet++) {
+        for (int idet = 0; idet < 1; idet++) { // for now I test only 1 DCS processor
+          std::map<std::string, std::string> md;
+          mDCSprocVect[idet].prepareCCDBobject(mDCSprocVect[idet].getCCDBSimpleMovingAverage(), mDCSprocVect[idet].getCCDBSimpleMovingAverageInfo(), mDCSprocVect[idet].getName() + "/TestDCS/SimpleMovingAverageDPs", tfid, md);
+        }
       }
     }
     sendOutput(pc.outputs());
