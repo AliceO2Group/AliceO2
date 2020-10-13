@@ -108,7 +108,7 @@ class GPUTRDTracker_t : public GPUProcessor
   GPUhd() void OverrideGPUGeometry(TRD_GEOMETRY_CONST GPUTRDGeometry* geo) { mGeo = geo; }
   void Reset();
   GPUd() int LoadTracklet(const GPUTRDTrackletWord& tracklet, const int* labels = nullptr);
-  //template <class T>
+  GPUd() bool CheckTrackTRDCandidate(const TRDTRK& trk) const;
   GPUd() int LoadTrack(const TRDTRK& trk, const int label = -1, const int* nTrkltsOffline = nullptr, const int labelOffline = -1, int tpcTrackId = -1)
   {
     if (mNTracks >= mNMaxTracks) {
@@ -117,14 +117,8 @@ class GPUTRDTracker_t : public GPUProcessor
 #endif
       return (1);
     }
-    if (!trk.CheckNumericalQuality()) {
-      return (0);
-    }
-    if (CAMath::Abs(trk.getEta()) > mMaxEta) {
-      return (0);
-    }
-    if (trk.getPt() < mMinPt) {
-      return (0);
+    if (!CheckTrackTRDCandidate(trk)) {
+      return 0;
     }
 #ifdef GPUCA_ALIROOT_LIB
     new (&mTracks[mNTracks]) TRDTRK(trk); // We need placement new, since the class is virtual

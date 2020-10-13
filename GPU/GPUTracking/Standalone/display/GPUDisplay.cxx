@@ -884,7 +884,10 @@ void GPUDisplay::DrawFinal(int iSlice, int /*iCol*/, GPUTPCGMPropagator* prop, s
       bool drawing = false;
 
       if (mTrackFilter) {
-        if (mTrackFilter && mTRDTrackIds[i] == -1) {
+        if (mTrackFilter == 2 && !trdTracker().CheckTrackTRDCandidate((GPUTRDTrackGPU)*track)) {
+          break;
+        }
+        if (mTrackFilter == 1 && mTRDTrackIds[i] == -1) {
           break;
         }
       }
