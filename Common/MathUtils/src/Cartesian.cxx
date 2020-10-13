@@ -12,7 +12,8 @@
 #include "MathUtils/Cartesian.h"
 
 ClassImp(o2::math_utils::Transform3D);
-ClassImp(o2::math_utils::Rotation2D);
+ClassImp(o2::math_utils::Rotation2Df_t);
+ClassImp(o2::math_utils::Rotation2Dd_t);
 
 namespace o2
 {
@@ -52,9 +53,18 @@ void Transform3D::print() const
 } // namespace o2
 
 //_________________________________________________
-std::ostream& operator<<(std::ostream& os, const o2::math_utils::Rotation2D& t)
+std::ostream& operator<<(std::ostream& os, const o2::math_utils::Rotation2Df_t& t)
 {
   float cs, sn;
+  t.getComponents(cs, sn);
+  os << "cos: " << cs << " sin: " << sn;
+  return os;
+}
+
+//_________________________________________________
+std::ostream& operator<<(std::ostream& os, const o2::math_utils::Rotation2Dd_t& t)
+{
+  double cs, sn;
   t.getComponents(cs, sn);
   os << "cos: " << cs << " sin: " << sn;
   return os;
