@@ -44,13 +44,12 @@ using DPCOM = o2::dcs::DataPointCompositeObject;
 class DCSDataProcessor : public o2::framework::Task
 {
  public:
-
   enum Detectors {
     kTest,
     kTPC,
     kNdetectors
   };
-  
+
   void init(o2::framework::InitContext& ic) final
   {
     std::vector<DPID> aliasVect;
@@ -63,7 +62,7 @@ class DCSDataProcessor : public o2::framework::Task
 
     std::vector<int> vectDet{kTest, kTPC};
     mDetectorAlias[dpidtmp] = vectDet;
-    
+
     DeliveryType typeint = RAW_INT;
     for (int i = 0; i < 50000; i++) {
       std::string dpAliasint = "TestInt_" + std::to_string(i);
@@ -88,7 +87,9 @@ class DCSDataProcessor : public o2::framework::Task
 
     mDCSproc.init(aliasVect);
     mDCSproc.setMaxCyclesNoFullMap(ic.options().get<int64_t>("max-cycles-no-full-map"));
-    //mDCSprocVect[kTest] = mDCSproc;
+    mDCSprocVect[kTest].init(aliasVect);
+    mDCSprocVect[kTest].setMaxCyclesNoFullMap(ic.options().get<int64_t>("max-cycles-no-full-map"));
+    mProcessFullDeltaMap = ic.options().get<bool>("process-full-delta-map");
   }
 
   void run(o2::framework::ProcessingContext& pc) final
@@ -144,39 +145,52 @@ class DCSDataProcessor : public o2::framework::Task
     LOG(INFO) << "TF: " << tfid << " -->  ...unordered_map (delta) built = " << s.RealTime() << ", cpuTime = " << s.CpuTime();
 
     if (tfid % 6000 == 0) {
-      LOG(INFO) << "TF: " << tfid << " -->  starting processing...";
-      s.Start();
-      mDCSproc.process(dcsmap, false);
-      s.Stop();
-      LOG(INFO) << "TF: " << tfid << " -->  ...processing done: realTime = " << s.RealTime() << ", cpuTime = " << s.CpuTime();
-    }
-    else {
-      LOG(INFO) << "TF: " << tfid << " -->  starting (delta) processing...";
-      s.Start();
-      mDCSproc.process(dcsmapDelta, true);
-      s.Stop();
-      LOG(INFO) << "TF: " << tfid << " -->  ...processing (delta) done: realTime = " << s.RealTime() << ", cpuTime = " << s.CpuTime();
-
-      // processing per DP found in the map, to be done in case of a delta map
-
-      for (const auto& dpid : dcsmapDelta) {
-	std::vector<int> detVect = mDetectorAlias[dpid.first];
-	for (int idet = 0; idet < detVect.size(); idet++) {
-	}
+      //for (int idet = 0; idet < detVect.size(); idet++) {
+      for (int idet = 0; idet < 1; idet++) { // for now I test only 1 DCS processor
+        LOG(INFO) << "TF: " << tfid << " -->  starting processing...";
+        s.Start();
+        mDCSprocVect[idet].processMap(dcsmap, false);
+        s.Stop();
+        LOG(INFO) << "TF: " << tfid << " -->  ...processing done: realTime = " << s.RealTime() << ", cpuTime = " << s.CpuTime();
       }
+    } else {
+      if (mProcessFullDeltaMap) {
+        //for (int idet = 0; idet < detVect.size(); idet++) {
+        for (int idet = 0; idet < 1; idet++) { // for now I test only 1 DCS processor
+          LOG(INFO) << "TF: " << tfid << " -->  starting (delta) processing...";
+          s.Start();
+          mDCSprocVect[idet].processMap(dcsmapDelta, true);
+          s.Stop();
+          LOG(INFO) << "TF: " << tfid << " -->  ...processing (delta) done: realTime = " << s.RealTime() << ", cpuTime = " << s.CpuTime();
+        }
+      } else {
 
-    
+        // processing per DP found in the map, to be done in case of a delta map
+
+        bool resetStopwatch = true;
+        LOG(INFO) << "TF: " << tfid << " -->  starting (delta) processing for detector...";
+        for (const auto& dpcom : dcsmapDelta) {
+          std::vector<int> detVect = mDetectorAlias[dpcom.first];
+          //for (int idet = 0; idet < detVect.size(); idet++) {
+          for (int idet = 0; idet < 1; idet++) { // for now I test only 1 DCS processor
+            s.Start(resetStopwatch);
+            mDCSprocVect[idet].processDP(dpcom);
+            s.Stop();
+            resetStopwatch = false;
+          }
+        }
+        LOG(INFO) << "TF: " << tfid << " -->  ...processing (delta) in detector loop done: realTime = " << s.RealTime() << ", cpuTime = " << s.CpuTime();
+      }
     }
-
     sendOutput(pc.outputs());
   }
 
  private:
-  std::unordered_map<DPID, std::vector<int>> mDetectorAlias;   
+  std::unordered_map<DPID, std::vector<int>> mDetectorAlias;
   std::array<DCSProcessor, kNdetectors> mDCSprocVect;
   o2::dcs::DCSProcessor mDCSproc;
+  bool mProcessFullDeltaMap = false;
 
- 
   //________________________________________________________________
   void sendOutput(DataAllocator& output)
   {
@@ -211,7 +225,9 @@ DataProcessorSpec getDCSDataProcessorSpec()
     Inputs{{"input", "DCS", "DATAPOINTS"}, {"inputDelta", "DCS", "DATAPOINTSdelta"}},
     outputs,
     AlgorithmSpec{adaptFromTask<o2::dcs::DCSDataProcessor>()},
-    Options{{"max-cycles-no-full-map", VariantType::Int64, 6000ll, {"max number of cycles between the sending of two full maps"}}}};
+    Options{
+      {"max-cycles-no-full-map", VariantType::Int64, 6000ll, {"max number of cycles between the sending of two full maps"}},
+      {"process-full-delta-map", VariantType::Bool, false, {"whether to process the delta map as a whole instead of per data point"}}}};
 }
 
 } // namespace framework
