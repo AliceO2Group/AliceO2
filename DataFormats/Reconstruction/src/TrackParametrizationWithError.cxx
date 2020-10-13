@@ -1086,7 +1086,7 @@ void TrackParametrizationWithError<value_T>::print() const
 }
 
 template class TrackParametrizationWithError<float>;
-//template class TrackParametrizationWithError<double>;
+template class TrackParametrizationWithError<double>;
 
 } // namespace track
 } // namespace o2

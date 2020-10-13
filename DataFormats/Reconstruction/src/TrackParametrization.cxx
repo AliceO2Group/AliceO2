@@ -733,7 +733,7 @@ bool TrackParametrization<value_T>::correctForELoss(value_t xrho, value_t mass, 
 }
 
 template class TrackParametrization<float>;
-//template class TrackParametrization<double>;
+template class TrackParametrization<double>;
 
 } // namespace track
 } // namespace o2
