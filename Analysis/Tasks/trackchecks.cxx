@@ -32,9 +32,10 @@ using namespace std;
 
 #define NPTBINS 53
 #define NPARTICLES 5
-const double pt_bins[NPTBINS + 1] = {0.0, 0.05, 0.08, 0.1, 0.12, 0.14, 0.16, 0.18, 0.2, 0.25, 0.3, 0.35, 0.4, 0.45, 0.5, 0.55, 0.6, 0.65,
-                                     0.7, 0.75, 0.8, 0.85, 0.9, 0.95, 1.0, 1.1, 1.2, 1.3, 1.4, 1.5, 1.6, 1.7, 1.8, 1.9, 2.0, 2.2,
-                                     2.4, 2.6, 2.8, 3.0, 3.2, 3.4, 3.6, 3.8, 4.0, 4.5, 5.0, 5.5, 6.0, 6.5, 7.0, 8.0, 10.0, 20.0};
+const double pt_bins[NPTBINS + 1] = {0.0, 0.05, 0.08, 0.1, 0.12, 0.14, 0.16, 0.18, 0.2, 0.25, 0.3, 0.35, 0.4, 0.45,
+                                     0.5, 0.55, 0.6, 0.65, 0.7, 0.75, 0.8, 0.85, 0.9, 0.95, 1.0, 1.1, 1.2, 1.3, 1.4,
+                                     1.5, 1.6, 1.7, 1.8, 1.9, 2.0, 2.2, 2.4, 2.6, 2.8, 3.0, 3.2, 3.4, 3.6, 3.8, 4.0,
+                                     4.5, 5.0, 5.5, 6.0, 6.5, 7.0, 8.0, 10.0, 20.0};
 const double mass[NPARTICLES] = {0.000510999, 0.139570, 0.493677, 0.938272, 1.87561};
 enum PType : uint8_t {
   kEl,
@@ -180,7 +181,8 @@ struct TrackCheckTaskEvSelTrackSel {
   Filter collfilter = nabs(aod::collision::posZ) < cfgCutVZ;
   Filter trackfilter = aod::track::isGlobalTrack == true;
   void process(soa::Filtered<soa::Join<aod::Collisions, aod::EvSels>>::iterator const& col,
-               soa::Filtered<soa::Join<aod::Tracks, aod::TracksExtra, aod::TracksExtended, aod::TrackSelection, aod::McTrackLabels>>& tracks, aod::McParticles& mcParticles)
+               soa::Filtered<soa::Join<aod::Tracks, aod::TracksExtra, aod::TracksExtended, aod::TrackSelection, aod::McTrackLabels>>& tracks,
+               aod::McParticles& mcParticles)
   {
 
     //event selection
