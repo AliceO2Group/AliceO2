@@ -427,6 +427,21 @@ GPUd() void GPUTRDTracker_t<TRDTRK, PROP>::CheckTrackRefs(const int trackID, boo
 #endif //! GPUCA_GPUCODE
 
 template <class TRDTRK, class PROP>
+GPUd() bool GPUTRDTracker_t<TRDTRK, PROP>::CheckTrackTRDCandidate(const TRDTRK& trk) const
+{
+  if (!trk.CheckNumericalQuality()) {
+    return false;
+  }
+  if (CAMath::Abs(trk.getEta()) > mMaxEta) {
+    return false;
+  }
+  if (trk.getPt() < mMinPt) {
+    return false;
+  }
+  return true;
+}
+
+template <class TRDTRK, class PROP>
 GPUd() int GPUTRDTracker_t<TRDTRK, PROP>::LoadTracklet(const GPUTRDTrackletWord& tracklet, const int* labels)
 {
   //--------------------------------------------------------------------
