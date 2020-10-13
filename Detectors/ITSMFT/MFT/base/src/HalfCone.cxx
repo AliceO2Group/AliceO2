@@ -29,6 +29,7 @@
 #include "TGeoXtru.h"
 
 #include "MFTBase/HalfCone.h"
+#include "MFTBase/Constants.h"
 
 using namespace o2::mft;
 
@@ -1488,6 +1489,9 @@ TGeoVolumeAssembly* HalfCone::createHalfCone(Int_t half)
   Double_t r_final_y;
   Double_t r_final_z;
 
+  Double_t tyMB0;
+  Double_t tzMB0;
+
   if (half == 0) {
     t_final_x = 0;
     t_final_y = 0.0;
@@ -1496,6 +1500,9 @@ TGeoVolumeAssembly* HalfCone::createHalfCone(Int_t half)
     r_final_x = 0;
     r_final_y = 0;
     r_final_z = 0;
+
+    tyMB0 = -16.72;
+    tzMB0 = -(45.3 + 46.7) / 2;
   }
 
   if (half == 1) {
@@ -1506,6 +1513,9 @@ TGeoVolumeAssembly* HalfCone::createHalfCone(Int_t half)
     r_final_x = 0;
     r_final_y = 0;
     r_final_z = 180;
+
+    tyMB0 = 16.72;
+    tzMB0 = -(45.3 + 46.7) / 2;
   }
 
   auto* t_final =
@@ -1752,7 +1762,6 @@ TGeoVolumeAssembly* HalfCone::createHalfCone(Int_t half)
   combi_coat->RegisterYourself();
 
   Half_3->AddNode(Half_3_Volume, 1, combi_coat);
-  // Half_3_Volume->SetLineColor(1);
 
   HalfConeVolume->AddNode(stair, 1, c_final); //
   HalfConeVolume->AddNode(base, 2, c_final);
@@ -1762,7 +1771,208 @@ TGeoVolumeAssembly* HalfCone::createHalfCone(Int_t half)
   HalfConeVolume->AddNode(frame_back, 6, c_final); //
   HalfConeVolume->AddNode(colonne_mb, 7, c_final); //
 
-  // HalfConeVolume->AddNode(Half_3, 6, c_final);
+  //========================== Mother Boards =========================================
 
+  // =============  MotherBoard 0 and 1
+  Double_t mMB0cu[3];
+  Double_t mMB0fr4;
+  Double_t mMB0pol;
+  Double_t mMB0epo;
+  // Sizes
+  mMB0cu[0] = {13.65};
+  mMB0cu[1] = {0.00615}; // 122.5 microns * taux d'occupation 50% = 61.5 microns
+  mMB0cu[2] = {2.39};
+  mMB0fr4 = 0.1;    // 1 mm
+  mMB0pol = 0.0150; // 150 microns
+  mMB0epo = 0.0225; // 225 microns
+  // Materials
+  auto* mCu = gGeoManager->GetMedium("MFT_Cu$");
+  auto* mFR4 = gGeoManager->GetMedium("MFT_FR4$");
+  auto* mPol = gGeoManager->GetMedium("MFT_Polyimide$");
+  auto* mEpo = gGeoManager->GetMedium("MFT_Epoxy$");
+  auto* mInox = gGeoManager->GetMedium("MFT_Inox$");
+
+  auto* MotherBoard0 = new TGeoVolumeAssembly(Form("MotherBoard0_H%d", half));
+  // 4 layers
+  TGeoVolume* vMB0cu = gGeoManager->MakeBox("vMB0cu", mCu, mMB0cu[0] / 2, mMB0cu[1] / 2, mMB0cu[2] / 2);
+  TGeoVolume* vMB0fr4 = gGeoManager->MakeBox("vMB0fr4", mFR4, mMB0cu[0] / 2, mMB0fr4 / 2, mMB0cu[2] / 2);
+  TGeoVolume* vMB0pol = gGeoManager->MakeBox("vMB0pol", mPol, mMB0cu[0] / 2, mMB0pol / 2, mMB0cu[2] / 2);
+  TGeoVolume* vMB0epo = gGeoManager->MakeBox("vMB0epo", mEpo, mMB0cu[0] / 2, mMB0epo / 2, mMB0cu[2] / 2);
+  // Screws = Head + Thread
+  TGeoVolume* vMB0screwH = gGeoManager->MakeTube("vMB0screwH", mInox, 0.0, 0.7 / 2, 0.35 / 2); // tete
+  TGeoVolume* vMB0screwT = gGeoManager->MakeTube("vMB0screwT", mInox, 0.0, 0.4 / 2, 1.2 / 2);  // filetage
+  // Insert Sertitec
+  TGeoVolume* vMB0serti = gGeoManager->MakeTube("vMB0serti", mInox, 0.16 / 2, 0.556 / 2, 0.15 / 2); // tete
+
+  vMB0cu->SetLineColor(kRed);
+  vMB0fr4->SetLineColor(kBlack);
+  vMB0pol->SetLineColor(kGreen);
+  vMB0epo->SetLineColor(kBlue);
+  vMB0screwH->SetLineColor(kOrange);
+  vMB0screwT->SetLineColor(kOrange);
+  vMB0serti->SetLineColor(kOrange);
+  // Positioning the layers
+  MotherBoard0->AddNode(vMB0cu, 1);
+  Int_t signe;
+  if (half == 0)
+    signe = -1;
+  if (half == 1)
+    signe = +1;
+  auto* t_MB0fr4 = new TGeoTranslation("translation_fr4", 0.0, signe * (mMB0fr4 + mMB0cu[1]) / 2, 0.0);
+  t_MB0fr4->RegisterYourself();
+  MotherBoard0->AddNode(vMB0fr4, 1, t_MB0fr4);
+  auto* t_MB0pol = new TGeoTranslation("translation_pol", 0.0, signe * (mMB0fr4 + (mMB0cu[1] + mMB0pol) / 2), 0.0);
+  t_MB0pol->RegisterYourself();
+  MotherBoard0->AddNode(vMB0pol, 1, t_MB0pol);
+  auto* t_MB0epo = new TGeoTranslation("translation_epo", 0.0, signe * (mMB0fr4 + mMB0pol + (mMB0cu[1] + mMB0epo) / 2), 0.0);
+  t_MB0epo->RegisterYourself();
+  MotherBoard0->AddNode(vMB0epo, 1, t_MB0epo);
+  auto* r_MB0screw = new TGeoRotation("rotation_vMB0screw", 0, 90, 0);
+  auto* t_MB0screwH1 = new TGeoCombiTrans(mMB0cu[0] / 2 - 1.65,
+                                          signe * (mMB0fr4 + mMB0pol + mMB0epo + (mMB0cu[1] + 0.35) / 2), 0.0, r_MB0screw);
+  t_MB0screwH1->RegisterYourself();
+  auto* t_MB0screwT1 = new TGeoCombiTrans(mMB0cu[0] / 2 - 1.65, -signe * (mMB0cu[1] + 1.2) / 2, 0.0, r_MB0screw);
+  t_MB0screwT1->RegisterYourself();
+  auto* t_MB0screwH2 = new TGeoCombiTrans(-(mMB0cu[0] / 2 - 1.65),
+                                          signe * (mMB0fr4 + mMB0pol + mMB0epo + (mMB0cu[1] + 0.35) / 2), 0.0, r_MB0screw);
+  t_MB0screwH2->RegisterYourself();
+  auto* t_MB0screwT2 = new TGeoCombiTrans(-(mMB0cu[0] / 2 - 1.65), -signe * (mMB0cu[1] + 1.2) / 2, 0.0, r_MB0screw);
+  t_MB0screwT2->RegisterYourself();
+  auto* t_MB0serti1 = new TGeoCombiTrans(mMB0cu[0] / 2 - 2.65,
+                                         signe * (mMB0fr4 + mMB0pol + mMB0epo + (mMB0cu[1] + 0.153) / 2), 0.0, r_MB0screw);
+  t_MB0serti1->RegisterYourself();
+  auto* t_MB0serti2 = new TGeoCombiTrans(-(mMB0cu[0] / 2 - 2.65),
+                                         signe * (mMB0fr4 + mMB0pol + mMB0epo + (mMB0cu[1] + 0.153) / 2), 0.0, r_MB0screw);
+  t_MB0serti2->RegisterYourself();
+  MotherBoard0->AddNode(vMB0screwH, 1, t_MB0screwH1);
+  MotherBoard0->AddNode(vMB0screwT, 1, t_MB0screwT1);
+  MotherBoard0->AddNode(vMB0screwH, 1, t_MB0screwH2);
+  MotherBoard0->AddNode(vMB0screwT, 1, t_MB0screwT2);
+  MotherBoard0->AddNode(vMB0serti, 1, t_MB0serti1);
+  MotherBoard0->AddNode(vMB0serti, 1, t_MB0serti2);
+
+  // Positioning the board
+  auto* t_MB0 = new TGeoTranslation("translation_MB0", 0.0, tyMB0, tzMB0);
+  t_MB0->RegisterYourself();
+  auto* t_MB1 = new TGeoTranslation("translation_MB1", 0.0, tyMB0, tzMB0 - 3.3); // 3.3 cm is the interdistance between disk 0 and 1
+  t_MB1->RegisterYourself();
+  auto* r_MB0 = new TGeoRotation("rotation_MB0", 0.0, 0.0, 0.0);
+  r_MB0->RegisterYourself();
+  auto* p_MB0 = new TGeoCombiTrans(*t_MB0, *r_MB0);
+  p_MB0->RegisterYourself();
+  auto* p_MB1 = new TGeoCombiTrans(*t_MB1, *r_MB0);
+  p_MB1->RegisterYourself();
+  // Final addition of the board
+  HalfConeVolume->AddNode(MotherBoard0, 1, p_MB0);
+  HalfConeVolume->AddNode(MotherBoard0, 1, p_MB1);
+
+  auto* MotherBoard0_1 = new TGeoVolumeAssembly(Form("MotherBoard0_1_H%d", half));
+  // 4 layers
+  TGeoVolume* vMB0cu_1 = gGeoManager->MakeBox("vMB0cu_1", mCu, 18.0 / 2, mMB0cu[1] / 2, 1.2 / 2);
+  TGeoVolume* vMB0fr4_1 = gGeoManager->MakeBox("vMB0fr4_1", mFR4, 18.0 / 2, mMB0fr4 / 2, 1.2 / 2);
+  TGeoVolume* vMB0pol_1 = gGeoManager->MakeBox("vMB0pol_1", mPol, 18.0 / 2, mMB0pol / 2, 1.2 / 2);
+  TGeoVolume* vMB0epo_1 = gGeoManager->MakeBox("vMB0epo_1", mEpo, 18.0 / 2, mMB0epo / 2, 1.2 / 2);
+  vMB0cu_1->SetLineColor(kRed);
+  vMB0fr4_1->SetLineColor(kBlack);
+  vMB0pol_1->SetLineColor(kGreen);
+  vMB0epo_1->SetLineColor(kBlue);
+
+  MotherBoard0_1->AddNode(vMB0cu_1, 1);
+  MotherBoard0_1->AddNode(vMB0fr4_1, 1, t_MB0fr4);
+  MotherBoard0_1->AddNode(vMB0pol_1, 1, t_MB0pol);
+  MotherBoard0_1->AddNode(vMB0epo_1, 1, t_MB0epo);
+
+  // ================ MotherBoard 2
+  Double_t mMB2cu[4];
+  Double_t mMB2fr4;
+  Double_t mMB2pol;
+  Double_t mMB2epo;
+  // Sizes
+  mMB2cu[0] = {24.0};
+  mMB2cu[1] = {21.0};
+  mMB2cu[2] = {0.0079}; // 315 microns * taux d'occupation 25% = 79 microns
+  mMB2cu[3] = {8.5};
+  mMB2fr4 = 0.2;    // 2 mm
+  mMB2pol = 0.0175; // 175 microns
+  mMB2epo = 0.0075; // 75 microns
+  auto* MotherBoard2 = new TGeoVolumeAssembly(Form("MotherBoard2_H%d", half));
+  // 4 layers
+  TGeoVolume* vMB2cu = gGeoManager->MakeTrd1("vMB2cu", mCu, mMB2cu[0] / 2, mMB2cu[1] / 2, mMB2cu[2] / 2, mMB2cu[3] / 2);
+  TGeoVolume* vMB2fr4 = gGeoManager->MakeTrd1("vMB2fr4", mFR4, mMB2cu[0] / 2, mMB2cu[1] / 2, mMB2fr4 / 2, mMB2cu[3] / 2);
+  TGeoVolume* vMB2pol = gGeoManager->MakeTrd1("vMB2pol", mPol, mMB2cu[0] / 2, mMB2cu[1] / 2, mMB2pol / 2, mMB2cu[3] / 2);
+  TGeoVolume* vMB2epo = gGeoManager->MakeTrd1("vMB2epo", mEpo, mMB2cu[0] / 2, mMB2cu[1] / 2, mMB2epo / 2, mMB2cu[3] / 2);
+
+  vMB2cu->SetLineColor(kRed);
+  vMB2fr4->SetLineColor(kBlack);
+  vMB2pol->SetLineColor(kGreen);
+  vMB2epo->SetLineColor(kBlue);
+
+  auto* t_MB2fr4 = new TGeoTranslation("translation_fr4", 0.0, signe * (mMB2fr4 + mMB2cu[2]) / 2, 0.0);
+  t_MB2fr4->RegisterYourself();
+  auto* t_MB2pol = new TGeoTranslation("translation_pol", 0.0, signe * (mMB2fr4 + (mMB2cu[2] + mMB2pol) / 2), 0.0);
+  t_MB2pol->RegisterYourself();
+  auto* t_MB2epo = new TGeoTranslation("translation_epo", 0.0, signe * (mMB2fr4 + mMB2pol + (mMB2cu[2] + mMB2epo) / 2), 0.0);
+  t_MB2epo->RegisterYourself();
+
+  MotherBoard2->AddNode(vMB2cu, 1);
+  MotherBoard2->AddNode(vMB2fr4, 1, t_MB2fr4);
+  MotherBoard2->AddNode(vMB2pol, 1, t_MB2pol);
+  MotherBoard2->AddNode(vMB2epo, 1, t_MB2epo);
+  for (Float_t i = -1; i < 3; i++) {
+    auto* t_MB2serti1 = new TGeoTranslation("translationMB2serti1", 8.5, -signe * (mMB2cu[2] + 0.153) / 2, 1.3 * i);
+    t_MB2serti1->RegisterYourself();
+    auto* t_MB2serti2 = new TGeoTranslation("translationMB2serti2", -8.5, -signe * (mMB2cu[2] + 0.153) / 2, 1.3 * i);
+    t_MB2serti2->RegisterYourself();
+    auto* p_MB2serti1 = new TGeoCombiTrans(*t_MB2serti1, *r_MB0screw);
+    p_MB2serti1->RegisterYourself();
+    auto* p_MB2serti2 = new TGeoCombiTrans(*t_MB2serti2, *r_MB0screw);
+    p_MB2serti2->RegisterYourself();
+    MotherBoard2->AddNode(vMB0serti, 1, p_MB2serti1);
+    MotherBoard2->AddNode(vMB0serti, 1, p_MB2serti2);
+  }
+
+  for (Float_t i = -2; i < 1; i++) {
+    auto* t_MB2serti3 = new TGeoTranslation("translationMB2serti3", 0.7, -signe * (mMB2cu[2] + 0.153) / 2, 1.3 * i);
+    t_MB2serti3->RegisterYourself();
+    auto* t_MB2serti4 = new TGeoTranslation("translationMB2serti4", -0.7, -signe * (mMB2cu[2] + 0.153) / 2, 1.3 * i);
+    t_MB2serti4->RegisterYourself();
+    auto* p_MB2serti3 = new TGeoCombiTrans(*t_MB2serti3, *r_MB0screw);
+    p_MB2serti3->RegisterYourself();
+    auto* p_MB2serti4 = new TGeoCombiTrans(*t_MB2serti4, *r_MB0screw);
+    p_MB2serti4->RegisterYourself();
+    MotherBoard2->AddNode(vMB0serti, 1, p_MB2serti3);
+    MotherBoard2->AddNode(vMB0serti, 1, p_MB2serti4);
+  }
+
+  for (Float_t i = -2; i < 2; i++) {
+    auto* t_MB2serti5 = new TGeoTranslation("translationMB2serti5", 7.0 * i + 3.5, -signe * (mMB2cu[2] + 0.153) / 2, -2.5);
+    t_MB2serti5->RegisterYourself();
+    auto* p_MB2serti5 = new TGeoCombiTrans(*t_MB2serti5, *r_MB0screw);
+    p_MB2serti5->RegisterYourself();
+    auto* t_MB2serti6 = new TGeoTranslation("translationMB2serti6", 7.0 * i + 3.5, -signe * (mMB2cu[2] + 0.153) / 2, -3.5);
+    t_MB2serti6->RegisterYourself();
+    auto* p_MB2serti6 = new TGeoCombiTrans(*t_MB2serti6, *r_MB0screw);
+    p_MB2serti6->RegisterYourself();
+    MotherBoard2->AddNode(vMB0serti, 1, p_MB2serti5);
+    MotherBoard2->AddNode(vMB0serti, 1, p_MB2serti6);
+  }
+  // Connector board of MB0 on MB2
+  auto* t_MotherBoard0_1 = new TGeoTranslation("translation_MB0_1", 0.0, -signe * (-0.5), 3.5);
+  t_MotherBoard0_1->RegisterYourself();
+  auto* t_MotherBoard0_2 = new TGeoTranslation("translation_MB0_2", 0.0, -signe * (-0.5), 1.5);
+  t_MotherBoard0_2->RegisterYourself();
+  MotherBoard2->AddNode(MotherBoard0_1, 1, t_MotherBoard0_1);
+  MotherBoard2->AddNode(MotherBoard0_1, 1, t_MotherBoard0_2);
+  // Positioning the board
+  auto* t_MotherBoard2 = new TGeoTranslation("translation_MB2", 0.0,
+                                             -signe * (-20.52 + mMB2fr4 + mMB2pol + mMB2epo + 2.2 * TMath::Sin(19.0)),
+                                             -62.8 + 2.2 * TMath::Cos(19.0));
+  t_MotherBoard2->RegisterYourself();
+  auto* r_MotherBoard2 = new TGeoRotation("rotation_MB2", 0.0, -signe * (-19.0), 0.0);
+  r_MotherBoard2->RegisterYourself();
+  auto* p_MB2 = new TGeoCombiTrans(*t_MotherBoard2, *r_MotherBoard2);
+  p_MB2->RegisterYourself();
+  HalfConeVolume->AddNode(MotherBoard2, 1, p_MB2);
+  //===================================================================
   return HalfConeVolume;
 }
