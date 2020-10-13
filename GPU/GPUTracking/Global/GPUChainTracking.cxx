@@ -2276,16 +2276,15 @@ int GPUChainTracking::RunTRDTracking()
 
   for (unsigned int i = 0; i < mIOPtrs.nMergedTracks; i++) {
     const GPUTPCGMMergedTrack& trk = mIOPtrs.mergedTracks[i];
-    if (!trk.OK()) {
+    if (!Tracker.PreCheckTrackTRDCandidate(trk)) {
       continue;
     }
-    if (trk.Looper()) {
-      continue;
-    }
-
     const GPUTRDTrackGPU& trktrd = param().rec.NWaysOuter ? (GPUTRDTrackGPU)trk.OuterParam() : (GPUTRDTrackGPU)trk;
+    if (!Tracker.CheckTrackTRDCandidate(trktrd)) {
+      continue;
+    }
 
-    if (Tracker.LoadTrack(trktrd, -1, nullptr, -1, i)) {
+    if (Tracker.LoadTrack(trktrd, -1, nullptr, -1, i, false)) {
       return 1;
     }
   }
