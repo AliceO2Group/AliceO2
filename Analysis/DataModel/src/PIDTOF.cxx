@@ -54,10 +54,10 @@ float Response::GetExpectedBeta(float mom, float mass)
 }
 
 //_________________________________________________________________________
-float Response::GetExpectedSigma(o2::track::PID::ID id) const
+float Response::GetExpectedSigma(DetectorResponse<Response>& response, o2::track::PID::ID id) const
 {
   const float x[4] = {mMomentum, mTOFSignal, mEventTime.GetEvTimeReso(mMomentum), o2::track::PID::getMass2Z(id)};
-  return this->operator()(kSigma, x);
+  return response(DetectorResponse<Response>::kSigma, x);
 }
 
 } // namespace o2::pid::tof

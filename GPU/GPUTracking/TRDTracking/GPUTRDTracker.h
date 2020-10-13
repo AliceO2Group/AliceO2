@@ -108,42 +108,15 @@ class GPUTRDTracker_t : public GPUProcessor
   GPUhd() void OverrideGPUGeometry(TRD_GEOMETRY_CONST GPUTRDGeometry* geo) { mGeo = geo; }
   void Reset();
   GPUd() int LoadTracklet(const GPUTRDTrackletWord& tracklet, const int* labels = nullptr);
-  //template <class T>
-  GPUd() int LoadTrack(const TRDTRK& trk, const int label = -1, const int* nTrkltsOffline = nullptr, const int labelOffline = -1, int tpcTrackId = -1)
+  template <class T>
+  GPUd() bool PreCheckTrackTRDCandidate(const T& trk) const
   {
-    if (mNTracks >= mNMaxTracks) {
-#ifndef GPUCA_GPUCODE
-      GPUError("Error: Track dropped (no memory available) -> must not happen");
-#endif
-      return (1);
-    }
-    if (!trk.CheckNumericalQuality()) {
-      return (0);
-    }
-    if (CAMath::Abs(trk.getEta()) > mMaxEta) {
-      return (0);
-    }
-    if (trk.getPt() < mMinPt) {
-      return (0);
-    }
-#ifdef GPUCA_ALIROOT_LIB
-    new (&mTracks[mNTracks]) TRDTRK(trk); // We need placement new, since the class is virtual
-#else
-    mTracks[mNTracks] = trk;
-#endif
-    mTracks[mNTracks].SetTPCtrackId(tpcTrackId >= 0 ? tpcTrackId : mNTracks);
-    if (label >= 0) {
-      mTracks[mNTracks].SetLabel(label);
-    }
-    if (nTrkltsOffline) {
-      for (int i = 0; i < 4; ++i) {
-        mTracks[mNTracks].SetNtrackletsOffline(i, nTrkltsOffline[i]); // see GPUTRDTrack.h for information on the index
-      }
-    }
-    mTracks[mNTracks].SetLabelOffline(labelOffline);
-    mNTracks++;
-    return (0);
+    return true;
   }
+  GPUd() bool PreCheckTrackTRDCandidate(const GPUTPCGMMergedTrack& trk) const { return trk.OK() && !trk.Looper(); }
+  GPUd() bool CheckTrackTRDCandidate(const TRDTRK& trk) const;
+  GPUd() int LoadTrack(const TRDTRK& trk, const int label = -1, const int* nTrkltsOffline = nullptr, const int labelOffline = -1, int tpcTrackId = -1, bool checkTrack = true);
+
   GPUd() int GetCollisionID(float trkTime) const;
   GPUd() void DoTrackingThread(int iTrk, int threadId = 0);
   GPUd() bool CalculateSpacePoints(int iCollision = 0);

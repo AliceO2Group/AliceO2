@@ -427,6 +427,52 @@ GPUd() void GPUTRDTracker_t<TRDTRK, PROP>::CheckTrackRefs(const int trackID, boo
 #endif //! GPUCA_GPUCODE
 
 template <class TRDTRK, class PROP>
+GPUd() bool GPUTRDTracker_t<TRDTRK, PROP>::CheckTrackTRDCandidate(const TRDTRK& trk) const
+{
+  if (!trk.CheckNumericalQuality()) {
+    return false;
+  }
+  if (CAMath::Abs(trk.getEta()) > mMaxEta) {
+    return false;
+  }
+  if (trk.getPt() < mMinPt) {
+    return false;
+  }
+  return true;
+}
+
+template <class TRDTRK, class PROP>
+GPUd() int GPUTRDTracker_t<TRDTRK, PROP>::LoadTrack(const TRDTRK& trk, const int label, const int* nTrkltsOffline, const int labelOffline, int tpcTrackId, bool checkTrack)
+{
+  if (mNTracks >= mNMaxTracks) {
+#ifndef GPUCA_GPUCODE
+    GPUError("Error: Track dropped (no memory available) -> must not happen");
+#endif
+    return (1);
+  }
+  if (checkTrack && !CheckTrackTRDCandidate(trk)) {
+    return 0;
+  }
+#ifdef GPUCA_ALIROOT_LIB
+  new (&mTracks[mNTracks]) TRDTRK(trk); // We need placement new, since the class is virtual
+#else
+  mTracks[mNTracks] = trk;
+#endif
+  mTracks[mNTracks].SetTPCtrackId(tpcTrackId >= 0 ? tpcTrackId : mNTracks);
+  if (label >= 0) {
+    mTracks[mNTracks].SetLabel(label);
+  }
+  if (nTrkltsOffline) {
+    for (int i = 0; i < 4; ++i) {
+      mTracks[mNTracks].SetNtrackletsOffline(i, nTrkltsOffline[i]); // see GPUTRDTrack.h for information on the index
+    }
+  }
+  mTracks[mNTracks].SetLabelOffline(labelOffline);
+  mNTracks++;
+  return (0);
+}
+
+template <class TRDTRK, class PROP>
 GPUd() int GPUTRDTracker_t<TRDTRK, PROP>::LoadTracklet(const GPUTRDTrackletWord& tracklet, const int* labels)
 {
   //--------------------------------------------------------------------

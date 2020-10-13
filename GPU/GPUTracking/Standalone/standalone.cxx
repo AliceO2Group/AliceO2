@@ -263,6 +263,8 @@ int ReadConfiguration(int argc, char** argv)
     return 1;
   }
 #endif
+
+  configStandalone.proc.showOutputStat = true;
   return (0);
 }
 
@@ -542,39 +544,16 @@ int LoadEvent(int iEvent, int x)
 
 void OutputStat(GPUChainTracking* t, long long int* nTracksTotal = nullptr, long long int* nClustersTotal = nullptr)
 {
-  int nTracks = 0, nAttachedClusters = 0, nAttachedClustersFitted = 0, nAdjacentClusters = 0;
+  int nTracks = 0;
   for (unsigned int k = 0; k < t->mIOPtrs.nMergedTracks; k++) {
     if (t->mIOPtrs.mergedTracks[k].OK()) {
       nTracks++;
-      nAttachedClusters += t->mIOPtrs.mergedTracks[k].NClusters();
-      nAttachedClustersFitted += t->mIOPtrs.mergedTracks[k].NClustersFitted();
     }
   }
-  unsigned int nCls = configStandalone.proc.doublePipeline ? t->mIOPtrs.clustersNative->nClustersTotal : t->GetTPCMerger().NMaxClusters();
-  for (unsigned int k = 0; k < nCls; k++) {
-    int attach = t->mIOPtrs.mergedTrackHitAttachment[k];
-    if (attach & gputpcgmmergertypes::attachFlagMask) {
-      nAdjacentClusters++;
-    }
-  }
-
   if (nTracksTotal && nClustersTotal) {
     *nTracksTotal += nTracks;
     *nClustersTotal += t->mIOPtrs.nMergedTrackHits;
   }
-
-  char trdText[1024] = "";
-  if (t->GetRecoSteps() & GPUDataTypes::RecoStep::TRDTracking) {
-    int nTRDTracks = 0;
-    int nTRDTracklets = 0;
-    for (unsigned int k = 0; k < t->mIOPtrs.nTRDTracks; k++) {
-      auto& trk = t->mIOPtrs.trdTracks[k];
-      nTRDTracklets += trk.GetNtracklets();
-      nTRDTracks += trk.GetNtracklets() != 0;
-    }
-    snprintf(trdText, 1024, " - TRD Tracker reconstructed %d tracks (%d tracklets)", nTRDTracks, nTRDTracklets);
-  }
-  printf("Output Tracks: %d (%d / %d / %d / %d clusters (fitted / attached / adjacent / total))%s\n", nTracks, nAttachedClustersFitted, nAttachedClusters, nAdjacentClusters, nCls, trdText);
 }
 
 int RunBenchmark(GPUReconstruction* recUse, GPUChainTracking* chainTrackingUse, int runs, int iEvent, long long int* nTracksTotal, long long int* nClustersTotal, int threadId = 0, HighResTimer* timerPipeline = nullptr)

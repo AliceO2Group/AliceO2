@@ -1133,7 +1133,7 @@ int GPUChainTracking::RunTPCClusterizer(bool synchronizeOutput)
           assert(clusterer.mPinputLabels->getIndexedSize() >= mIOPtrs.tpcPackedDigits->nTPCDigits[iSlice]);
         }
 
-        {
+        if (mIOPtrs.tpcPackedDigits) {
           bool setDigitsOnGPU = doGPU && not mIOPtrs.tpcZS;
           bool setDigitsOnHost = (not doGPU && not mIOPtrs.tpcZS) || propagateMCLabels;
           auto* inDigits = mIOPtrs.tpcPackedDigits;
@@ -2267,25 +2267,6 @@ int GPUChainTracking::RunTRDTracking()
 
   mRec->PushNonPersistentMemory();
   SetupGPUProcessor(&Tracker, true);
-  std::vector<GPUTRDTrackGPU> tracksTPC;
-  std::vector<int> tracksTPCLab;
-
-  for (unsigned int i = 0; i < mIOPtrs.nMergedTracks; i++) {
-    const GPUTPCGMMergedTrack& trk = mIOPtrs.mergedTracks[i];
-    if (!trk.OK()) {
-      continue;
-    }
-    if (trk.Looper()) {
-      continue;
-    }
-    if (param().rec.NWaysOuter) {
-      tracksTPC.emplace_back(trk.OuterParam());
-    } else {
-      tracksTPC.emplace_back(trk);
-    }
-    tracksTPC.back().SetTPCtrackId(i);
-    tracksTPCLab.push_back(-1);
-  }
 
   for (unsigned int iTracklet = 0; iTracklet < mIOPtrs.nTRDTracklets; ++iTracklet) {
     if (Tracker.LoadTracklet(mIOPtrs.trdTracklets[iTracklet], mIOPtrs.trdTrackletsMC ? mIOPtrs.trdTrackletsMC[iTracklet].mLabel : nullptr)) {
@@ -2293,8 +2274,17 @@ int GPUChainTracking::RunTRDTracking()
     }
   }
 
-  for (unsigned int iTrack = 0; iTrack < tracksTPC.size(); ++iTrack) {
-    if (Tracker.LoadTrack(tracksTPC[iTrack], tracksTPCLab[iTrack], nullptr, -1, tracksTPC[iTrack].GetTPCtrackId())) {
+  for (unsigned int i = 0; i < mIOPtrs.nMergedTracks; i++) {
+    const GPUTPCGMMergedTrack& trk = mIOPtrs.mergedTracks[i];
+    if (!Tracker.PreCheckTrackTRDCandidate(trk)) {
+      continue;
+    }
+    const GPUTRDTrackGPU& trktrd = param().rec.NWaysOuter ? (GPUTRDTrackGPU)trk.OuterParam() : (GPUTRDTrackGPU)trk;
+    if (!Tracker.CheckTrackTRDCandidate(trktrd)) {
+      continue;
+    }
+
+    if (Tracker.LoadTrack(trktrd, -1, nullptr, -1, i, false)) {
       return 1;
     }
   }
@@ -2445,6 +2435,14 @@ int GPUChainTracking::RunChainFinalize()
     mRec->getGeneralStepTimer(GeneralStep::QA).Stop();
   }
 
+  if (GetProcessingSettings().showOutputStat) {
+    PrintOutputStat();
+  }
+
+  PrintDebugOutput();
+
+  //PrintMemoryRelations();
+
   if (GetProcessingSettings().eventDisplay) {
     if (!mDisplayRunning) {
       if (mEventDisplay->StartDisplay()) {
@@ -2491,9 +2489,6 @@ int GPUChainTracking::RunChainFinalize()
     mEventDisplay->WaitForNextEvent();
   }
 
-  PrintDebugOutput();
-
-  //PrintMemoryRelations();
   return 0;
 }
 

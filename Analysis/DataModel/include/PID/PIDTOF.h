@@ -64,11 +64,10 @@ class EventTime
 
 
 /// \brief Class to handle the the TOF detector response
-class Response : public DetectorResponse
+class Response
 {
  public:
   Response() = default;
-  ~Response() override = default;
 
   /// Updater for the TOF response to setup the track parameters
   /// i.e. sets the track of interest
@@ -105,14 +104,14 @@ class Response : public DetectorResponse
   /// Computes the expected time of a track, given it TOF expected momentum
   static float ComputeExpectedTime(float tofexpmom, float length, float massZ);
   /// Gets the expected signal of the track of interest under the PID assumption
-  float GetExpectedSignal(o2::track::PID::ID id) const override { return ComputeExpectedTime(mTOFExpMomentum, mLength, o2::track::PID::getMass2Z(id)); }
+  float GetExpectedSignal(o2::track::PID::ID id) const { return ComputeExpectedTime(mTOFExpMomentum, mLength, o2::track::PID::getMass2Z(id)); }
 
   // Expected resolution
   /// Gets the expected resolution of the measurement
-  float GetExpectedSigma(o2::track::PID::ID id) const override;
+  float GetExpectedSigma(DetectorResponse<Response>& response, o2::track::PID::ID id) const;
 
   // Nsigma
-  float GetSeparation(o2::track::PID::ID id) const override { return (mTOFSignal - mEventTime.GetEvTime(mMomentum) - GetExpectedSignal(id)) / GetExpectedSigma(id); }
+  float GetSeparation(DetectorResponse<Response>& response, o2::track::PID::ID id) const { return (mTOFSignal - mEventTime.GetEvTime(mMomentum) - GetExpectedSignal(id)) / GetExpectedSigma(response, id); }
 
   // float GetMismatchProbability(float time, float eta) const;
   // Utility values
