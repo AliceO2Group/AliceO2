@@ -57,6 +57,7 @@
 #include "TPCdEdxCalibrationSplines.h"
 #include "TPCClusterDecompressor.h"
 #include "GPUTPCCFChainContext.h"
+#include "GPUTrackingRefit.h"
 #else
 #include "GPUO2FakeClasses.h"
 #endif
@@ -2063,6 +2064,7 @@ int GPUChainTracking::RunTPCTrackingMerger(bool synchronizeOutput)
   mIOPtrs.mergedTrackHits = Merger.Clusters();
   mIOPtrs.nMergedTrackHits = Merger.NOutputTrackClusters();
   mIOPtrs.mergedTrackHitAttachment = Merger.ClusterAttachment();
+  mIOPtrs.mergedTrackHitStates = Merger.ClusterStateExt();
 
   if (GetProcessingSettings().debugLevel >= 2) {
     GPUInfo("TPC Merger Finished (output clusters %d / input clusters %d)", Merger.NOutputTrackClusters(), Merger.NClusters());
@@ -2323,6 +2325,29 @@ int GPUChainTracking::DoTRDGPUTracking()
   return (0);
 }
 
+int GPUChainTracking::RunRefit()
+{
+#ifdef HAVE_O2HEADERS
+  GPUTrackingRefit re;
+  re.SetPtrsFromGPUConstantMem(processorsShadow());
+  re.SetPropagatorDefault();
+  for (unsigned int i = 0; i < mIOPtrs.nMergedTracks; i++) {
+    if (mIOPtrs.mergedTracks[i].OK()) {
+      printf("\nRefitting track %d\n", i);
+      GPUTPCGMMergedTrack t = mIOPtrs.mergedTracks[i];
+      int retval = re.RefitTrackAsGPU(t, false, true);
+      printf("Refit error code: %d\n", retval);
+
+      printf("\nRefitting track TrackParCov %d\n", i);
+      t = mIOPtrs.mergedTracks[i];
+      retval = re.RefitTrackAsTrackParCov(t, false, true);
+      printf("Refit error code: %d\n", retval);
+    }
+  }
+#endif
+  return 0;
+}
+
 int GPUChainTracking::RunChain()
 {
   const auto threadContext = GetThreadContext();
@@ -2405,6 +2430,10 @@ int GPUChainTracking::RunChain()
   }
 
   if (runRecoStep(RecoStep::TRDTracking, &GPUChainTracking::RunTRDTracking)) {
+    return 1;
+  }
+
+  if (runRecoStep(RecoStep::Refit, &GPUChainTracking::RunRefit)) {
     return 1;
   }
 

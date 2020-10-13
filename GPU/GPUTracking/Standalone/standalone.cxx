@@ -172,6 +172,7 @@ int ReadConfiguration(int argc, char** argv)
 #ifndef HAVE_O2HEADERS
   configStandalone.runTRD = configStandalone.rundEdx = configStandalone.runCompression = configStandalone.runTransformation = configStandalone.testSyncAsync = configStandalone.testSync = 0;
   configStandalone.rec.ForceEarlyTPCTransform = 1;
+  configStandalone.runRefit = false;
 #endif
 #ifndef GPUCA_TPC_GEOMETRY_O2
   configStandalone.rec.mergerReadFromTrackerDirectly = 0;
@@ -368,12 +369,15 @@ int SetupReconstruction()
   if (configStandalone.runTransformation != -1) {
     steps.steps.setBits(GPUDataTypes::RecoStep::TPCConversion, configStandalone.runTransformation > 0);
   }
+  steps.steps.setBits(GPUDataTypes::RecoStep::Refit, configStandalone.runRefit);
   if (!configStandalone.runMerger) {
     steps.steps.setBits(GPUDataTypes::RecoStep::TPCMerging, false);
     steps.steps.setBits(GPUDataTypes::RecoStep::TRDTracking, false);
     steps.steps.setBits(GPUDataTypes::RecoStep::TPCdEdx, false);
     steps.steps.setBits(GPUDataTypes::RecoStep::TPCCompression, false);
+    steps.steps.setBits(GPUDataTypes::RecoStep::Refit, false);
   }
+
   if (configStandalone.TF.bunchSim || configStandalone.TF.nMerge) {
     steps.steps.setBits(GPUDataTypes::RecoStep::TRDTracking, false);
   }

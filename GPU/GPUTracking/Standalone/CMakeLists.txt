@@ -112,6 +112,7 @@ include_directories(${CMAKE_SOURCE_DIR}
                     ${CMAKE_SOURCE_DIR}/Global
                     ${CMAKE_SOURCE_DIR}/HLTHeaders
                     ${CMAKE_SOURCE_DIR}/Merger
+                    ${CMAKE_SOURCE_DIR}/Refit
                     ${CMAKE_SOURCE_DIR}/qa
                     ${CMAKE_SOURCE_DIR}/SliceTracker
                     ${CMAKE_SOURCE_DIR}/TRDTracking)
