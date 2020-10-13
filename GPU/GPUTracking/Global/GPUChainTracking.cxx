@@ -2267,8 +2267,12 @@ int GPUChainTracking::RunTRDTracking()
 
   mRec->PushNonPersistentMemory();
   SetupGPUProcessor(&Tracker, true);
-  std::vector<GPUTRDTrackGPU> tracksTPC;
-  std::vector<int> tracksTPCLab;
+
+  for (unsigned int iTracklet = 0; iTracklet < mIOPtrs.nTRDTracklets; ++iTracklet) {
+    if (Tracker.LoadTracklet(mIOPtrs.trdTracklets[iTracklet], mIOPtrs.trdTrackletsMC ? mIOPtrs.trdTrackletsMC[iTracklet].mLabel : nullptr)) {
+      return 1;
+    }
+  }
 
   for (unsigned int i = 0; i < mIOPtrs.nMergedTracks; i++) {
     const GPUTPCGMMergedTrack& trk = mIOPtrs.mergedTracks[i];
@@ -2278,23 +2282,10 @@ int GPUChainTracking::RunTRDTracking()
     if (trk.Looper()) {
       continue;
     }
-    if (param().rec.NWaysOuter) {
-      tracksTPC.emplace_back(trk.OuterParam());
-    } else {
-      tracksTPC.emplace_back(trk);
-    }
-    tracksTPC.back().SetTPCtrackId(i);
-    tracksTPCLab.push_back(-1);
-  }
 
-  for (unsigned int iTracklet = 0; iTracklet < mIOPtrs.nTRDTracklets; ++iTracklet) {
-    if (Tracker.LoadTracklet(mIOPtrs.trdTracklets[iTracklet], mIOPtrs.trdTrackletsMC ? mIOPtrs.trdTrackletsMC[iTracklet].mLabel : nullptr)) {
-      return 1;
-    }
-  }
+    const GPUTRDTrackGPU& trktrd = param().rec.NWaysOuter ? (GPUTRDTrackGPU)trk.OuterParam() : (GPUTRDTrackGPU)trk;
 
-  for (unsigned int iTrack = 0; iTrack < tracksTPC.size(); ++iTrack) {
-    if (Tracker.LoadTrack(tracksTPC[iTrack], tracksTPCLab[iTrack], nullptr, -1, tracksTPC[iTrack].GetTPCtrackId())) {
+    if (Tracker.LoadTrack(trktrd, -1, nullptr, -1, i)) {
       return 1;
     }
   }
