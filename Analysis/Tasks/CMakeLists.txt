@@ -102,7 +102,6 @@ o2_add_dpl_workflow(run3-matcher
                     SOURCES run3Matcher.cxx
                     PUBLIC_LINK_LIBRARIES O2::Framework O2::DetectorsBase O2::AnalysisDataModel
                     COMPONENT_NAME Analysis)
-                    
 
 o2_add_dpl_workflow(track-checks
                     SOURCES trackchecks.cxx
