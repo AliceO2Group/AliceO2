@@ -31,10 +31,10 @@ constexpr float MassKaonCharged = 0.493677;
 constexpr float MassKaonNeutral = 0.497648;
 constexpr float MassProton = 0.938272;
 constexpr float MassLambda = 1.115683;
-constexpr float MassDeuteron = 1.875613;
-constexpr float MassTriton = 2.809250;
-constexpr float MassHelium3 = 2.809230;
-constexpr float MassAlpha = 3.727379;
+constexpr float MassDeuteron = 1.8756129;
+constexpr float MassTriton = 2.8089211;
+constexpr float MassHelium3 = 2.8083916;
+constexpr float MassAlpha = 3.7273794;
 constexpr float MassHyperTriton = 2.992;
 
 constexpr float LightSpeedCm2S = 299792458.e2;           // C in cm/s
