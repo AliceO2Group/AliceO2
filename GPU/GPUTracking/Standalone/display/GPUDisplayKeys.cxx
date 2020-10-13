@@ -357,9 +357,9 @@ void GPUDisplay::HandleKeyRelease(unsigned char key)
       SetInfo("Animation mode %d - Position: %s, Direction: %s", mCfg.animationMode, (mCfg.animationMode & 2) ? "Spherical (spherical rotation)" : (mCfg.animationMode & 4) ? "Spherical (Euler angles)" : "Cartesian", (mCfg.animationMode & 1) ? "Euler angles" : "Quaternion");
     }
   } else if (key == 'u') {
-    mTrackFilter = (mTrackFilter + 1) % 2;
+    mTrackFilter = (mTrackFilter + 1) % 3;
     mUpdateDLList = true;
-    SetInfo("Track filter: %s", mTrackFilter ? "TRD Tracks only" : "None");
+    SetInfo("Track filter: %s", mTrackFilter == 2 ? "TRD Track candidates" : mTrackFilter ? "TRD Tracks only" : "None");
   } else if (key == 'o') {
     FILE* ftmp = fopen("glpos.tmp", "w+b");
     if (ftmp) {
