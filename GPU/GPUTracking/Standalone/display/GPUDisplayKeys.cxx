@@ -35,8 +35,9 @@ const char* HelpText[] = {
   "[L] / [K]                     Draw single collisions (next / previous)",
   "[C]                           Colorcode clusters of different collisions",
   "[v]                           Hide rejected clusters from tracks",
-  "[b]                           Hide all clusters not belonging or related to matched tracks",
+  "[b]                           Hide all clusters not belonging or related to matched tracks in QA",
   "[j]                           Show global tracks as additional segments of final tracks",
+  "[u]                           Cycle through track filter",
   "[E] / [G]                     Extrapolate tracks / loopers",
   "[t] / [T]                     Take Screenshot / Record Animation to pictures",
   "[Z]                           Change screenshot resolution (scaling factor)",
@@ -355,6 +356,10 @@ void GPUDisplay::HandleKeyRelease(unsigned char key)
     } else {
       SetInfo("Animation mode %d - Position: %s, Direction: %s", mCfg.animationMode, (mCfg.animationMode & 2) ? "Spherical (spherical rotation)" : (mCfg.animationMode & 4) ? "Spherical (Euler angles)" : "Cartesian", (mCfg.animationMode & 1) ? "Euler angles" : "Quaternion");
     }
+  } else if (key == 'u') {
+    mTrackFilter = (mTrackFilter + 1) % 2;
+    mUpdateDLList = true;
+    SetInfo("Track filter: %s", mTrackFilter ? "TRD Tracks only" : "None");
   } else if (key == 'o') {
     FILE* ftmp = fopen("glpos.tmp", "w+b");
     if (ftmp) {

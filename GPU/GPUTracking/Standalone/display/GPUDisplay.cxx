@@ -882,7 +882,14 @@ void GPUDisplay::DrawFinal(int iSlice, int /*iCol*/, GPUTPCGMPropagator* prop, s
 
       size_t startCountInner = mVertexBuffer[iSlice].size();
       bool drawing = false;
-      if (mTRDTrackIds[i]) {
+      
+      if (mTrackFilter) {
+        if (mTrackFilter && mTRDTrackIds[i] == -1) {
+          break;
+        }
+      }
+      
+      if (mTRDTrackIds[i] != -1) {
         auto& trk = trdTracker().Tracks()[mTRDTrackIds[i]];
         for (int k = 5; k >= 0; k--) {
           int cid = trk.GetTrackletIndex(k);
@@ -1155,7 +1162,9 @@ int GPUDisplay::DrawGLScene_internal(bool mixAnimation, float mAnimateTime)
     if ((size_t)mMerger.GetConstantMem()->ioPtrs.nMergedTracks > mTRDTrackIds.size()) {
       mTRDTrackIds.resize(mMerger.GetConstantMem()->ioPtrs.nMergedTracks);
     }
-    memset(mTRDTrackIds.data(), 0, sizeof(mTRDTrackIds[0]) * mMerger.GetConstantMem()->ioPtrs.nMergedTracks);
+    for (unsigned int i = 0;i < mMerger.GetConstantMem()->ioPtrs.nMergedTracks;i++) {
+      mTRDTrackIds[i] = -1;
+    }
     for (int i = 0; i < trdTracker().NTracks(); i++) {
       if (trdTracker().Tracks()[i].GetNtracklets()) {
         mTRDTrackIds[trdTracker().Tracks()[i].GetTPCtrackId()] = i;
