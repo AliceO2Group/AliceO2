@@ -565,10 +565,11 @@ DataProcessorSpec getCATrackerSpec(CompletionPolicyData* policyData, ca::Config 
         }
       }
       if (processAttributes->clusterOutputIds.size() > 0) {
+        const o2::header::DataDescription outputLabel = specconfig.sendClustersPerSector ? (o2::header::DataDescription) "CLUSTERNATIVETMP" : (o2::header::DataDescription) "CLUSTERNATIVE";
         if (processAttributes->allocateOutputOnTheFly) {
-          outputRegions.clustersNative.allocator = [&clusterOutputChar, &pc, clusterOutputSectorHeader](size_t size) -> void* {clusterOutputChar = pc.outputs().make<char>({gDataOriginTPC, "CLUSTERNATIVE", NSectors, Lifetime::Timeframe, {clusterOutputSectorHeader}}, size + sizeof(ClusterCountIndex)).data(); return clusterOutputChar + sizeof(ClusterCountIndex); };
+          outputRegions.clustersNative.allocator = [&clusterOutputChar, &pc, clusterOutputSectorHeader, outputLabel](size_t size) -> void* {clusterOutputChar = pc.outputs().make<char>({gDataOriginTPC, outputLabel, NSectors, Lifetime::Timeframe, {clusterOutputSectorHeader}}, size + sizeof(ClusterCountIndex)).data(); return clusterOutputChar + sizeof(ClusterCountIndex); };
         } else {
-          clusterOutput.emplace(pc.outputs().make<std::vector<char>>({gDataOriginTPC, "CLUSTERNATIVE", NSectors, Lifetime::Timeframe, {clusterOutputSectorHeader}}, processAttributes->outputBufferSize));
+          clusterOutput.emplace(pc.outputs().make<std::vector<char>>({gDataOriginTPC, outputLabel, NSectors, Lifetime::Timeframe, {clusterOutputSectorHeader}}, processAttributes->outputBufferSize));
           clusterOutputChar = clusterOutput->get().data();
           outputRegions.clustersNative.ptr = clusterOutputChar + sizeof(ClusterCountIndex);
           outputRegions.clustersNative.size = clusterOutput->get().size() - sizeof(ClusterCountIndex);
@@ -634,14 +635,41 @@ DataProcessorSpec getCATrackerSpec(CompletionPolicyData* policyData, ca::Config 
           throw std::runtime_error("cluster native output ptrs out of sync"); // sanity check
         }
 
-        o2::header::DataHeader::SubSpecificationType subspec = NSectors;
-        // doing a copy for now, in the future the tracker uses the output buffer directly
         ClusterNativeAccess const& accessIndex = *ptrs.clusters;
-        ClusterCountIndex* outIndex = reinterpret_cast<ClusterCountIndex*>(clusterOutputChar);
-        static_assert(sizeof(ClusterCountIndex) == sizeof(accessIndex.nClusters));
-        memcpy(outIndex, &accessIndex.nClusters[0][0], sizeof(ClusterCountIndex));
-        if (specconfig.processMC && accessIndex.clustersMCTruth) {
-          pc.outputs().snapshot({gDataOriginTPC, "CLNATIVEMCLBL", subspec, Lifetime::Timeframe, {clusterOutputSectorHeader}}, clustersMCBuffer.first);
+        if (specconfig.sendClustersPerSector) {
+          for (int i = 0; i < NSectors; i++) {
+            if (processAttributes->tpcSectorMask & (1ul << i)) {
+              o2::header::DataHeader::SubSpecificationType subspec = i;
+              clusterOutputSectorHeader.sectorBits = (1ul << i);
+              char* buffer = pc.outputs().make<char>({gDataOriginTPC, "CLUSTERNATIVE", subspec, Lifetime::Timeframe, {clusterOutputSectorHeader}}, accessIndex.nClustersSector[i] * sizeof(*accessIndex.clustersLinear) + sizeof(ClusterCountIndex)).data();
+              ClusterCountIndex* outIndex = reinterpret_cast<ClusterCountIndex*>(buffer);
+              memset(outIndex, 0, sizeof(*outIndex));
+              for (int j = 0; j < constants::MAXGLOBALPADROW; j++) {
+                outIndex->nClusters[i][j] = accessIndex.nClusters[i][j];
+              }
+              memcpy(buffer + sizeof(*outIndex), accessIndex.clusters[i][0], accessIndex.nClustersSector[i] * sizeof(*accessIndex.clustersLinear));
+              if (specconfig.processMC && accessIndex.clustersMCTruth) {
+                MCLabelContainer cont;
+                for (int j = 0; j < accessIndex.nClustersSector[i]; j++) {
+                  const auto& labels = accessIndex.clustersMCTruth->getLabels(accessIndex.clusterOffset[i][0] + j);
+                  for (const auto& label : labels) {
+                    cont.addElement(j, label);
+                  }
+                }
+                ConstMCLabelContainer contflat;
+                cont.flatten_to(contflat);
+                pc.outputs().snapshot({gDataOriginTPC, "CLNATIVEMCLBL", subspec, Lifetime::Timeframe, {clusterOutputSectorHeader}}, contflat);
+              }
+            }
+          }
+        } else {
+          o2::header::DataHeader::SubSpecificationType subspec = NSectors;
+          ClusterCountIndex* outIndex = reinterpret_cast<ClusterCountIndex*>(clusterOutputChar);
+          static_assert(sizeof(ClusterCountIndex) == sizeof(accessIndex.nClusters));
+          memcpy(outIndex, &accessIndex.nClusters[0][0], sizeof(ClusterCountIndex));
+          if (specconfig.processMC && accessIndex.clustersMCTruth) {
+            pc.outputs().snapshot({gDataOriginTPC, "CLNATIVEMCLBL", subspec, Lifetime::Timeframe, {clusterOutputSectorHeader}}, clustersMCBuffer.first);
+          }
         }
       }
     };
@@ -723,9 +751,23 @@ DataProcessorSpec getCATrackerSpec(CompletionPolicyData* policyData, ca::Config 
       for (auto const& sector : tpcsectors) {
         processAttributes->clusterOutputIds.emplace_back(sector);
       }
-      outputSpecs.emplace_back(gDataOriginTPC, "CLUSTERNATIVE", NSectors, Lifetime::Timeframe);
+      outputSpecs.emplace_back(gDataOriginTPC, "CLUSTERNATIVE", specconfig.sendClustersPerSector ? 0 : NSectors, Lifetime::Timeframe);
+      if (specconfig.sendClustersPerSector) {
+        outputSpecs.emplace_back(gDataOriginTPC, "CLUSTERNATIVETMP", NSectors, Lifetime::Timeframe); // Dummy buffer the TPC tracker writes the inital linear clusters to
+        for (const auto sector : tpcsectors) {
+          outputSpecs.emplace_back(gDataOriginTPC, "CLUSTERNATIVE", sector, Lifetime::Timeframe);
+        }
+      } else {
+        outputSpecs.emplace_back(gDataOriginTPC, "CLUSTERNATIVE", NSectors, Lifetime::Timeframe);
+      }
       if (specconfig.processMC) {
-        outputSpecs.emplace_back(OutputSpec{gDataOriginTPC, "CLNATIVEMCLBL", NSectors, Lifetime::Timeframe});
+        if (specconfig.sendClustersPerSector) {
+          for (const auto sector : tpcsectors) {
+            outputSpecs.emplace_back(gDataOriginTPC, "CLNATIVEMCLBL", sector, Lifetime::Timeframe);
+          }
+        } else {
+          outputSpecs.emplace_back(gDataOriginTPC, "CLNATIVEMCLBL", NSectors, Lifetime::Timeframe);
+        }
       }
     }
     return std::move(outputSpecs);

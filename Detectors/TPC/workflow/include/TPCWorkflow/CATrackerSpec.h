@@ -42,6 +42,7 @@ enum struct Operation {
   OutputCompClusters,     // publish CompClusters container
   OutputCompClustersFlat, // publish CompClusters container
   ProcessMC,              // process MC labels
+  SendClustersPerSector,  // Send clusters and clusters mc labels per sector
   Noop,                   // skip argument on the constructor
 };
 
@@ -90,6 +91,9 @@ struct Config {
       case Operation::ProcessMC:
         processMC = true;
         break;
+      case Operation::SendClustersPerSector:
+        sendClustersPerSector = true;
+        break;
       case Operation::Noop:
         break;
       default:
@@ -113,6 +117,7 @@ struct Config {
   bool outputCompClustersFlat = false;
   bool outputCAClusters = false;
   bool processMC = false;
+  bool sendClustersPerSector = false;
 };
 
 } // namespace ca

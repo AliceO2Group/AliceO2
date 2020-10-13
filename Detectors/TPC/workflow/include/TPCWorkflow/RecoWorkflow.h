@@ -58,6 +58,7 @@ enum struct OutputType { Digits,
                          CompClusters,
                          EncodedClusters,
                          DisableWriter,
+                         SendClustersPerSector,
                          ZSRaw,
 };
 
