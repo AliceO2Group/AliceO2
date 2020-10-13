@@ -20,7 +20,7 @@ struct MultiplicityTableTaskIndexed {
   Produces<aod::Mults> mult;
   Partition<aod::Tracks> tracklets = (aod::track::trackType == static_cast<uint8_t>(o2::aod::track::TrackTypeEnum::Run2Tracklet));
 
-  void process(aod::Run2MatchedSparse::iterator const& collision, aod::Tracks const& tracks, aod::BCs const&, aod::Zdcs const&, aod::Run2V0s const&)
+  void process(aod::Run2MatchedSparse::iterator const& collision, aod::Tracks const& tracks, aod::BCs const&, aod::Zdcs const&, aod::FV0As const& fv0as, aod::FV0Cs const& fv0cs)
   {
     float multV0A = -1.f;
     float multV0C = -1.f;
@@ -28,10 +28,17 @@ struct MultiplicityTableTaskIndexed {
     float multZNC = -1.f;
     int multTracklets = tracklets.size();
 
-    if (collision.has_run2v0()) {
-      auto v0 = collision.run2v0();
-      multV0A = v0.multA();
-      multV0C = v0.multC();
+    if (collision.has_fv0a()) {
+      auto v0a = collision.fv0a();
+      for (int i = 0; i < 48; i++) {
+        multV0A += v0a.amplitude()[i];
+      }
+    }
+    if (collision.has_fv0c()) {
+      auto v0c = collision.fv0c();
+      for (int i = 0; i < 32; i++) {
+        multV0C += v0c.amplitude()[i];
+      }
     }
     if (collision.has_zdc()) {
       auto zdc = collision.zdc();
