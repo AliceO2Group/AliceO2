@@ -484,9 +484,9 @@ std::tuple<TFile*, std::string> DataInputDirector::getFileFolder(header::DataHea
   if (!didesc) {
     didesc = mdefaultDataInputDescriptor;
   }
-  auto [filename, directory] = didesc->getFileFolder(counter);
+  auto [file, directory] = didesc->getFileFolder(counter);
 
-  return std::make_tuple(filename, directory);
+  return std::make_tuple(file, directory);
 }
 
 TTree* DataInputDirector::getDataTree(header::DataHeader dh, int counter)
