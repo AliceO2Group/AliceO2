@@ -108,8 +108,14 @@ class GPUTRDTracker_t : public GPUProcessor
   GPUhd() void OverrideGPUGeometry(TRD_GEOMETRY_CONST GPUTRDGeometry* geo) { mGeo = geo; }
   void Reset();
   GPUd() int LoadTracklet(const GPUTRDTrackletWord& tracklet, const int* labels = nullptr);
+  template <class T>
+  GPUd() bool PreCheckTrackTRDCandidate(const T& trk) const
+  {
+    return true;
+  }
+  GPUd() bool PreCheckTrackTRDCandidate(const GPUTPCGMMergedTrack& trk) const { return trk.OK() && !trk.Looper(); }
   GPUd() bool CheckTrackTRDCandidate(const TRDTRK& trk) const;
-  GPUd() int LoadTrack(const TRDTRK& trk, const int label = -1, const int* nTrkltsOffline = nullptr, const int labelOffline = -1, int tpcTrackId = -1);
+  GPUd() int LoadTrack(const TRDTRK& trk, const int label = -1, const int* nTrkltsOffline = nullptr, const int labelOffline = -1, int tpcTrackId = -1, bool checkTrack = true);
 
   GPUd() int GetCollisionID(float trkTime) const;
   GPUd() void DoTrackingThread(int iTrk, int threadId = 0);

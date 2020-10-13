@@ -442,7 +442,7 @@ GPUd() bool GPUTRDTracker_t<TRDTRK, PROP>::CheckTrackTRDCandidate(const TRDTRK& 
 }
 
 template <class TRDTRK, class PROP>
-GPUd() int GPUTRDTracker_t<TRDTRK, PROP>::LoadTrack(const TRDTRK& trk, const int label, const int* nTrkltsOffline, const int labelOffline, int tpcTrackId)
+GPUd() int GPUTRDTracker_t<TRDTRK, PROP>::LoadTrack(const TRDTRK& trk, const int label, const int* nTrkltsOffline, const int labelOffline, int tpcTrackId, bool checkTrack)
 {
   if (mNTracks >= mNMaxTracks) {
 #ifndef GPUCA_GPUCODE
@@ -450,7 +450,7 @@ GPUd() int GPUTRDTracker_t<TRDTRK, PROP>::LoadTrack(const TRDTRK& trk, const int
 #endif
     return (1);
   }
-  if (!CheckTrackTRDCandidate(trk)) {
+  if (checkTrack && !CheckTrackTRDCandidate(trk)) {
     return 0;
   }
 #ifdef GPUCA_ALIROOT_LIB
