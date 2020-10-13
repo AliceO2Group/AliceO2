@@ -1076,6 +1076,7 @@ GPUDisplay::vboList GPUDisplay::DrawGrid(const GPUTPCTracker& tracker)
   int iSlice = tracker.ISlice();
   size_t startCount = mVertexBufferStart[iSlice].size();
   size_t startCountInner = mVertexBuffer[iSlice].size();
+  /*
   for (int i = 0; i < GPUCA_ROW_COUNT; i++) {
     const GPUTPCRow& row = tracker.Data().Row(i);
     for (int j = 0; j <= (signed)row.Grid().Ny(); j++) {
@@ -1113,6 +1114,66 @@ GPUDisplay::vboList GPUDisplay::DrawGrid(const GPUTPCTracker& tracker)
       }
       mVertexBuffer[iSlice].emplace_back(xx1 / GL_SCALE_FACTOR, yy1 / GL_SCALE_FACTOR, zz1 / GL_SCALE_FACTOR);
       mVertexBuffer[iSlice].emplace_back(xx2 / GL_SCALE_FACTOR, yy2 / GL_SCALE_FACTOR, zz2 / GL_SCALE_FACTOR);
+    }
+  }
+  */
+  if (iSlice < 18) {
+    // TODO: tilted pads ignored at the moment
+    int iSec = iSlice;
+    auto geo = trdTracker().GetGeometry();
+    float alpha = geo->GetAlpha() / 2.f + geo->GetAlpha() * iSec;
+    if (iSec >= 9) {
+      alpha -= 2 * M_PI;
+    }
+    for (int iLy = 0; iLy < GPUTRDTracker::EGPUTRDTracker::kNLayers; ++iLy) {
+      for (int iStack = 0; iStack < GPUTRDTracker::EGPUTRDTracker::kNStacks; ++iStack) {
+        int iDet = geo->GetDetector(iLy, iStack, iSec);
+        auto matrix = geo->GetClusterMatrix(iDet);
+        if (!matrix) {
+          continue;
+        }
+        auto pp = geo->GetPadPlane(iDet);
+        for (int i = 0; i < pp->GetNrows(); ++i) {
+          float xyzLoc1[3];
+          float xyzLoc2[3];
+          float xyzGlb1[3];
+          float xyzGlb2[3];
+          xyzLoc1[0] = xyzLoc2[0] = geo->AnodePos();
+          xyzLoc1[1] = pp->GetCol0();
+          xyzLoc2[1] = pp->GetColEnd();
+          xyzLoc1[2] = xyzLoc2[2] = pp->GetRowPos(i) - pp->GetRowPos(pp->GetNrows() / 2);
+          matrix->LocalToMaster(xyzLoc1, xyzGlb1);
+          matrix->LocalToMaster(xyzLoc2, xyzGlb2);
+          float x1Tmp = xyzGlb1[0];
+          xyzGlb1[0] = xyzGlb1[0] * cosf(alpha) + xyzGlb1[1] * sinf(alpha);
+          xyzGlb1[1] = -x1Tmp * sinf(alpha) + xyzGlb1[1] * cosf(alpha);
+          float x2Tmp = xyzGlb2[0];
+          xyzGlb2[0] = xyzGlb2[0] * cosf(alpha) + xyzGlb2[1] * sinf(alpha);
+          xyzGlb2[1] = -x2Tmp * sinf(alpha) + xyzGlb2[1] * cosf(alpha);
+          mVertexBuffer[iSlice].emplace_back(xyzGlb1[0] / GL_SCALE_FACTOR, xyzGlb1[1] / GL_SCALE_FACTOR, xyzGlb1[2] / GL_SCALE_FACTOR);
+          mVertexBuffer[iSlice].emplace_back(xyzGlb2[0] / GL_SCALE_FACTOR, xyzGlb2[1] / GL_SCALE_FACTOR, xyzGlb2[2] / GL_SCALE_FACTOR);
+        }
+        for (int j = 0; j < pp->GetNcols(); ++j) {
+          float xyzLoc1[3];
+          float xyzLoc2[3];
+          float xyzGlb1[3];
+          float xyzGlb2[3];
+          xyzLoc1[0] = xyzLoc2[0] = geo->AnodePos();
+          xyzLoc1[1] = xyzLoc2[1] = pp->GetColPos(j) + pp->GetColSize(j) / 2.f;
+          xyzLoc1[2] = pp->GetRow0() - pp->GetRowPos(pp->GetNrows() / 2);
+          xyzLoc2[2] = pp->GetRowEnd() - pp->GetRowPos(pp->GetNrows() / 2);
+          matrix->LocalToMaster(xyzLoc1, xyzGlb1);
+          matrix->LocalToMaster(xyzLoc2, xyzGlb2);
+          float x1Tmp = xyzGlb1[0];
+          xyzGlb1[0] = xyzGlb1[0] * cosf(alpha) + xyzGlb1[1] * sinf(alpha);
+          xyzGlb1[1] = -x1Tmp * sinf(alpha) + xyzGlb1[1] * cosf(alpha);
+          float x2Tmp = xyzGlb2[0];
+          xyzGlb2[0] = xyzGlb2[0] * cosf(alpha) + xyzGlb2[1] * sinf(alpha);
+          xyzGlb2[1] = -x2Tmp * sinf(alpha) + xyzGlb2[1] * cosf(alpha);
+          mVertexBuffer[iSlice].emplace_back(xyzGlb1[0] / GL_SCALE_FACTOR, xyzGlb1[1] / GL_SCALE_FACTOR, xyzGlb1[2] / GL_SCALE_FACTOR);
+          mVertexBuffer[iSlice].emplace_back(xyzGlb2[0] / GL_SCALE_FACTOR, xyzGlb2[1] / GL_SCALE_FACTOR, xyzGlb2[2] / GL_SCALE_FACTOR);
+        }
+      }
     }
   }
   insertVertexList(tracker.ISlice(), startCountInner, mVertexBuffer[iSlice].size());
