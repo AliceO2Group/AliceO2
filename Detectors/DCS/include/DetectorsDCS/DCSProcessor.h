@@ -84,21 +84,19 @@ class DCSProcessor
   template <typename T>
   void checkFlagsAndFill(const std::pair<DPID, DPVAL>& dpcom, int64_t& latestTimeStamp, std::unordered_map<DPID, T>& destmap);
 
-  template <typename T>
-  void process(const DPID& alias, std::deque<T>& aliasDeque);
+  virtual void processCharDP(const DPID& alias);
+  virtual void processIntDP(const DPID& alias);
+  virtual void processDoubleDP(const DPID& alias);
+  virtual void processUIntDP(const DPID& alias);
+  virtual void processBoolDP(const DPID& alias);
+  virtual void processStringDP(const DPID& alias);
+  virtual void processTimeDP(const DPID& alias);
+  virtual void processBinaryDP(const DPID& alias);
+
+  virtual uint64_t processFlag(uint64_t flag, const char* alias);
 
   template <typename T>
   void doSimpleMovingAverage(int nelements, std::deque<T>& vect, float& avg, bool& isSMA);
-
-  virtual void processChars();
-  virtual void processInts();
-  virtual void processDoubles();
-  virtual void processUInts();
-  virtual void processBools();
-  virtual void processStrings();
-  virtual void processTimes();
-  virtual void processBinaries();
-  virtual uint64_t processFlag(uint64_t flag, const char* alias);
 
   DQChars& getVectorForAliasChar(const DPID& id) { return mDpscharsmap[id]; }
   DQInts& getVectorForAliasInt(const DPID& id) { return mDpsintsmap[id]; }
@@ -128,6 +126,9 @@ class DCSProcessor
 
   template <typename T>
   void prepareCCDBobject(T& obj, CcdbObjectInfo& info, const std::string& path, TFType tf, const std::map<std::string, std::string>& md);
+
+  void setName(std::string name) { mName = name; }
+  const std::string getName() const { return mName; }
 
  private:
   bool mFullMapSent = false;                            // set to true as soon as a full map was sent. No delta can be received if there was never a full map sent
@@ -163,6 +164,7 @@ class DCSProcessor
   std::unordered_map<std::string, float> mccdbSimpleMovingAverage; // unordered map in which to store the CCDB entry for the DPs for which we calculated the simple moving average
   CcdbObjectInfo mccdbSimpleMovingAverageInfo;                     // info to store the output of the calibration for the DPs for which we calculated the simple moving average
   TFType mTF = 0;                                                  // TF index for processing, used to store CCDB object
+  std::string mName = "";                                          // to be used to determine CCDB path
 
   ClassDefNV(DCSProcessor, 0);
 };
@@ -186,28 +188,39 @@ int DCSProcessor::processArrayType(const std::vector<DPID>& array, DeliveryType 
   // processing the array of type T
 
   int found = 0;
-  auto s = array.size();
-  if (s > 0) { // we have at least one DP of type T
-    //#ifdef WITH_OPENMP
-    //omp_set_num_threads(mNThreads);
-    //#pragma omp parallel for schedule(dynamic)
-    //#endif
-    for (size_t i = 0; i != s; ++i) {
-      auto it = findAndCheckAlias(array[i], type, map);
-      if (it == map.end()) {
-        if (!mIsDelta) {
-          LOG(ERROR) << "Element " << array[i] << " not found " << std::endl;
-        } else {
-          latestTimeStamp[i] = -latestTimeStamp[i];
-        }
-        continue;
+  //#ifdef WITH_OPENMP
+  //omp_set_num_threads(mNThreads);
+  //#pragma omp parallel for schedule(dynamic)
+  //#endif
+  for (size_t i = 0; i != array.size(); ++i) {
+    auto it = findAndCheckAlias(array[i], type, map);
+    if (it == map.end()) {
+      if (!mIsDelta) {
+        LOG(ERROR) << "Element " << array[i] << " not found " << std::endl;
       }
-      found++;
-      std::pair<DPID, DPVAL> pairIt = *it;
-      checkFlagsAndFill(pairIt, latestTimeStamp[i], destmap);
-      process(array[i], destmap[array[i]]);
-      // todo: better to move the "found++" after the process, in case it fails?
+      continue;
     }
+    found++;
+    std::pair<DPID, DPVAL> pairIt = *it;
+    checkFlagsAndFill(pairIt, latestTimeStamp[i], destmap);
+    if (type == RAW_CHAR) {
+      processCharDP(array[i]);
+    } else if (type == RAW_INT) {
+      processIntDP(array[i]);
+    } else if (type == RAW_DOUBLE) {
+      processDoubleDP(array[i]);
+    } else if (type == RAW_UINT) {
+      processUIntDP(array[i]);
+    } else if (type == RAW_BOOL) {
+      processBoolDP(array[i]);
+    } else if (type == RAW_STRING) {
+      processStringDP(array[i]);
+    } else if (type == RAW_TIME) {
+      processTimeDP(array[i]);
+    } else if (type == RAW_BINARY) {
+      processBinaryDP(array[i]);
+    }
+    // todo: better to move the "found++" after the process, in case it fails?
   }
   return found;
 }
@@ -244,20 +257,6 @@ void DCSProcessor::checkFlagsAndFill(const std::pair<DPID, DPVAL>& dpcom, int64_
 
 template <>
 void DCSProcessor::checkFlagsAndFill(const std::pair<DPID, DPVAL>& dpcom, int64_t& latestTimeStamp, std::unordered_map<DPID, DCSProcessor::DQBinaries>& destmap);
-
-//______________________________________________________________________
-
-template <typename T>
-void DCSProcessor::process(const DPID& alias, std::deque<T>& aliasdeque)
-{
-  // processing the single alias
-  return;
-}
-
-//______________________________________________________________________
-
-template <>
-void DCSProcessor::process(const DPID& alias, std::deque<int>& aliasdeque);
 
 //______________________________________________________________________
 
