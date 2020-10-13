@@ -11,6 +11,7 @@
 add_subdirectory(PWGCF)
 add_subdirectory(PWGDQ)
 add_subdirectory(PWGHF)
+add_subdirectory(PWGJE)
 add_subdirectory(PWGLF)
 add_subdirectory(PWGUD)
 
@@ -44,14 +45,6 @@ o2_add_dpl_workflow(validation
                     SOURCES validation.cxx
                     PUBLIC_LINK_LIBRARIES O2::Framework O2::DetectorsBase
                     COMPONENT_NAME Analysis)
-
-if(FastJet_FOUND)
-o2_add_dpl_workflow(jetfinder
-                    SOURCES jetfinder.cxx
-                    PUBLIC_LINK_LIBRARIES O2::Framework O2::AnalysisCore O2::AnalysisDataModel
-                    FastJet::FastJet
-                    COMPONENT_NAME Analysis)
-endif()
 
 o2_add_dpl_workflow(event-selection
                     SOURCES eventSelection.cxx
