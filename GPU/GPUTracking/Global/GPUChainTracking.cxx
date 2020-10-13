@@ -2445,6 +2445,14 @@ int GPUChainTracking::RunChainFinalize()
     mRec->getGeneralStepTimer(GeneralStep::QA).Stop();
   }
 
+  if (GetProcessingSettings().showOutputStat) {
+    PrintOutputStat();
+  }
+
+  PrintDebugOutput();
+
+  //PrintMemoryRelations();
+
   if (GetProcessingSettings().eventDisplay) {
     if (!mDisplayRunning) {
       if (mEventDisplay->StartDisplay()) {
@@ -2491,9 +2499,6 @@ int GPUChainTracking::RunChainFinalize()
     mEventDisplay->WaitForNextEvent();
   }
 
-  PrintDebugOutput();
-
-  //PrintMemoryRelations();
   return 0;
 }
 

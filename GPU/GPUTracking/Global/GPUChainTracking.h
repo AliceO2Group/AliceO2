@@ -211,6 +211,7 @@ class GPUChainTracking : public GPUChain, GPUReconstructionHelpers::helperDelega
   void PrintMemoryStatistics() override;
   void PrepareDebugOutput();
   void PrintDebugOutput();
+  void PrintOutputStat();
 
   bool ValidateSteps();
   bool ValidateSettings();
