@@ -76,28 +76,28 @@ struct TrackCheckTaskEvSel {
   Configurable<double> cfgCutY{"cfgCutY", 0.5, "option to configure rapidity cut"};
   Configurable<float> cfgCutVZ{"cfgCutVZ", 10.f, "option to configure z-vertex cut"};
   OutputObj<TH1F> hTrkPrimAftEvSel{TH1F("hTrkPrimAftEvSel",
-              "Reco Prim tracks AftEvSel (charged); #it{p}_{T} (GeV/#it{c}); Counts", NPTBINS, pt_bins)};
+                                        "Reco Prim tracks AftEvSel (charged); #it{p}_{T} (GeV/#it{c}); Counts", NPTBINS, pt_bins)};
   OutputObj<HistArray> hTrkPrimAftEvSel_truepid{HistArray("hTrkPrimAftEvSel_truepid"),
-              OutputObjHandlingPolicy::AnalysisObject};
+                                                OutputObjHandlingPolicy::AnalysisObject};
 
   void init(InitContext&)
   {
     hTrkPrimAftEvSel_truepid->Add<kEl>(TH1F("hTrkPrimAftEvSel_truepid_el",
-              "Generated tracks after event selection (true El); #it{p}_{T} (GeV/#it{c}); Counts", NPTBINS, pt_bins));
+                                            "Generated tracks after event selection (true El); #it{p}_{T} (GeV/#it{c}); Counts", NPTBINS, pt_bins));
     hTrkPrimAftEvSel_truepid->Add<kPi>(TH1F("hTrkPrimAftEvSel_truepid_pi",
-              "Generated tracks after event selection (true Pi); #it{p}_{T} (GeV/#it{c}); Counts", NPTBINS, pt_bins));
+                                            "Generated tracks after event selection (true Pi); #it{p}_{T} (GeV/#it{c}); Counts", NPTBINS, pt_bins));
     hTrkPrimAftEvSel_truepid->Add<kKa>(TH1F("hTrkPrimAftEvSel_truepid_ka",
-              "Generated tracks after event selection (true Ka); #it{p}_{T} (GeV/#it{c}); Counts", NPTBINS, pt_bins));
+                                            "Generated tracks after event selection (true Ka); #it{p}_{T} (GeV/#it{c}); Counts", NPTBINS, pt_bins));
     hTrkPrimAftEvSel_truepid->Add<kPr>(TH1F("hTrkPrimAftEvSel_truepid_pr",
-              "Generated tracks after event selection (true Pr); #it{p}_{T} (GeV/#it{c}); Counts", NPTBINS, pt_bins));
+                                            "Generated tracks after event selection (true Pr); #it{p}_{T} (GeV/#it{c}); Counts", NPTBINS, pt_bins));
     hTrkPrimAftEvSel_truepid->Add<kDe>(TH1F("hTrkPrimAftEvSel_truepid_de",
-              "Generated tracks after event selection (true De); #it{p}_{T} (GeV/#it{c}); Counts", NPTBINS, pt_bins));
+                                            "Generated tracks after event selection (true De); #it{p}_{T} (GeV/#it{c}); Counts", NPTBINS, pt_bins));
   } //init
 
   //Filters
   Filter collfilter = nabs(aod::collision::posZ) < cfgCutVZ;
   void process(soa::Filtered<soa::Join<aod::Collisions, aod::EvSels>>::iterator const& col,
-              soa::Join<aod::Tracks, aod::TracksExtra, aod::McTrackLabels>& tracks, aod::McParticles& mcParticles)
+               soa::Join<aod::Tracks, aod::TracksExtra, aod::McTrackLabels>& tracks, aod::McParticles& mcParticles)
   {
 
     //event selection
@@ -152,9 +152,9 @@ struct TrackCheckTaskEvSelTrackSel {
   Configurable<double> cfgCutY{"cfgCutY", 0.5, "option to configure rapidity cut"};
   Configurable<float> cfgCutVZ{"cfgCutVZ", 10.f, "option to configure z-vertex cut"};
   OutputObj<TH1F> hTrkPrimReco{TH1F("hTrkPrimReco", "Reco Prim tracks (charged); #it{p}_{T} (GeV/#it{c}); Counts",
-                NPTBINS, pt_bins)};
+                                    NPTBINS, pt_bins)};
   OutputObj<HistArray> hTrkPrimReco_truepid{HistArray("hTrkPrimReco_truepid"),
-                OutputObjHandlingPolicy::AnalysisObject};
+                                            OutputObjHandlingPolicy::AnalysisObject};
   OutputObj<HistArray> hDCAxyReco_truepid{HistArray("hDCAxyReco_truepid"), OutputObjHandlingPolicy::AnalysisObject};
   OutputObj<HistArray> hDCAxyPrim_truepid{HistArray("hDCAxyPrim_truepid"), OutputObjHandlingPolicy::AnalysisObject};
   OutputObj<HistArray> hDCAxySeco_truepid{HistArray("hDCAxySeco_truepid"), OutputObjHandlingPolicy::AnalysisObject};
@@ -162,48 +162,48 @@ struct TrackCheckTaskEvSelTrackSel {
   void init(InitContext&)
   {
     hTrkPrimReco_truepid->Add<kEl>(TH1F("hTrkPrimReco_truepid_el",
-                "Primary Reco tracks (true El); #it{p}_{T} (GeV/#it{c}); Counts", NPTBINS, pt_bins));
+                                        "Primary Reco tracks (true El); #it{p}_{T} (GeV/#it{c}); Counts", NPTBINS, pt_bins));
     hTrkPrimReco_truepid->Add<kPi>(TH1F("hTrkPrimReco_truepid_pi",
-                "Primary Reco tracks (true Pi); #it{p}_{T} (GeV/#it{c}); Counts", NPTBINS, pt_bins));
+                                        "Primary Reco tracks (true Pi); #it{p}_{T} (GeV/#it{c}); Counts", NPTBINS, pt_bins));
     hTrkPrimReco_truepid->Add<kKa>(TH1F("hTrkPrimReco_truepid_ka",
-                "Primary Reco tracks (true Ka); #it{p}_{T} (GeV/#it{c}); Counts", NPTBINS, pt_bins));
+                                        "Primary Reco tracks (true Ka); #it{p}_{T} (GeV/#it{c}); Counts", NPTBINS, pt_bins));
     hTrkPrimReco_truepid->Add<kPr>(TH1F("hTrkPrimReco_truepid_pr",
-                "Primary Reco tracks (true Pr); #it{p}_{T} (GeV/#it{c}); Counts", NPTBINS, pt_bins));
+                                        "Primary Reco tracks (true Pr); #it{p}_{T} (GeV/#it{c}); Counts", NPTBINS, pt_bins));
     hTrkPrimReco_truepid->Add<kDe>(TH1F("hTrkPrimReco_truepid_de",
-                "Primary Reco tracks (true De); #it{p}_{T} (GeV/#it{c}); Counts", NPTBINS, pt_bins));
+                                        "Primary Reco tracks (true De); #it{p}_{T} (GeV/#it{c}); Counts", NPTBINS, pt_bins));
 
     hDCAxyReco_truepid->Add<kEl>(TH2F("hDCAxyReco_truepid_el",
-                "DCAxy reco (true El); #it{p}_{T} (GeV/#it{c}); DCAxy (cm)", NPTBINS, pt_bins, 800, -4., 4.));
+                                      "DCAxy reco (true El); #it{p}_{T} (GeV/#it{c}); DCAxy (cm)", NPTBINS, pt_bins, 800, -4., 4.));
     hDCAxyReco_truepid->Add<kPi>(TH2F("hDCAxyReco_truepid_pi",
-                "DCAxy reco (true Pi); #it{p}_{T} (GeV/#it{c}); DCAxy (cm)", NPTBINS, pt_bins, 800, -4., 4.));
+                                      "DCAxy reco (true Pi); #it{p}_{T} (GeV/#it{c}); DCAxy (cm)", NPTBINS, pt_bins, 800, -4., 4.));
     hDCAxyReco_truepid->Add<kKa>(TH2F("hDCAxyReco_truepid_ka",
-                "DCAxy reco (true Ka); #it{p}_{T} (GeV/#it{c}); DCAxy (cm)", NPTBINS, pt_bins, 800, -4., 4.));
+                                      "DCAxy reco (true Ka); #it{p}_{T} (GeV/#it{c}); DCAxy (cm)", NPTBINS, pt_bins, 800, -4., 4.));
     hDCAxyReco_truepid->Add<kPr>(TH2F("hDCAxyReco_truepid_pr",
-                "DCAxy reco (true Pr); #it{p}_{T} (GeV/#it{c}); DCAxy (cm)", NPTBINS, pt_bins, 800, -4., 4.));
+                                      "DCAxy reco (true Pr); #it{p}_{T} (GeV/#it{c}); DCAxy (cm)", NPTBINS, pt_bins, 800, -4., 4.));
     hDCAxyReco_truepid->Add<kDe>(TH2F("hDCAxyReco_truepid_de",
-                "DCAxy reco (true De); #it{p}_{T} (GeV/#it{c}); DCAxy (cm)", NPTBINS, pt_bins, 800, -4., 4.));
+                                      "DCAxy reco (true De); #it{p}_{T} (GeV/#it{c}); DCAxy (cm)", NPTBINS, pt_bins, 800, -4., 4.));
 
     hDCAxyPrim_truepid->Add<kEl>(TH2F("hDCAxyPrim_truepid_el",
-                "DCAxy primaries (true El); #it{p}_{T} (GeV/#it{c}); DCAxy (cm)", NPTBINS, pt_bins, 800, -4., 4.));
+                                      "DCAxy primaries (true El); #it{p}_{T} (GeV/#it{c}); DCAxy (cm)", NPTBINS, pt_bins, 800, -4., 4.));
     hDCAxyPrim_truepid->Add<kPi>(TH2F("hDCAxyPrim_truepid_pi",
-                "DCAxy primaries (true Pi); #it{p}_{T} (GeV/#it{c}); DCAxy (cm)", NPTBINS, pt_bins, 800, -4., 4.));
+                                      "DCAxy primaries (true Pi); #it{p}_{T} (GeV/#it{c}); DCAxy (cm)", NPTBINS, pt_bins, 800, -4., 4.));
     hDCAxyPrim_truepid->Add<kKa>(TH2F("hDCAxyPrim_truepid_ka",
-                "DCAxy primaries (true Ka); #it{p}_{T} (GeV/#it{c}); DCAxy (cm)", NPTBINS, pt_bins, 800, -4., 4.));
+                                      "DCAxy primaries (true Ka); #it{p}_{T} (GeV/#it{c}); DCAxy (cm)", NPTBINS, pt_bins, 800, -4., 4.));
     hDCAxyPrim_truepid->Add<kPr>(TH2F("hDCAxyPrim_truepid_pr",
-                "DCAxy primaries (true Pr); #it{p}_{T} (GeV/#it{c}); DCAxy (cm)", NPTBINS, pt_bins, 800, -4., 4.));
+                                      "DCAxy primaries (true Pr); #it{p}_{T} (GeV/#it{c}); DCAxy (cm)", NPTBINS, pt_bins, 800, -4., 4.));
     hDCAxyPrim_truepid->Add<kDe>(TH2F("hDCAxyPrim_truepid_de",
-                "DCAxy primaries (true De); #it{p}_{T} (GeV/#it{c}); DCAxy (cm)", NPTBINS, pt_bins, 800, -4., 4.));
+                                      "DCAxy primaries (true De); #it{p}_{T} (GeV/#it{c}); DCAxy (cm)", NPTBINS, pt_bins, 800, -4., 4.));
 
     hDCAxySeco_truepid->Add<kEl>(TH2F("hDCAxySeco_truepid_el",
-                "DCAxy secondaries (true El); #it{p}_{T} (GeV/#it{c}); DCAxy (cm)", NPTBINS, pt_bins, 800, -4., 4.));
+                                      "DCAxy secondaries (true El); #it{p}_{T} (GeV/#it{c}); DCAxy (cm)", NPTBINS, pt_bins, 800, -4., 4.));
     hDCAxySeco_truepid->Add<kPi>(TH2F("hDCAxySeco_truepid_pi",
-                "DCAxy secondaries (true Pi); #it{p}_{T} (GeV/#it{c}); DCAxy (cm)", NPTBINS, pt_bins, 800, -4., 4.));
+                                      "DCAxy secondaries (true Pi); #it{p}_{T} (GeV/#it{c}); DCAxy (cm)", NPTBINS, pt_bins, 800, -4., 4.));
     hDCAxySeco_truepid->Add<kKa>(TH2F("hDCAxySeco_truepid_ka",
-                "DCAxy secondaries (true Ka); #it{p}_{T} (GeV/#it{c}); DCAxy (cm)", NPTBINS, pt_bins, 800, -4., 4.));
+                                      "DCAxy secondaries (true Ka); #it{p}_{T} (GeV/#it{c}); DCAxy (cm)", NPTBINS, pt_bins, 800, -4., 4.));
     hDCAxySeco_truepid->Add<kPr>(TH2F("hDCAxySeco_truepid_pr",
-                "DCAxy secondaries (true Pr); #it{p}_{T} (GeV/#it{c}); DCAxy (cm)", NPTBINS, pt_bins, 800, -4., 4.));
+                                      "DCAxy secondaries (true Pr); #it{p}_{T} (GeV/#it{c}); DCAxy (cm)", NPTBINS, pt_bins, 800, -4., 4.));
     hDCAxySeco_truepid->Add<kDe>(TH2F("hDCAxySeco_truepid_de",
-                "DCAxy secondaries (true De); #it{p}_{T} (GeV/#it{c}); DCAxy (cm)", NPTBINS, pt_bins, 800, -4., 4.));
+                                      "DCAxy secondaries (true De); #it{p}_{T} (GeV/#it{c}); DCAxy (cm)", NPTBINS, pt_bins, 800, -4., 4.));
 
   } //init
 
@@ -211,8 +211,9 @@ struct TrackCheckTaskEvSelTrackSel {
   Filter collfilter = nabs(aod::collision::posZ) < cfgCutVZ;
   Filter trackfilter = aod::track::isGlobalTrack == true;
   void process(soa::Filtered<soa::Join<aod::Collisions, aod::EvSels>>::iterator const& col,
-    soa::Filtered<soa::Join<aod::Tracks, aod::TracksExtra, aod::TracksExtended,
-    aod::TrackSelection, aod::McTrackLabels>>& tracks, aod::McParticles& mcParticles)
+               soa::Filtered<soa::Join<aod::Tracks, aod::TracksExtra, aod::TracksExtended,
+                                       aod::TrackSelection, aod::McTrackLabels>>& tracks,
+               aod::McParticles& mcParticles)
   {
 
     //event selection
