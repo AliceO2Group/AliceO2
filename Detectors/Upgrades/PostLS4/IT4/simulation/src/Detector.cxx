@@ -156,13 +156,13 @@ void Detector::configITS(Detector* its)
   tdr5data.emplace_back(std::array<double, 2>{80.0f, getDetLengthFromEta(1.44f, 80.0f)});
   tdr5data.emplace_back(std::array<double, 2>{100.f, getDetLengthFromEta(1.44f, 100.f)});
 
-  static constexpr float SensorLayerThickness = 30.e-4;
+  std::array<float, 10> sensorThickneses = {50.e-4, 50.e-4, 50.e-4, 50.e-3, 50.e-3, 50.e-3, 50.e-3, 50.e-3, 50.e-3, 50.e-3};
   its->setStaveModelOB(o2::its4::Detector::kOBModel2);
   // its->createOuterBarrel(false);
 
   auto idLayer{0};
   for (auto& layerData : tdr5data) {
-    its->defineInnerLayerITS4(idLayer, layerData[0], layerData[1], SensorLayerThickness, 0, 0);
+    its->defineInnerLayerITS4(idLayer, layerData[0], layerData[1], sensorThickneses[idLayer], 0, 0);
     ++idLayer;
   }
   its->createOuterBarrel(false);
