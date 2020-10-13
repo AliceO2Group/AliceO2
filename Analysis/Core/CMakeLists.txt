@@ -30,3 +30,13 @@ o2_target_root_dictionary(AnalysisCore
                       include/Analysis/TriggerAliases.h
                       include/Analysis/MC.h
               LINKDEF src/AnalysisCoreLinkDef.h)
+
+if(FastJet_FOUND)
+o2_add_library(AnalysisJets
+               SOURCES  src/JetFinder.cxx
+               PUBLIC_LINK_LIBRARIES O2::AnalysisCore FastJet::FastJet FastJet::Contrib)
+
+o2_target_root_dictionary(AnalysisJets
+              HEADERS include/Analysis/JetFinder.h
+              LINKDEF src/AnalysisJetsLinkDef.h)
+endif()
