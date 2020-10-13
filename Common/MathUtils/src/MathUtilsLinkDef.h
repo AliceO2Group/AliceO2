@@ -30,7 +30,8 @@
 #pragma link C++ function o2::math_utils::math_base::getStatisticsData < short>;
 
 #pragma link C++ class o2::math_utils::Transform3D + ;
-#pragma link C++ class o2::math_utils::Rotation2D + ;
+#pragma link C++ class o2::math_utils::Rotation2Df_t + ;
+#pragma link C++ class o2::math_utils::Rotation2Dd_t + ;
 #pragma link C++ class o2::math_utils::CachingTF1 + ;
 
 #pragma link C++ class o2::math_utils::CircleXYf_t + ;

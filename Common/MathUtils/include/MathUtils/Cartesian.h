@@ -54,32 +54,37 @@ struct TransformType {
   static constexpr int T2GRot = 3;
 }; /// transformation types
 
+template <typename value_T>
 class Rotation2D
 {
   //
   // class to perform rotation of 3D (around Z) and 2D points
 
  public:
+  using value_t = value_T;
+
   Rotation2D() = default;
-  Rotation2D(float cs, float sn) : mCos(cs), mSin(sn) {}
-  Rotation2D(float phiZ) : mCos(cos(phiZ)), mSin(sin(phiZ)) {}
+  Rotation2D(value_t cs, value_t sn) : mCos(cs), mSin(sn) {}
+  Rotation2D(value_t phiZ) : mCos(cos(phiZ)), mSin(sin(phiZ)) {}
   ~Rotation2D() = default;
   Rotation2D(const Rotation2D& src) = default;
+  Rotation2D(Rotation2D&& src) = default;
   Rotation2D& operator=(const Rotation2D& src) = default;
+  Rotation2D& operator=(Rotation2D&& src) = default;
 
-  void set(float phiZ)
+  void set(value_t phiZ)
   {
     mCos = cos(phiZ);
     mSin = sin(phiZ);
   }
 
-  void set(float cs, float sn)
+  void set(value_t cs, value_t sn)
   {
     mCos = cs;
     mSin = sn;
   }
 
-  void getComponents(float& cs, float& sn) const
+  void getComponents(value_t& cs, value_t& sn) const
   {
     cs = mCos;
     sn = mSin;
@@ -134,11 +139,14 @@ class Rotation2D
   }
 
  private:
-  float mCos = 1.f; ///< cos of rotation angle
-  float mSin = 0.f; ///< sin of rotation angle
+  value_t mCos = 1; ///< cos of rotation angle
+  value_t mSin = 0; ///< sin of rotation angle
 
-  ClassDefNV(Rotation2D, 1);
+  ClassDefNV(Rotation2D, 2);
 };
+
+using Rotation2Df_t = Rotation2D<float>;
+using Rotation2Dd_t = Rotation2D<double>;
 
 class Transform3D : public ROOT::Math::Transform3D
 {
@@ -236,7 +244,9 @@ class Transform3D : public ROOT::Math::Transform3D
 } // namespace math_utils
 } // namespace o2
 
-std::ostream& operator<<(std::ostream& os, const o2::math_utils::Rotation2D& t);
+std::ostream& operator<<(std::ostream& os, const o2::math_utils::Rotation2Df_t& t);
+
+std::ostream& operator<<(std::ostream& os, const o2::math_utils::Rotation2Dd_t& t);
 
 namespace std
 {

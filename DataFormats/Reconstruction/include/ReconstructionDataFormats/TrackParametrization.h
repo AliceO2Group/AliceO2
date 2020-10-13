@@ -571,7 +571,7 @@ inline typename TrackParametrization<value_T>::value_t TrackParametrization<valu
 template <typename value_T>
 inline math_utils::Point3D<typename TrackParametrization<value_T>::value_t> TrackParametrization<value_T>::getXYZGlo() const
 {
-  return math_utils::Rotation2D(getAlpha())(math_utils::Point3D<value_t>(getX(), getY(), getZ()));
+  return math_utils::Rotation2D<value_t>(getAlpha())(math_utils::Point3D<value_t>(getX(), getY(), getZ()));
 }
 #endif
 
@@ -596,7 +596,7 @@ inline math_utils::Point3D<typename TrackParametrization<value_T>::value_t> Trac
   //----------------------------------------------------------------
   value_t y = 0.f, z = 0.f;
   ok = getYZAt(xk, b, y, z);
-  return ok ? math_utils::Rotation2D(getAlpha())(math_utils::Point3D<value_t>(xk, y, z)) : math_utils::Point3D<value_t>();
+  return ok ? math_utils::Rotation2D<value_t>(getAlpha())(math_utils::Point3D<value_t>(xk, y, z)) : math_utils::Point3D<value_t>();
 }
 #endif
 
