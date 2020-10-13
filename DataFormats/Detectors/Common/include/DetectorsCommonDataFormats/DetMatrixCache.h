@@ -74,7 +74,7 @@ class DetMatrixCache
 {
  public:
   typedef o2::math_utils::Transform3D Mat3D;
-  typedef o2::math_utils::Rotation2D Rot2D;
+  typedef o2::math_utils::Rotation2Df_t Rot2D;
 
   DetMatrixCache() = default;
   DetMatrixCache(const o2::detectors::DetID& id) : mDetID(id) {}
@@ -130,7 +130,7 @@ class DetMatrixCacheIndirect : private DetMatrixCache
 {
  public:
   typedef o2::math_utils::Transform3D Mat3D;
-  typedef o2::math_utils::Rotation2D Rot2D;
+  typedef o2::math_utils::Rotation2Df_t Rot2D;
 
   DetMatrixCacheIndirect() = default;
   DetMatrixCacheIndirect(const o2::detectors::DetID& id) : DetMatrixCache(id) {}
