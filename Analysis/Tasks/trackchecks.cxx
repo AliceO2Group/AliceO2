@@ -179,7 +179,8 @@ struct TrackCheckTaskEvSelTrackSel {
   //Filters
   Filter collfilter = nabs(aod::collision::posZ) < cfgCutVZ;
   Filter trackfilter = aod::track::isGlobalTrack == true;
-  void process(soa::Filtered<soa::Join<aod::Collisions, aod::EvSels>>::iterator const& col, soa::Filtered<soa::Join<aod::Tracks, aod::TracksExtra, aod::TracksExtended, aod::TrackSelection, aod::McTrackLabels>>& tracks, aod::McParticles& mcParticles)
+  void process(soa::Filtered<soa::Join<aod::Collisions, aod::EvSels>>::iterator const& col,
+               soa::Filtered<soa::Join<aod::Tracks, aod::TracksExtra, aod::TracksExtended, aod::TrackSelection, aod::McTrackLabels>>& tracks, aod::McParticles& mcParticles)
   {
 
     //event selection
@@ -206,7 +207,8 @@ struct TrackCheckTaskEvSelTrackSel {
         else
           y = eta2y(track.pt(), mass[pint], track.eta());
 
-        //DCAxy distributions for reco, primary, secondaries (= not primary) + distributions for reco primaries (MC truth)
+        //DCAxy distributions for reco, primary, secondaries (= not primary)
+        // + distributions for reco primaries (MC truth)
         if (abs(y) < cfgCutY) {
           if (pdgcode == 11) {
             hDCAxyReco_truepid->Fill<kEl>(track.pt(), track.dcaXY());
