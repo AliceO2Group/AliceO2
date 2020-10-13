@@ -9,11 +9,11 @@
 // or submit itself to any jurisdiction.
 
 // O2 includes
+#include "ReconstructionDataFormats/Track.h"
 #include "Framework/AnalysisTask.h"
 #include "Framework/AnalysisDataModel.h"
-#include "ReconstructionDataFormats/Track.h"
-#include "PID/PIDResponse.h"
 #include "Framework/ASoAHelpers.h"
+#include "PID/PIDResponse.h"
 #include "Analysis/TrackSelectionTables.h"
 
 // ROOT includes
@@ -32,12 +32,21 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
 
 #include "Framework/runDataProcessing.h"
 
-#define O2_DEFINE_CONFIGURABLE(NAME, TYPE, DEFAULT, HELP) Configurable<TYPE> NAME{#NAME, DEFAULT, HELP};
-
 #define DOTH1F(OBJ, ...) \
   OutputObj<TH1F> OBJ{TH1F(#OBJ, __VA_ARGS__)};
 #define DOTH2F(OBJ, ...) \
   OutputObj<TH2F> OBJ{TH2F(#OBJ, __VA_ARGS__)};
+#define DOTH3F(OBJ, ...) \
+  OutputObj<TH3F> OBJ{TH3F(#OBJ, __VA_ARGS__)};
+
+#define CANDIDATE_SELECTION                                                                                                                    \
+  Configurable<float> cfgCutVertex{"cfgCutVertex", 10.0f, "Accepted z-vertex range"};                                                          \
+  Configurable<float> cfgCutEta{"cfgCutEta", 0.8f, "Eta range for tracks"};                                                                    \
+  Filter collisionFilter = nabs(aod::collision::posZ) < cfgCutVertex;                                                                          \
+  Filter trackFilter = (nabs(aod::track::eta) < cfgCutEta) && ((aod::track::isGlobalTrack == true) || (aod::track::isGlobalTrackSDD == true)); \
+  using TrackCandidates = soa::Filtered<soa::Join<aod::Tracks, aod::TracksExtra, aod::pidRespTPC, aod::TrackSelection>>;                       \
+  using TrackCandidateswTOF = soa::Filtered<soa::Join<aod::Tracks, aod::TracksExtra, aod::pidRespTPC, aod::pidRespTOF, aod::TrackSelection>>;  \
+  using CollisionCandidates = soa::Filtered<aod::Collisions>;
 
 #define makelogaxis(h)                                            \
   {                                                               \
@@ -56,11 +65,9 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
 
 struct TPCPIDQAExpSignalTask {
   // Options
-  O2_DEFINE_CONFIGURABLE(cfgCutVertex, float, 10.0f, "Accepted z-vertex range")
-  O2_DEFINE_CONFIGURABLE(cfgCutEta, float, 0.8f, "Eta range for tracks")
-
 #define BIN_AXIS 1000, 0.001, 20, 1000, 0, 1000
 
+  DOTH1F(hvertexz, ";Vtx_{z} (cm);Entries", 100, -20, 20);
   DOTH2F(htpcsignal, ";#it{p} (GeV/#it{c});TPC Signal;Tracks", BIN_AXIS);
   DOTH2F(hexpEl, ";#it{p} (GeV/#it{c});TPC expected signal e;Tracks", BIN_AXIS);
   DOTH2F(hexpMu, ";#it{p} (GeV/#it{c});TPC expected signal #mu;Tracks", BIN_AXIS);
@@ -90,10 +97,11 @@ struct TPCPIDQAExpSignalTask {
   }
 
   // Filters
-  Filter collisionFilter = nabs(aod::collision::posZ) < cfgCutVertex;
-  Filter trackFilter = (nabs(aod::track::eta) < cfgCutEta) && ((aod::track::isGlobalTrack == true) || (aod::track::isGlobalTrackSDD == true));
-  void process(aod::Collision const& collision, soa::Filtered<soa::Join<aod::Tracks, aod::TracksExtra, aod::pidRespTPC, aod::TrackSelection>> const& tracks)
+  CANDIDATE_SELECTION
+
+  void process(CollisionCandidates::iterator const& collision, TrackCandidates const& tracks)
   {
+    hvertexz->Fill(collision.posZ());
     for (auto const& i : tracks) {
       // const float mom = i.p();
       const float mom = i.tpcInnerParam();
@@ -113,9 +121,6 @@ struct TPCPIDQAExpSignalTask {
 
 struct TPCPIDQANSigmaTask {
   // Options
-  O2_DEFINE_CONFIGURABLE(cfgCutVertex, float, 10.0f, "Accepted z-vertex range")
-  O2_DEFINE_CONFIGURABLE(cfgCutEta, float, 0.8f, "Eta range for tracks")
-
 #define BIN_AXIS 1000, 0.001, 20, 1000, -10, 10
 
   // TPC NSigma
@@ -146,10 +151,9 @@ struct TPCPIDQANSigmaTask {
   }
 
   // Filters
-  Filter collisionFilter = nabs(aod::collision::posZ) < cfgCutVertex;
-  Filter trackFilter = (nabs(aod::track::eta) < cfgCutEta) && ((aod::track::isGlobalTrack == true) || (aod::track::isGlobalTrackSDD == true));
+  CANDIDATE_SELECTION
 
-  void process(aod::Collision const& collision, soa::Filtered<soa::Join<aod::Tracks, aod::TracksExtra, aod::pidRespTPC, aod::TrackSelection>> const& tracks)
+  void process(CollisionCandidates::iterator const& collision, TrackCandidates const& tracks)
   {
     for (auto const& i : tracks) {
       hnsigmaEl->Fill(i.p(), i.tpcNSigmaEl());
@@ -166,21 +170,18 @@ struct TPCPIDQANSigmaTask {
 };
 
 struct TPCPIDQASignalwTOFTask {
-  // Options
-  O2_DEFINE_CONFIGURABLE(cfgCutVertex, float, 10.0f, "Accepted z-vertex range")
-  O2_DEFINE_CONFIGURABLE(cfgCutEta, float, 0.8f, "Eta range for tracks")
 
-#define BIN_AXIS 1000, 0.001, 20, 1000, 0, 1000
+#define BIN_AXIS 1000, 0.001, 20, 1000, 0, 1000, 20, -10, 10
 
-  DOTH2F(htpcsignalEl, ";#it{p} (GeV/#it{c});TPC Signal;Tracks", BIN_AXIS);
-  DOTH2F(htpcsignalMu, ";#it{p} (GeV/#it{c});TPC Signal;Tracks", BIN_AXIS);
-  DOTH2F(htpcsignalPi, ";#it{p} (GeV/#it{c});TPC Signal;Tracks", BIN_AXIS);
-  DOTH2F(htpcsignalKa, ";#it{p} (GeV/#it{c});TPC Signal;Tracks", BIN_AXIS);
-  DOTH2F(htpcsignalPr, ";#it{p} (GeV/#it{c});TPC Signal;Tracks", BIN_AXIS);
-  DOTH2F(htpcsignalDe, ";#it{p} (GeV/#it{c});TPC Signal;Tracks", BIN_AXIS);
-  DOTH2F(htpcsignalTr, ";#it{p} (GeV/#it{c});TPC Signal;Tracks", BIN_AXIS);
-  DOTH2F(htpcsignalHe, ";#it{p} (GeV/#it{c});TPC Signal;Tracks", BIN_AXIS);
-  DOTH2F(htpcsignalAl, ";#it{p} (GeV/#it{c});TPC Signal;Tracks", BIN_AXIS);
+  DOTH3F(htpcsignalEl, ";#it{p} (GeV/#it{c});TPC Signal;TOF N#sigma e", BIN_AXIS);
+  DOTH3F(htpcsignalMu, ";#it{p} (GeV/#it{c});TPC Signal;TOF N#sigma #mu", BIN_AXIS);
+  DOTH3F(htpcsignalPi, ";#it{p} (GeV/#it{c});TPC Signal;TOF N#sigma #pi", BIN_AXIS);
+  DOTH3F(htpcsignalKa, ";#it{p} (GeV/#it{c});TPC Signal;TOF N#sigma K", BIN_AXIS);
+  DOTH3F(htpcsignalPr, ";#it{p} (GeV/#it{c});TPC Signal;TOF N#sigma p", BIN_AXIS);
+  DOTH3F(htpcsignalDe, ";#it{p} (GeV/#it{c});TPC Signal;TOF N#sigma d", BIN_AXIS);
+  DOTH3F(htpcsignalTr, ";#it{p} (GeV/#it{c});TPC Signal;TOF N#sigma t", BIN_AXIS);
+  DOTH3F(htpcsignalHe, ";#it{p} (GeV/#it{c});TPC Signal;TOF N#sigma ^{3}He", BIN_AXIS);
+  DOTH3F(htpcsignalAl, ";#it{p} (GeV/#it{c});TPC Signal;TOF N#sigma #alpha", BIN_AXIS);
 
 #undef BIN_AXIS
 
@@ -199,55 +200,34 @@ struct TPCPIDQASignalwTOFTask {
   }
 
   // Filters
-  Filter collisionFilter = nabs(aod::collision::posZ) < cfgCutVertex;
-  Filter trackFilter = (nabs(aod::track::eta) < cfgCutEta) && ((aod::track::isGlobalTrack == true) || (aod::track::isGlobalTrackSDD == true));
+  CANDIDATE_SELECTION
 
-  void process(aod::Collision const& collision, soa::Filtered<soa::Join<aod::Tracks, aod::TracksExtra, aod::pidRespTPC, aod::pidRespTOF, aod::TrackSelection>> const& tracks)
+  void process(CollisionCandidates::iterator const& collision, TrackCandidateswTOF const& tracks)
   {
     for (auto const& i : tracks) {
-      // Require kTIME and kTOFout
-      if (!(i.flags() & 0x2000))
-        continue;
-      if (!(i.flags() & 0x80000000))
-        continue;
-      //
-
       // const float mom = i.p();
       const float mom = i.tpcInnerParam();
-      if (abs(i.tofNSigmaEl()) < 2) {
-        htpcsignalEl->Fill(mom, i.tpcSignal());
+      if (i.tofSignal() < 0) { // Skip tracks without TOF
+        continue;
       }
-      if (abs(i.tofNSigmaMu()) < 2) {
-        htpcsignalMu->Fill(mom, i.tpcSignal());
-      }
-      if (abs(i.tofNSigmaPi()) < 2) {
-        htpcsignalPi->Fill(mom, i.tpcSignal());
-      }
-      if (abs(i.tofNSigmaKa()) < 2) {
-        htpcsignalKa->Fill(mom, i.tpcSignal());
-      }
-      if (abs(i.tofNSigmaPr()) < 2) {
-        htpcsignalPr->Fill(mom, i.tpcSignal());
-      }
-      if (abs(i.tofNSigmaDe()) < 2) {
-        htpcsignalDe->Fill(mom, i.tpcSignal());
-      }
-      if (abs(i.tofNSigmaTr()) < 2) {
-        htpcsignalTr->Fill(mom, i.tpcSignal());
-      }
-      if (abs(i.tofNSigmaHe()) < 2) {
-        htpcsignalHe->Fill(mom, i.tpcSignal());
-      }
-      if (abs(i.tofNSigmaAl()) < 2) {
-        htpcsignalAl->Fill(mom, i.tpcSignal());
-      }
+      htpcsignalEl->Fill(mom, i.tpcSignal(), i.tofNSigmaEl());
+      htpcsignalMu->Fill(mom, i.tpcSignal(), i.tofNSigmaMu());
+      htpcsignalPi->Fill(mom, i.tpcSignal(), i.tofNSigmaPi());
+      htpcsignalKa->Fill(mom, i.tpcSignal(), i.tofNSigmaKa());
+      htpcsignalPr->Fill(mom, i.tpcSignal(), i.tofNSigmaPr());
+      htpcsignalDe->Fill(mom, i.tpcSignal(), i.tofNSigmaDe());
+      htpcsignalTr->Fill(mom, i.tpcSignal(), i.tofNSigmaTr());
+      htpcsignalHe->Fill(mom, i.tpcSignal(), i.tofNSigmaHe());
+      htpcsignalAl->Fill(mom, i.tpcSignal(), i.tofNSigmaAl());
     }
   }
 };
 
 struct TPCSpectraTask {
+
   // Pt
 #define TIT ";#it{p}_{T} (GeV/#it{c});Tracks"
+  DOTH1F(hpt, TIT, 100, 0, 20);
   DOTH1F(hpt_El, TIT, 100, 0, 20);
   DOTH1F(hpt_Pi, TIT, 100, 0, 20);
   DOTH1F(hpt_Ka, TIT, 100, 0, 20);
@@ -255,15 +235,21 @@ struct TPCSpectraTask {
 #undef TIT
   // P
 #define TIT ";#it{p} (GeV/#it{c});Tracks"
+  DOTH1F(hp, TIT, 100, 0, 20);
   DOTH1F(hp_El, TIT, 100, 0, 20);
   DOTH1F(hp_Pi, TIT, 100, 0, 20);
   DOTH1F(hp_Ka, TIT, 100, 0, 20);
   DOTH1F(hp_Pr, TIT, 100, 0, 20);
 #undef TIT
 
-  void process(soa::Join<aod::Tracks, aod::TracksExtra, aod::pidRespTPC> const& tracks)
+  //Defining filters and input
+  CANDIDATE_SELECTION
+
+  void process(CollisionCandidates::iterator const& collision, TrackCandidates const& tracks)
   {
     for (auto i : tracks) {
+      hp->Fill(i.p());
+      hpt->Fill(i.pt());
       if (TMath::Abs(i.tpcNSigmaEl()) < 3) {
         hp_El->Fill(i.p());
         hpt_El->Fill(i.pt());
