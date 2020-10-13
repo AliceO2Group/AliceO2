@@ -86,7 +86,7 @@ DECLARE_SOA_COLUMN(Snp, snp, float);
 DECLARE_SOA_COLUMN(Tgl, tgl, float);
 DECLARE_SOA_COLUMN(Signed1Pt, signed1Pt, float);
 DECLARE_SOA_EXPRESSION_COLUMN(RawPhi, phiraw, float, nasin(aod::track::snp) + aod::track::alpha);
-// FIXME: dynamic column pending inclusion of conditional nodes
+// FIXME: make expression column when conditional nodes are supported in Gandiva
 DECLARE_SOA_DYNAMIC_COLUMN(NormalizedPhi, phi, [](float phi) -> float {
   constexpr float twopi = 2.0f * static_cast<float>(M_PI);
   if (phi < 0)
@@ -196,13 +196,11 @@ DECLARE_SOA_DYNAMIC_COLUMN(ITSNClsInnerBarrel, itsNClsInnerBarrel, [](uint8_t it
 
 DECLARE_SOA_DYNAMIC_COLUMN(TPCCrossedRowsOverFindableCls, tpcCrossedRowsOverFindableCls,
                            [](uint8_t tpcNClsFindable, int8_t tpcNClsFindableMinusCrossedRows) -> float {
-                             // FIXME: use int16 tpcNClsCrossedRows from dynamic column as argument
                              int16_t tpcNClsCrossedRows = (int16_t)tpcNClsFindable - tpcNClsFindableMinusCrossedRows;
                              return (float)tpcNClsCrossedRows / (float)tpcNClsFindable;
                            });
 
 DECLARE_SOA_DYNAMIC_COLUMN(TPCFractionSharedCls, tpcFractionSharedCls, [](uint8_t tpcNClsShared, uint8_t tpcNClsFindable, int8_t tpcNClsFindableMinusFound) -> float {
-  // FIXME: use tpcNClsFound from dynamic column as argument
   int16_t tpcNClsFound = (int16_t)tpcNClsFindable - tpcNClsFindableMinusFound;
   return (float)tpcNClsShared / (float)tpcNClsFound;
 });
@@ -321,8 +319,7 @@ DECLARE_SOA_COLUMN(ThetaY, thetaY, float);
 DECLARE_SOA_COLUMN(ZMu, zMu, float);
 DECLARE_SOA_COLUMN(BendingCoor, bendingCoor, float);
 DECLARE_SOA_COLUMN(NonBendingCoor, nonBendingCoor, float);
-// FIXME: need to implement array columns...
-// DECLARE_SOA_COLUMN(Covariances, covariances, float[], "fCovariances");
+DECLARE_SOA_COLUMN(Covariances, covariances, float[15]);
 DECLARE_SOA_COLUMN(Chi2, chi2, float);
 DECLARE_SOA_COLUMN(Chi2MatchTrigger, chi2MatchTrigger, float);
 DECLARE_SOA_DYNAMIC_COLUMN(Eta, eta, [](float inverseBendingMomentum, float thetaX, float thetaY) -> float {
@@ -361,7 +358,7 @@ DECLARE_SOA_TABLE_FULL(StoredMuons, "Muons", "AOD", "MUON",
                        muon::BCId, muon::InverseBendingMomentum,
                        muon::ThetaX, muon::ThetaY, muon::ZMu,
                        muon::BendingCoor, muon::NonBendingCoor,
-                       muon::Chi2, muon::Chi2MatchTrigger,
+                       muon::Covariances, muon::Chi2, muon::Chi2MatchTrigger,
                        muon::Eta<muon::InverseBendingMomentum, muon::ThetaX, muon::ThetaY>,
                        muon::Phi<muon::ThetaX, muon::ThetaY>,
                        muon::RAtAbsorberEnd<muon::BendingCoor, muon::NonBendingCoor, muon::ThetaX, muon::ThetaY, muon::ZMu>,
