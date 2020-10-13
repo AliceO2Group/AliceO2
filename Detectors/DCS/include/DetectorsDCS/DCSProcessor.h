@@ -72,7 +72,9 @@ class DCSProcessor
 
   void init(const std::vector<DPID>& aliases);
 
-  int process(const std::unordered_map<DPID, DPVAL>& map, bool isDelta = false);
+  int processMap(const std::unordered_map<DPID, DPVAL>& map, bool isDelta = false);
+
+  int processDP(const std::pair<DPID, DPVAL>& dpcom);
 
   std::unordered_map<DPID, DPVAL>::const_iterator findAndCheckAlias(const DPID& alias, DeliveryType type, const std::unordered_map<DPID, DPVAL>& map);
 
@@ -80,7 +82,10 @@ class DCSProcessor
   int processArrayType(const std::vector<DPID>& array, DeliveryType type, const std::unordered_map<DPID, DPVAL>& map, std::vector<int64_t>& latestTimeStamp, std::unordered_map<DPID, std::deque<T>>& destmap);
 
   template <typename T>
-  void processDP(const DPID& alias, std::deque<T>& aliasDeque);
+  void checkFlagsAndFill(const std::pair<DPID, DPVAL>& dpcom, int64_t& latestTimeStamp, std::unordered_map<DPID, T>& destmap);
+
+  template <typename T>
+  void process(const DPID& alias, std::deque<T>& aliasDeque);
 
   template <typename T>
   void doSimpleMovingAverage(int nelements, std::deque<T>& vect, float& avg, bool& isSMA);
@@ -125,11 +130,11 @@ class DCSProcessor
   void prepareCCDBobject(T& obj, CcdbObjectInfo& info, const std::string& path, TFType tf, const std::map<std::string, std::string>& md);
 
  private:
-  bool mFullMapSent = false;         // set to true as soon as a full map was sent. No delta can be received if there was never a full map sent
-  int64_t mNCyclesNoFullMap = 0;     // number of times the delta was sent withoug a full map
-  int64_t mMaxCyclesNoFullMap = 6000; // max number of times when the delta can be sent between two full maps (assuming DCS sends data every 50 ms, this means a 5 minutes threshold)
-  bool mIsDelta = false;             // set to true in case you are processing  delta map (containing only DPs that changed)
-  std::unordered_map<DPID, float> mSimpleMovingAverage;    // moving average for several DPs
+  bool mFullMapSent = false;                            // set to true as soon as a full map was sent. No delta can be received if there was never a full map sent
+  int64_t mNCyclesNoFullMap = 0;                        // number of times the delta was sent withoug a full map
+  int64_t mMaxCyclesNoFullMap = 6000;                   // max number of times when the delta can be sent between two full maps (assuming DCS sends data every 50 ms, this means a 5 minutes threshold)
+  bool mIsDelta = false;                                // set to true in case you are processing  delta map (containing only DPs that changed)
+  std::unordered_map<DPID, float> mSimpleMovingAverage; // moving average for several DPs
   std::unordered_map<DPID, DQChars> mDpscharsmap;
   std::unordered_map<DPID, DQInts> mDpsintsmap;
   std::unordered_map<DPID, DQDoubles> mDpsdoublesmap;
@@ -154,10 +159,10 @@ class DCSProcessor
   std::vector<int64_t> mLatestTimestampstrings;
   std::vector<int64_t> mLatestTimestamptimes;
   std::vector<int64_t> mLatestTimestampbinaries;
-  int mNThreads = 1;                               // number of  threads
+  int mNThreads = 1;                                               // number of  threads
   std::unordered_map<std::string, float> mccdbSimpleMovingAverage; // unordered map in which to store the CCDB entry for the DPs for which we calculated the simple moving average
   CcdbObjectInfo mccdbSimpleMovingAverageInfo;                     // info to store the output of the calibration for the DPs for which we calculated the simple moving average
-  TFType mTF = 0;                                  // TF index for processing, used to store CCDB object
+  TFType mTF = 0;                                                  // TF index for processing, used to store CCDB object
 
   ClassDefNV(DCSProcessor, 0);
 };
@@ -198,40 +203,63 @@ int DCSProcessor::processArrayType(const std::vector<DPID>& array, DeliveryType 
         continue;
       }
       found++;
-      auto& val = it->second;
-      auto flags = val.get_flags();
-      if (processFlag(flags, array[i].get_alias()) == 0) {
-        auto etime = val.get_epoch_time();
-        // fill only if new value has a timestamp different from the timestamp of the previous one
-        LOG(DEBUG) << "destmap[array[" << i << "]].size() = " << destmap[array[i]].size();
-        if (destmap[array[i]].size() == 0 || etime != latestTimeStamp[i]) {
-          LOG(DEBUG) << "adding new value";
-          destmap[array[i]].push_back(val.payload_pt1);
-          latestTimeStamp[i] = etime;
-        }
-      }
-      processDP(array[i], destmap[array[i]]);
+      std::pair<DPID, DPVAL> pairIt = *it;
+      checkFlagsAndFill(pairIt, latestTimeStamp[i], destmap);
+      process(array[i], destmap[array[i]]);
       // todo: better to move the "found++" after the process, in case it fails?
-    }    
+    }
   }
   return found;
 }
 
-template <>
-int DCSProcessor::processArrayType(const std::vector<DCSProcessor::DPID>& array, DeliveryType type, const std::unordered_map<DCSProcessor::DPID, DCSProcessor::DPVAL>& map, std::vector<int64_t>& latestTimeStamp, std::unordered_map<DCSProcessor::DPID, DCSProcessor::DQStrings>& destmap);
-
-template <>
-int DCSProcessor::processArrayType(const std::vector<DCSProcessor::DPID>& array, DeliveryType type, const std::unordered_map<DCSProcessor::DPID, DCSProcessor::DPVAL>& map, std::vector<int64_t>& latestTimeStamp, std::unordered_map<DCSProcessor::DPID, DCSProcessor::DQBinaries>& destmap);
+//______________________________________________________________________
 
 template <typename T>
-void DCSProcessor::processDP(const DPID& alias, std::deque<T>& aliasdeque)
+void DCSProcessor::checkFlagsAndFill(const std::pair<DPID, DPVAL>& dpcom, int64_t& latestTimeStamp, std::unordered_map<DPID, T>& destmap)
+{
+
+  // check the flags for the upcoming data, and if ok, fill the accumulator
+
+  auto& dpid = dpcom.first;
+  auto& val = dpcom.second;
+  auto flags = val.get_flags();
+  if (processFlag(flags, dpid.get_alias()) == 0) {
+    auto etime = val.get_epoch_time();
+    // fill only if new value has a timestamp different from the timestamp of the previous one
+    LOG(DEBUG) << "destmap[pid].size() = " << destmap[dpid].size();
+    if (destmap[dpid].size() == 0 || etime != std::abs(latestTimeStamp)) {
+      LOG(DEBUG) << "adding new value";
+      destmap[dpid].push_back(val.payload_pt1);
+      latestTimeStamp = etime;
+    }
+  }
+}
+
+//______________________________________________________________________
+
+template <>
+void DCSProcessor::checkFlagsAndFill(const std::pair<DPID, DPVAL>& dpcom, int64_t& latestTimeStamp, std::unordered_map<DPID, DCSProcessor::DQStrings>& destmap);
+
+//______________________________________________________________________
+
+template <>
+void DCSProcessor::checkFlagsAndFill(const std::pair<DPID, DPVAL>& dpcom, int64_t& latestTimeStamp, std::unordered_map<DPID, DCSProcessor::DQBinaries>& destmap);
+
+//______________________________________________________________________
+
+template <typename T>
+void DCSProcessor::process(const DPID& alias, std::deque<T>& aliasdeque)
 {
   // processing the single alias
   return;
 }
 
+//______________________________________________________________________
+
 template <>
-void DCSProcessor::processDP(const DPID& alias, std::deque<int>& aliasdeque);
+void DCSProcessor::process(const DPID& alias, std::deque<int>& aliasdeque);
+
+//______________________________________________________________________
 
 template <typename T>
 void DCSProcessor::doSimpleMovingAverage(int nelements, std::deque<T>& vect, float& avg, bool& isSMA)
@@ -239,27 +267,18 @@ void DCSProcessor::doSimpleMovingAverage(int nelements, std::deque<T>& vect, flo
 
   // Do simple moving average on vector of type T
 
-  if (vect.size() < nelements) {
-    avg += vect[vect.size() - 1];
-    return;
-  }
-  if (vect.size() == nelements) {
-    avg += vect[vect.size() - 1];
-    avg /= nelements;
-    isSMA = true;
-    return;
-  }
-  /*
-if (vect.size() <= nelements) {
+  if (vect.size() <= nelements) {
     //avg = std::accumulate(vect.begin(), vect.end(), 0.0) / vect.size();
     avg = (avg * (vect.size() - 1) + vect[vect.size() - 1]) / vect.size();
     return;
   }
-  */
+
   avg += (vect[vect.size() - 1] - vect[0]) / nelements;
   vect.pop_front();
   isSMA = true;
 }
+
+//______________________________________________________________________
 
 template <typename T>
 void DCSProcessor::prepareCCDBobject(T& obj, CcdbObjectInfo& info, const std::string& path, TFType tf, const std::map<std::string, std::string>& md)

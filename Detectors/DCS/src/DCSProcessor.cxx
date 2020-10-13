@@ -12,6 +12,8 @@
 #include "Rtypes.h"
 #include <deque>
 #include <string>
+#include <algorithm>
+#include <iterator>
 
 using namespace o2::dcs;
 
@@ -100,7 +102,6 @@ void DCSProcessor::init(const std::vector<DPID>& aliaseschars, const std::vector
   mLatestTimestampstrings.resize(aliasesstrings.size(), 0);
   mLatestTimestamptimes.resize(aliasestimes.size(), 0);
   mLatestTimestampbinaries.resize(aliasesbinaries.size(), 0);
-  //  mAvgTestInt.resize(aliasesints.size(), 0);
 }
 
 //______________________________________________________________________
@@ -153,12 +154,11 @@ void DCSProcessor::init(const std::vector<DPID>& aliases)
   mLatestTimestampstrings.resize(nstrings, 0);
   mLatestTimestamptimes.resize(ntimes, 0);
   mLatestTimestampbinaries.resize(nbinaries, 0);
-  //  mAvgTestInt.resize(nints, 0);
 }
 
 //__________________________________________________________________
 
-int DCSProcessor::process(const std::unordered_map<DPID, DPVAL>& map, bool isDelta)
+int DCSProcessor::processMap(const std::unordered_map<DPID, DPVAL>& map, bool isDelta)
 {
 
   // process function to do "something" with the DCS map that is passed
@@ -168,8 +168,7 @@ int DCSProcessor::process(const std::unordered_map<DPID, DPVAL>& map, bool isDel
   if (!isDelta) {
     // full map sent
     mFullMapSent = true;
-  }
-  else {    
+  } else {
     if (!mFullMapSent) {
       LOG(ERROR) << "We need first a full map!";
     }
@@ -178,8 +177,7 @@ int DCSProcessor::process(const std::unordered_map<DPID, DPVAL>& map, bool isDel
       LOG(ERROR) << "We expected a full map!";
     }
   }
-  
-  //mccdbSimpleMovingAverage.clear();
+
   mIsDelta = isDelta;
 
   // we need to check if there are the Data Points that we need
@@ -194,38 +192,24 @@ int DCSProcessor::process(const std::unordered_map<DPID, DPVAL>& map, bool isDel
 
   // int type
   foundInts = processArrayType(mAliasesints, DeliveryType::RAW_INT, map, mLatestTimestampints, mDpsintsmap);
-  //  if (foundInts > 0)
-  //  processInts();
 
   // double type
   foundDoubles = processArrayType(mAliasesdoubles, DeliveryType::RAW_DOUBLE, map, mLatestTimestampdoubles, mDpsdoublesmap);
-  if (foundDoubles > 0)
-    processDoubles();
 
   // UInt type
   foundUInts = processArrayType(mAliasesUints, DeliveryType::RAW_UINT, map, mLatestTimestampUints, mDpsUintsmap);
-  if (foundUInts > 0)
-    processUInts();
 
   // Bool type
   foundBools = processArrayType(mAliasesbools, DeliveryType::RAW_BOOL, map, mLatestTimestampbools, mDpsboolsmap);
-  if (foundBools > 0)
-    processBools();
 
   // String type
   foundStrings = processArrayType(mAliasesstrings, DeliveryType::RAW_STRING, map, mLatestTimestampstrings, mDpsstringsmap);
-  if (foundStrings > 0)
-    processStrings();
 
   // Time type
   foundTimes = processArrayType(mAliasestimes, DeliveryType::RAW_TIME, map, mLatestTimestamptimes, mDpstimesmap);
-  if (foundTimes > 0)
-    processTimes();
 
   // Binary type
   foundBinaries = processArrayType(mAliasesbinaries, DeliveryType::RAW_BINARY, map, mLatestTimestampbinaries, mDpsbinariesmap);
-  if (foundBinaries > 0)
-    processBinaries();
 
   if (!isDelta) {
     if (foundChars != mAliaseschars.size())
@@ -250,97 +234,163 @@ int DCSProcessor::process(const std::unordered_map<DPID, DPVAL>& map, bool isDel
   std::map<std::string, std::string> md;
   prepareCCDBobject(mccdbSimpleMovingAverage, mccdbSimpleMovingAverageInfo, "TestDCS/SimpleMovingAverageDPs", mTF, md);
 
-  LOG(DEBUG) << "Size of unordered_map for CCDB = " << mccdbSimpleMovingAverage.size(); 
+  LOG(DEBUG) << "Size of unordered_map for CCDB = " << mccdbSimpleMovingAverage.size();
   LOG(DEBUG) << "CCDB entry for TF " << mTF << " will be:";
-  for (const auto& i : mccdbSimpleMovingAverage){
+  for (const auto& i : mccdbSimpleMovingAverage) {
     LOG(DEBUG) << i.first << " --> " << i.second;
   }
-  
+
+  return 0;
+}
+
+//__________________________________________________________________
+
+int DCSProcessor::processDP(const std::pair<DPID, DPVAL>& dpcom)
+{
+
+  // processing single DP
+
+  DPID dpid = dpcom.first;
+  DeliveryType type = dpid.get_type();
+
+  // first we check if the DP is in the list for the detector
+  if (type == DeliveryType::RAW_CHAR) {
+    auto it = std::find(mAliaseschars.begin(), mAliaseschars.end(), dpid);
+    if (it == mAliaseschars.end()) {
+      LOG(ERROR) << "DP not found for this detector, please check";
+      return 1;
+    }
+    int index = std::distance(mAliaseschars.begin(), it);
+    checkFlagsAndFill(dpcom, mLatestTimestampchars[index], mDpscharsmap);
+    process(dpid, mDpscharsmap[dpid]);
+  }
+
+  else if (type == DeliveryType::RAW_INT) {
+    auto it = std::find(mAliasesints.begin(), mAliasesints.end(), dpid);
+    if (it == mAliasesints.end()) {
+      LOG(ERROR) << "DP not found for this detector, please check";
+      return 1;
+    }
+    int index = std::distance(mAliasesints.begin(), it);
+    checkFlagsAndFill(dpcom, mLatestTimestampints[index], mDpsintsmap);
+    process(dpid, mDpsintsmap[dpid]);
+  }
+
+  else if (type == DeliveryType::RAW_DOUBLE) {
+    auto it = std::find(mAliasesdoubles.begin(), mAliasesdoubles.end(), dpid);
+    if (it == mAliasesdoubles.end()) {
+      LOG(ERROR) << "DP not found for this detector, please check";
+      return 1;
+    }
+    int index = std::distance(mAliasesdoubles.begin(), it);
+    checkFlagsAndFill(dpcom, mLatestTimestampdoubles[index], mDpsdoublesmap);
+    process(dpid, mDpsdoublesmap[dpid]);
+  }
+
+  else if (type == DeliveryType::RAW_UINT) {
+    auto it = std::find(mAliasesUints.begin(), mAliasesUints.end(), dpid);
+    if (it == mAliasesUints.end()) {
+      LOG(ERROR) << "DP not found for this detector, please check";
+      return 1;
+    }
+    int index = std::distance(mAliasesUints.begin(), it);
+    checkFlagsAndFill(dpcom, mLatestTimestampUints[index], mDpsUintsmap);
+    process(dpid, mDpsUintsmap[dpid]);
+  }
+
+  else if (type == DeliveryType::RAW_BOOL) {
+    auto it = std::find(mAliasesbools.begin(), mAliasesbools.end(), dpid);
+    if (it == mAliasesbools.end()) {
+      LOG(ERROR) << "DP not found for this detector, please check";
+      return 1;
+    }
+    int index = std::distance(mAliasesbools.begin(), it);
+    checkFlagsAndFill(dpcom, mLatestTimestampbools[index], mDpsboolsmap);
+    process(dpid, mDpsboolsmap[dpid]);
+  }
+
+  else if (type == DeliveryType::RAW_STRING) {
+    auto it = std::find(mAliasesstrings.begin(), mAliasesstrings.end(), dpid);
+    if (it == mAliasesstrings.end()) {
+      LOG(ERROR) << "DP not found for this detector, please check";
+      return 1;
+    }
+    int index = std::distance(mAliasesstrings.begin(), it);
+    checkFlagsAndFill(dpcom, mLatestTimestampstrings[index], mDpsstringsmap);
+    process(dpid, mDpsstringsmap[dpid]);
+  } else if (type == DeliveryType::RAW_TIME) {
+    auto it = std::find(mAliasestimes.begin(), mAliasestimes.end(), dpid);
+    if (it == mAliasestimes.end()) {
+      LOG(ERROR) << "DP not found for this detector, please check";
+      return 1;
+    }
+    int index = std::distance(mAliasestimes.begin(), it);
+    checkFlagsAndFill(dpcom, mLatestTimestamptimes[index], mDpstimesmap);
+    process(dpid, mDpstimesmap[dpid]);
+  } else if (type == DeliveryType::RAW_BINARY) {
+    auto it = std::find(mAliasesbinaries.begin(), mAliasesbinaries.end(), dpid);
+    if (it == mAliasesbinaries.end()) {
+      LOG(ERROR) << "DP not found for this detector, please check";
+      return 1;
+    }
+    int index = std::distance(mAliasesbinaries.begin(), it);
+    checkFlagsAndFill(dpcom, mLatestTimestampbinaries[index], mDpsbinariesmap);
+    process(dpid, mDpsbinariesmap[dpid]);
+  }
+
   return 0;
 }
 
 //______________________________________________________________________
 
 template <>
-int DCSProcessor::processArrayType(const std::vector<DPID>& array, DeliveryType type, const std::unordered_map<DPID, DPVAL>& map, std::vector<int64_t>& latestTimeStamp, std::unordered_map<DPID, DQStrings>& destmap)
+void DCSProcessor::checkFlagsAndFill(const std::pair<DPID, DPVAL>& dpcom, int64_t& latestTimeStamp, std::unordered_map<DPID, DQStrings>& destmap)
 {
 
-  // processing the array of type T
+  // check the flags for the upcoming data, and if ok, fill the accumulator
 
-  int found = 0;
-  auto s = array.size();
-  if (s > 0) {
-    for (size_t i = 0; i != s; ++i) {
-      auto it = findAndCheckAlias(array[i], type, map);
-      if (it == map.end()) {
-        if (!mIsDelta) {
-          LOG(ERROR) << "Element " << array[i] << " not found " << std::endl;
-        } else {
-          latestTimeStamp[i] = -std::abs(latestTimeStamp[i]); // we keep it negative, in case it was already negative
-        }
-        continue;
-      }
-      found++;
-      auto& val = it->second;
-      auto flags = val.get_flags();
-      if (processFlag(flags, array[i].get_alias()) == 0) {
-        auto etime = val.get_epoch_time();
-        // fill only if new value has a timestamp different from the timestamp of the previous one
-        LOG(DEBUG) << "destmap[array[" << i << "]].size() = " << destmap[array[i]].size();
-        if (destmap[array[i]].size() == 0 || etime != std::abs(latestTimeStamp[i])) {
-          auto& tmp = destmap[array[i]].emplace_back();
-          std::strncpy(tmp.data(), (char*)&(val.payload_pt1), 56);
-          latestTimeStamp[i] = etime;
-        }
-      }
+  auto& dpid = dpcom.first;
+  auto& val = dpcom.second;
+  auto flags = val.get_flags();
+  if (processFlag(flags, dpid.get_alias()) == 0) {
+    auto etime = val.get_epoch_time();
+    // fill only if new value has a timestamp different from the timestamp of the previous one
+    LOG(DEBUG) << "destmap[pid].size() = " << destmap[dpid].size();
+    if (destmap[dpid].size() == 0 || etime != std::abs(latestTimeStamp)) {
+      auto& tmp = destmap[dpid].emplace_back();
+      std::strncpy(tmp.data(), (char*)&(val.payload_pt1), 56);
+      latestTimeStamp = etime;
     }
   }
-  return found;
 }
 
 //______________________________________________________________________
 
 template <>
-int DCSProcessor::processArrayType(const std::vector<DPID>& array, DeliveryType type, const std::unordered_map<DPID, DPVAL>& map, std::vector<int64_t>& latestTimeStamp, std::unordered_map<DPID, DQBinaries>& destmap)
+void DCSProcessor::checkFlagsAndFill(const std::pair<DPID, DPVAL>& dpcom, int64_t& latestTimeStamp, std::unordered_map<DPID, DQBinaries>& destmap)
 {
 
-  // processing the array of type T
+  // check the flags for the upcoming data, and if ok, fill the accumulator
 
-  int found = 0;
-  auto s = array.size();
-  if (s > 0) {
-    for (size_t i = 0; i != s; ++i) {
-      auto it = findAndCheckAlias(array[i], type, map);
-      if (it == map.end()) {
-        if (!mIsDelta) {
-          LOG(ERROR) << "Element " << array[i] << " not found " << std::endl;
-        } else {
-          latestTimeStamp[i] = -latestTimeStamp[i];
-        }
-        continue;
-      }
-      found++;
-      auto& val = it->second;
-      auto flags = val.get_flags();
-      if (processFlag(flags, array[i].get_alias()) == 0) {
-        auto etime = val.get_epoch_time();
-        // fill only if new value has a timestamp different from the timestamp of the previous one
-        LOG(DEBUG) << "destmap[array[" << i << "]].size() = " << destmap[array[i]].size();
-        if (destmap[array[i]].size() == 0 || etime != latestTimeStamp[i]) {
-          auto& tmp = destmap[array[i]].emplace_back();
-          memcpy(tmp.data(), &(val.payload_pt1), 7);
-          latestTimeStamp[i] = etime;
-        }
-      }
+  auto& dpid = dpcom.first;
+  auto& val = dpcom.second;
+  auto flags = val.get_flags();
+  if (processFlag(flags, dpid.get_alias()) == 0) {
+    auto etime = val.get_epoch_time();
+    // fill only if new value has a timestamp different from the timestamp of the previous one
+    LOG(DEBUG) << "destmap[pid].size() = " << destmap[dpid].size();
+    if (destmap[dpid].size() == 0 || etime != std::abs(latestTimeStamp)) {
+      auto& tmp = destmap[dpid].emplace_back();
+      memcpy(tmp.data(), &(val.payload_pt1), 7);
+      latestTimeStamp = etime;
     }
   }
-  return found;
 }
 
 //______________________________________________________________________
 
 template <>
-void DCSProcessor::processDP(const DPID& alias, std::deque<int>& aliasdeque)
+void DCSProcessor::process(const DPID& alias, std::deque<int>& aliasdeque)
 {
   // processing the single alias of type int
   bool isSMA = false;
@@ -348,8 +398,8 @@ void DCSProcessor::processDP(const DPID& alias, std::deque<int>& aliasdeque)
   LOG(DEBUG) << "Moving average = " << mSimpleMovingAverage[alias];
   // create CCDB object
   //if (isSMA) {
-    mccdbSimpleMovingAverage[alias.get_alias()] = mSimpleMovingAverage[alias];
-    //}
+  mccdbSimpleMovingAverage[alias.get_alias()] = mSimpleMovingAverage[alias];
+  //}
   return;
 }
 
@@ -359,6 +409,7 @@ std::unordered_map<DPID, DPVAL>::const_iterator DCSProcessor::findAndCheckAlias(
 {
 
   // processing basic checks for map: all needed aliases must be present
+  // finds dp defined by "alias" in received map "map"
 
   LOG(DEBUG) << "Processing " << alias;
   auto it = map.find(alias);
