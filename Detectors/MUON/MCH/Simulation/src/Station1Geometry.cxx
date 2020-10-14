@@ -107,8 +107,8 @@ const float kDeltaQuadLHC = 2.6; // LHC Origin wrt Quadrant Origin
 const float kFrameOffset = 5.2;
 
 // pad plane offsets
-const float kPadXOffsetBP = 0.50 - 0.63 / 2; // = 0.185
-const float kPadYOffsetBP = 0.31 + 0.42 / 2; // = 0.52
+const float kPadXOffsetBP = 0.50 - 0.63 / 2;  // = 0.185
+const float kPadYOffsetBP = -0.31 - 0.42 / 2; // = -0.52
 const int kFoamBoxNameOffset = 200;
 const int kFR4BoxNameOffset = 400;
 const int kDaughterCopyNoOffset = 1000;
@@ -1539,8 +1539,8 @@ void createStation1Geometry(TGeoVolume& topVolume)
   std::array<TGeoRotation*, kNQuadrants> rot = {rot0, rot1, rot2, rot3};
 
   // initialize the quadrant positions
-  float x[kNQuadrants] = {-1, 1, 1, -1};
-  float y[kNQuadrants] = {-1, -1, 1, 1};
+  float x[kNQuadrants] = {1, -1, -1, 1};
+  float y[kNQuadrants] = {1, 1, -1, -1};
 
   for (int i = 0; i < kNQuadrants; i++) {
     x[i] *= kPadXOffsetBP;
@@ -1568,7 +1568,7 @@ void createStation1Geometry(TGeoVolume& topVolume)
       // compute the detection element ID
       detElemID = 100 * ich + i;
 
-      if (x[i] < 0) {
+      if (x[i] > 0) {
         in->AddNode(quadrant, detElemID, new TGeoCombiTrans(x[i], y[i], z, rot[i]));
       } else
         out->AddNode(quadrant, detElemID, new TGeoCombiTrans(x[i], y[i], z, rot[i]));
