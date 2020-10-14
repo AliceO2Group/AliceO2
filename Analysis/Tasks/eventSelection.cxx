@@ -49,6 +49,12 @@ struct EvSelParameters {
   float fZNABBupper = 2.0;  // ns
   float fZNCBBlower = -2.0; // ns
   float fZNCBBupper = 2.0;  // ns
+
+  // TODO rough cuts to be adjusted
+  float fT0ABBlower = -2.0; // ns
+  float fT0ABBupper = 2.0;  // ns
+  float fT0CBBlower = -2.0; // ns
+  float fT0CBBupper = 2.0;  // ns
 };
 
 struct EventSelectionTask {
@@ -65,7 +71,7 @@ struct EventSelectionTask {
     ccdb->setLocalObjectValidityChecking();
   }
 
-  void process(aod::Run2MatchedSparse::iterator const& collision, aod::BCsWithTimestamps const&, aod::Zdcs const& zdcs, aod::FV0As const& fv0as, aod::FV0Cs const& fv0cs, aod::FDDs const& fdds)
+  void process(aod::Run2MatchedSparse::iterator const& collision, aod::BCsWithTimestamps const&, aod::Zdcs const& zdcs, aod::FV0As const& fv0as, aod::FV0Cs const& fv0cs, aod::FT0s const& ft0s, aod::FDDs const& fdds)
   {
     auto bc = collision.bc_as<aod::BCsWithTimestamps>();
     LOGF(debug, "timestamp=%llu", bc.timestamp());
@@ -88,12 +94,15 @@ struct EventSelectionTask {
     float timeZNC = collision.has_zdc() ? collision.zdc().timeZNC() : -999.f;
     float timeV0A = collision.has_fv0a() ? collision.fv0a().time() : -999.f;
     float timeV0C = collision.has_fv0c() ? collision.fv0c().time() : -999.f;
+    float timeT0A = collision.has_ft0() ? collision.ft0().timeA() : -999.f;
+    float timeT0C = collision.has_ft0() ? collision.ft0().timeC() : -999.f;
     float timeFDA = collision.has_fdd() ? collision.fdd().timeA() : -999.f;
     float timeFDC = collision.has_fdd() ? collision.fdd().timeC() : -999.f;
 
     LOGF(debug, "timeZNA=%f timeZNC=%f", timeZNA, timeZNC);
     LOGF(debug, "timeV0A=%f timeV0C=%f", timeV0A, timeV0C);
     LOGF(debug, "timeFDA=%f timeFDC=%f", timeFDA, timeFDC);
+    LOGF(debug, "timeT0A=%f timeT0C=%f", timeT0A, timeT0C);
 
     bool bbZNA = timeZNA > par.fZNABBlower && timeZNA < par.fZNABBupper;
     bool bbZNC = timeZNC > par.fZNCBBlower && timeZNC < par.fZNCBBupper;
@@ -105,6 +114,8 @@ struct EventSelectionTask {
     bool bbFDC = timeFDC > par.fFDCBBlower && timeFDC < par.fFDCBBupper;
     bool bgFDA = timeFDA > par.fFDABGlower && timeFDA < par.fFDABGupper;
     bool bgFDC = timeFDC > par.fFDCBGlower && timeFDC < par.fFDCBGupper;
+    bool bbT0A = timeT0A > par.fT0ABBlower && timeT0A < par.fT0ABBupper;
+    bool bbT0C = timeT0C > par.fT0CBBlower && timeT0C < par.fT0CBBupper;
 
     if (isMC) {
       bbZNA = 1;
@@ -112,7 +123,7 @@ struct EventSelectionTask {
     }
 
     // Fill event selection columns
-    evsel(alias, bbV0A, bbV0C, bgV0A, bgV0C, bbZNA, bbZNC, bbFDA, bbFDC, bgFDA, bgFDC);
+    evsel(alias, bbT0A, bbT0C, bbV0A, bbV0C, bgV0A, bgV0C, bbZNA, bbZNC, bbFDA, bbFDC, bgFDA, bgFDC);
   }
 };
 

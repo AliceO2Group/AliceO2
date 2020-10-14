@@ -20,10 +20,12 @@ struct MultiplicityTableTaskIndexed {
   Produces<aod::Mults> mult;
   Partition<aod::Tracks> tracklets = (aod::track::trackType == static_cast<uint8_t>(o2::aod::track::TrackTypeEnum::Run2Tracklet));
 
-  void process(aod::Run2MatchedSparse::iterator const& collision, aod::Tracks const& tracks, aod::BCs const&, aod::Zdcs const&, aod::FV0As const& fv0as, aod::FV0Cs const& fv0cs)
+  void process(aod::Run2MatchedSparse::iterator const& collision, aod::Tracks const& tracks, aod::BCs const&, aod::Zdcs const&, aod::FV0As const& fv0as, aod::FV0Cs const& fv0cs, aod::FT0s const& ft0s)
   {
     float multV0A = -1.f;
     float multV0C = -1.f;
+    float multT0A = -1.f;
+    float multT0C = -1.f;
     float multZNA = -1.f;
     float multZNC = -1.f;
     int multTracklets = tracklets.size();
@@ -40,13 +42,22 @@ struct MultiplicityTableTaskIndexed {
         multV0C += v0c.amplitude()[i];
       }
     }
+    if (collision.has_ft0()) {
+      auto ft0 = collision.ft0();
+      for (int i = 0; i < 96; i++) {
+        multT0A += ft0.amplitudeA()[i];
+      }
+      for (int i = 0; i < 112; i++) {
+        multT0C += ft0.amplitudeC()[i];
+      }
+    }
     if (collision.has_zdc()) {
       auto zdc = collision.zdc();
       multZNA = zdc.energyCommonZNA();
       multZNC = zdc.energyCommonZNC();
     }
-    LOGF(debug, "multV0A=%5.0f multV0C=%5.0f multZNA=%6.0f multZNC=%6.0f multTracklets=%i", multV0A, multV0C, multZNA, multZNC, multTracklets);
-    mult(multV0A, multV0C, multZNA, multZNC, multTracklets);
+    LOGF(debug, "multV0A=%5.0f multV0C=%5.0f multT0A=%5.0f multT0C=%5.0f multZNA=%6.0f multZNC=%6.0f multTracklets=%i", multV0A, multV0C, multT0A, multT0C, multZNA, multZNC, multTracklets);
+    mult(multV0A, multV0C, multT0A, multT0C, multZNA, multZNC, multTracklets);
   }
 };
 
