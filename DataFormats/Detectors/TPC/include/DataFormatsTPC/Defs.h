@@ -18,10 +18,15 @@
 #ifndef AliceO2_TPC_Defs_H
 #define AliceO2_TPC_Defs_H
 
+#ifndef GPUCA_GPUCODE_DEVICE
 #include <cmath>
+#endif
 
+#include "GPUROOTCartesianFwd.h"
+#ifndef GPUCA_ALIGPUCODE
 #include "MathUtils/Cartesian2D.h"
 #include "MathUtils/Cartesian3D.h"
+#endif
 
 namespace o2
 {

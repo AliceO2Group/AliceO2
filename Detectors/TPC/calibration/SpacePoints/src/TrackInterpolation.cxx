@@ -17,6 +17,7 @@
 #include "SpacePoints/TrackInterpolation.h"
 #include "TPCBase/ParameterElectronics.h"
 #include "DataFormatsTPC/TrackTPC.h"
+#include "DataFormatsTPC/Defs.h"
 
 #include <fairlogger/Logger.h>
 #include <set>
