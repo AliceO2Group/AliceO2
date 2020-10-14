@@ -18,6 +18,7 @@
 #include "DataFormatsTPC/ClusterNative.h"
 #include "DataFormatsTPC/ClusterGroupAttribute.h"
 #include "DataFormatsTPC/Constants.h"
+#include "SimulationDataFormat/IOMCTruthContainerView.h"
 #include "SimulationDataFormat/ConstMCTruthContainer.h"
 #include "SimulationDataFormat/MCCompLabel.h"
 #include <gsl/gsl>
@@ -132,6 +133,7 @@ class ClusterNativeHelper
 {
  public:
   using MCLabelContainer = o2::dataformats::MCLabelContainer;
+  using ConstMCLabelContainer = o2::dataformats::ConstMCLabelContainer;
   using ConstMCLabelContainerView = o2::dataformats::ConstMCLabelContainerView;
   using ConstMCLabelContainerViewWithBuffer = ClusterNativeAccess::ConstMCLabelContainerViewWithBuffer;
 
@@ -279,10 +281,8 @@ class ClusterNativeHelper
     std::array<std::vector<char>*, NSectors> mSectorRaw = {nullptr};
     /// the array of raw buffers
     std::array<size_t, NSectors> mSectorRawSize = {0};
-    /// the array of MC label containers
-    std::array<std::vector<MCLabelContainer>, NSectors> mSectorMC;
     /// pointers on the elements of array of MC label containers
-    std::array<std::vector<MCLabelContainer>*, NSectors> mSectorMCPtr = {nullptr};
+    std::array<dataformats::IOMCTruthContainerView*, NSectors> mSectorMCPtr{};
   };
 
   /// @class TreeWriter
