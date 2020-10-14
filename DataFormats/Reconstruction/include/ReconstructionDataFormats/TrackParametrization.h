@@ -49,25 +49,7 @@
 #include "ReconstructionDataFormats/TrackUtils.h"
 
 //Forward declarations, since we cannot include the headers if we eventually want to use track.h on GPU
-namespace ROOT
-{
-namespace Math
-{
-template <class T, unsigned int D1, unsigned int D2, class R>
-class SMatrix;
-template <class T, unsigned int D>
-class MatRepSym;
-template <class T, unsigned int D1, unsigned int D2>
-class MatRepStd;
-template <class CoordSystem, class Tag>
-class PositionVector3D;
-template <class T>
-class Cartesian3D;
-class DefaultCoordinateSystemTag;
-} // namespace Math
-} // namespace ROOT
-template <typename T>
-using Point3D = ROOT::Math::PositionVector3D<ROOT::Math::Cartesian3D<T>, ROOT::Math::DefaultCoordinateSystemTag>;
+#include "GPUROOTCartesianFwd.h"
 
 namespace o2
 {

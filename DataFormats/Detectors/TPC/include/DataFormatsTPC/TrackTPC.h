@@ -14,7 +14,6 @@
 #include "ReconstructionDataFormats/Track.h"
 #include "CommonDataFormat/RangeReference.h"
 #include "DataFormatsTPC/ClusterNative.h"
-#include "DataFormatsTPC/Defs.h"
 #include "DataFormatsTPC/dEdxInfo.h"
 #include <gsl/span>
 
