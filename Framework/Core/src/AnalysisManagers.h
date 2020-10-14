@@ -355,9 +355,9 @@ struct OptionManager {
   }
 };
 
-template <typename T>
-struct OptionManager<Configurable<T>> {
-  static bool appendOption(std::vector<ConfigParamSpec>& options, Configurable<T>& what)
+template <typename T, typename IP>
+struct OptionManager<Configurable<T, IP>> {
+  static bool appendOption(std::vector<ConfigParamSpec>& options, Configurable<T, IP>& what)
   {
     if constexpr (variant_trait_v<typename std::decay<T>::type> != VariantType::Unknown) {
       options.emplace_back(ConfigParamSpec{what.name, variant_trait_v<typename std::decay<T>::type>, what.value, {what.help}});
@@ -368,7 +368,7 @@ struct OptionManager<Configurable<T>> {
     return true;
   }
 
-  static bool prepare(InitContext& context, Configurable<T>& what)
+  static bool prepare(InitContext& context, Configurable<T, IP>& what)
   {
     if constexpr (variant_trait_v<typename std::decay<T>::type> != VariantType::Unknown) {
       what.value = context.options().get<T>(what.name.c_str());

@@ -135,6 +135,19 @@ o2_add_dpl_workflow(histogram-registry
                   PUBLIC_LINK_LIBRARIES O2::Framework O2::AnalysisCore O2::AnalysisDataModel
                   COMPONENT_NAME AnalysisTutorial)
 
+o2_add_library(ConfigurableCut
+               SOURCES  src/configurableCut.cxx
+               PUBLIC_LINK_LIBRARIES O2::AnalysisCore)
+
+o2_target_root_dictionary(ConfigurableCut
+                          HEADERS include/Analysis/configurableCut.h
+                          LINKDEF src/ConfigurableCutLinkDef.h)
+
+o2_add_dpl_workflow(configurable-objects
+                    SOURCES src/configurableObjects.cxx
+                    PUBLIC_LINK_LIBRARIES O2::Framework O2::ConfigurableCut
+                    COMPONENT_NAME AnalysisTutorial)
+
 o2_add_dpl_workflow(muon-iteration
                   SOURCES src/muonIteration.cxx
                   PUBLIC_LINK_LIBRARIES O2::Framework O2::AnalysisCore O2::AnalysisDataModel

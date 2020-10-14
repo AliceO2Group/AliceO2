@@ -1,0 +1,21 @@
+{
+    "internal-dpl-clock": "",
+    "internal-dpl-aod-reader": {
+        "aod-file": "aod.root",
+        "time-limit": "0",
+        "start-value-enumeration": "0",
+        "end-value-enumeration": "-1",
+        "step-value-enumeration": "1"
+    },
+    "internal-dpl-aod-spawner": "",
+    "configurable-demo": {
+        "cut": {
+		"cut": "0.1",
+		"state": "1"
+	},
+        "mutable_cut": {
+		"cut": "0.2",
+		"state": "-1"
+	}
+    }
+}
