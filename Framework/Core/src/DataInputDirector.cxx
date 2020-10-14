@@ -17,6 +17,7 @@
 #include "rapidjson/filereadstream.h"
 
 #include "TGrid.h"
+#include "TObjString.h"
 
 namespace o2
 {
