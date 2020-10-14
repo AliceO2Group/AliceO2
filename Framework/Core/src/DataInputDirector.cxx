@@ -45,6 +45,7 @@ FileNameHolder* makeFileNameHolder(std::string fileName)
   }
   fileNameHolder->numberOfTimeFrames = fileNameHolder->listOfTimeFrameKeys.size();
 
+  delete file;
   return fileNameHolder;
 }
 
