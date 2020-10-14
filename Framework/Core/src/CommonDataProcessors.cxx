@@ -472,9 +472,12 @@ DataProcessorSpec
           // a table can be saved in multiple ways
           // e.g. different selections of columns to different files
           for (auto d : ds) {
+
+            auto [file, directory] = dod->getFileFolder(d, ntf, ntfmerge, filemode);
+            auto treename = directory + d->treename;
             TableToTree ta2tr(table,
-                              dod->getDataOutputFile(d, ntf, ntfmerge, filemode),
-                              d->treename.c_str());
+                              file,
+                              treename.c_str());
 
             if (d->colnames.size() > 0) {
               for (auto cn : d->colnames) {
