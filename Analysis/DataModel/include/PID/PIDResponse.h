@@ -24,8 +24,6 @@
 #include "Framework/AnalysisDataModel.h"
 #include "ReconstructionDataFormats/Track.h"
 #include "ReconstructionDataFormats/PID.h"
-#include "PID/PIDTOF.h"
-#include "PID/PIDTPC.h"
 
 namespace o2::aod
 {

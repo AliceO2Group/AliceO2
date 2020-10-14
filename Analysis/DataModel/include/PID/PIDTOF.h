@@ -30,101 +30,111 @@
 namespace o2::pid::tof
 {
 
-/// \brief Class to handle the event times available for PID
-class EventTime
+// Utility values
+static constexpr float kCSPEED = TMath::C() * 1.0e2f * 1.0e-12f; /// Speed of light in TOF units (cm/ps)
+
+/// \brief Class to handle the the TOF detector response for the TOF beta measurement
+template <typename Coll, typename Trck, o2::track::PID::ID id>
+class Beta
 {
  public:
-  EventTime() = default;
-  ~EventTime() = default;
+  Beta() = default;
+  ~Beta() = default;
 
-  /// Setter for the event time in momentum bin i
-  void SetEvTime(int i, float evtime) { mEvTime[i] = evtime; }
-  /// Setter for the event time resolution in momentum bin i
-  void SetEvTimeReso(int i, float evtimereso) { mEvTimeReso[i] = evtimereso; }
-  /// Setter for the event time mask in momentum bin i
-  void SetEvTimeMask(int i, int mask) { mEvTimeMask[i] = mask; }
-  /// Getter for the event time in momentum bin i
-  float GetEvTime(int i) const { return mEvTime[i]; }
-  /// Getter for the event time resolution in momentum bin i
-  float GetEvTimeReso(int i) const { return mEvTimeReso[i]; }
-  /// Getter for the momentum bin index
-  uint GetMomBin(float mom) const;
-  /// Getter for the event time for the momentum requested
-  float GetEvTime(float mom) const { return mEvTime[GetMomBin(mom)]; }
-  /// Getter for the event time resolution for the momentum requested
-  float GetEvTimeReso(float mom) const { return mEvTimeReso[GetMomBin(mom)]; }
-
- private:
-  static const unsigned int mNmomBins = 1;                               /// Number of momentum bin
-  static constexpr std::array<float, mNmomBins + 1> mMomBins = {0, 100}; /// Momentum bins
-  std::array<float, mNmomBins> mEvTime;                                  /// Evtime (best, T0, T0-TOF, ...) of the event as a function of p
-  std::array<float, mNmomBins> mEvTimeReso;                              /// Evtime (best, T0, T0-TOF, ...) resolution as a function of p
-  std::array<int, mNmomBins> mEvTimeMask;                                /// Mask withthe T0 used (0x1=T0-TOF,0x2=T0A,0x3=TOC) for p bins
-};
-
-
-/// \brief Class to handle the the TOF detector response
-class Response
-{
- public:
-  Response() = default;
-
-  /// Updater for the TOF response to setup the track parameters
-  /// i.e. sets the track of interest
-  void UpdateTrack(float mom, float tofexpmom, float length, float tofsignal)
-  {
-    mMomentum = mom;
-    mTOFExpMomentum = tofexpmom;
-    mLength = length;
-    mTOFSignal = tofsignal;
-  };
-
-  /// Setter for the event time information in the parametrization
-  void SetEventTime(EventTime& evtime) { mEventTime = evtime; };
-  /// Getter for the event time information in the parametrization
-  EventTime GetEventTime() const { return mEventTime; };
-
-  // TOF beta
   /// Computes the beta of a track given a length, a time measurement and an event time
-  static float GetBeta(float length, float time, float evtime);
+  static float GetBeta(const float length, const float tofSignal, const float collisionTime);
+
   /// Gets the beta for the track of interest
-  float GetBeta() const { return GetBeta(mLength, mTOFSignal, mEventTime.GetEvTime(mMomentum)); }
+  float GetBeta(const Coll& col, const Trck& trk) const { return GetBeta(trk.length(), trk.tofSignal(), col.collisionTime()); }
+
   /// Computes the expected uncertainty on the beta measurement
-  static float GetBetaExpectedSigma(float length, float time, float evtime, float sigmat = 80);
+  static float GetExpectedSigma(const float& length, const float& tofSignal, const float& collisionTime, const float& time_reso);
+
   /// Gets the expected uncertainty on the beta measurement of the track of interest
-  float GetBetaExpectedSigma(float sigmat = 80) const { return GetBetaExpectedSigma(mLength, mTOFSignal, mEventTime.GetEvTime(mMomentum), sigmat); }
+  float GetExpectedSigma(const Coll& col, const Trck& trk) const { return GetExpectedSigma(trk.length(), trk.tofSignal(), col.collisionTime(), mExpectedResolution); }
+
   /// Gets the expected beta for a given mass hypothesis (no energy loss taken into account)
-  static float GetExpectedBeta(float mom, float mass);
+  static float GetExpectedSignal(const float& mom, const float& mass);
+
   /// Gets the expected beta given the particle index (no energy loss taken into account)
-  float GetExpectedBeta(o2::track::PID::ID id) const { return GetExpectedBeta(mMomentum, o2::track::PID::getMass2Z(id)); }
+  float GetExpectedSignal(const Coll& col, const Trck& trk) const { return GetExpectedSignal(trk.p(), o2::track::PID::getMass2Z(id)); }
+
   /// Gets the number of sigmas with respect the approximate beta (no energy loss taken into account)
-  float GetBetaNumberOfSigmas(o2::track::PID::ID id, float sigmat = 80) { return (GetBeta() - GetExpectedBeta(id)) / GetBetaExpectedSigma(sigmat); }
+  float GetSeparation(const Coll& col, const Trck& trk) const { return (GetBeta(col, trk) - GetExpectedSignal(col, trk)) / GetExpectedSigma(col, trk); }
 
-  // TOF expected times
-  /// Computes the expected time of a track, given it TOF expected momentum
-  static float ComputeExpectedTime(float tofexpmom, float length, float massZ);
-  /// Gets the expected signal of the track of interest under the PID assumption
-  float GetExpectedSignal(o2::track::PID::ID id) const { return ComputeExpectedTime(mTOFExpMomentum, mLength, o2::track::PID::getMass2Z(id)); }
-
-  // Expected resolution
-  /// Gets the expected resolution of the measurement
-  float GetExpectedSigma(DetectorResponse<Response>& response, o2::track::PID::ID id) const;
-
-  // Nsigma
-  float GetSeparation(DetectorResponse<Response>& response, o2::track::PID::ID id) const { return (mTOFSignal - mEventTime.GetEvTime(mMomentum) - GetExpectedSignal(id)) / GetExpectedSigma(response, id); }
-
-  // float GetMismatchProbability(float time, float eta) const;
-  // Utility values
-  static constexpr float kCSPEED = TMath::C() * 1.0e2f * 1.0e-12f; /// Speed of light in TOF units (cm/ps)
- private:
-  // Event of interest information
-  EventTime mEventTime; /// Event time object
-  // Track of interest information
-  float mMomentum;       /// Momentum of the track of interest
-  float mTOFExpMomentum; /// TOF expected momentum of the track of interest
-  float mLength;         /// Track of interest integrated length
-  float mTOFSignal;      /// Track of interest integrated length
+  float mExpectedResolution = 80; /// Expected time resolution
 };
+
+//_________________________________________________________________________
+template <typename Coll, typename Trck, o2::track::PID::ID id>
+float Beta<Coll, Trck, id>::GetBeta(const float length, const float tofSignal, const float collisionTime)
+{
+  if (tofSignal <= 0) {
+    return -999.f;
+  }
+  return length / (tofSignal - collisionTime) / kCSPEED;
+}
+
+//_________________________________________________________________________
+template <typename Coll, typename Trck, o2::track::PID::ID id>
+float Beta<Coll, Trck, id>::GetExpectedSigma(const float& length, const float& tofSignal, const float& collisionTime, const float& time_reso)
+{
+  if (tofSignal <= 0) {
+    return -999.f;
+  }
+  return GetBeta(length, tofSignal, collisionTime) / (tofSignal - collisionTime) * time_reso;
+}
+
+//_________________________________________________________________________
+template <typename Coll, typename Trck, o2::track::PID::ID id>
+float Beta<Coll, Trck, id>::GetExpectedSignal(const float& mom, const float& mass)
+{
+  if (mom > 0) {
+    return mom / TMath::Sqrt(mom * mom + mass * mass);
+  }
+  return 0;
+}
+
+/// \brief Class to handle the the TOF detector response for the expected time
+template <typename Coll, typename Trck, o2::track::PID::ID id>
+class ExpTimes
+{
+ public:
+  ExpTimes() = default;
+  ~ExpTimes() = default;
+
+  /// Computes the expected time of a track, given it TOF expected momentum
+  static float ComputeExpectedTime(const float& tofExpMom, const float& length, const float& massZ);
+
+  /// Gets the expected signal of the track of interest under the PID assumption
+  float GetExpectedSignal(const Coll& col, const Trck& trk) const { return ComputeExpectedTime(trk.tofExpMom() / kCSPEED, trk.length(), o2::track::PID::getMass2Z(id)); }
+
+  /// Gets the expected resolution of the measurement
+  float GetExpectedSigma(const DetectorResponse& response, const Coll& col, const Trck& trk) const;
+
+  /// Gets the number of sigmas with respect the expected time
+  float GetSeparation(const DetectorResponse& response, const Coll& col, const Trck& trk) const { return (trk.tofSignal() - col.collisionTime() - GetExpectedSignal(col, trk)) / GetExpectedSigma(response, col, trk); }
+};
+
+//_________________________________________________________________________
+template <typename Coll, typename Trck, o2::track::PID::ID id>
+float ExpTimes<Coll, Trck, id>::ComputeExpectedTime(const float& tofExpMom, const float& length, const float& massZ)
+{
+  const float energy = sqrt((massZ * massZ) + (tofExpMom * tofExpMom));
+  return length * energy / (kCSPEED * tofExpMom);
+}
+
+//_________________________________________________________________________
+template <typename Coll, typename Trck, o2::track::PID::ID id>
+float ExpTimes<Coll, Trck, id>::GetExpectedSigma(const DetectorResponse& response, const Coll& col, const Trck& trk) const
+{
+  if (trk.tofSignal() <= 0) {
+    return -999.f;
+  }
+  const float x[4] = {trk.p(), trk.tofSignal(), col.collisionTimeRes(), o2::track::PID::getMass2Z(id)};
+  return response(response.kSigma, x);
+  // return response(response.kSigma, const Coll& col, const Trck& trk, id);
+}
 
 } // namespace o2::pid::tof
 

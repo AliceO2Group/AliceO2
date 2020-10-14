@@ -34,8 +34,7 @@
 namespace o2::pid
 {
 /// \brief Class to handle the general detector response
-template <typename DetectorImpl>
-class DetectorResponse : public DetectorImpl
+class DetectorResponse
 {
  public:
   DetectorResponse() = default;
@@ -77,8 +76,7 @@ class DetectorResponse : public DetectorImpl
   std::array<Parametrization*, kNParams> mParam;
 };
 
-template <typename DetectorImpl>
-inline void DetectorResponse<DetectorImpl>::LoadParamFromFile(const TString fname, const TString pname, const Param_t ptype)
+inline void DetectorResponse::LoadParamFromFile(const TString fname, const TString pname, const Param_t ptype)
 {
   TFile f(fname, "READ");
   if (!f.Get(pname)) {
@@ -91,8 +89,7 @@ inline void DetectorResponse<DetectorImpl>::LoadParamFromFile(const TString fnam
   mParam[ptype]->PrintParametrization();
 }
 
-template <typename DetectorImpl>
-inline void DetectorResponse<DetectorImpl>::SetParameters(const DetectorResponse<DetectorImpl>::Param_t ptype, std::vector<pidvar_t> p)
+inline void DetectorResponse::SetParameters(const DetectorResponse::Param_t ptype, std::vector<pidvar_t> p)
 {
   if (!mParam[ptype]) {
     const std::string pname = std::string(ParamName[ptype]) + "_default_param";
