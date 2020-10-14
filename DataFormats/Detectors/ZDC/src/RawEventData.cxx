@@ -11,6 +11,9 @@
 #include "DataFormatsZDC/RawEventData.h"
 
 using namespace o2::zdc;
+
+ClassImp(RawEventData);
+
 void EventData::print() const
 {
   for (Int_t im = 0; im < o2::zdc::NModules; im++) {
