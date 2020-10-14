@@ -13,14 +13,17 @@
 #include "Analysis/Multiplicity.h"
 #include "Analysis/EventSelection.h"
 #include "TH1F.h"
+#include "TH2F.h"
 
 using namespace o2;
 using namespace o2::framework;
 
 struct MultiplicityQaTask {
   OutputObj<TH1F> hMultV0M{TH1F("hMultV0M", "", 50000, 0., 50000.)};
+  OutputObj<TH1F> hMultT0M{TH1F("hMultT0M", "", 10000, 0., 200000.)};
   OutputObj<TH1F> hMultZNA{TH1F("hMultZNA", "", 600, 0., 240000.)};
   OutputObj<TH1F> hMultZNC{TH1F("hMultZNC", "", 600, 0., 240000.)};
+  OutputObj<TH2F> hMultV0MvsT0M{TH2F("hMultV0MvsT0M", ";V0M;T0M", 200, 0., 50000., 200, 0., 200000.)};
 
   OutputObj<TProfile> hMultNtrackletsVsV0M{TProfile("hMultNtrackletsVsV0M", "", 50000, 0., 50000.)};
 
@@ -31,11 +34,13 @@ struct MultiplicityQaTask {
     if (!col.sel7())
       return;
 
-    LOGF(debug, "multV0A=%5.0f multV0C=%5.0f multV0M=%5.0f", col.multV0A(), col.multV0C(), col.multV0M());
+    LOGF(debug, "multV0A=%5.0f multV0C=%5.0f multV0M=%5.0f multT0A=%5.0f multT0C=%5.0f multT0M=%5.0f", col.multV0A(), col.multV0C(), col.multV0M(), col.multT0A(), col.multT0C(), col.multT0M());
     // fill calibration histos
     hMultV0M->Fill(col.multV0M());
+    hMultT0M->Fill(col.multT0M());
     hMultZNA->Fill(col.multZNA());
     hMultZNC->Fill(col.multZNC());
+    hMultV0MvsT0M->Fill(col.multV0M(), col.multT0M());
     hMultNtrackletsVsV0M->Fill(col.multV0M(), col.multTracklets());
   }
 };
