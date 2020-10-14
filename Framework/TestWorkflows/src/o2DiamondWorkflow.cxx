@@ -65,7 +65,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& specs)
        })},
      {ConfigParamSpec{"some-device-param", VariantType::Int, 1, {"Some device parameter"}}}},
     {"B",
-     {InputSpec{"x", "TST", "A1"}},
+     {InputSpec{"x", "TST", "A1", Lifetime::Timeframe, {ConfigParamSpec{"somestring", VariantType::String, "", {"Some input param"}}}}},
      {OutputSpec{{"b1"}, "TST", "B1"}},
      simplePipe("b1", 0)},
     {"C",

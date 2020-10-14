@@ -51,6 +51,7 @@ struct WorkflowImporter : public rapidjson::BaseReaderHandler<rapidjson::UTF8<>,
     IN_INPUT_DESCRIPTION,
     IN_INPUT_SUBSPEC,
     IN_INPUT_LIFETIME,
+    IN_INPUT_OPTIONS,
     IN_OUTPUT,
     IN_OUTPUT_BINDING,
     IN_OUTPUT_ORIGIN,
@@ -135,6 +136,9 @@ struct WorkflowImporter : public rapidjson::BaseReaderHandler<rapidjson::UTF8<>,
       case State::IN_INPUT_LIFETIME:
         s << "IN_INPUT_LIFETIME";
         break;
+      case State::IN_INPUT_OPTIONS:
+        s << "IN_INPUT_OPTIONS";
+        break;
       case State::IN_OUTPUT:
         s << "IN_OUTPUT";
         break;
@@ -202,7 +206,7 @@ struct WorkflowImporter : public rapidjson::BaseReaderHandler<rapidjson::UTF8<>,
   WorkflowImporter(std::vector<DataProcessorSpec>& o,
                    std::vector<DataProcessorInfo>& m)
     : states{},
-      output{o},
+      dataProcessors{o},
       metadata{m}
   {
     push(State::IN_START);
@@ -215,9 +219,9 @@ struct WorkflowImporter : public rapidjson::BaseReaderHandler<rapidjson::UTF8<>,
       push(State::IN_EXECUTION);
     } else if (in(State::IN_DATAPROCESSORS)) {
       push(State::IN_DATAPROCESSOR);
-      output.push_back(DataProcessorSpec{});
+      dataProcessors.push_back(DataProcessorSpec{});
     } else if (in(State::IN_DATAPROCESSOR)) {
-      output.push_back(DataProcessorSpec{});
+      dataProcessors.push_back(DataProcessorSpec{});
     } else if (in(State::IN_INPUTS)) {
       push(State::IN_INPUT);
       inputHasSubSpec = false;
@@ -242,16 +246,17 @@ struct WorkflowImporter : public rapidjson::BaseReaderHandler<rapidjson::UTF8<>,
     enter("END_OBJECT");
     if (in(State::IN_INPUT)) {
       if (inputHasSubSpec) {
-        output.back().inputs.push_back(InputSpec(binding, origin, description, subspec, lifetime));
+        dataProcessors.back().inputs.push_back(InputSpec(binding, origin, description, subspec, lifetime, inputOptions));
       } else {
-        output.back().inputs.push_back(InputSpec(binding, {origin, description}, lifetime));
+        dataProcessors.back().inputs.push_back(InputSpec(binding, {origin, description}, lifetime, inputOptions));
       }
+      inputOptions.clear();
       inputHasSubSpec = false;
     } else if (in(State::IN_OUTPUT)) {
       if (outputHasSubSpec) {
-        output.back().outputs.push_back(OutputSpec({binding}, origin, description, subspec, lifetime));
+        dataProcessors.back().outputs.push_back(OutputSpec({binding}, origin, description, subspec, lifetime));
       } else {
-        output.back().outputs.push_back(OutputSpec({binding}, {origin, description}, lifetime));
+        dataProcessors.back().outputs.push_back(OutputSpec({binding}, {origin, description}, lifetime));
       }
       outputHasSubSpec = false;
     } else if (in(State::IN_OPTION)) {
@@ -282,9 +287,11 @@ struct WorkflowImporter : public rapidjson::BaseReaderHandler<rapidjson::UTF8<>,
       }
       // Depending on the previous state, push options to the right place.
       if (previousIs(State::IN_OPTIONS)) {
-        output.back().options.push_back(*opt);
+        dataProcessors.back().options.push_back(*opt);
       } else if (previousIs(State::IN_WORKFLOW_OPTIONS)) {
         metadata.back().workflowOptions.push_back(*opt);
+      } else if (previousIs(State::IN_INPUT_OPTIONS)) {
+        inputOptions.push_back(*opt);
       } else {
         assert(false);
       }
@@ -301,6 +308,8 @@ struct WorkflowImporter : public rapidjson::BaseReaderHandler<rapidjson::UTF8<>,
     } else if (in(State::IN_INPUTS)) {
       push(State::IN_INPUT);
       inputHasSubSpec = false;
+    } else if (in(State::IN_INPUT_OPTIONS)) {
+      push(State::IN_OPTION);
     } else if (in(State::IN_OUTPUTS)) {
       push(State::IN_OUTPUT);
       outputHasSubSpec = false;
@@ -345,6 +354,8 @@ struct WorkflowImporter : public rapidjson::BaseReaderHandler<rapidjson::UTF8<>,
       inputHasSubSpec = true;
     } else if (in(State::IN_INPUT) && strncmp(str, "lifetime", length) == 0) {
       push(State::IN_INPUT_LIFETIME);
+    } else if (in(State::IN_INPUT) && strncmp(str, "metadata", length) == 0) {
+      push(State::IN_INPUT_OPTIONS);
     } else if (in(State::IN_OUTPUT) && strncmp(str, "binding", length) == 0) {
       push(State::IN_OUTPUT_BINDING);
     } else if (in(State::IN_OUTPUT) && strncmp(str, "origin", length) == 0) {
@@ -404,8 +415,8 @@ struct WorkflowImporter : public rapidjson::BaseReaderHandler<rapidjson::UTF8<>,
     enter(str);
     auto s = std::string(str, length);
     if (in(State::IN_DATAPROCESSOR_NAME)) {
-      assert(output.size());
-      output.back().name = s;
+      assert(dataProcessors.size());
+      dataProcessors.back().name = s;
     } else if (in(State::IN_METADATUM_NAME)) {
       assert(metadata.size());
       metadata.back().name = s;
@@ -459,13 +470,13 @@ struct WorkflowImporter : public rapidjson::BaseReaderHandler<rapidjson::UTF8<>,
     } else if (in(State::IN_OUTPUT_LIFETIME)) {
       lifetime = (Lifetime)i;
     } else if (in(State::IN_DATAPROCESSOR_RANK)) {
-      output.back().rank = i;
+      dataProcessors.back().rank = i;
     } else if (in(State::IN_DATAPROCESSOR_N_SLOTS)) {
-      output.back().nSlots = i;
+      dataProcessors.back().nSlots = i;
     } else if (in(State::IN_DATAPROCESSOR_TIMESLICE_ID)) {
-      output.back().inputTimeSliceId = i;
+      dataProcessors.back().inputTimeSliceId = i;
     } else if (in(State::IN_DATAPROCESSOR_MAX_TIMESLICES)) {
-      output.back().maxInputTimeslices = i;
+      dataProcessors.back().maxInputTimeslices = i;
     }
     pop();
     return true;
@@ -526,8 +537,9 @@ struct WorkflowImporter : public rapidjson::BaseReaderHandler<rapidjson::UTF8<>,
   std::ostringstream debug;
   std::vector<State> states;
   std::string spec;
-  std::vector<DataProcessorSpec>& output;
+  std::vector<DataProcessorSpec>& dataProcessors;
   std::vector<DataProcessorInfo>& metadata;
+  std::vector<ConfigParamSpec> inputOptions;
   std::string binding;
   header::DataOrigin origin;
   header::DataDescription description;
@@ -612,6 +624,26 @@ void WorkflowSerializationHelpers::dump(std::ostream& out,
       }
       w.Key("lifetime");
       w.Uint((int)input.lifetime);
+      if (input.metadata.empty() == false) {
+        w.Key("metadata");
+        w.StartArray();
+        for (auto& metadata : input.metadata) {
+          w.StartObject();
+          w.Key("name");
+          w.String(metadata.name.c_str());
+          auto s = std::to_string(int(metadata.type));
+          w.Key("type");
+          w.String(s.c_str());
+          std::ostringstream oss;
+          oss << metadata.defaultValue;
+          w.Key("defaultValue");
+          w.String(oss.str().c_str());
+          w.Key("help");
+          w.String(metadata.help.c_str());
+          w.EndObject();
+        }
+        w.EndArray();
+      }
       w.EndObject();
     }
     w.EndArray();
