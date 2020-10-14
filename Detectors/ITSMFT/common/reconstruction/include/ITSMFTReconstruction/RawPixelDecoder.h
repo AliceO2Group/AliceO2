@@ -70,6 +70,9 @@ class RawPixelDecoder final : public PixelReader
   auto getUserDataOrigin() const { return mUserDataOrigin; }
   void setUserDataOrigin(header::DataOrigin orig) { mUserDataOrigin = orig; }
 
+  auto getUserDataDescription() const { return mUserDataDescription; }
+  void setUserDataDescription(header::DataDescription desc) { mUserDataDescription = desc; }
+
   void setNThreads(int n);
   int getNThreads() const { return mNThreads; }
 
@@ -107,6 +110,7 @@ class RawPixelDecoder final : public PixelReader
   std::array<short, Mapping::getNRUs()> mRUEntry;           // entry of the RU with given SW ID in the mRUDecodeVec
   std::string mSelfName;                        // self name
   header::DataOrigin mUserDataOrigin = o2::header::gDataOriginInvalid; // alternative user-provided data origin to pick
+  header::DataDescription mUserDataDescription = o2::header::gDataDescriptionInvalid; // alternative user-provided description to pick
   uint16_t mCurRUDecodeID = NORUDECODED;        // index of currently processed RUDecode container
   int mLastReadChipID = -1;                     // chip ID returned by previous getNextChipData call, used for ordering checks
   Mapping mMAP;                                 // chip mapping
