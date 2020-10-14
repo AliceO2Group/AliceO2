@@ -76,13 +76,16 @@ class DCSProcessor
 
   int processDP(const std::pair<DPID, DPVAL>& dpcom);
 
-  std::unordered_map<DPID, DPVAL>::const_iterator findAndCheckAlias(const DPID& alias, DeliveryType type, const std::unordered_map<DPID, DPVAL>& map);
+  std::unordered_map<DPID, DPVAL>::const_iterator findAndCheckAlias(const DPID& alias, DeliveryType type,
+                                                                    const std::unordered_map<DPID, DPVAL>& map);
 
   template <typename T>
-  int processArrayType(const std::vector<DPID>& array, DeliveryType type, const std::unordered_map<DPID, DPVAL>& map, std::vector<int64_t>& latestTimeStamp, std::unordered_map<DPID, std::deque<T>>& destmap);
+  int processArrayType(const std::vector<DPID>& array, DeliveryType type, const std::unordered_map<DPID, DPVAL>& map,
+                       std::vector<int64_t>& latestTimeStamp, std::unordered_map<DPID, std::deque<T>>& destmap);
 
   template <typename T>
-  void checkFlagsAndFill(const std::pair<DPID, DPVAL>& dpcom, int64_t& latestTimeStamp, std::unordered_map<DPID, T>& destmap);
+  void checkFlagsAndFill(const std::pair<DPID, DPVAL>& dpcom, int64_t& latestTimeStamp,
+                         std::unordered_map<DPID, T>& destmap);
 
   virtual void processCharDP(const DPID& alias);
   virtual void processIntDP(const DPID& alias);
@@ -125,16 +128,21 @@ class DCSProcessor
   uint64_t getNCyclesNoFullMap() const { return mNCyclesNoFullMap; }
 
   template <typename T>
-  void prepareCCDBobject(T& obj, CcdbObjectInfo& info, const std::string& path, TFType tf, const std::map<std::string, std::string>& md);
+  void prepareCCDBobject(T& obj, CcdbObjectInfo& info, const std::string& path, TFType tf,
+                         const std::map<std::string, std::string>& md);
 
   void setName(std::string name) { mName = name; }
   const std::string getName() const { return mName; }
 
  private:
-  bool mFullMapSent = false;                            // set to true as soon as a full map was sent. No delta can be received if there was never a full map sent
+  bool mFullMapSent = false;                            // set to true as soon as a full map was sent. No delta can
+                                                        // be received if there was never a full map sent
   int64_t mNCyclesNoFullMap = 0;                        // number of times the delta was sent withoug a full map
-  int64_t mMaxCyclesNoFullMap = 6000;                   // max number of times when the delta can be sent between two full maps (assuming DCS sends data every 50 ms, this means a 5 minutes threshold)
-  bool mIsDelta = false;                                // set to true in case you are processing  delta map (containing only DPs that changed)
+  int64_t mMaxCyclesNoFullMap = 6000;                   // max number of times when the delta can be sent between
+                                                        // two full maps (assuming DCS sends data every 50 ms, this
+                                                        // means a 5 minutes threshold)
+  bool mIsDelta = false;                                // set to true in case you are processing  delta map
+                                                        // (containing only DPs that changed)
   std::unordered_map<DPID, float> mSimpleMovingAverage; // moving average for several DPs
   std::unordered_map<DPID, DQChars> mDpscharsmap;
   std::unordered_map<DPID, DQInts> mDpsintsmap;
@@ -161,9 +169,14 @@ class DCSProcessor
   std::vector<int64_t> mLatestTimestamptimes;
   std::vector<int64_t> mLatestTimestampbinaries;
   int mNThreads = 1;                                               // number of  threads
-  std::unordered_map<std::string, float> mccdbSimpleMovingAverage; // unordered map in which to store the CCDB entry for the DPs for which we calculated the simple moving average
-  CcdbObjectInfo mccdbSimpleMovingAverageInfo;                     // info to store the output of the calibration for the DPs for which we calculated the simple moving average
-  TFType mTF = 0;                                                  // TF index for processing, used to store CCDB object
+  std::unordered_map<std::string, float> mccdbSimpleMovingAverage; // unordered map in which to store the CCDB entry
+                                                                   // for the DPs for which we calculated the simple
+                                                                   // moving average
+  CcdbObjectInfo mccdbSimpleMovingAverageInfo;                     // info to store the output of the calibration for
+                                                                   // the DPs for which we calculated
+                                                                   // the simple moving average
+  TFType mTF = 0;                                                  // TF index for processing,
+                                                                   // used to store CCDB object
   std::string mName = "";                                          // to be used to determine CCDB path
 
   ClassDefNV(DCSProcessor, 0);
@@ -182,7 +195,10 @@ using DPID = o2::dcs::DataPointIdentifier;
 using DPVAL = o2::dcs::DataPointValue;
 
 template <typename T>
-int DCSProcessor::processArrayType(const std::vector<DPID>& array, DeliveryType type, const std::unordered_map<DPID, DPVAL>& map, std::vector<int64_t>& latestTimeStamp, std::unordered_map<DPID, std::deque<T>>& destmap)
+int DCSProcessor::processArrayType(const std::vector<DPID>& array,
+                                   DeliveryType type, const std::unordered_map<DPID, DPVAL>& map,
+                                   std::vector<int64_t>& latestTimeStamp,
+                                   std::unordered_map<DPID, std::deque<T>>& destmap)
 {
 
   // processing the array of type T
@@ -228,7 +244,8 @@ int DCSProcessor::processArrayType(const std::vector<DPID>& array, DeliveryType 
 //______________________________________________________________________
 
 template <typename T>
-void DCSProcessor::checkFlagsAndFill(const std::pair<DPID, DPVAL>& dpcom, int64_t& latestTimeStamp, std::unordered_map<DPID, T>& destmap)
+void DCSProcessor::checkFlagsAndFill(const std::pair<DPID, DPVAL>& dpcom, int64_t& latestTimeStamp,
+                                     std::unordered_map<DPID, T>& destmap)
 {
 
   // check the flags for the upcoming data, and if ok, fill the accumulator
@@ -251,12 +268,14 @@ void DCSProcessor::checkFlagsAndFill(const std::pair<DPID, DPVAL>& dpcom, int64_
 //______________________________________________________________________
 
 template <>
-void DCSProcessor::checkFlagsAndFill(const std::pair<DPID, DPVAL>& dpcom, int64_t& latestTimeStamp, std::unordered_map<DPID, DCSProcessor::DQStrings>& destmap);
+void DCSProcessor::checkFlagsAndFill(const std::pair<DPID, DPVAL>& dpcom, int64_t& latestTimeStamp,
+                                     std::unordered_map<DPID, DCSProcessor::DQStrings>& destmap);
 
 //______________________________________________________________________
 
 template <>
-void DCSProcessor::checkFlagsAndFill(const std::pair<DPID, DPVAL>& dpcom, int64_t& latestTimeStamp, std::unordered_map<DPID, DCSProcessor::DQBinaries>& destmap);
+void DCSProcessor::checkFlagsAndFill(const std::pair<DPID, DPVAL>& dpcom, int64_t& latestTimeStamp,
+                                     std::unordered_map<DPID, DCSProcessor::DQBinaries>& destmap);
 
 //______________________________________________________________________
 
@@ -268,7 +287,7 @@ void DCSProcessor::doSimpleMovingAverage(int nelements, std::deque<T>& vect, flo
 
   if (vect.size() <= nelements) {
     //avg = std::accumulate(vect.begin(), vect.end(), 0.0) / vect.size();
-    avg = (avg * (vect.size() - 1) + vect[vect.size() - 1]) / vect.size();
+    avg = (avg * (vect.size() - 1) + vect.back()) / vect.size();
     return;
   }
 
@@ -280,7 +299,8 @@ void DCSProcessor::doSimpleMovingAverage(int nelements, std::deque<T>& vect, flo
 //______________________________________________________________________
 
 template <typename T>
-void DCSProcessor::prepareCCDBobject(T& obj, CcdbObjectInfo& info, const std::string& path, TFType tf, const std::map<std::string, std::string>& md)
+void DCSProcessor::prepareCCDBobject(T& obj, CcdbObjectInfo& info, const std::string& path, TFType tf,
+                                     const std::map<std::string, std::string>& md)
 {
 
   // prepare all info to be sent to CCDB for object obj

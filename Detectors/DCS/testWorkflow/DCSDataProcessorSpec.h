@@ -46,7 +46,7 @@ class DCSDataProcessor : public o2::framework::Task
  public:
   enum Detectors {
     kTest,
-    kTPC,
+    // kTPC,  // commented out for test, when we use only 1 "Test" detector
     kNdetectors
   };
 
@@ -60,7 +60,8 @@ class DCSDataProcessor : public o2::framework::Task
     DPID::FILL(dpidtmp, dpAliaschar, typechar);
     aliasVect.push_back(dpidtmp);
 
-    std::vector<int> vectDet{kTest, kTPC};
+    //std::vector<int> vectDet{kTest, kTPC}; // only one detector for now
+    std::vector<int> vectDet{kTest};
     mDetectorAlias[dpidtmp] = vectDet;
 
     DeliveryType typeint = RAW_INT;
@@ -88,9 +89,11 @@ class DCSDataProcessor : public o2::framework::Task
     mDCSproc.init(aliasVect);
     mDCSproc.setMaxCyclesNoFullMap(ic.options().get<int64_t>("max-cycles-no-full-map"));
     mDCSproc.setName("Test0Det");
-    mDCSprocVect[kTest].init(aliasVect);
-    mDCSprocVect[kTest].setMaxCyclesNoFullMap(ic.options().get<int64_t>("max-cycles-no-full-map"));
-    mDCSprocVect[kTest].setName("Test1Det");
+    for (int idet = 0; idet < kNdetectors; idet++) {
+      mDCSprocVect[idet].init(aliasVect);
+      mDCSprocVect[idet].setMaxCyclesNoFullMap(ic.options().get<int64_t>("max-cycles-no-full-map"));
+      mDCSprocVect[idet].setName("Test1Det");
+    }
     mProcessFullDeltaMap = ic.options().get<bool>("process-full-delta-map");
   }
 
@@ -98,106 +101,190 @@ class DCSDataProcessor : public o2::framework::Task
   {
     auto tfid = o2::header::get<o2::framework::DataProcessingHeader*>(pc.inputs().get("input").header)->startTime;
     mDCSproc.setTF(tfid);
+    for (int idet = 0; idet < kNdetectors; idet++) {
+      mDCSprocVect[idet].setTF(tfid);
+    }
 
     TStopwatch s;
-    LOG(INFO) << "TF: " << tfid << " -->  receiving binary data...";
-    s.Start();
+    LOG(DEBUG) << "TF: " << tfid << " -->  receiving binary data...";
+    mReceiveBinaryData.Start(mFirstTF);
     auto rawchar = pc.inputs().get<const char*>("input");
-    s.Stop();
-    LOG(INFO) << "TF: " << tfid << " -->  ...binary data received: realTime = " << s.RealTime() << ", cpuTime = " << s.CpuTime();
-    LOG(INFO) << "TF: " << tfid << " -->  receiving (delta) binary data...";
-    s.Start();
+    mReceiveBinaryData.Stop();
+    LOG(DEBUG) << "TF: " << tfid << " -->  ...binary data received: realTime = "
+               << mReceiveBinaryData.RealTime() << ", cpuTime = "
+               << mReceiveBinaryData.CpuTime();
+    LOG(DEBUG) << "TF: " << tfid << " -->  receiving (delta) binary data...";
+    mDeltaReceiveBinaryData.Start(mFirstTF);
     auto rawcharDelta = pc.inputs().get<const char*>("inputDelta");
-    s.Stop();
-    LOG(INFO) << "TF: " << tfid << " -->  ...binary (delta) data received: realTime = " << s.RealTime() << ", cpuTime = " << s.CpuTime();
+    mDeltaReceiveBinaryData.Stop();
+    LOG(DEBUG) << "TF: " << tfid << " -->  ...binary (delta) data received: realTime = "
+               << mDeltaReceiveBinaryData.RealTime()
+               << ", cpuTime = " << mDeltaReceiveBinaryData.CpuTime();
 
     // full map
     const auto* dh = o2::header::get<o2::header::DataHeader*>(pc.inputs().get("input").header);
     auto sz = dh->payloadSize;
     int nDPs = sz / sizeof(DPCOM);
-    LOG(INFO) << "Number of DPs received = " << nDPs;
     std::unordered_map<DPID, DPVAL> dcsmap;
     DPCOM dptmp;
-    LOG(INFO) << "TF: " << tfid << " -->  building unordered_map...";
-    s.Start();
+    LOG(DEBUG) << "TF: " << tfid << " -->  building unordered_map...";
+    mBuildingUnorderedMap.Start(mFirstTF);
     for (int i = 0; i < nDPs; i++) {
       memcpy(&dptmp, rawchar + i * sizeof(DPCOM), sizeof(DPCOM));
       dcsmap[dptmp.id] = dptmp.data;
       LOG(DEBUG) << "Reading from generator: i = " << i << ", DPCOM = " << dptmp;
       LOG(DEBUG) << "Reading from generator: i = " << i << ", DPID = " << dptmp.id;
     }
-    s.Stop();
-    LOG(INFO) << "TF: " << tfid << " -->  ...unordered_map built = " << s.RealTime() << ", cpuTime = " << s.CpuTime();
+    mBuildingUnorderedMap.Stop();
+    LOG(DEBUG) << "TF: " << tfid << " -->  ...unordered_map built = "
+               << mBuildingUnorderedMap.RealTime() << ", cpuTime = " << mBuildingUnorderedMap.CpuTime();
 
     // delta map
     const auto* dhDelta = o2::header::get<o2::header::DataHeader*>(pc.inputs().get("inputDelta").header);
     auto szDelta = dhDelta->payloadSize;
     int nDPsDelta = szDelta / sizeof(DPCOM);
-    LOG(INFO) << "Number of DPs received (delta map) = " << nDPsDelta;
     std::unordered_map<DPID, DPVAL> dcsmapDelta;
-    LOG(INFO) << "TF: " << tfid << " -->  building (delta) unordered_map...";
-    s.Start();
+    LOG(DEBUG) << "TF: " << tfid << " -->  building (delta) unordered_map...";
+    mDeltaBuildingUnorderedMap.Start(mFirstTF);
     for (int i = 0; i < nDPsDelta; i++) {
       memcpy(&dptmp, rawcharDelta + i * sizeof(DPCOM), sizeof(DPCOM));
       dcsmapDelta[dptmp.id] = dptmp.data;
       LOG(DEBUG) << "Reading from generator: i = " << i << ", DPCOM = " << dptmp;
       LOG(DEBUG) << "Reading from generator: i = " << i << ", DPID = " << dptmp.id;
     }
-    s.Stop();
-    LOG(INFO) << "TF: " << tfid << " -->  ...unordered_map (delta) built = " << s.RealTime() << ", cpuTime = " << s.CpuTime();
+    mDeltaBuildingUnorderedMap.Stop();
+    LOG(DEBUG) << "TF: " << tfid << " -->  ...unordered_map (delta) built = "
+               << mDeltaBuildingUnorderedMap.RealTime() << ", cpuTime = "
+               << mDeltaBuildingUnorderedMap.CpuTime();
 
     if (tfid % 6000 == 0) {
-      //for (int idet = 0; idet < detVect.size(); idet++) {
-      for (int idet = 0; idet < 1; idet++) { // for now I test only 1 DCS processor
-        LOG(INFO) << "TF: " << tfid << " -->  starting processing...";
-        s.Start();
+      LOG(INFO) << "Number of DPs received = " << nDPs;
+      for (int idet = 0; idet < kNdetectors; idet++) {
+        LOG(DEBUG) << "TF: " << tfid << " -->  starting processing...";
+        mProcessing[idet].Start(mResetStopwatchProcessing);
         mDCSprocVect[idet].processMap(dcsmap, false);
-        s.Stop();
-        LOG(INFO) << "TF: " << tfid << " -->  ...processing done: realTime = " << s.RealTime() << ", cpuTime = " << s.CpuTime();
+        mProcessing[idet].Stop();
+        LOG(DEBUG) << "TF: " << tfid << " -->  ...processing done: realTime = "
+                   << mProcessing[idet].RealTime() << ", cpuTime = "
+                   << mProcessing[idet].CpuTime();
       }
+      mResetStopwatchProcessing = false; // from now on, we sum up the processing time
+      mTFsProcessing++;
     } else {
+      LOG(INFO) << "Number of DPs received (delta map) = " << nDPsDelta;
       if (mProcessFullDeltaMap) {
-        //for (int idet = 0; idet < detVect.size(); idet++) {
-        for (int idet = 0; idet < 1; idet++) { // for now I test only 1 DCS processor
-          LOG(INFO) << "TF: " << tfid << " -->  starting (delta) processing...";
-          s.Start();
+        for (int idet = 0; idet < kNdetectors; idet++) {
+          LOG(DEBUG) << "TF: " << tfid << " -->  starting (delta) processing...";
+          mDeltaProcessing[idet].Start(mResetStopwatchDeltaProcessing);
           mDCSprocVect[idet].processMap(dcsmapDelta, true);
-          s.Stop();
-          LOG(INFO) << "TF: " << tfid << " -->  ...processing (delta) done: realTime = " << s.RealTime() << ", cpuTime = " << s.CpuTime();
+          mDeltaProcessing[idet].Stop();
+          LOG(DEBUG) << "TF: " << tfid << " -->  ...processing (delta) done: realTime = "
+                     << mDeltaProcessing[idet].RealTime()
+                     << ", cpuTime = " << mDeltaProcessing[idet].CpuTime();
         }
+        mResetStopwatchDeltaProcessing = false; // from now on, we sum up the processing time
+        mTFsDeltaProcessing++;
       } else {
 
         // processing per DP found in the map, to be done in case of a delta map
 
-        bool resetStopwatch = true;
-        LOG(INFO) << "TF: " << tfid << " -->  starting (delta) processing for detector...";
+        LOG(DEBUG) << "TF: " << tfid << " -->  starting (delta) processing in detector loop...";
         for (const auto& dpcom : dcsmapDelta) {
           std::vector<int> detVect = mDetectorAlias[dpcom.first];
-          //for (int idet = 0; idet < detVect.size(); idet++) {
-          for (int idet = 0; idet < 1; idet++) { // for now I test only 1 DCS processor
-            s.Start(resetStopwatch);
+          for (int idet = 0; idet < detVect.size(); idet++) {
+            mDeltaProcessingDetLoop[idet].Start(mResetStopwatchDeltaProcessingDetLoop);
             mDCSprocVect[idet].processDP(dpcom);
-            s.Stop();
-            resetStopwatch = false;
+            mDeltaProcessingDetLoop[idet].Stop();
           }
+          mResetStopwatchDeltaProcessingDetLoop = false; // from now on, we sum up the processing time
         }
-        LOG(INFO) << "TF: " << tfid << " -->  ...processing (delta) in detector loop done: realTime = " << s.RealTime() << ", cpuTime = " << s.CpuTime();
+        for (int idet = 0; idet < kNdetectors; idet++) {
+          LOG(DEBUG) << "TF: " << tfid << " -->  ...processing (delta) in detector loop done: realTime = "
+                     << mDeltaProcessingDetLoop[idet].RealTime() << ", cpuTime = "
+                     << mDeltaProcessingDetLoop[idet].CpuTime();
+        }
         // now preparing CCDB object
-        //for (int idet = 0; idet < detVect.size(); idet++) {
-        for (int idet = 0; idet < 1; idet++) { // for now I test only 1 DCS processor
+        for (int idet = 0; idet < kNdetectors; idet++) {
           std::map<std::string, std::string> md;
-          mDCSprocVect[idet].prepareCCDBobject(mDCSprocVect[idet].getCCDBSimpleMovingAverage(), mDCSprocVect[idet].getCCDBSimpleMovingAverageInfo(), mDCSprocVect[idet].getName() + "/TestDCS/SimpleMovingAverageDPs", tfid, md);
+          mDCSprocVect[idet].prepareCCDBobject(mDCSprocVect[idet].getCCDBSimpleMovingAverage(),
+                                               mDCSprocVect[idet].getCCDBSimpleMovingAverageInfo(),
+                                               mDCSprocVect[idet].getName() + "/TestDCS/SimpleMovingAverageDPs",
+                                               tfid, md);
         }
+        mTFsDeltaProcessingDetLoop++;
       }
     }
     sendOutput(pc.outputs());
+    mFirstTF = false;
+    mTFs++;
+  }
+
+  void endOfStream(o2::framework::EndOfStreamContext& ec) final
+  {
+    LOG(INFO) << "\n\nTIMING SUMMARY:\n";
+    LOG(INFO) << "Number of processed TF: " << mTFs;
+    LOG(INFO) << "Number of processed TF, processing full map: " << mTFsProcessing;
+    LOG(INFO) << "Number of processed TF, processing delta map: " << mTFsDeltaProcessing;
+    LOG(INFO) << "Number of processed TF, processing delta map per DP: " << mTFsDeltaProcessingDetLoop;
+    LOG(INFO) << "Receiving binary data --> realTime = "
+              << mReceiveBinaryData.RealTime() / mTFs << ", cpuTime = "
+              << mReceiveBinaryData.CpuTime() / mTFs;
+    LOG(INFO) << "Receiving binary data (delta) --> realTime = "
+              << mDeltaReceiveBinaryData.RealTime() / mTFs << ", cpuTime = "
+              << mDeltaReceiveBinaryData.CpuTime() / mTFs;
+    LOG(INFO) << "Building unordered_map --> realTime = "
+              << mBuildingUnorderedMap.RealTime() / mTFs << ", cpuTime = "
+              << mBuildingUnorderedMap.CpuTime() / mTFs;
+    LOG(INFO) << "Building unordered_map (delta) --> realTime = "
+              << mDeltaBuildingUnorderedMap.RealTime() / mTFs << ", cpuTime = "
+              << mDeltaBuildingUnorderedMap.CpuTime() / mTFs;
+    for (int i = 0; i < kNdetectors; i++) {
+      LOG(INFO) << " --> : Detector " << i;
+      if (mTFsProcessing != 0) {
+        LOG(INFO) << "Processing full map (average over " << mTFsProcessing << " TFs) --> realTime = "
+                  << mProcessing[i].RealTime() / mTFsProcessing << ", cpuTime = "
+                  << mProcessing[i].CpuTime() / mTFsProcessing;
+      } else {
+        LOG(INFO) << "Full DCS map was never processed";
+      }
+      if (mTFsDeltaProcessing != 0) {
+        LOG(INFO) << "Processing full delta map (average over " << mTFsDeltaProcessing << " TFs) --> realTime = "
+                  << mDeltaProcessing[i].RealTime() / mTFsDeltaProcessing << ", cpuTime = "
+                  << mDeltaProcessing[i].CpuTime() / mTFsDeltaProcessing;
+      } else {
+        LOG(INFO) << "Full delta DCS map was never processed";
+      }
+      if (mTFsDeltaProcessingDetLoop != 0) {
+        LOG(INFO) << "Processing delta map per DP (average over " << mTFsDeltaProcessingDetLoop
+                  << " TFs) --> realTime = "
+                  << mDeltaProcessingDetLoop[i].RealTime() / mTFsDeltaProcessingDetLoop << ", cpuTime = "
+                  << mDeltaProcessingDetLoop[i].CpuTime() / mTFsDeltaProcessingDetLoop;
+      } else {
+        LOG(INFO) << "Delta map was never process DP by DP";
+      }
+    }
   }
 
  private:
   std::unordered_map<DPID, std::vector<int>> mDetectorAlias;
   std::array<DCSProcessor, kNdetectors> mDCSprocVect;
   o2::dcs::DCSProcessor mDCSproc;
+  TStopwatch mReceiveBinaryData;
+  TStopwatch mDeltaReceiveBinaryData;
+  TStopwatch mBuildingUnorderedMap;
+  TStopwatch mDeltaBuildingUnorderedMap;
+  TStopwatch mProcessing[kNdetectors];
+  TStopwatch mDeltaProcessing[kNdetectors];
+  TStopwatch mDeltaProcessingDetLoop[kNdetectors];
   bool mProcessFullDeltaMap = false;
+  bool mFirstTF = true;
+  uint64_t mTFs = 0;
+  uint64_t mTFsProcessing = 0;
+  uint64_t mTFsDeltaProcessing = 0;
+  uint64_t mTFsDeltaProcessingDetLoop = 0;
+  bool mResetStopwatchProcessing = true;
+  bool mResetStopwatchDeltaProcessing = true;
+  bool mResetStopwatchDeltaProcessingDetLoop = true;
 
   //________________________________________________________________
   void sendOutput(DataAllocator& output)
@@ -208,9 +295,10 @@ class DCSDataProcessor : public o2::framework::Task
     const auto& payload = mDCSproc.getCCDBSimpleMovingAverage();
     auto& info = mDCSproc.getCCDBSimpleMovingAverageInfo();
     auto image = o2::ccdb::CcdbApi::createObjectImage(&payload, &info);
-    LOG(INFO) << "Sending object " << info.getPath() << "/" << info.getFileName() << " of size " << image->size() << " bytes, valid for " << info.getStartValidityTimestamp() << " : " << info.getEndValidityTimestamp();
+    LOG(INFO) << "Sending object " << info.getPath() << "/" << info.getFileName() << " of size " << image->size()
+              << " bytes, valid for " << info.getStartValidityTimestamp() << " : " << info.getEndValidityTimestamp();
 
-    output.snapshot(Output{clbUtils::gDataOriginCLB, clbUtils::gDataDescriptionCLBPayload, 0}, *image.get()); // vector<char>
+    output.snapshot(Output{clbUtils::gDataOriginCLB, clbUtils::gDataDescriptionCLBPayload, 0}, *image.get());
     output.snapshot(Output{clbUtils::gDataOriginCLB, clbUtils::gDataDescriptionCLBInfo, 0}, info);
   }
 }; // end class
@@ -234,8 +322,8 @@ DataProcessorSpec getDCSDataProcessorSpec()
     outputs,
     AlgorithmSpec{adaptFromTask<o2::dcs::DCSDataProcessor>()},
     Options{
-      {"max-cycles-no-full-map", VariantType::Int64, 6000ll, {"max number of cycles between the sending of two full maps"}},
-      {"process-full-delta-map", VariantType::Bool, false, {"whether to process the delta map as a whole instead of per data point"}}}};
+      {"max-cycles-no-full-map", VariantType::Int64, 6000ll, {"max num of cycles between the sending of 2 full maps"}},
+      {"process-full-delta-map", VariantType::Bool, false, {"to process the delta map as a whole instead of per DP"}}}};
 }
 
 } // namespace framework
