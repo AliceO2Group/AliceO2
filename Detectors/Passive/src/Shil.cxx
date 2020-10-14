@@ -800,10 +800,10 @@ void Shil::ConstructGeometry()
   dz += saa1Wring2HWidth;
   dz += saa1DWrings;
   dz += saa1Wring3HWidth;
-  asSaa1ExtraShield->AddNode(voSaa1Wring3, 1, new TGeoCombiTrans(0., 0., dz - 0.15, rot090));
-  asSaa1ExtraShield->AddNode(voSaa1Wring3, 2, new TGeoCombiTrans(0., 0., dz - 0.15, rot270));
+  asSaa1ExtraShield->AddNode(voSaa1Wring3, 1, new TGeoCombiTrans(0., 0., dz, rot090));
+  asSaa1ExtraShield->AddNode(voSaa1Wring3, 2, new TGeoCombiTrans(0., 0., dz, rot270));
   dz += saa1Wring3HWidth;
-  asSaa1ExtraShield->AddNode(voSaa1Wring4, 1, new TGeoTranslation(0., 0., dz - 6.));
+  asSaa1ExtraShield->AddNode(voSaa1Wring4, 1, new TGeoTranslation(0., 0., dz));
   dz += saa1Wring4Width;
   const Float_t saa1ExtraShieldL = 48;
   //
