@@ -29,7 +29,7 @@ FileNameHolder* makeFileNameHolder(std::string fileName)
   auto fileNameHolder = new FileNameHolder();
   fileNameHolder->fileName = fileName;
 
-  TFile *file = TFile::Open(fileName.c_str(), "R");
+  TFile* file = TFile::Open(fileName.c_str(), "R");
   if (!file || !file->IsOpen()) {
     LOGP(ERROR, "\"{}\" can not be opened.", fileName);
     return fileNameHolder;
