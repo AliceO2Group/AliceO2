@@ -7,8 +7,8 @@
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
-#ifndef FRAMEWORK_TABLETREE_H
-#define FRAMEWORK_TABLETREE_H
+#ifndef O2_FRAMEWORK_TABLETREEHELPERS_H_
+#define O2_FRAMEWORK_TABLETREEHELPERS_H_
 
 #include "TFile.h"
 #include "TTreeReader.h"
@@ -17,9 +17,7 @@
 #include "TableBuilder.h"
 
 // =============================================================================
-namespace o2
-{
-namespace framework
+namespace o2::framework
 {
 
 // -----------------------------------------------------------------------------
@@ -117,133 +115,29 @@ class TableToTree
   TTree* process();
 };
 
-// -----------------------------------------------------------------------------
-// TreeToTable allows to fill the contents of a given TTree to an arrow::Table
-//  ColumnIterator is used by TreeToTable
-//
-// To copy the contents of a tree tr to a table ta do:
-//  . TreeToTable t2t(tr);
-//  . t2t.addColumn(columnname1); t2t.addColumn(columnname2); ...
-//    OR
-//    t2t.addAllColumns();
-//  . auto ta = t2t.process();
-//
-// .............................................................................
-class ColumnIterator
-{
-
- private:
-  // all the possible TTreeReaderValue<T> types
-  TTreeReaderValue<bool>* mReaderValue_o = nullptr;
-  TTreeReaderValue<uint8_t>* mReaderValue_ub = nullptr;
-  TTreeReaderValue<uint16_t>* mReaderValue_us = nullptr;
-  TTreeReaderValue<uint32_t>* mReaderValue_ui = nullptr;
-  TTreeReaderValue<ULong64_t>* mReaderValue_ul = nullptr;
-  TTreeReaderValue<int8_t>* mReaderValue_b = nullptr;
-  TTreeReaderValue<int16_t>* mReaderValue_s = nullptr;
-  TTreeReaderValue<int32_t>* mReaderValue_i = nullptr;
-  TTreeReaderValue<int64_t>* mReaderValue_l = nullptr;
-  TTreeReaderValue<float>* mReaderValue_f = nullptr;
-  TTreeReaderValue<double>* mReaderValue_d = nullptr;
-
-  // all the possible TTreeReaderArray<T> types
-  TTreeReaderArray<bool>* mReaderArray_o = nullptr;
-  TTreeReaderArray<uint8_t>* mReaderArray_ub = nullptr;
-  TTreeReaderArray<uint16_t>* mReaderArray_us = nullptr;
-  TTreeReaderArray<uint32_t>* mReaderArray_ui = nullptr;
-  TTreeReaderArray<uint64_t>* mReaderArray_ul = nullptr;
-  TTreeReaderArray<int8_t>* mReaderArray_b = nullptr;
-  TTreeReaderArray<int16_t>* mReaderArray_s = nullptr;
-  TTreeReaderArray<int32_t>* mReaderArray_i = nullptr;
-  TTreeReaderArray<int64_t>* mReaderArray_l = nullptr;
-  TTreeReaderArray<float>* mReaderArray_f = nullptr;
-  TTreeReaderArray<double>* mReaderArray_d = nullptr;
-
-  // all the possible arrow::TBuilder types
-  arrow::FixedSizeListBuilder* mTableBuilder_list = nullptr;
-
-  arrow::BooleanBuilder* mTableBuilder_o = nullptr;
-  arrow::UInt8Builder* mTableBuilder_ub = nullptr;
-  arrow::UInt16Builder* mTableBuilder_us = nullptr;
-  arrow::UInt32Builder* mTableBuilder_ui = nullptr;
-  arrow::UInt64Builder* mTableBuilder_ul = nullptr;
-  arrow::Int8Builder* mTableBuilder_b = nullptr;
-  arrow::Int16Builder* mTableBuilder_s = nullptr;
-  arrow::Int32Builder* mTableBuilder_i = nullptr;
-  arrow::Int64Builder* mTableBuilder_l = nullptr;
-  arrow::FloatBuilder* mTableBuilder_f = nullptr;
-  arrow::DoubleBuilder* mTableBuilder_d = nullptr;
-
-  bool mStatus = false;
-  EDataType mElementType;
-  int64_t mNumberElements;
-  const char* mColumnName;
-
-  std::shared_ptr<arrow::Field> mField;
-  std::shared_ptr<arrow::Array> mArray;
-
- public:
-  ColumnIterator(TTreeReader* reader, const char* colname);
-  ~ColumnIterator();
-
-  // has the iterator been properly initialized
-  bool getStatus();
-
-  // copy the TTreeReaderValue to the arrow::TBuilder
-  void push();
-
-  // reserve enough space to push s elements without reallocating
-  void reserve(size_t s);
-
-  std::shared_ptr<arrow::Array> getArray() { return mArray; }
-  std::shared_ptr<arrow::Field> getSchema() { return mField; }
-
-  // finish the arrow::TBuilder
-  // with this mArray is prepared to be used in arrow::Table::Make
-  void finish();
-};
-
 class TreeToTable
 {
 
  private:
-  // the TTreeReader allows to efficiently loop over
-  // the rows of a TTree
-  TTreeReader* mTreeReader;
-
-  // a list of ColumnIterator*
-  std::vector<std::unique_ptr<ColumnIterator>> mColumnIterators;
-
-  // Append next set of branch values to the
-  // corresponding table columns
-  void push();
+  std::shared_ptr<arrow::Table> mTable;
+  std::vector<std::string> mColumnNames;
 
  public:
-  TreeToTable(TTree* tree);
-  ~TreeToTable();
-
   // add a column to be included in the arrow::table
-  bool addColumn(const char* colname);
+  void addColumn(const char* colname);
 
-  // add all columns
-  bool addAllColumns();
-
-  // reserve enough space to push s rows without reallocating
-  void reserve(size_t s);
+  // add all branches in @a tree as columns
+  bool addAllColumns(TTree* tree);
 
   // do the looping with the TTreeReader
-  void fill();
+  void fill(TTree* tree);
 
   // create the table
   std::shared_ptr<arrow::Table> finalize();
-
-  // do the looping with the TTreeReader and create the table
-  std::shared_ptr<arrow::Table> process();
 };
 
 // -----------------------------------------------------------------------------
-} // namespace framework
-} // namespace o2
+} // namespace o2::framework
 
 // =============================================================================
-#endif // FRAMEWORK_TABLETREE_H
+#endif // O2_FRAMEWORK_TABLETREEHELPERS_H_
