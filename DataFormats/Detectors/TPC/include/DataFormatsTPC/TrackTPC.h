@@ -15,7 +15,6 @@
 #include "CommonDataFormat/RangeReference.h"
 #include "DataFormatsTPC/ClusterNative.h"
 #include "DataFormatsTPC/dEdxInfo.h"
-#include <gsl/span>
 
 namespace o2
 {
@@ -74,7 +73,8 @@ class TrackTPC : public o2::track::TrackParCov
   int getNClusterReferences() const { return getNClusters(); }
   void setClusterRef(uint32_t entry, uint16_t ncl) { mClustersReference.set(entry, ncl); }
 
-  void getClusterReference(gsl::span<const o2::tpc::TPCClRefElem> clinfo, int nCluster,
+  template <class T>
+  void getClusterReference(T& clinfo, int nCluster,
                            uint8_t& sectorIndex, uint8_t& rowIndex, uint32_t& clusterIndex) const
   {
     // data for given tracks starts at clinfo[ mClustersReference.getFirstEntry() ],
@@ -89,7 +89,8 @@ class TrackTPC : public o2::track::TrackParCov
     rowIndex = srIndexArr[nCluster + mClustersReference.getEntries()];
   }
 
-  const o2::tpc::ClusterNative& getCluster(gsl::span<const o2::tpc::TPCClRefElem> clinfo, int nCluster,
+  template <class T>
+  const o2::tpc::ClusterNative& getCluster(T& clinfo, int nCluster,
                                            const o2::tpc::ClusterNativeAccess& clusters, uint8_t& sectorIndex, uint8_t& rowIndex) const
   {
     uint32_t clusterIndex;
@@ -97,7 +98,8 @@ class TrackTPC : public o2::track::TrackParCov
     return (clusters.clusters[sectorIndex][rowIndex][clusterIndex]);
   }
 
-  const o2::tpc::ClusterNative& getCluster(gsl::span<const o2::tpc::TPCClRefElem> clinfo, int nCluster,
+  template <class T>
+  const o2::tpc::ClusterNative& getCluster(T& clinfo, int nCluster,
                                            const o2::tpc::ClusterNativeAccess& clusters) const
   {
     uint8_t sectorIndex, rowIndex;
