@@ -23,8 +23,9 @@ using DPVAL = o2::dcs::DataPointValue;
 
 //ClassImp(o2::dcs::DCSProcessor);
 
-void DCSProcessor::init(const std::vector<DPID>& aliaseschars, const std::vector<DPID>& aliasesints, const std::vector<DPID>& aliasesdoubles,
-                        const std::vector<DPID>& aliasesUints, const std::vector<DPID>& aliasesbools, const std::vector<DPID>& aliasesstrings,
+void DCSProcessor::init(const std::vector<DPID>& aliaseschars, const std::vector<DPID>& aliasesints,
+                        const std::vector<DPID>& aliasesdoubles, const std::vector<DPID>& aliasesUints,
+                        const std::vector<DPID>& aliasesbools, const std::vector<DPID>& aliasesstrings,
                         const std::vector<DPID>& aliasestimes, const std::vector<DPID>& aliasesbinaries)
 {
 
@@ -192,7 +193,8 @@ int DCSProcessor::processMap(const std::unordered_map<DPID, DPVAL>& map, bool is
   foundInts = processArrayType(mAliasesints, DeliveryType::RAW_INT, map, mLatestTimestampints, mDpsintsmap);
 
   // double type
-  foundDoubles = processArrayType(mAliasesdoubles, DeliveryType::RAW_DOUBLE, map, mLatestTimestampdoubles, mDpsdoublesmap);
+  foundDoubles = processArrayType(mAliasesdoubles, DeliveryType::RAW_DOUBLE, map, mLatestTimestampdoubles,
+                                  mDpsdoublesmap);
 
   // UInt type
   foundUInts = processArrayType(mAliasesUints, DeliveryType::RAW_UINT, map, mLatestTimestampUints, mDpsUintsmap);
@@ -201,13 +203,15 @@ int DCSProcessor::processMap(const std::unordered_map<DPID, DPVAL>& map, bool is
   foundBools = processArrayType(mAliasesbools, DeliveryType::RAW_BOOL, map, mLatestTimestampbools, mDpsboolsmap);
 
   // String type
-  foundStrings = processArrayType(mAliasesstrings, DeliveryType::RAW_STRING, map, mLatestTimestampstrings, mDpsstringsmap);
+  foundStrings = processArrayType(mAliasesstrings, DeliveryType::RAW_STRING, map, mLatestTimestampstrings,
+                                  mDpsstringsmap);
 
   // Time type
   foundTimes = processArrayType(mAliasestimes, DeliveryType::RAW_TIME, map, mLatestTimestamptimes, mDpstimesmap);
 
   // Binary type
-  foundBinaries = processArrayType(mAliasesbinaries, DeliveryType::RAW_BINARY, map, mLatestTimestampbinaries, mDpsbinariesmap);
+  foundBinaries = processArrayType(mAliasesbinaries, DeliveryType::RAW_BINARY, map, mLatestTimestampbinaries,
+                                   mDpsbinariesmap);
 
   if (!isDelta) {
     if (foundChars != mAliaseschars.size())
@@ -230,7 +234,8 @@ int DCSProcessor::processMap(const std::unordered_map<DPID, DPVAL>& map, bool is
 
   // filling CCDB info to be sent in output
   std::map<std::string, std::string> md;
-  prepareCCDBobject(mccdbSimpleMovingAverage, mccdbSimpleMovingAverageInfo, mName + "/TestDCS/SimpleMovingAverageDPs", mTF, md);
+  prepareCCDBobject(mccdbSimpleMovingAverage, mccdbSimpleMovingAverageInfo,
+                    mName + "/TestDCS/SimpleMovingAverageDPs", mTF, md);
 
   LOG(DEBUG) << "Size of unordered_map for CCDB = " << mccdbSimpleMovingAverage.size();
   LOG(DEBUG) << "CCDB entry for TF " << mTF << " will be:";
@@ -346,7 +351,8 @@ int DCSProcessor::processDP(const std::pair<DPID, DPVAL>& dpcom)
 //______________________________________________________________________
 
 template <>
-void DCSProcessor::checkFlagsAndFill(const std::pair<DPID, DPVAL>& dpcom, int64_t& latestTimeStamp, std::unordered_map<DPID, DQStrings>& destmap)
+void DCSProcessor::checkFlagsAndFill(const std::pair<DPID, DPVAL>& dpcom, int64_t& latestTimeStamp,
+                                     std::unordered_map<DPID, DQStrings>& destmap)
 {
 
   // check the flags for the upcoming data, and if ok, fill the accumulator
@@ -369,7 +375,8 @@ void DCSProcessor::checkFlagsAndFill(const std::pair<DPID, DPVAL>& dpcom, int64_
 //______________________________________________________________________
 
 template <>
-void DCSProcessor::checkFlagsAndFill(const std::pair<DPID, DPVAL>& dpcom, int64_t& latestTimeStamp, std::unordered_map<DPID, DQBinaries>& destmap)
+void DCSProcessor::checkFlagsAndFill(const std::pair<DPID, DPVAL>& dpcom, int64_t& latestTimeStamp,
+                                     std::unordered_map<DPID, DQBinaries>& destmap)
 {
 
   // check the flags for the upcoming data, and if ok, fill the accumulator
@@ -462,7 +469,10 @@ void DCSProcessor::processBinaryDP(const DPID& alias)
 
 //______________________________________________________________________
 
-std::unordered_map<DPID, DPVAL>::const_iterator DCSProcessor::findAndCheckAlias(const DPID& alias, DeliveryType type, const std::unordered_map<DPID, DPVAL>& map)
+std::unordered_map<DPID, DPVAL>::const_iterator DCSProcessor::findAndCheckAlias(const DPID& alias,
+                                                                                DeliveryType type,
+                                                                                const std::unordered_map<DPID, DPVAL>&
+                                                                                  map)
 {
 
   // processing basic checks for map: all needed aliases must be present
@@ -472,7 +482,8 @@ std::unordered_map<DPID, DPVAL>::const_iterator DCSProcessor::findAndCheckAlias(
   auto it = map.find(alias);
   DeliveryType tt = alias.get_type();
   if (tt != type) {
-    LOG(FATAL) << "Delivery Type of alias " << alias.get_alias() << " does not match definition in DCSProcessor (" << type << ")! Please fix";
+    LOG(FATAL) << "Delivery Type of alias " << alias.get_alias() << " does not match definition in DCSProcessor ("
+               << type << ")! Please fix";
   }
   return it;
 }
