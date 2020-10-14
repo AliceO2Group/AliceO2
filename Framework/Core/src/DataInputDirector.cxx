@@ -29,21 +29,23 @@ FileNameHolder* makeFileNameHolder(std::string fileName)
   auto fileNameHolder = new FileNameHolder();
   fileNameHolder->fileName = fileName;
 
-  TFile file = TFile(fileName.c_str(), "R");
-  if (!file.IsOpen()) {
+  TFile* file = TFile::Open(fileName.c_str(), "R");
+  if (!file || !file->IsOpen()) {
     LOGP(ERROR, "\"{}\" can not be opened.", fileName);
+    delete file;
     return fileNameHolder;
   }
 
   // find TimeFrame folders
   std::regex TFRegex = std::regex("TF_[0-9]+");
-  TList* keyList = file.GetListOfKeys();
+  TList* keyList = file->GetListOfKeys();
   for (auto key : *keyList) {
     if (std::regex_match(((TObjString*)key)->GetString().Data(), TFRegex)) {
       fileNameHolder->listOfTimeFrameKeys.emplace_back(std::string(((TObjString*)key)->GetString().Data()));
     }
   }
   fileNameHolder->numberOfTimeFrames = fileNameHolder->listOfTimeFrameKeys.size();
+  delete file;
 
   return fileNameHolder;
 }
