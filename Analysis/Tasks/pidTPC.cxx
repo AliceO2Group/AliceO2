@@ -16,6 +16,7 @@
 #include "PID/PIDResponse.h"
 #include <CCDB/BasicCCDBManager.h>
 #include "Analysis/HistHelpers.h"
+#include "PID/PIDTPC.h"
 
 using namespace o2;
 using namespace o2::framework;
@@ -33,8 +34,10 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
 #include "Framework/runDataProcessing.h"
 
 struct pidTPCTask {
+  using Trks = soa::Join<aod::Tracks, aod::TracksExtra>;
+  using Coll = aod::Collision;
   Produces<aod::pidRespTPC> tpcpid;
-  DetectorResponse<tpc::Response> resp = DetectorResponse<tpc::Response>();
+  DetectorResponse resp;
   Service<o2::ccdb::BasicCCDBManager> ccdb;
   Configurable<std::string> paramfile{"param-file", "", "Path to the parametrization object, if emtpy the parametrization is not taken from file"};
   Configurable<std::string> signalname{"param-signal", "BetheBloch", "Name of the parametrization for the expected signal, used in both file and CCDB mode"};
@@ -53,48 +56,57 @@ struct pidTPCTask {
     //
     const std::string fname = paramfile.value;
     if (!fname.empty()) { // Loading the parametrization from file
-      resp.LoadParamFromFile(fname.data(), signalname.value, DetectorResponse<tpc::Response>::kSignal);
-      resp.LoadParamFromFile(fname.data(), sigmaname.value, DetectorResponse<tpc::Response>::kSigma);
+      resp.LoadParamFromFile(fname.data(), signalname.value, DetectorResponse::kSignal);
+      resp.LoadParamFromFile(fname.data(), sigmaname.value, DetectorResponse::kSigma);
     } else { // Loading it from CCDB
       const std::string path = "Analysis/PID/TPC";
-      resp.LoadParam(DetectorResponse<tpc::Response>::kSignal, ccdb->getForTimeStamp<Parametrization>(path + "/" + signalname.value, timestamp.value));
-      resp.LoadParam(DetectorResponse<tpc::Response>::kSigma, ccdb->getForTimeStamp<Parametrization>(path + "/" + sigmaname.value, timestamp.value));
+      resp.LoadParam(DetectorResponse::kSignal, ccdb->getForTimeStamp<Parametrization>(path + "/" + signalname.value, timestamp.value));
+      resp.LoadParam(DetectorResponse::kSigma, ccdb->getForTimeStamp<Parametrization>(path + "/" + sigmaname.value, timestamp.value));
     }
   }
 
-  void process(aod::Collision const& collision, soa::Join<aod::Tracks, aod::TracksExtra> const& tracks)
+  void process(Coll const& collision, Trks const& tracks)
   {
+    constexpr tpc::ELoss<Coll, Trks::iterator, PID::Electron> resp_Electron = tpc::ELoss<Coll, Trks::iterator, PID::Electron>();
+    constexpr tpc::ELoss<Coll, Trks::iterator, PID::Muon> resp_Muon = tpc::ELoss<Coll, Trks::iterator, PID::Muon>();
+    constexpr tpc::ELoss<Coll, Trks::iterator, PID::Pion> resp_Pion = tpc::ELoss<Coll, Trks::iterator, PID::Pion>();
+    constexpr tpc::ELoss<Coll, Trks::iterator, PID::Kaon> resp_Kaon = tpc::ELoss<Coll, Trks::iterator, PID::Kaon>();
+    constexpr tpc::ELoss<Coll, Trks::iterator, PID::Proton> resp_Proton = tpc::ELoss<Coll, Trks::iterator, PID::Proton>();
+    constexpr tpc::ELoss<Coll, Trks::iterator, PID::Deuteron> resp_Deuteron = tpc::ELoss<Coll, Trks::iterator, PID::Deuteron>();
+    constexpr tpc::ELoss<Coll, Trks::iterator, PID::Triton> resp_Triton = tpc::ELoss<Coll, Trks::iterator, PID::Triton>();
+    constexpr tpc::ELoss<Coll, Trks::iterator, PID::Helium3> resp_Helium3 = tpc::ELoss<Coll, Trks::iterator, PID::Helium3>();
+    constexpr tpc::ELoss<Coll, Trks::iterator, PID::Alpha> resp_Alpha = tpc::ELoss<Coll, Trks::iterator, PID::Alpha>();
+
     tpcpid.reserve(tracks.size());
-    for (auto const& i : tracks) {
-      resp.UpdateTrack(i.tpcInnerParam(), i.tpcSignal(), i.tpcNClsShared());
+    for (auto const& trk : tracks) {
       tpcpid(
-        resp.GetExpectedSignal(resp, PID::Electron),
-        resp.GetExpectedSignal(resp, PID::Muon),
-        resp.GetExpectedSignal(resp, PID::Pion),
-        resp.GetExpectedSignal(resp, PID::Kaon),
-        resp.GetExpectedSignal(resp, PID::Proton),
-        resp.GetExpectedSignal(resp, PID::Deuteron),
-        resp.GetExpectedSignal(resp, PID::Triton),
-        resp.GetExpectedSignal(resp, PID::Helium3),
-        resp.GetExpectedSignal(resp, PID::Alpha),
-        resp.GetExpectedSigma(resp, PID::Electron),
-        resp.GetExpectedSigma(resp, PID::Muon),
-        resp.GetExpectedSigma(resp, PID::Pion),
-        resp.GetExpectedSigma(resp, PID::Kaon),
-        resp.GetExpectedSigma(resp, PID::Proton),
-        resp.GetExpectedSigma(resp, PID::Deuteron),
-        resp.GetExpectedSigma(resp, PID::Triton),
-        resp.GetExpectedSigma(resp, PID::Helium3),
-        resp.GetExpectedSigma(resp, PID::Alpha),
-        resp.GetSeparation(resp, PID::Electron),
-        resp.GetSeparation(resp, PID::Muon),
-        resp.GetSeparation(resp, PID::Pion),
-        resp.GetSeparation(resp, PID::Kaon),
-        resp.GetSeparation(resp, PID::Proton),
-        resp.GetSeparation(resp, PID::Deuteron),
-        resp.GetSeparation(resp, PID::Triton),
-        resp.GetSeparation(resp, PID::Helium3),
-        resp.GetSeparation(resp, PID::Alpha));
+        resp_Electron.GetExpectedSignal(resp, collision, trk),
+        resp_Muon.GetExpectedSignal(resp, collision, trk),
+        resp_Pion.GetExpectedSignal(resp, collision, trk),
+        resp_Kaon.GetExpectedSignal(resp, collision, trk),
+        resp_Proton.GetExpectedSignal(resp, collision, trk),
+        resp_Deuteron.GetExpectedSignal(resp, collision, trk),
+        resp_Triton.GetExpectedSignal(resp, collision, trk),
+        resp_Helium3.GetExpectedSignal(resp, collision, trk),
+        resp_Alpha.GetExpectedSignal(resp, collision, trk),
+        resp_Electron.GetExpectedSigma(resp, collision, trk),
+        resp_Muon.GetExpectedSigma(resp, collision, trk),
+        resp_Pion.GetExpectedSigma(resp, collision, trk),
+        resp_Kaon.GetExpectedSigma(resp, collision, trk),
+        resp_Proton.GetExpectedSigma(resp, collision, trk),
+        resp_Deuteron.GetExpectedSigma(resp, collision, trk),
+        resp_Triton.GetExpectedSigma(resp, collision, trk),
+        resp_Helium3.GetExpectedSigma(resp, collision, trk),
+        resp_Alpha.GetExpectedSigma(resp, collision, trk),
+        resp_Electron.GetSeparation(resp, collision, trk),
+        resp_Muon.GetSeparation(resp, collision, trk),
+        resp_Pion.GetSeparation(resp, collision, trk),
+        resp_Kaon.GetSeparation(resp, collision, trk),
+        resp_Proton.GetSeparation(resp, collision, trk),
+        resp_Deuteron.GetSeparation(resp, collision, trk),
+        resp_Triton.GetSeparation(resp, collision, trk),
+        resp_Helium3.GetSeparation(resp, collision, trk),
+        resp_Alpha.GetSeparation(resp, collision, trk));
     }
   }
 };
