@@ -199,7 +199,11 @@ static const char* TRMDiagnosticName[32] = {
   "TRM_EVENTWORDS_MISMATCH",
   "TRM_DIAGNOSTIC_SPARE1",
   "TRM_DIAGNOSTIC_SPARE2",
+<<<<<<< HEAD
   "TRM_DECODE_ERROR",
+=======
+  "TRM_DIAGNOSTIC_SPARE3",
+>>>>>>> Add labels for the Diagnostic bits
   "TRM_CHAIN_A_HEADER_MISSING",
   "TRM_CHAIN_A_TRAILER_MISSING",
   "TRM_CHAIN_A_STATUS_NOTZERO",
