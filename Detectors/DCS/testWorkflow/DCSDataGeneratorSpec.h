@@ -93,7 +93,6 @@ class DCSDataGenerator : public o2::framework::Task
   void run(o2::framework::ProcessingContext& pc) final
   {
 
-    TStopwatch s;
     uint64_t tfid;
     for (auto& input : pc.inputs()) {
       tfid = header::get<o2::framework::DataProcessingHeader*>(input.header)->startTime;
@@ -106,8 +105,7 @@ class DCSDataGenerator : public o2::framework::Task
       break; // we break because one input is enough to get the TF ID
     }
 
-    LOG(INFO) << "TF: " << tfid << " --> building binary blob...";
-    s.Start();
+    LOG(DEBUG) << "TF: " << tfid << " --> building binary blob...";
     uint16_t flags = 0;
     uint16_t milliseconds = 0;
     TDatime currentTime;
@@ -134,6 +132,7 @@ class DCSDataGenerator : public o2::framework::Task
     LOG(DEBUG) << valstring << " --> " << tt;
 
     // full map (all DPs)
+    mBuildingBinaryBlock.Start(mFirstTF);
     std::vector<DPCOM> dpcomVectFull;
     for (int i = 0; i < mNumDPscharFull; i++) {
       dpcomVectFull.emplace_back(mDPIDvectFull[i], valchar);
@@ -149,6 +148,7 @@ class DCSDataGenerator : public o2::framework::Task
     }
 
     // delta map (only DPs that changed)
+    mDeltaBuildingBinaryBlock.Start(mFirstTF);
     std::vector<DPCOM> dpcomVectDelta;
     for (int i = 0; i < mNumDPscharDelta; i++) {
       dpcomVectDelta.emplace_back(mDPIDvectDelta[i], valchar);
@@ -160,7 +160,8 @@ class DCSDataGenerator : public o2::framework::Task
       dpcomVectDelta.emplace_back(mDPIDvectDelta[mNumDPscharDelta + mNumDPsintDelta + i], valdouble);
     }
     for (int i = 0; i < mNumDPsstringDelta; i++) {
-      dpcomVectDelta.emplace_back(mDPIDvectDelta[mNumDPscharDelta + mNumDPsintDelta + mNumDPsdoubleDelta + i], valstring);
+      dpcomVectDelta.emplace_back(mDPIDvectDelta[mNumDPscharDelta + mNumDPsintDelta + mNumDPsdoubleDelta + i],
+                                  valstring);
     }
 
     // Full map
@@ -176,13 +177,16 @@ class DCSDataGenerator : public o2::framework::Task
     }
     auto sbuff = buff.size();
     LOG(DEBUG) << "size of output buffer = " << sbuff;
-    s.Stop();
-    LOG(INFO) << "TF: " << tfid << " --> ...binary blob prepared: realTime = " << s.RealTime() << ", cpuTime = " << s.CpuTime();
-    LOG(INFO) << "TF: " << tfid << " --> sending snapshot...";
-    s.Start();
+    mBuildingBinaryBlock.Stop();
+    LOG(DEBUG) << "TF: " << tfid << " --> ...binary blob prepared: realTime = "
+               << mBuildingBinaryBlock.RealTime() << ", cpuTime = "
+               << mBuildingBinaryBlock.CpuTime();
+    LOG(DEBUG) << "TF: " << tfid << " --> sending snapshot...";
+    mSnapshotSending.Start(mFirstTF);
     pc.outputs().snapshot(Output{"DCS", "DATAPOINTS", 0, Lifetime::Timeframe}, buff.data(), sbuff);
-    s.Stop();
-    LOG(INFO) << "TF: " << tfid << " --> ...snapshot sent: realTime = " << s.RealTime() << ", cpuTime = " << s.CpuTime();
+    mSnapshotSending.Stop();
+    LOG(DEBUG) << "TF: " << tfid << " --> ...snapshot sent: realTime = " << mSnapshotSending.RealTime()
+               << ", cpuTime = " << mSnapshotSending.CpuTime();
 
     // Delta map
     auto svectDelta = dpcomVectDelta.size();
@@ -197,13 +201,16 @@ class DCSDataGenerator : public o2::framework::Task
     }
     auto sbuffDelta = buffDelta.size();
     LOG(DEBUG) << "size of output (delta) buffer = " << sbuffDelta;
-    s.Stop();
-    LOG(INFO) << "TF: " << tfid << " --> ...binary (delta) blob prepared: realTime = " << s.RealTime() << ", cpuTime = " << s.CpuTime();
-    LOG(INFO) << "TF: " << tfid << " --> sending (delta) snapshot...";
-    s.Start();
+    mDeltaBuildingBinaryBlock.Stop();
+    LOG(DEBUG) << "TF: " << tfid << " --> ...binary (delta) blob prepared: realTime = "
+               << mDeltaBuildingBinaryBlock.RealTime() << ", cpuTime = " << mDeltaBuildingBinaryBlock.CpuTime();
+    LOG(DEBUG) << "TF: " << tfid << " --> sending (delta) snapshot...";
+    mDeltaSnapshotSending.Start(mFirstTF);
     pc.outputs().snapshot(Output{"DCS", "DATAPOINTSdelta", 0, Lifetime::Timeframe}, buffDelta.data(), sbuffDelta);
-    s.Stop();
-    LOG(INFO) << "TF: " << tfid << " --> ...snapshot (delta) sent: realTime = " << s.RealTime() << ", cpuTime = " << s.CpuTime();
+    mDeltaSnapshotSending.Stop();
+    LOG(DEBUG) << "TF: " << tfid << " --> ...snapshot (delta) sent: realTime = "
+               << mDeltaSnapshotSending.RealTime() << ", cpuTime = "
+               << mDeltaSnapshotSending.CpuTime();
 
     /*
     LOG(INFO) << "Reading back";
@@ -226,6 +233,25 @@ class DCSDataGenerator : public o2::framework::Task
       tmpDPmap[mdoubleVar3] = valdouble; // to test the case when a DP is not updated, we skip some updates
     tmpDPmap[mstringVar0] = valstring;
     */
+    mFirstTF = false;
+    mTFs++;
+  }
+
+  void endOfStream(o2::framework::EndOfStreamContext& ec) final
+  {
+    LOG(INFO) << "number of processed TF: " << mTFs;
+    LOG(INFO) << " --> time to prepare binary blob: realTime = "
+              << mBuildingBinaryBlock.RealTime() / mTFs << ", cpuTime = "
+              << mBuildingBinaryBlock.CpuTime() / mTFs;
+    LOG(INFO) << " --> time to send snapshot: realTime = "
+              << mSnapshotSending.RealTime() / mTFs << ", cpuTime = "
+              << mSnapshotSending.CpuTime() / mTFs;
+    LOG(INFO) << " --> time to prepare binary blob: realTime = "
+              << mDeltaBuildingBinaryBlock.RealTime() / mTFs << ", cpuTime = "
+              << mDeltaBuildingBinaryBlock.CpuTime() / mTFs;
+    LOG(INFO) << " --> time to send snapshot: realTime = "
+              << mDeltaSnapshotSending.RealTime() / mTFs << ", cpuTime = "
+              << mDeltaSnapshotSending.CpuTime() / mTFs;
   }
 
  private:
@@ -242,23 +268,19 @@ class DCSDataGenerator : public o2::framework::Task
   uint64_t mNumDPsintDelta = 0;
   uint64_t mNumDPsdoubleDelta = 0;
   uint64_t mNumDPsstringDelta = 0;
-  /*
-  DPID mcharVar;
-  DPID mintVar0;
-  DPID mintVar1;
-  DPID mintVar2;
-  DPID mdoubleVar0;
-  DPID mdoubleVar1;
-  DPID mdoubleVar2;
-  DPID mdoubleVar3;
-  DPID mstringVar0;
-  */
   std::vector<DPID> mDPIDvectFull;  // for full map
   std::vector<DPID> mDPIDvectDelta; // for delta map (containing only DPs that changed)
   DeliveryType mtypechar = RAW_CHAR;
   DeliveryType mtypeint = RAW_INT;
   DeliveryType mtypedouble = RAW_DOUBLE;
   DeliveryType mtypestring = RAW_STRING;
+
+  TStopwatch mBuildingBinaryBlock;
+  TStopwatch mDeltaBuildingBinaryBlock;
+  TStopwatch mSnapshotSending;
+  TStopwatch mDeltaSnapshotSending;
+  bool mFirstTF = true;
+  uint64_t mTFs = 0;
 };
 
 } // namespace dcs
