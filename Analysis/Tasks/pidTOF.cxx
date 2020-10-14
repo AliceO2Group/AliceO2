@@ -16,6 +16,7 @@
 #include "PID/PIDResponse.h"
 #include <CCDB/BasicCCDBManager.h>
 #include "Analysis/HistHelpers.h"
+#include "PID/PIDTOF.h"
 
 // #define USE_REGISTRY
 #ifdef USE_REGISTRY
@@ -34,16 +35,18 @@ using namespace o2::track;
 void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
 {
   std::vector<ConfigParamSpec> options{
-    {"add-qa", VariantType::Int, 0, {"Produce TOF PID QA histograms"}}};
+    {"add-qa", VariantType::Int, 0, {"Produce TOF PID QA histograms"}},
+    {"add-beta", VariantType::Int, 0, {"Produce TOF Beta table"}}};
   std::swap(workflowOptions, options);
 }
 
 #include "Framework/runDataProcessing.h"
 
 struct pidTOFTask {
+  using Trks = soa::Join<aod::Tracks, aod::TracksExtra>;
+  using Coll = aod::Collision;
   Produces<aod::pidRespTOF> tofpid;
-  Produces<aod::pidRespTOFbeta> tofpidbeta;
-  DetectorResponse<tof::Response> resp = DetectorResponse<tof::Response>();
+  DetectorResponse resp;
   Service<o2::ccdb::BasicCCDBManager> ccdb;
   Configurable<std::string> paramfile{"param-file", "", "Path to the parametrization object, if emtpy the parametrization is not taken from file"};
   Configurable<std::string> sigmaname{"param-sigma", "TOFReso", "Name of the parametrization for the expected sigma, used in both file and CCDB mode"};
@@ -60,61 +63,82 @@ struct pidTOFTask {
     ccdb->setCreatedNotAfter(std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count());
     //
     const std::vector<float> p = {0.008, 0.008, 0.002, 40.0};
-    resp.SetParameters(DetectorResponse<tof::Response>::kSigma, p);
+    resp.SetParameters(DetectorResponse::kSigma, p);
     const std::string fname = paramfile.value;
     if (!fname.empty()) { // Loading the parametrization from file
-      resp.LoadParamFromFile(fname.data(), sigmaname.value, DetectorResponse<tof::Response>::kSigma);
+      resp.LoadParamFromFile(fname.data(), sigmaname.value, DetectorResponse::kSigma);
     } else { // Loading it from CCDB
       const std::string path = "Analysis/PID/TOF";
-      resp.LoadParam(DetectorResponse<tof::Response>::kSigma, ccdb->getForTimeStamp<Parametrization>(path + "/" + sigmaname.value, timestamp.value));
+      resp.LoadParam(DetectorResponse::kSigma, ccdb->getForTimeStamp<Parametrization>(path + "/" + sigmaname.value, timestamp.value));
     }
   }
 
-  void process(aod::Collision const& collision, soa::Join<aod::Tracks, aod::TracksExtra> const& tracks)
+  void process(Coll const& collision, Trks const& tracks)
   {
-    tof::EventTime evt = tof::EventTime();
-    evt.SetEvTime(0, collision.collisionTime());
-    evt.SetEvTimeReso(0, collision.collisionTimeRes());
-    evt.SetEvTimeMask(0, collision.collisionTimeMask());
-    resp.SetEventTime(evt);
+    constexpr tof::ExpTimes<Coll, Trks::iterator, PID::Electron> resp_Electron = tof::ExpTimes<Coll, Trks::iterator, PID::Electron>();
+    constexpr tof::ExpTimes<Coll, Trks::iterator, PID::Muon> resp_Muon = tof::ExpTimes<Coll, Trks::iterator, PID::Muon>();
+    constexpr tof::ExpTimes<Coll, Trks::iterator, PID::Pion> resp_Pion = tof::ExpTimes<Coll, Trks::iterator, PID::Pion>();
+    constexpr tof::ExpTimes<Coll, Trks::iterator, PID::Kaon> resp_Kaon = tof::ExpTimes<Coll, Trks::iterator, PID::Kaon>();
+    constexpr tof::ExpTimes<Coll, Trks::iterator, PID::Proton> resp_Proton = tof::ExpTimes<Coll, Trks::iterator, PID::Proton>();
+    constexpr tof::ExpTimes<Coll, Trks::iterator, PID::Deuteron> resp_Deuteron = tof::ExpTimes<Coll, Trks::iterator, PID::Deuteron>();
+    constexpr tof::ExpTimes<Coll, Trks::iterator, PID::Triton> resp_Triton = tof::ExpTimes<Coll, Trks::iterator, PID::Triton>();
+    constexpr tof::ExpTimes<Coll, Trks::iterator, PID::Helium3> resp_Helium3 = tof::ExpTimes<Coll, Trks::iterator, PID::Helium3>();
+    constexpr tof::ExpTimes<Coll, Trks::iterator, PID::Alpha> resp_Alpha = tof::ExpTimes<Coll, Trks::iterator, PID::Alpha>();
 
-    tofpidbeta.reserve(tracks.size());
     tofpid.reserve(tracks.size());
-    for (auto const& i : tracks) {
-      resp.UpdateTrack(i.p(), i.tofExpMom() / tof::Response::kCSPEED, i.length(), i.tofSignal());
-      tofpidbeta(resp.GetBeta(),
-                 resp.GetBetaExpectedSigma(),
-                 resp.GetExpectedBeta(PID::Electron),
-                 resp.GetBetaExpectedSigma(),
-                 resp.GetBetaNumberOfSigmas(PID::Electron));
-      tofpid(
-        resp.GetExpectedSignal(PID::Electron),
-        resp.GetExpectedSignal(PID::Muon),
-        resp.GetExpectedSignal(PID::Pion),
-        resp.GetExpectedSignal(PID::Kaon),
-        resp.GetExpectedSignal(PID::Proton),
-        resp.GetExpectedSignal(PID::Deuteron),
-        resp.GetExpectedSignal(PID::Triton),
-        resp.GetExpectedSignal(PID::Helium3),
-        resp.GetExpectedSignal(PID::Alpha),
-        resp.GetExpectedSigma(resp, PID::Electron),
-        resp.GetExpectedSigma(resp, PID::Muon),
-        resp.GetExpectedSigma(resp, PID::Pion),
-        resp.GetExpectedSigma(resp, PID::Kaon),
-        resp.GetExpectedSigma(resp, PID::Proton),
-        resp.GetExpectedSigma(resp, PID::Deuteron),
-        resp.GetExpectedSigma(resp, PID::Triton),
-        resp.GetExpectedSigma(resp, PID::Helium3),
-        resp.GetExpectedSigma(resp, PID::Alpha),
-        resp.GetSeparation(resp, PID::Electron),
-        resp.GetSeparation(resp, PID::Muon),
-        resp.GetSeparation(resp, PID::Pion),
-        resp.GetSeparation(resp, PID::Kaon),
-        resp.GetSeparation(resp, PID::Proton),
-        resp.GetSeparation(resp, PID::Deuteron),
-        resp.GetSeparation(resp, PID::Triton),
-        resp.GetSeparation(resp, PID::Helium3),
-        resp.GetSeparation(resp, PID::Alpha));
+    for (auto const& trk : tracks) {
+      tofpid(resp_Electron.GetExpectedSignal(collision, trk),
+             resp_Muon.GetExpectedSignal(collision, trk),
+             resp_Pion.GetExpectedSignal(collision, trk),
+             resp_Kaon.GetExpectedSignal(collision, trk),
+             resp_Proton.GetExpectedSignal(collision, trk),
+             resp_Deuteron.GetExpectedSignal(collision, trk),
+             resp_Triton.GetExpectedSignal(collision, trk),
+             resp_Helium3.GetExpectedSignal(collision, trk),
+             resp_Alpha.GetExpectedSignal(collision, trk),
+             resp_Electron.GetExpectedSigma(resp, collision, trk),
+             resp_Muon.GetExpectedSigma(resp, collision, trk),
+             resp_Pion.GetExpectedSigma(resp, collision, trk),
+             resp_Kaon.GetExpectedSigma(resp, collision, trk),
+             resp_Proton.GetExpectedSigma(resp, collision, trk),
+             resp_Deuteron.GetExpectedSigma(resp, collision, trk),
+             resp_Triton.GetExpectedSigma(resp, collision, trk),
+             resp_Helium3.GetExpectedSigma(resp, collision, trk),
+             resp_Alpha.GetExpectedSigma(resp, collision, trk),
+             resp_Electron.GetSeparation(resp, collision, trk),
+             resp_Muon.GetSeparation(resp, collision, trk),
+             resp_Pion.GetSeparation(resp, collision, trk),
+             resp_Kaon.GetSeparation(resp, collision, trk),
+             resp_Proton.GetSeparation(resp, collision, trk),
+             resp_Deuteron.GetSeparation(resp, collision, trk),
+             resp_Triton.GetSeparation(resp, collision, trk),
+             resp_Helium3.GetSeparation(resp, collision, trk),
+             resp_Alpha.GetSeparation(resp, collision, trk));
+    }
+  }
+};
+
+struct pidTOFTaskBeta {
+  using Trks = soa::Join<aod::Tracks, aod::TracksExtra>;
+  using Coll = aod::Collision;
+  Produces<aod::pidRespTOFbeta> tofpidbeta;
+  tof::Beta<Coll, Trks::iterator, PID::Electron> resp_Electron;
+  Configurable<float> expreso{"tof-expreso", 80, "Expected resolution for the computation of the expected beta"};
+
+  void init(o2::framework::InitContext&)
+  {
+    resp_Electron.mExpectedResolution = expreso.value;
+  }
+
+  void process(Coll const& collision, Trks const& tracks)
+  {
+    tofpidbeta.reserve(tracks.size());
+    for (auto const& trk : tracks) {
+      tofpidbeta(resp_Electron.GetBeta(collision, trk),
+                 resp_Electron.GetExpectedSigma(collision, trk),
+                 resp_Electron.GetExpectedSignal(collision, trk),
+                 resp_Electron.GetExpectedSigma(collision, trk),
+                 resp_Electron.GetSeparation(collision, trk));
     }
   }
 };
@@ -140,25 +164,25 @@ struct pidTOFTaskQA {
     true,
     {
       {"hvertexz", ";Vtx_{z} (cm);Entries", {HistogramType::kTH1F, {{100, -20, 20}}}},
-      {"htofsignal", ";#it{p} (GeV/#it{c});TOF Signal", {HistogramType::kTH2F, {{100, 0, 5}, {100, 0, 10000}}}} //
-      {"htofbeta", ";#it{p} (GeV/#it{c});TOF #beta", {HistogramType::kTH2F, {{100, 0, 5}, {100, 0, 2}}}}        //
-    }                                                                                                           //
+      {"htofsignal", ";#it{p} (GeV/#it{c});TOF Signal", {HistogramType::kTH2F, {{100, 0, 5}, {1000, 0, 2e6}}}} //
+      {"htofbeta", ";#it{p} (GeV/#it{c});TOF #beta", {HistogramType::kTH2F, {{100, 0, 5}, {100, 0, 2}}}}       //
+    }                                                                                                          //
   };
   // Exp signal
   HistogramRegistry expected{
     "expected",
     true,
     {
-      {"hexpectedEl", ";#it{p} (GeV/#it{c});t_{exp e}", {HistogramType::kTH2F, {{100, 0, 5}, {100, 0, 10000}}}},
-      {"hexpectedMu", ";#it{p} (GeV/#it{c});t_{exp #mu}", {HistogramType::kTH2F, {{100, 0, 5}, {100, 0, 10000}}}},
-      {"hexpectedPi", ";#it{p} (GeV/#it{c});t_{exp #pi}", {HistogramType::kTH2F, {{100, 0, 5}, {100, 0, 10000}}}},
-      {"hexpectedKa", ";#it{p} (GeV/#it{c});t_{exp K}", {HistogramType::kTH2F, {{100, 0, 5}, {100, 0, 10000}}}},
-      {"hexpectedPr", ";#it{p} (GeV/#it{c});t_{exp p}", {HistogramType::kTH2F, {{100, 0, 5}, {100, 0, 10000}}}},
-      {"hexpectedDe", ";#it{p} (GeV/#it{c});t_{exp d}", {HistogramType::kTH2F, {{100, 0, 5}, {100, 0, 10000}}}},
-      {"hexpectedTr", ";#it{p} (GeV/#it{c});t_{exp t}", {HistogramType::kTH2F, {{100, 0, 5}, {100, 0, 10000}}}},
-      {"hexpectedHe", ";#it{p} (GeV/#it{c});t_{exp ^{3}He}", {HistogramType::kTH2F, {{100, 0, 5}, {100, 0, 10000}}}},
-      {"hexpectedAl", ";#it{p} (GeV/#it{c});t_{exp #alpha}", {HistogramType::kTH2F, {{100, 0, 5}, {100, 0, 10000}}}} //
-    }                                                                                                                //
+      {"hexpectedEl", ";#it{p} (GeV/#it{c});t_{exp e}", {HistogramType::kTH2F, {{100, 0, 5}, {1000, 0, 2e6}}}},
+      {"hexpectedMu", ";#it{p} (GeV/#it{c});t_{exp #mu}", {HistogramType::kTH2F, {{100, 0, 5}, {1000, 0, 2e6}}}},
+      {"hexpectedPi", ";#it{p} (GeV/#it{c});t_{exp #pi}", {HistogramType::kTH2F, {{100, 0, 5}, {1000, 0, 2e6}}}},
+      {"hexpectedKa", ";#it{p} (GeV/#it{c});t_{exp K}", {HistogramType::kTH2F, {{100, 0, 5}, {1000, 0, 2e6}}}},
+      {"hexpectedPr", ";#it{p} (GeV/#it{c});t_{exp p}", {HistogramType::kTH2F, {{100, 0, 5}, {1000, 0, 2e6}}}},
+      {"hexpectedDe", ";#it{p} (GeV/#it{c});t_{exp d}", {HistogramType::kTH2F, {{100, 0, 5}, {1000, 0, 2e6}}}},
+      {"hexpectedTr", ";#it{p} (GeV/#it{c});t_{exp t}", {HistogramType::kTH2F, {{100, 0, 5}, {1000, 0, 2e6}}}},
+      {"hexpectedHe", ";#it{p} (GeV/#it{c});t_{exp ^{3}He}", {HistogramType::kTH2F, {{100, 0, 5}, {1000, 0, 2e6}}}},
+      {"hexpectedAl", ";#it{p} (GeV/#it{c});t_{exp #alpha}", {HistogramType::kTH2F, {{100, 0, 5}, {1000, 0, 2e6}}}} //
+    }                                                                                                               //
   };
   // T-Texp
   HistogramRegistry timediff{
@@ -208,18 +232,18 @@ struct pidTOFTaskQA {
   {
 #ifndef USE_REGISTRY
     event->Add<vertexz>(new TH1F("hvertexz", ";Vtx_{z} (cm);Entries", 100, -20, 20));
-    event->Add<signal>(new TH2F("htofsignal", ";#it{p} (GeV/#it{c});TOF Signal", 100, 0, 5, 100, 0, 10000));
+    event->Add<signal>(new TH2F("htofsignal", ";#it{p} (GeV/#it{c});TOF Signal", 100, 0, 5, 1000, 0, 2e6));
     event->Add<tofbeta>(new TH2F("htofbeta", ";#it{p} (GeV/#it{c});TOF #beta", 100, 0, 5, 100, 0, 2));
     //
-    expected->Add<El>(new TH2F("hexpectedEl", ";#it{p} (GeV/#it{c});t_{exp e}", 100, 0, 5, 100, 0, 10000));
-    expected->Add<Mu>(new TH2F("hexpectedMu", ";#it{p} (GeV/#it{c});t_{exp #mu}", 100, 0, 5, 100, 0, 10000));
-    expected->Add<Pi>(new TH2F("hexpectedPi", ";#it{p} (GeV/#it{c});t_{exp #pi}", 100, 0, 5, 100, 0, 10000));
-    expected->Add<Ka>(new TH2F("hexpectedKa", ";#it{p} (GeV/#it{c});t_{exp K}", 100, 0, 5, 100, 0, 10000));
-    expected->Add<Pr>(new TH2F("hexpectedPr", ";#it{p} (GeV/#it{c});t_{exp p}", 100, 0, 5, 100, 0, 10000));
-    expected->Add<De>(new TH2F("hexpectedDe", ";#it{p} (GeV/#it{c});t_{exp d}", 100, 0, 5, 100, 0, 10000));
-    expected->Add<Tr>(new TH2F("hexpectedTr", ";#it{p} (GeV/#it{c});t_{exp t}", 100, 0, 5, 100, 0, 10000));
-    expected->Add<He>(new TH2F("hexpectedHe", ";#it{p} (GeV/#it{c});t_{exp ^{3}He}", 100, 0, 5, 100, 0, 10000));
-    expected->Add<Al>(new TH2F("hexpectedAl", ";#it{p} (GeV/#it{c});t_{exp #alpha}", 100, 0, 5, 100, 0, 10000));
+    expected->Add<El>(new TH2F("hexpectedEl", ";#it{p} (GeV/#it{c});t_{exp e}", 100, 0, 5, 1000, 0, 2e6));
+    expected->Add<Mu>(new TH2F("hexpectedMu", ";#it{p} (GeV/#it{c});t_{exp #mu}", 100, 0, 5, 1000, 0, 2e6));
+    expected->Add<Pi>(new TH2F("hexpectedPi", ";#it{p} (GeV/#it{c});t_{exp #pi}", 100, 0, 5, 1000, 0, 2e6));
+    expected->Add<Ka>(new TH2F("hexpectedKa", ";#it{p} (GeV/#it{c});t_{exp K}", 100, 0, 5, 1000, 0, 2e6));
+    expected->Add<Pr>(new TH2F("hexpectedPr", ";#it{p} (GeV/#it{c});t_{exp p}", 100, 0, 5, 1000, 0, 2e6));
+    expected->Add<De>(new TH2F("hexpectedDe", ";#it{p} (GeV/#it{c});t_{exp d}", 100, 0, 5, 1000, 0, 2e6));
+    expected->Add<Tr>(new TH2F("hexpectedTr", ";#it{p} (GeV/#it{c});t_{exp t}", 100, 0, 5, 1000, 0, 2e6));
+    expected->Add<He>(new TH2F("hexpectedHe", ";#it{p} (GeV/#it{c});t_{exp ^{3}He}", 100, 0, 5, 1000, 0, 2e6));
+    expected->Add<Al>(new TH2F("hexpectedAl", ";#it{p} (GeV/#it{c});t_{exp #alpha}", 100, 0, 5, 1000, 0, 2e6));
     //
     timediff->Add<El>(new TH2F("htimediffEl", ";#it{p} (GeV/#it{c});(t-t_{evt}-t_{exp e})", 100, 0, 5, 100, -1000, 1000));
     timediff->Add<Mu>(new TH2F("htimediffMu", ";#it{p} (GeV/#it{c});(t-t_{evt}-t_{exp #mu})", 100, 0, 5, 100, -1000, 1000));
@@ -253,6 +277,9 @@ struct pidTOFTaskQA {
 
     for (auto i : tracks) {
       //
+      if (i.tofSignal() < 0) { // Skipping tracks without TOF
+        continue;
+      }
       const float tof = i.tofSignal() - collision.collisionTime();
 #ifdef USE_REGISTRY
       event("htofsignal")->Fill(i.p(), i.tofSignal());
@@ -329,7 +356,12 @@ struct pidTOFTaskQA {
 WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
 {
   auto workflow = WorkflowSpec{adaptAnalysisTask<pidTOFTask>("pidTOF-task")};
-  if (cfgc.options().get<int>("add-qa")) {
+  const int add_beta = cfgc.options().get<int>("add-beta");
+  const int add_qa = cfgc.options().get<int>("add-qa");
+  if (add_beta || add_qa) {
+    workflow.push_back(adaptAnalysisTask<pidTOFTaskBeta>("pidTOFBeta-task"));
+  }
+  if (add_qa) {
     workflow.push_back(adaptAnalysisTask<pidTOFTaskQA>("pidTOFQA-task"));
   }
   return workflow;
