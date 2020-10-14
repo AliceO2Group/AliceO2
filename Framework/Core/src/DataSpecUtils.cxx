@@ -561,4 +561,31 @@ std::optional<header::DataHeader::SubSpecificationType> DataSpecUtils::getOption
                     spec.matcher);
 }
 
+bool DataSpecUtils::includes(const InputSpec& left, const InputSpec& right)
+{
+  return std::visit(
+    overloaded{
+      [&left](ConcreteDataMatcher const& rightMatcher) {
+        return match(left, rightMatcher);
+      },
+      [&left](DataDescriptorMatcher const& rightMatcher) {
+        auto rightInfo = extractMatcherInfo(rightMatcher);
+        return std::visit(
+          overloaded{
+            [&rightInfo](ConcreteDataMatcher const& leftMatcher) {
+              return rightInfo.hasUniqueOrigin && rightInfo.origin == leftMatcher.origin &&
+                     rightInfo.hasUniqueDescription && rightInfo.description == leftMatcher.description &&
+                     rightInfo.hasUniqueSubSpec && rightInfo.subSpec == leftMatcher.subSpec;
+            },
+            [&rightInfo](DataDescriptorMatcher const& leftMatcher) {
+              auto leftInfo = extractMatcherInfo(leftMatcher);
+              return (!leftInfo.hasOrigin || (rightInfo.hasOrigin && leftInfo.origin == rightInfo.origin)) &&
+                     (!leftInfo.hasDescription || (rightInfo.hasDescription && leftInfo.description == rightInfo.description)) &&
+                     (!leftInfo.hasSubSpec || (rightInfo.hasSubSpec && leftInfo.subSpec == rightInfo.hasSubSpec));
+            }},
+          left.matcher);
+      }},
+    right.matcher);
+}
+
 } // namespace o2::framework
