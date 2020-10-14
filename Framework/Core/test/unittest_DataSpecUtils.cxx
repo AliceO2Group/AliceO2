@@ -304,3 +304,27 @@ BOOST_AUTO_TEST_CASE(GettingConcreteMembers)
   BOOST_CHECK_EQUAL(DataSpecUtils::asConcreteOrigin(justOriginInputSpec.at(0)).as<std::string>(), "TST");
   BOOST_CHECK_THROW(DataSpecUtils::asConcreteDataDescription(justOriginInputSpec.at(0)).as<std::string>(), std::runtime_error);
 }
+
+BOOST_AUTO_TEST_CASE(Includes)
+{
+  InputSpec concreteInput1{"binding", "TSET", "FOOO", 1, Lifetime::Timeframe};
+  InputSpec concreteInput2{"binding", "TSET", "BAAAR", 1, Lifetime::Timeframe};
+  InputSpec wildcardInput1{"binding", {"TSET", "FOOO"}, Lifetime::Timeframe};
+  InputSpec wildcardInput2{"binding", {"TSET", "BAAAR"}, Lifetime::Timeframe};
+
+  // wildcard and concrete
+  BOOST_CHECK(DataSpecUtils::includes(wildcardInput1, concreteInput1));
+  BOOST_CHECK(!DataSpecUtils::includes(wildcardInput1, concreteInput2));
+  BOOST_CHECK(!DataSpecUtils::includes(concreteInput1, wildcardInput1));
+  BOOST_CHECK(!DataSpecUtils::includes(concreteInput2, wildcardInput1));
+
+  // concrete and concrete
+  BOOST_CHECK(DataSpecUtils::includes(concreteInput1, concreteInput1));
+  BOOST_CHECK(!DataSpecUtils::includes(concreteInput1, concreteInput2));
+  BOOST_CHECK(!DataSpecUtils::includes(concreteInput2, concreteInput1));
+
+  // wildcard and wildcard
+  BOOST_CHECK(DataSpecUtils::includes(wildcardInput1, wildcardInput1));
+  BOOST_CHECK(!DataSpecUtils::includes(wildcardInput1, wildcardInput2));
+  BOOST_CHECK(!DataSpecUtils::includes(wildcardInput2, wildcardInput1));
+}
