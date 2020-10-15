@@ -22,7 +22,7 @@
 #include "MathUtils/Utils.h"
 #include "MathUtils/Primitive2D.h"
 #include "CommonConstants/MathConstants.h"
-#include "MathUtils/Bracket.h"
+#include "MathUtils/Primitive2D.h"
 #include "ITSMFTReconstruction/ChipMappingITS.h"
 #include "ITSMFTBase/SegmentationAlpide.h"
 
@@ -32,7 +32,7 @@ namespace its
 {
 struct RecoGeomHelper {
   //
-  using BracketF = o2::math_utils::Bracket<float>;
+  using BracketF = o2::math_utils::Bracketf_t;
   using Vec2D = o2::math_utils::IntervalXYf_t;
 
   enum Relation : int { Below = -1,

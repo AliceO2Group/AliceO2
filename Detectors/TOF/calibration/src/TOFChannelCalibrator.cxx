@@ -10,7 +10,7 @@
 
 #include "TOFCalibration/TOFChannelCalibrator.h"
 #include "Framework/Logger.h"
-#include "MathUtils/MathBase.h"
+#include "MathUtils/fit.h"
 #include "CommonUtils/MemFileHelper.h"
 #include "CCDB/CcdbApi.h"
 #include "DetectorsCalibration/Utils.h"
@@ -31,7 +31,7 @@ using Slot = o2::calibration::TimeSlot<o2::tof::TOFChannelData>;
 using TimeSlewing = o2::dataformats::CalibTimeSlewingParamTOF;
 using clbUtils = o2::calibration::Utils;
 using boost::histogram::indexed;
-using o2::math_utils::math_base::fitGaus;
+using o2::math_utils::fitGaus;
 //using boost::histogram::algorithm; // not sure why it does not work...
 
 //_____________________________________________
