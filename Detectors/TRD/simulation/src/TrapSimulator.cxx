@@ -2064,7 +2064,7 @@ void TrapSimulator::fitTracklet()
         uint32_t format = 0;
         uint32_t hcid = mDetector * 2 + mRobPos % 2;
         uint32_t padrow = ((mRobPos >> 1) << 2) | (mMcmPos >> 2);
-        uint32_t col = 0;
+        uint32_t col = mFeeParam->getPadColFromADC(mRobPos, mMcmPos, 1);
         uint32_t position = rawoffset;
         //uint32_t s
         mTrackletArray64.emplace_back(format, hcid, padrow, col, position, slope, q2, q1, q0);
