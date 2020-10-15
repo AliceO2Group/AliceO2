@@ -13,14 +13,13 @@
 #include "Framework/Lifetime.h"
 #include "Framework/ConcreteDataMatcher.h"
 #include "Framework/DataDescriptorMatcher.h"
+#include "Framework/ConfigParamSpec.h"
 
 #include <string>
 #include <ostream>
 #include <variant>
 
-namespace o2
-{
-namespace framework
+namespace o2::framework
 {
 
 /// A selector for some kind of data being processed, either in
@@ -28,23 +27,46 @@ namespace framework
 /// specific payloads in a timeframe.
 struct InputSpec {
   /// Create a fully qualified InputSpec
-  InputSpec(std::string binding_, header::DataOrigin origin_, header::DataDescription description_, header::DataHeader::SubSpecificationType subSpec_, enum Lifetime lifetime_ = Lifetime::Timeframe);
+  InputSpec(std::string binding_,
+            header::DataOrigin origin_,
+            header::DataDescription description_,
+            header::DataHeader::SubSpecificationType subSpec_,
+            enum Lifetime lifetime_ = Lifetime::Timeframe,
+            std::vector<ConfigParamSpec> const& metadata_ = {});
   /// Create a fully qualified InputSpec (alternative syntax)
-  InputSpec(std::string binding_, ConcreteDataMatcher const& dataType, enum Lifetime lifetime_ = Lifetime::Timeframe);
+  InputSpec(std::string binding_,
+            ConcreteDataMatcher const& dataType,
+            enum Lifetime lifetime_ = Lifetime::Timeframe,
+            std::vector<ConfigParamSpec> const& metadata_ = {});
   /// Create a fully qualified InputSpec where the subSpec is 0
-  InputSpec(std::string binding_, header::DataOrigin origin_, header::DataDescription description_, enum Lifetime lifetime_ = Lifetime::Timeframe);
+  InputSpec(std::string binding_,
+            header::DataOrigin origin_,
+            header::DataDescription description_,
+            enum Lifetime lifetime_ = Lifetime::Timeframe,
+            std::vector<ConfigParamSpec> const& metadata_ = {});
   /// Create an InputSpec which does not check for the subSpec.
-  InputSpec(std::string binding_, ConcreteDataTypeMatcher const& dataType, enum Lifetime lifetime_ = Lifetime::Timeframe);
-  InputSpec(std::string binding, data_matcher::DataDescriptorMatcher&& matcher);
+  InputSpec(std::string binding_,
+            ConcreteDataTypeMatcher const& dataType,
+            enum Lifetime lifetime_ = Lifetime::Timeframe,
+            std::vector<ConfigParamSpec> const& metadata_ = {});
+  InputSpec(std::string binding,
+            data_matcher::DataDescriptorMatcher&& matcher,
+            std::vector<ConfigParamSpec> const& metadata_ = {});
 
+  /// A mnemonic name for the input spec.
   std::string binding;
+
+  /// The actual matcher for the input spec.
   std::variant<ConcreteDataMatcher, data_matcher::DataDescriptorMatcher> matcher;
+
   enum Lifetime lifetime;
+
+  /// A set of configurables which can be used to customise the InputSpec.
+  std::vector<ConfigParamSpec> metadata;
 
   friend std::ostream& operator<<(std::ostream& stream, InputSpec const& arg);
   bool operator==(InputSpec const& that) const;
 };
 
-} // namespace framework
 } // namespace o2
 #endif
