@@ -8,14 +8,102 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 #include "Framework/TableTreeHelpers.h"
+#include <stdexcept>
 #include "Framework/Logger.h"
 
 #include "arrow/type_traits.h"
 
-namespace o2
+namespace o2::framework
 {
-namespace framework
+
+namespace
 {
+// -----------------------------------------------------------------------------
+// TreeToTable allows to fill the contents of a given TTree to an arrow::Table
+//  ColumnIterator is used by TreeToTable
+//
+// To copy the contents of a tree tr to a table ta do:
+//  . TreeToTable t2t(tr);
+//  . t2t.addColumn(columnname1); t2t.addColumn(columnname2); ...
+//    OR
+//    t2t.addAllColumns();
+//  . auto ta = t2t.process();
+//
+// .............................................................................
+class ColumnIterator
+{
+
+ private:
+  // all the possible TTreeReaderValue<T> types
+  TTreeReaderValue<bool>* mReaderValue_o = nullptr;
+  TTreeReaderValue<uint8_t>* mReaderValue_ub = nullptr;
+  TTreeReaderValue<uint16_t>* mReaderValue_us = nullptr;
+  TTreeReaderValue<uint32_t>* mReaderValue_ui = nullptr;
+  TTreeReaderValue<ULong64_t>* mReaderValue_ul = nullptr;
+  TTreeReaderValue<int8_t>* mReaderValue_b = nullptr;
+  TTreeReaderValue<int16_t>* mReaderValue_s = nullptr;
+  TTreeReaderValue<int32_t>* mReaderValue_i = nullptr;
+  TTreeReaderValue<int64_t>* mReaderValue_l = nullptr;
+  TTreeReaderValue<float>* mReaderValue_f = nullptr;
+  TTreeReaderValue<double>* mReaderValue_d = nullptr;
+
+  // all the possible TTreeReaderArray<T> types
+  TTreeReaderArray<bool>* mReaderArray_o = nullptr;
+  TTreeReaderArray<uint8_t>* mReaderArray_ub = nullptr;
+  TTreeReaderArray<uint16_t>* mReaderArray_us = nullptr;
+  TTreeReaderArray<uint32_t>* mReaderArray_ui = nullptr;
+  TTreeReaderArray<uint64_t>* mReaderArray_ul = nullptr;
+  TTreeReaderArray<int8_t>* mReaderArray_b = nullptr;
+  TTreeReaderArray<int16_t>* mReaderArray_s = nullptr;
+  TTreeReaderArray<int32_t>* mReaderArray_i = nullptr;
+  TTreeReaderArray<int64_t>* mReaderArray_l = nullptr;
+  TTreeReaderArray<float>* mReaderArray_f = nullptr;
+  TTreeReaderArray<double>* mReaderArray_d = nullptr;
+
+  // all the possible arrow::TBuilder types
+  arrow::FixedSizeListBuilder* mTableBuilder_list = nullptr;
+
+  arrow::BooleanBuilder* mTableBuilder_o = nullptr;
+  arrow::UInt8Builder* mTableBuilder_ub = nullptr;
+  arrow::UInt16Builder* mTableBuilder_us = nullptr;
+  arrow::UInt32Builder* mTableBuilder_ui = nullptr;
+  arrow::UInt64Builder* mTableBuilder_ul = nullptr;
+  arrow::Int8Builder* mTableBuilder_b = nullptr;
+  arrow::Int16Builder* mTableBuilder_s = nullptr;
+  arrow::Int32Builder* mTableBuilder_i = nullptr;
+  arrow::Int64Builder* mTableBuilder_l = nullptr;
+  arrow::FloatBuilder* mTableBuilder_f = nullptr;
+  arrow::DoubleBuilder* mTableBuilder_d = nullptr;
+
+  bool mStatus = false;
+  EDataType mElementType;
+  int64_t mNumberElements;
+  const char* mColumnName;
+
+  std::shared_ptr<arrow::Field> mField;
+  std::shared_ptr<arrow::Array> mArray;
+
+ public:
+  ColumnIterator(TTreeReader& reader, const char* colname);
+  ~ColumnIterator();
+
+  // has the iterator been properly initialized
+  bool getStatus();
+
+  // copy the TTreeReaderValue to the arrow::TBuilder
+  void push();
+
+  // reserve enough space to push s elements without reallocating
+  void reserve(size_t s);
+
+  std::shared_ptr<arrow::Array> getArray() { return mArray; }
+  std::shared_ptr<arrow::Field> getSchema() { return mField; }
+
+  // finish the arrow::TBuilder
+  // with this mArray is prepared to be used in arrow::Table::Make
+  void finish();
+};
+} // namespace
 
 // is used in TableToTree
 BranchIterator::BranchIterator(TTree* tree, std::shared_ptr<arrow::ChunkedArray> col, std::shared_ptr<arrow::Field> field)
@@ -370,11 +458,11 @@ TTree* TableToTree::process()
   }
 
 // is used in TreeToTable
-ColumnIterator::ColumnIterator(TTreeReader* reader, const char* colname)
+ColumnIterator::ColumnIterator(TTreeReader& reader, const char* colname)
 {
 
   // find branch
-  auto tree = reader->GetTree();
+  auto tree = reader.GetTree();
   if (!tree) {
     LOGP(FATAL, "Can not locate tree!");
     return;
@@ -412,47 +500,47 @@ ColumnIterator::ColumnIterator(TTreeReader* reader, const char* colname)
   if (mNumberElements == 1) {
     switch (mElementType) {
       case EDataType::kBool_t:
-        mReaderValue_o = new TTreeReaderValue<bool>(*reader, mColumnName);
+        mReaderValue_o = new TTreeReaderValue<bool>(reader, mColumnName);
         MAKE_FIELD_AND_BUILDER(bool, 1, mTableBuilder_o);
         break;
       case EDataType::kUChar_t:
-        mReaderValue_ub = new TTreeReaderValue<uint8_t>(*reader, mColumnName);
+        mReaderValue_ub = new TTreeReaderValue<uint8_t>(reader, mColumnName);
         MAKE_FIELD_AND_BUILDER(uint8_t, 1, mTableBuilder_ub);
         break;
       case EDataType::kUShort_t:
-        mReaderValue_us = new TTreeReaderValue<uint16_t>(*reader, mColumnName);
+        mReaderValue_us = new TTreeReaderValue<uint16_t>(reader, mColumnName);
         MAKE_FIELD_AND_BUILDER(uint16_t, 1, mTableBuilder_us);
         break;
       case EDataType::kUInt_t:
-        mReaderValue_ui = new TTreeReaderValue<uint32_t>(*reader, mColumnName);
+        mReaderValue_ui = new TTreeReaderValue<uint32_t>(reader, mColumnName);
         MAKE_FIELD_AND_BUILDER(uint32_t, 1, mTableBuilder_ui);
         break;
       case EDataType::kULong64_t:
-        mReaderValue_ul = new TTreeReaderValue<ULong64_t>(*reader, mColumnName);
+        mReaderValue_ul = new TTreeReaderValue<ULong64_t>(reader, mColumnName);
         MAKE_FIELD_AND_BUILDER(uint64_t, 1, mTableBuilder_ul);
         break;
       case EDataType::kChar_t:
-        mReaderValue_b = new TTreeReaderValue<int8_t>(*reader, mColumnName);
+        mReaderValue_b = new TTreeReaderValue<int8_t>(reader, mColumnName);
         MAKE_FIELD_AND_BUILDER(int8_t, 1, mTableBuilder_b);
         break;
       case EDataType::kShort_t:
-        mReaderValue_s = new TTreeReaderValue<int16_t>(*reader, mColumnName);
+        mReaderValue_s = new TTreeReaderValue<int16_t>(reader, mColumnName);
         MAKE_FIELD_AND_BUILDER(int16_t, 1, mTableBuilder_s);
         break;
       case EDataType::kInt_t:
-        mReaderValue_i = new TTreeReaderValue<int32_t>(*reader, mColumnName);
+        mReaderValue_i = new TTreeReaderValue<int32_t>(reader, mColumnName);
         MAKE_FIELD_AND_BUILDER(int32_t, 1, mTableBuilder_i);
         break;
       case EDataType::kLong64_t:
-        mReaderValue_l = new TTreeReaderValue<int64_t>(*reader, mColumnName);
+        mReaderValue_l = new TTreeReaderValue<int64_t>(reader, mColumnName);
         MAKE_FIELD_AND_BUILDER(int64_t, 1, mTableBuilder_l);
         break;
       case EDataType::kFloat_t:
-        mReaderValue_f = new TTreeReaderValue<float>(*reader, mColumnName);
+        mReaderValue_f = new TTreeReaderValue<float>(reader, mColumnName);
         MAKE_FIELD_AND_BUILDER(float, 1, mTableBuilder_f);
         break;
       case EDataType::kDouble_t:
-        mReaderValue_d = new TTreeReaderValue<double>(*reader, mColumnName);
+        mReaderValue_d = new TTreeReaderValue<double>(reader, mColumnName);
         MAKE_FIELD_AND_BUILDER(double, 1, mTableBuilder_d);
         break;
       default:
@@ -462,47 +550,47 @@ ColumnIterator::ColumnIterator(TTreeReader* reader, const char* colname)
   } else {
     switch (mElementType) {
       case EDataType::kBool_t:
-        mReaderArray_o = new TTreeReaderArray<bool>(*reader, mColumnName);
+        mReaderArray_o = new TTreeReaderArray<bool>(reader, mColumnName);
         MAKE_FIELD_AND_BUILDER(bool, mNumberElements, mTableBuilder_o);
         break;
       case EDataType::kUChar_t:
-        mReaderArray_ub = new TTreeReaderArray<uint8_t>(*reader, mColumnName);
+        mReaderArray_ub = new TTreeReaderArray<uint8_t>(reader, mColumnName);
         MAKE_FIELD_AND_BUILDER(uint8_t, mNumberElements, mTableBuilder_ub);
         break;
       case EDataType::kUShort_t:
-        mReaderArray_us = new TTreeReaderArray<uint16_t>(*reader, mColumnName);
+        mReaderArray_us = new TTreeReaderArray<uint16_t>(reader, mColumnName);
         MAKE_FIELD_AND_BUILDER(uint16_t, mNumberElements, mTableBuilder_us);
         break;
       case EDataType::kUInt_t:
-        mReaderArray_ui = new TTreeReaderArray<uint32_t>(*reader, mColumnName);
+        mReaderArray_ui = new TTreeReaderArray<uint32_t>(reader, mColumnName);
         MAKE_FIELD_AND_BUILDER(uint32_t, mNumberElements, mTableBuilder_ui);
         break;
       case EDataType::kULong64_t:
-        mReaderArray_ul = new TTreeReaderArray<uint64_t>(*reader, mColumnName);
+        mReaderArray_ul = new TTreeReaderArray<uint64_t>(reader, mColumnName);
         MAKE_FIELD_AND_BUILDER(uint64_t, mNumberElements, mTableBuilder_ul);
         break;
       case EDataType::kChar_t:
-        mReaderArray_b = new TTreeReaderArray<int8_t>(*reader, mColumnName);
+        mReaderArray_b = new TTreeReaderArray<int8_t>(reader, mColumnName);
         MAKE_FIELD_AND_BUILDER(int8_t, mNumberElements, mTableBuilder_b);
         break;
       case EDataType::kShort_t:
-        mReaderArray_s = new TTreeReaderArray<int16_t>(*reader, mColumnName);
+        mReaderArray_s = new TTreeReaderArray<int16_t>(reader, mColumnName);
         MAKE_FIELD_AND_BUILDER(int16_t, mNumberElements, mTableBuilder_s);
         break;
       case EDataType::kInt_t:
-        mReaderArray_i = new TTreeReaderArray<int32_t>(*reader, mColumnName);
+        mReaderArray_i = new TTreeReaderArray<int32_t>(reader, mColumnName);
         MAKE_FIELD_AND_BUILDER(int32_t, mNumberElements, mTableBuilder_i);
         break;
       case EDataType::kLong64_t:
-        mReaderArray_l = new TTreeReaderArray<int64_t>(*reader, mColumnName);
+        mReaderArray_l = new TTreeReaderArray<int64_t>(reader, mColumnName);
         MAKE_FIELD_AND_BUILDER(int64_t, mNumberElements, mTableBuilder_l);
         break;
       case EDataType::kFloat_t:
-        mReaderArray_f = new TTreeReaderArray<float>(*reader, mColumnName);
+        mReaderArray_f = new TTreeReaderArray<float>(reader, mColumnName);
         MAKE_FIELD_AND_BUILDER(float, mNumberElements, mTableBuilder_f);
         break;
       case EDataType::kDouble_t:
-        mReaderArray_d = new TTreeReaderArray<double>(*reader, mColumnName);
+        mReaderArray_d = new TTreeReaderArray<double>(reader, mColumnName);
         MAKE_FIELD_AND_BUILDER(double, mNumberElements, mTableBuilder_d);
         break;
       default:
@@ -741,87 +829,58 @@ void ColumnIterator::finish()
   }
 }
 
-TreeToTable::TreeToTable(TTree* tree)
+void TreeToTable::addColumn(const char* colname)
 {
-  // initialize the TTreeReader
-  mTreeReader = new TTreeReader(tree);
+  mColumnNames.push_back(colname);
 }
 
-TreeToTable::~TreeToTable()
+bool TreeToTable::addAllColumns(TTree* tree)
 {
-  delete mTreeReader;
-};
-
-bool TreeToTable::addColumn(const char* colname)
-{
-  auto colit = std::make_unique<ColumnIterator>(mTreeReader, colname);
-  auto stat = colit->getStatus();
-  if (stat) {
-    mColumnIterators.push_back(std::move(colit));
-  }
-
-  return stat;
-}
-
-bool TreeToTable::addAllColumns()
-{
-  // get a list of column names
-  auto tree = mTreeReader->GetTree();
-  if (!tree) {
-    LOGP(FATAL, "Tree not found!");
-    return false;
-  }
   auto branchList = tree->GetListOfBranches();
 
   // loop over branches
-  bool status = !branchList->IsEmpty();
+  if (branchList->IsEmpty()) {
+    return false;
+  }
   for (Int_t ii = 0; ii < branchList->GetEntries(); ii++) {
     auto br = (TBranch*)branchList->At(ii);
 
     // IMPROVE: make sure that a column is not added more than one time
-    auto colit = std::make_unique<ColumnIterator>(mTreeReader, br->GetName());
-    if (colit->getStatus()) {
-      mColumnIterators.push_back(std::move(colit));
-    } else {
-      status = false;
+    mColumnNames.push_back(br->GetName());
+  }
+  return true;
+}
+
+void TreeToTable::fill(TTree* tree)
+{
+  std::vector<std::unique_ptr<ColumnIterator>> columnIterators;
+  TTreeReader treeReader{tree};
+
+  for (auto&& columnName : mColumnNames) {
+    auto colit = std::make_unique<ColumnIterator>(treeReader, columnName.c_str());
+    auto stat = colit->getStatus();
+    if (!stat) {
+      throw std::runtime_error("Unable to convert column " + columnName);
+    }
+    columnIterators.push_back(std::move(colit));
+  }
+  auto numEntries = treeReader.GetEntries(true);
+
+  for (auto&& column : columnIterators) {
+    column->reserve(numEntries);
+  }
+  // copy all values from the tree to the table builders
+  treeReader.Restart();
+  while (treeReader.Next()) {
+    for (auto&& column : columnIterators) {
+      column->push();
     }
   }
 
-  return status;
-}
-
-void TreeToTable::push()
-{
-  for (auto&& colit : mColumnIterators) {
-    colit->push();
-  }
-}
-
-void TreeToTable::reserve(size_t s)
-{
-  for (auto&& column : mColumnIterators) {
-    column->reserve(s);
-  }
-}
-
-void TreeToTable::fill()
-{
-  auto numEntries = mTreeReader->GetEntries(true);
-
-  this->reserve(numEntries);
-  // copy all values from the tree to the table builders
-  mTreeReader->Restart();
-  while (mTreeReader->Next()) {
-    push();
-  }
-}
-
-std::shared_ptr<arrow::Table> TreeToTable::finalize()
-{
   // prepare the elements needed to create the final table
   std::vector<std::shared_ptr<arrow::Array>> array_vector;
   std::vector<std::shared_ptr<arrow::Field>> schema_vector;
-  for (auto&& colit : mColumnIterators) {
+  for (auto&& colit : columnIterators) {
     colit->finish();
     array_vector.push_back(colit->getArray());
     schema_vector.push_back(colit->getSchema());
@@ -830,19 +889,12 @@ std::shared_ptr<arrow::Table> TreeToTable::finalize()
 
   // create the final table
   // ta is of type std::shared_ptr<arrow::Table>
-  auto table = (arrow::Table::Make(fields, array_vector));
-
-  return table;
+  mTable = (arrow::Table::Make(fields, array_vector));
 }
 
-std::shared_ptr<arrow::Table> TreeToTable::process()
+std::shared_ptr<arrow::Table> TreeToTable::finalize()
 {
-  // do the looping with the TTreeReader
-  fill();
-
-  // create the table
-  return finalize();
+  return mTable;
 }
 
-} // namespace framework
-} // namespace o2
+} // namespace o2::framework

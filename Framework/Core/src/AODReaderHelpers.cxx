@@ -154,12 +154,12 @@ AlgorithmSpec AODReaderHelpers::rootFileReaderCallback()
         }
 
         auto o = Output(dh);
-        auto& t2t = outputs.make<TreeToTable>(o, tr);
+        auto& t2t = outputs.make<TreeToTable>(o);
 
         // add branches to read
         auto colnames = aod::datamodel::getColumnNames(dh);
         if (colnames.size() == 0) {
-          t2t.addAllColumns();
+          t2t.addAllColumns(tr);
         } else {
           for (auto colname : colnames) {
             t2t.addColumn(colname.c_str());
@@ -167,7 +167,7 @@ AlgorithmSpec AODReaderHelpers::rootFileReaderCallback()
         }
 
         // fill the table
-        t2t.fill();
+        t2t.fill(tr);
       }
     });
   })};
