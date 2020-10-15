@@ -26,10 +26,10 @@
 #include <TF1.h>
 #include <TF2.h>
 #include "CommonConstants/MathConstants.h"
-#include "MathUtils/MathBase.h"
+#include "MathUtils/fit.h"
 #include "MathUtils/Utils.h"
 
-using o2::math_utils::math_base::fitGaus;
+using o2::math_utils::fitGaus;
 
 namespace o2
 {

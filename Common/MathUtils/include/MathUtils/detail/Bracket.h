@@ -21,6 +21,8 @@ namespace o2
 {
 namespace math_utils
 {
+namespace detail
+{
 
 template <typename T = float>
 class Bracket
@@ -199,6 +201,7 @@ inline typename Bracket<T>::Relation Bracket<T>::isOutside(T t, T tErr) const
   return t + tErr < mMin ? Below : (t - tErr > mMax ? Above : Inside);
 }
 
+} // namespace detail
 } // namespace math_utils
 } // namespace o2
 

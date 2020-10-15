@@ -17,14 +17,14 @@
 #include "TFile.h"
 
 #include "TPCBase/ROC.h"
-#include "MathUtils/MathBase.h"
+#include "MathUtils/fit.h"
 #include "TPCCalibration/CalibPedestal.h"
 
 using namespace o2::tpc;
-using o2::math_utils::math_base::fit;
-using o2::math_utils::math_base::fitGaus;
-using o2::math_utils::math_base::getStatisticsData;
-using o2::math_utils::math_base::StatisticsData;
+using o2::math_utils::fit;
+using o2::math_utils::fitGaus;
+using o2::math_utils::getStatisticsData;
+using o2::math_utils::StatisticsData;
 
 CalibPedestal::CalibPedestal(PadSubset padSubset)
   : CalibRawBase(padSubset),

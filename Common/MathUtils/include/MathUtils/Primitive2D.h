@@ -9,8 +9,8 @@
 // or submit itself to any jurisdiction.
 
 /// \file Primitive2D.h
-/// \brief Declarations of 2D primitives: straight line (XY interval) and circle
-/// \author ruben.shahoyan@cern.ch
+/// \brief Declarations of 2D primitives
+/// \author ruben.shahoyan@cern.ch michael.lettrich@cern.ch
 
 #ifndef ALICEO2_COMMON_MATH_PRIMITIVE2D_H
 #define ALICEO2_COMMON_MATH_PRIMITIVE2D_H
@@ -18,6 +18,7 @@
 #include "GPUCommonRtypes.h"
 #include "MathUtils/detail/CircleXY.h"
 #include "MathUtils/detail/IntervalXY.h"
+#include "MathUtils/detail/Bracket.h"
 
 namespace o2
 {
@@ -32,6 +33,11 @@ template <typename T>
 using IntervalXY = detail::IntervalXY<T>;
 using IntervalXYf_t = detail::IntervalXY<float>;
 using IntervalXYd_t = detail::IntervalXY<double>;
+
+template <typename T>
+using Bracket = detail::Bracket<T>;
+using Bracketf_t = detail::Bracket<float>;
+using Bracketd_t = detail::Bracket<double>;
 
 } // namespace math_utils
 } // namespace o2

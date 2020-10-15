@@ -14,8 +14,6 @@ o2_add_library(
           src/Cartesian.cxx
           src/Chebyshev3D.cxx
           src/Chebyshev3DCalc.cxx
-          src/MathBase.cxx
-          src/RandomRing.cxx
   PUBLIC_LINK_LIBRARIES
     ROOT::Hist
     FairRoot::Base
@@ -30,12 +28,11 @@ o2_target_root_dictionary(
   HEADERS include/MathUtils/Utils.h
           include/MathUtils/Chebyshev3D.h
           include/MathUtils/Chebyshev3DCalc.h
-          include/MathUtils/MathBase.h
+          include/MathUtils/fit.h
           include/MathUtils/Cartesian.h
           include/MathUtils/CachingTF1.h
           include/MathUtils/RandomRing.h
-          include/MathUtils/Primitive2D.h
-          include/MathUtils/Bracket.h)
+          include/MathUtils/Primitive2D.h)
 
 o2_add_test(
   CachingTF1

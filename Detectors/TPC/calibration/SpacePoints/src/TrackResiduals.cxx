@@ -18,7 +18,7 @@
 
 #include "SpacePoints/TrackResiduals.h"
 #include "CommonConstants/MathConstants.h"
-#include "MathUtils/MathBase.h"
+#include "MathUtils/fit.h"
 
 #include "TMatrixDSym.h"
 #include "TDecompChol.h"
@@ -892,7 +892,7 @@ void TrackResiduals::processSectorResiduals(int iSec)
 #endif
 
   // sort in voxel increasing order
-  o2::math_utils::math_base::SortData(binData, binIndices);
+  o2::math_utils::SortData(binData, binIndices);
   if (mPrintMem) {
     printMem();
   }
@@ -1007,7 +1007,7 @@ void TrackResiduals::processVoxelResiduals(std::vector<float>& dy, std::vector<f
   std::array<float, 7> zResults;
   resVox.flags = 0;
   std::vector<size_t> indices(dz.size());
-  if (!o2::math_utils::math_base::LTMUnbinned(dz, indices, zResults, mLTMCut)) {
+  if (!o2::math_utils::LTMUnbinned(dz, indices, zResults, mLTMCut)) {
     LOG(debug) << "failed trimming input array for voxel " << getGlbVoxBin(resVox.bvox);
     return;
   }
@@ -1713,12 +1713,12 @@ float TrackResiduals::fitPoly1Robust(std::vector<float>& x, std::vector<float>& 
   }
   std::array<float, 7> yResults;
   std::vector<size_t> indY(nPoints);
-  if (!o2::math_utils::math_base::LTMUnbinned(y, indY, yResults, cutLTM)) {
+  if (!o2::math_utils::LTMUnbinned(y, indY, yResults, cutLTM)) {
     return -1;
   }
   // rearrange used events in increasing order
-  o2::math_utils::math_base::Reorder(y, indY);
-  o2::math_utils::math_base::Reorder(x, indY);
+  o2::math_utils::Reorder(y, indY);
+  o2::math_utils::Reorder(x, indY);
   //
   // 1st fit to get crude slope
   int nPointsUsed = std::lrint(yResults[0]);
@@ -1732,15 +1732,15 @@ float TrackResiduals::fitPoly1Robust(std::vector<float>& x, std::vector<float>& 
     ycm[i] = y[i] - (a + b * x[i]);
   }
   std::vector<size_t> indices(nPoints);
-  o2::math_utils::math_base::SortData(ycm, indices);
-  o2::math_utils::math_base::Reorder(ycm, indices);
-  o2::math_utils::math_base::Reorder(y, indices);
-  o2::math_utils::math_base::Reorder(x, indices);
+  o2::math_utils::SortData(ycm, indices);
+  o2::math_utils::Reorder(ycm, indices);
+  o2::math_utils::Reorder(y, indices);
+  o2::math_utils::Reorder(x, indices);
   //
   // robust estimate of sigma after crude slope correction
   float sigMAD = getMAD2Sigma({ycm.begin() + vecOffset, ycm.begin() + vecOffset + nPointsUsed});
   // find LTM estimate matching to sigMAD, keaping at least given fraction
-  if (!o2::math_utils::math_base::LTMUnbinnedSig(ycm, indY, yResults, mMinFracLTM, sigMAD, true)) {
+  if (!o2::math_utils::LTMUnbinnedSig(ycm, indY, yResults, mMinFracLTM, sigMAD, true)) {
     return -1;
   }
   // final fit
