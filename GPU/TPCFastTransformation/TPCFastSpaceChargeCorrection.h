@@ -64,7 +64,7 @@ class TPCFastSpaceChargeCorrection : public FlatObject
     float vMax;
   };
 
-  typedef Spline2D<float, 3, 0> SplineType;
+  typedef Spline2D<float, 3> SplineType;
 
   /// _____________  Constructors / destructors __________________________
 
@@ -270,8 +270,8 @@ GPUdi() int TPCFastSpaceChargeCorrection::getCorrection(int slice, int row, floa
   const float* splineData = getSplineData(slice, row);
   float su = 0, sv = 0;
   mGeo.convUVtoScaledUV(slice, row, u, v, su, sv);
-  su *= spline.getGridU1().getUmax();
-  sv *= spline.getGridU2().getUmax();
+  su *= spline.getGridX1().getUmax();
+  sv *= spline.getGridX2().getUmax();
   float dxuv[3];
   spline.interpolateU(splineData, su, sv, dxuv);
   dx = dxuv[0];
@@ -285,7 +285,7 @@ GPUdi() void TPCFastSpaceChargeCorrection::getCorrectionInvCorrectedX(
 {
   //const RowInfo& rowInfo = getRowInfo(row);
   const SliceRowInfo& sliceRowInfo = getSliceRowInfo(slice, row);
-  const Spline2D<float, 1, 0>& spline = reinterpret_cast<const Spline2D<float, 1, 0>&>(getSpline(slice, row));
+  const Spline2D<float, 1>& spline = reinterpret_cast<const Spline2D<float, 1>&>(getSpline(slice, row));
   const float* splineData = getSplineData(slice, row, 1);
   float gridU = (cu - sliceRowInfo.CorrU0) * sliceRowInfo.scaleCorrUtoGrid;
   float gridV = cv * sliceRowInfo.scaleCorrVtoGrid;
@@ -299,7 +299,7 @@ GPUdi() void TPCFastSpaceChargeCorrection::getCorrectionInvUV(
 {
   //const RowInfo& rowInfo = getRowInfo(row);
   const SliceRowInfo& sliceRowInfo = getSliceRowInfo(slice, row);
-  const Spline2D<float, 2, 0>& spline = reinterpret_cast<const Spline2D<float, 2, 0>&>(getSpline(slice, row));
+  const Spline2D<float, 2>& spline = reinterpret_cast<const Spline2D<float, 2>&>(getSpline(slice, row));
   const float* splineData = getSplineData(slice, row, 2);
   float gridU = (corrU - sliceRowInfo.CorrU0) * sliceRowInfo.scaleCorrUtoGrid;
   float gridV = corrV * sliceRowInfo.scaleCorrVtoGrid;

@@ -8,16 +8,16 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-/// \file  Spline2D.cxx
-/// \brief Implementation of Spline2D class
+/// \file  Spline.cxx
+/// \brief Implementation of Spline class
 ///
 /// \author  Sergey Gorbunov <sergey.gorbunov@cern.ch>
 
-#include "Spline2D.h"
+#include "Spline.h"
 
 #if !defined(GPUCA_GPUCODE) && !defined(GPUCA_STANDALONE) // code invisible on GPU and in the standalone compilation
-templateClassImp(GPUCA_NAMESPACE::gpu::Spline2D);
+templateClassImp(GPUCA_NAMESPACE::gpu::Spline);
 #endif
 
-template class GPUCA_NAMESPACE::gpu::Spline2D<float>;
-template class GPUCA_NAMESPACE::gpu::Spline2D<double>;
+template class GPUCA_NAMESPACE::gpu::Spline<float>;
+template class GPUCA_NAMESPACE::gpu::Spline<double>;

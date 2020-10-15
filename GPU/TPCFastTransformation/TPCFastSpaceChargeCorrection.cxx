@@ -19,7 +19,7 @@
 #include <iostream>
 #include <cmath>
 #include "ChebyshevFit1D.h"
-#include "SplineHelper2D.h"
+#include "Spline2DHelper.h"
 #endif
 
 using namespace GPUCA_NAMESPACE::gpu;
@@ -219,8 +219,8 @@ void TPCFastSpaceChargeCorrection::print() const
       const SplineType& spline = getSpline(is, ir);
       const float* d = getSplineData(is, ir);
       int k = 0;
-      for (int i = 0; i < spline.getGridU1().getNumberOfKnots(); i++) {
-        for (int j = 0; j < spline.getGridU2().getNumberOfKnots(); j++, k++) {
+      for (int i = 0; i < spline.getGridX1().getNumberOfKnots(); i++) {
+        for (int j = 0; j < spline.getGridX2().getNumberOfKnots(); j++, k++) {
           std::cout << d[k] << " ";
         }
         std::cout << std::endl;
@@ -414,8 +414,8 @@ GPUd() void TPCFastSpaceChargeCorrection::setNoCorrection()
       area.vMax = vLength;
       area.cvMax = vLength;
       info.CorrU0 = area.cuMin;
-      info.scaleCorrUtoGrid = (spline.getGridU1().getNumberOfKnots() - 1) / (area.cuMax - area.cuMin);
-      info.scaleCorrVtoGrid = (spline.getGridU2().getNumberOfKnots() - 1) / area.cvMax;
+      info.scaleCorrUtoGrid = (spline.getGridX1().getNumberOfKnots() - 1) / (area.cuMax - area.cuMin);
+      info.scaleCorrVtoGrid = (spline.getGridX2().getNumberOfKnots() - 1) / area.cvMax;
     } // row
   }   // slice
 }
@@ -497,8 +497,8 @@ void TPCFastSpaceChargeCorrection::initInverse(bool prn)
 
   initMaxDriftLength(prn);
 
-  SplineHelper2D<float> helper;
-  std::vector<float> dataPointF;
+  Spline2DHelper<float> helper;
+  std::vector<double> dataPointF;
   std::vector<float> splineParameters;
 
   ChebyshevFit1D chebFitterX, chebFitterU, chebFitterV;
@@ -630,8 +630,8 @@ void TPCFastSpaceChargeCorrection::initInverse(bool prn)
       }
       SliceRowInfo& info = mSliceRowInfoPtr[slice * mGeo.getNumberOfRows() + row];
       info.CorrU0 = area.cuMin;
-      info.scaleCorrUtoGrid = (spline.getGridU1().getNumberOfKnots() - 1) / (area.cuMax - area.cuMin);
-      info.scaleCorrVtoGrid = (spline.getGridU2().getNumberOfKnots() - 1) / area.cvMax;
+      info.scaleCorrUtoGrid = (spline.getGridX1().getNumberOfKnots() - 1) / (area.cuMax - area.cuMin);
+      info.scaleCorrVtoGrid = (spline.getGridX2().getNumberOfKnots() - 1) / area.cvMax;
 
       dataPointF.resize(helper.getNumberOfDataPoints() * 3);
 
@@ -646,7 +646,7 @@ void TPCFastSpaceChargeCorrection::initInverse(bool prn)
       double dcol = (area.cuMax - area.cuMin) / (helper.getNumberOfDataPointsU1() - 1);
       for (int iv = 0; iv < helper.getNumberOfDataPointsU2(); iv++) {
         double cv = iv * drow;
-        float* dataPointFrow = &dataPointF[iv * helper.getNumberOfDataPointsU1() * 3];
+        double* dataPointFrow = &dataPointF[iv * helper.getNumberOfDataPointsU1() * 3];
         for (int iu = 0; iu < helper.getNumberOfDataPointsU1(); iu++) {
           dataPointFrow[iu * 3 + 0] = 0;
           dataPointFrow[iu * 3 + 1] = 0;
