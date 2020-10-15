@@ -29,28 +29,30 @@ namespace o2::utilities
 
 using boost::property_tree::ptree;
 
-DataSamplingPolicy::DataSamplingPolicy() = default;
-
-DataSamplingPolicy::DataSamplingPolicy(const ptree& config)
+DataSamplingPolicy::DataSamplingPolicy(std::string name) : mName(std::move(name))
 {
-  configure(config);
 }
 
-DataSamplingPolicy::~DataSamplingPolicy() = default;
-
-void DataSamplingPolicy::configure(const ptree& config)
+void DataSamplingPolicy::registerPath(const InputSpec& inputSpec, const OutputSpec& outputSpec)
 {
-  mName = config.get<std::string>("id");
-  if (mName.size() > 14) {
-    LOG(WARNING) << "DataSamplingPolicy name '" << mName << "' is longer than 14 characters, we have to trim it. "
-                 << "Use a shorter policy name to avoid potential output name conflicts.";
-    mName.resize(14);
-  }
+  mPaths.emplace_back(inputSpec, outputSpec);
+}
 
-  auto subSpecString = config.get_optional<std::string>("subSpec").value_or("*");
-  auto subSpec = subSpecString.find_first_of("-*") != std::string::npos ? -1 : std::strtoull(subSpecString.c_str(), nullptr, 10);
+void DataSamplingPolicy::registerCondition(std::unique_ptr<DataSamplingCondition>&& condition)
+{
+  mConditions.emplace_back(std::move(condition));
+}
 
-  mPaths.clear();
+void DataSamplingPolicy::setFairMQOutputChannel(std::string channel)
+{
+  mFairMQOutputChannel = std::move(channel);
+}
+
+DataSamplingPolicy DataSamplingPolicy::fromConfiguration(const ptree& config)
+{
+  auto name = config.get<std::string>("id");
+  DataSamplingPolicy policy(name);
+
   size_t outputId = 0;
   std::vector<InputSpec> inputSpecs = DataDescriptorQueryBuilder::parse(config.get<std::string>("query").c_str());
 
@@ -60,29 +62,31 @@ void DataSamplingPolicy::configure(const ptree& config)
       OutputSpec outputSpec{
         {inputSpec.binding},
         createPolicyDataOrigin(),
-        createPolicyDataDescription(mName, outputId++),
+        createPolicyDataDescription(name, outputId++),
         DataSpecUtils::getOptionalSubSpec(inputSpec).value(),
         inputSpec.lifetime};
 
-      mPaths.push_back({inputSpec, outputSpec});
+      policy.registerPath(inputSpec, outputSpec);
 
     } else {
       OutputSpec outputSpec{
         {inputSpec.binding},
-        {createPolicyDataOrigin(), createPolicyDataDescription(mName, outputId++)},
+        {createPolicyDataOrigin(), createPolicyDataDescription(name, outputId++)},
         inputSpec.lifetime};
 
-      mPaths.push_back({inputSpec, outputSpec});
+      policy.registerPath(inputSpec, outputSpec);
     }
   }
 
-  mConditions.clear();
   for (const auto& conditionConfig : config.get_child("samplingConditions")) {
-    mConditions.push_back(DataSamplingConditionFactory::create(conditionConfig.second.get<std::string>("condition")));
-    mConditions.back()->configure(conditionConfig.second);
+    auto condition = DataSamplingConditionFactory::create(conditionConfig.second.get<std::string>("condition"));
+    condition->configure(conditionConfig.second);
+    policy.registerCondition(std::move(condition));
   }
 
-  mFairMQOutputChannel = config.get_optional<std::string>("fairMQOutput").value_or("");
+  policy.setFairMQOutputChannel(config.get_optional<std::string>("fairMQOutput").value_or(""));
+
+  return policy;
 }
 
 bool DataSamplingPolicy::match(const ConcreteDataMatcher& input) const
@@ -103,7 +107,7 @@ bool DataSamplingPolicy::decide(const o2::framework::DataRef& dataRef)
   return decision;
 }
 
-const Output DataSamplingPolicy::prepareOutput(const ConcreteDataMatcher& input, Lifetime lifetime) const
+Output DataSamplingPolicy::prepareOutput(const ConcreteDataMatcher& input, Lifetime lifetime) const
 {
   auto result = mPaths.find(input);
   if (result != mPaths.end()) {

@@ -38,9 +38,6 @@ namespace o2::utilities
 Dispatcher::Dispatcher(std::string name, const std::string reconfigurationSource)
   : mName(name), mReconfigurationSource(reconfigurationSource)
 {
-  header::DataDescription timerDescription;
-  timerDescription.runtimeInit(("TIMER-" + name).substr(0, 16).c_str());
-  inputs.emplace_back(InputSpec{"timer-stats", "DS", timerDescription, 0, Lifetime::Timer});
 }
 
 Dispatcher::~Dispatcher() = default;
@@ -55,15 +52,16 @@ void Dispatcher::init(InitContext& ctx)
     std::unique_ptr<ConfigurationInterface> cfg = ConfigurationFactory::getConfiguration(mReconfigurationSource);
     policiesTree = cfg->getRecursive("dataSamplingPolicies");
     mPolicies.clear();
-  } else {
+  } else if (ctx.options().isSet("sampling-config-ptree")) {
     policiesTree = ctx.options().get<boost::property_tree::ptree>("sampling-config-ptree");
     mPolicies.clear();
-  }
+  } else
+    ; // we use policies declared during workflow init.
 
   for (auto&& policyConfig : policiesTree) {
     // we don't want the Dispatcher to exit due to one faulty Policy
     try {
-      mPolicies.emplace_back(std::make_shared<DataSamplingPolicy>(policyConfig.second));
+      mPolicies.emplace_back(std::make_shared<DataSamplingPolicy>(DataSamplingPolicy::fromConfiguration(policyConfig.second)));
     } catch (std::exception& ex) {
       LOG(WARN) << "Could not load the Data Sampling Policy '"
                 << policyConfig.second.get_optional<std::string>("id").value_or("") << "', because: " << ex.what();
@@ -188,22 +186,9 @@ void Dispatcher::sendFairMQ(FairMQDevice* device, const DataRef& inputData, cons
   int64_t bytesSent = device->Send(message, fairMQChannel);
 }
 
-void Dispatcher::registerPath(const std::pair<InputSpec, OutputSpec>& path)
+void Dispatcher::registerPolicy(std::unique_ptr<DataSamplingPolicy>&& policy)
 {
-  //todo: take care of inputs inclusive in others, when subSpec matchers are supported
-  auto cmp = [a = path.first](const InputSpec b) {
-    return a.matcher == b.matcher && a.lifetime == b.lifetime;
-  };
-
-  if (std::find_if(inputs.begin(), inputs.end(), cmp) == inputs.end()) {
-    inputs.push_back(path.first);
-    LOG(DEBUG) << "Registering input " << DataSpecUtils::describe(path.first);
-  } else {
-    LOG(DEBUG) << "Input " << DataSpecUtils::describe(path.first)
-               << " already registered";
-  }
-
-  outputs.push_back(path.second);
+  mPolicies.emplace_back(std::move(policy));
 }
 
 const std::string& Dispatcher::getName()
@@ -213,12 +198,66 @@ const std::string& Dispatcher::getName()
 
 Inputs Dispatcher::getInputSpecs()
 {
-  return inputs;
+  Inputs declaredInputs;
+
+  // Add data inputs. Avoid duplicates and inputs which include others (e.g. "TST/DATA" includes "TST/DATA/1".
+  for (const auto& policy : mPolicies) {
+    for (const auto& [potentiallyNewInput, _policyOutput] : policy->getPathMap()) {
+      (void)_policyOutput;
+
+      // The idea is that we remove all existing inputs which are covered by the potentially new input.
+      // If there are none which are broader than the new one, then we add it.
+      // I hope this is enough for all corner cases, but I am not 100% sure.
+      auto newInputIsBroader = [&potentiallyNewInput](const InputSpec& other) {
+        return DataSpecUtils::includes(potentiallyNewInput, other);
+      };
+      declaredInputs.erase(std::remove_if(declaredInputs.begin(), declaredInputs.end(), newInputIsBroader), declaredInputs.end());
+
+      auto declaredInputIsBroader = [&potentiallyNewInput](const InputSpec& other) {
+        return DataSpecUtils::includes(other, potentiallyNewInput);
+      };
+      if (std::none_of(declaredInputs.begin(), declaredInputs.end(), declaredInputIsBroader)) {
+        declaredInputs.push_back(potentiallyNewInput);
+      }
+    }
+  }
+
+  // add timer input
+  header::DataDescription timerDescription;
+  timerDescription.runtimeInit(("TIMER-" + mName).substr(0, 16).c_str());
+  declaredInputs.emplace_back(InputSpec{"timer-stats", "DS", timerDescription, 0, Lifetime::Timer});
+
+  return declaredInputs;
 }
 
 Outputs Dispatcher::getOutputSpecs()
 {
-  return outputs;
+  Outputs declaredOutputs;
+  for (const auto& policy : mPolicies) {
+    for (const auto& [_policyInput, policyOutput] : policy->getPathMap()) {
+      (void)_policyInput;
+      // In principle Data Sampling Policies should have different outputs.
+      // We may add a check to be very gentle with users.
+      declaredOutputs.push_back(policyOutput);
+    }
+  }
+  return declaredOutputs;
+}
+framework::Options Dispatcher::getOptions()
+{
+  o2::framework::Options options;
+  for (const auto& policy : mPolicies) {
+    if (!policy->getFairMQOutputChannel().empty()) {
+      if (!options.empty()) {
+        throw std::runtime_error("Maximum one policy with raw FairMQ channel is allowed, more have been declared.");
+      }
+      options.push_back({"channel-config", VariantType::String, policy->getFairMQOutputChannel().c_str(), {"Out-of-band channel config"}});
+      LOG(DEBUG) << " - registering output FairMQ channel '" << policy->getFairMQOutputChannel() << "'";
+    }
+  }
+  options.push_back({"period-timer-stats", framework::VariantType::Int, 10 * 1000000, {"Dispatcher's stats timer period"}});
+
+  return options;
 }
 
 } // namespace o2::utilities
