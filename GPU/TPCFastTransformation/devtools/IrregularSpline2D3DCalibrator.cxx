@@ -184,7 +184,6 @@ IrregularSpline2D3DCalibrator::Action IrregularSpline2D3DCalibrator::checkAction
   if (!isSpaceUp && !isSpaceDn) {
     return ret;
   }
-
   // get the area of interest
 
   int regionKnotFirst = knot->rasterKnot;
@@ -234,7 +233,6 @@ IrregularSpline2D3DCalibrator::Action IrregularSpline2D3DCalibrator::checkAction
   if (mSpline.getGrid(uv).getNumberOfKnots() <= 5) {
     return ret;
   }
-
   // get the area of interest
 
   int regionKnotFirst = knot->rasterKnot;

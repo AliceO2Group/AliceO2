@@ -68,7 +68,7 @@ namespace gpu
 class TPCdEdxCalibrationSplines : public FlatObject
 {
  public:
-  typedef Spline2D<float, 1, 1> SplineType;
+  typedef Spline2D<float, 1> SplineType;
 
   /// _____________  Constructors / destructors __________________________
 

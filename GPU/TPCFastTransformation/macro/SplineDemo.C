@@ -17,7 +17,7 @@
 #include "TLine.h"
 #include "GPU/Spline1D.h"
 #include "GPU/IrregularSpline1D.h"
-#include "GPU/SplineHelper1D.h"
+#include "GPU/Spline1DHelper.h"
 #include "Math/Functor.h"
 #include "Math/ChebyshevApprox.h"
 
@@ -28,7 +28,7 @@ int nKnots = 4;
 
 static double Fcoeff[2 * (Fdegree + 1)];
 
-void F(float u, float f[])
+void F(double u, double f[])
 {
   double uu = u * TMath::Pi() / (nKnots - 1);
   f[0] = 0; //Fcoeff[0]/2;
@@ -55,14 +55,14 @@ void F(float u, float f[])
 
 double F1D(double u)
 {
-  float f = 0;
+  double f = 0;
   F(u, &f);
   return f;
 }
 
-float Flocal(float u)
+double Flocal(double u)
 {
-  float f = 0;
+  double f = 0;
   F(u * (nKnots - 1), &f);
   return f;
 }
@@ -134,11 +134,11 @@ int SplineDemo()
       Fcoeff[i] = gRandom->Uniform(-1, 1);
     }
 
-    o2::gpu::Spline1D<float> spline(nKnots, 1);
+    o2::gpu::Spline1D<float, 1> spline(nKnots);
     spline.approximateFunction(0, nKnots - 1, F, nAxiliaryPoints);
 
-    o2::gpu::Spline1D<float> splineClassic(nKnots, 1);
-    o2::gpu::SplineHelper1D<float> helper;
+    o2::gpu::Spline1D<float, 1> splineClassic(nKnots);
+    o2::gpu::Spline1DHelper<float> helper;
     helper.approximateFunctionClassic(splineClassic, 0, nKnots - 1, F);
 
     IrregularSpline1D splineLocal;
@@ -169,8 +169,8 @@ int SplineDemo()
 
     helper.setSpline(spline, 1, nAxiliaryPoints);
     for (int j = 0; j < helper.getNumberOfDataPoints(); j++) {
-      const typename SplineHelper1D<float>::DataPoint& p = helper.getDataPoint(j);
-      float f0;
+      const typename Spline1DHelper<float>::DataPoint& p = helper.getDataPoint(j);
+      double f0;
       F(p.u, &f0);
       double fs = spline.interpolate(spline.convUtoX(p.u));
       if (p.isKnot) {
@@ -210,7 +210,7 @@ int SplineDemo()
     int statN = 0;
     for (float s = 0; s < 1. + stepS; s += stepS) {
       double u = s * (nKnots - 1);
-      float f0;
+      double f0;
       F(u, &f0);
       double fBestFit = spline.interpolate(spline.convUtoX(u));
       double fClass = splineClassic.interpolate(splineClassic.convUtoX(u));

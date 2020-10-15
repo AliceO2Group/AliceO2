@@ -20,27 +20,32 @@
 #pragma link C++ nestedclasses;
 #pragma link C++ nestedtypedef;
 
-//#pragma link C++ function o2::gpu::initSplineLibrary;
-
 #pragma link C++ namespace o2::gpu;
-//#pragma link C++ namespace o2::gpu::test+;
-//#pragma link C++ class o2::gpu::test::A<float>+;
 
+#pragma link C++ class o2::gpu::Spline1DContainer < float> + ;
+#pragma link C++ class o2::gpu::Spline1DContainer < double> + ;
 #pragma link C++ class o2::gpu::Spline1D < float> + ;
 #pragma link C++ class o2::gpu::Spline1D < double> + ;
-#pragma link C++ class o2::gpu::Spline2DBase < float, false> + ;
-#pragma link C++ class o2::gpu::Spline2DBase < double, false> + ;
-#pragma link C++ class o2::gpu::Spline2DBase < float, true> + ;
-#pragma link C++ class o2::gpu::Spline2DBase < double, true> + ;
+#pragma link C++ class o2::gpu::Spline1DHelper < float> + ;
+#pragma link C++ class o2::gpu::Spline1DHelper < double> + ;
+#pragma link C++ class o2::gpu::Spline1DSpec < float, 0, 2> + ;
+#pragma link C++ class o2::gpu::Spline1DSpec < double, 0, 2> + ;
 
-#pragma link C++ class o2::gpu::Spline2D < float, 1> - ;
+#pragma link C++ class o2::gpu::Spline2DContainer < float> + ;
+#pragma link C++ class o2::gpu::Spline2DContainer < double> + ;
+#pragma link C++ class o2::gpu::Spline2D < float> + ;
+#pragma link C++ class o2::gpu::Spline2D < double> + ;
+#pragma link C++ class o2::gpu::Spline2DHelper < float> + ;
+#pragma link C++ class o2::gpu::Spline2DHelper < double> + ;
 
-#pragma link C++ class o2::gpu::SplineHelper1D < float>;
-#pragma link C++ class o2::gpu::SplineHelper1D < double>;
-#pragma link C++ class o2::gpu::SplineHelper2D < float>;
-#pragma link C++ class o2::gpu::SplineHelper2D < double>;
+#pragma link C++ class o2::gpu::SplineContainer < float> + ;
+#pragma link C++ class o2::gpu::SplineContainer < double> + ;
+#pragma link C++ class o2::gpu::Spline < float> + ;
+#pragma link C++ class o2::gpu::Spline < double> + ;
+#pragma link C++ class o2::gpu::SplineHelper < float> + ;
+#pragma link C++ class o2::gpu::SplineHelper < double> + ;
 
-#pragma link C++ class o2::gpu::ChebyshevFit1D;
+#pragma link C++ class o2::gpu::ChebyshevFit1D + ;
 
 #pragma link C++ class o2::gpu::RegularSpline1D + ;
 #pragma link C++ class o2::gpu::IrregularSpline1D + ;
