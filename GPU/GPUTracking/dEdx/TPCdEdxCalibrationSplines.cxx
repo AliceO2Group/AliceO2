@@ -183,7 +183,7 @@ void TPCdEdxCalibrationSplines::setDefaultSplines()
   int offsets1[FSplines];
   int offsets2[FSplines];
 
-  auto defaultFnd2D = [&](float x1, float x2, float f[]) {
+  auto defaultFnd2D = [&](double x1, double x2, double f[]) {
     f[0] = 1.f;
   };
 
