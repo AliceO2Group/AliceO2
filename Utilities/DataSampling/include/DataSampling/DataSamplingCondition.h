@@ -24,7 +24,7 @@
 namespace o2::utilities
 {
 
-/// A standarised data sampling condition, to decide if given data sample should be passed forward.
+/// A standardised data sampling condition, to decide if given data sample should be passed forward.
 class DataSamplingCondition
 {
  public:

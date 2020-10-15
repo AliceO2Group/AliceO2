@@ -14,6 +14,8 @@
 #include <boost/test/unit_test.hpp>
 
 #include "DataSampling/DataSampling.h"
+#include "DataSampling/Dispatcher.h"
+#include "DataSampling/DataSamplingPolicy.h"
 #include "Framework/DataProcessingHeader.h"
 #include "Framework/ExternalFairMQDeviceProxy.h"
 #include "DataSampling/DataSamplingReadoutAdapter.h"
@@ -223,4 +225,79 @@ BOOST_AUTO_TEST_CASE(DataSamplingEmptyConfig)
 
   WorkflowSpec workflow;
   BOOST_CHECK_NO_THROW(DataSampling::GenerateInfrastructure(workflow, configFilePath));
+}
+
+BOOST_AUTO_TEST_CASE(DataSamplingOverlappingInputs)
+{
+  {
+    // policy3 includes 1 and 2, so we should have only one inputspec for data, one for timer
+    Dispatcher dispatcher("dispatcher", "");
+    auto policy1 = std::make_unique<DataSamplingPolicy>("policy1");
+    policy1->registerPath({"vcxz", "TST", "AAAA", 0}, {{"erwv"}, "DS", "AAAA"});
+
+    auto policy2 = std::make_unique<DataSamplingPolicy>("policy2");
+    policy2->registerPath({"fdsa", "TST", "AAAA", 0}, {{"fdsf"}, "DS", "BBBB"});
+
+    auto policy3 = std::make_unique<DataSamplingPolicy>("policy3");
+    policy3->registerPath({"asdf", {"TST", "AAAA"}}, {{"erwv"}, "DS", "CCCC"});
+
+    dispatcher.registerPolicy(std::move(policy1));
+    dispatcher.registerPolicy(std::move(policy2));
+    dispatcher.registerPolicy(std::move(policy3));
+
+    auto inputs = dispatcher.getInputSpecs();
+
+    BOOST_REQUIRE_EQUAL(inputs.size(), 2);
+    BOOST_CHECK_EQUAL(inputs[0], (InputSpec{"asdf", {"TST", "AAAA"}}));
+    BOOST_CHECK_EQUAL(inputs[1], (InputSpec{"timer-stats", "DS", "TIMER-dispatcher", 0, Lifetime::Timer}));
+  }
+
+  {
+    // policy3 includes 1 and 2, so we should have only one inputspec for data, one for timer
+    // same as before, but different order of registration
+    Dispatcher dispatcher("dispatcher", "");
+    auto policy1 = std::make_unique<DataSamplingPolicy>("policy1");
+    policy1->registerPath({"vcxz", "TST", "AAAA", 0}, {{"erwv"}, "DS", "AAAA"});
+
+    auto policy2 = std::make_unique<DataSamplingPolicy>("policy2");
+    policy2->registerPath({"fdsa", "TST", "AAAA", 0}, {{"fdsf"}, "DS", "BBBB"});
+
+    auto policy3 = std::make_unique<DataSamplingPolicy>("policy3");
+    policy3->registerPath({"asdf", {"TST", "AAAA"}}, {{"erwv"}, "DS", "CCCC"});
+
+    dispatcher.registerPolicy(std::move(policy3));
+    dispatcher.registerPolicy(std::move(policy1));
+    dispatcher.registerPolicy(std::move(policy2));
+
+    auto inputs = dispatcher.getInputSpecs();
+
+    BOOST_REQUIRE_EQUAL(inputs.size(), 2);
+    BOOST_CHECK_EQUAL(inputs[0], (InputSpec{"asdf", {"TST", "AAAA"}}));
+    BOOST_CHECK_EQUAL(inputs[1], (InputSpec{"timer-stats", "DS", "TIMER-dispatcher", 0, Lifetime::Timer}));
+  }
+
+  {
+    // three different inputs + timer
+    Dispatcher dispatcher("dispatcher", "");
+    auto policy1 = std::make_unique<DataSamplingPolicy>("policy1");
+    policy1->registerPath({"vcxz", "TST", "AAAA", 0}, {{"erwv"}, "DS", "AAAA"});
+
+    auto policy2 = std::make_unique<DataSamplingPolicy>("policy2");
+    policy2->registerPath({"sfsd", "TST", "BBBB", 0}, {{"fdsf"}, "DS", "BBBB"});
+
+    auto policy3 = std::make_unique<DataSamplingPolicy>("policy3");
+    policy3->registerPath({"asdf", {"TST", "CCCC"}}, {{"erwv"}, "DS", "CCCC"});
+
+    dispatcher.registerPolicy(std::move(policy1));
+    dispatcher.registerPolicy(std::move(policy2));
+    dispatcher.registerPolicy(std::move(policy3));
+
+    auto inputs = dispatcher.getInputSpecs();
+
+    BOOST_REQUIRE_EQUAL(inputs.size(), 4);
+    BOOST_CHECK_EQUAL(inputs[0], (InputSpec{"vcxz", "TST", "AAAA"}));
+    BOOST_CHECK_EQUAL(inputs[1], (InputSpec{"sfsd", "TST", "BBBB"}));
+    BOOST_CHECK_EQUAL(inputs[2], (InputSpec{"asdf", {"TST", "CCCC"}}));
+    BOOST_CHECK_EQUAL(inputs[3], (InputSpec{"timer-stats", "DS", "TIMER-dispatcher", 0, Lifetime::Timer}));
+  }
 }

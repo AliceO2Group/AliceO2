@@ -39,8 +39,8 @@ class DataSamplingPolicy
   class PathMap : public PathVectorBase
   {
    public:
-    ~PathMap() = default;
     PathMap() = default;
+    ~PathMap() = default;
     const PathVectorBase::const_iterator find(const framework::ConcreteDataMatcher& input) const
     {
       return std::find_if(begin(), end(), [input](const auto& el) {
@@ -50,21 +50,33 @@ class DataSamplingPolicy
   };
 
  public:
-  /// \brief Constructor.
-  DataSamplingPolicy();
-  /// \brief Constructor.
-  DataSamplingPolicy(const boost::property_tree::ptree&);
-  /// \brief Destructor
-  ~DataSamplingPolicy();
-
   /// \brief Configures a policy using structured configuration entry.
-  void configure(const boost::property_tree::ptree&);
+  static DataSamplingPolicy fromConfiguration(const boost::property_tree::ptree&);
+
+  /// \brief Constructor.
+  DataSamplingPolicy(std::string name);
+  /// \brief Destructor
+  ~DataSamplingPolicy() = default;
+  /// \brief Move constructor
+  DataSamplingPolicy(DataSamplingPolicy&&) = default;
+  /// \brief Move assignment
+  DataSamplingPolicy& operator=(DataSamplingPolicy&&) = default;
+
+  /// \brief Adds a new association between inputs and outputs.
+  void registerPath(const framework::InputSpec&, const framework::OutputSpec&);
+  /// \brief Adds a new association between inputs and outputs.
+  //  void registerPolicy(framework::InputSpec&&, framework::OutputSpec&&);
+  /// \brief Adds a new sampling condition.
+  void registerCondition(std::unique_ptr<DataSamplingCondition>&&);
+  /// \brief Sets a raw FairMQChannel. Deprecated, do not use.
+  void setFairMQOutputChannel(std::string);
+
   /// \brief Returns true if this policy requires data with given InputSpec.
   bool match(const framework::ConcreteDataMatcher& input) const;
   /// \brief Returns true if user-defined conditions of sampling are fulfilled.
   bool decide(const o2::framework::DataRef&);
   /// \brief Returns Output for given InputSpec to pass data forward.
-  const framework::Output prepareOutput(const framework::ConcreteDataMatcher& input, framework::Lifetime lifetime = framework::Lifetime::Timeframe) const;
+  framework::Output prepareOutput(const framework::ConcreteDataMatcher& input, framework::Lifetime lifetime = framework::Lifetime::Timeframe) const;
 
   const std::string& getName() const;
   const PathMap& getPathMap() const;
