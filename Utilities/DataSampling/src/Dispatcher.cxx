@@ -202,12 +202,11 @@ Inputs Dispatcher::getInputSpecs()
 
   // Add data inputs. Avoid duplicates and inputs which include others (e.g. "TST/DATA" includes "TST/DATA/1".
   for (const auto& policy : mPolicies) {
-    for (const auto& [potentiallyNewInput, _policyOutput] : policy->getPathMap()) {
-      (void)_policyOutput;
+    for (const auto& path : policy->getPathMap()) {
+      auto& potentiallyNewInput = path.first;
 
       // The idea is that we remove all existing inputs which are covered by the potentially new input.
       // If there are none which are broader than the new one, then we add it.
-      // I hope this is enough for all corner cases, but I am not 100% sure.
       auto newInputIsBroader = [&potentiallyNewInput](const InputSpec& other) {
         return DataSpecUtils::includes(potentiallyNewInput, other);
       };
