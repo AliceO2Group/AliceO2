@@ -32,6 +32,7 @@ using namespace o2::header;
 //     "aidlalala2"
 //   ]
 //   "query" : "c:TST/CHLEB/33;m:TST/MLEKO/33",
+//   "outputs" : "cc:TST/CHLEB_S/33;mm:TST/MLEKO_S/33", "": "this is optional, if not specified, default format is used",
 //   "samplingConditions" : [
 //     {
 //       "condition" : "random",
@@ -80,12 +81,36 @@ BOOST_AUTO_TEST_CASE(DataSamplingPolicyFromConfiguration)
   }
 
   config.put("id", "too-long-policy-name");
-
   {
     auto policy = std::move(DataSamplingPolicy::fromConfiguration(config));
     BOOST_CHECK_EQUAL(policy.getName(), "too-long-policy-name");
     BOOST_CHECK((policy.prepareOutput(ConcreteDataMatcher{"TST", "CHLEB", 33})) == (Output{"DS", "too-long-polic0", 33}));
     BOOST_CHECK((policy.prepareOutput(ConcreteDataMatcher{"TST", "MLEKO", 33})) == (Output{"DS", "too-long-polic1", 33}));
+  }
+
+  // with custom outputs
+  config.put("outputs", "cc:TST/CHLEB_S/33;mm:TST/MLEKO_S/33");
+  {
+    auto policy = std::move(DataSamplingPolicy::fromConfiguration(config));
+
+    BOOST_CHECK((policy.prepareOutput(ConcreteDataMatcher{"TST", "CHLEB", 33})) == (Output{"TST", "CHLEB_S", 33}));
+    BOOST_CHECK((policy.prepareOutput(ConcreteDataMatcher{"TST", "MLEKO", 33})) == (Output{"TST", "MLEKO_S", 33}));
+    const auto& map = policy.getPathMap();
+    BOOST_CHECK((*map.find(ConcreteDataMatcher{"TST", "CHLEB", 33})).second == (OutputSpec{"TST", "CHLEB_S", 33}));
+    BOOST_CHECK((*map.find(ConcreteDataMatcher{"TST", "MLEKO", 33})).second == (OutputSpec{"TST", "MLEKO_S", 33}));
+    BOOST_CHECK_EQUAL(map.size(), 2);
+  }
+  // with custom outputs which are wildcards
+  config.put("outputs", "cc:TST/CHLEB_S;mm:TST/MLEKO_S");
+  {
+    auto policy = std::move(DataSamplingPolicy::fromConfiguration(config));
+
+    BOOST_CHECK((policy.prepareOutput(ConcreteDataMatcher{"TST", "CHLEB", 33})) == (Output{"TST", "CHLEB_S", 33}));
+    BOOST_CHECK((policy.prepareOutput(ConcreteDataMatcher{"TST", "MLEKO", 33})) == (Output{"TST", "MLEKO_S", 33}));
+    const auto& map = policy.getPathMap();
+    BOOST_CHECK((*map.find(ConcreteDataMatcher{"TST", "CHLEB", 33})).second == (OutputSpec{{"TST", "CHLEB_S"}}));
+    BOOST_CHECK((*map.find(ConcreteDataMatcher{"TST", "MLEKO", 33})).second == (OutputSpec{{"TST", "MLEKO_S"}}));
+    BOOST_CHECK_EQUAL(map.size(), 2);
   }
 }
 
