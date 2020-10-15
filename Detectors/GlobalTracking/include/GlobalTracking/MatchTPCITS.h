@@ -30,7 +30,7 @@
 #include "DetectorsBase/Propagator.h"
 #include "ReconstructionDataFormats/Track.h"
 #include "ReconstructionDataFormats/TrackTPCITS.h"
-#include "MathUtils/Bracket.h"
+#include "MathUtils/Primitive2D.h"
 #include "CommonDataFormat/EvIndex.h"
 #include "CommonDataFormat/InteractionRecord.h"
 #include "CommonDataFormat/RangeReference.h"
@@ -101,11 +101,11 @@ enum TrackRejFlag : int {
 ///< TPC track parameters propagated to reference X, with time bracket and index of
 ///< original track in the currently loaded TPC reco output
 struct TrackLocTPC : public o2::track::TrackParCov {
-  o2::math_utils::Bracket<float> timeBins; ///< bracketing time-bins
-  int sourceID = 0;                        ///< track origin id
-  float zMin = 0;                          // min possible Z of this track
-  float zMax = 0;                          // max possible Z of this track
-  int matchID = MinusOne;                  ///< entry (non if MinusOne) of its matchTPC struct in the mMatchesTPC
+  o2::math_utils::Bracketf_t timeBins; ///< bracketing time-bins
+  int sourceID = 0;                    ///< track origin id
+  float zMin = 0;                      // min possible Z of this track
+  float zMax = 0;                      // max possible Z of this track
+  int matchID = MinusOne;              ///< entry (non if MinusOne) of its matchTPC struct in the mMatchesTPC
   TrackLocTPC(const o2::track::TrackParCov& src, int tid) : o2::track::TrackParCov(src), sourceID(tid) {}
   TrackLocTPC() = default;
   ClassDefNV(TrackLocTPC, 1);

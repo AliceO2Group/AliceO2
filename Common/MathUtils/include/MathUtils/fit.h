@@ -39,8 +39,6 @@ namespace o2
 {
 namespace math_utils
 {
-namespace math_base
-{
 /// fit 1D array of histogrammed data with generic root function
 ///
 /// The code was extracted out of ROOT to be able to do fitting on an array with histogrammed data
@@ -528,7 +526,6 @@ bool LTMUnbinnedSig(const std::vector<T>& data, std::vector<size_t>& index, std:
   params[4] = params[3] / std::sqrt(2.0);       // error on RMS
   return true;
 }
-} // namespace math_base
 } // namespace math_utils
 } // namespace o2
 #endif

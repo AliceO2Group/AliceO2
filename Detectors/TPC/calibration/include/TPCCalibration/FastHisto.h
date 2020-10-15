@@ -17,7 +17,7 @@
 #define AliceO2_TPC_FastHisto_H
 
 //o2 includes
-#include "MathUtils/MathBase.h"
+#include "MathUtils/fit.h"
 #include "Framework/Logger.h"
 #include <sstream>
 #include <vector>
@@ -94,7 +94,7 @@ class FastHisto
   /// \return this function returns the truncated mean for the filled histogram
   /// \param low lower truncation range
   /// \param high upper truncation range
-  math_utils::math_base::StatisticsData getStatisticsData(const float low = 0.05f, const float high = 0.6f) const;
+  math_utils::StatisticsData getStatisticsData(const float low = 0.05f, const float high = 0.6f) const;
 
   /// \return this function returns the bin content for given index
   /// \param index the index (bin) for which the content is returned
@@ -186,7 +186,7 @@ inline void FastHisto<T>::fill(T val, T weight)
 template <class T>
 inline void FastHisto<T>::print(const int prec) const
 {
-  const math_utils::math_base::StatisticsData data = getStatisticsData();
+  const math_utils::StatisticsData data = getStatisticsData();
   LOGP(info, "\n Entries: {}", std::accumulate(mBinCont.begin(), mBinCont.end(), 0));
   LOGP(info, "Truncated Mean: {}", data.mCOG);
   LOGP(info, "Standard Deviation: {}", data.mStdDev);
@@ -243,9 +243,9 @@ inline void FastHisto<T>::print(const int prec) const
 }
 
 template <class T>
-inline math_utils::math_base::StatisticsData FastHisto<T>::getStatisticsData(const float low, const float high) const
+inline math_utils::StatisticsData FastHisto<T>::getStatisticsData(const float low, const float high) const
 {
-  math_utils::math_base::StatisticsData data{};
+  math_utils::StatisticsData data{};
   // in case something went wrong the COG is the histogram lower limit
   data.mCOG = mXmin;
   if (mBinCont.size() == 0) {
