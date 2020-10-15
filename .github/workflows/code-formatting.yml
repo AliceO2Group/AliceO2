@@ -72,7 +72,7 @@ jobs:
           echo "Opening a PR to your branch with the fixes"
           git commit -m "Please consider the following formatting changes" -a
           git show | cat
-          git fetch --unshallow https://github.com/AliceO2Group/AliceO2.git pull/${{ github.event.pull_request.number }}/head
+          git fetch https://github.com/AliceO2Group/AliceO2.git pull/${{ github.event.pull_request.number }}/head
           git push --set-upstream https://alibuild:$ALIBUILD_GITHUB_TOKEN@github.com/alibuild/AliceO2.git HEAD:refs/heads/alibot-cleanup-${{ github.event.pull_request.number }} -f
           echo ::set-output name=clean::false
         fi
