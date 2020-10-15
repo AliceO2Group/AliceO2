@@ -200,7 +200,9 @@ class Compressor
     uint8_t trmErrors[10][2];
     bool hasHits[10][2];
     bool hasErrors[10][2];
-    bool decodeError;
+    bool drmDecodeError;
+    bool ltmDecodeError;
+    bool trmDecodeError[10];
   } mDecoderSummary = {nullptr};
 
   struct SpiderSummary_t {

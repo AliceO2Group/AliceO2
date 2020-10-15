@@ -476,6 +476,7 @@ bool Compressor<RDH, verbose>::processDRM()
 
     /** decode error **/
     mDecoderError = true;
+    mDecoderSummary.drmDecodeError = true;
 
     if (verbose && mDecoderVerbose) {
       printf("%s %08x [ERROR] trying to recover DRM decode stream %s \n", colorRed, *mDecoderPointer, colorReset);
@@ -617,6 +618,7 @@ bool Compressor<RDH, verbose>::processTRM()
 
     /** decode error **/
     mDecoderError = true;
+    mDecoderSummary.trmDecodeError[itrm] = true;
     if (verbose && mDecoderVerbose) {
       printf("%s %08x [ERROR] breaking TRM decode stream %s \n", colorRed, *mDecoderPointer, colorReset);
     }
@@ -714,6 +716,7 @@ bool Compressor<RDH, verbose>::processTRMchain(int itrm, int ichain)
 
     /** decode error **/
     mDecoderError = true;
+    mDecoderSummary.trmDecodeError[itrm] = true;
     if (verbose && mDecoderVerbose) {
       printf("%s %08x [ERROR] breaking TRM Chain-%c decode stream %s \n", colorRed, *mDecoderPointer, ichain == 0 ? 'A' : 'B', colorReset);
     }
@@ -896,6 +899,15 @@ bool Compressor<RDH, verbose>::checkerCheck()
     return true;
   }
 
+  /** check DRM decode error **/
+  if (mDecoderSummary.drmDecodeError) {
+    mCheckerSummary.DiagnosticWord[0] |= diagnostic::DRM_DECODE_ERROR;
+    if (verbose && mCheckerVerbose) {
+      printf(" DRM decode error \n");
+    }
+    mDecoderSummary.drmDecodeError = false;
+  }
+
   /** check DRM Data Trailer **/
   if (verbose && mCheckerVerbose) {
     printf(" --- Checking DRM Data Trailer: %p \n", mDecoderSummary.drmDataTrailer);
@@ -1067,6 +1079,15 @@ bool Compressor<RDH, verbose>::checkerCheck()
       mDecoderSummary.trmErrors[itrm][0] = 0;
       mDecoderSummary.trmErrors[itrm][1] = 0;
       continue;
+    }
+
+    /** check TRM decode error **/
+    if (mDecoderSummary.trmDecodeError[itrm]) {
+      mCheckerSummary.DiagnosticWord[iword] |= diagnostic::TRM_DECODE_ERROR;
+      if (verbose && mCheckerVerbose) {
+        printf(" Decode error in TRM (slotId=%u) \n", slotId);
+      }
+      mDecoderSummary.trmDecodeError[itrm] = false;
     }
 
     /** check TRM Data Trailer **/
