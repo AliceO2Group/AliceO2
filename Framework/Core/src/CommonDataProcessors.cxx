@@ -82,7 +82,7 @@ DataProcessorSpec CommonDataProcessors::getHistogramRegistrySink(outputObjects c
       LOG(DEBUG) << "Writing merged histograms to file";
       if (inputObjects->empty()) {
         LOG(ERROR) << "Output object map is empty!";
-        context.services().get<ControlService>().readyToQuit(QuitRequest::All);
+        context.services().get<ControlService>().readyToQuit(QuitRequest::Me);
         return;
       }
       std::string currentDirectory = "";
@@ -115,7 +115,7 @@ DataProcessorSpec CommonDataProcessors::getHistogramRegistrySink(outputObjects c
         }
       }
       LOG(INFO) << "All outputs merged in their respective target files";
-      context.services().get<ControlService>().readyToQuit(QuitRequest::All);
+      context.services().get<ControlService>().readyToQuit(QuitRequest::Me);
     };
 
     callbacks.set(CallbackService::Id::EndOfStream, endofdatacb);
@@ -211,7 +211,7 @@ DataProcessorSpec CommonDataProcessors::getOutputObjSink(outputObjects const& ob
       LOG(DEBUG) << "Writing merged objects to file";
       if (inputObjects->empty()) {
         LOG(ERROR) << "Output object map is empty!";
-        context.services().get<ControlService>().readyToQuit(QuitRequest::All);
+        context.services().get<ControlService>().readyToQuit(QuitRequest::Me);
         return;
       }
       std::string currentDirectory = "";
@@ -244,7 +244,7 @@ DataProcessorSpec CommonDataProcessors::getOutputObjSink(outputObjects const& ob
         }
       }
       LOG(DEBUG) << "All outputs merged in their respective target files";
-      context.services().get<ControlService>().readyToQuit(QuitRequest::All);
+      context.services().get<ControlService>().readyToQuit(QuitRequest::Me);
     };
 
     callbacks.set(CallbackService::Id::EndOfStream, endofdatacb);
@@ -426,7 +426,7 @@ DataProcessorSpec
     auto endofdatacb = [dod](EndOfStreamContext& context) {
       dod->closeDataFiles();
 
-      context.services().get<ControlService>().readyToQuit(QuitRequest::All);
+      context.services().get<ControlService>().readyToQuit(QuitRequest::Me);
     };
 
     auto& callbacks = ic.services().get<CallbackService>();
