@@ -63,3 +63,9 @@ o2_add_dpl_workflow(raacharged
                     PUBLIC_LINK_LIBRARIES O2::Framework O2::AnalysisDataModel O2::AnalysisCore
                     COMPONENT_NAME Analysis)
 
+o2_add_dpl_workflow(track-checks
+                    SOURCES trackchecks.cxx
+                    PUBLIC_LINK_LIBRARIES O2::Framework O2::AnalysisDataModel O2::AnalysisCore O2::DetectorsBase
+                    COMPONENT_NAME Analysis)
+
+
