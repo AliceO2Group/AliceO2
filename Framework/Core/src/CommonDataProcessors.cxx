@@ -31,6 +31,7 @@
 #include "Framework/StringHelpers.h"
 #include "Framework/ChannelSpec.h"
 #include "Framework/ExternalFairMQDeviceProxy.h"
+#include "Framework/RuntimeError.h"
 
 #include "TFile.h"
 #include "TTree.h"
@@ -40,7 +41,6 @@
 #include <ROOT/RArrowDS.hxx>
 #include <ROOT/RVec.hxx>
 #include <chrono>
-#include <exception>
 #include <fstream>
 #include <functional>
 #include <memory>
@@ -518,7 +518,7 @@ DataProcessorSpec
     auto keepString = ic.options().get<std::string>("keep");
 
     if (filename.empty()) {
-      throw std::runtime_error("output file missing");
+      throw runtime_error("output file missing");
     }
 
     bool hasOutputsToWrite = false;

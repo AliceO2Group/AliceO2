@@ -30,6 +30,7 @@
 #include "Framework/WorkflowSpec.h"
 #include "Framework/ComputingResource.h"
 #include "Framework/Logger.h"
+#include "Framework/RuntimeError.h"
 
 #include "WorkflowHelpers.h"
 
@@ -110,7 +111,7 @@ struct ExpirationHandlerHelpers {
     /// FIXME: seems convoluted... Maybe there is a way to avoid all this checking???
     auto m = std::get_if<ConcreteDataMatcher>(&spec.matcher);
     if (m == nullptr) {
-      throw std::runtime_error("InputSpec for Conditions must be fully qualified");
+      throw runtime_error("InputSpec for Conditions must be fully qualified");
     }
 
     return [s = spec, matcher = *m, sourceChannel](DeviceState&, ConfigParamRegistry const& options) {
@@ -151,7 +152,7 @@ struct ExpirationHandlerHelpers {
   {
     auto m = std::get_if<ConcreteDataMatcher>(&spec.matcher);
     if (m == nullptr) {
-      throw std::runtime_error("InputSpec for Timers must be fully qualified");
+      throw runtime_error("InputSpec for Timers must be fully qualified");
     }
     // We copy the matcher to avoid lifetime issues.
     return [matcher = *m, sourceChannel](DeviceState&, ConfigParamRegistry const&) { return LifetimeHelpers::enumerate(matcher, sourceChannel); };
@@ -161,7 +162,7 @@ struct ExpirationHandlerHelpers {
   {
     auto m = std::get_if<ConcreteDataMatcher>(&spec.matcher);
     if (m == nullptr) {
-      throw std::runtime_error("InputSpec for Enumeration must be fully qualified");
+      throw runtime_error("InputSpec for Enumeration must be fully qualified");
     }
     // We copy the matcher to avoid lifetime issues.
     return [matcher = *m, sourceChannel](DeviceState&, ConfigParamRegistry const&) {
@@ -752,7 +753,7 @@ void DeviceSpecHelpers::dataProcessorSpecs2DeviceSpecs(const WorkflowSpec& workf
       }
       return deviceEdge.deviceIndex;
     }
-    throw std::runtime_error("Unable to find device.");
+    throw runtime_error("Unable to find device.");
   };
 
   // Optimize the topology when two devices are
@@ -789,7 +790,7 @@ void DeviceSpecHelpers::reworkShmSegmentSize(std::vector<DataProcessorInfo>& inf
     }
     auto value = it + 1;
     if (value == info.cmdLineArgs.end()) {
-      throw std::runtime_error("--shm-segment-size requires an argument");
+      throw runtime_error("--shm-segment-size requires an argument");
     }
     char* err = nullptr;
     int64_t size = strtoll(value->c_str(), &err, 10);

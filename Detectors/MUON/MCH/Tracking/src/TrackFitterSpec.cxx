@@ -94,7 +94,7 @@ class TrackFitterTask
       try {
         mTrackFitter.fit(track);
       } catch (exception const& e) {
-        throw runtime_error(std::string("Track fit failed: ") + e.what());
+        throw std::runtime_error(std::string("Track fit failed: ") + e.what());
       }
 
       // write the refitted track to the ouput message

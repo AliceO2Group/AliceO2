@@ -22,7 +22,7 @@ using namespace o2::framework;
 using DataHeader = o2::header::DataHeader;
 using Stack = o2::header::Stack;
 
-bool any_exception(std::exception const& ex) { return true; }
+bool any_exception(RuntimeErrorRef const& ex) { return true; }
 
 BOOST_AUTO_TEST_CASE(TestInputRecord)
 {
@@ -48,12 +48,12 @@ BOOST_AUTO_TEST_CASE(TestInputRecord)
   // bunch of exceptions.
   InputRecord emptyRecord(schema, {[](size_t) { return DataRef{nullptr, nullptr, nullptr}; }, 0});
 
-  BOOST_CHECK_EXCEPTION(emptyRecord.get("x"), std::exception, any_exception);
-  BOOST_CHECK_EXCEPTION(emptyRecord.get("y"), std::exception, any_exception);
-  BOOST_CHECK_EXCEPTION(emptyRecord.get("z"), std::exception, any_exception);
-  BOOST_CHECK_EXCEPTION(emptyRecord.getByPos(0), std::exception, any_exception);
-  BOOST_CHECK_EXCEPTION(emptyRecord.getByPos(1), std::exception, any_exception);
-  BOOST_CHECK_EXCEPTION(emptyRecord.getByPos(2), std::exception, any_exception);
+  BOOST_CHECK_EXCEPTION(emptyRecord.get("x"), RuntimeErrorRef, any_exception);
+  BOOST_CHECK_EXCEPTION(emptyRecord.get("y"), RuntimeErrorRef, any_exception);
+  BOOST_CHECK_EXCEPTION(emptyRecord.get("z"), RuntimeErrorRef, any_exception);
+  BOOST_CHECK_EXCEPTION(emptyRecord.getByPos(0), RuntimeErrorRef, any_exception);
+  BOOST_CHECK_EXCEPTION(emptyRecord.getByPos(1), RuntimeErrorRef, any_exception);
+  BOOST_CHECK_EXCEPTION(emptyRecord.getByPos(2), RuntimeErrorRef, any_exception);
   // Then we actually check with a real set of inputs.
 
   std::vector<void*> inputs;
@@ -97,13 +97,13 @@ BOOST_AUTO_TEST_CASE(TestInputRecord)
   auto ref00 = record.get("x");
   auto ref10 = record.get("y");
   auto ref20 = record.get("z");
-  BOOST_CHECK_EXCEPTION(record.get("err"), std::exception, any_exception);
+  BOOST_CHECK_EXCEPTION(record.get("err"), RuntimeErrorRef, any_exception);
 
   // Or we can get it positionally
   BOOST_CHECK_NO_THROW(record.get("x"));
   auto ref01 = record.getByPos(0);
   auto ref11 = record.getByPos(1);
-  BOOST_CHECK_EXCEPTION(record.getByPos(10), std::exception, any_exception);
+  BOOST_CHECK_EXCEPTION(record.getByPos(10), RuntimeErrorRef, any_exception);
 
   // This should be exactly the same pointers
   BOOST_CHECK_EQUAL(ref00.header, ref01.header);

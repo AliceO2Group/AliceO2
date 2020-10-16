@@ -82,7 +82,7 @@ AlgorithmSpec AODReaderHelpers::aodSpawnerCallback(std::vector<InputSpec> reques
         } else if (description == header::DataDescription{"MUON"}) {
           outputs.adopt(Output{origin, description}, maker(o2::aod::MuonsExtensionMetadata{}));
         } else {
-          throw std::runtime_error("Not an extended table");
+          throw runtime_error("Not an extended table");
         }
       }
     };

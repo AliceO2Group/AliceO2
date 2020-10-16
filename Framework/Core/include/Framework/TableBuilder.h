@@ -15,6 +15,7 @@
 #include "Framework/StructToTuple.h"
 #include "Framework/FunctionalHelpers.h"
 #include "Framework/VariantHelpers.h"
+#include "Framework/RuntimeError.h"
 #include "arrow/type_traits.h"
 
 // Apparently needs to be on top of the arrow includes.
@@ -28,7 +29,6 @@
 #include <arrow/builder.h>
 
 #include <functional>
-#include <stdexcept>
 #include <vector>
 #include <string>
 #include <memory>
@@ -179,13 +179,13 @@ struct BuilderUtils {
     }
     if constexpr (std::is_same_v<decltype(holder.builder), std::unique_ptr<arrow::FixedSizeListBuilder>>) {
       if (appendToList<std::remove_pointer_t<decltype(info.ptr)>>(holder.builder, info.ptr, info.size).ok() == false) {
-        throw std::runtime_error("Unable to append to column");
+        throw runtime_error("Unable to append to column");
       } else {
         return arrow::Status::OK();
       }
     } else {
       if (holder.builder->AppendValues(info.ptr, info.size, nullptr).ok() == false) {
-        throw std::runtime_error("Unable to append to column");
+        throw runtime_error("Unable to append to column");
       } else {
         return arrow::Status::OK();
       }
@@ -214,7 +214,7 @@ struct BuilderUtils {
     auto valueBuilder = reinterpret_cast<ValueBuilderType*>(holder.builder->value_builder());
     status &= valueBuilder->AppendValues(&*ip.first, std::distance(ip.first, ip.second));
     if (!status.ok()) {
-      throw std::runtime_error("Unable to append values to valueBuilder!");
+      throw runtime_error("Unable to append values to valueBuilder!");
     }
     return;
   }
@@ -572,10 +572,10 @@ class TableBuilder
   {
     constexpr int nColumns = sizeof...(ARGS);
     if (nColumns != columnNames.size()) {
-      throw std::runtime_error("Mismatching number of column types and names");
+      throw runtime_error("Mismatching number of column types and names");
     }
     if (mHolders != nullptr) {
-      throw std::runtime_error("TableBuilder::persist can only be invoked once per instance");
+      throw runtime_error("TableBuilder::persist can only be invoked once per instance");
     }
   }
 
@@ -598,7 +598,7 @@ class TableBuilder
     mFinalizer = [schema = mSchema, &arrays = mArrays, holders = mHolders]() -> void {
       auto status = TableBuilderHelpers::finalize(arrays, *(HoldersTuple<ARGS...>*)holders, std::make_index_sequence<sizeof...(ARGS)>{});
       if (status == false) {
-        throw std::runtime_error("Unable to finalize");
+        throw runtime_error("Unable to finalize");
       }
     };
   }
@@ -660,7 +660,7 @@ class TableBuilder
     return [holders = mHolders](unsigned int slot, FillTuple const& t) -> void {
       auto status = TableBuilderHelpers::append(*(HoldersTuple<ARGS...>*)holders, std::index_sequence_for<ARGS...>{}, t);
       if (status == false) {
-        throw std::runtime_error("Unable to append");
+        throw runtime_error("Unable to append");
       }
     };
   }
@@ -799,14 +799,14 @@ auto spawner(framework::pack<C...> columns, arrow::Table* atable)
   while (true) {
     auto s = reader.ReadNext(&batch);
     if (!s.ok()) {
-      throw std::runtime_error(fmt::format("Cannot read batches from table: {}", s.ToString()));
+      throw runtime_error_f("Cannot read batches from table: %s", s.ToString().c_str());
     }
     if (batch == nullptr) {
       break;
     }
     s = projectors->Evaluate(*batch, arrow::default_memory_pool(), &v);
     if (!s.ok()) {
-      throw std::runtime_error(fmt::format("Cannot apply projector: {}", s.ToString()));
+      throw runtime_error_f("Cannot apply projector: %s", s.ToString().c_str());
     }
     for (auto i = 0u; i < sizeof...(C); ++i) {
       chunks[i].emplace_back(v.at(i));

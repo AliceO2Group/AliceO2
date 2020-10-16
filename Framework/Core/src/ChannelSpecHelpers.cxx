@@ -8,10 +8,10 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 #include "ChannelSpecHelpers.h"
+#include "Framework/RuntimeError.h"
 #include <fmt/format.h>
 #include <ostream>
 #include <cassert>
-#include <stdexcept>
 #if 0
 #include <filesystem>
 namespace fs = std::filesystem;
@@ -49,7 +49,7 @@ char const* ChannelSpecHelpers::typeAsString(enum ChannelType type)
     case ChannelType::Pair:
       return "pair";
   }
-  throw std::runtime_error("Unknown ChannelType");
+  throw runtime_error("Unknown ChannelType");
 }
 
 char const* ChannelSpecHelpers::methodAsString(enum ChannelMethod method)
@@ -60,7 +60,7 @@ char const* ChannelSpecHelpers::methodAsString(enum ChannelMethod method)
     case ChannelMethod::Connect:
       return "connect";
   }
-  throw std::runtime_error("Unknown ChannelMethod");
+  throw runtime_error("Unknown ChannelMethod");
 }
 
 std::string ChannelSpecHelpers::channelUrl(OutputChannelSpec const& channel)

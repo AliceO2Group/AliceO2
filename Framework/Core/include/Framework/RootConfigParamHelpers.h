@@ -11,6 +11,7 @@
 #define O2_FRAMEWORK_ROOTCONFIGPARAMHELPERS_H_
 
 #include "Framework/ConfigParamSpec.h"
+#include "Framework/RuntimeError.h"
 #include <TClass.h>
 #include <boost/property_tree/ptree_fwd.hpp>
 #include <type_traits>
@@ -34,7 +35,7 @@ struct RootConfigParamHelpers {
   {
     auto cl = TClass::GetClass<T>();
     if (!cl) {
-      throw std::runtime_error(std::string("Unable to convert object ") + typeid(T).name());
+      throw runtime_error_f("Unable to convert object %s", typeid(T).name());
     }
 
     return asConfigParamSpecsImpl(mainKey, cl, reinterpret_cast<void*>(const_cast<T*>(&proto)));

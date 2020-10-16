@@ -17,11 +17,10 @@
 #include "Framework/TypeTraits.h"
 #include "Headers/DataHeader.h"
 #include "Framework/CheckTypes.h"
+#include "Framework/RuntimeError.h"
 
 #include <gsl/gsl>
 
-#include <stdexcept>
-#include <sstream>
 #include <type_traits>
 
 namespace o2::framework
@@ -40,10 +39,10 @@ struct DataRefUtils {
       using DataHeader = o2::header::DataHeader;
       auto header = o2::header::get<const DataHeader*>(ref.header);
       if (header->payloadSerializationMethod != o2::header::gSerializationMethodNone) {
-        throw std::runtime_error("Attempt to extract a POD from a wrong message kind");
+        throw runtime_error("Attempt to extract a POD from a wrong message kind");
       }
       if ((header->payloadSize % sizeof(T)) != 0) {
-        throw std::runtime_error("Cannot extract POD from message as size do not match");
+        throw runtime_error("Cannot extract POD from message as size do not match");
       }
       //FIXME: provide a const collection
       return gsl::span<T>(reinterpret_cast<T*>(const_cast<char*>(ref.payload)), header->payloadSize / sizeof(T));
@@ -61,7 +60,7 @@ struct DataRefUtils {
         using DataHeader = o2::header::DataHeader;
         auto header = o2::header::get<const DataHeader*>(ref.header);
         if (header->payloadSerializationMethod != o2::header::gSerializationMethodROOT) {
-          throw std::runtime_error("Attempt to extract a TMessage from non-ROOT serialised message");
+          throw runtime_error("Attempt to extract a TMessage from non-ROOT serialised message");
         }
 
         typename RSS::FairTMessage ftm(const_cast<char*>(ref.payload), header->payloadSize);
@@ -72,11 +71,8 @@ struct DataRefUtils {
 
         auto* object = ftm.ReadObjectAny(storedClass);
         if (object == nullptr) {
-          std::ostringstream ss;
-          ss << "Failed to read object with name "
-             << (storedClass != nullptr ? storedClass->GetName() : "<unknown>")
-             << " from message using ROOT serialization.";
-          throw std::runtime_error(ss.str());
+          throw runtime_error_f("Failed to read object with name %s from message using ROOT serialization.",
+                                (storedClass != nullptr ? storedClass->GetName() : "<unknown>"));
         }
 
         if constexpr (std::is_base_of<typename RSS::TObject, T>::value) { // compile time switch
@@ -106,13 +102,9 @@ struct DataRefUtils {
             (*delfunc)(object);
           }
 
-          std::ostringstream ss;
-          ss << "Attempting to extract a "
-             << (requestedClass != nullptr ? requestedClass->GetName() : "<unknown>")
-             << " but a "
-             << (storedClass != nullptr ? storedClass->GetName() : "<unknown>")
-             << " is actually stored which cannot be casted to the requested one.";
-          throw std::runtime_error(ss.str());
+          throw runtime_error_f("Attempting to extract a %s but a %s is actually stored which cannot be casted to the requested one.",
+                                (requestedClass != nullptr ? requestedClass->GetName() : "<unknown>"),
+                                (storedClass != nullptr ? storedClass->GetName() : "<unknown>"));
         }
         // collections in ROOT can be non-owning or owning and the proper cleanup depends on
         // this flag. Be it a bug or a feature in ROOT, but the owning flag of the extracted
@@ -139,24 +131,17 @@ struct DataRefUtils {
 
         auto header = o2::header::get<const DataHeader*>(ref.header);
         if (header->payloadSerializationMethod != o2::header::gSerializationMethodROOT) {
-          throw std::runtime_error("Attempt to extract a TMessage from non-ROOT serialised message");
+          throw runtime_error("Attempt to extract a TMessage from non-ROOT serialised message");
         }
         auto* cl = RSS::TClass::GetClass(typeid(wrapped));
         if (has_root_dictionary<wrapped>::value == false && cl == nullptr) {
-          throw std::runtime_error("ROOT serialization not supported, dictionary not found for data type");
+          throw runtime_error("ROOT serialization not supported, dictionary not found for data type");
         }
 
         typename RSS::FairTMessage ftm(const_cast<char*>(ref.payload), header->payloadSize);
         result.reset(static_cast<wrapped*>(ftm.ReadObjectAny(cl)));
         if (result.get() == nullptr) {
-          std::ostringstream ss;
-          ss << "Unable to extract class ";
-          if (cl == nullptr) {
-            ss << "<name not available>";
-          } else {
-            ss << cl->GetName();
-          }
-          throw std::runtime_error(ss.str());
+          throw runtime_error_f("Unable to extract class %s", cl == nullptr ? "<name not available>" : cl->GetName());
         }
         // workaround for ROOT feature, see above
         if constexpr (has_root_setowner<T>::value) {

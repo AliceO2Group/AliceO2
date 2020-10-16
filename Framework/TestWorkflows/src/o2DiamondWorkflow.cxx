@@ -42,6 +42,7 @@ AlgorithmSpec simplePipe(std::string const& what, int minDelay)
   return AlgorithmSpec{adaptStateful([what, minDelay]() {
     srand(getpid());
     return adaptStateless([what, minDelay](DataAllocator& outputs) {
+      throw runtime_error_f("This is an error %d", 1);
       std::this_thread::sleep_for(std::chrono::seconds((rand() % 5) + minDelay));
       auto& bData = outputs.make<int>(OutputRef{what}, 1);
     });

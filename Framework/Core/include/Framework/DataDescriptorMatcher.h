@@ -12,6 +12,7 @@
 
 #include "Framework/ConcreteDataMatcher.h"
 #include "Framework/DataProcessingHeader.h"
+#include "Framework/RuntimeError.h"
 #include "Headers/DataHeader.h"
 #include "Headers/Stack.h"
 

@@ -15,12 +15,10 @@
 
 #include <algorithm>
 #include <array>
-#include <exception>
 #include <functional>
 #include <string>
 #include <type_traits>
 #include <typeinfo>
-#include <stdexcept>
 #include <thread>
 
 namespace o2::framework

@@ -11,6 +11,7 @@
 #include "../src/ExpressionHelpers.h"
 #include "Framework/VariantHelpers.h"
 #include "Framework/Logger.h"
+#include "Framework/RuntimeError.h"
 #include "gandiva/tree_expr_builder.h"
 #include "arrow/table.h"
 #include "fmt/format.h"
@@ -89,7 +90,7 @@ std::string upcastTo(atype::type f)
     case atype::DOUBLE:
       return "castFLOAT8";
     default:
-      throw std::runtime_error(fmt::format("Do not know how to cast to {}", f));
+      throw runtime_error_f("Do not know how to cast to %d", f);
   }
 }
 
@@ -241,7 +242,7 @@ Operations createOperations(Filter const& expression)
   auto inferResultType = [&resultTypes](DatumSpec& left, DatumSpec& right) {
     // if the left datum is monostate (error)
     if (left.datum.index() == 0) {
-      throw std::runtime_error("Malformed operation spec: empty left datum");
+      throw runtime_error("Malformed operation spec: empty left datum");
     }
 
     // check if the datums are references
@@ -289,7 +290,7 @@ Operations createOperations(Filter const& expression)
     if (t1 == atype::DOUBLE) {
       return atype::DOUBLE;
     }
-    throw std::runtime_error(fmt::format("Invalid combination of argument types {} and {}", t1, t2));
+    throw runtime_error_f("Invalid combination of argument types %d and %d", t1, t2);
   };
 
   for (auto it = OperationSpecs.rbegin(); it != OperationSpecs.rend(); ++it) {
@@ -321,11 +322,10 @@ std::shared_ptr<gandiva::Filter>
   auto s = gandiva::Filter::Make(Schema,
                                  makeCondition(createExpressionTree(opSpecs, Schema)),
                                  &filter);
-  if (s.ok()) {
-    return filter;
-  } else {
-    throw std::runtime_error(fmt::format("Failed to create filter: {}", s.ToString()));
+  if (!s.ok()) {
+    throw runtime_error_f("Failed to create filter: %s", s.ToString().c_str());
   }
+  return filter;
 }
 
 std::shared_ptr<gandiva::Filter>
@@ -335,11 +335,10 @@ std::shared_ptr<gandiva::Filter>
   auto s = gandiva::Filter::Make(Schema,
                                  condition,
                                  &filter);
-  if (s.ok()) {
-    return filter;
-  } else {
-    throw std::runtime_error(fmt::format("Failed to create filter: {}", s.ToString()));
+  if (!s.ok()) {
+    throw runtime_error_f("Failed to create filter: %s", s.ToString().c_str());
   }
+  return filter;
 }
 
 std::shared_ptr<gandiva::Projector>
@@ -349,11 +348,10 @@ std::shared_ptr<gandiva::Projector>
   auto s = gandiva::Projector::Make(Schema,
                                     {makeExpression(createExpressionTree(opSpecs, Schema), result)},
                                     &projector);
-  if (s.ok()) {
-    return projector;
-  } else {
-    throw std::runtime_error(fmt::format("Failed to create projector: {}", s.ToString()));
+  if (!s.ok()) {
+    throw runtime_error_f("Failed to create projector: %s", s.ToString().c_str());
   }
+  return projector;
 }
 
 std::shared_ptr<gandiva::Projector>
@@ -369,21 +367,21 @@ Selection createSelection(std::shared_ptr<arrow::Table> table, std::shared_ptr<g
                                                arrow::default_memory_pool(),
                                                &selection);
   if (!s.ok()) {
-    throw std::runtime_error(fmt::format("Cannot allocate selection vector {}", s.ToString()));
+    throw runtime_error_f("Cannot allocate selection vector %s", s.ToString().c_str());
   }
   arrow::TableBatchReader reader(*table);
   std::shared_ptr<arrow::RecordBatch> batch;
   while (true) {
     s = reader.ReadNext(&batch);
     if (!s.ok()) {
-      throw std::runtime_error(fmt::format("Cannot read batches from table {}", s.ToString()));
+      throw runtime_error_f("Cannot read batches from table %s", s.ToString().c_str());
     }
     if (batch == nullptr) {
       break;
     }
     s = gfilter->Evaluate(*batch, selection);
     if (!s.ok()) {
-      throw std::runtime_error(fmt::format("Cannot apply filter {}", s.ToString()));
+      throw runtime_error_f("Cannot apply filter %s", s.ToString().c_str());
     }
   }
 
@@ -404,14 +402,14 @@ auto createProjection(std::shared_ptr<arrow::Table> table, std::shared_ptr<gandi
   while (true) {
     auto s = reader.ReadNext(&batch);
     if (!s.ok()) {
-      throw std::runtime_error(fmt::format("Cannot read batches from table {}", s.ToString()));
+      throw runtime_error_f("Cannot read batches from table %s", s.ToString().c_str());
     }
     if (batch == nullptr) {
       break;
     }
     s = gprojector->Evaluate(*batch, arrow::default_memory_pool(), v.get());
     if (!s.ok()) {
-      throw std::runtime_error(fmt::format("Cannot apply projector {}", s.ToString()));
+      throw runtime_error_f("Cannot apply projector %s", s.ToString().c_str());
     }
   }
   return v;
@@ -450,7 +448,7 @@ gandiva::NodePtr createExpressionTree(Operations const& opSpecs,
       if (content.index() == 4) {
         return gandiva::TreeExprBuilder::MakeLiteral(std::get<uint8_t>(content));
       }
-      throw std::runtime_error("Malformed LiteralNode");
+      throw runtime_error("Malformed LiteralNode");
     }
 
     if (spec.datum.index() == 3) {
@@ -461,13 +459,13 @@ gandiva::NodePtr createExpressionTree(Operations const& opSpecs,
       }
       auto field = Schema->GetFieldByName(name);
       if (field == nullptr) {
-        throw std::runtime_error(fmt::format("Cannot find field \"{}\"", name));
+        throw runtime_error_f("Cannot find field \"%s\"", name.c_str());
       }
       auto node = gandiva::TreeExprBuilder::MakeField(field);
       fieldNodes.insert({name, node});
       return node;
     }
-    throw std::runtime_error("Malformed DatumSpec");
+    throw runtime_error("Malformed DatumSpec");
   };
 
   gandiva::NodePtr tree = nullptr;
@@ -545,7 +543,7 @@ bool isSchemaCompatible(gandiva::SchemaPtr const& Schema, Operations const& opSp
 void updateExpressionInfos(expressions::Filter const& filter, std::vector<ExpressionInfo>& eInfos)
 {
   if (eInfos.empty()) {
-    throw std::runtime_error("Empty expression info vector.");
+    throw runtime_error("Empty expression info vector.");
   }
   Operations ops = createOperations(filter);
   for (auto& info : eInfos) {

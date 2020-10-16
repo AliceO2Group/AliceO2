@@ -19,6 +19,7 @@
 #include "Framework/InitContext.h"
 #include "Framework/ConfigParamRegistry.h"
 #include "Framework/RootConfigParamHelpers.h"
+#include "Framework/RuntimeError.h"
 #include <arrow/type_fwd.h>
 #include <gandiva/gandiva_aliases.h>
 #include <arrow/type.h>
@@ -29,7 +30,6 @@
 #include <gandiva/node.h>
 #include <gandiva/filter.h>
 #include <gandiva/projector.h>
-#include <fmt/format.h>
 #else
 namespace gandiva
 {
@@ -573,7 +573,7 @@ std::shared_ptr<gandiva::Projector> createProjectors(framework::pack<C...>, gand
   if (s.ok()) {
     return projector;
   } else {
-    throw std::runtime_error(fmt::format("Failed to create projector: {}", s.ToString()));
+    throw o2::framework::runtime_error_f("Failed to create projector: %s", s.ToString().c_str());
   }
 }
 } // namespace o2::framework::expressions

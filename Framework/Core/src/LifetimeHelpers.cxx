@@ -180,7 +180,7 @@ ExpirationHandler::Handler
   char* err;
   uint64_t overrideTimestampMilliseconds = strtoll(overrideTimestamp.c_str(), &err, 10);
   if (*err != 0) {
-    throw std::runtime_error("fetchFromCCDBCache: Unable to parse forced timestamp for conditions");
+    throw runtime_error("fetchFromCCDBCache: Unable to parse forced timestamp for conditions");
   }
   if (overrideTimestampMilliseconds) {
     LOGP(info, "fetchFromCCDBCache: forcing timestamp for conditions to {} milliseconds from epoch UTC", overrideTimestampMilliseconds);
@@ -199,7 +199,7 @@ ExpirationHandler::Handler
 
     CURL* curl = curl_easy_init();
     if (curl == nullptr) {
-      throw std::runtime_error("fetchFromCCDBCache: Unable to initialise CURL");
+      throw runtime_error("fetchFromCCDBCache: Unable to initialise CURL");
     }
     CURLcode res;
     if (overrideTimestampMilliseconds) {
@@ -216,13 +216,13 @@ ExpirationHandler::Handler
 
     res = curl_easy_perform(curl);
     if (res != CURLE_OK) {
-      throw std::runtime_error(std::string("fetchFromCCDBCache: Unable to fetch ") + url + " from CCDB");
+      throw runtime_error_f("fetchFromCCDBCache: Unable to fetch %s from CCDB", url.c_str());
     }
     long responseCode;
     curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &responseCode);
 
     if (responseCode != 200) {
-      throw std::runtime_error(std::string("fetchFromCCDBCache: HTTP error ") + std::to_string(responseCode) + " while fetching " + url + " from CCDB");
+      throw runtime_error_f("fetchFromCCDBCache: HTTP error %d while fetching %s from CCDB", responseCode, url.c_str());
     }
 
     curl_easy_cleanup(curl);
@@ -254,7 +254,7 @@ ExpirationHandler::Handler
 ExpirationHandler::Handler LifetimeHelpers::fetchFromQARegistry()
 {
   return [](ServiceRegistry&, PartRef& ref, uint64_t) -> void {
-    throw std::runtime_error("fetchFromQARegistry: Not yet implemented");
+    throw runtime_error("fetchFromQARegistry: Not yet implemented");
     return;
   };
 }
@@ -265,7 +265,7 @@ ExpirationHandler::Handler LifetimeHelpers::fetchFromQARegistry()
 ExpirationHandler::Handler LifetimeHelpers::fetchFromObjectRegistry()
 {
   return [](ServiceRegistry&, PartRef& ref, uint64_t) -> void {
-    throw std::runtime_error("fetchFromObjectRegistry: Not yet implemented");
+    throw runtime_error("fetchFromObjectRegistry: Not yet implemented");
     return;
   };
 }

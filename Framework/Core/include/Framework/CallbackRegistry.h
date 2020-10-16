@@ -16,8 +16,8 @@
 /// @brief  A generic registry for callbacks
 
 #include "Framework/TypeTraits.h"
+#include "Framework/RuntimeError.h"
 #include <tuple>
-#include <stdexcept> // runtime_error
 #include <utility>   // declval
 
 namespace o2
@@ -101,7 +101,7 @@ class CallbackRegistry
   template <std::size_t pos, typename U, typename F>
   typename std::enable_if<has_matching_callback<U, F>::value == false>::type setAt(F&& cb)
   {
-    throw std::runtime_error("mismatch in function substitution at position " + std::to_string(pos));
+    throw runtime_error_f("mismatch in function substitution at position %d", pos);
   }
 
   // exec callback of specified id

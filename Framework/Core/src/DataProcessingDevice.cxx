@@ -53,6 +53,7 @@
 #include <memory>
 #include <unordered_map>
 #include <uv.h>
+#include <execinfo.h>
 
 using namespace o2::framework;
 using Key = o2::monitoring::tags::Key;
@@ -94,19 +95,23 @@ DataProcessingDevice::DataProcessingDevice(DeviceSpec const& spec, ServiceRegist
 {
   /// FIXME: move erro handling to a service?
   if (mError != nullptr) {
-    mErrorHandling = [& errorCallback = mError,
-                      &serviceRegistry = mServiceRegistry](std::exception& e, InputRecord& record) {
+    mErrorHandling = [&errorCallback = mError,
+                      &serviceRegistry = mServiceRegistry](RuntimeErrorRef e, InputRecord& record) {
       ZoneScopedN("Error handling");
-      LOG(ERROR) << "Exception caught: " << e.what() << std::endl;
+      auto& err = error_from_ref(e);
+      LOGP(ERROR, "Exception caught: {} ", err.what);
+      backtrace_symbols_fd(err.backtrace, err.maxBacktrace, STDERR_FILENO);
       serviceRegistry.get<Monitoring>().send({1, "error"});
       ErrorContext errorContext{record, serviceRegistry, e};
       errorCallback(errorContext);
     };
   } else {
-    mErrorHandling = [& errorPolicy = mErrorPolicy,
-                      &serviceRegistry = mServiceRegistry](std::exception& e, InputRecord& record) {
+    mErrorHandling = [&errorPolicy = mErrorPolicy,
+                      &serviceRegistry = mServiceRegistry](RuntimeErrorRef e, InputRecord& record) {
       ZoneScopedN("Error handling");
-      LOG(ERROR) << "Exception caught: " << e.what() << std::endl;
+      auto& err = error_from_ref(e);
+      LOGP(ERROR, "Exception caught: {} ", err.what);
+      backtrace_symbols_fd(err.backtrace, err.maxBacktrace, STDERR_FILENO);
       serviceRegistry.get<Monitoring>().send({1, "error"});
       switch (errorPolicy) {
         case TerminationPolicy::QUIT:
@@ -975,7 +980,14 @@ bool DataProcessingDevice::tryDispatchComputation(DataProcessorContext& context,
           context.registry->postProcessingCallbacks(processContext);
         }
       }
-    } catch (std::exception& e) {
+    } catch (std::exception& ex) {
+      ZoneScopedN("error handling");
+      /// Convert a standatd exception to a RuntimeErrorRef
+      /// Notice how this will lose the backtrace information
+      /// and report the exception coming from here.
+      auto e = runtime_error(ex.what());
+      (*context.errorHandling)(e, record);
+    } catch (o2::framework::RuntimeErrorRef e) {
       ZoneScopedN("error handling");
       (*context.errorHandling)(e, record);
     }
