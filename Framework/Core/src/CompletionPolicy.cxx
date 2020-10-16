@@ -14,9 +14,7 @@
 #include <functional>
 #include <iostream>
 
-namespace o2
-{
-namespace framework
+namespace o2::framework
 {
 
 /// By default the CompletionPolicy matches any Device and only runs a
@@ -24,7 +22,9 @@ namespace framework
 std::vector<CompletionPolicy>
   CompletionPolicy::createDefaultPolicies()
 {
-  return {CompletionPolicyHelpers::consumeWhenAll()};
+  return {
+    CompletionPolicyHelpers::defineByName("internal-dpl-aod-writer", CompletionOp::Consume),
+    CompletionPolicyHelpers::consumeWhenAll()};
 }
 
 std::ostream& operator<<(std::ostream& oss, CompletionPolicy::CompletionOp const& val)
@@ -46,5 +46,4 @@ std::ostream& operator<<(std::ostream& oss, CompletionPolicy::CompletionOp const
   return oss;
 }
 
-} // namespace framework
-} // namespace o2
+} // namespace o2::framework
