@@ -12,7 +12,7 @@
 
 using namespace o2::zdc;
 
-ClassImp(RawEventData);
+//ClassImp(EventData);
 
 void EventData::print() const
 {
