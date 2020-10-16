@@ -369,6 +369,9 @@ Selection createSelection(std::shared_ptr<arrow::Table> table, std::shared_ptr<g
   if (!s.ok()) {
     throw runtime_error_f("Cannot allocate selection vector %s", s.ToString().c_str());
   }
+  if (table->num_rows() == 0) {
+    return selection;
+  }
   arrow::TableBatchReader reader(*table);
   std::shared_ptr<arrow::RecordBatch> batch;
   while (true) {
