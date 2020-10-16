@@ -373,7 +373,14 @@ TableToTree::TableToTree(std::shared_ptr<arrow::Table> table,
 
   // create the tree if it does not exist already
   if (!mTreePtr) {
-    mTreePtr = new TTree(treename, treename);
+    // does treename containe folder?
+    std::string treeName(treename);
+    auto pos = treeName.find_first_of("/");
+    if (pos != std::string::npos) {
+      file->cd(treeName.substr(0, pos).c_str());
+    }
+    treeName = treeName.substr(pos + 1, std::string::npos);
+    mTreePtr = new TTree(treeName.c_str(), treeName.c_str());
   }
 }
 
@@ -423,7 +430,7 @@ TTree* TableToTree::process()
       togo &= brit->push();
     }
   }
-  mTreePtr->Write();
+  mTreePtr->Write("", TObject::kOverwrite);
 
   return mTreePtr;
 }

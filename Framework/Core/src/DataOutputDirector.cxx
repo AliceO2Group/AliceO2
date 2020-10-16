@@ -142,7 +142,7 @@ void DataOutputDirector::reset()
   mtreeFilenames.clear();
   closeDataFiles();
   mfilePtrs.clear();
-  mfileCounts.clear();
+  mfolderCounts.clear();
   mfilenameBase = std::string("");
 };
 
@@ -184,10 +184,10 @@ void DataOutputDirector::readString(std::string const& keepString)
   auto last = std::unique(mfilenameBases.begin(), mfilenameBases.end());
   mfilenameBases.erase(last, mfilenameBases.end());
 
-  // prepare list mfilePtrs of TFile and mfileCounts
+  // prepare list mfilePtrs of TFile and mfolderCounts
   for (auto fn : mfilenameBases) {
     mfilePtrs.emplace_back(new TFile());
-    mfileCounts.emplace_back(-1);
+    mfolderCounts.emplace_back(-1);
   }
 }
 
@@ -428,34 +428,35 @@ std::vector<DataOutputDescriptor*> DataOutputDirector::getDataOutputDescriptors(
   return result;
 }
 
-TFile* DataOutputDirector::getDataOutputFile(DataOutputDescriptor* dodesc,
-                                             int ntf, int ntfmerge,
-                                             std::string filemode)
+std::tuple<TFile*, std::string> DataOutputDirector::getFileFolder(DataOutputDescriptor* dodesc,
+                                                                  int ntf, int ntfmerge,
+                                                                  std::string filemode)
 {
   // initialisation
   TFile* filePtr = nullptr;
+  std::string directoryName("");
 
   // search dodesc->filename in mfilenameBases and return corresponding filePtr
   auto it = std::find(mfilenameBases.begin(), mfilenameBases.end(), dodesc->getFilenameBase());
   if (it != mfilenameBases.end()) {
     int ind = std::distance(mfilenameBases.begin(), it);
-
-    // check if new version of file needs to be opened
-    int fcnt = (int)(ntf / ntfmerge);
-    if ((ntf % ntfmerge) == 0 && fcnt > mfileCounts[ind]) {
-      if (mfilePtrs[ind]) {
-        mfilePtrs[ind]->Close();
-      }
-
-      mfileCounts[ind] = fcnt;
-      auto fn = mfilenameBases[ind] + "_" + std::to_string(mfileCounts[ind]) + ".root";
+    if (!mfilePtrs[ind]->IsOpen()) {
+      auto fn = mfilenameBases[ind] + ".root";
       mfilePtrs[ind] = new TFile(fn.c_str(), filemode.c_str());
     }
     filePtr = mfilePtrs[ind];
-    filePtr->cd();
+
+    // check if new folder TF_* is needed
+    int fcnt = (int)(ntf / ntfmerge);
+    directoryName = "TF_" + std::to_string(fcnt) + "/";
+    if ((ntf % ntfmerge) == 0 && fcnt > mfolderCounts[ind]) {
+      mfolderCounts[ind] = fcnt;
+      filePtr->mkdir(directoryName.c_str());
+    }
+    filePtr->cd(directoryName.c_str());
   }
 
-  return filePtr;
+  return std::make_tuple(filePtr, directoryName);
 }
 
 void DataOutputDirector::closeDataFiles()
@@ -493,7 +494,7 @@ void DataOutputDirector::setFilenameBase(std::string dfn)
   mtreeFilenames.clear();
   closeDataFiles();
   mfilePtrs.clear();
-  mfileCounts.clear();
+  mfolderCounts.clear();
 
   // loop over DataOutputDescritors
   for (auto dodesc : mDataOutputDescriptors) {
@@ -514,10 +515,10 @@ void DataOutputDirector::setFilenameBase(std::string dfn)
   auto last = std::unique(mfilenameBases.begin(), mfilenameBases.end());
   mfilenameBases.erase(last, mfilenameBases.end());
 
-  // prepare list mfilePtrs of TFile and mfileCounts
+  // prepare list mfilePtrs of TFile and mfolderCounts
   for (auto fn : mfilenameBases) {
     mfilePtrs.emplace_back(new TFile());
-    mfileCounts.emplace_back(-1);
+    mfolderCounts.emplace_back(-1);
   }
 }
 
