@@ -13,15 +13,15 @@
 
 #include <boost/test/unit_test.hpp>
 #include "Framework/Variant.h"
-#include <stdexcept>
 #include <sstream>
 #include <cstring>
 
 using namespace o2::framework;
 
-bool unknown_type(std::runtime_error const& ex)
+bool unknown_type(RuntimeErrorRef const& ref)
 {
-  return strcmp(ex.what(), "Mismatch between types") == 0;
+  auto& err = error_from_ref(ref);
+  return strcmp(err.what, "Mismatch between types") == 0;
 }
 
 BOOST_AUTO_TEST_CASE(VariantTest)
@@ -36,7 +36,7 @@ BOOST_AUTO_TEST_CASE(VariantTest)
   Variant c(10.2);
   BOOST_CHECK(c.get<double>() == 10.2);
   ss << c;
-  BOOST_CHECK_EXCEPTION(a.get<char*>(), std::runtime_error, unknown_type);
+  BOOST_CHECK_EXCEPTION(a.get<char*>(), RuntimeErrorRef, unknown_type);
   Variant d("foo");
   ss << d;
   BOOST_CHECK(std::string(d.get<const char*>()) == "foo");

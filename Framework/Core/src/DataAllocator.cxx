@@ -50,12 +50,12 @@ std::string const& DataAllocator::matchDataHeader(const Output& spec, size_t tim
       return output.channel;
     }
   }
-  std::ostringstream str;
-  str << "Worker is not authorised to create message with "
-      << "origin(" << spec.origin.as<std::string>() << ")"
-      << "description(" << spec.description.as<std::string>() << ")"
-      << "subSpec(" << spec.subSpec << ")";
-  throw std::runtime_error(str.str());
+  throw runtime_error_f(
+    "Worker is not authorised to create message with "
+    "origin(%s) description(%s) subSpec(%d)",
+    spec.origin.as<std::string>().c_str(),
+    spec.description.as<std::string>().c_str(),
+    spec.subSpec);
 }
 
 DataChunk& DataAllocator::newChunk(const Output& spec, size_t size)
@@ -243,7 +243,7 @@ void DataAllocator::snapshot(const Output& spec, const char* payload, size_t pay
 Output DataAllocator::getOutputByBind(OutputRef&& ref)
 {
   if (ref.label.empty()) {
-    throw std::runtime_error("Invalid (empty) OutputRef provided.");
+    throw runtime_error("Invalid (empty) OutputRef provided.");
   }
   for (auto ri = 0ul, re = mAllowedOutputRoutes.size(); ri != re; ++ri) {
     if (mAllowedOutputRoutes[ri].matcher.binding.value == ref.label) {
@@ -252,7 +252,7 @@ Output DataAllocator::getOutputByBind(OutputRef&& ref)
       return Output{dataType.origin, dataType.description, ref.subSpec, spec.lifetime, std::move(ref.headerStack)};
     }
   }
-  throw std::runtime_error("Unable to find OutputSpec with label " + ref.label);
+  throw runtime_error_f("Unable to find OutputSpec with label %s", ref.label.c_str());
   O2_BUILTIN_UNREACHABLE();
 }
 
