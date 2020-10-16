@@ -611,7 +611,7 @@ DECLARE_SOA_INDEX_COLUMN(FDD, fdd);
 DECLARE_SOA_INDEX_TABLE(Run2MatchedExclusive, BCs, "MA_RN2_EX", INDEX_LIST_RUN2);
 DECLARE_SOA_INDEX_TABLE(Run2MatchedSparse, BCs, "MA_RN2_SP", INDEX_LIST_RUN2);
 
-#define INDEX_LIST_RUN3 indices::CollisionId, indices::ZdcId, indices::BCId, indices::FT0Id, indices::FV0AId, indices::FV0CId, indices::FDDId
+#define INDEX_LIST_RUN3 indices::CollisionId, indices::ZdcId, indices::BCId, indices::FT0Id, indices::FV0AId, indices::FDDId
 DECLARE_SOA_INDEX_TABLE(Run3MatchedExclusive, BCs, "MA_RN3_EX", INDEX_LIST_RUN3);
 DECLARE_SOA_INDEX_TABLE(Run3MatchedSparse, BCs, "MA_RN3_SP", INDEX_LIST_RUN3);
 

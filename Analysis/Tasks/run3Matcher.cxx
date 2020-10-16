@@ -23,6 +23,8 @@ using namespace o2::framework::expressions;
 struct Run3Matcher {
   BuildsExclusive<aod::Run3MatchedExclusive> matched_e;
   Builds<aod::Run3MatchedSparse> matched_s;
+  BuildsExclusive<aod::BCCollisionsExclusive> bc_e;
+  Builds<aod::BCCollisionsSparse> bc;
   void init(o2::framework::InitContext&)
   {
   }
