@@ -26,8 +26,7 @@ using namespace o2::framework;
 
 /// Reconstruction of heavy-flavour 2-prong decay candidates
 struct HFCandidateCreator2Prong {
-  Produces<aod::HfCandBase> rowCandidateBase;
-  //Produces<aod::HfCandProng2Base> rowCandidateProng2Base; // TODO split table
+  Produces<aod::HfCandProng2Base> rowCandidateBase;
   Configurable<double> magneticField{"d_bz", 5.0, "magnetic field"};
   Configurable<bool> b_propdca{"b_propdca", true, "create tracks version propagated to PCA"};
   Configurable<double> d_maxr{"d_maxr", 200., "reject PCA's above this radius"};
@@ -104,8 +103,7 @@ struct HFCandidateCreator2Prong {
       rowCandidateBase(collision.posX(), collision.posY(), collision.posZ(),
                        secondaryVertex[0], secondaryVertex[1], secondaryVertex[2],
                        errorDecayLength, errorDecayLengthXY,
-                       chi2PCA, //);
-                                //rowCandidateProng2Base( // TODO split table
+                       chi2PCA,
                        pvec0[0], pvec0[1], pvec0[2],
                        pvec1[0], pvec1[1], pvec1[2],
                        impactParameter0.getY(), impactParameter1.getY(),
