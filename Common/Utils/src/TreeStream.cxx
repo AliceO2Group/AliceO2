@@ -59,16 +59,18 @@ void TreeStream::BuildTree()
   // Build the Tree
 
   int entriesFilled = mTree.GetEntries();
-  if (mBranches.size() < mElements.size())
+  if (mBranches.size() < mElements.size()) {
     mBranches.resize(mElements.size());
+  }
 
   TString name;
   TBranch* br = nullptr;
   for (int i = 0; i < static_cast<int>(mElements.size()); i++) {
     //
     auto& element = mElements[i];
-    if (mBranches[i])
+    if (mBranches[i]) {
       continue;
+    }
     name = element.name.data();
     if (name.IsNull()) {
       name = TString::Format("B%d", i);
@@ -111,16 +113,19 @@ void TreeStream::Fill()
   }
   for (int i = 0; i < entries; i++) {
     auto& element = mElements[i];
-    if (!element.type)
+    if (!element.type) {
       continue;
+    }
     auto br = mBranches[i];
     if (br) {
-      if (element.type)
+      if (element.type) {
         br->SetAddress(element.ptr);
+      }
     }
   }
-  if (!mStatus)
+  if (!mStatus) {
     mTree.Fill(); // fill only in case of non conflicts
+  }
   mStatus = 0;
 }
 
@@ -129,8 +134,9 @@ TreeStream& TreeStream::Endl()
 {
   // Perform pseudo endl operation
 
-  if (mTree.GetNbranches() == 0)
+  if (mTree.GetNbranches() == 0) {
     BuildTree();
+  }
   Fill();
   mStatus = 0;
   mCurrentIndex = 0;
@@ -147,14 +153,16 @@ TreeStream& TreeStream::operator<<(const Char_t* name)
   }
   //
   // if tree was already defined ignore
-  if (mTree.GetEntries() > 0)
+  if (mTree.GetEntries() > 0) {
     return *this;
+  }
   // check branch name if tree was not
   //
   Int_t last = 0;
   for (last = 0;; last++) {
-    if (name[last] == 0)
+    if (name[last] == 0) {
       break;
+    }
   }
 
   if (last > 0 && name[last - 1] == '=') {

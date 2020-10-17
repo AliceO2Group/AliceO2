@@ -177,8 +177,9 @@ Int_t TreeStream::CheckIn(T* obj)
 {
   // check in arbitrary class having dictionary
   TClass* pClass = nullptr;
-  if (obj)
+  if (obj) {
     pClass = obj->IsA();
+  }
 
   if (mCurrentIndex >= static_cast<int>(mElements.size())) {
     mElements.emplace_back();

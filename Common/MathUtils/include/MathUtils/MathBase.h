@@ -170,18 +170,22 @@ Double_t fitGaus(const size_t nBins, const T* arr, const T xMin, const T xMax, s
 
   for (Int_t i = 0; i < nBins; i++) {
     entries += arr[i];
-    if (arr[i] > 0)
+    if (arr[i] > 0) {
       nfilled++;
+    }
   }
 
   // TODO: Check why this is needed
-  if (max < 4)
+  if (max < 4) {
     return -4;
-  if (entries < 12)
+  }
+  if (entries < 12) {
     return -4;
+  }
 
-  if (rms < kTol)
+  if (rms < kTol) {
     return -4;
+  }
 
   param[3] = entries;
 
@@ -224,16 +228,19 @@ Double_t fitGaus(const size_t nBins, const T* arr, const T xMin, const T xMax, s
       fitter.GetCovarianceMatrix(mat);
       chi2 = fitter.GetChisquare() / Double_t(npoints);
     }
-    if (TMath::Abs(par[1]) < kTol)
+    if (TMath::Abs(par[1]) < kTol) {
       return -4;
-    if (TMath::Abs(par[2]) < kTol)
+    }
+    if (TMath::Abs(par[2]) < kTol) {
       return -4;
+    }
 
     param[1] = T(par[1] / (-2. * par[2]));
     param[2] = T(1. / TMath::Sqrt(TMath::Abs(-2. * par[2])));
     Double_t lnparam0 = par[0] + par[1] * param[1] + par[2] * param[1] * param[1];
-    if (lnparam0 > 307)
+    if (lnparam0 > 307) {
       return -4;
+    }
     param[0] = TMath::Exp(lnparam0);
 
     return chi2;
@@ -299,8 +306,9 @@ StatisticsData getStatisticsData(const T* arr, const size_t nBins, const double 
       ++npoints;
     }
   }
-  if (sum == 0)
+  if (sum == 0) {
     return data;
+  }
   mean /= sum;
 
   data.mCOG = mean;

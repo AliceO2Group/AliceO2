@@ -78,8 +78,9 @@ std::pair<std::unique_ptr<uint8_t[]>, size_t> MakeBuffer(size_t pagesize,
     } while (nPages * pagesize < totalSize);
   } else {
     auto nRequiredPages = dataset.size() / maxElementsPerPage;
-    if (dataset.size() % maxElementsPerPage > 0)
+    if (dataset.size() % maxElementsPerPage > 0) {
       ++nRequiredPages;
+    }
     totalSize = (nRequiredPages > 0 ? nRequiredPages : 1) * pagesize;
   }
 

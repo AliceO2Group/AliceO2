@@ -158,25 +158,30 @@ class ForwardParser
   {
     static_assert(sizeof(InputType) == 1,
                   "ForwardParser currently only supports byte type buffer");
-    if (buffer == nullptr || bufferSize == 0)
+    if (buffer == nullptr || bufferSize == 0) {
       return 0;
+    }
+
     size_t position = 0;
     std::vector<FrameInfo> frames;
     do {
       FrameInfo entry;
 
       // check the header
-      if (sizeof(HeaderType) + position > bufferSize)
+      if (sizeof(HeaderType) + position > bufferSize) {
         break;
+      }
       entry.header = reinterpret_cast<const HeaderType*>(buffer + position);
-      if (!checkHeader(*entry.header))
+      if (!checkHeader(*entry.header)) {
         break;
+      }
 
       // extract frame size from header, this is expected to be the
       // total frome size including header, payload and optional trailer
       auto frameSize = getFrameSize(*entry.header);
-      if (frameSize + position > bufferSize)
+      if (frameSize + position > bufferSize) {
         break;
+      }
 
       // payload starts right after the header
       entry.payload = reinterpret_cast<typename FrameInfo::PtrT>(entry.header + 1);
@@ -188,8 +193,9 @@ class ForwardParser
       } else {
         auto trailerStart = buffer + position + frameSize - tailOffset;
         entry.trailer = reinterpret_cast<const TrailerType*>(trailerStart);
-        if (!CheckTrailer(entry, checkTrailer))
+        if (!CheckTrailer(entry, checkTrailer)) {
           break;
+        }
       }
 
       // store the extracted frame info and continue with remaining buffer
@@ -201,8 +207,9 @@ class ForwardParser
       // frames found and format consistent, insert entries to target
       // Note: the complete block must be consistent
       for (auto entry : frames) {
-        if (!insert(entry))
+        if (!insert(entry)) {
           break;
+        }
       }
       return frames.size();
     } else if (frames.size() == 0) {
@@ -332,30 +339,35 @@ class ReverseParser
   {
     static_assert(sizeof(InputType) == 1,
                   "ReverseParser currently only supports byte type buffer");
-    if (buffer == nullptr || bufferSize == 0)
+    if (buffer == nullptr || bufferSize == 0) {
       return 0;
+    }
     auto position = bufferSize;
     std::vector<FrameInfo> frames;
     do {
       FrameInfo entry;
 
       // start from end, extract and check trailer
-      if (sizeof(TrailerType) > position)
+      if (sizeof(TrailerType) > position) {
         break;
+      }
       entry.trailer = reinterpret_cast<const TrailerType*>(buffer + position - sizeof(TrailerType));
-      if (!checkTrailer(*entry.trailer))
+      if (!checkTrailer(*entry.trailer)) {
         break;
+      }
 
       // get the total frame size
       auto frameSize = getFrameSize(*entry.trailer);
-      if (frameSize > position)
+      if (frameSize > position) {
         break;
+      }
 
       // extract and check header
       auto headerStart = buffer + position - frameSize;
       entry.header = reinterpret_cast<const HeaderType*>(headerStart);
-      if (!checkHeader(*entry.header))
+      if (!checkHeader(*entry.header)) {
         break;
+      }
 
       // payload immediately after header
       entry.payload = reinterpret_cast<typename FrameInfo::PtrT>(entry.header + 1);
@@ -367,8 +379,9 @@ class ReverseParser
     if (position == 0) {
       // frames found and format consistent, the complete block must be consistent
       for (auto entry : frames) {
-        if (!insert(entry))
+        if (!insert(entry)) {
           break;
+        }
       }
       return frames.size();
     } else if (frames.size() == 0) {

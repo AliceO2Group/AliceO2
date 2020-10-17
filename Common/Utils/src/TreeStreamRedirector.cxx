@@ -76,8 +76,9 @@ TreeStream& TreeStreamRedirector::operator<<(Int_t id)
   mDataLayouts.emplace_back(std::unique_ptr<TreeStream>(new TreeStream(Form("Tree%d", id))));
   auto layout = mDataLayouts.back().get();
   layout->setID(id);
-  if (backup)
+  if (backup) {
     backup->cd();
+  }
   return *layout;
 }
 
@@ -88,8 +89,9 @@ TreeStream& TreeStreamRedirector::operator<<(const char* name)
   // if not existing - creates new
 
   for (auto& layout : mDataLayouts) {
-    if (!std::strcmp(layout->getName(), name))
+    if (!std::strcmp(layout->getName(), name)) {
       return *layout.get();
+    }
   }
 
   // create new
@@ -98,8 +100,9 @@ TreeStream& TreeStreamRedirector::operator<<(const char* name)
   mDataLayouts.emplace_back(std::unique_ptr<TreeStream>(new TreeStream(name)));
   auto layout = mDataLayouts.back().get();
   layout->setID(-1);
-  if (backup)
+  if (backup) {
     backup->cd();
+  }
   return *layout;
 }
 
@@ -114,8 +117,9 @@ void TreeStreamRedirector::Close()
     layout->getTree().Write(layout->getName());
   }
   mDataLayouts.clear();
-  if (backup)
+  if (backup) {
     backup->cd();
+  }
 
   if (mOwnDirectory) {
     mDirectory->Close();
@@ -143,8 +147,9 @@ void TreeStreamRedirector::FixLeafNameBug(TTree* tree)
   //   After the fix unit test code with pairs of sprse friend trees worked properly
   // Side effects of fix:
   //
-  if (!tree)
+  if (!tree) {
     return;
+  }
   TObjArray* brArray = tree->GetListOfBranches();
   TObjArray* lArray = tree->GetListOfLeaves();
   for (int i = 0; i < brArray->GetLast(); i++) {

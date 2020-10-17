@@ -67,10 +67,12 @@ class TableView
 
     bool operator<(const FrameIndex& rh) const
     {
-      if (rh.columnIndex < columnIndex)
+      if (rh.columnIndex < columnIndex) {
         return false;
-      if (columnIndex < rh.columnIndex)
+      }
+      if (columnIndex < rh.columnIndex) {
         return true;
+      }
       return row < rh.row;
     }
   };
@@ -143,8 +145,9 @@ class TableView
   /// get row data for a data set
   const RowDescType& getRowData(size_t row) const
   {
-    if (row < mRowData.size())
+    if (row < mRowData.size()) {
       return mRowData[row];
+    }
     // TODO: better to throw exception?
     static RowDescType dummy;
     return dummy;
@@ -180,22 +183,26 @@ class TableView
     iterator(IteratorDirections direction, TableView* parent, unsigned row = 0, unsigned column = 0)
       : mDirection(direction), mRow(row), mColumn(column), mEnd(direction == kAlongRow ? parent->getNColumns() : parent->getNRows()), mParent(parent), mCache(), mIsCached(false)
     {
-      while (!isValid() && !isEnd())
+      while (!isValid() && !isEnd()) {
         operator++();
+      }
     }
 
     self_type& operator++()
     {
       mIsCached = false;
       if (mDirection == kAlongRow) {
-        if (mColumn < mEnd)
+        if (mColumn < mEnd) {
           mColumn++;
+        }
       } else {
-        if (mRow < mEnd)
+        if (mRow < mEnd) {
           mRow++;
+        }
       }
-      while (!isEnd() && !isValid())
+      while (!isEnd() && !isValid()) {
         operator++();
+      }
       return *this;
     }
 
@@ -265,11 +272,13 @@ class TableView
     self_type& operator++()
     {
       if (base::mDirection == iterator::kAlongRow) {
-        if (base::mColumn < base::mEnd)
+        if (base::mColumn < base::mEnd) {
           base::mColumn++;
+        }
       } else {
-        if (base::mRow < base::mEnd)
+        if (base::mRow < base::mEnd) {
           base::mRow++;
+        }
       }
       return *this;
     }
@@ -314,8 +323,9 @@ class TableView
   /// private access function for the iterators
   bool get(unsigned row, unsigned column, FrameData& data)
   {
-    if (this->mColumns.size() == 0)
+    if (this->mColumns.size() == 0) {
       return false;
+    }
     auto element = this->mFrames.find(FrameIndex{this->mColumns[column], row});
     if (element != this->mFrames.end()) {
       data = element->second;

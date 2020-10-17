@@ -430,8 +430,9 @@ class O2HitMerger : public FairMQDevice
     } else {
       // loop over subevents
       Int_t nprimTot = 0;
-      for (auto entry = 0; entry < entries; entry++)
+      for (auto entry = 0; entry < entries; entry++) {
         nprimTot += nprimaries[entry];
+      }
       Int_t idelta0 = 0;
       Int_t idelta1 = nprimTot;
       for (auto entry = entries - 1; entry >= 0; --entry) {
@@ -461,8 +462,9 @@ class O2HitMerger : public FairMQDevice
   {
     Int_t cId = track.getMotherTrackId();
     Int_t ioffset = (cId < nprim) ? idelta0 : idelta1;
-    if (cId != -1)
+    if (cId != -1) {
       track.SetMotherTrackId(cId + ioffset);
+    }
   }
 
   void updateTrackIdWithOffset(TrackReference& ref, Int_t nprim, Int_t idelta0, Int_t idelta1)

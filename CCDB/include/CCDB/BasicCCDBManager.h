@@ -147,8 +147,9 @@ T* BasicCCDBManager::getForTimeStamp(std::string const& path, long timestamp)
                                                  mCreatedNotBefore ? std::to_string(mCreatedNotBefore) : "");
   }
   auto& cached = mCache[path];
-  if (mCheckObjValidityEnabled && cached.isValid(timestamp))
+  if (mCheckObjValidityEnabled && cached.isValid(timestamp)) {
     return reinterpret_cast<T*>(cached.objPtr.get());
+  }
 
   T* ptr = mCCDBAccessor.retrieveFromTFileAny<T>(path, mMetaData, timestamp, &mHeaders, cached.uuid,
                                                  mCreatedNotAfter ? std::to_string(mCreatedNotAfter) : "",
