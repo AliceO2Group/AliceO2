@@ -28,15 +28,15 @@ static void BM_HashedNameLookup(benchmark::State& state)
 {
   for (auto _ : state) {
     state.PauseTiming();
-    std::vector<HistogramSpec> specs;
+    std::vector<HistogramSpec> histSpecs;
     for (auto i = 0; i < state.range(0); ++i) {
-      specs.push_back({fmt::format("histo{}", i + 1).c_str(), fmt::format("Histo {}", i + 1).c_str(), {HistogramType::kTH1F, {{100, 0, 1}}}});
+      histSpecs.push_back({fmt::format("histo{}", i + 1).c_str(), fmt::format("Histo {}", i + 1).c_str(), {HistType::kTH1F, {{100, 0, 1}}}});
     }
-    HistogramRegistry registry{"registry", true, specs};
+    HistogramRegistry registry{"registry", true, histSpecs};
     state.ResumeTiming();
 
     for (auto i = 0; i < nLookups; ++i) {
-      auto& x = registry.get("histo4");
+      auto& x = registry.get<TH1>("histo4");
       benchmark::DoNotOptimize(x);
     }
     state.counters["Average lookup distance"] = ((double)registry.lookup / (double)(state.range(0)));
