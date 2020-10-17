@@ -209,7 +209,7 @@ void WorkflowHelpers::injectServiceDevices(WorkflowSpec& workflow, ConfigContext
     {},
     readers::AODReaderHelpers::rootFileReaderCallback(),
     {ConfigParamSpec{"aod-file", VariantType::String, "aod.root", {"Input AOD file"}},
-     ConfigParamSpec{"json-file", VariantType::String, {"json configuration file"}},
+     ConfigParamSpec{"aod-reader-json", VariantType::String, {"json configuration file"}},
      ConfigParamSpec{"time-limit", VariantType::Int64, 0ll, {"Maximum run time limit in seconds"}},
      ConfigParamSpec{"start-value-enumeration", VariantType::Int64, 0ll, {"initial value for the enumeration"}},
      ConfigParamSpec{"end-value-enumeration", VariantType::Int64, -1ll, {"final value for the enumeration"}},
@@ -380,26 +380,27 @@ void WorkflowHelpers::injectServiceDevices(WorkflowSpec& workflow, ConfigContext
   //  outputTypes = isAOD*2 + isdangling*1 + 0
   auto [OutputsInputs, outputTypes] = analyzeOutputs(workflow);
 
+  // create DataOutputDescriptor
+  std::shared_ptr<DataOutputDirector> dod = getDataOutputDirector(ctx.options(), OutputsInputs, outputTypes);
+
   // file sink for any AOD output
   extraSpecs.clear();
 
-  // select outputs of type AOD
+  // select outputs of type AOD which need to be saved
+  // ATTENTION: if there are dangling outputs the getGlobalAODSink
+  // has to be created in any case!
   std::vector<InputSpec> outputsInputsAOD;
-  std::vector<bool> isdangling;
   for (auto ii = 0u; ii < OutputsInputs.size(); ii++) {
     if ((outputTypes[ii] & 2) == 2) {
-
-      // is this dangling ?
-      if ((outputTypes[ii] & 1) == 1) {
+      auto ds = dod->getDataOutputDescriptors(OutputsInputs[ii]);
+      if (ds.size() > 0 || (outputTypes[ii] & 1) == 1) {
         outputsInputsAOD.emplace_back(OutputsInputs[ii]);
-        isdangling.emplace_back((outputTypes[ii] & 1) == 1);
       }
     }
   }
 
   if (outputsInputsAOD.size() > 0) {
-    auto fileSink = CommonDataProcessors::getGlobalAODSink(outputsInputsAOD,
-                                                           isdangling);
+    auto fileSink = CommonDataProcessors::getGlobalAODSink(dod, outputsInputsAOD);
     extraSpecs.push_back(fileSink);
   }
   workflow.insert(workflow.end(), extraSpecs.begin(), extraSpecs.end());
@@ -733,6 +734,76 @@ struct DataMatcherId {
   size_t workflowId;
   size_t id;
 };
+
+std::shared_ptr<DataOutputDirector> WorkflowHelpers::getDataOutputDirector(ConfigParamRegistry const& options, std::vector<InputSpec> const& OutputsInputs, std::vector<unsigned char> const& outputTypes)
+{
+  std::shared_ptr<DataOutputDirector> dod = std::make_shared<DataOutputDirector>();
+
+  // analyze options and take actions accordingly
+  // default values
+  std::string fnbase("AnalysisResults_trees");
+  std::string filemode("RECREATE");
+  int ntfmerge = 1;
+
+  // values from json
+  if (options.isSet("aod-writer-json")) {
+    auto fnjson = options.get<std::string>("aod-writer-json");
+    if (!fnjson.empty()) {
+      auto [fnb, fmo, ntfm] = dod->readJson(fnjson);
+      if (!fnb.empty()) {
+        fnbase = fnb;
+      }
+      if (!fmo.empty()) {
+        filemode = fmo;
+      }
+      if (ntfm > 0) {
+        ntfmerge = ntfm;
+      }
+    }
+  }
+
+  // values from command line options, information from json is overwritten
+  if (options.isSet("res-file")) {
+    fnbase = options.get<std::string>("res-file");
+  }
+  if (options.isSet("res-mode")) {
+    filemode = options.get<std::string>("res-mode");
+  }
+  if (options.isSet("ntfmerge")) {
+    auto ntfm = options.get<int>("ntfmerge");
+    if (ntfm > 0) {
+      ntfmerge = ntfm;
+    }
+  }
+  // parse the keepString
+  auto keepString = options.get<std::string>("aod-writer-keep");
+  if (!keepString.empty()) {
+
+    dod->reset();
+    std::string d("dangling");
+    if (d.find(keepString) == 0) {
+
+      // use the dangling outputs
+      std::vector<InputSpec> danglingOutputs;
+      for (auto ii = 0; ii < OutputsInputs.size(); ii++) {
+        if ((outputTypes[ii] & 2) == 2 && (outputTypes[ii] & 1) == 1) {
+          danglingOutputs.emplace_back(OutputsInputs[ii]);
+        }
+      }
+      dod->readSpecs(danglingOutputs);
+
+    } else {
+
+      // use the keep string
+      dod->readString(keepString);
+    }
+  }
+  dod->setFilenameBase(fnbase);
+  dod->setFileMode(filemode);
+  dod->setNumberTimeFramesToMerge(ntfmerge);
+
+  return dod;
+}
 
 std::tuple<std::vector<InputSpec>, std::vector<unsigned char>> WorkflowHelpers::analyzeOutputs(WorkflowSpec const& workflow)
 {
