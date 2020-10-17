@@ -30,6 +30,13 @@ FileNameHolder* makeFileNameHolder(std::string fileName)
   auto fileNameHolder = new FileNameHolder();
   fileNameHolder->fileName = fileName;
 
+  if (fileName.rfind("alien://", 0) == 0) {
+    if (gGrid == nullptr || gGrid->IsConnected() == false) {
+      LOG(debug) << "AliEn file requested. Enabling support.";
+      TGrid::Connect("alien://");
+    }
+  }
+
   TFile* file = TFile::Open(fileName.c_str(), "R");
   if (!file || !file->IsOpen()) {
     LOGP(ERROR, "\"{}\" can not be opened.", fileName);
