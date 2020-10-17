@@ -38,8 +38,9 @@ BOOST_AUTO_TEST_CASE(Utils_test)
       double diff = phi - phi0;
       p->Fill(phi0, diff);
       diff = fabs(diff);
-      if (diff > maxDiff)
+      if (diff > maxDiff) {
         maxDiff = diff;
+      }
     }
     //p->Draw();
 
