@@ -138,6 +138,24 @@ std::vector<InputSpec> DataSampling::InputSpecsForPolicy(ConfigurationInterface*
   return inputs;
 }
 
+std::vector<InputSpec> DataSampling::InputSpecsForPolicy(std::shared_ptr<configuration::ConfigurationInterface> config, const std::string& policyName)
+{
+  std::vector<InputSpec> inputs;
+  auto policiesTree = config->getRecursive("dataSamplingPolicies");
+
+  for (auto&& policyConfig : policiesTree) {
+    if (policyConfig.second.get<std::string>("id") == policyName) {
+      DataSamplingPolicy policy(policyConfig.second);
+      for (const auto& path : policy.getPathMap()) {
+        InputSpec input = DataSpecUtils::matchingInput(path.second);
+        inputs.push_back(input);
+      }
+      break;
+    }
+  }
+  return inputs;
+}
+
 std::vector<OutputSpec> DataSampling::OutputSpecsForPolicy(const std::string& policiesSource, const std::string& policyName)
 {
   std::unique_ptr<ConfigurationInterface> config = ConfigurationFactory::getConfiguration(policiesSource);

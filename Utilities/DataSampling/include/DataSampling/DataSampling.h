@@ -94,7 +94,10 @@ class DataSampling
   /// \brief Provides InputSpecs to receive data for given DataSamplingPolicy
   static std::vector<framework::InputSpec> InputSpecsForPolicy(const std::string& policiesSource, const std::string& policyName);
   /// \brief Provides InputSpecs to receive data for given DataSamplingPolicy
+  /// @deprecated
   static std::vector<framework::InputSpec> InputSpecsForPolicy(configuration::ConfigurationInterface* const config, const std::string& policyName);
+  /// \brief Provides InputSpecs to receive data for given DataSamplingPolicy
+  static std::vector<framework::InputSpec> InputSpecsForPolicy(std::shared_ptr<configuration::ConfigurationInterface> config, const std::string& policyName);
   /// \brief Provides OutputSpecs of given DataSamplingPolicy
   static std::vector<framework::OutputSpec> OutputSpecsForPolicy(const std::string& policiesSource, const std::string& policyName);
   /// \brief Provides OutputSpecs of given DataSamplingPolicy
