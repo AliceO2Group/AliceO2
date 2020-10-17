@@ -44,8 +44,8 @@ BOOST_AUTO_TEST_CASE(HistogramRegistryLookup)
   BOOST_REQUIRE_EQUAL(registry.get<TH1>("eta")->GetNbinsX(), 100);
   BOOST_REQUIRE_EQUAL(registry.get<TH1>("phi")->GetNbinsX(), 102);
   BOOST_REQUIRE_EQUAL(registry.get<TH1>("pt")->GetNbinsX(), 1002);
-  BOOST_REQUIRE_EQUAL(registry.get<TH1>("ptToPt")->GetNbinsX(), 100);
-  BOOST_REQUIRE_EQUAL(registry.get<TH1>("ptToPt")->GetNbinsY(), 100);
+  BOOST_REQUIRE_EQUAL(registry.get<TH2>("ptToPt")->GetNbinsX(), 100);
+  BOOST_REQUIRE_EQUAL(registry.get<TH2>("ptToPt")->GetNbinsY(), 100);
 
   /// Get a pointer to the histogram
   auto histo = registry.get<TH1>("pt").get();
