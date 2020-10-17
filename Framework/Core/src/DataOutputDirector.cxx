@@ -308,6 +308,7 @@ std::tuple<std::string, std::string, int> DataOutputDirector::readJsonDocument(D
   if (dodirItem.HasMember(itemName)) {
     if (dodirItem[itemName].IsString()) {
       fmode = dodirItem[itemName].GetString();
+      setFileMode(fmode);
     } else {
       LOGP(ERROR, "Check the JSON document! Item \"{}\" must be a string!", itemName);
       return memptyanswer;
@@ -318,6 +319,7 @@ std::tuple<std::string, std::string, int> DataOutputDirector::readJsonDocument(D
   if (dodirItem.HasMember(itemName)) {
     if (dodirItem[itemName].IsNumber()) {
       ntfm = dodirItem[itemName].GetInt();
+      setNumberTimeFramesToMerge(ntfm);
     } else {
       LOGP(ERROR, "Check the JSON document! Item \"{}\" must be a number!", itemName);
       return memptyanswer;
@@ -428,9 +430,7 @@ std::vector<DataOutputDescriptor*> DataOutputDirector::getDataOutputDescriptors(
   return result;
 }
 
-std::tuple<TFile*, std::string> DataOutputDirector::getFileFolder(DataOutputDescriptor* dodesc,
-                                                                  int ntf, int ntfmerge,
-                                                                  std::string filemode)
+std::tuple<TFile*, std::string> DataOutputDirector::getFileFolder(DataOutputDescriptor* dodesc)
 {
   // initialisation
   TFile* filePtr = nullptr;
@@ -442,14 +442,15 @@ std::tuple<TFile*, std::string> DataOutputDirector::getFileFolder(DataOutputDesc
     int ind = std::distance(mfilenameBases.begin(), it);
     if (!mfilePtrs[ind]->IsOpen()) {
       auto fn = mfilenameBases[ind] + ".root";
-      mfilePtrs[ind] = new TFile(fn.c_str(), filemode.c_str());
+      mfilePtrs[ind] = new TFile(fn.c_str(), mfileMode.c_str());
     }
     filePtr = mfilePtrs[ind];
 
     // check if new folder TF_* is needed
-    int fcnt = (int)(ntf / ntfmerge);
+    auto ntf = dodesc->incrementNumberOfWrites();
+    int fcnt = (int)(ntf / mnumberTimeFramesToMerge);
     directoryName = "TF_" + std::to_string(fcnt) + "/";
-    if ((ntf % ntfmerge) == 0 && fcnt > mfolderCounts[ind]) {
+    if ((ntf % mnumberTimeFramesToMerge) == 0 && fcnt > mfolderCounts[ind]) {
       mfolderCounts[ind] = fcnt;
       filePtr->mkdir(directoryName.c_str());
     }

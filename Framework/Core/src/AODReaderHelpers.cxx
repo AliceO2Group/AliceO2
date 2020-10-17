@@ -139,36 +139,50 @@ AlgorithmSpec AODReaderHelpers::rootFileReaderCallback()
       }
 
       // loop over requested tables
-      for (auto route : requestedTables) {
+      TTree *tr = nullptr;
+      bool goon = true;
+      int numTF = 0;
+      while (goon) {
+      
+        for (auto route : requestedTables) {
 
-        // create a TreeToTable object
-        auto concrete = DataSpecUtils::asConcreteDataMatcher(route.matcher);
-        auto dh = header::DataHeader(concrete.description, concrete.origin, concrete.subSpec);
+          // create a TreeToTable object
+          auto concrete = DataSpecUtils::asConcreteDataMatcher(route.matcher);
+          auto dh = header::DataHeader(concrete.description, concrete.origin, concrete.subSpec);
 
-        auto tr = didir->getDataTree(dh, fi);
-        if (!tr) {
-          char* table;
-          sprintf(table, "%s/%s/%" PRIu32, concrete.origin.str, concrete.description.str, concrete.subSpec);
-          LOGP(ERROR, "Error while retrieving the tree for \"{}\"!", table);
-          return;
-        }
-
-        auto o = Output(dh);
-        auto& t2t = outputs.make<TreeToTable>(o);
-
-        // add branches to read
-        auto colnames = aod::datamodel::getColumnNames(dh);
-        if (colnames.size() == 0) {
-          t2t.addAllColumns(tr);
-        } else {
-          for (auto colname : colnames) {
-            t2t.addColumn(colname.c_str());
+          tr = didir->getDataTree(dh, fi, numTF);
+          if (!tr) {
+            goon = false;
+            break;
           }
-        }
+          LOGP(INFO, "Reading tree {}",tr->GetName());
+          auto o = Output(dh);
+          auto& t2t = outputs.make<TreeToTable>(o);
 
-        // fill the table
-        t2t.fill(tr);
+          // add branches to read
+          auto colnames = aod::datamodel::getColumnNames(dh);
+          if (colnames.size() == 0) {
+            t2t.addAllColumns(tr);
+          } else {
+            for (auto colname : colnames) {
+              t2t.addColumn(colname.c_str());
+            }
+          }
+
+          // fill the table
+          t2t.fill(tr);
+        }
+        
+        // the tables belonging to a time frame are now ready
+        // how can the consumer of these tables be informed, that the tables
+        // are ready for further processing?
+        {}
+        
+        // increment time frame
+        numTF++;
       }
+      didir->closeInputFiles();
+
     });
   })};
 

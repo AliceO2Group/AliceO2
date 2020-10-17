@@ -425,7 +425,6 @@ DataProcessorSpec
     // end of data functor is called at the end of the data stream
     auto endofdatacb = [dod](EndOfStreamContext& context) {
       dod->closeDataFiles();
-
       context.services().get<ControlService>().readyToQuit(QuitRequest::Me);
     };
 
@@ -433,20 +432,16 @@ DataProcessorSpec
     callbacks.set(CallbackService::Id::EndOfStream, endofdatacb);
 
     // this functor is called once per time frame
-    Int_t ntf = -1;
-    return std::move([ntf, ntfmerge, filemode, dod](ProcessingContext& pc) mutable -> void {
-      LOG(DEBUG) << "======== getGlobalAODSink::processing ==========";
-      LOG(DEBUG) << " processing data set with " << pc.inputs().size() << " entries";
+    return std::move([dod](ProcessingContext& pc) mutable -> void {
+      LOGP(INFO, "======== getGlobalAODSink::processing ==========");
+      LOGP(INFO, " processing data set with {} entries", pc.inputs().size());
 
       // return immediately if pc.inputs() is empty
       auto ninputs = pc.inputs().size();
       if (ninputs == 0) {
-        LOG(INFO) << "No inputs available!";
+        LOGP(INFO, "No inputs available!");
         return;
       }
-
-      // increment the time frame counter ntf
-      ntf++;
 
       // loop over the DataRefs which are contained in pc.inputs()
       for (const auto& ref : pc.inputs()) {
@@ -473,7 +468,8 @@ DataProcessorSpec
           // e.g. different selections of columns to different files
           for (auto d : ds) {
 
-            auto [file, directory] = dod->getFileFolder(d, ntf, ntfmerge, filemode);
+            auto [file, directory] = dod->getFileFolder(d);
+            LOGP(INFO, "file {} directory {}",file->GetName(),directory);
             auto treename = directory + d->treename;
             TableToTree ta2tr(table,
                               file,
