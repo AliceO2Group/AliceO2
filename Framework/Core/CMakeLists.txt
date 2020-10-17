@@ -103,6 +103,7 @@ o2_add_library(Framework
                        src/WorkflowSpec.cxx
                        src/runDataProcessing.cxx
                        src/ExternalFairMQDeviceProxy.cxx
+                       src/HistogramRegistry.cxx
                        test/TestClasses.cxx
                PRIVATE_INCLUDE_DIRECTORIES ${CMAKE_CURRENT_LIST_DIR}/src
                PUBLIC_LINK_LIBRARIES ${DEBUGGUI_TARGET}
