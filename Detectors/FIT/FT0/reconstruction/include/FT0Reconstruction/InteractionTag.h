@@ -34,7 +34,7 @@ struct InteractionTag : public o2::conf::ConfigurableParamHelper<InteractionTag>
 
   float getInteractionTimeNS(const RecPoints& rp, const o2::InteractionRecord& refIR) const
   {
-    return rp.getInteractionRecord().differenceInBCns(refIR); // RS FIXME do we want use precise MeanTime?
+    return rp.getInteractionRecord().differenceInBCNS(refIR); // RS FIXME do we want use precise MeanTime?
   }
 
   O2ParamDef(InteractionTag, "ft0tag");
