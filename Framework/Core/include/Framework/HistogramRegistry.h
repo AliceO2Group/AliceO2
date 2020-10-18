@@ -22,8 +22,6 @@
 #include "Framework/TableBuilder.h"
 #include "Framework/RuntimeError.h"
 
-#include "TClass.h"
-
 #include <TH1.h>
 #include <TH2.h>
 #include <TH3.h>
@@ -88,7 +86,7 @@ using HistPtr = std::variant<std::shared_ptr<THn>, std::shared_ptr<THnSparse>, s
  */
 //**************************************************************************************************
 struct AxisSpec {
-  AxisSpec(std::vector<double> binEdges_, std::string title_ = "", std::optional<std::string> name_ = std::nullopt)
+  AxisSpec(std::vector<double> binEdges_, std::optional<std::string> title_ = std::nullopt, std::optional<std::string> name_ = std::nullopt)
     : nBins(std::nullopt),
       binEdges(binEdges_),
       title(title_),
@@ -96,7 +94,7 @@ struct AxisSpec {
   {
   }
 
-  AxisSpec(int nBins_, double binMin_, double binMax_, std::string title_ = "", std::optional<std::string> name_ = std::nullopt)
+  AxisSpec(int nBins_, double binMin_, double binMax_, std::optional<std::string> title_ = std::nullopt, std::optional<std::string> name_ = std::nullopt)
     : nBins(nBins_),
       binEdges({binMin_, binMax_}),
       title(title_),
@@ -106,7 +104,7 @@ struct AxisSpec {
 
   std::optional<int> nBins{};
   std::vector<double> binEdges{};
-  std::string title{};
+  std::optional<std::string> title{};
   std::optional<std::string> name{}; // optional axis name for ndim histograms
 };
 
@@ -130,17 +128,17 @@ struct HistogramConfigSpec {
     axes.push_back(axis);
   }
 
-  void addAxis(int nBins_, const double binMin_, const double binMax_, const std::string& title_ = "", const std::optional<std::string>& name_ = std::nullopt)
+  void addAxis(int nBins_, double binMin_, double binMax_, std::optional<std::string> title_ = std::nullopt, std::optional<std::string> name_ = std::nullopt)
   {
     axes.push_back({nBins_, binMin_, binMax_, title_, name_});
   }
 
-  void addAxis(const std::vector<double>& binEdges_, const std::string& title_, const std::string& name_)
+  void addAxis(std::vector<double> binEdges_, std::optional<std::string> title_ = std::nullopt, std::optional<std::string> name_ = std::nullopt)
   {
     axes.push_back({binEdges_, title_, name_});
   }
 
-  void addAxes(const std::vector<AxisSpec>& axes_)
+  void addAxes(std::vector<AxisSpec> axes_)
   {
     axes.insert(axes.end(), axes_.begin(), axes_.end());
   }
@@ -194,7 +192,7 @@ struct HistogramSpec {
 //**************************************************************************************************
 struct HistFactory {
 
-  // create histogram of type T with the axes defined in HistogramConfigSpec
+  // create histogram of type T with the axes defined in HistogramSpec
   template <typename T>
   static std::shared_ptr<T> createHist(const HistogramSpec& histSpec)
   {
@@ -227,7 +225,8 @@ struct HistFactory {
     for (std::size_t i = 0; i < nAxes; i++) {
       TAxis* axis{getAxis(i, hist)};
       if (axis) {
-        axis->SetTitle(histSpec.config.axes[i].title.data());
+        if (histSpec.config.axes[i].title)
+          axis->SetTitle((*histSpec.config.axes[i].title).data());
 
         // this helps to have axes not only called 0,1,2... in ndim histos
         if constexpr (std::is_base_of_v<THnBase, T>) {
@@ -238,7 +237,7 @@ struct HistFactory {
         // move the bin edges in case a variable binning was requested
         if (!histSpec.config.axes[i].nBins) {
           if (!std::is_sorted(std::begin(histSpec.config.axes[i].binEdges), std::end(histSpec.config.axes[i].binEdges))) {
-            LOGF(FATAL, "The bin edges specified for axis %s in histogram %s are not in increasing order!", (histSpec.config.axes[i].name) ? *histSpec.config.axes[i].name : histSpec.config.axes[i].title, histSpec.name);
+            LOGF(FATAL, "The bin edges in histogram %s are not in increasing order!", histSpec.name);
             return nullptr;
           }
           axis->Set(nBins[i], histSpec.config.axes[i].binEdges.data());
@@ -253,7 +252,7 @@ struct HistFactory {
 
   // create histogram and return it casted to the correct alternative held in HistPtr variant
   template <typename T>
-  static HistPtr createHistVariant(HistogramSpec const& histSpec)
+  static HistPtr createHistVariant(const HistogramSpec& histSpec)
   {
     if (auto hist = castToVariant(createHist<T>(histSpec)))
       return *hist;
@@ -262,7 +261,7 @@ struct HistFactory {
   }
 
   // runtime version of the above
-  static HistPtr createHistVariant(HistogramSpec const& histSpec)
+  static HistPtr createHistVariant(const HistogramSpec& histSpec)
   {
     if (histSpec.config.type == HistType::kUndefinedHist)
       throw runtime_error("Histogram type was not specified.");
@@ -365,7 +364,7 @@ struct HistFiller {
     } else if constexpr (validComplexFill) {
       // savety check for n dimensional histograms (runtime overhead)
       if (hist->GetNdimensions() != nDim)
-        throw runtime_error("The number of position (and weight) arguments does not match the histogram dimensions!");
+        throw runtime_error("The number of position (and weight) arguments in fill() does not match the histogram dimensions!");
 
       double tempArray[sizeof...(Ts)] = {static_cast<double>(positionAndWeight)...};
       if constexpr (useWeight)
@@ -373,7 +372,7 @@ struct HistFiller {
       else
         hist->Fill(tempArray);
     } else {
-      throw runtime_error("The number of position (and weight) arguments does not match the histogram dimensions!");
+      throw runtime_error("The number of position (and weight) arguments in fill() does not match the histogram dimensions!");
     }
   }
 
@@ -408,9 +407,19 @@ class HistogramRegistry
     }
   }
 
-  void add(HistogramSpec&& histSpec_)
+  void add(const HistogramSpec& histSpec_)
   {
     insert(histSpec_);
+  }
+
+  void add(char const* const name_, char const* const title_, const HistogramConfigSpec& histConfigSpec_, bool callSumw2_ = false)
+  {
+    insert({name_, title_, histConfigSpec_, callSumw2_});
+  }
+
+  void add(char const* const name_, char const* const title_, HistType histType_, std::vector<AxisSpec> axes_, bool callSumw2_ = false)
+  {
+    insert({name_, title_, {histType_, axes_}, callSumw2_});
   }
 
   // gets the underlying histogram pointer
@@ -423,11 +432,17 @@ class HistogramRegistry
     const uint32_t id = compile_time_hash(name);
     const uint32_t i = imask(id);
     if (O2_BUILTIN_LIKELY(id == mRegistryKey[i])) {
-      return *std::get_if<std::shared_ptr<T>>(&mRegistryValue[i]);
+      if (auto histPtr = std::get_if<std::shared_ptr<T>>(&mRegistryValue[i]))
+        return *histPtr;
+      else
+        throw runtime_error("Histogram type specified in get() does not match actual histogram type!");
     }
     for (auto j = 1u; j < MAX_REGISTRY_SIZE; ++j) {
       if (id == mRegistryKey[imask(j + i)]) {
-        return *std::get_if<std::shared_ptr<T>>(&mRegistryValue[imask(j + i)]);
+        if (auto histPtr = std::get_if<std::shared_ptr<T>>(&mRegistryValue[imask(j + i)]))
+          return *histPtr;
+        else
+          throw runtime_error("Histogram type specified in get() does not match actual histogram type!");
       }
     }
     throw runtime_error("No matching histogram found in HistogramRegistry!");
@@ -532,7 +547,7 @@ class HistogramRegistry
   mutable uint32_t lookup = 0;
 
  private:
-  void insert(HistogramSpec& histSpec)
+  void insert(const HistogramSpec& histSpec)
   {
     uint32_t i = imask(histSpec.id);
     for (auto j = 0u; j < MAX_REGISTRY_SIZE; ++j) {
