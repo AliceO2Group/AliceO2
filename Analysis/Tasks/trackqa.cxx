@@ -15,7 +15,7 @@
 #include "Framework/AnalysisDataModel.h"
 #include "Framework/AnalysisTask.h"
 #include "Analysis/MC.h"
-#include "Analysis/HistHelpers.h"
+#include "Framework/HistogramRegistry.h"
 
 #include <cmath>
 
@@ -24,7 +24,6 @@
 using namespace o2;
 using namespace o2::framework;
 using namespace o2::framework::expressions;
-using namespace o2::experimental::histhelpers;
 
 void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
 {
@@ -41,45 +40,14 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
 //****************************************************************************************
 struct TrackQATask {
 
-  enum HistosKine : uint8_t {
-    pt,
-    eta,
-    phi,
-  };
-  enum HistosTrackPar : uint8_t {
-    x,
-    y,
-    z,
-    alpha,
-    signed1Pt,
-    snp,
-    tgl,
-    dcaXY,
-    dcaZ,
-    flags,
-  };
-  enum HistosITS : uint8_t {
-    itsNCls,
-    itsChi2NCl,
-    itsHits,
-  };
-  enum HistosTPC : uint8_t {
-    tpcNClsFindable,
-    tpcNClsFound,
-    tpcNClsShared,
-    tpcNClsCrossedRows,
-    tpcCrossedRowsOverFindableCls,
-    tpcFractionSharedCls,
-    tpcChi2NCl,
-  };
+  HistogramRegistry kine{"Kine", true, {}, OutputObjHandlingPolicy::QAObject};
+  HistogramRegistry trackpar{"TrackPar", true, {}, OutputObjHandlingPolicy::QAObject};
+  HistogramRegistry its{"ITS", true, {}, OutputObjHandlingPolicy::QAObject};
+  HistogramRegistry tpc{"TPC", true, {}, OutputObjHandlingPolicy::QAObject};
 
-  OutputObj<HistFolder> kine{HistFolder("Kine"), OutputObjHandlingPolicy::QAObject};
-  OutputObj<HistFolder> trackpar{HistFolder("TrackPar"), OutputObjHandlingPolicy::QAObject};
-  OutputObj<HistFolder> its{HistFolder("ITS"), OutputObjHandlingPolicy::QAObject};
-  OutputObj<HistFolder> tpc{HistFolder("TPC"), OutputObjHandlingPolicy::QAObject};
-  //OutputObj<HistFolder> trd{HistFolder("TRD"), OutputObjHandlingPolicy::QAObject};
-  //OutputObj<HistFolder> tof{HistFolder("TOF"), OutputObjHandlingPolicy::QAObject};
-  //OutputObj<HistFolder> emcal{HistFolder("EMCAL"), OutputObjHandlingPolicy::QAObject};
+  //HistogramRegistry trd{"TRD", true, {}, OutputObjHandlingPolicy::QAObject};
+  //HistogramRegistry tof{"TOF", true, {}, OutputObjHandlingPolicy::QAObject};
+  //HistogramRegistry emcal{"EMCAL", true, {}, OutputObjHandlingPolicy::QAObject};
 
   Configurable<int> selectedTracks{"select", 1, "Choice of track selection. 0 = no selection, 1 = globalTracks, 2 = globalTracksSDD"};
 
@@ -94,76 +62,79 @@ struct TrackQATask {
 
   void init(o2::framework::InitContext&)
   {
+    std::vector<double> ptBinning = {0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0,
+                                     1.1, 1.2, 1.3, 1.4, 1.5, 2.0, 5.0, 10.0, 20.0, 50.0};
+
     // kine histograms
-    kine->Add<pt>(new TH1D("pt", "#it{p}_{T};#it{p}_{T} [GeV/c]", 200, 0., 5.));
-    kine->Add<eta>(new TH1D("eta", "#eta;#eta", 180, -0.9, 0.9));
-    kine->Add<phi>(new TH1D("phi", "#phi;#phi [rad]", 180, 0., 2 * M_PI));
+    kine.add("pt", "#it{p}_{T};#it{p}_{T} [GeV/c]", kTH1D, {{ptBinning}});
+    kine.add("eta", "#eta;#eta", kTH1D, {{180, -0.9, 0.9}});
+    kine.add("phi", "#phi;#phi [rad]", kTH1D, {{180, 0., 2 * M_PI}});
 
     // track histograms
-    trackpar->Add<x>(new TH1D("x", "track #it{x} position at dca in local coordinate system;#it{x} [cm]", 200, -0.36, 0.36));
-    trackpar->Add<y>(new TH1D("y", "track #it{y} position at dca in local coordinate system;#it{y} [cm]", 200, -0.5, 0.5));
-    trackpar->Add<z>(new TH1D("z", "track #it{z} position at dca in local coordinate system;#it{z} [cm]", 200, -11., 11.));
-    trackpar->Add<alpha>(new TH1D("alpha", "rotation angle of local wrt. global coordinate system;#alpha [rad]", 36, -M_PI, M_PI));
-    trackpar->Add<signed1Pt>(new TH1D("signed1Pt", "track signed 1/#it{p}_{T};#it{q}/#it{p}_{T}", 200, -8, 8));
-    trackpar->Add<snp>(new TH1D("snp", "sinus of track momentum azimuthal angle;snp", 11, -0.1, 0.1));
-    trackpar->Add<tgl>(new TH1D("tgl", "tangent of the track momentum dip angle;tgl;", 200, -1., 1.));
-    trackpar->Add<flags>(new TH1D("flags", "track flag;flag bit", 64, -0.5, 63.5));
-    trackpar->Add<dcaXY>(new TH1D("dcaXY", "distance of closest approach in #it{xy} plane;#it{dcaXY} [cm];", 200, -0.15, 0.15));
-    trackpar->Add<dcaZ>(new TH1D("dcaZ", "distance of closest approach in #it{z};#it{dcaZ} [cm];", 200, -0.15, 0.15));
+    trackpar.add("x", "track #it{x} position at dca in local coordinate system;#it{x} [cm]", kTH1D, {{200, -0.36, 0.36}});
+    trackpar.add("y", "track #it{y} position at dca in local coordinate system;#it{y} [cm]", kTH1D, {{200, -0.5, 0.5}});
+    trackpar.add("z", "track #it{z} position at dca in local coordinate system;#it{z} [cm]", kTH1D, {{200, -11., 11.}});
+    trackpar.add("alpha", "rotation angle of local wrt. global coordinate system;#alpha [rad]", kTH1D, {{36, -M_PI, M_PI}});
+    trackpar.add("signed1Pt", "track signed 1/#it{p}_{T};#it{q}/#it{p}_{T}", kTH1D, {{200, -8, 8}});
+    trackpar.add("snp", "sinus of track momentum azimuthal angle;snp", kTH1D, {{11, -0.1, 0.1}});
+    trackpar.add("tgl", "tangent of the track momentum dip angle;tgl;", kTH1D, {{200, -1., 1.}});
+    trackpar.add("flags", "track flag;flag bit", kTH1D, {{64, -0.5, 63.5}});
+    trackpar.add("dcaXY", "distance of closest approach in #it{xy} plane;#it{dcaXY} [cm];", kTH1D, {{200, -0.15, 0.15}});
+    trackpar.add("dcaZ", "distance of closest approach in #it{z};#it{dcaZ} [cm];", kTH1D, {{200, -0.15, 0.15}});
 
     // its histograms
-    its->Add<itsNCls>(new TH1D("itsNCls", "number of found ITS clusters;# clusters ITS", 8, -0.5, 7.5));
-    its->Add<itsChi2NCl>(new TH1D("itsChi2NCl", "chi2 per ITS cluster;chi2 / cluster ITS", 100, 0, 40));
-    its->Add<itsHits>(new TH1D("itsHits", "hitmap ITS;layer ITS", 7, -0.5, 6.5));
+    its.add("itsNCls", "number of found ITS clusters;# clusters ITS", kTH1D, {{8, -0.5, 7.5}});
+    its.add("itsChi2NCl", "chi2 per ITS cluster;chi2 / cluster ITS", kTH1D, {{100, 0, 40}});
+    its.add("itsHits", "hitmap ITS;layer ITS", kTH1D, {{7, -0.5, 6.5}});
 
     // tpc histograms
-    tpc->Add<tpcNClsFindable>(new TH1D("tpcNClsFindable", "number of findable TPC clusters;# findable clusters TPC", 165, -0.5, 164.5));
-    tpc->Add<tpcNClsFound>(new TH1D("tpcNClsFound", "number of found TPC clusters;# clusters TPC", 165, -0.5, 164.5));
-    tpc->Add<tpcNClsShared>(new TH1D("tpcNClsShared", "number of shared TPC clusters;# shared clusters TPC", 165, -0.5, 164.5));
-    tpc->Add<tpcNClsCrossedRows>(new TH1D("tpcNClsCrossedRows", "number of crossed TPC rows;# crossed rows TPC", 165, -0.5, 164.5));
-    tpc->Add<tpcFractionSharedCls>(new TH1D("tpcFractionSharedCls", "fraction of shared TPC clusters;fraction shared clusters TPC", 100, 0., 1.));
-    tpc->Add<tpcCrossedRowsOverFindableCls>(new TH1D("tpcCrossedRowsOverFindableCls", "crossed TPC rows over findable clusters;crossed rows / findable clusters TPC", 120, 0.0, 1.2));
-    tpc->Add<tpcChi2NCl>(new TH1D("tpcChi2NCl", "chi2 per cluster in TPC;chi2 / cluster TPC", 100, 0, 10));
+    tpc.add("tpcNClsFindable", "number of findable TPC clusters;# findable clusters TPC", kTH1D, {{165, -0.5, 164.5}});
+    tpc.add("tpcNClsFound", "number of found TPC clusters;# clusters TPC", kTH1D, {{165, -0.5, 164.5}});
+    tpc.add("tpcNClsShared", "number of shared TPC clusters;# shared clusters TPC", kTH1D, {{165, -0.5, 164.5}});
+    tpc.add("tpcNClsCrossedRows", "number of crossed TPC rows;# crossed rows TPC", kTH1D, {{165, -0.5, 164.5}});
+    tpc.add("tpcFractionSharedCls", "fraction of shared TPC clusters;fraction shared clusters TPC", kTH1D, {{100, 0., 1.}});
+    tpc.add("tpcCrossedRowsOverFindableCls", "crossed TPC rows over findable clusters;crossed rows / findable clusters TPC", kTH1D, {{120, 0.0, 1.2}});
+    tpc.add("tpcChi2NCl", "chi2 per cluster in TPC;chi2 / cluster TPC", kTH1D, {{100, 0, 10}});
   }
 
   void process(soa::Filtered<soa::Join<aod::FullTracks, aod::TracksExtended, aod::TrackSelection>>::iterator const& track)
   {
     // fill kinematic variables
-    kine->Fill<pt>(track.pt());
-    kine->Fill<eta>(track.eta());
-    kine->Fill<phi>(track.phi());
+    kine.fill("pt", track.pt());
+    kine.fill("eta", track.eta());
+    kine.fill("phi", track.phi());
 
     // fill track parameters
-    trackpar->Fill<alpha>(track.alpha());
-    trackpar->Fill<x>(track.x());
-    trackpar->Fill<y>(track.y());
-    trackpar->Fill<z>(track.z());
-    trackpar->Fill<signed1Pt>(track.signed1Pt());
-    trackpar->Fill<snp>(track.snp());
-    trackpar->Fill<tgl>(track.tgl());
+    trackpar.fill("alpha", track.alpha());
+    trackpar.fill("x", track.x());
+    trackpar.fill("y", track.y());
+    trackpar.fill("z", track.z());
+    trackpar.fill("signed1Pt", track.signed1Pt());
+    trackpar.fill("snp", track.snp());
+    trackpar.fill("tgl", track.tgl());
     for (unsigned int i = 0; i < 64; i++) {
       if (track.flags() & (1 << i))
-        trackpar->Fill<flags>(i);
+        trackpar.fill("flags", i);
     }
-    trackpar->Fill<dcaXY>(track.dcaXY());
-    trackpar->Fill<dcaZ>(track.dcaZ());
+    trackpar.fill("dcaXY", track.dcaXY());
+    trackpar.fill("dcaZ", track.dcaZ());
 
     // fill ITS variables
-    its->Fill<itsNCls>(track.itsNCls());
-    its->Fill<itsChi2NCl>(track.itsChi2NCl());
+    its.fill("itsNCls", track.itsNCls());
+    its.fill("itsChi2NCl", track.itsChi2NCl());
     for (unsigned int i = 0; i < 7; i++) {
       if (track.itsClusterMap() & (1 << i))
-        its->Fill<itsHits>(i);
+        its.fill("itsHits", i);
     }
 
     // fill TPC variables
-    tpc->Fill<tpcNClsFindable>(track.tpcNClsFindable());
-    tpc->Fill<tpcNClsFound>(track.tpcNClsFound());
-    tpc->Fill<tpcNClsShared>(track.tpcNClsShared());
-    tpc->Fill<tpcNClsCrossedRows>(track.tpcNClsCrossedRows());
-    tpc->Fill<tpcCrossedRowsOverFindableCls>(track.tpcCrossedRowsOverFindableCls());
-    tpc->Fill<tpcFractionSharedCls>(track.tpcFractionSharedCls());
-    tpc->Fill<tpcChi2NCl>(track.tpcChi2NCl());
+    tpc.fill("tpcNClsFindable", track.tpcNClsFindable());
+    tpc.fill("tpcNClsFound", track.tpcNClsFound());
+    tpc.fill("tpcNClsShared", track.tpcNClsShared());
+    tpc.fill("tpcNClsCrossedRows", track.tpcNClsCrossedRows());
+    tpc.fill("tpcCrossedRowsOverFindableCls", track.tpcCrossedRowsOverFindableCls());
+    tpc.fill("tpcFractionSharedCls", track.tpcFractionSharedCls());
+    tpc.fill("tpcChi2NCl", track.tpcChi2NCl());
 
     // fill TRD variables
 
@@ -180,12 +151,7 @@ struct TrackQATask {
 //****************************************************************************************
 struct TrackQATaskMC {
 
-  OutputObj<HistFolder> resolution{HistFolder("Resolution"), OutputObjHandlingPolicy::QAObject};
-
-  // unique identifiers for each variable
-  enum QuantitiesMC : uint8_t {
-
-  };
+  HistogramRegistry resolution{"Resolution", true, {}, OutputObjHandlingPolicy::QAObject};
 
   void init(o2::framework::InitContext&){
 
