@@ -13,9 +13,12 @@
 #include "Framework/ArrowContext.h"
 #include "Framework/RawBufferContext.h"
 #include "Framework/TMessageSerializer.h"
+#include "Framework/ServiceRegistry.h"
 #include "FairMQResizableBuffer.h"
 #include "CommonUtils/BoostSerializer.h"
 #include "Headers/DataHeader.h"
+
+#include <Monitoring/Monitoring.h>
 #include <fairmq/FairMQParts.h>
 #include <fairmq/FairMQDevice.h>
 #include <arrow/io/memory.h>
@@ -26,9 +29,7 @@
 using namespace o2::framework;
 using DataHeader = o2::header::DataHeader;
 
-namespace o2
-{
-namespace framework
+namespace o2::framework
 {
 
 void DataProcessor::doSend(FairMQDevice& device, FairMQParts&& parts, const char* channel, unsigned int index)
@@ -36,7 +37,7 @@ void DataProcessor::doSend(FairMQDevice& device, FairMQParts&& parts, const char
   device.Send(parts, channel, index);
 }
 
-void DataProcessor::doSend(FairMQDevice& device, MessageContext& context)
+void DataProcessor::doSend(FairMQDevice& device, MessageContext& context, ServiceRegistry&)
 {
   std::unordered_map<std::string const*, FairMQParts> outputs;
   auto contextMessages = context.getMessagesForSending();
@@ -54,7 +55,7 @@ void DataProcessor::doSend(FairMQDevice& device, MessageContext& context)
   }
 }
 
-void DataProcessor::doSend(FairMQDevice& device, StringContext& context)
+void DataProcessor::doSend(FairMQDevice& device, StringContext& context, ServiceRegistry&)
 {
   for (auto& messageRef : context) {
     FairMQParts parts;
@@ -73,9 +74,13 @@ void DataProcessor::doSend(FairMQDevice& device, StringContext& context)
   }
 }
 
-// FIXME: for the moment we simply send empty messages.
-void DataProcessor::doSend(FairMQDevice& device, ArrowContext& context)
+void DataProcessor::doSend(FairMQDevice& device, ArrowContext& context, ServiceRegistry& registry)
 {
+  using o2::monitoring::Metric;
+  using o2::monitoring::Monitoring;
+  using o2::monitoring::tags::Key;
+  using o2::monitoring::tags::Value;
+
   for (auto& messageRef : context) {
     FairMQParts parts;
     // Depending on how the arrow table is constructed, we finalize
@@ -89,13 +94,17 @@ void DataProcessor::doSend(FairMQDevice& device, ArrowContext& context)
     // exposing it to the user in the first place.
     DataHeader* dh = const_cast<DataHeader*>(cdh);
     dh->payloadSize = payload->GetSize();
+    context.updateBytesSent(payload->GetSize());
+    context.updateMessagesSent(1);
+    registry.get<Monitoring>().send(Metric{(uint64_t)context.bytesSent(), "arrow-bytes-created"}.addTag(Key::Subsystem, Value::DPL));
+    registry.get<Monitoring>().send(Metric{(uint64_t)context.messagesCreated(), "arrow-messages-created"}.addTag(Key::Subsystem, Value::DPL));
     parts.AddPart(std::move(messageRef.header));
     parts.AddPart(std::move(payload));
     device.Send(parts, messageRef.channel, 0);
   }
 }
 
-void DataProcessor::doSend(FairMQDevice& device, RawBufferContext& context)
+void DataProcessor::doSend(FairMQDevice& device, RawBufferContext& context, ServiceRegistry& registry)
 {
   for (auto& messageRef : context) {
     FairMQParts parts;
@@ -116,5 +125,4 @@ void DataProcessor::doSend(FairMQDevice& device, RawBufferContext& context)
   }
 }
 
-} // namespace framework
-} // namespace o2
+} // namespace o2::framework
