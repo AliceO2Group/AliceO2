@@ -15,7 +15,7 @@
 install(FILES CheckDigits_mft.C
               SetIncludePath.C
               analyzeHits.C
-	      duplicateHits.C
+              duplicateHits.C
               migrateSimFiles.C
               analyzeDigitLabels.C
               analyzeOriginHits.C
@@ -33,6 +33,7 @@ install(FILES CheckDigits_mft.C
               readITSDigits.C
               rootlogon.C
               runCATrackingClusterNative.C
+              runTPCRefit.C
               run_CRUDataSkimming_its.C
               run_calib_tof.C
               run_clus_itsSA.C
@@ -183,7 +184,7 @@ o2_add_test_root_macro(
                                              O2::MCHSimulation
                                              O2::MIDSimulation
 					     O2::ZDCSimulation
-					     O2::CPVBase 
+					     O2::CPVBase
                                              O2::CPVSimulation
                                              O2::ZDCSimulation)
 
@@ -235,6 +236,13 @@ o2_add_test_root_macro(runCATrackingClusterNative.C
                                              O2::ReconstructionDataFormats
                                              O2::SimulationDataFormat
                                              O2::TPCReconstruction
+LABELS tpc)
+# FIXME: move to subsystem dir
+o2_add_test_root_macro(runTPCRefit.C
+                       PUBLIC_LINK_LIBRARIES O2::DataFormatsTPC
+                                             O2::ReconstructionDataFormats
+                                             O2::SimulationDataFormat
+                                             O2::TPCReconstruction
                        LABELS tpc)
 
 # FIXME: move to subsystem dir
@@ -261,7 +269,7 @@ o2_add_test_root_macro(run_clus_itsSA.C
 
 # FIXME: move to subsystem dir
 o2_add_test_root_macro(run_clus_tof.C
-                       PUBLIC_LINK_LIBRARIES O2::TOFReconstruction O2::Framework O2::TOFBase 
+                       PUBLIC_LINK_LIBRARIES O2::TOFReconstruction O2::Framework O2::TOFBase
                                              O2::SimulationDataFormat O2::TOFCalibration O2::DataFormatsTOF
                        LABELS tof)
 
