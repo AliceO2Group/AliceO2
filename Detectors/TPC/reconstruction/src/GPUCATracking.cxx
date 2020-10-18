@@ -69,6 +69,8 @@ int GPUCATracking::runTracking(GPUO2InterfaceIOPtrs* data, GPUInterfaceOutputs* 
     throw std::runtime_error("Invalid input for gpu tracking");
   }
 
+  constexpr unsigned char flagsReject = GPUTPCGMMergedTrackHit::flagReject | GPUTPCGMMergedTrackHit::flagNotFit;
+
   std::vector<TrackTPC>* outputTracks = data->outputTracks;
   std::vector<uint32_t>* outClusRefs = data->outputClusRefs;
   std::vector<o2::MCCompLabel>* outputTracksMCTruth = data->outputTracksMCTruth;
@@ -248,7 +250,7 @@ int GPUCATracking::runTracking(GPUO2InterfaceIOPtrs* data, GPUInterfaceOutputs* 
        outerPar.C[12], outerPar.C[13], outerPar.C[14]}));
     int nOutCl = 0;
     for (int j = 0; j < tracks[i].NClusters(); j++) {
-      if (!(trackClusters[tracks[i].FirstClusterRef() + j].state & GPUTPCGMMergedTrackHit::flagReject)) {
+      if (!(trackClusters[tracks[i].FirstClusterRef() + j].state & flagsReject)) {
         nOutCl++;
       }
     }
@@ -261,7 +263,7 @@ int GPUCATracking::runTracking(GPUO2InterfaceIOPtrs* data, GPUInterfaceOutputs* 
     std::vector<std::pair<MCCompLabel, unsigned int>> labels;
     nOutCl = 0;
     for (int j = 0; j < tracks[i].NClusters(); j++) {
-      if (trackClusters[tracks[i].FirstClusterRef() + j].state & GPUTPCGMMergedTrackHit::flagReject) {
+      if (trackClusters[tracks[i].FirstClusterRef() + j].state & flagsReject) {
         continue;
       }
       int clusterIdGlobal = trackClusters[tracks[i].FirstClusterRef() + j].num;
