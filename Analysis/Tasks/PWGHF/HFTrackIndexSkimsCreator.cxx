@@ -27,22 +27,22 @@ using namespace o2::framework::expressions;
 /// Track selection
 struct SelectTracks {
   Produces<aod::HFSelTrack> rowSelectedTrack;
-  Configurable<double> ptmintrack_2prong{"ptmintrack_2prong", -1, "ptmin single track"};
-  Configurable<double> dcatoprimxymin_2prong{"dcatoprimxymin_2prong", 0, "dca xy to prim vtx min"};
-  Configurable<double> etamax_2prong{"etamax_2prong", 999, "maximum pseudorapidity value"};
-  Configurable<double> ptmintrack_3prong{"ptmintrack_3prong", -1, "ptmin single track"};
-  Configurable<double> dcatoprimxymin_3prong{"dcatoprimxymin_3prong", 0, "dca xy to prim vtx min"};
-  Configurable<double> etamax_3prong{"etamax_3prong", 999, "maximum pseudorapidity value"};
+  Configurable<double> ptmintrack_2prong{"ptmintrack_2prong", -1., "ptmin single track"};
+  Configurable<double> dcatoprimxymin_2prong{"dcatoprimxymin_2prong", 0., "dca xy to prim vtx min"};
+  Configurable<double> etamax_2prong{"etamax_2prong", 999., "maximum pseudorapidity value"};
+  Configurable<double> ptmintrack_3prong{"ptmintrack_3prong", -1., "ptmin single track"};
+  Configurable<double> dcatoprimxymin_3prong{"dcatoprimxymin_3prong", 0., "dca xy to prim vtx min"};
+  Configurable<double> etamax_3prong{"etamax_3prong", 999., "maximum pseudorapidity value"};
   Configurable<int> d_tpcnclsfound{"d_tpcnclsfound", 70, "min number of tpc cls >="};
-  Configurable<double> d_bz{"d_bz", 5.0, "bz field"};
+  Configurable<double> d_bz{"d_bz", 5., "bz field"};
   Configurable<bool> b_dovalplots{"b_dovalplots", true, "do validation plots"};
   OutputObj<TH1F> hpt_nocuts{TH1F("hpt_nocuts", "pt tracks (GeV/#it{c})", 100, 0., 10.)};
   OutputObj<TH1F> hpt_cuts_2prong{TH1F("hpt_cuts_2prong", "pt tracks (GeV/#it{c})", 100, 0., 10.)};
-  OutputObj<TH1F> hdcatoprimxy_cuts_2prong{TH1F("hdcatoprimxy_cuts_2prong", "dca xy to prim. vertex (cm)", 100, -1.0, 1.0)};
+  OutputObj<TH1F> hdcatoprimxy_cuts_2prong{TH1F("hdcatoprimxy_cuts_2prong", "dca xy to prim. vertex (cm)", 100, -1., 1.)};
   OutputObj<TH1F> hpt_cuts_3prong{TH1F("hpt_cuts_3prong", "pt tracks (GeV/#it{c})", 100, 0., 10.)};
-  OutputObj<TH1F> hdcatoprimxy_cuts_3prong{TH1F("hdcatoprimxy_cuts_3prong", "dca xy to prim. vertex (cm)", 100, -1.0, 1.0)};
-  OutputObj<TH1F> heta_cuts_2prong{TH1F("heta_cuts_2prong", "pseudorapidity", 100, -1.0, 1.0)};
-  OutputObj<TH1F> heta_cuts_3prong{TH1F("heta_cuts_3prong", "pseudorapidity", 100, -1.0, 1.0)};
+  OutputObj<TH1F> hdcatoprimxy_cuts_3prong{TH1F("hdcatoprimxy_cuts_3prong", "dca xy to prim. vertex (cm)", 100, -1., 1.)};
+  OutputObj<TH1F> heta_cuts_2prong{TH1F("heta_cuts_2prong", "pseudorapidity", 100, -1., 1.)};
+  OutputObj<TH1F> heta_cuts_3prong{TH1F("heta_cuts_3prong", "pseudorapidity", 100, -1., 1.)};
 
   void process(aod::Collision const& collision,
                soa::Join<aod::Tracks, aod::TracksCov, aod::TracksExtra> const& tracks)
@@ -101,26 +101,26 @@ struct HFTrackIndexSkimsCreator {
   Produces<aod::HfTrackIndexProng3> rowTrackIndexProng3;
   Configurable<int> triggerindex{"triggerindex", -1, "trigger index"};
   Configurable<int> do3prong{"do3prong", 0, "do 3 prong"};
-  Configurable<double> d_bz{"d_bz", 5.0, "bz field"};
+  Configurable<double> d_bz{"d_bz", 5., "bz field"};
   Configurable<bool> b_propdca{"b_propdca", true, "create tracks version propagated to PCA"};
-  Configurable<double> d_maxr{"d_maxr", 200, "reject PCA's above this radius"};
-  Configurable<double> d_maxdzini{"d_maxdzini", 4, "reject (if>0) PCA candidate if tracks DZ exceeds threshold"};
-  Configurable<double> d_minparamchange{"d_minparamchange", 1e-3, "stop iterations if largest change of any X is smaller than this"};
+  Configurable<double> d_maxr{"d_maxr", 200., "reject PCA's above this radius"};
+  Configurable<double> d_maxdzini{"d_maxdzini", 4., "reject (if>0) PCA candidate if tracks DZ exceeds threshold"};
+  Configurable<double> d_minparamchange{"d_minparamchange", 1.e-3, "stop iterations if largest change of any X is smaller than this"};
   Configurable<double> d_minrelchi2change{"d_minrelchi2change", 0.9, "stop iterations is chi2/chi2old > this"};
   Configurable<double> d_minmassDp{"d_minmassDp", 1.5, "min mass dplus presel"};
   Configurable<double> d_maxmassDp{"d_maxmassDp", 2.1, "max mass dplus presel"};
   Configurable<bool> b_dovalplots{"b_dovalplots", true, "do validation plots"};
-  Configurable<double> ptmincand_2prong{"ptmincand_2prong", -1, "ptmin 2prong candidate"};
-  Configurable<double> ptmincand_3prong{"ptmincand_3prong", -1, "ptmin 3prong candidate"};
+  Configurable<double> ptmincand_2prong{"ptmincand_2prong", -1., "ptmin 2prong candidate"};
+  Configurable<double> ptmincand_3prong{"ptmincand_3prong", -1., "ptmin 3prong candidate"};
 
-  OutputObj<TH1F> hvtx_x_out{TH1F("hvtx_x", "2-track vtx", 1000, -2.0, 2.0)};
-  OutputObj<TH1F> hvtx_y_out{TH1F("hvtx_y", "2-track vtx", 1000, -2.0, 2.0)};
-  OutputObj<TH1F> hvtx_z_out{TH1F("hvtx_z", "2-track vtx", 1000, -20.0, 20.0)};
-  OutputObj<TH1F> hmass2{TH1F("hmass2", ";Inv Mass (GeV/#it{c}^{2})", 500, 0, 5.0)};
+  OutputObj<TH1F> hvtx_x_out{TH1F("hvtx_x", "2-track vtx", 1000, -2., 2.)};
+  OutputObj<TH1F> hvtx_y_out{TH1F("hvtx_y", "2-track vtx", 1000, -2., 2.)};
+  OutputObj<TH1F> hvtx_z_out{TH1F("hvtx_z", "2-track vtx", 1000, -20., 20.)};
+  OutputObj<TH1F> hmass2{TH1F("hmass2", ";Inv Mass (GeV/#it{c}^{2})", 500, 0., 5.)};
   OutputObj<TH1F> hmass3{TH1F("hmass3", ";Inv Mass (GeV/#it{c}^{2})", 500, 1.6, 2.1)};
-  OutputObj<TH1F> hvtx3_x_out{TH1F("hvtx3_x", "3-track vtx", 1000, -2.0, 2.0)};
-  OutputObj<TH1F> hvtx3_y_out{TH1F("hvtx3_y", "3-track vtx", 1000, -2.0, 2.0)};
-  OutputObj<TH1F> hvtx3_z_out{TH1F("hvtx3_z", "3-track vtx", 1000, -20.0, 20.0)};
+  OutputObj<TH1F> hvtx3_x_out{TH1F("hvtx3_x", "3-track vtx", 1000, -2., 2.)};
+  OutputObj<TH1F> hvtx3_y_out{TH1F("hvtx3_y", "3-track vtx", 1000, -2., 2.)};
+  OutputObj<TH1F> hvtx3_z_out{TH1F("hvtx3_z", "3-track vtx", 1000, -20., 20.)};
 
   Filter filterSelectTracks = aod::hf_seltrack::isSel2Prong == 1;
   using SelectedTracks = soa::Filtered<soa::Join<aod::Tracks, aod::TracksCov, aod::TracksExtra, aod::HFSelTrack>>;
@@ -130,11 +130,11 @@ struct HFTrackIndexSkimsCreator {
 
   double massPi = RecoDecay::getMassPDG(kPiPlus);
   double massK = RecoDecay::getMassPDG(kKPlus);
-  double mass2PiK{0};
-  double mass2KPi{0};
-  double mass3PiKPi{0};
-  double ptcand_2prong{0};
-  double ptcand_3prong{0};
+  double mass2PiK{0.};
+  double mass2KPi{0.};
+  double mass3PiKPi{0.};
+  double ptcand_2prong{0.};
+  double ptcand_3prong{0.};
 
   void process(aod::Collision const& collision,
                aod::BCs const& bcs,
