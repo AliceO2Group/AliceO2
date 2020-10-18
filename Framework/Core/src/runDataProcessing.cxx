@@ -883,6 +883,7 @@ int runStateMachine(DataProcessorSpecs const& workflow,
   // We initialise this in the driver, because different drivers might have
   // different versions of the service
   ServiceRegistry serviceRegistry;
+  std::vector<ServiceMetricHandling> metricProcessingCallbacks;
 
   while (true) {
     // If control forced some transition on us, we push it to the queue.
@@ -986,7 +987,14 @@ int runStateMachine(DataProcessorSpecs const& workflow,
                                                             driverInfo.uniqueWorkflowId,
                                                             !varmap["no-IPC"].as<bool>(),
                                                             driverInfo.resourcesMonitoringInterval);
-
+          metricProcessingCallbacks.clear();
+          for (auto& device : deviceSpecs) {
+            for (auto& service : device.services) {
+              if (service.metricHandling) {
+                metricProcessingCallbacks.push_back(service.metricHandling);
+              }
+            }
+          }
           // This should expand nodes so that we can build a consistent DAG.
         } catch (std::runtime_error& e) {
           std::cerr << "Invalid workflow: " << e.what() << std::endl;
@@ -1114,6 +1122,9 @@ int runStateMachine(DataProcessorSpecs const& workflow,
           uint64_t inputProcessingStart = uv_hrtime();
           auto inputProcessingLatency = inputProcessingStart - inputProcessingLast;
           processChildrenOutput(driverInfo, infos, deviceSpecs, controls, metricsInfos);
+          for (auto& callback : metricProcessingCallbacks) {
+            callback(serviceRegistry);
+          }
           auto inputProcessingEnd = uv_hrtime();
           driverInfo.inputProcessingCost = (inputProcessingEnd - inputProcessingStart) / 1000000;
           driverInfo.inputProcessingLatency = (inputProcessingLatency) / 1000000;
@@ -1152,6 +1163,9 @@ int runStateMachine(DataProcessorSpecs const& workflow,
         sigchld_requested = false;
         driverInfo.sigchldRequested = false;
         processChildrenOutput(driverInfo, infos, deviceSpecs, controls, metricsInfos);
+        for (auto& callback : metricProcessingCallbacks) {
+          callback(serviceRegistry);
+        }
         hasError = processSigChild(infos);
         if (areAllChildrenGone(infos) == true &&
             (guiQuitRequested || (checkIfCanExit(infos) == true) || graceful_exit)) {
