@@ -1,0 +1,60 @@
+// Copyright CERN and copyright holders of ALICE O2. This software is
+// distributed under the terms of the GNU General Public License v3 (GPL
+// Version 3), copied verbatim in the file "COPYING".
+//
+// See http://alice-o2.web.cern.ch/license for full licensing information.
+//
+// In applying this license CERN does not waive the privileges and immunities
+// granted to it by virtue of its status as an Intergovernmental Organization
+// or submit itself to any jurisdiction.
+
+#ifndef O2_TRD_CALIBRATEDTRACKLET_H
+#define O2_TRD_CALIBRATEDTRACKLET_H
+
+namespace o2
+{
+namespace trd
+{
+
+class CalibratedTracklet
+{
+ public:
+  CalibratedTracklet() = default;
+  CalibratedTracklet(int HCID, int column, float x, float y, float z, float dy)
+  {
+    mHCID = HCID;
+    mColumn = column;
+    mx = x;
+    my = y;
+    mz = z;
+    mdy = dy;
+  }
+  ~CalibratedTracklet() = default;
+
+  int getHCID() { return mHCID; }
+  int getColumn() { return mColumn; }
+  float getX() { return mx; }
+  float getY() { return my; }
+  float getZ() { return mz; }
+  float getDy() { return mdy; }
+
+  int setHCID(int HCID) { mHCID = HCID; }
+  int setColumn(int column) { mColumn = column; }
+  void setX(float x) { mx = x; }
+  void setY(float y) { my = y; }
+  void setZ(float z) { mz = z; }
+  void setDy(float dy) { mdy = dy; }
+
+ private:
+  int mHCID;
+  int mColumn;
+  float mx;
+  float my;
+  float mz;
+  float mdy;
+};
+
+} // namespace trd
+} // namespace o2
+
+#endif

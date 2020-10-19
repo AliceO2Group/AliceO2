@@ -20,4 +20,5 @@ o2_add_library(DataFormatsTRD
                        include/DataFormatsTRD/LinkRecord.h
                        include/DataFormatsTRD/Tracklet64.h
                        include/DataFormatsTRD/RawData.h
-                       include/DataFormatsTRD/Constants.h)
+                       include/DataFormatsTRD/Constants.h
+                       include/DataFormatsTRD/CalibratedTracklet.h)
