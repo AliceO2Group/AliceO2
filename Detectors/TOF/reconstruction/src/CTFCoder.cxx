@@ -93,14 +93,9 @@ void CTFCoder::compress(CompressedInfos& cc,
     auto ndig = rofRec.size();
     cc.ndigROF[irof] = ndig;
     cc.ndiaROF[irof] = rofRec.sizeDia();
-<<<<<<< HEAD
     for (int icrate = 0; icrate < 72; icrate++) {
       cc.ndiaCrate[irof * 72 + icrate] = rofRec.getDiagnosticInCrate(icrate);
     }
-=======
-    for (int icrate = 0; icrate < 72; icrate++)
-      cc.ndiaCrate[irof * 72 + icrate] = rofRec.getDiagnosticInCrate(icrate);
->>>>>>> order TOF patterns according to crate and readout window
 
     if (!ndig) { // no hits data for this ROF --> not fill
       continue;
