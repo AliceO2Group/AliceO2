@@ -150,11 +150,7 @@ struct HFTrackIndexSkimsCreator {
 
   double massPi = RecoDecay::getMassPDG(kPiPlus);
   double massK = RecoDecay::getMassPDG(kKPlus);
-  double mass2PiK{0.};
-  double mass2KPi{0.};
   double mass3PiKPi{0.};
-  double ptcand_2prong{0.};
-  double ptcand_3prong{0.};
 
   void process(aod::Collision const& collision,
                aod::BCs const& bcs,
@@ -212,6 +208,11 @@ struct HFTrackIndexSkimsCreator {
           if (df.process(trackParVarPos1, trackParVarNeg1) == 0)
             continue;
 
+          // fill table row
+          rowTrackIndexProng2(trackPos1.collisionId(),
+                              trackPos1.globalIndex(),
+                              trackNeg1.globalIndex(), 1);
+
           // fill histograms
           if (b_dovalplots) {
             // get secondary vertex
@@ -228,16 +229,9 @@ struct HFTrackIndexSkimsCreator {
 
             // calculate invariant masses
             auto arrMom = array{pvec0, pvec1};
-            mass2PiK = RecoDecay::M(arrMom, array{massPi, massK});
-            mass2KPi = RecoDecay::M(arrMom, array{massK, massPi});
-            hmass2->Fill(mass2PiK);
-            hmass2->Fill(mass2KPi);
+            hmass2->Fill(RecoDecay::M(arrMom, array{massPi, massK}));
+            hmass2->Fill(RecoDecay::M(arrMom, array{massK, massPi}));
           }
-
-          // fill table row
-          rowTrackIndexProng2(trackPos1.collisionId(),
-                              trackPos1.globalIndex(),
-                              trackNeg1.globalIndex(), 1);
         }
 
         // 3-prong vertex reconstruction
@@ -274,6 +268,12 @@ struct HFTrackIndexSkimsCreator {
               if (df3.process(trackParVarPos1, trackParVarNeg1, trackParVarPos2) == 0)
                 continue;
 
+              // fill table row
+              rowTrackIndexProng3(trackPos1.collisionId(),
+                                  trackPos1.globalIndex(),
+                                  trackNeg1.globalIndex(),
+                                  trackPos2.globalIndex(), 2);
+
               // fill histograms
               if (b_dovalplots) {
                 // get secondary vertex
@@ -294,12 +294,6 @@ struct HFTrackIndexSkimsCreator {
                 arr3Mom = array{pvec0, pvec1, pvec2};
                 hmass3->Fill(RecoDecay::M(std::move(arr3Mom), array{massPi, massK, massPi}));
               }
-
-              // fill table row
-              rowTrackIndexProng3(trackPos1.collisionId(),
-                                  trackPos1.globalIndex(),
-                                  trackNeg1.globalIndex(),
-                                  trackPos2.globalIndex(), 2);
             }
           }
 
@@ -330,6 +324,12 @@ struct HFTrackIndexSkimsCreator {
               if (df3.process(trackParVarNeg1, trackParVarPos1, trackParVarNeg2) == 0)
                 continue;
 
+              // fill table row
+              rowTrackIndexProng3(trackNeg1.collisionId(),
+                                  trackNeg1.globalIndex(),
+                                  trackPos1.globalIndex(),
+                                  trackNeg2.globalIndex(), 2);
+
               // fill histograms
               if (b_dovalplots) {
                 // get secondary vertex
@@ -350,12 +350,6 @@ struct HFTrackIndexSkimsCreator {
                 arr3Mom = array{pvec0, pvec1, pvec2};
                 hmass3->Fill(RecoDecay::M(std::move(arr3Mom), array{massPi, massK, massPi}));
               }
-
-              // fill table row
-              rowTrackIndexProng3(trackNeg1.collisionId(),
-                                  trackNeg1.globalIndex(),
-                                  trackPos1.globalIndex(),
-                                  trackNeg2.globalIndex(), 2);
             }
           }
         }
