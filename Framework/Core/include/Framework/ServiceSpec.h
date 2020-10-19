@@ -66,6 +66,9 @@ using ServicePostForkParent = std::function<void(ServiceRegistry&)>;
 /// Callback executed in the driver in order to process a metric.
 using ServiceMetricHandling = std::function<void(ServiceRegistry&)>;
 
+/// Callback executed in the child after dispatching happened.
+using ServicePostDispatching = std::function<void(ProcessingContext&, void*)>;
+
 /// A specification for a Service.
 /// A Service is a utility class which does not perform
 /// data processing itself, but it can be used by the data processor
@@ -105,6 +108,10 @@ struct ServiceSpec {
   ///Callback executed after each metric is received by the driver.
   ServiceMetricHandling metricHandling = nullptr;
 
+  /// Callback executed after a given input record has been successfully
+  /// dispatched.
+  ServicePostDispatching postDispatching = nullptr;
+
   /// Kind of service being specified.
   ServiceKind kind;
 };
@@ -126,6 +133,11 @@ struct ServiceDanglingHandle {
 
 struct ServiceEOSHandle {
   ServiceEOSCallback callback;
+  void* service;
+};
+
+struct ServiceDispatchingHandle {
+  ServicePostDispatching callback;
   void* service;
 };
 

@@ -956,6 +956,7 @@ bool DataProcessingDevice::tryDispatchComputation(DataProcessorContext& context,
     }
     if (action.op == CompletionPolicy::CompletionOp::Discard) {
       if (context.spec->forwards.empty() == false) {
+        context.registry->postDispatchingCallbacks(processContext);
         forwardInputs(action.slot, record);
         continue;
       }
@@ -996,6 +997,7 @@ bool DataProcessingDevice::tryDispatchComputation(DataProcessorContext& context,
     // We forward inputs only when we consume them. If we simply Process them,
     // we keep them for next message arriving.
     if (action.op == CompletionPolicy::CompletionOp::Consume) {
+      context.registry->postDispatchingCallbacks(processContext);
       if (context.spec->forwards.empty() == false) {
         forwardInputs(action.slot, record);
       }

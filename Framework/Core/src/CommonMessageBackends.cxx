@@ -19,6 +19,9 @@
 #include "Framework/EndOfStreamContext.h"
 #include "Framework/Tracing.h"
 
+#include <Monitoring/Monitoring.h>
+#include <Headers/DataHeader.h>
+
 #include <options/FairMQProgOptions.h>
 
 namespace o2::framework
@@ -45,7 +48,7 @@ struct CommonMessageBackendsHelpers {
       ZoneScopedN("send message callback");
       T* context = reinterpret_cast<T*>(service);
       auto& device = ctx.services().get<RawDeviceService>();
-      DataProcessor::doSend(*device.device(), *context);
+      DataProcessor::doSend(*device.device(), *context, ctx.services());
     };
   }
 
@@ -70,7 +73,7 @@ struct CommonMessageBackendsHelpers {
     return [](EndOfStreamContext& ctx, void* service) {
       T* context = reinterpret_cast<T*>(service);
       auto& device = ctx.services().get<RawDeviceService>();
-      DataProcessor::doSend(*device.device(), *context);
+      DataProcessor::doSend(*device.device(), *context, ctx.services());
     };
   }
 };
@@ -78,6 +81,11 @@ struct CommonMessageBackendsHelpers {
 
 o2::framework::ServiceSpec CommonMessageBackends::arrowBackendSpec()
 {
+  using o2::monitoring::Metric;
+  using o2::monitoring::Monitoring;
+  using o2::monitoring::tags::Key;
+  using o2::monitoring::tags::Value;
+
   return ServiceSpec{"arrow-backend",
                      CommonMessageBackendsHelpers<ArrowContext>::createCallback(),
                      CommonServices::noConfiguration(),
@@ -91,6 +99,26 @@ o2::framework::ServiceSpec CommonMessageBackends::arrowBackendSpec()
                      nullptr,
                      nullptr,
                      nullptr,
+                     [](ProcessingContext& ctx, void* service) {
+                       using DataHeader = o2::header::DataHeader;
+                       ArrowContext* arrow = reinterpret_cast<ArrowContext*>(service);
+                       for (auto& input : ctx.inputs()) {
+                         if (input.header == nullptr) {
+                           continue;
+                         }
+                         auto dh = o2::header::get<DataHeader*>(input.header);
+                         auto dph = o2::header::get<DataProcessingHeader*>(input.header);
+                         for (auto const& forward : ctx.services().get<DeviceSpec const>().forwards) {
+                           if (DataSpecUtils::match(forward.matcher, dh->dataOrigin, dh->dataDescription, dh->subSpecification) == true && (dph->startTime % forward.maxTimeslices) == forward.timeslice) {
+                             continue;
+                           }
+                           arrow->updateBytesDestroyed(dh->payloadSize);
+                           arrow->updateMessagesDestroyed(1);
+                         }
+                       }
+                       ctx.services().get<Monitoring>().send(Metric{(uint64_t)arrow->bytesDestroyed(), "arrow-bytes-destroyed"}.addTag(Key::Subsystem, Value::DPL));
+                       ctx.services().get<Monitoring>().send(Metric{(uint64_t)arrow->messagesDestroyed(), "arrow-messages-destroyed"}.addTag(Key::Subsystem, Value::DPL));
+                     },
                      ServiceKind::Serial};
 }
 
@@ -129,6 +157,7 @@ o2::framework::ServiceSpec CommonMessageBackends::fairMQBackendSpec()
                      nullptr,
                      nullptr,
                      nullptr,
+                     nullptr,
                      ServiceKind::Serial};
 }
 
@@ -147,6 +176,7 @@ o2::framework::ServiceSpec CommonMessageBackends::stringBackendSpec()
                      nullptr,
                      nullptr,
                      nullptr,
+                     nullptr,
                      ServiceKind::Serial};
 }
 
@@ -161,6 +191,7 @@ o2::framework::ServiceSpec CommonMessageBackends::rawBufferBackendSpec()
                      nullptr,
                      CommonMessageBackendsHelpers<RawBufferContext>::clearContextEOS(),
                      CommonMessageBackendsHelpers<RawBufferContext>::sendCallbackEOS(),
+                     nullptr,
                      nullptr,
                      nullptr,
                      nullptr,

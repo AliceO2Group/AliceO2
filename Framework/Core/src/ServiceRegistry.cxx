@@ -93,6 +93,9 @@ void ServiceRegistry::bindService(ServiceSpec const& spec, void* service)
   if (spec.postEOS) {
     mPostEOSHandles.push_back(ServiceEOSHandle{spec.postEOS, service});
   }
+  if (spec.postDispatching) {
+    mPostDispatchingHandles.push_back(ServiceDispatchingHandle{spec.postDispatching, service});
+  }
 }
 
 /// Invoke callbacks to be executed before every process method invokation
@@ -138,6 +141,14 @@ void ServiceRegistry::postEOSCallbacks(EndOfStreamContext& eosContext)
 {
   for (auto& eosHandle : mPostEOSHandles) {
     eosHandle.callback(eosContext, eosHandle.service);
+  }
+}
+
+/// Invoke callbacks to be executed after every data Dispatching
+void ServiceRegistry::postDispatchingCallbacks(ProcessingContext& processContext)
+{
+  for (auto& dispatchingHandle : mPostDispatchingHandles) {
+    dispatchingHandle.callback(processContext, dispatchingHandle.service);
   }
 }
 
