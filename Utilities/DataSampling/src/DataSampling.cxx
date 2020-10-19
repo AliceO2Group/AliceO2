@@ -134,7 +134,7 @@ std::vector<InputSpec> DataSampling::InputSpecsForPolicy(std::shared_ptr<configu
 
   for (auto&& policyConfig : policiesTree) {
     if (policyConfig.second.get<std::string>("id") == policyName) {
-      DataSamplingPolicy policy(policyConfig.second);
+      auto policy = DataSamplingPolicy::fromConfiguration(policyConfig.second);
       for (const auto& path : policy.getPathMap()) {
         InputSpec input = DataSpecUtils::matchingInput(path.second);
         inputs.push_back(input);
