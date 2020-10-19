@@ -28,6 +28,6 @@
 #pragma link C++ class o2::tof::CTFHeader + ;
 #pragma link C++ class o2::tof::CompressedInfos + ;
 #pragma link C++ class o2::tof::CTF + ;
-#pragma link C++ class o2::ctf::EncodedBlocks < o2::tof::CTFHeader, 10, uint32_t> + ;
+#pragma link C++ class o2::ctf::EncodedBlocks < o2::tof::CTFHeader, 11, uint32_t> + ;
 
 #endif

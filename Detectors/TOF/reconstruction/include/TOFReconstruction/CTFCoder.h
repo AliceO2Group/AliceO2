@@ -74,6 +74,7 @@ void CTFCoder::encode(VEC& buff, const gsl::span<const ReadoutWindowData>& rofRe
     MD::EENCODE, //BLCorbitIncROF
     MD::EENCODE, //BLCndigROF
     MD::EENCODE, //BLCndiaROF
+    MD::EENCODE, //BLCndiaCrate
     MD::EENCODE, //BLCtimeFrameInc
     MD::EENCODE, //BLCtimeTDCInc
     MD::EENCODE, //BLCstripID
@@ -100,6 +101,7 @@ void CTFCoder::encode(VEC& buff, const gsl::span<const ReadoutWindowData>& rofRe
   ENCODETOF(cc.orbitIncROF,  CTF::BLCorbitIncROF,  0);
   ENCODETOF(cc.ndigROF,      CTF::BLCndigROF,      0);
   ENCODETOF(cc.ndiaROF,      CTF::BLCndiaROF,      0);
+  ENCODETOF(cc.ndiaCrate,    CTF::BLCndiaCrate,    0);
   ENCODETOF(cc.timeFrameInc, CTF::BLCtimeFrameInc, 0);
   ENCODETOF(cc.timeTDCInc,   CTF::BLCtimeTDCInc,   0);
   ENCODETOF(cc.stripID,      CTF::BLCstripID,      0);
@@ -124,6 +126,7 @@ void CTFCoder::decode(const CTF::base& ec, VROF& rofRecVec, VDIG& cdigVec, VPAT&
   DECODETOF(cc.orbitIncROF,  CTF::BLCorbitIncROF);
   DECODETOF(cc.ndigROF,      CTF::BLCndigROF);
   DECODETOF(cc.ndiaROF,      CTF::BLCndiaROF);
+  DECODETOF(cc.ndiaCrate,    CTF::BLCndiaCrate);
   
   DECODETOF(cc.timeFrameInc, CTF::BLCtimeFrameInc);
   DECODETOF(cc.timeTDCInc,   CTF::BLCtimeTDCInc);
@@ -161,6 +164,9 @@ void CTFCoder::decompress(const CompressedInfos& cc, VROF& rofRecVec, VDIG& cdig
     rofRec.setNEntries(cc.ndigROF[irof]);
     rofRec.setFirstEntryDia(ndiagnostic);
     rofRec.setNEntriesDia(cc.ndiaROF[irof]);
+    for (int icrate = 0; icrate < 72; icrate++)
+      rofRec.setDiagnosticInCrate(icrate, cc.ndiaCrate[irof * 72 + icrate]);
+
     firstEntry += cc.ndigROF[irof];
     ndiagnostic += cc.ndiaROF[irof];
 

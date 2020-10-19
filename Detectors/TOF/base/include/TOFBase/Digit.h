@@ -114,9 +114,22 @@ struct ReadoutWindowData {
   // for given trigger (or BC or RO frame)
   o2::dataformats::RangeReference<int, int> ref;
   o2::dataformats::RangeReference<int, int> refDiagnostic;
+
+  // crate info for diagnostic patterns
+  int mNdiaCrate[72] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
+
   InteractionRecord mFirstIR{0, 0};
 
   const InteractionRecord& getBCData() const { return mFirstIR; }
+
+  void addedDiagnostic(int crate) { mNdiaCrate[crate]++; }
+  void setDiagnosticInCrate(int crate, int val) { mNdiaCrate[crate] = val; }
+  int getDiagnosticInCrate(int crate) const { return mNdiaCrate[crate]; }
 
   void setBCData(int orbit, int bc)
   {

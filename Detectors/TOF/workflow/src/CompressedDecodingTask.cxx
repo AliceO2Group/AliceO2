@@ -100,7 +100,7 @@ void CompressedDecodingTask::postData(ProcessingContext& pc)
   std::vector<uint32_t> patterns = mDecoder.getPatterns();
   pc.outputs().snapshot(Output{o2::header::gDataOriginTOF, "PATTERNS", 0, Lifetime::Timeframe}, patterns);
 
-  std::vector<uint32_t> errors = mDecoder.getErrors();
+  std::vector<uint64_t> errors = mDecoder.getErrors();
   pc.outputs().snapshot(Output{o2::header::gDataOriginTOF, "ERRORS", 0, Lifetime::Timeframe}, errors);
 
   // RS this is a hack to be removed once we have correct propagation of the firstTForbit by the framework
@@ -190,7 +190,7 @@ void CompressedDecodingTask::trailerHandler(const CrateHeader_t* crateHeader, co
   auto numberOfErrors = crateTrailer->numberOfErrors;
   for (int i = 0; i < numberOfDiagnostics; i++) {
     const uint32_t* val = reinterpret_cast<const uint32_t*>(&(diagnostics[i]));
-    mDecoder.addPattern(*val, crateHeader->drmID);
+    mDecoder.addPattern(*val, crateHeader->drmID, crateOrbit->orbitID, crateHeader->bunchID);
 
     int islot = (*val & 15);
     printf("DRM = %d (orbit = %d) slot = %d: \n", crateHeader->drmID, crateOrbit->orbitID, islot);
