@@ -107,14 +107,17 @@ o2::framework::ServiceSpec CommonMessageBackends::arrowBackendSpec()
                            continue;
                          }
                          auto dh = o2::header::get<DataHeader*>(input.header);
+                         if (dh->serialization != o2::header::gSerializationMethodArrow) {
+                           continue;
+                         }
                          auto dph = o2::header::get<DataProcessingHeader*>(input.header);
                          for (auto const& forward : ctx.services().get<DeviceSpec const>().forwards) {
                            if (DataSpecUtils::match(forward.matcher, dh->dataOrigin, dh->dataDescription, dh->subSpecification) == true && (dph->startTime % forward.maxTimeslices) == forward.timeslice) {
                              continue;
                            }
-                           arrow->updateBytesDestroyed(dh->payloadSize);
-                           arrow->updateMessagesDestroyed(1);
                          }
+                         arrow->updateBytesDestroyed(dh->payloadSize);
+                         arrow->updateMessagesDestroyed(1);
                        }
                        ctx.services().get<Monitoring>().send(Metric{(uint64_t)arrow->bytesDestroyed(), "arrow-bytes-destroyed"}.addTag(Key::Subsystem, Value::DPL));
                        ctx.services().get<Monitoring>().send(Metric{(uint64_t)arrow->messagesDestroyed(), "arrow-messages-destroyed"}.addTag(Key::Subsystem, Value::DPL));

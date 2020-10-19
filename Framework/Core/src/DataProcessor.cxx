@@ -94,6 +94,7 @@ void DataProcessor::doSend(FairMQDevice& device, ArrowContext& context, ServiceR
     // exposing it to the user in the first place.
     DataHeader* dh = const_cast<DataHeader*>(cdh);
     dh->payloadSize = payload->GetSize();
+    dh->serialization = o2::header::gSerializationMethodArrow;
     context.updateBytesSent(payload->GetSize());
     context.updateMessagesSent(1);
     registry.get<Monitoring>().send(Metric{(uint64_t)context.bytesSent(), "arrow-bytes-created"}.addTag(Key::Subsystem, Value::DPL));
