@@ -7,12 +7,10 @@
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
-#ifndef FRAMEWORK_LIFETIME_H
-#define FRAMEWORK_LIFETIME_H
+#ifndef O2_FRAMEWORK_LIFETIME_H_
+#define O2_FRAMEWORK_LIFETIME_H_
 
-namespace o2
-{
-namespace framework
+namespace o2::framework
 {
 
 /// Possible Lifetime of objects being exchanged by the DPL.
@@ -23,9 +21,9 @@ enum struct Lifetime {
   QA,
   Transient,
   Timer,
-  Enumeration
+  Enumeration,
+  Signal
 };
 
-} // namespace framework
-} // namespace o2
-#endif
+} // namespace o2::framework
+#endif // O2_FRAMEWORK_LIFETIME_H_
