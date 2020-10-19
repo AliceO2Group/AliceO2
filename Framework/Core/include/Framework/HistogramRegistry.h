@@ -472,18 +472,29 @@ class HistogramRegistry
     taskHash = hash;
   }
 
-  // TODO: maybe support also TDirectory,TList,TObjArray?, find a way to write to file in 'single key' mode (arg in WriteObjAny)
   TFolder* operator*()
   {
+    // FIXME: this TFolder is probably never being deleted (otherwise SetOwner() below would cause a crash since shared_ptrs will also try to delete the histograms)
     TFolder* folder = new TFolder(this->name.c_str(), this->name.c_str());
     for (auto j = 0u; j < MAX_REGISTRY_SIZE; ++j) {
-      TObject* rawPtr = nullptr;
-      std::visit([&](const auto& sharedPtr) { rawPtr = sharedPtr.get(); }, mRegistryValue[j]);
+      TNamed* rawPtr = nullptr;
+      std::visit([&](const auto& sharedPtr) { rawPtr = (TNamed*)sharedPtr.get(); }, mRegistryValue[j]);
       if (rawPtr) {
-        folder->Add(rawPtr);
+
+        std::deque<std::string> path = splitPath(rawPtr->GetName());
+        std::string name = path.back();
+        path.pop_back();
+
+        TFolder* targetFolder{getSubdir(folder, path)};
+        if (targetFolder) {
+          rawPtr->SetName(name.data());
+          targetFolder->Add(rawPtr);
+        } else {
+          LOGF(FATAL, "Specified subfolder could not be created.");
+        }
       }
     }
-    folder->SetOwner(false); // object deletion will be handled by shared_ptrs
+    folder->SetOwner(true);
     return folder;
   }
 
@@ -547,6 +558,7 @@ class HistogramRegistry
   mutable uint32_t lookup = 0;
 
  private:
+  // create histogram from specification and insert it into the registry
   void insert(const HistogramSpec& histSpec)
   {
     uint32_t i = imask(histSpec.id);
@@ -566,6 +578,38 @@ class HistogramRegistry
   inline constexpr uint32_t imask(uint32_t i) const
   {
     return i & mask;
+  }
+
+  // helper function to create resp. find the subdirectory defined by path
+  TFolder* getSubdir(TFolder* root, std::deque<std::string> path)
+  {
+    if (path.empty())
+      return root;
+    TFolder* targetFolder{nullptr};
+    std::string nextDir = path[0];
+    path.pop_front();
+    // dont use FindObjectAny as it searches recursively through the folders
+    if (auto subfolder = root->GetListOfFolders()->FindObject(nextDir.data())) {
+      if (subfolder->InheritsFrom(TFolder::Class()))
+        targetFolder = getSubdir((TFolder*)subfolder, path);
+      else
+        return nullptr;
+    } else {
+      targetFolder = getSubdir(root->AddFolder(nextDir.data(), ""), path);
+    }
+    return targetFolder;
+  }
+
+  // helper function to split user defined path/to/hist/name string
+  std::deque<std::string> splitPath(std::string pathAndNameUser)
+  {
+    std::istringstream pathAndNameStream(pathAndNameUser);
+    std::deque<std::string> pathAndName;
+    std::string curDir;
+    while (std::getline(pathAndNameStream, curDir, '/')) {
+      pathAndName.push_back(curDir);
+    }
+    return pathAndName;
   }
 
   std::string name{};
