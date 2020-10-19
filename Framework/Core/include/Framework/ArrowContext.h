@@ -7,8 +7,8 @@
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
-#ifndef FRAMEWORK_ARROWCONTEXT_H
-#define FRAMEWORK_ARROWCONTEXT_H
+#ifndef O2_FRAMEWORK_ARROWCONTEXT_H_
+#define O2_FRAMEWORK_ARROWCONTEXT_H_
 
 #include "Framework/FairMQDeviceProxy.h"
 #include <cassert>
@@ -19,9 +19,7 @@
 
 class FairMQMessage;
 
-namespace o2
-{
-namespace framework
+namespace o2::framework
 {
 
 class FairMQResizableBuffer;
@@ -92,11 +90,54 @@ class ArrowContext
     return mProxy;
   }
 
+  void updateBytesSent(size_t value)
+  {
+    mBytesSent += value;
+  }
+
+  void updateBytesDestroyed(size_t value)
+  {
+    mBytesDestroyed += value;
+  }
+
+  void updateMessagesSent(size_t value)
+  {
+    mMessagesCreated += value;
+  }
+
+  void updateMessagesDestroyed(size_t value)
+  {
+    mMessagesDestroyed += value;
+  }
+
+  size_t bytesSent()
+  {
+    return mBytesSent;
+  }
+
+  size_t bytesDestroyed()
+  {
+    return mBytesDestroyed;
+  }
+
+  size_t messagesCreated()
+  {
+    return mMessagesCreated;
+  }
+
+  size_t messagesDestroyed()
+  {
+    return mMessagesDestroyed;
+  }
+
  private:
   FairMQDeviceProxy mProxy;
   Messages mMessages;
+  size_t mBytesSent = 0;
+  size_t mBytesDestroyed = 0;
+  size_t mMessagesCreated = 0;
+  size_t mMessagesDestroyed = 0;
 };
 
-} // namespace framework
-} // namespace o2
-#endif // FRAMEWORK_ARROWCONTEXT_H
+} // namespace o2::framework
+#endif // O2_FRAMEWORK_ARROWCONTEXT_H_

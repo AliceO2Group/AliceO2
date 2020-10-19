@@ -92,6 +92,8 @@ struct ServiceRegistry {
   std::vector<ServiceEOSHandle> mPreEOSHandles;
   /// Callbacks for services to be executed after every EOS user callback invokation
   std::vector<ServiceEOSHandle> mPostEOSHandles;
+  /// Callbacks for services to be executed after every dispatching
+  std::vector<ServiceDispatchingHandle> mPostDispatchingHandles;
 
  public:
   using hash_type = decltype(TypeIdHelpers::uniqueId<void>());
@@ -130,6 +132,10 @@ struct ServiceRegistry {
   void preEOSCallbacks(EndOfStreamContext&);
   /// Invoke callbacks to be executed after every EOS user callback invokation
   void postEOSCallbacks(EndOfStreamContext&);
+  /// Invoke callbacks to monitor inputs after dispatching, regardless of them
+  /// being discarded, consumed or processed.
+  void postDispatchingCallbacks(ProcessingContext&);
+
   /// Declare a service by its ServiceSpec. If of type Global
   /// / Serial it will be immediately registered for tid 0,
   /// so that subsequent gets will ultimately use it.
