@@ -210,9 +210,7 @@ void WindowFiller::flushOutputContainer(std::vector<Digit>& digits)
 
   // sort patterns (diagnostic words) in time
   std::sort(mCratePatterns.begin(), mCratePatterns.end(),
-            [](PatternData a, PatternData b) { if(a.row == b.row) { return a.icrate > b.icrate; } else { return a.row > b.row; 
-
-} });
+            [](PatternData a, PatternData b) { if(a.row == b.row) { return a.icrate > b.icrate; } else { return a.row > b.row; } });
 
   for (Int_t i = 0; i < MAXWINDOWS; i++) {
     int n = 0;
