@@ -115,6 +115,8 @@ void Decoder::clear()
     clearCounts();
 
   mPatterns.clear();
+  mCratePatterns.clear();
+
   mErrors.clear();
 }
 
