@@ -18,11 +18,16 @@
 #include "Framework/DeviceSpec.h"
 #include "Framework/EndOfStreamContext.h"
 #include "Framework/Tracing.h"
+#include "Framework/DeviceMetricsInfo.h"
+#include "Framework/DeviceInfo.h"
 
 #include <Monitoring/Monitoring.h>
 #include <Headers/DataHeader.h>
 
 #include <options/FairMQProgOptions.h>
+
+#include <uv.h>
+#include <csignal>
 
 namespace o2::framework
 {
@@ -98,10 +103,102 @@ o2::framework::ServiceSpec CommonMessageBackends::arrowBackendSpec()
                      nullptr,
                      nullptr,
                      nullptr,
-                     nullptr,
+                     [](ServiceRegistry& registry,
+                        std::vector<DeviceMetricsInfo>& allDeviceMetrics,
+                        std::vector<DeviceSpec>& specs,
+                        std::vector<DeviceInfo>& infos,
+                        DeviceMetricsInfo& driverMetrics,
+                        size_t timestamp) {
+                       int64_t totalBytesCreated = 0;
+                       int64_t totalBytesDestroyed = 0;
+                       int64_t totalMessagesCreated = 0;
+                       int64_t totalMessagesDestroyed = 0;
+                       static bool wasChanged = false;
+                       static auto totalBytesCreatedMetric = DeviceMetricsHelper::createNumericMetric<uint64_t>(driverMetrics, "total-arrow-bytes-created");
+                       static auto totalBytesDestroyedMetric = DeviceMetricsHelper::createNumericMetric<uint64_t>(driverMetrics, "total-arrow-bytes-destroyed");
+                       static auto totalMessagesCreatedMetric = DeviceMetricsHelper::createNumericMetric<uint64_t>(driverMetrics, "total-arrow-messages-created");
+                       static auto totalMessagesDestroyedMetric = DeviceMetricsHelper::createNumericMetric<uint64_t>(driverMetrics, "total-arrow-messages-destroyed");
+                       static auto totalBytesDeltaMetric = DeviceMetricsHelper::createNumericMetric<int>(driverMetrics, "arrow-bytes-delta");
+                       static auto totalSignalsMetric = DeviceMetricsHelper::createNumericMetric<int>(driverMetrics, "aod-reader-signals");
+
+                       bool changed = false;
+                       for (auto& deviceMetrics : allDeviceMetrics) {
+                         {
+                           size_t index = DeviceMetricsHelper::metricIdxByName("arrow-bytes-created", deviceMetrics);
+                           if (index < deviceMetrics.metrics.size()) {
+                             changed |= deviceMetrics.changed.at(index);
+                             MetricInfo info = deviceMetrics.metrics.at(index);
+                             auto& data = deviceMetrics.uint64Metrics.at(info.storeIdx);
+                             totalBytesCreated += (int64_t)data.at((info.pos - 1) % data.size());
+                           }
+                         }
+                         {
+                           size_t index = DeviceMetricsHelper::metricIdxByName("arrow-bytes-destroyed", deviceMetrics);
+                           if (index < deviceMetrics.metrics.size()) {
+                             changed |= deviceMetrics.changed.at(index);
+                             MetricInfo info = deviceMetrics.metrics.at(index);
+                             auto& data = deviceMetrics.uint64Metrics.at(info.storeIdx);
+                             totalBytesDestroyed += (int64_t)data.at((info.pos - 1) % data.size());
+                           }
+                         }
+                         {
+                           size_t index = DeviceMetricsHelper::metricIdxByName("arrow-messages-created", deviceMetrics);
+                           if (index < deviceMetrics.metrics.size()) {
+                             changed |= deviceMetrics.changed.at(index);
+                             MetricInfo info = deviceMetrics.metrics.at(index);
+                             auto& data = deviceMetrics.uint64Metrics.at(info.storeIdx);
+                             totalMessagesCreated += (int64_t)data.at((info.pos - 1) % data.size());
+                           }
+                         }
+                         {
+                           size_t index = DeviceMetricsHelper::metricIdxByName("arrow-messages-destroyed", deviceMetrics);
+                           if (index < deviceMetrics.metrics.size()) {
+                             changed |= deviceMetrics.changed.at(index);
+                             MetricInfo info = deviceMetrics.metrics.at(index);
+                             auto& data = deviceMetrics.uint64Metrics.at(info.storeIdx);
+                             totalMessagesDestroyed += (int64_t)data.at((info.pos - 1) % data.size());
+                           }
+                         }
+                       }
+                       if (changed) {
+                         totalBytesCreatedMetric(driverMetrics, totalBytesCreated, timestamp);
+                         totalBytesDestroyedMetric(driverMetrics, totalBytesDestroyed, timestamp);
+                         totalMessagesCreatedMetric(driverMetrics, totalMessagesCreated, timestamp);
+                         totalMessagesDestroyedMetric(driverMetrics, totalMessagesDestroyed, timestamp);
+                         totalBytesDeltaMetric(driverMetrics, totalBytesCreated - totalBytesDestroyed, timestamp);
+                       }
+                       // Only when the metric stabilises...
+                       if (changed) {
+                         /// Trigger next timeframe only when we have more than 1GB in memory available.
+                         if (totalBytesCreated <= (totalBytesDestroyed + 100000000)) {
+                           for (size_t di = 0; di < specs.size(); ++di) {
+                             if (specs[di].name == "internal-dpl-aod-reader") {
+                               if (di < infos.size()) {
+                                 kill(infos[di].pid, SIGUSR1);
+                                 totalSignalsMetric(driverMetrics, 1, timestamp);
+                               }
+                             }
+                           }
+                         }
+                       } else if (wasChanged == changed) {
+                         if (totalBytesCreated < totalBytesDestroyed) {
+                           for (size_t di = 0; di < specs.size(); ++di) {
+                             if (specs[di].name == "internal-dpl-aod-reader") {
+                               if (di < infos.size()) {
+                                 kill(infos[di].pid, SIGUSR1);
+                                 totalSignalsMetric(driverMetrics, 1, timestamp);
+                               }
+                             }
+                           }
+                         }
+                       }
+                       wasChanged = changed;
+                     },
                      [](ProcessingContext& ctx, void* service) {
                        using DataHeader = o2::header::DataHeader;
                        ArrowContext* arrow = reinterpret_cast<ArrowContext*>(service);
+                       auto totalBytes = 0;
+                       auto totalMessages = 0;
                        for (auto& input : ctx.inputs()) {
                          if (input.header == nullptr) {
                            continue;
@@ -111,16 +208,25 @@ o2::framework::ServiceSpec CommonMessageBackends::arrowBackendSpec()
                            continue;
                          }
                          auto dph = o2::header::get<DataProcessingHeader*>(input.header);
+                         bool forwarded = false;
                          for (auto const& forward : ctx.services().get<DeviceSpec const>().forwards) {
-                           if (DataSpecUtils::match(forward.matcher, dh->dataOrigin, dh->dataDescription, dh->subSpecification) == true && (dph->startTime % forward.maxTimeslices) == forward.timeslice) {
-                             continue;
+                           if (DataSpecUtils::match(forward.matcher, dh->dataOrigin, dh->dataDescription, dh->subSpecification)) {
+                             forwarded = true;
+                             break;
                            }
                          }
-                         arrow->updateBytesDestroyed(dh->payloadSize);
-                         arrow->updateMessagesDestroyed(1);
+                         if (forwarded) {
+                           continue;
+                         }
+                         totalBytes += dh->payloadSize;
+                         totalMessages += 1;
                        }
-                       ctx.services().get<Monitoring>().send(Metric{(uint64_t)arrow->bytesDestroyed(), "arrow-bytes-destroyed"}.addTag(Key::Subsystem, Value::DPL));
-                       ctx.services().get<Monitoring>().send(Metric{(uint64_t)arrow->messagesDestroyed(), "arrow-messages-destroyed"}.addTag(Key::Subsystem, Value::DPL));
+                       arrow->updateBytesDestroyed(totalBytes);
+                       arrow->updateMessagesDestroyed(totalMessages);
+                       auto& monitoring = ctx.services().get<Monitoring>();
+                       monitoring.send(Metric{(uint64_t)arrow->bytesDestroyed(), "arrow-bytes-destroyed"}.addTag(Key::Subsystem, Value::DPL));
+                       monitoring.send(Metric{(uint64_t)arrow->messagesDestroyed(), "arrow-messages-destroyed"}.addTag(Key::Subsystem, Value::DPL));
+                       monitoring.flushBuffer();
                      },
                      ServiceKind::Serial};
 }
