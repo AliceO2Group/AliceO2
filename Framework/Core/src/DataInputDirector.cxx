@@ -495,7 +495,6 @@ TTree* DataInputDirector::getDataTree(header::DataHeader dh, int counter, int nu
     // if NOT match then use
     //  . filename from defaultDataInputDescriptor
     //  . treename from DataHeader
-    LOGP(INFO, "Using default DataInputDescriptor");
     didesc = mdefaultDataInputDescriptor;
     treename = aod::datamodel::getTreeName(dh);
   }

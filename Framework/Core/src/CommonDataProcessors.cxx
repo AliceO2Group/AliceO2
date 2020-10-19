@@ -331,18 +331,19 @@ DataProcessorSpec CommonDataProcessors::getOutputObjSink(outputObjects const& ob
 
 // add sink for the AODs
 DataProcessorSpec
-  CommonDataProcessors::getGlobalAODSink(std::vector<InputSpec> const& OutputInputs,
-                                         std::vector<bool> const& isdangling)
+  CommonDataProcessors::getGlobalAODSink(std::shared_ptr<DataOutputDirector> dod,
+                                         std::vector<InputSpec> const& OutputInputs)
 {
 
-  auto writerFunction = [OutputInputs, isdangling](InitContext& ic) -> std::function<void(ProcessingContext&)> {
+  auto writerFunction = [dod, OutputInputs](InitContext& ic) -> std::function<void(ProcessingContext&)> {
     LOG(DEBUG) << "======== getGlobalAODSink::Init ==========";
 
+    /*
     auto dod = std::make_shared<DataOutputDirector>();
 
     // analyze ic and take actions accordingly
     // default values
-    std::string fnbase("AnalysisResults");
+    std::string fnbase("AnalysisResults_trees");
     std::string filemode("RECREATE");
     int ntfmerge = 1;
 
@@ -400,6 +401,7 @@ DataProcessorSpec
       }
     }
     dod->setFilenameBase(fnbase);
+    */
 
     // find out if any table needs to be saved
     bool hasOutputsToWrite = false;
@@ -410,14 +412,17 @@ DataProcessorSpec
         break;
       }
     }
+    LOGP(INFO, "hasOutputsToWrite {}",hasOutputsToWrite);
 
     // if nothing needs to be saved then return a trivial functor
     if (!hasOutputsToWrite) {
-      return [](ProcessingContext&) mutable -> void {
+      return [](ProcessingContext& context) mutable -> void {
         static bool once = false;
         if (!once) {
           LOG(INFO) << "No AODs to be saved.";
           once = true;
+          //context.services().get<ControlService>().endOfStream();
+          //context.services().get<ControlService>().readyToQuit(QuitRequest::Me);
         }
       };
     }
@@ -433,8 +438,8 @@ DataProcessorSpec
 
     // this functor is called once per time frame
     return std::move([dod](ProcessingContext& pc) mutable -> void {
-      LOGP(INFO, "======== getGlobalAODSink::processing ==========");
-      LOGP(INFO, " processing data set with {} entries", pc.inputs().size());
+      LOGP(DEBUG, "======== getGlobalAODSink::processing ==========");
+      LOGP(DEBUG, " processing data set with {} entries", pc.inputs().size());
 
       // return immediately if pc.inputs() is empty
       auto ninputs = pc.inputs().size();
@@ -448,6 +453,10 @@ DataProcessorSpec
 
         // does this need to be saved?
         auto dh = DataRefUtils::getHeader<header::DataHeader*>(ref);
+        auto dataProcessingHeader = DataRefUtils::getHeader<DataProcessingHeader*>(ref);
+        uint64_t folderNumber = dataProcessingHeader->startTime;
+        
+        LOGP(INFO, "folderNumber {}", folderNumber);
         auto ds = dod->getDataOutputDescriptors(*dh);
 
         if (ds.size() > 0) {
@@ -459,8 +468,7 @@ DataProcessorSpec
             LOGP(ERROR, "The table \"{}\" is not valid and will not be saved!", dh->description.str);
             continue;
           } else if (table->num_rows() <= 0) {
-            LOGP(WARNING, "The table \"{}\" is empty and will not be saved!", dh->description.str);
-            continue;
+            LOGP(WARNING, "The table \"{}\" is empty but will be saved anyway!", dh->description.str);
           }
 
           // loop over all DataOutputDescriptors
@@ -468,9 +476,9 @@ DataProcessorSpec
           // e.g. different selections of columns to different files
           for (auto d : ds) {
 
-            auto [file, directory] = dod->getFileFolder(d);
-            LOGP(INFO, "file {} directory {}",file->GetName(),directory);
+            auto [file, directory] = dod->getFileFolder(d, folderNumber);
             auto treename = directory + d->treename;
+            LOGP(INFO, "Writing {}:{}",file->GetName(),treename);
             TableToTree ta2tr(table,
                               file,
                               treename.c_str());
@@ -499,11 +507,7 @@ DataProcessorSpec
     OutputInputs,
     Outputs{},
     AlgorithmSpec(writerFunction),
-    {{"json-file", VariantType::String, {"Name of the json configuration file"}},
-     {"res-file", VariantType::String, {"Default name of the output file"}},
-     {"res-mode", VariantType::String, {"Creation mode of the result files: NEW, CREATE, RECREATE, UPDATE"}},
-     {"ntfmerge", VariantType::Int, {"Number of time frames to merge into one file"}},
-     {"keep", VariantType::String, {"Comma separated list of ORIGIN/DESCRIPTION/SUBSPECIFICATION:treename:col1/col2/..:filename"}}}};
+    {}};
 
   return spec;
 }

@@ -142,7 +142,6 @@ void DataOutputDirector::reset()
   mtreeFilenames.clear();
   closeDataFiles();
   mfilePtrs.clear();
-  mfolderCounts.clear();
   mfilenameBase = std::string("");
 };
 
@@ -184,10 +183,9 @@ void DataOutputDirector::readString(std::string const& keepString)
   auto last = std::unique(mfilenameBases.begin(), mfilenameBases.end());
   mfilenameBases.erase(last, mfilenameBases.end());
 
-  // prepare list mfilePtrs of TFile and mfolderCounts
+  // prepare list mfilePtrs of TFile
   for (auto fn : mfilenameBases) {
     mfilePtrs.emplace_back(new TFile());
-    mfolderCounts.emplace_back(-1);
   }
 }
 
@@ -430,7 +428,7 @@ std::vector<DataOutputDescriptor*> DataOutputDirector::getDataOutputDescriptors(
   return result;
 }
 
-std::tuple<TFile*, std::string> DataOutputDirector::getFileFolder(DataOutputDescriptor* dodesc)
+std::tuple<TFile*, std::string> DataOutputDirector::getFileFolder(DataOutputDescriptor* dodesc, uint64_t folderNumber)
 {
   // initialisation
   TFile* filePtr = nullptr;
@@ -446,12 +444,10 @@ std::tuple<TFile*, std::string> DataOutputDirector::getFileFolder(DataOutputDesc
     }
     filePtr = mfilePtrs[ind];
 
-    // check if new folder TF_* is needed
-    auto ntf = dodesc->incrementNumberOfWrites();
-    int fcnt = (int)(ntf / mnumberTimeFramesToMerge);
-    directoryName = "TF_" + std::to_string(fcnt) + "/";
-    if ((ntf % mnumberTimeFramesToMerge) == 0 && fcnt > mfolderCounts[ind]) {
-      mfolderCounts[ind] = fcnt;
+    // check if folder TF_* exists
+    directoryName = "TF_" + std::to_string(folderNumber) + "/";
+    auto key = filePtr->GetKey(directoryName.c_str());
+    if (!key) {
       filePtr->mkdir(directoryName.c_str());
     }
     filePtr->cd(directoryName.c_str());
@@ -495,7 +491,6 @@ void DataOutputDirector::setFilenameBase(std::string dfn)
   mtreeFilenames.clear();
   closeDataFiles();
   mfilePtrs.clear();
-  mfolderCounts.clear();
 
   // loop over DataOutputDescritors
   for (auto dodesc : mDataOutputDescriptors) {
@@ -516,10 +511,9 @@ void DataOutputDirector::setFilenameBase(std::string dfn)
   auto last = std::unique(mfilenameBases.begin(), mfilenameBases.end());
   mfilenameBases.erase(last, mfilenameBases.end());
 
-  // prepare list mfilePtrs of TFile and mfolderCounts
+  // prepare list mfilePtrs of TFile
   for (auto fn : mfilenameBases) {
     mfilePtrs.emplace_back(new TFile());
-    mfolderCounts.emplace_back(-1);
   }
 }
 

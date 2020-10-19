@@ -94,15 +94,18 @@ AlgorithmSpec AODReaderHelpers::rootFileReaderCallback()
   auto callback = AlgorithmSpec{adaptStateful([](ConfigParamRegistry const& options,
                                                  DeviceSpec const& spec) {
     auto filename = options.get<std::string>("aod-file");
+    LOGP(INFO, "Input filename {}",filename);
+    LOGP(INFO, "time-limit {}",options.get<int64_t>("time-limit"));
 
     // create a DataInputDirector
     auto didir = std::make_shared<DataInputDirector>(filename);
-    if (options.isSet("json-file")) {
-      auto jsonFile = options.get<std::string>("json-file");
+    if (options.isSet("aodr-jsonfile")) {
+      auto jsonFile = options.get<std::string>("aodr-jsonfile");
       if (!didir->readJson(jsonFile)) {
         LOGP(ERROR, "Check the JSON document! Can not be properly parsed!");
       }
     }
+    didir->printOut();
 
     // get the run time watchdog
     auto* watchdog = new RuntimeWatchdog(options.get<int64_t>("time-limit"));
@@ -110,10 +113,13 @@ AlgorithmSpec AODReaderHelpers::rootFileReaderCallback()
     // create list of requested tables
     std::vector<OutputRoute> requestedTables(spec.outputs);
 
-    auto counter = std::make_shared<int>(0);
+    auto fileCounter = std::make_shared<int>(0);
+    auto numTF = std::make_shared<int>(-1);
     return adaptStateless([requestedTables,
+                           fileCounter,
+                           numTF,
                            watchdog,
-                           didir](DataAllocator& outputs, ControlService& control, DeviceSpec const& device) {
+                           didir](DataAllocator& outputs, ControlService& control, DeviceSpec const& device) {      
       // check if RuntimeLimit is reached
       if (!watchdog->update()) {
         LOGP(INFO, "Run time exceeds run time limit of {} seconds!", watchdog->runTimeLimit);
@@ -124,64 +130,66 @@ AlgorithmSpec AODReaderHelpers::rootFileReaderCallback()
         return;
       }
 
-      // Each parallel reader reads the files whose index is associated to
-      // their inputTimesliceId
+      // Each parallel reader device.inputTimesliceId reads the files fileCounter*device.maxInputTimeslices+device.inputTimesliceId
+      // the TF to read is numTF
       assert(device.inputTimesliceId < device.maxInputTimeslices);
-      size_t fi = (watchdog->numberTimeFrames * device.maxInputTimeslices) + device.inputTimesliceId;
-
-      // check if EoF is reached
-      if (didir->atEnd(fi)) {
-        LOGP(INFO, "All input files processed");
-        didir->closeInputFiles();
-        control.endOfStream();
-        control.readyToQuit(QuitRequest::Me);
-        return;
-      }
+      //size_t fi = (watchdog->numberTimeFrames * device.maxInputTimeslices) + device.inputTimesliceId;
 
       // loop over requested tables
       TTree *tr = nullptr;
-      bool goon = true;
-      int numTF = 0;
-      while (goon) {
-      
-        for (auto route : requestedTables) {
+      int fcnt = (fileCounter.get()[0] * device.maxInputTimeslices) + device.inputTimesliceId;
+      int ntf = numTF.get()[0] + 1;
+      LOGP(INFO, "counters {} / {} / {} / {}", device.inputTimesliceId, fileCounter.get()[0], fcnt, ntf);
+      bool first = true;
+      for (auto route : requestedTables) {
 
-          // create a TreeToTable object
-          auto concrete = DataSpecUtils::asConcreteDataMatcher(route.matcher);
-          auto dh = header::DataHeader(concrete.description, concrete.origin, concrete.subSpec);
+        // create a TreeToTable object
+        auto concrete = DataSpecUtils::asConcreteDataMatcher(route.matcher);
+        auto dh = header::DataHeader(concrete.description, concrete.origin, concrete.subSpec);
 
-          tr = didir->getDataTree(dh, fi, numTF);
-          if (!tr) {
-            goon = false;
-            break;
-          }
-          LOGP(INFO, "Reading tree {}",tr->GetName());
-          auto o = Output(dh);
-          auto& t2t = outputs.make<TreeToTable>(o);
-
-          // add branches to read
-          auto colnames = aod::datamodel::getColumnNames(dh);
-          if (colnames.size() == 0) {
-            t2t.addAllColumns(tr);
-          } else {
-            for (auto colname : colnames) {
-              t2t.addColumn(colname.c_str());
+        tr = didir->getDataTree(dh, fcnt, ntf);
+        if (!tr) {
+          if (first) {
+            fcnt += device.maxInputTimeslices;
+            if (didir->atEnd(fcnt)) {
+              LOGP(INFO, "No input files left to read!");
+              didir->closeInputFiles();
+              control.endOfStream();
+              control.readyToQuit(QuitRequest::Me);
+              return;
             }
+            ntf = 0;
+            tr = didir->getDataTree(dh, fcnt, ntf);
+            if (!tr) {
+              // throw exception!
+            }
+          } else {
+            // throw exception!
           }
-
-          // fill the table
-          t2t.fill(tr);
+        } else {
+          first = false;
         }
-        
-        // the tables belonging to a time frame are now ready
-        // how can the consumer of these tables be informed, that the tables
-        // are ready for further processing?
-        {}
-        
-        // increment time frame
-        numTF++;
+        LOGP(INFO, "Reading {}",tr->GetName());
+        auto o = Output(dh);
+        auto& t2t = outputs.make<TreeToTable>(o);
+
+        // add branches to read
+        auto colnames = aod::datamodel::getColumnNames(dh);
+        if (colnames.size() == 0) {
+          t2t.addAllColumns(tr);
+        } else {
+          for (auto colname : colnames) {
+            t2t.addColumn(colname.c_str());
+          }
+        }
+
+        // fill the table
+        t2t.fill(tr);
       }
-      didir->closeInputFiles();
+      
+      // save file number and time frame
+      fileCounter.get()[0] = (fcnt - device.inputTimesliceId) / device.maxInputTimeslices;
+      numTF.get()[0] = ntf;
 
     });
   })};

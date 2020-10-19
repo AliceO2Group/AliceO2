@@ -87,7 +87,7 @@ struct DataOutputDirector {
   std::vector<DataOutputDescriptor*> getDataOutputDescriptors(InputSpec spec);
 
   // get the matching TFile
-  std::tuple<TFile*, std::string> getFileFolder(DataOutputDescriptor* dodesc);
+  std::tuple<TFile*, std::string> getFileFolder(DataOutputDescriptor* dodesc, uint64_t folderNumber);
 
   void closeDataFiles();
 
@@ -101,7 +101,6 @@ struct DataOutputDirector {
   std::vector<DataOutputDescriptor*> mDataOutputDescriptors;
   std::vector<std::string> mtreeFilenames;
   std::vector<std::string> mfilenameBases;
-  std::vector<int> mfolderCounts;
   std::vector<TFile*> mfilePtrs;
   bool mdebugmode = false;
   int mnumberTimeFramesToMerge = 1;
