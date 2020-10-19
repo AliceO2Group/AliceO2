@@ -35,6 +35,7 @@ namespace zdc
 constexpr unsigned short id_w0 = 0x0;
 constexpr unsigned short id_w1 = 0x1;
 constexpr unsigned short id_w2 = 0x2;
+constexpr int NWPerGBTW = 3;
 
 struct __attribute__((__packed__)) ChannelDataV0 {
   // First GBT word
@@ -125,10 +126,11 @@ struct __attribute__((__packed__)) ChannelDataV0W2 {
 
 struct EventData {
   union {
-    UInt_t w[o2::zdc::NWPerBc][3];
+    UInt_t w[o2::zdc::NWPerBc][NWPerGBTW];
     struct ChannelDataV0 f;
-  } data[o2::zdc::NModules][o2::zdc::NChPerModule];
+  } data[o2::zdc::NModules][o2::zdc::NChPerModule]={0};
   void print() const;
+  void reset();
   ClassDefNV(EventData, 1);
 };
 

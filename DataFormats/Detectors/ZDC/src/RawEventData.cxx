@@ -35,7 +35,14 @@ void EventData::print() const
       } else if (data[im][ic].f.fixed_0 == 0 && data[im][ic].f.fixed_1 == 0 && data[im][ic].f.fixed_2 == 0) {
         // Empty channel
       } else {
+        // Wrong data format. Insert warning.
       }
     }
   }
+}
+
+void EventData::reset()
+{
+  static constexpr int payloadSize = NModules*NChPerModule*NWPerGBTW*sizeof(UInt_t);
+  memset((void*)& data[0][0],0,payloadSize);
 }
