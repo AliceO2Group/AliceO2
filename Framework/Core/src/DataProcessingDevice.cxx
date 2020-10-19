@@ -955,8 +955,8 @@ bool DataProcessingDevice::tryDispatchComputation(DataProcessorContext& context,
       context.registry->preProcessingCallbacks(processContext);
     }
     if (action.op == CompletionPolicy::CompletionOp::Discard) {
+      context.registry->postDispatchingCallbacks(processContext);
       if (context.spec->forwards.empty() == false) {
-        context.registry->postDispatchingCallbacks(processContext);
         forwardInputs(action.slot, record);
         continue;
       }
