@@ -65,12 +65,12 @@ class DCSProcessor
   DCSProcessor() = default;
   ~DCSProcessor() = default;
 
-  void init(const std::unordered_map<DPID, int>& dpidmapchars, const std::unordered_map<DPID, int>& dpidmapints,
-            const std::unordered_map<DPID, int>& dpidmapdoubles, const std::unordered_map<DPID, int>& dpidmapUints,
-            const std::unordered_map<DPID, int>& dpidmapbools, const std::unordered_map<DPID, int>& dpidmapstrings,
-            const std::unordered_map<DPID, int>& dpidmaptimes, const std::unordered_map<DPID, int>& dpidmapbinaries);
+  void init(const std::vector<DPID>& aliaseschars, const std::vector<DPID>& aliasesints,
+            const std::vector<DPID>& aliasesdoubles, const std::vector<DPID>& aliasesUints,
+            const std::vector<DPID>& aliasesbools, const std::vector<DPID>& aliasesstrings,
+            const std::vector<DPID>& aliasestimes, const std::vector<DPID>& aliasesbinaries);
 
-  void init(const std::unordered_map<DPID, int>& dpidmap);
+  void init(const std::vector<DPID>& aliases);
 
   int processMap(const std::unordered_map<DPID, DPVAL>& map, bool isDelta = false);
 
@@ -80,9 +80,8 @@ class DCSProcessor
                                                                     const std::unordered_map<DPID, DPVAL>& map);
 
   template <typename T>
-  int processArrayType(const std::unordered_map<DPID, int>& array, DeliveryType type,
-                       const std::unordered_map<DPID, DPVAL>& map,
-                       std::unordered_map<DPID, int64_t>& latestTimeStamp, std::unordered_map<DPID, std::deque<T>>& destmap);
+  int processArrayType(const std::vector<DPID>& array, DeliveryType type, const std::unordered_map<DPID, DPVAL>& map,
+                       std::vector<int64_t>& latestTimeStamp, std::unordered_map<DPID, std::deque<T>>& destmap);
 
   template <typename T>
   void checkFlagsAndFill(const std::pair<DPID, DPVAL>& dpcom, int64_t& latestTimeStamp,
@@ -153,22 +152,22 @@ class DCSProcessor
   std::unordered_map<DPID, DQStrings> mDpsstringsmap;
   std::unordered_map<DPID, DQTimes> mDpstimesmap;
   std::unordered_map<DPID, DQBinaries> mDpsbinariesmap;
-  std::unordered_map<DPID, int> mMapchars;
-  std::unordered_map<DPID, int> mMapints;
-  std::unordered_map<DPID, int> mMapdoubles;
-  std::unordered_map<DPID, int> mMapUints;
-  std::unordered_map<DPID, int> mMapbools;
-  std::unordered_map<DPID, int> mMapstrings;
-  std::unordered_map<DPID, int> mMaptimes;
-  std::unordered_map<DPID, int> mMapbinaries;
-  std::unordered_map<DPID, int64_t> mLatestTimestampchars;
-  std::unordered_map<DPID, int64_t> mLatestTimestampints;
-  std::unordered_map<DPID, int64_t> mLatestTimestampdoubles;
-  std::unordered_map<DPID, int64_t> mLatestTimestampUints;
-  std::unordered_map<DPID, int64_t> mLatestTimestampbools;
-  std::unordered_map<DPID, int64_t> mLatestTimestampstrings;
-  std::unordered_map<DPID, int64_t> mLatestTimestamptimes;
-  std::unordered_map<DPID, int64_t> mLatestTimestampbinaries;
+  std::vector<DPID> mAliaseschars;
+  std::vector<DPID> mAliasesints;
+  std::vector<DPID> mAliasesdoubles;
+  std::vector<DPID> mAliasesUints;
+  std::vector<DPID> mAliasesbools;
+  std::vector<DPID> mAliasesstrings;
+  std::vector<DPID> mAliasestimes;
+  std::vector<DPID> mAliasesbinaries;
+  std::vector<int64_t> mLatestTimestampchars;
+  std::vector<int64_t> mLatestTimestampints;
+  std::vector<int64_t> mLatestTimestampdoubles;
+  std::vector<int64_t> mLatestTimestampUints;
+  std::vector<int64_t> mLatestTimestampbools;
+  std::vector<int64_t> mLatestTimestampstrings;
+  std::vector<int64_t> mLatestTimestamptimes;
+  std::vector<int64_t> mLatestTimestampbinaries;
   int mNThreads = 1;                                               // number of  threads
   std::unordered_map<std::string, float> mccdbSimpleMovingAverage; // unordered map in which to store the CCDB entry
                                                                    // for the DPs for which we calculated the simple
@@ -196,9 +195,9 @@ using DPID = o2::dcs::DataPointIdentifier;
 using DPVAL = o2::dcs::DataPointValue;
 
 template <typename T>
-int DCSProcessor::processArrayType(const std::unordered_map<DPID, int>& mapDPid,
+int DCSProcessor::processArrayType(const std::vector<DPID>& array,
                                    DeliveryType type, const std::unordered_map<DPID, DPVAL>& map,
-                                   std::unordered_map<DPID, int64_t>& latestTimeStamp,
+                                   std::vector<int64_t>& latestTimeStamp,
                                    std::unordered_map<DPID, std::deque<T>>& destmap)
 {
 
@@ -209,33 +208,33 @@ int DCSProcessor::processArrayType(const std::unordered_map<DPID, int>& mapDPid,
   //omp_set_num_threads(mNThreads);
   //#pragma omp parallel for schedule(dynamic)
   //#endif
-  for (const auto& el : mapDPid) {
-    auto it = findAndCheckAlias(el.first, type, map);
+  for (size_t i = 0; i != array.size(); ++i) {
+    auto it = findAndCheckAlias(array[i], type, map);
     if (it == map.end()) {
       if (!mIsDelta) {
-        LOG(ERROR) << "Element " << el.first << " not found " << std::endl;
+        LOG(ERROR) << "Element " << array[i] << " not found " << std::endl;
       }
       continue;
     }
     found++;
     std::pair<DPID, DPVAL> pairIt = *it;
-    checkFlagsAndFill(pairIt, latestTimeStamp[pairIt.first], destmap);
+    checkFlagsAndFill(pairIt, latestTimeStamp[i], destmap);
     if (type == RAW_CHAR) {
-      processCharDP(el.first);
+      processCharDP(array[i]);
     } else if (type == RAW_INT) {
-      processIntDP(el.first);
+      processIntDP(array[i]);
     } else if (type == RAW_DOUBLE) {
-      processDoubleDP(el.first);
+      processDoubleDP(array[i]);
     } else if (type == RAW_UINT) {
-      processUIntDP(el.first);
+      processUIntDP(array[i]);
     } else if (type == RAW_BOOL) {
-      processBoolDP(el.first);
+      processBoolDP(array[i]);
     } else if (type == RAW_STRING) {
-      processStringDP(el.first);
+      processStringDP(array[i]);
     } else if (type == RAW_TIME) {
-      processTimeDP(el.first);
+      processTimeDP(array[i]);
     } else if (type == RAW_BINARY) {
-      processBinaryDP(el.first);
+      processBinaryDP(array[i]);
     }
     // todo: better to move the "found++" after the process, in case it fails?
   }

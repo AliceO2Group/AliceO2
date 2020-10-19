@@ -52,13 +52,13 @@ class DCSDataProcessor : public o2::framework::Task
 
   void init(o2::framework::InitContext& ic) final
   {
-    std::unordered_map<DPID, int> dpMap;
+    std::vector<DPID> aliasVect;
 
     DPID dpidtmp;
     DeliveryType typechar = RAW_CHAR;
     std::string dpAliaschar = "TestChar_0";
     DPID::FILL(dpidtmp, dpAliaschar, typechar);
-    dpMap[dpidtmp] = 1;
+    aliasVect.push_back(dpidtmp);
 
     //std::vector<int> vectDet{kTest, kTPC}; // only one detector for now
     std::vector<int> vectDet{kTest};
@@ -68,7 +68,7 @@ class DCSDataProcessor : public o2::framework::Task
     for (int i = 0; i < 50000; i++) {
       std::string dpAliasint = "TestInt_" + std::to_string(i);
       DPID::FILL(dpidtmp, dpAliasint, typeint);
-      dpMap[dpidtmp] = 1;
+      aliasVect.push_back(dpidtmp);
       mDetectorAlias[dpidtmp] = vectDet;
     }
 
@@ -76,21 +76,21 @@ class DCSDataProcessor : public o2::framework::Task
     for (int i = 0; i < 4; i++) {
       std::string dpAliasdouble = "TestDouble_" + std::to_string(i);
       DPID::FILL(dpidtmp, dpAliasdouble, typedouble);
-      dpMap[dpidtmp] = 1;
+      aliasVect.push_back(dpidtmp);
       mDetectorAlias[dpidtmp] = vectDet;
     }
 
     DeliveryType typestring = RAW_STRING;
     std::string dpAliasstring0 = "TestString_0";
     DPID::FILL(dpidtmp, dpAliasstring0, typestring);
-    dpMap[dpidtmp] = 1;
+    aliasVect.push_back(dpidtmp);
     mDetectorAlias[dpidtmp] = vectDet;
 
-    mDCSproc.init(dpMap);
+    mDCSproc.init(aliasVect);
     mDCSproc.setMaxCyclesNoFullMap(ic.options().get<int64_t>("max-cycles-no-full-map"));
     mDCSproc.setName("Test0Det");
     for (int idet = 0; idet < kNdetectors; idet++) {
-      mDCSprocVect[idet].init(dpMap);
+      mDCSprocVect[idet].init(aliasVect);
       mDCSprocVect[idet].setMaxCyclesNoFullMap(ic.options().get<int64_t>("max-cycles-no-full-map"));
       mDCSprocVect[idet].setName("Test1Det");
     }
@@ -295,8 +295,8 @@ class DCSDataProcessor : public o2::framework::Task
     const auto& payload = mDCSproc.getCCDBSimpleMovingAverage();
     auto& info = mDCSproc.getCCDBSimpleMovingAverageInfo();
     auto image = o2::ccdb::CcdbApi::createObjectImage(&payload, &info);
-    LOG(DEBUG) << "Sending object " << info.getPath() << "/" << info.getFileName() << " of size " << image->size()
-               << " bytes, valid for " << info.getStartValidityTimestamp() << " : " << info.getEndValidityTimestamp();
+    LOG(INFO) << "Sending object " << info.getPath() << "/" << info.getFileName() << " of size " << image->size()
+              << " bytes, valid for " << info.getStartValidityTimestamp() << " : " << info.getEndValidityTimestamp();
 
     output.snapshot(Output{clbUtils::gDataOriginCLB, clbUtils::gDataDescriptionCLBPayload, 0}, *image.get());
     output.snapshot(Output{clbUtils::gDataOriginCLB, clbUtils::gDataDescriptionCLBInfo, 0}, info);
