@@ -112,8 +112,7 @@ o2::framework::ServiceSpec CommonMessageBackends::arrowBackendSpec()
                          }
                          auto dph = o2::header::get<DataProcessingHeader*>(input.header);
                          for (auto const& forward : ctx.services().get<DeviceSpec const>().forwards) {
-                           if (DataSpecUtils::match(forward.matcher, dh->dataOrigin, dh->dataDescription, dh->subSpecification) == true
-                               && (dph->startTime % forward.maxTimeslices) == forward.timeslice) {
+                           if (DataSpecUtils::match(forward.matcher, dh->dataOrigin, dh->dataDescription, dh->subSpecification) == true && (dph->startTime % forward.maxTimeslices) == forward.timeslice) {
                              continue;
                            }
                          }
