@@ -24,7 +24,11 @@ Data Sampling provides possibility to sample data in DPL workflows, basing on ce
 
 ### Usage
 
-To use Data Sampling in a DPL workflow insert following lines to your code:
+One can use Data Sampling either by merging the standalone Data Sampling workflow with other DPL workflows:
+```bash
+o2-workflow-abc | o2-datasampling-standalone --config json://path/to/config.json | o2-workflow-xyz
+```
+...or by incorporating the code below into a DPL workflow which needs sampling:
 ```cpp
 #include "DataSampling/DataSampling.h"
 using namespace o2::framework;
