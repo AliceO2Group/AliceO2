@@ -16,6 +16,7 @@
 #include "Framework/ConfigContext.h"
 #include "Framework/ConfigParamRegistry.h"
 #include "DebugGUI/imgui.h"
+#include "DebugGUI/implot.h"
 #include "DebugGUI/imgui_extras.h"
 #include "DriverControl.cxx"
 #include "DriverInfo.cxx"
@@ -172,22 +173,15 @@ enum struct MetricsDisplayStyle : int {
   Table = 3
 };
 
-void displayDeviceMetrics(const char* label, ImVec2 canvasSize, std::string const& selectedMetricName,
+void displayDeviceMetrics(const char* label, std::string const& selectedMetricName,
                           size_t rangeBegin, size_t rangeEnd, size_t bins, MetricsDisplayStyle displayType,
-                          std::vector<DeviceSpec> const& specs, std::vector<DeviceMetricsInfo> const& metricsInfos)
+                          std::vector<DeviceSpec> const& specs,
+                          std::vector<DeviceMetricsInfo> const& metricsInfos,
+                          DeviceMetricsInfo const& driverMetric)
 {
-  static std::vector<ImColor> palette = {
-    ImColor{218, 124, 48},
-    ImColor{62, 150, 81},
-    ImColor{204, 37, 41},
-    ImColor{83, 81, 84},
-    ImColor{107, 76, 154},
-    ImColor{146, 36, 40},
-    ImColor{148, 139, 61}};
-  std::vector<void const*> metricsToDisplay;
+  std::vector<void*> metricsToDisplay;
   std::vector<const char*> deviceNames;
   std::vector<MultiplotData> userData;
-  std::vector<ImColor> colors;
   MetricType metricType;
   size_t metricSize = 0;
   assert(specs.size() == metricsInfos.size());
@@ -203,7 +197,6 @@ void displayDeviceMetrics(const char* label, ImVec2 canvasSize, std::string cons
     }
     auto& metric = metricsInfos[mi].metrics[vi];
     deviceNames.push_back(specs[mi].name.c_str());
-    colors.push_back(palette[mi % palette.size()]);
     metricType = metric.type;
     MultiplotData data;
     data.mod = metricsInfos[mi].timestamps[vi].size();
@@ -213,27 +206,20 @@ void displayDeviceMetrics(const char* label, ImVec2 canvasSize, std::string cons
     maxValue = std::max(maxValue, metricsInfos[mi].max[vi]);
     minDomain = std::min(minDomain, metricsInfos[mi].minDomain[vi]);
     maxDomain = std::max(maxDomain, metricsInfos[mi].maxDomain[vi]);
+    metricType = metric.type;
+    data.type = metric.type;
     switch (metric.type) {
       case MetricType::Int: {
         data.size = metricsInfos[mi].intMetrics[metric.storeIdx].size();
         data.Y = metricsInfos[mi].intMetrics[metric.storeIdx].data();
-        data.type = MetricType::Int;
-        metricType = MetricType::Int;
-        metricSize = metricsInfos[mi].intMetrics[metric.storeIdx].size();
       } break;
       case MetricType::Uint64: {
         data.size = metricsInfos[mi].uint64Metrics[metric.storeIdx].size();
         data.Y = metricsInfos[mi].uint64Metrics[metric.storeIdx].data();
-        data.type = MetricType::Uint64;
-        metricType = MetricType::Uint64;
-        metricSize = metricsInfos[mi].uint64Metrics[metric.storeIdx].size();
       } break;
       case MetricType::Float: {
         data.size = metricsInfos[mi].floatMetrics[metric.storeIdx].size();
         data.Y = metricsInfos[mi].floatMetrics[metric.storeIdx].data();
-        data.type = MetricType::Float;
-        metricType = MetricType::Float;
-        metricSize = metricsInfos[mi].floatMetrics[metric.storeIdx].size();
       } break;
       case MetricType::Unknown:
       case MetricType::String: {
@@ -241,10 +227,51 @@ void displayDeviceMetrics(const char* label, ImVec2 canvasSize, std::string cons
         data.Y = nullptr;
         data.type = MetricType::String;
         metricType = MetricType::String;
-        metricSize = metricsInfos[mi].stringMetrics[metric.storeIdx].size();
       } break;
     }
+    metricSize = data.size;
     userData.emplace_back(data);
+  }
+  if (true) {
+    auto vi = DeviceMetricsHelper::metricIdxByName(selectedMetricName, driverMetric);
+    if (vi < driverMetric.metricLabelsIdx.size()) {
+      auto& metric = driverMetric.metrics[vi];
+      deviceNames.push_back("driver");
+      metricType = metric.type;
+      MultiplotData data;
+      data.mod = driverMetric.timestamps[vi].size();
+      data.first = metric.pos - data.mod;
+      data.X = driverMetric.timestamps[vi].data();
+      minValue = std::min(minValue, driverMetric.min[vi]);
+      maxValue = std::max(maxValue, driverMetric.max[vi]);
+      minDomain = std::min(minDomain, driverMetric.minDomain[vi]);
+      maxDomain = std::max(maxDomain, driverMetric.maxDomain[vi]);
+      metricType = metric.type;
+      data.type = metric.type;
+      switch (metric.type) {
+        case MetricType::Int: {
+          data.size = driverMetric.intMetrics[metric.storeIdx].size();
+          data.Y = driverMetric.intMetrics[metric.storeIdx].data();
+        } break;
+        case MetricType::Uint64: {
+          data.size = driverMetric.uint64Metrics[metric.storeIdx].size();
+          data.Y = driverMetric.uint64Metrics[metric.storeIdx].data();
+        } break;
+        case MetricType::Float: {
+          data.size = driverMetric.floatMetrics[metric.storeIdx].size();
+          data.Y = driverMetric.floatMetrics[metric.storeIdx].data();
+        } break;
+        case MetricType::Unknown:
+        case MetricType::String: {
+          data.size = driverMetric.stringMetrics[metric.storeIdx].size();
+          data.Y = nullptr;
+          data.type = MetricType::String;
+          metricType = MetricType::String;
+        } break;
+      }
+      metricSize = data.size;
+      userData.emplace_back(data);
+    }
   }
 
   maxDomain = std::max(minDomain + 1024, maxDomain);
@@ -252,60 +279,44 @@ void displayDeviceMetrics(const char* label, ImVec2 canvasSize, std::string cons
   for (size_t ui = 0; ui < userData.size(); ++ui) {
     metricsToDisplay.push_back(&(userData[ui]));
   }
-  auto getterY = [](const void* hData, int idx) -> float {
+  auto getterXY = [](void* hData, int idx) -> ImPlotPoint {
     auto histoData = reinterpret_cast<const MultiplotData*>(hData);
     size_t pos = (histoData->first + static_cast<size_t>(idx)) % histoData->mod;
-    // size_t pos = (static_cast<size_t>(idx)) % histoData->mod;
-    assert(pos >= 0 && pos < 1024);
+    double x = static_cast<const size_t*>(histoData->X)[pos];
+    double y = 0.;
     if (histoData->type == MetricType::Int) {
-      return static_cast<const int*>(histoData->Y)[pos];
+      y = static_cast<const int*>(histoData->Y)[pos];
     } else if (histoData->type == MetricType::Uint64) {
-      return static_cast<const uint64_t*>(histoData->Y)[pos];
+      y = static_cast<const uint64_t*>(histoData->Y)[pos];
     } else if (histoData->type == MetricType::Float) {
-      return static_cast<const float*>(histoData->Y)[pos];
-    } else {
-      return 0;
+      y = static_cast<const float*>(histoData->Y)[pos];
     }
+    return ImPlotPoint{x, y};
   };
-  auto getterX = [](const void* hData, int idx) -> size_t {
-    auto histoData = reinterpret_cast<const MultiplotData*>(hData);
-    size_t pos = (histoData->first + static_cast<size_t>(idx)) % histoData->mod;
-    //size_t pos = (static_cast<size_t>(idx)) % histoData->mod;
-    assert(pos >= 0 && pos < 1024);
-    return static_cast<const size_t*>(histoData->X)[pos];
-  };
+
   switch (displayType) {
     case MetricsDisplayStyle::Histos:
-      ImGui::PlotMultiHistograms(
-        label,
-        userData.size(),
-        deviceNames.data(),
-        colors.data(),
-        getterY,
-        getterX,
-        metricsToDisplay.data(),
-        metricSize,
-        minValue,
-        maxValue * 1.2f,
-        minDomain,
-        maxDomain,
-        canvasSize);
+      ImPlot::SetNextPlotLimitsX(minDomain, maxDomain, ImGuiCond_Once);
+      ImPlot::SetNextPlotLimitsY(minValue, maxValue, ImGuiCond_Always);
+      ImPlot::SetNextPlotTicksX(minDomain, maxDomain, 5);
+      if (ImPlot::BeginPlot(selectedMetricName.c_str(), "time", "value")) {
+        for (size_t pi = 0; pi < metricsToDisplay.size(); ++pi) {
+          ImPlot::PlotBarsG(deviceNames[pi], getterXY, metricsToDisplay[pi], metricSize, 1, 0);
+        }
+        ImPlot::EndPlot();
+      }
+
       break;
     case MetricsDisplayStyle::Lines:
-      ImGui::PlotMultiLines(
-        label,
-        userData.size(),
-        deviceNames.data(),
-        colors.data(),
-        getterY,
-        getterX,
-        metricsToDisplay.data(),
-        metricSize,
-        minValue,
-        maxValue * 1.2f,
-        minDomain,
-        maxDomain,
-        canvasSize);
+      ImPlot::SetNextPlotLimitsX(minDomain, maxDomain, ImGuiCond_Once);
+      ImPlot::SetNextPlotLimitsY(minValue, maxValue * 1.2, ImGuiCond_Always);
+      ImPlot::SetNextPlotTicksX(minDomain, maxDomain, 5);
+      if (ImPlot::BeginPlot("##Some plot", "time", "value")) {
+        for (size_t pi = 0; pi < metricsToDisplay.size(); ++pi) {
+          ImPlot::PlotLineG(deviceNames[pi], getterXY, metricsToDisplay[pi], metricSize, 0);
+        }
+        ImPlot::EndPlot();
+      }
       break;
     default:
       break;
@@ -546,17 +557,14 @@ void displayDeviceHistograms(gui::WorkspaceGUIState& state,
       maxTime = maxTime > curMaxTime ? maxTime : curMaxTime;
     }
   }
-  if (minTime != -1) {
-    ImGui::Text("min timestamp: %zu, max timestamp: %zu", minTime, maxTime);
-  }
   ImGui::EndGroup();
   if (!currentMetricName.empty()) {
     switch (currentStyle) {
       case MetricsDisplayStyle::Histos:
       case MetricsDisplayStyle::Lines: {
         displayDeviceMetrics("Metrics",
-                             ImVec2(ImGui::GetIO().DisplaySize.x - 10, state.bottomPaneSize - ImGui::GetItemRectSize().y - 20), currentMetricName, minTime, maxTime, 1024,
-                             currentStyle, devices, metricsInfos);
+                             currentMetricName, minTime, maxTime, 1024,
+                             currentStyle, devices, metricsInfos, driverInfo.metrics);
       } break;
       case MetricsDisplayStyle::Sparks: {
 #if defined(ImGuiCol_ChildWindowBg)
@@ -736,7 +744,7 @@ std::function<void(void)> getGUIDebugger(std::vector<DeviceInfo> const& infos,
     gui::DeviceGUIState& state = guiState.devices[i];
     state.label = devices[i].id + "(" + std::to_string(infos[i].pid) + ")";
   }
-  guiState.bottomPaneSize = 300;
+  guiState.bottomPaneSize = 340;
   guiState.leftPaneSize = 200;
   guiState.rightPaneSize = 300;
 

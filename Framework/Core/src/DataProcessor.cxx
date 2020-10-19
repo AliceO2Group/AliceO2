@@ -97,12 +97,14 @@ void DataProcessor::doSend(FairMQDevice& device, ArrowContext& context, ServiceR
     dh->serialization = o2::header::gSerializationMethodArrow;
     context.updateBytesSent(payload->GetSize());
     context.updateMessagesSent(1);
-    registry.get<Monitoring>().send(Metric{(uint64_t)context.bytesSent(), "arrow-bytes-created"}.addTag(Key::Subsystem, Value::DPL));
-    registry.get<Monitoring>().send(Metric{(uint64_t)context.messagesCreated(), "arrow-messages-created"}.addTag(Key::Subsystem, Value::DPL));
     parts.AddPart(std::move(messageRef.header));
     parts.AddPart(std::move(payload));
     device.Send(parts, messageRef.channel, 0);
   }
+  auto& monitoring = registry.get<Monitoring>();
+  monitoring.send(Metric{(uint64_t)context.bytesSent(), "arrow-bytes-created"}.addTag(Key::Subsystem, Value::DPL));
+  monitoring.send(Metric{(uint64_t)context.messagesCreated(), "arrow-messages-created"}.addTag(Key::Subsystem, Value::DPL));
+  monitoring.flushBuffer();
 }
 
 void DataProcessor::doSend(FairMQDevice& device, RawBufferContext& context, ServiceRegistry& registry)

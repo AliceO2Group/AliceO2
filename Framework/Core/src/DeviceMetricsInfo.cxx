@@ -261,7 +261,6 @@ bool DeviceMetricsHelper::processMetric(ParsedMetricMatch& match,
   return true;
 }
 
-/// @return the index in metrics for the information of given metric
 size_t
   DeviceMetricsHelper::metricIdxByName(const std::string& name, const DeviceMetricsInfo& info)
 {

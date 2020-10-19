@@ -22,6 +22,7 @@
 #include "Framework/TerminationPolicy.h"
 #include "Framework/CompletionPolicy.h"
 #include "Framework/DispatchPolicy.h"
+#include "Framework/DeviceMetricsInfo.h"
 #include "DataProcessorInfo.h"
 
 namespace o2::framework
@@ -135,6 +136,8 @@ struct DriverInfo {
   unsigned short resourcesMonitoringInterval;
   /// Last port used for tracy
   short tracyPort = 8086;
+  /// Aggregate metrics calculated in the driver itself
+  DeviceMetricsInfo metrics;
 };
 
 } // namespace o2::framework
