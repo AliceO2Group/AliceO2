@@ -23,140 +23,138 @@ using DPVAL = o2::dcs::DataPointValue;
 
 //ClassImp(o2::dcs::DCSProcessor);
 
-void DCSProcessor::init(const std::unordered_map<DPID, int>& dpidmapchars,
-                        const std::unordered_map<DPID, int>& dpidmapints,
-                        const std::unordered_map<DPID, int>& dpidmapdoubles,
-                        const std::unordered_map<DPID, int>& dpidmapUints,
-                        const std::unordered_map<DPID, int>& dpidmapbools,
-                        const std::unordered_map<DPID, int>& dpidmapstrings,
-                        const std::unordered_map<DPID, int>& dpidmaptimes,
-                        const std::unordered_map<DPID, int>& dpidmapbinaries)
+void DCSProcessor::init(const std::vector<DPID>& aliaseschars, const std::vector<DPID>& aliasesints,
+                        const std::vector<DPID>& aliasesdoubles, const std::vector<DPID>& aliasesUints,
+                        const std::vector<DPID>& aliasesbools, const std::vector<DPID>& aliasesstrings,
+                        const std::vector<DPID>& aliasestimes, const std::vector<DPID>& aliasesbinaries)
 {
 
   // init from separate vectors of aliases (one per data point type)
 
   // chars
-  for (const auto& el : dpidmapchars) {
-    if ((el.first).get_type() != DeliveryType::RAW_CHAR) {
-      LOG(FATAL) << "Type for data point " << el.first << " does not match with expectations! It should be a char";
+  for (auto it = std::begin(aliaseschars); it != std::end(aliaseschars); ++it) {
+    if ((*it).get_type() != DeliveryType::RAW_CHAR) {
+      LOG(FATAL) << "Type for data point " << *it << " does not match with expectations! It should be a char";
     }
-    mMapchars[el.first] = el.second;
-    mLatestTimestampchars[el.first] = 0;
+    mAliaseschars.emplace_back((*it).get_alias(), DeliveryType::RAW_CHAR);
   }
 
   // ints
-  for (const auto& el : dpidmapints) {
-    if ((el.first).get_type() != DeliveryType::RAW_INT) {
-      LOG(FATAL) << "Type for data point " << el.first << " does not match with expectations! It should be a int";
+  for (auto it = std::begin(aliasesints); it != std::end(aliasesints); ++it) {
+    if ((*it).get_type() != DeliveryType::RAW_INT) {
+      LOG(FATAL) << "Type for data point " << *it << " does not match with expectations! It should be a int";
     }
-    mMapints[el.first] = el.second;
-    mLatestTimestampints[el.first] = 0;
+    mAliasesints.emplace_back((*it).get_alias(), DeliveryType::RAW_INT);
   }
 
   // doubles
-  for (const auto& el : dpidmapdoubles) {
-    if ((el.first).get_type() != DeliveryType::RAW_DOUBLE) {
-      LOG(FATAL) << "Type for data point " << el.first << " does not match with expectations! It should be a double";
+  for (auto it = std::begin(aliasesdoubles); it != std::end(aliasesdoubles); ++it) {
+    if ((*it).get_type() != DeliveryType::RAW_DOUBLE) {
+      LOG(FATAL) << "Type for data point " << *it << " does not match with expectations! It should be a double";
     }
-    mMapdoubles[el.first] = el.second;
-    mLatestTimestampdoubles[el.first] = 0;
+    mAliasesdoubles.emplace_back((*it).get_alias(), DeliveryType::RAW_DOUBLE);
   }
 
   // uints
-  for (const auto& el : dpidmapUints) {
-    if ((el.first).get_type() != DeliveryType::RAW_UINT) {
-      LOG(FATAL) << "Type for data point " << el.first << " does not match with expectations! It should be a uint";
+  for (auto it = std::begin(aliasesUints); it != std::end(aliasesUints); ++it) {
+    if ((*it).get_type() != DeliveryType::RAW_UINT) {
+      LOG(FATAL) << "Type for data point " << *it << " does not match with expectations! It should be a uint";
     }
-    mMapUints[el.first] = el.second;
-    mLatestTimestampUints[el.first] = 0;
+    mAliasesUints.emplace_back((*it).get_alias(), DeliveryType::RAW_UINT);
   }
 
   // bools
-  for (const auto& el : dpidmapbools) {
-    if ((el.first).get_type() != DeliveryType::RAW_BOOL) {
-      LOG(FATAL) << "Type for data point " << el.first << " does not match with expectations! It should be a bool";
+  for (auto it = std::begin(aliasesbools); it != std::end(aliasesbools); ++it) {
+    if ((*it).get_type() != DeliveryType::RAW_BOOL) {
+      LOG(FATAL) << "Type for data point " << *it << " does not match with expectations! It should be a bool";
     }
-    mMapbools[el.first] = el.second;
-    mLatestTimestampbools[el.first] = 0;
+    mAliasesbools.emplace_back((*it).get_alias(), DeliveryType::RAW_BOOL);
   }
 
   // strings
-  for (const auto& el : dpidmapstrings) {
-    if ((el.first).get_type() != DeliveryType::RAW_STRING) {
-      LOG(FATAL) << "Type for data point " << el.first << " does not match with expectations! It should be a string";
+  for (auto it = std::begin(aliasesstrings); it != std::end(aliasesstrings); ++it) {
+    if ((*it).get_type() != DeliveryType::RAW_STRING) {
+      LOG(FATAL) << "Type for data point " << *it << " does not match with expectations! It should be a string";
     }
-    mMapstrings[el.first] = el.second;
-    mLatestTimestampstrings[el.first] = 0;
+    mAliasesstrings.emplace_back((*it).get_alias(), DeliveryType::RAW_STRING);
   }
 
   // times
-  for (const auto& el : dpidmaptimes) {
-    if ((el.first).get_type() != DeliveryType::RAW_TIME) {
-      LOG(FATAL) << "Type for data point " << el.first << " does not match with expectations! It should be a time";
+  for (auto it = std::begin(aliasestimes); it != std::end(aliasestimes); ++it) {
+    if ((*it).get_type() != DeliveryType::RAW_TIME) {
+      LOG(FATAL) << "Type for data point " << *it << " does not match with expectations! It should be a time";
     }
-    mMaptimes[el.first] = el.second;
-    mLatestTimestamptimes[el.first] = 0;
+    mAliasestimes.emplace_back((*it).get_alias(), DeliveryType::RAW_TIME);
   }
 
   // binaries
-  for (const auto& el : dpidmapbinaries) {
-    if ((el.first).get_type() != DeliveryType::RAW_BINARY) {
-      LOG(FATAL) << "Type for data point " << el.first << " does not match with expectations! It should be a binary";
+  for (auto it = std::begin(aliasesbinaries); it != std::end(aliasesbinaries); ++it) {
+    if ((*it).get_type() != DeliveryType::RAW_BINARY) {
+      LOG(FATAL) << "Type for data point " << *it << " does not match with expectations! It should be a binary";
     }
-    mMapbinaries[el.first] = el.second;
-    mLatestTimestampbinaries[el.first] = 0;
+    mAliasesbinaries.emplace_back((*it).get_alias(), DeliveryType::RAW_BINARY);
   }
+
+  mLatestTimestampchars.resize(aliaseschars.size(), 0);
+  mLatestTimestampints.resize(aliasesints.size(), 0);
+  mLatestTimestampdoubles.resize(aliasesdoubles.size(), 0);
+  mLatestTimestampUints.resize(aliasesUints.size(), 0);
+  mLatestTimestampbools.resize(aliasesbools.size(), 0);
+  mLatestTimestampstrings.resize(aliasesstrings.size(), 0);
+  mLatestTimestamptimes.resize(aliasestimes.size(), 0);
+  mLatestTimestampbinaries.resize(aliasesbinaries.size(), 0);
 }
 
 //______________________________________________________________________
 
-void DCSProcessor::init(const std::unordered_map<DPID, int>& dpidmap)
+void DCSProcessor::init(const std::vector<DPID>& aliases)
 {
 
   int nchars = 0, nints = 0, ndoubles = 0, nUints = 0,
       nbools = 0, nstrings = 0, ntimes = 0, nbinaries = 0;
-  for (const auto& el : dpidmap) {
-    if ((el.first).get_type() == DeliveryType::RAW_CHAR) {
-      mMapchars[el.first] = el.second;
-      mLatestTimestampchars[el.first] = 0;
+  for (auto it = std::begin(aliases); it != std::end(aliases); ++it) {
+    if ((*it).get_type() == DeliveryType::RAW_CHAR) {
+      mAliaseschars.emplace_back((*it).get_alias(), DeliveryType::RAW_CHAR);
       nchars++;
     }
-    if ((el.first).get_type() == DeliveryType::RAW_INT) {
-      mMapints[el.first] = el.second;
-      mLatestTimestampints[el.first] = 0;
+    if ((*it).get_type() == DeliveryType::RAW_INT) {
+      mAliasesints.emplace_back((*it).get_alias(), DeliveryType::RAW_INT);
       nints++;
     }
-    if ((el.first).get_type() == DeliveryType::RAW_DOUBLE) {
-      mMapdoubles[el.first] = el.second;
-      mLatestTimestampdoubles[el.first] = 0;
+    if ((*it).get_type() == DeliveryType::RAW_DOUBLE) {
+      mAliasesdoubles.emplace_back((*it).get_alias(), DeliveryType::RAW_DOUBLE);
       ndoubles++;
     }
-    if ((el.first).get_type() == DeliveryType::RAW_UINT) {
-      mMapUints[el.first] = el.second;
-      mLatestTimestampUints[el.first] = 0;
+    if ((*it).get_type() == DeliveryType::RAW_UINT) {
+      mAliasesUints.emplace_back((*it).get_alias(), DeliveryType::RAW_UINT);
       nUints++;
     }
-    if ((el.first).get_type() == DeliveryType::RAW_BOOL) {
-      mMapbools[el.first] = el.second;
-      mLatestTimestampbools[el.first] = 0;
+    if ((*it).get_type() == DeliveryType::RAW_BOOL) {
+      mAliasesbools.emplace_back((*it).get_alias(), DeliveryType::RAW_BOOL);
       nbools++;
     }
-    if ((el.first).get_type() == DeliveryType::RAW_STRING) {
-      mMapstrings[el.first] = el.second;
-      mLatestTimestampstrings[el.first] = 0;
+    if ((*it).get_type() == DeliveryType::RAW_STRING) {
+      mAliasesstrings.emplace_back((*it).get_alias(), DeliveryType::RAW_STRING);
       nstrings++;
     }
-    if ((el.first).get_type() == DeliveryType::RAW_TIME) {
-      mMaptimes[el.first] = el.second;
-      mLatestTimestamptimes[el.first] = 0;
+    if ((*it).get_type() == DeliveryType::RAW_TIME) {
+      mAliasestimes.emplace_back((*it).get_alias(), DeliveryType::RAW_TIME);
       ntimes++;
     }
-    if ((el.first).get_type() == DeliveryType::RAW_BINARY) {
-      mMapbinaries[el.first] = el.second;
-      mLatestTimestampbinaries[el.first] = 0;
+    if ((*it).get_type() == DeliveryType::RAW_BINARY) {
+      mAliasesbinaries.emplace_back((*it).get_alias(), DeliveryType::RAW_BINARY);
       nbinaries++;
     }
   }
+
+  mLatestTimestampchars.resize(nchars, 0);
+  mLatestTimestampints.resize(nints, 0);
+  mLatestTimestampdoubles.resize(ndoubles, 0);
+  mLatestTimestampUints.resize(nUints, 0);
+  mLatestTimestampbools.resize(nbools, 0);
+  mLatestTimestampstrings.resize(nstrings, 0);
+  mLatestTimestamptimes.resize(ntimes, 0);
+  mLatestTimestampbinaries.resize(nbinaries, 0);
 }
 
 //__________________________________________________________________
@@ -189,48 +187,48 @@ int DCSProcessor::processMap(const std::unordered_map<DPID, DPVAL>& map, bool is
       foundBools = 0, foundStrings = 0, foundTimes = 0, foundBinaries = 0;
 
   // char type
-  foundChars = processArrayType(mMapchars, DeliveryType::RAW_CHAR, map, mLatestTimestampchars, mDpscharsmap);
+  foundChars = processArrayType(mAliaseschars, DeliveryType::RAW_CHAR, map, mLatestTimestampchars, mDpscharsmap);
 
   // int type
-  foundInts = processArrayType(mMapints, DeliveryType::RAW_INT, map, mLatestTimestampints, mDpsintsmap);
+  foundInts = processArrayType(mAliasesints, DeliveryType::RAW_INT, map, mLatestTimestampints, mDpsintsmap);
 
   // double type
-  foundDoubles = processArrayType(mMapdoubles, DeliveryType::RAW_DOUBLE, map, mLatestTimestampdoubles,
+  foundDoubles = processArrayType(mAliasesdoubles, DeliveryType::RAW_DOUBLE, map, mLatestTimestampdoubles,
                                   mDpsdoublesmap);
 
   // UInt type
-  foundUInts = processArrayType(mMapUints, DeliveryType::RAW_UINT, map, mLatestTimestampUints, mDpsUintsmap);
+  foundUInts = processArrayType(mAliasesUints, DeliveryType::RAW_UINT, map, mLatestTimestampUints, mDpsUintsmap);
 
   // Bool type
-  foundBools = processArrayType(mMapbools, DeliveryType::RAW_BOOL, map, mLatestTimestampbools, mDpsboolsmap);
+  foundBools = processArrayType(mAliasesbools, DeliveryType::RAW_BOOL, map, mLatestTimestampbools, mDpsboolsmap);
 
   // String type
-  foundStrings = processArrayType(mMapstrings, DeliveryType::RAW_STRING, map, mLatestTimestampstrings,
+  foundStrings = processArrayType(mAliasesstrings, DeliveryType::RAW_STRING, map, mLatestTimestampstrings,
                                   mDpsstringsmap);
 
   // Time type
-  foundTimes = processArrayType(mMaptimes, DeliveryType::RAW_TIME, map, mLatestTimestamptimes, mDpstimesmap);
+  foundTimes = processArrayType(mAliasestimes, DeliveryType::RAW_TIME, map, mLatestTimestamptimes, mDpstimesmap);
 
   // Binary type
-  foundBinaries = processArrayType(mMapbinaries, DeliveryType::RAW_BINARY, map, mLatestTimestampbinaries,
+  foundBinaries = processArrayType(mAliasesbinaries, DeliveryType::RAW_BINARY, map, mLatestTimestampbinaries,
                                    mDpsbinariesmap);
 
   if (!isDelta) {
-    if (foundChars != mMapchars.size())
+    if (foundChars != mAliaseschars.size())
       LOG(INFO) << "Not all expected char-typed DPs found!";
-    if (foundInts != mMapints.size())
+    if (foundInts != mAliasesints.size())
       LOG(INFO) << "Not all expected int-typed DPs found!";
-    if (foundDoubles != mMapdoubles.size())
+    if (foundDoubles != mAliasesdoubles.size())
       LOG(INFO) << "Not all expected double-typed DPs found!";
-    if (foundUInts != mMapUints.size())
+    if (foundUInts != mAliasesUints.size())
       LOG(INFO) << "Not all expected uint-typed DPs found!";
-    if (foundBools != mMapbools.size())
+    if (foundBools != mAliasesbools.size())
       LOG(INFO) << "Not all expected bool-typed DPs found!";
-    if (foundStrings != mMapstrings.size())
+    if (foundStrings != mAliasesstrings.size())
       LOG(INFO) << "Not all expected string-typed DPs found!";
-    if (foundTimes != mMaptimes.size())
+    if (foundTimes != mAliasestimes.size())
       LOG(INFO) << "Not all expected time-typed DPs found!";
-    if (foundBinaries != mMapbinaries.size())
+    if (foundBinaries != mAliasesbinaries.size())
       LOG(INFO) << "Not all expected binary-typed DPs found!";
   }
 
@@ -260,128 +258,90 @@ int DCSProcessor::processDP(const std::pair<DPID, DPVAL>& dpcom)
 
   // first we check if the DP is in the list for the detector
   if (type == DeliveryType::RAW_CHAR) {
-    auto el = mMapchars.find(dpid);
-    if (el == mMapchars.end()) {
+    auto it = std::find(mAliaseschars.begin(), mAliaseschars.end(), dpid);
+    if (it == mAliaseschars.end()) {
       LOG(ERROR) << "DP not found for this detector, please check";
       return 1;
     }
-    auto elTime = mLatestTimestampchars.find(dpid);
-    if (elTime == mLatestTimestampchars.end()) {
-      LOG(ERROR) << "Timestamp not found for this DP, please check";
-      return 1;
-    }
-    checkFlagsAndFill(dpcom, mLatestTimestampchars[dpid], mDpscharsmap);
+    int index = std::distance(mAliaseschars.begin(), it);
+    checkFlagsAndFill(dpcom, mLatestTimestampchars[index], mDpscharsmap);
     processCharDP(dpid);
   }
 
   else if (type == DeliveryType::RAW_INT) {
-    std::vector<int64_t> tmp;
-    tmp.resize(100, 0);
-    auto el = mMapints.find(dpid);
-    if (el == mMapints.end()) {
+    auto it = std::find(mAliasesints.begin(), mAliasesints.end(), dpid);
+    if (it == mAliasesints.end()) {
       LOG(ERROR) << "DP not found for this detector, please check";
       return 1;
     }
-
-    auto elTime = mLatestTimestampints.find(dpid);
-    if (elTime == mLatestTimestampints.end()) {
-      LOG(ERROR) << "Timestamp not found for this DP, please check";
-      return 1;
-    }
-
-    checkFlagsAndFill(dpcom, (*elTime).second, mDpsintsmap);
-    //checkFlagsAndFill(dpcom, tmp[0], mDpsintsmap);
-    //checkFlagsAndFill(dpcom, mLatestTimestampints[dpid], mDpsintsmap);
+    int index = std::distance(mAliasesints.begin(), it);
+    checkFlagsAndFill(dpcom, mLatestTimestampints[index], mDpsintsmap);
     processIntDP(dpid);
   }
 
   else if (type == DeliveryType::RAW_DOUBLE) {
-    auto el = mMapdoubles.find(dpid);
-    if (el == mMapdoubles.end()) {
+    auto it = std::find(mAliasesdoubles.begin(), mAliasesdoubles.end(), dpid);
+    if (it == mAliasesdoubles.end()) {
       LOG(ERROR) << "DP not found for this detector, please check";
       return 1;
     }
-    auto elTime = mLatestTimestampdoubles.find(dpid);
-    if (elTime == mLatestTimestampdoubles.end()) {
-      LOG(ERROR) << "Timestamp not found for this DP, please check";
-      return 1;
-    }
-    checkFlagsAndFill(dpcom, mLatestTimestampdoubles[dpid], mDpsdoublesmap);
+    int index = std::distance(mAliasesdoubles.begin(), it);
+    checkFlagsAndFill(dpcom, mLatestTimestampdoubles[index], mDpsdoublesmap);
     processDoubleDP(dpid);
   }
 
   else if (type == DeliveryType::RAW_UINT) {
-    auto el = mMapUints.find(dpid);
-    if (el == mMapUints.end()) {
+    auto it = std::find(mAliasesUints.begin(), mAliasesUints.end(), dpid);
+    if (it == mAliasesUints.end()) {
       LOG(ERROR) << "DP not found for this detector, please check";
       return 1;
     }
-    auto elTime = mLatestTimestampUints.find(dpid);
-    if (elTime == mLatestTimestampUints.end()) {
-      LOG(ERROR) << "Timestamp not found for this DP, please check";
-      return 1;
-    }
-    checkFlagsAndFill(dpcom, mLatestTimestampUints[dpid], mDpsUintsmap);
+    int index = std::distance(mAliasesUints.begin(), it);
+    checkFlagsAndFill(dpcom, mLatestTimestampUints[index], mDpsUintsmap);
     processUIntDP(dpid);
   }
 
   else if (type == DeliveryType::RAW_BOOL) {
-    auto el = mMapbools.find(dpid);
-    if (el == mMapbools.end()) {
+    auto it = std::find(mAliasesbools.begin(), mAliasesbools.end(), dpid);
+    if (it == mAliasesbools.end()) {
       LOG(ERROR) << "DP not found for this detector, please check";
       return 1;
     }
-    auto elTime = mLatestTimestampbools.find(dpid);
-    if (elTime == mLatestTimestampbools.end()) {
-      LOG(ERROR) << "Timestamp not found for this DP, please check";
-      return 1;
-    }
-    checkFlagsAndFill(dpcom, mLatestTimestampbools[dpid], mDpsboolsmap);
+    int index = std::distance(mAliasesbools.begin(), it);
+    checkFlagsAndFill(dpcom, mLatestTimestampbools[index], mDpsboolsmap);
     processBoolDP(dpid);
   }
 
   else if (type == DeliveryType::RAW_STRING) {
-    auto el = mMapstrings.find(dpid);
-    if (el == mMapstrings.end()) {
+    auto it = std::find(mAliasesstrings.begin(), mAliasesstrings.end(), dpid);
+    if (it == mAliasesstrings.end()) {
       LOG(ERROR) << "DP not found for this detector, please check";
       return 1;
     }
-    auto elTime = mLatestTimestampstrings.find(dpid);
-    if (elTime == mLatestTimestampstrings.end()) {
-      LOG(ERROR) << "Timestamp not found for this DP, please check";
-      return 1;
-    }
-    checkFlagsAndFill(dpcom, mLatestTimestampstrings[dpid], mDpsstringsmap);
+    int index = std::distance(mAliasesstrings.begin(), it);
+    checkFlagsAndFill(dpcom, mLatestTimestampstrings[index], mDpsstringsmap);
     processStringDP(dpid);
   }
 
   else if (type == DeliveryType::RAW_TIME) {
-    auto el = mMaptimes.find(dpid);
-    if (el == mMaptimes.end()) {
+    auto it = std::find(mAliasestimes.begin(), mAliasestimes.end(), dpid);
+    if (it == mAliasestimes.end()) {
       LOG(ERROR) << "DP not found for this detector, please check";
       return 1;
     }
-    auto elTime = mLatestTimestamptimes.find(dpid);
-    if (elTime == mLatestTimestamptimes.end()) {
-      LOG(ERROR) << "Timestamp not found for this DP, please check";
-      return 1;
-    }
-    checkFlagsAndFill(dpcom, mLatestTimestamptimes[dpid], mDpstimesmap);
+    int index = std::distance(mAliasestimes.begin(), it);
+    checkFlagsAndFill(dpcom, mLatestTimestamptimes[index], mDpstimesmap);
     processTimeDP(dpid);
   }
 
   else if (type == DeliveryType::RAW_BINARY) {
-    auto el = mMapbinaries.find(dpid);
-    if (el == mMapbinaries.end()) {
+    auto it = std::find(mAliasesbinaries.begin(), mAliasesbinaries.end(), dpid);
+    if (it == mAliasesbinaries.end()) {
       LOG(ERROR) << "DP not found for this detector, please check";
       return 1;
     }
-    auto elTime = mLatestTimestampbinaries.find(dpid);
-    if (elTime == mLatestTimestampbinaries.end()) {
-      LOG(ERROR) << "Timestamp not found for this DP, please check";
-      return 1;
-    }
-    checkFlagsAndFill(dpcom, mLatestTimestampbinaries[dpid], mDpsbinariesmap);
+    int index = std::distance(mAliasesbinaries.begin(), it);
+    checkFlagsAndFill(dpcom, mLatestTimestampbinaries[index], mDpsbinariesmap);
     processBinaryDP(dpid);
   }
 
