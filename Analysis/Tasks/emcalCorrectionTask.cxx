@@ -65,6 +65,9 @@ struct EmcalCorrectionTask {
   //std::unique_ptr<fastjet::Subtractor> sub;
 
   //std::vector<fastjet::PseudoJet> pJets;
+  // QA
+  OutputObj<TH1F> hClusterE{TH1F("hClusterE", "hClusterE", 200, 0.0, 100)};
+  OutputObj<TH2F> hClusterEtaPhi{TH2F("hClusterEtaPhi", "hClusterEtaPhi", 160, -0.8, 0.8, 72, 0, 2 * 3.14159)};
 
   void init(InitContext const&)
   {
@@ -171,7 +174,9 @@ struct EmcalCorrectionTask {
       //double phi = atan2(py, px);
       //double eta = asinh(pz / pt);
       clusters(collision, cluster.E(), pos.Eta(), pos.Phi(), cluster.getM02());
-      LOG(DEBUG) << "Cluster E: " << cluster.E();
+      //LOG(DEBUG) << "Cluster E: " << cluster.E();
+      hClusterE->Fill(cluster.E());
+      hClusterEtaPhi->Fill(pos.Eta(), pos.Phi());
     }
     LOG(INFO) << "Done with process.";
   }
