@@ -103,6 +103,7 @@ struct DeviceMetricsHelper {
   static bool processMetric(ParsedMetricMatch& results,
                             DeviceMetricsInfo& info,
                             NewMetricCallback newMetricCallback = nullptr);
+  /// @return the index in metrics for the information of given metric
   static size_t metricIdxByName(const std::string& name,
                                 const DeviceMetricsInfo& info);
 

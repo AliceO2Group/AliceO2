@@ -11,6 +11,8 @@
 #define O2_FRAMEWORK_SERVICESPEC_H_
 
 #include "Framework/ServiceHandle.h"
+#include "Framework/DeviceMetricsInfo.h"
+#include "Framework/DeviceInfo.h"
 #include <functional>
 #include <string>
 #include <vector>
@@ -64,7 +66,12 @@ using ServicePostForkChild = std::function<void(ServiceRegistry&)>;
 using ServicePostForkParent = std::function<void(ServiceRegistry&)>;
 
 /// Callback executed in the driver in order to process a metric.
-using ServiceMetricHandling = std::function<void(ServiceRegistry&)>;
+using ServiceMetricHandling = std::function<void(ServiceRegistry&,
+                                                 std::vector<o2::framework::DeviceMetricsInfo>& metrics,
+                                                 std::vector<o2::framework::DeviceSpec>& specs,
+                                                 std::vector<o2::framework::DeviceInfo>& infos,
+                                                 DeviceMetricsInfo& driverMetrics,
+                                                 size_t timestamp)>;
 
 /// Callback executed in the child after dispatching happened.
 using ServicePostDispatching = std::function<void(ProcessingContext&, void*)>;
