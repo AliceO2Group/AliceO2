@@ -65,50 +65,50 @@ class DCSProcessor
   DCSProcessor() = default;
   ~DCSProcessor() = default;
 
-  void init(const std::vector<DPID>& aliaseschars, const std::vector<DPID>& aliasesints,
-            const std::vector<DPID>& aliasesdoubles, const std::vector<DPID>& aliasesUints,
-            const std::vector<DPID>& aliasesbools, const std::vector<DPID>& aliasesstrings,
-            const std::vector<DPID>& aliasestimes, const std::vector<DPID>& aliasesbinaries);
+  void init(const std::vector<DPID>& pidschars, const std::vector<DPID>& pidsints,
+            const std::vector<DPID>& pidsdoubles, const std::vector<DPID>& pidsUints,
+            const std::vector<DPID>& pidsbools, const std::vector<DPID>& pidsstrings,
+            const std::vector<DPID>& pidstimes, const std::vector<DPID>& pidsbinaries);
 
-  void init(const std::vector<DPID>& aliases);
+  void init(const std::vector<DPID>& pids);
 
   int processMap(const std::unordered_map<DPID, DPVAL>& map, bool isDelta = false);
 
   int processDP(const std::pair<DPID, DPVAL>& dpcom);
 
-  std::unordered_map<DPID, DPVAL>::const_iterator findAndCheckAlias(const DPID& alias, DeliveryType type,
-                                                                    const std::unordered_map<DPID, DPVAL>& map);
+  std::unordered_map<DPID, DPVAL>::const_iterator findAndCheckPid(const DPID& pid, DeliveryType type,
+                                                                  const std::unordered_map<DPID, DPVAL>& map);
 
   template <typename T>
   int processArrayType(const std::vector<DPID>& array, DeliveryType type, const std::unordered_map<DPID, DPVAL>& map,
-                       std::vector<int64_t>& latestTimeStamp, std::unordered_map<DPID, std::deque<T>>& destmap);
+                       std::vector<uint64_t>& latestTimeStamp, std::unordered_map<DPID, std::deque<T>>& destmap);
 
   template <typename T>
-  void checkFlagsAndFill(const std::pair<DPID, DPVAL>& dpcom, int64_t& latestTimeStamp,
+  void checkFlagsAndFill(const std::pair<DPID, DPVAL>& dpcom, uint64_t& latestTimeStamp,
                          std::unordered_map<DPID, T>& destmap);
 
-  virtual void processCharDP(const DPID& alias);
-  virtual void processIntDP(const DPID& alias);
-  virtual void processDoubleDP(const DPID& alias);
-  virtual void processUIntDP(const DPID& alias);
-  virtual void processBoolDP(const DPID& alias);
-  virtual void processStringDP(const DPID& alias);
-  virtual void processTimeDP(const DPID& alias);
-  virtual void processBinaryDP(const DPID& alias);
+  virtual void processCharDP(const DPID& pid);
+  virtual void processIntDP(const DPID& pid);
+  virtual void processDoubleDP(const DPID& pid);
+  virtual void processUIntDP(const DPID& pid);
+  virtual void processBoolDP(const DPID& pid);
+  virtual void processStringDP(const DPID& pid);
+  virtual void processTimeDP(const DPID& pid);
+  virtual void processBinaryDP(const DPID& pid);
 
-  virtual uint64_t processFlag(uint64_t flag, const char* alias);
+  virtual uint64_t processFlag(uint64_t flag, const char* pid);
 
   template <typename T>
   void doSimpleMovingAverage(int nelements, std::deque<T>& vect, float& avg, bool& isSMA);
 
-  DQChars& getVectorForAliasChar(const DPID& id) { return mDpscharsmap[id]; }
-  DQInts& getVectorForAliasInt(const DPID& id) { return mDpsintsmap[id]; }
-  DQDoubles& getVectorForAliasDouble(const DPID& id) { return mDpsdoublesmap[id]; }
-  DQUInts& getVectorForAliasUInt(const DPID& id) { return mDpsUintsmap[id]; }
-  DQBools& getVectorForAliasBool(const DPID& id) { return mDpsboolsmap[id]; }
-  DQStrings& getVectorForAliasString(const DPID& id) { return mDpsstringsmap[id]; }
-  DQTimes& getVectorForAliasTime(const DPID& id) { return mDpstimesmap[id]; }
-  DQBinaries& getVectorForAliasBinary(const DPID& id) { return mDpsbinariesmap[id]; }
+  DQChars& getVectorForPidChar(const DPID& id) { return mDpscharsmap[id]; }
+  DQInts& getVectorForPidInt(const DPID& id) { return mDpsintsmap[id]; }
+  DQDoubles& getVectorForPidDouble(const DPID& id) { return mDpsdoublesmap[id]; }
+  DQUInts& getVectorForPidUInt(const DPID& id) { return mDpsUintsmap[id]; }
+  DQBools& getVectorForPidBool(const DPID& id) { return mDpsboolsmap[id]; }
+  DQStrings& getVectorForPidString(const DPID& id) { return mDpsstringsmap[id]; }
+  DQTimes& getVectorForPidTime(const DPID& id) { return mDpstimesmap[id]; }
+  DQBinaries& getVectorForPidBinary(const DPID& id) { return mDpsbinariesmap[id]; }
 
   void setNThreads(int n);
   int getNThreads() const { return mNThreads; }
@@ -152,22 +152,24 @@ class DCSProcessor
   std::unordered_map<DPID, DQStrings> mDpsstringsmap;
   std::unordered_map<DPID, DQTimes> mDpstimesmap;
   std::unordered_map<DPID, DQBinaries> mDpsbinariesmap;
-  std::vector<DPID> mAliaseschars;
-  std::vector<DPID> mAliasesints;
-  std::vector<DPID> mAliasesdoubles;
-  std::vector<DPID> mAliasesUints;
-  std::vector<DPID> mAliasesbools;
-  std::vector<DPID> mAliasesstrings;
-  std::vector<DPID> mAliasestimes;
-  std::vector<DPID> mAliasesbinaries;
-  std::vector<int64_t> mLatestTimestampchars;
-  std::vector<int64_t> mLatestTimestampints;
-  std::vector<int64_t> mLatestTimestampdoubles;
-  std::vector<int64_t> mLatestTimestampUints;
-  std::vector<int64_t> mLatestTimestampbools;
-  std::vector<int64_t> mLatestTimestampstrings;
-  std::vector<int64_t> mLatestTimestamptimes;
-  std::vector<int64_t> mLatestTimestampbinaries;
+  std::vector<DPID> mPidschars;
+  std::vector<DPID> mPidsints;
+  std::vector<DPID> mPidsdoubles;
+  std::vector<DPID> mPidsUints;
+  std::vector<DPID> mPidsbools;
+  std::vector<DPID> mPidsstrings;
+  std::vector<DPID> mPidstimes;
+  std::vector<DPID> mPidsbinaries;
+  std::unordered_map<DPID, int> mPids; // contains all PIDs for the current processor; the value correspond to the index
+                                       // in the mPidschars/ints/doubles.. vectors
+  std::vector<uint64_t> mLatestTimestampchars;
+  std::vector<uint64_t> mLatestTimestampints;
+  std::vector<uint64_t> mLatestTimestampdoubles;
+  std::vector<uint64_t> mLatestTimestampUints;
+  std::vector<uint64_t> mLatestTimestampbools;
+  std::vector<uint64_t> mLatestTimestampstrings;
+  std::vector<uint64_t> mLatestTimestamptimes;
+  std::vector<uint64_t> mLatestTimestampbinaries;
   int mNThreads = 1;                                               // number of  threads
   std::unordered_map<std::string, float> mccdbSimpleMovingAverage; // unordered map in which to store the CCDB entry
                                                                    // for the DPs for which we calculated the simple
@@ -197,7 +199,7 @@ using DPVAL = o2::dcs::DataPointValue;
 template <typename T>
 int DCSProcessor::processArrayType(const std::vector<DPID>& array,
                                    DeliveryType type, const std::unordered_map<DPID, DPVAL>& map,
-                                   std::vector<int64_t>& latestTimeStamp,
+                                   std::vector<uint64_t>& latestTimeStamp,
                                    std::unordered_map<DPID, std::deque<T>>& destmap)
 {
 
@@ -209,7 +211,7 @@ int DCSProcessor::processArrayType(const std::vector<DPID>& array,
   //#pragma omp parallel for schedule(dynamic)
   //#endif
   for (size_t i = 0; i != array.size(); ++i) {
-    auto it = findAndCheckAlias(array[i], type, map);
+    auto it = findAndCheckPid(array[i], type, map);
     if (it == map.end()) {
       if (!mIsDelta) {
         LOG(ERROR) << "Element " << array[i] << " not found " << std::endl;
@@ -244,7 +246,7 @@ int DCSProcessor::processArrayType(const std::vector<DPID>& array,
 //______________________________________________________________________
 
 template <typename T>
-void DCSProcessor::checkFlagsAndFill(const std::pair<DPID, DPVAL>& dpcom, int64_t& latestTimeStamp,
+void DCSProcessor::checkFlagsAndFill(const std::pair<DPID, DPVAL>& dpcom, uint64_t& latestTimeStamp,
                                      std::unordered_map<DPID, T>& destmap)
 {
 
@@ -257,7 +259,7 @@ void DCSProcessor::checkFlagsAndFill(const std::pair<DPID, DPVAL>& dpcom, int64_
     auto etime = val.get_epoch_time();
     // fill only if new value has a timestamp different from the timestamp of the previous one
     LOG(DEBUG) << "destmap[pid].size() = " << destmap[dpid].size();
-    if (destmap[dpid].size() == 0 || etime != std::abs(latestTimeStamp)) {
+    if (destmap[dpid].size() == 0 || etime != latestTimeStamp) {
       LOG(DEBUG) << "adding new value";
       destmap[dpid].push_back(val.payload_pt1);
       latestTimeStamp = etime;
@@ -268,13 +270,13 @@ void DCSProcessor::checkFlagsAndFill(const std::pair<DPID, DPVAL>& dpcom, int64_
 //______________________________________________________________________
 
 template <>
-void DCSProcessor::checkFlagsAndFill(const std::pair<DPID, DPVAL>& dpcom, int64_t& latestTimeStamp,
+void DCSProcessor::checkFlagsAndFill(const std::pair<DPID, DPVAL>& dpcom, uint64_t& latestTimeStamp,
                                      std::unordered_map<DPID, DCSProcessor::DQStrings>& destmap);
 
 //______________________________________________________________________
 
 template <>
-void DCSProcessor::checkFlagsAndFill(const std::pair<DPID, DPVAL>& dpcom, int64_t& latestTimeStamp,
+void DCSProcessor::checkFlagsAndFill(const std::pair<DPID, DPVAL>& dpcom, uint64_t& latestTimeStamp,
                                      std::unordered_map<DPID, DCSProcessor::DQBinaries>& destmap);
 
 //______________________________________________________________________

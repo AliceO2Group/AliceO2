@@ -23,126 +23,142 @@ using DPVAL = o2::dcs::DataPointValue;
 
 //ClassImp(o2::dcs::DCSProcessor);
 
-void DCSProcessor::init(const std::vector<DPID>& aliaseschars, const std::vector<DPID>& aliasesints,
-                        const std::vector<DPID>& aliasesdoubles, const std::vector<DPID>& aliasesUints,
-                        const std::vector<DPID>& aliasesbools, const std::vector<DPID>& aliasesstrings,
-                        const std::vector<DPID>& aliasestimes, const std::vector<DPID>& aliasesbinaries)
+void DCSProcessor::init(const std::vector<DPID>& pidschars, const std::vector<DPID>& pidsints,
+                        const std::vector<DPID>& pidsdoubles, const std::vector<DPID>& pidsUints,
+                        const std::vector<DPID>& pidsbools, const std::vector<DPID>& pidsstrings,
+                        const std::vector<DPID>& pidstimes, const std::vector<DPID>& pidsbinaries)
 {
 
-  // init from separate vectors of aliases (one per data point type)
+  // init from separate vectors of pids (one per data point type)
 
   // chars
-  for (auto it = std::begin(aliaseschars); it != std::end(aliaseschars); ++it) {
+  for (auto it = std::begin(pidschars); it != std::end(pidschars); ++it) {
     if ((*it).get_type() != DeliveryType::RAW_CHAR) {
       LOG(FATAL) << "Type for data point " << *it << " does not match with expectations! It should be a char";
     }
-    mAliaseschars.emplace_back((*it).get_alias(), DeliveryType::RAW_CHAR);
+    mPidschars.emplace_back((*it).get_alias(), DeliveryType::RAW_CHAR);
+    mPids[*it] = mPidschars.size() - 1;
   }
 
   // ints
-  for (auto it = std::begin(aliasesints); it != std::end(aliasesints); ++it) {
+  for (auto it = std::begin(pidsints); it != std::end(pidsints); ++it) {
     if ((*it).get_type() != DeliveryType::RAW_INT) {
       LOG(FATAL) << "Type for data point " << *it << " does not match with expectations! It should be a int";
     }
-    mAliasesints.emplace_back((*it).get_alias(), DeliveryType::RAW_INT);
+    mPidsints.emplace_back((*it).get_alias(), DeliveryType::RAW_INT);
+    mPids[*it] = mPidsints.size() - 1;
   }
 
   // doubles
-  for (auto it = std::begin(aliasesdoubles); it != std::end(aliasesdoubles); ++it) {
+  for (auto it = std::begin(pidsdoubles); it != std::end(pidsdoubles); ++it) {
     if ((*it).get_type() != DeliveryType::RAW_DOUBLE) {
       LOG(FATAL) << "Type for data point " << *it << " does not match with expectations! It should be a double";
     }
-    mAliasesdoubles.emplace_back((*it).get_alias(), DeliveryType::RAW_DOUBLE);
+    mPidsdoubles.emplace_back((*it).get_alias(), DeliveryType::RAW_DOUBLE);
+    mPids[*it] = mPidsdoubles.size() - 1;
   }
 
   // uints
-  for (auto it = std::begin(aliasesUints); it != std::end(aliasesUints); ++it) {
+  for (auto it = std::begin(pidsUints); it != std::end(pidsUints); ++it) {
     if ((*it).get_type() != DeliveryType::RAW_UINT) {
       LOG(FATAL) << "Type for data point " << *it << " does not match with expectations! It should be a uint";
     }
-    mAliasesUints.emplace_back((*it).get_alias(), DeliveryType::RAW_UINT);
+    mPidsUints.emplace_back((*it).get_alias(), DeliveryType::RAW_UINT);
+    mPids[*it] = mPidsUints.size() - 1;
   }
 
   // bools
-  for (auto it = std::begin(aliasesbools); it != std::end(aliasesbools); ++it) {
+  for (auto it = std::begin(pidsbools); it != std::end(pidsbools); ++it) {
     if ((*it).get_type() != DeliveryType::RAW_BOOL) {
       LOG(FATAL) << "Type for data point " << *it << " does not match with expectations! It should be a bool";
     }
-    mAliasesbools.emplace_back((*it).get_alias(), DeliveryType::RAW_BOOL);
+    mPidsbools.emplace_back((*it).get_alias(), DeliveryType::RAW_BOOL);
+    mPids[*it] = mPidsbools.size() - 1;
   }
 
   // strings
-  for (auto it = std::begin(aliasesstrings); it != std::end(aliasesstrings); ++it) {
+  for (auto it = std::begin(pidsstrings); it != std::end(pidsstrings); ++it) {
     if ((*it).get_type() != DeliveryType::RAW_STRING) {
       LOG(FATAL) << "Type for data point " << *it << " does not match with expectations! It should be a string";
     }
-    mAliasesstrings.emplace_back((*it).get_alias(), DeliveryType::RAW_STRING);
+    mPidsstrings.emplace_back((*it).get_alias(), DeliveryType::RAW_STRING);
+    mPids[*it] = mPidsstrings.size() - 1;
   }
 
   // times
-  for (auto it = std::begin(aliasestimes); it != std::end(aliasestimes); ++it) {
+  for (auto it = std::begin(pidstimes); it != std::end(pidstimes); ++it) {
     if ((*it).get_type() != DeliveryType::RAW_TIME) {
       LOG(FATAL) << "Type for data point " << *it << " does not match with expectations! It should be a time";
     }
-    mAliasestimes.emplace_back((*it).get_alias(), DeliveryType::RAW_TIME);
+    mPidstimes.emplace_back((*it).get_alias(), DeliveryType::RAW_TIME);
+    mPids[*it] = mPidstimes.size() - 1;
   }
 
   // binaries
-  for (auto it = std::begin(aliasesbinaries); it != std::end(aliasesbinaries); ++it) {
+  for (auto it = std::begin(pidsbinaries); it != std::end(pidsbinaries); ++it) {
     if ((*it).get_type() != DeliveryType::RAW_BINARY) {
       LOG(FATAL) << "Type for data point " << *it << " does not match with expectations! It should be a binary";
     }
-    mAliasesbinaries.emplace_back((*it).get_alias(), DeliveryType::RAW_BINARY);
+    mPidsbinaries.emplace_back((*it).get_alias(), DeliveryType::RAW_BINARY);
+    mPids[*it] = mPidsbinaries.size() - 1;
   }
 
-  mLatestTimestampchars.resize(aliaseschars.size(), 0);
-  mLatestTimestampints.resize(aliasesints.size(), 0);
-  mLatestTimestampdoubles.resize(aliasesdoubles.size(), 0);
-  mLatestTimestampUints.resize(aliasesUints.size(), 0);
-  mLatestTimestampbools.resize(aliasesbools.size(), 0);
-  mLatestTimestampstrings.resize(aliasesstrings.size(), 0);
-  mLatestTimestamptimes.resize(aliasestimes.size(), 0);
-  mLatestTimestampbinaries.resize(aliasesbinaries.size(), 0);
+  mLatestTimestampchars.resize(pidschars.size(), 0);
+  mLatestTimestampints.resize(pidsints.size(), 0);
+  mLatestTimestampdoubles.resize(pidsdoubles.size(), 0);
+  mLatestTimestampUints.resize(pidsUints.size(), 0);
+  mLatestTimestampbools.resize(pidsbools.size(), 0);
+  mLatestTimestampstrings.resize(pidsstrings.size(), 0);
+  mLatestTimestamptimes.resize(pidstimes.size(), 0);
+  mLatestTimestampbinaries.resize(pidsbinaries.size(), 0);
 }
 
 //______________________________________________________________________
 
-void DCSProcessor::init(const std::vector<DPID>& aliases)
+void DCSProcessor::init(const std::vector<DPID>& pids)
 {
 
   int nchars = 0, nints = 0, ndoubles = 0, nUints = 0,
       nbools = 0, nstrings = 0, ntimes = 0, nbinaries = 0;
-  for (auto it = std::begin(aliases); it != std::end(aliases); ++it) {
+  for (auto it = std::begin(pids); it != std::end(pids); ++it) {
     if ((*it).get_type() == DeliveryType::RAW_CHAR) {
-      mAliaseschars.emplace_back((*it).get_alias(), DeliveryType::RAW_CHAR);
+      mPidschars.emplace_back((*it).get_alias(), DeliveryType::RAW_CHAR);
+      mPids[*it] = nchars;
       nchars++;
     }
     if ((*it).get_type() == DeliveryType::RAW_INT) {
-      mAliasesints.emplace_back((*it).get_alias(), DeliveryType::RAW_INT);
+      mPidsints.emplace_back((*it).get_alias(), DeliveryType::RAW_INT);
+      mPids[*it] = nints;
       nints++;
     }
     if ((*it).get_type() == DeliveryType::RAW_DOUBLE) {
-      mAliasesdoubles.emplace_back((*it).get_alias(), DeliveryType::RAW_DOUBLE);
+      mPidsdoubles.emplace_back((*it).get_alias(), DeliveryType::RAW_DOUBLE);
+      mPids[*it] = ndoubles;
       ndoubles++;
     }
     if ((*it).get_type() == DeliveryType::RAW_UINT) {
-      mAliasesUints.emplace_back((*it).get_alias(), DeliveryType::RAW_UINT);
+      mPidsUints.emplace_back((*it).get_alias(), DeliveryType::RAW_UINT);
+      mPids[*it] = nUints;
       nUints++;
     }
     if ((*it).get_type() == DeliveryType::RAW_BOOL) {
-      mAliasesbools.emplace_back((*it).get_alias(), DeliveryType::RAW_BOOL);
+      mPidsbools.emplace_back((*it).get_alias(), DeliveryType::RAW_BOOL);
+      mPids[*it] = nbools;
       nbools++;
     }
     if ((*it).get_type() == DeliveryType::RAW_STRING) {
-      mAliasesstrings.emplace_back((*it).get_alias(), DeliveryType::RAW_STRING);
+      mPidsstrings.emplace_back((*it).get_alias(), DeliveryType::RAW_STRING);
+      mPids[*it] = nstrings;
       nstrings++;
     }
     if ((*it).get_type() == DeliveryType::RAW_TIME) {
-      mAliasestimes.emplace_back((*it).get_alias(), DeliveryType::RAW_TIME);
+      mPidstimes.emplace_back((*it).get_alias(), DeliveryType::RAW_TIME);
+      mPids[*it] = ntimes;
       ntimes++;
     }
     if ((*it).get_type() == DeliveryType::RAW_BINARY) {
-      mAliasesbinaries.emplace_back((*it).get_alias(), DeliveryType::RAW_BINARY);
+      mPidsbinaries.emplace_back((*it).get_alias(), DeliveryType::RAW_BINARY);
+      mPids[*it] = nbinaries;
       nbinaries++;
     }
   }
@@ -187,48 +203,48 @@ int DCSProcessor::processMap(const std::unordered_map<DPID, DPVAL>& map, bool is
       foundBools = 0, foundStrings = 0, foundTimes = 0, foundBinaries = 0;
 
   // char type
-  foundChars = processArrayType(mAliaseschars, DeliveryType::RAW_CHAR, map, mLatestTimestampchars, mDpscharsmap);
+  foundChars = processArrayType(mPidschars, DeliveryType::RAW_CHAR, map, mLatestTimestampchars, mDpscharsmap);
 
   // int type
-  foundInts = processArrayType(mAliasesints, DeliveryType::RAW_INT, map, mLatestTimestampints, mDpsintsmap);
+  foundInts = processArrayType(mPidsints, DeliveryType::RAW_INT, map, mLatestTimestampints, mDpsintsmap);
 
   // double type
-  foundDoubles = processArrayType(mAliasesdoubles, DeliveryType::RAW_DOUBLE, map, mLatestTimestampdoubles,
+  foundDoubles = processArrayType(mPidsdoubles, DeliveryType::RAW_DOUBLE, map, mLatestTimestampdoubles,
                                   mDpsdoublesmap);
 
   // UInt type
-  foundUInts = processArrayType(mAliasesUints, DeliveryType::RAW_UINT, map, mLatestTimestampUints, mDpsUintsmap);
+  foundUInts = processArrayType(mPidsUints, DeliveryType::RAW_UINT, map, mLatestTimestampUints, mDpsUintsmap);
 
   // Bool type
-  foundBools = processArrayType(mAliasesbools, DeliveryType::RAW_BOOL, map, mLatestTimestampbools, mDpsboolsmap);
+  foundBools = processArrayType(mPidsbools, DeliveryType::RAW_BOOL, map, mLatestTimestampbools, mDpsboolsmap);
 
   // String type
-  foundStrings = processArrayType(mAliasesstrings, DeliveryType::RAW_STRING, map, mLatestTimestampstrings,
+  foundStrings = processArrayType(mPidsstrings, DeliveryType::RAW_STRING, map, mLatestTimestampstrings,
                                   mDpsstringsmap);
 
   // Time type
-  foundTimes = processArrayType(mAliasestimes, DeliveryType::RAW_TIME, map, mLatestTimestamptimes, mDpstimesmap);
+  foundTimes = processArrayType(mPidstimes, DeliveryType::RAW_TIME, map, mLatestTimestamptimes, mDpstimesmap);
 
   // Binary type
-  foundBinaries = processArrayType(mAliasesbinaries, DeliveryType::RAW_BINARY, map, mLatestTimestampbinaries,
+  foundBinaries = processArrayType(mPidsbinaries, DeliveryType::RAW_BINARY, map, mLatestTimestampbinaries,
                                    mDpsbinariesmap);
 
   if (!isDelta) {
-    if (foundChars != mAliaseschars.size())
+    if (foundChars != mPidschars.size())
       LOG(INFO) << "Not all expected char-typed DPs found!";
-    if (foundInts != mAliasesints.size())
+    if (foundInts != mPidsints.size())
       LOG(INFO) << "Not all expected int-typed DPs found!";
-    if (foundDoubles != mAliasesdoubles.size())
+    if (foundDoubles != mPidsdoubles.size())
       LOG(INFO) << "Not all expected double-typed DPs found!";
-    if (foundUInts != mAliasesUints.size())
+    if (foundUInts != mPidsUints.size())
       LOG(INFO) << "Not all expected uint-typed DPs found!";
-    if (foundBools != mAliasesbools.size())
+    if (foundBools != mPidsbools.size())
       LOG(INFO) << "Not all expected bool-typed DPs found!";
-    if (foundStrings != mAliasesstrings.size())
+    if (foundStrings != mPidsstrings.size())
       LOG(INFO) << "Not all expected string-typed DPs found!";
-    if (foundTimes != mAliasestimes.size())
+    if (foundTimes != mPidstimes.size())
       LOG(INFO) << "Not all expected time-typed DPs found!";
-    if (foundBinaries != mAliasesbinaries.size())
+    if (foundBinaries != mPidsbinaries.size())
       LOG(INFO) << "Not all expected binary-typed DPs found!";
   }
 
@@ -257,91 +273,50 @@ int DCSProcessor::processDP(const std::pair<DPID, DPVAL>& dpcom)
   DeliveryType type = dpid.get_type();
 
   // first we check if the DP is in the list for the detector
+  auto el = mPids.find(dpid);
+  if (el == mPids.end()) {
+    LOG(ERROR) << "DP not found for this detector, please check";
+    return 1;
+  }
+  int posInVector = (*el).second;
+
   if (type == DeliveryType::RAW_CHAR) {
-    auto it = std::find(mAliaseschars.begin(), mAliaseschars.end(), dpid);
-    if (it == mAliaseschars.end()) {
-      LOG(ERROR) << "DP not found for this detector, please check";
-      return 1;
-    }
-    int index = std::distance(mAliaseschars.begin(), it);
-    checkFlagsAndFill(dpcom, mLatestTimestampchars[index], mDpscharsmap);
+    checkFlagsAndFill(dpcom, mLatestTimestampchars[posInVector], mDpscharsmap);
     processCharDP(dpid);
   }
 
   else if (type == DeliveryType::RAW_INT) {
-    auto it = std::find(mAliasesints.begin(), mAliasesints.end(), dpid);
-    if (it == mAliasesints.end()) {
-      LOG(ERROR) << "DP not found for this detector, please check";
-      return 1;
-    }
-    int index = std::distance(mAliasesints.begin(), it);
-    checkFlagsAndFill(dpcom, mLatestTimestampints[index], mDpsintsmap);
+    checkFlagsAndFill(dpcom, mLatestTimestampints[posInVector], mDpsintsmap);
     processIntDP(dpid);
   }
 
   else if (type == DeliveryType::RAW_DOUBLE) {
-    auto it = std::find(mAliasesdoubles.begin(), mAliasesdoubles.end(), dpid);
-    if (it == mAliasesdoubles.end()) {
-      LOG(ERROR) << "DP not found for this detector, please check";
-      return 1;
-    }
-    int index = std::distance(mAliasesdoubles.begin(), it);
-    checkFlagsAndFill(dpcom, mLatestTimestampdoubles[index], mDpsdoublesmap);
+    checkFlagsAndFill(dpcom, mLatestTimestampdoubles[posInVector], mDpsdoublesmap);
     processDoubleDP(dpid);
   }
 
   else if (type == DeliveryType::RAW_UINT) {
-    auto it = std::find(mAliasesUints.begin(), mAliasesUints.end(), dpid);
-    if (it == mAliasesUints.end()) {
-      LOG(ERROR) << "DP not found for this detector, please check";
-      return 1;
-    }
-    int index = std::distance(mAliasesUints.begin(), it);
-    checkFlagsAndFill(dpcom, mLatestTimestampUints[index], mDpsUintsmap);
+    checkFlagsAndFill(dpcom, mLatestTimestampUints[posInVector], mDpsUintsmap);
     processUIntDP(dpid);
   }
 
   else if (type == DeliveryType::RAW_BOOL) {
-    auto it = std::find(mAliasesbools.begin(), mAliasesbools.end(), dpid);
-    if (it == mAliasesbools.end()) {
-      LOG(ERROR) << "DP not found for this detector, please check";
-      return 1;
-    }
-    int index = std::distance(mAliasesbools.begin(), it);
-    checkFlagsAndFill(dpcom, mLatestTimestampbools[index], mDpsboolsmap);
+    checkFlagsAndFill(dpcom, mLatestTimestampbools[posInVector], mDpsboolsmap);
     processBoolDP(dpid);
   }
 
   else if (type == DeliveryType::RAW_STRING) {
-    auto it = std::find(mAliasesstrings.begin(), mAliasesstrings.end(), dpid);
-    if (it == mAliasesstrings.end()) {
-      LOG(ERROR) << "DP not found for this detector, please check";
-      return 1;
-    }
-    int index = std::distance(mAliasesstrings.begin(), it);
-    checkFlagsAndFill(dpcom, mLatestTimestampstrings[index], mDpsstringsmap);
+    checkFlagsAndFill(dpcom, mLatestTimestampstrings[posInVector], mDpsstringsmap);
     processStringDP(dpid);
   }
 
   else if (type == DeliveryType::RAW_TIME) {
-    auto it = std::find(mAliasestimes.begin(), mAliasestimes.end(), dpid);
-    if (it == mAliasestimes.end()) {
-      LOG(ERROR) << "DP not found for this detector, please check";
-      return 1;
-    }
-    int index = std::distance(mAliasestimes.begin(), it);
-    checkFlagsAndFill(dpcom, mLatestTimestamptimes[index], mDpstimesmap);
+    checkFlagsAndFill(dpcom, mLatestTimestamptimes[posInVector], mDpstimesmap);
     processTimeDP(dpid);
   }
 
   else if (type == DeliveryType::RAW_BINARY) {
-    auto it = std::find(mAliasesbinaries.begin(), mAliasesbinaries.end(), dpid);
-    if (it == mAliasesbinaries.end()) {
-      LOG(ERROR) << "DP not found for this detector, please check";
-      return 1;
-    }
-    int index = std::distance(mAliasesbinaries.begin(), it);
-    checkFlagsAndFill(dpcom, mLatestTimestampbinaries[index], mDpsbinariesmap);
+    checkFlagsAndFill(dpcom, mLatestTimestampbinaries[posInVector], mDpsbinariesmap);
     processBinaryDP(dpid);
   }
 
@@ -351,7 +326,7 @@ int DCSProcessor::processDP(const std::pair<DPID, DPVAL>& dpcom)
 //______________________________________________________________________
 
 template <>
-void DCSProcessor::checkFlagsAndFill(const std::pair<DPID, DPVAL>& dpcom, int64_t& latestTimeStamp,
+void DCSProcessor::checkFlagsAndFill(const std::pair<DPID, DPVAL>& dpcom, uint64_t& latestTimeStamp,
                                      std::unordered_map<DPID, DQStrings>& destmap)
 {
 
@@ -364,7 +339,7 @@ void DCSProcessor::checkFlagsAndFill(const std::pair<DPID, DPVAL>& dpcom, int64_
     auto etime = val.get_epoch_time();
     // fill only if new value has a timestamp different from the timestamp of the previous one
     LOG(DEBUG) << "destmap[pid].size() = " << destmap[dpid].size();
-    if (destmap[dpid].size() == 0 || etime != std::abs(latestTimeStamp)) {
+    if (destmap[dpid].size() == 0 || etime != latestTimeStamp) {
       auto& tmp = destmap[dpid].emplace_back();
       std::strncpy(tmp.data(), (char*)&(val.payload_pt1), 56);
       latestTimeStamp = etime;
@@ -375,7 +350,7 @@ void DCSProcessor::checkFlagsAndFill(const std::pair<DPID, DPVAL>& dpcom, int64_
 //______________________________________________________________________
 
 template <>
-void DCSProcessor::checkFlagsAndFill(const std::pair<DPID, DPVAL>& dpcom, int64_t& latestTimeStamp,
+void DCSProcessor::checkFlagsAndFill(const std::pair<DPID, DPVAL>& dpcom, uint64_t& latestTimeStamp,
                                      std::unordered_map<DPID, DQBinaries>& destmap)
 {
 
@@ -388,7 +363,7 @@ void DCSProcessor::checkFlagsAndFill(const std::pair<DPID, DPVAL>& dpcom, int64_
     auto etime = val.get_epoch_time();
     // fill only if new value has a timestamp different from the timestamp of the previous one
     LOG(DEBUG) << "destmap[pid].size() = " << destmap[dpid].size();
-    if (destmap[dpid].size() == 0 || etime != std::abs(latestTimeStamp)) {
+    if (destmap[dpid].size() == 0 || etime != latestTimeStamp) {
       auto& tmp = destmap[dpid].emplace_back();
       memcpy(tmp.data(), &(val.payload_pt1), 7);
       latestTimeStamp = etime;
@@ -398,7 +373,7 @@ void DCSProcessor::checkFlagsAndFill(const std::pair<DPID, DPVAL>& dpcom, int64_
 
 //______________________________________________________________________
 
-void DCSProcessor::processCharDP(const DPID& alias)
+void DCSProcessor::processCharDP(const DPID& pid)
 {
   // empty for the example
   return;
@@ -406,22 +381,22 @@ void DCSProcessor::processCharDP(const DPID& alias)
 
 //______________________________________________________________________
 
-void DCSProcessor::processIntDP(const DPID& alias)
+void DCSProcessor::processIntDP(const DPID& pid)
 {
-  // processing the single alias of type int
+  // processing the single pid of type int
   bool isSMA = false;
-  doSimpleMovingAverage(2, mDpsintsmap[alias], mSimpleMovingAverage[alias], isSMA);
-  LOG(DEBUG) << "dpid = " << alias << " --> Moving average = " << mSimpleMovingAverage[alias];
+  doSimpleMovingAverage(2, mDpsintsmap[pid], mSimpleMovingAverage[pid], isSMA);
+  LOG(DEBUG) << "dpid = " << pid << " --> Moving average = " << mSimpleMovingAverage[pid];
   // create CCDB object
   //if (isSMA) {
-  mccdbSimpleMovingAverage[alias.get_alias()] = mSimpleMovingAverage[alias];
+  mccdbSimpleMovingAverage[pid.get_alias()] = mSimpleMovingAverage[pid];
   //}
   return;
 }
 
 //______________________________________________________________________
 
-void DCSProcessor::processDoubleDP(const DPID& alias)
+void DCSProcessor::processDoubleDP(const DPID& pid)
 {
   // empty for the example
   return;
@@ -429,7 +404,7 @@ void DCSProcessor::processDoubleDP(const DPID& alias)
 
 //______________________________________________________________________
 
-void DCSProcessor::processUIntDP(const DPID& alias)
+void DCSProcessor::processUIntDP(const DPID& pid)
 {
   // empty for the example
   return;
@@ -437,7 +412,7 @@ void DCSProcessor::processUIntDP(const DPID& alias)
 
 //______________________________________________________________________
 
-void DCSProcessor::processBoolDP(const DPID& alias)
+void DCSProcessor::processBoolDP(const DPID& pid)
 {
   // empty for the example
   return;
@@ -445,7 +420,7 @@ void DCSProcessor::processBoolDP(const DPID& alias)
 
 //______________________________________________________________________
 
-void DCSProcessor::processStringDP(const DPID& alias)
+void DCSProcessor::processStringDP(const DPID& pid)
 {
   // empty for the example
   return;
@@ -453,7 +428,7 @@ void DCSProcessor::processStringDP(const DPID& alias)
 
 //______________________________________________________________________
 
-void DCSProcessor::processTimeDP(const DPID& alias)
+void DCSProcessor::processTimeDP(const DPID& pid)
 {
   // empty for the example
   return;
@@ -461,7 +436,7 @@ void DCSProcessor::processTimeDP(const DPID& alias)
 
 //______________________________________________________________________
 
-void DCSProcessor::processBinaryDP(const DPID& alias)
+void DCSProcessor::processBinaryDP(const DPID& pid)
 {
   // empty for the example
   return;
@@ -469,20 +444,20 @@ void DCSProcessor::processBinaryDP(const DPID& alias)
 
 //______________________________________________________________________
 
-std::unordered_map<DPID, DPVAL>::const_iterator DCSProcessor::findAndCheckAlias(const DPID& alias,
-                                                                                DeliveryType type,
-                                                                                const std::unordered_map<DPID, DPVAL>&
-                                                                                  map)
+std::unordered_map<DPID, DPVAL>::const_iterator DCSProcessor::findAndCheckPid(const DPID& pid,
+                                                                              DeliveryType type,
+                                                                              const std::unordered_map<DPID, DPVAL>&
+                                                                                map)
 {
 
-  // processing basic checks for map: all needed aliases must be present
-  // finds dp defined by "alias" in received map "map"
+  // processing basic checks for map: all needed pids must be present
+  // finds dp defined by "pid" in received map "map"
 
-  LOG(DEBUG) << "Processing " << alias;
-  auto it = map.find(alias);
-  DeliveryType tt = alias.get_type();
+  LOG(DEBUG) << "Processing " << pid;
+  auto it = map.find(pid);
+  DeliveryType tt = pid.get_type();
   if (tt != type) {
-    LOG(FATAL) << "Delivery Type of alias " << alias.get_alias() << " does not match definition in DCSProcessor ("
+    LOG(FATAL) << "Delivery Type of pid " << pid.get_alias() << " does not match definition in DCSProcessor ("
                << type << ")! Please fix";
   }
   return it;
@@ -490,59 +465,59 @@ std::unordered_map<DPID, DPVAL>::const_iterator DCSProcessor::findAndCheckAlias(
 
 //______________________________________________________________________
 
-uint64_t DCSProcessor::processFlag(const uint64_t flags, const char* alias)
+uint64_t DCSProcessor::processFlag(const uint64_t flags, const char* pid)
 {
 
   // function to process the flag. the return code zero means that all is fine.
   // anything else means that there was an issue
 
   if (flags & DataPointValue::KEEP_ALIVE_FLAG) {
-    LOG(INFO) << "KEEP_ALIVE_FLAG active for DP " << alias;
+    LOG(INFO) << "KEEP_ALIVE_FLAG active for DP " << pid;
   }
   if (flags & DataPointValue::END_FLAG) {
-    LOG(INFO) << "END_FLAG active for DP " << alias;
+    LOG(INFO) << "END_FLAG active for DP " << pid;
   }
   if (flags & DataPointValue::FBI_FLAG) {
-    LOG(INFO) << "FBI_FLAG active for DP " << alias;
+    LOG(INFO) << "FBI_FLAG active for DP " << pid;
   }
   if (flags & DataPointValue::NEW_FLAG) {
-    LOG(INFO) << "NEW_FLAG active for DP " << alias;
+    LOG(INFO) << "NEW_FLAG active for DP " << pid;
   }
   if (flags & DataPointValue::DIRTY_FLAG) {
-    LOG(INFO) << "DIRTY_FLAG active for DP " << alias;
+    LOG(INFO) << "DIRTY_FLAG active for DP " << pid;
   }
   if (flags & DataPointValue::TURN_FLAG) {
-    LOG(INFO) << "TURN_FLAG active for DP " << alias;
+    LOG(INFO) << "TURN_FLAG active for DP " << pid;
   }
   if (flags & DataPointValue::WRITE_FLAG) {
-    LOG(INFO) << "WRITE_FLAG active for DP " << alias;
+    LOG(INFO) << "WRITE_FLAG active for DP " << pid;
   }
   if (flags & DataPointValue::READ_FLAG) {
-    LOG(INFO) << "READ_FLAG active for DP " << alias;
+    LOG(INFO) << "READ_FLAG active for DP " << pid;
   }
   if (flags & DataPointValue::OVERWRITE_FLAG) {
-    LOG(INFO) << "OVERWRITE_FLAG active for DP " << alias;
+    LOG(INFO) << "OVERWRITE_FLAG active for DP " << pid;
   }
   if (flags & DataPointValue::VICTIM_FLAG) {
-    LOG(INFO) << "VICTIM_FLAG active for DP " << alias;
+    LOG(INFO) << "VICTIM_FLAG active for DP " << pid;
   }
   if (flags & DataPointValue::DIM_ERROR_FLAG) {
-    LOG(INFO) << "DIM_ERROR_FLAG active for DP " << alias;
+    LOG(INFO) << "DIM_ERROR_FLAG active for DP " << pid;
   }
   if (flags & DataPointValue::BAD_DPID_FLAG) {
-    LOG(INFO) << "BAD_DPID_FLAG active for DP " << alias;
+    LOG(INFO) << "BAD_DPID_FLAG active for DP " << pid;
   }
   if (flags & DataPointValue::BAD_FLAGS_FLAG) {
-    LOG(INFO) << "BAD_FLAGS_FLAG active for DP " << alias;
+    LOG(INFO) << "BAD_FLAGS_FLAG active for DP " << pid;
   }
   if (flags & DataPointValue::BAD_TIMESTAMP_FLAG) {
-    LOG(INFO) << "BAD_TIMESTAMP_FLAG active for DP " << alias;
+    LOG(INFO) << "BAD_TIMESTAMP_FLAG active for DP " << pid;
   }
   if (flags & DataPointValue::BAD_PAYLOAD_FLAG) {
-    LOG(INFO) << "BAD_PAYLOAD_FLAG active for DP " << alias;
+    LOG(INFO) << "BAD_PAYLOAD_FLAG active for DP " << pid;
   }
   if (flags & DataPointValue::BAD_FBI_FLAG) {
-    LOG(INFO) << "BAD_FBI_FLAG active for DP " << alias;
+    LOG(INFO) << "BAD_FBI_FLAG active for DP " << pid;
   }
 
   return 0;
