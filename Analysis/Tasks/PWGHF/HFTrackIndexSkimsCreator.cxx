@@ -49,37 +49,52 @@ struct SelectTracks {
   {
     Point3D<float> vtxXYZ(collision.posX(), collision.posY(), collision.posZ());
     for (auto& track : tracks) {
-      int status_2prong = 1; // selection flag
-      int status_3prong = 1; // selection flag
+      bool status_2prong = 1; // selection flag
+      bool status_3prong = 1; // selection flag
+
       if (b_dovalplots)
         hpt_nocuts->Fill(track.pt());
+
+      // pT cut
       if (track.pt() < ptmintrack_2prong)
         status_2prong = 0;
       if (track.pt() < ptmintrack_3prong)
         status_3prong = 0;
-      if (abs(track.eta()) > etamax_2prong)
+
+      // eta cut
+      if (status_2prong && abs(track.eta()) > etamax_2prong)
         status_2prong = 0;
-      if (abs(track.eta()) > etamax_3prong)
+      if (status_3prong && abs(track.eta()) > etamax_3prong)
         status_3prong = 0;
-      UChar_t clustermap = track.itsClusterMap();
-      bool isselected = track.tpcNClsFound() >= d_tpcnclsfound &&
-                        track.flags() & o2::aod::track::ITSrefit &&
-                        (TESTBIT(clustermap, 0) || TESTBIT(clustermap, 1));
-      if (!isselected) {
-        status_2prong = 0;
-        status_3prong = 0;
+
+      // quality cut
+      if (status_2prong || status_3prong) {
+        UChar_t clustermap = track.itsClusterMap();
+        bool isselected = track.tpcNClsFound() >= d_tpcnclsfound &&
+                          track.flags() & o2::aod::track::ITSrefit &&
+                          (TESTBIT(clustermap, 0) || TESTBIT(clustermap, 1));
+        if (!isselected) {
+          status_2prong = 0;
+          status_3prong = 0;
+        }
       }
+
+      // DCA cut
       array<float, 2> dca;
-      auto trackparvar0 = getTrackParCov(track);
-      bool isprop = trackparvar0.propagateParamToDCA(vtxXYZ, d_bz, &dca, 100.); // get impact parameters
-      if (!isprop) {
-        status_2prong = 0;
-        status_3prong = 0;
+      if (status_2prong || status_3prong) {
+        auto trackparvar0 = getTrackParCov(track);
+        bool isprop = trackparvar0.propagateParamToDCA(vtxXYZ, d_bz, &dca, 100.); // get impact parameters
+        if (!isprop) {
+          status_2prong = 0;
+          status_3prong = 0;
+        }
+        if (status_2prong && abs(dca[0]) < dcatoprimxymin_2prong)
+          status_2prong = 0;
+        if (status_3prong && abs(dca[0]) < dcatoprimxymin_3prong)
+          status_3prong = 0;
       }
-      if (abs(dca[0]) < dcatoprimxymin_2prong)
-        status_2prong = 0;
-      if (abs(dca[0]) < dcatoprimxymin_3prong)
-        status_3prong = 0;
+
+      // fill histograms
       if (b_dovalplots) {
         if (status_2prong == 1) {
           hpt_cuts_2prong->Fill(track.pt());
@@ -90,6 +105,8 @@ struct SelectTracks {
           hdcatoprimxy_cuts_3prong->Fill(dca[0]);
         }
       }
+
+      // fill table row
       rowSelectedTrack(status_2prong, status_3prong, dca[0], dca[1]);
     }
   }
