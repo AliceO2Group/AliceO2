@@ -200,9 +200,8 @@ struct HFTrackIndexSkimsCreator {
           continue;
 
         auto trackParVarNeg1 = getTrackParCov(trackNeg1);
-        Double_t px_Cand = trackPos1.px() + trackNeg1.px();
-        Double_t py_Cand = trackPos1.py() + trackNeg1.py();
-        Double_t pt_Cand_before2vertex = TMath::Sqrt(px_Cand * px_Cand + py_Cand * py_Cand);
+        double pt_Cand_before2vertex = RecoDecay::Pt(trackPos1.px() + trackNeg1.px(),
+                                                     trackPos1.py() + trackNeg1.py());
 
         if (pt_Cand_before2vertex >= ptmincand_2prong) {
           // reconstruct the 2-prong secondary vertex
@@ -260,9 +259,8 @@ struct HFTrackIndexSkimsCreator {
               continue;
 
             auto trackParVarPos2 = getTrackParCov(trackPos2);
-            Double_t px_Cand3 = trackPos1.px() + trackNeg1.px() + trackPos2.px();
-            Double_t py_Cand3 = trackPos1.py() + trackNeg1.py() + trackPos2.py();
-            Double_t pt_Cand3_before2vertex = TMath::Sqrt(px_Cand * px_Cand + py_Cand * py_Cand);
+            double pt_Cand3_before2vertex = RecoDecay::Pt(trackPos1.px() + trackNeg1.px() + trackPos2.px(),
+                                                          trackPos1.py() + trackNeg1.py() + trackPos2.py());
 
             if (pt_Cand3_before2vertex >= ptmincand_3prong) {
               // reconstruct the 3-prong secondary vertex
@@ -316,9 +314,8 @@ struct HFTrackIndexSkimsCreator {
               continue;
 
             auto trackParVarNeg2 = getTrackParCov(trackNeg2);
-            Double_t px_Cand3 = trackPos1.px() + trackNeg1.px() + trackNeg2.px();
-            Double_t py_Cand3 = trackPos1.py() + trackNeg1.py() + trackNeg2.py();
-            Double_t pt_Cand3_before2vertex = TMath::Sqrt(px_Cand3 * px_Cand3 + py_Cand3 * py_Cand3);
+            double pt_Cand3_before2vertex = RecoDecay::Pt(trackPos1.px() + trackNeg1.px() + trackNeg2.px(),
+                                                          trackPos1.py() + trackNeg1.py() + trackNeg2.py());
 
             if (pt_Cand3_before2vertex >= ptmincand_3prong) {
               // reconstruct the 3-prong secondary vertex
