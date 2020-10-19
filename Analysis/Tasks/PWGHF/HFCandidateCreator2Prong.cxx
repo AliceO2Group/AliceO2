@@ -27,6 +27,7 @@ using namespace o2::framework;
 /// Reconstruction of heavy-flavour 2-prong decay candidates
 struct HFCandidateCreator2Prong {
   Produces<aod::HfCandProng2Base> rowCandidateBase;
+
   Configurable<double> magneticField{"d_bz", 5., "magnetic field"};
   Configurable<bool> b_propdca{"b_propdca", true, "create tracks version propagated to PCA"};
   Configurable<double> d_maxr{"d_maxr", 200., "reject PCA's above this radius"};
@@ -34,6 +35,7 @@ struct HFCandidateCreator2Prong {
   Configurable<double> d_minparamchange{"d_minparamchange", 1.e-3, "stop iterations if largest change of any X is smaller than this"};
   Configurable<double> d_minrelchi2change{"d_minrelchi2change", 0.9, "stop iterations is chi2/chi2old > this"};
   Configurable<bool> b_dovalplots{"b_dovalplots", true, "do validation plots"};
+
   OutputObj<TH1F> hmass2{TH1F("hmass2", "2-track inv mass", 500, 0., 5.)};
   OutputObj<TH1F> hCovPVXX{TH1F("hCovPVXX", "XX element of PV cov. matrix", 100, 0., 1.e-4)};
   OutputObj<TH1F> hCovSVXX{TH1F("hCovSVXX", "XX element of SV cov. matrix", 100, 0., 0.2)};
@@ -78,11 +80,6 @@ struct HFCandidateCreator2Prong {
       trackParVar0.getPxPyPzGlo(pvec0);
       trackParVar1.getPxPyPzGlo(pvec1);
 
-      // calculate invariant masses
-      auto arrayMomenta = array{pvec0, pvec1};
-      massPiK = RecoDecay::M(arrayMomenta, array{massPi, massK});
-      massKPi = RecoDecay::M(arrayMomenta, array{massK, massPi});
-
       // get track impact parameters
       // This modifies track momenta!
       auto primaryVertex = getPrimaryVertex(collision);
@@ -112,6 +109,10 @@ struct HFCandidateCreator2Prong {
 
       // fill histograms
       if (b_dovalplots) {
+        // calculate invariant masses
+        auto arrayMomenta = array{pvec0, pvec1};
+        massPiK = RecoDecay::M(arrayMomenta, array{massPi, massK});
+        massKPi = RecoDecay::M(arrayMomenta, array{massK, massPi});
         hmass2->Fill(massPiK);
         hmass2->Fill(massKPi);
       }
