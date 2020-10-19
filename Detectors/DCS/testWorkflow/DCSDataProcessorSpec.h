@@ -52,45 +52,52 @@ class DCSDataProcessor : public o2::framework::Task
 
   void init(o2::framework::InitContext& ic) final
   {
-    std::vector<DPID> aliasVect;
+
+    // stopping all stopwatches, since they start counting from the moment they are created
+    for (int idet = 0; idet < kNdetectors; idet++) {
+      mDeltaProcessingDetLoop[idet].Stop();
+      mDeltaProcessingDetLoop[idet].Reset();
+    }
+
+    std::vector<DPID> pidVect;
 
     DPID dpidtmp;
     DeliveryType typechar = RAW_CHAR;
     std::string dpAliaschar = "TestChar_0";
     DPID::FILL(dpidtmp, dpAliaschar, typechar);
-    aliasVect.push_back(dpidtmp);
+    pidVect.push_back(dpidtmp);
 
     //std::vector<int> vectDet{kTest, kTPC}; // only one detector for now
     std::vector<int> vectDet{kTest};
-    mDetectorAlias[dpidtmp] = vectDet;
+    mDetectorPid[dpidtmp] = vectDet;
 
     DeliveryType typeint = RAW_INT;
     for (int i = 0; i < 50000; i++) {
       std::string dpAliasint = "TestInt_" + std::to_string(i);
       DPID::FILL(dpidtmp, dpAliasint, typeint);
-      aliasVect.push_back(dpidtmp);
-      mDetectorAlias[dpidtmp] = vectDet;
+      pidVect.push_back(dpidtmp);
+      mDetectorPid[dpidtmp] = vectDet;
     }
 
     DeliveryType typedouble = RAW_DOUBLE;
     for (int i = 0; i < 4; i++) {
       std::string dpAliasdouble = "TestDouble_" + std::to_string(i);
       DPID::FILL(dpidtmp, dpAliasdouble, typedouble);
-      aliasVect.push_back(dpidtmp);
-      mDetectorAlias[dpidtmp] = vectDet;
+      pidVect.push_back(dpidtmp);
+      mDetectorPid[dpidtmp] = vectDet;
     }
 
     DeliveryType typestring = RAW_STRING;
     std::string dpAliasstring0 = "TestString_0";
     DPID::FILL(dpidtmp, dpAliasstring0, typestring);
-    aliasVect.push_back(dpidtmp);
-    mDetectorAlias[dpidtmp] = vectDet;
+    pidVect.push_back(dpidtmp);
+    mDetectorPid[dpidtmp] = vectDet;
 
-    mDCSproc.init(aliasVect);
+    mDCSproc.init(pidVect);
     mDCSproc.setMaxCyclesNoFullMap(ic.options().get<int64_t>("max-cycles-no-full-map"));
     mDCSproc.setName("Test0Det");
     for (int idet = 0; idet < kNdetectors; idet++) {
-      mDCSprocVect[idet].init(aliasVect);
+      mDCSprocVect[idet].init(pidVect);
       mDCSprocVect[idet].setMaxCyclesNoFullMap(ic.options().get<int64_t>("max-cycles-no-full-map"));
       mDCSprocVect[idet].setName("Test1Det");
     }
@@ -190,7 +197,7 @@ class DCSDataProcessor : public o2::framework::Task
 
         LOG(DEBUG) << "TF: " << tfid << " -->  starting (delta) processing in detector loop...";
         for (const auto& dpcom : dcsmapDelta) {
-          std::vector<int> detVect = mDetectorAlias[dpcom.first];
+          std::vector<int> detVect = mDetectorPid[dpcom.first];
           for (int idet = 0; idet < detVect.size(); idet++) {
             mDeltaProcessingDetLoop[idet].Start(mResetStopwatchDeltaProcessingDetLoop);
             mDCSprocVect[idet].processDP(dpcom);
@@ -266,7 +273,7 @@ class DCSDataProcessor : public o2::framework::Task
   }
 
  private:
-  std::unordered_map<DPID, std::vector<int>> mDetectorAlias;
+  std::unordered_map<DPID, std::vector<int>> mDetectorPid;
   std::array<DCSProcessor, kNdetectors> mDCSprocVect;
   o2::dcs::DCSProcessor mDCSproc;
   TStopwatch mReceiveBinaryData;
