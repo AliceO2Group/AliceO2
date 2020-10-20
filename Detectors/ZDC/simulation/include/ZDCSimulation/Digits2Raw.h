@@ -49,9 +49,11 @@ class Digits2Raw
 
  private:
   void setTriggerMask();
-  void insertLastBunch(int ibc, uint32_t orbit);
-  void convertDigits(int ibc);
-  void writeDigits();
+  void updatePedestalReference(int bc);
+  void resetSums(uint32_t orbit);
+  void insertLastBunch(int ibc, uint32_t orbit); /// Insert an empty bunch at last position in orbit
+  void convertDigits(int ibc);                   /// Convert digits into raw data
+  void writeDigits();                            /// Writes raw data to file
   std::vector<o2::zdc::BCData> mzdcBCData, *mzdcBCDataPtr = &mzdcBCData;
   std::vector<o2::zdc::ChannelData> mzdcChData, *mzdcChDataPtr = &mzdcChData;
   EventData mZDC;                                                       /// Output structure

@@ -143,6 +143,45 @@ void Digits2Raw::setTriggerMask()
   printf("trigger_mask=0x%08x %s\n", mTriggerMask, mPrintTriggerMask.data());
 }
 
+inline void Digits2Raw::resetSums(uint32_t orbit){
+  for (Int_t im = 0; im < NModules; im++) {
+    for (Int_t ic = 0; ic < NChPerModule; ic++){
+      mScalers[im][ic] = 0;
+      mSumPed[im][ic] = 0;
+      mPed[im][ic] = 0;
+    }
+  }
+  mLastOrbit = orbit;
+  mLastNEmpty = 0;
+}
+
+inline void Digits2Raw::updatePedestalReference(int bc){
+  // Compute or update baseline reference
+  if(mEmpty[bc]>0 && mEmpty[bc]!=mLastNEmpty){
+    for (Int_t im = 0; im < NModules; im++) {
+      for (Int_t ic = 0; ic < NChPerModule; ic++){
+        // Identify connected channel
+	auto id=mModuleConfig->modules[im].channelID[ic];
+	auto base_m=mSimCondition->channels[id].pedestal;      // Average pedestal
+	auto base_s=mSimCondition->channels[id].pedestalFluct; // Baseline oscillations
+	auto base_n=mSimCondition->channels[id].pedestalNoise; // Electronic noise
+	Double_t deltan=mEmpty[bc]-mLastNEmpty;
+	// We assume to have a fluctuation every two bunch crossings
+	// Will need to tune this parameter
+	Double_t k=2.;
+	mSumPed[im][ic]+=gRandom->Gaus(12.*deltan*base_m,12.*k*base_s*TMath::Sqrt(deltan/k));
+	// Adding in quadrature the RMS of pedestal electronic noise
+	mSumPed[im][ic]+=gRandom->Gaus(0,base_n*TMath::Sqrt(12.*deltan));
+	Double_t myped=TMath::Nint(8.*mSumPed[im][ic]/Double_t(mEmpty[bc])/12.+32768);
+	if(myped<0)myped=0;
+	if(myped>65535)myped=65535;
+	mPed[im][ic]=myped;
+      }
+    }
+    mLastNEmpty=mEmpty[bc];
+  }
+}
+
 void Digits2Raw::insertLastBunch(int ibc, uint32_t orbit){
   // Number of bunch crossings stored
   int nbc = mzdcBCData.size();
@@ -152,41 +191,9 @@ void Digits2Raw::insertLastBunch(int ibc, uint32_t orbit){
   UShort_t bc = 3563;
 
   // Reset scalers at orbit change
-  if (orbit != mLastOrbit) {
-    for (Int_t im = 0; im < NModules; im++) {
-      for (Int_t ic = 0; ic < NChPerModule; ic++){
-        mScalers[im][ic] = 0;
-	mSumPed[im][ic] = 0;
-	mPed[im][ic] = 0;
-      }
-    }
-    mLastOrbit = orbit;
-    mLastNEmpty = 0;
-  }
+  if (orbit != mLastOrbit)resetSums(orbit);
 
-  // Compute or update baseline reference
-  if(mEmpty[bc]>0 && mEmpty[bc]!=mLastNEmpty){
-    for (Int_t im = 0; im < NModules; im++) {
-      for (Int_t ic = 0; ic < NChPerModule; ic++){
-        // Identify signal connected to the channel
-	auto id=mModuleConfig->modules[im].channelID[ic];
-	auto base_m=mSimCondition->channels[id].pedestal;      // Average pedestal
-	auto base_s=mSimCondition->channels[id].pedestalFluct; // Baseline oscillations
-	auto base_n=mSimCondition->channels[id].pedestalNoise; // Electronic noise
-	printf("%d %g %g %g\n",id,base_m,base_s,base_n);
-	Double_t deltan=mEmpty[bc]-mLastNEmpty;
-	// We assume to have a fluctuation every two bunch crossings
-	// Will need to tune this parameter
-	mSumPed[im][ic]+=12.*deltan*gRandom->Gaus(base_m,base_s*TMath::Sqrt(deltan/2.)); 
-	mSumPed[im][ic]+=12.*deltan*gRandom->Gaus(0,base_n*TMath::Sqrt(12.*deltan));
-	Double_t myped=TMath::Nint(8.*mSumPed[im][ic]/Double_t(mEmpty[bc])/12.+32768);
-	if(myped<0)myped=0;
-	if(myped>65535)myped=65535;
-	mPed[im][ic]=myped;
-      }
-    }
-    mLastNEmpty=mEmpty[bc];
-  }
+  updatePedestalReference(bc);
 
   // Empty bunch -> Do not increment scalers but reset output structure
   for (UInt_t im = 0; im < NModules; im++) {
@@ -403,40 +410,9 @@ void Digits2Raw::convertDigits(int ibc)
   UInt_t orbit = bcd.ir.orbit;
 
   // Reset scalers at orbit change
-  if (orbit != mLastOrbit) {
-    for (Int_t im = 0; im < NModules; im++) {
-      for (Int_t ic = 0; ic < NChPerModule; ic++){
-        mScalers[im][ic] = 0;
-	mSumPed[im][ic] = 0;
-	mPed[im][ic] = 0;
-      }
-    }
-    mLastOrbit = orbit;
-    mLastNEmpty = 0;
-  }
+  if (orbit != mLastOrbit)resetSums(orbit);
 
-  // Compute or update baseline reference
-  if(mEmpty[bc]>0 && mEmpty[bc]!=mLastNEmpty){
-    for (Int_t im = 0; im < NModules; im++) {
-      for (Int_t ic = 0; ic < NChPerModule; ic++){
-        // Identify connected channel
-	auto id=mModuleConfig->modules[im].channelID[ic];
-	auto base_m=mSimCondition->channels[id].pedestal;      // Average pedestal
-	auto base_s=mSimCondition->channels[id].pedestalFluct; // Baseline oscillations
-	auto base_n=mSimCondition->channels[id].pedestalNoise; // Electronic noise
-	Double_t deltan=mEmpty[bc]-mLastNEmpty;
-	// We assume to have a fluctuation every two bunch crossings
-	// Will need to tune this parameter
-	mSumPed[im][ic]+=12.*deltan*gRandom->Gaus(base_m,base_s*TMath::Sqrt(deltan/2.)); 
-	mSumPed[im][ic]+=12.*deltan*gRandom->Gaus(0,base_n*TMath::Sqrt(12.*deltan));
-	Double_t myped=TMath::Nint(8.*mSumPed[im][ic]/Double_t(mEmpty[bc])/12.+32768);
-	if(myped<0)myped=0;
-	if(myped>65535)myped=65535;
-	mPed[im][ic]=myped;
-      }
-    }
-    mLastNEmpty=mEmpty[bc];
-  }
+  updatePedestalReference(bc);
 
   // Increment scalers and reset output structure
   for (UInt_t im = 0; im < NModules; im++) {
