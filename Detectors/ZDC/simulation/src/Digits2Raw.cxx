@@ -168,11 +168,12 @@ void Digits2Raw::insertLastBunch(int ibc, uint32_t orbit){
   if(mEmpty[bc]>0 && mEmpty[bc]!=mLastNEmpty){
     for (Int_t im = 0; im < NModules; im++) {
       for (Int_t ic = 0; ic < NChPerModule; ic++){
-        // Identify connected channel
+        // Identify signal connected to the channel
 	auto id=mModuleConfig->modules[im].channelID[ic];
 	auto base_m=mSimCondition->channels[id].pedestal;      // Average pedestal
 	auto base_s=mSimCondition->channels[id].pedestalFluct; // Baseline oscillations
 	auto base_n=mSimCondition->channels[id].pedestalNoise; // Electronic noise
+	printf("%d %g %g %g\n",id,base_m,base_s,base_n);
 	Double_t deltan=mEmpty[bc]-mLastNEmpty;
 	// We assume to have a fluctuation every two bunch crossings
 	// Will need to tune this parameter
@@ -317,52 +318,79 @@ void Digits2Raw::insertLastBunch(int ibc, uint32_t orbit){
         mZDC.data[im][ic].f.Auto_3 = 1;
   }
 
-  bcd.print();
-  printf("Mask: %s\n", mPrintTriggerMask.data());
-  int chEnt = bcd.ref.getFirstEntry();
-  for (int ic = 0; ic < bcd.ref.getEntries(); ic++) {
-    const auto& chd = mzdcChData[chEnt++];
-    chd.print();
-    UShort_t bc = bcd.ir.bc;
-    UInt_t orbit = bcd.ir.orbit;
-    for (Int_t is = 0; is < o2::zdc::NTimeBinsPerBC; is++) {
-      int16_t myval = chd.data[is];
-    }
-    // Insert payload TODO
-    for (Int_t im = 0; im < NModules; im++) {
-      for (UInt_t ic = 0; ic < NChPerModule; ic++) {
-        if (mModuleConfig->modules[im].channelID[ic] == chd.id &&
-            mModuleConfig->modules[im].readChannel[ic]) {
-          Int_t is = 0;
-          mZDC.data[im][ic].f.s00 = 0;
-          is++;
-          mZDC.data[im][ic].f.s01 = 0;
-          is++;
-          mZDC.data[im][ic].f.s02 = 0;
-          is++;
-          mZDC.data[im][ic].f.s03 = 0;
-          is++;
-          mZDC.data[im][ic].f.s04 = 0;
-          is++;
-          mZDC.data[im][ic].f.s05 = 0;
-          is++;
-          mZDC.data[im][ic].f.s06 = 0;
-          is++;
-          mZDC.data[im][ic].f.s07 = 0;
-          is++;
-          mZDC.data[im][ic].f.s08 = 0;
-          is++;
-          mZDC.data[im][ic].f.s09 = 0;
-          is++;
-          mZDC.data[im][ic].f.s10 = 0;
-          is++;
-          mZDC.data[im][ic].f.s11 = 0;
-          break;
-        }
+  // Insert payload for all channels
+  for (Int_t im = 0; im < NModules; im++) {
+    for (UInt_t ic = 0; ic < NChPerModule; ic++) {
+      if (mModuleConfig->modules[im].readChannel[ic]) {
+	auto id=mModuleConfig->modules[im].channelID[ic];
+	auto base_m=mSimCondition->channels[id].pedestal;      // Average pedestal
+	auto base_s=mSimCondition->channels[id].pedestalFluct; // Baseline oscillations
+	auto base_n=mSimCondition->channels[id].pedestalNoise; // Electronic noise
+	Double_t base=gRandom->Gaus(base_m,base_s);
+        Int_t is = 0;
+	Double_t val=base+gRandom->Gaus(0,base_n);
+	if(val<-4096)val=-4096;
+	if(val>4095)val=4095;
+        mZDC.data[im][ic].f.s00 = val;
+        is++;
+	val=base+gRandom->Gaus(0,base_n);
+	if(val<-4096)val=-4096;
+	if(val>4095)val=4095;
+        mZDC.data[im][ic].f.s01 = val;
+        is++;
+	val=base+gRandom->Gaus(0,base_n);
+	if(val<-4096)val=-4096;
+	if(val>4095)val=4095;
+        mZDC.data[im][ic].f.s02 = val;
+        is++;
+	val=base+gRandom->Gaus(0,base_n);
+	if(val<-4096)val=-4096;
+	if(val>4095)val=4095;
+        mZDC.data[im][ic].f.s03 = val;
+        is++;
+	val=base+gRandom->Gaus(0,base_n);
+	if(val<-4096)val=-4096;
+	if(val>4095)val=4095;
+        mZDC.data[im][ic].f.s04 = val;
+        is++;
+	val=base+gRandom->Gaus(0,base_n);
+	if(val<-4096)val=-4096;
+	if(val>4095)val=4095;
+        mZDC.data[im][ic].f.s05 = val;
+        is++;
+	val=base+gRandom->Gaus(0,base_n);
+	if(val<-4096)val=-4096;
+	if(val>4095)val=4095;
+        mZDC.data[im][ic].f.s06 = val;
+        is++;
+	val=base+gRandom->Gaus(0,base_n);
+	if(val<-4096)val=-4096;
+	if(val>4095)val=4095;
+        mZDC.data[im][ic].f.s07 = val;
+        is++;
+	val=base+gRandom->Gaus(0,base_n);
+	if(val<-4096)val=-4096;
+	if(val>4095)val=4095;
+        mZDC.data[im][ic].f.s08 = val;
+        is++;
+	val=base+gRandom->Gaus(0,base_n);
+	if(val<-4096)val=-4096;
+	if(val>4095)val=4095;
+        mZDC.data[im][ic].f.s09 = val;
+        is++;
+	val=base+gRandom->Gaus(0,base_n);
+	if(val<-4096)val=-4096;
+	if(val>4095)val=4095;
+        mZDC.data[im][ic].f.s10 = val;
+        is++;
+	val=base+gRandom->Gaus(0,base_n);
+	if(val<-4096)val=-4096;
+	if(val>4095)val=4095;
+        mZDC.data[im][ic].f.s11 = val;
       }
     }
   }
-}
+} // insertLastBunch
 
 void Digits2Raw::convertDigits(int ibc)
 {
@@ -556,10 +584,9 @@ void Digits2Raw::convertDigits(int ibc)
     chd.print();
     UShort_t bc = bcd.ir.bc;
     UInt_t orbit = bcd.ir.orbit;
-    for (Int_t is = 0; is < o2::zdc::NTimeBinsPerBC; is++) {
-      int16_t myval = chd.data[is];
-    }
-    // Look for channel ID in
+    // Look for channel ID in digits and store channel (just one copy in output)
+    // This is a limitation of software but we are not supposed to acquire the
+    // same signal twice anyway
     for (Int_t im = 0; im < NModules; im++) {
       for (UInt_t ic = 0; ic < NChPerModule; ic++) {
         if (mModuleConfig->modules[im].channelID[ic] == chd.id &&
