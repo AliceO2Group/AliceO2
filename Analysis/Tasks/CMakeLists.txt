@@ -14,7 +14,13 @@ add_subdirectory(PWGHF)
 add_subdirectory(PWGJE)
 add_subdirectory(PWGLF)
 add_subdirectory(PWGUD)
+add_subdirectory(ALICE3)
 
+
+o2_add_dpl_workflow(trackextension
+                    SOURCES trackextension.cxx
+                    PUBLIC_LINK_LIBRARIES O2::Framework O2::AnalysisDataModel O2::AnalysisCore
+                    COMPONENT_NAME Analysis)
 
 o2_add_dpl_workflow(trackselection
                     SOURCES trackselection.cxx

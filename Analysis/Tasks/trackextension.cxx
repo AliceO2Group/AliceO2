@@ -16,7 +16,6 @@
 #include "Framework/AnalysisTask.h"
 #include "Framework/runDataProcessing.h"
 #include "Analysis/TrackSelection.h"
-#include "Analysis/TrackSelectionDefaults.h"
 #include "Analysis/TrackSelectionTables.h"
 #include "Analysis/trackUtilities.h"
 
@@ -26,26 +25,30 @@ using namespace o2::framework::expressions;
 
 //****************************************************************************************
 /**
- * Produce track filter table.
+ * Produce the more complicated derived track quantities needed for track selection.
+ * FIXME: we shall run this only if all other selections are passed to avoid
+ * FIXME: computing overhead and errors in calculations
  */
 //****************************************************************************************
-struct TrackSelectionTask {
-  Produces<aod::TrackSelection> filterTable;
+struct TrackExtensionTask {
 
-  TrackSelection globalTracks;
-  TrackSelection globalTracksSDD;
+  Produces<aod::TracksExtended> extendedTrackQuantities;
 
-  void init(InitContext&)
-  {
-    globalTracks = getGlobalTrackSelection();
-    globalTracksSDD = getGlobalTrackSelectionSDD();
-  }
-
-  void process(soa::Join<aod::FullTracks, aod::TracksExtended> const& tracks)
+  void process(aod::Collision const& collision, aod::FullTracks const& tracks)
   {
     for (auto& track : tracks) {
-      filterTable(globalTracks.IsSelected(track),
-                  globalTracksSDD.IsSelected(track));
+
+      std::array<float, 2> dca{1e10f, 1e10f};
+      // FIXME: temporary solution to remove tracks that should not be there after conversion
+      if (track.trackType() == o2::aod::track::TrackTypeEnum::Run2GlobalTrack && track.itsChi2NCl() != 0.f && track.tpcChi2NCl() != 0.f && std::abs(track.x()) < 10.f) {
+        float magField = 5.0; // in kG (FIXME: get this from CCDB)
+        auto trackPar = getTrackPar(track);
+        trackPar.propagateParamToDCA({collision.posX(), collision.posY(), collision.posZ()}, magField, &dca);
+      }
+      extendedTrackQuantities(dca[0], dca[1]);
+
+      // TODO: add realtive pt resolution sigma(pt)/pt \approx pt * sigma(1/pt)
+      // TODO: add geometrical length / fiducial volume
     }
   }
 };
@@ -57,6 +60,6 @@ struct TrackSelectionTask {
 //****************************************************************************************
 WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
 {
-  WorkflowSpec workflow{adaptAnalysisTask<TrackSelectionTask>("track-selection")};
+  WorkflowSpec workflow{adaptAnalysisTask<TrackExtensionTask>("track-extension")};
   return workflow;
 }
