@@ -28,22 +28,27 @@ using namespace o2::framework::expressions;
 struct SelectTracks {
   Produces<aod::HFSelTrack> rowSelectedTrack;
 
+  Configurable<bool> b_dovalplots{"b_dovalplots", true, "do validation plots"};
+  Configurable<double> d_bz{"d_bz", 5., "bz field"};
+  // quality cut
+  Configurable<int> d_tpcnclsfound{"d_tpcnclsfound", 70, "min number of tpc cls >="};
+  // 2-prong cuts
   Configurable<double> ptmintrack_2prong{"ptmintrack_2prong", -1., "ptmin single track"};
   Configurable<double> dcatoprimxymin_2prong{"dcatoprimxymin_2prong", 0., "dca xy to prim vtx min"};
   Configurable<double> etamax_2prong{"etamax_2prong", 999., "maximum pseudorapidity value"};
+  // 3-prong cuts
   Configurable<double> ptmintrack_3prong{"ptmintrack_3prong", -1., "ptmin single track"};
   Configurable<double> dcatoprimxymin_3prong{"dcatoprimxymin_3prong", 0., "dca xy to prim vtx min"};
   Configurable<double> etamax_3prong{"etamax_3prong", 999., "maximum pseudorapidity value"};
-  Configurable<int> d_tpcnclsfound{"d_tpcnclsfound", 70, "min number of tpc cls >="};
-  Configurable<double> d_bz{"d_bz", 5., "bz field"};
-  Configurable<bool> b_dovalplots{"b_dovalplots", true, "do validation plots"};
 
   OutputObj<TH1F> hpt_nocuts{TH1F("hpt_nocuts", "pt tracks (GeV/#it{c})", 100, 0., 10.)};
+  // 2-prong histograms
   OutputObj<TH1F> hpt_cuts_2prong{TH1F("hpt_cuts_2prong", "pt tracks (GeV/#it{c})", 100, 0., 10.)};
   OutputObj<TH1F> hdcatoprimxy_cuts_2prong{TH1F("hdcatoprimxy_cuts_2prong", "dca xy to prim. vertex (cm)", 100, -1., 1.)};
+  OutputObj<TH1F> heta_cuts_2prong{TH1F("heta_cuts_2prong", "pseudorapidity", 100, -1., 1.)};
+  // 3-prong histograms
   OutputObj<TH1F> hpt_cuts_3prong{TH1F("hpt_cuts_3prong", "pt tracks (GeV/#it{c})", 100, 0., 10.)};
   OutputObj<TH1F> hdcatoprimxy_cuts_3prong{TH1F("hdcatoprimxy_cuts_3prong", "dca xy to prim. vertex (cm)", 100, -1., 1.)};
-  OutputObj<TH1F> heta_cuts_2prong{TH1F("heta_cuts_2prong", "pseudorapidity", 100, -1., 1.)};
   OutputObj<TH1F> heta_cuts_3prong{TH1F("heta_cuts_3prong", "pseudorapidity", 100, -1., 1.)};
 
   void process(aod::Collision const& collision,
@@ -137,14 +142,16 @@ struct HFTrackIndexSkimsCreator {
   Configurable<double> cutInvMassD0Max{"cutInvMassD0Max", -1., "max. D0 candidate invariant mass"};
   Configurable<double> cutImpParProductMax{"cutImpParProductMax", 100., "max. product of imp. par. of D0 candidate prongs"};
 
-  OutputObj<TH1F> hvtx_x_out{TH1F("hvtx_x", "2-track vtx", 1000, -2., 2.)};
-  OutputObj<TH1F> hvtx_y_out{TH1F("hvtx_y", "2-track vtx", 1000, -2., 2.)};
-  OutputObj<TH1F> hvtx_z_out{TH1F("hvtx_z", "2-track vtx", 1000, -20., 20.)};
+  // 2-prong histograms
+  OutputObj<TH1F> hvtx_x{TH1F("hvtx_x", "2-track vtx", 1000, -2., 2.)};
+  OutputObj<TH1F> hvtx_y{TH1F("hvtx_y", "2-track vtx", 1000, -2., 2.)};
+  OutputObj<TH1F> hvtx_z{TH1F("hvtx_z", "2-track vtx", 1000, -20., 20.)};
   OutputObj<TH1F> hmass2{TH1F("hmass2", ";Inv Mass (GeV/#it{c}^{2})", 500, 0., 5.)};
+  // 3-prong histograms
+  OutputObj<TH1F> hvtx3_x{TH1F("hvtx3_x", "3-track vtx", 1000, -2., 2.)};
+  OutputObj<TH1F> hvtx3_y{TH1F("hvtx3_y", "3-track vtx", 1000, -2., 2.)};
+  OutputObj<TH1F> hvtx3_z{TH1F("hvtx3_z", "3-track vtx", 1000, -20., 20.)};
   OutputObj<TH1F> hmass3{TH1F("hmass3", ";Inv Mass (GeV/#it{c}^{2})", 500, 1.6, 2.1)};
-  OutputObj<TH1F> hvtx3_x_out{TH1F("hvtx3_x", "3-track vtx", 1000, -2., 2.)};
-  OutputObj<TH1F> hvtx3_y_out{TH1F("hvtx3_y", "3-track vtx", 1000, -2., 2.)};
-  OutputObj<TH1F> hvtx3_z_out{TH1F("hvtx3_z", "3-track vtx", 1000, -20., 20.)};
 
   Filter filterSelectTracks = (aod::hf_seltrack::isSel2Prong == 1);
   using SelectedTracks = soa::Filtered<soa::Join<aod::Tracks, aod::TracksCov, aod::TracksExtra, aod::HFSelTrack>>;
@@ -270,9 +277,9 @@ struct HFTrackIndexSkimsCreator {
 
             // fill histograms
             if (b_dovalplots) {
-              hvtx_x_out->Fill(secondaryVertex[0]);
-              hvtx_y_out->Fill(secondaryVertex[1]);
-              hvtx_z_out->Fill(secondaryVertex[2]);
+              hvtx_x->Fill(secondaryVertex[0]);
+              hvtx_y->Fill(secondaryVertex[1]);
+              hvtx_z->Fill(secondaryVertex[2]);
               hmass2->Fill(mass2PiK);
               hmass2->Fill(mass2KPi);
             }
@@ -329,9 +336,9 @@ struct HFTrackIndexSkimsCreator {
               if (b_dovalplots) {
                 // get secondary vertex
                 const auto& secondaryVertex3 = df3.getPCACandidate();
-                hvtx3_x_out->Fill(secondaryVertex3[0]);
-                hvtx3_y_out->Fill(secondaryVertex3[1]);
-                hvtx3_z_out->Fill(secondaryVertex3[2]);
+                hvtx3_x->Fill(secondaryVertex3[0]);
+                hvtx3_y->Fill(secondaryVertex3[1]);
+                hvtx3_z->Fill(secondaryVertex3[2]);
 
                 // get track momenta
                 array<float, 3> pvec0;
@@ -389,9 +396,9 @@ struct HFTrackIndexSkimsCreator {
               if (b_dovalplots) {
                 // get secondary vertex
                 const auto& secondaryVertex3 = df3.getPCACandidate();
-                hvtx3_x_out->Fill(secondaryVertex3[0]);
-                hvtx3_y_out->Fill(secondaryVertex3[1]);
-                hvtx3_z_out->Fill(secondaryVertex3[2]);
+                hvtx3_x->Fill(secondaryVertex3[0]);
+                hvtx3_y->Fill(secondaryVertex3[1]);
+                hvtx3_z->Fill(secondaryVertex3[2]);
 
                 // get track momenta
                 array<float, 3> pvec0;
