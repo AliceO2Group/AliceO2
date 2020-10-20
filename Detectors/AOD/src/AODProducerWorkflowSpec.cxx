@@ -47,24 +47,28 @@ void AODProducerWorkflowDPL::findMinMaxBc(gsl::span<const o2::ft0::RecPoints>& f
 {
   for (auto& ft0RecPoint : ft0RecPoints) {
     uint64_t bc = ft0RecPoint.getInteractionRecord().orbit * o2::constants::lhc::LHCMaxBunches + ft0RecPoint.getInteractionRecord().bc;
-    if (minGlBC > bc)
+    if (minGlBC > bc) {
       minGlBC = bc;
-    if (maxGlBC < bc)
+    }
+    if (maxGlBC < bc) {
       maxGlBC = bc;
+    }
   }
 
   for (auto& trackITSTPC : tracksITSTPC) {
     Double_t timeStamp = trackITSTPC.getTimeMUS().getTimeStamp() * 1.E3; // ms to ns
     uint64_t bc = (int)(timeStamp / o2::constants::lhc::LHCBunchSpacingNS);
-    if (minGlBC > bc)
+    if (minGlBC > bc) {
       minGlBC = bc;
-    if (maxGlBC < bc)
+    }
+    if (maxGlBC < bc) {
       maxGlBC = bc;
+    }
   }
 }
 
-template <typename _tracks, typename _tracksCursor>
-void AODProducerWorkflowDPL::fillTracksTable(const _tracks& tracks, std::vector<int>& vCollRefs, const _tracksCursor& tracksCursor, int trackType)
+template <typename _Tracks, typename _TracksCursor>
+void AODProducerWorkflowDPL::fillTracksTable(const _Tracks& tracks, std::vector<int>& vCollRefs, const _TracksCursor& tracksCursor, int trackType)
 {
   for (int i = 0; i < tracks.size(); i++) {
     auto& track = tracks[i];
@@ -218,8 +222,9 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
     const auto channelData = ft0RecPoint.getBunchChannelData(ft0ChData);
     // TODO:
     // switch to calibrated amplitude
-    for (auto& channel : channelData)
+    for (auto& channel : channelData) {
       vAmplitudes[channel.ChId] = channel.QTCAmpl; // amplitude, mV
+    }
     float aAmplitudesA[96];
     float aAmplitudesC[112];
     std::copy(vAmplitudes.begin(), vAmplitudes.begin() + 95, aAmplitudesA);
@@ -287,12 +292,15 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
   }
 
   // filling tracks tables
-  if (mFillTracksITS)
+  if (mFillTracksITS) {
     fillTracksTable(tracksITS, vCollRefsITS, tracksCursor, o2::vertexing::GIndex::Source::ITS); // fTrackType = 1
-  if (mFillTracksTPC)
+  }
+  if (mFillTracksTPC) {
     fillTracksTable(tracksTPC, vCollRefsTPC, tracksCursor, o2::vertexing::GIndex::Source::TPC); // fTrackType = 2
-  if (mFillTracksITSTPC)
+  }
+  if (mFillTracksITSTPC) {
     fillTracksTable(tracksITSTPC, vCollRefsTPCITS, tracksCursor, o2::vertexing::GIndex::Source::TPCITS); // fTrackType = 0
+  }
 
   mTimer.Stop();
 }

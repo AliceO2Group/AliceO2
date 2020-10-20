@@ -74,7 +74,7 @@ class AODProducerWorkflowDPL : public Task
 
   void findMinMaxBc(gsl::span<const o2::ft0::RecPoints>& ft0RecPoints, gsl::span<const o2::dataformats::TrackTPCITS>& tracksITSTPC);
 
-  template <typename _tracks, typename _tracksCursor>
+  template <typename _Tracks, typename _TracksCursor>
   void fillTracksTable(const _tracks& tracks, std::vector<int>& vCollRefs, const _tracksCursor& tracksCursor, int trackType);
 };
 
