@@ -95,6 +95,7 @@ void WindowFiller::reset()
 
   mDigitsPerTimeFrame.clear();
   mReadoutWindowData.clear();
+  mReadoutWindowDataFiltered.clear();
 
   mFirstIR.bc = 0;
   mFirstIR.orbit = 0;
@@ -124,8 +125,34 @@ void WindowFiller::fillOutputContainer(std::vector<Digit>& digits)
     int orbit_shift = mReadoutWindowData.size() / 3;
     int bc_shift = (mReadoutWindowData.size() % 3) * Geo::BC_IN_WINDOW;
     info.setBCData(mFirstIR.orbit + orbit_shift, mFirstIR.bc + bc_shift);
-    if (digits.size())
+    int firstPattern = mPatterns.size();
+    int npatterns = 0;
+
+    // check if patterns are in the current row
+    int ipatt = mCratePatterns.size() - 1;
+    for (std::vector<PatternData>::reverse_iterator it = mCratePatterns.rbegin(); it != mCratePatterns.rend(); ++it) {
+      if (it->row > mReadoutWindowCurrent)
+        break;
+
+      if (it->row < mReadoutWindowCurrent) { // this should not happen
+        LOG(ERROR) << "One pattern skipped because appears to occur early of the current row " << it->row << " < " << mReadoutWindowCurrent << " ?!";
+        mCratePatterns.erase(mCratePatterns.begin() + ipatt);
+      } else {
+        mPatterns.push_back(it->pattern);
+        info.addedDiagnostic(it->icrate);
+
+        mCratePatterns.erase(mCratePatterns.begin() + ipatt);
+        npatterns++;
+      }
+      ipatt--;
+    }
+
+    info.setFirstEntryDia(firstPattern);
+    info.setNEntriesDia(npatterns);
+    if (digits.size()) {
       mDigitsPerTimeFrame.insert(mDigitsPerTimeFrame.end(), digits.begin(), digits.end());
+      mReadoutWindowDataFiltered.push_back(info);
+    }
     mReadoutWindowData.push_back(info);
   }
 
@@ -148,6 +175,10 @@ void WindowFiller::fillOutputContainer(std::vector<Digit>& digits)
 void WindowFiller::flushOutputContainer(std::vector<Digit>& digits)
 { // flush all residual buffered data
   // TO be implemented
+
+  // sort patterns (diagnostic words) in time
+  std::sort(mCratePatterns.begin(), mCratePatterns.end(),
+            [](PatternData a, PatternData b) { if(a.row == b.row) return a.icrate > b.icrate; else return a.row > b.row; });
 
   for (Int_t i = 0; i < MAXWINDOWS; i++) {
     int n = 0;
@@ -294,7 +325,8 @@ void WindowFiller::checkIfReuseFutureDigitsRO() // the same but using readout in
         strips = mStripsNext[isnext - 1];
       }
 
-      fillDigitsInStrip(strips, digit->getChannel(), digit->getTDC(), digit->getTOT(), digit->getBC(), digit->getChannel() / Geo::NPADS);
+      if (mMaskNoiseRate < 0 || mChannelCounts[digit->getChannel()] < mMaskNoiseRate)
+        fillDigitsInStrip(strips, digit->getChannel(), digit->getTDC(), digit->getTOT(), digit->getBC(), digit->getChannel() / Geo::NPADS);
 
       // int labelremoved = digit->getLabel();
       mFutureDigits.erase(mFutureDigits.begin() + idigit);
