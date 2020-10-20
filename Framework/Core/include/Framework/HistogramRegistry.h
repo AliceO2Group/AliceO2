@@ -34,6 +34,7 @@
 
 #include <string>
 #include <variant>
+#include <deque>
 
 namespace o2::framework
 {
