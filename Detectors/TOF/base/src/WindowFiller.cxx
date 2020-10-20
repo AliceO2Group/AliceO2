@@ -129,22 +129,19 @@ void WindowFiller::fillOutputContainer(std::vector<Digit>& digits)
     int npatterns = 0;
 
     // check if patterns are in the current row
-    int ipatt = mCratePatterns.size() - 1;
     for (std::vector<PatternData>::reverse_iterator it = mCratePatterns.rbegin(); it != mCratePatterns.rend(); ++it) {
       if (it->row > mReadoutWindowCurrent)
         break;
 
       if (it->row < mReadoutWindowCurrent) { // this should not happen
         LOG(ERROR) << "One pattern skipped because appears to occur early of the current row " << it->row << " < " << mReadoutWindowCurrent << " ?!";
-        mCratePatterns.erase(mCratePatterns.begin() + ipatt);
       } else {
         mPatterns.push_back(it->pattern);
         info.addedDiagnostic(it->icrate);
 
-        mCratePatterns.erase(mCratePatterns.begin() + ipatt);
         npatterns++;
       }
-      ipatt--;
+      mCratePatterns.pop_back();
     }
 
     info.setFirstEntryDia(firstPattern);
