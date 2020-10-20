@@ -67,6 +67,7 @@ struct TrackQATask {
     histos.add("TrackPar/flags", "track flag;flag bit", kTH1D, {{64, -0.5, 63.5}});
     histos.add("TrackPar/dcaXY", "distance of closest approach in #it{xy} plane;#it{dcaXY} [cm];", kTH1D, {{200, -0.15, 0.15}});
     histos.add("TrackPar/dcaZ", "distance of closest approach in #it{z};#it{dcaZ} [cm];", kTH1D, {{200, -0.15, 0.15}});
+    histos.add("TrackPar/length", "track length in cm;#it{Length} [cm];", kTH1D, {{400, 0, 1000}});
 
     // its histograms
     histos.add("ITS/itsNCls", "number of found ITS clusters;# clusters ITS", kTH1D, {{8, -0.5, 7.5}});
@@ -105,6 +106,7 @@ struct TrackQATask {
     }
     histos.fill("TrackPar/dcaXY", track.dcaXY());
     histos.fill("TrackPar/dcaZ", track.dcaZ());
+    histos.fill("TrackPar/length", track.length());
 
     // fill ITS variables
     histos.fill("ITS/itsNCls", track.itsNCls());
