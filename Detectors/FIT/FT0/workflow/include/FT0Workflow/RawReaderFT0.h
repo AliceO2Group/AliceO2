@@ -25,6 +25,8 @@
 #include "DataFormatsFT0/Digit.h"
 #include "DataFormatsFT0/ChannelData.h"
 
+#include "Framework/ProcessingContext.h"
+
 #include <gsl/span>
 
 using namespace o2::fit;

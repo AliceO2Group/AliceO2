@@ -14,7 +14,7 @@
 #include "FT0Workflow/FT0DataProcessDPLSpec.h"
 #include "FT0Workflow/FT0DataReaderDPLSpec.h"
 #include "FT0Workflow/FT0DigitWriterDPLSpec.h"
-#include "FT0Raw/RawReaderFT0"
+#include "FT0Workflow/RawReaderFT0"
 namespace o2
 {
 namespace fit
