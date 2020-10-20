@@ -42,10 +42,9 @@ class MeanVertexCalibDevice : public Task
 
 namespace framework
 {
-  DataProcessorSpec getMeanVertexCalibDeviceSpec();
-  
+DataProcessorSpec getMeanVertexCalibDeviceSpec();
+
 } // namespace framework
 } // namespace o2
 
 #endif
-  

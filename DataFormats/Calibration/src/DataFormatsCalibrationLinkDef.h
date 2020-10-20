@@ -14,6 +14,6 @@
 #pragma link off all classes;
 #pragma link off all functions;
 
-#pragma link C++ struct o2::dataformats::MeanVertexObject +;
+#pragma link C++ struct o2::dataformats::MeanVertexObject + ;
 
 #endif

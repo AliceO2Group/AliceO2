@@ -43,35 +43,33 @@ void MeanVertexData::print() const
 void MeanVertexData::fill(const gsl::span<const PVertex> data)
 {
   // fill container
+
   LOG(INFO) << "input size = " << data.size();
   for (int i = data.size(); i--;) {
-    //if (useFit) {
-      // filling the histogram in binned mode
-    LOG(INFO) << "i = " << i << " --> x = " << data[i].getX() << ", y = " << data[i].getY() << ", z = " << data[i].getZ();
+    // filling the histogram in binned mode
     auto x = data[i].getX();
-      x += rangeX;
-      auto y = data[i].getY();
-      y += rangeY;
-      auto z = data[i].getZ();
-      z += rangeZ;
-      if (x > 0 && x < 2 * rangeX && y > 0 && y < 2 * rangeY && z > 0 && z < 2 * rangeZ) {
-	histoX[int(x * v2BinX)]++;
-	histoY[int(y * v2BinY)]++;
-	histoZ[int(z * v2BinZ)]++;
-	entries++;
-      }
-      /*    }
-    else {
-      histoX[entries] = data[i].getX();
-      histoY[entries] = data[i].getY();
-      histoZ[entries] = data[i].getZ();
+    auto y = data[i].getY();
+    auto z = data[i].getZ();
+    LOG(INFO) << "i = " << i << " --> x = " << x << ", y = " << y << ", z = " << z;
+    uint32_t binx = (x + rangeX) * v2BinX;
+    uint32_t biny = (y + rangeY) * v2BinY;
+    uint32_t binz = (z + rangeZ) * v2BinZ;
+    if (binx < nbinsX || biny < nbinsY || binz < nbinsZ) { // accounts also for z<-rangeZ
+      histoX[binx]++;
+      histoY[biny]++;
+      histoZ[binz]++;
       entries++;
     }
-      */
   }
 
-  for (int i = 0; i < histoX.size(); i++){
-    LOG(INFO) << "histoX, bin " << i << ": entries = " << histoX[i];
+  for (int i = 0; i < histoX.size(); i++) {
+    LOG(DEBUG) << "histoX, bin " << i << ": entries = " << histoX[i];
+  }
+  for (int i = 0; i < histoY.size(); i++) {
+    LOG(DEBUG) << "histoY, bin " << i << ": entries = " << histoY[i];
+  }
+  for (int i = 0; i < histoZ.size(); i++) {
+    LOG(DEBUG) << "histoZ, bin " << i << ": entries = " << histoZ[i];
   }
 }
 
@@ -79,13 +77,18 @@ void MeanVertexData::fill(const gsl::span<const PVertex> data)
 void MeanVertexData::subtract(const MeanVertexData* prev)
 {
   // remove entries from prev
-  assert(histoX.size() == histoY.size());
-  assert(histoX.size() == histoZ.size());
-  assert(prev->histoX.size() == prev->histoY.size());
-  assert(prev->histoX.size() == prev->histoZ.size());
+
+  assert(histoX.size() == prev->histoX.size());
+  assert(histoY.size() == prev->histoY.size());
+  assert(histoZ.size() == prev->histoZ.size());
+
   for (int i = histoX.size(); i--;) {
     histoX[i] -= prev->histoX[i];
+  }
+  for (int i = histoY.size(); i--;) {
     histoY[i] -= prev->histoY[i];
+  }
+  for (int i = histoZ.size(); i--;) {
     histoZ[i] -= prev->histoZ[i];
   }
   entries -= prev->entries;
@@ -95,32 +98,17 @@ void MeanVertexData::subtract(const MeanVertexData* prev)
 void MeanVertexData::merge(const MeanVertexData* prev)
 {
   // merge data of 2 slots
-  assert(histoX.size() == histoY.size());
-  assert(histoX.size() == histoZ.size());
-  assert(prev->histoX.size() == prev->histoY.size());
-  assert(prev->histoX.size() == prev->histoZ.size());
+  assert(histoX.size() == prev->histoX.size());
+  assert(histoY.size() == prev->histoY.size());
+  assert(histoZ.size() == prev->histoZ.size());
 
-  //  if (useFit) {
-    for (int i = histoX.size(); i--;) {
-      histoX[i] += prev->histoX[i];
-      histoY[i] += prev->histoY[i];
-      histoZ[i] += prev->histoZ[i];
-    }
-    //}
-    /*
-  else {
-    histoX.reserve(histoX.size() + distance(prev->histoX.begin(), prev->histoX.end()));
-    histoX.insert(histoX.end(), prev->histoX.begin(), prev->histoX.end());
-    histoY.reserve(histoY.size() + distance(prev->histoY.begin(), prev->histoY.end()));
-    histoY.insert(histoY.end(), prev->histoY.begin(), prev->histoY.end());
-    histoZ.reserve(histoZ.size() + distance(prev->histoZ.begin(), prev->histoZ.end()));
-    histoZ.insert(histoZ.end(), prev->histoZ.begin(), prev->histoZ.end());
+  for (int i = histoX.size(); i--;) {
+    histoX[i] += prev->histoX[i];
+    histoY[i] += prev->histoY[i];
+    histoZ[i] += prev->histoZ[i];
   }
-    */
   entries += prev->entries;
 }
-
-
 
 } // end namespace calibration
 } // end namespace o2
