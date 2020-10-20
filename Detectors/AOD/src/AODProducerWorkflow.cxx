@@ -43,15 +43,14 @@ framework::WorkflowSpec getAODProducerWorkflow()
   // FIXME:
   // switch (?) from o2::ft0::getReconstructionSpec to RecPointReader
   // (which does not return RECCHDATA at the moment)
-  framework::WorkflowSpec specs {
+  framework::WorkflowSpec specs{
     o2::vertexing::getPrimaryVertexingSpec(useFT0, useMC),
     o2::globaltracking::getTrackTPCITSReaderSpec(useMC),
     o2::its::getITSTrackReaderSpec(useMC),
     o2::tpc::getTPCTrackReaderSpec(useMC),
     o2::ft0::getDigitReaderSpec(useMC),
     o2::ft0::getReconstructionSpec(useMC),
-    o2::aodproducer::getAODProducerWorkflowSpec()
-  };
+    o2::aodproducer::getAODProducerWorkflowSpec()};
 
   return specs;
 }
