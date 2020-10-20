@@ -51,8 +51,8 @@ struct SelectTracks {
   {
     Point3D<float> vtxXYZ(collision.posX(), collision.posY(), collision.posZ());
     for (auto& track : tracks) {
-      bool status_2prong = 1; // selection flag
-      bool status_3prong = 1; // selection flag
+      int status_2prong = 1; // selection flag
+      int status_3prong = 1; // selection flag
 
       if (b_dovalplots)
         hpt_nocuts->Fill(track.pt());
@@ -132,6 +132,10 @@ struct HFTrackIndexSkimsCreator {
   Configurable<bool> b_dovalplots{"b_dovalplots", true, "do validation plots"};
   Configurable<double> ptmincand_2prong{"ptmincand_2prong", -1., "ptmin 2prong candidate"};
   Configurable<double> ptmincand_3prong{"ptmincand_3prong", -1., "ptmin 3prong candidate"};
+  Configurable<double> cutCPAMin{"cutCPAMin", -2., "min. cosine of pointing angle"};
+  Configurable<double> cutInvMassD0Min{"cutInvMassD0Min", -1., "min. D0 candidate invariant mass"};
+  Configurable<double> cutInvMassD0Max{"cutInvMassD0Max", -1., "max. D0 candidate invariant mass"};
+  Configurable<double> cutImpParProductMax{"cutImpParProductMax", 100., "max. product of imp. par. of D0 candidate prongs"};
 
   OutputObj<TH1F> hvtx_x_out{TH1F("hvtx_x", "2-track vtx", 1000, -2., 2.)};
   OutputObj<TH1F> hvtx_y_out{TH1F("hvtx_y", "2-track vtx", 1000, -2., 2.)};
@@ -142,7 +146,7 @@ struct HFTrackIndexSkimsCreator {
   OutputObj<TH1F> hvtx3_y_out{TH1F("hvtx3_y", "3-track vtx", 1000, -2., 2.)};
   OutputObj<TH1F> hvtx3_z_out{TH1F("hvtx3_z", "3-track vtx", 1000, -20., 20.)};
 
-  Filter filterSelectTracks = aod::hf_seltrack::isSel2Prong == 1;
+  Filter filterSelectTracks = (aod::hf_seltrack::isSel2Prong == 1);
   using SelectedTracks = soa::Filtered<soa::Join<aod::Tracks, aod::TracksCov, aod::TracksExtra, aod::HFSelTrack>>;
   // FIXME
   //Partition<SelectedTracks> tracksPos = aod::track::signed1Pt > 0.f;
@@ -150,6 +154,8 @@ struct HFTrackIndexSkimsCreator {
 
   double massPi = RecoDecay::getMassPDG(kPiPlus);
   double massK = RecoDecay::getMassPDG(kKPlus);
+  double mass2PiK{0.};
+  double mass2KPi{0.};
   double mass3PiKPi{0.};
 
   void process(aod::Collision const& collision,
@@ -187,67 +193,110 @@ struct HFTrackIndexSkimsCreator {
     // first loop over positive tracks
     //for (auto trackPos1 = tracksPos.begin(); trackPos1 != tracksPos.end(); ++trackPos1) {
     for (auto trackPos1 = tracks.begin(); trackPos1 != tracks.end(); ++trackPos1) {
-      if (trackPos1.signed1Pt() < 0)
+      if (trackPos1.signed1Pt() < 0) {
         continue;
+      }
 
       auto trackParVarPos1 = getTrackParCov(trackPos1);
 
       // first loop over negative tracks
       //for (auto trackNeg1 = tracksNeg.begin(); trackNeg1 != tracksNeg.end(); ++trackNeg1) {
       for (auto trackNeg1 = tracks.begin(); trackNeg1 != tracks.end(); ++trackNeg1) {
-        if (trackNeg1.signed1Pt() > 0)
+        if (trackNeg1.signed1Pt() > 0) {
           continue;
+        }
 
         auto trackParVarNeg1 = getTrackParCov(trackNeg1);
+        auto pVecCand = array{trackPos1.px() + trackNeg1.px(),
+                              trackPos1.py() + trackNeg1.py(),
+                              trackPos1.pz() + trackNeg1.pz()};
+        bool isSelectedCandD0 = true;
 
-        double pt_Cand_before2vertex = RecoDecay::Pt(trackPos1.px() + trackNeg1.px(),
-                                                     trackPos1.py() + trackNeg1.py());
+        // pT cand cut
+        double pt_Cand_before2vertex = RecoDecay::Pt(pVecCand);
+        if (pt_Cand_before2vertex < ptmincand_2prong) {
+          isSelectedCandD0 = false;
+        }
 
-        if (pt_Cand_before2vertex >= ptmincand_2prong) {
+        if (isSelectedCandD0) {
           // reconstruct the 2-prong secondary vertex
-          if (df.process(trackParVarPos1, trackParVarNeg1) == 0)
+          if (df.process(trackParVarPos1, trackParVarNeg1) == 0) {
             continue;
+          }
 
-          // fill table row
-          rowTrackIndexProng2(trackPos1.collisionId(),
-                              trackPos1.globalIndex(),
-                              trackNeg1.globalIndex(), 1);
+          // imp. par. product cut
+          if (isSelectedCandD0 && cutImpParProductMax < 100.) {
+            if (trackPos1.dcaPrim0() * trackNeg1.dcaPrim0() > cutImpParProductMax) {
+              isSelectedCandD0 = false;
+            }
+          }
 
-          // fill histograms
-          if (b_dovalplots) {
-            // get secondary vertex
-            const auto& secondaryVertex = df.getPCACandidate();
-            hvtx_x_out->Fill(secondaryVertex[0]);
-            hvtx_y_out->Fill(secondaryVertex[1]);
-            hvtx_z_out->Fill(secondaryVertex[2]);
+          // get secondary vertex
+          const auto& secondaryVertex = df.getPCACandidate();
 
+          // CPA cut
+          if (isSelectedCandD0 && cutCPAMin > -2.) {
+            auto cpa = RecoDecay::CPA(array{collision.posX(), collision.posY(), collision.posZ()}, secondaryVertex, pVecCand);
+            if (cpa < cutCPAMin) {
+              isSelectedCandD0 = false;
+            }
+          }
+
+          if (isSelectedCandD0) {
             // get track momenta
             array<float, 3> pvec0;
             array<float, 3> pvec1;
             df.getTrack(0).getPxPyPzGlo(pvec0);
             df.getTrack(1).getPxPyPzGlo(pvec1);
-
             // calculate invariant masses
             auto arrMom = array{pvec0, pvec1};
-            hmass2->Fill(RecoDecay::M(arrMom, array{massPi, massK}));
-            hmass2->Fill(RecoDecay::M(arrMom, array{massK, massPi}));
+            mass2PiK = RecoDecay::M(arrMom, array{massPi, massK});
+            mass2KPi = RecoDecay::M(arrMom, array{massK, massPi});
+          }
+
+          // invariant-mass cut
+          if (isSelectedCandD0 && cutInvMassD0Min >= 0. && cutInvMassD0Max > 0.) {
+            if ((mass2PiK < cutInvMassD0Min || mass2PiK > cutInvMassD0Max) &&
+                (mass2KPi < cutInvMassD0Min || mass2KPi > cutInvMassD0Max)) {
+              isSelectedCandD0 = false;
+            }
+          }
+
+          if (isSelectedCandD0) {
+            // fill table row
+            rowTrackIndexProng2(trackPos1.collisionId(),
+                                trackPos1.globalIndex(),
+                                trackNeg1.globalIndex(), 1);
+
+            // fill histograms
+            if (b_dovalplots) {
+              hvtx_x_out->Fill(secondaryVertex[0]);
+              hvtx_y_out->Fill(secondaryVertex[1]);
+              hvtx_z_out->Fill(secondaryVertex[2]);
+              hmass2->Fill(mass2PiK);
+              hmass2->Fill(mass2KPi);
+            }
           }
         }
 
         // 3-prong vertex reconstruction
         if (do3prong == 1) {
-          if (trackPos1.isSel3Prong() == 0)
+          if (trackPos1.isSel3Prong() == 0) {
             continue;
-          if (trackNeg1.isSel3Prong() == 0)
+          }
+          if (trackNeg1.isSel3Prong() == 0) {
             continue;
+          }
 
           // second loop over positive tracks
           //for (auto trackPos2 = trackPos1 + 1; trackPos2 != tracksPos.end(); ++trackPos2) {
           for (auto trackPos2 = trackPos1 + 1; trackPos2 != tracks.end(); ++trackPos2) {
-            if (trackPos2.signed1Pt() < 0)
+            if (trackPos2.signed1Pt() < 0) {
               continue;
-            if (trackPos2.isSel3Prong() == 0)
+            }
+            if (trackPos2.isSel3Prong() == 0) {
               continue;
+            }
 
             // calculate invariant mass
             auto arr3Mom = array{
@@ -256,8 +305,9 @@ struct HFTrackIndexSkimsCreator {
               array{trackPos2.px(), trackPos2.py(), trackPos2.pz()}};
             mass3PiKPi = RecoDecay::M(std::move(arr3Mom), array{massPi, massK, massPi});
 
-            if (mass3PiKPi < d_minmassDp || mass3PiKPi > d_maxmassDp)
+            if (mass3PiKPi < d_minmassDp || mass3PiKPi > d_maxmassDp) {
               continue;
+            }
 
             double pt_Cand3_before2vertex = RecoDecay::Pt(trackPos1.px() + trackNeg1.px() + trackPos2.px(),
                                                           trackPos1.py() + trackNeg1.py() + trackPos2.py());
@@ -265,8 +315,9 @@ struct HFTrackIndexSkimsCreator {
             if (pt_Cand3_before2vertex >= ptmincand_3prong) {
               // reconstruct the 3-prong secondary vertex
               auto trackParVarPos2 = getTrackParCov(trackPos2);
-              if (df3.process(trackParVarPos1, trackParVarNeg1, trackParVarPos2) == 0)
+              if (df3.process(trackParVarPos1, trackParVarNeg1, trackParVarPos2) == 0) {
                 continue;
+              }
 
               // fill table row
               rowTrackIndexProng3(trackPos1.collisionId(),
@@ -300,10 +351,12 @@ struct HFTrackIndexSkimsCreator {
           // second loop over negative tracks
           //for (auto trackNeg2 = trackNeg1 + 1; trackNeg2 != tracksNeg.end(); ++trackNeg2) {
           for (auto trackNeg2 = trackNeg1 + 1; trackNeg2 != tracks.end(); ++trackNeg2) {
-            if (trackNeg2.signed1Pt() > 0)
+            if (trackNeg2.signed1Pt() > 0) {
               continue;
-            if (trackNeg2.isSel3Prong() == 0)
+            }
+            if (trackNeg2.isSel3Prong() == 0) {
               continue;
+            }
 
             // calculate invariant mass
             auto arr3Mom = array{
@@ -312,8 +365,9 @@ struct HFTrackIndexSkimsCreator {
               array{trackNeg2.px(), trackNeg2.py(), trackNeg2.pz()}};
             mass3PiKPi = RecoDecay::M(std::move(arr3Mom), array{massPi, massK, massPi});
 
-            if (mass3PiKPi < d_minmassDp || mass3PiKPi > d_maxmassDp)
+            if (mass3PiKPi < d_minmassDp || mass3PiKPi > d_maxmassDp) {
               continue;
+            }
 
             double pt_Cand3_before2vertex = RecoDecay::Pt(trackPos1.px() + trackNeg1.px() + trackNeg2.px(),
                                                           trackPos1.py() + trackNeg1.py() + trackNeg2.py());
@@ -321,8 +375,9 @@ struct HFTrackIndexSkimsCreator {
             if (pt_Cand3_before2vertex >= ptmincand_3prong) {
               // reconstruct the 3-prong secondary vertex
               auto trackParVarNeg2 = getTrackParCov(trackNeg2);
-              if (df3.process(trackParVarNeg1, trackParVarPos1, trackParVarNeg2) == 0)
+              if (df3.process(trackParVarNeg1, trackParVarPos1, trackParVarNeg2) == 0) {
                 continue;
+              }
 
               // fill table row
               rowTrackIndexProng3(trackNeg1.collisionId(),
