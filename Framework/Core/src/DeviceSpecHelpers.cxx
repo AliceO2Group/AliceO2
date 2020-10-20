@@ -39,7 +39,7 @@
 
 #include <sys/time.h>
 #include <sys/resource.h>
-#include <signal.h>
+#include <csignal>
 
 namespace bpo = boost::program_options;
 
