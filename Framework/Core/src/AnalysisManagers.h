@@ -260,14 +260,14 @@ struct OutputManager<Spawns<T>> {
 
 /// Builds specialization
 template <typename O>
-static inline auto extractTypedOriginal(ProcessingContext& pc)
+static auto extractTypedOriginal(ProcessingContext& pc)
 {
   ///FIXME: this should be done in invokeProcess() as some of the originals may be compound tables
   return O{pc.inputs().get<TableConsumer>(aod::MetadataTrait<O>::metadata::tableLabel())->asArrowTable()};
 }
 
 template <typename... Os>
-static inline auto extractOriginalsTuple(framework::pack<Os...>, ProcessingContext& pc)
+static auto extractOriginalsTuple(framework::pack<Os...>, ProcessingContext& pc)
 {
   return std::make_tuple(extractTypedOriginal<Os>(pc)...);
 }
