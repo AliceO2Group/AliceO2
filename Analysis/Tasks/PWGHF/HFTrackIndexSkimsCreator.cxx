@@ -19,6 +19,7 @@
 #include "DetectorsVertexing/DCAFitterN.h"
 #include "Analysis/HFSecondaryVertex.h"
 #include "Analysis/trackUtilities.h"
+#include "Analysis/TrackSelectionTables.h"
 
 using namespace o2;
 using namespace o2::framework;
@@ -33,7 +34,6 @@ struct SelectTracks {
   Configurable<double> ptmintrack_3prong{"ptmintrack_3prong", -1, "ptmin single track"};
   Configurable<double> dcatoprimxymin_3prong{"dcatoprimxymin_3prong", 0, "dca xy to prim vtx min"};
   Configurable<double> etamax_3prong{"etamax_3prong", 999, "maximum pseudorapidity value"};
-  Configurable<int> d_tpcnclsfound{"d_tpcnclsfound", 70, "min number of tpc cls >="};
   Configurable<double> d_bz{"d_bz", 5.0, "bz field"};
   Configurable<bool> b_dovalplots{"b_dovalplots", true, "do validation plots"};
   OutputObj<TH1F> hpt_nocuts{TH1F("hpt_nocuts", "pt tracks (GeV/#it{c})", 100, 0., 10.)};
@@ -45,7 +45,10 @@ struct SelectTracks {
   OutputObj<TH1F> heta_cuts_3prong{TH1F("heta_cuts_3prong", "pseudorapidity", 100, -1.0, 1.0)};
 
   void process(aod::Collision const& collision,
-               soa::Join<aod::Tracks, aod::TracksCov, aod::TracksExtra> const& tracks)
+               soa::Join<aod::Tracks,
+                         aod::TracksCov,
+                         aod::TracksExtra,
+                         aod::TrackSelection> const& tracks)
   {
     Point3D<float> vtxXYZ(collision.posX(), collision.posY(), collision.posZ());
     for (auto& track : tracks) {
@@ -62,9 +65,7 @@ struct SelectTracks {
       if (abs(track.eta()) > etamax_3prong)
         status_3prong = 0;
       UChar_t clustermap = track.itsClusterMap();
-      bool isselected = track.tpcNClsFound() >= d_tpcnclsfound &&
-                        track.flags() & o2::aod::track::ITSrefit &&
-                        (TESTBIT(clustermap, 0) || TESTBIT(clustermap, 1));
+      const bool isselected = track.isGlobalTrack();
       if (!isselected) {
         status_2prong = 0;
         status_3prong = 0;
