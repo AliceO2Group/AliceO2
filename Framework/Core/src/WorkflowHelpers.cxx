@@ -741,15 +741,15 @@ std::shared_ptr<DataOutputDirector> WorkflowHelpers::getDataOutputDirector(Confi
 
   // analyze options and take actions accordingly
   // default values
-  std::string fnbase("AnalysisResults_trees");
-  std::string filemode("RECREATE");
-  int ntfmerge = 1;
+  std::string fnb, fnbase("AnalysisResults_trees");
+  std::string fmo, filemode("RECREATE");
+  int ntfm, ntfmerge = 1;
 
   // values from json
   if (options.isSet("aod-writer-json")) {
     auto fnjson = options.get<std::string>("aod-writer-json");
     if (!fnjson.empty()) {
-      auto [fnb, fmo, ntfm] = dod->readJson(fnjson);
+      std::tie(fnb, fmo, ntfm) = dod->readJson(fnjson);
       if (!fnb.empty()) {
         fnbase = fnb;
       }
@@ -763,17 +763,17 @@ std::shared_ptr<DataOutputDirector> WorkflowHelpers::getDataOutputDirector(Confi
   }
 
   // values from command line options, information from json is overwritten
-  if (options.isSet("res-file")) {
-    fnbase = options.get<std::string>("res-file");
+  fnb = options.get<std::string>("aod-writer-resfile");
+  if (!fnb.empty()) {
+    fnbase = fnb;
   }
-  if (options.isSet("res-mode")) {
-    filemode = options.get<std::string>("res-mode");
+  fmo = options.get<std::string>("aod-writer-resmode");
+  if (!fmo.empty()) {
+    filemode = fmo;
   }
-  if (options.isSet("ntfmerge")) {
-    auto ntfm = options.get<int>("ntfmerge");
-    if (ntfm > 0) {
-      ntfmerge = ntfm;
-    }
+  ntfm = options.get<int>("aod-writer-ntfmerge");
+  if (ntfm > 0) {
+    ntfmerge = ntfm;
   }
   // parse the keepString
   auto keepString = options.get<std::string>("aod-writer-keep");

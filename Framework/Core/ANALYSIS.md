@@ -409,8 +409,8 @@ Produced tables can be saved to file as TTrees. This process is customized by va
 The options to consider are:
 
 * --aod-writer-keep
-* --res-file
-* --ntfmerge
+* --aod-writer-resfile
+* --aod-writer-ntfmerge
 * --aod-writer-json
 
 
@@ -431,7 +431,7 @@ table:tree:columns:file
 ```
 and instructs the internal-dpl-aod-writer, to save the columns `columns` of table `table` as TTree `tree` in folder `TF_x` of file `file.root`. The selected columns are saved as separate TBranches of TTree `tree`.
 
-By default `x` is incremented with every time frame. This behavior can be modified with the command line option `--ntfmerge`. The value of `ntfmerge` specifies the number of time frames to merge into one `TF_x` folder. 
+By default `x` is incremented with every time frame. This behavior can be modified with the command line option `--ntfmerge`. The value of `aod-writer-ntfmerge` specifies the number of time frames to merge into one `TF_x` folder. 
 
 The first item of a `DataOuputDescriptor` (`table`) is mandatory and needs to be specified, otherwise the `DataOuputDescriptor` is ignored. The other three items are optional and are filled by default values if missing.
 
@@ -453,20 +453,20 @@ col1/col2/col3
 ```
 The column names are expected to match column names of table `tablename` as defined in the respective workflow. Non-matching columns are ignored. The selected table columns are saved as separate TBranches with the same names as the corresponding table columns. If `columns` is not specified then all table columns are saved.
 
-`file` finally specifies the base name of the file the tables are saved to. The actual file name is `file`.root. If `file` is not specified the default file name is used. The default file name can be set with the command line option `--res-file`. However, if `res-file` is missing then the default file name is set to `AnalysisResults_trees`.
+`file` finally specifies the base name of the file the tables are saved to. The actual file name is `file`.root. If `file` is not specified the default file name is used. The default file name can be set with the command line option `--aod-writer-resfile`. However, if `aod-writer-resfile` is missing then the default file name is set to `AnalysisResults_trees`.
 
 ##### Dangling outputs
 The `aod-writer-keep` option also accepts the string "dangling" (or any leading sub-string of it). In
 this case all dangling output tables are saved. For the parameters `tree`, `columns`, and
 `file` the default values ([see table below](#priorities)) are used.
 
-#### --ntfmerge
+#### --aod-writer-ntfmerge
 
-`ntfmerge` specifies the number of time frames which are merged into a given folder `TF_x`. By default this value is set to 1. `x` is incremented by 1 at every `ntfmerge` time frame.
+`aod-writer-ntfmerge` specifies the number of time frames which are merged into a given folder `TF_x`. By default this value is set to 1. `x` is incremented by 1 at every `aod-writer-ntfmerge` time frame.
 
-#### --res-file
+#### --aod-writer-resfile
 
-`res-file` specifies the default base name of the results files to which tables are saved. If in any of the `DataOutputDescriptors` the `file` value is missing it will be set to this default value.
+`aod-writer-resfile` specifies the default base name of the results files to which tables are saved. If in any of the `DataOutputDescriptors` the `file` value is missing it will be set to this default value.
 
 #### --aod-writer-json
 
@@ -476,8 +476,8 @@ An example file is shown in the highlighted field below. The relevant
 information is contained in a json object `OutputDirector`. The
 `OutputDirector` can include three different items:
 
-  1. `resfile` is a string and corresponds to the `res-file` command line option  
-  2.`ntfmerge` is an integer and corresponds to the `ntfmerge` command line option  
+  1. `resfile` is a string and corresponds to the `aod-writer-resfile` command line option  
+  2.`aod-writer-ntfmerge` is an integer and corresponds to the `aod-writer-ntfmerge` command line option  
   3.`OutputDescriptors` is an array of objects and corresponds to the `aod-writer-keep` command line option. The objects are equivalent to the `DataOuputDescriptors` of the `aod-writer-keep` option and are composed of 4 items which correspond to the 4 items of a `DataOuputDescriptor`.
   
      a. `table` is a string  
@@ -523,7 +523,7 @@ This hierarchy of the options is summarized in the following table. The columns 
 
 <a name="priorities"></a>
 
-| parameter\option | aod-writer-keep | res-file | ntfmerge | aod-writer-json | default |
+| parameter\option | aod-writer-keep | aod-writer-resfile | aod-writer-ntfmerge | aod-writer-json | default |
 |--------------|:----:|:--------:|:--------:|----------:|:-------:|
 | `default file name` | -        | 1.       | -         | 2.      | 3. (AnalysisResults_trees)|
 | `ntfmerge`   | -    | -        | 1.       | 2.        | 3. (1)  |
@@ -542,7 +542,7 @@ This hierarchy of the options is summarized in the following table. The columns 
 --aod-writer-keep AOD/UNO/0::c2/c4:unoresults
  # save columns 'c2' and 'c4' of table 'UNO' to TTree 'O2uno' in file 'unoresults.root`
 
---res-file myskim --ntfmerge 50 --aod-writer-keep AOD/UNO/0:trsel1:c1/c2,AOD/DUE/0:trsel2:c6/c7/c8
+--aod-writer-resfile myskim --aod-writer-ntfmerge 50 --aod-writer-keep AOD/UNO/0:trsel1:c1/c2,AOD/DUE/0:trsel2:c6/c7/c8
  # save columns 'c1' and 'c2' of table 'UNO' to TTree 'trsel1' in file 'myskim.root` and
  # save columns 'c6', 'c7' and 'c8' of table 'DUE' to TTree 'trsel2' in file 'myskim.root`.
  # Merge 50 time frames in each folder `TF_x`.

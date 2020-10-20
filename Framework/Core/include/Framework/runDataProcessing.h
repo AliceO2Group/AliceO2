@@ -129,11 +129,11 @@ int main(int argc, char** argv)
     workflowOptions.push_back(ConfigParamSpec{"dangling-outputs-policy", VariantType::String, "file", {"what to do with dangling outputs. file: write to file, fairmq: send to output proxy"}});
 
     // options for AOD writer
-    workflowOptions.push_back(ConfigParamSpec{"aod-writer-json", VariantType::String, {"Name of the json configuration file"}});
-    workflowOptions.push_back(ConfigParamSpec{"res-file", VariantType::String, {"Default name of the output file"}});
-    workflowOptions.push_back(ConfigParamSpec{"res-mode", VariantType::String, {"Creation mode of the result files: NEW, CREATE, RECREATE, UPDATE"}});
-    workflowOptions.push_back(ConfigParamSpec{"ntfmerge", VariantType::Int, {"Number of time frames to merge into one file"}});
-    workflowOptions.push_back(ConfigParamSpec{"aod-writer-keep", VariantType::String, {"Comma separated list of ORIGIN/DESCRIPTION/SUBSPECIFICATION:treename:col1/col2/..:filename"}});
+    workflowOptions.push_back(ConfigParamSpec{"aod-writer-json", VariantType::String, "", {"Name of the json configuration file"}});
+    workflowOptions.push_back(ConfigParamSpec{"aod-writer-resfile", VariantType::String, "", {"Default name of the output file"}});
+    workflowOptions.push_back(ConfigParamSpec{"aod-writer-resmode", VariantType::String, "", {"Creation mode of the result files: NEW, CREATE, RECREATE, UPDATE"}});
+    workflowOptions.push_back(ConfigParamSpec{"aod-writer-ntfmerge", VariantType::Int, -1, {"Number of time frames to merge into one file"}});
+    workflowOptions.push_back(ConfigParamSpec{"aod-writer-keep", VariantType::String, "", {"Comma separated list of ORIGIN/DESCRIPTION/SUBSPECIFICATION:treename:col1/col2/..:filename"}});
 
     std::vector<ChannelConfigurationPolicy> channelPolicies;
     UserCustomizationsHelper::userDefinedCustomization(channelPolicies, 0);
