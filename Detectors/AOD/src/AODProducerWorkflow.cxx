@@ -35,24 +35,24 @@ namespace aodproducer
 
 framework::WorkflowSpec getAODProducerWorkflow()
 {
-  framework::WorkflowSpec specs;
-
   // TODO:
   // switch to configurable parameters (?)
   bool useFT0 = true;
   bool useMC = false;
 
-  specs.emplace_back(o2::vertexing::getPrimaryVertexingSpec(useFT0, useMC));
-  specs.emplace_back(o2::globaltracking::getTrackTPCITSReaderSpec(useMC));
-  specs.emplace_back(o2::its::getITSTrackReaderSpec(useMC));
-  specs.emplace_back(o2::tpc::getTPCTrackReaderSpec(useMC));
-
   // FIXME:
-  // switch (?) to RecPointReader (which does not return RECCHDATA at the moment)
-  specs.emplace_back(o2::ft0::getDigitReaderSpec(useMC));
-  specs.emplace_back(o2::ft0::getReconstructionSpec(useMC));
+  // switch (?) from o2::ft0::getReconstructionSpec to RecPointReader
+  // (which does not return RECCHDATA at the moment)
+  framework::WorkflowSpec specs {
+    o2::vertexing::getPrimaryVertexingSpec(useFT0, useMC),
+    o2::globaltracking::getTrackTPCITSReaderSpec(useMC),
+    o2::its::getITSTrackReaderSpec(useMC),
+    o2::tpc::getTPCTrackReaderSpec(useMC),
+    o2::ft0::getDigitReaderSpec(useMC),
+    o2::ft0::getReconstructionSpec(useMC),
+    o2::aodproducer::getAODProducerWorkflowSpec()
+  };
 
-  specs.emplace_back(o2::aodproducer::getAODProducerWorkflowSpec());
   return specs;
 }
 
