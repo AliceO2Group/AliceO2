@@ -49,6 +49,7 @@ class Digits2Raw
 
  private:
   void setTriggerMask();
+  void insertLastBunch(int ibc, uint32_t orbit);
   void convertDigits(int ibc);
   void writeDigits();
   std::vector<o2::zdc::BCData> mzdcBCData, *mzdcBCDataPtr = &mzdcBCData;
