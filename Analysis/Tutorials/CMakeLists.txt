@@ -157,3 +157,13 @@ o2_add_dpl_workflow(schema-evolution
                   SOURCES src/schemaEvolution.cxx
                   PUBLIC_LINK_LIBRARIES O2::Framework O2::AnalysisCore O2::AnalysisDataModel
                   COMPONENT_NAME AnalysisTutorial)
+
+o2_add_dpl_workflow(efficiency-per-run
+                  SOURCES src/efficiencyPerRun.cxx
+                  PUBLIC_LINK_LIBRARIES O2::Framework O2::AnalysisCore O2::AnalysisDataModel
+                  COMPONENT_NAME AnalysisTutorial)
+
+o2_add_dpl_workflow(efficiency-global
+                  SOURCES src/efficiencyGlobal.cxx
+                  PUBLIC_LINK_LIBRARIES O2::Framework O2::AnalysisCore O2::AnalysisDataModel
+                  COMPONENT_NAME AnalysisTutorial)
