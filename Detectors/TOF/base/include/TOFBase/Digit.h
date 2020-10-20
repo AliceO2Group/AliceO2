@@ -116,12 +116,7 @@ struct ReadoutWindowData {
   o2::dataformats::RangeReference<int, int> refDiagnostic;
 
   // crate info for diagnostic patterns
-  int mNdiaCrate[72] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-                        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-                        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-                        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-                        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-                        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
+  int mNdiaCrate[72] = {0};
 
   InteractionRecord mFirstIR{0, 0};
 
