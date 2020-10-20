@@ -53,13 +53,42 @@ struct AnalysisTask {
 // the contents of an AnalysisTask...
 
 struct AnalysisDataProcessorBuilder {
+  template <typename T>
+  static ConfigParamSpec getSpec()
+  {
+    if constexpr (soa::is_type_with_metadata_v<aod::MetadataTrait<T>>) {
+      return ConfigParamSpec{"input", VariantType::String, aod::MetadataTrait<T>::metadata::sourceSpec(), {"\"\""}};
+    } else {
+      using O1 = framework::pack_element_t<0, typename T::originals>;
+      return ConfigParamSpec{"input", VariantType::String, aod::MetadataTrait<O1>::metadata::sourceSpec(), {"\"\""}};
+    }
+  }
+
+  template <typename... T>
+  static std::vector<ConfigParamSpec> getInputSpecs(framework::pack<T...>)
+  {
+    return std::vector{getSpec<T>()...};
+  }
+
+  template <typename T>
+  static std::vector<ConfigParamSpec> getIndexSources()
+  {
+    static_assert(soa::is_soa_index_table_t<T>::value, "Can only be used with IndexTable");
+    return getInputSpecs(typename T::sources_t{});
+  }
+
   template <typename Arg>
   static void doAppendInputWithMetadata(std::vector<InputSpec>& inputs)
   {
     using metadata = typename aod::MetadataTrait<std::decay_t<Arg>>::metadata;
     static_assert(std::is_same_v<metadata, void> == false,
                   "Could not find metadata. Did you register your type?");
-    inputs.push_back({metadata::tableLabel(), metadata::origin(), metadata::description()});
+    if constexpr (soa::is_soa_index_table_t<std::decay_t<Arg>>::value) {
+      auto inputSources = getIndexSources<std::decay_t<Arg>>();
+      inputs.push_back(InputSpec{metadata::tableLabel(), metadata::origin(), metadata::description(), Lifetime::Timeframe, inputSources});
+    } else {
+      inputs.push_back({metadata::tableLabel(), metadata::origin(), metadata::description()});
+    }
   }
 
   template <typename... Args>
