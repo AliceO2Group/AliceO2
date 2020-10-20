@@ -36,7 +36,7 @@ void TrackerTraitsCPU::computeLayerTracklets()
   PrimaryVertexContext* primaryVertexContext = mPrimaryVertexContext;
   for (int iLayer{0}; iLayer < mTrkParams.TrackletsPerRoad(); ++iLayer) {
     if (primaryVertexContext->getClusters()[iLayer].empty() || primaryVertexContext->getClusters()[iLayer + 1].empty()) {
-      return;
+      continue;
     }
 
     const float3& primaryVertex = primaryVertexContext->getPrimaryVertex();
@@ -107,7 +107,8 @@ void TrackerTraitsCPU::computeLayerTracklets()
         }
       }
     }
-    if (iLayer > 0 && primaryVertexContext->getTracklets()[iLayer].size() > primaryVertexContext->getCellsLookupTable()[iLayer - 1].size()) {
+    if (iLayer > 0 && iLayer < mTrkParams.TrackletsPerRoad() - 1 &&
+        primaryVertexContext->getTracklets()[iLayer].size() > primaryVertexContext->getCellsLookupTable()[iLayer - 1].size()) {
       std::cout << "**** FATAL: not enough memory in the CellsLookupTable, increase the tracklet memory coefficients ****" << std::endl;
       exit(1);
     }
