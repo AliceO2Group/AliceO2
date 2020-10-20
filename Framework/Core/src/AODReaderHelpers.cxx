@@ -8,9 +8,8 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#include "Framework/AODReaderHelpers.h"
 #include "Framework/TableTreeHelpers.h"
-#include "Framework/AnalysisHelpers.h"
+#include "Framework/AODReaderHelpers.h"
 #include "AnalysisDataModelHelpers.h"
 #include "DataProcessingHelpers.h"
 #include "ExpressionHelpers.h"
@@ -42,90 +41,16 @@
 
 namespace o2::framework::readers
 {
-auto setEOSCallback(InitContext& ic)
-{
-  ic.services().get<CallbackService>().set(CallbackService::Id::EndOfStream,
-                                           [](EndOfStreamContext& eosc) {
-                                             auto& control = eosc.services().get<ControlService>();
-                                             control.endOfStream();
-                                             control.readyToQuit(QuitRequest::Me);
-                                           });
-}
-
-template <typename O>
-static inline auto extractTypedOriginal(ProcessingContext& pc)
-{
-  ///FIXME: this should be done in invokeProcess() as some of the originals may be compound tables
-  return O{pc.inputs().get<TableConsumer>(aod::MetadataTrait<O>::metadata::tableLabel())->asArrowTable()};
-}
-
-template <typename... Os>
-static inline auto extractOriginalsTuple(framework::pack<Os...>, ProcessingContext& pc)
-{
-  return std::make_tuple(extractTypedOriginal<Os>(pc)...);
-}
-
-AlgorithmSpec AODReaderHelpers::indexBuilderCallback(std::vector<InputSpec> requested)
-{
-  return AlgorithmSpec::InitCallback{[requested](InitContext& ic) {
-    setEOSCallback(ic);
-
-    return [requested](ProcessingContext& pc) {
-      auto outputs = pc.outputs();
-      // spawn tables
-      for (auto& input : requested) {
-        auto description = std::visit(
-          overloaded{
-            [](ConcreteDataMatcher const& matcher) { return matcher.description; },
-            [](auto&&) { return header::DataDescription{""}; }},
-          input.matcher);
-
-        auto origin = std::visit(
-          overloaded{
-            [](ConcreteDataMatcher const& matcher) { return matcher.origin; },
-            [](auto&&) { return header::DataOrigin{""}; }},
-          input.matcher);
-
-        auto maker = [&](auto metadata) {
-          using metadata_t = decltype(metadata);
-          using Key = typename metadata_t::Key;
-          using index_pack_t = typename metadata_t::index_pack_t;
-          using sources = typename metadata_t::originals;
-          if constexpr (metadata_t::exclusive == true) {
-            return o2::framework::IndexExclusive::indexBuilder(index_pack_t{},
-                                                               extractTypedOriginal<Key>(pc),
-                                                               extractOriginalsTuple(sources{}, pc));
-          } else {
-            return o2::framework::IndexSparse::indexBuilder(index_pack_t{},
-                                                            extractTypedOriginal<Key>(pc),
-                                                            extractOriginalsTuple(sources{}, pc));
-          }
-        };
-
-        if (description == header::DataDescription{"MA_RN2_EX"}) {
-          outputs.adopt(Output{origin, description}, maker(o2::aod::Run2MatchedExclusiveMetadata{}));
-        } else if (description == header::DataDescription{"MA_RN2_SP"}) {
-          outputs.adopt(Output{origin, description}, maker(o2::aod::Run2MatchedSparseMetadata{}));
-        } else if (description == header::DataDescription{"MA_RN3_EX"}) {
-          outputs.adopt(Output{origin, description}, maker(o2::aod::Run3MatchedExclusiveMetadata{}));
-        } else if (description == header::DataDescription{"MA_RN3_SP"}) {
-          outputs.adopt(Output{origin, description}, maker(o2::aod::Run3MatchedSparseMetadata{}));
-        } else if (description == header::DataDescription{"MA_BCCOL_EX"}) {
-          outputs.adopt(Output{origin, description}, maker(o2::aod::BCCollisionsExclusiveMetadata{}));
-        } else if (description == header::DataDescription{"MA_BCCOL_SP"}) {
-          outputs.adopt(Output{origin, description}, maker(o2::aod::BCCollisionsSparseMetadata{}));
-        } else {
-          throw std::runtime_error("Not an index table");
-        }
-      }
-    };
-  }};
-}
-
 AlgorithmSpec AODReaderHelpers::aodSpawnerCallback(std::vector<InputSpec> requested)
 {
   return AlgorithmSpec::InitCallback{[requested](InitContext& ic) {
-    setEOSCallback(ic);
+    auto& callbacks = ic.services().get<CallbackService>();
+    auto endofdatacb = [](EndOfStreamContext& eosc) {
+      auto& control = eosc.services().get<ControlService>();
+      control.endOfStream();
+      control.readyToQuit(QuitRequest::Me);
+    };
+    callbacks.set(CallbackService::Id::EndOfStream, endofdatacb);
 
     return [requested](ProcessingContext& pc) {
       auto outputs = pc.outputs();
