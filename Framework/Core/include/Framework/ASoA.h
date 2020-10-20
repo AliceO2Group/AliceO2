@@ -25,7 +25,6 @@
 #include <arrow/compute/kernel.h>
 #include <gandiva/selection_vector.h>
 #include <cassert>
-#include <fmt/format.h>
 
 using o2::framework::runtime_error_f;
 
@@ -1051,7 +1050,6 @@ class TableMetadata
   static constexpr char const* tableLabel() { return INHERIT::mLabel; }
   static constexpr char const (&origin())[4] { return INHERIT::mOrigin; }
   static constexpr char const (&description())[16] { return INHERIT::mDescription; }
-  static std::string sourceSpec() { return fmt::format("{}/{}/{}", INHERIT::mLabel, INHERIT::mOrigin, INHERIT::mDescription); };
 };
 
 template <typename... C1, typename... C2>
@@ -1379,7 +1377,7 @@ constexpr auto is_binding_compatible_v()
 #define DECLARE_SOA_EXTENDED_TABLE_USER(_Name_, _Table_, _Description_, ...) \
   DECLARE_SOA_EXTENDED_TABLE_FULL(_Name_, _Table_, "AOD", _Description_, __VA_ARGS__)
 
-#define DECLARE_SOA_INDEX_TABLE_FULL(_Name_, _Key_, _Origin_, _Description_, _Exclusive_, ...)                                   \
+#define DECLARE_SOA_INDEX_TABLE_FULL(_Name_, _Key_, _Origin_, _Description_, ...)                                                \
   struct _Name_ : o2::soa::IndexTable<_Key_, __VA_ARGS__> {                                                                      \
     _Name_(std::shared_ptr<arrow::Table> table, uint64_t offset = 0) : o2::soa::IndexTable<_Key_, __VA_ARGS__>(table, offset){}; \
     _Name_(_Name_ const&) = default;                                                                                             \
@@ -1395,7 +1393,6 @@ constexpr auto is_binding_compatible_v()
     static constexpr char const* mLabel = #_Name_;                                                                               \
     static constexpr char const mOrigin[4] = _Origin_;                                                                           \
     static constexpr char const mDescription[16] = _Description_;                                                                \
-    static constexpr bool exclusive = _Exclusive_;                                                                               \
   };                                                                                                                             \
                                                                                                                                  \
   template <>                                                                                                                    \
@@ -1409,16 +1406,7 @@ constexpr auto is_binding_compatible_v()
   };
 
 #define DECLARE_SOA_INDEX_TABLE(_Name_, _Key_, _Description_, ...) \
-  DECLARE_SOA_INDEX_TABLE_FULL(_Name_, _Key_, "IDX", _Description_, false, __VA_ARGS__)
-
-#define DECLARE_SOA_INDEX_TABLE_EXCLUSIVE(_Name_, _Key_, _Description_, ...) \
-  DECLARE_SOA_INDEX_TABLE_FULL(_Name_, _Key_, "IDX", _Description_, true, __VA_ARGS__)
-
-#define DECLARE_SOA_INDEX_TABLE_USER(_Name_, _Key_, _Description_, ...) \
-  DECLARE_SOA_INDEX_TABLE_FULL(_Name_, _Key_, "AOD", _Description_, false, __VA_ARGS__)
-
-#define DECLARE_SOA_INDEX_TABLE_EXCLUSIVE_USER(_Name_, _Key_, _Description_, ...) \
-  DECLARE_SOA_INDEX_TABLE_FULL(_Name_, _Key_, "AOD", _Description_, true, __VA_ARGS__)
+  DECLARE_SOA_INDEX_TABLE_FULL(_Name_, _Key_, "AOD", _Description_, __VA_ARGS__)
 
 namespace o2::soa
 {
@@ -1779,7 +1767,6 @@ struct IndexTable : Table<soa::Index<>, H, Ts...> {
   using indexing_t = Key;
   using first_t = typename H::binding_t;
   using rest_t = framework::pack<typename Ts::binding_t...>;
-  using sources_t = framework::pack<Key, typename H::binding_t, typename Ts::binding_t...>;
 
   IndexTable(std::shared_ptr<arrow::Table> table, uint64_t offset = 0)
     : base_t{table, offset}
