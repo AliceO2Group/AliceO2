@@ -130,7 +130,7 @@ int main(int argc, char** argv)
 
     // options for AOD writer
     workflowOptions.push_back(ConfigParamSpec{"aodw-json", VariantType::String, "", {"Name of the json configuration file"}});
-    workflowOptions.push_back(ConfigParamSpec{"aodw-resfile", VariantType::String, "", {"Default name of the output file"}});
+    workflowOptions.push_back(ConfigParamSpec{"aodw-resfile", VariantType::String, "AnalysisResults_trees", {"Default name of the output file"}});
     workflowOptions.push_back(ConfigParamSpec{"aodw-resmode", VariantType::String, "RECREATE", {"Creation mode of the result files: NEW, CREATE, RECREATE, UPDATE"}});
     workflowOptions.push_back(ConfigParamSpec{"aodw-ntfmerge", VariantType::Int, 1, {"Number of time frames to merge into one file"}});
     workflowOptions.push_back(ConfigParamSpec{"aodw-keep", VariantType::String, "", {"Comma separated list of ORIGIN/DESCRIPTION/SUBSPECIFICATION:treename:col1/col2/..:filename"}});

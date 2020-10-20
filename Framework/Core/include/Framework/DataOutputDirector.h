@@ -40,18 +40,12 @@ struct DataOutputDescriptor {
   void setFilenameBase(std::string fn) { mfilenameBase = fn; }
   void setFilenameBase(std::string* fnptr) { mfilenameBasePtr = fnptr; }
   std::string getFilenameBase();
-  int getNumberOfWrites() { return numberOfWrites; }
-  int incrementNumberOfWrites() {
-    numberOfWrites++;
-    return numberOfWrites;
-  }
 
   void printOut();
 
  private:
   std::string mfilenameBase;
   std::string* mfilenameBasePtr = nullptr;
-  int numberOfWrites = -1;
 
   std::string remove_ws(const std::string& s);
 };

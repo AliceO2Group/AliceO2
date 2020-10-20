@@ -116,7 +116,7 @@ struct DataInputDirector {
   DataInputDescriptor* mdefaultDataInputDescriptor = nullptr;
   std::vector<FileNameHolder*> mdefaultInputFiles;
   std::vector<DataInputDescriptor*> mdataInputDescriptors;
-  
+
   bool mDebugMode = false;
   bool mAlienSupport = false;
 

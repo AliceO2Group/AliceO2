@@ -336,72 +336,7 @@ DataProcessorSpec
 {
 
   auto writerFunction = [dod, OutputInputs](InitContext& ic) -> std::function<void(ProcessingContext&)> {
-    LOG(DEBUG) << "======== getGlobalAODSink::Init ==========";
-
-    /*
-    auto dod = std::make_shared<DataOutputDirector>();
-
-    // analyze ic and take actions accordingly
-    // default values
-    std::string fnbase("AnalysisResults_trees");
-    std::string filemode("RECREATE");
-    int ntfmerge = 1;
-
-    // values from json
-    if (ic.options().isSet("json-file")) {
-      auto fnjson = ic.options().get<std::string>("json-file");
-      if (!fnjson.empty()) {
-        auto [fnb, fmo, ntfm] = dod->readJson(fnjson);
-        if (!fnb.empty()) {
-          fnbase = fnb;
-        }
-        if (!fmo.empty()) {
-          filemode = fmo;
-        }
-        if (ntfm > 0) {
-          ntfmerge = ntfm;
-        }
-      }
-    }
-
-    // values from command line options, information from json is overwritten
-    if (ic.options().isSet("res-file")) {
-      fnbase = ic.options().get<std::string>("res-file");
-    }
-    if (ic.options().isSet("res-mode")) {
-      filemode = ic.options().get<std::string>("res-mode");
-    }
-    if (ic.options().isSet("ntfmerge")) {
-      auto ntfm = ic.options().get<int>("ntfmerge");
-      if (ntfm > 0) {
-        ntfmerge = ntfm;
-      }
-    }
-    // parse the keepString
-    if (ic.options().isSet("keep")) {
-      dod->reset();
-      auto keepString = ic.options().get<std::string>("keep");
-
-      std::string d("dangling");
-      if (d.find(keepString) == 0) {
-
-        // use the dangling outputs
-        std::vector<InputSpec> danglingOutputs;
-        for (auto ii = 0; ii < OutputInputs.size(); ii++) {
-          if (isdangling[ii]) {
-            danglingOutputs.emplace_back(OutputInputs[ii]);
-          }
-        }
-        dod->readSpecs(danglingOutputs);
-
-      } else {
-
-        // use the keep string
-        dod->readString(keepString);
-      }
-    }
-    dod->setFilenameBase(fnbase);
-    */
+    LOGP(DEBUG, "======== getGlobalAODSink::Init ==========");
 
     // find out if any table needs to be saved
     bool hasOutputsToWrite = false;
@@ -412,17 +347,15 @@ DataProcessorSpec
         break;
       }
     }
-    LOGP(INFO, "hasOutputsToWrite {}",hasOutputsToWrite);
 
     // if nothing needs to be saved then return a trivial functor
+    // this happens when nothing needs to be saved but there are dangling outputs
     if (!hasOutputsToWrite) {
-      return [](ProcessingContext& context) mutable -> void {
+      return [](ProcessingContext&) mutable -> void {
         static bool once = false;
         if (!once) {
           LOG(INFO) << "No AODs to be saved.";
           once = true;
-          //context.services().get<ControlService>().endOfStream();
-          //context.services().get<ControlService>().readyToQuit(QuitRequest::Me);
         }
       };
     }
@@ -441,7 +374,7 @@ DataProcessorSpec
       LOGP(DEBUG, "======== getGlobalAODSink::processing ==========");
       LOGP(DEBUG, " processing data set with {} entries", pc.inputs().size());
 
-      // return immediately if pc.inputs() is empty
+      // return immediately if pc.inputs() is empty. This should never happen!
       auto ninputs = pc.inputs().size();
       if (ninputs == 0) {
         LOGP(INFO, "No inputs available!");
@@ -454,18 +387,19 @@ DataProcessorSpec
         // does this need to be saved?
         auto dh = DataRefUtils::getHeader<header::DataHeader*>(ref);
         auto dataProcessingHeader = DataRefUtils::getHeader<DataProcessingHeader*>(ref);
+        
+        // the startTime contained in the header determined the folder number
         uint64_t folderNumber = dataProcessingHeader->startTime;
         
-        LOGP(INFO, "folderNumber {}", folderNumber);
+        // get th erelevant DataOutputDescriptors
         auto ds = dod->getDataOutputDescriptors(*dh);
-
         if (ds.size() > 0) {
 
           // get the TableConsumer and corresponding arrow table
           auto s = pc.inputs().get<TableConsumer>(ref.spec->binding);
           auto table = s->asArrowTable();
           if (!table->Validate().ok()) {
-            LOGP(ERROR, "The table \"{}\" is not valid and will not be saved!", dh->description.str);
+            LOGP(WARNING, "The table \"{}\" is not valid and will not be saved!", dh->description.str);
             continue;
           } else if (table->num_rows() <= 0) {
             LOGP(WARNING, "The table \"{}\" is empty but will be saved anyway!", dh->description.str);
@@ -478,7 +412,6 @@ DataProcessorSpec
 
             auto [file, directory] = dod->getFileFolder(d, folderNumber);
             auto treename = directory + d->treename;
-            LOGP(INFO, "Writing {}:{}",file->GetName(),treename);
             TableToTree ta2tr(table,
                               file,
                               treename.c_str());
@@ -502,12 +435,15 @@ DataProcessorSpec
     });
   }; // end of writerFunction
 
+  // the command line options relevant for the writer are global
+  // see runDataProcessing.h
   DataProcessorSpec spec{
     "internal-dpl-aod-writer",
     OutputInputs,
     Outputs{},
     AlgorithmSpec(writerFunction),
-    {}};
+    {}
+  };
 
   return spec;
 }

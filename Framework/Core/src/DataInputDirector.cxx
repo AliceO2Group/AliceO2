@@ -109,10 +109,20 @@ std::tuple<TFile*, std::string> DataInputDescriptor::getFileFolder(int counter, 
   if (mfilenames[counter]->numberOfTimeFrames <= 0) {
     std::regex TFRegex = std::regex("TF_[0-9]+");
     TList* keyList = mcurrentFile->GetListOfKeys();
+    
+    // extract TF numbers and sort accordingly
+    std::list<uint64_t> folderNumbers;
     for (auto key : *keyList) {
       if (std::regex_match(((TObjString*)key)->GetString().Data(), TFRegex)) {
-        mfilenames[counter]->listOfTimeFrameKeys.emplace_back(std::string(((TObjString*)key)->GetString().Data()));
+        auto folderNumber = std::stoul(std::string(((TObjString*)key)->GetString().Data()).substr(3));
+        folderNumbers.emplace_back(folderNumber);
       }
+    }
+    folderNumbers.sort();
+    
+    for (auto folderNumber : folderNumbers) {
+      auto folderName = "TF_" + std::to_string(folderNumber);
+      mfilenames[counter]->listOfTimeFrameKeys.emplace_back(folderName);
     }
     mfilenames[counter]->numberOfTimeFrames = mfilenames[counter]->listOfTimeFrameKeys.size();
   }
@@ -503,7 +513,6 @@ TTree* DataInputDirector::getDataTree(header::DataHeader dh, int counter, int nu
   if (file) {
     treename = directory + "/" + treename;
     tree = (TTree*)file->Get(treename.c_str());
-    LOGP(INFO, "Returning tree {}",treename);
     if (!tree) {
       throw std::runtime_error(fmt::format(R"(Couldn't get TTree "{}" from "{}")", treename, file->GetName()));
     }

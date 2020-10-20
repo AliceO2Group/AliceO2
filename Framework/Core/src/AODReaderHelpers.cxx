@@ -94,13 +94,11 @@ AlgorithmSpec AODReaderHelpers::rootFileReaderCallback()
   auto callback = AlgorithmSpec{adaptStateful([](ConfigParamRegistry const& options,
                                                  DeviceSpec const& spec) {
     auto filename = options.get<std::string>("aod-file");
-    LOGP(INFO, "Input filename {}",filename);
-    LOGP(INFO, "time-limit {}",options.get<int64_t>("time-limit"));
 
     // create a DataInputDirector
     auto didir = std::make_shared<DataInputDirector>(filename);
-    if (options.isSet("aodr-jsonfile")) {
-      auto jsonFile = options.get<std::string>("aodr-jsonfile");
+    if (options.isSet("aodr-json")) {
+      auto jsonFile = options.get<std::string>("aodr-json");
       if (!didir->readJson(jsonFile)) {
         LOGP(ERROR, "Check the JSON document! Can not be properly parsed!");
       }
@@ -120,10 +118,11 @@ AlgorithmSpec AODReaderHelpers::rootFileReaderCallback()
                            numTF,
                            watchdog,
                            didir](DataAllocator& outputs, ControlService& control, DeviceSpec const& device) {      
+      
       // check if RuntimeLimit is reached
       if (!watchdog->update()) {
         LOGP(INFO, "Run time exceeds run time limit of {} seconds!", watchdog->runTimeLimit);
-        LOGP(INFO, "Stopping after time frame {}.", watchdog->numberTimeFrames - 1);
+        LOGP(INFO, "Stopping reader {} after time frame {}.", device.inputTimesliceId, watchdog->numberTimeFrames - 1);
         didir->closeInputFiles();
         control.endOfStream();
         control.readyToQuit(QuitRequest::Me);
@@ -133,13 +132,11 @@ AlgorithmSpec AODReaderHelpers::rootFileReaderCallback()
       // Each parallel reader device.inputTimesliceId reads the files fileCounter*device.maxInputTimeslices+device.inputTimesliceId
       // the TF to read is numTF
       assert(device.inputTimesliceId < device.maxInputTimeslices);
-      //size_t fi = (watchdog->numberTimeFrames * device.maxInputTimeslices) + device.inputTimesliceId;
+      int fcnt = (*fileCounter * device.maxInputTimeslices) + device.inputTimesliceId;
+      int ntf = *numTF + 1;
 
       // loop over requested tables
       TTree *tr = nullptr;
-      int fcnt = (fileCounter.get()[0] * device.maxInputTimeslices) + device.inputTimesliceId;
-      int ntf = numTF.get()[0] + 1;
-      LOGP(INFO, "counters {} / {} / {} / {}", device.inputTimesliceId, fileCounter.get()[0], fcnt, ntf);
       bool first = true;
       for (auto route : requestedTables) {
 
@@ -150,26 +147,29 @@ AlgorithmSpec AODReaderHelpers::rootFileReaderCallback()
         tr = didir->getDataTree(dh, fcnt, ntf);
         if (!tr) {
           if (first) {
+            // check if there is a next file to read
             fcnt += device.maxInputTimeslices;
             if (didir->atEnd(fcnt)) {
-              LOGP(INFO, "No input files left to read!");
+              LOGP(INFO, "No input files left to read for reader {}!", device.inputTimesliceId);
               didir->closeInputFiles();
               control.endOfStream();
               control.readyToQuit(QuitRequest::Me);
               return;
             }
+            // get first folder of next file
             ntf = 0;
             tr = didir->getDataTree(dh, fcnt, ntf);
             if (!tr) {
-              // throw exception!
+              LOGP(FATAL, "Can not retrieve tree for table {}: fileCounter {}, timeFrame {}", concrete.origin, fcnt, ntf);
+              throw std::runtime_error("Processing is stopped!");
             }
           } else {
-            // throw exception!
+            LOGP(FATAL, "Can not retrieve tree for table {}: fileCounter {}, timeFrame {}", concrete.origin, fcnt, ntf);
+            throw std::runtime_error("Processing is stopped!");
           }
-        } else {
-          first = false;
         }
-        LOGP(INFO, "Reading {}",tr->GetName());
+        first = false;
+
         auto o = Output(dh);
         auto& t2t = outputs.make<TreeToTable>(o);
 
@@ -188,8 +188,8 @@ AlgorithmSpec AODReaderHelpers::rootFileReaderCallback()
       }
       
       // save file number and time frame
-      fileCounter.get()[0] = (fcnt - device.inputTimesliceId) / device.maxInputTimeslices;
-      numTF.get()[0] = ntf;
+      *fileCounter = (fcnt - device.inputTimesliceId) / device.maxInputTimeslices;
+      *numTF = ntf;
 
     });
   })};

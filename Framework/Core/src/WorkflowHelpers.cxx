@@ -209,7 +209,7 @@ void WorkflowHelpers::injectServiceDevices(WorkflowSpec& workflow, ConfigContext
     {},
     readers::AODReaderHelpers::rootFileReaderCallback(),
     {ConfigParamSpec{"aod-file", VariantType::String, "aod.root", {"Input AOD file"}},
-     ConfigParamSpec{"aodr-jsonfile", VariantType::String, {"json configuration file"}},
+     ConfigParamSpec{"aodr-json", VariantType::String, {"json configuration file"}},
      ConfigParamSpec{"time-limit", VariantType::Int64, 0ll, {"Maximum run time limit in seconds"}},
      ConfigParamSpec{"start-value-enumeration", VariantType::Int64, 0ll, {"initial value for the enumeration"}},
      ConfigParamSpec{"end-value-enumeration", VariantType::Int64, -1ll, {"final value for the enumeration"}},
@@ -386,24 +386,16 @@ void WorkflowHelpers::injectServiceDevices(WorkflowSpec& workflow, ConfigContext
   // ATTENTION: if there are dangling outputs the getGlobalAODSink
   // has to be created in any case!
   std::vector<InputSpec> outputsInputsAOD;
-  std::vector<bool> isdangling;
-  LOGP(INFO, "OutputsInputs.size() {}", OutputsInputs.size());
   for (auto ii = 0u; ii < OutputsInputs.size(); ii++) {
     if ((outputTypes[ii] & 2) == 2) {
       auto ds = dod->getDataOutputDescriptors(OutputsInputs[ii]);
       if (ds.size() > 0 || (outputTypes[ii] & 1) == 1) {
         outputsInputsAOD.emplace_back(OutputsInputs[ii]);
-        // is this dangling ?
-        if ((outputTypes[ii] & 1) == 1) {
-          isdangling.emplace_back((outputTypes[ii] & 1) == 1);
-        }
       }
     }
   }
 
-  LOGP(INFO, "outputsInputsAOD.size() {}", outputsInputsAOD.size());
   if (outputsInputsAOD.size() > 0) {
-    LOGP(INFO, "Creating getGlobalAODSink");
     auto fileSink = CommonDataProcessors::getGlobalAODSink(dod,outputsInputsAOD);
     extraSpecs.push_back(fileSink);
   }
