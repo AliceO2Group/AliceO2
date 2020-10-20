@@ -39,6 +39,7 @@
 
 #include <sys/time.h>
 #include <sys/resource.h>
+#include <csignal>
 
 namespace bpo = boost::program_options;
 
@@ -50,6 +51,11 @@ namespace o2::framework
 namespace detail
 {
 void timer_callback(uv_timer_t*)
+{
+  // We simply wake up the event loop. Nothing to be done here.
+}
+
+void signal_callback(uv_signal_t*, int)
 {
   // We simply wake up the event loop. Nothing to be done here.
 }
@@ -75,6 +81,27 @@ struct ExpirationHandlerHelpers {
       state.activeTimers.push_back(timer);
 
       return LifetimeHelpers::timeDrivenCreation(std::chrono::microseconds(period));
+    };
+  }
+
+  static RouteConfigurator::CreationConfigurator signalDrivenConfigurator(InputSpec const& matcher, size_t inputTimeslice, size_t maxInputTimeslices)
+  {
+    return [matcher, inputTimeslice, maxInputTimeslices](DeviceState& state, ConfigParamRegistry const& options) {
+      std::string startName = std::string{"start-value-"} + matcher.binding;
+      std::string endName = std::string{"end-value-"} + matcher.binding;
+      std::string stepName = std::string{"step-value-"} + matcher.binding;
+      auto start = options.get<int64_t>(startName.c_str());
+      auto stop = options.get<int64_t>(endName.c_str());
+      auto step = options.get<int64_t>(stepName.c_str());
+      // We create a timer to wake us up. Notice the actual
+      // timeslot creation and record expiration still happens
+      // in a synchronous way.
+      uv_signal_t* sh = (uv_signal_t*)(malloc(sizeof(uv_signal_t)));
+      uv_signal_init(state.loop, sh);
+      uv_signal_start(sh, detail::signal_callback, SIGUSR1);
+      state.activeSignals.push_back(sh);
+
+      return LifetimeHelpers::enumDrivenCreation(start, stop, step, inputTimeslice, maxInputTimeslices);
     };
   }
 
@@ -588,6 +615,12 @@ void DeviceSpecHelpers::processInEdgeActions(std::vector<DeviceSpec>& devices,
       case Lifetime::Enumeration:
         route.configurator = {
           ExpirationHandlerHelpers::enumDrivenConfigurator(inputSpec, consumerDevice.inputTimesliceId, consumerDevice.maxInputTimeslices),
+          ExpirationHandlerHelpers::danglingEnumerationConfigurator(inputSpec),
+          ExpirationHandlerHelpers::expiringEnumerationConfigurator(inputSpec, sourceChannel)};
+        break;
+      case Lifetime::Signal:
+        route.configurator = {
+          ExpirationHandlerHelpers::signalDrivenConfigurator(inputSpec, consumerDevice.inputTimesliceId, consumerDevice.maxInputTimeslices),
           ExpirationHandlerHelpers::danglingEnumerationConfigurator(inputSpec),
           ExpirationHandlerHelpers::expiringEnumerationConfigurator(inputSpec, sourceChannel)};
         break;
