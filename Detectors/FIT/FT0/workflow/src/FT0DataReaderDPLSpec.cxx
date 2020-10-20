@@ -19,18 +19,17 @@ namespace o2
 namespace ft0
 {
 using namespace std;
-template <bool IsExtendedMode>
-void FT0DataReaderDPLSpec<IsExtendedMode>::init(InitContext& ic)
+template <typename RawReader>
+void FT0DataReaderDPLSpec<RawReader>::init(InitContext& ic)
 
 {
 }
-template <bool IsExtendedMode>
-void FT0DataReaderDPLSpec<IsExtendedMode>::run(ProcessingContext& pc)
+template <typename RawReader>
+void FT0DataReaderDPLSpec<RawReader>::run(ProcessingContext& pc)
 
 {
   DPLRawParser parser(pc.inputs());
-  mVecDigits.clear();
-  mVecChannelData.clear();
+  mRawReader.clear();
   LOG(INFO) << "FT0DataReaderDPLSpec";
   uint64_t count = 0;
   for (auto it = parser.begin(), end = parser.end(); it != end; ++it) {
@@ -38,38 +37,24 @@ void FT0DataReaderDPLSpec<IsExtendedMode>::run(ProcessingContext& pc)
     count++;
     auto rdhPtr = it.get_if<o2::header::RAWDataHeader>();
     gsl::span<const uint8_t> payload(it.data(), it.size());
-    mRawReaderFT0.process(rdhPtr->linkID, payload);
+    mRawReader.process(rdhPtr->linkID, payload);
   }
-
-  mRawReaderFT0.getDigits(mVecDigits, mVecChannelData);
-  LOG(INFO) << "Number of Digits: " << mVecDigits.size();
-  LOG(INFO) << "Number of ChannelData: " << mVecChannelData.size();
-  if (mDumpEventBlocks)
-    DigitBlockFT0::print(mVecDigits, mVecChannelData);
-  pc.outputs().snapshot(Output{o2::header::gDataOriginFT0, "DIGITSBC", 0, Lifetime::Timeframe}, mVecDigits);
-  pc.outputs().snapshot(Output{o2::header::gDataOriginFT0, "DIGITSCH", 0, Lifetime::Timeframe}, mVecChannelData);
-}
-AlgorithmSpec getAlgorithmSpec(bool dumpReader, bool isExtendedMode)
-{
-  if (isExtendedMode) {
-    LOG(INFO) << "TCM mode: extended, additional TCM data blocks(TCMdataExtended) will be in payload from TCM!";
-    return adaptFromTask<FT0DataReaderDPLSpec<true>>(dumpReader, isExtendedMode);
-  }
-  LOG(INFO) << "TCM mode: normal, only TCMdata will be in payload from TCM.";
-  return adaptFromTask<FT0DataReaderDPLSpec<false>>(dumpReader, isExtendedMode);
+  LOG(INFO)<<"Pages: "<<count;
+  mRawReader.print();
+  mRawReader.makeSnapshot(pc.outputs());
 }
 
-DataProcessorSpec getFT0DataReaderDPLSpec(bool dumpReader, bool isExtendedMode)
+template<typename RawReader>
+DataProcessorSpec getFT0DataReaderDPLSpec(bool dumpReader)
 {
+  LOG(INFO) << "DataProcessorSpec initDataProcSpec() for RawReaderFT0ext";
   std::vector<OutputSpec> outputSpec;
-  outputSpec.emplace_back(o2::header::gDataOriginFT0, "DIGITSBC", 0, Lifetime::Timeframe);
-  outputSpec.emplace_back(o2::header::gDataOriginFT0, "DIGITSCH", 0, Lifetime::Timeframe);
-  LOG(INFO) << "DataProcessorSpec getFT0DataReaderDPLSpec";
+  RawReader::prepareOutputSpec(outputSpec);
   return DataProcessorSpec{
-    "ft0-datareader-dpl-flp",
+    "ft0-datareader-dpl",
     o2::framework::select("TF:FT0/RAWDATA"),
     outputSpec,
-    getAlgorithmSpec(dumpReader, isExtendedMode),
+    adaptFromTask<FT0DataReaderDPLSpec<RawReader>>(dumpReader),
     Options{}};
 }
 

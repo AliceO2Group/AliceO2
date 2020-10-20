@@ -23,11 +23,11 @@
 #include "Framework/WorkflowSpec.h"
 #include "Framework/SerializationMethods.h"
 #include "DPLUtils/DPLRawParser.h"
-#include "FT0Raw/RawReaderFT0.h"
-#include "FT0Raw/DigitBlockFT0.h"
+//#include "FT0Raw/RawReaderFT0.h"
+//#include "FT0Raw/DigitBlockFT0.h"
 
-#include "DataFormatsFT0/Digit.h"
-#include "DataFormatsFT0/ChannelData.h"
+//#include "DataFormatsFT0/Digit.h"
+//#include "DataFormatsFT0/ChannelData.h"
 #include <iostream>
 #include <vector>
 #include <gsl/span>
@@ -37,25 +37,23 @@ namespace o2
 {
 namespace ft0
 {
-template <bool IsExtendedMode>
+template <typename RawReader>
 class FT0DataReaderDPLSpec : public Task
 {
  public:
-  FT0DataReaderDPLSpec(bool dumpEventBlocks, bool isExtendedMode) : mIsExtendedMode(isExtendedMode), mDumpEventBlocks(dumpEventBlocks) {}
+  FT0DataReaderDPLSpec(bool dumpEventBlocks) : mDumpEventBlocks(dumpEventBlocks) {}
   ~FT0DataReaderDPLSpec() override = default;
   void init(InitContext& ic) final;
   void run(ProcessingContext& pc) final;
 
  private:
-  bool mDumpEventBlocks;
-  bool mIsExtendedMode;
-  std::vector<Digit> mVecDigits;
-  std::vector<ChannelData> mVecChannelData;
-  RawReaderFT0<IsExtendedMode> mRawReaderFT0;
+//  bool mDumpEventBlocks;
+//  bool mIsExtendedMode;
+  RawReader mRawReader;
   o2::header::DataOrigin mOrigin = o2::header::gDataOriginFT0;
 };
-framework::AlgorithmSpec getAlgorithmSpec(bool dumpReader, bool isExtendedMode);
-framework::DataProcessorSpec getFT0DataReaderDPLSpec(bool dumpReader, bool isExtendedMode);
+//framework::AlgorithmSpec getAlgorithmSpec(bool dumpReader, bool isExtendedMode);
+framework::DataProcessorSpec getFT0DataReaderDPLSpec(bool dumpReader);
 
 } // namespace ft0
 } // namespace o2
