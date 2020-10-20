@@ -397,10 +397,10 @@ DataProcessorSpec specifyExternalFairMQDeviceProxy(char const* name,
 
 namespace
 {
-// Decide where to sent the output. Everything to "downstream" for now
-std::string decideChannel(InputSpec const&)
+// Decide where to sent the output. Everything to "downstream" if there is such a channel.
+std::string decideChannel(InputSpec const& input, const std::unordered_map<std::string, std::vector<FairMQChannel>>& channels)
 {
-  return "downstream";
+  return channels.count("downstream") ? "downstream" : input.binding;
 }
 } // namespace
 
@@ -420,7 +420,7 @@ DataProcessorSpec specifyFairMQDeviceOutputProxy(char const* name,
     auto channelConfigurationChecker = [inputSpecs = std::move(inputSpecs), device]() {
       LOG(INFO) << "checking channel configuration";
       for (auto const& spec : inputSpecs) {
-        auto channel = decideChannel(spec);
+        auto channel = decideChannel(spec, device->fChannels);
         if (device->fChannels.count(channel) == 0) {
           throw std::runtime_error("no corresponding output channel found for input '" + channel + "'");
         }
@@ -453,7 +453,7 @@ DataProcessorSpec specifyFairMQDeviceOutputProxy(char const* name,
           }
           size_t payloadMsgSize = dh->payloadSize;
 
-          auto channel = decideChannel(*first.spec);
+          auto channel = decideChannel(*first.spec, device.fChannels);
           auto headerMessage = device.NewMessageFor(channel, index, headerMsgSize);
           memcpy(headerMessage->GetData(), part.header, headerMsgSize);
           auto payloadMessage = device.NewMessageFor(channel, index, payloadMsgSize);
