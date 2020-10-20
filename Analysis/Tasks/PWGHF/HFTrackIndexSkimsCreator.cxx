@@ -28,28 +28,29 @@ using namespace o2::framework::expressions;
 struct SelectTracks {
   Produces<aod::HFSelTrack> rowSelectedTrack;
 
-  Configurable<bool> b_dovalplots{"b_dovalplots", true, "do validation plots"};
+  Configurable<bool> b_dovalplots{"b_dovalplots", true, "fill histograms"};
   Configurable<double> d_bz{"d_bz", 5., "bz field"};
   // quality cut
-  Configurable<int> d_tpcnclsfound{"d_tpcnclsfound", 70, "min number of tpc cls >="};
+  Configurable<bool> doCutQuality{"doCutQuality", true, "apply quality cuts"};
+  Configurable<int> d_tpcnclsfound{"d_tpcnclsfound", 70, "min. number of TPC clusters"};
   // 2-prong cuts
-  Configurable<double> ptmintrack_2prong{"ptmintrack_2prong", -1., "ptmin single track"};
-  Configurable<double> dcatoprimxymin_2prong{"dcatoprimxymin_2prong", 0., "dca xy to prim vtx min"};
-  Configurable<double> etamax_2prong{"etamax_2prong", 999., "maximum pseudorapidity value"};
+  Configurable<double> ptmintrack_2prong{"ptmintrack_2prong", -1., "min. track pT"};
+  Configurable<double> dcatoprimxymin_2prong{"dcatoprimxymin_2prong", 0., "min. DCAXY to prim. vtx."};
+  Configurable<double> etamax_2prong{"etamax_2prong", 999., "max. pseudorapidity"};
   // 3-prong cuts
-  Configurable<double> ptmintrack_3prong{"ptmintrack_3prong", -1., "ptmin single track"};
-  Configurable<double> dcatoprimxymin_3prong{"dcatoprimxymin_3prong", 0., "dca xy to prim vtx min"};
-  Configurable<double> etamax_3prong{"etamax_3prong", 999., "maximum pseudorapidity value"};
+  Configurable<double> ptmintrack_3prong{"ptmintrack_3prong", -1., "min. track pT"};
+  Configurable<double> dcatoprimxymin_3prong{"dcatoprimxymin_3prong", 0., "min. DCAXY to prim. vtx."};
+  Configurable<double> etamax_3prong{"etamax_3prong", 999., "max. pseudorapidity"};
 
-  OutputObj<TH1F> hpt_nocuts{TH1F("hpt_nocuts", "pt tracks (GeV/#it{c})", 100, 0., 10.)};
+  OutputObj<TH1F> hpt_nocuts{TH1F("hpt_nocuts", "#it{p}_{T}^{track} (GeV/#it{c})", 100, 0., 10.)};
   // 2-prong histograms
-  OutputObj<TH1F> hpt_cuts_2prong{TH1F("hpt_cuts_2prong", "pt tracks (GeV/#it{c})", 100, 0., 10.)};
-  OutputObj<TH1F> hdcatoprimxy_cuts_2prong{TH1F("hdcatoprimxy_cuts_2prong", "dca xy to prim. vertex (cm)", 100, -1., 1.)};
-  OutputObj<TH1F> heta_cuts_2prong{TH1F("heta_cuts_2prong", "pseudorapidity", 100, -1., 1.)};
+  OutputObj<TH1F> hpt_cuts_2prong{TH1F("hpt_cuts_2prong", "#it{p}_{T}^{track} (GeV/#it{c})", 100, 0., 10.)};
+  OutputObj<TH1F> hdcatoprimxy_cuts_2prong{TH1F("hdcatoprimxy_cuts_2prong", "DCAXY to prim. vtx. (cm)", 100, -1., 1.)};
+  OutputObj<TH1F> heta_cuts_2prong{TH1F("heta_cuts_2prong", "#it{#eta}", 100, -1., 1.)};
   // 3-prong histograms
-  OutputObj<TH1F> hpt_cuts_3prong{TH1F("hpt_cuts_3prong", "pt tracks (GeV/#it{c})", 100, 0., 10.)};
-  OutputObj<TH1F> hdcatoprimxy_cuts_3prong{TH1F("hdcatoprimxy_cuts_3prong", "dca xy to prim. vertex (cm)", 100, -1., 1.)};
-  OutputObj<TH1F> heta_cuts_3prong{TH1F("heta_cuts_3prong", "pseudorapidity", 100, -1., 1.)};
+  OutputObj<TH1F> hpt_cuts_3prong{TH1F("hpt_cuts_3prong", "#it{p}_{T}^{track} (GeV/#it{c})", 100, 0., 10.)};
+  OutputObj<TH1F> hdcatoprimxy_cuts_3prong{TH1F("hdcatoprimxy_cuts_3prong", "DCAXY to prim. vtx. (cm)", 100, -1., 1.)};
+  OutputObj<TH1F> heta_cuts_3prong{TH1F("heta_cuts_3prong", "#it{#eta}", 100, -1., 1.)};
 
   void process(aod::Collision const& collision,
                soa::Join<aod::Tracks, aod::TracksCov, aod::TracksExtra> const& tracks)
@@ -75,7 +76,7 @@ struct SelectTracks {
         status_3prong = 0;
 
       // quality cut
-      if (status_2prong || status_3prong) {
+      if (doCutQuality && (status_2prong || status_3prong)) {
         UChar_t clustermap = track.itsClusterMap();
         bool isselected = track.tpcNClsFound() >= d_tpcnclsfound &&
                           track.flags() & o2::aod::track::ITSrefit &&
@@ -124,23 +125,27 @@ struct HFTrackIndexSkimsCreator {
   Produces<aod::HfTrackIndexProng2> rowTrackIndexProng2;
   Produces<aod::HfTrackIndexProng3> rowTrackIndexProng3;
 
-  Configurable<int> triggerindex{"triggerindex", -1, "trigger index"};
+  Configurable<bool> b_dovalplots{"b_dovalplots", true, "fill histograms"};
   Configurable<int> do3prong{"do3prong", 0, "do 3 prong"};
-  Configurable<double> d_bz{"d_bz", 5., "bz field"};
+  // event selection
+  Configurable<int> triggerindex{"triggerindex", -1, "trigger index"};
+  // vertexing parameters
+  Configurable<double> d_bz{"d_bz", 5., "magnetic field"};
   Configurable<bool> b_propdca{"b_propdca", true, "create tracks version propagated to PCA"};
   Configurable<double> d_maxr{"d_maxr", 200., "reject PCA's above this radius"};
   Configurable<double> d_maxdzini{"d_maxdzini", 4., "reject (if>0) PCA candidate if tracks DZ exceeds threshold"};
   Configurable<double> d_minparamchange{"d_minparamchange", 1.e-3, "stop iterations if largest change of any X is smaller than this"};
-  Configurable<double> d_minrelchi2change{"d_minrelchi2change", 0.9, "stop iterations is chi2/chi2old > this"};
-  Configurable<double> d_minmassDp{"d_minmassDp", 1.5, "min mass dplus presel"};
-  Configurable<double> d_maxmassDp{"d_maxmassDp", 2.1, "max mass dplus presel"};
-  Configurable<bool> b_dovalplots{"b_dovalplots", true, "do validation plots"};
+  Configurable<double> d_minrelchi2change{"d_minrelchi2change", 0.9, "stop iterations if chi2/chi2old > this"};
+  // 2-prong cuts
   Configurable<double> ptmincand_2prong{"ptmincand_2prong", -1., "ptmin 2prong candidate"};
-  Configurable<double> ptmincand_3prong{"ptmincand_3prong", -1., "ptmin 3prong candidate"};
   Configurable<double> cutCPAMin{"cutCPAMin", -2., "min. cosine of pointing angle"};
   Configurable<double> cutInvMassD0Min{"cutInvMassD0Min", -1., "min. D0 candidate invariant mass"};
   Configurable<double> cutInvMassD0Max{"cutInvMassD0Max", -1., "max. D0 candidate invariant mass"};
   Configurable<double> cutImpParProductMax{"cutImpParProductMax", 100., "max. product of imp. par. of D0 candidate prongs"};
+  // 3-prong cuts
+  Configurable<double> ptmincand_3prong{"ptmincand_3prong", -1., "ptmin 3prong candidate"};
+  Configurable<double> d_minmassDp{"d_minmassDp", 1.5, "min. D+ candidate invariant mass"};
+  Configurable<double> d_maxmassDp{"d_maxmassDp", 2.1, "min. D+ candidate invariant mass"};
 
   // 2-prong histograms
   OutputObj<TH1F> hvtx_x{TH1F("hvtx_x", "2-track vtx", 1000, -2., 2.)};
