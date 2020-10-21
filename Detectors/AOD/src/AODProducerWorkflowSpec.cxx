@@ -38,7 +38,8 @@
 
 using namespace o2::framework;
 
-namespace o2::aodproducer {
+namespace o2::aodproducer
+{
 
 void AODProducerWorkflowDPL::findMinMaxBc(gsl::span<const o2::ft0::RecPoints>& ft0RecPoints, gsl::span<const o2::dataformats::TrackTPCITS>& tracksITSTPC)
 {

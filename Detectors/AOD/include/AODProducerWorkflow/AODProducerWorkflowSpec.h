@@ -24,7 +24,8 @@
 
 using namespace o2::framework;
 
-namespace o2::aodproducer {
+namespace o2::aodproducer
+{
 
 using TracksTable = o2::soa::Table<o2::aod::track::CollisionId,
                                    o2::aod::track::TrackType,

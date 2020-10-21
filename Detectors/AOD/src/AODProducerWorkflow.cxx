@@ -54,4 +54,3 @@ framework::WorkflowSpec getAODProducerWorkflow()
 }
 
 } // namespace o2::aodproducer
-
