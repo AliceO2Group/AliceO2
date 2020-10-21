@@ -20,7 +20,4 @@
 #pragma link C++ class o2::ft0::DigitBlockFT0 + ;
 #pragma link C++ class o2::ft0::DigitBlockFT0ext + ;
 
-//#pragma link C++ class o2::ft0::RawReaderFT0 < true> + ;
-//#pragma link C++ class o2::ft0::RawReaderFT0 < false> + ;
-
 #endif
