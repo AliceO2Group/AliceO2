@@ -600,12 +600,14 @@ void Digits2Raw::convertDigits(int ibc)
         mZDC.data[im][ic].f.Auto_3 = 1;
   }
 
-  bcd.print();
-  printf("Mask: %s\n", mPrintTriggerMask.data());
+  if(mVerbosity>0){
+    bcd.print();
+    printf("Mask: %s\n", mPrintTriggerMask.data());
+  }
   int chEnt = bcd.ref.getFirstEntry();
   for (int ic = 0; ic < bcd.ref.getEntries(); ic++) {
     const auto& chd = mzdcChData[chEnt++];
-    chd.print();
+    if(mVerbosity>0)chd.print();
     UShort_t bc = bcd.ir.bc;
     UInt_t orbit = bcd.ir.orbit;
     // Look for channel ID in digits and store channel (just one copy in output)
