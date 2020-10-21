@@ -129,3 +129,48 @@ BOOST_AUTO_TEST_CASE(TestDeviceMetricsInfo)
   result = DeviceMetricsHelper::processMetric(match, info);
   BOOST_CHECK_EQUAL(result, true);
 }
+
+BOOST_AUTO_TEST_CASE(TestDeviceMetricsInfo2)
+{
+  using namespace o2::framework;
+  DeviceMetricsInfo info;
+  auto bkey = DeviceMetricsHelper::createNumericMetric<int>(info, "bkey");
+  auto akey = DeviceMetricsHelper::createNumericMetric<float>(info, "akey");
+  auto ckey = DeviceMetricsHelper::createNumericMetric<uint64_t>(info, "ckey");
+  BOOST_CHECK_EQUAL(DeviceMetricsHelper::metricIdxByName("akey", info), 1);
+  BOOST_CHECK_EQUAL(DeviceMetricsHelper::metricIdxByName("bkey", info), 0);
+  BOOST_CHECK_EQUAL(DeviceMetricsHelper::metricIdxByName("ckey", info), 2);
+  BOOST_CHECK_EQUAL(info.changed.at(0), true);
+  bkey(info, 0);
+  bkey(info, 1);
+  bkey(info, 2);
+  bkey(info, 3);
+  bkey(info, 4);
+  bkey(info, 5);
+  BOOST_CHECK_EQUAL(info.changed[0], true);
+  BOOST_CHECK_EQUAL(info.intMetrics[0][0], 0);
+  BOOST_CHECK_EQUAL(info.intMetrics[0][1], 1);
+  BOOST_CHECK_EQUAL(info.intMetrics[0][2], 2);
+  BOOST_CHECK_EQUAL(info.intMetrics[0][3], 3);
+  BOOST_CHECK_EQUAL(info.intMetrics[0][4], 4);
+  BOOST_CHECK_EQUAL(info.intMetrics[0][5], 5);
+  BOOST_CHECK_EQUAL(info.changed[1], true);
+  bkey(info, 5);
+  akey(info, 1.);
+  akey(info, 2.);
+  akey(info, 3.);
+  akey(info, 4.);
+  BOOST_CHECK_EQUAL(info.intMetrics[0][6], 5);
+  BOOST_CHECK_EQUAL(info.floatMetrics[0][0], 1.);
+  BOOST_CHECK_EQUAL(info.floatMetrics[0][1], 2.);
+  BOOST_CHECK_EQUAL(info.floatMetrics[0][2], 3.);
+  BOOST_CHECK_EQUAL(info.floatMetrics[0][3], 4.);
+  BOOST_CHECK_EQUAL(info.timestamps.size(), 3);
+  BOOST_CHECK_EQUAL(info.changed.size(), 3);
+  for (int i = 0; i < 1026; ++i) {
+    ckey(info, i);
+  }
+  BOOST_CHECK_EQUAL(info.uint64Metrics[0][0], 1024);
+  BOOST_CHECK_EQUAL(info.uint64Metrics[0][1], 1025);
+  BOOST_CHECK_EQUAL(info.uint64Metrics[0][2], 2);
+}
