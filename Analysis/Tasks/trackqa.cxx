@@ -14,12 +14,11 @@
 
 #include "Framework/AnalysisDataModel.h"
 #include "Framework/AnalysisTask.h"
-#include "Analysis/MC.h"
 #include "Framework/HistogramRegistry.h"
-
-#include <cmath>
-
+#include "Analysis/MC.h"
 #include "Analysis/TrackSelectionTables.h"
+#include "Analysis/TrackSelection.h"
+#include "Analysis/TrackSelectionDefaults.h"
 
 using namespace o2;
 using namespace o2::framework;
@@ -28,7 +27,8 @@ using namespace o2::framework::expressions;
 void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
 {
   std::vector<ConfigParamSpec> options{
-    {"mc", VariantType::Bool, false, {"Add MC QA histograms."}}};
+    {"mc", VariantType::Bool, false, {"Add MC QA histograms."}},
+    {"add-cut-qa", VariantType::Int, 0, {"Add track cut QA histograms."}}};
   std::swap(workflowOptions, options);
 }
 #include "Framework/runDataProcessing.h"
@@ -144,6 +144,28 @@ struct TrackQATask {
   }
 };
 
+struct TrackCutQATask {
+  HistogramRegistry cuts{"Cuts", true, {}, OutputObjHandlingPolicy::QAObject};
+  TrackSelection selectedTracks = getGlobalTrackSelection();
+  static constexpr int ncuts = static_cast<int>(TrackSelection::TrackCuts::kNCuts);
+  void init(InitContext&)
+  {
+    cuts.add("single_cut", ";Cut;Tracks", kTH1D, {{ncuts, 0, ncuts}});
+    for (int i = 0; i < ncuts; i++) {
+      cuts.get<TH1>("single_cut")->GetXaxis()->SetBinLabel(1 + i, TrackSelection::mCutNames[i].data());
+    }
+  }
+
+  void process(soa::Join<aod::FullTracks, aod::TracksExtended>::iterator const& track)
+  {
+    for (int i = 0; i < ncuts; i++) {
+      if (selectedTracks.IsSelected(track, static_cast<TrackSelection::TrackCuts>(i))) {
+        cuts.fill("single_cut", i);
+      }
+    }
+  }
+};
+
 //****************************************************************************************
 /**
  * QA task including MC truth info.
@@ -169,10 +191,14 @@ struct TrackQATaskMC {
 //****************************************************************************************
 WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
 {
-  bool isMC = cfgc.options().get<bool>("mc");
+  const bool isMC = cfgc.options().get<bool>("mc");
+  const int add_cut_qa = cfgc.options().get<int>("add-cut-qa");
 
   WorkflowSpec workflow;
   workflow.push_back(adaptAnalysisTask<TrackQATask>("track-qa-histograms"));
+  if (add_cut_qa) {
+    workflow.push_back(adaptAnalysisTask<TrackCutQATask>("track-cut-qa-histograms"));
+  }
   if (isMC) {
     workflow.push_back(adaptAnalysisTask<TrackQATaskMC>("track-qa-histograms-mc"));
   }

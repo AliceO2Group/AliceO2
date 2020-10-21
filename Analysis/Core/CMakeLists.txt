@@ -23,6 +23,7 @@ o2_target_root_dictionary(AnalysisCore
               HEADERS include/Analysis/StepTHn.h
                       include/Analysis/CorrelationContainer.h
                       include/Analysis/TrackSelection.h
+                      include/Analysis/TrackSelectionDefaults.h
                       include/Analysis/VarManager.h
                       include/Analysis/HistogramManager.h
                       include/Analysis/AnalysisCut.h
