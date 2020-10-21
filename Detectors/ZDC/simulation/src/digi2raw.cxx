@@ -110,7 +110,7 @@ void digi2raw(const std::string& inpName, const std::string& outDir, int verbosi
   const auto* ctx = o2::steer::DigitizationContext::loadFromFile("collisioncontext.root");
   const auto& bcfill = ctx->getBunchFilling();
   auto bf=ctx->getBunchFilling();
-  bf.print();
+  if(verbosity>0)bf.print();
   auto bp=bf.getPattern();
 
   TStopwatch swTot;
@@ -143,7 +143,7 @@ void digi2raw(const std::string& inpName, const std::string& outDir, int verbosi
   d2r.setModuleConfig(moduleConfig);
   d2r.setSimCondition(simCondition);
   d2r.emptyBunches(bp);
-  d2r.setVerbosity(2);
+  d2r.setVerbosity(verbosity);
   d2r.processDigits(outDirName, inpName);
   wr.writeConfFile(wr.getOrigin().str, "RAWDATA", o2::utils::concat_string(outDirName, wr.getOrigin().str, "raw.cfg"));
   //
