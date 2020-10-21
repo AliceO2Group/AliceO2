@@ -8,5 +8,5 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#include "FT0Raw/DataBlockReader.h"
-using namespace o2::ft0;
+#include "FITRaw/RawReaderBase.h"
+using namespace o2::fit;

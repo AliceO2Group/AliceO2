@@ -114,6 +114,29 @@ struct Digit {
   bool getStatusFlag(EEventStatus bit) const { return bool(mEventStatus << bit); }
   ClassDefNV(Digit, 4);
 };
+
+//For TCM extended mode (calibration mode), TCMdataExtended digit
+struct TriggersExt {
+  TriggersExt(uint32_t triggerWord)
+  {
+    mTriggerWord = triggerWord;
+  }
+  TriggersExt() = default;
+  uint32_t mTriggerWord;
+  ClassDefNV(TriggersExt, 1);
+};
+
+//For TCM extended mode (calibration mode)
+struct DigitExt : Digit {
+  DigitExt(int first, int ne, int firstExt, int neExt, const o2::InteractionRecord& iRec, const Triggers& chTrig, int event) : Digit(first, ne, iRec, chTrig, event)
+  {
+    refExt.setFirstEntry(firstExt);
+    refExt.setEntries(neExt);
+  }
+  DigitExt() = default;
+  o2::dataformats::RangeReference<int, int> refExt; //range reference to container with TriggerExt objects
+  ClassDefNV(DigitExt, 1);
+};
 } // namespace ft0
 } // namespace o2
 

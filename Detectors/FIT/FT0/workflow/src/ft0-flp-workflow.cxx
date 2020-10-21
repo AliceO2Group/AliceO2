@@ -62,6 +62,6 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   auto disableRootOut =
     configcontext.options().get<bool>("disable-root-output");
   LOG(INFO) << "WorkflowSpec FLPWorkflow";
-  return std::move(o2::fit::getFT0Workflow(
+  return std::move(o2::ft0::getFT0Workflow(
     isExtendedMode, useProcessor, dumpProcessor, dumpReader, disableRootOut));
 }
