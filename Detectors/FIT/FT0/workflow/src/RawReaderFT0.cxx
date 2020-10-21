@@ -8,5 +8,5 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#include "FT0Raw/RawReaderFT0.h"
+#include "FT0Workflow/RawReaderFT0.h"
 using namespace o2::ft0;

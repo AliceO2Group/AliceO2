@@ -26,7 +26,7 @@
 #include "DataFormatsFT0/ChannelData.h"
 
 #include "Framework/ProcessingContext.h"
-
+#include "Framework/OutputSpec.h"
 #include <gsl/span>
 
 using namespace o2::fit;
@@ -39,6 +39,8 @@ class RawReaderFT0 : public RawReaderFT0BaseNorm
 {
  public:
   RawReaderFT0(bool dumpData):mDumpData(dumpData){}
+  RawReaderFT0(const RawReaderFT0&) = default;
+
   RawReaderFT0() = default;
   ~RawReaderFT0() = default;
   void clear()  {
@@ -50,13 +52,13 @@ class RawReaderFT0 : public RawReaderFT0BaseNorm
     LOG(INFO) << "Number of ChannelData: " << mVecChannelData.size();
     if (mDumpData)  DigitBlockFT0::print(mVecDigits, mVecChannelData);
   }
-  static void prepareOutputSpec(std::vector<OutputSpec> &outputSpec)
-    outputSpec.emplace_back(o2::header::gDataOriginFT0, "DIGITSBC", 0, Lifetime::Timeframe);
-    outputSpec.emplace_back(o2::header::gDataOriginFT0, "DIGITSCH", 0, Lifetime::Timeframe);
+  static void prepareOutputSpec(std::vector<o2::framework::OutputSpec> &outputSpec)  {
+    outputSpec.emplace_back(o2::header::gDataOriginFT0, "DIGITSBC", 0, o2::framework::Lifetime::Timeframe);
+    outputSpec.emplace_back(o2::header::gDataOriginFT0, "DIGITSCH", 0, o2::framework::Lifetime::Timeframe);
   }
-  void makeSnapshot(ProcessingContext& pc)  {
-    pc.outputs().snapshot(Output{o2::header::gDataOriginFT0, "DIGITSBC", 0, Lifetime::Timeframe}, mVecDigits);
-    pc.outputs().snapshot(Output{o2::header::gDataOriginFT0, "DIGITSCH", 0, Lifetime::Timeframe}, mVecChannelData);
+  void makeSnapshot(o2::framework::ProcessingContext& pc)  {
+    pc.outputs().snapshot(o2::framework::Output{o2::header::gDataOriginFT0, "DIGITSBC", 0, o2::framework::Lifetime::Timeframe}, mVecDigits);
+    pc.outputs().snapshot(o2::framework::Output{o2::header::gDataOriginFT0, "DIGITSCH", 0, o2::framework::Lifetime::Timeframe}, mVecChannelData);
   }
   bool mDumpData;
   std::vector<Digit> mVecDigits;
@@ -68,6 +70,8 @@ class RawReaderFT0ext : public RawReaderFT0BaseExt
 {
  public:
   RawReaderFT0ext(bool dumpData):mDumpData(dumpData){}
+  RawReaderFT0ext(const RawReaderFT0ext&) = default;
+
   RawReaderFT0ext() = default;
   ~RawReaderFT0ext() = default;
   void clear()  {
@@ -76,20 +80,20 @@ class RawReaderFT0ext : public RawReaderFT0BaseExt
     mVecTrgExt.clear();
   }
   void print()  {
-    LOG(INFO) << "Number of Digits: " << mVecDigits.size();
+    LOG(INFO) << "Number of Digits: " << mVecDigitsExt.size();
     LOG(INFO) << "Number of ChannelData: " << mVecChannelData.size();
     LOG(INFO) << "Number of TriggerExt: " << mVecTrgExt.size();
-    if (mDumpData)  DigitBlockFT0::print(mVecDigits, mVecChannelData);
+    if (mDumpData)  DigitBlockFT0ext::print(mVecDigitsExt, mVecChannelData,mVecTrgExt);
   }
-  static void prepareOutputSpec(std::vector<OutputSpec> &outputSpec)
-    outputSpec.emplace_back(o2::header::gDataOriginFT0, "DIGITSBC", 0, Lifetime::Timeframe);
-    outputSpec.emplace_back(o2::header::gDataOriginFT0, "DIGITSCH", 0, Lifetime::Timeframe);
-    outputSpec.emplace_back(o2::header::gDataOriginFT0, "DIGITSTRGEXT", 0, Lifetime::Timeframe);
+  static void prepareOutputSpec(std::vector<o2::framework::OutputSpec> &outputSpec)  {
+    outputSpec.emplace_back(o2::header::gDataOriginFT0, "DIGITSBC", 0, o2::framework::Lifetime::Timeframe);
+    outputSpec.emplace_back(o2::header::gDataOriginFT0, "DIGITSCH", 0, o2::framework::Lifetime::Timeframe);
+    outputSpec.emplace_back(o2::header::gDataOriginFT0, "DIGITSTRGEXT", 0, o2::framework::Lifetime::Timeframe);
   }
-  void makeSnapshot(ProcessingContext& pc)  {
-    pc.outputs().snapshot(Output{o2::header::gDataOriginFT0, "DIGITSBC", 0, Lifetime::Timeframe}, mVecDigitsExt);
-    pc.outputs().snapshot(Output{o2::header::gDataOriginFT0, "DIGITSCH", 0, Lifetime::Timeframe}, mVecChannelData);
-    pc.outputs().snapshot(Output{o2::header::gDataOriginFT0, "DIGITSTRGEXT", 0, Lifetime::Timeframe}, mVecTrgExt);
+  void makeSnapshot(o2::framework::ProcessingContext& pc)  {
+    pc.outputs().snapshot(o2::framework::Output{o2::header::gDataOriginFT0, "DIGITSBC", 0, o2::framework::Lifetime::Timeframe}, mVecDigitsExt);
+    pc.outputs().snapshot(o2::framework::Output{o2::header::gDataOriginFT0, "DIGITSCH", 0, o2::framework::Lifetime::Timeframe}, mVecChannelData);
+    pc.outputs().snapshot(o2::framework::Output{o2::header::gDataOriginFT0, "DIGITSTRGEXT", 0, o2::framework::Lifetime::Timeframe}, mVecTrgExt);
   }
   bool mDumpData;
   std::vector<DigitExt> mVecDigitsExt;

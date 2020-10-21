@@ -198,7 +198,7 @@ class DigitBlockFT0ext: public DigitBlockBase<DigitBlockFT0ext>
 
   }
 
-  static void print(std::vector<Digit>& vecDigit, std::vector<ChannelData>& vecChannelData)
+  static void print(std::vector<DigitExt>& vecDigit, std::vector<ChannelData>& vecChannelData,std::vector<TriggersExt> &vecTriggersExt)
   {
     for (const auto& digit : vecDigit) {
       std::cout << "\n______________DIGIT DATA____________";

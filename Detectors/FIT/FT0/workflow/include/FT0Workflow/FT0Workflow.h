@@ -17,7 +17,7 @@
 
 namespace o2
 {
-namespace fit
+namespace ft0
 {
 framework::WorkflowSpec getFT0Workflow(bool isExtendedMode, bool useProcess,
                                        bool dumpProcessor, bool dumpReader,

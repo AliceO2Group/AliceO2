@@ -8,15 +8,15 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 //
-//file RawReaderFT0.h class  for RAW data reading
+//file RawReaderFT0Base.h Base class for RAW data reading
 //
 // Artur.Furs
 // afurs@cern.ch
 //
 //Main purpuse is to decode FT0 data blocks and push them to DigitBlockFT0 for proccess
 
-#ifndef ALICEO2_FIT_RAWREADERFT0_H_
-#define ALICEO2_FIT_RAWREADERFT0_H_
+#ifndef ALICEO2_FIT_RAWREADERFT0BASE_H_
+#define ALICEO2_FIT_RAWREADERFT0BASE_H_
 #include <iostream>
 #include <vector>
 #include <Rtypes.h>
