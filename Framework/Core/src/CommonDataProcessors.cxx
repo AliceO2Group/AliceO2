@@ -106,7 +106,25 @@ DataProcessorSpec CommonDataProcessors::getHistogramRegistrySink(outputObjects c
             currentDirectory = nextDirectory;
             currentFile = filename;
           }
-          (f[route.policy]->GetDirectory(currentDirectory.c_str()))->WriteObjectAny(entry.obj, entry.kind, entry.name.c_str());
+
+          // translate the list-structure created by the registry into a directory structure within the file
+          std::function<void(TList*, TDirectory*)> writeListToFile;
+          writeListToFile = [&](TList* list, TDirectory* parentDir) {
+            TIter next(list);
+            TNamed* object = nullptr;
+            while ((object = (TNamed*)next())) {
+              if (object->InheritsFrom(TList::Class())) {
+                writeListToFile((TList*)object, parentDir->mkdir(object->GetName(), object->GetName(), true));
+              } else {
+                parentDir->WriteObjectAny(object, object->Class(), object->GetName());
+                list->Remove(object);
+              }
+            }
+          };
+          TList* outputList = (TList*)entry.obj;
+          writeListToFile(outputList, f[route.policy]->GetDirectory(currentDirectory.c_str()));
+          outputList->SetOwner(true);
+          delete outputList; // properly remove the empty list and its sub-lists
         }
       }
       for (auto i = 0u; i < OutputObjHandlingPolicy::numPolicies; ++i) {
