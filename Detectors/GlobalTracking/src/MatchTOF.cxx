@@ -483,9 +483,9 @@ bool MatchTOF::prepareTracks()
     LOG(DEBUG) << "Global coordinates After propagating to 371 cm: globalPos[0] = " << globalPos[0] << ", globalPos[1] = " << globalPos[1] << ", globalPos[2] = " << globalPos[2];
     LOG(DEBUG) << "Radius xy After propagating to 371 cm = " << TMath::Sqrt(globalPos[0] * globalPos[0] + globalPos[1] * globalPos[1]);
     LOG(DEBUG) << "Radius xyz After propagating to 371 cm = " << TMath::Sqrt(globalPos[0] * globalPos[0] + globalPos[1] * globalPos[1] + globalPos[2] * globalPos[2]);
-    LOG(DEBUG) << "The track will go to sector " << o2::math_utils::Angle2Sector(TMath::ATan2(globalPos[1], globalPos[0]));
+    LOG(DEBUG) << "The track will go to sector " << o2::math_utils::angle2Sector(TMath::ATan2(globalPos[1], globalPos[0]));
 
-    mTracksSectIndexCache[o2::math_utils::Angle2Sector(TMath::ATan2(globalPos[1], globalPos[0]))].push_back(it);
+    mTracksSectIndexCache[o2::math_utils::angle2Sector(TMath::ATan2(globalPos[1], globalPos[0]))].push_back(it);
     //delete trc; // Check: is this needed?
   }
 
@@ -626,10 +626,10 @@ bool MatchTOF::prepareTPCTracks()
     LOG(INFO) << "Global coordinates After propagating to 371 cm: globalPos[0] = " << globalPos[0] << ", globalPos[1] = " << globalPos[1] << ", globalPos[2] = " << globalPos[2];
     LOG(INFO) << "Radius xy After propagating to 371 cm = " << TMath::Sqrt(globalPos[0] * globalPos[0] + globalPos[1] * globalPos[1]);
     LOG(INFO) << "Radius xyz After propagating to 371 cm = " << TMath::Sqrt(globalPos[0] * globalPos[0] + globalPos[1] * globalPos[1] + globalPos[2] * globalPos[2]);
-    LOG(INFO) << "The track will go to sector " << o2::math_utils::Angle2Sector(TMath::ATan2(globalPos[1], globalPos[0]));
+    LOG(INFO) << "The track will go to sector " << o2::math_utils::angle2Sector(TMath::ATan2(globalPos[1], globalPos[0]));
 #endif
 
-    mTracksSectIndexCache[o2::math_utils::Angle2Sector(TMath::ATan2(globalPos[1], globalPos[0]))].push_back(it);
+    mTracksSectIndexCache[o2::math_utils::angle2Sector(TMath::ATan2(globalPos[1], globalPos[0]))].push_back(it);
     //delete trc; // Check: is this needed?
   }
 
@@ -1510,7 +1510,7 @@ bool MatchTOF::propagateToRefX(o2::track::TrackParCov& trc, float xRef, float st
     if (fabs(trc.getY()) > trc.getX() * tanHalfSector) { // we are still in the same sector
       // we need to rotate the track to go to the new sector
       //Printf("propagateToRefX: changing sector");
-      auto alphaNew = o2::math_utils::Angle2Alpha(trc.getPhiPos());
+      auto alphaNew = o2::math_utils::angle2Alpha(trc.getPhiPos());
       if (!trc.rotate(alphaNew) != 0) {
         //	Printf("propagateToRefX: failed to rotate");
         break; // failed (this line is taken from MatchTPCITS and the following comment too: RS: check effect on matching tracks to neighbouring sector)
@@ -1548,7 +1548,7 @@ bool MatchTOF::propagateToRefXWithoutCov(o2::track::TrackParCov& trc, float xRef
     if (fabs(trcNoCov.getY()) > trcNoCov.getX() * tanHalfSector) { // we are still in the same sector
       // we need to rotate the track to go to the new sector
       //Printf("propagateToRefX: changing sector");
-      auto alphaNew = o2::math_utils::Angle2Alpha(trcNoCov.getPhiPos());
+      auto alphaNew = o2::math_utils::angle2Alpha(trcNoCov.getPhiPos());
       if (!trcNoCov.rotateParam(alphaNew) != 0) {
         //	Printf("propagateToRefX: failed to rotate");
         break; // failed (this line is taken from MatchTPCITS and the following comment too: RS: check effect on matching tracks to neighbouring sector)

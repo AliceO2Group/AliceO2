@@ -71,7 +71,7 @@ int ioutils::loadROFrameData(const o2::itsmft::ROFRecord& rof, ROframe& event, g
     auto clsPoint2D = math_utils::Point2D<Float_t>(gloXYZ.x(), gloXYZ.y());
     Float_t rCoord = clsPoint2D.R();
     Float_t phiCoord = clsPoint2D.Phi();
-    o2::math_utils::BringTo02PiGen(phiCoord);
+    o2::math_utils::bringTo02PiGen(phiCoord);
     int rBinIndex = constants::index_table::getRBinIndex(rCoord);
     int phiBinIndex = constants::index_table::getPhiBinIndex(phiCoord);
     int binIndex = constants::index_table::getBinIndex(rBinIndex, phiBinIndex);

@@ -196,7 +196,7 @@ float SpaceCharge::calculateLookupTables()
           matrixDriftRPhi = mMatrixIonDriftRPhiC[iphi].get();
           matrixDriftR = mMatrixIonDriftRC[iphi].get();
         }
-        int roc = iside == 0 ? o2::math_utils::Angle2Sector(phi) : o2::math_utils::Angle2Sector(phi) + 18;
+        int roc = iside == 0 ? o2::math_utils::angle2Sector(phi) : o2::math_utils::angle2Sector(phi) + 18;
         for (int ir = 0; ir < mNR; ++ir) {
           const float radius = static_cast<float>(mCoordR[ir]);
           /// TODO: what is the electric field stored in the LUTs at iz=0 and iz=mNZSlices-1
@@ -536,7 +536,7 @@ void SpaceCharge::propagateIons()
             double dz = 0.f;
             lookUpIonDrift->GetValue(rIon, phiIon, std::abs(zIon), dr, drphi, dz);
             float phiIonF = static_cast<float>(phiIon + (drphi / rIon));
-            o2::math_utils::BringTo02PiGen(phiIonF);
+            o2::math_utils::bringTo02PiGen(phiIonF);
             rIon += dr;
             zIon += dz;
 
@@ -582,8 +582,8 @@ void SpaceCharge::correctElectron(GlobalPosition3D& point)
   const float x[3] = {point.X(), point.Y(), point.Z()};
   float dx[3] = {0.f, 0.f, 0.f};
   float phi = point.phi();
-  o2::math_utils::BringTo02PiGen(phi);
-  int roc = o2::math_utils::Angle2Sector(phi);
+  o2::math_utils::bringTo02PiGen(phi);
+  int roc = o2::math_utils::angle2Sector(phi);
   /// FIXME: which side when z==0?
   if (x[2] < 0) {
     roc += 18;
@@ -600,8 +600,8 @@ void SpaceCharge::distortElectron(GlobalPosition3D& point) const
   const float x[3] = {point.X(), point.Y(), point.Z()};
   float dx[3] = {0.f, 0.f, 0.f};
   float phi = point.phi();
-  o2::math_utils::BringTo02PiGen(phi);
-  int roc = o2::math_utils::Angle2Sector(phi);
+  o2::math_utils::bringTo02PiGen(phi);
+  int roc = o2::math_utils::angle2Sector(phi);
   /// FIXME: which side when z==0?
   if (x[2] < 0) {
     roc += 18;
@@ -613,8 +613,8 @@ void SpaceCharge::distortElectron(GlobalPosition3D& point) const
 double SpaceCharge::getChargeDensity(Side side, const GlobalPosition3D& point) const
 {
   Float_t x[3] = {point.rho(), point.phi(), point.z()};
-  o2::math_utils::BringTo02PiGen(x[1]);
-  const int roc = side == Side::A ? o2::math_utils::Angle2Sector(x[1]) : o2::math_utils::Angle2Sector(x[1]) + 18;
+  o2::math_utils::bringTo02PiGen(x[1]);
+  const int roc = side == Side::A ? o2::math_utils::angle2Sector(x[1]) : o2::math_utils::angle2Sector(x[1]) + 18;
   return mLookUpTableCalculator.GetChargeCylAC(x, roc);
 }
 

@@ -367,7 +367,7 @@ void CookedTracker::trackSeeds(std::vector<TrackITSExt>& seeds)
     auto x = track.getX();
     auto y = track.getY();
     Float_t phi = track.getAlpha() + TMath::ATan2(y, x);
-    o2::math_utils::BringTo02Pi(phi);
+    o2::math_utils::bringTo02Pi(phi);
 
     auto z = track.getZ();
     auto crv = track.getCurvature(getBz());
@@ -699,7 +699,7 @@ void CookedTracker::Layer::init()
     auto xyz = c->getXYZGloRot(*mGeom);
     r += xyz.rho();
     Float_t phi = xyz.Phi();
-    o2::math_utils::BringTo02Pi(phi);
+    o2::math_utils::bringTo02Pi(phi);
     mPhi.push_back(phi);
     Int_t s = phi * kNSectors / k2PI;
     mSectors[s < kNSectors ? s : kNSectors - 1].emplace_back(i, c->getZ());
@@ -748,7 +748,7 @@ void CookedTracker::Layer::selectClusters(std::vector<Int_t>& selec, Float_t phi
   Float_t zMin = z - dz;
   Float_t zMax = z + dz;
 
-  o2::math_utils::BringTo02Pi(phi);
+  o2::math_utils::bringTo02Pi(phi);
 
   Float_t dphi = dy / mR;
 

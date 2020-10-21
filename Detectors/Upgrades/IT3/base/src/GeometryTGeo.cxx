@@ -708,7 +708,7 @@ void GeometryTGeo::extractSensorXAlpha(int isn, float& x, float& alp)
   double xp = gloB[0] - dx * t, yp = gloB[1] - dy * t;
   x = Sqrt(xp * xp + yp * yp);
   alp = ATan2(yp, xp);
-  o2::math_utils::BringTo02Pi(alp);
+  o2::math_utils::bringTo02Pi(alp);
 }
 
 //__________________________________________________________________________
