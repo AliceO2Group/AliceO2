@@ -93,7 +93,7 @@ struct GBTLinkDecodingStat {
 
   enum DecErrors : int {
     ErrNoRDHAtStart,             // page does not start with RDH
-    ErrPageNotStopped,           // new HB/trigger page started w/o stopping previous one
+    ErrPageNotStopped,           // RDH is stopped, but the time is not matching the ~stop packet
     ErrStopPageNotEmpty,         // Page with RDH.stop is not empty
     ErrPageCounterDiscontinuity, // RDH page counters for the same RU/trigger are not continuous
     ErrRDHvsGBTHPageCnt,         // RDH and GBT header page counters are not consistent
@@ -110,11 +110,12 @@ struct GBTLinkDecodingStat {
     ErrPacketCounterJump,        // jump in RDH.packetCounter
     ErrPacketDoneMissing,        // packet done is missing in the trailer while CRU page is not over
     ErrMissingDiagnosticWord,    // missing diagnostic word after RDH with stop
+    ErrGBTWordNotRecognized,     // GBT word not recognized
     NErrorsDefined
   };
   static constexpr std::array<std::string_view, NErrorsDefined> ErrNames = {
     "Page data not start with expected RDH",                             // ErrNoRDHAtStart
-    "New HB/trigger page started w/o stopping previous one",             // ErrPageNotStopped
+    "RDH is stopped, but the time is not matching the ~stop packet",     // ErrPageNotStopped
     "Page with RDH.stop does not contain diagnostic word only",          // ErrStopPageNotEmpty
     "RDH page counters for the same RU/trigger are not continuous",      // ErrPageCounterDiscontinuity
     "RDH and GBT header page counters are not consistent",               // ErrRDHvsGBTHPageCnt
@@ -130,7 +131,8 @@ struct GBTLinkDecodingStat {
     "Active lanes pattern conflicts with expected for given RU type",    // ErrInvalidActiveLanes
     "Jump in RDH_packetCounter",                                         // ErrPacketCounterJump
     "Packet done is missing in the trailer while CRU page is not over",  // ErrPacketDoneMissing
-    "Missing diagnostic GBT word after RDH with stop"                    // ErrMissingDiagnosticWord
+    "Missing diagnostic GBT word after RDH with stop",                   // ErrMissingDiagnosticWord
+    "GBT word not recognized"                                            // ErrGBTWordNotRecognized
   };
 
   uint32_t ruLinkID = 0; // Link ID within RU
