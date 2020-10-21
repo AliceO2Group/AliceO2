@@ -43,8 +43,9 @@ int ClusterPattern::getUsedBytes() const
 {
   int nBits = (int)mBitmap[0] * (int)mBitmap[1];
   int nBytes = nBits / 8;
-  if (nBits % 8 != 0)
+  if (nBits % 8 != 0) {
     nBytes++;
+  }
   return nBytes;
 }
 
@@ -53,8 +54,9 @@ void ClusterPattern::setPattern(int nRow, int nCol, const unsigned char patt[Max
   mBitmap[0] = (unsigned char)nRow;
   mBitmap[1] = (unsigned char)nCol;
   int nBytes = nRow * nCol / 8;
-  if (((nRow * nCol) % 8) != 0)
+  if (((nRow * nCol) % 8) != 0) {
     nBytes++;
+  }
   memcpy(&mBitmap[2], patt, nBytes);
 }
 

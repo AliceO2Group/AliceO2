@@ -57,8 +57,9 @@ class Digit : public DigitBase
   {
     if (fabs(getTimeStamp() - other.getTimeStamp()) < kTimeGate) {
       return getAbsId() < other.getAbsId();
-    } else
+    } else {
       return getTimeStamp() < other.getTimeStamp();
+    }
   }
 
   /// \brief Comparison oparator, based on time and absId
@@ -68,8 +69,9 @@ class Digit : public DigitBase
   {
     if (fabs(getTimeStamp() - other.getTimeStamp()) <= kTimeGate) {
       return getAbsId() > other.getAbsId();
-    } else
+    } else {
       return getTimeStamp() > other.getTimeStamp();
+    }
   }
 
   /// \brief Comparison oparator, based on time and absId

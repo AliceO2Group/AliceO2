@@ -289,8 +289,9 @@ inline void TrackParametrizationWithError<value_T>::setCov(value_t v, int i)
 template <typename value_T>
 inline void TrackParametrizationWithError<value_T>::updateCov(const value_t delta[kCovMatSize])
 {
-  for (int i = kCovMatSize; i--;)
+  for (int i = kCovMatSize; i--;) {
     mC[i] += delta[i];
+  }
 }
 
 } // namespace track

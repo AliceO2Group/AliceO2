@@ -190,8 +190,9 @@ class Stack : public FairGenericStack
     Reset();
     for (auto p : primaries) {
       Int_t doTrack = 0;
-      if (p.TestBit(ParticleStatus::kToBeDone))
+      if (p.TestBit(ParticleStatus::kToBeDone)) {
         doTrack = 1;
+      }
       PushTrack(doTrack, p);
     }
     mNumberOfPrimaryParticles = primaries.size();
