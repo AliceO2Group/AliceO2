@@ -45,7 +45,7 @@ class Digits2Raw
 
   //  void setContinuous(bool v = true) { mIsContinuous = v; }
   bool isContinuous() const { return mIsContinuous; }
-  static void print_gbt_word(UInt_t* word);
+  static void print_gbt_word(UInt_t* word, const ModuleConfig* moduleConfig=0);
 
  private:
   void setTriggerMask();

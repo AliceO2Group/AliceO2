@@ -621,11 +621,11 @@ void Digits2Raw::writeDigits()
     bool tcond_last = mZDC.data[im][0].f.bc == 3563;
     if (mVerbosity > 1) {
       if (tcond_continuous)
-        printf("M%d %s T0=%d || T1=%d -> %d\n", im, mIsContinuous ? "Continuous mode " : "Triggered mode  ", T0, T1, tcond_continuous);
+        printf("M%d Cont.    T0=%d || T1=%d\n", im, T0, T1);
       if (tcond_triggered)
-        printf("M%d A0=%d || A1=%d || (A2=%d && (T0=%d || TM=%d))=%d || (A3=%d && T0=%d )=%d -> %d\n", im, A0, A1, A2, T0, TM, A2 && (T0 || TM), A3, T0, A3 && T0, tcond_triggered);
+        printf("M%d Trig. %s A0=%d || A1=%d || (A2=%d && (T0=%d || TM=%d))=%d || (A3=%d && T0=%d )=%d\n", im, mIsContinuous ? "CM" : "TM", A0, A1, A2, T0, TM, A2 && (T0 || TM), A3, T0, A3 && T0);
       if (mZDC.data[im][0].f.bc == 3563)
-        printf("M%d Is last BC\n", im);
+        printf("M%d is last BC\n", im);
     }
     // Condition to write GBT data
     if (tcond_triggered || (mIsContinuous && tcond_continuous) || (mZDC.data[im][0].f.bc == 3563)) {
@@ -633,18 +633,18 @@ void Digits2Raw::writeDigits()
         if (mModuleConfig->modules[im].readChannel[ic]) {
           for (Int_t iw = 0; iw < o2::zdc::NWPerBc; iw++) {
             if (mVerbosity > 1)
-              print_gbt_word(&mZDC.data[im][ic].w[iw][0]);
+              print_gbt_word(&mZDC.data[im][ic].w[iw][0], mModuleConfig);
 	    // Check link for channel and insert data
           }
         }
       }
     }else{
-      if (mVerbosity > 1)printf("orbit %9u bc %4u M%d SKIP\n", mZDC.data[im][0].f.orbit, mZDC.data[im][0].f.bc, im);
+      if (mVerbosity > 2)printf("orbit %9u bc %4u M%d SKIP\n", mZDC.data[im][0].f.orbit, mZDC.data[im][0].f.bc, im);
     }
   }
 }
 
-void Digits2Raw::print_gbt_word(UInt_t* word)
+void Digits2Raw::print_gbt_word(UInt_t* word, const ModuleConfig* moduleConfig)
 {
   unsigned __int128 val = word[2];
   val = val << 32;
@@ -716,7 +716,7 @@ void Digits2Raw::print_gbt_word(UInt_t* word)
     UInt_t myorbit = (val >> 48) & 0xffffffff;
     UInt_t mybc = (val >> 36) & 0xfff;
     if (myorbit != last_orbit || mybc != last_bc) {
-      printf("Orbit %9u BC %4u\n", myorbit, mybc);
+      printf("Orbit %9u bc %4u\n", myorbit, mybc);
       last_orbit = myorbit;
       last_bc = mybc;
     }
@@ -728,6 +728,13 @@ void Digits2Raw::print_gbt_word(UInt_t* word)
     UInt_t ch = (lsb >> 6) & 0x3;
     //printf("orbit %9u bc %4u hits %4u offset %+6i Board %2u Ch %1u", myorbit, mybc, hits, offset, board, ch);
     printf("orbit %9u bc %4u hits %4u offset %+8.3f Board %2u Ch %1u", myorbit, mybc, hits, foffset, board, ch);
+    if(board>=NModules)printf(" ERROR with board");
+    if(ch>=NChPerModule)printf(" ERROR with ch");
+    if(moduleConfig){
+      auto id=moduleConfig->modules[board].channelID[ch];
+      if(id>=0&&id<NChannels)printf(" %s",ChannelNames[id].data());
+      else printf(" error with ch id");
+    }
   } else if ((a & 0x3) == 1) {
     printf("%04x %08x %08x ", c, b, a);
     union {
