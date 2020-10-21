@@ -26,22 +26,22 @@ using namespace o2::framework::expressions;
 
 /// D0 analysis task
 struct TaskD0 {
-  OutputObj<TH1F> hmass{TH1F("hmass", "2-track inv mass", 500, 0, 5.0)};
-  OutputObj<TH1F> hptcand{TH1F("hptcand", "pt candidate", 100, 0, 10.0)};
-  OutputObj<TH1F> hptprong0{TH1F("hptprong0", "pt prong0", 100, 0, 10.0)};
-  OutputObj<TH1F> hptprong1{TH1F("hptprong1", "pt prong1", 100, 0, 10.0)};
-  OutputObj<TH1F> hdeclength{TH1F("declength", "decay length", 200, 0., 2.0)};
-  OutputObj<TH1F> hdeclengthxy{TH1F("declengthxy", "decay length xy", 200, 0., 2.0)};
-  OutputObj<TH1F> hd0Prong0{TH1F("hd0Prong0", "prong 0 dca xy to prim. vertex (cm)", 100, -1.0, 1.0)};
-  OutputObj<TH1F> hd0Prong1{TH1F("hd0Prong1", "prong 1 dca xy to prim. vertex (cm)", 100, -1.0, 1.0)};
-  OutputObj<TH1F> hd0d0{TH1F("hd0d0", "product of dca xy to prim. vertex (cm^{2})", 500, -1.0, 1.0)};
+  OutputObj<TH1F> hmass{TH1F("hmass", "2-track inv mass", 500, 0., 5.)};
+  OutputObj<TH1F> hptcand{TH1F("hptcand", "pt candidate", 100, 0., 10.)};
+  OutputObj<TH1F> hptprong0{TH1F("hptprong0", "pt prong0", 100, 0., 10.)};
+  OutputObj<TH1F> hptprong1{TH1F("hptprong1", "pt prong1", 100, 0., 10.)};
+  OutputObj<TH1F> hdeclength{TH1F("declength", "decay length", 200, 0., 2.)};
+  OutputObj<TH1F> hdeclengthxy{TH1F("declengthxy", "decay length xy", 200, 0., 2.)};
+  OutputObj<TH1F> hd0Prong0{TH1F("hd0Prong0", "prong 0 dca xy to prim. vertex (cm)", 100, -1., 1.)};
+  OutputObj<TH1F> hd0Prong1{TH1F("hd0Prong1", "prong 1 dca xy to prim. vertex (cm)", 100, -1., 1.)};
+  OutputObj<TH1F> hd0d0{TH1F("hd0d0", "product of dca xy to prim. vertex (cm^{2})", 500, -1., 1.)};
   OutputObj<TH1F> hCTS{TH1F("hCTS", "cos #it{#theta}*", 120, -1.1, 1.1)};
-  OutputObj<TH1F> hCt{TH1F("hCt", "proper lifetime * #it{c} (cm)", 120, -20, 100)};
-  OutputObj<TH1F> hEta{TH1F("hEta", "#it{#eta}", 100, -2, 2)};
+  OutputObj<TH1F> hCt{TH1F("hCt", "proper lifetime * #it{c} (cm)", 120, -20., 100.)};
+  OutputObj<TH1F> hEta{TH1F("hEta", "#it{#eta}", 100, -2., 2.)};
   OutputObj<TH1F> hselectionstatus{TH1F("selectionstatus", "selection status", 5, -0.5, 4.5)};
-  OutputObj<TH1F> hImpParErr{TH1F("hImpParErr", "impact parameter error", 100, -1.0, 1.0)};
-  OutputObj<TH1F> hDecLenErr{TH1F("hDecLenErr", "decay length error", 100, 0., 1.0)};
-  OutputObj<TH1F> hDecLenXYErr{TH1F("hDecLenXYErr", "decay length XY error", 100, 0., 1.0)};
+  OutputObj<TH1F> hImpParErr{TH1F("hImpParErr", "impact parameter error", 100, -1., 1.)};
+  OutputObj<TH1F> hDecLenErr{TH1F("hDecLenErr", "decay length error", 100, 0., 1.)};
+  OutputObj<TH1F> hDecLenXYErr{TH1F("hDecLenXYErr", "decay length XY error", 100, 0., 1.)};
 
   Configurable<int> d_selectionFlagD0{"d_selectionFlagD0", 1, "Selection Flag for D0"};
   Configurable<int> d_selectionFlagD0bar{"d_selectionFlagD0bar", 1, "Selection Flag for D0bar"};
