@@ -44,7 +44,7 @@ struct HFCandidateCreator3Prong {
   double massK = RecoDecay::getMassPDG(kKPlus);
   double massPiKPi{0.};
 
-  void process(aod::Collision const& collision,
+  void process(aod::Collisions const& collisions,
                aod::HfTrackIndexProng3 const& rowsTrackIndexProng3,
                aod::BigTracks const& tracks)
   {
@@ -63,6 +63,7 @@ struct HFCandidateCreator3Prong {
       auto trackParVar0 = getTrackParCov(rowTrackIndexProng3.index0());
       auto trackParVar1 = getTrackParCov(rowTrackIndexProng3.index1());
       auto trackParVar2 = getTrackParCov(rowTrackIndexProng3.index2());
+      auto collision = rowTrackIndexProng3.index0().collision();
 
       // reconstruct the 3-prong secondary vertex
       if (df.process(trackParVar0, trackParVar1, trackParVar2) == 0)

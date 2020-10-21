@@ -276,8 +276,7 @@ struct HFTrackIndexSkimsCreator {
 
           if (isSelectedCandD0) {
             // fill table row
-            rowTrackIndexProng2(trackPos1.collisionId(),
-                                trackPos1.globalIndex(),
+            rowTrackIndexProng2(trackPos1.globalIndex(),
                                 trackNeg1.globalIndex(), 1);
 
             // fill histograms
@@ -332,8 +331,7 @@ struct HFTrackIndexSkimsCreator {
               }
 
               // fill table row
-              rowTrackIndexProng3(trackPos1.collisionId(),
-                                  trackPos1.globalIndex(),
+              rowTrackIndexProng3(trackPos1.globalIndex(),
                                   trackNeg1.globalIndex(),
                                   trackPos2.globalIndex(), 2);
 
@@ -392,8 +390,7 @@ struct HFTrackIndexSkimsCreator {
               }
 
               // fill table row
-              rowTrackIndexProng3(trackNeg1.collisionId(),
-                                  trackNeg1.globalIndex(),
+              rowTrackIndexProng3(trackNeg1.globalIndex(),
                                   trackPos1.globalIndex(),
                                   trackNeg2.globalIndex(), 2);
 

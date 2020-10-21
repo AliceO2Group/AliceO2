@@ -43,22 +43,19 @@ using BigTracks = soa::Join<Tracks, TracksCov, TracksExtra, HFSelTrack, pidRespT
 
 namespace hf_track_index
 {
-DECLARE_SOA_INDEX_COLUMN(Collision, collision);
 DECLARE_SOA_INDEX_COLUMN_FULL(Index0, index0, int, BigTracks, "fIndex0");
 DECLARE_SOA_INDEX_COLUMN_FULL(Index1, index1, int, BigTracks, "fIndex1");
 DECLARE_SOA_INDEX_COLUMN_FULL(Index2, index2, int, BigTracks, "fIndex2");
 DECLARE_SOA_INDEX_COLUMN_FULL(Index3, index3, int, BigTracks, "fIndex3");
-DECLARE_SOA_COLUMN(HFflag, hfflag, int);
+DECLARE_SOA_COLUMN(HFflag, hfflag, uint8_t);
 } // namespace hf_track_index
 
 DECLARE_SOA_TABLE(HfTrackIndexProng2, "AOD", "HFTRACKIDXP2",
-                  hf_track_index::CollisionId,
                   hf_track_index::Index0Id,
                   hf_track_index::Index1Id,
                   hf_track_index::HFflag);
 
 DECLARE_SOA_TABLE(HfTrackIndexProng3, "AOD", "HFTRACKIDXP3",
-                  hf_track_index::CollisionId,
                   hf_track_index::Index0Id,
                   hf_track_index::Index1Id,
                   hf_track_index::Index2Id,
