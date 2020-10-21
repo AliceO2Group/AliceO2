@@ -41,7 +41,6 @@ template <typename RawReader>
 class FT0DataReaderDPLSpec : public Task
 {
  public:
-  FT0DataReaderDPLSpec(bool dumpData) {mRawReader.mDumpData=dumpData;}
   FT0DataReaderDPLSpec(const RawReader &rawReader):mRawReader(rawReader){}
   FT0DataReaderDPLSpec() = default;
   ~FT0DataReaderDPLSpec() override = default;
@@ -60,40 +59,25 @@ class FT0DataReaderDPLSpec : public Task
       mRawReader.process(rdhPtr->linkID, payload);
     }
     LOG(INFO)<<"Pages: "<<count;
-    mRawReader.print();
+    mRawReader.accumulateDigits();
     mRawReader.makeSnapshot(pc);
   }
-  //void init(InitContext& ic) final;
-  //void run(ProcessingContext& pc) final;
-  static framework::DataProcessorSpec getFT0DataReaderDPLSpec(bool dumpData)	{
-    LOG(INFO) << "DataProcessorSpec initDataProcSpec() for RawReaderFT0ext";
-    std::vector<OutputSpec> outputSpec;
-    RawReader::prepareOutputSpec(outputSpec);
-    return DataProcessorSpec{
-      "ft0-datareader-dpl",
-      o2::framework::select("TF:FT0/RAWDATA"),
-      outputSpec,
-      adaptFromTask<FT0DataReaderDPLSpec<RawReader>>(dumpData),
-      Options{}};
-  }
-// private:
   RawReader mRawReader;
-//  o2::header::DataOrigin mOrigin = o2::header::gDataOriginFT0;
 };
-/*
+
 template<typename RawReader>
-framework::DataProcessorSpec getFT0DataReaderDPLSpec(bool dumpData) {
-  LOG(INFO) << "DataProcessorSpec initDataProcSpec() for RawReaderFT0ext";
+framework::DataProcessorSpec getFT0DataReaderDPLSpec(const RawReader& rawReader) {
+  LOG(INFO) << "DataProcessorSpec initDataProcSpec() for RawReaderFT0";
   std::vector<OutputSpec> outputSpec;
   RawReader::prepareOutputSpec(outputSpec);
   return DataProcessorSpec{
     "ft0-datareader-dpl",
     o2::framework::select("TF:FT0/RAWDATA"),
     outputSpec,
-    adaptFromTask<FT0DataReaderDPLSpec<RawReader>>(dumpData),
+    adaptFromTask<FT0DataReaderDPLSpec<RawReader>>(rawReader),
     Options{}};
 }
-*/
+
 } // namespace ft0
 } // namespace o2
 

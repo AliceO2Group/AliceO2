@@ -14,6 +14,7 @@
 // afurs@cern.ch
 //
 //Main purpuse is to decode FT0 data blocks and push them to DigitBlockFT0 for proccess
+//Base class only provides static linkID-moduleType conformity
 
 #ifndef ALICEO2_FIT_RAWREADERFT0BASE_H_
 #define ALICEO2_FIT_RAWREADERFT0BASE_H_

@@ -14,7 +14,7 @@
 // afurs@cern.ch
 //
 //Main purpuse is to decode FT0 data blocks and push them to DigitBlockFT0 for proccess
-
+//TODO: prepare wrappers for containers with digits and combine classes below into one template class?
 #ifndef ALICEO2_FIT_RAWREADERFT0_H_
 #define ALICEO2_FIT_RAWREADERFT0_H_
 #include <iostream>
@@ -29,7 +29,6 @@
 #include "Framework/OutputSpec.h"
 #include <gsl/span>
 
-using namespace o2::fit;
 namespace o2
 {
 namespace ft0
@@ -47,7 +46,8 @@ class RawReaderFT0 : public RawReaderFT0BaseNorm
     mVecDigits.clear();
     mVecChannelData.clear();
   }
-  void print()  {
+  void accumulateDigits()  {
+    getDigits(mVecDigits, mVecChannelData);
     LOG(INFO) << "Number of Digits: " << mVecDigits.size();
     LOG(INFO) << "Number of ChannelData: " << mVecChannelData.size();
     if (mDumpData)  DigitBlockFT0::print(mVecDigits, mVecChannelData);
@@ -79,7 +79,8 @@ class RawReaderFT0ext : public RawReaderFT0BaseExt
     mVecChannelData.clear();
     mVecTrgExt.clear();
   }
-  void print()  {
+  void accumulateDigits()  {
+    getDigits(mVecDigitsExt, mVecChannelData,mVecTrgExt);
     LOG(INFO) << "Number of Digits: " << mVecDigitsExt.size();
     LOG(INFO) << "Number of ChannelData: " << mVecChannelData.size();
     LOG(INFO) << "Number of TriggerExt: " << mVecTrgExt.size();

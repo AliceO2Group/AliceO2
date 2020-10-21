@@ -76,7 +76,7 @@ class DataBlockTCM : public DataBlockBase<DataBlockTCM, RawHeaderTCM, RawDataTCM
   // put here code for raw data checking
   void sanityCheck(bool& flag)
   {
-    //TODO, Descriptor checking, Channel range
+    //TODO, Descriptor checking
   }
 };
 
@@ -98,7 +98,7 @@ class DataBlockTCMext : public DataBlockBase<DataBlockTCMext, RawHeaderTCMext, R
   void sanityCheck(bool& flag)
   {
     
-    //TODO, Descriptor checking, Channel range
+    //TODO, Descriptor checking
   }
 };
 

@@ -164,16 +164,21 @@ class DigitBlockFT0ext: public DigitBlockBase<DigitBlockFT0ext>
       }
     }
   }
-  void getDigits(std::vector<Digit>& vecDigits, std::vector<ChannelData>& vecChannelData)
+  void getDigits(std::vector<DigitExt>& vecDigits, std::vector<ChannelData>& vecChannelData,  std::vector<TriggersExt>& vecTriggersExt)
   {
     //last digit filling
     mDigit.ref.set(vecChannelData.size(), mVecChannelData.size());
+    mDigit.refExt.set(vecTriggersExt.size(), mVecTriggersExt.size());
     mDigit.mEventID = sEventID;
-    //
+    //Digits
     vecDigits.push_back(std::move(mDigit));
+    //ChannelData
     std::move(mVecChannelData.begin(), mVecChannelData.end(), std::back_inserter(vecChannelData));
     mVecChannelData.clear();
-
+    //TriggersExt
+    std::move(mVecTriggersExt.begin(), mVecTriggersExt.end(), std::back_inserter(vecTriggersExt));
+    mVecTriggersExt.clear();
+   
     sEventID++; //Increasing static eventID. After each poping of the data, it will increase
   }
   void print() const

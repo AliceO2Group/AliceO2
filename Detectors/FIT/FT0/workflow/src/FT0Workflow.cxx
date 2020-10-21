@@ -27,10 +27,10 @@ framework::WorkflowSpec getFT0Workflow(bool isExtendedMode, bool useProcess,
   LOG(INFO) << "framework::WorkflowSpec getFT0Workflow";
   framework::WorkflowSpec specs;
   if(isExtendedMode) {
-    specs.emplace_back(o2::ft0::FT0DataReaderDPLSpec<RawReaderFT0ext>::getFT0DataReaderDPLSpec(dumpReader));
+    specs.emplace_back(o2::ft0::getFT0DataReaderDPLSpec(RawReaderFT0ext{dumpReader}));
   }
   else {
-    specs.emplace_back(o2::ft0::FT0DataReaderDPLSpec<RawReaderFT0>::getFT0DataReaderDPLSpec(dumpReader));
+    specs.emplace_back(o2::ft0::getFT0DataReaderDPLSpec(RawReaderFT0{dumpReader}));
   }
   if (useProcess)
     specs.emplace_back(o2::ft0::getFT0DataProcessDPLSpec(dumpProcessor));
