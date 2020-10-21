@@ -8,6 +8,7 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
+#include "CommonConstants/LHCConstants.h"
 #include "CCDB/BasicCCDBManager.h"
 #include "CCDB/CCDBTimeStampUtils.h"
 #include "ZDCSimulation/Digitizer.h"
@@ -230,7 +231,6 @@ void Digitizer::digitizeBC(BCCache& bc)
       }
     }
   }
-
   bc.digitized = true;
 }
 
@@ -437,7 +437,7 @@ void Digitizer::refreshCCDB()
           if (md.trigChannel[ic] || (md.trigChannelConf[ic].shift > 0 && md.trigChannelConf[ic].threshold > 0)) {
             const auto& trgChanConf = md.trigChannelConf[ic];
             if (trgChanConf.last + trgChanConf.shift + 1 >= NTimeBinsPerBC) {
-              LOG(FATAL) << "Wrong trigger settings";
+              LOG(ERROR) << "Wrong trigger settings";
             }
             mTriggerConfig.emplace_back(trgChanConf);
             // We insert in the trigger mask only the channels that are actually triggering
@@ -457,6 +457,9 @@ void Digitizer::refreshCCDB()
               mTrigBinMax = trgChanConf.last + trgChanConf.shift;
             }
           }
+	  if(md.linkID[ic]<0 || md.linkID[ic]>=NLinks){
+            LOG(ERROR) << "linkID " << md.linkID[ic] << " not in allowed range [0:" << NLinks << ")";
+	  }
         }
       } else {
         LOG(FATAL) << "Module id: " << md.id << " is out of range";
