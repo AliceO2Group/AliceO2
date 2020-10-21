@@ -42,8 +42,9 @@ class HistogramManager : public TNamed
 
   void SetMainHistogramList(THashList* list)
   {
-    if (fMainList)
+    if (fMainList) {
       delete fMainList;
+    }
     fMainList = list;
   }
 

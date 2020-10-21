@@ -43,12 +43,15 @@ struct NucleiSpecraTask {
   {
     for (auto& track : tracks) {
       // Part not covered by filters
-      if (track.tpcNClsFound() < recPointsTPC)
+      if (track.tpcNClsFound() < recPointsTPC) {
         continue;
-      if (track.itsNCls() < recPointsITS)
+      }
+      if (track.itsNCls() < recPointsITS) {
         continue;
-      if (track.itsNClsInnerBarrel() < recPointsITSInnerBarrel)
+      }
+      if (track.itsNClsInnerBarrel() < recPointsITSInnerBarrel) {
         continue;
+      }
 
       hTPCsignal->Fill(track.p(), track.tpcSignal());
       hMomentum->Fill(track.p());

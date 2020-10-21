@@ -33,30 +33,38 @@ struct UPCAnalysis {
   void process(soa::Join<aod::Collisions, aod::EvSels>::iterator const& col, soa::Join<aod::Tracks, aod::TracksExtra, aod::TrackSelection> const& tracks)
   {
     bool checkV0 = col.bbV0A() || col.bbV0C() || col.bgV0A() || col.bgV0C();
-    if (checkV0)
+    if (checkV0) {
       return;
+    }
     bool checkFDD = col.bbFDA() || col.bbFDC() || col.bgFDA() || col.bgFDC();
-    if (checkFDD)
+    if (checkFDD) {
       return;
-    if (!col.alias()[kCUP9])
+    }
+    if (!col.alias()[kCUP9]) {
       return;
+    }
     std::vector<soa::Join<aod::Tracks, aod::TracksExtra, aod::TrackSelection>::iterator> selTracks;
     for (auto track : tracks) {
-      if (!track.isGlobalTrack())
+      if (!track.isGlobalTrack()) {
         continue;
+      }
       selTracks.push_back(track);
-      if (selTracks.size() > 2)
+      if (selTracks.size() > 2) {
         break;
+      }
     }
-    if (selTracks.size() != 2)
+    if (selTracks.size() != 2) {
       return;
-    if (selTracks[0].charge() * selTracks[1].charge() >= 0)
+    }
+    if (selTracks[0].charge() * selTracks[1].charge() >= 0) {
       return;
+    }
     UChar_t clustermap1 = selTracks[0].itsClusterMap();
     UChar_t clustermap2 = selTracks[1].itsClusterMap();
     bool checkClusMap = TESTBIT(clustermap1, 0) && TESTBIT(clustermap1, 1) && TESTBIT(clustermap2, 0) && TESTBIT(clustermap2, 1);
-    if (!checkClusMap)
+    if (!checkClusMap) {
       return;
+    }
     TLorentzVector p1, p2, p;
     p1.SetXYZM(selTracks[0].px(), selTracks[0].py(), selTracks[0].pz(), mpion);
     p2.SetXYZM(selTracks[1].px(), selTracks[1].py(), selTracks[1].pz(), mpion);

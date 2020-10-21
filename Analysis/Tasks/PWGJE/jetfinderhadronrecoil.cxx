@@ -100,8 +100,9 @@ struct JetFinderHadronRecoilTask {
       inputParticles.emplace_back(track.px(), track.py(), track.pz(), energy);
       inputParticles.back().set_user_index(track.globalIndex());
     }
-    if (!isTT)
+    if (!isTT) {
       return;
+    }
     hHadronPt->Fill(trackTTPt);
 
     // you can set phi selector here for jets

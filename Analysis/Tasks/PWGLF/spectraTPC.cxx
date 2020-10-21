@@ -276,7 +276,8 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
   WorkflowSpec workflow{adaptAnalysisTask<TPCPIDQAExpSignalTask>("TPCpidqa-expsignal-task"),
                         adaptAnalysisTask<TPCPIDQANSigmaTask>("TPCpidqa-nsigma-task"),
                         adaptAnalysisTask<TPCSpectraTask>("tpcspectra-task")};
-  if (TPCwTOF)
+  if (TPCwTOF) {
     workflow.push_back(adaptAnalysisTask<TPCPIDQASignalwTOFTask>("TPCpidqa-signalwTOF-task"));
+  }
   return workflow;
 }

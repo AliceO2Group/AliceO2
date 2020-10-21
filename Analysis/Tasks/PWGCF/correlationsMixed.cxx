@@ -73,10 +73,12 @@ struct HashTask {
   int getHash(std::vector<float> const& vtxBins, std::vector<float> const& multBins, float vtx, float mult)
   {
     // underflow
-    if (vtx < vtxBins[0])
+    if (vtx < vtxBins[0]) {
       return -1;
-    if (mult < multBins[0])
+    }
+    if (mult < multBins[0]) {
       return -1;
+    }
 
     for (int i = 1; i < vtxBins.size(); i++) {
       if (vtx < vtxBins[i]) {
@@ -162,8 +164,9 @@ struct CorrelationTask {
       "p_t_eff: 0.5, 0.6, 0.7, 0.8, 0.9, 1.0, 1.25, 1.5, 1.75, 2.0, 2.25, 2.5, 2.75, 3.0, 3.25, 3.5, 3.75, 4.0, 4.5, 5.0, 6.0, 7.0, 8.0\n"
       "vertex_eff: -10, -8, -6, -4, -2, 0, 2, 4, 6, 8, 10\n";
 
-    if (cfgPairCutPhoton > 0 || cfgPairCutK0 > 0 || cfgPairCutLambda > 0 || cfgPairCutPhi > 0 || cfgPairCutRho > 0)
+    if (cfgPairCutPhoton > 0 || cfgPairCutK0 > 0 || cfgPairCutLambda > 0 || cfgPairCutPhi > 0 || cfgPairCutRho > 0) {
       cfg.mPairCuts = true;
+    }
 
     // --- OBJECT INIT ---
     same.setObject(new CorrelationContainer("sameEvent", "sameEvent", "NumberDensityPhiCentrality", binning));
@@ -221,8 +224,9 @@ struct CorrelationTask {
 
       for (auto& track1 : tracks1) {
 
-        if (cfgTriggerCharge != 0 && cfgTriggerCharge * track1.charge() < 0)
+        if (cfgTriggerCharge != 0 && cfgTriggerCharge * track1.charge() < 0) {
           continue;
+        }
 
         //LOGF(info, "TRACK %f %f | %f %f | %f %f", track1.eta(), track1.etam(), track1.phi(), track1.phim(), track1.pt(), track1.ptm());
 
@@ -235,16 +239,20 @@ struct CorrelationTask {
 
         for (auto& track2 : tracks2) {
 
-          if (cfgAssociatedCharge != 0 && cfgAssociatedCharge * track2.charge() < 0)
+          if (cfgAssociatedCharge != 0 && cfgAssociatedCharge * track2.charge() < 0) {
             continue;
-          if (cfgPairCharge != 0 && cfgPairCharge * track1.charge() * track2.charge() < 0)
+          }
+          if (cfgPairCharge != 0 && cfgPairCharge * track1.charge() * track2.charge() < 0) {
             continue;
+          }
 
-          if (cfg.mPairCuts && conversionCuts(track1, track2))
+          if (cfg.mPairCuts && conversionCuts(track1, track2)) {
             continue;
+          }
 
-          if (cfgTwoTrackCut > 0 && twoTrackCut(track1, track2, bSign))
+          if (cfgTwoTrackCut > 0 && twoTrackCut(track1, track2, bSign)) {
             continue;
+          }
 
           double values[6] = {0};
 
@@ -254,10 +262,12 @@ struct CorrelationTask {
           values[3] = collision1.centV0M();
 
           values[4] = track1.phim() - track2.phim();
-          if (values[4] > 1.5 * TMath::Pi())
+          if (values[4] > 1.5 * TMath::Pi()) {
             values[4] -= TMath::TwoPi();
-          if (values[4] < -0.5 * TMath::Pi())
+          }
+          if (values[4] < -0.5 * TMath::Pi()) {
             values[4] += TMath::TwoPi();
+          }
 
           values[5] = collision1.posZ();
 
@@ -271,23 +281,30 @@ struct CorrelationTask {
   bool conversionCuts(T const& track1, T const& track2)
   {
     // skip if like sign
-    if (track1.charge() * track2.charge() > 0)
+    if (track1.charge() * track2.charge() > 0) {
       return false;
+    }
 
     bool decision = false;
 
-    if (conversionCut(track1, track2, Photon, cfgPairCutPhoton))
+    if (conversionCut(track1, track2, Photon, cfgPairCutPhoton)) {
       decision = true;
-    if (conversionCut(track1, track2, K0, cfgPairCutK0))
+    }
+    if (conversionCut(track1, track2, K0, cfgPairCutK0)) {
       decision = true;
-    if (conversionCut(track1, track2, Lambda, cfgPairCutLambda))
+    }
+    if (conversionCut(track1, track2, Lambda, cfgPairCutLambda)) {
       decision = true;
-    if (conversionCut(track2, track1, Lambda, cfgPairCutLambda))
+    }
+    if (conversionCut(track2, track1, Lambda, cfgPairCutLambda)) {
       decision = true;
-    if (conversionCut(track1, track2, Phi, cfgPairCutPhi))
+    }
+    if (conversionCut(track1, track2, Phi, cfgPairCutPhi)) {
       decision = true;
-    if (conversionCut(track1, track2, Rho, cfgPairCutRho))
+    }
+    if (conversionCut(track1, track2, Rho, cfgPairCutRho)) {
       decision = true;
+    }
 
     return decision;
   }
@@ -297,8 +314,9 @@ struct CorrelationTask {
   {
     //LOGF(info, "pt is %f %f", track1.ptm(), track2.ptm());
 
-    if (cut < 0)
+    if (cut < 0) {
       return false;
+    }
 
     double massD1, massD2, massM;
 
@@ -332,13 +350,15 @@ struct CorrelationTask {
 
     auto massC = getInvMassSquaredFast(track1, massD1, track2, massD2);
 
-    if (TMath::Abs(massC - massM * massM) > cut * 5)
+    if (TMath::Abs(massC - massM * massM) > cut * 5) {
       return false;
+    }
 
     massC = getInvMassSquared(track1, massD1, track2, massD2);
     qa.mControlConvResoncances->Fill(static_cast<int>(conv), massC - massM * massM);
-    if (massC > (massM - cut) * (massM - cut) && massC < (massM + cut) * (massM + cut))
+    if (massC > (massM - cut) * (massM - cut) && massC < (massM + cut) * (massM + cut)) {
       return true;
+    }
 
     return false;
   }
@@ -407,18 +427,21 @@ struct CorrelationTask {
 
     // fold onto 0...pi
     float deltaPhi = TMath::Abs(phi1 - phi2);
-    while (deltaPhi > TMath::TwoPi())
+    while (deltaPhi > TMath::TwoPi()) {
       deltaPhi -= TMath::TwoPi();
-    if (deltaPhi > TMath::Pi())
+    }
+    if (deltaPhi > TMath::Pi()) {
       deltaPhi = TMath::TwoPi() - deltaPhi;
+    }
 
     float cosDeltaPhi = 0;
-    if (deltaPhi < TMath::Pi() / 3)
+    if (deltaPhi < TMath::Pi() / 3) {
       cosDeltaPhi = 1.0 - deltaPhi * deltaPhi / 2 + deltaPhi * deltaPhi * deltaPhi * deltaPhi / 24;
-    else if (deltaPhi < 2 * TMath::Pi() / 3)
+    } else if (deltaPhi < 2 * TMath::Pi() / 3) {
       cosDeltaPhi = -(deltaPhi - TMath::Pi() / 2) + 1.0 / 6 * TMath::Power((deltaPhi - TMath::Pi() / 2), 3);
-    else
+    } else {
       cosDeltaPhi = -1.0 + 1.0 / 2.0 * (deltaPhi - TMath::Pi()) * (deltaPhi - TMath::Pi()) - 1.0 / 24.0 * TMath::Power(deltaPhi - TMath::Pi(), 4);
+    }
 
     double mass2 = m0_1 * m0_1 + m0_2 * m0_2 + 2 * (TMath::Sqrt(e1squ * e2squ) - (pt1 * pt2 * (cosDeltaPhi + 1.0 / tantheta1 / tantheta2)));
 
@@ -490,12 +513,15 @@ struct CorrelationTask {
 
     static const Double_t kPi = TMath::Pi();
 
-    if (dphistar > kPi)
+    if (dphistar > kPi) {
       dphistar = kPi * 2 - dphistar;
-    if (dphistar < -kPi)
+    }
+    if (dphistar < -kPi) {
       dphistar = -kPi * 2 - dphistar;
-    if (dphistar > kPi) // might look funny but is needed
+    }
+    if (dphistar > kPi) { // might look funny but is needed
       dphistar = kPi * 2 - dphistar;
+    }
 
     return dphistar;
   }
