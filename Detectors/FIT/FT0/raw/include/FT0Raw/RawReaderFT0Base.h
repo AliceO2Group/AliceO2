@@ -30,8 +30,6 @@
 
 #include <CommonDataFormat/InteractionRecord.h>
 #include "Headers/RAWDataHeader.h"
-//#include "DataFormatsFT0/Digit.h"
-//#include "DataFormatsFT0/ChannelData.h"
 
 #include <gsl/span>
 
