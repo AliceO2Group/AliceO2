@@ -24,3 +24,12 @@ o2_target_root_dictionary(ZDCSimulation
                                   include/ZDCSimulation/SpatialPhotonResponse.h)
 
 o2_data_file(COPY data DESTINATION Detectors/ZDC/simulation)
+
+o2_add_executable(digi2raw
+                  COMPONENT_NAME zdc
+                  SOURCES src/digi2raw.cxx
+                  PUBLIC_LINK_LIBRARIES O2::ZDCSimulation
+                                        O2::DetectorsRaw
+                                        O2::DetectorsCommonDataFormats
+                                        O2::CommonUtils
+                                        Boost::program_options)
