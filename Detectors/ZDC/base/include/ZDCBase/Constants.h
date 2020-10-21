@@ -55,6 +55,7 @@ constexpr uint8_t ALICETriggerMask = 0x1;
 
 constexpr int NModules = 8;
 constexpr int NChPerModule = 4;
+constexpr int NLinks = NModules * 2;
 constexpr int NDigiChannels = NModules * NChPerModule;
 constexpr int NWPerBc = 3;
 constexpr int MaxTriggerChannels = NChannels;
