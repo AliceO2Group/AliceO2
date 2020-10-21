@@ -54,16 +54,16 @@ TrackParametrization<value_T>::TrackParametrization(const dim3_t& xyz, const dim
   value_t radPos2 = xyz[0] * xyz[0] + xyz[1] * xyz[1];
   value_t alp = 0;
   if (sectorAlpha || radPos2 < 1) {
-    alp = atan2f(pxpypz[1], pxpypz[0]);
+    alp = std::atan2(pxpypz[1], pxpypz[0]);
   } else {
-    alp = atan2f(xyz[1], xyz[0]);
+    alp = std::atan2(xyz[1], xyz[0]);
   }
   if (sectorAlpha) {
-    alp = math_utils::Angle2Alpha(alp);
+    alp = math_utils::detail::angle2Alpha<value_t>(alp);
   }
   //
   value_t sn, cs;
-  math_utils::sincos(alp, sn, cs);
+  math_utils::detail::sincos(alp, sn, cs);
   // protection:  avoid alpha being too close to 0 or +-pi/2
   if (std::fabs(sn) < 2 * kSafe) {
     if (alp > 0) {
@@ -71,22 +71,22 @@ TrackParametrization<value_T>::TrackParametrization(const dim3_t& xyz, const dim
     } else {
       alp += alp > -constants::math::PIHalf ? -2 * kSafe : 2 * kSafe;
     }
-    math_utils::sincos(alp, sn, cs);
+    math_utils::detail::sincos(alp, sn, cs);
   } else if (std::fabs(cs) < 2 * kSafe) {
     if (alp > 0) {
       alp += alp > constants::math::PIHalf ? 2 * kSafe : -2 * kSafe;
     } else {
       alp += alp > -constants::math::PIHalf ? 2 * kSafe : -2 * kSafe;
     }
-    math_utils::sincos(alp, sn, cs);
+    math_utils::detail::sincos(alp, sn, cs);
   }
   // get the vertex of origin and the momentum
   dim3_t ver{xyz[0], xyz[1], xyz[2]};
   dim3_t mom{pxpypz[0], pxpypz[1], pxpypz[2]};
   //
   // Rotate to the local coordinate system
-  math_utils::RotateZ(ver, -alp);
-  math_utils::RotateZ(mom, -alp);
+  math_utils::detail::rotateZ<value_t>(ver, -alp);
+  math_utils::detail::rotateZ<value_t>(mom, -alp);
   //
   value_t ptI = 1.f / sqrt(mom[0] * mom[0] + mom[1] * mom[1]);
   mX = ver[0];
@@ -116,7 +116,7 @@ bool TrackParametrization<value_T>::getPxPyPzGlo(dim3_t& pxyz) const
   }
   value_t cs, sn, pt = getPt();
   value_t r = std::sqrt((1.f - getSnp()) * (1.f + getSnp()));
-  math_utils::sincos(getAlpha(), sn, cs);
+  math_utils::detail::sincos(getAlpha(), sn, cs);
   pxyz[0] = pt * (r * cs - getSnp() * sn);
   pxyz[1] = pt * (getSnp() * cs + r * sn);
   pxyz[2] = pt * getTgl();
@@ -137,7 +137,7 @@ bool TrackParametrization<value_T>::getPosDirGlo(std::array<value_t, 9>& posdirp
   value_t csp = std::sqrt((1.f - snp) * (1.f + snp));
   value_t cstht = std::sqrt(1.f + getTgl() * getTgl());
   value_t csthti = 1.f / cstht;
-  math_utils::sincos(getAlpha(), sn, cs);
+  math_utils::detail::sincos(getAlpha(), sn, cs);
   posdirp[0] = getX() * cs - getY() * sn;
   posdirp[1] = getX() * sn + getY() * cs;
   posdirp[2] = getZ();
@@ -158,10 +158,10 @@ bool TrackParametrization<value_T>::rotateParam(value_t alpha)
     return false;
   }
   //
-  math_utils::BringToPMPi(alpha);
+  math_utils::detail::bringToPMPi<value_t>(alpha);
   //
   value_t ca = 0, sa = 0;
-  math_utils::sincos(alpha - getAlpha(), sa, ca);
+  math_utils::detail::sincos(alpha - getAlpha(), sa, ca);
   value_t snp = getSnp(), csp = std::sqrt((1.f - snp) * (1.f + snp)); // Improve precision
   // RS: check if rotation does no invalidate track model (cos(local_phi)>=0, i.e. particle
   // direction in local frame is along the X axis
@@ -358,7 +358,7 @@ bool TrackParametrization<value_T>::propagateParamToDCA(const math_utils::Point3
 {
   // propagate track to DCA to the vertex
   value_t sn, cs, alp = getAlpha();
-  math_utils::sincos(alp, sn, cs);
+  math_utils::detail::sincos(alp, sn, cs);
   value_t x = getX(), y = getY(), snp = getSnp(), csp = std::sqrt((1.f - snp) * (1.f + snp));
   value_t xv = vtx.X() * cs + vtx.Y() * sn, yv = -vtx.X() * sn + vtx.Y() * cs, zv = vtx.Z();
   x -= xv;
@@ -453,7 +453,7 @@ void TrackParametrization<value_T>::invertParam()
   // Transform this track to the local coord. system rotated by 180 deg.
   mX = -mX;
   mAlpha += constants::math::PI;
-  math_utils::BringToPMPi(mAlpha);
+  math_utils::detail::bringToPMPi<value_t>(mAlpha);
   //
   mP[0] = -mP[0];
   mP[3] = -mP[3];

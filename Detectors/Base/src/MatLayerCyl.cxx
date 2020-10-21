@@ -132,7 +132,7 @@ void MatLayerCyl::populateFromTGeo(int ip, int iz, int ntrPerCell)
     float zs = zmn + (isz + 0.5) * dz;
     float dzt = zs > 0.f ? 0.25 * dz : -0.25 * dz; // to avoid 90 degree polar angle
     for (int isp = ntrPerCell; isp--;) {
-      o2::math_utils::sincosf(phmn + (isp + 0.5) * getDPhi() / ntrPerCell, sn, cs);
+      o2::math_utils::sincos(phmn + (isp + 0.5) * getDPhi() / ntrPerCell, sn, cs);
       auto bud = o2::base::GeometryManager::meanMaterialBudget(rMin * cs, rMin * sn, zs - dzt, rMax * cs, rMax * sn, zs + dzt);
       if (bud.length > 0.) {
         meanRho += bud.length * bud.meanRho;

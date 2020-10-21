@@ -141,7 +141,7 @@ inline int RecoGeomHelper::RecoLayer::getLadderID(float phi) const
   // Get ladder ID corresponding to phi.
   // Note: this is an approximate method, precise within 1/3 of average ladder width,
   // one should check also the neighbouring ladders +/-1
-  o2::math_utils::BringTo02Pi(phi);
+  o2::math_utils::bringTo02Pi(phi);
   constexpr float PI2Inv = 1.f / o2::constants::math::TwoPI;
   return phi2ladder[int(phi * PI2Inv * phi2ladder.size())];
 }

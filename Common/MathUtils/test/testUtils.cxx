@@ -25,25 +25,25 @@ BOOST_AUTO_TEST_CASE(Utils_test)
 {
   // test MathUtils/Utils.h
 
-  { // test FastATan2()
+  { // test fastATan2()
     int n = 1000;
-    TProfile* p = new TProfile("pFastATan2", "FastATan2(y,x)", n, -TMath::Pi(), TMath::Pi());
+    TProfile* p = new TProfile("pFastATan2", "fastATan2(y,x)", n, -TMath::Pi(), TMath::Pi());
     double maxDiff = 0;
     for (int i = 0; i < n; i++) {
       double phi0 = -TMath::Pi() + i * TMath::TwoPi() / n;
       float x = TMath::Cos(phi0);
       float y = TMath::Sin(phi0);
-      float phi = math_utils::FastATan2(y, x);
+      float phi = math_utils::fastATan2(y, x);
       double diff = phi - phi0;
       p->Fill(phi0, diff);
-      diff = fabs(diff);
+      diff = std::fabs(diff);
       if (diff > maxDiff) {
         maxDiff = diff;
       }
     }
     //p->Draw();
 
-    std::cout << "test FastATan2:" << std::endl;
+    std::cout << "test fastATan2:" << std::endl;
     std::cout << " Max inaccuracy " << maxDiff << std::endl;
 
     // test the speed
@@ -84,7 +84,7 @@ BOOST_AUTO_TEST_CASE(Utils_test)
     begin = std::chrono::high_resolution_clock::now();
     for (int i = 0; i < iterations; ++i) {
       for (int j = 0; j < M; ++j) {
-        dsum += atan2(vyd[j], vxd[j]);
+        dsum += std::atan2(vyd[j], vxd[j]);
       }
     }
     end = std::chrono::high_resolution_clock::now();
@@ -108,15 +108,15 @@ BOOST_AUTO_TEST_CASE(Utils_test)
     begin = std::chrono::high_resolution_clock::now();
     for (int i = 0; i < iterations; ++i) {
       for (int j = 0; j < M; ++j) {
-        sum += math_utils::FastATan2(vy[j], vx[j]);
+        sum += math_utils::fastATan2(vy[j], vx[j]);
       }
     }
     end = std::chrono::high_resolution_clock::now();
     auto time4 = scale * std::chrono::duration_cast<std::chrono::nanoseconds>(end - begin).count();
-    std::cout << "  FastATan2: time " << time4 << " ns. checksum " << sum << std::endl;
+    std::cout << "  fastATan2: time " << time4 << " ns. checksum " << sum << std::endl;
     std::cout << "  speed up to atan2f(): " << (time3 - time1) / (time4 - time1) << " times " << std::endl;
 
     BOOST_CHECK(maxDiff < 1.e-3);
 
-  } // test FastATan2()
+  } // test fastATan2()
 }

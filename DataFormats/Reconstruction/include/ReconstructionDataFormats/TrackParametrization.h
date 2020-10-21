@@ -438,8 +438,8 @@ inline void TrackParametrization<value_T>::getCircleParams(value_t bz, o2::math_
 {
   // get circle params in loc and lab frame, for straight line just set to global coordinates
   getCircleParamsLoc(bz, c);
-  o2::math_utils::sincos(getAlpha(), sna, csa);
-  o2::math_utils::rotateZ(c.xC, c.yC, c.xC, c.yC, sna, csa); // center in global frame
+  o2::math_utils::detail::sincos(getAlpha(), sna, csa);
+  o2::math_utils::detail::rotateZ<value_t>(c.xC, c.yC, c.xC, c.yC, sna, csa); // center in global frame
 }
 
 //_______________________________________________________
@@ -447,8 +447,8 @@ template <typename value_T>
 inline void TrackParametrization<value_T>::getLineParams(o2::math_utils::IntervalXY<value_t>& ln, value_t& sna, value_t& csa) const
 {
   // get line parameterization as { x = x0 + xSlp*t, y = y0 + ySlp*t }
-  o2::math_utils::sincos(getAlpha(), sna, csa);
-  o2::math_utils::rotateZ(getX(), getY(), ln.getX0(), ln.getY0(), sna, csa); // reference point in global frame
+  o2::math_utils::detail::sincos(getAlpha(), sna, csa);
+  o2::math_utils::detail::rotateZ<value_t>(getX(), getY(), ln.getX0(), ln.getY0(), sna, csa); // reference point in global frame
   value_t snp = getSnp(), csp = std::sqrt((1.f - snp) * (1.f + snp));
   ln.setDX(csp * csa - snp * sna);
   ln.setDY(snp * csa + csp * sna);
@@ -481,7 +481,7 @@ inline typename TrackParametrization<value_T>::value_t TrackParametrization<valu
 {
   // track pt direction phi (in 0:2pi range)
   value_t phi = std::asin(getSnp()) + getAlpha();
-  math_utils::BringTo02Pi(phi);
+  math_utils::detail::bringTo02Pi<value_t>(phi);
   return phi;
 }
 
@@ -491,7 +491,7 @@ inline typename TrackParametrization<value_T>::value_t TrackParametrization<valu
 {
   // angle of track position (in -pi:pi range)
   value_t phi = std::atan2(getY(), getX()) + getAlpha();
-  math_utils::BringTo02Pi(phi);
+  math_utils::detail::bringTo02Pi<value_t>(phi);
   return phi;
 }
 
@@ -583,7 +583,7 @@ inline void TrackParametrization<value_T>::getXYZGlo(dim3_t& xyz) const
   xyz[0] = getX();
   xyz[1] = getY();
   xyz[2] = getZ();
-  math_utils::RotateZ(xyz, getAlpha());
+  math_utils::detail::rotateZ<value_t>(xyz, getAlpha());
 }
 
 #ifndef GPUCA_ALIGPUCODE //These functions clash with GPU code and are thus hidden

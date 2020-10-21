@@ -295,8 +295,8 @@ bool IntervalXY<T>::lineCrossParam(const IntervalXY<T>& other, T& t) const
   t = (-dx * other.getY0() + dy * other.getX0()) / det;
   return true;
 }
-}; // namespace detail
 
+} // namespace detail
 } // namespace math_utils
 } // namespace o2
 

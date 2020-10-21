@@ -129,7 +129,7 @@ struct TrackVF {
   TrackVF(const o2::track::TrackParCov& src, const TimeEst& t_est, uint32_t _entry, uint8_t _srcID)
     : x(src.getX()), y(src.getY()), z(src.getZ()), tgL(src.getTgl()), tgP(src.getSnp() / std::sqrt(1. - src.getSnp()) * (1. + src.getSnp())), timeEst(t_est), entry(_entry), srcID(_srcID)
   {
-    o2::math_utils::sincosf(src.getAlpha(), sinAlp, cosAlp);
+    o2::math_utils::sincos(src.getAlpha(), sinAlp, cosAlp);
     auto det = src.getSigmaY2() * src.getSigmaZ2() - src.getSigmaZY() * src.getSigmaZY();
     auto detI = 1. / det;
     sig2YI = src.getSigmaZ2() * detI;
