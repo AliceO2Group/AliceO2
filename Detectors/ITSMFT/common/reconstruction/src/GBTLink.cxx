@@ -327,6 +327,9 @@ GBTLink::ErrorType GBTLink::checkErrorsGBTDataID(const GBTData* gbtD)
   } else if (gbtD->isStatus()) {
     printCableStatus((GBTCableStatus*)gbtD);
   }
+  LOG(ERROR) << describe() << ' ' << statistics.ErrNames[GBTLinkDecodingStat::ErrGBTWordNotRecognized];
+  gbtD->printX(true);
+  statistics.errorCounts[GBTLinkDecodingStat::ErrGBTWordNotRecognized]++;
   return Skip;
 }
 
