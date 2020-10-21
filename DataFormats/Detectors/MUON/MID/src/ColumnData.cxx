@@ -25,10 +25,11 @@ namespace mid
 void ColumnData::setPattern(uint16_t pattern, int cathode, int line)
 {
   /// Sets the pattern
-  if (cathode == 0)
+  if (cathode == 0) {
     setBendPattern(pattern, line);
-  else
+  } else {
     setNonBendPattern(pattern);
+  }
 }
 
 uint16_t ColumnData::getPattern(int cathode, int line) const

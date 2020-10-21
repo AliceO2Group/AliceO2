@@ -21,10 +21,11 @@ void BCData::print() const
   printf("Read:");
   for (int ic = 0; ic < NDigiChannels; ic++) {
     if (ic % NChPerModule == 0) {
-      if (ic == 0)
+      if (ic == 0) {
         printf(" %d[", ic / NChPerModule);
-      else
+      } else {
         printf("] %d[", ic / NChPerModule);
+      }
     }
     if (channels & (0x1 << ic)) {
       printf("R");
@@ -35,10 +36,11 @@ void BCData::print() const
   printf("]\nHits:");
   for (int ic = 0; ic < NDigiChannels; ic++) {
     if (ic % NChPerModule == 0) {
-      if (ic == 0)
+      if (ic == 0) {
         printf(" %d[", ic / NChPerModule);
-      else
+      } else {
         printf("] %d[", ic / NChPerModule);
+      }
     }
     if (triggers & (0x1 << ic)) {
       printf("H");

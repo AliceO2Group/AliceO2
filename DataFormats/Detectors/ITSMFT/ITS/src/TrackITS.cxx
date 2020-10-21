@@ -70,10 +70,11 @@ void TrackITS::getImpactParams(Float_t x, Float_t y, Float_t z, Float_t bz, Floa
 
 Bool_t TrackITS::propagate(Float_t alpha, Float_t x, Float_t bz)
 {
-  if (rotate(alpha))
-    if (propagateTo(x, bz))
+  if (rotate(alpha)) {
+    if (propagateTo(x, bz)) {
       return kTRUE;
-
+    }
+  }
   return kFALSE;
 }
 

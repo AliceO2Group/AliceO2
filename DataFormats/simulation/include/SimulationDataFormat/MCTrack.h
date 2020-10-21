@@ -109,10 +109,11 @@ class MCTrackT
   {
     double_t pmom = GetP();
     double mz(mStartVertexMomentumZ);
-    if (pmom != TMath::Abs(mz))
+    if (pmom != TMath::Abs(mz)) {
       return 0.5 * std::log((pmom + mz) / (pmom - mz));
-    else
+    } else {
       return 1.e30;
+    }
   }
 
   Double_t GetTheta() const
@@ -154,8 +155,9 @@ class MCTrackT
   {
     int count = 0;
     for (auto i = o2::detectors::DetID::First; i < o2::detectors::DetID::nDetectors; ++i) {
-      if (leftTrace(i))
+      if (leftTrace(i)) {
         count++;
+      }
     }
     return count;
   }

@@ -57,8 +57,9 @@ class ClusterPattern
     mBitmap[1] = *pattIt++;
     int nbits = mBitmap[0] * mBitmap[1];
     int nBytes = nbits / 8;
-    if (((nbits) % 8) != 0)
+    if (((nbits) % 8) != 0) {
       nBytes++;
+    }
     memcpy(&mBitmap[2], &(*pattIt), nBytes);
     pattIt += nBytes;
   }

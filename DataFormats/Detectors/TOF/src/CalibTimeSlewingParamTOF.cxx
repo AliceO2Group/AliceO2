@@ -45,19 +45,23 @@ float CalibTimeSlewingParamTOF::evalTimeSlewing(int channel, float totIn) const
   int sector = channel / NCHANNELXSECTOR;
   channel = channel % NCHANNELXSECTOR;
 
-  if (sector >= NSECTORS)
+  if (sector >= NSECTORS) {
     return 0.; // something went wrong!
+  }
 
   int n = mChannelStart[sector][channel];
-  if (n < 0)
+  if (n < 0) {
     return 0.;
+  }
 
   int nstop = (mTimeSlewing[sector]).size();
-  if (channel < NCHANNELXSECTOR - 1)
+  if (channel < NCHANNELXSECTOR - 1) {
     nstop = mChannelStart[sector][channel + 1];
+  }
 
-  if (n >= nstop)
+  if (n >= nstop) {
     return 0.; // something went wrong!
+  }
 
   if (totIn == 0) {
     return (float)((mTimeSlewing[sector])[n].second);
@@ -75,8 +79,9 @@ float CalibTimeSlewingParamTOF::evalTimeSlewing(int channel, float totIn) const
     return 0;
   }
 
-  if (n == nstop - 1)
+  if (n == nstop - 1) {
     return (float)((mTimeSlewing[sector])[n].second); // use the last value stored for that channel
+  }
 
   float w1 = (float)(tot - (mTimeSlewing[sector])[n].first);
   float w2 = (float)((mTimeSlewing[sector])[n + 1].first - tot);
@@ -100,8 +105,9 @@ void CalibTimeSlewingParamTOF::addTimeSlewingInfo(int channel, float tot, float 
 
   // printf("DBG: addTimeSlewinginfo sec=%i\n",sector);
 
-  if (sector >= NSECTORS)
+  if (sector >= NSECTORS) {
     return; // something went wrong!
+  }
 
   int currentch = channel;
   while (mChannelStart[sector][currentch] == -1 && currentch > -1) {

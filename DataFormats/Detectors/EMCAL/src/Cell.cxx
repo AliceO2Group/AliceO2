@@ -25,8 +25,9 @@ Cell::Cell(Short_t tower, Double_t energy, Double_t time, ChannelType_t ctype)
 
 void Cell::setTower(Short_t tower)
 {
-  if (tower > 0x7fff || tower < 0)
+  if (tower > 0x7fff || tower < 0) {
     tower = 0x7fff;
+  }
   ULong_t t = (ULong_t)tower;
 
   ULong_t b = getLong() & 0xffffff8000; // 1111111111111111111111111000000000000000
@@ -43,12 +44,13 @@ Short_t Cell::getTower() const
 void Cell::setTimeStamp(Double_t time)
 {
   ULong_t t = 0;
-  if (time > 0x1ff)
+  if (time > 0x1ff) {
     t = 0x1ff;
-  else if (time < 0)
+  } else if (time < 0) {
     t = 0;
-  else
+  } else {
     t = (ULong_t)time;
+  }
 
   t <<= 15;
   ULong_t b = getLong() & 0xffff007fff; // 1111111111111111000000000111111111111111
@@ -65,10 +67,11 @@ Short_t Cell::getTimeStamp() const
 
 void Cell::setEnergyBits(Short_t ebits)
 {
-  if (ebits > 0x3fff)
+  if (ebits > 0x3fff) {
     ebits = 0x3fff;
-  else if (ebits < 0)
+  } else if (ebits < 0) {
     ebits = 0;
+  }
   ULong_t a = (ULong_t)ebits;
 
   a <<= 24;
@@ -119,12 +122,13 @@ void Cell::setType(ChannelType_t ctype)
 
 ChannelType_t Cell::getType() const
 {
-  if (getHighGain())
+  if (getHighGain()) {
     return ChannelType_t::HIGH_GAIN;
-  else if (getLEDMon())
+  } else if (getLEDMon()) {
     return ChannelType_t::LEDMON;
-  else if (getTRU())
+  } else if (getTRU()) {
     return ChannelType_t::TRU;
+  }
   return ChannelType_t::LOW_GAIN;
 }
 
@@ -137,8 +141,9 @@ void Cell::setLowGain()
 Bool_t Cell::getLowGain() const
 {
   ULong_t t = (getLong() >> 38);
-  if (t)
+  if (t) {
     return false;
+  }
   return true;
 }
 
@@ -151,8 +156,9 @@ void Cell::setHighGain()
 Bool_t Cell::getHighGain() const
 {
   ULong_t t = (getLong() >> 38);
-  if (t == 1)
+  if (t == 1) {
     return true;
+  }
   return false;
 }
 
@@ -165,8 +171,9 @@ void Cell::setLEDMon()
 Bool_t Cell::getLEDMon() const
 {
   ULong_t t = (getLong() >> 38);
-  if (t == 2)
+  if (t == 2) {
     return true;
+  }
   return false;
 }
 
@@ -179,8 +186,9 @@ void Cell::setTRU()
 Bool_t Cell::getTRU() const
 {
   ULong_t t = (getLong() >> 38);
-  if (t == 3)
+  if (t == 3) {
     return true;
+  }
   return false;
 }
 

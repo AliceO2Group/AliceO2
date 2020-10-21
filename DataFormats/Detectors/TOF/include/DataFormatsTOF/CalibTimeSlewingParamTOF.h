@@ -48,8 +48,9 @@ class CalibTimeSlewingParamTOF
   int size() const
   {
     int n = 0;
-    for (int i = 0; i < NSECTORS; i++)
+    for (int i = 0; i < NSECTORS; i++) {
       n += (mTimeSlewing[i]).size();
+    }
     return n;
   }
 

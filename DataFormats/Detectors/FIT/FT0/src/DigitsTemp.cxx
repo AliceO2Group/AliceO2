@@ -17,9 +17,10 @@ void DigitsTemp::printStream(std::ostream& stream) const
   stream << "FT0 Digit: event time " << mTime << " BC " << mIntRecord.bc << " orbit " << mIntRecord.orbit << std::endl;
   stream << " A amp " << mTrigger.amplA << "  C amp " << mTrigger.amplC << " time A " << mTrigger.timeA << " time C " << mTrigger.timeC << " signals " << int(mTrigger.triggersignals) << std::endl;
 
-  for (auto& chdata : mChDgDataArr)
+  for (auto& chdata : mChDgDataArr) {
     stream << "CH " << int(chdata.ChId) << " TIME " << chdata.CFDTime << " ns " << chdata.QTCAmpl << " mV "
            << " ADC chain " << int(chdata.ChainQTC) << std::endl;
+  }
 }
 
 std::ostream& operator<<(std::ostream& stream, const DigitsTemp& digi)

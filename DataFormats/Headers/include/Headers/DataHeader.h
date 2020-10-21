@@ -305,16 +305,19 @@ struct Descriptor {
   {
     char* target = str;
     char* targetEnd = target;
-    if (length >= 0 && length < (int)N)
+    if (length >= 0 && length < (int)N) {
       targetEnd += length;
-    else
+    } else {
       targetEnd += N;
+    }
     const char* source = string;
-    for (; source != nullptr && target < targetEnd && *source != 0; ++target, ++source)
+    for (; source != nullptr && target < targetEnd && *source != 0; ++target, ++source) {
       *target = *source;
+    }
     targetEnd = str + N;
-    for (; target < targetEnd; ++target)
+    for (; target < targetEnd; ++target) {
       *target = 0;
+    }
     // require the string to be not longer than the descriptor size
     if (source != nullptr && (*source == 0 || (length >= 0 && length <= (int)N))) {
     } else {

@@ -170,8 +170,9 @@ void printHalfCRUHeader(o2::trd::HalfCRUHeader const& halfcru)
   getlinkerrorflags(halfcru, errorflags);
   LOGF(INFO, "V:%d BC:%d SB:%d EType:%d", halfcru.HeaderVersion, halfcru.BunchCrossing,
        halfcru.StopBit, halfcru.EventType);
-  for (int i = 0; i < 15; i++)
+  for (int i = 0; i < 15; i++) {
     LOGF(INFO, "Link %d size: %ul eflag: 0x%02x", i, sizes[i], errorflags[i]);
+  }
 }
 
 void dumpHalfCRUHeader(o2::trd::HalfCRUHeader& halfcru)
@@ -193,12 +194,14 @@ std::ostream& operator<<(std::ostream& stream, const HalfCRUHeader& halfcru)
   stream << "BunchCrossing : " << halfcru.BunchCrossing << std::endl;
   stream << "HeaderVersion : " << halfcru.HeaderVersion << std::endl;
   stream << "link  sizes : ";
-  for (int link = 0; link < 15; link++)
+  for (int link = 0; link < 15; link++) {
     stream << link << ":" << std::hex << std::setw(4) << getlinkdatasize(halfcru, link) << ",";
+  }
   stream << std::endl;
   stream << "link  errorflags : ";
-  for (int link = 0; link < 15; link++)
+  for (int link = 0; link < 15; link++) {
     stream << link << ":" << std::hex << std::setw(2) << getlinkerrorflag(halfcru, link) << ",";
+  }
   stream << std::endl;
   stream << "0x" << std::hex << halfcru.word0 << " 0x" << halfcru.word12[0] << " 0x" << halfcru.word12[1] << " 0x" << halfcru.word3 << " 0x" << halfcru.word47[0] << " 0x" << halfcru.word47[1] << " 0x" << halfcru.word47[2] << " 0x" << halfcru.word47[3] << std::endl;
   return stream;

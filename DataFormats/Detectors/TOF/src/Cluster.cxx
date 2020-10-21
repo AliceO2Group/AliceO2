@@ -37,22 +37,30 @@ int Cluster::getNumOfContributingChannels() const
   //
   int nContributingChannels = 1;
 
-  if (isAdditionalChannelSet(kUpLeft))
+  if (isAdditionalChannelSet(kUpLeft)) {
     nContributingChannels++;
-  if (isAdditionalChannelSet(kUp))
+  }
+  if (isAdditionalChannelSet(kUp)) {
     nContributingChannels++;
-  if (isAdditionalChannelSet(kUpRight))
+  }
+  if (isAdditionalChannelSet(kUpRight)) {
     nContributingChannels++;
-  if (isAdditionalChannelSet(kRight))
+  }
+  if (isAdditionalChannelSet(kRight)) {
     nContributingChannels++;
-  if (isAdditionalChannelSet(kDownRight))
+  }
+  if (isAdditionalChannelSet(kDownRight)) {
     nContributingChannels++;
-  if (isAdditionalChannelSet(kDown))
+  }
+  if (isAdditionalChannelSet(kDown)) {
     nContributingChannels++;
-  if (isAdditionalChannelSet(kDownLeft))
+  }
+  if (isAdditionalChannelSet(kDownLeft)) {
     nContributingChannels++;
-  if (isAdditionalChannelSet(kLeft))
+  }
+  if (isAdditionalChannelSet(kLeft)) {
     nContributingChannels++;
+  }
 
   return nContributingChannels;
 }

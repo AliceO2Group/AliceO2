@@ -48,19 +48,22 @@ class NoiseMap
   /// Get the noise level for this pixels
   float getNoiseLevel(int chip, int row, int col) const
   {
-    if (chip > mNoisyPixels.size())
+    if (chip > mNoisyPixels.size()) {
       return 0;
+    }
     auto key = row * 1024 + col;
     const auto keyIt = mNoisyPixels[chip].find(key);
-    if (keyIt != mNoisyPixels[chip].end())
+    if (keyIt != mNoisyPixels[chip].end()) {
       return keyIt->second;
+    }
     return 0;
   }
 
   void increaseNoiseCount(int chip, int row, int col)
   {
-    if (chip > mNoisyPixels.size())
+    if (chip > mNoisyPixels.size()) {
       return;
+    }
     auto key = row * 1024 + col;
     mNoisyPixels[chip][key]++;
   }
@@ -72,8 +75,9 @@ class NoiseMap
     while (chipID--) {
       const auto& map = mNoisyPixels[chipID];
       for (const auto& pair : map) {
-        if (pair.second <= t)
+        if (pair.second <= t) {
           continue;
+        }
         n++;
         auto key = pair.first;
         auto row = key / 1024;

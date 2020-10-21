@@ -97,8 +97,9 @@ unsigned long ClusterTopology::getCompleteHash(int nRow, int nCol,
   extended_pattern[1] = (unsigned char)nCol;
   int nBits = nRow * nCol;
   int nBytes = nBits / 8;
-  if (nBits % 8 != 0)
+  if (nBits % 8 != 0) {
     nBytes++;
+  }
   memcpy(&extended_pattern[2], patt, nBytes);
 
   unsigned long partialHash = (unsigned long)hashFunction(extended_pattern, nBytes);

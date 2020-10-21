@@ -224,8 +224,9 @@ void Stack::PushTrack(int toBeDone, TParticle& p)
     mNumberOfPrimaryParticles++;
     mPrimaryParticles.push_back(p);
     // Push particle on the stack
-    if (p.TestBit(ParticleStatus::kPrimary) && p.TestBit(ParticleStatus::kToBeDone))
+    if (p.TestBit(ParticleStatus::kPrimary) && p.TestBit(ParticleStatus::kToBeDone)) {
       mNumberOfPrimariesforTracking++;
+    }
     mStack.push(p);
     mTracks->emplace_back(p);
   }
@@ -448,8 +449,9 @@ void Stack::FinishPrimary()
   for (Int_t idTrack = imin; idTrack < imax; idTrack++) {
     Int_t index1 = mTrackIDtoParticlesEntry[idTrack];
     Int_t index2 = indicesKept[index1];
-    if (index2 == -1)
+    if (index2 == -1) {
       continue;
+    }
     Int_t index3 = (mIsG4Like) ? invreOrderedIndices[index2] : index2;
     mIndexMap[idTrack] = index3 + indexoffset;
   }
@@ -578,8 +580,9 @@ void Stack::Print(Int_t iVerbose) const
 void Stack::Print(Option_t* option) const
 {
   Int_t verbose = 0;
-  if (option)
+  if (option) {
     verbose = 1;
+  }
   Print(verbose);
 }
 
@@ -697,8 +700,9 @@ bool Stack::selectTracks()
 bool Stack::isPrimary(const MCTrack& part)
 {
   /** check if primary **/
-  if (part.getProcess() == kPPrimary || part.getMotherTrackId() < 0)
+  if (part.getProcess() == kPPrimary || part.getMotherTrackId() < 0) {
     return true;
+  }
   /** not primary **/
   return false;
 }
@@ -709,13 +713,15 @@ bool Stack::isFromPrimaryDecayChain(const MCTrack& part)
       decay chain of a primary particle **/
 
   /** check if from decay **/
-  if (part.getProcess() != kPDecay)
+  if (part.getProcess() != kPDecay) {
     return false;
+  }
   /** check if mother is primary **/
   auto imother = part.getMotherTrackId();
   auto mother = mParticles[imother];
-  if (isPrimary(mother))
+  if (isPrimary(mother)) {
     return true;
+  }
   /** else check if mother is from primary decay **/
   return isFromPrimaryDecayChain(mother);
 }
@@ -727,13 +733,15 @@ bool Stack::isFromPrimaryPairProduction(const MCTrack& part)
       belonging to the primary decay chain **/
 
   /** check if from pair production **/
-  if (part.getProcess() != kPPair)
+  if (part.getProcess() != kPPair) {
     return false;
+  }
   /** check if mother is primary **/
   auto imother = part.getMotherTrackId();
   auto mother = mParticles[imother];
-  if (isPrimary(mother))
+  if (isPrimary(mother)) {
     return true;
+  }
   /** else check if mother is from primary decay **/
   return isFromPrimaryDecayChain(mother);
 }
@@ -745,12 +753,15 @@ bool Stack::keepPhysics(const MCTrack& part)
   // by physics analysis. Decision is put here.
   //
 
-  if (isPrimary(part))
+  if (isPrimary(part)) {
     return true;
-  if (isFromPrimaryDecayChain(part))
+  }
+  if (isFromPrimaryDecayChain(part)) {
     return true;
-  if (isFromPrimaryPairProduction(part))
+  }
+  if (isFromPrimaryPairProduction(part)) {
     return true;
+  }
 
   return false;
 }
@@ -809,8 +820,9 @@ void Stack::ReorderKine(std::vector<MCTrack>& particles, std::vector<int>& reOrd
   int indexoffset = mTracks->size();
   Int_t index = 0;
   Int_t imoOld = 0;
-  for (Int_t i = 0; i < ntr; i++)
+  for (Int_t i = 0; i < ntr; i++) {
     reOrderedIndices[i] = i;
+  }
 
   for (Int_t i = -1; i < ntr; i++) {
     if (i != -1) {

@@ -22,8 +22,9 @@ using namespace o2::dataformats;
 float CalibLHCphaseTOF::getLHCphase(int timestamp) const
 {
   int n = 0;
-  while (n < mLHCphase.size() && mLHCphase[n].first <= timestamp)
+  while (n < mLHCphase.size() && mLHCphase[n].first <= timestamp) {
     n++;
+  }
   n--;
 
   if (n < 0) { // timestamp is before of the first available value
@@ -51,8 +52,9 @@ CalibLHCphaseTOF& CalibLHCphaseTOF::operator+=(const CalibLHCphaseTOF& other)
 {
   if (other.mLHCphase.size() > mLHCphase.size()) {
     mLHCphase.clear();
-    for (auto obj = other.mLHCphase.begin(); obj != other.mLHCphase.end(); obj++)
+    for (auto obj = other.mLHCphase.begin(); obj != other.mLHCphase.end(); obj++) {
       mLHCphase.push_back(*obj);
+    }
   }
   return *this;
 }

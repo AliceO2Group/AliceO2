@@ -79,8 +79,9 @@ class TrackParFwd
   /// set the charge (assumed forward motion)
   void setCharge(Double_t charge)
   {
-    if (charge * mParameters(4) < 0.)
+    if (charge * mParameters(4) < 0.) {
       mParameters(4) *= -1.;
+    }
   }
 
   /// return track parameters

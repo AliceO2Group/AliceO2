@@ -35,8 +35,9 @@ Cell::Cell(short absId, float energy, float time, ChannelType_t ctype)
 void Cell::setAbsId(short absId)
 {
   //14 bits available
-  if (absId > kNmaxCell || absId < 0)
+  if (absId > kNmaxCell || absId < 0) {
     absId = kNmaxCell;
+  }
   ULong_t t = (ULong_t)absId;
 
   ULong_t b = getLong() & 0xffffffc000; // 1111 1111 1111 1111 1111 1111 1100 0000 0000 0000
@@ -58,20 +59,22 @@ short Cell::getAbsId() const
 {
   ULong_t t = getLong() & 0x3fff; //14 bits
   short a = (short)t;
-  if (a <= kNmaxCell)
+  if (a <= kNmaxCell) {
     return a;
-  else
+  } else {
     return 0;
+  }
 }
 
 short Cell::getTRUId() const
 {
   ULong_t t = getLong() & 0x3fff; //14 bits
   short a = (short)t;
-  if (a > kNmaxCell)
+  if (a > kNmaxCell) {
     return a - kNmaxCell - 1;
-  else
+  } else {
     return 0;
+  }
 }
 
 void Cell::setTime(float time)
@@ -137,10 +140,11 @@ void Cell::setType(ChannelType_t ctype)
 
 ChannelType_t Cell::getType() const
 {
-  if (getHighGain())
+  if (getHighGain()) {
     return ChannelType_t::HIGH_GAIN;
-  else if (getTRU())
+  } else if (getTRU()) {
     return ChannelType_t::TRU;
+  }
   return ChannelType_t::LOW_GAIN;
 }
 
@@ -153,8 +157,9 @@ void Cell::setLowGain()
 Bool_t Cell::getLowGain() const
 {
   ULong_t t = (getLong() >> 39);
-  if (t)
+  if (t) {
     return false;
+  }
   return true;
 }
 
@@ -167,8 +172,9 @@ void Cell::setHighGain()
 Bool_t Cell::getHighGain() const
 {
   ULong_t t = (getLong() >> 39);
-  if (t == 1)
+  if (t == 1) {
     return true;
+  }
   return false;
 }
 

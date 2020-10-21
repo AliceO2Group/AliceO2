@@ -41,12 +41,13 @@ int EventHandler<CellInputType>::getNumberOfEvents() const
 {
   int neventsClusters = mTriggerRecordsClusters.size(),
       neventsCells = mTriggerRecordsCells.size();
-  if (neventsClusters)
+  if (neventsClusters) {
     return neventsClusters;
-  else if (neventsCells)
+  } else if (neventsCells) {
     return neventsCells;
-  else
+  } else {
     return 0;
+  }
 }
 
 template <class CellInputType>
@@ -54,20 +55,23 @@ const o2::InteractionRecord& EventHandler<CellInputType>::getInteractionRecordFo
 {
   const InteractionRecord *irClusters(nullptr), *irCells(nullptr);
   if (mTriggerRecordsClusters.size()) {
-    if (eventID >= mTriggerRecordsClusters.size())
+    if (eventID >= mTriggerRecordsClusters.size()) {
       throw RangeException(eventID, mTriggerRecordsClusters.size());
+    }
     irClusters = &(mTriggerRecordsClusters[eventID].getBCData());
   }
   if (mTriggerRecordsCells.size()) {
-    if (eventID >= mTriggerRecordsCells.size())
+    if (eventID >= mTriggerRecordsCells.size()) {
       throw RangeException(eventID, mTriggerRecordsCells.size());
+    }
     irCells = &(mTriggerRecordsCellIndices[eventID].getBCData());
   }
   if (irClusters && irCells) {
-    if (compareInteractionRecords(*irClusters, *irCells))
+    if (compareInteractionRecords(*irClusters, *irCells)) {
       return *irClusters;
-    else
+    } else {
       throw InteractionRecordInvalidException(*irClusters, *irCells);
+    }
   } else if (irClusters) {
     return *irClusters;
   } else if (irCells) {
@@ -80,8 +84,9 @@ template <class CellInputType>
 const typename EventHandler<CellInputType>::ClusterRange EventHandler<CellInputType>::getClustersForEvent(int eventID) const
 {
   if (mTriggerRecordsClusters.size()) {
-    if (eventID >= mTriggerRecordsClusters.size())
+    if (eventID >= mTriggerRecordsClusters.size()) {
       throw RangeException(eventID, mTriggerRecordsClusters.size());
+    }
     auto& trgrecord = mTriggerRecordsClusters[eventID];
     return ClusterRange(mClusters.data() + trgrecord.getFirstEntry(), trgrecord.getNumberOfObjects());
   }
@@ -92,8 +97,9 @@ template <class CellInputType>
 const typename EventHandler<CellInputType>::CellRange EventHandler<CellInputType>::getCellsForEvent(int eventID) const
 {
   if (mTriggerRecordsCells.size()) {
-    if (eventID >= mTriggerRecordsCells.size())
+    if (eventID >= mTriggerRecordsCells.size()) {
       throw RangeException(eventID, mTriggerRecordsCells.size());
+    }
     auto& trgrecord = mTriggerRecordsCells[eventID];
     return CellRange(mCells.data() + trgrecord.getFirstEntry(), trgrecord.getNumberOfObjects());
   }
@@ -104,8 +110,9 @@ template <class CellInputType>
 const typename EventHandler<CellInputType>::CellIndexRange EventHandler<CellInputType>::getClusterCellIndicesForEvent(int eventID) const
 {
   if (mTriggerRecordsCellIndices.size()) {
-    if (eventID >= mTriggerRecordsCellIndices.size())
+    if (eventID >= mTriggerRecordsCellIndices.size()) {
       throw RangeException(eventID, mTriggerRecordsCellIndices.size());
+    }
     auto& trgrecord = mTriggerRecordsCellIndices[eventID];
     return CellIndexRange(mClusterCellIndices.data() + trgrecord.getFirstEntry(), trgrecord.getNumberOfObjects());
   }
@@ -128,12 +135,15 @@ EventData<CellInputType> EventHandler<CellInputType>::buildEvent(int eventID) co
 {
   EventData<CellInputType> outputEvent;
   outputEvent.mInteractionRecord = getInteractionRecordForEvent(eventID);
-  if (hasClusters())
+  if (hasClusters()) {
     outputEvent.mClusters = getClustersForEvent(eventID);
-  if (hasClusterIndices())
+  }
+  if (hasClusterIndices()) {
     outputEvent.mCellIndices = getClusterCellIndicesForEvent(eventID);
-  if (hasCells())
+  }
+  if (hasCells()) {
     outputEvent.mCells = getCellsForEvent(eventID);
+  }
 
   return outputEvent;
 }
@@ -162,10 +172,11 @@ bool EventHandler<CellInputType>::EventIterator::operator==(const EventHandler<C
 template <class CellInputType>
 typename EventHandler<CellInputType>::EventIterator& EventHandler<CellInputType>::EventIterator::operator++()
 {
-  if (mForward)
+  if (mForward) {
     mEventID++;
-  else
+  } else {
     mEventID--;
+  }
   mCurrentEvent = mEventHandler.buildEvent(mEventID);
   return *this;
 }
@@ -181,10 +192,11 @@ typename EventHandler<CellInputType>::EventIterator EventHandler<CellInputType>:
 template <class CellInputType>
 typename EventHandler<CellInputType>::EventIterator& EventHandler<CellInputType>::EventIterator::operator--()
 {
-  if (mForward)
+  if (mForward) {
     mEventID--;
-  else
+  } else {
     mEventID++;
+  }
   mCurrentEvent = mEventHandler.buildEvent(mEventID);
   return *this;
 }

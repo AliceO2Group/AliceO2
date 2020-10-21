@@ -119,11 +119,13 @@ o2::header::DataIdentifier::DataIdentifier()
 //__________________________________________________________________________________________________
 bool o2::header::DataIdentifier::operator==(const DataIdentifier& other) const
 {
-  if (other.dataOrigin != gDataOriginAny && dataOrigin != other.dataOrigin)
+  if (other.dataOrigin != gDataOriginAny && dataOrigin != other.dataOrigin) {
     return false;
+  }
   if (other.dataDescription != gDataDescriptionAny &&
-      dataDescription != other.dataDescription)
+      dataDescription != other.dataDescription) {
     return false;
+  }
   return true;
 }
 
@@ -143,8 +145,9 @@ void o2::header::hexDump(const char* desc, const void* voidaddr, size_t len, siz
   const byte* addr = reinterpret_cast<const byte*>(voidaddr);
 
   // Output description if given.
-  if (desc != nullptr)
+  if (desc != nullptr) {
     printf("%s, ", desc);
+  }
   printf("%zu bytes:", len);
   if (max > 0 && len > max) {
     len = max; //limit the output if requested
@@ -164,8 +167,9 @@ void o2::header::hexDump(const char* desc, const void* voidaddr, size_t len, siz
     // Multiple of 16 means new line (with line offset).
     if ((i % 16) == 0) {
       // Just don't print ASCII for the zeroth line.
-      if (i != 0)
+      if (i != 0) {
         printf("  %s\n", buff);
+      }
 
       // Output the offset.
       //printf ("  %04x ", i);
@@ -176,10 +180,11 @@ void o2::header::hexDump(const char* desc, const void* voidaddr, size_t len, siz
     printf(" %02x", addr[i]);
 
     // And store a printable ASCII character for later.
-    if ((addr[i] < 0x20) || (addr[i] > 0x7e))
+    if ((addr[i] < 0x20) || (addr[i] > 0x7e)) {
       buff[i % 16] = '.';
-    else
+    } else {
       buff[i % 16] = addr[i];
+    }
     buff[(i % 16) + 1] = '\0';
     fflush(stdout);
   }

@@ -324,8 +324,9 @@ class DataPageWriter
 
   void writePage()
   {
-    if (mBuffer.size() == 0)
+    if (mBuffer.size() == 0) {
       return;
+    }
     mPages.emplace_back(std::move(mBuffer));
     LOG(DEBUG) << " writePage " << mBuffer.size();
     mNpackets.push_back(mNpacketsInBuffer);
