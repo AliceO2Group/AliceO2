@@ -763,39 +763,47 @@ std::shared_ptr<DataOutputDirector> WorkflowHelpers::getDataOutputDirector(Confi
   }
 
   // values from command line options, information from json is overwritten
-  fnb = options.get<std::string>("aod-writer-resfile");
-  if (!fnb.empty()) {
-    fnbase = fnb;
+  if (options.isSet("aod-writer-resfile")) {
+    fnb = options.get<std::string>("aod-writer-resfile");
+    if (!fnb.empty()) {
+      fnbase = fnb;
+    }
   }
-  fmo = options.get<std::string>("aod-writer-resmode");
-  if (!fmo.empty()) {
-    filemode = fmo;
+  if (options.isSet("aod-writer-resmode")) {
+    fmo = options.get<std::string>("aod-writer-resmode");
+    if (!fmo.empty()) {
+      filemode = fmo;
+    }
   }
-  ntfm = options.get<int>("aod-writer-ntfmerge");
-  if (ntfm > 0) {
-    ntfmerge = ntfm;
+  if (options.isSet("aod-writer-ntfmerge")) {
+    ntfm = options.get<int>("aod-writer-ntfmerge");
+    if (ntfm > 0) {
+      ntfmerge = ntfm;
+    }
   }
   // parse the keepString
-  auto keepString = options.get<std::string>("aod-writer-keep");
-  if (!keepString.empty()) {
+  if (options.isSet("aod-writer-keep")) {
+    auto keepString = options.get<std::string>("aod-writer-keep");
+    if (!keepString.empty()) {
 
-    dod->reset();
-    std::string d("dangling");
-    if (d.find(keepString) == 0) {
+      dod->reset();
+      std::string d("dangling");
+      if (d.find(keepString) == 0) {
 
-      // use the dangling outputs
-      std::vector<InputSpec> danglingOutputs;
-      for (auto ii = 0; ii < OutputsInputs.size(); ii++) {
-        if ((outputTypes[ii] & 2) == 2 && (outputTypes[ii] & 1) == 1) {
-          danglingOutputs.emplace_back(OutputsInputs[ii]);
+        // use the dangling outputs
+        std::vector<InputSpec> danglingOutputs;
+        for (auto ii = 0; ii < OutputsInputs.size(); ii++) {
+          if ((outputTypes[ii] & 2) == 2 && (outputTypes[ii] & 1) == 1) {
+            danglingOutputs.emplace_back(OutputsInputs[ii]);
+          }
         }
+        dod->readSpecs(danglingOutputs);
+
+      } else {
+
+        // use the keep string
+        dod->readString(keepString);
       }
-      dod->readSpecs(danglingOutputs);
-
-    } else {
-
-      // use the keep string
-      dod->readString(keepString);
     }
   }
   dod->setFilenameBase(fnbase);
