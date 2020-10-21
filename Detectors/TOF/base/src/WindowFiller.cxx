@@ -147,7 +147,7 @@ void WindowFiller::fillOutputContainer(std::vector<Digit>& digits)
 
     info.setFirstEntryDia(firstPattern);
     info.setNEntriesDia(npatterns);
-    if (digits.size()) {
+    if (digits.size() || npatterns) {
       mDigitsPerTimeFrame.insert(mDigitsPerTimeFrame.end(), digits.begin(), digits.end());
       mReadoutWindowDataFiltered.push_back(info);
     }
