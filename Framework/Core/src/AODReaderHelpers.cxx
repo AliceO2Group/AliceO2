@@ -93,6 +93,11 @@ AlgorithmSpec AODReaderHelpers::rootFileReaderCallback()
 {
   auto callback = AlgorithmSpec{adaptStateful([](ConfigParamRegistry const& options,
                                                  DeviceSpec const& spec) {
+    if (!options.isSet("aod-file")) {
+      LOGP(ERROR, "No input file defined!");
+      throw std::runtime_error("Processing is stopped!");
+    }
+      
     auto filename = options.get<std::string>("aod-file");
 
     // create a DataInputDirector

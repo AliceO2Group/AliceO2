@@ -388,7 +388,7 @@ DataProcessorSpec
         auto dh = DataRefUtils::getHeader<header::DataHeader*>(ref);
         auto dataProcessingHeader = DataRefUtils::getHeader<DataProcessingHeader*>(ref);
 
-        // the startTime contained in the header determined the folder number
+        // the startTime contained in the header determines the folder number
         uint64_t folderNumber = dataProcessingHeader->startTime;
 
         // get the relevant DataOutputDescriptors

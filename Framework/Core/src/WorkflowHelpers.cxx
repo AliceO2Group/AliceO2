@@ -208,7 +208,7 @@ void WorkflowHelpers::injectServiceDevices(WorkflowSpec& workflow, ConfigContext
                static_cast<DataAllocator::SubSpecificationType>(compile_time_hash("internal-dpl-aod-reader")), Lifetime::Enumeration}},
     {},
     readers::AODReaderHelpers::rootFileReaderCallback(),
-    {ConfigParamSpec{"aod-file", VariantType::String, "aod.root", {"Input AOD file"}},
+    {ConfigParamSpec{"aod-file", VariantType::String, {"Input AOD file"}},
      ConfigParamSpec{"aod-reader-json", VariantType::String, {"json configuration file"}},
      ConfigParamSpec{"time-limit", VariantType::Int64, 0ll, {"Maximum run time limit in seconds"}},
      ConfigParamSpec{"start-value-enumeration", VariantType::Int64, 0ll, {"initial value for the enumeration"}},
@@ -263,7 +263,7 @@ void WorkflowHelpers::injectServiceDevices(WorkflowSpec& workflow, ConfigContext
         } break;
         case Lifetime::Condition: {
           if (hasConditionOption == false) {
-            processor.options.emplace_back(ConfigParamSpec{"condition-backend", VariantType::String, "http://localhost:8080", {"Url for CCDB"}});
+            processor.options.emplace_back(ConfigParamSpec{"condition-backend", VariantType::String, "http://localhost:8080", {"URL for CCDB"}});
             processor.options.emplace_back(ConfigParamSpec{"condition-timestamp", VariantType::String, "", {"Force timestamp for CCDB lookup"}});
             hasConditionOption = true;
           }
