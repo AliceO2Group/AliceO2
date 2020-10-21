@@ -16,7 +16,6 @@
 #include "Framework/AnalysisTask.h"
 #include "Framework/runDataProcessing.h"
 #include "Analysis/TrackSelection.h"
-#include "Analysis/TrackSelectionDefaults.h"
 #include "Analysis/TrackSelectionTables.h"
 #include "Analysis/trackUtilities.h"
 
@@ -32,20 +31,15 @@ using namespace o2::framework::expressions;
 struct TrackSelectionTask {
   Produces<aod::TrackSelection> filterTable;
 
-  TrackSelection globalTracks;
-  TrackSelection globalTracksSDD;
-
   void init(InitContext&)
   {
-    globalTracks = getGlobalTrackSelection();
-    globalTracksSDD = getGlobalTrackSelectionSDD();
   }
 
   void process(soa::Join<aod::FullTracks, aod::TracksExtended> const& tracks)
   {
     for (auto& track : tracks) {
-      filterTable(globalTracks.IsSelected(track),
-                  globalTracksSDD.IsSelected(track));
+      filterTable(kTRUE,
+                  kTRUE);
     }
   }
 };
