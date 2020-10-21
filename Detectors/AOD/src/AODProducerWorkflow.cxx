@@ -28,9 +28,7 @@
 #include "TPCWorkflow/PublisherSpec.h"
 #include "TPCWorkflow/TrackReaderSpec.h"
 
-namespace o2
-{
-namespace aodproducer
+namespace o2::aodproducer
 {
 
 framework::WorkflowSpec getAODProducerWorkflow()
@@ -55,5 +53,5 @@ framework::WorkflowSpec getAODProducerWorkflow()
   return specs;
 }
 
-} // namespace aodproducer
-} // namespace o2
+} // namespace o2::aodproducer
+

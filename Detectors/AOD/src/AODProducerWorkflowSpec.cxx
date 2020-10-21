@@ -38,10 +38,7 @@
 
 using namespace o2::framework;
 
-namespace o2
-{
-namespace aodproducer
-{
+namespace o2::aodproducer {
 
 void AODProducerWorkflowDPL::findMinMaxBc(gsl::span<const o2::ft0::RecPoints>& ft0RecPoints, gsl::span<const o2::dataformats::TrackTPCITS>& tracksITSTPC)
 {
@@ -67,8 +64,8 @@ void AODProducerWorkflowDPL::findMinMaxBc(gsl::span<const o2::ft0::RecPoints>& f
   }
 }
 
-template <typename _Tracks, typename _TracksCursor>
-void AODProducerWorkflowDPL::fillTracksTable(const _Tracks& tracks, std::vector<int>& vCollRefs, const _TracksCursor& tracksCursor, int trackType)
+template <typename TracksType, typename TracksCursorType>
+void AODProducerWorkflowDPL::fillTracksTable(const TracksType& tracks, std::vector<int>& vCollRefs, const TracksCursorType& tracksCursor, int trackType)
 {
   for (int i = 0; i < tracks.size(); i++) {
     auto& track = tracks[i];
@@ -348,5 +345,4 @@ DataProcessorSpec getAODProducerWorkflowSpec()
       ConfigParamSpec{"fill-tracks-its-tpc", VariantType::Int, 1, {"Fill ITS-TPC tracks into tracks table"}}}};
 }
 
-} // namespace aodproducer
-} // namespace o2
+} // namespace o2::aodproducer

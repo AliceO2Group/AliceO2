@@ -24,10 +24,7 @@
 
 using namespace o2::framework;
 
-namespace o2
-{
-namespace aodproducer
-{
+namespace o2::aodproducer {
 
 using TracksTable = o2::soa::Table<o2::aod::track::CollisionId,
                                    o2::aod::track::TrackType,
@@ -74,14 +71,13 @@ class AODProducerWorkflowDPL : public Task
 
   void findMinMaxBc(gsl::span<const o2::ft0::RecPoints>& ft0RecPoints, gsl::span<const o2::dataformats::TrackTPCITS>& tracksITSTPC);
 
-  template <typename _Tracks, typename _TracksCursor>
-  void fillTracksTable(const _Tracks& tracks, std::vector<int>& vCollRefs, const _TracksCursor& tracksCursor, int trackType);
+  template <typename TracksType, typename TracksCursorType>
+  void fillTracksTable(const TracksType& tracks, std::vector<int>& vCollRefs, const TracksCursorType& tracksCursor, int trackType);
 };
 
 /// create a processor spec
 framework::DataProcessorSpec getAODProducerWorkflowSpec();
 
-} // namespace aodproducer
-} // namespace o2
+} // namespace o2::aodproducer
 
 #endif /* O2_AODPRODUCER_WORKFLOW_SPEC */
