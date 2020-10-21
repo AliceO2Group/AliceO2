@@ -63,7 +63,7 @@ struct DataInputDescriptor {
   int getNumberInputfiles() { return mfilenames.size(); }
   int getNumberTimeFrames() { return mtotalNumberTimeFrames; }
 
-  std::tuple<TFile*, std::string> getFileFolder(int counter);
+  std::tuple<TFile*, std::string> getFileFolder(int counter, int numTF);
 
   void closeInputFile();
   bool isAlienSupportOn() { return mAlienSupport; }
@@ -103,9 +103,9 @@ struct DataInputDirector {
 
   // getters
   DataInputDescriptor* getDataInputDescriptor(header::DataHeader dh);
-  std::unique_ptr<TTreeReader> getTreeReader(header::DataHeader dh, int counter, std::string treeName);
-  std::tuple<TFile*, std::string> getFileFolder(header::DataHeader dh, int counter);
-  TTree* getDataTree(header::DataHeader dh, int counter);
+  std::unique_ptr<TTreeReader> getTreeReader(header::DataHeader dh, int counter, int numTF, std::string treeName);
+  std::tuple<TFile*, std::string> getFileFolder(header::DataHeader dh, int counter, int numTF);
+  TTree* getDataTree(header::DataHeader dh, int counter, int numTF);
   int getNumberInputDescriptors() { return mdataInputDescriptors.size(); }
 
  private:

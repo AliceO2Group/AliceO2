@@ -142,7 +142,6 @@ void DataOutputDirector::reset()
   mtreeFilenames.clear();
   closeDataFiles();
   mfilePtrs.clear();
-  mfolderCounts.clear();
   mfilenameBase = std::string("");
 };
 
@@ -184,10 +183,9 @@ void DataOutputDirector::readString(std::string const& keepString)
   auto last = std::unique(mfilenameBases.begin(), mfilenameBases.end());
   mfilenameBases.erase(last, mfilenameBases.end());
 
-  // prepare list mfilePtrs of TFile and mfolderCounts
+  // prepare list mfilePtrs of TFile
   for (auto fn : mfilenameBases) {
     mfilePtrs.emplace_back(new TFile());
-    mfolderCounts.emplace_back(-1);
   }
 }
 
@@ -308,6 +306,7 @@ std::tuple<std::string, std::string, int> DataOutputDirector::readJsonDocument(D
   if (dodirItem.HasMember(itemName)) {
     if (dodirItem[itemName].IsString()) {
       fmode = dodirItem[itemName].GetString();
+      setFileMode(fmode);
     } else {
       LOGP(ERROR, "Check the JSON document! Item \"{}\" must be a string!", itemName);
       return memptyanswer;
@@ -318,6 +317,7 @@ std::tuple<std::string, std::string, int> DataOutputDirector::readJsonDocument(D
   if (dodirItem.HasMember(itemName)) {
     if (dodirItem[itemName].IsNumber()) {
       ntfm = dodirItem[itemName].GetInt();
+      setNumberTimeFramesToMerge(ntfm);
     } else {
       LOGP(ERROR, "Check the JSON document! Item \"{}\" must be a number!", itemName);
       return memptyanswer;
@@ -428,9 +428,7 @@ std::vector<DataOutputDescriptor*> DataOutputDirector::getDataOutputDescriptors(
   return result;
 }
 
-std::tuple<TFile*, std::string> DataOutputDirector::getFileFolder(DataOutputDescriptor* dodesc,
-                                                                  int ntf, int ntfmerge,
-                                                                  std::string filemode)
+std::tuple<TFile*, std::string> DataOutputDirector::getFileFolder(DataOutputDescriptor* dodesc, uint64_t folderNumber)
 {
   // initialisation
   TFile* filePtr = nullptr;
@@ -442,15 +440,14 @@ std::tuple<TFile*, std::string> DataOutputDirector::getFileFolder(DataOutputDesc
     int ind = std::distance(mfilenameBases.begin(), it);
     if (!mfilePtrs[ind]->IsOpen()) {
       auto fn = mfilenameBases[ind] + ".root";
-      mfilePtrs[ind] = new TFile(fn.c_str(), filemode.c_str());
+      mfilePtrs[ind] = new TFile(fn.c_str(), mfileMode.c_str());
     }
     filePtr = mfilePtrs[ind];
 
-    // check if new folder TF_* is needed
-    int fcnt = (int)(ntf / ntfmerge);
-    directoryName = "TF_" + std::to_string(fcnt) + "/";
-    if ((ntf % ntfmerge) == 0 && fcnt > mfolderCounts[ind]) {
-      mfolderCounts[ind] = fcnt;
+    // check if folder TF_* exists
+    directoryName = "TF_" + std::to_string(folderNumber) + "/";
+    auto key = filePtr->GetKey(directoryName.c_str());
+    if (!key) {
       filePtr->mkdir(directoryName.c_str());
     }
     filePtr->cd(directoryName.c_str());
@@ -494,7 +491,6 @@ void DataOutputDirector::setFilenameBase(std::string dfn)
   mtreeFilenames.clear();
   closeDataFiles();
   mfilePtrs.clear();
-  mfolderCounts.clear();
 
   // loop over DataOutputDescritors
   for (auto dodesc : mDataOutputDescriptors) {
@@ -515,10 +511,9 @@ void DataOutputDirector::setFilenameBase(std::string dfn)
   auto last = std::unique(mfilenameBases.begin(), mfilenameBases.end());
   mfilenameBases.erase(last, mfilenameBases.end());
 
-  // prepare list mfilePtrs of TFile and mfolderCounts
+  // prepare list mfilePtrs of TFile
   for (auto fn : mfilenameBases) {
     mfilePtrs.emplace_back(new TFile());
-    mfolderCounts.emplace_back(-1);
   }
 }
 

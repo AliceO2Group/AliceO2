@@ -70,14 +70,18 @@ struct DataOutputDirector {
   std::tuple<std::string, std::string, int> readJson(std::string const& fnjson);
   std::tuple<std::string, std::string, int> readJsonString(std::string const& stjson);
 
+  // read/write private members
+  int getNumberTimeFramesToMerge() { return mnumberTimeFramesToMerge; }
+  void setNumberTimeFramesToMerge(int ntfmerge) { mnumberTimeFramesToMerge = ntfmerge; }
+  std::string getFileMode() { return mfileMode; }
+  void setFileMode(std::string filemode) { mfileMode = filemode; }
+
   // get matching DataOutputDescriptors
   std::vector<DataOutputDescriptor*> getDataOutputDescriptors(header::DataHeader dh);
   std::vector<DataOutputDescriptor*> getDataOutputDescriptors(InputSpec spec);
 
   // get the matching TFile
-  std::tuple<TFile*, std::string> getFileFolder(DataOutputDescriptor* dodesc,
-                                                int ntf, int ntfmerge,
-                                                std::string filemode);
+  std::tuple<TFile*, std::string> getFileFolder(DataOutputDescriptor* dodesc, uint64_t folderNumber);
 
   void closeDataFiles();
 
@@ -91,9 +95,10 @@ struct DataOutputDirector {
   std::vector<DataOutputDescriptor*> mDataOutputDescriptors;
   std::vector<std::string> mtreeFilenames;
   std::vector<std::string> mfilenameBases;
-  std::vector<int> mfolderCounts;
   std::vector<TFile*> mfilePtrs;
   bool mdebugmode = false;
+  int mnumberTimeFramesToMerge = 1;
+  std::string mfileMode = "RECREATE";
 
   std::tuple<std::string, std::string, int> readJsonDocument(Document* doc);
   const std::tuple<std::string, std::string, int> memptyanswer = std::make_tuple(std::string(""), std::string(""), -1);

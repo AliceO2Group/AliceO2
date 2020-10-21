@@ -57,7 +57,7 @@ BOOST_AUTO_TEST_CASE(TestDatainputDirector)
   auto dh = DataHeader(DataDescription{"DUE"},
                        DataOrigin{"AOD"},
                        DataHeader::SubSpecificationType{0});
-  auto [file1, directory1] = didir1.getFileFolder(dh, 1);
+  //auto [file1, directory1] = didir1.getFileFolder(dh, 1, 0);
   //BOOST_CHECK_EQUAL(file1->GetName(), "Bresults_1.root");
 
   auto didesc = didir1.getDataInputDescriptor(dh);
@@ -97,7 +97,7 @@ BOOST_AUTO_TEST_CASE(TestDatainputDirector)
   didir2.printOut(); printf("\n\n");
   BOOST_CHECK(didir2.readJson(jsonFile));
 
-  auto [file2, directory2] = didir2.getFileFolder(dh, 1);
+  //auto [file2, directory2] = didir2.getFileFolder(dh, 1, 0);
   //BOOST_CHECK_EQUAL(file2->GetName(), "Bresults_1.root");
 
   didesc = didir2.getDataInputDescriptor(dh);

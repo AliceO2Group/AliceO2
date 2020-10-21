@@ -43,8 +43,9 @@ struct CommonDataProcessors {
   static DataProcessorSpec getGlobalFairMQSink(std::vector<InputSpec> const& danglingInputs);
 
   /// writes inputs of kind AOD to file
-  static DataProcessorSpec getGlobalAODSink(std::vector<InputSpec> const& OutputInputs,
-                                            std::vector<bool> const& isdangling);
+  static DataProcessorSpec getGlobalAODSink(std::shared_ptr<DataOutputDirector> dod,
+                                            std::vector<InputSpec> const& OutputInputs);
+
   /// @return a dummy DataProcessorSpec which requires all the passed @a InputSpec
   /// and simply discards them.
   static DataProcessorSpec getDummySink(std::vector<InputSpec> const& danglingInputs);

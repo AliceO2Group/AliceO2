@@ -14,6 +14,7 @@
 #include "Framework/OutputSpec.h"
 #include "Framework/ForwardRoute.h"
 #include "Framework/WorkflowSpec.h"
+#include "Framework/DataOutputDirector.h"
 #include "DataProcessorInfo.h"
 
 #include <cstddef>
@@ -172,6 +173,8 @@ struct WorkflowHelpers {
   static std::vector<EdgeAction> computeInEdgeActions(
     const std::vector<DeviceConnectionEdge>& edges,
     const std::vector<size_t>& index);
+
+  static std::shared_ptr<DataOutputDirector> getDataOutputDirector(ConfigParamRegistry const& options, std::vector<InputSpec> const& OutputsInputs, std::vector<unsigned char> const& outputTypes);
 
   /// Given @a workflow it gathers all the OutputSpec and in addition provides
   /// the information whether and output is dangling and/or of type AOD
