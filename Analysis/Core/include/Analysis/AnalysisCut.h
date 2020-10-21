@@ -79,8 +79,9 @@ void AnalysisCut::AddCut(int var, T1 cutLow, T2 cutHigh, bool exclude,
   CutContainer cut = {};
 
   if constexpr (std::is_same_v<T1, TF1*>) {
-    if (dependentVar < 0)
+    if (dependentVar < 0) {
       return;
+    }
     cut.fFuncLow = cutLow;
     cut.fLow = -9999.0;
   } else {
@@ -88,8 +89,9 @@ void AnalysisCut::AddCut(int var, T1 cutLow, T2 cutHigh, bool exclude,
     cut.fLow = cutLow;
   }
   if constexpr (std::is_same_v<T2, TF1*>) {
-    if (dependentVar < 0)
+    if (dependentVar < 0) {
       return;
+    }
     cut.fFuncHigh = cutHigh;
     cut.fHigh = -9999.0;
   } else {
@@ -104,15 +106,17 @@ void AnalysisCut::AddCut(int var, T1 cutLow, T2 cutHigh, bool exclude,
   cut.fDepLow = depCutLow;
   cut.fDepHigh = depCutHigh;
   cut.fDepExclude = depCutExclude;
-  if (dependentVar != -1)
+  if (dependentVar != -1) {
     fgUsedVars.push_back(dependentVar);
+  }
 
   cut.fDepVar2 = dependentVar2;
   cut.fDep2Low = depCut2Low;
   cut.fDep2High = depCut2High;
   cut.fDep2Exclude = depCut2Exclude;
-  if (dependentVar2 != -1)
+  if (dependentVar2 != -1) {
     fgUsedVars.push_back(dependentVar2);
+  }
 
   fCuts.push_back(cut);
 }
@@ -128,34 +132,42 @@ inline bool AnalysisCut::IsSelected(float* values)
     // check whether a dependent variables were enabled and if they are in the requested range
     if ((*it).fDepVar != -1) {
       bool inRange = (values[(*it).fDepVar] > (*it).fDepLow && values[(*it).fDepVar] <= (*it).fDepHigh);
-      if (!inRange && !((*it).fDepExclude))
+      if (!inRange && !((*it).fDepExclude)) {
         continue;
-      if (inRange && (*it).fDepExclude)
+      }
+      if (inRange && (*it).fDepExclude) {
         continue;
+      }
     }
     if ((*it).fDepVar2 != -1) {
       bool inRange = (values[(*it).fDepVar2] > (*it).fDep2Low && values[(*it).fDepVar2] <= (*it).fDep2High);
-      if (!inRange && !((*it).fDep2Exclude))
+      if (!inRange && !((*it).fDep2Exclude)) {
         continue;
-      if (inRange && (*it).fDep2Exclude)
+      }
+      if (inRange && (*it).fDep2Exclude) {
         continue;
+      }
     }
     // obtain the low and high cut values (either directly as a value or from a function)
     float cutLow, cutHigh;
-    if ((*it).fFuncLow)
+    if ((*it).fFuncLow) {
       cutLow = ((*it).fFuncLow)->Eval(values[(*it).fDepVar]);
-    else
+    } else {
       cutLow = ((*it).fLow);
-    if ((*it).fFuncHigh)
+    }
+    if ((*it).fFuncHigh) {
       cutHigh = ((*it).fFuncHigh)->Eval(values[(*it).fDepVar]);
-    else
+    } else {
       cutHigh = ((*it).fHigh);
+    }
     // apply the cut and return the decision
     bool inRange = (values[(*it).fVar] >= cutLow && values[(*it).fVar] <= cutHigh);
-    if (!inRange && !((*it).fExclude))
+    if (!inRange && !((*it).fExclude)) {
       return false;
-    if (inRange && ((*it).fExclude))
+    }
+    if (inRange && ((*it).fExclude)) {
       return false;
+    }
   }
 
   return true;

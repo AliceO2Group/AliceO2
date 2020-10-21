@@ -38,10 +38,11 @@ struct HistogramTrackSelection {
   {
     for (auto& track : tracks) {
 
-      if (selectedTracks == 1 && !track.isGlobalTrack())
+      if (selectedTracks == 1 && !track.isGlobalTrack()) {
         continue;
-      else if (selectedTracks == 2 && !track.isGlobalTrackSDD())
+      } else if (selectedTracks == 2 && !track.isGlobalTrackSDD()) {
         continue;
+      }
 
       pt->Fill(track.pt());
     }

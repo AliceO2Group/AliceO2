@@ -151,8 +151,9 @@ bool PairCuts::conversionCut(T const& track1, T const& track2, Particle conv, do
 {
   //LOGF(info, "pt is %f %f", track1.pt(), track2.pt());
 
-  if (cut < 0)
+  if (cut < 0) {
     return false;
+  }
 
   double massD1, massD2, massM;
 
@@ -190,13 +191,15 @@ bool PairCuts::conversionCut(T const& track1, T const& track2, Particle conv, do
 
   auto massC = getInvMassSquaredFast(track1, massD1, track2, massD2);
 
-  if (TMath::Abs(massC - massM * massM) > cut * 5)
+  if (TMath::Abs(massC - massM * massM) > cut * 5) {
     return false;
+  }
 
   massC = getInvMassSquared(track1, massD1, track2, massD2);
   mControlConvResoncances->Fill(static_cast<int>(conv), massC - massM * massM);
-  if (massC > (massM - cut) * (massM - cut) && massC < (massM + cut) * (massM + cut))
+  if (massC > (massM - cut) * (massM - cut) && massC < (massM + cut) * (massM + cut)) {
     return true;
+  }
 
   return false;
 }
@@ -265,18 +268,21 @@ double PairCuts::getInvMassSquaredFast(T const& track1, double m0_1, T const& tr
 
   // fold onto 0...pi
   float deltaPhi = TMath::Abs(phi1 - phi2);
-  while (deltaPhi > TMath::TwoPi())
+  while (deltaPhi > TMath::TwoPi()) {
     deltaPhi -= TMath::TwoPi();
-  if (deltaPhi > TMath::Pi())
+  }
+  if (deltaPhi > TMath::Pi()) {
     deltaPhi = TMath::TwoPi() - deltaPhi;
+  }
 
   float cosDeltaPhi = 0;
-  if (deltaPhi < TMath::Pi() / 3)
+  if (deltaPhi < TMath::Pi() / 3) {
     cosDeltaPhi = 1.0 - deltaPhi * deltaPhi / 2 + deltaPhi * deltaPhi * deltaPhi * deltaPhi / 24;
-  else if (deltaPhi < 2 * TMath::Pi() / 3)
+  } else if (deltaPhi < 2 * TMath::Pi() / 3) {
     cosDeltaPhi = -(deltaPhi - TMath::Pi() / 2) + 1.0 / 6 * TMath::Power((deltaPhi - TMath::Pi() / 2), 3);
-  else
+  } else {
     cosDeltaPhi = -1.0 + 1.0 / 2.0 * (deltaPhi - TMath::Pi()) * (deltaPhi - TMath::Pi()) - 1.0 / 24.0 * TMath::Power(deltaPhi - TMath::Pi(), 4);
+  }
 
   double mass2 = m0_1 * m0_1 + m0_2 * m0_2 + 2 * (TMath::Sqrt(e1squ * e2squ) - (pt1 * pt2 * (cosDeltaPhi + 1.0 / tantheta1 / tantheta2)));
 
@@ -302,12 +308,15 @@ float PairCuts::getDPhiStar(T const& track1, T const& track2, float radius, floa
 
   float dphistar = phi1 - phi2 - charge1 * bSign * TMath::ASin(0.075 * radius / pt1) + charge2 * bSign * TMath::ASin(0.075 * radius / pt2);
 
-  if (dphistar > M_PI)
+  if (dphistar > M_PI) {
     dphistar = M_PI * 2 - dphistar;
-  if (dphistar < -M_PI)
+  }
+  if (dphistar < -M_PI) {
     dphistar = -M_PI * 2 - dphistar;
-  if (dphistar > M_PI) // might look funny but is needed
+  }
+  if (dphistar > M_PI) { // might look funny but is needed
     dphistar = M_PI * 2 - dphistar;
+  }
 
   return dphistar;
 }

@@ -34,8 +34,9 @@ class TOFReso : public Parametrization
   float operator()(const float* x) const override
   {
     const float mom = abs(x[0]);
-    if (mom <= 0)
+    if (mom <= 0) {
       return -999;
+    }
     const float time = x[1];
     const float evtimereso = x[2];
     const float mass = x[3];

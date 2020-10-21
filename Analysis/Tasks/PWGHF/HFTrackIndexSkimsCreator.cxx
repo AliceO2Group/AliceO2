@@ -60,20 +60,25 @@ struct SelectTracks {
       int status_2prong = 1; // selection flag
       int status_3prong = 1; // selection flag
 
-      if (b_dovalplots)
+      if (b_dovalplots) {
         hpt_nocuts->Fill(track.pt());
+      }
 
       // pT cut
-      if (track.pt() < ptmintrack_2prong)
+      if (track.pt() < ptmintrack_2prong) {
         status_2prong = 0;
-      if (track.pt() < ptmintrack_3prong)
+      }
+      if (track.pt() < ptmintrack_3prong) {
         status_3prong = 0;
+      }
 
       // eta cut
-      if (status_2prong && abs(track.eta()) > etamax_2prong)
+      if (status_2prong && abs(track.eta()) > etamax_2prong) {
         status_2prong = 0;
-      if (status_3prong && abs(track.eta()) > etamax_3prong)
+      }
+      if (status_3prong && abs(track.eta()) > etamax_3prong) {
         status_3prong = 0;
+      }
 
       // quality cut
       if (doCutQuality && (status_2prong || status_3prong)) {
@@ -96,10 +101,12 @@ struct SelectTracks {
           status_2prong = 0;
           status_3prong = 0;
         }
-        if (status_2prong && abs(dca[0]) < dcatoprimxymin_2prong)
+        if (status_2prong && abs(dca[0]) < dcatoprimxymin_2prong) {
           status_2prong = 0;
-        if (status_3prong && abs(dca[0]) < dcatoprimxymin_3prong)
+        }
+        if (status_3prong && abs(dca[0]) < dcatoprimxymin_3prong) {
           status_3prong = 0;
+        }
       }
 
       // fill histograms
@@ -178,8 +185,9 @@ struct HFTrackIndexSkimsCreator {
     if (trigindex != -1) {
       uint64_t triggerMask = collision.bc().triggerMask();
       bool isTriggerClassFired = triggerMask & 1ul << (trigindex - 1);
-      if (!isTriggerClassFired)
+      if (!isTriggerClassFired) {
         return;
+      }
     }
 
     // 2-prong vertex fitter

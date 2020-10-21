@@ -56,8 +56,9 @@ class StepTHn : public StepTHnBase
 
   THnBase* getTHn(Int_t step, Bool_t sparse = kFALSE) override
   {
-    if (!mTarget || !mTarget[step])
+    if (!mTarget || !mTarget[step]) {
       createTarget(step, sparse);
+    }
     return mTarget[step];
   }
   Int_t getNSteps() override { return mNSteps; }

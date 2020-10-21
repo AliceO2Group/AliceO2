@@ -97,8 +97,9 @@ struct JetSubstructure {
     auto zg = -1.0;
     auto rg = -1.0;
     while (daughterSubJet.has_parents(parentSubJet1, parentSubJet2)) {
-      if (parentSubJet1.perp() < parentSubJet2.perp())
+      if (parentSubJet1.perp() < parentSubJet2.perp()) {
         std::swap(parentSubJet1, parentSubJet2);
+      }
       auto z = parentSubJet2.perp() / (parentSubJet1.perp() + parentSubJet2.perp());
       auto r = parentSubJet1.delta_R(parentSubJet2);
       if (z >= f_zCut * TMath::Power(r / f_jetR, f_beta)) {

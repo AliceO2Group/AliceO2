@@ -78,11 +78,11 @@ class HistContainer : private RootContainer
     // if shared pointers or rvalue raw pointers are provided as argument, the existing object is used
     // otherwise the existing object is copied
     std::optional<HistType> histVariant{};
-    if constexpr (is_shared_ptr<typename std::remove_reference<T>::type>::value)
+    if constexpr (is_shared_ptr<typename std::remove_reference<T>::type>::value) {
       histVariant = GetHistVariant(hist);
-    else if constexpr (std::is_pointer_v<T> && std::is_rvalue_reference_v<decltype(std::forward<T>(hist))>)
+    } else if constexpr (std::is_pointer_v<T> && std::is_rvalue_reference_v<decltype(std::forward<T>(hist))>) {
       histVariant = GetHistVariant(std::shared_ptr<std::remove_pointer_t<T>>(hist));
-    else {
+    } else {
       histVariant = GetHistVariant(std::make_shared<T>(hist));
     }
     if (histVariant) {
@@ -145,10 +145,11 @@ class HistContainer : private RootContainer
       // savety check for n dimensional histograms (runtime overhead)
       // if (hist->GetNdimensions() != sizeof...(position) - fillWeight) return;
       double tempArray[] = {static_cast<double>(position)...};
-      if constexpr (fillWeight)
+      if constexpr (fillWeight) {
         hist->Fill(tempArray, tempArray[sizeof...(Ts) - 1]);
-      else
+      } else {
         hist->Fill(tempArray);
+      }
     }
   }
 
@@ -242,8 +243,9 @@ class Hist
   {
     const std::size_t MAX_DIM{10};
     const std::size_t nAxes{mAxes.size()};
-    if (nAxes == 0 || nAxes > MAX_DIM)
+    if (nAxes == 0 || nAxes > MAX_DIM) {
       return nullptr;
+    }
 
     int nBins[MAX_DIM]{0};
     double lowerBounds[MAX_DIM]{0.};
@@ -256,10 +258,11 @@ class Hist
       lowerBounds[i] = mAxes[i].binEdges.front();
       upperBounds[i] = mAxes[i].binEdges.back();
       title += mAxes[i].name;
-      if (i < nAxes - 1)
+      if (i < nAxes - 1) {
         title += " : ";
-      else
+      } else {
         title += " ]";
+      }
     }
 
     // create histogram
@@ -275,8 +278,9 @@ class Hist
       TAxis* axis{GetAxis(i, hist)};
       if (axis) {
         axis->SetTitle(mAxes[i].title.data());
-        if constexpr (std::is_base_of_v<THnBase, RootHistType>)
+        if constexpr (std::is_base_of_v<THnBase, RootHistType>) {
           axis->SetName((std::to_string(i) + "-" + mAxes[i].name).data());
+        }
 
         // move the bin edges in case a variable binning was requested
         if (!mAxes[i].nBins) {
@@ -288,8 +292,9 @@ class Hist
         }
       }
     }
-    if (useWeights)
+    if (useWeights) {
       hist->Sumw2();
+    }
     return hist;
   }
 

@@ -42,14 +42,17 @@ bool AnalysisCompositeCut::IsSelected(float* values)
   // apply cuts
   //
   for (std::vector<AnalysisCut>::iterator it = fCutList.begin(); it < fCutList.end(); ++it) {
-    if (fOptionUseAND && !(*it).IsSelected(values))
+    if (fOptionUseAND && !(*it).IsSelected(values)) {
       return false;
-    if (!fOptionUseAND && (*it).IsSelected(values))
+    }
+    if (!fOptionUseAND && (*it).IsSelected(values)) {
       return true;
+    }
   }
 
-  if (fOptionUseAND)
+  if (fOptionUseAND) {
     return true;
-  else
+  } else {
     return false;
+  }
 }

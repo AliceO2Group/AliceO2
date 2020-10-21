@@ -109,26 +109,36 @@ struct raacharged {
 
   Int_t WhichParticle(Int_t pdgCode)
   { //see in AlidNdPtTools
-    if (pdgCode == 0)
+    if (pdgCode == 0) {
       return -1;
-    if (pdgCode == std::abs(211))
+    }
+    if (pdgCode == std::abs(211)) {
       return 0; //pi+, pi-
-    if (pdgCode == std::abs(321))
+    }
+    if (pdgCode == std::abs(321)) {
       return 1; //K+, K-
-    if (pdgCode == std::abs(2212))
+    }
+    if (pdgCode == std::abs(2212)) {
       return 2; //p, pbar
-    if (pdgCode == 3222 || pdgCode == -3112)
+    }
+    if (pdgCode == 3222 || pdgCode == -3112) {
       return 3; //sigmaPlus, SigmaBarMinus
-    if (pdgCode == 3112 || pdgCode == -3222)
+    }
+    if (pdgCode == 3112 || pdgCode == -3222) {
       return 4; //sigmaMinus, SigmaBarPlus
-    if (pdgCode == std::abs(11))
+    }
+    if (pdgCode == std::abs(11)) {
       return 5; //e-, e+
-    if (pdgCode == std::abs(3312))
+    }
+    if (pdgCode == std::abs(3312)) {
       return 6; //XiP, XiM
-    if (pdgCode == std::abs(13))
+    }
+    if (pdgCode == std::abs(13)) {
       return 7; //mu,antimu
-    if (pdgCode == std::abs(3334))
+    }
+    if (pdgCode == std::abs(3334)) {
       return 8; //OmegaP, OmegaM
+    }
 
     return 9; //other
   }
@@ -143,30 +153,35 @@ struct raacharged {
 
   void process(soa::Join<aod::Collisions, aod::McCollisionLabels, aod::EvSels, aod::Cents>::iterator const& collision, soa::Join<aod::Tracks, aod::McTrackLabels, aod::TrackSelection> const& tracks, aod::McParticles& mcParticles)
   {
-    if (!collision.alias()[kINT7])
+    if (!collision.alias()[kINT7]) {
       return;
-    if (!collision.sel7())
+    }
+    if (!collision.sel7()) {
       return;
+    }
 
     Double_t eventValues[3] = {0.0, 0.0, collision.posZ()};
     fHistEvent->Fill(eventValues);
 
     for (auto& track : tracks) {
-      if (selectedTracks == 1 && !track.isGlobalTrack())
+      if (selectedTracks == 1 && !track.isGlobalTrack()) {
         continue;
-      else if (selectedTracks == 2 && !track.isGlobalTrackSDD())
+      } else if (selectedTracks == 2 && !track.isGlobalTrackSDD()) {
         continue;
+      }
 
       Double_t trackValues[4] = {0.0, 0.0, track.pt(), (Double_t)track.charge()};
       fHistTrack->Fill(trackValues);
 
       Double_t mcInfoVal;
-      if (!isMC)
+      if (!isMC) {
         continue;
-      if (MC::isPhysicalPrimary(mcParticles, track.label()))
+      }
+      if (MC::isPhysicalPrimary(mcParticles, track.label())) {
         mcInfoVal = 0.0;
-      else
+      } else {
         mcInfoVal = 1.0;
+      }
 
       Double_t MCpt = track.label().pt();
       Double_t parType = (Double_t)WhichParticle(track.label().pdgCode());
@@ -178,18 +193,21 @@ struct raacharged {
     if (isMC) {
       for (auto& mcParticle : mcParticles) {
 
-        if (abs(mcParticle.eta()) > 0.8)
+        if (abs(mcParticle.eta()) > 0.8) {
           continue;
-        if (!MC::isPhysicalPrimary(mcParticles, mcParticle))
+        }
+        if (!MC::isPhysicalPrimary(mcParticles, mcParticle)) {
           continue;
+        }
 
         Double_t MCpt = mcParticle.pt();
         Double_t parType = (Double_t)WhichParticle(mcParticle.pdgCode());
         Int_t pdg = (Int_t)mcParticle.pdgCode();
         Double_t MCcharge = MCCharge(pdg);
 
-        if (MCcharge == 0.0)
+        if (MCcharge == 0.0) {
           continue;
+        }
         Double_t MCvalues[4] = {MCpt, parType, 2.0, MCcharge};
         fHistMC->Fill(MCvalues);
       }

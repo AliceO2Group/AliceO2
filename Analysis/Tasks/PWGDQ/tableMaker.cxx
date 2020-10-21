@@ -119,16 +119,19 @@ struct TableMaker {
   {
     uint64_t tag = 0;
     uint32_t triggerAliases = 0;
-    for (int i = 0; i < kNaliases; i++)
-      if (collision.alias()[i] > 0)
+    for (int i = 0; i < kNaliases; i++) {
+      if (collision.alias()[i] > 0) {
         triggerAliases |= (uint32_t(1) << i);
+      }
+    }
 
     VarManager::ResetValues(0, VarManager::kNEventWiseVariables, fValues);
     VarManager::FillEvent<gkEventFillMap>(collision, fValues); // extract event information and place it in the fgValues array
     fHistMan->FillHistClass("Event_BeforeCuts", fValues);      // automatically fill all the histograms in the class Event
 
-    if (!fEventCut->IsSelected(fValues))
+    if (!fEventCut->IsSelected(fValues)) {
       return;
+    }
 
     fHistMan->FillHistClass("Event_AfterCuts", fValues);
 
@@ -147,8 +150,9 @@ struct TableMaker {
 
       VarManager::FillTrack<gkTrackFillMap>(track, fValues);
       fHistMan->FillHistClass("TrackBarrel_BeforeCuts", fValues);
-      if (!fTrackCut->IsSelected(fValues))
+      if (!fTrackCut->IsSelected(fValues)) {
         continue;
+      }
       fHistMan->FillHistClass("TrackBarrel_AfterCuts", fValues);
 
       // TODO: update the DCA calculation (use the values computed in the trackSelection workflow or use the propagateToDCA function from there)
@@ -184,8 +188,9 @@ struct TableMaker {
 
     for (auto& muon : tracksMuon) {
       // TODO: add proper information for muon tracks
-      if (muon.bc() != collision.bc())
+      if (muon.bc() != collision.bc()) {
         continue;
+      }
       // TODO: the trackFilteringFlag will not be needed to encode whether the track is a muon since there is a dedicated table for muons
       trackFilteringTag |= (uint64_t(1) << 0); // this is a MUON arm track
       muonBasic(event.lastIndex(), trackFilteringTag, muon.pt(), muon.eta(), muon.phi(), muon.charge());
@@ -198,8 +203,9 @@ struct TableMaker {
     const int kNRuns = 2;
     int runs[kNRuns] = {244918, 244919};
     TString runsStr;
-    for (int i = 0; i < kNRuns; i++)
+    for (int i = 0; i < kNRuns; i++) {
       runsStr += Form("%d;", runs[i]);
+    }
     VarManager::SetRunNumbers(kNRuns, runs);
 
     TObjArray* arr = histClasses.Tokenize(";");

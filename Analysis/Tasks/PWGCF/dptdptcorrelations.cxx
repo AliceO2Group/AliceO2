@@ -218,10 +218,11 @@ bool matchTrackType(aod::TrackData const& track)
 {
   switch (tracktype) {
     case 1:
-      if (track.isGlobalTrack() != 0 || track.isGlobalTrackSDD() != 0)
+      if (track.isGlobalTrack() != 0 || track.isGlobalTrackSDD() != 0) {
         return true;
-      else
+      } else {
         return false;
+      }
       break;
     default:
       return false;
@@ -252,10 +253,11 @@ inline void AcceptTrack(aod::TrackData const& track, uint8_t& asone, uint8_t& as
 /// \return the track phi origin shifted azimuthal angle
 inline float GetShiftedPhi(float phi)
 {
-  if (not(phi < phiup))
+  if (not(phi < phiup)) {
     return phi - TMath::TwoPi();
-  else
+  } else {
     return phi;
+  }
 }
 
 /// \brief Returns the zero based bin index of the eta phi passed track

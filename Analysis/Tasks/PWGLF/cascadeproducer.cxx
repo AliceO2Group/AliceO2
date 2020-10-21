@@ -100,16 +100,18 @@ struct cascadeproducer {
       auto pTrack = getTrackParCov(casc.v0().posTrack());
       auto nTrack = getTrackParCov(casc.v0().negTrack());
       auto bTrack = getTrackParCov(casc.bachelor());
-      if (casc.bachelor().signed1Pt() > 0)
+      if (casc.bachelor().signed1Pt() > 0) {
         charge = +1;
+      }
 
       int nCand = fitterV0.process(pTrack, nTrack);
       if (nCand != 0) {
         fitterV0.propagateTracksToVertex();
         hCascCandidate->Fill(1.5);
         const auto& v0vtx = fitterV0.getPCACandidate();
-        for (int i = 0; i < 3; i++)
+        for (int i = 0; i < 3; i++) {
           pos[i] = v0vtx[i];
+        }
 
         std::array<float, 21> cov0 = {0};
         std::array<float, 21> cov1 = {0};
@@ -143,8 +145,9 @@ struct cascadeproducer {
           fitterCasc.propagateTracksToVertex();
           hCascCandidate->Fill(2.5);
           const auto& cascvtx = fitterCasc.getPCACandidate();
-          for (int i = 0; i < 3; i++)
+          for (int i = 0; i < 3; i++) {
             posXi[i] = cascvtx[i];
+          }
           fitterCasc.getTrack(1).getPxPyPzGlo(pvecbach);
         } //end if cascade recoed
       }   //end if v0 recoed

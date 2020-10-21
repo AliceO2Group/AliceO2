@@ -64,8 +64,9 @@ struct GeneratedTask {
   {
     LOGF(info, "MC. vtx-z = %f", mcCollision.posZ());
     for (auto& mcParticle : mcParticles) {
-      if (abs(mcParticle.eta()) > 0.8)
+      if (abs(mcParticle.eta()) > 0.8) {
         continue;
+      }
       if (isPhysicalPrimary(mcParticles, mcParticle)) {
         const auto pdg = Form("%i", mcParticle.pdgCode());
         pdgH->Fill(pdg, 1);
@@ -130,10 +131,12 @@ struct ReconstructedTask {
 
       etaDiff->Fill(track.label().eta() - track.eta(), pdgbin);
       auto delta = track.label().phi() - track.phi();
-      if (delta > M_PI)
+      if (delta > M_PI) {
         delta -= 2 * M_PI;
-      if (delta < -M_PI)
+      }
+      if (delta < -M_PI) {
         delta += 2 * M_PI;
+      }
       phiDiff->Fill(delta, pdgbin);
       pDiff->Fill(sqrt(track.label().px() * track.label().px() + track.label().py() * track.label().py() + track.label().pz() * track.label().pz()) - track.p(), pdgbin);
       ptDiff->Fill(track.label().pt() - track.pt(), pdgbin);
@@ -147,11 +150,14 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
   const bool gen = cfgc.options().get<int>("add-gen");
   const bool reco = cfgc.options().get<int>("add-reco");
   WorkflowSpec workflow{};
-  if (vertex)
+  if (vertex) {
     workflow.push_back(adaptAnalysisTask<VertexTask>("vertex-histogram"));
-  if (gen)
+  }
+  if (gen) {
     workflow.push_back(adaptAnalysisTask<GeneratedTask>("generator-histogram"));
-  if (reco)
+  }
+  if (reco) {
     workflow.push_back(adaptAnalysisTask<ReconstructedTask>("reconstructed-histogram"));
+  }
   return workflow;
 }

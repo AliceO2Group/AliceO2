@@ -18,45 +18,55 @@ using namespace o2::framework;
 struct EventSelectionTask {
   aod::FV0A getVZeroA(aod::BC const& bc, aod::FV0As const& vzeros)
   {
-    for (auto& vzero : vzeros)
-      if (vzero.bc() == bc)
+    for (auto& vzero : vzeros) {
+      if (vzero.bc() == bc) {
         return vzero;
+      }
+    }
     aod::FV0A dummy;
     return dummy;
   }
 
   aod::FV0C getVZeroC(aod::BC const& bc, aod::FV0Cs const& vzeros)
   {
-    for (auto& vzero : vzeros)
-      if (vzero.bc() == bc)
+    for (auto& vzero : vzeros) {
+      if (vzero.bc() == bc) {
         return vzero;
+      }
+    }
     aod::FV0C dummy;
     return dummy;
   }
 
   aod::Zdc getZdc(aod::BC const& bc, aod::Zdcs const& zdcs)
   {
-    for (auto& zdc : zdcs)
-      if (zdc.bc() == bc)
+    for (auto& zdc : zdcs) {
+      if (zdc.bc() == bc) {
         return zdc;
+      }
+    }
     aod::Zdc dummy;
     return dummy;
   }
 
   aod::FT0 getFT0(aod::BC const& bc, aod::FT0s const& ft0s)
   {
-    for (auto& ft0 : ft0s)
-      if (ft0.bc() == bc)
+    for (auto& ft0 : ft0s) {
+      if (ft0.bc() == bc) {
         return ft0;
+      }
+    }
     aod::FT0 dummy;
     return dummy;
   }
 
   aod::FDD getFDD(aod::BC const& bc, aod::FDDs const& fdds)
   {
-    for (auto& fdd : fdds)
-      if (fdd.bc() == bc)
+    for (auto& fdd : fdds) {
+      if (fdd.bc() == bc) {
         return fdd;
+      }
+    }
     aod::FDD dummy;
     return dummy;
   }
@@ -82,8 +92,9 @@ struct EventSelectionTask {
 
   void process(soa::Join<aod::Collisions, aod::EvSels>::iterator const& col, aod::BCs const& bcs, aod::Zdcs const& zdcs, aod::FV0As const& fv0as, aod::FV0Cs const& fv0cs, aod::FT0s ft0s, aod::FDDs fdds)
   {
-    if (!isMC && !col.alias()[kINT7])
+    if (!isMC && !col.alias()[kINT7]) {
       return;
+    }
 
     auto fv0a = getVZeroA(col.bc(), fv0as);
     auto fv0c = getVZeroC(col.bc(), fv0cs);
@@ -102,8 +113,9 @@ struct EventSelectionTask {
     hTimeFDAall->Fill(fdd.timeA());
     hTimeFDCall->Fill(fdd.timeC());
 
-    if (!col.sel7())
+    if (!col.sel7()) {
       return;
+    }
 
     hTimeV0Aacc->Fill(fv0a.time());
     hTimeV0Cacc->Fill(fv0c.time());

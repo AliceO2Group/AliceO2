@@ -120,8 +120,9 @@ struct CorrelationTask {
 
     same->fillEvent(centrality, CorrelationContainer::kCFStepAll);
 
-    if (!collision.sel7())
+    if (!collision.sel7()) {
       return;
+    }
 
     same->fillEvent(centrality, CorrelationContainer::kCFStepTriggered);
 
@@ -142,8 +143,9 @@ struct CorrelationTask {
       yields->Fill(centrality, track1.pt(), track1.eta());
       etaphi->Fill(centrality, track1.eta(), track1.phi());
 
-      if (cfgTriggerCharge != 0 && cfgTriggerCharge * track1.charge() < 0)
+      if (cfgTriggerCharge != 0 && cfgTriggerCharge * track1.charge() < 0) {
         continue;
+      }
 
       double eventValues[3];
       eventValues[0] = track1.pt();
@@ -154,22 +156,28 @@ struct CorrelationTask {
       //mixed->getTriggerHist()->Fill(eventValues, CorrelationContainer::kCFStepReconstructed);
 
       for (auto& track2 : tracks) {
-        if (track1 == track2)
+        if (track1 == track2) {
           continue;
+        }
 
-        if (cfgPtOrder != 0 && track2.pt() >= track1.pt())
+        if (cfgPtOrder != 0 && track2.pt() >= track1.pt()) {
           continue;
+        }
 
-        if (cfgAssociatedCharge != 0 && cfgAssociatedCharge * track2.charge() < 0)
+        if (cfgAssociatedCharge != 0 && cfgAssociatedCharge * track2.charge() < 0) {
           continue;
-        if (cfgPairCharge != 0 && cfgPairCharge * track1.charge() * track2.charge() < 0)
+        }
+        if (cfgPairCharge != 0 && cfgPairCharge * track1.charge() * track2.charge() < 0) {
           continue;
+        }
 
-        if (cfg.mPairCuts && mPairCuts.conversionCuts(track1, track2))
+        if (cfg.mPairCuts && mPairCuts.conversionCuts(track1, track2)) {
           continue;
+        }
 
-        if (cfgTwoTrackCut > 0 && mPairCuts.twoTrackCut(track1, track2, bSign))
+        if (cfgTwoTrackCut > 0 && mPairCuts.twoTrackCut(track1, track2, bSign)) {
           continue;
+        }
 
         double values[6] = {0};
 
@@ -179,10 +187,12 @@ struct CorrelationTask {
         values[3] = centrality;
 
         values[4] = track1.phi() - track2.phi();
-        if (values[4] > 1.5 * TMath::Pi())
+        if (values[4] > 1.5 * TMath::Pi()) {
           values[4] -= TMath::TwoPi();
-        if (values[4] < -0.5 * TMath::Pi())
+        }
+        if (values[4] < -0.5 * TMath::Pi()) {
           values[4] += TMath::TwoPi();
+        }
 
         values[5] = collision.posZ();
 
@@ -201,8 +211,9 @@ struct CorrelationTask {
 
     for (auto track1 = tracks.begin(); track1 != tracks.end(); ++track1) {
 
-      if (cfgTriggerCharge != 0 && cfgTriggerCharge * track1.charge() < 0)
+      if (cfgTriggerCharge != 0 && cfgTriggerCharge * track1.charge() < 0) {
         continue;
+      }
 
       //       LOGF(info, "TRACK %f %f | %f %f | %f %f", track1.eta(), track1.eta(), track1.phi(), track1.phi2(), track1.pt(), track1.pt());
 
@@ -218,18 +229,23 @@ struct CorrelationTask {
     for (auto& [track1, track2] : combinations(tracks, tracks)) {
       //LOGF(info, "Combination %d %d", track1.index(), track2.index());
 
-      if (cfgTriggerCharge != 0 && cfgTriggerCharge * track1.charge() < 0)
+      if (cfgTriggerCharge != 0 && cfgTriggerCharge * track1.charge() < 0) {
         continue;
-      if (cfgAssociatedCharge != 0 && cfgAssociatedCharge * track2.charge() < 0)
+      }
+      if (cfgAssociatedCharge != 0 && cfgAssociatedCharge * track2.charge() < 0) {
         continue;
-      if (cfgPairCharge != 0 && cfgPairCharge * track1.charge() * track2.charge() < 0)
+      }
+      if (cfgPairCharge != 0 && cfgPairCharge * track1.charge() * track2.charge() < 0) {
         continue;
+      }
 
-      if (cfg.mPairCuts && mPairCuts.conversionCuts(track1, track2))
+      if (cfg.mPairCuts && mPairCuts.conversionCuts(track1, track2)) {
         continue;
+      }
 
-      if (cfgTwoTrackCut > 0 && mPairCuts.twoTrackCut(track1, track2, bSign))
+      if (cfgTwoTrackCut > 0 && mPairCuts.twoTrackCut(track1, track2, bSign)) {
         continue;
+      }
 
       double values[6] = {0};
 
@@ -239,10 +255,12 @@ struct CorrelationTask {
       values[3] = 0; // collision.v0mult();
 
       values[4] = track1.phi() - track2.phi();
-      if (values[4] > 1.5 * TMath::Pi())
+      if (values[4] > 1.5 * TMath::Pi()) {
         values[4] -= TMath::TwoPi();
-      if (values[4] < -0.5 * TMath::Pi())
+      }
+      if (values[4] < -0.5 * TMath::Pi()) {
         values[4] += TMath::TwoPi();
+      }
 
       values[5] = collision.posZ();
 

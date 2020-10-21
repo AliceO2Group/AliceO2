@@ -66,8 +66,9 @@ struct HFCandidateCreator2Prong {
       auto collision = rowTrackIndexProng2.index0().collision();
 
       // reconstruct the 2-prong secondary vertex
-      if (df.process(trackParVarPos1, trackParVarNeg1) == 0)
+      if (df.process(trackParVarPos1, trackParVarNeg1) == 0) {
         continue;
+      }
       const auto& secondaryVertex = df.getPCACandidate();
       auto chi2PCA = df.getChi2AtPCACandidate();
       auto covMatrixPCA = df.calcPCACovMatrix().Array();
