@@ -13,6 +13,7 @@
 #include "ZDCSimulation/Digits2Raw.h"
 #include "ZDCSimulation/MCLabel.h"
 #include "ZDCSimulation/ZDCSimParam.h"
+#include "CommonUtils/StringUtils.h"
 #include "FairLogger.h"
 
 using namespace o2::zdc;
@@ -47,6 +48,15 @@ void Digits2Raw::processDigits(const std::string& outDir, const std::string& fil
   std::string outd = outDir;
   if (outd.back() != '/') {
     outd += '/';
+  }
+
+  for (int ilink = 0; ilink < NLinks; ilink++) {
+    mLinkID = uint32_t(ilink);
+    mFeeID = uint64_t(ilink);
+    mCruID = uint16_t(0);
+    mEndPointID = uint32_t(0);
+    std::string outFileLink = mOutputPerLink ? o2::utils::concat_string(outd, "zdc_link", std::to_string(ilink), ".raw") : o2::utils::concat_string(outd, "zdc.raw");
+    mWriter.registerLink(mFeeID, mCruID, mLinkID, mEndPointID, outFileLink);
   }
 
   std::unique_ptr<TFile> digiFile(TFile::Open(fileDigitsName.c_str()));
@@ -209,12 +219,15 @@ void Digits2Raw::insertLastBunch(int ibc, uint32_t orbit)
       mZDC.data[im][ic].w[0][0] = id_w0;
       mZDC.data[im][ic].w[0][1] = 0;
       mZDC.data[im][ic].w[0][2] = 0;
+      mZDC.data[im][ic].w[0][3] = 0;
       mZDC.data[im][ic].w[1][0] = id_w1;
       mZDC.data[im][ic].w[1][1] = 0;
       mZDC.data[im][ic].w[1][2] = 0;
+      mZDC.data[im][ic].w[1][3] = 0;
       mZDC.data[im][ic].w[2][0] = id_w2;
       mZDC.data[im][ic].w[2][1] = 0;
       mZDC.data[im][ic].w[2][2] = 0;
+      mZDC.data[im][ic].w[2][3] = 0;
       // Module and channel numbers
       mZDC.data[im][ic].f.board = im;
       mZDC.data[im][ic].f.ch = ic;
@@ -453,12 +466,15 @@ void Digits2Raw::convertDigits(int ibc)
       mZDC.data[im][ic].w[0][0] = id_w0;
       mZDC.data[im][ic].w[0][1] = 0;
       mZDC.data[im][ic].w[0][2] = 0;
+      mZDC.data[im][ic].w[0][3] = 0;
       mZDC.data[im][ic].w[1][0] = id_w1;
       mZDC.data[im][ic].w[1][1] = 0;
       mZDC.data[im][ic].w[1][2] = 0;
+      mZDC.data[im][ic].w[1][3] = 0;
       mZDC.data[im][ic].w[2][0] = id_w2;
       mZDC.data[im][ic].w[2][1] = 0;
       mZDC.data[im][ic].w[2][2] = 0;
+      mZDC.data[im][ic].w[2][3] = 0;
       // Module and channel numbers
       mZDC.data[im][ic].f.board = im;
       mZDC.data[im][ic].f.ch = ic;
@@ -632,8 +648,11 @@ void Digits2Raw::convertDigits(int ibc)
 
 void Digits2Raw::writeDigits()
 {
+  constexpr static int data_size = sizeof(uint32_t) * NWPerGBTW;
   // Local interaction record (true and empty bunches)
   o2::InteractionRecord ir(mZDC.data[0][0].f.bc,mZDC.data[0][0].f.orbit);
+  std::vector<char> out_data(data_size);
+  char* out = out_data.data();
   for (UInt_t im = 0; im < o2::zdc::NModules; im++) {
     // Check if module has been filled with data
     // N.B. All channels are initialized if module is supposed to be readout
@@ -650,6 +669,19 @@ void Digits2Raw::writeDigits()
     bool tcond_continuous = T0 || T1;
     bool tcond_triggered = A0 || A1 || (A2 && (T0 || TM)) || (A3 && T0);
     bool tcond_last = mZDC.data[im][0].f.bc == 3563;
+    // Condition to write GBT data
+    if (tcond_triggered || (mIsContinuous && tcond_continuous) || (mZDC.data[im][0].f.bc == 3563)) {
+      for (UInt_t ic = 0; ic < o2::zdc::NChPerModule; ic++) {
+        if (mModuleConfig->modules[im].readChannel[ic]) {
+          for (Int_t iw = 0; iw < o2::zdc::NWPerBc; iw++) {
+	    mLinkID=mModuleConfig->modules[im].linkID[ic];
+	    mFeeID=mLinkID;
+            std::memcpy(out, &mZDC.data[im][ic].w[iw][0], data_size);
+	    mWriter.addData(mFeeID, mCruID, mLinkID, mEndPointID, ir, out_data);
+          }
+        }
+      }
+    }
     if (mVerbosity > 1) {
       if (tcond_continuous)
         printf("M%d Cont.    T0=%d || T1=%d\n", im, T0, T1);
@@ -657,27 +689,18 @@ void Digits2Raw::writeDigits()
         printf("M%d Trig. %s A0=%d || A1=%d || (A2=%d && (T0=%d || TM=%d))=%d || (A3=%d && T0=%d )=%d\n", im, mIsContinuous ? "CM" : "TM", A0, A1, A2, T0, TM, A2 && (T0 || TM), A3, T0, A3 && T0);
       if (mZDC.data[im][0].f.bc == 3563)
         printf("M%d is last BC\n", im);
-    }
-    // Condition to write GBT data
-    if (tcond_triggered || (mIsContinuous && tcond_continuous) || (mZDC.data[im][0].f.bc == 3563)) {
-      for (UInt_t ic = 0; ic < o2::zdc::NChPerModule; ic++) {
-        if (mModuleConfig->modules[im].readChannel[ic]) {
-          for (Int_t iw = 0; iw < o2::zdc::NWPerBc; iw++) {
-	    if (mVerbosity > 1)
+      if (tcond_triggered || (mIsContinuous && tcond_continuous) || (mZDC.data[im][0].f.bc == 3563)) {
+	for (UInt_t ic = 0; ic < o2::zdc::NChPerModule; ic++) {
+          if (mModuleConfig->modules[im].readChannel[ic]) {
+            for (Int_t iw = 0; iw < o2::zdc::NWPerBc; iw++) {
               print_gbt_word(&mZDC.data[im][ic].w[iw][0], mModuleConfig);
-            // Check link for channel and insert data
-	    mLinkID=mModuleConfig->modules[im].linkID[ic];
-	    // Insert GBT data...
-	    // 3 gbt words that are tored into 3 uint32_t each
-	    // mZDC.data[im][ic].w[iw][0], mZDC.data[im][ic].w[iw][1], mZDC.data[im][ic].w[iw][2]
-	    // with iw=0,1,2
-	    //mWriter.addData(mFeeID, mCruID, mLinkID, mEndPointID, ir, data);
+            }
           }
-        }
-      }
-    } else {
+	}
+      } else {
       if (mVerbosity > 2)
         printf("orbit %9u bc %4u M%d SKIP\n", mZDC.data[im][0].f.orbit, mZDC.data[im][0].f.bc, im);
+      }
     }
   }
 }
