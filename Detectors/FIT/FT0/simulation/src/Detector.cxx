@@ -356,7 +356,7 @@ Bool_t Detector::ProcessHits(FairVolume* v)
     int iPart = fMC->TrackPid();
     float enDep = fMC->Edep();
     Int_t parentID = stack->GetCurrentTrack()->GetMother(0);
-    if (fMC->TrackCharge()) { //charge particles for MCtrue
+    if (fMC->TrackCharge() && volname.Contains("0REG")) { //charge particles for MCtrue
       AddHit(x, y, z, time, 10, trackID, detID);
     }
     if (iPart == 50000050) { // If particles is photon then ...
