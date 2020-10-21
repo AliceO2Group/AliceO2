@@ -41,7 +41,7 @@ class RawReaderBase
   std::map<InteractionRecord, DigitBlockType> mMapDigits;
 
   //decoding binary data into data blocks
-  template<class DataBlockType>
+  template <class DataBlockType>
   size_t decodeBlocks(const gsl::span<const uint8_t> binaryPayload, std::vector<DataBlockType>& vecDataBlocks)
   {
     size_t srcPos = 0;
@@ -51,7 +51,8 @@ class RawReaderBase
       srcPos += dataBlock.mSize;
       if (dataBlock.isCorrect())
         vecDataBlocks.push_back(dataBlock); //change to in-place construction? TODO
-      else LOG(INFO)<<"WARNING! INCORRECT DATA BLOCK!";
+      else
+        LOG(INFO) << "WARNING! INCORRECT DATA BLOCK!";
     }
     return srcPos;
   }
@@ -62,7 +63,7 @@ class RawReaderBase
   {
     std::vector<DataBlockType> vecDataBlocks;
     auto srcPos = decodeBlocks(payload, vecDataBlocks);
-    
+
     for (auto& dataBlock : vecDataBlocks) {
       auto intRec = dataBlock.getInteractionRecord();
       auto [digitIter, isNew] = mMapDigits.try_emplace(intRec, intRec);
@@ -76,7 +77,7 @@ class RawReaderBase
   }
   */
   //pop digits
-  template<class... DigitType>
+  template <class... DigitType>
   int getDigits(std::vector<DigitType>&... vecDigit)
   {
     int digitCounter = mMapDigits.size();
@@ -86,7 +87,6 @@ class RawReaderBase
     mMapDigits.clear();
     return digitCounter;
   }
-
 };
 
 } // namespace fit

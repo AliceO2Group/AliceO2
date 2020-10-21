@@ -42,20 +42,20 @@ namespace o2
 namespace ft0
 {
 //Normal data taking mode
-class DigitBlockFT0: public DigitBlockBase<DigitBlockFT0>
+class DigitBlockFT0 : public DigitBlockBase<DigitBlockFT0>
 {
  public:
   typedef DigitBlockBase<DigitBlockFT0> DigitBlockBaseType;
-  DigitBlockFT0(o2::InteractionRecord intRec) {setIntRec(intRec);}
+  DigitBlockFT0(o2::InteractionRecord intRec) { setIntRec(intRec); }
   DigitBlockFT0() = default;
   DigitBlockFT0(const DigitBlockFT0& other) = default;
   ~DigitBlockFT0() = default;
-  void setIntRec(o2::InteractionRecord intRec) {mDigit.mIntRecord = intRec;}
+  void setIntRec(o2::InteractionRecord intRec) { mDigit.mIntRecord = intRec; }
   Digit mDigit;
   std::vector<ChannelData> mVecChannelData;
   static o2::ft0::LookUpTable sLookupTable;
   static int sEventID;
-  
+
   template <class DataBlockType>
   void processDigits(DataBlockType& dataBlock, int linkID)
   {
@@ -101,7 +101,6 @@ class DigitBlockFT0: public DigitBlockBase<DigitBlockFT0>
     std::cout << std::dec;
     std::cout << "\n";
     LOG(INFO) << "______________________________________";
-
   }
 
   static void print(std::vector<Digit>& vecDigit, std::vector<ChannelData>& vecChannelData)
@@ -128,25 +127,24 @@ class DigitBlockFT0: public DigitBlockBase<DigitBlockFT0>
   }
 };
 
-
 //TCM extended data taking mode
-class DigitBlockFT0ext: public DigitBlockBase<DigitBlockFT0ext>
+class DigitBlockFT0ext : public DigitBlockBase<DigitBlockFT0ext>
 {
  public:
   typedef DigitBlockBase<DigitBlockFT0ext> DigitBlockBaseType;
 
-  DigitBlockFT0ext(o2::InteractionRecord intRec) {setIntRec(intRec);}
+  DigitBlockFT0ext(o2::InteractionRecord intRec) { setIntRec(intRec); }
   DigitBlockFT0ext() = default;
   DigitBlockFT0ext(const DigitBlockFT0ext& other) = default;
   ~DigitBlockFT0ext() = default;
-  void setIntRec(o2::InteractionRecord intRec) {mDigit.mIntRecord = intRec;}
+  void setIntRec(o2::InteractionRecord intRec) { mDigit.mIntRecord = intRec; }
   DigitExt mDigit;
   std::vector<ChannelData> mVecChannelData;
   std::vector<TriggersExt> mVecTriggersExt;
-  
+
   static o2::ft0::LookUpTable sLookupTable;
   static int sEventID;
-  
+
   template <class DataBlockType>
   void processDigits(DataBlockType& dataBlock, int linkID)
   {
@@ -159,12 +157,12 @@ class DigitBlockFT0ext: public DigitBlockBase<DigitBlockFT0ext>
       }
     } else if constexpr (std::is_same<DataBlockType, DataBlockTCMext>::value) { //Filling data from TCM, extended mode. Same proccess as for normal mode, for now.
       dataBlock.DataBlockWrapper<RawDataTCM>::mData[0].fillTrigger(mDigit.mTriggers);
-      for(int iTriggerWord=0;iTriggerWord<dataBlock.DataBlockWrapper<RawDataTCMext>::mNelements; iTriggerWord++) {
+      for (int iTriggerWord = 0; iTriggerWord < dataBlock.DataBlockWrapper<RawDataTCMext>::mNelements; iTriggerWord++) {
         mVecTriggersExt.emplace_back(dataBlock.DataBlockWrapper<RawDataTCMext>::mData[iTriggerWord].triggerWord);
       }
     }
   }
-  void getDigits(std::vector<DigitExt>& vecDigits, std::vector<ChannelData>& vecChannelData,  std::vector<TriggersExt>& vecTriggersExt)
+  void getDigits(std::vector<DigitExt>& vecDigits, std::vector<ChannelData>& vecChannelData, std::vector<TriggersExt>& vecTriggersExt)
   {
     //last digit filling
     mDigit.ref.set(vecChannelData.size(), mVecChannelData.size());
@@ -178,7 +176,7 @@ class DigitBlockFT0ext: public DigitBlockBase<DigitBlockFT0ext>
     //TriggersExt
     std::move(mVecTriggersExt.begin(), mVecTriggersExt.end(), std::back_inserter(vecTriggersExt));
     mVecTriggersExt.clear();
-   
+
     sEventID++; //Increasing static eventID. After each poping of the data, it will increase
   }
   void print() const
@@ -200,10 +198,9 @@ class DigitBlockFT0ext: public DigitBlockBase<DigitBlockFT0ext>
     std::cout << std::dec;
     std::cout << "\n";
     LOG(INFO) << "______________________________________";
-
   }
 
-  static void print(std::vector<DigitExt>& vecDigit, std::vector<ChannelData>& vecChannelData,std::vector<TriggersExt> &vecTriggersExt)
+  static void print(std::vector<DigitExt>& vecDigit, std::vector<ChannelData>& vecChannelData, std::vector<TriggersExt>& vecTriggersExt)
   {
     for (const auto& digit : vecDigit) {
       std::cout << "\n______________DIGIT DATA____________";

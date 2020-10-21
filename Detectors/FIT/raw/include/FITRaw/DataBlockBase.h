@@ -62,7 +62,7 @@ template <typename T>
 struct DataBlockWrapper {
   DataBlockWrapper() = default;
   DataBlockWrapper(const DataBlockWrapper&) = default;
-  static constexpr size_t sizeWord = 16;// should be changed to gloabal variable
+  static constexpr size_t sizeWord = 16; // should be changed to gloabal variable
   std::vector<uint8_t> serialize(int nWords)
   {
     std::vector<uint8_t> vecBytes(sizeWord * nWords);
@@ -86,7 +86,7 @@ struct DataBlockWrapper {
     if (nWords < MinNwords || nWords > MaxNwords || inputBytes.size() - srcPos < nWords * sizeWord) {
       //in case of bad fields responsible for deserialization logic, byte position will be pushed to the end of binary sequence
       srcPos = inputBytes.size();
-      mIsIncorrect=true;
+      mIsIncorrect = true;
       return;
     }
     uint8_t* destAddress = (uint8_t*)mData;
@@ -103,7 +103,6 @@ struct DataBlockWrapper {
 
   static constexpr int MaxNwords = T::PayloadSize * T::MaxNelements / T::PayloadPerGBTword + (T::PayloadSize * T::MaxNelements % T::PayloadPerGBTword > 0); //calculating max GBT words per block
   static constexpr int MaxNbytes = sizeWord * MaxNwords;
-
 
   static constexpr int MinNwords = T::PayloadSize * T::MinNelements / T::PayloadPerGBTword + (T::PayloadSize * T::MinNelements % T::PayloadPerGBTword > 0); //calculating min GBT words per block
   static constexpr int MinNbytes = sizeWord * MinNwords;
@@ -219,16 +218,16 @@ struct DataBlockWrapper {
   enum AccessReadingLUT { kNELEMENTS,
                           kNSTEPS,
                           kISPARTED };
-  static constexpr std::array<std::tuple<unsigned int, unsigned int, bool>, MaxNwords+1> GetReadingLookupTable()
+  static constexpr std::array<std::tuple<unsigned int, unsigned int, bool>, MaxNwords + 1> GetReadingLookupTable()
   {
-    std::array<std::tuple<unsigned int, unsigned int, bool>, MaxNwords+1> readingScheme{};
+    std::array<std::tuple<unsigned int, unsigned int, bool>, MaxNwords + 1> readingScheme{};
     size_t payloadPerElem = T::PayloadSize;
-    std::get<kNSTEPS>(readingScheme[0])=0;
-    std::get<kNELEMENTS>(readingScheme[0])=0;
+    std::get<kNSTEPS>(readingScheme[0]) = 0;
+    std::get<kNELEMENTS>(readingScheme[0]) = 0;
     std::get<kISPARTED>(readingScheme[0]) = false;
     int countWord = 1;
     for (int iStep = 0; iStep < getNsteps(); iStep++) {
-      if (countWord-1 < std::get<kWORDINDEX>((GetByteLookupTable())[iStep])) { //new word
+      if (countWord - 1 < std::get<kWORDINDEX>((GetByteLookupTable())[iStep])) { //new word
         std::get<kNSTEPS>(readingScheme[countWord]) = iStep;
         std::get<kNELEMENTS>(readingScheme[countWord]) = std::get<kELEMENTINDEX>((GetByteLookupTable())[iStep]);
         if (payloadPerElem > 0) {
@@ -253,7 +252,7 @@ struct DataBlockWrapper {
     }
     return readingScheme;
   }
-  static constexpr std::array<std::tuple<unsigned int, unsigned int, bool>, MaxNwords+1> sReadingLookupTable = GetReadingLookupTable();
+  static constexpr std::array<std::tuple<unsigned int, unsigned int, bool>, MaxNwords + 1> sReadingLookupTable = GetReadingLookupTable();
   //
   //Printing LookupTables
   static void printLUT()
@@ -261,7 +260,7 @@ struct DataBlockWrapper {
     cout << endl
          << "-------------------------------------------" << endl;
     std::cout << "kNELEMENTS|kNSTEPS|kISPARTED" << std::endl;
-    for (int i = 0; i < MaxNwords+1; i++) {
+    for (int i = 0; i < MaxNwords + 1; i++) {
       std::cout << std::endl
                 << std::get<kNELEMENTS>(sReadingLookupTable[i]) << "|"
                 << std::get<kNSTEPS>(sReadingLookupTable[i]) << "|"
@@ -341,7 +340,7 @@ class DataBlockBase : public boost::mpl::inherit<DataBlockWrapper<Header>, DataB
   {
     mIsCorrect = true;
     checkDeserialization(mIsCorrect, DataBlockWrapper<Header>::mIsIncorrect);                // checking deserialization status for header
-    (checkDeserialization(mIsCorrect, DataBlockWrapper<DataStructures>::mIsIncorrect), ...); // checking deserialization status for sub-block 
+    (checkDeserialization(mIsCorrect, DataBlockWrapper<DataStructures>::mIsIncorrect), ...); // checking deserialization status for sub-block
     static_cast<DataBlock*>(this)->sanityCheck(mIsCorrect);
   }
 

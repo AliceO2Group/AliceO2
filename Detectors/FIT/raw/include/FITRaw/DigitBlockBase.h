@@ -26,11 +26,13 @@ namespace o2
 {
 namespace fit
 {
-template<class DigitBlock>
-class DigitBlockBase//:public DigitBlock
+template <class DigitBlock>
+class DigitBlockBase //:public DigitBlock
 {
  public:
-  DigitBlockBase(o2::InteractionRecord intRec) { /*static_cast<DigitBlock*>(this)->setIntRec(intRec);*/ }
+  DigitBlockBase(o2::InteractionRecord intRec)
+  { /*static_cast<DigitBlock*>(this)->setIntRec(intRec);*/
+  }
   DigitBlockBase() = default;
   DigitBlockBase(const DigitBlockBase& other) = default;
   ~DigitBlockBase() = default;
@@ -39,7 +41,7 @@ class DigitBlockBase//:public DigitBlock
   {
     static_cast<DigitBlock*>(this)->processDigits(dataBlock, linkID);
   }
-  template<class... DigitType>
+  template <class... DigitType>
   void pop(std::vector<DigitType>&... vecDigits)
   {
     static_cast<DigitBlock*>(this)->getDigits(vecDigits...);

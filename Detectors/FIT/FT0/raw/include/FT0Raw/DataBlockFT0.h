@@ -97,7 +97,7 @@ class DataBlockTCMext : public DataBlockBase<DataBlockTCMext, RawHeaderTCMext, R
   // put here code for raw data checking
   void sanityCheck(bool& flag)
   {
-    
+
     //TODO, Descriptor checking
   }
 };

@@ -119,7 +119,7 @@ struct Digit {
 struct TriggersExt {
   TriggersExt(uint32_t triggerWord)
   {
-    mTriggerWord=triggerWord;
+    mTriggerWord = triggerWord;
   }
   TriggersExt() = default;
   uint32_t mTriggerWord;
@@ -127,15 +127,14 @@ struct TriggersExt {
 };
 
 //For TCM extended mode (calibration mode)
-struct DigitExt:Digit
-{
-  DigitExt(int first, int ne,int firstExt,int neExt, const o2::InteractionRecord& iRec, const Triggers& chTrig, int event):Digit(first, ne, iRec, chTrig, event)
+struct DigitExt : Digit {
+  DigitExt(int first, int ne, int firstExt, int neExt, const o2::InteractionRecord& iRec, const Triggers& chTrig, int event) : Digit(first, ne, iRec, chTrig, event)
   {
     refExt.setFirstEntry(firstExt);
     refExt.setEntries(neExt);
   }
   DigitExt() = default;
-  o2::dataformats::RangeReference<int, int> refExt;//range reference to container with TriggerExt objects
+  o2::dataformats::RangeReference<int, int> refExt; //range reference to container with TriggerExt objects
   ClassDefNV(DigitExt, 1);
 };
 } // namespace ft0

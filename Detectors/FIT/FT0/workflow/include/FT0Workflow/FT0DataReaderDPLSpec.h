@@ -41,10 +41,10 @@ template <typename RawReader>
 class FT0DataReaderDPLSpec : public Task
 {
  public:
-  FT0DataReaderDPLSpec(const RawReader &rawReader):mRawReader(rawReader){}
+  FT0DataReaderDPLSpec(const RawReader& rawReader) : mRawReader(rawReader) {}
   FT0DataReaderDPLSpec() = default;
   ~FT0DataReaderDPLSpec() override = default;
-  void init(InitContext& ic) final{}
+  void init(InitContext& ic) final {}
   void run(ProcessingContext& pc) final
   {
     DPLRawParser parser(pc.inputs());
@@ -58,15 +58,16 @@ class FT0DataReaderDPLSpec : public Task
       gsl::span<const uint8_t> payload(it.data(), it.size());
       mRawReader.process(rdhPtr->linkID, payload);
     }
-    LOG(INFO)<<"Pages: "<<count;
+    LOG(INFO) << "Pages: " << count;
     mRawReader.accumulateDigits();
     mRawReader.makeSnapshot(pc);
   }
   RawReader mRawReader;
 };
 
-template<typename RawReader>
-framework::DataProcessorSpec getFT0DataReaderDPLSpec(const RawReader& rawReader) {
+template <typename RawReader>
+framework::DataProcessorSpec getFT0DataReaderDPLSpec(const RawReader& rawReader)
+{
   LOG(INFO) << "DataProcessorSpec initDataProcSpec() for RawReaderFT0";
   std::vector<OutputSpec> outputSpec;
   RawReader::prepareOutputSpec(outputSpec);

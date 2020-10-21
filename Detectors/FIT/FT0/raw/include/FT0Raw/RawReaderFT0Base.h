@@ -41,9 +41,8 @@ namespace o2
 namespace ft0
 {
 
-
 // Common raw reader for FT0
-template <class DigitBlockFT0type,class DataBlockPMtype,class DataBlockTCMtype>
+template <class DigitBlockFT0type, class DataBlockPMtype, class DataBlockTCMtype>
 class RawReaderFT0Base : public RawReaderBase<DigitBlockFT0type>
 {
  public:
@@ -69,9 +68,9 @@ class RawReaderFT0Base : public RawReaderBase<DigitBlockFT0type>
   }
 };
 //Normal TCM mode
-using RawReaderFT0BaseNorm = RawReaderFT0Base<DigitBlockFT0,DataBlockPM,DataBlockTCM>;
+using RawReaderFT0BaseNorm = RawReaderFT0Base<DigitBlockFT0, DataBlockPM, DataBlockTCM>;
 //Extended TCM mode
-using RawReaderFT0BaseExt = RawReaderFT0Base<DigitBlockFT0ext,DataBlockPM,DataBlockTCMext>;
+using RawReaderFT0BaseExt = RawReaderFT0Base<DigitBlockFT0ext, DataBlockPM, DataBlockTCMext>;
 
 } // namespace ft0
 } // namespace o2
