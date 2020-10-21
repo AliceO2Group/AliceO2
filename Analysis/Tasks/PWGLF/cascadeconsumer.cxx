@@ -109,10 +109,12 @@ struct cascadeconsumer {
 
   void process(soa::Join<aod::Collisions, aod::EvSels, aod::Cents>::iterator const& collision, soa::Filtered<soa::Join<aod::Cascades, aod::CascDataExt>> const& Cascades)
   {
-    if (!collision.alias()[kINT7])
+    if (!collision.alias()[kINT7]) {
       return;
-    if (!collision.sel7())
+    }
+    if (!collision.sel7()) {
       return;
+    }
     for (auto& casc : Cascades) {
       //FIXME: dynamic columns cannot be filtered on?
       if (casc.v0radius() > v0radius &&
@@ -121,15 +123,19 @@ struct cascadeconsumer {
           casc.casccosPA(collision.posX(), collision.posY(), collision.posZ()) > casccospa &&
           casc.dcav0topv(collision.posX(), collision.posY(), collision.posZ()) > dcav0topv) {
         if (casc.charge() < 0) { //FIXME: could be done better...
-          if (TMath::Abs(casc.yXi()) < 0.5)
+          if (TMath::Abs(casc.yXi()) < 0.5) {
             h3dMassXiMinus->Fill(collision.centV0M(), casc.pt(), casc.mXi());
-          if (TMath::Abs(casc.yOmega()) < 0.5)
+          }
+          if (TMath::Abs(casc.yOmega()) < 0.5) {
             h3dMassOmegaMinus->Fill(collision.centV0M(), casc.pt(), casc.mOmega());
+          }
         } else {
-          if (TMath::Abs(casc.yXi()) < 0.5)
+          if (TMath::Abs(casc.yXi()) < 0.5) {
             h3dMassXiPlus->Fill(collision.centV0M(), casc.pt(), casc.mXi());
-          if (TMath::Abs(casc.yOmega()) < 0.5)
+          }
+          if (TMath::Abs(casc.yOmega()) < 0.5) {
             h3dMassOmegaPlus->Fill(collision.centV0M(), casc.pt(), casc.mOmega());
+          }
         }
       }
     }

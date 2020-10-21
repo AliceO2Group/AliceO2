@@ -72,9 +72,11 @@ struct TableMaker_pp {
   {
     uint64_t tag = 0;
     uint32_t triggerAliases = 0;
-    for (int i = 0; i < kNaliases; i++)
-      if (collision.alias()[i] > 0)
+    for (int i = 0; i < kNaliases; i++) {
+      if (collision.alias()[i] > 0) {
         triggerAliases |= (uint32_t(1) << i);
+      }
+    }
 
     VarManager::ResetValues();
     VarManager::FillEvent<fgEventFillMap>(collision);       // extract event information and place it in the fgValues array
@@ -93,10 +95,12 @@ struct TableMaker_pp {
     float dcaZ = 0.f;
     for (auto& track : tracksBarrel) {
 
-      if (track.pt() < 0.15)
+      if (track.pt() < 0.15) {
         continue;
-      if (TMath::Abs(track.eta()) > 0.9)
+      }
+      if (TMath::Abs(track.eta()) > 0.9) {
         continue;
+      }
 
       sinAlpha = sin(track.alpha());
       cosAlpha = cos(track.alpha());
@@ -129,8 +133,9 @@ struct TableMaker_pp {
 
     for (auto& muon : tracksMuon) {
       // TODO: add proper information for muon tracks
-      if (muon.bc() != collision.bc())
+      if (muon.bc() != collision.bc()) {
         continue;
+      }
       trackFilteringTag |= (uint64_t(1) << 0); // this is a MUON arm track
       muonBasic(collision, trackFilteringTag, muon.pt(), muon.eta(), muon.phi(), muon.charge());
       muonExtended(muon.inverseBendingMomentum(), muon.thetaX(), muon.thetaY(), muon.zMu(), muon.bendingCoor(), muon.nonBendingCoor(), muon.chi2(), muon.chi2MatchTrigger());
@@ -142,8 +147,9 @@ struct TableMaker_pp {
     const int kNRuns = 2;
     int runs[kNRuns] = {244918, 244919};
     TString runsStr;
-    for (int i = 0; i < kNRuns; i++)
+    for (int i = 0; i < kNRuns; i++) {
       runsStr += Form("%d;", runs[i]);
+    }
     VarManager::SetRunNumbers(kNRuns, runs);
 
     TObjArray* arr = histClasses.Tokenize(";");

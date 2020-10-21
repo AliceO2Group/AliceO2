@@ -69,8 +69,9 @@ StepTHn<TemplateArray, TemplateType>::StepTHn(const Char_t* name, const Char_t* 
   // The axis have <nBins[i]> bins. The bin edges are given in <binEdges[i]>. If there are only two bin edges, equidistant binning is set.
 
   mNBins = 1;
-  for (Int_t i = 0; i < mNVars; i++)
+  for (Int_t i = 0; i < mNVars; i++) {
     mNBins *= nBins[i];
+  }
 
   if constexpr (std::is_same_v<TemplateType, Double_t>) {
     mPrototype = new THnSparseD(Form("%s_sparse", name), title, nAxis, nBins);
@@ -172,8 +173,9 @@ StepTHn<TemplateArray, TemplateType>& StepTHn<TemplateArray, TemplateType>::oper
 {
   // assigment operator
 
-  if (this != &c)
+  if (this != &c) {
     ((StepTHn&)c).Copy(*this);
+  }
 
   return *this;
 }
@@ -195,19 +197,22 @@ void StepTHn<TemplateArray, TemplateType>::Copy(TObject& c) const
   target.init();
 
   for (Int_t i = 0; i < mNSteps; i++) {
-    if (mValues[i])
+    if (mValues[i]) {
       target.mValues[i] = new TemplateArray(*(mValues[i]));
-    else
+    } else {
       target.mValues[i] = nullptr;
+    }
 
-    if (mSumw2[i])
+    if (mSumw2[i]) {
       target.mSumw2[i] = new TemplateArray(*(mSumw2[i]));
-    else
+    } else {
       target.mSumw2[i] = nullptr;
+    }
   }
 
-  if (mPrototype)
+  if (mPrototype) {
     target.mPrototype = dynamic_cast<THnSparseF*>(mPrototype->Clone());
+  }
 }
 
 //____________________________________________________________________
@@ -218,11 +223,13 @@ Long64_t StepTHn<TemplateArray, TemplateType>::Merge(TCollection* list)
   // PROOF).
   // Returns the number of merged objects (including this).
 
-  if (!list)
+  if (!list) {
     return 0;
+  }
 
-  if (list->IsEmpty())
+  if (list->IsEmpty()) {
     return 1;
+  }
 
   TIterator* iter = list->MakeIterator();
   TObject* obj;
@@ -231,24 +238,29 @@ Long64_t StepTHn<TemplateArray, TemplateType>::Merge(TCollection* list)
   while ((obj = iter->Next())) {
 
     StepTHn* entry = dynamic_cast<StepTHn*>(obj);
-    if (entry == nullptr)
+    if (entry == nullptr) {
       continue;
+    }
 
     for (Int_t i = 0; i < mNSteps; i++) {
       if (entry->mValues[i]) {
-        if (!mValues[i])
+        if (!mValues[i]) {
           mValues[i] = new TemplateArray(mNBins);
+        }
 
-        for (Long64_t l = 0; l < mNBins; l++)
+        for (Long64_t l = 0; l < mNBins; l++) {
           mValues[i]->GetArray()[l] += entry->mValues[i]->GetArray()[l];
+        }
       }
 
       if (entry->mSumw2[i]) {
-        if (!mSumw2[i])
+        if (!mSumw2[i]) {
           mSumw2[i] = new TemplateArray(mNBins);
+        }
 
-        for (Long64_t l = 0; l < mNBins; l++)
+        for (Long64_t l = 0; l < mNBins; l++) {
           mSumw2[i]->GetArray()[l] += entry->mSumw2[i]->GetArray()[l];
+        }
       }
     }
 
@@ -288,9 +300,9 @@ void StepTHn<TemplateArray, TemplateType>::Fill(const Double_t* var, Int_t istep
     bin *= mNbinsCache[i];
 
     Int_t tmpBin = 0;
-    if (mLastVars[i] == var[i])
+    if (mLastVars[i] == var[i]) {
       tmpBin = mLastBins[i];
-    else {
+    } else {
       tmpBin = mAxisCache[i]->FindBin(var[i]);
       mLastBins[i] = tmpBin;
       mLastVars[i] = var[i];
@@ -298,8 +310,9 @@ void StepTHn<TemplateArray, TemplateType>::Fill(const Double_t* var, Int_t istep
     //Printf("%d", tmpBin);
 
     // under/overflow not supported
-    if (tmpBin < 1 || tmpBin > mNbinsCache[i])
+    if (tmpBin < 1 || tmpBin > mNbinsCache[i]) {
       return;
+    }
 
     // bins start from 0 here
     bin += tmpBin - 1;
@@ -320,8 +333,9 @@ void StepTHn<TemplateArray, TemplateType>::Fill(const Double_t* var, Int_t istep
   }
 
   mValues[istep]->GetArray()[bin] += weight;
-  if (mSumw2[istep])
+  if (mSumw2[istep]) {
     mSumw2[istep]->GetArray()[bin] += weight * weight;
+  }
 
   //   Printf("%f", mValues[istep][bin]);
 
@@ -357,23 +371,27 @@ void StepTHn<TemplateArray, TemplateType>::createTarget(Int_t step, Bool_t spars
 
   if (!mTarget) {
     mTarget = new THnBase*[mNSteps];
-    for (Int_t i = 0; i < mNSteps; i++)
+    for (Int_t i = 0; i < mNSteps; i++) {
       mTarget[i] = nullptr;
+    }
   }
 
-  if (mTarget[step])
+  if (mTarget[step]) {
     return;
+  }
 
   TemplateType* source = mValues[step]->GetArray();
   // if mSumw2 is not stored, the sqrt of the number of bin entries in source is filled below; otherwise we use mSumw2
   TemplateType* sourceSumw2 = source;
-  if (mSumw2[step])
+  if (mSumw2[step]) {
     sourceSumw2 = mSumw2[step]->GetArray();
+  }
 
-  if (sparse)
+  if (sparse) {
     mTarget[step] = THnSparse::CreateSparse(Form("%s_%d", GetName(), step), Form("%s_%d", GetTitle(), step), mPrototype);
-  else
+  } else {
     mTarget[step] = THn::CreateHn(Form("%s_%d", GetName(), step), Form("%s_%d", GetTitle(), step), mPrototype);
+  }
 
   THnBase* target = mTarget[step];
 
@@ -409,8 +427,9 @@ void StepTHn<TemplateArray, TemplateType>::createTarget(Int_t step, Bool_t spars
       }
     }
 
-    if (binIdx[0] > nBins[0])
+    if (binIdx[0] > nBins[0]) {
       break;
+    }
   }
 
   LOGF(info, "Step %d: copied %lld entries out of %lld bins", step, count, getGlobalBinIndex(binIdx));

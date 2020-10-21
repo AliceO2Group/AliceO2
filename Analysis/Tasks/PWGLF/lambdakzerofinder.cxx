@@ -77,17 +77,21 @@ struct lambdakzeroprefilter {
                soa::Join<aod::FullTracks, aod::TracksExtended> const& tracks)
   {
     for (auto& t0 : goodPosTracks) {
-      if (!(t0.flags() & 0x40))
+      if (!(t0.flags() & 0x40)) {
         continue; //TPC refit
-      if (t0.tpcNClsCrossedRows() < mincrossedrows)
+      }
+      if (t0.tpcNClsCrossedRows() < mincrossedrows) {
         continue;
+      }
       v0GoodPosTracks(t0.globalIndex(), t0.collisionId(), t0.dcaXY());
     }
     for (auto& t0 : goodNegTracks) {
-      if (!(t0.flags() & 0x40))
+      if (!(t0.flags() & 0x40)) {
         continue; //TPC refit
-      if (t0.tpcNClsCrossedRows() < mincrossedrows)
+      }
+      if (t0.tpcNClsCrossedRows() < mincrossedrows) {
         continue;
+      }
       v0GoodNegTracks(t0.globalIndex(), t0.collisionId(), -t0.dcaXY());
     }
   }
@@ -135,32 +139,37 @@ struct lambdakzerofinder {
 
         //Try to progate to dca
         int nCand = fitter.process(Track1, Track2);
-        if (nCand == 0)
+        if (nCand == 0) {
           continue;
+        }
         const auto& vtx = fitter.getPCACandidate();
 
         //Fiducial: min radius
         auto thisv0radius = TMath::Sqrt(TMath::Power(vtx[0], 2) + TMath::Power(vtx[1], 2));
-        if (thisv0radius < v0radius)
+        if (thisv0radius < v0radius) {
           continue;
+        }
 
         //DCA V0 daughters
         auto thisdcav0dau = fitter.getChi2AtPCACandidate();
-        if (thisdcav0dau > dcav0dau)
+        if (thisdcav0dau > dcav0dau) {
           continue;
+        }
 
         std::array<float, 3> pos = {0.};
         std::array<float, 3> pvec0;
         std::array<float, 3> pvec1;
-        for (int i = 0; i < 3; i++)
+        for (int i = 0; i < 3; i++) {
           pos[i] = vtx[i];
+        }
         fitter.getTrack(0).getPxPyPzGlo(pvec0);
         fitter.getTrack(1).getPxPyPzGlo(pvec1);
 
         auto thisv0cospa = RecoDecay::CPA(array{collision.posX(), collision.posY(), collision.posZ()},
                                           array{vtx[0], vtx[1], vtx[2]}, array{pvec0[0] + pvec1[0], pvec0[1] + pvec1[1], pvec0[2] + pvec1[2]});
-        if (thisv0cospa < v0cospa)
+        if (thisv0cospa < v0cospa) {
           continue;
+        }
 
         lNCand++;
         v0finderdata(t0.globalIndex(), t1.globalIndex(), t0.collisionId());
@@ -206,10 +215,12 @@ struct lambdakzerofinderQA {
                //             soa::Filtered<soa::Join<aod::V0FinderData, aod::V0DataExt>> const& fullV0s)
                soa::Join<aod::V0FinderData, aod::V0DataExt> const& fullV0s)
   {
-    if (!collision.alias()[kINT7])
+    if (!collision.alias()[kINT7]) {
       return;
-    if (!collision.sel7())
+    }
+    if (!collision.sel7()) {
       return;
+    }
 
     Long_t lNCand = 0;
     for (auto& v0 : fullV0s) {
@@ -224,8 +235,9 @@ struct lambdakzerofinderQA {
           h3dMassLambda->Fill(collision.centV0M(), v0.pt(), v0.mLambda());
           h3dMassAntiLambda->Fill(collision.centV0M(), v0.pt(), v0.mAntiLambda());
         }
-        if (TMath::Abs(v0.yK0Short()) < 0.5)
+        if (TMath::Abs(v0.yK0Short()) < 0.5) {
           h3dMassK0Short->Fill(collision.centV0M(), v0.pt(), v0.mK0Short());
+        }
         lNCand++;
       }
     }

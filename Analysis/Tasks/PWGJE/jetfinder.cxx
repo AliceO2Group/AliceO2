@@ -55,10 +55,12 @@ struct JetFinderTask {
                                70, -0.7, 0.7));
     hJetN.setObject(new TH1F("h_jet_n", "jet n;n constituents",
                              30, 0., 30.));
-    if (b_DoRhoAreaSub)
+    if (b_DoRhoAreaSub) {
       jetFinder.setBkgSubMode(JetFinder::BkgSubMode::rhoAreaSub);
-    if (b_DoConstSub)
+    }
+    if (b_DoConstSub) {
       jetFinder.setBkgSubMode(JetFinder::BkgSubMode::constSub);
+    }
   }
 
   void process(aod::Collision const& collision,
@@ -86,9 +88,10 @@ struct JetFinderTask {
       hJetEta->Fill(jet.eta());
       hJetN->Fill(jet.constituents().size());
       for (const auto& constituent : jet.constituents()) { //event or jetwise
-        if (b_DoConstSub)
+        if (b_DoConstSub) {
           constituentsSubTable(jetsTable.lastIndex(), constituent.pt(), constituent.eta(), constituent.phi(),
                                constituent.E(), constituent.m());
+        }
         constituentsTable(jetsTable.lastIndex(), constituent.user_index());
       }
     }

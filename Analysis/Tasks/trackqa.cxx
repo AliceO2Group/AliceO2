@@ -113,8 +113,9 @@ struct TrackQATask {
     trackpar.fill("snp", track.snp());
     trackpar.fill("tgl", track.tgl());
     for (unsigned int i = 0; i < 64; i++) {
-      if (track.flags() & (1 << i))
+      if (track.flags() & (1 << i)) {
         trackpar.fill("flags", i);
+      }
     }
     trackpar.fill("dcaXY", track.dcaXY());
     trackpar.fill("dcaZ", track.dcaZ());
@@ -123,8 +124,9 @@ struct TrackQATask {
     its.fill("itsNCls", track.itsNCls());
     its.fill("itsChi2NCl", track.itsChi2NCl());
     for (unsigned int i = 0; i < 7; i++) {
-      if (track.itsClusterMap() & (1 << i))
+      if (track.itsClusterMap() & (1 << i)) {
         its.fill("itsHits", i);
+      }
     }
 
     // fill TPC variables
