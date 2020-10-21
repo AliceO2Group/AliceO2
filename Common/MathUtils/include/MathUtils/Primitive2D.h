@@ -25,13 +25,13 @@ namespace math_utils
 {
 template <typename T>
 using CircleXY = detail::CircleXY<T>;
-using CircleXYf_t = CircleXY<float>;
-using CircleXYd_t = CircleXY<double>;
+using CircleXYf_t = detail::CircleXY<float>;
+using CircleXYd_t = detail::CircleXY<double>;
 
 template <typename T>
 using IntervalXY = detail::IntervalXY<T>;
-using IntervalXYf_t = IntervalXY<float>;
-using IntervalXYd_t = IntervalXY<double>;
+using IntervalXYf_t = detail::IntervalXY<float>;
+using IntervalXYd_t = detail::IntervalXY<double>;
 
 } // namespace math_utils
 } // namespace o2

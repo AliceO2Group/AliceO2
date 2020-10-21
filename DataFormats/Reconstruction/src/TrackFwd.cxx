@@ -38,8 +38,7 @@ void TrackParFwd::propagateParamToZlinear(double zEnd)
   // Compute track parameters
   auto dZ = (zEnd - getZ());
   auto phi0 = getPhi();
-  double cosphi0, sinphi0;
-  o2::math_utils::sincos(phi0, sinphi0, cosphi0);
+  auto [sinphi0, cosphi0] = o2::math_utils::sincosd(phi0);
   auto invtanl0 = 1.0 / getTanl();
   auto n = dZ * invtanl0;
   mParameters(0) += n * cosphi0;
@@ -57,8 +56,7 @@ void TrackParCovFwd::propagateToZlinear(double zEnd)
   auto phi0 = getPhi();
   auto tanl0 = getTanl();
   auto invtanl0 = 1.0 / tanl0;
-  double cosphi0, sinphi0;
-  o2::math_utils::sincos(phi0, sinphi0, cosphi0);
+  auto [sinphi0, cosphi0] = o2::math_utils::sincosd(phi0);
   auto n = dZ * invtanl0;
   auto m = n * invtanl0;
 
@@ -90,8 +88,7 @@ void TrackParFwd::propagateParamToZquadratic(double zEnd, double zField)
   // Compute track parameters
   auto dZ = (zEnd - getZ());
   auto phi0 = getPhi();
-  double cosphi0, sinphi0;
-  o2::math_utils::sincos(phi0, sinphi0, cosphi0);
+  auto [sinphi0, cosphi0] = o2::math_utils::sincosd(phi0);
   auto invtanl0 = 1.0 / getTanl();
   auto invqpt0 = getInvQPt();
   auto Hz = std::copysign(1, zField);
@@ -118,8 +115,7 @@ void TrackParCovFwd::propagateToZquadratic(double zEnd, double zField)
   // Compute track parameters
   auto dZ = (zEnd - getZ());
   auto phi0 = getPhi();
-  double cosphi0, sinphi0;
-  o2::math_utils::sincos(phi0, sinphi0, cosphi0);
+  auto [sinphi0, cosphi0] = o2::math_utils::sincosd(phi0);
   auto invtanl0 = 1.0 / getTanl();
   auto invqpt0 = getInvQPt();
   auto Hz = std::copysign(1, zField);
@@ -166,13 +162,12 @@ void TrackParFwd::propagateParamToZhelix(double zEnd, double zField)
   auto invtanl0 = 1.0 / tanl0;
   auto invqpt0 = getInvQPt();
   auto qpt0 = 1.0 / invqpt0;
-  double cosphi0, sinphi0;
-  o2::math_utils::sincos(phi0, sinphi0, cosphi0);
+  auto [sinphi0, cosphi0] = o2::math_utils::sincosd(phi0);
+
   auto k = TMath::Abs(o2::constants::math::B2C * zField);
   auto invk = 1.0 / k;
   auto theta = -invqpt0 * dZ * k * invtanl0;
-  double costheta, sintheta;
-  o2::math_utils::sincos(theta, sintheta, costheta);
+  auto [sintheta, costheta] = o2::math_utils::sincosd(theta);
   auto Hz = std::copysign(1, zField);
   auto Y = sinphi0 * qpt0 * invk;
   auto X = cosphi0 * qpt0 * invk;
@@ -200,13 +195,11 @@ void TrackParCovFwd::propagateToZhelix(double zEnd, double zField)
   auto invtanl0 = 1.0 / tanl0;
   auto invqpt0 = getInvQPt();
   auto qpt0 = 1.0 / invqpt0;
-  double cosphi0, sinphi0;
-  o2::math_utils::sincos(phi0, sinphi0, cosphi0);
+  auto [sinphi0, cosphi0] = o2::math_utils::sincosd(phi0);
   auto k = TMath::Abs(o2::constants::math::B2C * zField);
   auto invk = 1.0 / k;
   auto theta = -invqpt0 * dZ * k * invtanl0;
-  double costheta, sintheta;
-  o2::math_utils::sincos(theta, sintheta, costheta);
+  auto [sintheta, costheta] = o2::math_utils::sincosd(theta);
   auto Hz = std::copysign(1, zField);
   auto L = qpt0 * qpt0 * invk;
   auto N = dZ * invtanl0 * qpt0;
@@ -318,8 +311,7 @@ void TrackParCovFwd::addMCSEffect(double dZ, double x_over_X0)
   auto invtanl0 = 1.0 / tanl0;
   auto invqpt0 = getInvQPt();
 
-  double cosphi0, sinphi0;
-  o2::math_utils::sincos(phi0, sinphi0, cosphi0);
+  auto [sinphi0, cosphi0] = o2::math_utils::sincosd(phi0);
 
   auto csclambda = TMath::Abs(TMath::Sqrt(1 + tanl0 * tanl0) * invtanl0);
   auto pathLengthOverX0 = x_over_X0 * csclambda; //

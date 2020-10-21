@@ -292,7 +292,7 @@ bool Propagator::propagateToDCA(const o2::dataformats::VertexBase& vtx, o2::trac
 {
   // propagate track to DCA to the vertex
   float sn, cs, alp = track.getAlpha();
-  o2::math_utils::sincosf(alp, sn, cs);
+  o2::math_utils::sincos(alp, sn, cs);
   float x = track.getX(), y = track.getY(), snp = track.getSnp(), csp = std::sqrt((1.f - snp) * (1.f + snp));
   float xv = vtx.getX() * cs + vtx.getY() * sn, yv = -vtx.getX() * sn + vtx.getY() * cs, zv = vtx.getZ();
   x -= xv;
@@ -321,7 +321,7 @@ bool Propagator::propagateToDCA(const o2::dataformats::VertexBase& vtx, o2::trac
   }
   track = tmpT;
   if (dca) {
-    o2::math_utils::sincosf(alp, sn, cs);
+    o2::math_utils::sincos(alp, sn, cs);
     auto s2ylocvtx = vtx.getSigmaX2() * sn * sn + vtx.getSigmaY2() * cs * cs - 2. * vtx.getSigmaXY() * cs * sn;
     dca->set(track.getY() - yv, track.getZ() - zv,
              track.getSigmaY2() + s2ylocvtx, track.getSigmaZY(), track.getSigmaZ2() + vtx.getSigmaZ2());
@@ -337,7 +337,7 @@ bool Propagator::propagateToDCABxByBz(const o2::dataformats::VertexBase& vtx, o2
 {
   // propagate track to DCA to the vertex
   float sn, cs, alp = track.getAlpha();
-  o2::math_utils::sincosf(alp, sn, cs);
+  o2::math_utils::sincos(alp, sn, cs);
   float x = track.getX(), y = track.getY(), snp = track.getSnp(), csp = std::sqrt((1.f - snp) * (1.f + snp));
   float xv = vtx.getX() * cs + vtx.getY() * sn, yv = -vtx.getX() * sn + vtx.getY() * cs, zv = vtx.getZ();
   x -= xv;
@@ -366,7 +366,7 @@ bool Propagator::propagateToDCABxByBz(const o2::dataformats::VertexBase& vtx, o2
   }
   track = tmpT;
   if (dca) {
-    o2::math_utils::sincosf(alp, sn, cs);
+    o2::math_utils::sincos(alp, sn, cs);
     auto s2ylocvtx = vtx.getSigmaX2() * sn * sn + vtx.getSigmaY2() * cs * cs - 2. * vtx.getSigmaXY() * cs * sn;
     dca->set(track.getY() - yv, track.getZ() - zv,
              track.getSigmaY2() + s2ylocvtx, track.getSigmaZY(), track.getSigmaZ2() + vtx.getSigmaZ2());
@@ -382,7 +382,7 @@ bool Propagator::propagateToDCA(const math_utils::Point3D<float>& vtx, o2::track
 {
   // propagate track to DCA to the vertex
   float sn, cs, alp = track.getAlpha();
-  o2::math_utils::sincosf(alp, sn, cs);
+  o2::math_utils::sincos(alp, sn, cs);
   float x = track.getX(), y = track.getY(), snp = track.getSnp(), csp = std::sqrt((1.f - snp) * (1.f + snp));
   float xv = vtx.X() * cs + vtx.Y() * sn, yv = -vtx.X() * sn + vtx.Y() * cs, zv = vtx.Z();
   x -= xv;
@@ -426,7 +426,7 @@ bool Propagator::propagateToDCABxByBz(const math_utils::Point3D<float>& vtx, o2:
 {
   // propagate track to DCA to the vertex
   float sn, cs, alp = track.getAlpha();
-  o2::math_utils::sincosf(alp, sn, cs);
+  o2::math_utils::sincos(alp, sn, cs);
   float x = track.getX(), y = track.getY(), snp = track.getSnp(), csp = std::sqrt((1.f - snp) * (1.f + snp));
   float xv = vtx.X() * cs + vtx.Y() * sn, yv = -vtx.X() * sn + vtx.Y() * cs, zv = vtx.Z();
   x -= xv;

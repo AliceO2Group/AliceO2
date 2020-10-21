@@ -563,7 +563,7 @@ bool MatchTPCITS::prepareTPCTracks()
     // TODO : special treatment of tracks crossing the CE
 
     // cache work track index
-    mTPCSectIndexCache[o2::math_utils::Angle2Sector(trc.getAlpha())].push_back(mTPCWork.size() - 1);
+    mTPCSectIndexCache[o2::math_utils::angle2Sector(trc.getAlpha())].push_back(mTPCWork.size() - 1);
   }
 
   /// full drift time + safety margin
@@ -702,7 +702,7 @@ bool MatchTPCITS::prepareITSTracks()
       int nWorkTracks = mITSWork.size();
       // working copy of outer track param
       auto& trc = mITSWork.emplace_back(static_cast<const o2::track::TrackParCov&>(trcOrig.getParamOut()), it);
-      if (!trc.rotate(o2::math_utils::Angle2Alpha(trc.getPhiPos()))) {
+      if (!trc.rotate(o2::math_utils::angle2Alpha(trc.getPhiPos()))) {
         mITSWork.pop_back(); // discard failed track
         continue;
       }
@@ -717,7 +717,7 @@ bool MatchTPCITS::prepareITSTracks()
       trc.roFrame = irof;
 
       // cache work track index
-      int sector = o2::math_utils::Angle2Sector(trc.getAlpha());
+      int sector = o2::math_utils::angle2Sector(trc.getAlpha());
       mITSSectIndexCache[sector].push_back(nWorkTracks);
 
       // If the ITS track is very close to the sector edge, it may match also to a TPC track in the neighb. sector.
@@ -1199,7 +1199,7 @@ void MatchTPCITS::addLastTrackCloneForNeighbourSector(int sector)
   // to their setctor edge that their matching should be checked also in the neighbouring sector
   mITSWork.push_back(mITSWork.back()); // clone the last track defined in given sector
   auto& trc = mITSWork.back();
-  if (trc.rotate(o2::math_utils::Sector2Angle(sector)) &&
+  if (trc.rotate(o2::math_utils::sector2Angle(sector)) &&
       o2::base::Propagator::Instance()->PropagateToXBxByBz(trc, XMatchingRef, o2::constants::physics::MassPionCharged, MaxSnp,
                                                            2., MatCorrType::USEMatCorrNONE)) {
     // TODO: use faster prop here, no 3d field, materials
@@ -1233,7 +1233,7 @@ bool MatchTPCITS::propagateToRefX(o2::track::TrackParCov& trc)
     if (!trialsLeft--) {
       break;
     }
-    auto alphaNew = o2::math_utils::Angle2Alpha(trc.getPhiPos());
+    auto alphaNew = o2::math_utils::angle2Alpha(trc.getPhiPos());
     if (!trc.rotate(alphaNew) != 0) {
       break; // failed (RS: check effect on matching tracks to neighbouring sector)
     }
@@ -1411,7 +1411,7 @@ bool MatchTPCITS::refitTrackTPCITSloopITS(int iITS, int& iTPC)
     const auto& cl = tpcTrOrig.getCluster(mTPCTrackClusIdx, icl, *mTPCClusterIdxStruct, sector, row);
     mTPCTransform->Transform(sector, row, cl.getPad(), cl.getTime(), clsX, clsYZ[0], clsYZ[1], timeTB);
     // rotate to 1 cluster's sector
-    if (!tracOut.rotate(o2::math_utils::Sector2Angle(sector % 18))) {
+    if (!tracOut.rotate(o2::math_utils::sector2Angle(sector % 18))) {
       LOG(WARNING) << "Rotation to sector " << int(sector % 18) << " failed";
       mMatchedTracks.pop_back(); // destroy failed track
       return false;
@@ -1451,7 +1451,7 @@ bool MatchTPCITS::refitTrackTPCITSloopITS(int iITS, int& iTPC)
       mTPCTransform->Transform(sector, row, cl.getPad(), cl.getTime(), clsX, clsYZ[0], clsYZ[1], timeTB);
       if (prevsector != sector) {
         prevsector = sector;
-        if (!tracOut.rotate(o2::math_utils::Sector2Angle(sector % 18))) {
+        if (!tracOut.rotate(o2::math_utils::sector2Angle(sector % 18))) {
           LOG(WARNING) << "Rotation to sector " << int(sector % 18) << " failed";
           mMatchedTracks.pop_back(); // destroy failed track
           return false;
@@ -1592,7 +1592,7 @@ bool MatchTPCITS::refitTrackTPCITSloopTPC(int iTPC, int& iITS)
     const auto& cl = tpcTrOrig.getCluster(mTPCTrackClusIdx, icl, *mTPCClusterIdxStruct, sector, row);
     mTPCTransform->Transform(sector, row, cl.getPad(), cl.getTime() - timeTB, clsX, clsYZ[0], clsYZ[1]);
     // rotate to 1 cluster's sector
-    if (!tracOut.rotate(o2::math_utils::Sector2Angle(sector % 18))) {
+    if (!tracOut.rotate(o2::math_utils::sector2Angle(sector % 18))) {
       LOG(WARNING) << "Rotation to sector " << int(sector % 18) << " failed";
       mMatchedTracks.pop_back(); // destroy failed track
       return false;
@@ -1632,7 +1632,7 @@ bool MatchTPCITS::refitTrackTPCITSloopTPC(int iTPC, int& iITS)
       mTPCTransform->Transform(sector, row, cl.getPad(), cl.getTime() - timeTB, clsX, clsYZ[0], clsYZ[1]);
       if (prevsector != sector) {
         prevsector = sector;
-        if (!tracOut.rotate(o2::math_utils::Sector2Angle(sector % 18))) {
+        if (!tracOut.rotate(o2::math_utils::sector2Angle(sector % 18))) {
           LOG(WARNING) << "Rotation to sector " << int(sector % 18) << " failed";
           mMatchedTracks.pop_back(); // destroy failed track
           return false;
@@ -1718,7 +1718,7 @@ bool MatchTPCITS::refitTPCInward(o2::track::TrackParCov& trcIn, float& chi2, flo
   mTPCTransform->Transform(sectArr[icl], rowArr[icl], clsArr[icl]->getPad(), clsArr[icl]->getTime(), clsX, clsYZ[0], clsYZ[1], timeTB);
   mTPCClusterParam->GetClusterErrors2(rowArr[icl], clsYZ[1], trcIn.getSnp(), trcIn.getTgl(), clsCov[0], clsCov[2]);
   uint8_t sectCurr = sectArr[icl];
-  if (!trcIn.rotate(o2::math_utils::Sector2Angle(sectCurr % 18))) {
+  if (!trcIn.rotate(o2::math_utils::sector2Angle(sectCurr % 18))) {
     LOG(WARNING) << "Rotation to sector " << int(sectCurr % 18) << " failed";
     return false;
   }
@@ -1733,7 +1733,7 @@ bool MatchTPCITS::refitTPCInward(o2::track::TrackParCov& trcIn, float& chi2, flo
   for (; icl--;) {
     if (sectArr[icl] != sectCurr) {
       sectCurr = sectArr[icl];
-      if (!trcIn.rotate(o2::math_utils::Sector2Angle(sectCurr % 18))) {
+      if (!trcIn.rotate(o2::math_utils::sector2Angle(sectCurr % 18))) {
         LOG(WARNING) << "Rotation to sector " << int(sectCurr % 18) << " failed";
         LOG(WARNING) << trcIn.asString();
         return false;

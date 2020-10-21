@@ -79,7 +79,7 @@ class Ray
   GPUd() float getPhi(float t) const
   {
     float p = o2::gpu::CAMath::ATan2(mP[1] + t * mD[1], mP[0] + t * mD[0]);
-    o2::math_utils::BringTo02Pi(p);
+    o2::math_utils::bringTo02Pi(p);
     return p;
   }
 

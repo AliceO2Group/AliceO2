@@ -167,10 +167,10 @@ bool TrackParametrizationWithError<value_T>::rotate(value_t alpha)
     return false;
   }
   //
-  math_utils::BringToPMPi(alpha);
+  math_utils::detail::bringToPMPi<value_t>(alpha);
   //
   value_t ca = 0, sa = 0;
-  math_utils::sincos(alpha - this->getAlpha(), sa, ca);
+  math_utils::detail::sincos(alpha - this->getAlpha(), sa, ca);
   value_t snp = this->getSnp(), csp = std::sqrt((1.f - snp) * (1.f + snp)); // Improve precision
   // RS: check if rotation does no invalidate track model (cos(local_phi)>=0, i.e. particle
   // direction in local frame is along the X axis
@@ -218,7 +218,7 @@ bool TrackParametrizationWithError<value_T>::propagateToDCA(const o2::dataformat
 {
   // propagate track to DCA to the vertex
   value_t sn, cs, alp = this->getAlpha();
-  o2::math_utils::sincos(alp, sn, cs);
+  o2::math_utils::detail::sincos(alp, sn, cs);
   value_t x = this->getX(), y = this->getY(), snp = this->getSnp(), csp = std::sqrt((1.f - snp) * (1.f + snp));
   value_t xv = vtx.getX() * cs + vtx.getY() * sn, yv = -vtx.getX() * sn + vtx.getY() * cs, zv = vtx.getZ();
   x -= xv;
@@ -247,7 +247,7 @@ bool TrackParametrizationWithError<value_T>::propagateToDCA(const o2::dataformat
   }
   *this = tmpT;
   if (dca) {
-    o2::math_utils::sincos(alp, sn, cs);
+    o2::math_utils::detail::sincos(alp, sn, cs);
     auto s2ylocvtx = vtx.getSigmaX2() * sn * sn + vtx.getSigmaY2() * cs * cs - 2. * vtx.getSigmaXY() * cs * sn;
     dca->set(this->getY() - yv, this->getZ() - zv, getSigmaY2() + s2ylocvtx, getSigmaZY(), getSigmaZ2() + vtx.getSigmaZ2());
   }
@@ -276,11 +276,11 @@ TrackParametrizationWithError<value_T>::TrackParametrizationWithError(const dim3
     alp = std::atan2(xyz[1], xyz[0]);
   }
   if (sectorAlpha) {
-    alp = math_utils::Angle2Alpha(alp);
+    alp = math_utils::detail::angle2Alpha<value_t>(alp);
   }
   //
   value_t sn, cs;
-  math_utils::sincos(alp, sn, cs);
+  math_utils::detail::sincos(alp, sn, cs);
   // protection:  avoid alpha being too close to 0 or +-pi/2
   if (std::fabs(sn) < 2.f * kSafe) {
     if (alp > 0) {
@@ -288,24 +288,24 @@ TrackParametrizationWithError<value_T>::TrackParametrizationWithError(const dim3
     } else {
       alp += alp > -constants::math::PIHalf ? -2.f * kSafe : 2.f * kSafe;
     }
-    math_utils::sincos(alp, sn, cs);
+    math_utils::detail::sincos(alp, sn, cs);
   } else if (std::fabs(cs) < 2.f * kSafe) {
     if (alp > 0) {
       alp += alp > constants::math::PIHalf ? 2.f * kSafe : -2.f * kSafe;
     } else {
       alp += alp > -constants::math::PIHalf ? 2.f * kSafe : -2.f * kSafe;
     }
-    math_utils::sincos(alp, sn, cs);
+    math_utils::detail::sincos(alp, sn, cs);
   }
   // get the vertex of origin and the momentum
   dim3_t ver{xyz[0], xyz[1], xyz[2]};
   dim3_t mom{pxpypz[0], pxpypz[1], pxpypz[2]};
   //
   // Rotate to the local coordinate system
-  math_utils::RotateZ(ver, -alp);
-  math_utils::RotateZ(mom, -alp);
+  math_utils::detail::rotateZ<value_t>(ver, -alp);
+  math_utils::detail::rotateZ<value_t>(mom, -alp);
   //
-  value_t pt = sqrt(mom[0] * mom[0] + mom[1] * mom[1]);
+  value_t pt = std::sqrt(mom[0] * mom[0] + mom[1] * mom[1]);
   value_t ptI = 1.f / pt;
   this->setX(ver[0]);
   this->setAlpha(alp);
@@ -1022,7 +1022,7 @@ bool TrackParametrizationWithError<value_T>::getCovXYZPxPyPzGlo(std::array<value
 
   auto pt = this->getPt();
   value_t sn, cs;
-  o2::math_utils::sincos(this->getAlpha(), sn, cs);
+  o2::math_utils::detail::sincos(this->getAlpha(), sn, cs);
   auto r = std::sqrt((1. - this->getSnp()) * (1. + this->getSnp()));
   auto m00 = -sn, m10 = cs;
   auto m23 = -pt * (sn + this->getSnp() * cs / r), m43 = -pt * pt * (r * cs - this->getSnp() * sn);
