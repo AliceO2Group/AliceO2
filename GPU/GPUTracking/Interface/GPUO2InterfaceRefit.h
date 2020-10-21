@@ -50,6 +50,7 @@ class GPUTPCO2InterfaceRefit
 
   int RefitTrackAsGPU(o2::tpc::TrackTPC& trk, bool outward = false, bool resetCov = false) { return mRefit.RefitTrackAsGPU(trk, outward, resetCov); }
   int RefitTrackAsTrackParCov(o2::tpc::TrackTPC& trk, bool outward = false, bool resetCov = false) { return mRefit.RefitTrackAsTrackParCov(trk, outward, resetCov); }
+  void setGPUTrackFitInProjections(bool v = true);
 
  private:
   GPUTrackingRefit mRefit;

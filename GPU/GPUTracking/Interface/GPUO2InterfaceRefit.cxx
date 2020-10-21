@@ -49,4 +49,9 @@ GPUTPCO2InterfaceRefit::GPUTPCO2InterfaceRefit(const o2::tpc::ClusterNativeAcces
   mRefit.SetFastTransform(trans);
 }
 
+void GPUTPCO2InterfaceRefit::setGPUTrackFitInProjections(bool v)
+{
+  mParam->rec.fitInProjections = v;
+}
+
 GPUTPCO2InterfaceRefit::~GPUTPCO2InterfaceRefit() = default;
