@@ -13,12 +13,5 @@
 #pragma link off all globals;
 #pragma link off all classes;
 #pragma link off all functions;
-/*
-#pragma link C++ class o2::ft0::DataBlockPM + ;
-#pragma link C++ class o2::ft0::DataBlockTCM + ;
-#pragma link C++ class o2::ft0::DataBlockTCMext + ;
-#pragma link C++ class o2::ft0::DigitBlockFT0 + ;
-#pragma link C++ class o2::ft0::RawReaderFT0 < true> + ;
-#pragma link C++ class o2::ft0::RawReaderFT0 < false> + ;
-*/
+
 #endif
