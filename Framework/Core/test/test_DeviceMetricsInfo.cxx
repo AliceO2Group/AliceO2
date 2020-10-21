@@ -129,3 +129,59 @@ BOOST_AUTO_TEST_CASE(TestDeviceMetricsInfo)
   result = DeviceMetricsHelper::processMetric(match, info);
   BOOST_CHECK_EQUAL(result, true);
 }
+
+BOOST_AUTO_TEST_CASE(TestDeviceMetricsInfo2)
+{
+  using namespace o2::framework;
+  DeviceMetricsInfo info;
+  auto bkey = DeviceMetricsHelper::createNumericMetric<int>(info, "bkey");
+  auto akey = DeviceMetricsHelper::createNumericMetric<float>(info, "akey");
+  auto ckey = DeviceMetricsHelper::createNumericMetric<uint64_t>(info, "ckey");
+  BOOST_CHECK_EQUAL(DeviceMetricsHelper::metricIdxByName("akey", info), 1);
+  BOOST_CHECK_EQUAL(DeviceMetricsHelper::metricIdxByName("bkey", info), 0);
+  BOOST_CHECK_EQUAL(DeviceMetricsHelper::metricIdxByName("ckey", info), 2);
+  BOOST_CHECK_EQUAL(info.changed.at(0), true);
+  size_t t = 1000;
+  bkey(info, 0, t++);
+  bkey(info, 1, t++);
+  bkey(info, 2, t++);
+  bkey(info, 3, t++);
+  bkey(info, 4, t++);
+  bkey(info, 5, t++);
+  BOOST_CHECK_EQUAL(info.changed[0], true);
+  BOOST_CHECK_EQUAL(info.intMetrics[0][0], 0);
+  BOOST_CHECK_EQUAL(info.intMetrics[0][1], 1);
+  BOOST_CHECK_EQUAL(info.intMetrics[0][2], 2);
+  BOOST_CHECK_EQUAL(info.intMetrics[0][3], 3);
+  BOOST_CHECK_EQUAL(info.intMetrics[0][4], 4);
+  BOOST_CHECK_EQUAL(info.intMetrics[0][5], 5);
+  BOOST_CHECK_EQUAL(info.changed[1], true);
+  bkey(info, 5., t++);
+  akey(info, 1., t++);
+  akey(info, 2., t++);
+  akey(info, 3., t++);
+  akey(info, 4., t++);
+  BOOST_CHECK_EQUAL(info.intMetrics[0][6], 5);
+  BOOST_CHECK_EQUAL(info.floatMetrics[0][0], 1.);
+  BOOST_CHECK_EQUAL(info.floatMetrics[0][1], 2.);
+  BOOST_CHECK_EQUAL(info.floatMetrics[0][2], 3.);
+  BOOST_CHECK_EQUAL(info.floatMetrics[0][3], 4.);
+  BOOST_CHECK_EQUAL(info.timestamps.size(), 3);
+  BOOST_CHECK_EQUAL(info.timestamps[0][0], 1000);
+  BOOST_CHECK_EQUAL(info.timestamps[0][1], 1001);
+  BOOST_CHECK_EQUAL(info.timestamps[0][2], 1002);
+  BOOST_CHECK_EQUAL(info.timestamps[0][3], 1003);
+  BOOST_CHECK_EQUAL(info.timestamps[0][4], 1004);
+  BOOST_CHECK_EQUAL(info.timestamps[0][5], 1005);
+  BOOST_CHECK_EQUAL(info.timestamps[1][0], 1007);
+  BOOST_CHECK_EQUAL(info.timestamps[1][1], 1008);
+  BOOST_CHECK_EQUAL(info.timestamps[1][2], 1009);
+  BOOST_CHECK_EQUAL(info.timestamps[1][3], 1010);
+  BOOST_CHECK_EQUAL(info.changed.size(), 3);
+  for (int i = 0; i < 1026; ++i) {
+    ckey(info, i, t++);
+  }
+  BOOST_CHECK_EQUAL(info.uint64Metrics[0][0], 1024);
+  BOOST_CHECK_EQUAL(info.uint64Metrics[0][1], 1025);
+  BOOST_CHECK_EQUAL(info.uint64Metrics[0][2], 2);
+}

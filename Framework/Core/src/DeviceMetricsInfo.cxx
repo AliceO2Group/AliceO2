@@ -9,6 +9,7 @@
 // or submit itself to any jurisdiction.
 
 #include "Framework/DeviceMetricsInfo.h"
+#include "Framework/RuntimeError.h"
 #include <cassert>
 #include <cinttypes>
 #include <cstdlib>
@@ -19,9 +20,7 @@
 #include <tuple>
 #include <iostream>
 
-namespace o2
-{
-namespace framework
+namespace o2::framework
 {
 
 // Parses a metric in the form
@@ -180,6 +179,7 @@ bool DeviceMetricsHelper::processMetric(ParsedMetricMatch& match,
     info.min.push_back(std::numeric_limits<float>::max());
     info.maxDomain.push_back(std::numeric_limits<size_t>::lowest());
     info.minDomain.push_back(std::numeric_limits<size_t>::max());
+    info.changed.push_back(false);
 
     // Add the index by name in the correct position
     // this will require moving the tail of the index,
@@ -256,7 +256,8 @@ bool DeviceMetricsHelper::processMetric(ParsedMetricMatch& match,
       return false;
       break;
   };
-
+  // Note that we updated a given metric.
+  info.changed[metricIndex] = true;
   return true;
 }
 
@@ -296,5 +297,4 @@ std::ostream& operator<<(std::ostream& oss, MetricType const& val)
   return oss;
 }
 
-} // namespace framework
-} // namespace o2
+} // namespace o2::framework
