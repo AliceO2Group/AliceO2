@@ -156,7 +156,7 @@ int DataInputDescriptor::fillInputfiles()
         // remove white spaces, empty lines are skipped
         fileName.erase(std::remove_if(fileName.begin(), fileName.end(), ::isspace), fileName.end());
         if (!fileName.empty() && (getFilenamesRegexString().empty() ||
-            std::regex_match(fileName, getFilenamesRegex()))) {
+                                  std::regex_match(fileName, getFilenamesRegex()))) {
           addFileNameHolder(makeFileNameHolder(fileName));
         }
       }

@@ -97,7 +97,7 @@ AlgorithmSpec AODReaderHelpers::rootFileReaderCallback()
       LOGP(ERROR, "No input file defined!");
       throw std::runtime_error("Processing is stopped!");
     }
-      
+
     auto filename = options.get<std::string>("aod-file");
 
     // create a DataInputDirector
