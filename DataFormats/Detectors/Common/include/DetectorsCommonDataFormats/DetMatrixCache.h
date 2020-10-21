@@ -41,8 +41,9 @@ class MatrixCache
   /// set the size of the cache
   void setSize(int s)
   {
-    if (!mCache.size())
+    if (!mCache.size()) {
       mCache.resize(s);
+    }
   }
 
   /// get the size of the cache

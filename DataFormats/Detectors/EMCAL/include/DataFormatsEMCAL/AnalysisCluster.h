@@ -146,18 +146,20 @@ class AnalysisCluster
 
   int getCellIndex(int i) const
   {
-    if (i >= 0 && i < mNCells)
+    if (i >= 0 && i < mNCells) {
       return mCellsIndices[i];
-    else
+    } else {
       throw CellOutOfRangeException(i);
+    }
   }
 
   float getCellAmplitudeFraction(int i) const
   {
-    if (i >= 0 && i < mNCells)
+    if (i >= 0 && i < mNCells) {
       return mCellsAmpFraction[i];
-    else
+    } else {
       throw CellOutOfRangeException(i);
+    }
   }
 
   bool getIsExotic() const { return mIsExotic; }

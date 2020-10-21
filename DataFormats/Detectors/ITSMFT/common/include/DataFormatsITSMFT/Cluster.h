@@ -165,8 +165,9 @@ inline void Cluster::decreaseClusterUsage()
 {
   // decrease cluster usage counter
   int n = getClusterUsage();
-  if (n)
+  if (n) {
     setClusterUsage(--n);
+  }
   //
 }
 
@@ -176,10 +177,12 @@ inline void Cluster::setClusterUsage(Int_t n)
   // set cluster usage counter
   mNxNzN &= ~(kMaskClUse << kOffsClUse);
   mNxNzN |= (n & kMaskClUse) << kOffsClUse;
-  if (n < 2)
+  if (n < 2) {
     resetBit(kShared);
-  if (!n)
+  }
+  if (!n) {
     resetBit(kUsed);
+  }
 }
 } // namespace itsmft
 
