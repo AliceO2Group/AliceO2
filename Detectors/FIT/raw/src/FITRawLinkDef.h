@@ -8,10 +8,17 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#include "FT0Raw/DigitBlockFT0.h"
-using namespace o2::ft0;
+#ifdef __CLING__
 
-int DigitBlockFT0::sEventID = 0;
-o2::ft0::LookUpTable DigitBlockFT0::sLookupTable = o2::ft0::LookUpTable::linear();
-int DigitBlockFT0ext::sEventID = 0;
-o2::ft0::LookUpTable DigitBlockFT0ext::sLookupTable = o2::ft0::LookUpTable::linear();
+#pragma link off all globals;
+#pragma link off all classes;
+#pragma link off all functions;
+/*
+#pragma link C++ class o2::ft0::DataBlockPM + ;
+#pragma link C++ class o2::ft0::DataBlockTCM + ;
+#pragma link C++ class o2::ft0::DataBlockTCMext + ;
+#pragma link C++ class o2::ft0::DigitBlockFT0 + ;
+#pragma link C++ class o2::ft0::RawReaderFT0 < true> + ;
+#pragma link C++ class o2::ft0::RawReaderFT0 < false> + ;
+*/
+#endif
