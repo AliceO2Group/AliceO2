@@ -62,7 +62,7 @@ void GPUTrackingRefit::initProp<GPUTPCGMPropagator>(GPUTPCGMPropagator& prop)
   prop.SetMaxSinPhi(GPUCA_MAX_SIN_PHI);
   prop.SetToyMCEventsFlag(false);
   prop.SetSeedingErrors(false);
-  prop.SetFitInProjections(false);
+  prop.SetFitInProjections(mPparam->rec.fitInProjections != 0);
   prop.SetPropagateBzOnly(false);
   prop.SetPolynomialField(&mPparam->polynomialField);
 }
