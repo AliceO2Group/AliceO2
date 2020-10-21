@@ -18,7 +18,8 @@
 #include <Rtypes.h>
 #include "Headers/RAWDataHeader.h"
 #include "CommonDataFormat/InteractionRecord.h"
-//#include "DetectorsRaw/RawFileWriter.h"
+#include "DetectorsRaw/RawFileWriter.h"
+#include "DetectorsRaw/HBFUtils.h"
 #include "DataFormatsZDC/RawEventData.h"
 #include "ZDCBase/ModuleConfig.h"
 #include "ZDCSimulation/SimCondition.h"
@@ -38,14 +39,17 @@ class Digits2Raw
   void setSimCondition(const SimCondition* SimCondition) { mSimCondition = SimCondition; };
   const SimCondition* getSimCondition() { return mSimCondition; };
 
-  //  o2::raw::RawFileWriter& getWriter() { return mWriter; }
+  o2::raw::RawFileWriter& getWriter() { return mWriter; }
+
+  void setFilePerLink(bool v) { mOutputPerLink = v; }
+  bool getFilePerLink() const { return mOutputPerLink; }
 
   void setVerbosity(int v) { mVerbosity = v; }
   int getVerbosity() const { return mVerbosity; }
 
   //  void setContinuous(bool v = true) { mIsContinuous = v; }
   bool isContinuous() const { return mIsContinuous; }
-  static void print_gbt_word(UInt_t* word, const ModuleConfig* moduleConfig=0);
+  static void print_gbt_word(UInt_t* word, const ModuleConfig* moduleConfig = 0);
 
  private:
   void setTriggerMask();
@@ -58,6 +62,7 @@ class Digits2Raw
   std::vector<o2::zdc::ChannelData> mzdcChData, *mzdcChDataPtr = &mzdcChData;
   EventData mZDC;                                                       /// Output structure
   bool mIsContinuous = true;                                            /// Continuous (self-triggered) or externally-triggered readout
+  bool mOutputPerLink = false;                                          /// Split output
   const ModuleConfig* mModuleConfig = 0;                                /// Trigger/readout configuration object
   const SimCondition* mSimCondition = 0;                                /// Pedestal/noise configuration object
   UShort_t mScalers[NModules][NChPerModule] = {0};                      /// ZDC orbit scalers
@@ -70,7 +75,11 @@ class Digits2Raw
   Double_t mSumPed[NModules][NChPerModule] = {0};                       /// Pedestal integrated on clean empty bunches
   uint16_t mPed[NModules][NChPerModule] = {0};                          /// Current pedestal
 
-  //  o2::raw::RawFileWriter mWriter{"ZDC"};
+  o2::raw::RawFileWriter mWriter{"ZDC"};
+  uint32_t mLinkID = 0;
+  uint16_t mCruID = 0;
+  uint32_t mEndPointID = 0;
+  uint64_t mFeeID = 0;
 
   int mVerbosity = 0;
 

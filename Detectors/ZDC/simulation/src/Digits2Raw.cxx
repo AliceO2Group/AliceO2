@@ -33,12 +33,12 @@ void Digits2Raw::processDigits(const std::string& outDir, const std::string& fil
     return;
   }
 
-  if(mNEmpty<0){
+  if (mNEmpty < 0) {
     LOG(ERROR) << "Bunch crossing map is not initialized";
     return;
   }
 
-  if(mNEmpty==0){
+  if (mNEmpty == 0) {
     LOG(WARNING) << "Bunch crossing map has zero clean empty bunches";
   }
 
@@ -92,22 +92,23 @@ void Digits2Raw::processDigits(const std::string& outDir, const std::string& fil
       convertDigits(ibc);
       writeDigits();
       // Detect last event or orbit change and insert last bunch
-      if( ibc==(nbc-1)){
+      if (ibc == (nbc - 1)) {
         // For last event we need to close last orbit (if it is needed)
-	if(mzdcBCData[ibc].ir.bc!=3563){
-          insertLastBunch(ibc,mzdcBCData[ibc].ir.orbit);
-	  writeDigits();
-	}
-      }else{
-        auto this_orbit=mzdcBCData[ibc].ir.orbit;
-	auto next_orbit=mzdcBCData[ibc+1].ir.orbit;
-	// If current bunch is last bunch in the orbit we don't insert it again
-	if(mzdcBCData[ibc].ir.bc==3563)this_orbit=this_orbit+1;
-	// We may need to insert more than one orbit
-	for(auto orbit=this_orbit; orbit<next_orbit; orbit++){
-          insertLastBunch(ibc,orbit);
-	  writeDigits();
-	}
+        if (mzdcBCData[ibc].ir.bc != 3563) {
+          insertLastBunch(ibc, mzdcBCData[ibc].ir.orbit);
+          writeDigits();
+        }
+      } else {
+        auto this_orbit = mzdcBCData[ibc].ir.orbit;
+        auto next_orbit = mzdcBCData[ibc + 1].ir.orbit;
+        // If current bunch is last bunch in the orbit we don't insert it again
+        if (mzdcBCData[ibc].ir.bc == 3563)
+          this_orbit = this_orbit + 1;
+        // We may need to insert more than one orbit
+        for (auto orbit = this_orbit; orbit < next_orbit; orbit++) {
+          insertLastBunch(ibc, orbit);
+          writeDigits();
+        }
       }
     }
   }
@@ -143,9 +144,10 @@ void Digits2Raw::setTriggerMask()
   printf("trigger_mask=0x%08x %s\n", mTriggerMask, mPrintTriggerMask.data());
 }
 
-inline void Digits2Raw::resetSums(uint32_t orbit){
+inline void Digits2Raw::resetSums(uint32_t orbit)
+{
   for (Int_t im = 0; im < NModules; im++) {
-    for (Int_t ic = 0; ic < NChPerModule; ic++){
+    for (Int_t ic = 0; ic < NChPerModule; ic++) {
       mScalers[im][ic] = 0;
       mSumPed[im][ic] = 0;
       mPed[im][ic] = 0;
@@ -155,43 +157,48 @@ inline void Digits2Raw::resetSums(uint32_t orbit){
   mLastNEmpty = 0;
 }
 
-inline void Digits2Raw::updatePedestalReference(int bc){
+inline void Digits2Raw::updatePedestalReference(int bc)
+{
   // Compute or update baseline reference
-  if(mEmpty[bc]>0 && mEmpty[bc]!=mLastNEmpty){
+  if (mEmpty[bc] > 0 && mEmpty[bc] != mLastNEmpty) {
     for (Int_t im = 0; im < NModules; im++) {
-      for (Int_t ic = 0; ic < NChPerModule; ic++){
+      for (Int_t ic = 0; ic < NChPerModule; ic++) {
         // Identify connected channel
-	auto id=mModuleConfig->modules[im].channelID[ic];
-	auto base_m=mSimCondition->channels[id].pedestal;      // Average pedestal
-	auto base_s=mSimCondition->channels[id].pedestalFluct; // Baseline oscillations
-	auto base_n=mSimCondition->channels[id].pedestalNoise; // Electronic noise
-	Double_t deltan=mEmpty[bc]-mLastNEmpty;
-	// We assume to have a fluctuation every two bunch crossings
-	// Will need to tune this parameter
-	Double_t k=2.;
-	mSumPed[im][ic]+=gRandom->Gaus(12.*deltan*base_m,12.*k*base_s*TMath::Sqrt(deltan/k));
-	// Adding in quadrature the RMS of pedestal electronic noise
-	mSumPed[im][ic]+=gRandom->Gaus(0,base_n*TMath::Sqrt(12.*deltan));
-	Double_t myped=TMath::Nint(8.*mSumPed[im][ic]/Double_t(mEmpty[bc])/12.+32768);
-	if(myped<0)myped=0;
-	if(myped>65535)myped=65535;
-	mPed[im][ic]=myped;
+        auto id = mModuleConfig->modules[im].channelID[ic];
+        auto base_m = mSimCondition->channels[id].pedestal;      // Average pedestal
+        auto base_s = mSimCondition->channels[id].pedestalFluct; // Baseline oscillations
+        auto base_n = mSimCondition->channels[id].pedestalNoise; // Electronic noise
+        Double_t deltan = mEmpty[bc] - mLastNEmpty;
+        // We assume to have a fluctuation every two bunch crossings
+        // Will need to tune this parameter
+        Double_t k = 2.;
+        mSumPed[im][ic] += gRandom->Gaus(12. * deltan * base_m, 12. * k * base_s * TMath::Sqrt(deltan / k));
+        // Adding in quadrature the RMS of pedestal electronic noise
+        mSumPed[im][ic] += gRandom->Gaus(0, base_n * TMath::Sqrt(12. * deltan));
+        Double_t myped = TMath::Nint(8. * mSumPed[im][ic] / Double_t(mEmpty[bc]) / 12. + 32768);
+        if (myped < 0)
+          myped = 0;
+        if (myped > 65535)
+          myped = 65535;
+        mPed[im][ic] = myped;
       }
     }
-    mLastNEmpty=mEmpty[bc];
+    mLastNEmpty = mEmpty[bc];
   }
 }
 
-void Digits2Raw::insertLastBunch(int ibc, uint32_t orbit){
+void Digits2Raw::insertLastBunch(int ibc, uint32_t orbit)
+{
   // Number of bunch crossings stored
   int nbc = mzdcBCData.size();
-  
+
   // Orbit and bunch crossing identifiers
   const auto& bcd = mzdcBCData[ibc];
   UShort_t bc = 3563;
 
   // Reset scalers at orbit change
-  if (orbit != mLastOrbit)resetSums(orbit);
+  if (orbit != mLastOrbit)
+    resetSums(orbit);
 
   updatePedestalReference(bc);
 
@@ -329,70 +336,94 @@ void Digits2Raw::insertLastBunch(int ibc, uint32_t orbit){
   for (Int_t im = 0; im < NModules; im++) {
     for (UInt_t ic = 0; ic < NChPerModule; ic++) {
       if (mModuleConfig->modules[im].readChannel[ic]) {
-	auto id=mModuleConfig->modules[im].channelID[ic];
-	auto base_m=mSimCondition->channels[id].pedestal;      // Average pedestal
-	auto base_s=mSimCondition->channels[id].pedestalFluct; // Baseline oscillations
-	auto base_n=mSimCondition->channels[id].pedestalNoise; // Electronic noise
-	Double_t base=gRandom->Gaus(base_m,base_s);
+        auto id = mModuleConfig->modules[im].channelID[ic];
+        auto base_m = mSimCondition->channels[id].pedestal;      // Average pedestal
+        auto base_s = mSimCondition->channels[id].pedestalFluct; // Baseline oscillations
+        auto base_n = mSimCondition->channels[id].pedestalNoise; // Electronic noise
+        Double_t base = gRandom->Gaus(base_m, base_s);
         Int_t is = 0;
-	Double_t val=base+gRandom->Gaus(0,base_n);
-	if(val<-4096)val=-4096;
-	if(val>4095)val=4095;
+        Double_t val = base + gRandom->Gaus(0, base_n);
+        if (val < -4096)
+          val = -4096;
+        if (val > 4095)
+          val = 4095;
         mZDC.data[im][ic].f.s00 = val;
         is++;
-	val=base+gRandom->Gaus(0,base_n);
-	if(val<-4096)val=-4096;
-	if(val>4095)val=4095;
+        val = base + gRandom->Gaus(0, base_n);
+        if (val < -4096)
+          val = -4096;
+        if (val > 4095)
+          val = 4095;
         mZDC.data[im][ic].f.s01 = val;
         is++;
-	val=base+gRandom->Gaus(0,base_n);
-	if(val<-4096)val=-4096;
-	if(val>4095)val=4095;
+        val = base + gRandom->Gaus(0, base_n);
+        if (val < -4096)
+          val = -4096;
+        if (val > 4095)
+          val = 4095;
         mZDC.data[im][ic].f.s02 = val;
         is++;
-	val=base+gRandom->Gaus(0,base_n);
-	if(val<-4096)val=-4096;
-	if(val>4095)val=4095;
+        val = base + gRandom->Gaus(0, base_n);
+        if (val < -4096)
+          val = -4096;
+        if (val > 4095)
+          val = 4095;
         mZDC.data[im][ic].f.s03 = val;
         is++;
-	val=base+gRandom->Gaus(0,base_n);
-	if(val<-4096)val=-4096;
-	if(val>4095)val=4095;
+        val = base + gRandom->Gaus(0, base_n);
+        if (val < -4096)
+          val = -4096;
+        if (val > 4095)
+          val = 4095;
         mZDC.data[im][ic].f.s04 = val;
         is++;
-	val=base+gRandom->Gaus(0,base_n);
-	if(val<-4096)val=-4096;
-	if(val>4095)val=4095;
+        val = base + gRandom->Gaus(0, base_n);
+        if (val < -4096)
+          val = -4096;
+        if (val > 4095)
+          val = 4095;
         mZDC.data[im][ic].f.s05 = val;
         is++;
-	val=base+gRandom->Gaus(0,base_n);
-	if(val<-4096)val=-4096;
-	if(val>4095)val=4095;
+        val = base + gRandom->Gaus(0, base_n);
+        if (val < -4096)
+          val = -4096;
+        if (val > 4095)
+          val = 4095;
         mZDC.data[im][ic].f.s06 = val;
         is++;
-	val=base+gRandom->Gaus(0,base_n);
-	if(val<-4096)val=-4096;
-	if(val>4095)val=4095;
+        val = base + gRandom->Gaus(0, base_n);
+        if (val < -4096)
+          val = -4096;
+        if (val > 4095)
+          val = 4095;
         mZDC.data[im][ic].f.s07 = val;
         is++;
-	val=base+gRandom->Gaus(0,base_n);
-	if(val<-4096)val=-4096;
-	if(val>4095)val=4095;
+        val = base + gRandom->Gaus(0, base_n);
+        if (val < -4096)
+          val = -4096;
+        if (val > 4095)
+          val = 4095;
         mZDC.data[im][ic].f.s08 = val;
         is++;
-	val=base+gRandom->Gaus(0,base_n);
-	if(val<-4096)val=-4096;
-	if(val>4095)val=4095;
+        val = base + gRandom->Gaus(0, base_n);
+        if (val < -4096)
+          val = -4096;
+        if (val > 4095)
+          val = 4095;
         mZDC.data[im][ic].f.s09 = val;
         is++;
-	val=base+gRandom->Gaus(0,base_n);
-	if(val<-4096)val=-4096;
-	if(val>4095)val=4095;
+        val = base + gRandom->Gaus(0, base_n);
+        if (val < -4096)
+          val = -4096;
+        if (val > 4095)
+          val = 4095;
         mZDC.data[im][ic].f.s10 = val;
         is++;
-	val=base+gRandom->Gaus(0,base_n);
-	if(val<-4096)val=-4096;
-	if(val>4095)val=4095;
+        val = base + gRandom->Gaus(0, base_n);
+        if (val < -4096)
+          val = -4096;
+        if (val > 4095)
+          val = 4095;
         mZDC.data[im][ic].f.s11 = val;
       }
     }
@@ -410,7 +441,8 @@ void Digits2Raw::convertDigits(int ibc)
   UInt_t orbit = bcd.ir.orbit;
 
   // Reset scalers at orbit change
-  if (orbit != mLastOrbit)resetSums(orbit);
+  if (orbit != mLastOrbit)
+    resetSums(orbit);
 
   updatePedestalReference(bc);
 
@@ -600,9 +632,8 @@ void Digits2Raw::convertDigits(int ibc)
 
 void Digits2Raw::writeDigits()
 {
-  // TODO baseline estimation
-  // TODO treatment of last bunch crossing of each orbit
-
+  // Local interaction record (true and empty bunches)
+  o2::InteractionRecord ir(mZDC.data[0][0].f.bc,mZDC.data[0][0].f.orbit);
   for (UInt_t im = 0; im < o2::zdc::NModules; im++) {
     // Check if module has been filled with data
     // N.B. All channels are initialized if module is supposed to be readout
@@ -632,14 +663,21 @@ void Digits2Raw::writeDigits()
       for (UInt_t ic = 0; ic < o2::zdc::NChPerModule; ic++) {
         if (mModuleConfig->modules[im].readChannel[ic]) {
           for (Int_t iw = 0; iw < o2::zdc::NWPerBc; iw++) {
-            if (mVerbosity > 1)
+	    if (mVerbosity > 1)
               print_gbt_word(&mZDC.data[im][ic].w[iw][0], mModuleConfig);
-	    // Check link for channel and insert data
+            // Check link for channel and insert data
+	    mLinkID=mModuleConfig->modules[im].linkID[ic];
+	    // Insert GBT data...
+	    // 3 gbt words that are tored into 3 uint32_t each
+	    // mZDC.data[im][ic].w[iw][0], mZDC.data[im][ic].w[iw][1], mZDC.data[im][ic].w[iw][2]
+	    // with iw=0,1,2
+	    //mWriter.addData(mFeeID, mCruID, mLinkID, mEndPointID, ir, data);
           }
         }
       }
-    }else{
-      if (mVerbosity > 2)printf("orbit %9u bc %4u M%d SKIP\n", mZDC.data[im][0].f.orbit, mZDC.data[im][0].f.bc, im);
+    } else {
+      if (mVerbosity > 2)
+        printf("orbit %9u bc %4u M%d SKIP\n", mZDC.data[im][0].f.orbit, mZDC.data[im][0].f.bc, im);
     }
   }
 }
@@ -722,18 +760,22 @@ void Digits2Raw::print_gbt_word(UInt_t* word, const ModuleConfig* moduleConfig)
     }
     printf("%04x %08x %08x ", c, b, a);
     UInt_t hits = (val >> 24) & 0xfff;
-    Int_t offset = (lsb >> 8) & 0xffff-32768;
-    Float_t foffset=offset/8.;
+    Int_t offset = (lsb >> 8) & 0xffff - 32768;
+    Float_t foffset = offset / 8.;
     UInt_t board = (lsb >> 2) & 0xf;
     UInt_t ch = (lsb >> 6) & 0x3;
     //printf("orbit %9u bc %4u hits %4u offset %+6i Board %2u Ch %1u", myorbit, mybc, hits, offset, board, ch);
     printf("orbit %9u bc %4u hits %4u offset %+8.3f Board %2u Ch %1u", myorbit, mybc, hits, foffset, board, ch);
-    if(board>=NModules)printf(" ERROR with board");
-    if(ch>=NChPerModule)printf(" ERROR with ch");
-    if(moduleConfig){
-      auto id=moduleConfig->modules[board].channelID[ch];
-      if(id>=0&&id<NChannels)printf(" %s",ChannelNames[id].data());
-      else printf(" error with ch id");
+    if (board >= NModules)
+      printf(" ERROR with board");
+    if (ch >= NChPerModule)
+      printf(" ERROR with ch");
+    if (moduleConfig) {
+      auto id = moduleConfig->modules[board].channelID[ch];
+      if (id >= 0 && id < NChannels)
+        printf(" %s", ChannelNames[id].data());
+      else
+        printf(" error with ch id");
     }
   } else if ((a & 0x3) == 1) {
     printf("%04x %08x %08x ", c, b, a);
@@ -776,21 +818,22 @@ void Digits2Raw::print_gbt_word(UInt_t* word, const ModuleConfig* moduleConfig)
   printf("\n");
 }
 
-void Digits2Raw::emptyBunches(std::bitset<3564>& bunchPattern){
-  const int LHCMaxBunches=o2::constants::lhc::LHCMaxBunches;
-  mNEmpty=0;
-  for(Int_t ib=0; ib<LHCMaxBunches; ib++){
-    Int_t mb=(ib+31)%LHCMaxBunches; // beam gas from back of calorimeter
-    Int_t m1=(ib+1)%LHCMaxBunches; // previous bunch
-    Int_t cb=ib; // current bunch crossing
-    Int_t p1=(ib-1)%LHCMaxBunches; // colliding + 1
-    Int_t p2=(ib+1)%LHCMaxBunches; // colliding + 2
-    Int_t p3=(ib+1)%LHCMaxBunches; // colliding + 3
-    if(bunchPattern[mb] || bunchPattern[m1] || bunchPattern[cb] || bunchPattern[p1] || bunchPattern[p2] || bunchPattern[p3]){
-      mEmpty[ib]=mNEmpty;
-    }else{
+void Digits2Raw::emptyBunches(std::bitset<3564>& bunchPattern)
+{
+  const int LHCMaxBunches = o2::constants::lhc::LHCMaxBunches;
+  mNEmpty = 0;
+  for (Int_t ib = 0; ib < LHCMaxBunches; ib++) {
+    Int_t mb = (ib + 31) % LHCMaxBunches; // beam gas from back of calorimeter
+    Int_t m1 = (ib + 1) % LHCMaxBunches;  // previous bunch
+    Int_t cb = ib;                        // current bunch crossing
+    Int_t p1 = (ib - 1) % LHCMaxBunches;  // colliding + 1
+    Int_t p2 = (ib + 1) % LHCMaxBunches;  // colliding + 2
+    Int_t p3 = (ib + 1) % LHCMaxBunches;  // colliding + 3
+    if (bunchPattern[mb] || bunchPattern[m1] || bunchPattern[cb] || bunchPattern[p1] || bunchPattern[p2] || bunchPattern[p3]) {
+      mEmpty[ib] = mNEmpty;
+    } else {
       mNEmpty++;
-      mEmpty[ib]=mNEmpty;
+      mEmpty[ib] = mNEmpty;
     }
   }
   LOG(INFO) << "There are " << mNEmpty << " clean empty bunches";
