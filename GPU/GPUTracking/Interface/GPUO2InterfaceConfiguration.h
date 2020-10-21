@@ -76,6 +76,7 @@ struct GPUO2InterfaceConfiguration {
   struct GPUInterfaceSettings {
     int dumpEvents = 0;
     bool outputToExternalBuffers = false;
+    bool dropSecondaryLegs = true;
     // These constants affect GPU memory allocation only and do not limit the CPU processing
     unsigned long maxTPCZS = 4096ul * 1024 * 1024;
     unsigned int maxTPCHits = 1024 * 1024 * 1024;

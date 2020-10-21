@@ -33,6 +33,7 @@
 #include "GPUO2InterfaceConfiguration.h"
 #include "GPUTPCGMMergedTrack.h"
 #include "GPUTPCGMMergedTrackHit.h"
+#include "GPUTPCGMMergerTypes.h"
 #include "GPUHostDataTypes.h"
 
 #include <atomic>
@@ -70,6 +71,7 @@ int GPUCATracking::runTracking(GPUO2InterfaceIOPtrs* data, GPUInterfaceOutputs* 
   }
 
   constexpr unsigned char flagsReject = GPUTPCGMMergedTrackHit::flagReject | GPUTPCGMMergedTrackHit::flagNotFit;
+  const unsigned int flagsRequired = mTrackingCAO2Interface->getConfig().configInterface.dropSecondaryLegs ? gputpcgmmergertypes::attachGoodLeg : 0;
 
   std::vector<TrackTPC>* outputTracks = data->outputTracks;
   std::vector<uint32_t>* outClusRefs = data->outputClusRefs;
@@ -250,9 +252,10 @@ int GPUCATracking::runTracking(GPUO2InterfaceIOPtrs* data, GPUInterfaceOutputs* 
        outerPar.C[12], outerPar.C[13], outerPar.C[14]}));
     int nOutCl = 0;
     for (int j = 0; j < tracks[i].NClusters(); j++) {
-      if (!(trackClusters[tracks[i].FirstClusterRef() + j].state & flagsReject)) {
-        nOutCl++;
+      if ((trackClusters[tracks[i].FirstClusterRef() + j].state & flagsReject) || (ptrs.mergedTrackHitAttachment[trackClusters[tracks[i].FirstClusterRef() + j].num] & flagsRequired) != flagsRequired) {
+        continue;
       }
+      nOutCl++;
     }
     clBuff = clusterOffsetCounter.fetch_add(nOutCl + (nOutCl + 1) / 2);
     oTrack.setClusterRef(clBuff, nOutCl);         // register the references
@@ -263,7 +266,7 @@ int GPUCATracking::runTracking(GPUO2InterfaceIOPtrs* data, GPUInterfaceOutputs* 
     std::vector<std::pair<MCCompLabel, unsigned int>> labels;
     nOutCl = 0;
     for (int j = 0; j < tracks[i].NClusters(); j++) {
-      if (trackClusters[tracks[i].FirstClusterRef() + j].state & flagsReject) {
+      if ((trackClusters[tracks[i].FirstClusterRef() + j].state & flagsReject) || (ptrs.mergedTrackHitAttachment[trackClusters[tracks[i].FirstClusterRef() + j].num] & flagsRequired) != flagsRequired) {
         continue;
       }
       int clusterIdGlobal = trackClusters[tracks[i].FirstClusterRef() + j].num;
