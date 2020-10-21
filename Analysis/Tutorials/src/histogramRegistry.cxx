@@ -144,19 +144,20 @@ struct DTask {
 
     HistogramConfigSpec defaultParticleHist({HistType::kTHnF, {ptAxis, etaAxis, centAxis, cutAxis}});
 
-    spectra.add({"myControlHist", "a", {HistType::kTH2F, {ptAxis, etaAxis}}});
+    spectra.add("myControlHist", "a", kTH2F, {ptAxis, etaAxis});
     spectra.get<TH2>("myControlHist")->GetYaxis()->SetTitle("my-y-axis");
     spectra.get<TH2>("myControlHist")->SetTitle("something meaningful");
 
-    spectra.add({"pions", "Pions", defaultParticleHist});
-    spectra.add({"kaons", "Kaons", defaultParticleHist});
-    spectra.add({"sigmas", "Sigmas", defaultParticleHist});
-    spectra.add({"lambdas", "Lambd", defaultParticleHist});
+    spectra.add("charged/pions", "Pions", defaultParticleHist);
+    spectra.add("neutral/pions", "Pions", defaultParticleHist);
+    spectra.add("one/two/three/four/kaons", "Kaons", defaultParticleHist);
+    spectra.add("sigmas", "Sigmas", defaultParticleHist);
+    spectra.add("lambdas", "Lambd", defaultParticleHist);
 
     spectra.get<THn>("lambdas")->SetTitle("Lambdas");
 
-    etaStudy.add({"positive", "A side spectra", {HistType::kTH1I, {ptAxis}}});
-    etaStudy.add({"negative", "C side spectra", {HistType::kTH1I, {ptAxis}}});
+    etaStudy.add("positive", "A side spectra", kTH1I, {ptAxis});
+    etaStudy.add("negative", "C side spectra", kTH1I, {ptAxis});
   }
 
   void process(aod::Tracks const& tracks)
@@ -168,8 +169,10 @@ struct DTask {
 
     for (auto& track : tracks) {
       spectra.fill("myControlHist", track.pt(), track.eta());
-      spectra.fill("pions", track.pt(), track.eta(), 50., 0.);
-      spectra.fill("kaons", track.pt(), track.eta(), 50., 0.);
+      spectra.fill("charged/pions", track.pt(), track.eta(), 50., 0.);
+      spectra.fill("charged/pions", track.pt(), track.eta(), 50., 0.);
+      spectra.fill("neutral/pions", track.pt(), track.eta(), 50., 0.);
+      spectra.fill("one/two/three/four/kaons", track.pt(), track.eta(), 50., 0.);
       spectra.fill("sigmas", track.pt(), track.eta(), 50., 0.);
       spectra.fill("lambdas", track.pt(), track.eta(), 50., 0.);
     }

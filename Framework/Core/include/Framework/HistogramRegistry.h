@@ -30,13 +30,11 @@
 #include <TProfile.h>
 #include <TProfile2D.h>
 #include <TProfile3D.h>
-
-#include <TFolder.h>
-//#include <TObjArray.h>
-//#include <TList.h>
+#include <TList.h>
 
 #include <string>
 #include <variant>
+#include <deque>
 
 namespace o2::framework
 {
@@ -472,19 +470,28 @@ class HistogramRegistry
     taskHash = hash;
   }
 
-  // TODO: maybe support also TDirectory,TList,TObjArray?, find a way to write to file in 'single key' mode (arg in WriteObjAny)
-  TFolder* operator*()
+  TList* operator*()
   {
-    TFolder* folder = new TFolder(this->name.c_str(), this->name.c_str());
+    TList* list = new TList();
+    list->SetName(this->name.data());
     for (auto j = 0u; j < MAX_REGISTRY_SIZE; ++j) {
-      TObject* rawPtr = nullptr;
-      std::visit([&](const auto& sharedPtr) { rawPtr = sharedPtr.get(); }, mRegistryValue[j]);
+      TNamed* rawPtr = nullptr;
+      std::visit([&](const auto& sharedPtr) { rawPtr = (TNamed*)sharedPtr.get(); }, mRegistryValue[j]);
       if (rawPtr) {
-        folder->Add(rawPtr);
+        std::deque<std::string> path = splitPath(rawPtr->GetName());
+        std::string name = path.back();
+        path.pop_back();
+        TList* targetList{getSubList(list, path)};
+        if (targetList) {
+          rawPtr->SetName(name.data());
+          targetList->Add(rawPtr);
+        } else {
+          LOGF(FATAL, "Specified subfolder could not be created.");
+        }
       }
     }
-    folder->SetOwner(false); // object deletion will be handled by shared_ptrs
-    return folder;
+    list->SetOwner(false); // object deletion will be handled by shared_ptrs
+    return list;
   }
 
   // fill hist with values
@@ -547,6 +554,7 @@ class HistogramRegistry
   mutable uint32_t lookup = 0;
 
  private:
+  // create histogram from specification and insert it into the registry
   void insert(const HistogramSpec& histSpec)
   {
     uint32_t i = imask(histSpec.id);
@@ -566,6 +574,40 @@ class HistogramRegistry
   inline constexpr uint32_t imask(uint32_t i) const
   {
     return i & mask;
+  }
+
+  // helper function to create resp. find the subList defined by path
+  TList* getSubList(TList* list, std::deque<std::string> path)
+  {
+    if (path.empty())
+      return list;
+    TList* targetList{nullptr};
+    std::string nextList = path[0];
+    path.pop_front();
+    if (auto subList = (TList*)list->FindObject(nextList.data())) {
+      if (subList->InheritsFrom(TList::Class()))
+        targetList = getSubList((TList*)subList, path);
+      else
+        return nullptr;
+    } else {
+      subList = new TList();
+      subList->SetName(nextList.data());
+      list->Add(subList);
+      targetList = getSubList(subList, path);
+    }
+    return targetList;
+  }
+
+  // helper function to split user defined path/to/hist/name string
+  std::deque<std::string> splitPath(std::string pathAndNameUser)
+  {
+    std::istringstream pathAndNameStream(pathAndNameUser);
+    std::deque<std::string> pathAndName;
+    std::string curDir;
+    while (std::getline(pathAndNameStream, curDir, '/')) {
+      pathAndName.push_back(curDir);
+    }
+    return pathAndName;
   }
 
   std::string name{};
