@@ -8,6 +8,7 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 //
+// DataFormats/Detectors/ZDC/include/DataFormatsZDC/RawEventData.h
 
 #ifndef ALICEO2_ZDC_RAWEVENTDATA_H_
 #define ALICEO2_ZDC_RAWEVENTDATA_H_
@@ -35,7 +36,7 @@ namespace zdc
 constexpr unsigned short id_w0 = 0x0;
 constexpr unsigned short id_w1 = 0x1;
 constexpr unsigned short id_w2 = 0x2;
-constexpr int NWPerGBTW = 3;
+constexpr int NWPerGBTW = 4;
 
 struct __attribute__((__packed__)) ChannelDataV0 {
   // First GBT word
@@ -47,6 +48,7 @@ struct __attribute__((__packed__)) ChannelDataV0 {
   unsigned bc : 12;
   unsigned orbit : 32;
   unsigned empty_0 : 16;
+  unsigned empty_1 : 32;
 
   // Second GBT word
   unsigned fixed_1 : 2;
@@ -61,7 +63,8 @@ struct __attribute__((__packed__)) ChannelDataV0 {
   unsigned s03 : 12;
   unsigned s04 : 12;
   unsigned s05 : 12;
-  unsigned empty_1 : 16;
+  unsigned empty_2 : 16;
+  unsigned empty_3 : 32;
 
   // Third GBT word
   unsigned fixed_2 : 2;
@@ -77,7 +80,8 @@ struct __attribute__((__packed__)) ChannelDataV0 {
   unsigned s09 : 12;
   unsigned s10 : 12;
   unsigned s11 : 12;
-  unsigned empty_2 : 16;
+  unsigned empty_4 : 16;
+  unsigned empty_5 : 32;
 };
 
 struct __attribute__((__packed__)) ChannelDataV0W0 {
@@ -87,8 +91,9 @@ struct __attribute__((__packed__)) ChannelDataV0W0 {
   unsigned offset : 16;
   unsigned hits : 12;
   unsigned bc : 12;
-  UInt_t orbit;
+  unsigned orbit : 32;
   unsigned empty_0 : 16;
+  unsigned empty_1 : 32;
 };
 
 struct __attribute__((__packed__)) ChannelDataV0W1 {
@@ -104,7 +109,8 @@ struct __attribute__((__packed__)) ChannelDataV0W1 {
   unsigned s03 : 12;
   unsigned s04 : 12;
   unsigned s05 : 12;
-  unsigned empty_1 : 16;
+  unsigned empty_2 : 16;
+  unsigned empty_3 : 32;
 };
 
 struct __attribute__((__packed__)) ChannelDataV0W2 {
@@ -121,7 +127,8 @@ struct __attribute__((__packed__)) ChannelDataV0W2 {
   unsigned s09 : 12;
   unsigned s10 : 12;
   unsigned s11 : 12;
-  unsigned empty_2 : 16;
+  unsigned empty_4 : 16;
+  unsigned empty_5 : 32;
 };
 
 struct EventData {

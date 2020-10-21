@@ -11,8 +11,9 @@
 o2_add_library(ZDCSimulation
                SOURCES src/Detector.cxx src/Digitizer.cxx src/SimCondition.cxx
 	       src/ZDCSimParam.cxx src/SpatialPhotonResponse.cxx src/Digits2Raw.cxx
-               PUBLIC_LINK_LIBRARIES O2::SimulationDataFormat O2::ZDCBase
-	       			     O2::DataFormatsZDC O2::CCDB O2::SimConfig)
+               PUBLIC_LINK_LIBRARIES O2::SimulationDataFormat O2::ZDCBase 
+	       			     O2::DataFormatsZDC O2::CCDB O2::SimConfig
+				     O2::DetectorsRaw O2::Headers)
 
 o2_target_root_dictionary(ZDCSimulation
                           HEADERS include/ZDCSimulation/Hit.h
