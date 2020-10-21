@@ -20,7 +20,7 @@ Warning! Classes should be simple, without refs and pointers!\
 # DigitBlockBase
 Base class for digit block, which containes "digit" structures\
 usage:\
-  class DigitBlockYourDetector : public DigitBlockBase<DigitBlockYourDetector>
+  class DigitBlockYourDetector : public DigitBlockBase\< DigitBlockYourDetector \>\
   define "template <class DataBlockType> void processDigits(DataBlockType& dataBlock, int linkID)" with Raw2Digit conversion logic\
   define "template <class DigitType,...>void getDigits(std::vector<DigitType>&... vecDigits) for pushing digits into vectors which will be pushed through DPL channels,
     variadic arguments are applied\
@@ -30,7 +30,7 @@ Example:\
 # RawReaderBase
 Base class for raw reader.\
 usage:\
-  class RawReaderFT0Base : public RawReaderBase<DigitBlockYourDetector>
+  class RawReaderFT0Base : public RawReaderBase\< DigitBlockYourDetector \>\
   just provide statically which linkID corresponds to DataBlockOfYourModule\
 Example:\
   /alice/O2/Detectors/FIT/FT0/raw/include/FT0Raw/RawReaderFT0Base.h\
