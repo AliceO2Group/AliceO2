@@ -40,7 +40,6 @@
 #include <vector>
 #include <Rtypes.h>
 #include "CommonDataFormat/InteractionRecord.h"
-//#include <DataFormatsFT0/RawEventData.h>
 #include <gsl/span>
 #include <boost/mpl/inherit.hpp>
 #include <boost/mpl/vector.hpp>
