@@ -87,7 +87,7 @@ GPUdii() void GPUTPCCompressionKernels::Thread<GPUTPCCompressionKernels::step0at
       if (nClustersStored == 1) {
         unsigned char qpt = fabs(trk.GetParam().GetQPt()) < 20.f ? (trk.GetParam().GetQPt() * (127.f / 20.f) + 127.5f) : (trk.GetParam().GetQPt() > 0 ? 254 : 0);
         zOffset = z;
-        track.Init(x, y, z - zOffset, param.SliceParam[hit.slice].Alpha, qpt, param);
+        track.Init(x, y, param.SliceParam[hit.slice].Alpha, qpt, param);
 
         myTrack = CAMath::AtomicAdd(&compressor.mMemory->nStoredTracks, 1u);
         compressor.mAttachedClusterFirstIndex[myTrack] = trk.FirstClusterRef();

@@ -28,7 +28,7 @@
 #include "GPUTPCTrackParam.h"
 
 #else // Default internal track model for compression
-#error Not yet implemented
+#include "GPUTPCGMPolynomialField.h"
 #endif
 
 namespace GPUCA_NAMESPACE::gpu
@@ -42,7 +42,7 @@ struct GPUParam;
 class GPUTPCCompressionTrackModel
 {
  public:
-  GPUd() void Init(float x, float y, float z, float alpha, unsigned char qPt, const GPUParam& proc);
+  GPUd() void Init(float x, float y, float alpha, unsigned char qPt, const GPUParam& proc);
   GPUd() int Propagate(float x, float alpha);
   GPUd() int Filter(float y, float z, int iRow);
   GPUd() int Mirror();
@@ -60,6 +60,46 @@ class GPUTPCCompressionTrackModel
 
 #else // Default internal track model for compression
 
+  struct PhysicalTrackModel { // see GPUTPCGMPhysicalTrackModel
+    // physical parameters of the trajectory
+
+    float x = 0.f;    // X
+    float y = 0.f;    // Y
+    float z = 0.f;    // Z
+    float px = 1.e4f; // Px, >0
+    float py = 0.f;   // Py
+    float pz = 0.f;   // Pz
+    float q = 1.f;    // charge, +-1
+
+    // some additional variables needed for GMTrackParam transport
+
+    float sinphi = 0.f; // SinPhi = Py/Pt
+    float cosphi = 1.f; // CosPhi = abs(Px)/Pt
+    float secphi = 1.f; // 1/cos(phi) = Pt/abs(Px)
+    float dzds = 0.f;   // DzDs = Pz/Pt
+    float dlds = 1.f;   // DlDs = P/Pt
+    float qpt = 0.f;    // QPt = q/Pt
+    float p = 1.e4f;    // momentum
+    float pt = 1.e4f;   // Pt momentum
+  };
+
+  GPUd() float Y() const { return mP[0]; }
+  GPUd() float Z() const { return mP[1]; }
+
+  // helper functions for standalone propagation and update methods
+  GPUd() void getBxByBz(float cosAlpha, float sinAlpha, float x, float y, float z, float b[3]) const;
+  GPUd() float getBz(float x, float y, float z) const;
+  GPUd() void updatePhysicalTrackValues(PhysicalTrackModel& trk);
+  GPUd() void changeDirection();
+  GPUd() int rotateToAlpha(float newAlpha);
+  GPUd() int propagateToXBxByBz(PhysicalTrackModel& t, float x, float Bx, float By, float Bz, float& dLp);
+  GPUd() int propagateToXBzLightNoUpdate(PhysicalTrackModel& t, float x, float Bz, float& dLp);
+  GPUd() bool setDirectionAlongX(PhysicalTrackModel& t);
+  GPUd() int followLinearization(const PhysicalTrackModel& t0e, float Bz, float dLp);
+  GPUd() void calculateMaterialCorrection();
+  GPUd() float approximateBetheBloch(float beta2);
+  GPUd() void resetCovariance();
+
 #endif
 
  protected:
@@ -75,6 +115,28 @@ class GPUTPCCompressionTrackModel
 
 #else // Default internal track model for compression
 
+  struct MaterialCorrection {
+    GPUhd() MaterialCorrection() : radLen(28811.7f), rho(1.025e-3f), radLenInv(1.f / radLen), DLMax(0.f), EP2(0.f), sigmadE2(0.f), k22(0.f), k33(0.f), k43(0.f), k44(0.f) {}
+
+    float radLen;                                              // [cm]
+    float rho;                                                 // [g/cm^3]
+    float radLenInv, DLMax, EP2, sigmadE2, k22, k33, k43, k44; // precalculated values for MS and EnergyLoss correction
+  };
+
+  float mX;
+  float mAlpha;
+  float mP[5];
+  float mC[15];
+  int mNDF = -5;
+  float mChi2 = 0.f;
+  float mCosAlpha;
+  float mSinAlpha;
+
+  // propagation parameters
+  const GPUTPCGMPolynomialField* mField = nullptr;
+  MaterialCorrection mMaterial;
+
+  PhysicalTrackModel mTrk;
 #endif
 };
 } // namespace GPUCA_NAMESPACE::gpu
