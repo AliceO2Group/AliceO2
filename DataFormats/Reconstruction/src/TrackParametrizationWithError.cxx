@@ -1076,13 +1076,16 @@ std::string TrackParametrizationWithError<value_T>::asString() const
            mC[kSigTglZ], mC[kSigTglSnp], mC[kSigTgl2], "", mC[kSigQ2PtY], mC[kSigQ2PtZ], mC[kSigQ2PtSnp], mC[kSigQ2PtTgl],
            mC[kSigQ2Pt2]);
 }
+#endif
 
 //______________________________________________________________
 template <typename value_T>
 void TrackParametrizationWithError<value_T>::print() const
 {
   // print parameters
+#ifndef GPUCA_ALIGPUCODE
   printf("%s\n", asString().c_str());
+#endif
 }
 
 template class TrackParametrizationWithError<float>;
@@ -1090,4 +1093,3 @@ template class TrackParametrizationWithError<double>;
 
 } // namespace track
 } // namespace o2
-#endif

@@ -488,15 +488,17 @@ std::string TrackParametrization<value_T>::asString() const
   return fmt::format("X:{:+.4e} Alp:{:+.3e} Par: {:+.4e} {:+.4e} {:+.4e} {:+.4e} {:+.4e} |Q|:{:d} {:s}",
                      getX(), getAlpha(), getY(), getZ(), getSnp(), getTgl(), getQ2Pt(), getAbsCharge(), getPID().getName());
 }
+#endif
 
 //______________________________________________________________
 template <typename value_T>
 void TrackParametrization<value_T>::printParam() const
 {
   // print parameters
+#ifndef GPUCA_ALIGPUCODE
   printf("%s\n", asString().c_str());
-}
 #endif
+}
 
 //______________________________________________________________
 template <typename value_T>

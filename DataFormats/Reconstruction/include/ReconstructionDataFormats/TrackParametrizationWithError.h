@@ -71,8 +71,8 @@ class TrackParametrizationWithError : public TrackParametrization<value_T>
 
   bool getCovXYZPxPyPzGlo(std::array<value_t, kLabCovMatSize>& c) const;
 
-#ifndef GPUCA_ALIGPUCODE
   void print() const;
+#ifndef GPUCA_ALIGPUCODE
   std::string asString() const;
 #endif
 

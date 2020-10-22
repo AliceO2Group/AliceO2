@@ -25,7 +25,9 @@
 #ifndef INCLUDE_RECONSTRUCTIONDATAFORMATS_TRACKPARAMETRIZATION_H_
 #define INCLUDE_RECONSTRUCTIONDATAFORMATS_TRACKPARAMETRIZATION_H_
 
+#include "GPUCommonDef.h"
 #include "GPUCommonRtypes.h"
+#include "GPUCommonMath.h"
 
 #ifndef __OPENCL__
 #include <algorithm>
@@ -210,8 +212,8 @@ class TrackParametrization
   uint16_t getUserField() const;
   void setUserField(uint16_t v);
 
-#ifndef GPUCA_ALIGPUCODE
   void printParam() const;
+#ifndef GPUCA_ALIGPUCODE
   std::string asString() const;
 #endif
 
@@ -566,14 +568,18 @@ inline typename TrackParametrization<value_T>::value_t TrackParametrization<valu
   return -std::log(std::tan(0.5f * getTheta()));
 }
 
-#ifndef GPUCA_ALIGPUCODE //These functions clash with GPU code and are thus hidden
 //_______________________________________________________
 template <typename value_T>
 inline math_utils::Point3D<typename TrackParametrization<value_T>::value_t> TrackParametrization<value_T>::getXYZGlo() const
 {
+#ifndef GPUCA_ALIGPUCODE
   return math_utils::Rotation2D<value_t>(getAlpha())(math_utils::Point3D<value_t>(getX(), getY(), getZ()));
-}
+#else // mockup on GPU without ROOT
+  float sina, cosa;
+  o2::gpu::CAMath::SinCos(getAlpha(), sina, cosa);
+  return math_utils::Point3D<value_t>(cosa * getX() + sina * getY(), cosa * getY() - sina * getX(), getZ());
 #endif
+}
 
 //_______________________________________________________
 template <typename value_T>
@@ -586,7 +592,6 @@ inline void TrackParametrization<value_T>::getXYZGlo(dim3_t& xyz) const
   math_utils::detail::rotateZ<value_t>(xyz, getAlpha());
 }
 
-#ifndef GPUCA_ALIGPUCODE //These functions clash with GPU code and are thus hidden
 //_______________________________________________________
 template <typename value_T>
 inline math_utils::Point3D<typename TrackParametrization<value_T>::value_t> TrackParametrization<value_T>::getXYZGloAt(value_t xk, value_t b, bool& ok) const
@@ -596,9 +601,18 @@ inline math_utils::Point3D<typename TrackParametrization<value_T>::value_t> Trac
   //----------------------------------------------------------------
   value_t y = 0.f, z = 0.f;
   ok = getYZAt(xk, b, y, z);
-  return ok ? math_utils::Rotation2D<value_t>(getAlpha())(math_utils::Point3D<value_t>(xk, y, z)) : math_utils::Point3D<value_t>();
-}
+  if (ok) {
+#ifndef GPUCA_ALIGPUCODE
+    return math_utils::Rotation2D<value_t>(getAlpha())(math_utils::Point3D<value_t>(xk, y, z));
+#else // mockup on GPU without ROOT
+    float sina, cosa;
+    o2::gpu::CAMath::SinCos(getAlpha(), sina, cosa);
+    return math_utils::Point3D<value_t>(cosa * xk + sina * y, cosa * y - sina * xk, z);
 #endif
+  } else {
+    return math_utils::Point3D<value_t>();
+  }
+}
 
 //____________________________________________________________
 template <typename value_T>
