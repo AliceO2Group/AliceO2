@@ -52,6 +52,7 @@ class GPUTPCO2InterfaceRefit
   int RefitTrackAsTrackParCov(o2::tpc::TrackTPC& trk, bool outward = false, bool resetCov = false) { return mRefit.RefitTrackAsTrackParCov(trk, outward, resetCov); }
   void setGPUTrackFitInProjections(bool v = true);
   void setTrackReferenceX(float v);
+  void setIgnoreErrorsAtTrackEnds(bool v) { mRefit.mIgnoreErrorsOnTrackEnds = v; }
 
  private:
   GPUTrackingRefit mRefit;

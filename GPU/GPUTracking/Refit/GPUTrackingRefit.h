@@ -69,6 +69,8 @@ class GPUTrackingRefit
   GPUd() int RefitTrackAsGPU(o2::tpc::TrackTPC& trk, bool outward = false, bool resetCov = false) { return RefitTrack<o2::tpc::TrackTPC, GPUTPCGMTrackParam>(trk, outward, resetCov); }
   GPUd() int RefitTrackAsTrackParCov(o2::tpc::TrackTPC& trk, bool outward = false, bool resetCov = false) { return RefitTrack<o2::tpc::TrackTPC, o2::track::TrackParCov>(trk, outward, resetCov); }
 
+  bool mIgnoreErrorsOnTrackEnds = true; // Ignore errors during propagation / update at the beginning / end of tracks for short tracks / tracks with high incl. angle
+
  private:
   const unsigned char* mPclusterState = nullptr;                 // Ptr to shared cluster state
   const o2::base::Propagator* mPpropagator = nullptr;            // Ptr to propagator for TrackParCov track model
