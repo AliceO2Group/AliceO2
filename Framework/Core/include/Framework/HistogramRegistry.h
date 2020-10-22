@@ -393,11 +393,12 @@ struct HistFiller {
 class HistogramRegistry
 {
  public:
-  HistogramRegistry(char const* const name_, bool enable, std::vector<HistogramSpec> histSpecs_, OutputObjHandlingPolicy policy_ = OutputObjHandlingPolicy::AnalysisObject) : name(name_),
-                                                                                                                                                                              policy(policy_),
-                                                                                                                                                                              enabled(enable),
-                                                                                                                                                                              mRegistryKey(),
-                                                                                                                                                                              mRegistryValue()
+  HistogramRegistry(char const* const name_, bool enable, std::vector<HistogramSpec> histSpecs_, OutputObjHandlingPolicy policy_ = OutputObjHandlingPolicy::AnalysisObject, bool createFolder_ = false) : name(name_),
+                                                                                                                                                                                                          policy(policy_),
+                                                                                                                                                                                                          enabled(enable),
+                                                                                                                                                                                                          mRegistryKey(),
+                                                                                                                                                                                                          mRegistryValue(),
+                                                                                                                                                                                                          mCreateFolder(createFolder_)
   {
     mRegistryKey.fill(0u);
     for (auto& histSpec : histSpecs_) {
@@ -474,6 +475,7 @@ class HistogramRegistry
   {
     TList* list = new TList();
     list->SetName(this->name.data());
+
     for (auto j = 0u; j < MAX_REGISTRY_SIZE; ++j) {
       TNamed* rawPtr = nullptr;
       std::visit([&](const auto& sharedPtr) { rawPtr = (TNamed*)sharedPtr.get(); }, mRegistryValue[j]);
@@ -490,7 +492,10 @@ class HistogramRegistry
         }
       }
     }
-    list->SetOwner(false); // object deletion will be handled by shared_ptrs
+    if (mCreateFolder) {
+      // propagate wether or not to create a dedicated folder for this registry to the writer by adding this 'flag' to the list
+      list->AddLast(new TNamed("createFolder", ""));
+    }
     return list;
   }
 
@@ -612,6 +617,7 @@ class HistogramRegistry
 
   std::string name{};
   bool enabled{};
+  bool mCreateFolder{};
   OutputObjHandlingPolicy policy{};
   uint32_t taskHash{};
 
