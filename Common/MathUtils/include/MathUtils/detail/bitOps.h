@@ -15,7 +15,9 @@
 #ifndef MATHUTILS_INCLUDE_MATHUTILS_DETAIL_BITOPS_H_
 #define MATHUTILS_INCLUDE_MATHUTILS_DETAIL_BITOPS_H_
 
+#ifndef GPUCA_GPUCODE_DEVICE
 #include <cstdint>
+#endif
 
 namespace o2
 {
