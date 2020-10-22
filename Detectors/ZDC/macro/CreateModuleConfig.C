@@ -33,9 +33,11 @@ void CreateModuleConfig(long tmin = 0, long tmax = -1,
 
   //-------------------------------------------
   // Up to 8 modules with four channels
-  // setChannel(int slot, int8_t chID, int16_t lID, bool read, bool trig = false, int tF = 0, int tL = 0, int tS = 0, int tT = 0)
+  // setChannel(int slot, int8_t chID, int16_t fID, bool read, bool trig = false, int tF = 0, int tL = 0, int tS = 0, int tT = 0)
   // module id must be in the range 0-7
   // channel id must be in range 0-3
+  // frontend id must be in range 0-15 and identify the pair of channels connected to
+  // each fibre
   {
     modID = 0;
     auto& module = conf.modules[modID];

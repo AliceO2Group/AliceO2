@@ -457,8 +457,8 @@ void Digitizer::refreshCCDB()
               mTrigBinMax = trgChanConf.last + trgChanConf.shift;
             }
           }
-	  if(md.linkID[ic]<0 || md.linkID[ic]>=NLinks){
-            LOG(ERROR) << "linkID " << md.linkID[ic] << " not in allowed range [0:" << NLinks << ")";
+	  if(md.feeID[ic]<0 || md.feeID[ic]>=NLinks){
+            LOG(ERROR) << "FEEID " << md.feeID[ic] << " not in allowed range [0:" << NLinks << ")";
 	  }
         }
       } else {

@@ -50,11 +50,11 @@ void Digits2Raw::processDigits(const std::string& outDir, const std::string& fil
     outd += '/';
   }
 
+  mLinkID = uint32_t(0);
+  mCruID = uint16_t(0);
+  mEndPointID = uint32_t(0);
   for (int ilink = 0; ilink < NLinks; ilink++) {
-    mLinkID = uint32_t(ilink);
     mFeeID = uint64_t(ilink);
-    mCruID = uint16_t(0);
-    mEndPointID = uint32_t(0);
     std::string outFileLink = mOutputPerLink ? o2::utils::concat_string(outd, "zdc_link", std::to_string(ilink), ".raw") : o2::utils::concat_string(outd, "zdc.raw");
     mWriter.registerLink(mFeeID, mCruID, mLinkID, mEndPointID, outFileLink);
   }
@@ -676,8 +676,7 @@ void Digits2Raw::writeDigits()
       for (UInt_t ic = 0; ic < o2::zdc::NChPerModule; ic++) {
         if (mModuleConfig->modules[im].readChannel[ic]) {
           for (Int_t iw = 0; iw < o2::zdc::NWPerBc; iw++) {
-	    mLinkID=mModuleConfig->modules[im].linkID[ic];
-	    mFeeID=mLinkID;
+	    mFeeID=mModuleConfig->modules[im].feeID[ic];
             std::memcpy(out, &mZDC.data[im][ic].w[iw][0], data_size);
 	    mWriter.addData(mFeeID, mCruID, mLinkID, mEndPointID, ir, out_data);
           }
