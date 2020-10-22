@@ -55,7 +55,7 @@ using TracksTable = o2::soa::Table<o2::aod::track::CollisionId,
 class AODProducerWorkflowDPL : public Task
 {
  public:
-  AODProducerWorkflowDPL() {}
+  AODProducerWorkflowDPL() = default;
   ~AODProducerWorkflowDPL() override = default;
   void init(InitContext& ic) final;
   void run(ProcessingContext& pc) final;
