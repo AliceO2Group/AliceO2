@@ -407,13 +407,15 @@ inline std::string FlatObject::stressTest(T& obj)
   ///
   std::string err;
 
-  if (!obj.isConstructed())
+  if (!obj.isConstructed()) {
     return "tested object is not constructed!";
+  }
 
   T tst;
   tst.cloneFromObject(obj, nullptr);
-  if (!tst.isConstructed() || !tst.isBufferInternal())
+  if (!tst.isConstructed() || !tst.isBufferInternal()) {
     return "error at cloneFromObject()!";
+  }
 
   obj.destroy();
 
@@ -428,16 +430,19 @@ inline std::string FlatObject::stressTest(T& obj)
   std::memcpy(buf2, buf1, tst.getFlatBufferSize());
   delete[] buf1;
 
-  if (tst.isBufferInternal())
+  if (tst.isBufferInternal()) {
     return err = "error, buffer should be external!";
+  }
 
   tst.adoptInternalBuffer(buf2);
-  if (!tst.isBufferInternal())
+  if (!tst.isBufferInternal()) {
     return err = "error, buffer should be internal!";
+  }
 
   obj.cloneFromObject(tst, nullptr);
-  if (!obj.isBufferInternal())
+  if (!obj.isBufferInternal()) {
     return err = "error, buffer should be internal!";
+  }
 
   return err;
 }
