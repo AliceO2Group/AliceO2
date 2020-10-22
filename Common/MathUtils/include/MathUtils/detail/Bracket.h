@@ -15,7 +15,7 @@
 #ifndef ALICEO2_BRACKET_H
 #define ALICEO2_BRACKET_H
 
-#include <Rtypes.h>
+#include <GPUCommonRtypes.h>
 
 namespace o2
 {

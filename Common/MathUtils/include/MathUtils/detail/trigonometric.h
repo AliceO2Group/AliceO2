@@ -18,11 +18,11 @@
 #ifndef GPUCA_GPUCODE_DEVICE
 #include <array>
 #include <cmath>
+#include <tuple>
 #endif
 #include "GPUCommonDef.h"
 #include "GPUCommonMath.h"
 #include "CommonConstants/MathConstants.h"
-#include <tuple>
 
 namespace o2
 {
@@ -117,6 +117,8 @@ GPUdi() void sincos(double ang, double& s, double& c)
   o2::gpu::GPUCommonMath::SinCos(ang, s, c);
 }
 
+#ifndef GPUCA_GPUCODE_DEVICE
+
 template <typename T>
 GPUdi() std::tuple<T, T> sincos(T ang)
 {
@@ -134,12 +136,6 @@ inline std::tuple<T, T> rotateZ(T xL, T yL, T snAlp, T csAlp)
 }
 
 template <typename T>
-inline void rotateZ(T xL, T yL, T& xG, T& yG, T snAlp, T csAlp)
-{
-  std::tie(xG, yG) = rotateZ<T>(xL, yL, snAlp, csAlp);
-}
-
-template <typename T>
 inline std::tuple<T, T> rotateZInv(T xG, T yG, T snAlp, T csAlp)
 {
   // inverse 2D rotation of the point by angle alpha (global to local)
@@ -147,13 +143,10 @@ inline std::tuple<T, T> rotateZInv(T xG, T yG, T snAlp, T csAlp)
 }
 
 template <typename T>
-inline void rotateZInv(T xG, T yG, T& xL, T& yL, T snAlp, T csAlp)
+inline void rotateZ(T xL, T yL, T& xG, T& yG, T snAlp, T csAlp)
 {
-  // inverse 2D rotation of the point by angle alpha (global to local)
-  rotateZ<T>(xG, yG, xL, yL, -snAlp, csAlp);
+  std::tie(xG, yG) = rotateZ<T>(xL, yL, snAlp, csAlp);
 }
-
-#ifndef GPUCA_GPUCODE_DEVICE
 
 template <typename T>
 inline void rotateZ(std::array<T, 3>& xy, T alpha)
@@ -163,6 +156,13 @@ inline void rotateZ(std::array<T, 3>& xy, T alpha)
   const T x = xy[0];
   xy[0] = x * cos - xy[1] * sin;
   xy[1] = x * sin + xy[1] * cos;
+}
+
+template <typename T>
+inline void rotateZInv(T xG, T yG, T& xL, T& yL, T snAlp, T csAlp)
+{
+  // inverse 2D rotation of the point by angle alpha (global to local)
+  rotateZ<T>(xG, yG, xL, yL, -snAlp, csAlp);
 }
 
 #endif
