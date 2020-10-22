@@ -90,17 +90,19 @@ int runTPCRefit(TString trackFile = "tpctracks.root", TString clusterFile = "tpc
       trk.print();
       std::cout << "Refitting as GPU track\n";
       int retval = refit.RefitTrackAsGPU(trk, false, true);
-      if (retval) {
+      if (retval < 0) {
         std::cout << "Refit as GPU track failed " << retval << "\n";
       } else {
+        std::cout << "Succeeded using " << retval << " hits\n";
         trk.print();
       }
       trk = (*tracks)[i];
       std::cout << "Refitting as TrackParCov track\n";
       retval = refit.RefitTrackAsTrackParCov(trk, false, true);
-      if (retval) {
+      if (retval < 0) {
         std::cout << "Refit as TrackParCov track failed " << retval << "\n";
       } else {
+        std::cout << "Succeeded using " << retval << " hits\n";
         trk.print();
       }
     }
