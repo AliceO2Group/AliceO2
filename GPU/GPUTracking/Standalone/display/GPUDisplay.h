@@ -261,6 +261,7 @@ class GPUDisplay
   void SetColorGlobalTracks();
   void SetColorFinal();
   void SetColorGrid();
+  void SetColorGridTRD();
   void SetColorMarked();
   void SetCollisionColor(int col);
   void setQuality();
@@ -282,6 +283,7 @@ class GPUDisplay
   vboList DrawTracks(const GPUTPCTracker& tracker, int global);
   void DrawFinal(int iSlice, int /*iCol*/, GPUTPCGMPropagator* prop, std::array<vecpod<int>, 2>& trackList, threadVertexBuffer& threadBuffer);
   vboList DrawGrid(const GPUTPCTracker& tracker);
+  vboList DrawGridTRD(int sector);
   void DoScreenshot(char* filename, float mAnimateTime = -1.f);
   void PrintHelp();
   void createQuaternionFromMatrix(float* v, const float* mat);
@@ -408,6 +410,7 @@ class GPUDisplay
   vecpod<std::array<vboList, N_FINAL_TYPE>> mGlDLFinal[NSLICES];
   vecpod<vboList> mGlDLPoints[NSLICES][N_POINTS_TYPE];
   vboList mGlDLGrid[NSLICES];
+  vboList mGlDLGridTRD[NSLICES / 2];
   vecpod<DrawArraysIndirectCommand> mCmdBuffer;
 };
 } // namespace gpu
