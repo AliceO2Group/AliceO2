@@ -15,5 +15,6 @@
 #pragma link off all functions;
 
 #pragma link C++ class o2::fdd::Reconstructor + ;
+#pragma link C++ class o2::fdd::ReadRaw + ;
 
 #endif
