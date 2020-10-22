@@ -224,4 +224,12 @@ using detail::numberOfBitsSet;
 } // namespace math_utils
 } // namespace o2
 
+namespace o2
+{
+namespace utils
+{
+using namespace math_utils;
+} // namespace utils
+} // namespace o2
+
 #endif
