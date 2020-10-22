@@ -121,10 +121,22 @@ DataProcessorSpec CommonDataProcessors::getHistogramRegistrySink(outputObjects c
               }
             }
           };
+
+          TDirectory* currentDir = f[route.policy]->GetDirectory(currentDirectory.c_str());
           TList* outputList = (TList*)entry.obj;
-          writeListToFile(outputList, f[route.policy]->GetDirectory(currentDirectory.c_str()));
-          outputList->SetOwner(true);
-          delete outputList; // properly remove the empty list and its sub-lists
+          outputList->SetOwner(false);
+
+          // if registry should live in dedicated folder a TNamed object is appended to the list
+          if (outputList->Last()->IsA() == TNamed::Class()) {
+            delete outputList->Last();
+            outputList->RemoveLast();
+            currentDir = currentDir->mkdir(outputList->GetName(), outputList->GetName(), true);
+          }
+
+          writeListToFile(outputList, currentDir);
+          outputList->SetOwner();
+          delete outputList;
+          entry.obj = nullptr;
         }
       }
       for (auto i = 0u; i < OutputObjHandlingPolicy::numPolicies; ++i) {
