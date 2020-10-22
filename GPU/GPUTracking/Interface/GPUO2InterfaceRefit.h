@@ -50,6 +50,8 @@ class GPUTPCO2InterfaceRefit
 
   int RefitTrackAsGPU(o2::tpc::TrackTPC& trk, bool outward = false, bool resetCov = false) { return mRefit.RefitTrackAsGPU(trk, outward, resetCov); }
   int RefitTrackAsTrackParCov(o2::tpc::TrackTPC& trk, bool outward = false, bool resetCov = false) { return mRefit.RefitTrackAsTrackParCov(trk, outward, resetCov); }
+  int RefitTrackAsGPU(o2::track::TrackParCov& trk, const o2::tpc::TrackTPCClusRef& clusRef, float time0, bool outward = false, bool resetCov = false) { return mRefit.RefitTrackAsGPU(trk, clusRef, time0, outward, resetCov); }
+  int RefitTrackAsTrackParCov(o2::track::TrackParCov& trk, const o2::tpc::TrackTPCClusRef& clusRef, float time0, bool outward = false, bool resetCov = false) { return mRefit.RefitTrackAsTrackParCov(trk, clusRef, time0, outward, resetCov); }
   void setGPUTrackFitInProjections(bool v = true);
   void setTrackReferenceX(float v);
   void setIgnoreErrorsAtTrackEnds(bool v) { mRefit.mIgnoreErrorsOnTrackEnds = v; }
