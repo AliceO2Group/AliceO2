@@ -37,6 +37,7 @@ using namespace o2::gpu;
 using namespace o2::tpc;
 using namespace o2::dataformats;
 using namespace o2::base;
+using namespace o2::track;
 using namespace std;
 
 int runTPCRefit(TString trackFile = "tpctracks.root", TString clusterFile = "tpc-native-clusters.root")
@@ -104,6 +105,16 @@ int runTPCRefit(TString trackFile = "tpctracks.root", TString clusterFile = "tpc
       } else {
         std::cout << "Succeeded using " << retval << " hits\n";
         trk.print();
+      }
+      trk = (*tracks)[i];
+      TrackParCov trkX = trk;
+      std::cout << "Refitting as TrackParCov track with TrackParCov input\n";
+      retval = refit.RefitTrackAsTrackParCov(trkX, trk.getClusterRef(), trk.getTime0(), false, true);
+      if (retval < 0) {
+        std::cout << "Refit as TrackParCov track failed " << retval << "\n";
+      } else {
+        std::cout << "Succeeded using " << retval << " hits\n";
+        trkX.print();
       }
     }
   }

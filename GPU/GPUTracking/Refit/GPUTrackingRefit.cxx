@@ -113,19 +113,7 @@ static void convertTrackParam(TrackParCov& trk, const GPUTPCGMTrackParam& trkX)
   }
   trk.setX(trkX.GetX());
 }
-template <>
-void GPUTrackingRefit::convertTrack<GPUTPCGMMergedTrack, TrackParCov, const Propagator*>(GPUTPCGMMergedTrack& trk, const TrackParCov& trkX, const Propagator*& prop)
-{
-  convertTrackParam(trk.Param(), trkX);
-  trk.SetAlpha(trkX.getAlpha());
-}
-template <>
-void GPUTrackingRefit::convertTrack<TrackParCov, GPUTPCGMMergedTrack, const Propagator*>(TrackParCov& trk, const GPUTPCGMMergedTrack& trkX, const Propagator*& prop)
-{
-  initProp(prop);
-  convertTrackParam(trk, trkX.GetParam());
-  trk.setAlpha(trkX.GetAlpha());
-}
+// Generic
 template <>
 void GPUTrackingRefit::convertTrack<GPUTPCGMTrackParam, TrackParCov, GPUTPCGMPropagator>(GPUTPCGMTrackParam& trk, const TrackParCov& trkX, GPUTPCGMPropagator& prop)
 {
@@ -137,6 +125,20 @@ void GPUTrackingRefit::convertTrack<TrackParCov, GPUTPCGMTrackParam, GPUTPCGMPro
 {
   convertTrackParam(trk, trkX);
   trk.setAlpha(prop.GetAlpha());
+}
+// GPUTPCGMMergedTrack input
+template <>
+void GPUTrackingRefit::convertTrack<TrackParCov, GPUTPCGMMergedTrack, const Propagator*>(TrackParCov& trk, const GPUTPCGMMergedTrack& trkX, const Propagator*& prop)
+{
+  initProp(prop);
+  convertTrackParam(trk, trkX.GetParam());
+  trk.setAlpha(trkX.GetAlpha());
+}
+template <>
+void GPUTrackingRefit::convertTrack<GPUTPCGMMergedTrack, TrackParCov, const Propagator*>(GPUTPCGMMergedTrack& trk, const TrackParCov& trkX, const Propagator*& prop)
+{
+  convertTrackParam(trk.Param(), trkX);
+  trk.SetAlpha(trkX.getAlpha());
 }
 template <>
 void GPUTrackingRefit::convertTrack<GPUTPCGMTrackParam, GPUTPCGMMergedTrack, GPUTPCGMPropagator>(GPUTPCGMTrackParam& trk, const GPUTPCGMMergedTrack& trkX, GPUTPCGMPropagator& prop)
@@ -151,6 +153,18 @@ void GPUTrackingRefit::convertTrack<GPUTPCGMMergedTrack, GPUTPCGMTrackParam, GPU
   trk.SetParam(trkX);
   trk.SetAlpha(prop.GetAlpha());
 }
+// TrackTPC input
+template <>
+void GPUTrackingRefit::convertTrack<TrackParCov, TrackTPC, const Propagator*>(TrackParCov& trk, const TrackTPC& trkX, const Propagator*& prop)
+{
+  initProp(prop);
+  convertTrack<TrackParCov, TrackParCov, const Propagator*>(trk, trkX, prop);
+}
+template <>
+void GPUTrackingRefit::convertTrack<TrackTPC, TrackParCov, const Propagator*>(TrackTPC& trk, const TrackParCov& trkX, const Propagator*& prop)
+{
+  convertTrack<TrackParCov, TrackParCov, const Propagator*>(trk, trkX, prop);
+}
 template <>
 void GPUTrackingRefit::convertTrack<GPUTPCGMTrackParam, TrackTPC, GPUTPCGMPropagator>(GPUTPCGMTrackParam& trk, const TrackTPC& trkX, GPUTPCGMPropagator& prop)
 {
@@ -160,20 +174,32 @@ void GPUTrackingRefit::convertTrack<GPUTPCGMTrackParam, TrackTPC, GPUTPCGMPropag
 template <>
 void GPUTrackingRefit::convertTrack<TrackTPC, GPUTPCGMTrackParam, GPUTPCGMPropagator>(TrackTPC& trk, const GPUTPCGMTrackParam& trkX, GPUTPCGMPropagator& prop)
 {
-  initProp(prop);
   convertTrack<TrackParCov, GPUTPCGMTrackParam, GPUTPCGMPropagator>(trk, trkX, prop);
 }
+// TrackParCovWithArgs input
 template <>
-void GPUTrackingRefit::convertTrack<TrackTPC, TrackParCov, const Propagator*>(TrackTPC& trk, const TrackParCov& trkX, const Propagator*& prop)
-{
-  convertTrack<TrackParCov, TrackParCov, const Propagator*>(trk, trkX, prop);
-}
-template <>
-void GPUTrackingRefit::convertTrack<TrackParCov, TrackTPC, const Propagator*>(TrackParCov& trk, const TrackTPC& trkX, const Propagator*& prop)
+void GPUTrackingRefit::convertTrack<TrackParCov, GPUTrackingRefit::TrackParCovWithArgs, const Propagator*>(TrackParCov& trk, const GPUTrackingRefit::TrackParCovWithArgs& trkX, const Propagator*& prop)
 {
   initProp(prop);
-  convertTrack<TrackParCov, TrackParCov, const Propagator*>(trk, trkX, prop);
+  convertTrack<TrackParCov, TrackParCov, const Propagator*>(trk, trkX.trk, prop);
 }
+template <>
+void GPUTrackingRefit::convertTrack<GPUTrackingRefit::TrackParCovWithArgs, TrackParCov, const Propagator*>(GPUTrackingRefit::TrackParCovWithArgs& trk, const TrackParCov& trkX, const Propagator*& prop)
+{
+  convertTrack<TrackParCov, TrackParCov, const Propagator*>(trk.trk, trkX, prop);
+}
+template <>
+void GPUTrackingRefit::convertTrack<GPUTPCGMTrackParam, GPUTrackingRefit::TrackParCovWithArgs, GPUTPCGMPropagator>(GPUTPCGMTrackParam& trk, const GPUTrackingRefit::TrackParCovWithArgs& trkX, GPUTPCGMPropagator& prop)
+{
+  initProp(prop);
+  convertTrack<GPUTPCGMTrackParam, TrackParCov, GPUTPCGMPropagator>(trk, trkX.trk, prop);
+}
+template <>
+void GPUTrackingRefit::convertTrack<GPUTrackingRefit::TrackParCovWithArgs, GPUTPCGMTrackParam, GPUTPCGMPropagator>(GPUTrackingRefit::TrackParCovWithArgs& trk, const GPUTPCGMTrackParam& trkX, GPUTPCGMPropagator& prop)
+{
+  convertTrack<TrackParCov, GPUTPCGMTrackParam, GPUTPCGMPropagator>(trk.trk, trkX, prop);
+}
+
 static const float* getPar(const GPUTPCGMTrackParam& trk) { return trk.GetPar(); }
 static const float* getPar(const TrackParCov& trk) { return trk.getParams(); }
 
@@ -201,6 +227,11 @@ GPUd() int GPUTrackingRefit::RefitTrack(T& trkX, bool outward, bool resetCov)
   } else if constexpr (std::is_same<T, TrackTPC>::value) {
     count = trkX.getNClusters();
     tOffset = trkX.getTime0();
+  } else if constexpr (std::is_same<T, TrackParCovWithArgs>::value) {
+    count = trkX.clusRef.getEntries();
+    tOffset = trkX.time0;
+  } else {
+    static_assert("Invalid template");
   }
   int direction = outward ? -1 : 1;
   int start = outward ? count - 1 : begin;
@@ -232,6 +263,11 @@ GPUd() int GPUTrackingRefit::RefitTrack(T& trkX, bool outward, bool resetCov)
         } else if constexpr (std::is_same<T, TrackTPC>::value) {
           cl = &trkX.getCluster(mPtrackHitReferences, i, *mPclusterNative, sector, row);
           nextState = mPclusterState[cl - mPclusterNative->clustersLinear];
+        } else if constexpr (std::is_same<T, TrackParCovWithArgs>::value) {
+          cl = &TrackTPC::getCluster(mPtrackHitReferences, i, *mPclusterNative, sector, row, trkX.clusRef);
+          nextState = mPclusterState[cl - mPclusterNative->clustersLinear];
+        } else {
+          static_assert("Invalid template");
         }
       }
       if (clusters == 0 || (row == currentRow && sector == currentSector)) {
@@ -311,6 +347,8 @@ GPUd() int GPUTrackingRefit::RefitTrack(T& trkX, bool outward, bool resetCov)
         return -3;
       }
       CADEBUG(printf("\t%21sFit     Alpha %8.3f    , X %8.3f - Y %8.3f, Z %8.3f   -   QPt %7.2f (%7.2f), SP %5.2f (%5.2f), DzDs %5.2f %16s    ---   Cov sY %8.3f sZ %8.3f sSP %8.3f sPt %8.3f   -   YPt %8.3f\n", "", trk.getAlpha(), x, trk.getParams()[0], trk.getParams()[1], trk.getParams()[4], trk.getParams()[4], trk.getParams()[2], trk.getParams()[2], trk.getParams()[3], "", sqrtf(trk.getCov()[0]), sqrtf(trk.getCov()[2]), sqrtf(trk.getCov()[5]), sqrtf(trk.getCov()[14]), trk.getCov()[10]));
+    } else {
+      static_assert("Invalid template");
     }
     resetCov = false;
     nFitted++;
@@ -330,6 +368,8 @@ GPUd() int GPUTrackingRefit::RefitTrack(T& trkX, bool outward, bool resetCov)
         }
       }
     }
+  } else {
+    static_assert("Invalid template");
   }
 
   convertTrack(trkX, trk, prop);
@@ -337,9 +377,11 @@ GPUd() int GPUTrackingRefit::RefitTrack(T& trkX, bool outward, bool resetCov)
 }
 
 template GPUd() int GPUTrackingRefit::RefitTrack<GPUTPCGMMergedTrack, TrackParCov>(GPUTPCGMMergedTrack& trk, bool outward, bool resetCov);
-template GPUd() int GPUTrackingRefit::RefitTrack<TrackTPC, TrackParCov>(TrackTPC& trk, bool outward, bool resetCov);
 template GPUd() int GPUTrackingRefit::RefitTrack<GPUTPCGMMergedTrack, GPUTPCGMTrackParam>(GPUTPCGMMergedTrack& trk, bool outward, bool resetCov);
+template GPUd() int GPUTrackingRefit::RefitTrack<TrackTPC, TrackParCov>(TrackTPC& trk, bool outward, bool resetCov);
 template GPUd() int GPUTrackingRefit::RefitTrack<TrackTPC, GPUTPCGMTrackParam>(TrackTPC& trk, bool outward, bool resetCov);
+template GPUd() int GPUTrackingRefit::RefitTrack<GPUTrackingRefit::TrackParCovWithArgs, TrackParCov>(GPUTrackingRefit::TrackParCovWithArgs& trk, bool outward, bool resetCov);
+template GPUd() int GPUTrackingRefit::RefitTrack<GPUTrackingRefit::TrackParCovWithArgs, GPUTPCGMTrackParam>(GPUTrackingRefit::TrackParCovWithArgs& trk, bool outward, bool resetCov);
 
 void GPUTrackingRefit::SetPtrsFromGPUConstantMem(const GPUConstantMem* v)
 {
