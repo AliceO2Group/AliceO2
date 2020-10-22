@@ -84,18 +84,22 @@ int runTPCRefit(TString trackFile = "tpctracks.root", TString clusterFile = "tpc
     //refit.setGPUTrackFitInProjections(false); // Enable full 3D fit without assuming y and Z are uncorrelated
     for (unsigned int i = 0; i < tracks->size(); i++) {
       TrackTPC trk = (*tracks)[i];
+      refit.setTrackReferenceX(trk.getX());
       std::cout << "\nTrack " << i << "\n";
+      std::cout << "Org track:\n";
       trk.print();
       std::cout << "Refitting as GPU track\n";
-      if (refit.RefitTrackAsGPU(trk, false, true)) {
-        std::cout << "Refit as GPU track failed\n";
+      int retval = refit.RefitTrackAsGPU(trk, false, true);
+      if (retval) {
+        std::cout << "Refit as GPU track failed " << retval << "\n";
       } else {
         trk.print();
       }
       trk = (*tracks)[i];
       std::cout << "Refitting as TrackParCov track\n";
-      if (refit.RefitTrackAsTrackParCov(trk, false, true)) {
-        std::cout << "Refit as TrackParCov track failed\n";
+      retval = refit.RefitTrackAsTrackParCov(trk, false, true);
+      if (retval) {
+        std::cout << "Refit as TrackParCov track failed " << retval << "\n";
       } else {
         trk.print();
       }

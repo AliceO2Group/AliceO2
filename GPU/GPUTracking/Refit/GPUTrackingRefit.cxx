@@ -30,6 +30,9 @@ using namespace o2::track;
 using namespace o2::base;
 using namespace o2::tpc;
 
+static constexpr float kDeg2Rad = M_PI / 180.f;
+static constexpr float kSectAngle = 2 * M_PI / 18.f;
+
 void GPUTrackingRefitProcessor::InitializeProcessor() {}
 
 void GPUTrackingRefitProcessor::RegisterMemoryAllocation()
@@ -292,6 +295,22 @@ GPUd() int GPUTrackingRefit::RefitTrack(T& trkX, bool outward, bool resetCov)
       CADEBUG(printf("\t%21sFit     Alpha %8.3f    , X %8.3f - Y %8.3f, Z %8.3f   -   QPt %7.2f (%7.2f), SP %5.2f (%5.2f), DzDs %5.2f %16s    ---   Cov sY %8.3f sZ %8.3f sSP %8.3f sPt %8.3f   -   YPt %8.3f\n", "", trk.getAlpha(), x, trk.getParams()[0], trk.getParams()[1], trk.getParams()[4], trk.getParams()[4], trk.getParams()[2], trk.getParams()[2], trk.getParams()[3], "", sqrtf(trk.getCov()[0]), sqrtf(trk.getCov()[2]), sqrtf(trk.getCov()[5]), sqrtf(trk.getCov()[14]), trk.getCov()[10]));
     }
     resetCov = false;
+  }
+  if constexpr (std::is_same<S, GPUTPCGMTrackParam>::value) {
+    float alpha = prop.GetAlpha();
+    trk.MoveToReference(prop, *mPparam, alpha);
+    trk.NormalizeAlpha(alpha);
+    prop.SetAlpha(alpha);
+  } else if constexpr (std::is_same<S, TrackParCov>::value) {
+    if (mPparam->rec.TrackReferenceX <= 500) {
+      if (prop->PropagateToXBxByBz(trk, mPparam->rec.TrackReferenceX)) {
+        if (CAMath::Abs(trk.getY()) > trk.getX() * CAMath::Tan(kSectAngle / 2.f)) {
+          float newAlpha = trk.getAlpha() + floor(CAMath::ATan2(trk.getY(), trk.getX()) / kDeg2Rad / 20.f + 0.5f) * kSectAngle;
+          GPUTPCGMTrackParam::NormalizeAlpha(newAlpha);
+          trk.rotate(newAlpha) && prop->PropagateToXBxByBz(trk, mPparam->rec.TrackReferenceX);
+        }
+      }
+    }
   }
 
   convertTrack(trkX, trk, prop);

@@ -130,6 +130,7 @@ class GPUTPCGMPropagator
   GPUd() void GetErr2(float& err2Y, float& err2Z, const GPUParam& param, float posZ, int iRow, short clusterState) const;
 
   GPUd() float GetAlpha() const { return mAlpha; }
+  GPUd() void SetAlpha(float v) { mAlpha = v; }
   GPUd() float GetQPt0() const { return mT0.GetQPt(); }
   GPUd() float GetSinPhi0() const { return mT0.GetSinPhi(); }
   GPUd() float GetCosPhi0() const { return mT0.GetCosPhi(); }
