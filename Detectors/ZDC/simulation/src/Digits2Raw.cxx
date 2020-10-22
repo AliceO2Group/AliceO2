@@ -19,6 +19,7 @@
 using namespace o2::zdc;
 
 //ClassImp(Digits2Raw);
+//______________________________________________________________________________
 void Digits2Raw::processDigits(const std::string& outDir, const std::string& fileDigitsName)
 {
   auto& sopt = ZDCSimParam::Instance();
@@ -125,6 +126,7 @@ void Digits2Raw::processDigits(const std::string& outDir, const std::string& fil
   digiFile->Close();
 }
 
+//______________________________________________________________________________
 void Digits2Raw::setTriggerMask()
 {
   mTriggerMask = 0;
@@ -154,6 +156,7 @@ void Digits2Raw::setTriggerMask()
   printf("trigger_mask=0x%08x %s\n", mTriggerMask, mPrintTriggerMask.data());
 }
 
+//______________________________________________________________________________
 inline void Digits2Raw::resetSums(uint32_t orbit)
 {
   for (Int_t im = 0; im < NModules; im++) {
@@ -167,6 +170,7 @@ inline void Digits2Raw::resetSums(uint32_t orbit)
   mLastNEmpty = 0;
 }
 
+//______________________________________________________________________________
 inline void Digits2Raw::updatePedestalReference(int bc)
 {
   // Compute or update baseline reference
@@ -197,6 +201,7 @@ inline void Digits2Raw::updatePedestalReference(int bc)
   }
 }
 
+//______________________________________________________________________________
 void Digits2Raw::insertLastBunch(int ibc, uint32_t orbit)
 {
   // Number of bunch crossings stored
@@ -443,6 +448,7 @@ void Digits2Raw::insertLastBunch(int ibc, uint32_t orbit)
   }
 } // insertLastBunch
 
+//______________________________________________________________________________
 void Digits2Raw::convertDigits(int ibc)
 {
   // Number of bunch crossings stored
@@ -600,14 +606,15 @@ void Digits2Raw::convertDigits(int ibc)
         mZDC.data[im][ic].f.Auto_3 = 1;
   }
 
-  if(mVerbosity>0){
+  if (mVerbosity > 0) {
     bcd.print();
     printf("Mask: %s\n", mPrintTriggerMask.data());
   }
   int chEnt = bcd.ref.getFirstEntry();
   for (int ic = 0; ic < bcd.ref.getEntries(); ic++) {
     const auto& chd = mzdcChData[chEnt++];
-    if(mVerbosity>0)chd.print();
+    if (mVerbosity > 0)
+      chd.print();
     UShort_t bc = bcd.ir.bc;
     UInt_t orbit = bcd.ir.orbit;
     // Look for channel ID in digits and store channel (just one copy in output)
@@ -648,11 +655,12 @@ void Digits2Raw::convertDigits(int ibc)
   }
 }
 
+//______________________________________________________________________________
 void Digits2Raw::writeDigits()
 {
   constexpr static int data_size = sizeof(uint32_t) * NWPerGBTW;
   // Local interaction record (true and empty bunches)
-  o2::InteractionRecord ir(mZDC.data[0][0].f.bc,mZDC.data[0][0].f.orbit);
+  o2::InteractionRecord ir(mZDC.data[0][0].f.bc, mZDC.data[0][0].f.orbit);
   std::vector<char> out_data(data_size);
   char* out = out_data.data();
   for (UInt_t im = 0; im < o2::zdc::NModules; im++) {
@@ -676,9 +684,9 @@ void Digits2Raw::writeDigits()
       for (UInt_t ic = 0; ic < o2::zdc::NChPerModule; ic++) {
         if (mModuleConfig->modules[im].readChannel[ic]) {
           for (Int_t iw = 0; iw < o2::zdc::NWPerBc; iw++) {
-	    mFeeID=mModuleConfig->modules[im].feeID[ic];
+            mFeeID = mModuleConfig->modules[im].feeID[ic];
             std::memcpy(out, &mZDC.data[im][ic].w[iw][0], data_size);
-	    mWriter.addData(mFeeID, mCruID, mLinkID, mEndPointID, ir, out_data);
+            mWriter.addData(mFeeID, mCruID, mLinkID, mEndPointID, ir, out_data);
           }
         }
       }
@@ -691,21 +699,22 @@ void Digits2Raw::writeDigits()
       if (mZDC.data[im][0].f.bc == 3563)
         printf("M%d is last BC\n", im);
       if (tcond_triggered || (mIsContinuous && tcond_continuous) || (mZDC.data[im][0].f.bc == 3563)) {
-	for (UInt_t ic = 0; ic < o2::zdc::NChPerModule; ic++) {
+        for (UInt_t ic = 0; ic < o2::zdc::NChPerModule; ic++) {
           if (mModuleConfig->modules[im].readChannel[ic]) {
             for (Int_t iw = 0; iw < o2::zdc::NWPerBc; iw++) {
               print_gbt_word(&mZDC.data[im][ic].w[iw][0], mModuleConfig);
             }
           }
-	}
+        }
       } else {
-      if (mVerbosity > 2)
-        printf("orbit %9u bc %4u M%d SKIP\n", mZDC.data[im][0].f.orbit, mZDC.data[im][0].f.bc, im);
+        if (mVerbosity > 2)
+          printf("orbit %9u bc %4u M%d SKIP\n", mZDC.data[im][0].f.orbit, mZDC.data[im][0].f.bc, im);
       }
     }
   }
 }
 
+//______________________________________________________________________________
 void Digits2Raw::print_gbt_word(UInt_t* word, const ModuleConfig* moduleConfig)
 {
   unsigned __int128 val = word[2];
@@ -842,6 +851,7 @@ void Digits2Raw::print_gbt_word(UInt_t* word, const ModuleConfig* moduleConfig)
   printf("\n");
 }
 
+//______________________________________________________________________________
 void Digits2Raw::emptyBunches(std::bitset<3564>& bunchPattern)
 {
   const int LHCMaxBunches = o2::constants::lhc::LHCMaxBunches;
