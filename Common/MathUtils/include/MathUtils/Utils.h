@@ -114,6 +114,37 @@ GPUdi() void sincosd(double ang, double& s, double& c)
   detail::sincos(ang, s, c);
 }
 
+#ifndef GPUCA_GPUCODE_DEVICE
+inline void rotateZ(float xL, float yL, float& xG, float& yG, float snAlp, float csAlp)
+{
+  return detail::rotateZ<float>(xL, yL, xG, yG, snAlp, csAlp);
+}
+
+inline void rotateZd(double xL, double yL, double& xG, double& yG, double snAlp, double csAlp)
+{
+  return detail::rotateZ<double>(xL, yL, xG, yG, snAlp, csAlp);
+}
+
+inline void rotateZInv(float xG, float yG, float& xL, float& yL, float snAlp, float csAlp)
+{
+  detail::rotateZInv<float>(xG, yG, xL, yL, snAlp, csAlp);
+}
+
+inline void rotateZInvd(double xG, double yG, double& xL, double& yL, double snAlp, double csAlp)
+{
+  detail::rotateZInv<double>(xG, yG, xL, yL, snAlp, csAlp);
+}
+
+inline std::tuple<float, float> rotateZInv(float xG, float yG, float snAlp, float csAlp)
+{
+  return detail::rotateZInv<float>(xG, yG, snAlp, csAlp);
+}
+
+inline std::tuple<double, double> rotateZInvd(double xG, double yG, double snAlp, double csAlp)
+{
+  return detail::rotateZInv<double>(xG, yG, snAlp, csAlp);
+}
+
 GPUdi() std::tuple<float, float> sincos(float ang)
 {
   return detail::sincos<float>(ang);
@@ -134,37 +165,6 @@ inline std::tuple<double, double> rotateZd(double xL, double yL, double snAlp, d
   return detail::rotateZ<double>(xL, yL, snAlp, csAlp);
 }
 
-inline void rotateZ(float xL, float yL, float& xG, float& yG, float snAlp, float csAlp)
-{
-  return detail::rotateZ<float>(xL, yL, xG, yG, snAlp, csAlp);
-}
-
-inline void rotateZd(double xL, double yL, double& xG, double& yG, double snAlp, double csAlp)
-{
-  return detail::rotateZ<double>(xL, yL, xG, yG, snAlp, csAlp);
-}
-
-inline std::tuple<float, float> rotateZInv(float xG, float yG, float snAlp, float csAlp)
-{
-  return detail::rotateZInv<float>(xG, yG, snAlp, csAlp);
-}
-
-inline std::tuple<double, double> rotateZInvd(double xG, double yG, double snAlp, double csAlp)
-{
-  return detail::rotateZInv<double>(xG, yG, snAlp, csAlp);
-}
-
-inline void rotateZInv(float xG, float yG, float& xL, float& yL, float snAlp, float csAlp)
-{
-  detail::rotateZInv<float>(xG, yG, xL, yL, snAlp, csAlp);
-}
-
-inline void rotateZInvd(double xG, double yG, double& xL, double& yL, double snAlp, double csAlp)
-{
-  detail::rotateZInv<double>(xG, yG, xL, yL, snAlp, csAlp);
-}
-
-#ifndef GPUCA_GPUCODE_DEVICE
 inline void rotateZ(std::array<float, 3>& xy, float alpha)
 {
   detail::rotateZ<float>(xy, alpha);

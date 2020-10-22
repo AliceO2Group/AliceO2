@@ -15,7 +15,9 @@
 #ifndef MATHUTILS_INCLUDE_MATHUTILS_DETAIL_STATACCUMULATOR_H_
 #define MATHUTILS_INCLUDE_MATHUTILS_DETAIL_STATACCUMULATOR_H_
 
+#ifndef GPUCA_GPUCODE_DEVICE
 #include <tuple>
+#endif
 
 namespace o2
 {
@@ -41,6 +43,7 @@ struct StatAccumulator {
   }
   double getMean() const { return wsum > 0. ? sum / wsum : 0.; }
 
+#ifndef GPUCA_GPUCODE_DEVICE
   template <typename T = float>
   std::tuple<T, T> getMeanRMS2() const
   {
@@ -55,6 +58,7 @@ struct StatAccumulator {
 
     return {mean, rms2};
   }
+#endif
 
   StatAccumulator& operator+=(const StatAccumulator& other)
   {
