@@ -43,6 +43,6 @@ void EventData::print() const
 
 void EventData::reset()
 {
-  static constexpr int payloadSize = NModules*NChPerModule*NWPerGBTW*sizeof(UInt_t);
-  memset((void*)& data[0][0],0,payloadSize);
+  static constexpr int payloadSize = NModules * NChPerModule * NWPerGBTW * sizeof(UInt_t);
+  memset((void*)&data[0][0], 0, payloadSize);
 }

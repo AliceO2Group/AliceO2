@@ -135,7 +135,7 @@ struct EventData {
   union {
     UInt_t w[o2::zdc::NWPerBc][NWPerGBTW];
     struct ChannelDataV0 f;
-  } data[o2::zdc::NModules][o2::zdc::NChPerModule]={0};
+  } data[o2::zdc::NModules][o2::zdc::NChPerModule] = {0};
   void print() const;
   void reset();
   ClassDefNV(EventData, 1);
