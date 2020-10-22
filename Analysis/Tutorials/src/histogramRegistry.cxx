@@ -126,8 +126,8 @@ struct CTask {
 };
 
 struct DTask {
-  HistogramRegistry spectra{"spectra", true, {}};
-  HistogramRegistry etaStudy{"etaStudy", true, {}};
+  HistogramRegistry spectra{"spectra", true, {}, OutputObjHandlingPolicy::AnalysisObject, true};
+  HistogramRegistry etaStudy{"etaStudy", true, {}, OutputObjHandlingPolicy::AnalysisObject, true};
 
   void init(o2::framework::InitContext&)
   {
