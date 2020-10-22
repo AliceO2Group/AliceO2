@@ -16,6 +16,7 @@
 
 #include "GPUDef.h"
 #include "GPUProcessor.h"
+#include <tuple>
 
 namespace o2::dataformats
 {
@@ -39,9 +40,7 @@ class TrackTPC;
 using TrackTPCClusRef = o2::dataformats::RangeReference<uint32_t, uint16_t>;
 } // namespace o2::tpc
 
-namespace GPUCA_NAMESPACE
-{
-namespace gpu
+namespace o2::gpu
 {
 class GPUTPCGMTrackParam;
 class GPUTPCGMMergedTrack;
@@ -68,6 +67,22 @@ class GPUTrackingRefit
   GPUd() int RefitTrackAsTrackParCov(GPUTPCGMMergedTrack& trk, bool outward = false, bool resetCov = false) { return RefitTrack<GPUTPCGMMergedTrack, o2::track::TrackParCov>(trk, outward, resetCov); }
   GPUd() int RefitTrackAsGPU(o2::tpc::TrackTPC& trk, bool outward = false, bool resetCov = false) { return RefitTrack<o2::tpc::TrackTPC, GPUTPCGMTrackParam>(trk, outward, resetCov); }
   GPUd() int RefitTrackAsTrackParCov(o2::tpc::TrackTPC& trk, bool outward = false, bool resetCov = false) { return RefitTrack<o2::tpc::TrackTPC, o2::track::TrackParCov>(trk, outward, resetCov); }
+
+  struct TrackParCovWithArgs {
+    o2::track::TrackParCov& trk;
+    const o2::tpc::TrackTPCClusRef& clusRef;
+    float time0;
+  };
+  GPUd() int RefitTrackAsGPU(o2::track::TrackParCov& trk, const o2::tpc::TrackTPCClusRef& clusRef, float time0, bool outward = false, bool resetCov = false)
+  {
+    TrackParCovWithArgs x{trk, clusRef, time0};
+    return RefitTrack<TrackParCovWithArgs, GPUTPCGMTrackParam>(x, outward, resetCov);
+  }
+  GPUd() int RefitTrackAsTrackParCov(o2::track::TrackParCov& trk, const o2::tpc::TrackTPCClusRef& clusRef, float time0, bool outward = false, bool resetCov = false)
+  {
+    TrackParCovWithArgs x{trk, clusRef, time0};
+    return RefitTrack<TrackParCovWithArgs, o2::track::TrackParCov>(x, outward, resetCov);
+  }
 
   bool mIgnoreErrorsOnTrackEnds = true; // Ignore errors during propagation / update at the beginning / end of tracks for short tracks / tracks with high incl. angle
 
@@ -97,7 +112,6 @@ class GPUTrackingRefitProcessor : public GPUTrackingRefit, public GPUProcessor
 #endif
 };
 
-} // namespace gpu
-} // namespace GPUCA_NAMESPACE
+} // namespace o2::gpu
 
 #endif
