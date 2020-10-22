@@ -559,8 +559,13 @@ void displayDeviceHistograms(gui::WorkspaceGUIState& state,
                              currentStyle, devices, metricsInfos);
       } break;
       case MetricsDisplayStyle::Sparks: {
+#if defined(ImGuiCol_ChildWindowBg)
         ImGui::BeginChild("##ScrollingRegion", ImVec2(ImGui::GetIO().DisplaySize.x + state.leftPaneSize + state.rightPaneSize - 10, -ImGui::GetItemsLineHeightWithSpacing()), false,
                           ImGuiWindowFlags_HorizontalScrollbar);
+#else
+        ImGui::BeginChild("##ScrollingRegion", ImVec2(ImGui::GetIO().DisplaySize.x + state.leftPaneSize + state.rightPaneSize - 10, -ImGui::GetTextLineHeightWithSpacing()), false,
+                          ImGuiWindowFlags_HorizontalScrollbar);
+#endif
         ImGui::Columns(2);
         ImGui::SetColumnOffset(1, 300);
         for (size_t i = 0; i < state.devices.size(); ++i) {
@@ -574,8 +579,13 @@ void displayDeviceHistograms(gui::WorkspaceGUIState& state,
         ImGui::EndChild();
       } break;
       case MetricsDisplayStyle::Table: {
+#if defined(ImGuiCol_ChildWindowBg)
         ImGui::BeginChild("##ScrollingRegion", ImVec2(ImGui::GetIO().DisplaySize.x + state.leftPaneSize + state.rightPaneSize - 10, -ImGui::GetItemsLineHeightWithSpacing()), false,
                           ImGuiWindowFlags_HorizontalScrollbar);
+#else
+        ImGui::BeginChild("##ScrollingRegion", ImVec2(ImGui::GetIO().DisplaySize.x + state.leftPaneSize + state.rightPaneSize - 10, -ImGui::GetTextLineHeightWithSpacing()), false,
+                          ImGuiWindowFlags_HorizontalScrollbar);
+#endif
 
         // The +1 is for the timestamp column
         ImGui::Columns(state.devices.size() + 1);
@@ -774,8 +784,13 @@ std::function<void(void)> getGUIDebugger(std::vector<DeviceInfo> const& infos,
                      (int)LogParsingHelpers::LogLevel::Size, 5);
 
         ImGui::Separator();
+#if defined(ImGuiCol_ChildWindowBg)
         ImGui::BeginChild("ScrollingRegion", ImVec2(0, -ImGui::GetItemsLineHeightWithSpacing()), false,
                           ImGuiWindowFlags_HorizontalScrollbar | ImGuiWindowFlags_NoMove);
+#else
+        ImGui::BeginChild("ScrollingRegion", ImVec2(0, -ImGui::GetTextLineHeightWithSpacing()), false,
+                          ImGuiWindowFlags_HorizontalScrollbar | ImGuiWindowFlags_NoMove);
+#endif
         displayHistory(info, control);
         ImGui::EndChild();
         ImGui::End();
