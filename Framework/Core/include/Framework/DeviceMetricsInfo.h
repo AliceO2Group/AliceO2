@@ -187,7 +187,6 @@ struct DeviceMetricsHelper {
     };
   }
 };
-
 } // namespace o2::framework
 
 #endif // O2_FRAMEWORK_DEVICEMETRICSINFO_H_
