@@ -230,6 +230,8 @@ struct WorkflowImporter : public rapidjson::BaseReaderHandler<rapidjson::UTF8<>,
       outputHasSubSpec = false;
     } else if (in(State::IN_OPTIONS)) {
       push(State::IN_OPTION);
+    } else if (in(State::IN_INPUT_OPTIONS)) {
+      push(State::IN_OPTION);
     } else if (in(State::IN_WORKFLOW_OPTIONS)) {
       push(State::IN_OPTION);
     } else if (in(State::IN_METADATA)) {
