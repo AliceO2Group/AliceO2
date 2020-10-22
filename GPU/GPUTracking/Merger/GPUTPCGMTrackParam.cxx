@@ -334,6 +334,14 @@ GPUd() bool GPUTPCGMTrackParam::Fit(const GPUTPCGMMerger* GPUrestrict() merger, 
     dEdx.computedEdx(*dEdxOut, param);
   }
   Alpha = prop.GetAlpha();
+  MoveToReference(prop, param, Alpha);
+  NormalizeAlpha(Alpha);
+
+  return (ok);
+}
+
+GPUd() void GPUTPCGMTrackParam::MoveToReference(GPUTPCGMPropagator& prop, const GPUParam& param, float& Alpha)
+{
   if (param.rec.TrackReferenceX <= 500) {
     for (int k = 0; k < 3; k++) // max 3 attempts
     {
@@ -356,13 +364,6 @@ GPUd() bool GPUTPCGMTrackParam::Fit(const GPUTPCGMMerger* GPUrestrict() merger, 
     ConstrainSinPhi();
     Alpha += dAngle;
   }
-  if (Alpha > M_PI) {
-    Alpha -= 2 * M_PI;
-  } else if (Alpha <= -M_PI) {
-    Alpha += 2 * M_PI;
-  }
-
-  return (ok);
 }
 
 GPUd() void GPUTPCGMTrackParam::MirrorTo(GPUTPCGMPropagator& GPUrestrict() prop, float toY, float toZ, bool inFlyDirection, const GPUParam& param, unsigned char row, unsigned char clusterState, bool mirrorParameters)
