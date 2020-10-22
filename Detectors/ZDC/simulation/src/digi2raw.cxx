@@ -103,15 +103,16 @@ void digi2raw(const std::string& inpName, const std::string& outDir, int verbosi
   auto moduleConfig = mgr.get<o2::zdc::ModuleConfig>(o2::zdc::CCDBPathConfigModule);
   LOG(INFO) << "Loaded module configuration for timestamp " << timeStamp;
 
-  auto  simCondition = mgr.get<o2::zdc::SimCondition>(o2::zdc::CCDBPathConfigSim);
+  auto simCondition = mgr.get<o2::zdc::SimCondition>(o2::zdc::CCDBPathConfigSim);
   LOG(INFO) << "Loaded simulation configuration for timestamp " << timeStamp;
   simCondition->print();
 
   const auto* ctx = o2::steer::DigitizationContext::loadFromFile("collisioncontext.root");
   const auto& bcfill = ctx->getBunchFilling();
-  auto bf=ctx->getBunchFilling();
-  if(verbosity>0)bf.print();
-  auto bp=bf.getPattern();
+  auto bf = ctx->getBunchFilling();
+  if (verbosity > 0)
+    bf.print();
+  auto bp = bf.getPattern();
 
   TStopwatch swTot;
   swTot.Start();
