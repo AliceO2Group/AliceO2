@@ -16,7 +16,8 @@ usage:\
   define "deserialization" method with deserialization logic for current DataBlock\
   define "sanityCheck" method for checking if the DataBlock is correct\
 Warning! Classes should be simple, without refs and pointers!\
-
+Example:
+  /alice/O2/Detectors/FIT/FT0/raw/include/FT0Raw/DataBlockFT0.h
 # DigitBlockBase
 Base class for digit block, which containes "digit" structures\
 usage:\
@@ -25,7 +26,7 @@ usage:\
   define "template <class DigitType,...>void getDigits(std::vector<DigitType>&... vecDigits) for pushing digits into vectors which will be pushed through DPL channels,
     variadic arguments are applied\
 Example:\
-  /alice/O2/Detectors/FIT/FT0/raw/include/FT0Raw/DigitBlockFT0.h \
+  /alice/O2/Detectors/FIT/FT0/raw/include/FT0Raw/DigitBlockFT0.h 
 
 # RawReaderBase
 Base class for raw reader.\
@@ -38,4 +39,4 @@ Example:\
 # RawReader 
 Stores vectors with digit classes and manages them at DPL level\
 Example: \
-  /alice/O2/Detectors/FIT/FT0/workflow/include/FT0Workflow/RawReaderFT0\
+  /alice/O2/Detectors/FIT/FT0/workflow/include/FT0Workflow/RawReaderFT0
