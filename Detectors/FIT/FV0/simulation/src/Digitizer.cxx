@@ -151,10 +151,9 @@ void Digitizer::createPulse(float mipFraction, int parID, const double hitTime,
     mPmtResponseTemp.resize(FV0DigParam::Instance().waveformNbins, 0.);
     std::memcpy(&mPmtResponseTemp[NBinShift], &mPmtResponseGlobal[0],
                 sizeof(double) * (FV0DigParam::Instance().waveformNbins - NBinShift));
-  }
-  else {
+  } else {
     mPmtResponseTemp = mPmtResponseGlobal;
-    mPmtResponseTemp.erase(mPmtResponseTemp.begin(),mPmtResponseTemp.begin()+abs(NBinShift));
+    mPmtResponseTemp.erase(mPmtResponseTemp.begin(), mPmtResponseTemp.begin() + abs(NBinShift));
     mPmtResponseTemp.resize(FV0DigParam::Instance().waveformNbins);
   }
 
