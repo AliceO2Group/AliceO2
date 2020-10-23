@@ -23,6 +23,7 @@ o2_add_library(ReconstructionDataFormats
                        src/VtxTrackIndex.cxx
                        src/VtxTrackRef.cxx
                PUBLIC_LINK_LIBRARIES O2::GPUCommon
+                                     O2::FrameworkLogger
                                      O2::DetectorsCommonDataFormats
                                      O2::CommonDataFormat)
 

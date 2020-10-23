@@ -148,6 +148,8 @@ class Rotation2D
 using Rotation2Df_t = Rotation2D<float>;
 using Rotation2Dd_t = Rotation2D<double>;
 
+#if !defined(GPUCA_STANDALONE) && !defined(GPUCA_ALIGPUCODE)
+
 class Transform3D : public ROOT::Math::Transform3D
 {
   //
@@ -241,11 +243,12 @@ class Transform3D : public ROOT::Math::Transform3D
 
   ClassDefNV(Transform3D, 1);
 };
+#endif // Disable for GPU
 } // namespace math_utils
 } // namespace o2
 
+#if !defined(GPUCA_STANDALONE) && !defined(GPUCA_ALIGPUCODE)
 std::ostream& operator<<(std::ostream& os, const o2::math_utils::Rotation2Df_t& t);
-
 std::ostream& operator<<(std::ostream& os, const o2::math_utils::Rotation2Dd_t& t);
 
 namespace std
@@ -266,4 +269,6 @@ template <typename T>
 struct is_trivially_copyable<o2::math_utils::Point3D<T>> : std::true_type {
 };
 } // namespace std
+#endif // Disable for GPU
+
 #endif
