@@ -121,6 +121,7 @@ if(CONFIG_O2_EXTENSIONS)
 include_directories(${CMAKE_SOURCE_DIR}/TPCClusterFinder
                     ${CMAKE_SOURCE_DIR}/ITS
                     ${CMAKE_SOURCE_DIR}/DataCompression
+                    ${CMAKE_SOURCE_DIR}/../../../Common/Field/include
                     ${CMAKE_SOURCE_DIR}/../../../Common/Constants/include
                     ${CMAKE_SOURCE_DIR}/../../../Common/MathUtils/include
                     ${CMAKE_SOURCE_DIR}/../../../DataFormats/common/include
@@ -160,21 +161,27 @@ target_compile_definitions(standalone_support PUBLIC $<TARGET_PROPERTY:O2::GPUTr
 # Add all sources and dependencies to to support based on Config File
 if(CONFIG_O2_EXTENSIONS)
   target_sources(standalone_support PRIVATE
-               ../../..//DataFormats/Detectors/TPC/src/CompressedClusters.cxx
-               ../../..//DataFormats/simulation/src/MCCompLabel.cxx
-               ../../..//Detectors/TRD/base/src/TRDGeometryBase.cxx
-               ../../..//Detectors/Base/src/MatLayerCylSet.cxx
-               ../../..//Detectors/Base/src/MatLayerCyl.cxx
-               ../../..//Detectors/Base/src/Ray.cxx
-               ../../..//Detectors/ITSMFT/ITS/tracking/src/Road.cxx)
+               ../../../Common/Field/src/MagFieldFast.cxx
+               ../../../DataFormats/Detectors/TPC/src/CompressedClusters.cxx
+               ../../../DataFormats/simulation/src/MCCompLabel.cxx
+               ../../../DataFormats/Reconstruction/src/TrackParametrization.cxx
+               ../../../DataFormats/Reconstruction/src/TrackParametrizationWithError.cxx
+               ../../../DataFormats/Reconstruction/src/Vertex.cxx
+               ../../../DataFormats/Reconstruction/src/TrackLTIntegral.cxx
+               ../../../Detectors/TRD/base/src/TRDGeometryBase.cxx
+               ../../../Detectors/Base/src/MatLayerCylSet.cxx
+               ../../../Detectors/Base/src/MatLayerCyl.cxx
+               ../../../Detectors/Base/src/Ray.cxx
+               ../../../Detectors/Base/src/Propagator.cxx
+               ../../../Detectors/ITSMFT/ITS/tracking/src/Road.cxx)
   if(CONFIG_O2_ITS_TRAITS)
     target_sources(standalone_support PRIVATE
-        ../../..//Detectors/ITSMFT/ITS/tracking/src/PrimaryVertexContext.cxx
-        ../../..//Detectors/ITSMFT/ITS/tracking/src/Cluster.cxx
-        ../../..//Detectors/ITSMFT/ITS/tracking/src/ClusterLines.cxx
-        ../../..//Detectors/ITSMFT/ITS/tracking/src/TrackerTraitsCPU.cxx
-        ../../..//Detectors/ITSMFT/ITS/tracking/src/VertexerTraits.cxx
-        ../../..//Detectors/ITSMFT/ITS/tracking/src/ROframe.cxx)
+        ../../../Detectors/ITSMFT/ITS/tracking/src/PrimaryVertexContext.cxx
+        ../../../Detectors/ITSMFT/ITS/tracking/src/Cluster.cxx
+        ../../../Detectors/ITSMFT/ITS/tracking/src/ClusterLines.cxx
+        ../../../Detectors/ITSMFT/ITS/tracking/src/TrackerTraitsCPU.cxx
+        ../../../Detectors/ITSMFT/ITS/tracking/src/VertexerTraits.cxx
+        ../../../Detectors/ITSMFT/ITS/tracking/src/ROframe.cxx)
     target_link_libraries(standalone_support PUBLIC Boost::boost)
   endif()
 endif()
