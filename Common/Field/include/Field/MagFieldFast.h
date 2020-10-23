@@ -14,10 +14,12 @@
 #ifndef ALICEO2_FIELD_MAGFIELDFAST_H_
 #define ALICEO2_FIELD_MAGFIELDFAST_H_
 
-#include <Rtypes.h>
-#include <string>
-
+#include <GPUCommonRtypes.h>
 #include "MathUtils/Cartesian.h"
+
+#ifndef GPUCA_GPUCODE_DEVICE
+#include <string>
+#endif
 
 namespace o2
 {

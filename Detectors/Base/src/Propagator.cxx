@@ -9,17 +9,19 @@
 // or submit itself to any jurisdiction.
 
 #include "DetectorsBase/Propagator.h"
-#include "DetectorsBase/GeometryManager.h"
-#include <FairLogger.h>
-#include <FairRunAna.h> // eventually will get rid of it
-#include <TGeoGlobalMagField.h>
-#include "DataFormatsParameters/GRPObject.h"
+#include <GPUCommonLogger.h>
 #include "Field/MagFieldFast.h"
-#include "Field/MagneticField.h"
 #include "MathUtils/Utils.h"
 #include "ReconstructionDataFormats/Vertex.h"
 
 using namespace o2::base;
+
+#ifndef GPUCA_STANDALONE
+#include "Field/MagneticField.h"
+#include "DataFormatsParameters/GRPObject.h"
+#include "DetectorsBase/GeometryManager.h"
+#include <FairRunAna.h> // eventually will get rid of it
+#include <TGeoGlobalMagField.h>
 
 Propagator::Propagator()
 {
@@ -46,6 +48,52 @@ Propagator::Propagator()
   const float xyz[3] = {0.};
   mField->GetBz(xyz, mBz);
 }
+
+//____________________________________________________________
+int Propagator::initFieldFromGRP(const std::string grpFileName, std::string grpName, bool verbose)
+{
+  /// load grp and init magnetic field
+  if (verbose) {
+    LOG(INFO) << "Loading field from GRP of " << grpFileName;
+  }
+  const auto grp = o2::parameters::GRPObject::loadFrom(grpFileName, grpName);
+  if (!grp) {
+    return -1;
+  }
+  if (verbose) {
+    grp->print();
+  }
+
+  return initFieldFromGRP(grp);
+}
+
+//____________________________________________________________
+int Propagator::initFieldFromGRP(const o2::parameters::GRPObject* grp, bool verbose)
+{
+  /// init mag field from GRP data and attach it to TGeoGlobalMagField
+
+  if (TGeoGlobalMagField::Instance()->IsLocked()) {
+    if (TGeoGlobalMagField::Instance()->GetField()->TestBit(o2::field::MagneticField::kOverrideGRP)) {
+      LOG(WARNING) << "ExpertMode!!! GRP information will be ignored";
+      LOG(WARNING) << "ExpertMode!!! Running with the externally locked B field";
+      return 0;
+    } else {
+      LOG(INFO) << "Destroying existing B field instance";
+      delete TGeoGlobalMagField::Instance();
+    }
+  }
+  auto fld = o2::field::MagneticField::createFieldMap(grp->getL3Current(), grp->getDipoleCurrent());
+  TGeoGlobalMagField::Instance()->SetField(fld);
+  TGeoGlobalMagField::Instance()->Lock();
+  if (verbose) {
+    LOG(INFO) << "Running with the B field constructed out of GRP";
+    LOG(INFO) << "Access field via TGeoGlobalMagField::Instance()->Field(xyz,bxyz) or via";
+    LOG(INFO) << "auto o2field = static_cast<o2::field::MagneticField*>( TGeoGlobalMagField::Instance()->GetField() )";
+  }
+  return 0;
+}
+
+#endif
 
 //_______________________________________________________________________
 bool Propagator::PropagateToXBxByBz(o2::track::TrackParCov& track, float xToGo, float mass, float maxSnp, float maxStep,
@@ -463,51 +511,12 @@ bool Propagator::propagateToDCABxByBz(const math_utils::Point3D<float>& vtx, o2:
 }
 
 //____________________________________________________________
-int Propagator::initFieldFromGRP(const std::string grpFileName, std::string grpName, bool verbose)
-{
-  /// load grp and init magnetic field
-  if (verbose) {
-    LOG(INFO) << "Loading field from GRP of " << grpFileName;
-  }
-  const auto grp = o2::parameters::GRPObject::loadFrom(grpFileName, grpName);
-  if (!grp) {
-    return -1;
-  }
-  if (verbose) {
-    grp->print();
-  }
-
-  return initFieldFromGRP(grp);
-}
-
-//____________________________________________________________
-int Propagator::initFieldFromGRP(const o2::parameters::GRPObject* grp, bool verbose)
-{
-  /// init mag field from GRP data and attach it to TGeoGlobalMagField
-
-  if (TGeoGlobalMagField::Instance()->IsLocked()) {
-    if (TGeoGlobalMagField::Instance()->GetField()->TestBit(o2::field::MagneticField::kOverrideGRP)) {
-      LOG(WARNING) << "ExpertMode!!! GRP information will be ignored";
-      LOG(WARNING) << "ExpertMode!!! Running with the externally locked B field";
-      return 0;
-    } else {
-      LOG(INFO) << "Destroying existing B field instance";
-      delete TGeoGlobalMagField::Instance();
-    }
-  }
-  auto fld = o2::field::MagneticField::createFieldMap(grp->getL3Current(), grp->getDipoleCurrent());
-  TGeoGlobalMagField::Instance()->SetField(fld);
-  TGeoGlobalMagField::Instance()->Lock();
-  if (verbose) {
-    LOG(INFO) << "Running with the B field constructed out of GRP";
-    LOG(INFO) << "Access field via TGeoGlobalMagField::Instance()->Field(xyz,bxyz) or via";
-    LOG(INFO) << "auto o2field = static_cast<o2::field::MagneticField*>( TGeoGlobalMagField::Instance()->GetField() )";
-  }
-  return 0;
-}
-
-//____________________________________________________________
 MatBudget Propagator::getMatBudget(Propagator::MatCorrType corrType, const math_utils::Point3D<float>& p0, const math_utils::Point3D<float>& p1) const
 {
-  return (corrType == MatCorrType::USEMatCorrTGeo) ? GeometryManager::meanMaterialBudget(p0, p1) : mMatLUT->getMatBudget(p0.X(), p0.Y(), p0.Z(), p1.X(), p1.Y(), p1.Z());
+#ifndef GPUCA_STANDALONE
+  if (corrType == MatCorrType::USEMatCorrTGeo) {
+    return GeometryManager::meanMaterialBudget(p0, p1);
+  }
+#endif
+  return mMatLUT->getMatBudget(p0.X(), p0.Y(), p0.Z(), p1.X(), p1.Y(), p1.Z());
 }
