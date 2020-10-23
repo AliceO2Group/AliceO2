@@ -15,6 +15,9 @@
 #ifndef ALICEO2_CARTESIAN3D_H
 #define ALICEO2_CARTESIAN3D_H
 
+#include "GPUCommonDef.h"
+#include "GPUCommonRtypes.h"
+#if !defined(GPUCA_STANDALONE) && !defined(GPUCA_GPUCODE)
 #include <Math/GenVector/DisplacementVector3D.h>
 #include <Math/GenVector/PositionVector3D.h>
 #include <Math/GenVector/Rotation3D.h>
@@ -22,25 +25,19 @@
 #include <Math/GenVector/Translation3D.h>
 #include <Math/GenVector/DisplacementVector2D.h>
 #include <Math/GenVector/PositionVector2D.h>
-#include <Rtypes.h>
 #include <TGeoMatrix.h>
 #include <iosfwd>
+#else
+#include "GPUCommonMath.h"
+#include "CartesianGPU.h"
+#endif
+#include "GPUROOTCartesianFwd.h"
 
 namespace o2
 {
 
 namespace math_utils
 {
-
-template <typename T>
-using Point2D = ROOT::Math::PositionVector2D<ROOT::Math::Cartesian2D<T>, ROOT::Math::DefaultCoordinateSystemTag>;
-template <typename T>
-using Vector2D = ROOT::Math::DisplacementVector2D<ROOT::Math::Cartesian2D<T>, ROOT::Math::DefaultCoordinateSystemTag>;
-
-template <typename T>
-using Point3D = ROOT::Math::PositionVector3D<ROOT::Math::Cartesian3D<T>, ROOT::Math::DefaultCoordinateSystemTag>;
-template <typename T>
-using Vector3D = ROOT::Math::DisplacementVector3D<ROOT::Math::Cartesian3D<T>, ROOT::Math::DefaultCoordinateSystemTag>;
 
 // more typedefs can follow
 
