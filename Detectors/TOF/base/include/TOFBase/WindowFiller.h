@@ -36,7 +36,7 @@ class WindowFiller
   struct CrateHeaderData {
     int32_t bc[Geo::kNCrate] = {-1};
     uint32_t eventCounter[Geo::kNCrate] = {0};
-    CrateHeaderData() {}
+    CrateHeaderData() { memset(bc, -1, Geo::kNCrate * 4); }
   };
 
   WindowFiller() { initObj(); };
