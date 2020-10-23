@@ -72,9 +72,9 @@ ImVec4 colorForLogLevel(LogParsingHelpers::LogLevel logLevel)
     case LogParsingHelpers::LogLevel::Error:
       return PaletteHelpers::RED;
     case LogParsingHelpers::LogLevel::Unknown:
-      return ImVec4(153. / 255, 61. / 255, 61. / 255, 255. / 255);
+      return ImVec4(194. / 255, 195. / 255, 199. / 255, 255. / 255);
     default:
-      return PaletteHelpers::WHITE;
+      return ImVec4(194. / 255, 195. / 255, 199. / 255, 255. / 255);
   };
 }
 
