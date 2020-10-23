@@ -47,7 +47,7 @@ of::WorkflowSpec getRecoWorkflowMC()
 
   of::WorkflowSpec specs;
 
-  specs.emplace_back(getDigitReaderSpec());
+  specs.emplace_back(getDigitReaderSpec(true));
   specs.emplace_back(getClusterizerMCSpec());
   specs.emplace_back(getTrackerMCSpec());
   specs.emplace_back(of::MakeRootTreeWriterSpec("MIDTrackLabelsWriter",

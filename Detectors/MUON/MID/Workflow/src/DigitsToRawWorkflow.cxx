@@ -30,7 +30,7 @@ of::WorkflowSpec getDigitsToRawWorkflow()
 {
   of::WorkflowSpec specs;
 
-  specs.emplace_back(getDigitReaderSpec());
+  specs.emplace_back(getDigitReaderSpec(false));
   specs.emplace_back(getRawWriterSpec());
   return specs;
 }
