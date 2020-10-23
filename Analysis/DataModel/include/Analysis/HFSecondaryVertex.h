@@ -31,7 +31,7 @@ DECLARE_SOA_COLUMN(DCAPrim0, dcaPrim0, float);
 DECLARE_SOA_COLUMN(DCAPrim1, dcaPrim1, float);
 } // namespace hf_seltrack
 
-DECLARE_SOA_TABLE(HFSelTrack, "AOD", "SELTRACK",
+DECLARE_SOA_TABLE(HFSelTrack, "AOD", "HFSELTRACK",
                   hf_seltrack::IsSel2Prong,
                   hf_seltrack::IsSel3Prong,
                   hf_seltrack::DCAPrim0,
