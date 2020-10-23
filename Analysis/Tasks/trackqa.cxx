@@ -40,25 +40,11 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
 //****************************************************************************************
 struct TrackQATask {
 
-  HistogramRegistry kine{"Kine", true, {}, OutputObjHandlingPolicy::QAObject};
-  HistogramRegistry trackpar{"TrackPar", true, {}, OutputObjHandlingPolicy::QAObject};
-  HistogramRegistry its{"ITS", true, {}, OutputObjHandlingPolicy::QAObject};
-  HistogramRegistry tpc{"TPC", true, {}, OutputObjHandlingPolicy::QAObject};
-
-  //HistogramRegistry trd{"TRD", true, {}, OutputObjHandlingPolicy::QAObject};
-  //HistogramRegistry tof{"TOF", true, {}, OutputObjHandlingPolicy::QAObject};
-  //HistogramRegistry emcal{"EMCAL", true, {}, OutputObjHandlingPolicy::QAObject};
+  HistogramRegistry histos{"Histos", true, {}, OutputObjHandlingPolicy::QAObject};
 
   Configurable<int> selectedTracks{"select", 1, "Choice of track selection. 0 = no selection, 1 = globalTracks, 2 = globalTracksSDD"};
 
   Filter trackFilter = aod::track::isGlobalTrack == true;
-  /*
-  //Function float castFLOAT4(uint8) not supported yet
-  Filter trackFilter = ((0 * aod::track::isGlobalTrack == (float)selectedTracks) ||
-                        (1 * aod::track::isGlobalTrack == (float)selectedTracks) ||
-                        (2 * aod::track::isGlobalTrackSDD == (float)selectedTracks) ||
-                        (3 * aod::track::isGlobalTrackwTOF == (float)selectedTracks));
-  */
 
   void init(o2::framework::InitContext&)
   {
@@ -66,83 +52,77 @@ struct TrackQATask {
                                      1.1, 1.2, 1.3, 1.4, 1.5, 2.0, 5.0, 10.0, 20.0, 50.0};
 
     // kine histograms
-    kine.add("pt", "#it{p}_{T};#it{p}_{T} [GeV/c]", kTH1D, {{ptBinning}});
-    kine.add("eta", "#eta;#eta", kTH1D, {{180, -0.9, 0.9}});
-    kine.add("phi", "#phi;#phi [rad]", kTH1D, {{180, 0., 2 * M_PI}});
+    histos.add("Kine/pt", "#it{p}_{T};#it{p}_{T} [GeV/c]", kTH1D, {{ptBinning}});
+    histos.add("Kine/eta", "#eta;#eta", kTH1D, {{180, -0.9, 0.9}});
+    histos.add("Kine/phi", "#phi;#phi [rad]", kTH1D, {{180, 0., 2 * M_PI}});
 
     // track histograms
-    trackpar.add("x", "track #it{x} position at dca in local coordinate system;#it{x} [cm]", kTH1D, {{200, -0.36, 0.36}});
-    trackpar.add("y", "track #it{y} position at dca in local coordinate system;#it{y} [cm]", kTH1D, {{200, -0.5, 0.5}});
-    trackpar.add("z", "track #it{z} position at dca in local coordinate system;#it{z} [cm]", kTH1D, {{200, -11., 11.}});
-    trackpar.add("alpha", "rotation angle of local wrt. global coordinate system;#alpha [rad]", kTH1D, {{36, -M_PI, M_PI}});
-    trackpar.add("signed1Pt", "track signed 1/#it{p}_{T};#it{q}/#it{p}_{T}", kTH1D, {{200, -8, 8}});
-    trackpar.add("snp", "sinus of track momentum azimuthal angle;snp", kTH1D, {{11, -0.1, 0.1}});
-    trackpar.add("tgl", "tangent of the track momentum dip angle;tgl;", kTH1D, {{200, -1., 1.}});
-    trackpar.add("flags", "track flag;flag bit", kTH1D, {{64, -0.5, 63.5}});
-    trackpar.add("dcaXY", "distance of closest approach in #it{xy} plane;#it{dcaXY} [cm];", kTH1D, {{200, -0.15, 0.15}});
-    trackpar.add("dcaZ", "distance of closest approach in #it{z};#it{dcaZ} [cm];", kTH1D, {{200, -0.15, 0.15}});
+    histos.add("TrackPar/x", "track #it{x} position at dca in local coordinate system;#it{x} [cm]", kTH1D, {{200, -0.36, 0.36}});
+    histos.add("TrackPar/y", "track #it{y} position at dca in local coordinate system;#it{y} [cm]", kTH1D, {{200, -0.5, 0.5}});
+    histos.add("TrackPar/z", "track #it{z} position at dca in local coordinate system;#it{z} [cm]", kTH1D, {{200, -11., 11.}});
+    histos.add("TrackPar/alpha", "rotation angle of local wrt. global coordinate system;#alpha [rad]", kTH1D, {{36, -M_PI, M_PI}});
+    histos.add("TrackPar/signed1Pt", "track signed 1/#it{p}_{T};#it{q}/#it{p}_{T}", kTH1D, {{200, -8, 8}});
+    histos.add("TrackPar/snp", "sinus of track momentum azimuthal angle;snp", kTH1D, {{11, -0.1, 0.1}});
+    histos.add("TrackPar/tgl", "tangent of the track momentum dip angle;tgl;", kTH1D, {{200, -1., 1.}});
+    histos.add("TrackPar/flags", "track flag;flag bit", kTH1D, {{64, -0.5, 63.5}});
+    histos.add("TrackPar/dcaXY", "distance of closest approach in #it{xy} plane;#it{dcaXY} [cm];", kTH1D, {{200, -0.15, 0.15}});
+    histos.add("TrackPar/dcaZ", "distance of closest approach in #it{z};#it{dcaZ} [cm];", kTH1D, {{200, -0.15, 0.15}});
 
     // its histograms
-    its.add("itsNCls", "number of found ITS clusters;# clusters ITS", kTH1D, {{8, -0.5, 7.5}});
-    its.add("itsChi2NCl", "chi2 per ITS cluster;chi2 / cluster ITS", kTH1D, {{100, 0, 40}});
-    its.add("itsHits", "hitmap ITS;layer ITS", kTH1D, {{7, -0.5, 6.5}});
+    histos.add("ITS/itsNCls", "number of found ITS clusters;# clusters ITS", kTH1D, {{8, -0.5, 7.5}});
+    histos.add("ITS/itsChi2NCl", "chi2 per ITS cluster;chi2 / cluster ITS", kTH1D, {{100, 0, 40}});
+    histos.add("ITS/itsHits", "hitmap ITS;layer ITS", kTH1D, {{7, -0.5, 6.5}});
 
     // tpc histograms
-    tpc.add("tpcNClsFindable", "number of findable TPC clusters;# findable clusters TPC", kTH1D, {{165, -0.5, 164.5}});
-    tpc.add("tpcNClsFound", "number of found TPC clusters;# clusters TPC", kTH1D, {{165, -0.5, 164.5}});
-    tpc.add("tpcNClsShared", "number of shared TPC clusters;# shared clusters TPC", kTH1D, {{165, -0.5, 164.5}});
-    tpc.add("tpcNClsCrossedRows", "number of crossed TPC rows;# crossed rows TPC", kTH1D, {{165, -0.5, 164.5}});
-    tpc.add("tpcFractionSharedCls", "fraction of shared TPC clusters;fraction shared clusters TPC", kTH1D, {{100, 0., 1.}});
-    tpc.add("tpcCrossedRowsOverFindableCls", "crossed TPC rows over findable clusters;crossed rows / findable clusters TPC", kTH1D, {{120, 0.0, 1.2}});
-    tpc.add("tpcChi2NCl", "chi2 per cluster in TPC;chi2 / cluster TPC", kTH1D, {{100, 0, 10}});
+    histos.add("TPC/tpcNClsFindable", "number of findable TPC clusters;# findable clusters TPC", kTH1D, {{165, -0.5, 164.5}});
+    histos.add("TPC/tpcNClsFound", "number of found TPC clusters;# clusters TPC", kTH1D, {{165, -0.5, 164.5}});
+    histos.add("TPC/tpcNClsShared", "number of shared TPC clusters;# shared clusters TPC", kTH1D, {{165, -0.5, 164.5}});
+    histos.add("TPC/tpcNClsCrossedRows", "number of crossed TPC rows;# crossed rows TPC", kTH1D, {{165, -0.5, 164.5}});
+    histos.add("TPC/tpcFractionSharedCls", "fraction of shared TPC clusters;fraction shared clusters TPC", kTH1D, {{100, 0., 1.}});
+    histos.add("TPC/tpcCrossedRowsOverFindableCls", "crossed TPC rows over findable clusters;crossed rows / findable clusters TPC", kTH1D, {{120, 0.0, 1.2}});
+    histos.add("TPC/tpcChi2NCl", "chi2 per cluster in TPC;chi2 / cluster TPC", kTH1D, {{100, 0, 10}});
   }
 
   void process(soa::Filtered<soa::Join<aod::FullTracks, aod::TracksExtended, aod::TrackSelection>>::iterator const& track)
   {
     // fill kinematic variables
-    kine.fill("pt", track.pt());
-    kine.fill("eta", track.eta());
-    kine.fill("phi", track.phi());
+    histos.fill("Kine/pt", track.pt());
+    histos.fill("Kine/eta", track.eta());
+    histos.fill("Kine/phi", track.phi());
 
     // fill track parameters
-    trackpar.fill("alpha", track.alpha());
-    trackpar.fill("x", track.x());
-    trackpar.fill("y", track.y());
-    trackpar.fill("z", track.z());
-    trackpar.fill("signed1Pt", track.signed1Pt());
-    trackpar.fill("snp", track.snp());
-    trackpar.fill("tgl", track.tgl());
+    histos.fill("TrackPar/alpha", track.alpha());
+    histos.fill("TrackPar/x", track.x());
+    histos.fill("TrackPar/y", track.y());
+    histos.fill("TrackPar/z", track.z());
+    histos.fill("TrackPar/signed1Pt", track.signed1Pt());
+    histos.fill("TrackPar/snp", track.snp());
+    histos.fill("TrackPar/tgl", track.tgl());
     for (unsigned int i = 0; i < 64; i++) {
       if (track.flags() & (1 << i)) {
-        trackpar.fill("flags", i);
+        histos.fill("TrackPar/flags", i);
       }
     }
-    trackpar.fill("dcaXY", track.dcaXY());
-    trackpar.fill("dcaZ", track.dcaZ());
+    histos.fill("TrackPar/dcaXY", track.dcaXY());
+    histos.fill("TrackPar/dcaZ", track.dcaZ());
 
     // fill ITS variables
-    its.fill("itsNCls", track.itsNCls());
-    its.fill("itsChi2NCl", track.itsChi2NCl());
+    histos.fill("ITS/itsNCls", track.itsNCls());
+    histos.fill("ITS/itsChi2NCl", track.itsChi2NCl());
     for (unsigned int i = 0; i < 7; i++) {
       if (track.itsClusterMap() & (1 << i)) {
-        its.fill("itsHits", i);
+        histos.fill("ITS/itsHits", i);
       }
     }
 
     // fill TPC variables
-    tpc.fill("tpcNClsFindable", track.tpcNClsFindable());
-    tpc.fill("tpcNClsFound", track.tpcNClsFound());
-    tpc.fill("tpcNClsShared", track.tpcNClsShared());
-    tpc.fill("tpcNClsCrossedRows", track.tpcNClsCrossedRows());
-    tpc.fill("tpcCrossedRowsOverFindableCls", track.tpcCrossedRowsOverFindableCls());
-    tpc.fill("tpcFractionSharedCls", track.tpcFractionSharedCls());
-    tpc.fill("tpcChi2NCl", track.tpcChi2NCl());
-
-    // fill TRD variables
-
-    // fill TOF variables
-
-    // fill EMCAL variables
+    histos.fill("TPC/tpcNClsFindable", track.tpcNClsFindable());
+    histos.fill("TPC/tpcNClsFound", track.tpcNClsFound());
+    histos.fill("TPC/tpcNClsShared", track.tpcNClsShared());
+    histos.fill("TPC/tpcNClsCrossedRows", track.tpcNClsCrossedRows());
+    histos.fill("TPC/tpcCrossedRowsOverFindableCls", track.tpcCrossedRowsOverFindableCls());
+    histos.fill("TPC/tpcFractionSharedCls", track.tpcFractionSharedCls());
+    histos.fill("TPC/tpcChi2NCl", track.tpcChi2NCl());
   }
 };
 
