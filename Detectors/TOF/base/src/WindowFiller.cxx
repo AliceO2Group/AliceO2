@@ -107,6 +107,20 @@ void WindowFiller::fillDigitsInStrip(std::vector<Strip>* strips, int channel, in
   (*strips)[istrip].addDigit(channel, tdc, tot, nbc, 0, triggerorbit, triggerbunch);
 }
 //______________________________________________________________________
+void WindowFiller::addCrateHeaderData(ulong orbit, int crate, int32_t bc, uint32_t eventCounter) {
+  if(orbit < mFirstIR.orbit) return;
+  orbit -= mFirstIR.orbit;
+
+  orbit *= Geo::NWINDOW_IN_ORBIT; // move from orbit to N readout window
+  orbit += (bc + 100) / Geo::BC_IN_WINDOW; // select readout window in the orbit according to the BC (100 shift to avoid border effects)
+
+  if(mCrateHeaderData.size() < orbit+1)
+    mCrateHeaderData.resize(orbit+1);
+
+  mCrateHeaderData[orbit].bc[crate] = bc;
+  mCrateHeaderData[orbit].eventCounter[crate] = eventCounter;
+}
+//______________________________________________________________________
 void WindowFiller::fillOutputContainer(std::vector<Digit>& digits)
 {
   if (mContinuous) {
@@ -122,8 +136,22 @@ void WindowFiller::fillOutputContainer(std::vector<Digit>& digits)
     int first = mDigitsPerTimeFrame.size();
     int ne = digits.size();
     ReadoutWindowData info(first, ne);
-    int orbit_shift = mReadoutWindowData.size() / 3;
-    int bc_shift = (mReadoutWindowData.size() % 3) * Geo::BC_IN_WINDOW;
+    int orbit_shift = mReadoutWindowData.size() / Geo::NWINDOW_IN_ORBIT;
+
+    int bc_shift = -1;
+    if(mReadoutWindowData.size() >= mCrateHeaderData.size())
+      bc_shift = (mReadoutWindowData.size() % Geo::NWINDOW_IN_ORBIT) * Geo::BC_IN_WINDOW; // insert default value
+    else{
+      ulong irow = mReadoutWindowData.size();
+      for(int icrate=0; icrate < Geo::kNCrate; icrate++){
+        if(mCrateHeaderData[irow].bc[icrate] == -1){ // crate not read
+           continue;
+        }
+        if(bc_shift == -1 || mCrateHeaderData[irow].bc[icrate] < bc_shift) bc_shift = mCrateHeaderData[irow].bc[icrate];
+      }
+      if(bc_shift == -1) bc_shift = (mReadoutWindowData.size() % Geo::NWINDOW_IN_ORBIT) * Geo::BC_IN_WINDOW; // insert default value
+    }
+
     info.setBCData(mFirstIR.orbit + orbit_shift, mFirstIR.bc + bc_shift);
     int firstPattern = mPatterns.size();
     int npatterns = 0;
