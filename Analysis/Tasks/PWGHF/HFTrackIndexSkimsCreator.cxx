@@ -146,15 +146,17 @@ struct HFTrackIndexSkimsCreator {
   Configurable<double> d_minparamchange{"d_minparamchange", 1.e-3, "stop iterations if largest change of any X is smaller than this"};
   Configurable<double> d_minrelchi2change{"d_minrelchi2change", 0.9, "stop iterations if chi2/chi2old > this"};
   // 2-prong cuts
-  Configurable<double> ptmincand_2prong{"ptmincand_2prong", -1., "ptmin 2prong candidate"};
-  Configurable<double> cutCPAMin{"cutCPAMin", -2., "min. cosine of pointing angle"};
-  Configurable<double> cutInvMassD0Min{"cutInvMassD0Min", -1., "min. D0 candidate invariant mass"};
-  Configurable<double> cutInvMassD0Max{"cutInvMassD0Max", -1., "max. D0 candidate invariant mass"};
-  Configurable<double> cutImpParProductMax{"cutImpParProductMax", 100., "max. product of imp. par. of D0 candidate prongs"};
+  Configurable<double> cut2ProngPtCandMin{"cut2ProngPtCandMin", -1., "min. pT of the 2-prong candidate"};
+  Configurable<double> cut2ProngInvMassD0Min{"cut2ProngInvMassD0Min", -1., "min. D0 candidate invariant mass"};
+  Configurable<double> cut2ProngInvMassD0Max{"cut2ProngInvMassD0Max", -1., "max. D0 candidate invariant mass"};
+  Configurable<double> cut2ProngCPAMin{"cut2ProngCPAMin", -2., "min. cosine of pointing angle"};
+  Configurable<double> cut2ProngImpParProductMax{"cut2ProngImpParProductMax", 100., "max. product of imp. par. of D0 candidate prongs"};
   // 3-prong cuts
-  Configurable<double> ptmincand_3prong{"ptmincand_3prong", -1., "ptmin 3prong candidate"};
-  Configurable<double> d_minmassDp{"d_minmassDp", 1.5, "min. D+ candidate invariant mass"};
-  Configurable<double> d_maxmassDp{"d_maxmassDp", 2.1, "min. D+ candidate invariant mass"};
+  Configurable<double> cut3ProngPtCandMin{"cut3ProngPtCandMin", -1., "min. pT of the 3-prong candidate"};
+  Configurable<double> cut3ProngInvMassDPlusMin{"cut3ProngInvMassDPlusMin", 1.5, "min. D+ candidate invariant mass"};
+  Configurable<double> cut3ProngInvMassDPlusMax{"cut3ProngInvMassDPlusMax", 2.1, "min. D+ candidate invariant mass"};
+  Configurable<double> cut3ProngCPAMin{"cut3ProngCPAMin", -2., "min. cosine of pointing angle"};
+  Configurable<double> cut3ProngDecLenMin{"cut3ProngDecLenMin", -1., "min. decay length"};
 
   // 2-prong histograms
   OutputObj<TH1F> hvtx2_x{TH1F("hvtx2_x", "2-prong candidates;#it{x}_{sec. vtx.} (cm);entries", 1000, -2., 2.)};
@@ -193,14 +195,14 @@ struct HFTrackIndexSkimsCreator {
     }
 
     // 2-prong vertex fitter
-    o2::vertexing::DCAFitterN<2> df;
-    df.setBz(d_bz);
-    df.setPropagateToPCA(b_propdca);
-    df.setMaxR(d_maxr);
-    df.setMaxDZIni(d_maxdzini);
-    df.setMinParamChange(d_minparamchange);
-    df.setMinRelChi2Change(d_minrelchi2change);
-    df.setUseAbsDCA(true);
+    o2::vertexing::DCAFitterN<2> df2;
+    df2.setBz(d_bz);
+    df2.setPropagateToPCA(b_propdca);
+    df2.setMaxR(d_maxr);
+    df2.setMaxDZIni(d_maxdzini);
+    df2.setMinParamChange(d_minparamchange);
+    df2.setMinRelChi2Change(d_minrelchi2change);
+    df2.setUseAbsDCA(true);
 
     // 3-prong vertex fitter
     o2::vertexing::DCAFitterN<3> df3;
@@ -229,47 +231,46 @@ struct HFTrackIndexSkimsCreator {
         }
 
         auto trackParVarNeg1 = getTrackParCov(trackNeg1);
-        auto pVecCand = array{trackPos1.px() + trackNeg1.px(),
-                              trackPos1.py() + trackNeg1.py(),
-                              trackPos1.pz() + trackNeg1.pz()};
-        bool isSelectedCandD0 = true;
+        auto pVecCandProng2 = array{trackPos1.px() + trackNeg1.px(),
+                                    trackPos1.py() + trackNeg1.py(),
+                                    trackPos1.pz() + trackNeg1.pz()};
+        bool isSelectedCand2Prong = true;
 
         // pT cand cut
-        double pt_Cand_before2vertex = RecoDecay::Pt(pVecCand);
-        if (pt_Cand_before2vertex < ptmincand_2prong) {
-          isSelectedCandD0 = false;
+        if (RecoDecay::Pt(pVecCandProng2) < cut2ProngPtCandMin) {
+          isSelectedCand2Prong = false;
         }
 
-        if (isSelectedCandD0) {
+        if (isSelectedCand2Prong) {
           // reconstruct the 2-prong secondary vertex
-          if (df.process(trackParVarPos1, trackParVarNeg1) == 0) {
+          if (df2.process(trackParVarPos1, trackParVarNeg1) == 0) {
             continue;
           }
 
           // imp. par. product cut
-          if (isSelectedCandD0 && cutImpParProductMax < 100.) {
-            if (trackPos1.dcaPrim0() * trackNeg1.dcaPrim0() > cutImpParProductMax) {
-              isSelectedCandD0 = false;
+          if (isSelectedCand2Prong && cut2ProngImpParProductMax < 100.) {
+            if (trackPos1.dcaPrim0() * trackNeg1.dcaPrim0() > cut2ProngImpParProductMax) {
+              isSelectedCand2Prong = false;
             }
           }
 
           // get secondary vertex
-          const auto& secondaryVertex = df.getPCACandidate();
+          const auto& secondaryVertex2 = df2.getPCACandidate();
 
           // CPA cut
-          if (isSelectedCandD0 && cutCPAMin > -2.) {
-            auto cpa = RecoDecay::CPA(array{collision.posX(), collision.posY(), collision.posZ()}, secondaryVertex, pVecCand);
-            if (cpa < cutCPAMin) {
-              isSelectedCandD0 = false;
+          if (isSelectedCand2Prong && cut2ProngCPAMin > -2.) {
+            auto cpa = RecoDecay::CPA(array{collision.posX(), collision.posY(), collision.posZ()}, secondaryVertex2, pVecCandProng2);
+            if (cpa < cut2ProngCPAMin) {
+              isSelectedCand2Prong = false;
             }
           }
 
-          if (isSelectedCandD0) {
+          if (isSelectedCand2Prong) {
             // get track momenta
             array<float, 3> pvec0;
             array<float, 3> pvec1;
-            df.getTrack(0).getPxPyPzGlo(pvec0);
-            df.getTrack(1).getPxPyPzGlo(pvec1);
+            df2.getTrack(0).getPxPyPzGlo(pvec0);
+            df2.getTrack(1).getPxPyPzGlo(pvec1);
             // calculate invariant masses
             auto arrMom = array{pvec0, pvec1};
             mass2PiK = RecoDecay::M(arrMom, array{massPi, massK});
@@ -277,23 +278,23 @@ struct HFTrackIndexSkimsCreator {
           }
 
           // invariant-mass cut
-          if (isSelectedCandD0 && cutInvMassD0Min >= 0. && cutInvMassD0Max > 0.) {
-            if ((mass2PiK < cutInvMassD0Min || mass2PiK > cutInvMassD0Max) &&
-                (mass2KPi < cutInvMassD0Min || mass2KPi > cutInvMassD0Max)) {
-              isSelectedCandD0 = false;
+          if (isSelectedCand2Prong && cut2ProngInvMassD0Min >= 0. && cut2ProngInvMassD0Max > 0.) {
+            if ((mass2PiK < cut2ProngInvMassD0Min || mass2PiK > cut2ProngInvMassD0Max) &&
+                (mass2KPi < cut2ProngInvMassD0Min || mass2KPi > cut2ProngInvMassD0Max)) {
+              isSelectedCand2Prong = false;
             }
           }
 
-          if (isSelectedCandD0) {
+          if (isSelectedCand2Prong) {
             // fill table row
             rowTrackIndexProng2(trackPos1.globalIndex(),
                                 trackNeg1.globalIndex(), 1);
 
             // fill histograms
             if (b_dovalplots) {
-              hvtx2_x->Fill(secondaryVertex[0]);
-              hvtx2_y->Fill(secondaryVertex[1]);
-              hvtx2_z->Fill(secondaryVertex[2]);
+              hvtx2_x->Fill(secondaryVertex2[0]);
+              hvtx2_y->Fill(secondaryVertex2[1]);
+              hvtx2_z->Fill(secondaryVertex2[2]);
               hmass2->Fill(mass2PiK);
               hmass2->Fill(mass2KPi);
             }
@@ -319,52 +320,72 @@ struct HFTrackIndexSkimsCreator {
               continue;
             }
 
-            // calculate invariant mass
-            auto arr3Mom = array{
-              array{trackPos1.px(), trackPos1.py(), trackPos1.pz()},
-              array{trackNeg1.px(), trackNeg1.py(), trackNeg1.pz()},
-              array{trackPos2.px(), trackPos2.py(), trackPos2.pz()}};
-            mass3PiKPi = RecoDecay::M(std::move(arr3Mom), array{massPi, massK, massPi});
+            auto pVecCandProng3Pos = RecoDecay::PVec(pVecCandProng2, array{trackPos2.px(), trackPos2.py(), trackPos2.pz()});
 
-            if (mass3PiKPi < d_minmassDp || mass3PiKPi > d_maxmassDp) {
+            // pT cand cut
+            if (RecoDecay::Pt(pVecCandProng3Pos) < cut3ProngPtCandMin) {
               continue;
             }
 
-            double pt_Cand3_before2vertex = RecoDecay::Pt(trackPos1.px() + trackNeg1.px() + trackPos2.px(),
-                                                          trackPos1.py() + trackNeg1.py() + trackPos2.py());
-
-            if (pt_Cand3_before2vertex >= ptmincand_3prong) {
-              // reconstruct the 3-prong secondary vertex
-              auto trackParVarPos2 = getTrackParCov(trackPos2);
-              if (df3.process(trackParVarPos1, trackParVarNeg1, trackParVarPos2) == 0) {
+            // invariant-mass cut
+            if (cut3ProngInvMassDPlusMin >= 0. && cut3ProngInvMassDPlusMax > 0.) {
+              // calculate invariant mass
+              auto arr3Mom = array{
+                array{trackPos1.px(), trackPos1.py(), trackPos1.pz()},
+                array{trackNeg1.px(), trackNeg1.py(), trackNeg1.pz()},
+                array{trackPos2.px(), trackPos2.py(), trackPos2.pz()}};
+              mass3PiKPi = RecoDecay::M(std::move(arr3Mom), array{massPi, massK, massPi});
+              if (mass3PiKPi < cut3ProngInvMassDPlusMin || mass3PiKPi > cut3ProngInvMassDPlusMax) {
                 continue;
               }
+            }
 
-              // fill table row
-              rowTrackIndexProng3(trackPos1.globalIndex(),
-                                  trackNeg1.globalIndex(),
-                                  trackPos2.globalIndex(), 2);
+            // reconstruct the 3-prong secondary vertex
+            auto trackParVarPos2 = getTrackParCov(trackPos2);
+            if (df3.process(trackParVarPos1, trackParVarNeg1, trackParVarPos2) == 0) {
+              continue;
+            }
 
-              // fill histograms
-              if (b_dovalplots) {
-                // get secondary vertex
-                const auto& secondaryVertex3 = df3.getPCACandidate();
-                hvtx3_x->Fill(secondaryVertex3[0]);
-                hvtx3_y->Fill(secondaryVertex3[1]);
-                hvtx3_z->Fill(secondaryVertex3[2]);
+            // get secondary vertex
+            const auto& secondaryVertex3 = df3.getPCACandidate();
 
-                // get track momenta
-                array<float, 3> pvec0;
-                array<float, 3> pvec1;
-                array<float, 3> pvec2;
-                df3.getTrack(0).getPxPyPzGlo(pvec0);
-                df3.getTrack(1).getPxPyPzGlo(pvec1);
-                df3.getTrack(2).getPxPyPzGlo(pvec2);
-
-                // calculate invariant mass
-                arr3Mom = array{pvec0, pvec1, pvec2};
-                hmass3->Fill(RecoDecay::M(std::move(arr3Mom), array{massPi, massK, massPi}));
+            // CPA cut
+            if (cut3ProngCPAMin > -2.) {
+              auto cpa = RecoDecay::CPA(array{collision.posX(), collision.posY(), collision.posZ()}, secondaryVertex3, pVecCandProng3Pos);
+              if (cpa < cut3ProngCPAMin) {
+                continue;
               }
+            }
+
+            // decay length cut
+            if (cut3ProngDecLenMin > 0.) {
+              auto decayLength = RecoDecay::distance(array{collision.posX(), collision.posY(), collision.posZ()}, secondaryVertex3);
+              if (decayLength < cut3ProngDecLenMin) {
+                continue;
+              }
+            }
+
+            // fill table row
+            rowTrackIndexProng3(trackPos1.globalIndex(),
+                                trackNeg1.globalIndex(),
+                                trackPos2.globalIndex(), 2);
+
+            // fill histograms
+            if (b_dovalplots) {
+              hvtx3_x->Fill(secondaryVertex3[0]);
+              hvtx3_y->Fill(secondaryVertex3[1]);
+              hvtx3_z->Fill(secondaryVertex3[2]);
+
+              // get track momenta
+              array<float, 3> pvec0;
+              array<float, 3> pvec1;
+              array<float, 3> pvec2;
+              df3.getTrack(0).getPxPyPzGlo(pvec0);
+              df3.getTrack(1).getPxPyPzGlo(pvec1);
+              df3.getTrack(2).getPxPyPzGlo(pvec2);
+
+              // calculate invariant mass
+              hmass3->Fill(RecoDecay::M(array{pvec0, pvec1, pvec2}, array{massPi, massK, massPi}));
             }
           }
 
@@ -378,52 +399,72 @@ struct HFTrackIndexSkimsCreator {
               continue;
             }
 
-            // calculate invariant mass
-            auto arr3Mom = array{
-              array{trackNeg1.px(), trackNeg1.py(), trackNeg1.pz()},
-              array{trackPos1.px(), trackPos1.py(), trackPos1.pz()},
-              array{trackNeg2.px(), trackNeg2.py(), trackNeg2.pz()}};
-            mass3PiKPi = RecoDecay::M(std::move(arr3Mom), array{massPi, massK, massPi});
+            auto pVecCandProng3Neg = RecoDecay::PVec(pVecCandProng2, array{trackNeg2.px(), trackNeg2.py(), trackNeg2.pz()});
 
-            if (mass3PiKPi < d_minmassDp || mass3PiKPi > d_maxmassDp) {
+            // pT cand cut
+            if (RecoDecay::Pt(pVecCandProng3Neg) < cut3ProngPtCandMin) {
               continue;
             }
 
-            double pt_Cand3_before2vertex = RecoDecay::Pt(trackPos1.px() + trackNeg1.px() + trackNeg2.px(),
-                                                          trackPos1.py() + trackNeg1.py() + trackNeg2.py());
-
-            if (pt_Cand3_before2vertex >= ptmincand_3prong) {
-              // reconstruct the 3-prong secondary vertex
-              auto trackParVarNeg2 = getTrackParCov(trackNeg2);
-              if (df3.process(trackParVarNeg1, trackParVarPos1, trackParVarNeg2) == 0) {
+            // invariant-mass cut
+            if (cut3ProngInvMassDPlusMin >= 0. && cut3ProngInvMassDPlusMax > 0.) {
+              // calculate invariant mass
+              auto arr3Mom = array{
+                array{trackNeg1.px(), trackNeg1.py(), trackNeg1.pz()},
+                array{trackPos1.px(), trackPos1.py(), trackPos1.pz()},
+                array{trackNeg2.px(), trackNeg2.py(), trackNeg2.pz()}};
+              mass3PiKPi = RecoDecay::M(std::move(arr3Mom), array{massPi, massK, massPi});
+              if (mass3PiKPi < cut3ProngInvMassDPlusMin || mass3PiKPi > cut3ProngInvMassDPlusMax) {
                 continue;
               }
+            }
 
-              // fill table row
-              rowTrackIndexProng3(trackNeg1.globalIndex(),
-                                  trackPos1.globalIndex(),
-                                  trackNeg2.globalIndex(), 2);
+            // reconstruct the 3-prong secondary vertex
+            auto trackParVarNeg2 = getTrackParCov(trackNeg2);
+            if (df3.process(trackParVarNeg1, trackParVarPos1, trackParVarNeg2) == 0) {
+              continue;
+            }
 
-              // fill histograms
-              if (b_dovalplots) {
-                // get secondary vertex
-                const auto& secondaryVertex3 = df3.getPCACandidate();
-                hvtx3_x->Fill(secondaryVertex3[0]);
-                hvtx3_y->Fill(secondaryVertex3[1]);
-                hvtx3_z->Fill(secondaryVertex3[2]);
+            // get secondary vertex
+            const auto& secondaryVertex3 = df3.getPCACandidate();
 
-                // get track momenta
-                array<float, 3> pvec0;
-                array<float, 3> pvec1;
-                array<float, 3> pvec2;
-                df3.getTrack(0).getPxPyPzGlo(pvec0);
-                df3.getTrack(1).getPxPyPzGlo(pvec1);
-                df3.getTrack(2).getPxPyPzGlo(pvec2);
-
-                // calculate invariant mass
-                arr3Mom = array{pvec0, pvec1, pvec2};
-                hmass3->Fill(RecoDecay::M(std::move(arr3Mom), array{massPi, massK, massPi}));
+            // CPA cut
+            if (cut3ProngCPAMin > -2.) {
+              auto cpa = RecoDecay::CPA(array{collision.posX(), collision.posY(), collision.posZ()}, secondaryVertex3, pVecCandProng3Neg);
+              if (cpa < cut3ProngCPAMin) {
+                continue;
               }
+            }
+
+            // decay length cut
+            if (cut3ProngDecLenMin > 0.) {
+              auto decayLength = RecoDecay::distance(array{collision.posX(), collision.posY(), collision.posZ()}, secondaryVertex3);
+              if (decayLength < cut3ProngDecLenMin) {
+                continue;
+              }
+            }
+
+            // fill table row
+            rowTrackIndexProng3(trackNeg1.globalIndex(),
+                                trackPos1.globalIndex(),
+                                trackNeg2.globalIndex(), 2);
+
+            // fill histograms
+            if (b_dovalplots) {
+              hvtx3_x->Fill(secondaryVertex3[0]);
+              hvtx3_y->Fill(secondaryVertex3[1]);
+              hvtx3_z->Fill(secondaryVertex3[2]);
+
+              // get track momenta
+              array<float, 3> pvec0;
+              array<float, 3> pvec1;
+              array<float, 3> pvec2;
+              df3.getTrack(0).getPxPyPzGlo(pvec0);
+              df3.getTrack(1).getPxPyPzGlo(pvec1);
+              df3.getTrack(2).getPxPyPzGlo(pvec2);
+
+              // calculate invariant mass
+              hmass3->Fill(RecoDecay::M(array{pvec0, pvec1, pvec2}, array{massPi, massK, massPi}));
             }
           }
         }

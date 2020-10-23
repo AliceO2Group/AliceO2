@@ -36,7 +36,8 @@ struct TaskDPlus {
   OutputObj<TH1F> hd0Prong0{TH1F("hd0Prong0", "3-prong candidates;prong 0 DCAxy to prim. vertex (cm);entries", 100, -1., 1.)};
   OutputObj<TH1F> hd0Prong1{TH1F("hd0Prong1", "3-prong candidates;prong 1 DCAxy to prim. vertex (cm);entries", 100, -1., 1.)};
   OutputObj<TH1F> hd0Prong2{TH1F("hd0Prong2", "3-prong candidates;prong 2 DCAxy to prim. vertex (cm);entries", 100, -1., 1.)};
-  OutputObj<TH1F> hCt{TH1F("hCt", "3-prong candidates;proper lifetime * #it{c} (cm);entries", 120, -20., 100.)};
+  OutputObj<TH1F> hCt{TH1F("hCt", "3-prong candidates;proper lifetime (D^{#pm}) * #it{c} (cm);entries", 120, -20., 100.)};
+  OutputObj<TH1F> hCPA{TH1F("hCPA", "3-prong candidates;cosine of pointing angle;entries", 110, -1.1, 1.1)};
   OutputObj<TH1F> hEta{TH1F("hEta", "3-prong candidates;candidate #it{#eta};entries", 100, -2., 2.)};
   //OutputObj<TH1F> hselectionstatus{TH1F("selectionstatus", "3-prong candidates;selection status;entries", 5, -0.5, 4.5)};
   OutputObj<TH1F> hImpParErr{TH1F("hImpParErr", "3-prong candidates;impact parameter error (cm);entries", 100, -1., 1.)};
@@ -62,6 +63,7 @@ struct TaskDPlus {
       hd0Prong1->Fill(candidate.impactParameter1());
       hd0Prong2->Fill(candidate.impactParameter2());
       hCt->Fill(CtDPlus(candidate));
+      hCPA->Fill(candidate.cpa());
       hEta->Fill(candidate.eta());
       //hselectionstatus->Fill(candidate.isSelDPlus());
       hImpParErr->Fill(candidate.errorImpactParameter0());
