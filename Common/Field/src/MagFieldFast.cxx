@@ -240,7 +240,7 @@ bool MagFieldFast::GetSegment(float x, float y, float z, int& zSeg, int& rSeg, i
     }
   }
   if (rSeg == kNSolRRanges) {
-    return kFALSE;
+    return false;
   }
   quadrant = GetQuadrant(x, y);
   return true;

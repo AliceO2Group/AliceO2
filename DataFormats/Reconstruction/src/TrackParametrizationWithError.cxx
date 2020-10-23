@@ -168,7 +168,7 @@ bool TrackParametrizationWithError<value_T>::rotate(value_t alpha)
 {
   // rotate to alpha frame
   if (std::fabs(this->getSnp()) > constants::math::Almost1) {
-    LOGF(WARNING, "Precondition is not satisfied: |sin(phi)|>1 ! {:f}", this->getSnp());
+    LOGP(WARNING, "Precondition is not satisfied: |sin(phi)|>1 ! {:f}", this->getSnp());
     return false;
   }
   //
@@ -180,14 +180,14 @@ bool TrackParametrizationWithError<value_T>::rotate(value_t alpha)
   // RS: check if rotation does no invalidate track model (cos(local_phi)>=0, i.e. particle
   // direction in local frame is along the X axis
   if ((csp * ca + snp * sa) < 0) {
-    //LOGF(WARNING,"Rotation failed: local cos(phi) would become {:.2f}", csp * ca + snp * sa);
+    //LOGP(WARNING,"Rotation failed: local cos(phi) would become {:.2f}", csp * ca + snp * sa);
     return false;
   }
   //
 
   value_t updSnp = snp * ca - csp * sa;
   if (std::fabs(updSnp) > constants::math::Almost1) {
-    LOGF(WARNING, "Rotation failed: new snp {:.2f}", updSnp);
+    LOGP(WARNING, "Rotation failed: new snp {:.2f}", updSnp);
     return false;
   }
   value_t xold = this->getX(), yold = this->getY();
@@ -197,7 +197,7 @@ bool TrackParametrizationWithError<value_T>::rotate(value_t alpha)
   this->setSnp(updSnp);
 
   if (std::fabs(csp) < constants::math::Almost0) {
-    LOGF(WARNING, "Too small cosine value {:f}", csp);
+    LOGP(WARNING, "Too small cosine value {:f}", csp);
     csp = constants::math::Almost0;
   }
 
@@ -429,7 +429,7 @@ bool TrackParametrizationWithError<value_T>::propagateTo(value_t xk, const dim3_
   }
   // Do not propagate tracks outside the ALICE detector
   if (std::fabs(dx) > 1e5 || std::fabs(this->getY()) > 1e5 || std::fabs(this->getZ()) > 1e5) {
-    LOGF(WARNING, "Anomalous track, target X:{:f}", xk);
+    LOGP(WARNING, "Anomalous track, target X:{:f}", xk);
     //    print();
     return false;
   }

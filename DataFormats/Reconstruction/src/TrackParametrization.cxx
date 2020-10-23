@@ -159,7 +159,7 @@ bool TrackParametrization<value_T>::rotateParam(value_t alpha)
 {
   // rotate to alpha frame
   if (std::fabs(getSnp()) > constants::math::Almost1) {
-    LOGF(WARNING, "Precondition is not satisfied: |sin(phi)|>1 ! {:f}", getSnp());
+    LOGP(WARNING, "Precondition is not satisfied: |sin(phi)|>1 ! {:f}", getSnp());
     return false;
   }
   //
@@ -177,7 +177,7 @@ bool TrackParametrization<value_T>::rotateParam(value_t alpha)
   //
   value_t tmp = snp * ca - csp * sa;
   if (std::fabs(tmp) > constants::math::Almost1) {
-    LOGF(WARNING, "Rotation failed: new snp {:.2f}", tmp);
+    LOGP(WARNING, "Rotation failed: new snp {:.2f}", tmp);
     return false;
   }
   value_t xold = getX(), yold = getY();
@@ -205,7 +205,7 @@ bool TrackParametrization<value_T>::propagateParamTo(value_t xk, const dim3_t& b
   }
   // Do not propagate tracks outside the ALICE detector
   if (std::fabs(dx) > 1e5 || std::fabs(getY()) > 1e5 || std::fabs(getZ()) > 1e5) {
-    LOGF(WARNING, "Anomalous track, target X:{:f}", xk);
+    LOGP(WARNING, "Anomalous track, target X:{:f}", xk);
     //    print();
     return false;
   }

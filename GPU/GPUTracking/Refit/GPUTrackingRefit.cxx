@@ -252,11 +252,11 @@ GPUd() int GPUTrackingRefit::RefitTrack(T& trkX, bool outward, bool resetCov)
   int start = outward ? count - 1 : begin;
   int stop = outward ? begin - 1 : count;
   const ClusterNative* cl = nullptr;
-  uint8_t sector, row, currentSector, currentRow;
-  short clusterState, nextState;
+  uint8_t sector, row = 0, currentSector = 0, currentRow = 0;
+  short clusterState = 0, nextState;
   int nFitted = 0;
   for (int i = start; i != stop; i += cl ? 0 : direction) {
-    float x, y, z, charge;
+    float x, y, z, charge = 0.f;
     int clusters = 0;
     while (true) {
       if (!cl) {
