@@ -30,6 +30,7 @@ o2_target_root_dictionary(
           include/MathUtils/Chebyshev3DCalc.h
           include/MathUtils/fit.h
           include/MathUtils/Cartesian.h
+          include/MathUtils/CartesianGPU.h
           include/MathUtils/CachingTF1.h
           include/MathUtils/RandomRing.h
           include/MathUtils/Primitive2D.h)
