@@ -26,11 +26,16 @@
 #include "ReconstructionDataFormats/TrackParametrizationWithError.h"
 #include "ReconstructionDataFormats/Vertex.h"
 #include "ReconstructionDataFormats/DCA.h"
-#include <FairLogger.h>
-#include <iostream>
+#include <GPUCommonLogger.h>
 #include "Math/SMatrix.h"
+
+#ifndef GPUCA_GPUCODE_DEVICE
+#include <iostream>
+#endif
+
+#ifndef GPUCA_ALIGPUCODE
 #include <fmt/printf.h>
-#include "Framework/Logger.h"
+#endif
 
 namespace o2
 {
