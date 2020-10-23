@@ -94,7 +94,7 @@ int runTPCRefit(TString trackFile = "tpctracks.root", TString clusterFile = "tpc
       if (retval < 0) {
         std::cout << "Refit as GPU track failed " << retval << "\n";
       } else {
-        std::cout << "Succeeded using " << retval << " hits\n";
+        std::cout << "Succeeded using " << retval << " hits (chi2 = " << trk.getChi2() << ")\n";
         trk.print();
       }
       trk = (*tracks)[i];
@@ -103,17 +103,18 @@ int runTPCRefit(TString trackFile = "tpctracks.root", TString clusterFile = "tpc
       if (retval < 0) {
         std::cout << "Refit as TrackParCov track failed " << retval << "\n";
       } else {
-        std::cout << "Succeeded using " << retval << " hits\n";
+        std::cout << "Succeeded using " << retval << " hits (chi2 = " << trk.getChi2() << ")\n";
         trk.print();
       }
       trk = (*tracks)[i];
       TrackParCov trkX = trk;
+      float chi2 = trk.getChi2();
       std::cout << "Refitting as TrackParCov track with TrackParCov input\n";
-      retval = refit.RefitTrackAsTrackParCov(trkX, trk.getClusterRef(), trk.getTime0(), false, true);
+      retval = refit.RefitTrackAsTrackParCov(trkX, trk.getClusterRef(), trk.getTime0(), &chi2, false, true);
       if (retval < 0) {
         std::cout << "Refit as TrackParCov track failed " << retval << "\n";
       } else {
-        std::cout << "Succeeded using " << retval << " hits\n";
+        std::cout << "Succeeded using " << retval << " hits (chi2 = " << chi2 << ")\n";
         trkX.print();
       }
     }
