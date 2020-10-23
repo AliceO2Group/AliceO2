@@ -189,6 +189,8 @@ void CompressedDecodingTask::trailerHandler(const CrateHeader_t* crateHeader, co
     mNCrateCloseTF++;
   }
 
+  mDecoder.addCrateHeaderData(crateOrbit->orbitID,  crateHeader->drmID, crateHeader->bunchID, crateTrailer->eventCounter);
+
   // Diagnostics used to fill digit patterns
   auto numberOfDiagnostics = crateTrailer->numberOfDiagnostics;
   auto numberOfErrors = crateTrailer->numberOfErrors;
