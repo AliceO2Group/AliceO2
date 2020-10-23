@@ -23,6 +23,7 @@
 #include "CommonConstants/MathConstants.h"
 #include "CommonUtils/TreeStreamRedirector.h"
 #include "TPCSimulation/SpaceCharge.h"
+#include "MathUtils/Cartesian.h"
 
 using namespace o2::tpc;
 
