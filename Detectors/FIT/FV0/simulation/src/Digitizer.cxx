@@ -145,9 +145,17 @@ void Digitizer::createPulse(float mipFraction, int parID, const double hitTime,
   }
 
   ///Time of flight subtracted from Hit time //TODO have different TOF according to thr ring number
-  Size_t NBinShift = std::lround((hitTime - FV0DigParam::Instance().globalTimeOfFlight) / FV0DigParam::Instance().waveformBinWidth);
-  mPmtResponseTemp.resize(FV0DigParam::Instance().waveformNbins, 0.);
-  std::memcpy(&mPmtResponseTemp[NBinShift], &mPmtResponseGlobal[0], sizeof(double) * (FV0DigParam::Instance().waveformNbins - NBinShift));
+  Int_t NBinShift = std::lround((hitTime - FV0DigParam::Instance().globalTimeOfFlight) / FV0DigParam::Instance().waveformBinWidth);
+
+  if (NBinShift >= 0 && NBinShift < FV0DigParam::Instance().waveformNbins) {
+    mPmtResponseTemp.resize(FV0DigParam::Instance().waveformNbins, 0.);
+    std::memcpy(&mPmtResponseTemp[NBinShift], &mPmtResponseGlobal[0],
+                sizeof(double) * (FV0DigParam::Instance().waveformNbins - NBinShift));
+  } else {
+    mPmtResponseTemp = mPmtResponseGlobal;
+    mPmtResponseTemp.erase(mPmtResponseTemp.begin(), mPmtResponseTemp.begin() + abs(NBinShift));
+    mPmtResponseTemp.resize(FV0DigParam::Instance().waveformNbins);
+  }
 
   for (int ir = 0; ir < int(mPmtResponseTemp.size() / mNTimeBinsPerBC); ir++) {
     auto bcCache = getBCCache(cachedIR[ir]);
