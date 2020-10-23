@@ -107,6 +107,7 @@
 #include <sys/un.h>
 #include <sys/wait.h>
 #include <unistd.h>
+#include <execinfo.h>
 #if __has_include(<linux/getcpu.h>)
 #include <linux/getcpu.h>
 #elif __has_include(<cpuid.h>)
@@ -162,8 +163,9 @@ std::istream& operator>>(std::istream& in, enum TerminationPolicy& policy)
     policy = TerminationPolicy::QUIT;
   } else if (token == "wait") {
     policy = TerminationPolicy::WAIT;
-  } else
+  } else {
     in.setstate(std::ios_base::failbit);
+  }
   return in;
 }
 
@@ -173,8 +175,9 @@ std::ostream& operator<<(std::ostream& out, const enum TerminationPolicy& policy
     out << "quit";
   } else if (policy == TerminationPolicy::WAIT) {
     out << "wait";
-  } else
+  } else {
     out.setstate(std::ios_base::failbit);
+  }
   return out;
 }
 } // namespace framework
@@ -761,11 +764,16 @@ int doChild(int argc, char** argv, ServiceRegistry& serviceRegistry, const o2::f
     runner.AddHook<fair::mq::hooks::InstantiateDevice>(afterConfigParsingCallback);
     return runner.Run();
   } catch (boost::exception& e) {
-    LOG(ERROR) << "Unhandled exception reached the top of main, device shutting down. Details follow: \n"
+    LOG(ERROR) << "Unhandled boost::exception reached the top of main, device shutting down. Details follow: \n"
                << boost::current_exception_diagnostic_information(true);
     return 1;
+  } catch (o2::framework::RuntimeErrorRef e) {
+    LOG(ERROR) << "Unhandled o2::framework::runtime_error reached the top of main, device shutting down. Details follow: \n";
+    auto& err = o2::framework::error_from_ref(e);
+    backtrace_symbols_fd(err.backtrace, err.maxBacktrace, STDERR_FILENO);
+    return 1;
   } catch (std::exception& e) {
-    LOG(ERROR) << "Unhandled exception reached the top of main: " << e.what() << ", device shutting down.";
+    LOG(ERROR) << "Unhandled std::exception reached the top of main: " << e.what() << ", device shutting down.";
     return 1;
   } catch (...) {
     LOG(ERROR) << "Unknown exception reached the top of main.\n";
@@ -875,6 +883,7 @@ int runStateMachine(DataProcessorSpecs const& workflow,
   // We initialise this in the driver, because different drivers might have
   // different versions of the service
   ServiceRegistry serviceRegistry;
+  std::vector<ServiceMetricHandling> metricProcessingCallbacks;
 
   while (true) {
     // If control forced some transition on us, we push it to the queue.
@@ -978,7 +987,14 @@ int runStateMachine(DataProcessorSpecs const& workflow,
                                                             driverInfo.uniqueWorkflowId,
                                                             !varmap["no-IPC"].as<bool>(),
                                                             driverInfo.resourcesMonitoringInterval);
-
+          metricProcessingCallbacks.clear();
+          for (auto& device : deviceSpecs) {
+            for (auto& service : device.services) {
+              if (service.metricHandling) {
+                metricProcessingCallbacks.push_back(service.metricHandling);
+              }
+            }
+          }
           // This should expand nodes so that we can build a consistent DAG.
         } catch (std::runtime_error& e) {
           std::cerr << "Invalid workflow: " << e.what() << std::endl;
@@ -1106,6 +1122,9 @@ int runStateMachine(DataProcessorSpecs const& workflow,
           uint64_t inputProcessingStart = uv_hrtime();
           auto inputProcessingLatency = inputProcessingStart - inputProcessingLast;
           processChildrenOutput(driverInfo, infos, deviceSpecs, controls, metricsInfos);
+          for (auto& callback : metricProcessingCallbacks) {
+            callback(serviceRegistry);
+          }
           auto inputProcessingEnd = uv_hrtime();
           driverInfo.inputProcessingCost = (inputProcessingEnd - inputProcessingStart) / 1000000;
           driverInfo.inputProcessingLatency = (inputProcessingLatency) / 1000000;
@@ -1144,6 +1163,9 @@ int runStateMachine(DataProcessorSpecs const& workflow,
         sigchld_requested = false;
         driverInfo.sigchldRequested = false;
         processChildrenOutput(driverInfo, infos, deviceSpecs, controls, metricsInfos);
+        for (auto& callback : metricProcessingCallbacks) {
+          callback(serviceRegistry);
+        }
         hasError = processSigChild(infos);
         if (areAllChildrenGone(infos) == true &&
             (guiQuitRequested || (checkIfCanExit(infos) == true) || graceful_exit)) {

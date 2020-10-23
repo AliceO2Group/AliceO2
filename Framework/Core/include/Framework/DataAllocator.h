@@ -25,6 +25,7 @@
 #include "Framework/SerializationMethods.h"
 #include "Framework/CheckTypes.h"
 #include "Framework/ServiceRegistry.h"
+#include "Framework/RuntimeError.h"
 
 #include "Headers/DataHeader.h"
 #include <TClass.h>
@@ -326,13 +327,13 @@ class DataAllocator
           cl = TClass::GetClass(reinterpret_cast<const char*>(object.getHint()));
         }
         if (has_root_dictionary<WrappedType>::value == false && cl == nullptr) {
-          std::string msg("ROOT serialization not supported, dictionary not found for type ");
           if (std::is_same<typename T::hint_type, const char>::value) {
-            msg += reinterpret_cast<const char*>(object.getHint());
+            throw runtime_error_f("ROOT serialization not supported, dictionary not found for type %s",
+                                  reinterpret_cast<const char*>(object.getHint()));
           } else {
-            msg += typeid(WrappedType).name();
+            throw runtime_error_f("ROOT serialization not supported, dictionary not found for type %s",
+                                  typeid(WrappedType).name());
           }
-          throw std::runtime_error(msg);
         }
         TMessageSerializer().Serialize(*payloadMessage, &object(), cl);
       } else {

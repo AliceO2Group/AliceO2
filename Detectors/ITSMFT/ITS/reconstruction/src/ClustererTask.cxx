@@ -13,14 +13,13 @@
 
 #include "DetectorsCommonDataFormats/DetID.h"
 #include "ITSReconstruction/ClustererTask.h"
-#include "MathUtils/Cartesian3D.h"
+#include "MathUtils/Cartesian.h"
 #include "MathUtils/Utils.h"
 #include "FairLogger.h"
 #include <TFile.h>
 #include <TTree.h>
 
 using namespace o2::its;
-using namespace o2::utils;
 
 //_____________________________________________________________________
 ClustererTask::ClustererTask(bool useMC, bool raw) : mRawDataMode(raw),

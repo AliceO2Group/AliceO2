@@ -14,7 +14,7 @@
 #include "EMCALBase/Geometry.h"
 #include "EMCALBase/GeometryBase.h"
 #include "EMCALBase/Hit.h"
-#include "MathUtils/Cartesian3D.h"
+#include "MathUtils/Cartesian.h"
 #include "SimulationDataFormat/MCCompLabel.h"
 
 #include <climits>
@@ -121,8 +121,9 @@ void Digitizer::process(const std::vector<Hit>& hits)
         }
 
         MCLabel label(hit.GetTrackID(), mCurrEvID, mCurrSrcID, false, 1.0);
-        if (digit.getAmplitude() == 0)
+        if (digit.getAmplitude() == 0) {
           label.setAmplitudeFraction(0);
+        }
         LabeledDigit d(digit, label);
         mDigits[id].push_back(d);
       }
@@ -235,12 +236,15 @@ void Digitizer::fillOutputContainer(std::vector<Digit>& digits, o2::dataformats:
         addNoiseDigits(ld1);
       }
 
-      if (mRemoveDigitsBelowThreshold && (ld1.getAmplitude() < mSimParam->getDigitThreshold() * (constants::EMCAL_ADCENERGY)))
+      if (mRemoveDigitsBelowThreshold && (ld1.getAmplitude() < mSimParam->getDigitThreshold() * (constants::EMCAL_ADCENERGY))) {
         continue;
-      if (ld1.getAmplitude() < 0)
+      }
+      if (ld1.getAmplitude() < 0) {
         continue;
-      if (ld1.getTimeStamp() >= mSimParam->getLiveTime())
+      }
+      if (ld1.getTimeStamp() >= mSimParam->getLiveTime()) {
         continue;
+      }
 
       l.push_back(ld1);
     }

@@ -81,7 +81,7 @@ inline OriginValueMatcher::OriginValueMatcher(std::string const& s)
   : ValueHolder{s}
 {
   if (s.size() > header::gSizeDataOriginString) {
-    throw std::runtime_error("Header DataDescription too long");
+    throw runtime_error("Header DataDescription too long");
   }
 }
 
@@ -100,7 +100,7 @@ inline DescriptionValueMatcher::DescriptionValueMatcher(std::string const& s)
   : ValueHolder{s}
 {
   if (s.size() > header::gSizeDataDescriptionString) {
-    throw std::runtime_error("Header DataDescription too long");
+    throw runtime_error("Header DataDescription too long");
   }
 }
 

@@ -103,7 +103,7 @@ class propagatorInterface<AliTrackerBase> : public AliTrackerBase
   propagatorInterface<AliTrackerBase>& operator=(const propagatorInterface<AliTrackerBase>&) CON_DELETE;
 
   bool propagateToX(float x, float maxSnp, float maxStep) { return PropagateTrackToBxByBz(mParam, x, 0.13957, maxStep, false, maxSnp); }
-  int getPropagatedYZ(My_Float x, My_Float& projY, My_Float& projZ)
+  int getPropagatedYZ(float x, float& projY, float& projZ)
   {
     Double_t yz[2] = {0.};
     mParam->GetYZAt(x, GetBz(), yz);
@@ -201,7 +201,7 @@ class propagatorInterface<o2::base::Propagator>
   propagatorInterface<o2::base::Propagator>& operator=(const propagatorInterface<o2::base::Propagator>&) = delete;
 
   bool propagateToX(float x, float maxSnp, float maxStep) { return mProp->PropagateToXBxByBz(*mParam, x, 0.13957, maxSnp, maxStep); }
-  int getPropagatedYZ(My_Float x, My_Float& projY, My_Float& projZ) { return static_cast<int>(mParam->getYZAt(x, mProp->getNominalBz(), projY, projZ)); }
+  int getPropagatedYZ(float x, float& projY, float& projZ) { return static_cast<int>(mParam->getYZAt(x, mProp->getNominalBz(), projY, projZ)); }
 
   void setTrack(trackInterface<o2::dataformats::TrackTPCITS>* trk) { mParam = trk; }
   void setFitInProjections(bool flag) {}

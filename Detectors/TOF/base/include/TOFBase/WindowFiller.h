@@ -40,8 +40,8 @@ class WindowFiller
 
   void reset();
 
-  Int_t getCurrentReadoutWindow() const { return mReadoutWindowCurrent; }
-  void setCurrentReadoutWindow(Double_t value) { mReadoutWindowCurrent = value; }
+  uint64_t getCurrentReadoutWindow() const { return mReadoutWindowCurrent; }
+  void setCurrentReadoutWindow(uint64_t value) { mReadoutWindowCurrent = value; }
   void setEventTime(InteractionTimeRecord value)
   {
     mEventTime = value;
@@ -73,7 +73,7 @@ class WindowFiller
 
  protected:
   // info TOF timewindow
-  Int_t mReadoutWindowCurrent = 0;
+  uint64_t mReadoutWindowCurrent = 0;
   InteractionRecord mFirstIR{0, 0}; // reference IR (1st IR of the timeframe)
   InteractionTimeRecord mEventTime;
 

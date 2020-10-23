@@ -40,10 +40,11 @@ double CaloRawFitterStandard::rawResponseFunction(double* x, double* par)
   double ped = par[4];
   double xx = (x[0] - par[1] + tau) / tau;
 
-  if (xx <= 0)
+  if (xx <= 0) {
     signal = ped;
-  else
+  } else {
     signal = ped + par[0] * TMath::Power(xx, n) * TMath::Exp(n * (1 - xx));
+  }
 
   return signal;
 }
@@ -105,8 +106,9 @@ std::tuple<float, float, float, bool> CaloRawFitterStandard::fitRaw(int firstTim
 
   int nsamples = lastTimeBin - firstTimeBin + 1;
   fitDone = kFALSE;
-  if (nsamples < 3)
+  if (nsamples < 3) {
     return std::make_tuple(amp, time, chi2, fitDone);
+  }
 
   TGraph gSig(nsamples);
 
@@ -133,8 +135,9 @@ std::tuple<float, float, float, bool> CaloRawFitterStandard::fitRaw(int firstTim
     time = signalF.GetParameter(1);
     chi2 = signalF.GetChisquare();
     fitDone = kTRUE;
-  } else
+  } else {
     fitDone = kFALSE;
+  }
 
   return std::make_tuple(amp, time, chi2, fitDone);
 }

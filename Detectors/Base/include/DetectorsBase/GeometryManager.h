@@ -23,7 +23,7 @@
 #include <string_view>
 #include "DetectorsCommonDataFormats/DetID.h"
 #include "FairLogger.h" // for LOG
-#include "MathUtils/Cartesian3D.h"
+#include "MathUtils/Cartesian.h"
 #include "DetectorsBase/MatCell.h"
 #include <mutex>
 class TGeoHMatrix; // lines 11-11
@@ -64,7 +64,7 @@ class GeometryManager : public TObject
   static int getSensID(o2::detectors::DetID detid, int sensid)
   {
     /// compose combined detector+sensor ID for sensitive volumes
-    return (detid.getMask().to_ulong() << sDetOffset) | (sensid & sSensorMask);
+    return (detid << sDetOffset) | (sensid & sSensorMask);
   }
 
   /// Default destructor
@@ -92,28 +92,28 @@ class GeometryManager : public TObject
   };
 
   static o2::base::MatBudget meanMaterialBudget(float x0, float y0, float z0, float x1, float y1, float z1);
-  static o2::base::MatBudget meanMaterialBudget(const Point3D<float>& start, const Point3D<float>& end)
+  static o2::base::MatBudget meanMaterialBudget(const math_utils::Point3D<float>& start, const math_utils::Point3D<float>& end)
   {
     return meanMaterialBudget(start.X(), start.Y(), start.Z(), end.X(), end.Y(), end.Z());
   }
-  static o2::base::MatBudget meanMaterialBudget(const Point3D<double>& start, const Point3D<double>& end)
+  static o2::base::MatBudget meanMaterialBudget(const math_utils::Point3D<double>& start, const math_utils::Point3D<double>& end)
   {
     return meanMaterialBudget(start.X(), start.Y(), start.Z(), end.X(), end.Y(), end.Z());
   }
 
   static MatBudgetExt meanMaterialBudgetExt(float x0, float y0, float z0, float x1, float y1, float z1);
-  static MatBudgetExt meanMaterialBudgetExt(const Point3D<float>& start, const Point3D<float>& end)
+  static MatBudgetExt meanMaterialBudgetExt(const math_utils::Point3D<float>& start, const math_utils::Point3D<float>& end)
   {
     return meanMaterialBudgetExt(start.X(), start.Y(), start.Z(), end.X(), end.Y(), end.Z());
   }
-  static MatBudgetExt meanMaterialBudgetExt(const Point3D<double>& start, const Point3D<double>& end)
+  static MatBudgetExt meanMaterialBudgetExt(const math_utils::Point3D<double>& start, const math_utils::Point3D<double>& end)
   {
     return meanMaterialBudgetExt(start.X(), start.Y(), start.Z(), end.X(), end.Y(), end.Z());
   }
 
  private:
   /// Default constructor
-  GeometryManager();
+  GeometryManager() = default;
 
   static void accountMaterial(const TGeoMaterial* material, MatBudgetExt& bd);
   static void accountMaterial(const TGeoMaterial* material, o2::base::MatBudget& bd)
@@ -127,12 +127,8 @@ class GeometryManager : public TObject
   /// Returns kFALSE in case TGeo has not been initialized or the volume path is not valid.
   static Bool_t getOriginalMatrixFromPath(const char* path, TGeoHMatrix& m);
  private:
-/// sensitive volume identifier composed from (det_mask<<sDetOffset)|(sensid&sSensorMask)
-#ifdef ENABLE_UPGRADES
-  static constexpr UInt_t sDetOffset = 13; /// detector identifier will start from this bit
-#else
+  /// sensitive volume identifier composed from (det_ID<<sDetOffset)|(sensid&sSensorMask)
   static constexpr UInt_t sDetOffset = 15; /// detector identifier will start from this bit
-#endif
   static constexpr UInt_t sSensorMask =
     (0x1 << sDetOffset) - 1; /// mask=max sensitive volumes allowed per detector (0xffff)
   static std::mutex sTGMutex;

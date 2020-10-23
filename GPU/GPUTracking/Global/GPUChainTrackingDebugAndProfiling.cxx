@@ -188,3 +188,35 @@ void GPUChainTracking::PrintDebugOutput()
   processors()->debugOutput.Print();
 #endif
 }
+
+void GPUChainTracking::PrintOutputStat()
+{
+  int nTracks = 0, nAttachedClusters = 0, nAttachedClustersFitted = 0, nAdjacentClusters = 0;
+  for (unsigned int k = 0; k < mIOPtrs.nMergedTracks; k++) {
+    if (mIOPtrs.mergedTracks[k].OK()) {
+      nTracks++;
+      nAttachedClusters += mIOPtrs.mergedTracks[k].NClusters();
+      nAttachedClustersFitted += mIOPtrs.mergedTracks[k].NClustersFitted();
+    }
+  }
+  unsigned int nCls = GetProcessingSettings().doublePipeline ? mIOPtrs.clustersNative->nClustersTotal : GetTPCMerger().NMaxClusters();
+  for (unsigned int k = 0; k < nCls; k++) {
+    int attach = mIOPtrs.mergedTrackHitAttachment[k];
+    if (attach & gputpcgmmergertypes::attachFlagMask) {
+      nAdjacentClusters++;
+    }
+  }
+
+  char trdText[1024] = "";
+  if (GetRecoSteps() & GPUDataTypes::RecoStep::TRDTracking) {
+    int nTRDTracks = 0;
+    int nTRDTracklets = 0;
+    for (unsigned int k = 0; k < mIOPtrs.nTRDTracks; k++) {
+      auto& trk = mIOPtrs.trdTracks[k];
+      nTRDTracklets += trk.GetNtracklets();
+      nTRDTracks += trk.GetNtracklets() != 0;
+    }
+    snprintf(trdText, 1024, " - TRD Tracker reconstructed %d tracks (%d tracklets)", nTRDTracks, nTRDTracklets);
+  }
+  printf("Output Tracks: %d (%d / %d / %d / %d clusters (fitted / attached / adjacent / total))%s\n", nTracks, nAttachedClustersFitted, nAttachedClusters, nAdjacentClusters, nCls, trdText);
+}

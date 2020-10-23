@@ -61,8 +61,8 @@ BOOST_AUTO_TEST_CASE(TestServiceRegistry)
   BOOST_CHECK(registry.active<InterfaceA>() == true);
   BOOST_CHECK(registry.active<InterfaceB>() == true);
   BOOST_CHECK(registry.active<InterfaceC>() == false);
-  BOOST_CHECK_THROW(registry.get<InterfaceA const>(), std::runtime_error);
-  BOOST_CHECK_THROW(registry.get<InterfaceC>(), std::runtime_error);
+  BOOST_CHECK_THROW(registry.get<InterfaceA const>(), RuntimeErrorRef);
+  BOOST_CHECK_THROW(registry.get<InterfaceC>(), RuntimeErrorRef);
 }
 
 BOOST_AUTO_TEST_CASE(TestCallbackService)
@@ -78,7 +78,7 @@ BOOST_AUTO_TEST_CASE(TestCallbackService)
   registry.get<CallbackService>().set(CallbackService::Id::Stop, cb);
 
   // check to set with the wrong type
-  BOOST_CHECK_THROW(registry.get<CallbackService>().set(CallbackService::Id::Stop, [](int) {}), std::runtime_error);
+  BOOST_CHECK_THROW(registry.get<CallbackService>().set(CallbackService::Id::Stop, [](int) {}), RuntimeErrorRef);
 
   // execute and check
   registry.get<CallbackService>()(CallbackService::Id::Stop);

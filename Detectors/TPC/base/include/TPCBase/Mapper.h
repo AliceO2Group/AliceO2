@@ -27,6 +27,8 @@
 #include "TPCBase/PartitionInfo.h"
 #include "TPCBase/Sector.h"
 
+#include "MathUtils/Cartesian.h"
+
 // using o2::tpc::PadRegionInfo;
 // using o2::tpc::PartitionInfo;
 

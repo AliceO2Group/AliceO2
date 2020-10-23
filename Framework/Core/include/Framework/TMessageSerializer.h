@@ -12,6 +12,8 @@
 
 #include <fairmq/FairMQMessage.h>
 
+#include "Framework/RuntimeError.h"
+
 #include <TList.h>
 #include <TMessage.h>
 #include <TObjArray.h>
@@ -137,9 +139,7 @@ inline std::unique_ptr<T> TMessageSerializer::deserialize(gsl::span<o2::byte> bu
 {
   TClass* tgtClass = TClass::GetClass(typeid(T));
   if (tgtClass == nullptr) {
-    std::string error("class is not ROOT-serializable: ");
-    error += typeid(T).name();
-    throw std::runtime_error(error);
+    throw runtime_error_f("class is not ROOT-serializable: %s", typeid(T).name());
   }
   // FIXME: we need to add consistency check for buffer data to be serialized
   // at the moment, TMessage might simply crash if an invalid or inconsistent
@@ -147,15 +147,12 @@ inline std::unique_ptr<T> TMessageSerializer::deserialize(gsl::span<o2::byte> bu
   FairTMessage tm(buffer);
   TClass* serializedClass = tm.GetClass();
   if (serializedClass == nullptr) {
-    std::string error("can not read class info from buffer");
-    throw std::runtime_error(error);
+    throw runtime_error_f("can not read class info from buffer");
   }
   if (tgtClass != serializedClass && serializedClass->GetBaseClass(tgtClass) == nullptr) {
-    std::string error("can not convert serialized class ");
-    error += tm.GetClass()->GetName();
-    error += " into target class ";
-    error += tgtClass->GetName();
-    throw std::runtime_error(error);
+    throw runtime_error_f("can not convert serialized class %s into target class %s",
+                          tm.GetClass()->GetName(),
+                          tgtClass->GetName());
   }
   return std::unique_ptr<T>(reinterpret_cast<T*>(tm.ReadObjectAny(serializedClass)));
 }

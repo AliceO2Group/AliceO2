@@ -23,10 +23,10 @@ using namespace o2::framework;
 struct ATask {
   void process(aod::Collision const&, aod::Tracks const& tracks)
   {
-    // FIXME: to see some output, we create the histogram
-    // for every timeframe. In general this is not the way it
-    // should be done.
     LOGF(info, "Tracks for collision: %d", tracks.size());
+    for (auto& track : tracks) {
+      LOGF(info, "This track has pT = %f GeV/c", track.pt());
+    }
   }
 };
 

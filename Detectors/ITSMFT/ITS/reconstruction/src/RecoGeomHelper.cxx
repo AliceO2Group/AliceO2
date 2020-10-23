@@ -19,7 +19,7 @@
 using namespace o2::its;
 
 //_____________________________________________________________________
-void RecoGeomHelper::RecoChip::updateLimits(const Point3D<float>& pntTra)
+void RecoGeomHelper::RecoChip::updateLimits(const o2::math_utils::Point3D<float>& pntTra)
 {
   // update limits from the edge point in tracking frame
   yRange.update(pntTra.Y());
@@ -30,29 +30,29 @@ void RecoGeomHelper::RecoChip::updateLimits(const Point3D<float>& pntTra)
 void RecoGeomHelper::RecoChip::print() const
 {
   printf("Ch#%4d Alp: %+.3f X:%5.2f %+6.3f<y<%+6.3f  %+6.3f<z<%+6.3f | XYEdges: {%+6.3f,%+6.3f}{%+6.3f,%+6.3f}\n",
-         id, alp, xRef, yRange.min(), yRange.max(), zRange.min(), zRange.max(),
+         id, alp, xRef, yRange.getMin(), yRange.getMax(), zRange.getMin(), zRange.getMax(),
          xyEdges.getX0(), xyEdges.getY0(), xyEdges.getX1(), xyEdges.getY1());
 }
 
 //_____________________________________________________________________
-void RecoGeomHelper::RecoLadder::updateLimits(const Point3D<float>& pntGlo)
+void RecoGeomHelper::RecoLadder::updateLimits(const o2::math_utils::Point3D<float>& pntGlo)
 {
   // update limits from the point in Global frame
   float phi = pntGlo.phi();    // -pi:pi range
-  o2::utils::BringTo02Pi(phi); // temporary bring to 0:2pi range
-  o2::utils::BringTo02Pi(phiRange.min());
-  o2::utils::BringTo02Pi(phiRange.max());
+  o2::math_utils::bringTo02Pi(phi); // temporary bring to 0:2pi range
+  o2::math_utils::bringTo02Pi(phiRange.getMin());
+  o2::math_utils::bringTo02Pi(phiRange.getMax());
   phiRange.update(phi);
   phiMean = phiRange.mean();
   dphiH = 0.5 * phiRange.delta();
-  if (phiRange.delta() > o2::constants::math::PI) { // wrapping, swap
-    phiRange.set(phiRange.max(), phiRange.min());   // swap
+  if (phiRange.delta() > o2::constants::math::PI) {     // wrapping, swap
+    phiRange.set(phiRange.getMax(), phiRange.getMin()); // swap
     phiMean -= o2::constants::math::PI;
     dphiH = o2::constants::math::PI - dphiH;
   }
-  o2::utils::BringToPMPi(phiRange.min()); // -pi:pi range
-  o2::utils::BringToPMPi(phiRange.max());
-  o2::utils::BringToPMPi(phiMean);
+  o2::math_utils::bringToPMPi(phiRange.getMin()); // -pi:pi range
+  o2::math_utils::bringToPMPi(phiRange.getMax());
+  o2::math_utils::bringToPMPi(phiMean);
   //
   zRange.update(pntGlo.Z());
 }
@@ -77,7 +77,7 @@ void RecoGeomHelper::RecoLadder::print() const
 {
   assert(overlapWithNext != Undefined || chips.size() == 0); // make sure there are no undefined ladders after init is done
   printf("Ladder %3d  %.3f<phi[<%.3f>]<%.3f dPhiH:%.3f | XYEdges: {%+6.3f,%+6.3f}{%+6.3f,%+6.3f} | %3d chips | OvlNext: %s\n",
-         id, phiRange.min(), phiMean, phiRange.max(), dphiH,
+         id, phiRange.getMin(), phiMean, phiRange.getMax(), dphiH,
          xyEdges.getX0(), xyEdges.getY0(), xyEdges.getX1(), xyEdges.getY1(), (int)chips.size(),
          overlapWithNext == Undefined ? "N/A" : ((overlapWithNext == NoOverlap ? "NO" : (overlapWithNext == Above ? "Above" : "Below"))));
   for (const auto& ch : chips) {
@@ -89,7 +89,7 @@ void RecoGeomHelper::RecoLadder::print() const
 void RecoGeomHelper::RecoLayer::init()
 {
   auto gm = o2::its::GeometryTGeo::Instance();
-  gm->fillMatrixCache(o2::utils::bit2Mask(o2::TransformType::T2GRot, o2::TransformType::T2L)); // more matrices ?
+  gm->fillMatrixCache(o2::math_utils::bit2Mask(o2::math_utils::TransformType::T2GRot, o2::math_utils::TransformType::T2L)); // more matrices ?
 
   int nHStaves = gm->getNumberOfHalfStaves(id);
   int nStaves = gm->getNumberOfStaves(id);
@@ -115,9 +115,9 @@ void RecoGeomHelper::RecoLayer::init()
     auto& chip = ladder.chips.emplace_back();
     chip.id = chipID;
     gm->getSensorXAlphaRefPlane(chipID, chip.xRef, chip.alp);
-    o2::utils::sincosf(chip.alp, chip.snAlp, chip.csAlp);
+    o2::math_utils::sincos(chip.alp, chip.snAlp, chip.csAlp);
 
-    Point3D<float> edgeLoc(-dxH, 0.f, -dzH);
+    o2::math_utils::Point3D<float> edgeLoc(-dxH, 0.f, -dzH);
     auto edgeTra = gm->getMatrixT2L(chipID) ^ (edgeLoc); // edge in tracking frame
     chip.updateLimits(edgeTra);
     auto edgeGloM = gm->getMatrixT2GRot(chipID)(edgeTra); // edge in global frame
@@ -136,15 +136,15 @@ void RecoGeomHelper::RecoLayer::init()
   // sort according to mean phi (in -pi:pi range!!!)
   std::sort(ladders.begin(), ladders.end(), [](auto& a, auto& b) {
     float pha = a.phiMean, phb = b.phiMean;
-    o2::utils::BringTo02Pi(pha);
-    o2::utils::BringTo02Pi(phb);
+    o2::math_utils::bringTo02Pi(pha);
+    o2::math_utils::bringTo02Pi(phb);
     return pha < phb;
   });
 
   // make sure chips within the ladder are ordered in Z, renumber ladders
   for (int i = nLadders; i--;) {
     auto& lad = ladders[i];
-    std::sort(lad.chips.begin(), lad.chips.end(), [](auto& a, auto& b) { return a.zRange.min() < b.zRange.min(); });
+    std::sort(lad.chips.begin(), lad.chips.end(), [](auto& a, auto& b) { return a.zRange.getMin() < b.zRange.getMin(); });
     lad.id = i;
     lad.init();
   }
@@ -166,16 +166,16 @@ void RecoGeomHelper::RecoLayer::init()
     // find the radius of the edge at low phi
     float phi0 = std::atan2(lad.xyEdges.getY0(), lad.xyEdges.getX0());
     float phi1 = std::atan2(lad.xyEdges.getY1(), lad.xyEdges.getX1());
-    o2::utils::BringTo02Pi(phi0); // we don't know a priori if edge0/1 corresponds to low/high phi or vice versa
-    o2::utils::BringTo02Pi(phi1);
+    o2::math_utils::bringTo02Pi(phi0); // we don't know a priori if edge0/1 corresponds to low/high phi or vice versa
+    o2::math_utils::bringTo02Pi(phi1);
     float r2This = (phi0 < phi1 && phi1 - phi0 < o2::constants::math::PI) ? // pick R of lowest angle
                      lad.xyEdges.getX0() * lad.xyEdges.getX0() + lad.xyEdges.getY0() * lad.xyEdges.getY0()
                                                                           : lad.xyEdges.getX1() * lad.xyEdges.getX1() + lad.xyEdges.getY1() * lad.xyEdges.getY1();
     //
     phi0 = std::atan2(plad.xyEdges.getY0(), plad.xyEdges.getX0());
     phi1 = std::atan2(plad.xyEdges.getY1(), plad.xyEdges.getX1());
-    o2::utils::BringTo02Pi(phi0); // we don't know a priori if edge0/1 corresponds to low/high phi or vice versa
-    o2::utils::BringTo02Pi(phi1);
+    o2::math_utils::bringTo02Pi(phi0); // we don't know a priori if edge0/1 corresponds to low/high phi or vice versa
+    o2::math_utils::bringTo02Pi(phi1);
     float r2Prev = (phi0 < phi1 && phi1 - phi0 < o2::constants::math::PI) ? // pick R of highest angle
                      plad.xyEdges.getX1() * plad.xyEdges.getX1() + plad.xyEdges.getY1() * plad.xyEdges.getY1()
                                                                           : plad.xyEdges.getX0() * plad.xyEdges.getX0() + plad.xyEdges.getY0() * plad.xyEdges.getY0();
@@ -189,7 +189,7 @@ void RecoGeomHelper::RecoLayer::init()
   int laddId = 0;
   for (int i = 0; i < ndiv; i++) {
     float phi = (0.5 + i) * dphi;
-    o2::utils::BringToPMPi(phi);
+    o2::math_utils::bringToPMPi(phi);
     while (laddId < nLadders) {
       const auto& lad = ladders[laddId];
       auto rel = lad.isPhiOutside(phi);
@@ -207,7 +207,7 @@ void RecoGeomHelper::RecoLayer::init()
 }
 
 //_____________________________________________________________________
-void RecoGeomHelper::RecoLayer::updateLimits(const Point3D<float>& pntGlo)
+void RecoGeomHelper::RecoLayer::updateLimits(const o2::math_utils::Point3D<float>& pntGlo)
 {
   // update limits from the point in global frame
   rRange.update(pntGlo.Rho());
@@ -218,7 +218,7 @@ void RecoGeomHelper::RecoLayer::updateLimits(const Point3D<float>& pntGlo)
 void RecoGeomHelper::RecoLayer::print() const
 {
   printf("\nLayer %d %.2f<r<%.2f %+.2f<z<%+.2f  %d ladders\n",
-         id, rRange.min(), rRange.max(), zRange.min(), zRange.max(), (int)ladders.size());
+         id, rRange.getMin(), rRange.getMax(), zRange.getMin(), zRange.getMax(), (int)ladders.size());
   for (const auto& ld : ladders) {
     ld.print();
   }

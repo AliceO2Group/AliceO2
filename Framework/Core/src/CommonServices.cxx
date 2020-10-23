@@ -70,6 +70,8 @@ o2::framework::ServiceSpec CommonServices::monitoringSpec()
                      nullptr,
                      nullptr,
                      nullptr,
+                     nullptr,
+                     nullptr,
                      ServiceKind::Serial};
 }
 
@@ -78,6 +80,8 @@ o2::framework::ServiceSpec CommonServices::infologgerContextSpec()
   return ServiceSpec{"infologger-contex",
                      simpleServiceInit<InfoLoggerContext, InfoLoggerContext>(),
                      noConfiguration(),
+                     nullptr,
+                     nullptr,
                      nullptr,
                      nullptr,
                      nullptr,
@@ -172,6 +176,8 @@ o2::framework::ServiceSpec CommonServices::infologgerSpec()
                      nullptr,
                      nullptr,
                      nullptr,
+                     nullptr,
+                     nullptr,
                      ServiceKind::Serial};
 }
 
@@ -188,6 +194,8 @@ o2::framework::ServiceSpec CommonServices::configurationSpec()
                            ConfigurationFactory::getConfiguration(backend).release()};
     },
     noConfiguration(),
+    nullptr,
+    nullptr,
     nullptr,
     nullptr,
     nullptr,
@@ -218,6 +226,8 @@ o2::framework::ServiceSpec CommonServices::controlSpec()
     nullptr,
     nullptr,
     nullptr,
+    nullptr,
+    nullptr,
     ServiceKind::Serial};
 }
 
@@ -227,6 +237,8 @@ o2::framework::ServiceSpec CommonServices::rootFileSpec()
     "localrootfile",
     simpleServiceInit<LocalRootFileService, LocalRootFileService>(),
     noConfiguration(),
+    nullptr,
+    nullptr,
     nullptr,
     nullptr,
     nullptr,
@@ -258,6 +270,8 @@ o2::framework::ServiceSpec CommonServices::parallelSpec()
     nullptr,
     nullptr,
     nullptr,
+    nullptr,
+    nullptr,
     ServiceKind::Serial};
 }
 
@@ -267,6 +281,8 @@ o2::framework::ServiceSpec CommonServices::timesliceIndex()
     "timesliceindex",
     simpleServiceInit<TimesliceIndex, TimesliceIndex>(),
     noConfiguration(),
+    nullptr,
+    nullptr,
     nullptr,
     nullptr,
     nullptr,
@@ -294,6 +310,8 @@ o2::framework::ServiceSpec CommonServices::callbacksSpec()
     nullptr,
     nullptr,
     nullptr,
+    nullptr,
+    nullptr,
     ServiceKind::Serial};
 }
 
@@ -310,6 +328,8 @@ o2::framework::ServiceSpec CommonServices::dataRelayer()
                                            services.get<TimesliceIndex>())};
     },
     noConfiguration(),
+    nullptr,
+    nullptr,
     nullptr,
     nullptr,
     nullptr,
@@ -349,6 +369,8 @@ o2::framework::ServiceSpec CommonServices::tracingSpec()
     nullptr,
     nullptr,
     nullptr,
+    nullptr,
+    nullptr,
     ServiceKind::Serial};
 }
 
@@ -377,10 +399,12 @@ o2::framework::ServiceSpec CommonServices::threadPool(int numWorkers)
     nullptr,
     nullptr,
     nullptr,
+    nullptr,
     [numWorkers](ServiceRegistry& service) -> void {
       auto numWorkersS = std::to_string(numWorkers);
       setenv("UV_THREADPOOL_SIZE", numWorkersS.c_str(), 0);
     },
+    nullptr,
     nullptr,
     ServiceKind::Serial};
 }
@@ -477,6 +501,8 @@ o2::framework::ServiceSpec CommonServices::dataProcessingStats()
       sendRelayerMetrics(context.services(), *stats);
       flushMetrics(context.services(), *stats);
     },
+    nullptr,
+    nullptr,
     nullptr,
     nullptr,
     nullptr,

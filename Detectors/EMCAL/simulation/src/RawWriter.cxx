@@ -39,10 +39,11 @@ void RawWriter::init()
         break;
       case FileFor_t::kSubDet: {
         std::string detstring;
-        if (iddl < 22)
+        if (iddl < 22) {
           detstring = "emcal";
-        else
+        } else {
           detstring = "dcal";
+        }
         rawfilename += fmt::format("/{:s}.raw", detstring.data());
         break;
       };
@@ -52,8 +53,9 @@ void RawWriter::init()
     mRawWriter->registerLink(iddl, crorc, link, 0, rawfilename.data());
   }
   // initialize mappers
-  if (!mMappingHandler)
+  if (!mMappingHandler) {
     mMappingHandler = std::make_unique<o2::emcal::MappingHandler>();
+  }
 
   // initialize containers for SRU
   for (auto isru = 0; isru < 40; isru++) {
@@ -73,16 +75,18 @@ void RawWriter::digitsToRaw(gsl::span<o2::emcal::Digit> digitsbranch, gsl::span<
 
 bool RawWriter::processTrigger(const o2::emcal::TriggerRecord& trg)
 {
-  for (auto srucont : mSRUdata)
+  for (auto srucont : mSRUdata) {
     srucont.mChannels.clear();
+  }
   std::vector<o2::emcal::Digit*>* bunchDigits;
   int lasttower = -1;
   for (auto& dig : gsl::span(mDigits.data() + trg.getFirstEntry(), trg.getNumberOfObjects())) {
     auto tower = dig.getTower();
     if (tower != lasttower) {
       lasttower = tower;
-      if (tower > 20000)
+      if (tower > 20000) {
         std::cout << "Wrong cell ID " << tower << std::endl;
+      }
       auto onlineindices = getOnlineID(tower);
       int sruID = std::get<0>(onlineindices);
       auto towerdata = mSRUdata[sruID].mChannels.find(tower);
@@ -137,8 +141,9 @@ bool RawWriter::processTrigger(const o2::emcal::TriggerRecord& trg)
 
     // Create RCU trailer
     auto trailerwords = createRCUTrailer(payload.size() / 4, 16, 16, 100., 0.);
-    for (auto word : trailerwords)
+    for (auto word : trailerwords) {
       payload.emplace_back(word);
+    }
 
     // register output data
     auto ddlid = srucont.mSRUid;
@@ -178,8 +183,9 @@ std::vector<AltroBunch> RawWriter::findBunches(const std::vector<o2::emcal::Digi
     currentBunch->mADCs.emplace_back(adc);
   }
   // if we have a last bunch set time start time to the time bin of teh previous digit
-  if (currentBunch)
+  if (currentBunch) {
     currentBunch->mStarttime = itime + 1;
+  }
   return result;
 }
 
@@ -192,16 +198,18 @@ std::tuple<int, int, int> RawWriter::getOnlineID(int towerID)
   int row = std::get<0>(etaphishift), col = std::get<1>(etaphishift);
 
   int ddlInSupermoudel = -1;
-  if (0 <= row && row < 8)
+  if (0 <= row && row < 8) {
     ddlInSupermoudel = 0; // first cable row
-  else if (8 <= row && row < 16 && 0 <= col && col < 24)
+  } else if (8 <= row && row < 16 && 0 <= col && col < 24) {
     ddlInSupermoudel = 0; // first half;
-  else if (8 <= row && row < 16 && 24 <= col && col < 48)
+  } else if (8 <= row && row < 16 && 24 <= col && col < 48) {
     ddlInSupermoudel = 1; // second half;
-  else if (16 <= row && row < 24)
+  } else if (16 <= row && row < 24) {
     ddlInSupermoudel = 1; // third cable row
-  if (supermoduleID % 2 == 1)
+  }
+  if (supermoduleID % 2 == 1) {
     ddlInSupermoudel = 1 - ddlInSupermoudel; // swap for odd=C side, to allow us to cable both sides the same
+  }
 
   return std::make_tuple(supermoduleID * 2 + ddlInSupermoudel, row, col);
 }

@@ -84,10 +84,12 @@ struct lambdakzeroconsumer {
 
   void process(soa::Join<aod::Collisions, aod::EvSels, aod::Cents>::iterator const& collision, soa::Filtered<soa::Join<aod::V0s, aod::V0DataExt>> const& fullV0s)
   {
-    if (!collision.alias()[kINT7])
+    if (!collision.alias()[kINT7]) {
       return;
-    if (!collision.sel7())
+    }
+    if (!collision.sel7()) {
       return;
+    }
 
     for (auto& v0 : fullV0s) {
       //FIXME: could not find out how to filter cosPA and radius variables (dynamic columns)
@@ -96,8 +98,9 @@ struct lambdakzeroconsumer {
           h3dMassLambda->Fill(collision.centV0M(), v0.pt(), v0.mLambda());
           h3dMassAntiLambda->Fill(collision.centV0M(), v0.pt(), v0.mAntiLambda());
         }
-        if (TMath::Abs(v0.yK0Short()) < 0.5)
+        if (TMath::Abs(v0.yK0Short()) < 0.5) {
           h3dMassK0Short->Fill(collision.centV0M(), v0.pt(), v0.mK0Short());
+        }
       }
     }
   }

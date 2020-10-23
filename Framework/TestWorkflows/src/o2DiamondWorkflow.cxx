@@ -42,6 +42,7 @@ AlgorithmSpec simplePipe(std::string const& what, int minDelay)
   return AlgorithmSpec{adaptStateful([what, minDelay]() {
     srand(getpid());
     return adaptStateless([what, minDelay](DataAllocator& outputs) {
+      throw runtime_error_f("This is an error %d", 1);
       std::this_thread::sleep_for(std::chrono::seconds((rand() % 5) + minDelay));
       auto& bData = outputs.make<int>(OutputRef{what}, 1);
     });
@@ -65,7 +66,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& specs)
        })},
      {ConfigParamSpec{"some-device-param", VariantType::Int, 1, {"Some device parameter"}}}},
     {"B",
-     {InputSpec{"x", "TST", "A1"}},
+     {InputSpec{"x", "TST", "A1", Lifetime::Timeframe, {ConfigParamSpec{"somestring", VariantType::String, "", {"Some input param"}}}}},
      {OutputSpec{{"b1"}, "TST", "B1"}},
      simplePipe("b1", 0)},
     {"C",

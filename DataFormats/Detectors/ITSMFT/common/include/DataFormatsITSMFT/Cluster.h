@@ -165,8 +165,9 @@ inline void Cluster::decreaseClusterUsage()
 {
   // decrease cluster usage counter
   int n = getClusterUsage();
-  if (n)
+  if (n) {
     setClusterUsage(--n);
+  }
   //
 }
 
@@ -176,10 +177,12 @@ inline void Cluster::setClusterUsage(Int_t n)
   // set cluster usage counter
   mNxNzN &= ~(kMaskClUse << kOffsClUse);
   mNxNzN |= (n & kMaskClUse) << kOffsClUse;
-  if (n < 2)
+  if (n < 2) {
     resetBit(kShared);
-  if (!n)
+  }
+  if (!n) {
     resetBit(kUsed);
+  }
 }
 } // namespace itsmft
 
@@ -190,7 +193,7 @@ inline void Cluster::setClusterUsage(Int_t n)
 /// std::is_trivially_copyable<ROOT::Math::Cartesian3D<float>> fails because the class
 /// implements a copy constructor, although it does not much more than the default copy
 /// constructor. Have been trying to specialize std::is_trivially_copyable for Point3D
-/// alias in MathUtils/Cartesian3D.h, but structures with a member of Point3D are
+/// alias in MathUtils/Cartesian.h, but structures with a member of Point3D are
 /// still not fulfilling the condition. Need to understand how the type trait checks
 /// the condition for members.
 /// We believe that o2::itsmft::Cluster is messageable and explicitly specialize the

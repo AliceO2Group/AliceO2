@@ -38,10 +38,9 @@
 using namespace o2::its;
 using namespace o2::itsmft;
 using namespace o2::constants::math;
-using namespace o2::utils;
 using o2::field::MagneticField;
 using Label = o2::MCCompLabel;
-using Point3Df = Point3D<float>;
+using Point3Df = o2::math_utils::Point3D<float>;
 
 //************************************************
 // Constants hardcoded for the moment:
@@ -368,7 +367,7 @@ void CookedTracker::trackSeeds(std::vector<TrackITSExt>& seeds)
     auto x = track.getX();
     auto y = track.getY();
     Float_t phi = track.getAlpha() + TMath::ATan2(y, x);
-    BringTo02Pi(phi);
+    o2::math_utils::bringTo02Pi(phi);
 
     auto z = track.getZ();
     auto crv = track.getCurvature(getBz());
@@ -488,7 +487,7 @@ void CookedTracker::process(gsl::span<const o2::itsmft::CompClusterExt> const& c
   for (const auto& comp : clusters_in_frame) {
 
     auto pattID = comp.getPatternID();
-    Point3D<float> locXYZ;
+    o2::math_utils::Point3D<float> locXYZ;
     float sigmaY2 = 0.0015 * 0.0015, sigmaZ2 = sigmaY2, sigmaYZ = 0; //Dummy COG errors (about half pixel size)
     if (pattID != itsmft::CompCluster::InvalidPatternID) {
       sigmaY2 = dict.getErr2X(pattID);
@@ -700,7 +699,7 @@ void CookedTracker::Layer::init()
     auto xyz = c->getXYZGloRot(*mGeom);
     r += xyz.rho();
     Float_t phi = xyz.Phi();
-    BringTo02Pi(phi);
+    o2::math_utils::bringTo02Pi(phi);
     mPhi.push_back(phi);
     Int_t s = phi * kNSectors / k2PI;
     mSectors[s < kNSectors ? s : kNSectors - 1].emplace_back(i, c->getZ());
@@ -749,7 +748,7 @@ void CookedTracker::Layer::selectClusters(std::vector<Int_t>& selec, Float_t phi
   Float_t zMin = z - dz;
   Float_t zMax = z + dz;
 
-  BringTo02Pi(phi);
+  o2::math_utils::bringTo02Pi(phi);
 
   Float_t dphi = dy / mR;
 

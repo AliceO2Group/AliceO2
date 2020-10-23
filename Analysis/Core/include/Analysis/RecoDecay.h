@@ -174,7 +174,7 @@ class RecoDecay
   /// \param mom  3-momentum array
   /// \return cosine of pointing angle
   template <typename T, typename U, typename V>
-  static double CPA(const array<T, 3>& posPV, const array<U, 3>& posSV, const array<V, 3>& mom)
+  static double CPA(const T& posPV, const U& posSV, const array<V, 3>& mom)
   {
     // CPA = (l . p)/(|l| |p|)
     auto lineDecay = array{posSV[0] - posPV[0], posSV[1] - posPV[1], posSV[2] - posPV[2]};
@@ -193,8 +193,8 @@ class RecoDecay
   /// \param posSV  {x, y, z} or {x, y} position of the secondary vertex
   /// \param mom  {x, y, z} or {x, y} momentum array
   /// \return cosine of pointing angle in {x, y}
-  template <std::size_t N, std::size_t O, std::size_t P, typename T, typename U, typename V>
-  static double CPAXY(const array<T, N>& posPV, const array<U, O>& posSV, const array<V, P>& mom)
+  template <std::size_t N, typename T, typename U, typename V>
+  static double CPAXY(const T& posPV, const U& posSV, const array<V, N>& mom)
   {
     // CPAXY = (r . pT)/(|r| |pT|)
     auto lineDecay = array{posSV[0] - posPV[0], posSV[1] - posPV[1]};

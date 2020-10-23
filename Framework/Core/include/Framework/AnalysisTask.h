@@ -24,6 +24,7 @@
 #include "Framework/FunctionalHelpers.h"
 #include "Framework/Traits.h"
 #include "Framework/VariantHelpers.h"
+#include "Framework/RuntimeError.h"
 
 #include <arrow/compute/kernel.h>
 #include <arrow/table.h>
@@ -110,7 +111,11 @@ struct AnalysisDataProcessorBuilder {
   static auto extractTableFromRecord(InputRecord& record)
   {
     if constexpr (soa::is_type_with_metadata_v<aod::MetadataTrait<T>>) {
-      return record.get<TableConsumer>(aod::MetadataTrait<T>::metadata::tableLabel())->asArrowTable();
+      auto table = record.get<TableConsumer>(aod::MetadataTrait<T>::metadata::tableLabel())->asArrowTable();
+      if (table->num_rows() == 0) {
+        table = makeEmptyTable<T>();
+      }
+      return table;
     } else if constexpr (soa::is_type_with_originals_v<T>) {
       return extractFromRecord<T>(record, typename T::originals{});
     }
@@ -144,14 +149,16 @@ struct AnalysisDataProcessorBuilder {
 
     if constexpr (soa::is_soa_filtered_t<decayed>::value) {
       for (auto& info : infos) {
-        if (info.index == at)
+        if (info.index == at) {
           return extractFilteredFromRecord<decayed>(record, info, soa::make_originals_from_type<decayed>());
+        }
       }
     } else if constexpr (soa::is_soa_iterator_t<decayed>::value) {
       if constexpr (std::is_same_v<typename decayed::policy_t, soa::FilteredIndexPolicy>) {
         for (auto& info : infos) {
-          if (info.index == at)
+          if (info.index == at) {
             return extractFilteredFromRecord<decayed>(record, info, soa::make_originals_from_type<decayed>());
+          }
         }
       } else {
         return extractFromRecord<decayed>(record, soa::make_originals_from_type<decayed>());
@@ -244,10 +251,10 @@ struct AnalysisDataProcessorBuilder {
                                                        &groups[index],
                                                        &offsets[index]);
             if (result.ok() == false) {
-              throw std::runtime_error("Cannot split collection");
+              throw runtime_error("Cannot split collection");
             }
             if (groups[index].size() != gt.tableSize()) {
-              throw std::runtime_error(fmt::format("Splitting collection resulted in different group number ({}) than there is rows in the grouping table ({}).", groups[index].size(), gt.tableSize()));
+              throw runtime_error_f("Splitting collection resulted in different group number (%d) than there is rows in the grouping table (%d).", groups[index].size(), gt.tableSize());
             };
           }
         };

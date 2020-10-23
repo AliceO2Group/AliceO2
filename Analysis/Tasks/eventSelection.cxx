@@ -13,7 +13,6 @@
 #include "Analysis/EventSelection.h"
 #include "Analysis/TriggerAliases.h"
 #include <CCDB/BasicCCDBManager.h>
-#include <map>
 
 using namespace o2;
 using namespace o2::framework;
@@ -50,6 +49,12 @@ struct EvSelParameters {
   float fZNABBupper = 2.0;  // ns
   float fZNCBBlower = -2.0; // ns
   float fZNCBBupper = 2.0;  // ns
+
+  // TODO rough cuts to be adjusted
+  float fT0ABBlower = -2.0; // ns
+  float fT0ABBupper = 2.0;  // ns
+  float fT0CBBlower = -2.0; // ns
+  float fT0CBBupper = 2.0;  // ns
 };
 
 struct EventSelectionTask {
@@ -59,33 +64,6 @@ struct EventSelectionTask {
 
   EvSelParameters par;
 
-  aod::Run2V0 getVZero(aod::BC const& bc, aod::Run2V0s const& vzeros)
-  {
-    for (auto& vzero : vzeros)
-      if (vzero.bc() == bc)
-        return vzero;
-    aod::Run2V0 dummy;
-    return dummy;
-  }
-
-  aod::Zdc getZdc(aod::BC const& bc, aod::Zdcs const& zdcs)
-  {
-    for (auto& zdc : zdcs)
-      if (zdc.bc() == bc)
-        return zdc;
-    aod::Zdc dummy;
-    return dummy;
-  }
-
-  aod::FDD getFDD(aod::BC const& bc, aod::FDDs const& fdds)
-  {
-    for (auto& fdd : fdds)
-      if (fdd.bc() == bc)
-        return fdd;
-    aod::FDD dummy;
-    return dummy;
-  }
-
   void init(InitContext&)
   {
     ccdb->setURL("http://ccdb-test.cern.ch:8080");
@@ -93,15 +71,15 @@ struct EventSelectionTask {
     ccdb->setLocalObjectValidityChecking();
   }
 
-  void process(aod::Collision const& collision, aod::BCs const& bcs, aod::Timestamps& timestamps, aod::Zdcs const& zdcs, aod::Run2V0s const& vzeros, aod::FDDs const& fdds)
+  void process(aod::Run2MatchedSparse::iterator const& collision, aod::BCsWithTimestamps const&, aod::Zdcs const& zdcs, aod::FV0As const& fv0as, aod::FV0Cs const& fv0cs, aod::FT0s const& ft0s, aod::FDDs const& fdds)
   {
-    auto ts = timestamps.iteratorAt(collision.bcId());
-    LOGF(debug, "timestamp=%llu", ts.timestamp());
-    TriggerAliases* aliases = ccdb->getForTimeStamp<TriggerAliases>("Trigger/TriggerAliases", ts.timestamp());
+    auto bc = collision.bc_as<aod::BCsWithTimestamps>();
+    LOGF(debug, "timestamp=%llu", bc.timestamp());
+    TriggerAliases* aliases = ccdb->getForTimeStamp<TriggerAliases>("Trigger/TriggerAliases", bc.timestamp());
     if (!aliases) {
-      LOGF(fatal, "Trigger aliases are not available in CCDB for run=%d at timestamp=%llu", collision.bc().runNumber(), ts.timestamp());
+      LOGF(fatal, "Trigger aliases are not available in CCDB for run=%d at timestamp=%llu", bc.runNumber(), bc.timestamp());
     }
-    uint64_t triggerMask = collision.bc().triggerMask();
+    uint64_t triggerMask = bc.triggerMask();
     LOGF(debug, "triggerMask=%llu", triggerMask);
 
     // fill fired aliases
@@ -112,22 +90,19 @@ struct EventSelectionTask {
       }
     }
 
-    // ZDC info
-    auto zdc = getZdc(collision.bc(), zdcs);
-    float timeZNA = zdc.timeZNA();
-    float timeZNC = zdc.timeZNC();
-    // VZERO info
-    auto vzero = getVZero(collision.bc(), vzeros);
-    float timeV0A = vzero.timeA();
-    float timeV0C = vzero.timeC();
-    // FDD info
-    auto fdd = getFDD(collision.bc(), fdds);
-    float timeFDA = fdd.timeA();
-    float timeFDC = fdd.timeC();
+    float timeZNA = collision.has_zdc() ? collision.zdc().timeZNA() : -999.f;
+    float timeZNC = collision.has_zdc() ? collision.zdc().timeZNC() : -999.f;
+    float timeV0A = collision.has_fv0a() ? collision.fv0a().time() : -999.f;
+    float timeV0C = collision.has_fv0c() ? collision.fv0c().time() : -999.f;
+    float timeT0A = collision.has_ft0() ? collision.ft0().timeA() : -999.f;
+    float timeT0C = collision.has_ft0() ? collision.ft0().timeC() : -999.f;
+    float timeFDA = collision.has_fdd() ? collision.fdd().timeA() : -999.f;
+    float timeFDC = collision.has_fdd() ? collision.fdd().timeC() : -999.f;
 
     LOGF(debug, "timeZNA=%f timeZNC=%f", timeZNA, timeZNC);
     LOGF(debug, "timeV0A=%f timeV0C=%f", timeV0A, timeV0C);
     LOGF(debug, "timeFDA=%f timeFDC=%f", timeFDA, timeFDC);
+    LOGF(debug, "timeT0A=%f timeT0C=%f", timeT0A, timeT0C);
 
     bool bbZNA = timeZNA > par.fZNABBlower && timeZNA < par.fZNABBupper;
     bool bbZNC = timeZNC > par.fZNCBBlower && timeZNC < par.fZNCBBupper;
@@ -139,6 +114,8 @@ struct EventSelectionTask {
     bool bbFDC = timeFDC > par.fFDCBBlower && timeFDC < par.fFDCBBupper;
     bool bgFDA = timeFDA > par.fFDABGlower && timeFDA < par.fFDABGupper;
     bool bgFDC = timeFDC > par.fFDCBGlower && timeFDC < par.fFDCBGupper;
+    bool bbT0A = timeT0A > par.fT0ABBlower && timeT0A < par.fT0ABBupper;
+    bool bbT0C = timeT0C > par.fT0CBBlower && timeT0C < par.fT0CBBupper;
 
     if (isMC) {
       bbZNA = 1;
@@ -146,7 +123,7 @@ struct EventSelectionTask {
     }
 
     // Fill event selection columns
-    evsel(alias, bbV0A, bbV0C, bgV0A, bgV0C, bbZNA, bbZNC, bbFDA, bbFDC, bgFDA, bgFDC);
+    evsel(alias, bbT0A, bbT0C, bbV0A, bbV0C, bgV0A, bgV0C, bbZNA, bbZNC, bbFDA, bbFDC, bgFDA, bgFDC);
   }
 };
 

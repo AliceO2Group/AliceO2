@@ -74,8 +74,9 @@ int TopologyDictionary::readBinaryFile(string fname)
 {
   mVectorOfIDs.clear();
   mCommonMap.clear();
-  for (auto& p : mSmallTopologiesLUT)
+  for (auto& p : mSmallTopologiesLUT) {
     p = -1;
+  }
   std::ifstream in(fname.data(), std::ios::in | std::ios::binary);
   GroupStruct gr;
   int groupID = 0;
@@ -97,8 +98,9 @@ int TopologyDictionary::readBinaryFile(string fname)
       mVectorOfIDs.push_back(gr);
       if (!gr.mIsGroup) {
         mCommonMap.insert(std::make_pair(gr.mHash, groupID));
-        if (gr.mPattern.getUsedBytes() == 1)
+        if (gr.mPattern.getUsedBytes() == 1) {
           mSmallTopologiesLUT[(gr.mPattern.getColumnSpan() - 1) * 255 + (int)gr.mPattern.mBitmap[2]] = groupID;
+        }
       } else {
         mGroupMap.insert(std::make_pair((int)(gr.mHash >> 32) & 0x00000000ffffffff, groupID));
       }
@@ -112,8 +114,9 @@ int TopologyDictionary::readBinaryFile(string fname)
 void TopologyDictionary::getTopologyDistribution(const TopologyDictionary& dict, TH1F*& histo, const char* histName)
 {
   int dictSize = (int)dict.getSize();
-  if (histo)
+  if (histo) {
     delete histo;
+  }
   histo = new TH1F(histName, ";Topology ID;Frequency", dictSize, -0.5, dictSize - 0.5);
   histo->SetFillColor(kRed);
   histo->SetFillStyle(3005);
@@ -123,20 +126,20 @@ void TopologyDictionary::getTopologyDistribution(const TopologyDictionary& dict,
   }
 }
 
-Point3D<float> TopologyDictionary::getClusterCoordinates(const CompCluster& cl) const
+math_utils::Point3D<float> TopologyDictionary::getClusterCoordinates(const CompCluster& cl) const
 {
-  Point3D<float> locCl;
+  math_utils::Point3D<float> locCl;
   o2::itsmft::SegmentationAlpide::detectorToLocalUnchecked(cl.getRow(), cl.getCol(), locCl);
   locCl.SetX(locCl.X() + this->getXCOG(cl.getPatternID()));
   locCl.SetZ(locCl.Z() + this->getZCOG(cl.getPatternID()));
   return locCl;
 }
 
-Point3D<float> TopologyDictionary::getClusterCoordinates(const CompCluster& cl, const ClusterPattern& patt)
+math_utils::Point3D<float> TopologyDictionary::getClusterCoordinates(const CompCluster& cl, const ClusterPattern& patt)
 {
   float xCOG = 0, zCOG = 0;
   patt.getCOG(xCOG, zCOG);
-  Point3D<float> locCl;
+  math_utils::Point3D<float> locCl;
   o2::itsmft::SegmentationAlpide::detectorToLocalUnchecked(cl.getRow() - round(xCOG) + xCOG, cl.getCol() - round(zCOG) + zCOG, locCl);
   return locCl;
 }

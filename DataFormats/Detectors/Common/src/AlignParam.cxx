@@ -318,10 +318,11 @@ int AlignParam::Compare(const TObject* obj) const
 
   int level = getLevel();
   int level2 = ((AlignParam*)obj)->getLevel();
-  if (level == level2)
+  if (level == level2) {
     return 0;
-  else
+  } else {
     return ((level > level2) ? 1 : -1);
+  }
 }
 
 //_____________________________________________________________________________

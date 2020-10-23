@@ -119,8 +119,8 @@ class PVertexer
   o2d::VertexBase mMeanVertex{{0., 0., 0.}, {0.1 * 0.1, 0., 0.1 * 0.1, 0., 0., 6. * 6.}};
   std::array<float, 3> mXYConstraintInvErr = {1.0f, 0.f, 1.0f}; ///< nominal vertex constraint inverted errors^2
   //
-  o2::utils::StatAccumulator mStatZErr;
-  o2::utils::StatAccumulator mStatTErr;
+  o2::math_utils::StatAccumulator mStatZErr;
+  o2::math_utils::StatAccumulator mStatTErr;
   std::vector<TrackVF> mTracksPool;        ///< tracks in internal representation used for vertexing
   std::vector<int> mSortedTrackID;         ///< indices of tracks sorted in time
   std::vector<TimeCluster> mTimesClusters; ///< set of time clusters

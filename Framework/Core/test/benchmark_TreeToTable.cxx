@@ -72,9 +72,10 @@ static void BM_TreeToTable(benchmark::State& state)
 
     // benchmark TreeToTable
     if (tr) {
-      tr2ta = new TreeToTable(tr);
-      if (tr2ta->addAllColumns()) {
-        auto ta = tr2ta->process();
+      tr2ta = new TreeToTable;
+      if (tr2ta->addAllColumns(tr)) {
+        tr2ta->fill(tr);
+        auto ta = tr2ta->finalize();
       }
 
     } else {
@@ -82,11 +83,10 @@ static void BM_TreeToTable(benchmark::State& state)
     }
 
     // clean up
-    if (tr2ta)
-      delete tr2ta;
+    delete tr2ta;
+
     f->Close();
-    if (f)
-      delete f;
+    delete f;
   }
 
   state.SetBytesProcessed(state.iterations() * state.range(0) * 24);

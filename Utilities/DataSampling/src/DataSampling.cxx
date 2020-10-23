@@ -38,6 +38,10 @@ std::string DataSampling::createDispatcherName()
 void DataSampling::GenerateInfrastructure(WorkflowSpec& workflow, const std::string& policiesSource, size_t threads)
 {
   std::unique_ptr<ConfigurationInterface> cfg = ConfigurationFactory::getConfiguration(policiesSource);
+  if (cfg->getRecursive("").count("dataSamplingPolicies") == 0) {
+    LOG(WARN) << "No \"dataSamplingPolicies\" structure found in the config file. If no Data Sampling is expected, then it is completely fine.";
+    return;
+  }
   auto policiesTree = cfg->getRecursive("dataSamplingPolicies");
   Dispatcher dispatcher(createDispatcherName(), policiesSource);
   DataSampling::DoGenerateInfrastructure(dispatcher, workflow, policiesTree, threads);
@@ -52,7 +56,6 @@ void DataSampling::GenerateInfrastructure(WorkflowSpec& workflow, const boost::p
 void DataSampling::DoGenerateInfrastructure(Dispatcher& dispatcher, WorkflowSpec& workflow, const boost::property_tree::ptree& policiesTree, size_t threads)
 {
   LOG(DEBUG) << "Generating Data Sampling infrastructure...";
-  Options options;
 
   for (auto&& policyConfig : policiesTree) {
 
@@ -60,7 +63,7 @@ void DataSampling::DoGenerateInfrastructure(Dispatcher& dispatcher, WorkflowSpec
 
     // We don't want the Dispatcher to exit due to one faulty Policy
     try {
-      policy = std::make_unique<DataSamplingPolicy>(policyConfig.second);
+      dispatcher.registerPolicy(std::make_unique<DataSamplingPolicy>(DataSamplingPolicy::fromConfiguration(policyConfig.second)));
     } catch (const std::exception& ex) {
       LOG(WARN) << "Could not load the Data Sampling Policy '"
                 << policyConfig.second.get_optional<std::string>("id").value_or("") << "', because: " << ex.what();
@@ -70,27 +73,17 @@ void DataSampling::DoGenerateInfrastructure(Dispatcher& dispatcher, WorkflowSpec
                 << policyConfig.second.get_optional<std::string>("id").value_or("") << "'";
       continue;
     }
-
-    for (const auto& path : policy->getPathMap()) {
-      dispatcher.registerPath({path.first, path.second});
-    }
-
-    if (!policy->getFairMQOutputChannel().empty()) {
-      options.push_back({"channel-config", VariantType::String, policy->getFairMQOutputChannel().c_str(), {"Out-of-band channel config"}});
-      LOG(DEBUG) << " - registering output FairMQ channel '" << policy->getFairMQOutputChannel() << "'";
-    }
   }
-  options.push_back({"period-timer-stats", framework::VariantType::Int, 10 * 1000000, {"Dispatcher's stats timer period"}});
 
   if (dispatcher.getInputSpecs().size() > 0) {
     DataProcessorSpec spec;
     spec.name = dispatcher.getName();
     spec.inputs = dispatcher.getInputSpecs();
     spec.outputs = dispatcher.getOutputSpecs();
-    spec.algorithm = adaptFromTask<Dispatcher>(std::move(dispatcher));
     spec.maxInputTimeslices = threads;
     spec.labels = {{"DataSampling"}, {"Dispatcher"}};
-    spec.options = options;
+    spec.options = dispatcher.getOptions();
+    spec.algorithm = adaptFromTask<Dispatcher>(std::move(dispatcher));
 
     workflow.emplace_back(std::move(spec));
   } else {
@@ -123,7 +116,25 @@ std::vector<InputSpec> DataSampling::InputSpecsForPolicy(ConfigurationInterface*
 
   for (auto&& policyConfig : policiesTree) {
     if (policyConfig.second.get<std::string>("id") == policyName) {
-      DataSamplingPolicy policy(policyConfig.second);
+      auto policy = DataSamplingPolicy::fromConfiguration(policyConfig.second);
+      for (const auto& path : policy.getPathMap()) {
+        InputSpec input = DataSpecUtils::matchingInput(path.second);
+        inputs.push_back(input);
+      }
+      break;
+    }
+  }
+  return inputs;
+}
+
+std::vector<InputSpec> DataSampling::InputSpecsForPolicy(std::shared_ptr<configuration::ConfigurationInterface> config, const std::string& policyName)
+{
+  std::vector<InputSpec> inputs;
+  auto policiesTree = config->getRecursive("dataSamplingPolicies");
+
+  for (auto&& policyConfig : policiesTree) {
+    if (policyConfig.second.get<std::string>("id") == policyName) {
+      auto policy = DataSamplingPolicy::fromConfiguration(policyConfig.second);
       for (const auto& path : policy.getPathMap()) {
         InputSpec input = DataSpecUtils::matchingInput(path.second);
         inputs.push_back(input);
@@ -147,7 +158,7 @@ std::vector<OutputSpec> DataSampling::OutputSpecsForPolicy(ConfigurationInterfac
 
   for (auto&& policyConfig : policiesTree) {
     if (policyConfig.second.get<std::string>("id") == policyName) {
-      DataSamplingPolicy policy(policyConfig.second);
+      auto policy = DataSamplingPolicy::fromConfiguration(policyConfig.second);
       for (const auto& path : policy.getPathMap()) {
         outputs.push_back(path.second);
       }

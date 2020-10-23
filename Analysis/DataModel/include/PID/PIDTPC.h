@@ -31,34 +31,36 @@ namespace o2::pid::tpc
 {
 
 /// \brief Class to handle the the TPC detector response
-class Response : public DetectorResponse
+template <typename Coll, typename Trck, o2::track::PID::ID id>
+class ELoss
 {
  public:
-  Response() = default;
-  ~Response() override = default;
+  ELoss() = default;
+  ~ELoss() = default;
 
-  /// Updater for the TPC response to setup the track parameters
-  /// i.e. sets the track of interest
-  void UpdateTrack(float mom, float tpcsignal, float tpcpoints);
-
-  // Expected resolution
-  /// Gets the expected resolution of the measurement
-  float GetExpectedSigma(o2::track::PID::ID id) const override;
-
-  // Expected signal
   /// Gets the expected signal of the measurement
-  float GetExpectedSignal(o2::track::PID::ID id) const override;
+  float GetExpectedSignal(DetectorResponse& response, const Coll& col, const Trck& trk) const;
 
-  // Nsigma
-  float GetSeparation(o2::track::PID::ID id) const override { return (mTPCSignal - GetExpectedSignal(id)) / GetExpectedSigma(id); }
+  /// Gets the expected resolution of the measurement
+  float GetExpectedSigma(DetectorResponse& response, const Coll& col, const Trck& trk) const;
 
- private:
-  // Event of interest information
-  // Track of interest information
-  float mMomentum;  /// Momentum
-  float mTPCSignal; /// TPC signal
-  float mTPCPoints; /// Number of TPC points for TPC signal
+  /// Gets the number of sigmas with respect the expected value
+  float GetSeparation(DetectorResponse& response, const Coll& col, const Trck& trk) const { return (trk.tpcSignal() - GetExpectedSignal(response, col, trk)) / GetExpectedSigma(response, col, trk); }
 };
+
+template <typename Coll, typename Trck, o2::track::PID::ID id>
+float ELoss<Coll, Trck, id>::GetExpectedSignal(DetectorResponse& response, const Coll& col, const Trck& trk) const
+{
+  const float x[2] = {trk.tpcInnerParam() / o2::track::PID::getMass(id), (float)o2::track::PID::getCharge(id)};
+  return response(DetectorResponse::kSignal, x);
+}
+
+template <typename Coll, typename Trck, o2::track::PID::ID id>
+float ELoss<Coll, Trck, id>::GetExpectedSigma(DetectorResponse& response, const Coll& col, const Trck& trk) const
+{
+  const float x[2] = {trk.tpcSignal(), (float)trk.tpcNClsFound()};
+  return response(DetectorResponse::kSigma, x);
+}
 
 } // namespace o2::pid::tpc
 

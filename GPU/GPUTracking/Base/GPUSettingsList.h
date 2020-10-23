@@ -120,6 +120,7 @@ AddOption(registerStandaloneInputMemory, bool, false, "registerInputMemory", 0, 
 AddOption(memoryScalingFactor, float, 1.f, "", 0, "Factor to apply to all memory scalers")
 AddOption(alternateBorderSort, int, -1, "", 0, "Alternative implementation for sorting of border tracks")
 AddOption(enableRTC, bool, false, "", 0, "Use RTC to optimize GPU code")
+AddOption(showOutputStat, bool, false, "", 0, "Print some track output statistics")
 AddVariable(eventDisplay, GPUCA_NAMESPACE::gpu::GPUDisplayBackend*, nullptr)
 AddHelp("help", 'h')
 EndConfig()
@@ -214,7 +215,6 @@ AddOption(runsInit, int, 1, "", 0, "Number of initial iterations excluded from a
 AddOption(EventsDir, const char*, "pp", "events", 'e', "Directory with events to process", message("Reading events from Directory events/%s"))
 AddOption(eventDisplay, int, 0, "display", 'd', "Show standalone event display", def(1)) //1: default display (Windows / X11), 2: glut, 3: glfw
 AddOption(eventGenerator, bool, false, "", 0, "Run event generator")
-AddOption(nways7, bool, false, "", 0, "Create OuterParam")
 AddOption(cont, bool, false, "", 0, "Process continuous timeframe data")
 AddOption(outputcontrolmem, unsigned long, 0, "outputMemory", 0, "Use predefined output buffer of this size", min(0ul), message("Using %lld bytes as output memory"))
 AddOption(inputcontrolmem, unsigned long, 0, "inputMemory", 0, "Use predefined input buffer of this size", min(0ul), message("Using %lld bytes as input memory"))
@@ -244,6 +244,7 @@ AddOption(runTRD, int, -1, "", 0, "Enable TRD processing")
 AddOption(rundEdx, int, -1, "", 0, "Enable dEdx processing")
 AddOption(runCompression, int, 1, "", 0, "Enable TPC Compression")
 AddOption(runTransformation, int, 1, "", 0, "Enable TPC Transformation")
+AddOption(runRefit, bool, false, "", 0, "Enable final track refit")
 AddHelp("help", 'h')
 AddHelpAll("helpall", 'H')
 AddSubConfig(GPUSettingsRec, rec)
@@ -271,6 +272,7 @@ AddOption(outputBufferSize, unsigned long, 200000000ul, "", 0, "Size of the outp
 AddOption(synchronousProcessing, bool, false, "", 0, "Apply performance shortcuts for synchronous processing, disable unneeded steps")
 AddOption(mutexMemReg, bool, false, "", 0, "Global mutex to serialize GPU memory registration")
 AddOption(display, bool, false, "", 0, "Enable standalone gpu tracking visualizaion")
+AddOption(dropSecondaryLegs, bool, true, "", 0, "Do not store secondary legs of looping track in TrackTPC")
 EndConfig()
 #endif // GPUCA_O2_LIB
 #endif // !GPUCA_GPUCODE_DEVICE

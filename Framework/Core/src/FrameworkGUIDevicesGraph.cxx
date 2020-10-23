@@ -382,7 +382,11 @@ void showTopologyNodeGraph(WorkspaceGUIState& state,
 
   ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(1, 1));
   ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0, 0));
+#if defined(ImGuiCol_ChildWindowBg)
   ImGui::PushStyleColor(ImGuiCol_ChildWindowBg, (ImU32)ImColor(60, 60, 70, 200));
+#else
+  ImGui::PushStyleColor(ImGuiCol_WindowBg, (ImU32)ImColor(60, 60, 70, 200));
+#endif
   ImVec2 graphSize = ImGui::GetWindowSize();
   if (state.leftPaneVisible) {
     graphSize.x -= state.leftPaneSize;
@@ -469,12 +473,15 @@ void showTopologyNodeGraph(WorkspaceGUIState& state,
       }
     }
     bool node_moving_active = ImGui::IsItemActive();
-    if (node_widgets_active || node_moving_active)
+    if (node_widgets_active || node_moving_active) {
       node_selected = node->ID;
-    if (node_moving_active && ImGui::IsMouseDragging(0))
+    }
+    if (node_moving_active && ImGui::IsMouseDragging(0)) {
       pos->pos = pos->pos + ImGui::GetIO().MouseDelta;
-    if (ImGui::IsWindowHovered() && !node_moving_active && ImGui::IsMouseDragging(0))
+    }
+    if (ImGui::IsWindowHovered() && !node_moving_active && ImGui::IsMouseDragging(0)) {
       scrolling = scrolling - ImVec2(ImGui::GetIO().MouseDelta.x / 4.f, ImGui::GetIO().MouseDelta.y / 4.f);
+    }
 
     auto nodeBg = decideColorForNode(info);
 
@@ -497,8 +504,9 @@ void showTopologyNodeGraph(WorkspaceGUIState& state,
       draw_list->AddTriangleFilled(pp1, pp2, pp3, color);
       draw_list->AddCircleFilled(offset + NodePos::GetInputSlotPos(nodes, positions, node_idx, slot_idx), NODE_SLOT_RADIUS, ImColor(150, 150, 150, 150));
     }
-    for (int slot_idx = 0; slot_idx < node->OutputsCount; slot_idx++)
+    for (int slot_idx = 0; slot_idx < node->OutputsCount; slot_idx++) {
       draw_list->AddCircleFilled(offset + NodePos::GetOutputSlotPos(nodes, positions, node_idx, slot_idx), NODE_SLOT_RADIUS, ImColor(150, 150, 150, 150));
+    }
 
     ImGui::PopID();
   }
@@ -511,10 +519,12 @@ void showTopologyNodeGraph(WorkspaceGUIState& state,
   }
   if (open_context_menu) {
     ImGui::OpenPopup("context_menu");
-    if (node_hovered_in_list != -1)
+    if (node_hovered_in_list != -1) {
       node_selected = node_hovered_in_list;
-    if (node_hovered_in_scene != -1)
+    }
+    if (node_hovered_in_scene != -1) {
       node_selected = node_hovered_in_scene;
+    }
   }
 
   // Scrolling

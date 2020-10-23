@@ -50,10 +50,12 @@ void VarManager::ResetValues(int startValue, int endValue, float* values)
   //
   // reset all variables to an "innocent" value
   // NOTE: here we use -9999.0 as a neutral value, but depending on situation, this may not be the case
-  if (!values)
+  if (!values) {
     values = fgValues;
-  for (Int_t i = startValue; i < endValue; ++i)
+  }
+  for (Int_t i = startValue; i < endValue; ++i) {
     values[i] = -9999.;
+  }
 }
 
 //__________________________________________________________________
@@ -62,8 +64,9 @@ void VarManager::SetRunNumbers(int n, int* runs)
   //
   // maps the list of runs such that one can plot the list of runs nicely in a histogram axis
   //
-  for (int i = 0; i < n; ++i)
+  for (int i = 0; i < n; ++i) {
     fgRunMap[runs[i]] = i + 1;
+  }
 }
 
 //__________________________________________________________________
@@ -72,8 +75,9 @@ void VarManager::FillEventDerived(float* values)
   //
   // Fill event-wise derived quantities (these are all quantities which can be computed just based on the values already filled in the FillEvent() function)
   //
-  if (fgUsedVars[kRunId])
+  if (fgUsedVars[kRunId]) {
     values[kRunId] = (fgRunMap.size() > 0 ? fgRunMap[int(values[kRunNo])] : 0);
+  }
 }
 
 //__________________________________________________________________
@@ -82,8 +86,9 @@ void VarManager::FillTrackDerived(float* values)
   //
   // Fill track-wise derived quantities (these are all quantities which can be computed just based on the values already filled in the FillTrack() function)
   //
-  if (fgUsedVars[kP])
+  if (fgUsedVars[kP]) {
     values[kP] = values[kPt] * TMath::CosH(values[kEta]);
+  }
 }
 
 //__________________________________________________________________

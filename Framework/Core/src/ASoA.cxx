@@ -19,16 +19,26 @@ std::shared_ptr<arrow::Table> ArrowHelpers::joinTables(std::vector<std::shared_p
   if (tables.size() == 1) {
     return tables[0];
   }
-  std::vector<std::shared_ptr<arrow::ChunkedArray>> columns;
+  for (auto i = 0u; i < tables.size() - 1; ++i) {
+    assert(tables[i]->num_rows() == tables[i + 1]->num_rows());
+  }
   std::vector<std::shared_ptr<arrow::Field>> fields;
+  std::vector<std::shared_ptr<arrow::ChunkedArray>> columns;
 
   for (auto& t : tables) {
-    for (auto i = 0; i < t->num_columns(); ++i) {
-      columns.push_back(t->column(i));
-      fields.push_back(t->schema()->field(i));
+    auto tf = t->fields();
+    std::copy(tf.begin(), tf.end(), std::back_inserter(fields));
+  }
+
+  auto schema = std::make_shared<arrow::Schema>(fields);
+
+  if (tables[0]->num_rows() != 0) {
+    for (auto& t : tables) {
+      auto tc = t->columns();
+      std::copy(tc.begin(), tc.end(), std::back_inserter(columns));
     }
   }
-  return arrow::Table::Make(std::make_shared<arrow::Schema>(fields), columns);
+  return arrow::Table::Make(schema, columns);
 }
 
 std::shared_ptr<arrow::Table> ArrowHelpers::concatTables(std::vector<std::shared_ptr<arrow::Table>>&& tables)

@@ -49,14 +49,16 @@ BOOST_AUTO_TEST_CASE(testTempCalibrationSM)
 
   const char* aliceO2env = std::getenv("O2_ROOT");
   std::string inputDir = " ";
-  if (aliceO2env)
+  if (aliceO2env) {
     inputDir = aliceO2env;
+  }
   inputDir += "/share/Detectors/EMC/files/";
 
   std::string file = inputDir + "TempCalibSM_LHC18k_289166.txt";
   std::ifstream fileTempCalibSM(file, std::ifstream::in);
-  if (!fileTempCalibSM.is_open())
+  if (!fileTempCalibSM.is_open()) {
     std::cout << "The file TempCalibSM_LHC18k_289166.txt was not opened\n";
+  }
 
   float TempCalibSM[20];
 
@@ -72,8 +74,9 @@ BOOST_AUTO_TEST_CASE(testTempCalibrationSM)
     iSM++;
   }
 
-  for (unsigned short ism = 0; ism < 20; ism++)
+  for (unsigned short ism = 0; ism < 20; ism++) {
     BOOST_CHECK_EQUAL(parameter.getTempCalibParamPerSM(ism), TempCalibSM[ism]);
+  }
 
   // Comparison test
 
@@ -82,8 +85,9 @@ BOOST_AUTO_TEST_CASE(testTempCalibrationSM)
 
   std::string fileLHC18k = inputDir + "TempCalibSM_LHC18k_289201.txt";
   std::ifstream fileTempCalibSM_LHC18k(fileLHC18k, std::ifstream::in);
-  if (!fileTempCalibSM_LHC18k.is_open())
+  if (!fileTempCalibSM_LHC18k.is_open()) {
     std::cout << "The file TempCalibSM_LHC18k_289201.txt was not opened\n";
+  }
 
   unsigned char TempCalibSM_LHC18k;
 

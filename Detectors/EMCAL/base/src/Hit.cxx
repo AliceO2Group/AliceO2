@@ -23,8 +23,9 @@ void Hit::PrintStream(std::ostream& stream) const
 
 Bool_t Hit::operator<(const Hit& rhs) const
 {
-  if (GetTrackID() != rhs.GetTrackID())
+  if (GetTrackID() != rhs.GetTrackID()) {
     return GetTrackID() < rhs.GetTrackID();
+  }
   return GetDetectorID() < rhs.GetDetectorID();
 }
 

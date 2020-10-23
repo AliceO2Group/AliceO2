@@ -14,9 +14,7 @@
 #include "ReconstructionDataFormats/Track.h"
 #include "CommonDataFormat/RangeReference.h"
 #include "DataFormatsTPC/ClusterNative.h"
-#include "DataFormatsTPC/Defs.h"
 #include "DataFormatsTPC/dEdxInfo.h"
-#include <gsl/span>
 
 namespace o2
 {
@@ -75,34 +73,51 @@ class TrackTPC : public o2::track::TrackParCov
   int getNClusterReferences() const { return getNClusters(); }
   void setClusterRef(uint32_t entry, uint16_t ncl) { mClustersReference.set(entry, ncl); }
 
-  void getClusterReference(gsl::span<const o2::tpc::TPCClRefElem> clinfo, int nCluster,
-                           uint8_t& sectorIndex, uint8_t& rowIndex, uint32_t& clusterIndex) const
+  template <class T>
+  static inline void getClusterReference(T& clinfo, int nCluster,
+                                         uint8_t& sectorIndex, uint8_t& rowIndex, uint32_t& clusterIndex, const ClusRef& ref)
   {
-    // data for given tracks starts at clinfo[ mClustersReference.getFirstEntry() ],
-    // 1st mClustersReference.getEntries() cluster indices are stored as uint32_t
+    // data for given tracks starts at clinfo[ ref.getFirstEntry() ],
+    // 1st ref.getEntries() cluster indices are stored as uint32_t
     // then sector indices as uint8_t, then row indices ar uin8_t
 
-    //    const uint32_t* clIndArr = &clinfo[ mClustersReference.getFirstEntry() ];
-    const uint32_t* clIndArr = reinterpret_cast<const uint32_t*>(&clinfo[mClustersReference.getFirstEntry()]); // TODO remove this trick
+    //    const uint32_t* clIndArr = &clinfo[ ref.getFirstEntry() ];
+    const uint32_t* clIndArr = reinterpret_cast<const uint32_t*>(&clinfo[ref.getFirstEntry()]); // TODO remove this trick
     clusterIndex = clIndArr[nCluster];
-    const uint8_t* srIndexArr = reinterpret_cast<const uint8_t*>(clIndArr + mClustersReference.getEntries());
+    const uint8_t* srIndexArr = reinterpret_cast<const uint8_t*>(clIndArr + ref.getEntries());
     sectorIndex = srIndexArr[nCluster];
-    rowIndex = srIndexArr[nCluster + mClustersReference.getEntries()];
+    rowIndex = srIndexArr[nCluster + ref.getEntries()];
   }
 
-  const o2::tpc::ClusterNative& getCluster(gsl::span<const o2::tpc::TPCClRefElem> clinfo, int nCluster,
-                                           const o2::tpc::ClusterNativeAccess& clusters, uint8_t& sectorIndex, uint8_t& rowIndex) const
+  template <class T>
+  inline void getClusterReference(T& clinfo, int nCluster,
+                                  uint8_t& sectorIndex, uint8_t& rowIndex, uint32_t& clusterIndex) const
+  {
+    getClusterReference<T>(clinfo, nCluster, sectorIndex, rowIndex, clusterIndex, mClustersReference);
+  }
+
+  template <class T>
+  static inline const o2::tpc::ClusterNative& getCluster(T& clinfo, int nCluster,
+                                                         const o2::tpc::ClusterNativeAccess& clusters, uint8_t& sectorIndex, uint8_t& rowIndex, const ClusRef& ref)
   {
     uint32_t clusterIndex;
-    getClusterReference(clinfo, nCluster, sectorIndex, rowIndex, clusterIndex);
+    getClusterReference<T>(clinfo, nCluster, sectorIndex, rowIndex, clusterIndex, ref);
     return (clusters.clusters[sectorIndex][rowIndex][clusterIndex]);
   }
 
-  const o2::tpc::ClusterNative& getCluster(gsl::span<const o2::tpc::TPCClRefElem> clinfo, int nCluster,
-                                           const o2::tpc::ClusterNativeAccess& clusters) const
+  template <class T>
+  inline const o2::tpc::ClusterNative& getCluster(T& clinfo, int nCluster,
+                                                  const o2::tpc::ClusterNativeAccess& clusters, uint8_t& sectorIndex, uint8_t& rowIndex) const
+  {
+    return getCluster<T>(clinfo, nCluster, clusters, sectorIndex, rowIndex, mClustersReference);
+  }
+
+  template <class T>
+  inline const o2::tpc::ClusterNative& getCluster(T& clinfo, int nCluster,
+                                                  const o2::tpc::ClusterNativeAccess& clusters) const
   {
     uint8_t sectorIndex, rowIndex;
-    return (getCluster(clinfo, nCluster, clusters, sectorIndex, rowIndex));
+    return (getCluster<T>(clinfo, nCluster, clusters, sectorIndex, rowIndex));
   }
 
   const dEdxInfo& getdEdx() const { return mdEdx; }

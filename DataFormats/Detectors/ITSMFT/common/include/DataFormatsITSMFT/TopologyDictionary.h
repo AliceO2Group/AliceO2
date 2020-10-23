@@ -34,7 +34,7 @@
 #include <string>
 #include <unordered_map>
 #include <vector>
-#include "MathUtils/Cartesian3D.h"
+#include "MathUtils/Cartesian.h"
 #include "DataFormatsITSMFT/CompCluster.h"
 #include "TH1F.h"
 
@@ -155,9 +155,9 @@ class TopologyDictionary
   /// Returns the number of elements in the dicionary;
   int getSize() const { return (int)mVectorOfIDs.size(); }
   ///Returns the local position of a compact cluster
-  Point3D<float> getClusterCoordinates(const CompCluster& cl) const;
+  math_utils::Point3D<float> getClusterCoordinates(const CompCluster& cl) const;
   ///Returns the local position of a compact cluster
-  static Point3D<float> getClusterCoordinates(const CompCluster& cl, const ClusterPattern& patt);
+  static math_utils::Point3D<float> getClusterCoordinates(const CompCluster& cl, const ClusterPattern& patt);
 
   friend BuildTopologyDictionary;
   friend LookUp;

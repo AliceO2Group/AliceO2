@@ -188,6 +188,9 @@ struct DataSpecUtils {
 
   /// Build a DataDescriptMatcher which does not care about the subSpec and origin.
   static data_matcher::DataDescriptorMatcher dataDescriptorMatcherFrom(header::DataDescription const& origin);
+
+  /// Checks if left includes right (or is equal to)
+  static bool includes(const InputSpec& left, const InputSpec& right);
 };
 
 } // namespace framework

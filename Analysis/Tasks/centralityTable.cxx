@@ -29,13 +29,13 @@ struct CentralityTableTask {
     ccdb->setLocalObjectValidityChecking();
   }
 
-  void process(soa::Join<aod::Collisions, aod::Mults>::iterator const& collision, aod::Timestamps& timestamps, aod::BCs const& bcs)
+  void process(soa::Join<aod::Collisions, aod::Mults>::iterator const& collision, aod::BCsWithTimestamps const&)
   {
-    auto ts = timestamps.iteratorAt(collision.bcId());
-    LOGF(debug, "timestamp=%llu", ts.timestamp());
-    TH1F* hCumMultV0M = ccdb->getForTimeStamp<TH1F>("Multiplicity/CumMultV0M", ts.timestamp());
+    auto bc = collision.bc_as<aod::BCsWithTimestamps>();
+    LOGF(debug, "timestamp=%llu", bc.timestamp());
+    TH1F* hCumMultV0M = ccdb->getForTimeStamp<TH1F>("Multiplicity/CumMultV0M", bc.timestamp());
     if (!hCumMultV0M) {
-      LOGF(fatal, "V0M centrality calibration is not available in CCDB for run=%d at timestamp=%llu", collision.bc().runNumber(), ts.timestamp());
+      LOGF(fatal, "V0M centrality calibration is not available in CCDB for run=%d at timestamp=%llu", bc.runNumber(), bc.timestamp());
     }
     float centV0M = hCumMultV0M->GetBinContent(hCumMultV0M->FindFixBin(collision.multV0M()));
 

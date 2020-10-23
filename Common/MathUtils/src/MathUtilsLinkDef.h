@@ -12,29 +12,31 @@
 #pragma link off all globals;
 #pragma link off all classes;
 #pragma link off all functions;
-#pragma link C++ enum o2::TransformType;
+#pragma link C++ enum o2::math_utils::TransformType;
 
 #pragma link C++ class o2::math_utils::Chebyshev3D + ;
 #pragma link C++ class o2::math_utils::Chebyshev3DCalc + ;
 
-#pragma link C++ namespace o2::math_utils::math_base;
+#pragma link C++ function o2::math_utils::fit < float>;
+#pragma link C++ function o2::math_utils::fit < double>;
 
-#pragma link C++ function o2::math_utils::math_base::fit < float>;
-#pragma link C++ function o2::math_utils::math_base::fit < double>;
+#pragma link C++ function o2::math_utils::fitGaus < float>;
+#pragma link C++ function o2::math_utils::fitGaus < double>;
 
-#pragma link C++ function o2::math_utils::math_base::fitGaus < float>;
-#pragma link C++ function o2::math_utils::math_base::fitGaus < double>;
+#pragma link C++ function o2::math_utils::getStatisticsData < float>;
+#pragma link C++ function o2::math_utils::getStatisticsData < double>;
+#pragma link C++ function o2::math_utils::getStatisticsData < short>;
 
-#pragma link C++ function o2::math_utils::math_base::getStatisticsData < float>;
-#pragma link C++ function o2::math_utils::math_base::getStatisticsData < double>;
-#pragma link C++ function o2::math_utils::math_base::getStatisticsData < short>;
+#pragma link C++ class o2::math_utils::Transform3D + ;
+#pragma link C++ class o2::math_utils::Rotation2Df_t + ;
+#pragma link C++ class o2::math_utils::Rotation2Dd_t + ;
+#pragma link C++ class o2::math_utils::CachingTF1 + ;
 
-#pragma link C++ class o2::Transform3D + ;
-#pragma link C++ class o2::Rotation2D + ;
-#pragma link C++ class o2::base::CachingTF1 + ;
-
-#pragma link C++ class o2::utils::CircleXY + ;
-#pragma link C++ class o2::utils::IntervalXY + ;
-#pragma link C++ class o2::utils::Bracket < float> + ;
+#pragma link C++ class o2::math_utils::CircleXYf_t + ;
+#pragma link C++ class o2::math_utils::CircleXYd_t + ;
+#pragma link C++ class o2::math_utils::IntervalXYf_t + ;
+#pragma link C++ class o2::math_utils::IntervalXYd_t + ;
+#pragma link C++ class o2::math_utils::Bracketf_t + ;
+#pragma link C++ class o2::math_utils::Bracketd_t + ;
 
 #endif

@@ -41,6 +41,8 @@ struct Module {
 
   void setChannel(int slot, int8_t chID, int16_t lID, bool read, bool trig = false, int tF = 0, int tL = 0, int tS = 0, int tT = 0);
   void print() const;
+  void printCh() const;
+  void printTrig() const;
   void check() const;
   ClassDefNV(Module, 1);
 };

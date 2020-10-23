@@ -40,8 +40,6 @@ using namespace o2::tpc;
 using namespace o2::dataformats;
 using namespace std;
 
-using MCLabelContainer = MCTruthContainer<o2::MCCompLabel>;
-
 #if !defined(__CLING__) || defined(__ROOTCLING__) // Disable in interpreted mode due to missing rootmaps
 
 // This is a prototype of a macro to test running the HLT O2 CA Tracking library on a root input file containg

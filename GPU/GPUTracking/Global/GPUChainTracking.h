@@ -148,6 +148,7 @@ class GPUChainTracking : public GPUChain, GPUReconstructionHelpers::helperDelega
   int DoTRDGPUTracking();
   int RunTPCCompression();
   int RunTPCDecompression();
+  int RunRefit();
 
   // Getters / setters for parameters
   const TPCFastTransform* GetTPCTransform() const { return processors()->calibObjects.fastTransform; }
@@ -168,6 +169,7 @@ class GPUChainTracking : public GPUChain, GPUReconstructionHelpers::helperDelega
   void SetOutputControlCompressedClusters(GPUOutputControl* v) { mOutputCompressedClusters = v; }
   void SetOutputControlClustersNative(GPUOutputControl* v) { mOutputClustersNative = v; }
   void SetOutputControlTPCTracks(GPUOutputControl* v) { mOutputTPCTracks = v; }
+  void SetOutputControlClusterLabels(GPUOutputControl* v) { mOutputClusterLabels = v; }
 
   const void* mConfigDisplay = nullptr; // Abstract pointer to Standalone Display Configuration Structure
   const void* mConfigQA = nullptr;      // Abstract pointer to Standalone QA Configuration Structure
@@ -210,6 +212,7 @@ class GPUChainTracking : public GPUChain, GPUReconstructionHelpers::helperDelega
   void PrintMemoryStatistics() override;
   void PrepareDebugOutput();
   void PrintDebugOutput();
+  void PrintOutputStat();
 
   bool ValidateSteps();
   bool ValidateSettings();
@@ -238,6 +241,7 @@ class GPUChainTracking : public GPUChain, GPUReconstructionHelpers::helperDelega
   GPUOutputControl* mOutputCompressedClusters = nullptr;
   GPUOutputControl* mOutputClustersNative = nullptr;
   GPUOutputControl* mOutputTPCTracks = nullptr;
+  GPUOutputControl* mOutputClusterLabels = nullptr;
 
   std::unique_ptr<GPUTPCCFChainContext> mCFContext;
 

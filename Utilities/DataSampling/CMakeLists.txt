@@ -34,7 +34,7 @@ o2_add_library(DataSampling
 
 # tests with input data
 
-o2_data_file(COPY test/test_DataSampling.json DESTINATION tests)
+o2_data_file(COPY test/test_DataSampling.json test/test_DataSamplingEmpty.json DESTINATION tests)
 
 o2_add_test(DataSampling NAME test_DataSampling_test_DataSampling
   SOURCES test/test_DataSampling.cxx
@@ -60,6 +60,11 @@ foreach(t
 endforeach()
 
 o2_data_file(COPY etc/exampleDataSamplingConfig.json DESTINATION etc)
+
+o2_add_dpl_workflow(standalone
+  SOURCES src/dataSamplingStandalone.cxx
+  COMPONENT_NAME DataSampling
+  PUBLIC_LINK_LIBRARIES O2::DataSampling)
 
 o2_add_dpl_workflow(datasampling-pod-and-root
   SOURCES test/dataSamplingPodAndRoot.cxx

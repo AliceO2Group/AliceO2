@@ -8,7 +8,7 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 #include "Framework/AnalysisDataModel.h"
-#include "Analysis/SecondaryVertexHF.h"
+#include "Analysis/HFSecondaryVertex.h"
 #include "PID/PIDResponse.h"
 #include "Analysis/Multiplicity.h"
 #include "Analysis/Centrality.h"
@@ -80,7 +80,9 @@ template <typename T>
 Style getStyleFor()
 {
   auto label = MetadataTrait<T>::metadata::tableLabel();
-  auto entry = std::find_if(tableStyles.begin(), tableStyles.end(), [&](auto&& x) { if (std::string(label).find(x.first) != std::string::npos) return true; return false; });
+  auto entry = std::find_if(tableStyles.begin(), tableStyles.end(), [&](auto&& x) { if (std::string(label).find(x.first) != std::string::npos) { return true; 
+
+}return false; });
   if (entry != tableStyles.end()) {
     auto value = *entry;
     return styles[value.second];
@@ -234,7 +236,7 @@ int main(int, char**)
 
   displayEntity<Zdcs>();
   displayEntity<FT0s>();
-  displayEntity<FV0s>();
+  displayEntity<FV0As>();
   displayEntity<FDDs>();
 
   displayEntities<Collisions, Cents, Mults, Timestamps>();
@@ -245,7 +247,7 @@ int main(int, char**)
   displayEntity<CaloTriggers>();
   displayEntity<McCaloLabels>();
 
-  displayEntity<Run2V0s>();
+  displayEntity<FV0Cs>();
 
   displayEntities<Tracks, TracksCov, TracksExtra, TracksExtended, TrackSelection, pidRespTOF, pidRespTPC>();
   displayEntity<UnassignedTracks>();

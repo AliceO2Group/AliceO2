@@ -236,19 +236,24 @@ struct OutputManager<Spawns<T>> {
   static bool prepare(ProcessingContext& pc, Spawns<T>& what)
   {
     auto original_table = soa::ArrowHelpers::joinTables(extractOriginals(what.sources_pack(), pc));
-    what.extension = std::make_shared<typename Spawns<T>::extension_t>(o2::soa::spawner(what.pack(), original_table.get()));
+    if (original_table->schema()->fields().empty() == true) {
+      using base_table_t = typename Spawns<T>::base_table_t;
+      original_table = makeEmptyTable<base_table_t>();
+    }
+
+    what.extension = std::make_shared<typename Spawns<T>::extension_t>(o2::framework::spawner(what.pack(), original_table.get()));
     what.table = std::make_shared<typename T::table_t>(soa::ArrowHelpers::joinTables({what.extension->asArrowTable(), original_table}));
     return true;
   }
 
-  static bool finalize(ProcessingContext&, Spawns<T>&)
+  static bool finalize(ProcessingContext& pc, Spawns<T>& what)
   {
+    pc.outputs().adopt(what.output(), what.asArrowTable());
     return true;
   }
 
-  static bool postRun(EndOfStreamContext& eosc, Spawns<T>& what)
+  static bool postRun(EndOfStreamContext&, Spawns<T>&)
   {
-    eosc.outputs().adopt(what.output(), what.asArrowTable());
     return true;
   }
 };
@@ -282,14 +287,14 @@ struct OutputManager<Builds<T, P>> {
                       extractOriginalsTuple(what.sources_pack(), pc));
   }
 
-  static bool finalize(ProcessingContext&, Builds<T, P>&)
+  static bool finalize(ProcessingContext& pc, Builds<T, P>& what)
   {
+    pc.outputs().adopt(what.output(), what.asArrowTable());
     return true;
   }
 
-  static bool postRun(EndOfStreamContext& eosc, Builds<T, P>& what)
+  static bool postRun(EndOfStreamContext&, Builds<T, P>&)
   {
-    eosc.outputs().adopt(what.output(), what.asArrowTable());
     return true;
   }
 };
@@ -350,9 +355,9 @@ struct OptionManager {
   }
 };
 
-template <typename T>
-struct OptionManager<Configurable<T>> {
-  static bool appendOption(std::vector<ConfigParamSpec>& options, Configurable<T>& what)
+template <typename T, typename IP>
+struct OptionManager<Configurable<T, IP>> {
+  static bool appendOption(std::vector<ConfigParamSpec>& options, Configurable<T, IP>& what)
   {
     if constexpr (variant_trait_v<typename std::decay<T>::type> != VariantType::Unknown) {
       options.emplace_back(ConfigParamSpec{what.name, variant_trait_v<typename std::decay<T>::type>, what.value, {what.help}});
@@ -363,7 +368,7 @@ struct OptionManager<Configurable<T>> {
     return true;
   }
 
-  static bool prepare(InitContext& context, Configurable<T>& what)
+  static bool prepare(InitContext& context, Configurable<T, IP>& what)
   {
     if constexpr (variant_trait_v<typename std::decay<T>::type> != VariantType::Unknown) {
       what.value = context.options().get<T>(what.name.c_str());

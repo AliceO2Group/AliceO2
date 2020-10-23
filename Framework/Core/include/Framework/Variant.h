@@ -9,11 +9,12 @@
 // or submit itself to any jurisdiction.
 #ifndef FRAMEWORK_VARIANT_H
 #define FRAMEWORK_VARIANT_H
+
+#include "Framework/RuntimeError.h"
 #include <type_traits>
 #include <cstring>
 #include <cstdint>
 #include <cstdlib>
-#include <stdexcept>
 #include <iosfwd>
 #include <initializer_list>
 #include <string_view>
@@ -220,7 +221,7 @@ class Variant
   {
     auto v = variant_trait_v<T>;
     if (mType != variant_trait_v<T>) {
-      throw std::runtime_error("Mismatch between types");
+      throw runtime_error("Mismatch between types");
     }
     return variant_helper<storage_t, T>::get(&mStore);
   }

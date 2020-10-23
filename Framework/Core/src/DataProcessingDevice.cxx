@@ -53,6 +53,7 @@
 #include <memory>
 #include <unordered_map>
 #include <uv.h>
+#include <execinfo.h>
 
 using namespace o2::framework;
 using Key = o2::monitoring::tags::Key;
@@ -94,19 +95,23 @@ DataProcessingDevice::DataProcessingDevice(DeviceSpec const& spec, ServiceRegist
 {
   /// FIXME: move erro handling to a service?
   if (mError != nullptr) {
-    mErrorHandling = [& errorCallback = mError,
-                      &serviceRegistry = mServiceRegistry](std::exception& e, InputRecord& record) {
+    mErrorHandling = [&errorCallback = mError,
+                      &serviceRegistry = mServiceRegistry](RuntimeErrorRef e, InputRecord& record) {
       ZoneScopedN("Error handling");
-      LOG(ERROR) << "Exception caught: " << e.what() << std::endl;
+      auto& err = error_from_ref(e);
+      LOGP(ERROR, "Exception caught: {} ", err.what);
+      backtrace_symbols_fd(err.backtrace, err.maxBacktrace, STDERR_FILENO);
       serviceRegistry.get<Monitoring>().send({1, "error"});
       ErrorContext errorContext{record, serviceRegistry, e};
       errorCallback(errorContext);
     };
   } else {
-    mErrorHandling = [& errorPolicy = mErrorPolicy,
-                      &serviceRegistry = mServiceRegistry](std::exception& e, InputRecord& record) {
+    mErrorHandling = [&errorPolicy = mErrorPolicy,
+                      &serviceRegistry = mServiceRegistry](RuntimeErrorRef e, InputRecord& record) {
       ZoneScopedN("Error handling");
-      LOG(ERROR) << "Exception caught: " << e.what() << std::endl;
+      auto& err = error_from_ref(e);
+      LOGP(ERROR, "Exception caught: {} ", err.what);
+      backtrace_symbols_fd(err.backtrace, err.maxBacktrace, STDERR_FILENO);
       serviceRegistry.get<Monitoring>().send({1, "error"});
       switch (errorPolicy) {
         case TerminationPolicy::QUIT:
@@ -333,9 +338,9 @@ void DataProcessingDevice::InitTask()
       mState.activeInputPollers.push_back(poller);
     }
     // In case we do not have any input channel and we do not have
-    // any timers, we still wake up whenever we can send data to downstream
+    // any timers or signal watchers we still wake up whenever we can send data to downstream
     // devices to allow for enumerations.
-    if (mState.activeInputPollers.empty() && mState.activeTimers.empty()) {
+    if (mState.activeInputPollers.empty() && mState.activeTimers.empty() && mState.activeSignals.empty()) {
       for (auto& x : fChannels) {
         if (x.first.rfind("from_internal-dpl", 0) == 0) {
           LOG(debug) << x.first << " is an internal channel. Not polling." << std::endl;
@@ -427,7 +432,8 @@ bool DataProcessingDevice::ConditionalRun()
   if (mState.loop) {
     ZoneScopedN("uv idle");
     TracyPlot("past activity", (int64_t)mWasActive);
-    uv_run(mState.loop, mWasActive && (mDataProcessorContexes.at(0).state->streaming != StreamingState::Idle) ? UV_RUN_NOWAIT : UV_RUN_ONCE);
+    uv_run(mState.loop, (mFirst == true) || (mWasActive && (mDataProcessorContexes.at(0).state->streaming != StreamingState::Idle) && (mState.activeSignals.empty())) ? UV_RUN_NOWAIT : UV_RUN_ONCE);
+    mFirst = false;
   }
 
   // Notify on the main thread the new region callbacks, making sure
@@ -950,6 +956,7 @@ bool DataProcessingDevice::tryDispatchComputation(DataProcessorContext& context,
       context.registry->preProcessingCallbacks(processContext);
     }
     if (action.op == CompletionPolicy::CompletionOp::Discard) {
+      context.registry->postDispatchingCallbacks(processContext);
       if (context.spec->forwards.empty() == false) {
         forwardInputs(action.slot, record);
         continue;
@@ -975,7 +982,14 @@ bool DataProcessingDevice::tryDispatchComputation(DataProcessorContext& context,
           context.registry->postProcessingCallbacks(processContext);
         }
       }
-    } catch (std::exception& e) {
+    } catch (std::exception& ex) {
+      ZoneScopedN("error handling");
+      /// Convert a standatd exception to a RuntimeErrorRef
+      /// Notice how this will lose the backtrace information
+      /// and report the exception coming from here.
+      auto e = runtime_error(ex.what());
+      (*context.errorHandling)(e, record);
+    } catch (o2::framework::RuntimeErrorRef e) {
       ZoneScopedN("error handling");
       (*context.errorHandling)(e, record);
     }
@@ -984,6 +998,7 @@ bool DataProcessingDevice::tryDispatchComputation(DataProcessorContext& context,
     // We forward inputs only when we consume them. If we simply Process them,
     // we keep them for next message arriving.
     if (action.op == CompletionPolicy::CompletionOp::Consume) {
+      context.registry->postDispatchingCallbacks(processContext);
       if (context.spec->forwards.empty() == false) {
         forwardInputs(action.slot, record);
       }

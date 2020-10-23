@@ -126,8 +126,9 @@ bool DataPublisherDevice::HandleO2LogicalBlock(const byte* headerBuffer,
   // not handled in O2Device::ForEach at the moment
   // indicate that the block has not been processed by a 'false'
   if (!dataHeader ||
-      (dataHeader->dataDescription) != o2::header::gDataDescriptionHeartbeatFrame)
+      (dataHeader->dataDescription) != o2::header::gDataDescriptionHeartbeatFrame) {
     return false;
+  }
 
   if (!hbfEnvelope) {
     LOG(ERROR) << "no heartbeat frame envelope header found";
@@ -190,8 +191,9 @@ bool DataPublisherDevice::AppendFile(const char* name, std::vector<o2::byte>& bu
 {
   bool result = true;
   std::ifstream ifile(name, std::ifstream::binary);
-  if (ifile.bad())
+  if (ifile.bad()) {
     return false;
+  }
 
   // get length of file:
   ifile.seekg(0, ifile.end);

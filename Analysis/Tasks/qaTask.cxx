@@ -59,10 +59,12 @@ struct QATrackingResolution {
       etaDiff->Fill(track.label().eta() - track.eta());
 
       auto delta = track.label().phi() - track.phi();
-      if (delta > M_PI)
+      if (delta > M_PI) {
         delta -= 2 * M_PI;
-      if (delta < -M_PI)
+      }
+      if (delta < -M_PI) {
         delta += 2 * M_PI;
+      }
       phiDiff->Fill(delta);
     }
   }

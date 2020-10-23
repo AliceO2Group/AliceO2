@@ -196,8 +196,9 @@ Bool_t Detector::ProcessHits(FairVolume* v)
     LOG(DEBUG4) << "We are in sensitive volume " << v->GetName() << ": " << fMC->CurrentVolPath() << std::endl;
     // TODO Implement handling of parents and primary particle
     Double_t eloss = fMC->Edep();
-    if (eloss < DBL_EPSILON)
+    if (eloss < DBL_EPSILON) {
       return false; // only process hits which actually deposit some energy in the EMCAL
+    }
     Geometry* geom = GetGeometry();
     // Obtain detector ID
     // This is not equal to the volume ID of the fair volume
@@ -264,7 +265,7 @@ Bool_t Detector::ProcessHits(FairVolume* v)
         smTypeID = 3; //one third (installed in 2012) supermodule
       }
       if (supermoduletype == DCAL_EXT) {
-        smTypeID = 3;                                                          //one third (installed in 2012) supermodule
+        smTypeID = 3; //one third (installed in 2012) supermodule
       }
       iphi = ((geom->GetCentersOfCellsPhiDir()).size() / smTypeID - 1) - iphi; // 23/7-iphi, revert the ordering on C side in order to keep convention.
     }
@@ -302,8 +303,8 @@ Bool_t Detector::ProcessHits(FairVolume* v)
       LOG(DEBUG3) << "Adding new hit for parent " << mCurrentParentID << " and cell " << detID << std::endl;
 
       /// check handling of primary particles
-      AddHit(mCurrentParentID, mCurrentPrimaryID, mCurrentSuperparent->mEnergy, detID, Point3D<float>(posX, posY, posZ),
-             Vector3D<float>(momX, momY, momZ), time, lightyield);
+      AddHit(mCurrentParentID, mCurrentPrimaryID, mCurrentSuperparent->mEnergy, detID, math_utils::Point3D<float>(posX, posY, posZ),
+             math_utils::Vector3D<float>(momX, momY, momZ), time, lightyield);
       o2stack->addHit(GetDetId());
     } else {
       LOG(DEBUG3) << "Adding energy to the current hit" << std::endl;
@@ -315,7 +316,7 @@ Bool_t Detector::ProcessHits(FairVolume* v)
 }
 
 Hit* Detector::AddHit(Int_t trackID, Int_t primary, Double_t initialEnergy, Int_t detID,
-                      const Point3D<float>& pos, const Vector3D<float>& mom, Double_t time, Double_t eLoss)
+                      const math_utils::Point3D<float>& pos, const math_utils::Vector3D<float>& mom, Double_t time, Double_t eLoss)
 {
   LOG(DEBUG3) << "Adding hit for track " << trackID << " with position (" << pos.X() << ", "
               << pos.Y() << ", " << pos.Z() << ") and momentum (" << mom.X() << ", " << mom.Y() << ", " << mom.Z()
@@ -415,10 +416,11 @@ void Detector::CreateEmcalEnvelope()
     envelopA[2] = 20;
 
     CreateEMCALVolume(geom->GetNameOfEMCALEnvelope(), "BOX", ID_SC, envelopA, 3);
-    for (Int_t i = 0; i < 3; i++)
+    for (Int_t i = 0; i < 3; i++) {
       // Position the EMCAL Mother Volume (XEN1) in WSUC.
       // Look to AliEMCALWsuCosmicRaySetUp.
       TVirtualMC::GetMC()->Gspos(geom->GetNameOfEMCALEnvelope(), 1, "WSUC", 0.0, 0.0, +265., rotMatrixID, "ONLY");
+    }
   } else {
     Double_t envelopA[10];
     envelopA[0] = geom->GetArm1PhiMin();                         // minimum phi angle
@@ -508,8 +510,9 @@ void Detector::CreateShiskebabGeometry()
   Double_t parSCM0[5] = {0, 0, 0, 0}, *dummy = nullptr, parTRAP[11];
   if (!contains(gn, "V1")) {
     Double_t wallThickness = g->GetPhiModuleSize() / g->GetNPHIdiv() - g->GetPhiTileSize();
-    for (Int_t i = 0; i < 3; i++)
+    for (Int_t i = 0; i < 3; i++) {
       parSCM0[i] = mParEMOD[i] - wallThickness;
+    }
     parSCM0[3] = mParEMOD[3];
     CreateEMCALVolume("SCM0", "TRD1", ID_AIR, parSCM0, 4);
     TVirtualMC::GetMC()->Gspos("SCM0", 1, "EMOD", 0., 0., 0., 0, "ONLY");
@@ -840,8 +843,9 @@ void Detector::CreateSupermoduleGeometry(const std::string_view mother)
 
       if (smodnum % 2 == 1) {
         phiy += 180.;
-        if (phiy >= 360.)
+        if (phiy >= 360.) {
           phiy -= 360.;
+        }
         phiz = 180.;
         zpos *= -1.;
       }
@@ -921,8 +925,9 @@ void Detector::CreateEmcalModuleGeometry(const std::string_view mother, const st
       } else if (mother == "DCEXT") {
         iyMax /= 3;
       } else if (mother == "DCSM") {
-        if (iz < 8)
+        if (iz < 8) {
           continue; //!!!DCSM from 8th to 23th
+        }
         zpos = mod.GetPosZ() - mSmodPar2 - g->GetDCALInnerEdge() / 2.;
       } else if (mother.compare("SMOD")) {
         LOG(ERROR) << "Unknown super module Type!!";

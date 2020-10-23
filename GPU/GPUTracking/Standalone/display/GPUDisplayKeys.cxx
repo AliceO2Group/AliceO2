@@ -23,7 +23,7 @@ const char* HelpText[] = {
   "[l] / [k] / [J]               Draw single slice (next  / previous slice), draw related slices (same plane in phi)",
   "[;] / [:]                     Show splitting of TPC in slices by extruding volume, [:] resets",
   "[#]                           Invert colors",
-  "[y] / [Y] / ['] / [X] / [M]   Start Animation, Add / remove Animation point, Reset, Cycle mode",
+  "[y] / [Y] / ['] / [X] / [M]   Start Animation, Add / remove Animation point, Reset Points, Cycle animation camera mode (resets)",
   "[>] / [<]                     Toggle config interpolation during Animation / change Animation interval (via movement)",
   "[g]                           Draw Grid",
   "[i]                           Project onto XY-plane",
@@ -35,8 +35,9 @@ const char* HelpText[] = {
   "[L] / [K]                     Draw single collisions (next / previous)",
   "[C]                           Colorcode clusters of different collisions",
   "[v]                           Hide rejected clusters from tracks",
-  "[b]                           Hide all clusters not belonging or related to matched tracks",
+  "[b]                           Hide all clusters not belonging or related to matched tracks in QA",
   "[j]                           Show global tracks as additional segments of final tracks",
+  "[u]                           Cycle through track filter",
   "[E] / [G]                     Extrapolate tracks / loopers",
   "[t] / [T]                     Take Screenshot / Record Animation to pictures",
   "[Z]                           Change screenshot resolution (scaling factor)",
@@ -355,6 +356,10 @@ void GPUDisplay::HandleKeyRelease(unsigned char key)
     } else {
       SetInfo("Animation mode %d - Position: %s, Direction: %s", mCfg.animationMode, (mCfg.animationMode & 2) ? "Spherical (spherical rotation)" : (mCfg.animationMode & 4) ? "Spherical (Euler angles)" : "Cartesian", (mCfg.animationMode & 1) ? "Euler angles" : "Quaternion");
     }
+  } else if (key == 'u') {
+    mTrackFilter = (mTrackFilter + 1) % 3;
+    mUpdateDLList = true;
+    SetInfo("Track filter: %s", mTrackFilter == 2 ? "TRD Track candidates" : mTrackFilter ? "TRD Tracks only" : "None");
   } else if (key == 'o') {
     FILE* ftmp = fopen("glpos.tmp", "w+b");
     if (ftmp) {

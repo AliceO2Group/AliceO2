@@ -23,9 +23,9 @@
 class AnalysisCut : public TNamed
 {
  public:
-  AnalysisCut();
+  AnalysisCut() = default;
   AnalysisCut(const char* name, const char* title);
-  AnalysisCut(const AnalysisCut& c);
+  AnalysisCut(const AnalysisCut& c) = default;
   AnalysisCut& operator=(const AnalysisCut& c);
   ~AnalysisCut() override;
 
@@ -37,8 +37,6 @@ class AnalysisCut : public TNamed
               int dependentVar = -1, float depCutLow = 0., float depCutHigh = 0., bool depCutExclude = false,
               int dependentVar2 = -1, float depCut2Low = 0., float depCut2High = 0., bool depCut2Exclude = false);
 
-  // TODO: implement also IsSelected() functions which take as argument the object to be selected
-  //       But this would require to have access to the VarManager for extracting variables
   virtual bool IsSelected(float* values);
 
   static std::vector<int> fgUsedVars; //! vector of used variables
@@ -81,8 +79,9 @@ void AnalysisCut::AddCut(int var, T1 cutLow, T2 cutHigh, bool exclude,
   CutContainer cut = {};
 
   if constexpr (std::is_same_v<T1, TF1*>) {
-    if (dependentVar < 0)
+    if (dependentVar < 0) {
       return;
+    }
     cut.fFuncLow = cutLow;
     cut.fLow = -9999.0;
   } else {
@@ -90,8 +89,9 @@ void AnalysisCut::AddCut(int var, T1 cutLow, T2 cutHigh, bool exclude,
     cut.fLow = cutLow;
   }
   if constexpr (std::is_same_v<T2, TF1*>) {
-    if (dependentVar < 0)
+    if (dependentVar < 0) {
       return;
+    }
     cut.fFuncHigh = cutHigh;
     cut.fHigh = -9999.0;
   } else {
@@ -106,17 +106,71 @@ void AnalysisCut::AddCut(int var, T1 cutLow, T2 cutHigh, bool exclude,
   cut.fDepLow = depCutLow;
   cut.fDepHigh = depCutHigh;
   cut.fDepExclude = depCutExclude;
-  if (dependentVar != -1)
+  if (dependentVar != -1) {
     fgUsedVars.push_back(dependentVar);
+  }
 
   cut.fDepVar2 = dependentVar2;
   cut.fDep2Low = depCut2Low;
   cut.fDep2High = depCut2High;
   cut.fDep2Exclude = depCut2Exclude;
-  if (dependentVar2 != -1)
+  if (dependentVar2 != -1) {
     fgUsedVars.push_back(dependentVar2);
+  }
 
   fCuts.push_back(cut);
+}
+
+//____________________________________________________________________________
+inline bool AnalysisCut::IsSelected(float* values)
+{
+  //
+  // apply the configured cuts
+  //
+  // iterate over cuts
+  for (std::vector<CutContainer>::iterator it = fCuts.begin(); it != fCuts.end(); ++it) {
+    // check whether a dependent variables were enabled and if they are in the requested range
+    if ((*it).fDepVar != -1) {
+      bool inRange = (values[(*it).fDepVar] > (*it).fDepLow && values[(*it).fDepVar] <= (*it).fDepHigh);
+      if (!inRange && !((*it).fDepExclude)) {
+        continue;
+      }
+      if (inRange && (*it).fDepExclude) {
+        continue;
+      }
+    }
+    if ((*it).fDepVar2 != -1) {
+      bool inRange = (values[(*it).fDepVar2] > (*it).fDep2Low && values[(*it).fDepVar2] <= (*it).fDep2High);
+      if (!inRange && !((*it).fDep2Exclude)) {
+        continue;
+      }
+      if (inRange && (*it).fDep2Exclude) {
+        continue;
+      }
+    }
+    // obtain the low and high cut values (either directly as a value or from a function)
+    float cutLow, cutHigh;
+    if ((*it).fFuncLow) {
+      cutLow = ((*it).fFuncLow)->Eval(values[(*it).fDepVar]);
+    } else {
+      cutLow = ((*it).fLow);
+    }
+    if ((*it).fFuncHigh) {
+      cutHigh = ((*it).fFuncHigh)->Eval(values[(*it).fDepVar]);
+    } else {
+      cutHigh = ((*it).fHigh);
+    }
+    // apply the cut and return the decision
+    bool inRange = (values[(*it).fVar] >= cutLow && values[(*it).fVar] <= cutHigh);
+    if (!inRange && !((*it).fExclude)) {
+      return false;
+    }
+    if (inRange && ((*it).fExclude)) {
+      return false;
+    }
+  }
+
+  return true;
 }
 
 #endif

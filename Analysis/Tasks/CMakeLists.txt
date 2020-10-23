@@ -11,8 +11,16 @@
 add_subdirectory(PWGCF)
 add_subdirectory(PWGDQ)
 add_subdirectory(PWGHF)
+add_subdirectory(PWGJE)
 add_subdirectory(PWGLF)
 add_subdirectory(PWGUD)
+add_subdirectory(ALICE3)
+
+
+o2_add_dpl_workflow(trackextension
+                    SOURCES trackextension.cxx
+                    PUBLIC_LINK_LIBRARIES O2::Framework O2::AnalysisDataModel O2::AnalysisCore
+                    COMPONENT_NAME Analysis)
 
 o2_add_dpl_workflow(trackselection
                     SOURCES trackselection.cxx
@@ -31,26 +39,18 @@ o2_add_dpl_workflow(qatask
 
 o2_add_dpl_workflow(pid-tof
                     SOURCES pidTOF.cxx
-                    PUBLIC_LINK_LIBRARIES O2::Framework O2::DetectorsBase O2::AnalysisDataModel
+                    PUBLIC_LINK_LIBRARIES O2::Framework O2::DetectorsBase O2::AnalysisDataModel O2::AnalysisCore
                     COMPONENT_NAME Analysis)
 
 o2_add_dpl_workflow(pid-tpc
                     SOURCES pidTPC.cxx
-                    PUBLIC_LINK_LIBRARIES O2::Framework O2::DetectorsBase O2::AnalysisDataModel
+                    PUBLIC_LINK_LIBRARIES O2::Framework O2::DetectorsBase O2::AnalysisDataModel O2::AnalysisCore
                     COMPONENT_NAME Analysis)
 
 o2_add_dpl_workflow(validation
                     SOURCES validation.cxx
                     PUBLIC_LINK_LIBRARIES O2::Framework O2::DetectorsBase
                     COMPONENT_NAME Analysis)
-
-if(FastJet_FOUND)
-o2_add_dpl_workflow(jetfinder
-                    SOURCES jetfinder.cxx
-                    PUBLIC_LINK_LIBRARIES O2::Framework O2::AnalysisCore O2::AnalysisDataModel
-                    FastJet::FastJet
-                    COMPONENT_NAME Analysis)
-endif()
 
 o2_add_dpl_workflow(event-selection
                     SOURCES eventSelection.cxx

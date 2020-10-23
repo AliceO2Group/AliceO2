@@ -30,6 +30,7 @@
 #include "Framework/WorkflowSpec.h"
 #include "Framework/ComputingResource.h"
 #include "Framework/Logger.h"
+#include "Framework/RuntimeError.h"
 
 #include "WorkflowHelpers.h"
 
@@ -38,6 +39,7 @@
 
 #include <sys/time.h>
 #include <sys/resource.h>
+#include <csignal>
 
 namespace bpo = boost::program_options;
 
@@ -49,6 +51,11 @@ namespace o2::framework
 namespace detail
 {
 void timer_callback(uv_timer_t*)
+{
+  // We simply wake up the event loop. Nothing to be done here.
+}
+
+void signal_callback(uv_signal_t*, int)
 {
   // We simply wake up the event loop. Nothing to be done here.
 }
@@ -74,6 +81,27 @@ struct ExpirationHandlerHelpers {
       state.activeTimers.push_back(timer);
 
       return LifetimeHelpers::timeDrivenCreation(std::chrono::microseconds(period));
+    };
+  }
+
+  static RouteConfigurator::CreationConfigurator signalDrivenConfigurator(InputSpec const& matcher, size_t inputTimeslice, size_t maxInputTimeslices)
+  {
+    return [matcher, inputTimeslice, maxInputTimeslices](DeviceState& state, ConfigParamRegistry const& options) {
+      std::string startName = std::string{"start-value-"} + matcher.binding;
+      std::string endName = std::string{"end-value-"} + matcher.binding;
+      std::string stepName = std::string{"step-value-"} + matcher.binding;
+      auto start = options.get<int64_t>(startName.c_str());
+      auto stop = options.get<int64_t>(endName.c_str());
+      auto step = options.get<int64_t>(stepName.c_str());
+      // We create a timer to wake us up. Notice the actual
+      // timeslot creation and record expiration still happens
+      // in a synchronous way.
+      uv_signal_t* sh = (uv_signal_t*)(malloc(sizeof(uv_signal_t)));
+      uv_signal_init(state.loop, sh);
+      uv_signal_start(sh, detail::signal_callback, SIGUSR1);
+      state.activeSignals.push_back(sh);
+
+      return LifetimeHelpers::enumDrivenCreation(start, stop, step, inputTimeslice, maxInputTimeslices);
     };
   }
 
@@ -110,7 +138,7 @@ struct ExpirationHandlerHelpers {
     /// FIXME: seems convoluted... Maybe there is a way to avoid all this checking???
     auto m = std::get_if<ConcreteDataMatcher>(&spec.matcher);
     if (m == nullptr) {
-      throw std::runtime_error("InputSpec for Conditions must be fully qualified");
+      throw runtime_error("InputSpec for Conditions must be fully qualified");
     }
 
     return [s = spec, matcher = *m, sourceChannel](DeviceState&, ConfigParamRegistry const& options) {
@@ -151,7 +179,7 @@ struct ExpirationHandlerHelpers {
   {
     auto m = std::get_if<ConcreteDataMatcher>(&spec.matcher);
     if (m == nullptr) {
-      throw std::runtime_error("InputSpec for Timers must be fully qualified");
+      throw runtime_error("InputSpec for Timers must be fully qualified");
     }
     // We copy the matcher to avoid lifetime issues.
     return [matcher = *m, sourceChannel](DeviceState&, ConfigParamRegistry const&) { return LifetimeHelpers::enumerate(matcher, sourceChannel); };
@@ -161,7 +189,7 @@ struct ExpirationHandlerHelpers {
   {
     auto m = std::get_if<ConcreteDataMatcher>(&spec.matcher);
     if (m == nullptr) {
-      throw std::runtime_error("InputSpec for Enumeration must be fully qualified");
+      throw runtime_error("InputSpec for Enumeration must be fully qualified");
     }
     // We copy the matcher to avoid lifetime issues.
     return [matcher = *m, sourceChannel](DeviceState&, ConfigParamRegistry const&) {
@@ -590,6 +618,12 @@ void DeviceSpecHelpers::processInEdgeActions(std::vector<DeviceSpec>& devices,
           ExpirationHandlerHelpers::danglingEnumerationConfigurator(inputSpec),
           ExpirationHandlerHelpers::expiringEnumerationConfigurator(inputSpec, sourceChannel)};
         break;
+      case Lifetime::Signal:
+        route.configurator = {
+          ExpirationHandlerHelpers::signalDrivenConfigurator(inputSpec, consumerDevice.inputTimesliceId, consumerDevice.maxInputTimeslices),
+          ExpirationHandlerHelpers::danglingEnumerationConfigurator(inputSpec),
+          ExpirationHandlerHelpers::expiringEnumerationConfigurator(inputSpec, sourceChannel)};
+        break;
       case Lifetime::Transient:
         route.configurator = {
           ExpirationHandlerHelpers::dataDrivenConfigurator(),
@@ -752,7 +786,7 @@ void DeviceSpecHelpers::dataProcessorSpecs2DeviceSpecs(const WorkflowSpec& workf
       }
       return deviceEdge.deviceIndex;
     }
-    throw std::runtime_error("Unable to find device.");
+    throw runtime_error("Unable to find device.");
   };
 
   // Optimize the topology when two devices are
@@ -789,7 +823,7 @@ void DeviceSpecHelpers::reworkShmSegmentSize(std::vector<DataProcessorInfo>& inf
     }
     auto value = it + 1;
     if (value == info.cmdLineArgs.end()) {
-      throw std::runtime_error("--shm-segment-size requires an argument");
+      throw runtime_error("--shm-segment-size requires an argument");
     }
     char* err = nullptr;
     int64_t size = strtoll(value->c_str(), &err, 10);

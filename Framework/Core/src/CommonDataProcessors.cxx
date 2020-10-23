@@ -31,6 +31,7 @@
 #include "Framework/StringHelpers.h"
 #include "Framework/ChannelSpec.h"
 #include "Framework/ExternalFairMQDeviceProxy.h"
+#include "Framework/RuntimeError.h"
 
 #include "TFile.h"
 #include "TTree.h"
@@ -40,7 +41,6 @@
 #include <ROOT/RArrowDS.hxx>
 #include <ROOT/RVec.hxx>
 #include <chrono>
-#include <exception>
 #include <fstream>
 #include <functional>
 #include <memory>
@@ -82,7 +82,7 @@ DataProcessorSpec CommonDataProcessors::getHistogramRegistrySink(outputObjects c
       LOG(DEBUG) << "Writing merged histograms to file";
       if (inputObjects->empty()) {
         LOG(ERROR) << "Output object map is empty!";
-        context.services().get<ControlService>().readyToQuit(QuitRequest::All);
+        context.services().get<ControlService>().readyToQuit(QuitRequest::Me);
         return;
       }
       std::string currentDirectory = "";
@@ -106,7 +106,25 @@ DataProcessorSpec CommonDataProcessors::getHistogramRegistrySink(outputObjects c
             currentDirectory = nextDirectory;
             currentFile = filename;
           }
-          (f[route.policy]->GetDirectory(currentDirectory.c_str()))->WriteObjectAny(entry.obj, entry.kind, entry.name.c_str());
+
+          // translate the list-structure created by the registry into a directory structure within the file
+          std::function<void(TList*, TDirectory*)> writeListToFile;
+          writeListToFile = [&](TList* list, TDirectory* parentDir) {
+            TIter next(list);
+            TNamed* object = nullptr;
+            while ((object = (TNamed*)next())) {
+              if (object->InheritsFrom(TList::Class())) {
+                writeListToFile((TList*)object, parentDir->mkdir(object->GetName(), object->GetName(), true));
+              } else {
+                parentDir->WriteObjectAny(object, object->Class(), object->GetName());
+                list->Remove(object);
+              }
+            }
+          };
+          TList* outputList = (TList*)entry.obj;
+          writeListToFile(outputList, f[route.policy]->GetDirectory(currentDirectory.c_str()));
+          outputList->SetOwner(true);
+          delete outputList; // properly remove the empty list and its sub-lists
         }
       }
       for (auto i = 0u; i < OutputObjHandlingPolicy::numPolicies; ++i) {
@@ -115,7 +133,7 @@ DataProcessorSpec CommonDataProcessors::getHistogramRegistrySink(outputObjects c
         }
       }
       LOG(INFO) << "All outputs merged in their respective target files";
-      context.services().get<ControlService>().readyToQuit(QuitRequest::All);
+      context.services().get<ControlService>().readyToQuit(QuitRequest::Me);
     };
 
     callbacks.set(CallbackService::Id::EndOfStream, endofdatacb);
@@ -211,7 +229,7 @@ DataProcessorSpec CommonDataProcessors::getOutputObjSink(outputObjects const& ob
       LOG(DEBUG) << "Writing merged objects to file";
       if (inputObjects->empty()) {
         LOG(ERROR) << "Output object map is empty!";
-        context.services().get<ControlService>().readyToQuit(QuitRequest::All);
+        context.services().get<ControlService>().readyToQuit(QuitRequest::Me);
         return;
       }
       std::string currentDirectory = "";
@@ -244,7 +262,7 @@ DataProcessorSpec CommonDataProcessors::getOutputObjSink(outputObjects const& ob
         }
       }
       LOG(DEBUG) << "All outputs merged in their respective target files";
-      context.services().get<ControlService>().readyToQuit(QuitRequest::All);
+      context.services().get<ControlService>().readyToQuit(QuitRequest::Me);
     };
 
     callbacks.set(CallbackService::Id::EndOfStream, endofdatacb);
@@ -331,75 +349,12 @@ DataProcessorSpec CommonDataProcessors::getOutputObjSink(outputObjects const& ob
 
 // add sink for the AODs
 DataProcessorSpec
-  CommonDataProcessors::getGlobalAODSink(std::vector<InputSpec> const& OutputInputs,
-                                         std::vector<bool> const& isdangling)
+  CommonDataProcessors::getGlobalAODSink(std::shared_ptr<DataOutputDirector> dod,
+                                         std::vector<InputSpec> const& OutputInputs)
 {
 
-  auto writerFunction = [OutputInputs, isdangling](InitContext& ic) -> std::function<void(ProcessingContext&)> {
-    LOG(DEBUG) << "======== getGlobalAODSink::Init ==========";
-
-    auto dod = std::make_shared<DataOutputDirector>();
-
-    // analyze ic and take actions accordingly
-    // default values
-    std::string fnbase("AnalysisResults");
-    std::string filemode("RECREATE");
-    int ntfmerge = 1;
-
-    // values from json
-    if (ic.options().isSet("json-file")) {
-      auto fnjson = ic.options().get<std::string>("json-file");
-      if (!fnjson.empty()) {
-        auto [fnb, fmo, ntfm] = dod->readJson(fnjson);
-        if (!fnb.empty()) {
-          fnbase = fnb;
-        }
-        if (!fmo.empty()) {
-          filemode = fmo;
-        }
-        if (ntfm > 0) {
-          ntfmerge = ntfm;
-        }
-      }
-    }
-
-    // values from command line options, information from json is overwritten
-    if (ic.options().isSet("res-file")) {
-      fnbase = ic.options().get<std::string>("res-file");
-    }
-    if (ic.options().isSet("res-mode")) {
-      filemode = ic.options().get<std::string>("res-mode");
-    }
-    if (ic.options().isSet("ntfmerge")) {
-      auto ntfm = ic.options().get<int>("ntfmerge");
-      if (ntfm > 0) {
-        ntfmerge = ntfm;
-      }
-    }
-    // parse the keepString
-    if (ic.options().isSet("keep")) {
-      dod->reset();
-      auto keepString = ic.options().get<std::string>("keep");
-
-      std::string d("dangling");
-      if (d.find(keepString) == 0) {
-
-        // use the dangling outputs
-        std::vector<InputSpec> danglingOutputs;
-        for (auto ii = 0; ii < OutputInputs.size(); ii++) {
-          if (isdangling[ii]) {
-            danglingOutputs.emplace_back(OutputInputs[ii]);
-          }
-        }
-        dod->readSpecs(danglingOutputs);
-
-      } else {
-
-        // use the keep string
-        dod->readString(keepString);
-      }
-    }
-    dod->setFilenameBase(fnbase);
+  auto writerFunction = [dod, OutputInputs](InitContext& ic) -> std::function<void(ProcessingContext&)> {
+    LOGP(DEBUG, "======== getGlobalAODSink::Init ==========");
 
     // find out if any table needs to be saved
     bool hasOutputsToWrite = false;
@@ -412,6 +367,7 @@ DataProcessorSpec
     }
 
     // if nothing needs to be saved then return a trivial functor
+    // this happens when nothing needs to be saved but there are dangling outputs
     if (!hasOutputsToWrite) {
       return [](ProcessingContext&) mutable -> void {
         static bool once = false;
@@ -425,56 +381,58 @@ DataProcessorSpec
     // end of data functor is called at the end of the data stream
     auto endofdatacb = [dod](EndOfStreamContext& context) {
       dod->closeDataFiles();
-
-      context.services().get<ControlService>().readyToQuit(QuitRequest::All);
+      context.services().get<ControlService>().readyToQuit(QuitRequest::Me);
     };
 
     auto& callbacks = ic.services().get<CallbackService>();
     callbacks.set(CallbackService::Id::EndOfStream, endofdatacb);
 
     // this functor is called once per time frame
-    Int_t ntf = -1;
-    return std::move([ntf, ntfmerge, filemode, dod](ProcessingContext& pc) mutable -> void {
-      LOG(DEBUG) << "======== getGlobalAODSink::processing ==========";
-      LOG(DEBUG) << " processing data set with " << pc.inputs().size() << " entries";
+    return std::move([dod](ProcessingContext& pc) mutable -> void {
+      LOGP(DEBUG, "======== getGlobalAODSink::processing ==========");
+      LOGP(DEBUG, " processing data set with {} entries", pc.inputs().size());
 
-      // return immediately if pc.inputs() is empty
+      // return immediately if pc.inputs() is empty. This should never happen!
       auto ninputs = pc.inputs().size();
       if (ninputs == 0) {
-        LOG(INFO) << "No inputs available!";
+        LOGP(INFO, "No inputs available!");
         return;
       }
-
-      // increment the time frame counter ntf
-      ntf++;
 
       // loop over the DataRefs which are contained in pc.inputs()
       for (const auto& ref : pc.inputs()) {
 
         // does this need to be saved?
         auto dh = DataRefUtils::getHeader<header::DataHeader*>(ref);
-        auto ds = dod->getDataOutputDescriptors(*dh);
+        auto dataProcessingHeader = DataRefUtils::getHeader<DataProcessingHeader*>(ref);
 
+        // the startTime contained in the header determines the folder number
+        uint64_t folderNumber = dataProcessingHeader->startTime;
+
+        // get the relevant DataOutputDescriptors
+        auto ds = dod->getDataOutputDescriptors(*dh);
         if (ds.size() > 0) {
 
           // get the TableConsumer and corresponding arrow table
           auto s = pc.inputs().get<TableConsumer>(ref.spec->binding);
           auto table = s->asArrowTable();
           if (!table->Validate().ok()) {
-            LOGP(ERROR, "The table \"{}\" is not valid and will not be saved!", dh->description.str);
+            LOGP(WARNING, "The table \"{}\" is not valid and will not be saved!", dh->description.str);
             continue;
           } else if (table->num_rows() <= 0) {
-            LOGP(WARNING, "The table \"{}\" is empty and will not be saved!", dh->description.str);
-            continue;
+            LOGP(WARNING, "The table \"{}\" is empty but will be saved anyway!", dh->description.str);
           }
 
           // loop over all DataOutputDescriptors
           // a table can be saved in multiple ways
           // e.g. different selections of columns to different files
           for (auto d : ds) {
+
+            auto [file, directory] = dod->getFileFolder(d, folderNumber);
+            auto treename = directory + d->treename;
             TableToTree ta2tr(table,
-                              dod->getDataOutputFile(d, ntf, ntfmerge, filemode),
-                              d->treename.c_str());
+                              file,
+                              treename.c_str());
 
             if (d->colnames.size() > 0) {
               for (auto cn : d->colnames) {
@@ -495,16 +453,14 @@ DataProcessorSpec
     });
   }; // end of writerFunction
 
+  // the command line options relevant for the writer are global
+  // see runDataProcessing.h
   DataProcessorSpec spec{
     "internal-dpl-aod-writer",
     OutputInputs,
     Outputs{},
     AlgorithmSpec(writerFunction),
-    {{"json-file", VariantType::String, {"Name of the json configuration file"}},
-     {"res-file", VariantType::String, {"Default name of the output file"}},
-     {"res-mode", VariantType::String, {"Creation mode of the result files: NEW, CREATE, RECREATE, UPDATE"}},
-     {"ntfmerge", VariantType::Int, {"Number of time frames to merge into one file"}},
-     {"keep", VariantType::String, {"Comma separated list of ORIGIN/DESCRIPTION/SUBSPECIFICATION:treename:col1/col2/..:filename"}}}};
+    {}};
 
   return spec;
 }
@@ -518,7 +474,7 @@ DataProcessorSpec
     auto keepString = ic.options().get<std::string>("keep");
 
     if (filename.empty()) {
-      throw std::runtime_error("output file missing");
+      throw runtime_error("output file missing");
     }
 
     bool hasOutputsToWrite = false;

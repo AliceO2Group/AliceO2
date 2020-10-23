@@ -73,7 +73,7 @@ struct DataProcessorContext {
   AlgorithmSpec::ProcessCallback* statelessProcess = nullptr;
   AlgorithmSpec::ErrorCallback* error = nullptr;
 
-  std::function<void(std::exception& e, InputRecord& record)>* errorHandling = nullptr;
+  std::function<void(o2::framework::RuntimeErrorRef e, InputRecord& record)>* errorHandling = nullptr;
   int* errorCount = nullptr;
 };
 
@@ -113,7 +113,7 @@ class DataProcessingDevice : public FairMQDevice
   AlgorithmSpec::ProcessCallback mStatefulProcess;
   AlgorithmSpec::ProcessCallback mStatelessProcess;
   AlgorithmSpec::ErrorCallback mError;
-  std::function<void(std::exception& e, InputRecord& record)> mErrorHandling;
+  std::function<void(RuntimeErrorRef e, InputRecord& record)> mErrorHandling;
   std::unique_ptr<ConfigParamRegistry> mConfigRegistry;
   ServiceRegistry& mServiceRegistry;
   TimingInfo mTimingInfo;
@@ -133,6 +133,7 @@ class DataProcessingDevice : public FairMQDevice
   std::mutex mRegionInfoMutex;
   enum TerminationPolicy mErrorPolicy = TerminationPolicy::WAIT; /// What to do when an error arises
   bool mWasActive = false;                                       /// Whether or not the device was active at last iteration.
+  bool mFirst = true;                                            /// Whether or not this was the first iteration
 };
 
 } // namespace o2::framework

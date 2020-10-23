@@ -16,49 +16,53 @@
 using namespace o2;
 using namespace o2::framework;
 
-struct MultiplicityTableTask {
+struct MultiplicityTableTaskIndexed {
   Produces<aod::Mults> mult;
+  Partition<aod::Tracks> tracklets = (aod::track::trackType == static_cast<uint8_t>(o2::aod::track::TrackTypeEnum::Run2Tracklet));
 
-  aod::Run2V0 getVZero(aod::BC const& bc, aod::Run2V0s const& vzeros)
+  void process(aod::Run2MatchedSparse::iterator const& collision, aod::Tracks const& tracks, aod::BCs const&, aod::Zdcs const&, aod::FV0As const& fv0as, aod::FV0Cs const& fv0cs, aod::FT0s const& ft0s)
   {
-    for (auto& vzero : vzeros)
-      if (vzero.bc() == bc)
-        return vzero;
-    aod::Run2V0 dummy;
-    return dummy;
-  }
+    float multV0A = -1.f;
+    float multV0C = -1.f;
+    float multT0A = -1.f;
+    float multT0C = -1.f;
+    float multZNA = -1.f;
+    float multZNC = -1.f;
+    int multTracklets = tracklets.size();
 
-  aod::Zdc getZdc(aod::BC const& bc, aod::Zdcs const& zdcs)
-  {
-    for (auto& zdc : zdcs)
-      if (zdc.bc() == bc)
-        return zdc;
-    aod::Zdc dummy;
-    return dummy;
-  }
-
-  void process(aod::Collision const& collision, aod::BCs const& bcs, aod::Zdcs const& zdcs, aod::Run2V0s const& vzeros, aod::Tracks const& tracks)
-  {
-    auto zdc = getZdc(collision.bc(), zdcs);
-    auto vzero = getVZero(collision.bc(), vzeros);
-    float multV0A = vzero.multA();
-    float multV0C = vzero.multC();
-    float multZNA = zdc.energyCommonZNA();
-    float multZNC = zdc.energyCommonZNC();
-
-    int multTracklets = 0;
-    for (auto& tr : tracks)
-      if (tr.trackType() == o2::aod::track::TrackTypeEnum::Run2Tracklet)
-        multTracklets++;
-
-    LOGF(debug, "multV0A=%5.0f multV0C=%5.0f multZNA=%6.0f multZNC=%6.0f multTracklets=%i", multV0A, multV0C, multZNA, multZNC, multTracklets);
-    // fill multiplicity columns
-    mult(multV0A, multV0C, multZNA, multZNC, multTracklets);
+    if (collision.has_fv0a()) {
+      auto v0a = collision.fv0a();
+      for (int i = 0; i < 48; i++) {
+        multV0A += v0a.amplitude()[i];
+      }
+    }
+    if (collision.has_fv0c()) {
+      auto v0c = collision.fv0c();
+      for (int i = 0; i < 32; i++) {
+        multV0C += v0c.amplitude()[i];
+      }
+    }
+    if (collision.has_ft0()) {
+      auto ft0 = collision.ft0();
+      for (int i = 0; i < 96; i++) {
+        multT0A += ft0.amplitudeA()[i];
+      }
+      for (int i = 0; i < 112; i++) {
+        multT0C += ft0.amplitudeC()[i];
+      }
+    }
+    if (collision.has_zdc()) {
+      auto zdc = collision.zdc();
+      multZNA = zdc.energyCommonZNA();
+      multZNC = zdc.energyCommonZNC();
+    }
+    LOGF(debug, "multV0A=%5.0f multV0C=%5.0f multT0A=%5.0f multT0C=%5.0f multZNA=%6.0f multZNC=%6.0f multTracklets=%i", multV0A, multV0C, multT0A, multT0C, multZNA, multZNC, multTracklets);
+    mult(multV0A, multV0C, multT0A, multT0C, multZNA, multZNC, multTracklets);
   }
 };
 
 WorkflowSpec defineDataProcessing(ConfigContext const&)
 {
   return WorkflowSpec{
-    adaptAnalysisTask<MultiplicityTableTask>("multiplicity-table")};
+    adaptAnalysisTask<MultiplicityTableTaskIndexed>("multiplicity-table")};
 }

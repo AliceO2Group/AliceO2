@@ -12,29 +12,65 @@
 #include <string>
 namespace o2::framework
 {
-/// This helper allows you to create a configurable option associated to a task.
-/// Internally it will be bound to a ConfigParamSpec.
 template <typename T>
-struct Configurable {
-  Configurable(std::string const& name, T defaultValue, std::string const& help)
-    : name(name), value(defaultValue), help(help)
+struct ConfigurableBase {
+  ConfigurableBase(std::string const& name, T&& defaultValue, std::string const& help)
+    : name(name), value{std::move(defaultValue)}, help(help)
   {
   }
   using type = T;
   std::string name;
   T value;
   std::string help;
+};
+
+template <typename T>
+struct ConfigurablePolicyConst : ConfigurableBase<T> {
+  ConfigurablePolicyConst(std::string const& name, T&& defaultValue, std::string const& help)
+    : ConfigurableBase<T>{name, std::forward<T>(defaultValue), help}
+  {
+  }
   operator T()
   {
-    return value;
+    return this->value;
   }
   T const* operator->() const
   {
-    return &value;
+    return &this->value;
   }
 };
+
 template <typename T>
-std::ostream& operator<<(std::ostream& os, Configurable<T> const& c)
+struct ConfigurablePolicyMutable : ConfigurableBase<T> {
+  ConfigurablePolicyMutable(std::string const& name, T&& defaultValue, std::string const& help)
+    : ConfigurableBase<T>{name, std::forward<T>(defaultValue), help}
+  {
+  }
+  operator T()
+  {
+    return this->value;
+  }
+  T* operator->()
+  {
+    return &this->value;
+  }
+};
+
+/// This helper allows you to create a configurable option associated to a task.
+/// Internally it will be bound to a ConfigParamSpec.
+template <typename T, typename IP = ConfigurablePolicyConst<T>>
+struct Configurable : IP {
+  Configurable(std::string const& name, T&& defaultValue, std::string const& help)
+    : IP{name, std::forward<T>(defaultValue), help}
+  {
+  }
+};
+
+template <typename T>
+using MutableConfigurable = Configurable<T, ConfigurablePolicyMutable<T>>;
+
+template <typename T, typename IP>
+std::ostream& operator<<(std::ostream& os, Configurable<T, IP> const& c)
 {
   os << c.value;
   return os;

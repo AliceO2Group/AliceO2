@@ -427,6 +427,52 @@ GPUd() void GPUTRDTracker_t<TRDTRK, PROP>::CheckTrackRefs(const int trackID, boo
 #endif //! GPUCA_GPUCODE
 
 template <class TRDTRK, class PROP>
+GPUd() bool GPUTRDTracker_t<TRDTRK, PROP>::CheckTrackTRDCandidate(const TRDTRK& trk) const
+{
+  if (!trk.CheckNumericalQuality()) {
+    return false;
+  }
+  if (CAMath::Abs(trk.getEta()) > mMaxEta) {
+    return false;
+  }
+  if (trk.getPt() < mMinPt) {
+    return false;
+  }
+  return true;
+}
+
+template <class TRDTRK, class PROP>
+GPUd() int GPUTRDTracker_t<TRDTRK, PROP>::LoadTrack(const TRDTRK& trk, const int label, const int* nTrkltsOffline, const int labelOffline, int tpcTrackId, bool checkTrack)
+{
+  if (mNTracks >= mNMaxTracks) {
+#ifndef GPUCA_GPUCODE
+    GPUError("Error: Track dropped (no memory available) -> must not happen");
+#endif
+    return (1);
+  }
+  if (checkTrack && !CheckTrackTRDCandidate(trk)) {
+    return 0;
+  }
+#ifdef GPUCA_ALIROOT_LIB
+  new (&mTracks[mNTracks]) TRDTRK(trk); // We need placement new, since the class is virtual
+#else
+  mTracks[mNTracks] = trk;
+#endif
+  mTracks[mNTracks].SetTPCtrackId(tpcTrackId >= 0 ? tpcTrackId : mNTracks);
+  if (label >= 0) {
+    mTracks[mNTracks].SetLabel(label);
+  }
+  if (nTrkltsOffline) {
+    for (int i = 0; i < 4; ++i) {
+      mTracks[mNTracks].SetNtrackletsOffline(i, nTrkltsOffline[i]); // see GPUTRDTrack.h for information on the index
+    }
+  }
+  mTracks[mNTracks].SetLabelOffline(labelOffline);
+  mNTracks++;
+  return (0);
+}
+
+template <class TRDTRK, class PROP>
 GPUd() int GPUTRDTracker_t<TRDTRK, PROP>::LoadTracklet(const GPUTRDTrackletWord& tracklet, const int* labels)
 {
   //--------------------------------------------------------------------
@@ -505,15 +551,17 @@ GPUd() bool GPUTRDTracker_t<TRDTRK, PROP>::CalculateSpacePoints(int iCollision)
   int idxOffset = iCollision * (kNChambers + 1);
 
   for (int iDet = 0; iDet < kNChambers; ++iDet) {
-
     int nTracklets = mTrackletIndexArray[idxOffset + iDet + 1] - mTrackletIndexArray[idxOffset + iDet];
     if (nTracklets == 0) {
       continue;
     }
-
+    if (!mGeo->ChamberInGeometry(iDet)) {
+      GPUError("Found TRD tracklets in chamber %i which is not included in the geometry", iDet);
+      return false;
+    }
     auto* matrix = mGeo->GetClusterMatrix(iDet);
     if (!matrix) {
-      Error("CalculateSpacePoints", "Invalid TRD cluster matrix, skipping detector  %i", iDet);
+      GPUError("No cluster matrix available for chamber %i. Skipping it...", iDet);
       result = false;
       continue;
     }
@@ -645,7 +693,7 @@ GPUd() bool GPUTRDTracker_t<TRDTRK, PROP>::FollowProlongation(PROP* prop, TRDTRK
       }
 
       // rotate track in new sector in case of sector crossing
-      if (!AdjustSector(prop, trkWork, iLayer)) {
+      if (!AdjustSector(prop, trkWork)) {
         if (ENABLE_INFO) {
           GPUInfo("FollowProlongation: Adjusting sector failed for track %i candidate %i in layer %i", iTrack, iCandidate, iLayer);
         }
@@ -685,8 +733,7 @@ GPUd() bool GPUTRDTracker_t<TRDTRK, PROP>::FollowProlongation(PROP* prop, TRDTRK
         }
         int currSec = mGeo->GetSector(currDet);
         if (currSec != GetSector(prop->getAlpha())) {
-          float currAlpha = GetAlphaOfSector(currSec);
-          if (!prop->rotate(currAlpha)) {
+          if (!prop->rotate(GetAlphaOfSector(currSec))) {
             if (ENABLE_WARNING) {
               Warning("FollowProlongation", "Track could not be rotated in tracklet coordinate system");
             }
@@ -710,7 +757,7 @@ GPUd() bool GPUTRDTracker_t<TRDTRK, PROP>::FollowProlongation(PROP* prop, TRDTRK
             // although the radii of space points and tracks may differ by ~ few mm the roads are large enough to allow no efficiency loss by this cut
             continue;
           }
-          My_Float projY, projZ;
+          float projY, projZ;
           prop->getPropagatedYZ(mSpacePoints[trkltIdx].mR, projY, projZ);
           // correction for tilted pads (only applied if deltaZ < l_pad && track z err << l_pad)
           float tiltCorr = tilt * (mSpacePoints[trkltIdx].mX[1] - projZ);
@@ -1049,11 +1096,11 @@ GPUd() int GPUTRDTracker_t<TRDTRK, PROP>::GetDetectorNumber(const float zPos, co
 }
 
 template <class TRDTRK, class PROP>
-GPUd() bool GPUTRDTracker_t<TRDTRK, PROP>::AdjustSector(PROP* prop, TRDTRK* t, const int layer) const
+GPUd() bool GPUTRDTracker_t<TRDTRK, PROP>::AdjustSector(PROP* prop, TRDTRK* t) const
 {
   //--------------------------------------------------------------------
   // rotate track in new sector if necessary and
-  // propagate to correct x of layer
+  // propagate to previous x afterwards
   // cancel if track crosses two sector boundaries
   //--------------------------------------------------------------------
   float alpha = mGeo->GetAlpha();
@@ -1075,7 +1122,13 @@ GPUd() bool GPUTRDTracker_t<TRDTRK, PROP>::AdjustSector(PROP* prop, TRDTRK* t, c
       return false;
     }
     int sign = (y > 0) ? 1 : -1;
-    if (!prop->rotate(alphaCurr + alpha * sign)) {
+    float alphaNew = alphaCurr + alpha * sign;
+    if (alphaNew > M_PI) {
+      alphaNew -= 2 * M_PI;
+    } else if (alphaNew < -M_PI) {
+      alphaNew += 2 * M_PI;
+    }
+    if (!prop->rotate(alphaNew)) {
       return false;
     }
     if (!prop->propagateToX(xTmp, .8f, 2.f)) {
@@ -1107,7 +1160,11 @@ GPUd() float GPUTRDTracker_t<TRDTRK, PROP>::GetAlphaOfSector(const int sec) cons
   //--------------------------------------------------------------------
   // rotation angle for TRD sector sec
   //--------------------------------------------------------------------
-  return (2.0f * M_PI / (float)kNSectors * ((float)sec + 0.5f));
+  float alpha = 2.0f * M_PI / (float)kNSectors * ((float)sec + 0.5f);
+  if (alpha > M_PI) {
+    alpha -= 2 * M_PI;
+  }
+  return alpha;
 }
 
 template <class TRDTRK, class PROP>
@@ -1257,13 +1314,12 @@ namespace GPUCA_NAMESPACE
 {
 namespace gpu
 {
-// instatiate the tracker for both for GPU data types and for AliRoot/O2 data types
 #if !defined(GPUCA_STANDALONE) && !defined(GPUCA_GPUCODE)
+// instantiate version for non-GPU data types
 template class GPUTRDTracker_t<GPUTRDTrack, GPUTRDPropagator>;
 #endif
-#ifndef GPUCA_ALIROOT_LIB
+// always instantiate version for GPU data types
 template class GPUTRDTracker_t<GPUTRDTrackGPU, GPUTRDPropagatorGPU>;
-#endif
 } // namespace gpu
 } // namespace GPUCA_NAMESPACE
 #endif

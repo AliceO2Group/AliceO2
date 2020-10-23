@@ -75,22 +75,26 @@ bool isPhysicalPrimary(TMCParticles& mcParticles, TMCParticle const& particle)
   // Initial state particle
   // Solution for K0L decayed by Pythia6
   // ->
-  if ((ist > 1) && (pdg != 130) && particle.producedByGenerator())
+  if ((ist > 1) && (pdg != 130) && particle.producedByGenerator()) {
     return false;
-  if ((ist > 1) && !particle.producedByGenerator())
+  }
+  if ((ist > 1) && !particle.producedByGenerator()) {
     return false;
+  }
   // <-
 
-  if (!isStable(pdg))
+  if (!isStable(pdg)) {
     return false;
+  }
 
   if (particle.producedByGenerator()) {
     // Solution for K0L decayed by Pythia6
     // ->
     if (particle.mother0() != -1) {
       auto mother = mcParticles.iteratorAt(particle.mother0());
-      if (std::abs(mother.pdgCode()) == 130)
+      if (std::abs(mother.pdgCode()) == 130) {
         return false;
+      }
     }
     // <-
     // check for direct photon in parton shower
@@ -98,8 +102,9 @@ bool isPhysicalPrimary(TMCParticles& mcParticles, TMCParticle const& particle)
     if (pdg == 22 && particle.daughter0() != -1) {
       LOGF(debug, "D %d", particle.daughter0());
       auto daughter = mcParticles.iteratorAt(particle.daughter0());
-      if (daughter.pdgCode() == 22)
+      if (daughter.pdgCode() == 22) {
         return false;
+      }
     }
     // <-
     return true;
@@ -112,23 +117,27 @@ bool isPhysicalPrimary(TMCParticles& mcParticles, TMCParticle const& particle)
   int mpdg = std::abs(mother.pdgCode());
 
   // Check for Sigma0
-  if ((mpdg == 3212) && mother.producedByGenerator())
+  if ((mpdg == 3212) && mother.producedByGenerator()) {
     return true;
+  }
 
   // Check if it comes from a pi0 decay
-  if ((mpdg == kPi0) && mother.producedByGenerator())
+  if ((mpdg == kPi0) && mother.producedByGenerator()) {
     return true;
+  }
 
   // Check if this is a heavy flavor decay product
   int mfl = int(mpdg / std::pow(10, int(std::log10(mpdg))));
 
   // Light hadron
-  if (mfl < 4)
+  if (mfl < 4) {
     return false;
+  }
 
   // Heavy flavor hadron produced by generator
-  if (mother.producedByGenerator())
+  if (mother.producedByGenerator()) {
     return true;
+  }
 
   // To be sure that heavy flavor has not been produced in a secondary interaction
   // Loop back to the generated mother
@@ -140,10 +149,11 @@ bool isPhysicalPrimary(TMCParticles& mcParticles, TMCParticle const& particle)
     mfl = int(mpdg / std::pow(10, int(std::log10(mpdg))));
   }
 
-  if (mfl < 4)
+  if (mfl < 4) {
     return false;
-  else
+  } else {
     return true;
+  }
 }
 
 }; // namespace MC

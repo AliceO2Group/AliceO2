@@ -57,6 +57,11 @@ o2_add_dpl_workflow(histograms
                   PUBLIC_LINK_LIBRARIES O2::Framework
                   COMPONENT_NAME AnalysisTutorial)
 
+o2_add_dpl_workflow(histograms-full-tracks
+                  SOURCES src/histogramsFullTracks.cxx
+                  PUBLIC_LINK_LIBRARIES O2::Framework
+                  COMPONENT_NAME AnalysisTutorial)
+
 o2_add_dpl_workflow(filters
                   SOURCES src/filters.cxx
                   PUBLIC_LINK_LIBRARIES O2::Framework
@@ -127,5 +132,38 @@ o2_add_dpl_workflow(hist-helpers-test
 
 o2_add_dpl_workflow(histogram-registry
                   SOURCES src/histogramRegistry.cxx
+                  PUBLIC_LINK_LIBRARIES O2::Framework O2::AnalysisCore O2::AnalysisDataModel
+                  COMPONENT_NAME AnalysisTutorial)
+
+o2_add_library(ConfigurableCut
+               SOURCES  src/configurableCut.cxx
+               PUBLIC_LINK_LIBRARIES O2::AnalysisCore)
+
+o2_target_root_dictionary(ConfigurableCut
+                          HEADERS include/Analysis/configurableCut.h
+                          LINKDEF src/ConfigurableCutLinkDef.h)
+
+o2_add_dpl_workflow(configurable-objects
+                    SOURCES src/configurableObjects.cxx
+                    PUBLIC_LINK_LIBRARIES O2::Framework O2::ConfigurableCut
+                    COMPONENT_NAME AnalysisTutorial)
+
+o2_add_dpl_workflow(muon-iteration
+                  SOURCES src/muonIteration.cxx
+                  PUBLIC_LINK_LIBRARIES O2::Framework O2::AnalysisCore O2::AnalysisDataModel
+                  COMPONENT_NAME AnalysisTutorial)
+
+o2_add_dpl_workflow(schema-evolution
+                  SOURCES src/schemaEvolution.cxx
+                  PUBLIC_LINK_LIBRARIES O2::Framework O2::AnalysisCore O2::AnalysisDataModel
+                  COMPONENT_NAME AnalysisTutorial)
+
+o2_add_dpl_workflow(efficiency-per-run
+                  SOURCES src/efficiencyPerRun.cxx
+                  PUBLIC_LINK_LIBRARIES O2::Framework O2::AnalysisCore O2::AnalysisDataModel
+                  COMPONENT_NAME AnalysisTutorial)
+
+o2_add_dpl_workflow(efficiency-global
+                  SOURCES src/efficiencyGlobal.cxx
                   PUBLIC_LINK_LIBRARIES O2::Framework O2::AnalysisCore O2::AnalysisDataModel
                   COMPONENT_NAME AnalysisTutorial)

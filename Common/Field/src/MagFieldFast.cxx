@@ -68,22 +68,25 @@ bool MagFieldFast::LoadData(const string inpFName)
   SolParam* curParam = nullptr;
 
   while (std::getline(in, line)) {
-    if (line.empty() || line[0] == '#')
+    if (line.empty() || line[0] == '#') {
       continue; // empy or comment
+    }
     std::stringstream ss(line);
     int cnt = 0;
 
     if (component < 0) {
-      while (cnt < 4 && (ss >> header[cnt++]))
+      while (cnt < 4 && (ss >> header[cnt++])) {
         ;
+      }
       if (cnt != 4) {
         LOG(FATAL) << "Wrong header " << line;
         return false;
       }
       curParam = &mSolPar[header[0]][header[1]][header[2]];
     } else {
-      while (cnt < header[3] && (ss >> curParam->parBxyz[component][cnt++]))
+      while (cnt < header[3] && (ss >> curParam->parBxyz[component][cnt++])) {
         ;
+      }
       if (cnt != header[3]) {
         LOG(FATAL) << "Wrong data (npar=" << cnt << ") for param " << header[0] << " " << header[1] << " " << header[2]
                    << " " << header[3] << " " << line;
@@ -135,7 +138,7 @@ bool MagFieldFast::GetBcomp(EDim comp, const double xyz[3], double& b) const
 }
 
 //_______________________________________________________________________
-bool MagFieldFast::GetBcomp(EDim comp, const Point3D<float> xyz, double& b) const
+bool MagFieldFast::GetBcomp(EDim comp, const math_utils::Point3D<float> xyz, double& b) const
 {
   // get field
   int zSeg, rSeg, quadrant;
@@ -149,7 +152,7 @@ bool MagFieldFast::GetBcomp(EDim comp, const Point3D<float> xyz, double& b) cons
 }
 
 //_______________________________________________________________________
-bool MagFieldFast::GetBcomp(EDim comp, const Point3D<float> xyz, float& b) const
+bool MagFieldFast::GetBcomp(EDim comp, const math_utils::Point3D<float> xyz, float& b) const
 {
   // get field
   int zSeg, rSeg, quadrant;
@@ -193,7 +196,7 @@ bool MagFieldFast::Field(const float xyz[3], float bxyz[3]) const
 }
 
 //_______________________________________________________________________
-bool MagFieldFast::Field(const Point3D<float> xyz, float bxyz[3]) const
+bool MagFieldFast::Field(const math_utils::Point3D<float> xyz, float bxyz[3]) const
 {
   // get field
   int zSeg, rSeg, quadrant;
@@ -215,20 +218,24 @@ bool MagFieldFast::GetSegment(float x, float y, float z, int& zSeg, int& rSeg, i
   const float zGridSpaceInv = 1.f / (kSolZMax * 2 / kNSolZRanges);
   zSeg = -1;
   if (z < kSolZMax) {
-    if (z > -kSolZMax)
+    if (z > -kSolZMax) {
       zSeg = (z + kSolZMax) * zGridSpaceInv; // solenoid params
-    else {                                   // need to check dipole params
+    } else {                                 // need to check dipole params
       return false;
     }
-  } else
+  } else {
     return false;
+  }
   // R segment
   float xx = x * x, yy = y * y, rr = xx + yy;
-  for (rSeg = 0; rSeg < kNSolRRanges; rSeg++)
-    if (rr < kSolR2Max[rSeg])
+  for (rSeg = 0; rSeg < kNSolRRanges; rSeg++) {
+    if (rr < kSolR2Max[rSeg]) {
       break;
-  if (rSeg == kNSolRRanges)
+    }
+  }
+  if (rSeg == kNSolRRanges) {
     return kFALSE;
+  }
   quadrant = GetQuadrant(x, y);
   return true;
 }

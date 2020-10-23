@@ -634,9 +634,10 @@ class RootTreeWriter
       // A helper struct mimicking data layout of std::vector containers
       // We assume a standard layout of begin, end, end_capacity
       struct VecBase {
-        const ElementType* start;
-        const ElementType* end;
-        const ElementType* cap;
+        VecBase() = default;
+        const ElementType* start = nullptr;
+        const ElementType* end = nullptr;
+        const ElementType* cap = nullptr;
       };
 
       // a low level hack to make a gsl::span appear as a std::vector so that ROOT serializes the correct type
@@ -671,7 +672,7 @@ class RootTreeWriter
         if (ptr) {
           delete ptr;
         }
-      } catch (const std::runtime_error& e) {
+      } catch (RuntimeErrorRef e) {
         if constexpr (has_root_dictionary<value_type>::value == true) {
           // try extracting from message with serialization method ROOT
           auto data = context.get<typename std::add_pointer<value_type>::type>(ref);

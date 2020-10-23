@@ -7,33 +7,31 @@
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
-#ifndef FRAMEWORK_DATAPROCESSOR_H
-#define FRAMEWORK_DATAPROCESSOR_H
+#ifndef O2_FRAMEWORK_DATAPROCESSOR_H_
+#define O2_FRAMEWORK_DATAPROCESSOR_H_
 
 class FairMQDevice;
 class FairMQParts;
 
-namespace o2
-{
-namespace framework
+namespace o2::framework
 {
 
 class MessageContext;
 class StringContext;
 class ArrowContext;
 class RawBufferContext;
+class ServiceRegistry;
 
 /// Helper class to send messages from a contex at the end
 /// of a computation.
 struct DataProcessor {
-  static void doSend(FairMQDevice&, MessageContext&);
-  static void doSend(FairMQDevice&, StringContext&);
-  static void doSend(FairMQDevice&, ArrowContext&);
-  static void doSend(FairMQDevice&, RawBufferContext&);
+  static void doSend(FairMQDevice&, MessageContext&, ServiceRegistry&);
+  static void doSend(FairMQDevice&, StringContext&, ServiceRegistry&);
+  static void doSend(FairMQDevice&, ArrowContext&, ServiceRegistry&);
+  static void doSend(FairMQDevice&, RawBufferContext&, ServiceRegistry&);
   static void doSend(FairMQDevice&, FairMQParts&&, const char*, unsigned int);
 };
 
-} // namespace framework
-} // namespace o2
+} // namespace o2::framework
 
-#endif // FRAMEWORK_DATAPROCESSOR_H
+#endif // O2_FRAMEWORK_DATAPROCESSOR_H_

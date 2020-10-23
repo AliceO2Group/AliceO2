@@ -130,7 +130,7 @@ int GPUTRDTrackerComponent::ReadConfigurationString(const char* arguments)
     if (argument.CompareTo("-debugOutput") == 0) {
       fDebugTrackOutput = true;
       fVerboseDebugOutput = true;
-      HLTInfo("Tracks are dumped in the GPUTRDTrack format");
+      HLTInfo("Tracks are dumped in the GPUTRDTrackGPU format");
       continue;
     }
 
@@ -202,7 +202,7 @@ int GPUTRDTrackerComponent::DoInit(int argc, const char** argv)
     HLTError("TRD geometry not available");
     return -EINVAL;
   }
-  fTracker = new GPUTRDTracker();
+  fTracker = new GPUTRDTrackerGPU();
   if (!fTracker) {
     return -ENOMEM;
   }
@@ -252,7 +252,7 @@ int GPUTRDTrackerComponent::DoEvent(const AliHLTComponentEventData& evtData, con
   int iResult = 0;
 
   if (fTrackList->GetEntries() != 0) {
-    fTrackList->Clear(); // tracks are owned by GPUTRDTracker
+    fTrackList->Clear(); // tracks are owned by GPUTRDTrackerGPU
   }
 
   int nBlocks = evtData.fBlockCnt;
@@ -261,7 +261,7 @@ int GPUTRDTrackerComponent::DoEvent(const AliHLTComponentEventData& evtData, con
   AliHLTTracksData* itsData = nullptr;
   AliHLTTrackMCData* tpcDataMC = nullptr;
 
-  std::vector<GPUTRDTrack> tracksTPC;
+  std::vector<GPUTRDTrackGPU> tracksTPC;
   std::vector<int> tracksTPCLab;
   std::vector<int> tracksTPCId;
 
@@ -338,7 +338,7 @@ int GPUTRDTrackerComponent::DoEvent(const AliHLTComponentEventData& evtData, con
     if (itsData != nullptr && !itsAvail.at(currOutTrackTPC->fTrackID)) {
       continue;
     }
-    GPUTRDTrack t(*currOutTrackTPC);
+    GPUTRDTrackGPU t(*currOutTrackTPC);
     int mcLabel = -1;
     if (tpcDataMC) {
       if (mcLabels.find(currOutTrackTPC->fTrackID) != mcLabels.end()) {
@@ -384,9 +384,9 @@ int GPUTRDTrackerComponent::DoEvent(const AliHLTComponentEventData& evtData, con
   fTracker->DoTracking(NULL);
   fBenchmark.Stop(1);
 
-  GPUTRDTrack* trackArray = fTracker->Tracks();
+  GPUTRDTrackGPU* trackArray = fTracker->Tracks();
   int nTracks = fTracker->NTracks();
-  GPUTRDTracker::GPUTRDSpacePointInternal* spacePoints = fTracker->SpacePoints();
+  GPUTRDTrackerGPU::GPUTRDSpacePointInternal* spacePoints = fTracker->SpacePoints();
 
   // TODO delete fTrackList since it only works for TObjects (or use compiler flag after tests with GPU track type)
   // for (int iTrack=0; iTrack<nTracks; ++iTrack) {
@@ -411,7 +411,7 @@ int GPUTRDTrackerComponent::DoEvent(const AliHLTComponentEventData& evtData, con
     int assignedTracklets = 0;
 
     for (int iTrk = 0; iTrk < nTracks; ++iTrk) {
-      GPUTRDTrack& t = trackArray[iTrk];
+      GPUTRDTrackGPU& t = trackArray[iTrk];
       if (t.GetNtracklets() == 0) {
         continue;
       }
@@ -458,7 +458,7 @@ int GPUTRDTrackerComponent::DoEvent(const AliHLTComponentEventData& evtData, con
     }
 
     for (int i = 0; i < nTrackletsTotal; ++i) {
-      const GPUTRDTracker::GPUTRDSpacePointInternal& sp = spacePoints[i];
+      const GPUTRDTrackerGPU::GPUTRDSpacePointInternal& sp = spacePoints[i];
       int id = sp.mId;
       if (id < 0 || id >= nTrackletsTotal) {
         HLTError("Internal error: wrong space point index %d", id);

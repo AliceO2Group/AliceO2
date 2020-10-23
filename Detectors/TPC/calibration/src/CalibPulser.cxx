@@ -19,13 +19,13 @@
 #include "TFile.h"
 
 #include "TPCBase/ROC.h"
-#include "MathUtils/MathBase.h"
+#include "MathUtils/fit.h"
 #include "TPCCalibration/CalibPulser.h"
 #include "TPCCalibration/CalibPulserParam.h"
 
 using namespace o2::tpc;
-using o2::math_utils::math_base::getStatisticsData;
-using o2::math_utils::math_base::StatisticsData;
+using o2::math_utils::getStatisticsData;
+using o2::math_utils::StatisticsData;
 
 CalibPulser::CalibPulser(PadSubset padSubset)
   : mNbinsT0{200},

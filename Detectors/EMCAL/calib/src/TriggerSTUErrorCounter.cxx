@@ -39,10 +39,12 @@ bool TriggerSTUErrorCounter::isEqual(TriggerSTUErrorCounter& counter) const
 
 int TriggerSTUErrorCounter::compare(TriggerSTUErrorCounter& counter) const
 {
-  if (mTimeErrorCount.first > counter.mTimeErrorCount.first)
+  if (mTimeErrorCount.first > counter.mTimeErrorCount.first) {
     return 1;
-  if (mTimeErrorCount.first < counter.mTimeErrorCount.first)
+  }
+  if (mTimeErrorCount.first < counter.mTimeErrorCount.first) {
     return -1;
+  }
 
   return 0;
 }

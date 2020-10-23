@@ -50,12 +50,14 @@ class Dispatcher : public framework::Task
   /// \brief Dispatcher process callback
   void run(framework::ProcessingContext& ctx) override;
 
-  /// \brief Create appropriate inputSpecs and outputSpecs for sampled data during the workflow declaration phase.
-  void registerPath(const std::pair<framework::InputSpec, framework::OutputSpec>&);
+  /// \brief Register a Data Sampling Policy
+  void registerPolicy(std::unique_ptr<DataSamplingPolicy>&&);
 
   const std::string& getName();
+  /// \brief Assembles InputSpecs of all registered policies in a single vector, removing overlapping entries.
   framework::Inputs getInputSpecs();
   framework::Outputs getOutputSpecs();
+  framework::Options getOptions();
 
  private:
   DataSamplingHeader prepareDataSamplingHeader(const DataSamplingPolicy& policy, const framework::DeviceSpec& spec);
@@ -67,8 +69,6 @@ class Dispatcher : public framework::Task
 
   std::string mName;
   std::string mReconfigurationSource;
-  framework::Inputs inputs;
-  framework::Outputs outputs;
   // policies should be shared between all pipeline threads
   std::vector<std::shared_ptr<DataSamplingPolicy>> mPolicies;
 };

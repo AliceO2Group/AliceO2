@@ -40,8 +40,8 @@ class Hit : public o2::BasicXYZEHit<float>
   /// \param mom Momentum vector for the particle at the point
   /// \param tof Time of the hit
   /// \param eLoss Energy loss
-  Hit(Int_t primary, Int_t trackID, Int_t detID, Double_t initialEnergy, const Point3D<float>& pos,
-      const Vector3D<float>& mom, Double_t tof, Double_t eLoss)
+  Hit(Int_t primary, Int_t trackID, Int_t detID, Double_t initialEnergy, const math_utils::Point3D<float>& pos,
+      const math_utils::Vector3D<float>& mom, Double_t tof, Double_t eLoss)
     : o2::BasicXYZEHit<float>(pos.X(), pos.Y(), pos.Z(), tof, eLoss, trackID, detID),
       mPvector(mom),
       mPrimary(primary),
@@ -91,9 +91,9 @@ class Hit : public o2::BasicXYZEHit<float>
   void PrintStream(std::ostream& stream) const;
 
  private:
-  Vector3D<float> mPvector;  ///< Momentum Vector
-  Int_t mPrimary;            ///< Primary particles at the origin of the hit
-  Double32_t mInitialEnergy; ///< Energy of the parent particle that entered the EMCAL
+  math_utils::Vector3D<float> mPvector; ///< Momentum Vector
+  Int_t mPrimary;                       ///< Primary particles at the origin of the hit
+  Double32_t mInitialEnergy;            ///< Energy of the parent particle that entered the EMCAL
 
   ClassDefNV(Hit, 1);
 };
