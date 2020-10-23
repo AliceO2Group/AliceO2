@@ -65,6 +65,7 @@ struct RuntimeWatchdog {
 struct AODReaderHelpers {
   static AlgorithmSpec rootFileReaderCallback();
   static AlgorithmSpec aodSpawnerCallback(std::vector<InputSpec> requested);
+  static AlgorithmSpec indexBuilderCallback(std::vector<InputSpec> requested);
 };
 
 } // namespace o2::framework::readers
