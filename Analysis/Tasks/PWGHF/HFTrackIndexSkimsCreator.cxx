@@ -236,7 +236,7 @@ struct HFTrackIndexSkimsCreator {
                                     trackPos1.pz() + trackNeg1.pz()};
         bool isSelectedCand2Prong = true;
 
-        // pT cand cut
+        // candidate pT cut
         if (RecoDecay::Pt(pVecCandProng2) < cut2ProngPtCandMin) {
           isSelectedCand2Prong = false;
         }
@@ -256,9 +256,15 @@ struct HFTrackIndexSkimsCreator {
 
           // get secondary vertex
           const auto& secondaryVertex2 = df2.getPCACandidate();
+          // get track momenta
+          array<float, 3> pvec0;
+          array<float, 3> pvec1;
+          df2.getTrack(0).getPxPyPzGlo(pvec0);
+          df2.getTrack(1).getPxPyPzGlo(pvec1);
 
           // CPA cut
           if (isSelectedCand2Prong && cut2ProngCPAMin > -2.) {
+            pVecCandProng2 = RecoDecay::PVec(pvec0, pvec1);
             auto cpa = RecoDecay::CPA(array{collision.posX(), collision.posY(), collision.posZ()}, secondaryVertex2, pVecCandProng2);
             if (cpa < cut2ProngCPAMin) {
               isSelectedCand2Prong = false;
@@ -266,11 +272,6 @@ struct HFTrackIndexSkimsCreator {
           }
 
           if (isSelectedCand2Prong) {
-            // get track momenta
-            array<float, 3> pvec0;
-            array<float, 3> pvec1;
-            df2.getTrack(0).getPxPyPzGlo(pvec0);
-            df2.getTrack(1).getPxPyPzGlo(pvec1);
             // calculate invariant masses
             auto arrMom = array{pvec0, pvec1};
             mass2PiK = RecoDecay::M(arrMom, array{massPi, massK});
@@ -322,7 +323,7 @@ struct HFTrackIndexSkimsCreator {
 
             auto pVecCandProng3Pos = RecoDecay::PVec(pVecCandProng2, array{trackPos2.px(), trackPos2.py(), trackPos2.pz()});
 
-            // pT cand cut
+            // candidate pT cut
             if (RecoDecay::Pt(pVecCandProng3Pos) < cut3ProngPtCandMin) {
               continue;
             }
@@ -348,9 +349,17 @@ struct HFTrackIndexSkimsCreator {
 
             // get secondary vertex
             const auto& secondaryVertex3 = df3.getPCACandidate();
+            // get track momenta
+            array<float, 3> pvec0;
+            array<float, 3> pvec1;
+            array<float, 3> pvec2;
+            df3.getTrack(0).getPxPyPzGlo(pvec0);
+            df3.getTrack(1).getPxPyPzGlo(pvec1);
+            df3.getTrack(2).getPxPyPzGlo(pvec2);
 
             // CPA cut
             if (cut3ProngCPAMin > -2.) {
+              pVecCandProng3Pos = RecoDecay::PVec(pvec0, pvec1, pvec2);
               auto cpa = RecoDecay::CPA(array{collision.posX(), collision.posY(), collision.posZ()}, secondaryVertex3, pVecCandProng3Pos);
               if (cpa < cut3ProngCPAMin) {
                 continue;
@@ -376,14 +385,6 @@ struct HFTrackIndexSkimsCreator {
               hvtx3_y->Fill(secondaryVertex3[1]);
               hvtx3_z->Fill(secondaryVertex3[2]);
 
-              // get track momenta
-              array<float, 3> pvec0;
-              array<float, 3> pvec1;
-              array<float, 3> pvec2;
-              df3.getTrack(0).getPxPyPzGlo(pvec0);
-              df3.getTrack(1).getPxPyPzGlo(pvec1);
-              df3.getTrack(2).getPxPyPzGlo(pvec2);
-
               // calculate invariant mass
               hmass3->Fill(RecoDecay::M(array{pvec0, pvec1, pvec2}, array{massPi, massK, massPi}));
             }
@@ -401,7 +402,7 @@ struct HFTrackIndexSkimsCreator {
 
             auto pVecCandProng3Neg = RecoDecay::PVec(pVecCandProng2, array{trackNeg2.px(), trackNeg2.py(), trackNeg2.pz()});
 
-            // pT cand cut
+            // candidate pT cut
             if (RecoDecay::Pt(pVecCandProng3Neg) < cut3ProngPtCandMin) {
               continue;
             }
@@ -427,9 +428,17 @@ struct HFTrackIndexSkimsCreator {
 
             // get secondary vertex
             const auto& secondaryVertex3 = df3.getPCACandidate();
+            // get track momenta
+            array<float, 3> pvec0;
+            array<float, 3> pvec1;
+            array<float, 3> pvec2;
+            df3.getTrack(0).getPxPyPzGlo(pvec0);
+            df3.getTrack(1).getPxPyPzGlo(pvec1);
+            df3.getTrack(2).getPxPyPzGlo(pvec2);
 
             // CPA cut
             if (cut3ProngCPAMin > -2.) {
+              pVecCandProng3Neg = RecoDecay::PVec(pvec0, pvec1, pvec2);
               auto cpa = RecoDecay::CPA(array{collision.posX(), collision.posY(), collision.posZ()}, secondaryVertex3, pVecCandProng3Neg);
               if (cpa < cut3ProngCPAMin) {
                 continue;
@@ -454,14 +463,6 @@ struct HFTrackIndexSkimsCreator {
               hvtx3_x->Fill(secondaryVertex3[0]);
               hvtx3_y->Fill(secondaryVertex3[1]);
               hvtx3_z->Fill(secondaryVertex3[2]);
-
-              // get track momenta
-              array<float, 3> pvec0;
-              array<float, 3> pvec1;
-              array<float, 3> pvec2;
-              df3.getTrack(0).getPxPyPzGlo(pvec0);
-              df3.getTrack(1).getPxPyPzGlo(pvec1);
-              df3.getTrack(2).getPxPyPzGlo(pvec2);
 
               // calculate invariant mass
               hmass3->Fill(RecoDecay::M(array{pvec0, pvec1, pvec2}, array{massPi, massK, massPi}));
