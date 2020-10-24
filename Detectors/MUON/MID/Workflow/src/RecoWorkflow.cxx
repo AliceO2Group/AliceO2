@@ -29,7 +29,7 @@ namespace o2
 namespace mid
 {
 
-of::WorkflowSpec getRecoWorkflow(bool ctf)
+of::WorkflowSpec getRecoWorkflow(bool ctf, bool disableRootOut)
 {
 
   auto checkReady = [](o2::framework::DataRef const& ref) {
@@ -50,15 +50,17 @@ of::WorkflowSpec getRecoWorkflow(bool ctf)
   }
   specs.emplace_back(getClusterizerSpec());
   specs.emplace_back(getTrackerSpec());
-  specs.emplace_back(of::MakeRootTreeWriterSpec("MIDTracksWriter",
-                                                "mid-tracks.root",
-                                                "midtracks",
-                                                of::MakeRootTreeWriterSpec::TerminationPolicy::Process,
-                                                of::MakeRootTreeWriterSpec::TerminationCondition{checkReady},
-                                                of::MakeRootTreeWriterSpec::BranchDefinition<const char*>{of::InputSpec{"mid_tracks", "MID", "TRACKS"}, "MIDTrack"},
-                                                of::MakeRootTreeWriterSpec::BranchDefinition<const char*>{of::InputSpec{"mid_trackClusters", "MID", "TRACKCLUSTERS"}, "MIDTrackClusters"},
-                                                of::MakeRootTreeWriterSpec::BranchDefinition<std::vector<ROFRecord>>{of::InputSpec{"mid_tracks_rof", "MID", "TRACKSROF"}, "MIDTrackROF"},
-                                                of::MakeRootTreeWriterSpec::BranchDefinition<std::vector<ROFRecord>>{of::InputSpec{"mid_trclus_rof", "MID", "TRCLUSROF"}, "MIDTrackClusterROF"})());
+  if (!disableRootOut) {
+    specs.emplace_back(of::MakeRootTreeWriterSpec("MIDTracksWriter",
+                                                  "mid-tracks.root",
+                                                  "midtracks",
+                                                  of::MakeRootTreeWriterSpec::TerminationPolicy::Process,
+                                                  of::MakeRootTreeWriterSpec::TerminationCondition{checkReady},
+                                                  of::MakeRootTreeWriterSpec::BranchDefinition<const char*>{of::InputSpec{"mid_tracks", "MID", "TRACKS"}, "MIDTrack"},
+                                                  of::MakeRootTreeWriterSpec::BranchDefinition<const char*>{of::InputSpec{"mid_trackClusters", "MID", "TRACKCLUSTERS"}, "MIDTrackClusters"},
+                                                  of::MakeRootTreeWriterSpec::BranchDefinition<std::vector<ROFRecord>>{of::InputSpec{"mid_tracks_rof", "MID", "TRACKSROF"}, "MIDTrackROF"},
+                                                  of::MakeRootTreeWriterSpec::BranchDefinition<std::vector<ROFRecord>>{of::InputSpec{"mid_trclus_rof", "MID", "TRCLUSROF"}, "MIDTrackClusterROF"})());
+  }
 
   return specs;
 }
