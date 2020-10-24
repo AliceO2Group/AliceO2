@@ -43,6 +43,7 @@ childprocs() {
 #   conditions early and prevent longtime hanging executables 
 #   (until DPL offers signal handling and automatic shutdown)
 # - possibility to provide user hooks for "start" and "failure"
+# - possibility to skip (jump over) job alltogether
 taskwrapper() {
   local logfile=$1
   shift 1
@@ -58,6 +59,18 @@ taskwrapper() {
     hook="${JOBUTILS_JOB_STARTHOOK} '$command' $logfile"
     eval "${hook}"
   fi
+
+  # We offer the possibility to jump this stage/task when a "done" file is present.
+  # (this is mainly interesting for debugging in order to avoid going through all pipeline stages again)
+  # The feature should be used with care! To make this nice, a proper dependency chain and a checksum mechanism
+  # needs to be put into place.
+  if [ "${JOBUTILS_SKIPDONE}" ]; then
+    if [ -f "${logfile}_done" ]; then
+       echo "Skipping task since file ${logfile}_done found";
+       return 0
+    fi
+  fi
+  [ -f "${logfile}_done" ] && rm "${logfile}"_done
 
   # the time command is non-standard on MacOS
   if [ "$(uname)" == "Darwin" ]; then
@@ -156,7 +169,13 @@ taskwrapper() {
   # return code
   RC=$?
   RC_ACUM=$((RC_ACUM+RC))
-  [ ! "${RC} -eq 0" ] && echo "command ${command} had nonzero exit code ${RC}"
-
+  if [ "${RC}" -eq "0" ]; then
+    # if return code 0 we mark this task as done
+    echo "Command \"${command}\" successfully finished." > "${logfile}"_done
+    echo "The presence of this file can be used to skip this command in future runs" >> "${logfile}"_done
+    echo "of the pipeline by setting the JOBUTILS_SKIPDONE environment variable." >> "${logfile}"_done
+  else
+    echo "command ${command} had nonzero exit code ${RC}"
+  fi
   return ${RC}
 }
