@@ -36,9 +36,9 @@ struct HFCandidateCreator3Prong {
   Configurable<double> d_minrelchi2change{"d_minrelchi2change", 0.9, "stop iterations is chi2/chi2old > this"};
   Configurable<bool> b_dovalplots{"b_dovalplots", true, "do validation plots"};
 
-  OutputObj<TH1F> hmass3{TH1F("hmass3", "3-track inv mass", 500, 1.6, 2.1)};
-  OutputObj<TH1F> hCovPVXX{TH1F("hCovPVXX", "XX element of PV cov. matrix", 100, 0., 1.e-4)};
-  OutputObj<TH1F> hCovSVXX{TH1F("hCovSVXX", "XX element of SV cov. matrix", 100, 0., 0.2)};
+  OutputObj<TH1F> hmass3{TH1F("hmass3", "3-prong candidates;inv. mass (#pi K #pi) (GeV/#it{c}^{2});entries", 500, 1.6, 2.1)};
+  OutputObj<TH1F> hCovPVXX{TH1F("hCovPVXX", "3-prong candidates;XX element of cov. matrix of prim. vtx position (cm^{2});entries", 100, 0., 1.e-4)};
+  OutputObj<TH1F> hCovSVXX{TH1F("hCovSVXX", "3-prong candidates;XX element of cov. matrix of sec. vtx position (cm^{2});entries", 100, 0., 0.2)};
 
   double massPi = RecoDecay::getMassPDG(kPiPlus);
   double massK = RecoDecay::getMassPDG(kKPlus);
