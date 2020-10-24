@@ -87,6 +87,9 @@ void TPCITSMatchingDPL::init(InitContext& ic)
     LOG(INFO) << "Material LUT " << matLUTFile << " file is absent, only TGeo can be used";
   }
 
+  int dbgFlags = ic.options().get<int>("debug-tree-flags");
+  mMatching.setDebugFlag(dbgFlags);
+
   // set bunch filling. Eventually, this should come from CCDB
   const auto* digctx = o2::steer::DigitizationContext::loadFromFile("collisioncontext.root");
   const auto& bcfill = digctx->getBunchFilling();
@@ -313,7 +316,8 @@ DataProcessorSpec getTPCITSMatchingSpec(bool useFT0, bool useMC, const std::vect
     AlgorithmSpec{adaptFromTask<TPCITSMatchingDPL>(useFT0, useMC)},
     Options{
       {"its-dictionary-path", VariantType::String, "", {"Path of the cluster-topology dictionary file"}},
-      {"material-lut-path", VariantType::String, "", {"Path of the material LUT file"}}}};
+      {"material-lut-path", VariantType::String, "", {"Path of the material LUT file"}},
+      {"debug-tree-flags", VariantType::Int, 0, {"DebugFlagTypes bit-pattern for debug tree"}}}};
 }
 
 } // namespace globaltracking
