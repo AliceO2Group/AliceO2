@@ -40,7 +40,7 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
 //****************************************************************************************
 struct TrackQATask {
 
-  HistogramRegistry histos{"Histos", true, {}, OutputObjHandlingPolicy::QAObject};
+  HistogramRegistry histos{"Histos", {}, OutputObjHandlingPolicy::QAObject};
 
   Configurable<int> selectedTracks{"select", 1, "Choice of track selection. 0 = no selection, 1 = globalTracks, 2 = globalTracksSDD"};
 
@@ -127,7 +127,7 @@ struct TrackQATask {
 };
 
 struct TrackCutQATask {
-  HistogramRegistry cuts{"Cuts", true, {}, OutputObjHandlingPolicy::QAObject};
+  HistogramRegistry cuts{"Cuts", {}, OutputObjHandlingPolicy::QAObject};
   TrackSelection selectedTracks = getGlobalTrackSelection();
   static constexpr int ncuts = static_cast<int>(TrackSelection::TrackCuts::kNCuts);
   void init(InitContext&)
@@ -155,7 +155,7 @@ struct TrackCutQATask {
 //****************************************************************************************
 struct TrackQATaskMC {
 
-  HistogramRegistry resolution{"Resolution", true, {}, OutputObjHandlingPolicy::QAObject};
+  HistogramRegistry resolution{"Resolution", {}, OutputObjHandlingPolicy::QAObject};
 
   void init(o2::framework::InitContext&){
 
