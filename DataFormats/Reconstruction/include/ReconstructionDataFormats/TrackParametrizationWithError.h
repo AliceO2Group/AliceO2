@@ -108,8 +108,8 @@ class TrackParametrizationWithError : public TrackParametrization<value_T>
   void checkCovariance();
   void setCov(value_t v, int i);
 
- protected:
   void updateCov(const value_t delta[kCovMatSize]);
+  void updateCov(value_t delta, int i);
 
  protected:
   value_t mC[kCovMatSize] = {0.f}; // 15 covariance matrix elements
@@ -284,6 +284,13 @@ template <typename value_T>
 inline void TrackParametrizationWithError<value_T>::setCov(value_t v, int i)
 {
   mC[i] = v;
+}
+
+//__________________________________________________________________________
+template <typename value_T>
+inline void TrackParametrizationWithError<value_T>::updateCov(value_t delta, int i)
+{
+  mC[i] += delta;
 }
 
 //__________________________________________________________________________
