@@ -25,7 +25,6 @@ struct ATask {
   /// Construct a registry object with direct declaration
   HistogramRegistry registry{
     "registry",
-    true,
     {
       {"eta", "#eta", {HistType::kTH1F, {{102, -2.01, 2.01}}}},     //
       {"phi", "#varphi", {HistType::kTH1F, {{100, 0., 2. * M_PI}}}} //
@@ -45,7 +44,6 @@ struct BTask {
   /// Construct a registry object with direct declaration
   HistogramRegistry registry{
     "registry",
-    true,
     {
       {"eta", "#eta", {HistType::kTH1F, {{102, -2.01, 2.01}}}},                            //
       {"ptToPt", "#ptToPt", {HistType::kTH2F, {{100, -0.01, 10.01}, {100, -0.01, 10.01}}}} //
@@ -63,34 +61,35 @@ struct CTask {
 
   HistogramRegistry registry{
     "registry",
-    true,
     {
       {"1d", "test 1d", {HistType::kTH1I, {{100, -10.0f, 10.0f}}}},                                                                                               //
       {"2d", "test 2d", {HistType::kTH2F, {{100, -10.0f, 10.01f}, {100, -10.0f, 10.01f}}}},                                                                       //
       {"3d", "test 3d", {HistType::kTH3D, {{100, -10.0f, 10.01f}, {100, -10.0f, 10.01f}, {100, -10.0f, 10.01f}}}},                                                //
       {"4d", "test 4d", {HistType::kTHnC, {{100, -10.0f, 10.01f}, {100, -10.0f, 10.01f}, {100, -10.0f, 10.01f}, {100, -10.0f, 10.01f}}}},                         //
       {"5d", "test 5d", {HistType::kTHnSparseL, {{10, -10.0f, 10.01f}, {10, -10.0f, 10.01f}, {10, -10.0f, 10.01f}, {10, -10.0f, 10.01f}, {10, -10.0f, 10.01f}}}}, //
-    }                                                                                                                                                             //
+    },
+    OutputObjHandlingPolicy::AnalysisObject,
+    true //
   };
 
   void init(o2::framework::InitContext&)
   {
-    registry.add({"7d", "test 7d", {HistType::kTHnC, {{3, -10.0f, 10.01f}, {3, -10.0f, 10.01f}, {3, -10.0f, 10.01f}, {3, -10.0f, 10.01f}, {3, -10.0f, 10.01f}, {3, -10.0f, 10.01f}, {3, -10.0f, 10.01f}}}});
+    registry.add("7d", "test 7d", {HistType::kTHnC, {{3, -10.0f, 10.01f}, {3, -10.0f, 10.01f}, {3, -10.0f, 10.01f}, {3, -10.0f, 10.01f}, {3, -10.0f, 10.01f}, {3, -10.0f, 10.01f}, {3, -10.0f, 10.01f}}});
 
-    registry.add({"6d", "test 6d", {HistType::kTHnC, {{3, -10.0f, 10.01f}, {3, -10.0f, 10.01f}, {3, -10.0f, 10.01f}, {3, -10.0f, 10.01f}, {3, -10.0f, 10.01f}, {3, -10.0f, 10.01f}}}});
+    registry.add("6d", "test 6d", {HistType::kTHnC, {{3, -10.0f, 10.01f}, {3, -10.0f, 10.01f}, {3, -10.0f, 10.01f}, {3, -10.0f, 10.01f}, {3, -10.0f, 10.01f}, {3, -10.0f, 10.01f}}});
 
-    registry.add({"1d-profile", "test 1d profile", {HistType::kTProfile, {{20, 0.0f, 10.01f}}}});
-    registry.add({"2d-profile", "test 2d profile", {HistType::kTProfile2D, {{20, 0.0f, 10.01f}, {20, 0.0f, 10.01f}}}});
-    registry.add({"3d-profile", "test 3d profile", {HistType::kTProfile3D, {{20, 0.0f, 10.01f}, {20, 0.0f, 10.01f}, {20, 0.0f, 10.01f}}}});
+    registry.add("1d-profile", "test 1d profile", {HistType::kTProfile, {{20, 0.0f, 10.01f}}});
+    registry.add("2d-profile", "test 2d profile", {HistType::kTProfile2D, {{20, 0.0f, 10.01f}, {20, 0.0f, 10.01f}}});
+    registry.add("3d-profile", "test 3d profile", {HistType::kTProfile3D, {{20, 0.0f, 10.01f}, {20, 0.0f, 10.01f}, {20, 0.0f, 10.01f}}});
 
-    registry.add({"2d-weight", "test 2d weight", {HistType::kTH2C, {{2, -10.0f, 10.01f}, {2, -10.0f, 10.01f}}}, true});
+    registry.add("2d-weight", "test 2d weight", {HistType::kTH2C, {{2, -10.0f, 10.01f}, {2, -10.0f, 10.01f}}}, true);
 
-    registry.add({"3d-weight", "test 3d weight", {HistType::kTH3C, {{2, -10.0f, 10.01f}, {2, -10.0f, 10.01f}, {2, -10.0f, 10.01f}}}, true});
+    registry.add("3d-weight", "test 3d weight", {HistType::kTH3C, {{2, -10.0f, 10.01f}, {2, -10.0f, 10.01f}, {2, -10.0f, 10.01f}}}, true);
 
-    registry.add({"4d-weight", "test 4d weight", {HistType::kTHnC, {{2, -10.0f, 10.01f}, {2, -10.0f, 10.01f}, {2, -10.0f, 10.01f}, {100, -10.0f, 10.01f}}}, true});
+    registry.add("4d-weight", "test 4d weight", {HistType::kTHnC, {{2, -10.0f, 10.01f}, {2, -10.0f, 10.01f}, {2, -10.0f, 10.01f}, {100, -10.0f, 10.01f}}}, true);
 
-    registry.add({"1d-profile-weight", "test 1d profile weight", {HistType::kTProfile, {{2, -10.0f, 10.01f}}}, true});
-    registry.add({"2d-profile-weight", "test 2d profile weight", {HistType::kTProfile2D, {{2, -10.0f, 10.01f}, {2, -10.0f, 10.01f}}}, true});
+    registry.add("1d-profile-weight", "test 1d profile weight", {HistType::kTProfile, {{2, -10.0f, 10.01f}}}, true);
+    registry.add("2d-profile-weight", "test 2d profile weight", {HistType::kTProfile2D, {{2, -10.0f, 10.01f}, {2, -10.0f, 10.01f}}}, true);
   }
 
   void process(aod::Tracks const& tracks)
@@ -126,8 +125,8 @@ struct CTask {
 };
 
 struct DTask {
-  HistogramRegistry spectra{"spectra", true, {}, OutputObjHandlingPolicy::AnalysisObject, true};
-  HistogramRegistry etaStudy{"etaStudy", true, {}, OutputObjHandlingPolicy::AnalysisObject, true};
+  HistogramRegistry spectra{"spectra", {}, OutputObjHandlingPolicy::AnalysisObject, true, true};
+  HistogramRegistry etaStudy{"etaStudy", {}, OutputObjHandlingPolicy::AnalysisObject, true, true};
 
   void init(o2::framework::InitContext&)
   {
@@ -158,6 +157,19 @@ struct DTask {
 
     etaStudy.add("positive", "A side spectra", kTH1I, {ptAxis});
     etaStudy.add("negative", "C side spectra", kTH1I, {ptAxis});
+
+    spectra.add("before_cuts/hist1", "asdf", defaultParticleHist);
+    spectra.add("before_cuts/hist2", "asdf", defaultParticleHist);
+    spectra.add("before_cuts/hist3", "asdf", defaultParticleHist);
+    spectra.add("before_cuts/hist4", "asdf", defaultParticleHist);
+    spectra.add("before_cuts/hist5", "asdf", defaultParticleHist);
+
+    // clone whole category / group
+    spectra.addClone("before_cuts/", "after_cuts/");
+
+    // clone single histograms
+    spectra.addClone("sigmas", "cascades");
+    spectra.addClone("neutral/pions", "strange/funny/particles");
   }
 
   void process(aod::Tracks const& tracks)
@@ -175,6 +187,14 @@ struct DTask {
       spectra.fill("one/two/three/four/kaons", track.pt(), track.eta(), 50., 0.);
       spectra.fill("sigmas", track.pt(), track.eta(), 50., 0.);
       spectra.fill("lambdas", track.pt(), track.eta(), 50., 0.);
+
+      spectra.fill("before_cuts/hist2", track.pt(), track.eta(), 50., 0.);
+      spectra.fill("before_cuts/hist2", track.pt(), track.eta(), 50., 0.);
+
+      spectra.fill("after_cuts/hist2", track.pt(), track.eta(), 50., 0.);
+
+      spectra.fill("cascades", track.pt(), track.eta(), 50., 0.);
+      spectra.fill("strange/funny/particles", track.pt(), track.eta(), 50., 0.);
     }
   }
 };

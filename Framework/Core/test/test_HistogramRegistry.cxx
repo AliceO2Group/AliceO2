@@ -25,19 +25,19 @@ DECLARE_SOA_COLUMN_FULL(Y, y, float, "y");
 
 HistogramRegistry foo()
 {
-  return {"r", true, {{"histo", "histo", {HistType::kTH1F, {{100, 0, 1}}}}}};
+  return {"r", {{"histo", "histo", {HistType::kTH1F, {{100, 0, 1}}}}}};
 }
 
 BOOST_AUTO_TEST_CASE(HistogramRegistryLookup)
 {
   /// Construct a registry object with direct declaration
   HistogramRegistry registry{
-    "registry", true, {
-                        {"eta", "#Eta", {HistType::kTH1F, {{100, -2.0, 2.0}}}},                              //
-                        {"phi", "#Phi", {HistType::kTH1D, {{102, 0, 2 * M_PI}}}},                            //
-                        {"pt", "p_{T}", {HistType::kTH1D, {{1002, -0.01, 50.1}}}},                           //
-                        {"ptToPt", "#ptToPt", {HistType::kTH2F, {{100, -0.01, 10.01}, {100, -0.01, 10.01}}}} //
-                      }                                                                                      //
+    "registry", {
+                  {"eta", "#Eta", {HistType::kTH1F, {{100, -2.0, 2.0}}}},                              //
+                  {"phi", "#Phi", {HistType::kTH1D, {{102, 0, 2 * M_PI}}}},                            //
+                  {"pt", "p_{T}", {HistType::kTH1D, {{1002, -0.01, 50.1}}}},                           //
+                  {"ptToPt", "#ptToPt", {HistType::kTH2F, {{100, -0.01, 10.01}, {100, -0.01, 10.01}}}} //
+                }                                                                                      //
   };
 
   /// Get histograms by name
@@ -77,10 +77,10 @@ BOOST_AUTO_TEST_CASE(HistogramRegistryExpressionFill)
 
   /// Construct a registry object with direct declaration
   HistogramRegistry registry{
-    "registry", true, {
-                        {"x", "test x", {HistType::kTH1F, {{100, 0.0f, 10.0f}}}},                            //
-                        {"xy", "test xy", {HistType::kTH2F, {{100, -10.0f, 10.01f}, {100, -10.0f, 10.01f}}}} //
-                      }                                                                                      //
+    "registry", {
+                  {"x", "test x", {HistType::kTH1F, {{100, 0.0f, 10.0f}}}},                            //
+                  {"xy", "test xy", {HistType::kTH2F, {{100, -10.0f, 10.01f}, {100, -10.0f, 10.01f}}}} //
+                }                                                                                      //
   };
 
   /// Fill histogram with expression and table

@@ -32,7 +32,7 @@ static void BM_HashedNameLookup(benchmark::State& state)
     for (auto i = 0; i < state.range(0); ++i) {
       histSpecs.push_back({fmt::format("histo{}", i + 1).c_str(), fmt::format("Histo {}", i + 1).c_str(), {HistType::kTH1F, {{100, 0, 1}}}});
     }
-    HistogramRegistry registry{"registry", true, histSpecs};
+    HistogramRegistry registry{"registry", histSpecs};
     state.ResumeTiming();
 
     for (auto i = 0; i < nLookups; ++i) {
