@@ -24,6 +24,7 @@ o2_add_library(MIDWorkflow
                        src/RawWriterSpec.cxx
                        src/TrackerMCSpec.cxx
                        src/TrackerSpec.cxx
+                       src/ZeroSuppressionSpec.cxx
                PUBLIC_LINK_LIBRARIES
                        O2::Framework
                        O2::SimConfig
