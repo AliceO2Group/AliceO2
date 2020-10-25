@@ -420,7 +420,6 @@ DataProcessorSpec
       if (ref.spec && ref.payload) {
         startTime = DataRefUtils::getHeader<DataProcessingHeader*>(ref)->startTime;
         TFNumber = pc.inputs().get<uint64_t>("tfn");
-        LOGP(INFO, "<aodwriter> mapping {} {}", startTime, TFNumber);
         TFNumbers.insert(std::pair<uint64_t, uint64_t>(startTime, TFNumber));
       }
 
@@ -430,7 +429,6 @@ DataProcessorSpec
           LOGP(WARNING, "The input \"{}\" is not valid and will be skipped!", ref.spec->binding);
           continue;
         }
-        LOGP(INFO, "<aodwriter> ref.spec->binding {}", ref.spec->binding);
 
         // skip non-AOD refs
         if (!DataSpecUtils::partialMatch(*ref.spec, header::DataOrigin("AOD"))) {
@@ -441,16 +439,14 @@ DataProcessorSpec
         // does this need to be saved?
         auto dh = DataRefUtils::getHeader<header::DataHeader*>(ref);
         auto ds = dod->getDataOutputDescriptors(*dh);
-        LOGP(INFO, "<aodwriter> Table {}", dh->description.str);
         if (ds.size() > 0) {
 
           // get TF number fro startTime
           auto it = TFNumbers.find(startTime);
           if (it != TFNumbers.end()) {
             TFNumber = (it->second / dod->getNumberTimeFramesToMerge()) * dod->getNumberTimeFramesToMerge();
-            LOGP(INFO, "<aodwriter> converting {} to {}", startTime, TFNumber);
           } else {
-            LOGP(FATAL, "<aodwriter> No time frame number found for output with start time {}", startTime);
+            LOGP(FATAL, "No time frame number found for output with start time {}", startTime);
             throw std::runtime_error("Processing is stopped!");
           }
 
@@ -487,11 +483,8 @@ DataProcessorSpec
             } else {
               ta2tr.addAllBranches();
             }
-            LOGP(INFO, "<aodwriter> Writing tree {} to {}", treename, file->GetName());
             ta2tr.process();
           }
-        } else {
-          LOGP(INFO, "<aodwriter> Table {} does not need to be saved!", dh->description.str);
         }
       }
     });

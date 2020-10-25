@@ -195,13 +195,11 @@ AlgorithmSpec AODReaderHelpers::rootFileReaderCallback()
     for (auto route : routes) {
       if (DataSpecUtils::partialMatch(route.matcher, header::DataOrigin("TFN"))) {
         auto concrete = DataSpecUtils::asConcreteDataMatcher(route.matcher);
-        LOGP(INFO, "<aodreader> Found TFN in requested outputs");
         TFNumberHeader = header::DataHeader(concrete.description, concrete.origin, concrete.subSpec);
       } else {
         requestedTables.emplace_back(route);
       }
     }
-    LOGP(INFO, "<aodreader> Have {} requested tables.", requestedTables.size());
 
     auto fileCounter = std::make_shared<int>(0);
     auto numTF = std::make_shared<int>(-1);
@@ -244,7 +242,7 @@ AlgorithmSpec AODReaderHelpers::rootFileReaderCallback()
             // check if there is a next file to read
             fcnt += device.maxInputTimeslices;
             if (didir->atEnd(fcnt)) {
-              LOGP(INFO, "<aodreader> No input files left to read for reader {}!", device.inputTimesliceId);
+              LOGP(INFO, "No input files left to read for reader {}!", device.inputTimesliceId);
               didir->closeInputFiles();
               control.endOfStream();
               control.readyToQuit(QuitRequest::Me);
@@ -266,7 +264,6 @@ AlgorithmSpec AODReaderHelpers::rootFileReaderCallback()
           timeFrameNumber = didir->getTimeFrameNumber(dh, fcnt, ntf);
           auto o = Output(TFNumberHeader);
           outputs.make<uint64_t>(o) = timeFrameNumber;
-          LOGP(INFO, "<aodreader> Have time frame {}", timeFrameNumber);
         }
 
         // create table output
