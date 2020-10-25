@@ -22,7 +22,7 @@ void CompressedDigits::clear()
   bcInc.clear();
   orbitInc.clear();
   nChan.clear();
-  //  eventFlags.clear();
+  eventFlags.clear();
 
   idChan.clear();
   qtcChain.clear();

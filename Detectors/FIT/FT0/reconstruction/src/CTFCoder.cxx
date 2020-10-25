@@ -52,6 +52,7 @@ void CTFCoder::compress(CompressedDigits& cd, const gsl::span<const Digit>& digi
   cd.trigger.resize(cd.header.nTriggers);
   cd.bcInc.resize(cd.header.nTriggers);
   cd.orbitInc.resize(cd.header.nTriggers);
+  cd.eventFlags.resize(cd.header.nTriggers);
   cd.nChan.resize(cd.header.nTriggers);
 
   cd.idChan.resize(channelVec.size());
@@ -68,6 +69,7 @@ void CTFCoder::compress(CompressedDigits& cd, const gsl::span<const Digit>& digi
 
     // fill trigger info
     cd.trigger[idig] = digit.getTriggers().triggersignals;
+    cd.eventFlags[idig] = digit.getEventStatusWord();
     if (prevOrbit == digit.getOrbit()) {
       cd.bcInc[idig] = digit.getBC() - prevBC;
       cd.orbitInc[idig] = 0;
@@ -127,7 +129,7 @@ void CTFCoder::createCoders(const std::string& dictPath, o2::ctf::CTFCoderBase::
   MAKECODER(cd.bcInc,     CTF::BLC_bcInc); 
   MAKECODER(cd.orbitInc,  CTF::BLC_orbitInc);
   MAKECODER(cd.nChan,     CTF::BLC_nChan);
-  //  MAKECODER(cd.eventFlags,     CTF::BLC_flags);
+  MAKECODER(cd.eventFlags,  CTF::BLC_flags);
   MAKECODER(cd.idChan,    CTF::BLC_idChan);
   MAKECODER(cd.qtcChain,  CTF::BLC_qtcChain);
   MAKECODER(cd.cfdTime,   CTF::BLC_cfdTime);
@@ -148,7 +150,7 @@ size_t CTFCoder::estimateCompressedSize(const CompressedDigits& cd)
   sz += ESTSIZE(cd.bcInc,     CTF::BLC_bcInc); 
   sz += ESTSIZE(cd.orbitInc,  CTF::BLC_orbitInc);
   sz += ESTSIZE(cd.nChan,     CTF::BLC_nChan);
-  //  sz += ESTSIZE(cd.eventFlags,     CTF::BLC_flags);
+  sz += ESTSIZE(cd.eventFlags,     CTF::BLC_flags);
   sz += ESTSIZE(cd.idChan,    CTF::BLC_idChan);
   sz += ESTSIZE(cd.qtcChain,  CTF::BLC_qtcChain);
   sz += ESTSIZE(cd.cfdTime,   CTF::BLC_cfdTime);
