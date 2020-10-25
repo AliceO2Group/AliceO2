@@ -10,8 +10,7 @@
 
 o2_add_library(MIDWorkflow
                TARGETVARNAME targetName
-               SOURCES src/RecoWorkflow.cxx
-                       src/ClusterizerMCSpec.cxx
+               SOURCES src/ClusterizerMCSpec.cxx
                        src/ClusterizerSpec.cxx
                        src/DigitReaderSpec.cxx
                        src/DigitsToRawWorkflow.cxx
@@ -19,8 +18,6 @@ o2_add_library(MIDWorkflow
                        src/EntropyEncoderSpec.cxx
                        src/RawAggregatorSpec.cxx
                        src/RawDecoderSpec.cxx
-                       src/RecoWorkflow.cxx
-                       src/RecoWorkflowMC.cxx
                        src/RawWriterSpec.cxx
                        src/TrackerMCSpec.cxx
                        src/TrackerSpec.cxx
@@ -39,28 +36,6 @@ o2_add_library(MIDWorkflow
                        O2::MIDSimulation
                        O2::MIDTracking
               )
-
-o2_add_executable(
-  reco-workflow-mc
-  COMPONENT_NAME mid
-  SOURCES src/mid-reco-workflow-mc.cxx
-  TARGETVARNAME exenamerecomc
-  PUBLIC_LINK_LIBRARIES
-    O2::MIDWorkflow)
-
-target_include_directories(
-  ${exenamerecomc} PRIVATE $<BUILD_INTERFACE:${CMAKE_CURRENT_LIST_DIR}/include>)
-
-o2_add_executable(
-  reco-workflow
-  COMPONENT_NAME mid
-  SOURCES src/mid-reco-workflow.cxx
-  TARGETVARNAME exenamereco
-  PUBLIC_LINK_LIBRARIES
-    O2::MIDWorkflow)
-
-target_include_directories(
-  ${exenamereco} PRIVATE $<BUILD_INTERFACE:${CMAKE_CURRENT_LIST_DIR}/include>)
 
 o2_add_executable(
   digits-to-raw-workflow
@@ -93,4 +68,26 @@ o2_add_executable(
 
 target_include_directories(
   ${exanamedigitstoraw}
+  PRIVATE $<BUILD_INTERFACE:${CMAKE_CURRENT_LIST_DIR}/include>)
+
+o2_add_executable(
+  reco-workflow
+  COMPONENT_NAME mid
+  SOURCES src/reco-workflow.cxx
+  TARGETVARNAME exanamereco
+  PUBLIC_LINK_LIBRARIES O2::MIDWorkflow)
+
+target_include_directories(
+  ${exanamereco}
+  PRIVATE $<BUILD_INTERFACE:${CMAKE_CURRENT_LIST_DIR}/include>)
+
+o2_add_executable(
+  digits-reader-workflow
+  COMPONENT_NAME mid
+  SOURCES src/digits-reader-workflow.cxx
+  TARGETVARNAME exanamedigitsreader
+  PUBLIC_LINK_LIBRARIES O2::MIDWorkflow)
+
+target_include_directories(
+  ${exanamedigitsreader}
   PRIVATE $<BUILD_INTERFACE:${CMAKE_CURRENT_LIST_DIR}/include>)

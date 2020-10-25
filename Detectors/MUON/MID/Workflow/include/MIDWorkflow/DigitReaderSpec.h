@@ -22,7 +22,7 @@ namespace o2
 {
 namespace mid
 {
-framework::DataProcessorSpec getDigitReaderSpec(bool useMC);
+framework::DataProcessorSpec getDigitReaderSpec(bool useMC, const char* baseDescription = "DATAMC");
 }
 } // namespace o2
 
