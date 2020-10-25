@@ -15,18 +15,23 @@
 
 #include "MIDWorkflow/DigitReaderSpec.h"
 
-#include "Framework/ControlService.h"
+#include <sstream>
+#include <string>
+#include "fmt/format.h"
+#include "TFile.h"
+#include "TTree.h"
 #include "Framework/ConfigParamRegistry.h"
+#include "Framework/ControlService.h"
+#include "Framework/DataSpecUtils.h"
 #include "Framework/Logger.h"
 #include "Framework/Output.h"
 #include "Framework/Task.h"
+#include "Framework/WorkflowSpec.h"
 #include "SimulationDataFormat/MCTruthContainer.h"
 #include "DataFormatsMID/ColumnData.h"
 #include "DataFormatsMID/ROFRecord.h"
 #include "MIDSimulation/ColumnDataMC.h"
 #include "MIDSimulation/MCLabel.h"
-#include "TFile.h"
-#include "TTree.h"
 
 namespace of = o2::framework;
 
@@ -38,8 +43,7 @@ namespace mid
 class DigitsReaderDeviceDPL
 {
  public:
-  DigitsReaderDeviceDPL(bool useMC = true) : mUseMC(useMC) {}
-
+  DigitsReaderDeviceDPL(bool useMC, const std::vector<header::DataDescription>& descriptions) : mUseMC(useMC), mDescriptions(descriptions) {}
   void init(o2::framework::InitContext& ic)
   {
     auto filename = ic.options().get<std::string>("mid-digit-infile");
@@ -83,11 +87,11 @@ class DigitsReaderDeviceDPL
     }
 
     LOG(DEBUG) << "MIDDigitsReader pushed " << digits.size() << " merged digits";
-    pc.outputs().snapshot(of::Output{"MID", "DATA", 0, of::Lifetime::Timeframe}, digits);
-    pc.outputs().snapshot(of::Output{"MID", "DATAROF", 0, of::Lifetime::Timeframe}, rofRecords);
+    pc.outputs().snapshot(of::Output{header::gDataOriginMID, mDescriptions[0], 0, of::Lifetime::Timeframe}, digits);
+    pc.outputs().snapshot(of::Output{header::gDataOriginMID, mDescriptions[1], 0, of::Lifetime::Timeframe}, rofRecords);
     LOG(DEBUG) << "MIDDigitsReader pushed " << digits.size() << " indexed digits";
     if (mUseMC) {
-      pc.outputs().snapshot(of::Output{"MID", "DATALABELS", 0, of::Lifetime::Timeframe}, mcContainer);
+      pc.outputs().snapshot(of::Output{header::gDataOriginMID, mDescriptions[2], 0, of::Lifetime::Timeframe}, mcContainer);
     }
     mState = 2;
     pc.services().get<of::ControlService>().endOfStream();
@@ -99,26 +103,33 @@ class DigitsReaderDeviceDPL
   std::vector<o2::mid::ColumnDataMC>* mDigits{nullptr};              // not owner
   o2::dataformats::MCTruthContainer<MCLabel>* mMCContainer{nullptr}; // not owner
   std::vector<o2::mid::ROFRecord>* mROFRecords{nullptr};             // not owner
+  std::vector<header::DataDescription> mDescriptions{};
   int mState = 0;
   bool mUseMC = true;
 };
 
-framework::DataProcessorSpec getDigitReaderSpec(bool useMC)
+framework::DataProcessorSpec getDigitReaderSpec(bool useMC, const char* baseDescription)
 {
   std::vector<of::OutputSpec> outputs;
-  outputs.emplace_back("MID", "DATA", o2::framework::Lifetime::Timeframe);
-  outputs.emplace_back("MID", "DATAROF", o2::framework::Lifetime::Timeframe);
+  std::vector<header::DataDescription> descriptions;
+  std::stringstream ss;
+  ss << "A:" << header::gDataOriginMID.as<std::string>() << "/" << baseDescription << "/0";
+  ss << ";B:" << header::gDataOriginMID.as<std::string>() << "/" << baseDescription << "ROF/0";
   if (useMC) {
-    outputs.emplace_back("MID", "DATALABELS", o2::framework::Lifetime::Timeframe);
+    ss << ";C:" << header::gDataOriginMID.as<std::string>() << "/" << baseDescription << "LABELS/0";
+  }
+  auto matchers = of::select(ss.str().c_str());
+  for (auto& matcher : matchers) {
+    outputs.emplace_back(of::DataSpecUtils::asOutputSpec(matcher));
+    descriptions.emplace_back(of::DataSpecUtils::asConcreteDataDescription(matcher));
   }
 
   return of::DataProcessorSpec{
     "MIDDigitsReader",
     of::Inputs{},
     outputs,
-    of::AlgorithmSpec{of::adaptFromTask<o2::mid::DigitsReaderDeviceDPL>(useMC)},
-    of::Options{
-      {"mid-digit-infile", of::VariantType::String, "middigits.root", {"Name of the input file"}}}};
+    of::AlgorithmSpec{of::adaptFromTask<o2::mid::DigitsReaderDeviceDPL>(useMC, descriptions)},
+    of::Options{{"mid-digit-infile", of::VariantType::String, "middigits.root", {"Name of the input file"}}}};
 }
 } // namespace mid
 } // namespace o2
