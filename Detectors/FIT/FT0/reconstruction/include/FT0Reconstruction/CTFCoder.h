@@ -164,7 +164,7 @@ void CTFCoder::decompress(const CompressedDigits& cd, VDIG& digitVec, VCHAN& cha
       const auto& chan = channelVec.emplace_back((chID += cd.idChan[icc]), cd.cfdTime[icc], cd.qtcAmpl[icc], cd.qtcChain[icc]);
       //
       // rebuild digit
-      if (std::abs(chan.CFDTime) < Geometry::mTime_trg_gate) {
+      //  if (std::abs(chan.CFDTime) < Geometry::mTime_trg_gate) {
         if (chan.ChId < 4 * uint8_t(Geometry::NCellsA)) { // A side
           amplA += chan.QTCAmpl;
           timeA += chan.CFDTime;
@@ -175,7 +175,7 @@ void CTFCoder::decompress(const CompressedDigits& cd, VDIG& digitVec, VCHAN& cha
           timeC += chan.CFDTime;
           trig.nChanC++;
         }
-      }
+        // }
     }
     if (trig.nChanA) {
       trig.timeA = timeA / trig.nChanA;
