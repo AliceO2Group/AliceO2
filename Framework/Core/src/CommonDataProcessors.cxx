@@ -399,31 +399,60 @@ DataProcessorSpec
     auto& callbacks = ic.services().get<CallbackService>();
     callbacks.set(CallbackService::Id::EndOfStream, endofdatacb);
 
+    // prepare map<uint64_t, uint64_t>(startTime, TFNumber)
+    std::map<uint64_t, uint64_t> TFNumbers;
+
     // this functor is called once per time frame
-    return std::move([dod](ProcessingContext& pc) mutable -> void {
+    return std::move([dod, TFNumbers](ProcessingContext& pc) mutable -> void {
       LOGP(DEBUG, "======== getGlobalAODSink::processing ==========");
       LOGP(DEBUG, " processing data set with {} entries", pc.inputs().size());
 
       // return immediately if pc.inputs() is empty. This should never happen!
-      auto ninputs = pc.inputs().size();
-      if (ninputs == 0) {
+      if (pc.inputs().size() == 0) {
         LOGP(INFO, "No inputs available!");
         return;
       }
 
+      // update TFNumbers
+      uint64_t startTime = 0;
+      uint64_t TFNumber = 0;
+      auto ref = pc.inputs().get("tfn");
+      if (ref.spec && ref.payload) {
+        startTime = DataRefUtils::getHeader<DataProcessingHeader*>(ref)->startTime;
+        TFNumber = pc.inputs().get<uint64_t>("tfn");
+        LOGP(INFO, "<aodwriter> mapping {} {}", startTime, TFNumber);
+        TFNumbers.insert(std::pair<uint64_t, uint64_t>(startTime, TFNumber));
+      }
+
       // loop over the DataRefs which are contained in pc.inputs()
       for (const auto& ref : pc.inputs()) {
+        if (!ref.spec || !ref.payload) {
+          LOGP(WARNING, "The input \"{}\" is not valid and will be skipped!", ref.spec->binding);
+          continue;
+        }
+        LOGP(INFO, "<aodwriter> ref.spec->binding {}", ref.spec->binding);
+
+        // skip non-AOD refs
+        if (!DataSpecUtils::partialMatch(*ref.spec, header::DataOrigin("AOD"))) {
+          continue;
+        }
+        startTime = DataRefUtils::getHeader<DataProcessingHeader*>(ref)->startTime;
 
         // does this need to be saved?
         auto dh = DataRefUtils::getHeader<header::DataHeader*>(ref);
-        auto dataProcessingHeader = DataRefUtils::getHeader<DataProcessingHeader*>(ref);
-
-        // the startTime contained in the header determines the folder number
-        uint64_t folderNumber = dataProcessingHeader->startTime;
-
-        // get the relevant DataOutputDescriptors
         auto ds = dod->getDataOutputDescriptors(*dh);
+        LOGP(INFO, "<aodwriter> Table {}", dh->description.str);
         if (ds.size() > 0) {
+
+          // get TF number fro startTime
+          auto it = TFNumbers.find(startTime);
+          if (it != TFNumbers.end()) {
+            TFNumber = (it->second / dod->getNumberTimeFramesToMerge()) * dod->getNumberTimeFramesToMerge();
+            LOGP(INFO, "<aodwriter> converting {} to {}", startTime, TFNumber);
+          } else {
+            LOGP(FATAL, "<aodwriter> No time frame number found for output with start time {}", startTime);
+            throw std::runtime_error("Processing is stopped!");
+          }
 
           // get the TableConsumer and corresponding arrow table
           auto s = pc.inputs().get<TableConsumer>(ref.spec->binding);
@@ -440,7 +469,7 @@ DataProcessorSpec
           // e.g. different selections of columns to different files
           for (auto d : ds) {
 
-            auto [file, directory] = dod->getFileFolder(d, folderNumber);
+            auto [file, directory] = dod->getFileFolder(d, TFNumber);
             auto treename = directory + d->treename;
             TableToTree ta2tr(table,
                               file,
@@ -458,8 +487,11 @@ DataProcessorSpec
             } else {
               ta2tr.addAllBranches();
             }
+            LOGP(INFO, "<aodwriter> Writing tree {} to {}", treename, file->GetName());
             ta2tr.process();
           }
+        } else {
+          LOGP(INFO, "<aodwriter> Table {} does not need to be saved!", dh->description.str);
         }
       }
     });

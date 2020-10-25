@@ -187,12 +187,26 @@ AlgorithmSpec AODReaderHelpers::rootFileReaderCallback()
     // get the run time watchdog
     auto* watchdog = new RuntimeWatchdog(options.get<int64_t>("time-limit"));
 
+    // selected the TFN input and
     // create list of requested tables
-    std::vector<OutputRoute> requestedTables(spec.outputs);
+    header::DataHeader TFNumberHeader;
+    std::vector<OutputRoute> requestedTables;
+    std::vector<OutputRoute> routes(spec.outputs);
+    for (auto route : routes) {
+      if (DataSpecUtils::partialMatch(route.matcher, header::DataOrigin("TFN"))) {
+        auto concrete = DataSpecUtils::asConcreteDataMatcher(route.matcher);
+        LOGP(INFO, "<aodreader> Found TFN in requested outputs");
+        TFNumberHeader = header::DataHeader(concrete.description, concrete.origin, concrete.subSpec);
+      } else {
+        requestedTables.emplace_back(route);
+      }
+    }
+    LOGP(INFO, "<aodreader> Have {} requested tables.", requestedTables.size());
 
     auto fileCounter = std::make_shared<int>(0);
     auto numTF = std::make_shared<int>(-1);
-    return adaptStateless([requestedTables,
+    return adaptStateless([TFNumberHeader,
+                           requestedTables,
                            fileCounter,
                            numTF,
                            watchdog,
@@ -210,6 +224,7 @@ AlgorithmSpec AODReaderHelpers::rootFileReaderCallback()
       // Each parallel reader device.inputTimesliceId reads the files fileCounter*device.maxInputTimeslices+device.inputTimesliceId
       // the TF to read is numTF
       assert(device.inputTimesliceId < device.maxInputTimeslices);
+      uint64_t timeFrameNumber = 0;
       int fcnt = (*fileCounter * device.maxInputTimeslices) + device.inputTimesliceId;
       int ntf = *numTF + 1;
 
@@ -218,17 +233,18 @@ AlgorithmSpec AODReaderHelpers::rootFileReaderCallback()
       bool first = true;
       for (auto route : requestedTables) {
 
-        // create a TreeToTable object
+        // create header
         auto concrete = DataSpecUtils::asConcreteDataMatcher(route.matcher);
         auto dh = header::DataHeader(concrete.description, concrete.origin, concrete.subSpec);
 
+        // create a TreeToTable object
         tr = didir->getDataTree(dh, fcnt, ntf);
         if (!tr) {
           if (first) {
             // check if there is a next file to read
             fcnt += device.maxInputTimeslices;
             if (didir->atEnd(fcnt)) {
-              LOGP(INFO, "No input files left to read for reader {}!", device.inputTimesliceId);
+              LOGP(INFO, "<aodreader> No input files left to read for reader {}!", device.inputTimesliceId);
               didir->closeInputFiles();
               control.endOfStream();
               control.readyToQuit(QuitRequest::Me);
@@ -246,8 +262,14 @@ AlgorithmSpec AODReaderHelpers::rootFileReaderCallback()
             throw std::runtime_error("Processing is stopped!");
           }
         }
-        first = false;
+        if (first) {
+          timeFrameNumber = didir->getTimeFrameNumber(dh, fcnt, ntf);
+          auto o = Output(TFNumberHeader);
+          outputs.make<uint64_t>(o) = timeFrameNumber;
+          LOGP(INFO, "<aodreader> Have time frame {}", timeFrameNumber);
+        }
 
+        // create table output
         auto o = Output(dh);
         auto& t2t = outputs.make<TreeToTable>(o);
 
@@ -263,6 +285,7 @@ AlgorithmSpec AODReaderHelpers::rootFileReaderCallback()
 
         // fill the table
         t2t.fill(tr);
+        first = false;
       }
 
       // save file number and time frame

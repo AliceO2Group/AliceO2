@@ -78,18 +78,11 @@ void DataInputDescriptor::addFileNameHolder(FileNameHolder* fn)
   mfilenames.emplace_back(fn);
 }
 
-std::tuple<TFile*, std::string> DataInputDescriptor::getFileFolder(int counter, int numTF)
+bool DataInputDescriptor::setFile(int counter)
 {
-  std::string directoryName("");
-
   // no files left
   if (counter >= getNumberInputfiles()) {
-    return std::make_tuple((TFile*)nullptr, directoryName);
-  }
-
-  // no TF left
-  if (mfilenames[counter]->numberOfTimeFrames > 0 && numTF >= mfilenames[counter]->numberOfTimeFrames) {
-    return std::make_tuple((TFile*)nullptr, directoryName);
+    return false;
   }
 
   // open file
@@ -106,27 +99,63 @@ std::tuple<TFile*, std::string> DataInputDescriptor::getFileFolder(int counter, 
     throw std::runtime_error(fmt::format("Couldn't open file \"{}\"!", filename));
   }
 
-  // get the directory name
+  // get the directory names
   if (mfilenames[counter]->numberOfTimeFrames <= 0) {
     std::regex TFRegex = std::regex("TF_[0-9]+");
     TList* keyList = mcurrentFile->GetListOfKeys();
 
     // extract TF numbers and sort accordingly
-    std::list<uint64_t> folderNumbers;
     for (auto key : *keyList) {
       if (std::regex_match(((TObjString*)key)->GetString().Data(), TFRegex)) {
         auto folderNumber = std::stoul(std::string(((TObjString*)key)->GetString().Data()).substr(3));
-        folderNumbers.emplace_back(folderNumber);
+        mfilenames[counter]->listOfTimeFrameNumbers.emplace_back(folderNumber);
       }
     }
-    folderNumbers.sort();
+    std::sort(mfilenames[counter]->listOfTimeFrameNumbers.begin(), mfilenames[counter]->listOfTimeFrameNumbers.end());
 
-    for (auto folderNumber : folderNumbers) {
+    for (auto folderNumber : mfilenames[counter]->listOfTimeFrameNumbers) {
       auto folderName = "TF_" + std::to_string(folderNumber);
       mfilenames[counter]->listOfTimeFrameKeys.emplace_back(folderName);
     }
     mfilenames[counter]->numberOfTimeFrames = mfilenames[counter]->listOfTimeFrameKeys.size();
   }
+
+  return true;
+}
+
+int64_t DataInputDescriptor::getTimeFrameNumber(int counter, int numTF)
+{
+  int64_t timeFrameNumber = -1;
+
+  // open file
+  if (!setFile(counter)) {
+    return timeFrameNumber;
+  }
+
+  // no TF left
+  if (mfilenames[counter]->numberOfTimeFrames > 0 && numTF >= mfilenames[counter]->numberOfTimeFrames) {
+    return timeFrameNumber;
+  }
+
+  timeFrameNumber = (mfilenames[counter]->listOfTimeFrameNumbers)[numTF];
+
+  return timeFrameNumber;
+}
+
+std::tuple<TFile*, std::string> DataInputDescriptor::getFileFolder(int counter, int numTF)
+{
+  std::string directoryName("");
+
+  // open file
+  if (!setFile(counter)) {
+    return std::make_tuple((TFile*)nullptr, directoryName);
+  }
+
+  // no TF left
+  if (mfilenames[counter]->numberOfTimeFrames > 0 && numTF >= mfilenames[counter]->numberOfTimeFrames) {
+    return std::make_tuple((TFile*)nullptr, directoryName);
+  }
+
   directoryName = (mfilenames[counter]->listOfTimeFrameKeys)[numTF];
 
   return std::make_tuple(mcurrentFile, directoryName);
@@ -493,6 +522,18 @@ std::tuple<TFile*, std::string> DataInputDirector::getFileFolder(header::DataHea
   auto [file, directory] = didesc->getFileFolder(counter, numTF);
 
   return std::make_tuple(file, directory);
+}
+
+int64_t DataInputDirector::getTimeFrameNumber(header::DataHeader dh, int counter, int numTF)
+{
+  auto didesc = getDataInputDescriptor(dh);
+  // if NOT match then use defaultDataInputDescriptor
+  if (!didesc) {
+    didesc = mdefaultDataInputDescriptor;
+  }
+  auto timeFrameNumber = didesc->getTimeFrameNumber(counter, numTF);
+
+  return timeFrameNumber;
 }
 
 TTree* DataInputDirector::getDataTree(header::DataHeader dh, int counter, int numTF)

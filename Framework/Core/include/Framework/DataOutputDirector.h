@@ -72,7 +72,7 @@ struct DataOutputDirector {
 
   // read/write private members
   int getNumberTimeFramesToMerge() { return mnumberTimeFramesToMerge; }
-  void setNumberTimeFramesToMerge(int ntfmerge) { mnumberTimeFramesToMerge = ntfmerge; }
+  void setNumberTimeFramesToMerge(int ntfmerge) { mnumberTimeFramesToMerge = ntfmerge > 0 ? ntfmerge : 1; }
   std::string getFileMode() { return mfileMode; }
   void setFileMode(std::string filemode) { mfileMode = filemode; }
 

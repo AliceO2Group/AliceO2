@@ -27,6 +27,7 @@ using namespace rapidjson;
 struct FileNameHolder {
   std::string fileName;
   int numberOfTimeFrames = 0;
+  std::vector<uint64_t> listOfTimeFrameNumbers;
   std::vector<std::string> listOfTimeFrameKeys;
 };
 FileNameHolder* makeFileNameHolder(std::string fileName);
@@ -55,6 +56,7 @@ struct DataInputDescriptor {
 
   void addFileNameHolder(FileNameHolder* fn);
   int fillInputfiles();
+  bool setFile(int counter);
 
   // getters
   std::string getInputfilesFilename();
@@ -63,6 +65,7 @@ struct DataInputDescriptor {
   int getNumberInputfiles() { return mfilenames.size(); }
   int getNumberTimeFrames() { return mtotalNumberTimeFrames; }
 
+  int64_t getTimeFrameNumber(int counter, int numTF);
   std::tuple<TFile*, std::string> getFileFolder(int counter, int numTF);
 
   void closeInputFile();
@@ -103,10 +106,12 @@ struct DataInputDirector {
 
   // getters
   DataInputDescriptor* getDataInputDescriptor(header::DataHeader dh);
-  std::unique_ptr<TTreeReader> getTreeReader(header::DataHeader dh, int counter, int numTF, std::string treeName);
-  std::tuple<TFile*, std::string> getFileFolder(header::DataHeader dh, int counter, int numTF);
-  TTree* getDataTree(header::DataHeader dh, int counter, int numTF);
   int getNumberInputDescriptors() { return mdataInputDescriptors.size(); }
+
+  std::unique_ptr<TTreeReader> getTreeReader(header::DataHeader dh, int counter, int numTF, std::string treeName);
+  TTree* getDataTree(header::DataHeader dh, int counter, int numTF);
+  int64_t getTimeFrameNumber(header::DataHeader dh, int counter, int numTF);
+  std::tuple<TFile*, std::string> getFileFolder(header::DataHeader dh, int counter, int numTF);
 
  private:
   std::string minputfilesFile;
