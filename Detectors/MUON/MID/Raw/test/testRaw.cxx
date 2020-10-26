@@ -153,14 +153,8 @@ BOOST_AUTO_TEST_CASE(ColumnDataConverter)
     converter.process(item.second);
     auto firstEntry = outData.size();
     for (auto& gbtItem : converter.getData()) {
-      auto crateId = o2::mid::crateparams::getCrateIdFromROId(gbtItem.first);
       for (auto& loc : gbtItem.second) {
-        // The crate ID information is not encoded in the local board information,
-        // since it is not needed at this level (it is encoded in the feeId)
-        // However, when we put the info back together, we need to know the crate ID
-        // So we encode it in the local board ID in the output
         outData.emplace_back(loc);
-        outData.back().boardId = o2::mid::crateparams::makeUniqueLocID(crateId, loc.boardId);
       }
       rofs.push_back({item.first, inEventType, firstEntry, outData.size() - firstEntry});
     }

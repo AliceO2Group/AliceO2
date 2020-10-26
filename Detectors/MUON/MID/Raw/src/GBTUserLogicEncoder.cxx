@@ -72,7 +72,7 @@ void GBTUserLogicEncoder::process(gsl::span<const LocalBoardRO> data, const Inte
   for (auto& loc : data) {
     for (int ich = 0; ich < 4; ++ich) {
       if (loc.patternsBP[ich] && loc.patternsNBP[ich]) {
-        activeBoards |= (1 << (loc.boardId % 8));
+        activeBoards |= (1 << (crateparams::getLocId(loc.boardId) % 8));
       }
     }
     vec.emplace_back(loc);
@@ -90,7 +90,7 @@ void GBTUserLogicEncoder::flush(std::vector<char>& buffer, const InteractionReco
         buffer.emplace_back(loc.statusWord);
         buffer.emplace_back(loc.triggerWord);
         addShort(buffer, item.first.bc);
-        buffer.emplace_back((loc.boardId << 4) | loc.firedChambers);
+        buffer.emplace_back((crateparams::getLocId(loc.boardId) << 4) | loc.firedChambers);
         if (raw::isLoc(loc.statusWord)) {
           for (int ich = 4; ich >= 0; --ich) {
             if (loc.firedChambers & (1 << ich)) {
