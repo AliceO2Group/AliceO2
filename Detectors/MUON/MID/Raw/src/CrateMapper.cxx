@@ -130,7 +130,7 @@ void CrateMapper::init()
   }
 }
 
-uint16_t CrateMapper::deLocalBoardToRO(uint8_t deId, uint8_t columnId, uint8_t lineId) const
+uint8_t CrateMapper::deLocalBoardToRO(uint8_t deId, uint8_t columnId, uint8_t lineId) const
 {
   /// Converts the local board ID in  in MT11 right to the local board ID in FEE
   auto item = mDEToROMap.find(deBoardId(detparams::getRPCLine(deId), columnId, lineId));
