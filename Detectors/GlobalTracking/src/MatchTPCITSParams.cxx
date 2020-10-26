@@ -13,4 +13,4 @@
 /// \author ruben.shahoyan@cern.ch
 
 #include "GlobalTracking/MatchTPCITSParams.h"
-O2ParamImpl(o2::globaltracking::MatchITSTPCParams);
+O2ParamImpl(o2::globaltracking::MatchTPCITSParams);
