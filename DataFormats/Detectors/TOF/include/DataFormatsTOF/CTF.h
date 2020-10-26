@@ -35,7 +35,7 @@ struct CTFHeader {
   uint32_t firstOrbit = 0;    /// 1st orbit of TF
   uint16_t firstBC = 0;       /// 1st BC of TF
 
-  ClassDefNV(CTFHeader, 2);
+  ClassDefNV(CTFHeader, 1);
 };
 
 /// Compressed but not yet entropy-encoded infos

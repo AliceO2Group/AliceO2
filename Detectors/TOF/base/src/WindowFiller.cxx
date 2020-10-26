@@ -107,7 +107,7 @@ void WindowFiller::fillDigitsInStrip(std::vector<Strip>* strips, int channel, in
   (*strips)[istrip].addDigit(channel, tdc, tot, nbc, 0, triggerorbit, triggerbunch);
 }
 //______________________________________________________________________
-void WindowFiller::addCrateHeaderData(ulong orbit, int crate, int32_t bc, uint32_t eventCounter)
+void WindowFiller::addCrateHeaderData(unsigned long orbit, int crate, int32_t bc, uint32_t eventCounter)
 {
   if (orbit < mFirstIR.orbit)
     return;
@@ -144,7 +144,7 @@ void WindowFiller::fillOutputContainer(std::vector<Digit>& digits)
     if (mReadoutWindowData.size() >= mCrateHeaderData.size())
       bc_shift = (mReadoutWindowData.size() % Geo::NWINDOW_IN_ORBIT) * Geo::BC_IN_WINDOW; // insert default value
     else {
-      ulong irow = mReadoutWindowData.size();
+      unsigned long irow = mReadoutWindowData.size();
       for (int icrate = 0; icrate < Geo::kNCrate; icrate++) {
         if (mCrateHeaderData[irow].bc[icrate] == -1) { // crate not read
           continue;
