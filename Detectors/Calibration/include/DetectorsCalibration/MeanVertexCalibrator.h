@@ -86,8 +86,6 @@ class MeanVertexCalibrator final : public o2::calibration::TimeSlotCalibration<o
   MVObject mSMAMVobj;                      // object containing the Simple Moving Average to be put to CCDB
   std::deque<TFType> mTmpMVobjDqTimeStart; // This is the deque of MeanVertex objecs that will be used for the
                                            // simple moving average, start time of used TFs
-  std::deque<TFType> mTmpMVobjDqTimeEnd;   // This is the deque of MeanVertex objecs that will be used for the
-                                           // simple moving average, end time of used TFs
   std::deque<MeanVertexData> mTmpMVdataDq; // This is the vector of Mean Vertex data to be used for the simple
                                            // moving average
   MeanVertexData mSMAdata;                 // This is to do the SMA when we keep the histos

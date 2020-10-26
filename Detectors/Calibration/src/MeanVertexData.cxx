@@ -51,9 +51,12 @@ void MeanVertexData::fill(const gsl::span<const PVertex> data)
     auto y = data[i].getY();
     auto z = data[i].getZ();
     LOG(INFO) << "i = " << i << " --> x = " << x << ", y = " << y << ", z = " << z;
-    uint32_t binx = (x + rangeX) * v2BinX;
-    uint32_t biny = (y + rangeY) * v2BinY;
-    uint32_t binz = (z + rangeZ) * v2BinZ;
+    auto dx = x + rangeX;
+    uint32_t binx = dx < 0 ? 0xffffffff : (x + rangeX) * v2BinX;
+    auto dy = y + rangeY;
+    uint32_t biny = dy < 0 ? 0xffffffff : (y + rangeY) * v2BinY;
+    auto dz = z + rangeZ;
+    uint32_t binz = dz < 0 ? 0xffffffff : (z + rangeZ) * v2BinZ;
     if (binx < nbinsX || biny < nbinsY || binz < nbinsZ) { // accounts also for z<-rangeZ
       histoX[binx]++;
       histoY[biny]++;
