@@ -89,7 +89,7 @@ int TPCClusterDecompressor::decompress(const CompressedClusters* clustersCompres
       float z = param.tpcGeometry.LinearTime2Z(slice, clusterVector.back().getTime());
       if (j == 0) {
         zOffset = z;
-        track.Init(param.tpcGeometry.Row2X(row), y, param.SliceParam[slice].Alpha, clustersCompressed->qPtA[i], param);
+        track.Init(param.tpcGeometry.Row2X(row), y, z - zOffset, param.SliceParam[slice].Alpha, clustersCompressed->qPtA[i], param);
       }
       if (j + 1 < clustersCompressed->nTrackClusters[i] && track.Filter(y, z - zOffset, row)) {
         offset += clustersCompressed->nTrackClusters[i] - j;

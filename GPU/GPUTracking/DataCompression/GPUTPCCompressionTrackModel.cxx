@@ -22,7 +22,7 @@ using namespace GPUCA_NAMESPACE::gpu;
 // encoded with the old version!!!
 
 #ifdef GPUCA_COMPRESSION_TRACK_MODEL_MERGER
-GPUd() void GPUTPCCompressionTrackModel::Init(float x, float y, float alpha, unsigned char qPt, const GPUParam& GPUrestrict() param)
+GPUd() void GPUTPCCompressionTrackModel::Init(float x, float y, float z, float alpha, unsigned char qPt, const GPUParam& GPUrestrict() param)
 {
   mProp.SetMaterialTPC();
   mProp.SetMaxSinPhi(GPUCA_MAX_SIN_PHI);
@@ -33,7 +33,7 @@ GPUd() void GPUTPCCompressionTrackModel::Init(float x, float y, float alpha, uns
   mProp.SetPolynomialField(&param.polynomialField);
   mTrk.X() = x;
   mTrk.Y() = y;
-  mTrk.Z() = 0.f;
+  mTrk.Z() = z;
   mTrk.SinPhi() = 0;
   mTrk.DzDs() = 0;
   mTrk.QPt() = (qPt - 127.f) * (20.f / 127.f);
@@ -70,12 +70,12 @@ GPUd() int GPUTPCCompressionTrackModel::Mirror()
 #include "GPUTPCTrackLinearisation.h"
 #include "GPUTPCTracker.h"
 
-GPUd() void GPUTPCCompressionTrackModel::Init(float x, float y, float alpha, unsigned char qPt, const GPUParam& GPUrestrict() param)
+GPUd() void GPUTPCCompressionTrackModel::Init(float x, float y, float z, float alpha, unsigned char qPt, const GPUParam& GPUrestrict() param)
 {
   mTrk.InitParam();
   mTrk.SetX(x);
   mTrk.SetY(y);
-  mTrk.SetZ(0.f);
+  mTrk.SetZ(z);
   mTrk.SetSinPhi(0);
   mTrk.SetDzDs(0);
   mTrk.SetQPt((qPt - 127.f) * (20.f / 127.f));
@@ -112,7 +112,7 @@ GPUd() int GPUTPCCompressionTrackModel::Mirror()
 
 #else // Default internal track model for compression
 
-GPUd() void GPUTPCCompressionTrackModel::Init(float x, float y, float alpha, unsigned char qPt, const GPUParam& GPUrestrict() param)
+GPUd() void GPUTPCCompressionTrackModel::Init(float x, float y, float z, float alpha, unsigned char qPt, const GPUParam& GPUrestrict() param)
 {
   // initialize track model
   mX = x;
@@ -120,7 +120,7 @@ GPUd() void GPUTPCCompressionTrackModel::Init(float x, float y, float alpha, uns
   mCosAlpha = CAMath::Cos(alpha);
   mSinAlpha = CAMath::Sin(alpha);
   mP[0] = y;
-  mP[1] = 0.f;
+  mP[1] = z;
   mP[2] = 0.f;
   mP[3] = 0.f;
   mP[4] = (qPt - 127.f) * (20.f / 127.f);
@@ -134,7 +134,7 @@ GPUd() void GPUTPCCompressionTrackModel::Init(float x, float y, float alpha, uns
   }
   mTrk.x = x;
   mTrk.y = y;
-  mTrk.z = 0.f;
+  mTrk.z = z;
   mTrk.q = (mP[4] >= 0) ? 1.f : -1.f;
   mTrk.pt = 1.f / pti;
   mTrk.p = mTrk.pt;
@@ -148,10 +148,10 @@ GPUd() void GPUTPCCompressionTrackModel::Init(float x, float y, float alpha, uns
 GPUd() int GPUTPCCompressionTrackModel::Propagate(float x, float alpha)
 {
   // constrain sin(phi)
-  if (mP[2] > GPUCA_MAX_SIN_PHI) {
-    mP[2] = GPUCA_MAX_SIN_PHI;
-  } else if (mP[2] < -GPUCA_MAX_SIN_PHI) {
-    mP[2] = -GPUCA_MAX_SIN_PHI;
+  if (mP[2] > MaxSinPhi) {
+    mP[2] = MaxSinPhi;
+  } else if (mP[2] < -MaxSinPhi) {
+    mP[2] = -MaxSinPhi;
   }
   // propagate track parameters to specified x
   if (CAMath::Abs(alpha - mAlpha) > 1.e-4) {
@@ -176,7 +176,7 @@ GPUd() int GPUTPCCompressionTrackModel::Propagate(float x, float alpha)
     return 1;
   }
   updatePhysicalTrackValues(t0e);
-  if (CAMath::Abs(t0e.sinphi) >= GPUCA_MAX_SIN_PHI) {
+  if (CAMath::Abs(t0e.sinphi) >= MaxSinPhi) {
     return -3;
   }
   return followLinearization(t0e, Bz, dLp);
@@ -199,10 +199,10 @@ GPUd() int GPUTPCCompressionTrackModel::Filter(float y, float z, int iRow)
   }
   //propably not needed, definitely not needed for the first measurement
   // constrain sin(phi)
-  if (mP[2] > GPUCA_MAX_SIN_PHI) {
-    mP[2] = GPUCA_MAX_SIN_PHI;
-  } else if (mP[2] < -GPUCA_MAX_SIN_PHI) {
-    mP[2] = -GPUCA_MAX_SIN_PHI;
+  if (mP[2] > MaxSinPhi) {
+    mP[2] = MaxSinPhi;
+  } else if (mP[2] < -MaxSinPhi) {
+    mP[2] = -MaxSinPhi;
   }
 
   const float d00 = mC[0], d01 = mC[1], d02 = mC[3], d03 = mC[6], d04 = mC[10];
@@ -443,7 +443,7 @@ GPUd() int GPUTPCCompressionTrackModel::rotateToAlpha(float newAlpha)
   float px0 = mTrk.px;
   float py0 = mTrk.py;
 
-  if (CAMath::Abs(mP[2]) >= GPUCA_MAX_SIN_PHI || CAMath::Abs(px0) < (1 - GPUCA_MAX_SIN_PHI)) {
+  if (CAMath::Abs(mP[2]) >= MaxSinPhi || CAMath::Abs(px0) < (1 - MaxSinPhi)) {
     return -1;
   }
 
@@ -459,7 +459,7 @@ GPUd() int GPUTPCCompressionTrackModel::rotateToAlpha(float newAlpha)
     updatePhysicalTrackValues(t0);
   }
 
-  if (CAMath::Abs(py1) > GPUCA_MAX_SIN_PHI * mTrk.pt || CAMath::Abs(px1) < (1 - GPUCA_MAX_SIN_PHI)) {
+  if (CAMath::Abs(py1) > MaxSinPhi * mTrk.pt || CAMath::Abs(px1) < (1 - MaxSinPhi)) {
     return -1;
   }
 
@@ -474,7 +474,7 @@ GPUd() int GPUTPCCompressionTrackModel::rotateToAlpha(float newAlpha)
     return -1;
   }
 
-  if (CAMath::Abs(t0.sinphi) >= GPUCA_MAX_SIN_PHI) {
+  if (CAMath::Abs(t0.sinphi) >= MaxSinPhi) {
     return -1;
   }
 
@@ -629,8 +629,8 @@ GPUd() int GPUTPCCompressionTrackModel::propagateToXBxByBz(PhysicalTrackModel& t
 
   // transport in rotated coordinate system to X''=xe:
 
-  if (t.px < (1.f - GPUCA_MAX_SIN_PHI)) {
-    t.px = 1.f - GPUCA_MAX_SIN_PHI;
+  if (t.px < (1.f - MaxSinPhi)) {
+    t.px = 1.f - MaxSinPhi;
   }
   if (propagateToXBzLightNoUpdate(t, xe, bb, dLp) != 0) {
     return -1;
@@ -652,8 +652,8 @@ GPUd() int GPUTPCCompressionTrackModel::propagateToXBxByBz(PhysicalTrackModel& t
   // a small (hopefully) additional step to X=x. Perhaps it may be replaced by linear extrapolation.
 
   float ddLp = 0;
-  if (t.px < (1.f - GPUCA_MAX_SIN_PHI)) {
-    t.px = 1.f - GPUCA_MAX_SIN_PHI;
+  if (t.px < (1.f - MaxSinPhi)) {
+    t.px = 1.f - MaxSinPhi;
   }
   if (propagateToXBzLightNoUpdate(t, x, Bz, ddLp) != 0) {
     return -1;
@@ -680,7 +680,7 @@ GPUd() int GPUTPCCompressionTrackModel::propagateToXBzLightNoUpdate(PhysicalTrac
   float pye = t.py - dx * b; // extrapolated py
   float pxe2 = pt2 - pye * pye;
 
-  if (t.px < (1.f - GPUCA_MAX_SIN_PHI) || pxe2 < (1.f - GPUCA_MAX_SIN_PHI) * (1.f - GPUCA_MAX_SIN_PHI)) {
+  if (t.px < (1.f - MaxSinPhi) || pxe2 < (1.f - MaxSinPhi) * (1.f - MaxSinPhi)) {
     return -1; // can not transport to x=x
   }
   float pxe = CAMath::Sqrt(pxe2); // extrapolated px
@@ -776,7 +776,7 @@ GPUd() int GPUTPCCompressionTrackModel::followLinearization(const PhysicalTrackM
   float d4 = p[4] - mTrk.qpt;
 
   float newSinPhi = ey1 + d2 + j24 * d4;
-  if (mNDF >= 15 && CAMath::Abs(newSinPhi) > GPUCA_MAX_SIN_PHI) {
+  if (mNDF >= 15 && CAMath::Abs(newSinPhi) > MaxSinPhi) {
     return -4;
   }
 

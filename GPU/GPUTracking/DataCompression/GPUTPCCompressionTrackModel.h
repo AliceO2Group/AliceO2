@@ -39,10 +39,12 @@ namespace GPUCA_NAMESPACE::gpu
 
 struct GPUParam;
 
+constexpr float MaxSinPhi = 0.999f;
+
 class GPUTPCCompressionTrackModel
 {
  public:
-  GPUd() void Init(float x, float y, float alpha, unsigned char qPt, const GPUParam& proc);
+  GPUd() void Init(float x, float y, float z, float alpha, unsigned char qPt, const GPUParam& proc);
   GPUd() int Propagate(float x, float alpha);
   GPUd() int Filter(float y, float z, int iRow);
   GPUd() int Mirror();
