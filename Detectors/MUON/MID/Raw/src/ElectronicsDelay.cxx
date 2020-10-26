@@ -8,7 +8,7 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-/// \file   MIDRaw/ElectronicsDelay.cxx
+/// \file   MID/Raw/src/ElectronicsDelay.cxx
 /// \brief  Delay parameters for MID electronics
 /// \author Diego Stocco <Diego.Stocco at cern.ch>
 /// \date   27 July 2020
