@@ -36,14 +36,14 @@ class CrateMapper
   static uint8_t getColumnId(uint16_t deBoardId) { return (deBoardId >> 4) & 0x7; }
   /// Gets the line ID from the DE board ID
   static uint8_t getLineId(uint16_t deBoardId) { return (deBoardId >> 7) & 0x3; }
-  uint16_t deLocalBoardToRO(uint8_t deId, uint8_t columnId, uint8_t lineId) const;
+  uint8_t deLocalBoardToRO(uint8_t deId, uint8_t columnId, uint8_t lineId) const;
 
   uint16_t roLocalBoardToDE(uint8_t crateId, uint8_t boardId) const;
 
  private:
   void init();
-  std::unordered_map<uint16_t, uint16_t> mROToDEMap; /// Correspondence between RO and DE board
-  std::unordered_map<uint16_t, uint16_t> mDEToROMap; /// Correspondence between DE and RO board
+  std::unordered_map<uint8_t, uint16_t> mROToDEMap; /// Correspondence between RO and DE board
+  std::unordered_map<uint16_t, uint8_t> mDEToROMap; /// Correspondence between DE and RO board
 };
 } // namespace mid
 } // namespace o2
