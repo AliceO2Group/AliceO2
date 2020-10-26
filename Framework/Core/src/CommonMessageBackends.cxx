@@ -85,6 +85,41 @@ struct CommonMessageBackendsHelpers {
 };
 } // namespace
 
+struct RateLimitConfig {
+  int64_t maxMemory = 0;
+};
+
+static int64_t memLimit = 0;
+
+/// Service for common handling of rate limiting
+o2::framework::ServiceSpec CommonMessageBackends::rateLimitingSpec()
+{
+  return ServiceSpec{"aod-rate-limiting",
+                     [](ServiceRegistry& services, DeviceState&, fair::mq::ProgOptions& options) {
+                       return ServiceHandle{TypeIdHelpers::uniqueId<RateLimitConfig>(), new RateLimitConfig{}};
+                     },
+                     nullptr,
+                     nullptr,
+                     nullptr,
+                     nullptr,
+                     nullptr,
+                     nullptr,
+                     nullptr,
+                     nullptr,
+                     nullptr,
+                     nullptr,
+                     [](ServiceRegistry& registry, boost::program_options::variables_map const& vm) {
+                       if (!vm["aod-memory-rate-limit"].defaulted()) {
+                         memLimit = std::stoll(vm["aod-memory-rate-limit"].as<std::string const>());
+                         // registry.registerService(ServiceRegistryHelpers::handleForService<RateLimitConfig>(new RateLimitConfig{memLimit}));
+                       }
+                     },
+                     nullptr,
+                     nullptr,
+                     nullptr,
+                     ServiceKind::Serial};
+}
+
 o2::framework::ServiceSpec CommonMessageBackends::arrowBackendSpec()
 {
   using o2::monitoring::Metric;
@@ -170,26 +205,27 @@ o2::framework::ServiceSpec CommonMessageBackends::arrowBackendSpec()
                          totalMessagesDestroyedMetric(driverMetrics, totalMessagesDestroyed, timestamp);
                          totalBytesDeltaMetric(driverMetrics, totalBytesCreated - totalBytesDestroyed, timestamp);
                        }
-                       // Only when the metric stabilises...
-                       if (changed) {
-                         /// Trigger next timeframe only when we have more than 1GB in memory available.
-                         if (totalBytesCreated <= (totalBytesDestroyed + 100000000)) {
-                           for (size_t di = 0; di < specs.size(); ++di) {
-                             if (specs[di].name == "internal-dpl-aod-reader") {
-                               if (di < infos.size()) {
-                                 kill(infos[di].pid, SIGUSR1);
-                                 totalSignalsMetric(driverMetrics, 1, timestamp);
+                       if (memLimit) {
+                         if (changed) {
+                           /// Trigger next timeframe only when we have more than 1GB in memory available.
+                           if (totalBytesCreated <= (totalBytesDestroyed + memLimit)) {
+                             for (size_t di = 0; di < specs.size(); ++di) {
+                               if (specs[di].name == "internal-dpl-aod-reader") {
+                                 if (di < infos.size()) {
+                                   kill(infos[di].pid, SIGUSR1);
+                                   totalSignalsMetric(driverMetrics, 1, timestamp);
+                                 }
                                }
                              }
                            }
-                         }
-                       } else if (wasChanged == changed) {
-                         if (totalBytesCreated < totalBytesDestroyed) {
-                           for (size_t di = 0; di < specs.size(); ++di) {
-                             if (specs[di].name == "internal-dpl-aod-reader") {
-                               if (di < infos.size()) {
-                                 kill(infos[di].pid, SIGUSR1);
-                                 totalSignalsMetric(driverMetrics, 1, timestamp);
+                         } else if (wasChanged == changed) {
+                           if (totalBytesCreated < totalBytesDestroyed) {
+                             for (size_t di = 0; di < specs.size(); ++di) {
+                               if (specs[di].name == "internal-dpl-aod-reader") {
+                                 if (di < infos.size()) {
+                                   kill(infos[di].pid, SIGUSR1);
+                                   totalSignalsMetric(driverMetrics, 1, timestamp);
+                                 }
                                }
                              }
                            }
