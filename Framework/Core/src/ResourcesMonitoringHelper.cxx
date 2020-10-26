@@ -13,10 +13,13 @@
 #include <fstream>
 #include <string_view>
 #include <algorithm>
+#include <cassert>
 
 using namespace o2::framework;
 
-bool ResourcesMonitoringHelper::dumpMetricsToJSON(const std::vector<DeviceMetricsInfo>& metrics, const std::vector<DeviceSpec>& specs) noexcept
+bool ResourcesMonitoringHelper::dumpMetricsToJSON(const std::vector<DeviceMetricsInfo>& metrics,
+                                                  const std::vector<DeviceSpec>& specs,
+                                                  std::vector<std::string> const& performanceMetrics) noexcept
 {
 
   assert(metrics.size() == specs.size());
@@ -24,8 +27,6 @@ bool ResourcesMonitoringHelper::dumpMetricsToJSON(const std::vector<DeviceMetric
   if (metrics.empty()) {
     return false;
   }
-
-  std::vector<std::string> performanceMetrics = monitoring::ProcessMonitor::getAvailableMetricsNames();
 
   boost::property_tree::ptree root;
   for (unsigned int idx = 0; idx < metrics.size(); ++idx) {

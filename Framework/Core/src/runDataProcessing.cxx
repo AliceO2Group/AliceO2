@@ -1264,7 +1264,9 @@ int runStateMachine(DataProcessorSpecs const& workflow,
       case DriverState::EXIT: {
         if (ResourcesMonitoringHelper::isResourcesMonitoringEnabled(driverInfo.resourcesMonitoringInterval)) {
           LOG(INFO) << "Dumping performance metrics to performanceMetrics.json file";
-          ResourcesMonitoringHelper::dumpMetricsToJSON(metricsInfos, deviceSpecs);
+          auto performanceMetrics = o2::monitoring::ProcessMonitor::getAvailableMetricsNames();
+          performanceMetrics.push_back("arrow-bytes-delta");
+          ResourcesMonitoringHelper::dumpMetricsToJSON(metricsInfos, deviceSpecs, performanceMetrics);
         }
         // This is a clean exit. Before we do so, if required,
         // we dump the configuration of all the devices so that
