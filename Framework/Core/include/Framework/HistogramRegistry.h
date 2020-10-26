@@ -364,7 +364,7 @@ struct HistFiller {
       if (hist->GetNdimensions() != nDim) {
         LOGF(FATAL, "The number of arguments in fill function called for histogram %s is incompatible with histogram dimensions.", hist->GetName());
       }
-      double tempArray[sizeof...(Ts)] = {static_cast<double>(positionAndWeight)...};
+      double tempArray[] = {static_cast<double>(positionAndWeight)...};
       if constexpr (useWeight)
         hist->Fill(tempArray, tempArray[sizeof...(Ts) - 1]);
       else
@@ -420,27 +420,29 @@ class HistogramRegistry
   // store a copy of an existing histogram (or group of histograms) under a different name
   void addClone(const std::string& source_, const std::string& target_)
   {
-    // search for histograms starting with source_ substring
-    for (auto& histVariant : mRegistryValue) {
-      std::visit([&](const auto& sharedPtr) {
-        if (!sharedPtr.get())
+    auto doInsertClone = [&](const auto& sharedPtr) {
+      if (!sharedPtr.get()) {
+        return;
+      }
+      std::string sourceName{((TNamed*)sharedPtr.get())->GetName()};
+      // search for histograms starting with source_ substring
+      if (sourceName.rfind(source_, 0) == 0) {
+        // when cloning groups of histograms source_ and target_ must end with "/"
+        if (sourceName.size() != source_.size() && (source_.back() != '/' || target_.back() != '/')) {
           return;
-        std::string sourceName{((TNamed*)sharedPtr.get())->GetName()};
-        if (sourceName.rfind(source_, 0) == 0) {
-          // when cloning groups of histograms source_ and target_ must end with "/"
-          if (sourceName.size() != source_.size() && (source_.back() != '/' || target_.back() != '/')) {
-            return;
-          }
-          // when cloning a single histogram the specified target_ must not be a group name
-          if (sourceName.size() == source_.size() && target_.back() == '/') {
-            LOGF(FATAL, "Cannot turn histogram into folder!");
-          }
-          std::string targetName{target_};
-          targetName += sourceName.substr(sourceName.find(source_) + source_.size());
-          insertClone(targetName.data(), sharedPtr);
         }
-      },
-                 histVariant);
+        // when cloning a single histogram the specified target_ must not be a group name
+        if (sourceName.size() == source_.size() && target_.back() == '/') {
+          LOGF(FATAL, "Cannot turn histogram into folder!");
+        }
+        std::string targetName{target_};
+        targetName += sourceName.substr(sourceName.find(source_) + source_.size());
+        insertClone(targetName.data(), sharedPtr);
+      }
+    };
+
+    for (auto& histVariant : mRegistryValue) {
+      std::visit(doInsertClone, histVariant);
     }
   }
 
@@ -489,6 +491,7 @@ class HistogramRegistry
   {
     return OutputRef{std::string{mName}, 0, o2::header::Stack{OutputObjHeader{mPolicy, mTaskHash}}};
   }
+
   void setHash(uint32_t hash)
   {
     mTaskHash = hash;
@@ -517,22 +520,27 @@ class HistogramRegistry
     }
 
     // sort histograms in output file alphabetically
-    // TODO: in cases where histograms and directories reside in same level, we could put directories always on top
     if (mSortHistos) {
-      std::function<void(TList*)> sortSubLists;
-      sortSubLists = [&](TList* list) {
+      std::function<void(TList*)> sortList;
+      sortList = [&](TList* list) {
+        list->Sort();
         TIter next(list);
-        TNamed* object = nullptr;
-        while ((object = (TNamed*)next())) {
-          if (object->InheritsFrom(TList::Class())) {
-            TList* subList = (TList*)object;
-            subList->Sort();
-            sortSubLists(subList);
+        TNamed* subList = nullptr;
+        std::vector<TObject*> subLists;
+        while ((subList = (TNamed*)next())) {
+          if (subList->InheritsFrom(TList::Class())) {
+            subLists.push_back(subList);
+            sortList((TList*)subList);
           }
         }
+        // place lists always at the top
+        std::reverse(subLists.begin(), subLists.end());
+        for (auto curList : subLists) {
+          list->Remove(curList);
+          list->AddFirst(curList);
+        }
       };
-      list->Sort();
-      sortSubLists(list);
+      sortList(list);
     }
 
     // create dedicated directory containing all of the registrys histograms
@@ -559,7 +567,7 @@ class HistogramRegistry
         return;
       }
     }
-    LOGF(FATAL, "No histogram called %s found in HistogramRegistry!", name);
+    LOGF(FATAL, "No histogram called %s found in HistogramRegistry %s!", name, mName);
   }
 
   template <typename... Ts>
@@ -574,6 +582,7 @@ class HistogramRegistry
   {
     fillTable<false, Cs...>(name, table, filter);
   }
+
   template <typename... Cs, typename T>
   void fillWeight(char const* const name, const T& table, const o2::framework::expressions::Filter& filter)
   {
@@ -596,7 +605,7 @@ class HistogramRegistry
         return;
       }
     }
-    LOGF(FATAL, "No histogram called %s found in HistogramRegistry!", name);
+    LOGF(FATAL, "No histogram called %s found in HistogramRegistry %s!", name, mName);
   }
 
   /// lookup distance counter for benchmarking
@@ -606,7 +615,7 @@ class HistogramRegistry
   // create histogram from specification and insert it into the registry
   void insert(const HistogramSpec& histSpec)
   {
-    uint32_t i = imask(histSpec.id);
+    const uint32_t i = imask(histSpec.id);
     for (auto j = 0u; j < MAX_REGISTRY_SIZE; ++j) {
       TObject* rawPtr = nullptr;
       std::visit([&](const auto& sharedPtr) { rawPtr = sharedPtr.get(); }, mRegistryValue[imask(j + i)]);
@@ -625,7 +634,7 @@ class HistogramRegistry
   void insertClone(const char* name, const std::shared_ptr<T>& originalHist)
   {
     const uint32_t id = compile_time_hash(name);
-    uint32_t i = imask(id);
+    const uint32_t i = imask(id);
     for (auto j = 0u; j < MAX_REGISTRY_SIZE; ++j) {
       TObject* rawPtr = nullptr;
       std::visit([&](const auto& sharedPtr) { rawPtr = sharedPtr.get(); }, mRegistryValue[imask(j + i)]);
