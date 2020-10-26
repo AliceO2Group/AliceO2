@@ -24,7 +24,7 @@
 // #include <utility>
 // #include <cstring>
 
-/// \file BCData.h
+/// \file RawEventData.h
 /// \brief Container of ZDC raw data
 /// \author pietro.cortese@cern.ch
 
