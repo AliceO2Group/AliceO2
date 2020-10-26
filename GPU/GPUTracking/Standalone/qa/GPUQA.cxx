@@ -66,8 +66,8 @@ using namespace GPUCA_NAMESPACE::gpu;
 #ifdef GPUCA_MERGER_BY_MC_LABEL
 #define CHECK_CLUSTER_STATE_INIT_LEG_BY_MC()           \
   if (!unattached && mTrackMCLabels[id].isValid()) {   \
-    int mcLabel = mTrackMCLabels[id].getTrackID());    \
-    if (mTrackMCLabelsReverse[mcLabel] != id) {        \
+    int mcLabel = mTrackMCLabels[id].getTrackID();     \
+    if (mTrackMCLabelsReverse[0][mcLabel] != id) {     \
       attach &= (~gputpcgmmergertypes::attachGoodLeg); \
     }                                                  \
   }
