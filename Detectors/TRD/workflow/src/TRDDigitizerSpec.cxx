@@ -79,44 +79,61 @@ class TRDDPLDigitizerTask : public o2::base::BaseDPLDigitizer
     std::vector<o2::trd::Digit> digits;                         // digits which get filled
     o2::dataformats::MCTruthContainer<o2::trd::MCLabel> labels; // labels which get filled
 
+    o2::InteractionTimeRecord currentTime; // the current time
+    o2::InteractionTimeRecord triggerTime; // the time at which the TRD start reading out a signal
+    bool firstEvent = true;                // Flag for the first event processed
+
     TStopwatch timer;
     timer.Start();
-
     // loop over all composite collisions given from context
     // (aka loop over all the interaction records)
     for (int collID = 0; collID < irecords.size(); ++collID) {
-      mDigitizer.setEventTime(irecords[collID].getTimeNS());
+      currentTime = irecords[collID];
+      // Trigger logic implemented here
+      if (firstEvent) {
+        triggerTime = currentTime;
+        firstEvent = false;
+      } else {
+        double dT = currentTime.getTimeNS() - triggerTime.getTimeNS();
+        if (dT < o2::trd::Digitizer::BUSY_TIME) {
+          // BUSY_TIME = READOUT_TIME + DEAD_TIME, if less than that, pile up the signals and update the last time
+          mDigitizer.pileup();
+        } else {
+          // A new signal can be received, and the detector read it out:
+          // flush previous stored digits, labels and keep a trigger record
+          // then update the trigger time to the new one
+          mDigitizer.flush(digits, labels);
+          assert(digits.size() == labels.getIndexedSize());
+          // Add trigger record, and send digits to the accumulator
+          triggers.emplace_back(triggerTime, digitsAccum.size(), digits.size());
+          std::copy(digits.begin(), digits.end(), std::back_inserter(digitsAccum));
+          if (mctruth) {
+            labelsAccum.mergeAtBack(labels);
+          }
+          triggerTime = currentTime;
+          digits.clear();
+          labels.clear();
+        }
+      }
+
+      mDigitizer.setEventTime(triggerTime.getTimeNS()); // do we need this?
 
       // for each collision, loop over the constituents event and source IDs
       // (background signal merging is basically taking place here)
       for (auto& part : eventParts[collID]) {
         mDigitizer.setEventID(part.entryID);
         mDigitizer.setSrcID(part.sourceID);
-
-        // get the hits for this event and this source
+        // get the hits for this event and this source and process them
         std::vector<o2::trd::HitType> hits;
         context->retrieveHits(mSimChains, "TRDHit", part.sourceID, part.entryID, &hits);
-        LOG(INFO) << "For collision " << collID << " eventID " << part.entryID << " found TRD " << hits.size() << " hits ";
-
         mDigitizer.process(hits, digits, labels);
-        assert(digits.size() == labels.getIndexedSize());
-
-        // Add trigger record
-        triggers.emplace_back(irecords[collID], digitsAccum.size(), digits.size());
-
-        std::copy(digits.begin(), digits.end(), std::back_inserter(digitsAccum));
-        if (mctruth) {
-          labelsAccum.mergeAtBack(labels);
-        }
-        digits.clear();
-        labels.clear();
       }
     }
+
     // Force flush of the digits that remain in the digitizer cache
     mDigitizer.flush(digits, labels);
     assert(digits.size() == labels.getIndexedSize());
-
-    triggers.emplace_back(irecords[irecords.size() - 1], digitsAccum.size(), digits.size());
+    triggers.emplace_back(triggerTime, digitsAccum.size(), digits.size());
     std::copy(digits.begin(), digits.end(), std::back_inserter(digitsAccum));
     if (mctruth) {
       labelsAccum.mergeAtBack(labels);
@@ -146,7 +163,7 @@ class TRDDPLDigitizerTask : public o2::base::BaseDPLDigitizer
   std::vector<TChain*> mSimChains;
   // RS: at the moment using hardcoded flag for continuos readout
   o2::parameters::GRPObject::ROMode mROMode = o2::parameters::GRPObject::PRESENT; // readout mode
-};
+};                                                                                // namespace trd
 
 o2::framework::DataProcessorSpec getTRDDigitizerSpec(int channel, bool mctruth)
 {
@@ -173,5 +190,5 @@ o2::framework::DataProcessorSpec getTRDDigitizerSpec(int channel, bool mctruth)
     Options{}};
 }
 
-} // end namespace trd
+} // namespace trd
 } // end namespace o2

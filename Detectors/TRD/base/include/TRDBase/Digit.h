@@ -15,6 +15,7 @@
 #include <vector>
 #include <array>
 #include <unordered_map>
+#include <numeric>
 #include "Rtypes.h" // for ClassDef
 
 #include "CommonDataFormat/TimeStamp.h"
@@ -52,6 +53,7 @@ class Digit : public TimeStamp
   int getRow() const { return mRow; }
   int getPad() const { return mPad; }
   ArrayADC const& getADC() const { return mADC; }
+  ADC_t getADCsum() const { return std::accumulate(mADC.begin(), mADC.end(), (ADC_t)0); }
 
  private:
   std::uint16_t mDetector{0}; // TRD detector number, 0-539

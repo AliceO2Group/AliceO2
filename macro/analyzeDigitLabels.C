@@ -79,14 +79,16 @@ void analyse(TTree* tr, const char* brname, Accumulator& prop)
     return;
   }
   auto entries = br->GetEntries();
-  o2::dataformats::MCTruthContainer<LabelType>* labels = nullptr;
-  br->SetAddress(&labels);
+  o2::dataformats::IOMCTruthContainerView* io2 = nullptr;
+  br->SetAddress(&io2);
 
   for (int i = 0; i < entries; ++i) {
     br->GetEntry(i);
+    o2::dataformats::ConstMCTruthContainer<LabelType> labels;
+    io2->copyandflatten(labels);
 
-    for (int i = 0; i < (int)labels->getIndexedSize(); ++i) {
-      prop.addLabels(labels->getLabels(i));
+    for (int i = 0; i < (int)labels.getIndexedSize(); ++i) {
+      prop.addLabels(labels.getLabels(i));
     }
   }
 };

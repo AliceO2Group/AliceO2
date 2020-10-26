@@ -188,41 +188,12 @@ void Digitizer::clearContainers()
   }
 }
 
-int Digitizer::triggerEventProcessing(DigitContainer& digits, o2::dataformats::MCTruthContainer<MCLabel>& labels)
-{
-  if (mCurrentTriggerTime < 0 && mLastTime < 0) {
-    // very first event
-    mCurrentTriggerTime = mTime;
-    mLastTime = mTime;
-    return EventType::kFirstEvent;
-  }
-  if (mTime > mLastTime) {
-    if ((mTime - mCurrentTriggerTime) < BUSY_TIME) {
-      // send the signal containers to the pileup container, and do not change the current trigger time.
-      pileup();
-      mLastTime = mTime;
-      return EventType::kPileupEvent;
-    } else {
-      // flush the digits: signals from the pileup container are converted to adcs
-      // digits and labels are produced, and the current trigger time is changed after the flush is completed
-      flush(digits, labels);
-      mCurrentTriggerTime = mTime;
-      mLastTime = mTime;
-      return EventType::kTriggerFired;
-    }
-  } else {
-    return EventType::kEmbeddingEvent;
-  }
-}
-
 void Digitizer::process(std::vector<HitType> const& hits, DigitContainer& digits,
                         o2::dataformats::MCTruthContainer<MCLabel>& labels)
 {
   if (!mCalib) {
     LOG(FATAL) << "TRD Calibration database not available";
   }
-
-  int status = triggerEventProcessing(digits, labels);
 
   // Get the a hit container for all the hits in a given detector then call convertHits for a given detector (0 - 539)
   std::array<std::vector<HitType>, MAXCHAMBER> hitsPerDetector;

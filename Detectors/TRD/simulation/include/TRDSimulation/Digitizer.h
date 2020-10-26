@@ -59,6 +59,7 @@ class Digitizer
 
   void process(std::vector<HitType> const&, DigitContainer&, o2::dataformats::MCTruthContainer<MCLabel>&);
   void flush(DigitContainer&, o2::dataformats::MCTruthContainer<MCLabel>&);
+  void pileup();
   void setEventTime(double timeNS) { mTime = timeNS; }
   void setEventID(int entryID) { mEventID = entryID; }
   void setSrcID(int sourceID) { mSrcID = sourceID; }
@@ -66,6 +67,11 @@ class Digitizer
   int getEventTime() const { return mTime; }
   int getEventID() const { return mEventID; }
   int getSrcID() const { return mSrcID; }
+
+  // Trigger parameters
+  static constexpr double READOUT_TIME = 3000;                  // the time the readout takes, as 30 TB = 3 micro-s.
+  static constexpr double DEAD_TIME = 200;                      // trigger deadtime, 2 micro-s
+  static constexpr double BUSY_TIME = READOUT_TIME + DEAD_TIME; // the time for which no new trigger can be received in nanoseconds
 
  private:
   TRDGeometry* mGeo = nullptr;            // access to TRDGeometry
@@ -96,12 +102,6 @@ class Digitizer
     kEmbeddingEvent
   };
 
-  // Trigger parameters
-  bool mTriggeredEvent = false;
-  static constexpr double READOUT_TIME = 3000;                  // the time the readout takes, as 30 TB = 3 micro-s.
-  static constexpr double DEAD_TIME = 200;                      // trigger deadtime, 2 micro-s
-  static constexpr double BUSY_TIME = READOUT_TIME + DEAD_TIME; // the time for which no new trigger can be received in nanoseconds
-
   // Digitization parameters
   static constexpr float AmWidth = TRDGeometry::amThick(); // Width of the amplification region
   static constexpr float DrWidth = TRDGeometry::drThick(); // Width of the drift retion
@@ -125,7 +125,6 @@ class Digitizer
 
   // Digitization chain methods
   int triggerEventProcessing(DigitContainer&, o2::dataformats::MCTruthContainer<MCLabel>&);
-  void pileup();
   SignalContainer addSignalsFromPileup();
   void clearContainers();
   bool convertHits(const int, const std::vector<HitType>&, SignalContainer&, int thread = 0); // True if hit-to-signal conversion is successful
