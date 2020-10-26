@@ -224,15 +224,15 @@ void Digits2Raw::insertLastBunch(int ibc, uint32_t orbit)
   for (UInt_t im = 0; im < NModules; im++) {
     for (UInt_t ic = 0; ic < NChPerModule; ic++) {
       // Fixed words
-      mZDC.data[im][ic].w[0][0] = id_w0;
+      mZDC.data[im][ic].w[0][0] = Id_w0;
       mZDC.data[im][ic].w[0][1] = 0;
       mZDC.data[im][ic].w[0][2] = 0;
       mZDC.data[im][ic].w[0][3] = 0;
-      mZDC.data[im][ic].w[1][0] = id_w1;
+      mZDC.data[im][ic].w[1][0] = Id_w1;
       mZDC.data[im][ic].w[1][1] = 0;
       mZDC.data[im][ic].w[1][2] = 0;
       mZDC.data[im][ic].w[1][3] = 0;
-      mZDC.data[im][ic].w[2][0] = id_w2;
+      mZDC.data[im][ic].w[2][0] = Id_w2;
       mZDC.data[im][ic].w[2][1] = 0;
       mZDC.data[im][ic].w[2][2] = 0;
       mZDC.data[im][ic].w[2][3] = 0;
@@ -456,15 +456,15 @@ void Digits2Raw::convertDigits(int ibc)
   for (UInt_t im = 0; im < NModules; im++) {
     for (UInt_t ic = 0; ic < NChPerModule; ic++) {
       // Fixed words
-      mZDC.data[im][ic].w[0][0] = id_w0;
+      mZDC.data[im][ic].w[0][0] = Id_w0;
       mZDC.data[im][ic].w[0][1] = 0;
       mZDC.data[im][ic].w[0][2] = 0;
       mZDC.data[im][ic].w[0][3] = 0;
-      mZDC.data[im][ic].w[1][0] = id_w1;
+      mZDC.data[im][ic].w[1][0] = Id_w1;
       mZDC.data[im][ic].w[1][1] = 0;
       mZDC.data[im][ic].w[1][2] = 0;
       mZDC.data[im][ic].w[1][3] = 0;
-      mZDC.data[im][ic].w[2][0] = id_w2;
+      mZDC.data[im][ic].w[2][0] = Id_w2;
       mZDC.data[im][ic].w[2][1] = 0;
       mZDC.data[im][ic].w[2][2] = 0;
       mZDC.data[im][ic].w[2][3] = 0;

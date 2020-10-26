@@ -28,9 +28,9 @@ namespace o2
 namespace zdc
 {
 
-constexpr unsigned short id_w0 = 0x0;
-constexpr unsigned short id_w1 = 0x1;
-constexpr unsigned short id_w2 = 0x2;
+constexpr unsigned short Id_w0 = 0x0;
+constexpr unsigned short Id_w1 = 0x1;
+constexpr unsigned short Id_w2 = 0x2;
 constexpr int NWPerGBTW = 4;
 
 struct __attribute__((__packed__)) ChannelDataV0 {
