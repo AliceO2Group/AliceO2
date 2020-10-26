@@ -111,6 +111,7 @@ AddOption(prefetchTPCpageScan, int, 0, "", 0, "Prefetch Data for TPC page scan i
 AddOption(debugLevel, int, -1, "debug", 'd', "Set debug level (-1 = silend)")
 AddOption(allocDebugLevel, int, 0, "allocDebug", 0, "Some debug output for memory allocations (without messing with normal debug level)")
 AddOption(runQA, bool, false, "qa", 'q', "Enable tracking QA", message("Running QA: %s"))
+AddOption(QAnoMC, bool, false, "", 0, "Force running QA without MC labels even if present")
 AddOption(runCompressionStatistics, bool, false, "compressionStat", 0, "Run statistics and verification for cluster compression")
 AddOption(forceMemoryPoolSize, unsigned long, 1, "memSize", 0, "Force size of allocated GPU / page locked host memory", min(0ul))
 AddOption(forceHostMemoryPoolSize, unsigned long, 0, "hostMemSize", 0, "Force size of allocated host page locked host memory (overriding memSize)", min(0ul))
