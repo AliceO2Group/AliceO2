@@ -71,10 +71,10 @@ class RawWriterDeviceDPL
 
   void run(o2::framework::ProcessingContext& pc)
   {
-    auto msg = pc.inputs().get("mid_data");
+    auto msg = pc.inputs().get("mid_data_mc");
     gsl::span<const ColumnData> data = of::DataRefUtils::as<const ColumnData>(msg);
 
-    auto msgROF = pc.inputs().get("mid_data_rof");
+    auto msgROF = pc.inputs().get("mid_data_mc_rof");
     gsl::span<const ROFRecord> rofRecords = of::DataRefUtils::as<const ROFRecord>(msgROF);
 
     for (auto& rofRecord : rofRecords) {
@@ -89,7 +89,7 @@ class RawWriterDeviceDPL
 
 framework::DataProcessorSpec getRawWriterSpec()
 {
-  std::vector<of::InputSpec> inputSpecs{of::InputSpec{"mid_data", header::gDataOriginMID, "DATA"}, of::InputSpec{"mid_data_rof", header::gDataOriginMID, "DATAROF"}};
+  std::vector<of::InputSpec> inputSpecs{of::InputSpec{"mid_data_mc", header::gDataOriginMID, "DATAMC"}, of::InputSpec{"mid_data_mc_rof", header::gDataOriginMID, "DATAMCROF"}};
 
   return of::DataProcessorSpec{
     "MIDRawWriter",
