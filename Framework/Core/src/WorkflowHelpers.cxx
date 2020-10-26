@@ -18,6 +18,7 @@
 #include "Framework/ControlService.h"
 #include "Framework/RawDeviceService.h"
 #include "Framework/StringHelpers.h"
+#include "Framework/CommonMessageBackends.h"
 
 #include "Headers/DataHeader.h"
 #include <algorithm>
@@ -234,13 +235,21 @@ void WorkflowHelpers::injectServiceDevices(WorkflowSpec& workflow, ConfigContext
   // reads them from file.
   //
   // FIXME: source branch is DataOrigin, for the moment. We should
-  //        make it configurable via ConfigParamsOptions.
+  //        make it configurable via ConfigParamsOptions
+  auto aodLifetime = Lifetime::Enumeration;
+  if (ctx.options().get<int64_t>("aod-memory-rate-limit")) {
+    aodLifetime = Lifetime::Signal;
+  }
+  auto readerServices = CommonServices::defaultServices();
+  readerServices.push_back(CommonMessageBackends::rateLimitingSpec());
+
   DataProcessorSpec aodReader{
     "internal-dpl-aod-reader",
     {InputSpec{"enumeration",
                "DPL",
                "ENUM",
-               static_cast<DataAllocator::SubSpecificationType>(compile_time_hash("internal-dpl-aod-reader")), Lifetime::Signal}},
+               static_cast<DataAllocator::SubSpecificationType>(compile_time_hash("internal-dpl-aod-reader")),
+               aodLifetime}},
     {},
     readers::AODReaderHelpers::rootFileReaderCallback(),
     {ConfigParamSpec{"aod-file", VariantType::String, {"Input AOD file"}},
@@ -248,7 +257,8 @@ void WorkflowHelpers::injectServiceDevices(WorkflowSpec& workflow, ConfigContext
      ConfigParamSpec{"time-limit", VariantType::Int64, 0ll, {"Maximum run time limit in seconds"}},
      ConfigParamSpec{"start-value-enumeration", VariantType::Int64, 0ll, {"initial value for the enumeration"}},
      ConfigParamSpec{"end-value-enumeration", VariantType::Int64, -1ll, {"final value for the enumeration"}},
-     ConfigParamSpec{"step-value-enumeration", VariantType::Int64, 1ll, {"step between one value and the other"}}}};
+     ConfigParamSpec{"step-value-enumeration", VariantType::Int64, 1ll, {"step between one value and the other"}}},
+    readerServices};
 
   std::vector<InputSpec> requestedAODs;
   std::vector<OutputSpec> providedAODs;
