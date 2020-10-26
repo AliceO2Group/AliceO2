@@ -38,6 +38,13 @@ o2_add_test(SAMPAProcessing
             SOURCES testTPCSAMPAProcessing.cxx
             ENVIRONMENT O2_ROOT=${CMAKE_BINARY_DIR}/stage)
 
+o2_add_test(SignalInduction
+            LABELS tpc
+            PUBLIC_LINK_LIBRARIES O2::TPCSimulation
+            COMPONENT_NAME tpc
+            SOURCES testTPCSignalInduction.cxx
+            ENVIRONMENT O2_ROOT=${CMAKE_BINARY_DIR}/stage)
+
 o2_add_test(Simulation
             LABELS tpc
             PUBLIC_LINK_LIBRARIES O2::TPCSimulation

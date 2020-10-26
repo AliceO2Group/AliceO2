@@ -22,6 +22,7 @@
 #include "TPCBase/ParameterGas.h"
 #include "TPCSimulation/ElectronTransport.h"
 #include "TPCSimulation/GEMAmplification.h"
+#include "TPCSimulation/SignalInduction.h"
 #include "TPCSimulation/Point.h"
 #include "TPCSimulation/SAMPAProcessing.h"
 #include "TPCBase/CDBInterface.h"
@@ -56,11 +57,14 @@ void Digitizer::process(const std::vector<o2::tpc::HitGroup>& hits,
   electronTransport.updateParameters();
   static SAMPAProcessing& sampaProcessing = SAMPAProcessing::instance();
   sampaProcessing.updateParameters();
+  static SignalInduction& signalInduction = SignalInduction::instance();
 
   const int nShapedPoints = eleParam.NShapedPoints;
   const auto amplificationMode = gemParam.AmplMode;
+  const auto padResponseMode = gemParam.PRFmode;
   static std::vector<float> signalArray;
   signalArray.resize(nShapedPoints);
+  static std::vector<PadResponse> prfArray;
 
   /// Reserve space in the digit container for the current event
   mDigitContainer.reserve(sampaProcessing.getTimeBinFromTime(mEventTime - mOutputDigitTimeOffset));
@@ -137,16 +141,24 @@ void Digitizer::process(const std::vector<o2::tpc::HitGroup>& hits,
           continue;
         }
 
-        const GlobalPadNumber globalPad = mapper.globalPadNumber(digiPadPos.getGlobalPadPos());
-        const float ADCsignal = sampaProcessing.getADCvalue(static_cast<float>(nElectronsGEM));
         const MCCompLabel label(MCTrackID, eventID, sourceID, false);
-        sampaProcessing.getShapedSignal(ADCsignal, absoluteTime, signalArray);
-        for (float i = 0; i < nShapedPoints; ++i) {
-          const float time = absoluteTime + i * eleParam.ZbinWidth;
-          mDigitContainer.addDigit(label, digiPadPos.getCRU(), sampaProcessing.getTimeBinFromTime(time), globalPad,
-                                   signalArray[i]);
+
+        const double ADCsignal = sampaProcessing.getADCvalue(static_cast<double>(nElectronsGEM));
+        signalInduction.getPadResponse(posEleDiff, digiPadPos, prfArray, padResponseMode);
+
+        for (const auto& itPRF : prfArray) {
+          if (!itPRF.digiPos.isValid()) {
+            continue;
+          }
+          const GlobalPadNumber globalPad = mapper.globalPadNumber(itPRF.digiPos.getGlobalPadPos());
+          sampaProcessing.getShapedSignal(itPRF.padResp * ADCsignal, absoluteTime, signalArray);
+          for (float i = 0; i < nShapedPoints; ++i) {
+            const float time = absoluteTime + i * eleParam.ZbinWidth;
+            mDigitContainer.addDigit(label, itPRF.digiPos.getCRU(), sampaProcessing.getTimeBinFromTime(time), globalPad,
+                                     signalArray[i]);
+          }
+          /// TODO: add ion backflow to space-charge density
         }
-        /// TODO: add ion backflow to space-charge density
       }
       /// end of loop over electrons
     }

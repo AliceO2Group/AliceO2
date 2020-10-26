@@ -17,6 +17,7 @@
 #define ALICEO2_TPC_Digitizer_H_
 
 #include "TPCSimulation/DigitContainer.h"
+#include "TPCSimulation/SignalInduction.h"
 #include "TPCSimulation/Point.h"
 #include "TPCSpaceCharge/SpaceCharge.h"
 
