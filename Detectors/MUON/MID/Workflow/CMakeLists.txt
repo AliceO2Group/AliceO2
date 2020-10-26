@@ -13,7 +13,6 @@ o2_add_library(MIDWorkflow
                SOURCES src/ClusterizerMCSpec.cxx
                        src/ClusterizerSpec.cxx
                        src/DigitReaderSpec.cxx
-                       src/DigitsToRawWorkflow.cxx
                        src/EntropyDecoderSpec.cxx
                        src/EntropyEncoderSpec.cxx
                        src/RawAggregatorSpec.cxx
@@ -40,7 +39,7 @@ o2_add_library(MIDWorkflow
 o2_add_executable(
   digits-to-raw-workflow
   COMPONENT_NAME mid
-  SOURCES src/mid-digits-to-raw.cxx
+  SOURCES src/digits-to-raw-workflow.cxx
   TARGETVARNAME exenameraw
   PUBLIC_LINK_LIBRARIES
     O2::MIDWorkflow)
