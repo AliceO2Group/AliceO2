@@ -169,6 +169,15 @@ struct HFTrackIndexSkimsCreator {
   OutputObj<TH1F> hvtx3_z{TH1F("hvtx3_z", "3-prong candidates;#it{z}_{sec. vtx.} (cm);entries", 1000, -20., 20.)};
   OutputObj<TH1F> hmass3{TH1F("hmass3", "3-prong candidates;inv. mass (#pi K #pi) (GeV/#it{c}^{2});entries", 500, 1.6, 2.1)};
 
+  /*
+  // Counter histograms
+  OutputObj<TH2F> hNCand2ProngVsNTracks{TH2F("hNCand2ProngVsNTracks", "2-prong candidates;# of tracks;# of candidates;entries", 1000, 0., 1000., 1000, 0., 10000.)};
+  OutputObj<TH2F> hNCand3ProngVsNTracks{TH2F("hNCand3ProngVsNTracks", "3-prong candidates;# of tracks;# of candidates;entries", 1000, 0., 1000., 1000, 0., 10000.)};
+  OutputObj<TH1F> hNCand2Prong{TH1F("hNCand2Prong", "2-prong candidates;# of candidates;entries", 1000, 0., 10000.)};
+  OutputObj<TH1F> hNCand3Prong{TH1F("hNCand3Prong", "3-prong candidates;# of candidates;entries", 1000, 0., 10000.)};
+  OutputObj<TH1F> hNTracks{TH1F("hNTracks", ";# of tracks;entries", 1000, 0., 1000.)};
+  */
+
   Filter filterSelectTracks = (aod::hf_seltrack::isSel2Prong == 1);
   using SelectedTracks = soa::Filtered<soa::Join<aod::Tracks, aod::TracksCov, aod::TracksExtra, aod::HFSelTrack>>;
   // FIXME
@@ -213,6 +222,9 @@ struct HFTrackIndexSkimsCreator {
     df3.setMinParamChange(d_minparamchange);
     df3.setMinRelChi2Change(d_minrelchi2change);
     df3.setUseAbsDCA(true);
+
+    //auto nCand2 = rowTrackIndexProng2.lastIndex();
+    //auto nCand3 = rowTrackIndexProng3.lastIndex();
 
     // first loop over positive tracks
     //for (auto trackPos1 = tracksPos.begin(); trackPos1 != tracksPos.end(); ++trackPos1) {
@@ -471,6 +483,16 @@ struct HFTrackIndexSkimsCreator {
         }
       }
     }
+    /*
+    auto nTracks = tracks.size(); // number of tracks in this collision
+    nCand2 = rowTrackIndexProng2.lastIndex() - nCand2; // number of 2-prong candidates in this collision
+    nCand3 = rowTrackIndexProng3.lastIndex() - nCand3; // number of 3-prong candidates in this collision
+    hNTracks->Fill(nTracks);
+    hNCand2Prong->Fill(nCand2);
+    hNCand3Prong->Fill(nCand3);
+    hNCand2ProngVsNTracks->Fill(nTracks, nCand2);
+    hNCand3ProngVsNTracks->Fill(nTracks, nCand3);
+    */
   }
 };
 
