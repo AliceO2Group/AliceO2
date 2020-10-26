@@ -27,7 +27,6 @@ namespace tpc
 {
 
 class Digit;
-class DigitMCMetaData;
 
 /// \class DigitTime
 /// This is the second class of the intermediate Digit Containers, in which all incoming electrons from the hits are
