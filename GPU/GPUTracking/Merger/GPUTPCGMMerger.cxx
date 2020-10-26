@@ -41,7 +41,7 @@
 #include "GPUTPCGMSliceTrack.h"
 #include "GPUTPCGMBorderTrack.h"
 
-#ifdef GPUCA_CADEBUG_ENABLED
+#if defined(GPUCA_MERGER_BY_MC_LABEL) || defined(GPUCA_CADEBUG_ENABLED)
 #include "AliHLTTPCClusterMCData.h"
 #endif
 
