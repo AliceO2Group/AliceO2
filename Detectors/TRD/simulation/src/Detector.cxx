@@ -92,6 +92,7 @@ bool Detector::ProcessHits(FairVolume* v)
   if ((!fMC->TrackCharge()) || fMC->IsTrackDisappeared()) {
     return false;
   }
+  fMC->SetMaxStep(0.1); // Should we optimize this value?
 
   // Inside sensitive volume ?
   bool drRegion = false;
