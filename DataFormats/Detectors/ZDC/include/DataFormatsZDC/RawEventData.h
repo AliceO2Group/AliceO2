@@ -84,53 +84,6 @@ struct __attribute__((__packed__)) ChannelDataV0 {
   unsigned empty_5 : 32;
 };
 
-struct __attribute__((__packed__)) ChannelDataV0W0 {
-  unsigned fixed_0 : 2;
-  unsigned board : 4;
-  unsigned ch : 2;
-  unsigned offset : 16;
-  unsigned hits : 12;
-  unsigned bc : 12;
-  unsigned orbit : 32;
-  unsigned empty_0 : 16;
-  unsigned empty_1 : 32;
-};
-
-struct __attribute__((__packed__)) ChannelDataV0W1 {
-  unsigned fixed_1 : 2;
-  unsigned error : 2;
-  unsigned Alice_0 : 1;
-  unsigned Alice_1 : 1;
-  unsigned Alice_2 : 1;
-  unsigned Alice_3 : 1;
-  unsigned s00 : 12;
-  unsigned s01 : 12;
-  unsigned s02 : 12;
-  unsigned s03 : 12;
-  unsigned s04 : 12;
-  unsigned s05 : 12;
-  unsigned empty_2 : 16;
-  unsigned empty_3 : 32;
-};
-
-struct __attribute__((__packed__)) ChannelDataV0W2 {
-  unsigned fixed_2 : 2;
-  unsigned Hit : 1;
-  unsigned Auto_m : 1;
-  unsigned Auto_0 : 1;
-  unsigned Auto_1 : 1;
-  unsigned Auto_2 : 1;
-  unsigned Auto_3 : 1;
-  unsigned s06 : 12;
-  unsigned s07 : 12;
-  unsigned s08 : 12;
-  unsigned s09 : 12;
-  unsigned s10 : 12;
-  unsigned s11 : 12;
-  unsigned empty_4 : 16;
-  unsigned empty_5 : 32;
-};
-
 struct EventData {
   union {
     UInt_t w[o2::zdc::NWPerBc][NWPerGBTW];
