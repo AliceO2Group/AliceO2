@@ -4,7 +4,7 @@
 #/cave_1/barrel_1/ITSV_2/ITSUWrapVol0_1/ITSULayer0_1
 #
 #/cave_1/barrel_1/ITSV_2/ITSUWrapVol0_1/ITSULayer0_1/ITSUStave0_0
-/cave_1/barrel_1/barel_1/ITSV_2/ITSUWrapVol0_1/ITSULayer0_1/ITSUStave0_0/ITSUHalfStave0_0
+/cave_1/barrel_1/ITSV_2/ITSUWrapVol0_1/ITSULayer0_1/ITSUStave0_0/ITSUHalfStave0_0
 #/cave_1/barrel_1/ITSV_2/ITSUWrapVol0_1/ITSULayer0_1/ITSUStave0_1
 /cave_1/barrel_1/ITSV_2/ITSUWrapVol0_1/ITSULayer0_1/ITSUStave0_1/ITSUHalfStave0_0
 #/cave_1/barrel_1/ITSV_2/ITSUWrapVol0_1/ITSULayer0_1/ITSUStave0_2
