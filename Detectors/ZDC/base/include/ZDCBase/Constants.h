@@ -59,6 +59,7 @@ constexpr int NLinks = NModules * 2;
 constexpr int NDigiChannels = NModules * NChPerModule;
 constexpr int NWPerBc = 3;
 constexpr int MaxTriggerChannels = NChannels;
+constexpr int ADCMin = -2048, ADCMax = 2047; // 12 bit ADC
 
 constexpr int MaxTDCValues = 5;  // max number of TDC values to store in reconstructed event
 constexpr int NTDCChannels = 10; // max number of TDC values to store in reconstructed event
