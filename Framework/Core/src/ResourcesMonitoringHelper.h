@@ -22,13 +22,14 @@
 namespace o2::framework
 {
 
-class ResourcesMonitoringHelper
-{
- public:
-  static bool dumpMetricsToJSON(const std::vector<DeviceMetricsInfo>& metrics, const std::vector<DeviceSpec>& specs) noexcept;
+struct ResourcesMonitoringHelper {
+  /// Dump the metrics in @a metrics which match the names specified in @a metricsToDump
+  /// @a specs are the DeviceSpecs associated to the metrics.
+  static bool dumpMetricsToJSON(std::vector<DeviceMetricsInfo> const& metrics,
+                                std::vector<DeviceSpec> const& specs,
+                                std::vector<std::string> const& metricsToDump) noexcept;
   static bool isResourcesMonitoringEnabled(unsigned short interval) noexcept { return interval > 0; }
 
- private:
   template <typename T>
   static boost::property_tree::ptree fillNodeWithValue(const DeviceMetricsInfo& deviceMetrics,
                                                        const T& metricsStorage, size_t labelIndex, size_t storageIndex);
@@ -42,8 +43,6 @@ class ResourcesMonitoringHelper
   {
     return std::string(val.get().data);
   }
-
-  ResourcesMonitoringHelper() = delete;
 };
 
 template <typename T>
