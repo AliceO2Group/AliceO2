@@ -72,7 +72,7 @@ BOOST_AUTO_TEST_CASE(GEMamplification_effective_test)
 
   const int nEleIn = 158; /// Number of electrons liberated in Ne-CO2-N2 by an incident Fe-55 photon
 
-  for (int i = 0; i < 100000; ++i) {
+  for (int i = 0; i < 500000; ++i) {
     hTest.Fill(gemStack.getEffectiveStackAmplification(nEleIn));
   }
 
@@ -80,10 +80,10 @@ BOOST_AUTO_TEST_CASE(GEMamplification_effective_test)
   float energyResolution = gaus.GetParameter(2) / gaus.GetParameter(1) * 100.f;
 
   /// Check the resulting gain
-  /// \todo should be more restrictive
-  BOOST_CHECK_CLOSE(gaus.GetParameter(1) / static_cast<float>(nEleIn), (gemParam.TotalGainStack), 5.f);
+  BOOST_CHECK_CLOSE(gaus.GetParameter(1) / static_cast<float>(nEleIn), (gemParam.TotalGainStack), 1.f);
   /// Check the resulting energy resolution
-  BOOST_CHECK_CLOSE(energyResolution, 12.4f, 0.5f);
+  /// we allow for 5% variation which is given by the uncertainty of the experimental determination of the energy resolution (12.1 +/- 0.5) %
+  BOOST_CHECK_CLOSE(energyResolution, 12.1, 5);
 }
 
 /// \brief Test of the getSingleGEMAmplification function
