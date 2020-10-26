@@ -8,8 +8,6 @@
 #include "ZDCBase/Constants.h"
 #include "ZDCBase/ModuleConfig.h"
 #include "ZDCSimulation/Digitizer.h"
-#include "DataFormatsZDC/BCData.h"
-#include "DataFormatsZDC/ChannelData.h"
 #include "ZDCSimulation/Digits2Raw.h"
 #include "ZDCSimulation/MCLabel.h"
 #include "ZDCSimulation/ZDCSimParam.h"
@@ -113,8 +111,9 @@ void Digits2Raw::processDigits(const std::string& outDir, const std::string& fil
         auto this_orbit = mzdcBCData[ibc].ir.orbit;
         auto next_orbit = mzdcBCData[ibc + 1].ir.orbit;
         // If current bunch is last bunch in the orbit we don't insert it again
-        if (mzdcBCData[ibc].ir.bc == 3563)
+        if (mzdcBCData[ibc].ir.bc == 3563) {
           this_orbit = this_orbit + 1;
+        }
         // We may need to insert more than one orbit
         for (auto orbit = this_orbit; orbit < next_orbit; orbit++) {
           insertLastBunch(ibc, orbit);
@@ -132,8 +131,9 @@ void Digits2Raw::setTriggerMask()
   mTriggerMask = 0;
   mPrintTriggerMask = "";
   for (Int_t im = 0; im < NModules; im++) {
-    if (im > 0)
+    if (im > 0) {
       mPrintTriggerMask += " ";
+    }
     mPrintTriggerMask += std::to_string(im);
     mPrintTriggerMask += "[";
     for (UInt_t ic = 0; ic < NChPerModule; ic++) {
@@ -190,10 +190,12 @@ inline void Digits2Raw::updatePedestalReference(int bc)
         // Adding in quadrature the RMS of pedestal electronic noise
         mSumPed[im][ic] += gRandom->Gaus(0, base_n * TMath::Sqrt(12. * deltan));
         Double_t myped = TMath::Nint(8. * mSumPed[im][ic] / Double_t(mEmpty[bc]) / 12. + 32768);
-        if (myped < 0)
+        if (myped < 0) {
           myped = 0;
-        if (myped > 65535)
+        }
+        if (myped > 65535) {
           myped = 65535;
+        }
         mPed[im][ic] = myped;
       }
     }
@@ -212,8 +214,9 @@ void Digits2Raw::insertLastBunch(int ibc, uint32_t orbit)
   UShort_t bc = 3563;
 
   // Reset scalers at orbit change
-  if (orbit != mLastOrbit)
+  if (orbit != mLastOrbit) {
     resetSums(orbit);
+  }
 
   updatePedestalReference(bc);
 
@@ -256,8 +259,9 @@ void Digits2Raw::insertLastBunch(int ibc, uint32_t orbit)
   UInt_t triggers_1 = 0, triggers_2 = 0, triggers_3 = 0, triggers_m = 0;
   for (Int_t is = 1; is < 4; is++) {
     Int_t ibc_peek = ibc + is;
-    if (ibc_peek >= nbc)
+    if (ibc_peek >= nbc) {
       break;
+    }
     const auto& bcd_peek = mzdcBCData[ibc_peek];
     UShort_t bc_peek = bcd_peek.ir.bc;
     UInt_t orbit_peek = bcd_peek.ir.orbit;
@@ -265,43 +269,61 @@ void Digits2Raw::insertLastBunch(int ibc, uint32_t orbit)
       if (orbit_peek == orbit) {
         if ((bc_peek - bc) == 1) {
           triggers_1 = bcd_peek.triggers;
-          if (bcd_peek.ext_triggers)
-            for (UInt_t im = 0; im < NModules; im++)
-              for (UInt_t ic = 0; ic < NChPerModule; ic++)
+          if (bcd_peek.ext_triggers) {
+            for (UInt_t im = 0; im < NModules; im++) {
+              for (UInt_t ic = 0; ic < NChPerModule; ic++) {
                 mZDC.data[im][ic].f.Alice_1 = 1;
+              }
+            }
+          }
         } else if ((bc_peek - bc) == 2) {
           triggers_2 = bcd_peek.triggers;
-          if (bcd_peek.ext_triggers)
-            for (UInt_t im = 0; im < NModules; im++)
-              for (UInt_t ic = 0; ic < NChPerModule; ic++)
+          if (bcd_peek.ext_triggers) {
+            for (UInt_t im = 0; im < NModules; im++) {
+              for (UInt_t ic = 0; ic < NChPerModule; ic++) {
                 mZDC.data[im][ic].f.Alice_2 = 1;
+              }
+            }
+          }
         } else if ((bc_peek - bc) == 3) {
           triggers_3 = bcd_peek.triggers;
-          if (bcd_peek.ext_triggers)
-            for (UInt_t im = 0; im < NModules; im++)
-              for (UInt_t ic = 0; ic < NChPerModule; ic++)
+          if (bcd_peek.ext_triggers) {
+            for (UInt_t im = 0; im < NModules; im++) {
+              for (UInt_t ic = 0; ic < NChPerModule; ic++) {
                 mZDC.data[im][ic].f.Alice_3 = 1;
+              }
+            }
+          }
           break;
         }
       } else if (orbit_peek == (orbit + 1)) {
         if ((bc_peek + 3564 - bc) == 1) {
           triggers_1 = bcd_peek.triggers;
-          if (bcd_peek.ext_triggers)
-            for (UInt_t im = 0; im < NModules; im++)
-              for (UInt_t ic = 0; ic < NChPerModule; ic++)
+          if (bcd_peek.ext_triggers) {
+            for (UInt_t im = 0; im < NModules; im++) {
+              for (UInt_t ic = 0; ic < NChPerModule; ic++) {
                 mZDC.data[im][ic].f.Alice_1 = 1;
+              }
+            }
+          }
         } else if ((bc_peek + 3564 - bc) == 2) {
           triggers_2 = bcd_peek.triggers;
-          if (bcd_peek.ext_triggers)
-            for (UInt_t im = 0; im < NModules; im++)
-              for (UInt_t ic = 0; ic < NChPerModule; ic++)
+          if (bcd_peek.ext_triggers) {
+            for (UInt_t im = 0; im < NModules; im++) {
+              for (UInt_t ic = 0; ic < NChPerModule; ic++) {
                 mZDC.data[im][ic].f.Alice_2 = 1;
+              }
+            }
+          }
         } else if ((bc_peek + 3564 - bc) == 3) {
           triggers_3 = bcd_peek.triggers;
-          if (bcd_peek.ext_triggers)
-            for (UInt_t im = 0; im < NModules; im++)
-              for (UInt_t ic = 0; ic < NChPerModule; ic++)
+          if (bcd_peek.ext_triggers) {
+            for (UInt_t im = 0; im < NModules; im++) {
+              for (UInt_t ic = 0; ic < NChPerModule; ic++) {
                 mZDC.data[im][ic].f.Alice_3 = 1;
+              }
+            }
+          }
           break;
         }
       } else {
@@ -320,11 +342,13 @@ void Digits2Raw::insertLastBunch(int ibc, uint32_t orbit)
       UInt_t orbit_peek = bcd_peek.ir.orbit;
       if (bcd_peek.triggers) {
         if (orbit_peek == orbit) {
-          if ((bc - bc_peek) == 1)
+          if ((bc - bc_peek) == 1) {
             triggers_m = bcd_peek.triggers;
+          }
         } else if (orbit_peek == (orbit - 1)) {
-          if (bc == 0 && bc_peek == 3563)
+          if (bc == 0 && bc_peek == 3563) {
             triggers_m = bcd_peek.triggers;
+          }
         }
       }
     }
@@ -333,21 +357,31 @@ void Digits2Raw::insertLastBunch(int ibc, uint32_t orbit)
   // Assign trigger bits in payload
   for (Int_t im = 0; im < NModules; im++) {
     UInt_t tmask = (0xf << (im * NChPerModule)) & mTriggerMask;
-    if (triggers_m & tmask)
-      for (UInt_t ic = 0; ic < NChPerModule; ic++)
+    if (triggers_m & tmask) {
+      for (UInt_t ic = 0; ic < NChPerModule; ic++) {
         mZDC.data[im][ic].f.Auto_m = 1;
-    if (triggers_0 & tmask)
-      for (UInt_t ic = 0; ic < NChPerModule; ic++)
+      }
+    }
+    if (triggers_0 & tmask) {
+      for (UInt_t ic = 0; ic < NChPerModule; ic++) {
         mZDC.data[im][ic].f.Auto_0 = 1;
-    if (triggers_1 & tmask)
-      for (UInt_t ic = 0; ic < NChPerModule; ic++)
+      }
+    }
+    if (triggers_1 & tmask) {
+      for (UInt_t ic = 0; ic < NChPerModule; ic++) {
         mZDC.data[im][ic].f.Auto_1 = 1;
-    if (triggers_2 & tmask)
-      for (UInt_t ic = 0; ic < NChPerModule; ic++)
+      }
+    }
+    if (triggers_2 & tmask) {
+      for (UInt_t ic = 0; ic < NChPerModule; ic++) {
         mZDC.data[im][ic].f.Auto_2 = 1;
-    if (triggers_3 & tmask)
-      for (UInt_t ic = 0; ic < NChPerModule; ic++)
+      }
+    }
+    if (triggers_3 & tmask) {
+      for (UInt_t ic = 0; ic < NChPerModule; ic++) {
         mZDC.data[im][ic].f.Auto_3 = 1;
+      }
+    }
   }
 
   // Insert payload for all channels
@@ -361,88 +395,40 @@ void Digits2Raw::insertLastBunch(int ibc, uint32_t orbit)
         Double_t base = gRandom->Gaus(base_m, base_s);
         Int_t is = 0;
         Double_t val = base + gRandom->Gaus(0, base_n);
-        if (val < -4096)
-          val = -4096;
-        if (val > 4095)
-          val = 4095;
-        mZDC.data[im][ic].f.s00 = val;
+        mZDC.data[im][ic].f.s00 = val < ADCMax ? (val > ADCMin ? val : ADCMin) : ADCMax;
         is++;
         val = base + gRandom->Gaus(0, base_n);
-        if (val < -4096)
-          val = -4096;
-        if (val > 4095)
-          val = 4095;
-        mZDC.data[im][ic].f.s01 = val;
+        mZDC.data[im][ic].f.s01 = val < ADCMax ? (val > ADCMin ? val : ADCMin) : ADCMax;
         is++;
         val = base + gRandom->Gaus(0, base_n);
-        if (val < -4096)
-          val = -4096;
-        if (val > 4095)
-          val = 4095;
-        mZDC.data[im][ic].f.s02 = val;
+        mZDC.data[im][ic].f.s02 = val < ADCMax ? (val > ADCMin ? val : ADCMin) : ADCMax;
         is++;
         val = base + gRandom->Gaus(0, base_n);
-        if (val < -4096)
-          val = -4096;
-        if (val > 4095)
-          val = 4095;
-        mZDC.data[im][ic].f.s03 = val;
+        mZDC.data[im][ic].f.s03 = val < ADCMax ? (val > ADCMin ? val : ADCMin) : ADCMax;
         is++;
         val = base + gRandom->Gaus(0, base_n);
-        if (val < -4096)
-          val = -4096;
-        if (val > 4095)
-          val = 4095;
-        mZDC.data[im][ic].f.s04 = val;
+        mZDC.data[im][ic].f.s04 = val < ADCMax ? (val > ADCMin ? val : ADCMin) : ADCMax;
         is++;
         val = base + gRandom->Gaus(0, base_n);
-        if (val < -4096)
-          val = -4096;
-        if (val > 4095)
-          val = 4095;
-        mZDC.data[im][ic].f.s05 = val;
+        mZDC.data[im][ic].f.s05 = val < ADCMax ? (val > ADCMin ? val : ADCMin) : ADCMax;
         is++;
         val = base + gRandom->Gaus(0, base_n);
-        if (val < -4096)
-          val = -4096;
-        if (val > 4095)
-          val = 4095;
-        mZDC.data[im][ic].f.s06 = val;
+        mZDC.data[im][ic].f.s06 = val < ADCMax ? (val > ADCMin ? val : ADCMin) : ADCMax;
         is++;
         val = base + gRandom->Gaus(0, base_n);
-        if (val < -4096)
-          val = -4096;
-        if (val > 4095)
-          val = 4095;
-        mZDC.data[im][ic].f.s07 = val;
+        mZDC.data[im][ic].f.s07 = val < ADCMax ? (val > ADCMin ? val : ADCMin) : ADCMax;
         is++;
         val = base + gRandom->Gaus(0, base_n);
-        if (val < -4096)
-          val = -4096;
-        if (val > 4095)
-          val = 4095;
-        mZDC.data[im][ic].f.s08 = val;
+        mZDC.data[im][ic].f.s08 = val < ADCMax ? (val > ADCMin ? val : ADCMin) : ADCMax;
         is++;
         val = base + gRandom->Gaus(0, base_n);
-        if (val < -4096)
-          val = -4096;
-        if (val > 4095)
-          val = 4095;
-        mZDC.data[im][ic].f.s09 = val;
+        mZDC.data[im][ic].f.s09 = val < ADCMax ? (val > ADCMin ? val : ADCMin) : ADCMax;
         is++;
         val = base + gRandom->Gaus(0, base_n);
-        if (val < -4096)
-          val = -4096;
-        if (val > 4095)
-          val = 4095;
-        mZDC.data[im][ic].f.s10 = val;
+        mZDC.data[im][ic].f.s10 = val < ADCMax ? (val > ADCMin ? val : ADCMin) : ADCMax;
         is++;
         val = base + gRandom->Gaus(0, base_n);
-        if (val < -4096)
-          val = -4096;
-        if (val > 4095)
-          val = 4095;
-        mZDC.data[im][ic].f.s11 = val;
+        mZDC.data[im][ic].f.s11 = val < ADCMax ? (val > ADCMin ? val : ADCMin) : ADCMax;
       }
     }
   }
@@ -460,8 +446,9 @@ void Digits2Raw::convertDigits(int ibc)
   UInt_t orbit = bcd.ir.orbit;
 
   // Reset scalers at orbit change
-  if (orbit != mLastOrbit)
+  if (orbit != mLastOrbit) {
     resetSums(orbit);
+  }
 
   updatePedestalReference(bc);
 
@@ -504,17 +491,21 @@ void Digits2Raw::convertDigits(int ibc)
   UInt_t triggers_0 = bcd.triggers;
 
   // ALICE current bunch crossing
-  if (bcd.ext_triggers)
-    for (UInt_t im = 0; im < NModules; im++)
-      for (UInt_t ic = 0; ic < NChPerModule; ic++)
+  if (bcd.ext_triggers) {
+    for (UInt_t im = 0; im < NModules; im++) {
+      for (UInt_t ic = 0; ic < NChPerModule; ic++) {
         mZDC.data[im][ic].f.Alice_0 = 1;
+      }
+    }
+  }
 
   // Next bunch crossings (ALICE and autotrigger)
   UInt_t triggers_1 = 0, triggers_2 = 0, triggers_3 = 0, triggers_m = 0;
   for (Int_t is = 1; is < 4; is++) {
     Int_t ibc_peek = ibc + is;
-    if (ibc_peek >= nbc)
+    if (ibc_peek >= nbc) {
       break;
+    }
     const auto& bcd_peek = mzdcBCData[ibc_peek];
     UShort_t bc_peek = bcd_peek.ir.bc;
     UInt_t orbit_peek = bcd_peek.ir.orbit;
@@ -522,43 +513,61 @@ void Digits2Raw::convertDigits(int ibc)
       if (orbit_peek == orbit) {
         if ((bc_peek - bc) == 1) {
           triggers_1 = bcd_peek.triggers;
-          if (bcd_peek.ext_triggers)
-            for (UInt_t im = 0; im < NModules; im++)
-              for (UInt_t ic = 0; ic < NChPerModule; ic++)
+          if (bcd_peek.ext_triggers) {
+            for (UInt_t im = 0; im < NModules; im++) {
+              for (UInt_t ic = 0; ic < NChPerModule; ic++) {
                 mZDC.data[im][ic].f.Alice_1 = 1;
+              }
+            }
+          }
         } else if ((bc_peek - bc) == 2) {
           triggers_2 = bcd_peek.triggers;
-          if (bcd_peek.ext_triggers)
-            for (UInt_t im = 0; im < NModules; im++)
-              for (UInt_t ic = 0; ic < NChPerModule; ic++)
+          if (bcd_peek.ext_triggers) {
+            for (UInt_t im = 0; im < NModules; im++) {
+              for (UInt_t ic = 0; ic < NChPerModule; ic++) {
                 mZDC.data[im][ic].f.Alice_2 = 1;
+              }
+            }
+          }
         } else if ((bc_peek - bc) == 3) {
           triggers_3 = bcd_peek.triggers;
-          if (bcd_peek.ext_triggers)
-            for (UInt_t im = 0; im < NModules; im++)
-              for (UInt_t ic = 0; ic < NChPerModule; ic++)
+          if (bcd_peek.ext_triggers) {
+            for (UInt_t im = 0; im < NModules; im++) {
+              for (UInt_t ic = 0; ic < NChPerModule; ic++) {
                 mZDC.data[im][ic].f.Alice_3 = 1;
+              }
+            }
+          }
           break;
         }
       } else if (orbit_peek == (orbit + 1)) {
         if ((bc_peek + 3564 - bc) == 1) {
           triggers_1 = bcd_peek.triggers;
-          if (bcd_peek.ext_triggers)
-            for (UInt_t im = 0; im < NModules; im++)
-              for (UInt_t ic = 0; ic < NChPerModule; ic++)
+          if (bcd_peek.ext_triggers) {
+            for (UInt_t im = 0; im < NModules; im++) {
+              for (UInt_t ic = 0; ic < NChPerModule; ic++) {
                 mZDC.data[im][ic].f.Alice_1 = 1;
+              }
+            }
+          }
         } else if ((bc_peek + 3564 - bc) == 2) {
           triggers_2 = bcd_peek.triggers;
-          if (bcd_peek.ext_triggers)
-            for (UInt_t im = 0; im < NModules; im++)
-              for (UInt_t ic = 0; ic < NChPerModule; ic++)
+          if (bcd_peek.ext_triggers) {
+            for (UInt_t im = 0; im < NModules; im++) {
+              for (UInt_t ic = 0; ic < NChPerModule; ic++) {
                 mZDC.data[im][ic].f.Alice_2 = 1;
+              }
+            }
+          }
         } else if ((bc_peek + 3564 - bc) == 3) {
           triggers_3 = bcd_peek.triggers;
-          if (bcd_peek.ext_triggers)
-            for (UInt_t im = 0; im < NModules; im++)
-              for (UInt_t ic = 0; ic < NChPerModule; ic++)
+          if (bcd_peek.ext_triggers) {
+            for (UInt_t im = 0; im < NModules; im++) {
+              for (UInt_t ic = 0; ic < NChPerModule; ic++) {
                 mZDC.data[im][ic].f.Alice_3 = 1;
+              }
+            }
+          }
           break;
         }
       } else {
@@ -576,11 +585,13 @@ void Digits2Raw::convertDigits(int ibc)
       UInt_t orbit_peek = bcd_peek.ir.orbit;
       if (bcd_peek.triggers) {
         if (orbit_peek == orbit) {
-          if ((bc - bc_peek) == 1)
+          if ((bc - bc_peek) == 1) {
             triggers_m = bcd_peek.triggers;
+          }
         } else if (orbit_peek == (orbit - 1)) {
-          if (bc == 0 && bc_peek == 3563)
+          if (bc == 0 && bc_peek == 3563) {
             triggers_m = bcd_peek.triggers;
+          }
         }
       }
     }
@@ -589,21 +600,31 @@ void Digits2Raw::convertDigits(int ibc)
   // Assign trigger bits in payload
   for (Int_t im = 0; im < NModules; im++) {
     UInt_t tmask = (0xf << (im * NChPerModule)) & mTriggerMask;
-    if (triggers_m & tmask)
-      for (UInt_t ic = 0; ic < NChPerModule; ic++)
+    if (triggers_m & tmask) {
+      for (UInt_t ic = 0; ic < NChPerModule; ic++) {
         mZDC.data[im][ic].f.Auto_m = 1;
-    if (triggers_0 & tmask)
-      for (UInt_t ic = 0; ic < NChPerModule; ic++)
+      }
+    }
+    if (triggers_0 & tmask) {
+      for (UInt_t ic = 0; ic < NChPerModule; ic++) {
         mZDC.data[im][ic].f.Auto_0 = 1;
-    if (triggers_1 & tmask)
-      for (UInt_t ic = 0; ic < NChPerModule; ic++)
+      }
+    }
+    if (triggers_1 & tmask) {
+      for (UInt_t ic = 0; ic < NChPerModule; ic++) {
         mZDC.data[im][ic].f.Auto_1 = 1;
-    if (triggers_2 & tmask)
-      for (UInt_t ic = 0; ic < NChPerModule; ic++)
+      }
+    }
+    if (triggers_2 & tmask) {
+      for (UInt_t ic = 0; ic < NChPerModule; ic++) {
         mZDC.data[im][ic].f.Auto_2 = 1;
-    if (triggers_3 & tmask)
-      for (UInt_t ic = 0; ic < NChPerModule; ic++)
+      }
+    }
+    if (triggers_3 & tmask) {
+      for (UInt_t ic = 0; ic < NChPerModule; ic++) {
         mZDC.data[im][ic].f.Auto_3 = 1;
+      }
+    }
   }
 
   if (mVerbosity > 0) {
@@ -613,8 +634,9 @@ void Digits2Raw::convertDigits(int ibc)
   int chEnt = bcd.ref.getFirstEntry();
   for (int ic = 0; ic < bcd.ref.getEntries(); ic++) {
     const auto& chd = mzdcChData[chEnt++];
-    if (mVerbosity > 0)
+    if (mVerbosity > 0) {
       chd.print();
+    }
     UShort_t bc = bcd.ir.bc;
     UInt_t orbit = bcd.ir.orbit;
     // Look for channel ID in digits and store channel (just one copy in output)
@@ -692,12 +714,15 @@ void Digits2Raw::writeDigits()
       }
     }
     if (mVerbosity > 1) {
-      if (tcond_continuous)
+      if (tcond_continuous) {
         printf("M%d Cont.    T0=%d || T1=%d\n", im, T0, T1);
-      if (tcond_triggered)
+      }
+      if (tcond_triggered) {
         printf("M%d Trig. %s A0=%d || A1=%d || (A2=%d && (T0=%d || TM=%d))=%d || (A3=%d && T0=%d )=%d\n", im, mIsContinuous ? "CM" : "TM", A0, A1, A2, T0, TM, A2 && (T0 || TM), A3, T0, A3 && T0);
-      if (mZDC.data[im][0].f.bc == 3563)
+      }
+      if (mZDC.data[im][0].f.bc == 3563) {
         printf("M%d is last BC\n", im);
+      }
       if (tcond_triggered || (mIsContinuous && tcond_continuous) || (mZDC.data[im][0].f.bc == 3563)) {
         for (UInt_t ic = 0; ic < o2::zdc::NChPerModule; ic++) {
           if (mModuleConfig->modules[im].readChannel[ic]) {
@@ -715,61 +740,18 @@ void Digits2Raw::writeDigits()
 }
 
 //______________________________________________________________________________
-void Digits2Raw::print_gbt_word(UInt_t* word, const ModuleConfig* moduleConfig)
+void Digits2Raw::print_gbt_word(const UInt_t* word, const ModuleConfig* moduleConfig)
 {
+  if (word == 0) {
+    printf("NULL\n");
+    return;
+  }
   unsigned __int128 val = word[2];
   val = val << 32;
   val = val | word[1];
   val = val << 32;
   val = val | word[0];
   static UInt_t last_orbit = 0, last_bc = 0;
-  // First word
-  struct zdc_payload_v0_w0 {
-    unsigned fixed_0 : 2;
-    unsigned board : 4;
-    unsigned ch : 2;
-    unsigned offset : 16;
-    unsigned hits : 12;
-    unsigned bc : 12;
-    UInt_t orbit;
-    unsigned empty_0 : 16;
-    UInt_t empty_1;
-  };
-  // Second word
-  struct zdc_payload_v0_w1 {
-    unsigned fixed_1 : 2;
-    unsigned error : 2;
-    unsigned Alice_0 : 1;
-    unsigned Alice_1 : 1;
-    unsigned Alice_2 : 1;
-    unsigned Alice_3 : 1;
-    unsigned s00 : 12;
-    unsigned s01 : 12;
-    unsigned s02 : 12;
-    unsigned s03 : 12;
-    unsigned s04 : 12;
-    unsigned s05 : 12;
-    unsigned empty_2 : 16;
-    UInt_t empty_3;
-  };
-  // Third word
-  struct zdc_payload_v0_w2 {
-    unsigned fixed_2 : 2;
-    unsigned Hit : 1;
-    unsigned Auto_m : 1;
-    unsigned Auto_0 : 1;
-    unsigned Auto_1 : 1;
-    unsigned Auto_2 : 1;
-    unsigned Auto_3 : 1;
-    unsigned s06 : 12;
-    unsigned s07 : 12;
-    unsigned s08 : 12;
-    unsigned s09 : 12;
-    unsigned s10 : 12;
-    unsigned s11 : 12;
-    unsigned empty_4 : 16;
-    UInt_t empty_5;
-  };
 
   ULong64_t lsb = val;
   ULong64_t msb = val >> 64;
@@ -780,10 +762,6 @@ void Digits2Raw::print_gbt_word(UInt_t* word, const ModuleConfig* moduleConfig)
   //printf("\n%llx %llx ",lsb,msb);
   //printf("\n%8x %8x %8x %8x ",d,c,b,a);
   if ((a & 0x3) == 0) {
-    union {
-      unsigned __int128 w;
-      struct zdc_payload_v0_w0 f;
-    } w0;
     UInt_t myorbit = (val >> 48) & 0xffffffff;
     UInt_t mybc = (val >> 36) & 0xfff;
     if (myorbit != last_orbit || mybc != last_bc) {
@@ -799,48 +777,45 @@ void Digits2Raw::print_gbt_word(UInt_t* word, const ModuleConfig* moduleConfig)
     UInt_t ch = (lsb >> 6) & 0x3;
     //printf("orbit %9u bc %4u hits %4u offset %+6i Board %2u Ch %1u", myorbit, mybc, hits, offset, board, ch);
     printf("orbit %9u bc %4u hits %4u offset %+8.3f Board %2u Ch %1u", myorbit, mybc, hits, foffset, board, ch);
-    if (board >= NModules)
+    if (board >= NModules) {
       printf(" ERROR with board");
-    if (ch >= NChPerModule)
+    }
+    if (ch >= NChPerModule) {
       printf(" ERROR with ch");
+    }
     if (moduleConfig) {
       auto id = moduleConfig->modules[board].channelID[ch];
-      if (id >= 0 && id < NChannels)
+      if (id >= 0 && id < NChannels) {
         printf(" %s", ChannelNames[id].data());
-      else
+      } else {
         printf(" error with ch id");
+      }
     }
   } else if ((a & 0x3) == 1) {
     printf("%04x %08x %08x ", c, b, a);
-    union {
-      unsigned __int128 w;
-      struct zdc_payload_v0_w1 f;
-    } w1;
     printf("     %s %s %s %s ", a & 0x10 ? "A0" : "  ", a & 0x20 ? "A1" : "  ", a & 0x40 ? "A2" : "  ", a & 0x80 ? "A3" : "  ");
     printf("0-5 ");
     Short_t s[6];
     val = val >> 8;
     for (Int_t i = 0; i < 6; i++) {
       s[i] = val & 0xfff;
-      if (s[i] > 2047)
-        s[i] = s[i] - 4096;
+      if (s[i] > ADCMax) {
+        s[i] = s[i] - ADCRange;
+      }
       val = val >> 12;
     }
     printf(" %5d %5d %5d %5d %5d %5d", s[0], s[1], s[2], s[3], s[4], s[5]);
   } else if ((a & 0x3) == 2) {
     printf("%04x %08x %08x ", c, b, a);
-    union {
-      unsigned __int128 w;
-      struct zdc_payload_v0_w2 f;
-    } w2;
     printf("%s %s %s %s %s %s ", a & 0x4 ? "H" : " ", a & 0x8 ? "TM" : "  ", a & 0x10 ? "T0" : "  ", a & 0x20 ? "T1" : "  ", a & 0x40 ? "T2" : "  ", a & 0x80 ? "T3" : "  ");
     printf("6-b ");
     Short_t s[6];
     val = val >> 8;
     for (Int_t i = 0; i < 6; i++) {
       s[i] = val & 0xfff;
-      if (s[i] > 2047)
-        s[i] = s[i] - 4096;
+      if (s[i] > ADCMax) {
+        s[i] = s[i] - ADCRange;
+      }
       val = val >> 12;
     }
     printf(" %5d %5d %5d %5d %5d %5d", s[0], s[1], s[2], s[3], s[4], s[5]);

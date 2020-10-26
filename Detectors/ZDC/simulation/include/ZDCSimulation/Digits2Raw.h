@@ -15,6 +15,7 @@
 #ifndef ALICEO2_ZDC_DIGITS2RAW_H_
 #define ALICEO2_ZDC_DIGITS2RAW_H_
 #include <string>
+#include <bitset>
 #include <Rtypes.h>
 #include "Headers/RAWDataHeader.h"
 #include "CommonDataFormat/InteractionRecord.h"
@@ -23,6 +24,8 @@
 #include "DataFormatsZDC/RawEventData.h"
 #include "ZDCBase/ModuleConfig.h"
 #include "ZDCSimulation/SimCondition.h"
+#include "DataFormatsZDC/BCData.h"
+#include "DataFormatsZDC/ChannelData.h"
 
 namespace o2
 {
@@ -44,12 +47,12 @@ class Digits2Raw
   void setFilePerLink(bool v) { mOutputPerLink = v; }
   bool getFilePerLink() const { return mOutputPerLink; }
 
-  void setVerbosity(int v) { mVerbosity = v; }
+  void setVerbosity(int v) { mVerbosity = v; mWriter.setVerbosity(v); }
   int getVerbosity() const { return mVerbosity; }
 
   //  void setContinuous(bool v = true) { mIsContinuous = v; }
   bool isContinuous() const { return mIsContinuous; }
-  static void print_gbt_word(UInt_t* word, const ModuleConfig* moduleConfig = 0);
+  static void print_gbt_word(const UInt_t* word, const ModuleConfig* moduleConfig = 0);
 
  private:
   void setTriggerMask();
