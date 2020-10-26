@@ -118,9 +118,12 @@ void Decoder::clear()
   }
 
   mPatterns.clear();
+<<<<<<< HEAD
   mCratePatterns.clear();
   mCrateHeaderData.clear();
 
+=======
+>>>>>>> add conet mode for raw decoding to digits
   mErrors.clear();
 }
 
