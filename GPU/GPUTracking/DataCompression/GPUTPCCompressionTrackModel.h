@@ -100,20 +100,22 @@ class GPUTPCCompressionTrackModel
   GPUd() int followLinearization(const PhysicalTrackModel& t0e, float Bz, float dLp);
   GPUd() void calculateMaterialCorrection();
   GPUd() float approximateBetheBloch(float beta2);
+  GPUd() void getClusterRMS2(int iRow, float z, float sinPhi, float DzDs, float& ErrY2, float& ErrZ2) const;
   GPUd() void resetCovariance();
 
 #endif
 
  protected:
-  const GPUParam* mParam;
 
 #ifdef GPUCA_COMPRESSION_TRACK_MODEL_MERGER
   GPUTPCGMPropagator mProp;
   GPUTPCGMTrackParam mTrk;
+  const GPUParam* mParam;
 
 #elif defined(GPUCA_COMPRESSION_TRACK_MODEL_SLICETRACKER)
   GPUTPCTrackParam mTrk;
   float mAlpha;
+  const GPUParam* mParam;
 
 #else // Default internal track model for compression
 
@@ -124,6 +126,20 @@ class GPUTPCCompressionTrackModel
     float rho;                                                 // [g/cm^3]
     float radLenInv, DLMax, EP2, sigmadE2, k22, k33, k43, k44; // precalculated values for MS and EnergyLoss correction
   };
+
+  // default TPC cluster error parameterization taken from GPUParam.cxx
+  // clang-format off
+  const float kParamRMS0[2][3][4] =
+  {
+    { { 4.17516864836e-02, 1.87623649254e-04, 5.63788712025e-02, 5.38373768330e-01, },
+    { 8.29434990883e-02, 2.03291710932e-04, 6.81538805366e-02, 9.70965325832e-01, },
+    { 8.67543518543e-02, 2.10733342101e-04, 1.38366967440e-01, 2.55089461803e-01, }
+    }, {
+    { 5.96254616976e-02, 8.62886518007e-05, 3.61776389182e-02, 4.79704320431e-01, },
+    { 6.12571723759e-02, 7.23929333617e-05, 3.93057651818e-02, 9.29222583771e-01, },
+    { 6.58465921879e-02, 1.03639606095e-04, 6.07583411038e-02, 9.90289509296e-01, } }
+  };
+  // clang-format on
 
   float mX;
   float mAlpha;
