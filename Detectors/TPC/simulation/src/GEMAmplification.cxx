@@ -102,8 +102,6 @@ GEMAmplification::GEMAmplification()
   LOG(INFO) << "TPC: GEM setup (polya) took " << watch.CpuTime();
 }
 
-GEMAmplification::~GEMAmplification() = default;
-
 void GEMAmplification::updateParameters()
 {
   auto& cdb = CDBInterface::instance();
