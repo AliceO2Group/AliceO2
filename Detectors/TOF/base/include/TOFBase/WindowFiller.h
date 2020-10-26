@@ -28,6 +28,7 @@ class WindowFiller
   struct PatternData {
     uint32_t pattern;
     int icrate;
+
     unsigned long row;
 
     PatternData(uint32_t patt = 0, int icr = 0, unsigned long rw = 0) : pattern(patt), icrate(icr), row(rw) {}
