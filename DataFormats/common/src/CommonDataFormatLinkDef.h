@@ -48,4 +48,14 @@
 
 #pragma link C++ class o2::dataformats::AbstractRef < 26, 3, 3> + ;
 
+#pragma link C++ class o2::dataformats::FlatHisto1D < float> + ;
+#pragma link C++ class o2::dataformats::FlatHisto1D < double> + ;
+#pragma link C++ class o2::dataformats::FlatHisto1D_f + ;
+#pragma link C++ class o2::dataformats::FlatHisto1D_d + ;
+
+#pragma link C++ class o2::dataformats::FlatHisto2D < float> + ;
+#pragma link C++ class o2::dataformats::FlatHisto2D < double> + ;
+#pragma link C++ class o2::dataformats::FlatHisto2D_f + ;
+#pragma link C++ class o2::dataformats::FlatHisto2D_d + ;
+
 #endif
