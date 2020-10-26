@@ -59,13 +59,20 @@ DECLARE_SOA_TABLE(TrksU, "AOD", "TRKSU",
                   test::Y,
                   test::Z);
 
-namespace test
+namespace testE
 {
 DECLARE_SOA_COLUMN(Arr, arr, float[3]);
 DECLARE_SOA_COLUMN(Boo, boo, bool);
 } // namespace test
 
-DECLARE_SOA_TABLE(EventExtra, "AOD", "EVTSXTRA", test::Arr, test::Boo);
+namespace testT
+{
+DECLARE_SOA_COLUMN(Arr, arr, float[3]);
+DECLARE_SOA_COLUMN(Boo, boo, bool);
+} // namespace testT
+
+DECLARE_SOA_TABLE(EventExtra, "AOD", "EVTSXTRA", testE::Arr, testE::Boo);
+DECLARE_SOA_TABLE(TrackTest, "AOD", "EVTSXTRA", testT::Arr, testT::Boo);
 
 } // namespace o2::aod
 BOOST_AUTO_TEST_CASE(GroupSlicerOneAssociated)
@@ -322,7 +329,7 @@ BOOST_AUTO_TEST_CASE(EmptySliceables)
   }
 }
 
-BOOST_AUTO_TEST_CASE(ArrowDirectSlicing)
+BOOST_AUTO_TEST_CASE(ArrowDirectSlicingWithBoolsAndArrays)
 {
   int counts[] = {5, 5, 5, 4, 1};
   int offsets[] = {0, 5, 10, 15, 19, 20};
@@ -375,5 +382,80 @@ BOOST_AUTO_TEST_CASE(ArrowDirectSlicing)
     BOOST_REQUIRE_EQUAL(cb->length(), counts[i]);
     BOOST_CHECK(ca->Equals(slices_array[i]));
     BOOST_CHECK(cb->Equals(slices_bool[i]));
+  }
+}
+
+BOOST_AUTO_TEST_CASE(GroupSlicingWithBoolsAndArrays)
+{
+  using BigT = soa::Join<aod::TrksX, aod::TrackTest>;
+
+  TableBuilder builderE;
+  auto evtsWriter = builderE.cursor<aod::Events>();
+  for (auto i = 0; i < 20; ++i) {
+    evtsWriter(0, i, 0.5f * i, 2.f * i, 3.f * i);
+  }
+  auto evtTable = builderE.finalize();
+
+  TableBuilder builderT;
+  auto trksWriter = builderT.cursor<aod::TrksX>();
+  for (auto i = 0; i < 20; ++i) {
+    if (i == 3 || i == 10 || i == 12 || i == 16) {
+      continue;
+    }
+    for (auto j = 0.f; j < 5; j += 0.5f) {
+      trksWriter(0, i, 0.5f * j);
+    }
+  }
+  auto trkTable = builderT.finalize();
+
+  TableBuilder builderTE;
+  auto trksEWriter = builderTE.cursor<aod::TrackTest>();
+  for (auto i = 0; i < 20; ++i) {
+    if (i == 3 || i == 10 || i == 12 || i == 16) {
+      continue;
+    }
+    float arr[3] = {0.1f * i, 0.2f * i, 0.3f * i};
+    for (auto j = 0.f; j < 5; j += 0.5f) {
+      trksEWriter(0, arr, i % 2 == 0);
+    }
+  }
+  auto trkETable = builderTE.finalize();
+
+  aod::Events e{evtTable};
+  aod::TrackTest tt{trkETable};
+  BigT tte{{trkTable, trkETable}};
+  for (auto& t : tte) {
+    BOOST_CHECK_EQUAL(t.boo(), t.eventId() % 2 == 0);
+  }
+
+  std::vector<arrow::Datum> slices;
+  std::vector<uint64_t> offsts;
+  auto status = sliceByColumn("fEventsID", tte.asArrowTable(), 20, &slices, &offsts);
+
+  auto t = std::make_tuple(tte);
+  o2::framework::AnalysisDataProcessorBuilder::GroupSlicer g(e, t);
+
+  unsigned int count = 0;
+  for (auto& slice : g) {
+    auto tbl = arrow::util::get<std::shared_ptr<arrow::Table>>(slices[count].value);
+    auto ca = tbl->GetColumnByName("fArr");
+    auto cb = tbl->GetColumnByName("fBoo");
+    auto as = slice.associatedTables();
+    auto gg = slice.groupingElement();
+    auto trks = std::get<BigT>(as);
+    BOOST_CHECK_EQUAL(gg.globalIndex(), count);
+    BOOST_CHECK(ca->Equals(trks.asArrowTable()->GetColumnByName("fArr")));
+    BOOST_CHECK(cb->Equals(trks.asArrowTable()->GetColumnByName("fBoo")));
+    auto size = 10;
+    if (count == 3 || count == 10 || count == 12 || count == 16) {
+      size = 0;
+    } else {
+      for (auto& trk : trks) {
+        BOOST_CHECK_EQUAL(trk.boo(), (count % 2 == 0));
+      }
+    }
+    BOOST_CHECK_EQUAL(trks.size(), size);
+
+    ++count;
   }
 }
