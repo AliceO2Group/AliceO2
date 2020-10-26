@@ -142,7 +142,7 @@ uint64_t DataInputDescriptor::getTimeFrameNumber(int counter, int numTF)
 FileAndFolder DataInputDescriptor::getFileFolder(int counter, int numTF)
 {
   FileAndFolder fileAndFolder;
-  
+
   // open file
   if (!setFile(counter)) {
     return fileAndFolder;
@@ -155,7 +155,7 @@ FileAndFolder DataInputDescriptor::getFileFolder(int counter, int numTF)
 
   fileAndFolder.file = mcurrentFile;
   fileAndFolder.folderName = (mfilenames[counter]->listOfTimeFrameKeys)[numTF];
-  
+
   return fileAndFolder;
 }
 
