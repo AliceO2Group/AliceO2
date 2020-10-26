@@ -19,11 +19,6 @@
 #include <iostream>
 #include <gsl/span>
 
-// #include "Headers/RAWDataHeader.h"
-// #include <Framework/Logger.h>
-// #include <utility>
-// #include <cstring>
-
 /// \file RawEventData.h
 /// \brief Container of ZDC raw data
 /// \author pietro.cortese@cern.ch
