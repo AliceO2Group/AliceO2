@@ -284,6 +284,7 @@ void Digitizer::flush(std::vector<o2::ft0::Digit>& digitsBC,
 {
 
   assert(firstBCinDeque <= mIntRecord);
+
   while (firstBCinDeque < mIntRecord && !mCache.empty()) {
     storeBC(mCache.front(), digitsBC, digitsCh, labels);
     mCache.pop_front();
@@ -296,7 +297,8 @@ void Digitizer::flush_all(std::vector<o2::ft0::Digit>& digitsBC,
                           std::vector<o2::ft0::ChannelData>& digitsCh,
                           o2::dataformats::MCTruthContainer<o2::ft0::MCLabel>& labels)
 {
-  assert(firstBCinDeque < mIntRecord);
+
+  assert(firstBCinDeque <= mIntRecord);
   ++mEventID;
   while (!mCache.empty()) {
     storeBC(mCache.front(), digitsBC, digitsCh, labels);
