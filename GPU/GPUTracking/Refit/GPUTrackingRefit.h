@@ -72,15 +72,16 @@ class GPUTrackingRefit
     o2::track::TrackParCov& trk;
     const o2::tpc::TrackTPCClusRef& clusRef;
     float time0;
+    float* chi2;
   };
-  GPUd() int RefitTrackAsGPU(o2::track::TrackParCov& trk, const o2::tpc::TrackTPCClusRef& clusRef, float time0, bool outward = false, bool resetCov = false)
+  GPUd() int RefitTrackAsGPU(o2::track::TrackParCov& trk, const o2::tpc::TrackTPCClusRef& clusRef, float time0, float* chi2 = nullptr, bool outward = false, bool resetCov = false)
   {
-    TrackParCovWithArgs x{trk, clusRef, time0};
+    TrackParCovWithArgs x{trk, clusRef, time0, chi2};
     return RefitTrack<TrackParCovWithArgs, GPUTPCGMTrackParam>(x, outward, resetCov);
   }
-  GPUd() int RefitTrackAsTrackParCov(o2::track::TrackParCov& trk, const o2::tpc::TrackTPCClusRef& clusRef, float time0, bool outward = false, bool resetCov = false)
+  GPUd() int RefitTrackAsTrackParCov(o2::track::TrackParCov& trk, const o2::tpc::TrackTPCClusRef& clusRef, float time0, float* chi2 = nullptr, bool outward = false, bool resetCov = false)
   {
-    TrackParCovWithArgs x{trk, clusRef, time0};
+    TrackParCovWithArgs x{trk, clusRef, time0, chi2};
     return RefitTrack<TrackParCovWithArgs, o2::track::TrackParCov>(x, outward, resetCov);
   }
 
@@ -97,7 +98,7 @@ class GPUTrackingRefit
   template <class T, class S>
   GPUd() int RefitTrack(T& trk, bool outward, bool resetCov);
   template <class T, class S, class U>
-  void convertTrack(T& trk, const S& trkX, U& prop);
+  void convertTrack(T& trk, const S& trkX, U& prop, float* chi2);
   template <class U>
   void initProp(U& prop);
 };

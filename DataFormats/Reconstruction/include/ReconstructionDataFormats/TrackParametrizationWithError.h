@@ -49,6 +49,7 @@ class TrackParametrizationWithError : public TrackParametrization<value_T>
   TrackParametrizationWithError& operator=(const TrackParametrizationWithError& src) = default;
   TrackParametrizationWithError& operator=(TrackParametrizationWithError&& src) = default;
   ~TrackParametrizationWithError() = default;
+  using TrackParametrization<value_T>::TrackParametrization;
 
   const value_t* getCov() const;
   value_t getSigmaY2() const;
@@ -71,8 +72,8 @@ class TrackParametrizationWithError : public TrackParametrization<value_T>
 
   bool getCovXYZPxPyPzGlo(std::array<value_t, kLabCovMatSize>& c) const;
 
-#ifndef GPUCA_ALIGPUCODE
   void print() const;
+#ifndef GPUCA_ALIGPUCODE
   std::string asString() const;
 #endif
 

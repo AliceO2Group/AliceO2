@@ -27,7 +27,6 @@
 #include "ITSMFTReconstruction/GBTLink.h"
 #include "ITSMFTReconstruction/RUDecodeData.h"
 #include "DetectorsRaw/RDHUtils.h"
-#include "MathUtils/Cartesian.h"
 
 #include <TTree.h>
 #include <TStopwatch.h>
@@ -48,13 +47,8 @@
 
 #define OUTHEX(v, l) "0x" << std::hex << std::setfill('0') << std::setw(l) << v << std::dec
 
-template <typename T>
-using Point3D = o2::math_utils::Point3D<T>;
-
 namespace o2
 {
-using TransformType = o2::math_utils::TransformType;
-
 namespace itsmft
 {
 

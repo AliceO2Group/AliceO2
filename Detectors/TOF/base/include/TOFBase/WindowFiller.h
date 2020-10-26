@@ -28,15 +28,16 @@ class WindowFiller
   struct PatternData {
     uint32_t pattern;
     int icrate;
-    ulong row;
 
-    PatternData(uint32_t patt = 0, int icr = 0, ulong rw = 0) : pattern(patt), icrate(icr), row(rw) {}
+    unsigned long row;
+
+    PatternData(uint32_t patt = 0, int icr = 0, unsigned long rw = 0) : pattern(patt), icrate(icr), row(rw) {}
   };
 
   struct CrateHeaderData {
     int32_t bc[Geo::kNCrate] = {-1};
     uint32_t eventCounter[Geo::kNCrate] = {0};
-    CrateHeaderData() {}
+    CrateHeaderData() { memset(bc, -1, Geo::kNCrate * 4); }
   };
 
   WindowFiller() { initObj(); };
@@ -70,8 +71,7 @@ class WindowFiller
 
   void clearCounts()
   {
-    for (int i = 0; i < o2::tof::Geo::NCHANNELS; i++)
-      mChannelCounts[i] = 0;
+    memset(mChannelCounts, 0, o2::tof::Geo::NCHANNELS * sizeof(mChannelCounts[0]));
   }
 
   std::vector<uint32_t>& getPatterns() { return mPatterns; }

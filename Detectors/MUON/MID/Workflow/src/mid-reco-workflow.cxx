@@ -27,7 +27,8 @@ using namespace o2::framework;
 void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
 {
   std::vector<ConfigParamSpec> options{
-    {"input-ctf", VariantType::Bool, false, {"Input data comes from CTF"}}};
+    {"input-ctf", VariantType::Bool, false, {"Input data comes from CTF"}},
+    {"disable-root-output", o2::framework::VariantType::Bool, false, {"disable root-files output writer"}}};
   std::swap(workflowOptions, options);
 
   std::string keyvaluehelp("Semicolon separated key=value strings ...");
@@ -46,5 +47,6 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   // write the configuration used for the digitizer workflow
   o2::conf::ConfigurableParam::writeINI("o2mid-recoflow_configuration.ini");
   auto ctf = configcontext.options().get<bool>("input-ctf");
-  return std::move(o2::mid::getRecoWorkflow(ctf));
+  auto disableRootOut = configcontext.options().get<bool>("disable-root-output");
+  return std::move(o2::mid::getRecoWorkflow(ctf, disableRootOut));
 }

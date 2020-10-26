@@ -53,4 +53,7 @@
 
 #pragma link C++ class o2::dataformats::DCA + ;
 
+#pragma link C++ class o2::dataformats::V0 + ;
+#pragma link C++ class std::vector < o2::dataformats::V0> + ;
+
 #endif

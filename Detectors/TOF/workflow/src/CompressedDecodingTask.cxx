@@ -97,10 +97,10 @@ void CompressedDecodingTask::postData(ProcessingContext& pc)
   pc.outputs().snapshot(Output{o2::header::gDataOriginTOF, "DIGITS", 0, Lifetime::Timeframe}, *alldigits);
   pc.outputs().snapshot(Output{o2::header::gDataOriginTOF, "READOUTWINDOW", 0, Lifetime::Timeframe}, *row);
 
-  std::vector<uint32_t> patterns = mDecoder.getPatterns();
+  std::vector<uint32_t>& patterns = mDecoder.getPatterns();
   pc.outputs().snapshot(Output{o2::header::gDataOriginTOF, "PATTERNS", 0, Lifetime::Timeframe}, patterns);
 
-  std::vector<uint64_t> errors = mDecoder.getErrors();
+  std::vector<uint64_t>& errors = mDecoder.getErrors();
   pc.outputs().snapshot(Output{o2::header::gDataOriginTOF, "ERRORS", 0, Lifetime::Timeframe}, errors);
 
   // RS this is a hack to be removed once we have correct propagation of the firstTForbit by the framework
@@ -185,7 +185,7 @@ void CompressedDecodingTask::trailerHandler(const CrateHeader_t* crateHeader, co
     mNCrateCloseTF++;
   }
 
-  mDecoder.addCrateHeaderData(crateOrbit->orbitID,  crateHeader->drmID, crateHeader->bunchID, crateTrailer->eventCounter);
+  mDecoder.addCrateHeaderData(crateOrbit->orbitID, crateHeader->drmID, crateHeader->bunchID, crateTrailer->eventCounter);
 
   // Diagnostics used to fill digit patterns
   auto numberOfDiagnostics = crateTrailer->numberOfDiagnostics;

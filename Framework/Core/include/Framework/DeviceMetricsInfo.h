@@ -8,19 +8,19 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 //
-#ifndef FRAMEWORK_DEVICEMETRICSINFO_H
-#define FRAMEWORK_DEVICEMETRICSINFO_H
+#ifndef O2_FRAMEWORK_DEVICEMETRICSINFO_H_
+#define O2_FRAMEWORK_DEVICEMETRICSINFO_H_
 
+#include "Framework/RuntimeError.h"
 #include <array>
 #include <cstddef>
+#include <cstring>
 #include <functional>
 #include <string>
 #include <string_view>
 #include <vector>
 
-namespace o2
-{
-namespace framework
+namespace o2::framework
 {
 
 enum class MetricType {
@@ -34,10 +34,10 @@ enum class MetricType {
 std::ostream& operator<<(std::ostream& oss, MetricType const& val);
 
 struct MetricInfo {
-  enum MetricType type;
-  size_t storeIdx; // Index in the actual store
-  size_t pos;      // Last position in the circular buffer
-  size_t filledMetrics;
+  enum MetricType type = MetricType::Unknown;
+  size_t storeIdx = -1;     // Index in the actual store
+  size_t pos = 0;           // Last position in the circular buffer
+  size_t filledMetrics = 0; // How many metrics were filled
 };
 
 // We keep only fixed lenght strings for metrics, as in the end this is not
@@ -84,6 +84,7 @@ struct DeviceMetricsInfo {
   std::vector<size_t> maxDomain;
   std::vector<MetricLabelIndex> metricLabelsIdx;
   std::vector<MetricInfo> metrics;
+  std::vector<bool> changed;
 };
 
 struct DeviceMetricsHelper {
@@ -104,9 +105,94 @@ struct DeviceMetricsHelper {
                             NewMetricCallback newMetricCallback = nullptr);
   static size_t metricIdxByName(const std::string& name,
                                 const DeviceMetricsInfo& info);
+
+  /// Typesafe way to get the actual store
+  template <typename T>
+  static auto& getMetricsStore(DeviceMetricsInfo& metrics)
+  {
+    if constexpr (std::is_same_v<T, int>) {
+      return metrics.intMetrics;
+    } else if constexpr (std::is_same_v<T, float>) {
+      return metrics.floatMetrics;
+    } else if constexpr (std::is_same_v<T, uint64_t>) {
+      return metrics.uint64Metrics;
+    } else {
+      throw runtime_error("Unhandled metric type");
+    };
+  }
+
+  template <typename T>
+  static auto getMetricType()
+  {
+    if constexpr (std::is_same_v<T, int>) {
+      return MetricType::Int;
+    } else if constexpr (std::is_same_v<T, float>) {
+      return MetricType::Float;
+    } else if constexpr (std::is_same_v<T, uint64_t>) {
+      return MetricType::Uint64;
+    } else {
+      throw runtime_error("Unhandled metric type");
+    };
+  }
+
+  /// @return helper to insert a given value in the metrics
+  template <typename T>
+  static std::function<void(DeviceMetricsInfo&, T value, size_t timestamp)>
+    createNumericMetric(DeviceMetricsInfo& metrics,
+                        char const* name,
+                        NewMetricCallback newMetricsCallback = nullptr)
+  {
+    static_assert(std::is_same_v<T, int> || std::is_same_v<T, uint64_t> || std::is_same_v<T, float>, "Unsupported metric type");
+    // Create a new metric
+    MetricInfo metricInfo;
+    metricInfo.pos = 0;
+    metricInfo.type = getMetricType<T>();
+    metricInfo.filledMetrics = 0;
+    metricInfo.storeIdx = getMetricsStore<T>(metrics).size();
+    getMetricsStore<T>(metrics).emplace_back(std::array<T, 1024>{});
+
+    // Add the timestamp buffer for it
+    metrics.timestamps.emplace_back(std::array<size_t, 1024>{});
+    metrics.max.push_back(std::numeric_limits<float>::lowest());
+    metrics.min.push_back(std::numeric_limits<float>::max());
+    metrics.maxDomain.push_back(std::numeric_limits<size_t>::lowest());
+    metrics.minDomain.push_back(std::numeric_limits<size_t>::max());
+    metrics.changed.push_back(true);
+
+    // Add the index by name in the correct position
+    // this will require moving the tail of the index,
+    // but inserting should happen only once for each metric,
+    // so who cares.
+    // Add the the actual Metric info to the store
+    MetricLabelIndex metricLabelIdx;
+    strncpy(metricLabelIdx.label, name, MetricLabelIndex::MAX_METRIC_LABEL_SIZE - 1);
+    metricLabelIdx.label[MetricLabelIndex::MAX_METRIC_LABEL_SIZE - 1] = '\0';
+    metricLabelIdx.index = metrics.metrics.size();
+    metrics.metricLabelsIdx.push_back(metricLabelIdx);
+
+    // Add the the actual Metric info to the store
+    auto metricIndex = metrics.metrics.size();
+    metrics.metrics.push_back(metricInfo);
+
+    if (newMetricsCallback != nullptr) {
+      newMetricsCallback(metricLabelIdx.label, metricInfo, 0, metricIndex);
+    }
+    return [metricIndex](DeviceMetricsInfo& metrics, T value, size_t timestamp) {
+      MetricInfo& metric = metrics.metrics[metricIndex];
+
+      metrics.minDomain[metricIndex] = std::min(metrics.minDomain[metricIndex], timestamp);
+      metrics.maxDomain[metricIndex] = std::max(metrics.maxDomain[metricIndex], timestamp);
+      metrics.max[metricIndex] = std::max(metrics.max[metricIndex], (float)value);
+      metrics.min[metricIndex] = std::min(metrics.min[metricIndex], (float)value);
+      metrics.changed.at(metricIndex) = true;
+      auto& store = getMetricsStore<T>(metrics);
+      size_t pos = metric.pos++ % store[metric.storeIdx].size();
+      metrics.timestamps[metricIndex][pos] = timestamp;
+      store[metric.storeIdx][pos] = value;
+    };
+  }
 };
 
-} // namespace framework
-} // namespace o2
+} // namespace o2::framework
 
-#endif // FRAMEWORK_DEVICEMETRICSINFO_H
+#endif // O2_FRAMEWORK_DEVICEMETRICSINFO_H_

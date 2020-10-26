@@ -134,7 +134,7 @@ void VertexTrackMatcher::process(const gsl::span<const PVertex>& vertices,
       }
       auto& gid = trackIndex.emplace_back(gid0);
       if ((*vptr[src])[gid.getIndex()] > 1) {
-        gid.setBit(GIndex::Ambiguous);
+        gid.setAmbiguous();
       }
     }
 

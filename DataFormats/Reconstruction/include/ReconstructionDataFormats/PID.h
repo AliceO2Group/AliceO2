@@ -22,6 +22,8 @@ namespace o2
 {
 namespace track
 {
+namespace o2cp = o2::constants::physics;
+
 class PID
 {
  public:
@@ -68,6 +70,7 @@ class PID
 
   static constexpr const char* getName(ID id) { return sNames[id]; }
   static constexpr float getMass(ID id) { return sMasses[id]; }
+  static constexpr float getMass2(ID id) { return sMasses2[id]; }
   static constexpr float getMass2Z(ID id) { return sMasses2Z[id]; }
   static constexpr int getCharge(ID id) { return sCharges[id]; }
 
@@ -91,22 +94,34 @@ class PID
      nullptr};
 
   static constexpr const float sMasses[NIDsTot] = ///< defined particle masses
-    {o2::constants::physics::MassElectron, o2::constants::physics::MassMuon,
-     o2::constants::physics::MassPionCharged, o2::constants::physics::MassKaonCharged,
-     o2::constants::physics::MassProton, o2::constants::physics::MassDeuteron,
-     o2::constants::physics::MassTriton, o2::constants::physics::MassHelium3,
-     o2::constants::physics::MassAlpha,
-     o2::constants::physics::MassPionNeutral, o2::constants::physics::MassPhoton,
-     o2::constants::physics::MassKaonNeutral, o2::constants::physics::MassLambda,
-     o2::constants::physics::MassHyperTriton};
+    {o2cp::MassElectron, o2cp::MassMuon, o2cp::MassPionCharged, o2cp::MassKaonCharged,
+     o2cp::MassProton, o2cp::MassDeuteron, o2cp::MassTriton, o2cp::MassHelium3,
+     o2cp::MassAlpha, o2cp::MassPionNeutral, o2cp::MassPhoton,
+     o2cp::MassKaonNeutral, o2cp::MassLambda, o2cp::MassHyperTriton};
+
+  static constexpr const float sMasses2[NIDsTot] = ///< defined particle masses^2
+    {o2cp::MassElectron * o2cp::MassElectron,
+     o2cp::MassMuon* o2cp::MassMuon,
+     o2cp::MassPionCharged* o2cp::MassPionCharged,
+     o2cp::MassKaonCharged* o2cp::MassKaonCharged,
+     o2cp::MassProton* o2cp::MassProton,
+     o2cp::MassDeuteron* o2cp::MassDeuteron,
+     o2cp::MassTriton* o2cp::MassTriton,
+     o2cp::MassHelium3* o2cp::MassHelium3,
+     o2cp::MassAlpha* o2cp::MassAlpha,
+     o2cp::MassPionNeutral* o2cp::MassPionNeutral,
+     o2cp::MassPhoton* o2cp::MassPhoton,
+     o2cp::MassKaonNeutral* o2cp::MassKaonNeutral,
+     o2cp::MassLambda* o2cp::MassLambda,
+     o2cp::MassHyperTriton* o2cp::MassHyperTriton};
 
   static constexpr const float sMasses2Z[NIDsTot] = ///< defined particle masses / Z
-    {o2::constants::physics::MassElectron, o2::constants::physics::MassMuon,
-     o2::constants::physics::MassPionCharged, o2::constants::physics::MassKaonCharged,
-     o2::constants::physics::MassProton, o2::constants::physics::MassDeuteron,
-     o2::constants::physics::MassTriton, o2::constants::physics::MassHelium3 / 2.,
-     o2::constants::physics::MassAlpha / 2.,
-     0, 0, 0, 0, o2::constants::physics::MassHyperTriton};
+    {o2cp::MassElectron, o2cp::MassMuon,
+     o2cp::MassPionCharged, o2cp::MassKaonCharged,
+     o2cp::MassProton, o2cp::MassDeuteron,
+     o2cp::MassTriton, o2cp::MassHelium3 / 2.,
+     o2cp::MassAlpha / 2.,
+     0, 0, 0, 0, o2cp::MassHyperTriton};
 
   static constexpr const int sCharges[NIDsTot] = ///< defined particle charges
     {1, 1, 1, 1, 1, 1, 1, 2, 2,

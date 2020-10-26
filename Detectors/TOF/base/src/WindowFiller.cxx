@@ -107,15 +107,17 @@ void WindowFiller::fillDigitsInStrip(std::vector<Strip>* strips, int channel, in
   (*strips)[istrip].addDigit(channel, tdc, tot, nbc, 0, triggerorbit, triggerbunch);
 }
 //______________________________________________________________________
-void WindowFiller::addCrateHeaderData(ulong orbit, int crate, int32_t bc, uint32_t eventCounter) {
-  if(orbit < mFirstIR.orbit) return;
+void WindowFiller::addCrateHeaderData(ulong orbit, int crate, int32_t bc, uint32_t eventCounter)
+{
+  if (orbit < mFirstIR.orbit)
+    return;
   orbit -= mFirstIR.orbit;
 
-  orbit *= Geo::NWINDOW_IN_ORBIT; // move from orbit to N readout window
+  orbit *= Geo::NWINDOW_IN_ORBIT;          // move from orbit to N readout window
   orbit += (bc + 100) / Geo::BC_IN_WINDOW; // select readout window in the orbit according to the BC (100 shift to avoid border effects)
 
-  if(mCrateHeaderData.size() < orbit+1)
-    mCrateHeaderData.resize(orbit+1);
+  if (mCrateHeaderData.size() < orbit + 1)
+    mCrateHeaderData.resize(orbit + 1);
 
   mCrateHeaderData[orbit].bc[crate] = bc;
   mCrateHeaderData[orbit].eventCounter[crate] = eventCounter;
@@ -139,17 +141,19 @@ void WindowFiller::fillOutputContainer(std::vector<Digit>& digits)
     int orbit_shift = mReadoutWindowData.size() / Geo::NWINDOW_IN_ORBIT;
 
     int bc_shift = -1;
-    if(mReadoutWindowData.size() >= mCrateHeaderData.size())
+    if (mReadoutWindowData.size() >= mCrateHeaderData.size())
       bc_shift = (mReadoutWindowData.size() % Geo::NWINDOW_IN_ORBIT) * Geo::BC_IN_WINDOW; // insert default value
-    else{
+    else {
       ulong irow = mReadoutWindowData.size();
-      for(int icrate=0; icrate < Geo::kNCrate; icrate++){
-        if(mCrateHeaderData[irow].bc[icrate] == -1){ // crate not read
-           continue;
+      for (int icrate = 0; icrate < Geo::kNCrate; icrate++) {
+        if (mCrateHeaderData[irow].bc[icrate] == -1) { // crate not read
+          continue;
         }
-        if(bc_shift == -1 || mCrateHeaderData[irow].bc[icrate] < bc_shift) bc_shift = mCrateHeaderData[irow].bc[icrate];
+        if (bc_shift == -1 || mCrateHeaderData[irow].bc[icrate] < bc_shift)
+          bc_shift = mCrateHeaderData[irow].bc[icrate];
       }
-      if(bc_shift == -1) bc_shift = (mReadoutWindowData.size() % Geo::NWINDOW_IN_ORBIT) * Geo::BC_IN_WINDOW; // insert default value
+      if (bc_shift == -1)
+        bc_shift = (mReadoutWindowData.size() % Geo::NWINDOW_IN_ORBIT) * Geo::BC_IN_WINDOW; // insert default value
     }
 
     info.setBCData(mFirstIR.orbit + orbit_shift, mFirstIR.bc + bc_shift);
@@ -157,22 +161,19 @@ void WindowFiller::fillOutputContainer(std::vector<Digit>& digits)
     int npatterns = 0;
 
     // check if patterns are in the current row
-    int ipatt = mCratePatterns.size() - 1;
     for (std::vector<PatternData>::reverse_iterator it = mCratePatterns.rbegin(); it != mCratePatterns.rend(); ++it) {
       if (it->row > mReadoutWindowCurrent)
         break;
 
       if (it->row < mReadoutWindowCurrent) { // this should not happen
         LOG(ERROR) << "One pattern skipped because appears to occur early of the current row " << it->row << " < " << mReadoutWindowCurrent << " ?!";
-        mCratePatterns.erase(mCratePatterns.begin() + ipatt);
       } else {
         mPatterns.push_back(it->pattern);
         info.addedDiagnostic(it->icrate);
 
-        mCratePatterns.erase(mCratePatterns.begin() + ipatt);
         npatterns++;
       }
-      ipatt--;
+      mCratePatterns.pop_back();
     }
 
     info.setFirstEntryDia(firstPattern);

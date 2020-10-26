@@ -18,9 +18,10 @@
 #include <boost/test/unit_test.hpp>
 #include "TPCSimulation/Point.h"
 #include "TPCSimulation/DigitMCMetaData.h"
+#include "MathUtils/Cartesian.h"
 
 template <typename T>
-using Point3D = ROOT::Math::PositionVector3D<ROOT::Math::Cartesian3D<T>, ROOT::Math::DefaultCoordinateSystemTag>;
+using Point3D = o2::math_utils::Point3D<T>;
 
 namespace o2
 {
