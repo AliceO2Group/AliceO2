@@ -78,18 +78,11 @@ void DataInputDescriptor::addFileNameHolder(FileNameHolder* fn)
   mfilenames.emplace_back(fn);
 }
 
-std::tuple<TFile*, std::string> DataInputDescriptor::getFileFolder(int counter, int numTF)
+bool DataInputDescriptor::setFile(int counter)
 {
-  std::string directoryName("");
-
   // no files left
   if (counter >= getNumberInputfiles()) {
-    return std::make_tuple((TFile*)nullptr, directoryName);
-  }
-
-  // no TF left
-  if (mfilenames[counter]->numberOfTimeFrames > 0 && numTF >= mfilenames[counter]->numberOfTimeFrames) {
-    return std::make_tuple((TFile*)nullptr, directoryName);
+    return false;
   }
 
   // open file
@@ -106,30 +99,64 @@ std::tuple<TFile*, std::string> DataInputDescriptor::getFileFolder(int counter, 
     throw std::runtime_error(fmt::format("Couldn't open file \"{}\"!", filename));
   }
 
-  // get the directory name
+  // get the directory names
   if (mfilenames[counter]->numberOfTimeFrames <= 0) {
     std::regex TFRegex = std::regex("TF_[0-9]+");
     TList* keyList = mcurrentFile->GetListOfKeys();
 
     // extract TF numbers and sort accordingly
-    std::list<uint64_t> folderNumbers;
     for (auto key : *keyList) {
       if (std::regex_match(((TObjString*)key)->GetString().Data(), TFRegex)) {
         auto folderNumber = std::stoul(std::string(((TObjString*)key)->GetString().Data()).substr(3));
-        folderNumbers.emplace_back(folderNumber);
+        mfilenames[counter]->listOfTimeFrameNumbers.emplace_back(folderNumber);
       }
     }
-    folderNumbers.sort();
+    std::sort(mfilenames[counter]->listOfTimeFrameNumbers.begin(), mfilenames[counter]->listOfTimeFrameNumbers.end());
 
-    for (auto folderNumber : folderNumbers) {
+    for (auto folderNumber : mfilenames[counter]->listOfTimeFrameNumbers) {
       auto folderName = "TF_" + std::to_string(folderNumber);
       mfilenames[counter]->listOfTimeFrameKeys.emplace_back(folderName);
     }
     mfilenames[counter]->numberOfTimeFrames = mfilenames[counter]->listOfTimeFrameKeys.size();
   }
-  directoryName = (mfilenames[counter]->listOfTimeFrameKeys)[numTF];
 
-  return std::make_tuple(mcurrentFile, directoryName);
+  return true;
+}
+
+uint64_t DataInputDescriptor::getTimeFrameNumber(int counter, int numTF)
+{
+
+  // open file
+  if (!setFile(counter)) {
+    return 0ul;
+  }
+
+  // no TF left
+  if (mfilenames[counter]->numberOfTimeFrames > 0 && numTF >= mfilenames[counter]->numberOfTimeFrames) {
+    return 0ul;
+  }
+
+  return (mfilenames[counter]->listOfTimeFrameNumbers)[numTF];
+}
+
+FileAndFolder DataInputDescriptor::getFileFolder(int counter, int numTF)
+{
+  FileAndFolder fileAndFolder;
+
+  // open file
+  if (!setFile(counter)) {
+    return fileAndFolder;
+  }
+
+  // no TF left
+  if (mfilenames[counter]->numberOfTimeFrames > 0 && numTF >= mfilenames[counter]->numberOfTimeFrames) {
+    return fileAndFolder;
+  }
+
+  fileAndFolder.file = mcurrentFile;
+  fileAndFolder.folderName = (mfilenames[counter]->listOfTimeFrameKeys)[numTF];
+
+  return fileAndFolder;
 }
 
 void DataInputDescriptor::closeInputFile()
@@ -471,28 +498,38 @@ std::unique_ptr<TTreeReader> DataInputDirector::getTreeReader(header::DataHeader
     didesc = mdefaultDataInputDescriptor;
   }
 
-  auto [file, directory] = didesc->getFileFolder(counter, numTF);
-  if (file) {
-    treename = directory + "/" + treename;
-    reader = std::make_unique<TTreeReader>(treename.c_str(), file);
+  auto fileAndFolder = didesc->getFileFolder(counter, numTF);
+  if (fileAndFolder.file) {
+    treename = fileAndFolder.folderName + "/" + treename;
+    reader = std::make_unique<TTreeReader>(treename.c_str(), fileAndFolder.file);
     if (!reader) {
-      throw std::runtime_error(fmt::format(R"(Couldn't create TTreeReader for tree "{}" in file "{}")", treename, file->GetName()));
+      throw std::runtime_error(fmt::format(R"(Couldn't create TTreeReader for tree "{}" in file "{}")", treename, fileAndFolder.file->GetName()));
     }
   }
 
   return reader;
 }
 
-std::tuple<TFile*, std::string> DataInputDirector::getFileFolder(header::DataHeader dh, int counter, int numTF)
+FileAndFolder DataInputDirector::getFileFolder(header::DataHeader dh, int counter, int numTF)
 {
   auto didesc = getDataInputDescriptor(dh);
   // if NOT match then use defaultDataInputDescriptor
   if (!didesc) {
     didesc = mdefaultDataInputDescriptor;
   }
-  auto [file, directory] = didesc->getFileFolder(counter, numTF);
 
-  return std::make_tuple(file, directory);
+  return didesc->getFileFolder(counter, numTF);
+}
+
+uint64_t DataInputDirector::getTimeFrameNumber(header::DataHeader dh, int counter, int numTF)
+{
+  auto didesc = getDataInputDescriptor(dh);
+  // if NOT match then use defaultDataInputDescriptor
+  if (!didesc) {
+    didesc = mdefaultDataInputDescriptor;
+  }
+
+  return didesc->getTimeFrameNumber(counter, numTF);
 }
 
 TTree* DataInputDirector::getDataTree(header::DataHeader dh, int counter, int numTF)
@@ -512,12 +549,12 @@ TTree* DataInputDirector::getDataTree(header::DataHeader dh, int counter, int nu
     treename = aod::datamodel::getTreeName(dh);
   }
 
-  auto [file, directory] = didesc->getFileFolder(counter, numTF);
-  if (file) {
-    treename = directory + "/" + treename;
-    tree = (TTree*)file->Get(treename.c_str());
+  auto fileAndFolder = didesc->getFileFolder(counter, numTF);
+  if (fileAndFolder.file) {
+    treename = fileAndFolder.folderName + "/" + treename;
+    tree = (TTree*)fileAndFolder.file->Get(treename.c_str());
     if (!tree) {
-      throw std::runtime_error(fmt::format(R"(Couldn't get TTree "{}" from "{}")", treename, file->GetName()));
+      throw std::runtime_error(fmt::format(R"(Couldn't get TTree "{}" from "{}")", treename, fileAndFolder.file->GetName()));
     }
   }
 

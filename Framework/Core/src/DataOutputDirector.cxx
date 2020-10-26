@@ -428,11 +428,10 @@ std::vector<DataOutputDescriptor*> DataOutputDirector::getDataOutputDescriptors(
   return result;
 }
 
-std::tuple<TFile*, std::string> DataOutputDirector::getFileFolder(DataOutputDescriptor* dodesc, uint64_t folderNumber)
+FileAndFolder DataOutputDirector::getFileFolder(DataOutputDescriptor* dodesc, uint64_t folderNumber)
 {
   // initialisation
-  TFile* filePtr = nullptr;
-  std::string directoryName("");
+  FileAndFolder fileAndFolder;
 
   // search dodesc->filename in mfilenameBases and return corresponding filePtr
   auto it = std::find(mfilenameBases.begin(), mfilenameBases.end(), dodesc->getFilenameBase());
@@ -442,18 +441,18 @@ std::tuple<TFile*, std::string> DataOutputDirector::getFileFolder(DataOutputDesc
       auto fn = mfilenameBases[ind] + ".root";
       mfilePtrs[ind] = new TFile(fn.c_str(), mfileMode.c_str());
     }
-    filePtr = mfilePtrs[ind];
+    fileAndFolder.file = mfilePtrs[ind];
 
     // check if folder TF_* exists
-    directoryName = "TF_" + std::to_string(folderNumber) + "/";
-    auto key = filePtr->GetKey(directoryName.c_str());
+    fileAndFolder.folderName = "TF_" + std::to_string(folderNumber) + "/";
+    auto key = fileAndFolder.file->GetKey(fileAndFolder.folderName.c_str());
     if (!key) {
-      filePtr->mkdir(directoryName.c_str());
+      fileAndFolder.file->mkdir(fileAndFolder.folderName.c_str());
     }
-    filePtr->cd(directoryName.c_str());
+    fileAndFolder.file->cd(fileAndFolder.folderName.c_str());
   }
 
-  return std::make_tuple(filePtr, directoryName);
+  return fileAndFolder;
 }
 
 void DataOutputDirector::closeDataFiles()

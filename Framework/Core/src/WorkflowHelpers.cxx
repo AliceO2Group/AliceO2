@@ -407,12 +407,15 @@ void WorkflowHelpers::injectServiceDevices(WorkflowSpec& workflow, ConfigContext
     extraSpecs.push_back(indexBuilder);
   }
 
+  // add the reader
   if (aodReader.outputs.empty() == false) {
+    aodReader.outputs.emplace_back(OutputSpec{"TFN", "TFNumber"});
     extraSpecs.push_back(timePipeline(aodReader, ctx.options().get<int64_t>("readers")));
     auto concrete = DataSpecUtils::asConcreteDataMatcher(aodReader.inputs[0]);
     timer.outputs.emplace_back(OutputSpec{concrete.origin, concrete.description, concrete.subSpec, Lifetime::Enumeration});
   }
 
+  // add the timer
   if (timer.outputs.empty() == false) {
     extraSpecs.push_back(timer);
   }
@@ -431,20 +434,14 @@ void WorkflowHelpers::injectServiceDevices(WorkflowSpec& workflow, ConfigContext
   }
 
   workflow.insert(workflow.end(), extraSpecs.begin(), extraSpecs.end());
+  extraSpecs.clear();
 
-  /// This will create different file sinks
-  ///   . AOD                   - getGlobalAODSink
-  ///   . dangling, not AOD     - getGlobalFileSink
-  ///
-  // First analyze all ouputs
+  /// Analyze all ouputs
   //  outputTypes = isAOD*2 + isdangling*1 + 0
   auto [OutputsInputs, outputTypes] = analyzeOutputs(workflow);
 
   // create DataOutputDescriptor
   std::shared_ptr<DataOutputDirector> dod = getDataOutputDirector(ctx.options(), OutputsInputs, outputTypes);
-
-  // file sink for any AOD output
-  extraSpecs.clear();
 
   // select outputs of type AOD which need to be saved
   // ATTENTION: if there are dangling outputs the getGlobalAODSink
@@ -459,15 +456,18 @@ void WorkflowHelpers::injectServiceDevices(WorkflowSpec& workflow, ConfigContext
     }
   }
 
+  // file sink for any AOD output
   if (outputsInputsAOD.size() > 0) {
+    // add TFNumber as input to the writer
+    outputsInputsAOD.emplace_back(InputSpec{"tfn", "TFN", "TFNumber"});
     auto fileSink = CommonDataProcessors::getGlobalAODSink(dod, outputsInputsAOD);
     extraSpecs.push_back(fileSink);
   }
-  workflow.insert(workflow.end(), extraSpecs.begin(), extraSpecs.end());
 
-  // file sink for notAOD dangling outputs
+  workflow.insert(workflow.end(), extraSpecs.begin(), extraSpecs.end());
   extraSpecs.clear();
 
+  // file sink for notAOD dangling outputs
   // select dangling outputs which are not of type AOD
   std::vector<InputSpec> outputsInputsDangling;
   for (auto ii = 0u; ii < OutputsInputs.size(); ii++) {
@@ -489,7 +489,9 @@ void WorkflowHelpers::injectServiceDevices(WorkflowSpec& workflow, ConfigContext
   if (unmatched.size() > 0) {
     extraSpecs.push_back(CommonDataProcessors::getDummySink(unmatched));
   }
+
   workflow.insert(workflow.end(), extraSpecs.begin(), extraSpecs.end());
+  extraSpecs.clear();
 }
 
 void WorkflowHelpers::constructGraph(const WorkflowSpec& workflow,
