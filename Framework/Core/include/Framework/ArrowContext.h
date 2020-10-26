@@ -137,6 +137,7 @@ class ArrowContext
   size_t mBytesDestroyed = 0;
   size_t mMessagesCreated = 0;
   size_t mMessagesDestroyed = 0;
+  size_t mRateLimit = 0;
 };
 
 } // namespace o2::framework
