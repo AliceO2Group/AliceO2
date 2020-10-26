@@ -16,6 +16,7 @@
 #include "Framework/DataDescriptorMatcher.h"
 #include "Framework/DataSpecUtils.h"
 #include "Framework/InputSpec.h"
+#include "Framework/DataInputDirector.h"
 
 #include "rapidjson/fwd.h"
 
@@ -81,7 +82,7 @@ struct DataOutputDirector {
   std::vector<DataOutputDescriptor*> getDataOutputDescriptors(InputSpec spec);
 
   // get the matching TFile
-  std::tuple<TFile*, std::string> getFileFolder(DataOutputDescriptor* dodesc, uint64_t folderNumber);
+  FileAndFolder getFileFolder(DataOutputDescriptor* dodesc, uint64_t folderNumber);
 
   void closeDataFiles();
 

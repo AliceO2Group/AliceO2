@@ -32,6 +32,11 @@ struct FileNameHolder {
 };
 FileNameHolder* makeFileNameHolder(std::string fileName);
 
+struct FileAndFolder {
+  TFile* file = nullptr;
+  std::string folderName = "";
+};
+
 struct DataInputDescriptor {
   /// Holds information concerning the reading of an aod table.
   /// The information includes the table specification, treename,
@@ -65,8 +70,8 @@ struct DataInputDescriptor {
   int getNumberInputfiles() { return mfilenames.size(); }
   int getNumberTimeFrames() { return mtotalNumberTimeFrames; }
 
-  int64_t getTimeFrameNumber(int counter, int numTF);
-  std::tuple<TFile*, std::string> getFileFolder(int counter, int numTF);
+  uint64_t getTimeFrameNumber(int counter, int numTF);
+  FileAndFolder getFileFolder(int counter, int numTF);
 
   void closeInputFile();
   bool isAlienSupportOn() { return mAlienSupport; }
@@ -110,8 +115,8 @@ struct DataInputDirector {
 
   std::unique_ptr<TTreeReader> getTreeReader(header::DataHeader dh, int counter, int numTF, std::string treeName);
   TTree* getDataTree(header::DataHeader dh, int counter, int numTF);
-  int64_t getTimeFrameNumber(header::DataHeader dh, int counter, int numTF);
-  std::tuple<TFile*, std::string> getFileFolder(header::DataHeader dh, int counter, int numTF);
+  uint64_t getTimeFrameNumber(header::DataHeader dh, int counter, int numTF);
+  FileAndFolder getFileFolder(header::DataHeader dh, int counter, int numTF);
 
  private:
   std::string minputfilesFile;

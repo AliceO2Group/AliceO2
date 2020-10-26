@@ -399,11 +399,11 @@ DataProcessorSpec
     auto& callbacks = ic.services().get<CallbackService>();
     callbacks.set(CallbackService::Id::EndOfStream, endofdatacb);
 
-    // prepare map<uint64_t, uint64_t>(startTime, TFNumber)
-    std::map<uint64_t, uint64_t> TFNumbers;
+    // prepare map<uint64_t, uint64_t>(startTime, tfNumber)
+    std::map<uint64_t, uint64_t> tfNumbers;
 
     // this functor is called once per time frame
-    return std::move([dod, TFNumbers](ProcessingContext& pc) mutable -> void {
+    return std::move([dod, tfNumbers](ProcessingContext& pc) mutable -> void {
       LOGP(DEBUG, "======== getGlobalAODSink::processing ==========");
       LOGP(DEBUG, " processing data set with {} entries", pc.inputs().size());
 
@@ -413,14 +413,14 @@ DataProcessorSpec
         return;
       }
 
-      // update TFNumbers
+      // update tfNumbers
       uint64_t startTime = 0;
-      uint64_t TFNumber = 0;
+      uint64_t tfNumber = 0;
       auto ref = pc.inputs().get("tfn");
       if (ref.spec && ref.payload) {
         startTime = DataRefUtils::getHeader<DataProcessingHeader*>(ref)->startTime;
-        TFNumber = pc.inputs().get<uint64_t>("tfn");
-        TFNumbers.insert(std::pair<uint64_t, uint64_t>(startTime, TFNumber));
+        tfNumber = pc.inputs().get<uint64_t>("tfn");
+        tfNumbers.insert(std::pair<uint64_t, uint64_t>(startTime, tfNumber));
       }
 
       // loop over the DataRefs which are contained in pc.inputs()
@@ -442,9 +442,9 @@ DataProcessorSpec
         if (ds.size() > 0) {
 
           // get TF number fro startTime
-          auto it = TFNumbers.find(startTime);
-          if (it != TFNumbers.end()) {
-            TFNumber = (it->second / dod->getNumberTimeFramesToMerge()) * dod->getNumberTimeFramesToMerge();
+          auto it = tfNumbers.find(startTime);
+          if (it != tfNumbers.end()) {
+            tfNumber = (it->second / dod->getNumberTimeFramesToMerge()) * dod->getNumberTimeFramesToMerge();
           } else {
             LOGP(FATAL, "No time frame number found for output with start time {}", startTime);
             throw std::runtime_error("Processing is stopped!");
@@ -465,10 +465,10 @@ DataProcessorSpec
           // e.g. different selections of columns to different files
           for (auto d : ds) {
 
-            auto [file, directory] = dod->getFileFolder(d, TFNumber);
-            auto treename = directory + d->treename;
+            auto fileAndFolder = dod->getFileFolder(d, tfNumber);
+            auto treename = fileAndFolder.folderName + d->treename;
             TableToTree ta2tr(table,
-                              file,
+                              fileAndFolder.file,
                               treename.c_str());
 
             if (d->colnames.size() > 0) {
