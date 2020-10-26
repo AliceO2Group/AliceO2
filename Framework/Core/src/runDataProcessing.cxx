@@ -920,6 +920,8 @@ int runStateMachine(DataProcessorSpecs const& workflow,
   // different versions of the service
   ServiceRegistry serviceRegistry;
   std::vector<ServiceMetricHandling> metricProcessingCallbacks;
+  std::vector<ServicePreSchedule> preScheduleCallbacks;
+  std::vector<ServicePostSchedule> postScheduleCallbacks;
 
   while (true) {
     // If control forced some transition on us, we push it to the queue.
@@ -1031,6 +1033,23 @@ int runStateMachine(DataProcessorSpecs const& workflow,
               }
             }
           }
+          preScheduleCallbacks.clear();
+          for (auto& device : deviceSpecs) {
+            for (auto& service : device.services) {
+              if (service.preSchedule) {
+                preScheduleCallbacks.push_back(service.preSchedule);
+              }
+            }
+          }
+          postScheduleCallbacks.clear();
+          for (auto& device : deviceSpecs) {
+            for (auto& service : device.services) {
+              if (service.postSchedule) {
+                postScheduleCallbacks.push_back(service.postSchedule);
+              }
+            }
+          }
+
           // This should expand nodes so that we can build a consistent DAG.
         } catch (std::runtime_error& e) {
           std::cerr << "Invalid workflow: " << e.what() << std::endl;
@@ -1110,6 +1129,9 @@ int runStateMachine(DataProcessorSpecs const& workflow,
 #elif __has_include(<cpuid.h>)
         GETCPU(parentCPU);
 #endif
+        for (auto& callback : preScheduleCallbacks) {
+          callback(serviceRegistry, varmap);
+        }
         for (size_t di = 0; di < deviceSpecs.size(); ++di) {
           if (deviceSpecs[di].resource.hostname != driverInfo.deployHostname) {
             spawnRemoteDevice(forwardedStdin.str(),
@@ -1120,6 +1142,9 @@ int runStateMachine(DataProcessorSpecs const& workflow,
                         controls[di], deviceExecutions[di], infos,
                         serviceRegistry, varmap, loop, pollHandles, parentCPU, parentNode);
           }
+        }
+        for (auto& callback : postScheduleCallbacks) {
+          callback(serviceRegistry, varmap);
         }
         assert(infos.empty() == false);
         LOG(INFO) << "Redeployment of configuration done.";
