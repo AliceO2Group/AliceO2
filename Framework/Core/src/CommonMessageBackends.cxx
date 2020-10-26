@@ -27,6 +27,7 @@
 #include <options/FairMQProgOptions.h>
 
 #include <uv.h>
+#include <boost/program_options/variables_map.hpp>
 #include <csignal>
 
 namespace o2::framework
@@ -100,6 +101,8 @@ o2::framework::ServiceSpec CommonMessageBackends::arrowBackendSpec()
                      nullptr,
                      CommonMessageBackendsHelpers<ArrowContext>::clearContextEOS(),
                      CommonMessageBackendsHelpers<ArrowContext>::sendCallbackEOS(),
+                     nullptr,
+                     nullptr,
                      nullptr,
                      nullptr,
                      nullptr,
@@ -267,6 +270,8 @@ o2::framework::ServiceSpec CommonMessageBackends::fairMQBackendSpec()
                      nullptr,
                      nullptr,
                      nullptr,
+                     nullptr,
+                     nullptr,
                      ServiceKind::Serial};
 }
 
@@ -286,6 +291,8 @@ o2::framework::ServiceSpec CommonMessageBackends::stringBackendSpec()
                      nullptr,
                      nullptr,
                      nullptr,
+                     nullptr,
+                     nullptr,
                      ServiceKind::Serial};
 }
 
@@ -300,6 +307,8 @@ o2::framework::ServiceSpec CommonMessageBackends::rawBufferBackendSpec()
                      nullptr,
                      CommonMessageBackendsHelpers<RawBufferContext>::clearContextEOS(),
                      CommonMessageBackendsHelpers<RawBufferContext>::sendCallbackEOS(),
+                     nullptr,
+                     nullptr,
                      nullptr,
                      nullptr,
                      nullptr,
