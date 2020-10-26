@@ -352,6 +352,8 @@ void MatchTPCITS::init()
   mMinTPCTrackPtInv = (mFieldON && mParams->minTPCTrackR > 0) ? 1. / std::abs(mParams->minTPCTrackR * bz * o2::constants::math::B2C) : 999.;
   mMinITSTrackPtInv = (mFieldON && mParams->minITSTrackR > 0) ? 1. / std::abs(mParams->minITSTrackR * bz * o2::constants::math::B2C) : 999.;
 
+  mVDriftCalibOn = mParams->maxVDriftUncertainty > 0.;
+
 #ifdef _ALLOW_DEBUG_TREES_
   // debug streamer
   if (mDBGFlags) {
@@ -799,6 +801,8 @@ void MatchTPCITS::doMatching(int sec)
   /// full drift time + safety margin
   float maxTDriftSafe = (mNTPCBinsFullDrift + mParams->safeMarginTPCITSTimeBin + mTPCTimeEdgeTSafeMargin);
 
+  float vdErr2TB = mZ2TPCBin * mParams->maxVDriftUncertainty;
+
   // get min ROFrame (in TPC time-bins) of ITS tracks currently in cache
   auto minROFITS = mITSWork[cacheITS.front()].roFrame;
 
@@ -810,7 +814,7 @@ void MatchTPCITS::doMatching(int sec)
   int nCheckTPCControl = 0, nCheckITSControl = 0, nMatchesControl = 0; // temporary
   int idxMinTPC = tbinStartTPC[minROFITS];                             // index of 1st cached TPC track within cached ITS ROFrames
   auto t2nbs = mZ2TPCBin * mParams->tpcTimeICMatchingNSigma;
-  bool checkInteractionCandidates = mUseFT0 && mParams->validateMatchByFIT != MatchITSTPCParams::Disable;
+  bool checkInteractionCandidates = mUseFT0 && mParams->validateMatchByFIT != MatchTPCITSParams::Disable;
   for (int itpc = idxMinTPC; itpc < nTracksTPC; itpc++) {
     auto& trefTPC = mTPCWork[cacheTPC[itpc]];
     // estimate ITS 1st ROframe bin this track may match to: TPC track are sorted according to their
@@ -832,6 +836,18 @@ void MatchTPCITS::doMatching(int sec)
         break;
       }
       if (trefTPC.timeBins > timeITS) { // its bracket precedes TPC bracket
+        continue;
+      }
+
+      // is corrected TPC track time compatible with ITS ROF expressed in TPC bins?
+      auto deltaT = (trefITS.getZ() - trefTPC.getZ()) * mZ2TPCBin;                          // time difference in TPC time bins corresponding to Z differences
+      auto timeTB = getTPCTrackCorrectedTimeBin(mTPCTracksArray[trefTPC.sourceID], deltaT); // TPC time required to match to Z of ITS track
+      auto timeTBErr = std::sqrt(trefITS.getSigmaZ2() + trefTPC.getSigmaZ2()) * t2nbs;      // nsigma*error in number of TPC time bins
+      if (mVDriftCalibOn) {
+        timeTBErr += vdErr2TB * (250. - abs(trefITS.getZ())); // account for the extra error from TPC VDrift uncertainty
+      }
+      o2::math_utils::Bracket<float> trange(timeTB - timeTBErr, timeTB + timeTBErr);
+      if (timeITS.isOutside(trange)) {
         continue;
       }
 
@@ -866,15 +882,6 @@ void MatchTPCITS::doMatching(int sec)
       if (rejFlag != Accept) {
         continue;
       }
-      auto deltaT = (trefITS.getZ() - trefTPC.getZ()) * mZ2TPCBin; // time difference in TPC time bins corresponding to Z differences
-      auto timeTB = getTPCTrackCorrectedTimeBin(mTPCTracksArray[trefTPC.sourceID], deltaT);
-      auto timeTBErr = std::sqrt(trefITS.getSigmaZ2() + trefTPC.getSigmaZ2()) * t2nbs; // nsigma*error in number of TPC time bins
-      o2::math_utils::Bracket<float> trange(timeTB - timeTBErr, timeTB + timeTBErr);
-      // is corrected TPC track time compatible with ITS ROF expressed in TPC bins?
-      if (timeITS.isOutside(trange)) {
-        continue;
-      }
-
       int matchedIC = MinusOne;
       if (!isCosmics()) {
         // validate by bunch filling scheme
@@ -901,7 +908,7 @@ void MatchTPCITS::doMatching(int sec)
             }
           }
         }
-        if (mParams->validateMatchByFIT == MatchITSTPCParams::Require && matchedIC == MinusOne) {
+        if (mParams->validateMatchByFIT == MatchTPCITSParams::Require && matchedIC == MinusOne) {
           continue;
         }
       }
@@ -1038,61 +1045,63 @@ void MatchTPCITS::registerMatchRecordITS(int iITS, int iTPC, float chi2, int can
 int MatchTPCITS::compareTPCITSTracks(const TrackLocITS& tITS, const TrackLocTPC& tTPC, float& chi2) const
 {
   ///< compare pair of ITS and TPC tracks
-  auto& trackTPC = tTPC;
-  auto& trackITS = tITS;
   chi2 = -1.f;
   int rejFlag = Accept;
   float diff; // make rough check differences and their nsigmas
 
   // start with check on Tgl, since rjection on it will allow to profit from sorting
-  diff = trackITS.getParam(o2::track::kTgl) - trackTPC.getParam(o2::track::kTgl);
+  diff = tITS.getParam(o2::track::kTgl) - tTPC.getParam(o2::track::kTgl);
   if ((rejFlag = roughCheckDif(diff, mParams->crudeAbsDiffCut[o2::track::kTgl], RejectOnTgl))) {
     return rejFlag;
   }
-  diff *= diff / (trackITS.getDiagError2(o2::track::kTgl) + trackTPC.getDiagError2(o2::track::kTgl));
+  auto err2Tgl = tITS.getDiagError2(o2::track::kTgl) + tTPC.getDiagError2(o2::track::kTgl);
+  if (mVDriftCalibOn) {
+    auto addErr = tITS.getParam(o2::track::kTgl) * mParams->maxVDriftUncertainty;
+    err2Tgl += addErr * addErr; // account for VDrift uncertainty
+  }
+  diff *= diff / err2Tgl;
   if ((rejFlag = roughCheckDif(diff, mParams->crudeNSigma2Cut[o2::track::kTgl], RejectOnTgl + NSigmaShift))) {
     return rejFlag;
   }
-
-  diff = trackITS.getParam(o2::track::kY) - trackTPC.getParam(o2::track::kY);
+  diff = tITS.getParam(o2::track::kY) - tTPC.getParam(o2::track::kY);
   if ((rejFlag = roughCheckDif(diff, mParams->crudeAbsDiffCut[o2::track::kY], RejectOnY))) {
     return rejFlag;
   }
-  diff *= diff / (trackITS.getDiagError2(o2::track::kY) + trackTPC.getDiagError2(o2::track::kY));
+  diff *= diff / (tITS.getDiagError2(o2::track::kY) + tTPC.getDiagError2(o2::track::kY));
   if ((rejFlag = roughCheckDif(diff, mParams->crudeNSigma2Cut[o2::track::kY], RejectOnY + NSigmaShift))) {
     return rejFlag;
   }
 
   if (mCompareTracksDZ) { // in continuous mode we usually don't use DZ
-    diff = trackITS.getParam(o2::track::kZ) - trackTPC.getParam(o2::track::kZ);
+    diff = tITS.getParam(o2::track::kZ) - tTPC.getParam(o2::track::kZ);
     if ((rejFlag = roughCheckDif(diff, mParams->crudeAbsDiffCut[o2::track::kZ], RejectOnZ))) {
       return rejFlag;
     }
-    diff *= diff / (trackITS.getDiagError2(o2::track::kZ) + trackTPC.getDiagError2(o2::track::kZ));
+    diff *= diff / (tITS.getDiagError2(o2::track::kZ) + tTPC.getDiagError2(o2::track::kZ));
     if ((rejFlag = roughCheckDif(diff, mParams->crudeNSigma2Cut[o2::track::kZ], RejectOnZ + NSigmaShift))) {
       return rejFlag;
     }
   } else { // in continuous mode we use special check on allowed Z range
-    if (trackITS.getParam(o2::track::kZ) - tTPC.zMax > mParams->crudeAbsDiffCut[o2::track::kZ])
+    if (tITS.getParam(o2::track::kZ) - tTPC.zMax > mParams->crudeAbsDiffCut[o2::track::kZ])
       return RejectOnZ;
-    if (trackITS.getParam(o2::track::kZ) - tTPC.zMin < -mParams->crudeAbsDiffCut[o2::track::kZ])
+    if (tITS.getParam(o2::track::kZ) - tTPC.zMin < -mParams->crudeAbsDiffCut[o2::track::kZ])
       return -RejectOnZ;
   }
 
-  diff = trackITS.getParam(o2::track::kSnp) - trackTPC.getParam(o2::track::kSnp);
+  diff = tITS.getParam(o2::track::kSnp) - tTPC.getParam(o2::track::kSnp);
   if ((rejFlag = roughCheckDif(diff, mParams->crudeAbsDiffCut[o2::track::kSnp], RejectOnSnp))) {
     return rejFlag;
   }
-  diff *= diff / (trackITS.getDiagError2(o2::track::kSnp) + trackTPC.getDiagError2(o2::track::kSnp));
+  diff *= diff / (tITS.getDiagError2(o2::track::kSnp) + tTPC.getDiagError2(o2::track::kSnp));
   if ((rejFlag = roughCheckDif(diff, mParams->crudeNSigma2Cut[o2::track::kSnp], RejectOnSnp + NSigmaShift))) {
     return rejFlag;
   }
 
-  diff = trackITS.getParam(o2::track::kQ2Pt) - trackTPC.getParam(o2::track::kQ2Pt);
+  diff = tITS.getParam(o2::track::kQ2Pt) - tTPC.getParam(o2::track::kQ2Pt);
   if ((rejFlag = roughCheckDif(diff, mParams->crudeAbsDiffCut[o2::track::kQ2Pt], RejectOnQ2Pt))) {
     return rejFlag;
   }
-  diff *= diff / (trackITS.getDiagError2(o2::track::kQ2Pt) + trackTPC.getDiagError2(o2::track::kQ2Pt));
+  diff *= diff / (tITS.getDiagError2(o2::track::kQ2Pt) + tTPC.getDiagError2(o2::track::kQ2Pt));
   if ((rejFlag = roughCheckDif(diff, mParams->crudeNSigma2Cut[o2::track::kQ2Pt], RejectOnQ2Pt + NSigmaShift))) {
     return rejFlag;
   }
@@ -1147,41 +1156,45 @@ void MatchTPCITS::printCandidatesITS() const
 }
 
 //______________________________________________
-float MatchTPCITS::getPredictedChi2NoZ(const o2::track::TrackParCov& tr1, const o2::track::TrackParCov& tr2) const
+float MatchTPCITS::getPredictedChi2NoZ(const o2::track::TrackParCov& trITS, const o2::track::TrackParCov& trTPC) const
 {
   /// get chi2 between 2 tracks, neglecting Z parameter.
   /// 2 tracks must be defined at the same parameters X,alpha (check is currently commented)
 
-  //  if (std::abs(tr1.getAlpha() - tr2.getAlpha()) > FLT_EPSILON) {
+  //  if (std::abs(trITS.getAlpha() - trTPC.getAlpha()) > FLT_EPSILON) {
   //    LOG(ERROR) << "The reference Alpha of the tracks differ: "
-  //	       << tr1.getAlpha() << " : " << tr2.getAlpha();
+  //	       << trITS.getAlpha() << " : " << trTPC.getAlpha();
   //    return 2. * o2::track::HugeF;
   //  }
-  //  if (std::abs(tr1.getX() - tr2.getX()) > FLT_EPSILON) {
+  //  if (std::abs(trITS.getX() - trTPC.getX()) > FLT_EPSILON) {
   //    LOG(ERROR) << "The reference X of the tracks differ: "
-  //	       << tr1.getX() << " : " << tr2.getX();
+  //	       << trITS.getX() << " : " << trTPC.getX();
   //    return 2. * o2::track::HugeF;
   //  }
   MatrixDSym4 covMat;
-  covMat(0, 0) = static_cast<double>(tr1.getSigmaY2()) + static_cast<double>(tr2.getSigmaY2());
-  covMat(1, 0) = static_cast<double>(tr1.getSigmaSnpY()) + static_cast<double>(tr2.getSigmaSnpY());
-  covMat(1, 1) = static_cast<double>(tr1.getSigmaSnp2()) + static_cast<double>(tr2.getSigmaSnp2());
-  covMat(2, 0) = static_cast<double>(tr1.getSigmaTglY()) + static_cast<double>(tr2.getSigmaTglY());
-  covMat(2, 1) = static_cast<double>(tr1.getSigmaTglSnp()) + static_cast<double>(tr2.getSigmaTglSnp());
-  covMat(2, 2) = static_cast<double>(tr1.getSigmaTgl2()) + static_cast<double>(tr2.getSigmaTgl2());
-  covMat(3, 0) = static_cast<double>(tr1.getSigma1PtY()) + static_cast<double>(tr2.getSigma1PtY());
-  covMat(3, 1) = static_cast<double>(tr1.getSigma1PtSnp()) + static_cast<double>(tr2.getSigma1PtSnp());
-  covMat(3, 2) = static_cast<double>(tr1.getSigma1PtTgl()) + static_cast<double>(tr2.getSigma1PtTgl());
-  covMat(3, 3) = static_cast<double>(tr1.getSigma1Pt2()) + static_cast<double>(tr2.getSigma1Pt2());
+  covMat(0, 0) = static_cast<double>(trITS.getSigmaY2()) + static_cast<double>(trTPC.getSigmaY2());
+  covMat(1, 0) = static_cast<double>(trITS.getSigmaSnpY()) + static_cast<double>(trTPC.getSigmaSnpY());
+  covMat(1, 1) = static_cast<double>(trITS.getSigmaSnp2()) + static_cast<double>(trTPC.getSigmaSnp2());
+  covMat(2, 0) = static_cast<double>(trITS.getSigmaTglY()) + static_cast<double>(trTPC.getSigmaTglY());
+  covMat(2, 1) = static_cast<double>(trITS.getSigmaTglSnp()) + static_cast<double>(trTPC.getSigmaTglSnp());
+  covMat(2, 2) = static_cast<double>(trITS.getSigmaTgl2()) + static_cast<double>(trTPC.getSigmaTgl2());
+  if (mVDriftCalibOn) {
+    auto addErr = trITS.getParam(o2::track::kTgl) * mParams->maxVDriftUncertainty;
+    covMat(2, 2) += addErr * addErr;
+  }
+  covMat(3, 0) = static_cast<double>(trITS.getSigma1PtY()) + static_cast<double>(trTPC.getSigma1PtY());
+  covMat(3, 1) = static_cast<double>(trITS.getSigma1PtSnp()) + static_cast<double>(trTPC.getSigma1PtSnp());
+  covMat(3, 2) = static_cast<double>(trITS.getSigma1PtTgl()) + static_cast<double>(trTPC.getSigma1PtTgl());
+  covMat(3, 3) = static_cast<double>(trITS.getSigma1Pt2()) + static_cast<double>(trTPC.getSigma1Pt2());
   if (!covMat.Invert()) {
     LOG(ERROR) << "Cov.matrix inversion failed: " << covMat;
     return 2. * o2::track::HugeF;
   }
   double chi2diag = 0., chi2ndiag = 0.,
-         diff[o2::track::kNParams - 1] = {tr1.getParam(o2::track::kY) - tr2.getParam(o2::track::kY),
-                                          tr1.getParam(o2::track::kSnp) - tr2.getParam(o2::track::kSnp),
-                                          tr1.getParam(o2::track::kTgl) - tr2.getParam(o2::track::kTgl),
-                                          tr1.getParam(o2::track::kQ2Pt) - tr2.getParam(o2::track::kQ2Pt)};
+         diff[o2::track::kNParams - 1] = {trITS.getParam(o2::track::kY) - trTPC.getParam(o2::track::kY),
+                                          trITS.getParam(o2::track::kSnp) - trTPC.getParam(o2::track::kSnp),
+                                          trITS.getParam(o2::track::kTgl) - trTPC.getParam(o2::track::kTgl),
+                                          trITS.getParam(o2::track::kQ2Pt) - trTPC.getParam(o2::track::kQ2Pt)};
   for (int i = o2::track::kNParams - 1; i--;) {
     chi2diag += diff[i] * diff[i] * covMat(i, i);
     for (int j = i; j--;) {
@@ -1353,8 +1366,16 @@ bool MatchTPCITS::refitTrackTPCITSloopITS(int iITS, int& iTPC)
   // NOTE: the ITS cluster index is stored wrt 1st cluster of relevant ROF, while here we extract clusters from the
   // buffer for the whole TF. Therefore, we should shift the index by the entry of the ROF's 1st cluster in the global cluster buffer
   int clusIndOffs = mITSClusterROFRec[tITS.roFrame].getFirstEntry();
-
   int clEntry = itsTrOrig.getFirstClusterEntry();
+
+  float addErr2 = 0;
+  // extra error on tgl due to the assumed vdrift uncertainty
+  if (mVDriftCalibOn) {
+    addErr2 = tITS.getParam(o2::track::kTgl) * mParams->maxVDriftUncertainty;
+    addErr2 *= addErr2;
+    trfit.updateCov(addErr2, o2::track::kSigTgl2);
+  }
+
   for (int icl = 0; icl < ncl; icl++) {
     const auto& clus = mITSClustersArray[clusIndOffs + mITSTrackClusIdx[clEntry++]];
     float alpha = geom->getSensorRefAlpha(clus.getSensorID()), x = clus.getX();
@@ -1401,6 +1422,9 @@ bool MatchTPCITS::refitTrackTPCITSloopITS(int iITS, int& iTPC)
   // outward refit
   auto& tracOut = trfit.getParamOut(); // this track is already at the matching reference X
   {
+    if (mVDriftCalibOn) {
+      tracOut.updateCov(addErr2, o2::track::kSigTgl2);
+    }
     int icl = tpcTrOrig.getNClusterReferences() - 1;
     uint8_t sector, prevsector, row, prevrow;
     uint32_t clusterIndexInRow;
@@ -1529,6 +1553,15 @@ bool MatchTPCITS::refitTrackTPCITSloopTPC(int iTPC, int& iITS)
   // buffer for the whole TF. Therefore, we should shift the index by the entry of the ROF's 1st cluster in the global cluster buffer
   int clusIndOffs = mITSClusterROFRec[tITS.roFrame].getFirstEntry();
   int clEntry = itsTrOrig.getFirstClusterEntry();
+
+  float addErr2 = 0;
+  // extra error on tgl due to the assumed vdrift uncertainty
+  if (mVDriftCalibOn) {
+    addErr2 = tITS.getParam(o2::track::kTgl) * mParams->maxVDriftUncertainty;
+    addErr2 *= addErr2;
+    trfit.updateCov(addErr2, o2::track::kSigTgl2);
+  }
+
   for (int icl = 0; icl < ncl; icl++) {
     const auto& clus = mITSClustersArray[clusIndOffs + mITSTrackClusIdx[clEntry++]];
     float alpha = geom->getSensorRefAlpha(clus.getSensorID()), x = clus.getX();
@@ -1582,6 +1615,9 @@ bool MatchTPCITS::refitTrackTPCITSloopTPC(int iTPC, int& iITS)
   // outward refit
   auto& tracOut = trfit.getParamOut(); // this track is already at the matching reference X
   {
+    if (mVDriftCalibOn) {
+      tracOut.updateCov(addErr2, o2::track::kSigTgl2);
+    }
     int icl = tpcTrOrig.getNClusterReferences() - 1;
     uint8_t sector, prevsector, row, prevrow;
     uint32_t clusterIndexInRow;
