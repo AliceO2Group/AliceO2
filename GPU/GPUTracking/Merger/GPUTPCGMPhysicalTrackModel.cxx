@@ -153,7 +153,6 @@ GPUd() int GPUTPCGMPhysicalTrackModel::PropagateToXBxByBz(float x, float Bx, flo
   if (t.PropagateToXBzLightNoUpdate(xe, bb, dLp) != 0) {
     return -1;
   }
-  // TODO Should one not call t.UpdateValues() here?
 
   // rotate coordinate system back to the original R{-1}==R{T}
   {
