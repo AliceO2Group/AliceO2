@@ -15,6 +15,7 @@
 #include "Framework/Logger.h"
 #include "DetectorsCalibrationWorkflow/MeanVertexCalibratorSpec.h"
 #include "DetectorsCalibration/Utils.h"
+#include "DetectorsCalibration/MeanVertexParams.h"
 #include "CCDB/CcdbApi.h"
 #include "CCDB/CcdbObjectInfo.h"
 
@@ -27,17 +28,18 @@ namespace calibration
 void MeanVertexCalibDevice::init(InitContext& ic)
 {
 
-  int minEnt = ic.options().get<int>("min-entries");
-  int nbX = ic.options().get<int>("nbinsX");
-  float rangeX = ic.options().get<float>("rangeX");
-  int nbY = ic.options().get<int>("nbinsY");
-  float rangeY = ic.options().get<float>("rangeY");
-  int nbZ = ic.options().get<int>("nbinsZ");
-  float rangeZ = ic.options().get<float>("rangeZ");
-  int nSlots4SMA = ic.options().get<float>("nSlots4SMA");
-  bool useFit = ic.options().get<bool>("useFit");
-  int slotL = ic.options().get<int>("tf-per-slot");
-  int delay = ic.options().get<int>("max-delay");
+  const o2::calibration::MeanVertexParams* params = &o2::calibration::MeanVertexParams::Instance();
+  int minEnt = params->minEntries;
+  int nbX = params->nbinsX;
+  float rangeX = params->rangeX;
+  int nbY = params->nbinsY;
+  float rangeY = params->rangeY;
+  int nbZ = params->nbinsZ;
+  float rangeZ = params->rangeZ;
+  int nSlots4SMA = params->nSlots4SMA;
+  bool useFit = params->useFit;
+  int slotL = params->tfPerSlot;
+  int delay = params->maxTFdelay;
   mCalibrator = std::make_unique<o2::calibration::MeanVertexCalibrator>(minEnt, useFit, nbX, rangeX, nbY, rangeY, nbZ, rangeZ, nSlots4SMA);
   mCalibrator->setSlotLength(slotL);
   mCalibrator->setMaxSlotsDelay(delay);
@@ -97,7 +99,6 @@ void MeanVertexCalibDevice::sendOutput(DataAllocator& output)
 
 namespace framework
 {
-//_____________________________________________________________
 
 DataProcessorSpec getMeanVertexCalibDeviceSpec()
 {
@@ -115,17 +116,7 @@ DataProcessorSpec getMeanVertexCalibDeviceSpec()
     outputs,
     AlgorithmSpec{adaptFromTask<device>()},
     Options{
-      {"tf-per-slot", VariantType::Int, 5, {"number of TFs per calibration time slot"}},
-      {"max-delay", VariantType::Int, 3, {"number of slots in past to consider"}},
-      {"min-entries", VariantType::Int, 100, {"minimum number of entries to fit single time slot"}},
-      {"nbinsX", VariantType::Int, 100, {"number of bins for the X coordinate"}},
-      {"rangeX", VariantType::Float, 1.f, {"range for histo for X coordinate"}},
-      {"nbinsY", VariantType::Int, 100, {"number of bins for the Y coordinate"}},
-      {"rangeY", VariantType::Float, 1.f, {"range for histo for Y coordinate"}},
-      {"nbinsZ", VariantType::Int, 100, {"number of bins for the Z coordinate"}},
-      {"rangeZ", VariantType::Float, 20.f, {"range for histo for Z coordinate"}},
-      {"nSlots4SMA", VariantType::Int, 5, {"number of slots to be used for the Simple Moving Average"}},
-      {"useFit", VariantType::Bool, false, {"whether to fit time slot per time slot and then do the SMA, instead of summing the histograms and fit only once"}}}};
+      {}}};
 }
 
 } // namespace framework
