@@ -62,11 +62,15 @@ class Digits2Raw
   void setTriggerMask();
   void updatePedestalReference(int bc);
   void resetSums(uint32_t orbit);
-  void insertLastBunch(int ibc, uint32_t orbit); /// Insert an empty bunch at last position in orbit
-  void convertDigits(int ibc);                   /// Convert digits into raw data
-  void writeDigits();                            /// Writes raw data to file
+  void resetOutputStructure(UShort_t bc, UInt_t orbit, bool is_dummy);       /// Reset output structure not incrementing scalers for dummy bunches
+  void assignTriggerBits(int ibc, UShort_t bc, UInt_t orbit, bool is_dummy); /// Assign trigger bits
+  void insertLastBunch(int ibc, uint32_t orbit);                             /// Insert an empty bunch at last position in orbit
+  void convertDigits(int ibc);                                               /// Convert digits into raw data
+  void writeDigits();                                                        /// Writes raw data to file
   std::vector<o2::zdc::BCData> mzdcBCData, *mzdcBCDataPtr = &mzdcBCData;
   std::vector<o2::zdc::ChannelData> mzdcChData, *mzdcChDataPtr = &mzdcChData;
+  int mNbc = 0;
+  BCData mBCD;
   EventData mZDC;                                                       /// Output structure
   bool mIsContinuous = true;                                            /// Continuous (self-triggered) or externally-triggered readout
   bool mOutputPerLink = false;                                          /// Split output

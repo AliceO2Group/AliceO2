@@ -86,13 +86,14 @@ void Digits2Raw::processDigits(const std::string& outDir, const std::string& fil
 
   for (int ient = 0; ient < digiTree->GetEntries(); ient++) {
     digiTree->GetEntry(ient);
-    int nbc = mzdcBCData.size();
-    LOG(INFO) << "Entry " << ient << " : " << nbc << " BCs stored";
-    for (int ibc = 0; ibc < nbc; ibc++) {
+    mNbc = mzdcBCData.size();
+    LOG(INFO) << "Entry " << ient << " : " << mNbc << " BCs stored";
+    for (int ibc = 0; ibc < mNbc; ibc++) {
+      mBCD = mzdcBCData[ibc];
       convertDigits(ibc);
       writeDigits();
       // Detect last event or orbit change and insert last bunch
-      if (ibc == (nbc - 1)) {
+      if (ibc == (mNbc - 1)) {
         // For last event we need to close last orbit (if it is needed)
         if (mzdcBCData[ibc].ir.bc != 3563) {
           insertLastBunch(ibc, mzdcBCData[ibc].ir.orbit);
@@ -195,23 +196,9 @@ inline void Digits2Raw::updatePedestalReference(int bc)
 }
 
 //______________________________________________________________________________
-void Digits2Raw::insertLastBunch(int ibc, uint32_t orbit)
+inline void Digits2Raw::resetOutputStructure(UShort_t bc, UInt_t orbit, bool is_dummy)
 {
-  // Number of bunch crossings stored
-  int nbc = mzdcBCData.size();
-
-  // Orbit and bunch crossing identifiers
-  const auto& bcd = mzdcBCData[ibc];
-  UShort_t bc = 3563;
-
-  // Reset scalers at orbit change
-  if (orbit != mLastOrbit) {
-    resetSums(orbit);
-  }
-
-  updatePedestalReference(bc);
-
-  // Empty bunch -> Do not increment scalers but reset output structure
+  // Increment scalers and reset output structure
   for (UInt_t im = 0; im < NModules; im++) {
     for (UInt_t ic = 0; ic < NChPerModule; ic++) {
       // Fixed words
@@ -233,24 +220,43 @@ void Digits2Raw::insertLastBunch(int ibc, uint32_t orbit)
       // Orbit and bunch crossing
       mZDC.data[im][ic].f.orbit = orbit;
       mZDC.data[im][ic].f.bc = bc;
+      // If channel is hit in current bunch crossing
+      if (!is_dummy) {
+        if (mBCD.triggers & (0x1 << (im * NChPerModule + ic))) {
+          mScalers[im][ic]++;          // increment scalers
+          mZDC.data[im][ic].f.Hit = 1; // flag bunch crossing
+        }
+      }
       mZDC.data[im][ic].f.hits = mScalers[im][ic];
       mZDC.data[im][ic].f.offset = mPed[im][ic];
     }
   }
+}
 
-  // Compute autotrigger bits and assigna ALICE trigger bits
-  // triggers refer to the HW trigger conditions (32 possible channels)
-
-  // Autotrigger, current bunch crossing are zero for a dummy bunch crossing
+//______________________________________________________________________________
+inline void Digits2Raw::assignTriggerBits(int ibc, UShort_t bc, UInt_t orbit, bool is_dummy)
+{
+  // Triggers refer to the HW trigger conditions (32 possible channels)
+  // Autotrigger, current bunch crossing
   UInt_t triggers_0 = 0;
-
-  // ALICE trigger bits are zero for a dummy bunch crossing
+  // Autotrigger and ALICE trigger bits are zero for a dummy bunch crossing
+  if (!is_dummy) {
+    triggers_0 = mBCD.triggers;
+    // ALICE current bunch crossing
+    if (mBCD.ext_triggers) {
+      for (UInt_t im = 0; im < NModules; im++) {
+        for (UInt_t ic = 0; ic < NChPerModule; ic++) {
+          mZDC.data[im][ic].f.Alice_0 = 1;
+        }
+      }
+    }
+  }
 
   // Next bunch crossings (ALICE and autotrigger)
   UInt_t triggers_1 = 0, triggers_2 = 0, triggers_3 = 0, triggers_m = 0;
   for (Int_t is = 1; is < 4; is++) {
     Int_t ibc_peek = ibc + is;
-    if (ibc_peek >= nbc) {
+    if (ibc_peek >= mNbc) {
       break;
     }
     const auto& bcd_peek = mzdcBCData[ibc_peek];
@@ -324,9 +330,9 @@ void Digits2Raw::insertLastBunch(int ibc, uint32_t orbit)
   }
 
   // Previous bunch crossing just for autotrigger
-  // for a dummy last bunch crossi is the current one
+  // For a dummy last bunch crossing previous bunch is the one pointed by ibc
   {
-    Int_t ibc_peek = ibc;
+    Int_t ibc_peek = is_dummy ? ibc : ibc - 1;
     if (ibc_peek >= 0) {
       const auto& bcd_peek = mzdcBCData[ibc - 1];
       UShort_t bc_peek = bcd_peek.ir.bc;
@@ -374,6 +380,27 @@ void Digits2Raw::insertLastBunch(int ibc, uint32_t orbit)
       }
     }
   }
+}
+
+//______________________________________________________________________________
+void Digits2Raw::insertLastBunch(int ibc, uint32_t orbit)
+{
+
+  // Orbit and bunch crossing identifiers
+  UShort_t bc = 3563;
+
+  // Reset scalers at orbit change
+  if (orbit != mLastOrbit) {
+    resetSums(orbit);
+  }
+
+  updatePedestalReference(bc);
+
+  // Dummy bunch -> Do not increment scalers but reset output structure
+  resetOutputStructure(bc, orbit, true);
+
+  // Compute autotrigger bits and assign ALICE trigger bits
+  assignTriggerBits(ibc, bc, orbit, true);
 
   // Insert payload for all channels
   for (Int_t im = 0; im < NModules; im++) {
@@ -428,13 +455,10 @@ void Digits2Raw::insertLastBunch(int ibc, uint32_t orbit)
 //______________________________________________________________________________
 void Digits2Raw::convertDigits(int ibc)
 {
-  // Number of bunch crossings stored
-  int nbc = mzdcBCData.size();
 
   // Orbit and bunch crossing identifiers
-  const auto& bcd = mzdcBCData[ibc];
-  UShort_t bc = bcd.ir.bc;
-  UInt_t orbit = bcd.ir.orbit;
+  UShort_t bc = mBCD.ir.bc;
+  UInt_t orbit = mBCD.ir.orbit;
 
   // Reset scalers at orbit change
   if (orbit != mLastOrbit) {
@@ -443,193 +467,25 @@ void Digits2Raw::convertDigits(int ibc)
 
   updatePedestalReference(bc);
 
-  // Increment scalers and reset output structure
-  for (UInt_t im = 0; im < NModules; im++) {
-    for (UInt_t ic = 0; ic < NChPerModule; ic++) {
-      // Fixed words
-      mZDC.data[im][ic].w[0][0] = Id_w0;
-      mZDC.data[im][ic].w[0][1] = 0;
-      mZDC.data[im][ic].w[0][2] = 0;
-      mZDC.data[im][ic].w[0][3] = 0;
-      mZDC.data[im][ic].w[1][0] = Id_w1;
-      mZDC.data[im][ic].w[1][1] = 0;
-      mZDC.data[im][ic].w[1][2] = 0;
-      mZDC.data[im][ic].w[1][3] = 0;
-      mZDC.data[im][ic].w[2][0] = Id_w2;
-      mZDC.data[im][ic].w[2][1] = 0;
-      mZDC.data[im][ic].w[2][2] = 0;
-      mZDC.data[im][ic].w[2][3] = 0;
-      // Module and channel numbers
-      mZDC.data[im][ic].f.board = im;
-      mZDC.data[im][ic].f.ch = ic;
-      // Orbit and bunch crossing
-      mZDC.data[im][ic].f.orbit = orbit;
-      mZDC.data[im][ic].f.bc = bc;
-      // If channel is hit in current bunch crossing
-      if (bcd.triggers & (0x1 << (im * NChPerModule + ic))) {
-        mScalers[im][ic]++;          // increment scalers
-        mZDC.data[im][ic].f.Hit = 1; // flag bunch crossing
-      }
-      mZDC.data[im][ic].f.hits = mScalers[im][ic];
-      mZDC.data[im][ic].f.offset = mPed[im][ic];
-    }
-  }
+  // Not a dummy bunch -> Reset output structure and eventually flag hits and increment scalers
+  resetOutputStructure(bc, orbit, false);
 
-  // Compute autotrigger bits and assigna ALICE trigger bits
-  // triggers refer to the HW trigger conditions (32 possible channels)
-
-  // Autotrigger, current bunch crossing
-  UInt_t triggers_0 = bcd.triggers;
-
-  // ALICE current bunch crossing
-  if (bcd.ext_triggers) {
-    for (UInt_t im = 0; im < NModules; im++) {
-      for (UInt_t ic = 0; ic < NChPerModule; ic++) {
-        mZDC.data[im][ic].f.Alice_0 = 1;
-      }
-    }
-  }
-
-  // Next bunch crossings (ALICE and autotrigger)
-  UInt_t triggers_1 = 0, triggers_2 = 0, triggers_3 = 0, triggers_m = 0;
-  for (Int_t is = 1; is < 4; is++) {
-    Int_t ibc_peek = ibc + is;
-    if (ibc_peek >= nbc) {
-      break;
-    }
-    const auto& bcd_peek = mzdcBCData[ibc_peek];
-    UShort_t bc_peek = bcd_peek.ir.bc;
-    UInt_t orbit_peek = bcd_peek.ir.orbit;
-    if (bcd_peek.triggers) {
-      if (orbit_peek == orbit) {
-        if ((bc_peek - bc) == 1) {
-          triggers_1 = bcd_peek.triggers;
-          if (bcd_peek.ext_triggers) {
-            for (UInt_t im = 0; im < NModules; im++) {
-              for (UInt_t ic = 0; ic < NChPerModule; ic++) {
-                mZDC.data[im][ic].f.Alice_1 = 1;
-              }
-            }
-          }
-        } else if ((bc_peek - bc) == 2) {
-          triggers_2 = bcd_peek.triggers;
-          if (bcd_peek.ext_triggers) {
-            for (UInt_t im = 0; im < NModules; im++) {
-              for (UInt_t ic = 0; ic < NChPerModule; ic++) {
-                mZDC.data[im][ic].f.Alice_2 = 1;
-              }
-            }
-          }
-        } else if ((bc_peek - bc) == 3) {
-          triggers_3 = bcd_peek.triggers;
-          if (bcd_peek.ext_triggers) {
-            for (UInt_t im = 0; im < NModules; im++) {
-              for (UInt_t ic = 0; ic < NChPerModule; ic++) {
-                mZDC.data[im][ic].f.Alice_3 = 1;
-              }
-            }
-          }
-          break;
-        }
-      } else if (orbit_peek == (orbit + 1)) {
-        if ((bc_peek + 3564 - bc) == 1) {
-          triggers_1 = bcd_peek.triggers;
-          if (bcd_peek.ext_triggers) {
-            for (UInt_t im = 0; im < NModules; im++) {
-              for (UInt_t ic = 0; ic < NChPerModule; ic++) {
-                mZDC.data[im][ic].f.Alice_1 = 1;
-              }
-            }
-          }
-        } else if ((bc_peek + 3564 - bc) == 2) {
-          triggers_2 = bcd_peek.triggers;
-          if (bcd_peek.ext_triggers) {
-            for (UInt_t im = 0; im < NModules; im++) {
-              for (UInt_t ic = 0; ic < NChPerModule; ic++) {
-                mZDC.data[im][ic].f.Alice_2 = 1;
-              }
-            }
-          }
-        } else if ((bc_peek + 3564 - bc) == 3) {
-          triggers_3 = bcd_peek.triggers;
-          if (bcd_peek.ext_triggers) {
-            for (UInt_t im = 0; im < NModules; im++) {
-              for (UInt_t ic = 0; ic < NChPerModule; ic++) {
-                mZDC.data[im][ic].f.Alice_3 = 1;
-              }
-            }
-          }
-          break;
-        }
-      } else {
-        break;
-      }
-    }
-  }
-
-  // Previous bunch crossing just for autotrigger
-  {
-    Int_t ibc_peek = ibc - 1;
-    if (ibc_peek >= 0) {
-      const auto& bcd_peek = mzdcBCData[ibc - 1];
-      UShort_t bc_peek = bcd_peek.ir.bc;
-      UInt_t orbit_peek = bcd_peek.ir.orbit;
-      if (bcd_peek.triggers) {
-        if (orbit_peek == orbit) {
-          if ((bc - bc_peek) == 1) {
-            triggers_m = bcd_peek.triggers;
-          }
-        } else if (orbit_peek == (orbit - 1)) {
-          if (bc == 0 && bc_peek == 3563) {
-            triggers_m = bcd_peek.triggers;
-          }
-        }
-      }
-    }
-  }
-
-  // Assign trigger bits in payload
-  for (Int_t im = 0; im < NModules; im++) {
-    UInt_t tmask = (0xf << (im * NChPerModule)) & mTriggerMask;
-    if (triggers_m & tmask) {
-      for (UInt_t ic = 0; ic < NChPerModule; ic++) {
-        mZDC.data[im][ic].f.Auto_m = 1;
-      }
-    }
-    if (triggers_0 & tmask) {
-      for (UInt_t ic = 0; ic < NChPerModule; ic++) {
-        mZDC.data[im][ic].f.Auto_0 = 1;
-      }
-    }
-    if (triggers_1 & tmask) {
-      for (UInt_t ic = 0; ic < NChPerModule; ic++) {
-        mZDC.data[im][ic].f.Auto_1 = 1;
-      }
-    }
-    if (triggers_2 & tmask) {
-      for (UInt_t ic = 0; ic < NChPerModule; ic++) {
-        mZDC.data[im][ic].f.Auto_2 = 1;
-      }
-    }
-    if (triggers_3 & tmask) {
-      for (UInt_t ic = 0; ic < NChPerModule; ic++) {
-        mZDC.data[im][ic].f.Auto_3 = 1;
-      }
-    }
-  }
+  // Compute autotrigger bits and assign ALICE trigger bits
+  assignTriggerBits(ibc, bc, orbit, false);
 
   if (mVerbosity > 0) {
-    bcd.print();
+    mBCD.print();
     printf("Mask: %s\n", mPrintTriggerMask.data());
   }
-  int chEnt = bcd.ref.getFirstEntry();
-  for (int ic = 0; ic < bcd.ref.getEntries(); ic++) {
+
+  int chEnt = mBCD.ref.getFirstEntry();
+  for (int ic = 0; ic < mBCD.ref.getEntries(); ic++) {
     const auto& chd = mzdcChData[chEnt++];
     if (mVerbosity > 0) {
       chd.print();
     }
-    UShort_t bc = bcd.ir.bc;
-    UInt_t orbit = bcd.ir.orbit;
+    UShort_t bc = mBCD.ir.bc;
+    UInt_t orbit = mBCD.ir.orbit;
     // Look for channel ID in digits and store channel (just one copy in output)
     // This is a limitation of software but we are not supposed to acquire the
     // same signal twice anyway
