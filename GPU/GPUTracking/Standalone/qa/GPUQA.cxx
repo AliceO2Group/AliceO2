@@ -98,10 +98,11 @@ using namespace GPUCA_NAMESPACE::gpu;
     mNRecClustersLowPt++;                                            \
   } else if ((attach & gputpcgmmergertypes::attachGoodLeg) == 0) {   \
     mNRecClustersLoopers++;                                          \
-  } else if ((attach & gputpcgmmergertypes::attachTube) && mev200) { \
-    mNRecClustersTube200++;                                          \
   } else if (attach & gputpcgmmergertypes::attachHighIncl) {         \
     mNRecClustersHighIncl++;                                         \
+  } else if ((attach & gputpcgmmergertypes::attachTube) && mev200) { \
+    mNRecClustersTube200++;                                          \
+    protect = true;                                                  \
   } else if (attach & gputpcgmmergertypes::attachTube) {             \
     protect = true;                                                  \
     mNRecClustersTube++;                                             \
@@ -116,8 +117,9 @@ using namespace GPUCA_NAMESPACE::gpu;
   if (unattached) {                                                  \
   } else if (lowPt) {                                                \
   } else if ((attach & gputpcgmmergertypes::attachGoodLeg) == 0) {   \
-  } else if ((attach & gputpcgmmergertypes::attachTube) && mev200) { \
   } else if (attach & gputpcgmmergertypes::attachHighIncl) {         \
+  } else if ((attach & gputpcgmmergertypes::attachTube) && mev200) { \
+    protect = true;                                                  \
   } else if (attach & gputpcgmmergertypes::attachTube) {             \
     protect = true;                                                  \
   } else if ((attach & gputpcgmmergertypes::attachGood) == 0) {      \
