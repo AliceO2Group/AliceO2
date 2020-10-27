@@ -127,6 +127,7 @@ GPUd() void GPUTPCCompressionTrackModel::Init(float x, float y, float z, float a
   resetCovariance();
   mNDF = -5;
   mField = &param.polynomialField;
+  mBz = param.ConstBz;
   float pti = CAMath::Abs(mP[4]);
   if (pti < 1.e-4f) {
     pti = 1.e-4f; // set 10.000 GeV momentum for straight track
@@ -163,7 +164,7 @@ GPUd() int GPUTPCCompressionTrackModel::Propagate(float x, float alpha)
     return 0;
   }
 
-  float Bz = getBz(mTrk.x, mTrk.y, mTrk.z);
+  //float Bz = getBz(mTrk.x, mTrk.y, mTrk.z);
 
   // propagate mTrk to t0e
   PhysicalTrackModel t0e(mTrk);
@@ -171,14 +172,14 @@ GPUd() int GPUTPCCompressionTrackModel::Propagate(float x, float alpha)
   if (CAMath::Abs(x - t0e.x) < 1.e-8f) {
     return 0;
   }
-  if (propagateToXBzLightNoUpdate(t0e, x, Bz, dLp)) {
+  if (propagateToXBzLightNoUpdate(t0e, x, mBz, dLp)) {
     return 1;
   }
   updatePhysicalTrackValues(t0e);
   if (CAMath::Abs(t0e.sinphi) >= MaxSinPhi) {
     return -3;
   }
-  return followLinearization(t0e, Bz, dLp);
+  return followLinearization(t0e, mBz, dLp);
 }
 
 GPUd() int GPUTPCCompressionTrackModel::Filter(float y, float z, int iRow)
@@ -294,11 +295,13 @@ GPUd() int GPUTPCCompressionTrackModel::Filter(float y, float z, int iRow)
 
 GPUd() int GPUTPCCompressionTrackModel::Mirror()
 {
+  /*
   float Bz = getBz(mTrk.x, mTrk.y, mTrk.z);
   if (CAMath::Abs(Bz) < 1.e-8f) {
     Bz = 1.e-8f;
   }
-  float dy = -2.f * mTrk.q * mTrk.px / Bz;
+  */
+  float dy = -2.f * mTrk.q * mTrk.px / mBz;
   float dS; // path in XY
   {
     float chord = dy;        // chord to the extrapolated point == |dy|*sign(x direction)
@@ -467,6 +470,14 @@ GPUd() int GPUTPCCompressionTrackModel::rotateToAlpha(float newAlpha)
     return -1;
   }
 
+  /*
+  float dLp = 0;
+  if (propagateToXBzLightNoUpdate(t0, trackX, mBz, dLp)) {
+    return -1;
+  }
+  updatePhysicalTrackValues(t0);
+  */
+
   if (CAMath::Abs(t0.sinphi) >= MaxSinPhi) {
     return -1;
   }
@@ -532,6 +543,7 @@ GPUd() int GPUTPCCompressionTrackModel::rotateToAlpha(float newAlpha)
   float j3 = -t0.py / t0.px;
   float j4 = -t0.pz / t0.px;
   float j5 = t0.qpt * B[2];
+  //float j5 = t0.qpt * mBz;
 
   //                    Y  Z Sin DzDs q/p  X
   // Jacobian J1 = { {  1, 0, 0,  0,  0,  j3 }, // Y

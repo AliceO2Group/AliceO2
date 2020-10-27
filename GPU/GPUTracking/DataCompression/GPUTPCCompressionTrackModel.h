@@ -151,6 +151,7 @@ class GPUTPCCompressionTrackModel
 
   // propagation parameters
   const GPUTPCGMPolynomialField* mField = nullptr;
+  float mBz;
   MaterialCorrection mMaterial;
 
   PhysicalTrackModel mTrk;
