@@ -131,6 +131,7 @@ set(HDRS_INSTALL
     Global/GPUErrorCodes.h
     Standalone/qconfigoptions.h
     Base/GPUSettingsList.h
+    DataCompression/GPUTPCClusterRejection.h
 )
 
 # Sources only for O2

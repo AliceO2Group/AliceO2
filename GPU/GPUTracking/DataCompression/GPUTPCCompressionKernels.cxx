@@ -19,6 +19,7 @@
 #include "GPUCommonAlgorithm.h"
 #include "GPUTPCCompressionTrackModel.h"
 #include "GPUTPCGeometry.h"
+#include "GPUTPCClusterRejection.h"
 
 using namespace GPUCA_NAMESPACE::gpu;
 using namespace o2::tpc;
@@ -56,7 +57,7 @@ GPUdii() void GPUTPCCompressionKernels::Thread<GPUTPCCompressionKernels::step0at
       if ((attach & gputpcgmmergertypes::attachTrackMask) != i) {
         continue; // Main attachment to different track
       }
-      bool rejectCluster = processors.param.rec.tpcRejectionMode && (rejectTrk || ((attach & gputpcgmmergertypes::attachGoodLeg) == 0) || (attach & gputpcgmmergertypes::attachHighIncl));
+      bool rejectCluster = processors.param.rec.tpcRejectionMode && (rejectTrk || GPUTPCClusterRejection::GetIsRejected(attach));
       if (rejectCluster) {
         compressor.mClusterStatus[hitId] = 1; // Cluster rejected, do not store
         continue;
@@ -214,10 +215,7 @@ GPUdii() void GPUTPCCompressionKernels::Thread<GPUTPCCompressionKernels::step1un
             break;
           }
         } else if (processors.param.rec.tpcRejectionMode >= GPUSettings::RejectionStrategyA) {
-          if ((attach & gputpcgmmergertypes::attachGoodLeg) == 0) {
-            break;
-          }
-          if (attach & gputpcgmmergertypes::attachHighIncl) {
+          if (GPUTPCClusterRejection::GetIsRejected(attach)) {
             break;
           }
           int id = attach & gputpcgmmergertypes::attachTrackMask;

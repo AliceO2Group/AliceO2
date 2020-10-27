@@ -236,9 +236,10 @@ class GPUQA
   TPad* mPClust[N_CLS_TYPE];
   TLegend* mLClust[N_CLS_TYPE];
 
-  long long int mNRecClustersRejected = 0, mNRecClustersTube = 0, mNRecClustersTube200 = 0, mNRecClustersLoopers = 0, mNRecClustersLowPt = 0, mNRecClusters200MeV = 0, mNRecClustersPhysics = 0, mNRecClustersProt = 0, mNRecClustersUnattached = 0, mNRecClustersTotal = 0, mNRecClustersHighIncl = 0,
-                mNRecClustersAbove400 = 0, mNRecClustersFakeRemove400 = 0, mNRecClustersFullFakeRemove400 = 0, mNRecClustersBelow40 = 0, mNRecClustersFakeProtect40 = 0;
-  double mNRecClustersUnaccessible = 0;
+  struct counts_t {
+    long long int nRejected = 0, nTube = 0, nTube200 = 0, nLoopers = 0, nLowPt = 0, n200MeV = 0, nPhysics = 0, nProt = 0, nUnattached = 0, nTotal = 0, nHighIncl = 0, nAbove400 = 0, nFakeRemove400 = 0, nFullFakeRemove400 = 0, nBelow40 = 0, nFakeProtect40 = 0;
+    double nUnaccessible = 0;
+  } mClusterCounts;
 
   TH1F* mTracks;
   TCanvas* mCTracks;
