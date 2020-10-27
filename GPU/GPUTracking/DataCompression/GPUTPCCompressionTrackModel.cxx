@@ -209,13 +209,11 @@ GPUd() int GPUTPCCompressionTrackModel::Filter(float y, float z, int iRow)
 
   const float z0 = y - mP[0];
   const float z1 = z - mP[1];
-  float w0, w1, w2, chiY, chiZ;
+  float w0, w1, w2;
   if (mNDF <= 0) {
     w0 = 1.f / (err2Y + d00);
     w1 = 0;
     w2 = 1.f / (err2Z + d11);
-    chiY = w0 * z0 * z0;
-    chiZ = w2 * z1 * z1;
   } else {
     w0 = d11 + err2Z, w1 = d10, w2 = d00 + err2Y;
     { // Invert symmetric matrix
@@ -228,11 +226,7 @@ GPUd() int GPUTPCCompressionTrackModel::Filter(float y, float z, int iRow)
       w1 = -w1 * det;
       w2 = w2 * det;
     }
-    chiY = CAMath::Abs((w0 * z0 + w1 * z1) * z0);
-    chiZ = CAMath::Abs((w1 * z0 + w2 * z1) * z1);
   }
-  float dChi2 = chiY + chiZ;
-  mChi2 += dChi2;
   mNDF += 2;
 
   if (mNDF <= 0) {

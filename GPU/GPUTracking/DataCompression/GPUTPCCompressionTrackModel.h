@@ -146,7 +146,6 @@ class GPUTPCCompressionTrackModel
   float mP[5];
   float mC[15];
   int mNDF = -5;
-  float mChi2 = 0.f;
   float mCosAlpha;
   float mSinAlpha;
 
