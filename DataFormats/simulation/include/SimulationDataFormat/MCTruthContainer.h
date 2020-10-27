@@ -267,7 +267,7 @@ class MCTruthContainer
       // fix headers
       for (uint32_t i = dataindex + 1; i < mHeaderArray.size(); ++i) {
         auto oldindex = mHeaderArray[i].index;
-        mHeaderArray[i].index = (oldindex != -1) ? oldindex + 1 : oldindex;
+        mHeaderArray[i].index = (oldindex != (uint32_t)-1) ? oldindex + 1 : oldindex;
       }
     }
   }
