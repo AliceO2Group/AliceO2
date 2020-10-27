@@ -26,6 +26,7 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
     {"disable-mc", o2::framework::VariantType::Bool, false, {"disable MC propagation even if available"}},
     {"disable-root-input", o2::framework::VariantType::Bool, false, {"disable root-files input reader"}},
     {"disable-root-output", o2::framework::VariantType::Bool, false, {"disable root-files output writer"}},
+    {"produce-calibration-data", o2::framework::VariantType::Bool, false, {"produce output for TPC vdrift calibration"}},
     {"configKeyValues", VariantType::String, "", {"Semicolon separated key=value strings ..."}}};
 
   std::swap(workflowOptions, options);
@@ -57,5 +58,6 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   auto useMC = !configcontext.options().get<bool>("disable-mc");
   auto disableRootInp = configcontext.options().get<bool>("disable-root-input");
   auto disableRootOut = configcontext.options().get<bool>("disable-root-output");
-  return std::move(o2::globaltracking::getMatchTPCITSWorkflow(useFT0, useMC, disableRootInp, disableRootOut));
+  auto calib = configcontext.options().get<bool>("produce-calibration-data");
+  return std::move(o2::globaltracking::getMatchTPCITSWorkflow(useFT0, useMC, disableRootInp, disableRootOut, calib));
 }

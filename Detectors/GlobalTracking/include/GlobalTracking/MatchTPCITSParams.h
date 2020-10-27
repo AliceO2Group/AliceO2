@@ -57,6 +57,10 @@ struct MatchTPCITSParams : public o2::conf::ConfigurableParamHelper<MatchTPCITSP
 
   float maxVDriftUncertainty = 0.; ///< max assumed VDrift uncertainty, used only in VDrift calibration mode
 
+  float maxTglForVDriftCalib = 1.; ///< maximum ITS tgl to collect data for VDrift calibration
+  int nBinsTglVDriftCalib = 50;    ///< number of bins in reference ITS tgl for VDrift calibration
+  int nBinsDTglVDriftCalib = 100;  ///< number of bins in delta tgl for VDrift calibration
+
   o2::base::Propagator::MatCorrType matCorr = o2::base::Propagator::MatCorrType::USEMatCorrLUT; /// Material correction type
 
   O2ParamDef(MatchTPCITSParams, "tpcitsMatch");

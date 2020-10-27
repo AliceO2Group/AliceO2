@@ -32,7 +32,7 @@ namespace globaltracking
 class TPCITSMatchingDPL : public Task
 {
  public:
-  TPCITSMatchingDPL(bool useFT0, bool useMC) : mUseFT0(useFT0), mUseMC(useMC) {}
+  TPCITSMatchingDPL(bool useFT0, bool calib, bool useMC) : mUseFT0(useFT0), mCalibMode(calib), mUseMC(useMC) {}
   ~TPCITSMatchingDPL() override = default;
   void init(InitContext& ic) final;
   void run(ProcessingContext& pc) final;
@@ -42,12 +42,13 @@ class TPCITSMatchingDPL : public Task
   o2::globaltracking::MatchTPCITS mMatching; // matching engine
   o2::itsmft::TopologyDictionary mITSDict;   // cluster patterns dictionary
   bool mUseFT0 = false;
+  bool mCalibMode = false;
   bool mUseMC = true;
   TStopwatch mTimer;
 };
 
 /// create a processor spec
-framework::DataProcessorSpec getTPCITSMatchingSpec(bool useFT0, bool useMC, const std::vector<int>& tpcClusLanes);
+framework::DataProcessorSpec getTPCITSMatchingSpec(bool useFT0, bool calib, bool useMC, const std::vector<int>& tpcClusLanes);
 
 } // namespace globaltracking
 } // namespace o2
