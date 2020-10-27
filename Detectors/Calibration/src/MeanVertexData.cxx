@@ -50,7 +50,7 @@ void MeanVertexData::fill(const gsl::span<const PVertex> data)
     auto x = data[i].getX();
     auto y = data[i].getY();
     auto z = data[i].getZ();
-    LOG(INFO) << "i = " << i << " --> x = " << x << ", y = " << y << ", z = " << z;
+    LOG(DEBUG) << "i = " << i << " --> x = " << x << ", y = " << y << ", z = " << z;
     auto dx = x + rangeX;
     uint32_t binx = dx < 0 ? 0xffffffff : (x + rangeX) * v2BinX;
     auto dy = y + rangeY;

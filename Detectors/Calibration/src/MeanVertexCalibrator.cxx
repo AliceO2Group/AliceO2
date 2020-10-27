@@ -41,6 +41,7 @@ void MeanVertexCalibrator::finalizeSlot(Slot& slot)
   LOG(INFO) << "Finalize slot " << slot.getTFStart() << " <= TF <= " << slot.getTFEnd() << " with "
             << c->getEntries() << " entries";
   mTmpMVobjDqTimeStart.push_back(slot.getTFStart());
+  mTmpMVobjDqTimeEnd.push_back(slot.getTFEnd());
 
   if (mUseFit) {
     MeanVertexObject mvo;
@@ -92,8 +93,6 @@ void MeanVertexCalibrator::finalizeSlot(Slot& slot)
   // output object
   MeanVertexObject mvo;
 
-  // now we need to check if we can do some moving averages
-  TFType startValidity = std::accumulate(mTmpMVobjDqTimeStart.begin(), mTmpMVobjDqTimeStart.end(), 0.0) / mTmpMVobjDqTimeStart.size();
   if (mUseFit) {
     doSimpleMovingAverage(mTmpMVobjDq, mSMAMVobj);
   } else {
@@ -139,6 +138,13 @@ void MeanVertexCalibrator::finalizeSlot(Slot& slot)
   // TODO: the timestamp is now given with the TF index, but it will have
   // to become an absolute time. This is true both for the lhc phase object itself
   // and the CCDB entry
+  if (mTmpMVobjDqTimeStart.size() > mSMAslots) {
+    mTmpMVobjDqTimeStart.pop_front();
+    mTmpMVobjDqTimeEnd.pop_front(); // this is actually not really needed, since I always take the last entry
+                                    // from mTmpMVobjDqTimeEnd
+  }
+  TFType startValidity = (mTmpMVobjDqTimeStart.front() + mTmpMVobjDqTimeEnd.back()) / 2; // will be rounded to uint64_t
+  LOG(INFO) << "start validity = " << startValidity;
   std::map<std::string, std::string> md;
   auto clName = o2::utils::MemFileHelper::getClassName(mSMAMVobj);
   auto flName = o2::ccdb::CcdbApi::generateFileName(clName);
