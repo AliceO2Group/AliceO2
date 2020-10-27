@@ -18,9 +18,9 @@
 #pragma link C++ class o2::trd::Geometry + ;
 #pragma link C++ class o2::trd::GeometryBase + ;
 #pragma link C++ class o2::trd::CommonParam + ;
-#pragma link C++ class o2::trd::SimParam + ;
 #pragma link C++ class o2::trd::Digit + ;
-#pragma link C++ class std::vector < o2::trd::Digit> + ;
+#pragma link C++ class std::vector < o2::trd::Digit > +;
+#pragma link C++ class o2::trd::SimParam + ;
 #pragma link C++ class o2::trd::FeeParam + ;
 #pragma link C++ class o2::trd::CalDet + ;
 #pragma link C++ class o2::trd::CalROC + ;
