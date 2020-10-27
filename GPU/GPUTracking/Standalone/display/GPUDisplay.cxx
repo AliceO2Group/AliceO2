@@ -721,8 +721,8 @@ GPUDisplay::vboList GPUDisplay::DrawClusters(const GPUTPCTracker& tracker, int s
     if (mMarkAdjacentClusters) {
       const int attach = tracker.GetConstantMem()->ioPtrs.mergedTrackHitAttachment[cid];
       if (attach) {
-        if (mMarkAdjacentClusters >= 16) {
-          if (mQA && mQA->clusterRemovable(cid, mMarkAdjacentClusters == 17)) {
+        if (mMarkAdjacentClusters >= 32) {
+          if (mQA && mQA->clusterRemovable(cid, mMarkAdjacentClusters == 33)) {
             draw = select == tMARKED;
           }
         } else if ((mMarkAdjacentClusters & 2) && (attach & gputpcgmmergertypes::attachTube)) {
@@ -730,6 +730,8 @@ GPUDisplay::vboList GPUDisplay::DrawClusters(const GPUTPCTracker& tracker, int s
         } else if ((mMarkAdjacentClusters & 1) && (attach & (gputpcgmmergertypes::attachGood | gputpcgmmergertypes::attachTube)) == 0) {
           draw = select == tMARKED;
         } else if ((mMarkAdjacentClusters & 4) && (attach & gputpcgmmergertypes::attachGoodLeg) == 0) {
+          draw = select == tMARKED;
+        } else if ((mMarkAdjacentClusters & 16) && (attach & gputpcgmmergertypes::attachHighIncl)) {
           draw = select == tMARKED;
         } else if (mMarkAdjacentClusters & 8) {
           if (fabsf(tracker.GetConstantMem()->ioPtrs.mergedTracks[attach & gputpcgmmergertypes::attachTrackMask].GetParam().GetQPt()) > 20.f) {

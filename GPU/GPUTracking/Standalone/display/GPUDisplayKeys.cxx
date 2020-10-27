@@ -183,15 +183,18 @@ void GPUDisplay::HandleKeyRelease(unsigned char key)
     if (mMarkAdjacentClusters == 9) {
       mMarkAdjacentClusters = 15;
     }
-    if (mMarkAdjacentClusters == 18) {
+    if (mMarkAdjacentClusters == 17) {
+      mMarkAdjacentClusters = 31;
+    }
+    if (mMarkAdjacentClusters == 34) {
       mMarkAdjacentClusters = 0;
     }
-    if (mMarkAdjacentClusters == 17) {
+    if (mMarkAdjacentClusters == 33) {
       SetInfo("Marking protected clusters (%d)", mMarkAdjacentClusters);
-    } else if (mMarkAdjacentClusters == 16) {
+    } else if (mMarkAdjacentClusters == 32) {
       SetInfo("Marking removable clusters (%d)", mMarkAdjacentClusters);
     } else {
-      SetInfo("Marking adjacent clusters (%d): rejected %s, tube %s, looper leg %s, low Pt %s", mMarkAdjacentClusters, (mMarkAdjacentClusters & 1) ? "yes" : " no", (mMarkAdjacentClusters & 2) ? "yes" : " no", (mMarkAdjacentClusters & 4) ? "yes" : " no", (mMarkAdjacentClusters & 8) ? "yes" : " no");
+      SetInfo("Marking adjacent clusters (%d): rejected %s, tube %s, looper leg %s, low Pt %s, high incl %s", mMarkAdjacentClusters, (mMarkAdjacentClusters & 1) ? "yes" : " no", (mMarkAdjacentClusters & 2) ? "yes" : " no", (mMarkAdjacentClusters & 4) ? "yes" : " no", (mMarkAdjacentClusters & 8) ? "yes" : " no", (mMarkAdjacentClusters & 16) ? "yes" : " no");
     }
     mUpdateDLList = true;
   } else if (key == 'C') {
