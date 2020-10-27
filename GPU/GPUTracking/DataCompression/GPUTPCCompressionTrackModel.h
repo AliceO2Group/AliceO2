@@ -28,7 +28,6 @@
 #include "GPUTPCTrackParam.h"
 
 #else // Default internal track model for compression
-#include "GPUTPCGMPolynomialField.h"
 #endif
 
 namespace GPUCA_NAMESPACE::gpu
@@ -89,12 +88,9 @@ class GPUTPCCompressionTrackModel
   GPUd() float Z() const { return mP[1]; }
 
   // helper functions for standalone propagation and update methods
-  GPUd() void getBxByBz(float cosAlpha, float sinAlpha, float x, float y, float z, float b[3]) const;
-  GPUd() float getBz(float x, float y, float z) const;
   GPUd() void updatePhysicalTrackValues(PhysicalTrackModel& trk);
   GPUd() void changeDirection();
   GPUd() int rotateToAlpha(float newAlpha);
-  GPUd() int propagateToXBxByBz(PhysicalTrackModel& t, float x, float Bx, float By, float Bz, float& dLp);
   GPUd() int propagateToXBzLightNoUpdate(PhysicalTrackModel& t, float x, float Bz, float& dLp);
   GPUd() bool setDirectionAlongX(PhysicalTrackModel& t);
   GPUd() int followLinearization(const PhysicalTrackModel& t0e, float Bz, float dLp);
@@ -150,7 +146,7 @@ class GPUTPCCompressionTrackModel
   float mSinAlpha;
 
   // propagation parameters
-  const GPUTPCGMPolynomialField* mField = nullptr;
+  float mBz;
   MaterialCorrection mMaterial;
 
   PhysicalTrackModel mTrk;
