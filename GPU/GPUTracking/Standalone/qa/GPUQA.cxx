@@ -41,6 +41,7 @@
 #include "GPUTPCClusterData.h"
 #include "GPUO2DataTypes.h"
 #include "GPUParam.inc"
+#include "GPUTPCClusterRejection.h"
 #ifdef GPUCA_O2_LIB
 #include "SimulationDataFormat/ConstMCTruthContainer.h"
 #include "SimulationDataFormat/MCCompLabel.h"
@@ -89,54 +90,23 @@ using namespace GPUCA_NAMESPACE::gpu;
   bool physics = false, protect = false;                        \
   CHECK_CLUSTER_STATE_INIT_LEG_BY_MC();
 
-#define CHECK_CLUSTER_STATE_CHK_COUNT()                              \
-  if (!unattached && mev200) {                                       \
-    mNRecClusters200MeV++;                                           \
-  }                                                                  \
-  if (unattached) {                                                  \
-  } else if (lowPt) {                                                \
-    mNRecClustersLowPt++;                                            \
-  } else if ((attach & gputpcgmmergertypes::attachGoodLeg) == 0) {   \
-    mNRecClustersLoopers++;                                          \
-  } else if (attach & gputpcgmmergertypes::attachHighIncl) {         \
-    mNRecClustersHighIncl++;                                         \
-  } else if ((attach & gputpcgmmergertypes::attachTube) && mev200) { \
-    mNRecClustersTube200++;                                          \
-    protect = true;                                                  \
-  } else if (attach & gputpcgmmergertypes::attachTube) {             \
-    protect = true;                                                  \
-    mNRecClustersTube++;                                             \
-  } else if ((attach & gputpcgmmergertypes::attachGood) == 0) {      \
-    protect = true;                                                  \
-    mNRecClustersRejected++;                                         \
-  } else {                                                           \
-    physics = true;                                                  \
+#define CHECK_CLUSTER_STATE()                                                                              \
+  CHECK_CLUSTER_STATE_INIT()                                                                               \
+  if (mev200) {                                                                                            \
+    mClusterCounts.n200MeV++;                                                                              \
+  }                                                                                                        \
+  if (lowPt) {                                                                                             \
+    mClusterCounts.nLowPt++;                                                                               \
+  } else {                                                                                                 \
+    GPUTPCClusterRejection::GetProtectionStatus<true>(attach, physics, protect, &mClusterCounts, &mev200); \
   }
 
-#define CHECK_CLUSTER_STATE_CHK_NOCOUNT()                            \
-  if (unattached) {                                                  \
-  } else if (lowPt) {                                                \
-  } else if ((attach & gputpcgmmergertypes::attachGoodLeg) == 0) {   \
-  } else if (attach & gputpcgmmergertypes::attachHighIncl) {         \
-  } else if ((attach & gputpcgmmergertypes::attachTube) && mev200) { \
-    protect = true;                                                  \
-  } else if (attach & gputpcgmmergertypes::attachTube) {             \
-    protect = true;                                                  \
-  } else if ((attach & gputpcgmmergertypes::attachGood) == 0) {      \
-    protect = true;                                                  \
-  } else {                                                           \
-    physics = true;                                                  \
+#define CHECK_CLUSTER_STATE_NOCOUNT()                                             \
+  CHECK_CLUSTER_STATE_INIT()                                                      \
+  (void)mev200; /* silence unused variable warning*/                              \
+  if (!lowPt) {                                                                   \
+    GPUTPCClusterRejection::GetProtectionStatus<false>(attach, physics, protect); \
   }
-
-// clang-format off
-#define CHECK_CLUSTER_STATE() \
-  CHECK_CLUSTER_STATE_INIT() \
-  CHECK_CLUSTER_STATE_CHK_COUNT() //Fill state variables, increase counters
-
-#define CHECK_CLUSTER_STATE_NOCOUNT() \
-  CHECK_CLUSTER_STATE_INIT() \
-  CHECK_CLUSTER_STATE_CHK_NOCOUNT() //Fill state variables, do not increase counters
-// clang-format on
 
 #ifdef GPUCA_STANDALONE
 namespace GPUCA_NAMESPACE::gpu
@@ -1106,7 +1076,7 @@ GPUCA_OPENMP(parallel for)
             mClusters[CL_fake]->Fill(0.f, weight);
             mClusters[CL_att_adj]->Fill(0.f, weight);
             mClusters[CL_all]->Fill(0.f, weight);
-            mNRecClustersUnaccessible += weight;
+            mClusterCounts.nUnaccessible += weight;
             if (protect || physics) {
               mClusters[CL_prot]->Fill(0.f, weight);
             }
@@ -1202,7 +1172,7 @@ GPUCA_OPENMP(parallel for)
             mClusters[CL_att_adj]->Fill(0.f, 1.f);
             mClusters[CL_fakeAdj]->Fill(0.f, 1.f);
             mClusters[CL_all]->Fill(0.f, 1.f);
-            mNRecClustersUnaccessible++;
+            mClusterCounts.nUnaccessible++;
             if (protect || physics) {
               mClusters[CL_prot]->Fill(0.f, 1.f);
             }
@@ -1268,7 +1238,7 @@ GPUCA_OPENMP(parallel for)
             mClusters[CL_att_adj]->Fill(0.f, 1.f);
           }
           mClusters[CL_all]->Fill(0.f, 1.f);
-          mNRecClustersUnaccessible++;
+          mClusterCounts.nUnaccessible++;
           if (protect || physics) {
             mClusters[CL_prot]->Fill(0.f, 1.f);
           }
@@ -1317,10 +1287,10 @@ GPUCA_OPENMP(parallel for)
       }
       if (totalWeight > 0 && 10.f * weight400 >= totalWeight) {
         if (!unattached && !protect && !physics) {
-          mNRecClustersFakeRemove400++;
+          mClusterCounts.nFakeRemove400++;
           int totalFake = weight400 < 0.9f * totalWeight;
           if (totalFake) {
-            mNRecClustersFullFakeRemove400++;
+            mClusterCounts.nFullFakeRemove400++;
           }
           /*printf("Fake removal (%d): Hit %7d, attached %d lowPt %d looper %d tube200 %d highIncl %d tube %d bad %d recPt %7.2f recLabel %6d", totalFake, i, (int) (mClusterParam[i].attached || mClusterParam[i].fakeAttached),
               (int) lowPt, (int) ((attach & gputpcgmmergertypes::attachGoodLeg) == 0), (int) ((attach & gputpcgmmergertypes::attachTube) && mev200),
@@ -1335,24 +1305,24 @@ GPUCA_OPENMP(parallel for)
           }
           printf("\n");*/
         }
-        mNRecClustersAbove400++;
+        mClusterCounts.nAbove400++;
       }
       if (totalWeight == 0 && weight40 >= 0.9 * totalWeight) {
-        mNRecClustersBelow40++;
+        mClusterCounts.nBelow40++;
         if (protect || physics) {
-          mNRecClustersFakeProtect40++;
+          mClusterCounts.nFakeProtect40++;
         }
       }
     } else {
-      mNRecClustersTotal++;
+      mClusterCounts.nTotal++;
       if (physics) {
-        mNRecClustersPhysics++;
+        mClusterCounts.nPhysics++;
       }
       if (physics || protect) {
-        mNRecClustersProt++;
+        mClusterCounts.nProt++;
       }
       if (unattached) {
-        mNRecClustersUnattached++;
+        mClusterCounts.nUnattached++;
       }
     }
   }
@@ -2029,9 +1999,9 @@ int GPUQA::DrawQAHistograms()
         }
         counts[i] = val;
       }
-      mNRecClustersRejected += mNRecClustersHighIncl;
+      mClusterCounts.nRejected += mClusterCounts.nHighIncl;
       if (!mcAvail) {
-        counts[N_CLS_HIST - 1] = mNRecClustersTotal;
+        counts[N_CLS_HIST - 1] = mClusterCounts.nTotal;
       }
       if (counts[N_CLS_HIST - 1]) {
         if (mcAvail) {
@@ -2040,30 +2010,30 @@ int GPUQA::DrawQAHistograms()
           }
           printf("\t%35s: %'12llu (%6.2f%%)\n", "Unattached", counts[N_CLS_HIST - 1] - counts[CL_att_adj], 100.f * (counts[N_CLS_HIST - 1] - counts[CL_att_adj]) / counts[N_CLS_HIST - 1]);
           printf("\t%35s: %'12llu (%6.2f%%)\n", "Removed", counts[CL_att_adj] - counts[CL_prot], 100.f * (counts[CL_att_adj] - counts[CL_prot]) / counts[N_CLS_HIST - 1]);      // Attached + Adjacent (also fake) - protected
-          printf("\t%35s: %'12llu (%6.2f%%)\n", "Unaccessible", (unsigned long long int)mNRecClustersUnaccessible, 100.f * mNRecClustersUnaccessible / counts[N_CLS_HIST - 1]); // No contribution from track >= 10 MeV, unattached or fake-attached/adjacent
+          printf("\t%35s: %'12llu (%6.2f%%)\n", "Unaccessible", (unsigned long long int)mClusterCounts.nUnaccessible, 100.f * mClusterCounts.nUnaccessible / counts[N_CLS_HIST - 1]); // No contribution from track >= 10 MeV, unattached or fake-attached/adjacent
         } else {
           printf("\t%35s: %'12llu (%6.2f%%)\n", "All Clusters", counts[N_CLS_HIST - 1], 100.f);
-          printf("\t%35s: %'12llu (%6.2f%%)\n", "Used in Physics", mNRecClustersPhysics, 100.f * mNRecClustersPhysics / counts[N_CLS_HIST - 1]);
-          printf("\t%35s: %'12llu (%6.2f%%)\n", "Protected", mNRecClustersProt, 100.f * mNRecClustersProt / counts[N_CLS_HIST - 1]);
-          printf("\t%35s: %'12llu (%6.2f%%)\n", "Unattached", mNRecClustersUnattached, 100.f * mNRecClustersUnattached / counts[N_CLS_HIST - 1]);
-          printf("\t%35s: %'12llu (%6.2f%%)\n", "Removed", mNRecClustersTotal - mNRecClustersUnattached - mNRecClustersProt, 100.f * (mNRecClustersTotal - mNRecClustersUnattached - mNRecClustersProt) / counts[N_CLS_HIST - 1]);
+          printf("\t%35s: %'12llu (%6.2f%%)\n", "Used in Physics", mClusterCounts.nPhysics, 100.f * mClusterCounts.nPhysics / counts[N_CLS_HIST - 1]);
+          printf("\t%35s: %'12llu (%6.2f%%)\n", "Protected", mClusterCounts.nProt, 100.f * mClusterCounts.nProt / counts[N_CLS_HIST - 1]);
+          printf("\t%35s: %'12llu (%6.2f%%)\n", "Unattached", mClusterCounts.nUnattached, 100.f * mClusterCounts.nUnattached / counts[N_CLS_HIST - 1]);
+          printf("\t%35s: %'12llu (%6.2f%%)\n", "Removed", mClusterCounts.nTotal - mClusterCounts.nUnattached - mClusterCounts.nProt, 100.f * (mClusterCounts.nTotal - mClusterCounts.nUnattached - mClusterCounts.nProt) / counts[N_CLS_HIST - 1]);
         }
 
-        printf("\t%35s: %'12llu (%6.2f%%)\n", "High Inclination Angle", mNRecClustersHighIncl, 100.f * mNRecClustersHighIncl / counts[N_CLS_HIST - 1]);
-        printf("\t%35s: %'12llu (%6.2f%%)\n", "Rejected", mNRecClustersRejected, 100.f * mNRecClustersRejected / counts[N_CLS_HIST - 1]);
-        printf("\t%35s: %'12llu (%6.2f%%)\n", "Tube (> 200 MeV)", mNRecClustersTube, 100.f * mNRecClustersTube / counts[N_CLS_HIST - 1]);
-        printf("\t%35s: %'12llu (%6.2f%%)\n", "Tube (< 200 MeV)", mNRecClustersTube200, 100.f * mNRecClustersTube200 / counts[N_CLS_HIST - 1]);
-        printf("\t%35s: %'12llu (%6.2f%%)\n", "Looping Legs", mNRecClustersLoopers, 100.f * mNRecClustersLoopers / counts[N_CLS_HIST - 1]);
-        printf("\t%35s: %'12llu (%6.2f%%)\n", "Low Pt < 50 MeV", mNRecClustersLowPt, 100.f * mNRecClustersLowPt / counts[N_CLS_HIST - 1]);
-        printf("\t%35s: %'12llu (%6.2f%%)\n", "Low Pt < 200 MeV", mNRecClusters200MeV, 100.f * mNRecClusters200MeV / counts[N_CLS_HIST - 1]);
+        printf("\t%35s: %'12llu (%6.2f%%)\n", "High Inclination Angle", mClusterCounts.nHighIncl, 100.f * mClusterCounts.nHighIncl / counts[N_CLS_HIST - 1]);
+        printf("\t%35s: %'12llu (%6.2f%%)\n", "Rejected", mClusterCounts.nRejected, 100.f * mClusterCounts.nRejected / counts[N_CLS_HIST - 1]);
+        printf("\t%35s: %'12llu (%6.2f%%)\n", "Tube (> 200 MeV)", mClusterCounts.nTube, 100.f * mClusterCounts.nTube / counts[N_CLS_HIST - 1]);
+        printf("\t%35s: %'12llu (%6.2f%%)\n", "Tube (< 200 MeV)", mClusterCounts.nTube200, 100.f * mClusterCounts.nTube200 / counts[N_CLS_HIST - 1]);
+        printf("\t%35s: %'12llu (%6.2f%%)\n", "Looping Legs", mClusterCounts.nLoopers, 100.f * mClusterCounts.nLoopers / counts[N_CLS_HIST - 1]);
+        printf("\t%35s: %'12llu (%6.2f%%)\n", "Low Pt < 50 MeV", mClusterCounts.nLowPt, 100.f * mClusterCounts.nLowPt / counts[N_CLS_HIST - 1]);
+        printf("\t%35s: %'12llu (%6.2f%%)\n", "Low Pt < 200 MeV", mClusterCounts.n200MeV, 100.f * mClusterCounts.n200MeV / counts[N_CLS_HIST - 1]);
 
         if (mcAvail) {
-          printf("\t%35s: %'12llu (%6.2f%%)\n", "Tracks > 400 MeV", mNRecClustersAbove400, 100.f * mNRecClustersAbove400 / counts[N_CLS_HIST - 1]);
-          printf("\t%35s: %'12llu (%6.2f%%)\n", "Fake Removed (> 400 MeV)", mNRecClustersFakeRemove400, 100.f * mNRecClustersFakeRemove400 / std::max(mNRecClustersAbove400, 1ll));
-          printf("\t%35s: %'12llu (%6.2f%%)\n", "Full Fake Removed (> 400 MeV)", mNRecClustersFullFakeRemove400, 100.f * mNRecClustersFullFakeRemove400 / std::max(mNRecClustersAbove400, 1ll));
+          printf("\t%35s: %'12llu (%6.2f%%)\n", "Tracks > 400 MeV", mClusterCounts.nAbove400, 100.f * mClusterCounts.nAbove400 / counts[N_CLS_HIST - 1]);
+          printf("\t%35s: %'12llu (%6.2f%%)\n", "Fake Removed (> 400 MeV)", mClusterCounts.nFakeRemove400, 100.f * mClusterCounts.nFakeRemove400 / std::max(mClusterCounts.nAbove400, 1ll));
+          printf("\t%35s: %'12llu (%6.2f%%)\n", "Full Fake Removed (> 400 MeV)", mClusterCounts.nFullFakeRemove400, 100.f * mClusterCounts.nFullFakeRemove400 / std::max(mClusterCounts.nAbove400, 1ll));
 
-          printf("\t%35s: %'12llu (%6.2f%%)\n", "Tracks < 40 MeV", mNRecClustersBelow40, 100.f * mNRecClustersBelow40 / counts[N_CLS_HIST - 1]);
-          printf("\t%35s: %'12llu (%6.2f%%)\n", "Fake Protect (< 40 MeV)", mNRecClustersFakeProtect40, 100.f * mNRecClustersFakeProtect40 / std::max(mNRecClustersBelow40, 1ll));
+          printf("\t%35s: %'12llu (%6.2f%%)\n", "Tracks < 40 MeV", mClusterCounts.nBelow40, 100.f * mClusterCounts.nBelow40 / counts[N_CLS_HIST - 1]);
+          printf("\t%35s: %'12llu (%6.2f%%)\n", "Fake Protect (< 40 MeV)", mClusterCounts.nFakeProtect40, 100.f * mClusterCounts.nFakeProtect40 / std::max(mClusterCounts.nBelow40, 1ll));
         }
       }
 
