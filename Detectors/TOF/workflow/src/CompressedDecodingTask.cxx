@@ -42,9 +42,13 @@ void CompressedDecodingTask::init(InitContext& ic)
   mMaskNoise = ic.options().get<bool>("mask-noise");
   mNoiseRate = ic.options().get<int>("noise-counts");
   mRowFilter = ic.options().get<bool>("row-filter");
+  mSkipEmptyCrates = ic.options().get<bool>("skip-empty-crates");
 
   if (mMaskNoise)
     mDecoder.maskNoiseRate(mNoiseRate);
+
+  if (mSkipEmptyCrates)
+    mDecoder.setTraceEmptyCrates(0);
 
   auto finishFunction = [this]() {
     LOG(INFO) << "CompressedDecoding finish";
@@ -327,6 +331,7 @@ DataProcessorSpec getCompressedDecodingSpec(const std::string& inputDesc, bool c
     Options{
       {"row-filter", VariantType::Bool, false, {"Filter empty row"}},
       {"mask-noise", VariantType::Bool, false, {"Flag to mask noisy digits"}},
+      {"skip-empty-crates", VariantType::Bool, false, {"Flag not to trace empty crates"}},
       {"noise-counts", VariantType::Int, 1000, {"Counts in a single (TF) payload"}}}};
 }
 
