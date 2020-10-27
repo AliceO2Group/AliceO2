@@ -10,7 +10,6 @@
 
 #include "DetectorsCalibration/MeanVertexData.h"
 #include "Framework/Logger.h"
-#include "MathUtils/MathBase.h"
 #include "CommonUtils/MemFileHelper.h"
 #include "CCDB/CcdbApi.h"
 #include "DetectorsCalibration/Utils.h"
@@ -24,7 +23,6 @@ namespace calibration
 
 using Slot = o2::calibration::TimeSlot<o2::calibration::MeanVertexData>;
 using PVertex = o2::dataformats::PrimaryVertex;
-using o2::math_utils::math_base::fitGaus;
 using clbUtils = o2::calibration::Utils;
 
 //_____________________________________________

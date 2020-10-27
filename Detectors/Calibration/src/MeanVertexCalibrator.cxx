@@ -10,7 +10,7 @@
 
 #include "DetectorsCalibration/MeanVertexCalibrator.h"
 #include "Framework/Logger.h"
-#include "MathUtils/MathBase.h"
+#include "MathUtils/fit.h"
 #include "CommonUtils/MemFileHelper.h"
 #include "CCDB/CcdbApi.h"
 #include "DetectorsCalibration/Utils.h"
@@ -21,7 +21,7 @@ namespace calibration
 {
 
 using Slot = o2::calibration::TimeSlot<o2::calibration::MeanVertexData>;
-using o2::math_utils::math_base::fitGaus;
+using o2::math_utils::fitGaus;
 using clbUtils = o2::calibration::Utils;
 using MeanVertexObject = o2::dataformats::MeanVertexObject;
 
@@ -40,8 +40,7 @@ void MeanVertexCalibrator::finalizeSlot(Slot& slot)
   o2::calibration::MeanVertexData* c = slot.getContainer();
   LOG(INFO) << "Finalize slot " << slot.getTFStart() << " <= TF <= " << slot.getTFEnd() << " with "
             << c->getEntries() << " entries";
-  mTmpMVobjDqTimeStart.push_back(slot.getTFStart());
-  mTmpMVobjDqTimeEnd.push_back(slot.getTFEnd());
+  mTmpMVobjDqTime.emplace_back(slot.getTFStart(), slot.getTFEnd());
 
   if (mUseFit) {
     MeanVertexObject mvo;
@@ -84,7 +83,7 @@ void MeanVertexCalibrator::finalizeSlot(Slot& slot)
   } else {
     mTmpMVdataDq.push_back(std::move(*c));
     mSMAdata.merge(&mTmpMVdataDq.back());
-    if (mTmpMVobjDqTimeStart.size() > mSMAslots) {
+    if (mTmpMVobjDqTime.size() > mSMAslots) {
       mSMAdata.subtract(&mTmpMVdataDq.front());
       mTmpMVdataDq.pop_front();
     }
@@ -138,12 +137,10 @@ void MeanVertexCalibrator::finalizeSlot(Slot& slot)
   // TODO: the timestamp is now given with the TF index, but it will have
   // to become an absolute time. This is true both for the lhc phase object itself
   // and the CCDB entry
-  if (mTmpMVobjDqTimeStart.size() > mSMAslots) {
-    mTmpMVobjDqTimeStart.pop_front();
-    mTmpMVobjDqTimeEnd.pop_front(); // this is actually not really needed, since I always take the last entry
-                                    // from mTmpMVobjDqTimeEnd
+  if (mTmpMVobjDqTime.size() > mSMAslots) {
+    mTmpMVobjDqTime.pop_front();
   }
-  TFType startValidity = (mTmpMVobjDqTimeStart.front() + mTmpMVobjDqTimeEnd.back()) / 2; // will be rounded to uint64_t
+  TFType startValidity = (mTmpMVobjDqTime.front().getMin() + mTmpMVobjDqTime.back().getMax()) / 2; // will be rounded to uint64_t
   LOG(INFO) << "start validity = " << startValidity;
   std::map<std::string, std::string> md;
   auto clName = o2::utils::MemFileHelper::getClassName(mSMAMVobj);

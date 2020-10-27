@@ -16,6 +16,7 @@
 #include "DetectorsCalibration/MeanVertexData.h"
 #include "DataFormatsCalibration/MeanVertexObject.h"
 #include "CCDB/CcdbObjectInfo.h"
+#include "MathUtils/detail/Bracket.h"
 #include <array>
 #include <deque>
 
@@ -74,23 +75,23 @@ class MeanVertexCalibrator final : public o2::calibration::TimeSlotCalibration<o
   float mRangeZ = 0.;
   bool mUseFit = false;
   uint64_t mSMAslots = 5;
-  CcdbObjectInfoVector mInfoVector;        // vector of CCDB Infos , each element is filled with the CCDB description
-                                           // of the accompanying LHCPhase
-  MVObjectVector mMeanVertexVector;        // vector of Mean Vertex Objects, each element is filled in "process"
-                                           // when we finalize one slot (multiple can be finalized during the same
-                                           // "process", which is why we have a vector. Each element is to be considered
-                                           // the output of the device, and will go to the CCDB. It is the simple
-                                           // moving average
-  std::deque<MVObject> mTmpMVobjDq;        // This is the deque of MeanVertex objecs that will be used for the
-                                           // simple moving average
-  MVObject mSMAMVobj;                      // object containing the Simple Moving Average to be put to CCDB
-  std::deque<TFType> mTmpMVobjDqTimeStart; // This is the deque of MeanVertex objecs that will be used for the
-                                           // simple moving average, start time of used TFs
-  std::deque<TFType> mTmpMVobjDqTimeEnd;   // This is the deque of MeanVertex objecs that will be used for the
-                                           // simple moving average, end time of used TFs
-  std::deque<MeanVertexData> mTmpMVdataDq; // This is the vector of Mean Vertex data to be used for the simple
-                                           // moving average
-  MeanVertexData mSMAdata;                 // This is to do the SMA when we keep the histos
+  CcdbObjectInfoVector mInfoVector;                                    // vector of CCDB Infos , each element is filled with the CCDB description
+                                                                       // of the accompanying LHCPhase
+  MVObjectVector mMeanVertexVector;                                    // vector of Mean Vertex Objects, each element is filled in "process"
+                                                                       // when we finalize one slot (multiple can be finalized during the same
+                                                                       // "process", which is why we have a vector. Each element is to be considered
+                                                                       // the output of the device, and will go to the CCDB. It is the simple
+                                                                       // moving average
+  std::deque<MVObject> mTmpMVobjDq;                                    // This is the deque of MeanVertex objecs that will be used for the
+                                                                       // simple moving average
+  MVObject mSMAMVobj;                                                  // object containing the Simple Moving Average to be put to CCDB
+  std::deque<TFType> mTmpMVobjDqTimeStart;                             // This is the deque of MeanVertex objecs that will be used for the
+                                                                       // simple moving average, start time of used TFs
+  std::deque<o2::math_utils::detail::Bracket<TFType>> mTmpMVobjDqTime; // This is the deque for the start and end time of the
+                                                                       // slots used for the SMA
+  std::deque<MeanVertexData> mTmpMVdataDq;                             // This is the vector of Mean Vertex data to be used for the simple
+                                                                       // moving average
+  MeanVertexData mSMAdata;                                             // This is to do the SMA when we keep the histos
 
   ClassDefOverride(MeanVertexCalibrator, 1);
 };

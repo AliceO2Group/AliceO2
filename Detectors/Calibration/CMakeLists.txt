@@ -8,12 +8,6 @@
 # granted to it by virtue of its status as an Intergovernmental Organization or
 # submit itself to any jurisdiction.
 
-#o2_add_header_only_library(DetectorsCalibration
-#                           INTERFACE_LINK_LIBRARIES O2::Headers
-#	                                             O2::CCDB
-#                                                    O2::CommonUtils
-#	                                             ms_gsl::ms_gsl)
-
 o2_add_library(DetectorsCalibration
                SOURCES src/TimeSlot.cxx
 		       src/TimeSlotCalibration.cxx
