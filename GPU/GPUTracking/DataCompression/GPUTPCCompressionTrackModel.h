@@ -15,7 +15,7 @@
 #define GPUTPCCOMPRESSIONTRACKMODEL_H
 
 // For debugging purposes, we provide means to use other track models
-#define GPUCA_COMPRESSION_TRACK_MODEL_MERGER
+// #define GPUCA_COMPRESSION_TRACK_MODEL_MERGER
 // #define GPUCA_COMPRESSION_TRACK_MODEL_SLICETRACKER
 
 #include "GPUDef.h"
