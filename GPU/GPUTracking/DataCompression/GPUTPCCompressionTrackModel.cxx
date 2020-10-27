@@ -196,7 +196,7 @@ GPUd() int GPUTPCCompressionTrackModel::Filter(float y, float z, int iRow)
     mNDF = -3;
     return 0;
   }
-  //propably not needed, definitely not needed for the first measurement
+
   // constrain sin(phi)
   if (mP[2] > MaxSinPhi) {
     mP[2] = MaxSinPhi;
