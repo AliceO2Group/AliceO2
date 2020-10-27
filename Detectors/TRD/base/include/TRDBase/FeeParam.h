@@ -53,15 +53,15 @@ class FeeParam
   static void terminate();
 
   // Translation from MCM to Pad and vice versa
-  virtual int getPadRowFromMCM(int irob, int imcm) const;
-  virtual int getPadColFromADC(int irob, int imcm, int iadc) const;
-  virtual int getExtendedPadColFromADC(int irob, int imcm, int iadc) const;
-  virtual int getMCMfromPad(int irow, int icol) const;
-  virtual int getMCMfromSharedPad(int irow, int icol) const;
-  virtual int getROBfromPad(int irow, int icol) const;
-  virtual int getROBfromSharedPad(int irow, int icol) const;
-  virtual int getRobSide(int irob) const;
-  virtual int getColSide(int icol) const;
+  static int getPadRowFromMCM(int irob, int imcm);
+  static int getPadColFromADC(int irob, int imcm, int iadc);
+  static int getExtendedPadColFromADC(int irob, int imcm, int iadc);
+  static int getMCMfromPad(int irow, int icol);
+  static int getMCMfromSharedPad(int irow, int icol);
+  static int getROBfromPad(int irow, int icol);
+  static int getROBfromSharedPad(int irow, int icol);
+  static int getRobSide(int irob);
+  static int getColSide(int icol);
 
   // SCSN-related
   static unsigned int aliToExtAli(int rob, int aliid);                                                                 // Converts the MCM-ROB combination to the extended MCM ALICE ID (used to address MCMs on the SCSN Bus)
@@ -70,11 +70,11 @@ class FeeParam
   static short getRobAB(unsigned short robsel, unsigned short linkpair); // Returns the chamber side (A=0, B=0) of a ROB
 
   // wiring
-  virtual int getORI(int detector, int readoutboard) const;
-  virtual int getORIinSM(int detector, int readoutboard) const;
-  //  virtual void createORILookUpTable();
-  virtual int getORIfromHCID(int hcid) const;
-  virtual int getHCIDfromORI(int ori, int readoutboard) const; // TODO we need more info than just ori, for now readoutboard is there ... might change
+  static int getORI(int detector, int readoutboard);
+  static int getORIinSM(int detector, int readoutboard);
+  //  static void createORILookUpTable();
+  static int getORIfromHCID(int hcid);
+  static int getHCIDfromORI(int ori, int readoutboard); // TODO we need more info than just ori, for now readoutboard is there ... might change
 
   // tracklet simulation
   bool getTracklet() const { return mgTracklet; }
