@@ -163,7 +163,6 @@ struct ServiceRegistry {
   // This method should NEVER register a new service, event when requested.
   int getPos(uint32_t typeHash, uint64_t threadId) const
   {
-    auto id = typeHash & MAX_SERVICES_MASK;
     auto threadHashId = (typeHash ^ threadId) & MAX_SERVICES_MASK;
     std::atomic_thread_fence(std::memory_order_acquire);
     for (uint8_t i = 0; i < MAX_DISTANCE; ++i) {
