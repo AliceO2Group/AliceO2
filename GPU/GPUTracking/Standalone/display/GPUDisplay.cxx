@@ -722,7 +722,7 @@ GPUDisplay::vboList GPUDisplay::DrawClusters(const GPUTPCTracker& tracker, int s
       const int attach = tracker.GetConstantMem()->ioPtrs.mergedTrackHitAttachment[cid];
       if (attach) {
         if (mMarkAdjacentClusters >= 32) {
-          if (mQA && mQA->clusterRemovable(cid, mMarkAdjacentClusters == 33)) {
+          if (mQA && mQA->clusterRemovable(attach, mMarkAdjacentClusters == 33)) {
             draw = select == tMARKED;
           }
         } else if ((mMarkAdjacentClusters & 2) && (attach & gputpcgmmergertypes::attachTube)) {

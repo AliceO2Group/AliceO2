@@ -120,6 +120,7 @@ class MCCompLabel
   int getTrackIDSigned() const { return isFake() ? -getTrackID() : getTrackID(); }
   int getEventID() const { return (mLabel >> nbitsTrackID) & maskEvID; }
   int getSourceID() const { return (mLabel >> (nbitsTrackID + nbitsEvID)) & maskSrcID; }
+  ULong64_t getTrackEventSourceID() const { return static_cast<ULong64_t>(mLabel & maskFull); }
   void get(int& trackID, int& evID, int& srcID, bool& fake)
   {
     /// parse label
