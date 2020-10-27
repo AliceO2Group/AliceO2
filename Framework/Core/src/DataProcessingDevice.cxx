@@ -232,7 +232,7 @@ void DataProcessingDevice::Init()
       //        and twice for each node. It nevertheless works
       //        because the net result is that we call twice
       //        ptree put.
-      if (child.empty() != "") {
+      if (childPath != "") {
         LOG(INFO) << "[CONFIG] " << topLevel << "." << childPath.dump() << "=" << child.data() << " 1 " << configStore->provenance(topLevel.c_str());
       }
     };
