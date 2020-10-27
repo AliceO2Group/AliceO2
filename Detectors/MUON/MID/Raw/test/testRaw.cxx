@@ -32,7 +32,7 @@
 #include "MIDRaw/CrateParameters.h"
 #include "MIDRaw/DecodedDataAggregator.h"
 #include "MIDRaw/Decoder.h"
-#include "MIDRaw/GBTUserLogicDecoder.h"
+#include "MIDRaw/GBTDecoder.h"
 #include "MIDRaw/GBTUserLogicEncoder.h"
 #include "MIDRaw/Encoder.h"
 
@@ -119,7 +119,7 @@ std::tuple<std::vector<o2::mid::ColumnData>, std::vector<o2::mid::ROFRecord>> en
   std::remove(tmpFilename.c_str());
   std::remove(tmpConfigFilename.c_str());
 
-  o2::mid::Decoder<o2::mid::GBTUserLogicDecoder> decoder;
+  o2::mid::Decoder decoder;
   gsl::span<const uint8_t> data(reinterpret_cast<uint8_t*>(buffer.data()), buffer.size());
   decoder.process(data);
 
@@ -206,17 +206,18 @@ BOOST_AUTO_TEST_CASE(GBTUserLogicDecoder)
   rdh.word1 |= (memSize | (memSize << 16));
   // Sets the feeId
   rdh.word0 |= ((5 * 2) << 16);
-  o2::mid::GBTUserLogicDecoder decoder;
-  decoder.init(feeId);
+  auto decoder = o2::mid::createGBTDecoder(feeId);
+  std::vector<o2::mid::LocalBoardRO> data;
+  std::vector<o2::mid::ROFRecord> rofs;
   std::vector<uint8_t> convertedBuffer(buf.size());
   memcpy(convertedBuffer.data(), buf.data(), buf.size());
-  decoder.process(convertedBuffer, rdh);
-  BOOST_REQUIRE(decoder.getROFRecords().size() == inData.size());
+  decoder->process(convertedBuffer, rdh, data, rofs);
+  BOOST_REQUIRE(rofs.size() == inData.size());
   auto inItMap = inData.begin();
-  for (auto rofIt = decoder.getROFRecords().begin(); rofIt != decoder.getROFRecords().end(); ++rofIt) {
+  for (auto rofIt = rofs.begin(); rofIt != rofs.end(); ++rofIt) {
     BOOST_TEST(rofIt->interactionRecord.bc == inItMap->first);
     BOOST_TEST(rofIt->nEntries == inItMap->second.size());
-    auto outLoc = decoder.getData().begin() + rofIt->firstEntry;
+    auto outLoc = data.begin() + rofIt->firstEntry;
     for (auto inLoc = inItMap->second.begin(); inLoc != inItMap->second.end(); ++inLoc) {
       BOOST_TEST(inLoc->statusWord == outLoc->statusWord);
       BOOST_TEST(inLoc->triggerWord == outLoc->triggerWord);

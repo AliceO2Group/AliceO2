@@ -30,7 +30,6 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
       {"feeId-config-file", VariantType::String, "", {"Filename with crate FEE ID correspondence"}},
       {"crate-masks-file", VariantType::String, "", {"Filename with crate masks"}},
       {"electronics-delay-file", VariantType::String, "", {"Filename with electronics delay"}},
-      {"bare", VariantType::Bool, false, {"Is bare decoder"}},
       {"decode-only", o2::framework::VariantType::Bool, false, {"Output decoded boards instead of digits"}}};
   workflowOptions.insert(workflowOptions.end(), options.begin(), options.end());
 }
@@ -55,11 +54,10 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
     electronicsDelay = o2::mid::readElectronicsDelay(electronicsDelayFilename.c_str());
   }
 
-  bool isBare = cfgc.options().get<bool>("bare");
   bool decodeOnly = cfgc.options().get<bool>("decode-only");
 
   o2::framework::WorkflowSpec specs;
-  specs.emplace_back(o2::mid::getRawDecoderSpec(isBare, false, feeIdConfig, crateMasks, electronicsDelay));
+  specs.emplace_back(o2::mid::getRawDecoderSpec(false, feeIdConfig, crateMasks, electronicsDelay));
   if (!decodeOnly) {
     specs.emplace_back(o2::mid::getRawAggregatorSpec());
   }

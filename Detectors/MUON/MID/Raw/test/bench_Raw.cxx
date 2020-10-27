@@ -19,10 +19,11 @@
 #include "CommonDataFormat/InteractionRecord.h"
 #include "DetectorsRaw/RawFileReader.h"
 #include "DPLUtils/RawParser.h"
+#include "DataFormatsMID/ColumnData.h"
 #include "MIDBase/DetectorParameters.h"
 #include "MIDRaw/Decoder.h"
-#include "MIDRaw/GBTUserLogicDecoder.h"
 #include "MIDRaw/Encoder.h"
+#include "MIDRaw/GBTDecoder.h"
 
 o2::mid::ColumnData getColData(uint8_t deId, uint8_t columnId, uint16_t nbp = 0, uint16_t bp1 = 0, uint16_t bp2 = 0, uint16_t bp3 = 0, uint16_t bp4 = 0)
 {
@@ -60,10 +61,11 @@ std::vector<uint8_t> generateTestData(size_t nTF, size_t nDataInTF, size_t nColD
 
   auto severity = fair::Logger::GetConsoleSeverity();
   fair::Logger::SetConsoleSeverity(fair::Severity::WARNING);
-  std::string tmpFilename = "tmp_mid_raw.dat";
+  std::string tmpFilename = "tmp_mid_raw.raw";
   o2::mid::Encoder encoder;
   encoder.init(tmpFilename.c_str());
-
+  std::string tmpConfigFilename = "tmp_MIDConfig.cfg";
+  encoder.getWriter().writeConfFile("MID", "RAWDATA", tmpConfigFilename.c_str(), false);
   // Fill TF
   for (size_t itf = 0; itf < nTF; ++itf) {
     for (int ilocal = 0; ilocal < nDataInTF; ++ilocal) {
@@ -73,8 +75,7 @@ std::vector<uint8_t> generateTestData(size_t nTF, size_t nDataInTF, size_t nColD
   }
   encoder.finalize();
 
-  o2::raw::RawFileReader rawReader;
-  rawReader.addFile(tmpFilename.c_str());
+  o2::raw::RawFileReader rawReader(tmpConfigFilename.c_str());
   rawReader.init();
   size_t nActiveLinks = rawReader.getNLinks() < nLinks ? rawReader.getNLinks() : nLinks;
   std::vector<char> buffer;
@@ -94,6 +95,7 @@ std::vector<uint8_t> generateTestData(size_t nTF, size_t nDataInTF, size_t nColD
   fair::Logger::SetConsoleSeverity(severity);
 
   std::remove(tmpFilename.c_str());
+  std::remove(tmpConfigFilename.c_str());
 
   std::vector<uint8_t> data(buffer.size());
   memcpy(data.data(), buffer.data(), buffer.size());
@@ -103,7 +105,7 @@ std::vector<uint8_t> generateTestData(size_t nTF, size_t nDataInTF, size_t nColD
 
 static void BM_Decoder(benchmark::State& state)
 {
-  o2::mid::Decoder<o2::mid::GBTUserLogicDecoder> decoder;
+  o2::mid::Decoder decoder;
 
   int nTF = state.range(0);
   int nEventPerTF = state.range(1);
@@ -122,8 +124,7 @@ static void BM_Decoder(benchmark::State& state)
 
 static void BM_GBTDecoder(benchmark::State& state)
 {
-  o2::mid::GBTUserLogicDecoder decoder;
-  decoder.init(0, false);
+  auto decoder = o2::mid::createGBTDecoder(0);
 
   int nTF = state.range(0);
   int nEventPerTF = state.range(1);
@@ -131,9 +132,12 @@ static void BM_GBTDecoder(benchmark::State& state)
   double num{0};
 
   auto inputData = generateTestData(nTF, nEventPerTF, nFiredPerEvent, 1);
+  std::vector<o2::mid::LocalBoardRO> data;
+  std::vector<o2::mid::ROFRecord> rofs;
 
   for (auto _ : state) {
-    decoder.clear();
+    data.clear();
+    rofs.clear();
     o2::framework::RawParser parser(inputData.data(), inputData.size());
     for (auto it = parser.begin(), end = parser.end(); it != end; ++it) {
       if (it.size() == 0) {
@@ -141,7 +145,7 @@ static void BM_GBTDecoder(benchmark::State& state)
       }
       auto* rdhPtr = it.template get_if<o2::header::RAWDataHeader>();
       gsl::span<const uint8_t> payload(it.data(), it.size());
-      decoder.process(payload, *rdhPtr);
+      decoder->process(payload, *rdhPtr, data, rofs);
     }
     ++num;
   }

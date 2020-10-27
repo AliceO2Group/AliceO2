@@ -17,10 +17,7 @@
 #include "fmt/format.h"
 #include "boost/program_options.hpp"
 #include "DPLUtils/RawParser.h"
-#include "MIDRaw/FEEIdConfig.h"
 #include "MIDRaw/Decoder.h"
-#include "MIDRaw/GBTBareDecoder.h"
-#include "MIDRaw/GBTUserLogicDecoder.h"
 #include "MIDRaw/RawFileReader.h"
 
 namespace po = boost::program_options;
@@ -48,16 +45,13 @@ std::string getOutFilename(const char* inFilename, const char* outDir)
   return outFilename;
 }
 
-template <typename GBTDECODER, typename RDH>
-void decode(o2::mid::Decoder<GBTDECODER>& decoder, gsl::span<const uint8_t> payload, const RDH& rdh, std::ostream& out)
+template <class RDH>
+void decode(o2::mid::Decoder& decoder, gsl::span<const uint8_t> payload, const RDH& rdh, std::ostream& out)
 {
   decoder.clear();
   decoder.process(payload, rdh);
-  decoder.flush();
   for (auto& rof : decoder.getROFRecords()) {
-    std::stringstream ss;
-    ss << std::hex << std::showbase << rof.interactionRecord;
-    out << ss.str() << std::endl;
+    out << fmt::format("BCid: 0x{:x} Orbit: 0x{:x}", rof.interactionRecord.bc, rof.interactionRecord.orbit) << std::endl;
     for (auto colIt = decoder.getData().begin() + rof.firstEntry; colIt != decoder.getData().begin() + rof.firstEntry + rof.nEntries; ++colIt) {
       out << *colIt << std::endl;
     }
@@ -68,7 +62,7 @@ int main(int argc, char* argv[])
 {
   po::variables_map vm;
   po::options_description generic("Generic options");
-  std::string outFilename = "", feeIdConfigFilename = "";
+  std::string outFilename = "";
   unsigned long int nHBs = 0;
   unsigned long int firstHB = 0;
 
@@ -80,8 +74,7 @@ int main(int argc, char* argv[])
           ("nHBs", po::value<unsigned long int>(&nHBs),"Number of HBs read")
           ("rdh-only", po::value<bool>()->implicit_value(true),"Only show RDHs")
           ("decode", po::value<bool>()->implicit_value(true),"Decode output")
-          ("feeId-config-file", po::value<std::string>(&feeIdConfigFilename),"Filename with crate FEE ID correspondence")
-          ("bare", po::value<bool>()->implicit_value(true),"Bare decoder");
+          ("feeId-config-file", po::value<std::string>()->default_value(""),"Filename with crate FEE ID correspondence");
 
 
   po::options_description hidden("hidden options");
@@ -110,21 +103,8 @@ int main(int argc, char* argv[])
 
   std::vector<std::string> inputfiles{vm["input"].as<std::vector<std::string>>()};
 
-  bool isBare = (vm.count("bare") > 0);
   bool runDecoder = (vm.count("decode") > 0);
-
-  o2::mid::Decoder<o2::mid::GBTUserLogicDecoder> ulDecoder;
-  o2::mid::Decoder<o2::mid::GBTBareDecoder> bareDecoder;
-
-  if (runDecoder) {
-    if (!feeIdConfigFilename.empty()) {
-      o2::mid::FEEIdConfig feeIdConfig(feeIdConfigFilename.c_str());
-      bareDecoder.setFeeIdConfig(feeIdConfig);
-      ulDecoder.setFeeIdConfig(feeIdConfig);
-    }
-    bareDecoder.init(true);
-    ulDecoder.init(true);
-  }
+  std::unique_ptr<o2::mid::Decoder> decoder{nullptr};
 
   std::ofstream outFile;
   std::ostream& out = (outFilename.empty()) ? std::cout : (outFile.open(outFilename), outFile);
@@ -150,25 +130,30 @@ int main(int argc, char* argv[])
         if (it.size() > 0) {
           gsl::span<const uint8_t> payload(it.data(), it.size());
           if (runDecoder) {
-            if (isBare) {
-              decode(bareDecoder, payload, *rdhPtr, out);
-            } else {
-              decode(ulDecoder, payload, *rdhPtr, out);
+            if (!decoder) {
+              decoder = o2::mid::createDecoder(*rdhPtr, true, "", "", vm["feeId-config-file"].as<std::string>().c_str());
             }
+            decode(*decoder, payload, *rdhPtr, out);
           } else if (!isRdhOnly) {
-            for (size_t iword = 0; iword < payload.size(); iword += 16) {
-              auto word = payload.subspan(iword, 16);
-              for (auto it = word.rbegin(); it != word.rend(); ++it) {
-                auto ibInWord = word.rend() - it;
-                if (isBare) {
+            bool isBare = (o2::raw::RDHUtils::getLinkID(rdhPtr) != o2::mid::raw::sUserLogicLinkID);
+            size_t wordLength = isBare ? 16 : 32;
+            for (size_t iword = 0; iword < payload.size(); iword += wordLength) {
+              auto word = payload.subspan(iword, wordLength);
+              if (isBare) {
+                for (auto it = word.rbegin(); it != word.rend(); ++it) {
+                  auto ibInWord = word.rend() - it;
                   if (ibInWord == 4 || ibInWord == 9) {
                     out << " ";
                   }
                   if (ibInWord == 5 || ibInWord == 10) {
                     out << "  ";
                   }
+                  out << fmt::format("{:02x}", static_cast<int>(*it));
                 }
-                out << fmt::format("{:02x}", static_cast<int>(*it));
+              } else {
+                for (auto it = word.begin(); it != word.end(); ++it) {
+                  out << fmt::format("{:02x}", static_cast<int>(*it));
+                }
               }
               out << "\n";
             }
