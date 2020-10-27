@@ -15,13 +15,19 @@
 
 #include <iostream>
 #include <fstream>
+#include <sstream>
+#include <string>
+#include <vector>
 #include "boost/program_options.hpp"
+#include "CommonDataFormat/InteractionRecord.h"
+#include "DataFormatsMID/ROFRecord.h"
+#include "MIDQC/RawDataChecker.h"
 #include "MIDRaw/CrateMasks.h"
+#include "MIDRaw/Decoder.h"
 #include "MIDRaw/ElectronicsDelay.h"
 #include "MIDRaw/FEEIdConfig.h"
-#include "MIDRaw/Decoder.h"
+#include "MIDRaw/LocalBoardRO.h"
 #include "MIDRaw/RawFileReader.h"
-#include "MIDQC/RawDataChecker.h"
 
 namespace po = boost::program_options;
 
@@ -48,21 +54,21 @@ std::string getOutFilename(const char* inFilename, const char* outDir)
   return outFilename;
 }
 
-template <typename GBTDECODER>
 int process(po::variables_map& vm)
 {
   std::vector<std::string> inputfiles{vm["input"].as<std::vector<std::string>>()};
 
-  o2::mid::Decoder<GBTDECODER> decoder;
+  std::unique_ptr<o2::mid::Decoder> decoder{nullptr};
   o2::mid::RawDataChecker checker;
+
+  o2::mid::FEEIdConfig feeIdConfig;
   if (vm.count("feeId-config-file")) {
-    o2::mid::FEEIdConfig feeIdConfig(vm["feeId-config-file"].as<std::string>().c_str());
-    decoder.setFeeIdConfig(feeIdConfig);
+    feeIdConfig = o2::mid::FEEIdConfig(vm["feeId-config-file"].as<std::string>().c_str());
   }
+
   o2::mid::ElectronicsDelay electronicsDelay;
   if (vm.count("electronics-delay-file")) {
-    o2::mid::ElectronicsDelay electronicsDelay = o2::mid::readElectronicsDelay(vm["electronics-delay-file"].as<std::string>().c_str());
-    decoder.setElectronicsDelay(electronicsDelay);
+    electronicsDelay = o2::mid::readElectronicsDelay(vm["electronics-delay-file"].as<std::string>().c_str());
     checker.setElectronicsDelay(electronicsDelay);
   }
 
@@ -70,14 +76,11 @@ int process(po::variables_map& vm)
     checker.setSyncTrigger(vm["sync-trigger"].as<uint32_t>());
   }
 
+  o2::mid::CrateMasks crateMasks;
   if (vm.count("crate-masks-file")) {
-    o2::mid::CrateMasks crateMasks(vm["crate-masks-file"].as<std::string>().c_str());
-    decoder.setCrateMasks(crateMasks);
-    checker.init(crateMasks);
-  } else {
-    checker.init(o2::mid::CrateMasks());
+    crateMasks = o2::mid::CrateMasks(vm["crate-masks-file"].as<std::string>().c_str());
   }
-  decoder.init(true);
+  checker.init(crateMasks);
 
   auto nHBs = vm["nHBs"].as<unsigned long int>();
   auto nMaxErrors = vm["max-errors"].as<unsigned long int>();
@@ -106,36 +109,33 @@ int process(po::variables_map& vm)
     unsigned long int iHB = 0;
     std::stringstream summary;
     while (rawFileReader.readHB(vm.count("only-closed-HBs") > 0)) {
-      decoder.process(rawFileReader.getData());
+      if (!decoder) {
+        auto const* rdhPtr = reinterpret_cast<const o2::header::RDHAny*>(rawFileReader.getData().data());
+        decoder = o2::mid::createDecoder(*rdhPtr, true, electronicsDelay, crateMasks, feeIdConfig);
+      }
+      decoder->process(rawFileReader.getData());
       rawFileReader.clear();
       size_t offset = data.size();
-      data.insert(data.end(), decoder.getData().begin(), decoder.getData().end());
-      for (auto& rof : decoder.getROFRecords()) {
+      data.insert(data.end(), decoder->getData().begin(), decoder->getData().end());
+      for (auto& rof : decoder->getROFRecords()) {
         rofRecords.emplace_back(rof.interactionRecord, rof.eventType, rof.firstEntry + offset, rof.nEntries);
       }
       o2::InteractionRecord hb(0, iHB);
-      hbRecords.emplace_back(hb, o2::mid::EventType::Noise, offset, decoder.getData().size());
+      hbRecords.emplace_back(hb, o2::mid::EventType::Noise, offset, decoder->getData().size());
       ++iHB;
       if ((nHBs > 0 && iHB >= nHBs)) {
         break;
       }
-      bool isComplete = true; //(vm.count("bare") && decoder.isComplete());
-      // Partial check
-      if (isComplete) {
-        // The check assumes that we have all data corresponding to one event.
-        // However this might not be true since we read one HB at  the time.
-        // So we must test that the event was fully read before running the check.
-        if (!checker.process(data, rofRecords, hbRecords)) {
-          outFile << checker.getDebugMessage() << "\n";
-        }
-        data.clear();
-        rofRecords.clear();
-        hbRecords.clear();
+      if (!checker.process(data, rofRecords, hbRecords)) {
+        outFile << checker.getDebugMessage() << "\n";
+      }
+      data.clear();
+      rofRecords.clear();
+      hbRecords.clear();
 
-        if (checker.getNEventsFaulty() >= nMaxErrors) {
-          summary << "Too many errors found: abort check!\n";
-          break;
-        }
+      if (checker.getNEventsFaulty() >= nMaxErrors) {
+        summary << "Too many errors found: abort check!\n";
+        break;
       }
     }
     // Check the remaining data
@@ -169,7 +169,6 @@ int main(int argc, char* argv[])
           ("crate-masks-file", po::value<std::string>(),"Filename with crate masks")
           ("electronics-delay-file", po::value<std::string>(),"Filename with electronics delay")
           ("output-dir", po::value<std::string>()->default_value(""),"Output directory")
-          ("bare", po::value<bool>()->implicit_value(true),"Use bare decoder")
           ("sync-trigger", po::value<unsigned int>(),"Trigger used for synchronisation (default is orbit 0x1)");
 
 
@@ -197,8 +196,5 @@ int main(int argc, char* argv[])
     return 1;
   }
 
-  if (vm.count("bare")) {
-    return process<o2::mid::GBTBareDecoder>(vm);
-  }
-  return process<o2::mid::GBTUserLogicDecoder>(vm);
+  return process(vm);
 }

@@ -23,37 +23,38 @@ namespace o2
 namespace mid
 {
 
-template <typename GBTDECODER>
-Decoder<GBTDECODER>::Decoder() : mData(), mROFRecords(), mGBTDecoders(), mFEEIdConfig(), mMasks()
+// namespace impl
+// {
+class FEEIDGetterImpl
 {
-  /// Default constructor
-  init();
+ public:
+  FEEIDGetterImpl(const FEEIdConfig& feeIdConfig) : mFeeIdConfig(feeIdConfig) {}
+  uint16_t operator()(const o2::header::RDHAny& rdh) { return mFeeIdConfig.getFeeId(o2::raw::RDHUtils::getLinkID(rdh), o2::raw::RDHUtils::getEndPointID(rdh), o2::raw::RDHUtils::getCRUID(rdh)); }
+
+ private:
+  FEEIdConfig mFeeIdConfig{};
+};
+// } // namespace impl
+
+Decoder::Decoder(bool isDebugMode, bool isBare, const ElectronicsDelay& electronicsDelay, const CrateMasks& crateMasks, const FEEIdConfig& feeIdConfig) : mData(), mROFRecords(), mGBTDecoders()
+{
+  /// Constructor
+  for (uint16_t igbt = 0; igbt < crateparams::sNGBTs; ++igbt) {
+    mGBTDecoders[igbt] = createGBTDecoder(igbt, isBare, isDebugMode, crateMasks.getMask(igbt), electronicsDelay);
+  }
+  if (isBare) {
+    mGetFEEID = FEEIDGetterImpl(feeIdConfig);
+  }
 }
 
-template <typename GBTDECODER>
-void Decoder<GBTDECODER>::clear()
+void Decoder::clear()
 {
   /// Clears the decoded data
   mData.clear();
   mROFRecords.clear();
 }
 
-template <typename GBTDECODER>
-void Decoder<GBTDECODER>::init(bool isDebugMode)
-{
-  /// Initializes the decoder
-  for (uint16_t igbt = 0; igbt < crateparams::sNGBTs; ++igbt) {
-    if constexpr (std::is_same_v<GBTDECODER, GBTBareDecoder>) {
-      mGBTDecoders[igbt].init(igbt, mMasks.getMask(igbt), isDebugMode);
-    } else {
-      mGBTDecoders[igbt].init(igbt, isDebugMode);
-    }
-    mGBTDecoders[igbt].setElectronicsDelay(mElectronicsDelay);
-  }
-}
-
-template <typename GBTDECODER>
-void Decoder<GBTDECODER>::process(gsl::span<const uint8_t> bytes)
+void Decoder::process(gsl::span<const uint8_t> bytes)
 {
   /// Decodes the buffer
   clear();
@@ -66,41 +67,37 @@ void Decoder<GBTDECODER>::process(gsl::span<const uint8_t> bytes)
     auto const* rdhPtr = reinterpret_cast<const o2::header::RDHAny*>(it.raw());
     process(payload, *rdhPtr);
   }
-  flush();
 }
 
-template <typename GBTDECODER>
-void Decoder<GBTDECODER>::flush()
+std::unique_ptr<Decoder> createDecoder(const o2::header::RDHAny& rdh, bool isDebugMode, ElectronicsDelay& electronicsDelay, const CrateMasks& crateMasks, const FEEIdConfig& feeIdConfig)
 {
-  /// Flushes the GBT data
-  for (auto& gbtDec : mGBTDecoders) {
-    if (!gbtDec.getData().empty()) {
-      size_t firstEntry = mData.size();
-      mData.insert(mData.end(), gbtDec.getData().begin(), gbtDec.getData().end());
-      size_t lastRof = mROFRecords.size();
-      mROFRecords.insert(mROFRecords.end(), gbtDec.getROFRecords().begin(), gbtDec.getROFRecords().end());
-      for (auto rofIt = mROFRecords.begin() + lastRof; rofIt != mROFRecords.end(); ++rofIt) {
-        rofIt->firstEntry += firstEntry;
-      }
-      gbtDec.clear();
-    }
-  }
+  /// Creates the decoder from the RDH info
+  bool isBare = (o2::raw::RDHUtils::getLinkID(rdh) != raw::sUserLogicLinkID);
+  return std::make_unique<Decoder>(isDebugMode, isBare, electronicsDelay, crateMasks);
 }
-
-template <typename GBTDECODER>
-bool Decoder<GBTDECODER>::isComplete() const
+std::unique_ptr<Decoder> createDecoder(const o2::header::RDHAny& rdh, bool isDebugMode, const char* electronicsDelayFile, const char* crateMasksFile, const char* feeIdConfigFile)
 {
-  /// Checks that all links have finished reading
-  for (auto& decoder : mGBTDecoders) {
-    if (!decoder.isComplete()) {
-      return false;
-    }
+  /// Creates the decoder from the RDH info
+  o2::mid::ElectronicsDelay electronicsDelay;
+  std::string filename = electronicsDelayFile;
+  if (!filename.empty()) {
+    electronicsDelay = o2::mid::readElectronicsDelay(filename.c_str());
   }
-  return true;
-}
 
-template class Decoder<GBTBareDecoder>;
-template class Decoder<GBTUserLogicDecoder>;
+  o2::mid::CrateMasks crateMasks;
+  filename = crateMasksFile;
+  if (!filename.empty()) {
+    crateMasks = o2::mid::CrateMasks(filename.c_str());
+  }
+
+  o2::mid::FEEIdConfig feeIdConfig;
+  filename = feeIdConfigFile;
+  if (!filename.empty()) {
+    feeIdConfig = o2::mid::FEEIdConfig(filename.c_str());
+  }
+
+  return createDecoder(rdh, isDebugMode, electronicsDelay, crateMasks, feeIdConfig);
+}
 
 } // namespace mid
 } // namespace o2
