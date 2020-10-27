@@ -8,9 +8,5 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-/// \file   MathBase.cxx
-/// \author Jens Wiechula, Jens.Wiechula@ikf.uni-frankfurt.de
-
-#include "MathUtils/MathBase.h"
-
-using namespace o2::math_utils::math_base;
+#include "FT0Raw/DataBlockFT0.h"
+using namespace o2::ft0;

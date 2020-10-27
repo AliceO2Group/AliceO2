@@ -103,7 +103,7 @@ void Digitizer::process(const std::vector<Hit> hits, std::vector<Digit>& digits,
 //______________________________________________________________________
 int Digitizer::processHit(const Hit& hit, int detID, double event_time)
 {
-  Point3D<float> pos(hit.GetX(), hit.GetY(), hit.GetZ());
+  math_utils::Point3D<float> pos(hit.GetX(), hit.GetY(), hit.GetZ());
 
   Response& resp = response(isStation1(detID));
 
@@ -113,7 +113,7 @@ int Digitizer::processHit(const Hit& hit, int detID, double event_time)
 
   //transformation from global to local
   auto t = o2::mch::getTransformation(detID, *gGeoManager);
-  Point3D<float> lpos;
+  math_utils::Point3D<float> lpos;
   t.MasterToLocal(pos, lpos);
 
   auto anodpos = resp.getAnod(lpos.X());

@@ -102,14 +102,14 @@ DECLARE_SOA_DYNAMIC_COLUMN(Charge, charge, [](float signed1Pt) -> short { return
 DECLARE_SOA_DYNAMIC_COLUMN(Px, px, [](float signed1Pt, float snp, float alpha) -> float {
   auto pt = 1.f / std::abs(signed1Pt);
   float cs, sn;
-  utils::sincosf(alpha, sn, cs);
+  math_utils::sincos(alpha, sn, cs);
   auto r = std::sqrt((1.f - snp) * (1.f + snp));
   return pt * (r * cs - snp * sn);
 });
 DECLARE_SOA_DYNAMIC_COLUMN(Py, py, [](float signed1Pt, float snp, float alpha) -> float {
   auto pt = 1.f / std::abs(signed1Pt);
   float cs, sn;
-  utils::sincosf(alpha, sn, cs);
+  math_utils::sincos(alpha, sn, cs);
   auto r = std::sqrt((1.f - snp) * (1.f + snp));
   return pt * (snp * cs + r * sn);
 });
@@ -608,14 +608,14 @@ DECLARE_SOA_INDEX_COLUMN(FDD, fdd);
 } // namespace indices
 
 #define INDEX_LIST_RUN2 indices::CollisionId, indices::ZdcId, indices::BCId, indices::FT0Id, indices::FV0AId, indices::FV0CId, indices::FDDId
-DECLARE_SOA_INDEX_TABLE(Run2MatchedExclusive, BCs, "MA_RN2_EX", INDEX_LIST_RUN2);
+DECLARE_SOA_INDEX_TABLE_EXCLUSIVE(Run2MatchedExclusive, BCs, "MA_RN2_EX", INDEX_LIST_RUN2);
 DECLARE_SOA_INDEX_TABLE(Run2MatchedSparse, BCs, "MA_RN2_SP", INDEX_LIST_RUN2);
 
 #define INDEX_LIST_RUN3 indices::CollisionId, indices::ZdcId, indices::BCId, indices::FT0Id, indices::FV0AId, indices::FDDId
-DECLARE_SOA_INDEX_TABLE(Run3MatchedExclusive, BCs, "MA_RN3_EX", INDEX_LIST_RUN3);
+DECLARE_SOA_INDEX_TABLE_EXCLUSIVE(Run3MatchedExclusive, BCs, "MA_RN3_EX", INDEX_LIST_RUN3);
 DECLARE_SOA_INDEX_TABLE(Run3MatchedSparse, BCs, "MA_RN3_SP", INDEX_LIST_RUN3);
 
-DECLARE_SOA_INDEX_TABLE(BCCollisionsExclusive, BCs, "MA_BCCOL_EX", indices::BCId, indices::CollisionId);
+DECLARE_SOA_INDEX_TABLE_EXCLUSIVE(BCCollisionsExclusive, BCs, "MA_BCCOL_EX", indices::BCId, indices::CollisionId);
 DECLARE_SOA_INDEX_TABLE(BCCollisionsSparse, BCs, "MA_BCCOL_SP", indices::BCId, indices::CollisionId);
 
 } // namespace aod

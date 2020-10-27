@@ -111,22 +111,25 @@ struct MuonTrackSelection {
 
   void process(MyEvent event, MyMuonTracks const& muons)
   {
-    for (int i = 0; i < VarManager::kNVars; ++i)
+    for (int i = 0; i < VarManager::kNVars; ++i) {
       fValues[i] = -9999.0f;
+    }
     // fill event information which might be needed in histograms that combine track and event properties
     VarManager::FillEvent<fgEventMuonFillMap>(event, fValues);
 
     for (auto& muon : muons) {
-      for (int i = VarManager::kNEventWiseVariables; i < VarManager::kNMuonTrackVariables; ++i)
+      for (int i = VarManager::kNEventWiseVariables; i < VarManager::kNMuonTrackVariables; ++i) {
         fValues[i] = -9999.0f;
+      }
       VarManager::FillTrack<fgMuonFillMap>(muon, fValues);
       fHistMan->FillHistClass("TrackMuon_BeforeCuts", fValues);
 
       if (fMuonCut->IsSelected(fValues)) {
         trackSel(1);
         fHistMan->FillHistClass("TrackMuon_AfterCuts", fValues);
-      } else
+      } else {
         trackSel(0);
+      }
     }
   }
 };
@@ -179,8 +182,9 @@ struct DileptonMuMu {
 
     VarManager::FillEvent<fgEventMuonFillMap>(event);
     fHistMan->FillHistClass("Event_BeforeCuts", VarManager::fgValues); // automatically fill all the histograms in the class Event
-    if (!fEventCut->IsSelected(VarManager::fgValues))
+    if (!fEventCut->IsSelected(VarManager::fgValues)) {
       return;
+    }
     fHistMan->FillHistClass("Event_AfterCuts", VarManager::fgValues);
 
     // same event pairing for muons
@@ -188,22 +192,25 @@ struct DileptonMuMu {
       for (auto& tneg : negMuons) {
         //dileptonList(event, VarManager::fgValues[VarManager::kMass], VarManager::fgValues[VarManager::kPt], VarManager::fgValues[VarManager::kEta], VarManager::fgValues[VarManager::kPhi], 1);
         VarManager::FillPair(tpos, tneg);
-        if (!fDiMuonCut->IsSelected(VarManager::fgValues))
+        if (!fDiMuonCut->IsSelected(VarManager::fgValues)) {
           return;
+        }
         fHistMan->FillHistClass("PairsMuonULS", VarManager::fgValues);
       }
       for (auto tpos2 = tpos + 1; tpos2 != posMuons.end(); ++tpos2) { // ++ pairs
         VarManager::FillPair(tpos, tpos2);
-        if (!fDiMuonCut->IsSelected(VarManager::fgValues))
+        if (!fDiMuonCut->IsSelected(VarManager::fgValues)) {
           return;
+        }
         fHistMan->FillHistClass("PairsMuonLSpp", VarManager::fgValues);
       }
     }
     for (auto tneg : negMuons) { // -- pairs
       for (auto tneg2 = tneg + 1; tneg2 != negMuons.end(); ++tneg2) {
         VarManager::FillPair(tneg, tneg2);
-        if (!fDiMuonCut->IsSelected(VarManager::fgValues))
+        if (!fDiMuonCut->IsSelected(VarManager::fgValues)) {
           return;
+        }
         fHistMan->FillHistClass("PairsMuonLSnn", VarManager::fgValues);
       }
     }
@@ -220,8 +227,9 @@ void DefineHistograms(o2::framework::OutputObj<HistogramManager> histMan, TStrin
   const int kNRuns = 2;
   int runs[kNRuns] = {244918, 244919};
   TString runsStr;
-  for (int i = 0; i < kNRuns; i++)
+  for (int i = 0; i < kNRuns; i++) {
     runsStr += Form("%d;", runs[i]);
+  }
   VarManager::SetRunNumbers(kNRuns, runs);
 
   TObjArray* arr = histClasses.Tokenize(";");

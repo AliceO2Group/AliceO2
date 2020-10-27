@@ -147,8 +147,9 @@ struct EventSelection {
     if (fEventCut->IsSelected(fValues)) {
       fHistMan->FillHistClass("Event_AfterCuts", fValues);
       eventSel(1);
-    } else
+    } else {
       eventSel(0);
+    }
   }
 };
 
@@ -171,8 +172,9 @@ struct BarrelTrackSelection {
     fHistMan->SetDefaultVarNames(VarManager::fgVariableNames, VarManager::fgVariableUnits);
 
     TString cutNames = "TrackBarrel_BeforeCuts;";
-    for (int i = 0; i < gNTrackCuts; i++)
+    for (int i = 0; i < gNTrackCuts; i++) {
       cutNames += Form("TrackBarrel_%s;", fTrackCuts[i].GetName());
+    }
 
     DefineHistograms(fHistMan, cutNames.Data());     // define all histograms
     VarManager::SetUseVars(fHistMan->GetUsedVars()); // provide the list of required variables so that VarManager knows what to fill
@@ -229,8 +231,9 @@ struct BarrelTrackSelection {
     for (auto& track : tracks) {
       filterMap = uint8_t(0);
       VarManager::FillTrack<gkTrackFillMap>(track, fValues);
-      if (event.isEventSelected())
+      if (event.isEventSelected()) {
         fHistMan->FillHistClass("TrackBarrel_BeforeCuts", fValues);
+      }
 
       int i = 0;
       for (auto cut = fTrackCuts.begin(); cut != fTrackCuts.end(); ++cut, ++i) {
@@ -292,8 +295,9 @@ struct MuonTrackSelection {
         trackSel(1);
         //if(event.isEventSelected())
         fHistMan->FillHistClass("TrackMuon_AfterCuts", fValues);
-      } else
+      } else {
         trackSel(0);
+      }
     }
   }
 };
@@ -320,8 +324,9 @@ struct TableReader {
     fHistMan->SetDefaultVarNames(VarManager::fgVariableNames, VarManager::fgVariableUnits);
 
     TString histNames = "";
-    for (int i = 0; i < gNTrackCuts; i++)
+    for (int i = 0; i < gNTrackCuts; i++) {
       histNames += Form("PairsBarrelPM_cut%d;PairsBarrelPP_cut%d;PairsBarrelMM_cut%d;", i + 1, i + 1, i + 1);
+    }
 
     DefineHistograms(fHistMan, histNames.Data());    // define all histograms
     VarManager::SetUseVars(fHistMan->GetUsedVars()); // provide the list of required variables so that VarManager knows what to fill
@@ -331,8 +336,9 @@ struct TableReader {
   //void process(soa::Filtered<MyEventsVtxCovSelected>::iterator const& event, MyBarrelTracksSelected const& tracks, MyMuonTracksSelected const& muons)
   void process(MyEventsVtxCovSelected::iterator const& event, MyBarrelTracksSelected const& tracks, MyMuonTracksSelected const& muons)
   {
-    if (!event.isEventSelected())
+    if (!event.isEventSelected()) {
       return;
+    }
     // Reset the fValues array
     VarManager::ResetValues(0, VarManager::kNVars, fValues);
 
@@ -350,37 +356,43 @@ struct TableReader {
     for (auto tpos : posTracks) {
       for (auto tneg : negTracks) { // +- pairs
         filter = tpos.isBarrelSelected() & tneg.isBarrelSelected();
-        if (!filter) // the tracks must have at least one filter bit in common to continue
+        if (!filter) { // the tracks must have at least one filter bit in common to continue
           continue;
+        }
         VarManager::FillPair(tpos, tneg, fValues);
         dileptonList(event, fValues[VarManager::kMass], fValues[VarManager::kPt], fValues[VarManager::kEta], fValues[VarManager::kPhi], 0, filter);
         for (int i = 0; i < gNTrackCuts; ++i) {
-          if (filter & (uint8_t(1) << i))
+          if (filter & (uint8_t(1) << i)) {
             fHistMan->FillHistClass(Form("PairsBarrelPM_cut%d", i + 1), fValues);
+          }
         }
       }
       for (auto tpos2 = tpos + 1; tpos2 != posTracks.end(); ++tpos2) { // ++ pairs
         filter = tpos.isBarrelSelected() & tpos2.isBarrelSelected();
-        if (!filter) // the tracks must have at least one filter bit in common to continue
+        if (!filter) { // the tracks must have at least one filter bit in common to continue
           continue;
+        }
         VarManager::FillPair(tpos, tpos2, fValues);
         dileptonList(event, fValues[VarManager::kMass], fValues[VarManager::kPt], fValues[VarManager::kEta], fValues[VarManager::kPhi], 2, filter);
         for (int i = 0; i < gNTrackCuts; ++i) {
-          if (filter & (uint8_t(1) << i))
+          if (filter & (uint8_t(1) << i)) {
             fHistMan->FillHistClass(Form("PairsBarrelPP_cut%d", i + 1), fValues);
+          }
         }
       }
     }
     for (auto tneg : negTracks) { // -- pairs
       for (auto tneg2 = tneg + 1; tneg2 != negTracks.end(); ++tneg2) {
         filter = tneg.isBarrelSelected() & tneg2.isBarrelSelected();
-        if (!filter) // the tracks must have at least one filter bit in common to continue
+        if (!filter) { // the tracks must have at least one filter bit in common to continue
           continue;
+        }
         VarManager::FillPair(tneg, tneg2, fValues);
         dileptonList(event, fValues[VarManager::kMass], fValues[VarManager::kPt], fValues[VarManager::kEta], fValues[VarManager::kPhi], -2, filter);
         for (int i = 0; i < gNTrackCuts; ++i) {
-          if (filter & (uint8_t(1) << i))
+          if (filter & (uint8_t(1) << i)) {
             fHistMan->FillHistClass(Form("PairsBarrelMM_cut%d", i + 1), fValues);
+          }
         }
       }
     }
@@ -466,8 +478,9 @@ struct DileptonHadronAnalysis {
     // loop over hadrons
     for (auto& hadron : hadrons) {
       VarManager::FillTrack<gkTrackFillMap>(hadron, fValuesHadron);
-      if (!fHadronCut->IsSelected(fValuesHadron)) // TODO: this will be moved to a partition when the selection will be done in the barrel/muon track selection
+      if (!fHadronCut->IsSelected(fValuesHadron)) { // TODO: this will be moved to a partition when the selection will be done in the barrel/muon track selection
         continue;
+      }
 
       fHistMan->FillHistClass("HadronsSelected", fValuesHadron);
 
@@ -516,8 +529,9 @@ void DefineHistograms(HistogramManager* histMan, TString histClasses)
     246847, 246851, 246865, 246867, 246870, 246871, 246928, 246945, 246948, 246980,
     246982, 246984, 246989, 246991, 246994};
   TString runsStr;
-  for (int i = 0; i < kNRuns; i++)
+  for (int i = 0; i < kNRuns; i++) {
     runsStr += Form("%d;", runs[i]);
+  }
   VarManager::SetRunNumbers(kNRuns, runs);
 
   TObjArray* arr = histClasses.Tokenize(";");

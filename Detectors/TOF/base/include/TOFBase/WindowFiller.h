@@ -24,8 +24,15 @@ namespace tof
 
 class WindowFiller
 {
-
  public:
+  struct PatternData {
+    uint32_t pattern;
+    int icrate;
+    unsigned long row;
+
+    PatternData(uint32_t patt = 0, int icr = 0, unsigned long rw = 0) : pattern(patt), icrate(icr), row(rw) {}
+  };
+
   WindowFiller() { initObj(); };
   ~WindowFiller() = default;
 
@@ -42,6 +49,7 @@ class WindowFiller
 
   std::vector<Digit>* getDigitPerTimeFrame() { return &mDigitsPerTimeFrame; }
   std::vector<ReadoutWindowData>* getReadoutWindowData() { return &mReadoutWindowData; }
+  std::vector<ReadoutWindowData>* getReadoutWindowDataFiltered() { return &mReadoutWindowDataFiltered; }
 
   void fillOutputContainer(std::vector<Digit>& digits);
   void flushOutputContainer(std::vector<Digit>& digits); // flush all residual buffered data
@@ -52,6 +60,16 @@ class WindowFiller
 
   void setFirstIR(const o2::InteractionRecord& ir) { mFirstIR = ir; }
 
+  void maskNoiseRate(int val) { mMaskNoiseRate = val; }
+
+  void clearCounts()
+  {
+    memset(mChannelCounts, 0, o2::tof::Geo::NCHANNELS * sizeof(mChannelCounts[0]));
+  }
+
+  std::vector<uint32_t>& getPatterns() { return mPatterns; }
+  void addPattern(const uint32_t val, int icrate, int orbit, int bc) { mCratePatterns.emplace_back(val, icrate, orbit * 3 + (bc + 100) / 1188); }
+
  protected:
   // info TOF timewindow
   uint64_t mReadoutWindowCurrent = 0;
@@ -61,6 +79,10 @@ class WindowFiller
   bool mContinuous = true;
   bool mFutureToBeSorted = false;
 
+  // only needed from Decoder
+  int mMaskNoiseRate = -1;
+  int mChannelCounts[o2::tof::Geo::NCHANNELS]; // count of channel hits in the current TF (if MaskNoiseRate enabled)
+
   // digit info
   //std::vector<Digit>* mDigits;
 
@@ -68,6 +90,7 @@ class WindowFiller
 
   std::vector<Digit> mDigitsPerTimeFrame;
   std::vector<ReadoutWindowData> mReadoutWindowData;
+  std::vector<ReadoutWindowData> mReadoutWindowDataFiltered;
 
   int mIcurrentReadoutWindow = 0;
 
@@ -78,6 +101,11 @@ class WindowFiller
 
   // arrays with digit and MCLabels out of the current readout windows (stored to fill future readout window)
   std::vector<Digit> mFutureDigits;
+
+  std::vector<uint32_t> mPatterns;
+  std::vector<uint64_t> mErrors;
+
+  std::vector<PatternData> mCratePatterns;
 
   void fillDigitsInStrip(std::vector<Strip>* strips, int channel, int tdc, int tot, uint64_t nbc, UInt_t istrip, uint32_t triggerorbit = 0, uint16_t triggerbunch = 0);
   //  void fillDigitsInStrip(std::vector<Strip>* strips, o2::dataformats::MCTruthContainer<o2::tof::MCLabel>* mcTruthContainer, int channel, int tdc, int tot, int nbc, UInt_t istrip, Int_t trackID, Int_t eventID, Int_t sourceID);

@@ -23,7 +23,7 @@
 #include "DataFormatsITSMFT/ClusterTopology.h"
 #include "DataFormatsITSMFT/ROFRecord.h"
 #include "ITSMFTSimulation/Hit.h"
-#include "MathUtils/Cartesian3D.h"
+#include "MathUtils/Cartesian.h"
 #include "SimulationDataFormat/MCCompLabel.h"
 #include "SimulationDataFormat/MCTruthContainer.h"
 #include "DetectorsCommonDataFormats/NameConf.h"
@@ -61,8 +61,8 @@ void CheckTopologies(std::string clusfile = "mftclusters.root",
   // Geometry
   o2::base::GeometryManager::loadGeometry(inputGeom);
   auto gman = o2::mft::GeometryTGeo::Instance();
-  gman->fillMatrixCache(o2::utils::bit2Mask(o2::TransformType::T2L, o2::TransformType::T2GRot,
-                                            o2::TransformType::L2G)); // request cached transforms
+  gman->fillMatrixCache(o2::math_utils::bit2Mask(o2::math_utils::TransformType::T2L, o2::math_utils::TransformType::T2GRot,
+                                                 o2::math_utils::TransformType::L2G)); // request cached transforms
 
   // Hits
   TFile* fileH = nullptr;

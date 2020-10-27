@@ -8,13 +8,17 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#include "MathUtils/Cartesian3D.h"
 #include <iostream>
+#include "MathUtils/Cartesian.h"
 
-using namespace o2;
+ClassImp(o2::math_utils::Transform3D);
+ClassImp(o2::math_utils::Rotation2Df_t);
+ClassImp(o2::math_utils::Rotation2Dd_t);
 
-ClassImp(o2::Transform3D);
-ClassImp(o2::Rotation2D);
+namespace o2
+{
+namespace math_utils
+{
 
 //_________________________________________________
 Transform3D::Transform3D(const TGeoMatrix& m)
@@ -45,10 +49,22 @@ void Transform3D::print() const
   std::cout << *this << std::endl;
 }
 
+} // namespace math_utils
+} // namespace o2
+
 //_________________________________________________
-std::ostream& operator<<(std::ostream& os, const o2::Rotation2D& t)
+std::ostream& operator<<(std::ostream& os, const o2::math_utils::Rotation2Df_t& t)
 {
   float cs, sn;
+  t.getComponents(cs, sn);
+  os << "cos: " << cs << " sin: " << sn;
+  return os;
+}
+
+//_________________________________________________
+std::ostream& operator<<(std::ostream& os, const o2::math_utils::Rotation2Dd_t& t)
+{
+  double cs, sn;
   t.getComponents(cs, sn);
   os << "cos: " << cs << " sin: " << sn;
   return os;

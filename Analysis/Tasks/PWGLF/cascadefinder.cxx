@@ -102,29 +102,37 @@ struct cascadeprefilter {
                soa::Join<aod::V0FinderData, aod::V0DataExt> const& V0s)
   {
     for (auto& t0 : goodPosTracks) {
-      if (!(t0.flags() & 0x40))
+      if (!(t0.flags() & 0x40)) {
         continue; //TPC refit
-      if (t0.tpcNClsCrossedRows() < mincrossedrows)
+      }
+      if (t0.tpcNClsCrossedRows() < mincrossedrows) {
         continue;
+      }
       cascGoodPosTracks(t0.globalIndex(), t0.collisionId(), t0.dcaXY());
     }
     for (auto& t0 : goodNegTracks) {
-      if (!(t0.flags() & 0x40))
+      if (!(t0.flags() & 0x40)) {
         continue; //TPC refit
-      if (t0.tpcNClsCrossedRows() < mincrossedrows)
+      }
+      if (t0.tpcNClsCrossedRows() < mincrossedrows) {
         continue;
+      }
       cascGoodNegTracks(t0.globalIndex(), t0.collisionId(), -t0.dcaXY());
     }
     for (auto& v0 : goodV0s) {
-      if (v0.v0cosPA(collision.posX(), collision.posY(), collision.posZ()) < cospaV0)
+      if (v0.v0cosPA(collision.posX(), collision.posY(), collision.posZ()) < cospaV0) {
         continue;
-      if (v0.dcav0topv(collision.posX(), collision.posY(), collision.posZ()) < dcav0topv)
+      }
+      if (v0.dcav0topv(collision.posX(), collision.posY(), collision.posZ()) < dcav0topv) {
         continue;
+      }
 
-      if (fabs(v0.mLambda() - 1.116) < lambdamasswindow)
+      if (fabs(v0.mLambda() - 1.116) < lambdamasswindow) {
         cascGoodLambdas(v0.globalIndex(), v0.collisionId());
-      if (fabs(v0.mAntiLambda() - 1.116) < lambdamasswindow)
+      }
+      if (fabs(v0.mAntiLambda() - 1.116) < lambdamasswindow) {
         cascGoodAntiLambdas(v0.globalIndex(), v0.collisionId());
+      }
     }
   }
 };
@@ -193,8 +201,9 @@ struct cascadefinder {
       if (nCand != 0) {
         fitterV0.propagateTracksToVertex();
         const auto& v0vtx = fitterV0.getPCACandidate();
-        for (int i = 0; i < 3; i++)
+        for (int i = 0; i < 3; i++) {
           pos[i] = v0vtx[i];
+        }
 
         std::array<float, 21> cov0 = {0};
         std::array<float, 21> cov1 = {0};
@@ -232,8 +241,9 @@ struct cascadefinder {
           if (nCand2 != 0) {
             fitterCasc.propagateTracksToVertex();
             const auto& cascvtx = fitterCasc.getPCACandidate();
-            for (int i = 0; i < 3; i++)
+            for (int i = 0; i < 3; i++) {
               posXi[i] = cascvtx[i];
+            }
             fitterCasc.getTrack(1).getPxPyPzGlo(pvecbach);
 
             lNCand++;
@@ -263,8 +273,9 @@ struct cascadefinder {
       if (nCand != 0) {
         fitterV0.propagateTracksToVertex();
         const auto& v0vtx = fitterV0.getPCACandidate();
-        for (int i = 0; i < 3; i++)
+        for (int i = 0; i < 3; i++) {
           pos[i] = v0vtx[i];
+        }
 
         std::array<float, 21> cov0 = {0};
         std::array<float, 21> cov1 = {0};
@@ -302,8 +313,9 @@ struct cascadefinder {
           if (nCand2 != 0) {
             fitterCasc.propagateTracksToVertex();
             const auto& cascvtx = fitterCasc.getPCACandidate();
-            for (int i = 0; i < 3; i++)
+            for (int i = 0; i < 3; i++) {
               posXi[i] = cascvtx[i];
+            }
             fitterCasc.getTrack(1).getPxPyPzGlo(pvecbach);
 
             lNCand++;
@@ -354,10 +366,12 @@ struct cascadefinderQA {
   ///Connect to CascFinderData: newly indexed, note: CascDataExt table incompatible with standard V0 table!
   void process(soa::Join<aod::Collisions, aod::EvSels, aod::Cents>::iterator const& collision, soa::Filtered<soa::Join<aod::CascFinderData, aod::CascDataExt>> const& Cascades)
   {
-    if (!collision.alias()[kINT7])
+    if (!collision.alias()[kINT7]) {
       return;
-    if (!collision.sel7())
+    }
+    if (!collision.sel7()) {
       return;
+    }
     for (auto& casc : Cascades) {
       //FIXME: dynamic columns cannot be filtered on?
       if (casc.v0radius() > v0radius &&
@@ -366,15 +380,19 @@ struct cascadefinderQA {
           casc.casccosPA(collision.posX(), collision.posY(), collision.posZ()) > casccospa &&
           casc.dcav0topv(collision.posX(), collision.posY(), collision.posZ()) > dcav0topv) {
         if (casc.charge() < 0) { //FIXME: could be done better...
-          if (TMath::Abs(casc.yXi()) < 0.5)
+          if (TMath::Abs(casc.yXi()) < 0.5) {
             h3dMassXiMinus->Fill(collision.centV0M(), casc.pt(), casc.mXi());
-          if (TMath::Abs(casc.yOmega()) < 0.5)
+          }
+          if (TMath::Abs(casc.yOmega()) < 0.5) {
             h3dMassOmegaMinus->Fill(collision.centV0M(), casc.pt(), casc.mOmega());
+          }
         } else {
-          if (TMath::Abs(casc.yXi()) < 0.5)
+          if (TMath::Abs(casc.yXi()) < 0.5) {
             h3dMassXiPlus->Fill(collision.centV0M(), casc.pt(), casc.mXi());
-          if (TMath::Abs(casc.yOmega()) < 0.5)
+          }
+          if (TMath::Abs(casc.yOmega()) < 0.5) {
             h3dMassOmegaPlus->Fill(collision.centV0M(), casc.pt(), casc.mOmega());
+          }
         }
       }
     }

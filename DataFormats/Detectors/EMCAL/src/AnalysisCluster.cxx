@@ -40,16 +40,17 @@ TLorentzVector AnalysisCluster::getMomentum(std::array<const float, 3> vertex) c
 
   float r = TMath::Sqrt(pos[0] * pos[0] + pos[1] * pos[1] + pos[2] * pos[2]);
 
-  if (r > 0)
+  if (r > 0) {
     p.SetPxPyPzE(mEnergy * pos[0] / r, mEnergy * pos[1] / r, mEnergy * pos[2] / r, mEnergy);
-  else
+  } else {
     LOG(INFO) << "Null cluster radius, momentum calculation not possible";
+  }
 
   return p;
 }
 
 //______________________________________________________________________________
-void AnalysisCluster::setGlobalPosition(Point3D<float> x)
+void AnalysisCluster::setGlobalPosition(math_utils::Point3D<float> x)
 {
   mGlobalPos.SetX(x.X());
   mGlobalPos.SetY(x.Y());
@@ -57,7 +58,7 @@ void AnalysisCluster::setGlobalPosition(Point3D<float> x)
 }
 
 //______________________________________________________________________________
-void AnalysisCluster::setLocalPosition(Point3D<float> x)
+void AnalysisCluster::setLocalPosition(math_utils::Point3D<float> x)
 {
   mLocalPos.SetX(x.X());
   mLocalPos.SetY(x.Y());

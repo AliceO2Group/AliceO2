@@ -25,14 +25,15 @@ Digit& Digit::operator+=(const Digit& other)
     Int_t a = getAmplitudeADC() + other.getAmplitudeADC();
     Short_t s = (Short_t)(a);
 
-    if (a < -0x8000)
+    if (a < -0x8000) {
       setAmplitudeADC(-0x8000);
-    else if (a <= constants::EMCAL_HGLGTRANSITION)
+    } else if (a <= constants::EMCAL_HGLGTRANSITION) {
       setAmplitudeADC(s);
-    else if (a <= 0x7fff * constants::EMCAL_HGLGFACTOR)
+    } else if (a <= 0x7fff * constants::EMCAL_HGLGFACTOR) {
       setAmplitudeADC(s / constants::EMCAL_HGLGFACTOR, ChannelType_t::LOW_GAIN);
-    else
+    } else {
       setAmplitudeADC(0x7fff, ChannelType_t::LOW_GAIN);
+    }
   }
   // Does nothing if the digits are in different towers or have incompatible times.
   return *this;
@@ -66,15 +67,17 @@ Int_t Digit::getAmplitudeADC(ChannelType_t ctype) const
 {
   if (ctype == ChannelType_t::LOW_GAIN) {
     // return in units of Low-Gain ADC counts
-    if (mChannelType == ChannelType_t::LOW_GAIN)
+    if (mChannelType == ChannelType_t::LOW_GAIN) {
       return (Int_t)(mAmplitude);
-    else
+    } else {
       return mAmplitude / constants::EMCAL_HGLGFACTOR;
+    }
   }
 
   // return in units of High-Gain ADC counts (default)
-  if (mChannelType == ChannelType_t::LOW_GAIN)
+  if (mChannelType == ChannelType_t::LOW_GAIN) {
     return mAmplitude * constants::EMCAL_HGLGFACTOR;
+  }
 
   return (Int_t)(mAmplitude);
 }

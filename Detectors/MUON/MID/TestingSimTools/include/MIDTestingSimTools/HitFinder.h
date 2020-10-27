@@ -16,7 +16,7 @@
 #ifndef O2_MID_HITFINDER_H
 #define O2_MID_HITFINDER_H
 
-#include "MathUtils/Cartesian3D.h"
+#include "MathUtils/Cartesian.h"
 #include "DataFormatsMID/Cluster2D.h"
 #include "DataFormatsMID/Track.h"
 #include "MIDBase/GeometryTransformer.h"
@@ -35,7 +35,7 @@ class HitFinder
   std::vector<Cluster2D> getLocalPositions(const Track& track, int chamber, bool withUncertainty = false) const;
 
  private:
-  Point3D<double> getIntersectInDefaultPlane(const Track& track, int chamber) const;
+  math_utils::Point3D<double> getIntersectInDefaultPlane(const Track& track, int chamber) const;
   Cluster2D getIntersect(const Track& track, int deId) const;
   int guessRPC(double yPos, int chamber) const;
   void addUncertainty(Cluster2D& cl, Track track) const;

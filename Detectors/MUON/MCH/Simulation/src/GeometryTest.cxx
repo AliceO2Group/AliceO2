@@ -225,11 +225,11 @@ void drawGeometry()
   // gl->SetStyle(TGLRnrCtx::kFill);
 }
 
-o2::base::GeometryManager::MatBudgetExt getMatBudgetExt(const o2::Transform3D& t, Vector3D<double>& n, float x, float y, float thickness)
+o2::base::GeometryManager::MatBudgetExt getMatBudgetExt(const o2::math_utils::Transform3D& t, math_utils::Vector3D<double>& n, float x, float y, float thickness)
 {
-  Point3D<double> point;
-  t.LocalToMaster(Point3D<double>{x, y, 0}, point);
-  return o2::base::GeometryManager::meanMaterialBudgetExt(Point3D<double>{point + n * thickness / 2.0}, Point3D<double>{point - n * thickness / 2.0});
+  math_utils::Point3D<double> point;
+  t.LocalToMaster(math_utils::Point3D<double>{x, y, 0}, point);
+  return o2::base::GeometryManager::meanMaterialBudgetExt(math_utils::Point3D<double>{point + n * thickness / 2.0}, math_utils::Point3D<double>{point - n * thickness / 2.0});
 }
 
 std::ostream& operator<<(std::ostream& os, o2::base::GeometryManager::MatBudgetExt m)
@@ -239,14 +239,14 @@ std::ostream& operator<<(std::ostream& os, o2::base::GeometryManager::MatBudgetE
   return os;
 }
 
-Vector3D<double> getNormalVector(const o2::Transform3D& t)
+math_utils::Vector3D<double> getNormalVector(const o2::math_utils::Transform3D& t)
 {
-  Point3D<double> px, py, po;
-  t.LocalToMaster(Point3D<double>{0, 1, 0}, py);
-  t.LocalToMaster(Point3D<double>{1, 0, 0}, px);
-  t.LocalToMaster(Point3D<double>{0, 0, 0}, po);
-  Vector3D<double> a{px - po};
-  Vector3D<double> b{py - po};
+  math_utils::Point3D<double> px, py, po;
+  t.LocalToMaster(math_utils::Point3D<double>{0, 1, 0}, py);
+  t.LocalToMaster(math_utils::Point3D<double>{1, 0, 0}, px);
+  t.LocalToMaster(math_utils::Point3D<double>{0, 0, 0}, po);
+  math_utils::Vector3D<double> a{px - po};
+  math_utils::Vector3D<double> b{py - po};
   return a.Cross(b).Unit();
 }
 

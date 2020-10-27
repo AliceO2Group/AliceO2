@@ -15,7 +15,7 @@
 #include <gsl/span>
 #include <array>
 #include "Rtypes.h"
-#include "MathUtils/Cartesian3D.h"
+#include "MathUtils/Cartesian.h"
 #include "TLorentzVector.h"
 
 namespace o2
@@ -85,14 +85,14 @@ class AnalysisCluster
 
   ///
   /// Set the cluster global position.
-  void setGlobalPosition(Point3D<float> x);
-  Point3D<float> getGlobalPosition() const
+  void setGlobalPosition(math_utils::Point3D<float> x);
+  math_utils::Point3D<float> getGlobalPosition() const
   {
     return mGlobalPos;
   }
 
-  void setLocalPosition(Point3D<float> x);
-  Point3D<float> getLocalPosition() const
+  void setLocalPosition(math_utils::Point3D<float> x);
+  math_utils::Point3D<float> getLocalPosition() const
   {
     return mLocalPos;
   }
@@ -146,18 +146,20 @@ class AnalysisCluster
 
   int getCellIndex(int i) const
   {
-    if (i >= 0 && i < mNCells)
+    if (i >= 0 && i < mNCells) {
       return mCellsIndices[i];
-    else
+    } else {
       throw CellOutOfRangeException(i);
+    }
   }
 
   float getCellAmplitudeFraction(int i) const
   {
-    if (i >= 0 && i < mNCells)
+    if (i >= 0 && i < mNCells) {
       return mCellsAmpFraction[i];
-    else
+    } else {
       throw CellOutOfRangeException(i);
+    }
   }
 
   bool getIsExotic() const { return mIsExotic; }
@@ -198,14 +200,14 @@ class AnalysisCluster
   /// here we store what fraction of the cell energy is assigned to a given cluster.
   std::vector<float> mCellsAmpFraction; //[mNCells][0.,1.,16]
 
-  Point3D<float> mGlobalPos; ///< Position in global coordinate system (cm).
-  Point3D<float> mLocalPos;  ///< Local  position in the sub-detector coordinate
-  float mEnergy = 0;         ///< Energy measured by calorimeter in GeV.
-  float mCoreEnergy = 0.;    ///<  Energy in a shower core
-  float mDispersion = 0;     ///< Cluster shape dispersion.
-  float mChi2 = 0;           ///< Chi2 of cluster fit (unfolded clusters)
-  float mM20 = 0;            ///< 2-nd moment along the second eigen axis.
-  float mM02 = 0;            ///< 2-nd moment along the main eigen axis.
+  math_utils::Point3D<float> mGlobalPos; ///< Position in global coordinate system (cm).
+  math_utils::Point3D<float> mLocalPos;  ///< Local  position in the sub-detector coordinate
+  float mEnergy = 0;                     ///< Energy measured by calorimeter in GeV.
+  float mCoreEnergy = 0.;                ///<  Energy in a shower core
+  float mDispersion = 0;                 ///< Cluster shape dispersion.
+  float mChi2 = 0;                       ///< Chi2 of cluster fit (unfolded clusters)
+  float mM20 = 0;                        ///< 2-nd moment along the second eigen axis.
+  float mM02 = 0;                        ///< 2-nd moment along the main eigen axis.
 
   float mEmcCpvDistance = 1024; ///< the distance from PHOS EMC rec.point to the closest CPV rec.point.
 

@@ -23,7 +23,7 @@ const char* HelpText[] = {
   "[l] / [k] / [J]               Draw single slice (next  / previous slice), draw related slices (same plane in phi)",
   "[;] / [:]                     Show splitting of TPC in slices by extruding volume, [:] resets",
   "[#]                           Invert colors",
-  "[y] / [Y] / ['] / [X] / [M]   Start Animation, Add / remove Animation point, Reset, Cycle mode",
+  "[y] / [Y] / ['] / [X] / [M]   Start Animation, Add / remove Animation point, Reset Points, Cycle animation camera mode (resets)",
   "[>] / [<]                     Toggle config interpolation during Animation / change Animation interval (via movement)",
   "[g]                           Draw Grid",
   "[i]                           Project onto XY-plane",

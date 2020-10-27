@@ -50,17 +50,19 @@ struct FilterCF {
   {
     LOGF(info, "Tracks for collision: %d | Vertex: %.1f | INT7: %d | V0M: %.1f", tracks.size(), collision.posZ(), collision.sel7(), collision.centV0M());
 
-    if (!collision.sel7())
+    if (!collision.sel7()) {
       return;
+    }
 
     outputCollisions(collision.bc().runNumber(), collision.posZ(), collision.centV0M());
 
     for (auto& track : tracks) {
       uint8_t trackType = 0;
-      if (track.isGlobalTrack())
+      if (track.isGlobalTrack()) {
         trackType = 1;
-      else if (track.isGlobalTrackSDD())
+      } else if (track.isGlobalTrackSDD()) {
         trackType = 2;
+      }
 
       outputTracks(outputCollisions.lastIndex(), track.pt(), track.eta(), track.phi(), track.charge(), trackType);
 

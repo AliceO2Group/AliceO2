@@ -16,8 +16,9 @@
 
 #include <array>
 #include <vector>
+
+#include "MathUtils/Cartesian.h"
 #include "DetectorsCommonDataFormats/DetID.h"
-#include "MathUtils/Cartesian3D.h"
 
 class TGeoHMatrix;
 
@@ -27,7 +28,7 @@ namespace detectors
 {
 /// MatrixCache is a vector of cached transform matrices (per sensor) for specific Transformation type
 
-template <typename T = o2::Transform3D>
+template <typename T = o2::math_utils::Transform3D>
 class MatrixCache
 {
   // matrices (per sensor) for specific transformation type
@@ -41,8 +42,9 @@ class MatrixCache
   /// set the size of the cache
   void setSize(int s)
   {
-    if (!mCache.size())
+    if (!mCache.size()) {
       mCache.resize(s);
+    }
   }
 
   /// get the size of the cache
@@ -71,8 +73,8 @@ class MatrixCache
 class DetMatrixCache
 {
  public:
-  typedef o2::Transform3D Mat3D;
-  typedef o2::Rotation2D Rot2D;
+  typedef o2::math_utils::Transform3D Mat3D;
+  typedef o2::math_utils::Rotation2Df_t Rot2D;
 
   DetMatrixCache() = default;
   DetMatrixCache(const o2::detectors::DetID& id) : mDetID(id) {}
@@ -99,7 +101,7 @@ class DetMatrixCache
   // detector derived class must define its implementation for the method to populate the matrix cache, as an
   // example, see ITS implementation GeometryTGeo.
   // The method can be called multiple times to init caches for different transformations, i.e.
-  // with differen mask as  o2::utils::bit2Mask(T2L), or bit2Mask(L2G,T2L), but for the consistency
+  // with differen mask as  o2::math_utils::bit2Mask(T2L), or bit2Mask(L2G,T2L), but for the consistency
   // check the nsens must be always the same.
   virtual void fillMatrixCache(int mask) = 0;
 
@@ -127,8 +129,8 @@ class DetMatrixCache
 class DetMatrixCacheIndirect : private DetMatrixCache
 {
  public:
-  typedef o2::Transform3D Mat3D;
-  typedef o2::Rotation2D Rot2D;
+  typedef o2::math_utils::Transform3D Mat3D;
+  typedef o2::math_utils::Rotation2Df_t Rot2D;
 
   DetMatrixCacheIndirect() = default;
   DetMatrixCacheIndirect(const o2::detectors::DetID& id) : DetMatrixCache(id) {}

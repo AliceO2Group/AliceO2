@@ -8,9 +8,16 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-///
-/// @file   RandomRing.cxx
-/// @author Jens Wiechula, Jens.Wiechula@cern.ch
-///
+#include "AODProducerWorkflow/AODProducerWorkflow.h"
+#include "CommonUtils/ConfigurableParam.h"
+#include "Framework/CompletionPolicy.h"
 
-#include "MathUtils/RandomRing.h"
+using namespace o2::framework;
+
+#include "Framework/runDataProcessing.h"
+
+WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
+{
+  // Update the (declared) parameters if changed from the command line
+  return std::move(o2::aodproducer::getAODProducerWorkflow());
+}

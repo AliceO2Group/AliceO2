@@ -111,8 +111,9 @@ struct HFD0CandidateSelector {
   {
     auto candpT = hfCandProng2.pt();
     int pTBin = getpTBin(candpT);
-    if (pTBin == -1)
+    if (pTBin == -1) {
       return false;
+    }
 
     if (candpT < d_pTCandMin || candpT >= d_pTCandMax) {
       return false; //check that the candidate pT is within the analysis range
@@ -159,8 +160,9 @@ struct HFD0CandidateSelector {
 
     auto candpT = hfCandProng2.pt();
     int pTBin = getpTBin(candpT);
-    if (pTBin == -1)
+    if (pTBin == -1) {
       return false;
+    }
 
     if (trackPion.charge() > 0) { //invariant mass cut
       if (TMath::Abs(InvMassD0(hfCandProng2) - RecoDecay::getMassPDG(421)) > cuts[pTBin][0]) {
@@ -255,16 +257,18 @@ struct HFD0CandidateSelector {
   {
     double nSigma = 0.0;
     nPDG = TMath::Abs(nPDG);
-    if (nPDG == 111)
+    if (nPDG == 111) {
       nSigma = track.tofNSigmaPi();
-    else if (nPDG == 321)
+    } else if (nPDG == 321) {
       nSigma = track.tofNSigmaKa();
-    else
+    } else {
       return nSigma = 100; //arbitarily large value
-    if (nSigma < nSigmaCut)
+    }
+    if (nSigma < nSigmaCut) {
       return true;
-    else
+    } else {
       return false;
+    }
   }
 
   /// PID selection on daughter track
@@ -369,14 +373,18 @@ struct HFD0CandidateSelector {
       piMinus = selectionPID(trackNeg, 211);
       kPlus = selectionPID(trackPos, 321);
 
-      if (piPlus == 0 || kMinus == 0 || piMinus == 1 || kPlus == 1)
+      if (piPlus == 0 || kMinus == 0 || piMinus == 1 || kPlus == 1) {
         pidD0 = 0; //exclude D0
-      if (piPlus == 1 || kMinus == 1 || piMinus == 0 || kPlus == 0)
+      }
+      if (piPlus == 1 || kMinus == 1 || piMinus == 0 || kPlus == 0) {
         pidD0bar = 0; //exclude D0bar
-      if (piPlus == 1 && kMinus == 1)
+      }
+      if (piPlus == 1 && kMinus == 1) {
         pidD0 = 1; //accept D0
-      if (piMinus == 1 && kPlus == 1)
+      }
+      if (piMinus == 1 && kPlus == 1) {
         pidD0bar = 1; //accept D0bar
+      }
 
       if (pidD0 == 0 && pidD0bar == 0) {
         hfSelD0Candidate(statusD0, statusD0bar);

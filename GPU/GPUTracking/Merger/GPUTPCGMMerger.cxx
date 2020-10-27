@@ -278,6 +278,11 @@ void* GPUTPCGMMerger::SetPointersOutput(void* mem)
   if (!mRec->GetProcessingSettings().fullMergerOnGPU) {
     mem = SetPointersRefitScratch2(mem);
   }
+  if (mRec->GetRecoSteps() & GPUDataTypes::RecoStep::Refit) {
+    computePointerWithAlignment(mem, mClusterStateExt, mNMaxClusters);
+  } else {
+    mClusterStateExt = nullptr;
+  }
 
   return mem;
 }
@@ -1810,10 +1815,13 @@ GPUd() void GPUTPCGMMerger::PrepareClustersForFit1(int nBlocks, int nThreads, in
   GPUAtomic(unsigned int)* sharedCount = (GPUAtomic(unsigned int)*)(trackSort + CAMath::nextMultipleOf<4>(mMemory->nOutputTracks));
   for (unsigned int i = iBlock * nThreads + iThread; i < mMemory->nOutputTracks; i += nBlocks * nThreads) {
     mTrackOrderAttach[trackSort[i]] = i;
-  }
-  for (unsigned int i = iBlock * nThreads + iThread; i < mMemory->nOutputTrackClusters; i += nBlocks * nThreads) {
-    mClusterAttachment[mClusters[i].num] = attachAttached | attachGood;
-    CAMath::AtomicAdd(&sharedCount[mClusters[i].num], 1u);
+    const GPUTPCGMMergedTrack& trk = mOutputTracks[i];
+    if (trk.OK()) {
+      for (unsigned int j = 0; j < trk.NClusters(); j++) {
+        mClusterAttachment[mClusters[trk.FirstClusterRef() + j].num] = attachAttached | attachGood;
+        CAMath::AtomicAdd(&sharedCount[mClusters[trk.FirstClusterRef() + j].num], 1u);
+      }
+    }
   }
 }
 
@@ -1823,6 +1831,15 @@ GPUd() void GPUTPCGMMerger::PrepareClustersForFit2(int nBlocks, int nThreads, in
   for (unsigned int i = iBlock * nThreads + iThread; i < mMemory->nOutputTrackClusters; i += nBlocks * nThreads) {
     if (sharedCount[mClusters[i].num] > 1) {
       mClusters[i].state |= GPUTPCGMMergedTrackHit::flagShared;
+    }
+  }
+  if (mClusterStateExt) {
+    for (unsigned int i = iBlock * nThreads + iThread; i < mNMaxClusters; i += nBlocks * nThreads) {
+      unsigned char state = GetConstantMem()->ioPtrs.clustersNative->clustersLinear[i].getFlags();
+      if (sharedCount[i] > 1) {
+        state |= GPUTPCGMMergedTrackHit::flagShared;
+      }
+      mClusterStateExt[i] = state;
     }
   }
 }

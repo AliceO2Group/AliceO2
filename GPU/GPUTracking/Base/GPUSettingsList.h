@@ -244,6 +244,7 @@ AddOption(runTRD, int, -1, "", 0, "Enable TRD processing")
 AddOption(rundEdx, int, -1, "", 0, "Enable dEdx processing")
 AddOption(runCompression, int, 1, "", 0, "Enable TPC Compression")
 AddOption(runTransformation, int, 1, "", 0, "Enable TPC Transformation")
+AddOption(runRefit, bool, false, "", 0, "Enable final track refit")
 AddHelp("help", 'h')
 AddHelpAll("helpall", 'H')
 AddSubConfig(GPUSettingsRec, rec)
@@ -271,6 +272,7 @@ AddOption(outputBufferSize, unsigned long, 200000000ul, "", 0, "Size of the outp
 AddOption(synchronousProcessing, bool, false, "", 0, "Apply performance shortcuts for synchronous processing, disable unneeded steps")
 AddOption(mutexMemReg, bool, false, "", 0, "Global mutex to serialize GPU memory registration")
 AddOption(display, bool, false, "", 0, "Enable standalone gpu tracking visualizaion")
+AddOption(dropSecondaryLegs, bool, true, "", 0, "Do not store secondary legs of looping track in TrackTPC")
 EndConfig()
 #endif // GPUCA_O2_LIB
 #endif // !GPUCA_GPUCODE_DEVICE

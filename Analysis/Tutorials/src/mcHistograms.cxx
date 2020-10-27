@@ -64,10 +64,12 @@ struct CTask {
       //  continue;
       etaDiff->Fill(track.label().eta() - track.eta());
       auto delta = track.label().phi() - track.phi();
-      if (delta > M_PI)
+      if (delta > M_PI) {
         delta -= 2 * M_PI;
-      if (delta < -M_PI)
+      }
+      if (delta < -M_PI) {
         delta += 2 * M_PI;
+      }
       phiDiff->Fill(delta);
       //LOGF(info, "eta: %.2f %.2f \t phi: %.2f %.2f | %d", track.label().eta(), track.eta(), track.label().phi(), track.phi(), track.label().index());
     }

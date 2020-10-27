@@ -65,6 +65,7 @@ class GPUCommonMath
   GPUhdni() static void SinCos(double x, double& s, double& c);
   GPUd() static float Tan(float x);
   GPUhdni() static float Copysign(float x, float y);
+  GPUhdni() static double Copysign(double x, double y);
   GPUd() static float TwoPi() { return 6.28319f; }
   GPUd() static float Pi() { return 3.1415926535897f; }
   GPUd() static int Nint(float x);
@@ -376,6 +377,20 @@ GPUhdi() float GPUCommonMath::Copysign(float x, float y)
   return copysignf(x, y);
 #elif defined(__cplusplus) && __cplusplus >= 201103L
   return std::copysignf(x, y);
+#else
+  x = GPUCommonMath::Abs(x);
+  return (y >= 0) ? x : -x;
+#endif // GPUCA_GPUCODE
+}
+
+GPUhdi() double GPUCommonMath::Copysign(double x, double y)
+{
+#if defined(__OPENCLCPP__)
+  return copysign(x, y);
+#elif defined(GPUCA_GPUCODE) && !defined(__OPENCL__)
+  return copysignf(x, y);
+#elif defined(__cplusplus) && __cplusplus >= 201103L
+  return std::copysign(x, y);
 #else
   x = GPUCommonMath::Abs(x);
   return (y >= 0) ? x : -x;

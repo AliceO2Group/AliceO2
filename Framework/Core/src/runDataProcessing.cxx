@@ -1462,23 +1462,6 @@ std::string debugTopoInfo(std::vector<DataProcessorSpec> const& specs,
   return out.str();
 }
 
-std::string debugWorkflow(std::vector<DataProcessorSpec> const& specs)
-{
-  std::ostringstream out;
-  for (auto& spec : specs) {
-    out << spec.name << "\n";
-    //    out << " Inputs:\n";
-    //    for (auto& ii : spec.inputs) {
-    //      out << "   - " << DataSpecUtils::describe(ii) << "\n";
-    //    }
-    //    out << "\n Outputs:\n";
-    //    for (auto& ii : spec.outputs) {
-    //      out << "   - " << DataSpecUtils::describe(ii) << "\n";
-    //    }
-  }
-  return out.str();
-}
-
 // This is a toy executor for the workflow spec
 // What it needs to do is:
 //

@@ -55,18 +55,19 @@ double eta2y(double pt, double m, double eta)
 
 int getparticleint(int pdgcode)
 {
-  if (pdgcode == 11)
+  if (pdgcode == 11) {
     return kEl;
-  else if (pdgcode == 211)
+  } else if (pdgcode == 211) {
     return kPi;
-  else if (pdgcode == 321)
+  } else if (pdgcode == 321) {
     return kKa;
-  else if (pdgcode == 2212)
+  } else if (pdgcode == 2212) {
     return kPr;
-  else if (pdgcode == 1000010020)
+  } else if (pdgcode == 1000010020) {
     return kDe;
-  else
+  } else {
     return kNull;
+  }
 }
 
 //No track selection --> only event selection here
@@ -107,10 +108,12 @@ struct TrackCheckTaskEvSel {
   {
 
     //event selection
-    if (!isMC && !col.alias()[kINT7]) // trigger (should be skipped in MC)
+    if (!isMC && !col.alias()[kINT7]) { // trigger (should be skipped in MC)
       return;
-    if (!col.sel7()) //additional cuts
+    }
+    if (!col.sel7()) { //additional cuts
       return;
+    }
 
     //Loop on tracks
     for (auto& track : tracks) {
@@ -126,23 +129,25 @@ struct TrackCheckTaskEvSel {
 
         //calculate rapidity
         int pint = getparticleint(pdgcode);
-        if (pint == kNull)
+        if (pint == kNull) {
           y = (double)kNull;
-        else
+        } else {
           y = eta2y(track.pt(), mass[pint], track.eta());
+        }
 
         if (isPrimary && abs(y) < cfgCutY) {
           //histograms with generated distribution (after event selection)
-          if (pdgcode == 11)
+          if (pdgcode == 11) {
             hTrkPrimAftEvSel_truepid->Fill<kEl>(track.pt());
-          else if (pdgcode == 211)
+          } else if (pdgcode == 211) {
             hTrkPrimAftEvSel_truepid->Fill<kPi>(track.pt());
-          else if (pdgcode == 321)
+          } else if (pdgcode == 321) {
             hTrkPrimAftEvSel_truepid->Fill<kKa>(track.pt());
-          else if (pdgcode == 2212)
+          } else if (pdgcode == 2212) {
             hTrkPrimAftEvSel_truepid->Fill<kPr>(track.pt());
-          else if (pdgcode == 1000010020)
+          } else if (pdgcode == 1000010020) {
             hTrkPrimAftEvSel_truepid->Fill<kDe>(track.pt());
+          }
 
           hTrkPrimAftEvSel->Fill(track.pt()); //charged particles
         }
@@ -243,10 +248,12 @@ struct TrackCheckTaskEvSelTrackSel {
   {
 
     //event selection
-    if (!isMC && !col.alias()[kINT7]) // trigger (should be skipped in MC)
+    if (!isMC && !col.alias()[kINT7]) { // trigger (should be skipped in MC)
       return;
-    if (!col.sel7()) //additional cuts
+    }
+    if (!col.sel7()) { //additional cuts
       return;
+    }
 
     //Loop on tracks
     for (auto& track : tracks) {
@@ -261,10 +268,11 @@ struct TrackCheckTaskEvSelTrackSel {
         }
         //Calculate y
         int pint = getparticleint(pdgcode);
-        if (pint == kNull)
+        if (pint == kNull) {
           y = (double)kNull;
-        else
+        } else {
           y = eta2y(track.pt(), mass[pint], track.eta());
+        }
 
         //DCAxy distributions for reco, primary, secondaries (= not primary)
         // + distributions for reco primaries (MC truth)
@@ -274,36 +282,41 @@ struct TrackCheckTaskEvSelTrackSel {
             if (isPrimary) {
               hDCAxyPrim_truepid->Fill<kEl>(track.pt(), track.dcaXY());
               hTrkPrimReco_truepid->Fill<kEl>(track.pt());
-            } else
+            } else {
               hDCAxySeco_truepid->Fill<kEl>(track.pt(), track.dcaXY());
+            }
           } else if (pdgcode == 211) {
             hDCAxyReco_truepid->Fill<kPi>(track.pt(), track.dcaXY());
             if (isPrimary) {
               hDCAxyPrim_truepid->Fill<kPi>(track.pt(), track.dcaXY());
               hTrkPrimReco_truepid->Fill<kPi>(track.pt());
-            } else
+            } else {
               hDCAxySeco_truepid->Fill<kPi>(track.pt(), track.dcaXY());
+            }
           } else if (pdgcode == 321) {
             hDCAxyReco_truepid->Fill<kKa>(track.pt(), track.dcaXY());
             if (isPrimary) {
               hDCAxyPrim_truepid->Fill<kKa>(track.pt(), track.dcaXY());
               hTrkPrimReco_truepid->Fill<kKa>(track.pt());
-            } else
+            } else {
               hDCAxySeco_truepid->Fill<kKa>(track.pt(), track.dcaXY());
+            }
           } else if (pdgcode == 2212) {
             hDCAxyReco_truepid->Fill<kPr>(track.pt(), track.dcaXY());
             if (isPrimary) {
               hDCAxyPrim_truepid->Fill<kPr>(track.pt(), track.dcaXY());
               hTrkPrimReco_truepid->Fill<kPr>(track.pt());
-            } else
+            } else {
               hDCAxySeco_truepid->Fill<kPr>(track.pt(), track.dcaXY());
+            }
           } else if (pdgcode == 1000010020) {
             hDCAxyReco_truepid->Fill<kDe>(track.pt(), track.dcaXY());
             if (isPrimary) {
               hDCAxyPrim_truepid->Fill<kDe>(track.pt(), track.dcaXY());
               hTrkPrimReco_truepid->Fill<kDe>(track.pt());
-            } else
+            } else {
               hDCAxySeco_truepid->Fill<kDe>(track.pt(), track.dcaXY());
+            }
           }
         }
 

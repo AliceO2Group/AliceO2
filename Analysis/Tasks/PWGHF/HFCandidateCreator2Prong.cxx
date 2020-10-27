@@ -36,16 +36,16 @@ struct HFCandidateCreator2Prong {
   Configurable<double> d_minrelchi2change{"d_minrelchi2change", 0.9, "stop iterations is chi2/chi2old > this"};
   Configurable<bool> b_dovalplots{"b_dovalplots", true, "do validation plots"};
 
-  OutputObj<TH1F> hmass2{TH1F("hmass2", "2-track inv mass", 500, 0., 5.)};
-  OutputObj<TH1F> hCovPVXX{TH1F("hCovPVXX", "XX element of PV cov. matrix", 100, 0., 1.e-4)};
-  OutputObj<TH1F> hCovSVXX{TH1F("hCovSVXX", "XX element of SV cov. matrix", 100, 0., 0.2)};
+  OutputObj<TH1F> hmass2{TH1F("hmass2", "2-prong candidates;inv. mass (#pi K) (GeV/#it{c}^{2});entries", 500, 0., 5.)};
+  OutputObj<TH1F> hCovPVXX{TH1F("hCovPVXX", "2-prong candidates;XX element of cov. matrix of prim. vtx. position (cm^{2});entries", 100, 0., 1.e-4)};
+  OutputObj<TH1F> hCovSVXX{TH1F("hCovSVXX", "2-prong candidates;XX element of cov. matrix of sec. vtx. position (cm^{2});entries", 100, 0., 0.2)};
 
   double massPi = RecoDecay::getMassPDG(kPiPlus);
   double massK = RecoDecay::getMassPDG(kKPlus);
   double massPiK{0.};
   double massKPi{0.};
 
-  void process(aod::Collision const& collision,
+  void process(aod::Collisions const& collisions,
                aod::HfTrackIndexProng2 const& rowsTrackIndexProng2,
                aod::BigTracks const& tracks)
   {
@@ -63,10 +63,12 @@ struct HFCandidateCreator2Prong {
     for (const auto& rowTrackIndexProng2 : rowsTrackIndexProng2) {
       auto trackParVarPos1 = getTrackParCov(rowTrackIndexProng2.index0());
       auto trackParVarNeg1 = getTrackParCov(rowTrackIndexProng2.index1());
+      auto collision = rowTrackIndexProng2.index0().collision();
 
       // reconstruct the 2-prong secondary vertex
-      if (df.process(trackParVarPos1, trackParVarNeg1) == 0)
+      if (df.process(trackParVarPos1, trackParVarNeg1) == 0) {
         continue;
+      }
       const auto& secondaryVertex = df.getPCACandidate();
       auto chi2PCA = df.getChi2AtPCACandidate();
       auto covMatrixPCA = df.calcPCACovMatrix().Array();

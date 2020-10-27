@@ -1,6 +1,6 @@
 ## Data Sampling
 
-Data Sampling provides possibility to sample data in DPL workflows, basing on certain conditions ( 5% randomly, when payload is greater than 4234 bytes, etc.). The job of passing the right data is done by a data processor called `Dispatcher`. A desired data stream is specified in form of Data Sampling Policies, configured by JSON structures (example below).
+Data Sampling provides a possibility to sample data in DPL workflows based on certain conditions ( 5% randomly, when a payload is greater than 4234 bytes, etc.). The job of passing the right data is done by a data processor called `Dispatcher`. A desired data stream is specified in form of Data Sampling Policies, configured by JSON structures (example below) or by using dedicated interface methods (for advanced use).
 ```
 {
   "id": "policy_example1",              # name of the policy
@@ -11,6 +11,9 @@ Data Sampling provides possibility to sample data in DPL workflows, basing on ce
   ],                                    # list of data that should be sampled, the format is:
                                         # binding1:origin1/description1/subSpec1[;binding2:...]
   "query": "clusters:TPC/CLUSTERS/0;tracks:TPC/TRACKS/0",
+                                        # optional list of outputspecs for sampled data, matching the query
+                                        # if not present or specified, the default format is used
+  "outputs": "sampled_clusters:DS/CLUSTERS/0;sampled_tracks:DS/TRACKS/0", 
   "samplingConditions": [               # list of sampling conditions
     {
       "condition": "random",            # condition type

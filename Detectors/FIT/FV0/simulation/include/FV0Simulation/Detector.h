@@ -108,8 +108,8 @@ class Detector : public o2::base::DetImpl<Detector>
   } mTrackData;                    //!
 
   o2::fv0::Hit* addHit(Int_t trackId, Int_t cellId,
-                       const Point3D<float>& startPos, const Point3D<float>& endPos,
-                       const Vector3D<float>& startMom, double startE,
+                       const math_utils::Point3D<float>& startPos, const math_utils::Point3D<float>& endPos,
+                       const math_utils::Vector3D<float>& startMom, double startE,
                        double endTime, double eLoss, Int_t particlePdg);
 
   template <typename Det>

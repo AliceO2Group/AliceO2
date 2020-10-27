@@ -83,7 +83,7 @@ class Detector : public o2::base::DetImpl<Detector>
   void addAlignableVolumes() const override {}
 
   o2::zdc::Hit* addHit(Int_t trackID, Int_t parentID, Int_t sFlag, Float_t primaryEnergy, Int_t detID, Int_t secID,
-                       Vector3D<float> pos, Vector3D<float> mom, Float_t tof, Vector3D<float> xImpact, Double_t energyloss,
+                       math_utils::Vector3D<float> pos, math_utils::Vector3D<float> mom, Float_t tof, math_utils::Vector3D<float> xImpact, Double_t energyloss,
                        Int_t nphePMC, Int_t nphePMQ);
 
  private:
@@ -96,8 +96,8 @@ class Detector : public o2::base::DetImpl<Detector>
   void createDetectors();
 
   // determine detector; sector/tower and impact coordinates given volumename and position
-  void getDetIDandSecID(TString const& volname, Vector3D<float> const& x,
-                        Vector3D<float>& xDet, int& detector, int& sector) const;
+  void getDetIDandSecID(TString const& volname, math_utils::Vector3D<float> const& x,
+                        math_utils::Vector3D<float>& xDet, int& detector, int& sector) const;
 
   // Define sensitive volumes
   void defineSensitiveVolumes();
@@ -117,7 +117,7 @@ class Detector : public o2::base::DetImpl<Detector>
                       int parent,
                       float tof,
                       float trackenergy,
-                      Vector3D<float> const& xImp,
+                      math_utils::Vector3D<float> const& xImp,
                       float eDep, float x, float y, float z, float px, float py, float pz)
   {
     // A new hit is created when there is nothing yet for this det + sector
@@ -129,8 +129,8 @@ class Detector : public o2::base::DetImpl<Detector>
         mTotLightPMQ = nphe;
       }
 
-      Vector3D<float> pos(x, y, z);
-      Vector3D<float> mom(px, py, pz);
+      math_utils::Vector3D<float> pos(x, y, z);
+      math_utils::Vector3D<float> mom(px, py, pz);
       addHit(trackn, parent, issecondary, trackenergy, detector, sector,
              pos, mom, tof, xImp, eDep, mTotLightPMC, mTotLightPMQ);
       // stack->addHit(GetDetId());
@@ -164,7 +164,7 @@ class Detector : public o2::base::DetImpl<Detector>
 
   Float_t mTrackEta;
   Float_t mPrimaryEnergy;
-  Vector3D<float> mXImpact;
+  math_utils::Vector3D<float> mXImpact;
   Float_t mTotLightPMC;
   Float_t mTotLightPMQ;
   Int_t mMediumPMCid = -1;

@@ -63,7 +63,7 @@ class Cluster : public o2::BaseCluster<float>
   double getTime() const { return mTime; }                  // Cluster ToF getter
   void setTime(double time) { mTime = time; }               // Cluster ToF setter
   float getTot() const { return mTot; }                     // Cluster Charge getter
-  void setTot(int tot) { mTot = tot; }                      // Cluster ToT setter
+  void setTot(float tot) { mTot = tot; }                    // Cluster ToT setter
   int getL0L1Latency() const { return mL0L1Latency; };      // L0L1 latency
   void setL0L1Latency(int value) { mL0L1Latency = value; }; // L0-L1 latency
   int getDeltaBC() const { return mDeltaBC; };              // deltaBC
@@ -136,7 +136,7 @@ std::ostream& operator<<(std::ostream& os, Cluster& c);
 /// std::is_trivially_copyable<ROOT::Math::Cartesian3D<float>> fails because the class
 /// implements a copy constructor, although it does not much more than the default copy
 /// constructor. Have been trying to specialize std::is_trivially_copyable for Point3D
-/// alias in MathUtils/Cartesian3D.h, but structures with a member of Point3D are
+/// alias in MathUtils/Cartesian.h, but structures with a member of Point3D are
 /// still not fulfilling the condition. Need to understand how the type trait checks
 /// the condition for members.
 /// We believe that o2::tof::Cluster is messageable and explicitly specialize the

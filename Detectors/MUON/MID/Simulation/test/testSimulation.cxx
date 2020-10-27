@@ -14,7 +14,7 @@
 
 #include <boost/test/data/test_case.hpp>
 #include <sstream>
-#include "MathUtils/Cartesian3D.h"
+#include "MathUtils/Cartesian.h"
 #include "CommonConstants/LHCConstants.h"
 #include "DataFormatsMID/Cluster2D.h"
 #include "DataFormatsMID/Cluster3D.h"
@@ -117,11 +117,11 @@ std::vector<Hit> generateHits(size_t nHits, int deId, const Mapping& mapping, co
   std::uniform_real_distribution<double> distX(-127.5, 127.5);
   std::uniform_real_distribution<double> distY(-40., 40.);
   while (hits.size() < nHits) {
-    Point3D<float> point(distX(mt), distY(mt), 0.);
+    math_utils::Point3D<float> point(distX(mt), distY(mt), 0.);
     if (!mapping.stripByPosition(point.x(), point.y(), 0, deId, false).isValid()) {
       continue;
     }
-    Point3D<float> globalPoint = geoTrans.localToGlobal(deId, point);
+    math_utils::Point3D<float> globalPoint = geoTrans.localToGlobal(deId, point);
     hits.emplace_back(hits.size(), deId, globalPoint, globalPoint);
   }
   return hits;

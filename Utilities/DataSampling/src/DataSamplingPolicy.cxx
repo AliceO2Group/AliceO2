@@ -55,27 +55,40 @@ DataSamplingPolicy DataSamplingPolicy::fromConfiguration(const ptree& config)
 
   size_t outputId = 0;
   std::vector<InputSpec> inputSpecs = DataDescriptorQueryBuilder::parse(config.get<std::string>("query").c_str());
-
-  for (const auto& inputSpec : inputSpecs) {
-
-    if (DataSpecUtils::getOptionalSubSpec(inputSpec).has_value()) {
-      OutputSpec outputSpec{
-        {inputSpec.binding},
-        createPolicyDataOrigin(),
-        createPolicyDataDescription(name, outputId++),
-        DataSpecUtils::getOptionalSubSpec(inputSpec).value(),
-        inputSpec.lifetime};
-
-      policy.registerPath(inputSpec, outputSpec);
-
-    } else {
-      OutputSpec outputSpec{
-        {inputSpec.binding},
-        {createPolicyDataOrigin(), createPolicyDataDescription(name, outputId++)},
-        inputSpec.lifetime};
-
-      policy.registerPath(inputSpec, outputSpec);
+  std::vector<OutputSpec> outputSpecs;
+  // Optionally user can specify the outputs,
+  if (auto outputsQuery = config.get<std::string>("outputs", ""); !outputsQuery.empty()) {
+    std::vector<InputSpec> outputsAsInputSpecs = DataDescriptorQueryBuilder::parse(outputsQuery.c_str());
+    if (outputsAsInputSpecs.size() != inputSpecs.size()) {
+      throw std::runtime_error(
+        "The number of outputs should match the number of inputs (queries),"
+        " which is not the case for the policy '" +
+        name + "'(" +
+        std::to_string(inputSpecs.size()) + " inputs vs. " + std::to_string(outputsAsInputSpecs.size()) + " outputs).");
     }
+    for (const auto& outputAsInputSpec : outputsAsInputSpecs) {
+      outputSpecs.emplace_back(DataSpecUtils::asOutputSpec(outputAsInputSpec));
+    }
+  } else { // otherwise default format will be used
+    for (const auto& inputSpec : inputSpecs) {
+      if (DataSpecUtils::getOptionalSubSpec(inputSpec).has_value()) {
+        outputSpecs.emplace_back(OutputSpec{
+          {inputSpec.binding},
+          createPolicyDataOrigin(),
+          createPolicyDataDescription(name, outputId++),
+          DataSpecUtils::getOptionalSubSpec(inputSpec).value(),
+          inputSpec.lifetime});
+      } else {
+        outputSpecs.emplace_back(OutputSpec{
+          {inputSpec.binding},
+          {createPolicyDataOrigin(), createPolicyDataDescription(name, outputId++)},
+          inputSpec.lifetime});
+      }
+    }
+  }
+  assert(inputSpecs.size() == outputSpecs.size());
+  for (size_t i = 0; i < inputSpecs.size(); i++) {
+    policy.registerPath(inputSpecs[i], outputSpecs[i]);
   }
 
   for (const auto& conditionConfig : config.get_child("samplingConditions")) {
