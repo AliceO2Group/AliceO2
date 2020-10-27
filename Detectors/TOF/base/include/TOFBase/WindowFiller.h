@@ -62,6 +62,7 @@ class WindowFiller
   std::vector<Digit>* getDigitPerTimeFrame() { return &mDigitsPerTimeFrame; }
   std::vector<ReadoutWindowData>* getReadoutWindowData() { return &mReadoutWindowData; }
   std::vector<ReadoutWindowData>* getReadoutWindowDataFiltered() { return &mReadoutWindowDataFiltered; }
+  DigitHeader& getDigitHeader() { return mDigitHeader; }
 
   void fillOutputContainer(std::vector<Digit>& digits);
   void flushOutputContainer(std::vector<Digit>& digits); // flush all residual buffered data
@@ -83,8 +84,6 @@ class WindowFiller
   void addPattern(const uint32_t val, int icrate, int orbit, int bc) { mCratePatterns.emplace_back(val, icrate, orbit * 3 + (bc + 100) / Geo::BC_IN_WINDOW); }
   void addCrateHeaderData(unsigned long orbit, int crate, int32_t bc, uint32_t eventCounter);
 
-  void setTraceEmptyCrates(bool val) { mTraceEmptyCrates = val; }
-
  protected:
   // info TOF timewindow
   uint64_t mReadoutWindowCurrent = 0;
@@ -97,8 +96,6 @@ class WindowFiller
   // only needed from Decoder
   int mMaskNoiseRate = -1;
   int mChannelCounts[o2::tof::Geo::NCHANNELS]; // count of channel hits in the current TF (if MaskNoiseRate enabled)
-
-  bool mTraceEmptyCrates = 1; // set to 0 not to trace empty crates
 
   // digit info
   //std::vector<Digit>* mDigits;
@@ -124,6 +121,8 @@ class WindowFiller
 
   std::vector<PatternData> mCratePatterns;
   std::vector<CrateHeaderData> mCrateHeaderData;
+
+  DigitHeader mDigitHeader;
 
   void fillDigitsInStrip(std::vector<Strip>* strips, int channel, int tdc, int tot, uint64_t nbc, UInt_t istrip, uint32_t triggerorbit = 0, uint16_t triggerbunch = 0);
   //  void fillDigitsInStrip(std::vector<Strip>* strips, o2::dataformats::MCTruthContainer<o2::tof::MCLabel>* mcTruthContainer, int channel, int tdc, int tot, int nbc, UInt_t istrip, Int_t trackID, Int_t eventID, Int_t sourceID);

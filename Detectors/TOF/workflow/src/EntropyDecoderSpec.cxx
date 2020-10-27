@@ -44,6 +44,7 @@ void EntropyDecoderSpec::run(ProcessingContext& pc)
 
   auto buff = pc.inputs().get<gsl::span<o2::ctf::BufferType>>("ctf");
 
+  auto& digitheader = pc.outputs().make<DigitHeader>(OutputRef{"digitheader"});
   auto& digits = pc.outputs().make<std::vector<Digit>>(OutputRef{"digits"});
   auto& row = pc.outputs().make<std::vector<ReadoutWindowData>>(OutputRef{"row"});
   auto& patterns = pc.outputs().make<std::vector<uint32_t>>(OutputRef{"patterns"});
@@ -65,6 +66,7 @@ void EntropyDecoderSpec::endOfStream(EndOfStreamContext& ec)
 DataProcessorSpec getEntropyDecoderSpec()
 {
   std::vector<OutputSpec> outputs{
+    OutputSpec{{"digitheader"}, o2::header::gDataOriginTOF, "DIGITHEADER", 0, Lifetime::Timeframe},
     OutputSpec{{"digits"}, o2::header::gDataOriginTOF, "DIGITS", 0, Lifetime::Timeframe},
     OutputSpec{{"row"}, o2::header::gDataOriginTOF, "READOUTWINDOW", 0, Lifetime::Timeframe},
     OutputSpec{{"patterns"}, o2::header::gDataOriginTOF, "PATTERNS", 0, Lifetime::Timeframe}};

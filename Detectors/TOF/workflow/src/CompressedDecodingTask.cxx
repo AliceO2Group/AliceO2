@@ -42,14 +42,10 @@ void CompressedDecodingTask::init(InitContext& ic)
   mMaskNoise = ic.options().get<bool>("mask-noise");
   mNoiseRate = ic.options().get<int>("noise-counts");
   mRowFilter = ic.options().get<bool>("row-filter");
-  mSkipEmptyCrates = ic.options().get<bool>("skip-empty-crates");
 
   if (mMaskNoise) {
     mDecoder.maskNoiseRate(mNoiseRate);
   }
-
-  if (mSkipEmptyCrates)
-    mDecoder.setTraceEmptyCrates(0);
 
   auto finishFunction = [this]() {
     LOG(INFO) << "CompressedDecoding finish";
@@ -108,6 +104,9 @@ void CompressedDecodingTask::postData(ProcessingContext& pc)
 
   std::vector<uint64_t>& errors = mDecoder.getErrors();
   pc.outputs().snapshot(Output{o2::header::gDataOriginTOF, "ERRORS", 0, Lifetime::Timeframe}, errors);
+
+  DigitHeader& digitH = mDecoder.getDigitHeader();
+  pc.outputs().snapshot(Output{o2::header::gDataOriginTOF, "DIGITHEADER", 0, Lifetime::Timeframe}, digitH);
 
   // RS this is a hack to be removed once we have correct propagation of the firstTForbit by the framework
   auto setFirstTFOrbit = [&](const Output& spec, uint32_t orb) {
@@ -361,6 +360,7 @@ void CompressedDecodingTask::frameHandler(const CrateHeader_t* crateHeader, cons
 DataProcessorSpec getCompressedDecodingSpec(const std::string& inputDesc, bool conet)
 {
   std::vector<OutputSpec> outputs;
+  outputs.emplace_back(o2::header::gDataOriginTOF, "DIGITHEADER", 0, Lifetime::Timeframe);
   outputs.emplace_back(o2::header::gDataOriginTOF, "DIGITS", 0, Lifetime::Timeframe);
   outputs.emplace_back(o2::header::gDataOriginTOF, "READOUTWINDOW", 0, Lifetime::Timeframe);
   outputs.emplace_back(o2::header::gDataOriginTOF, "PATTERNS", 0, Lifetime::Timeframe);
@@ -374,7 +374,6 @@ DataProcessorSpec getCompressedDecodingSpec(const std::string& inputDesc, bool c
     Options{
       {"row-filter", VariantType::Bool, false, {"Filter empty row"}},
       {"mask-noise", VariantType::Bool, false, {"Flag to mask noisy digits"}},
-      {"skip-empty-crates", VariantType::Bool, false, {"Flag not to trace empty crates"}},
       {"noise-counts", VariantType::Int, 1000, {"Counts in a single (TF) payload"}}}};
 }
 
