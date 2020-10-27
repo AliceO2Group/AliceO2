@@ -83,7 +83,7 @@ using namespace GPUCA_NAMESPACE::gpu;
   int id = attach & gputpcgmmergertypes::attachTrackMask;       \
   if (!unattached) {                                            \
     qpt = fabsf(merger.OutputTracks()[id].GetParam().GetQPt()); \
-    lowPt = qpt > 20;                                           \
+    lowPt = qpt > mTracking->GetParam().rec.tpcRejectQPt;       \
     mev200 = qpt > 5;                                           \
   }                                                             \
   bool physics = false, protect = false;                        \
