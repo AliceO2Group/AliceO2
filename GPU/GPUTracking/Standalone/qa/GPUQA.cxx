@@ -65,12 +65,13 @@ using namespace GPUCA_NAMESPACE::gpu;
 #define QA_TIMING 0
 
 #ifdef GPUCA_MERGER_BY_MC_LABEL
-#define CHECK_CLUSTER_STATE_INIT_LEG_BY_MC()           \
-  if (!unattached && mTrackMCLabels[id].isValid()) {   \
-    int mcLabel = mTrackMCLabels[id].getTrackID();     \
-    if (mTrackMCLabelsReverse[0][mcLabel] != id) {     \
-      attach &= (~gputpcgmmergertypes::attachGoodLeg); \
-    }                                                  \
+#define CHECK_CLUSTER_STATE_INIT_LEG_BY_MC()             \
+  if (!unattached && mTrackMCLabels[id].isValid()) {     \
+    int mcLabel = mTrackMCLabels[id].getTrackID();       \
+    int mcEvent = mTrackMCLabels[id].getEventID();       \
+    if (mTrackMCLabelsReverse[mcEvent][mcLabel] != id) { \
+      attach &= (~gputpcgmmergertypes::attachGoodLeg);   \
+    }                                                    \
   }
 #else
 #define CHECK_CLUSTER_STATE_INIT_LEG_BY_MC()
@@ -193,9 +194,8 @@ GPUQA::~GPUQA() = default;
 
 inline bool GPUQA::MCComp(const mcLabel_t& a, const mcLabel_t& b) { return (GPUQA::GetMCLabelID(a) > GPUQA::GetMCLabelID(b)); }
 
-bool GPUQA::clusterRemovable(int cid, bool prot) const
+bool GPUQA::clusterRemovable(int attach, bool prot) const
 {
-  int attach = mTracking->mIOPtrs.mergedTrackHitAttachment[cid];
   CHECK_CLUSTER_STATE_NOCOUNT();
   if (prot) {
     return protect || physics;

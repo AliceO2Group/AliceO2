@@ -51,7 +51,7 @@ class GPUQA
   bool SuppressHit(int iHit) const { return false; }
   int HitAttachStatus(int iHit) const { return false; }
   int GetMCTrackLabel(unsigned int trackId) const { return -1; }
-  bool clusterRemovable(int cid, bool prot) const { return false; }
+  bool clusterRemovable(int attach, bool prot) const { return false; }
   static bool QAAvailable() { return false; }
   static bool IsInitialized() { return false; }
 };
@@ -95,7 +95,7 @@ class GPUQA
   bool SuppressHit(int iHit) const;
   int HitAttachStatus(int iHit) const;
   int GetMCTrackLabel(unsigned int trackId) const;
-  bool clusterRemovable(int cid, bool prot) const;
+  bool clusterRemovable(int attach, bool prot) const;
   static bool QAAvailable() { return true; }
   bool IsInitialized() { return mQAInitialized; }
 
