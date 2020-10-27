@@ -81,9 +81,9 @@ struct __attribute__((__packed__)) ChannelDataV0 {
 
 struct EventData {
   union {
-    UInt_t w[o2::zdc::NWPerBc][NWPerGBTW];
+    UInt_t w[NWPerBc][NWPerGBTW];
     struct ChannelDataV0 f;
-  } data[o2::zdc::NModules][o2::zdc::NChPerModule] = {0};
+  } data[NModules][NChPerModule] = {0};
   void print() const;
   void reset();
   ClassDefNV(EventData, 1);
