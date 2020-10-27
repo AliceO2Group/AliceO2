@@ -27,7 +27,7 @@ class TH2D;
 class TCollection;
 class THnSparse;
 class THnBase;
-class StepTHnBase;
+class StepTHn;
 
 class CorrelationContainer : public TNamed
 {
@@ -51,14 +51,14 @@ class CorrelationContainer : public TNamed
 
   const char* getStepTitle(CFStep step);
 
-  StepTHnBase* getPairHist() { return mPairHist; }
-  StepTHnBase* getTriggerHist() { return mTriggerHist; }
-  StepTHnBase* getTrackHistEfficiency() { return mTrackHistEfficiency; }
+  StepTHn* getPairHist() { return mPairHist; }
+  StepTHn* getTriggerHist() { return mTriggerHist; }
+  StepTHn* getTrackHistEfficiency() { return mTrackHistEfficiency; }
   TH2F* getEventCount() { return mEventCount; }
 
-  void setPairHist(StepTHnBase* hist) { mPairHist = hist; }
-  void setTriggerHist(StepTHnBase* hist) { mTriggerHist = hist; }
-  void setTrackHistEfficiency(StepTHnBase* hist) { mTrackHistEfficiency = hist; }
+  void setPairHist(StepTHn* hist) { mPairHist = hist; }
+  void setTriggerHist(StepTHn* hist) { mTriggerHist = hist; }
+  void setTrackHistEfficiency(StepTHn* hist) { mTrackHistEfficiency = hist; }
 
   void deepCopy(CorrelationContainer* from);
 
@@ -149,9 +149,9 @@ class CorrelationContainer : public TNamed
   void weightHistogram(TH3* hist1, TH1* hist2);
   void multiplyHistograms(THnBase* grid, THnBase* target, TH1* histogram, Int_t var1, Int_t var2);
 
-  StepTHnBase* mPairHist;            // container for pair level distributions at all analysis steps
-  StepTHnBase* mTriggerHist;         // container for "trigger" particle (single-particle) level distribution at all analysis steps
-  StepTHnBase* mTrackHistEfficiency; // container for tracking efficiency and contamination (all particles filled including leading one): axes: eta, pT, particle species
+  StepTHn* mPairHist;            // container for pair level distributions at all analysis steps
+  StepTHn* mTriggerHist;         // container for "trigger" particle (single-particle) level distribution at all analysis steps
+  StepTHn* mTrackHistEfficiency; // container for tracking efficiency and contamination (all particles filled including leading one): axes: eta, pT, particle species
 
   TH2F* mEventCount; // event count as function of step, (for pp: event type (plus additional step -1 for all events without vertex range even in MC)) (for PbPb: centrality)
 
@@ -171,7 +171,7 @@ class CorrelationContainer : public TNamed
   Bool_t mWeightPerEvent;      // weight with the number of trigger particles per event
   Bool_t mSkipScaleMixedEvent; // scale the mixed event with (0, 0) plus finite bin correction (default: kTRUE)
 
-  StepTHnBase* mCache; //! cache variable for getTrackEfficiency
+  StepTHn* mCache; //! cache variable for getTrackEfficiency
 
   Bool_t mGetMultCacheOn; //! cache for getHistsZVtxMult function active
   THnBase* mGetMultCache; //! cache for getHistsZVtxMult function

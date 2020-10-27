@@ -459,15 +459,15 @@ void CorrelationContainer::Copy(TObject& c) const
   CorrelationContainer& target = (CorrelationContainer&)c;
 
   if (mPairHist) {
-    target.mPairHist = dynamic_cast<StepTHnBase*>(mPairHist->Clone());
+    target.mPairHist = dynamic_cast<StepTHn*>(mPairHist->Clone());
   }
 
   if (mTriggerHist) {
-    target.mTriggerHist = dynamic_cast<StepTHnBase*>(mTriggerHist->Clone());
+    target.mTriggerHist = dynamic_cast<StepTHn*>(mTriggerHist->Clone());
   }
 
   if (mTrackHistEfficiency) {
-    target.mTrackHistEfficiency = dynamic_cast<StepTHnBase*>(mTrackHistEfficiency->Clone());
+    target.mTrackHistEfficiency = dynamic_cast<StepTHn*>(mTrackHistEfficiency->Clone());
   }
 
   target.mEtaMin = mEtaMin;
@@ -1133,7 +1133,7 @@ THnBase* CorrelationContainer::getTrackEfficiencyND(CFStep step1, CFStep step2)
   // creates a track-level efficiency by dividing step2 by step1
   // in all dimensions but the particle species one
 
-  StepTHnBase* sourceContainer = mTrackHistEfficiency;
+  StepTHn* sourceContainer = mTrackHistEfficiency;
   // step offset because we start with kCFStepAnaTopology
   step1 = (CFStep)((Int_t)step1 - (Int_t)kCFStepAnaTopology);
   step2 = (CFStep)((Int_t)step2 - (Int_t)kCFStepAnaTopology);
@@ -1176,7 +1176,7 @@ TH1* CorrelationContainer::getTrackEfficiency(CFStep step1, CFStep step2, Int_t 
 
   // cache it for efficiency (usually more than one efficiency is requested)
 
-  StepTHnBase* sourceContainer = nullptr;
+  StepTHn* sourceContainer = nullptr;
 
   if (source == 0) {
     return nullptr;
@@ -1485,7 +1485,7 @@ TH1* CorrelationContainer::getBias(CFStep step1, CFStep step2, const char* axis,
   //            1 = only track bias is returned
   //            2 = only event bias is returned
 
-  StepTHnBase* tmp = mPairHist;
+  StepTHn* tmp = mPairHist;
 
   resetBinLimits(tmp->getTHn(step1));
   resetBinLimits(mTriggerHist->getTHn(step1));

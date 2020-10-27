@@ -11,6 +11,7 @@
 #include "Framework/AnalysisTask.h"
 #include "Framework/AnalysisDataModel.h"
 #include "Framework/ASoAHelpers.h"
+#include <CCDB/BasicCCDBManager.h>
 
 #include "Analysis/EventSelection.h"
 #include "Analysis/TrackSelectionTables.h"
@@ -22,6 +23,7 @@
 #include <TH1F.h>
 #include <cmath>
 #include <TDirectory.h>
+#include <THn.h>
 
 using namespace o2;
 using namespace o2::framework;
@@ -50,6 +52,9 @@ struct CorrelationTask {
   O2_DEFINE_CONFIGURABLE(cfgPairCutPhi, float, -1, "Pair cut on Phi: -1 = off; >0 otherwise distance value")
   O2_DEFINE_CONFIGURABLE(cfgPairCutRho, float, -1, "Pair cut on Rho: -1 = off; >0 otherwise distance value")
 
+  O2_DEFINE_CONFIGURABLE(cfgEfficiencyTrigger, std::string, "", "CCDB path to efficiency object for trigger particles")
+  O2_DEFINE_CONFIGURABLE(cfgEfficiencyAssociated, std::string, "", "CCDB path to efficiency object for associated particles")
+
   // Filters and input definitions
   Filter collisionFilter = nabs(aod::collision::posZ) < cfgCutVertex;
   Filter trackFilter = (nabs(aod::track::eta) < cfgCutEta) && (aod::track::pt > cfgCutPt) && ((aod::track::isGlobalTrack == true) || (aod::track::isGlobalTrackSDD == true));
@@ -62,8 +67,8 @@ struct CorrelationTask {
 
   struct Config {
     bool mPairCuts = false;
-    //THn* mEfficiencyTrigger = nullptr;
-    //THn* mEfficiencyAssociated = nullptr;
+    THn* mEfficiencyTrigger = nullptr;
+    THn* mEfficiencyAssociated = nullptr;
   } cfg;
 
   // HistogramRegistry registry{"qa", true, {
@@ -75,6 +80,8 @@ struct CorrelationTask {
   OutputObj<TH3F> etaphi{TH3F("etaphi", "centrality vs eta vs phi", 100, 0, 100, 100, -2, 2, 200, 0, 2 * M_PI)};
 
   PairCuts mPairCuts;
+
+  Service<o2::ccdb::BasicCCDBManager> ccdb;
 
   void init(o2::framework::InitContext&)
   {
@@ -109,11 +116,39 @@ struct CorrelationTask {
     same.setObject(new CorrelationContainer("sameEvent", "sameEvent", "NumberDensityPhiCentralityVtx", binning));
     mixed.setObject(new CorrelationContainer("mixedEvent", "mixedEvent", "NumberDensityPhiCentralityVtx", binning));
     //qaOutput.setObject(new TDirectory("qa", "qa"));
+
+    // o2-ccdb-upload -p Users/jgrosseo/correlations/LHC15o -f /tmp/correction_2011_global.root -k correction
+
+    ccdb->setURL("http://ccdb-test.cern.ch:8080");
+    ccdb->setCaching(true);
+    ccdb->setLocalObjectValidityChecking();
+
+    long now = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
+    ccdb->setCreatedNotAfter(now); // TODO must become global parameter from the train creation time
+
+    if (cfgEfficiencyTrigger.value.empty() == false) {
+      cfg.mEfficiencyTrigger = ccdb->getForTimeStamp<THnT<float>>(cfgEfficiencyTrigger, now);
+      LOGF(info, "Loaded efficiency histogram for trigger particles from %s (%p)", cfgEfficiencyTrigger.value.c_str(), cfg.mEfficiencyTrigger);
+    }
+    if (cfgEfficiencyAssociated.value.empty() == false) {
+      cfg.mEfficiencyAssociated = ccdb->getForTimeStamp<THnT<float>>(cfgEfficiencyAssociated, now);
+      LOGF(info, "Loaded efficiency histogram for associated particles from %s (%p)", cfgEfficiencyAssociated.value.c_str(), cfg.mEfficiencyAssociated);
+    }
   }
 
   // Version with explicit nested loop
-  void process(soa::Filtered<soa::Join<aod::Collisions, aod::EvSels, aod::Cents>>::iterator const& collision, myTracks const& tracks)
+  void process(soa::Filtered<soa::Join<aod::Collisions, aod::EvSels, aod::Cents>>::iterator const& collision, aod::BCsWithTimestamps const&, myTracks const& tracks)
   {
+    auto bc = collision.bc_as<aod::BCsWithTimestamps>();
+    if (cfgEfficiencyTrigger.value.empty() == false) {
+      cfg.mEfficiencyTrigger = ccdb->getForTimeStamp<THnT<float>>(cfgEfficiencyTrigger, bc.timestamp());
+      LOGF(info, "Loaded efficiency histogram for trigger particles from %s (%p)", cfgEfficiencyTrigger.value.c_str(), cfg.mEfficiencyTrigger);
+    }
+    if (cfgEfficiencyAssociated.value.empty() == false) {
+      cfg.mEfficiencyAssociated = ccdb->getForTimeStamp<THnT<float>>(cfgEfficiencyAssociated, bc.timestamp());
+      LOGF(info, "Loaded efficiency histogram for associated particles from %s (%p)", cfgEfficiencyAssociated.value.c_str(), cfg.mEfficiencyAssociated);
+    }
+
     LOGF(info, "Tracks for collision: %d | Vertex: %.1f | INT7: %d | V0M: %.1f", tracks.size(), collision.posZ(), collision.sel7(), collision.centV0M());
 
     const auto centrality = collision.centV0M();
@@ -133,6 +168,16 @@ struct CorrelationTask {
 
     int bSign = 1; // TODO magnetic field from CCDB
 
+    // Cache efficiency for particles (too many FindBin lookups)
+    float* efficiencyAssociated = nullptr;
+    if (cfg.mEfficiencyAssociated) {
+      efficiencyAssociated = new float[tracks.size()];
+      int i = 0;
+      for (auto& track1 : tracks) {
+        efficiencyAssociated[i++] = getEfficiency(cfg.mEfficiencyAssociated, track1.eta(), track1.pt(), centrality, collision.posZ());
+      }
+    }
+
     for (auto& track1 : tracks) {
 
       // LOGF(info, "Track %f | %f | %f  %d %d", track1.eta(), track1.phi(), track1.pt(), track1.isGlobalTrack(), track1.isGlobalTrackSDD());
@@ -147,15 +192,17 @@ struct CorrelationTask {
         continue;
       }
 
-      double eventValues[3];
-      eventValues[0] = track1.pt();
-      eventValues[1] = centrality;
-      eventValues[2] = collision.posZ();
+      float triggerWeight = 1.0;
+      if (cfg.mEfficiencyTrigger) {
+        triggerWeight = getEfficiency(cfg.mEfficiencyTrigger, track1.eta(), track1.pt(), centrality, collision.posZ());
+      }
 
-      same->getTriggerHist()->Fill(eventValues, CorrelationContainer::kCFStepReconstructed);
+      same->getTriggerHist()->Fill(CorrelationContainer::kCFStepReconstructed, track1.pt(), centrality, collision.posZ(), triggerWeight);
       //mixed->getTriggerHist()->Fill(eventValues, CorrelationContainer::kCFStepReconstructed);
 
+      int i = -1;
       for (auto& track2 : tracks) {
+        i++; // HACK
         if (track1 == track2) {
           continue;
         }
@@ -179,33 +226,35 @@ struct CorrelationTask {
           continue;
         }
 
-        double values[6] = {0};
-
-        values[0] = track1.eta() - track2.eta();
-        values[1] = track2.pt();
-        values[2] = track1.pt();
-        values[3] = centrality;
-
-        values[4] = track1.phi() - track2.phi();
-        if (values[4] > 1.5 * TMath::Pi()) {
-          values[4] -= TMath::TwoPi();
-        }
-        if (values[4] < -0.5 * TMath::Pi()) {
-          values[4] += TMath::TwoPi();
+        float associatedWeight = 1.0;
+        if (cfg.mEfficiencyAssociated) {
+          associatedWeight = efficiencyAssociated[i];
         }
 
-        values[5] = collision.posZ();
+        float deltaPhi = track1.phi() - track2.phi();
+        if (deltaPhi > 1.5 * TMath::Pi()) {
+          deltaPhi -= TMath::TwoPi();
+        }
+        if (deltaPhi < -0.5 * TMath::Pi()) {
+          deltaPhi += TMath::TwoPi();
+        }
 
-        same->getPairHist()->Fill(values, CorrelationContainer::kCFStepReconstructed);
+        same->getPairHist()->Fill(CorrelationContainer::kCFStepReconstructed,
+                                  track1.eta() - track2.eta(), track2.pt(), track1.pt(), centrality, deltaPhi, collision.posZ(),
+                                  triggerWeight * associatedWeight);
         //mixed->getPairHist()->Fill(values, CorrelationContainer::kCFStepReconstructed);
       }
     }
+
+    delete[] efficiencyAssociated;
   }
 
   // Version with combinations
-  void process2(aod::Collision const& collision, soa::Filtered<aod::Tracks> const& tracks)
+  void process2(soa::Join<aod::Collisions, aod::Cents>::iterator const& collision, soa::Filtered<aod::Tracks> const& tracks)
   {
     LOGF(info, "Tracks for collision (Combination run): %d", tracks.size());
+
+    const auto centrality = collision.centV0M();
 
     int bSign = 1; // TODO magnetic field from CCDB
 
@@ -217,12 +266,7 @@ struct CorrelationTask {
 
       //       LOGF(info, "TRACK %f %f | %f %f | %f %f", track1.eta(), track1.eta(), track1.phi(), track1.phi2(), track1.pt(), track1.pt());
 
-      double eventValues[3];
-      eventValues[0] = track1.pt();
-      eventValues[1] = 0; // collision.v0mult();
-      eventValues[2] = collision.posZ();
-
-      same->getTriggerHist()->Fill(eventValues, CorrelationContainer::kCFStepReconstructed);
+      same->getTriggerHist()->Fill(CorrelationContainer::kCFStepReconstructed, track1.pt(), centrality, collision.posZ());
       //mixed->getTriggerHist()->Fill(eventValues, CorrelationContainer::kCFStepReconstructed);
     }
 
@@ -247,26 +291,28 @@ struct CorrelationTask {
         continue;
       }
 
-      double values[6] = {0};
-
-      values[0] = track1.eta() - track2.eta();
-      values[1] = track1.pt();
-      values[2] = track2.pt();
-      values[3] = 0; // collision.v0mult();
-
-      values[4] = track1.phi() - track2.phi();
-      if (values[4] > 1.5 * TMath::Pi()) {
-        values[4] -= TMath::TwoPi();
+      float deltaPhi = track1.phi() - track2.phi();
+      if (deltaPhi > 1.5 * TMath::Pi()) {
+        deltaPhi -= TMath::TwoPi();
       }
-      if (values[4] < -0.5 * TMath::Pi()) {
-        values[4] += TMath::TwoPi();
+      if (deltaPhi < -0.5 * TMath::Pi()) {
+        deltaPhi += TMath::TwoPi();
       }
 
-      values[5] = collision.posZ();
-
-      same->getPairHist()->Fill(values, CorrelationContainer::kCFStepReconstructed);
+      same->getPairHist()->Fill(CorrelationContainer::kCFStepReconstructed,
+                                track1.eta() - track2.eta(), track2.pt(), track1.pt(), centrality, deltaPhi, collision.posZ());
       //mixed->getPairHist()->Fill(values, CorrelationContainer::kCFStepReconstructed);
     }
+  }
+
+  double getEfficiency(THn* eff, float eta, float pt, float centrality, float posZ)
+  {
+    int effVars[4];
+    effVars[0] = eff->GetAxis(0)->FindBin(eta);
+    effVars[1] = eff->GetAxis(1)->FindBin(pt);
+    effVars[2] = eff->GetAxis(2)->FindBin(centrality);
+    effVars[3] = eff->GetAxis(3)->FindBin(posZ);
+    return eff->GetBinContent(effVars);
   }
 };
 
