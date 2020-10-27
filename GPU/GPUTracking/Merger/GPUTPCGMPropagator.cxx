@@ -158,7 +158,7 @@ GPUd() int GPUTPCGMPropagator::RotateToAlpha(float newAlpha)
   float dLp = 0;
   float Bz;
   if (mPropagateBzOnly) {
-    Bz = GetBz(t0.X(), t0.Y(), t0.Z());
+    Bz = GetBzBase(newCosAlpha, newSinAlpha, t0.X(), t0.Y(), t0.Z());
     if (t0.PropagateToXBzLight(trackX, Bz, dLp)) {
       return -1;
     }
