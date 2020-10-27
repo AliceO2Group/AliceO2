@@ -101,9 +101,17 @@ void digi2raw(const std::string& inpName, const std::string& outDir, int verbosi
   }
   mgr.setTimestamp(timeStamp);
   auto moduleConfig = mgr.get<o2::zdc::ModuleConfig>(o2::zdc::CCDBPathConfigModule);
+  if(!moduleConfig){
+    LOG(FATAL) << "Cannot module configuratio for timestamp " << timeStamp;
+    return;
+  }
   LOG(INFO) << "Loaded module configuration for timestamp " << timeStamp;
 
   auto simCondition = mgr.get<o2::zdc::SimCondition>(o2::zdc::CCDBPathConfigSim);
+  if(!simCondition){
+    LOG(FATAL) << "Cannot get simulation configuration for timestamp " << timeStamp;
+    return;
+  }
   LOG(INFO) << "Loaded simulation configuration for timestamp " << timeStamp;
   simCondition->print();
 
