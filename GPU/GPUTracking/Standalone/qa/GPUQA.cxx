@@ -1307,7 +1307,7 @@ void GPUQA::RunQA(bool matchOnly)
         }
         mClusterCounts.nAbove400++;
       }
-      if (totalWeight == 0 && weight40 >= 0.9 * totalWeight) {
+      if (totalWeight > 0 && weight40 >= 0.9 * totalWeight) {
         mClusterCounts.nBelow40++;
         if (protect || physics) {
           mClusterCounts.nFakeProtect40++;
