@@ -83,6 +83,8 @@ class WindowFiller
   void addPattern(const uint32_t val, int icrate, int orbit, int bc) { mCratePatterns.emplace_back(val, icrate, orbit * 3 + (bc + 100) / Geo::BC_IN_WINDOW); }
   void addCrateHeaderData(unsigned long orbit, int crate, int32_t bc, uint32_t eventCounter);
 
+  void setTraceEmptyCrates(bool val) { mTraceEmptyCrates = val; }
+
  protected:
   // info TOF timewindow
   uint64_t mReadoutWindowCurrent = 0;
@@ -95,6 +97,8 @@ class WindowFiller
   // only needed from Decoder
   int mMaskNoiseRate = -1;
   int mChannelCounts[o2::tof::Geo::NCHANNELS]; // count of channel hits in the current TF (if MaskNoiseRate enabled)
+
+  bool mTraceEmptyCrates = 1; // set to 0 not to trace empty crates
 
   // digit info
   //std::vector<Digit>* mDigits;
@@ -150,7 +154,7 @@ class WindowFiller
     return true;
   }
 
-  ClassDefNV(WindowFiller, 1);
+  ClassDefNV(WindowFiller, 2);
 };
 } // namespace tof
 } // namespace o2
