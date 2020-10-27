@@ -27,6 +27,13 @@ o2_add_test(FrequencyTable
             COMPONENT_NAME rANS
             LABELS utils)
             
+o2_add_test(CombinedIterator
+            NAME CombinedIterator
+            SOURCES test/test_ransCombinedIterator.cxx
+            PUBLIC_LINK_LIBRARIES O2::rANS
+            COMPONENT_NAME rANS
+            LABELS utils)
+            
 o2_add_executable(rans-encode-decode-8
                   TARGETVARNAME targetName
                   SOURCES run/bin-encode-decode.cxx
