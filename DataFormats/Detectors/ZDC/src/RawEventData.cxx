@@ -14,11 +14,12 @@ using namespace o2::zdc;
 
 //ClassImp(EventData);
 
+//______________________________________________________________________________
 void EventData::print() const
 {
   for (Int_t im = 0; im < o2::zdc::NModules; im++) {
     for (Int_t ic = 0; ic < o2::zdc::NChPerModule; ic++) {
-      if (data[im][ic].f.fixed_0 == id_w0 && data[im][ic].f.fixed_1 == id_w1 && data[im][ic].f.fixed_2 == id_w2) {
+      if (data[im][ic].f.fixed_0 == Id_w0 && data[im][ic].f.fixed_1 == Id_w1 && data[im][ic].f.fixed_2 == Id_w2) {
         // Not empty event
         auto f = data[im][ic].f;
         // Word 0
@@ -41,6 +42,7 @@ void EventData::print() const
   }
 }
 
+//______________________________________________________________________________
 void EventData::reset()
 {
   static constexpr int payloadSize = NModules * NChPerModule * NWPerGBTW * sizeof(UInt_t);

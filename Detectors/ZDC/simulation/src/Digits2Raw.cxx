@@ -3,8 +3,6 @@
 #include <TTree.h>
 #include <TRandom.h>
 #include <TMath.h>
-#include "SimulationDataFormat/MCTruthContainer.h"
-#include "SimulationDataFormat/MCCompLabel.h"
 #include "ZDCBase/Constants.h"
 #include "ZDCBase/ModuleConfig.h"
 #include "ZDCSimulation/Digitizer.h"
@@ -70,8 +68,6 @@ void Digits2Raw::processDigits(const std::string& outDir, const std::string& fil
     return;
   }
 
-  o2::dataformats::MCTruthContainer<o2::zdc::MCLabel>* labelsPtr = nullptr;
-
   if (digiTree->GetBranch("ZDCDigitBC")) {
     digiTree->SetBranchAddress("ZDCDigitBC", &mzdcBCDataPtr);
   } else {
@@ -86,12 +82,7 @@ void Digits2Raw::processDigits(const std::string& outDir, const std::string& fil
     return;
   }
 
-  if (digiTree->GetBranch("ZDCDigitLabels")) {
-    digiTree->SetBranchAddress("ZDCDigitLabels", &labelsPtr);
-    LOG(INFO) << "Branch ZDCDigitLabels is connected";
-  } else {
-    LOG(INFO) << "Branch ZDCDigitLabels is missing";
-  }
+  digiTree->SetBranchStatus("ZDCDigitLabel*", 0);
 
   for (int ient = 0; ient < digiTree->GetEntries(); ient++) {
     digiTree->GetEntry(ient);
