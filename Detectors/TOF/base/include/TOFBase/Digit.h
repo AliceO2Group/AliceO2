@@ -116,9 +116,12 @@ struct ReadoutWindowData {
   o2::dataformats::RangeReference<int, int> refDiagnostic;
 
   // crate info for diagnostic patterns
-  int mNdiaCrate[72] = {0};
+  int mNdiaCrate[Geo::kNCrate] = {0};
+  int mDeltaBCCrate[Geo::kNCrate] = {0};
+  int mDeltaEventCounterCrate[Geo::kNCrate] = {0};
 
   InteractionRecord mFirstIR{0, 0};
+  int mEventCounter = 0;
 
   const InteractionRecord& getBCData() const { return mFirstIR; }
 
@@ -164,7 +167,14 @@ struct ReadoutWindowData {
   void setFirstEntryDia(int first) { refDiagnostic.setFirstEntry(first); }
   void setNEntriesDia(int ne) { refDiagnostic.setEntries(ne); }
 
-  ClassDefNV(ReadoutWindowData, 3);
+  void setEventCounter(int ev) { mEventCounter = ev; }
+  void setDeltaEventCounterCrate(int crate, int ev) { mDeltaEventCounterCrate[crate] = ev; }
+  int getEventCounter() const { return mEventCounter; }
+  int getDeltaEventCounterCrate(int crate) const { return mDeltaEventCounterCrate[crate]; }
+  void setDeltaBCCrate(int crate, int bc) { mDeltaBCCrate[crate] = bc; }
+  int getDeltaBCCrate(int crate) const { return mDeltaBCCrate[crate]; }
+
+  ClassDefNV(ReadoutWindowData, 4);
 };
 
 } // namespace tof
