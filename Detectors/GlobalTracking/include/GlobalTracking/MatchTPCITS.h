@@ -46,6 +46,7 @@
 #include "ITSReconstruction/RecoGeomHelper.h"
 #include "TPCFastTransform.h"
 #include "GlobalTracking/MatchTPCITSParams.h"
+#include "CommonDataFormat/FlatHisto2D.h"
 
 class TTree;
 
@@ -353,6 +354,15 @@ class MatchTPCITS
     mMCTruthON = v;
   }
 
+  ///< request VDrift calibration
+  void setVDriftCalib(bool v)
+  {
+    mVDriftCalibOn = v;
+  }
+
+  ///< get histo for tgl differences for VDrift calibration
+  auto getHistoDTgl() { return mHistoDTgl.get(); }
+
   ///< set input ITS tracks
   void setITSTracksInp(const gsl::span<const o2::its::TrackITS> inp)
   {
@@ -635,7 +645,8 @@ class MatchTPCITS
   float mMinTPCTrackPtInv = 999.; ///< cutoff on TPC track inverse pT
   float mMinITSTrackPtInv = 999.; ///< cutoff on ITS track inverse pT
 
-  bool mVDriftCalibOn = false; ///< flag to produce VDrift calibration data
+  bool mVDriftCalibOn = false;                                ///< flag to produce VDrift calibration data
+  std::unique_ptr<o2::dataformats::FlatHisto2D_f> mHistoDTgl; ///< histo for VDrift calibration data
 
   std::unique_ptr<TPCTransform> mTPCTransform;         ///< TPC cluster transformation
   std::unique_ptr<o2::gpu::GPUParam> mTPCClusterParam; ///< TPC clusters error param

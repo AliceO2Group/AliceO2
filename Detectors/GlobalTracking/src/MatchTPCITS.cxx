@@ -352,7 +352,11 @@ void MatchTPCITS::init()
   mMinTPCTrackPtInv = (mFieldON && mParams->minTPCTrackR > 0) ? 1. / std::abs(mParams->minTPCTrackR * bz * o2::constants::math::B2C) : 999.;
   mMinITSTrackPtInv = (mFieldON && mParams->minITSTrackR > 0) ? 1. / std::abs(mParams->minITSTrackR * bz * o2::constants::math::B2C) : 999.;
 
-  mVDriftCalibOn = mParams->maxVDriftUncertainty > 0.;
+  if (mVDriftCalibOn) {
+    float maxDTgl = std::min(0.02f, mParams->maxVDriftUncertainty) * mParams->maxTglForVDriftCalib;
+    mHistoDTgl = std::make_unique<o2::dataformats::FlatHisto2D_f>(mParams->nBinsTglVDriftCalib, -mParams->maxTglForVDriftCalib, mParams->maxTglForVDriftCalib,
+                                                                  mParams->nBinsDTglVDriftCalib, -maxDTgl, maxDTgl);
+  }
 
 #ifdef _ALLOW_DEBUG_TREES_
   // debug streamer
@@ -1707,6 +1711,14 @@ bool MatchTPCITS::refitTrackTPCITSloopTPC(int iTPC, int& iITS)
     mOutTPCLabels.emplace_back(mTPCLblWork[iTPC]);
   }
 
+  // if requested, fill the difference of ITS and TPC tracks tgl for vdrift calibation
+  if (mHistoDTgl) {
+    auto tglITS = tITS.getTgl();
+    if (std::abs(tglITS) < mHistoDTgl->getXMax()) {
+      auto dTgl = tglITS - tTPC.getTgl();
+      mHistoDTgl->fill(tglITS, dTgl);
+    }
+  }
   //  trfit.print(); // DBG
 
   return true;
