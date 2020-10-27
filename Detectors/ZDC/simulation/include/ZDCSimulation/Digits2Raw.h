@@ -47,7 +47,11 @@ class Digits2Raw
   void setFilePerLink(bool v) { mOutputPerLink = v; }
   bool getFilePerLink() const { return mOutputPerLink; }
 
-  void setVerbosity(int v) { mVerbosity = v; mWriter.setVerbosity(v); }
+  void setVerbosity(int v)
+  {
+    mVerbosity = v;
+    mWriter.setVerbosity(v);
+  }
   int getVerbosity() const { return mVerbosity; }
 
   //  void setContinuous(bool v = true) { mIsContinuous = v; }
