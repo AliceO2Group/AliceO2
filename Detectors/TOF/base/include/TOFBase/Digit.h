@@ -125,9 +125,17 @@ struct ReadoutWindowData {
 
   const InteractionRecord& getBCData() const { return mFirstIR; }
 
+  void setEmptyCrate(int crate) { mNdiaCrate[crate] = -1; }
+  bool isEmptyCrate(int crate) const { return (mNdiaCrate[crate] == -1); }
   void addedDiagnostic(int crate) { mNdiaCrate[crate]++; }
   void setDiagnosticInCrate(int crate, int val) { mNdiaCrate[crate] = val; }
-  int getDiagnosticInCrate(int crate) const { return mNdiaCrate[crate]; }
+  int getDiagnosticInCrate(int crate) const
+  {
+    if (isEmptyCrate(crate))
+      return 0;
+    else
+      return mNdiaCrate[crate];
+  }
 
   void setBCData(int orbit, int bc)
   {
@@ -175,6 +183,24 @@ struct ReadoutWindowData {
   int getDeltaBCCrate(int crate) const { return mDeltaBCCrate[crate]; }
 
   ClassDefNV(ReadoutWindowData, 4);
+};
+
+struct DigitHeader {
+  int mCountsCrate[Geo::kNCrate] = {0};
+  int mCountsRow = 0;
+
+  void clear()
+  {
+    memset(mCountsCrate, 0, Geo::kNCrate * 4);
+    mCountsRow = 0;
+  }
+  DigitHeader() { clear(); }
+  void addRow() { mCountsRow++; }
+  int getNRow() const { return mCountsRow; }
+  void crateSeen(int crate) { mCountsCrate[crate]++; }
+  int getCrateCounts(int crate) const { return mCountsCrate[crate]; }
+
+  ClassDefNV(DigitHeader, 1);
 };
 
 } // namespace tof

@@ -97,6 +97,8 @@ void WindowFiller::reset()
   mReadoutWindowData.clear();
   mReadoutWindowDataFiltered.clear();
 
+  mDigitHeader.clear();
+
   mFirstIR.bc = 0;
   mFirstIR.orbit = 0;
 }
@@ -140,23 +142,25 @@ void WindowFiller::fillOutputContainer(std::vector<Digit>& digits)
     ReadoutWindowData info(first, ne);
     int orbit_shift = mReadoutWindowData.size() / Geo::NWINDOW_IN_ORBIT;
 
-    bool isCrateMissing[Geo::kNCrate];
+    mDigitHeader.addRow();
 
     int bc_shift = -1;
     int eventcounter = -1;
     if (mReadoutWindowData.size() >= mCrateHeaderData.size()) {
       bc_shift = (mReadoutWindowData.size() % Geo::NWINDOW_IN_ORBIT) * Geo::BC_IN_WINDOW; // insert default value
       eventcounter = mReadoutWindowData.size() % 4096;
-      for (int icrate = 0; icrate < Geo::kNCrate; icrate++)
-        isCrateMissing[icrate] = mTraceEmptyCrates;
+      for (int icrate = 0; icrate < Geo::kNCrate; icrate++) {
+        info.setEmptyCrate(icrate);
+      }
     } else {
       unsigned long irow = mReadoutWindowData.size();
       for (int icrate = 0; icrate < Geo::kNCrate; icrate++) {
         if (mCrateHeaderData[irow].bc[icrate] == -1) { // crate not read
-          isCrateMissing[icrate] = mTraceEmptyCrates;
+          info.setEmptyCrate(icrate);
           continue;
-        }
-        isCrateMissing[icrate] = false;
+        } else
+          mDigitHeader.crateSeen(icrate);
+
         if (bc_shift == -1 || mCrateHeaderData[irow].bc[icrate] < bc_shift)
           bc_shift = mCrateHeaderData[irow].bc[icrate];
         if (eventcounter == -1 || mCrateHeaderData[irow].eventCounter[icrate] < eventcounter)
@@ -174,8 +178,6 @@ void WindowFiller::fillOutputContainer(std::vector<Digit>& digits)
     int firstPattern = mPatterns.size();
     int npatterns = 0;
 
-    int icrateToBeChecked = 0;
-
     // check if patterns are in the current row
     for (std::vector<PatternData>::reverse_iterator it = mCratePatterns.rbegin(); it != mCratePatterns.rend(); ++it) {
       if (it->row > mReadoutWindowCurrent) {
@@ -185,28 +187,12 @@ void WindowFiller::fillOutputContainer(std::vector<Digit>& digits)
       if (it->row < mReadoutWindowCurrent) { // this should not happen
         LOG(ERROR) << "One pattern skipped because appears to occur early of the current row " << it->row << " < " << mReadoutWindowCurrent << " ?!";
       } else {
-        for (; icrateToBeChecked < it->icrate; icrateToBeChecked++) { // checks all crates before the one provided by patterns to see if they were read (fill pattern 0 for all not read)
-          if (isCrateMissing[icrateToBeChecked]) {
-            mPatterns.push_back(0);
-            info.addedDiagnostic(icrateToBeChecked);
-            npatterns++;
-          }
-        }
-
         mPatterns.push_back(it->pattern);
         info.addedDiagnostic(it->icrate);
 
         npatterns++;
       }
       mCratePatterns.pop_back();
-    }
-
-    for (; icrateToBeChecked < Geo::kNCrate; icrateToBeChecked++) { // check if remaining crates were read otherwise add pattern=0 to crates not read
-      if (isCrateMissing[icrateToBeChecked]) {
-        mPatterns.push_back(0);
-        info.addedDiagnostic(icrateToBeChecked);
-        npatterns++;
-      }
     }
 
     info.setFirstEntryDia(firstPattern);
