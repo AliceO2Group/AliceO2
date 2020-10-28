@@ -305,7 +305,7 @@ GPUd() MatBudget MatLayerCylSet::getMatBudget(float x0, float y0, float z0, floa
               }
             }
             // account materials of this step
-            float step = tEndZ - tStartZ; // the real step is ray.getDist(tEnd-tStart), will rescale all later
+            float step = tEndZ > tStartZ ? tEndZ - tStartZ : tStartZ - tEndZ; // the real step is ray.getDist(tEnd-tStart), will rescale all later
             const auto& cell = lr.getCell(phiID, zID);
             rval.meanRho += cell.meanRho * step;
             rval.meanX2X0 += cell.meanX2X0 * step;
@@ -325,7 +325,7 @@ GPUd() MatBudget MatLayerCylSet::getMatBudget(float x0, float y0, float z0, floa
             zID += stepZID;
           } while (checkMoreZ);
         } else {
-          float step = tEndPhi - tStartPhi; // the real step is |ray.getDist(tEnd-tStart)|, will rescale all later
+          float step = tEndPhi > tStartPhi ? tEndPhi - tStartPhi : tStartPhi - tEndPhi; // the real step is |ray.getDist(tEnd-tStart)|, will rescale all later
           const auto& cell = lr.getCell(phiID, zID);
           rval.meanRho += cell.meanRho * step;
           rval.meanX2X0 += cell.meanX2X0 * step;
@@ -352,8 +352,7 @@ GPUd() MatBudget MatLayerCylSet::getMatBudget(float x0, float y0, float z0, floa
 
   if (rval.length != 0.f) {
     rval.meanRho /= rval.length;                                       // average
-    float norm = (rval.length < 0.f) ? -ray.getDist() : ray.getDist(); // normalize
-    rval.meanX2X0 *= norm;
+    rval.meanX2X0 *= ray.getDist();                                    // normalize
   }
   rval.length = ray.getDist();
 
