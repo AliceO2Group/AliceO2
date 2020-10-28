@@ -45,7 +45,7 @@ BOOST_AUTO_TEST_CASE(TestOptionsRetriever)
   };
 
   std::vector<std::unique_ptr<ParamRetriever>> retrievers;
-  std::unique_ptr<ParamRetriever> fairmqRetriver{new ConfigurationOptionsRetriever(conf.get(), ".")};
+  std::unique_ptr<ParamRetriever> fairmqRetriver{new ConfigurationOptionsRetriever(conf.get(), "")};
   retrievers.emplace_back(std::move(fairmqRetriver));
 
   ConfigParamStore store{specs, std::move(retrievers)};
