@@ -65,10 +65,11 @@ void MatchTOF::run()
   if (mIsworkflowON) {
     LOG(DEBUG) << "Number of entries in track tree = " << mCurrTracksTreeEntry;
 
-    if (mIsITSused)
+    if (mIsITSused) {
       prepareTracks();
-    else
+    } else {
       prepareTPCTracks();
+    }
 
     mMatchedTracks.clear();
     mOutTOFLabels.clear();
@@ -81,10 +82,11 @@ void MatchTOF::run()
 
     for (int sec = o2::constants::math::NSectors; sec--;) {
       LOG(INFO) << "Doing matching for sector " << sec << "...";
-      if (mIsITSused)
+      if (mIsITSused) {
         doMatching(sec);
-      else
+      } else {
         doMatchingForTPC(sec);
+      }
       LOG(INFO) << "...done. Now check the best matches";
       selectBestMatches();
     }
@@ -94,10 +96,11 @@ void MatchTOF::run()
   while (!mIsworkflowON && mCurrTracksTreeEntry + 1 < mInputTreeTracks->GetEntries()) { // we add "+1" because mCurrTracksTreeEntry starts from -1, and it is incremented in loadTracksNextChunk which is called by prepareTracks
     LOG(DEBUG) << "Number of entries in track tree = " << mCurrTracksTreeEntry;
 
-    if (mIsITSused)
+    if (mIsITSused) {
       prepareTracks();
-    else
+    } else {
       prepareTPCTracks();
+    }
 
     mMatchedTracks.clear();
     mOutTOFLabels.clear();
@@ -110,10 +113,11 @@ void MatchTOF::run()
 
     for (int sec = o2::constants::math::NSectors; sec--;) {
       LOG(INFO) << "Doing matching for sector " << sec << "...";
-      if (mIsITSused)
+      if (mIsITSused) {
         doMatching(sec);
-      else
+      } else {
         doMatchingForTPC(sec);
+      }
       LOG(INFO) << "...done. Now check the best matches";
       selectBestMatches();
     }
@@ -140,8 +144,9 @@ void MatchTOF::run()
 void MatchTOF::fill()
 {
   mOutputTree->Fill();
-  if (mOutputTreeCalib)
+  if (mOutputTreeCalib) {
     mOutputTreeCalib->Fill();
+  }
 }
 
 //______________________________________________
@@ -343,18 +348,21 @@ void MatchTOF::attachInputTrees()
     mTOFClusLabelsPtr = &mTOFClusLabels;
     mTreeTOFClusters->SetBranchAddress(mTOFMCTruthBranchName.data(), &mTOFClusLabelsPtr);
     LOG(INFO) << "Found TOF Clusters MCLabels branch " << mTOFMCTruthBranchName;
-  } else
+  } else {
     mMCTruthON = false;
+  }
   if (mInputTreeTracks->GetBranch(mTPCMCTruthBranchName.data())) {
     mInputTreeTracks->SetBranchAddress(mTPCMCTruthBranchName.data(), &mTPCLabelsVect);
     LOG(INFO) << "Found TPC tracks MCLabels branch " << mTPCMCTruthBranchName.data();
-  } else
+  } else {
     mMCTruthON = false;
+  }
   if (mInputTreeTracks->GetBranch(mITSMCTruthBranchName.data())) {
     mInputTreeTracks->SetBranchAddress(mITSMCTruthBranchName.data(), &mITSLabelsVect);
     LOG(INFO) << "Found ITS tracks MCLabels branch " << mITSMCTruthBranchName.data();
-  } else
+  } else {
     mMCTruthON = false;
+  }
 
   mCurrTracksTreeEntry = -1;
   mCurrTOFClustersTreeEntry = -1;
@@ -396,13 +404,15 @@ void MatchTOF::attachInputTreesTPConly()
     mTOFClusLabelsPtr = &mTOFClusLabels;
     mTreeTOFClusters->SetBranchAddress(mTOFMCTruthBranchName.data(), &mTOFClusLabelsPtr);
     LOG(INFO) << "Found TOF Clusters MCLabels branch " << mTOFMCTruthBranchName;
-  } else
+  } else {
     mMCTruthON = false;
+  }
   if (mTreeTPCTracks->GetBranch(mOutTPCTrackMCTruthBranchName.data())) {
     mTreeTPCTracks->SetBranchAddress(mOutTPCTrackMCTruthBranchName.data(), &mTPCLabelsVect);
     LOG(INFO) << "Found TPC tracks MCLabels branch " << mOutTPCTrackMCTruthBranchName;
-  } else
+  } else {
     mMCTruthON = false;
+  }
 
   mCurrTracksTreeEntry = -1;
   mCurrTOFClustersTreeEntry = -1;
@@ -418,8 +428,9 @@ bool MatchTOF::prepareTracks()
   }
 
   mNumOfTracks = mTracksArrayInp.size();
-  if (mNumOfTracks == 0)
+  if (mNumOfTracks == 0) {
     return false; // no tracks to be matched
+  }
   mMatchedTracksIndex.resize(mNumOfTracks);
   std::fill(mMatchedTracksIndex.begin(), mMatchedTracksIndex.end(), -1); // initializing all to -1
 
@@ -495,8 +506,9 @@ bool MatchTOF::prepareTracks()
   for (int sec = o2::constants::math::NSectors; sec--;) {
     auto& indexCache = mTracksSectIndexCache[sec];
     LOG(INFO) << "Sorting sector" << sec << " | " << indexCache.size() << " tracks";
-    if (!indexCache.size())
+    if (!indexCache.size()) {
       continue;
+    }
     std::sort(indexCache.begin(), indexCache.end(), [this](int a, int b) {
       auto& trcA = mTracksWork[a].second;
       auto& trcB = mTracksWork[b].second;
@@ -535,8 +547,9 @@ bool MatchTOF::prepareTPCTracks()
   }
 
   mNumOfTracks = mTPCTracksArrayInp.size();
-  if (mNumOfTracks == 0)
+  if (mNumOfTracks == 0) {
     return false; // no tracks to be matched
+  }
   mMatchedTracksIndex.resize(mNumOfTracks);
   std::fill(mMatchedTracksIndex.begin(), mMatchedTracksIndex.end(), -1); // initializing all to -1
 
@@ -608,11 +621,12 @@ bool MatchTOF::prepareTPCTracks()
       continue;
     }
 
-    if (trc.getX() < o2::globaltracking::MatchTPCITS::XTPCOuterRef - 1.)
+    if (trc.getX() < o2::globaltracking::MatchTPCITS::XTPCOuterRef - 1.) {
       if (!propagateToRefX(trc, o2::globaltracking::MatchTPCITS::XTPCOuterRef, 10, intLT) || TMath::Abs(trc.getZ()) > Geo::MAXHZTOF) { // we check that the propagation with the cov matrix worked; CHECK: can it happen that it does not if the propagation without the errors succeeded?
         nNotPropagatedToTOF++;
         continue;
       }
+    }
 
     // the "rough" propagation worked; now we can propagate considering also the cov matrix
     if (!propagateToRefX(trc, mXRef, 2, intLT) || TMath::Abs(trc.getZ()) > Geo::MAXHZTOF) { // we check that the propagation with the cov matrix worked; CHECK: can it happen that it does not if the propagation without the errors succeeded?
@@ -639,8 +653,9 @@ bool MatchTOF::prepareTPCTracks()
   for (int sec = o2::constants::math::NSectors; sec--;) {
     auto& indexCache = mTracksSectIndexCache[sec];
     LOG(INFO) << "Sorting sector" << sec << " | " << indexCache.size() << " tracks";
-    if (!indexCache.size())
+    if (!indexCache.size()) {
       continue;
+    }
     std::sort(indexCache.begin(), indexCache.end(), [this](int a, int b) {
       auto& trcA = mTracksWork[a].second;
       auto& trcB = mTracksWork[b].second;
@@ -722,8 +737,9 @@ bool MatchTOF::prepareTOFClusters()
   for (int sec = o2::constants::math::NSectors; sec--;) {
     auto& indexCache = mTOFClusSectIndexCache[sec];
     LOG(INFO) << "Sorting sector" << sec << " | " << indexCache.size() << " TOF clusters";
-    if (!indexCache.size())
+    if (!indexCache.size()) {
       continue;
+    }
     std::sort(indexCache.begin(), indexCache.end(), [this](int a, int b) {
       auto& clA = mTOFClusWork[a];
       auto& clB = mTOFClusWork[b];
@@ -731,8 +747,9 @@ bool MatchTOF::prepareTOFClusters()
     });
   } // loop over TOF clusters of single sector
 
-  if (mMatchedClustersIndex)
+  if (mMatchedClustersIndex) {
     delete[] mMatchedClustersIndex;
+  }
   mMatchedClustersIndex = new int[mNumOfClusters];
   std::fill_n(mMatchedClustersIndex, mNumOfClusters, -1); // initializing all to -1
 
@@ -881,8 +898,9 @@ void MatchTOF::doMatching(int sec)
       Printf("radius xyz = %f", TMath::Sqrt(posFloat[0]*posFloat[0] + posFloat[1]*posFloat[1] + posFloat[2]*posFloat[2]));
       */
 
-      for (int idet = 0; idet < 5; idet++)
+      for (int idet = 0; idet < 5; idet++) {
         detIdTemp[idet] = -1;
+      }
 
       Geo::getPadDxDyDz(posFloat, detIdTemp, deltaPosTemp);
 
@@ -925,8 +943,9 @@ void MatchTOF::doMatching(int sec)
       // LOG(DEBUG) << "nStripsCrossedInPropagation = " << nStripsCrossedInPropagation << ", detId[nStripsCrossedInPropagation][0] = " << detId[nStripsCrossedInPropagation][0] << ", detIdTemp[0] = " << detIdTemp[0] << ", detId[nStripsCrossedInPropagation][1] = " << detId[nStripsCrossedInPropagation][1] << ", detIdTemp[1] = " << detIdTemp[1] << ", detId[nStripsCrossedInPropagation][2] = " << detId[nStripsCrossedInPropagation][2] << ", detIdTemp[2] = " << detIdTemp[2];
       if (nStripsCrossedInPropagation == 0 ||                                                                                                                                                                                            // we are crossing a strip for the first time...
           (nStripsCrossedInPropagation >= 1 && (detId[nStripsCrossedInPropagation - 1][0] != detIdTemp[0] || detId[nStripsCrossedInPropagation - 1][1] != detIdTemp[1] || detId[nStripsCrossedInPropagation - 1][2] != detIdTemp[2]))) { // ...or we are crossing a new strip
-        if (nStripsCrossedInPropagation == 0)
+        if (nStripsCrossedInPropagation == 0) {
           LOG(DEBUG) << "We cross a strip for the first time";
+        }
         if (nStripsCrossedInPropagation == 2) {
           break; // we have already matched 2 strips, we cannot match more
         }
@@ -1004,22 +1023,30 @@ void MatchTOF::doMatching(int sec)
       int ndigits = 1;
       float posCorr[3] = {0, 0, 0};
 
-      if (trefTOF.isBitSet(Cluster::kLeft))
+      if (trefTOF.isBitSet(Cluster::kLeft)) {
         posCorr[0] += Geo::XPAD, ndigits++;
-      if (trefTOF.isBitSet(Cluster::kUpLeft))
+      }
+      if (trefTOF.isBitSet(Cluster::kUpLeft)) {
         posCorr[0] += Geo::XPAD, posCorr[2] -= Geo::ZPAD, ndigits++;
-      if (trefTOF.isBitSet(Cluster::kDownLeft))
+      }
+      if (trefTOF.isBitSet(Cluster::kDownLeft)) {
         posCorr[0] += Geo::XPAD, posCorr[2] += Geo::ZPAD, ndigits++;
-      if (trefTOF.isBitSet(Cluster::kUp))
+      }
+      if (trefTOF.isBitSet(Cluster::kUp)) {
         posCorr[2] -= Geo::ZPAD, ndigits++;
-      if (trefTOF.isBitSet(Cluster::kDown))
+      }
+      if (trefTOF.isBitSet(Cluster::kDown)) {
         posCorr[2] += Geo::ZPAD, ndigits++;
-      if (trefTOF.isBitSet(Cluster::kRight))
+      }
+      if (trefTOF.isBitSet(Cluster::kRight)) {
         posCorr[0] -= Geo::XPAD, ndigits++;
-      if (trefTOF.isBitSet(Cluster::kUpRight))
+      }
+      if (trefTOF.isBitSet(Cluster::kUpRight)) {
         posCorr[0] -= Geo::XPAD, posCorr[2] -= Geo::ZPAD, ndigits++;
-      if (trefTOF.isBitSet(Cluster::kDownRight))
+      }
+      if (trefTOF.isBitSet(Cluster::kDownRight)) {
         posCorr[0] -= Geo::XPAD, posCorr[2] += Geo::ZPAD, ndigits++;
+      }
 
       float ndifInv = 1. / ndigits;
       if (ndigits > 1) {
@@ -1056,12 +1083,15 @@ void MatchTOF::doMatching(int sec)
           fillTOFmatchTreeWithLabels("matchPossibleWithLabels", cacheTOF[itof], indices[0], indices[1], indices[2], indices[3], indices[4], cacheTrk[itrk], iPropagation, detId[iPropagation][0], detId[iPropagation][1], detId[iPropagation][2], detId[iPropagation][3], detId[iPropagation][4], resX, resZ, res, trackWork, labelTPC.getTrackID(), labelTPC.getEventID(), labelTPC.getSourceID(), labelITS.getTrackID(), labelITS.getEventID(), labelITS.getSourceID(), tofLabelTrackID[0], tofLabelEventID[0], tofLabelSourceID[0], tofLabelTrackID[1], tofLabelEventID[1], tofLabelSourceID[1], tofLabelTrackID[2], tofLabelEventID[2], tofLabelSourceID[2], trkLTInt[iPropagation].getL(), trkLTInt[iPropagation].getTOF(o2::track::PID::Pion), trefTOF.getTime());
         }
 #endif
-        if (indices[0] != detId[iPropagation][0])
+        if (indices[0] != detId[iPropagation][0]) {
           continue;
-        if (indices[1] != detId[iPropagation][1])
+        }
+        if (indices[1] != detId[iPropagation][1]) {
           continue;
-        if (indices[2] != detId[iPropagation][2])
+        }
+        if (indices[2] != detId[iPropagation][2]) {
           continue;
+        }
         float chi2 = res; // TODO: take into account also the time!
 #ifdef _ALLOW_TOF_DEBUG_
         fillTOFmatchTree("match1", cacheTOF[itof], indices[0], indices[1], indices[2], indices[3], indices[4], cacheTrk[itrk], iPropagation, detId[iPropagation][0], detId[iPropagation][1], detId[iPropagation][2], detId[iPropagation][3], detId[iPropagation][4], resX, resZ, res, trackWork, trkLTInt[iPropagation].getL(), trkLTInt[iPropagation].getTOF(o2::track::PID::Pion), trefTOF.getTime());
@@ -1173,9 +1203,11 @@ void MatchTOF::doMatchingForTPC(int sec)
 
       bool isalreadyin = false;
 
-      for (int k = 0; k < BCcand.size(); k++)
-        if (bc == BCcand[k])
+      for (int k = 0; k < BCcand.size(); k++) {
+        if (bc == BCcand[k]) {
           isalreadyin = true;
+        }
+      }
 
       if (!isalreadyin) {
         BCcand.emplace_back(bc);
@@ -1243,15 +1275,17 @@ void MatchTOF::doMatchingForTPC(int sec)
 
       // check if you fall in a strip
       for (int ibc = 0; ibc < BCcand.size(); ibc++) {
-        for (int idet = 0; idet < 5; idet++)
+        for (int idet = 0; idet < 5; idet++) {
           detIdTemp[idet] = -1;
+        }
 
-        if (side > 0)
+        if (side > 0) {
           posFloat[2] = pos[2] - vdrift * (trackWork.second.getTimeStamp() - BCcand[ibc] * Geo::BC_TIME_INPS * 1E-6);
-        else if (side < 0)
+        } else if (side < 0) {
           posFloat[2] = pos[2] + vdrift * (trackWork.second.getTimeStamp() - BCcand[ibc] * Geo::BC_TIME_INPS * 1E-6);
-        else
+        } else {
           posFloat[2] = pos[2];
+        }
 
         Geo::getPadDxDyDz(posFloat, detIdTemp, deltaPosTemp);
 
@@ -1261,8 +1295,9 @@ void MatchTOF::doMatchingForTPC(int sec)
 
         if (nStripsCrossedInPropagation[ibc] == 0 ||                                                                                                                                                                                                                          // we are crossing a strip for the first time...
             (nStripsCrossedInPropagation[ibc] >= 1 && (detId[ibc][nStripsCrossedInPropagation[ibc] - 1][0] != detIdTemp[0] || detId[ibc][nStripsCrossedInPropagation[ibc] - 1][1] != detIdTemp[1] || detId[ibc][nStripsCrossedInPropagation[ibc] - 1][2] != detIdTemp[2]))) { // ...or we are crossing a new strip
-          if (nStripsCrossedInPropagation[ibc] == 0)
+          if (nStripsCrossedInPropagation[ibc] == 0) {
             LOG(DEBUG) << "We cross a strip for the first time";
+          }
           if (nStripsCrossedInPropagation[ibc] == 2) {
             continue; // we have already matched 2 strips, we cannot match more
           }
@@ -1333,22 +1368,30 @@ void MatchTOF::doMatchingForTPC(int sec)
         int ndigits = 1;
         float posCorr[3] = {0, 0, 0};
 
-        if (trefTOF.isBitSet(Cluster::kLeft))
+        if (trefTOF.isBitSet(Cluster::kLeft)) {
           posCorr[0] += Geo::XPAD, ndigits++;
-        if (trefTOF.isBitSet(Cluster::kUpLeft))
+        }
+        if (trefTOF.isBitSet(Cluster::kUpLeft)) {
           posCorr[0] += Geo::XPAD, posCorr[2] -= Geo::ZPAD, ndigits++;
-        if (trefTOF.isBitSet(Cluster::kDownLeft))
+        }
+        if (trefTOF.isBitSet(Cluster::kDownLeft)) {
           posCorr[0] += Geo::XPAD, posCorr[2] += Geo::ZPAD, ndigits++;
-        if (trefTOF.isBitSet(Cluster::kUp))
+        }
+        if (trefTOF.isBitSet(Cluster::kUp)) {
           posCorr[2] -= Geo::ZPAD, ndigits++;
-        if (trefTOF.isBitSet(Cluster::kDown))
+        }
+        if (trefTOF.isBitSet(Cluster::kDown)) {
           posCorr[2] += Geo::ZPAD, ndigits++;
-        if (trefTOF.isBitSet(Cluster::kRight))
+        }
+        if (trefTOF.isBitSet(Cluster::kRight)) {
           posCorr[0] -= Geo::XPAD, ndigits++;
-        if (trefTOF.isBitSet(Cluster::kUpRight))
+        }
+        if (trefTOF.isBitSet(Cluster::kUpRight)) {
           posCorr[0] -= Geo::XPAD, posCorr[2] -= Geo::ZPAD, ndigits++;
-        if (trefTOF.isBitSet(Cluster::kDownRight))
+        }
+        if (trefTOF.isBitSet(Cluster::kDownRight)) {
           posCorr[0] -= Geo::XPAD, posCorr[2] += Geo::ZPAD, ndigits++;
+        }
 
         float ndifInv = 1. / ndigits;
         if (ndigits > 1) {
@@ -1366,12 +1409,15 @@ void MatchTOF::doMatchingForTPC(int sec)
           float resX = deltaPos[ibc][iPropagation][0] - (indices[4] - detId[ibc][iPropagation][4]) * Geo::XPAD + posCorr[0]; // readjusting the residuals due to the fact that the propagation fell in a pad that was not exactly the one of the cluster
           float resZ = deltaPos[ibc][iPropagation][2] - (indices[3] - detId[ibc][iPropagation][3]) * Geo::ZPAD + posCorr[2]; // readjusting the residuals due to the fact that the propagation fell in a pad that was not exactly the one of the cluster
           float res = TMath::Sqrt(resX * resX + resZ * resZ);
-          if (indices[0] != detId[ibc][iPropagation][0])
+          if (indices[0] != detId[ibc][iPropagation][0]) {
             continue;
-          if (indices[1] != detId[ibc][iPropagation][1])
+          }
+          if (indices[1] != detId[ibc][iPropagation][1]) {
             continue;
-          if (indices[2] != detId[ibc][iPropagation][2])
+          }
+          if (indices[2] != detId[ibc][iPropagation][2]) {
             continue;
+          }
           LOG(DEBUG) << "resX = " << resX << ", resZ = " << resZ << ", res = " << res;
           float chi2 = res; // TODO: take into account also the time!
 
@@ -1408,8 +1454,9 @@ int MatchTOF::findFITIndex(int bc)
     int bct0 = ir.orbit * o2::constants::lhc::LHCMaxBunches + ir.bc;
     int dist = bc - bct0;
 
-    if (dist < 0 || dist > distMax)
+    if (dist < 0 || dist > distMax) {
       continue;
+    }
 
     distMax = dist;
     index = i;
@@ -1475,8 +1522,9 @@ void MatchTOF::selectBestMatches()
       if (!labelOk) {
         // we have not found the track label among those associated to the TOF cluster --> fake match! We will associate the label of the main channel, but negative
         //assert(labelsTOF.size());
-        if (!labelsTOF.size())
+        if (!labelsTOF.size()) {
           throw std::runtime_error("TOF label not found since size of label is zero. This should not happen!!!!");
+        }
         mOutTOFLabels.emplace_back(labelsTOF[0].getTrackID(), labelsTOF[0].getEventID(), labelsTOF[0].getSourceID(), true);
       }
       mOutTPCLabels.push_back(labelTPC);
@@ -1498,8 +1546,9 @@ bool MatchTOF::propagateToRefX(o2::track::TrackParCov& trc, float xRef, float st
   bool refReached = false;
   float xStart = trc.getX();
   // the first propagation will be from 2m, if the track is not at least at 2m
-  if (xStart < 50.)
+  if (xStart < 50.) {
     xStart = 50.;
+  }
   int istep = 1;
   bool hasPropagated = o2::base::Propagator::Instance()->PropagateToXBxByBz(trc, xStart + istep * stepInCm, o2::constants::physics::MassPionCharged, MAXSNP, stepInCm, matCorr, &intLT);
   while (hasPropagated) {
@@ -1516,8 +1565,9 @@ bool MatchTOF::propagateToRefX(o2::track::TrackParCov& trc, float xRef, float st
         break; // failed (this line is taken from MatchTPCITS and the following comment too: RS: check effect on matching tracks to neighbouring sector)
       }
     }
-    if (refReached)
+    if (refReached) {
       break;
+    }
     hasPropagated = o2::base::Propagator::Instance()->PropagateToXBxByBz(trc, xStart + istep * stepInCm, o2::constants::physics::MassPionCharged, MAXSNP, stepInCm, matCorr, &intLT);
   }
 
@@ -1536,8 +1586,9 @@ bool MatchTOF::propagateToRefXWithoutCov(o2::track::TrackParCov& trc, float xRef
   bool refReached = false;
   float xStart = trcNoCov.getX();
   // the first propagation will be from 2m, if the track is not at least at 2m
-  if (xStart < 50.)
+  if (xStart < 50.) {
     xStart = 50.;
+  }
   int istep = 1;
   bool hasPropagated = trcNoCov.propagateParamTo(xStart + istep * stepInCm, bzField);
   while (hasPropagated) {
@@ -1554,8 +1605,9 @@ bool MatchTOF::propagateToRefXWithoutCov(o2::track::TrackParCov& trc, float xRef
         break; // failed (this line is taken from MatchTPCITS and the following comment too: RS: check effect on matching tracks to neighbouring sector)
       }
     }
-    if (refReached)
+    if (refReached) {
       break;
+    }
     hasPropagated = trcNoCov.propagateParamTo(xStart + istep * stepInCm, bzField);
   }
   //  if (std::abs(trc.getSnp()) > MAXSNP) Printf("propagateToRefX: condition on snp not ok, returning false");

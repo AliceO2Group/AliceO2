@@ -36,6 +36,7 @@
 #include "DataFormatsParameters/GRPObject.h"
 #include "Headers/DataHeader.h"
 #include "CommonDataFormat/BunchFilling.h"
+#include "CommonDataFormat/FlatHisto2D.h"
 
 // RSTODO to remove once the framework will start propagating the header.firstTForbit
 #include "DetectorsRaw/HBFUtils.h"
@@ -66,6 +67,7 @@ void TPCITSMatchingDPL::init(InitContext& ic)
   }
   mMatching.setMCTruthOn(mUseMC);
   mMatching.setUseFT0(mUseFT0);
+  mMatching.setVDriftCalib(mCalibMode);
   //
   std::string dictPath = ic.options().get<std::string>("its-dictionary-path");
   std::string dictFile = o2::base::NameConf::getDictionaryFileName(o2::detectors::DetID::ITS, dictPath, ".bin");
@@ -269,6 +271,13 @@ void TPCITSMatchingDPL::run(ProcessingContext& pc)
     pc.outputs().snapshot(Output{"GLO", "TPCITS_ITSMC", 0, Lifetime::Timeframe}, mMatching.getMatchedITSLabels());
     pc.outputs().snapshot(Output{"GLO", "TPCITS_TPCMC", 0, Lifetime::Timeframe}, mMatching.getMatchedTPCLabels());
   }
+
+  if (mCalibMode) {
+    auto* hdtgl = mMatching.getHistoDTgl();
+    pc.outputs().snapshot(Output{"GLO", "TPCITS_VDHDTGL", 0, Lifetime::Timeframe}, (*hdtgl).getBase());
+    hdtgl->clear();
+  }
+
   mTimer.Stop();
 }
 
@@ -278,7 +287,7 @@ void TPCITSMatchingDPL::endOfStream(EndOfStreamContext& ec)
        mTimer.CpuTime(), mTimer.RealTime(), mTimer.Counter() - 1);
 }
 
-DataProcessorSpec getTPCITSMatchingSpec(bool useFT0, bool useMC, const std::vector<int>& tpcClusLanes)
+DataProcessorSpec getTPCITSMatchingSpec(bool useFT0, bool calib, bool useMC, const std::vector<int>& tpcClusLanes)
 {
 
   std::vector<InputSpec> inputs;
@@ -300,6 +309,10 @@ DataProcessorSpec getTPCITSMatchingSpec(bool useFT0, bool useMC, const std::vect
 
   outputs.emplace_back("GLO", "TPCITS", 0, Lifetime::Timeframe);
 
+  if (calib) {
+    outputs.emplace_back("GLO", "TPCITS_VDHDTGL", 0, Lifetime::Timeframe);
+  }
+
   if (useMC) {
     inputs.emplace_back("trackITSMCTR", "ITS", "TRACKSMCTR", 0, Lifetime::Timeframe);
     inputs.emplace_back("trackTPCMCTR", "TPC", "TRACKSMCLBL", 0, Lifetime::Timeframe);
@@ -313,7 +326,7 @@ DataProcessorSpec getTPCITSMatchingSpec(bool useFT0, bool useMC, const std::vect
     "itstpc-track-matcher",
     inputs,
     outputs,
-    AlgorithmSpec{adaptFromTask<TPCITSMatchingDPL>(useFT0, useMC)},
+    AlgorithmSpec{adaptFromTask<TPCITSMatchingDPL>(useFT0, calib, useMC)},
     Options{
       {"its-dictionary-path", VariantType::String, "", {"Path of the cluster-topology dictionary file"}},
       {"material-lut-path", VariantType::String, "", {"Path of the material LUT file"}},

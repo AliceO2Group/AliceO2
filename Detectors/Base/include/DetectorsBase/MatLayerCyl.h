@@ -171,8 +171,9 @@ class MatLayerCyl : public o2::gpu::FlatObject
     // Get edge bin (in direction dir) of the slice, to which phiBin belongs
     // No check for phiBin validity is done
     auto slice = phiBin2Slice(phiBin);
-    while (slice == phiBin2Slice((phiBin += dir)))
+    while (slice == phiBin2Slice((phiBin += dir))) {
       ;
+    }
     return phiBin - dir;
   }
 

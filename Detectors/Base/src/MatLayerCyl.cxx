@@ -174,10 +174,12 @@ bool MatLayerCyl::cellsDiffer(const MatCell& cellA, const MatCell& cellB, float 
   /// check if the cells content is different within the tolerance
   float rav = 0.5 * (cellA.meanRho + cellB.meanRho), xav = 0.5 * (cellA.meanX2X0 + cellB.meanX2X0);
   float rdf = 0.5 * (cellA.meanRho - cellB.meanRho), xdf = 0.5 * (cellA.meanX2X0 - cellB.meanX2X0);
-  if (rav > 0 && std::abs(rdf / rav) > maxRelDiff)
+  if (rav > 0 && std::abs(rdf / rav) > maxRelDiff) {
     return true;
-  if (xav > 0 && std::abs(xdf / xav) > maxRelDiff)
+  }
+  if (xav > 0 && std::abs(xdf / xav) > maxRelDiff) {
     return true;
+  }
   return false;
 }
 
