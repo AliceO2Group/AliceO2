@@ -118,7 +118,7 @@ void digi2raw(const std::string& inpName, const std::string& outDir, int verbosi
   const auto* ctx = o2::steer::DigitizationContext::loadFromFile("collisioncontext.root");
   const auto& bcfill = ctx->getBunchFilling();
   auto bf = ctx->getBunchFilling();
-  if (verbosity > 0){
+  if (verbosity > 0) {
     bf.print();
   }
   auto bp = bf.getPattern();

@@ -578,7 +578,7 @@ void Digits2Raw::writeDigits()
       } else {
         if (mVerbosity > 2) {
           printf("orbit %9u bc %4u M%d SKIP\n", mZDC.data[im][0].f.orbit, mZDC.data[im][0].f.bc, im);
-	}
+        }
       }
     }
   }
