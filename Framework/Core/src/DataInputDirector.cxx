@@ -68,8 +68,11 @@ std::regex DataInputDescriptor::getFilenamesRegex()
 
 void DataInputDescriptor::addFileNameHolder(FileNameHolder* fn)
 {
-  if (!mAlienSupport && fn->fileName.rfind("alien://", 0) == 0) {
-    LOG(debug) << "AliEn file requested. Enabling support.";
+  // remove leading file:// from file name
+  if (fn->fileName.rfind("file://", 0) == 0) {
+    fn->fileName.erase(0, 7);
+  } else if (!mAlienSupport && fn->fileName.rfind("alien://", 0) == 0) {
+    LOGP(DEBUG, "AliEn file requested. Enabling support.");
     TGrid::Connect("alien://");
     mAlienSupport = true;
   }
