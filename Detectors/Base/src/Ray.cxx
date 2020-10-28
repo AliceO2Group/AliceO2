@@ -26,8 +26,9 @@ GPUd() int Ray::crossLayer(const MatLayerCyl& lr)
   // Region of valid t is 0:1.
   // Straigh line may have 2 crossings with cyl. layer
   float detMax = mXDxPlusYDy2 - mDistXY2 * (mR02 - lr.getRMax2());
-  if (detMax < 0)
+  if (detMax < 0) {
     return 0; // does not reach outer R, hence inner also
+  }
   float detMaxRed = CAMath::Sqrt(detMax) * mDistXY2i;
   float tCross0Max = mXDxPlusYDyRed + detMaxRed; // largest possible t
 

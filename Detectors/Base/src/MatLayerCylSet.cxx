@@ -133,8 +133,9 @@ void MatLayerCylSet::dumpToTree(const std::string outName) const
       if (ip + 1 < nphib) {
         int ips1 = lr.phiBin2Slice(ip + 1);
         merge = ips == ips1 ? -1 : lr.canMergePhiSlices(ips, ips1); // -1 for already merged
-      } else
+      } else {
         merge = -2; // last one
+      }
       o2::math_utils::sincos(phi, sn, cs);
       float x = r * cs, y = r * sn;
       for (int iz = 0; iz < lr.getNZBins(); iz++) {

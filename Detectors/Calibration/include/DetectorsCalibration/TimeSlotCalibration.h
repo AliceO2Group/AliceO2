@@ -158,8 +158,9 @@ inline TFType TimeSlotCalibration<Input, Container>::tf2SlotMin(TFType tf) const
   if (tf < mFirstTF) {
     throw std::runtime_error("invalide TF");
   }
-  if (mUpdateAtTheEndOfRunOnly)
+  if (mUpdateAtTheEndOfRunOnly) {
     return mFirstTF;
+  }
   return TFType((tf - mFirstTF) / mSlotLength) * mSlotLength + mFirstTF;
 }
 
@@ -169,9 +170,9 @@ TimeSlot<Container>& TimeSlotCalibration<Input, Container>::getSlotForTF(TFType 
 {
 
   if (mUpdateAtTheEndOfRunOnly) {
-    if (!mSlots.empty() && mSlots.back().getTFEnd() < tf)
+    if (!mSlots.empty() && mSlots.back().getTFEnd() < tf) {
       mSlots.back().setTFEnd(tf);
-    else if (mSlots.empty()) {
+    } else if (mSlots.empty()) {
       emplaceNewSlot(true, mFirstTF, tf);
     }
     return mSlots.back();

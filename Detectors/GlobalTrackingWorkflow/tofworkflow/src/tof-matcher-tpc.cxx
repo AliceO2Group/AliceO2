@@ -96,10 +96,12 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
   bool writematching = 0;
   bool writecalib = 0;
 
-  if (outputType.rfind("matching-info") < outputType.size())
+  if (outputType.rfind("matching-info") < outputType.size()) {
     writematching = 1;
-  if (outputType.rfind("calib-info") < outputType.size())
+  }
+  if (outputType.rfind("calib-info") < outputType.size()) {
     writecalib = 1;
+  }
 
   bool clusterinput = 0;
   bool trackinput = 0;

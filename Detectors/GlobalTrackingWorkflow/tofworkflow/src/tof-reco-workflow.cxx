@@ -105,18 +105,24 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
   bool writectf = 0;
   bool writeerr = 0;
 
-  if (outputType.rfind("clusters") < outputType.size())
+  if (outputType.rfind("clusters") < outputType.size()) {
     writecluster = 1;
-  if (outputType.rfind("matching-info") < outputType.size())
+  }
+  if (outputType.rfind("matching-info") < outputType.size()) {
     writematching = 1;
-  if (outputType.rfind("calib-info") < outputType.size())
+  }
+  if (outputType.rfind("calib-info") < outputType.size()) {
     writecalib = 1;
-  if (outputType.rfind("digits") < outputType.size())
+  }
+  if (outputType.rfind("digits") < outputType.size()) {
     writedigit = 1;
-  if (outputType.rfind("raw") < outputType.size())
+  }
+  if (outputType.rfind("raw") < outputType.size()) {
     writeraw = 1;
-  if (outputType.rfind("ctf") < outputType.size())
+  }
+  if (outputType.rfind("ctf") < outputType.size()) {
     writectf = 1;
+  }
 
   bool dgtinput = 0;
   bool clusterinput = 0;

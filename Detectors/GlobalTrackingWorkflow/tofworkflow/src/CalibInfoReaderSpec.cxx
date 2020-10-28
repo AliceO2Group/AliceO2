@@ -77,10 +77,11 @@ DataProcessorSpec getCalibInfoReaderSpec(int instance, int ninstances, const cha
   outputs.emplace_back(o2::header::gDataOriginTOF, "CALIBDATA", 0, Lifetime::Timeframe);
 
   const char* nameSpec;
-  if (ninstances == 1)
+  if (ninstances == 1) {
     nameSpec = "tof-calibinfo-reader";
-  else
+  } else {
     nameSpec = Form("tof-calibinfo-reader-%d", instance);
+  }
 
   return DataProcessorSpec{
     nameSpec,
