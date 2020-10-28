@@ -580,6 +580,7 @@ class HistogramRegistry
       TObject* rawPtr = nullptr;
       std::visit([&](const auto& sharedPtr) { rawPtr = sharedPtr.get(); }, mRegistryValue[imask(j + i)]);
       if (!rawPtr) {
+        registerName(histSpec.name);
         mRegistryKey[imask(j + i)] = histSpec.id;
         mRegistryValue[imask(j + i)] = HistFactory::createHistVariant(histSpec);
         lookup += j;
@@ -599,6 +600,7 @@ class HistogramRegistry
       TObject* rawPtr = nullptr;
       std::visit([&](const auto& sharedPtr) { rawPtr = sharedPtr.get(); }, mRegistryValue[imask(j + i)]);
       if (!rawPtr) {
+        registerName(name);
         mRegistryKey[imask(j + i)] = id;
         mRegistryValue[imask(j + i)] = std::shared_ptr<T>(static_cast<T*>(originalHist->Clone(name)));
         lookup += j;
@@ -671,14 +673,47 @@ class HistogramRegistry
     return pathAndName;
   }
 
+  // helper function that checks if name of histogram is reasonable and keeps track of names already in use
+  void registerName(const std::string& name)
+  {
+    if (name.empty() || name.back() == '/') {
+      LOGF(FATAL, "Invalid name for a histogram.");
+    }
+    std::deque<std::string> path = splitPath(name);
+    std::string cumulativeName{};
+    int depth = path.size();
+    for (auto& step : path) {
+      if (step.empty()) {
+        LOGF(FATAL, "Found empty group name in path for histogram %s.", name);
+      }
+      cumulativeName += step;
+      for (auto& curName : mRegisteredNames) {
+        // there is already a histogram where we want to put a folder or histogram
+        if (cumulativeName == curName) {
+          LOGF(FATAL, "Histogram name %s is not compatible with existing names.", name);
+        }
+        // for the full new histogram name we need to check that none of the existing histograms already uses this as a group name
+        if (depth == 1) {
+          if (curName.rfind(cumulativeName, 0) == 0 && curName.size() > cumulativeName.size() && curName.at(cumulativeName.size()) == '/') {
+            LOGF(FATAL, "Histogram name %s is not compatible with existing names.", name);
+          }
+        }
+      }
+      --depth;
+      cumulativeName += "/";
+    }
+    mRegisteredNames.push_back(name);
+  }
+
   std::string mName{};
   OutputObjHandlingPolicy mPolicy{};
   bool mCreateRegistryDir{};
   bool mSortHistos{};
   uint32_t mTaskHash{};
+  std::vector<std::string> mRegisteredNames{};
 
-  /// The maximum number of histograms in buffer is currently set to 512
-  /// which seems to be both reasonably large and allowing for very fast lookup
+  // The maximum number of histograms in buffer is currently set to 512
+  // which seems to be both reasonably large and allowing for very fast lookup
   static constexpr uint32_t MASK{0x1FF};
   static constexpr uint32_t MAX_REGISTRY_SIZE{MASK + 1};
   std::array<uint32_t, MAX_REGISTRY_SIZE> mRegistryKey{};
