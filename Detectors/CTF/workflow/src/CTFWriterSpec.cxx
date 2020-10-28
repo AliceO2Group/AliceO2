@@ -84,7 +84,9 @@ void CTFWriterSpec::run(ProcessingContext& pc)
   std::unique_ptr<TFile> fileOut;
   std::unique_ptr<TTree> treeOut;
   if (mWriteCTF) {
-    fileOut.reset(TFile::Open(o2::base::NameConf::getCTFFileName(tfOrb).c_str(), "recreate"));
+    //    fileOut.reset(TFile::Open(o2::base::NameConf::getCTFFileName(tfOrb).c_str(), "recreate"));
+    // RS Until the DPL will propagate the firstTForbit, we will use simple counter in CTF file name to avoid overwriting in case of multiple TFs
+    fileOut.reset(TFile::Open(o2::base::NameConf::getCTFFileName(mNTF).c_str(), "recreate"));
     treeOut = std::make_unique<TTree>(std::string(o2::base::NameConf::CTFTREENAME).c_str(), "O2 CTF tree");
   }
 
