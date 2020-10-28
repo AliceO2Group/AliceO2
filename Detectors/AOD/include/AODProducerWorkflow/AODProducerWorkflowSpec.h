@@ -24,8 +24,7 @@
 
 using namespace o2::framework;
 
-namespace o2::aodproducer
-{
+namespace o2::aodproducer {
 
 using TracksTable = o2::soa::Table<o2::aod::track::CollisionId,
                                    o2::aod::track::TrackType,
@@ -50,7 +49,26 @@ using TracksTable = o2::soa::Table<o2::aod::track::CollisionId,
                                    o2::aod::track::Rho1PtY,
                                    o2::aod::track::Rho1PtZ,
                                    o2::aod::track::Rho1PtSnp,
-                                   o2::aod::track::Rho1PtTgl>;
+                                   o2::aod::track::Rho1PtTgl,
+                                   o2::aod::track::TPCInnerParam,
+                                   o2::aod::track::Flags,
+                                   o2::aod::track::ITSClusterMap,
+                                   o2::aod::track::TPCNClsFindable,
+                                   o2::aod::track::TPCNClsFindableMinusFound,
+                                   o2::aod::track::TPCNClsFindableMinusCrossedRows,
+                                   o2::aod::track::TPCNClsShared,
+                                   o2::aod::track::TRDPattern,
+                                   o2::aod::track::ITSChi2NCl,
+                                   o2::aod::track::TPCChi2NCl,
+                                   o2::aod::track::TRDChi2,
+                                   o2::aod::track::TOFChi2,
+                                   o2::aod::track::TPCSignal,
+                                   o2::aod::track::TRDSignal,
+                                   o2::aod::track::TOFSignal,
+                                   o2::aod::track::Length,
+                                   o2::aod::track::TOFExpMom,
+                                   o2::aod::track::TrackEtaEMCAL,
+                                   o2::aod::track::TrackPhiEMCAL>;
 
 class AODProducerWorkflowDPL : public Task
 {
