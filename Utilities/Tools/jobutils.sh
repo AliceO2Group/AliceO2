@@ -51,6 +51,11 @@ taskwrapper() {
 
   # launch the actual command in the background
   echo "Launching task: ${command} &> $logfile &"
+  # the command might be a complex block: For the timing measurement below
+  # it is better to execute this as a script
+  SCRIPTNAME="${logfile}_tmp.sh"
+  echo "${command}" > ${SCRIPTNAME}
+  chmod +x ${SCRIPTNAME}
 
   # this gives some possibility to customize the wrapper
   # and do some special task at the start. The hook takes 2 arguments: 
@@ -67,6 +72,7 @@ taskwrapper() {
   if [ "${JOBUTILS_SKIPDONE}" ]; then
     if [ -f "${logfile}_done" ]; then
        echo "Skipping task since file ${logfile}_done found";
+       rm ${SCRIPTNAME} 2> /dev/null
        return 0
     fi
   fi
@@ -81,9 +87,9 @@ taskwrapper() {
   fi
 
   # with or without memory monitoring ?
-  finalcommand="TIME=\"#walltime %e\" ${TIMECOMMAND} ${command}"
+  finalcommand="TIME=\"#walltime %e\" ${TIMECOMMAND} ./${SCRIPTNAME}"
   if [[ "$(uname)" != "Darwin" && "${JOBUTILS_MONITORMEM}" ]]; then
-    finalcommand="TIME=\"#walltime %e\" ${O2_ROOT}/share/scripts/monitor-mem.sh ${TIMECOMMAND} '${command}'"
+    finalcommand="TIME=\"#walltime %e\" ${O2_ROOT}/share/scripts/monitor-mem.sh ${TIMECOMMAND} './${SCRIPTNAME}'"
   fi
   echo "Running: ${finalcommand}" > ${logfile}
   eval ${finalcommand} >> ${logfile} 2>&1 &
@@ -140,6 +146,7 @@ taskwrapper() {
       done      
 
       RC_ACUM=$((RC_ACUM+1))
+      rm ${SCRIPTNAME} 2> /dev/null
       return 1
     fi
 
@@ -177,5 +184,19 @@ taskwrapper() {
   else
     echo "command ${command} had nonzero exit code ${RC}"
   fi
+  rm ${SCRIPTNAME} 2> /dev/null
   return ${RC}
+}
+
+getNumberOfPhysicalCPUCores() {
+  if [ "$(uname)" == "Darwin" ]; then
+    CORESPERSOCKET=`system_profiler SPHardwareDataType | grep "Total Number of Cores:" | awk '{print $5}'`
+    SOCKETS=`system_profiler SPHardwareDataType | grep "Number of Processors:" | awk '{print $4}'`
+  else
+    # Do something under GNU/Linux platform
+    CORESPERSOCKET=`lscpu | grep "Core(s) per socket" | awk '{print $4}'`
+    SOCKETS=`lscpu | grep "Socket(s)" | awk '{print $2}'`
+  fi
+  N=`bc <<< "${CORESPERSOCKET}*${SOCKETS}"`
+  echo "${N}"
 }
