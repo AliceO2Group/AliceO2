@@ -79,8 +79,11 @@ struct HFD0CandidateSelector {
   int getpTBin(T candpT)
   {
     double pTBins[npTBins + 1] = {0, 0.5, 1., 1.5, 2., 2.5, 3., 3.5, 4., 4.5, 5., 5.5, 6., 6.5, 7., 7.5, 8., 9., 10., 12., 16., 20., 24., 36., 50., 100.};
+    if (candpT < pTBins[0] || candpT >= pTBins[npTBins]) {
+      return -1;
+    }
     for (int i = 0; i < npTBins; i++) {
-      if (candpT >= pTBins[i] && candpT < pTBins[i + 1]) {
+      if (candpT < pTBins[i + 1]) {
         return i;
       }
     }
@@ -230,20 +233,16 @@ struct HFD0CandidateSelector {
   template <typename T>
   bool selectionPIDTPC(const T& track, int nPDG, int nSigmaCut)
   {
-    double nSigma = 0.0;
+    double nSigma = 100.0; //arbitarily large value
     nPDG = TMath::Abs(nPDG);
     if (nPDG == 111) {
       nSigma = track.tpcNSigmaPi();
     } else if (nPDG == 321) {
       nSigma = track.tpcNSigmaKa();
     } else {
-      return nSigma = 100; //arbitarily large value
-    }
-    if (nSigma < nSigmaCut) {
-      return true;
-    } else {
       return false;
     }
+    return nSigma < nSigmaCut;
   }
 
   /// Check if track is compatible with given TOF NSigma cut for a given flavour hypothesis
@@ -255,20 +254,16 @@ struct HFD0CandidateSelector {
   template <typename T>
   bool selectionPIDTOF(const T& track, int nPDG, int nSigmaCut)
   {
-    double nSigma = 0.0;
+    double nSigma = 100.0; //arbitarily large value
     nPDG = TMath::Abs(nPDG);
     if (nPDG == 111) {
       nSigma = track.tofNSigmaPi();
     } else if (nPDG == 321) {
       nSigma = track.tofNSigmaKa();
     } else {
-      return nSigma = 100; //arbitarily large value
-    }
-    if (nSigma < nSigmaCut) {
-      return true;
-    } else {
       return false;
     }
+    return nSigma < nSigmaCut;
   }
 
   /// PID selection on daughter track
@@ -325,7 +320,7 @@ struct HFD0CandidateSelector {
   {
     int statusD0, statusD0bar; // final selection flag : 0-rejected  1-accepted
     bool topolD0, topolD0bar;
-    int pidD0, pidD0bar, piPlus, piMinus, kPlus, kMinus;
+    int pidD0, pidD0bar, pionPlus, pionMinus, kaonPlus, kaonMinus;
 
     for (auto& hfCandProng2 : hfCandProng2s) { //looping over 2 prong candidates
 
@@ -338,10 +333,10 @@ struct HFD0CandidateSelector {
       topolD0bar = true;
       pidD0 = -1;
       pidD0bar = -1;
-      piPlus = -1;
-      piMinus = -1;
-      kPlus = -1;
-      kMinus = -1;
+      pionPlus = -1;
+      pionMinus = -1;
+      kaonPlus = -1;
+      kaonMinus = -1;
 
       // daughter track validity selection
       if (!daughterSelection(trackPos) || !daughterSelection(trackNeg)) {
@@ -368,21 +363,21 @@ struct HFD0CandidateSelector {
         continue;
       }
 
-      piPlus = selectionPID(trackPos, 211);
-      kMinus = selectionPID(trackNeg, 321);
-      piMinus = selectionPID(trackNeg, 211);
-      kPlus = selectionPID(trackPos, 321);
+      pionPlus = selectionPID(trackPos, 211);
+      kaonMinus = selectionPID(trackNeg, 321);
+      pionMinus = selectionPID(trackNeg, 211);
+      kaonPlus = selectionPID(trackPos, 321);
 
-      if (piPlus == 0 || kMinus == 0 || piMinus == 1 || kPlus == 1) {
+      if (pionPlus == 0 || kaonMinus == 0 || pionMinus == 1 || kaonPlus == 1) {
         pidD0 = 0; //exclude D0
       }
-      if (piPlus == 1 || kMinus == 1 || piMinus == 0 || kPlus == 0) {
+      if (pionPlus == 1 || kaonMinus == 1 || pionMinus == 0 || kaonPlus == 0) {
         pidD0bar = 0; //exclude D0bar
       }
-      if (piPlus == 1 && kMinus == 1) {
+      if (pionPlus == 1 && kaonMinus == 1) {
         pidD0 = 1; //accept D0
       }
-      if (piMinus == 1 && kPlus == 1) {
+      if (pionMinus == 1 && kaonPlus == 1) {
         pidD0bar = 1; //accept D0bar
       }
 
