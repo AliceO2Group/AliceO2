@@ -76,18 +76,18 @@ using namespace GPUCA_NAMESPACE::gpu;
 #define CHECK_CLUSTER_STATE_INIT_LEG_BY_MC()
 #endif
 
-#define CHECK_CLUSTER_STATE_INIT()                              \
-  bool unattached = attach == 0;                                \
-  float qpt = 0;                                                \
-  bool lowPt = false;                                           \
-  bool mev200 = false;                                          \
-  int id = attach & gputpcgmmergertypes::attachTrackMask;       \
-  if (!unattached) {                                            \
-    qpt = fabsf(merger.OutputTracks()[id].GetParam().GetQPt()); \
-    lowPt = qpt > mTracking->GetParam().rec.tpcRejectQPt;       \
-    mev200 = qpt > 5;                                           \
-  }                                                             \
-  bool physics = false, protect = false;                        \
+#define CHECK_CLUSTER_STATE_INIT()                                        \
+  bool unattached = attach == 0;                                          \
+  float qpt = 0;                                                          \
+  bool lowPt = false;                                                     \
+  bool mev200 = false;                                                    \
+  int id = attach & gputpcgmmergertypes::attachTrackMask;                 \
+  if (!unattached) {                                                      \
+    qpt = fabsf(mTracking->mIOPtrs.mergedTracks[id].GetParam().GetQPt()); \
+    lowPt = qpt > mTracking->GetParam().rec.tpcRejectQPt;                 \
+    mev200 = qpt > 5;                                                     \
+  }                                                                       \
+  bool physics = false, protect = false;                                  \
   CHECK_CLUSTER_STATE_INIT_LEG_BY_MC();
 
 #define CHECK_CLUSTER_STATE()                                                                              \
@@ -195,8 +195,7 @@ inline bool GPUQA::MCComp(const mcLabel_t& a, const mcLabel_t& b) { return (GPUQ
 
 bool GPUQA::clusterRemovable(int cid, bool prot) const
 {
-  const GPUTPCGMMerger& merger = mTracking->GetTPCMerger();
-  int attach = merger.ClusterAttachment()[cid];
+  int attach = mTracking->mIOPtrs.mergedTrackHitAttachment[cid];
   CHECK_CLUSTER_STATE_NOCOUNT();
   if (prot) {
     return protect || physics;
@@ -523,8 +522,7 @@ void GPUQA::RunQA(bool matchOnly)
   }
 
   // Initialize Arrays
-  const GPUTPCGMMerger& merger = mTracking->GetTPCMerger();
-  mTrackMCLabels.resize(merger.NOutputTracks());
+  mTrackMCLabels.resize(mTracking->mIOPtrs.nMergedTracks);
   for (unsigned int iCol = 0; iCol < GetNMCCollissions(); iCol++) {
     mTrackMCLabelsReverse[iCol].resize(GetNMCTracks(iCol));
     mRecTracks[iCol].resize(GetNMCTracks(iCol));
@@ -546,7 +544,7 @@ void GPUQA::RunQA(bool matchOnly)
     mcEffBuffer.resize(mNEvents);
     mcLabelBuffer.resize(mNEvents);
     mcEffBuffer[mNEvents - 1].resize(GetNMCTracks(0));
-    mcLabelBuffer[mNEvents - 1].resize(merger.NOutputTracks());
+    mcLabelBuffer[mNEvents - 1].resize(mTracking->mIOPtrs.nMergedTracks);
   }
 
   bool mcAvail = mcPresent();
@@ -560,22 +558,23 @@ void GPUQA::RunQA(bool matchOnly)
     // Assign Track MC Labels
     timer.Start();
     bool ompError = false;
+
 #if QA_DEBUG == 0
-GPUCA_OPENMP(parallel for)
+    GPUCA_OPENMP(parallel for)
 #endif
-    for (int i = 0; i < merger.NOutputTracks(); i++) {
+    for (unsigned int i = 0; i < mTracking->mIOPtrs.nMergedTracks; i++) {
       if (ompError) {
         continue;
       }
       int nClusters = 0;
-      const GPUTPCGMMergedTrack& track = merger.OutputTracks()[i];
+      const GPUTPCGMMergedTrack& track = mTracking->mIOPtrs.mergedTracks[i];
       std::vector<mcLabel_t> labels;
       for (unsigned int k = 0; k < track.NClusters(); k++) {
-        if (merger.Clusters()[track.FirstClusterRef() + k].state & GPUTPCGMMergedTrackHit::flagReject) {
+        if (mTracking->mIOPtrs.mergedTrackHits[track.FirstClusterRef() + k].state & GPUTPCGMMergedTrackHit::flagReject) {
           continue;
         }
         nClusters++;
-        unsigned int hitId = merger.Clusters()[track.FirstClusterRef() + k].num;
+        unsigned int hitId = mTracking->mIOPtrs.mergedTrackHits[track.FirstClusterRef() + k].num;
         if (hitId >= GetNMCLabels()) {
           GPUError("Invalid hit id %u > %d", hitId, GetNMCLabels());
           ompError = true;
@@ -651,27 +650,27 @@ GPUCA_OPENMP(parallel for)
     if (ompError) {
       return;
     }
-    for (int i = 0; i < merger.NOutputTracks(); i++) {
-      const GPUTPCGMMergedTrack& track = merger.OutputTracks()[i];
+    for (unsigned int i = 0; i < mTracking->mIOPtrs.nMergedTracks; i++) {
+      const GPUTPCGMMergedTrack& track = mTracking->mIOPtrs.mergedTracks[i];
       if (!track.OK()) {
         continue;
       }
       if (!mTrackMCLabels[i].isValid()) {
         for (unsigned int k = 0; k < track.NClusters(); k++) {
-          if (merger.Clusters()[track.FirstClusterRef() + k].state & GPUTPCGMMergedTrackHit::flagReject) {
+          if (mTracking->mIOPtrs.mergedTrackHits[track.FirstClusterRef() + k].state & GPUTPCGMMergedTrackHit::flagReject) {
             continue;
           }
-          mClusterParam[merger.Clusters()[track.FirstClusterRef() + k].num].fakeAttached++;
+          mClusterParam[mTracking->mIOPtrs.mergedTrackHits[track.FirstClusterRef() + k].num].fakeAttached++;
         }
         continue;
       }
       mcLabelI_t label = mTrackMCLabels[i];
       if (mMCTrackMin == -1 || (label.getTrackID() >= mMCTrackMin && label.getTrackID() < mMCTrackMax)) {
         for (unsigned int k = 0; k < track.NClusters(); k++) {
-          if (merger.Clusters()[track.FirstClusterRef() + k].state & GPUTPCGMMergedTrackHit::flagReject) {
+          if (mTracking->mIOPtrs.mergedTrackHits[track.FirstClusterRef() + k].state & GPUTPCGMMergedTrackHit::flagReject) {
             continue;
           }
-          int hitId = merger.Clusters()[track.FirstClusterRef() + k].num;
+          int hitId = mTracking->mIOPtrs.mergedTrackHits[track.FirstClusterRef() + k].num;
           bool correct = false;
           for (int j = 0; j < GetMCLabelNID(hitId); j++) {
             if (label == GetMCLabel(hitId, j)) {
@@ -692,7 +691,7 @@ GPUCA_OPENMP(parallel for)
         GetMCTrackObj(mRecTracks, label)++;
         if (mMCTrackMin == -1 || (label.getTrackID() >= mMCTrackMin && label.getTrackID() < mMCTrackMax)) {
           int& revLabel = GetMCTrackObj(mTrackMCLabelsReverse, label);
-          if (revLabel == -1 || !merger.OutputTracks()[revLabel].OK() || (merger.OutputTracks()[i].OK() && fabsf(merger.OutputTracks()[i].GetParam().GetZ()) < fabsf(merger.OutputTracks()[revLabel].GetParam().GetZ()))) {
+          if (revLabel == -1 || !mTracking->mIOPtrs.mergedTracks[revLabel].OK() || (mTracking->mIOPtrs.mergedTracks[i].OK() && fabsf(mTracking->mIOPtrs.mergedTracks[i].GetParam().GetZ()) < fabsf(mTracking->mIOPtrs.mergedTracks[revLabel].GetParam().GetZ()))) {
             revLabel = i;
           }
         }
@@ -700,7 +699,7 @@ GPUCA_OPENMP(parallel for)
     }
     for (unsigned int i = 0; i < GetNMCLabels(); i++) {
       if (mClusterParam[i].attached == 0 && mClusterParam[i].fakeAttached == 0) {
-        int attach = merger.ClusterAttachment()[i];
+        int attach = mTracking->mIOPtrs.mergedTrackHitAttachment[i];
         if (attach & gputpcgmmergertypes::attachFlagMask) {
           int track = attach & gputpcgmmergertypes::attachTrackMask;
           mcLabelI_t trackL = mTrackMCLabels[track];
@@ -726,7 +725,7 @@ GPUCA_OPENMP(parallel for)
       for (unsigned int k = 0; k < GetNMCTracks(0); k++) {
         allowMCLabels[k] = false;
       }
-      for (int i = 0; i < merger.NOutputTracks(); i++) {
+      for (unsigned int i = 0; i < mTracking->mIOPtrs.nMergedTracks; i++) {
         if (!mGoodTracks[mNEvents - 1][i]) {
           continue;
         }
@@ -740,9 +739,9 @@ GPUCA_OPENMP(parallel for)
           }
         }
 
-        const GPUTPCGMMergedTrack& track = merger.OutputTracks()[i];
+        const GPUTPCGMMergedTrack& track = mTracking->mIOPtrs.mergedTracks[i];
         for (unsigned int j = 0; j < track.NClusters(); j++) {
-          int hitId = merger.Clusters()[track.FirstClusterRef() + j].num;
+          int hitId = mTracking->mIOPtrs.mergedTrackHits[track.FirstClusterRef() + j].num;
           if (GetMCLabelNID(hitId)) {
             int mcID = GetMCLabelID(hitId, 0);
             if (mcID >= 0) {
@@ -900,10 +899,10 @@ GPUCA_OPENMP(parallel for)
     GPUTPCGMPropagator prop;
     prop.SetMaxSinPhi(.999);
     prop.SetMaterialTPC();
-    prop.SetPolynomialField(&merger.Param().polynomialField);
-    prop.SetToyMCEventsFlag(merger.Param().ToyMCEventsFlag);
+    prop.SetPolynomialField(&mTracking->GetParam().polynomialField);
+    prop.SetToyMCEventsFlag(mTracking->GetParam().ToyMCEventsFlag);
 
-    for (int i = 0; i < merger.NOutputTracks(); i++) {
+    for (unsigned int i = 0; i < mTracking->mIOPtrs.nMergedTracks; i++) {
       if (mConfig.writeMCLabels) {
         std::vector<int>& labelBuffer = mcLabelBuffer[mNEvents - 1];
         labelBuffer[i] = mTrackMCLabels[i].getTrackID();
@@ -913,7 +912,7 @@ GPUCA_OPENMP(parallel for)
       }
       const mcInfo_t& mc1 = GetMCTrack(mTrackMCLabels[i]);
       const additionalMCParameters& mc2 = GetMCTrackObj(mMCParam, mTrackMCLabels[i]);
-      const GPUTPCGMMergedTrack& track = merger.OutputTracks()[i];
+      const GPUTPCGMMergedTrack& track = mTracking->mIOPtrs.mergedTracks[i];
 
       if ((mMCTrackMin != -1 && mTrackMCLabels[i].getTrackID() < mMCTrackMin) || (mMCTrackMax != -1 && mTrackMCLabels[i].getTrackID() >= mMCTrackMax)) {
         continue;
@@ -945,7 +944,7 @@ GPUCA_OPENMP(parallel for)
       } else if (mConfig.resPrimaries == 2 && (mc1.prim || mc1.primDaughters)) {
         continue;
       }
-      if (GetMCTrackObj(mTrackMCLabelsReverse, mTrackMCLabels[i]) != i) {
+      if (GetMCTrackObj(mTrackMCLabelsReverse, mTrackMCLabels[i]) != (int)i) {
         continue;
       }
 
@@ -977,7 +976,7 @@ GPUCA_OPENMP(parallel for)
       prop.SetTrack(&param, alpha);
       bool inFlyDirection = 0;
 #ifdef GPUCA_TPC_GEOMETRY_O2 // ignore z here, larger difference in X due to shifted reference
-      if (mConfig.strict && (param.X() - mclocal[0]) * (param.X() - mclocal[0]) + (param.Y() - mclocal[1]) * (param.Y() - mclocal[1]) + (merger.Param().continuousMaxTimeBin ? 0 : ((param.Z() - mc1.z) * (param.Z() - mc1.z))) > (5 + abs(81 - TRACK_EXPECTED_REFERENCE_X)) * (5 + abs(81 - TRACK_EXPECTED_REFERENCE_X))) {
+      if (mConfig.strict && (param.X() - mclocal[0]) * (param.X() - mclocal[0]) + (param.Y() - mclocal[1]) * (param.Y() - mclocal[1]) + (mTracking->GetParam().continuousMaxTimeBin ? 0 : ((param.Z() - mc1.z) * (param.Z() - mc1.z))) > (5 + abs(81 - TRACK_EXPECTED_REFERENCE_X)) * (5 + abs(81 - TRACK_EXPECTED_REFERENCE_X))) {
 #else // Consider Z offset (pseudo-tf mc tracks have shifted z)
       if (mConfig.strict && (param.X() - mclocal[0]) * (param.X() - mclocal[0]) + (param.Y() - mclocal[1]) * (param.Y() - mclocal[1]) + (param.Z() + param.TZOffset() - mc1.z) * (param.Z() + param.TZOffset() - mc1.z) > 25) { // TODO: fix TZOffset
 #endif
@@ -988,7 +987,7 @@ GPUCA_OPENMP(parallel for)
         continue;
       }
 #ifdef GPUCA_TPC_GEOMETRY_O2 // ignore z here, larger difference in X due to shifted reference
-      if (fabsf(param.Y() - mclocal[1]) > (mConfig.strict ? 1.f : 4.f) || (merger.Param().continuousMaxTimeBin == 0 && fabsf(param.Z() + param.TZOffset() - mc1.z) > (mConfig.strict ? 1.f : 4.f))) { // TODO: fix TZOffset here
+      if (fabsf(param.Y() - mclocal[1]) > (mConfig.strict ? 1.f : 4.f) || (mTracking->GetParam().continuousMaxTimeBin == 0 && fabsf(param.Z() + param.TZOffset() - mc1.z) > (mConfig.strict ? 1.f : 4.f))) { // TODO: fix TZOffset here
 #else
       if (fabsf(param.Y() - mclocal[1]) > (mConfig.strict ? 1.f : 4.f) || fabsf(param.Z() + param.TZOffset() - mc1.z) > (mConfig.strict ? 1.f : 4.f)) {                                                                         // TODO: fix TZOffset here
 #endif
@@ -1029,24 +1028,24 @@ GPUCA_OPENMP(parallel for)
     timer.ResetStart();
 
     // Fill cluster histograms
-    for (int iTrk = 0; iTrk < merger.NOutputTracks(); iTrk++) {
-      const GPUTPCGMMergedTrack& track = merger.OutputTracks()[iTrk];
+    for (unsigned int iTrk = 0; iTrk < mTracking->mIOPtrs.nMergedTracks; iTrk++) {
+      const GPUTPCGMMergedTrack& track = mTracking->mIOPtrs.mergedTracks[iTrk];
       if (!track.OK()) {
         continue;
       }
       if (!mTrackMCLabels[iTrk].isValid()) {
         for (unsigned int k = 0; k < track.NClusters(); k++) {
-          if (merger.Clusters()[track.FirstClusterRef() + k].state & GPUTPCGMMergedTrackHit::flagReject) {
+          if (mTracking->mIOPtrs.mergedTrackHits[track.FirstClusterRef() + k].state & GPUTPCGMMergedTrackHit::flagReject) {
             continue;
           }
-          int hitId = merger.Clusters()[track.FirstClusterRef() + k].num;
+          int hitId = mTracking->mIOPtrs.mergedTrackHits[track.FirstClusterRef() + k].num;
           float totalWeight = 0.;
           for (int j = 0; j < GetMCLabelNID(hitId); j++) {
             if (GetMCLabelID(hitId, j) >= 0 && GetMCTrackObj(mMCParam, GetMCLabel(hitId, j)).pt > GPUCA_MIN_TRACK_PT_DEFAULT) {
               totalWeight += GetMCLabelWeight(hitId, j);
             }
           }
-          int attach = merger.ClusterAttachment()[hitId];
+          int attach = mTracking->mIOPtrs.mergedTrackHitAttachment[hitId];
           CHECK_CLUSTER_STATE_NOCOUNT();
           if (totalWeight > 0) {
             float weight = 1.f / (totalWeight * (mClusterParam[hitId].attached + mClusterParam[hitId].fakeAttached));
@@ -1092,10 +1091,10 @@ GPUCA_OPENMP(parallel for)
         continue;
       }
       for (unsigned int k = 0; k < track.NClusters(); k++) {
-        if (merger.Clusters()[track.FirstClusterRef() + k].state & GPUTPCGMMergedTrackHit::flagReject) {
+        if (mTracking->mIOPtrs.mergedTrackHits[track.FirstClusterRef() + k].state & GPUTPCGMMergedTrackHit::flagReject) {
           continue;
         }
-        int hitId = merger.Clusters()[track.FirstClusterRef() + k].num;
+        int hitId = mTracking->mIOPtrs.mergedTrackHits[track.FirstClusterRef() + k].num;
         float pt = GetMCTrackObj(mMCParam, label).pt;
         if (pt < PT_MIN_CLUST) {
           pt = PT_MIN_CLUST;
@@ -1116,7 +1115,7 @@ GPUCA_OPENMP(parallel for)
         }
         mClusters[CL_att_adj]->Fill(pt, weight);
         mClusters[CL_all]->Fill(pt, weight);
-        int attach = merger.ClusterAttachment()[hitId];
+        int attach = mTracking->mIOPtrs.mergedTrackHitAttachment[hitId];
         CHECK_CLUSTER_STATE_NOCOUNT();
         if (protect || physics) {
           mClusters[CL_prot]->Fill(pt, weight);
@@ -1133,10 +1132,10 @@ GPUCA_OPENMP(parallel for)
       if (mClusterParam[i].attached || mClusterParam[i].fakeAttached) {
         continue;
       }
-      int attach = merger.ClusterAttachment()[i];
+      int attach = mTracking->mIOPtrs.mergedTrackHitAttachment[i];
       CHECK_CLUSTER_STATE_NOCOUNT();
       if (mClusterParam[i].adjacent) {
-        int label = merger.ClusterAttachment()[i] & gputpcgmmergertypes::attachTrackMask;
+        int label = mTracking->mIOPtrs.mergedTrackHitAttachment[i] & gputpcgmmergertypes::attachTrackMask;
         if (!mTrackMCLabels[label].isValid()) {
           float totalWeight = 0.;
           for (int j = 0; j < GetMCLabelNID(i); j++) {
@@ -1258,8 +1257,8 @@ GPUCA_OPENMP(parallel for)
   }
 
   // Fill other histograms
-  for (int i = 0; i < merger.NOutputTracks(); i++) {
-    const GPUTPCGMMergedTrack& track = merger.OutputTracks()[i];
+  for (unsigned int i = 0; i < mTracking->mIOPtrs.nMergedTracks; i++) {
+    const GPUTPCGMMergedTrack& track = mTracking->mIOPtrs.mergedTracks[i];
     if (!track.OK()) {
       continue;
     }
@@ -1267,8 +1266,9 @@ GPUCA_OPENMP(parallel for)
     mNCl->Fill(track.NClustersFitted());
   }
 
-  for (unsigned int i = 0; i < merger.NMaxClusters(); i++) {
-    int attach = merger.ClusterAttachment()[i];
+  unsigned int nCl = mTracking->mIOPtrs.clustersNative ? mTracking->mIOPtrs.clustersNative->nClustersTotal : mTracking->GetTPCMerger().NMaxClusters();
+  for (unsigned int i = 0; i < nCl; i++) {
+    int attach = mTracking->mIOPtrs.mergedTrackHitAttachment[i];
     CHECK_CLUSTER_STATE();
 
     if (mcAvail) {
@@ -1333,7 +1333,7 @@ GPUCA_OPENMP(parallel for)
 
   // Create CSV DumpTrackHits
   if (mConfig.csvDump) {
-    if (!merger.Param().earlyTpcTransform) {
+    if (!mTracking->GetParam().earlyTpcTransform) {
       GPUError("Unsupported settings for csv dump\n");
       return;
     }
@@ -1346,16 +1346,16 @@ GPUCA_OPENMP(parallel for)
 
     std::vector<float> clusterInfo(totalNCls);
     memset(clusterInfo.data(), 0, clusterInfo.size() * sizeof(clusterInfo[0]));
-    for (int i = 0; i < merger.NOutputTracks(); i++) {
-      const GPUTPCGMMergedTrack& track = merger.OutputTracks()[i];
+    for (unsigned int i = 0; i < mTracking->mIOPtrs.nMergedTracks; i++) {
+      const GPUTPCGMMergedTrack& track = mTracking->mIOPtrs.mergedTracks[i];
       if (!track.OK()) {
         continue;
       }
       for (unsigned int k = 0; k < track.NClusters(); k++) {
-        if (merger.Clusters()[track.FirstClusterRef() + k].state & GPUTPCGMMergedTrackHit::flagReject) {
+        if (mTracking->mIOPtrs.mergedTrackHits[track.FirstClusterRef() + k].state & GPUTPCGMMergedTrackHit::flagReject) {
           continue;
         }
-        int hitId = merger.Clusters()[track.FirstClusterRef() + k].num;
+        int hitId = mTracking->mIOPtrs.mergedTrackHits[track.FirstClusterRef() + k].num;
         float pt = fabsf(1.f / track.GetParam().GetQPt());
         if (pt > clusterInfo[hitId]) {
           clusterInfo[hitId] = pt;
@@ -1373,7 +1373,7 @@ GPUCA_OPENMP(parallel for)
         const auto& cl = mTracking->mIOPtrs.clusterData[iSlice][i];
         float x, y, z;
         const int cid = cl.id;
-        merger.Param().Slice2Global(iSlice, cl.x, cl.y, cl.z, &x, &y, &z);
+        mTracking->GetParam().Slice2Global(iSlice, cl.x, cl.y, cl.z, &x, &y, &z);
 
         float totalWeight = 0.f;
         if (mcPresent()) {
@@ -1409,7 +1409,7 @@ GPUCA_OPENMP(parallel for)
         }
 
         dumpClTot++;
-        int attach = merger.ClusterAttachment()[cid];
+        int attach = mTracking->mIOPtrs.mergedTrackHitAttachment[cid];
         CHECK_CLUSTER_STATE();
         if (protect || physics) {
           continue;
