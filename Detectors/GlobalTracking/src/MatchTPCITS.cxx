@@ -581,8 +581,9 @@ bool MatchTPCITS::prepareTPCTracks()
   for (int sec = o2::constants::math::NSectors; sec--;) {
     auto& indexCache = mTPCSectIndexCache[sec];
     LOG(INFO) << "Sorting sector" << sec << " | " << indexCache.size() << " TPC tracks";
-    if (!indexCache.size())
+    if (!indexCache.size()) {
       continue;
+    }
     std::sort(indexCache.begin(), indexCache.end(), [this](int a, int b) {
       auto& trcA = mTPCWork[a];
       auto& trcB = mTPCWork[b];
@@ -1086,10 +1087,12 @@ int MatchTPCITS::compareTPCITSTracks(const TrackLocITS& tITS, const TrackLocTPC&
       return rejFlag;
     }
   } else { // in continuous mode we use special check on allowed Z range
-    if (tITS.getParam(o2::track::kZ) - tTPC.zMax > mParams->crudeAbsDiffCut[o2::track::kZ])
+    if (tITS.getParam(o2::track::kZ) - tTPC.zMax > mParams->crudeAbsDiffCut[o2::track::kZ]) {
       return RejectOnZ;
-    if (tITS.getParam(o2::track::kZ) - tTPC.zMin < -mParams->crudeAbsDiffCut[o2::track::kZ])
+    }
+    if (tITS.getParam(o2::track::kZ) - tTPC.zMin < -mParams->crudeAbsDiffCut[o2::track::kZ]) {
       return -RejectOnZ;
+    }
   }
 
   diff = tITS.getParam(o2::track::kSnp) - tTPC.getParam(o2::track::kSnp);
@@ -1111,8 +1114,9 @@ int MatchTPCITS::compareTPCITSTracks(const TrackLocITS& tITS, const TrackLocTPC&
   }
   // calculate mutual chi2 excluding Z in continuos mode
   chi2 = getPredictedChi2NoZ(tITS, tTPC);
-  if (chi2 > mParams->cutMatchingChi2)
+  if (chi2 > mParams->cutMatchingChi2) {
     return RejectOnChi2;
+  }
 
   return Accept;
 }
