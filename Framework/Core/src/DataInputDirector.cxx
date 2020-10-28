@@ -38,6 +38,11 @@ DataInputDescriptor::DataInputDescriptor(bool alienSupport)
   mAlienSupport = alienSupport;
 }
 
+DataInputDescriptor::~DataInputDescriptor()
+{
+  std::vector<FileNameHolder*>().swap(mfilenames);
+}
+
 void DataInputDescriptor::printOut()
 {
   LOGP(INFO, "DataInputDescriptor");
@@ -68,8 +73,11 @@ std::regex DataInputDescriptor::getFilenamesRegex()
 
 void DataInputDescriptor::addFileNameHolder(FileNameHolder* fn)
 {
-  if (!mAlienSupport && fn->fileName.rfind("alien://", 0) == 0) {
-    LOG(debug) << "AliEn file requested. Enabling support.";
+  // remove leading file:// from file name
+  if (fn->fileName.rfind("file://", 0) == 0) {
+    fn->fileName.erase(0, 7);
+  } else if (!mAlienSupport && fn->fileName.rfind("alien://", 0) == 0) {
+    LOGP(DEBUG, "AliEn file requested. Enabling support.");
     TGrid::Connect("alien://");
     mAlienSupport = true;
   }
@@ -231,6 +239,12 @@ DataInputDirector::DataInputDirector(std::vector<std::string> inputFiles)
   }
 
   createDefaultDataInputDescriptor();
+}
+
+DataInputDirector::~DataInputDirector()
+{
+  std::vector<FileNameHolder*>().swap(mdefaultInputFiles);
+  std::vector<DataInputDescriptor*>().swap(mdataInputDescriptors);
 }
 
 void DataInputDirector::reset()

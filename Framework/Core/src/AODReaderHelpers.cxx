@@ -185,25 +185,25 @@ AlgorithmSpec AODReaderHelpers::rootFileReaderCallback()
     }
 
     // get the run time watchdog
-    auto* watchdog = new RuntimeWatchdog(options.get<int64_t>("time-limit"));
+    auto watchdog = std::make_shared<RuntimeWatchdog>(options.get<int64_t>("time-limit"));
 
     // selected the TFN input and
     // create list of requested tables
-    header::DataHeader TFNumberHeader;
-    std::vector<OutputRoute> requestedTables;
+    auto tfNumberHeader = std::make_shared<header::DataHeader>();
+    auto requestedTables = std::make_shared<std::vector<OutputRoute>>();
     std::vector<OutputRoute> routes(spec.outputs);
     for (auto route : routes) {
       if (DataSpecUtils::partialMatch(route.matcher, header::DataOrigin("TFN"))) {
         auto concrete = DataSpecUtils::asConcreteDataMatcher(route.matcher);
-        TFNumberHeader = header::DataHeader(concrete.description, concrete.origin, concrete.subSpec);
+        *tfNumberHeader = header::DataHeader(concrete.description, concrete.origin, concrete.subSpec);
       } else {
-        requestedTables.emplace_back(route);
+        requestedTables->emplace_back(route);
       }
     }
 
     auto fileCounter = std::make_shared<int>(0);
     auto numTF = std::make_shared<int>(-1);
-    return adaptStateless([TFNumberHeader,
+    return adaptStateless([tfNumberHeader,
                            requestedTables,
                            fileCounter,
                            numTF,
@@ -229,7 +229,7 @@ AlgorithmSpec AODReaderHelpers::rootFileReaderCallback()
       // loop over requested tables
       TTree* tr = nullptr;
       bool first = true;
-      for (auto route : requestedTables) {
+      for (auto route : *requestedTables) {
 
         // create header
         auto concrete = DataSpecUtils::asConcreteDataMatcher(route.matcher);
@@ -262,7 +262,7 @@ AlgorithmSpec AODReaderHelpers::rootFileReaderCallback()
         }
         if (first) {
           timeFrameNumber = didir->getTimeFrameNumber(dh, fcnt, ntf);
-          auto o = Output(TFNumberHeader);
+          auto o = Output(*tfNumberHeader);
           outputs.make<uint64_t>(o) = timeFrameNumber;
         }
 

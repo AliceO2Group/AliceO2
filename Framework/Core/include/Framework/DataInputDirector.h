@@ -47,6 +47,7 @@ struct DataInputDescriptor {
   std::unique_ptr<data_matcher::DataDescriptorMatcher> matcher;
 
   DataInputDescriptor() = default;
+  ~DataInputDescriptor();
   DataInputDescriptor(bool alienSupport);
 
   void printOut();
@@ -97,6 +98,7 @@ struct DataInputDirector {
   DataInputDirector();
   DataInputDirector(std::string inputFile);
   DataInputDirector(std::vector<std::string> inputFiles);
+  ~DataInputDirector();
 
   void reset();
   void createDefaultDataInputDescriptor();
