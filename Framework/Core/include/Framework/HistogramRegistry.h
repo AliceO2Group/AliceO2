@@ -315,6 +315,7 @@ struct HistFactory {
     }
     return std::nullopt;
   }
+
   template <typename T, typename Next, typename... Rest>
   static std::optional<HistPtr> castToVariant(std::shared_ptr<TObject> obj)
   {
@@ -323,6 +324,7 @@ struct HistFactory {
     }
     return castToVariant<Next, Rest...>(obj);
   }
+
   static std::optional<HistPtr> castToVariant(std::shared_ptr<TObject> obj)
   {
     if (obj) {
@@ -453,23 +455,10 @@ class HistogramRegistry
   template <typename T>
   auto& get(char const* const name)
   {
-    const uint32_t id = compile_time_hash(name);
-    const uint32_t i = imask(id);
-    if (O2_BUILTIN_LIKELY(id == mRegistryKey[i])) {
-      if (auto histPtr = std::get_if<std::shared_ptr<T>>(&mRegistryValue[i]))
-        return *histPtr;
-      else
-        throw runtime_error("Histogram type specified in get() does not match actual histogram type!");
-    }
-    for (auto j = 1u; j < MAX_REGISTRY_SIZE; ++j) {
-      if (id == mRegistryKey[imask(j + i)]) {
-        if (auto histPtr = std::get_if<std::shared_ptr<T>>(&mRegistryValue[imask(j + i)]))
-          return *histPtr;
-        else
-          throw runtime_error("Histogram type specified in get() does not match actual histogram type!");
-      }
-    }
-    throw runtime_error("No matching histogram found in HistogramRegistry!");
+    if (auto histPtr = std::get_if<std::shared_ptr<T>>(&mRegistryValue[getHistIndex(name)]))
+      return *histPtr;
+    else
+      throw runtime_error("Histogram type specified in get() does not match actual histogram type!");
   }
 
   /// @return the histogram registered with name @a name
@@ -555,21 +544,10 @@ class HistogramRegistry
   template <bool useWeight = false, typename... Ts>
   void fill(char const* const name, Ts&&... positionAndWeight)
   {
-    const uint32_t id = compile_time_hash(name);
-    const uint32_t i = imask(id);
-    if (O2_BUILTIN_LIKELY(id == mRegistryKey[i])) {
-      std::visit([this, &positionAndWeight...](auto&& hist) { HistFiller::fillHistAny<useWeight>(hist, std::forward<Ts>(positionAndWeight)...); }, mRegistryValue[i]);
-      return;
-    }
-    for (auto j = 1u; j < MAX_REGISTRY_SIZE; ++j) {
-      if (id == mRegistryKey[imask(j + i)]) {
-        std::visit([this, &positionAndWeight...](auto&& hist) { HistFiller::fillHistAny<useWeight>(hist, std::forward<Ts>(positionAndWeight)...); }, mRegistryValue[imask(j + i)]);
-        return;
-      }
-    }
-    LOGF(FATAL, "No histogram called %s found in HistogramRegistry %s!", name, mName);
+    std::visit([&positionAndWeight...](auto&& hist) { HistFiller::fillHistAny<useWeight>(hist, std::forward<Ts>(positionAndWeight)...); }, mRegistryValue[getHistIndex(name)]);
   }
 
+  // fill hist with values and weight
   template <typename... Ts>
   void fillWeight(char const* const name, Ts&&... positionAndWeight)
   {
@@ -583,32 +561,14 @@ class HistogramRegistry
     fillTable<false, Cs...>(name, table, filter);
   }
 
+  // fill hist with content of (filtered) table columns and weight
   template <typename... Cs, typename T>
   void fillWeight(char const* const name, const T& table, const o2::framework::expressions::Filter& filter)
   {
     fillTable<true, Cs...>(name, table, filter);
   }
 
-  // this is for internal use only because we dont want user to have to specify 'useWeight' argument
-  template <bool useWeight = false, typename... Cs, typename T>
-  void fillTable(char const* const name, const T& table, const o2::framework::expressions::Filter& filter)
-  {
-    const uint32_t id = compile_time_hash(name);
-    const uint32_t i = imask(id);
-    if (O2_BUILTIN_LIKELY(id == mRegistryKey[i])) {
-      std::visit([this, &table, &filter](auto&& hist) { HistFiller::fillHistAnyTable<useWeight, Cs...>(hist, table, filter); }, mRegistryValue[i]);
-      return;
-    }
-    for (auto j = 1u; j < MAX_REGISTRY_SIZE; ++j) {
-      if (id == mRegistryKey[imask(j + i)]) {
-        std::visit([this, &table, &filter](auto&& hist) { HistFiller::fillHistAnyTable<useWeight, Cs...>(hist, table, filter); }, mRegistryValue[imask(j + i)]);
-        return;
-      }
-    }
-    LOGF(FATAL, "No histogram called %s found in HistogramRegistry %s!", name, mName);
-  }
-
-  /// lookup distance counter for benchmarking
+  // lookup distance counter for benchmarking
   mutable uint32_t lookup = 0;
 
  private:
@@ -620,6 +580,7 @@ class HistogramRegistry
       TObject* rawPtr = nullptr;
       std::visit([&](const auto& sharedPtr) { rawPtr = sharedPtr.get(); }, mRegistryValue[imask(j + i)]);
       if (!rawPtr) {
+        registerName(histSpec.name);
         mRegistryKey[imask(j + i)] = histSpec.id;
         mRegistryValue[imask(j + i)] = HistFactory::createHistVariant(histSpec);
         lookup += j;
@@ -639,6 +600,7 @@ class HistogramRegistry
       TObject* rawPtr = nullptr;
       std::visit([&](const auto& sharedPtr) { rawPtr = sharedPtr.get(); }, mRegistryValue[imask(j + i)]);
       if (!rawPtr) {
+        registerName(name);
         mRegistryKey[imask(j + i)] = id;
         mRegistryValue[imask(j + i)] = std::shared_ptr<T>(static_cast<T*>(originalHist->Clone(name)));
         lookup += j;
@@ -653,19 +615,43 @@ class HistogramRegistry
     return i & MASK;
   }
 
-  // helper function to create resp. find the subList defined by path
-  TList* getSubList(TList* list, std::deque<std::string> path)
+  uint32_t getHistIndex(char const* const name)
   {
-    if (path.empty())
+    const uint32_t id = compile_time_hash(name);
+    const uint32_t i = imask(id);
+    if (O2_BUILTIN_LIKELY(id == mRegistryKey[i])) {
+      return i;
+    }
+    for (auto j = 1u; j < MAX_REGISTRY_SIZE; ++j) {
+      if (id == mRegistryKey[imask(j + i)]) {
+        return imask(j + i);
+      }
+    }
+    throw runtime_error("No matching histogram found in HistogramRegistry!");
+  }
+
+  // this is for internal use only because we dont want user to have to specify 'useWeight' argument
+  template <bool useWeight = false, typename... Cs, typename T>
+  void fillTable(char const* const name, const T& table, const o2::framework::expressions::Filter& filter)
+  {
+    std::visit([&table, &filter](auto&& hist) { HistFiller::fillHistAnyTable<useWeight, Cs...>(hist, table, filter); }, mRegistryValue[getHistIndex(name)]);
+  }
+
+  // helper function to create resp. find the subList defined by path
+  TList* getSubList(TList* list, std::deque<std::string>& path)
+  {
+    if (path.empty()) {
       return list;
+    }
     TList* targetList{nullptr};
     std::string nextList = path[0];
     path.pop_front();
     if (auto subList = (TList*)list->FindObject(nextList.data())) {
-      if (subList->InheritsFrom(TList::Class()))
+      if (subList->InheritsFrom(TList::Class())) {
         targetList = getSubList((TList*)subList, path);
-      else
+      } else {
         return nullptr;
+      }
     } else {
       subList = new TList();
       subList->SetName(nextList.data());
@@ -676,7 +662,7 @@ class HistogramRegistry
   }
 
   // helper function to split user defined path/to/hist/name string
-  std::deque<std::string> splitPath(std::string pathAndNameUser)
+  std::deque<std::string> splitPath(const std::string& pathAndNameUser)
   {
     std::istringstream pathAndNameStream(pathAndNameUser);
     std::deque<std::string> pathAndName;
@@ -687,14 +673,47 @@ class HistogramRegistry
     return pathAndName;
   }
 
+  // helper function that checks if name of histogram is reasonable and keeps track of names already in use
+  void registerName(const std::string& name)
+  {
+    if (name.empty() || name.back() == '/') {
+      LOGF(FATAL, "Invalid name for a histogram.");
+    }
+    std::deque<std::string> path = splitPath(name);
+    std::string cumulativeName{};
+    int depth = path.size();
+    for (auto& step : path) {
+      if (step.empty()) {
+        LOGF(FATAL, "Found empty group name in path for histogram %s.", name);
+      }
+      cumulativeName += step;
+      for (auto& curName : mRegisteredNames) {
+        // there is already a histogram where we want to put a folder or histogram
+        if (cumulativeName == curName) {
+          LOGF(FATAL, "Histogram name %s is not compatible with existing names.", name);
+        }
+        // for the full new histogram name we need to check that none of the existing histograms already uses this as a group name
+        if (depth == 1) {
+          if (curName.rfind(cumulativeName, 0) == 0 && curName.size() > cumulativeName.size() && curName.at(cumulativeName.size()) == '/') {
+            LOGF(FATAL, "Histogram name %s is not compatible with existing names.", name);
+          }
+        }
+      }
+      --depth;
+      cumulativeName += "/";
+    }
+    mRegisteredNames.push_back(name);
+  }
+
   std::string mName{};
   OutputObjHandlingPolicy mPolicy{};
   bool mCreateRegistryDir{};
   bool mSortHistos{};
   uint32_t mTaskHash{};
+  std::vector<std::string> mRegisteredNames{};
 
-  /// The maximum number of histograms in buffer is currently set to 512
-  /// which seems to be both reasonably large and allowing for very fast lookup
+  // The maximum number of histograms in buffer is currently set to 512
+  // which seems to be both reasonably large and allowing for very fast lookup
   static constexpr uint32_t MASK{0x1FF};
   static constexpr uint32_t MAX_REGISTRY_SIZE{MASK + 1};
   std::array<uint32_t, MAX_REGISTRY_SIZE> mRegistryKey{};
