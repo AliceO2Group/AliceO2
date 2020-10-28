@@ -167,7 +167,11 @@ AlgorithmSpec AODReaderHelpers::aodSpawnerCallback(std::vector<InputSpec> reques
 AlgorithmSpec AODReaderHelpers::rootFileReaderCallback()
 {
   auto callback = AlgorithmSpec{adaptStateful([](ConfigParamRegistry const& options,
-                                                 DeviceSpec const& spec) {
+                                                 DeviceSpec const& spec,
+                                                 Monitoring& monitoring) {
+    monitoring.send(Metric{0LL, "arrow-bytes-created"}.addTag(Key::Subsystem, Value::DPL));
+    monitoring.send(Metric{0LL, "arrow-messages-created"}.addTag(Key::Subsystem, Value::DPL));
+
     if (!options.isSet("aod-file")) {
       LOGP(ERROR, "No input file defined!");
       throw std::runtime_error("Processing is stopped!");
