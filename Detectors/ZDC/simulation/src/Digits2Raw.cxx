@@ -530,8 +530,6 @@ void Digits2Raw::writeDigits()
   constexpr static int data_size = sizeof(uint32_t) * NWPerGBTW;
   // Local interaction record (true and empty bunches)
   o2::InteractionRecord ir(mZDC.data[0][0].f.bc, mZDC.data[0][0].f.orbit);
-  std::vector<char> out_data(data_size);
-  char* out = out_data.data();
   for (UInt_t im = 0; im < o2::zdc::NModules; im++) {
     // Check if module has been filled with data
     // N.B. All channels are initialized if module is supposed to be readout
@@ -553,9 +551,8 @@ void Digits2Raw::writeDigits()
       for (UInt_t ic = 0; ic < o2::zdc::NChPerModule; ic++) {
         if (mModuleConfig->modules[im].readChannel[ic]) {
           for (Int_t iw = 0; iw < o2::zdc::NWPerBc; iw++) {
-            mFeeID = mModuleConfig->modules[im].feeID[ic];
-            std::memcpy(out, &mZDC.data[im][ic].w[iw][0], data_size);
-            mWriter.addData(mFeeID, mCruID, mLinkID, mEndPointID, ir, out_data);
+            gsl::span<char> payload{reinterpret_cast<char*>(&mZDC.data[im][ic].w[iw][0]), data_size};
+            mWriter.addData(mFeeID, mCruID, mLinkID, mEndPointID, ir, payload);
           }
         }
       }
@@ -579,8 +576,9 @@ void Digits2Raw::writeDigits()
           }
         }
       } else {
-        if (mVerbosity > 2)
+        if (mVerbosity > 2) {
           printf("orbit %9u bc %4u M%d SKIP\n", mZDC.data[im][0].f.orbit, mZDC.data[im][0].f.bc, im);
+	}
       }
     }
   }
