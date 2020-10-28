@@ -421,16 +421,24 @@ BOOST_AUTO_TEST_CASE(TestHeaderParsing)
 
 BOOST_AUTO_TEST_CASE(TestFetchingHeaders, *utf::precondition(if_reachable()))
 {
+  // first store the object
+  string objectPath = basePath + "objectETag";
+  test_fixture f;
+  TH1F h1("objectETag", "objectETag", 100, 0, 99);
+  f.api.storeAsTFile(&h1, objectPath, f.metadata);
+
+  // then get the headers
   std::string etag;
   std::vector<std::string> headers;
   std::vector<std::string> pfns;
-  auto updated = CcdbApi::getCCDBEntryHeaders("http://ccdb-test.cern.ch:8080/TOF/LHCphase/1567080816927", etag, headers);
+  string path = objectPath + "/" + std::to_string(getCurrentTimestamp());
+  auto updated = CcdbApi::getCCDBEntryHeaders("http://ccdb-test.cern.ch:8080/" + path, etag, headers);
   BOOST_CHECK_EQUAL(updated, true);
   BOOST_REQUIRE(headers.size() != 0);
   CcdbApi::parseCCDBHeaders(headers, pfns, etag);
   BOOST_REQUIRE(etag != "");
   BOOST_REQUIRE(pfns.size());
-  updated = CcdbApi::getCCDBEntryHeaders("http://ccdb-test.cern.ch:8080/TOF/LHCphase/1567080816927", etag, headers);
+  updated = CcdbApi::getCCDBEntryHeaders("http://ccdb-test.cern.ch:8080/" + path, etag, headers);
   BOOST_CHECK_EQUAL(updated, false);
 }
 
