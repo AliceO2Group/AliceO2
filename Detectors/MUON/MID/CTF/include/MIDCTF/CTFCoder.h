@@ -107,16 +107,16 @@ void CTFCoder::decode(const CTF::base& ec, VROF& rofVec, VCOL& colVec)
   std::vector<uint32_t> orbitInc;
   std::vector<uint8_t> evType, deId, colId;
 
-#define DECODEFT0(part, slot) ec.decode(part, int(slot), mCoders[int(slot)].get())
+#define DECODEMID(part, slot) ec.decode(part, int(slot), mCoders[int(slot)].get())
   // clang-format off
-  DECODEFT0(bcInc,       CTF::BLC_bcIncROF); 
-  DECODEFT0(orbitInc,    CTF::BLC_orbitIncROF);
-  DECODEFT0(entries,     CTF::BLC_entriesROF);
-  DECODEFT0(evType,      CTF::BLC_evtypeROF);
+  DECODEMID(bcInc,       CTF::BLC_bcIncROF);
+  DECODEMID(orbitInc,    CTF::BLC_orbitIncROF);
+  DECODEMID(entries,     CTF::BLC_entriesROF);
+  DECODEMID(evType,      CTF::BLC_evtypeROF);
 
-  DECODEFT0(pattern,     CTF::BLC_pattern);
-  DECODEFT0(deId,        CTF::BLC_deId);
-  DECODEFT0(colId,       CTF::BLC_colId);
+  DECODEMID(pattern,     CTF::BLC_pattern);
+  DECODEMID(deId,        CTF::BLC_deId);
+  DECODEMID(colId,       CTF::BLC_colId);
   // clang-format on
   //
   rofVec.clear();
