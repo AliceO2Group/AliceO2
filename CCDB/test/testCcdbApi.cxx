@@ -431,14 +431,14 @@ BOOST_AUTO_TEST_CASE(TestFetchingHeaders, *utf::precondition(if_reachable()))
   std::string etag;
   std::vector<std::string> headers;
   std::vector<std::string> pfns;
-  string path = objectPath + "/" +std::to_string(getCurrentTimestamp());
-  auto updated = CcdbApi::getCCDBEntryHeaders("http://ccdb-test.cern.ch:8080/"+path, etag, headers);
+  string path = objectPath + "/" + std::to_string(getCurrentTimestamp());
+  auto updated = CcdbApi::getCCDBEntryHeaders("http://ccdb-test.cern.ch:8080/" + path, etag, headers);
   BOOST_CHECK_EQUAL(updated, true);
   BOOST_REQUIRE(headers.size() != 0);
   CcdbApi::parseCCDBHeaders(headers, pfns, etag);
   BOOST_REQUIRE(etag != "");
   BOOST_REQUIRE(pfns.size());
-  updated = CcdbApi::getCCDBEntryHeaders("http://ccdb-test.cern.ch:8080/"+path, etag, headers);
+  updated = CcdbApi::getCCDBEntryHeaders("http://ccdb-test.cern.ch:8080/" + path, etag, headers);
   BOOST_CHECK_EQUAL(updated, false);
 }
 
