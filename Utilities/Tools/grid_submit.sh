@@ -30,12 +30,9 @@ if [[ ! $ALIEN_PROC_ID && ! $1 ]]; then
 fi
 
 # find out if this script is really executed on GRID
-# in this case, we should be in a workdir labeled alien-job-${ALIEN_PROC_ID}
+# in this case, we should find an environment variable JALIEN_TOKEN_CERT
 ONGRID=0
-$(cd ../alien-job-${ALIEN_PROC_ID} 2> /dev/null)
-if [[ "$?" == "0"  ]]; then
-  ONGRID=1
-fi
+[ "${JALIEN_TOKEN_CERT}" ] && ONGRID=1
 
 # General job configuration
 MY_USER=${ALIEN_USER:-`whoami`}
