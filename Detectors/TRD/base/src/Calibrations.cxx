@@ -48,17 +48,34 @@ void Calibrations::setCCDB(int calibrationobjecttype, long timestamp)
   switch (calibrationobjecttype) {
     case 1: //simulation
       mChamberCalibrations = ccdbmgr.get<o2::trd::ChamberCalibrations>("TRD_test/ChamberCalibrations");
+      if (!mChamberCalibrations)
+        LOG(fatal) << "No chamber calibrations returned from CCDB for TRD calibrations,  or TRD from what ever you are running.";
       mLocalVDrift = ccdbmgr.get<o2::trd::LocalVDrift>("TRD_test/LocalVDrift");
+      if (!mLocalVDrift)
+        LOG(fatal) << "No Local V Drift calibrations returned from CCDB for TRD calibrations,  or TRD from what ever you are running.";
       mLocalT0 = ccdbmgr.get<o2::trd::LocalT0>("TRD_test/LocalT0");
+      if (!mLocalT0)
+        LOG(fatal) << "No Local T0 calibrations returned from CCDB for TRD calibrations,  or TRD from what ever you are running.";
       mLocalGainFactor = ccdbmgr.get<o2::trd::LocalGainFactor>("TRD_test/LocalGainFactor");
+      if (!mLocalT0)
+        LOG(fatal) << "No Local T0 calibrations returned from CCDB for TRD calibrations,  or TRD from what ever you are running.";
       mPadNoise = ccdbmgr.get<o2::trd::PadNoise>("TRD_test/PadNoise");
+      if (!mPadNoise)
+        LOG(fatal) << "No Padnoise calibrations returned from CCDB for TRD calibrations,  or TRD from what ever you are running.";
       mChamberStatus = ccdbmgr.get<o2::trd::ChamberStatus>("TRD_test/ChamberStatus");
+      if (!mChamberStatus)
+        LOG(fatal) << "No ChamberStatus calibrations returned from CCDB for TRD calibrations,  or TRD from what ever you are running.";
       mPadStatus = ccdbmgr.get<o2::trd::PadStatus>("TRD_test/PadStatus");
+      if (!mPadStatus)
+        LOG(fatal) << "No Pad Status calibrations returned from CCDB for TRD calibrations,  or TRD from what ever you are running.";
       mChamberNoise = ccdbmgr.get<o2::trd::ChamberNoise>("TRD_test/ChamberNoise");
+      if (!mChamberNoise)
+        LOG(fatal) << "No ChamberNoise calibrations returned from CCDB for TRD calibrations,  or TRD from what ever you are running.";
       //mCalOnlineGainTables= ccdbmgr.get<o2::trd::CalOnlineGainTables>("TRD_test/OnlineGainTables");
       //std::shared_ptr<TrapConfig> mTrapConfig;
       //std::shared_ptr<PRFWidth> mPRDWidth
       //std::shared_ptr<CalOnlineGainTables> mCalOnlineGainTables;
+
       break;
     case 2: //reconstruction
       LOG(fatal) << "Reconstruction calibration not implemented yet ";
