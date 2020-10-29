@@ -157,7 +157,7 @@ o2::framework::ServiceSpec CommonMessageBackends::arrowBackendSpec()
                        static auto totalMessagesCreatedMetric = DeviceMetricsHelper::createNumericMetric<uint64_t>(driverMetrics, "total-arrow-messages-created");
                        static auto totalMessagesDestroyedMetric = DeviceMetricsHelper::createNumericMetric<uint64_t>(driverMetrics, "total-arrow-messages-destroyed");
                        static auto totalBytesDeltaMetric = DeviceMetricsHelper::createNumericMetric<int>(driverMetrics, "arrow-bytes-delta");
-                       static auto totalSignalsMetric = DeviceMetricsHelper::createNumericMetric<int>(driverMetrics, "aod-reader-signals");
+                       static auto totalSignalsMetric = DeviceMetricsHelper::createNumericMetric<uint64_t>(driverMetrics, "aod-reader-signals");
 
                        bool changed = false;
                        for (auto& deviceMetrics : allDeviceMetrics) {
@@ -209,6 +209,7 @@ o2::framework::ServiceSpec CommonMessageBackends::arrowBackendSpec()
                          if (changed) {
                            /// Trigger next timeframe only when we have more than 1GB in memory available.
                            if (totalBytesCreated <= (totalBytesDestroyed + memLimit)) {
+                             totalSignalsMetric(driverMetrics, 1, timestamp);
                              for (size_t di = 0; di < specs.size(); ++di) {
                                if (specs[di].name == "internal-dpl-aod-reader") {
                                  if (di < infos.size()) {
@@ -263,8 +264,8 @@ o2::framework::ServiceSpec CommonMessageBackends::arrowBackendSpec()
                        arrow->updateBytesDestroyed(totalBytes);
                        arrow->updateMessagesDestroyed(totalMessages);
                        auto& monitoring = ctx.services().get<Monitoring>();
-                       monitoring.send(Metric{(uint64_t)arrow->bytesDestroyed(), "arrow-bytes-destroyed"}.addTag(Key::Subsystem, Value::DPL));
-                       monitoring.send(Metric{(uint64_t)arrow->messagesDestroyed(), "arrow-messages-destroyed"}.addTag(Key::Subsystem, Value::DPL));
+                       monitoring.send(Metric{(uint64_t)arrow->bytesDestroyed(), "arrow-bytes-destroyed"}.addTag(Key::Subsystem, monitoring::tags::Value::DPL));
+                       monitoring.send(Metric{(uint64_t)arrow->messagesDestroyed(), "arrow-messages-destroyed"}.addTag(Key::Subsystem, monitoring::tags::Value::DPL));
                        monitoring.flushBuffer();
                      },
                      ServiceKind::Serial};

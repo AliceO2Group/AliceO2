@@ -28,6 +28,8 @@
 #include "Framework/ChannelInfo.h"
 #include "Framework/Logger.h"
 
+#include <Monitoring/Monitoring.h>
+
 #include <ROOT/RDataFrame.hxx>
 #include <TGrid.h>
 #include <TFile.h>
@@ -39,6 +41,11 @@
 #include <arrow/util/key_value_metadata.h>
 
 #include <thread>
+
+using o2::monitoring::Metric;
+using o2::monitoring::Monitoring;
+using o2::monitoring::tags::Key;
+using o2::monitoring::tags::Value;
 
 namespace o2::framework::readers
 {
@@ -169,8 +176,10 @@ AlgorithmSpec AODReaderHelpers::rootFileReaderCallback()
   auto callback = AlgorithmSpec{adaptStateful([](ConfigParamRegistry const& options,
                                                  DeviceSpec const& spec,
                                                  Monitoring& monitoring) {
-    monitoring.send(Metric{0LL, "arrow-bytes-created"}.addTag(Key::Subsystem, Value::DPL));
-    monitoring.send(Metric{0LL, "arrow-messages-created"}.addTag(Key::Subsystem, Value::DPL));
+    monitoring.send(Metric{(uint64_t)0, "arrow-bytes-created"}.addTag(Key::Subsystem, monitoring::tags::Value::DPL));
+    monitoring.send(Metric{(uint64_t)0, "arrow-messages-created"}.addTag(Key::Subsystem, monitoring::tags::Value::DPL));
+    monitoring.send(Metric{(uint64_t)0, "arrow-bytes-destroyed"}.addTag(Key::Subsystem, monitoring::tags::Value::DPL));
+    monitoring.send(Metric{(uint64_t)0, "arrow-messages-destroyed"}.addTag(Key::Subsystem, monitoring::tags::Value::DPL));
 
     if (!options.isSet("aod-file")) {
       LOGP(ERROR, "No input file defined!");
