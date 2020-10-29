@@ -55,10 +55,54 @@ BOOST_AUTO_TEST_CASE(VariantTest)
   Variant sa("foo");
   Variant sb(sa);            // Copy constructor
   Variant sc(std::move(sa)); // Move constructor
-  Variant sd = sc;           // Copy operator
+  Variant sd = sc;           // Copy assignment
 
   BOOST_CHECK(std::string(sb.get<const char*>()) == "foo");
   BOOST_CHECK(std::string(sc.get<const char*>()) == "foo");
   BOOST_CHECK(std::string(sd.get<const char*>()) == "foo");
   BOOST_CHECK(sa.get<const char*>() == nullptr);
+
+  int iarr[] = {1, 2, 3, 4, 5};
+  float farr[] = {0.2, 0.3, 123.123, 123.123, 3.005e-5, 1.1e6};
+  std::vector<double> dvec = {0.1, 0.2, 0.4, 0.9, 1.3, 14.5, 123.234, 1.213e-20};
+  Variant viarr(iarr, 5);
+  Variant vfarr(farr, 6);
+  Variant vdvec(dvec);
+
+  BOOST_CHECK(viarr.size() == 5);
+  BOOST_CHECK(viarr.get<int*>() != iarr);
+  for (auto i = 0u; i < viarr.size(); ++i) {
+    BOOST_CHECK(iarr[i] == (viarr.get<int*>())[i]);
+  }
+
+  BOOST_CHECK(vfarr.size() == 6);
+  BOOST_CHECK(vfarr.get<float*>() != farr);
+  for (auto i = 0u; i < vfarr.size(); ++i) {
+    BOOST_CHECK(farr[i] == (vfarr.get<float*>())[i]);
+  }
+
+  BOOST_CHECK(vdvec.size() == dvec.size());
+  BOOST_CHECK(vdvec.get<double*>() != dvec.data());
+  for (auto i = 0u; i < dvec.size(); ++i) {
+    BOOST_CHECK(dvec[i] == (vdvec.get<double*>())[i]);
+  }
+
+  Variant fb(vfarr);            // Copy constructor
+  Variant fc(std::move(vfarr)); // Move constructor
+  Variant fd = fc;              // Copy assignment
+
+  BOOST_CHECK(vfarr.get<float*>() == nullptr);
+
+  BOOST_CHECK(fb.get<float*>() != farr);
+  for (auto i = 0u; i < fb.size(); ++i) {
+    BOOST_CHECK(farr[i] == (fb.get<float*>())[i]);
+  }
+  BOOST_CHECK(fc.get<float*>() != farr);
+  for (auto i = 0u; i < fc.size(); ++i) {
+    BOOST_CHECK(farr[i] == (fc.get<float*>())[i]);
+  }
+  BOOST_CHECK(fd.get<float*>() != farr);
+  for (auto i = 0u; i < fd.size(); ++i) {
+    BOOST_CHECK(farr[i] == (fd.get<float*>())[i]);
+  }
 }
