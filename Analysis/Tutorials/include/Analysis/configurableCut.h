@@ -17,8 +17,8 @@
 class configurableCut
 {
  public:
-  configurableCut(float cut_ = 2., int state_ = 1)
-    : cut{cut_}, state{state_}
+  configurableCut(float cut_ = 2., int state_ = 1, bool option_ = true)
+    : cut{cut_}, state{state_}, option{option_}
   {
   }
 
@@ -30,11 +30,15 @@ class configurableCut
   void setState(int state_);
   int getState() const;
 
+  void setOption(bool option_);
+  bool getOption() const;
+
  private:
   float cut;
   int state;
+  bool option;
 
-  ClassDef(configurableCut, 2);
+  ClassDef(configurableCut, 3);
 };
 
 std::ostream& operator<<(std::ostream& os, configurableCut const& c);
