@@ -451,11 +451,14 @@ bool DataProcessingDevice::ConditionalRun()
 
   // Notify on the main thread the new region callbacks, making sure
   // no callback is issued if there is something still processing.
-  if (mPendingRegionInfos.empty() == false) {
-    std::vector<FairMQRegionInfo> toBeNotified;
-    toBeNotified.swap(mPendingRegionInfos); // avoid any MT issue.
-    for (auto const& info : toBeNotified) {
-      mServiceRegistry.get<CallbackService>()(CallbackService::Id::RegionInfoCallback, info);
+  {
+    std::lock_guard<std::mutex> lock(mRegionInfoMutex);
+    if (mPendingRegionInfos.empty() == false) {
+      std::vector<FairMQRegionInfo> toBeNotified;
+      toBeNotified.swap(mPendingRegionInfos); // avoid any MT issue.
+      for (auto const& info : toBeNotified) {
+        mServiceRegistry.get<CallbackService>()(CallbackService::Id::RegionInfoCallback, info);
+      }
     }
   }
   // Synchronous execution of the callbacks. This will be moved in the
