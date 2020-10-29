@@ -50,6 +50,8 @@ struct CompletionPolicyHelpers {
   }
   /// Attach a given @a op to a device matching @name.
   static CompletionPolicy defineByName(std::string const& name, CompletionPolicy::CompletionOp op);
+  /// Attach a given @a op to a device matching @name, check message of origin @origin is available
+  static CompletionPolicy defineByNameOrigin(std::string const& name, std::string const& origin, CompletionPolicy::CompletionOp op);
   /// Get a specific header from the input
   template <typename T, typename U>
   static auto getHeader(U const& input)

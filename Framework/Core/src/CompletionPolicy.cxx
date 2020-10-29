@@ -23,7 +23,7 @@ std::vector<CompletionPolicy>
   CompletionPolicy::createDefaultPolicies()
 {
   return {
-    CompletionPolicyHelpers::defineByName("internal-dpl-aod-writer", CompletionOp::Consume),
+    CompletionPolicyHelpers::defineByNameOrigin("internal-dpl-aod-writer", "TFN", CompletionOp::Consume),
     CompletionPolicyHelpers::consumeWhenAll()};
 }
 
