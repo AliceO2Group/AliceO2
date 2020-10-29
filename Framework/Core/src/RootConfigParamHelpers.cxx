@@ -197,7 +197,7 @@ ConfigParamSpec memberToConfigParamSpec(const char* tname, TDataMember const* dm
         return ConfigParamSpec{tname, VariantType::Double, *(double*)ptr, {"No help"}};
       }
       case kBool_t: {
-        return ConfigParamSpec{tname, VariantType::Double, *(bool*)ptr, {"No help"}};
+        return ConfigParamSpec{tname, VariantType::Bool, *(bool*)ptr, {"No help"}};
       }
       case kLong64_t: {
         return ConfigParamSpec{tname, VariantType::Int64, *(int64_t*)ptr, {"No help"}};
