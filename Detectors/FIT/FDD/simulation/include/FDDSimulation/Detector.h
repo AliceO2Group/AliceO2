@@ -52,8 +52,9 @@ class Detector : public o2::base::DetImpl<Detector>
 
   std::vector<o2::fdd::Hit>* getHits(Int_t iColl)
   {
-    if (iColl == 0)
+    if (iColl == 0) {
       return mHits;
+    }
     return nullptr;
   }
 

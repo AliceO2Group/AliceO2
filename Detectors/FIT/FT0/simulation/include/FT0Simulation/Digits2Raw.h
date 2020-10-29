@@ -59,9 +59,11 @@ class Digits2Raw
   static o2::ft0::LookUpTable linear()
   {
     std::vector<o2::ft0::Topo> lut_data(Nchannels_PM * (NPMs - 1));
-    for (int link = 0; link < NPMs - 1; ++link)
-      for (int mcp = 0; mcp < Nchannels_PM; ++mcp)
+    for (int link = 0; link < NPMs - 1; ++link) {
+      for (int mcp = 0; mcp < Nchannels_PM; ++mcp) {
         lut_data[link * Nchannels_PM + mcp] = o2::ft0::Topo{link, mcp};
+      }
+    }
 
     return o2::ft0::LookUpTable{lut_data};
   }

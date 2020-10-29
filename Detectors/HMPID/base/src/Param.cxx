@@ -93,13 +93,15 @@ Param::Param(bool noGeo) : mX(0), mY(0), mRefIdx(1.28947), mPhotEMean(6.675), mT
 
   float dead = 2.6; // cm of the dead zones between PCs-> See 2CRC2099P1
 
-  if (noGeo == kTRUE)
+  if (noGeo == kTRUE) {
     fgInstanceType = kFALSE; //instance from ideal geometry, no actual geom is present
+  }
 
   if (noGeo == kFALSE && !gGeoManager) {
     TGeoManager::Import("geometry.root");
-    if (!gGeoManager)
+    if (!gGeoManager) {
       Printf("!!!!!!No geometry loaded!!!!!!!");
+    }
   }
 
   fgCellX = 0.8;
@@ -150,7 +152,7 @@ Param::Param(bool noGeo) : mX(0), mY(0), mRefIdx(1.28947), mPhotEMean(6.675), mT
     }
   }
 
-  for (Int_t i = kMinCh; i <= kMaxCh; i++)
+  for (Int_t i = kMinCh; i <= kMaxCh; i++) {
     if (gGeoManager && gGeoManager->IsClosed()) {
       TGeoPNEntry* pne = gGeoManager->GetAlignableEntry(Form("/HMPID/Chamber%i", i));
       if (!pne) {
@@ -159,9 +161,9 @@ Param::Param(bool noGeo) : mX(0), mY(0), mRefIdx(1.28947), mPhotEMean(6.675), mT
         IdealPosition(i, mM[i]);
       } else {
         TGeoPhysicalNode* pnode = pne->GetPhysicalNode();
-        if (pnode)
+        if (pnode) {
           mM[i] = new TGeoHMatrix(*(pnode->GetMatrix()));
-        else {
+        } else {
           mM[i] = new TGeoHMatrix;
           IdealPosition(i, mM[i]);
         }
@@ -170,6 +172,7 @@ Param::Param(bool noGeo) : mX(0), mY(0), mRefIdx(1.28947), mPhotEMean(6.675), mT
       mM[i] = new TGeoHMatrix;
       IdealPosition(i, mM[i]);
     }
+  }
   fgInstance = this;
 } //ctor
 //++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -177,8 +180,9 @@ void Param::Print(Option_t* opt) const
 {
   // print some usefull (hopefully) info on some internal guts of HMPID parametrisation
 
-  for (Int_t i = 0; i < 7; i++)
+  for (Int_t i = 0; i < 7; i++) {
     mM[i]->Print(opt);
+  }
 } //Print()
 //+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 void Param::IdealPosition(Int_t iCh, TGeoHMatrix* pMatrix)
@@ -284,10 +288,12 @@ double Param::Sigma2(double trkTheta, double trkPhi, double ckovTh, double ckovP
   TVector3 v(-999, -999, -999);
   double trkBeta = 1. / (TMath::Cos(ckovTh) * GetRefIdx());
 
-  if (trkBeta > 1)
+  if (trkBeta > 1) {
     trkBeta = 1; //protection against bad measured thetaCer
-  if (trkBeta < 0)
+  }
+  if (trkBeta < 0) {
     trkBeta = 0.0001; //
+  }
 
   v.SetX(SigLoc(trkTheta, trkPhi, ckovTh, ckovPh, trkBeta));
   v.SetY(SigGeom(trkTheta, trkPhi, ckovTh, ckovPh, trkBeta));
@@ -318,8 +324,9 @@ double Param::SigLoc(double trkTheta, double trkPhi, double thetaC, double phiC,
 
   double alpha = cost - tantheta * cosfd * sint;                               // formula (11)
   double k = 1. - GetRefIdx() * GetRefIdx() + alpha * alpha / (betaM * betaM); // formula (after 8 in the text)
-  if (k < 0)
+  if (k < 0) {
     return 1e10;
+  }
   double mu = sint * sinf + tantheta * (cost * cosfd * sinf + sinfd * cosf); // formula (10)
   double e = sint * cosf + tantheta * (cost * cosfd * cosf - sinfd * sinf);  // formula (9)
 
@@ -381,8 +388,9 @@ double Param::SigGeom(double trkTheta, double trkPhi, double thetaC, double phiC
   double alpha = cost - tantheta * cosfd * sint; // formula (11)
 
   double k = 1. - GetRefIdx() * GetRefIdx() + alpha * alpha / (betaM * betaM); // formula (after 8 in the text)
-  if (k < 0)
+  if (k < 0) {
     return 1e10;
+  }
 
   double eTr = 0.5 * RadThick() * betaM * TMath::Sqrt(k) / (GapThick() * alpha); // formula (14)
   double lambda = (1. - sint * sinf) * (1. + sint * sinf);                       // formula (15)
@@ -427,8 +435,9 @@ Param* Param::Instance()
   // Return pointer to the AliHMPIDParam singleton.
   // Arguments: none
   //   Returns: pointer to the instance of AliHMPIDParam or 0 if no geometry
-  if (!fgInstance)
+  if (!fgInstance) {
     new Param(kFALSE); //default setting for reconstruction, if no geometry.root -> AliFatal
+  }
   return fgInstance;
 } //Instance()
 
@@ -438,8 +447,9 @@ Param* Param::InstanceNoGeo()
   // Return pointer to the AliHMPIDParam singleton without the geometry.root.
   // Arguments: none
   //   Returns: pointer to the instance of AliHMPIDParam or 0 if no geometry
-  if (!fgInstance)
+  if (!fgInstance) {
     new Param(kTRUE); //to avoid AliFatal, for MOOD and displays, use ideal geometry parameters
+  }
   return fgInstance;
 } //Instance()
 //+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -448,9 +458,11 @@ bool Param::IsInDead(float x, float y)
   // Check is the current point is outside of sensitive area or in dead zones
   // Arguments: x,y -position
   //   Returns: 1 if not in sensitive zone
-  for (Int_t iPc = 0; iPc < 6; iPc++)
-    if (x >= fgkMinPcX[iPc] && x <= fgkMaxPcX[iPc] && y >= fgkMinPcY[iPc] && y <= fgkMaxPcY[iPc])
+  for (Int_t iPc = 0; iPc < 6; iPc++) {
+    if (x >= fgkMinPcX[iPc] && x <= fgkMaxPcX[iPc] && y >= fgkMinPcY[iPc] && y <= fgkMaxPcY[iPc]) {
       return kFALSE; //in current pc
+    }
+  }
 
   return kTRUE;
 }
@@ -461,8 +473,9 @@ bool Param::IsDeadPad(Int_t padx, Int_t pady, Int_t ch)
   // Arguments: padx,pady pad integer coord
   //   Returns: kTRUE if dead, kFALSE if active
 
-  if (fgMapPad[padx - 1][pady - 1][ch])
+  if (fgMapPad[padx - 1][pady - 1][ch]) {
     return kFALSE; //current pad active
+  }
 
   return kTRUE;
 }
@@ -481,8 +494,9 @@ void Param::Lors2Pad(float x, float y, Int_t& pc, Int_t& px, Int_t& py)
     pc = 1;
     px = Int_t((x - fgkMinPcX[1]) / SizePadX());
   } //PC 1 or 3 or 5
-  else
+  else {
     return;
+  }
   if (y > fgkMinPcY[0] && y < fgkMaxPcY[0]) {
     py = Int_t(y / SizePadY());
   } //PC 0 or 1
@@ -494,8 +508,9 @@ void Param::Lors2Pad(float x, float y, Int_t& pc, Int_t& px, Int_t& py)
     pc += 4;
     py = Int_t((y - fgkMinPcY[4]) / SizePadY());
   } //PC 4 or 5
-  else
+  else {
     return;
+  }
 }
 //+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 Int_t Param::InHVSector(float y)
@@ -507,8 +522,9 @@ Int_t Param::InHVSector(float y)
   Int_t hvsec = -1;
   Int_t pc, px, py;
   Lors2Pad(1., y, pc, px, py);
-  if (py == -1)
+  if (py == -1) {
     return hvsec;
+  }
 
   hvsec = (py + (pc / 2) * (kMaxPy + 1)) / ((kMaxPy + 1) / 2);
 
@@ -519,12 +535,15 @@ double Param::FindTemp(double tLow, double tHigh, double y)
 {
   //  Model for gradient in temperature
   double yRad = HinRad(y); //height in a given radiator
-  if (tHigh < tLow)
+  if (tHigh < tLow) {
     tHigh = tLow; //if Tout < Tin consider just Tin as reference...
-  if (yRad < 0)
+  }
+  if (yRad < 0) {
     yRad = 0; //protection against fake y values
-  if (yRad > SizePcY())
+  }
+  if (yRad > SizePcY()) {
     yRad = SizePcY(); //protection against fake y values
+  }
 
   double gradT = (tHigh - tLow) / SizePcY(); // linear gradient
   return gradT * yRad + tLow;
@@ -589,13 +608,15 @@ void Param::PrintChStatus(Int_t ch)
   Printf(" --------- C H A M B E R  %d   ---------------", ch);
   for (Int_t pady = kMaxPcy; pady >= 0; pady--) {
     for (Int_t padx = 0; padx < kMaxPcx + 1; padx++) {
-      if (padx == 80)
+      if (padx == 80) {
         printf(" ");
+      }
       printf("%d", fgMapPad[padx][pady][ch]);
     }
     printf(" %d \n", pady + 1);
-    if (pady % 48 == 0)
+    if (pady % 48 == 0) {
       printf("\n");
+    }
   }
   printf("\n");
 }

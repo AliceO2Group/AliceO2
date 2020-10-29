@@ -79,8 +79,9 @@ void BadChannelMap::PrintStream(std::ostream& stream) const
   // first sort bad channel IDs
   stream << "Number of bad cells:  " << mBadCells.count() << "\n";
   for (int cellID = 0; cellID < mBadCells.size(); cellID++) {
-    if (mBadCells.test(cellID))
+    if (mBadCells.test(cellID)) {
       stream << cellID << "\n";
+    }
   }
 }
 

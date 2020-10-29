@@ -202,8 +202,9 @@ void Digitizer::storeBC(const BCCache& bc, std::vector<o2::fv0::BCData>& digitsB
     double cfdWithOffset = SimulateTimeCfd(bc.mPmtChargeVsTime[iPmt]);
     double cfdZero = cfdWithOffset - FV0DigParam::Instance().avgCfdTimeForMip;
 
-    if (cfdZero < -FV0DigParam::Instance().cfdCheckWindow || cfdZero > FV0DigParam::Instance().cfdCheckWindow)
+    if (cfdZero < -FV0DigParam::Instance().cfdCheckWindow || cfdZero > FV0DigParam::Instance().cfdCheckWindow) {
       continue;
+    }
 
     //LOG(INFO) << "time inside analyse and store =========> " << cfdZero <<"   detid  "<<iPmt;
     float charge = IntegrateCharge(bc.mPmtChargeVsTime[iPmt]);

@@ -28,11 +28,13 @@ void Reconstructor::process(const o2::fdd::Digit& digitBC, gsl::span<const o2::f
     Float_t adc = channel.mChargeADC;
     Float_t time = channel.mTime;
     //LOG(INFO) <<adc <<"  "<<time;
-    if (time == o2::InteractionRecord::DummyTime)
+    if (time == o2::InteractionRecord::DummyTime) {
       continue;
+    }
     Float_t timeErr = 1;
-    if (adc > 1)
+    if (adc > 1) {
       timeErr = 1 / adc;
+    }
     if (channel.mPMNumber < 8) {
       timeFDC += time / (timeErr * timeErr);
       weightFDC += 1. / (timeErr * timeErr);

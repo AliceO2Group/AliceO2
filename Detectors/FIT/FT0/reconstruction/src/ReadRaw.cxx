@@ -173,8 +173,9 @@ void ReadRaw::readData(const std::string fileRaw, const o2::ft0::LookUpTable& lu
 void ReadRaw::close()
 {
   LOG(INFO) << " CLOSE ";
-  if (mFileDest.is_open())
+  if (mFileDest.is_open()) {
     mFileDest.close();
+  }
 }
 //_____________________________________________________________________________
 void ReadRaw::writeDigits(std::string fileDataOut)
@@ -196,8 +197,9 @@ void ReadRaw::writeDigits(std::string fileDataOut)
   std::vector<o2::ft0::ChannelData> chDataVec;
   digitVec.reserve(mDigitAccum.size());
   size_t numberOfChData = 0;
-  for (auto const& [intrec, digit] : mDigitAccum)
+  for (auto const& [intrec, digit] : mDigitAccum) {
     numberOfChData += digit.getChDgData().size();
+  }
   chDataVec.reserve(numberOfChData);
   for (auto& [intrec, digit] : mDigitAccum) {
     int first = gsl::narrow_cast<int>(chDataVec.size());

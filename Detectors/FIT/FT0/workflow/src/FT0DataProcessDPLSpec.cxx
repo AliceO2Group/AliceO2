@@ -28,8 +28,9 @@ void FT0DataProcessDPLSpec::run(ProcessingContext& pc)
   LOG(INFO) << "FT0DataProcessDPLSpec running...";
   auto vecDigits = pc.inputs().get<std::vector<Digit>>("digits");
   auto vecChannelData = pc.inputs().get<std::vector<ChannelData>>("digch");
-  if (mDumpEventBlocks)
+  if (mDumpEventBlocks) {
     DigitBlockFT0::print(vecDigits, vecChannelData);
+  }
 }
 
 DataProcessorSpec getFT0DataProcessDPLSpec(bool dumpProcessor)

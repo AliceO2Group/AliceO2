@@ -66,8 +66,9 @@ struct DataBlockWrapper {
   {
     std::vector<uint8_t> vecBytes(sizeWord * nWords);
     uint8_t* srcAddress = (uint8_t*)mData;
-    if (nWords == 0 || nWords > MaxNwords)
+    if (nWords == 0 || nWords > MaxNwords) {
       return std::move(vecBytes);
+    }
     gsl::span<uint8_t> serializedBytes(vecBytes);
     size_t countBytes = 0;
     int nSteps = std::get<kNSTEPS>(sReadingLookupTable[nWords]);
@@ -125,10 +126,12 @@ struct DataBlockWrapper {
         payloadPerElem -= payloadInWord;
         payloadInWord = 0;
       }
-      if (payloadInWord == 0)
+      if (payloadInWord == 0) {
         payloadInWord = T::PayloadPerGBTword;
-      if (payloadPerElem == 0)
+      }
+      if (payloadPerElem == 0) {
         payloadPerElem = T::PayloadSize;
+      }
     }
     return count;
   }
@@ -193,8 +196,9 @@ struct DataBlockWrapper {
         bytesInWord = 0;
       }
 
-      if (payloadInWord == 0)
+      if (payloadInWord == 0) {
         payloadInWord = T::PayloadPerGBTword;
+      }
       if (payloadPerElem == 0) {
         payloadPerElem = T::PayloadSize;
         countElement++;
@@ -236,8 +240,9 @@ struct DataBlockWrapper {
         }
         countWord++;
       }
-      if (payloadPerElem == 0)
+      if (payloadPerElem == 0) {
         payloadPerElem = T::PayloadSize;
+      }
       payloadPerElem -= std::get<kNBYTES>((GetByteLookupTable())[iStep]);
     }
     //Last step checking

@@ -67,8 +67,9 @@ BOOST_AUTO_TEST_CASE(CompressedClustersTest)
               [](const Digit& a, const Digit& b) {
                 int strip1 = a.getChannel() / Geo::NPADS, strip2 = b.getChannel() / Geo::NPADS;
                 if (strip1 == strip2) {
-                  if (a.getBC() == b.getBC())
+                  if (a.getBC() == b.getBC()) {
                     return a.getTDC() < b.getTDC();
+                  }
                   return a.getBC() < b.getBC();
                 }
                 return strip1 < strip2;

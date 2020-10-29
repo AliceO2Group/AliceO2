@@ -49,10 +49,11 @@ class RawReaderBase
       DataBlockType dataBlock;
       dataBlock.decodeBlock(binaryPayload, srcPos);
       srcPos += dataBlock.mSize;
-      if (dataBlock.isCorrect())
+      if (dataBlock.isCorrect()) {
         vecDataBlocks.push_back(dataBlock); //change to in-place construction? TODO
-      else
+      } else {
         LOG(INFO) << "WARNING! INCORRECT DATA BLOCK!";
+      }
     }
     return srcPos;
   }
