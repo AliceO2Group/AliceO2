@@ -27,8 +27,9 @@ Line::Line(std::array<float, 3> firstPoint, std::array<float, 3> secondPoint)
 
   float inverseNorm{1.f / std::sqrt(cosinesDirector[0] * cosinesDirector[0] + cosinesDirector[1] * cosinesDirector[1] +
                                     cosinesDirector[2] * cosinesDirector[2])};
-  for (int index{0}; index < 3; ++index)
+  for (int index{0}; index < 3; ++index) {
     cosinesDirector[index] *= inverseNorm;
+  }
 }
 
 bool Line::areParallel(const Line& firstLine, const Line& secondLine, const float precision)
@@ -37,22 +38,25 @@ bool Line::areParallel(const Line& firstLine, const Line& secondLine, const floa
                    firstLine.cosinesDirector[2] * secondLine.cosinesDirector[1]};
   float module{std::abs(firstLine.cosinesDirector[1] * secondLine.cosinesDirector[2]) +
                std::abs(firstLine.cosinesDirector[2] * secondLine.cosinesDirector[1])};
-  if (std::abs(crossProdX) > precision * module)
+  if (std::abs(crossProdX) > precision * module) {
     return false;
+  }
 
   float crossProdY{-firstLine.cosinesDirector[0] * secondLine.cosinesDirector[2] +
                    firstLine.cosinesDirector[2] * secondLine.cosinesDirector[0]};
   module = std::abs(firstLine.cosinesDirector[0] * secondLine.cosinesDirector[2]) +
            std::abs(firstLine.cosinesDirector[2] * secondLine.cosinesDirector[0]);
-  if (std::abs(crossProdY) > precision * module)
+  if (std::abs(crossProdY) > precision * module) {
     return false;
+  }
 
   float crossProdZ = firstLine.cosinesDirector[0] * secondLine.cosinesDirector[1] -
                      firstLine.cosinesDirector[1] * secondLine.cosinesDirector[0];
   module = std::abs(firstLine.cosinesDirector[0] * secondLine.cosinesDirector[1]) +
            std::abs(firstLine.cosinesDirector[1] * secondLine.cosinesDirector[0]);
-  if (std::abs(crossProdZ) > precision * module)
+  if (std::abs(crossProdZ) > precision * module) {
     return false;
+  }
 
   return true;
 }
@@ -61,8 +65,9 @@ std::array<float, 6> Line::getDCAComponents(const Line& line, const std::array<f
 {
   std::array<float, 6> components{0., 0., 0., 0., 0., 0.};
   float cdelta{0.};
-  for (int i{0}; i < 3; ++i)
+  for (int i{0}; i < 3; ++i) {
     cdelta -= line.cosinesDirector[i] * (line.originPoint[i] - point[i]);
+  }
 
   components[0] = line.originPoint[0] - point[0] + line.cosinesDirector[0] * cdelta;
   components[3] = line.originPoint[1] - point[1] + line.cosinesDirector[1] * cdelta;
@@ -84,8 +89,9 @@ ClusterLines::ClusterLines(const int firstLabel, const Line& firstLine, const in
   std::array<float, 3> covarianceFirst{1., 1., 1.};
   std::array<float, 3> covarianceSecond{1., 1., 1.};
 
-  for (int i{0}; i < 6; ++i)
+  for (int i{0}; i < 6; ++i) {
     mWeightMatrix[i] = firstLine.weightMatrix[i] + secondLine.weightMatrix[i];
+  }
 
   float determinantFirst =
     firstLine.cosinesDirector[2] * firstLine.cosinesDirector[2] * covarianceFirst[0] * covarianceFirst[1] +
@@ -187,8 +193,9 @@ ClusterLines::ClusterLines(const Line& firstLine, const Line& secondLine)
   std::array<float, 3> covarianceFirst{1., 1., 1.};
   std::array<float, 3> covarianceSecond{1., 1., 1.};
 
-  for (int i{0}; i < 6; ++i)
+  for (int i{0}; i < 6; ++i) {
     mWeightMatrix[i] = firstLine.weightMatrix[i] + secondLine.weightMatrix[i];
+  }
 
   float determinantFirst =
     firstLine.cosinesDirector[2] * firstLine.cosinesDirector[2] * covarianceFirst[0] * covarianceFirst[1] +
@@ -282,8 +289,9 @@ void ClusterLines::add(const int& lineLabel, const Line& line, const bool& weigh
 #endif
   std::array<float, 3> covariance{1., 1., 1.};
 
-  for (int i{0}; i < 6; ++i)
+  for (int i{0}; i < 6; ++i) {
     mWeightMatrix[i] += line.weightMatrix[i];
+  }
   // if(weight) line->GetSigma2P0(covariance);
 
   float determinant{line.cosinesDirector[2] * line.cosinesDirector[2] * covariance[0] * covariance[1] +

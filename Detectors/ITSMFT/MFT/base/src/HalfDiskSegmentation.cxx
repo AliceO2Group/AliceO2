@@ -60,10 +60,11 @@ HalfDiskSegmentation::HalfDiskSegmentation(const HalfDiskSegmentation& input)
 {
 
   // copy constructor
-  if (input.mLadders)
+  if (input.mLadders) {
     mLadders = new TClonesArray(*(input.mLadders));
-  else
+  } else {
     mLadders = new TClonesArray("o2::mft::LadderSegmentation");
+  }
   mLadders->SetOwner(kTRUE);
 }
 
@@ -76,8 +77,9 @@ HalfDiskSegmentation::~HalfDiskSegmentation() { Clear(""); }
 void HalfDiskSegmentation::Clear(const Option_t* /*opt*/)
 {
 
-  if (mLadders)
+  if (mLadders) {
     mLadders->Delete();
+  }
   delete mLadders;
   mLadders = nullptr;
 }
@@ -184,7 +186,8 @@ void HalfDiskSegmentation::print(Option_t* opt)
 
   getTransformation()->Print();
   if (opt && (strstr(opt, "ladder") || strstr(opt, "l"))) {
-    for (int i = 0; i < getNLadders(); i++)
+    for (int i = 0; i < getNLadders(); i++) {
       getLadder(i)->Print(opt);
+    }
   }
 }

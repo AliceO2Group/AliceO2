@@ -94,10 +94,11 @@ TGeoVolume* AlpideChip::createChip(const Double_t ychip,
 
   TGeoMedium* medChip;
 
-  if (dummy)
+  if (dummy) {
     medChip = medAir;
-  else
+  } else {
     medChip = medSi;
+  }
 
   TGeoVolume* chipVol = new TGeoVolume(chipName, chip, medChip);
   chipVol->SetVisibility(kTRUE);

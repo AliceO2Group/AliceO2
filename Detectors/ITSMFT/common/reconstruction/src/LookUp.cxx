@@ -62,9 +62,9 @@ int LookUp::findGroupID(int nRow, int nCol, const unsigned char patt[ClusterPatt
   // Small topology
   if (nBits < 9) {
     int ID = mDictionary.mSmallTopologiesLUT[(nCol - 1) * 255 + (int)patt[0]];
-    if (ID >= 0)
+    if (ID >= 0) {
       return ID;
-    else { //small rare topology (inside groups)
+    } else { //small rare topology (inside groups)
       int index = groupFinder(nRow, nCol);
       return mDictionary.mGroupMap[index];
     }
@@ -72,9 +72,9 @@ int LookUp::findGroupID(int nRow, int nCol, const unsigned char patt[ClusterPatt
   // Big topology
   unsigned long hash = ClusterTopology::getCompleteHash(nRow, nCol, patt);
   auto ret = mDictionary.mCommonMap.find(hash);
-  if (ret != mDictionary.mCommonMap.end())
+  if (ret != mDictionary.mCommonMap.end()) {
     return ret->second;
-  else { // Big rare topology (inside groups)
+  } else { // Big rare topology (inside groups)
     int index = groupFinder(nRow, nCol);
     return mDictionary.mGroupMap[index];
   }

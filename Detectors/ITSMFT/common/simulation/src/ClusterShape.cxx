@@ -56,16 +56,19 @@ ClusterShape::~ClusterShape() = default;
 Bool_t ClusterShape::IsValidShape()
 {
   // Check the size
-  if (mShape.size() > mNrows * mNcols)
+  if (mShape.size() > mNrows * mNcols) {
     return false;
+  }
 
   // Check for duplicates and the validity of the position
   std::sort(mShape.begin(), mShape.end());
   for (size_t i = 0; i < mShape.size() - 1; i++) {
-    if (mShape[i] >= mNrows * mNcols || mShape[i + 1] >= mNrows * mNcols)
+    if (mShape[i] >= mNrows * mNcols || mShape[i + 1] >= mNrows * mNcols) {
       return false;
-    if (mShape[i] == mShape[i + 1])
+    }
+    if (mShape[i] == mShape[i + 1]) {
       return false;
+    }
   }
 
   return true;
@@ -88,10 +91,12 @@ Long64_t ClusterShape::GetShapeID() const
 Bool_t ClusterShape::HasElement(UInt_t value) const
 {
   for (auto& el : mShape) {
-    if (el > value)
+    if (el > value) {
       break;
-    if (el == value)
+    }
+    if (el == value) {
       return true;
+    }
   }
   return false;
 }

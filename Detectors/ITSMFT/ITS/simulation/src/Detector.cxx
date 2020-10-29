@@ -282,8 +282,9 @@ Bool_t Detector::ProcessHits(FairVolume* vol)
   while ((lay < sNumberLayers) && (notSens = (volID != mLayerID[lay]))) {
     ++lay;
   }
-  if (notSens)
+  if (notSens) {
     return kFALSE; // RS: can this happen? This method must be called for sensors only?
+  }
 
   // Is it needed to keep a track reference when the outer ITS volume is encountered?
   auto stack = (o2::data::Stack*)fMC->GetStack();
@@ -323,10 +324,12 @@ Bool_t Detector::ProcessHits(FairVolume* vol)
   }
 
   // increment energy loss at all steps except entrance
-  if (!startHit)
+  if (!startHit) {
     mTrackData.mEnergyLoss += fMC->Edep();
-  if (!(startHit | stopHit))
+  }
+  if (!(startHit | stopHit)) {
     return kFALSE; // do noting
+  }
 
   if (startHit) {
     mTrackData.mEnergyLoss = 0.;

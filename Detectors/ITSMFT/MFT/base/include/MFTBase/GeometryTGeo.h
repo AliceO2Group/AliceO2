@@ -43,8 +43,9 @@ class GeometryTGeo : public o2::itsmft::GeometryTGeo
   static GeometryTGeo* Instance()
   {
     // get (create if needed) a unique instance of the object
-    if (!sInstance)
+    if (!sInstance) {
       sInstance = std::unique_ptr<GeometryTGeo>(new GeometryTGeo(true, 0));
+    }
     return sInstance.get();
   }
 

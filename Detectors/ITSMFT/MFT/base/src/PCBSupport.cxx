@@ -56,21 +56,23 @@ TGeoVolumeAssembly* PCBSupport::create(Int_t half, Int_t disk)
     mSomeBox = new TGeoBBox(boxName, mBoxCuts[disk][cut][0] / 2. + 2 * mT_delta, mBoxCuts[disk][cut][1] / 2. + 2 * mT_delta, mFR4Thickness + mT_delta);
     mSomeTranslation = new TGeoTranslation(mBoxCuts[disk][cut][2], mBoxCuts[disk][cut][3], 0.);
     //The first subtraction needs a shape, the base tube
-    if (cut == 0)
+    if (cut == 0) {
       mSomeSubtraction = new TGeoSubtraction(PCBCu, mSomeBox, nullptr, mSomeTranslation);
-    else
+    } else {
       mSomeSubtraction = new TGeoSubtraction(mPCBCu, mSomeBox, nullptr, mSomeTranslation);
+    }
     mPCBCu = new TGeoCompositeShape(boxCSName, mSomeSubtraction);
 
-    if (cut == 0)
+    if (cut == 0) {
       mSomeSubtraction = new TGeoSubtraction(PCBFR4, mSomeBox, nullptr, mSomeTranslation);
-    else
+    } else {
       mSomeSubtraction = new TGeoSubtraction(mPCBFR4, mSomeBox, nullptr, mSomeTranslation);
+    }
     mPCBFR4 = new TGeoCompositeShape(boxCSName, mSomeSubtraction);
   }
 
   //Info("Create",Form("Cutting Boxes PCB_H%d_D%d", half,disk),0,0);
-  if (mNumberOfBoxAdd[disk] != 0)
+  if (mNumberOfBoxAdd[disk] != 0) {
     for (auto iBox = 0; iBox < mNumberOfBoxAdd[disk]; iBox++) {
       auto* boxName = Form("PCBBoxAdd_%d_H%d_D%d", iBox, half, disk);
       auto* boxCSName = Form("PCBBoxAddCS_%d_H%d_D%d", iBox, half, disk);
@@ -82,6 +84,7 @@ TGeoVolumeAssembly* PCBSupport::create(Int_t half, Int_t disk)
       mSomeUnion = new TGeoUnion(mPCBCu, mSomeBox, nullptr, mSomeTranslation);
       mPCBCu = new TGeoCompositeShape(boxCSName, mSomeUnion);
     }
+  }
 
   // =================  Holes ==================
 

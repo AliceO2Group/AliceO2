@@ -131,8 +131,9 @@ void GeometryTGeo::Build(Int_t loadTrans)
         mLadderId2Index[j].resize(numberOfLadders + 1);
         Int_t nL = 0;
         for (Int_t nSensor = MinSensorsPerLadder; nSensor <= MaxSensorsPerLadder; nSensor++) {
-          if (mNumberOfLadders[j][nSensor] == 0)
+          if (mNumberOfLadders[j][nSensor] == 0) {
             continue;
+          }
           Int_t n = extractNumberOfLadders(i, j, nSensor, nL);
         } // nSensor
 
@@ -473,8 +474,9 @@ void GeometryTGeo::extractSensorXAlpha(int index, float& x, float& alpha) {}
 //__________________________________________________________________________
 Bool_t GeometryTGeo::getSensorID(Int_t index, Int_t& half, Int_t& disk, Int_t& ladder, Int_t& sensor) const
 {
-  if (index < 0 || index >= mTotalNumberOfSensors)
+  if (index < 0 || index >= mTotalNumberOfSensors) {
     return kFALSE;
+  }
 
   half = index / (mTotalNumberOfSensors / mNumberOfHalves);
   index = index % (mTotalNumberOfSensors / mNumberOfHalves);

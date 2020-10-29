@@ -81,8 +81,9 @@ TGeoVolume* V3Services::createIBEndWheelsSideA(const TGeoManager* mgr)
   TGeoVolume* endWheelsVol = new TGeoVolumeAssembly("EndWheelsSideA");
   endWheelsVol->SetVisibility(kTRUE);
 
-  for (Int_t jLay = 0; jLay < sNumberInnerLayers; jLay++)
+  for (Int_t jLay = 0; jLay < sNumberInnerLayers; jLay++) {
     ibEndWheelSideA(jLay, endWheelsVol, mgr);
+  }
 
   // Return the wheels
   return endWheelsVol;
@@ -108,8 +109,9 @@ TGeoVolume* V3Services::createIBEndWheelsSideC(const TGeoManager* mgr)
   TGeoVolume* endWheelsVol = new TGeoVolumeAssembly("EndWheelsSideC");
   endWheelsVol->SetVisibility(kTRUE);
 
-  for (Int_t jLay = 0; jLay < sNumberInnerLayers; jLay++)
+  for (Int_t jLay = 0; jLay < sNumberInnerLayers; jLay++) {
     ibEndWheelSideC(jLay, endWheelsVol, mgr);
+  }
 
   // Return the wheels
   return endWheelsVol;
@@ -182,8 +184,9 @@ void V3Services::createMBEndWheelsSideA(TGeoVolume* mother, const TGeoManager* m
   // Created:      24 Sep 2019  Mario Sitta
   //
 
-  for (Int_t jLay = 0; jLay < sNumberMiddlLayers; jLay++)
+  for (Int_t jLay = 0; jLay < sNumberMiddlLayers; jLay++) {
     obEndWheelSideA(jLay, mother, mgr);
+  }
 }
 
 void V3Services::createMBEndWheelsSideC(TGeoVolume* mother, const TGeoManager* mgr)
@@ -202,8 +205,9 @@ void V3Services::createMBEndWheelsSideC(TGeoVolume* mother, const TGeoManager* m
   // Created:      26 Sep 2019  Mario Sitta
   //
 
-  for (Int_t jLay = 0; jLay < sNumberMiddlLayers; jLay++)
+  for (Int_t jLay = 0; jLay < sNumberMiddlLayers; jLay++) {
     mbEndWheelSideC(jLay, mother, mgr);
+  }
 }
 
 void V3Services::createOBEndWheelsSideA(TGeoVolume* mother, const TGeoManager* mgr)
@@ -222,8 +226,9 @@ void V3Services::createOBEndWheelsSideA(TGeoVolume* mother, const TGeoManager* m
   // Created:      27 Sep 2019  Mario Sitta
   //
 
-  for (Int_t jLay = 0; jLay < sNumberOuterLayers; jLay++)
+  for (Int_t jLay = 0; jLay < sNumberOuterLayers; jLay++) {
     obEndWheelSideA(jLay + sNumberMiddlLayers, mother, mgr);
+  }
 }
 
 void V3Services::createOBEndWheelsSideC(TGeoVolume* mother, const TGeoManager* mgr)
@@ -242,8 +247,9 @@ void V3Services::createOBEndWheelsSideC(TGeoVolume* mother, const TGeoManager* m
   // Created:      27 Sep 2019  Mario Sitta
   //
 
-  for (Int_t jLay = 0; jLay < sNumberOuterLayers; jLay++)
+  for (Int_t jLay = 0; jLay < sNumberOuterLayers; jLay++) {
     obEndWheelSideC(jLay, mother, mgr);
+  }
 }
 
 void V3Services::createOBConeSideA(TGeoVolume* mother, const TGeoManager* mgr)
@@ -668,10 +674,11 @@ void V3Services::ibEndWheelSideC(const Int_t iLay, TGeoVolume* endWheel, const T
     endwcbshmata->RegisterYourself();
     TGeoTranslation* endwcbshmatb = new TGeoTranslation(Form("endwcbshmat%dl%db", ihole, iLay), -xpos, -ypos, zpos);
     endwcbshmatb->RegisterYourself();
-    if ((ihole > 1 && ihole < 5) || (ihole > 5 && ihole < 9)) // Small holes
+    if ((ihole > 1 && ihole < 5) || (ihole > 5 && ihole < 9)) { // Small holes
       strcpy(holename, endwcbasShol->GetName());
-    else
+    } else {
       strcpy(holename, endwcbasBhol->GetName());
+    }
     endWheelComposite += Form("-%s:endwcbshmat%dl%da-%s:endwcbshmat%dl%db", holename, ihole, iLay, holename, ihole, iLay);
   }
 
@@ -1270,10 +1277,11 @@ TString V3Services::ibCreateHollowsCyssFlangeSideA(const Double_t zlen)
     cyssFlangeAHollows += Form("-roundhalf:roundtr%d-roundhalf:roundtr%d", j + 2, j + 5);
 
     phi = 360 - phi - 0.05;
-    if (j == 3)
+    if (j == 3) {
       dphi = 360 - sCyssFlangeAHollowPhi0 + 0.05;
-    else
+    } else {
       dphi = phi + (sCyssFlangeAHole1PhiStep - sCyssFlangeAHollowPhi1) + 0.1;
+    }
 
     TGeoTubeSeg* hollow1 = new TGeoTubeSeg(Form("hollow%d", j), rmin, rmax, 2 * zlen, phi, dphi);
 
@@ -1611,10 +1619,11 @@ void V3Services::obEndWheelSideA(const Int_t iLay, TGeoVolume* mother, const TGe
   // Finally put everything in the mother volume
   // In blueprints the Z position is given wrt the shelf holes
   // First the ring
-  if (iLay < sNumberMiddlLayers)
+  if (iLay < sNumberMiddlLayers) {
     zpos = sMBWheelsZpos + sOBWheelShelfHoleZpos;
-  else
+  } else {
     zpos = sOBWheelsZpos + sOBWheelShelfHoleZpos;
+  }
 
   zpos -= outerRingSh->GetDz();
   mother->AddNode(ringOuterVol, 1, new TGeoTranslation(0, 0, zpos));
@@ -1697,10 +1706,11 @@ void V3Services::mbEndWheelSideC(const Int_t iLay, TGeoVolume* mother, const TGe
   TGeoTube* innerRingSh = new TGeoTube(sOBWheelSuppRmin[iLay], sOBWheelSuppRmax[iLay], sOBWheelThickness / 2);
 
   // The outer ring with the flange
-  if (iLay == 0)
+  if (iLay == 0) {
     nsect = 6;
-  else
+  } else {
     nsect = 4;
+  }
 
   TGeoPcon* outerRingSh = new TGeoPcon(0, 360, nsect);
 
@@ -1722,17 +1732,19 @@ void V3Services::mbEndWheelSideC(const Int_t iLay, TGeoVolume* mother, const TGe
   }
 
   // The lower ring
-  if (iLay == 0)
+  if (iLay == 0) {
     zlen = sOBWheelSuppZlen[iLay] - sOBWheelFlangeZlen - 2 * sOBWheelThickness;
-  else
+  } else {
     zlen = sOBWheelSuppZlen[iLay] - sOBWheelThickness - outerRingSh->GetZ(nsect - 1);
+  }
 
   rmax = sOBWheelSuppRmin[iLay] + sOBWheelThickness;
   TGeoTube* lowerRingSh = new TGeoTube(sOBWheelSuppRmin[iLay], rmax, zlen / 2);
 
   // The upper ring
-  if (iLay == 1) // For odd layers the upper and lower rings length is the same
+  if (iLay == 1) { // For odd layers the upper and lower rings length is the same
     zlen = sOBWheelSuppZlen[iLay] - 2 * sOBWheelThickness;
+  }
 
   rmin = sOBWheelSuppRmax[iLay] - sOBWheelThickness;
   TGeoTube* upperRingSh = new TGeoTube(rmin, sOBWheelSuppRmax[iLay], zlen / 2);
@@ -1929,8 +1941,9 @@ void V3Services::obEndWheelSideC(const Int_t iLay, TGeoVolume* mother, const TGe
 
   mother->AddNode(ringLowerVol, 1, new TGeoTranslation(0, 0, -zpos));
 
-  if (iLay == 1)
+  if (iLay == 1) {
     zpos -= (sOBWheelThickness + (static_cast<TGeoTube*>(upperRingSh))->GetDz());
+  }
   mother->AddNode(ringUpperVol, 1, new TGeoTranslation(0, 0, -zpos));
 }
 
@@ -2165,10 +2178,11 @@ void V3Services::obConeTraysSideA(TGeoVolume* mother, const TGeoManager* mgr)
   // Finally put everything in the mother volume
 
   for (Int_t j = 0; j < 2; j++) {
-    if (j == 0)
+    if (j == 0) {
       zpos = sOBConesZpos - sOBTrayZpos[j] - sOBTrayZlen[j];
-    else
+    } else {
       zpos = sOBConesZpos + sOBTrayZpos[j];
+    }
 
     mother->AddNode(obTrayVol[j], 1, new TGeoTranslation(0, 0, zpos));
     mother->AddNode(obTrayVol[j], 2, new TGeoCombiTrans(0, 0, zpos, new TGeoRotation("", 180, 0, 0)));

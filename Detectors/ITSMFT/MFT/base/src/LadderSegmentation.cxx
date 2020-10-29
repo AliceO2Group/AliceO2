@@ -53,10 +53,11 @@ LadderSegmentation::LadderSegmentation(const LadderSegmentation& ladder)
 {
   // copy constructor
 
-  if (ladder.mChips)
+  if (ladder.mChips) {
     mChips = new TClonesArray(*(ladder.mChips));
-  else
+  } else {
     mChips = new TClonesArray("o2::mft::ChipSegmentation", mNSensors);
+  }
 
   mChips->SetOwner(kTRUE);
 }
@@ -142,8 +143,9 @@ void LadderSegmentation::createSensors(TXMLEngine* xml, XMLNodePointer_t node)
 ChipSegmentation* LadderSegmentation::getSensor(Int_t sensorID) const
 {
 
-  if (sensorID < 0 || sensorID >= mNSensors)
+  if (sensorID < 0 || sensorID >= mNSensors) {
     return nullptr;
+  }
 
   ChipSegmentation* chip = (ChipSegmentation*)mChips->At(sensorID);
 
@@ -159,7 +161,8 @@ void LadderSegmentation::print(Option_t* opt)
 
   getTransformation()->Print();
   if (opt && (strstr(opt, "sensor") || strstr(opt, "s"))) {
-    for (int i = 0; i < getNSensors(); i++)
+    for (int i = 0; i < getNSensors(); i++) {
       getSensor(i)->Print("");
+    }
   }
 }

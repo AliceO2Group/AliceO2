@@ -91,8 +91,9 @@ GPUhdi() Line::Line(const float firstPoint[3], const float secondPoint[3])
   float inverseNorm{1.f / gpu::CAMath::Sqrt(cosinesDirector[0] * cosinesDirector[0] + cosinesDirector[1] * cosinesDirector[1] +
                                             cosinesDirector[2] * cosinesDirector[2])};
 
-  for (int index{0}; index < 3; ++index)
+  for (int index{0}; index < 3; ++index) {
     cosinesDirector[index] *= inverseNorm;
+  }
 }
 
 GPUhdi() Line::Line(const Tracklet& tracklet, const Cluster* innerClusters, const Cluster* outerClusters)
@@ -108,8 +109,9 @@ GPUhdi() Line::Line(const Tracklet& tracklet, const Cluster* innerClusters, cons
   float inverseNorm{1.f / gpu::CAMath::Sqrt(cosinesDirector[0] * cosinesDirector[0] + cosinesDirector[1] * cosinesDirector[1] +
                                             cosinesDirector[2] * cosinesDirector[2])};
 
-  for (int index{0}; index < 3; ++index)
+  for (int index{0}; index < 3; ++index) {
     cosinesDirector[index] *= inverseNorm;
+  }
 }
 
 #ifdef _ALLOW_DEBUG_TREES_ITS_
@@ -150,8 +152,9 @@ GPUhdi() float Line::getDistanceFromPoint(const Line& line, const float point[3]
 {
   float DCASquared{0};
   float cdelta{0};
-  for (int i{0}; i < 3; ++i)
+  for (int i{0}; i < 3; ++i) {
     cdelta -= line.cosinesDirector[i] * (line.originPoint[i] - point[i]);
+  }
   for (int i{0}; i < 3; ++i) {
     DCASquared += (line.originPoint[i] - point[i] + line.cosinesDirector[i] * cdelta) *
                   (line.originPoint[i] - point[i] + line.cosinesDirector[i] * cdelta);
@@ -193,8 +196,9 @@ GPUhdi() float Line::getDCA(const Line& firstLine, const Line& secondLine, const
 GPUhdi() void Line::getDCAComponents(const Line& line, const float point[3], float destArray[6])
 {
   float cdelta{0.};
-  for (int i{0}; i < 3; ++i)
+  for (int i{0}; i < 3; ++i) {
     cdelta -= line.cosinesDirector[i] * (line.originPoint[i] - point[i]);
+  }
 
   destArray[0] = line.originPoint[0] - point[0] + line.cosinesDirector[0] * cdelta;
   destArray[3] = line.originPoint[1] - point[1] + line.cosinesDirector[1] * cdelta;

@@ -111,8 +111,9 @@ Bool_t Detector::ProcessHits(FairVolume* vol)
 
   Int_t copy;
   // Check if hit is into a MFT sensor volume
-  if (fMC->CurrentVolID(copy) != mftGeo->getSensorVolumeID())
+  if (fMC->CurrentVolID(copy) != mftGeo->getSensorVolumeID()) {
     return kFALSE;
+  }
 
   // Get The Sensor Unique ID
   Int_t sensorID = -1, ladderID = -1, diskID = -1, halfID = -1, level = 0;
@@ -155,10 +156,12 @@ Bool_t Detector::ProcessHits(FairVolume* vol)
   }
 
   // increment energy loss at all steps except entrance
-  if (!startHit)
+  if (!startHit) {
     mTrackData.mEnergyLoss += fMC->Edep();
-  if (!(startHit | stopHit))
+  }
+  if (!(startHit | stopHit)) {
     return kFALSE; // do noting
+  }
 
   if (startHit) {
 
@@ -263,10 +266,12 @@ void Detector::createMaterials()
   Float_t zRohacell[nRohacell] = {1., 6., 8.};
   Float_t wRohacell[nRohacell] = {0.0858, 0.5964, 0.3178};
   Float_t dRohacell;
-  if (Geometry::sGrooves == 0)
+  if (Geometry::sGrooves == 0) {
     dRohacell = 0.032 / (1 - 0.15); //  No grooves, water pipes outside rohacell ==> smaller thcikness, greater rohacell density by 15%
-  if (Geometry::sGrooves == 1)
+  }
+  if (Geometry::sGrooves == 1) {
     dRohacell = 0.032; // With grooves, usual rohacell density: 0.032 g/cm3 rohacell 31, 0.075 g/cm3 rohacell 71;
+  }
 
   // Polyimide pipe mixture
   const Int_t nPolyimide = 4;

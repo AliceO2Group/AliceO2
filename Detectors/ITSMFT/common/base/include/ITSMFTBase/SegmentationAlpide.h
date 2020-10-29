@@ -104,10 +104,12 @@ inline void SegmentationAlpide::localToDetectorUnchecked(float xRow, float zCol,
   zCol += 0.5 * ActiveMatrixSizeCols;                                               // coordinate wrt left edge of Active matrix
   iRow = int(xRow / PitchRow);
   iCol = int(zCol / PitchCol);
-  if (xRow < 0)
+  if (xRow < 0) {
     iRow -= 1;
-  if (zCol < 0)
+  }
+  if (zCol < 0) {
     iCol -= 1;
+  }
 }
 
 //_________________________________________________________________________________________________
@@ -148,8 +150,9 @@ inline void SegmentationAlpide::detectorToLocalUnchecked(float row, float col, m
 //_________________________________________________________________________________________________
 inline bool SegmentationAlpide::detectorToLocal(int iRow, int iCol, float& xRow, float& zCol)
 {
-  if (iRow < 0 || iRow >= NRows || iCol < 0 || iCol >= NCols)
+  if (iRow < 0 || iRow >= NRows || iCol < 0 || iCol >= NCols) {
     return false;
+  }
   detectorToLocalUnchecked(iRow, iCol, xRow, zCol);
   return true;
 }
@@ -157,8 +160,9 @@ inline bool SegmentationAlpide::detectorToLocal(int iRow, int iCol, float& xRow,
 //_________________________________________________________________________________________________
 inline bool SegmentationAlpide::detectorToLocal(float row, float col, float& xRow, float& zCol)
 {
-  if (row < 0 || row >= NRows || col < 0 || col >= NCols)
+  if (row < 0 || row >= NRows || col < 0 || col >= NCols) {
     return false;
+  }
   detectorToLocalUnchecked(row, col, xRow, zCol);
   return true;
 }
@@ -166,8 +170,9 @@ inline bool SegmentationAlpide::detectorToLocal(float row, float col, float& xRo
 //_________________________________________________________________________________________________
 inline bool SegmentationAlpide::detectorToLocal(float row, float col, math_utils::Point3D<float>& loc)
 {
-  if (row < 0 || row >= NRows || col < 0 || col >= NCols)
+  if (row < 0 || row >= NRows || col < 0 || col >= NCols) {
     return false;
+  }
   detectorToLocalUnchecked(row, col, loc);
   return true;
 }

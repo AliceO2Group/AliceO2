@@ -214,8 +214,9 @@ class ChipMappingITS
   {
     int sid = 0;
     for (int i = 0; i < NLayers; i++) {
-      if (i >= lr)
+      if (i >= lr) {
         break;
+      }
       sid += NStavesOnLr[i];
     }
     return sid + ruOnLr;

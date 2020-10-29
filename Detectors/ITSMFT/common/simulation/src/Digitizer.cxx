@@ -361,10 +361,12 @@ void Digitizer::registerDigits(ChipDigitsContainer& chip, UInt_t roFrame, float 
     if (nEleROF < mParams.getMinChargeToAccount()) {
       continue;
     }
-    if (roFr > mEventROFrameMax)
+    if (roFr > mEventROFrameMax) {
       mEventROFrameMax = roFr;
-    if (roFr < mEventROFrameMin)
+    }
+    if (roFr < mEventROFrameMin) {
       mEventROFrameMin = roFr;
+    }
     auto key = chip.getOrderingKey(roFr, row, col);
     PreDigit* pd = chip.findDigit(key);
     if (!pd) {

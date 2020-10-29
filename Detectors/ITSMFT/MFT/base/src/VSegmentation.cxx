@@ -38,8 +38,9 @@ void VSegmentation::setRotationAngles(const Double_t* ang)
 {
 
   /// Set Rotation Angles
-  if (!mTransformation)
+  if (!mTransformation) {
     mTransformation = new TGeoCombiTrans();
+  }
   auto* rot = new TGeoRotation();
   rot->SetAngles(ang[0], ang[1], ang[2]); // all angles in degrees
   mTransformation->SetRotation(rot);

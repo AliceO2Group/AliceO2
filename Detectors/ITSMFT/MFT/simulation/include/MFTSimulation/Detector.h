@@ -92,10 +92,11 @@ class Detector : public o2::base::DetImpl<Detector>
   void createMaterials();
   void setDensitySupportOverSi(Double_t density)
   {
-    if (density > 1e-6)
+    if (density > 1e-6) {
       mDensitySupportOverSi = density;
-    else
+    } else {
       mDensitySupportOverSi = 1e-6;
+    }
   }
 
   void createGeometry();

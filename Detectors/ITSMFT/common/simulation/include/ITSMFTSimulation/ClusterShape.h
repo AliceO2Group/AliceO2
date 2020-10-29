@@ -109,8 +109,9 @@ class ClusterShape : public TObject
     std::stringstream out;
     for (UInt_t i = 0; i < shape.size(); ++i) {
       out << shape[i];
-      if (i < shape.size() - 1)
+      if (i < shape.size() - 1) {
         out << " ";
+      }
     }
     return out.str();
   }
@@ -121,21 +122,26 @@ class ClusterShape : public TObject
     for (Int_t r = -1; r < (Int_t)v.mNrows; ++r) {
       for (UInt_t c = 0; c < v.mNcols; ++c) {
         if (r == -1) {
-          if (c == 0)
+          if (c == 0) {
             out << "  ";
+          }
           out << c;
-          if (c < v.mNcols - 1)
+          if (c < v.mNcols - 1) {
             out << " ";
+          }
         } else {
-          if (c == 0)
+          if (c == 0) {
             out << r << " ";
+          }
           index = r * v.mNcols + c;
-          if (std::find(begin(v.mShape), end(v.mShape), index) != end(v.mShape))
+          if (std::find(begin(v.mShape), end(v.mShape), index) != end(v.mShape)) {
             out << "X";
-          else
+          } else {
             out << " ";
-          if (c < v.mNcols - 1)
+          }
+          if (c < v.mNcols - 1) {
             out << " ";
+          }
         }
       }
       out << std::endl;

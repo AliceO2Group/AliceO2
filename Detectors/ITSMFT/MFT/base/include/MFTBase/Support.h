@@ -136,10 +136,11 @@ auto serialBoolOperation(L&& base, SHAPE&& shape, EL&& elements, OP&& op)
     localTranslation = new TGeoTranslation(par[3], par[4], par[5]);
 
     //The first subtraction needs a shape, the base shape
-    if (!localCS)
+    if (!localCS) {
       localCS = new TGeoCompositeShape(nullptr, compositeOperation(base, localshape, localTranslation, std::forward<OP>(op)));
-    else
+    } else {
       localCS = new TGeoCompositeShape(nullptr, compositeOperation(localCS, localshape, localTranslation, std::forward<OP>(op)));
+    }
   }
   return localCS;
 }

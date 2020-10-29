@@ -83,10 +83,11 @@ void BuildTopologyDictionary::setThreshold(double thr)
   mDictionary.mGroupMap.clear();
   mFrequencyThreshold = thr;
   for (auto& q : mTopologyFrequency) {
-    if (((double)q.first) / mTotClusters > thr)
+    if (((double)q.first) / mTotClusters > thr) {
       mNCommonTopologies++;
-    else
+    } else {
       break;
+    }
   }
 }
 
@@ -108,8 +109,9 @@ void BuildTopologyDictionary::setNCommon(unsigned int nCommon)
 void BuildTopologyDictionary::setThresholdCumulative(double cumulative)
 {
   mTopologyFrequency.clear();
-  if (cumulative <= 0. || cumulative >= 1.)
+  if (cumulative <= 0. || cumulative >= 1.) {
     cumulative = 0.99;
+  }
   double totFreq = 0.;
   for (auto&& p : mTopologyMap) { // p os pair<ulong,TopoStat>
     mTopologyFrequency.emplace_back(std::make_pair(p.second.countsTotal, p.first));
@@ -124,12 +126,14 @@ void BuildTopologyDictionary::setThresholdCumulative(double cumulative)
     totFreq += ((double)(q.first)) / mTotClusters;
     if (totFreq < cumulative) {
       mNCommonTopologies++;
-    } else
+    } else {
       break;
+    }
   }
   mFrequencyThreshold = ((double)(mTopologyFrequency[--mNCommonTopologies].first)) / mTotClusters;
-  while (std::fabs(((double)mTopologyFrequency[mNCommonTopologies].first) / mTotClusters - mFrequencyThreshold) < 1.e-15)
+  while (std::fabs(((double)mTopologyFrequency[mNCommonTopologies].first) / mTotClusters - mFrequencyThreshold) < 1.e-15) {
     mNCommonTopologies--;
+  }
   mFrequencyThreshold = ((double)mTopologyFrequency[mNCommonTopologies++].first) / mTotClusters;
 }
 
@@ -229,8 +233,9 @@ void BuildTopologyDictionary::groupRareTopologies()
     GroupStruct& gr = mDictionary.mVectorOfIDs[iKey];
     if (!gr.mIsGroup) {
       mDictionary.mCommonMap.insert(std::make_pair(gr.mHash, iKey));
-      if (gr.mPattern.getUsedBytes() == 1)
+      if (gr.mPattern.getUsedBytes() == 1) {
         mDictionary.mSmallTopologiesLUT[(gr.mPattern.getColumnSpan() - 1) * 255 + (int)gr.mPattern.mBitmap[2]] = iKey;
+      }
     } else {
       mDictionary.mGroupMap.insert(std::make_pair((int)(gr.mHash >> 32) & 0x00000000ffffffff, iKey));
     }

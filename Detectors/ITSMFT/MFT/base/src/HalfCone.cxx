@@ -1814,10 +1814,12 @@ TGeoVolumeAssembly* HalfCone::createHalfCone(Int_t half)
   // Positioning the layers
   MotherBoard0->AddNode(vMB0cu, 1);
   Int_t signe;
-  if (half == 0)
+  if (half == 0) {
     signe = -1;
-  if (half == 1)
+  }
+  if (half == 1) {
     signe = +1;
+  }
   auto* t_MB0fr4 = new TGeoTranslation("translation_fr4", 0.0, signe * (mMB0fr4 + mMB0cu[1]) / 2, 0.0);
   t_MB0fr4->RegisterYourself();
   MotherBoard0->AddNode(vMB0fr4, 1, t_MB0fr4);

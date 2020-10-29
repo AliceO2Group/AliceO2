@@ -209,8 +209,9 @@ void setupLinks(o2::itsmft::MC2RawEncoder<MAP>& m2r, std::string_view outDir, st
 
       for (int ir = 0; ir < nruLr; ir++) {
 
-        if (h != (ir / 4))
+        if (h != (ir / 4)) {
           continue;
+        }
 
         // RU software id
         ruSW = nruLr * ilr + (nruLr / 2) * (ir / 4) + (ir % 4);
