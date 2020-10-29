@@ -56,7 +56,7 @@ cat raw/*/*.cfg > rawAll.cfg
 for STAGE in "NOGPU" "WITHGPU"; do
 
   if [[ "$STAGE" = "WITHGPU" ]]; then
-    TPC_GPU_OPT="GPU_proc.deviceNum=0;GPU_global.deviceType=CUDA;GPU_proc.forceMemoryPoolSize=6000000000"
+    TPC_GPU_OPT="GPU_proc.deviceNum=0;GPU_global.deviceType=CUDA;GPU_proc.forceMemoryPoolSize=6000000000;GPU_proc.forceHostMemoryPoolSize=3000000000"
   else
     TPC_GPU_OPT="GPU_proc.forceHostMemoryPoolSize=${TPCTRACKERSCRATCHMEMORY}"
   fi
