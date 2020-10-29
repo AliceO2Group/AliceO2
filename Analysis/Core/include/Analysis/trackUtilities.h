@@ -21,9 +21,8 @@
 #include "Analysis/RecoDecay.h"
 
 /// Extracts track parameters from a track.
-/// \return o2::track::TrackPar
 template <typename T>
-auto getTrackPar(const T& track)
+o2::track::TrackPar getTrackPar(const T& track)
 {
   std::array<float, 5> arraypar = {track.y(), track.z(), track.snp(),
                                    track.tgl(), track.signed1Pt()};
