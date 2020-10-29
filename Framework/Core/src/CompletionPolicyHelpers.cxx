@@ -12,6 +12,7 @@
 #include "Framework/CompletionPolicy.h"
 #include "Framework/DeviceSpec.h"
 #include "Framework/CompilerBuiltins.h"
+#include "Framework/Logger.h"
 
 #include <cassert>
 #include <regex>
@@ -20,6 +21,51 @@ namespace o2
 {
 namespace framework
 {
+
+CompletionPolicy CompletionPolicyHelpers::defineByNameOrigin(std::string const& name, std::string const& origin, CompletionPolicy::CompletionOp op)
+{
+  auto matcher = [name](DeviceSpec const& device) -> bool {
+    return std::regex_match(device.name.begin(), device.name.end(), std::regex(name));
+  };
+
+  auto originReceived = std::make_shared<std::vector<uint64_t>>();
+
+  auto callback = [originReceived, origin, op](CompletionPolicy::InputSet inputRefs) -> CompletionPolicy::CompletionOp {
+    // update list of the start times of inputs with origin @origin
+    for (auto& ref : inputRefs) {
+      if (ref.header != nullptr) {
+        auto header = CompletionPolicyHelpers::getHeader<o2::header::DataHeader>(ref);
+        if (header->dataOrigin.str == origin) {
+          auto startTime = DataRefUtils::getHeader<DataProcessingHeader*>(ref)->startTime;
+          auto it = std::find(originReceived->begin(), originReceived->end(), startTime);
+          if (it == originReceived->end()) {
+            originReceived->emplace_back(startTime);
+          }
+        }
+      }
+    }
+
+    // find out if all inputs which are not of origin @origin have a corresponding entry in originReceived
+    // if one is missing then we have to wait
+    for (auto& ref : inputRefs) {
+      if (ref.header != nullptr) {
+        auto header = CompletionPolicyHelpers::getHeader<o2::header::DataHeader>(ref);
+        if (header->dataOrigin.str != origin) {
+          auto startTime = DataRefUtils::getHeader<DataProcessingHeader*>(ref)->startTime;
+          auto it = std::find(originReceived->begin(), originReceived->end(), startTime);
+          if (it == originReceived->end()) {
+            LOGP(INFO, "Have to wait until message of origin {} with startTime {} has arrived.", origin, startTime);
+            return CompletionPolicy::CompletionOp::Wait;
+          }
+        }
+      }
+    }
+    return op;
+  };
+  return CompletionPolicy{"wait-origin", matcher, callback};
+
+  O2_BUILTIN_UNREACHABLE();
+}
 
 CompletionPolicy CompletionPolicyHelpers::defineByName(std::string const& name, CompletionPolicy::CompletionOp op)
 {
