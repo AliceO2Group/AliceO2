@@ -46,8 +46,8 @@ double ConvertPhiRange(double phi)
 /// \param impactParameter variable to save the impact parameter in micrometers.
 /// \param impactParameterError variable to save the impact parameter error in micrometers.
 template <typename Track>
-void GetImpactParameterAndError(const Track& track, const o2df::VertexBase& primaryVertex,
-                                double& impactParameter, double& impactParameterError)
+bool GetImpactParameterAndError(const Track& track, const o2df::VertexBase& primaryVertex, double& impactParameter,
+                                double& impactParameterError)
 {
   impactParameter = -999.;
   impactParameterError = -999.;
@@ -62,6 +62,7 @@ void GetImpactParameterAndError(const Track& track, const o2df::VertexBase& prim
     impactParameter = 1000 * dca.getY();
     impactParameterError = 1000 * std::sqrt(dca.getSigmaY2());
   }
+  return propagate;
 }
 } // namespace track_utils
 
@@ -70,24 +71,21 @@ struct QAGlobalObservables {
   std::array<float, 2> collisionPositionRange = {-20., 20.};
   std::array<float, 2> numberOfTracksRange = {0, 2000};
 
-  o2fw::Configurable<int> nBinsNumberOfTracks{"nBinsNumberOfTracks", 2000,
-                                              "Number of bins fot the Number of Tracks"};
+  o2fw::Configurable<int> nBinsNumberOfTracks{"nBinsNumberOfTracks", 2000, "Number of bins fot the Number of Tracks"};
 
-  o2fw::Configurable<int> nBinsVertexPosition{"nBinsPt", 100,
-                                              "Number of bins for the Vertex Position"};
+  o2fw::Configurable<int> nBinsVertexPosition{"nBinsPt", 100, "Number of bins for the Vertex Position"};
 
-  o2fw::OutputObj<TH1F> hCollisionX{TH1F("collisionX", "; X [cm];Counts", nBinsVertexPosition,
-                                         collisionPositionRange[0], collisionPositionRange[1])};
+  o2fw::OutputObj<TH1F> hCollisionX{
+    TH1F("collisionX", "; X [cm];Counts", nBinsVertexPosition, collisionPositionRange[0], collisionPositionRange[1])};
 
-  o2fw::OutputObj<TH1F> hCollisionY{TH1F("collisionY", "; Y [cm];Counts", nBinsVertexPosition,
-                                         collisionPositionRange[0], collisionPositionRange[1])};
+  o2fw::OutputObj<TH1F> hCollisionY{
+    TH1F("collisionY", "; Y [cm];Counts", nBinsVertexPosition, collisionPositionRange[0], collisionPositionRange[1])};
 
-  o2fw::OutputObj<TH1F> hCollisionZ{TH1F("collisionZ", "; Z [cm];Counts", nBinsVertexPosition,
-                                         collisionPositionRange[0], collisionPositionRange[1])};
+  o2fw::OutputObj<TH1F> hCollisionZ{
+    TH1F("collisionZ", "; Z [cm];Counts", nBinsVertexPosition, collisionPositionRange[0], collisionPositionRange[1])};
 
-  o2fw::OutputObj<TH1F> hNumberOfTracks{TH1F("NumberOfTracks", "; Number of Tracks;Counts",
-                                             nBinsNumberOfTracks, numberOfTracksRange[0],
-                                             numberOfTracksRange[1])};
+  o2fw::OutputObj<TH1F> hNumberOfTracks{TH1F("NumberOfTracks", "; Number of Tracks;Counts", nBinsNumberOfTracks,
+                                             numberOfTracksRange[0], numberOfTracksRange[1])};
 
   void process(const o2::aod::Collision& collision, const o2::aod::Tracks& tracks)
   {
@@ -113,7 +111,7 @@ struct QATrackingKine {
 
   o2fw::OutputObj<TH1F> hPt{TH1F("pt", ";p_{T} [GeV];Counts", nBinsPt, ptRange[0], ptRange[1])};
   o2fw::OutputObj<TH1F> hEta{TH1F("eta", ";#eta;Counts", nBinsEta, etaRange[0], etaRange[1])};
-  o2fw::OutputObj<TH1F> hPhi{TH1F("phi", ";#phi;Counts", nBinsPhi, 0, 2 * M_PI)};
+  o2fw::OutputObj<TH1F> hPhi{TH1F("phi", ";#varphi [rad];Counts", nBinsPhi, 0, 2 * M_PI)};
 
   void process(const o2::aod::Track& track)
   {
@@ -125,67 +123,59 @@ struct QATrackingKine {
 
 /// Task to evaluate the tracking resolution (Pt, Eta, Phi and impact parameter)
 struct QATrackingResolution {
-  o2fw::Configurable<int> nBinsPtTrack{"nBinsPtTrack", 100,
-                                       "Number of bins for the transverse momentum"};
+  o2fw::Configurable<int> nBinsPtTrack{"nBinsPtTrack", 100, "Number of bins for the transverse momentum"};
   std::array<double, 2> ptRange = {0, 10.};
 
-  o2fw::Configurable<int> nBinsEtaTrack{"nBinsEtaTrack", 400,
-                                        "Number of bins for the pseudorapidity"};
+  o2fw::Configurable<int> nBinsEtaTrack{"nBinsEtaTrack", 400, "Number of bins for the pseudorapidity"};
   std::array<double, 2> etaRange = {-6, 6};
 
-  o2fw::Configurable<int> nBinsDeltaPt{"nBinsDeltaPt", 400,
-                                       "Number of bins for the transverse momentum differences"};
+  o2fw::Configurable<int> nBinsDeltaPt{"nBinsDeltaPt", 400, "Number of bins for the transverse momentum differences"};
 
-  o2fw::Configurable<int> nBinsDeltaPhi{"nBinsPhi", 100,
-                                        "Number of bins for the azimuthal angle differences"};
+  o2fw::Configurable<int> nBinsDeltaPhi{"nBinsPhi", 100, "Number of bins for the azimuthal angle differences"};
 
-  o2fw::Configurable<int> nBinsDeltaEta{"nBinsEta", 100,
-                                        "Number of bins for the pseudorapidity differences"};
+  o2fw::Configurable<int> nBinsDeltaEta{"nBinsEta", 100, "Number of bins for the pseudorapidity differences"};
 
-  o2fw::Configurable<int> nBinsImpactParameter{"nBinsImpactParameter", 1000,
-                                               "Number of bins for the Impact parameter"};
+  o2fw::Configurable<int> nBinsImpactParameter{"nBinsImpactParameter", 1000, "Number of bins for the Impact parameter"};
 
   std::array<double, 2> impactParameterRange = {-1500, 1500};       // micrometer
   std::array<double, 2> impactParameterResolutionRange = {0, 1000}; // micrometer
 
-  o2fw::OutputObj<TH1F> etaDiffMCRec{
-    TH1F("etaDiffMCReco", ";eta_{MC} - eta_{Rec}", nBinsDeltaEta, -2, 2)};
+  o2fw::OutputObj<TH1F> etaDiffMCRec{TH1F("etaDiffMCReco", ";#eta_{MC} - #eta_{Rec}", nBinsDeltaEta, -2, 2)};
 
   o2fw::OutputObj<TH1F> phiDiffMCRec{
-    TH1F("phiDiffMCRec", ";phi_{MC} - phi_{Rec}", nBinsDeltaPhi, -M_PI, M_PI)};
+    TH1F("phiDiffMCRec", ";#varphi_{MC} - #varphi_{Rec} [rad]", nBinsDeltaPhi, -M_PI, M_PI)};
 
-  o2fw::OutputObj<TH1F> ptDiffMCRec{
-    TH1F("ptDiffMCRec", ";p_{T}_{MC} - p_{T}_{Rec}", nBinsDeltaPt, -2., 2.)};
+  o2fw::OutputObj<TH1F> ptDiffMCRec{TH1F("ptDiffMCRec", ";p_{T}_{MC} - p_{T}_{Rec} [GeV/c]", nBinsDeltaPt, -2., 2.)};
 
   o2fw::OutputObj<TH1F> ptResolution{
-    TH1F("ptResolution", ";#frac{p_{T}_{MC} - p_{T}_{Rec}}{p_{T}_{Rec}} ", nBinsDeltaPt, -2., 2.)};
+    TH1F("ptResolution", ";(p_{T}_{MC} - p_{T}_{Rec})/(p_{T}_{Rec}) ", nBinsDeltaPt, -2., 2.)};
 
-  o2fw::OutputObj<TH2F> ptResolutionVsPt{
-    TH2F("ptResolutionVsPt", ";p_{T};Res p_{T}", nBinsPtTrack, 0., 10., nBinsDeltaPt, -2., 2.)};
+  o2fw::OutputObj<TH2F> ptResolutionVsPt{TH2F("ptResolutionVsPt",
+                                              ";p_{T} [GeV/c];(p_{T}_{MC} - p_{T}_{Rec})/(p_{T}_{Rec})", nBinsPtTrack,
+                                              ptRange[0], ptRange[1], nBinsDeltaPt, 0, 2.)};
 
-  o2fw::OutputObj<TH2F> ptResolutionVsEta{
-    TH2F("ptResolutionVsEta", ";#eta;Res p_{T}", nBinsEtaTrack, -4., 4., nBinsDeltaPt, -2., 2.)};
+  o2fw::OutputObj<TH2F> ptResolutionVsEta{TH2F("ptResolutionVsEta", ";#eta;(p_{T}_{MC} - p_{T}_{Rec})/(p_{T}_{Rec})",
+                                               nBinsEtaTrack, -4., 4., nBinsDeltaPt, -2., 2.)};
 
-  o2fw::OutputObj<TH2F> impactParameterVsPt{
-    TH2F("impactParameterVsPt", ";p_{T};Impact Parameter[#mu m]", nBinsPtTrack, ptRange[0],
-         ptRange[1], nBinsImpactParameter, impactParameterRange[0], impactParameterRange[1])};
+  o2fw::OutputObj<TH2F> impactParameterVsPt{TH2F("impactParameterVsPt", ";p_{T} [GeV/c];Impact Parameter [{#mu}m]",
+                                                 nBinsPtTrack, ptRange[0], ptRange[1], nBinsImpactParameter,
+                                                 impactParameterRange[0], impactParameterRange[1])};
 
-  o2fw::OutputObj<TH2F> impactParameterVsEta{
-    TH2F("impactParameterVsPt", "#eta;Impact Parameter[#mu m]", nBinsEtaTrack, etaRange[0],
-         etaRange[1], nBinsImpactParameter, impactParameterRange[0], impactParameterRange[1])};
+  o2fw::OutputObj<TH2F> impactParameterVsEta{TH2F("impactParameterVsEta", "#eta;Impact Parameter [{#mu}m]",
+                                                  nBinsEtaTrack, etaRange[0], etaRange[1], nBinsImpactParameter,
+                                                  impactParameterRange[0], impactParameterRange[1])};
 
   o2fw::OutputObj<TH2F> impactParameterErrorVsPt{
-    TH2F("impactParameterErrorVsPt", ";p_{T};Impact Parameter Error", nBinsPtTrack, ptRange[0],
+    TH2F("impactParameterErrorVsPt", ";p_{T} [GeV/c];Impact Parameter Error [#mum]", nBinsPtTrack, ptRange[0],
          ptRange[1], nBinsImpactParameter, impactParameterRange[0], impactParameterRange[1])};
 
   o2fw::OutputObj<TH2F> impactParameterErrorVsEta{
-    TH2F("impactParameterErrorVsEta", ";#eta;Impact Parameter Error", nBinsEtaTrack, etaRange[0],
-         etaRange[1], nBinsImpactParameter, impactParameterRange[0], impactParameterRange[1])};
+    TH2F("impactParameterErrorVsEta", ";#eta;Impact Parameter Error [#mum]", nBinsEtaTrack, etaRange[0], etaRange[1],
+         nBinsImpactParameter, 0, impactParameterRange[1])};
 
-  void process(
-    const o2::soa::Join<o2::aod::Collisions, o2::aod::McCollisionLabels>::iterator& collision,
-    const o2::soa::Join<o2::aod::Tracks, o2::aod::TracksCov, o2::aod::McTrackLabels>& tracks,
-    const o2::aod::McParticles& mcParticles, const o2::aod::McCollisions& mcCollisions)
+  void process(const o2::soa::Join<o2::aod::Collisions, o2::aod::McCollisionLabels>::iterator& collision,
+               const o2::soa::Join<o2::aod::Tracks, o2::aod::TracksCov, o2::aod::McTrackLabels>& tracks,
+               const o2::aod::McParticles& mcParticles, const o2::aod::McCollisions& mcCollisions)
   {
     const o2df::VertexBase primaryVertex = getPrimaryVertex(collision);
 
@@ -207,21 +197,22 @@ struct QATrackingResolution {
       double impactParameter{-999.};
       double impactParameterError{-999.};
 
-      track_utils::GetImpactParameterAndError(track, primaryVertex, impactParameter,
-                                              impactParameterError);
+      const bool propagate =
+        track_utils::GetImpactParameterAndError(track, primaryVertex, impactParameter, impactParameterError);
 
-      impactParameterVsPt->Fill(track.pt(), impactParameter);
-      impactParameterVsEta->Fill(track.eta(), impactParameter);
-      impactParameterErrorVsPt->Fill(track.pt(), impactParameterError);
-      impactParameterErrorVsEta->Fill(track.eta(), impactParameterError);
+      if (propagate) {
+        impactParameterVsPt->Fill(track.pt(), impactParameter);
+        impactParameterVsEta->Fill(track.eta(), impactParameter);
+        impactParameterErrorVsPt->Fill(track.pt(), impactParameterError);
+        impactParameterErrorVsEta->Fill(track.eta(), impactParameterError);
+      }
     }
   }
 };
 
 o2fw::WorkflowSpec defineDataProcessing(o2fw::ConfigContext const&)
 {
-  return o2fw::WorkflowSpec{
-    o2fw::adaptAnalysisTask<QAGlobalObservables>("qa-global-observables"),
-    o2fw::adaptAnalysisTask<QATrackingKine>("qa-tracking-kine"),
-    o2fw::adaptAnalysisTask<QATrackingResolution>("qa-tracking-resolution")};
+  return o2fw::WorkflowSpec{o2fw::adaptAnalysisTask<QAGlobalObservables>("qa-global-observables"),
+                            o2fw::adaptAnalysisTask<QATrackingKine>("qa-tracking-kine"),
+                            o2fw::adaptAnalysisTask<QATrackingResolution>("qa-tracking-resolution")};
 }
