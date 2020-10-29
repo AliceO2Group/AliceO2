@@ -125,8 +125,9 @@ bool DigitPixelReader::readNextEntry()
   // load next entry from the self-managed input
   auto nev = mInputTree->GetEntries();
   auto evID = mInputTree->GetReadEntry();
-  if (evID < -1)
+  if (evID < -1) {
     evID = -1;
+  }
   if (++evID < nev) {
     init();
     mInputTree->GetEntry(evID);

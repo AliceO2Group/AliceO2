@@ -27,8 +27,9 @@ ROframe::ROframe(const Int_t ROframeId) : mROframeId{ROframeId}
 Int_t ROframe::getTotalClusters() const
 {
   size_t totalClusters{0};
-  for (auto& clusters : mClusters)
+  for (auto& clusters : mClusters) {
     totalClusters += clusters.size();
+  }
   return Int_t(totalClusters);
 }
 
@@ -47,8 +48,9 @@ void ROframe::sortClusters()
   Int_t nClsInLayer, binPrevIndex, clsMinIndex, clsMaxIndex, jClsLayer;
   // sort the clusters in R-Phi
   for (Int_t iLayer = 0; iLayer < constants::mft::LayersNumber; ++iLayer) {
-    if (mClusters[iLayer].size() == 0)
+    if (mClusters[iLayer].size() == 0) {
       continue;
+    }
     // sort clusters in layer according to the bin index
     sort(mClusters[iLayer].begin(), mClusters[iLayer].end(),
          [](Cluster& c1, Cluster& c2) { return c1.indexTableBin < c2.indexTableBin; });
@@ -58,8 +60,9 @@ void ROframe::sortClusters()
     binPrevIndex = mClusters[iLayer].at(0).indexTableBin;
     clsMinIndex = 0;
     for (jClsLayer = 1; jClsLayer < nClsInLayer; ++jClsLayer) {
-      if (mClusters[iLayer].at(jClsLayer).indexTableBin == binPrevIndex)
+      if (mClusters[iLayer].at(jClsLayer).indexTableBin == binPrevIndex) {
         continue;
+      }
       clsMaxIndex = jClsLayer - 1;
       std::pair<Int_t, Int_t> pair1(clsMinIndex, clsMaxIndex);
       mClusterBinIndexRange[iLayer].insert(std::pair<Int_t, std::pair<Int_t, Int_t>>(binPrevIndex, pair1));

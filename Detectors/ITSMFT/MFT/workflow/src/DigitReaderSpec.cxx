@@ -46,8 +46,9 @@ void DigitReader::init(InitContext& ic)
 
 void DigitReader::run(ProcessingContext& pc)
 {
-  if (mState != 1)
+  if (mState != 1) {
     return;
+  }
 
   std::unique_ptr<TTree> treeDig((TTree*)mFile->Get("o2sim"));
 

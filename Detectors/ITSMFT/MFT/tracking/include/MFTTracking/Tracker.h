@@ -130,8 +130,9 @@ inline void Tracker::getRPhiProjectionBin(const Cluster& cluster1, const Int_t l
 inline Bool_t Tracker::getBinClusterRange(const ROframe& event, const Int_t layer, const Int_t bin, Int_t& clsMinIndex, Int_t& clsMaxIndex) const
 {
   const auto pair2 = event.getClusterBinIndexRange(layer).find(bin);
-  if (pair2 == event.getClusterBinIndexRange(layer).end())
+  if (pair2 == event.getClusterBinIndexRange(layer).end()) {
     return kFALSE;
+  }
   Int_t binIndex = pair2->first;
   // get the range in ordered cluster index within this bin
   std::pair<Int_t, Int_t> pair1 = pair2->second;
@@ -272,8 +273,9 @@ inline void Tracker::computeTracksMClabels(const T& tracks)
     }
     count = 0;
     for (int iCluster = 0; iCluster < nClusters; ++iCluster) {
-      if (track.getMCCompLabels()[iCluster] == maxOccurrencesValue)
+      if (track.getMCCompLabels()[iCluster] == maxOccurrencesValue) {
         count++;
+      }
     }
 
     auto labelratio = 1.0 * count / nClusters;
