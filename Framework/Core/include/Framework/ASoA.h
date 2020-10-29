@@ -956,7 +956,7 @@ class Table
     return filtered_iterator(mColumnChunks, {selection, mOffset});
   }
 
-  unfiltered_iterator iteratorAt(uint64_t i)
+  unfiltered_iterator iteratorAt(uint64_t i) const
   {
     return mBegin + (i - mOffset);
   }

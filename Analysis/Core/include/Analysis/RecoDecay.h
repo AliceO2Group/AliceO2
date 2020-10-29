@@ -25,6 +25,7 @@
 #include <TPDGCode.h>
 
 #include "CommonConstants/MathConstants.h"
+#include "Framework/Logger.h"
 
 using std::array;
 using namespace o2::constants::math;
@@ -402,6 +403,132 @@ class RecoDecay
     auto newMass = TDatabasePDG::Instance()->GetParticle(pdg)->Mass();
     mListMass.push_back(std::make_tuple(pdg, newMass));
     return newMass;
+  }
+
+  /// Check whether the reconstructed decay candidate is the expected decay.
+  /// \param particlesMC  table with MC particles
+  /// \param arrDaughters  array of candidate daughters
+  /// \param PDGMother  expected mother PDG code
+  /// \param arrPDGDaughters  array of expected daughter PDG codes
+  /// \param acceptAntiParticles  switch to accept the antiparticle version of the expected decay
+  /// \return true if PDG codes of the mother and daughters are correct, false otherwise
+  template <std::size_t N, typename T, typename U>
+  static bool isMCMatchedDecayRec(const T& particlesMC, const array<U, N>& arrDaughters, int PDGMother, array<int, N> arrPDGDaughters, bool acceptAntiParticles = false)
+  {
+    LOGF(debug, "isMCMatchedDecayRec: Expected mother PDG: %d", PDGMother);
+    int sgn = 1;                              // 1 if the expected mother is particle, -1 if antiparticle
+    array<o2::aod::McParticle, N> arrMothers; // array of mother particles
+    // loop over daughter particles
+    for (auto iProng = 0; iProng < N; ++iProng) {
+      auto particleI = arrDaughters[iProng].label(); // ith daughter particle
+      auto indexParticleIMother = particleI.mother0();
+      if (indexParticleIMother == -1) {
+        return false;
+      }
+      // Check mother PDG code.
+      auto particleIMother = particlesMC.iteratorAt(indexParticleIMother); // mother of the ith daughter
+      auto PDGParticleIMother = particleIMother.pdgCode();                 // PDG code of the mother of the ith daughter
+      LOGF(debug, "isMCMatchedDecayRec: Daughter %d mother PDG: %d", iProng, PDGParticleIMother);
+      if (PDGParticleIMother != sgn * PDGMother) {
+        if (acceptAntiParticles && iProng == 0 && PDGParticleIMother == -PDGMother) {
+          sgn = -1; // PDG code of the first daughter's mother determines whether the expected mother is a particle or antiparticle.
+        } else {
+          return false;
+        }
+      }
+      // Check daughter PDG code.
+      auto PDGParticleI = particleI.pdgCode(); // PDG code of the ith daughter
+      LOGF(debug, "isMCMatchedDecayRec: Daughter %d PDG: %d", iProng, PDGParticleI);
+      bool PDGFound = false; // Is the PDG code of this daughter among the remaining expected PDG codes?
+      for (auto iProngCp = 0; iProngCp < N; ++iProngCp) {
+        if (PDGParticleI == sgn * arrPDGDaughters[iProngCp]) {
+          arrPDGDaughters[iProngCp] = 0; // Remove this PDG code from the array of expected ones.
+          PDGFound = true;
+          break;
+        }
+      }
+      if (!PDGFound) {
+        return false;
+      }
+      arrMothers[iProng] = particleIMother;
+    }
+    // Check that all daughters have the same mother.
+    for (auto iProng = 1; iProng < N; ++iProng) {
+      if (arrMothers[iProng] != arrMothers[0]) {
+        return false;
+      }
+    }
+    LOGF(debug, "isMCMatchedDecayRec: Matched");
+    return true;
+  }
+
+  /// Check whether the MC particle is the expected one.
+  /// \param particlesMC  table with MC particles
+  /// \param candidate  candidate MC particle
+  /// \param PDGParticle  expected particle PDG code
+  /// \param acceptAntiParticles  switch to accept the antiparticle
+  /// \return true if PDG code of the particle is correct, false otherwise
+  template <typename T, typename U>
+  static bool isMCMatchedDecayGen(const T& particlesMC, const U& candidate, int PDGParticle, bool acceptAntiParticles = false)
+  {
+    return isMCMatchedDecayGen(particlesMC, candidate, PDGParticle, array{0}, acceptAntiParticles);
+  }
+
+  /// Check whether the MC particle is the expected one and whether it decayed via the expected decay channel.
+  /// \param particlesMC  table with MC particles
+  /// \param candidate  candidate MC particle
+  /// \param PDGParticle  expected particle PDG code
+  /// \param arrPDGDaughters  array of expected PDG codes of daughters
+  /// \param acceptAntiParticles  switch to accept the antiparticle
+  /// \return true if PDG codes of the particle and its daughters are correct, false otherwise
+  template <std::size_t N, typename T, typename U>
+  static bool isMCMatchedDecayGen(const T& particlesMC, const U& candidate, int PDGParticle, array<int, N> arrPDGDaughters, bool acceptAntiParticles = false)
+  {
+    LOGF(debug, "isMCMatchedDecayGen: Expected particle PDG: %d", PDGParticle);
+    int sgn = 1; // 1 if the expected mother is particle, -1 if antiparticle
+    // Check the PDG code of the particle.
+    auto PDGCandidate = candidate.pdgCode();
+    LOGF(debug, "isMCMatchedDecayGen: Candidate PDG: %d", PDGCandidate);
+    if (PDGCandidate != PDGParticle) {
+      if (acceptAntiParticles && PDGCandidate == -PDGParticle) {
+        sgn = -1;
+      } else {
+        return false;
+      }
+    }
+    // Check the PDG codes of the decay products.
+    if (N > 1) {
+      LOGF(debug, "isMCMatchedDecayGen: Checking %d daughters", N);
+      auto indexCandidateDaughterI = candidate.daughter0();
+      for (auto iProng = 0; iProng < N; ++iProng) {
+        if (iProng == 1) {
+          indexCandidateDaughterI = candidate.daughter1();
+        }
+        // FIXME: 3-prong decays
+        //else if (iProng == 2) {
+        //  indexCandidateDaughterI = candidate.daughter2();
+        //}
+        if (indexCandidateDaughterI == -1) {
+          return false;
+        }
+        auto candidateDaughterI = particlesMC.iteratorAt(indexCandidateDaughterI); // ith daughter particle
+        auto PDGCandidateDaughterI = candidateDaughterI.pdgCode();                 // PDG code of the ith daughter
+        LOGF(debug, "isMCMatchedDecayGen: Daughter %d PDG: %d", iProng, PDGCandidateDaughterI);
+        bool PDGFound = false; // Is the PDG code of this daughter among the remaining expected PDG codes?
+        for (auto iProngCp = 0; iProngCp < N; ++iProngCp) {
+          if (PDGCandidateDaughterI == sgn * arrPDGDaughters[iProngCp]) {
+            arrPDGDaughters[iProngCp] = 0; // Remove this PDG code from the array of expected ones.
+            PDGFound = true;
+            break;
+          }
+        }
+        if (!PDGFound) {
+          return false;
+        }
+      }
+    }
+    LOGF(debug, "isMCMatchedDecayGen: Matched");
+    return true;
   }
 
  private:

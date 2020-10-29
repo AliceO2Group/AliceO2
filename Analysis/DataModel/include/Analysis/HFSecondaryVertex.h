@@ -38,6 +38,7 @@ DECLARE_SOA_TABLE(HFSelTrack, "AOD", "HFSELTRACK",
                   hf_seltrack::DCAPrim1);
 
 using BigTracks = soa::Join<Tracks, TracksCov, TracksExtra, HFSelTrack, pidRespTPC, pidRespTOF>;
+using BigTracksMC = soa::Join<BigTracks, McTrackLabels>;
 
 // FIXME: this is a workaround until we get the index columns to work with joins.
 
@@ -129,6 +130,8 @@ DECLARE_SOA_DYNAMIC_COLUMN(ImpactParameterProduct, impactParameterProduct, [](fl
 DECLARE_SOA_DYNAMIC_COLUMN(M, m, [](float px0, float py0, float pz0, float px1, float py1, float pz1, const array<double, 2>& m) { return RecoDecay::M(array{array{px0, py0, pz0}, array{px1, py1, pz1}}, m); });
 DECLARE_SOA_DYNAMIC_COLUMN(M2, m2, [](float px0, float py0, float pz0, float px1, float py1, float pz1, const array<double, 2>& m) { return RecoDecay::M2(array{array{px0, py0, pz0}, array{px1, py1, pz1}}, m); });
 DECLARE_SOA_DYNAMIC_COLUMN(CosThetaStar, cosThetaStar, [](float px0, float py0, float pz0, float px1, float py1, float pz1, const array<double, 2>& m, double mTot, int iProng) { return RecoDecay::CosThetaStar(array{array{px0, py0, pz0}, array{px1, py1, pz1}}, m, mTot, iProng); });
+DECLARE_SOA_COLUMN(FlagMCMatchRec, flagMCMatchRec, uint8_t); // Rec MC matching result: 0 - not matched, 1 - matched D0(bar)
+DECLARE_SOA_COLUMN(FlagMCMatchGen, flagMCMatchGen, uint8_t); // Gen MC matching result: 0 - not matched, 1 - matched D0(bar)
 
 // functions for specific particles
 
@@ -231,6 +234,14 @@ DECLARE_SOA_EXTENDED_TABLE_USER(HfCandProng2Ext, HfCandProng2Base, "HFCANDP2EXT"
                                 hf_cand_prong2::Px, hf_cand_prong2::Py, hf_cand_prong2::Pz);
 
 using HfCandProng2 = HfCandProng2Ext;
+
+// table with results of reconstruction level MC matching
+DECLARE_SOA_TABLE(HfCandProng2MCRec, "AOD", "HFCANDP2MCREC",
+                  hf_cand_prong2::FlagMCMatchRec);
+
+// table with results of generator level MC matching
+DECLARE_SOA_TABLE(HfCandProng2MCGen, "AOD", "HFCANDP2MCGEN",
+                  hf_cand_prong2::FlagMCMatchGen);
 
 // specific 3-prong decay properties
 namespace hf_cand_prong3
