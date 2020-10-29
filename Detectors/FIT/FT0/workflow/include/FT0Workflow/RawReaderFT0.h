@@ -52,8 +52,9 @@ class RawReaderFT0 : public RawReaderFT0BaseNorm
     getDigits(mVecDigits, mVecChannelData);
     LOG(INFO) << "Number of Digits: " << mVecDigits.size();
     LOG(INFO) << "Number of ChannelData: " << mVecChannelData.size();
-    if (mDumpData)
+    if (mDumpData) {
       DigitBlockFT0::print(mVecDigits, mVecChannelData);
+    }
   }
   static void prepareOutputSpec(std::vector<o2::framework::OutputSpec>& outputSpec)
   {
@@ -91,8 +92,9 @@ class RawReaderFT0ext : public RawReaderFT0BaseExt
     LOG(INFO) << "Number of Digits: " << mVecDigitsExt.size();
     LOG(INFO) << "Number of ChannelData: " << mVecChannelData.size();
     LOG(INFO) << "Number of TriggerExt: " << mVecTrgExt.size();
-    if (mDumpData)
+    if (mDumpData) {
       DigitBlockFT0ext::print(mVecDigitsExt, mVecChannelData, mVecTrgExt);
+    }
   }
   static void prepareOutputSpec(std::vector<o2::framework::OutputSpec>& outputSpec)
   {

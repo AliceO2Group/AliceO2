@@ -31,10 +31,12 @@ framework::WorkflowSpec getFT0Workflow(bool isExtendedMode, bool useProcess,
   } else {
     specs.emplace_back(o2::ft0::getFT0DataReaderDPLSpec(RawReaderFT0{dumpReader}));
   }
-  if (useProcess)
+  if (useProcess) {
     specs.emplace_back(o2::ft0::getFT0DataProcessDPLSpec(dumpProcessor));
-  if (!disableRootOut)
+  }
+  if (!disableRootOut) {
     specs.emplace_back(o2::ft0::getFT0DigitWriterDPLSpec());
+  }
   return specs;
 }
 

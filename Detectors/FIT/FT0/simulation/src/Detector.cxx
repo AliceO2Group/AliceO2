@@ -478,8 +478,9 @@ void Detector::DefineOpticalProperties()
   // Path of the optical properties input file
   TString inputDir;
   const char* aliceO2env = std::getenv("O2_ROOT");
-  if (aliceO2env)
+  if (aliceO2env) {
     inputDir = aliceO2env;
+  }
   inputDir += "/share/Detectors/FT0/files/";
 
   TString optPropPath = inputDir + "quartzOptProperties.txt";
@@ -560,8 +561,9 @@ Bool_t Detector::RegisterPhotoE(float energy)
 {
   float eff = mPMTeff->Eval(energy);
   float p = gRandom->Rndm();
-  if (p > eff)
+  if (p > eff) {
     return kFALSE;
+  }
 
   return kTRUE;
 }
