@@ -84,8 +84,9 @@ CookedTracker::CookedTracker(Int_t n) : mNumOfThreads(n), mBz(0.)
   //--------------------------------------------------------------------
   const Double_t klRadius[7] = {2.34, 3.15, 3.93, 19.61, 24.55, 34.39, 39.34}; // tdr6
 
-  for (Int_t i = 0; i < kNLayers; i++)
+  for (Int_t i = 0; i < kNLayers; i++) {
     sLayers[i].setR(klRadius[i]);
+  }
 }
 
 //__________________________________________________________________________
@@ -104,8 +105,9 @@ Label CookedTracker::cookLabel(TrackITSExt& t, Float_t wrong) const
     auto labels = mClsLabels->getLabels(idx);
 
     for (auto lab : labels) { // check all labels of the cluster
-      if (lab.isEmpty())
+      if (lab.isEmpty()) {
         break; // all following labels will be empty also
+      }
       // was this label already accounted for ?
       labelOccurence[lab]++;
     }
@@ -113,8 +115,9 @@ Label CookedTracker::cookLabel(TrackITSExt& t, Float_t wrong) const
   Label lab;
   Int_t maxL = 0; // find most encountered label
   for (auto [label, count] : labelOccurence) {
-    if (count <= maxL)
+    if (count <= maxL) {
       continue;
+    }
     maxL = count;
     lab = label;
   }
@@ -146,8 +149,9 @@ static Double_t f1(Double_t x1, Double_t y1, Double_t x2, Double_t y2, Double_t 
   Double_t xr = TMath::Abs(d / (d * x1 - a)), yr = TMath::Abs(d / (d * y1 - b));
 
   Double_t crv = xr * yr / sqrt(xr * xr + yr * yr);
-  if (d > 0)
+  if (d > 0) {
     crv = -crv;
+  }
 
   return crv;
 }
@@ -307,8 +311,9 @@ void CookedTracker::makeSeeds(std::vector<TrackITSExt>& seeds, Int_t first, Int_
         auto r3 = xyz3.rho();
 
         zr3 = z1 + (r3 - r1) / (r2 - r1) * (z2 - z1);
-        if (std::abs(z3 - zr3) > 0.2 * dz3)
+        if (std::abs(z3 - zr3) > 0.2 * dz3) {
           continue;
+        }
 
         const Point3Df& txyz2 = c2->getXYZ(); // tracking coordinates
 
@@ -316,16 +321,19 @@ void CookedTracker::makeSeeds(std::vector<TrackITSExt>& seeds, Int_t first, Int_
 
         float ip[2];
         seed.getImpactParams(getX(), getY(), getZ(), getBz(), ip);
-        if (TMath::Abs(ip[0]) > kmaxDCAxy)
+        if (TMath::Abs(ip[0]) > kmaxDCAxy) {
           continue;
-        if (TMath::Abs(ip[1]) > kmaxDCAz)
+        }
+        if (TMath::Abs(ip[1]) > kmaxDCAz) {
           continue;
+        }
         {
           Double_t xx0 = 0.008; // Rough layer thickness
           Double_t radl = 9.36; // Radiation length of Si [cm]
           Double_t rho = 2.33;  // Density of Si [g/cm^3]
-          if (!seed.correctForMaterial(xx0, xx0 * radl * rho, kTRUE))
+          if (!seed.correctForMaterial(xx0, xx0 * radl * rho, kTRUE)) {
             continue;
+          }
         }
         seed.setClusterIndex(kSeedingLayer1, n1);
         seed.setClusterIndex(kSeedingLayer3, n3);
@@ -393,31 +401,39 @@ void CookedTracker::trackSeeds(std::vector<TrackITSExt>& seeds)
     Int_t ci = -1;
     TrackITSExt t3(track);
     for (auto& ci3 : selec[3]) {
-      if (used[3][ci3])
+      if (used[3][ci3]) {
         continue;
-      if (!attachCluster(volID, 3, ci3, t3, track))
+      }
+      if (!attachCluster(volID, 3, ci3, t3, track)) {
         continue;
+      }
 
       TrackITSExt t2(t3);
       for (auto& ci2 : selec[2]) {
-        if (used[2][ci2])
+        if (used[2][ci2]) {
           continue;
-        if (!attachCluster(volID, 2, ci2, t2, t3))
+        }
+        if (!attachCluster(volID, 2, ci2, t2, t3)) {
           continue;
+        }
 
         TrackITSExt t1(t2);
         for (auto& ci1 : selec[1]) {
-          if (used[1][ci1])
+          if (used[1][ci1]) {
             continue;
-          if (!attachCluster(volID, 1, ci1, t1, t2))
+          }
+          if (!attachCluster(volID, 1, ci1, t1, t2)) {
             continue;
+          }
 
           TrackITSExt t0(t1);
           for (auto& ci0 : selec[0]) {
-            if (used[0][ci0])
+            if (used[0][ci0]) {
               continue;
-            if (!attachCluster(volID, 0, ci0, t0, t1))
+            }
+            if (!attachCluster(volID, 0, ci0, t0, t1)) {
               continue;
+            }
             if (t0.isBetter(best, kmaxChi2PerTrack)) {
               best = t0;
             }
@@ -559,8 +575,9 @@ std::tuple<int, int> CookedTracker::processLoadedClusters(TrackInserter& inserte
     seedArray[t] = futures[t].get();
     nSeeds += seedArray[t].size();
     for (auto& track : seedArray[t]) {
-      if (track.getNumberOfClusters() < kminNumberOfClusters)
+      if (track.getNumberOfClusters() < kminNumberOfClusters) {
         continue;
+      }
       nAllTracks = inserter(track);
       nTracks++;
       if (mTrkLabels) {
@@ -631,8 +648,9 @@ int CookedTracker::loadClusters()
   // sort them, distribute over the internal tracker arrays, etc
   //--------------------------------------------------------------------
 
-  if (mClusterCache.empty())
+  if (mClusterCache.empty()) {
     return 0;
+  }
 
   for (const auto& c : mClusterCache) {
     Int_t layer = mGeom->getLayer(c.getSensorID());
@@ -642,13 +660,15 @@ int CookedTracker::loadClusters()
   std::vector<std::future<void>> fut;
   for (Int_t l = 0; l < kNLayers; l += mNumOfThreads) {
     for (Int_t t = 0; t < mNumOfThreads; t++) {
-      if (l + t >= kNLayers)
+      if (l + t >= kNLayers) {
         break;
+      }
       auto f = std::async(std::launch::async, &CookedTracker::Layer::init, sLayers + (l + t));
       fut.push_back(std::move(f));
     }
-    for (Int_t t = 0; t < fut.size(); t++)
+    for (Int_t t = 0; t < fut.size(); t++) {
       fut[t].wait();
+    }
   }
 
   return mClusterCache.size();
@@ -660,8 +680,9 @@ void CookedTracker::unloadClusters()
   // This function unloads ITSU clusters from the RAM
   //--------------------------------------------------------------------
   mClusterCache.clear();
-  for (Int_t i = 0; i < kNLayers; i++)
+  for (Int_t i = 0; i < kNLayers; i++) {
     sLayers[i].unloadClusters();
+  }
 }
 
 const Cluster* CookedTracker::getCluster(Int_t index) const
@@ -705,8 +726,9 @@ void CookedTracker::Layer::init()
     mSectors[s < kNSectors ? s : kNSectors - 1].emplace_back(i, c->getZ());
   }
 
-  if (m)
+  if (m) {
     mR = r / m;
+  }
 }
 
 void CookedTracker::Layer::unloadClusters()
@@ -717,8 +739,9 @@ void CookedTracker::Layer::unloadClusters()
   mClusters.clear();
   mAlphaRef.clear();
   mPhi.clear();
-  for (Int_t s = 0; s < kNSectors; s++)
+  for (Int_t s = 0; s < kNSectors; s++) {
     mSectors[s].clear();
+  }
 }
 
 Bool_t CookedTracker::Layer::insertCluster(const Cluster* c)
@@ -770,8 +793,9 @@ void CookedTracker::Layer::selectClusters(std::vector<Int_t>& selec, Float_t phi
         if (cdphi > kPI) {
           cdphi = k2PI - cdphi;
         }
-        if (cdphi > dphi)
+        if (cdphi > dphi) {
           continue; // check in Phi
+        }
       }
       selec.push_back(i);
     }
@@ -792,8 +816,9 @@ Bool_t CookedTracker::attachCluster(Int_t& volID, Int_t nl, Int_t ci, TrackITSEx
     volID = vid;
     t = o;
     Double_t alpha = layer.getAlphaRef(ci);
-    if (!t.propagate(alpha, c->getX(), getBz()))
+    if (!t.propagate(alpha, c->getX(), getBz())) {
       return kFALSE;
+    }
   }
 
   Double_t chi2 = t.getPredictedChi2(*c);
@@ -818,6 +843,7 @@ void CookedTracker::setGeometry(o2::its::GeometryTGeo* geom)
 {
   /// attach geometry interface
   mGeom = geom;
-  for (Int_t i = 0; i < kNLayers; i++)
+  for (Int_t i = 0; i < kNLayers; i++) {
     sLayers[i].setGeometry(geom);
+  }
 }

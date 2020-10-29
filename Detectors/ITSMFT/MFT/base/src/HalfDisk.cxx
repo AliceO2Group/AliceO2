@@ -141,8 +141,9 @@ void HalfDisk::createLadders()
   for (Int_t iLadder = 0; iLadder < mSegmentation->getNLadders(); iLadder++) {
 
     LadderSegmentation* ladderSeg = mSegmentation->getLadder(iLadder);
-    if (!ladderSeg)
+    if (!ladderSeg) {
       Fatal("CreateLadders", Form("No Segmentation found for ladder %d ", iLadder), 0, 0);
+    }
     auto* ladder = new Ladder(ladderSeg);
     TGeoVolume* ladVol = ladder->createVolume();
 

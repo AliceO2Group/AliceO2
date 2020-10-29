@@ -209,8 +209,9 @@ class ChipMappingMFT
   {
     int sid = 0;
     for (int i = 0; i < NLayers; i++) {
-      if (i >= layer)
+      if (i >= layer) {
         break;
+      }
       sid += NZonesPerLayer;
     }
     return sid + ruOnLayer;

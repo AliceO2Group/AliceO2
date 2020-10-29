@@ -83,8 +83,9 @@ inline TrackingParameters& TrackingParameters::operator=(const TrackingParameter
   this->MinTrackLength = t.MinTrackLength;
   /// Trackleting cuts
   this->TrackletMaxDeltaPhi = t.TrackletMaxDeltaPhi;
-  for (int iT = 0; iT < constants::its::TrackletsPerRoad; ++iT)
+  for (int iT = 0; iT < constants::its::TrackletsPerRoad; ++iT) {
     this->TrackletMaxDeltaZ[iT] = t.TrackletMaxDeltaZ[iT];
+  }
   /// Cell finding cuts
   this->CellMaxDeltaTanLambda = t.CellMaxDeltaTanLambda;
   this->CellMaxDeltaPhi = t.CellMaxDeltaPhi;
@@ -103,10 +104,12 @@ inline TrackingParameters& TrackingParameters::operator=(const TrackingParameter
 inline MemoryParameters& MemoryParameters::operator=(const MemoryParameters& t)
 {
   this->MemoryOffset = t.MemoryOffset;
-  for (int iC = 0; iC < constants::its::CellsPerRoad; ++iC)
+  for (int iC = 0; iC < constants::its::CellsPerRoad; ++iC) {
     this->CellsMemoryCoefficients[iC] = t.CellsMemoryCoefficients[iC];
-  for (int iT = 0; iT < constants::its::TrackletsPerRoad; ++iT)
+  }
+  for (int iT = 0; iT < constants::its::TrackletsPerRoad; ++iT) {
     this->TrackletsMemoryCoefficients[iT] = t.TrackletsMemoryCoefficients[iT];
+  }
   return *this;
 }
 
