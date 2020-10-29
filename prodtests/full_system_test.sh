@@ -52,13 +52,22 @@ taskwrapper tofraw.log o2-tof-reco-workflow ${GLOBALDPLOPT} --tof-raw-file-for l
 taskwrapper midraw.log o2-mid-digits-to-raw-workflow ${GLOBALDPLOPT} --mid-raw-outdir raw/MID --mid-raw-perlink  --configKeyValues '"HBFUtils.nHBFPerTF=128;HBFUtils.orbitFirst=0"'
 cat raw/*/*.cfg > rawAll.cfg
 
-ARGS_ALL="--session default"
-taskwrapper reco.log "o2-raw-file-reader-workflow $ARGS_ALL --configKeyValues \"HBFUtils.nHBFPerTF=128\" --delay $TFDELAY --loop $NTIMEFRAMES --max-tf 0 --input-conf rawAll.cfg |  
+# We run the workflow in both CPU-only and With-GPU mode
+for STAGE in "NOGPU" "WITHGPU"; do
+
+  if [[ "$STAGE" = "WITHGPU" ]]; then
+    TPC_GPU_OPT="GPU_proc.deviceNum=0;GPU_global.deviceType=CUDA;GPU_proc.forceMemoryPoolSize=6000000000;GPU_proc.forceHostMemoryPoolSize=3000000000"
+  else
+    TPC_GPU_OPT="GPU_proc.forceHostMemoryPoolSize=${TPCTRACKERSCRATCHMEMORY}"
+  fi
+
+  ARGS_ALL="--session default"
+  taskwrapper reco_${STAGE}.log "o2-raw-file-reader-workflow $ARGS_ALL --configKeyValues \"HBFUtils.nHBFPerTF=128\" --delay $TFDELAY --loop $NTIMEFRAMES --max-tf 0 --input-conf rawAll.cfg |  
 o2-itsmft-stf-decoder-workflow $ARGS_ALL  |  
 o2-itsmft-stf-decoder-workflow $ARGS_ALL --runmft true  |  
 o2-its-reco-workflow $ARGS_ALL --trackerCA ${NOMCLABELS} --clusters-from-upstream --disable-root-output --entropy-encoding --configKeyValues \"fastMultConfig.cutMultClusLow=30;fastMultConfig.cutMultClusHigh=2000;fastMultConfig.cutMultVtxHigh=500\" |  
 o2-itsmft-entropy-encoder-workflow $ARGS_ALL --runmft true |  
-o2-tpc-reco-workflow $ARGS_ALL --input-type=zsraw ${NOMCLABELS} --output-type tracks,clusters,encoded-clusters,disable-writer --configKeyValues \"HBFUtils.nHBFPerTF=128;GPU_proc.forceHostMemoryPoolSize=${TPCTRACKERSCRATCHMEMORY}\" |  
+o2-tpc-reco-workflow $ARGS_ALL --input-type=zsraw ${NOMCLABELS} --output-type tracks,clusters,encoded-clusters,disable-writer --configKeyValues \"HBFUtils.nHBFPerTF=128;${TPC_GPU_OPT}\" |  
 o2-ft0-flp-dpl-workflow $ARGS_ALL --disable-root-output |  
 o2-ft0-reco-workflow $ARGS_ALL --disable-root-input --disable-root-output ${NOMCLABELS} |  
 o2-ft0-entropy-encoder-workflow $ARGS_ALL  |  
@@ -68,3 +77,5 @@ o2-mid-entropy-encoder-workflow $ARGS_ALL |
 o2-tof-compressor $ARGS_ALL |  
 o2-tof-reco-workflow $ARGS_ALL --configKeyValues \"HBFUtils.nHBFPerTF=128\" --input-type raw --output-type ctf,clusters,matching-info --disable-root-output  ${NOMCLABELS}  |  
 o2-tpc-scdcalib-interpolation-workflow $ARGS_ALL --disable-root-output --disable-root-input --shm-segment-size $SHMSIZE ${GLOBALDPLOPT}"
+
+done
