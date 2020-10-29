@@ -81,7 +81,7 @@ void LHCClockCalibrator::finalizeSlot(Slot& slot)
             << c->getEntries() << " entries";
   std::vector<float> fitValues;
   float* array = &c->histo[0];
-  int fitres = fitGaus(c->nbins, array, -(c->range), c->range, fitValues);
+  double fitres = fitGaus(c->nbins, array, -(c->range), c->range, fitValues);
   if (fitres >= 0) {
     LOG(INFO) << "Fit result " << fitres << " Mean = " << fitValues[1] << " Sigma = " << fitValues[2];
   } else {
