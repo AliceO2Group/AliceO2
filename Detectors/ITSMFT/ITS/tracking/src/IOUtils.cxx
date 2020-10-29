@@ -73,7 +73,7 @@ void ioutils::convertCompactClusters(gsl::span<const itsmft::CompClusterExt> clu
       }
     } else {
       o2::itsmft::ClusterPattern patt(pattIt);
-      locXYZ = dict.getClusterCoordinates(c, patt);
+      locXYZ = dict.getClusterCoordinates(c, patt, false);
     }
     auto& cl3d = output.emplace_back(c.getSensorID(), geom->getMatrixT2L(c.getSensorID()) ^ locXYZ); // local --> tracking
     cl3d.setErrors(sigmaY2, sigmaZ2, sigmaYZ);
@@ -172,7 +172,7 @@ void ioutils::loadEventData(ROframe& event, gsl::span<const itsmft::CompClusterE
       }
     } else {
       o2::itsmft::ClusterPattern patt(pattIt);
-      locXYZ = dict.getClusterCoordinates(c, patt);
+      locXYZ = dict.getClusterCoordinates(c, patt, false);
     }
     auto sensorID = c.getSensorID();
     // Inverse transformation to the local --> tracking
@@ -221,7 +221,7 @@ int ioutils::loadROFrameData(const o2::itsmft::ROFRecord& rof, ROframe& event, g
       }
     } else {
       o2::itsmft::ClusterPattern patt(pattIt);
-      locXYZ = dict.getClusterCoordinates(c, patt);
+      locXYZ = dict.getClusterCoordinates(c, patt, false);
     }
     auto sensorID = c.getSensorID();
     // Inverse transformation to the local --> tracking

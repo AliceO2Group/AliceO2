@@ -309,10 +309,13 @@ void Clusterer::ClustererThread::streamCluster(const std::vector<PixelData>& pix
   }
   uint16_t pattID = (isHuge || parent->mPattIdConverter.size() == 0) ? CompCluster::InvalidPatternID : parent->mPattIdConverter.findGroupID(rowSpanW, colSpanW, patt);
   if (pattID == CompCluster::InvalidPatternID || parent->mPattIdConverter.isGroup(pattID)) {
-    float xCOG = 0., zCOG = 0.;
-    ClusterPattern::getCOG(rowSpanW, colSpanW, patt, xCOG, zCOG);
-    rowMin += round(xCOG);
-    colMin += round(zCOG);
+    if (pattID != CompCluster::InvalidPatternID) {
+      //For groupped topologies, the reference pixel is the COG pixel
+      float xCOG = 0., zCOG = 0.;
+      ClusterPattern::getCOG(rowSpanW, colSpanW, patt, xCOG, zCOG);
+      rowMin += round(xCOG);
+      colMin += round(zCOG);
+    }
     if (patternsPtr) {
       patternsPtr->emplace_back((unsigned char)rowSpanW);
       patternsPtr->emplace_back((unsigned char)colSpanW);
