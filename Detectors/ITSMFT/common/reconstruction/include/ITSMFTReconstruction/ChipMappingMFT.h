@@ -61,10 +61,10 @@ class ChipMappingMFT
   static constexpr Int_t getNRUs() { return NRUs; }
 
   ///< get FEEId of the RU (software id of the RU), read via given link
-  uint8_t FEEId2RUSW(uint16_t hw) const { return mFEEId2RUSW[hw]; }
+  uint8_t FEEId2RUSW(uint16_t hw) const { return mFEEId2RUSW[hw & 0xff]; }
 
   ///< get HW id of the RU (software id of the RU)
-  uint16_t RUSW2FEEId(uint16_t sw, uint16_t linkID = 0) const { return mRUInfo[sw].idHW; }
+  uint16_t RUSW2FEEId(uint16_t sw, uint16_t linkID = 0) const { return ((linkID << 8) + mRUInfo[sw].idHW); }
 
   ///< compose FEEid for given stave (ru) relative to layer and link, see documentation in the constructor
   uint16_t composeFEEId(uint16_t layer, uint16_t ruOnLayer, uint16_t link) const
@@ -78,14 +78,14 @@ class ChipMappingMFT
     auto ddisk = std::div(layer, 2);
     uint16_t disk = ddisk.quot;
     uint16_t plane = layer % 2;
-    return (half << 6) + (disk << 3) + (plane << 2) + zone;
+    return (link << 8) + (half << 6) + (disk << 3) + (plane << 2) + zone;
   }
 
   ///< decompose FEEid to layer, stave (ru) relative to layer, link, see documentation in the constructor
   void expandFEEId(uint16_t feeID, uint16_t& layer, uint16_t& ruOnLayer, uint16_t& link) const
   {
-    link = 0;
-    uint16_t half = feeID >> 6;
+    link = feeID >> 8;
+    uint16_t half = (feeID >> 6) & 0x1;
     uint16_t disk = (feeID >> 3) & 0x7;
     uint16_t plane = (feeID >> 2) & 0x1;
     uint16_t zone = feeID & 0x3;
