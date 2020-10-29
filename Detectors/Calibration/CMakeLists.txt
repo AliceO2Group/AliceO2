@@ -8,16 +8,30 @@
 # granted to it by virtue of its status as an Intergovernmental Organization or
 # submit itself to any jurisdiction.
 
-o2_add_header_only_library(DetectorsCalibration
-                           INTERFACE_LINK_LIBRARIES O2::Headers
-	                                            O2::CCDB
-                                                    O2::CommonUtils
-	                                            ms_gsl::ms_gsl)
+o2_add_library(DetectorsCalibration
+               SOURCES src/TimeSlot.cxx
+		       src/TimeSlotCalibration.cxx
+		       src/Utils.cxx
+		       src/MeanVertexData.cxx
+		       src/MeanVertexCalibrator.cxx
+		       src/MeanVertexParams.cxx
+	       PUBLIC_LINK_LIBRARIES O2::Headers
+	       			     O2::CCDB
+                                     O2::CommonUtils
+				     ROOT::Minuit
+	                             ms_gsl::ms_gsl
+				     O2::ReconstructionDataFormats
+				     O2::SimConfig
+				     O2::DataFormatsCalibration)
+				     
 
-#o2_target_root_dictionary(DetectorsCalibration
-#                          HEADERS include/DetectorsCalibration/TimeSlotCalibration.h
-#			          include/DetectorsCalibration/TimeSlot.h
-#			          include/DetectorsCalibration/Utils.h)
+o2_target_root_dictionary(DetectorsCalibration
+                          HEADERS include/DetectorsCalibration/TimeSlotCalibration.h
+			          include/DetectorsCalibration/TimeSlot.h
+			          include/DetectorsCalibration/Utils.h
+				  include/DetectorsCalibration/MeanVertexData.h
+				  include/DetectorsCalibration/MeanVertexCalibrator.h
+				  include/DetectorsCalibration/MeanVertexParams.h)
 
 o2_add_executable(ccdb-populator-workflow
                   COMPONENT_NAME calibration
@@ -27,3 +41,5 @@ o2_add_executable(ccdb-populator-workflow
 	                                O2::DetectorsCalibration
 					O2::DataFormatsTOF
 					O2::CCDB)
+
+add_subdirectory(workflow)

@@ -473,7 +473,7 @@ void TOFChannelCalibrator::finalizeSlot(Slot& slot)
       }
     }
 
-    int fitres = fitGaus(c->getNbins(), histoValues.data(), -(c->getRange()), c->getRange(), fitValues);
+    double fitres = fitGaus(c->getNbins(), histoValues.data(), -(c->getRange()), c->getRange(), fitValues);
 
     if (fitValues[2] < 0)
       fitValues[2] = -fitValues[2];
