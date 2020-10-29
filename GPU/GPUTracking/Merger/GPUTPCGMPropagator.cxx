@@ -155,11 +155,20 @@ GPUd() int GPUTPCGMPropagator::RotateToAlpha(float newAlpha)
   float trackX = x0 * cc + ss * mT->Y();
 
   // transport t0 to trackX
-  float B[3];
-  GetBxByBz(newAlpha, t0.X(), t0.Y(), t0.Z(), B);
   float dLp = 0;
-  if (t0.PropagateToXBxByBz(trackX, B[0], B[1], B[2], dLp)) {
-    return -1;
+  float Bz;
+  if (mPropagateBzOnly) {
+    Bz = GetBzBase(newCosAlpha, newSinAlpha, t0.X(), t0.Y(), t0.Z());
+    if (t0.PropagateToXBzLight(trackX, Bz, dLp)) {
+      return -1;
+    }
+  } else {
+    float B[3];
+    GetBxByBz(newAlpha, t0.X(), t0.Y(), t0.Z(), B);
+    Bz = B[2];
+    if (t0.PropagateToXBxByBz(trackX, B[0], B[1], B[2], dLp)) {
+      return -1;
+    }
   }
 
   if (CAMath::Abs(t0.SinPhi()) >= mMaxSinPhi) {
@@ -233,7 +242,7 @@ GPUd() int GPUTPCGMPropagator::RotateToAlpha(float newAlpha)
   // only covariance changes. Use rotated and transported t0 for linearisation
   float j3 = -t0.Py() / t0.Px();
   float j4 = -t0.Pz() / t0.Px();
-  float j5 = t0.QPt() * B[2];
+  float j5 = t0.QPt() * Bz;
 
   //                    Y  Z Sin DzDs q/p  X
   // Jacobian J1 = { {  1, 0, 0,  0,  0,  j3 }, // Y
