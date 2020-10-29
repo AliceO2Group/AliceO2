@@ -69,12 +69,14 @@ float Response::etocharge(float edepos)
   //expression in PH, i.e. ADC!
   int nel = int(edepos * 1.e9 / 27.4);
   float charge = 0;
-  if (nel == 0)
+  if (nel == 0) {
     nel = 1;
+  }
   for (int i = 1; i <= nel; i++) {
     float arg = 0.;
-    while (!arg)
+    while (!arg) {
       arg = gRandom->Rndm();
+    }
     charge -= mChargeSlope * TMath::Log(arg);
   }
   //no translation to fC, as in Aliroot
@@ -117,10 +119,12 @@ unsigned long Response::response(unsigned long adc)
 
   adc = TMath::Nint(adc_out + pedestalMean + adcNoise + 0.5);
 
-  if (adc_out < TMath::Nint(pedestalMean + fgNSigma * pedestalSigma + 0.5))
+  if (adc_out < TMath::Nint(pedestalMean + fgNSigma * pedestalSigma + 0.5)) {
     adc = 0;
-  if (adc > mMaxADC)
+  }
+  if (adc > mMaxADC) {
     adc = mMaxADC;
+  }
   return adc;
 }
 //______________________________________________________________________

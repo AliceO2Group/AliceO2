@@ -221,8 +221,9 @@ void createFrames()
   for (int i = 1; i <= kNFrames; i++) {
 
     // in this loop, we only create box frames
-    if (i == 3 || i == 7)
+    if (i == 3 || i == 7) {
       continue; // go to next frame
+    }
 
     // create the frame
     auto frame = new TGeoVolumeAssembly(Form("Frame %d", i));
@@ -325,8 +326,9 @@ TGeoVolume* createQuadrant()
   const double kSegXPos[kNSegments] = {kSegmentRadius[0] + kBoxSegHalfLength[0], 0., -kBoxSegHalfLength[2]};
   const double kSegYPos[kNSegments] = {-kBoxSegHalfHeight[0], 0., kSegmentRadius[0] + kBoxSegHalfHeight[2]};
 
-  for (int i = 0; i < kNSegments; i++)
+  for (int i = 0; i < kNSegments; i++) {
     quadrant->AddNode(createSegment(i), 0, new TGeoTranslation(kSegXPos[i], kSegYPos[i], 0.));
+  }
 
   // create and place the frames in the quadrant
   createFrames();
@@ -354,9 +356,10 @@ TGeoVolume* createQuadrant()
     kSegYPos[0], // frame n°8 aligned with the segment 0
   };
 
-  for (int i = 1; i <= kNFrames; i++)
+  for (int i = 1; i <= kNFrames; i++) {
     quadrant->AddNode(gGeoManager->GetVolume(Form("Frame %d", i)), 1,
                       new TGeoTranslation(kFrameXPos[i - 1], kFrameYPos[i - 1], 0.));
+  }
 
   return quadrant;
 }
@@ -399,8 +402,9 @@ void createStation2Geometry(TGeoVolume& topVolume)
 
       if (i == 0 || i == 3) {
         in->AddNode(quadrant, detElemID, new TGeoCombiTrans(0., 0., z, rot[i]));
-      } else
+      } else {
         out->AddNode(quadrant, detElemID, new TGeoCombiTrans(0., 0., z, rot[i]));
+      }
     }
 
     // place the half-chambers in the top volume

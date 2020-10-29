@@ -674,8 +674,9 @@ void createFrame(int chamber)
     vy[15] = 0.;
 
     // shift center in the middle
-    for (int i = 0; i < nv; i++)
+    for (int i = 0; i < nv; i++) {
       vy[i] += dy4 / 2;
+    }
 
     TGeoXtru* xtruS1 = new TGeoXtru(nz);
     xtruS1->DefinePolygon(nv, vx, vy);
@@ -1119,8 +1120,9 @@ void createFrame(int chamber)
     x = kDeltaQuadLHC + scruX[i] + 0.1;
     y = kDeltaQuadLHC + scruY[i] + 0.1;
     Mlayer->AddNode(vol43, i + 1, new TGeoTranslation(x, y, z - kHzInHFrame - kSCRUHLE));
-    if (chamber == 1)
+    if (chamber == 1) {
       gGeoManager->GetVolume("SQ40")->AddNode(vol44, i + 1, new TGeoTranslation(x - kMidHXPos, y - kMidHYPos, z - kMidHZPos));
+    }
 
     Mlayer->AddNode(vol45, i + 1, new TGeoTranslation(x, y, z + kHzInHFrame + kSCRUNLE));
   }
@@ -1134,8 +1136,9 @@ void createFrame(int chamber)
 
   Mlayer->AddNode(vol43, kNScrews, new TGeoTranslation(x, y, z - kHzInHFrame - kSCRUHLE));
 
-  if (chamber == 1)
+  if (chamber == 1) {
     gGeoManager->GetVolume("SQ40")->AddNode(vol44, kNScrews, new TGeoTranslation(x - kMidHXPos, y - kMidHYPos, z - kMidHZPos));
+  }
 
   Mlayer->AddNode(vol45, kNScrews, new TGeoTranslation(x, y, z + kHzInHFrame + kSCRUNLE));
 
@@ -1162,8 +1165,9 @@ void createFrame(int chamber)
 
     Mlayer->AddNode(vol43, i, new TGeoTranslation(x, y, z - kHzInHFrame - kSCRUHLE));
 
-    if (chamber == 1)
+    if (chamber == 1) {
       gGeoManager->GetVolume("SQ00")->AddNode(vol44, i, new TGeoTranslation(x - kMidVXPos, y - kMidVYPos, z - kMidVZPos));
+    }
 
     Mlayer->AddNode(vol45, i, new TGeoTranslation(x, y, z + kHzInHFrame + kSCRUNLE));
   }
@@ -1189,8 +1193,9 @@ void createFrame(int chamber)
     y = kDeltaQuadLHC + scruY[i - 1] + 0.1;
 
     Mlayer->AddNode(vol43, i, new TGeoTranslation(x, y, z - kHzInHFrame - kSCRUHLE));
-    if (chamber == 1)
+    if (chamber == 1) {
       gGeoManager->GetVolume("SQ25")->AddNode(vol44, i, new TGeoTranslation(x - kMidOVXPos, y - kMidOVYPos, z - kMidOVZPos));
+    }
 
     Mlayer->AddNode(vol45, i, new TGeoTranslation(x, y, z + kHzInHFrame + kSCRUNLE));
   }
@@ -1200,8 +1205,9 @@ void createFrame(int chamber)
   y = kDeltaQuadLHC + scruY[firstScrew - 1] + 0.1 - kMidHYPos;
   z = -kMidHZPos;
 
-  if (chamber == 1)
+  if (chamber == 1) {
     gGeoManager->GetVolume("SQ40")->AddNode(vol44, firstScrew, new TGeoTranslation(x, y, z));
+  }
 
   // inner arc of Frame, screw positions and numbers
   firstScrew = 58;
@@ -1223,8 +1229,9 @@ void createFrame(int chamber)
 
     Mlayer->AddNode(vol43, i + 1, new TGeoTranslation(x, y, z - kHzInHFrame - kSCRUHLE));
 
-    if (chamber == 1)
+    if (chamber == 1) {
       gGeoManager->GetVolume("SQ42")->AddNode(vol44, i + 1, new TGeoTranslation(x - kMidArcXPos, y - kMidArcYPos, z - kMidArcZPos));
+    }
 
     Mlayer->AddNode(vol45, i + 1, new TGeoTranslation(x, y, z + kHzInHFrame + kSCRUNLE));
   }
@@ -1261,28 +1268,32 @@ TGeoVolume* createPlaneSegment(int iSegment, float halfLength, float halfHeight,
     y = 0.75;
     z = -0.1;
 
-    if (is267or351)
+    if (is267or351) {
       y += kPadYOffsetBP;
+    }
 
     foam->AddNode(gGeoManager->GetVolume("Spacer5A"), 1, new TGeoTranslation(x, y, z));
 
     y = -0.75;
-    if (is267or351)
+    if (is267or351) {
       y += kPadYOffsetBP;
+    }
 
     foam->AddNode(gGeoManager->GetVolume("Spacer5A"), 2, new TGeoTranslation(x, y, z));
 
     y = 0.;
     z = 1.1515;
-    if (is267or351)
+    if (is267or351) {
       y += kPadYOffsetBP;
+    }
 
     foam->AddNode(gGeoManager->GetVolume("Spacer6"), 1, new TGeoTranslation(x, y, z));
 
     y = 0.;
     z = 0.;
-    if (is267or351)
+    if (is267or351) {
       y += kPadYOffsetBP;
+    }
 
     foam->AddNode(gGeoManager->GetVolume("Spacer7A"), 1, new TGeoTranslation(x, y, z));
   }
@@ -1570,8 +1581,9 @@ void createStation1Geometry(TGeoVolume& topVolume)
 
       if (x[i] > 0) {
         in->AddNode(quadrant, detElemID, new TGeoCombiTrans(x[i], y[i], z, rot[i]));
-      } else
+      } else {
         out->AddNode(quadrant, detElemID, new TGeoCombiTrans(x[i], y[i], z, rot[i]));
+      }
     }
 
     // place the half-chambers in the top volume

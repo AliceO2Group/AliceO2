@@ -86,10 +86,11 @@ void CellConverterSpec::run(framework::ProcessingContext& ctx)
       }
 
       ChannelType_t chantype;
-      if (dig.isHighGain())
+      if (dig.isHighGain()) {
         chantype = ChannelType_t::HIGH_GAIN;
-      else
+      } else {
         chantype = ChannelType_t::LOW_GAIN;
+      }
 
       //    TODO!!! TRU copying...
       //    if (dig.getTRU())

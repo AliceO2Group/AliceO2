@@ -26,42 +26,52 @@ void CalibDB::init()
 
 void CalibDB::storeBadChannelMap(BadChannelMap* bcm, const std::map<std::string, std::string>& metadata, ULong_t rangestart, ULong_t rangeend)
 {
-  if (!mInit)
+  if (!mInit) {
     init();
+  }
   mCCDBManager.storeAsTFile(new o2::TObjectWrapper<o2::phos::BadChannelMap>(bcm), "BadChannelMap/PHS", metadata, rangestart, rangeend);
 }
 
 BadChannelMap* CalibDB::readBadChannelMap(ULong_t timestamp, const std::map<std::string, std::string>& metadata)
 {
-  if (!mInit)
+  if (!mInit) {
     init();
+  }
   auto result = mCCDBManager.retrieveFromTFile("BadChannelMap/PHS", metadata, timestamp);
-  if (!result)
+  if (!result) {
     throw ObjectNotFoundException(mCCDBServer, "BadChannelMap/PHS", metadata, timestamp);
-  if (result->IsA() != TObjectWrapper<o2::phos::BadChannelMap>::Class())
+  }
+  if (result->IsA() != TObjectWrapper<o2::phos::BadChannelMap>::Class()) {
     throw TypeMismatchException("TObjectWrapper<o2::phos::BadChannelMap>", result->IsA()->GetName());
+  }
   auto wrap = dynamic_cast<TObjectWrapper<o2::phos::BadChannelMap>*>(result);
-  if (!wrap)
+  if (!wrap) {
     throw TypeMismatchException("TObjectWrapper<o2::phos::BadChannelMap>", result->IsA()->GetName()); // type checked before - should not enter here
+  }
   return wrap->getObj();
 }
 void CalibDB::storeCalibParams(CalibParams* prms, const std::map<std::string, std::string>& metadata, ULong_t rangestart, ULong_t rangeend)
 {
-  if (!mInit)
+  if (!mInit) {
     init();
+  }
   mCCDBManager.storeAsTFile(new o2::TObjectWrapper<o2::phos::CalibParams>(prms), "CalibParams/PHS", metadata, rangestart, rangeend);
 }
 CalibParams* CalibDB::readCalibParams(ULong_t timestamp, const std::map<std::string, std::string>& metadata)
 {
-  if (!mInit)
+  if (!mInit) {
     init();
+  }
   auto result = mCCDBManager.retrieveFromTFile("CalibParams/PHS", metadata, timestamp);
-  if (!result)
+  if (!result) {
     throw ObjectNotFoundException(mCCDBServer, "CalibParams/PHS", metadata, timestamp);
-  if (result->IsA() != TObjectWrapper<o2::phos::CalibParams>::Class())
+  }
+  if (result->IsA() != TObjectWrapper<o2::phos::CalibParams>::Class()) {
     throw TypeMismatchException("TObjectWrapper<o2::phos::CalibParams>", result->IsA()->GetName());
+  }
   auto wrap = dynamic_cast<TObjectWrapper<o2::phos::CalibParams>*>(result);
-  if (!wrap)
+  if (!wrap) {
     throw TypeMismatchException("TObjectWrapper<o2::phos::CalibParams>", result->IsA()->GetName()); // type checked before - should not enter here
+  }
   return wrap->getObj();
 }

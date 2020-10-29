@@ -97,8 +97,9 @@ o2::framework::WorkflowSpec getWorkflow(bool propagateMC,
                                                     o2::framework::OutputSpec{"PHS", ""}}, // it empty, do not create
                                                   propagateMC, false));
 
-    if (enableDigitsPrinter)
+    if (enableDigitsPrinter) {
       specs.emplace_back(o2::phos::reco_workflow::getPhosDigitsPrinterSpec());
+    }
 
     if (isEnabled(OutputType::Cells)) {
       // add converter for cells

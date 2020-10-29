@@ -46,8 +46,9 @@ Magnet::Magnet(const Magnet& rhs) = default;
 Magnet& Magnet::operator=(const Magnet& rhs)
 {
   // self assignment
-  if (this == &rhs)
+  if (this == &rhs) {
     return *this;
+  }
 
   // base class assignment
   PassiveBase::operator=(rhs);

@@ -159,8 +159,9 @@ void FrameStructure::createWebFrame(const char* name, float dHz, float theta0, f
   float theta = TMath::Pi() / 2.;
   float phi = TMath::ACos(TMath::Cos(theta0) * TMath::Cos(phi0));
 
-  if (phi0 < 0)
+  if (phi0 < 0) {
     phi = -phi;
+  }
 
   phi *= krad2deg;
   theta *= krad2deg;
@@ -801,8 +802,9 @@ void FrameStructure::ConstructGeometry()
     char name[16];
     // official module numbering
     int mod = i + 13;
-    if (mod > 17)
+    if (mod > 17) {
       mod -= 18;
+    }
     snprintf(name, 16, "BSEGMO%d", mod);
     //
     TGeoVolume* voTRD1 = new TGeoVolume(name, shCS, kMedAir);
@@ -810,8 +812,9 @@ void FrameStructure::ConstructGeometry()
     // Place volume i
     float phi1 = i * 20.;
     float phi2 = 270. + phi1;
-    if (phi2 >= 360.)
+    if (phi2 >= 360.) {
       phi2 -= 360.;
+    }
     dx = TMath::Sin(phi1 * kdeg2rad) * r;
     dy = -TMath::Cos(phi1 * kdeg2rad) * r;
 
@@ -1041,28 +1044,36 @@ void FrameStructure::ConstructGeometry()
     jmod = isec_1[index];
     float dz1 = dz + 3. + (zpos - 4.);
     dx0 = (hR + dz0 + zpos - 4.) * tan10 - (longW / 2. + 0.2) / cos10 - 0.05;
-    if (jmod != 5)
+    if (jmod != 5) {
       vmc->Gspos("BTRDR_10", 2 * jmod + 1, module[jmod], dx0, 0.0, dz1, idrotm[2096], "ONLY");
-    if (jmod != 13)
+    }
+    if (jmod != 13) {
       vmc->Gspos("BTRDR_10", 2 * jmod + 2, module[jmod], -dx0, 0.0, dz1, idrotm[2086], "ONLY");
+    }
     dx0 -= 0.5;
-    if (jmod != 5)
+    if (jmod != 5) {
       vmc->Gspos("BTRDR_12", 2 * jmod + 1, module[jmod], dx0, 0.0, dz1, idrotm[2096], "ONLY");
-    if (jmod != 13)
+    }
+    if (jmod != 13) {
       vmc->Gspos("BTRDR_12", 2 * jmod + 2, module[jmod], -dx0, 0.0, dz1, idrotm[2087], "ONLY");
+    }
     dz1 += (4 - 0.2);
     dz1 += dext;
     dx0 = (hR + dz0 + zpos - 0.2) * tan10 - (longW / 2. + 3. + 0.4) / cos10;
-    if (jmod != 5)
+    if (jmod != 5) {
       vmc->Gspos("BTRDR_11", 2 * jmod + 1, module[jmod], dx0, 0.0, dz1, 0, "ONLY");
-    if (jmod != 13)
+    }
+    if (jmod != 13) {
       vmc->Gspos("BTRDR_11", 2 * jmod + 2, module[jmod], -dx0, 0.0, dz1, 0, "ONLY");
+    }
     dz1 -= 0.3;
     dx0 -= 0.5;
-    if (jmod != 5)
+    if (jmod != 5) {
       vmc->Gspos("BTRDR_14", 2 * jmod + 1, module[jmod], dx0, 0.0, dz1, 0, "ONLY");
-    if (jmod != 13)
+    }
+    if (jmod != 13) {
       vmc->Gspos("BTRDR_14", 2 * jmod + 2, module[jmod], -dx0, 0.0, dz1, 0, "ONLY");
+    }
   }
 
   // Pos 2
@@ -1116,10 +1127,12 @@ void FrameStructure::ConstructGeometry()
 
   for (int index = 0; index < 9; index++) {
     jmod = isec_3[index];
-    if (index > 1)
+    if (index > 1) {
       vmc->Gspos("BTRDR_3", 2 * jmod + 1, module[jmod], 50.96 - 5 - 2., 0.0, dz + 3.7, 0, "ONLY");
-    if (index < 7)
+    }
+    if (index < 7) {
       vmc->Gspos("BTRDR_3", 2 * jmod + 2, module[jmod], -50.96 + 5 + 2., 0.0, dz + 3.7, 0, "ONLY");
+    }
   }
   //
   // Fixation Blocks with tie anchors
@@ -1234,29 +1247,37 @@ void FrameStructure::ConstructGeometry()
 
   for (int index = 0; index < 11; index++) {
     int imod = isec_1[index];
-    if (imod != 5)
+    if (imod != 5) {
       vmc->Gspos("BTRD_FBAS2", index, module[imod], dx, -yFB1, zTA1, idrotm[2097], "ONLY");
+    }
 
-    if (imod != 13)
+    if (imod != 13) {
       vmc->Gspos("BTRD_FBAS1", 11 + index, module[imod], -dx, -yFB1, zTA1, idrotm[2087], "ONLY");
+    }
 
-    if (imod != 5)
+    if (imod != 5) {
       vmc->Gspos("BTRD_FBAS1", 22 + index, module[imod], dx, yFB1, zTA1, idrotm[2096], "ONLY");
+    }
 
-    if (imod != 13)
+    if (imod != 13) {
       vmc->Gspos("BTRD_FBAS2", 33 + index, module[imod], -dx, yFB1, zTA1, idrotm[2086], "ONLY");
+    }
 
-    if (imod != 5)
+    if (imod != 5) {
       vmc->Gspos("BTRD_FBAS4", index, module[imod], dx, -yFB2, zTA1, idrotm[2097], "ONLY");
+    }
 
-    if (imod != 13)
+    if (imod != 13) {
       vmc->Gspos("BTRD_FBAS3", 11 + index, module[imod], -dx, -yFB2, zTA1, idrotm[2087], "ONLY");
+    }
 
-    if (imod != 5)
+    if (imod != 5) {
       vmc->Gspos("BTRD_FBAS3", 22 + index, module[imod], dx, yFB2, zTA1, idrotm[2096], "ONLY");
+    }
 
-    if (imod != 13)
+    if (imod != 13) {
       vmc->Gspos("BTRD_FBAS4", 33 + index, module[imod], -dx, yFB2, zTA1, idrotm[2086], "ONLY");
+    }
   }
 
   //
@@ -1307,8 +1328,9 @@ void FrameStructure::ConstructGeometry()
   yxtru1[6] = -6.0;
 
   double xxtru2[7];
-  for (i = 0; i < 7; i++)
+  for (i = 0; i < 7; i++) {
     xxtru2[i] = -xxtru1[i];
+  }
 
   double xxtru3[5];
   double yxtru3[5];
@@ -1319,8 +1341,9 @@ void FrameStructure::ConstructGeometry()
   }
   xxtru3[4] = xxtru1[6];
   yxtru3[4] = yxtru1[6];
-  for (i = 0; i < 5; i++)
+  for (i = 0; i < 5; i++) {
     xxtru4[i] = -xxtru3[i];
+  }
 
   shBTOFS2->DefinePolygon(7, xxtru1, yxtru1);
   shBTOFS2->DefineSection(0, -4.);
@@ -1376,8 +1399,9 @@ void FrameStructure::ConstructGeometry()
   asTOFS01->SetVisibility(1);
 
   for (i = 0; i < 18; i++) {
-    if (i >= 4 && i <= 8)
+    if (i >= 4 && i <= 8) {
       continue;
+    }
     float phi1 = i * 20.;
     float phi2 = 270. + phi1;
     rot1 = new TGeoRotation(Form("TOFS_R1_%d", i), 90.0, phi1, 90., phi2, 0., 0.);

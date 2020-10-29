@@ -33,8 +33,9 @@ void Hit::PrintStream(std::ostream& stream) const
 
 Bool_t Hit::operator<(const Hit& rhs) const
 {
-  if (GetDetectorID() == rhs.GetDetectorID())
+  if (GetDetectorID() == rhs.GetDetectorID()) {
     return GetTrackID() < rhs.GetTrackID();
+  }
   return GetDetectorID() < rhs.GetDetectorID();
 }
 
@@ -45,8 +46,9 @@ Bool_t Hit::operator==(const Hit& rhs) const
 
 Hit& Hit::operator+=(const Hit& rhs)
 {
-  if (rhs.GetEnergyLoss() > GetEnergyLoss())
+  if (rhs.GetEnergyLoss() > GetEnergyLoss()) {
     SetTime(rhs.GetTime());
+  }
   SetEnergyLoss(GetEnergyLoss() + rhs.GetEnergyLoss());
   return *this;
 }
@@ -54,8 +56,9 @@ Hit& Hit::operator+=(const Hit& rhs)
 Hit Hit::operator+(const Hit& rhs) const
 {
   Hit result(*this);
-  if (rhs.GetEnergyLoss() > result.GetEnergyLoss())
+  if (rhs.GetEnergyLoss() > result.GetEnergyLoss()) {
     result.SetTime(rhs.GetTime());
+  }
   result.SetEnergyLoss(result.GetEnergyLoss() + rhs.GetEnergyLoss());
   return *this;
 }

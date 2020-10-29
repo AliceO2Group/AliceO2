@@ -296,8 +296,9 @@ class DataDecoderTask
 
     decodeTF(pc, digits);
     for (auto&& input : pc.inputs()) {
-      if (input.spec->binding == "readout")
+      if (input.spec->binding == "readout") {
         decodeReadout(input, digits);
+      }
     }
 
     if (mPrint) {

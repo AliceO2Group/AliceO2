@@ -249,8 +249,9 @@ void Digitizer::mergeDigits(std::vector<Digit>& digits, o2::dataformats::MCTruth
 void Digitizer::fillOutputContainer(std::vector<Digit>& digits)
 {
   // filling the digit container
-  if (mDigits.empty())
+  if (mDigits.empty()) {
     return;
+  }
 
   digits.clear();
   digits.reserve(mDigits.size());
@@ -285,8 +286,9 @@ void Digitizer::provideMC(o2::dataformats::MCTruthContainer<o2::MCCompLabel>& mc
 {
   //fill MCtruth info
   mcContainer.clear();
-  if (mMCTruthOutputContainer.getNElements() == 0)
+  if (mMCTruthOutputContainer.getNElements() == 0) {
     return;
+  }
 
   //need to fill groups of labels not only  single labels, since index in addElements
   // is the data index

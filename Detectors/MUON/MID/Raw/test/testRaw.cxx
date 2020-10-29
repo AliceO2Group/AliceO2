@@ -54,7 +54,9 @@ o2::mid::ColumnData getColData(uint8_t deId, uint8_t columnId, uint16_t nbp = 0,
 std::vector<o2::mid::ColumnData> sortData(const std::vector<o2::mid::ColumnData>& data, size_t first, size_t last)
 {
   std::vector<o2::mid::ColumnData> sortedData(data.begin() + first, data.begin() + last);
-  std::sort(sortedData.begin(), sortedData.end(), [](o2::mid::ColumnData& a, o2::mid::ColumnData& b) { if (a.deId == b.deId ) return (a.columnId < b.columnId); return (a.deId < b.deId); });
+  std::sort(sortedData.begin(), sortedData.end(), [](o2::mid::ColumnData& a, o2::mid::ColumnData& b) { if (a.deId == b.deId ) { return (a.columnId < b.columnId); 
+
+}return (a.deId < b.deId); });
   return sortedData;
 }
 
