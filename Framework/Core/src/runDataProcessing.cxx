@@ -274,7 +274,7 @@ bool areAllChildrenGone(std::vector<DeviceInfo>& infos)
 /// Calculate exit code
 int calculateExitCode(DeviceSpecs& deviceSpecs, DeviceInfos& infos)
 {
-  std::regex regexp("^\\[([\\d+:]*)\\]\\[\\w+\\] ");
+  std::regex regexp(R"(^\[([\d+:]*)\]\[\w+\] )");
   int exitCode = 0;
   for (size_t di = 0; di < deviceSpecs.size(); ++di) {
     auto& info = infos[di];
