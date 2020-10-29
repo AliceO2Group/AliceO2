@@ -157,7 +157,7 @@ class TopologyDictionary
   ///Returns the local position of a compact cluster
   math_utils::Point3D<float> getClusterCoordinates(const CompCluster& cl) const;
   ///Returns the local position of a compact cluster
-  static math_utils::Point3D<float> getClusterCoordinates(const CompCluster& cl, const ClusterPattern& patt);
+  static math_utils::Point3D<float> getClusterCoordinates(const CompCluster& cl, const ClusterPattern& patt, bool isGroup = true);
 
   friend BuildTopologyDictionary;
   friend LookUp;

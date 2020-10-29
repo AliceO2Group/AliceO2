@@ -13,7 +13,7 @@
 
 #endif
 
-void MakeNoiseMapFromClusters(std::string input = "o2clus_its.root", std::string output = "noise.root", int threshold = 3)
+void MakeNoiseMapFromClusters(std::string input = "o2clus_its.root", std::string output = "noise.root", bool only1pix = true)
 {
   TFile in(input.data());
   if (!in.IsOpen()) {
@@ -43,7 +43,6 @@ void MakeNoiseMapFromClusters(std::string input = "o2clus_its.root", std::string
 
   o2::itsmft::NoiseMap noiseMap(24120);
 
-  int n1pix = 0;
   auto nevents = clusTree->GetEntries();
   for (int n = 0; n < nevents; n++) {
     clusTree->GetEntry(n);
@@ -53,23 +52,53 @@ void MakeNoiseMapFromClusters(std::string input = "o2clus_its.root", std::string
       for (const auto& c : clustersInFrame) {
         if (c.getPatternID() != o2::itsmft::CompCluster::InvalidPatternID)
           continue;
+
         o2::itsmft::ClusterPattern patt(pattIt);
-        if (patt.getRowSpan() != 1)
-          continue;
-        if (patt.getColumnSpan() != 1)
-          continue;
+
         auto id = c.getSensorID();
         auto row = c.getRow();
         auto col = c.getCol();
-        noiseMap.increaseNoiseCount(id, row, col);
-        n1pix++;
+        auto colSpan = patt.getColumnSpan();
+        auto rowSpan = patt.getRowSpan();
+
+        if ((rowSpan == 1) && (colSpan == 1)) {
+          noiseMap.increaseNoiseCount(id, row, col);
+          continue;
+        }
+
+        if (only1pix)
+          continue;
+
+        auto nBits = rowSpan * colSpan;
+        int ic = 0, ir = 0;
+        for (unsigned int i = 2; i < patt.getUsedBytes() + 2; i++) {
+          unsigned char tempChar = patt.getByte(i);
+          int s = 128; // 0b10000000
+          while (s > 0) {
+            if ((tempChar & s) != 0) {
+              noiseMap.increaseNoiseCount(id, row + ir, col + ic);
+            }
+            ic++;
+            s >>= 1;
+            if ((ir + 1) * ic == nBits) {
+              break;
+            }
+            if (ic == colSpan) {
+              ic = 0;
+              ir++;
+            }
+          }
+          if ((ir + 1) * ic == nBits) {
+            break;
+          }
+        }
       }
     }
   }
 
-  int ncalib = noiseMap.dumpAboveThreshold(threshold);
-  std::cout << "Threshold: " << threshold << "  number of pixels: " << ncalib << '\n';
-  std::cout << "Number of 1-pixel clusters: " << n1pix << '\n';
+  int ncalib = noiseMap.dumpAboveThreshold(3);
+  std::cout << "Threshold: 3"
+            << "  number of pixels: " << ncalib << '\n';
 
   TFile out(output.data(), "new");
   if (!out.IsOpen()) {
