@@ -170,7 +170,8 @@ enum struct MetricsDisplayStyle : int {
   Lines = 0,
   Histos = 1,
   Sparks = 2,
-  Table = 3
+  Table = 3,
+  Stems = 4
 };
 
 void displayDeviceMetrics(const char* label, std::string const& selectedMetricName,
@@ -314,6 +315,21 @@ void displayDeviceMetrics(const char* label, std::string const& selectedMetricNa
       if (ImPlot::BeginPlot("##Some plot", "time", "value")) {
         for (size_t pi = 0; pi < metricsToDisplay.size(); ++pi) {
           ImPlot::PlotLineG(deviceNames[pi], getterXY, metricsToDisplay[pi], metricSize, 0);
+        }
+        ImPlot::EndPlot();
+      }
+      break;
+    case MetricsDisplayStyle::Stems:
+      ImPlot::SetNextPlotLimitsX(minDomain, maxDomain, ImGuiCond_Once);
+      ImPlot::SetNextPlotLimitsY(minValue, maxValue * 1.2, ImGuiCond_Always);
+      ImPlot::SetNextPlotTicksX(minDomain, maxDomain, 5);
+      if (ImPlot::BeginPlot("##Some plot", "time", "value")) {
+        for (size_t pi = 0; pi < userData.size(); ++pi) {
+          auto stemsData = reinterpret_cast<const MultiplotData*>(metricsToDisplay[pi]);
+          // FIXME: display a message for other metrics
+          if (stemsData->type == MetricType::Uint64) {
+            ImPlot::PlotStems(deviceNames[pi], (const ImU64*)stemsData->X, (const ImU64*)stemsData->Y, metricSize);
+          }
         }
         ImPlot::EndPlot();
       }
@@ -522,7 +538,8 @@ void displayDeviceHistograms(gui::WorkspaceGUIState& state,
     "lines",
     "histograms",
     "sparks",
-    "table"};
+    "table",
+    "stems"};
   ImGui::SameLine();
   static enum MetricsDisplayStyle currentStyle = MetricsDisplayStyle::Lines;
   ImGui::Combo("##Select style", reinterpret_cast<int*>(&currentStyle), plotStyles, IM_ARRAYSIZE(plotStyles));
@@ -560,6 +577,7 @@ void displayDeviceHistograms(gui::WorkspaceGUIState& state,
   ImGui::EndGroup();
   if (!currentMetricName.empty()) {
     switch (currentStyle) {
+      case MetricsDisplayStyle::Stems:
       case MetricsDisplayStyle::Histos:
       case MetricsDisplayStyle::Lines: {
         displayDeviceMetrics("Metrics",
