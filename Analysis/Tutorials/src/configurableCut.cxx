@@ -41,3 +41,13 @@ int configurableCut::getState() const
 {
   return state;
 }
+
+void configurableCut::setOption(bool option_)
+{
+  option = option_;
+}
+
+bool configurableCut::getOption() const
+{
+  return option;
+}

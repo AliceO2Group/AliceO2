@@ -20,8 +20,8 @@ using namespace o2::framework::expressions;
 /// use it with supplied configuration: "configurableObject.json"
 
 struct ConfigurableObjectDemo {
-  Configurable<configurableCut> cut{"cut", {0.5, 1}, "generic cut"};
-  MutableConfigurable<configurableCut> mutable_cut{"mutable_cut", {1., 2}, "generic cut"};
+  Configurable<configurableCut> cut{"cut", {0.5, 1, true}, "generic cut"};
+  MutableConfigurable<configurableCut> mutable_cut{"mutable_cut", {1., 2, false}, "generic cut"};
   void init(InitContext const&){};
   void process(aod::Collision const&, aod::Tracks const& tracks)
   {
