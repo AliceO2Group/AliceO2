@@ -208,7 +208,7 @@ void CheckTopologies(std::string clusfile = "o2clus_its.root",
             auto locH = gman->getMatrixL2G(chipID) ^ (hit.GetPos()); // inverse conversion from global to local
             auto locHsta = gman->getMatrixL2G(chipID) ^ (hit.GetPosStart());
             locH.SetXYZ(0.5 * (locH.X() + locHsta.X()), 0.5 * (locH.Y() + locHsta.Y()), 0.5 * (locH.Z() + locHsta.Z()));
-            const auto locC = o2::itsmft::TopologyDictionary::getClusterCoordinates(cluster, pattern);
+            const auto locC = o2::itsmft::TopologyDictionary::getClusterCoordinates(cluster, pattern, false);
             dX = locH.X() - locC.X();
             dZ = locH.Z() - locC.Z();
           } else {

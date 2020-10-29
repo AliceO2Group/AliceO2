@@ -516,7 +516,7 @@ void CookedTracker::process(gsl::span<const o2::itsmft::CompClusterExt> const& c
       }
     } else {
       o2::itsmft::ClusterPattern patt(pattIt);
-      locXYZ = dict.getClusterCoordinates(comp, patt);
+      locXYZ = dict.getClusterCoordinates(comp, patt, false);
     }
     auto sensorID = comp.getSensorID();
     // Inverse transformation to the local --> tracking
