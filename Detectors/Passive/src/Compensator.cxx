@@ -36,8 +36,9 @@ Compensator::Compensator(const Compensator& rhs) = default;
 Compensator& Compensator::operator=(const Compensator& rhs)
 {
   // self assignment
-  if (this == &rhs)
+  if (this == &rhs) {
     return *this;
+  }
 
   // base class assignment
   PassiveBase::operator=(rhs);

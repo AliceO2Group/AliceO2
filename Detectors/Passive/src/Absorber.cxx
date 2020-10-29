@@ -40,8 +40,9 @@ Absorber::Absorber(const Absorber& rhs) = default;
 Absorber& Absorber::operator=(const Absorber& rhs)
 {
   // self assignment
-  if (this == &rhs)
+  if (this == &rhs) {
     return *this;
+  }
 
   // base class assignment
   FairModule::operator=(rhs);

@@ -37,8 +37,9 @@ Dipole::Dipole(const Dipole& rhs) = default;
 Dipole& Dipole::operator=(const Dipole& rhs)
 {
   // self assignment
-  if (this == &rhs)
+  if (this == &rhs) {
     return *this;
+  }
 
   // base class assignment
   PassiveBase::operator=(rhs);

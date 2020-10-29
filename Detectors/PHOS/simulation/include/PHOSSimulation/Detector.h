@@ -108,10 +108,11 @@ class Detector : public o2::base::DetImpl<Detector>
   ///
   std::vector<Hit>* getHits(Int_t iColl) const
   {
-    if (iColl == 0)
+    if (iColl == 0) {
       return mHits;
-    else
+    } else {
       return nullptr;
+    }
   }
 
   ///

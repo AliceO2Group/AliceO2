@@ -115,8 +115,9 @@ Cave::Cave(const Cave& rhs) : FairDetector(rhs) {}
 Cave& Cave::operator=(const Cave& rhs)
 {
   // self assignment
-  if (this == &rhs)
+  if (this == &rhs) {
     return *this;
+  }
 
   // base class assignment
   FairModule::operator=(rhs);

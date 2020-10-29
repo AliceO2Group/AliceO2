@@ -36,8 +36,9 @@ Shil::Shil(const Shil& rhs) = default;
 Shil& Shil::operator=(const Shil& rhs)
 {
   // self assignment
-  if (this == &rhs)
+  if (this == &rhs) {
     return *this;
+  }
 
   // base class assignment
   PassiveBase::operator=(rhs);
@@ -85,8 +86,9 @@ TGeoPcon* MakeShapeFromTemplate(const TGeoPcon* pcon, Float_t drMin, Float_t drM
   //
   Int_t nz = pcon->GetNz();
   TGeoPcon* cpcon = new TGeoPcon(0., 360., nz);
-  for (Int_t i = 0; i < nz; i++)
+  for (Int_t i = 0; i < nz; i++) {
     cpcon->DefineSection(i, pcon->GetZ(i), pcon->GetRmin(i) + drMin, pcon->GetRmax(i) + drMax);
+  }
   return cpcon;
 }
 } // namespace
@@ -1273,23 +1275,26 @@ void Shil::ConstructGeometry()
   // FA Tail Section
   for (Int_t iz = 1; iz < 9; iz++) {
     z = shFaWTail->GetZ(iz - 1);
-    if (iz == 8)
+    if (iz == 8) {
       z -= ozFaSaa1;
+    }
     shYOUT1->DefineSection(iz - 1, z + ziFaWTail, shFaWTail->GetRmax(iz - 1) + eps, 150.);
   }
   // FA-SAA1 Joint
   z = shYOUT1->GetZ(7);
   Int_t izc = 8;
   for (Int_t iz = 9; iz < 17; iz++) {
-    if (iz == 11 || iz == 15)
+    if (iz == 11 || iz == 15) {
       continue;
+    }
     shYOUT1->DefineSection(izc, z + shFaSaa1->GetZ(iz - 9), shFaSaa1->GetRmax(iz - 9) + eps, 150.);
     izc++;
   }
   z = shYOUT1->GetZ(13) - ozSaa1;
   // SAA1  - Dipole
-  for (Int_t iz = 15; iz < 22; iz++)
+  for (Int_t iz = 15; iz < 22; iz++) {
     shYOUT1->DefineSection(iz - 1, z + shSaa1M->GetZ(iz - 11), shSaa1M->GetRmax(iz - 11) + eps, 150.);
+  }
   // Distance between dipole and start of SAA1 2deg opening cone
   dz = ziDipole - (zSaa1StEnv[0] - dSt + zSaa1StEnvS + ziSaa1);
   rOut = rOuSaa1StEnv2 + dz * TMath::Tan(2. * kDegRad);

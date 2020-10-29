@@ -91,8 +91,9 @@ BOOST_AUTO_TEST_CASE(DigitizerTest)
 
     if (trackID == trackId1) {
       bool check = seg1.isValid(digit.getPadID());
-      if (!check)
+      if (!check) {
         BOOST_FAIL(" digit-pad not belonging to hit det-element-ID ");
+      }
       double padposX = seg1.padPositionX(padid);
       double padsizeX = seg1.padSizeX(padid);
       double padposY = seg1.padPositionY(padid);
@@ -109,8 +110,9 @@ BOOST_AUTO_TEST_CASE(DigitizerTest)
       digitcounter1++;
     } else if (trackID == trackId2) {
       bool check = seg2.isValid(digit.getPadID());
-      if (!check)
+      if (!check) {
         BOOST_FAIL(" digit-pad not belonging to hit det-element-ID ");
+      }
       double padposX = seg2.padPositionX(padid);
       double padsizeX = seg2.padSizeX(padid);
       double padposY = seg2.padPositionY(padid);
@@ -130,14 +132,18 @@ BOOST_AUTO_TEST_CASE(DigitizerTest)
     };
   }
 
-  if (digitcounter1 == 0)
+  if (digitcounter1 == 0) {
     BOOST_FAIL(" no digit at all from hit in station 1 ");
-  if (digitcounter1 > 9)
+  }
+  if (digitcounter1 > 9) {
     BOOST_FAIL("more than 10 digits for one hit in station 1 ");
-  if (digitcounter2 == 0)
+  }
+  if (digitcounter2 == 0) {
     BOOST_FAIL(" no digit at all from hit in station 2 ");
-  if (digitcounter2 > 9)
+  }
+  if (digitcounter2 > 9) {
     BOOST_FAIL(" more than 10 digits for one hit in station 2 ");
+  }
 }
 
 BOOST_TEST_DECORATOR(*boost::unit_test::disabled())
