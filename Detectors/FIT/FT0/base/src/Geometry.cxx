@@ -90,8 +90,10 @@ Geometry::Geometry() : mMCP{{0, 0, 0}}
     gc[i] = -1 * ac[i];
   }
   // Set coordinate
-  for (int ipmt = 0; ipmt < 24; ipmt++)
+  for (int ipmt = 0; ipmt < 24; ipmt++) {
     mMCP[ipmt].SetXYZ(xa[ipmt], xa[ipmt], zDetA);
-  for (int ipmt = 24; ipmt < 52; ipmt++)
+  }
+  for (int ipmt = 24; ipmt < 52; ipmt++) {
     mMCP[ipmt].SetXYZ(xc2[ipmt - 24], yc2[ipmt - 24], zc2[ipmt - 24]);
+  }
 }

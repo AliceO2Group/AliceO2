@@ -114,8 +114,9 @@ void Digits2Raw::readDigits(const std::string& outDir, const std::string& fileDi
       auto& bcd = digitsBC[ibc];
       intRecord = bcd.getIntRecord();
       auto channels = bcd.getBunchChannelData(digitsCh);
-      if (!channels.empty())
+      if (!channels.empty()) {
         convertDigits(bcd, channels, lut, intRecord);
+      }
     }
   }
 }
@@ -136,8 +137,9 @@ void Digits2Raw::convertDigits(o2::ft0::Digit bcdigits,
       if (oldlink >= 0) {
         uint nGBTWords = uint((nchannels + 1) / 2);
         LOG(DEBUG) << " oldlink " << oldlink << " nGBTWords " << nGBTWords;
-        if ((nchannels % 2) == 1)
+        if ((nchannels % 2) == 1) {
           mRawEventData.mEventData[nchannels] = {};
+        }
         mRawEventData.mEventHeader.nGBTWords = nGBTWords;
         auto data = mRawEventData.to_vector(false);
         mLinkID = uint32_t(oldlink);
@@ -160,8 +162,9 @@ void Digits2Raw::convertDigits(o2::ft0::Digit bcdigits,
   }
   // fill mEventData[nchannels] with 0s to flag that this is a dummy data
   uint nGBTWords = uint((nchannels + 1) / 2);
-  if ((nchannels % 2) == 1)
+  if ((nchannels % 2) == 1) {
     mRawEventData.mEventData[nchannels] = {};
+  }
   mRawEventData.mEventHeader.nGBTWords = nGBTWords;
   auto datalast = mRawEventData.to_vector(false);
   mLinkID = uint32_t(oldlink);
@@ -176,10 +179,12 @@ void Digits2Raw::convertDigits(o2::ft0::Digit bcdigits,
 
   float ampA = mTriggers.amplA;
   float ampC = mTriggers.amplC;
-  if (ampA > 131071)
+  if (ampA > 131071) {
     ampA = 131071; //2^17
-  if (ampC > 131071)
+  }
+  if (ampC > 131071) {
     ampC = 131071; //2^17
+  }
   tcmdata.vertex = mTriggers.getVertex();
   tcmdata.orA = mTriggers.getOrA();
   tcmdata.orC = mTriggers.getOrC();

@@ -90,17 +90,19 @@ void Digitizer::createPulse(int nPhE, int parID, double timeHit, std::array<o2::
 
   double time0 = cachedIR[0].bc2ns(); // start time of the 1st cashed BC
   float timeDiff = time0 - timeHit;
-  if (channel < 9)
+  if (channel < 9) {
     timeDiff += parameters.TimeDelayFDC;
-  else
+  } else {
     timeDiff += parameters.TimeDelayFDA;
+  }
 
   //LOG(INFO) <<"Ch = "<<channel<<" NphE = " << nPhE <<" timeDiff "<<timeDiff;
   float charge = TMath::Qe() * parameters.PmGain * mBinSize / (mPmtTimeIntegral * ChargePerADC);
 
   Bool_t added[nCachedIR];
-  for (int ir = 0; ir < nCachedIR; ir++)
+  for (int ir = 0; ir < nCachedIR; ir++) {
     added[ir] = kFALSE;
+  }
 
   constexpr float BinSizeInv = 1.0 / mBinSize;
   for (int iPhE = 0; iPhE < nPhE; ++iPhE) {
@@ -195,8 +197,9 @@ void Digitizer::storeBC(const BCCache& bc,
   int nBC = digitsBC.size();
   digitsBC.emplace_back(first, 16, bc, mTriggers);
 
-  for (const auto& lbl : bc.labels)
+  for (const auto& lbl : bc.labels) {
     labels.addElement(nBC, lbl);
+  }
 }
 
 //_____________________________________________________________________________
@@ -221,10 +224,11 @@ float Digitizer::simulateTimeCFD(const ChannelBCDataF& pulse)
   int binShift = TMath::Nint(parameters.TimeShiftCFD / mBinSize);
   for (int iBin = 0; iBin < NTimeBinsPerBC; ++iBin) {
     //if (mTime[channel][iBin] != 0) std::cout << mTime[channel][iBin] / parameters.mChargePerADC << ", ";
-    if (iBin >= binShift)
+    if (iBin >= binShift) {
       mTimeCFD[iBin] = 5.0 * pulse[iBin - binShift] - pulse[iBin];
-    else
+    } else {
       mTimeCFD[iBin] = -1.0 * pulse[iBin];
+    }
   }
   for (int iBin = 1; iBin < NTimeBinsPerBC; ++iBin) {
     if (mTimeCFD[iBin - 1] < 0 && mTimeCFD[iBin] >= 0) {
@@ -328,8 +332,9 @@ void Digitizer::finish() {}
 int Digitizer::simulateLightYield(int pmt, int nPhot)
 {
   const float p = parameters.LightYield * PhotoCathodeEfficiency;
-  if (p == 1.0f || nPhot == 0)
+  if (p == 1.0f || nPhot == 0) {
     return nPhot;
+  }
   const int n = int(nPhot < 100 ? gRandom->Binomial(nPhot, p) : gRandom->Gaus(p * nPhot + 0.5, TMath::Sqrt(p * (1 - p) * nPhot)));
   return n;
 }
@@ -350,8 +355,9 @@ Double_t Digitizer::SinglePhESpectrum(Double_t* x, Double_t*)
 {
   // this function describes the PM amplitude response to a single photoelectron
   Double_t y = x[0];
-  if (y < 0)
+  if (y < 0) {
     return 0;
+  }
   return (TMath::Poisson(y, PMNbOfSecElec) + PMTransparency * TMath::Poisson(y, 1.0));
 }
 //______________________________________________________________
@@ -361,8 +367,9 @@ void Digitizer::BCCache::print() const
   for (int ic = 0; ic < 16; ic++) {
     printf("Ch[%d] | ", ic);
     for (int ib = 0; ib < NTimeBinsPerBC; ib++) {
-      if (ib % 10 == 0)
+      if (ib % 10 == 0) {
         printf("%f ", pulse[ic][ib]);
+      }
     }
     printf("\n");
   }
