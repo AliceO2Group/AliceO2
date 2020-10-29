@@ -51,8 +51,9 @@ Pipe::Pipe(const Pipe& rhs) = default;
 Pipe& Pipe::operator=(const Pipe& rhs)
 {
   // self assignment
-  if (this == &rhs)
+  if (this == &rhs) {
     return *this;
+  }
 
   // base class assignment
   PassiveBase::operator=(rhs);
@@ -2730,8 +2731,9 @@ TGeoPcon* Pipe::MakeMotherFromTemplate(const TGeoPcon* shape, Int_t imin, Int_t 
   //
   Int_t nz0 = shape->GetNz();
   // if nz > -1 the number of planes is given by nz
-  if (nz != -1)
+  if (nz != -1) {
     nz0 = nz;
+  }
   TGeoPcon* mother = new TGeoPcon(0., 360., nz0);
 
   if (imin == -1 || imax == -1) {
@@ -2760,8 +2762,9 @@ TGeoPcon* Pipe::MakeMotherFromTemplate(const TGeoPcon* shape, Int_t imin, Int_t 
   double zlast, rminlast, rmaxlast;
   for (Int_t i = 0; i < shape->GetNz(); i++) {
     Double_t rmin = shape->GetRmin(i);
-    if ((i >= imin) && (i <= imax))
+    if ((i >= imin) && (i <= imax)) {
       rmin = r0;
+    }
     Double_t rmax = shape->GetRmax(i);
     Double_t z = shape->GetZ(i);
     if (i == 0 || (z != zlast || rmin != rminlast || rmax != rmaxlast)) {
@@ -2776,9 +2779,11 @@ TGeoPcon* Pipe::MakeMotherFromTemplate(const TGeoPcon* shape, Int_t imin, Int_t 
     pconparams[2] = zplanecounter;
     // reinit polycon from parameters
     mother->SetDimensions(pconparams.data());
-  } else
-    for (Int_t i = 0; i < zplanecounter; i++)
+  } else {
+    for (Int_t i = 0; i < zplanecounter; i++) {
       mother->DefineSection(i, pconparams[3 + 3 * i], pconparams[4 + 3 * i], pconparams[5 + 3 * i]);
+    }
+  }
 
   return mother;
 }

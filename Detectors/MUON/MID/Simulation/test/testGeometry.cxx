@@ -74,12 +74,15 @@ bool areEqual(double a, double b)
 
 bool areEqual(const o2::math_utils::Point3D<double>& p1, const o2::math_utils::Point3D<double>& p2)
 {
-  if (!areEqual(p1.x(), p2.x()))
+  if (!areEqual(p1.x(), p2.x())) {
     return false;
-  if (!areEqual(p1.y(), p2.y()))
+  }
+  if (!areEqual(p1.y(), p2.y())) {
     return false;
-  if (!areEqual(p1.z(), p2.z()))
+  }
+  if (!areEqual(p1.z(), p2.z())) {
     return false;
+  }
   return true;
 }
 

@@ -175,8 +175,9 @@ void Clusterer::convertCellsToDigits(gsl::span<const Cell> cells, int firstCellI
     if (mcmap[iLab] == i) {
       label = iLab;
       ++iLab;
-      if (iLab >= nLab)
+      if (iLab >= nLab) {
         --iLab;
+      }
     }
     mDigits.emplace_back(c.getAbsId(), c.getEnergy(), c.getTime(), label);
     mDigits.back().setHighGain(c.getHighGain());
@@ -197,8 +198,9 @@ void Clusterer::makeClusters(gsl::span<const Digit> digits)
   int iFirst = mFirstDigitInEvent; // first index of digit which potentially can be a part of cluster
 
   for (int i = iFirst; i < mLastDigitInEvent; i++) {
-    if (digitsUsed[i - mFirstDigitInEvent])
+    if (digitsUsed[i - mFirstDigitInEvent]) {
       continue;
+    }
 
     const Digit& digitSeed = digits[i];
     float digitSeedEnergy = calibrate(digitSeed.getAmplitude(), digitSeed.getAbsId());
@@ -230,8 +232,9 @@ void Clusterer::makeClusters(gsl::span<const Digit> digits)
       short digitSeedAbsId = clu->getDigitAbsId(index);
       index++;
       for (Int_t j = iFirst; j < mLastDigitInEvent; j++) {
-        if (digitsUsed[j - mFirstDigitInEvent])
+        if (digitsUsed[j - mFirstDigitInEvent]) {
           continue; // look through remaining digits
+        }
         const Digit* digitN = &(digits[j]);
         float digitNEnergy = calibrate(digitN->getAmplitude(), digitN->getAbsId());
         if (isBadChannel(digitN->getAbsId())) { //remove digit
@@ -345,8 +348,9 @@ void Clusterer::unfoldOneCluster(FullCluster& iniClu, char nMax, gsl::span<int> 
         a[iclu] += fij[idig][iclu] * fij[idig][iclu];
         b[iclu] += it.energy * fij[idig][iclu];
         for (int kclu = 0; kclu < nMax; kclu++) {
-          if (iclu == kclu)
+          if (iclu == kclu) {
             continue;
+          }
           c[iclu] += eMax[kclu] * fij[idig][iclu] * fij[idig][kclu];
         }
       }
