@@ -32,6 +32,19 @@ NOMCLABELS="--disable-mc"
 
 # allow skipping
 JOBUTILS_SKIPDONE=ON
+# enable memory monitoring (independent on whether DPL or not)
+JOBUTILS_MONITORMEM=ON
+# CPU monitoring JOBUTILS_MONITORCPU=ON
+
+# prepare some metrics file for the monitoring system
+METRICFILE=metrics.dat
+CONFIG="full_system_test_N${NEvents}"
+HOST=`hostname`
+
+# include header information such as tested alidist tag and O2 tag
+TAG="conf=${CONFIG},host=${HOST}${ALIDISTCOMMIT:+,alidist=$ALIDISTCOMMIT}${O2COMMIT:+,o2=$O2COMMIT}"
+echo "versions,${TAG} alidist=\"${ALIDISTCOMMIT}\",O2=\"${O2COMMIT}\" " > ${METRICFILE}
+
 
 ulimit -n 4096 # Make sure we can open sufficiently many files
 mkdir qed
@@ -62,7 +75,8 @@ for STAGE in "NOGPU" "WITHGPU"; do
   fi
 
   ARGS_ALL="--session default"
-  taskwrapper reco_${STAGE}.log "o2-raw-file-reader-workflow $ARGS_ALL --configKeyValues \"HBFUtils.nHBFPerTF=128\" --delay $TFDELAY --loop $NTIMEFRAMES --max-tf 0 --input-conf rawAll.cfg |  
+  logfile=reco_${STAGE}.log
+  taskwrapper ${logfile} "o2-raw-file-reader-workflow $ARGS_ALL --configKeyValues \"HBFUtils.nHBFPerTF=128\" --delay $TFDELAY --loop $NTIMEFRAMES --max-tf 0 --input-conf rawAll.cfg |  
 o2-itsmft-stf-decoder-workflow $ARGS_ALL  |  
 o2-itsmft-stf-decoder-workflow $ARGS_ALL --runmft true  |  
 o2-its-reco-workflow $ARGS_ALL --trackerCA ${NOMCLABELS} --clusters-from-upstream --disable-root-output --entropy-encoding --configKeyValues \"fastMultConfig.cutMultClusLow=30;fastMultConfig.cutMultClusHigh=2000;fastMultConfig.cutMultVtxHigh=500\" |  
@@ -78,4 +92,28 @@ o2-tof-compressor $ARGS_ALL |
 o2-tof-reco-workflow $ARGS_ALL --configKeyValues \"HBFUtils.nHBFPerTF=128\" --input-type raw --output-type ctf,clusters,matching-info --disable-root-output  ${NOMCLABELS}  |  
 o2-tpc-scdcalib-interpolation-workflow $ARGS_ALL --disable-root-output --disable-root-input --shm-segment-size $SHMSIZE ${GLOBALDPLOPT}"
 
+
+  # --- record interesting metrics to monitor ----
+  # boolean flag indicating if workflow completed successfully at all
+  RC=$?
+  SUCCESS=0
+  [ -f "${logfile}_done" ] && [ "$RC" = 0 ] && SUCCESS=1
+  echo "success_${STAGE},${TAG} value=${SUCCESS}" >> ${METRICFILE}
+
+  # runtime
+  walltime=`grep "#walltime" ${logfile}_time | awk '//{print $2}'`
+  echo "walltime_${STAGE},${TAG} value=${walltime}" >> ${METRICFILE}
+
+  # memory 
+  maxmem=`awk '/PROCESS MAX MEM/{print $5}' ${logfile}`  # in MB
+  avgmem=`awk '/PROCESS AVG MEM/{print $5}' ${logfile}`  # in MB
+  echo "maxmem_${STAGE},${TAG} value=${maxmem}" >> ${METRICFILE}
+  echo "avgmem_${STAGE},${TAG} value=${avgmem}" >> ${METRICFILE}
+
+  # some physics quantities
+  tpctracks=`grep "tpc-tracker" ${logfile} | grep -e "found.*track" | awk '//{print $4}'`
+  echo "tpctracks_${STAGE},${TAG} value=${tpctracks}" >> ${METRICFILE}
+  tpcclusters=`grep -e "Event has.*TPC Clusters" ${logfile} | awk '//{print $5}'`
+  echo "tpcclusters_${STAGE},${TAG} value=${tpcclusters}" >> ${METRICFILE}
 done
+
