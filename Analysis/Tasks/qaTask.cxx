@@ -126,7 +126,7 @@ struct QATrackingResolution {
   o2fw::Configurable<int> nBinsPtTrack{"nBinsPtTrack", 100, "Number of bins for the transverse momentum"};
   std::array<double, 2> ptRange = {0, 10.};
 
-  o2fw::Configurable<int> nBinsEtaTrack{"nBinsEtaTrack", 400, "Number of bins for the pseudorapidity"};
+  o2fw::Configurable<int> nBinsEta{"nBinsEta", 400, "Number of bins for the pseudorapidity"};
   std::array<double, 2> etaRange = {-6, 6};
 
   o2fw::Configurable<int> nBinsDeltaPt{"nBinsDeltaPt", 400, "Number of bins for the transverse momentum differences"};
@@ -141,6 +141,8 @@ struct QATrackingResolution {
   std::array<double, 2> impactParameterResolutionRange = {0, 1000}; // micrometer
 
   o2fw::OutputObj<TH1F> etaDiffMCRec{TH1F("etaDiffMCReco", ";#eta_{MC} - #eta_{Rec}", nBinsDeltaEta, -2, 2)};
+  o2fw::OutputObj<TH2F> etaDiffMCRecoVsEtaMC{TH2F("etaDiffMCRecoVsEtaMC", ";#eta_{MC} - #eta_{Rec};#eta_{MC}", nBinsDeltaEta, -2, 2, nBinsEta, etaRange[0], etaRange[1])};
+  o2fw::OutputObj<TH2F> etaDiffMCRecoVsEtaReco{TH2F("etaDiffMCRecoVsEtaReco", ";#eta_{MC} - #eta_{Rec};#eta_{Rec}", nBinsDeltaEta, -2, 2, nBinsEta, etaRange[0], etaRange[1])};
 
   o2fw::OutputObj<TH1F> phiDiffMCRec{
     TH1F("phiDiffMCRec", ";#varphi_{MC} - #varphi_{Rec} [rad]", nBinsDeltaPhi, -M_PI, M_PI)};
@@ -155,14 +157,14 @@ struct QATrackingResolution {
                                               ptRange[0], ptRange[1], nBinsDeltaPt, 0, 2.)};
 
   o2fw::OutputObj<TH2F> ptResolutionVsEta{TH2F("ptResolutionVsEta", ";#eta;(p_{T}_{MC} - p_{T}_{Rec})/(p_{T}_{Rec})",
-                                               nBinsEtaTrack, -4., 4., nBinsDeltaPt, -2., 2.)};
+                                               nBinsEta, -4., 4., nBinsDeltaPt, -2., 2.)};
 
   o2fw::OutputObj<TH2F> impactParameterVsPt{TH2F("impactParameterVsPt", ";p_{T} [GeV/c];Impact Parameter [{#mu}m]",
                                                  nBinsPtTrack, ptRange[0], ptRange[1], nBinsImpactParameter,
                                                  impactParameterRange[0], impactParameterRange[1])};
 
   o2fw::OutputObj<TH2F> impactParameterVsEta{TH2F("impactParameterVsEta", "#eta;Impact Parameter [{#mu}m]",
-                                                  nBinsEtaTrack, etaRange[0], etaRange[1], nBinsImpactParameter,
+                                                  nBinsEta, etaRange[0], etaRange[1], nBinsImpactParameter,
                                                   impactParameterRange[0], impactParameterRange[1])};
 
   o2fw::OutputObj<TH2F> impactParameterErrorVsPt{
@@ -170,7 +172,7 @@ struct QATrackingResolution {
          ptRange[1], nBinsImpactParameter, impactParameterRange[0], impactParameterRange[1])};
 
   o2fw::OutputObj<TH2F> impactParameterErrorVsEta{
-    TH2F("impactParameterErrorVsEta", ";#eta;Impact Parameter Error [#mum]", nBinsEtaTrack, etaRange[0], etaRange[1],
+    TH2F("impactParameterErrorVsEta", ";#eta;Impact Parameter Error [#mum]", nBinsEta, etaRange[0], etaRange[1],
          nBinsImpactParameter, 0, impactParameterRange[1])};
 
   void process(const o2::soa::Join<o2::aod::Collisions, o2::aod::McCollisionLabels>::iterator& collision,
@@ -190,6 +192,8 @@ struct QATrackingResolution {
 
       const double deltaEta = track.label().eta() - track.eta();
       etaDiffMCRec->Fill(deltaEta);
+      etaDiffMCRecoVsEtaMC->Fill(deltaEta, track.label().eta());
+      etaDiffMCRecoVsEtaReco->Fill(deltaEta, track.eta());
 
       const auto deltaPhi = track_utils::ConvertPhiRange(track.label().phi() - track.phi());
       phiDiffMCRec->Fill(deltaPhi);
