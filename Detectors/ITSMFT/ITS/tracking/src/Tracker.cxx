@@ -57,6 +57,15 @@ void Tracker::clustersToTracks(const ROframe& event, std::ostream& timeBenchmark
     float total{0.f};
 
     for (int iteration = 0; iteration < mTrkParams.size(); ++iteration) {
+
+      int numCls = 0;
+      for (unsigned int iLayer{0}; iLayer < mTrkParams[iteration].NLayers; ++iLayer) {
+        numCls += event.getClusters()[iLayer].size();
+      }
+      if (numCls < mTrkParams[iteration].MinTrackLength) {
+        continue;
+      }
+
       mTraits->UpdateTrackingParameters(mTrkParams[iteration]);
       /// Ugly hack -> Unifiy float3 definition in CPU and CUDA/HIP code
       int pass = iteration + iVertex; /// Do not reinitialise the context if we analyse pile-up events
