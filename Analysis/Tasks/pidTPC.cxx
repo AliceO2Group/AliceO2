@@ -12,10 +12,10 @@
 #include "Framework/AnalysisTask.h"
 #include "Framework/AnalysisDataModel.h"
 #include "Framework/ASoAHelpers.h"
+#include "Framework/HistogramRegistry.h"
 #include "ReconstructionDataFormats/Track.h"
-#include "PID/PIDResponse.h"
 #include <CCDB/BasicCCDBManager.h>
-#include "Analysis/HistHelpers.h"
+#include "PID/PIDResponse.h"
 #include "PID/PIDTPC.h"
 
 using namespace o2;
@@ -111,28 +111,16 @@ struct pidTPCTask {
   }
 };
 
+const int Np = 9;
+const TString pN[Np] = {"El", "Mu", "Pi", "Ka", "Pr", "De", "Tr", "He", "Al"};
+const TString pT[Np] = {"#mu", "#pi", "K", "p", "d", "t", "^{3}He", "#alpha"};
 struct pidTPCTaskQA {
-  enum event_histo : uint8_t { vertexz,
-                               signal };
-  enum Particle : uint8_t { El,
-                            Mu,
-                            Pi,
-                            Ka,
-                            Pr,
-                            De,
-                            Tr,
-                            He,
-                            Al
-  };
+  HistogramRegistry histos{"Histos", {}, OutputObjHandlingPolicy::QAObject};
 
-  // Event
-  OutputObj<experimental::histhelpers::HistFolder> event{experimental::histhelpers::HistFolder("event"), OutputObjHandlingPolicy::QAObject};
-  // Exp signal
-  OutputObj<experimental::histhelpers::HistFolder> expected{experimental::histhelpers::HistFolder("expected"), OutputObjHandlingPolicy::QAObject};
-  // Exp signal difference
-  OutputObj<experimental::histhelpers::HistFolder> expected_diff{experimental::histhelpers::HistFolder("expected_diff"), OutputObjHandlingPolicy::QAObject};
-  // NSigma
-  OutputObj<experimental::histhelpers::HistFolder> nsigma{experimental::histhelpers::HistFolder("nsigma"), OutputObjHandlingPolicy::QAObject};
+  Configurable<int> nBinsP{"nBinsP", 400, "Number of bins for the momentum"};
+  Configurable<float> MinP{"MinP", 0, "Minimum momentum in range"};
+  Configurable<float> MaxP{"MaxP", 20, "Maximum momentum in range"};
+
   void init(o2::framework::InitContext&)
   {
 
@@ -142,6 +130,8 @@ struct pidTPCTaskQA {
     double binp[nbins + 1];                                       \
     double max = h->GetXaxis()->GetBinUpEdge(nbins);              \
     double min = h->GetXaxis()->GetBinLowEdge(1);                 \
+    if (min <= 0)                                                 \
+      min = 0.00001;                                              \
     double lmin = TMath::Log10(min);                              \
     double ldelta = (TMath::Log10(max) - lmin) / ((double)nbins); \
     for (int i = 0; i < nbins; i++) {                             \
@@ -151,105 +141,46 @@ struct pidTPCTaskQA {
     h->GetXaxis()->Set(nbins, binp);                              \
   }
 
-    event->Add<vertexz>(new TH1F("hvertexz", ";Vtx_{z} (cm);Entries", 100, -20, 20));
-    event->Add<signal>(new TH2F("htpcsignal", ";#it{p} (GeV/#it{c});TPC Signal", 1000, 0.001, 20, 1000, 0, 1000));
-    makelogaxis(event->Get<TH2>(signal));
-    //
-    expected->Add<El>(new TH2F("hexpectedEl", ";#it{p} (GeV/#it{c});d#it{E}/d#it{x}_{e}", 1000, 0.001, 20, 1000, 0, 1000));
-    expected->Add<Mu>(new TH2F("hexpectedMu", ";#it{p} (GeV/#it{c});d#it{E}/d#it{x}_{#mu}", 1000, 0.001, 20, 1000, 0, 1000));
-    expected->Add<Pi>(new TH2F("hexpectedPi", ";#it{p} (GeV/#it{c});d#it{E}/d#it{x}_{#pi}", 1000, 0.001, 20, 1000, 0, 1000));
-    expected->Add<Ka>(new TH2F("hexpectedKa", ";#it{p} (GeV/#it{c});d#it{E}/d#it{x}_{K}", 1000, 0.001, 20, 1000, 0, 1000));
-    expected->Add<Pr>(new TH2F("hexpectedPr", ";#it{p} (GeV/#it{c});d#it{E}/d#it{x}_{p}", 1000, 0.001, 20, 1000, 0, 1000));
-    expected->Add<De>(new TH2F("hexpectedDe", ";#it{p} (GeV/#it{c});d#it{E}/d#it{x}_{d}", 1000, 0.001, 20, 1000, 0, 1000));
-    expected->Add<Tr>(new TH2F("hexpectedTr", ";#it{p} (GeV/#it{c});d#it{E}/d#it{x}_{t}", 1000, 0.001, 20, 1000, 0, 1000));
-    expected->Add<He>(new TH2F("hexpectedHe", ";#it{p} (GeV/#it{c});d#it{E}/d#it{x}_{^{3}He}", 1000, 0.001, 20, 1000, 0, 1000));
-    expected->Add<Al>(new TH2F("hexpectedAl", ";#it{p} (GeV/#it{c});d#it{E}/d#it{x}_{#alpha}", 1000, 0.001, 20, 1000, 0, 1000));
-    makelogaxis(expected->Get<TH2>(El));
-    makelogaxis(expected->Get<TH2>(Mu));
-    makelogaxis(expected->Get<TH2>(Pi));
-    makelogaxis(expected->Get<TH2>(Ka));
-    makelogaxis(expected->Get<TH2>(Pr));
-    makelogaxis(expected->Get<TH2>(De));
-    makelogaxis(expected->Get<TH2>(Tr));
-    makelogaxis(expected->Get<TH2>(He));
-    makelogaxis(expected->Get<TH2>(Al));
-    //
-    expected_diff->Add<El>(new TH2F("hexpdiffEl", ";#it{p} (GeV/#it{c});d#it{E}/d#it{x} - d#it{E}/d#it{x}_{e}", 1000, 0.001, 20, 1000, -500, 500));
-    expected_diff->Add<Mu>(new TH2F("hexpdiffMu", ";#it{p} (GeV/#it{c});d#it{E}/d#it{x} - d#it{E}/d#it{x}_{#mu}", 1000, 0.001, 20, 1000, -500, 500));
-    expected_diff->Add<Pi>(new TH2F("hexpdiffPi", ";#it{p} (GeV/#it{c});d#it{E}/d#it{x} - d#it{E}/d#it{x}_{#pi}", 1000, 0.001, 20, 1000, -500, 500));
-    expected_diff->Add<Ka>(new TH2F("hexpdiffKa", ";#it{p} (GeV/#it{c});d#it{E}/d#it{x} - d#it{E}/d#it{x}_{K}", 1000, 0.001, 20, 1000, -500, 500));
-    expected_diff->Add<Pr>(new TH2F("hexpdiffPr", ";#it{p} (GeV/#it{c});d#it{E}/d#it{x} - d#it{E}/d#it{x}_{p}", 1000, 0.001, 20, 1000, -500, 500));
-    expected_diff->Add<De>(new TH2F("hexpdiffDe", ";#it{p} (GeV/#it{c});d#it{E}/d#it{x} - d#it{E}/d#it{x}_{d}", 1000, 0.001, 20, 1000, -500, 500));
-    expected_diff->Add<Tr>(new TH2F("hexpdiffTr", ";#it{p} (GeV/#it{c});d#it{E}/d#it{x} - d#it{E}/d#it{x}_{t}", 1000, 0.001, 20, 1000, -500, 500));
-    expected_diff->Add<He>(new TH2F("hexpdiffHe", ";#it{p} (GeV/#it{c});d#it{E}/d#it{x} - d#it{E}/d#it{x}_{^{3}He}", 1000, 0.001, 20, 1000, -500, 500));
-    expected_diff->Add<Al>(new TH2F("hexpdiffAl", ";#it{p} (GeV/#it{c});d#it{E}/d#it{x} - d#it{E}/d#it{x}_{#alpha}", 1000, 0.001, 20, 1000, -500, 500));
-    makelogaxis(expected_diff->Get<TH2>(El));
-    makelogaxis(expected_diff->Get<TH2>(Mu));
-    makelogaxis(expected_diff->Get<TH2>(Pi));
-    makelogaxis(expected_diff->Get<TH2>(Ka));
-    makelogaxis(expected_diff->Get<TH2>(Pr));
-    makelogaxis(expected_diff->Get<TH2>(De));
-    makelogaxis(expected_diff->Get<TH2>(Tr));
-    makelogaxis(expected_diff->Get<TH2>(He));
-    makelogaxis(expected_diff->Get<TH2>(Al));
-    //
-    nsigma->Add<El>(new TH2F("hnsigmaEl", ";#it{p} (GeV/#it{c});N_{#sigma}^{TPC}(e)", 1000, 0.001, 20, 200, -10, 10));
-    nsigma->Add<Mu>(new TH2F("hnsigmaMu", ";#it{p} (GeV/#it{c});N_{#sigma}^{TPC}(#mu)", 1000, 0.001, 20, 200, -10, 10));
-    nsigma->Add<Pi>(new TH2F("hnsigmaPi", ";#it{p} (GeV/#it{c});N_{#sigma}^{TPC}(#pi)", 1000, 0.001, 20, 200, -10, 10));
-    nsigma->Add<Ka>(new TH2F("hnsigmaKa", ";#it{p} (GeV/#it{c});N_{#sigma}^{TPC}(K)", 1000, 0.001, 20, 200, -10, 10));
-    nsigma->Add<Pr>(new TH2F("hnsigmaPr", ";#it{p} (GeV/#it{c});N_{#sigma}^{TPC}(p)", 1000, 0.001, 20, 200, -10, 10));
-    nsigma->Add<De>(new TH2F("hnsigmaDe", ";#it{p} (GeV/#it{c});N_{#sigma}^{TPC}(d)", 1000, 0.001, 20, 200, -10, 10));
-    nsigma->Add<Tr>(new TH2F("hnsigmaTr", ";#it{p} (GeV/#it{c});N_{#sigma}^{TPC}(t)", 1000, 0.001, 20, 200, -10, 10));
-    nsigma->Add<He>(new TH2F("hnsigmaHe", ";#it{p} (GeV/#it{c});N_{#sigma}^{TPC}(^{3}He)", 1000, 0.001, 20, 200, -10, 10));
-    nsigma->Add<Al>(new TH2F("hnsigmaAl", ";#it{p} (GeV/#it{c});N_{#sigma}^{TPC}(#alpha)", 1000, 0.001, 20, 200, -10, 10));
-    makelogaxis(nsigma->Get<TH2>(El));
-    makelogaxis(nsigma->Get<TH2>(Mu));
-    makelogaxis(nsigma->Get<TH2>(Pi));
-    makelogaxis(nsigma->Get<TH2>(Ka));
-    makelogaxis(nsigma->Get<TH2>(Pr));
-    makelogaxis(nsigma->Get<TH2>(De));
-    makelogaxis(nsigma->Get<TH2>(Tr));
-    makelogaxis(nsigma->Get<TH2>(He));
-    makelogaxis(nsigma->Get<TH2>(Al));
+    // Event properties
+    histos.add("event/hvertexz", ";Vtx_{z} (cm);Entries", kTH1F, {{100, -20, 20}});
+    histos.add("event/htpcsignal", ";#it{p} (GeV/#it{c});TPC Signal", kTH2F, {{nBinsP, MinP, MaxP}, {1000, 0, 1000}});
+    makelogaxis(histos.get<TH2>("event/htpcsignal"));
+    for (int i = 0; i < Np; i++) {
+      // Exp signal
+      histos.add("expected/" + pN[i], Form(";#it{p} (GeV/#it{c});d#it{E}/d#it{x}_(%s)", pT[i].Data()), kTH2F, {{nBinsP, MinP, MaxP}, {1000, 0, 1000}});
+      makelogaxis(histos.get<TH2>("expected/" + pN[i]));
+      // Signal - Expected signal
+      histos.add("expected_diff/" + pN[i], Form(";#it{p} (GeV/#it{c});;d#it{E}/d#it{x} - d#it{E}/d#it{x}(%s)", pT[i].Data()), kTH2F, {{nBinsP, MinP, MaxP}, {1000, -500, 500}});
+      makelogaxis(histos.get<TH2>("expected_diff/" + pN[i]));
+      // NSigma
+      histos.add("nsigma/" + pN[i], Form(";#it{p} (GeV/#it{c});N_{#sigma}^{TPC}(%s)", pT[i].Data()), kTH2F, {{nBinsP, MinP, MaxP}, {200, -10, 10}});
+      makelogaxis(histos.get<TH2>("nsigma/" + pN[i]));
+    }
 #undef makelogaxis
   }
   void process(aod::Collision const& collision, soa::Join<aod::Tracks, aod::TracksExtra, aod::pidRespTPC> const& tracks)
   {
-    event->Fill<vertexz>(collision.posZ());
-    for (auto i : tracks) {
-      // const float mom = i.p();
-      const float mom = i.tpcInnerParam();
-      event->Fill<signal>(mom, i.tpcSignal());
+    histos.fill("event/vertexz", collision.posZ());
+
+    for (auto t : tracks) {
+      // const float mom = t.p();
+      const float mom = t.tpcInnerParam();
+      histos.fill("event/htpcsignal", mom, t.tpcSignal());
       //
-      expected->Fill<El>(mom, i.tpcExpSignalEl());
-      expected->Fill<Mu>(mom, i.tpcExpSignalMu());
-      expected->Fill<Pi>(mom, i.tpcExpSignalPi());
-      expected->Fill<Ka>(mom, i.tpcExpSignalKa());
-      expected->Fill<Pr>(mom, i.tpcExpSignalPr());
-      expected->Fill<De>(mom, i.tpcExpSignalDe());
-      expected->Fill<Tr>(mom, i.tpcExpSignalTr());
-      expected->Fill<He>(mom, i.tpcExpSignalHe());
-      expected->Fill<Al>(mom, i.tpcExpSignalAl());
+      const float exp[Np] = {t.tpcExpSignalEl(), t.tpcExpSignalMu(), t.tpcExpSignalPi(),
+                             t.tpcExpSignalKa(), t.tpcExpSignalPr(), t.tpcExpSignalDe(),
+                             t.tpcExpSignalTr(), t.tpcExpSignalHe(), t.tpcExpSignalAl()};
+      for (int i = 0; i < Np; i++) {
+        histos.fill("expected/" + pN[i], mom, exp[i]);
+        histos.fill("expected_diff/" + pN[i], mom, t.tpcSignal() - exp[i]);
+      }
       //
-      expected_diff->Fill<El>(mom, i.tpcSignal() - i.tpcExpSignalEl());
-      expected_diff->Fill<Mu>(mom, i.tpcSignal() - i.tpcExpSignalMu());
-      expected_diff->Fill<Pi>(mom, i.tpcSignal() - i.tpcExpSignalPi());
-      expected_diff->Fill<Ka>(mom, i.tpcSignal() - i.tpcExpSignalKa());
-      expected_diff->Fill<Pr>(mom, i.tpcSignal() - i.tpcExpSignalPr());
-      expected_diff->Fill<De>(mom, i.tpcSignal() - i.tpcExpSignalDe());
-      expected_diff->Fill<Tr>(mom, i.tpcSignal() - i.tpcExpSignalTr());
-      expected_diff->Fill<He>(mom, i.tpcSignal() - i.tpcExpSignalHe());
-      expected_diff->Fill<Al>(mom, i.tpcSignal() - i.tpcExpSignalAl());
-      //
-      nsigma->Fill<El>(mom, i.tpcNSigmaEl());
-      nsigma->Fill<Mu>(mom, i.tpcNSigmaMu());
-      nsigma->Fill<Pi>(mom, i.tpcNSigmaPi());
-      nsigma->Fill<Ka>(mom, i.tpcNSigmaKa());
-      nsigma->Fill<Pr>(mom, i.tpcNSigmaPr());
-      nsigma->Fill<De>(mom, i.tpcNSigmaDe());
-      nsigma->Fill<Tr>(mom, i.tpcNSigmaTr());
-      nsigma->Fill<He>(mom, i.tpcNSigmaHe());
-      nsigma->Fill<Al>(mom, i.tpcNSigmaAl());
+      const float nsigma[Np] = {t.tpcNSigmaEl(), t.tpcNSigmaMu(), t.tpcNSigmaPi(),
+                                t.tpcNSigmaKa(), t.tpcNSigmaPr(), t.tpcNSigmaDe(),
+                                t.tpcNSigmaTr(), t.tpcNSigmaHe(), t.tpcNSigmaAl()};
+      for (int i = 0; i < Np; i++) {
+        histos.fill("nsigma/" + pN[i], t.p(), nsigma[i]);
+      }
     }
   }
 };
