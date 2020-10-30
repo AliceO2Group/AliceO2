@@ -37,8 +37,9 @@ DECLARE_SOA_TABLE(HFSelTrack, "AOD", "HFSELTRACK",
                   hf_seltrack::DCAPrim0,
                   hf_seltrack::DCAPrim1);
 
-using BigTracks = soa::Join<Tracks, TracksCov, TracksExtra, HFSelTrack, pidRespTPC, pidRespTOF>;
+using BigTracks = soa::Join<Tracks, TracksCov, TracksExtra, HFSelTrack>;
 using BigTracksMC = soa::Join<BigTracks, McTrackLabels>;
+using BigTracksPID = soa::Join<BigTracks, pidRespTPC, pidRespTOF>;
 
 // FIXME: this is a workaround until we get the index columns to work with joins.
 
