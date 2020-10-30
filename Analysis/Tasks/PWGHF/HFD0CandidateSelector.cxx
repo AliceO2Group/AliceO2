@@ -316,7 +316,7 @@ struct HFD0CandidateSelector {
     }
   }
 
-  void process(aod::HfCandProng2 const& hfCandProng2s, aod::BigTracks const& tracks)
+  void process(aod::HfCandProng2 const& hfCandProng2s, aod::BigTracksPID const& tracks)
   {
     int statusD0, statusD0bar; // final selection flag : 0-rejected  1-accepted
     bool topolD0, topolD0bar;
@@ -324,8 +324,8 @@ struct HFD0CandidateSelector {
 
     for (auto& hfCandProng2 : hfCandProng2s) { //looping over 2 prong candidates
 
-      auto trackPos = hfCandProng2.index0(); //positive daughter
-      auto trackNeg = hfCandProng2.index1(); //negative daughter
+      auto trackPos = hfCandProng2.index0_as<aod::BigTracksPID>(); //positive daughter
+      auto trackNeg = hfCandProng2.index1_as<aod::BigTracksPID>(); //negative daughter
 
       statusD0 = 0;
       statusD0bar = 0;
