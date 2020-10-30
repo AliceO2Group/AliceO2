@@ -32,6 +32,7 @@
 #include "TPCFastTransform.h"
 #include "GPUTPCConvertImpl.h"
 #include "GPUTPCGMMergerTypes.h"
+#include "GPUParam.inc"
 
 #ifdef GPUCA_ALIROOT_LIB
 #include "AliExternalTrackParam.h"
@@ -494,7 +495,13 @@ GPUd() void GPUTPCGMTrackParam::AttachClusters(const GPUTPCGMMerger* GPUrestrict
   const float z0 = row.Grid().ZMin() - zOffset; // We can use our own ZOffset, since this is only used temporarily anyway
   const float stepZ = row.HstepZ();
   int bin, ny, nz;
-  const float tube = 2.5f;
+
+  float err2Y, err2Z;
+  Merger->Param().GetClusterErrors2(iRow, Z, mP[2], mP[3], err2Y, err2Z);
+  const float sy2 = CAMath::Min(Merger->Param().rec.tpcTubeMaxSize2, Merger->Param().rec.tpcTubeChi2 * (err2Y + mC[0]));
+  const float sz2 = CAMath::Min(Merger->Param().rec.tpcTubeMaxSize2, Merger->Param().rec.tpcTubeChi2 * (err2Z + mC[2]));
+  const float tubeY = CAMath::Sqrt(sy2);
+  const float tubeZ = CAMath::Sqrt(sz2);
   float nY, nZ;
   if (Merger->Param().earlyTpcTransform) {
     nY = Y;
@@ -502,8 +509,7 @@ GPUd() void GPUTPCGMTrackParam::AttachClusters(const GPUTPCGMMerger* GPUrestrict
   } else {
     Merger->GetConstantMem()->calibObjects.fastTransform->InverseTransformYZtoNominalYZ(slice, iRow, Y, Z, nY, nZ);
   }
-  row.Grid().GetBinArea(nY, nZ + zOffset, tube, tube, bin, ny, nz);
-  float sy2 = tube * tube, sz2 = tube * tube;
+  row.Grid().GetBinArea(nY, nZ + zOffset, tubeY, tubeZ, bin, ny, nz);
 
   const int nBinsY = row.Grid().Ny();
   const int idOffset = tracker.Data().ClusterIdOffset();
