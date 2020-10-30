@@ -40,7 +40,6 @@ void PrimaryVertexContext::initialise(const MemoryParameters& memParam, const Tr
 
     mMinR.resize(trkParam.NLayers, 10000.);
     mMaxR.resize(trkParam.NLayers, -1.);
-    mUnsortedClusters.resize(trkParam.NLayers);
     mClusters.resize(trkParam.NLayers);
     mUsedClusters.resize(trkParam.NLayers);
     mCells.resize(trkParam.CellsPerRoad());

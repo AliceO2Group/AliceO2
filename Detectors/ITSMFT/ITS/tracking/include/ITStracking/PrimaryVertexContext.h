@@ -73,7 +73,6 @@ class PrimaryVertexContext
   float3 mPrimaryVertex;
   std::vector<float> mMinR;
   std::vector<float> mMaxR;
-  std::vector<std::vector<Cluster>> mUnsortedClusters;
   std::vector<std::vector<Cluster>> mClusters;
   std::vector<std::vector<bool>> mUsedClusters;
   std::vector<std::vector<Cell>> mCells;
