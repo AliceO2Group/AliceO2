@@ -29,6 +29,14 @@ Stepper::~Stepper()
 
 bool Stepper::process(const TVirtualMC& vmc)
 {
+
+  if (!(vmc.TrackCharge())) {
+    // Only charged particles
+    return false;
+  }
+
+  // TODO: Update basing on AliRoot
+
   o2::SimTrackStatus ts{vmc};
 
   int detElemId;
