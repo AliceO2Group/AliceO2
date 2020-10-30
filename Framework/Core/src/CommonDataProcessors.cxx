@@ -72,14 +72,14 @@ const static std::unordered_map<OutputObjHandlingPolicy, std::string> ROOTfileNa
                                                                                        {OutputObjHandlingPolicy::QAObject, "QAResults.root"}};
 
 // =============================================================================
-DataProcessorSpec CommonDataProcessors::getHistogramRegistrySink(outputObjects const& objmap, const outputTasks& tskmap)
+DataProcessorSpec CommonDataProcessors::getOutputObjHistSink(outputObjects const& objmap, outputTasks const& tskmap)
 {
   auto writerFunction = [objmap, tskmap](InitContext& ic) -> std::function<void(ProcessingContext&)> {
     auto& callbacks = ic.services().get<CallbackService>();
     auto inputObjects = std::make_shared<std::vector<std::pair<InputObjectRoute, InputObject>>>();
 
     auto endofdatacb = [inputObjects](EndOfStreamContext& context) {
-      LOG(DEBUG) << "Writing merged histograms to file";
+      LOG(DEBUG) << "Writing merged objects and histograms to file";
       if (inputObjects->empty()) {
         LOG(ERROR) << "Output object map is empty!";
         context.services().get<ControlService>().readyToQuit(QuitRequest::Me);
@@ -123,149 +123,25 @@ DataProcessorSpec CommonDataProcessors::getHistogramRegistrySink(outputObjects c
           };
 
           TDirectory* currentDir = f[route.policy]->GetDirectory(currentDirectory.c_str());
-          TList* outputList = (TList*)entry.obj;
-          outputList->SetOwner(false);
+          TNamed* named = static_cast<TNamed*>(entry.obj);
+          if (named->InheritsFrom(TList::Class())) {
+            TList* outputList = (TList*)entry.obj;
+            outputList->SetOwner(false);
 
-          // if registry should live in dedicated folder a TNamed object is appended to the list
-          if (outputList->Last()->IsA() == TNamed::Class()) {
-            delete outputList->Last();
-            outputList->RemoveLast();
-            currentDir = currentDir->mkdir(outputList->GetName(), outputList->GetName(), true);
-          }
-
-          writeListToFile(outputList, currentDir);
-          outputList->SetOwner();
-          delete outputList;
-          entry.obj = nullptr;
-        }
-      }
-      for (auto i = 0u; i < OutputObjHandlingPolicy::numPolicies; ++i) {
-        if (f[i] != nullptr) {
-          f[i]->Close();
-        }
-      }
-      LOG(INFO) << "All outputs merged in their respective target files";
-      context.services().get<ControlService>().readyToQuit(QuitRequest::Me);
-    };
-
-    callbacks.set(CallbackService::Id::EndOfStream, endofdatacb);
-    return [inputObjects, objmap, tskmap](ProcessingContext& pc) mutable -> void {
-      auto const& ref = pc.inputs().get("y");
-      if (!ref.header) {
-        LOG(ERROR) << "Header not found";
-        return;
-      }
-      if (!ref.payload) {
-        LOG(ERROR) << "Payload not found";
-        return;
-      }
-      auto datah = o2::header::get<o2::header::DataHeader*>(ref.header);
-      if (!datah) {
-        LOG(ERROR) << "No data header in stack";
-        return;
-      }
-
-      auto objh = o2::header::get<o2::framework::OutputObjHeader*>(ref.header);
-      if (!objh) {
-        LOG(ERROR) << "No output object header in stack";
-        return;
-      }
-
-      FairTMessage tm(const_cast<char*>(ref.payload), static_cast<int>(datah->payloadSize));
-      InputObject obj;
-      obj.kind = tm.GetClass();
-      if (obj.kind == nullptr) {
-        LOG(error) << "Cannot read class info from buffer.";
-        return;
-      }
-
-      auto policy = objh->mPolicy;
-      auto hash = objh->mTaskHash;
-
-      obj.obj = tm.ReadObjectAny(obj.kind);
-      TNamed* named = static_cast<TNamed*>(obj.obj);
-      obj.name = named->GetName();
-
-      auto hpos = std::find_if(tskmap.begin(), tskmap.end(), [&](auto&& x) { return x.first == hash; });
-      if (hpos == tskmap.end()) {
-        LOG(ERROR) << "No task found for hash " << hash;
-        return;
-      }
-      auto taskname = hpos->second;
-      auto opos = std::find_if(objmap.begin(), objmap.end(), [&](auto&& x) { return x.first == hash; });
-      if (opos == objmap.end()) {
-        LOG(ERROR) << "No object list found for task " << taskname << " (hash=" << hash << ")";
-        return;
-      }
-      auto objects = opos->second;
-      if (std::find(objects.begin(), objects.end(), obj.name) == objects.end()) {
-        LOG(ERROR) << "No object " << obj.name << " in map for task " << taskname;
-        return;
-      }
-      auto nameHash = compile_time_hash(obj.name.c_str());
-      InputObjectRoute key{obj.name, nameHash, taskname, hash, policy};
-      auto existing = std::find_if(inputObjects->begin(), inputObjects->end(), [&](auto&& x) { return (x.first.uniqueId == nameHash) && (x.first.taskHash == hash); });
-      if (existing == inputObjects->end()) {
-        inputObjects->push_back(std::make_pair(key, obj));
-        return;
-      }
-      auto merger = existing->second.kind->GetMerge();
-      if (!merger) {
-        LOG(ERROR) << "Already one unmergeable object found for " << obj.name;
-        return;
-      }
-
-      TList coll;
-      coll.Add(static_cast<TObject*>(obj.obj));
-      merger(existing->second.obj, &coll, nullptr);
-    };
-  };
-
-  DataProcessorSpec spec{
-    "internal-dpl-global-analysis-file-sink",
-    {InputSpec("y", DataSpecUtils::dataDescriptorMatcherFrom(header::DataOrigin{"HIST"}))},
-    Outputs{},
-    AlgorithmSpec(writerFunction),
-    {}};
-
-  return spec;
-}
-
-DataProcessorSpec CommonDataProcessors::getOutputObjSink(outputObjects const& objmap, outputTasks const& tskmap)
-{
-  auto writerFunction = [objmap, tskmap](InitContext& ic) -> std::function<void(ProcessingContext&)> {
-    auto& callbacks = ic.services().get<CallbackService>();
-    auto inputObjects = std::make_shared<std::vector<std::pair<InputObjectRoute, InputObject>>>();
-
-    auto endofdatacb = [inputObjects](EndOfStreamContext& context) {
-      LOG(DEBUG) << "Writing merged objects to file";
-      if (inputObjects->empty()) {
-        LOG(ERROR) << "Output object map is empty!";
-        context.services().get<ControlService>().readyToQuit(QuitRequest::Me);
-        return;
-      }
-      std::string currentDirectory = "";
-      std::string currentFile = "";
-      TFile* f[OutputObjHandlingPolicy::numPolicies];
-      for (auto i = 0u; i < OutputObjHandlingPolicy::numPolicies; ++i) {
-        f[i] = nullptr;
-      }
-      for (auto& [route, entry] : *inputObjects) {
-        auto file = ROOTfileNames.find(route.policy);
-        if (file != ROOTfileNames.end()) {
-          auto filename = file->second;
-          if (f[route.policy] == nullptr) {
-            f[route.policy] = TFile::Open(filename.c_str(), "RECREATE");
-          }
-          auto nextDirectory = route.directory;
-          if ((nextDirectory != currentDirectory) || (filename != currentFile)) {
-            if (!f[route.policy]->FindKey(nextDirectory.c_str())) {
-              f[route.policy]->mkdir(nextDirectory.c_str());
+            // if registry should live in dedicated folder a TNamed object is appended to the list
+            if (outputList->Last()->IsA() == TNamed::Class()) {
+              delete outputList->Last();
+              outputList->RemoveLast();
+              currentDir = currentDir->mkdir(outputList->GetName(), outputList->GetName(), true);
             }
-            currentDirectory = nextDirectory;
-            currentFile = filename;
+
+            writeListToFile(outputList, currentDir);
+            outputList->SetOwner();
+            delete outputList;
+            entry.obj = nullptr;
+          } else {
+            currentDir->WriteObjectAny(entry.obj, entry.kind, entry.name.c_str());
           }
-          (f[route.policy]->GetDirectory(currentDirectory.c_str()))->WriteObjectAny(entry.obj, entry.kind, entry.name.c_str());
         }
       }
       for (auto i = 0u; i < OutputObjHandlingPolicy::numPolicies; ++i) {
