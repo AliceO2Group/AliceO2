@@ -13,7 +13,8 @@
 /Algorithm  @matthiasrichter
 
 /Analysis   @jgrosseo @iarsene
-/Analysis/Tasks/hf*  @ginnocen
+/Analysis/Tasks/ALICE3  @ginnocen
+/Analysis/Tasks/PWGHF  @ginnocen
 
 /CCDB  @costing @Barthelemy @sawenzel @AliceO2Group/framework-admins
 
