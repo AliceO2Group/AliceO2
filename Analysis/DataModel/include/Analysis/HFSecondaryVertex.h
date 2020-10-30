@@ -280,6 +280,32 @@ auto InvMassDPlus(const T& candidate)
 {
   return candidate.m(array{RecoDecay::getMassPDG(kPiPlus), RecoDecay::getMassPDG(kKPlus), RecoDecay::getMassPDG(kPiPlus)});
 }
+
+// Lc+ → p K- π+
+
+template <typename T>
+auto CtLc(const T& candidate)
+{
+  return candidate.ct(RecoDecay::getMassPDG(4122));
+}
+
+template <typename T>
+auto YLc(const T& candidate)
+{
+  return candidate.y(RecoDecay::getMassPDG(4122));
+}
+
+template <typename T>
+auto ELc(const T& candidate)
+{
+  return candidate.e(RecoDecay::getMassPDG(4122));
+}
+
+template <typename T>
+auto InvMassLc(const T& candidate)
+{
+  return candidate.m(array{RecoDecay::getMassPDG(kProton), RecoDecay::getMassPDG(kKPlus), RecoDecay::getMassPDG(kPiPlus)});
+}
 } // namespace hf_cand_prong3
 
 // 3-prong decay candidate table

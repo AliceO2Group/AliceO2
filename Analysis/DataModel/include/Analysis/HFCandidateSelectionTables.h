@@ -21,4 +21,13 @@ DECLARE_SOA_COLUMN(IsSelD0bar, isSelD0bar, int);
 DECLARE_SOA_TABLE(HFSelD0Candidate, "AOD", "HFSELD0CAND", hf_selcandidate::IsSelD0, hf_selcandidate::IsSelD0bar);
 } // namespace o2::aod
 
+namespace o2::aod
+{
+namespace hf_selcandidate_lc
+{
+DECLARE_SOA_COLUMN(IsSelLc, isSelLc, int);
+} // namespace hf_selcandidate_lc
+DECLARE_SOA_TABLE(HFSelLcCandidate, "AOD", "HFSELLcCAND", hf_selcandidate_lc::IsSelLc);
+} // namespace o2::aod
+
 #endif // O2_ANALYSIS_HFCANDIDATESELECTIONTABLES_H_
