@@ -1253,7 +1253,7 @@ void GPUQA::RunQA(bool matchOnly)
     }
     timer.ResetStart();
   } else if (!mConfig.inputHistogramsOnly) {
-    GPUWarning("No MC information available, cannot run QA!");
+    GPUWarning("No MC information available, only running partial TPC QA!");
   }
 
   // Fill other histograms
