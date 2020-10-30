@@ -301,10 +301,10 @@ struct HistFactory {
     if constexpr (std::is_base_of_v<THnBase, T>) {
       return hist->GetAxis(i);
     } else {
-      return (i == 0)   ? hist->GetXaxis()
-             : (i == 1) ? hist->GetYaxis()
-             : (i == 2) ? hist->GetZaxis()
-                        : nullptr;
+      return (i == 0) ? hist->GetXaxis()
+                      : (i == 1) ? hist->GetYaxis()
+                                 : (i == 2) ? hist->GetZaxis()
+                                            : nullptr;
     }
   }
 
