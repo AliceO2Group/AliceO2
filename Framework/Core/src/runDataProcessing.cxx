@@ -272,13 +272,16 @@ bool areAllChildrenGone(std::vector<DeviceInfo>& infos)
 }
 
 /// Calculate exit code
-int calculateExitCode(std::vector<DeviceInfo>& infos)
+int calculateExitCode(DeviceSpecs& deviceSpecs, DeviceInfos& infos)
 {
+  std::regex regexp(R"(^\[([\d+:]*)\]\[\w+\] )");
   int exitCode = 0;
-  for (auto& info : infos) {
+  for (size_t di = 0; di < deviceSpecs.size(); ++di) {
+    auto& info = infos[di];
+    auto& spec = deviceSpecs[di];
     if (exitCode == 0 && info.maxLogLevel >= LogParsingHelpers::LogLevel::Error) {
-      LOG(ERROR) << "Child " << info.pid << " had at least one "
-                 << "message above severity ERROR: " << info.lastError;
+      LOG(ERROR) << "SEVERE: Device " << spec.name << " (" << info.pid << ") had at least one "
+                 << "message above severity ERROR: " << std::regex_replace(info.lastError, regexp, "");
       exitCode = 1;
     }
   }
@@ -1270,7 +1273,7 @@ int runStateMachine(DataProcessorSpecs const& workflow,
         LOG(INFO) << "Dumping used configuration in dpl-config.json";
         boost::property_tree::write_json("dpl-config.json", finalConfig);
         cleanupSHM(driverInfo.uniqueWorkflowId);
-        return calculateExitCode(infos);
+        return calculateExitCode(deviceSpecs, infos);
       }
       case DriverState::PERFORM_CALLBACKS:
         for (auto& callback : driverControl.callbacks) {
