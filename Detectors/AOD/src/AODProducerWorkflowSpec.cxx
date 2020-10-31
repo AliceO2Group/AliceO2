@@ -38,7 +38,8 @@
 
 using namespace o2::framework;
 
-namespace o2::aodproducer {
+namespace o2::aodproducer
+{
 
 void AODProducerWorkflowDPL::findMinMaxBc(gsl::span<const o2::ft0::RecPoints>& ft0RecPoints, gsl::span<const o2::dataformats::TrackTPCITS>& tracksITSTPC)
 {
@@ -70,6 +71,49 @@ void AODProducerWorkflowDPL::fillTracksTable(const TracksType& tracks, std::vect
   for (int i = 0; i < tracks.size(); i++) {
     auto& track = tracks[i];
     int collisionID = vCollRefs[i];
+
+    float tpcInnerParam = 0.f;
+    uint32_t flags = 0;
+    uint8_t itsClusterMap = 0;
+    uint8_t tpcNClsFindable = 0;
+    int8_t tpcNClsFindableMinusFound = 0;
+    int8_t tpcNClsFindableMinusCrossedRows = 0;
+    uint8_t tpcNClsShared = 0;
+    uint8_t trdPattern = 0;
+    float itsChi2NCl = -999.f;
+    float tpcChi2NCl = -999.f;
+    float trdChi2 = -999.f;
+    float tofChi2 = -999.f;
+    float tpcSignal = -999.f;
+    float trdSignal = -999.f;
+    float tofSignal = -999.f;
+    float length = -999.f;
+    float tofExpMom = -999.f;
+    float trackEtaEMCAL = -999.f;
+    float trackPhiEMCAL = -999.f;
+
+    // filling available columns for different track types
+    // FIXME:
+    // is there a more nice/simple way to do this?
+    std::variant<o2::its::TrackITS, o2::tpc::TrackTPC, o2::dataformats::TrackTPCITS> tmp = track;
+    std::visit(
+      overloaded{
+        [&](o2::its::TrackITS itsTrack) {
+          itsClusterMap = itsTrack.getPattern();
+        },
+        [&](o2::tpc::TrackTPC tpcTrack) {
+          tpcChi2NCl = tpcTrack.getChi2();
+          // FIXME:
+          // what values to fill here?
+          tpcSignal = tpcTrack.getdEdx().dEdxTotTPC;
+          tpcNClsFindable = tpcTrack.getNClusters();
+        },
+        [&](o2::dataformats::TrackTPCITS itsTpcTrack) {
+          LOG(INFO) << "check";
+        }
+      },
+      tmp);
+
     // TODO:
     // fill trackextra table
     tracksCursor(0,
@@ -97,25 +141,25 @@ void AODProducerWorkflowDPL::fillTracksTable(const TracksType& tracks, std::vect
                  (Char_t)(128. * track.getSigma1PtZ() / track.getSigma1Pt2() / track.getSigmaZ2()),
                  (Char_t)(128. * track.getSigma1PtSnp() / track.getSigma1Pt2() / track.getSigmaSnp2()),
                  (Char_t)(128. * track.getSigma1PtTgl() / track.getSigma1Pt2() / track.getSigmaTgl2()),
-                 0.f,            // TPCInnerParam,
-                 (uint32_t)0,    // Flags
-                 (uint8_t)0,     // ITSClusterMap
-                 (uint8_t)0,     // TPCNClsFindable
-                 (int8_t)0,      // TPCNClsFindableMinusFound
-                 (int8_t)0,      // TPCNClsFindableMinusCrossedRows
-                 (uint8_t)0,     // TPCNClsShared
-                 (uint8_t)0,     // TRDPattern
-                 0.f,            // ITSChi2NCl
-                 0.f,            // TPCChi2NCl
-                 0.f,            // TRDChi2
-                 0.f,            // TOFChi2
-                 0.f,            // TPCSignal
-                 0.f,            // TRDSignal
-                 0.f,            // TOFSignal
-                 0.f,            // Length
-                 0.f,            // TOFExpMom
-                 0.f,            // TrackEtaEMCAL
-                 0.f);           // TrackPhiEMCAL
+                 tpcInnerParam,
+                 flags,
+                 itsClusterMap,
+                 tpcNClsFindable,
+                 tpcNClsFindableMinusFound,
+                 tpcNClsFindableMinusCrossedRows,
+                 tpcNClsShared,
+                 trdPattern,
+                 itsChi2NCl,
+                 tpcChi2NCl,
+                 trdChi2,
+                 tofChi2,
+                 tpcSignal,
+                 trdSignal,
+                 tofSignal,
+                 length,
+                 tofExpMom,
+                 trackEtaEMCAL,
+                 trackPhiEMCAL);
   }
 }
 
@@ -162,10 +206,10 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
 
   // TODO:
   // add  FV0A, FV0C, FDD tables
-  // auto& fv0aBuilder = pc.outputs().make<TableBuilder>(Output{"AOD", "FV0A"});
-  // auto& fv0cBuilder = pc.outputs().make<TableBuilder>(Output{"AOD", "FV0C"});
-  // auto& fddBuilder = pc.outputs().make<TableBuilder>(Output{"AOD", "FDD"});
-  // auto& zdcBuilder = pc.outputs().make<TableBuilder>(Output{"AOD", "ZDC"});
+  auto& fv0aBuilder = pc.outputs().make<TableBuilder>(Output{"AOD", "FV0A"});
+  auto& fv0cBuilder = pc.outputs().make<TableBuilder>(Output{"AOD", "FV0C"});
+  auto& fddBuilder = pc.outputs().make<TableBuilder>(Output{"AOD", "FDD"});
+  auto& zdcBuilder = pc.outputs().make<TableBuilder>(Output{"AOD", "ZDC"});
 
   auto bcCursor = bcBuilder.cursor<o2::aod::BCs>();
   auto collisionsCursor = collisionsBuilder.cursor<o2::aod::Collisions>();
@@ -175,54 +219,54 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
 
   // TODO:
   // add  FV0A, FV0C, FDD tables
-  // auto fv0aCursor = fv0aBuilder.cursor<o2::aod::FV0As>();
-  // auto fv0cCursor = fv0cBuilder.cursor<o2::aod::FV0Cs>();
-  // auto fddCursor = fddBuilder.cursor<o2::aod::FDDs>();
-  // auto zdcCursor = zdcBuilder.cursor<o2::aod::Zdcs>();
+  auto fv0aCursor = fv0aBuilder.cursor<o2::aod::FV0As>();
+  auto fv0cCursor = fv0cBuilder.cursor<o2::aod::FV0Cs>();
+  auto fddCursor = fddBuilder.cursor<o2::aod::FDDs>();
+  auto zdcCursor = zdcBuilder.cursor<o2::aod::Zdcs>();
 
-  // float dummyfv0AmplA[48] = {0.};
-  // float dummyfv0AmplC[32] = {0.};
-  // float dummyfddAmplA[4] = {0.};
-  // float dummyfddAmplC[4] = {0.};
-  // fv0aCursor(0,
-  //            (uint64_t)0,
-  //            dummyfv0AmplA,
-  //            0.f,
-  //            (uint8_t)0);
-  // fv0cCursor(0,
-  //            (uint64_t)0,
-  //            dummyfv0AmplC,
-  //            0.f);
-  // fddCursor(0,
-  //           (uint64_t)0,
-  //           dummyfddAmplA,
-  //           dummyfddAmplC,
-  //           0.f,
-  //           0.f,
-  //           (uint8_t)0);
+  float dummyfv0AmplA[48] = {0.};
+  float dummyfv0AmplC[32] = {0.};
+  float dummyfddAmplA[4] = {0.};
+  float dummyfddAmplC[4] = {0.};
+  fv0aCursor(0,
+             (uint64_t)0,
+             dummyfv0AmplA,
+             0.f,
+             (uint8_t)0);
+  fv0cCursor(0,
+             (uint64_t)0,
+             dummyfv0AmplC,
+             0.f);
+  fddCursor(0,
+            (uint64_t)0,
+            dummyfddAmplA,
+            dummyfddAmplC,
+            0.f,
+            0.f,
+            (uint8_t)0);
 
-  // float dummyEnergySectorZNA[4] = {0.};
-  // float dummyEnergySectorZNC[4] = {0.};
-  // float dummyEnergySectorZPA[4] = {0.};
-  // float dummyEnergySectorZPC[4] = {0.};
-  // zdcCursor(0,
-  //           (uint64_t)0,
-  //           0.f,
-  //           0.f,
-  //           0.f,
-  //           0.f,
-  //           0.f,
-  //           0.f,
-  //           dummyEnergySectorZNA,
-  //           dummyEnergySectorZNC,
-  //           dummyEnergySectorZPA,
-  //           dummyEnergySectorZPC,
-  //           0.f,
-  //           0.f,
-  //           0.f,
-  //           0.f,
-  //           0.f,
-  //           0.f);
+  float dummyEnergySectorZNA[4] = {0.};
+  float dummyEnergySectorZNC[4] = {0.};
+  float dummyEnergySectorZPA[4] = {0.};
+  float dummyEnergySectorZPC[4] = {0.};
+  zdcCursor(0,
+            (uint64_t)0,
+            0.f,
+            0.f,
+            0.f,
+            0.f,
+            0.f,
+            0.f,
+            dummyEnergySectorZNA,
+            dummyEnergySectorZNC,
+            dummyEnergySectorZPA,
+            dummyEnergySectorZPC,
+            0.f,
+            0.f,
+            0.f,
+            0.f,
+            0.f,
+            0.f);
 
   o2::steer::MCKinematicsReader mcReader("collisioncontext.root");
   const auto context = mcReader.getDigitizationContext();
@@ -395,10 +439,10 @@ DataProcessorSpec getAODProducerWorkflowSpec()
 
   // TODO:
   // add  FV0A, FV0C, FDD tables
-  // outputs.emplace_back(OutputLabel{"O2fv0a"}, "AOD", "FV0A", 0, Lifetime::Timeframe);
-  // outputs.emplace_back(OutputLabel{"O2fv0c"}, "AOD", "FV0C", 0, Lifetime::Timeframe);
-  // outputs.emplace_back(OutputLabel{"O2fdd"}, "AOD", "FDD", 0, Lifetime::Timeframe);
-  // outputs.emplace_back(OutputLabel{"O2zdc"}, "AOD", "ZDC", 0, Lifetime::Timeframe);
+  outputs.emplace_back(OutputLabel{"O2fv0a"}, "AOD", "FV0A", 0, Lifetime::Timeframe);
+  outputs.emplace_back(OutputLabel{"O2fv0c"}, "AOD", "FV0C", 0, Lifetime::Timeframe);
+  outputs.emplace_back(OutputLabel{"O2fdd"}, "AOD", "FDD", 0, Lifetime::Timeframe);
+  outputs.emplace_back(OutputLabel{"O2zdc"}, "AOD", "ZDC", 0, Lifetime::Timeframe);
 
   return DataProcessorSpec{
     "aod-producer-workflow",
