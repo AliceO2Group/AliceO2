@@ -241,8 +241,9 @@ bool TrackFitter::computeCluster(TrackLTF& track, int cluster)
     LOG(INFO) << "track.getZ() = " << track.getZ() << " ; newClusterZ = " << clz << " ==> Skipping point.";
     return true;
   }
-  if (mftTrackingParam.verbose)
+  if (mftTrackingParam.verbose) {
     std::cout << "computeCluster:     X = " << clx << " Y = " << cly << " Z = " << clz << " nCluster = " << cluster << std::endl;
+  }
 
   // add MCS effects for the new cluster
   using o2::mft::constants::LayerZPosition;
@@ -250,18 +251,23 @@ bool TrackFitter::computeCluster(TrackLTF& track, int cluster)
 
   auto dZ = clz - track.getZ();
   //LayerID of each cluster from ZPosition // TODO: Use ChipMapping
-  for (auto layer = 10; layer--;)
-    if (track.getZ() < LayerZPosition[layer] + .3 & track.getZ() > LayerZPosition[layer] - .3)
+  for (auto layer = 10; layer--;) {
+    if (track.getZ() < LayerZPosition[layer] + .3 & track.getZ() > LayerZPosition[layer] - .3) {
       startingLayerID = layer;
-  for (auto layer = 10; layer--;)
-    if (clz<LayerZPosition[layer] + .3 & clz> LayerZPosition[layer] - .3)
+    }
+  }
+  for (auto layer = 10; layer--;) {
+    if (clz<LayerZPosition[layer] + .3 & clz> LayerZPosition[layer] - .3) {
       newLayerID = layer;
+    }
+  }
   // Number of disks crossed by this tracklet
   int NDisksMS;
-  if (clz - track.getZ() > 0)
+  if (clz - track.getZ() > 0) {
     NDisksMS = (startingLayerID % 2 == 0) ? (startingLayerID - newLayerID) / 2 : (startingLayerID - newLayerID + 1) / 2;
-  else
+  } else {
     NDisksMS = (startingLayerID % 2 == 0) ? (newLayerID - startingLayerID + 1) / 2 : (newLayerID - startingLayerID) / 2;
+  }
 
   auto MFTDiskThicknessInX0 = mftTrackingParam.MFTRadLength / 5.0;
   if (mftTrackingParam.verbose) {
@@ -272,11 +278,13 @@ bool TrackFitter::computeCluster(TrackLTF& track, int cluster)
     std::cout << "NDisksMS = " << NDisksMS << std::endl;
   }
 
-  if ((NDisksMS * MFTDiskThicknessInX0) != 0)
+  if ((NDisksMS * MFTDiskThicknessInX0) != 0) {
     track.addMCSEffect(-1, NDisksMS * MFTDiskThicknessInX0);
+  }
 
-  if (mftTrackingParam.verbose)
+  if (mftTrackingParam.verbose) {
     std::cout << "  BeforeExtrap: X = " << track.getX() << " Y = " << track.getY() << " Z = " << track.getZ() << " Tgl = " << track.getTanl() << "  Phi = " << track.getPhi() << " pz = " << track.getPz() << " qpt = " << 1.0 / track.getInvQPt() << std::endl;
+  }
 
   // Propagate track to the z position of the new cluster
   switch (mftTrackingParam.trackmodel) {
@@ -295,8 +303,9 @@ bool TrackFitter::computeCluster(TrackLTF& track, int cluster)
       break;
   }
 
-  if (mftTrackingParam.verbose)
+  if (mftTrackingParam.verbose) {
     std::cout << "   AfterExtrap: X = " << track.getX() << " Y = " << track.getY() << " Z = " << track.getZ() << " Tgl = " << track.getTanl() << "  Phi = " << track.getPhi() << " pz = " << track.getPz() << " qpt = " << 1.0 / track.getInvQPt() << std::endl;
+  }
 
   // recompute parameters
   const std::array<float, 2>& pos = {clx, cly};
@@ -473,8 +482,9 @@ Bool_t LinearRegression(Int_t nVal, Double_t* xVal, Double_t* yVal, Double_t* yE
     SX += xVal[i] * invYErr2;
     SY += yVal[i] * invYErr2;
     SXX += xVal[i] * xVal[i] * invYErr2;
-    if (i > 0)
+    if (i > 0) {
       difx += TMath::Abs(xVal[i] - xVal[i - 1]);
+    }
     Xm += xVal[i];
     Ym += yVal[i];
     SsXX += xVal[i] * xVal[i];

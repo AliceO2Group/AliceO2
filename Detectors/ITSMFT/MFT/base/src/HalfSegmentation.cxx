@@ -37,8 +37,9 @@ HalfSegmentation::HalfSegmentation() : VSegmentation(), mHalfDisks(nullptr) {}
 HalfSegmentation::HalfSegmentation(const HalfSegmentation& source) : VSegmentation(source), mHalfDisks(nullptr)
 {
 
-  if (source.mHalfDisks)
+  if (source.mHalfDisks) {
     mHalfDisks = new TClonesArray(*(source.mHalfDisks));
+  }
 }
 
 /// Constructor
@@ -86,8 +87,9 @@ HalfSegmentation::HalfSegmentation(const Char_t* nameGeomFile, const Short_t id)
 HalfSegmentation::~HalfSegmentation()
 {
 
-  if (mHalfDisks)
+  if (mHalfDisks) {
     mHalfDisks->Delete();
+  }
   delete mHalfDisks;
 }
 
@@ -97,8 +99,9 @@ HalfSegmentation::~HalfSegmentation()
 void HalfSegmentation::Clear(const Option_t* /*opt*/)
 {
 
-  if (mHalfDisks)
+  if (mHalfDisks) {
     mHalfDisks->Delete();
+  }
   delete mHalfDisks;
   mHalfDisks = nullptr;
 }

@@ -6293,10 +6293,11 @@ class binary_writer
       }
 
       case value_t::boolean: {
-        if (add_prefix)
+        if (add_prefix) {
           oa->write_character(j.m_value.boolean
                                 ? static_cast<CharType>('T')
                                 : static_cast<CharType>('F'));
+        }
         break;
       }
 

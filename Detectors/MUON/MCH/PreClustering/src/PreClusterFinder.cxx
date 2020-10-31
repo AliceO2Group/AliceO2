@@ -256,14 +256,18 @@ void PreClusterFinder::addPad(DetectionElement& de, uint16_t iPad, PreCluster& c
   }
   cluster.lastPad = de.nOrderedPads[0];
   ++de.nOrderedPads[0];
-  if (pad.area[0][0] < cluster.area[0][0])
+  if (pad.area[0][0] < cluster.area[0][0]) {
     cluster.area[0][0] = pad.area[0][0];
-  if (pad.area[0][1] > cluster.area[0][1])
+  }
+  if (pad.area[0][1] > cluster.area[0][1]) {
     cluster.area[0][1] = pad.area[0][1];
-  if (pad.area[1][0] < cluster.area[1][0])
+  }
+  if (pad.area[1][0] < cluster.area[1][0]) {
     cluster.area[1][0] = pad.area[1][0];
-  if (pad.area[1][1] > cluster.area[1][1])
+  }
+  if (pad.area[1][1] > cluster.area[1][1]) {
     cluster.area[1][1] = pad.area[1][1];
+  }
 
   pad.useMe = false;
 

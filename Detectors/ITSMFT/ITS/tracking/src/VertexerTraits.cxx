@@ -238,8 +238,9 @@ const std::vector<std::pair<int, int>> VertexerTraits::selectClusters(const std:
 {
   std::vector<std::pair<int, int>> filteredBins{};
   int phiBinsNum{selectedBinsRect[3] - selectedBinsRect[1] + 1};
-  if (phiBinsNum < 0)
+  if (phiBinsNum < 0) {
     phiBinsNum += PhiBins;
+  }
   filteredBins.reserve(phiBinsNum);
   for (int iPhiBin{selectedBinsRect[1]}, iPhiCount{0}; iPhiCount < phiBinsNum;
        iPhiBin = ++iPhiBin == PhiBins ? 0 : iPhiBin, iPhiCount++) {
@@ -396,11 +397,13 @@ void VertexerTraits::computeVertices()
   std::vector<bool> usedTracklets{};
   usedTracklets.resize(mTracklets.size(), false);
   for (int tracklet1{0}; tracklet1 < numTracklets; ++tracklet1) {
-    if (usedTracklets[tracklet1])
+    if (usedTracklets[tracklet1]) {
       continue;
+    }
     for (int tracklet2{tracklet1 + 1}; tracklet2 < numTracklets; ++tracklet2) {
-      if (usedTracklets[tracklet2])
+      if (usedTracklets[tracklet2]) {
         continue;
+      }
       if (Line::getDCA(mTracklets[tracklet1], mTracklets[tracklet2]) <= mVrtParams.pairCut) {
         mTrackletClusters.emplace_back(tracklet1, mTracklets[tracklet1], tracklet2, mTracklets[tracklet2]);
         std::array<float, 3> tmpVertex{mTrackletClusters.back().getVertex()};
@@ -411,8 +414,9 @@ void VertexerTraits::computeVertices()
         usedTracklets[tracklet1] = true;
         usedTracklets[tracklet2] = true;
         for (int tracklet3{0}; tracklet3 < numTracklets; ++tracklet3) {
-          if (usedTracklets[tracklet3])
+          if (usedTracklets[tracklet3]) {
             continue;
+          }
           if (Line::getDistanceFromPoint(mTracklets[tracklet3], tmpVertex) < mVrtParams.pairCut) {
             mTrackletClusters.back().add(tracklet3, mTracklets[tracklet3]);
             usedTracklets[tracklet3] = true;

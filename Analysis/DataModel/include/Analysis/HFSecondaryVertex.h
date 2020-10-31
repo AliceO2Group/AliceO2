@@ -37,8 +37,9 @@ DECLARE_SOA_TABLE(HFSelTrack, "AOD", "HFSELTRACK",
                   hf_seltrack::DCAPrim0,
                   hf_seltrack::DCAPrim1);
 
-using BigTracks = soa::Join<Tracks, TracksCov, TracksExtra, HFSelTrack, pidRespTPC, pidRespTOF>;
+using BigTracks = soa::Join<Tracks, TracksCov, TracksExtra, HFSelTrack>;
 using BigTracksMC = soa::Join<BigTracks, McTrackLabels>;
+using BigTracksPID = soa::Join<BigTracks, pidRespTPC, pidRespTOF>;
 
 // FIXME: this is a workaround until we get the index columns to work with joins.
 
@@ -278,6 +279,32 @@ template <typename T>
 auto InvMassDPlus(const T& candidate)
 {
   return candidate.m(array{RecoDecay::getMassPDG(kPiPlus), RecoDecay::getMassPDG(kKPlus), RecoDecay::getMassPDG(kPiPlus)});
+}
+
+// Lc+ → p K- π+
+
+template <typename T>
+auto CtLc(const T& candidate)
+{
+  return candidate.ct(RecoDecay::getMassPDG(4122));
+}
+
+template <typename T>
+auto YLc(const T& candidate)
+{
+  return candidate.y(RecoDecay::getMassPDG(4122));
+}
+
+template <typename T>
+auto ELc(const T& candidate)
+{
+  return candidate.e(RecoDecay::getMassPDG(4122));
+}
+
+template <typename T>
+auto InvMassLc(const T& candidate)
+{
+  return candidate.m(array{RecoDecay::getMassPDG(kProton), RecoDecay::getMassPDG(kKPlus), RecoDecay::getMassPDG(kPiPlus)});
 }
 } // namespace hf_cand_prong3
 

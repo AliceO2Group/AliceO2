@@ -81,8 +81,9 @@ InitStatus HitAnalysis::Init()
 
   // Create geometry, initialize chip array
   GeometryTGeo* geom = GeometryTGeo::Instance();
-  if (!geom->isBuilt())
+  if (!geom->isBuilt()) {
     geom->Build(true);
+  }
   geom->fillMatrixCache(o2::math_utils::bit2Mask(o2::math_utils::TransformType::L2G)); // make sure T2L matrices are loaded
 
   mGeometry = geom;

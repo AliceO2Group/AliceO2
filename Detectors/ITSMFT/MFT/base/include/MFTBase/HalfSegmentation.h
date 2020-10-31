@@ -52,10 +52,11 @@ class HalfSegmentation : public VSegmentation
 
   HalfDiskSegmentation* getHalfDisk(Int_t iDisk) const
   {
-    if (iDisk >= 0 && iDisk < mHalfDisks->GetEntries())
+    if (iDisk >= 0 && iDisk < mHalfDisks->GetEntries()) {
       return (HalfDiskSegmentation*)mHalfDisks->At(iDisk);
-    else
+    } else {
       return nullptr;
+    }
   }
 
  private:

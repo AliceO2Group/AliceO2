@@ -262,8 +262,9 @@ void HeatExchanger::createManifold(Int_t disk)
   tTop[5] = new TGeoTranslation(Form("tTop6MF%d", disk), -lengthTop1[disk] / 2, widthTop1[disk] / 2 - cornerRadiusTop[disk], thicknessMiddle[disk] / 2 + thicknessTop[disk] / 2);
   tTop[6] = new TGeoTranslation(Form("tTop7MF%d", disk), -lengthTop1[disk] / 2, -(widthTop1[disk] / 2 - cornerRadiusTop[disk]), thicknessMiddle[disk] / 2 + thicknessTop[disk] / 2);
 
-  for (Int_t i = 0; i < 7; ++i)
+  for (Int_t i = 0; i < 7; ++i) {
     tTop[i]->RegisterYourself();
+  }
 
   TGeoTranslation* tMiddle1 = new TGeoTranslation(Form("tMiddle1MF%d", disk), 0, 0, 0);
   TGeoTranslation* tBottom1 = new TGeoTranslation(Form("tBottom1MF%d", disk), 0, 0, -(thicknessMiddle[disk] / 2 + thicknessBottom[disk] / 2));
@@ -359,10 +360,11 @@ void HeatExchanger::createManifold(Int_t disk)
     tPipe = new TGeoTranslation(Form("tPipe%dMF%d", iPipeRow + 1, disk), lengthMiddle1[disk] / 2 - offsetPipeRow[disk][iPipeRow], 0, 0);
     tPipe->RegisterYourself();
 
-    if (iPipeRow == nPipeRow[disk] - 1)
+    if (iPipeRow == nPipeRow[disk] - 1) {
       namePipe += Form("shapePipeMF%d:tPipe%dMF%d", disk, iPipeRow + 1, disk);
-    else
+    } else {
       namePipe += Form("shapePipeMF%d:tPipe%dMF%d +", disk, iPipeRow + 1, disk);
+    }
   }
 
   TGeoCompositeShape* posiPipeOneCol = new TGeoCompositeShape(Form("posiPipeOneColMF%d", disk), namePipe);
@@ -446,8 +448,9 @@ void HeatExchanger::createManifold(Int_t disk)
   tcoverBodyBathtub[5] = new TGeoTranslation(Form("tcoverBodyBathtub6MF%d", disk), -(lengthBodyBathtub1 / 2), widthBodyBathtub1 / 2 - cornerRadiusBodyBathtub1[disk], 0.);
   tcoverBodyBathtub[6] = new TGeoTranslation(Form("tcoverBodyBathtub7MF%d", disk), -(lengthBodyBathtub1 / 2), -(widthBodyBathtub1 / 2 - cornerRadiusBodyBathtub1[disk]), 0.);
 
-  for (Int_t i = 0; i < 7; ++i)
+  for (Int_t i = 0; i < 7; ++i) {
     tcoverBodyBathtub[i]->RegisterYourself();
+  }
 
   TGeoCompositeShape* shapeCoverBathtub = new TGeoCompositeShape(Form("shapeCoverBathtubMF%d", disk), Form("coverBodyBathtub1MF%d + coverBodyBathtub2MF%d:tcoverBodyBathtub2MF%d + coverBodyBathtub3MF%d:tcoverBodyBathtub3MF%d + coverBodyBathtub3MF%d:tcoverBodyBathtub4MF%d + coverBodyBathtub2MF%d:tcoverBodyBathtub5MF%d + coverBodyBathtub3MF%d:tcoverBodyBathtub6MF%d + coverBodyBathtub3MF%d:tcoverBodyBathtub7MF%d", disk, disk, disk, disk, disk, disk, disk, disk, disk, disk, disk, disk, disk));
 
@@ -521,8 +524,9 @@ void HeatExchanger::createManifold(Int_t disk)
   combtcoverBodyStep[3] = new TGeoCombiTrans(Form("combtcoverBodyStep4MF%d", disk), -(lengthStep1[disk] - lengthStep2) / 2, -widthStep1[disk] / 2, 0., rcoverBodyStep);
   combtcoverBodyStep[3]->RegisterYourself();
 
-  for (Int_t i = 0; i < 4; ++i)
+  for (Int_t i = 0; i < 4; ++i) {
     tcoverBodyStep[i]->RegisterYourself();
+  }
 
   TGeoCompositeShape* shapeStep = new TGeoCompositeShape(Form("shapeStepMF%d", disk), Form("coverBodyStep1MF%d:tcoverBodyStep1MF%d + coverBodyStep2MF%d:tcoverBodyStep2MF%d + coverBodyStep3MF%d:tcoverBodyStep3MF%d + coverBodyStep4MF%d:combtcoverBodyStep4MF%d", disk, disk, disk, disk, disk, disk, disk, disk));
 
@@ -753,12 +757,13 @@ void HeatExchanger::createManifold(Int_t disk)
   TString namePlug = "";
   for (Int_t ipart = 0; ipart < 12; ++ipart) {
     tPlug[ipart]->RegisterYourself();
-    if (ipart == 0)
+    if (ipart == 0) {
       namePlug += Form("plug1MF%d:tPlug1MF%d", disk, disk);
-    else if (ipart == 11)
+    } else if (ipart == 11) {
       namePlug += Form(" - plug%dMF%d:tPlug%dMF%d", ipart + 1, disk, ipart + 1, disk);
-    else
+    } else {
       namePlug += Form(" + plug%dMF%d:tPlug%dMF%d", ipart + 1, disk, ipart + 1, disk);
+    }
   }
 
   TGeoCompositeShape* shapePlug = new TGeoCompositeShape(Form("shapePlugMF%d", disk), namePlug);
@@ -789,8 +794,9 @@ void HeatExchanger::createManifold(Int_t disk)
   twater[5] = new TGeoTranslation(Form("twater6MF%d", disk), -(lengthBodyBathtub1 / 2), widthBodyBathtub1 / 2 - cornerRadiusBodyBathtub1[disk], 0.);
   twater[6] = new TGeoTranslation(Form("twater7MF%d", disk), -(lengthBodyBathtub1 / 2), -(widthBodyBathtub1 / 2 - cornerRadiusBodyBathtub1[disk]), 0.);
 
-  for (Int_t i = 0; i < 7; ++i)
+  for (Int_t i = 0; i < 7; ++i) {
     twater[i]->RegisterYourself();
+  }
 
   TGeoCompositeShape* shapeWater = new TGeoCompositeShape(Form("shapeCoverBathtubMF%d", disk),
                                                           Form("water1MF%d + water2MF%d:twater2MF%d + water3MF%d:twater3MF%d + water3MF%d:twater4MF%d + water2MF%d:twater5MF%d +"
@@ -816,8 +822,9 @@ void HeatExchanger::createManifold(Int_t disk)
   Double_t mfY = 6.8 - 0.1;  // height, decrease to avoid overlap with support, to be solved, fm
   Double_t mfZ = 1.7 - 0.85; // thickness, decrease to avoid overlap with support, to be solved, fm
   Double_t fShift = 0;
-  if (disk == 3 || disk == 4)
+  if (disk == 3 || disk == 4) {
     fShift = 0.015; // to avoid overlap with the 2 curved water pipes on the 2 upstream chambers
+  }
 
   auto* MF01 = new TGeoVolume(Form("MF%d1", disk), shapeManifold, kMedPeek);
   auto* MFplug01 = new TGeoVolume(Form("MFplug%d1", disk), shapePlug, kMed_plug);
@@ -870,12 +877,13 @@ void HeatExchanger::createHalfDisk0(Int_t half)
 
   Int_t disk = 0;
 
-  if (half == Top)
+  if (half == Top) {
     printf("Creating MFT heat exchanger for disk0 top\n");
-  else if (half == Bottom)
+  } else if (half == Bottom) {
     printf("Creating MFT heat exchanger for disk0 bottom\n");
-  else
+  } else {
     printf("No valid option for MFT heat exchanger on disk0\n");
+  }
 
   mCarbon = gGeoManager->GetMedium("MFT_CarbonFiber$");
   mWater = gGeoManager->GetMedium("MFT_Water$");
@@ -1248,10 +1256,12 @@ void HeatExchanger::createHalfDisk0(Int_t half)
   // Passage du beam pipe
   TGeoBoolNode* rohacellBase;
 
-  if (Geometry::sGrooves == 0)
+  if (Geometry::sGrooves == 0) {
     rohacellBase = new TGeoSubtraction(rohacellBase0, holeRohacell0, t01, t02);
-  if (Geometry::sGrooves == 1)
+  }
+  if (Geometry::sGrooves == 1) {
     rohacellBase = new TGeoSubtraction(rohacellGroove[iCount - 1], holeRohacell0, t01, t02);
+  }
 
   auto* rh0 = new TGeoCompositeShape(Form("rohacellTore%d_D0_H%d", 0, half), rohacellBase);
   auto* rohacellBaseWithHole = new TGeoVolume(Form("rohacellBaseWithHole_D0_H%d", half), rh0, mRohacell);
@@ -1357,8 +1367,9 @@ void HeatExchanger::createHalfDisk0(Int_t half)
         auto* rhinit = new TGeoCompositeShape(Form("rhinit%d_D0_H%d", 0, half), partRohacellini);
         partRohacell = new TGeoVolume(Form("partRohacelli_D0_H%d_%d", half, ipart), rhinit, mRohacell);
       }
-      if (ipart < (mNPart[disk] - 1))
+      if (ipart < (mNPart[disk] - 1)) {
         partRohacell = new TGeoVolume(Form("partRohacelli_D0_H%d_%d", half, ipart), partRohacell0, mRohacell);
+      }
     }
 
     if (Geometry::sGrooves == 1) {
@@ -1367,8 +1378,9 @@ void HeatExchanger::createHalfDisk0(Int_t half)
         auto* rhinit = new TGeoCompositeShape(Form("rhinit%d_D0_H%d", 0, half), partRohacellini);
         partRohacell = new TGeoVolume(Form("partRohacelli_D0_H%d_%d", half, ipart), rhinit, mRohacell);
       }
-      if (ipart < (mNPart[disk] - 1))
+      if (ipart < (mNPart[disk] - 1)) {
         partRohacell = new TGeoVolume(Form("partRohacelli_D0_H%d_%d", half, ipart), rohacellGroove[iCount - 1], mRohacell);
+      }
     }
     //===========================================================================================================
     //===========================================================================================================
@@ -1381,8 +1393,9 @@ void HeatExchanger::createHalfDisk0(Int_t half)
       TGeoTranslation* tinsert0;
       TGeoVolume* insert0 = gGeoManager->MakeBox(Form("insert0_H%d_%d", half, ipart), mPeek, 1.0, 0.35 / 2., mRohacellThickness);
       Double_t ylocation = mSupportYDimensions[disk][0] + mHalfDiskGap - 0.35 / 2.;
-      for (Int_t ip = 1; ip < mNPart[disk]; ip++)
+      for (Int_t ip = 1; ip < mNPart[disk]; ip++) {
         ylocation = ylocation + mSupportYDimensions[disk][ip];
+      }
       tinsert0 = new TGeoTranslation("tinsert0", 0., -ylocation, 0.);
       tinsert0->RegisterYourself();
       mHalfDisk->AddNode(insert0, 0., tinsert0);
@@ -1403,12 +1416,13 @@ void HeatExchanger::createHalfDisk1(Int_t half)
 
   Int_t disk = 1;
 
-  if (half == Top)
+  if (half == Top) {
     printf("Creating MFT heat exchanger for disk1 top\n");
-  else if (half == Bottom)
+  } else if (half == Bottom) {
     printf("Creating MFT heat exchanger for disk1 bottom\n");
-  else
+  } else {
     printf("No valid option for MFT heat exchanger on disk1\n");
+  }
 
   mCarbon = gGeoManager->GetMedium("MFT_CarbonFiber$");
   mWater = gGeoManager->GetMedium("MFT_Water$");
@@ -1786,10 +1800,12 @@ void HeatExchanger::createHalfDisk1(Int_t half)
 
   // Passage du beam pipe
   TGeoBoolNode* rohacellBase;
-  if (Geometry::sGrooves == 0)
+  if (Geometry::sGrooves == 0) {
     rohacellBase = new TGeoSubtraction(rohacellBase1, holeRohacell1, t11, t12);
-  if (Geometry::sGrooves == 1)
+  }
+  if (Geometry::sGrooves == 1) {
     rohacellBase = new TGeoSubtraction(rohacellGroove[iCount - 1], holeRohacell1, t11, t12);
+  }
   auto* rh1 = new TGeoCompositeShape(Form("rohacellBase1_D1_H%d", half), rohacellBase);
   auto* rohacellBaseWithHole = new TGeoVolume(Form("rohacellBaseWithHole_D1_H%d", half), rh1, mRohacell);
 
@@ -1900,8 +1916,9 @@ void HeatExchanger::createHalfDisk1(Int_t half)
         auto* rhinit = new TGeoCompositeShape(Form("rhinit%d_D1_H%d", 0, half), partRohacellini);
         partRohacell = new TGeoVolume(Form("partRohacelli_D1_H%d_%d", half, ipart), rhinit, mRohacell);
       }
-      if (ipart < (mNPart[disk] - 1))
+      if (ipart < (mNPart[disk] - 1)) {
         partRohacell = new TGeoVolume(Form("partRohacelli_D1_H%d_%d", half, ipart), partRohacell0, mRohacell);
+      }
     }
     if (Geometry::sGrooves == 1) {
       if (ipart == (mNPart[disk] - 1)) {
@@ -1909,8 +1926,9 @@ void HeatExchanger::createHalfDisk1(Int_t half)
         auto* rhinit = new TGeoCompositeShape(Form("rhinit%d_D1_H%d", 0, half), partRohacellini);
         partRohacell = new TGeoVolume(Form("partRohacelli_D1_H%d_%d", half, ipart), rhinit, mRohacell);
       }
-      if (ipart < (mNPart[disk] - 1))
+      if (ipart < (mNPart[disk] - 1)) {
         partRohacell = new TGeoVolume(Form("partRohacelli_D1_H%d_%d", half, ipart), rohacellGroove[iCount - 1], mRohacell);
+      }
     }
 
     //===========================================================================================================
@@ -1924,8 +1942,9 @@ void HeatExchanger::createHalfDisk1(Int_t half)
       TGeoTranslation* tinsert1;
       TGeoVolume* insert1 = gGeoManager->MakeBox(Form("insert1_H%d_%d", half, ipart), mPeek, 1.0, 0.35 / 2., mRohacellThickness);
       Double_t ylocation = mSupportYDimensions[disk][0] + mHalfDiskGap - 0.35 / 2.;
-      for (Int_t ip = 1; ip < mNPart[disk]; ip++)
+      for (Int_t ip = 1; ip < mNPart[disk]; ip++) {
         ylocation = ylocation + mSupportYDimensions[disk][ip];
+      }
       tinsert1 = new TGeoTranslation("tinsert1", 0., -ylocation, 0.);
       tinsert1->RegisterYourself();
       mHalfDisk->AddNode(insert1, 0., tinsert1);
@@ -1946,12 +1965,13 @@ void HeatExchanger::createHalfDisk2(Int_t half)
 
   Int_t disk = 2;
 
-  if (half == Top)
+  if (half == Top) {
     printf("Creating MFT heat exchanger for disk2 top\n");
-  else if (half == Bottom)
+  } else if (half == Bottom) {
     printf("Creating MFT heat exchanger for disk2 bottom\n");
-  else
+  } else {
     printf("No valid option for MFT heat exchanger on disk2\n");
+  }
 
   mCarbon = gGeoManager->GetMedium("MFT_CarbonFiber$");
   mWater = gGeoManager->GetMedium("MFT_Water$");
@@ -2423,10 +2443,12 @@ void HeatExchanger::createHalfDisk2(Int_t half)
 
   // Passage du beam pipe
   TGeoBoolNode* rohacellBase;
-  if (Geometry::sGrooves == 0)
+  if (Geometry::sGrooves == 0) {
     rohacellBase = new TGeoSubtraction(rohacellBase2, holeRohacell2, t21, t22);
-  if (Geometry::sGrooves == 1)
+  }
+  if (Geometry::sGrooves == 1) {
     rohacellBase = new TGeoSubtraction(rohacellGroove[iCount - 1], holeRohacell2, t21, t22);
+  }
   auto* rh2 = new TGeoCompositeShape(Form("rohacellTore%d_D2_H%d", 0, half), rohacellBase);
   auto* rohacellBaseWithHole = new TGeoVolume(Form("rohacellBaseWithHole_D2_H%d", half), rh2, mRohacell);
 
@@ -2547,8 +2569,9 @@ void HeatExchanger::createHalfDisk2(Int_t half)
         auto* rhinit2 = new TGeoCompositeShape(Form("rhinit2%d_D2_H%d", 0, half), partRohacellini2);
         partRohacell = new TGeoVolume(Form("partRohacelli_D2_H%d_%d", half, ipart), rhinit2, mRohacell);
       }
-      if (ipart < (mNPart[disk] - 1))
+      if (ipart < (mNPart[disk] - 1)) {
         partRohacell = new TGeoVolume(Form("partRohacelli_D2_H%d_%d", half, ipart), partRohacell0, mRohacell);
+      }
     }
     if (Geometry::sGrooves == 1) {
       if (ipart == (mNPart[disk] - 1)) {
@@ -2558,8 +2581,9 @@ void HeatExchanger::createHalfDisk2(Int_t half)
         auto* rhinit2 = new TGeoCompositeShape(Form("rhinit2%d_D2_H%d", 0, half), partRohacellini2);
         partRohacell = new TGeoVolume(Form("partRohacelli_D2_H%d_%d", half, ipart), rhinit2, mRohacell);
       }
-      if (ipart < (mNPart[disk] - 1))
+      if (ipart < (mNPart[disk] - 1)) {
         partRohacell = new TGeoVolume(Form("partRohacelli_D2_H%d_%d", half, ipart), rohacellGroove[iCount - 1], mRohacell);
+      }
     }
 
     //===========================================================================================================
@@ -2573,8 +2597,9 @@ void HeatExchanger::createHalfDisk2(Int_t half)
       TGeoTranslation* tinsert2;
       TGeoVolume* insert2 = gGeoManager->MakeBox(Form("insert2_H%d_%d", half, ipart), mPeek, 1.0, 0.40 / 2., mRohacellThickness);
       Double_t ylocation = mSupportYDimensions[disk][0] + mHalfDiskGap - 0.80;
-      for (Int_t ip = 1; ip < mNPart[disk]; ip++)
+      for (Int_t ip = 1; ip < mNPart[disk]; ip++) {
         ylocation = ylocation + mSupportYDimensions[disk][ip];
+      }
       tinsert2 = new TGeoTranslation("tinsert2", 0., -ylocation, 0.);
       tinsert2->RegisterYourself();
       mHalfDisk->AddNode(insert2, 0., tinsert2);
@@ -2595,12 +2620,13 @@ void HeatExchanger::createHalfDisk3(Int_t half)
 
   Int_t disk = 3;
 
-  if (half == Top)
+  if (half == Top) {
     printf("Creating MFT heat exchanger for disk3 top\n");
-  else if (half == Bottom)
+  } else if (half == Bottom) {
     printf("Creating MFT heat exchanger for disk3 bottom\n");
-  else
+  } else {
     printf("No valid option for MFT heat exchanger on disk3\n");
+  }
 
   mCarbon = gGeoManager->GetMedium("MFT_CarbonFiber$");
   mWater = gGeoManager->GetMedium("MFT_Water$");
@@ -2973,10 +2999,12 @@ void HeatExchanger::createHalfDisk3(Int_t half)
   // **********************************************************************************************************
   // Passage du beam pipe
   TGeoBoolNode* rohacellBase;
-  if (Geometry::sGrooves == 0)
+  if (Geometry::sGrooves == 0) {
     rohacellBase = new TGeoSubtraction(rohacellBase3, holeRohacell3, t31, t32);
-  if (Geometry::sGrooves == 1)
+  }
+  if (Geometry::sGrooves == 1) {
     rohacellBase = new TGeoSubtraction(rohacellGroove[iCount - 1], holeRohacell3, t31, t32);
+  }
   auto* rh3 = new TGeoCompositeShape(Form("rohacellTore%d_D0_H%d", 0, half), rohacellBase);
   auto* rohacellBaseWithHole = new TGeoVolume(Form("rohacellBaseWithHole_D3_H%d", half), rh3, mRohacell);
 
@@ -3091,8 +3119,9 @@ void HeatExchanger::createHalfDisk3(Int_t half)
         auto* rhinit = new TGeoCompositeShape(Form("rhinit%d_D3_H%d", 0, half), partRohacellini);
         partRohacell = new TGeoVolume(Form("partRohacelli_D3_H%d_%d", half, ipart), rhinit, mRohacell);
       }
-      if (ipart < (mNPart[disk] - 1))
+      if (ipart < (mNPart[disk] - 1)) {
         partRohacell = new TGeoVolume(Form("partRohacelli_D3_H%d_%d", half, ipart), partRohacell0, mRohacell);
+      }
     }
     if (Geometry::sGrooves == 1) {
       if (ipart == (mNPart[disk] - 1)) {
@@ -3100,8 +3129,9 @@ void HeatExchanger::createHalfDisk3(Int_t half)
         auto* rhinit = new TGeoCompositeShape(Form("rhinit%d_D3_H%d", 0, half), partRohacellini);
         partRohacell = new TGeoVolume(Form("partRohacelli_D3_H%d_%d", half, ipart), rhinit, mRohacell);
       }
-      if (ipart < (mNPart[disk] - 1))
+      if (ipart < (mNPart[disk] - 1)) {
         partRohacell = new TGeoVolume(Form("partRohacelli_D3_H%d_%d", half, ipart), rohacellGroove[iCount - 1], mRohacell);
+      }
     }
 
     //===========================================================================================================
@@ -3114,8 +3144,9 @@ void HeatExchanger::createHalfDisk3(Int_t half)
       TGeoTranslation* tinsert3;
       TGeoVolume* insert3 = gGeoManager->MakeBox(Form("insert3_H%d_%d", half, ipart), mPeek, 4.0 / 2., 0.44 / 2., mRohacellThickness);
       Double_t ylocation = mSupportYDimensions[disk][0] + mHalfDiskGap + 0.44 / 2. - ynotch;
-      for (Int_t ip = 1; ip < mNPart[disk]; ip++)
+      for (Int_t ip = 1; ip < mNPart[disk]; ip++) {
         ylocation = ylocation + mSupportYDimensions[disk][ip];
+      }
       tinsert3 = new TGeoTranslation("tinsert3", 0., -ylocation, 0.);
       tinsert3->RegisterYourself();
       mHalfDisk->AddNode(insert3, 0., tinsert3);
@@ -3137,12 +3168,13 @@ void HeatExchanger::createHalfDisk4(Int_t half)
 
   Int_t disk = 4;
 
-  if (half == Top)
+  if (half == Top) {
     printf("Creating MFT heat exchanger for disk4 top\n");
-  else if (half == Bottom)
+  } else if (half == Bottom) {
     printf("Creating MFT heat exchanger for disk4 bottom\n");
-  else
+  } else {
     printf("No valid option for MFT heat exchanger on disk4\n");
+  }
 
   mCarbon = gGeoManager->GetMedium("MFT_CarbonFiber$");
   mWater = gGeoManager->GetMedium("MFT_Water$");
@@ -3520,10 +3552,12 @@ void HeatExchanger::createHalfDisk4(Int_t half)
 
   // Passage du beam pipe
   TGeoBoolNode* rohacellBase;
-  if (Geometry::sGrooves == 0)
+  if (Geometry::sGrooves == 0) {
     rohacellBase = new TGeoSubtraction(rohacellBase4, holeRohacell4, t41, t42);
-  if (Geometry::sGrooves == 1)
+  }
+  if (Geometry::sGrooves == 1) {
     rohacellBase = new TGeoSubtraction(rohacellGroove[iCount - 1], holeRohacell4, t41, t42);
+  }
   auto* rh4 = new TGeoCompositeShape(Form("rohacellTore%d_D4_H%d", 0, half), rohacellBase);
   auto* rohacellBaseWithHole = new TGeoVolume(Form("rohacellBaseWithHole_D4_H%d", half), rh4, mRohacell);
 
@@ -3638,8 +3672,9 @@ void HeatExchanger::createHalfDisk4(Int_t half)
         auto* rhinit = new TGeoCompositeShape(Form("rhinit%d_D4_H%d", 0, half), partRohacellini);
         partRohacell = new TGeoVolume(Form("partRohacelli_D4_H%d_%d", half, ipart), rhinit, mRohacell);
       }
-      if (ipart < (mNPart[disk] - 1))
+      if (ipart < (mNPart[disk] - 1)) {
         partRohacell = new TGeoVolume(Form("partRohacelli_D4_H%d_%d", half, ipart), partRohacell0, mRohacell);
+      }
     }
     if (Geometry::sGrooves == 1) {
       if (ipart == (mNPart[disk] - 1)) {
@@ -3647,8 +3682,9 @@ void HeatExchanger::createHalfDisk4(Int_t half)
         auto* rhinit = new TGeoCompositeShape(Form("rhinit%d_D4_H%d", 0, half), partRohacellini);
         partRohacell = new TGeoVolume(Form("partRohacelli_D4_H%d_%d", half, ipart), rhinit, mRohacell);
       }
-      if (ipart < (mNPart[disk] - 1))
+      if (ipart < (mNPart[disk] - 1)) {
         partRohacell = new TGeoVolume(Form("partRohacelli_D4_H%d_%d", half, ipart), rohacellGroove[iCount - 1], mRohacell);
+      }
     }
     //===========================================================================================================
     //===========================================================================================================
@@ -3660,8 +3696,9 @@ void HeatExchanger::createHalfDisk4(Int_t half)
       TGeoTranslation* tinsert4;
       TGeoVolume* insert4 = gGeoManager->MakeBox(Form("insert4_H%d_%d", half, ipart), mPeek, 4.0 / 2., 0.44 / 2., mRohacellThickness);
       Double_t ylocation = mSupportYDimensions[disk][0] + mHalfDiskGap + 0.44 / 2. - ynotch;
-      for (Int_t ip = 1; ip < mNPart[disk]; ip++)
+      for (Int_t ip = 1; ip < mNPart[disk]; ip++) {
         ylocation = ylocation + mSupportYDimensions[disk][ip];
+      }
       tinsert4 = new TGeoTranslation("tinsert4", 0., -ylocation, 0.);
       tinsert4->RegisterYourself();
       mHalfDisk->AddNode(insert4, 0., tinsert4);
@@ -3693,10 +3730,12 @@ void HeatExchanger::initParameters()
     }
   }
 
-  if (Geometry::sGrooves == 0)
+  if (Geometry::sGrooves == 0) {
     mRohacellThickness = mHeatExchangerThickness / 2. - 2. * mCarbonThickness - 2 * Geometry::sGlueRohacellCarbonThickness - 2 * Geometry::sKaptonOnCarbonThickness - 2 * Geometry::sKaptonGlueThickness - 2 * (mRWater + mDRPipe); // smaller rohacell thickness, no grooves
-  if (Geometry::sGrooves == 1)
+  }
+  if (Geometry::sGrooves == 1) {
     mRohacellThickness = mHeatExchangerThickness / 2. - 2. * mCarbonThickness - 2 * Geometry::sGlueRohacellCarbonThickness - 2 * Geometry::sKaptonOnCarbonThickness - 2 * Geometry::sKaptonGlueThickness; // with grooves
+  }
 
   mHalfDiskGap = 0.1;
 

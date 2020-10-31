@@ -302,10 +302,12 @@ class RawPixelReader : public PixelReader
     auto& pixels = chipData.getData();
     std::sort(pixels.begin(), pixels.end(),
               [](auto lhs, auto rhs) {
-                if (lhs.getRow() < rhs.getRow())
+                if (lhs.getRow() < rhs.getRow()) {
                   return true;
-                if (lhs.getRow() > rhs.getRow())
+                }
+                if (lhs.getRow() > rhs.getRow()) {
                   return false;
+                }
                 return lhs.getCol() < rhs.getCol();
               });
     ruData.cableData[chip.cableHWPos].ensureFreeCapacity(40 * (2 + pixels.size())); // make sure buffer has enough capacity

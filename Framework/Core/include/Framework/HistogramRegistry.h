@@ -302,7 +302,9 @@ struct HistFactory {
       return hist->GetAxis(i);
     } else {
       return (i == 0) ? hist->GetXaxis()
-                      : (i == 1) ? hist->GetYaxis() : (i == 2) ? hist->GetZaxis() : nullptr;
+                      : (i == 1) ? hist->GetYaxis()
+                                 : (i == 2) ? hist->GetZaxis()
+                                            : nullptr;
     }
   }
 
@@ -385,6 +387,71 @@ struct HistFiller {
       fillHistAny<useWeight>(hist, (*(static_cast<Cs>(t).getIterator()))...);
     }
   }
+
+  // function that returns rough estimate for the size of a histogram in MB
+  // should be somewhat realistic for TH{1,2,3}
+  // for ndimensional arrays the memory is allocated lazily so the size estimates might
+  // not yet be entirely correct and should be seen as a 'worst case' scenario for now
+  // this will require some more detailed understanding of the root interna...
+  template <typename T>
+  static double getSize(std::shared_ptr<T>& hist, double fillFraction = 1.)
+  {
+    double size{0.};
+    if constexpr (std::is_base_of_v<TH1, T>) {
+      size = hist->GetNcells() * (HistFiller::getBaseElementSize(hist.get()) + ((hist->GetSumw2()->fN) ? sizeof(double) : 0.));
+    } else if constexpr (std::is_base_of_v<THn, T>) {
+      return hist->GetNbins() * (HistFiller::getBaseElementSize(hist.get()) + ((hist->GetSumw2() != -1.) ? sizeof(double) : 0.));
+    } else if constexpr (std::is_base_of_v<THnSparse, T>) {
+      double nbinsTotal = 1.;
+      for (int d = 0; d < hist->GetNdimensions(); ++d) {
+        nbinsTotal *= hist->GetAxis(d)->GetNbins() + 2;
+      }
+      double overhead = 4.; // probably often less; unfortunatley we cannot access hist->GetCompactCoord()->GetBufferSize();
+      size = fillFraction * nbinsTotal * (HistFiller::getBaseElementSize(hist.get()) + overhead + ((hist->GetSumw2() != -1.) ? sizeof(double) : 0.));
+    }
+    return size / 1048576.;
+  }
+
+ private:
+  // helper function to determine base element size of histograms (in bytes)
+  // the complicated casting gymnastics are needed here since we only store the interface types in the registry
+  template <typename T>
+  static int getBaseElementSize(T* ptr)
+  {
+    if constexpr (std::is_base_of_v<TH1, T>) {
+      return getBaseElementSize<TArrayD, TArrayF, TArrayC, TArrayI, TArrayC>(ptr);
+    } else {
+      return getBaseElementSize<double, float, int, short, char, long>(ptr);
+    }
+  }
+
+  template <typename T, typename Next, typename... Rest, typename P>
+  static int getBaseElementSize(P* ptr)
+  {
+    if (auto size = getBaseElementSize<T>(ptr)) {
+      return size;
+    }
+    return getBaseElementSize<Next, Rest...>(ptr);
+  }
+
+  template <typename B, typename T>
+  static int getBaseElementSize(T* ptr)
+  {
+    if constexpr (std::is_base_of_v<THn, T>) {
+      if (dynamic_cast<THnT<B>*>(ptr)) {
+        return sizeof(B);
+      }
+    } else if constexpr (std::is_base_of_v<THnSparse, T>) {
+      if (dynamic_cast<THnSparseT<B>*>(ptr)) {
+        return sizeof(B);
+      }
+    } else if constexpr (std::is_base_of_v<TH1, T>) {
+      if (auto arrayPtr = dynamic_cast<B*>(ptr)) {
+        return sizeof(arrayPtr->At(0));
+      }
+    }
+    return 0;
+  };
 };
 
 //**************************************************************************************************
@@ -566,6 +633,24 @@ class HistogramRegistry
   void fillWeight(char const* const name, const T& table, const o2::framework::expressions::Filter& filter)
   {
     fillTable<true, Cs...>(name, table, filter);
+  }
+
+  // get rough estimate for size of histogram stored in registry
+  double getSize(char const* const name, double fillFraction = 1.)
+  {
+    double size{};
+    std::visit([&fillFraction, &size](auto&& hist) { size = HistFiller::getSize(hist, fillFraction); }, mRegistryValue[getHistIndex(name)]);
+    return size;
+  }
+
+  // get rough estimate for size of all histograms stored in registry
+  double getSize(double fillFraction = 1.)
+  {
+    double size{};
+    for (auto j = 0u; j < MAX_REGISTRY_SIZE; ++j) {
+      std::visit([&fillFraction, &size](auto&& hist) { if(hist) { size += HistFiller::getSize(hist, fillFraction);} }, mRegistryValue[j]);
+    }
+    return size;
   }
 
   // lookup distance counter for benchmarking

@@ -97,8 +97,9 @@ Geometry* Geometry::sInstance = nullptr;
 Geometry* Geometry::instance()
 {
 
-  if (!sInstance)
+  if (!sInstance) {
     sInstance = new Geometry();
+  }
   return sInstance;
 }
 
@@ -125,12 +126,14 @@ void Geometry::build()
 {
 
   // load the detector segmentation
-  if (!mSegmentation)
+  if (!mSegmentation) {
     mSegmentation = new Segmentation(gSystem->ExpandPathName("$(VMCWORKDIR)/Detectors/Geometry/MFT/data/Geometry.xml"));
+  }
 
   // build the geometry
-  if (!mBuilder)
+  if (!mBuilder) {
     mBuilder = new GeometryBuilder();
+  }
   mBuilder->buildGeometry();
   delete mBuilder;
 }
@@ -162,8 +165,9 @@ Int_t Geometry::getDiskNSensors(Int_t diskId) const
   Int_t nSensors = 0;
   for (int iHalf = 0; iHalf < 2; iHalf++) {
     HalfDiskSegmentation* diskSeg = mSegmentation->getHalf(iHalf)->getHalfDisk(diskId);
-    if (diskSeg)
+    if (diskSeg) {
       nSensors += diskSeg->getNChips();
+    }
   }
   return nSensors;
 }

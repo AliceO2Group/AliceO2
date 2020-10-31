@@ -161,8 +161,9 @@ Bool_t Detector::ProcessHits(FairVolume* v)
   }
 
   Double_t lostenergy = fMC->Edep();
-  if (lostenergy < DBL_EPSILON && !isNewPartile)
+  if (lostenergy < DBL_EPSILON && !isNewPartile) {
     return false; // do not create hits with zero energy deposition
+  }
 
   //  if(strcmp(mc->CurrentVolName(),"PXTL")!=0) //Non need to check, alwais there...
   //    return false ; //  We are not inside a PBWO crystal
@@ -186,8 +187,9 @@ Bool_t Detector::ProcessHits(FairVolume* v)
   if (!isNewPartile) {
     for (Int_t itr = mHits->size() - 1; itr >= 0; itr--) {
       Hit* h = &(mHits->at(itr));
-      if (h->GetTrackID() != superParent) // switched to another SuperParent, do not search further
+      if (h->GetTrackID() != superParent) { // switched to another SuperParent, do not search further
         break;
+      }
       if (h->GetDetectorID() == detID) { // found correct hit
         h->addEnergyLoss(lostenergy);
         mCurentSuperParent = superParent;
@@ -560,8 +562,9 @@ void Detector::ConstructEMCGeometry()
       Float_t x = (2 * irow + 1 - geom->getNStripX()) * strip[0];
       for (icol = 0; icol < geom->getNStripZ(); icol++) {
         z = (2 * icol + 1 - geom->getNStripZ()) * strip[2];
-        if (irow >= geom->getNStripX() / 2)
+        if (irow >= geom->getNStripX() / 2) {
           fMC->Gspos("PSTR", nr, "PTIH", x, y, z, 0, "ONLY");
+        }
         nr++;
       }
     }
