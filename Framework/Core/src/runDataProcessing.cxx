@@ -108,7 +108,9 @@
 #include <sys/wait.h>
 #include <unistd.h>
 #include <execinfo.h>
-#if __has_include(<linux/getcpu.h>)
+#if defined(__linux__) && __has_include(<sched.h>)
+#include <sched.h>
+#elif __has_include(<linux/getcpu.h>)
 #include <linux/getcpu.h>
 #elif __has_include(<cpuid.h>)
 #include <cpuid.h>
@@ -1127,9 +1129,13 @@ int runStateMachine(DataProcessorSpecs const& workflow,
         // This is guaranteed to be a single CPU.
         unsigned parentCPU = -1;
         unsigned parentNode = -1;
-#if __has_include(<linux/getcpu.h>)
+#if defined(__linux__) && __has_include(<sched.h>)
+        parentCPU = sched_getcpu();
+#elif __has_include(<linux/getcpu.h>)
         getcpu(&parentCPU, &parentNode, nullptr);
 #elif __has_include(<cpuid.h>)
+        // FIXME: this is a last resort as it is apparently buggy
+        //        on some Intel CPUs.
         GETCPU(parentCPU);
 #endif
         for (auto& callback : preScheduleCallbacks) {
