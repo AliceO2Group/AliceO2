@@ -117,8 +117,8 @@ GPUd() int GPUTPCGMPropagator::RotateToAlpha(float newAlpha)
   // return value is error code (0==no error)
   //
 
-  float newCosAlpha = CAMath::Cos(newAlpha);
-  float newSinAlpha = CAMath::Sin(newAlpha);
+  float newCosAlpha, newSinAlpha;
+  CAMath::SinCos(newAlpha, newSinAlpha, newCosAlpha);
 
   float cc = newCosAlpha * mCosAlpha + newSinAlpha * mSinAlpha; // cos(newAlpha - mAlpha);
   float ss = newSinAlpha * mCosAlpha - newCosAlpha * mSinAlpha; //sin(newAlpha - mAlpha);
