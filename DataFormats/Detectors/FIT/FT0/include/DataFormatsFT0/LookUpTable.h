@@ -97,8 +97,8 @@ class LookUpTable
 
   static int getIdx(int link, int mcp)
   {
-    if ( mcp >= NUMBER_OF_MCPs) {
-      std::cout << " !!! MCP number > max NUMBER_OF_MCPs " << mcp<<" data will be skipped " << std::endl;
+    if (mcp >= NUMBER_OF_MCPs) {
+      std::cout << " !!! MCP number > max NUMBER_OF_MCPs " << mcp << " data will be skipped " << std::endl;
       return -1;
     }
     //assert(mcp < NUMBER_OF_MCPs);

@@ -43,7 +43,7 @@ struct CompressedDigits {
   std::vector<uint16_t> bcInc;    // increment in BC if the same orbit, otherwise abs bc
   std::vector<uint32_t> orbitInc; // increment in orbit
   std::vector<uint8_t> nChan;     // number of fired channels
-  std::vector<uint8_t> eventFlags;     // special flags about event conditions: pile-up, not use for collision time, not use for event plane, etc.
+  std::vector<uint8_t> eventFlags; // special flags about event conditions: pile-up, not use for collision time, not use for event plane, etc.
 
   // channel data
   std::vector<uint8_t> idChan;   // channels ID: 1st on absolute, then increment
