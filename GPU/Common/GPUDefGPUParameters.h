@@ -269,6 +269,9 @@
   #ifndef GPUCA_LB_GPUTPCGMMergerFinalize_step2
     #define GPUCA_LB_GPUTPCGMMergerFinalize_step2 256
   #endif
+  #ifndef GPUCA_LB_GPUTPCGMMergerMergeLoopers
+    #define GPUCA_LB_GPUTPCGMMergerMergeLoopers 256
+  #endif
   #ifndef GPUCA_LB_GPUITSFitterKernel
     #define GPUCA_LB_GPUITSFitterKernel 256
   #endif

@@ -82,11 +82,13 @@ using namespace GPUCA_NAMESPACE::gpu;
   float qpt = 0;                                                          \
   bool lowPt = false;                                                     \
   bool mev200 = false;                                                    \
+  bool mergedLooper = false;                                              \
   int id = attach & gputpcgmmergertypes::attachTrackMask;                 \
   if (!unattached) {                                                      \
     qpt = fabsf(mTracking->mIOPtrs.mergedTracks[id].GetParam().GetQPt()); \
     lowPt = qpt > mTracking->GetParam().rec.tpcRejectQPt;                 \
     mev200 = qpt > 5;                                                     \
+    mergedLooper = mTracking->mIOPtrs.mergedTracks[id].MergedLooper();    \
   }                                                                       \
   bool physics = false, protect = false;                                  \
   CHECK_CLUSTER_STATE_INIT_LEG_BY_MC();
@@ -98,6 +100,8 @@ using namespace GPUCA_NAMESPACE::gpu;
   }                                                                                                        \
   if (lowPt) {                                                                                             \
     mClusterCounts.nLowPt++;                                                                               \
+  } else if (mergedLooper) {                                                                               \
+    mClusterCounts.nMergedLooper++;                                                                        \
   } else {                                                                                                 \
     GPUTPCClusterRejection::GetProtectionStatus<true>(attach, physics, protect, &mClusterCounts, &mev200); \
   }
@@ -105,7 +109,7 @@ using namespace GPUCA_NAMESPACE::gpu;
 #define CHECK_CLUSTER_STATE_NOCOUNT()                                             \
   CHECK_CLUSTER_STATE_INIT()                                                      \
   (void)mev200; /* silence unused variable warning*/                              \
-  if (!lowPt) {                                                                   \
+  if (!lowPt && !mergedLooper) {                                                  \
     GPUTPCClusterRejection::GetProtectionStatus<false>(attach, physics, protect); \
   }
 
@@ -687,7 +691,7 @@ void GPUQA::RunQA(bool matchOnly)
       }
       if (mTrackMCLabels[i].isFake()) {
         (GetMCTrackObj(mFakeTracks, label))++;
-      } else {
+      } else if (!track.MergedLooper()) {
         GetMCTrackObj(mRecTracks, label)++;
         if (mMCTrackMin == -1 || (label.getTrackID() >= mMCTrackMin && label.getTrackID() < mMCTrackMax)) {
           int& revLabel = GetMCTrackObj(mTrackMCLabelsReverse, label);
@@ -919,6 +923,9 @@ void GPUQA::RunQA(bool matchOnly)
       }
 
       if (!track.OK()) {
+        continue;
+      }
+      if (track.MergedLooper()) {
         continue;
       }
       if (fabsf(mc2.eta) > ETA_MAX || mc2.pt < PT_MIN || mc2.pt > PT_MAX) {
@@ -2019,6 +2026,7 @@ int GPUQA::DrawQAHistograms()
           printf("\t%35s: %'12llu (%6.2f%%)\n", "Removed", mClusterCounts.nTotal - mClusterCounts.nUnattached - mClusterCounts.nProt, 100.f * (mClusterCounts.nTotal - mClusterCounts.nUnattached - mClusterCounts.nProt) / counts[N_CLS_HIST - 1]);
         }
 
+        printf("\t%35s: %'12llu (%6.2f%%)\n", "Merged Loopers (Afterburner)", mClusterCounts.nMergedLooper, 100.f * mClusterCounts.nMergedLooper / counts[N_CLS_HIST - 1]);
         printf("\t%35s: %'12llu (%6.2f%%)\n", "High Inclination Angle", mClusterCounts.nHighIncl, 100.f * mClusterCounts.nHighIncl / counts[N_CLS_HIST - 1]);
         printf("\t%35s: %'12llu (%6.2f%%)\n", "Rejected", mClusterCounts.nRejected, 100.f * mClusterCounts.nRejected / counts[N_CLS_HIST - 1]);
         printf("\t%35s: %'12llu (%6.2f%%)\n", "Tube (> 200 MeV)", mClusterCounts.nTube, 100.f * mClusterCounts.nTube / counts[N_CLS_HIST - 1]);

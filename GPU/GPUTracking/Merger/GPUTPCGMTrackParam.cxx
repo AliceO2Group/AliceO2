@@ -814,7 +814,7 @@ GPUd() void GPUTPCGMTrackParam::ShiftZ(const GPUTPCGMMerger* GPUrestrict() merge
   const float dxf = -CAMath::Abs(mP[2]);
   const float dyf = cosPhi * (mP[2] > 0 ? 1.f : -1.f);
   const float r1 = CAMath::Abs(mP[4] * merger->Param().polynomialField.GetNominalBz());
-  const float r = r1 > 0.0001 ? (1.f / CAMath::Abs(r1)) : 10000;
+  const float r = r1 > 0.0001 ? (1.f / r1) : 10000;
   float xp = mX + dxf * r;
   float yp = mP[0] + dyf * r;
   // printf("X %f Y %f SinPhi %f QPt %f R %f --> XP %f YP %f\n", mX, mP[0], mP[2], mP[4], r, xp, yp);

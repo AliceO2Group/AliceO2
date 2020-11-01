@@ -57,6 +57,7 @@ GPUCA_KRNL_LB((GPUTPCGMMergerPrepareClusters, step2         ), (simple), (), ())
 GPUCA_KRNL_LB((GPUTPCGMMergerFinalize, step0                ), (simple), (), ())
 GPUCA_KRNL_LB((GPUTPCGMMergerFinalize, step1                ), (simple), (), ())
 GPUCA_KRNL_LB((GPUTPCGMMergerFinalize, step2                ), (simple), (), ())
+GPUCA_KRNL_LB((GPUTPCGMMergerMergeLoopers                   ), (simple), (), ())
 #ifdef HAVE_O2HEADERS
 GPUCA_KRNL_LB((GPUTRDTrackerKernels                         ), (simple), (), ())
 GPUCA_KRNL_LB((GPUITSFitterKernel                           ), (simple), (), ())

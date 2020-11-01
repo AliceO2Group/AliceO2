@@ -50,6 +50,7 @@ class GPUTPCGMMergedTrack
   GPUd() bool Looper() const { return mFlags & 0x02; }
   GPUd() bool CSide() const { return mFlags & 0x04; }
   GPUd() bool CCE() const { return mFlags & 0x08; }
+  GPUd() bool MergedLooper() const { return mFlags & 0x10; }
 
   GPUd() void SetNClusters(int v) { mNClusters = v; }
   GPUd() void SetNClustersFitted(int v) { mNClustersFitted = v; }
@@ -89,6 +90,14 @@ class GPUTPCGMMergedTrack
       mFlags |= 0x08;
     } else {
       mFlags &= 0xF7;
+    }
+  }
+  GPUd() void SetMergedLooper(bool v)
+  {
+    if (v) {
+      mFlags |= 0x10;
+    } else {
+      mFlags &= 0xEF;
     }
   }
   GPUd() void SetFlags(unsigned char v) { mFlags = v; }
