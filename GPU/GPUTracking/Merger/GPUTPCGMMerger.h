@@ -153,6 +153,7 @@ class GPUTPCGMMerger : public GPUProcessor
   GPUd() void ResolveFindConnectedComponentsHookLinks(int nBlocks, int nThreads, int iBlock, int iThread);
   GPUd() void ResolveFindConnectedComponentsMultiJump(int nBlocks, int nThreads, int iBlock, int iThread);
   GPUd() void ResolveMergeSlices(gputpcgmmergertypes::GPUResolveSharedMemory& smem, int nBlocks, int nThreads, int iBlock, int iThread, char useOrigTrackParam, char mergeAll);
+  GPUd() void MergeLoopers(int nBlocks, int nThreads, int iBlock, int iThread);
 
 #ifndef GPUCA_GPUCODE
   void DumpSliceTracks(std::ostream& out);
@@ -175,9 +176,10 @@ class GPUTPCGMMerger : public GPUProcessor
   void CheckMergedTracks();
 #ifndef GPUCA_GPUCODE
   void PrintMergeGraph(const GPUTPCGMSliceTrack* trk, std::ostream& out);
-  template <class T>
-  long int GetTrackLabelA(const GPUTPCGMBorderTrack& trk);
-  long int GetTrackLabel(const GPUTPCGMBorderTrack& trk);
+  template <class T, class S>
+  long int GetTrackLabelA(const S& trk);
+  template <class S>
+  long int GetTrackLabel(const S& trk);
 #endif
 
   GPUdi() int SliceTrackInfoFirst(int iSlice)
