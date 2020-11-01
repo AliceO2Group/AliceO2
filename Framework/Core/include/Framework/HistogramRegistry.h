@@ -31,6 +31,8 @@
 #include <TProfile2D.h>
 #include <TProfile3D.h>
 #include <TList.h>
+#include <TDataMember.h>
+#include <TDataType.h>
 
 #include <string>
 #include <variant>
@@ -267,6 +269,20 @@ struct HistFactory {
       return HistogramCreationCallbacks.at(histSpec.config.type)(histSpec);
   }
 
+  // helper function to get the axis via index for any type of root histogram
+  template <typename T>
+  static TAxis* getAxis(const int i, std::shared_ptr<T>& hist)
+  {
+    if constexpr (std::is_base_of_v<THnBase, T>) {
+      return hist->GetAxis(i);
+    } else {
+      return (i == 0) ? hist->GetXaxis()
+                      : (i == 1) ? hist->GetYaxis()
+                                 : (i == 2) ? hist->GetZaxis()
+                                            : nullptr;
+    }
+  }
+
  private:
   static const std::map<HistType, std::function<HistPtr(const HistogramSpec&)>> HistogramCreationCallbacks;
 
@@ -292,20 +308,6 @@ struct HistFactory {
                : new T(name.data(), title.data(), nBins[0], lowerBounds[0], upperBounds[0]);
     }
     return nullptr;
-  }
-
-  // helper function to get the axis via index for any type of root histogram
-  template <typename T>
-  static TAxis* getAxis(const int i, std::shared_ptr<T>& hist)
-  {
-    if constexpr (std::is_base_of_v<THnBase, T>) {
-      return hist->GetAxis(i);
-    } else {
-      return (i == 0) ? hist->GetXaxis()
-                      : (i == 1) ? hist->GetYaxis()
-                                 : (i == 2) ? hist->GetZaxis()
-                                            : nullptr;
-    }
   }
 
   // helper function to cast the actual histogram type (e.g. TH2F) to the correct interface type (e.g. TH2) that is stored in the HistPtr variant
@@ -389,10 +391,6 @@ struct HistFiller {
   }
 
   // function that returns rough estimate for the size of a histogram in MB
-  // should be somewhat realistic for TH{1,2,3}
-  // for ndimensional arrays the memory is allocated lazily so the size estimates might
-  // not yet be entirely correct and should be seen as a 'worst case' scenario for now
-  // this will require some more detailed understanding of the root interna...
   template <typename T>
   static double getSize(std::shared_ptr<T>& hist, double fillFraction = 1.)
   {
@@ -400,14 +398,36 @@ struct HistFiller {
     if constexpr (std::is_base_of_v<TH1, T>) {
       size = hist->GetNcells() * (HistFiller::getBaseElementSize(hist.get()) + ((hist->GetSumw2()->fN) ? sizeof(double) : 0.));
     } else if constexpr (std::is_base_of_v<THn, T>) {
-      return hist->GetNbins() * (HistFiller::getBaseElementSize(hist.get()) + ((hist->GetSumw2() != -1.) ? sizeof(double) : 0.));
+      size = hist->GetNbins() * (HistFiller::getBaseElementSize(hist.get()) + ((hist->GetSumw2() != -1.) ? sizeof(double) : 0.));
     } else if constexpr (std::is_base_of_v<THnSparse, T>) {
-      double nbinsTotal = 1.;
+      // THnSparse has massive overhead and should only be used when histogram is large and a very small fraction of bins is filled
+      double nBinsTotal = 1.;
+      int compCoordSize = 0; // size required to store a compact coordinate representation
       for (int d = 0; d < hist->GetNdimensions(); ++d) {
-        nbinsTotal *= hist->GetAxis(d)->GetNbins() + 2;
+        int nBins = hist->GetAxis(d)->GetNbins() + 2;
+        nBinsTotal *= nBins;
+
+        // number of bits needed to store compact coordinates
+        int b = 1;
+        while (nBins /= 2) {
+          ++b;
+        }
+        compCoordSize += b;
       }
-      double overhead = 4.; // probably often less; unfortunatley we cannot access hist->GetCompactCoord()->GetBufferSize();
-      size = fillFraction * nbinsTotal * (HistFiller::getBaseElementSize(hist.get()) + overhead + ((hist->GetSumw2() != -1.) ? sizeof(double) : 0.));
+      compCoordSize = (compCoordSize + 7) / 8; // turn bits into bytes
+
+      // THnSparse stores the data in an array of chunks (THnSparseArrayChunk), each containing a fixed number of bins (e.g. 1024 * 16)
+      double nBinsFilled = fillFraction * nBinsTotal;
+      int nCunks = ceil(nBinsFilled / hist->GetChunkSize());
+      int chunkOverhead = sizeof(THnSparseArrayChunk);
+
+      // each chunk holds array of compact bin-coordinates and an array of bin content (+ one of bin error if requested)
+      double binSize = compCoordSize + HistFiller::getBaseElementSize(hist.get()) + ((hist->GetSumw2() != -1.) ? sizeof(double) : 0.);
+      size = nCunks * (chunkOverhead + hist->GetChunkSize() * binSize);
+      // since THnSparse must keep track of all the stored bins, it stores a map that
+      // relates the compact bin coordinates (or a hash thereof) to a linear index
+      // this index determines in which chunk and therein at which position to find / store bin coordinate and content
+      size += nBinsFilled * 3 * sizeof(Long64_t); // hash, key, value; not sure why 3 are needed here...
     }
     return size / 1048576.;
   }
@@ -418,8 +438,8 @@ struct HistFiller {
   template <typename T>
   static int getBaseElementSize(T* ptr)
   {
-    if constexpr (std::is_base_of_v<TH1, T>) {
-      return getBaseElementSize<TArrayD, TArrayF, TArrayC, TArrayI, TArrayC>(ptr);
+    if constexpr (std::is_base_of_v<TH1, T> || std::is_base_of_v<THnSparse, T>) {
+      return getBaseElementSize<TArrayD, TArrayF, TArrayC, TArrayI, TArrayC, TArrayL>(ptr);
     } else {
       return getBaseElementSize<double, float, int, short, char, long>(ptr);
     }
@@ -443,7 +463,8 @@ struct HistFiller {
       }
     } else if constexpr (std::is_base_of_v<THnSparse, T>) {
       if (dynamic_cast<THnSparseT<B>*>(ptr)) {
-        return sizeof(B);
+        TDataMember* dm = B::Class()->GetDataMember("fArray");
+        return dm ? dm->GetDataType()->Size() : 0;
       }
     } else if constexpr (std::is_base_of_v<TH1, T>) {
       if (auto arrayPtr = dynamic_cast<B*>(ptr)) {
@@ -462,7 +483,7 @@ struct HistFiller {
 class HistogramRegistry
 {
  public:
-  HistogramRegistry(char const* const name_, std::vector<HistogramSpec> histSpecs_ = {}, OutputObjHandlingPolicy policy_ = OutputObjHandlingPolicy::AnalysisObject, bool sortHistos_ = false, bool createRegistryDir_ = false)
+  HistogramRegistry(char const* const name_, std::vector<HistogramSpec> histSpecs_ = {}, OutputObjHandlingPolicy policy_ = OutputObjHandlingPolicy::AnalysisObject, bool sortHistos_ = true, bool createRegistryDir_ = false)
     : mName(name_), mPolicy(policy_), mRegistryKey(), mRegistryValue(), mSortHistos(sortHistos_), mCreateRegistryDir(createRegistryDir_)
   {
     mRegistryKey.fill(0u);
@@ -651,6 +672,81 @@ class HistogramRegistry
       std::visit([&fillFraction, &size](auto&& hist) { if(hist) { size += HistFiller::getSize(hist, fillFraction);} }, mRegistryValue[j]);
     }
     return size;
+  }
+
+  // print summary of the histograms stored in registry
+  void print(bool showAxisDetails = false)
+  {
+    std::vector<double> fillFractions{0.1, 0.25, 0.5};
+    std::vector<double> totalSizes(fillFractions.size());
+
+    uint32_t nHistos{};
+    bool containsSparseHist{};
+    auto printHistInfo = [&](auto&& hist) {
+      if (hist) {
+        using T = std::decay_t<decltype(*hist)>;
+        bool isSparse{};
+        if (hist->InheritsFrom(THnSparse::Class())) {
+          isSparse = true;
+          containsSparseHist = true;
+        }
+        ++nHistos;
+        std::vector<double> sizes;
+        std::string sizeInfo{};
+        if (isSparse) {
+          std::transform(std::begin(fillFractions), std::end(fillFractions), std::back_inserter(sizes), [&hist](auto& fraction) { return HistFiller::getSize(hist, fraction); });
+          for (int i = 0; i < fillFractions.size(); ++i) {
+            sizeInfo += fmt::format("{:.2f} kB ({:.0f} %)", sizes[i] * 1024, fillFractions[i] * 100);
+            if (i != fillFractions.size() - 1) {
+              sizeInfo += ", ";
+            }
+          }
+        } else {
+          double size = HistFiller::getSize(hist);
+          sizes.resize(fillFractions.size(), size);
+          sizeInfo = fmt::format("{:.2f} kB", sizes[0] * 1024);
+        }
+        std::transform(totalSizes.begin(), totalSizes.end(), sizes.begin(), totalSizes.begin(), std::plus<double>());
+        LOGF(INFO, "Hist %03d: %-35s  %-19s [%s]", nHistos, hist->GetName(), hist->IsA()->GetName(), sizeInfo);
+
+        if (showAxisDetails) {
+          int nDim = 0;
+          if constexpr (std::is_base_of_v<THnBase, T>) {
+            nDim = hist->GetNdimensions();
+          } else if constexpr (std::is_base_of_v<TH1, T>) {
+            nDim = hist->GetDimension();
+          }
+          for (int d = 0; d < nDim; ++d) {
+            TAxis* axis = HistFactory::getAxis(d, hist);
+            LOGF(INFO, "- Axis %d: %-20s (%d bins)", d, axis->GetTitle(), axis->GetNbins());
+          }
+        }
+      }
+    };
+
+    std::string titleString{"======================== HistogramRegistry ========================"};
+    LOGF(INFO, "");
+    LOGF(INFO, "%s", titleString);
+    LOGF(INFO, "%s\"%s\"", std::string((int)(0.5 * titleString.size() - (1 + 0.5 * mName.size())), ' '), mName);
+    std::sort(mRegisteredNames.begin(), mRegisteredNames.end());
+    for (auto& curHistName : mRegisteredNames) {
+      std::visit(printHistInfo, mRegistryValue[getHistIndex(curHistName.data())]);
+    }
+    std::string totalSizeInfo{};
+    if (containsSparseHist) {
+      for (int i = 0; i < totalSizes.size(); ++i) {
+        totalSizeInfo += fmt::format("{:.2f} MB ({:.0f} %)", totalSizes[i], fillFractions[i] * 100);
+        if (i != totalSizes.size() - 1) {
+          totalSizeInfo += ", ";
+        }
+      }
+    } else {
+      totalSizeInfo = fmt::format("{:.2f} MB", totalSizes[0]);
+    }
+    LOGF(INFO, "%s", std::string(titleString.size(), '='), titleString);
+    LOGF(INFO, "Total: %d histograms, ca. %s", nHistos, totalSizeInfo);
+    LOGF(INFO, "%s", std::string(titleString.size(), '='), titleString);
+    LOGF(INFO, "");
   }
 
   // lookup distance counter for benchmarking
