@@ -1023,8 +1023,8 @@ GPUd() void GPUTPCGMTrackParam::RefitTrack(GPUTPCGMMergedTrack& GPUrestrict() tr
       const ClusterNative& GPUrestrict() cl = merger->GetConstantMem()->ioPtrs.clustersNative->clustersLinear[merger->Clusters()[ind].num];
       merger->GetConstantMem()->calibObjects.fastTransform->Transform(merger->Clusters()[ind].slice, merger->Clusters()[ind].row, cl.getPad(), cl.getTime(), xx, yy, zz, track.Param().GetTZOffset());
     }
-    float sinA = CAMath::Sin(alphaa - track.Alpha());
-    float cosA = CAMath::Cos(alphaa - track.Alpha());
+    float sinA, cosA;
+    CAMath::SinCos(alphaa - track.Alpha(), sinA, cosA);
     track.SetLastX(xx * cosA - yy * sinA);
     track.SetLastY(xx * sinA + yy * cosA);
     track.SetLastZ(zz);
@@ -1033,8 +1033,8 @@ GPUd() void GPUTPCGMTrackParam::RefitTrack(GPUTPCGMMergedTrack& GPUrestrict() tr
 
 GPUd() bool GPUTPCGMTrackParam::Rotate(float alpha)
 {
-  float cA = CAMath::Cos(alpha);
-  float sA = CAMath::Sin(alpha);
+  float cA, sA;
+  CAMath::SinCos(alpha, sA, cA);
   float x0 = mX;
   float sinPhi0 = mP[2], cosPhi0 = CAMath::Sqrt(1 - mP[2] * mP[2]);
   float cosPhi = cosPhi0 * cA + sinPhi0 * sA;
