@@ -40,7 +40,7 @@ GPUdii() void GPUTPCCompressionKernels::Thread<GPUTPCCompressionKernels::step0at
     if (!trk.OK()) {
       continue;
     }
-    bool rejectTrk = CAMath::Abs(trk.GetParam().GetQPt()) > processors.param.rec.tpcRejectQPt;
+    bool rejectTrk = CAMath::Abs(trk.GetParam().GetQPt()) > processors.param.rec.tpcRejectQPt || trk.MergedLooper();
     unsigned int nClustersStored = 0;
     CompressedClustersPtrs& GPUrestrict() c = compressor.mPtrs;
     unsigned int lastRow = 0, lastSlice = 0; // BUG: These should be unsigned char, but then CUDA breaks
@@ -219,7 +219,8 @@ GPUdii() void GPUTPCCompressionKernels::Thread<GPUTPCCompressionKernels::step1un
             break;
           }
           int id = attach & gputpcgmmergertypes::attachTrackMask;
-          if (CAMath::Abs(merger.OutputTracks()[id].GetParam().GetQPt()) > processors.param.rec.tpcRejectQPt) {
+          auto& trk = merger.OutputTracks()[id];
+          if (CAMath::Abs(trk.GetParam().GetQPt()) > processors.param.rec.tpcRejectQPt || trk.MergedLooper()) {
             break;
           }
         }

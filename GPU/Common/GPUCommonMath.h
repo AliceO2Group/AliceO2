@@ -147,6 +147,18 @@ class GPUCommonMath
   template <int I, class T>
   GPUd() CONSTEXPR17 static T nextMultipleOf(T val);
 
+#ifdef GPUCA_NOCOMPAT
+  template <typename... Args>
+  GPUdi() static float Sum2(float w, Args... args)
+  {
+    if constexpr (sizeof...(Args) == 0) {
+      return w * w;
+    } else {
+      return w * w + Sum2(args...);
+    }
+  }
+#endif
+
  private:
   template <class S, class T>
   GPUd() static unsigned int AtomicExchInt(S* addr, T val);

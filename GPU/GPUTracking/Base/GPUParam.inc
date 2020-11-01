@@ -25,7 +25,7 @@ namespace gpu
 MEM_CLASS_PRE()
 GPUdi() void MEM_LG(GPUParam)::Slice2Global(int iSlice, float x, float y, float z, float* X, float* Y, float* Z) const
 {
-  // conversion of coorinates sector->global
+  // conversion of coordinates sector->global
   *X = x * SliceParam[iSlice].CosAlpha - y * SliceParam[iSlice].SinAlpha;
   *Y = y * SliceParam[iSlice].CosAlpha + x * SliceParam[iSlice].SinAlpha;
   *Z = z;
@@ -34,7 +34,7 @@ GPUdi() void MEM_LG(GPUParam)::Slice2Global(int iSlice, float x, float y, float 
 MEM_CLASS_PRE()
 GPUdi() void MEM_LG(GPUParam)::Global2Slice(int iSlice, float X, float Y, float Z, float* x, float* y, float* z) const
 {
-  // conversion of coorinates global->sector
+  // conversion of coordinates global->sector
   *x = X * SliceParam[iSlice].CosAlpha + Y * SliceParam[iSlice].SinAlpha;
   *y = Y * SliceParam[iSlice].CosAlpha - X * SliceParam[iSlice].SinAlpha;
   *z = Z;
@@ -43,7 +43,7 @@ GPUdi() void MEM_LG(GPUParam)::Global2Slice(int iSlice, float X, float Y, float 
 MEM_CLASS_PRE()
 GPUdi() float MEM_LG(GPUParam)::GetClusterRMS(int yz, int type, float z, float angle2) const
 {
-  //* recalculate the cluster error wih respect to the track slope
+  //* recalculate the cluster RMS wih respect to the track slope
 
   MakeType(const float*) c = ParamRMS0[yz][type];
   float v = c[0] + c[1] * z + c[2] * angle2;

@@ -12,6 +12,7 @@
 /// \author Sergey Gorbunov, David Rohr
 
 #define GPUCA_CADEBUG 0
+#define GPUCA_MERGE_LOOPER_MC 0
 
 #ifndef GPUCA_GPUCODE_DEVICE
 #include <cstdio>
@@ -41,7 +42,7 @@
 #include "GPUTPCGMSliceTrack.h"
 #include "GPUTPCGMBorderTrack.h"
 
-#if !defined(GPUCA_GPUCODE) && (defined(GPUCA_MERGER_BY_MC_LABEL) || defined(GPUCA_CADEBUG_ENABLED))
+#if !defined(GPUCA_GPUCODE) && (defined(GPUCA_MERGER_BY_MC_LABEL) || defined(GPUCA_CADEBUG_ENABLED) || GPUCA_MERGE_LOOPER_MC)
 #include "AliHLTTPCClusterMCData.h"
 #ifdef GPUCA_O2_LIB
 #include "DataFormatsTPC/ClusterNative.h"
@@ -90,7 +91,7 @@ GPUTPCGMMerger::GPUTPCGMMerger()
 }
 
 // DEBUG CODE
-#if !defined(GPUCA_GPUCODE) && (defined(GPUCA_MERGER_BY_MC_LABEL) || defined(GPUCA_CADEBUG_ENABLED))
+#if !defined(GPUCA_GPUCODE) && (defined(GPUCA_MERGER_BY_MC_LABEL) || defined(GPUCA_CADEBUG_ENABLED) || GPUCA_MERGE_LOOPER_MC)
 void GPUTPCGMMerger::CheckMergedTracks()
 {
   std::vector<bool> trkUsed(SliceTrackInfoLocalTotal());
@@ -140,20 +141,30 @@ void GPUTPCGMMerger::CheckMergedTracks()
   }
 }
 
-template <class T>
-long int GPUTPCGMMerger::GetTrackLabelA(const GPUTPCGMBorderTrack& trk)
+template <class T, class S>
+long int GPUTPCGMMerger::GetTrackLabelA(const S& trk)
 {
-  GPUTPCGMSliceTrack* track = &mSliceTrackInfos[trk.TrackID()];
-  int nClusters = track->OrigTrack()->NHits();
+  GPUTPCGMSliceTrack* sliceTrack = nullptr;
+  int nClusters = 0;
+  if constexpr (std::is_same<S, GPUTPCGMBorderTrack&>::value) {
+    sliceTrack = &mSliceTrackInfos[trk.TrackID()];
+    nClusters = sliceTrack->OrigTrack()->NHits();
+  } else {
+    nClusters = trk.NClusters();
+  }
   std::vector<long int> labels;
   for (int i = 0; i < nClusters; i++) {
     int id;
-    if (Param().rec.mergerReadFromTrackerDirectly) {
-      const GPUTPCTracker& tracker = GetConstantMem()->tpcTrackers[track->Slice()];
-      const GPUTPCHitId& ic = tracker.TrackHits()[track->OrigTrack()->FirstHitID() + i];
-      id = tracker.Data().ClusterDataIndex(tracker.Data().Row(ic.RowIndex()), ic.HitIndex()) + GetConstantMem()->ioPtrs.clustersNative->clusterOffset[track->Slice()][0];
+    if constexpr (std::is_same<S, GPUTPCGMBorderTrack&>::value) {
+      if (Param().rec.mergerReadFromTrackerDirectly) {
+        const GPUTPCTracker& tracker = GetConstantMem()->tpcTrackers[sliceTrack->Slice()];
+        const GPUTPCHitId& ic = tracker.TrackHits()[sliceTrack->OrigTrack()->FirstHitID() + i];
+        id = tracker.Data().ClusterDataIndex(tracker.Data().Row(ic.RowIndex()), ic.HitIndex()) + GetConstantMem()->ioPtrs.clustersNative->clusterOffset[sliceTrack->Slice()][0];
+      } else {
+        id = sliceTrack->OrigTrack()->OutTrackClusters()[i].GetId();
+      }
     } else {
-      id = track->OrigTrack()->OutTrackClusters()[i].GetId();
+      id = mClusters[trk.FirstClusterRef() + i].num;
     }
     if constexpr (std::is_same<T, AliHLTTPCClusterMCLabel>::value) {
       for (int j = 0; j < 3; j++) {
@@ -163,9 +174,11 @@ long int GPUTPCGMMerger::GetTrackLabelA(const GPUTPCGMBorderTrack& trk)
         }
       }
     } else {
+#ifdef GPUCA_O2_LIB
       for (auto label : GetConstantMem()->ioPtrs.clustersNative->clustersMCTruth->getLabels(id)) {
         labels.push_back(label.getTrackEventSourceID());
       }
+#endif
     }
   }
   if (labels.size() == 0) {
@@ -190,15 +203,16 @@ long int GPUTPCGMMerger::GetTrackLabelA(const GPUTPCGMBorderTrack& trk)
   return bestLabel;
 }
 
-long int GPUTPCGMMerger::GetTrackLabel(const GPUTPCGMBorderTrack& trk)
+template <class S>
+long int GPUTPCGMMerger::GetTrackLabel(const S& trk)
 {
 #ifdef GPUCA_O2_LIB
   if (GetConstantMem()->ioPtrs.clustersNative->clustersMCTruth) {
-    return GetTrackLabelA<o2::dataformats::ConstMCTruthContainerView<o2::MCCompLabel>>(trk);
+    return GetTrackLabelA<o2::dataformats::ConstMCTruthContainerView<o2::MCCompLabel>, S>(trk);
   } else
 #endif
   {
-    return GetTrackLabelA<AliHLTTPCClusterMCLabel>(trk);
+    return GetTrackLabelA<AliHLTTPCClusterMCLabel, S>(trk);
   }
 }
 
@@ -806,7 +820,9 @@ GPUd() void GPUTPCGMMerger::MergeBorderTracks<2>(int nBlocks, int nThreads, int 
 
       GPUTPCGMBorderTrack& b2 = B2[r2.fId];
 #if defined(GPUCA_MERGER_BY_MC_LABEL) && !defined(GPUCA_GPUCODE)
-      if (GetTrackLabel(b1) != GetTrackLabel(b2)) // DEBUG CODE, match by MC label
+      long int label1 = GetTrackLabel(b1);
+      long int label2 = GetTrackLabel(b2);
+      if (label1 != label2 && label1 != -1) // DEBUG CODE, match by MC label
 #endif
       {
         CADEBUG(
@@ -1918,4 +1934,71 @@ GPUd() void GPUTPCGMMerger::Finalize2(int nBlocks, int nThreads, int iBlock, int
       mClusterAttachment[i] = (mClusterAttachment[i] & attachFlagMask) | trkOrderReverse[mClusterAttachment[i] & attachTrackMask];
     }
   }
+}
+
+struct MergeLooperParam {
+  float absz;
+  float tgl;
+  float qpt;
+  float x;
+  float y;
+  unsigned int id;
+};
+
+GPUd() void GPUTPCGMMerger::MergeLoopers(int nBlocks, int nThreads, int iBlock, int iThread)
+{
+  if (iThread || iBlock) {
+    return;
+  }
+#ifndef GPUCA_GPUCODE
+  std::vector<MergeLooperParam> params;
+  const float lowPtThresh = Param().rec.tpcRejectQPt * 1.1f; // Might need to merge tracks above the threshold with parts below the threshold
+  for (unsigned int i = 0; i < mMemory->nOutputTracks; i++) {
+    const auto& trk = mOutputTracks[i];
+    const auto& p = trk.GetParam();
+    const float qptabs = CAMath::Abs(p.GetQPt());
+    if (trk.NClusters() && qptabs > 5.f && qptabs <= lowPtThresh) {
+      const int slice = mClusters[trk.FirstClusterRef() + trk.NClusters() - 1].slice;
+      const float z = p.GetZ() + (Param().earlyTpcTransform ? p.GetTZOffset() : GetConstantMem()->calibObjects.fastTransform->convVertexTimeToZOffset(slice, p.GetTZOffset(), Param().continuousMaxTimeBin));
+      float sinA, cosA;
+      CAMath::SinCos(trk.GetAlpha(), sinA, cosA);
+      float gx = cosA * p.GetX() - sinA * p.GetY();
+      float gy = cosA * p.GetY() + sinA * p.GetX();
+      float bz = Param().polynomialField.GetFieldBz(gx, gy, p.GetZ());
+      const float r1 = p.GetQPt() * bz;
+      const float r = CAMath::Abs(r1) > 0.0001 ? (1.f / r1) : 10000;
+      const float mx = p.GetX() + r * p.GetSinPhi();
+      const float my = p.GetY() - r * CAMath::Sqrt(1 - p.GetSinPhi() * p.GetSinPhi());
+      const float gmx = cosA * mx - sinA * my;
+      const float gmy = cosA * my + sinA * mx;
+      params.emplace_back(MergeLooperParam{CAMath::Abs(z), CAMath::Abs(p.GetDzDs()), p.GetDzDs() > 0 ? p.GetQPt() : -p.GetQPt(), gmx, gmy, i});
+    }
+  }
+  std::sort(params.begin(), params.end(), [](const MergeLooperParam& a, const MergeLooperParam& b) { return a.absz < b.absz; });
+  for (unsigned int i = 0; i < params.size(); i++) {
+    for (unsigned int j = i + 1; j < params.size(); j++) {
+      if (params[j].absz > params[i].absz + 100.f) {
+        break;
+      }
+      float dqpt = CAMath::Min(CAMath::Abs(params[i].tgl), CAMath::Abs(params[j].tgl)) < 0.05f ? (CAMath::Abs(params[i].qpt) - CAMath::Abs(params[i].qpt)) : (params[i].qpt - params[j].qpt);
+      float d = CAMath::Sum2((params[i].x - params[j].x) * (1.f / 5.f), (params[i].y - params[j].y) * (1.f / 5.f), (params[i].tgl - params[j].tgl) * (1.f / 0.15f), dqpt / CAMath::Min(params[i].qpt, params[j].qpt) * (1.f / 0.15f));
+      //bool EQ = CAMath::Abs(params[i].x - params[j].x) < 10.f && CAMath::Abs(params[i].y - params[j].y) < 10.f && CAMath::Abs(params[i].tgl - params[j].tgl) < 0.15f && CAMath::Abs((params[i].qpt - params[j].qpt) / CAMath::Min(params[i].qpt, params[j].qpt)) < 0.15f;
+      bool EQ = d < 1.5f;
+#if GPUCA_MERGE_LOOPER_MC
+      long int label1 = GetTrackLabel(mOutputTracks[params[i].id]);
+      long int label2 = GetTrackLabel(mOutputTracks[params[j].id]);
+      bool labelEQ = label1 != -1 && label1 == label2;
+      if (EQ || labelEQ) {
+        printf("Matching track %d/%d %u-%u (%ld): side %d %d, tgl %f %f, qpt %f %f, x %f %f, y %f %f\n", (int)EQ, (int)labelEQ, i, j, label1, (int)mOutputTracks[params[i].id].CSide(), (int)mOutputTracks[params[j].id].CSide(), params[i].tgl, params[j].tgl, params[i].qpt, params[j].qpt, params[i].x, params[j].x, params[i].y, params[j].y);
+      }
+#endif
+      if (EQ) {
+        mOutputTracks[params[j].id].SetMergedLooper(true);
+        if (CAMath::Abs(params[j].qpt) >= Param().rec.tpcRejectQPt) {
+          mOutputTracks[params[i].id].SetMergedLooper(true);
+        }
+      }
+    }
+  }
+#endif
 }
