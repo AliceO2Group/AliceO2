@@ -95,8 +95,9 @@ class TOFCalibCollectorWriter : public o2::framework::Task
     mOutputTree.reset();
     mfileOut.reset();
     mCount++;
-    if (!mIsEndOfStream)
+    if (!mIsEndOfStream) {
       createAndOpenFileAndTree();
+    }
   }
 };
 } // namespace calibration

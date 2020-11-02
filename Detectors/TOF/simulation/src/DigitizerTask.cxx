@@ -95,12 +95,14 @@ void DigitizerTask::Exec(Option_t* option)
 void DigitizerTask::FinishTask()
 {
   // finalize digitization, if needed, flash remaining digits
-  if (!mContinuous)
+  if (!mContinuous) {
     return;
+  }
   FairRootManager* mgr = FairRootManager::Instance();
   mgr->SetLastFill(kTRUE); /// necessary, otherwise the data is not written out
-  if (mDigitsArray)
+  if (mDigitsArray) {
     mDigitsArray->clear();
+  }
 
   // TODO: reenable this
   mMCTruthArray->getIndexedSize();
