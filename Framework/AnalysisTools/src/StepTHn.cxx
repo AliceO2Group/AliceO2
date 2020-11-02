@@ -17,7 +17,7 @@
 //
 // Templated version allows also the use of double as storage container
 
-#include "Analysis/StepTHn.h"
+#include "Framework/StepTHn.h"
 #include "TList.h"
 #include "TCollection.h"
 #include "TArrayF.h"
