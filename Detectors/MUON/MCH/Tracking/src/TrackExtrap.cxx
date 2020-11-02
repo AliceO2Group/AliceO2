@@ -13,7 +13,7 @@
 ///
 /// \author Philippe Pillot, Subatech
 
-#include "TrackExtrap.h"
+#include "MCHTracking/TrackExtrap.h"
 
 #include <TGeoGlobalMagField.h>
 #include <TGeoManager.h>

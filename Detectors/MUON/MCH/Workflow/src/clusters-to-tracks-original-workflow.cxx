@@ -8,22 +8,18 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
+/// \file clusters-to-tracks-original-workflow.cxx
+/// \brief Implementation of a DPL device to run the original track finder algorithm
+///
+/// \author Philippe Pillot, Subatech
+
 #include "Framework/runDataProcessing.h"
 
-#include "ClusterSamplerSpec.h"
-#include "TrackFinderSpec.h"
-#include "VertexSamplerSpec.h"
-#include "TrackAtVertexSpec.h"
-#include "TrackSinkSpec.h"
+#include "TrackFinderOriginalSpec.h"
 
 using namespace o2::framework;
 
-WorkflowSpec defineDataProcessing(ConfigContext const&)
+WorkflowSpec defineDataProcessing(const ConfigContext&)
 {
-  return WorkflowSpec{
-    o2::mch::getClusterSamplerSpec(),
-    o2::mch::getTrackFinderSpec(),
-    o2::mch::getVertexSamplerSpec(),
-    o2::mch::getTrackAtVertexSpec(),
-    o2::mch::getTrackSinkSpec("TRACKSATVERTEX")};
+  return WorkflowSpec{o2::mch::getTrackFinderOriginalSpec()};
 }

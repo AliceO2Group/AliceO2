@@ -13,7 +13,7 @@
 ///
 /// \author Philippe Pillot, Subatech
 
-#include "TrackFinder.h"
+#include "MCHTracking/TrackFinder.h"
 
 #include <cassert>
 #include <iostream>
@@ -24,7 +24,7 @@
 #include <TMath.h>
 
 #include "Field/MagneticField.h"
-#include "TrackExtrap.h"
+#include "MCHTracking/TrackExtrap.h"
 
 namespace o2
 {

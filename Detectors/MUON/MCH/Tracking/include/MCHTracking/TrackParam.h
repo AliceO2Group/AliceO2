@@ -32,6 +32,8 @@ class TrackParam
 {
  public:
   TrackParam() = default;
+  TrackParam(Double_t z, const Double_t param[5]);
+  TrackParam(Double_t z, const Double_t param[5], const Double_t cov[15]);
   ~TrackParam() = default;
 
   TrackParam(const TrackParam& tp);
@@ -77,6 +79,8 @@ class TrackParam
   const TMatrixD& getParameters() const { return mParameters; }
   /// set track parameters
   void setParameters(const TMatrixD& parameters) { mParameters = parameters; }
+  /// set track parameters from the array
+  void setParameters(const Double_t parameters[5]) { mParameters.SetMatrixArray(parameters); }
   /// add track parameters
   void addParameters(const TMatrixD& parameters) { mParameters += parameters; }
 
@@ -90,8 +94,8 @@ class TrackParam
 
   const TMatrixD& getCovariances() const;
   void setCovariances(const TMatrixD& covariances);
-  void setCovariances(const Double_t matrix[5][5]);
-  void setVariances(const Double_t matrix[5][5]);
+  void setCovariances(const Double_t covariances[15]);
+  void setVariances(const Double_t covariances[15]);
   void deleteCovariances();
 
   const TMatrixD& getPropagator() const;

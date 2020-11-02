@@ -32,6 +32,21 @@ namespace mch
 using namespace std;
 
 //_________________________________________________________________________
+TrackParam::TrackParam(Double_t z, const Double_t param[5]) : mZ(z)
+{
+  /// constructor with given parameters
+  setParameters(param);
+}
+
+//_________________________________________________________________________
+TrackParam::TrackParam(Double_t z, const Double_t param[5], const Double_t cov[15]) : mZ(z)
+{
+  /// constructor with given parameters and covariances
+  setParameters(param);
+  setCovariances(cov);
+}
+
+//_________________________________________________________________________
 TrackParam::TrackParam(const TrackParam& tp)
   : mZ(tp.mZ),
     mParameters(tp.mParameters),
@@ -161,7 +176,7 @@ Double_t TrackParam::px() const
   /// return p_x from track parameters
   Double_t pZ;
   if (TMath::Abs(mParameters(4, 0)) > 0) {
-    Double_t pYZ = (TMath::Abs(mParameters(4, 0)) > 0) ? TMath::Abs(1.0 / mParameters(4, 0)) : FLT_MAX;
+    Double_t pYZ = TMath::Abs(1.0 / mParameters(4, 0));
     pZ = -pYZ / (TMath::Sqrt(1.0 + mParameters(3, 0) * mParameters(3, 0))); // spectro. (z<0)
   } else {
     pZ = -FLT_MAX / TMath::Sqrt(1.0 + mParameters(3, 0) * mParameters(3, 0) + mParameters(1, 0) * mParameters(1, 0));
@@ -175,7 +190,7 @@ Double_t TrackParam::py() const
   /// return p_y from track parameters
   Double_t pZ;
   if (TMath::Abs(mParameters(4, 0)) > 0) {
-    Double_t pYZ = (TMath::Abs(mParameters(4, 0)) > 0) ? TMath::Abs(1.0 / mParameters(4, 0)) : FLT_MAX;
+    Double_t pYZ = TMath::Abs(1.0 / mParameters(4, 0));
     pZ = -pYZ / (TMath::Sqrt(1.0 + mParameters(3, 0) * mParameters(3, 0))); // spectro. (z<0)
   } else {
     pZ = -FLT_MAX / TMath::Sqrt(1.0 + mParameters(3, 0) * mParameters(3, 0) + mParameters(1, 0) * mParameters(1, 0));
@@ -231,26 +246,40 @@ void TrackParam::setCovariances(const TMatrixD& covariances)
 }
 
 //__________________________________________________________________________
-void TrackParam::setCovariances(const Double_t matrix[5][5])
+void TrackParam::setCovariances(const Double_t covariances[15])
 {
-  /// Set the covariance matrix
-  if (mCovariances) {
-    mCovariances->SetMatrixArray(&(matrix[0][0]));
-  } else {
-    mCovariances = std::make_unique<TMatrixD>(5, 5, &(matrix[0][0]));
+  /// Set the covariance matrix from the reduced matrix formated as follow: <pre>
+  /// [0] = <X,X>
+  /// [1] = <SlopeX,X>  [2] = <SlopeX,SlopeX>
+  /// [3] = <Y,X>       [4] = <Y,SlopeX>       [5] = <Y,Y>
+  /// [6] = <SlopeY,X>  [7] = <SlopeY,SlopeX>  [8] = <SlopeY,Y>  [9] = <SlopeY,SlopeY>
+  /// [10]= <q/pYZ,X>   [11]= <q/pYZ,SlopeX>   [12]= <q/pYZ,Y>   [13]= <q/pYZ,SlopeY>   [14]= <q/pYZ,q/pYZ> </pre>
+  if (!mCovariances) {
+    mCovariances = std::make_unique<TMatrixD>(5, 5);
+  }
+  for (Int_t i = 0; i < 5; i++) {
+    for (Int_t j = 0; j <= i; j++) {
+      (*mCovariances)(i, j) = (*mCovariances)(j, i) = covariances[i * (i + 1) / 2 + j];
+    }
   }
 }
 
 //__________________________________________________________________________
-void TrackParam::setVariances(const Double_t matrix[5][5])
+void TrackParam::setVariances(const Double_t covariances[15])
 {
-  /// Set the diagonal terms of the covariance matrix (variances)
+  /// Set the diagonal terms of the covariance matrix (variances) from the reduced matrix formated as follow: <pre>
+  /// [0] = <X,X>
+  /// [1] = <SlopeX,X>  [2] = <SlopeX,SlopeX>
+  /// [3] = <Y,X>       [4] = <Y,SlopeX>       [5] = <Y,Y>
+  /// [6] = <SlopeY,X>  [7] = <SlopeY,SlopeX>  [8] = <SlopeY,Y>  [9] = <SlopeY,SlopeY>
+  /// [10]= <q/pYZ,X>   [11]= <q/pYZ,SlopeX>   [12]= <q/pYZ,Y>   [13]= <q/pYZ,SlopeY>   [14]= <q/pYZ,q/pYZ> </pre>
+  static constexpr int varIdx[5] = {0, 2, 5, 9, 14};
   if (!mCovariances) {
     mCovariances = std::make_unique<TMatrixD>(5, 5);
   }
   mCovariances->Zero();
   for (Int_t i = 0; i < 5; i++) {
-    (*mCovariances)(i, i) = matrix[i][i];
+    (*mCovariances)(i, i) = covariances[varIdx[i]];
   }
 }
 

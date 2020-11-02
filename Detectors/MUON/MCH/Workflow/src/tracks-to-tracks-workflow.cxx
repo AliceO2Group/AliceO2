@@ -8,18 +8,18 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
+/// \file tracks-to-tracks-workflow.cxx
+/// \brief Implementation of a DPL device to refit the tracks from the attached clusters
+///
+/// \author Philippe Pillot, Subatech
+
 #include "Framework/runDataProcessing.h"
 
-#include "TrackSamplerSpec.h"
 #include "TrackFitterSpec.h"
-#include "TrackSinkSpec.h"
 
 using namespace o2::framework;
 
-WorkflowSpec defineDataProcessing(ConfigContext const&)
+WorkflowSpec defineDataProcessing(const ConfigContext&)
 {
-  return WorkflowSpec{
-    o2::mch::getTrackSamplerSpec(),
-    o2::mch::getTrackFitterSpec(),
-    o2::mch::getTrackSinkSpec("REFITTRACKS")};
+  return WorkflowSpec{o2::mch::getTrackFitterSpec()};
 }
