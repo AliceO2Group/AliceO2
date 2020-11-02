@@ -12,8 +12,9 @@ o2_add_library(MCHWorkflow
                SOURCES src/DataDecoderSpec.cxx src/PreClusterFinderSpec.cxx src/ClusterFinderOriginalSpec.cxx
                TARGETVARNAME targetName
                PUBLIC_LINK_LIBRARIES O2::Framework O2::DPLUtils O2::MCHRawDecoder Boost::program_options
-                                     O2::MCHRawImplHelpers RapidJSON::RapidJSON O2::MCHMappingInterface O2::MCHPreClustering
-                                     O2::MCHMappingImpl4 O2::MCHRawElecMap O2::MCHBase O2::MCHClustering)
+                                     O2::MCHRawImplHelpers RapidJSON::RapidJSON O2::MCHMappingInterface
+                                     O2::MCHPreClustering O2::MCHMappingImpl4 O2::MCHRawElecMap O2::MCHBase
+                                     O2::MCHClustering)
 
 o2_add_executable(
         cru-page-reader-workflow
@@ -68,3 +69,51 @@ o2_add_executable(
         SOURCES src/ClusterSinkSpec.cxx src/clusters-sink-workflow.cxx
         COMPONENT_NAME mch
         PUBLIC_LINK_LIBRARIES O2::MCHWorkflow)
+
+o2_add_executable(
+        clusters-sampler-workflow
+        SOURCES src/ClusterSamplerSpec.cxx src/clusters-sampler-workflow.cxx
+        COMPONENT_NAME mch
+        PUBLIC_LINK_LIBRARIES O2::Framework O2::MCHBase)
+
+o2_add_executable(
+        clusters-to-tracks-original-workflow
+        SOURCES src/TrackFinderOriginalSpec.cxx src/clusters-to-tracks-original-workflow.cxx
+        COMPONENT_NAME mch
+        PUBLIC_LINK_LIBRARIES O2::Framework O2::DataFormatsMCH O2::MCHTracking)
+
+o2_add_executable(
+        clusters-to-tracks-workflow
+        SOURCES src/TrackFinderSpec.cxx src/clusters-to-tracks-workflow.cxx
+        COMPONENT_NAME mch
+        PUBLIC_LINK_LIBRARIES O2::Framework O2::DataFormatsMCH O2::MCHTracking)
+
+o2_add_executable(
+        vertex-sampler-workflow
+        SOURCES src/VertexSamplerSpec.cxx src/vertex-sampler-workflow.cxx
+        COMPONENT_NAME mch
+        PUBLIC_LINK_LIBRARIES O2::Framework)
+
+o2_add_executable(
+        tracks-to-tracks-at-vertex-workflow
+        SOURCES src/TrackAtVertexSpec.cxx src/tracks-to-tracks-at-vertex-workflow.cxx
+        COMPONENT_NAME mch
+        PUBLIC_LINK_LIBRARIES O2::Framework O2::DetectorsBase O2::DataFormatsMCH O2::MCHTracking)
+
+o2_add_executable(
+        tracks-sink-workflow
+        SOURCES src/TrackSinkSpec.cxx src/tracks-sink-workflow.cxx
+        COMPONENT_NAME mch
+        PUBLIC_LINK_LIBRARIES O2::Framework O2::DataFormatsMCH O2::MCHBase)
+
+o2_add_executable(
+        tracks-sampler-workflow
+        SOURCES src/TrackSamplerSpec.cxx src/tracks-sampler-workflow.cxx
+        COMPONENT_NAME mch
+        PUBLIC_LINK_LIBRARIES O2::Framework O2::DataFormatsMCH O2::MCHBase)
+
+o2_add_executable(
+        tracks-to-tracks-workflow
+        SOURCES src/TrackFitterSpec.cxx src/tracks-to-tracks-workflow.cxx
+        COMPONENT_NAME mch
+        PUBLIC_LINK_LIBRARIES O2::Framework O2::DataFormatsMCH O2::MCHTracking)

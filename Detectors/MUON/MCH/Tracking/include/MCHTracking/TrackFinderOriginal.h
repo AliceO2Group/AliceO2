@@ -20,7 +20,7 @@
 
 #include "MCHTracking/Cluster.h"
 #include "MCHTracking/Track.h"
-#include "TrackFitter.h"
+#include "MCHTracking/TrackFitter.h"
 
 namespace o2
 {

@@ -8,18 +8,18 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
+/// \file tracks-to-tracks-at-vertex-workflow.cxx
+/// \brief Implementation of a DPL device to run the algorithm that extrapolates tracks to the vertex
+///
+/// \author Philippe Pillot, Subatech
+
 #include "Framework/runDataProcessing.h"
 
-#include "ClusterSamplerSpec.h"
-#include "TrackFinderOriginalSpec.h"
-#include "TrackSinkSpec.h"
+#include "TrackAtVertexSpec.h"
 
 using namespace o2::framework;
 
-WorkflowSpec defineDataProcessing(ConfigContext const&)
+WorkflowSpec defineDataProcessing(const ConfigContext&)
 {
-  return WorkflowSpec{
-    o2::mch::getClusterSamplerSpec(),
-    o2::mch::getTrackFinderOriginalSpec(),
-    o2::mch::getTrackSinkSpec("TRACKS")};
+  return WorkflowSpec{o2::mch::getTrackAtVertexSpec()};
 }

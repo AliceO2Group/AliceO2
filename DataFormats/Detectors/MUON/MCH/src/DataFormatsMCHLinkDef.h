@@ -8,24 +8,11 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-/// \file TrackSamplerSpec.h
-/// \brief Definition of a data processor to read and send tracks
-///
-/// \author Philippe Pillot, Subatech
+#ifdef __CLING__
 
-#ifndef O2_MCH_TRACKSAMPLERSPEC_H_
-#define O2_MCH_TRACKSAMPLERSPEC_H_
+#pragma link off all globals;
+#pragma link off all classes;
+#pragma link off all functions;
 
-#include "Framework/DataProcessorSpec.h"
-
-namespace o2
-{
-namespace mch
-{
-
-o2::framework::DataProcessorSpec getTrackSamplerSpec();
-
-} // end namespace mch
-} // end namespace o2
-
-#endif // O2_MCH_TRACKSAMPLERSPEC_H_
+#pragma link C++ class o2::mch::TrackMCH + ;
+#endif

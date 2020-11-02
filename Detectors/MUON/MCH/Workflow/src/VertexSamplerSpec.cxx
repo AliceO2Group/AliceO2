@@ -8,15 +8,16 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-/// \file ClusterSamplerSpec.cxx
-/// \brief Implementation of a data processor to read and send clusters
+/// \file VertexSamplerSpec.cxx
+/// \brief Implementation of a data processor to read and send vertices
 ///
 /// \author Philippe Pillot, Subatech
 
-#include "ClusterSamplerSpec.h"
+#include "VertexSamplerSpec.h"
 
 #include <iostream>
 #include <fstream>
+#include <string>
 
 #include <stdexcept>
 
@@ -29,7 +30,7 @@
 #include "Framework/Task.h"
 #include "Framework/Logger.h"
 
-#include "MCHBase/ClusterBlock.h"
+#include "MathUtils/Cartesian.h"
 
 namespace o2
 {
@@ -39,25 +40,29 @@ namespace mch
 using namespace std;
 using namespace o2::framework;
 
-class ClusterSamplerTask
+class VertexSamplerSpec
 {
  public:
   //_________________________________________________________________________________________________
   void init(framework::InitContext& ic)
   {
     /// Get the input file from the context
-    LOG(INFO) << "initializing cluster sampler";
+    LOG(INFO) << "initializing vertex sampler";
 
     auto inputFileName = ic.options().get<std::string>("infile");
-    mInputFile.open(inputFileName, ios::binary);
-    if (!mInputFile.is_open()) {
-      throw invalid_argument("Cannot open input file" + inputFileName);
+    if (!inputFileName.empty()) {
+      mInputFile.open(inputFileName, ios::binary);
+      if (!mInputFile.is_open()) {
+        throw invalid_argument("Cannot open input file" + inputFileName);
+      }
     }
 
     auto stop = [this]() {
       /// close the input file
-      LOG(INFO) << "stop cluster sampler";
-      this->mInputFile.close();
+      LOG(INFO) << "stop vertex sampler";
+      if (mInputFile.is_open()) {
+        this->mInputFile.close();
+      }
     };
     ic.services().get<CallbackService>().set(CallbackService::Id::Stop, stop);
   }
@@ -65,56 +70,46 @@ class ClusterSamplerTask
   //_________________________________________________________________________________________________
   void run(framework::ProcessingContext& pc)
   {
-    /// send the clusters of the current event
+    /// send the vertex of the current event if an input file is provided
+    /// or the default vertex (0.,0.,0.) otherwise
 
-    int event(0);
-    mInputFile.read(reinterpret_cast<char*>(&event), SSizeOfInt);
-    if (mInputFile.fail()) {
-      pc.services().get<ControlService>().endOfStream();
-      return; // probably reached eof
-    }
-
-    int nClusters(0);
-    mInputFile.read(reinterpret_cast<char*>(&nClusters), SSizeOfInt);
-    if (nClusters == 0) {
-      return; // skip empty event
+    // read the corresponding vertex or set it to (0,0,0)
+    math_utils::Point3D<double> vertex(0., 0., 0.);
+    if (mInputFile.is_open()) {
+      int event(-1);
+      mInputFile.read(reinterpret_cast<char*>(&event), sizeof(int));
+      if (mInputFile.fail()) {
+        throw out_of_range("missing vertex");
+      }
+      VertexStruct vtx{};
+      mInputFile.read(reinterpret_cast<char*>(&vtx), sizeof(VertexStruct));
+      vertex.SetCoordinates(vtx.x, vtx.y, vtx.z);
     }
 
     // create the output message
-    auto size = nClusters * SSizeOfClusterStruct;
-    auto msgOut = pc.outputs().make<char>(Output{"MCH", "CLUSTERS", 0, Lifetime::Timeframe}, SHeaderSize + size);
-    if (msgOut.size() != SHeaderSize + size) {
-      throw length_error("incorrect message payload");
-    }
-
-    auto bufferPtr = msgOut.data();
-
-    // fill header info
-    memcpy(bufferPtr, &event, SSizeOfInt);
-    bufferPtr += SSizeOfInt;
-    memcpy(bufferPtr, &nClusters, SSizeOfInt);
-    bufferPtr += SSizeOfInt;
-
-    // fill tracks and clusters info
-    mInputFile.read(bufferPtr, size);
+    pc.outputs().snapshot(Output{"MCH", "VERTEX", 0, Lifetime::Timeframe}, vertex);
   }
 
  private:
-  static constexpr int SSizeOfInt = sizeof(int);
-  static constexpr int SHeaderSize = 2 * SSizeOfInt;
-  static constexpr int SSizeOfClusterStruct = sizeof(ClusterStruct);
+  struct VertexStruct {
+    double x;
+    double y;
+    double z;
+  };
 
   std::ifstream mInputFile{}; ///< input file
 };
 
 //_________________________________________________________________________________________________
-o2::framework::DataProcessorSpec getClusterSamplerSpec()
+o2::framework::DataProcessorSpec getVertexSamplerSpec()
 {
   return DataProcessorSpec{
-    "ClusterSampler",
-    Inputs{},
-    Outputs{OutputSpec{"MCH", "CLUSTERS", 0, Lifetime::Timeframe}},
-    AlgorithmSpec{adaptFromTask<ClusterSamplerTask>()},
+    "VertexSampler",
+    // the input message is just used to synchronize the sending of the vertex with the track reconstruction
+    Inputs{InputSpec{"tracks", "MCH", "TRACKS", 0, Lifetime::Timeframe},
+           InputSpec{"clusters", "MCH", "TRACKCLUSTERS", 0, Lifetime::Timeframe}},
+    Outputs{OutputSpec{"MCH", "VERTEX", 0, Lifetime::Timeframe}},
+    AlgorithmSpec{adaptFromTask<VertexSamplerSpec>()},
     Options{{"infile", VariantType::String, "", {"input filename"}}}};
 }
 
