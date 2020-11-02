@@ -538,7 +538,7 @@ class HistogramRegistry
   /// @return the associated OutputSpec
   OutputSpec const spec()
   {
-    ConcreteDataMatcher matcher{"HIST", "\0", 0};
+    ConcreteDataMatcher matcher{"ATSK", "\0", 0};
     strncpy(matcher.description.str, mName.data(), 16);
     return OutputSpec{OutputLabel{mName}, matcher};
   }
