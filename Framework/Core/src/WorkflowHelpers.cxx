@@ -267,12 +267,10 @@ void WorkflowHelpers::injectServiceDevices(WorkflowSpec& workflow, ConfigContext
 
   std::vector<InputSpec> requestedCCDBs;
   std::vector<OutputSpec> providedCCDBs;
-  std::vector<OutputSpec> providedOutputObj;
-  std::vector<OutputSpec> providedHist;
+  std::vector<OutputSpec> providedOutputObjHist;
 
   outputTasks outTskMap;
-  outputObjects outObjMap;
-  outputObjects outHistMap;
+  outputObjects outObjHistMap;
 
   for (size_t wi = 0; wi < workflow.size(); ++wi) {
     auto& processor = workflow[wi];
@@ -347,18 +345,10 @@ void WorkflowHelpers::injectServiceDevices(WorkflowSpec& workflow, ConfigContext
       } else if (DataSpecUtils::partialMatch(output, header::DataOrigin{"RN2"})) {
         providedAODs.emplace_back(output);
       } else if (DataSpecUtils::partialMatch(output, header::DataOrigin{"ATSK"})) {
-        providedOutputObj.emplace_back(output);
-        auto it = std::find_if(outObjMap.begin(), outObjMap.end(), [&](auto&& x) { return x.first == hash; });
-        if (it == outObjMap.end()) {
-          outObjMap.push_back({hash, {output.binding.value}});
-        } else {
-          it->second.push_back(output.binding.value);
-        }
-      } else if (DataSpecUtils::partialMatch(output, header::DataOrigin{"HIST"})) {
-        providedHist.emplace_back(output);
-        auto it = std::find_if(outHistMap.begin(), outHistMap.end(), [&](auto&& x) { return x.first == hash; });
-        if (it == outHistMap.end()) {
-          outHistMap.push_back({hash, {output.binding.value}});
+        providedOutputObjHist.emplace_back(output);
+        auto it = std::find_if(outObjHistMap.begin(), outObjHistMap.end(), [&](auto&& x) { return x.first == hash; });
+        if (it == outObjHistMap.end()) {
+          outObjHistMap.push_back({hash, {output.binding.value}});
         } else {
           it->second.push_back(output.binding.value);
         }
@@ -432,14 +422,8 @@ void WorkflowHelpers::injectServiceDevices(WorkflowSpec& workflow, ConfigContext
 
   // This is to inject a file sink so that any dangling ATSK object is written
   // to a ROOT file.
-  if (providedOutputObj.empty() == false) {
-    auto rootSink = CommonDataProcessors::getOutputObjSink(outObjMap, outTskMap);
-    extraSpecs.push_back(rootSink);
-  }
-  // This is to inject a file sink so that any dangling HIST object is written
-  // to a ROOT file.
-  if (providedHist.empty() == false) {
-    auto rootSink = CommonDataProcessors::getHistogramRegistrySink(outHistMap, outTskMap);
+  if (providedOutputObjHist.empty() == false) {
+    auto rootSink = CommonDataProcessors::getOutputObjHistSink(outObjHistMap, outTskMap);
     extraSpecs.push_back(rootSink);
   }
 

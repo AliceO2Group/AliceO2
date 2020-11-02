@@ -199,9 +199,23 @@ struct DTask {
   }
 };
 
+struct ETask {
+  OutputObj<TH1F> phiH{TH1F("phi", "phi", 100, 0., 2. * M_PI)};
+  OutputObj<TH1F> etaH{TH1F("eta", "eta", 102, -2.01, 2.01)};
+
+  void process(aod::Tracks const& tracks)
+  {
+    for (auto& track : tracks) {
+      phiH->Fill(track.phi());
+      etaH->Fill(track.eta());
+    }
+  }
+};
+
 WorkflowSpec defineDataProcessing(ConfigContext const&)
 {
   return WorkflowSpec{
+    adaptAnalysisTask<ETask>("output-obj-test"),
     adaptAnalysisTask<ATask>("eta-and-phi-histograms"),
     adaptAnalysisTask<BTask>("filtered-histograms"),
     adaptAnalysisTask<CTask>("dimension-test"),
