@@ -498,10 +498,12 @@ GPUd() void GPUTPCGMTrackParam::AttachClusters(const GPUTPCGMMerger* GPUrestrict
 
   float err2Y, err2Z;
   Merger->Param().GetClusterErrors2(iRow, Z, mP[2], mP[3], err2Y, err2Z);
-  const float sy2 = CAMath::Min(Merger->Param().rec.tpcTubeMaxSize2, Merger->Param().rec.tpcTubeChi2 * (err2Y + mC[0]));
-  const float sz2 = CAMath::Min(Merger->Param().rec.tpcTubeMaxSize2, Merger->Param().rec.tpcTubeChi2 * (err2Z + mC[2]));
+  const float sy2 = CAMath::Min(Merger->Param().rec.tpcTubeMaxSize2, Merger->Param().rec.tpcTubeChi2 * (err2Y + CAMath::Abs(mC[0]))); // Cov can be bogus when following circle
+  const float sz2 = CAMath::Min(Merger->Param().rec.tpcTubeMaxSize2, Merger->Param().rec.tpcTubeChi2 * (err2Z + CAMath::Abs(mC[2]))); // In that case we should provide the track error externally
   const float tubeY = CAMath::Sqrt(sy2);
   const float tubeZ = CAMath::Sqrt(sz2);
+  const float sy21 = 1.f / sy2;
+  const float sz21 = 1.f / sz2;
   float nY, nZ;
   if (Merger->Param().earlyTpcTransform) {
     nY = Y;
@@ -537,7 +539,7 @@ GPUd() void GPUTPCGMTrackParam::AttachClusters(const GPUTPCGMMerger* GPUrestrict
       const float z = z0 + hh.y * stepZ;
       const float dy = y - nY;
       const float dz = z - nZ;
-      if (dy * dy < sy2 && dz * dz < sz2) {
+      if (dy * dy * sy21 + dz * dz * sz21 <= CAMath::Sqrt(2.f)) {
         // CADEBUG(printf("Found Y %f Z %f\n", y, z));
         CAMath::AtomicMax(weight, myWeight);
       }
