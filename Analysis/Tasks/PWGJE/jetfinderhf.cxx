@@ -55,7 +55,7 @@ struct JetFinderHFTask {
   enum pdgCode { pdgD0 = 421 };
 
   Filter trackCuts = (aod::track::pt > 0.15f && aod::track::eta > -0.9f && aod::track::eta < 0.9f);
-  Filter seltrack = (aod::hf_selcandidate::isSelD0 >= d_selectionFlagD0 || aod::hf_selcandidate::isSelD0bar >= d_selectionFlagD0bar);
+  Filter seltrack = (aod::hf_selcandidate_d0::isSelD0 >= d_selectionFlagD0 || aod::hf_selcandidate_d0::isSelD0bar >= d_selectionFlagD0bar);
 
   void process(aod::Collision const& collision,
                soa::Filtered<aod::Tracks> const& tracks,
