@@ -82,6 +82,8 @@ struct TrackQATask {
     histos.add("TPC/tpcFractionSharedCls", "fraction of shared TPC clusters;fraction shared clusters TPC", kTH1D, {{100, 0., 1.}});
     histos.add("TPC/tpcCrossedRowsOverFindableCls", "crossed TPC rows over findable clusters;crossed rows / findable clusters TPC", kTH1D, {{120, 0.0, 1.2}});
     histos.add("TPC/tpcChi2NCl", "chi2 per cluster in TPC;chi2 / cluster TPC", kTH1D, {{100, 0, 10}});
+
+    histos.print();
   }
 
   void process(soa::Filtered<soa::Join<aod::FullTracks, aod::TracksExtended, aod::TrackSelection>>::iterator const& track)

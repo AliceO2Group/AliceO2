@@ -103,11 +103,11 @@ struct CTask {
     registry.fill<Pt, Eta, RawPhi>("2d-profile", tracks, eta > -0.5f);
 
     // fill 4d histogram with weight (column X)
-    registry.fillWeight<Pt, Eta, RawPhi, Z, X>("4d-weight", tracks, eta > 0.f);
+    registry.fill<Pt, Eta, RawPhi, Z, X>("4d-weight", tracks, eta > 0.f);
 
-    registry.fillWeight<Pt, Eta, RawPhi>("2d-weight", tracks, eta > 0.f);
+    registry.fill<Pt, Eta, RawPhi>("2d-weight", tracks, eta > 0.f);
 
-    registry.fillWeight<Pt, Eta, RawPhi>("1d-profile-weight", tracks, eta > 0.f);
+    registry.fill<Pt, Eta, RawPhi>("1d-profile-weight", tracks, eta > 0.f);
 
     for (auto& track : tracks) {
       registry.fill("2d", track.eta(), track.pt());
@@ -117,9 +117,9 @@ struct CTask {
       registry.fill("3d-profile", track.pt(), track.eta(), track.phi(), track.snp());
 
       // fill 3d histogram with weight (2.)
-      registry.fillWeight("3d-weight", track.pt(), track.eta(), track.phi(), 2.);
+      registry.fill("3d-weight", track.pt(), track.eta(), track.phi(), 2.);
 
-      registry.fillWeight("2d-profile-weight", track.pt(), track.eta(), track.phi(), 5.);
+      registry.fill("2d-profile-weight", track.pt(), track.eta(), track.phi(), 5.);
     }
   }
 };

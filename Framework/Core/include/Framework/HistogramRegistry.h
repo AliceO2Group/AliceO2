@@ -347,17 +347,17 @@ struct HistFactory {
 //**************************************************************************************************
 struct HistFiller {
   // fill any type of histogram (if weight was requested it must be the last argument)
-  template <bool useWeight = false, typename T, typename... Ts>
+  template <typename T, typename... Ts>
   static void fillHistAny(std::shared_ptr<T>& hist, const Ts&... positionAndWeight)
   {
-    constexpr int nDim = sizeof...(Ts) - useWeight;
+    constexpr int nArgs = sizeof...(Ts);
 
-    constexpr bool validTH3 = (std::is_same_v<TH3, T> && nDim == 3);
-    constexpr bool validTH2 = (std::is_same_v<TH2, T> && nDim == 2);
-    constexpr bool validTH1 = (std::is_same_v<TH1, T> && nDim == 1);
-    constexpr bool validTProfile3D = (std::is_same_v<TProfile3D, T> && nDim == 4);
-    constexpr bool validTProfile2D = (std::is_same_v<TProfile2D, T> && nDim == 3);
-    constexpr bool validTProfile = (std::is_same_v<TProfile, T> && nDim == 2);
+    constexpr bool validTH3 = (std::is_same_v<TH3, T> && (nArgs == 3 || nArgs == 4));
+    constexpr bool validTH2 = (std::is_same_v<TH2, T> && (nArgs == 2 || nArgs == 3));
+    constexpr bool validTH1 = (std::is_same_v<TH1, T> && (nArgs == 1 || nArgs == 2));
+    constexpr bool validTProfile3D = (std::is_same_v<TProfile3D, T> && (nArgs == 4 || nArgs == 5));
+    constexpr bool validTProfile2D = (std::is_same_v<TProfile2D, T> && (nArgs == 3 || nArgs == 4));
+    constexpr bool validTProfile = (std::is_same_v<TProfile, T> && (nArgs == 2 || nArgs == 3));
 
     constexpr bool validSimpleFill = validTH1 || validTH2 || validTH3 || validTProfile || validTProfile2D || validTProfile3D;
     // unfortunately we dont know at compile the dimension of THn(Sparse)
@@ -366,27 +366,26 @@ struct HistFiller {
     if constexpr (validSimpleFill) {
       hist->Fill(static_cast<double>(positionAndWeight)...);
     } else if constexpr (validComplexFill) {
-      // savety check for n dimensional histograms (runtime overhead)
-      if (hist->GetNdimensions() != nDim) {
+      double tempArray[] = {static_cast<double>(positionAndWeight)...};
+      double weight{1.};
+      if (hist->GetNdimensions() == nArgs - 1) {
+        weight = tempArray[nArgs - 1];
+      } else if (hist->GetNdimensions() != nArgs) {
         LOGF(FATAL, "The number of arguments in fill function called for histogram %s is incompatible with histogram dimensions.", hist->GetName());
       }
-      double tempArray[] = {static_cast<double>(positionAndWeight)...};
-      if constexpr (useWeight)
-        hist->Fill(tempArray, tempArray[sizeof...(Ts) - 1]);
-      else
-        hist->Fill(tempArray);
+      hist->Fill(tempArray, weight);
     } else {
       LOGF(FATAL, "The number of arguments in fill function called for histogram %s is incompatible with histogram dimensions.", hist->GetName());
     }
   }
 
   // fill any type of histogram with columns (Cs) of a filtered table (if weight is requested it must reside the last specified column)
-  template <bool useWeight = false, typename... Cs, typename R, typename T>
+  template <typename... Cs, typename R, typename T>
   static void fillHistAnyTable(std::shared_ptr<R>& hist, const T& table, const o2::framework::expressions::Filter& filter)
   {
     auto filtered = o2::soa::Filtered<T>{{table.asArrowTable()}, o2::framework::expressions::createSelection(table.asArrowTable(), filter)};
     for (auto& t : filtered) {
-      fillHistAny<useWeight>(hist, (*(static_cast<Cs>(t).getIterator()))...);
+      fillHistAny(hist, (*(static_cast<Cs>(t).getIterator()))...);
     }
   }
 
@@ -629,31 +628,17 @@ class HistogramRegistry
   }
 
   // fill hist with values
-  template <bool useWeight = false, typename... Ts>
+  template <typename... Ts>
   void fill(char const* const name, Ts&&... positionAndWeight)
   {
-    std::visit([&positionAndWeight...](auto&& hist) { HistFiller::fillHistAny<useWeight>(hist, std::forward<Ts>(positionAndWeight)...); }, mRegistryValue[getHistIndex(name)]);
-  }
-
-  // fill hist with values and weight
-  template <typename... Ts>
-  void fillWeight(char const* const name, Ts&&... positionAndWeight)
-  {
-    fill<true>(name, std::forward<Ts>(positionAndWeight)...);
+    std::visit([&positionAndWeight...](auto&& hist) { HistFiller::fillHistAny(hist, std::forward<Ts>(positionAndWeight)...); }, mRegistryValue[getHistIndex(name)]);
   }
 
   // fill hist with content of (filtered) table columns
   template <typename... Cs, typename T>
   void fill(char const* const name, const T& table, const o2::framework::expressions::Filter& filter)
   {
-    fillTable<false, Cs...>(name, table, filter);
-  }
-
-  // fill hist with content of (filtered) table columns and weight
-  template <typename... Cs, typename T>
-  void fillWeight(char const* const name, const T& table, const o2::framework::expressions::Filter& filter)
-  {
-    fillTable<true, Cs...>(name, table, filter);
+    std::visit([&table, &filter](auto&& hist) { HistFiller::fillHistAnyTable<Cs...>(hist, table, filter); }, mRegistryValue[getHistIndex(name)]);
   }
 
   // get rough estimate for size of histogram stored in registry
@@ -737,13 +722,6 @@ class HistogramRegistry
       }
     }
     throw runtime_error("No matching histogram found in HistogramRegistry!");
-  }
-
-  // this is for internal use only because we dont want user to have to specify 'useWeight' argument
-  template <bool useWeight = false, typename... Cs, typename T>
-  void fillTable(char const* const name, const T& table, const o2::framework::expressions::Filter& filter)
-  {
-    std::visit([&table, &filter](auto&& hist) { HistFiller::fillHistAnyTable<useWeight, Cs...>(hist, table, filter); }, mRegistryValue[getHistIndex(name)]);
   }
 
   // helper function to create resp. find the subList defined by path
