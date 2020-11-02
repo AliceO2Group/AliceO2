@@ -72,7 +72,7 @@ taskwrapper() {
   if [ "${JOBUTILS_SKIPDONE}" ]; then
     if [ -f "${logfile}_done" ]; then
        echo "Skipping task since file ${logfile}_done found";
-       rm ${SCRIPTNAME} 2> /dev/null
+       [ ! "${JOBUTILS_KEEPJOBSCRIPT}" ] && rm ${SCRIPTNAME} 2> /dev/null
        return 0
     fi
   fi
@@ -146,7 +146,7 @@ taskwrapper() {
       done      
 
       RC_ACUM=$((RC_ACUM+1))
-      rm ${SCRIPTNAME} 2> /dev/null
+      [ ! "${JOBUTILS_KEEPJOBSCRIPT}" ] && rm ${SCRIPTNAME} 2> /dev/null
       return 1
     fi
 
@@ -184,7 +184,7 @@ taskwrapper() {
   else
     echo "command ${command} had nonzero exit code ${RC}"
   fi
-  rm ${SCRIPTNAME} 2> /dev/null
+  [ ! "${JOBUTILS_KEEPJOBSCRIPT}" ] && rm ${SCRIPTNAME} 2> /dev/null
   return ${RC}
 }
 
