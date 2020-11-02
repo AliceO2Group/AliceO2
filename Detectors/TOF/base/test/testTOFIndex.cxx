@@ -42,8 +42,9 @@ BOOST_AUTO_TEST_CASE(testTOFIndex)
           : j > 2 ? Geo::NSTRIPC
                   : Geo::NSTRIPA; // Define the numer of strips of the plate
       if (j == 2 &&
-          (i == 15 || i == 14 || i == 13)) // Skip sectors without A plate
+          (i == 15 || i == 14 || i == 13)) { // Skip sectors without A plate
         continue;
+      }
       //
       for (Int_t k = 0; k < nStrips; k++) { // Loop on all Strips
         indextof[2] = k;

@@ -144,10 +144,11 @@ void CollectCalibInfoTOF::addHit(o2::dataformats::CalibInfoTOF& calibInfo)
   if (mTOFCollectedCalibInfo[calibInfo.getTOFChIndex()].size() == MAXNUMBEROFHITS) { // the current channel has arrived to the limit of hits that we can store between two fills --> filling the tree
     fillTree();
   }
-  if (calibInfo.getTimestamp() < mMinTimestamp.GetVal() || mMinTimestamp.GetVal() == -1)
+  if (calibInfo.getTimestamp() < mMinTimestamp.GetVal() || mMinTimestamp.GetVal() == -1) {
     mMinTimestamp.SetVal(calibInfo.getTimestamp());
-  else if (calibInfo.getTimestamp() > mMaxTimestamp.GetVal())
+  } else if (calibInfo.getTimestamp() > mMaxTimestamp.GetVal()) {
     mMaxTimestamp.SetVal(calibInfo.getTimestamp());
+  }
 }
 //______________________________________________
 void CollectCalibInfoTOF::fillTree()

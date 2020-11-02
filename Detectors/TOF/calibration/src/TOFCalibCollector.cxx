@@ -129,13 +129,15 @@ bool TOFCalibCollector::hasEnoughData(const Slot& slot) const
   // (see header file for the fact that mMaxNumOfHits = 500)
   // The case in which mScaleMaxNumOfHits = false allows for a fast check
 
-  if (mTest)
+  if (mTest) {
     return true;
+  }
   const o2::tof::TOFCalibInfoSlot* c = slot.getContainer();
   LOG(INFO) << "we have " << c->getCollectedCalibInfoSlot().size() << " entries";
   int maxNumberOfHits = mAbsMaxNumOfHits ? mMaxNumOfHits : mMaxNumOfHits * o2::tof::Geo::NCHANNELS;
-  if (mTFsendingPolicy || c->getCollectedCalibInfoSlot().size() > maxNumberOfHits)
+  if (mTFsendingPolicy || c->getCollectedCalibInfoSlot().size() > maxNumberOfHits) {
     return true;
+  }
   return false;
 }
 

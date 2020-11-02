@@ -93,8 +93,9 @@ void CTFCoder::compress(CompressedInfos& cc,
     auto ndig = rofRec.size();
     cc.ndigROF[irof] = ndig;
     cc.ndiaROF[irof] = rofRec.sizeDia();
-    for (int icrate = 0; icrate < 72; icrate++)
+    for (int icrate = 0; icrate < 72; icrate++) {
       cc.ndiaCrate[irof * 72 + icrate] = rofRec.getDiagnosticInCrate(icrate);
+    }
 
     if (!ndig) { // no hits data for this ROF --> not fill
       continue;
@@ -112,10 +113,11 @@ void CTFCoder::compress(CompressedInfos& cc,
     // sort digits according to time (ascending order)
     std::sort(digCopy.begin(), digCopy.end(),
               [](o2::tof::Digit a, o2::tof::Digit b) {
-                if (a.getBC() == b.getBC())
+                if (a.getBC() == b.getBC()) {
                   return a.getTDC() < b.getTDC();
-                else
+                } else {
                   return a.getBC() < b.getBC();
+                }
               });
 
     int timeframe = 0;
