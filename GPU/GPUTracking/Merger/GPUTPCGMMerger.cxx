@@ -184,8 +184,8 @@ long int GPUTPCGMMerger::GetTrackLabelA(const S& trk)
   if (labels.size() == 0) {
     return (-1);
   }
-  labels.push_back(-1);
   std::sort(labels.begin(), labels.end());
+  labels.push_back(-1);
   long int bestLabel = -1, curLabel = labels[0];
   int curCount = 1, bestLabelCount = 0;
   for (unsigned int i = 1; i < labels.size(); i++) {
