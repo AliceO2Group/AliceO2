@@ -27,16 +27,16 @@ static const int npTBins = 10;
 static const int nCutVars = 8;
 //temporary until 2D array in configurable is solved - then move to json
 //m  ptp  ptk  ptpi DCA sigmavtx dlenght cosp
-constexpr double cuts[npTBins][nCutVars] = {{0.5, 0.1, 0.1, 0.1, 0.05, 0.09, 0.005, 0.},  /* pt<1     */
-                                            {0.5, 0.1, 0.1, 0.1, 0.05, 0.09, 0.005, 0.},  /* 1<pt<2   */
-                                            {0.5, 0.1, 0.1, 0.1, 0.05, 0.09, 0.005, 0.},  /* 2<pt<3   */
-                                            {0.5, 0.1, 0.1, 0.1, 0.05, 0.09, 0.005, 0.},  /* 3<pt<4   */
-                                            {0.5, 0.1, 0.1, 0.1, 0.05, 0.09, 0.005, 0.},  /* 4<pt<5   */
-                                            {0.5, 0.1, 0.1, 0.1, 0.05, 0.09, 0.005, 0.},  /* 5<pt<6   */
-                                            {0.5, 0.1, 0.1, 0.1, 0.05, 0.09, 0.005, 0.},  /* 6<pt<8   */
-                                            {0.5, 0.1, 0.1, 0.1, 0.05, 0.09, 0.005, 0.},  /* 8<pt<12  */
-                                            {0.5, 0.1, 0.1, 0.1, 0.05, 0.09, 0.005, 0.},  /* 12<pt<24 */
-                                            {0.5, 0.1, 0.1, 0.1, 0.05, 0.09, 0.005, 0.}}; /* 24<pt<36 */
+constexpr double cuts[npTBins][nCutVars] = {{0.5, 0.2, 0.2, 0.2, 0.05, 0.09, 0.005, 0.},  /* pt<1     */
+                                            {0.5, 0.2, 0.2, 0.2, 0.05, 0.09, 0.005, 0.},  /* 1<pt<2   */
+                                            {0.5, 0.2, 0.2, 0.2, 0.05, 0.09, 0.005, 0.},  /* 2<pt<3   */
+                                            {0.5, 0.2, 0.2, 0.2, 0.05, 0.09, 0.005, 0.},  /* 3<pt<4   */
+                                            {0.5, 0.2, 0.2, 0.2, 0.05, 0.09, 0.005, 0.},  /* 4<pt<5   */
+                                            {0.5, 0.2, 0.2, 0.2, 0.05, 0.09, 0.005, 0.},  /* 5<pt<6   */
+                                            {0.5, 0.2, 0.2, 0.2, 0.05, 0.09, 0.005, 0.},  /* 6<pt<8   */
+                                            {0.5, 0.2, 0.2, 0.2, 0.05, 0.09, 0.005, 0.},  /* 8<pt<12  */
+                                            {0.5, 0.2, 0.2, 0.2, 0.05, 0.09, 0.005, 0.},  /* 12<pt<24 */
+                                            {0.5, 0.2, 0.2, 0.2, 0.05, 0.09, 0.005, 0.}}; /* 24<pt<36 */
 
 /// Struct for applying Lc selection cuts
 
@@ -65,8 +65,11 @@ struct HFLcCandidateSelector {
   int getpTBin(T candpT)
   {
     double pTBins[npTBins + 1] = {0, 1., 2., 3., 4., 5., 6., 8., 12., 24., 36.};
+    if (candpT < pTBins[0] || candpT >= pTBins[npTBins]) {
+      return -1;
+    }
     for (int i = 0; i < npTBins; i++) {
-      if (candpT >= pTBins[i] && candpT < pTBins[i + 1]) {
+      if (candpT < pTBins[i + 1]) {
         return i;
       }
     }
@@ -187,7 +190,7 @@ struct HFLcCandidateSelector {
   template <typename T>
   bool selectionPIDTPC(const T& track, int nPDG, int nSigmaCut)
   {
-    double nSigma = 0.0;
+    double nSigma = 100.0; //arbitarily large value
     nPDG = TMath::Abs(nPDG);
     if (nPDG == 2212) {
       nSigma = track.tpcNSigmaPr();
@@ -195,15 +198,10 @@ struct HFLcCandidateSelector {
       nSigma = track.tpcNSigmaKa();
     } else if (nPDG == 111) {
       nSigma = track.tpcNSigmaPi();
-
-    } else {
-      return nSigma = 100; //arbitarily large value
-    }
-    if (nSigma < nSigmaCut) {
-      return true;
     } else {
       return false;
     }
+    return nSigma < nSigmaCut;
   }
 
   /// Check if track is compatible with given TOF NSigma cut for a given flavour hypothesis
@@ -215,7 +213,7 @@ struct HFLcCandidateSelector {
   template <typename T>
   bool selectionPIDTOF(const T& track, int nPDG, int nSigmaCut)
   {
-    double nSigma = 0.0;
+    double nSigma = 100.0; //arbitarily large value
     nPDG = TMath::Abs(nPDG);
     if (nPDG == 2212) {
       nSigma = track.tofNSigmaPr();
@@ -224,13 +222,9 @@ struct HFLcCandidateSelector {
     } else if (nPDG == 321) {
       nSigma = track.tofNSigmaPi();
     } else {
-      return nSigma = 100; //arbitarily large value
-    }
-    if (nSigma < nSigmaCut) {
-      return true;
-    } else {
       return false;
     }
+    return nSigma < nSigmaCut;
   }
 
   /// PID selection on daughter track
@@ -287,7 +281,7 @@ struct HFLcCandidateSelector {
   {
     int statusLc; // final selection flag : 0-rejected  1-accepted
     bool topolLc;
-    int pidLc, proton, kMinus, piPlus;
+    int pidLc, proton, kaonMinus, pionPlus;
 
     for (auto& hfCandProng3 : hfCandProng3s) { //looping over 3 prong candidates
 
@@ -299,8 +293,8 @@ struct HFLcCandidateSelector {
       topolLc = true;
       pidLc = -1;
       proton = -1;
-      kMinus = -1;
-      piPlus = -1;
+      kaonMinus = -1;
+      pionPlus = -1;
 
       // daughter track validity selection
       if (!daughterSelection(trackPos1) || !daughterSelection(trackNeg1) || !daughterSelection(trackPos2)) {
@@ -325,13 +319,13 @@ struct HFLcCandidateSelector {
       }
 
       proton = selectionPID(trackPos1, 2212);
-      kMinus = selectionPID(trackNeg1, 321);
-      piPlus = selectionPID(trackPos2, 211);
+      kaonMinus = selectionPID(trackNeg1, 321);
+      pionPlus = selectionPID(trackPos2, 211);
 
-      if (proton == 0 || kMinus == 0 || piPlus == 0) {
+      if (proton == 0 || kaonMinus == 0 || pionPlus == 0) {
         pidLc = 0; //exclude Lc
       }
-      if (proton == 1 && kMinus == 1 && piPlus == 1) {
+      if (proton == 1 && kaonMinus == 1 && pionPlus == 1) {
         pidLc = 1; //accept Lc
       }
 
