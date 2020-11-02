@@ -1972,9 +1972,40 @@ GPUd() void GPUTPCGMMerger::MergeLoopers(int nBlocks, int nThreads, int iBlock, 
       const float gmx = cosA * mx - sinA * my;
       const float gmy = cosA * my + sinA * mx;
       params.emplace_back(MergeLooperParam{CAMath::Abs(z), CAMath::Abs(p.GetDzDs()), p.GetDzDs() > 0 ? p.GetQPt() : -p.GetQPt(), gmx, gmy, i});
+
+      /*printf("Track %d Sanity qpt %f snp %f bz %f\n", (int)params.size(), p.GetQPt(), p.GetSinPhi(), bz);
+      for (unsigned int k = 0;k < trk.NClusters();k++) {
+        float xx, yy, zz;
+        if (Param().earlyTpcTransform) {
+          const float zOffset = (mClusters[trk.FirstClusterRef() + k].slice < 18) == (mClusters[trk.FirstClusterRef() + 0].slice < 18) ? p.GetTZOffset() : -p.GetTZOffset();
+          xx = mClustersXYZ[trk.FirstClusterRef() + k].x;
+          yy = mClustersXYZ[trk.FirstClusterRef() + k].y;
+          zz = mClustersXYZ[trk.FirstClusterRef() + k].z - zOffset;
+        } else {
+          const ClusterNative& GPUrestrict() cl = GetConstantMem()->ioPtrs.clustersNative->clustersLinear[mClusters[trk.FirstClusterRef() + k].num];
+          GetConstantMem()->calibObjects.fastTransform->Transform(mClusters[trk.FirstClusterRef() + k].slice, mClusters[trk.FirstClusterRef() + k].row, cl.getPad(), cl.getTime(), xx, yy, zz, p.GetTZOffset());
+        }
+        float sa2, ca2;
+        CAMath::SinCos(Param().Alpha(mClusters[trk.FirstClusterRef() + k].slice), sa2, ca2);
+        float cx = ca2 * xx - sa2 * yy;
+        float cy = ca2 * yy + sa2 * xx;
+        float dist = sqrtf((cx - gmx) * (cx - gmx) + (cy - gmy) * (cy - gmy));
+        printf("Hit %3d/%3d slice %d xy %f %f R %f\n", k, trk.NClusters(), (int)mClusters[trk.FirstClusterRef() + k].slice, cx, cy, dist);
+      }*/
     }
   }
   std::sort(params.begin(), params.end(), [](const MergeLooperParam& a, const MergeLooperParam& b) { return a.absz < b.absz; });
+#if GPUCA_MERGE_LOOPER_MC
+  std::vector<long int> paramLabels(params.size());
+  for (unsigned int i = 0; i < params.size(); i++) {
+    paramLabels[i] = GetTrackLabel(mOutputTracks[params[i].id]);
+  }
+  std::vector<bool> dropped(params.size());
+  std::vector<bool> droppedMC(params.size());
+  std::vector<int> histMatch(101);
+  std::vector<int> histFail(101);
+#endif
+
   for (unsigned int i = 0; i < params.size(); i++) {
     for (unsigned int j = i + 1; j < params.size(); j++) {
       if (params[j].absz > params[i].absz + 100.f) {
@@ -1985,11 +2016,21 @@ GPUd() void GPUTPCGMMerger::MergeLoopers(int nBlocks, int nThreads, int iBlock, 
       //bool EQ = CAMath::Abs(params[i].x - params[j].x) < 10.f && CAMath::Abs(params[i].y - params[j].y) < 10.f && CAMath::Abs(params[i].tgl - params[j].tgl) < 0.15f && CAMath::Abs((params[i].qpt - params[j].qpt) / CAMath::Min(params[i].qpt, params[j].qpt)) < 0.15f;
       bool EQ = d < 1.5f;
 #if GPUCA_MERGE_LOOPER_MC
-      long int label1 = GetTrackLabel(mOutputTracks[params[i].id]);
-      long int label2 = GetTrackLabel(mOutputTracks[params[j].id]);
+      const long int label1 = paramLabels[i];
+      const long int label2 = paramLabels[j];
       bool labelEQ = label1 != -1 && label1 == label2;
       if (EQ || labelEQ) {
-        printf("Matching track %d/%d %u-%u (%ld): side %d %d, tgl %f %f, qpt %f %f, x %f %f, y %f %f\n", (int)EQ, (int)labelEQ, i, j, label1, (int)mOutputTracks[params[i].id].CSide(), (int)mOutputTracks[params[j].id].CSide(), params[i].tgl, params[j].tgl, params[i].qpt, params[j].qpt, params[i].x, params[j].x, params[i].y, params[j].y);
+        printf("Matching track %d/%d %u-%u (%ld/%ld): dist %f side %d %d, tgl %f %f, qpt %f %f, x %f %f, y %f %f\n", (int)EQ, (int)labelEQ, i, j, label1, label2, d, (int)mOutputTracks[params[i].id].CSide(), (int)mOutputTracks[params[j].id].CSide(), params[i].tgl, params[j].tgl, params[i].qpt, params[j].qpt, params[i].x, params[j].x, params[i].y, params[j].y);
+      }
+      if (EQ) {
+        dropped[j] = true;
+      }
+      if (labelEQ) {
+        droppedMC[j] = true;
+        histMatch[CAMath::Min<int>(100, d * 10.f)]++;
+      }
+      if (d < 10.f && !labelEQ) {
+        histFail[CAMath::Min<int>(100, d * 10.f)]++;
       }
 #endif
       if (EQ) {
@@ -2000,5 +2041,30 @@ GPUd() void GPUTPCGMMerger::MergeLoopers(int nBlocks, int nThreads, int iBlock, 
       }
     }
   }
+#if GPUCA_MERGE_LOOPER_MC
+  int total = 0, totalmc = 0, good = 0, missed = 0, fake = 0;
+  for (unsigned int i = 0; i < params.size(); i++) {
+    total += dropped[i];
+    totalmc += droppedMC[i];
+    good += dropped[i] && droppedMC[i];
+    missed += droppedMC[i] && !dropped[i];
+    fake += dropped[i] && !droppedMC[i];
+  }
+  if (good) {
+    printf("%20s: %8d\n", "Total", total);
+    printf("%20s: %8d\n", "TotalMC", totalmc);
+    printf("%20s: %8d (%8.3f%% %8.3f%%)\n", "Good", good, 100.f * good / total, 100.f * good / totalmc);
+    printf("%20s: %8d (%8.3f%%)\n", "Missed", missed, 100.f * missed / totalmc);
+    printf("%20s: %8d (%8.3f%%)\n", "Fake", fake, 100.f * fake / total);
+  }
+  printf("Match histo\n");
+  for (unsigned int i = 0; i < histMatch.size(); i++) {
+    printf("%8.3f: %3d\n", i / 10.f + 0.05f, histMatch[i]);
+  }
+  printf("Fake histo\n");
+  for (unsigned int i = 0; i < histFail.size(); i++) {
+    printf("%8.3f: %3d\n", i / 10.f + 0.05f, histFail[i]);
+  }
+#endif
 #endif
 }
