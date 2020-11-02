@@ -5,7 +5,7 @@
 # MID reconstruction workflow
 
 The MID reconstruction starts from the digits and produced MID tracks.
-The input digits cna be:
+The input digits can be:
 
 - MC digits
 - digits obtained after decoding raw data
