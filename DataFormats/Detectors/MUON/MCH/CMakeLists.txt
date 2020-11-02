@@ -8,5 +8,9 @@
 # granted to it by virtue of its status as an Intergovernmental Organization or
 # submit itself to any jurisdiction.
 
-add_subdirectory(MID)
-add_subdirectory(MCH)
+o2_add_library(DataFormatsMCH
+               SOURCES src/TrackMCH.cxx
+	       PUBLIC_LINK_LIBRARIES O2::CommonDataFormat)
+
+o2_target_root_dictionary(DataFormatsMCH
+                          HEADERS include/DataFormatsMCH/TrackMCH.h)

@@ -36,8 +36,8 @@ class Cluster
 
   Cluster(const Cluster& cl) = default;
   Cluster& operator=(const Cluster& cl) = default;
-  Cluster(Cluster&&) = delete;
-  Cluster& operator=(Cluster&&) = delete;
+  Cluster(Cluster&&) = default;
+  Cluster& operator=(Cluster&&) = default;
 
   ClusterStruct getClusterStruct() const;
 

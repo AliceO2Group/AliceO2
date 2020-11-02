@@ -17,14 +17,13 @@
 #define O2_MCH_TRACKSINKSPEC_H_
 
 #include "Framework/DataProcessorSpec.h"
-#include "Headers/DataHeader.h"
 
 namespace o2
 {
 namespace mch
 {
 
-o2::framework::DataProcessorSpec getTrackSinkSpec(o2::header::DataDescription description);
+o2::framework::DataProcessorSpec getTrackSinkSpec(bool mchTracks, bool tracksAtVtx);
 
 } // end namespace mch
 } // end namespace o2
