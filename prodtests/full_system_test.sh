@@ -100,20 +100,22 @@ o2-tpc-scdcalib-interpolation-workflow $ARGS_ALL --disable-root-output --disable
   [ -f "${logfile}_done" ] && [ "$RC" = 0 ] && SUCCESS=1
   echo "success_${STAGE},${TAG} value=${SUCCESS}" >> ${METRICFILE}
 
-  # runtime
-  walltime=`grep "#walltime" ${logfile}_time | awk '//{print $2}'`
-  echo "walltime_${STAGE},${TAG} value=${walltime}" >> ${METRICFILE}
+  if [ "${SUCCESS}" = "1" ]; then
+    # runtime
+    walltime=`grep "#walltime" ${logfile}_time | awk '//{print $2}'`
+    echo "walltime_${STAGE},${TAG} value=${walltime}" >> ${METRICFILE}
 
-  # memory 
-  maxmem=`awk '/PROCESS MAX MEM/{print $5}' ${logfile}`  # in MB
-  avgmem=`awk '/PROCESS AVG MEM/{print $5}' ${logfile}`  # in MB
-  echo "maxmem_${STAGE},${TAG} value=${maxmem}" >> ${METRICFILE}
-  echo "avgmem_${STAGE},${TAG} value=${avgmem}" >> ${METRICFILE}
+    # memory 
+    maxmem=`awk '/PROCESS MAX MEM/{print $5}' ${logfile}`  # in MB
+    avgmem=`awk '/PROCESS AVG MEM/{print $5}' ${logfile}`  # in MB
+    echo "maxmem_${STAGE},${TAG} value=${maxmem}" >> ${METRICFILE}
+    echo "avgmem_${STAGE},${TAG} value=${avgmem}" >> ${METRICFILE}
 
-  # some physics quantities
-  tpctracks=`grep "tpc-tracker" ${logfile} | grep -e "found.*track" | awk '//{print $4}'`
-  echo "tpctracks_${STAGE},${TAG} value=${tpctracks}" >> ${METRICFILE}
-  tpcclusters=`grep -e "Event has.*TPC Clusters" ${logfile} | awk '//{print $5}'`
-  echo "tpcclusters_${STAGE},${TAG} value=${tpcclusters}" >> ${METRICFILE}
+    # some physics quantities
+    tpctracks=`grep "tpc-tracker" ${logfile} | grep -e "found.*track" | awk '//{print $4}'`
+    echo "tpctracks_${STAGE},${TAG} value=${tpctracks}" >> ${METRICFILE}
+    tpcclusters=`grep -e "Event has.*TPC Clusters" ${logfile} | awk '//{print $5}'`
+    echo "tpcclusters_${STAGE},${TAG} value=${tpcclusters}" >> ${METRICFILE}
+  fi
 done
 
