@@ -27,8 +27,9 @@ using namespace o2::tof;
 //_____________________________________________________________________
 ClustererTask::ClustererTask(Bool_t useMCTruth) : FairTask("TOFClustererTask")
 {
-  if (useMCTruth)
+  if (useMCTruth) {
     mClsLabels = new o2::dataformats::MCTruthContainer<o2::MCCompLabel>;
+  }
 }
 
 //_____________________________________________________________________
@@ -74,8 +75,9 @@ InitStatus ClustererTask::Init()
   mgr->RegisterAny("TOFCluster", mClustersArray, kTRUE);
 
   // Register new MC Truth container --> here we will now associate to the clusters all labels that belonged to all digits that formed that cluster
-  if (mClsLabels)
+  if (mClsLabels) {
     mgr->RegisterAny("TOFClusterMCTruth", mClsLabels, kTRUE);
+  }
 
   mClusterer.setMCTruthContainer(mClsLabels);
 
@@ -85,10 +87,12 @@ InitStatus ClustererTask::Init()
 //_____________________________________________________________________
 void ClustererTask::Exec(Option_t* option)
 {
-  if (mClustersArray)
+  if (mClustersArray) {
     mClustersArray->clear();
-  if (mClsLabels)
+  }
+  if (mClsLabels) {
     mClsLabels->clear();
+  }
   LOG(DEBUG) << "Running clusterization on new event";
 
   mClusterer.process(mReader, *mClustersArray, mDigitMCTruth);

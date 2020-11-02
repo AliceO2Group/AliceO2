@@ -43,8 +43,9 @@ void CompressedDecodingTask::init(InitContext& ic)
   mNoiseRate = ic.options().get<int>("noise-counts");
   mRowFilter = ic.options().get<bool>("row-filter");
 
-  if (mMaskNoise)
+  if (mMaskNoise) {
     mDecoder.maskNoiseRate(mNoiseRate);
+  }
 
   auto finishFunction = [this]() {
     LOG(INFO) << "CompressedDecoding finish";
@@ -62,8 +63,9 @@ void CompressedDecodingTask::postData(ProcessingContext& pc)
   // send output message
   std::vector<o2::tof::Digit>* alldigits = mDecoder.getDigitPerTimeFrame();
   std::vector<o2::tof::ReadoutWindowData>* row = mDecoder.getReadoutWindowData();
-  if (mRowFilter)
+  if (mRowFilter) {
     row = mDecoder.getReadoutWindowDataFiltered();
+  }
 
   ReadoutWindowData* last = nullptr;
   o2::InteractionRecord lastIR;
@@ -136,8 +138,9 @@ void CompressedDecodingTask::run(ProcessingContext& pc)
 
   /** loop over inputs routes **/
   for (auto iit = pc.inputs().begin(), iend = pc.inputs().end(); iit != iend; ++iit) {
-    if (!iit.isValid())
+    if (!iit.isValid()) {
       continue;
+    }
 
     /** loop over input parts **/
     for (auto const& ref : iit) {
@@ -151,8 +154,9 @@ void CompressedDecodingTask::run(ProcessingContext& pc)
     }
   }
 
-  if ((mNCrateOpenTF == 72 || mConetMode) && mNCrateOpenTF == mNCrateCloseTF)
+  if ((mNCrateOpenTF == 72 || mConetMode) && mNCrateOpenTF == mNCrateCloseTF) {
     mHasToBePosted = true;
+  }
 
   if (mHasToBePosted) {
     postData(pc);
@@ -195,83 +199,120 @@ void CompressedDecodingTask::trailerHandler(const CrateHeader_t* crateHeader, co
     int islot = (*val & 15);
     printf("DRM = %d (orbit = %d) slot = %d: \n", crateHeader->drmID, crateOrbit->orbitID, islot);
     if (islot == 1) {
-      if (o2::tof::diagnostic::DRM_HEADER_MISSING & *val)
+      if (o2::tof::diagnostic::DRM_HEADER_MISSING & *val) {
         printf("DRM_HEADER_MISSING\n");
-      if (o2::tof::diagnostic::DRM_TRAILER_MISSING & *val)
+      }
+      if (o2::tof::diagnostic::DRM_TRAILER_MISSING & *val) {
         printf("DRM_TRAILER_MISSING\n");
-      if (o2::tof::diagnostic::DRM_FEEID_MISMATCH & *val)
+      }
+      if (o2::tof::diagnostic::DRM_FEEID_MISMATCH & *val) {
         printf("DRM_FEEID_MISMATCH\n");
-      if (o2::tof::diagnostic::DRM_ORBIT_MISMATCH & *val)
+      }
+      if (o2::tof::diagnostic::DRM_ORBIT_MISMATCH & *val) {
         printf("DRM_ORBIT_MISMATCH\n");
-      if (o2::tof::diagnostic::DRM_CRC_MISMATCH & *val)
+      }
+      if (o2::tof::diagnostic::DRM_CRC_MISMATCH & *val) {
         printf("DRM_CRC_MISMATCH\n");
-      if (o2::tof::diagnostic::DRM_ENAPARTMASK_DIFFER & *val)
+      }
+      if (o2::tof::diagnostic::DRM_ENAPARTMASK_DIFFER & *val) {
         printf("DRM_ENAPARTMASK_DIFFER\n");
-      if (o2::tof::diagnostic::DRM_CLOCKSTATUS_WRONG & *val)
+      }
+      if (o2::tof::diagnostic::DRM_CLOCKSTATUS_WRONG & *val) {
         printf("DRM_CLOCKSTATUS_WRONG\n");
-      if (o2::tof::diagnostic::DRM_FAULTSLOTMASK_NOTZERO & *val)
+      }
+      if (o2::tof::diagnostic::DRM_FAULTSLOTMASK_NOTZERO & *val) {
         printf("DRM_FAULTSLOTMASK_NOTZERO\n");
-      if (o2::tof::diagnostic::DRM_READOUTTIMEOUT_NOTZERO & *val)
+      }
+      if (o2::tof::diagnostic::DRM_READOUTTIMEOUT_NOTZERO & *val) {
         printf("DRM_READOUTTIMEOUT_NOTZERO\n");
-      if (o2::tof::diagnostic::DRM_EVENTWORDS_MISMATCH & *val)
+      }
+      if (o2::tof::diagnostic::DRM_EVENTWORDS_MISMATCH & *val) {
         printf("DRM_EVENTWORDS_MISMATCH\n");
-      if (o2::tof::diagnostic::DRM_MAXDIAGNOSTIC_BIT & *val)
+      }
+      if (o2::tof::diagnostic::DRM_MAXDIAGNOSTIC_BIT & *val) {
         printf("DRM_MAXDIAGNOSTIC_BIT\n");
+      }
     } else if (islot == 2) {
-      if (o2::tof::diagnostic::LTM_HEADER_MISSING & *val)
+      if (o2::tof::diagnostic::LTM_HEADER_MISSING & *val) {
         printf("LTM_HEADER_MISSING\n");
-      if (o2::tof::diagnostic::LTM_TRAILER_MISSING & *val)
+      }
+      if (o2::tof::diagnostic::LTM_TRAILER_MISSING & *val) {
         printf("LTM_TRAILER_MISSING\n");
-      if (o2::tof::diagnostic::LTM_HEADER_UNEXPECTED & *val)
+      }
+      if (o2::tof::diagnostic::LTM_HEADER_UNEXPECTED & *val) {
         printf("LTM_HEADER_UNEXPECTED\n");
-      if (o2::tof::diagnostic::LTM_MAXDIAGNOSTIC_BIT & *val)
+      }
+      if (o2::tof::diagnostic::LTM_MAXDIAGNOSTIC_BIT & *val) {
         printf("LTM_MAXDIAGNOSTIC_BIT\n");
+      }
     } else if (islot < 13) {
-      if (o2::tof::diagnostic::TRM_HEADER_MISSING & *val)
+      if (o2::tof::diagnostic::TRM_HEADER_MISSING & *val) {
         printf("TRM_HEADER_MISSING\n");
-      if (o2::tof::diagnostic::TRM_TRAILER_MISSING & *val)
+      }
+      if (o2::tof::diagnostic::TRM_TRAILER_MISSING & *val) {
         printf("TRM_TRAILER_MISSING\n");
-      if (o2::tof::diagnostic::TRM_CRC_MISMATCH & *val)
+      }
+      if (o2::tof::diagnostic::TRM_CRC_MISMATCH & *val) {
         printf("TRM_CRC_MISMATCH\n");
-      if (o2::tof::diagnostic::TRM_HEADER_UNEXPECTED & *val)
+      }
+      if (o2::tof::diagnostic::TRM_HEADER_UNEXPECTED & *val) {
         printf("TRM_HEADER_UNEXPECTED\n");
-      if (o2::tof::diagnostic::TRM_EVENTCNT_MISMATCH & *val)
+      }
+      if (o2::tof::diagnostic::TRM_EVENTCNT_MISMATCH & *val) {
         printf("TRM_EVENTCNT_MISMATCH\n");
-      if (o2::tof::diagnostic::TRM_EMPTYBIT_NOTZERO & *val)
+      }
+      if (o2::tof::diagnostic::TRM_EMPTYBIT_NOTZERO & *val) {
         printf("TRM_EMPTYBIT_NOTZERO\n");
-      if (o2::tof::diagnostic::TRM_LBIT_NOTZERO & *val)
+      }
+      if (o2::tof::diagnostic::TRM_LBIT_NOTZERO & *val) {
         printf("TRM_LBIT_NOTZERO\n");
-      if (o2::tof::diagnostic::TRM_FAULTSLOTBIT_NOTZERO & *val)
+      }
+      if (o2::tof::diagnostic::TRM_FAULTSLOTBIT_NOTZERO & *val) {
         printf("TRM_FAULTSLOTBIT_NOTZERO\n");
-      if (o2::tof::diagnostic::TRM_EVENTWORDS_MISMATCH & *val)
+      }
+      if (o2::tof::diagnostic::TRM_EVENTWORDS_MISMATCH & *val) {
         printf("TRM_EVENTWORDS_MISMATCH\n");
-      if (o2::tof::diagnostic::TRM_DIAGNOSTIC_SPARE1 & *val)
+      }
+      if (o2::tof::diagnostic::TRM_DIAGNOSTIC_SPARE1 & *val) {
         printf("TRM_DIAGNOSTIC_SPARE1\n");
-      if (o2::tof::diagnostic::TRM_DIAGNOSTIC_SPARE2 & *val)
+      }
+      if (o2::tof::diagnostic::TRM_DIAGNOSTIC_SPARE2 & *val) {
         printf("TRM_DIAGNOSTIC_SPARE2\n");
-      if (o2::tof::diagnostic::TRM_DIAGNOSTIC_SPARE3 & *val)
+      }
+      if (o2::tof::diagnostic::TRM_DIAGNOSTIC_SPARE3 & *val) {
         printf("TRM_DIAGNOSTIC_SPARE3\n");
-      if (o2::tof::diagnostic::TRM_MAXDIAGNOSTIC_BIT & *val)
+      }
+      if (o2::tof::diagnostic::TRM_MAXDIAGNOSTIC_BIT & *val) {
         printf("TRM_MAXDIAGNOSTIC_BIT\n");
+      }
 
-      if (o2::tof::diagnostic::TRMCHAIN_HEADER_MISSING & *val)
+      if (o2::tof::diagnostic::TRMCHAIN_HEADER_MISSING & *val) {
         printf("TRMCHAIN_HEADER_MISSING\n");
-      if (o2::tof::diagnostic::TRMCHAIN_TRAILER_MISSING & *val)
+      }
+      if (o2::tof::diagnostic::TRMCHAIN_TRAILER_MISSING & *val) {
         printf("TRMCHAIN_TRAILER_MISSING\n");
-      if (o2::tof::diagnostic::TRMCHAIN_STATUS_NOTZERO & *val)
+      }
+      if (o2::tof::diagnostic::TRMCHAIN_STATUS_NOTZERO & *val) {
         printf("TRMCHAIN_STATUS_NOTZERO\n");
-      if (o2::tof::diagnostic::TRMCHAIN_EVENTCNT_MISMATCH & *val)
+      }
+      if (o2::tof::diagnostic::TRMCHAIN_EVENTCNT_MISMATCH & *val) {
         printf("TRMCHAIN_EVENTCNT_MISMATCH\n");
-      if (o2::tof::diagnostic::TRMCHAIN_TDCERROR_DETECTED & *val)
+      }
+      if (o2::tof::diagnostic::TRMCHAIN_TDCERROR_DETECTED & *val) {
         printf("TRMCHAIN_TDCERROR_DETECTED\n");
-      if (o2::tof::diagnostic::TRMCHAIN_BUNCHCNT_MISMATCH & *val)
+      }
+      if (o2::tof::diagnostic::TRMCHAIN_BUNCHCNT_MISMATCH & *val) {
         printf("TRMCHAIN_BUNCHCNT_MISMATCH\n");
-      if (o2::tof::diagnostic::TRMCHAIN_DIAGNOSTIC_SPARE1 & *val)
+      }
+      if (o2::tof::diagnostic::TRMCHAIN_DIAGNOSTIC_SPARE1 & *val) {
         printf("TRMCHAIN_DIAGNOSTIC_SPARE1\n");
-      if (o2::tof::diagnostic::TRMCHAIN_DIAGNOSTIC_SPARE2 & *val)
+      }
+      if (o2::tof::diagnostic::TRMCHAIN_DIAGNOSTIC_SPARE2 & *val) {
         printf("TRMCHAIN_DIAGNOSTIC_SPARE2\n");
-      if (o2::tof::diagnostic::TRMCHAIN_MAXDIAGNOSTIC_BIT & *val)
+      }
+      if (o2::tof::diagnostic::TRMCHAIN_MAXDIAGNOSTIC_BIT & *val) {
         printf("TRMCHAIN_MAXDIAGNOSTIC_BIT\n");
+      }
     }
     printf("------\n");
   }

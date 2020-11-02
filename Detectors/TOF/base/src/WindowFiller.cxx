@@ -130,8 +130,9 @@ void WindowFiller::fillOutputContainer(std::vector<Digit>& digits)
 
     // check if patterns are in the current row
     for (std::vector<PatternData>::reverse_iterator it = mCratePatterns.rbegin(); it != mCratePatterns.rend(); ++it) {
-      if (it->row > mReadoutWindowCurrent)
+      if (it->row > mReadoutWindowCurrent) {
         break;
+      }
 
       if (it->row < mReadoutWindowCurrent) { // this should not happen
         LOG(ERROR) << "One pattern skipped because appears to occur early of the current row " << it->row << " < " << mReadoutWindowCurrent << " ?!";
@@ -155,13 +156,15 @@ void WindowFiller::fillOutputContainer(std::vector<Digit>& digits)
 
   // switch to next mStrip after flushing current readout window data
   mIcurrentReadoutWindow++;
-  if (mIcurrentReadoutWindow >= MAXWINDOWS)
+  if (mIcurrentReadoutWindow >= MAXWINDOWS) {
     mIcurrentReadoutWindow = 0;
+  }
   mStripsCurrent = &(mStrips[mIcurrentReadoutWindow]);
   int k = mIcurrentReadoutWindow + 1;
   for (Int_t i = 0; i < MAXWINDOWS - 1; i++) {
-    if (k >= MAXWINDOWS)
+    if (k >= MAXWINDOWS) {
       k = 0;
+    }
     mStripsNext[i] = &(mStrips[k]);
     k++;
   }
@@ -175,19 +178,22 @@ void WindowFiller::flushOutputContainer(std::vector<Digit>& digits)
 
   // sort patterns (diagnostic words) in time
   std::sort(mCratePatterns.begin(), mCratePatterns.end(),
-            [](PatternData a, PatternData b) { if(a.row == b.row) return a.icrate > b.icrate; else return a.row > b.row; });
+            [](PatternData a, PatternData b) { if(a.row == b.row) { return a.icrate > b.icrate; } else { return a.row > b.row; 
+
+} });
 
   for (Int_t i = 0; i < MAXWINDOWS; i++) {
     int n = 0;
-    for (int j = 0; j < mStrips[i].size(); j++)
+    for (int j = 0; j < mStrips[i].size(); j++) {
       n += ((mStrips[i])[j]).getNumberOfDigits();
+    }
   }
 
   checkIfReuseFutureDigitsRO();
 
-  if (!mContinuous)
+  if (!mContinuous) {
     fillOutputContainer(digits);
-  else {
+  } else {
     for (Int_t i = 0; i < MAXWINDOWS; i++) {
       fillOutputContainer(digits); // fill all windows which are before (not yet stored) of the new current one
       checkIfReuseFutureDigitsRO();
@@ -215,8 +221,9 @@ void WindowFiller::flushOutputContainer(std::vector<Digit>& digits)
 //______________________________________________________________________
 void WindowFiller::checkIfReuseFutureDigits()
 {
-  if (!mFutureDigits.size())
+  if (!mFutureDigits.size()) {
     return;
+  }
 
   // check if digits stored very far in future match the new readout windows currently available
   if (mFutureToBeSorted) {
@@ -232,8 +239,9 @@ void WindowFiller::checkIfReuseFutureDigits()
 
   for (std::vector<Digit>::reverse_iterator digit = mFutureDigits.rbegin(); digit != mFutureDigits.rend(); ++digit) {
 
-    if (digit->getBC() > bclimit)
+    if (digit->getBC() > bclimit) {
       break;
+    }
 
     double timestamp = digit->getBC() * Geo::BC_TIME + digit->getTDC() * Geo::TDCBIN * 1E-3; // in ns
     int isnext = Int_t(timestamp * Geo::READOUTWINDOW_INV) - (mReadoutWindowCurrent + 1);    // to be replaced with uncalibrated time
@@ -271,18 +279,21 @@ void WindowFiller::checkIfReuseFutureDigits()
 //______________________________________________________________________
 void WindowFiller::checkIfReuseFutureDigitsRO() // the same but using readout info information from raw
 {
-  if (!mFutureDigits.size())
+  if (!mFutureDigits.size()) {
     return;
+  }
 
   // check if digits stored very far in future match the new readout windows currently available
   if (mFutureToBeSorted) {
     // sort digit in descending BC order: kept last as first
     std::sort(mFutureDigits.begin(), mFutureDigits.end(),
               [](o2::tof::Digit a, o2::tof::Digit b) {
-                if (a.getTriggerOrbit() != b.getTriggerOrbit())
+                if (a.getTriggerOrbit() != b.getTriggerOrbit()) {
                   return a.getTriggerOrbit() > b.getTriggerOrbit();
-                if (a.getTriggerBunch() != b.getTriggerBunch())
+                }
+                if (a.getTriggerBunch() != b.getTriggerBunch()) {
                   return a.getTriggerBunch() > b.getTriggerBunch();
+                }
                 return a.getBC() > b.getBC();
               });
     mFutureToBeSorted = false;
@@ -298,8 +309,9 @@ void WindowFiller::checkIfReuseFutureDigitsRO() // the same but using readout in
 
     row *= Geo::BC_IN_WINDOW_INV;
 
-    if (row > rolimit)
+    if (row > rolimit) {
       break;
+    }
 
     int isnext = row - mReadoutWindowCurrent;
 
@@ -322,8 +334,9 @@ void WindowFiller::checkIfReuseFutureDigitsRO() // the same but using readout in
         strips = mStripsNext[isnext - 1];
       }
 
-      if (mMaskNoiseRate < 0 || mChannelCounts[digit->getChannel()] < mMaskNoiseRate)
+      if (mMaskNoiseRate < 0 || mChannelCounts[digit->getChannel()] < mMaskNoiseRate) {
         fillDigitsInStrip(strips, digit->getChannel(), digit->getTDC(), digit->getTOT(), digit->getBC(), digit->getChannel() / Geo::NPADS);
+      }
 
       // int labelremoved = digit->getLabel();
       mFutureDigits.erase(mFutureDigits.begin() + idigit);

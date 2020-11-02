@@ -90,8 +90,9 @@ bool DecoderBaseT<RDH>::processHBF()
     rdh = reinterpret_cast<const RDH*>(reinterpret_cast<const char*>(rdh) + offsetToNext);
 
     /** check next RDH is within buffer **/
-    if (reinterpret_cast<const char*>(rdh) < mDecoderBuffer + mDecoderBufferSize)
+    if (reinterpret_cast<const char*>(rdh) < mDecoderBuffer + mDecoderBufferSize) {
       continue;
+    }
 
     /** otherwise return **/
     return true;
@@ -111,8 +112,9 @@ bool DecoderBaseT<RDH>::processHBF()
   mDecoderPointer = reinterpret_cast<const uint32_t*>(mDecoderSaveBuffer);
   mDecoderPointerMax = reinterpret_cast<const uint32_t*>(mDecoderSaveBuffer + mDecoderSaveBufferDataSize);
   while (mDecoderPointer < mDecoderPointerMax) {
-    if (processDRM())
+    if (processDRM()) {
       break;
+    }
   }
   mDecoderSaveBufferDataSize = 0;
 
@@ -132,8 +134,9 @@ bool DecoderBaseT<RDH>::processHBF()
   mDecoderPointer = reinterpret_cast<const uint32_t*>(reinterpret_cast<const char*>(rdh) + RDHUtils::getOffsetToNext(*rdh));
 
   /** check next RDH is within buffer **/
-  if (reinterpret_cast<const char*>(mDecoderPointer) < mDecoderBuffer + mDecoderBufferSize)
+  if (reinterpret_cast<const char*>(mDecoderPointer) < mDecoderBuffer + mDecoderBufferSize) {
     return false;
+  }
 
   /** otherwise return **/
   return true;

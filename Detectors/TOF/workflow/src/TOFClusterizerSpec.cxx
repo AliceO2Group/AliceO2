@@ -121,8 +121,9 @@ class TOFDPLClustererTask
       mReader.setDigitArray(&digitsRO);
       if (mUseMC) {
         mClusterer.process(mReader, mClustersArray, &(labelvector->at(i)));
-      } else
+      } else {
         mClusterer.process(mReader, mClustersArray, nullptr);
+      }
     }
     LOG(INFO) << "TOF CLUSTERER : TRANSFORMED " << digits.size()
               << " DIGITS TO " << mClustersArray.size() << " CLUSTERS";
@@ -130,8 +131,9 @@ class TOFDPLClustererTask
     // send clusters
     pc.outputs().snapshot(Output{o2::header::gDataOriginTOF, "CLUSTERS", 0, Lifetime::Timeframe}, mClustersArray);
     // send labels
-    if (mUseMC)
+    if (mUseMC) {
       pc.outputs().snapshot(Output{o2::header::gDataOriginTOF, "CLUSTERSMCTR", 0, Lifetime::Timeframe}, mClsLabels);
+    }
 
     mTimer.Stop();
   }

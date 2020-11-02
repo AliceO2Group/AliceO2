@@ -44,8 +44,9 @@ CalibTOF::~CalibTOF()
 
   // destructor
 
-  if (mHistoLHCphase)
+  if (mHistoLHCphase) {
     delete mHistoLHCphase;
+  }
   delete mHistoChTimeSlewingAll;
 }
 //______________________________________________
@@ -108,8 +109,9 @@ void CalibTOF::init()
 
   // booking the histogram of the LHCphase
   int nbinsLHCphase = TMath::Min(1000, int((mMaxTimestamp - mMinTimestamp) / 300) + 1);
-  if (nbinsLHCphase < 1000)
+  if (nbinsLHCphase < 1000) {
     mMaxTimestamp = mMinTimestamp + nbinsLHCphase * 300; // we want that the last bin of the histogram is also large 300s; this we need to do only when we have less than 1000 bins, because in this case we will integrate over intervals that are larger than 300s anyway
+  }
   mHistoLHCphase = new TH2F("hLHCphase", ";clock offset (ps); timestamp (s)", 1000, -24400, 24400, nbinsLHCphase, mMinTimestamp, mMaxTimestamp);
 
   // setting CCDB for output
@@ -155,10 +157,11 @@ void CalibTOF::run(int flag, int sector)
     std::vector<o2::dataformats::CalibInfoTOFshort>* calibTimePad[NPADSPERSTEP];
     for (int ipad = 0; ipad < NPADSPERSTEP; ipad++) {
       histoChOffsetTemp[ipad] = new TH1F(Form("OffsetTemp_Sec%02d_Pad%04d", sector, ipad), Form("Sector %02d (pad = %04d);channel offset (ps)", sector, ipad), 1000, -24400, 24400);
-      if (flag & kChannelTimeSlewing)
+      if (flag & kChannelTimeSlewing) {
         calibTimePad[ipad] = new std::vector<o2::dataformats::CalibInfoTOFshort>; // temporary array containing [time, tot] for every pad that we process; this will be the input for the 2D histo for timeSlewing calibration (to be filled after we get the channel offset)
-      else
+      } else {
         calibTimePad[ipad] = nullptr;
+      }
     }
 
     TF1* funcChOffset = new TF1(Form("fTOFchOffset_%02d", sector), "[0]*TMath::Gaus((x-[1])*(x-[1] < 12500 && x-[1] > -12500) + (x-[1]+25000)*(x-[1] < -12500) + (x-[1]-25000)*(x-[1] > 12500),0,[2])*(x > -12500 && x < 12500)", -12500, 12500);
@@ -196,8 +199,9 @@ void CalibTOF::run(int flag, int sector)
         }
       }
       TFile* fout = nullptr;
-      if (flag & kChannelTimeSlewing && mDebugMode)
+      if (flag & kChannelTimeSlewing && mDebugMode) {
         fout = new TFile(Form("timeslewingTOF%06i.root", ich / 96), "RECREATE");
+      }
 
       for (ipad = 0; ipad < NPADSPERSTEP; ipad++) {
         if (histoChOffsetTemp[ipad]->GetEntries() > 30) {
@@ -220,8 +224,9 @@ void CalibTOF::run(int flag, int sector)
             TGraphErrors* gTimeVsTot = processSlewing(histoChTimeSlewingTemp, 1, funcChOffset);
 
             if (gTimeVsTot && gTimeVsTot->GetN()) {
-              for (int itot = 0; itot < gTimeVsTot->GetN(); itot++)
+              for (int itot = 0; itot < gTimeVsTot->GetN(); itot++) {
                 mTimeSlewingObj->addTimeSlewingInfo(ich + ipad, gTimeVsTot->GetX()[itot], gTimeVsTot->GetY()[itot] + mCalibChannelOffset[ich + ipad]);
+              }
             } else { // just add the channel offset
               mTimeSlewingObj->addTimeSlewingInfo(ich + ipad, 0, mCalibChannelOffset[ich + ipad]);
             }
@@ -246,8 +251,9 @@ void CalibTOF::run(int flag, int sector)
 
     for (int ipad = 0; ipad < NPADSPERSTEP; ipad++) {
       delete histoChOffsetTemp[ipad];
-      if (calibTimePad[ipad])
+      if (calibTimePad[ipad]) {
         delete calibTimePad[ipad];
+      }
     }
     delete histoChTimeSlewingTemp;
     delete funcChOffset;
@@ -350,8 +356,9 @@ void CalibTOF::doLHCPhaseCalib()
     }
 
     int res = FitPeak(mFuncLHCphase, htemp, 500., 3., 2., "LHCphase");
-    if (res)
+    if (res) {
       continue;
+    }
 
     mLHCphaseObj->addLHCphase(mHistoLHCphase->GetYaxis()->GetBinLowEdge(ifit0), mFuncLHCphase->GetParameter(1));
     ifit0 = ifit + 1; // starting point for the next LHC interval
@@ -372,8 +379,9 @@ void CalibTOF::fillChannelCalibInput(std::vector<o2::dataformats::CalibInfoTOFsh
     dtime -= (int(dtime * bc_inv + 5.5) - 5) * bc;     // do truncation far (by 5 units) from zero to avoid truncation of negative numbers
 
     histo->Fill(dtime);
-    if (calibTimePad)
+    if (calibTimePad) {
       calibTimePad->push_back(*infotof);
+    }
   }
 }
 //______________________________________________
@@ -402,14 +410,16 @@ float CalibTOF::doChannelCalibration(int ipad, TH1F* histo, TF1* funcChOffset)
   // calibrate single channel from histos - offsets
 
   float integral = histo->Integral();
-  if (!integral)
+  if (!integral) {
     return -1; // we skip directly the channels that were switched off online, the PHOS holes...
+  }
 
   int resfit = FitPeak(funcChOffset, histo, 500., 3., 2., "ChannelOffset");
 
   // return a number greater than zero to distinguish bad fit from empty channels(fraction=0)
-  if (resfit)
+  if (resfit) {
     return 0.0001; // fit was not good
+  }
 
   float mean = funcChOffset->GetParameter(1);
   float sigma = funcChOffset->GetParameter(2);
@@ -444,10 +454,12 @@ float CalibTOF::doChannelCalibration(int ipad, TH1F* histo, TF1* funcChOffset)
   int binmin = histo->FindBin(intmin);
   int binmax = histo->FindBin(intmax);
 
-  if (binmin < 1)
+  if (binmin < 1) {
     binmin = 1; // avoid to take the underflow bin (can happen in case the sigma is too large)
-  if (binmax > histo->GetNbinsX())
+  }
+  if (binmax > histo->GetNbinsX()) {
     binmax = histo->GetNbinsX(); // avoid to take the overflow bin (can happen in case the sigma is too large)
+  }
 
   return (histo->Integral(binmin, binmax) + addduetoperiodicity) / integral;
 }
@@ -460,8 +472,9 @@ void CalibTOF::resetChannelLevelHistos(TH1F* histoOffset[NPADSPERSTEP], TH2F* hi
 
   for (int ipad = 0; ipad < NPADSPERSTEP; ipad++) {
     histoOffset[ipad]->Reset();
-    if (calibTimePad[ipad])
+    if (calibTimePad[ipad]) {
       calibTimePad[ipad]->clear();
+    }
   }
   histoTimeSlewing->Reset();
 }
@@ -491,17 +504,20 @@ TGraphErrors* CalibTOF::processSlewing(TH2F* histo, Bool_t forceZero, TF1* fitFu
     Int_t startBin = ibin;
     Int_t endBin = ibin;
     while (hpx->Integral(startBin, endBin) < 300) {
-      if (startBin == 1 && forceZero)
+      if (startBin == 1 && forceZero) {
         break;
-      if (endBin < maxBin)
+      }
+      if (endBin < maxBin) {
         endBin++;
-      else if (startBin > minBin)
+      } else if (startBin > minBin) {
         startBin--;
-      else
+      } else {
         break;
+      }
     }
-    if (hpx->Integral(startBin, endBin) <= 0)
+    if (hpx->Integral(startBin, endBin) <= 0) {
       continue;
+    }
     //    printf("TOT window defined: %f < TOT < %f ns [%d, %d], %d tracks\n", hpx->GetBinLowEdge(startBin), hpx->GetBinLowEdge(endBin + 1), startBin, endBin, (Int_t)hpx->Integral(startBin, endBin));
 
     /* projection-y */
@@ -568,29 +584,35 @@ Int_t CalibTOF::FitPeak(TF1* fitFunc, TH1* h, Float_t startSigma, Float_t nSigma
   }
   Double_t fitMin = fitCent - nSigmaMin * startSigma;
   Double_t fitMax = fitCent + nSigmaMax * startSigma;
-  if (fitMin < -12500)
+  if (fitMin < -12500) {
     fitMin = -12500;
-  if (fitMax > 12500)
+  }
+  if (fitMax > 12500) {
     fitMax = 12500;
+  }
   fitFunc->SetParLimits(1, fitMin, fitMax);
   fitFunc->SetParameter(0, 100);
   fitFunc->SetParameter(1, fitCent);
   fitFunc->SetParameter(2, startSigma);
   Int_t fitres = h->Fit(fitFunc, "WWq0", "", fitMin, fitMax);
   //printf("%s) init: %f %f\n ",h->GetName(),fitMin,fitMax);
-  if (fitres != 0)
+  if (fitres != 0) {
     return fitres;
+  }
   /* refit with better range */
   for (Int_t i = 0; i < 3; i++) {
     fitCent = fitFunc->GetParameter(1);
     fitMin = fitCent - nSigmaMin * abs(fitFunc->GetParameter(2));
     fitMax = fitCent + nSigmaMax * abs(fitFunc->GetParameter(2));
-    if (fitMin < -12500)
+    if (fitMin < -12500) {
       fitMin = -12500;
-    if (fitMax > 12500)
+    }
+    if (fitMax > 12500) {
       fitMax = 12500;
-    if (fitMin >= fitMax)
+    }
+    if (fitMin >= fitMax) {
       printf("%s) step%i: %f %f\n ", h->GetName(), i, fitMin, fitMax);
+    }
     fitFunc->SetParLimits(1, fitMin, fitMax);
     fitres = h->Fit(fitFunc, "q0", "", fitMin, fitMax);
     if (fitres != 0) {
@@ -598,13 +620,15 @@ Int_t CalibTOF::FitPeak(TF1* fitFunc, TH1* h, Float_t startSigma, Float_t nSigma
 
       if (mDebugMode > 1) {
         char* filename = Form("TOFDBG_%s.root", h->GetName());
-        if (hdbg)
+        if (hdbg) {
           filename = Form("TOFDBG_%s_%s.root", hdbg->GetName(), debuginfo);
+        }
         //    printf("write %s\n", filename);
         TFile ff(filename, "RECREATE");
         h->Write();
-        if (hdbg)
+        if (hdbg) {
           hdbg->Write();
+        }
         ff.Close();
       }
 
@@ -614,13 +638,15 @@ Int_t CalibTOF::FitPeak(TF1* fitFunc, TH1* h, Float_t startSigma, Float_t nSigma
 
   if (mDebugMode > 1 && fitFunc->GetParError(1) > 100) {
     char* filename = Form("TOFDBG_%s.root", h->GetName());
-    if (hdbg)
+    if (hdbg) {
       filename = Form("TOFDBG_%s_%s.root", hdbg->GetName(), debuginfo);
+    }
     //    printf("write %s\n", filename);
     TFile ff(filename, "RECREATE");
     h->Write();
-    if (hdbg)
+    if (hdbg) {
       hdbg->Write();
+    }
     ff.Close();
   }
 
@@ -694,8 +720,9 @@ void CalibTOF::flagProblematics()
 
       for (int i = 0; i < 18; i++) {
         // exclude channel without entries
-        if (mTimeSlewingObj->getFractionUnderPeak(i, ipad) < 0)
+        if (mTimeSlewingObj->getFractionUnderPeak(i, ipad) < 0) {
           continue;
+        }
 
         nActiveChannels++;
 
@@ -716,16 +743,18 @@ void CalibTOF::flagProblematics()
 
       for (int i = 0; i < 18; i++) {
         // exclude channel without entries
-        if (mTimeSlewingObj->getFractionUnderPeak(i, ipad) < 0)
+        if (mTimeSlewingObj->getFractionUnderPeak(i, ipad) < 0) {
           continue;
+        }
 
         if (mTimeSlewingObj->getSigmaPeak(i, ipad) < sigmaMin ||
             mTimeSlewingObj->getSigmaPeak(i, ipad) > sigmaMax ||
             mTimeSlewingObj->getFractionUnderPeak(i, ipad) < fractionMin) {
           mTimeSlewingObj->setFractionUnderPeak(i, ipad, -mTimeSlewingObj->getFractionUnderPeak(i, ipad));
           mTimeSlewingObj->setSigmaPeak(i, ipad, -mTimeSlewingObj->getSigmaPeak(i, ipad));
-        } else
+        } else {
           nGoodChannels++;
+        }
       }
     }
   }

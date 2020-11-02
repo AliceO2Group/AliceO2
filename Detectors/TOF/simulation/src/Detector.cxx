@@ -29,8 +29,9 @@ ClassImp(Detector);
 Detector::Detector(Bool_t active)
   : o2::base::DetImpl<Detector>("TOF", active), mEventNr(0), mTOFHoles(kTRUE), mHits(o2::utils::createSimVector<HitType>())
 {
-  for (Int_t i = 0; i < Geo::NSECTORS; i++)
+  for (Int_t i = 0; i < Geo::NSECTORS; i++) {
     mTOFSectors[i] = 1;
+  }
 }
 
 Detector::Detector(const Detector& rhs)
@@ -39,8 +40,9 @@ Detector::Detector(const Detector& rhs)
     mTOFHoles(rhs.mTOFHoles),
     mHits(o2::utils::createSimVector<HitType>())
 {
-  for (Int_t i = 0; i < Geo::NSECTORS; i++)
+  for (Int_t i = 0; i < Geo::NSECTORS; i++) {
     mTOFSectors[i] = rhs.mTOFSectors[i];
+  }
 }
 
 Detector::~Detector()
@@ -51,9 +53,9 @@ Detector::~Detector()
 void Detector::InitializeO2Detector()
 {
   TGeoVolume* v = gGeoManager->GetVolume("FPAD");
-  if (v == nullptr)
+  if (v == nullptr) {
     printf("Sensitive volume FSEN not found!!!!!!!!");
-  else {
+  } else {
     AddSensitiveVolume(v);
   }
 }
@@ -72,8 +74,9 @@ Bool_t Detector::ProcessHits(FairVolume* v)
   LOG(DEBUG) << "Process hit in TOF volume ar R=" << radius << " - Z=" << pos2z;
 
   Float_t enDep = fMC->Edep();
-  if (enDep < 1E-8)
+  if (enDep < 1E-8) {
     return kFALSE; // wo se need a threshold?
+  }
 
   // ADD HIT
   float posx, posy, posz;
@@ -193,14 +196,17 @@ void Detector::CreateMaterials()
   Float_t asc[4] = {12.011, 1.00794, 26.981539, 63.546};
   Float_t zsc[4] = {6., 1., 13., 29.};
   Float_t wsc[4];
-  for (Int_t ii = 0; ii < 4; ii++)
+  for (Int_t ii = 0; ii < 4; ii++) {
     wsc[ii] = 0.;
+  }
 
   Float_t wDummy[4], nDummy[4];
-  for (Int_t ii = 0; ii < 4; ii++)
+  for (Int_t ii = 0; ii < 4; ii++) {
     wDummy[ii] = 0.;
-  for (Int_t ii = 0; ii < 4; ii++)
+  }
+  for (Int_t ii = 0; ii < 4; ii++) {
     nDummy[ii] = 0.;
+  }
   nDummy[0] = 1.;
   nDummy[1] = 2.;
   MaterialMixer(wDummy, asc, nDummy, 2);
@@ -344,8 +350,9 @@ void Detector::createModules(Float_t xtof, Float_t ytof, Float_t zlenA, Float_t 
   //
 
   Int_t idrotm[8];
-  for (Int_t ii = 0; ii < 8; ii++)
+  for (Int_t ii = 0; ii < 8; ii++) {
     idrotm[ii] = 0;
+  }
 
   // Definition of the of fibre glass modules (FTOA, FTOB and FTOC)
   Float_t par[3];
@@ -748,23 +755,26 @@ void Detector::makeStripsInModules(Float_t ytof, Float_t zlenA) const
   Int_t maxStripNumbers[5] = {Geo::NSTRIPC, Geo::NSTRIPB, Geo::NSTRIPA, Geo::NSTRIPB, Geo::NSTRIPC};
 
   Int_t idrotm[Geo::NSTRIPXSECTOR];
-  for (Int_t ii = 0; ii < Geo::NSTRIPXSECTOR; ii++)
+  for (Int_t ii = 0; ii < Geo::NSTRIPXSECTOR; ii++) {
     idrotm[ii] = 0;
+  }
 
   Int_t totalStrip = 0;
   Float_t xpos, zpos, ypos, ang;
   for (Int_t iplate = 0; iplate < Geo::NPLATES; iplate++) {
-    if (iplate > 0)
+    if (iplate > 0) {
       totalStrip += maxStripNumbers[iplate - 1];
+    }
     for (Int_t istrip = 0; istrip < maxStripNumbers[iplate]; istrip++) {
       ang = Geo::getAngles(iplate, istrip);
 
-      if (ang > 0.)
+      if (ang > 0.) {
         Matrix(idrotm[istrip + totalStrip], 90., 0., 90. + ang, 90., ang, 90.);
-      else if (ang == 0.)
+      } else if (ang == 0.) {
         Matrix(idrotm[istrip + totalStrip], 90., 0., 90., 90., 0., 0.);
-      else if (ang < 0.)
+      } else if (ang < 0.) {
         Matrix(idrotm[istrip + totalStrip], 90., 0., 90. + ang, 90., -ang, 270.);
+      }
 
       xpos = 0.;
       ypos = Geo::getHeights(iplate, istrip) + yFLT * 0.5;
@@ -773,16 +783,18 @@ void Detector::makeStripsInModules(Float_t ytof, Float_t zlenA) const
                                  idrotm[istrip + totalStrip], "ONLY");
 
       if (mTOFHoles) {
-        if (istrip + totalStrip + 1 > 53)
+        if (istrip + totalStrip + 1 > 53) {
           TVirtualMC::GetMC()->Gspos(
             "FSTR", istrip + totalStrip + 1, "FLTC", xpos, ypos,
             -zpos - (zlenA * 0.5 - 2. * Geo::MODULEWALLTHICKNESS + Geo::INTERCENTRMODBORDER1) * 0.5,
             idrotm[istrip + totalStrip], "ONLY");
-        if (istrip + totalStrip + 1 < 39)
+        }
+        if (istrip + totalStrip + 1 < 39) {
           TVirtualMC::GetMC()->Gspos(
             "FSTR", istrip + totalStrip + 1, "FLTB", xpos, ypos,
             -zpos + (zlenA * 0.5 - 2. * Geo::MODULEWALLTHICKNESS + Geo::INTERCENTRMODBORDER1) * 0.5,
             idrotm[istrip + totalStrip], "ONLY");
+        }
       }
     }
   }
@@ -805,8 +817,9 @@ void Detector::createModuleCovers(Float_t xtof, Float_t zlenA) const
   par[1] = Geo::MODULECOVERTHICKNESS * 0.5;
   par[2] = zlenA * 0.5 + 2.;
   TVirtualMC::GetMC()->Gsvolu("FPEA", "BOX ", getMediumID(kAir), par, 3); // Air
-  if (mTOFHoles)
+  if (mTOFHoles) {
     TVirtualMC::GetMC()->Gsvolu("FPEB", "BOX ", getMediumID(kAir), par, 3); // Air
+  }
 
   constexpr Float_t ALCOVERTHICKNESS = 1.5;
   constexpr Float_t INTERFACECARDTHICKNESS = 0.16;
@@ -818,15 +831,17 @@ void Detector::createModuleCovers(Float_t xtof, Float_t zlenA) const
   par[1] = ALCOVERTHICKNESS * 0.5;
   // par[2] = zlenA*0.5 + 2.;
   TVirtualMC::GetMC()->Gsvolu("FALT", "BOX ", getMediumID(kAlFrame), par, 3); // Al
-  if (mTOFHoles)
+  if (mTOFHoles) {
     TVirtualMC::GetMC()->Gsvolu("FALB", "BOX ", getMediumID(kAlFrame), par, 3); // Al
+  }
   Float_t xcoor, ycoor, zcoor;
   xcoor = 0.;
   ycoor = 0.;
   zcoor = 0.;
   TVirtualMC::GetMC()->Gspos("FALT", 0, "FPEA", xcoor, ycoor, zcoor, 0, "ONLY");
-  if (mTOFHoles)
+  if (mTOFHoles) {
     TVirtualMC::GetMC()->Gspos("FALB", 0, "FPEB", xcoor, ycoor, zcoor, 0, "ONLY");
+  }
 
   par[0] = xtof * 0.5;
   // par[1] = ALCOVERTHICKNESS*0.5;
@@ -1001,8 +1016,9 @@ void Detector::createBackZone(Float_t xtof, Float_t ytof, Float_t zlenA) const
   par[1] = (ytof * 0.5 - Geo::MODULECOVERTHICKNESS) * 0.5;
   par[2] = zlenA * 0.5;
   TVirtualMC::GetMC()->Gsvolu("FAIA", "BOX ", getMediumID(kAir), par, 3); // Air
-  if (mTOFHoles)
+  if (mTOFHoles) {
     TVirtualMC::GetMC()->Gsvolu("FAIB", "BOX ", getMediumID(kAir), par, 3); // Air
+  }
   TVirtualMC::GetMC()->Gsvolu("FAIC", "BOX ", getMediumID(kAir), par, 3);   // Air
 
   Float_t feaParam[3] = {Geo::FEAPARAMETERS[0], Geo::FEAPARAMETERS[1], Geo::FEAPARAMETERS[2]};
@@ -1676,8 +1692,9 @@ void Detector::makeReadoutCrates(Float_t ytof) const
   //
 
   Int_t idrotm[Geo::NSECTORS];
-  for (Int_t ii = 0; ii < Geo::NSECTORS; ii++)
+  for (Int_t ii = 0; ii < Geo::NSECTORS; ii++) {
     idrotm[ii] = 0;
+  }
 
   // volume definition
   Float_t serpar[3] = {29. * 0.5, 121. * 0.5, 90. * 0.5};
@@ -1719,8 +1736,9 @@ void Detector::makeModulesInBTOFvolumes(Float_t ytof, Float_t zlenA) const
 
   // Positioning of fibre glass modules (FTOA, FTOB and FTOC)
   for (Int_t isec = 0; isec < Geo::NSECTORS; isec++) {
-    if (mTOFSectors[isec] == -1)
+    if (mTOFSectors[isec] == -1) {
       continue;
+    }
 
     char name[SIZESTR];
     snprintf(name, SIZESTR, "BTOF%d", isec);
@@ -1773,13 +1791,15 @@ void Detector::makeCoversInBTOFvolumes() const
 
   // Positioning of module covers (FPEA, FPEB)
   for (Int_t isec = 0; isec < Geo::NSECTORS; isec++) {
-    if (mTOFSectors[isec] == -1)
+    if (mTOFSectors[isec] == -1) {
       continue;
+    }
     snprintf(name, SIZESTR, "BTOF%d", isec);
-    if (mTOFHoles && (isec == 13 || isec == 14 || isec == 15))
+    if (mTOFHoles && (isec == 13 || isec == 14 || isec == 15)) {
       TVirtualMC::GetMC()->Gspos("FPEB", 0, name, xcoor, ycoor, zcoor, idrotm[0], "ONLY");
-    else
+    } else {
       TVirtualMC::GetMC()->Gspos("FPEA", 0, name, xcoor, ycoor, zcoor, idrotm[0], "ONLY");
+    }
   }
 }
 
@@ -1809,16 +1829,18 @@ void Detector::makeBackInBTOFvolumes(Float_t ytof) const
 
   // Positioning of FEA cards and services containers (FAIA, FAIC and FAIB)
   for (Int_t isec = 0; isec < Geo::NSECTORS; isec++) {
-    if (mTOFSectors[isec] == -1)
+    if (mTOFSectors[isec] == -1) {
       continue;
+    }
     snprintf(name, SIZESTR, "BTOF%d", isec);
-    if (Geo::FEAWITHMASKS[isec])
+    if (Geo::FEAWITHMASKS[isec]) {
       TVirtualMC::GetMC()->Gspos("FAIA", 0, name, xcoor, ycoor, zcoor, idrotm[0], "ONLY");
-    else {
-      if (mTOFHoles && (isec == 13 || isec == 14 || isec == 15))
+    } else {
+      if (mTOFHoles && (isec == 13 || isec == 14 || isec == 15)) {
         TVirtualMC::GetMC()->Gspos("FAIB", 0, name, xcoor, ycoor, zcoor, idrotm[0], "ONLY");
-      else
+      } else {
         TVirtualMC::GetMC()->Gspos("FAIC", 0, name, xcoor, ycoor, zcoor, idrotm[0], "ONLY");
+      }
     }
   }
 }
@@ -1859,8 +1881,9 @@ void Detector::addAlignableVolumes() const
       modUID = o2::base::GeometryManager::getSensID(idTOF, modnum++);
       LOG(DEBUG) << "modUID: " << modUID;
 
-      if (mTOFSectors[isect] == -1)
+      if (mTOFSectors[isect] == -1) {
         continue;
+      }
 
       if (mTOFHoles && (isect == 13 || isect == 14 || isect == 15)) {
         if (istr < 39) {
@@ -1869,8 +1892,9 @@ void Detector::addAlignableVolumes() const
         } else if (istr > 53) {
           vpL3 = "/FTOC_0";
           vpL4 = "/FLTC_0/FSTR_";
-        } else
+        } else {
           continue;
+        }
       } else {
         vpL3 = "/FTOA_0";
         vpL4 = "/FLTA_0/FSTR_";

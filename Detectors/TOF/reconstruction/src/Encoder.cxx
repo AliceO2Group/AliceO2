@@ -119,8 +119,9 @@ bool Encoder::close()
 
 bool Encoder::alloc(long size)
 {
-  if (size < 500000)
+  if (size < 500000) {
     size = 500000;
+  }
 
   mSize = size;
 
@@ -143,8 +144,9 @@ void Encoder::encodeTRM(const std::vector<Digit>& summary, Int_t icrate, Int_t i
 // return next TRM index (-1 if not in the same crate)
 // start to convert digiti from istart --> then update istart to the starting position of the new TRM
 {
-  if (mVerbose)
+  if (mVerbose) {
     printf("Crate %d: encode TRM %d \n", icrate, itrm);
+  }
 
   // TRM HEADER
   Union_t* trmheader = mUnion[icrate];
@@ -167,14 +169,17 @@ void Encoder::encodeTRM(const std::vector<Digit>& summary, Int_t icrate, Int_t i
     while (istart < summary.size()) { // fill hits
       /** loop over hits **/
       int whatChain = summary[istart].getElChainIndex();
-      if (whatChain != ichain)
+      if (whatChain != ichain) {
         break;
+      }
       int whatTRM = summary[istart].getElTRMIndex();
-      if (whatTRM != itrm)
+      if (whatTRM != itrm) {
         break;
+      }
       int whatCrate = summary[istart].getElCrateIndex();
-      if (whatCrate != icrate)
+      if (whatCrate != icrate) {
         break;
+      }
 
       int hittimeTDC = (summary[istart].getBC() - mEventCounter * Geo::BC_IN_WINDOW) * 1024 + summary[istart].getTDC(); // time in TDC bin within the TOF WINDOW
 
@@ -245,16 +250,18 @@ bool Encoder::encode(std::vector<std::vector<o2::tof::Digit>> digitWindow, int t
   }
 
 #ifdef VERBOSE
-  if (mVerbose)
+  if (mVerbose) {
     std::cout << "-------- START ENCODE EVENT ----------------------------------------" << std::endl;
+  }
 #endif
   auto start = std::chrono::high_resolution_clock::now();
 
   mEventCounter = tofwindow; // tof window index
   mIR.orbit = mEventCounter / Geo::NWINDOW_IN_ORBIT;
 
-  for (int i = 0; i < 72; i++)
+  for (int i = 0; i < 72; i++) {
     mNextWordStatus[i] = false;
+  }
 
   int bcFirstWin;
 
@@ -266,8 +273,9 @@ bool Encoder::encode(std::vector<std::vector<o2::tof::Digit>> digitWindow, int t
 
     mIR.bc = ((mEventCounter % Geo::NWINDOW_IN_ORBIT) * Geo::BC_IN_ORBIT) / Geo::NWINDOW_IN_ORBIT + mFirstBC; // bunch crossing in the current orbit at the beginning of the window.
 
-    if (iwin == 0)
+    if (iwin == 0) {
       bcFirstWin = mIR.bc;
+    }
 
     int icurrentdigit = 0;
     // TOF data header
@@ -354,8 +362,9 @@ bool Encoder::encode(std::vector<std::vector<o2::tof::Digit>> digitWindow, int t
 
   mIR.bc = bcFirstWin;
 
-  for (int i = 0; i < 72; i++)
+  for (int i = 0; i < 72; i++) {
     flush(i);
+  }
 
   mStartRun = false;
 

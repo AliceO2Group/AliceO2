@@ -39,10 +39,11 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
   auto rdhVersion = cfgc.options().get<int>("tof-compressed-inspector-rdh-version");
 
   AlgorithmSpec algoSpec;
-  if (rdhVersion == 4)
+  if (rdhVersion == 4) {
     algoSpec = AlgorithmSpec{adaptFromTask<o2::tof::CompressedInspectorTask<o2::header::RAWDataHeaderV4>>()};
-  else if (rdhVersion == 6)
+  } else if (rdhVersion == 6) {
     algoSpec = AlgorithmSpec{adaptFromTask<o2::tof::CompressedInspectorTask<o2::header::RAWDataHeaderV6>>()};
+  }
 
   WorkflowSpec workflow;
   workflow.emplace_back(DataProcessorSpec{

@@ -44,15 +44,18 @@ class Compressor
       while (mDecoderPointer < mDecoderPointerMax) {
         mEventCounter++;
         processDRM();
-        if (mDecoderFatal)
+        if (mDecoderFatal) {
           mFatalCounter++;
-        if (mDecoderError)
+        }
+        if (mDecoderError) {
           mErrorCounter++;
+        }
       }
       return false;
     }
-    while (!processHBF())
+    while (!processHBF()) {
       ;
+    }
     return false;
   };
 

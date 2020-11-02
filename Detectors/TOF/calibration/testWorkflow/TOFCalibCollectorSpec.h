@@ -62,8 +62,9 @@ class TOFCalibCollectorDevice : public o2::framework::Task
     constexpr uint64_t INFINITE_TF = 0xffffffffffffffff;
     mCollector->checkSlotsToFinalize(INFINITE_TF);
     // we force finalizing slot zero (unless everything was already finalized), no matter how many entries we had
-    if (mCollector->getNSlots() != 0)
+    if (mCollector->getNSlots() != 0) {
       mCollector->finalizeSlot(mCollector->getSlot(0));
+    }
     sendOutput(ec.outputs());
   }
 

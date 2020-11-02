@@ -77,8 +77,9 @@ void CompressedAnalysisTask::run(ProcessingContext& pc)
 
   /** loop over inputs routes **/
   for (auto iit = pc.inputs().begin(), iend = pc.inputs().end(); iit != iend; ++iit) {
-    if (!iit.isValid())
+    if (!iit.isValid()) {
       continue;
+    }
 
     /** loop over input parts **/
     for (auto const& ref : iit) {

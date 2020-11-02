@@ -59,8 +59,9 @@ void Strip::fillOutputContainer(std::vector<Digit>& digits)
   // we assume that the Strip has stored inside only digits from one readout
   // window --> we flush them all
 
-  if (mDigits.empty())
+  if (mDigits.empty()) {
     return;
+  }
   auto itBeg = mDigits.begin();
   auto iter = itBeg;
   for (; iter != mDigits.end(); ++iter) {

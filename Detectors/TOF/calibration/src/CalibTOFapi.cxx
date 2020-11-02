@@ -71,8 +71,9 @@ void CalibTOFapi::writeTimeSlewingParam(SlewParam* param, std::map<std::string, 
   api.init(mgr.getURL());
   if (maxTimeStamp == 0) {
     api.storeAsTFileAny(param, "TOF/ChannelCalib", metadataChannelCalib, minTimeStamp);
-  } else
+  } else {
     api.storeAsTFileAny(param, "TOF/ChannelCalib", metadataChannelCalib, minTimeStamp, maxTimeStamp);
+  }
 }
 
 //______________________________________________________________________

@@ -135,8 +135,9 @@ void TOFChannelData::print(int isect) const
 void TOFChannelData::printEntries() const
 {
   // to print number of entries per channel
-  for (int i = 0; i < mEntries.size(); ++i)
+  for (int i = 0; i < mEntries.size(); ++i) {
     LOG(INFO) << "channel " << i << " has " << mEntries[i] << " entries";
+  }
 }
 
 //_____________________________________________
@@ -145,8 +146,9 @@ int TOFChannelData::findBin(float v) const
   // find the bin along the x-axis (with t-texp) where the value "v" is; this does not depend on the channel
   // (axis 1), nor on the sector, so we use sector0
 
-  if (v == mRange)
+  if (v == mRange) {
     v -= 1.e-1;
+  }
 
   LOG(DEBUG) << "In FindBin, v = : " << v;
   LOG(DEBUG) << "bin0 limits: lower = " << mHisto[0].axis(0).bin(0).lower() << ", upper = " << mHisto[0].axis(0).bin(0).upper();
@@ -169,8 +171,9 @@ float TOFChannelData::integral(int chmin, int chmax, float binmin, float binmax)
   }
 
   int sector = chmin / o2::tof::Geo::NPADSXSECTOR;
-  if (sector != chmax / o2::tof::Geo::NPADSXSECTOR)
+  if (sector != chmax / o2::tof::Geo::NPADSXSECTOR) {
     throw std::runtime_error("We cannot integrate over channels that belong to different sectors");
+  }
 
   int chinsectormin = chmin % o2::tof::Geo::NPADSXSECTOR;
   int chinsectormax = chmax % o2::tof::Geo::NPADSXSECTOR;
@@ -285,15 +288,17 @@ float TOFChannelData::integral(int chmin, int chmax, int binxmin, int binxmax) c
 {
   // calculates the integral in [chmin, chmax] and in [binmin, binmax]
 
-  if (binxmin < 0 || binxmax > mNBins || chmin < 0 || chmax >= o2::tof::Geo::NCHANNELS)
+  if (binxmin < 0 || binxmax > mNBins || chmin < 0 || chmax >= o2::tof::Geo::NCHANNELS) {
     throw std::runtime_error("Check your bins, we cannot calculate the integrals in under/overflows bins");
+  }
   if (binxmax < binxmin || chmax < chmin) {
     throw std::runtime_error("Check your bin limits!");
   }
 
   int sector = chmin / o2::tof::Geo::NPADSXSECTOR;
-  if (sector != chmax / o2::tof::Geo::NPADSXSECTOR)
+  if (sector != chmax / o2::tof::Geo::NPADSXSECTOR) {
     throw std::runtime_error("We cannot integrate over channels that belong to different sectors");
+  }
 
   int chinsectormin = chmin % o2::tof::Geo::NPADSXSECTOR;
   int chinsectormax = chmax % o2::tof::Geo::NPADSXSECTOR;
@@ -459,8 +464,9 @@ void TOFChannelCalibrator::finalizeSlot(Slot& slot)
       if (mTest) {
         LOG(DEBUG) << "Skipping channel " << ich << " because it has zero entries, but it should not be"; // should become error!
         continue;
-      } else
+      } else {
         throw std::runtime_error("We found one channel with no entries, we cannot calibrate!");
+      }
     }
 
     // more efficient way
@@ -475,8 +481,9 @@ void TOFChannelCalibrator::finalizeSlot(Slot& slot)
 
     double fitres = fitGaus(c->getNbins(), histoValues.data(), -(c->getRange()), c->getRange(), fitValues);
 
-    if (fitValues[2] < 0)
+    if (fitValues[2] < 0) {
       fitValues[2] = -fitValues[2];
+    }
 
     if (fitres >= 0) {
       LOG(DEBUG) << "Channel " << ich << " :: Fit result " << fitres << " Mean = " << fitValues[1] << " Sigma = " << fitValues[2];
@@ -487,14 +494,18 @@ void TOFChannelCalibrator::finalizeSlot(Slot& slot)
     float intmin = fitValues[1] - 5 * fitValues[2]; // mean - 5*sigma
     float intmax = fitValues[1] + 5 * fitValues[2]; // mean + 5*sigma
 
-    if (intmin < -mRange)
+    if (intmin < -mRange) {
       intmin = -mRange;
-    if (intmax < -mRange)
+    }
+    if (intmax < -mRange) {
       intmax = -mRange;
-    if (intmin > mRange)
+    }
+    if (intmin > mRange) {
       intmin = mRange;
-    if (intmax > mRange)
+    }
+    if (intmax > mRange) {
       intmax = mRange;
+    }
 
     /* 
     // needed if we calculate the integral using the values
