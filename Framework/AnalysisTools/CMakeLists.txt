@@ -8,14 +8,10 @@
 # granted to it by virtue of its status as an Intergovernmental Organization or
 # submit itself to any jurisdiction.
 
-add_subdirectory(Logger)
+o2_add_library(AnalysisTools
+               SOURCES src/StepTHn.cxx
+               PUBLIC_LINK_LIBRARIES O2::Framework)
 
-add_subdirectory(Foundation)
-
-add_subdirectory(Core)
-
-add_subdirectory(Utils)
-
-add_subdirectory(TestWorkflows) 
-
-add_subdirectory(AnalysisTools) 
+o2_target_root_dictionary(AnalysisTools
+                          HEADERS include/Framework/StepTHn.h
+                          LINKDEF src/AnalysisToolsLinkDef.h)

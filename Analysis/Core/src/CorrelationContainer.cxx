@@ -14,7 +14,7 @@
 // Author: Jan Fiete Grosse-Oetringhaus
 
 #include "Analysis/CorrelationContainer.h"
-#include "Analysis/StepTHn.h"
+#include "Framework/StepTHn.h"
 #include "THnSparse.h"
 #include "TMath.h"
 #include "TList.h"
