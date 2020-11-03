@@ -13,8 +13,6 @@
 #include "Framework/DataSpecUtils.h"
 #include "Headers/DataHeader.h"
 
-#include <Common/DataBlock.h>
-
 namespace o2
 {
 namespace framework
