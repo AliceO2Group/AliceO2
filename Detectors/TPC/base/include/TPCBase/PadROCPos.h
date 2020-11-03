@@ -89,10 +89,12 @@ class PadROCPos
   /// smaller operator
   bool operator<(const PadROCPos& other) const
   {
-    if (mROC < other.mROC)
+    if (mROC < other.mROC) {
       return true;
-    if (mROC == other.mROC && mPadPos < other.mPadPos)
+    }
+    if (mROC == other.mROC && mPadPos < other.mPadPos) {
       return true;
+    }
     return false;
   }
 

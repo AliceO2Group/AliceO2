@@ -180,11 +180,13 @@ BOOST_AUTO_TEST_CASE(FastTransform_test_setSpaceChargeCorrection)
       }
     }
   }
-  if (statN > 0)
+  if (statN > 0) {
     statDiff /= statN;
+  }
 
-  if (statNFile > 0)
+  if (statNFile > 0) {
     statDiffFile /= statNFile;
+  }
 
   std::cout << "average difference in correction " << statDiff << " cm " << std::endl;
   BOOST_CHECK_MESSAGE(fabs(statDiff) < 1.e-3, "test of correction map failed, average difference " << statDiff << " cm is too large");

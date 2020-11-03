@@ -59,10 +59,12 @@ Int_t CalibPedestal::updateROC(const Int_t roc, const Int_t row, const Int_t pad
                                const Int_t timeBin, const Float_t signal)
 {
   Int_t adcValue = Int_t(signal);
-  if (timeBin < mFirstTimeBin || timeBin > mLastTimeBin)
+  if (timeBin < mFirstTimeBin || timeBin > mLastTimeBin) {
     return 0;
-  if (adcValue < mADCMin || adcValue > mADCMax)
+  }
+  if (adcValue < mADCMin || adcValue > mADCMax) {
     return 0;
+  }
 
   const GlobalPadNumber padInROC = mMapper.getPadNumberInROC(PadROCPos(roc, row, pad));
   Int_t bin = padInROC * mNumberOfADCs + (adcValue - mADCMin);
@@ -78,8 +80,9 @@ Int_t CalibPedestal::updateROC(const Int_t roc, const Int_t row, const Int_t pad
 CalibPedestal::vectorType* CalibPedestal::getVector(ROC roc, bool create /*=kFALSE*/)
 {
   vectorType* vec = mADCdata[roc].get();
-  if (vec || !create)
+  if (vec || !create) {
     return vec;
+  }
 
   const size_t numberOfPads = (roc.rocType() == RocType::IROC) ? mMapper.getPadsInIROC() : mMapper.getPadsInOROC();
 

@@ -257,8 +257,9 @@ void CalibTreeDump::readTraceLengths(std::string_view mappingDir)
   std::string inputDir = mappingDir.data();
   if (!inputDir.size()) {
     const char* aliceO2env = std::getenv("O2_ROOT");
-    if (aliceO2env)
+    if (aliceO2env) {
       inputDir = aliceO2env;
+    }
     inputDir += "/share/Detectors/TPC/files";
   }
 

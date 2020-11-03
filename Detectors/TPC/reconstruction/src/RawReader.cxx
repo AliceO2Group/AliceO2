@@ -105,14 +105,18 @@ bool RawReader::addInputFile(std::string infile)
 
 bool RawReader::addInputFile(int region, int link, int sampaVersion, std::string path, int run)
 {
-  if (mRun == -1)
+  if (mRun == -1) {
     mRun = run;
-  if (mRegion == -1)
+  }
+  if (mRegion == -1) {
     mRegion = region;
-  if (mLink == -1)
+  }
+  if (mLink == -1) {
     mLink = link;
-  if (mSampaVersion == -1)
+  }
+  if (mSampaVersion == -1) {
     mSampaVersion = sampaVersion;
+  }
 
   if (run != mRun) {
     LOG(DEBUG) << "Run of RawReader is " << mRun << " and not " << run;
@@ -198,8 +202,9 @@ bool RawReader::loadEvent(int64_t event)
 
   auto ev = mEvents.find(event);
 
-  if (ev == mEvents.end())
+  if (ev == mEvents.end()) {
     return false;
+  }
   mLastEvent = event;
 
   for (auto& eventInfo : *(ev->second)) {
@@ -207,27 +212,31 @@ bool RawReader::loadEvent(int64_t event)
       case 1: // RAW GBT frames
       {
         LOG(DEBUG) << "Data of readout mode 1 (RAW GBT frames)";
-        if (!decodeRawGBTFrames(eventInfo))
+        if (!decodeRawGBTFrames(eventInfo)) {
           return false;
+        }
         break;
       }
       case 2: // Decoded data
       {
         LOG(DEBUG) << "Data of readout mode 2 (decoded data)";
-        if (!decodePreprocessedData(eventInfo))
+        if (!decodePreprocessedData(eventInfo)) {
           return false;
+        }
         break;
       }
       case 3: // both, RAW GBT frames and decoded data
       {
         if (mUseRawInMode3) {
           LOG(DEBUG) << "Data of readout mode 3 (decoding RAW GBT frames)";
-          if (!decodeRawGBTFrames(eventInfo))
+          if (!decodeRawGBTFrames(eventInfo)) {
             return false;
+          }
         } else {
           LOG(DEBUG) << "Data of readout mode 3 (using decoded data)";
-          if (!decodePreprocessedData(eventInfo))
+          if (!decodePreprocessedData(eventInfo)) {
             return false;
+          }
         }
         break;
       }
@@ -312,8 +321,9 @@ bool RawReader::decodePreprocessedData(EventInfo eventInfo)
       if (ids[j] == 0x8) {
         writeValue[j] = true;
         // header TS is one before first word -> +1
-        if (mTimestampOfFirstData[j] == 0)
+        if (mTimestampOfFirstData[j] == 0) {
           mTimestampOfFirstData[j] = eventInfo.header.timeStamp() + 1 + i / indexStep;
+        }
       }
     }
 
@@ -398,8 +408,9 @@ bool RawReader::decodeRawGBTFrames(EventInfo eventInfo)
   LOG(DEBUG) << "Start index for Event " << eventInfo.header.eventCount() << " is " << i_start;
 
   GBTFrame frame;
-  if (eventInfo.header.eventCount() > 0)
+  if (eventInfo.header.eventCount() > 0) {
     frame.setData(words[i_start - indexStep], words[i_start - indexStep + 1], words[i_start - indexStep + 2], words[i_start - indexStep + 3]);
+  }
   GBTFrame lastFrame;
 
   for (long i = i_start; i < nWords; i = i + indexStep) {
@@ -408,16 +419,21 @@ bool RawReader::decodeRawGBTFrames(EventInfo eventInfo)
     lastFrame = frame;
     frame.setData(words[i], words[i + 1], words[i + 2], words[i + 3]);
 
-    if (syncMon[0].addSequence(frame.getHalfWord(0, 0, 0), frame.getHalfWord(0, 1, 0), frame.getHalfWord(0, 2, 0), frame.getHalfWord(0, 3, 0)))
+    if (syncMon[0].addSequence(frame.getHalfWord(0, 0, 0), frame.getHalfWord(0, 1, 0), frame.getHalfWord(0, 2, 0), frame.getHalfWord(0, 3, 0))) {
       mSyncPos[0] = syncMon[0].getPosition();
-    if (syncMon[1].addSequence(frame.getHalfWord(0, 0, 1), frame.getHalfWord(0, 1, 1), frame.getHalfWord(0, 2, 1), frame.getHalfWord(0, 3, 1)))
+    }
+    if (syncMon[1].addSequence(frame.getHalfWord(0, 0, 1), frame.getHalfWord(0, 1, 1), frame.getHalfWord(0, 2, 1), frame.getHalfWord(0, 3, 1))) {
       mSyncPos[1] = syncMon[1].getPosition();
-    if (syncMon[2].addSequence(frame.getHalfWord(1, 0, 0), frame.getHalfWord(1, 1, 0), frame.getHalfWord(1, 2, 0), frame.getHalfWord(1, 3, 0)))
+    }
+    if (syncMon[2].addSequence(frame.getHalfWord(1, 0, 0), frame.getHalfWord(1, 1, 0), frame.getHalfWord(1, 2, 0), frame.getHalfWord(1, 3, 0))) {
       mSyncPos[2] = syncMon[2].getPosition();
-    if (syncMon[3].addSequence(frame.getHalfWord(1, 0, 1), frame.getHalfWord(1, 1, 1), frame.getHalfWord(1, 2, 1), frame.getHalfWord(1, 3, 1)))
+    }
+    if (syncMon[3].addSequence(frame.getHalfWord(1, 0, 1), frame.getHalfWord(1, 1, 1), frame.getHalfWord(1, 2, 1), frame.getHalfWord(1, 3, 1))) {
       mSyncPos[3] = syncMon[3].getPosition();
-    if (syncMon[4].addSequence(frame.getHalfWord(2, 0), frame.getHalfWord(2, 1), frame.getHalfWord(2, 2), frame.getHalfWord(2, 3)))
+    }
+    if (syncMon[4].addSequence(frame.getHalfWord(2, 0), frame.getHalfWord(2, 1), frame.getHalfWord(2, 2), frame.getHalfWord(2, 3))) {
       mSyncPos[4] = syncMon[4].getPosition();
+    }
 
     if (mCheckAdcClock) {
 
@@ -425,12 +441,15 @@ bool RawReader::decodeRawGBTFrames(EventInfo eventInfo)
       bool adcCheckErr1 = adcClockMon[1].addSequence(frame.getAdcClock(1));
       bool adcCheckErr2 = adcClockMon[2].addSequence(frame.getAdcClock(2));
 
-      if (mSyncPos[0] >= 0)
+      if (mSyncPos[0] >= 0) {
         adcClockFound[0] = adcClockFound[0] | (!adcCheckErr0);
-      if (mSyncPos[2] >= 0)
+      }
+      if (mSyncPos[2] >= 0) {
         adcClockFound[1] = adcClockFound[1] | (!adcCheckErr1);
-      if (mSyncPos[4] >= 0)
+      }
+      if (mSyncPos[4] >= 0) {
         adcClockFound[2] = adcClockFound[2] | (!adcCheckErr2);
+      }
       if (adcClockFound[0] & adcCheckErr0) {
         adcClockFound[0] = false;
         LOG(DEBUG) << "ADC clock error of SAMPA " << ((mRegion % 2) ? 3 : 0) << " in frame [" << i / indexStep << "]";

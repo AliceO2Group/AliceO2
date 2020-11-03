@@ -109,10 +109,11 @@ class ADCRawData
   /// limit.
   void setNumTimebins(uint32_t numTB)
   {
-    if (numTB >= mADCRaw[mOutputStream].size())
+    if (numTB >= mADCRaw[mOutputStream].size()) {
       mNumTimeBins = mADCRaw[mOutputStream].size();
-    else
+    } else {
       mNumTimeBins = numTB;
+    }
   };
 
   /// number of time bin for selected stream
@@ -757,18 +758,19 @@ inline void GBTFrame::updateSyncCheck(SyncArray& syncArray)
 {
   const auto offset = mPrevHWpos ^ 4;
 
-  for (int s = 0; s < 5; s++)
+  for (int s = 0; s < 5; s++) {
     for (int h = 0; h < 4; h++) {
       const auto hPos = h + offset; // set position of last filled HW
       // shift in a 1 if the halfword is 0x15
-      if (mFrameHalfWords[s][hPos] == 0x15)
+      if (mFrameHalfWords[s][hPos] == 0x15) {
         mSyncCheckRegister[s] = (mSyncCheckRegister[s] << 1) | 1;
       // shift in a 0 if the halfword is 0xA
-      else if (mFrameHalfWords[s][hPos] == 0xA)
+      } else if (mFrameHalfWords[s][hPos] == 0xA) {
         mSyncCheckRegister[s] = (mSyncCheckRegister[s] << 1);
       // otherwise reset the register to 0
-      else
+      } else {
         mSyncCheckRegister[s] = 0;
+      }
       // std::cout << " SReg : " << s << " : " << std::hex << mSyncCheckRegister[s] << std::endl;
       // check the register content for the SYNC pattern
       // Patterh is : 1100.1100.1100.1100.1111.0000.1111.0000 = 0xCCCCF0F0
@@ -776,7 +778,8 @@ inline void GBTFrame::updateSyncCheck(SyncArray& syncArray)
       if (mSyncCheckRegister[s] == 0xCCCCF0F0 or mSyncCheckRegister[s] == 0x4CCCF0F0 or mSyncCheckRegister[s] == 0x0CCCF0F0) {
         syncArray[s].setPos(mPacketNum, mFrameNum, mFilePos, h);
       };
-    };
+    }
+  };
 }
 
 inline void GBTFrame::updateSyncCheck(bool verbose)
@@ -787,14 +790,15 @@ inline void GBTFrame::updateSyncCheck(bool verbose)
     for (int h = 0; h < 4; h++) {
       const auto hPos = h + offset; // set position of last filled HW
       // shift in a 1 if the halfword is 0x15
-      if (mFrameHalfWords[s][hPos] == 0x15)
+      if (mFrameHalfWords[s][hPos] == 0x15) {
         mSyncCheckRegister[s] = (mSyncCheckRegister[s] << 1) | 1;
       // shift in a 0 if the halfword is 0xA
-      else if (mFrameHalfWords[s][hPos] == 0xA)
+      } else if (mFrameHalfWords[s][hPos] == 0xA) {
         mSyncCheckRegister[s] = (mSyncCheckRegister[s] << 1);
       // otherwise reset the register to 0
-      else
+      } else {
         mSyncCheckRegister[s] = 0;
+      }
       // std::cout << " SReg : " << s << " : " << std::hex << mSyncCheckRegister[s] << std::endl;
       // check the register content for the SYNC pattern
       // Patterh is : 1100.1100.1100.1100.1111.0000.1111.0000 = 0xCCCCF0F0

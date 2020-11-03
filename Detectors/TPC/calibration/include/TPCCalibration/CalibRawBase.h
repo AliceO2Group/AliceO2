@@ -204,8 +204,9 @@ inline CalibRawBase::ProcessStatus CalibRawBase::processEvent(int eventNumber)
 //______________________________________________________________________________
 inline CalibRawBase::ProcessStatus CalibRawBase::processEventGBT()
 {
-  if (!mGBTFrameContainers.size())
+  if (!mGBTFrameContainers.size()) {
     return ProcessStatus::NoReaders;
+  }
   resetEvent();
 
   // loop over raw readers, fill digits for 500 time bins and process
@@ -231,8 +232,9 @@ inline CalibRawBase::ProcessStatus CalibRawBase::processEventGBT()
           // row is local in region (CRU)
           const int row = digi.getRow();
           const int pad = digi.getPad();
-          if (row == 255 || pad == 255)
+          if (row == 255 || pad == 255) {
             continue;
+          }
 
           int rowOffset = 0;
           switch (mPadSubset) {
@@ -285,8 +287,9 @@ inline CalibRawBase::ProcessStatus CalibRawBase::processEventGBT()
 //______________________________________________________________________________
 inline CalibRawBase::ProcessStatus CalibRawBase::processEventRawReader(int eventNumber)
 {
-  if (!mRawReaders.size())
+  if (!mRawReaders.size()) {
     return ProcessStatus::NoReaders;
+  }
   resetEvent();
 
   // loop over raw readers, fill digits for 500 time bins and process
@@ -317,8 +320,9 @@ inline CalibRawBase::ProcessStatus CalibRawBase::processEventRawReader(int event
 
     o2::tpc::PadPos padPos;
     while (std::shared_ptr<std::vector<uint16_t>> data = reader->getNextData(padPos)) {
-      if (!data)
+      if (!data) {
         continue;
+      }
 
       mProcessedTimeBins = std::max(mProcessedTimeBins, data->size());
 
@@ -331,8 +335,9 @@ inline CalibRawBase::ProcessStatus CalibRawBase::processEventRawReader(int event
       // row is local in region (CRU)
       const int row = padPos.getRow();
       const int pad = padPos.getPad();
-      if (row == 255 || pad == 255)
+      if (row == 255 || pad == 255) {
         continue;
+      }
 
       int timeBin = 0;
       for (const auto& signalI : *data) {
@@ -387,8 +392,9 @@ inline CalibRawBase::ProcessStatus CalibRawBase::processEventRawReader(int event
 //______________________________________________________________________________
 inline CalibRawBase::ProcessStatus CalibRawBase::processEventRawReaderCRU(int eventNumber)
 {
-  if (!mRawReaderCRUManager.getNumberOfReaders())
+  if (!mRawReaderCRUManager.getNumberOfReaders()) {
     return ProcessStatus::NoReaders;
+  }
   resetEvent();
 
   mRawReaderCRUManager.init();
@@ -514,8 +520,9 @@ inline CalibRawBase::ProcessStatus CalibRawBase::processEventDigitTree(int event
       const PadRegionInfo& regionInfo = mMapper.getPadRegionInfo(cru.region());
       const PartitionInfo& partInfo = mMapper.getPartitionInfo(cru.partition());
 
-      if (row == 255 || pad == 255)
+      if (row == 255 || pad == 255) {
         continue;
+      }
 
       int rowOffset = 0;
       switch (mPadSubset) {

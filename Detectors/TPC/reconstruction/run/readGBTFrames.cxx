@@ -32,8 +32,9 @@ std::mutex mtx;
 bool isVector1(std::vector<int>& vec)
 {
   for (std::vector<int>::iterator it = vec.begin(); it != vec.end(); ++it) {
-    if ((*it) != 1)
+    if ((*it) != 1) {
       return false;
+    }
   }
   return true;
 }
@@ -125,18 +126,21 @@ int main(int argc, char* argv[])
     std::vector<int> addData_done(infile.size(), 0);
     std::vector<int> reading_done(infile.size(), 0);
     for (int i = 0; i < infile.size(); ++i) {
-      if (size.size() >= infile.size())
+      if (size.size() >= infile.size()) {
         iSize = size[i];
-      else
+      } else {
         iSize = size[0];
-      if (CRU.size() >= infile.size())
+      }
+      if (CRU.size() >= infile.size()) {
         iCRU = CRU[i];
-      else
+      } else {
         iCRU = CRU[0];
-      if (link.size() >= infile.size())
+      }
+      if (link.size() >= infile.size()) {
         iLink = link[i];
-      else
+      } else {
         iLink = link[0];
+      }
 
       container.push_back(new o2::tpc::GBTFrameContainer(iSize, iCRU, iLink));
       container.back()->setEnableAdcClockWarning(checkAdcClock);
@@ -149,8 +153,9 @@ int main(int argc, char* argv[])
 
     start = std::chrono::system_clock::now();
     for (int i = 0; i < infile.size(); ++i) {
-      if (infile[i] != "NOFILE")
+      if (infile[i] != "NOFILE") {
         threads.emplace_back(addData, std::ref(*container[i]), std::ref(infile[i]), frames, rorcFlavor, std::ref(addData_done[i]));
+      }
     }
 
     std::vector<std::vector<std::ofstream*>> outfiles(infile.size());
@@ -173,8 +178,9 @@ int main(int argc, char* argv[])
           outfiles[i].push_back(out);
         }
 
-        if (j == 2)
+        if (j == 2) {
           continue;
+        }
         outname = "";
         if (i >= outfile.size()) {
           outfiles[i].push_back(nullptr);

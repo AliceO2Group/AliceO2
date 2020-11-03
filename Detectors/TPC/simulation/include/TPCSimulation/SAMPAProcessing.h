@@ -183,8 +183,9 @@ inline float SAMPAProcessing::makeSignal(float ADCcounts, const int sector, cons
 inline float SAMPAProcessing::getADCSaturation(const float signal) const
 {
   const float adcSaturation = mEleParam->ADCsaturation;
-  if (signal > adcSaturation - 1)
+  if (signal > adcSaturation - 1) {
     return adcSaturation - 1;
+  }
   return signal;
 }
 

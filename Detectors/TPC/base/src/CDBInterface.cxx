@@ -52,8 +52,9 @@ const CalPad& CDBInterface::getPedestals()
       loadNoiseAndPedestalFromFile();
     }
   } else if (mUseDefaults) {
-    if (!mPedestals)
+    if (!mPedestals) {
       createDefaultPedestals();
+    }
   } else {
     // return from CDB, assume that check for object existence are done there
     return getObjectFromCDB<CalPad>(CDBTypeMap.at(CDBType::CalPedestal));
@@ -75,8 +76,9 @@ const CalPad& CDBInterface::getNoise()
       loadNoiseAndPedestalFromFile();
     }
   } else if (mUseDefaults) {
-    if (!mNoise)
+    if (!mNoise) {
       createDefaultNoise();
+    }
   } else {
     // return from CDB, assume that check for object existence are done there
     return getObjectFromCDB<CalPad>(CDBTypeMap.at(CDBType::CalNoise));
@@ -98,8 +100,9 @@ const CalPad& CDBInterface::getGainMap()
       loadGainMapFromFile();
     }
   } else if (mUseDefaults) {
-    if (!mGainMap)
+    if (!mGainMap) {
       createDefaultGainMap();
+    }
   } else {
     // return from CDB, assume that check for object existence are done there
     return getObjectFromCDB<CalPad>(CDBTypeMap.at(CDBType::CalPadGainFull));

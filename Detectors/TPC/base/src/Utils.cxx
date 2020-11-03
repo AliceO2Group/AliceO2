@@ -91,10 +91,12 @@ void utils::addFECInfo()
   const auto& mapper = Mapper::instance();
 
   const int roc = h->GetUniqueID();
-  if (roc < 0 || roc >= (int)ROC::MaxROC)
+  if (roc < 0 || roc >= (int)ROC::MaxROC) {
     return;
-  if (row < 0 || row >= (int)mapper.getNumberOfRowsROC(roc))
+  }
+  if (row < 0 || row >= (int)mapper.getNumberOfRowsROC(roc)) {
     return;
+  }
   const int nPads = mapper.getNumberOfPadsInRowROC(roc, row);
   const int pad = cpad + nPads / 2;
   //printf("row %d, cpad %d, pad %d, nPads %d\n", row, cpad, pad, nPads);

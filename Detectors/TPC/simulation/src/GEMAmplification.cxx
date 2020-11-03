@@ -98,8 +98,9 @@ GEMAmplification::GEMAmplification()
   }
   delete polyaDistribution;
 
-  if (outfile)
+  if (outfile) {
     outfile->Close();
+  }
   watch.Stop();
   LOG(INFO) << "TPC: GEM setup (polya) took " << watch.CpuTime();
 }

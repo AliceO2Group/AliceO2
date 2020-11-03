@@ -87,16 +87,21 @@ Int_t SimpleEventDisplay::updateROC(const Int_t roc,
   // assumes that it is looped over consecutive time bins of one pad
   //
   //printf("update called: %d, %d, %d, %d, %.3f\n", roc, row, pad, timeBin, signal);
-  if (row < 0)
+  if (row < 0) {
     return 0;
-  if (pad < 0)
+  }
+  if (pad < 0) {
     return 0;
-  if (timeBin < 0)
+  }
+  if (timeBin < 0) {
     return 0;
-  if ((timeBin > mLastTimeBin) || (timeBin < mFirstTimeBin))
+  }
+  if ((timeBin > mLastTimeBin) || (timeBin < mFirstTimeBin)) {
     return 0;
-  if (mSectorLoop && roc % 36 != mSelectedSector % 36)
+  }
+  if (mSectorLoop && roc % 36 != mSelectedSector % 36) {
     return 0;
+  }
 
   if (row < 0 || pad < 0) {
     printf("Wrong Pad or Row number, skipping!");
@@ -194,8 +199,9 @@ TH1D* SimpleEventDisplay::makePadSignals(Int_t roc, Int_t row, Int_t pad)
   }
   TH1D* h = nullptr;
   const Int_t nbins = mLastTimeBin - mFirstTimeBin;
-  if (nbins <= 0)
+  if (nbins <= 0) {
     return nullptr;
+  }
   const Int_t offset = (nbins + 2) * (channel + 1);
   Double_t* arrP = nullptr;
 
@@ -247,8 +253,9 @@ void SimpleEventDisplay::resetEvent()
   //for (auto reader : mGBTFrameContainers) {
   //reader->reProcessAllFrames();
   //}
-  if (!mSectorLoop)
+  if (!mSectorLoop) {
     mPadMax.multiply(0.);
+  }
   mHSigIROC->Reset();
   mHSigOROC->Reset();
 }

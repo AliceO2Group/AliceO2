@@ -54,25 +54,29 @@ const PadPos PadRegionInfo::findPad(const LocalPosition2D& pos, const Side side 
 
 const PadPos PadRegionInfo::findPad(const float localX, const float localY, const Side side /*=Side::A*/) const
 {
-  if (!isInRegion(localX))
+  if (!isInRegion(localX)) {
     return PadPos(255, 255);
+  }
 
   // the pad coordinate system is for pad-side view.
   // on the A-Side one looks from the back-side, therefore
   // the localY-sign must be changed
   const float localYfactor = (side == Side::A) ? -1.f : 1.f;
   const unsigned int row = std::floor((localX - mRadiusFirstRow) / mPadHeight);
-  if (row >= mNumberOfPadRows)
+  if (row >= mNumberOfPadRows) {
     return PadPos(255, 255);
+  }
 
   const unsigned int npads = getPadsInRowRegion(row);
   const float padfloat = (npads / 2 * mPadWidth - localYfactor * localY) / mPadWidth;
-  if (padfloat < 0)
+  if (padfloat < 0) {
     return PadPos(255, 255);
+  }
   const unsigned int pad = static_cast<unsigned int>(padfloat);
 
-  if (pad >= npads)
+  if (pad >= npads) {
     return PadPos(255, 255);
+  }
 
   return PadPos(row, pad);
 }
