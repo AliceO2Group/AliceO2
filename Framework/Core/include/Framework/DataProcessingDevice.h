@@ -133,7 +133,6 @@ class DataProcessingDevice : public FairMQDevice
   std::mutex mRegionInfoMutex;
   enum TerminationPolicy mErrorPolicy = TerminationPolicy::WAIT; /// What to do when an error arises
   bool mWasActive = false;                                       /// Whether or not the device was active at last iteration.
-  bool mFirst = true;                                            /// Whether or not this was the first iteration
 };
 
 } // namespace o2::framework

@@ -85,6 +85,15 @@ struct CommonMessageBackendsHelpers {
 };
 } // namespace
 
+enum struct RateLimitingState {
+  UNKNOWN = 0,                   // No information received yet.
+  STARTED = 1,                   // Information received, new timeframe not requested.
+  CHANGED = 2,                   // Information received, new timeframe requested but not yet accounted.
+  BELOW_LIMIT = 3,               // New metric received, we are below limit.
+  NEXT_ITERATION_FROM_BELOW = 4, // Iteration when previously in BELOW_LIMIT.
+  ABOVE_LIMIT = 5,               // New metric received, we are above limit.
+};
+
 struct RateLimitConfig {
   int64_t maxMemory = 0;
 };
@@ -151,38 +160,54 @@ o2::framework::ServiceSpec CommonMessageBackends::arrowBackendSpec()
                        int64_t totalBytesDestroyed = 0;
                        int64_t totalMessagesCreated = 0;
                        int64_t totalMessagesDestroyed = 0;
-                       static bool wasChanged = false;
+                       static RateLimitingState currentState = RateLimitingState::UNKNOWN;
+                       static auto stateMetric = DeviceMetricsHelper::createNumericMetric<uint64_t>(driverMetrics, "rate-limit-state");
                        static auto totalBytesCreatedMetric = DeviceMetricsHelper::createNumericMetric<uint64_t>(driverMetrics, "total-arrow-bytes-created");
                        static auto totalBytesDestroyedMetric = DeviceMetricsHelper::createNumericMetric<uint64_t>(driverMetrics, "total-arrow-bytes-destroyed");
                        static auto totalMessagesCreatedMetric = DeviceMetricsHelper::createNumericMetric<uint64_t>(driverMetrics, "total-arrow-messages-created");
                        static auto totalMessagesDestroyedMetric = DeviceMetricsHelper::createNumericMetric<uint64_t>(driverMetrics, "total-arrow-messages-destroyed");
                        static auto totalBytesDeltaMetric = DeviceMetricsHelper::createNumericMetric<int>(driverMetrics, "arrow-bytes-delta");
                        static auto totalSignalsMetric = DeviceMetricsHelper::createNumericMetric<uint64_t>(driverMetrics, "aod-reader-signals");
+                       static auto remainingBytes = DeviceMetricsHelper::createNumericMetric<uint64_t>(driverMetrics, "aod-remaining-bytes");
 
                        bool changed = false;
+                       bool hasMetrics = false;
+                       // Find  the last timestamp when we signaled.
+                       size_t signalIndex = DeviceMetricsHelper::metricIdxByName("aod-reader-signals", driverMetrics);
+                       size_t lastSignalTimestamp = 0;
+                       if (signalIndex < driverMetrics.metrics.size()) {
+                         MetricInfo info = driverMetrics.metrics.at(signalIndex);
+                         lastSignalTimestamp = driverMetrics.timestamps[signalIndex][info.pos - 1];
+                       }
+
+                       size_t lastCreatedBytesTimestamp = 0;
+                       size_t lastDestroyedBytesTimestamp = 0;
                        for (auto& deviceMetrics : allDeviceMetrics) {
                          {
                            size_t index = DeviceMetricsHelper::metricIdxByName("arrow-bytes-created", deviceMetrics);
                            if (index < deviceMetrics.metrics.size()) {
+                             hasMetrics = true;
                              changed |= deviceMetrics.changed.at(index);
                              MetricInfo info = deviceMetrics.metrics.at(index);
                              auto& data = deviceMetrics.uint64Metrics.at(info.storeIdx);
                              totalBytesCreated += (int64_t)data.at((info.pos - 1) % data.size());
+                             lastCreatedBytesTimestamp = deviceMetrics.timestamps[index][info.pos - 1];
                            }
                          }
                          {
                            size_t index = DeviceMetricsHelper::metricIdxByName("arrow-bytes-destroyed", deviceMetrics);
                            if (index < deviceMetrics.metrics.size()) {
+                             hasMetrics = true;
                              changed |= deviceMetrics.changed.at(index);
                              MetricInfo info = deviceMetrics.metrics.at(index);
                              auto& data = deviceMetrics.uint64Metrics.at(info.storeIdx);
                              totalBytesDestroyed += (int64_t)data.at((info.pos - 1) % data.size());
+                             lastDestroyedBytesTimestamp = deviceMetrics.timestamps[index][info.pos - 1];
                            }
                          }
                          {
                            size_t index = DeviceMetricsHelper::metricIdxByName("arrow-messages-created", deviceMetrics);
                            if (index < deviceMetrics.metrics.size()) {
-                             changed |= deviceMetrics.changed.at(index);
                              MetricInfo info = deviceMetrics.metrics.at(index);
                              auto& data = deviceMetrics.uint64Metrics.at(info.storeIdx);
                              totalMessagesCreated += (int64_t)data.at((info.pos - 1) % data.size());
@@ -191,7 +216,6 @@ o2::framework::ServiceSpec CommonMessageBackends::arrowBackendSpec()
                          {
                            size_t index = DeviceMetricsHelper::metricIdxByName("arrow-messages-destroyed", deviceMetrics);
                            if (index < deviceMetrics.metrics.size()) {
-                             changed |= deviceMetrics.changed.at(index);
                              MetricInfo info = deviceMetrics.metrics.at(index);
                              auto& data = deviceMetrics.uint64Metrics.at(info.storeIdx);
                              totalMessagesDestroyed += (int64_t)data.at((info.pos - 1) % data.size());
@@ -205,11 +229,21 @@ o2::framework::ServiceSpec CommonMessageBackends::arrowBackendSpec()
                          totalMessagesDestroyedMetric(driverMetrics, totalMessagesDestroyed, timestamp);
                          totalBytesDeltaMetric(driverMetrics, totalBytesCreated - totalBytesDestroyed, timestamp);
                        }
-                       if (memLimit) {
-                         if (changed) {
-                           /// Trigger next timeframe only when we have more than 1GB in memory available.
-                           if (totalBytesCreated <= (totalBytesDestroyed + memLimit)) {
-                             totalSignalsMetric(driverMetrics, 1, timestamp);
+                       bool done = false;
+                       static int stateTransitions = 0;
+                       while (!done) {
+                         stateMetric(driverMetrics, (uint64_t)(currentState), stateTransitions++);
+                         switch (currentState) {
+                           case RateLimitingState::UNKNOWN: {
+                             for (auto& deviceMetrics : allDeviceMetrics) {
+                               size_t index = DeviceMetricsHelper::metricIdxByName("arrow-bytes-created", deviceMetrics);
+                               if (index < deviceMetrics.metrics.size()) {
+                                 currentState = RateLimitingState::STARTED;
+                               }
+                             }
+                             done = true;
+                           } break;
+                           case RateLimitingState::STARTED: {
                              for (size_t di = 0; di < specs.size(); ++di) {
                                if (specs[di].name == "internal-dpl-aod-reader") {
                                  if (di < infos.size()) {
@@ -218,9 +252,19 @@ o2::framework::ServiceSpec CommonMessageBackends::arrowBackendSpec()
                                  }
                                }
                              }
-                           }
-                         } else if (wasChanged == changed) {
-                           if (totalBytesCreated < totalBytesDestroyed) {
+                             changed = false;
+                             currentState = RateLimitingState::CHANGED;
+                           } break;
+                           case RateLimitingState::CHANGED: {
+                             remainingBytes(driverMetrics, totalBytesCreated <= (totalBytesDestroyed + memLimit) ? (totalBytesDestroyed + memLimit) - totalBytesCreated : 0, timestamp);
+                             if (totalBytesCreated <= (totalBytesDestroyed + memLimit)) {
+                               currentState = RateLimitingState::BELOW_LIMIT;
+                             } else {
+                               currentState = RateLimitingState::ABOVE_LIMIT;
+                             }
+                             changed = false;
+                           } break;
+                           case RateLimitingState::BELOW_LIMIT: {
                              for (size_t di = 0; di < specs.size(); ++di) {
                                if (specs[di].name == "internal-dpl-aod-reader") {
                                  if (di < infos.size()) {
@@ -229,10 +273,27 @@ o2::framework::ServiceSpec CommonMessageBackends::arrowBackendSpec()
                                  }
                                }
                              }
-                           }
-                         }
+                             changed = false;
+                             currentState = RateLimitingState::NEXT_ITERATION_FROM_BELOW;
+                           } break;
+                           case RateLimitingState::NEXT_ITERATION_FROM_BELOW: {
+                             if (!changed) {
+                               done = true;
+                             } else {
+                               currentState = RateLimitingState::CHANGED;
+                             }
+                           } break;
+                           case RateLimitingState::ABOVE_LIMIT: {
+                             if (!changed) {
+                               done = true;
+                             } else if (totalBytesCreated > (totalBytesDestroyed + memLimit / 3)) {
+                               done = true;
+                             } else {
+                               currentState = RateLimitingState::CHANGED;
+                             }
+                           };
+                         };
                        }
-                       wasChanged = changed;
                      },
                      [](ProcessingContext& ctx, void* service) {
                        using DataHeader = o2::header::DataHeader;

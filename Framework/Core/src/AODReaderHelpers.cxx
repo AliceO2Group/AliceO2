@@ -180,6 +180,7 @@ AlgorithmSpec AODReaderHelpers::rootFileReaderCallback()
     monitoring.send(Metric{(uint64_t)0, "arrow-messages-created"}.addTag(Key::Subsystem, monitoring::tags::Value::DPL));
     monitoring.send(Metric{(uint64_t)0, "arrow-bytes-destroyed"}.addTag(Key::Subsystem, monitoring::tags::Value::DPL));
     monitoring.send(Metric{(uint64_t)0, "arrow-messages-destroyed"}.addTag(Key::Subsystem, monitoring::tags::Value::DPL));
+    monitoring.flushBuffer();
 
     if (!options.isSet("aod-file")) {
       LOGP(ERROR, "No input file defined!");
@@ -221,7 +222,7 @@ AlgorithmSpec AODReaderHelpers::rootFileReaderCallback()
                            fileCounter,
                            numTF,
                            watchdog,
-                           didir](DataAllocator& outputs, ControlService& control, DeviceSpec const& device) {
+                           didir](Monitoring& monitoring, DataAllocator& outputs, ControlService& control, DeviceSpec const& device) {
       // check if RuntimeLimit is reached
       if (!watchdog->update()) {
         LOGP(INFO, "Run time exceeds run time limit of {} seconds!", watchdog->runTimeLimit);
@@ -238,6 +239,7 @@ AlgorithmSpec AODReaderHelpers::rootFileReaderCallback()
       uint64_t timeFrameNumber = 0;
       int fcnt = (*fileCounter * device.maxInputTimeslices) + device.inputTimesliceId;
       int ntf = *numTF + 1;
+      monitoring.send(Metric{(uint64_t)ntf, "tf-sent"}.addTag(Key::Subsystem, monitoring::tags::Value::DPL));
 
       // loop over requested tables
       TTree* tr = nullptr;
