@@ -19,12 +19,15 @@ using namespace o2::gpu;
 #define BeginNamespace(name)
 #define EndNamespace()
 #define AddOption(name, type, default, optname, optnameshort, help, ...)
+#define AddOptionRTC(...) AddOption(__VA_ARGS__)
 #define AddVariable(name, type, default)
+#define AddVariableRTC(...) AddVariable(__VA_ARGS__)
 #define AddOptionSet(name, type, value, optname, optnameshort, help, ...)
 #define AddOptionVec(name, type, optname, optnameshort, help, ...)
 #define AddOptionArray(name, type, count, default, optname, optnameshort, help, ...)
 #define AddSubConfig(name, instance)
 #define BeginSubConfig(name, instance, parent, preoptname, preoptnameshort, descr) O2ParamImpl(GPUCA_M_CAT(GPUConfigurableParam, name))
+#define BeginHiddenConfig(...)
 #define EndConfig()
 #define AddCustomCPP(...)
 #define AddHelp(...)
@@ -33,12 +36,15 @@ using namespace o2::gpu;
 #undef BeginNamespace
 #undef EndNamespace
 #undef AddOption
+#undef AddOptionRTC
 #undef AddVariable
+#undef AddVariableRTC
 #undef AddOptionSet
 #undef AddOptionVec
 #undef AddOptionArray
 #undef AddSubConfig
 #undef BeginSubConfig
+#undef BeginHiddenConfig
 #undef EndConfig
 #undef AddCustomCPP
 #undef AddHelp
@@ -49,7 +55,9 @@ GPUSettingsO2 GPUO2InterfaceConfiguration::ReadConfigurableParam()
 #define BeginNamespace(name)
 #define EndNamespace()
 #define AddOption(name, type, default, optname, optnameshort, help, ...) dst.name = src.name;
+#define AddOptionRTC(...) AddOption(__VA_ARGS__)
 #define AddVariable(name, type, default)
+#define AddVariableRTC(...) AddVariable(__VA_ARGS__)
 #define AddOptionSet(name, type, value, optname, optnameshort, help, ...)
 #define AddOptionVec(name, type, optname, optnameshort, help, ...)
 #define AddOptionArray(name, type, count, default, optname, optnameshort, help, ...) \
@@ -62,6 +70,7 @@ GPUSettingsO2 GPUO2InterfaceConfiguration::ReadConfigurableParam()
   {                                                                                \
     auto& src = GPUCA_M_CAT(GPUConfigurableParam, name)::Instance();               \
     name& dst = instance;
+#define BeginHiddenConfig(name, instance) {
 #define EndConfig() }
 #define AddCustomCPP(...)
 #define AddHelp(...)
@@ -70,12 +79,15 @@ GPUSettingsO2 GPUO2InterfaceConfiguration::ReadConfigurableParam()
 #undef BeginNamespace
 #undef EndNamespace
 #undef AddOption
+#undef AddOptionRTC
 #undef AddVariable
+#undef AddVariableRTC
 #undef AddOptionSet
 #undef AddOptionVec
 #undef AddOptionArray
 #undef AddSubConfig
 #undef BeginSubConfig
+#undef BeginHiddenConfig
 #undef EndConfig
 #undef AddCustomCPP
 #undef AddHelp

@@ -28,7 +28,6 @@ using namespace GPUCA_NAMESPACE::gpu;
 #include "GPUTPCTrack.cxx"
 #include "GPUTPCGrid.cxx"
 #include "GPUTPCRow.cxx"
-#include "GPUParam.cxx"
 #include "GPUTPCTracker.cxx"
 
 #include "GPUGeneralKernels.cxx"
