@@ -82,14 +82,15 @@ inline GEMstack CRU::gemStack() const
 {
   const int reg = int(region());
 
-  if (reg < CRUperIROC)
+  if (reg < CRUperIROC) {
     return GEMstack::IROCgem;
-  else if (reg - CRUperIROC < CRUperPartition)
+  } else if (reg - CRUperIROC < CRUperPartition) {
     return GEMstack::OROC1gem;
-  else if (reg - CRUperIROC - CRUperPartition < CRUperPartition)
+  } else if (reg - CRUperIROC - CRUperPartition < CRUperPartition) {
     return GEMstack::OROC2gem;
-  else
+  } else {
     return GEMstack::OROC3gem;
+  }
 }
 } // namespace tpc
 } // namespace o2

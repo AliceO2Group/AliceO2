@@ -43,8 +43,9 @@ bool PadResponse::importPRF(std::string file, std::unique_ptr<TGraph2D>& grPRF) 
 {
   std::string inputDir;
   const char* aliceO2env = std::getenv("O2_ROOT");
-  if (aliceO2env)
+  if (aliceO2env) {
     inputDir = aliceO2env;
+  }
   inputDir += "/share/Detectors/TPC/files/";
 
   float x, y, normalizedPadResponse;

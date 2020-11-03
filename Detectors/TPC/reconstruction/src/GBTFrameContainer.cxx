@@ -185,8 +185,9 @@ void GBTFrameContainer::addGBTFramesFromBinaryFile(std::string fileName, std::st
             std::cout << std::endl;
 
             for (int j = 0; j < 5; ++j) {
-              if (ids[j] == 0x8)
+              if (ids[j] == 0x8) {
                 writeValue[j] = true;
+              }
             }
             for (int j = 0; j < 5; ++j) {
               if ((writeValue[j] & ids[j]) == 0xF) {
@@ -232,8 +233,9 @@ void GBTFrameContainer::addGBTFramesFromBinaryFile(std::string fileName, std::st
             adcValues[0][((ids[0] & 0x7) * 2)] = (((ids[0] >> 3) & 0x1) == 0) ? 0 : ((words[4] & 0xF) << 6) | ((words[5] >> 26) & 0x3F);
 
             for (int j = 0; j < 5; ++j) {
-              if (ids[j] == 0x8)
+              if (ids[j] == 0x8) {
                 writeValue[j] = true;
+              }
             }
             for (int j = 0; j < 5; ++j) {
               if ((writeValue[j] & ids[j]) == 0xF) {
@@ -304,13 +306,15 @@ void GBTFrameContainer::processFrame(std::vector<GBTFrame>::iterator iFrame)
 {
   ++mGBTFramesAnalyzed;
 
-  if (mEnableAdcClockWarning)
+  if (mEnableAdcClockWarning) {
     checkAdcClock(iFrame);
+  }
 
   searchSyncPattern(iFrame);
 
-  if (mEnableCompileAdcValues)
+  if (mEnableCompileAdcValues) {
     compileAdcValues(iFrame);
+  }
 }
 
 void GBTFrameContainer::compileAdcValues(std::vector<GBTFrame>::iterator iFrame)
@@ -319,10 +323,12 @@ void GBTFrameContainer::compileAdcValues(std::vector<GBTFrame>::iterator iFrame)
   short value2;
   mAdcMutex.lock();
   for (short iHalfSampa = 0; iHalfSampa < 5; ++iHalfSampa) {
-    if (mPositionForHalfSampa[iHalfSampa] == -1)
+    if (mPositionForHalfSampa[iHalfSampa] == -1) {
       continue;
-    if (mPositionForHalfSampa[iHalfSampa + 5] == -1)
+    }
+    if (mPositionForHalfSampa[iHalfSampa + 5] == -1) {
       continue;
+    }
 
     switch (mPositionForHalfSampa[iHalfSampa]) {
       case 0:
@@ -477,8 +483,9 @@ bool GBTFrameContainer::getData(std::vector<Digit>& container)
   }
   mAdcMutex.unlock();
 
-  if (!dataAvailable)
+  if (!dataAvailable) {
     return dataAvailable;
+  }
 
   const Mapper& mapper = Mapper::instance();
   int iTimeBin = mTimebin;
@@ -508,8 +515,9 @@ bool GBTFrameContainer::getData(std::vector<Digit>& container)
     }
   }
 
-  if (dataAvailable)
+  if (dataAvailable) {
     ++mTimebin;
+  }
   return dataAvailable;
 }
 
@@ -531,8 +539,9 @@ bool GBTFrameContainer::getData(std::vector<HalfSAMPAData>& container)
   }
   mAdcMutex.unlock();
 
-  if (!dataAvailable)
+  if (!dataAvailable) {
     return dataAvailable;
+  }
 
   //  if (container.size() != 5) {
   ////    LOG(INFO) << "Container had the wrong size, set it to 5";

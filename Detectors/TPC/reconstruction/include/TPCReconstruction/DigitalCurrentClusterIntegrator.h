@@ -44,11 +44,13 @@ class DigitalCurrentClusterIntegrator
   void integrateCluster(int sector, int row, float pad, unsigned int charge)
   {
     int ipad = ipad + 0.5;
-    if (ipad < 0)
+    if (ipad < 0) {
       ipad = 0;
+    }
     int maxPad = o2::tpc::Mapper::instance().getNumberOfPadsInRowSector(row);
-    if (ipad >= maxPad)
+    if (ipad >= maxPad) {
       ipad = maxPad - 1;
+    }
     mIntegratedCurrents[sector][row][ipad] += charge;
   }
   void clear(); //Clear all currents to 0

@@ -106,8 +106,9 @@ Int_t CalibPulser::updateROC(const Int_t roc, const Int_t row, const Int_t pad,
     signal -= mPedestal->getValue(ROC(roc), row, pad);
   }
 
-  if (signal < mADCMin || signal > mADCMax)
+  if (signal < mADCMin || signal > mADCMax) {
     return 0;
+  }
 
   // ===| temporary calibration data |==========================================
   const PadROCPos padROCPos(roc, row, pad);
@@ -174,8 +175,9 @@ TH2S* CalibPulser::getHistogram(ROC roc, CalibPulser::PtrVectorType& rocVector,
                                 std::string_view type, bool create /*=kFALSE*/)
 {
   TH2S* vec = rocVector[roc].get();
-  if (vec || !create)
+  if (vec || !create) {
     return vec;
+  }
 
   const size_t nChannels = mMapper.getNumberOfPads(roc);
   rocVector[roc] = std::make_unique<TH2S>(Form("hCalib%s%02d", type.data(), roc.getRoc()),
@@ -210,8 +212,9 @@ CalibPulser::PulserData CalibPulser::processPadData(const PadROCPos& padROCPos, 
   for (int t = maxPosition - mPeakIntMinus; t <= maxPosition + mPeakIntPlus; ++t) {
     const auto signal = adcData[t];
     // check time bounds
-    if (t < 0 || t >= vectorSize)
+    if (t < 0 || t >= vectorSize) {
       continue;
+    }
     weightedSum += signal * (t + 0.5); // +0.5 to get the center of the time bin
     weightedSum2 += signal * (t + 0.5) * (t + 0.5);
     chargeSum += signal;
@@ -259,8 +262,9 @@ void CalibPulser::resetData()
   for (auto histArray : v) {
     for (auto& histPtr : *histArray) {
       auto ptr = histPtr.get();
-      if (ptr)
+      if (ptr) {
         ptr->Reset();
+      }
     }
   }
 }
@@ -273,8 +277,9 @@ void CalibPulser::analyse()
     auto histWidth = mWidthHistograms.at(roc).get();
     auto histQtot = mQtotHistograms.at(roc).get();
 
-    if (!histT0 || !histWidth || !histQtot)
+    if (!histT0 || !histWidth || !histQtot) {
       continue;
+    }
 
     // array pointer
     const auto arrT0 = histT0->GetArray();
@@ -311,14 +316,17 @@ void CalibPulser::dumpToFile(const std::string filename, uint32_t type /* = 0*/)
       printf("dump debug info\n");
       // temporary arrays for writing the objects
       TObjArray vT0;
-      for (auto& val : mT0Histograms)
+      for (auto& val : mT0Histograms) {
         vT0.Add(val.get());
+      }
       TObjArray vWidth;
-      for (auto& val : mWidthHistograms)
+      for (auto& val : mWidthHistograms) {
         vWidth.Add(val.get());
+      }
       TObjArray vQtot;
-      for (auto& val : mQtotHistograms)
+      for (auto& val : mQtotHistograms) {
         vQtot.Add(val.get());
+      }
 
       vT0.Write("T0Histograms", TObject::kSingleKey);
       vWidth.Write("WidthHistograms", TObject::kSingleKey);

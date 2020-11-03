@@ -59,8 +59,9 @@ BOOST_AUTO_TEST_CASE(Mapper_complex_test1)
     std::string line;
     const char* aliceO2env = std::getenv("O2_ROOT");
     std::string inputDir = " ";
-    if (aliceO2env)
+    if (aliceO2env) {
       inputDir = aliceO2env;
+    }
     inputDir += "/share/Detectors/TPC/files";
 
     std::string file = inputDir + mappingTables[i];

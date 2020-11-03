@@ -113,8 +113,9 @@ void CalibRawBase::setupContainers(TString fileInfo, uint32_t verbosity, uint32_
       TString& filename = static_cast<TObjString*>(arrDataInfo->At(0))->String();
       iCRU = static_cast<TObjString*>(arrDataInfo->At(1))->String().Atoi();
       iLink = static_cast<TObjString*>(arrDataInfo->At(2))->String().Atoi();
-      if (arrDataInfo->GetEntriesFast() > 3)
+      if (arrDataInfo->GetEntriesFast() > 3) {
         iSampaVersion = static_cast<TObjString*>(arrDataInfo->At(3))->String().Atoi();
+      }
 
       auto cont = new GBTFrameContainer(iSize, iCRU, iLink, iSampaVersion);
 

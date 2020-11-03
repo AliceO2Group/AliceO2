@@ -100,10 +100,12 @@ void DigitDump::sortDigits()
   // sort digits
   for (auto& digits : mDigits) {
     std::sort(digits.begin(), digits.end(), [](const auto& a, const auto& b) {
-      if (a.getTimeStamp() < b.getTimeStamp())
+      if (a.getTimeStamp() < b.getTimeStamp()) {
         return true;
-      if ((a.getTimeStamp() == b.getTimeStamp()) && (a.getRow() < b.getRow()))
+      }
+      if ((a.getTimeStamp() == b.getTimeStamp()) && (a.getRow() < b.getRow())) {
         return true;
+      }
       return false;
     });
   }

@@ -191,8 +191,9 @@ void Mapper::load(const std::string& mappingDir)
     //readMappingFile(inputDir+"/Detectors/TPC/base/files/TABLE-OROC3.txt");
 
     const char* aliceO2env = std::getenv("O2_ROOT");
-    if (aliceO2env)
+    if (aliceO2env) {
       inputDir = aliceO2env;
+    }
     inputDir += "/share/Detectors/TPC/files";
   }
   readMappingFile(inputDir + "/TABLE-IROC.txt");

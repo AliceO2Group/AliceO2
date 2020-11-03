@@ -65,8 +65,9 @@ int main(int argc, char* argv[])
     return EXIT_SUCCESS;
   }
 
-  if (infile[0] == "NOFILE")
+  if (infile[0] == "NOFILE") {
     return EXIT_SUCCESS;
+  }
 
   // Initialize logger
   FairLogger* logger = FairLogger::GetLogger();
@@ -80,12 +81,13 @@ int main(int argc, char* argv[])
   for (int i = 0; i < infile.size(); ++i) {
     readers.emplace_back();
     readers[i].addEventSynchronizer(eventSync);
-    if (region.size() != infile.size() && link.size() == infile.size())
+    if (region.size() != infile.size() && link.size() == infile.size()) {
       readers[i].addInputFile(region[0], link[i], sampaVersion[i], infile[i]);
-    else if (region.size() == infile.size() && link.size() != infile.size())
+    } else if (region.size() == infile.size() && link.size() != infile.size()) {
       readers[i].addInputFile(region[i], link[0], sampaVersion[i], infile[i]);
-    else
+    } else {
       readers[i].addInputFile(region[i], link[i], sampaVersion[i], infile[i]);
+    }
     readers[i].setUseRawInMode3(useRawInMode3);
     readers[i].setCheckAdcClock(false);
   }

@@ -275,8 +275,9 @@ inline Vc::uint_v HwClusterer::getFpOfADC(const Vc::uint_v value)
 inline short HwClusterer::getFirstSetBitOfField()
 {
   for (short i = 0; i < mTimebinsInBuffer; ++i) {
-    if ((mCurrentMcContainerInBuffer >> i) & 0x1)
+    if ((mCurrentMcContainerInBuffer >> i) & 0x1) {
       return i;
+    }
   }
   return -1;
 }

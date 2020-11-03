@@ -241,10 +241,12 @@ DataProcessorSpec getZStoDigitsSpec(std::vector<int> const& inputIds)
       // sort digits
       for (auto& digits : outDigits) {
         std::sort(digits.begin(), digits.end(), [](const auto& a, const auto& b) {
-          if (a.getTimeStamp() < b.getTimeStamp())
+          if (a.getTimeStamp() < b.getTimeStamp()) {
             return true;
-          if ((a.getTimeStamp() == b.getTimeStamp()) && (a.getRow() < b.getRow()))
+          }
+          if ((a.getTimeStamp() == b.getTimeStamp()) && (a.getRow() < b.getRow())) {
             return true;
+          }
           return false;
         });
       }

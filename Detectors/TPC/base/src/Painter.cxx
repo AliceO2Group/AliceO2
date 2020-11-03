@@ -77,8 +77,9 @@ TCanvas* painter::draw(const CalDet<T>& calDet, int nbins1D, float xMin1D, float
         const auto val = calDet.getValue(roc, irow, ipad);
         const GlobalPosition2D pos = mapper.getPadCentre(PadROCPos(roc, irow, ipad));
         const int bin = hist2D->FindBin(pos.X(), pos.Y());
-        if (!hist2D->GetBinContent(bin))
+        if (!hist2D->GetBinContent(bin)) {
           hist2D->SetBinContent(bin, val);
+        }
         hist1D->Fill(val);
       }
     }

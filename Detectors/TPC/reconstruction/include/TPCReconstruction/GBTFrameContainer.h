@@ -147,8 +147,9 @@ class GBTFrameContainer
   void setEnableStoreGBTFrames(bool val)
   {
     mEnableStoreGBTFrames = val;
-    if (!mEnableStoreGBTFrames)
+    if (!mEnableStoreGBTFrames) {
       mGBTFrames.resize(2);
+    }
   };
 
   /// Extracts the digits after all 80 channels were transmitted (5*16)
