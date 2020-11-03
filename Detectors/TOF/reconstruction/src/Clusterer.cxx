@@ -139,7 +139,7 @@ void Clusterer::addContributingDigit(Digit* dig)
 
     dig->getPhiAndEtaIndex(phi, eta);
     LOG(DEBUG) << "skipped digit"
-                 << ", channel = " << dig->getChannel() << ",phi,eta = (" << phi << "," << eta << "), TDC = " << dig->getTDC() << ", calibrated time = " << dig->getCalibratedTime();
+               << ", channel = " << dig->getChannel() << ",phi,eta = (" << phi << "," << eta << "), TDC = " << dig->getTDC() << ", calibrated time = " << dig->getCalibratedTime();
 
     dig->setIsUsedInCluster(); // flag is at used in any case
 
