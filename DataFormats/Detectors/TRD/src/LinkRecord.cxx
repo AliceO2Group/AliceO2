@@ -24,27 +24,22 @@ uint32_t LinkRecord::getHalfChamberLinkId(uint32_t detector, uint32_t rob)
   int stack = (detector % constants::NLAYER);
   int layer = ((detector % (constants::NLAYER * constants::NSTACK)) / constants::NLAYER);
   int side = rob % 2;
-  return getHalfChamberLinkId(sector, stack, layer, side);
+  return LinkRecord::getHalfChamberLinkId(sector, stack, layer, side);
 }
 
 uint32_t LinkRecord::getHalfChamberLinkId(uint32_t sector, uint32_t stack, uint32_t layer, uint32_t side)
 {
-  LinkId tmplinkid;
-  tmplinkid.supermodule = sector;
-  tmplinkid.stack = stack;
-  tmplinkid.layer = layer;
-  ;
-  tmplinkid.side = side;
-  return tmplinkid.word;
+  LinkRecord tmplinkid;
+  tmplinkid.setLinkId(sector, stack, layer, side);
+  return tmplinkid.getLinkId();
 }
 
 void LinkRecord::setLinkId(const uint32_t sector, const uint32_t stack, const uint32_t layer, const uint32_t side)
 {
-  mLinkId.supermodule = sector;
-  mLinkId.stack = stack;
-  mLinkId.layer = layer;
-  ;
-  mLinkId.side = side;
+  mLinkId |= sector << 11;
+  mLinkId |= stack << 8;
+  mLinkId |= layer << 5;
+  mLinkId |= side << 4;
 }
 
 void LinkRecord::printStream(std::ostream& stream)
