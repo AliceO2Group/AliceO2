@@ -75,7 +75,7 @@ void CTFCoder::encode(VEC& buff, const gsl::span<const Digit>& digitVec, const g
     MD::EENCODE, // BLC_bcInc
     MD::EENCODE, // BLC_orbitInc
     MD::EENCODE, // BLC_nChan
-    //  MD::EENCODE, // BLC_flags
+    MD::EENCODE, // BLC_flags
     MD::EENCODE, // BLC_idChan
     MD::EENCODE, // BLC_qtcChain
     MD::EENCODE, // BLC_cfdTime
@@ -101,7 +101,7 @@ void CTFCoder::encode(VEC& buff, const gsl::span<const Digit>& digitVec, const g
   ENCODEFT0(cd.bcInc,     CTF::BLC_bcInc,    0);
   ENCODEFT0(cd.orbitInc,  CTF::BLC_orbitInc, 0);
   ENCODEFT0(cd.nChan,     CTF::BLC_nChan,    0);
-  //  ENCODEFT0(cd.eventFlags, CTF::BLC_flags,    0);
+  ENCODEFT0(cd.eventFlags, CTF::BLC_flags,    0);
   ENCODEFT0(cd.idChan ,   CTF::BLC_idChan,   0);
   ENCODEFT0(cd.qtcChain,  CTF::BLC_qtcChain, 0);
   ENCODEFT0(cd.cfdTime,   CTF::BLC_cfdTime,  0);
@@ -123,7 +123,7 @@ void CTFCoder::decode(const CTF::base& ec, VDIG& digitVec, VCHAN& channelVec)
   DECODEFT0(cd.bcInc,     CTF::BLC_bcInc); 
   DECODEFT0(cd.orbitInc,  CTF::BLC_orbitInc);
   DECODEFT0(cd.nChan,     CTF::BLC_nChan);
-  //  DECODEFT0(cd.eventFlags,     CTF::BLC_flags);
+  DECODEFT0(cd.eventFlags,     CTF::BLC_flags);
   DECODEFT0(cd.idChan,    CTF::BLC_idChan);
   DECODEFT0(cd.qtcChain,  CTF::BLC_qtcChain);
   DECODEFT0(cd.cfdTime,   CTF::BLC_cfdTime);
@@ -159,7 +159,6 @@ void CTFCoder::decompress(const CompressedDigits& cd, VDIG& digitVec, VCHAN& cha
     firstEntry = channelVec.size();
     uint8_t chID = 0;
     int amplA = 0, amplC = 0, timeA = 0, timeC = 0;
-    //  int mTime_trg_gate = 192; // #channels
     for (uint8_t ic = 0; ic < cd.nChan[idig]; ic++) {
       auto icc = channelVec.size();
       const auto& chan = channelVec.emplace_back((chID += cd.idChan[icc]), cd.cfdTime[icc], cd.qtcAmpl[icc], cd.qtcChain[icc]);

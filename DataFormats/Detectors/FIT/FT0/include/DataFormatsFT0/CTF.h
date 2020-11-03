@@ -26,7 +26,7 @@ namespace ft0
 
 /// Header for a single CTF
 struct CTFHeader {
-  uint32_t nTriggers = 0;  /// number of truggers in TF
+  uint32_t nTriggers = 0;  /// number of triggers in TF
   uint32_t firstOrbit = 0; /// 1st orbit of TF
   uint16_t firstBC = 0;    /// 1st BC of TF
 
@@ -43,12 +43,12 @@ struct CompressedDigits {
   std::vector<uint16_t> bcInc;    // increment in BC if the same orbit, otherwise abs bc
   std::vector<uint32_t> orbitInc; // increment in orbit
   std::vector<uint8_t> nChan;     // number of fired channels
-  // std::vector<uint8_t> eventFlags;     // special flags about event conditions: pile-up, not use for collision time, not use for event plane, etc.
+  std::vector<uint8_t> eventFlags; // special flags about event conditions: pile-up, not use for collision time, not use for event plane, etc.
 
   // channel data
   std::vector<uint8_t> idChan;   // channels ID: 1st on absolute, then increment
   std::vector<int16_t> cfdTime;  // CFD time
-  std::vector<int16_t> qtcAmpl;  // Amplitude
+  std::vector<int32_t> qtcAmpl;  // Amplitude
   std::vector<uint8_t> qtcChain; // QTC chain
 
   CompressedDigits() = default;
@@ -59,7 +59,7 @@ struct CompressedDigits {
 };
 
 /// wrapper for the Entropy-encoded clusters of the TF
-struct CTF : public o2::ctf::EncodedBlocks<CTFHeader, 8, uint32_t> {
+struct CTF : public o2::ctf::EncodedBlocks<CTFHeader, 9, uint32_t> {
 
   static constexpr size_t N = getNBlocks();
   enum Slots {
@@ -67,7 +67,7 @@ struct CTF : public o2::ctf::EncodedBlocks<CTFHeader, 8, uint32_t> {
     BLC_bcInc,    // increment in BC
     BLC_orbitInc, // increment in orbit
     BLC_nChan,    // number of fired channels
-    //   BLC_flags,    // flags special flags about event conditions: pile-up, not use for collision time, not use for event plane, etc.
+    BLC_flags,    // flags special flags about event conditions: pile-up, not use for collision time, not use for event plane, etc.
     BLC_idChan,   // channels ID: 1st on absolute, then increment
     BLC_qtcChain, // ADC chain
     BLC_cfdTime,  // CFD time

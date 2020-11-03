@@ -43,6 +43,7 @@ struct Triggers {
   int32_t amplC = -1000;      // sum amplitude C side
   int16_t timeA = -1000;      // average time A side
   int16_t timeC = -1000;      // average time C side
+  uint8_t eventFlags = 0;     // event conditions
   Triggers() = default;
   Triggers(uint8_t signals, int8_t chanA, int8_t chanC, int32_t aamplA, int32_t aamplC, int16_t atimeA, int16_t atimeC)
   {
@@ -112,7 +113,8 @@ struct Digit {
   void setEventStatus(uint8_t stat) { mEventStatus = stat; };
   void setStatusFlag(EEventStatus bit, bool value) { mEventStatus |= (value << bit); };
   bool getStatusFlag(EEventStatus bit) const { return bool(mEventStatus << bit); }
-  ClassDefNV(Digit, 4);
+  uint8_t getEventStatusWord() const { return mEventStatus; }
+  ClassDefNV(Digit, 5);
 };
 
 //For TCM extended mode (calibration mode), TCMdataExtended digit
