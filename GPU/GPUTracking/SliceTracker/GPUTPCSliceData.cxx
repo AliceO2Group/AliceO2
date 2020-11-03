@@ -39,7 +39,7 @@ void GPUTPCSliceData::InitializeRows(const MEM_CONSTANT(GPUParam) & p)
   }
   for (int i = 0; i < GPUCA_ROW_COUNT; ++i) {
     mRows[i].mX = p.tpcGeometry.Row2X(i);
-    mRows[i].mMaxY = CAMath::Tan(p.DAlpha / 2.) * mRows[i].mX;
+    mRows[i].mMaxY = CAMath::Tan(p.par.DAlpha / 2.) * mRows[i].mX;
   }
 }
 
@@ -111,7 +111,7 @@ void* GPUTPCSliceData::SetPointersRows(void* mem)
 GPUd() void GPUTPCSliceData::GetMaxNBins(GPUconstantref() const MEM_CONSTANT(GPUConstantMem) * mem, GPUTPCRow* GPUrestrict() row, int& maxY, int& maxZ)
 {
   maxY = row->mMaxY * 2.f / GPUCA_MIN_BIN_SIZE + 1;
-  maxZ = mem->param.continuousMaxTimeBin > 0 ? mem->calibObjects.fastTransform->convTimeToZinTimeFrame(0, 0, mem->param.continuousMaxTimeBin) + 50 : 300;
+  maxZ = mem->param.par.continuousMaxTimeBin > 0 ? mem->calibObjects.fastTransform->convTimeToZinTimeFrame(0, 0, mem->param.par.continuousMaxTimeBin) + 50 : 300;
   maxZ = maxZ / GPUCA_MIN_BIN_SIZE + 1;
 }
 
@@ -159,7 +159,7 @@ GPUdii() int GPUTPCSliceData::InitFromClusterData(int nBlocks, int nThreads, int
 #ifdef GPUCA_GPUCODE
   constexpr bool EarlyTransformWithoutClusterNative = false;
 #else
-  bool EarlyTransformWithoutClusterNative = mem->param.earlyTpcTransform && mem->ioPtrs.clustersNative == nullptr;
+  bool EarlyTransformWithoutClusterNative = mem->param.par.earlyTpcTransform && mem->ioPtrs.clustersNative == nullptr;
 #endif
   int* tmpHitIndex = nullptr;
   const unsigned int* NumberOfClustersInRow = nullptr;
@@ -172,7 +172,7 @@ GPUdii() int GPUTPCSliceData::InitFromClusterData(int nBlocks, int nThreads, int
   unsigned int NumberOfClustersInRowA[GPUCA_ROW_COUNT];
 
   vecpod<int> tmpHitIndexA;
-  if (EarlyTransformWithoutClusterNative) { // Implies mem->param.earlyTpcTransform but no ClusterNative present
+  if (EarlyTransformWithoutClusterNative) { // Implies mem->param.par.earlyTpcTransform but no ClusterNative present
     NumberOfClustersInRow = NumberOfClustersInRowA;
     RowOffsets = RowOffsetsA;
     tmpHitIndexA.resize(mNumberOfHits);
@@ -256,7 +256,7 @@ GPUdii() int GPUTPCSliceData::InitFromClusterData(int nBlocks, int nThreads, int
         UpdateMinMaxYZ(yMin, yMax, zMin, zMax, YZData[RowOffset + i].x, YZData[RowOffset + i].y);
       }
     } else {
-      if (mem->param.earlyTpcTransform) { // Early transform case with ClusterNative present
+      if (mem->param.par.earlyTpcTransform) { // Early transform case with ClusterNative present
         for (unsigned int i = iThread; i < NumberOfClusters; i += nThreads) {
           float2 tmp;
           tmp.x = mClusterData[RowOffset + i].y;
@@ -393,7 +393,7 @@ GPUdii() int GPUTPCSliceData::InitFromClusterData(int nBlocks, int nThreads, int
 
     if (iThread == 0) {
       const float maxAbsZ = CAMath::Max(CAMath::Abs(tmpMinMax[2]), CAMath::Abs(tmpMinMax[3]));
-      if (maxAbsZ > 300 && !mem->param.ContinuousTracking) {
+      if (maxAbsZ > 300 && !mem->param.par.ContinuousTracking) {
         mem->errorCodes.raiseError(GPUErrors::ERROR_SLICEDATA_Z_OVERFLOW, (unsigned int)maxAbsZ);
         return 1;
       }

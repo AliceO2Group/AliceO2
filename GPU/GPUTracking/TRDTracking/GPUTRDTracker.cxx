@@ -132,7 +132,7 @@ void GPUTRDTracker_t<TRDTRK, PROP>::InitializeProcessor()
     Error("Init", "TRD geometry must be provided externally");
   }
 
-  float Bz = Param().BzkG;
+  float Bz = Param().par.BzkG;
   GPUInfo("Initializing with B-field: %f kG", Bz);
   if (abs(abs(Bz) - 2) < 0.1) {
     // magnetic field +-0.2 T

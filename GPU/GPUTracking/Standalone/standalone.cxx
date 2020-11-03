@@ -536,7 +536,7 @@ int LoadEvent(int iEvent, int x)
     }
   }
 
-  if (!rec->GetParam().earlyTpcTransform && chainTracking->mIOPtrs.clustersNative == nullptr && chainTracking->mIOPtrs.tpcPackedDigits == nullptr && chainTracking->mIOPtrs.tpcZS == nullptr) {
+  if (!rec->GetParam().par.earlyTpcTransform && chainTracking->mIOPtrs.clustersNative == nullptr && chainTracking->mIOPtrs.tpcPackedDigits == nullptr && chainTracking->mIOPtrs.tpcZS == nullptr) {
     printf("Need cluster native data for on-the-fly TPC transform\n");
     return 1;
   }

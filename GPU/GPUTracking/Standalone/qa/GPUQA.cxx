@@ -904,7 +904,7 @@ void GPUQA::RunQA(bool matchOnly)
     prop.SetMaxSinPhi(.999);
     prop.SetMaterialTPC();
     prop.SetPolynomialField(&mTracking->GetParam().polynomialField);
-    prop.SetToyMCEventsFlag(mTracking->GetParam().ToyMCEventsFlag);
+    prop.SetToyMCEventsFlag(mTracking->GetParam().par.ToyMCEventsFlag);
 
     for (unsigned int i = 0; i < mTracking->mIOPtrs.nMergedTracks; i++) {
       if (mConfig.writeMCLabels) {
@@ -983,7 +983,7 @@ void GPUQA::RunQA(bool matchOnly)
       prop.SetTrack(&param, alpha);
       bool inFlyDirection = 0;
 #ifdef GPUCA_TPC_GEOMETRY_O2 // ignore z here, larger difference in X due to shifted reference
-      if (mConfig.strict && (param.X() - mclocal[0]) * (param.X() - mclocal[0]) + (param.Y() - mclocal[1]) * (param.Y() - mclocal[1]) + (mTracking->GetParam().continuousMaxTimeBin ? 0 : ((param.Z() - mc1.z) * (param.Z() - mc1.z))) > (5 + abs(81 - TRACK_EXPECTED_REFERENCE_X)) * (5 + abs(81 - TRACK_EXPECTED_REFERENCE_X))) {
+      if (mConfig.strict && (param.X() - mclocal[0]) * (param.X() - mclocal[0]) + (param.Y() - mclocal[1]) * (param.Y() - mclocal[1]) + (mTracking->GetParam().par.continuousMaxTimeBin ? 0 : ((param.Z() - mc1.z) * (param.Z() - mc1.z))) > (5 + abs(81 - TRACK_EXPECTED_REFERENCE_X)) * (5 + abs(81 - TRACK_EXPECTED_REFERENCE_X))) {
 #else // Consider Z offset (pseudo-tf mc tracks have shifted z)
       if (mConfig.strict && (param.X() - mclocal[0]) * (param.X() - mclocal[0]) + (param.Y() - mclocal[1]) * (param.Y() - mclocal[1]) + (param.Z() + param.TZOffset() - mc1.z) * (param.Z() + param.TZOffset() - mc1.z) > 25) { // TODO: fix TZOffset
 #endif
@@ -994,7 +994,7 @@ void GPUQA::RunQA(bool matchOnly)
         continue;
       }
 #ifdef GPUCA_TPC_GEOMETRY_O2 // ignore z here, larger difference in X due to shifted reference
-      if (fabsf(param.Y() - mclocal[1]) > (mConfig.strict ? 1.f : 4.f) || (mTracking->GetParam().continuousMaxTimeBin == 0 && fabsf(param.Z() + param.TZOffset() - mc1.z) > (mConfig.strict ? 1.f : 4.f))) { // TODO: fix TZOffset here
+      if (fabsf(param.Y() - mclocal[1]) > (mConfig.strict ? 1.f : 4.f) || (mTracking->GetParam().par.continuousMaxTimeBin == 0 && fabsf(param.Z() + param.TZOffset() - mc1.z) > (mConfig.strict ? 1.f : 4.f))) { // TODO: fix TZOffset here
 #else
       if (fabsf(param.Y() - mclocal[1]) > (mConfig.strict ? 1.f : 4.f) || fabsf(param.Z() + param.TZOffset() - mc1.z) > (mConfig.strict ? 1.f : 4.f)) {                                                                         // TODO: fix TZOffset here
 #endif
@@ -1340,7 +1340,7 @@ void GPUQA::RunQA(bool matchOnly)
 
   // Create CSV DumpTrackHits
   if (mConfig.csvDump) {
-    if (!mTracking->GetParam().earlyTpcTransform) {
+    if (!mTracking->GetParam().par.earlyTpcTransform) {
       GPUError("Unsupported settings for csv dump\n");
       return;
     }
