@@ -36,51 +36,44 @@ using namespace o2::framework::expressions;
 
 struct EmcalCorrectionTask {
   Produces<o2::aod::EMCALClusters> clusters;
-  //Produces<o2::aod::Jets> jets;
-  //Produces<o2::aod::JetConstituents> constituents;
 
   // Options for the clusterization
+  // 1 corresponds to EMCAL cells based on the Run2 definition.
   Configurable<int> selectedCellType{"selectedCellType", 1, "EMCAL Cell type"};
-
-  //BkgMode bkgMode = BkgMode::none;
-  //Configurable<double> rParamBkg{"rParamBkg", 0.2, "jet radius for background"};
-  //Configurable<double> rapBkg{"rapBkg", .9, "rapidity range for background"};
-  //// TODO: use configurables also for enums
-  //fastjet::JetAlgorithm algorithmBkg{fastjet::kt_algorithm};
-  //fastjet::RecombinationScheme recombSchemeBkg{fastjet::E_scheme};
-  //fastjet::JetDefinition jetDefBkg{algorithmBkg, rParamBkg, recombSchemeBkg, strategy};
-  //fastjet::AreaDefinition areaDefBkg{areaType, ghostSpec};
-  //fastjet::Selector selBkg = fastjet::SelectorAbsRapMax(rapBkg);
+  Configurable<double> seedEnergy{"seedEnergy", 0.1, "Clusterizer seed energy."};
+  Configurable<double> minCellEnergy{"minCellEnergy", 0.05, "Clusterizer minimum cell energy."};
+  // TODO: Check this range, especially after change to the conversion...
+  Configurable<double> timeCut{"timeCut", 10000, "Cell time cut"};
+  Configurable<double> timeMin{"timeMin", 0, "Min cell time"};
+  Configurable<double> timeMax{"timeMax", 10000, "Max cell time"};
+  Configurable<bool> enableEnergyGradientCut{"enableEnergyGradientCut", true, "Enable energy gradient cut."};
+  Configurable<double> gradientCut{"gradientCut", 0.03, "Clusterizer energy gradient cut."};
 
   // Clusterizer and related
   // Apparently streaming these objects really doesn't work, and causes problems for setting up the workflow.
-  // So we define them below.
+  // So we use unique_ptr and define them below.
   std::unique_ptr<o2::emcal::Clusterizer<o2::emcal::Cell>> mClusterizer;
   std::unique_ptr<o2::emcal::ClusterFactory<o2::emcal::Cell>> mClusterFactory;
   // Cells and clusters
   std::vector<o2::emcal::Cell> mEmcalCells;
   std::vector<o2::emcal::AnalysisCluster> mAnalysisClusters;
 
-  //std::unique_ptr<fastjet::BackgroundEstimatorBase> bge;
-  //std::unique_ptr<fastjet::Subtractor> sub;
-
-  //std::vector<fastjet::PseudoJet> pJets;
   // QA
-  OutputObj<TH1F> hClusterE{TH1F("hClusterE", "hClusterE", 200, 0.0, 100)};
-  OutputObj<TH2F> hClusterEtaPhi{TH2F("hClusterEtaPhi", "hClusterEtaPhi", 160, -0.8, 0.8, 72, 0, 2 * 3.14159)};
+  // TODO: Not comprehensive.
+  OutputObj<TH1F> hCellE{"hCellE"};
+  OutputObj<TH1I> hCellTowerID{"hCellTowerID"};
+  OutputObj<TH2F> hCellEtaPhi{"hCellEtaPhi"};
+  OutputObj<TH2I> hCellRowCol{"hCellRowCol"};
+  OutputObj<TH1F> hClusterE{"hClusterE"};
+  OutputObj<TH2F> hClusterEtaPhi{"hClusterEtaPhi"};
 
   void init(InitContext const&)
   {
-    LOG(INFO) << "Start init!";
-    // Initialize clusterizer
-    // FIXME: Placeholder configuration -> make configurable.
-    double timeCut = 10000, timeMin = 0, timeMax = 10000, gradientCut = 0.03, thresholdSeedEnergy = 0.1, thresholdCellEnergy = 0.05;
-    bool doEnergyGradientCut = true;
-
-    // FIXME: Hardcoded for run 2
+    LOG(DEBUG) << "Start init!";
     // NOTE: The geometry manager isn't necessary just to load the EMCAL geometry.
     //       However, it _is_ necessary for loading the misalignment matrices as of September 2020
     //       Eventually, those matrices will be moved to the CCDB, but it's not yet ready.
+    // FIXME: Hardcoded for run 2
     o2::base::GeometryManager::loadGeometry(); // for generating full clusters
     LOG(DEBUG) << "After load geometry!";
     o2::emcal::Geometry* geometry = o2::emcal::Geometry::GetInstanceFromRunNumber(223409);
@@ -88,15 +81,24 @@ struct EmcalCorrectionTask {
       LOG(ERROR) << "Failure accessing geometry";
     }
 
-    // Initialize clusterizer and link geometry
-    LOG(INFO) << "Init clusterizer!";
+    // Setup clusterizer
+    LOG(DEBUG) << "Init clusterizer!";
     mClusterizer = decltype(mClusterizer)(new o2::emcal::Clusterizer<o2::emcal::Cell>());
-    mClusterizer->initialize(timeCut, timeMin, timeMax, gradientCut, doEnergyGradientCut, thresholdSeedEnergy, thresholdCellEnergy);
+    mClusterizer->initialize(timeCut, timeMin, timeMax, gradientCut, enableEnergyGradientCut, seedEnergy, minCellEnergy);
     mClusterizer->setGeometry(geometry);
-    LOG(INFO) << "Done with clusterizer. Setup cluster factory.";
-    // Initialize cluster factory.
+    LOG(DEBUG) << "Done with clusterizer. Setup cluster factory.";
+    // Setup cluster factory.
     mClusterFactory = decltype(mClusterFactory)(new o2::emcal::ClusterFactory<o2::emcal::Cell>());
-    LOG(INFO) << "Completed init!";
+    LOG(DEBUG) << "Completed init!";
+
+    // Setup QA hists.
+    hCellE.setObject(new TH1F("hCellE", "hCellE", 200, 0.0, 100));
+    hCellTowerID.setObject(new TH1I("hCellTowerID", "hCellTowerID", 20000, 0, 20000));
+    hCellEtaPhi.setObject(new TH2F("hCellEtaPhi", "hCellEtaPhi", 160, -0.8, 0.8, 72, 0, 2 * 3.14159));
+    // NOTE: Reversed column and row because it's more natural for presentatin.
+    hCellRowCol.setObject(new TH2I("hCellRowCol", "hCellRowCol;Column;Row", 97, 0, 97, 600, 0, 600));
+    hClusterE.setObject(new TH1F("hClusterE", "hClusterE", 200, 0.0, 100));
+    hClusterEtaPhi.setObject(new TH2F("hClusterEtaPhi", "hClusterEtaPhi", 160, -0.8, 0.8, 72, 0, 2 * 3.14159));
   }
 
   //void process(aod::Collision const& collision, soa::Filtered<aod::Tracks> const& fullTracks, aod::Calos const& cells)
@@ -105,20 +107,18 @@ struct EmcalCorrectionTask {
   // Appears to need the BC to be accessed to be available in the collision table...
   void process(aod::Collision const& collision, aod::Calos const& cells, aod::BCs const& bcs)
   {
-    LOG(INFO) << "Starting process.";
-    // Convert aod::Calo to o2::emcal::Cell
+    LOG(DEBUG) << "Starting process.";
+    // Convert aod::Calo to o2::emcal::Cell which can be used with the clusterizer.
+    // In particular, we need to filter only EMCAL cells.
     mEmcalCells.clear();
     for (auto & cell : cells) {
-      // TODO: Select only EMCAL cells based on the CaloType
-      //       Check in AliRoot.
       if (cell.caloType() != selectedCellType || cell.bc() != collision.bc()) {
-        //LOG(INFO) << "Rejected";
+        //LOG(DEBUG) << "Rejected";
         continue;
       }
-      //LOG(INFO) << "Cell E: " << cell.getEnergy();
-      //LOG(INFO) << "Cell E: " << cell;
+      //LOG(DEBUG) << "Cell E: " << cell.getEnergy();
+      //LOG(DEBUG) << "Cell E: " << cell;
 
-      // TODO: It identifies almost all of the cells as low gain...? Seems like they should be high gain?
       mEmcalCells.emplace_back(o2::emcal::Cell(
         cell.cellNumber(),
         cell.amplitude(),
@@ -127,58 +127,69 @@ struct EmcalCorrectionTask {
       ));
     }
 
-    LOG(INFO) << "Converted EMCAL cells";
+    // Cell QA
+    // For convenience, use the clusterizer stored geometry to get the eta-phi
     for (auto & cell : mEmcalCells) {
-      LOG(INFO) << cell.getTower() <<  ": E: " << cell.getEnergy() << ", time: " << cell.getTimeStamp()  << ", type: " << cell.getType();
-      //LOG(INFO) << cell;
+      hCellE->Fill(cell.getEnergy());
+      hCellTowerID->Fill(cell.getTower());
+      auto res = mClusterizer->getGeometry()->EtaPhiFromIndex(cell.getTower());
+      hCellEtaPhi->Fill(std::get<0>(res), std::get<1>(res));
+      res = mClusterizer->getGeometry()->GlobalRowColFromIndex(cell.getTower());
+      // NOTE: Reversed column and row because it's more natural for presentatin.
+      hCellRowCol->Fill(std::get<1>(res), std::get<0>(res));
+    }
+
+    // TODO: Helpful for now, but should be removed.
+    LOG(DEBUG) << "Converted EMCAL cells";
+    for (auto & cell : mEmcalCells) {
+      LOG(DEBUG) << cell.getTower() <<  ": E: " << cell.getEnergy() << ", time: " << cell.getTimeStamp()  << ", type: " << cell.getType();
     }
 
     LOG(INFO) << "Converted cells. Contains: " << mEmcalCells.size() << ". Originally " << cells.size() << ". About to run clusterizer.";
 
     // Run the clusterizer
-    //mClusterizer->findClusters(gsl::span<o2::emcal::Cell>(mEmcalCells.begin(), mEmcalCells.size()));
     mClusterizer->findClusters(mEmcalCells);
-    LOG(INFO) << "Found clusters.";
+    LOG(DEBUG) << "Found clusters.";
     auto emcalClusters = mClusterizer->getFoundClusters();
     auto emcalClustersInputIndices = mClusterizer->getFoundClustersInputIndices();
-    LOG(INFO) << "Retrieved results. About to setup cluster factory.";
+    LOG(DEBUG) << "Retrieved results. About to setup cluster factory.";
 
     // Convert to analysis clusters.
+    // First, the cluster factory requires cluster and cell information in order to build the clusters.
     mAnalysisClusters.clear();
     mClusterFactory->reset();
     mClusterFactory->setClustersContainer(*emcalClusters);
     mClusterFactory->setCellsContainer(mEmcalCells);
     mClusterFactory->setCellsIndicesContainer(*emcalClustersInputIndices);
-    LOG(INFO) << "Cluster factory set up.";
+    LOG(DEBUG) << "Cluster factory set up.";
 
     // Convert to analysis clusters.
     for (int icl = 0; icl < mClusterFactory->getNumberOfClusters(); icl++) {
       auto analysisCluster = mClusterFactory->buildCluster(icl);
       mAnalysisClusters.emplace_back(analysisCluster);
     }
-    LOG(INFO) << "Converted to analysis clusters.";
+    LOG(DEBUG) << "Converted to analysis clusters.";
 
     // Store the clusters in the table
     for (const auto& cluster : mAnalysisClusters) {
-      // TODO: Determine eta, phi!
-      //clusters(collision, cluster.E(), cluster.Eta(), cluster.Phi(), cluster.getM02());
+      // Determine the cluster eta, phi, correcting for the vertex position.
       auto pos = cluster.getGlobalPosition();
-      // Correct for the vertex position.
       pos = pos - Point3D<float>{collision.posX(), collision.posY(), collision.posZ()};
       // Normalize the vector and rescale by energy.
       pos /= (cluster.E() / std::sqrt(pos.Mag2()));
-      //double px = ;
-      //double py = ;
-      //double pz = ;
-      //double pt = std::sqrt(px * px + py * py);
-      //double phi = atan2(py, px);
-      //double eta = asinh(pz / pt);
-      clusters(collision, cluster.E(), pos.Eta(), pos.Phi(), cluster.getM02());
+
+      // We have our necessary properties. Now we store outputs
       //LOG(DEBUG) << "Cluster E: " << cluster.E();
+      clusters(collision, cluster.E(), pos.Eta(), pos.Phi(), cluster.getM02());
+      // TEMP
+      if (cluster.E() < 0.15) {
+        continue;
+      }
+      // ENDTEMP
       hClusterE->Fill(cluster.E());
       hClusterEtaPhi->Fill(pos.Eta(), pos.Phi());
     }
-    LOG(INFO) << "Done with process.";
+    LOG(DEBUG) << "Done with process.";
   }
 };
 
