@@ -14,7 +14,7 @@
 #ifndef GPUQA_H
 #define GPUQA_H
 
-#include "GPUQAConfig.h"
+#include "GPUSettings.h"
 struct AliHLTTPCClusterMCWeight;
 class TH1F;
 class TH2F;
@@ -40,8 +40,6 @@ class GPUQA
  public:
   GPUQA(GPUChainTracking* rec) {}
   ~GPUQA() = default;
-
-  typedef GPUQAConfig configQA;
 
   int InitQA() { return 1; }
   void RunQA(bool matchOnly = false) {}
@@ -84,8 +82,6 @@ class GPUQA
  public:
   GPUQA(GPUChainTracking* rec);
   ~GPUQA();
-
-  typedef GPUQAConfig configQA;
 
   int InitQA();
   void RunQA(bool matchOnly = false);
@@ -172,7 +168,7 @@ class GPUQA
   static bool MCComp(const mcLabel_t& a, const mcLabel_t& b);
 
   GPUChainTracking* mTracking;
-  const configQA& mConfig;
+  const GPUSettingsQA& mConfig;
 
   //-------------------------: Some compile time settings....
   static const constexpr bool PLOT_ROOT = 0;

@@ -11,4 +11,6 @@
 /// \file qconfigoptions.h
 /// \author David Rohr
 
+#include "GPUSettings.h" // Usually we are included from GPUSettings.h, so this doesn't do anything.
+                         // But ROOT or qconfig.cpp will include us directly, so load the settings first.
 #include "GPUSettingsList.h"
