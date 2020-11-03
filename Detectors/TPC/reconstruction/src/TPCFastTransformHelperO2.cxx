@@ -65,8 +65,9 @@ void TPCFastTransformHelperO2::init()
   for (int iRow = 0; iRow < mGeo.getNumberOfRows(); iRow++) {
     Sector sector = 0;
     int regionNumber = 0;
-    while (iRow >= mapper.getGlobalRowOffsetRegion(regionNumber) + mapper.getNumberOfRowsRegion(regionNumber))
+    while (iRow >= mapper.getGlobalRowOffsetRegion(regionNumber) + mapper.getNumberOfRowsRegion(regionNumber)) {
       regionNumber++;
+    }
 
     const PadRegionInfo& region = mapper.getPadRegionInfo(regionNumber);
 

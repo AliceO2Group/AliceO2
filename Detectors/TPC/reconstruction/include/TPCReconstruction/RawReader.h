@@ -247,8 +247,9 @@ inline std::shared_ptr<std::vector<uint16_t>> RawReader::getData(const PadPos& p
 
 inline std::shared_ptr<std::vector<uint16_t>> RawReader::getNextData(PadPos& padPos)
 {
-  if (mDataIterator == mData.end())
+  if (mDataIterator == mData.end()) {
     return nullptr;
+  }
   std::map<PadPos, std::shared_ptr<std::vector<uint16_t>>>::iterator last = mDataIterator;
   mDataIterator++;
   padPos = last->first;

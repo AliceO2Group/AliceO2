@@ -102,10 +102,11 @@ inline short SyncPatternMonitor::addSequence(const short hw0, const short hw1, c
 inline void SyncPatternMonitor::checkWord(const short hw, const short pos)
 {
   ++mCheckedWords;
-  if (hw == SYNC_PATTERN[mPosition])
+  if (hw == SYNC_PATTERN[mPosition]) {
     ++mPosition;
-  else if (!(mPosition == SYNC_START + 2 && hw == SYNC_PATTERN[mPosition - 1]))
+  } else if (!(mPosition == SYNC_START + 2 && hw == SYNC_PATTERN[mPosition - 1])) {
     mPosition = SYNC_START;
+  }
   // Don't reset mPosition at the beginning to avoid missing of start of sync pattern in cases like
   //
   //
@@ -116,8 +117,9 @@ inline void SyncPatternMonitor::checkWord(const short hw, const short pos)
   //              |
   //             real start
 
-  if (mPosition == 32)
+  if (mPosition == 32) {
     patternFound(pos);
+  }
 };
 
 inline void SyncPatternMonitor::patternFound(const short hw)

@@ -87,8 +87,9 @@ inline bool ElectronTransport::isElectronAttachment(float driftTime)
 {
   if (mRandomFlat.getNextValue() < mGasParam->AttCoeff * mGasParam->OxygenCont * driftTime) {
     return true; /// electron is attached and lost
-  } else
+  } else {
     return false; /// not attached
+  }
 }
 
 inline float ElectronTransport::getDriftTime(float zPos, float signChange) const

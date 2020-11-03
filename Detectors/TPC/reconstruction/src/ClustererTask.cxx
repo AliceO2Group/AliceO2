@@ -98,10 +98,12 @@ void ClustererTask::Exec(Option_t* option)
 {
   LOG(DEBUG) << "Running clusterization on event " << mEventCount << " with " << mDigitsArray->size() << " digits.";
 
-  if (mHwClustersArray)
+  if (mHwClustersArray) {
     mHwClustersArray->clear();
-  if (mHwClustersMCTruthArray)
+  }
+  if (mHwClustersMCTruthArray) {
     mHwClustersMCTruthArray->clear();
+  }
 
   mHwClusterer->process(gsl::span<o2::tpc::Digit const>(mDigitsArray->data(), mDigitsArray->size()), *mDigitMCTruthArray.get());
   LOG(DEBUG) << "Hw clusterer delivered " << mHwClustersArray->size() << " cluster container";
@@ -114,10 +116,12 @@ void ClustererTask::FinishTask()
 {
   LOG(DEBUG) << "Finish clusterization";
 
-  if (mHwClustersArray)
+  if (mHwClustersArray) {
     mHwClustersArray->clear();
-  if (mHwClustersMCTruthArray)
+  }
+  if (mHwClustersMCTruthArray) {
     mHwClustersMCTruthArray->clear();
+  }
 
   mHwClusterer->finishProcess(*mDigitsArray.get(), *mDigitMCTruthArray.get());
   LOG(DEBUG) << "Hw clusterer delivered " << mHwClustersArray->size() << " cluster container";

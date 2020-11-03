@@ -37,8 +37,9 @@ int HardwareClusterDecoder::decodeClusters(std::vector<std::pair<const ClusterHa
                                            const std::vector<o2::dataformats::ConstMCTruthContainerView<o2::MCCompLabel>>* inMCLabels,
                                            o2::dataformats::MCTruthContainer<o2::MCCompLabel>* outMCLabels)
 {
-  if (mIntegrator == nullptr)
+  if (mIntegrator == nullptr) {
     mIntegrator.reset(new DigitalCurrentClusterIntegrator);
+  }
   // MCLabelContainer does only allow appending new labels, so we need to write to separate
   // containers per {sector,padrow} and merge at the end;
   std::vector<o2::dataformats::MCTruthContainer<o2::MCCompLabel>> outMCLabelContainers;
@@ -95,8 +96,9 @@ int HardwareClusterDecoder::decodeClusters(std::vector<std::pair<const ClusterHa
             }
           } else {
             //Count how many output buffers we need (and how large they are below)
-            if (nCls == 0)
+            if (nCls == 0) {
               numberOfOutputContainers++;
+            }
           }
           nCls++;
           nTotalClusters++;

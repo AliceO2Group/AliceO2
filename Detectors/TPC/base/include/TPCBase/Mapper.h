@@ -581,8 +581,9 @@ inline const DigitPos Mapper::findDigitPosFromLocalPosition(const LocalPosition3
   for (const PadRegionInfo& padRegion : mMapPadRegionInfo) {
     cru = CRU(sec, padRegion.getRegion());
     pad = padRegion.findPad(pos);
-    if (pad.isValid())
+    if (pad.isValid()) {
       break;
+    }
   }
 
   return DigitPos(cru, pad);
@@ -592,8 +593,9 @@ inline const DigitPos Mapper::findDigitPosFromGlobalPosition(const GlobalPositio
 {
   // ===| find sector |=========================================================
   float phi = std::atan2(pos.Y(), pos.X());
-  if (phi < 0.)
+  if (phi < 0.) {
     phi += TWOPI;
+  }
   const unsigned char secNum = std::floor(phi / SECPHIWIDTH);
   // const float secPhi = secNum * SECPHIWIDTH + SECPHIWIDTH / 2.;
   Sector sec(secNum + (pos.Z() < 0) * SECTORSPERSIDE);

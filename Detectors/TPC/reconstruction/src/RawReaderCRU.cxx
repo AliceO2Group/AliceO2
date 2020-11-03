@@ -199,8 +199,9 @@ void RawReaderCRUEventSync::streamTo(std::ostream& output) const
 //==============================================================================
 int RawReaderCRU::scanFile()
 {
-  if (mFileIsScanned)
+  if (mFileIsScanned) {
     return 0;
+  }
 
   // std::vector<PacketDescriptor> mPacketDescriptorMap;
   //const uint64_t RDH_HEADERWORD0 = 0x1ea04003;
@@ -210,8 +211,9 @@ int RawReaderCRU::scanFile()
   std::ifstream& file = mFileHandle;
   if (!file.is_open()) {
     file.open(mInputFileName, std::ifstream::binary);
-    if (!file.good())
+    if (!file.good()) {
       throw std::runtime_error("Unable to open or access file " + mInputFileName);
+    }
   }
 
   // get length of file in bytes
@@ -398,8 +400,9 @@ void RawReaderCRU::findSyncPositions()
   std::ifstream& file = mFileHandle;
   if (!file.is_open()) {
     file.open(mInputFileName, std::ifstream::binary);
-    if (!file.good())
+    if (!file.good()) {
       throw std::runtime_error("Unable to open or access file " + mInputFileName);
+    }
   }
 
   // loop over the MaxNumberOfLinks potential links in the data
@@ -460,8 +463,9 @@ int RawReaderCRU::processPacket(GBTFrame& gFrame, uint32_t startPos, uint32_t si
   std::ifstream& file = mFileHandle;
   if (!file.is_open()) {
     file.open(mInputFileName, std::ifstream::binary);
-    if (!file.good())
+    if (!file.good()) {
       throw std::runtime_error("Unable to open or access file " + mInputFileName);
+    }
   }
 
   // jump to the start position of the packet
@@ -705,8 +709,9 @@ void RawReaderCRU::collectGBTData(std::vector<o2::byte>& data)
   std::ifstream& file = mFileHandle;
   if (!file.is_open()) {
     file.open(mInputFileName, std::ios::binary);
-    if (!file.good())
+    if (!file.good()) {
       throw std::runtime_error("Unable to open or access file " + mInputFileName);
+    }
   }
 
   size_t presentDataPosition = 0;
@@ -845,8 +850,9 @@ void ADCRawData::streamTo(std::ostream& output) const
 {
   const auto numTimeBins = std::min(getNumTimebins(), mNumTimeBins);
   for (int i = 0; i < numTimeBins * 16; i++) {
-    if (i % 16 == 0)
+    if (i % 16 == 0) {
       output << std::setw(4) << std::to_string(i / 16) << " : ";
+    }
     output << std::setw(4) << mADCRaw[(mOutputStream)][i];
     output << (((i + 1) % 16 == 0) ? "\n" : " ");
   };
