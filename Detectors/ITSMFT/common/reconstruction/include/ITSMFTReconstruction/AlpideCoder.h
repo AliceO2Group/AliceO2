@@ -118,8 +118,8 @@ class AlpideCoder
   static void setNoiseThreshold(int t) { mNoiseThreshold = t; }
 
   /// decode alpide data for the next non-empty chip from the buffer
-  template <class T>
-  static int decodeChip(ChipPixelData& chipData, T& buffer)
+  template <class T, typename CG>
+  static int decodeChip(ChipPixelData& chipData, T& buffer, CG cidGetter)
   {
     // read record for single non-empty chip, updating on change module and cycle.
     // return number of records filled (>0), EOFFlag or Error
@@ -141,7 +141,7 @@ class AlpideCoder
       uint8_t dataCM = dataC & (~MaskChipID);
       //
       if ((expectInp & ExpectChipEmpty) && dataCM == CHIPEMPTY) { // empty chip was expected
-        //chipData.setChipID(dataC & MaskChipID);                   // here we set the chip ID within the module // now set upstream
+        chipData.setChipID(cidGetter(dataC & MaskChipID));        // here we set the global chip ID
         if (!buffer.next(timestamp)) {
 #ifdef ALPIDE_DECODING_STAT
           chipData.setError(ChipStat::TruncatedChipEmpty);
@@ -153,7 +153,7 @@ class AlpideCoder
       }
 
       if ((expectInp & ExpectChipHeader) && dataCM == CHIPHEADER) { // chip header was expected
-        //chipData.setChipID(dataC & MaskChipID);                     // here we set the chip ID within the module // now set upstream
+        chipData.setChipID(cidGetter(dataC & MaskChipID));          // here we set the global chip ID
         if (!buffer.next(timestamp)) {
 #ifdef ALPIDE_DECODING_STAT
           chipData.setError(ChipStat::TruncatedChipHeader);

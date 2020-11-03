@@ -1256,8 +1256,12 @@ class RawPixelReader : public PixelReader
         RDHUtils::printRDH(reinterpret_cast<const o2::header::RAWDataHeader*>(getGBTLink(decData.links[decData.cableLinkID[icab]])->lastRDH));
       }
 #endif
-
-      while ((res = mCoder.decodeChip(*chipData, cableData))) { // we register only chips with hits or errors flags set
+      auto cabHW = decData.cableHWID[icab];
+      auto ri = decData.ruInfo;
+      auto chIdGetter = [this, cabHW, ri](int cid) {
+        return this->mMAP.getGlobalChipID(cid, cabHW, *ri);
+      };
+      while ((res = mCoder.decodeChip(*chipData, cableData, chIdGetter))) { // we register only chips with hits or errors flags set
         if (res > 0) {
 #ifdef _RAW_READER_ERROR_CHECKS_
           // for the IB staves check if the cable ID is the same as the chip ID on the module
@@ -1271,7 +1275,7 @@ class RawPixelReader : public PixelReader
           }
 #endif
           // convert HW chip id within the module to absolute chip id
-          chipData->setChipID(mMAP.getGlobalChipID(chipData->getChipID(), decData.cableHWID[icab], *decData.ruInfo));
+          // chipData->setChipID(mMAP.getGlobalChipID(chipData->getChipID(), decData.cableHWID[icab], *decData.ruInfo));
           chipData->setInteractionRecord(mInteractionRecord);
           chipData->setTrigger(mTrigger);
           mDecodingStat.nNonEmptyChips++;
