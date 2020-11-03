@@ -18,7 +18,7 @@
 #include "MFTBase/GeometryTGeo.h"
 
 #include "DetectorsBase/GeometryManager.h"
-#include "MathUtils/Cartesian3D.h"
+#include "MathUtils/Cartesian.h"
 
 #include "FairLogger.h" // for LOG
 
@@ -43,7 +43,6 @@
 using namespace TMath;
 using namespace o2::mft;
 using namespace o2::detectors;
-using namespace o2::utils;
 
 using AlpideSegmentation = o2::itsmft::SegmentationAlpide;
 
@@ -132,8 +131,9 @@ void GeometryTGeo::Build(Int_t loadTrans)
         mLadderId2Index[j].resize(numberOfLadders + 1);
         Int_t nL = 0;
         for (Int_t nSensor = MinSensorsPerLadder; nSensor <= MaxSensorsPerLadder; nSensor++) {
-          if (mNumberOfLadders[j][nSensor] == 0)
+          if (mNumberOfLadders[j][nSensor] == 0) {
             continue;
+          }
           Int_t n = extractNumberOfLadders(i, j, nSensor, nL);
         } // nSensor
 
@@ -414,10 +414,10 @@ void GeometryTGeo::fillMatrixCache(Int_t mask)
     Build(mask);
     return;
   }
-  // LOG(INFO) << "mask " << mask << " o2::utils::bit2Mask " << o2::utils::bit2Mask(o2::TransformType::L2G) <<
+  // LOG(INFO) << "mask " << mask << " o2::math_utils::bit2Mask " << o2::math_utils::bit2Mask(o2::math_utils::TransformType::L2G) <<
   // FairLogger::endl;
   // build matrices
-  if ((mask & o2::utils::bit2Mask(o2::TransformType::L2G)) && !getCacheL2G().isFilled()) {
+  if ((mask & o2::math_utils::bit2Mask(o2::math_utils::TransformType::L2G)) && !getCacheL2G().isFilled()) {
     LOG(INFO) << "Loading MFT L2G matrices from TGeo";
     auto& cacheL2G = getCacheL2G();
     cacheL2G.setSize(mSize);
@@ -427,7 +427,7 @@ void GeometryTGeo::fillMatrixCache(Int_t mask)
     }
   }
 
-  if ((mask & o2::utils::bit2Mask(o2::TransformType::T2L)) && !getCacheT2L().isFilled()) {
+  if ((mask & o2::math_utils::bit2Mask(o2::math_utils::TransformType::T2L)) && !getCacheT2L().isFilled()) {
     // matrices for Tracking to Local frame transformation
     LOG(INFO) << "Loading MFT T2L matrices from TGeo";
     auto& cacheT2L = getCacheT2L();
@@ -438,7 +438,7 @@ void GeometryTGeo::fillMatrixCache(Int_t mask)
     }
   }
 
-  if ((mask & o2::utils::bit2Mask(o2::TransformType::T2G)) && !getCacheT2G().isFilled()) {
+  if ((mask & o2::math_utils::bit2Mask(o2::math_utils::TransformType::T2G)) && !getCacheT2G().isFilled()) {
     // matrices for Tracking to Global frame transformation
     LOG(INFO) << "Loading MFT T2G matrices from TGeo";
     auto& cacheT2G = getCacheT2G();
@@ -474,8 +474,9 @@ void GeometryTGeo::extractSensorXAlpha(int index, float& x, float& alpha) {}
 //__________________________________________________________________________
 Bool_t GeometryTGeo::getSensorID(Int_t index, Int_t& half, Int_t& disk, Int_t& ladder, Int_t& sensor) const
 {
-  if (index < 0 || index >= mTotalNumberOfSensors)
+  if (index < 0 || index >= mTotalNumberOfSensors) {
     return kFALSE;
+  }
 
   half = index / (mTotalNumberOfSensors / mNumberOfHalves);
   index = index % (mTotalNumberOfSensors / mNumberOfHalves);

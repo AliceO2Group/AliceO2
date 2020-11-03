@@ -27,7 +27,7 @@
 using namespace o2::itsmft;
 using namespace o2::its;
 
-using Point3Df = Point3D<float>;
+using Point3Df = o2::math_utils::Point3D<float>;
 
 TrivialVertexer::TrivialVertexer() = default;
 

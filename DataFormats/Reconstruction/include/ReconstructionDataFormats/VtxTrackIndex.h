@@ -53,6 +53,14 @@ class VtxTrackIndex : public AbstractRef<26, 3, 3>
   void print() const;
   std::string asString() const;
 
+  operator auto() const { return AbstractRef<26, 3, 3>(); }
+
+  bool isPVContributor() const { return testBit(Contributor); }
+  void setPVContributor() { setBit(Contributor); }
+
+  bool isAmbiguous() const { return testBit(Ambiguous); }
+  void setAmbiguous() { setBit(Ambiguous); }
+
   ClassDefNV(VtxTrackIndex, 1);
 };
 

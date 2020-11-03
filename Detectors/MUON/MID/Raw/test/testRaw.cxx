@@ -54,7 +54,9 @@ o2::mid::ColumnData getColData(uint8_t deId, uint8_t columnId, uint16_t nbp = 0,
 std::vector<o2::mid::ColumnData> sortData(const std::vector<o2::mid::ColumnData>& data, size_t first, size_t last)
 {
   std::vector<o2::mid::ColumnData> sortedData(data.begin() + first, data.begin() + last);
-  std::sort(sortedData.begin(), sortedData.end(), [](o2::mid::ColumnData& a, o2::mid::ColumnData& b) { if (a.deId == b.deId ) return (a.columnId < b.columnId); return (a.deId < b.deId); });
+  std::sort(sortedData.begin(), sortedData.end(), [](o2::mid::ColumnData& a, o2::mid::ColumnData& b) { if (a.deId == b.deId ) { return (a.columnId < b.columnId); 
+
+}return (a.deId < b.deId); });
   return sortedData;
 }
 
@@ -89,13 +91,14 @@ std::tuple<std::vector<o2::mid::ColumnData>, std::vector<o2::mid::ROFRecord>> en
   std::string tmpFilename = tmpFilename0 + ".raw";
   o2::mid::Encoder encoder;
   encoder.init(tmpFilename0.c_str());
+  std::string tmpConfigFilename = "tmp_MIDConfig.cfg";
+  encoder.getWriter().writeConfFile("MID", "RAWDATA", tmpConfigFilename.c_str(), false);
   for (auto& item : inData) {
     encoder.process(item.second, item.first, inEventType);
   }
   encoder.finalize();
 
-  o2::raw::RawFileReader rawReader;
-  rawReader.addFile(tmpFilename.c_str());
+  o2::raw::RawFileReader rawReader(tmpConfigFilename.c_str());
   rawReader.init();
   std::vector<char> buffer;
   for (size_t itf = 0; itf < rawReader.getNTimeFrames(); ++itf) {
@@ -114,6 +117,7 @@ std::tuple<std::vector<o2::mid::ColumnData>, std::vector<o2::mid::ROFRecord>> en
   fair::Logger::SetConsoleSeverity(severity);
 
   std::remove(tmpFilename.c_str());
+  std::remove(tmpConfigFilename.c_str());
 
   o2::mid::Decoder<o2::mid::GBTUserLogicDecoder> decoder;
   gsl::span<const uint8_t> data(reinterpret_cast<uint8_t*>(buffer.data()), buffer.size());
@@ -134,12 +138,17 @@ BOOST_AUTO_TEST_CASE(ColumnDataConverter)
 
   ir.bc = 200;
   inData[ir].emplace_back(getColData(3, 4, 0xFF00, 0xFF));
-  inData[ir].emplace_back(getColData(12, 4, 0xFF));
+  inData[ir].emplace_back(getColData(12, 4, 0, 0, 0xFF));
+
+  ir.bc = 400;
+  inData[ir].emplace_back(getColData(5, 1, 0xFF00, 0xFF));
+  inData[ir].emplace_back(getColData(14, 1, 0, 0, 0, 0xFF));
 
   std::vector<o2::mid::ROFRecord> rofs;
   std::vector<o2::mid::LocalBoardRO> outData;
   auto inEventType = o2::mid::EventType::Standard;
   o2::mid::ColumnDataToLocalBoard converter;
+  converter.setDebugMode(true);
   for (auto& item : inData) {
     converter.process(item.second);
     auto firstEntry = outData.size();
@@ -194,16 +203,20 @@ BOOST_AUTO_TEST_CASE(GBTUserLogicDecoder)
   o2::mid::GBTUserLogicEncoder encoder;
   encoder.setFeeId(feeId);
   for (auto& item : inData) {
-    encoder.process(item.second, item.first);
+    encoder.process(item.second, o2::InteractionRecord(item.first, 0));
   }
+  std::vector<char> buf;
+  encoder.flush(buf, o2::InteractionRecord());
   o2::header::RAWDataHeader rdh;
-  auto memSize = encoder.getBufferSize() + 64;
+  auto memSize = buf.size() + 64;
   rdh.word1 |= (memSize | (memSize << 16));
   // Sets the feeId
   rdh.word0 |= ((5 * 2) << 16);
   o2::mid::GBTUserLogicDecoder decoder;
   decoder.init(feeId);
-  decoder.process(encoder.getBuffer(), rdh);
+  std::vector<uint8_t> convertedBuffer(buf.size());
+  memcpy(convertedBuffer.data(), buf.data(), buf.size());
+  decoder.process(convertedBuffer, rdh);
   BOOST_REQUIRE(decoder.getROFRecords().size() == inData.size());
   auto inItMap = inData.begin();
   for (auto rofIt = decoder.getROFRecords().begin(); rofIt != decoder.getROFRecords().end(); ++rofIt) {
@@ -231,7 +244,7 @@ BOOST_AUTO_TEST_CASE(SmallSample)
 
   std::map<o2::InteractionRecord, std::vector<o2::mid::ColumnData>> inData;
   // Small standard event
-  o2::InteractionRecord ir(100, 1);
+  o2::InteractionRecord ir(100, 0);
 
   // Crate 5 link 0
   inData[ir].emplace_back(getColData(2, 4, 0x1, 0xFFFF));
@@ -241,9 +254,13 @@ BOOST_AUTO_TEST_CASE(SmallSample)
   inData[ir].emplace_back(getColData(5, 1, 0xFFFF, 0, 0xF, 0xF0));
   // Crate 10 link 1 and crate 11 link 1
   inData[ir].emplace_back(getColData(41, 2, 0xFF0F, 0, 0xF0FF, 0xF));
-  ir.bc = 200;
+  ir.bc = 0xde6;
   ir.orbit = 2;
   // Crate 12 link 1
+  inData[ir].emplace_back(getColData(70, 3, 0xFF00, 0xFF));
+
+  ir.bc = 0xdea;
+  ir.orbit = 3;
   inData[ir].emplace_back(getColData(70, 3, 0xFF00, 0xFF));
 
   auto [data, rofs] = encodeDecode(inData);

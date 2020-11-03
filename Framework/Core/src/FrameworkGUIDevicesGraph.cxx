@@ -382,7 +382,11 @@ void showTopologyNodeGraph(WorkspaceGUIState& state,
 
   ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(1, 1));
   ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0, 0));
+#if defined(ImGuiCol_ChildWindowBg)
   ImGui::PushStyleColor(ImGuiCol_ChildWindowBg, (ImU32)ImColor(60, 60, 70, 200));
+#else
+  ImGui::PushStyleColor(ImGuiCol_WindowBg, (ImU32)ImColor(60, 60, 70, 200));
+#endif
   ImVec2 graphSize = ImGui::GetWindowSize();
   if (state.leftPaneVisible) {
     graphSize.x -= state.leftPaneSize;

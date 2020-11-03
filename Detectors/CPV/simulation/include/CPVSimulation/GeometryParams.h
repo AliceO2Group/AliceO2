@@ -41,17 +41,20 @@ class GeometryParams final : public TNamed
 
   void GetModuleAngle(int module, float angle[3][2]) const
   {
-    for (int i = 0; i < 3; i++)
-      for (int ian = 0; ian < 2; ian++)
+    for (int i = 0; i < 3; i++) {
+      for (int ian = 0; ian < 2; ian++) {
         angle[i][ian] = mModuleAngle[module][i][ian];
+      }
+    }
   }
 
   float GetCPVAngle(Int_t index) const { return mCPVAngle[index - 1]; }
 
   void GetModuleCenter(int module, float* pos) const
   {
-    for (int i = 0; i < 3; i++)
+    for (int i = 0; i < 3; i++) {
       pos[i] = mModuleCenter[module][i];
+    }
   }
 
   int GetNModules() const { return mNModules; }

@@ -10,7 +10,7 @@
 
 #include "TOFCalibration/LHCClockCalibrator.h"
 #include "Framework/Logger.h"
-#include "MathUtils/MathBase.h"
+#include "MathUtils/fit.h"
 #include "CommonUtils/MemFileHelper.h"
 #include "CCDB/CcdbApi.h"
 #include "DetectorsCalibration/Utils.h"
@@ -21,7 +21,7 @@ namespace tof
 {
 
 using Slot = o2::calibration::TimeSlot<o2::tof::LHCClockDataHisto>;
-using o2::math_utils::math_base::fitGaus;
+using o2::math_utils::fitGaus;
 using LHCphase = o2::dataformats::CalibLHCphaseTOF;
 using clbUtils = o2::calibration::Utils;
 
@@ -81,7 +81,7 @@ void LHCClockCalibrator::finalizeSlot(Slot& slot)
             << c->getEntries() << " entries";
   std::vector<float> fitValues;
   float* array = &c->histo[0];
-  int fitres = fitGaus(c->nbins, array, -(c->range), c->range, fitValues);
+  double fitres = fitGaus(c->nbins, array, -(c->range), c->range, fitValues);
   if (fitres >= 0) {
     LOG(INFO) << "Fit result " << fitres << " Mean = " << fitValues[1] << " Sigma = " << fitValues[2];
   } else {

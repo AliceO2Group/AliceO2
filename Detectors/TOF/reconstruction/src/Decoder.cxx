@@ -34,6 +34,7 @@ Decoder::Decoder()
     mBuffer[i] = nullptr;
     mCruIn[i] = false;
   }
+  clearCounts();
 }
 
 bool Decoder::open(const std::string name)
@@ -78,8 +79,9 @@ bool Decoder::open(const std::string name)
 
   char* pos = new char[fullsize]; //mBufferLocal.data();
   for (int i = 0; i < NCRU; i++) {
-    if (!mCruIn[i])
+    if (!mCruIn[i]) {
       continue;
+    }
 
     mBuffer[i] = pos;
 
@@ -101,8 +103,9 @@ bool Decoder::open(const std::string name)
 bool Decoder::close()
 {
   for (int i = 0; i < NCRU; i++) {
-    if (mFile[i].is_open())
+    if (mFile[i].is_open()) {
       mFile[i].close();
+    }
   }
   return false;
 }
@@ -110,6 +113,14 @@ bool Decoder::close()
 void Decoder::clear()
 {
   reset();
+  if (mMaskNoiseRate > 0) {
+    clearCounts();
+  }
+
+  mPatterns.clear();
+  mCratePatterns.clear();
+
+  mErrors.clear();
 }
 
 void Decoder::InsertDigit(int icrate, int itrm, int itdc, int ichain, int channel, uint32_t orbit, uint16_t bunchid, int time_ext, int tdc, int tot)
@@ -117,6 +128,9 @@ void Decoder::InsertDigit(int icrate, int itrm, int itdc, int ichain, int channe
   DigitInfo digitInfo;
 
   fromRawHit2Digit(icrate, itrm, itdc, ichain, channel, orbit, bunchid, time_ext + tdc, tot, digitInfo);
+  if (mMaskNoiseRate > 0) {
+    mChannelCounts[digitInfo.channel]++;
+  }
 
   mHitDecoded++;
 
@@ -152,8 +166,9 @@ void Decoder::readTRM(int icru, int icrate, uint32_t orbit, uint16_t bunchid)
   int itrm = mUnion[icru]->frameHeader.trmID;
   int deltaBC = mUnion[icru]->frameHeader.deltaBC;
 
-  if (deltaBC != 0)
+  if (deltaBC != 0) {
     printf("DeltaBC = %d\n", deltaBC);
+  }
   mUnion[icru]++;
   mIntegratedBytes[icru] += 4;
 
@@ -162,11 +177,15 @@ void Decoder::readTRM(int icru, int icrate, uint32_t orbit, uint16_t bunchid)
   for (int i = 0; i < nhits; i++) {
     fromRawHit2Digit(icrate, itrm, mUnion[icru]->packedHit.tdcID, mUnion[icru]->packedHit.chain, mUnion[icru]->packedHit.channel, orbit, bunchid,
                      time_ext + mUnion[icru]->packedHit.time, mUnion[icru]->packedHit.tot, digitInfo);
+    if (mMaskNoiseRate > 0) {
+      mChannelCounts[digitInfo.channel]++;
+    }
 
     mHitDecoded++;
 
-    if (mVerbose)
+    if (mVerbose) {
       printHitInfo(icru);
+    }
 
     uint64_t isnext = digitInfo.bcAbs * Geo::BC_IN_WINDOW_INV;
 
@@ -175,8 +194,9 @@ void Decoder::readTRM(int icru, int icrate, uint32_t orbit, uint16_t bunchid)
       insertDigitInFuture(digitInfo.channel, digitInfo.tdc, digitInfo.tot, digitInfo.bcAbs, 0, digitInfo.orbit, digitInfo.bc);
     } else {
       std::vector<Strip>* cstrip = mStripsCurrent; // first window
-      if (isnext)
+      if (isnext) {
         cstrip = mStripsNext[isnext - 1]; // next window
+      }
 
       UInt_t istrip = digitInfo.channel / Geo::NPADS;
 
@@ -226,16 +246,18 @@ bool Decoder::decode() // return a vector of digits in a TOF readout window
 
   // loop over CRUs
   for (int icru = 0; icru < NCRU; icru++) {
-    if (!mCruIn[icru])
+    if (!mCruIn[icru]) {
       continue; // no data stream available for this cru
+    }
 
     printf("decoding cru %d\n", icru);
 
     while (mUnion[icru] < mUnionEnd[icru]) { // read all the buffer
       // read open RDH
       mRDH = reinterpret_cast<o2::header::RAWDataHeader*>(mUnion[icru]);
-      if (mVerbose)
+      if (mVerbose) {
         printRDH();
+      }
 
       // !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
       // note that RDH continue is not yet considered as option (to be added)
@@ -247,21 +269,24 @@ bool Decoder::decode() // return a vector of digits in a TOF readout window
       mUnion[icru] = reinterpret_cast<Union_t*>(shift + rdhsz);
       mIntegratedBytes[icru] += rdhsz;
 
-      if (mUnion[icru] >= mUnionEnd[icru])
+      if (mUnion[icru] >= mUnionEnd[icru]) {
         continue; // end of data stream reac
+      }
       for (int window = 0; window < Geo::NWINDOW_IN_ORBIT; window++) {
         // read Crate Header
         int bunchid = mUnion[icru]->crateHeader.bunchID;
         int icrate = mUnion[icru]->crateHeader.drmID;
-        if (mVerbose)
+        if (mVerbose) {
           printCrateInfo(icru);
+        }
         mUnion[icru]++;
         mIntegratedBytes[icru] += 4;
 
         //read Orbit
         int orbit = mUnion[icru]->crateOrbit.orbitID;
-        if (mVerbose)
-          printf("orbit ID      = %d\n", orbit);
+        if (mVerbose) {
+          printf("%d) orbit ID      = %d -- bunch ID = %d\n", icrate, orbit, bunchid);
+        }
         mUnion[icru]++;
         mIntegratedBytes[icru] += 4;
 
@@ -270,8 +295,9 @@ bool Decoder::decode() // return a vector of digits in a TOF readout window
         }
 
         // read Crate Trailer
-        if (mVerbose)
+        if (mVerbose) {
           printCrateTrailerInfo(icru);
+        }
         auto ndw = mUnion[icru]->crateTrailer.numberOfDiagnostics;
         mUnion[icru]++;
         mIntegratedBytes[icru] += 4;
@@ -285,8 +311,9 @@ bool Decoder::decode() // return a vector of digits in a TOF readout window
 
       // read close RDH
       mRDH = reinterpret_cast<o2::header::RAWDataHeader*>(nextPage(mRDH, RDHUtils::getMemorySize(*mRDH)));
-      if (mVerbose)
+      if (mVerbose) {
         printRDH();
+      }
       mIntegratedBytes[icru] += RDHUtils::getHeaderSize(*mRDH);
 
       // go to next page

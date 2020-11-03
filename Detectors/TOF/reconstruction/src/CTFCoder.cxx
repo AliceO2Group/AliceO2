@@ -61,6 +61,7 @@ void CTFCoder::compress(CompressedInfos& cc,
   cc.orbitIncROF.resize(cc.header.nROFs);
   cc.ndigROF.resize(cc.header.nROFs);
   cc.ndiaROF.resize(cc.header.nROFs);
+  cc.ndiaCrate.resize(cc.header.nROFs * 72);
   //
   cc.timeFrameInc.resize(cc.header.nDigits);
   cc.timeTDCInc.resize(cc.header.nDigits);
@@ -92,6 +93,9 @@ void CTFCoder::compress(CompressedInfos& cc,
     auto ndig = rofRec.size();
     cc.ndigROF[irof] = ndig;
     cc.ndiaROF[irof] = rofRec.sizeDia();
+    for (int icrate = 0; icrate < 72; icrate++) {
+      cc.ndiaCrate[irof * 72 + icrate] = rofRec.getDiagnosticInCrate(icrate);
+    }
 
     if (!ndig) { // no hits data for this ROF --> not fill
       continue;
@@ -109,10 +113,11 @@ void CTFCoder::compress(CompressedInfos& cc,
     // sort digits according to time (ascending order)
     std::sort(digCopy.begin(), digCopy.end(),
               [](o2::tof::Digit a, o2::tof::Digit b) {
-                if (a.getBC() == b.getBC())
+                if (a.getBC() == b.getBC()) {
                   return a.getTDC() < b.getTDC();
-                else
+                } else {
                   return a.getBC() < b.getBC();
+                }
               });
 
     int timeframe = 0;
@@ -176,7 +181,8 @@ void CTFCoder::createCoders(const std::string& dictPath, o2::ctf::CTFCoderBase::
   MAKECODER(cc.orbitIncROF,  CTF::BLCorbitIncROF);
   MAKECODER(cc.ndigROF,      CTF::BLCndigROF);
   MAKECODER(cc.ndiaROF,      CTF::BLCndiaROF);
-  
+  MAKECODER(cc.ndiaCrate,    CTF::BLCndiaCrate);
+
   MAKECODER(cc.timeFrameInc, CTF::BLCtimeFrameInc);
   MAKECODER(cc.timeTDCInc,   CTF::BLCtimeTDCInc);
   MAKECODER(cc.stripID,      CTF::BLCstripID);
@@ -200,6 +206,7 @@ size_t CTFCoder::estimateCompressedSize(const CompressedInfos& cc)
   sz += ESTSIZE(cc.orbitIncROF,  CTF::BLCorbitIncROF);
   sz += ESTSIZE(cc.ndigROF,      CTF::BLCndigROF);
   sz += ESTSIZE(cc.ndiaROF,      CTF::BLCndiaROF);
+  sz += ESTSIZE(cc.ndiaCrate,    CTF::BLCndiaCrate);
   sz += ESTSIZE(cc.timeFrameInc, CTF::BLCtimeFrameInc);
   sz += ESTSIZE(cc.timeTDCInc,   CTF::BLCtimeTDCInc);
   sz += ESTSIZE(cc.stripID,      CTF::BLCstripID);

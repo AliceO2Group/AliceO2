@@ -15,7 +15,7 @@
 #define ALICEO2_ITSMFT_SEGMENTATIONALPIDE_H_
 
 #include <Rtypes.h>
-#include "MathUtils/Cartesian3D.h"
+#include "MathUtils/Cartesian.h"
 
 namespace o2
 {
@@ -78,12 +78,12 @@ class SegmentationAlpide
   /// or -0.5*Dz() is returned.
   static bool detectorToLocal(int iRow, int iCol, float& xRow, float& zCol);
   static bool detectorToLocal(float row, float col, float& xRow, float& zCol);
-  static bool detectorToLocal(float row, float col, Point3D<float>& loc);
+  static bool detectorToLocal(float row, float col, math_utils::Point3D<float>& loc);
 
   // same but w/o check for row/col range
   static void detectorToLocalUnchecked(int iRow, int iCol, float& xRow, float& zCol);
   static void detectorToLocalUnchecked(float row, float col, float& xRow, float& zCol);
-  static void detectorToLocalUnchecked(float row, float col, Point3D<float>& loc);
+  static void detectorToLocalUnchecked(float row, float col, math_utils::Point3D<float>& loc);
 
   static constexpr float getFirstRowCoordinate()
   {
@@ -104,10 +104,12 @@ inline void SegmentationAlpide::localToDetectorUnchecked(float xRow, float zCol,
   zCol += 0.5 * ActiveMatrixSizeCols;                                               // coordinate wrt left edge of Active matrix
   iRow = int(xRow / PitchRow);
   iCol = int(zCol / PitchCol);
-  if (xRow < 0)
+  if (xRow < 0) {
     iRow -= 1;
-  if (zCol < 0)
+  }
+  if (zCol < 0) {
     iCol -= 1;
+  }
 }
 
 //_________________________________________________________________________________________________
@@ -140,7 +142,7 @@ inline void SegmentationAlpide::detectorToLocalUnchecked(float row, float col, f
 }
 
 //_________________________________________________________________________________________________
-inline void SegmentationAlpide::detectorToLocalUnchecked(float row, float col, Point3D<float>& loc)
+inline void SegmentationAlpide::detectorToLocalUnchecked(float row, float col, math_utils::Point3D<float>& loc)
 {
   loc.SetCoordinates(getFirstRowCoordinate() - row * PitchRow, 0.f, col * PitchCol + getFirstColCoordinate());
 }
@@ -148,8 +150,9 @@ inline void SegmentationAlpide::detectorToLocalUnchecked(float row, float col, P
 //_________________________________________________________________________________________________
 inline bool SegmentationAlpide::detectorToLocal(int iRow, int iCol, float& xRow, float& zCol)
 {
-  if (iRow < 0 || iRow >= NRows || iCol < 0 || iCol >= NCols)
+  if (iRow < 0 || iRow >= NRows || iCol < 0 || iCol >= NCols) {
     return false;
+  }
   detectorToLocalUnchecked(iRow, iCol, xRow, zCol);
   return true;
 }
@@ -157,17 +160,19 @@ inline bool SegmentationAlpide::detectorToLocal(int iRow, int iCol, float& xRow,
 //_________________________________________________________________________________________________
 inline bool SegmentationAlpide::detectorToLocal(float row, float col, float& xRow, float& zCol)
 {
-  if (row < 0 || row >= NRows || col < 0 || col >= NCols)
+  if (row < 0 || row >= NRows || col < 0 || col >= NCols) {
     return false;
+  }
   detectorToLocalUnchecked(row, col, xRow, zCol);
   return true;
 }
 
 //_________________________________________________________________________________________________
-inline bool SegmentationAlpide::detectorToLocal(float row, float col, Point3D<float>& loc)
+inline bool SegmentationAlpide::detectorToLocal(float row, float col, math_utils::Point3D<float>& loc)
 {
-  if (row < 0 || row >= NRows || col < 0 || col >= NCols)
+  if (row < 0 || row >= NRows || col < 0 || col >= NCols) {
     return false;
+  }
   detectorToLocalUnchecked(row, col, loc);
   return true;
 }

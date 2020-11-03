@@ -111,6 +111,7 @@ AddOption(prefetchTPCpageScan, int, 0, "", 0, "Prefetch Data for TPC page scan i
 AddOption(debugLevel, int, -1, "debug", 'd', "Set debug level (-1 = silend)")
 AddOption(allocDebugLevel, int, 0, "allocDebug", 0, "Some debug output for memory allocations (without messing with normal debug level)")
 AddOption(runQA, bool, false, "qa", 'q', "Enable tracking QA", message("Running QA: %s"))
+AddOption(QAnoMC, bool, false, "", 0, "Force running QA without MC labels even if present")
 AddOption(runCompressionStatistics, bool, false, "compressionStat", 0, "Run statistics and verification for cluster compression")
 AddOption(forceMemoryPoolSize, unsigned long, 1, "memSize", 0, "Force size of allocated GPU / page locked host memory", min(0ul))
 AddOption(forceHostMemoryPoolSize, unsigned long, 0, "hostMemSize", 0, "Force size of allocated host page locked host memory (overriding memSize)", min(0ul))
@@ -244,6 +245,7 @@ AddOption(runTRD, int, -1, "", 0, "Enable TRD processing")
 AddOption(rundEdx, int, -1, "", 0, "Enable dEdx processing")
 AddOption(runCompression, int, 1, "", 0, "Enable TPC Compression")
 AddOption(runTransformation, int, 1, "", 0, "Enable TPC Transformation")
+AddOption(runRefit, bool, false, "", 0, "Enable final track refit")
 AddHelp("help", 'h')
 AddHelpAll("helpall", 'H')
 AddSubConfig(GPUSettingsRec, rec)
@@ -271,6 +273,7 @@ AddOption(outputBufferSize, unsigned long, 200000000ul, "", 0, "Size of the outp
 AddOption(synchronousProcessing, bool, false, "", 0, "Apply performance shortcuts for synchronous processing, disable unneeded steps")
 AddOption(mutexMemReg, bool, false, "", 0, "Global mutex to serialize GPU memory registration")
 AddOption(display, bool, false, "", 0, "Enable standalone gpu tracking visualizaion")
+AddOption(dropSecondaryLegs, bool, true, "", 0, "Do not store secondary legs of looping track in TrackTPC")
 EndConfig()
 #endif // GPUCA_O2_LIB
 #endif // !GPUCA_GPUCODE_DEVICE

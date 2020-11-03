@@ -90,7 +90,7 @@ struct InteractionRecord {
 
   int64_t differenceInBC(const InteractionRecord& other) const
   {
-    // return differenc in bunch-crossings
+    // return difference in bunch-crossings
     int64_t diffBC = int(bc) - other.bc;
     if (orbit != other.orbit) {
       diffBC += (int64_t(orbit) - other.orbit) * o2::constants::lhc::LHCMaxBunches;
@@ -98,14 +98,16 @@ struct InteractionRecord {
     return diffBC;
   }
 
-  float differenceInBCns(const InteractionRecord& other) const
+  float differenceInBCNS(const InteractionRecord& other) const
   {
-    // return differenc in bunch-crossings
-    int64_t diffBC = int(bc) - other.bc;
-    if (orbit != other.orbit) {
-      diffBC += (int64_t(orbit) - other.orbit) * o2::constants::lhc::LHCMaxBunches;
-    }
-    return diffBC;
+    // return difference in bunch-crossings in ns
+    return differenceInBC(other) * o2::constants::lhc::LHCBunchSpacingNS;
+  }
+
+  float differenceInBCMS(const InteractionRecord& other) const
+  {
+    // return difference in bunch-crossings in ms
+    return differenceInBC(other) * o2::constants::lhc::LHCBunchSpacingMS;
   }
 
   int64_t toLong() const

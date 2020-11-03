@@ -14,7 +14,6 @@
 /// \author Gian Michele Innocenti <gian.michele.innocenti@cern.ch>, CERN
 /// \author Vít Kučera <vit.kucera@cern.ch>, CERN
 
-#include "Framework/runDataProcessing.h"
 #include "Framework/AnalysisTask.h"
 #include "DetectorsVertexing/DCAFitterN.h"
 #include "Analysis/HFSecondaryVertex.h"
@@ -23,6 +22,14 @@
 
 using namespace o2;
 using namespace o2::framework;
+
+void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
+{
+  ConfigParamSpec optionDoMC{"doMC", VariantType::Bool, false, {"Perform MC matching."}};
+  workflowOptions.push_back(optionDoMC);
+}
+
+#include "Framework/runDataProcessing.h"
 
 /// Reconstruction of heavy-flavour 2-prong decay candidates
 struct HFCandidateCreator2Prong {
@@ -36,9 +43,9 @@ struct HFCandidateCreator2Prong {
   Configurable<double> d_minrelchi2change{"d_minrelchi2change", 0.9, "stop iterations is chi2/chi2old > this"};
   Configurable<bool> b_dovalplots{"b_dovalplots", true, "do validation plots"};
 
-  OutputObj<TH1F> hmass2{TH1F("hmass2", "2-track inv mass", 500, 0., 5.)};
-  OutputObj<TH1F> hCovPVXX{TH1F("hCovPVXX", "XX element of PV cov. matrix", 100, 0., 1.e-4)};
-  OutputObj<TH1F> hCovSVXX{TH1F("hCovSVXX", "XX element of SV cov. matrix", 100, 0., 0.2)};
+  OutputObj<TH1F> hmass2{TH1F("hmass2", "2-prong candidates;inv. mass (#pi K) (GeV/#it{c}^{2});entries", 500, 0., 5.)};
+  OutputObj<TH1F> hCovPVXX{TH1F("hCovPVXX", "2-prong candidates;XX element of cov. matrix of prim. vtx. position (cm^{2});entries", 100, 0., 1.e-4)};
+  OutputObj<TH1F> hCovSVXX{TH1F("hCovSVXX", "2-prong candidates;XX element of cov. matrix of sec. vtx. position (cm^{2});entries", 100, 0., 0.2)};
 
   double massPi = RecoDecay::getMassPDG(kPiPlus);
   double massK = RecoDecay::getMassPDG(kKPlus);
@@ -128,9 +135,39 @@ struct HFCandidateCreator2ProngExpressions {
   void init(InitContext const&) {}
 };
 
-WorkflowSpec defineDataProcessing(ConfigContext const&)
+/// Performs MC matching.
+struct HFCandidateCreator2ProngMC {
+  Produces<aod::HfCandProng2MCRec> rowMCMatchRec;
+  Produces<aod::HfCandProng2MCGen> rowMCMatchGen;
+
+  void process(aod::HfCandProng2 const& candidates,
+               aod::BigTracksMC const& tracks,
+               aod::McParticles const& particlesMC)
+  {
+    // Match reconstructed candidates.
+    for (auto& candidate : candidates) {
+      auto isMatchedRec = RecoDecay::isMCMatchedDecayRec(
+        particlesMC, array{candidate.index0_as<aod::BigTracksMC>(), candidate.index1_as<aod::BigTracksMC>()},
+        421, array{+kPiPlus, -kKPlus}, true);
+      rowMCMatchRec(uint8_t(isMatchedRec));
+    }
+
+    // Match generated particles.
+    for (auto& particle : particlesMC) {
+      auto isMatchedGen = RecoDecay::isMCMatchedDecayGen(particlesMC, particle, 421, array{+kPiPlus, -kKPlus}, true);
+      rowMCMatchGen(uint8_t(isMatchedGen));
+    }
+  }
+};
+
+WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
 {
-  return WorkflowSpec{
+  WorkflowSpec workflow{
     adaptAnalysisTask<HFCandidateCreator2Prong>("hf-cand-creator-2prong"),
     adaptAnalysisTask<HFCandidateCreator2ProngExpressions>("hf-cand-creator-2prong-expressions")};
+  const bool doMC = cfgc.options().get<bool>("doMC");
+  if (doMC) {
+    workflow.push_back(adaptAnalysisTask<HFCandidateCreator2ProngMC>("hf-cand-creator-2prong-mc"));
+  }
+  return workflow;
 }

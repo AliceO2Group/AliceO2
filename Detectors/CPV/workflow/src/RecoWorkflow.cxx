@@ -95,8 +95,9 @@ o2::framework::WorkflowSpec getWorkflow(bool propagateMC,
                                                    o2::framework::OutputSpec{"CPV", "DIGITSMCTR"}},
                                                  propagateMC));
 
-    if (enableDigitsPrinter)
+    if (enableDigitsPrinter) {
       specs.emplace_back(o2::cpv::reco_workflow::getPhosDigitsPrinterSpec());
+    }
 
     if (isEnabled(OutputType::Clusters)) {
       // add clusterizer

@@ -13,15 +13,16 @@
 /// \author ruben.shahoyan@cern.ch
 //
 #include "Field/MagFieldFast.h"
-#include <FairLogger.h>
-#include <TString.h>
-#include <TSystem.h>
+#include <GPUCommonLogger.h>
+
+#ifndef GPUCA_GPUCODE_DEVICE
 #include <cmath>
 #include <fstream>
 #include <sstream>
+using namespace std;
+#endif
 
 using namespace o2::field;
-using namespace std;
 
 ClassImp(o2::field::MagFieldFast);
 
@@ -29,6 +30,10 @@ const float MagFieldFast::kSolR2Max[MagFieldFast::kNSolRRanges] = {80.f * 80.f, 
                                                                    423.f * 423.f, 500.f * 500.f};
 
 const float MagFieldFast::kSolZMax = 550.0f;
+
+#ifndef GPUCA_STANDALONE
+#include <TString.h>
+#include <TSystem.h>
 
 //_______________________________________________________________________
 MagFieldFast::MagFieldFast(const string inpFName) : mFactorSol(1.f)
@@ -106,6 +111,7 @@ bool MagFieldFast::LoadData(const string inpFName)
   }
   return true;
 }
+#endif // GPUCA_STANDALONE
 
 //_______________________________________________________________________
 bool MagFieldFast::Field(const double xyz[3], double bxyz[3]) const
@@ -138,7 +144,7 @@ bool MagFieldFast::GetBcomp(EDim comp, const double xyz[3], double& b) const
 }
 
 //_______________________________________________________________________
-bool MagFieldFast::GetBcomp(EDim comp, const Point3D<float> xyz, double& b) const
+bool MagFieldFast::GetBcomp(EDim comp, const math_utils::Point3D<float> xyz, double& b) const
 {
   // get field
   int zSeg, rSeg, quadrant;
@@ -152,7 +158,7 @@ bool MagFieldFast::GetBcomp(EDim comp, const Point3D<float> xyz, double& b) cons
 }
 
 //_______________________________________________________________________
-bool MagFieldFast::GetBcomp(EDim comp, const Point3D<float> xyz, float& b) const
+bool MagFieldFast::GetBcomp(EDim comp, const math_utils::Point3D<float> xyz, float& b) const
 {
   // get field
   int zSeg, rSeg, quadrant;
@@ -196,7 +202,7 @@ bool MagFieldFast::Field(const float xyz[3], float bxyz[3]) const
 }
 
 //_______________________________________________________________________
-bool MagFieldFast::Field(const Point3D<float> xyz, float bxyz[3]) const
+bool MagFieldFast::Field(const math_utils::Point3D<float> xyz, float bxyz[3]) const
 {
   // get field
   int zSeg, rSeg, quadrant;
@@ -234,7 +240,7 @@ bool MagFieldFast::GetSegment(float x, float y, float z, int& zSeg, int& rSeg, i
     }
   }
   if (rSeg == kNSolRRanges) {
-    return kFALSE;
+    return false;
   }
   quadrant = GetQuadrant(x, y);
   return true;

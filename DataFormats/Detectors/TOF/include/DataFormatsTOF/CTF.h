@@ -59,6 +59,7 @@ struct CompressedInfos {
   std::vector<uint32_t> orbitIncROF; /// increment of ROF orbit wrt orbit of previous ROF
   std::vector<uint32_t> ndigROF;     /// number of digits in ROF
   std::vector<uint32_t> ndiaROF;     /// number of diagnostic/pattern words in ROF
+  std::vector<uint32_t> ndiaCrate;   /// number of diagnostic/pattern words per crate in ROF
 
   // Hit data
   std::vector<uint16_t> timeFrameInc; /// time increment with respect of previous digit in TimeFrame units
@@ -72,17 +73,18 @@ struct CompressedInfos {
 
   void clear();
 
-  ClassDefNV(CompressedInfos, 1);
+  ClassDefNV(CompressedInfos, 2);
 };
 
 /// wrapper for the Entropy-encoded clusters of the TF
-struct CTF : public o2::ctf::EncodedBlocks<CTFHeader, 10, uint32_t> {
+struct CTF : public o2::ctf::EncodedBlocks<CTFHeader, 11, uint32_t> {
 
   static constexpr size_t N = getNBlocks();
   enum Slots { BLCbcIncROF,
                BLCorbitIncROF,
                BLCndigROF,
                BLCndiaROF,
+               BLCndiaCrate,
                BLCtimeFrameInc,
                BLCtimeTDCInc,
                BLCstripID,

@@ -61,8 +61,9 @@ bool MpArea::isValid() const
 {
   /// Check if area is valid
   for (int icoor = 0; icoor < 2; ++icoor) {
-    if (mPositions[icoor] == mPositions[icoor + 2])
+    if (mPositions[icoor] == mPositions[icoor + 2]) {
       return false;
+    }
   }
   return true;
 }

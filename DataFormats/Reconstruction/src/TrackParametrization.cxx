@@ -26,11 +26,16 @@
 #include "ReconstructionDataFormats/TrackParametrization.h"
 #include "ReconstructionDataFormats/Vertex.h"
 #include "ReconstructionDataFormats/DCA.h"
-#include <FairLogger.h>
-#include <iostream>
+#include <GPUCommonLogger.h>
 #include "Math/SMatrix.h"
+
+#ifndef GPUCA_GPUCODE_DEVICE
+#include <iostream>
+#endif
+
+#ifndef GPUCA_ALIGPUCODE
 #include <fmt/printf.h>
-#include "Framework/Logger.h"
+#endif
 
 namespace o2
 {
@@ -54,16 +59,16 @@ TrackParametrization<value_T>::TrackParametrization(const dim3_t& xyz, const dim
   value_t radPos2 = xyz[0] * xyz[0] + xyz[1] * xyz[1];
   value_t alp = 0;
   if (sectorAlpha || radPos2 < 1) {
-    alp = atan2f(pxpypz[1], pxpypz[0]);
+    alp = std::atan2(pxpypz[1], pxpypz[0]);
   } else {
-    alp = atan2f(xyz[1], xyz[0]);
+    alp = std::atan2(xyz[1], xyz[0]);
   }
   if (sectorAlpha) {
-    alp = utils::Angle2Alpha(alp);
+    alp = math_utils::detail::angle2Alpha<value_t>(alp);
   }
   //
   value_t sn, cs;
-  utils::sincos(alp, sn, cs);
+  math_utils::detail::sincos(alp, sn, cs);
   // protection:  avoid alpha being too close to 0 or +-pi/2
   if (std::fabs(sn) < 2 * kSafe) {
     if (alp > 0) {
@@ -71,22 +76,22 @@ TrackParametrization<value_T>::TrackParametrization(const dim3_t& xyz, const dim
     } else {
       alp += alp > -constants::math::PIHalf ? -2 * kSafe : 2 * kSafe;
     }
-    utils::sincos(alp, sn, cs);
+    math_utils::detail::sincos(alp, sn, cs);
   } else if (std::fabs(cs) < 2 * kSafe) {
     if (alp > 0) {
       alp += alp > constants::math::PIHalf ? 2 * kSafe : -2 * kSafe;
     } else {
       alp += alp > -constants::math::PIHalf ? 2 * kSafe : -2 * kSafe;
     }
-    utils::sincos(alp, sn, cs);
+    math_utils::detail::sincos(alp, sn, cs);
   }
   // get the vertex of origin and the momentum
   dim3_t ver{xyz[0], xyz[1], xyz[2]};
   dim3_t mom{pxpypz[0], pxpypz[1], pxpypz[2]};
   //
   // Rotate to the local coordinate system
-  utils::RotateZ(ver, -alp);
-  utils::RotateZ(mom, -alp);
+  math_utils::detail::rotateZ<value_t>(ver, -alp);
+  math_utils::detail::rotateZ<value_t>(mom, -alp);
   //
   value_t ptI = 1.f / sqrt(mom[0] * mom[0] + mom[1] * mom[1]);
   mX = ver[0];
@@ -116,7 +121,7 @@ bool TrackParametrization<value_T>::getPxPyPzGlo(dim3_t& pxyz) const
   }
   value_t cs, sn, pt = getPt();
   value_t r = std::sqrt((1.f - getSnp()) * (1.f + getSnp()));
-  utils::sincos(getAlpha(), sn, cs);
+  math_utils::detail::sincos(getAlpha(), sn, cs);
   pxyz[0] = pt * (r * cs - getSnp() * sn);
   pxyz[1] = pt * (getSnp() * cs + r * sn);
   pxyz[2] = pt * getTgl();
@@ -137,7 +142,7 @@ bool TrackParametrization<value_T>::getPosDirGlo(std::array<value_t, 9>& posdirp
   value_t csp = std::sqrt((1.f - snp) * (1.f + snp));
   value_t cstht = std::sqrt(1.f + getTgl() * getTgl());
   value_t csthti = 1.f / cstht;
-  utils::sincos(getAlpha(), sn, cs);
+  math_utils::detail::sincos(getAlpha(), sn, cs);
   posdirp[0] = getX() * cs - getY() * sn;
   posdirp[1] = getX() * sn + getY() * cs;
   posdirp[2] = getZ();
@@ -154,14 +159,14 @@ bool TrackParametrization<value_T>::rotateParam(value_t alpha)
 {
   // rotate to alpha frame
   if (std::fabs(getSnp()) > constants::math::Almost1) {
-    LOGF(WARNING, "Precondition is not satisfied: |sin(phi)|>1 ! {:f}", getSnp());
+    LOGP(WARNING, "Precondition is not satisfied: |sin(phi)|>1 ! {:f}", getSnp());
     return false;
   }
   //
-  utils::BringToPMPi(alpha);
+  math_utils::detail::bringToPMPi<value_t>(alpha);
   //
   value_t ca = 0, sa = 0;
-  utils::sincos(alpha - getAlpha(), sa, ca);
+  math_utils::detail::sincos(alpha - getAlpha(), sa, ca);
   value_t snp = getSnp(), csp = std::sqrt((1.f - snp) * (1.f + snp)); // Improve precision
   // RS: check if rotation does no invalidate track model (cos(local_phi)>=0, i.e. particle
   // direction in local frame is along the X axis
@@ -172,7 +177,7 @@ bool TrackParametrization<value_T>::rotateParam(value_t alpha)
   //
   value_t tmp = snp * ca - csp * sa;
   if (std::fabs(tmp) > constants::math::Almost1) {
-    LOGF(WARNING, "Rotation failed: new snp {:.2f}", tmp);
+    LOGP(WARNING, "Rotation failed: new snp {:.2f}", tmp);
     return false;
   }
   value_t xold = getX(), yold = getY();
@@ -200,7 +205,7 @@ bool TrackParametrization<value_T>::propagateParamTo(value_t xk, const dim3_t& b
   }
   // Do not propagate tracks outside the ALICE detector
   if (std::fabs(dx) > 1e5 || std::fabs(getY()) > 1e5 || std::fabs(getZ()) > 1e5) {
-    LOGF(WARNING, "Anomalous track, target X:{:f}", xk);
+    LOGP(WARNING, "Anomalous track, target X:{:f}", xk);
     //    print();
     return false;
   }
@@ -354,11 +359,11 @@ bool TrackParametrization<value_T>::propagateParamTo(value_t xk, value_t b)
 
 //_______________________________________________________________________
 template <typename value_T>
-bool TrackParametrization<value_T>::propagateParamToDCA(const Point3D<value_t>& vtx, value_t b, dim2_t* dca, value_t maxD)
+bool TrackParametrization<value_T>::propagateParamToDCA(const math_utils::Point3D<value_t>& vtx, value_t b, dim2_t* dca, value_t maxD)
 {
   // propagate track to DCA to the vertex
   value_t sn, cs, alp = getAlpha();
-  utils::sincos(alp, sn, cs);
+  math_utils::detail::sincos(alp, sn, cs);
   value_t x = getX(), y = getY(), snp = getSnp(), csp = std::sqrt((1.f - snp) * (1.f + snp));
   value_t xv = vtx.X() * cs + vtx.Y() * sn, yv = -vtx.X() * sn + vtx.Y() * cs, zv = vtx.Z();
   x -= xv;
@@ -453,7 +458,7 @@ void TrackParametrization<value_T>::invertParam()
   // Transform this track to the local coord. system rotated by 180 deg.
   mX = -mX;
   mAlpha += constants::math::PI;
-  utils::BringToPMPi(mAlpha);
+  math_utils::detail::bringToPMPi<value_t>(mAlpha);
   //
   mP[0] = -mP[0];
   mP[3] = -mP[3];
@@ -488,15 +493,17 @@ std::string TrackParametrization<value_T>::asString() const
   return fmt::format("X:{:+.4e} Alp:{:+.3e} Par: {:+.4e} {:+.4e} {:+.4e} {:+.4e} {:+.4e} |Q|:{:d} {:s}",
                      getX(), getAlpha(), getY(), getZ(), getSnp(), getTgl(), getQ2Pt(), getAbsCharge(), getPID().getName());
 }
+#endif
 
 //______________________________________________________________
 template <typename value_T>
 void TrackParametrization<value_T>::printParam() const
 {
   // print parameters
+#ifndef GPUCA_ALIGPUCODE
   printf("%s\n", asString().c_str());
-}
 #endif
+}
 
 //______________________________________________________________
 template <typename value_T>
@@ -516,7 +523,7 @@ bool TrackParametrization<value_T>::getXatLabR(value_t r, value_t& x, value_t bz
   auto crv = getCurvature(bz);
   if (std::fabs(crv) > constants::math::Almost0) { // helix
     // get center of the track circle
-    utils::CircleXY circle;
+    math_utils::CircleXY<value_t> circle;
     getCircleParamsLoc(bz, circle);
     value_t r0 = std::sqrt(circle.getCenterD2());
     if (r0 <= constants::math::Almost0) {
@@ -733,7 +740,7 @@ bool TrackParametrization<value_T>::correctForELoss(value_t xrho, value_t mass, 
 }
 
 template class TrackParametrization<float>;
-//template class TrackParametrization<double>;
+template class TrackParametrization<double>;
 
 } // namespace track
 } // namespace o2

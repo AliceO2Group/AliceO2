@@ -21,9 +21,8 @@
 #include "Analysis/RecoDecay.h"
 
 /// Extracts track parameters from a track.
-/// \return o2::track::TrackPar
 template <typename T>
-auto getTrackPar(const T& track)
+o2::track::TrackPar getTrackPar(const T& track)
 {
   std::array<float, 5> arraypar = {track.y(), track.z(), track.snp(),
                                    track.tgl(), track.signed1Pt()};
@@ -49,7 +48,7 @@ o2::track::TrackParCov getTrackParCov(const T& track)
 template <typename T>
 o2::dataformats::VertexBase getPrimaryVertex(const T& collision)
 {
-  Point3D<float> vtxXYZ(collision.posX(), collision.posY(), collision.posZ());
+  o2::math_utils::Point3D<float> vtxXYZ(collision.posX(), collision.posY(), collision.posZ());
   std::array<float, 6> vtxCov{collision.covXX(), collision.covXY(), collision.covYY(), collision.covXZ(), collision.covYZ(), collision.covZZ()};
   return o2::dataformats::VertexBase{std::move(vtxXYZ), std::move(vtxCov)};
 }

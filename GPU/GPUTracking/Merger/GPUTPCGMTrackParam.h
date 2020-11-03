@@ -148,6 +148,7 @@ class GPUTPCGMTrackParam
   GPUd() bool CheckCov() const;
 
   GPUd() bool Fit(const GPUTPCGMMerger* merger, int iTrk, GPUTPCGMMergedTrackHit* clusters, GPUTPCGMMergedTrackHitXYZ* clustersXYZ, int& N, int& NTolerated, float& Alpha, int attempt = 0, float maxSinPhi = GPUCA_MAX_SIN_PHI, GPUTPCOuterParam* outerParam = nullptr, GPUdEdxInfo* dEdxOut = nullptr);
+  GPUd() void MoveToReference(GPUTPCGMPropagator& prop, const GPUParam& param, float& alpha);
   GPUd() void MirrorTo(GPUTPCGMPropagator& prop, float toY, float toZ, bool inFlyDirection, const GPUParam& param, unsigned char row, unsigned char clusterState, bool mirrorParameters);
   GPUd() int MergeDoubleRowClusters(int& ihit, int wayDirection, GPUTPCGMMergedTrackHit* clusters, GPUTPCGMMergedTrackHitXYZ* clustersXYZ, const GPUTPCGMMerger* merger, GPUTPCGMPropagator& prop, float& xx, float& yy, float& zz, int maxN, float clAlpha, unsigned char& clusterState, bool rejectChi2);
 
@@ -158,8 +159,8 @@ class GPUTPCGMTrackParam
   template <int I>
   GPUd() void AttachClustersMirror(const GPUTPCGMMerger* GPUrestrict() Merger, int slice, int iRow, int iTrack, float toY, GPUTPCGMPropagator& prop, bool phase2 = false);
   template <int I>
-  GPUd() int FollowCircle(const GPUTPCGMMerger* GPUrestrict() Merger, GPUTPCGMPropagator& prop, int slice, int iRow, int iTrack, bool goodLeg, float toAlpha, float toX, float toY, int toSlice, int toRow, bool inFlyDirection, bool phase2 = false);
-  GPUd() void StoreAttachMirror(const GPUTPCGMMerger* GPUrestrict() Merger, int slice, int iRow, int iTrack, bool goodLeg, float toAlpha, float toY, float toX, int toSlice, int toRow, bool inFlyDirection, float alpha);
+  GPUd() int FollowCircle(const GPUTPCGMMerger* GPUrestrict() Merger, GPUTPCGMPropagator& prop, int slice, int iRow, int iTrack, float toAlpha, float toX, float toY, int toSlice, int toRow, bool inFlyDirection, bool phase2 = false);
+  GPUd() void StoreAttachMirror(const GPUTPCGMMerger* GPUrestrict() Merger, int slice, int iRow, int iTrack, float toAlpha, float toY, float toX, int toSlice, int toRow, bool inFlyDirection, float alpha);
   GPUd() static void RefitLoop(const GPUTPCGMMerger* GPUrestrict() Merger, int loopIdx);
 
   GPUdi() void MarkClusters(GPUTPCGMMergedTrackHit* GPUrestrict() clusters, int ihitFirst, int ihitLast, int wayDirection, unsigned char state)
@@ -176,6 +177,14 @@ class GPUTPCGMTrackParam
     while (ihitFirst != ihitLast) {
       ihitFirst += wayDirection;
       clusters[ihitFirst].state &= ~state;
+    }
+  }
+  GPUdi() static void NormalizeAlpha(float& alpha)
+  {
+    if (alpha > M_PI) {
+      alpha -= 2 * M_PI;
+    } else if (alpha <= -M_PI) {
+      alpha += 2 * M_PI;
     }
   }
 
@@ -238,7 +247,6 @@ struct GPUTPCGMLoopData {
   unsigned char toSlice;
   unsigned char toRow;
   unsigned char inFlyDirection;
-  unsigned char goodLeg;
 };
 
 GPUdi() int GPUTPCGMTrackParam::initResetT0()

@@ -250,8 +250,9 @@ void Tracker::findTracksLTF(ROframe& event)
             }
             nPointDisks = 0;
             for (Int_t disk = 0; disk < (constants::mft::DisksNumber); ++disk) {
-              if (hasDisk[disk])
+              if (hasDisk[disk]) {
                 ++nPointDisks;
+              }
             }
             if (nPointDisks < constants::mft::MinTrackPoints) {
               event.removeCurrentTrackLTF();
@@ -409,8 +410,9 @@ void Tracker::findTracksCA(ROframe& event)
               }
               nPointDisks = 0;
               for (Int_t disk = 0; disk < (constants::mft::DisksNumber); ++disk) {
-                if (hasDisk[disk])
+                if (hasDisk[disk]) {
                   ++nPointDisks;
+                }
               }
               if (nPointDisks < constants::mft::MinTrackPoints) {
                 event.removeCurrentRoad();
@@ -526,8 +528,9 @@ void Tracker::runForwardInRoad(ROframe& event)
 //_________________________________________________________________________________________________
 void Tracker::runBackwardInRoad(ROframe& event)
 {
-  if (mMaxCellLevel == 1)
+  if (mMaxCellLevel == 1) {
     return; // we have only isolated cells
+  }
 
   Bool_t addCellToNewTrack, hasDisk[constants::mft::DisksNumber];
 
@@ -833,8 +836,9 @@ const Bool_t Tracker::LinearRegression(Int_t npoints, Float_t* x, Float_t* y, Fl
     SX += xCl[i] / (yClErr[i] * yClErr[i]);
     SY += yCl[i] / (yClErr[i] * yClErr[i]);
     SXX += xCl[i] * xCl[i] / (yClErr[i] * yClErr[i]);
-    if (i > 0)
+    if (i > 0) {
       difx += TMath::Abs(xCl[i] - xCl[i - 1]);
+    }
     Xm += xCl[i];
     Ym += yCl[i];
     SsXX += xCl[i] * xCl[i];

@@ -356,7 +356,7 @@ Bool_t Detector::ProcessHits(FairVolume* v)
     int iPart = fMC->TrackPid();
     float enDep = fMC->Edep();
     Int_t parentID = stack->GetCurrentTrack()->GetMother(0);
-    if (fMC->TrackCharge()) { //charge particles for MCtrue
+    if (fMC->TrackCharge() && volname.Contains("0REG")) { //charge particles for MCtrue
       AddHit(x, y, z, time, 10, trackID, detID);
     }
     if (iPart == 50000050) { // If particles is photon then ...
@@ -478,8 +478,9 @@ void Detector::DefineOpticalProperties()
   // Path of the optical properties input file
   TString inputDir;
   const char* aliceO2env = std::getenv("O2_ROOT");
-  if (aliceO2env)
+  if (aliceO2env) {
     inputDir = aliceO2env;
+  }
   inputDir += "/share/Detectors/FT0/files/";
 
   TString optPropPath = inputDir + "quartzOptProperties.txt";
@@ -560,8 +561,9 @@ Bool_t Detector::RegisterPhotoE(float energy)
 {
   float eff = mPMTeff->Eval(energy);
   float p = gRandom->Rndm();
-  if (p > eff)
+  if (p > eff) {
     return kFALSE;
+  }
 
   return kTRUE;
 }

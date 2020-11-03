@@ -17,8 +17,6 @@ using namespace o2::framework::expressions;
 
 // This task shows how to access the ZDC and FV0A information which belongs to a collision
 // The association is made through the BC column (and in Run 3 may not be unique!)
-// To run this workflow, the o2-analysis-run2-matcher has to be run as well.
-// Example: o2-analysis-run2-matcher --aod-file AO2D.root | o2-analysistutorial-zdc-vzero-iteration
 
 // This example access the collisions and the related FV0A information.
 // Note that one has to subscribe to aod::Collisions const& and aod::FV0As const& to load

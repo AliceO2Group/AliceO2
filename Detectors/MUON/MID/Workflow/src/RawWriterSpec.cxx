@@ -89,7 +89,7 @@ class RawWriterDeviceDPL
 
 framework::DataProcessorSpec getRawWriterSpec()
 {
-  std::vector<of::InputSpec> inputSpecs{of::InputSpec{"mid_data", header::gDataOriginMID, "DATA"}, of::InputSpec{"mid_data_rof", header::gDataOriginMID, "DATAROF"}, of::InputSpec{"mid_data_labels", header::gDataOriginMID, "DATALABELS"}};
+  std::vector<of::InputSpec> inputSpecs{of::InputSpec{"mid_data", header::gDataOriginMID, "DATA"}, of::InputSpec{"mid_data_rof", header::gDataOriginMID, "DATAROF"}};
 
   return of::DataProcessorSpec{
     "MIDRawWriter",

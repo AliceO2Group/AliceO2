@@ -29,6 +29,14 @@ Stepper::~Stepper()
 
 bool Stepper::process(const TVirtualMC& vmc)
 {
+
+  if (!(vmc.TrackCharge())) {
+    // Only charged particles
+    return false;
+  }
+
+  // TODO: Update basing on AliRoot
+
   o2::SimTrackStatus ts{vmc};
 
   int detElemId;
@@ -56,7 +64,7 @@ bool Stepper::process(const TVirtualMC& vmc)
     float x, y, z;
     vmc.TrackPosition(x, y, z);
     mHits->emplace_back(stack->GetCurrentTrackNumber(), detElemId, mEntrancePoint,
-                        Point3D<float>{x, y, z}, mTrackEloss, mTrackLength);
+                        math_utils::Point3D<float>{x, y, z}, mTrackEloss, mTrackLength);
     resetStep();
   }
 

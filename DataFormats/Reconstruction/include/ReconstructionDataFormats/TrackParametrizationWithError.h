@@ -49,6 +49,7 @@ class TrackParametrizationWithError : public TrackParametrization<value_T>
   TrackParametrizationWithError& operator=(const TrackParametrizationWithError& src) = default;
   TrackParametrizationWithError& operator=(TrackParametrizationWithError&& src) = default;
   ~TrackParametrizationWithError() = default;
+  using TrackParametrization<value_T>::TrackParametrization;
 
   const value_t* getCov() const;
   value_t getSigmaY2() const;
@@ -71,8 +72,8 @@ class TrackParametrizationWithError : public TrackParametrization<value_T>
 
   bool getCovXYZPxPyPzGlo(std::array<value_t, kLabCovMatSize>& c) const;
 
-#ifndef GPUCA_ALIGPUCODE
   void print() const;
+#ifndef GPUCA_ALIGPUCODE
   std::string asString() const;
 #endif
 
@@ -107,8 +108,8 @@ class TrackParametrizationWithError : public TrackParametrization<value_T>
   void checkCovariance();
   void setCov(value_t v, int i);
 
- protected:
   void updateCov(const value_t delta[kCovMatSize]);
+  void updateCov(value_t delta, int i);
 
  protected:
   value_t mC[kCovMatSize] = {0.f}; // 15 covariance matrix elements
@@ -283,6 +284,13 @@ template <typename value_T>
 inline void TrackParametrizationWithError<value_T>::setCov(value_t v, int i)
 {
   mC[i] = v;
+}
+
+//__________________________________________________________________________
+template <typename value_T>
+inline void TrackParametrizationWithError<value_T>::updateCov(value_t delta, int i)
+{
+  mC[i] += delta;
 }
 
 //__________________________________________________________________________

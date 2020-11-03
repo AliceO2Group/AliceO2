@@ -161,8 +161,9 @@ Bool_t Detector::ProcessHits(FairVolume* v)
   }
 
   Double_t lostenergy = fMC->Edep();
-  if (lostenergy < DBL_EPSILON && !isNewPartile)
+  if (lostenergy < DBL_EPSILON && !isNewPartile) {
     return false; // do not create hits with zero energy deposition
+  }
 
   //  if(strcmp(mc->CurrentVolName(),"PXTL")!=0) //Non need to check, alwais there...
   //    return false ; //  We are not inside a PBWO crystal
@@ -186,8 +187,9 @@ Bool_t Detector::ProcessHits(FairVolume* v)
   if (!isNewPartile) {
     for (Int_t itr = mHits->size() - 1; itr >= 0; itr--) {
       Hit* h = &(mHits->at(itr));
-      if (h->GetTrackID() != superParent) // switched to another SuperParent, do not search further
+      if (h->GetTrackID() != superParent) { // switched to another SuperParent, do not search further
         break;
+      }
       if (h->GetDetectorID() == detID) { // found correct hit
         h->addEnergyLoss(lostenergy);
         mCurentSuperParent = superParent;
@@ -205,7 +207,7 @@ Bool_t Detector::ProcessHits(FairVolume* v)
   Double_t estart = fMC->Etot();
   Double_t time = fMC->TrackTime() * 1.e+9; // time in ns?? To be consistent with EMCAL
 
-  mCurrentHit = addHit(superParent, detID, Point3D<float>(posX, posY, posZ), Vector3D<float>(momX, momY, momZ), estart,
+  mCurrentHit = addHit(superParent, detID, math_utils::Point3D<float>(posX, posY, posZ), math_utils::Vector3D<float>(momX, momY, momZ), estart,
                        time, lostenergy);
   mCurentSuperParent = superParent;
   mCurrentTrackID = partID;
@@ -214,7 +216,7 @@ Bool_t Detector::ProcessHits(FairVolume* v)
   return true;
 }
 
-Hit* Detector::addHit(Int_t trackID, Int_t detID, const Point3D<float>& pos, const Vector3D<float>& mom, Double_t totE,
+Hit* Detector::addHit(Int_t trackID, Int_t detID, const math_utils::Point3D<float>& pos, const math_utils::Vector3D<float>& mom, Double_t totE,
                       Double_t time, Double_t eLoss)
 {
   LOG(DEBUG4) << "Adding hit for track " << trackID << " with position (" << pos.X() << ", " << pos.Y() << ", "
@@ -560,8 +562,9 @@ void Detector::ConstructEMCGeometry()
       Float_t x = (2 * irow + 1 - geom->getNStripX()) * strip[0];
       for (icol = 0; icol < geom->getNStripZ(); icol++) {
         z = (2 * icol + 1 - geom->getNStripZ()) * strip[2];
-        if (irow >= geom->getNStripX() / 2)
+        if (irow >= geom->getNStripX() / 2) {
           fMC->Gspos("PSTR", nr, "PTIH", x, y, z, 0, "ONLY");
+        }
         nr++;
       }
     }

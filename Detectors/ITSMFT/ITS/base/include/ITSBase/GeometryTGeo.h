@@ -42,7 +42,7 @@ namespace its
 class GeometryTGeo : public o2::itsmft::GeometryTGeo
 {
  public:
-  typedef o2::Transform3D Mat3D;
+  typedef o2::math_utils::Transform3D Mat3D;
   using DetMatrixCache::getMatrixL2G;
   using DetMatrixCache::getMatrixT2GRot;
   using DetMatrixCache::getMatrixT2L;
@@ -53,8 +53,9 @@ class GeometryTGeo : public o2::itsmft::GeometryTGeo
   static GeometryTGeo* Instance()
   {
     // get (create if needed) a unique instance of the object
-    if (!sInstance)
+    if (!sInstance) {
       sInstance = std::unique_ptr<GeometryTGeo>(new GeometryTGeo(true, 0));
+    }
     return sInstance.get();
   }
 
@@ -67,9 +68,9 @@ class GeometryTGeo : public o2::itsmft::GeometryTGeo
   // NEVER use it, it will throw exception if the class instance was already created
   // Use GeometryTGeo::Instance() instead
   GeometryTGeo(bool build = kFALSE, int loadTrans = 0
-               /*o2::base::utils::bit2Mask(o2::TransformType::T2L, // default transformations to load
-           o2::TransformType::T2G,
-           o2::TransformType::L2G)*/
+               /*o2::base::math_utils::bit2Mask(o2::math_utils::TransformType::T2L, // default transformations to load
+           o2::math_utils::TransformType::T2G,
+           o2::math_utils::TransformType::L2G)*/
   );
 
   /// Default destructor

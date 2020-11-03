@@ -20,7 +20,7 @@
 #include "MFTTracking/Cluster.h"
 
 #include "MathUtils/Utils.h"
-#include "MathUtils/Cartesian2D.h"
+#include "MathUtils/Cartesian.h"
 #include "DataFormatsMFT/TrackMFT.h"
 #include "SimulationDataFormat/MCCompLabel.h"
 #include "SimulationDataFormat/MCTruthContainer.h"
@@ -117,10 +117,10 @@ inline void Tracker::getRPhiProjectionBin(const Cluster& cluster1, const Int_t l
   dz = constants::mft::LayerZCoordinate()[layer] - constants::mft::LayerZCoordinate()[layer1];
   x_proj = cluster1.getX() + dz * cluster1.getX() * constants::mft::InverseLayerZCoordinate()[layer1];
   y_proj = cluster1.getY() + dz * cluster1.getY() * constants::mft::InverseLayerZCoordinate()[layer1];
-  auto clsPoint2D = Point2D<Float_t>(x_proj, y_proj);
+  auto clsPoint2D = math_utils::Point2D<Float_t>(x_proj, y_proj);
   r_proj = clsPoint2D.R();
   phi_proj = clsPoint2D.Phi();
-  o2::utils::BringTo02PiGen(phi_proj);
+  o2::math_utils::bringTo02PiGen(phi_proj);
   binR_proj = constants::index_table::getRBinIndex(r_proj);
   binPhi_proj = constants::index_table::getPhiBinIndex(phi_proj);
   return;
@@ -130,8 +130,9 @@ inline void Tracker::getRPhiProjectionBin(const Cluster& cluster1, const Int_t l
 inline Bool_t Tracker::getBinClusterRange(const ROframe& event, const Int_t layer, const Int_t bin, Int_t& clsMinIndex, Int_t& clsMaxIndex) const
 {
   const auto pair2 = event.getClusterBinIndexRange(layer).find(bin);
-  if (pair2 == event.getClusterBinIndexRange(layer).end())
+  if (pair2 == event.getClusterBinIndexRange(layer).end()) {
     return kFALSE;
+  }
   Int_t binIndex = pair2->first;
   // get the range in ordered cluster index within this bin
   std::pair<Int_t, Int_t> pair1 = pair2->second;
@@ -272,8 +273,9 @@ inline void Tracker::computeTracksMClabels(const T& tracks)
     }
     count = 0;
     for (int iCluster = 0; iCluster < nClusters; ++iCluster) {
-      if (track.getMCCompLabels()[iCluster] == maxOccurrencesValue)
+      if (track.getMCCompLabels()[iCluster] == maxOccurrencesValue) {
         count++;
+      }
     }
 
     auto labelratio = 1.0 * count / nClusters;

@@ -43,6 +43,7 @@ childprocs() {
 #   conditions early and prevent longtime hanging executables 
 #   (until DPL offers signal handling and automatic shutdown)
 # - possibility to provide user hooks for "start" and "failure"
+# - possibility to skip (jump over) job alltogether
 taskwrapper() {
   local logfile=$1
   shift 1
@@ -50,6 +51,11 @@ taskwrapper() {
 
   # launch the actual command in the background
   echo "Launching task: ${command} &> $logfile &"
+  # the command might be a complex block: For the timing measurement below
+  # it is better to execute this as a script
+  SCRIPTNAME="${logfile}_tmp.sh"
+  echo "${command}" > ${SCRIPTNAME}
+  chmod +x ${SCRIPTNAME}
 
   # this gives some possibility to customize the wrapper
   # and do some special task at the start. The hook takes 2 arguments: 
@@ -58,6 +64,19 @@ taskwrapper() {
     hook="${JOBUTILS_JOB_STARTHOOK} '$command' $logfile"
     eval "${hook}"
   fi
+
+  # We offer the possibility to jump this stage/task when a "done" file is present.
+  # (this is mainly interesting for debugging in order to avoid going through all pipeline stages again)
+  # The feature should be used with care! To make this nice, a proper dependency chain and a checksum mechanism
+  # needs to be put into place.
+  if [ "${JOBUTILS_SKIPDONE}" ]; then
+    if [ -f "${logfile}_done" ]; then
+       echo "Skipping task since file ${logfile}_done found";
+       [ ! "${JOBUTILS_KEEPJOBSCRIPT}" ] && rm ${SCRIPTNAME} 2> /dev/null
+       return 0
+    fi
+  fi
+  [ -f "${logfile}_done" ] && rm "${logfile}"_done
 
   # the time command is non-standard on MacOS
   if [ "$(uname)" == "Darwin" ]; then
@@ -68,9 +87,9 @@ taskwrapper() {
   fi
 
   # with or without memory monitoring ?
-  finalcommand="TIME=\"#walltime %e\" ${TIMECOMMAND} ${command}"
+  finalcommand="TIME=\"#walltime %e\" ${TIMECOMMAND} ./${SCRIPTNAME}"
   if [[ "$(uname)" != "Darwin" && "${JOBUTILS_MONITORMEM}" ]]; then
-    finalcommand="TIME=\"#walltime %e\" ${O2_ROOT}/share/scripts/monitor-mem.sh ${TIMECOMMAND} '${command}'"
+    finalcommand="TIME=\"#walltime %e\" ${O2_ROOT}/share/scripts/monitor-mem.sh ${TIMECOMMAND} './${SCRIPTNAME}'"
   fi
   echo "Running: ${finalcommand}" > ${logfile}
   eval ${finalcommand} >> ${logfile} 2>&1 &
@@ -93,6 +112,7 @@ taskwrapper() {
              -e \"segmentation violation\"          \
              -e \"error while setting up workflow\" \
              -e \"bus error\"                       \
+             -e \"Assertion.*failed\"               \
              -e \"There was a crash.\""
       
     grepcommand="grep -H ${pattern} $logfile >> encountered_exceptions_list 2>/dev/null"
@@ -126,6 +146,7 @@ taskwrapper() {
       done      
 
       RC_ACUM=$((RC_ACUM+1))
+      [ ! "${JOBUTILS_KEEPJOBSCRIPT}" ] && rm ${SCRIPTNAME} 2> /dev/null
       return 1
     fi
 
@@ -155,7 +176,27 @@ taskwrapper() {
   # return code
   RC=$?
   RC_ACUM=$((RC_ACUM+RC))
-  [ ! "${RC} -eq 0" ] && echo "command ${command} had nonzero exit code ${RC}"
-
+  if [ "${RC}" -eq "0" ]; then
+    # if return code 0 we mark this task as done
+    echo "Command \"${command}\" successfully finished." > "${logfile}"_done
+    echo "The presence of this file can be used to skip this command in future runs" >> "${logfile}"_done
+    echo "of the pipeline by setting the JOBUTILS_SKIPDONE environment variable." >> "${logfile}"_done
+  else
+    echo "command ${command} had nonzero exit code ${RC}"
+  fi
+  [ ! "${JOBUTILS_KEEPJOBSCRIPT}" ] && rm ${SCRIPTNAME} 2> /dev/null
   return ${RC}
+}
+
+getNumberOfPhysicalCPUCores() {
+  if [ "$(uname)" == "Darwin" ]; then
+    CORESPERSOCKET=`system_profiler SPHardwareDataType | grep "Total Number of Cores:" | awk '{print $5}'`
+    SOCKETS=`system_profiler SPHardwareDataType | grep "Number of Processors:" | awk '{print $4}'`
+  else
+    # Do something under GNU/Linux platform
+    CORESPERSOCKET=`lscpu | grep "Core(s) per socket" | awk '{print $4}'`
+    SOCKETS=`lscpu | grep "Socket(s)" | awk '{print $2}'`
+  fi
+  N=`bc <<< "${CORESPERSOCKET}*${SOCKETS}"`
+  echo "${N}"
 }

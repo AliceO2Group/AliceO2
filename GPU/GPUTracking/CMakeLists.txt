@@ -131,12 +131,13 @@ set(HDRS_INSTALL
     Global/GPUErrorCodes.h
     Standalone/qconfigoptions.h
     Base/GPUSettingsList.h
+    DataCompression/GPUTPCClusterRejection.h
 )
 
 # Sources only for O2
 if(ALIGPU_BUILD_TYPE STREQUAL "O2")
-  set(SRCS ${SRCS} Interface/GPUO2Interface.cxx Interface/GPUO2InterfaceConfigurableParam.cxx)
-  set(HDRS_CINT_O2 ${HDRS_CINT_O2} Interface/GPUO2Interface.h Interface/GPUO2InterfaceConfigurableParam.h dEdx/TPCdEdxCalibrationSplines.h)
+  set(SRCS ${SRCS} Interface/GPUO2Interface.cxx Interface/GPUO2InterfaceRefit.cxx Interface/GPUO2InterfaceConfigurableParam.cxx)
+  set(HDRS_CINT_O2 ${HDRS_CINT_O2} Interface/GPUO2Interface.h Interface/GPUO2InterfaceRefit.h Interface/GPUO2InterfaceConfigurableParam.h dEdx/TPCdEdxCalibrationSplines.h)
   set(HDRS_CINT_O2_ADDITIONAL Base/GPUSettings.h Base/GPUSettingsList.h) # Manual depencies for ROOT dictionary generation
 endif()
 
@@ -172,7 +173,8 @@ if(ALIGPU_BUILD_TYPE STREQUAL "O2" OR CONFIG_O2_EXTENSIONS)
         TPCClusterFinder/GPUTPCCFDecodeZS.cxx
         TPCClusterFinder/GPUTPCCFGather.cxx
         TPCClusterFinder/TPCCFCalibration.cxx
-        dEdx/TPCdEdxCalibrationSplines.cxx)
+        dEdx/TPCdEdxCalibrationSplines.cxx
+        Refit/GPUTrackingRefit.cxx)
 
     set(SRCS_NO_H ${SRCS_NO_H}
         TPCClusterFinder/GPUTPCClusterFinderDump.cxx)
@@ -270,6 +272,7 @@ if(ALIGPU_BUILD_TYPE STREQUAL "O2")
                                             HLTHeaders
                                             Interface
                                             Merger
+                                            Refit
                                             DataCompression
                                             TPCClusterFinder
                  TARGETVARNAME targetName

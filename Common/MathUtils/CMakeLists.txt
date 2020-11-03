@@ -11,13 +11,9 @@
 o2_add_library(
   MathUtils
   SOURCES src/CachingTF1.cxx
-          src/Cartesian2D.cxx
-          src/Cartesian3D.cxx
+          src/Cartesian.cxx
           src/Chebyshev3D.cxx
           src/Chebyshev3DCalc.cxx
-          src/MathBase.cxx
-          src/RandomRing.cxx
-          src/Primitive2D.cxx
   PUBLIC_LINK_LIBRARIES
     ROOT::Hist
     FairRoot::Base
@@ -32,13 +28,12 @@ o2_target_root_dictionary(
   HEADERS include/MathUtils/Utils.h
           include/MathUtils/Chebyshev3D.h
           include/MathUtils/Chebyshev3DCalc.h
-          include/MathUtils/MathBase.h
-          include/MathUtils/Cartesian2D.h
-          include/MathUtils/Cartesian3D.h
+          include/MathUtils/fit.h
+          include/MathUtils/Cartesian.h
+          include/MathUtils/CartesianGPU.h
           include/MathUtils/CachingTF1.h
           include/MathUtils/RandomRing.h
-          include/MathUtils/Primitive2D.h
-          include/MathUtils/Bracket.h)
+          include/MathUtils/Primitive2D.h)
 
 o2_add_test(
   CachingTF1
@@ -49,7 +44,7 @@ o2_add_test(
 
 o2_add_test(
   Cartesian3D
-  SOURCES test/testCartesian3D.cxx
+  SOURCES test/testCartesian.cxx
   COMPONENT_NAME MathUtils
   PUBLIC_LINK_LIBRARIES O2::MathUtils
   LABELS utils)

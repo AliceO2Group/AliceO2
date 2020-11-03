@@ -132,7 +132,7 @@ void MatLayerCyl::populateFromTGeo(int ip, int iz, int ntrPerCell)
     float zs = zmn + (isz + 0.5) * dz;
     float dzt = zs > 0.f ? 0.25 * dz : -0.25 * dz; // to avoid 90 degree polar angle
     for (int isp = ntrPerCell; isp--;) {
-      o2::utils::sincosf(phmn + (isp + 0.5) * getDPhi() / ntrPerCell, sn, cs);
+      o2::math_utils::sincos(phmn + (isp + 0.5) * getDPhi() / ntrPerCell, sn, cs);
       auto bud = o2::base::GeometryManager::meanMaterialBudget(rMin * cs, rMin * sn, zs - dzt, rMax * cs, rMax * sn, zs + dzt);
       if (bud.length > 0.) {
         meanRho += bud.length * bud.meanRho;
@@ -174,10 +174,12 @@ bool MatLayerCyl::cellsDiffer(const MatCell& cellA, const MatCell& cellB, float 
   /// check if the cells content is different within the tolerance
   float rav = 0.5 * (cellA.meanRho + cellB.meanRho), xav = 0.5 * (cellA.meanX2X0 + cellB.meanX2X0);
   float rdf = 0.5 * (cellA.meanRho - cellB.meanRho), xdf = 0.5 * (cellA.meanX2X0 - cellB.meanX2X0);
-  if (rav > 0 && std::abs(rdf / rav) > maxRelDiff)
+  if (rav > 0 && std::abs(rdf / rav) > maxRelDiff) {
     return true;
-  if (xav > 0 && std::abs(xdf / xav) > maxRelDiff)
+  }
+  if (xav > 0 && std::abs(xdf / xav) > maxRelDiff) {
     return true;
+  }
   return false;
 }
 

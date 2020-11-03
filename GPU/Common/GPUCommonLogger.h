@@ -17,12 +17,17 @@
 #if defined(__OPENCL__)
 #define LOG(...)
 #define LOGF(...)
+#define LOGP(...)
 
 #elif defined(GPUCA_GPUCODE_DEVICE)
-#define LOG(...)
+#define LOG(...) static_assert("LOG(...) << ... unsupported in GPU code");
 #define LOGF(type, string, ...)         \
   {                                     \
     printf(string "\n", ##__VA_ARGS__); \
+  }
+#define LOGP(type, string, ...) \
+  {                             \
+    printf(string "\n");        \
   }
 
 #elif defined(GPUCA_STANDALONE) ||                    \
@@ -35,6 +40,10 @@
 #define LOGF(type, string, ...)         \
   {                                     \
     printf(string "\n", ##__VA_ARGS__); \
+  }
+#define LOGP(type, string, ...) \
+  {                             \
+    printf(string "\n");        \
   }
 
 #else

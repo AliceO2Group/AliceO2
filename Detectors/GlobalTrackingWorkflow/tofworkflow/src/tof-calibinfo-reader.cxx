@@ -73,8 +73,9 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
   // auto tofSectors = o2::RangeTokenizer::tokenize<int>(cfgc.options().get<std::string>("tof-sectors"));
   // std::vector<int> laneConfiguration = tofSectors;
 
-  for (int i = 0; i < ninstances; i++)
+  for (int i = 0; i < ninstances; i++) {
     specs.emplace_back(o2::tof::getCalibInfoReaderSpec(i, ninstances, stringTBP));
+  }
 
   LOG(INFO) << "Number of active devices = " << specs.size();
 

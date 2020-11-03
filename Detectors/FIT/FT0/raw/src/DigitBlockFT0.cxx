@@ -13,3 +13,5 @@ using namespace o2::ft0;
 
 int DigitBlockFT0::sEventID = 0;
 o2::ft0::LookUpTable DigitBlockFT0::sLookupTable = o2::ft0::LookUpTable::linear();
+int DigitBlockFT0ext::sEventID = 0;
+o2::ft0::LookUpTable DigitBlockFT0ext::sLookupTable = o2::ft0::LookUpTable::linear();

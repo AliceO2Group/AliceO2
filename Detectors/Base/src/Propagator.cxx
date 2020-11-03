@@ -9,17 +9,19 @@
 // or submit itself to any jurisdiction.
 
 #include "DetectorsBase/Propagator.h"
-#include "DetectorsBase/GeometryManager.h"
-#include <FairLogger.h>
-#include <FairRunAna.h> // eventually will get rid of it
-#include <TGeoGlobalMagField.h>
-#include "DataFormatsParameters/GRPObject.h"
+#include <GPUCommonLogger.h>
 #include "Field/MagFieldFast.h"
-#include "Field/MagneticField.h"
 #include "MathUtils/Utils.h"
 #include "ReconstructionDataFormats/Vertex.h"
 
 using namespace o2::base;
+
+#ifndef GPUCA_STANDALONE
+#include "Field/MagneticField.h"
+#include "DataFormatsParameters/GRPObject.h"
+#include "DetectorsBase/GeometryManager.h"
+#include <FairRunAna.h> // eventually will get rid of it
+#include <TGeoGlobalMagField.h>
 
 Propagator::Propagator()
 {
@@ -46,6 +48,52 @@ Propagator::Propagator()
   const float xyz[3] = {0.};
   mField->GetBz(xyz, mBz);
 }
+
+//____________________________________________________________
+int Propagator::initFieldFromGRP(const std::string grpFileName, std::string grpName, bool verbose)
+{
+  /// load grp and init magnetic field
+  if (verbose) {
+    LOG(INFO) << "Loading field from GRP of " << grpFileName;
+  }
+  const auto grp = o2::parameters::GRPObject::loadFrom(grpFileName, grpName);
+  if (!grp) {
+    return -1;
+  }
+  if (verbose) {
+    grp->print();
+  }
+
+  return initFieldFromGRP(grp);
+}
+
+//____________________________________________________________
+int Propagator::initFieldFromGRP(const o2::parameters::GRPObject* grp, bool verbose)
+{
+  /// init mag field from GRP data and attach it to TGeoGlobalMagField
+
+  if (TGeoGlobalMagField::Instance()->IsLocked()) {
+    if (TGeoGlobalMagField::Instance()->GetField()->TestBit(o2::field::MagneticField::kOverrideGRP)) {
+      LOG(WARNING) << "ExpertMode!!! GRP information will be ignored";
+      LOG(WARNING) << "ExpertMode!!! Running with the externally locked B field";
+      return 0;
+    } else {
+      LOG(INFO) << "Destroying existing B field instance";
+      delete TGeoGlobalMagField::Instance();
+    }
+  }
+  auto fld = o2::field::MagneticField::createFieldMap(grp->getL3Current(), grp->getDipoleCurrent());
+  TGeoGlobalMagField::Instance()->SetField(fld);
+  TGeoGlobalMagField::Instance()->Lock();
+  if (verbose) {
+    LOG(INFO) << "Running with the B field constructed out of GRP";
+    LOG(INFO) << "Access field via TGeoGlobalMagField::Instance()->Field(xyz,bxyz) or via";
+    LOG(INFO) << "auto o2field = static_cast<o2::field::MagneticField*>( TGeoGlobalMagField::Instance()->GetField() )";
+  }
+  return 0;
+}
+
+#endif
 
 //_______________________________________________________________________
 bool Propagator::PropagateToXBxByBz(o2::track::TrackParCov& track, float xToGo, float mass, float maxSnp, float maxStep,
@@ -99,7 +147,7 @@ bool Propagator::PropagateToXBxByBz(o2::track::TrackParCov& track, float xToGo, 
       }
     } else if (tofInfo) { // if tofInfo filling was requested w/o material correction, we need to calculate the step lenght
       auto xyz1 = track.getXYZGlo();
-      Vector3D<float> stepV(xyz1.X() - xyz0.X(), xyz1.Y() - xyz0.Y(), xyz1.Z() - xyz0.Z());
+      math_utils::Vector3D<float> stepV(xyz1.X() - xyz0.X(), xyz1.Y() - xyz0.Y(), xyz1.Z() - xyz0.Z());
       tofInfo->addStep(stepV.R(), track);
     }
     dx = xToGo - track.getX();
@@ -158,7 +206,7 @@ bool Propagator::PropagateToXBxByBz(o2::track::TrackPar& track, float xToGo, flo
       }
     } else if (tofInfo) { // if tofInfo filling was requested w/o material correction, we need to calculate the step lenght
       auto xyz1 = track.getXYZGlo();
-      Vector3D<float> stepV(xyz1.X() - xyz0.X(), xyz1.Y() - xyz0.Y(), xyz1.Z() - xyz0.Z());
+      math_utils::Vector3D<float> stepV(xyz1.X() - xyz0.X(), xyz1.Y() - xyz0.Y(), xyz1.Z() - xyz0.Z());
       tofInfo->addStep(stepV.R(), track);
     }
     dx = xToGo - track.getX();
@@ -217,7 +265,7 @@ bool Propagator::propagateToX(o2::track::TrackParCov& track, float xToGo, float 
       }
     } else if (tofInfo) { // if tofInfo filling was requested w/o material correction, we need to calculate the step lenght
       auto xyz1 = track.getXYZGlo();
-      Vector3D<float> stepV(xyz1.X() - xyz0.X(), xyz1.Y() - xyz0.Y(), xyz1.Z() - xyz0.Z());
+      math_utils::Vector3D<float> stepV(xyz1.X() - xyz0.X(), xyz1.Y() - xyz0.Y(), xyz1.Z() - xyz0.Z());
       tofInfo->addStep(stepV.R(), track);
     }
     dx = xToGo - track.getX();
@@ -276,7 +324,7 @@ bool Propagator::propagateToX(o2::track::TrackPar& track, float xToGo, float bZ,
       }
     } else if (tofInfo) { // if tofInfo filling was requested w/o material correction, we need to calculate the step lenght
       auto xyz1 = track.getXYZGlo();
-      Vector3D<float> stepV(xyz1.X() - xyz0.X(), xyz1.Y() - xyz0.Y(), xyz1.Z() - xyz0.Z());
+      math_utils::Vector3D<float> stepV(xyz1.X() - xyz0.X(), xyz1.Y() - xyz0.Y(), xyz1.Z() - xyz0.Z());
       tofInfo->addStep(stepV.R(), track);
     }
     dx = xToGo - track.getX();
@@ -292,7 +340,7 @@ bool Propagator::propagateToDCA(const o2::dataformats::VertexBase& vtx, o2::trac
 {
   // propagate track to DCA to the vertex
   float sn, cs, alp = track.getAlpha();
-  o2::utils::sincosf(alp, sn, cs);
+  o2::math_utils::sincos(alp, sn, cs);
   float x = track.getX(), y = track.getY(), snp = track.getSnp(), csp = std::sqrt((1.f - snp) * (1.f + snp));
   float xv = vtx.getX() * cs + vtx.getY() * sn, yv = -vtx.getX() * sn + vtx.getY() * cs, zv = vtx.getZ();
   x -= xv;
@@ -321,7 +369,7 @@ bool Propagator::propagateToDCA(const o2::dataformats::VertexBase& vtx, o2::trac
   }
   track = tmpT;
   if (dca) {
-    o2::utils::sincosf(alp, sn, cs);
+    o2::math_utils::sincos(alp, sn, cs);
     auto s2ylocvtx = vtx.getSigmaX2() * sn * sn + vtx.getSigmaY2() * cs * cs - 2. * vtx.getSigmaXY() * cs * sn;
     dca->set(track.getY() - yv, track.getZ() - zv,
              track.getSigmaY2() + s2ylocvtx, track.getSigmaZY(), track.getSigmaZ2() + vtx.getSigmaZ2());
@@ -337,7 +385,7 @@ bool Propagator::propagateToDCABxByBz(const o2::dataformats::VertexBase& vtx, o2
 {
   // propagate track to DCA to the vertex
   float sn, cs, alp = track.getAlpha();
-  o2::utils::sincosf(alp, sn, cs);
+  o2::math_utils::sincos(alp, sn, cs);
   float x = track.getX(), y = track.getY(), snp = track.getSnp(), csp = std::sqrt((1.f - snp) * (1.f + snp));
   float xv = vtx.getX() * cs + vtx.getY() * sn, yv = -vtx.getX() * sn + vtx.getY() * cs, zv = vtx.getZ();
   x -= xv;
@@ -366,7 +414,7 @@ bool Propagator::propagateToDCABxByBz(const o2::dataformats::VertexBase& vtx, o2
   }
   track = tmpT;
   if (dca) {
-    o2::utils::sincosf(alp, sn, cs);
+    o2::math_utils::sincos(alp, sn, cs);
     auto s2ylocvtx = vtx.getSigmaX2() * sn * sn + vtx.getSigmaY2() * cs * cs - 2. * vtx.getSigmaXY() * cs * sn;
     dca->set(track.getY() - yv, track.getZ() - zv,
              track.getSigmaY2() + s2ylocvtx, track.getSigmaZY(), track.getSigmaZ2() + vtx.getSigmaZ2());
@@ -375,14 +423,14 @@ bool Propagator::propagateToDCABxByBz(const o2::dataformats::VertexBase& vtx, o2
 }
 
 //_______________________________________________________________________
-bool Propagator::propagateToDCA(const Point3D<float>& vtx, o2::track::TrackPar& track, float bZ,
+bool Propagator::propagateToDCA(const math_utils::Point3D<float>& vtx, o2::track::TrackPar& track, float bZ,
                                 float mass, float maxStep, Propagator::MatCorrType matCorr,
                                 std::array<float, 2>* dca, o2::track::TrackLTIntegral* tofInfo,
                                 int signCorr, float maxD) const
 {
   // propagate track to DCA to the vertex
   float sn, cs, alp = track.getAlpha();
-  o2::utils::sincosf(alp, sn, cs);
+  o2::math_utils::sincos(alp, sn, cs);
   float x = track.getX(), y = track.getY(), snp = track.getSnp(), csp = std::sqrt((1.f - snp) * (1.f + snp));
   float xv = vtx.X() * cs + vtx.Y() * sn, yv = -vtx.X() * sn + vtx.Y() * cs, zv = vtx.Z();
   x -= xv;
@@ -419,14 +467,14 @@ bool Propagator::propagateToDCA(const Point3D<float>& vtx, o2::track::TrackPar& 
 }
 
 //_______________________________________________________________________
-bool Propagator::propagateToDCABxByBz(const Point3D<float>& vtx, o2::track::TrackPar& track,
+bool Propagator::propagateToDCABxByBz(const math_utils::Point3D<float>& vtx, o2::track::TrackPar& track,
                                       float mass, float maxStep, Propagator::MatCorrType matCorr,
                                       std::array<float, 2>* dca, o2::track::TrackLTIntegral* tofInfo,
                                       int signCorr, float maxD) const
 {
   // propagate track to DCA to the vertex
   float sn, cs, alp = track.getAlpha();
-  o2::utils::sincosf(alp, sn, cs);
+  o2::math_utils::sincos(alp, sn, cs);
   float x = track.getX(), y = track.getY(), snp = track.getSnp(), csp = std::sqrt((1.f - snp) * (1.f + snp));
   float xv = vtx.X() * cs + vtx.Y() * sn, yv = -vtx.X() * sn + vtx.Y() * cs, zv = vtx.Z();
   x -= xv;
@@ -463,51 +511,12 @@ bool Propagator::propagateToDCABxByBz(const Point3D<float>& vtx, o2::track::Trac
 }
 
 //____________________________________________________________
-int Propagator::initFieldFromGRP(const std::string grpFileName, std::string grpName, bool verbose)
+MatBudget Propagator::getMatBudget(Propagator::MatCorrType corrType, const math_utils::Point3D<float>& p0, const math_utils::Point3D<float>& p1) const
 {
-  /// load grp and init magnetic field
-  if (verbose) {
-    LOG(INFO) << "Loading field from GRP of " << grpFileName;
+#ifndef GPUCA_STANDALONE
+  if (corrType == MatCorrType::USEMatCorrTGeo) {
+    return GeometryManager::meanMaterialBudget(p0, p1);
   }
-  const auto grp = o2::parameters::GRPObject::loadFrom(grpFileName, grpName);
-  if (!grp) {
-    return -1;
-  }
-  if (verbose) {
-    grp->print();
-  }
-
-  return initFieldFromGRP(grp);
-}
-
-//____________________________________________________________
-int Propagator::initFieldFromGRP(const o2::parameters::GRPObject* grp, bool verbose)
-{
-  /// init mag field from GRP data and attach it to TGeoGlobalMagField
-
-  if (TGeoGlobalMagField::Instance()->IsLocked()) {
-    if (TGeoGlobalMagField::Instance()->GetField()->TestBit(o2::field::MagneticField::kOverrideGRP)) {
-      LOG(WARNING) << "ExpertMode!!! GRP information will be ignored";
-      LOG(WARNING) << "ExpertMode!!! Running with the externally locked B field";
-      return 0;
-    } else {
-      LOG(INFO) << "Destroying existing B field instance";
-      delete TGeoGlobalMagField::Instance();
-    }
-  }
-  auto fld = o2::field::MagneticField::createFieldMap(grp->getL3Current(), grp->getDipoleCurrent());
-  TGeoGlobalMagField::Instance()->SetField(fld);
-  TGeoGlobalMagField::Instance()->Lock();
-  if (verbose) {
-    LOG(INFO) << "Running with the B field constructed out of GRP";
-    LOG(INFO) << "Access field via TGeoGlobalMagField::Instance()->Field(xyz,bxyz) or via";
-    LOG(INFO) << "auto o2field = static_cast<o2::field::MagneticField*>( TGeoGlobalMagField::Instance()->GetField() )";
-  }
-  return 0;
-}
-
-//____________________________________________________________
-MatBudget Propagator::getMatBudget(Propagator::MatCorrType corrType, const Point3D<float>& p0, const Point3D<float>& p1) const
-{
-  return (corrType == MatCorrType::USEMatCorrTGeo) ? GeometryManager::meanMaterialBudget(p0, p1) : mMatLUT->getMatBudget(p0.X(), p0.Y(), p0.Z(), p1.X(), p1.Y(), p1.Z());
+#endif
+  return mMatLUT->getMatBudget(p0.X(), p0.Y(), p0.Z(), p1.X(), p1.Y(), p1.Z());
 }

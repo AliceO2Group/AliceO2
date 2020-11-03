@@ -249,8 +249,9 @@ void Tracker::findTracks(const ROframe& event)
     CA_DEBUGGER(assert(nClusters >= mTrkParams[0].MinTrackLength));
     CA_DEBUGGER(roadCounters[nClusters - 4]++);
 
-    if (lastCellLevel == constants::its::UnusedIndex)
+    if (lastCellLevel == constants::its::UnusedIndex) {
       continue;
+    }
 
     /// From primary vertex context index to event index (== the one used as input of the tracking code)
     for (int iC{0}; iC < clusters.size(); iC++) {
@@ -271,19 +272,22 @@ void Tracker::findTracks(const ROframe& event)
       temporaryTrack.setExternalClusterIndex(iC, clusters[iC], clusters[iC] != constants::its::UnusedIndex);
     }
     bool fitSuccess = fitTrack(event, temporaryTrack, constants::its::LayersNumber - 4, -1, -1);
-    if (!fitSuccess)
+    if (!fitSuccess) {
       continue;
+    }
     CA_DEBUGGER(fitCounters[nClusters - 4]++);
     temporaryTrack.resetCovariance();
     fitSuccess = fitTrack(event, temporaryTrack, 0, constants::its::LayersNumber, 1);
-    if (!fitSuccess)
+    if (!fitSuccess) {
       continue;
+    }
     CA_DEBUGGER(backpropagatedCounters[nClusters - 4]++);
     temporaryTrack.getParamOut() = temporaryTrack;
     temporaryTrack.resetCovariance();
     fitSuccess = fitTrack(event, temporaryTrack, constants::its::LayersNumber - 1, -1, -1);
-    if (!fitSuccess)
+    if (!fitSuccess) {
       continue;
+    }
     CA_DEBUGGER(refitCounters[nClusters - 4]++);
     tracks.emplace_back(temporaryTrack);
     CA_DEBUGGER(assert(nClusters == temporaryTrack.getNumberOfClusters()));
@@ -393,22 +397,26 @@ bool Tracker::fitTrack(const ROframe& event, TrackITSExt& track, int start, int 
     }
     const TrackingFrameInfo& trackingHit = event.getTrackingFrameInfoOnLayer(iLayer).at(track.getClusterIndex(iLayer));
 
-    if (!track.rotate(trackingHit.alphaTrackingFrame))
+    if (!track.rotate(trackingHit.alphaTrackingFrame)) {
       return false;
+    }
 
-    if (!track.propagateTo(trackingHit.xTrackingFrame, getBz()))
+    if (!track.propagateTo(trackingHit.xTrackingFrame, getBz())) {
       return false;
+    }
 
     track.setChi2(track.getChi2() +
                   track.getPredictedChi2(trackingHit.positionTrackingFrame, trackingHit.covarianceTrackingFrame));
-    if (!track.o2::track::TrackParCov::update(trackingHit.positionTrackingFrame, trackingHit.covarianceTrackingFrame))
+    if (!track.o2::track::TrackParCov::update(trackingHit.positionTrackingFrame, trackingHit.covarianceTrackingFrame)) {
       return false;
+    }
 
     const float xx0 = (iLayer > 2) ? 0.008f : 0.003f; // Rough layer thickness
     constexpr float radiationLength = 9.36f;          // Radiation length of Si [cm]
     constexpr float density = 2.33f;                  // Density of Si [g/cm^3]
-    if (!track.correctForMaterial(xx0, xx0 * radiationLength * density, true))
+    if (!track.correctForMaterial(xx0, xx0 * radiationLength * density, true)) {
       return false;
+    }
   }
   return true;
 }

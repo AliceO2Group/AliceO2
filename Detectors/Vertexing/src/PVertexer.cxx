@@ -14,6 +14,7 @@
 
 #include "DetectorsVertexing/PVertexer.h"
 #include "ReconstructionDataFormats/DCA.h"
+#include "DetectorsBase/Propagator.h"
 #include "Math/SMatrix.h"
 #include "Math/SVector.h"
 #include <numeric>
@@ -87,7 +88,7 @@ int PVertexer::process(gsl::span<const o2d::TrackTPCITS> tracksITSTPC, gsl::span
     int it = v2tRefsLoc[i].getFirstEntry(), itEnd = it + v2tRefsLoc[i].getEntries(), dest0 = vertexTrackIDs.size();
     for (; it < itEnd; it++) {
       auto& gid = vertexTrackIDs.emplace_back(vertexTrackIDsLoc[it], GIndex::TPCITS);
-      gid.setBit(GIndex::Contributor);
+      gid.setPVContributor();
     }
     v2tRefs.emplace_back(dest0, v2tRefsLoc[i].getEntries());
     LOG(DEBUG) << "#" << count++ << " " << vertices.back() << " | " << v2tRefs.back().getEntries() << " indices from " << v2tRefs.back().getFirstEntry(); // RS REM
@@ -409,7 +410,7 @@ float PVertexer::getTukey() const
 //___________________________________________________________________
 TimeEst PVertexer::timeEstimate(const VertexingInput& input) const
 {
-  o2::utils::StatAccumulator test;
+  o2::math_utils::StatAccumulator test;
   for (int i : input.idRange) {
     if (mTracksPool[i].canUse()) {
       const auto& timeT = mTracksPool[i].timeEst;
@@ -417,13 +418,9 @@ TimeEst PVertexer::timeEstimate(const VertexingInput& input) const
       test.add(timeT.getTimeStamp(), trErr2I);
     }
   }
-  if (test.wsum > 0) {
-    float t = 0., te2 = 0.;
-    test.getMeanRMS2(t, te2);
-    return {t, te2};
-  } else {
-    return {0., 0.};
-  }
+
+  const auto [t, te2] = test.getMeanRMS2<float>();
+  return {t, te2};
 }
 
 //___________________________________________________________________
@@ -433,6 +430,9 @@ void PVertexer::init()
   mFT0Params = &o2::ft0::InteractionTag::Instance();
   setTukey(mPVParams->tukey);
   initMeanVertexConstraint();
+
+  auto* prop = o2::base::Propagator::Instance();
+  setBz(prop->getNominalBz());
 }
 
 //___________________________________________________________________
@@ -481,11 +481,9 @@ void PVertexer::createTracksPool(gsl::span<const o2d::TrackTPCITS> tracksITSTPC)
     mStatTErr.add(tvf.timeEst.getTimeStampError());
   }
   // TODO: try to narrow timestamps using tof times
-  float zerrMean, zerrRMS;
-  mStatZErr.getMeanRMS2(zerrMean, zerrRMS);
+  auto [zerrMean, zerrRMS] = mStatZErr.getMeanRMS2<float>();
 
-  float terrMean, terrRMS;
-  mStatTErr.getMeanRMS2(terrMean, terrRMS);
+  auto [terrMean, terrRMS] = mStatTErr.getMeanRMS2<float>();
 
   if (mTracksPool.empty()) {
     return;

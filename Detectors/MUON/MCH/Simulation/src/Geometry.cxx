@@ -573,7 +573,7 @@ void addAlignableVolumesHalfChamber(int hc, std::string& parent)
 
 } // namespace impl
 
-o2::Transform3D getTransformation(int detElemId, const TGeoManager& geo)
+o2::math_utils::Transform3D getTransformation(int detElemId, const TGeoManager& geo)
 {
 
   int nCh = detElemId / 100;
@@ -602,7 +602,7 @@ o2::Transform3D getTransformation(int detElemId, const TGeoManager& geo)
     throw std::runtime_error("could not get to volPathName=" + volPathName);
   }
 
-  return o2::Transform3D{*(navig->GetCurrentMatrix())};
+  return o2::math_utils::Transform3D{*(navig->GetCurrentMatrix())};
 }
 
 void addAlignableVolumesMCH()

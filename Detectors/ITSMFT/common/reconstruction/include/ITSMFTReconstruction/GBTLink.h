@@ -29,13 +29,12 @@
 #include "DetectorsRaw/RDHUtils.h"
 #include "CommonDataFormat/InteractionRecord.h"
 
-#define GBTLINK_DECODE_ERRORCHECK(what) \
-  if ((what) == Abort) {                \
-    discardData();                      \
-    LOG(ERROR) << "Aborting decoding";  \
-    return AbortedOnError;              \
-  } else if ((what) == Skip) {          \
-    continue;                           \
+#define GBTLINK_DECODE_ERRORCHECK(errRes, errEval) \
+  errRes = errEval;                                \
+  if ((errRes) == Abort) {                         \
+    discardData();                                 \
+    LOG(ERROR) << "Aborting decoding";             \
+    return AbortedOnError;                         \
   }
 
 namespace o2
@@ -181,6 +180,7 @@ GBTLink::CollectedDataStatus GBTLink::collectROFCableData(const Mapping& chmap)
   int nw = 0;
   status = None;
   auto* currRawPiece = rawData.currentPiece();
+  GBTLink::ErrorType errRes = GBTLink::NoError;
   while (currRawPiece) { // we may loop over multiple CRU page
     if (dataOffset >= currRawPiece->size) {
       dataOffset = 0;                              // start of the RDH
@@ -193,8 +193,9 @@ GBTLink::CollectedDataStatus GBTLink::collectROFCableData(const Mapping& chmap)
       if (verbosity >= VerboseHeaders) {
         RDHUtils::printRDH(rdh);
       }
-      GBTLINK_DECODE_ERRORCHECK(checkErrorsRDH(*rdh));              // make sure we are dealing with RDH
-      GBTLINK_DECODE_ERRORCHECK(checkErrorsRDHStop(*rdh));          // if new HB starts, the lastRDH must have stop
+
+      GBTLINK_DECODE_ERRORCHECK(errRes, checkErrorsRDH(*rdh));     // make sure we are dealing with RDH
+      GBTLINK_DECODE_ERRORCHECK(errRes, checkErrorsRDHStop(*rdh)); // if new HB starts, the lastRDH must have stop
       //      GBTLINK_DECODE_ERRORCHECK(checkErrorsRDHStopPageEmpty(*rdh)); // end of HBF should be an empty page with stop
       lastRDH = rdh;
       statistics.nPackets++;
@@ -209,7 +210,7 @@ GBTLink::CollectedDataStatus GBTLink::collectROFCableData(const Mapping& chmap)
         if (verbosity >= VerboseHeaders) {
           printDiagnostic(gbtDiag);
         }
-        GBTLINK_DECODE_ERRORCHECK(checkErrorsDiagnosticWord(gbtDiag));
+        GBTLINK_DECODE_ERRORCHECK(errRes, checkErrorsDiagnosticWord(gbtDiag));
         dataOffset += RDHUtils::getOffsetToNext(*rdh) - sizeof(RDH);
         continue;
       }
@@ -221,14 +222,14 @@ GBTLink::CollectedDataStatus GBTLink::collectROFCableData(const Mapping& chmap)
         printHeader(gbtH);
       }
       if (format == OldFormat) {
-        GBTLINK_DECODE_ERRORCHECK(checkErrorsHeaderWord(reinterpret_cast<const GBTDataHeaderL*>(gbtH)));
+        GBTLINK_DECODE_ERRORCHECK(errRes, checkErrorsHeaderWord(reinterpret_cast<const GBTDataHeaderL*>(gbtH)));
         lanesActive = reinterpret_cast<const GBTDataHeaderL*>(gbtH)->activeLanesL; // TODO do we need to update this for every page?
       } else {
-        GBTLINK_DECODE_ERRORCHECK(checkErrorsHeaderWord(gbtH));
+        GBTLINK_DECODE_ERRORCHECK(errRes, checkErrorsHeaderWord(gbtH));
         lanesActive = gbtH->activeLanes; // TODO do we need to update this for every page?
       }
 
-      GBTLINK_DECODE_ERRORCHECK(checkErrorsActiveLanes(chmap.getCablesOnRUType(ruPtr->ruInfo->ruType)));
+      GBTLINK_DECODE_ERRORCHECK(errRes, checkErrorsActiveLanes(chmap.getCablesOnRUType(ruPtr->ruInfo->ruType)));
       if (format == OldFormat && reinterpret_cast<const GBTDataHeaderL*>(gbtH)->packetIdx == 0) { // reset flags in case of 1st page of new ROF (old format: judge by RDH)
         lanesStop = 0;
         lanesWithData = 0;
@@ -247,7 +248,7 @@ GBTLink::CollectedDataStatus GBTLink::collectROFCableData(const Mapping& chmap)
       if (verbosity >= VerboseHeaders) {
         printTrigger(gbtTrg);
       }
-      GBTLINK_DECODE_ERRORCHECK(checkErrorsTriggerWord(gbtTrg));
+      GBTLINK_DECODE_ERRORCHECK(errRes, checkErrorsTriggerWord(gbtTrg));
       if (gbtTrg->noData) { // emtpy trigger
         return status;
       }
@@ -267,16 +268,18 @@ GBTLink::CollectedDataStatus GBTLink::collectROFCableData(const Mapping& chmap)
 
     while (!gbtD->isDataTrailer()) { // start reading real payload
       nw++;
-      GBTLINK_DECODE_ERRORCHECK(checkErrorsGBTDataID(gbtD));
-      int cableHW = gbtD->getCableID(), cableSW = chmap.cableHW2SW(ruPtr->ruInfo->ruType, cableHW);
       if (verbosity >= VerboseData) {
         gbtD->printX();
       }
-      GBTLINK_DECODE_ERRORCHECK(checkErrorsGBTData(chmap.cableHW2Pos(ruPtr->ruInfo->ruType, cableHW)));
-      ruPtr->cableData[cableSW].add(gbtD->getW8(), 9);
-      ruPtr->cableHWID[cableSW] = cableHW;
-      ruPtr->cableLinkID[cableSW] = idInRU;
-      ruPtr->cableLinkPtr[cableSW] = this;
+      GBTLINK_DECODE_ERRORCHECK(errRes, checkErrorsGBTDataID(gbtD));
+      if (errRes != GBTLink::Skip) {
+        int cableHW = gbtD->getCableID(), cableSW = chmap.cableHW2SW(ruPtr->ruInfo->ruType, cableHW);
+        GBTLINK_DECODE_ERRORCHECK(errRes, checkErrorsGBTData(chmap.cableHW2Pos(ruPtr->ruInfo->ruType, cableHW)));
+        ruPtr->cableData[cableSW].add(gbtD->getW8(), 9);
+        ruPtr->cableHWID[cableSW] = cableHW;
+        ruPtr->cableLinkID[cableSW] = idInRU;
+        ruPtr->cableLinkPtr[cableSW] = this;
+      }
       dataOffset += GBTPaddedWordLength;
       gbtD = reinterpret_cast<const o2::itsmft::GBTData*>(&currRawPiece->data[dataOffset]);
     } // we are at the trailer, packet is over, check if there are more data on the next page
@@ -286,14 +289,14 @@ GBTLink::CollectedDataStatus GBTLink::collectROFCableData(const Mapping& chmap)
     if (verbosity >= VerboseHeaders) {
       printTrailer(gbtT);
     }
-    GBTLINK_DECODE_ERRORCHECK(checkErrorsTrailerWord(gbtT));
+    GBTLINK_DECODE_ERRORCHECK(errRes, checkErrorsTrailerWord(gbtT));
     // we finished the GBT page, but there might be continuation on the next CRU page
     if (!gbtT->packetDone) {
-      GBTLINK_DECODE_ERRORCHECK(checkErrorsPacketDoneMissing(gbtT, dataOffset < currRawPiece->size));
+      GBTLINK_DECODE_ERRORCHECK(errRes, checkErrorsPacketDoneMissing(gbtT, dataOffset < currRawPiece->size));
       continue; // keep reading next CRU page
     }
     if (format == OldFormat) {
-      GBTLINK_DECODE_ERRORCHECK(checkErrorsLanesStops());
+      GBTLINK_DECODE_ERRORCHECK(errRes, checkErrorsLanesStops());
     }
     // accumulate packet states
     statistics.packetStates[gbtT->getPacketState()]++;

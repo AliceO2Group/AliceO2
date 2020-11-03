@@ -133,9 +133,10 @@ void MatLayerCylSet::dumpToTree(const std::string outName) const
       if (ip + 1 < nphib) {
         int ips1 = lr.phiBin2Slice(ip + 1);
         merge = ips == ips1 ? -1 : lr.canMergePhiSlices(ips, ips1); // -1 for already merged
-      } else
+      } else {
         merge = -2; // last one
-      o2::utils::sincosf(phi, sn, cs);
+      }
+      o2::math_utils::sincos(phi, sn, cs);
       float x = r * cs, y = r * sn;
       for (int iz = 0; iz < lr.getNZBins(); iz++) {
         float z = 0.5 * (lr.getZBinMin(iz) + lr.getZBinMax(iz));
@@ -305,7 +306,7 @@ GPUd() MatBudget MatLayerCylSet::getMatBudget(float x0, float y0, float z0, floa
               }
             }
             // account materials of this step
-            float step = tEndZ - tStartZ; // the real step is ray.getDist(tEnd-tStart), will rescale all later
+            float step = tEndZ > tStartZ ? tEndZ - tStartZ : tStartZ - tEndZ; // the real step is ray.getDist(tEnd-tStart), will rescale all later
             const auto& cell = lr.getCell(phiID, zID);
             rval.meanRho += cell.meanRho * step;
             rval.meanX2X0 += cell.meanX2X0 * step;
@@ -325,7 +326,7 @@ GPUd() MatBudget MatLayerCylSet::getMatBudget(float x0, float y0, float z0, floa
             zID += stepZID;
           } while (checkMoreZ);
         } else {
-          float step = tEndPhi - tStartPhi; // the real step is |ray.getDist(tEnd-tStart)|, will rescale all later
+          float step = tEndPhi > tStartPhi ? tEndPhi - tStartPhi : tStartPhi - tEndPhi; // the real step is |ray.getDist(tEnd-tStart)|, will rescale all later
           const auto& cell = lr.getCell(phiID, zID);
           rval.meanRho += cell.meanRho * step;
           rval.meanX2X0 += cell.meanX2X0 * step;
@@ -352,8 +353,7 @@ GPUd() MatBudget MatLayerCylSet::getMatBudget(float x0, float y0, float z0, floa
 
   if (rval.length != 0.f) {
     rval.meanRho /= rval.length;                                       // average
-    float norm = (rval.length < 0.f) ? -ray.getDist() : ray.getDist(); // normalize
-    rval.meanX2X0 *= norm;
+    rval.meanX2X0 *= ray.getDist();                                    // normalize
   }
   rval.length = ray.getDist();
 

@@ -151,17 +151,19 @@ void Detector::GenFee(Float_t qtot)
     Double_t ranf[2];
     fMC->GetRandom()->RndmArray(2, ranf); //Sample direction
     cthf = ranf[0] * 2 - 1.0;
-    if (cthf < 0)
+    if (cthf < 0) {
       continue;
+    }
     sthf = TMath::Sqrt((1. - cthf) * (1. + cthf));
     phif = ranf[1] * 2 * TMath::Pi();
 
-    if (Double_t randomNumber = fMC->GetRandom()->Rndm() <= 0.57)
+    if (Double_t randomNumber = fMC->GetRandom()->Rndm() <= 0.57) {
       enfp = 7.5e-9;
-    else if (randomNumber <= 0.7)
+    } else if (randomNumber <= 0.7) {
       enfp = 6.4e-9;
-    else
+    } else {
       enfp = 7.9e-9;
+    }
 
     dir[0] = sthf * TMath::Sin(phif);
     dir[1] = cthf;
@@ -184,40 +186,49 @@ void Detector::GenFee(Float_t qtot)
     e3[2] = -dir[0];
 
     vmod = 0;
-    for (j = 0; j < 3; j++)
+    for (j = 0; j < 3; j++) {
       vmod += e1[j] * e1[j];
-    if (!vmod)
+    }
+    if (!vmod) {
       for (j = 0; j < 3; j++) {
         uswop = e1[j];
         e1[j] = e3[j];
         e3[j] = uswop;
       }
+    }
     vmod = 0;
-    for (j = 0; j < 3; j++)
+    for (j = 0; j < 3; j++) {
       vmod += e2[j] * e2[j];
-    if (!vmod)
+    }
+    if (!vmod) {
       for (j = 0; j < 3; j++) {
         uswop = e2[j];
         e2[j] = e3[j];
         e3[j] = uswop;
       }
+    }
 
     vmod = 0;
-    for (j = 0; j < 3; j++)
+    for (j = 0; j < 3; j++) {
       vmod += e1[j] * e1[j];
+    }
     vmod = TMath::Sqrt(1 / vmod);
-    for (j = 0; j < 3; j++)
+    for (j = 0; j < 3; j++) {
       e1[j] *= vmod;
+    }
     vmod = 0;
-    for (j = 0; j < 3; j++)
+    for (j = 0; j < 3; j++) {
       vmod += e2[j] * e2[j];
+    }
     vmod = TMath::Sqrt(1 / vmod);
-    for (j = 0; j < 3; j++)
+    for (j = 0; j < 3; j++) {
       e2[j] *= vmod;
+    }
 
     phi = fMC->GetRandom()->Rndm() * 2 * TMath::Pi();
-    for (j = 0; j < 3; j++)
+    for (j = 0; j < 3; j++) {
       pol[j] = e1[j] * TMath::Sin(phi) + e2[j] * TMath::Cos(phi);
+    }
     fMC->Gdtom(pol, pol, 2);
     Int_t outputNtracksStored;
   } //feedbacks loop
@@ -242,8 +253,9 @@ Bool_t Detector::IsLostByFresnel()
   if (fMC->GetRandom()->Rndm() < Fresnel(p4.E() * 1e9, cotheta, 1)) {
     // AliDebug(1,"Photon lost");
     return kTRUE;
-  } else
+  } else {
     return kFALSE;
+  }
 } //IsLostByFresnel()
 //++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 Float_t Detector::Fresnel(Float_t ene, Float_t pdoti, Bool_t pola)
@@ -296,8 +308,9 @@ Float_t Detector::Fresnel(Float_t ene, Float_t pdoti, Bool_t pola)
   if (pola) {
     Float_t pdotr = 0.8; //DEGREE OF POLARIZATION : 1->P , -1->S
     fresn = 0.5 * (rp * (1 + pdotr) + rs * (1 - pdotr));
-  } else
+  } else {
     fresn = 0.5 * (rp + rs);
+  }
 
   fresn = fresn * rO;
   return fresn;
@@ -613,13 +626,16 @@ TGeoVolume* Detector::createChamber(int number)
   rad->AddNode(si1, 2, new TGeoTranslation(0 * mm, +204 * mm, -0.5 * mm));
   rad->AddNode(si2, 1, new TGeoTranslation(-660 * mm, 0 * mm, -0.5 * mm));
   rad->AddNode(si2, 2, new TGeoTranslation(+660 * mm, 0 * mm, -0.5 * mm));
-  for (Int_t i = 0; i < 3; i++)
-    for (Int_t j = 0; j < 10; j++)
+  for (Int_t i = 0; i < 3; i++) {
+    for (Int_t j = 0; j < 10; j++) {
       rad->AddNode(spa, 10 * i + j,
                    new TGeoTranslation(-1330 * mm / 2 + 116 * mm + j * 122 * mm, (i - 1) * 105 * mm, -0.5 * mm));
+    }
+  }
   hmp->AddNode(fr4, 1, new TGeoTranslation(0 * mm, 0 * mm, 9.00 * mm)); // p.84 TDR
-  for (int i = 1; i <= 322; i++)
+  for (int i = 1; i <= 322; i++) {
     fr4->AddNode(col, i, new TGeoCombiTrans(0 * mm, -1296 / 2 * mm + i * 4 * mm, -5 * mm, rot)); // F4 2043P1
+  }
   fr4->AddNode(f4a, 1, new TGeoTranslation(0 * mm, 0 * mm, 2.5 * mm));
   f4a->AddNode(f4i, 1, new TGeoTranslation(0 * mm, 0 * mm, 0 * mm));
   hmp->AddNode(sec, 4, new TGeoTranslation(-335 * mm, +433 * mm, 78.6 * mm));
@@ -1152,15 +1168,17 @@ TGeoVolume* Detector::CradleBaseVolume(TGeoMedium* med, Double_t l[7], const cha
   xtruOut->DefineSection(1, +l[4] / 2., 0., 0., 1.0); // 1= II plane z;
 
   Double_t tgalpha = 0;
-  if (xv[3] - xv[0] == 0)
+  if (xv[3] - xv[0] == 0) {
     tgalpha = 999999;
-  else
+  } else {
     tgalpha = l[2] / TMath::Abs(xv[3] - xv[0]);
+  }
   Double_t tgbeta = 0;
-  if (xv[2] - xv[1] == 0)
+  if (xv[2] - xv[1] == 0) {
     tgbeta = 999999;
-  else
+  } else {
     tgbeta = l[2] / TMath::Abs(xv[2] - xv[1]);
+  }
 
   xv[0] = xv[0] - l[5] / tgalpha;
   yv[0] = l[2] / 2 - l[5];

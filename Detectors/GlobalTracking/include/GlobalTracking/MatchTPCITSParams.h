@@ -24,7 +24,7 @@ namespace globaltracking
 {
 
 // There are configurable params for TPC-ITS matching
-struct MatchITSTPCParams : public o2::conf::ConfigurableParamHelper<MatchITSTPCParams> {
+struct MatchTPCITSParams : public o2::conf::ConfigurableParamHelper<MatchTPCITSParams> {
   enum ValidateMatchByFIT { Disable,
                             Prefer,
                             Require }; // flags for usage of FT0 in match validation
@@ -55,9 +55,15 @@ struct MatchITSTPCParams : public o2::conf::ConfigurableParamHelper<MatchITSTPCP
 
   float tpcTimeICMatchingNSigma = 4.; ///< nsigma for matching TPC corrected time and InteractionCandidate from FT0
 
+  float maxVDriftUncertainty = 0.; ///< max assumed VDrift uncertainty, used only in VDrift calibration mode
+
+  float maxTglForVDriftCalib = 1.; ///< maximum ITS tgl to collect data for VDrift calibration
+  int nBinsTglVDriftCalib = 50;    ///< number of bins in reference ITS tgl for VDrift calibration
+  int nBinsDTglVDriftCalib = 100;  ///< number of bins in delta tgl for VDrift calibration
+
   o2::base::Propagator::MatCorrType matCorr = o2::base::Propagator::MatCorrType::USEMatCorrLUT; /// Material correction type
 
-  O2ParamDef(MatchITSTPCParams, "tpcitsMatch");
+  O2ParamDef(MatchTPCITSParams, "tpcitsMatch");
 };
 
 } // namespace globaltracking

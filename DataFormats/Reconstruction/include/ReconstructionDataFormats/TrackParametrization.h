@@ -25,7 +25,9 @@
 #ifndef INCLUDE_RECONSTRUCTIONDATAFORMATS_TRACKPARAMETRIZATION_H_
 #define INCLUDE_RECONSTRUCTIONDATAFORMATS_TRACKPARAMETRIZATION_H_
 
+#include "GPUCommonDef.h"
 #include "GPUCommonRtypes.h"
+#include "GPUCommonMath.h"
 
 #ifndef __OPENCL__
 #include <algorithm>
@@ -165,9 +167,9 @@ class TrackParametrization
 
   // derived getters
   bool getXatLabR(value_t r, value_t& x, value_t bz, DirType dir = DirAuto) const;
-  void getCircleParamsLoc(value_t bz, o2::utils::CircleXY& circle) const;
-  void getCircleParams(value_t bz, o2::utils::CircleXY& circle, value_t& sna, value_t& csa) const;
-  void getLineParams(o2::utils::IntervalXY& line, value_t& sna, value_t& csa) const;
+  void getCircleParamsLoc(value_t bz, o2::math_utils::CircleXY<value_t>& circle) const;
+  void getCircleParams(value_t bz, o2::math_utils::CircleXY<value_t>& circle, value_t& sna, value_t& csa) const;
+  void getLineParams(o2::math_utils::IntervalXY<value_t>& line, value_t& sna, value_t& csa) const;
   value_t getCurvature(value_t b) const;
   int getCharge() const;
   int getSign() const;
@@ -183,7 +185,7 @@ class TrackParametrization
 
   value_t getTheta() const;
   value_t getEta() const;
-  Point3D<value_t> getXYZGlo() const;
+  math_utils::Point3D<value_t> getXYZGlo() const;
   void getXYZGlo(dim3_t& xyz) const;
   bool getPxPyPzGlo(dim3_t& pxyz) const;
   bool getPosDirGlo(std::array<value_t, 9>& posdirp) const;
@@ -192,7 +194,7 @@ class TrackParametrization
   bool getYZAt(value_t xk, value_t b, value_t& y, value_t& z) const;
   value_t getZAt(value_t xk, value_t b) const;
   value_t getYAt(value_t xk, value_t b) const;
-  Point3D<value_t> getXYZGloAt(value_t xk, value_t b, bool& ok) const;
+  math_utils::Point3D<value_t> getXYZGloAt(value_t xk, value_t b, bool& ok) const;
 
   // parameters manipulation
   bool correctForELoss(value_t xrho, value_t mass, bool anglecorr = false, value_t dedx = kCalcdEdxAuto);
@@ -200,7 +202,7 @@ class TrackParametrization
   bool propagateParamTo(value_t xk, value_t b);
   bool propagateParamTo(value_t xk, const dim3_t& b);
 
-  bool propagateParamToDCA(const Point3D<value_t>& vtx, value_t b, dim2_t* dca = nullptr, value_t maxD = 999.f);
+  bool propagateParamToDCA(const math_utils::Point3D<value_t>& vtx, value_t b, dim2_t* dca = nullptr, value_t maxD = 999.f);
 
   void invertParam();
 
@@ -210,8 +212,8 @@ class TrackParametrization
   uint16_t getUserField() const;
   void setUserField(uint16_t v);
 
-#ifndef GPUCA_ALIGPUCODE
   void printParam() const;
+#ifndef GPUCA_ALIGPUCODE
   std::string asString() const;
 #endif
 
@@ -337,7 +339,7 @@ inline void TrackParametrization<value_T>::setPID(const PID pid)
 template <typename value_T>
 inline typename TrackParametrization<value_T>::value_t TrackParametrization<value_T>::getCsp2() const
 {
-  value_t csp2 = (1.f - mP[kSnp]) * (1.f + mP[kSnp]);
+  const value_t csp2 = (1.f - mP[kSnp]) * (1.f + mP[kSnp]);
   return csp2 > o2::constants::math::Almost0 ? csp2 : o2::constants::math::Almost0;
 }
 
@@ -345,7 +347,7 @@ inline typename TrackParametrization<value_T>::value_t TrackParametrization<valu
 template <typename value_T>
 inline typename TrackParametrization<value_T>::value_t TrackParametrization<value_T>::getCsp() const
 {
-  return sqrtf(getCsp2());
+  return std::sqrt(getCsp2());
 }
 
 //____________________________________________________________
@@ -413,7 +415,7 @@ inline void TrackParametrization<value_T>::setAbsCharge(int q)
 
 //_______________________________________________________
 template <typename value_T>
-inline void TrackParametrization<value_T>::getCircleParamsLoc(value_t bz, o2::utils::CircleXY& c) const
+inline void TrackParametrization<value_T>::getCircleParamsLoc(value_t bz, o2::math_utils::CircleXY<value_t>& c) const
 {
   // get circle params in track local frame, for straight line just set to local coordinates
   c.rC = getCurvature(bz);
@@ -421,10 +423,10 @@ inline void TrackParametrization<value_T>::getCircleParamsLoc(value_t bz, o2::ut
   constexpr value_t MinSagitta = 0.01f, TPCMidR = 160.f, MinCurv = 8 * MinSagitta / (TPCMidR * TPCMidR);
   if (std::abs(c.rC) > MinCurv) {
     c.rC = 1.f / getCurvature(bz);
-    value_t sn = getSnp(), cs = sqrtf((1.f - sn) * (1.f + sn));
+    value_t sn = getSnp(), cs = std::sqrt((1.f - sn) * (1.f + sn));
     c.xC = getX() - sn * c.rC; // center in tracking
     c.yC = getY() + cs * c.rC; // frame. Note: r is signed!!!
-    c.rC = fabs(c.rC);
+    c.rC = std::abs(c.rC);
   } else {
     c.rC = 0.f; // signal straight line
     c.xC = getX();
@@ -434,24 +436,24 @@ inline void TrackParametrization<value_T>::getCircleParamsLoc(value_t bz, o2::ut
 
 //_______________________________________________________
 template <typename value_T>
-inline void TrackParametrization<value_T>::getCircleParams(value_t bz, o2::utils::CircleXY& c, value_t& sna, value_t& csa) const
+inline void TrackParametrization<value_T>::getCircleParams(value_t bz, o2::math_utils::CircleXY<value_t>& c, value_t& sna, value_t& csa) const
 {
   // get circle params in loc and lab frame, for straight line just set to global coordinates
   getCircleParamsLoc(bz, c);
-  o2::utils::sincos(getAlpha(), sna, csa);
-  o2::utils::rotateZ(c.xC, c.yC, c.xC, c.yC, sna, csa); // center in global frame
+  o2::math_utils::detail::sincos(getAlpha(), sna, csa);
+  o2::math_utils::detail::rotateZ<value_t>(c.xC, c.yC, c.xC, c.yC, sna, csa); // center in global frame
 }
 
 //_______________________________________________________
 template <typename value_T>
-inline void TrackParametrization<value_T>::getLineParams(o2::utils::IntervalXY& ln, value_t& sna, value_t& csa) const
+inline void TrackParametrization<value_T>::getLineParams(o2::math_utils::IntervalXY<value_t>& ln, value_t& sna, value_t& csa) const
 {
   // get line parameterization as { x = x0 + xSlp*t, y = y0 + ySlp*t }
-  o2::utils::sincos(getAlpha(), sna, csa);
-  o2::utils::rotateZ(getX(), getY(), ln.xP, ln.yP, sna, csa); // reference point in global frame
-  value_t snp = getSnp(), csp = sqrtf((1.f - snp) * (1.f + snp));
-  ln.dxP = csp * csa - snp * sna;
-  ln.dyP = snp * csa + csp * sna;
+  o2::math_utils::detail::sincos(getAlpha(), sna, csa);
+  o2::math_utils::detail::rotateZ<value_t>(getX(), getY(), ln.getX0(), ln.getY0(), sna, csa); // reference point in global frame
+  value_t snp = getSnp(), csp = std::sqrt((1.f - snp) * (1.f + snp));
+  ln.setDX(csp * csa - snp * sna);
+  ln.setDY(snp * csa + csp * sna);
 }
 
 //____________________________________________________________
@@ -480,8 +482,8 @@ template <typename value_T>
 inline typename TrackParametrization<value_T>::value_t TrackParametrization<value_T>::getPhi() const
 {
   // track pt direction phi (in 0:2pi range)
-  value_t phi = asinf(getSnp()) + getAlpha();
-  utils::BringTo02Pi(phi);
+  value_t phi = std::asin(getSnp()) + getAlpha();
+  math_utils::detail::bringTo02Pi<value_t>(phi);
   return phi;
 }
 
@@ -490,8 +492,8 @@ template <typename value_T>
 inline typename TrackParametrization<value_T>::value_t TrackParametrization<value_T>::getPhiPos() const
 {
   // angle of track position (in -pi:pi range)
-  value_t phi = atan2f(getY(), getX()) + getAlpha();
-  utils::BringTo02Pi(phi);
+  value_t phi = std::atan2(getY(), getX()) + getAlpha();
+  math_utils::detail::bringTo02Pi<value_t>(phi);
   return phi;
 }
 
@@ -500,7 +502,7 @@ template <typename value_T>
 inline typename TrackParametrization<value_T>::value_t TrackParametrization<value_T>::getPtInv() const
 {
   // return the inverted track pT
-  const value_t ptInv = fabs(mP[kQ2Pt]);
+  const value_t ptInv = std::fabs(mP[kQ2Pt]);
   return (mAbsCharge > 1) ? ptInv / mAbsCharge : ptInv;
 }
 
@@ -527,7 +529,7 @@ template <typename value_T>
 inline typename TrackParametrization<value_T>::value_t TrackParametrization<value_T>::getPInv() const
 {
   // return the inverted track momentum^2
-  const value_t pInv = fabs(mP[kQ2Pt]) / sqrtf(1.f + getTgl() * getTgl());
+  const value_t pInv = std::fabs(mP[kQ2Pt]) / std::sqrt(1.f + getTgl() * getTgl());
   return (mAbsCharge > 1) ? pInv / mAbsCharge : pInv;
 }
 
@@ -545,7 +547,7 @@ template <typename value_T>
 inline typename TrackParametrization<value_T>::value_t TrackParametrization<value_T>::getPt() const
 {
   // return the track transverse momentum
-  value_t ptI = fabs(mP[kQ2Pt]);
+  value_t ptI = std::fabs(mP[kQ2Pt]);
   if (mAbsCharge > 1) {
     ptI /= mAbsCharge;
   }
@@ -566,14 +568,18 @@ inline typename TrackParametrization<value_T>::value_t TrackParametrization<valu
   return -std::log(std::tan(0.5f * getTheta()));
 }
 
-#ifndef GPUCA_ALIGPUCODE //These functions clash with GPU code and are thus hidden
 //_______________________________________________________
 template <typename value_T>
-inline Point3D<typename TrackParametrization<value_T>::value_t> TrackParametrization<value_T>::getXYZGlo() const
+inline math_utils::Point3D<typename TrackParametrization<value_T>::value_t> TrackParametrization<value_T>::getXYZGlo() const
 {
-  return Rotation2D(getAlpha())(Point3D<value_t>(getX(), getY(), getZ()));
-}
+#ifndef GPUCA_ALIGPUCODE
+  return math_utils::Rotation2D<value_t>(getAlpha())(math_utils::Point3D<value_t>(getX(), getY(), getZ()));
+#else // mockup on GPU without ROOT
+  float sina, cosa;
+  o2::gpu::CAMath::SinCos(getAlpha(), sina, cosa);
+  return math_utils::Point3D<value_t>(cosa * getX() + sina * getY(), cosa * getY() - sina * getX(), getZ());
 #endif
+}
 
 //_______________________________________________________
 template <typename value_T>
@@ -583,22 +589,30 @@ inline void TrackParametrization<value_T>::getXYZGlo(dim3_t& xyz) const
   xyz[0] = getX();
   xyz[1] = getY();
   xyz[2] = getZ();
-  utils::RotateZ(xyz, getAlpha());
+  math_utils::detail::rotateZ<value_t>(xyz, getAlpha());
 }
 
-#ifndef GPUCA_ALIGPUCODE //These functions clash with GPU code and are thus hidden
 //_______________________________________________________
 template <typename value_T>
-inline Point3D<typename TrackParametrization<value_T>::value_t> TrackParametrization<value_T>::getXYZGloAt(value_t xk, value_t b, bool& ok) const
+inline math_utils::Point3D<typename TrackParametrization<value_T>::value_t> TrackParametrization<value_T>::getXYZGloAt(value_t xk, value_t b, bool& ok) const
 {
   //----------------------------------------------------------------
   // estimate global X,Y,Z in global frame at given X
   //----------------------------------------------------------------
   value_t y = 0.f, z = 0.f;
   ok = getYZAt(xk, b, y, z);
-  return ok ? Rotation2D(getAlpha())(Point3D<value_t>(xk, y, z)) : Point3D<value_t>();
-}
+  if (ok) {
+#ifndef GPUCA_ALIGPUCODE
+    return math_utils::Rotation2D<value_t>(getAlpha())(math_utils::Point3D<value_t>(xk, y, z));
+#else // mockup on GPU without ROOT
+    float sina, cosa;
+    o2::gpu::CAMath::SinCos(getAlpha(), sina, cosa);
+    return math_utils::Point3D<value_t>(cosa * xk + sina * y, cosa * y - sina * xk, z);
 #endif
+  } else {
+    return math_utils::Point3D<value_t>();
+  }
+}
 
 //____________________________________________________________
 template <typename value_T>

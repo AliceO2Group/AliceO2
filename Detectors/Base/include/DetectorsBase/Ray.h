@@ -21,7 +21,7 @@
 #include "MathUtils/Utils.h"
 
 #ifndef GPUCA_ALIGPUCODE // this part is unvisible on GPU version
-#include "MathUtils/Cartesian3D.h"
+#include "MathUtils/Cartesian.h"
 #endif // !GPUCA_ALIGPUCODE
 
 /**********************************************************************
@@ -51,7 +51,7 @@ class Ray
   GPUdDefault() ~Ray() CON_DEFAULT;
 
 #ifndef GPUCA_ALIGPUCODE // this part is unvisible on GPU version
-  Ray(const Point3D<float> point0, const Point3D<float> point1);
+  Ray(const math_utils::Point3D<float> point0, const math_utils::Point3D<float> point1);
 #endif // !GPUCA_ALIGPUCODE
   GPUd() Ray(float x0, float y0, float z0, float x1, float y1, float z1);
   GPUd() int crossLayer(const MatLayerCyl& lr);
@@ -79,7 +79,7 @@ class Ray
   GPUd() float getPhi(float t) const
   {
     float p = o2::gpu::CAMath::ATan2(mP[1] + t * mD[1], mP[0] + t * mD[0]);
-    o2::utils::BringTo02Pi(p);
+    o2::math_utils::bringTo02Pi(p);
     return p;
   }
 
@@ -107,7 +107,7 @@ class Ray
 //______________________________________________________
 #ifndef GPUCA_ALIGPUCODE // this part is unvisible on GPU version
 
-inline Ray::Ray(const Point3D<float> point0, const Point3D<float> point1)
+inline Ray::Ray(const math_utils::Point3D<float> point0, const math_utils::Point3D<float> point1)
   : mP{point0.X(), point0.Y(), point0.Z()}, mD{point1.X() - point0.X(), point1.Y() - point0.Y(), point1.Z() - point0.Z()}
 {
   mDistXY2 = mD[0] * mD[0] + mD[1] * mD[1];

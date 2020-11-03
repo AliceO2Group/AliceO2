@@ -18,11 +18,11 @@
 #include <Rtypes.h>
 #include <vector>
 #include <array>
-#include "MathUtils/Cartesian3D.h"
+#include "MathUtils/Cartesian.h"
 #include "MathUtils/Utils.h"
 #include "MathUtils/Primitive2D.h"
 #include "CommonConstants/MathConstants.h"
-#include "MathUtils/Bracket.h"
+#include "MathUtils/Primitive2D.h"
 #include "ITSMFTReconstruction/ChipMappingITS.h"
 #include "ITSMFTBase/SegmentationAlpide.h"
 
@@ -32,8 +32,8 @@ namespace its
 {
 struct RecoGeomHelper {
   //
-  using BracketF = o2::utils::Bracket<float>;
-  using Vec2D = o2::utils::IntervalXY;
+  using BracketF = o2::math_utils::Bracketf_t;
+  using Vec2D = o2::math_utils::IntervalXYf_t;
 
   enum Relation : int { Below = -1,
                         Inside = 0,
@@ -47,7 +47,7 @@ struct RecoGeomHelper {
     BracketF yRange = {1.e9, -1.e9}, zRange = {1.e9, -1.e9}; // bounding box in tracking frame
     Vec2D xyEdges;
 
-    void updateLimits(const Point3D<float>& pnt);
+    void updateLimits(const o2::math_utils::Point3D<float>& pnt);
     void print() const;
     ClassDefNV(RecoChip, 0);
   };
@@ -67,7 +67,7 @@ struct RecoGeomHelper {
     std::vector<RecoChip> chips;
 
     Relation isPhiOutside(float phi, float toler = 0) const;
-    void updateLimits(const Point3D<float>& pnt);
+    void updateLimits(const o2::math_utils::Point3D<float>& pnt);
     void init();
     void print() const;
     ClassDefNV(RecoLadder, 0);
@@ -87,7 +87,7 @@ struct RecoGeomHelper {
 
     const RecoLadder& getLadder(int id) const { return ladders[id % nLadders]; }
     void init();
-    void updateLimits(const Point3D<float>& pnt);
+    void updateLimits(const o2::math_utils::Point3D<float>& pnt);
     void print() const;
     int getLadderID(float phi) const;
     int getChipID(float z) const;
@@ -131,7 +131,7 @@ inline int RecoGeomHelper::RecoLayer::getChipID(float z) const
 {
   // Get chip ID within the ladder corresponding to this phi
   // Note: this is an approximate method, one should check also the neighbouring ladders +/-1
-  int ic = (z - zRange.min()) * z2chipID;
+  int ic = (z - zRange.getMin()) * z2chipID;
   return ic < 0 ? 0 : (ic < lastChipInLadder ? ic : lastChipInLadder);
 }
 
@@ -141,7 +141,7 @@ inline int RecoGeomHelper::RecoLayer::getLadderID(float phi) const
   // Get ladder ID corresponding to phi.
   // Note: this is an approximate method, precise within 1/3 of average ladder width,
   // one should check also the neighbouring ladders +/-1
-  o2::utils::BringTo02Pi(phi);
+  o2::math_utils::bringTo02Pi(phi);
   constexpr float PI2Inv = 1.f / o2::constants::math::TwoPI;
   return phi2ladder[int(phi * PI2Inv * phi2ladder.size())];
 }

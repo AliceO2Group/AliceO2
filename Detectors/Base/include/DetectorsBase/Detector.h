@@ -363,8 +363,9 @@ class DetImpl : public o2::base::Detector
       } else {
         Int_t entries = origin.GetEntries();
         Int_t nprimTot = 0;
-        for (auto entry = 0; entry < entries; entry++)
+        for (auto entry = 0; entry < entries; entry++) {
           nprimTot += nprimaries[entry];
+        }
         // offset for pimary track index
         Int_t idelta0 = 0;
         // offset for secondary track index

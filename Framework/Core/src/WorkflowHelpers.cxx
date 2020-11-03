@@ -18,6 +18,7 @@
 #include "Framework/ControlService.h"
 #include "Framework/RawDeviceService.h"
 #include "Framework/StringHelpers.h"
+#include "Framework/CommonMessageBackends.h"
 
 #include "Headers/DataHeader.h"
 #include <algorithm>
@@ -161,6 +162,41 @@ void addMissingOutputsToSpawner(std::vector<InputSpec>&& requestedDYNs,
   }
 }
 
+void addMissingOutputsToBuilder(std::vector<InputSpec>&& requestedIDXs,
+                                std::vector<InputSpec>& requestedAODs,
+                                DataProcessorSpec& publisher)
+{
+  auto inputSpecFromString = [](std::string s) {
+    std::regex word_regex("(\\w+)");
+    auto words = std::sregex_iterator(s.begin(), s.end(), word_regex);
+    if (std::distance(words, std::sregex_iterator()) != 3) {
+      throw runtime_error_f("Malformed spec: %s", s.c_str());
+    }
+    std::vector<std::string> data;
+    for (auto i = words; i != std::sregex_iterator(); ++i) {
+      data.emplace_back(i->str());
+    }
+    char origin[4];
+    char description[16];
+    std::memcpy(&origin, data[1].c_str(), 4);
+    std::memcpy(&description, data[2].c_str(), 16);
+    return InputSpec{data[0], header::DataOrigin{origin}, header::DataDescription{description}};
+  };
+
+  for (auto& input : requestedIDXs) {
+    auto concrete = DataSpecUtils::asConcreteDataMatcher(input);
+    publisher.outputs.emplace_back(OutputSpec{concrete.origin, concrete.description, concrete.subSpec});
+    for (auto& i : input.metadata) {
+      auto spec = inputSpecFromString(i.defaultValue.get<std::string>());
+      auto j = std::find_if(publisher.inputs.begin(), publisher.inputs.end(), [&](auto x) { return x.binding == spec.binding; });
+      if (j == publisher.inputs.end()) {
+        publisher.inputs.push_back(spec);
+      }
+      requestedAODs.push_back(spec);
+    }
+  }
+}
+
 void WorkflowHelpers::injectServiceDevices(WorkflowSpec& workflow, ConfigContext const& ctx)
 {
   auto fakeCallback = AlgorithmSpec{[](InitContext& ic) {
@@ -199,13 +235,21 @@ void WorkflowHelpers::injectServiceDevices(WorkflowSpec& workflow, ConfigContext
   // reads them from file.
   //
   // FIXME: source branch is DataOrigin, for the moment. We should
-  //        make it configurable via ConfigParamsOptions.
+  //        make it configurable via ConfigParamsOptions
+  auto aodLifetime = Lifetime::Enumeration;
+  if (ctx.options().get<int64_t>("aod-memory-rate-limit")) {
+    aodLifetime = Lifetime::Signal;
+  }
+  auto readerServices = CommonServices::defaultServices();
+  readerServices.push_back(CommonMessageBackends::rateLimitingSpec());
+
   DataProcessorSpec aodReader{
     "internal-dpl-aod-reader",
     {InputSpec{"enumeration",
                "DPL",
                "ENUM",
-               static_cast<DataAllocator::SubSpecificationType>(compile_time_hash("internal-dpl-aod-reader")), Lifetime::Enumeration}},
+               static_cast<DataAllocator::SubSpecificationType>(compile_time_hash("internal-dpl-aod-reader")),
+               aodLifetime}},
     {},
     readers::AODReaderHelpers::rootFileReaderCallback(),
     {ConfigParamSpec{"aod-file", VariantType::String, {"Input AOD file"}},
@@ -213,20 +257,20 @@ void WorkflowHelpers::injectServiceDevices(WorkflowSpec& workflow, ConfigContext
      ConfigParamSpec{"time-limit", VariantType::Int64, 0ll, {"Maximum run time limit in seconds"}},
      ConfigParamSpec{"start-value-enumeration", VariantType::Int64, 0ll, {"initial value for the enumeration"}},
      ConfigParamSpec{"end-value-enumeration", VariantType::Int64, -1ll, {"final value for the enumeration"}},
-     ConfigParamSpec{"step-value-enumeration", VariantType::Int64, 1ll, {"step between one value and the other"}}}};
+     ConfigParamSpec{"step-value-enumeration", VariantType::Int64, 1ll, {"step between one value and the other"}}},
+    readerServices};
 
   std::vector<InputSpec> requestedAODs;
   std::vector<OutputSpec> providedAODs;
   std::vector<InputSpec> requestedDYNs;
+  std::vector<InputSpec> requestedIDXs;
 
   std::vector<InputSpec> requestedCCDBs;
   std::vector<OutputSpec> providedCCDBs;
-  std::vector<OutputSpec> providedOutputObj;
-  std::vector<OutputSpec> providedHist;
+  std::vector<OutputSpec> providedOutputObjHist;
 
   outputTasks outTskMap;
-  outputObjects outObjMap;
-  outputObjects outHistMap;
+  outputObjects outObjHistMap;
 
   for (size_t wi = 0; wi < workflow.size(); ++wi) {
     auto& processor = workflow[wi];
@@ -285,7 +329,13 @@ void WorkflowHelpers::injectServiceDevices(WorkflowSpec& workflow, ConfigContext
           requestedDYNs.emplace_back(input);
         }
       }
+      if (DataSpecUtils::partialMatch(input, header::DataOrigin{"IDX"})) {
+        if (std::find_if(requestedIDXs.begin(), requestedIDXs.end(), [&](InputSpec const& spec) { return input.binding == spec.binding; }) == requestedIDXs.end()) {
+          requestedIDXs.emplace_back(input);
+        }
+      }
     }
+
     std::stable_sort(timer.outputs.begin(), timer.outputs.end(), [](OutputSpec const& a, OutputSpec const& b) { return *DataSpecUtils::getOptionalSubSpec(a) < *DataSpecUtils::getOptionalSubSpec(b); });
 
     for (size_t oi = 0; oi < processor.outputs.size(); ++oi) {
@@ -295,18 +345,10 @@ void WorkflowHelpers::injectServiceDevices(WorkflowSpec& workflow, ConfigContext
       } else if (DataSpecUtils::partialMatch(output, header::DataOrigin{"RN2"})) {
         providedAODs.emplace_back(output);
       } else if (DataSpecUtils::partialMatch(output, header::DataOrigin{"ATSK"})) {
-        providedOutputObj.emplace_back(output);
-        auto it = std::find_if(outObjMap.begin(), outObjMap.end(), [&](auto&& x) { return x.first == hash; });
-        if (it == outObjMap.end()) {
-          outObjMap.push_back({hash, {output.binding.value}});
-        } else {
-          it->second.push_back(output.binding.value);
-        }
-      } else if (DataSpecUtils::partialMatch(output, header::DataOrigin{"HIST"})) {
-        providedHist.emplace_back(output);
-        auto it = std::find_if(outHistMap.begin(), outHistMap.end(), [&](auto&& x) { return x.first == hash; });
-        if (it == outHistMap.end()) {
-          outHistMap.push_back({hash, {output.binding.value}});
+        providedOutputObjHist.emplace_back(output);
+        auto it = std::find_if(outObjHistMap.begin(), outObjHistMap.end(), [&](auto&& x) { return x.first == hash; });
+        if (it == outObjHistMap.end()) {
+          outObjHistMap.push_back({hash, {output.binding.value}});
         } else {
           it->second.push_back(output.binding.value);
         }
@@ -316,9 +358,14 @@ void WorkflowHelpers::injectServiceDevices(WorkflowSpec& workflow, ConfigContext
       }
     }
   }
-
+  auto sortingEquals = [](InputSpec const& a, InputSpec const& b) { return DataSpecUtils::describe(a) == DataSpecUtils::describe(b); };
+  std::sort(requestedDYNs.begin(), requestedDYNs.end(), sortingEquals);
   auto last = std::unique(requestedDYNs.begin(), requestedDYNs.end());
   requestedDYNs.erase(last, requestedDYNs.end());
+
+  std::sort(requestedIDXs.begin(), requestedIDXs.end(), sortingEquals);
+  last = std::unique(requestedIDXs.begin(), requestedIDXs.end());
+  requestedIDXs.erase(last, requestedIDXs.end());
 
   DataProcessorSpec aodSpawner{
     "internal-dpl-aod-spawner",
@@ -327,7 +374,16 @@ void WorkflowHelpers::injectServiceDevices(WorkflowSpec& workflow, ConfigContext
     readers::AODReaderHelpers::aodSpawnerCallback(requestedDYNs),
     {}};
 
+  DataProcessorSpec indexBuilder{
+    "internal-dpl-index-builder",
+    {},
+    {},
+    readers::AODReaderHelpers::indexBuilderCallback(requestedIDXs),
+    {}};
+
   addMissingOutputsToSpawner(std::move(requestedDYNs), requestedAODs, aodSpawner);
+  addMissingOutputsToBuilder(std::move(requestedIDXs), requestedAODs, indexBuilder);
+
   addMissingOutputsToReader(providedAODs, requestedAODs, aodReader);
   addMissingOutputsToReader(providedCCDBs, requestedCCDBs, ccdbBackend);
 
@@ -347,44 +403,39 @@ void WorkflowHelpers::injectServiceDevices(WorkflowSpec& workflow, ConfigContext
     extraSpecs.push_back(aodSpawner);
   }
 
+  if (indexBuilder.outputs.empty() == false) {
+    extraSpecs.push_back(indexBuilder);
+  }
+
+  // add the reader
   if (aodReader.outputs.empty() == false) {
+    aodReader.outputs.emplace_back(OutputSpec{"TFN", "TFNumber"});
     extraSpecs.push_back(timePipeline(aodReader, ctx.options().get<int64_t>("readers")));
     auto concrete = DataSpecUtils::asConcreteDataMatcher(aodReader.inputs[0]);
     timer.outputs.emplace_back(OutputSpec{concrete.origin, concrete.description, concrete.subSpec, Lifetime::Enumeration});
   }
 
+  // add the timer
   if (timer.outputs.empty() == false) {
     extraSpecs.push_back(timer);
   }
 
   // This is to inject a file sink so that any dangling ATSK object is written
   // to a ROOT file.
-  if (providedOutputObj.empty() == false) {
-    auto rootSink = CommonDataProcessors::getOutputObjSink(outObjMap, outTskMap);
-    extraSpecs.push_back(rootSink);
-  }
-  // This is to inject a file sink so that any dangling HIST object is written
-  // to a ROOT file.
-  if (providedHist.empty() == false) {
-    auto rootSink = CommonDataProcessors::getHistogramRegistrySink(outHistMap, outTskMap);
+  if (providedOutputObjHist.empty() == false) {
+    auto rootSink = CommonDataProcessors::getOutputObjHistSink(outObjHistMap, outTskMap);
     extraSpecs.push_back(rootSink);
   }
 
   workflow.insert(workflow.end(), extraSpecs.begin(), extraSpecs.end());
+  extraSpecs.clear();
 
-  /// This will create different file sinks
-  ///   . AOD                   - getGlobalAODSink
-  ///   . dangling, not AOD     - getGlobalFileSink
-  ///
-  // First analyze all ouputs
+  /// Analyze all ouputs
   //  outputTypes = isAOD*2 + isdangling*1 + 0
   auto [OutputsInputs, outputTypes] = analyzeOutputs(workflow);
 
   // create DataOutputDescriptor
   std::shared_ptr<DataOutputDirector> dod = getDataOutputDirector(ctx.options(), OutputsInputs, outputTypes);
-
-  // file sink for any AOD output
-  extraSpecs.clear();
 
   // select outputs of type AOD which need to be saved
   // ATTENTION: if there are dangling outputs the getGlobalAODSink
@@ -399,15 +450,18 @@ void WorkflowHelpers::injectServiceDevices(WorkflowSpec& workflow, ConfigContext
     }
   }
 
+  // file sink for any AOD output
   if (outputsInputsAOD.size() > 0) {
+    // add TFNumber as input to the writer
+    outputsInputsAOD.emplace_back(InputSpec{"tfn", "TFN", "TFNumber"});
     auto fileSink = CommonDataProcessors::getGlobalAODSink(dod, outputsInputsAOD);
     extraSpecs.push_back(fileSink);
   }
-  workflow.insert(workflow.end(), extraSpecs.begin(), extraSpecs.end());
 
-  // file sink for notAOD dangling outputs
+  workflow.insert(workflow.end(), extraSpecs.begin(), extraSpecs.end());
   extraSpecs.clear();
 
+  // file sink for notAOD dangling outputs
   // select dangling outputs which are not of type AOD
   std::vector<InputSpec> outputsInputsDangling;
   for (auto ii = 0u; ii < OutputsInputs.size(); ii++) {
@@ -429,7 +483,9 @@ void WorkflowHelpers::injectServiceDevices(WorkflowSpec& workflow, ConfigContext
   if (unmatched.size() > 0) {
     extraSpecs.push_back(CommonDataProcessors::getDummySink(unmatched));
   }
+
   workflow.insert(workflow.end(), extraSpecs.begin(), extraSpecs.end());
+  extraSpecs.clear();
 }
 
 void WorkflowHelpers::constructGraph(const WorkflowSpec& workflow,

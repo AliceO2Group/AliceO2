@@ -14,9 +14,12 @@
 #ifndef ALICEO2_FIELD_MAGFIELDFAST_H_
 #define ALICEO2_FIELD_MAGFIELDFAST_H_
 
-#include <Rtypes.h>
+#include <GPUCommonRtypes.h>
+#include "MathUtils/Cartesian.h"
+
+#ifndef GPUCA_GPUCODE_DEVICE
 #include <string>
-#include "MathUtils/Cartesian3D.h"
+#endif
 
 namespace o2
 {
@@ -49,11 +52,11 @@ class MagFieldFast
 
   bool Field(const double xyz[3], double bxyz[3]) const;
   bool Field(const float xyz[3], float bxyz[3]) const;
-  bool Field(const Point3D<float> xyz, float bxyz[3]) const;
+  bool Field(const math_utils::Point3D<float> xyz, float bxyz[3]) const;
   bool GetBcomp(EDim comp, const double xyz[3], double& b) const;
   bool GetBcomp(EDim comp, const float xyz[3], float& b) const;
-  bool GetBcomp(EDim comp, const Point3D<float> xyz, double& b) const;
-  bool GetBcomp(EDim comp, const Point3D<float> xyz, float& b) const;
+  bool GetBcomp(EDim comp, const math_utils::Point3D<float> xyz, double& b) const;
+  bool GetBcomp(EDim comp, const math_utils::Point3D<float> xyz, float& b) const;
 
   bool GetBx(const double xyz[3], double& bx) const { return GetBcomp(kX, xyz, bx); }
   bool GetBx(const float xyz[3], float& bx) const { return GetBcomp(kX, xyz, bx); }
