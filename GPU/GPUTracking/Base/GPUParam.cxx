@@ -75,16 +75,10 @@ void GPUParam::SetDefaults(float solenoidBz)
     }
   }
 
-  RMin = 83.65f;
-  RMax = 247.7f;
   DAlpha = 0.349066f;
-  PadPitch = 0.4f;
   BzkG = solenoidBz;
   constexpr double kCLight = 0.000299792458f;
   ConstBz = solenoidBz * kCLight;
-  ErrX = PadPitch / CAMath::Sqrt(12.f);
-  ErrY = 1.;
-  ErrZ = 0.228808;
   dodEdx = 0;
 
   constexpr float plusZmin = 0.0529937;

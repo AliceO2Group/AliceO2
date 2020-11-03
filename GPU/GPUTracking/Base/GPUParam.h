@@ -43,9 +43,6 @@ struct GPUParam_t {
   T rec;
 
   float DAlpha;           // angular size
-  float RMin, RMax;       // slice R range
-  float ErrX, ErrY, ErrZ; // default cluster errors
-  float PadPitch;         // pad pitch
   float BzkG;             // constant magnetic field value in kG
   float ConstBz;          // constant magnetic field value in kG*clight
 
