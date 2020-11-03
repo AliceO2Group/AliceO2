@@ -16,6 +16,35 @@
 # simply sourced into the target script.
 
 
+# returns list of files used in /dev/shm (this is done by DPL for shared memory communication)
+# arguments is a list of pids
+getShmFiles() {
+  F=`for p in "$@"; do
+    lsof -p ${p} 2>/dev/null | grep "/dev/shm/" | awk '//{print $9}'
+  done | sort | uniq | tr '\n' ' '`
+  echo "$F"
+}
+
+o2_cleanup_shm_files() {
+  # find shared memory files **CURRENTLY IN USE** by FairMQ
+  USEDFILES=`lsof -u $(whoami) | grep "/dev/shm/fmq" | sed 's/.*\/dev/\/dev/g' | sort | uniq | tr '\n' ' '`
+
+  echo "${USEDFILES}"
+  if [ ! "${USEDFILES}" ]; then
+    # in this case we can remove everything
+    COMMAND="find /dev/shm/ -name \"fmq_*\" -delete"
+  else
+    # build exclusion list
+    for f in ${USEDFILES}; do
+      LOGICALOP=""
+      [ "${EXCLPATTERN}" ] && LOGICALOP="-o"
+      EXCLPATTERN="${EXCLPATTERN} ${LOGICALOP} -wholename ${f}"
+    done
+    COMMAND="find /dev/shm/ -type f -not \( ${EXCLPATTERN} \) -delete"
+  fi
+  eval "${COMMAND}"
+}
+
 # Function to find out all the (recursive) child processes starting from a parent PID.
 # The output includes includes the parent
 # output is saved in child_pid_list
@@ -31,6 +60,21 @@ childprocs() {
   if [ ! "$2" ]; then
     echo "${child_pid_list}"
   fi
+}
+
+taskwrapper_cleanup_handler() {
+  PID=$1
+  SIGNAL=$2
+  echo "CLEANUP HANDLER FOR PROCESS ${PID} AND SIGNAL ${SIGNAL}"
+  PROCS=$(childprocs ${PID})
+  # make sure to bring down everything, including all kids
+  for p in ${PROCS}; do
+    echo "killing ${p}"
+    kill -s ${SIGNAL} ${p} 2> /dev/null
+  done
+  o2_cleanup_shm_files
+  # I prefer to exit the current job completely
+  exit 1
 }
 
 # Function wrapping some process and asyncronously supervises and controls it.
@@ -97,6 +141,9 @@ taskwrapper() {
   # THE NEXT PART IS THE SUPERVISION PART
   # get the PID
   PID=$!
+  # register signal handlers
+  trap "taskwrapper_cleanup_handler ${PID} SIGINT" SIGINT
+  trap "taskwrapper_cleanup_handler ${PID} SIGTERM" SIGTERM
 
   cpucounter=1
 
@@ -143,7 +190,9 @@ taskwrapper() {
       for p in $(childprocs ${PID}); do
         echo "killing child $p"
         kill $p 2> /dev/null
-      done      
+      done
+      # remove leftover shm files
+      o2_cleanup_shm_files
 
       RC_ACUM=$((RC_ACUM+1))
       [ ! "${JOBUTILS_KEEPJOBSCRIPT}" ] && rm ${SCRIPTNAME} 2> /dev/null
@@ -185,6 +234,12 @@ taskwrapper() {
     echo "command ${command} had nonzero exit code ${RC}"
   fi
   [ ! "${JOBUTILS_KEEPJOBSCRIPT}" ] && rm ${SCRIPTNAME} 2> /dev/null
+
+  # deregister signal handlers
+  trap '' SIGINT
+  trap '' SIGTERM
+
+  o2_cleanup_shm_files #--> better to register a general trap at EXIT
   return ${RC}
 }
 
@@ -200,3 +255,4 @@ getNumberOfPhysicalCPUCores() {
   N=`bc <<< "${CORESPERSOCKET}*${SOCKETS}"`
   echo "${N}"
 }
+
