@@ -19,7 +19,7 @@
 #include "GPUCommonMath.h"
 #include "GPUParam.h"
 #include "GPUdEdxInfo.h"
-#ifndef GPUCA_ALIROOT_LIB
+#ifdef HAVE_O2HEADERS
 #include "TPCdEdxCalibrationSplines.h"
 #endif
 

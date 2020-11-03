@@ -1135,6 +1135,7 @@ GPUDisplay::vboList GPUDisplay::DrawGridTRD(int sector)
   // TODO: tilted pads ignored at the moment
   size_t startCount = mVertexBufferStart[sector].size();
   size_t startCountInner = mVertexBuffer[sector].size();
+#ifdef HAVE_O2HEADERS
   auto* geo = mChain->GetTRDGeometry();
   if (geo) {
     int trdsector = NSLICES / 2 - 1 - sector;
@@ -1193,6 +1194,7 @@ GPUDisplay::vboList GPUDisplay::DrawGridTRD(int sector)
       }
     }
   }
+#endif
   insertVertexList(sector, startCountInner, mVertexBuffer[sector].size());
   return (vboList(startCount, mVertexBufferStart[sector].size() - startCount, sector));
 }
