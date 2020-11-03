@@ -565,8 +565,9 @@ class TrapConfig
       if (index < mData.size()) {
         mData[index] = value;
         mValid[index] = valid;
-      } else
+      } else {
         LOG(debug) << "attempt to write data outside array with size : " << mData.size() << "and index of :" << index;
+      }
     }
     //next 3 functions are putrely for back ref cross checks to run2.
     int getAllocMode() { return (int)mAllocMode; }

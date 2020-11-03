@@ -130,11 +130,13 @@ TH2D* ChamberStatus::plot(int sm, int rphi)
     int status = getStatus(i);
     h2->Fill(stackn, layer, status);
     if (rphi == 0) {
-      if (!(mStatus[i] & kNoDataHalfChamberSideBpat))
+      if (!(mStatus[i] & kNoDataHalfChamberSideBpat)) {
         h2->Fill(stackn, layer, status);
+      }
     } else if (rphi == 1) {
-      if (!(mStatus[i] & kNoDataHalfChamberSideApat))
+      if (!(mStatus[i] & kNoDataHalfChamberSideApat)) {
         h2->Fill(stackn, layer, status);
+      }
     }
   }
 
@@ -161,15 +163,19 @@ TH2D* ChamberStatus::plotNoData(int sm, int rphi)
     int layer = i % 6;
     int stackn = static_cast<int>((i - start) / 6.);
     if (rphi == 0) {
-      if (mStatus[i] & kNoDataHalfChamberSideBpat)
+      if (mStatus[i] & kNoDataHalfChamberSideBpat) {
         h2->Fill(stackn, layer, 1);
-      if (mStatus[i] & kNoDatapat)
+      }
+      if (mStatus[i] & kNoDatapat) {
         h2->Fill(stackn, layer, 1);
+      }
     } else if (rphi == 1) {
-      if (!(mStatus[i] & kNoDataHalfChamberSideApat))
+      if (!(mStatus[i] & kNoDataHalfChamberSideApat)) {
         h2->Fill(stackn, layer, 1);
-      if (!(mStatus[i] & kNoDatapat))
+      }
+      if (!(mStatus[i] & kNoDatapat)) {
         h2->Fill(stackn, layer, 1);
+      }
     }
   }
 
@@ -196,11 +202,13 @@ TH2D* ChamberStatus::plotBadCalibrated(int sm, int rphi)
     int layer = i % 6;
     int stackn = static_cast<int>((i - start) / 6.);
     if (rphi == 0) {
-      if (mStatus[i] & kBadCalibratedpat)
+      if (mStatus[i] & kBadCalibratedpat) {
         h2->Fill(stackn, layer, 1);
+      }
     } else if (rphi == 1) {
-      if (mStatus[i] & kBadCalibratedpat)
+      if (mStatus[i] & kBadCalibratedpat) {
         h2->Fill(stackn, layer, 1);
+      }
     }
   }
 

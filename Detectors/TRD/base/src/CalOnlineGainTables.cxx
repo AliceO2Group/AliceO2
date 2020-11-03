@@ -59,8 +59,9 @@ float CalOnlineGainTables::getGainCorrectionFactor(int det, int row, int col) co
       GainCorrectionFactor = -1.0;
     } else if (mGainTable[arrayoffset].mFGFN[channel] > 511) {
       GainCorrectionFactor = CalOnlineGainTables::UnDef;
-    } else
+    } else {
       GainCorrectionFactor = (mGainTable[arrayoffset].mFGFN[channel] / 2048.) + 0.875;
+    }
   } else {
     float ADCCorrection = (1. / (1. + ((float)mGainTable[arrayoffset].mAdcdac / 31.) * 0.4 / 1.05));
     GainCorrectionFactor = ADCCorrection * (((mGainTable[arrayoffset].mFGFN[channel]) / 2048.) + 0.875);

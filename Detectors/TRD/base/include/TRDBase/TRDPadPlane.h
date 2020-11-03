@@ -49,13 +49,15 @@ class TRDPadPlane
   void setNrows(int n);
   void setPadCol(int ic, double c)
   {
-    if (ic < mNcols)
+    if (ic < mNcols) {
       mPadCol[ic] = c;
+    }
   };
   void setPadRow(int ir, double r)
   {
-    if (ir < mNrows)
+    if (ir < mNrows) {
       mPadRow[ir] = r;
+    }
   };
   void setLength(double l) { mLength = l; };
   void setWidth(double w) { mWidth = w; };
@@ -74,25 +76,28 @@ class TRDPadPlane
   GPUd() double getTiltOffset(double rowOffset) const { return mTiltingTan * (rowOffset - 0.5 * mLengthIPad); };
   GPUd() double getPadRowOffset(int row, double z) const
   {
-    if ((row < 0) || (row >= mNrows))
+    if ((row < 0) || (row >= mNrows)) {
       return -1.0;
-    else
+    } else {
       return mPadRow[row] + mPadRowSMOffset - z;
+    }
   };
   GPUd() double getPadRowOffsetROC(int row, double z) const
   {
-    if ((row < 0) || (row >= mNrows))
+    if ((row < 0) || (row >= mNrows)) {
       return -1.0;
-    else
+    } else {
       return mPadRow[row] - z;
+    }
   };
 
   GPUd() double getPadColOffset(int col, double rphi) const
   {
-    if ((col < 0) || (col >= mNcols))
+    if ((col < 0) || (col >= mNcols)) {
       return -1.0;
-    else
+    } else {
       return rphi - mPadCol[col];
+    }
   };
 
   GPUd() double getTiltingAngle() const { return mTiltingAngle; };
@@ -109,17 +114,19 @@ class TRDPadPlane
   GPUd() double getColPos(int col) const { return mPadCol[col]; };
   GPUd() double getRowSize(int row) const
   {
-    if ((row == 0) || (row == mNrows - 1))
+    if ((row == 0) || (row == mNrows - 1)) {
       return mLengthOPad;
-    else
+    } else {
       return mLengthIPad;
+    }
   };
   GPUd() double getColSize(int col) const
   {
-    if ((col == 0) || (col == mNcols - 1))
+    if ((col == 0) || (col == mNcols - 1)) {
       return mWidthOPad;
-    else
+    } else {
       return mWidthIPad;
+    }
   };
 
   GPUd() double getLengthRim() const { return mLengthRim; };

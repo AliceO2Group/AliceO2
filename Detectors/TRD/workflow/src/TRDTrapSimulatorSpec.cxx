@@ -90,16 +90,18 @@ bool msgDigitSortComparator(o2::trd::Digit const& a, o2::trd::Digit const& b)
     //  LOG(info) << "yip timea < timeb " << timea <<"<" << timeb;
     return 1;
   } else if (timea == timeb) {
-    if (hcida < hcidb)
+    if (hcida < hcidb) {
       return 1;
-    else {
+    } else {
       if (hcida == hcidb) {
-        if (mcma < mcmb)
+        if (mcma < mcmb) {
           return 1;
-        else
+        } else {
           return 0;
-      } else
+        }
+      } else {
         return 0;
+      }
     }
     return 0;
 
@@ -173,8 +175,9 @@ void TRDDPLTrapSimulatorTask::loadTrapConfig()
     LOG(warn) << " failed to get trapconfig from ccdb with name :  " << mTrapConfigName;
   } else {
     //TODO figure out how to get the debug level from logger and only do this for debug option to --severity debug (or what ever the command actualy is)
-    if (mEnableTrapConfigDump)
+    if (mEnableTrapConfigDump) {
       mTrapConfig->DumpTrapConfig2File("run3trapconfig_dump");
+    }
   }
 }
 
@@ -271,25 +274,32 @@ bool digitindexcompare(unsigned int A, unsigned int B, const std::vector<o2::trd
   int robb = fee->getROBfromPad(rowb, padb);
   int mcma = fee->getMCMfromPad(rowa, pada);
   int mcmb = fee->getMCMfromPad(rowb, padb);
-  if (a->getTimeStamp() < b->getTimeStamp())
+  if (a->getTimeStamp() < b->getTimeStamp()) {
     return 1;
-  if (a->getTimeStamp() > b->getTimeStamp())
+  }
+  if (a->getTimeStamp() > b->getTimeStamp()) {
     return 0;
+  }
   // timestamps are equal
-  if (a->getDetector() < b->getDetector())
+  if (a->getDetector() < b->getDetector()) {
     return 1;
-  if (a->getDetector() > b->getDetector())
+  }
+  if (a->getDetector() > b->getDetector()) {
     return 0;
+  }
   //detectors are equal
-  if (roba < robb)
+  if (roba < robb) {
     return 1;
-  if (roba > robb)
+  }
+  if (roba > robb) {
     return 0;
+  }
   //rob is equal
-  if (mcma < mcmb)
+  if (mcma < mcmb) {
     return 1;
-  else
+  } else {
     return 0;
+  }
 }
 
 void TRDDPLTrapSimulatorTask::setTriggerRecord(std::vector<o2::trd::TriggerRecord>& triggerrecord, uint32_t currentrecord, uint64_t recordsize)
@@ -361,8 +371,9 @@ void TRDDPLTrapSimulatorTask::run(o2::framework::ProcessingContext& pc)
     LOG(debug) << "Trigger Record ; " << trig.getFirstEntry() << " --> " << trig.getNumberOfObjects();
   }
   // fix incoming trigger records if requested.
-  if (mFixTriggerRecords)
+  if (mFixTriggerRecords) {
     fixTriggerRecords(triggerRecords);
+  }
 
   std::vector<o2::trd::TriggerRecord> trackletTriggerRecords = triggerRecords; // copy over the whole thing but we only really want the bunch crossing info.
   std::vector<o2::trd::TriggerRecord> rawTriggerRecords = triggerRecords;      // as we have the option of having tracklets and/or raw data, we need both triggerrecords.
@@ -542,15 +553,17 @@ void TRDDPLTrapSimulatorTask::run(o2::framework::ProcessingContext& pc)
 
           // mTrapSimulator[trapcounter].zeroSupressionMapping();
 
-          if (mDrawTrackletOptions != 0)
+          if (mDrawTrackletOptions != 0) {
             mTrapSimulator[trapcounter].draw(mDrawTrackletOptions, loopindex);
+          }
           if (mDebugRejectedTracklets) {                    //&& trapTracklets.size()==0) {
             mTrapSimulator[trapcounter].draw(7, loopindex); //draw adc when no tracklets are found.A
             LOG(debug) << "loop index  : " << loopindex;
             mTrapSimulator[trapcounter].print(1);
           }
-          if (mPrintTrackletOptions != 0)
+          if (mPrintTrackletOptions != 0) {
             mTrapSimulator[trapcounter].print(mPrintTrackletOptions);
+          }
 
           loopindex++;
           //set this trap sim object to have not data (effectively) reset.
