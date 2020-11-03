@@ -2676,8 +2676,9 @@ void TRDGeometry::addAlignableVolumes() const
   // The symbolic names are: TRD/sm00/st0/pl0 ... TRD/sm17/st4/pl5
 
   for (int isector = 0; isector < NSECTOR; isector++) {
-    if (!getSMstatus(isector))
+    if (!getSMstatus(isector)) {
       continue;
+    }
     for (int ilayer = 0; ilayer < NLAYER; ilayer++) {
       for (int istack = 0; istack < NSTACK; istack++) {
         Int_t lid = getDetector(ilayer, istack, isector);

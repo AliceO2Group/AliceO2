@@ -48,29 +48,37 @@ void Calibrations::setCCDB(int calibrationobjecttype, long timestamp)
   switch (calibrationobjecttype) {
     case 1: //simulation
       mChamberCalibrations = ccdbmgr.get<o2::trd::ChamberCalibrations>("TRD_test/ChamberCalibrations");
-      if (!mChamberCalibrations)
+      if (!mChamberCalibrations) {
         LOG(fatal) << "No chamber calibrations returned from CCDB for TRD calibrations,  or TRD from what ever you are running.";
+      }
       mLocalVDrift = ccdbmgr.get<o2::trd::LocalVDrift>("TRD_test/LocalVDrift");
-      if (!mLocalVDrift)
+      if (!mLocalVDrift) {
         LOG(fatal) << "No Local V Drift calibrations returned from CCDB for TRD calibrations,  or TRD from what ever you are running.";
+      }
       mLocalT0 = ccdbmgr.get<o2::trd::LocalT0>("TRD_test/LocalT0");
-      if (!mLocalT0)
+      if (!mLocalT0) {
         LOG(fatal) << "No Local T0 calibrations returned from CCDB for TRD calibrations,  or TRD from what ever you are running.";
+      }
       mLocalGainFactor = ccdbmgr.get<o2::trd::LocalGainFactor>("TRD_test/LocalGainFactor");
-      if (!mLocalT0)
+      if (!mLocalT0) {
         LOG(fatal) << "No Local T0 calibrations returned from CCDB for TRD calibrations,  or TRD from what ever you are running.";
+      }
       mPadNoise = ccdbmgr.get<o2::trd::PadNoise>("TRD_test/PadNoise");
-      if (!mPadNoise)
+      if (!mPadNoise) {
         LOG(fatal) << "No Padnoise calibrations returned from CCDB for TRD calibrations,  or TRD from what ever you are running.";
+      }
       mChamberStatus = ccdbmgr.get<o2::trd::ChamberStatus>("TRD_test/ChamberStatus");
-      if (!mChamberStatus)
+      if (!mChamberStatus) {
         LOG(fatal) << "No ChamberStatus calibrations returned from CCDB for TRD calibrations,  or TRD from what ever you are running.";
+      }
       mPadStatus = ccdbmgr.get<o2::trd::PadStatus>("TRD_test/PadStatus");
-      if (!mPadStatus)
+      if (!mPadStatus) {
         LOG(fatal) << "No Pad Status calibrations returned from CCDB for TRD calibrations,  or TRD from what ever you are running.";
+      }
       mChamberNoise = ccdbmgr.get<o2::trd::ChamberNoise>("TRD_test/ChamberNoise");
-      if (!mChamberNoise)
+      if (!mChamberNoise) {
         LOG(fatal) << "No ChamberNoise calibrations returned from CCDB for TRD calibrations,  or TRD from what ever you are running.";
+      }
       //mCalOnlineGainTables= ccdbmgr.get<o2::trd::CalOnlineGainTables>("TRD_test/OnlineGainTables");
       //std::shared_ptr<TrapConfig> mTrapConfig;
       //std::shared_ptr<PRFWidth> mPRDWidth
@@ -101,62 +109,69 @@ void Calibrations::setOnlineGainTables(std::string& tablename)
 
 double Calibrations::getVDrift(int det, int col, int row) const
 {
-  if (mChamberCalibrations && mLocalVDrift)
+  if (mChamberCalibrations && mLocalVDrift) {
     return (double)mChamberCalibrations->getVDrift(det) * (double)mLocalVDrift->getValue(det, col, row);
-  else
+  } else {
     return -1;
+  }
 }
 
 double Calibrations::getT0(int det, int col, int row) const
 {
-  if (mChamberCalibrations && mLocalT0)
+  if (mChamberCalibrations && mLocalT0) {
     return (double)mChamberCalibrations->getT0(det) + (double)mLocalT0->getValue(det, col, row);
-  else {
+  } else {
     return -1;
   }
 }
 double Calibrations::getExB(int det) const
 {
-  if (mChamberCalibrations)
+  if (mChamberCalibrations) {
     return (double)mChamberCalibrations->getExB(det);
-  else
+  } else {
     return -1;
+  }
 }
 double Calibrations::getGainFactor(int det, int col, int row) const
 {
-  if (mChamberCalibrations && mLocalGainFactor)
+  if (mChamberCalibrations && mLocalGainFactor) {
     return (double)mChamberCalibrations->getGainFactor(det) * (double)mLocalGainFactor->getValue(det, col, row);
-  else
+  } else {
     return -1;
+  }
 }
 double Calibrations::getPadGainFactor(int det, int col, int row) const
 {
-  if (mLocalGainFactor)
+  if (mLocalGainFactor) {
     return (double)mLocalGainFactor->getValue(det, col, row);
-  else
+  } else {
     return -1;
+  }
 }
 
 double Calibrations::getOnlineGainAdcdac(int det, int row, int mcm) const
 {
-  if (mCalOnlineGainTables)
+  if (mCalOnlineGainTables) {
     return mCalOnlineGainTables->getAdcdacrm(det, row, mcm);
-  else
+  } else {
     return -1;
+  }
 }
 
 double Calibrations::getOnlineGainFGAN(int det, int rob, int mcm, int adc) const
 {
-  if (mCalOnlineGainTables)
+  if (mCalOnlineGainTables) {
     return mCalOnlineGainTables->getFGANrm(det, rob, mcm, adc);
-  else
+  } else {
     return -1;
+  }
 }
 
 double Calibrations::getOnlineGainFGFN(int det, int rob, int mcm, int adc) const
 {
-  if (mCalOnlineGainTables)
+  if (mCalOnlineGainTables) {
     return mCalOnlineGainTables->getFGFNrm(det, rob, mcm, adc);
-  else
+  } else {
     return -1;
+  }
 }

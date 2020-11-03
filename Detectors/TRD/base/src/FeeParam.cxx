@@ -96,8 +96,9 @@ FeeParam* FeeParam::instance()
     mgInstance = new FeeParam();
   }
   // this is moved here to remove recursive calls induced by the line 2 above this one.
-  if (!mgLUTPadNumberingFilled)
+  if (!mgLUTPadNumberingFilled) {
     mgInstance->createPad2MCMLookUpTable();
+  }
   return mgInstance;
 }
 
@@ -160,8 +161,9 @@ FeeParam::FeeParam(const FeeParam& p)
   //
   mRAWversion = p.mRAWversion;
   mCP = p.mCP;
-  if (!mgLUTPadNumberingFilled)
+  if (!mgLUTPadNumberingFilled) {
     mgInstance->createPad2MCMLookUpTable();
+  }
 }
 
 //_____________________________________________________________________________
@@ -218,8 +220,9 @@ int FeeParam::getPadColFromADC(int irob, int imcm, int iadc) const
   // http://wiki.kip.uni-heidelberg.de/ti/TRD/index.php/Image:ROB_MCM_numbering.pdf
   //
 
-  if (iadc < 0 || iadc > NADCMCM)
+  if (iadc < 0 || iadc > NADCMCM) {
     return -100;
+  }
   int mcmcol = imcm % NMCMROBINCOL + getRobSide(irob) * NMCMROBINCOL; // MCM column number on ROC [0..7]
   int padcol = mcmcol * NCOLMCM + NCOLMCM + 1 - iadc;
   if (padcol < 0 || padcol >= NCOLUMN) {
@@ -237,8 +240,9 @@ int FeeParam::getExtendedPadColFromADC(int irob, int imcm, int iadc) const
   // so we have to introduce new virtual pad numbering scheme for this purpose.
   //
 
-  if (iadc < 0 || iadc > NADCMCM)
+  if (iadc < 0 || iadc > NADCMCM) {
     return -100;
+  }
   int mcmcol = imcm % NMCMROBINCOL + getRobSide(irob) * NMCMROBINCOL; // MCM column number on ROC [0..7]
   int padcol = mcmcol * NADCMCM + NCOLMCM + 2 - iadc;
 
@@ -253,8 +257,9 @@ int FeeParam::getMCMfromPad(int irow, int icol) const
   // Return -1 for error.
   //
 
-  if (irow < 0 || icol < 0 || irow > NROWC1 || icol > NCOLUMN)
+  if (irow < 0 || icol < 0 || irow > NROWC1 || icol > NCOLUMN) {
     return -1;
+  }
   return (icol % (NCOLUMN / 2)) / NCOLMCM + NMCMROBINCOL * (irow % NMCMROBINROW);
 }
 
@@ -266,8 +271,9 @@ int FeeParam::getMCMfromSharedPad(int irow, int icol) const
   // Return -1 for error.
   //
 
-  if (irow < 0 || icol < 0 || irow > NROWC1 || icol > NCOLUMN + 8 * 3)
+  if (irow < 0 || icol < 0 || irow > NROWC1 || icol > NCOLUMN + 8 * 3) {
     return -1;
+  }
 
   int adc = 20 - (icol % 18) - 1;
   switch (adc) {
@@ -318,8 +324,9 @@ int FeeParam::getRobSide(int irob) const
   // Return on which side this rob sits (A side = 0, B side = 1)
   //
 
-  if (irob < 0 || irob >= NROBC1)
+  if (irob < 0 || irob >= NROBC1) {
     return -1;
+  }
 
   return irob % 2;
 }
@@ -331,16 +338,18 @@ int FeeParam::getColSide(int icol) const
   // Return on which side this column sits (A side = 0, B side = 1)
   //
 
-  if (icol < 0 || icol >= NCOLUMN)
+  if (icol < 0 || icol >= NCOLUMN) {
     return -1;
+  }
 
   return icol / (NCOLUMN / 2);
 }
 
 unsigned int FeeParam::aliToExtAli(int rob, int aliid)
 {
-  if (aliid != 127)
+  if (aliid != 127) {
     return ((1 << 10) | (rob << 7) | aliid);
+  }
 
   return 127;
 }
@@ -411,12 +420,15 @@ int FeeParam::extAliToAli(unsigned int dest, unsigned short linkpair, unsigned s
   cmA &= gkChipmaskDefLp[linkpair];
   cmB &= gkChipmaskDefLp[linkpair];
   // Remove if only one side is selected
-  if (robAB == 1)
+  if (robAB == 1) {
     cmB = 0;
-  if (robAB == 2)
+  }
+  if (robAB == 2) {
     cmA = 0;
-  if (robAB == 4 && linkpair != 2)
+  }
+  if (robAB == 4 && linkpair != 2) {
     cmA = cmB = 0; // Restrict to only T3A and T3B
+  }
 
   // Finally convert chipmask to list of slaves
   nmcm = chipmaskToMCMlist(cmA, cmB, linkpair, mcmList, listSize);
@@ -430,10 +442,12 @@ short FeeParam::getRobAB(unsigned short robsel, unsigned short linkpair)
 
   if ((robsel & 0x8) != 0) { // 1000 .. direct ROB selection. Only one of the 8 ROBs are used.
     robsel = robsel & 7;
-    if ((robsel % 2) == 0 && (robsel / 2) == linkpair)
+    if ((robsel % 2) == 0 && (robsel / 2) == linkpair) {
       return 1; // Even means A side (position 0,2,4,6)
-    if ((robsel % 2) == 1 && (robsel / 2) == linkpair)
+    }
+    if ((robsel % 2) == 1 && (robsel / 2) == linkpair) {
       return 2; // Odd  means B side (position 1,3,5,7)
+    }
     return 0;
   }
 
@@ -519,11 +533,13 @@ int FeeParam::getORIinSM(int detector, int readoutboard) const
     if (trdstack > 2 || (trdstack == 2 && side == 1)) // CSide
     {
       int newside = side;
-      if (trdstack == 2)
+      if (trdstack == 2) {
         newside = 0; // the last part of C side CRU is a special case.
+      }
       ori = (4 - trdstack) * 12 + (5 - trdlayer + newside * 5) + trdlayer / 6 + newside;
-    } else
+    } else {
       LOG(warn) << " something wrong with calculation of ORI for detector " << detector << " and readoutboard" << readoutboard;
+    }
   }
   // now offset for supermodule (+60*supermodule);
 
@@ -625,8 +641,9 @@ int FeeParam::getDyCorrection(int det, int rob, int mcm) const
   // calculate Lorentz correction
   float dyCorr = -mOmegaTau * mgDriftLength;
 
-  if (mTiltCorr)
+  if (mTiltCorr) {
     dyCorr += dyTilt; // add tilt correction
+  }
 
   return (int)TMath::Nint(dyCorr * mgScalePad * mgInvWidthPad[layer]);
 }
@@ -640,8 +657,9 @@ void FeeParam::getDyRange(int det, int rob, int mcm, int ch,
   dyMaxInt = mgDyMax;
 
   // deflection cut is considered for |B| > 0.1 T only
-  if (std::abs(mMagField) < 0.1)
+  if (std::abs(mMagField) < 0.1) {
     return;
+  }
 
   float e = 0.30;
 
@@ -657,20 +675,22 @@ void FeeParam::getDyRange(int det, int rob, int mcm, int ch,
 
     dyMinInt = int(dyMin / mgBinDy);
     // clipping to allowed range
-    if (dyMinInt < mgDyMin)
+    if (dyMinInt < mgDyMin) {
       dyMinInt = mgDyMin;
-    else if (dyMinInt > mgDyMax)
+    } else if (dyMinInt > mgDyMax) {
       dyMinInt = mgDyMax;
+    }
 
     float dyMax = (mgDriftLength *
                    std::tan(phi + maxDeflAngle));
 
     dyMaxInt = int(dyMax / mgBinDy);
     // clipping to allowed range
-    if (dyMaxInt > mgDyMax)
+    if (dyMaxInt > mgDyMax) {
       dyMaxInt = mgDyMax;
-    else if (dyMaxInt < mgDyMin)
+    } else if (dyMaxInt < mgDyMin) {
       dyMaxInt = mgDyMin;
+    }
   } else if (maxDeflTemp < 0.) {
     // this must not happen
     printf("Inconsistent calculation of sin(alpha): %f\n", maxDeflTemp);
@@ -707,8 +727,9 @@ void FeeParam::getCorrectionFactors(int det, int rob, int mcm, int ch,
 {
   // calculate the gain correction factors for the given ADC channel
   float Invgain = 1.0;
-  if (mPidGainCorr == true)
+  if (mPidGainCorr == true) {
     Invgain = 1 / gain;
+  }
 
   if (mPidTracklengthCorr == true) {
     float InvElongationOverGain = 1 / getElongation(det, rob, mcm, ch) * Invgain;
@@ -754,19 +775,21 @@ float FeeParam::getLocalZ(int det, int rob, int mcm) const
   int row = (rob / 2) * 4 + mcm / 4;
 
   if (stack == 2) {
-    if (row == 0)
+    if (row == 0) {
       return (mgZrow[layer * NLAYER + stack] - 0.5 * mgLengthOuterPadC0);
-    else if (row == 11)
+    } else if (row == 11) {
       return (mgZrow[layer * NLAYER + stack] - 1.5 * mgLengthOuterPadC0 - (row - 1) * mgLengthInnerPadC0);
-    else
+    } else {
       return (mgZrow[layer * NLAYER + stack] - mgLengthOuterPadC0 - (row - 0.5) * mgLengthInnerPadC0);
+    }
   } else {
-    if (row == 0)
+    if (row == 0) {
       return (mgZrow[layer * NLAYER + stack] - 0.5 * mgLengthOuterPadC1[layer]);
-    else if (row == 15)
+    } else if (row == 15) {
       return (mgZrow[layer * NLAYER + stack] - 1.5 * mgLengthOuterPadC1[layer] - (row - 1) * mgLengthInnerPadC1[layer]);
-    else
+    } else {
       return (mgZrow[layer * NLAYER + stack] - mgLengthOuterPadC1[layer] - (row - 0.5) * mgLengthInnerPadC1[layer]);
+    }
   }
 }
 

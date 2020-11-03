@@ -80,12 +80,14 @@ class TrapSimulator
   void unsetData()
   {
     mDataIsSet = false;
-    for (auto& fitreg : mFitReg)
+    for (auto& fitreg : mFitReg) {
       fitreg.ClearReg();
+    }
     mNHits = 0;
     mADCFilled = 0;
-    for (auto& tmplabel : mADCLabels)
+    for (auto& tmplabel : mADCLabels) {
       tmplabel.clear();      // clear MC Labels sent in from the digits coming in.
+    }
     mTrackletLabels.clear(); // clear the stored labels.
     mTrackletArray.clear();
     mTrackletArray64.clear();

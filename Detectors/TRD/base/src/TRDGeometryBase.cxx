@@ -22,8 +22,9 @@ GPUd() int TRDGeometryBase::getStack(float z, int layer) const
   // The return function has to be protected for positiveness !!
   //
 
-  if ((layer < 0) || (layer >= NLAYER))
+  if ((layer < 0) || (layer >= NLAYER)) {
     return -1;
+  }
 
   int istck = NSTACK;
   float zmin = 0.0;
@@ -31,8 +32,9 @@ GPUd() int TRDGeometryBase::getStack(float z, int layer) const
 
   do {
     istck--;
-    if (istck < 0)
+    if (istck < 0) {
       break;
+    }
     const TRDPadPlane* pp = getPadPlane(layer, istck);
     zmax = pp->getRow0();
     int nrows = pp->getNrows();
@@ -50,16 +52,19 @@ GPUd() bool TRDGeometryBase::isOnBoundary(int det, float y, float z, float eps) 
   //
 
   int ly = getLayer(det);
-  if ((ly < 0) || (ly >= NLAYER))
+  if ((ly < 0) || (ly >= NLAYER)) {
     return true;
+  }
 
   int stk = getStack(det);
-  if ((stk < 0) || (stk >= NSTACK))
+  if ((stk < 0) || (stk >= NSTACK)) {
     return true;
+  }
 
   const TRDPadPlane* pp = &mPadPlanes[getDetectorSec(ly, stk)];
-  if (!pp)
+  if (!pp) {
     return true;
+  }
 
   float max = pp->getRow0();
   int n = pp->getNrows();

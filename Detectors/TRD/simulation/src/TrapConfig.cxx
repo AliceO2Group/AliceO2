@@ -528,8 +528,9 @@ void TrapConfig::resetDmem()
 {
   // reset the data memory
 
-  for (int iAddr = 0; iAddr < mgkDmemWords; iAddr++)
+  for (int iAddr = 0; iAddr < mgkDmemWords; iAddr++) {
     mDmem[iAddr].reset();
+  }
 }
 
 int TrapConfig::getTrapReg(TrapReg_t reg, int det, int rob, int mcm)
@@ -624,8 +625,9 @@ bool TrapConfig::setDmem(int addr, unsigned int value, int det)
   if (!mDmem[addr].setValue(value, det)) {
     LOG(error) << "Problem writing to DMEM address 0x" << hex << std::setw(4) << addr;
     return false;
-  } else
+  } else {
     return true;
+  }
 }
 
 bool TrapConfig::setDmem(int addr, unsigned int value, int det, int rob, int mcm)
@@ -641,8 +643,9 @@ bool TrapConfig::setDmem(int addr, unsigned int value, int det, int rob, int mcm
   if (!mDmem[addr].setValue(value, det, rob, mcm)) {
     LOG(error) << "Problem writing to DMEM address 0x" << hex << std::setw(4) << addr;
     return false;
-  } else
+  } else {
     return true;
+  }
 }
 
 unsigned int TrapConfig::getDmemUnsigned(int addr, int det, int rob, int mcm)
@@ -698,20 +701,21 @@ TrapConfig::TrapReg_t TrapConfig::getRegByAddress(int address)
   // get register by its address
   // used for reading of configuration data as sent to real FEE
 
-  if (address < mgkRegisterAddressBlockStart[0])
+  if (address < mgkRegisterAddressBlockStart[0]) {
     return kLastReg;
-  else if (address < mgkRegisterAddressBlockStart[0] + mgkRegisterAddressBlockSize[0])
+  } else if (address < mgkRegisterAddressBlockStart[0] + mgkRegisterAddressBlockSize[0]) {
     return mgRegAddressMap[address - mgkRegisterAddressBlockStart[0]];
-  else if (address < mgkRegisterAddressBlockStart[1])
+  } else if (address < mgkRegisterAddressBlockStart[1]) {
     return kLastReg;
-  else if (address < mgkRegisterAddressBlockStart[1] + mgkRegisterAddressBlockSize[1])
+  } else if (address < mgkRegisterAddressBlockStart[1] + mgkRegisterAddressBlockSize[1]) {
     return mgRegAddressMap[address - mgkRegisterAddressBlockStart[1] + mgkRegisterAddressBlockSize[0]];
-  else if (address < mgkRegisterAddressBlockStart[2])
+  } else if (address < mgkRegisterAddressBlockStart[2]) {
     return kLastReg;
-  else if (address < mgkRegisterAddressBlockStart[2] + mgkRegisterAddressBlockSize[2])
+  } else if (address < mgkRegisterAddressBlockStart[2] + mgkRegisterAddressBlockSize[2]) {
     return mgRegAddressMap[address - mgkRegisterAddressBlockStart[2] + mgkRegisterAddressBlockSize[1] + mgkRegisterAddressBlockSize[0]];
-  else
+  } else {
     return kLastReg;
+  }
 }
 
 void TrapConfig::printMemDatx(ostream& os, int addr)
@@ -757,10 +761,11 @@ void TrapConfig::printDatx(ostream& os, unsigned int addr, unsigned int data, in
   os << std::setw(5) << 10
      << std::setw(8) << addr
      << std::setw(12) << data;
-  if (mcm == 127)
+  if (mcm == 127) {
     os << std::setw(8) << 127;
-  else
+  } else {
     os << std::setw(8) << FeeParam::aliToExtAli(rob, mcm);
+  }
 
   os << std::endl;
 }
@@ -778,8 +783,9 @@ void TrapConfig::printVerify(ostream& os, int det, int rob, int mcm)
   }
 
   for (int iWord = 0; iWord < mgkDmemWords; ++iWord) {
-    if (getDmemUnsigned(mgkDmemStartAddress + iWord, det, rob, mcm) == 0)
+    if (getDmemUnsigned(mgkDmemStartAddress + iWord, det, rob, mcm) == 0) {
       continue;
+    }
     os << std::setw(5) << 9
        << std::setw(8) << mgkDmemStartAddress + iWord
        << std::setw(12) << getDmemUnsigned(mgkDmemStartAddress + iWord, det, rob, mcm)
@@ -981,8 +987,9 @@ void TrapConfig::TrapRegister::init(const char* name, int addr, int nBits, int r
     mAddr = addr;
     mNbits = nBits;
     mResetValue = resetValue;
-  } else
+  } else {
     LOG(fatal) << "Re-initialising an existing TRAP register ";
+  }
 }
 
 void TrapConfig::TrapRegister::initfromrun2(const char* name, int addr, int nBits, int resetValue)

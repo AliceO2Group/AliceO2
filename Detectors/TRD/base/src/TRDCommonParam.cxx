@@ -263,13 +263,16 @@ double TRDCommonParam::TimeStruct(float vdrift, double dist, double z)
 
   // Indices:
   int r1 = (int)(10 * dist);
-  if (r1 < 0)
+  if (r1 < 0) {
     r1 = 0;
-  if (r1 > 37)
+  }
+  if (r1 > 37) {
     r1 = 37;
+  }
   int r2 = r1 + 1;
-  if (r2 > 37)
+  if (r2 > 37) {
     r2 = 37;
+  }
   const int kz1 = ((int)(100 * z / 2.5));
   const int kz2 = kz1 + 1;
 
@@ -678,10 +681,12 @@ void TRDCommonParam::SampleTimeStruct(float vdrift)
     {1.43524, 1.43533, 1.43796, 1.44310, 1.45371, 1.49305, 1.48224, 1.47941, 1.49034, 1.52601, 1.78552},
     {1.48122, 1.48219, 1.48482, 1.48991, 1.50030, 1.53991, 1.52898, 1.52653, 1.53653, 1.57282, 1.82386}};
 
-  if (!mTimeStruct1)
+  if (!mTimeStruct1) {
     mTimeStruct1 = new float[ktimebin * kZbin];
-  if (!mTimeStruct2)
+  }
+  if (!mTimeStruct2) {
     mTimeStruct2 = new float[ktimebin * kZbin];
+  }
   memset(mTimeStruct1, 0, ktimebin * kZbin * sizeof(float));
   memset(mTimeStruct2, 0, ktimebin * kZbin * sizeof(float));
 

@@ -116,10 +116,12 @@ double CalDet::getRMSRobust(double robust) const
   for (int i = 0; i < MAXCHAMBER; i++) {
     bool rej = kFALSE;
     for (int k = 0; k < reject; k++) {
-      if (i == index[k])
+      if (i == index[k]) {
         rej = kTRUE;
-      if (i == index[MAXCHAMBER - (k + 1)])
+      }
+      if (i == index[MAXCHAMBER - (k + 1)]) {
         rej = kTRUE;
+      }
     }
     if (!rej) {
       ddata[nPoints] = mData[i];
@@ -142,20 +144,24 @@ double CalDet::getMeanRobust(double robust) const
 
   // reject
   double reject = (int)(MAXCHAMBER * (1 - robust) / 2.0);
-  if (reject <= 0)
+  if (reject <= 0) {
     reject = 0;
-  if (reject >= MAXCHAMBER)
+  }
+  if (reject >= MAXCHAMBER) {
     reject = 0;
+  }
 
   std::array<double, MAXCHAMBER> ddata;
   int nPoints = 0;
   for (int i = 0; i < MAXCHAMBER; i++) {
     bool rej = kFALSE;
     for (int k = 0; k < reject; k++) {
-      if (i == index[k])
+      if (i == index[k]) {
         rej = kTRUE;
-      if (i == index[MAXCHAMBER - (k + 1)])
+      }
+      if (i == index[MAXCHAMBER - (k + 1)]) {
         rej = kTRUE;
+      }
     }
     if (!rej) {
       ddata[nPoints] = mData[i];
