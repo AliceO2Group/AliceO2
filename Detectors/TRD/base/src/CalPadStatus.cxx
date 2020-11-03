@@ -19,23 +19,23 @@
 #include <TStyle.h>
 #include <TCanvas.h>
 
-#include "TRDBase/TRDGeometryBase.h"
+#include "TRDBase/GeometryBase.h"
 #include "DetectorsCommonDataFormats/DetMatrixCache.h"
 #include "DetectorsCommonDataFormats/DetID.h"
 
-#include "TRDBase/TRDGeometry.h"
-#include "TRDBase/TRDPadPlane.h"
-#include "TRDBase/TRDCalSingleChamberStatus.h" // test
-#include "TRDBase/TRDCalPadStatus.h"
+#include "TRDBase/Geometry.h"
+#include "TRDBase/PadPlane.h"
+#include "TRDBase/CalSingleChamberStatus.h" // test
+#include "TRDBase/CalPadStatus.h"
 
 using namespace o2::trd;
 using namespace o2::trd::constants;
 
 //_____________________________________________________________________________
-TRDCalPadStatus::TRDCalPadStatus()
+CalPadStatus::CalPadStatus()
 {
   //
-  // TRDCalPadStatus default constructor
+  // CalPadStatus default constructor
   //
 
   for (int idet = 0; idet < MAXCHAMBER; idet++) {
@@ -44,18 +44,18 @@ TRDCalPadStatus::TRDCalPadStatus()
 }
 
 //_____________________________________________________________________________
-TRDCalPadStatus::TRDCalPadStatus(const Text_t* name, const Text_t* title)
+CalPadStatus::CalPadStatus(const Text_t* name, const Text_t* title)
 {
   //
-  // TRDCalPadStatus constructor
+  // CalPadStatus constructor
   //
-  //TRDGeometry fgeom;
+  //Geometry fgeom;
   for (int isec = 0; isec < NSECTOR; isec++) {
     for (int ipla = 0; ipla < NLAYER; ipla++) {
       for (int icha = 0; icha < NSTACK; icha++) {
-        int idet = o2::trd::TRDGeometry::getDetector(ipla, icha, isec);
-        //    int idet = fgeom.getDetector(ipla,icha,isec);//TRDGeometryBase::getDetector(ipla,icha,isec);
-        mROC[idet] = new TRDCalSingleChamberStatus(ipla, icha, 144);
+        int idet = o2::trd::Geometry::getDetector(ipla, icha, isec);
+        //    int idet = fgeom.getDetector(ipla,icha,isec);//GeometryBase::getDetector(ipla,icha,isec);
+        mROC[idet] = new CalSingleChamberStatus(ipla, icha, 144);
       }
     }
   }
@@ -64,20 +64,20 @@ TRDCalPadStatus::TRDCalPadStatus(const Text_t* name, const Text_t* title)
 }
 
 //_____________________________________________________________________________
-TRDCalPadStatus::TRDCalPadStatus(const TRDCalPadStatus& c)
+CalPadStatus::CalPadStatus(const CalPadStatus& c)
 {
   //
-  // TRDCalPadStatus copy constructor
+  // CalPadStatus copy constructor
   //
 
-  ((TRDCalPadStatus&)c).Copy(*this);
+  ((CalPadStatus&)c).Copy(*this);
 }
 
 //_____________________________________________________________________________
-TRDCalPadStatus::~TRDCalPadStatus()
+CalPadStatus::~CalPadStatus()
 {
   //
-  // TRDCalPadStatus destructor
+  // CalPadStatus destructor
   //
 
   for (int idet = 0; idet < MAXCHAMBER; idet++) {
@@ -89,19 +89,19 @@ TRDCalPadStatus::~TRDCalPadStatus()
 }
 
 //_____________________________________________________________________________
-TRDCalPadStatus& TRDCalPadStatus::operator=(const TRDCalPadStatus& c)
+CalPadStatus& CalPadStatus::operator=(const CalPadStatus& c)
 {
   //
   // Assignment operator
   //
 
   if (this != &c)
-    ((TRDCalPadStatus&)c).Copy(*this);
+    ((CalPadStatus&)c).Copy(*this);
   return *this;
 }
 
 //_____________________________________________________________________________
-void TRDCalPadStatus::Copy(TRDCalPadStatus& c) const
+void CalPadStatus::Copy(CalPadStatus& c) const
 {
   //
   // Copy function
@@ -109,19 +109,19 @@ void TRDCalPadStatus::Copy(TRDCalPadStatus& c) const
 
   for (int idet = 0; idet < MAXCHAMBER; idet++) {
     if (mROC[idet]) {
-      mROC[idet]->Copy(*((TRDCalPadStatus&)c).mROC[idet]);
+      mROC[idet]->Copy(*((CalPadStatus&)c).mROC[idet]);
     }
   }
 }
 
 //_____________________________________________________________________________
-Bool_t TRDCalPadStatus::checkStatus(int d, int col, int row, int bitMask) const
+Bool_t CalPadStatus::checkStatus(int d, int col, int row, int bitMask) const
 {
   //
   // Checks the pad status
   //
 
-  TRDCalSingleChamberStatus* roc = getCalROC(d);
+  CalSingleChamberStatus* roc = getCalROC(d);
   if (!roc) {
     return kFALSE;
   } else {
@@ -130,18 +130,18 @@ Bool_t TRDCalPadStatus::checkStatus(int d, int col, int row, int bitMask) const
 }
 
 //_____________________________________________________________________________
-TRDCalSingleChamberStatus* TRDCalPadStatus::getCalROC(int p, int c, int s) const
+CalSingleChamberStatus* CalPadStatus::getCalROC(int p, int c, int s) const
 {
   //
   // Returns the readout chamber of this pad
   //
-  //TRDGeometry fgeom;
+  //Geometry fgeom;
   //return mROC[fgeom.getDetector(p,c,s)];
-  return mROC[o2::trd::TRDGeometry::getDetector(p, c, s)];
+  return mROC[o2::trd::Geometry::getDetector(p, c, s)];
 }
 
 //_____________________________________________________________________________
-TH1F* TRDCalPadStatus::makeHisto1D()
+TH1F* CalPadStatus::makeHisto1D()
 {
   //
   // Make 1D histo
@@ -180,15 +180,15 @@ TH1F* TRDCalPadStatus::makeHisto1D()
 }
 
 //_____________________________________________________________________________
-TH2F* TRDCalPadStatus::makeHisto2DSmPl(int sm, int pl)
+TH2F* CalPadStatus::makeHisto2DSmPl(int sm, int pl)
 {
   //
   // Make 2D graph
   //
 
   gStyle->SetPalette(1);
-  TRDGeometry* trdGeo = new TRDGeometry();
-  const TRDPadPlane* padPlane0 = trdGeo->getPadPlane(pl, 0);
+  Geometry* trdGeo = new Geometry();
+  const PadPlane* padPlane0 = trdGeo->getPadPlane(pl, 0);
   Double_t row0 = padPlane0->getRow0();
   Double_t col0 = padPlane0->getCol0();
 
@@ -202,7 +202,7 @@ TH2F* TRDCalPadStatus::makeHisto2DSmPl(int sm, int pl)
   for (int k = 0; k < NSTACK; k++) {
     int det = offsetsmpl + k * 6;
     if (mROC[det]) {
-      TRDCalSingleChamberStatus* calRoc = mROC[det];
+      CalSingleChamberStatus* calRoc = mROC[det];
       for (int icol = 0; icol < calRoc->getNcols(); icol++) {
         for (int irow = 0; irow < calRoc->getNrows(); irow++) {
           int binz = 0;
@@ -252,7 +252,7 @@ TH2F* TRDCalPadStatus::makeHisto2DSmPl(int sm, int pl)
 }
 
 //_____________________________________________________________________________
-void TRDCalPadStatus::plotHistos2DSm(int sm, const char* name)
+void CalPadStatus::plotHistos2DSm(int sm, const char* name)
 {
   //
   // Make 2D graph

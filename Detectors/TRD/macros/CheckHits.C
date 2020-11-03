@@ -20,7 +20,7 @@
 
 #include "FairLogger.h"
 #include "TRDSimulation/Detector.h"
-#include "TRDBase/TRDGeometry.h"
+#include "TRDBase/Geometry.h"
 #include "TRDBase/Calibrations.h"
 #include "DetectorsCommonDataFormats/NameConf.h"
 #include "DetectorsCommonDataFormats/DetID.h"
@@ -57,15 +57,15 @@ void CheckHits(const int detector = 50, // 354, 14, 242, 50
     hitTree->GetEvent(iev);
     for (const auto& hit : *hits) {
       int det = hit.GetDetectorID();
-      // if (calib.isChamberNoData(det) || o2::trd::TRDGeometry::getStack(det)!=2 || o2::trd::TRDGeometry::getSector(det) != 4) {
+      // if (calib.isChamberNoData(det) || o2::trd::Geometry::getStack(det)!=2 || o2::trd::Geometry::getSector(det) != 4) {
       // if (calib.isChamberNoData(det)) {
       //   continue;
       // }
       if (det != detector) {
-        // LOG(INFO) << "REJECTED Detector = " << det <<"\t Stack = " << o2::trd::TRDGeometry::getStack(det) << "\t Sector = " << o2::trd::TRDGeometry::getSector(det);
+        // LOG(INFO) << "REJECTED Detector = " << det <<"\t Stack = " << o2::trd::Geometry::getStack(det) << "\t Sector = " << o2::trd::Geometry::getSector(det);
         continue;
       }
-      LOG(INFO) << "ACCEPTED Detector = " << det << "\t Stack = " << o2::trd::TRDGeometry::getStack(det) << "\t Sector = " << o2::trd::TRDGeometry::getSector(det);
+      LOG(INFO) << "ACCEPTED Detector = " << det << "\t Stack = " << o2::trd::Geometry::getStack(det) << "\t Sector = " << o2::trd::Geometry::getSector(det);
       // loop over det, pad, row?
       double locC = hit.getLocalC(); // col direction in amplification or drift volume
       double locR = hit.getLocalR(); // row direction in amplification or drift volume

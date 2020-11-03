@@ -19,7 +19,7 @@
 #if defined(HAVE_O2HEADERS) && (!defined(__OPENCL__) || defined(__OPENCLCPP__))
 #include "DataFormatsTPC/ClusterNative.h"
 #include "DetectorsBase/MatLayerCylSet.h"
-#include "TRDBase/TRDGeometryFlat.h"
+#include "TRDBase/GeometryFlat.h"
 #else
 #include "GPUO2FakeClasses.h"
 #endif

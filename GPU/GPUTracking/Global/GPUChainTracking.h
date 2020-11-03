@@ -25,7 +25,7 @@ namespace o2
 {
 namespace trd
 {
-class TRDGeometryFlat;
+class GeometryFlat;
 }
 } // namespace o2
 
@@ -159,12 +159,12 @@ class GPUChainTracking : public GPUChain, GPUReconstructionHelpers::helperDelega
   void SetTPCFastTransform(std::unique_ptr<TPCFastTransform>&& tpcFastTransform);
   void SetdEdxSplines(std::unique_ptr<TPCdEdxCalibrationSplines>&& dEdxSplines);
   void SetMatLUT(std::unique_ptr<o2::base::MatLayerCylSet>&& lut);
-  void SetTRDGeometry(std::unique_ptr<o2::trd::TRDGeometryFlat>&& geo);
+  void SetTRDGeometry(std::unique_ptr<o2::trd::GeometryFlat>&& geo);
   void SetTPCFastTransform(const TPCFastTransform* tpcFastTransform) { processors()->calibObjects.fastTransform = tpcFastTransform; }
   void SetTPCCFCalibration(const TPCCFCalibration* tpcCalibration) { processors()->calibObjects.tpcCalibration = tpcCalibration; }
   void SetdEdxSplines(const TPCdEdxCalibrationSplines* dEdxSplines) { processors()->calibObjects.dEdxSplines = dEdxSplines; }
   void SetMatLUT(const o2::base::MatLayerCylSet* lut) { processors()->calibObjects.matLUT = lut; }
-  void SetTRDGeometry(const o2::trd::TRDGeometryFlat* geo) { processors()->calibObjects.trdGeometry = geo; }
+  void SetTRDGeometry(const o2::trd::GeometryFlat* geo) { processors()->calibObjects.trdGeometry = geo; }
   void LoadClusterErrors();
   void SetOutputControlCompressedClusters(GPUOutputControl* v) { mOutputCompressedClusters = v; }
   void SetOutputControlClustersNative(GPUOutputControl* v) { mOutputClustersNative = v; }
@@ -234,7 +234,7 @@ class GPUChainTracking : public GPUChain, GPUReconstructionHelpers::helperDelega
   std::unique_ptr<TPCCFCalibration> mTPCCalibrationU;                 // TPC gain calibration and cluster finder parameters
   std::unique_ptr<TPCdEdxCalibrationSplines> mdEdxSplinesU;           // TPC dEdx calibration splines
   std::unique_ptr<o2::base::MatLayerCylSet> mMatLUTU;                 // Material Lookup Table
-  std::unique_ptr<o2::trd::TRDGeometryFlat> mTRDGeometryU;            // TRD Geometry
+  std::unique_ptr<o2::trd::GeometryFlat> mTRDGeometryU;               // TRD Geometry
 
   std::unique_ptr<o2::tpc::ClusterNativeAccess> mClusterNativeAccess;
 

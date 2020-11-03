@@ -16,7 +16,7 @@
 ///////////////////////////////////////////////////////////////////////////////
 
 #include "TRDBase/CalOnlineGainTables.h"
-#include "TRDBase/TRDGeometry.h"
+#include "TRDBase/Geometry.h"
 #include "TRDBase/FeeParam.h"
 #include "DataFormatsTRD/Constants.h"
 

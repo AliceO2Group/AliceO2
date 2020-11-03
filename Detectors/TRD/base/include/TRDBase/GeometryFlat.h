@@ -8,8 +8,8 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#ifndef O2_TRDGEOMETRYFLAT_H
-#define O2_TRDGEOMETRYFLAT_H
+#ifndef O2_TRD_GEOMETRYFLAT_H
+#define O2_TRD_GEOMETRYFLAT_H
 
 #ifndef GPUCA_GPUCODE_DEVICE
 #include <cstring>
@@ -17,32 +17,30 @@
 #include "FlatObject.h"
 #include "GPUCommonDef.h"
 #include "GPUCommonTransform3D.h"
-#include "TRDBase/TRDGeometryBase.h"
-#include "TRDBase/TRDPadPlane.h"
+#include "TRDBase/GeometryBase.h"
+#include "TRDBase/PadPlane.h"
 #include "DataFormatsTRD/Constants.h"
-
-using namespace o2::trd;
 
 namespace o2
 {
 namespace trd
 {
 
-class TRDGeometry;
+class Geometry;
 
 //Reduced flat version of TRD geometry class.
 //Contains all entries required for tracking on GPUs.
-class TRDGeometryFlat : public o2::gpu::FlatObject, public TRDGeometryBase
+class GeometryFlat : public o2::gpu::FlatObject, public GeometryBase
 {
  public:
 #ifndef GPUCA_GPUCODE_DEVICE
-  TRDGeometryFlat() = default;
-  TRDGeometryFlat(const TRDGeometryFlat& v) : FlatObject(), TRDGeometryBase()
+  GeometryFlat() = default;
+  GeometryFlat(const GeometryFlat& v) : FlatObject(), GeometryBase()
   {
     memcpy((void*)this, (void*)&v, sizeof(*this));
   }
-  TRDGeometryFlat(const TRDGeometry& geo);
-  ~TRDGeometryFlat() = default;
+  GeometryFlat(const Geometry& geo);
+  ~GeometryFlat() = default;
 #endif
   GPUd() const o2::gpu::Transform3D* getMatrixT2L(int det) const
   {

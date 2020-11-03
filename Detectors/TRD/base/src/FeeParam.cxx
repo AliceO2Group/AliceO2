@@ -36,10 +36,10 @@
 #include <array>
 
 #include "DetectorsBase/GeometryManager.h"
-#include "TRDBase/TRDGeometry.h"
-#include "TRDBase/TRDPadPlane.h"
+#include "TRDBase/Geometry.h"
+#include "TRDBase/PadPlane.h"
 #include "TRDBase/FeeParam.h"
-#include "TRDBase/TRDCommonParam.h"
+#include "TRDBase/CommonParam.h"
 //#include "DataFormatsTRD/Constants.h"
 
 using namespace std;
@@ -131,7 +131,7 @@ FeeParam::FeeParam() : mMagField(0.),
   //
   // Default constructor
   //
-  mCP = TRDCommonParam::Instance();
+  mCP = CommonParam::Instance();
 
   // These variables are used internally in the class to elliminate divisions.
   // putting them at the top was messy.
@@ -522,8 +522,8 @@ int FeeParam::getORIinSM(int detector, int readoutboard) const
 {
   int ori = -1;
   int chamberside = 0;
-  int trdstack = TRDGeometry::getStack(detector);
-  int trdlayer = TRDGeometry::getLayer(detector);
+  int trdstack = Geometry::getStack(detector);
+  int trdlayer = Geometry::getLayer(detector);
   int side = getRobSide(readoutboard);
   //see TDP for explanation of mapping TODO should probably come from CCDB for the instances where the mapping of ori fibers is misconfigured (accidental fibre swaps).
   if (trdstack < 2 || (trdstack == 2 && side == 0)) // A Side
@@ -552,8 +552,8 @@ int FeeParam::getORIfromHCID(int hcid) const
   int side = hcid % 2; // 0 for side 0, 1 for side 1;
   int ori = -1;
   int chamberside = 0;
-  int trdstack = TRDGeometry::getStack(detector);
-  int trdlayer = TRDGeometry::getLayer(detector);
+  int trdstack = Geometry::getStack(detector);
+  int trdlayer = Geometry::getLayer(detector);
   return getORIinSM(detector, side); // it takes readoutboard but only cares if its odd or even hence side here.
   return 1;
 }

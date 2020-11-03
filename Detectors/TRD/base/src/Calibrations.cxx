@@ -18,7 +18,7 @@
 #include <sstream>
 #include <string>
 
-#include "TRDBase/TRDGeometry.h"
+#include "TRDBase/Geometry.h"
 #include "TRDBase/Calibrations.h"
 #include "TRDBase/ChamberCalibrations.h"
 #include "TRDBase/ChamberNoise.h"

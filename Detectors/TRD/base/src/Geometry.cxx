@@ -16,24 +16,24 @@
 
 #include "DetectorsBase/GeometryManager.h"
 #include "MathUtils/Utils.h" // math_utils::bit2Mask
-#include "TRDBase/TRDGeometry.h"
-#include "TRDBase/TRDPadPlane.h"
+#include "TRDBase/Geometry.h"
+#include "TRDBase/PadPlane.h"
 
 using namespace o2::trd;
 using namespace o2::trd::constants;
 
 //_____________________________________________________________________________
 
-const o2::detectors::DetID TRDGeometry::sDetID(o2::detectors::DetID::TRD);
+const o2::detectors::DetID Geometry::sDetID(o2::detectors::DetID::TRD);
 
 //_____________________________________________________________________________
-TRDGeometry::TRDGeometry() : TRDGeometryBase(), o2::detectors::DetMatrixCacheIndirect(sDetID)
+Geometry::Geometry() : GeometryBase(), o2::detectors::DetMatrixCacheIndirect(sDetID)
 {
   createPadPlaneArray();
 }
 
 //_____________________________________________________________________________
-bool TRDGeometry::rotateBack(int det, const float* const loc, float* glb) const
+bool Geometry::rotateBack(int det, const float* const loc, float* glb) const
 {
   //
   // Rotates a chambers to transform the corresponding local frame
@@ -51,10 +51,10 @@ bool TRDGeometry::rotateBack(int det, const float* const loc, float* glb) const
 }
 
 //_____________________________________________________________________________
-void TRDGeometry::createPadPlaneArray()
+void Geometry::createPadPlaneArray()
 {
   //
-  // Creates the array of TRDPadPlane objects
+  // Creates the array of PadPlane objects
   //
 
   for (int ilayer = 0; ilayer < NLAYER; ilayer++) {
@@ -65,10 +65,10 @@ void TRDGeometry::createPadPlaneArray()
 }
 
 //_____________________________________________________________________________
-void TRDGeometry::createPadPlane(int ilayer, int istack)
+void Geometry::createPadPlane(int ilayer, int istack)
 {
   //
-  // Creates an TRDPadPlane object
+  // Creates an PadPlane object
   //
   int ipp = getDetectorSec(ilayer, istack);
   auto& padPlane = mPadPlanes[ipp];
@@ -242,7 +242,7 @@ void TRDGeometry::createPadPlane(int ilayer, int istack)
   padPlane.setPadRowSMOffset(rowTmp - CLENGTH[ilayer][istack] / 2.0);
 }
 
-void TRDGeometry::createVolume(const char* name, const char* shape, int nmed, float* upar, int np)
+void Geometry::createVolume(const char* name, const char* shape, int nmed, float* upar, int np)
 {
   TVirtualMC::GetMC()->Gsvolu(name, shape, nmed, upar, np);
 
@@ -254,7 +254,7 @@ void TRDGeometry::createVolume(const char* name, const char* shape, int nmed, fl
 }
 
 //_____________________________________________________________________________
-void TRDGeometry::createGeometry(std::vector<int> const& idtmed)
+void Geometry::createGeometry(std::vector<int> const& idtmed)
 {
   //
   // Create the TRD geometry
@@ -267,7 +267,7 @@ void TRDGeometry::createGeometry(std::vector<int> const& idtmed)
   createVolumes(idtmed);
 }
 
-void TRDGeometry::createVolumes(std::vector<int> const& idtmed)
+void Geometry::createVolumes(std::vector<int> const& idtmed)
 {
   //
   // Create the TRD geometry volumes
@@ -783,7 +783,7 @@ void TRDGeometry::createVolumes(std::vector<int> const& idtmed)
 }
 
 //_____________________________________________________________________________
-void TRDGeometry::createFrame(std::vector<int> const& idtmed)
+void Geometry::createFrame(std::vector<int> const& idtmed)
 {
   //
   // Create the geometry of the frame of the supermodule
@@ -1505,7 +1505,7 @@ void TRDGeometry::createFrame(std::vector<int> const& idtmed)
 }
 
 //_____________________________________________________________________________
-void TRDGeometry::createServices(std::vector<int> const& idtmed)
+void Geometry::createServices(std::vector<int> const& idtmed)
 {
   //
   // Create the geometry of the services
@@ -2447,7 +2447,7 @@ void TRDGeometry::createServices(std::vector<int> const& idtmed)
 }
 
 //_____________________________________________________________________________
-void TRDGeometry::assembleChamber(int ilayer, int istack)
+void Geometry::assembleChamber(int ilayer, int istack)
 {
   //
   // Group volumes UA, UD, UF, UU into an assembly that defines the
@@ -2546,7 +2546,7 @@ void TRDGeometry::assembleChamber(int ilayer, int istack)
   }
 }
 
-void TRDGeometry::fillMatrixCache(int mask)
+void Geometry::fillMatrixCache(int mask)
 {
   if (mask & o2::math_utils::bit2Mask(o2::math_utils::TransformType::T2L)) {
     useT2LCache();
@@ -2638,7 +2638,7 @@ void TRDGeometry::fillMatrixCache(int mask)
 }
 
 //_____________________________________________________________________________
-void TRDGeometry::addAlignableVolumes() const
+void Geometry::addAlignableVolumes() const
 {
   //
   // define alignable volumes of the TRD
@@ -2739,7 +2739,7 @@ void TRDGeometry::addAlignableVolumes() const
 }
 
 //_____________________________________________________________________________
-bool TRDGeometry::createClusterMatrixArray()
+bool Geometry::createClusterMatrixArray()
 {
 
   if (!gGeoManager) {
@@ -2759,7 +2759,7 @@ bool TRDGeometry::createClusterMatrixArray()
 }
 
 //_____________________________________________________________________________
-bool TRDGeometry::chamberInGeometry(int det) const
+bool Geometry::chamberInGeometry(int det) const
 {
   //
   // Checks whether the given detector is part of the current geometry

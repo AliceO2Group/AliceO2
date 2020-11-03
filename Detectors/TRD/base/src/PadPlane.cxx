@@ -21,14 +21,14 @@
 //                                                                           //
 ///////////////////////////////////////////////////////////////////////////////
 
-#include "TRDBase/TRDPadPlane.h"
+#include "TRDBase/PadPlane.h"
 #include <TMath.h>
 #include <FairLogger.h>
 
 using namespace o2::trd;
 
 //_____________________________________________________________________________
-void TRDPadPlane::setTiltingAngle(double t)
+void PadPlane::setTiltingAngle(double t)
 {
   //
   // Set the tilting angle of the pads
@@ -39,7 +39,7 @@ void TRDPadPlane::setTiltingAngle(double t)
 }
 
 //_____________________________________________________________________________
-int TRDPadPlane::getPadRowNumber(double z) const
+int PadPlane::getPadRowNumber(double z) const
 {
   //
   // Finds the pad row number for a given z-position in local supermodule system
@@ -74,7 +74,7 @@ int TRDPadPlane::getPadRowNumber(double z) const
 }
 
 //_____________________________________________________________________________
-int TRDPadPlane::getPadRowNumberROC(double z) const
+int PadPlane::getPadRowNumberROC(double z) const
 {
   //
   // Finds the pad row number for a given z-position in local ROC system
@@ -109,7 +109,7 @@ int TRDPadPlane::getPadRowNumberROC(double z) const
 }
 
 //_____________________________________________________________________________
-int TRDPadPlane::getPadColNumber(double rphi) const
+int PadPlane::getPadColNumber(double rphi) const
 {
   //
   // Finds the pad column number for a given rphi-position
@@ -143,7 +143,7 @@ int TRDPadPlane::getPadColNumber(double rphi) const
   return col;
 }
 
-void TRDPadPlane::setNcols(int n)
+void PadPlane::setNcols(int n)
 {
   if (n > MAXCOLS) {
     LOG(FATAL) << "MAXCOLS exceeded " << n << " > " << MAXCOLS;
@@ -151,7 +151,7 @@ void TRDPadPlane::setNcols(int n)
   mNcols = n;
 };
 
-void TRDPadPlane::setNrows(int n)
+void PadPlane::setNrows(int n)
 {
   if (n > MAXROWS) {
     LOG(FATAL) << "MAXROWS exceeded " << n << " > " << MAXROWS;

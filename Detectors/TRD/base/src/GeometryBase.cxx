@@ -8,13 +8,13 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#include "TRDBase/TRDGeometryBase.h"
+#include "TRDBase/GeometryBase.h"
 
 using namespace o2::trd;
 using namespace o2::trd::constants;
 
 //_____________________________________________________________________________
-GPUd() int TRDGeometryBase::getStack(float z, int layer) const
+GPUd() int GeometryBase::getStack(float z, int layer) const
 {
   //
   // Reconstruct the chamber number from the z position and layer number
@@ -35,7 +35,7 @@ GPUd() int TRDGeometryBase::getStack(float z, int layer) const
     if (istck < 0) {
       break;
     }
-    const TRDPadPlane* pp = getPadPlane(layer, istck);
+    const PadPlane* pp = getPadPlane(layer, istck);
     zmax = pp->getRow0();
     int nrows = pp->getNrows();
     zmin = zmax - 2 * pp->getLengthOPad() - (nrows - 2) * pp->getLengthIPad() - (nrows - 1) * pp->getRowSpacing();
@@ -45,7 +45,7 @@ GPUd() int TRDGeometryBase::getStack(float z, int layer) const
 }
 
 //_____________________________________________________________________________
-GPUd() bool TRDGeometryBase::isOnBoundary(int det, float y, float z, float eps) const
+GPUd() bool GeometryBase::isOnBoundary(int det, float y, float z, float eps) const
 {
   //
   // Checks whether position is at the boundary of the sensitive volume
@@ -61,7 +61,7 @@ GPUd() bool TRDGeometryBase::isOnBoundary(int det, float y, float z, float eps) 
     return true;
   }
 
-  const TRDPadPlane* pp = &mPadPlanes[getDetectorSec(ly, stk)];
+  const PadPlane* pp = &mPadPlanes[getDetectorSec(ly, stk)];
   if (!pp) {
     return true;
   }

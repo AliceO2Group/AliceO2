@@ -21,8 +21,8 @@
 ///////////////////////////////////////////////////////////////////////////////
 
 #include <array>
-#include "TRDBase/TRDGeometry.h"
-#include "TRDBase/TRDSimParam.h"
+#include "TRDBase/Geometry.h"
+#include "TRDBase/SimParam.h"
 #include "DataFormatsTRD/Constants.h"
 class TH2D;
 
@@ -50,9 +50,9 @@ class ChamberStatus
   ChamberStatus() = default;
   ~ChamberStatus() = default;
   //
-  //  char getStatus(int p, int c, int s) const { int roc=TRDGeometry::getDetector(p,c,s); return mStatus[roc];}
+  //  char getStatus(int p, int c, int s) const { int roc=Geometry::getDetector(p,c,s); return mStatus[roc];}
   char getStatus(int det) const { return mStatus[det]; }
-  //  void setStatus(int p, int c, int s, char status) { int roc=TRDGeometry::getDetector(p,c,s); setStatus(roc,status);}
+  //  void setStatus(int p, int c, int s, char status) { int roc=Geometry::getDetector(p,c,s); setStatus(roc,status);}
   void setStatus(int det, char status);
   void setRawStatus(int det, char status) { mStatus[det] = status; };
   void unsetStatusBit(int det, char status);

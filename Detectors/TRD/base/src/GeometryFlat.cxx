@@ -8,16 +8,17 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#include "TRDBase/TRDGeometryFlat.h"
-#include "TRDBase/TRDGeometry.h"
+#include "TRDBase/GeometryFlat.h"
+#include "TRDBase/Geometry.h"
 #include "DataFormatsTRD/Constants.h"
 
+using namespace o2::trd;
 using namespace o2::trd::constants;
 
-TRDGeometryFlat::TRDGeometryFlat(const TRDGeometry& geo)
+GeometryFlat::GeometryFlat(const Geometry& geo)
 {
-  TRDGeometryBase& b1 = *this;
-  const TRDGeometryBase& b2 = geo;
+  GeometryBase& b1 = *this;
+  const GeometryBase& b2 = geo;
   memcpy((void*)&b1, (void*)&b2, sizeof(b1));
   int matrixCount = 0;
   for (int i = 0; i < MAXCHAMBER; i++) {

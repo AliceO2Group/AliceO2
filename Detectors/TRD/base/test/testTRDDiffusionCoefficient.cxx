@@ -16,8 +16,8 @@
 #define BOOST_TEST_MAIN
 #define BOOST_TEST_DYN_LINK
 #include <boost/test/unit_test.hpp>
-#include "TRDBase/TRDCommonParam.h"
-#include "TRDBase/TRDDiffAndTimeStructEstimator.h"
+#include "TRDBase/CommonParam.h"
+#include "TRDBase/DiffAndTimeStructEstimator.h"
 
 #include "Field/MagneticField.h"
 #include <TGeoGlobalMagField.h>
@@ -34,7 +34,7 @@ BOOST_AUTO_TEST_CASE(TRDDiffusionCoefficient_test1)
   TGeoGlobalMagField::Instance()->SetField(fld);
   TGeoGlobalMagField::Instance()->Lock();
 
-  auto commonParam = TRDCommonParam::Instance();
+  auto commonParam = CommonParam::Instance();
   float dl = 0;
   float dt = 0;
   float vd = 1.48;
@@ -47,8 +47,8 @@ BOOST_AUTO_TEST_CASE(TRDDiffusionCoefficient_test1)
 /// \brief Test time structure
 BOOST_AUTO_TEST_CASE(TRDTimeStructure_test)
 {
-  auto commonParam = TRDCommonParam::Instance();
-  TRDDiffusionAndTimeStructEstimator estimator;
+  auto commonParam = CommonParam::Instance();
+  DiffusionAndTimeStructEstimator estimator;
   BOOST_CHECK_CLOSE(estimator.TimeStruct(1.48, 1., 0.1), commonParam->TimeStruct(1.48, 1., 0.1), 0.001);
   BOOST_CHECK_CLOSE(estimator.TimeStruct(1.1, 1., 0.1), commonParam->TimeStruct(1.1, 1., 0.1), 0.001);
   BOOST_CHECK_CLOSE(estimator.TimeStruct(2, 1., 0.1), commonParam->TimeStruct(2, 1., 0.1), 0.001);
@@ -58,8 +58,8 @@ BOOST_AUTO_TEST_CASE(TRDTimeStructure_test)
 /// \brief compare diffusion coeff
 BOOST_AUTO_TEST_CASE(TRDDiffusion_test)
 {
-  auto commonParam = TRDCommonParam::Instance();
-  TRDDiffusionAndTimeStructEstimator estimator;
+  auto commonParam = CommonParam::Instance();
+  DiffusionAndTimeStructEstimator estimator;
   float dl1 = 0.;
   float dl2 = 0.;
   float dt1 = 0.;

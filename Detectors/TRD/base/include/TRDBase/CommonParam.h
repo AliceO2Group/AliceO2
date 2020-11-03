@@ -8,8 +8,8 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#ifndef O2_TRDCOMMONPARAM_H
-#define O2_TRDCOMMONPARAM_H
+#ifndef O2_TRD_COMMONPARAM_H
+#define O2_TRD_COMMONPARAM_H
 
 #include "GPUCommonRtypes.h"
 
@@ -18,19 +18,19 @@ namespace o2
 namespace trd
 {
 
-class TRDPadPlane;
+class PadPlane;
 
-class TRDCommonParam
+class CommonParam
 {
  public:
   enum { kXenon = 0,
          kArgon = 1 };
 
-  TRDCommonParam(const TRDCommonParam& p);
-  TRDCommonParam& operator=(const TRDCommonParam& p);
-  ~TRDCommonParam();
+  CommonParam(const CommonParam& p);
+  CommonParam& operator=(const CommonParam& p);
+  ~CommonParam();
 
-  static TRDCommonParam* Instance();
+  static CommonParam* Instance();
   static void Terminate();
 
   void SetExB(int exbOn = 1) { mExBOn = exbOn; }
@@ -56,8 +56,8 @@ class TRDCommonParam
   void SampleTimeStruct(float vdrift);
 
 #ifndef GPUCA_GPUCODE_DEVICE
-  static TRDCommonParam* fgInstance; //  Instance of this class (singleton implementation)
-  static bool fgTerminated;          //  Defines if this class has already been terminated
+  static CommonParam* fgInstance; //  Instance of this class (singleton implementation)
+  static bool fgTerminated;       //  Defines if this class has already been terminated
 #endif
   int mExBOn;            // Switch for the ExB effects
   double mField;         // cached magnetic field
@@ -77,9 +77,9 @@ class TRDCommonParam
 
  private:
   // This is a singleton, constructor is private!
-  TRDCommonParam();
+  CommonParam();
 
-  ClassDef(TRDCommonParam, 1); // The constant parameters common to simulation and reconstruction
+  ClassDef(CommonParam, 1); // The constant parameters common to simulation and reconstruction
 };
 } // namespace trd
 } // namespace o2

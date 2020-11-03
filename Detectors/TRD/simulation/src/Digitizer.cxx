@@ -14,9 +14,9 @@
 #include "FairLogger.h"
 #include "DetectorsBase/GeometryManager.h"
 
-#include "TRDBase/TRDGeometry.h"
-#include "TRDBase/TRDSimParam.h"
-#include "TRDBase/TRDPadPlane.h"
+#include "TRDBase/Geometry.h"
+#include "TRDBase/SimParam.h"
+#include "TRDBase/PadPlane.h"
 #include "TRDBase/PadResponse.h"
 
 #include "TRDSimulation/Digitizer.h"
@@ -34,11 +34,11 @@ using namespace o2::math_utils;
 // init method for late initialization
 void Digitizer::init()
 {
-  mGeo = TRDGeometry::instance();
+  mGeo = Geometry::instance();
   mGeo->createClusterMatrixArray();          // Requiered for chamberInGeometry()
   mPRF = new PadResponse();                  // Pad response function initialization
-  mSimParam = TRDSimParam::Instance();       // Instance for simulation parameters
-  mCommonParam = TRDCommonParam::Instance(); // Instance for common parameters
+  mSimParam = SimParam::Instance();          // Instance for simulation parameters
+  mCommonParam = CommonParam::Instance();    // Instance for common parameters
   if (!mSimParam) {
   }
   if (!mCommonParam) {
@@ -253,7 +253,7 @@ bool Digitizer::convertHits(const int det, const std::vector<HitType>& hits, Sig
   double padSignal[mNpad];
 
   const double calExBDetValue = mCalib->getExB(det); // T * V/cm (check units)
-  const TRDPadPlane* padPlane = mGeo->getPadPlane(det);
+  const PadPlane* padPlane = mGeo->getPadPlane(det);
   const int layer = mGeo->getLayer(det);
   const float rowEndROC = padPlane->getRowEndROC();
   const float row0 = padPlane->getRow0ROC();

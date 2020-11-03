@@ -10,8 +10,8 @@
 
 #include "TRDSimulation/Detector.h"
 
-#include "TRDBase/TRDCommonParam.h"
-#include "TRDBase/TRDGeometry.h"
+#include "TRDBase/CommonParam.h"
+#include "TRDBase/Geometry.h"
 #include "TRDSimulation/TRsim.h"
 #include "DataFormatsTRD/Constants.h"
 
@@ -34,9 +34,9 @@ Detector::Detector(Bool_t active)
   : o2::base::DetImpl<Detector>("TRD", active)
 {
   mHits = o2::utils::createSimVector<HitType>();
-  if (TRDCommonParam::Instance()->IsXenon()) {
+  if (CommonParam::Instance()->IsXenon()) {
     mWion = 23.53; // Ionization energy XeCO2 (85/15)
-  } else if (TRDCommonParam::Instance()->IsArgon()) {
+  } else if (CommonParam::Instance()->IsArgon()) {
     mWion = 27.21; // Ionization energy ArCO2 (82/18)
   } else {
     LOG(FATAL) << "Wrong gas mixture";
@@ -58,9 +58,9 @@ Detector::Detector(const Detector& rhs)
     mGasDensity(rhs.mGasDensity),
     mGeom(rhs.mGeom)
 {
-  if (TRDCommonParam::Instance()->IsXenon()) {
+  if (CommonParam::Instance()->IsXenon()) {
     mWion = 23.53; // Ionization energy XeCO2 (85/15)
-  } else if (TRDCommonParam::Instance()->IsArgon()) {
+  } else if (CommonParam::Instance()->IsArgon()) {
     mWion = 27.21; // Ionization energy ArCO2 (82/18)
   } else {
     LOG(FATAL) << "Wrong gas mixture";
@@ -187,7 +187,7 @@ bool Detector::ProcessHits(FairVolume* v)
     gGeoManager->MasterToLocal(pos, loc); // Go to the local coordinate system (locR, locC, locT)
     float locC = loc[0], locR = loc[1], locT = loc[2];
     if (drRegion) {
-      locT = locT - 0.5 * (TRDGeometry::drThick() + TRDGeometry::amThick()); // Relative to middle of amplification region
+      locT = locT - 0.5 * (Geometry::drThick() + Geometry::amThick()); // Relative to middle of amplification region
     }
     addHit(xp, yp, zp, locC, locR, locT, tof, totalChargeDep, trackID, det, drRegion);
     stack->addHit(GetDetId());
@@ -229,7 +229,7 @@ void Detector::createTRhit(int det)
     sigma = muMy * mFoilDensity;
     if (sigma > 0.0) {
       absLength = gRandom->Exp(1.0 / sigma);
-      if (absLength < TRDGeometry::myThick()) {
+      if (absLength < Geometry::myThick()) {
         continue;
       }
     } else {
@@ -238,9 +238,9 @@ void Detector::createTRhit(int det)
     // The absorbtion cross sections in the drift gas
     // Gas-mixture (Xe/CO2)
     double muNo = 0.0;
-    if (TRDCommonParam::Instance()->IsXenon()) {
+    if (CommonParam::Instance()->IsXenon()) {
       muNo = mTR->getMuXe(energyMeV);
-    } else if (TRDCommonParam::Instance()->IsArgon()) {
+    } else if (CommonParam::Instance()->IsArgon()) {
       muNo = mTR->getMuAr(energyMeV);
     }
     double muCO = mTR->getMuCO(energyMeV);
@@ -252,7 +252,7 @@ void Detector::createTRhit(int det)
     // is deposited.
     if (sigma > 0.0) {
       absLength = gRandom->Exp(1.0 / sigma);
-      if (absLength > (TRDGeometry::drThick() + TRDGeometry::amThick())) {
+      if (absLength > (Geometry::drThick() + Geometry::amThick())) {
         continue;
       }
     } else {
@@ -277,7 +277,7 @@ void Detector::createTRhit(int det)
     double loc[3] = {-99, -99, -99};
     gGeoManager->MasterToLocal(pos, loc); // Go to the local coordinate system (locR, locC, locT)
     float locC = loc[0], locR = loc[1], locT = loc[2];
-    locT = locT - 0.5 * (TRDGeometry::drThick() + TRDGeometry::amThick());      // Relative to middle of amplification region
+    locT = locT - 0.5 * (Geometry::drThick() + Geometry::amThick());            // Relative to middle of amplification region
     addHit(x, y, z, locC, locR, locT, tof, totalChargeDep, trackID, det, true); // All TR hits are in drift region
     stack->addHit(GetDetId());
   }
@@ -365,9 +365,9 @@ void Detector::createMaterials()
   float fac = 0.82;
   float dar = 0.00166; // at 20C
   float dgmAr = fac * dar + (1.0 - fac) * dco;
-  if (TRDCommonParam::Instance()->IsXenon()) {
+  if (CommonParam::Instance()->IsXenon()) {
     Mixture(53, "XeCO2", aXeCO2, zXeCO2, dgmXe, -3, wXeCO2);
-  } else if (TRDCommonParam::Instance()->IsArgon()) {
+  } else if (CommonParam::Instance()->IsArgon()) {
     LOG(INFO) << "Gas mixture: Ar C02 (80/20)";
     Mixture(53, "ArCO2", aArCO2, zArCO2, dgmAr, -3, wArCO2);
   } else {
@@ -498,10 +498,10 @@ void Detector::createMaterials()
   // Save the density values for the TRD absorbtion
   float dmy = 1.39;
   mFoilDensity = dmy;
-  if (TRDCommonParam::Instance()->IsXenon()) {
+  if (CommonParam::Instance()->IsXenon()) {
     mGasDensity = dgmXe;
     mGasNobleFraction = fxc;
-  } else if (TRDCommonParam::Instance()->IsArgon()) {
+  } else if (CommonParam::Instance()->IsArgon()) {
     mGasDensity = dgmAr;
     mGasNobleFraction = fac;
   }
@@ -517,7 +517,7 @@ void Detector::ConstructGeometry()
   // to the geometry creation
   getMediumIDMappingAsVector(medmapping);
 
-  mGeom = TRDGeometry::instance();
+  mGeom = Geometry::instance();
   mGeom->createGeometry(medmapping);
 }
 

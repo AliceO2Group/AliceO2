@@ -271,7 +271,7 @@ void GPUChainTracking::ReadSettings(const char* dir)
   processors()->calibObjects.matLUT = mMatLUTU.get();
   f = dir;
   f += "trdgeometry.dump";
-  mTRDGeometryU = ReadStructFromFile<o2::trd::TRDGeometryFlat>(f.c_str());
+  mTRDGeometryU = ReadStructFromFile<o2::trd::GeometryFlat>(f.c_str());
   processors()->calibObjects.trdGeometry = mTRDGeometryU.get();
 #endif
 }
