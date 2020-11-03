@@ -43,7 +43,9 @@
   {
 #define EndNamespace() }
 #define AddOption(name, type, default, optname, optnameshort, help, ...) type name = default;
+#define AddOptionRTC(...) AddOption(__VA_ARGS__)
 #define AddVariable(name, type, default)
+#define AddVariableRTC(...) AddVariable(__VA_ARGS__)
 #define AddOptionSet(name, type, value, optname, optnameshort, help, ...)
 #define AddOptionVec(name, type, optname, optnameshort, help, ...)
 #define AddOptionArray(name, type, count, default, optname, optnameshort, help, ...) type name[count] = {default};
@@ -51,22 +53,27 @@
 #define BeginSubConfig(name, instance, parent, preoptname, preoptnameshort, descr)                                                     \
   struct GPUCA_M_CAT(GPUConfigurableParam, name) : public o2::conf::ConfigurableParamHelper<GPUCA_M_CAT(GPUConfigurableParam, name)> { \
     O2ParamDef(GPUCA_M_CAT(GPUConfigurableParam, name), GPUCA_M_STR(GPUCA_M_CAT(GPU_, instance))) public:
+#define BeginHiddenConfig(name, instance) struct GPUCA_M_CAT(GPUConfigurableParam, name) {
 #define EndConfig() \
   }                 \
   ;
 #define AddCustomCPP(...) __VA_ARGS__
 #define AddHelp(...)
 #define AddShortcut(...)
+#define AddOptionRTC(...) AddOption(__VA_ARGS__)
 #include "GPUSettingsList.h"
 #undef BeginNamespace
 #undef EndNamespace
 #undef AddOption
+#undef AddOptionRTC
 #undef AddVariable
+#undef AddVariableRTC
 #undef AddOptionSet
 #undef AddOptionVec
 #undef AddOptionArray
 #undef AddSubConfig
 #undef BeginSubConfig
+#undef BeginHiddenConfig
 #undef EndConfig
 #undef AddCustomCPP
 #undef AddHelp

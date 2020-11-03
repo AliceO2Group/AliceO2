@@ -36,10 +36,11 @@ struct GPUParamSlice {
   float ZMin, ZMax;         // slice Z range
 };
 
-MEM_CLASS_PRE()
-struct GPUParam {
- public:
-  GPUSettingsRec rec;
+namespace internal
+{
+template <class T>
+struct GPUParam_t {
+  T rec;
 
   float DAlpha;           // angular size
   float RMin, RMax;       // slice R range
@@ -60,6 +61,15 @@ struct GPUParam {
   GPUTPCGMPolynomialField polynomialField; // Polynomial approx. of magnetic field for TPC GM
 
   GPUParamSlice SliceParam[GPUCA_NSLICES];
+
+ protected:
+  float ParamRMS0[2][3][4];  // cluster shape parameterization coeficients
+  float ParamS0Par[2][3][6]; // cluster error parameterization coeficients
+};
+} // namespace internal
+
+MEM_CLASS_PRE()
+struct GPUParam : public internal::GPUParam_t<GPUSettingsRec> {
 
 #ifndef GPUCA_GPUCODE
   void SetDefaults(float solenoidBz);
@@ -87,10 +97,6 @@ struct GPUParam {
 
   GPUd() void Slice2Global(int iSlice, float x, float y, float z, float* X, float* Y, float* Z) const;
   GPUd() void Global2Slice(int iSlice, float x, float y, float z, float* X, float* Y, float* Z) const;
-
- protected:
-  float ParamRMS0[2][3][4];  // cluster shape parameterization coeficients
-  float ParamS0Par[2][3][6]; // cluster error parameterization coeficients
 };
 
 } // namespace gpu

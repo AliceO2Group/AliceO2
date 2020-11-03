@@ -12,6 +12,7 @@
 /// \author David Rohr, Sergey Gorbunov
 
 #include "GPUParam.h"
+#include "GPUParamRTC.h"
 #include "GPUDef.h"
 #include "GPUCommonMath.h"
 #include "GPUTPCGMPolynomialFieldManager.h"
@@ -19,14 +20,15 @@
 
 using namespace GPUCA_NAMESPACE::gpu;
 
-#if !defined(GPUCA_GPUCODE) && defined(GPUCA_ALIROOT_LIB)
+#ifdef GPUCA_ALIROOT_LIB
 #include "AliTPCClusterParam.h"
 #include "AliTPCcalibDB.h"
 #include <iostream>
 #endif
-
-#if !defined(GPUCA_GPUCODE)
 #include <cstring>
+#include <tuple>
+
+#include "utils/qconfigrtc.h"
 
 void GPUParam::SetDefaults(float solenoidBz)
 {
@@ -155,10 +157,7 @@ void GPUParam::SetDefaults(const GPUSettingsEvent* e, const GPUSettingsRec* r, c
   UpdateEventSettings(e, p);
 }
 
-#endif
-
-#if !defined(GPUCA_GPUCODE)
-#if !defined(GPUCA_ALIROOT_LIB)
+#ifndef GPUCA_ALIROOT_LIB
 void GPUParam::LoadClusterErrors(bool Print)
 {
 }
@@ -235,4 +234,17 @@ void GPUParam::LoadClusterErrors(bool Print)
   }
 }
 #endif
-#endif
+
+void GPUParamRTC::setFrom(const GPUParam& param)
+{
+  memcpy((char*)this + sizeof(gpu_rtc::GPUSettingsRec), (char*)&param + sizeof(GPUSettingsRec), sizeof(param) - sizeof(GPUSettingsRec));
+  qConfigConvertRtc(this->rec, param.rec);
+}
+
+std::string GPUParamRTC::generateRTCCode(const GPUParam& param, bool useConstexpr)
+{
+  return "namespace o2::gpu { class GPUDisplayBackend; }\n" + qConfigPrintRtc(std::make_tuple(&param.rec), useConstexpr);
+}
+
+static_assert(alignof(o2::gpu::GPUParam) == alignof(o2::gpu::GPUSettingsRec));
+static_assert(sizeof(o2::gpu::GPUParam) - sizeof(o2::gpu::GPUParamRTC) == sizeof(o2::gpu::GPUSettingsRec) - sizeof(o2::gpu::gpu_rtc::GPUSettingsRec));
