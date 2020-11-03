@@ -23,19 +23,6 @@ namespace o2
 namespace trd
 {
 
-struct LinkId {
- public:
-  union {
-    uint16_t word;
-    struct {
-      uint16_t spare : 4;
-      uint16_t side : 1;
-      uint16_t layer : 3;
-      uint16_t stack : 3;
-      uint16_t supermodule : 5;
-    };
-  };
-};
 /// \class LinkRecord
 /// \brief Header for data corresponding to the indexing of the links in the raw data output
 /// adapted from DataFormatsTRD/TriggerRecord
@@ -43,7 +30,20 @@ class LinkRecord
 {
   using DataRange = o2::dataformats::RangeReference<int>;
 
- public:
+  struct LinkId {
+      union {
+          uint16_t word;
+          struct {
+              uint16_t spare : 4;
+              uint16_t side : 1;
+              uint16_t layer : 3;
+              uint16_t stack : 3;
+              uint16_t supermodule : 5;
+          };
+      };
+  };
+
+    public:
   LinkRecord() = default;
   LinkRecord(const uint32_t linkid, int firstentry, int nentries) : mDataRange(firstentry, nentries) { mLinkId.word = linkid; }
   // LinkRecord(const LinkRecord::LinkId linkid, int firstentry, int nentries) : mDataRange(firstentry, nentries) {mLinkId.word=linkid.word;}
@@ -71,10 +71,10 @@ class LinkRecord
 
   void printStream(std::ostream& stream);
 
- private:
+    private:
   LinkId mLinkId;
   DataRange mDataRange; /// Index of the triggering event (event index and first entry in the container)
-  ClassDefNV(LinkRecord, 2);
+  ClassDefNV(LinkRecord, 3);
 };
 
 std::ostream& operator<<(std::ostream& stream, LinkRecord& trg);
