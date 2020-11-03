@@ -46,8 +46,9 @@ class TRDGeometryFlat : public o2::gpu::FlatObject, public TRDGeometryBase
 #endif
   GPUd() const o2::gpu::Transform3D* getMatrixT2L(int det) const
   {
-    if (mMatrixIndirection[det] == -1)
+    if (mMatrixIndirection[det] == -1) {
       return nullptr;
+    }
     return &mMatrixCache[mMatrixIndirection[det]];
     ;
   }

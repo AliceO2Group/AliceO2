@@ -247,9 +247,9 @@ bool CalROC::add(float c1)
 
   bool result = true;
   for (int idata = 0; idata < mNchannels; idata++) {
-    if (((getValue(idata) + c1) <= 6.5535) && ((getValue(idata) + c1) >= 0.0))
+    if (((getValue(idata) + c1) <= 6.5535) && ((getValue(idata) + c1) >= 0.0)) {
       setValue(idata, getValue(idata) + c1);
-    else {
+    } else {
       setValue(idata, 0.0);
       result = false;
     }
@@ -265,12 +265,13 @@ bool CalROC::multiply(float c1)
   //
 
   bool result = true;
-  if (c1 < 0)
+  if (c1 < 0) {
     return false;
+  }
   for (int idata = 0; idata < mNchannels; idata++) {
-    if ((getValue(idata) * c1) <= 6.5535)
+    if ((getValue(idata) * c1) <= 6.5535) {
       setValue(idata, getValue(idata) * c1);
-    else {
+    } else {
       setValue(idata, 0.0);
       result = false;
     }
@@ -288,9 +289,9 @@ bool CalROC::add(const CalROC* roc, double c1)
   bool result = true;
   for (int idata = 0; idata < mNchannels; idata++) {
     if (((getValue(idata) + roc->getValue(idata) * c1) <= 6.5535) &&
-        ((getValue(idata) + roc->getValue(idata) * c1) >= 0.0))
+        ((getValue(idata) + roc->getValue(idata) * c1) >= 0.0)) {
       setValue(idata, getValue(idata) + roc->getValue(idata) * c1);
-    else {
+    } else {
       setValue(idata, 0.0);
       result = false;
     }
@@ -307,9 +308,9 @@ bool CalROC::multiply(const CalROC* roc)
 
   bool result = true;
   for (int idata = 0; idata < mNchannels; idata++) {
-    if ((getValue(idata) * roc->getValue(idata)) <= 6.5535)
+    if ((getValue(idata) * roc->getValue(idata)) <= 6.5535) {
       setValue(idata, getValue(idata) * roc->getValue(idata));
-    else {
+    } else {
       setValue(idata, 0.0);
       result = false;
     }
@@ -328,9 +329,9 @@ bool CalROC::divide(const CalROC* roc)
   float eps = 0.00000000000000001;
   for (int idata = 0; idata < mNchannels; idata++) {
     if (TMath::Abs(roc->getValue(idata)) > eps) {
-      if ((getValue(idata) / roc->getValue(idata)) <= 6.5535)
+      if ((getValue(idata) / roc->getValue(idata)) <= 6.5535) {
         setValue(idata, getValue(idata) / roc->getValue(idata));
-      else {
+      } else {
         setValue(idata, 0.0);
         result = false;
       }
@@ -401,8 +402,9 @@ TH2F* CalROC::makeHisto2D(float min, float max, int type, float mu)
       float sigma = getRMS();
       float nsigma = TMath::Abs(min);
       sigma *= nsigma;
-      if (sigma < epsr)
+      if (sigma < epsr) {
         sigma = epsr;
+      }
       min = mean - sigma;
       max = mean + sigma;
     }
@@ -417,8 +419,9 @@ TH2F* CalROC::makeHisto2D(float min, float max, int type, float mu)
       double sigma;
       float mean = getLTM(&sigma, max);
       sigma *= min;
-      if (sigma < epsr)
+      if (sigma < epsr) {
         sigma = epsr;
+      }
       min = mean - sigma;
       max = mean + sigma;
     }
@@ -455,8 +458,9 @@ TH1F* CalROC::makeHisto1D(float min, float max, int type, float mu)
       float sigma = getRMS();
       float nsigma = TMath::Abs(min);
       sigma *= nsigma;
-      if (sigma < epsr)
+      if (sigma < epsr) {
         sigma = epsr;
+      }
       min = mean - sigma;
       max = mean + sigma;
     }
@@ -474,8 +478,9 @@ TH1F* CalROC::makeHisto1D(float min, float max, int type, float mu)
       double sigma;
       float mean = getLTM(&sigma, max);
       sigma *= min;
-      if (sigma < epsr)
+      if (sigma < epsr) {
         sigma = epsr;
+      }
       min = mean - sigma;
       max = mean + sigma;
     }

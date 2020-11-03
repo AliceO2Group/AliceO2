@@ -124,8 +124,9 @@ void TrapSimulator::reset()
   // Resets the data values and internal filter registers
   // by re-initialising them
 
-  if (!checkInitialized())
+  if (!checkInitialized()) {
     return;
+  }
 
   //clear the adc data
   memset(&mADCR[0], 0, sizeof(mADCR[0]) * mADCR.size());
@@ -138,8 +139,9 @@ void TrapSimulator::reset()
   mTrackletLabels.clear(); // as the name implies clear the stored labels
   mNHits = 0;
 
-  for (auto filterreg : mInternalFilterRegisters)
+  for (auto filterreg : mInternalFilterRegisters) {
     filterreg.ClearReg();
+  }
   // Default unread, low active bit mask
   memset(&mZSMap[0], 0, sizeof(mZSMap[0]) * NADCMCM);
   memset(&mMCMT[0], 0, sizeof(mMCMT[0]) * mgkMaxTracklets);
@@ -185,8 +187,9 @@ std::ostream& o2::trd::operator<<(std::ostream& os, const TrapSimulator& mcm)
   // output implementation
 
   // no output for non-initialized MCM
-  if (!mcm.checkInitialized())
+  if (!mcm.checkInitialized()) {
     return os;
+  }
 
   // ----- human-readable output -----
   if (os.iword(TrapSimulator::mgkFormatIndex) == 0) {
@@ -195,8 +198,9 @@ std::ostream& o2::trd::operator<<(std::ostream& os, const TrapSimulator& mcm)
 
     os << "----- Unfiltered ADC data (10 bit) -----" << std::endl;
     os << "ch    ";
-    for (int iChannel = 0; iChannel < NADCMCM; iChannel++)
+    for (int iChannel = 0; iChannel < NADCMCM; iChannel++) {
       os << std::setw(5) << iChannel;
+    }
     os << std::endl;
     for (int iTimeBin = 0; iTimeBin < mcm.getNumberOfTimeBins(); iTimeBin++) {
       os << "tb " << std::setw(2) << iTimeBin << ":";
@@ -207,9 +211,10 @@ std::ostream& o2::trd::operator<<(std::ostream& os, const TrapSimulator& mcm)
     }
     os << "----- Filtered ADC data (10+2 bit) -----" << std::endl;
     os << "ch    ";
-    for (int iChannel = 0; iChannel < NADCMCM; iChannel++)
+    for (int iChannel = 0; iChannel < NADCMCM; iChannel++) {
       os << std::setw(4) << iChannel
          << ((~mcm.getZeroSupressionMap(iChannel) != 0) ? "!" : " ");
+    }
     os << std::endl;
     for (int iTimeBin = 0; iTimeBin < mcm.getNumberOfTimeBins(); iTimeBin++) {
       os << "tb " << std::setw(2) << iTimeBin << ":";
@@ -245,8 +250,9 @@ std::ostream& o2::trd::operator<<(std::ostream& os, const TrapSimulator& mcm)
     buf.reserve(bufSize);
     int bufLength = mcm.getRawStream(buf, 0);
 
-    for (int i = 0; i < bufLength; i++)
+    for (int i = 0; i < bufLength; i++) {
       std::cout << "0x" << std::hex << buf[i] << std::dec << std::endl;
+    }
 
   }
 
@@ -264,8 +270,9 @@ void TrapSimulator::printFitRegXml(ostream& os) const
   bool tracklet = false;
 
   for (int cpu = 0; cpu < 4; cpu++) {
-    if (mFitPtr[cpu] != 31)
+    if (mFitPtr[cpu] != 31) {
       tracklet = true;
+    }
   }
   const char* const aquote{R"(")"};
   const char* const cmdid{R"(" cmdid="0">)"};
@@ -369,8 +376,9 @@ void TrapSimulator::printAdcDatHuman(ostream& os) const
 
   os << "----- Unfiltered ADC data (10 bit) -----" << std::endl;
   os << "ch    ";
-  for (int iChannel = 0; iChannel < NADCMCM; iChannel++)
+  for (int iChannel = 0; iChannel < NADCMCM; iChannel++) {
     os << std::setw(5) << iChannel;
+  }
   os << std::endl;
   for (int iTimeBin = 0; iTimeBin < mNTimeBin; iTimeBin++) {
     os << "tb " << std::setw(2) << iTimeBin << ":";
@@ -382,9 +390,10 @@ void TrapSimulator::printAdcDatHuman(ostream& os) const
 
   os << "----- Filtered ADC data (10+2 bit) -----" << std::endl;
   os << "ch    ";
-  for (int iChannel = 0; iChannel < NADCMCM; iChannel++)
+  for (int iChannel = 0; iChannel < NADCMCM; iChannel++) {
     os << std::setw(4) << iChannel
        << ((~mZSMap[iChannel] != 0) ? "!" : " ");
+  }
   os << std::endl;
   for (int iTimeBin = 0; iTimeBin < mNTimeBin; iTimeBin++) {
     os << "tb " << std::setw(2) << iTimeBin << ":";
@@ -438,15 +447,17 @@ void TrapSimulator::printAdcDatDatx(ostream& os, bool broadcast, int timeBinOffs
   for (int iTimeBin = 0; iTimeBin < mNTimeBin; iTimeBin++) {
     for (int iChannel = 0; iChannel < NADCMCM; iChannel++) {
       if ((iTimeBin < timeBinOffset) || (iTimeBin >= mNTimeBin + timeBinOffset)) {
-        if (broadcast == false)
+        if (broadcast == false) {
           mTrapConfig->printDatx(os, addrOffset + iChannel * addrStep + addrOffsetEBSIA + iTimeBin, 10, getRobPos(), getMcmPos());
-        else
+        } else {
           mTrapConfig->printDatx(os, addrOffset + iChannel * addrStep + addrOffsetEBSIA + iTimeBin, 10, 0, 127);
+        }
       } else {
-        if (broadcast == false)
+        if (broadcast == false) {
           mTrapConfig->printDatx(os, addrOffset + iChannel * addrStep + addrOffsetEBSIA + iTimeBin, (getDataFiltered(iChannel, iTimeBin - timeBinOffset) / 4), getRobPos(), getMcmPos());
-        else
+        } else {
           mTrapConfig->printDatx(os, addrOffset + iChannel * addrStep + addrOffsetEBSIA + iTimeBin, (getDataFiltered(iChannel, iTimeBin - timeBinOffset) / 4), 0, 127);
+        }
       }
     }
     os << std::endl;
@@ -482,8 +493,9 @@ void TrapSimulator::setNTimebins(int ntimebins)
   // is needed (should not be the case for real data)
 
   LOG(fatal) << "setNTimebins(" << ntimebins << ") not implemented as we can no longer change the size of the ADC array";
-  if (!checkInitialized())
+  if (!checkInitialized()) {
     return;
+  }
 
   mNTimeBin = ntimebins;
   // for( int iAdc = 0 ; iAdc < NADCMCM; iAdc++ ) {
@@ -520,8 +532,9 @@ void TrapSimulator::noiseTest(int nsamples, int mean, int sigma, int inputGain, 
   // same way as in normal simulation.
   // The functions produces four histograms with the values at the different stages.
 
-  if (!checkInitialized())
+  if (!checkInitialized()) {
     return;
+  }
 
   std::string nameInputGain;
   std::string nameInputTail;
@@ -582,17 +595,19 @@ void TrapSimulator::noiseTest(int nsamples, int mean, int sigma, int inputGain, 
 
     valuep = filterPedestalNextSample(1, 0, ((int)value) << 2);
 
-    if (inputGain == 0)
+    if (inputGain == 0) {
       valueg = filterGainNextSample(1, ((int)value) << 2);
-    else
+    } else {
       valueg = filterGainNextSample(1, valuep);
+    }
 
-    if (inputTail == 0)
+    if (inputTail == 0) {
       valuet = filterTailNextSample(1, ((int)value) << 2);
-    else if (inputTail == 1)
+    } else if (inputTail == 1) {
       valuet = filterTailNextSample(1, valuep);
-    else
+    } else {
       valuet = filterTailNextSample(1, valueg);
+    }
 
     hfp->SetBinContent(i, valuep >> 2);
     hfg->SetBinContent(i, valueg >> 2);
@@ -635,8 +650,9 @@ void TrapSimulator::print(int choice) const
   // have been performed.
   // Codacy wont let us use string choices, as it says we must use string::starts_with() instead of string::find()
 
-  if (!checkInitialized())
+  if (!checkInitialized()) {
     return;
+  }
 
   LOG(info) << "MCM " << mMcmPos << "  on ROB " << mRobPos << " in detector " << mDetector;
 
@@ -669,8 +685,9 @@ void TrapSimulator::draw(int choice, int index)
   // In addition to the ADC values:
   // PLOTHITS - plot hits
   // PLOTTRACKLETS - plot tracklets
-  if (!checkInitialized())
+  if (!checkInitialized()) {
     return;
+  }
   TFile* rootfile = new TFile("trdtrackletplots.root", "UPDATE");
   TCanvas* c1 = new TCanvas(Form("canvas_%i_%i:%i:%i_%i", index, mDetector, mRobPos, mMcmPos, (int)mTrackletArray.size()));
   TH2F* hist = new TH2F(Form("mcmdata_%i", index),
@@ -724,10 +741,11 @@ void TrapSimulator::draw(int choice, int index)
   if ((choice & PLOTTRACKLETS) != 0) {
     TLine* trklLines = new TLine[4];
     LOG(info) << "Tracklet start for index : " << index;
-    if (mTrackletArray.size() > 0)
+    if (mTrackletArray.size() > 0) {
       LOG(info) << "Tracklet : for " << mTrackletArray[0].getDetector() << "::" << mTrackletArray[0].getROB() << " : " << mTrackletArray[0].getMCM();
-    else
+    } else {
       LOG(info) << "Tracklet : for trackletarray size of zero ";
+    }
     for (int iTrkl = 0; iTrkl < mTrackletArray.size(); iTrkl++) {
       Tracklet trkl = mTrackletArray[iTrkl];
       float padWidth = 0.635 + 0.03 * (mDetector % 6);
@@ -735,8 +753,9 @@ void TrapSimulator::draw(int choice, int index)
                                                                                                                                       //TODO replace the 18, 4 3 and 7 with constants for readability
       int ndrift = mTrapConfig->getDmemUnsigned(mgkDmemAddrNdrift, mDetector, mRobPos, mMcmPos) >> 5;
       float slope = 0;
-      if (ndrift)
+      if (ndrift) {
         slope = trkl.getdY() * 140e-4 / ndrift;
+      }
 
       int t0 = mTrapConfig->getTrapReg(TrapConfig::kTPFS, mDetector, mRobPos, mMcmPos);
       int t1 = mTrapConfig->getTrapReg(TrapConfig::kTPFE, mDetector, mRobPos, mMcmPos);
@@ -764,8 +783,9 @@ void TrapSimulator::setData(int adc, const ArrayADC& data, std::vector<o2::MCCom
   // Store ADC data into array of raw data
   //
 
-  if (!checkInitialized())
+  if (!checkInitialized()) {
     return;
+  }
 
   if (adc < 0 || adc >= NADCMCM) {
     //    LOG(error) << "Error: ADC " << adc << " is out of range (0 .. " << NADCMCM - 1 << ")";
@@ -795,8 +815,9 @@ void TrapSimulator::setData(int adc, int it, int data)
   // This time enter it element by element.
   //
 
-  if (!checkInitialized())
+  if (!checkInitialized()) {
     return;
+  }
 
   if (adc < 0 || adc >= NADCMCM) {
     LOG(error) << "Error: ADC " << adc << " is out of range (0 .. " << NADCMCM - 1 << ")";
@@ -835,8 +856,9 @@ void TrapSimulator::setDataPedestal(int adc)
   // Store ADC data into array of raw data
   //
 
-  if (!checkInitialized())
+  if (!checkInitialized()) {
     return;
+  }
 
   if (adc < 0 || adc >= NADCMCM) {
     return;
@@ -852,8 +874,9 @@ bool TrapSimulator::getHit(int index, int& channel, int& timebin, int& qtot, int
 {
   // retrieve the MC hit information (not available in TRAP hardware)
 
-  if (index < 0 || index >= mNHits)
+  if (index < 0 || index >= mNHits) {
     return false;
+  }
 
   channel = mHits[index].mChannel;
   timebin = mHits[index].mTimebin;
@@ -877,14 +900,16 @@ int TrapSimulator::getCol(int adc)
   // Return column id of the pad for the given ADC channel
   //
 
-  if (!checkInitialized())
+  if (!checkInitialized()) {
     return -1;
+  }
 
   int col = mFeeParam->getPadColFromADC(mRobPos, mMcmPos, adc);
-  if (col < 0 || col >= NCOLUMN)
+  if (col < 0 || col >= NCOLUMN) {
     return -1;
-  else
+  } else {
     return col;
+  }
 }
 
 //TODO figure why I could not get span to work here
@@ -962,10 +987,12 @@ int TrapSimulator::packData(std::vector<uint32_t>& rawdata, uint32_t offset)
     LOG(info) << ">>>>> START DEBUG OUTPUT OF packData trackletcount:-:wordcount" << trackletcount << ":-:" << wordswritten;
     o2::trd::printTrackletMCMHeader(mcmhead);
     o2::trd::printTrackletMCMData(tracklets[0]);
-    if (trackletcount > 1)
+    if (trackletcount > 1) {
       o2::trd::printTrackletMCMData(tracklets[1]);
-    if (trackletcount > 2)
+    }
+    if (trackletcount > 2) {
       o2::trd::printTrackletMCMData(tracklets[2]);
+    }
     LOG(info) << "<<<<<  END DEBUG OUTPUT OF packData";
   }
   //must produce between 2 and 4 words ... 1 and 3 tracklets.
@@ -982,8 +1009,9 @@ int TrapSimulator::getRawStream(std::vector<uint32_t>& buf, uint32_t offset, uns
   // Returns number of words filled, or negative value
   // with -1 * number of overflowed words
   //
-  if (!checkInitialized())
+  if (!checkInitialized()) {
     return 0;
+  }
 
   unsigned int x;
   unsigned int mcmHeader = 0;
@@ -993,13 +1021,15 @@ int TrapSimulator::getRawStream(std::vector<uint32_t>& buf, uint32_t offset, uns
   int rawVer = mFeeParam->getRAWversion();
   std::vector<int> adc; //TODO come back an avoid a copy.
 
-  if (!checkInitialized())
+  if (!checkInitialized()) {
     return 0;
+  }
 
-  if (mTrapConfig->getTrapReg(TrapConfig::kEBSF, mDetector, mRobPos, mMcmPos) != 0) // store unfiltered data
+  if (mTrapConfig->getTrapReg(TrapConfig::kEBSF, mDetector, mRobPos, mMcmPos) != 0) { // store unfiltered data
     adc = mADCR;
-  else
+  } else {
     adc = mADCF;
+  }
 
   // Produce ADC mask : nncc cccm mmmm mmmm mmmm mmmm mmmm 1100
   // 				n : unused , c : ADC count, m : selected ADCs
@@ -1014,8 +1044,9 @@ int TrapSimulator::getRawStream(std::vector<uint32_t>& buf, uint32_t offset, uns
     }
 
     if ((nActiveADC == 0) &&
-        (mTrapConfig->getTrapReg(TrapConfig::kC15CPUA, mDetector, mRobPos, mMcmPos) & (1 << 8))) // check for DEH flag in TRAP configuration
+        (mTrapConfig->getTrapReg(TrapConfig::kC15CPUA, mDetector, mRobPos, mMcmPos) & (1 << 8))) { // check for DEH flag in TRAP configuration
       return 0;
+    }
 
     // assemble adc mask word
     adcMask |= (1 << 30) | ((0x3FFFFFFC) & (~(nActiveADC) << 25)) | 0xC; // nn = 01, ccccc are inverted, 0xc=1100
@@ -1023,17 +1054,19 @@ int TrapSimulator::getRawStream(std::vector<uint32_t>& buf, uint32_t offset, uns
 
   // MCM header
   mcmHeader = (1 << 31) | (mRobPos << 28) | (mMcmPos << 24) | ((iEv % 0x100000) << 4) | 0xC;
-  if (numberWordsWritten < buf.size())
+  if (numberWordsWritten < buf.size()) {
     buf[numberWordsWritten++] = mcmHeader;
-  else
+  } else {
     numberOverFlowWordsWritten++;
+  }
 
   // ADC mask
   if (adcMask != 0) {
-    if (numberWordsWritten < buf.size())
+    if (numberWordsWritten < buf.size()) {
       buf[numberWordsWritten++] = adcMask;
-    else
+    } else {
       numberOverFlowWordsWritten++;
+    }
   }
 
   // Produce ADC data. 3 timebins are packed into one 32 bits word
@@ -1042,8 +1075,9 @@ int TrapSimulator::getRawStream(std::vector<uint32_t>& buf, uint32_t offset, uns
   unsigned int aa = 0, a1 = 0, a2 = 0, a3 = 0;
 
   for (int iAdc = 0; iAdc < 21; iAdc++) {
-    if (rawVer >= 3 && ~mZSMap[iAdc] == 0)
+    if (rawVer >= 3 && ~mZSMap[iAdc] == 0) {
       continue; // Zero Suppression, 0 means not suppressed
+    }
     aa = !(iAdc & 1) + 2;
     for (int iT = 0; iT < mNTimeBin; iT += 3) {
       a1 = ((iT) < mNTimeBin) ? adc[iAdc * mNTimeBin + iT] >> mgkAddDigits : 0;
@@ -1058,10 +1092,11 @@ int TrapSimulator::getRawStream(std::vector<uint32_t>& buf, uint32_t offset, uns
     }
   }
 
-  if (numberOverFlowWordsWritten != 0)
+  if (numberOverFlowWordsWritten != 0) {
     return -numberOverFlowWordsWritten;
-  else
+  } else {
     return numberWordsWritten;
+  }
 }
 
 int TrapSimulator::getTrackletStream(std::vector<uint32_t>& buf, uint32_t offset)
@@ -1073,8 +1108,9 @@ int TrapSimulator::getTrackletStream(std::vector<uint32_t>& buf, uint32_t offset
   // with -1 * number of overflowed words
   //
 
-  if (!checkInitialized())
+  if (!checkInitialized()) {
     return 0;
+  }
 
   int numberWordsWritten = 0; // Number of written words
 
@@ -1098,8 +1134,9 @@ void TrapSimulator::filter()
   // sequentially for parameter tuning.
   //
 
-  if (!checkInitialized())
+  if (!checkInitialized()) {
     return;
+  }
 
   // Apply filters sequentially. Bypass is handled by filters
   // since counters and internal registers may be updated even
@@ -1124,8 +1161,9 @@ void TrapSimulator::filterPedestalInit(int baseline)
 
   unsigned short fptc = mTrapConfig->getTrapReg(TrapConfig::kFPTC, mDetector, mRobPos, mMcmPos); // 0..3, 0 - fastest, 3 - slowest
 
-  for (int adc = 0; adc < NADCMCM; adc++)
+  for (int adc = 0; adc < NADCMCM; adc++) {
     mInternalFilterRegisters[adc].mPedAcc = (baseline << 2) * (1 << mgkFPshifts[fptc]);
+  }
   //  LOG(info) << "LEAVE: " << __FILE__ << ":" << __func__ << ":" << __LINE__ ;
 }
 
@@ -1153,17 +1191,19 @@ unsigned short TrapSimulator::filterPedestalNextSample(int adc, int timebin, uns
   }
 
   // LOG(info) << "LEAVE: " << __FILE__ << ":" << __func__ << ":" << __LINE__ ;
-  if (fpby == 0)
+  if (fpby == 0) {
     return value;
+  }
 
-  if (inpAdd <= accumulatorShifted)
+  if (inpAdd <= accumulatorShifted) {
     return 0;
-  else {
+  } else {
     inpAdd = inpAdd - accumulatorShifted;
-    if (inpAdd > 0xFFF)
+    if (inpAdd > 0xFFF) {
       return 0xFFF;
-    else
+    } else {
       return inpAdd;
+    }
   }
 }
 
@@ -1240,10 +1280,11 @@ unsigned short TrapSimulator::filterGainNextSample(int adc, unsigned short value
   // stop when full
   {
     //  if(mDetector==75&& mRobPos==5 && mMcmPos==15) LOG(info) <<__LINE__ <<  " adc = " << adc << " value = " << value << " corr  : " << corr  << " mgtb : " << mgtb;
-    if (corr >= mgtb)
+    if (corr >= mgtb) {
       mInternalFilterRegisters[adc].mGainCounterB++;
-    else if (corr >= mgta)
+    } else if (corr >= mgta) {
       mInternalFilterRegisters[adc].mGainCounterA++;
+    }
   }
 
   //  if(mDetector==75&& mRobPos==5 && mMcmPos==15) LOG(info) <<__LINE__ <<  " adc = " << adc << " value = " << value << " corr  : " << corr  << " mgby : " << mgby;
@@ -1285,8 +1326,9 @@ void TrapSimulator::filterTailInit(int baseline)
 
   float ql, qs;
 
-  if (baseline < 0)
+  if (baseline < 0) {
     baseline = mTrapConfig->getTrapReg(TrapConfig::kFPNP, mDetector, mRobPos, mMcmPos);
+  }
 
   ql = lambdaL * (1 - lambdaS) * alphaL;
   qs = lambdaS * (1 - lambdaL) * (1 - alphaL);
@@ -1328,10 +1370,11 @@ unsigned short TrapSimulator::filterTailNextSample(int adc, unsigned short value
   aQ = addUintClipping(mInternalFilterRegisters[adc].mTailAmplLong, mInternalFilterRegisters[adc].mTailAmplShort, 12);
 
   // calculate the difference between the input and the generated signal
-  if (inpVolt > aQ)
+  if (inpVolt > aQ) {
     aDiff = inpVolt - aQ;
-  else
+  } else {
     aDiff = 0;
+  }
 
   // the inputs to the two generators, weighted
   alInpv = (aDiff * alphaLong) >> 11;
@@ -1347,10 +1390,11 @@ unsigned short TrapSimulator::filterTailNextSample(int adc, unsigned short value
   mInternalFilterRegisters[adc].mTailAmplShort = tmp & 0xFFF;
 
   // the output of the filter
-  if (mTrapConfig->getTrapReg(TrapConfig::kFTBY, mDetector, mRobPos, mMcmPos) == 0) // bypass mode, active low
+  if (mTrapConfig->getTrapReg(TrapConfig::kFTBY, mDetector, mRobPos, mMcmPos) == 0) { // bypass mode, active low
     return value;
-  else
+  } else {
     return aDiff;
+  }
 }
 
 void TrapSimulator::filterTail()
@@ -1374,16 +1418,18 @@ void TrapSimulator::zeroSupressionMapping()
   // http://www.kip.uni-heidelberg.de/ti/TRD/doc/trap/TRAP-UserManual.pdf
   //
 
-  if (!checkInitialized())
+  if (!checkInitialized()) {
     return;
+  }
 
   int eBIS = mTrapConfig->getTrapReg(TrapConfig::kEBIS, mDetector, mRobPos, mMcmPos);
   int eBIT = mTrapConfig->getTrapReg(TrapConfig::kEBIT, mDetector, mRobPos, mMcmPos);
   int eBIL = mTrapConfig->getTrapReg(TrapConfig::kEBIL, mDetector, mRobPos, mMcmPos);
   int eBIN = mTrapConfig->getTrapReg(TrapConfig::kEBIN, mDetector, mRobPos, mMcmPos);
 
-  for (int iAdc = 0; iAdc < NADCMCM; iAdc++)
+  for (int iAdc = 0; iAdc < NADCMCM; iAdc++) {
     mZSMap[iAdc] = -1;
+  }
 
   for (int it = 0; it < mNTimeBin; it++) {
     int iAdc; // current ADC channel
@@ -1655,8 +1701,9 @@ void TrapSimulator::calcFitreg()
     }
     if (found > 4) // sorting like in the TRAP in case of 5 or 6 candidates!
     {
-      if (marked[4] == marked[5])
+      if (marked[4] == marked[5]) {
         marked[5] = 19;
+      }
       for (found = 0; found < 6; found++) {
         qMarked[found] = qTotal[marked[found]] >> 4;
       }
@@ -1693,31 +1740,37 @@ void TrapSimulator::calcFitreg()
         //     LOG(info) << "Hit found, time=" << timebin << ", adcch=" << adcch << "/" << adcch + 1 << "/"
         //              << adcch + 2 << ", adc values=" << adcLeft << "/" << adcCentral << "/"
         //              << adcRight << ", regTPFP=" << regTPFP << ", TPHT=" << mTrapConfig->getTrapReg(TrapConfig::kTPHT, mDetector, mRobPos, mMcmPos);
-        if (adcLeft < regTPFP)
+        if (adcLeft < regTPFP) {
           adcLeft = 0;
-        else
+        } else {
           adcLeft -= regTPFP;
-        if (adcCentral < regTPFP)
+        }
+        if (adcCentral < regTPFP) {
           adcCentral = 0;
-        else
+        } else {
           adcCentral -= regTPFP;
-        if (adcRight < regTPFP)
+        }
+        if (adcRight < regTPFP) {
           adcRight = 0;
-        else
+        } else {
           adcRight -= regTPFP;
+        }
 
         // Calculate the center of gravity
         // checking for adcCentral != 0 (in case of "bad" configuration)
-        if (adcCentral == 0)
+        if (adcCentral == 0) {
           continue;
+        }
         ypos = 128 * (adcRight - adcLeft) / adcCentral;
-        if (ypos < 0)
+        if (ypos < 0) {
           ypos = -ypos;
+        }
         // make the correction using the position LUT
         ypos = ypos + mTrapConfig->getTrapReg((TrapConfig::TrapReg_t)(TrapConfig::kTPL00 + (ypos & 0x7F)),
                                               mDetector, mRobPos, mMcmPos);
-        if (adcLeft > adcRight)
+        if (adcLeft > adcRight) {
           ypos = -ypos;
+        }
         /*   TODO this is left in here as a ref for what was done with labels, its stored externally now figure something out.
                 */
         // add the hit to the fitregister
@@ -1797,10 +1850,12 @@ void TrapSimulator::trackletSelection()
       }
     }
   }
-  for (i = 0; i < ntracks; i++)     // CPUs with tracklets.
+  for (i = 0; i < ntracks; i++) {   // CPUs with tracklets.
     mFitPtr[i] = trackletCandch[i]; // pointer to the left channel with tracklet for CPU[i]
-  for (i = ntracks; i < 4; i++)     // CPUs without tracklets
+  }
+  for (i = ntracks; i < 4; i++) {   // CPUs without tracklets
     mFitPtr[i] = 31;                // pointer to the left channel with tracklet for CPU[i] = 31 (invalid)
+  }
   // LOG(info) << "-------------------------------------------- found " << ntracks << " tracklet candidates";
   //  for (i = 0; i < 4; i++)
   //   LOG(info) << "fitPtr[" << i << "]: " << mFitPtr[i];
@@ -1809,13 +1864,15 @@ void TrapSimulator::trackletSelection()
   if (FeeParam::instance()->getRejectMultipleTracklets()) {
     unsigned short counts = 0;
     for (j = 0; j < (ntracks - 1); j++) {
-      if (mFitPtr[j] == 31)
+      if (mFitPtr[j] == 31) {
         continue;
+      }
 
       for (i = j + 1; i < ntracks; i++) {
         // check if tracklets are from neighbouring ADC channels
-        if (TMath::Abs(mFitPtr[j] - mFitPtr[i]) > 1.)
+        if (TMath::Abs(mFitPtr[j] - mFitPtr[i]) > 1.) {
           continue;
+        }
 
         // check which tracklet candidate has higher amount of hits
         if ((mFitReg[mFitPtr[j]].mNhits + mFitReg[mFitPtr[j] + 1].mNhits) >=
@@ -2185,13 +2242,15 @@ int TrapSimulator::getPID(int q0, int q1)
 
   unsigned int nBinsQ0 = mTrapConfig->getDmemUnsigned(mgkDmemAddrLUTnbins, mDetector, mRobPos, mMcmPos); // number of bins in q0 / 4 !!
   unsigned int pidTotalSize = mTrapConfig->getDmemUnsigned(mgkDmemAddrLUTLength, mDetector, mRobPos, mMcmPos);
-  if (nBinsQ0 == 0 || pidTotalSize == 0) // make sure we don't run into trouble if the value for Q0 is not configured
+  if (nBinsQ0 == 0 || pidTotalSize == 0) { // make sure we don't run into trouble if the value for Q0 is not configured
     return 0;                            // Q1 not configured is ok for 1D LUT
+  }
 
   unsigned long corrQ0 = mTrapConfig->getDmemUnsigned(mgkDmemAddrLUTcor0, mDetector, mRobPos, mMcmPos);
   unsigned long corrQ1 = mTrapConfig->getDmemUnsigned(mgkDmemAddrLUTcor1, mDetector, mRobPos, mMcmPos);
-  if (corrQ0 == 0) // make sure we don't run into trouble if one of the values is not configured
+  if (corrQ0 == 0) { // make sure we don't run into trouble if one of the values is not configured
     return 0;
+  }
 
   addrQ0 = corrQ0;
   addrQ0 = (((addrQ0 * q0) >> 16) >> 16); // because addrQ0 = (q0 * corrQ0) >> 32; does not work for unknown reasons
@@ -2228,11 +2287,13 @@ unsigned int TrapSimulator::addUintClipping(unsigned int a, unsigned int b, unsi
   unsigned int sum = a + b;
   if (nbits < 32) {
     unsigned int maxv = (1 << nbits) - 1;
-    if (sum > maxv)
+    if (sum > maxv) {
       sum = maxv;
+    }
   } else {
-    if ((sum < a) || (sum < b))
+    if ((sum < a) || (sum < b)) {
       sum = 0xFFFFFFFF;
+    }
   }
   return sum;
 }
@@ -2266,14 +2327,17 @@ void TrapSimulator::sort3(unsigned short idx1i, unsigned short idx2i, unsigned s
 
   int sel;
 
-  if (val1i > val2i)
+  if (val1i > val2i) {
     sel = 4;
-  else
+  } else {
     sel = 0;
-  if (val2i > val3i)
+  }
+  if (val2i > val3i) {
     sel = sel + 2;
-  if (val3i > val1i)
+  }
+  if (val3i > val1i) {
     sel = sel + 1;
+  }
   switch (sel) {
     case 6: // 1 >  2  >  3            => 1 2 3
     case 0: // 1 =  2  =  3            => 1 2 3 : in this case doesn't matter, but so is in hardware!

@@ -460,13 +460,16 @@ float TRDDiffusionAndTimeStructEstimator::TimeStruct(float vdrift, float dist, f
 
   // Indices:
   int r1 = (int)(10 * dist);
-  if (r1 < 0)
+  if (r1 < 0) {
     r1 = 0;
-  if (r1 > 37)
+  }
+  if (r1 > 37) {
     r1 = 37;
+  }
   int r2 = r1 + 1;
-  if (r2 > 37)
+  if (r2 > 37) {
     r2 = 37;
+  }
   const int kz1 = ((int)(100 * z / 2.5));
   const int kz2 = kz1 + 1;
 

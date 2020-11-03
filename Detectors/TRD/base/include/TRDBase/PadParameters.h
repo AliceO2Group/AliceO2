@@ -72,15 +72,17 @@ int PadParameters<T>::init(int chamberindex)
 {
   mPlane = TRDGeometry::getLayer(chamberindex);
   mChamber = TRDGeometry::getStack(chamberindex);
-  if (mChamber == 2)
+  if (mChamber == 2) {
     mNrows = constants::NROWC0;
-  else
+  } else {
     mNrows = constants::NROWC1;
+  }
   // the FeeParam variables need to be unprotected, and dont want to change FeeParam in this PR.
   mNchannels = mNrows * mNcols;
   mData.resize(mNchannels);
-  if (mData.size() != mNchannels || mData.size() == 0)
+  if (mData.size() != mNchannels || mData.size() == 0) {
     return -1;
+  }
   return 0;
 }
 
@@ -93,11 +95,13 @@ int PadParameters<T>::reset(int chamberindex, int cols, int rows, std::vector<T>
   mNcols = cols;
   // the FeeParam variables need to be unprotected, and dont want to change FeeParam in this PR.
   mNchannels = mNrows * mNcols;
-  if (mData.size() != mNchannels)
+  if (mData.size() != mNchannels) {
     return -2;
+  }
   mData.resize(mNchannels);
-  if (mData.size() != mNchannels || mData.size() == 0)
+  if (mData.size() != mNchannels || mData.size() == 0) {
     return -1;
+  }
 
   // now reset the data of the pads.
   int counter = 0;

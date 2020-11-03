@@ -147,8 +147,9 @@ void PadResponse::samplePRF()
         mPRFsmp[iLayer * mPRFbin + iBin] = prf[iLayer][ipos2 - 1];
       } else {
         --ipos2;
-        if (ipos2 >= kPRFbin)
+        if (ipos2 >= kPRFbin) {
           ipos2 = kPRFbin - 1;
+        }
         ipos1 = ipos2 - 1;
         mPRFsmp[iLayer * mPRFbin + iBin] = prf[iLayer][ipos2] + diff * (prf[iLayer][ipos2] - prf[iLayer][ipos1]) / sPRFwid;
       }
