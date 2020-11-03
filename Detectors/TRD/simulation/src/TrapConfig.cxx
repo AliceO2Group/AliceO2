@@ -16,7 +16,7 @@
 //          S. Murray (murrays@cern.ch)                   //
 ////////////////////////////////////////////////////////////////////////////
 
-#include "TRDBase/TRDGeometry.h"
+#include "TRDBase/Geometry.h"
 #include "TRDBase/FeeParam.h"
 #include "TRDSimulation/TrapConfig.h"
 #include "DataFormatsTRD/Constants.h"
@@ -1051,8 +1051,8 @@ void TrapConfig::configureOnlineGains()
   // we dont want to do this anymore .... but here for future reference.
   /* if (hasOnlineFilterGain()) {
     const int nDets = MAXCHAMBER;
-    const int nMcms = TRDGeometry::MCMmax();
-    const int nChs = TRDGeometry::ADCmax();
+    const int nMcms = Geometry::MCMmax();
+    const int nChs = Geometry::ADCmax();
 
     for (int ch = 0; ch < nChs; ++ch) {
       TrapConfig::TrapReg_t regFGAN = (TrapConfig::TrapReg_t)(TrapConfig::kFGA0 + ch);
@@ -1062,10 +1062,10 @@ void TrapConfig::configureOnlineGains()
     }
 
     for (int iDet = 0; iDet < nDets; ++iDet) {
-      //const int MaxRows = TRDGeometry::getStack(iDet) == 2 ? NROWC0 : NROWC1;
+      //const int MaxRows = Geometry::getStack(iDet) == 2 ? NROWC0 : NROWC1;
       int MaxCols = NCOLUMN;
       //	CalOnlineGainTableROC gainTbl = mGainTable.getGainTableROC(iDet);
-      const int nRobs = TRDGeometry::getStack(iDet) == 2 ? TRDGeometry::ROBmaxC0() : TRDGeometry::ROBmaxC1();
+      const int nRobs = Geometry::getStack(iDet) == 2 ? Geometry::ROBmaxC0() : Geometry::ROBmaxC1();
 
       for (int rob = 0; rob < nRobs; ++rob) {
         for (int mcm = 0; mcm < nMcms; ++mcm) {

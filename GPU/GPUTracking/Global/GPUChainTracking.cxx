@@ -617,7 +617,7 @@ void GPUChainTracking::SetMatLUT(std::unique_ptr<o2::base::MatLayerCylSet>&& lut
   processors()->calibObjects.matLUT = mMatLUTU.get();
 }
 
-void GPUChainTracking::SetTRDGeometry(std::unique_ptr<o2::trd::TRDGeometryFlat>&& geo)
+void GPUChainTracking::SetTRDGeometry(std::unique_ptr<o2::trd::GeometryFlat>&& geo)
 {
   mTRDGeometryU = std::move(geo);
   processors()->calibObjects.trdGeometry = mTRDGeometryU.get();

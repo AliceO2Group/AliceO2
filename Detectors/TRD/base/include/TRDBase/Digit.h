@@ -19,7 +19,7 @@
 #include "Rtypes.h" // for ClassDef
 
 #include "CommonDataFormat/TimeStamp.h"
-#include "TRDBase/TRDCommonParam.h"
+#include "TRDBase/CommonParam.h"
 #include "DataFormatsTRD/Constants.h"
 
 namespace o2

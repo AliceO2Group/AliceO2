@@ -168,7 +168,7 @@ if(CONFIG_O2_EXTENSIONS)
                ../../../DataFormats/Reconstruction/src/TrackParametrizationWithError.cxx
                ../../../DataFormats/Reconstruction/src/Vertex.cxx
                ../../../DataFormats/Reconstruction/src/TrackLTIntegral.cxx
-               ../../../Detectors/TRD/base/src/TRDGeometryBase.cxx
+               ../../../Detectors/TRD/base/src/GeometryBase.cxx
                ../../../Detectors/Base/src/MatLayerCylSet.cxx
                ../../../Detectors/Base/src/MatLayerCyl.cxx
                ../../../Detectors/Base/src/Ray.cxx

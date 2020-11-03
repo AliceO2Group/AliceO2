@@ -11,7 +11,7 @@
   This macro loads the TRD geometry taking into account the alignment from Run 2
   and dumps the inverse of all cluster matrices to a file.
   To load the matrices add the following include and method to
-  TRDGeometryFlat.h:
+  GeometryFlat.h:
 
 #include <fstream>
 

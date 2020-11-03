@@ -35,7 +35,7 @@
 
 #include <memory>
 #include <string>
-#include "TRDBase/TRDGeometry.h"
+#include "TRDBase/Geometry.h"
 #include "TRDBase/ChamberCalibrations.h"
 #include "TRDBase/LocalVDrift.h"
 #include "TRDBase/LocalT0.h"
@@ -46,7 +46,7 @@
 #include "TRDBase/PadStatus.h"
 #include "TRDBase/CalOnlineGainTables.h"
 
-class TRDGeometry;
+class Geometry;
 namespace o2
 {
 namespace trd

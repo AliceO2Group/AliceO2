@@ -17,10 +17,9 @@
 //                                                                           //
 ///////////////////////////////////////////////////////////////////////////////
 
-
-#include "TRDBase/TRDSimParam.h"
-#include "TRDBase/TRDCommonParam.h"
-#include "TRDBase/TRDGeometry.h"
+#include "TRDBase/SimParam.h"
+#include "TRDBase/CommonParam.h"
+#include "TRDBase/Geometry.h"
 #include "TRDBase/FeeParam.h"
 #include "TRDBase/Tracklet.h"
 #include "TRDBase/CalOnlineGainTables.h"

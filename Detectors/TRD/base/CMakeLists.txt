@@ -8,13 +8,13 @@
 # submit itself to any jurisdiction.
 
 o2_add_library(TRDBase
-               SOURCES src/TRDPadPlane.cxx
-                       src/TRDGeometryBase.cxx
-                       src/TRDGeometry.cxx
-                       src/TRDGeometryFlat.cxx
-                       src/TRDCommonParam.cxx
-                       src/TRDDiffAndTimeStructEstimator.cxx
-                       src/TRDSimParam.cxx
+               SOURCES src/PadPlane.cxx
+                       src/GeometryBase.cxx
+                       src/Geometry.cxx
+                       src/GeometryFlat.cxx
+                       src/CommonParam.cxx
+                       src/DiffAndTimeStructEstimator.cxx
+                       src/SimParam.cxx
                        src/PadResponse.cxx
                        src/Digit.cxx
                        src/CalDet.cxx
@@ -40,12 +40,12 @@ o2_add_library(TRDBase
                                      O2::CCDB)
 
 o2_target_root_dictionary(TRDBase
-                          HEADERS include/TRDBase/TRDPadPlane.h
-                                  include/TRDBase/TRDGeometryBase.h
-                                  include/TRDBase/TRDGeometry.h
-                                  include/TRDBase/TRDGeometryFlat.h
-                                  include/TRDBase/TRDSimParam.h
-                                  include/TRDBase/TRDCommonParam.h
+                          HEADERS include/TRDBase/PadPlane.h
+                                  include/TRDBase/GeometryBase.h
+                                  include/TRDBase/Geometry.h
+                                  include/TRDBase/GeometryFlat.h
+                                  include/TRDBase/SimParam.h
+                                  include/TRDBase/CommonParam.h
                                   include/TRDBase/PadResponse.h
                                   include/TRDBase/Digit.h
                                   include/TRDBase/MCLabel.h

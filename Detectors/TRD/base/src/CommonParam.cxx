@@ -21,20 +21,20 @@
 #include <TMath.h>
 
 #include <FairLogger.h>
-#include "TRDBase/TRDCommonParam.h"
-#include "TRDBase/TRDGeometry.h"
-#include "TRDBase/TRDSimParam.h"
+#include "TRDBase/CommonParam.h"
+#include "TRDBase/Geometry.h"
+#include "TRDBase/SimParam.h"
 
 #include "Field/MagneticField.h"
 
 using namespace o2::trd;
-ClassImp(TRDCommonParam);
+ClassImp(CommonParam);
 
-TRDCommonParam* TRDCommonParam::fgInstance = nullptr;
-bool TRDCommonParam::fgTerminated = false;
+CommonParam* CommonParam::fgInstance = nullptr;
+bool CommonParam::fgTerminated = false;
 
 //_ singleton implementation __________________________________________________
-TRDCommonParam* TRDCommonParam::Instance()
+CommonParam* CommonParam::Instance()
 {
   //
   // Singleton implementation
@@ -46,14 +46,14 @@ TRDCommonParam* TRDCommonParam::Instance()
   }
 
   if (fgInstance == nullptr) {
-    fgInstance = new TRDCommonParam();
+    fgInstance = new CommonParam();
   }
 
   return fgInstance;
 }
 
 //_____________________________________________________________________________
-void TRDCommonParam::Terminate()
+void CommonParam::Terminate()
 {
   //
   // Singleton implementation
@@ -71,7 +71,7 @@ void TRDCommonParam::Terminate()
 }
 
 //_____________________________________________________________________________
-TRDCommonParam::TRDCommonParam()
+CommonParam::CommonParam()
   : mExBOn(true),
     mDiffusionT(0.0),
     mDiffusionL(0.0),
@@ -91,7 +91,7 @@ TRDCommonParam::TRDCommonParam()
 }
 
 //_____________________________________________________________________________
-TRDCommonParam::~TRDCommonParam()
+CommonParam::~CommonParam()
 {
   //
   // Destructor
@@ -107,7 +107,7 @@ TRDCommonParam::~TRDCommonParam()
 }
 
 //_____________________________________________________________________________
-bool TRDCommonParam::cacheMagField()
+bool CommonParam::cacheMagField()
 {
   // The magnetic field strength
   const o2::field::MagneticField* fld = static_cast<o2::field::MagneticField*>(TGeoGlobalMagField::Instance()->GetField());
@@ -120,7 +120,7 @@ bool TRDCommonParam::cacheMagField()
 }
 
 //_____________________________________________________________________________
-float TRDCommonParam::GetOmegaTau(float vdrift)
+float CommonParam::GetOmegaTau(float vdrift)
 {
   /*
   //
@@ -176,7 +176,7 @@ float TRDCommonParam::GetOmegaTau(float vdrift)
 }
 
 //_____________________________________________________________________________
-bool TRDCommonParam::GetDiffCoeff(float& dl, float& dt, float vdrift)
+bool CommonParam::GetDiffCoeff(float& dl, float& dt, float vdrift)
 {
   //
   // Calculates the diffusion coefficients in longitudinal <dl> and
@@ -239,7 +239,7 @@ bool TRDCommonParam::GetDiffCoeff(float& dl, float& dt, float vdrift)
 }
 
 //_____________________________________________________________________________
-double TRDCommonParam::TimeStruct(float vdrift, double dist, double z)
+double CommonParam::TimeStruct(float vdrift, double dist, double z)
 {
   //
   // Applies the time structure of the drift cells (by C.Lippmann).
@@ -300,7 +300,7 @@ double TRDCommonParam::TimeStruct(float vdrift, double dist, double z)
 
   // Dist now is the drift distance to the anode wires (negative if electrons are
   // between anode wire plane and cathode pad plane)
-  dist -= TRDGeometry::amThick() / 2.0;
+  dist -= Geometry::amThick() / 2.0;
 
   // Interpolation in z-directions, lower drift time map
   const float ktdrift1 =
@@ -318,7 +318,7 @@ double TRDCommonParam::TimeStruct(float vdrift, double dist, double z)
 }
 
 //_____________________________________________________________________________
-void TRDCommonParam::SampleTimeStruct(float vdrift)
+void CommonParam::SampleTimeStruct(float vdrift)
 {
   //
   // Samples the timing structure of a drift cell
@@ -732,14 +732,14 @@ void TRDCommonParam::SampleTimeStruct(float vdrift)
   }
 }
 
-void TRDCommonParam::SetXenon()
+void CommonParam::SetXenon()
 {
   mGasMixture = kXenon;
-  TRDSimParam::Instance()->ReInit();
+  SimParam::Instance()->ReInit();
 }
 
-void TRDCommonParam::SetArgon()
+void CommonParam::SetArgon()
 {
   mGasMixture = kArgon;
-  TRDSimParam::Instance()->ReInit();
+  SimParam::Instance()->ReInit();
 }

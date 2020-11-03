@@ -210,7 +210,7 @@ int GPUTRDTrackerComponent::DoInit(int argc, const char** argv)
     fTracker->EnableDebugOutput();
   }
   fRec->RegisterGPUProcessor(fTracker, false);
-  fChain->SetTRDGeometry(reinterpret_cast<o2::trd::TRDGeometryFlat*>(fGeo));
+  fChain->SetTRDGeometry(reinterpret_cast<o2::trd::GeometryFlat*>(fGeo));
   if (fRec->Init()) {
     return -EINVAL;
   }
