@@ -30,8 +30,6 @@
 #include <functional>
 #include <gsl/gsl>
 #include "GPUSettings.h"
-#include "GPUDisplayConfig.h"
-#include "GPUQAConfig.h"
 #include "GPUDataTypes.h"
 #include "GPUHostDataTypes.h"
 #include "DataFormatsTPC/Constants.h"
@@ -89,8 +87,8 @@ struct GPUO2InterfaceConfiguration {
   GPUSettingsProcessing configProcessing;
   GPUSettingsEvent configEvent;
   GPUSettingsRec configReconstruction;
-  GPUDisplayConfig configDisplay;
-  GPUQAConfig configQA;
+  GPUSettingsDisplay configDisplay;
+  GPUSettingsQA configQA;
   GPUInterfaceSettings configInterface;
   GPURecoStepConfiguration configWorkflow;
   GPUCalibObjects configCalib;
