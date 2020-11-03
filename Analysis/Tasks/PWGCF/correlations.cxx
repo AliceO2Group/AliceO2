@@ -12,11 +12,11 @@
 #include "Framework/AnalysisDataModel.h"
 #include "Framework/ASoAHelpers.h"
 #include <CCDB/BasicCCDBManager.h>
+#include "Framework/StepTHn.h"
 
 #include "Analysis/EventSelection.h"
 #include "Analysis/TrackSelectionTables.h"
 #include "Analysis/Centrality.h"
-#include "Analysis/StepTHn.h"
 #include "Analysis/CorrelationContainer.h"
 #include "Analysis/PairCuts.h"
 
