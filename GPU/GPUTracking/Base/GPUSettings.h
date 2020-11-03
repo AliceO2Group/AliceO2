@@ -74,6 +74,8 @@ struct GPUSettingsDeviceBackend {
 #define QCONFIG_GPU
 #endif
 // See GPUSettingsList.h for a list of all available settings of GPU Reconstruction
+#ifndef GPUCA_GPUCODE_GENRTC
 #include "utils/qconfig.h"
+#endif
 
 #endif

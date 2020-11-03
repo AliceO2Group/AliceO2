@@ -20,6 +20,7 @@
 #include "GPUReconstructionCUDA.h"
 #include "GPUReconstructionCUDAInternals.h"
 #include "GPUReconstructionIncludes.h"
+#include "GPUParamRTC.h"
 
 static constexpr size_t REQUIRE_MIN_MEMORY = 1024u * 1024 * 1024;
 static constexpr size_t REQUIRE_MEMORY_RESERVED = 512u * 1024 * 1024;
@@ -449,6 +450,10 @@ int GPUReconstructionCUDABackend::InitDevice_Runtime()
       if (fp == nullptr) {
         throw std::runtime_error("Error opening file");
       }
+      std::string rtcparam = GPUParamRTC::generateRTCCode(param(), mProcessingSettings.rtcConstexpr);
+      if (fwrite(rtcparam.c_str(), 1, rtcparam.size(), fp) != rtcparam.size()) {
+        throw std::runtime_error("Error writing file");
+      }
       if (fwrite(_curtc_GPUReconstructionCUDArtc_cu_src, 1, _curtc_GPUReconstructionCUDArtc_cu_src_size, fp) != _curtc_GPUReconstructionCUDArtc_cu_src_size) {
         throw std::runtime_error("Error writing file");
       }
@@ -616,6 +621,20 @@ size_t GPUReconstructionCUDABackend::WriteToConstantMemory(size_t offset, const 
   if (mProcessingSettings.enableRTC)
 #endif
   {
+    std::unique_ptr<GPUParamRTC> tmpParam;
+    if (mProcessingSettings.rtcConstexpr) {
+      if (offset < sizeof(GPUParam) && (offset != 0 || size > sizeof(GPUParam))) {
+        throw std::runtime_error("Invalid write to constant memory, crossing GPUParam border");
+      }
+      if (offset == 0) {
+        tmpParam.reset(new GPUParamRTC);
+        tmpParam->setFrom(*(GPUParam*)src);
+        src = tmpParam.get();
+        size = sizeof(*tmpParam);
+      } else {
+        offset = offset - sizeof(GPUParam) + sizeof(GPUParamRTC);
+      }
+    }
     if (stream == -1) {
       GPUFailedMsg(cudaMemcpy(((char*)mDeviceConstantMem) + offset, src, size, cudaMemcpyHostToDevice));
     } else {
