@@ -286,6 +286,22 @@ EndConfig()
 #endif // GPUCA_O2_LIB
 #endif // !GPUCA_GPUCODE_DEVICE
 
+// Derrived parameters used in GPUParam
+BeginHiddenConfig(GPUSettingsParam, param)
+AddVariableRTC(DAlpha, float, 0.f)           // angular size
+AddVariableRTC(BzkG, float, 0.f)             // constant magnetic field value in kG
+AddVariableRTC(ConstBz, float, 0.f)          // constant magnetic field value in kG*clight
+AddVariableRTC(AssumeConstantBz, char, 0)    // Assume a constant magnetic field
+AddVariableRTC(ToyMCEventsFlag, char, 0)     // events were build with home-made event generator
+AddVariableRTC(ContinuousTracking, char, 0)  // Continuous tracking, estimate bz and errors for abs(z) = 125cm during seeding
+AddVariableRTC(resetTimers, char, 0)         // Reset benchmark timers before event processing
+AddVariableRTC(dodEdx, char, 0)              // Do dEdx computation
+AddVariableRTC(earlyTpcTransform, char, 0)   // do Early TPC transformation
+AddVariableRTC(debugLevel, char, 0)          // Debug level
+AddVariableRTC(continuousMaxTimeBin, int, 0) // Max time bin for continuous tracking
+AddVariable(dummyRTC, float, 0.f)            // Ensure non empty struct and proper alignment even if all normal members are constexpr
+EndConfig()
+
 EndNamespace() // gpu
 EndNamespace() // GPUCA_NAMESPACE
 #endif // #ifdef BeginNamespace

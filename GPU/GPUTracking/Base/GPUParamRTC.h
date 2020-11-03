@@ -32,7 +32,7 @@ namespace gpu_rtc
 #undef EndNamespace
 } // namespace gpu_rtc
 
-struct GPUParamRTC : public internal::GPUParam_t<gpu_rtc::GPUSettingsRec> {
+struct GPUParamRTC : public internal::GPUParam_t<gpu_rtc::GPUSettingsRec, gpu_rtc::GPUSettingsParam> {
   void setFrom(const GPUParam& param);
   static std::string generateRTCCode(const GPUParam& param, bool useConstexpr);
 };

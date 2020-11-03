@@ -36,10 +36,10 @@ GPUd() void GPUTPCGMSliceTrack::Set(const GPUTPCGMMerger* merger, const GPUTPCTr
   mParam.mSecPhi = 1.f / mParam.mCosPhi;
   mAlpha = alpha;
   mSlice = slice;
-  if (merger->Param().earlyTpcTransform) {
+  if (merger->Param().par.earlyTpcTransform) {
     mTZOffset = t.GetZOffset();
   } else {
-    mTZOffset = merger->GetConstantMem()->calibObjects.fastTransform->convZOffsetToVertexTime(slice, t.GetZOffset(), merger->Param().continuousMaxTimeBin);
+    mTZOffset = merger->GetConstantMem()->calibObjects.fastTransform->convZOffsetToVertexTime(slice, t.GetZOffset(), merger->Param().par.continuousMaxTimeBin);
   }
   mNClusters = sliceTr->NHits();
 }
@@ -94,7 +94,7 @@ GPUd() void GPUTPCGMSliceTrack::SetParam2(const GPUTPCGMTrackParam& trk)
 GPUd() bool GPUTPCGMSliceTrack::FilterErrors(const GPUTPCGMMerger* merger, int iSlice, float maxSinPhi, float sinPhiMargin)
 {
   float lastX;
-  if (merger->Param().earlyTpcTransform && !merger->Param().rec.mergerReadFromTrackerDirectly) {
+  if (merger->Param().par.earlyTpcTransform && !merger->Param().rec.mergerReadFromTrackerDirectly) {
     lastX = mOrigTrack->OutTrackCluster(mOrigTrack->NHits() - 1).GetX(); // TODO: Why is this needed, Row2X should work, but looses some tracks
   } else {
     //float lastX = merger->Param().tpcGeometry.Row2X(mOrigTrack->Cluster(mOrigTrack->NClusters() - 1).GetRow()); // TODO: again, why does this reduce efficiency?
@@ -117,7 +117,7 @@ GPUd() bool GPUTPCGMSliceTrack::FilterErrors(const GPUTPCGMMerger* merger, int i
 
   const int N = 3;
 
-  float bz = -merger->Param().ConstBz;
+  float bz = -merger->Param().par.ConstBz;
 
   float k = mParam.mQPt * bz;
   float dx = (1.f / N) * (lastX - mParam.mX);
@@ -321,10 +321,10 @@ GPUd() bool GPUTPCGMSliceTrack::TransportToX(GPUTPCGMMerger* merger, float x, fl
   b.SetPar(2, ey1);
   b.SetPar(3, mParam.mDzDs);
   b.SetPar(4, mParam.mQPt);
-  if (merger->Param().earlyTpcTransform) {
+  if (merger->Param().par.earlyTpcTransform) {
     b.SetZOffsetLinear(mTZOffset);
   } else {
-    b.SetZOffsetLinear(merger->GetConstantMem()->calibObjects.fastTransform->convVertexTimeToZOffset(mSlice, mTZOffset, merger->Param().continuousMaxTimeBin));
+    b.SetZOffsetLinear(merger->GetConstantMem()->calibObjects.fastTransform->convVertexTimeToZOffset(mSlice, mTZOffset, merger->Param().par.continuousMaxTimeBin));
   }
 
   if (!doCov) {
@@ -477,10 +477,10 @@ GPUd() bool GPUTPCGMSliceTrack::TransportToXAlpha(GPUTPCGMMerger* merger, float 
   b.SetPar(2, ey1);
   b.SetPar(3, dzds);
   b.SetPar(4, qpt);
-  if (merger->Param().earlyTpcTransform) {
+  if (merger->Param().par.earlyTpcTransform) {
     b.SetZOffsetLinear(mTZOffset);
   } else {
-    b.SetZOffsetLinear(merger->GetConstantMem()->calibObjects.fastTransform->convVertexTimeToZOffset(mSlice, mTZOffset, merger->Param().continuousMaxTimeBin));
+    b.SetZOffsetLinear(merger->GetConstantMem()->calibObjects.fastTransform->convVertexTimeToZOffset(mSlice, mTZOffset, merger->Param().par.continuousMaxTimeBin));
   }
 
   b.SetCov(0, c00 + h2 * h2c22 + h4 * h4c44 + 2.f * (h2 * c20ph4c42 + h4 * c40));
