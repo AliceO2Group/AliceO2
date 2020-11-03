@@ -133,7 +133,7 @@ struct QATrackingResolution {
 
   o2fw::Configurable<int> nBinsDeltaPhi{"nBinsPhi", 100, "Number of bins for the azimuthal angle differences"};
 
-  o2fw::Configurable<int> nBinsDeltaEta{"nBinsEta", 100, "Number of bins for the pseudorapidity differences"};
+  o2fw::Configurable<int> nBinsDeltaEta{"nBinsDeltaEta", 100, "Number of bins for the pseudorapidity differences"};
 
   o2fw::Configurable<int> nBinsImpactParameter{"nBinsImpactParameter", 1000, "Number of bins for the Impact parameter"};
 
