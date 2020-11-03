@@ -33,10 +33,8 @@ enum attachTypes { attachAttached = 0x40000000,
                    attachFlagMask = 0xFC000000 };
 
 struct InterpolationErrorHit {
-  float posY;
-  float errorY;
-  float posZ;
-  float errorZ;
+  float posY, posZ;
+  GPUCA_MERGER_INTERPOLATION_ERROR_TYPE errorY, errorZ;
 };
 
 struct InterpolationErrors {
