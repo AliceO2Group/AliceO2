@@ -32,7 +32,7 @@
 #endif
 #endif
 
-#include "GPUDisplayConfig.h"
+#include "GPUSettings.h"
 #include "GPUDisplayBackend.h"
 
 namespace GPUCA_NAMESPACE
@@ -56,8 +56,6 @@ class GPUDisplay
   GPUDisplay(GPUDisplayBackend* backend, GPUChainTracking* rec, GPUQA* qa) {}
   ~GPUDisplay() = default;
   GPUDisplay(const GPUDisplay&) = delete;
-
-  typedef GPUDisplayConfig configDisplay;
 
   int StartDisplay() { return 1; }
   void ShowNextEvent() {}
@@ -99,8 +97,6 @@ class GPUDisplay
   GPUDisplay(GPUDisplayBackend* backend, GPUChainTracking* rec, GPUQA* qa);
   ~GPUDisplay() = default;
   GPUDisplay(const GPUDisplay&) = delete;
-
-  typedef GPUDisplayConfig configDisplay;
 
   int StartDisplay();
   void ShowNextEvent();
@@ -297,7 +293,7 @@ class GPUDisplay
 
   GPUDisplayBackend* mBackend;
   GPUChainTracking* mChain;
-  const configDisplay& mConfig;
+  const GPUSettingsDisplay& mConfig;
   OpenGLConfig mCfg;
   GPUQA* mQA;
   const GPUTPCGMMerger& mMerger;

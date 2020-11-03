@@ -109,8 +109,6 @@ set(HDRS_INSTALL
     TRDTracking/GPUTRDGeometry.h
     TRDTracking/GPUTRDTrackerDebug.h
     TRDTracking/GPUTRDInterfaces.h
-    Standalone/display/GPUDisplayConfig.h
-    Standalone/qa/GPUQAConfig.h
     Base/GPUConstantMem.h
     Base/GPUReconstructionKernels.h
     Base/GPUReconstructionIncludesITS.h

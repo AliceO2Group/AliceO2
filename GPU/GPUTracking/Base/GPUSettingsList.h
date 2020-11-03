@@ -19,7 +19,9 @@
 // Create static constexpr with default values for GPU run time compilation
 
 #include "GPUDefConstantsAndSettings.h"
-#include "GPUSettings.h"
+#ifndef GPUSETTINGS_H
+#error Please include GPUSettings.h!
+#endif
 
 // clang-format off
 
@@ -284,5 +286,5 @@ EndConfig()
 
 EndNamespace() // gpu
 EndNamespace() // GPUCA_NAMESPACE
-#endif
+#endif // #ifdef BeginNamespace
   // clang-format on

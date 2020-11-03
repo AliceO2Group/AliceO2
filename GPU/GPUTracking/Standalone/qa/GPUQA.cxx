@@ -119,12 +119,12 @@ namespace GPUCA_NAMESPACE::gpu
 extern GPUSettingsStandalone configStandalone;
 }
 #endif
-static const GPUQA::configQA& GPUQA_GetConfig(GPUChainTracking* rec)
+static const GPUSettingsQA& GPUQA_GetConfig(GPUChainTracking* rec)
 {
 #if !defined(GPUCA_STANDALONE)
-  static GPUQA::configQA defaultConfig;
+  static GPUSettingsQA defaultConfig;
   if (rec->mConfigQA) {
-    return *((const GPUQA::configQA*)rec->mConfigQA);
+    return *((const GPUSettingsQA*)rec->mConfigQA);
   } else {
     return defaultConfig;
   }

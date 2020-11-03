@@ -84,12 +84,12 @@ namespace GPUCA_NAMESPACE::gpu
 extern GPUSettingsStandalone configStandalone;
 }
 #endif
-static const GPUDisplay::configDisplay& GPUDisplay_GetConfig(GPUChainTracking* rec)
+static const GPUSettingsDisplay& GPUDisplay_GetConfig(GPUChainTracking* rec)
 {
 #if !defined(GPUCA_STANDALONE)
-  static GPUDisplay::configDisplay defaultConfig;
+  static GPUSettingsDisplay defaultConfig;
   if (rec->mConfigDisplay) {
-    return *((const GPUDisplay::configDisplay*)rec->mConfigDisplay);
+    return *((const GPUSettingsDisplay*)rec->mConfigDisplay);
   } else {
     return defaultConfig;
   }
