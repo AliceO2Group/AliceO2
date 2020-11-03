@@ -30,7 +30,7 @@ o2::ft0::RecPoints CollisionTimeRecoTask::process(o2::ft0::Digit const& bcd,
                                                   gsl::span<const o2::ft0::ChannelData> inChData,
                                                   gsl::span<o2::ft0::ChannelDataFloat> outChData)
 {
-  LOG(INFO) << "Running reconstruction on new event";
+  LOG(DEBUG) << "Running reconstruction on new event";
 
   Int_t ndigitsC = 0, ndigitsA = 0;
 
@@ -42,7 +42,7 @@ o2::ft0::RecPoints CollisionTimeRecoTask::process(o2::ft0::Digit const& bcd,
 
   auto timeStamp = o2::InteractionRecord::bc2ns(bcd.mIntRecord.bc, bcd.mIntRecord.orbit);
 
-  LOG(INFO) << " event time " << timeStamp << " orbit " << bcd.mIntRecord.orbit << " bc " << bcd.mIntRecord.bc;
+  LOG(DEBUG) << " event time " << timeStamp << " orbit " << bcd.mIntRecord.orbit << " bc " << bcd.mIntRecord.bc;
 
   int nch = inChData.size();
   for (int ich = 0; ich < nch; ich++) {
@@ -76,7 +76,7 @@ o2::ft0::RecPoints CollisionTimeRecoTask::process(o2::ft0::Digit const& bcd,
   } else {
     mCollisionTime[TimeMean] = std::min(mCollisionTime[TimeA], mCollisionTime[TimeC]);
   }
-  LOG(INFO) << " Collision time " << mCollisionTime[TimeA] << " " << mCollisionTime[TimeC] << " " << mCollisionTime[TimeMean] << " " << mCollisionTime[Vertex];
+  LOG(DEBUG) << " Collision time " << mCollisionTime[TimeA] << " " << mCollisionTime[TimeC] << " " << mCollisionTime[TimeMean] << " " << mCollisionTime[Vertex];
   return RecPoints{
     mCollisionTime, bcd.ref.getFirstEntry(), bcd.ref.getEntries(), bcd.mIntRecord, bcd.mTriggers};
 }
