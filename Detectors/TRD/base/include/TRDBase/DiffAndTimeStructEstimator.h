@@ -8,8 +8,8 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#ifndef O2_TRDDIFFANDTIMESTRUCTESTIMATOR_H
-#define O2_TRDDIFFANDTIMESTRUCTESTIMATOR_H
+#ifndef O2_TRD_DIFFANDTIMESTRUCTESTIMATOR_H
+#define O2_TRD_DIFFANDTIMESTRUCTESTIMATOR_H
 
 #include <array>
 
@@ -23,12 +23,12 @@ constexpr int ktimebin = 38;
 constexpr int kZbin = 11;
 
 /// A class to calculate diffusion and time structure values (GARFIELD model)
-/// (used in digitization). Class was split off trom TRDCommonParam
+/// (used in digitization). Class was split off trom CommonParam
 /// and is no longer a singleton so that we can use it in a multithreaded context.
-class TRDDiffusionAndTimeStructEstimator
+class DiffusionAndTimeStructEstimator
 {
  public:
-  TRDDiffusionAndTimeStructEstimator() = default;
+  DiffusionAndTimeStructEstimator() = default;
 
   /// determines the diffusion coefficients as a function of drift velocity
   bool GetDiffCoeff(float& dl, float& dt, float vdrift);
@@ -55,4 +55,4 @@ class TRDDiffusionAndTimeStructEstimator
 } // namespace trd
 } // namespace o2
 
-#endif //O2_TRDDIFFANDTIMESTRUCTESTIMATOR_H
+#endif //O2_TRD_DIFFANDTIMESTRUCTESTIMATOR_H

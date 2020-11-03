@@ -15,18 +15,18 @@
 //                                                                           //
 ///////////////////////////////////////////////////////////////////////////////
 
-#include "TRDBase/TRDCalSingleChamberStatus.h"
+#include "TRDBase/CalSingleChamberStatus.h"
 #include <TMath.h>
 #include <Rtypes.h>
-#include "TRDBase/TRDCommonParam.h"
+#include "TRDBase/CommonParam.h"
 
 using namespace o2::trd;
 
 //_____________________________________________________________________________
-TRDCalSingleChamberStatus::TRDCalSingleChamberStatus() = default;
+CalSingleChamberStatus::CalSingleChamberStatus() = default;
 
 //_____________________________________________________________________________
-TRDCalSingleChamberStatus::TRDCalSingleChamberStatus(Int_t p, Int_t c, Int_t cols)
+CalSingleChamberStatus::CalSingleChamberStatus(Int_t p, Int_t c, Int_t cols)
   : mPla(p), mCha(c), mNcols(cols)
 {
   //
@@ -101,21 +101,21 @@ TRDCalSingleChamberStatus::TRDCalSingleChamberStatus(Int_t p, Int_t c, Int_t col
 }
 
 //_____________________________________________________________________________
-TRDCalSingleChamberStatus::TRDCalSingleChamberStatus(const TRDCalSingleChamberStatus& c)
+CalSingleChamberStatus::CalSingleChamberStatus(const CalSingleChamberStatus& c)
   : mPla(c.mPla), mCha(c.mCha), mNrows(c.mNrows), mNcols(c.mNcols), mNchannels(c.mNchannels)
 {
   //
-  // TRDCalSingleChamberStatus copy constructor
+  // CalSingleChamberStatus copy constructor
   //
 
   mData = c.mData;
 }
 
 //_____________________________________________________________________________
-TRDCalSingleChamberStatus::~TRDCalSingleChamberStatus() = default;
+CalSingleChamberStatus::~CalSingleChamberStatus() = default;
 
 //_____________________________________________________________________________
-TRDCalSingleChamberStatus& TRDCalSingleChamberStatus::operator=(const TRDCalSingleChamberStatus& c)
+CalSingleChamberStatus& CalSingleChamberStatus::operator=(const CalSingleChamberStatus& c)
 {
   //
   // Assignment operator
@@ -136,7 +136,7 @@ TRDCalSingleChamberStatus& TRDCalSingleChamberStatus::operator=(const TRDCalSing
 }
 
 //_____________________________________________________________________________
-void TRDCalSingleChamberStatus::Copy(TRDCalSingleChamberStatus& c) const
+void CalSingleChamberStatus::Copy(CalSingleChamberStatus& c) const
 {
   //
   // Copy function

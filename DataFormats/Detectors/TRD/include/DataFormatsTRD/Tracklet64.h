@@ -8,7 +8,7 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-//#include "TRDBase/TRDGeometryBase.h"
+//#include "TRDBase/GeometryBase.h"
 //#include "DetectorsCommonDataFormats/DetMatrixCache.h"
 //#include "DetectorsCommonDataFormats/DetID.h"
 

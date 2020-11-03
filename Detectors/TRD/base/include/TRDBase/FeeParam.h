@@ -31,9 +31,9 @@
 #include <array>
 #include <vector>
 
-class TRDCommonParam;
-class TRDPadPlane;
-class TRDGeometry;
+class CommonParam;
+class PadPlane;
+class Geometry;
 
 namespace o2
 {
@@ -140,7 +140,7 @@ class FeeParam
   static FeeParam* mgInstance; // Singleton instance
   static bool mgTerminated;    // Defines if this class has already been terminated
 
-  TRDCommonParam* mCP = nullptr; // TRD common parameters class
+  CommonParam* mCP = nullptr; // TRD common parameters class
 
   static std::vector<short> mgLUTPadNumbering; // Lookup table mapping Pad to MCM
   static bool mgLUTPadNumberingFilled;         // Lookup table mapping Pad to MCM

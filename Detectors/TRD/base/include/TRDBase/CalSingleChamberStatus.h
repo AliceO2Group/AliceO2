@@ -8,8 +8,8 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#ifndef O2_TRDCALSINGLECHAMBERSTATUS_H
-#define O2_TRDCALSINGLECHAMBERSTATUS_H
+#ifndef O2_TRD_CALSINGLECHAMBERSTATUS_H
+#define O2_TRD_CALSINGLECHAMBERSTATUS_H
 
 #include <Rtypes.h>
 namespace o2
@@ -24,7 +24,7 @@ namespace trd
 ////////////////////////////////////////////////////////////////////////////
 
 //_____________________________________________________________________________
-class TRDCalSingleChamberStatus
+class CalSingleChamberStatus
 {
 
  public:
@@ -34,12 +34,12 @@ class TRDCalSingleChamberStatus
          kReadSecond = 16,
          kNotConnected = 32 };
 
-  TRDCalSingleChamberStatus();
-  TRDCalSingleChamberStatus(Int_t p, Int_t c, Int_t cols);
-  TRDCalSingleChamberStatus(const TRDCalSingleChamberStatus& c);
-  ~TRDCalSingleChamberStatus();
-  TRDCalSingleChamberStatus& operator=(const TRDCalSingleChamberStatus& c);
-  void Copy(TRDCalSingleChamberStatus& c) const;
+  CalSingleChamberStatus();
+  CalSingleChamberStatus(Int_t p, Int_t c, Int_t cols);
+  CalSingleChamberStatus(const CalSingleChamberStatus& c);
+  ~CalSingleChamberStatus();
+  CalSingleChamberStatus& operator=(const CalSingleChamberStatus& c);
+  void Copy(CalSingleChamberStatus& c) const;
 
   Bool_t isMasked(Int_t col, Int_t row) const { return ((getStatus(col, row) & kMasked)
                                                           ? kTRUE
@@ -68,7 +68,7 @@ class TRDCalSingleChamberStatus
   Int_t mNchannels{0};     //  Number of channels
   std::vector<char> mData; //[fNchannels] Data
 
-  ClassDefNV(TRDCalSingleChamberStatus, 1); //  TRD ROC calibration class
+  ClassDefNV(CalSingleChamberStatus, 1); //  TRD ROC calibration class
 };
 
 } // namespace trd

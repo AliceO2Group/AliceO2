@@ -8,23 +8,22 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#ifndef O2_TRDGEOMETRYBASE_H
-#define O2_TRDGEOMETRYBASE_H
+#ifndef O2_TRD_GEOMETRYBASE_H
+#define O2_TRD_GEOMETRYBASE_H
 
 #include "GPUCommonDef.h"
-#include "TRDBase/TRDCommonParam.h"
+#include "TRDBase/CommonParam.h"
 #include "DataFormatsTRD/Constants.h"
-#include "TRDBase/TRDPadPlane.h"
+#include "TRDBase/PadPlane.h"
 
 namespace o2
 {
 namespace trd
 {
-class TRDGeometryBase
+class GeometryBase
 {
  public:
-  ~TRDGeometryBase() = default;
-
+  ~GeometryBase() = default;
 
   GPUd() int isVersion() { return 1; }
   GPUd() bool isHole(int la, int st, int se) const { return (((se == 13) || (se == 14) || (se == 15)) && (st == 2)); }
@@ -46,8 +45,8 @@ class TRDGeometryBase
   GPUd() static int getStack(int det) { return ((det % (constants::NLAYER * constants::NSTACK)) / constants::NLAYER); }
   GPUd() int getStack(float z, int layer) const;
 
-  GPUd() const TRDPadPlane* getPadPlane(int layer, int stack) const { return &mPadPlanes[getDetectorSec(layer, stack)]; }
-  GPUd() const TRDPadPlane* getPadPlane(int det) const { return &mPadPlanes[getDetectorSec(det)]; }
+  GPUd() const PadPlane* getPadPlane(int layer, int stack) const { return &mPadPlanes[getDetectorSec(layer, stack)]; }
+  GPUd() const PadPlane* getPadPlane(int det) const { return &mPadPlanes[getDetectorSec(det)]; }
 
   GPUd() int getRowMax(int layer, int stack, int /*sector*/) const { return getPadPlane(layer, stack)->getNrows(); }
   GPUd() int getColMax(int layer) const { return getPadPlane(layer, 0)->getNcols(); }
@@ -95,7 +94,7 @@ class TRDGeometryBase
   static constexpr GPUd() int rowmaxC1() { return ROWMAXC1; }
 
  protected:
-  TRDGeometryBase() = default;
+  GeometryBase() = default;
 
   static constexpr float TLENGTH = 751.0; ///< Total length of the TRD mother volume
 
@@ -211,11 +210,11 @@ class TRDGeometryBase
     {145.0, 145.0, 110.0, 145.0, 145.0},
     {147.0, 147.0, 110.0, 147.0, 147.0}};
 
-  TRDPadPlane mPadPlanes[constants::NLAYER * constants::NSTACK];
+  PadPlane mPadPlanes[constants::NLAYER * constants::NSTACK];
 
   int mSMStatus = 0x3ffff;
 
-  ClassDefNV(TRDGeometryBase, 1);
+  ClassDefNV(GeometryBase, 1);
 };
 } // end namespace trd
 } // end namespace o2

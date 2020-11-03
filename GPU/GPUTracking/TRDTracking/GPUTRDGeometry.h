@@ -47,8 +47,8 @@ class GPUTRDGeometry : public AliTRDgeometry
 
 class TObjArray;
 #include "GPUDef.h"
-#include "TRDBase/TRDGeometryFlat.h"
-#include "TRDBase/TRDPadPlane.h"
+#include "TRDBase/GeometryFlat.h"
+#include "TRDBase/PadPlane.h"
 #include "DataFormatsTRD/Constants.h"
 #include "GPUCommonTransform3D.h"
 
@@ -57,7 +57,7 @@ namespace GPUCA_NAMESPACE
 namespace gpu
 {
 
-class GPUTRDpadPlane : private o2::trd::TRDPadPlane
+class GPUTRDpadPlane : private o2::trd::PadPlane
 {
  public:
   GPUd() float GetTiltingAngle() const { return getTiltingAngle(); }
@@ -73,7 +73,7 @@ class GPUTRDpadPlane : private o2::trd::TRDPadPlane
   GPUd() float GetNcols() const { return getNcols(); }
 };
 
-class GPUTRDGeometry : private o2::trd::TRDGeometryFlat
+class GPUTRDGeometry : private o2::trd::GeometryFlat
 {
  public:
   GPUd() static bool CheckGeometryAvailable() { return true; }
@@ -84,7 +84,7 @@ class GPUTRDGeometry : private o2::trd::TRDGeometryFlat
   GPUd() float GetPadPlaneRowSize(int layer, int stack, int row) const { return getPadPlane(layer, stack)->getRowSize(row); }
   GPUd() int GetGeomManagerVolUID(int det, int modId) const { return 0; }
 
-  // Base functionality of TRDGeometry
+  // Base functionality of Geometry
   GPUd() float GetTime0(int layer) const { return getTime0(layer); }
   GPUd() float GetCol0(int layer) const { return getCol0(layer); }
   GPUd() int GetLayer(int det) const { return getLayer(det); }
@@ -151,7 +151,7 @@ class GPUTRDGeometry
   GPUd() float GetPadPlaneRowSize(int layer, int stack, int row) const { return 0; }
   GPUd() int GetGeomManagerVolUID(int det, int modId) const { return 0; }
 
-  // Base functionality of TRDGeometry
+  // Base functionality of Geometry
   GPUd() float GetTime0(int layer) const { return 0; }
   GPUd() float GetCol0(int layer) const { return 0; }
   GPUd() int GetLayer(int det) const { return 0; }

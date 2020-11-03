@@ -16,8 +16,8 @@
 #include "TRDBase/Calibrations.h"
 #include "TRDBase/Digit.h"
 #include "TRDBase/MCLabel.h"
-#include "TRDBase/TRDCommonParam.h"
-#include "TRDBase/TRDDiffAndTimeStructEstimator.h"
+#include "TRDBase/CommonParam.h"
+#include "TRDBase/DiffAndTimeStructEstimator.h"
 #include "DataFormatsTRD/Constants.h"
 
 #include "MathUtils/RandomRing.h"
@@ -33,9 +33,9 @@ namespace o2
 namespace trd
 {
 
-class TRDGeometry;
-class TRDSimParam;
-class TRDPadPlane;
+class Geometry;
+class SimParam;
+class PadPlane;
 class TRDArraySignal;
 class PadResponse;
 
@@ -74,10 +74,10 @@ class Digitizer
   static constexpr double BUSY_TIME = READOUT_TIME + DEAD_TIME; // the time for which no new trigger can be received in nanoseconds
 
  private:
-  TRDGeometry* mGeo = nullptr;            // access to TRDGeometry
+  Geometry* mGeo = nullptr;               // access to Geometry
   PadResponse* mPRF = nullptr;            // access to PadResponse
-  TRDSimParam* mSimParam = nullptr;       // access to TRDSimParam instance
-  TRDCommonParam* mCommonParam = nullptr; // access to TRDCommonParam instance
+  SimParam* mSimParam = nullptr;          // access to SimParam instance
+  CommonParam* mCommonParam = nullptr;    // access to CommonParam instance
   Calibrations* mCalib = nullptr;         // access to Calibrations in CCDB
 
   // number of digitizer threads
@@ -87,7 +87,7 @@ class Digitizer
   std::vector<math_utils::RandomRing<>> mGausRandomRings; // pre-generated normal distributed random numbers
   std::vector<math_utils::RandomRing<>> mFlatRandomRings; // pre-generated flat distributed random numbers
   std::vector<math_utils::RandomRing<>> mLogRandomRings;  // pre-generated exp distributed random number
-  std::vector<TRDDiffusionAndTimeStructEstimator> mDriftEstimators;
+  std::vector<DiffusionAndTimeStructEstimator> mDriftEstimators;
 
   double mTime = 0.;               // time in nanoseconds
   double mLastTime = -1;           // negative, by default to flag the first event
@@ -103,8 +103,8 @@ class Digitizer
   };
 
   // Digitization parameters
-  static constexpr float AmWidth = TRDGeometry::amThick(); // Width of the amplification region
-  static constexpr float DrWidth = TRDGeometry::drThick(); // Width of the drift retion
+  static constexpr float AmWidth = Geometry::amThick();    // Width of the amplification region
+  static constexpr float DrWidth = Geometry::drThick();    // Width of the drift retion
   static constexpr float DrMin = -0.5 * AmWidth;           // Drift + Amplification region
   static constexpr float DrMax = DrWidth + 0.5 * AmWidth;  // Drift + Amplification region
   float mSamplingRate = 0;                                 // The sampling rate

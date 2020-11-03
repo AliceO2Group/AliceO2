@@ -8,8 +8,8 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#ifndef O2_TRDSIMPARAM_H
-#define O2_TRDSIMPARAM_H
+#ifndef O2_TRD_SIMPARAM_H
+#define O2_TRD_SIMPARAM_H
 
 //Forwards to standard header with protection for GPU compilation
 #include "GPUCommonRtypes.h" // for ClassDef
@@ -23,14 +23,14 @@ namespace trd
 // Class containing constant simulation parameters                        //
 //                                                                        //
 ////////////////////////////////////////////////////////////////////////////
-class TRDSimParam
+class SimParam
 {
  public:
   enum {
     kNPadsInPadResponse = 3 // Number of pads included in the pad response
   };
 
-  static TRDSimParam* Instance();
+  static SimParam* Instance();
   static void Terminate();
 
   void SetGasGain(float gasgain) { mGasGain = gasgain; }
@@ -83,9 +83,9 @@ class TRDSimParam
   void ReInit();
 
  protected:
-  static TRDSimParam* fgInstance; //  Instance of this class (singleton implementation)
-  static bool fgTerminated;       //  Defines if this class has already been terminated and
-                                  //  therefore does not return instances in GetInstance anymore
+  static SimParam* fgInstance; //  Instance of this class (singleton implementation)
+  static bool fgTerminated;    //  Defines if this class has already been terminated and
+                               //  therefore does not return instances in GetInstance anymore
 
   // Digitization parameter
   float mGasGain;  //  Gas gain
@@ -122,16 +122,16 @@ class TRDSimParam
 
  private:
   // This is a singleton, constructor is private!
-  TRDSimParam();
-  ~TRDSimParam();
+  SimParam();
+  ~SimParam();
 
   void Init();
   void SampleTRF();
 
-  ClassDefNV(TRDSimParam, 1); // The TRD simulation parameters
+  ClassDefNV(SimParam, 1); // The TRD simulation parameters
 };
 
-inline double TRDSimParam::TimeResponse(double time) const
+inline double SimParam::TimeResponse(double time) const
 {
   //
   // Applies the preamp shaper time response
@@ -148,7 +148,7 @@ inline double TRDSimParam::TimeResponse(double time) const
   }
 }
 
-inline double TRDSimParam::CrossTalk(double time) const
+inline double SimParam::CrossTalk(double time) const
 {
   //
   // Applies the pad-pad capacitive cross talk

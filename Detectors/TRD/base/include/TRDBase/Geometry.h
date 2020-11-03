@@ -8,10 +8,10 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#ifndef O2_TRDGEOMETRY_H
-#define O2_TRDGEOMETRY_H
+#ifndef O2_TRD_GEOMETRY_H
+#define O2_TRD_GEOMETRY_H
 
-#include "TRDBase/TRDGeometryBase.h"
+#include "TRDBase/GeometryBase.h"
 #include "DetectorsCommonDataFormats/DetMatrixCache.h"
 #include "DetectorsCommonDataFormats/DetID.h"
 
@@ -19,24 +19,19 @@
 #include <vector>
 #include <memory>
 
-using namespace o2::trd;
-class TRootIOCtor;
-
 namespace o2
 {
 namespace trd
 {
 
-class TRDGeometry : public TRDGeometryBase, public o2::detectors::DetMatrixCacheIndirect
+class Geometry : public GeometryBase, public o2::detectors::DetMatrixCacheIndirect
 {
  public:
-  ~TRDGeometry() override = default;
-  // A ROOT IO constructor (to silence warnings about missing default constructor)
-  TRDGeometry(TRootIOCtor*) {}
+  ~Geometry() override = default;
 
-  static TRDGeometry* instance()
+  static Geometry* instance()
   {
-    static TRDGeometry mGeom;
+    static Geometry mGeom;
     return &mGeom;
   }
 
@@ -65,9 +60,9 @@ class TRDGeometry : public TRDGeometryBase, public o2::detectors::DetMatrixCache
   // helper function to create volumes and registering them automatically
   void createVolume(const char* name, const char* shape, int nmed, float* upar, int np);
 
-  TRDGeometry();
+  Geometry();
 
-  ClassDefOverride(TRDGeometry, 2); //  TRD geometry class
+  ClassDefOverride(Geometry, 2); //  TRD geometry class
 };
 } // end namespace trd
 } // end namespace o2

@@ -183,9 +183,9 @@ void TRDDPLTrapSimulatorTask::loadTrapConfig()
 
 void TRDDPLTrapSimulatorTask::setOnlineGainTables()
 {
-  const int nDets = 540; //TRDGeometry::Ndet();
-  const int nMcms = TRDGeometry::MCMmax();
-  const int nChs = TRDGeometry::ADCmax();
+  const int nDets = 540; //Geometry::Ndet();
+  const int nMcms = Geometry::MCMmax();
+  const int nChs = Geometry::ADCmax();
   //check FGBY from trapconfig.
   //check the input parameter of trd-onlinegaincorrection.
   //warn if you have chosen a trapconfig with gaincorrections but chosen not to use them.
@@ -208,7 +208,7 @@ void TRDDPLTrapSimulatorTask::setOnlineGainTables()
     }
 
     for (int iDet = 0; iDet < nDets; ++iDet) {
-      const int nRobs = TRDGeometry::getStack(iDet) == 2 ? TRDGeometry::ROBmaxC0() : TRDGeometry::ROBmaxC1();
+      const int nRobs = Geometry::getStack(iDet) == 2 ? Geometry::ROBmaxC0() : Geometry::ROBmaxC1();
       for (int rob = 0; rob < nRobs; ++rob) {
         for (int mcm = 0; mcm < nMcms; ++mcm) {
           // set ADC reference voltage
@@ -428,8 +428,8 @@ void TRDDPLTrapSimulatorTask::run(o2::framework::ProcessingContext& pc)
                 << mFeeParam->getROBfromPad(digit.getRow(), digit.getPad()) << ":"
                 << mFeeParam->getMCMfromPad(digit.getRow(), digit.getPad())
                 << " LinkId:" << LinkRecord::getHalfChamberLinkId(digit.getDetector(), mFeeParam->getROBfromPad(digit.getRow(), digit.getPad())) << "\t\t  SM:stack:layer:side  "
-                << digit.getDetector() / 30 << ":" << TRDGeometry::getStack(digit.getDetector())
-                << ":" << TRDGeometry::getLayer(digit.getDetector()) << ":" << FeeParam::instance()->getRobSide(mFeeParam->getROBfromPad(digit.getRow(), digit.getPad()))
+                << digit.getDetector() / 30 << ":" << Geometry::getStack(digit.getDetector())
+                << ":" << Geometry::getLayer(digit.getDetector()) << ":" << FeeParam::instance()->getRobSide(mFeeParam->getROBfromPad(digit.getRow(), digit.getPad()))
                 << " with ORI# : " << mFeeParam->getORI(digit.getDetector(), mFeeParam->getROBfromPad(digit.getRow(), digit.getPad()))
                 << " within SM ori#:" << mFeeParam->getORIinSM(digit.getDetector(), mFeeParam->getROBfromPad(digit.getRow(), digit.getPad()));
   }
@@ -463,8 +463,8 @@ void TRDDPLTrapSimulatorTask::run(o2::framework::ProcessingContext& pc)
     int detector = digititerator->getDetector();
     int rob = mFeeParam->getROBfromPad(row, pad);
     int mcm = mFeeParam->getMCMfromPad(row, pad);
-    int trdstack = TRDGeometry::getStack(detector);
-    int trdlayer = TRDGeometry::getLayer(detector);
+    int trdstack = Geometry::getStack(detector);
+    int trdlayer = Geometry::getLayer(detector);
     int fibreside = FeeParam::instance()->getRobSide(rob);
 
     LOG(debug) << "calculated rob and mcm at top of loop with detector:row:pad:rob:mcm ::"

@@ -8,9 +8,9 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#include "TRDBase/TRDCommonParam.h"
-#include "TRDBase/TRDDiffAndTimeStructEstimator.h"
-#include "TRDBase/TRDGeometry.h"
+#include "TRDBase/CommonParam.h"
+#include "TRDBase/DiffAndTimeStructEstimator.h"
+#include "TRDBase/Geometry.h"
 #include <cmath>
 
 namespace o2::trd
@@ -345,7 +345,7 @@ constexpr float time2200[ktimebin][kZbin] = {
   {1.48122, 1.48219, 1.48482, 1.48991, 1.50030, 1.53991, 1.52898, 1.52653, 1.53653, 1.57282, 1.82386}};
 
 //_____________________________________________________________________________
-void TRDDiffusionAndTimeStructEstimator::SampleTimeStruct(float vdrift)
+void DiffusionAndTimeStructEstimator::SampleTimeStruct(float vdrift)
 {
   //
   // Samples the timing structure of a drift cell
@@ -436,7 +436,7 @@ void TRDDiffusionAndTimeStructEstimator::SampleTimeStruct(float vdrift)
 }
 
 //_____________________________________________________________________________
-float TRDDiffusionAndTimeStructEstimator::TimeStruct(float vdrift, float dist, float z)
+float DiffusionAndTimeStructEstimator::TimeStruct(float vdrift, float dist, float z)
 {
   //
   // Applies the time structure of the drift cells (by C.Lippmann).
@@ -497,7 +497,7 @@ float TRDDiffusionAndTimeStructEstimator::TimeStruct(float vdrift, float dist, f
 
   // Dist now is the drift distance to the anode wires (negative if electrons are
   // between anode wire plane and cathode pad plane)
-  dist -= TRDGeometry::amThick() * 0.5;
+  dist -= Geometry::amThick() * 0.5;
 
   // Interpolation in z-directions, lower drift time map
   const bool condition = ((std::abs(dist) > 0.005) || (z > 0.005));
@@ -516,7 +516,7 @@ float TRDDiffusionAndTimeStructEstimator::TimeStruct(float vdrift, float dist, f
 }
 
 //_____________________________________________________________________________
-bool TRDDiffusionAndTimeStructEstimator::GetDiffCoeff(float& dl, float& dt, float vdrift)
+bool DiffusionAndTimeStructEstimator::GetDiffCoeff(float& dl, float& dt, float vdrift)
 {
   //
   // Calculates the diffusion coefficients in longitudinal <dl> and
@@ -531,7 +531,7 @@ bool TRDDiffusionAndTimeStructEstimator::GetDiffCoeff(float& dl, float& dt, floa
   }
   mDiffLastVdrift = vdrift;
 
-  if (TRDCommonParam::Instance()->IsXenon()) {
+  if (CommonParam::Instance()->IsXenon()) {
     //
     // Vd and B-field dependent diffusion and Lorentz angle
     //
@@ -541,7 +541,7 @@ bool TRDDiffusionAndTimeStructEstimator::GetDiffCoeff(float& dl, float& dt, floa
 
     // If looking at compatibility with AliRoot:
     // ibL and ibT are calculated the same way so, just define ib = ibL = ibT
-    int ib = ((int)(10 * (TRDCommonParam::Instance()->GetCachedField() - 0.15)));
+    int ib = ((int)(10 * (CommonParam::Instance()->GetCachedField() - 0.15)));
     ib = std::max(0, ib);
     ib = std::min(kNb - 1, ib);
 
@@ -564,7 +564,7 @@ bool TRDDiffusionAndTimeStructEstimator::GetDiffCoeff(float& dl, float& dt, floa
     dl = mDiffusionL;
     dt = mDiffusionT;
     return true;
-  } else if (TRDCommonParam::Instance()->IsArgon()) {
+  } else if (CommonParam::Instance()->IsArgon()) {
     //
     // Diffusion constants and Lorentz angle only for B = 0.5T
     //

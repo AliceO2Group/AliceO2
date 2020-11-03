@@ -21,10 +21,10 @@
 #include <array>
 
 #include "TRDBase/PadParameters.h"
-#include "TRDBase/TRDSimParam.h"
+#include "TRDBase/SimParam.h"
 #include "DataFormatsTRD/Constants.h"
 
-class TRDGeometry;
+class Geometry;
 
 namespace o2
 {
@@ -54,9 +54,9 @@ template <class T>
 PadCalibrations<T>::PadCalibrations()
 {
   //
-  // TRDCalPadStatus constructor
+  // CalPadStatus constructor
   //
-  //TRDGeometry fgeom;
+  //Geometry fgeom;
   int chamberindex = 0;
   for (auto& roc : mreadOutChamber) { // Range-for!
     roc.init(chamberindex++);
@@ -67,7 +67,7 @@ template <class T>
 void PadCalibrations<T>::init()
 {
   //
-  // TRDCalPadStatus constructor
+  // CalPadStatus constructor
   //
   int chamberindex = 0;
   for (auto& roc : mreadOutChamber) { // Range-for!

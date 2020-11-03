@@ -12,25 +12,24 @@
 //                                                                        //
 // Class containing constant simulation parameters                        //
 //                                                                        //
-// Request an instance with TRDSimParam::Instance()                       //
+// Request an instance with SimParam::Instance()                          //
 // Then request the needed values                                         //
 //                                                                        //
 ////////////////////////////////////////////////////////////////////////////
 
-#include "TRDBase/TRDSimParam.h"
+#include "TRDBase/SimParam.h"
 #include <TMath.h>
-#include "TRDBase/TRDCommonParam.h"
-//#include "AliLog.h"
+#include "TRDBase/CommonParam.h"
 #include <FairLogger.h>
 
 using namespace o2::trd;
-ClassImp(TRDSimParam);
+ClassImp(SimParam);
 
-TRDSimParam* TRDSimParam::fgInstance = nullptr;
-bool TRDSimParam::fgTerminated = false;
+SimParam* SimParam::fgInstance = nullptr;
+bool SimParam::fgTerminated = false;
 
 //_ singleton implementation __________________________________________________
-TRDSimParam* TRDSimParam::Instance()
+SimParam* SimParam::Instance()
 {
   //
   // Singleton implementation
@@ -42,14 +41,14 @@ TRDSimParam* TRDSimParam::Instance()
   }
 
   if (fgInstance == nullptr) {
-    fgInstance = new TRDSimParam();
+    fgInstance = new SimParam();
   }
 
   return fgInstance;
 }
 
 //_ singleton implementation __________________________________________________
-void TRDSimParam::Terminate()
+void SimParam::Terminate()
 {
   //
   // Singleton implementation
@@ -67,7 +66,7 @@ void TRDSimParam::Terminate()
 }
 
 //_____________________________________________________________________________
-TRDSimParam::TRDSimParam()
+SimParam::SimParam()
   : mGasGain(0.0),
     mNoise(0.0),
     mChipGain(0.0),
@@ -100,7 +99,7 @@ TRDSimParam::TRDSimParam()
 }
 
 //_____________________________________________________________________________
-void TRDSimParam::Init()
+void SimParam::Init()
 {
   //
   // Default initializiation
@@ -149,7 +148,7 @@ void TRDSimParam::Init()
 }
 
 //_____________________________________________________________________________
-TRDSimParam::~TRDSimParam()
+SimParam::~SimParam()
 {
   //
   // Destructor
@@ -166,13 +165,13 @@ TRDSimParam::~TRDSimParam()
 }
 
 //_____________________________________________________________________________
-void TRDSimParam::ReInit()
+void SimParam::ReInit()
 {
   //
   // Reinitializes the parameter class after a change
   //
 
-  if (TRDCommonParam::Instance()->IsXenon()) {
+  if (CommonParam::Instance()->IsXenon()) {
     // The range and the binwidth for the sampled TRF
     mTRFbin = 200;
     // Start 0.2 mus before the signal
@@ -181,7 +180,7 @@ void TRDSimParam::ReInit()
     mTRFhi = 3.58;
     // Standard gas gain
     mGasGain = 4000.0;
-  } else if (TRDCommonParam::Instance()->IsArgon()) {
+  } else if (CommonParam::Instance()->IsArgon()) {
     // The range and the binwidth for the sampled TRF
     mTRFbin = 50;
     // Start 0.2 mus before the signal
@@ -200,7 +199,7 @@ void TRDSimParam::ReInit()
 }
 
 //_____________________________________________________________________________
-void TRDSimParam::SampleTRF()
+void SimParam::SampleTRF()
 {
   //
   // Samples the new time response function.
@@ -274,21 +273,21 @@ void TRDSimParam::SampleTRF()
   }
   mCTsmp = new float[mTRFbin];
 
-  if (TRDCommonParam::Instance()->IsXenon()) {
+  if (CommonParam::Instance()->IsXenon()) {
     if (mTRFbin != kNpasa) {
       LOG(ERROR) << "Array mismatch (xenon)\n\n";
     }
-  } else if (TRDCommonParam::Instance()->IsArgon()) {
+  } else if (CommonParam::Instance()->IsArgon()) {
     if (mTRFbin != kNpasaAr) {
       LOG(ERROR) << "Array mismatch (argon)\n\n";
     }
   }
 
   for (int iBin = 0; iBin < mTRFbin; iBin++) {
-    if (TRDCommonParam::Instance()->IsXenon()) {
+    if (CommonParam::Instance()->IsXenon()) {
       mTRFsmp[iBin] = signal[iBin];
       mCTsmp[iBin] = xtalk[iBin];
-    } else if (TRDCommonParam::Instance()->IsArgon()) {
+    } else if (CommonParam::Instance()->IsArgon()) {
       mTRFsmp[iBin] = signalAr[iBin];
       mCTsmp[iBin] = xtalkAr[iBin];
     }

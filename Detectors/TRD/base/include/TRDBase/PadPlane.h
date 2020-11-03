@@ -8,8 +8,8 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#ifndef O2_TRDPADPLANE_H
-#define O2_TRDPADPLANE_H
+#ifndef O2_TRD_PADPLANE_H
+#define O2_TRD_PADPLANE_H
 
 //Forwards to standard header with protection for GPU compilation
 #include "GPUCommonRtypes.h" // for ClassDef
@@ -30,14 +30,14 @@ namespace o2
 {
 namespace trd
 {
-class TRDPadPlane
+class PadPlane
 {
  public:
-  TRDPadPlane() = default;
-  TRDPadPlane(int layer, int stack) : mLayer(layer), mStack(stack){};
-  TRDPadPlane(const TRDPadPlane& p) = delete;
-  TRDPadPlane& operator=(const TRDPadPlane& p) = delete;
-  ~TRDPadPlane() = default;
+  PadPlane() = default;
+  PadPlane(int layer, int stack) : mLayer(layer), mStack(stack){};
+  PadPlane(const PadPlane& p) = delete;
+  PadPlane& operator=(const PadPlane& p) = delete;
+  ~PadPlane() = default;
 
   void setLayer(int l) { mLayer = l; };
   void setStack(int s) { mStack = s; };
@@ -175,7 +175,7 @@ class TRDPadPlane
   double mAnodeWireOffset; //  Distance of first anode wire from pad edge
 
  private:
-  ClassDefNV(TRDPadPlane, 1); //  TRD ROC pad plane
+  ClassDefNV(PadPlane, 1); //  TRD ROC pad plane
 };
 } // namespace trd
 } // namespace o2

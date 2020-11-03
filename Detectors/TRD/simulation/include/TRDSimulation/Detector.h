@@ -60,7 +60,7 @@ namespace o2
 namespace trd
 {
 
-class TRDGeometry;
+class Geometry;
 class TRsim;
 
 class Detector : public o2::base::DetImpl<Detector>
@@ -111,7 +111,7 @@ class Detector : public o2::base::DetImpl<Detector>
 
   float mWion; // Ionization potential
 
-  TRDGeometry* mGeom = nullptr;
+  Geometry* mGeom = nullptr;
 
   template <typename Det>
   friend class o2::base::DetImpl;

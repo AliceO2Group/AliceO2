@@ -19,7 +19,7 @@
 #include "CommonConstants/LHCConstants.h"
 #include "DetectorsBase/GeometryManager.h"
 #include "DetectorsBase/Propagator.h"
-#include "TRDBase/TRDGeometry.h"
+#include "TRDBase/Geometry.h"
 #include "ReconstructionDataFormats/TrackTPCITS.h"
 #include "DataFormatsTRD/Tracklet64.h"
 #include "DataFormatsTRD/TriggerRecord.h"
@@ -50,10 +50,10 @@ void run_trd_tracker(std::string path = "./",
   o2::base::GeometryManager::loadGeometry();
   o2::base::Propagator::initFieldFromGRP(o2::base::NameConf::getGRPFileName());
 
-  auto geo = o2::trd::TRDGeometry::instance();
+  auto geo = o2::trd::Geometry::instance();
   geo->createPadPlaneArray();
   geo->createClusterMatrixArray();
-  const o2::trd::TRDGeometryFlat geoFlat(*geo);
+  const o2::trd::GeometryFlat geoFlat(*geo);
 
   //-------- init GPU reconstruction --------//
   GPUSettingsEvent cfgEvent;                       // defaults should be ok

@@ -16,7 +16,7 @@
 
 #include <array>
 
-#include "TRDBase/TRDGeometry.h"
+#include "TRDBase/Geometry.h"
 #include "TRDBase/ChamberNoise.h"
 #include "TH2D.h"
 

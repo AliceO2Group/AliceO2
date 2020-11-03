@@ -8,8 +8,8 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#ifndef O2_TRDCALPADSTATUS_H
-#define O2_TRDCALPADSTATUS_H
+#ifndef O2_TRD_CALPADSTATUS_H
+#define O2_TRD_CALPADSTATUS_H
 
 #include "DataFormatsTRD/Constants.h"
 
@@ -28,9 +28,9 @@ namespace trd
 //                                                                           //
 ///////////////////////////////////////////////////////////////////////////////
 
-class TRDCalSingleChamberStatus;
+class CalSingleChamberStatus;
 
-class TRDCalPadStatus
+class CalPadStatus
 {
 
  public:
@@ -40,13 +40,13 @@ class TRDCalPadStatus
          kReadSecond = 16,
          kNotConnected = 32 };
 
-  TRDCalPadStatus();
-  TRDCalPadStatus(const Text_t* name, const Text_t* title);
-  TRDCalPadStatus(const TRDCalPadStatus& c);
-  ~TRDCalPadStatus();
-  TRDCalPadStatus& operator=(const TRDCalPadStatus& c);
+  CalPadStatus();
+  CalPadStatus(const Text_t* name, const Text_t* title);
+  CalPadStatus(const CalPadStatus& c);
+  ~CalPadStatus();
+  CalPadStatus& operator=(const CalPadStatus& c);
 
-  void Copy(TRDCalPadStatus& c) const;
+  void Copy(CalPadStatus& c) const;
 
   Bool_t isMasked(Int_t d, Int_t col, Int_t row) const
   {
@@ -70,8 +70,8 @@ class TRDCalPadStatus
   };
   Bool_t checkStatus(Int_t d, Int_t col, Int_t row, Int_t bitMask) const;
 
-  TRDCalSingleChamberStatus* getCalROC(Int_t d) const { return mROC[d]; };
-  TRDCalSingleChamberStatus* getCalROC(Int_t p, Int_t c, Int_t s) const;
+  CalSingleChamberStatus* getCalROC(Int_t d) const { return mROC[d]; };
+  CalSingleChamberStatus* getCalROC(Int_t p, Int_t c, Int_t s) const;
 
   // Plot functions
   TH1F* makeHisto1D();
@@ -84,12 +84,12 @@ class TRDCalPadStatus
   void setName(const std::string newName) { mName = newName; };
 
  protected:
-  TRDCalSingleChamberStatus* mROC[constants::MAXCHAMBER]; //  Array of ROC objects which contain the values per pad
+  CalSingleChamberStatus* mROC[constants::MAXCHAMBER]; //  Array of ROC objects which contain the values per pad
 
  private:
   std::string mName;
   std::string mTitle;
-  ClassDefNV(TRDCalPadStatus, 1); //  TRD calibration class for the single pad status
+  ClassDefNV(CalPadStatus, 1); //  TRD calibration class for the single pad status
 };
 } //namespace trd
 } //namespace o2

@@ -218,10 +218,10 @@ DataProcessorSpec getCATrackerSpec(CompletionPolicyData* policyData, ca::Config 
 
       // Sample code what needs to be done for the TRD Geometry, when we extend this to TRD tracking.
       /*o2::base::GeometryManager::loadGeometry();
-      o2::trd::TRDGeometry gm;
+      o2::trd::Geometry gm;
       gm.createPadPlaneArray();
       gm.createClusterMatrixArray();
-      std::unique_ptr<o2::trd::TRDGeometryFlat> gf(gm);
+      std::unique_ptr<o2::trd::GeometryFlat> gf(gm);
       config.trdGeometry = gf.get();*/
 
       // Configuration is prepared, initialize the tracker.

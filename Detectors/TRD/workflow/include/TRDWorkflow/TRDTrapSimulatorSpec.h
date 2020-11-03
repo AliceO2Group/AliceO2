@@ -52,7 +52,7 @@ class TRDDPLTrapSimulatorTask : public o2::framework::Task
   std::array<TrapSimulator, 8> mTrapSimulator; //the 8 trap simulators for a given padrow.
   FeeParam* mFeeParam = nullptr;
   TrapConfig* mTrapConfig = nullptr;
-  std::unique_ptr<TRDGeometry> mGeo;
+  std::unique_ptr<Geometry> mGeo;
   //  std::unique_ptr<TrapConfigHandler> mTrapConfigHandler;
   int mNumThreads = 8;
   unsigned long mRunNumber = 297595; //run number to anchor simulation to.

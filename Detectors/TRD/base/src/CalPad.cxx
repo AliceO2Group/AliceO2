@@ -14,8 +14,8 @@
 #include <TStyle.h>
 
 #include "TRDBase/CalPad.h"
-#include "TRDBase/TRDGeometry.h"
-#include "TRDBase/TRDPadPlane.h"
+#include "TRDBase/Geometry.h"
+#include "TRDBase/PadPlane.h"
 
 #include "CalROC.h"
 #include "CalDet.h"
@@ -426,7 +426,7 @@ TH2F* CalPad::makeHisto2DSmPl(int sm, int pl, const CalDet* calDet, int typedet,
 
   float kEpsilon = 0.000000000001;
 
-  TRDGeometry* trdGeo = new TRDGeometry();
+  Geometry* trdGeo = new Geometry();
 
   if (type >= 0) {
     float kEpsilonr = 0.005;
@@ -571,7 +571,7 @@ TH2F* CalPad::makeHisto2DCh(int ch, const CalDet* calDet, int typedet, float min
     }
   }
 
-  TRDGeometry* trdGeo = new TRDGeometry();
+  Geometry* trdGeo = new Geometry();
 
   float kEpsilon = 0.000000000001;
 

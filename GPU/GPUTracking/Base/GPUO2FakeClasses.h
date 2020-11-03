@@ -69,7 +69,7 @@ class MatLayerCylSet
 } // namespace base
 namespace trd
 {
-class TRDGeometryFlat
+class GeometryFlat
 {
 };
 } // namespace trd

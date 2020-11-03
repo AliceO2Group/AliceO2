@@ -22,8 +22,8 @@
 //
 #include <vector>
 
-#include "TRDBase/TRDGeometry.h"
-#include "TRDBase/TRDSimParam.h"
+#include "TRDBase/Geometry.h"
+#include "TRDBase/SimParam.h"
 #include "TRDBase/FeeParam.h"
 #include "DataFormatsTRD/Constants.h"
 
@@ -70,8 +70,8 @@ PadParameters<T>::PadParameters(int chamberindex)
 template <class T>
 int PadParameters<T>::init(int chamberindex)
 {
-  mPlane = TRDGeometry::getLayer(chamberindex);
-  mChamber = TRDGeometry::getStack(chamberindex);
+  mPlane = Geometry::getLayer(chamberindex);
+  mChamber = Geometry::getStack(chamberindex);
   if (mChamber == 2) {
     mNrows = constants::NROWC0;
   } else {
@@ -89,8 +89,8 @@ int PadParameters<T>::init(int chamberindex)
 template <class T>
 int PadParameters<T>::reset(int chamberindex, int cols, int rows, std::vector<T>& data)
 {
-  mPlane = TRDGeometry::getLayer(chamberindex);
-  mChamber = TRDGeometry::getStack(chamberindex);
+  mPlane = Geometry::getLayer(chamberindex);
+  mChamber = Geometry::getStack(chamberindex);
   mNrows = rows;
   mNcols = cols;
   // the FeeParam variables need to be unprotected, and dont want to change FeeParam in this PR.

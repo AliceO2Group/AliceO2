@@ -8,7 +8,7 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-//#include "TRDBase/TRDGeometryBase.h"
+//#include "TRDBase/GeometryBase.h"
 //#include "DetectorsCommonDataFormats/DetMatrixCache.h"
 //#include "DetectorsCommonDataFormats/DetID.h"
 
@@ -32,7 +32,7 @@
 #include <memory>   // for std::unique_ptr
 #include "Rtypes.h" // for ClassDef
 
-#include "TRDBase/TRDGeometry.h"
+#include "TRDBase/Geometry.h"
 #include <SimulationDataFormat/MCCompLabel.h>
 
 namespace o2
@@ -125,7 +125,7 @@ class Tracklet
   std::vector<float> getClsCharges() const { return mClsCharges; } //TODO this is a problem, giving a pointer out to an internal class member
 
  protected:
-  TRDGeometry* mGeo; //! TRD geometry
+  Geometry* mGeo; //! TRD geometry
 
   int mHCId;  // half-chamber ID (only transient)
               //  unsigned int mTrackletWord; // tracklet word: PID | Z | deflection length | Y

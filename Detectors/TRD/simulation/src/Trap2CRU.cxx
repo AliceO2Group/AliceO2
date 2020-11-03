@@ -28,7 +28,7 @@
 #include "DetectorsRaw/RawFileWriter.h"
 #include "TRDSimulation/Trap2CRU.h"
 #include "CommonUtils/StringUtils.h"
-#include "TRDBase/TRDCommonParam.h"
+#include "TRDBase/CommonParam.h"
 #include "TFile.h"
 #include "TTree.h"
 #include <TStopwatch.h>

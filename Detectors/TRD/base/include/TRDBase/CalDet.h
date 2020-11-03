@@ -20,8 +20,8 @@
 
 #include "DataFormatsTRD/Constants.h"
 
-class TRDGeometry;
-class TRDPadPlane;
+class Geometry;
+class PadPlane;
 
 class TH1F;
 class TH2F;
@@ -37,9 +37,9 @@ class CalDet
   ~CalDet() = default;
   //
   float getValue(int d) const { return mData[d]; };
-  float getValue(int p, int c, int s) const { return mData[TRDGeometry::getDetector(p, c, s)]; };
+  float getValue(int p, int c, int s) const { return mData[Geometry::getDetector(p, c, s)]; };
   void setValue(int d, float value) { mData[d] = value; };
-  void setValue(int p, int c, int s, float value) { mData[TRDGeometry::getDetector(p, c, s)] = value; };
+  void setValue(int p, int c, int s, float value) { mData[Geometry::getDetector(p, c, s)] = value; };
   void setName(std::string name) { mName = name; }; // these 4 get and set methods are probably not needed (were not in the old code) but are here for completeness
   void setTitle(std::string title) { mTitle = title; };
   std::string& getName() { return mName; };

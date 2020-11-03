@@ -22,7 +22,7 @@
 
 #include "TRDBase/Tracklet.h"
 #include <fairlogger/Logger.h>
-#include "TRDBase/TRDGeometry.h"
+#include "TRDBase/Geometry.h"
 #include <SimulationDataFormat/MCCompLabel.h>
 #include <SimulationDataFormat/MCTruthContainer.h>
 //_____________________________________________________________________________
@@ -32,25 +32,25 @@ using namespace o2::trd;
 Tracklet::Tracklet()
 {
   // constructor
-  mGeo = TRDGeometry::instance();
+  mGeo = Geometry::instance();
 }
 
 Tracklet::Tracklet(int hcid) : mHCId(hcid)
 {
   // constructor
-  mGeo = TRDGeometry::instance();
+  mGeo = Geometry::instance();
 }
 
 Tracklet::Tracklet(int hcid, int rob, int mcm, float pid, float rawslope, float rawoffset, float rawslope4trackletword, float rawoffset4trackletword) : mHCId(hcid), mMCM(mcm), mROB(rob), mPID(pid), mdY(rawslope), mY(rawoffset), mdY4tw(rawslope4trackletword), mY4tw(rawoffset4trackletword)
 {
   // constructor
-  mGeo = TRDGeometry::instance();
+  mGeo = Geometry::instance();
 }
 
 Tracklet::Tracklet(const Tracklet& rhs) : mHCId(rhs.mHCId), mMCM(rhs.mMCM), mROB(rhs.mROB), mQ0(rhs.mQ0), mQ1(rhs.mQ1), mPID(rhs.mPID), mdY(rhs.mdY), mY(rhs.mY), mdY4tw(rhs.mdY4tw), mY4tw(rhs.mY4tw), mNHits(rhs.mNHits), mNHits0(rhs.mNHits0), mNHits1(rhs.mNHits1), mSlope(rhs.mSlope), mOffset(rhs.mOffset), mError(rhs.mError), mNClusters(rhs.mNClusters)
 {
   // copy constructor
-  mGeo = TRDGeometry::instance();
+  mGeo = Geometry::instance();
 
   mResiduals = rhs.mResiduals;
   mClsCharges = rhs.mClsCharges;
