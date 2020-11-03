@@ -146,12 +146,7 @@ struct CorrelationTask {
         continue;
       }
 
-      double eventValues[3];
-      eventValues[0] = track1.pt();
-      eventValues[1] = centrality;
-      eventValues[2] = collision.posZ();
-
-      same->getTriggerHist()->Fill(eventValues, CorrelationContainer::kCFStepReconstructed);
+      same->getTriggerHist()->Fill(CorrelationContainer::kCFStepReconstructed, track1.pt(), centrality, collision.posZ());
       //mixed->getTriggerHist()->Fill(eventValues, CorrelationContainer::kCFStepReconstructed);
 
       for (auto& track2 : tracks) {
@@ -178,24 +173,14 @@ struct CorrelationTask {
           continue;
         }
 
-        double values[6] = {0};
+        float deltaPhi = track1.phi() - track2.phi();
+        if (deltaPhi > 1.5 * TMath::Pi())
+          deltaPhi -= TMath::TwoPi();
+        if (deltaPhi < -0.5 * TMath::Pi())
+          deltaPhi += TMath::TwoPi();
 
-        values[0] = track1.eta() - track2.eta();
-        values[1] = track2.pt();
-        values[2] = track1.pt();
-        values[3] = centrality;
-
-        values[4] = track1.phi() - track2.phi();
-        if (values[4] > 1.5 * TMath::Pi()) {
-          values[4] -= TMath::TwoPi();
-        }
-        if (values[4] < -0.5 * TMath::Pi()) {
-          values[4] += TMath::TwoPi();
-        }
-
-        values[5] = collision.posZ();
-
-        same->getPairHist()->Fill(values, CorrelationContainer::kCFStepReconstructed);
+        same->getPairHist()->Fill(CorrelationContainer::kCFStepReconstructed,
+                                  track1.eta() - track2.eta(), track2.pt(), track1.pt(), centrality, deltaPhi, collision.posZ());
         //mixed->getPairHist()->Fill(values, CorrelationContainer::kCFStepReconstructed);
       }
     }

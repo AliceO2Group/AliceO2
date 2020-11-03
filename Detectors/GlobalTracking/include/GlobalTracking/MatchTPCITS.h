@@ -46,6 +46,7 @@
 #include "ITSReconstruction/RecoGeomHelper.h"
 #include "TPCFastTransform.h"
 #include "GlobalTracking/MatchTPCITSParams.h"
+#include "CommonDataFormat/FlatHisto2D.h"
 
 class TTree;
 
@@ -277,7 +278,7 @@ class MatchTPCITS
   using TPCTransform = o2::gpu::TPCFastTransform;
   using BracketF = o2::math_utils::Bracket<float>;
   using BracketIR = o2::math_utils::Bracket<o2::InteractionRecord>;
-  using Params = o2::globaltracking::MatchITSTPCParams;
+  using Params = o2::globaltracking::MatchTPCITSParams;
   using MatCorrType = o2::base::Propagator::MatCorrType;
 
   MatchTPCITS(); // std::unique_ptr to forward declared type needs constructor / destructor in .cxx
@@ -352,6 +353,15 @@ class MatchTPCITS
   {
     mMCTruthON = v;
   }
+
+  ///< request VDrift calibration
+  void setVDriftCalib(bool v)
+  {
+    mVDriftCalibOn = v;
+  }
+
+  ///< get histo for tgl differences for VDrift calibration
+  auto getHistoDTgl() { return mHistoDTgl.get(); }
 
   ///< set input ITS tracks
   void setITSTracksInp(const gsl::span<const o2::its::TrackITS> inp)
@@ -509,7 +519,7 @@ class MatchTPCITS
   bool isDisabledITS(const TrackLocITS& t) const;
 
   int compareTPCITSTracks(const TrackLocITS& tITS, const TrackLocTPC& tTPC, float& chi2) const;
-  float getPredictedChi2NoZ(const o2::track::TrackParCov& tr1, const o2::track::TrackParCov& tr2) const;
+  float getPredictedChi2NoZ(const o2::track::TrackParCov& trITS, const o2::track::TrackParCov& trTPC) const;
   bool propagateToRefX(o2::track::TrackParCov& trc);
   void addLastTrackCloneForNeighbourSector(int sector);
 
@@ -634,6 +644,9 @@ class MatchTPCITS
 
   float mMinTPCTrackPtInv = 999.; ///< cutoff on TPC track inverse pT
   float mMinITSTrackPtInv = 999.; ///< cutoff on ITS track inverse pT
+
+  bool mVDriftCalibOn = false;                                ///< flag to produce VDrift calibration data
+  std::unique_ptr<o2::dataformats::FlatHisto2D_f> mHistoDTgl; ///< histo for VDrift calibration data
 
   std::unique_ptr<TPCTransform> mTPCTransform;         ///< TPC cluster transformation
   std::unique_ptr<o2::gpu::GPUParam> mTPCClusterParam; ///< TPC clusters error param

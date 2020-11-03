@@ -8,23 +8,10 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-/// \file   MIDWorkflow/RecoWorkflowMC.h
-/// \brief  Definition of the reconstruction workflow for MID MC
-/// \author Diego Stocco <Diego.Stocco at cern.ch>
-/// \date   11 April 2019
+/// @file  FlatHisto1D.cxx
+/// \brief 1D messeageable histo class
+/// \author ruben.shahoyan@cern.ch
 
-#ifndef O2_MID_RECOWORKFLOWMCSPEC_H
-#define O2_MID_RECOWORKFLOWMCSPEC_H
+#include "CommonDataFormat/FlatHisto1D.h"
 
-#include "Framework/RootSerializationSupport.h"
-#include "Framework/WorkflowSpec.h"
-
-namespace o2
-{
-namespace mid
-{
-framework::WorkflowSpec getRecoWorkflowMC();
-}
-} // namespace o2
-
-#endif //O2_MID_RECOWORKFLOWMCSPEC_H
+using namespace o2::dataformats;

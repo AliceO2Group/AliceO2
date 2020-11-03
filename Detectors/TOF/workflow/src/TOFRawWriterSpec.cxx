@@ -76,8 +76,9 @@ void RawWriter::run(ProcessingContext& pc)
   std::vector<std::vector<o2::tof::Digit>> digitWindows;
 
   for (int i = 0; i < nwindow; i += nwindowperorbit) { // encode 3 tof windows (1 orbit)
-    if (verbosity)
+    if (verbosity) {
       printf("----------\nwindow = %d - %d\n----------\n", i, i + nwindowperorbit - 1);
+    }
 
     digitWindows.clear();
 
@@ -85,8 +86,9 @@ void RawWriter::run(ProcessingContext& pc)
     for (int j = i; j < i + nwindowperorbit; j++) {
       if (j < nwindow) {
         digitRO.clear();
-        for (int id = 0; id < row->at(j).size(); id++)
+        for (int id = 0; id < row->at(j).size(); id++) {
           digitRO.push_back((*digits)[row->at(j).first() + id]);
+        }
         digitWindows.push_back(digitRO);
       } else {
         digitWindows.push_back(emptyWindow);

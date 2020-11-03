@@ -68,16 +68,17 @@ void Digit::getPhiAndEtaIndex(int& phi, int& eta) const
   chan = getChannel();                // note that inside the strip the digits are ordered per channel number
   Geo::getVolumeIndices(chan, detId); // Get volume index from channel index
   eta = detId[2] /*strip*/ * 2 + detId[3] /*pad Z*/;
-  if (detId[1] /*module*/ == 0)
+  if (detId[1] /*module*/ == 0) {
     eta += 0;
-  else if (detId[1] == 1)
+  } else if (detId[1] == 1) {
     eta += 38;
-  else if (detId[1] == 2)
+  } else if (detId[1] == 2) {
     eta += 76;
-  else if (detId[1] == 3)
+  } else if (detId[1] == 3) {
     eta += 106;
-  else if (detId[1] == 4)
+  } else if (detId[1] == 4) {
     eta += 144;
+  }
   phi = detId[0] /*phi sector*/ * 48 + detId[4] /*pad x*/;
 
   return;

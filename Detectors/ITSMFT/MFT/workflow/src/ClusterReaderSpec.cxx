@@ -45,8 +45,9 @@ void ClusterReader::init(InitContext& ic)
 
 void ClusterReader::run(ProcessingContext& pc)
 {
-  if (mState != 1)
+  if (mState != 1) {
     return;
+  }
 
   std::unique_ptr<TTree> tree((TTree*)mFile->Get("o2sim"));
 

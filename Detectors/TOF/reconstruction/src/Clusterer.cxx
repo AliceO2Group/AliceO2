@@ -74,8 +74,9 @@ void Clusterer::processStrip(std::vector<Cluster>& clusters, MCLabelContainer co
     //    LOG(DEBUG) << "Checking digit " << idig;
     Digit* dig = &mStripData.digits[idig];
     //printf("checking digit %d - alreadyUsed=%d   -  problematic=%d\n",idig,dig->isUsedInCluster(),dig->isProblematic()); // toberem
-    if (dig->isUsedInCluster() || dig->isProblematic())
+    if (dig->isUsedInCluster() || dig->isProblematic()) {
       continue; // the digit was already used to build a cluster, or it was declared problematic
+    }
 
     mNumberOfContributingDigits = 0;
     dig->getPhiAndEtaIndex(iphi, ieta);
@@ -93,20 +94,23 @@ void Clusterer::processStrip(std::vector<Cluster>& clusters, MCLabelContainer co
 
     for (int idigNext = idig + 1; idigNext < mStripData.digits.size(); idigNext++) {
       Digit* digNext = &mStripData.digits[idigNext];
-      if (digNext->isUsedInCluster() || dig->isProblematic())
+      if (digNext->isUsedInCluster() || dig->isProblematic()) {
         continue; // the digit was already used to build a cluster, or was problematic
+      }
       // check if the TOF time are close enough to be merged; if not, it means that nothing else will contribute to the cluster (since digits are ordered in time)
       double timeDigNext = digNext->getCalibratedTime(); // in ps
       LOG(DEBUG) << "Time difference = " << timeDigNext - timeDig;
-      if (timeDigNext - timeDig > 500 /*in ps*/)
+      if (timeDigNext - timeDig > 500 /*in ps*/) {
         break;
+      }
       digNext->getPhiAndEtaIndex(iphi2, ieta2);
 
       // check if the fired pad are close in space
       LOG(DEBUG) << "phi difference = " << iphi - iphi2;
       LOG(DEBUG) << "eta difference = " << ieta - ieta2;
-      if ((TMath::Abs(iphi - iphi2) > 1) || (TMath::Abs(ieta - ieta2) > 1))
+      if ((TMath::Abs(iphi - iphi2) > 1) || (TMath::Abs(ieta - ieta2) > 1)) {
         continue;
+      }
 
       // if we are here, the digit contributes to the cluster
       addContributingDigit(digNext);
@@ -125,17 +129,17 @@ void Clusterer::addContributingDigit(Digit* dig)
   // adding a digit to the array that stores the contributing ones
 
   if (mNumberOfContributingDigits == 6) {
-    LOG(WARNING) << "The cluster has already 6 digits associated to it, we cannot add more; returning without doing anything";
+    LOG(DEBUG) << "The cluster has already 6 digits associated to it, we cannot add more; returning without doing anything";
 
     int phi, eta;
     for (int i = 0; i < mNumberOfContributingDigits; i++) {
       mContributingDigit[i]->getPhiAndEtaIndex(phi, eta);
-      LOG(WARNING) << "digit already in " << i << ", channel = " << mContributingDigit[i]->getChannel() << ",phi,eta = (" << phi << "," << eta << "), TDC = " << mContributingDigit[i]->getTDC() << ", calibrated time = " << mContributingDigit[i]->getCalibratedTime();
+      LOG(DEBUG) << "digit already in " << i << ", channel = " << mContributingDigit[i]->getChannel() << ",phi,eta = (" << phi << "," << eta << "), TDC = " << mContributingDigit[i]->getTDC() << ", calibrated time = " << mContributingDigit[i]->getCalibratedTime();
     }
 
     dig->getPhiAndEtaIndex(phi, eta);
-    LOG(WARNING) << "skipped digit"
-                 << ", channel = " << dig->getChannel() << ",phi,eta = (" << phi << "," << eta << "), TDC = " << dig->getTDC() << ", calibrated time = " << dig->getCalibratedTime();
+    LOG(DEBUG) << "skipped digit"
+               << ", channel = " << dig->getChannel() << ",phi,eta = (" << phi << "," << eta << "), TDC = " << dig->getTDC() << ", calibrated time = " << dig->getCalibratedTime();
 
     dig->setIsUsedInCluster(); // flag is at used in any case
 

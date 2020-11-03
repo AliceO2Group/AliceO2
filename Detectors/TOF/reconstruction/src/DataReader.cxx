@@ -41,8 +41,9 @@ Bool_t DigitDataReader::getNextStripData(StripData& stripData)
 
   while (mIdx < mDigitArray->size()) {
     mLastDigit = &((*mDigitArray)[mIdx++]);
-    if (stripData.stripID != mLastDigit->getChannel() / Geo::NPADS)
+    if (stripData.stripID != mLastDigit->getChannel() / Geo::NPADS) {
       break;
+    }
     stripData.digits.emplace_back(*mLastDigit);
     mLastDigit = nullptr;
   }

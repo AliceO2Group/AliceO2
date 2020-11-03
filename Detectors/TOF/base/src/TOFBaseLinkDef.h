@@ -23,4 +23,5 @@
 #pragma link C++ class vector < o2::tof::ReadoutWindowData> + ;
 #pragma link C++ class o2::tof::DigitHeader + ;
 #pragma link C++ class vector < o2::tof::DigitHeader> + ;
+#pragma link C++ class vector < unsigned int> + ;
 #endif

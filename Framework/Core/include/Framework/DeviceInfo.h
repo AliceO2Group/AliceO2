@@ -12,7 +12,6 @@
 
 #include "Framework/LogParsingHelpers.h"
 #include "Framework/Metric2DViewIndex.h"
-#include "Framework/Variant.h"
 #include "Framework/DeviceState.h"
 
 #include <cstddef>

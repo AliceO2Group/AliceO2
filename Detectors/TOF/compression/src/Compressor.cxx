@@ -135,8 +135,9 @@ bool Compressor<RDH, verbose>::processHBF()
     rdh = reinterpret_cast<const RDH*>(reinterpret_cast<const char*>(rdh) + offsetToNext);
 
     /** check next RDH is within buffer **/
-    if (reinterpret_cast<const char*>(rdh) < mDecoderBuffer + mDecoderBufferSize)
+    if (reinterpret_cast<const char*>(rdh) < mDecoderBuffer + mDecoderBufferSize) {
       continue;
+    }
 
     /** otherwise return **/
     return true;
@@ -172,8 +173,9 @@ bool Compressor<RDH, verbose>::processHBF()
     mEncoderPointer = mEncoderPointerStart;
   }
 
-  if (mDecoderError)
+  if (mDecoderError) {
     mErrorCounter++;
+  }
 
   /** updated encoder RDH open **/
   mEncoderRDH->memorySize = reinterpret_cast<char*>(mEncoderPointer) - reinterpret_cast<char*>(mEncoderRDH);
@@ -198,8 +200,9 @@ bool Compressor<RDH, verbose>::processHBF()
   mDecoderPointer = reinterpret_cast<const uint32_t*>(reinterpret_cast<const char*>(rdh) + rdh->offsetToNext);
 
   /** check next RDH is within buffer **/
-  if (reinterpret_cast<const char*>(mDecoderPointer) < mDecoderBuffer + mDecoderBufferSize)
+  if (reinterpret_cast<const char*>(mDecoderPointer) < mDecoderBuffer + mDecoderBufferSize) {
     return false;
+  }
 
   /** otherwise return **/
   return true;
@@ -369,14 +372,16 @@ bool Compressor<RDH, verbose>::processDRM()
 
     /** LTM global header detected **/
     if (IS_LTM_GLOBAL_HEADER(*mDecoderPointer)) {
-      if (processLTM())
+      if (processLTM()) {
         return true;
+      }
     }
 
     /** TRM Data Header detected **/
     if (IS_TRM_GLOBAL_HEADER(*mDecoderPointer) && GET_TRMDATAHEADER_SLOTID(*mDecoderPointer) > 2) {
-      if (processTRM())
+      if (processTRM()) {
         return true;
+      }
       continue;
     }
 
@@ -483,8 +488,9 @@ bool Compressor<RDH, verbose>::processDRM()
     }
 
     /** decode error detected, be paranoid **/
-    if (decoderParanoid())
+    if (decoderParanoid()) {
       return true;
+    }
 
     decoderNext();
 
@@ -571,14 +577,16 @@ bool Compressor<RDH, verbose>::processTRM()
 
     /** TRM Chain-A Header detected **/
     if (IS_TRM_CHAINA_HEADER(*mDecoderPointer) && GET_TRMCHAINHEADER_SLOTID(*mDecoderPointer) == slotId) {
-      if (processTRMchain(itrm, 0))
+      if (processTRMchain(itrm, 0)) {
         return true;
+      }
     }
 
     /** TRM Chain-B Header detected **/
     if (IS_TRM_CHAINB_HEADER(*mDecoderPointer) && GET_TRMCHAINHEADER_SLOTID(*mDecoderPointer) == slotId) {
-      if (processTRMchain(itrm, 1))
+      if (processTRMchain(itrm, 1)) {
         return true;
+      }
     }
 
     /** TRM Data Trailer detected **/
@@ -609,8 +617,9 @@ bool Compressor<RDH, verbose>::processTRM()
       }
 
       /** encoder Spider **/
-      if (mDecoderSummary.hasHits[itrm][0] || mDecoderSummary.hasHits[itrm][1])
+      if (mDecoderSummary.hasHits[itrm][0] || mDecoderSummary.hasHits[itrm][1]) {
         encoderSpider(itrm);
+      }
 
       /** success **/
       return false;
@@ -623,8 +632,9 @@ bool Compressor<RDH, verbose>::processTRM()
       printf("%s %08x [ERROR] breaking TRM decode stream %s \n", colorRed, *mDecoderPointer, colorReset);
     }
     /** decode error detected, be paranoid **/
-    if (decoderParanoid())
+    if (decoderParanoid()) {
       return true;
+    }
 
     decoderNext();
     return false;
@@ -721,8 +731,9 @@ bool Compressor<RDH, verbose>::processTRMchain(int itrm, int ichain)
       printf("%s %08x [ERROR] breaking TRM Chain-%c decode stream %s \n", colorRed, *mDecoderPointer, ichain == 0 ? 'A' : 'B', colorReset);
     }
     /** decode error detected, be paranoid **/
-    if (decoderParanoid())
+    if (decoderParanoid()) {
       return true;
+    }
 
     decoderNext();
     break;
@@ -760,22 +771,25 @@ void Compressor<RDH, verbose>::encoderSpider(int itrm)
   /** loop over TRM chains **/
   for (int ichain = 0; ichain < 2; ++ichain) {
 
-    if (!mDecoderSummary.hasHits[itrm][ichain])
+    if (!mDecoderSummary.hasHits[itrm][ichain]) {
       continue;
+    }
 
     /** loop over TDCs **/
     for (int itdc = 0; itdc < 15; ++itdc) {
 
       auto nhits = mDecoderSummary.trmDataHits[ichain][itdc];
-      if (nhits == 0)
+      if (nhits == 0) {
         continue;
+      }
 
       /** loop over hits **/
       for (int ihit = 0; ihit < nhits; ++ihit) {
 
         auto lhit = *mDecoderSummary.trmDataHit[ichain][itdc][ihit];
-        if (!IS_TDC_HIT_LEADING(lhit)) // must be a leading hit
+        if (!IS_TDC_HIT_LEADING(lhit)) { // must be a leading hit
           continue;
+        }
 
         auto chan = GET_TRMDATAHIT_CHANID(lhit);
         auto hitTime = GET_TRMDATAHIT_TIME(lhit);
@@ -803,10 +817,12 @@ void Compressor<RDH, verbose>::encoderSpider(int itrm)
         mSpiderSummary.FramePackedHit[iframe][phit] |= ichain << 31;
         mSpiderSummary.nFramePackedHits[iframe]++;
 
-        if (iframe < firstFilledFrame)
+        if (iframe < firstFilledFrame) {
           firstFilledFrame = iframe;
-        if (iframe > lastFilledFrame)
+        }
+        if (iframe > lastFilledFrame) {
           lastFilledFrame = iframe;
+        }
       }
 
       mDecoderSummary.trmDataHits[ichain][itdc] = 0;
@@ -817,8 +833,9 @@ void Compressor<RDH, verbose>::encoderSpider(int itrm)
   for (int iframe = firstFilledFrame; iframe < lastFilledFrame + 1; iframe++) {
 
     /** check if frame is empty **/
-    if (mSpiderSummary.nFramePackedHits[iframe] == 0)
+    if (mSpiderSummary.nFramePackedHits[iframe] == 0) {
       continue;
+    }
 
     // encode Frame Header
     *mEncoderPointer = 0x00000000;
@@ -930,8 +947,9 @@ bool Compressor<RDH, verbose>::checkerCheck()
   uint32_t locEvCnt = GET_DRMDATATRAILER_LOCEVCNT(*mDecoderSummary.drmDataTrailer);
 
   /** check RDH **/
-  if (!mDecoderCONET)
+  if (!mDecoderCONET) {
     checkerCheckRDH();
+  }
 
   /** check enable/participating mask **/
   if (verbose && mCheckerVerbose) {
@@ -979,8 +997,9 @@ bool Compressor<RDH, verbose>::checkerCheck()
 
   /** check DRM event words (careful with pointers because we have 64 bits extra! only for CRU data! **/
   auto drmEventWords = mDecoderSummary.drmDataTrailer - mDecoderSummary.drmDataHeader + 1;
-  if (!mDecoderCONET)
+  if (!mDecoderCONET) {
     drmEventWords -= (drmEventWords / 4) * 2;
+  }
   drmEventWords -= 6;
   if (verbose && mCheckerVerbose) {
     printf(" --- Checking DRM declared/detected event words: %u/%ld \n", GET_DRMDATAHEADER_EVENTWORDS(*mDecoderSummary.drmDataHeader), drmEventWords);
@@ -1058,8 +1077,9 @@ bool Compressor<RDH, verbose>::checkerCheck()
         if (verbose && mCheckerVerbose) {
           printf(" Non-participating header found (slotId=%u) \n", slotId);
         }
-      } else
+      } else {
         continue;
+      }
     }
 
     /** check TRM bit in DRM fault mask **/
@@ -1138,8 +1158,9 @@ bool Compressor<RDH, verbose>::checkerCheck()
 
     /** check TRM event words (careful with pointers because we have 64 bits extra! only for CRU data! **/
     auto trmEventWords = mDecoderSummary.trmDataTrailer[itrm] - mDecoderSummary.trmDataHeader[itrm] + 1;
-    if (!mDecoderCONET)
+    if (!mDecoderCONET) {
       trmEventWords -= (trmEventWords / 4) * 2;
+    }
     if (verbose && mCheckerVerbose) {
       printf(" --- Checking TRM (slotId=%u) declared/detected event words: %d/%ld \n", slotId, GET_TRMDATAHEADER_EVENTWORDS(*mDecoderSummary.trmDataHeader[itrm]), trmEventWords);
     }
@@ -1240,8 +1261,9 @@ bool Compressor<RDH, verbose>::checkerCheck()
   } /** end of loop over TRMs **/
 
   /** check current diagnostic word **/
-  if (mCheckerSummary.DiagnosticWord[iword] & 0xFFFFFFF0)
+  if (mCheckerSummary.DiagnosticWord[iword] & 0xFFFFFFF0) {
     mCheckerSummary.nDiagnosticWords++;
+  }
 
   if (verbose && mCheckerVerbose) {
     std::cout << colorBlue
@@ -1386,8 +1408,9 @@ void Compressor<RDH, verbose>::checkSummary()
 #ifndef CHECKER_COUNTER
   return;
 #endif
-  if (mEventCounter == 0)
+  if (mEventCounter == 0) {
     return;
+  }
   printf("\n");
   printf("    DRM ");
   float drmheaders = 100. * (float)mDRMCounters.Headers / (float)mEventCounter;

@@ -8,23 +8,22 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-/// \file   MIDWorkflow/RecoWorkflow.h
-/// \brief  Definition of the reconstruction workflow for MID
+/// \file   MIDWorkflow/ZeroSuppressionSpec.h
+/// \brief  MID zero suppression spec
 /// \author Diego Stocco <Diego.Stocco at cern.ch>
-/// \date   11 April 2019
+/// \date   23 October 2020
 
-#ifndef O2_MID_RECOWORKFLOWSPEC_H
-#define O2_MID_RECOWORKFLOWSPEC_H
+#ifndef O2_MID_ZEROSUPPRESSIONSPEC_H
+#define O2_MID_ZEROSUPPRESSIONSPEC_H
 
-#include "Framework/RootSerializationSupport.h"
-#include "Framework/WorkflowSpec.h"
+#include "Framework/DataProcessorSpec.h"
 
 namespace o2
 {
 namespace mid
 {
-framework::WorkflowSpec getRecoWorkflow(bool ctfInput, bool disableRootOut);
+framework::DataProcessorSpec getZeroSuppressionSpec(bool useMC = true);
 }
 } // namespace o2
 
-#endif //O2_MID_RECOWORKFLOWSPEC_H
+#endif //O2_MID_ZEROSUPPRESSIONSPEC_H

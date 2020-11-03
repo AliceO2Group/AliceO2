@@ -119,16 +119,18 @@ class Param
   static Int_t InHVSector(float y); //find HV sector
   static Int_t Radiator(float y)
   {
-    if (InHVSector(y) < 0)
+    if (InHVSector(y) < 0) {
       return -1;
+    }
     return InHVSector(y) / 2;
   }
 
   // height in the radiator to estimate temperature from gradient
   static double HinRad(float y)
   {
-    if (Radiator(y) < 0)
+    if (Radiator(y) < 0) {
       return -1;
+    }
     return y - Radiator(y) * fgkMinPcY[Radiator(y)];
   }
   //is point inside chamber boundaries?

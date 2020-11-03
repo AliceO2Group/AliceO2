@@ -86,7 +86,7 @@ class ConstMCTruthContainer : public std::vector<char>
     source += sizeof(FlatHeader);
     const size_t headerSize = flatheader.sizeofHeaderElement * flatheader.nofHeaderElements;
     source += headerSize;
-    return (TruthElement const* const)source;
+    return (TruthElement const*)source;
   }
 
   FlatHeader const& getHeader() const
@@ -100,7 +100,7 @@ class ConstMCTruthContainer : public std::vector<char>
   {
     auto* source = &(*this)[0];
     source += sizeof(FlatHeader);
-    return (MCTruthHeaderElement const* const)source;
+    return (MCTruthHeaderElement const*)source;
   }
 };
 } // namespace dataformats
@@ -185,7 +185,7 @@ class ConstMCTruthContainerView
     source += sizeof(FlatHeader);
     const size_t headerSize = flatheader.sizeofHeaderElement * flatheader.nofHeaderElements;
     source += headerSize;
-    return (TruthElement const* const)source;
+    return (TruthElement const*)source;
   }
 
   FlatHeader const& getHeader() const
@@ -199,7 +199,7 @@ class ConstMCTruthContainerView
   {
     auto* source = &(mStorage)[0];
     source += sizeof(FlatHeader);
-    return (MCTruthHeaderElement const* const)source;
+    return (MCTruthHeaderElement const*)source;
   }
 };
 

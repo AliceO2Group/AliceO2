@@ -24,12 +24,9 @@ using outputObjects = std::vector<std::pair<uint32_t, std::vector<std::string>>>
 
 /// Helpers to create a few general data processors
 struct CommonDataProcessors {
-  /// Match all inputs of kind HIST and write them to a ROOT file,
-  /// one root file per originating task.
-  static DataProcessorSpec getHistogramRegistrySink(outputObjects const& objmap, const outputTasks& tskmap);
   /// Match all inputs of kind ATSK and write them to a ROOT file,
   /// one root file per originating task.
-  static DataProcessorSpec getOutputObjSink(outputObjects const& objmap, const outputTasks& tskmap);
+  static DataProcessorSpec getOutputObjHistSink(outputObjects const& objmap, const outputTasks& tskmap);
   /// Given the list of @a danglingInputs @return a DataProcessor which does
   /// a binary dump for all the dangling inputs matching the Timeframe
   /// lifetime. @a unmatched will be filled with all the InputSpecs which are

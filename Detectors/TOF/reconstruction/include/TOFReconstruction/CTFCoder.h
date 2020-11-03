@@ -164,14 +164,15 @@ void CTFCoder::decompress(const CompressedInfos& cc, VROF& rofRecVec, VDIG& cdig
     rofRec.setNEntries(cc.ndigROF[irof]);
     rofRec.setFirstEntryDia(ndiagnostic);
     rofRec.setNEntriesDia(cc.ndiaROF[irof]);
-    for (int icrate = 0; icrate < 72; icrate++)
+    for (int icrate = 0; icrate < 72; icrate++) {
       rofRec.setDiagnosticInCrate(icrate, cc.ndiaCrate[irof * 72 + icrate] - 1); // -1 because number were traslated since (-1 means crate not available)
-
+    }
     firstEntry += cc.ndigROF[irof];
     ndiagnostic += cc.ndiaROF[irof];
 
-    if (!cc.ndigROF[irof])
+    if (!cc.ndigROF[irof]) {
       continue;
+    }
 
     // restore hit data
     uint ctimeframe = 0;

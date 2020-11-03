@@ -411,11 +411,13 @@ void createSlats()
 
     // compute the LV cable length
     float cableHalfLength = (typeName.find('3') < typeName.size()) ? kSt45SupportHalfLength : kCh5SupportHalfLength;
-    if (typeName == "122200N")
+    if (typeName == "122200N") {
       cableHalfLength = kCh6SupportHalfLength;
+    }
     cableHalfLength -= halfLength;
-    if (typeName == "122330N")
+    if (typeName == "122330N") {
       cableHalfLength -= kGasLength / 2;
+    }
 
     float rightSpacerHalfHeight = kSlatPanelHalfHeight;
     if (isRounded(typeName)) {
@@ -542,8 +544,9 @@ void createSlats()
     x = halfLength - kVertSpacerHalfLength;
     slat->AddNode(leftSpacer, 1, new TGeoTranslation(-(x - panelShift), 0., 0.));
     // don't place a right spacer for S(N)R1 slat
-    if (typeName.back() != '1')
+    if (typeName.back() != '1') {
       slat->AddNode(rightSpacer, 1, new TGeoTranslation(x + panelShift, 0., 0.));
+    }
 
     // place the LV cables (top and bottom)
     auto LVcable = gGeoManager->MakeBox(Form("%s LV cable", name), assertMedium(Medium::Copper), cableHalfLength + kVertSpacerHalfLength, kLVCableHalfHeight, kLVCableHalfThickness);
@@ -644,8 +647,9 @@ void buildHalfChambers(TGeoVolume& topVolume)
   // loop over the objects (half-chambers) of the array
   for (const auto& halfCh : hChs.GetArray()) {
     // check that "halfCh" is an object
-    if (!halfCh.IsObject())
+    if (!halfCh.IsObject()) {
       throw runtime_error("Can't create the half-chambers : wrong Value input");
+    }
 
     int moduleID = halfCh["moduleID"].GetInt();
     const string name = halfCh["name"].GetString();
@@ -657,15 +661,17 @@ void buildHalfChambers(TGeoVolume& topVolume)
 
     // place the support panel corresponding to the chamber number
     auto supRot = new TGeoRotation();
-    if (moduleID % 2)
+    if (moduleID % 2) {
       supRot->RotateY(180.);
+    }
     halfChVol->AddNode(gGeoManager->GetVolume(Form("Chamber %d support panel", nCh)), moduleID, supRot);
 
     // place the slat volumes on the different nodes of the half-chamber
     for (const auto& slat : halfCh["nodes"].GetArray()) {
       // check that "slat" is an object
-      if (!slat.IsObject())
+      if (!slat.IsObject()) {
         throw runtime_error("Can't create the slat : wrong Value input");
+      }
 
       int detID = slat["detID"].GetInt();
 

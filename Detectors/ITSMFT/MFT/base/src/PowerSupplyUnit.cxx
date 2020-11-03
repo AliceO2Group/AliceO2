@@ -567,10 +567,11 @@ TGeoVolumeAssembly* PowerSupplyUnit::create()
     combtrans_DCDC_cover_inner_box_left->RegisterYourself();
     combtrans_DCDC_cover_inner_box_right->RegisterYourself();
 
-    if (iB == 0)
+    if (iB == 0) {
       name_DCDC_cover_box += Form("DCDC_cover_outer_box:combtrans_DCDC_cover_outer_box_No%d - DCDC_cover_inner_box:combtrans_DCDC_cover_inner_box_No%d", 2 * iB, 2 * iB);
-    else
+    } else {
       name_DCDC_cover_box += Form("+DCDC_cover_outer_box:combtrans_DCDC_cover_outer_box_No%d - DCDC_cover_inner_box:combtrans_DCDC_cover_inner_box_No%d", 2 * iB, 2 * iB);
+    }
     name_DCDC_cover_box += Form("+DCDC_cover_outer_box:combtrans_DCDC_cover_outer_box_No%d - DCDC_cover_inner_box:combtrans_DCDC_cover_inner_box_No%d", 2 * iB + 1, 2 * iB + 1);
   }
 
@@ -629,10 +630,11 @@ TGeoVolumeAssembly* PowerSupplyUnit::create()
     combtrans_DCDC_connector_box_left->RegisterYourself();
     combtrans_DCDC_connector_box_right->RegisterYourself();
 
-    if (iB == 0)
+    if (iB == 0) {
       name_DCDC_connector_box += Form("DCDC_connector_box:combtrans_DCDC_connector_box_No%d", 2 * iB);
-    else
+    } else {
       name_DCDC_connector_box += Form("+DCDC_connector_box:combtrans_DCDC_connector_box_No%d", 2 * iB);
+    }
     name_DCDC_connector_box += Form("+DCDC_connector_box:combtrans_DCDC_connector_box_No%d", 2 * iB + 1);
   }
 
@@ -1060,10 +1062,11 @@ TGeoVolumeAssembly* PowerSupplyUnit::create()
     combtrans_coil_torus_left->RegisterYourself();
     combtrans_coil_torus_right->RegisterYourself();
 
-    if (iB == 0)
+    if (iB == 0) {
       name_coil += Form("coil_torus:combtrans_coil_torus_No%d", 2 * iB);
-    else
+    } else {
       name_coil += Form("+coil_torus:combtrans_coil_torus_No%d", 2 * iB);
+    }
     name_coil += Form("+coil_torus:combtrans_coil_torus_No%d", 2 * iB + 1);
   }
 

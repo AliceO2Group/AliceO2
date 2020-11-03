@@ -32,6 +32,7 @@
 #include "Framework/SourceInfoHeader.h"
 #include "Framework/Logger.h"
 #include "Framework/Monitoring.h"
+#include "PropertyTreeHelpers.h"
 #include "DataProcessingStatus.h"
 #include "DataProcessingHelpers.h"
 #include "DataRelayerHelpers.h"
@@ -221,9 +222,21 @@ void DataProcessingDevice::Init()
   auto configStore = std::move(std::make_unique<ConfigParamStore>(mSpec.options, std::move(retrievers)));
   configStore->preload();
   configStore->activate();
+  using boost::property_tree::ptree;
+
   /// Dump the configuration so that we can get it from the driver.
   for (auto& entry : configStore->store()) {
     LOG(INFO) << "[CONFIG] " << entry.first << "=" << configStore->store().get<std::string>(entry.first) << " 1 " << configStore->provenance(entry.first.c_str());
+    PropertyTreeHelpers::WalkerFunction printer = [&configStore, topLevel = entry.first](ptree const& parent, ptree::path_type childPath, ptree const& child) {
+      // FIXME: not clear why we get invoked for the root entry
+      //        and twice for each node. It nevertheless works
+      //        because the net result is that we call twice
+      //        ptree put.
+      if (childPath.dump() != "") {
+        LOG(INFO) << "[CONFIG] " << topLevel << "." << childPath.dump() << "=" << child.data() << " 1 " << configStore->provenance(topLevel.c_str());
+      }
+    };
+    PropertyTreeHelpers::traverse(entry.second, printer);
   }
   mConfigRegistry = std::make_unique<ConfigParamRegistry>(std::move(configStore));
 
@@ -438,11 +451,14 @@ bool DataProcessingDevice::ConditionalRun()
 
   // Notify on the main thread the new region callbacks, making sure
   // no callback is issued if there is something still processing.
-  if (mPendingRegionInfos.empty() == false) {
-    std::vector<FairMQRegionInfo> toBeNotified;
-    toBeNotified.swap(mPendingRegionInfos); // avoid any MT issue.
-    for (auto const& info : toBeNotified) {
-      mServiceRegistry.get<CallbackService>()(CallbackService::Id::RegionInfoCallback, info);
+  {
+    std::lock_guard<std::mutex> lock(mRegionInfoMutex);
+    if (mPendingRegionInfos.empty() == false) {
+      std::vector<FairMQRegionInfo> toBeNotified;
+      toBeNotified.swap(mPendingRegionInfos); // avoid any MT issue.
+      for (auto const& info : toBeNotified) {
+        mServiceRegistry.get<CallbackService>()(CallbackService::Id::RegionInfoCallback, info);
+      }
     }
   }
   // Synchronous execution of the callbacks. This will be moved in the

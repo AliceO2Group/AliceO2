@@ -172,7 +172,7 @@ GPUd() bool GPUTPCGMTrackParam::Fit(const GPUTPCGMMerger* GPUrestrict() merger, 
         if (tryFollow) {
           const GPUTPCGMTrackParam backup = *this;
           const float backupAlpha = prop.GetAlpha();
-          if (FollowCircle<0>(merger, prop, lastSlice, lastRow, iTrk, clusters[ihit].leg == clusters[maxN - 1].leg, clAlpha, xx, yy, clusters[ihit].slice, clusters[ihit].row, inFlyDirection)) {
+          if (FollowCircle<0>(merger, prop, lastSlice, lastRow, iTrk, clAlpha, xx, yy, clusters[ihit].slice, clusters[ihit].row, inFlyDirection)) {
             CADEBUG(printf("Error during follow circle, resetting track!\n"));
             *this = backup;
             prop.SetTrack(this, backupAlpha);
@@ -569,7 +569,7 @@ GPUd() bool GPUTPCGMTrackParam::FollowCircleChk(float lrFactor, float toY, float
          (up ? (-mP[0] * lrFactor > toX || (right ^ (mP[2] > 0))) : (-mP[0] * lrFactor < toX || (right ^ (mP[2] < 0)))); // don't overshoot in X
 }
 
-GPUdic(0, 1) void GPUTPCGMTrackParam::StoreAttachMirror(const GPUTPCGMMerger* GPUrestrict() Merger, int slice, int iRow, int iTrack, bool goodLeg, float toAlpha, float toY, float toX, int toSlice, int toRow, bool inFlyDirection, float alpha)
+GPUdic(0, 1) void GPUTPCGMTrackParam::StoreAttachMirror(const GPUTPCGMMerger* GPUrestrict() Merger, int slice, int iRow, int iTrack, float toAlpha, float toY, float toX, int toSlice, int toRow, bool inFlyDirection, float alpha)
 {
   unsigned int nLoopData = CAMath::AtomicAdd(&Merger->Memory()->nLoopData, 1u);
   if (nLoopData >= Merger->NMaxTracks()) {
@@ -581,7 +581,6 @@ GPUdic(0, 1) void GPUTPCGMTrackParam::StoreAttachMirror(const GPUTPCGMMerger* GP
   data.param = *this;
   data.alpha = alpha;
   data.track = iTrack;
-  data.goodLeg = goodLeg;
   data.toAlpha = toAlpha;
   data.toY = toY;
   data.toX = toX;
@@ -610,18 +609,18 @@ GPUdii() void GPUTPCGMTrackParam::RefitLoop(const GPUTPCGMMerger* GPUrestrict() 
   if (data.toRow == 0) {
     data.param.AttachClustersMirror<1>(Merger, data.slice, data.row, data.track, data.toY, prop, true);
   } else {
-    data.param.FollowCircle<1>(Merger, prop, data.slice, data.row, data.track, data.goodLeg, data.toAlpha, data.toY, data.toX, data.toSlice, data.toRow, data.inFlyDirection, true);
+    data.param.FollowCircle<1>(Merger, prop, data.slice, data.row, data.track, data.toAlpha, data.toY, data.toX, data.toSlice, data.toRow, data.inFlyDirection, true);
   }
 }
 
 template <int I>
-GPUdic(0, 1) int GPUTPCGMTrackParam::FollowCircle(const GPUTPCGMMerger* GPUrestrict() Merger, GPUTPCGMPropagator& GPUrestrict() prop, int slice, int iRow, int iTrack, bool goodLeg, float toAlpha, float toX, float toY, int toSlice, int toRow, bool inFlyDirection, bool phase2)
+GPUdic(0, 1) int GPUTPCGMTrackParam::FollowCircle(const GPUTPCGMMerger* GPUrestrict() Merger, GPUTPCGMPropagator& GPUrestrict() prop, int slice, int iRow, int iTrack, float toAlpha, float toX, float toY, int toSlice, int toRow, bool inFlyDirection, bool phase2)
 {
   if (Merger->Param().rec.DisableRefitAttachment & 4) {
     return 1;
   }
   if (Merger->Param().rec.loopInterpolationInExtraPass && phase2 == false) {
-    StoreAttachMirror(Merger, slice, iRow, iTrack, goodLeg, toAlpha, toY, toX, toSlice, toRow, inFlyDirection, prop.GetAlpha());
+    StoreAttachMirror(Merger, slice, iRow, iTrack, toAlpha, toY, toX, toSlice, toRow, inFlyDirection, prop.GetAlpha());
     return 1;
   }
   const GPUParam& GPUrestrict() param = Merger->Param();
@@ -639,7 +638,7 @@ GPUdic(0, 1) int GPUTPCGMTrackParam::FollowCircle(const GPUTPCGMMerger* GPUrestr
   CADEBUG(printf("CIRCLE Track %d: Slice %d Alpha %f X %f Y %f Z %f SinPhi %f DzDs %f - Next hit: Slice %d Alpha %f X %f Y %f - Right %d Up %d dAlpha %f lrFactor %f\n", iTrack, slice, prop.GetAlpha(), mX, mP[0], mP[1], mP[2], mP[3], toSlice, toAlpha, toX, toY, (int)right, (int)up, dAlpha, lrFactor));
   // clang-format on
 
-  AttachClustersPropagate(Merger, slice, iRow, targetRow, iTrack, goodLeg, prop, inFlyDirection, 0.7f);
+  AttachClustersPropagate(Merger, slice, iRow, targetRow, iTrack, false, prop, inFlyDirection, 0.7f);
   if (prop.RotateToAlpha(prop.GetAlpha() + (M_PI / 2.f) * lrFactor)) {
     return 1;
   }
@@ -710,7 +709,7 @@ GPUdic(0, 1) int GPUTPCGMTrackParam::FollowCircle(const GPUTPCGMMerger* GPUrestr
       }
     }
     prop.PropagateToXAlpha(Merger->Param().tpcGeometry.Row2X(iRow) + dx, prop.GetAlpha(), inFlyDirection);
-    AttachClustersPropagate(Merger, slice, iRow, toRow, iTrack, !goodLeg, prop, inFlyDirection);
+    AttachClustersPropagate(Merger, slice, iRow, toRow, iTrack, false, prop, inFlyDirection);
   }
   if (prop.PropagateToXAlpha(toX, prop.GetAlpha(), inFlyDirection)) {
     mX = toX;
@@ -726,7 +725,7 @@ GPUdni() void GPUTPCGMTrackParam::AttachClustersMirror(const GPUTPCGMMerger* GPU
     return;
   }
   if (Merger->Param().rec.loopInterpolationInExtraPass && phase2 == false) {
-    StoreAttachMirror(Merger, slice, iRow, iTrack, false, 0, toY, 0, 0, 0, 0, prop.GetAlpha());
+    StoreAttachMirror(Merger, slice, iRow, iTrack, 0, toY, 0, 0, 0, 0, prop.GetAlpha());
     return;
   }
   float X = mP[2] > 0 ? mP[0] : -mP[0];

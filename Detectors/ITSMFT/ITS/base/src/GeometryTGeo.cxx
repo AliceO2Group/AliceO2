@@ -679,8 +679,9 @@ int GeometryTGeo::extractLayerChipType(int lay) const
 void GeometryTGeo::Print(Option_t*) const
 {
   printf("NLayers:%d NChips:%d\n", mNumberOfLayers, getNumberOfChips());
-  if (!isBuilt())
+  if (!isBuilt()) {
     return;
+  }
 
   for (int i = 0; i < mNumberOfLayers; i++) {
     printf(

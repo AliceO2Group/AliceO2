@@ -65,10 +65,12 @@ void CompressedInspectorTask<RDH>::init(InitContext& ic)
 
   auto finishFunction = [this]() {
     LOG(INFO) << "CompressedInspector finish";
-    for (auto& histo : mHistos1D)
+    for (auto& histo : mHistos1D) {
       histo.second->Write();
-    for (auto& histo : mHistos2D)
+    }
+    for (auto& histo : mHistos2D) {
       histo.second->Write();
+    }
     mFile->Close();
   };
   ic.services().get<CallbackService>().set(CallbackService::Id::Stop, finishFunction);
@@ -87,8 +89,9 @@ void CompressedInspectorTask<RDH>::run(ProcessingContext& pc)
 
   /** loop over inputs routes **/
   for (auto iit = pc.inputs().begin(), iend = pc.inputs().end(); iit != iend; ++iit) {
-    if (!iit.isValid())
+    if (!iit.isValid()) {
       continue;
+    }
 
     /** loop over input parts **/
     for (auto const& ref : iit) {
@@ -107,9 +110,11 @@ void CompressedInspectorTask<RDH>::run(ProcessingContext& pc)
 template <typename RDH>
 void CompressedInspectorTask<RDH>::headerHandler(const CrateHeader_t* crateHeader, const CrateOrbit_t* crateOrbit)
 {
-  for (int ibit = 0; ibit < 11; ++ibit)
-    if (crateHeader->slotPartMask & (1 << ibit))
+  for (int ibit = 0; ibit < 11; ++ibit) {
+    if (crateHeader->slotPartMask & (1 << ibit)) {
       mHistos2D["slotPartMask"]->Fill(crateHeader->drmID, ibit + 2);
+    }
+  }
 };
 
 template <typename RDH>
@@ -155,8 +160,9 @@ void CompressedInspectorTask<RDH>::trailerHandler(const CrateHeader_t* crateHead
       nError++;
       mHistos2D["error"]->Fill(error->slotID + 0.5 * error->chain, error->tdcID);
       for (int ibit = 0; ibit < 15; ++ibit) {
-        if (error->errorFlags & (1 << ibit))
+        if (error->errorFlags & (1 << ibit)) {
           mHistos1D["errorBit"]->Fill(ibit);
+        }
       }
     }
   }

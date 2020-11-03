@@ -175,7 +175,9 @@ class GPUTPCGMMerger : public GPUProcessor
   void CheckMergedTracks();
 #ifndef GPUCA_GPUCODE
   void PrintMergeGraph(const GPUTPCGMSliceTrack* trk, std::ostream& out);
-  int GetTrackLabel(const GPUTPCGMBorderTrack& trk);
+  template <class T>
+  long int GetTrackLabelA(const GPUTPCGMBorderTrack& trk);
+  long int GetTrackLabel(const GPUTPCGMBorderTrack& trk);
 #endif
 
   GPUdi() int SliceTrackInfoFirst(int iSlice)

@@ -24,7 +24,6 @@ using namespace o2::itsmft;
 using RDHUtils = o2::raw::RDHUtils;
 using RDH = o2::header::RAWDataHeader;
 
-
 ///======================================================================
 ///                 GBT Link data decoding class
 ///======================================================================
@@ -79,7 +78,7 @@ void GBTLink::printTrigger(const GBTTrigger* gbtTrg)
 void GBTLink::printCalibrationWord(const GBTCalibration* gbtCal)
 {
   gbtCal->printX();
-  LOGF(INFO, "Calibration word %5d | user_data 0x%012lx", gbtCal->calibCounter, gbtCal->bc);
+  LOGF(INFO, "Calibration word %5d | user_data 0x%06lx", gbtCal->calibCounter, gbtCal->calibUserField);
 }
 
 ///_________________________________________________________________

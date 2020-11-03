@@ -94,10 +94,11 @@ void CTFCoder::compress(CompressedInfos& cc,
     cc.ndigROF[irof] = ndig;
     cc.ndiaROF[irof] = rofRec.sizeDia();
     for (int icrate = 0; icrate < 72; icrate++) {
-      if (rofRec.isEmptyCrate(icrate))
+      if (rofRec.isEmptyCrate(icrate)) {
         cc.ndiaCrate[irof * 72 + icrate] = 0;
-      else
+      } else {
         cc.ndiaCrate[irof * 72 + icrate] = rofRec.getDiagnosticInCrate(icrate) + 1; // shifted by one since -1 means crate not available (then to get unsigned int)
+      }
     }
 
     if (!ndig) { // no hits data for this ROF --> not fill
@@ -116,10 +117,11 @@ void CTFCoder::compress(CompressedInfos& cc,
     // sort digits according to time (ascending order)
     std::sort(digCopy.begin(), digCopy.end(),
               [](o2::tof::Digit a, o2::tof::Digit b) {
-                if (a.getBC() == b.getBC())
+                if (a.getBC() == b.getBC()) {
                   return a.getTDC() < b.getTDC();
-                else
+                } else {
                   return a.getBC() < b.getBC();
+                }
               });
 
     int timeframe = 0;

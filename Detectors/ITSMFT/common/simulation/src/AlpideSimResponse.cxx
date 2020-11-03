@@ -73,8 +73,9 @@ void AlpideSimResponse::initData()
     LOG(FATAL) << "Failed to open file " << inpfname;
   }
 
-  while (inpGrid >> mStepInvRow && inpGrid.good())
+  while (inpGrid >> mStepInvRow && inpGrid.good()) {
     mNBinRow++;
+  }
   if (!mNBinRow || mStepInvRow < kTiny) {
     LOG(FATAL) << "Failed to read Y(row) binning from " << inpfname;
   }
@@ -130,15 +131,18 @@ void AlpideSimResponse::initData()
                      << iz << " from " << inpfname;
         }
 
-        if (mDptMax < -1e9)
+        if (mDptMax < -1e9) {
           mDptMax = gz;
-        if (mDptMin > gz)
+        }
+        if (mDptMin > gz) {
           mDptMin = gz;
+        }
 
         // normalize
         float norm = 1.f / nele;
-        for (int ip = npix * npix; ip--;)
+        for (int ip = npix * npix; ip--;) {
           (*arr)[ip] *= norm;
+        }
         mData.push_back(mat); // store in the final container
       }                       // loop over z
 
@@ -206,20 +210,23 @@ bool AlpideSimResponse::getResponse(float vRow, float vCol, float vDepth, Alpide
     LOG(FATAL) << "response object is not initialized";
   }
   bool flipCol = false, flipRow = true;
-  if (vDepth < mDptMin || vDepth > mDptMax)
+  if (vDepth < mDptMin || vDepth > mDptMax) {
     return false;
+  }
   if (vCol < 0) {
     vCol = -vCol;
     flipCol = true;
   }
-  if (vCol > mColMax)
+  if (vCol > mColMax) {
     return false;
+  }
   if (vRow < 0) {
     vRow = -vRow;
     flipRow = false;
   }
-  if (vRow > mRowMax)
+  if (vRow > mRowMax) {
     return false;
+  }
 
   size_t bin = getDepthBin(vDepth) + mNBinDpt * (getRowBin(vRow) + mNBinRow * getColBin(vCol));
   if (bin >= mData.size()) {
@@ -245,24 +252,27 @@ const AlpideRespSimMat* AlpideSimResponse::getResponse(float vRow, float vCol, f
   if (!mNBinDpt) {
     LOG(FATAL) << "response object is not initialized";
   }
-  if (vDepth < mDptMin || vDepth > mDptMax)
+  if (vDepth < mDptMin || vDepth > mDptMax) {
     return nullptr;
+  }
   if (vCol < 0) {
     vCol = -vCol;
     flipCol = true;
   } else {
     flipCol = false;
   }
-  if (vCol > mColMax)
+  if (vCol > mColMax) {
     return nullptr;
+  }
   if (vRow < 0) {
     vRow = -vRow;
     flipRow = false;
   } else {
     flipRow = true;
   }
-  if (vRow > mRowMax)
+  if (vRow > mRowMax) {
     return nullptr;
+  }
 
   size_t bin = getDepthBin(vDepth) + mNBinDpt * (getRowBin(vRow) + mNBinRow * getColBin(vCol));
   if (bin >= mData.size()) {

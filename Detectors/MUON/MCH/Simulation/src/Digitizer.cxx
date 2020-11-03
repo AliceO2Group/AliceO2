@@ -15,9 +15,13 @@
 #include "MCHSimulation/Response.h"
 #include "TGeoManager.h"
 #include "TMath.h"
+#include "TRandom.h"
 #include <algorithm>
 #include <cassert>
 #include <fairlogger/Logger.h>
+
+#include <iostream>
+using namespace std;
 
 using namespace o2::mch;
 
@@ -97,11 +101,16 @@ void Digitizer::process(const std::vector<Hit> hits, std::vector<Digit>& digits,
       mMCTruthOutputContainer.addElement(digitIndex, label);
     } //loop over digits to generate MCdigits
   }   //loop over hits
+
+  //generate noise-only digits
+  if (mNoise)
+    generateNoiseDigits();
+
   fillOutputContainer(digits);
   provideMC(mcContainer);
 }
 //______________________________________________________________________
-int Digitizer::processHit(const Hit& hit, int detID, double event_time)
+int Digitizer::processHit(const Hit& hit, int detID, int event_time)
 {
   math_utils::Point3D<float> pos(hit.GetX(), hit.GetY(), hit.GetZ());
 
@@ -109,7 +118,9 @@ int Digitizer::processHit(const Hit& hit, int detID, double event_time)
 
   //convert energy to charge
   auto charge = resp.etocharge(hit.GetEnergyLoss());
-  auto time = event_time + hit.GetTime();
+
+  //convert float ns time to BC counts
+  auto time = event_time & int(hit.GetTime() / 25.);
 
   //transformation from global to local
   auto t = o2::mch::getTransformation(detID, *gGeoManager);
@@ -168,6 +179,31 @@ int Digitizer::processHit(const Hit& hit, int detID, double event_time)
     }
   });
   return ndigits;
+}
+//______________________________________________________________________
+void Digitizer::generateNoiseDigits()
+{
+
+  o2::mch::mapping::forEachDetectionElement([& digits = this->mDigits, &normProbNoise = this->mNormProbNoise,
+                                             &eventTime = this->mEventTime, &eventID = this->mEventID,
+                                             &srcID = this->mSrcID, &mcTruthOutputContainer = this->mMCTruthOutputContainer](int detID) {
+    auto& seg = segmentation(detID);
+    auto nPads = seg.nofPads();
+    auto nNoisyPadsAv = (float)nPads * normProbNoise;
+    int nNoisyPads = TMath::Nint(gRandom->Gaus(nNoisyPadsAv, TMath::Sqrt(nNoisyPadsAv)));
+    for (int i = 0; i < nNoisyPads; i++) {
+      int padid = gRandom->Integer(nNoisyPads + 1);
+      Digit::Time dtime;
+      dtime.sampaTime = static_cast<uint16_t>(eventTime) & 0x3FF;
+      digits.emplace_back(detID, padid, 0.6, dtime);
+      //just to roun adbove threshold when added
+      MCCompLabel label(-1, eventID, srcID, true);
+      mcTruthOutputContainer.addElement(digits.size() - 1, label);
+    }
+  });
+  //not clear how to normalise to time:
+  //assume that only "one" event equivalent,
+  //otherwise the probability will strongly depend on read-out-frame time length
 }
 //______________________________________________________________________
 void Digitizer::mergeDigits()
@@ -249,8 +285,9 @@ void Digitizer::mergeDigits(std::vector<Digit>& digits, o2::dataformats::MCTruth
 void Digitizer::fillOutputContainer(std::vector<Digit>& digits)
 {
   // filling the digit container
-  if (mDigits.empty())
+  if (mDigits.empty()) {
     return;
+  }
 
   digits.clear();
   digits.reserve(mDigits.size());
@@ -285,8 +322,9 @@ void Digitizer::provideMC(o2::dataformats::MCTruthContainer<o2::MCCompLabel>& mc
 {
   //fill MCtruth info
   mcContainer.clear();
-  if (mMCTruthOutputContainer.getNElements() == 0)
+  if (mMCTruthOutputContainer.getNElements() == 0) {
     return;
+  }
 
   //need to fill groups of labels not only  single labels, since index in addElements
   // is the data index

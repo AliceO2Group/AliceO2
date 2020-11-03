@@ -66,8 +66,9 @@ void CompressorTask<RDH, verbose>::run(ProcessingContext& pc)
 
   /** loop over inputs routes **/
   for (auto iit = pc.inputs().begin(), iend = pc.inputs().end(); iit != iend; ++iit) {
-    if (!iit.isValid())
+    if (!iit.isValid()) {
       continue;
+    }
 
     /** prepare output parts **/
     FairMQParts parts;
