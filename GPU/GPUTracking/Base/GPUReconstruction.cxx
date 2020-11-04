@@ -601,6 +601,9 @@ void* GPUReconstruction::AllocateVolatileDeviceMemory(size_t size)
   if (mVolatileMemoryStart == nullptr) {
     mVolatileMemoryStart = mDeviceMemoryPool;
   }
+  if (size == 0) {
+    return nullptr; // Future GPU memory allocation is volatile
+  }
   char* retVal;
   GPUProcessor::computePointerWithAlignment(mDeviceMemoryPool, retVal, size);
   if (mDeviceMemoryPool > mDeviceMemoryPoolEnd) {
