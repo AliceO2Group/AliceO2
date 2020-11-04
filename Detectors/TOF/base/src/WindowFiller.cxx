@@ -146,6 +146,7 @@ void WindowFiller::fillOutputContainer(std::vector<Digit>& digits)
 
     int bc_shift = -1;
     int eventcounter = -1;
+    int ncratesSeen = 0;
     if (mReadoutWindowData.size() >= mCrateHeaderData.size()) {
       bc_shift = (mReadoutWindowData.size() % Geo::NWINDOW_IN_ORBIT) * Geo::BC_IN_WINDOW; // insert default value
       eventcounter = mReadoutWindowData.size() % 4096;
@@ -160,12 +161,15 @@ void WindowFiller::fillOutputContainer(std::vector<Digit>& digits)
           continue;
         } else
           mDigitHeader.crateSeen(icrate);
+          ncratesSeen++;
 
         if (bc_shift == -1 || mCrateHeaderData[irow].bc[icrate] < bc_shift)
           bc_shift = mCrateHeaderData[irow].bc[icrate];
         if (eventcounter == -1 || mCrateHeaderData[irow].eventCounter[icrate] < eventcounter)
           eventcounter = mCrateHeaderData[irow].eventCounter[icrate];
       }
+
+      mDigitHeader.numCratesSeen(ncratesSeen);
 
       if (bc_shift == -1)
         bc_shift = (mReadoutWindowData.size() % Geo::NWINDOW_IN_ORBIT) * Geo::BC_IN_WINDOW; // insert default value
