@@ -80,6 +80,9 @@ void TrackerTraitsCPU::computeLayerTracklets()
         for (int iNextLayerCluster{firstRowClusterIndex}; iNextLayerCluster < maxRowClusterIndex;
              ++iNextLayerCluster) {
 
+          if (iNextLayerCluster >= primaryVertexContext->getClusters()[iLayer + 1].size())
+            break;
+
           const Cluster& nextCluster{primaryVertexContext->getClusters()[iLayer + 1][iNextLayerCluster]};
 
           if (primaryVertexContext->isClusterUsed(iLayer + 1, nextCluster.clusterId)) {
@@ -241,7 +244,7 @@ void TrackerTraitsCPU::computeLayerCells()
       }
     }
   }
-  #ifdef CA_DEBUG
+#ifdef CA_DEBUG
   std::cout << "+++ Number of cells per layer: ";
   for (int iLayer{0}; iLayer < mTrkParams.CellsPerRoad(); ++iLayer) {
     std::cout << primaryVertexContext->getCells()[iLayer].size() << "\t";

@@ -130,12 +130,12 @@ void PrimaryVertexContext::initialise(const MemoryParameters& memParam, const Tr
 
     if (iLayer < mCells.size() - 1) {
       mCellsLookupTable[iLayer].clear();
-      mCellsLookupTable[iLayer].resize(
-        std::max(cl[iLayer + 1].size(), cl[iLayer + 2].size()) +
-          std::ceil((memParam.TrackletsMemoryCoefficients[iLayer + 1] *
-                     cl[iLayer + 1].size()) *
-                    cl[iLayer + 2].size()),
-        constants::its::UnusedIndex);
+      mCellsLookupTable[iLayer].resize(memParam.MemoryOffset +
+                                         std::max(cl[iLayer + 1].size(), cl[iLayer + 2].size()) +
+                                         std::ceil((memParam.TrackletsMemoryCoefficients[iLayer + 1] *
+                                                    cl[iLayer + 1].size()) *
+                                                   cl[iLayer + 2].size()),
+                                       constants::its::UnusedIndex);
       mCellsNeighbours[iLayer].clear();
     }
   }
@@ -143,10 +143,10 @@ void PrimaryVertexContext::initialise(const MemoryParameters& memParam, const Tr
   for (unsigned int iLayer{0}; iLayer < mClusters.size(); ++iLayer) {
     if (iLayer < mTracklets.size()) {
       mTracklets[iLayer].clear();
-      float trackletsMemorySize =
-        std::max(cl[iLayer].size(), cl[iLayer + 1].size()) +
-        std::ceil((memParam.TrackletsMemoryCoefficients[iLayer] * cl[iLayer].size()) *
-                  cl[iLayer + 1].size());
+      float trackletsMemorySize = memParam.MemoryOffset +
+                                  std::max(cl[iLayer].size(), cl[iLayer + 1].size()) +
+                                  std::ceil((memParam.TrackletsMemoryCoefficients[iLayer] * cl[iLayer].size()) *
+                                            cl[iLayer + 1].size());
 
       if (trackletsMemorySize > mTracklets[iLayer].capacity()) {
         mTracklets[iLayer].reserve(trackletsMemorySize);

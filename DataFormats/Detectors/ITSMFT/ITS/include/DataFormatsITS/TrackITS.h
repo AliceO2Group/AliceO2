@@ -95,7 +95,7 @@ class TrackITS : public o2::track::TrackParCov
   o2::track::TrackParCov mParamOut; ///< parameter at largest radius
   ClusRefs mClusRef;                ///< references on clusters
   float mChi2 = 0.;                 ///< Chi2 for this track
-  uint16_t mPattern = 0;             ///< layers pattern
+  uint16_t mPattern = 0;            ///< layers pattern
 
   ClassDefNV(TrackITS, 4);
 };

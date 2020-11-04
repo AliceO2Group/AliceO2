@@ -326,22 +326,22 @@ void Tracker::findTracks(const ROframe& event)
       CA_DEBUGGER(nClusters++);
     }
 
-// #ifdef CA_DEBUG
-//     assert(nClusters == track.getNumberOfClusters());
-//     xcheckCounters[nClusters - 4]++;
-//     assert(nShared <= nClusters);
-//     sharingMatrix[cumulativeIndex(nClusters) + nShared]++;
-// #endif
+    // #ifdef CA_DEBUG
+    //     assert(nClusters == track.getNumberOfClusters());
+    //     xcheckCounters[nClusters - 4]++;
+    //     assert(nShared <= nClusters);
+    //     sharingMatrix[cumulativeIndex(nClusters) + nShared]++;
+    // #endif
 
     if (nShared > mTrkParams[0].ClusterSharing) {
       continue;
     }
 
-// #ifdef CA_DEBUG
-//     nonsharingCounters[nClusters - 4]++;
-//     assert(nClusters <= prevNclusters);
-//     prevNclusters = nClusters;
-// #endif
+    // #ifdef CA_DEBUG
+    //     nonsharingCounters[nClusters - 4]++;
+    //     assert(nClusters <= prevNclusters);
+    //     prevNclusters = nClusters;
+    // #endif
 
     for (int iLayer{0}; iLayer < mTrkParams[0].NLayers; ++iLayer) {
       if (track.getClusterIndex(iLayer) == constants::its::UnusedIndex) {
