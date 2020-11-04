@@ -79,9 +79,8 @@ void HistogramRegistry::addClone(const std::string& source, const std::string& t
 }
 
 // function to query if name is already in use
-bool HistogramRegistry::contains(char const* const name)
+bool HistogramRegistry::contains(const uint32_t id, char const* const name)
 {
-  const uint32_t id = compile_time_hash(name);
   // check for all occurances of the hash
   auto iter = mRegistryKey.begin();
   while ((iter = std::find(iter, mRegistryKey.end(), id)) != mRegistryKey.end()) {

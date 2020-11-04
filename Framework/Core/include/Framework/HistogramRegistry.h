@@ -498,7 +498,10 @@ class HistogramRegistry
   void addClone(const std::string& source, const std::string& target);
 
   // function to query if name is already in use
-  bool contains(char const* const name);
+  bool contains(char const* const name)
+  {
+    return contains(compile_time_hash(name), name);
+  }
 
   // gets the underlying histogram pointer
   // we cannot automatically infer type here so it has to be explicitly specified
@@ -636,6 +639,8 @@ class HistogramRegistry
     }
     throw runtime_error("No matching histogram found in HistogramRegistry!");
   }
+
+  bool contains(const uint32_t id, char const* const name);
 
   // helper function to create resp. find the subList defined by path
   TList* getSubList(TList* list, std::deque<std::string>& path);
