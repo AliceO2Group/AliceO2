@@ -78,6 +78,23 @@ void HistogramRegistry::addClone(const std::string& source, const std::string& t
   }
 }
 
+// function to query if name is already in use
+bool HistogramRegistry::contains(char const* const name)
+{
+  const uint32_t id = compile_time_hash(name);
+  // check for all occurances of the hash
+  auto iter = mRegistryKey.begin();
+  while ((iter = std::find(iter, mRegistryKey.end(), id)) != mRegistryKey.end()) {
+    const char* curName = nullptr;
+    std::visit([&](auto&& hist) { if(hist) { curName = hist->GetName(); } }, mRegistryValue[iter - mRegistryKey.begin()]);
+    // if hash is the same, make sure that name is indeed the same
+    if (strcmp(curName, name) == 0) {
+      return true;
+    }
+  }
+  return false;
+}
+
 // print some useful meta-info about the stored histograms
 void HistogramRegistry::print(bool showAxisDetails)
 {
