@@ -18,6 +18,7 @@
 #include <iosfwd>
 #include <initializer_list>
 #include <string_view>
+#include <vector>
 #include <string>
 
 namespace o2
@@ -93,8 +94,11 @@ struct variant_helper {
   static void set(S* store, T value) { *(reinterpret_cast<T*>(store)) = value; }
   static void set(S* store, T values, size_t size)
   {
-    auto pointer = reinterpret_cast<T*>(store);
-    *pointer = reinterpret_cast<T>(std::memcpy(std::malloc(size * sizeof(std::remove_pointer_t<T>)), reinterpret_cast<void*>(values), size * sizeof(std::remove_pointer_t<T>)));
+    *reinterpret_cast<T*>(store) = reinterpret_cast<T>(std::memcpy(std::malloc(size * sizeof(std::remove_pointer_t<T>)), reinterpret_cast<void*>(values), size * sizeof(std::remove_pointer_t<T>)));
+  }
+  static void reset(S* store, T values, size_t)
+  {
+    *reinterpret_cast<T*>(store) = values;
   }
 
   static T get(const S* store) { return *(reinterpret_cast<const T*>(store)); }
