@@ -161,7 +161,7 @@ void WindowFiller::fillOutputContainer(std::vector<Digit>& digits)
           continue;
         } else
           mDigitHeader.crateSeen(icrate);
-          ncratesSeen++;
+        ncratesSeen++;
 
         if (bc_shift == -1 || mCrateHeaderData[irow].bc[icrate] < bc_shift)
           bc_shift = mCrateHeaderData[irow].bc[icrate];
