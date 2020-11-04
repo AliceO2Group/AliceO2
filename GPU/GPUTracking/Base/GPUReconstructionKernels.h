@@ -68,6 +68,7 @@ GPUCA_KRNL_LB((GPUTPCCompressionGatherKernels, unbuffered   ), (simple), (), ())
 GPUCA_KRNL_LB((GPUTPCCompressionGatherKernels, buffered32   ), (simple), (), ())
 GPUCA_KRNL_LB((GPUTPCCompressionGatherKernels, buffered64   ), (simple), (), ())
 GPUCA_KRNL_LB((GPUTPCCompressionGatherKernels, buffered128  ), (simple), (), ())
+GPUCA_KRNL_LB((GPUTPCCompressionGatherKernels, multiBlock   ), (simple), (), ())
 
 GPUCA_KRNL_LB((GPUTPCCFChargeMapFiller,  fillIndexMap       ), (single), (), ())
 GPUCA_KRNL_LB((GPUTPCCFChargeMapFiller,  fillFromDigits     ), (single), (), ())
