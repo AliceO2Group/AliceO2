@@ -8,7 +8,7 @@
 # granted to it by virtue of its status as an Intergovernmental Organization or
 # submit itself to any jurisdiction.
 
-#add_compile_options(-O0 -pg -fPIC) 
+#add_compile_options(-O0 -pg -fPIC)
 
 o2_add_library(TRDWorkflow
                TARGETVARNAME targetName
@@ -16,9 +16,13 @@ o2_add_library(TRDWorkflow
                        src/TRDDigitWriterSpec.cxx
                        src/TRDDigitReaderSpec.cxx
                        src/TRDTrackletWriterSpec.cxx
+                       src/TRDTrackletReaderSpec.cxx
                        src/TRDTrapRawWriterSpec.cxx
                        src/TRDTrapSimulatorSpec.cxx
-                       PUBLIC_LINK_LIBRARIES O2::Framework O2::DPLUtils O2::Steer O2::Algorithm O2::DataFormatsTRD O2::TRDSimulation O2::DetectorsBase O2::SimulationDataFormat O2::TRDBase)
+                       src/TRDGlobalTrackingSpec.cxx
+                       src/TRDTrackWriterSpec.cxx
+                       src/TRDTrackingWorkflow.cxx
+                       PUBLIC_LINK_LIBRARIES O2::Framework O2::DPLUtils O2::Steer O2::Algorithm O2::DataFormatsTRD O2::TRDSimulation O2::DetectorsBase O2::SimulationDataFormat O2::TRDBase O2::GPUTracking O2::GlobalTrackingWorkflow)
 
                    #o2_target_root_dictionary(TRDWorkflow
                    # HEADERS include/TRDWorkflow/TRDTrapSimulatorSpec.h)
@@ -33,8 +37,13 @@ o2_add_executable(trap-sim
                                         O2::DataFormatsTRD
                                         O2::TRDWorkflow)
 
+o2_add_executable(global-tracking
+                  COMPONENT_NAME trd
+                  SOURCES src/trd-tracking-workflow.cxx
+                  PUBLIC_LINK_LIBRARIES O2::TRDWorkflow)
+
+
 if (OpenMP_CXX_FOUND)
     target_compile_definitions(${targetName} PRIVATE WITH_OPENMP)
     target_link_libraries(${targetName} PRIVATE OpenMP::OpenMP_CXX)
 endif()
-
