@@ -903,11 +903,11 @@ GPUd() void GPUTPCCompressionTrackModel::getClusterRMS2(int iRow, float z, float
   float angleY2 = s2 * sec2;          // dy/dx
   float angleZ2 = DzDs * DzDs * sec2; // dz/dx
 
-  const float* cY = kParamRMS0[0][rowType];
+  const float* cY = mParamRMS0[0][rowType];
   ErrY2 = cY[0] + cY[1] * z + cY[2] * angleY2;
   ErrY2 *= ErrY2;
 
-  const float* cZ = kParamRMS0[1][rowType];
+  const float* cZ = mParamRMS0[1][rowType];
   ErrZ2 = cZ[0] + cZ[1] * z + cZ[2] * angleZ2;
   ErrZ2 *= ErrZ2;
 }
