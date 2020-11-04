@@ -13,6 +13,7 @@
 #include "Framework/ASoAHelpers.h"
 #include <CCDB/BasicCCDBManager.h>
 #include "Framework/StepTHn.h"
+#include "Framework/HistogramRegistry.h"
 
 #include "Analysis/EventSelection.h"
 #include "Analysis/TrackSelectionTables.h"
@@ -63,7 +64,6 @@ struct CorrelationTask {
   // Output definitions
   OutputObj<CorrelationContainer> same{"sameEvent"};
   OutputObj<CorrelationContainer> mixed{"mixedEvent"};
-  //OutputObj<TDirectory> qaOutput{"qa"};
 
   struct Config {
     bool mPairCuts = false;
@@ -71,13 +71,10 @@ struct CorrelationTask {
     THn* mEfficiencyAssociated = nullptr;
   } cfg;
 
-  // HistogramRegistry registry{"qa", true, {
-  //   {"yields", "centrality vs pT vs eta",  {HistogramType::kTH3F, { {100, 0, 100, "centrality"}, {40, 0, 20, "p_{T}"}, {100, -2, 2, "#eta"} }}},
-  //   {"etaphi", "centrality vs eta vs phi", {HistogramType::kTH3F, { {100, 0, 100, "centrality"}, {100, -2, 2, "#eta"}, {200, 0, 2 * M_PI, "#varphi"} }}}
-  // }};
-
-  OutputObj<TH3F> yields{TH3F("yields", "centrality vs pT vs eta", 100, 0, 100, 40, 0, 20, 100, -2, 2)};
-  OutputObj<TH3F> etaphi{TH3F("etaphi", "centrality vs eta vs phi", 100, 0, 100, 100, -2, 2, 200, 0, 2 * M_PI)};
+  HistogramRegistry registry{"registry", {
+                                           {"yields", "centrality vs pT vs eta", {HistType::kTH3F, {{100, 0, 100, "centrality"}, {40, 0, 20, "p_{T}"}, {100, -2, 2, "#eta"}}}},          //
+                                           {"etaphi", "centrality vs eta vs phi", {HistType::kTH3F, {{100, 0, 100, "centrality"}, {100, -2, 2, "#eta"}, {200, 0, 2 * M_PI, "#varphi"}}}} //
+                                         }};
 
   PairCuts mPairCuts;
 
@@ -99,6 +96,8 @@ struct CorrelationTask {
       "p_t_eff: 0.5, 0.6, 0.7, 0.8, 0.9, 1.0, 1.25, 1.5, 1.75, 2.0, 2.25, 2.5, 2.75, 3.0, 3.25, 3.5, 3.75, 4.0, 4.5, 5.0, 6.0, 7.0, 8.0\n"
       "vertex_eff: 10 | -10, 10\n";
 
+    mPairCuts.SetHistogramRegistry(&registry);
+
     if (cfgPairCutPhoton > 0 || cfgPairCutK0 > 0 || cfgPairCutLambda > 0 || cfgPairCutPhi > 0 || cfgPairCutRho > 0) {
       mPairCuts.SetPairCut(PairCuts::Photon, cfgPairCutPhoton);
       mPairCuts.SetPairCut(PairCuts::K0, cfgPairCutK0);
@@ -115,7 +114,6 @@ struct CorrelationTask {
     // --- OBJECT INIT ---
     same.setObject(new CorrelationContainer("sameEvent", "sameEvent", "NumberDensityPhiCentralityVtx", binning));
     mixed.setObject(new CorrelationContainer("mixedEvent", "mixedEvent", "NumberDensityPhiCentralityVtx", binning));
-    //qaOutput.setObject(new TDirectory("qa", "qa"));
 
     // o2-ccdb-upload -p Users/jgrosseo/correlations/LHC15o -f /tmp/correction_2011_global.root -k correction
 
@@ -182,11 +180,8 @@ struct CorrelationTask {
 
       // LOGF(info, "Track %f | %f | %f  %d %d", track1.eta(), track1.phi(), track1.pt(), track1.isGlobalTrack(), track1.isGlobalTrackSDD());
 
-      // control histograms
-      // ((TH3*) (registry.get("yields").get()))->Fill(centrality, track1.pt(), track1.eta());
-      // ((TH3*) (registry.get("etaphi").get()))->Fill(centrality, track1.eta(), track1.phi());
-      yields->Fill(centrality, track1.pt(), track1.eta());
-      etaphi->Fill(centrality, track1.eta(), track1.phi());
+      registry.fill("yields", centrality, track1.pt(), track1.eta());
+      registry.fill("etaphi", centrality, track1.eta(), track1.phi());
 
       if (cfgTriggerCharge != 0 && cfgTriggerCharge * track1.charge() < 0) {
         continue;

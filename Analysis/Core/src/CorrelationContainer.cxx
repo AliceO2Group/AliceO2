@@ -15,6 +15,7 @@
 
 #include "Analysis/CorrelationContainer.h"
 #include "Framework/StepTHn.h"
+#include "Framework/Logger.h"
 #include "THnSparse.h"
 #include "TMath.h"
 #include "TList.h"
@@ -25,9 +26,6 @@
 #include "TCanvas.h"
 #include "TF1.h"
 #include "THn.h"
-
-// for LOGF
-#include "Framework/AnalysisTask.h"
 
 ClassImp(CorrelationContainer)
 
