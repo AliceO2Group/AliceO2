@@ -96,12 +96,12 @@ __global__ void fillDeviceStructures(GPU::DeviceStoreNV& primaryVertexContext, c
 {
   fillIndexTables(primaryVertexContext, layerIndex);
 
-  if (layerIndex < o2::its::constants::its::CellsPerRoad) {
+  if (layerIndex < o2::its::constants::its2::CellsPerRoad) {
 
     fillTrackletsPerClusterTables(primaryVertexContext, layerIndex);
   }
 
-  if (layerIndex < o2::its::constants::its::CellsPerRoad - 1) {
+  if (layerIndex < o2::its::constants::its2::CellsPerRoad - 1) {
 
     fillCellsPerClusterTables(primaryVertexContext, layerIndex);
   }
@@ -121,34 +121,34 @@ DeviceStoreNV::DeviceStoreNV()
 }
 
 UniquePointer<DeviceStoreNV> DeviceStoreNV::initialise(const float3& primaryVertex,
-                                                       const std::array<std::vector<Cluster>, constants::its::LayersNumber>& clusters,
-                                                       const std::array<std::vector<Tracklet>, constants::its::TrackletsPerRoad>& tracklets,
-                                                       const std::array<std::vector<Cell>, constants::its::CellsPerRoad>& cells,
-                                                       const std::array<std::vector<int>, constants::its::CellsPerRoad - 1>& cellsLookupTable,
-                                                       const std::array<float, constants::its::LayersNumber>& rmin,
-                                                       const std::array<float, constants::its::LayersNumber>& rmax)
+                                                       const std::array<std::vector<Cluster>, constants::its2::LayersNumber>& clusters,
+                                                       const std::array<std::vector<Tracklet>, constants::its2::TrackletsPerRoad>& tracklets,
+                                                       const std::array<std::vector<Cell>, constants::its2::CellsPerRoad>& cells,
+                                                       const std::array<std::vector<int>, constants::its2::CellsPerRoad - 1>& cellsLookupTable,
+                                                       const std::array<float, constants::its2::LayersNumber>& rmin,
+                                                       const std::array<float, constants::its2::LayersNumber>& rmax)
 {
   mPrimaryVertex = UniquePointer<float3>{primaryVertex};
 
-  for (int iLayer{0}; iLayer < constants::its::LayersNumber; ++iLayer) {
+  for (int iLayer{0}; iLayer < constants::its2::LayersNumber; ++iLayer) {
     this->mRmin[iLayer] = rmin[iLayer];
     this->mRmax[iLayer] = rmax[iLayer];
 
     this->mClusters[iLayer] =
       Vector<Cluster>{&clusters[iLayer][0], static_cast<int>(clusters[iLayer].size())};
 
-    if (iLayer < constants::its::TrackletsPerRoad) {
+    if (iLayer < constants::its2::TrackletsPerRoad) {
       this->mTracklets[iLayer].reset(tracklets[iLayer].capacity());
     }
 
-    if (iLayer < constants::its::CellsPerRoad) {
+    if (iLayer < constants::its2::CellsPerRoad) {
 
       this->mTrackletsLookupTable[iLayer].reset(static_cast<int>(clusters[iLayer + 1].size()));
       this->mTrackletsPerClusterTable[iLayer].reset(static_cast<int>(clusters[iLayer + 1].size()));
       this->mCells[iLayer].reset(static_cast<int>(cells[iLayer].capacity()));
     }
 
-    if (iLayer < constants::its::CellsPerRoad - 1) {
+    if (iLayer < constants::its2::CellsPerRoad - 1) {
 
       this->mCellsLookupTable[iLayer].reset(static_cast<int>(cellsLookupTable[iLayer].size()));
       this->mCellsPerTrackletTable[iLayer].reset(static_cast<int>(cellsLookupTable[iLayer].size()));
@@ -157,9 +157,9 @@ UniquePointer<DeviceStoreNV> DeviceStoreNV::initialise(const float3& primaryVert
 
   UniquePointer<DeviceStoreNV> gpuContextDevicePointer{*this};
 
-  std::array<Stream, constants::its::LayersNumber> streamArray;
+  std::array<Stream, constants::its2::LayersNumber> streamArray;
 
-  for (int iLayer{0}; iLayer < constants::its::TrackletsPerRoad; ++iLayer) {
+  for (int iLayer{0}; iLayer < constants::its2::TrackletsPerRoad; ++iLayer) {
 
     const int nextLayerClustersNum = static_cast<int>(clusters[iLayer + 1].size());
 

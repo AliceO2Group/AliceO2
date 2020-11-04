@@ -90,6 +90,7 @@ using namespace GPUCA_NAMESPACE::gpu;
 // Files for ITS Track Fit
 #include "GPUITSFitterKernels.cxx"
 
+/*
 #if !defined(GPUCA_O2_LIB) && defined(__HIPCC__) && !defined(GPUCA_NO_ITS_TRAITS)
 #include "VertexerTraitsHIP.hip.cxx"
 #include "ContextHIP.hip.cxx"
@@ -97,7 +98,7 @@ using namespace GPUCA_NAMESPACE::gpu;
 #include "ClusterLinesHIP.hip.cxx"
 #include "UtilsHIP.hip.cxx"
 #elif !defined(GPUCA_O2_LIB) && defined(__CUDACC__) && !defined(GPUCA_NO_ITS_TRAITS)
-#include "TrackerTraitsNV.cu"
+// #include "TrackerTraitsNV.cu"
 #include "VertexerTraitsGPU.cu"
 #include "Context.cu"
 #include "Stream.cu"
@@ -106,7 +107,7 @@ using namespace GPUCA_NAMESPACE::gpu;
 #include "ClusterLinesGPU.cu"
 #include "Utils.cu"
 #endif // !defined(GPUCA_O2_LIB) && defined(__CUDACC__) && !defined(GPUCA_NO_ITS_TRAITS)
-
+*/
 #endif // HAVE_O2HEADERS
 #endif // (!defined(__OPENCL__) || defined(__OPENCLCPP__)) && !defined(GPUCA_ALIROOT_LIB)
 
