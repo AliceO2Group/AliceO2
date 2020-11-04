@@ -32,8 +32,8 @@ void Digits2Raw::readDigits(const std::string& outDir, const std::string& fileDi
 
   // Register PM links linearly
   for (int iPmLink = 0; iPmLink < Nmodules; ++iPmLink) {
-    uint64_t feeId = uint64_t(iPmLink);
-    uint32_t linkId = uint32_t(iPmLink);
+    uint16_t feeId = uint16_t(iPmLink);
+    uint8_t linkId = uint8_t(iPmLink);
     std::string outFileLink = mOutputPerLink ? (outd + "fdd_link" + std::to_string(iPmLink) + ".raw") : (outd + "fdd.raw");
     LOG(INFO) << " Register PM link: " << iPmLink << " to file: " << outFileLink;
     mWriter.registerLink(feeId, sCruId, linkId, sEndPointId, outFileLink);
@@ -42,7 +42,7 @@ void Digits2Raw::readDigits(const std::string& outDir, const std::string& fileDi
   // Register TCM link separately
   std::string outFileLink = mOutputPerLink ? (outd + "fdd_link" + std::to_string(sTcmLink) + ".raw") : (outd + "fdd.raw");
   LOG(INFO) << " Register TCM link: " << outFileLink;
-  mWriter.registerLink(uint64_t(sTcmLink), sCruId, sTcmLink, sEndPointId, outFileLink);
+  mWriter.registerLink(uint16_t(sTcmLink), sCruId, sTcmLink, sEndPointId, outFileLink);
 
   TFile* fdig = TFile::Open(fileDigitsName.data());
   assert(fdig != nullptr);

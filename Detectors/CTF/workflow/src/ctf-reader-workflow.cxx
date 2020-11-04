@@ -24,6 +24,7 @@
 #include "TPCWorkflow/EntropyDecoderSpec.h"
 #include "FT0Workflow/EntropyDecoderSpec.h"
 #include "FV0Workflow/EntropyDecoderSpec.h"
+#include "FDDWorkflow/EntropyDecoderSpec.h"
 #include "TOFWorkflowUtils/EntropyDecoderSpec.h"
 #include "MIDWorkflow/EntropyDecoderSpec.h"
 
@@ -84,6 +85,9 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   }
   if (dets[DetID::FV0]) {
     specs.push_back(o2::fv0::getEntropyDecoderSpec());
+  }
+  if (dets[DetID::FDD]) {
+    specs.push_back(o2::fdd::getEntropyDecoderSpec());
   }
   if (dets[DetID::MID]) {
     specs.push_back(o2::mid::getEntropyDecoderSpec());

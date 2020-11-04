@@ -77,7 +77,7 @@ class LookUpTable
   int getChannel(int link, int mcp) const { return mInvTopo[getIdx(link, mcp)]; }
   int getLink(int channel) const { return mTopoVector[channel].modLink; }
   int getModChannel(int channel) const { return mTopoVector[channel].modCh; }
-  int getTcmLink() const { return mLinkTCM; }
+  int getTcmLink() const { return Nmodules; }
   void printFullMap() const
   {
     std::cout << "o2::fdd::LookUpTable::printFullMap(): mTopoVector: [globalCh  link  modCh]" << std::endl;
@@ -98,7 +98,6 @@ class LookUpTable
  private:
   std::vector<Topo> mTopoVector; // iterator of each vector element gives the global channel number
   std::vector<int> mInvTopo;     // each element is an iterator of mTopoVector
-  static constexpr int mLinkTCM = Nmodules;
 
   static int getIdx(int link, int modCh)
   {

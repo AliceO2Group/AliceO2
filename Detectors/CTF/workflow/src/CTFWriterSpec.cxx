@@ -24,6 +24,7 @@
 #include "DataFormatsTPC/CTF.h"
 #include "DataFormatsFT0/CTF.h"
 #include "DataFormatsFV0/CTF.h"
+#include "DataFormatsFDD/CTF.h"
 #include "DataFormatsTOF/CTF.h"
 #include "DataFormatsMID/CTF.h"
 
@@ -99,6 +100,7 @@ void CTFWriterSpec::run(ProcessingContext& pc)
   processDet<o2::tof::CTF>(pc, DetID::TOF, header, treeOut.get());
   processDet<o2::ft0::CTF>(pc, DetID::FT0, header, treeOut.get());
   processDet<o2::fv0::CTF>(pc, DetID::FV0, header, treeOut.get());
+  processDet<o2::fdd::CTF>(pc, DetID::FDD, header, treeOut.get());
   processDet<o2::mid::CTF>(pc, DetID::MID, header, treeOut.get());
 
   mTimer.Stop();
@@ -167,6 +169,7 @@ void CTFWriterSpec::storeDictionaries()
   storeDictionary<o2::tof::CTF>(DetID::TOF, header);
   storeDictionary<o2::ft0::CTF>(DetID::FT0, header);
   storeDictionary<o2::fv0::CTF>(DetID::FV0, header);
+  storeDictionary<o2::fdd::CTF>(DetID::FDD, header);
   storeDictionary<o2::mid::CTF>(DetID::MID, header);
   // close remnants
   if (mDictTreeOut) {
