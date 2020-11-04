@@ -2132,7 +2132,7 @@ int GPUChainTracking::RunTPCCompression()
   O->nComppressionModes = param().rec.tpcCompressionModes;
   size_t outputSize = AllocateRegisteredMemory(Compressor.mMemoryResOutputHost, mOutputCompressedClusters);
   Compressor.mOutputFlat->set(outputSize, *Compressor.mOutput);
-  void* hostFlatPtr = Compressor.mOutput->qTotU; // First array as allocated in GPUTPCCompression::SetPointersCompressedClusters
+  char* hostFlatPtr = (char*)Compressor.mOutput->qTotU; // First array as allocated in GPUTPCCompression::SetPointersCompressedClusters
   size_t copySize = 0;
   if (ProcessingSettings().tpcCompressionGatherMode == 3) {
     CompressorShadow.mOutputA = Compressor.mOutput;
@@ -2188,7 +2188,16 @@ int GPUChainTracking::RunTPCCompression()
     }
     if (ProcessingSettings().tpcCompressionGatherMode == 3) {
       RecordMarker(&mEvents->stream[outputStream], outputStream);
-      GPUMemCpy(myStep, hostFlatPtr, Compressor.mOutput->qTotU, copySize, outputStream, false);
+      char* deviceFlatPts = (char*)Compressor.mOutput->qTotU;
+      if (GetProcessingSettings().doublePipeline) {
+        const size_t blockSize = CAMath::nextMultipleOf<1024>(copySize / 30);
+        const unsigned int n = (copySize + blockSize - 1) / blockSize;
+        for (unsigned int i = 0; i < n; i++) {
+          GPUMemCpy(myStep, hostFlatPtr + i * blockSize, deviceFlatPts + i * blockSize, CAMath::Min(blockSize, copySize - i * blockSize), outputStream, false);
+        }
+      } else {
+        GPUMemCpy(myStep, hostFlatPtr, deviceFlatPts, copySize, outputStream, false);
+      }
     }
   } else {
     char direction = 0;
