@@ -17,7 +17,6 @@
 #define FRAMEWORK_RAWBUFFERCONTEXT_H
 
 #include "Framework/FairMQDeviceProxy.h"
-#include "CommonUtils/BoostSerializer.h"
 #include <vector>
 #include <cassert>
 #include <string>

@@ -124,7 +124,6 @@ o2_add_library(Framework
                                      ms_gsl::ms_gsl
                                      ROOT::ROOTDataFrame
                                      O2::FrameworkLogger
-                                     Boost::serialization
                                      ${BOOST_FILESYSTEM}
                                      arrow::gandiva_shared
                                      LibUV::LibUV
@@ -263,7 +262,6 @@ set (DEBUG_GUI_TESTS_WORKFLOW
 endif()
 
 foreach(w
-        BoostSerializedProcessing
         CallbackService
         RegionInfoCallbackService
         DanglingInputs
@@ -308,10 +306,6 @@ set_property(TEST test_Framework_test_SimpleTracksED PROPERTY DISABLED TRUE)
 set_property(TEST test_Framework_test_CustomGUIGL PROPERTY DISABLED TRUE)
 set_property(TEST test_Framework_test_CustomGUISokol PROPERTY DISABLED TRUE)
 endif()
-
-# TODO: investigate the problem and re-enable
-set_property(TEST test_Framework_test_BoostSerializedProcessing
-             PROPERTY DISABLED TRUE)
 
 # specific tests which needs command line options
 o2_add_test(

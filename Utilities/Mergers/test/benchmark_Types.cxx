@@ -30,10 +30,6 @@
 #include <iostream>
 #include <fstream>
 
-#include <boost/archive/binary_iarchive.hpp>
-#include <boost/archive/binary_oarchive.hpp>
-#include <boost/histogram.hpp>
-#include <boost/histogram/serialization.hpp>
 #include <sstream>
 
 namespace bh = boost::histogram;
@@ -128,9 +124,6 @@ auto measure = [](Measurement m, auto* o, auto* i) -> double {
         end = std::chrono::high_resolution_clock::now();
       } else {
         // boost
-        *o += *i;
-        end = std::chrono::high_resolution_clock::now();
-        (void)*o;
       }
       auto elapsed_seconds = std::chrono::duration_cast<std::chrono::duration<double>>(end - start);
       return elapsed_seconds.count();
@@ -146,12 +139,6 @@ auto measure = [](Measurement m, auto* o, auto* i) -> double {
         delete tm;
       } else {
         // boost
-        std::ostringstream os;
-        std::string buf;
-        boost::archive::binary_oarchive oa(os);
-        oa << *o;
-        end = std::chrono::high_resolution_clock::now();
-        (void)os; // hopefully this will prevent from optimising this code out.
       }
       auto elapsed_seconds = std::chrono::duration_cast<std::chrono::duration<double>>(end - start);
       return elapsed_seconds.count();
@@ -186,19 +173,6 @@ auto measure = [](Measurement m, auto* o, auto* i) -> double {
         delete tm;
         delete tobject;
       } else {
-        std::ostringstream os;
-        std::string buf;
-        boost::archive::binary_oarchive oa(os);
-        oa << *o;
-        buf = os.str();
-
-        start = std::chrono::high_resolution_clock::now();
-        auto deserialisedHistogram = typename std::remove_pointer<decltype(o)>::type();
-        std::istringstream is(buf);
-        boost::archive::binary_iarchive ia(is);
-        ia >> deserialisedHistogram;
-        end = std::chrono::high_resolution_clock::now();
-        assert(deserialisedHistogram == *o);
       }
       auto elapsed_seconds = std::chrono::duration_cast<std::chrono::duration<double>>(end - start);
       return elapsed_seconds.count();
@@ -212,12 +186,6 @@ auto measure = [](Measurement m, auto* o, auto* i) -> double {
         delete tm;
         return serialisedSize / scale;
       } else {
-        std::ostringstream os;
-        std::string buf;
-        boost::archive::binary_oarchive oa(os);
-        oa << *i;
-        buf = os.str();
-        return buf.size() / scale;
       }
     }
   }
@@ -658,83 +626,4 @@ int main(int argc, const char* argv[])
       printResultsCSV(std::cout, "TTree", p, results);
     }
   }
-
-  {
-    // boost regular 1D. We use a combination of template and macro to be able to use static storage (std::array) with different parameters.
-#define BM_BOOST1DARRAY_FOR(objSize, entries)                                                                  \
-  {                                                                                                            \
-    constexpr auto p = Parameters::forHistograms(objSize, entries);                                            \
-    auto results = BM_BoostRegular1D<std::array<int32_t, p.objectSize / sizeof(int32_t) + 2>>(repetitions, p); \
-    printResultsCSV(file, "BoostRegular1DArray", p, results);                                                  \
-    printResultsCSV(std::cout, "BoostRegular1DArray", p, results);                                             \
-  }
-
-    BM_BOOST1DARRAY_FOR(8 << 0, 50000);
-    BM_BOOST1DARRAY_FOR(8 << 3, 50000);
-    BM_BOOST1DARRAY_FOR(8 << 6, 50000);
-    BM_BOOST1DARRAY_FOR(8 << 9, 50000);
-    BM_BOOST1DARRAY_FOR(8 << 12, 50000);
-    BM_BOOST1DARRAY_FOR(8 << 15, 50000);
-  }
-
-  {
-    // boost regular 1D.
-#define BM_BOOST1DVECTOR_FOR(objSize, entries)                              \
-  {                                                                         \
-    constexpr auto p = Parameters::forHistograms(objSize, entries);         \
-    auto results = BM_BoostRegular1D<std::vector<int32_t>>(repetitions, p); \
-    printResultsCSV(file, "BoostRegular1DVector", p, results);              \
-    printResultsCSV(std::cout, "BoostRegular1DVector", p, results);         \
-  }
-
-    BM_BOOST1DVECTOR_FOR(8 << 0, 50000);
-    BM_BOOST1DVECTOR_FOR(8 << 3, 50000);
-    BM_BOOST1DVECTOR_FOR(8 << 6, 50000);
-    BM_BOOST1DVECTOR_FOR(8 << 9, 50000);
-    BM_BOOST1DVECTOR_FOR(8 << 12, 50000);
-    BM_BOOST1DVECTOR_FOR(8 << 15, 50000);
-    BM_BOOST1DVECTOR_FOR(8 << 18, 50000);
-    BM_BOOST1DVECTOR_FOR(8 << 21, 50000);
-  }
-
-  {
-    // boost regular 2D. We use a combination of template and macro to be able to use static storage (std::array) with different parameters.
-#define BM_BOOST2DARRAY_FOR(objSize, arrSize, entries)                              \
-  {                                                                                 \
-    constexpr auto p = Parameters::forHistograms(objSize, entries);                 \
-    auto results = BM_BoostRegular2D<std::array<int32_t, arrSize>>(repetitions, p); \
-    printResultsCSV(file, "BoostRegular2DArray", p, results);                       \
-    printResultsCSV(std::cout, "BoostRegular2DArray", p, results);                  \
-  }
-
-    BM_BOOST2DARRAY_FOR(8 << 0, 10, 50000);
-    BM_BOOST2DARRAY_FOR(8 << 3, 36, 50000);
-    BM_BOOST2DARRAY_FOR(8 << 6, 178, 50000);
-    BM_BOOST2DARRAY_FOR(8 << 9, 1156, 50000);
-    BM_BOOST2DARRAY_FOR(8 << 12, 8558, 50000);
-    BM_BOOST2DARRAY_FOR(8 << 15, 66564, 50000);
-  }
-
-  {
-    // boost regular 2D.
-#define BM_BOOST2DVECTOR_FOR(objSize, entries)                              \
-  {                                                                         \
-    constexpr auto p = Parameters::forHistograms(objSize, entries);         \
-    auto results = BM_BoostRegular2D<std::vector<int32_t>>(repetitions, p); \
-    printResultsCSV(file, "BoostRegular2DVector", p, results);              \
-    printResultsCSV(std::cout, "BoostRegular2DVector", p, results);         \
-  }
-
-    BM_BOOST2DVECTOR_FOR(8 << 0, 50000);
-    BM_BOOST2DVECTOR_FOR(8 << 3, 50000);
-    BM_BOOST2DVECTOR_FOR(8 << 6, 50000);
-    BM_BOOST2DVECTOR_FOR(8 << 9, 50000);
-    BM_BOOST2DVECTOR_FOR(8 << 12, 50000);
-    BM_BOOST2DVECTOR_FOR(8 << 15, 50000);
-    BM_BOOST2DVECTOR_FOR(8 << 18, 50000);
-    BM_BOOST2DVECTOR_FOR(8 << 21, 50000);
-  }
-
-  file.close();
-  return 0;
 }

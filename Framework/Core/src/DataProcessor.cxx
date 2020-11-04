@@ -15,7 +15,6 @@
 #include "Framework/TMessageSerializer.h"
 #include "Framework/ServiceRegistry.h"
 #include "FairMQResizableBuffer.h"
-#include "CommonUtils/BoostSerializer.h"
 #include "Headers/DataHeader.h"
 
 #include <Monitoring/Monitoring.h>

@@ -21,8 +21,6 @@
 #include "MemoryResources/Types.h"
 #include "Headers/DataHeader.h"
 
-#include "CommonUtils/BoostSerializer.h"
-
 #include <gsl/gsl>
 
 #include <iterator>
@@ -275,22 +273,6 @@ class InputRecord
       auto data = reinterpret_cast<uint8_t const*>(ref.payload);
       return std::make_unique<TableConsumer>(data, header->payloadSize);
 
-      // implementation (e)
-    } else if constexpr (framework::is_boost_serializable<T>::value || is_specialization<T, BoostSerialized>::value) {
-      // substitution for boost-serialized entities
-      // We have to deserialize the ostringstream.
-      // FIXME: check that the string is null terminated.
-      // @return deserialized copy of payload
-      auto header = header::get<const header::DataHeader*>(ref.header);
-      assert(header);
-      auto str = std::string(ref.payload, header->payloadSize);
-      assert(header->payloadSize == sizeof(T));
-      if constexpr (is_specialization<T, BoostSerialized>::value) {
-        return o2::utils::BoostDeserialize<typename T::wrapped_type>(str);
-      } else {
-        return o2::utils::BoostDeserialize<T>(str);
-      }
-
       // implementation (f)
     } else if constexpr (is_span<T>::value) {
       // substitution for span of messageable objects
@@ -433,17 +415,6 @@ class InputRecord
         throw runtime_error("Attempt to extract object from message with unsupported serialization type");
       }
     }
-  }
-
-  template <typename T>
-  T get_boost(char const* binding) const
-  {
-    DataRef ref = get<DataRef>(binding);
-    auto header = header::get<const header::DataHeader*>(ref.header);
-    assert(header);
-    auto str = std::string(ref.payload, header->payloadSize);
-    auto desData = o2::utils::BoostDeserialize<T>(str);
-    return std::move(desData);
   }
 
   /// Helper method to be used to check if a given part of the InputRecord is present.
