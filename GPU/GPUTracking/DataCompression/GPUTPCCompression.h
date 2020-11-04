@@ -49,6 +49,7 @@ class GPUTPCCompression : public GPUProcessor
   void RegisterMemoryAllocation();
   void SetMaxData(const GPUTrackingInOutPointers& io);
 
+  void* SetPointersOutputGPU(void* mem);
   void* SetPointersOutputHost(void* mem);
   void* SetPointersOutputPtrs(void* mem);
   void* SetPointersOutput(void* mem);
@@ -79,6 +80,7 @@ class GPUTPCCompression : public GPUProcessor
 
   o2::tpc::CompressedClustersPtrs mPtrs;
   o2::tpc::CompressedClusters* mOutput = nullptr;
+  o2::tpc::CompressedClusters* mOutputA = nullptr; // Always points to host buffer
   o2::tpc::CompressedClustersFlat* mOutputFlat = nullptr;
 
   memory* mMemory = nullptr;
@@ -96,6 +98,7 @@ class GPUTPCCompression : public GPUProcessor
   GPUd() static void truncateSignificantBits(T& val, unsigned int nBits, unsigned int max);
 
   short mMemoryResOutputHost = -1;
+  short mMemoryResOutputGPU = -1;
 };
 
 template <class T>

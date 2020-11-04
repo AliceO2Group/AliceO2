@@ -306,6 +306,10 @@ bool GPUChainTracking::ValidateSettings()
       return false;
     }
   }
+  if (!(GetRecoStepsGPU() & GPUDataTypes::RecoStep::TPCCompression) && (ProcessingSettings().tpcCompressionGatherMode == 1 || ProcessingSettings().tpcCompressionGatherMode == 3)) {
+    GPUError("Invalid tpcCompressionGatherMode for compression on CPU");
+    return false;
+  }
   return true;
 }
 
@@ -2096,6 +2100,10 @@ int GPUChainTracking::RunTPCCompression()
       }
     }
   }
+
+  if (ProcessingSettings().tpcCompressionGatherMode == 3) {
+    mRec->AllocateVolatileDeviceMemory(0); // make future device memory allocation volatile
+  }
   SetupGPUProcessor(&Compressor, true);
   new (Compressor.mMemory) GPUTPCCompression::memory;
 
@@ -2124,6 +2132,12 @@ int GPUChainTracking::RunTPCCompression()
   O->nComppressionModes = param().rec.tpcCompressionModes;
   size_t outputSize = AllocateRegisteredMemory(Compressor.mMemoryResOutputHost, mOutputCompressedClusters);
   Compressor.mOutputFlat->set(outputSize, *Compressor.mOutput);
+  void* hostFlatPtr = Compressor.mOutput->qTotU; // First array as allocated in GPUTPCCompression::SetPointersCompressedClusters
+  size_t copySize = 0;
+  if (ProcessingSettings().tpcCompressionGatherMode == 3) {
+    CompressorShadow.mOutputA = Compressor.mOutput;
+    copySize = AllocateRegisteredMemory(Compressor.mMemoryResOutputGPU); // We overwrite Compressor.mOutput with the allocated output pointers on the GPU
+  }
   const o2::tpc::CompressedClustersPtrs* P = nullptr;
   HighResTimer* gatherTimer = nullptr;
   int outputStream = 0;
@@ -2132,12 +2146,14 @@ int GPUChainTracking::RunTPCCompression()
     outputStream = mRec->NStreams() - 2;
   }
 
-  if (ProcessingSettings().tpcCompressionGatherMode == 2) {
-    void* devicePtr = mRec->getGPUPointer(Compressor.mOutputFlat);
-    if (devicePtr != Compressor.mOutputFlat) {
-      CompressedClustersPtrs& ptrs = *Compressor.mOutput; // We need to update the ptrs with the gpu-mapped version of the host address space
-      for (unsigned int i = 0; i < sizeof(ptrs) / sizeof(void*); i++) {
-        reinterpret_cast<char**>(&ptrs)[i] = reinterpret_cast<char**>(&ptrs)[i] + (reinterpret_cast<char*>(devicePtr) - reinterpret_cast<char*>(Compressor.mOutputFlat));
+  if (ProcessingSettings().tpcCompressionGatherMode >= 2) {
+    if (ProcessingSettings().tpcCompressionGatherMode == 2) {
+      void* devicePtr = mRec->getGPUPointer(Compressor.mOutputFlat);
+      if (devicePtr != Compressor.mOutputFlat) {
+        CompressedClustersPtrs& ptrs = *Compressor.mOutput; // We need to update the ptrs with the gpu-mapped version of the host address space
+        for (unsigned int i = 0; i < sizeof(ptrs) / sizeof(void*); i++) {
+          reinterpret_cast<char**>(&ptrs)[i] = reinterpret_cast<char**>(&ptrs)[i] + (reinterpret_cast<char*>(devicePtr) - reinterpret_cast<char*>(Compressor.mOutputFlat));
+        }
       }
     }
     TransferMemoryResourcesToGPU(myStep, &Compressor, outputStream);
@@ -2163,7 +2179,10 @@ int GPUChainTracking::RunTPCCompression()
         GPUError("Invalid compression kernel selected.");
         return 1;
     }
-
+    if (ProcessingSettings().tpcCompressionGatherMode == 3) {
+      RecordMarker(&mEvents->stream[outputStream], outputStream);
+      GPUMemCpy(myStep, hostFlatPtr, Compressor.mOutput->qTotU, copySize, outputStream, false);
+    }
   } else {
     char direction = 0;
     if (ProcessingSettings().tpcCompressionGatherMode == 0) {
@@ -2215,6 +2234,12 @@ int GPUChainTracking::RunTPCCompression()
     gatherTimer->Stop();
   }
   mIOPtrs.tpcCompressedClusters = Compressor.mOutputFlat;
+  if (ProcessingSettings().tpcCompressionGatherMode == 3) {
+    SynchronizeEvents(&mEvents->stream[outputStream]);
+    ReleaseEvent(&mEvents->stream[outputStream]);
+    mRec->ReturnVolatileDeviceMemory();
+  }
+
   if (mPipelineFinalizationCtx == nullptr) {
     SynchronizeStream(outputStream);
   } else {

@@ -19,6 +19,12 @@ using namespace GPUCA_NAMESPACE::gpu;
 
 void GPUTPCCompression::InitializeProcessor() {}
 
+void* GPUTPCCompression::SetPointersOutputGPU(void* mem)
+{
+  SetPointersCompressedClusters(mem, *mOutputA, mOutputA->nAttachedClusters, mOutputA->nTracks, mOutputA->nUnattachedClusters, true);
+  return mem;
+}
+
 void* GPUTPCCompression::SetPointersOutputHost(void* mem)
 {
   computePointerWithoutAlignment(mem, mOutputFlat);
@@ -29,7 +35,7 @@ void* GPUTPCCompression::SetPointersOutputHost(void* mem)
 void* GPUTPCCompression::SetPointersScratch(void* mem)
 {
   computePointerWithAlignment(mem, mClusterStatus, mMaxClusters);
-  if (mRec->GetProcessingSettings().tpcCompressionGatherMode == 2) {
+  if (mRec->GetProcessingSettings().tpcCompressionGatherMode >= 2) {
     computePointerWithAlignment(mem, mAttachedClusterFirstIndex, mMaxTracks);
   }
   if (mRec->GetProcessingSettings().tpcCompressionGatherMode != 1) {
@@ -50,7 +56,7 @@ void* GPUTPCCompression::SetPointersOutput(void* mem)
 template <class T>
 void GPUTPCCompression::SetPointersCompressedClusters(void*& mem, T& c, unsigned int nClA, unsigned int nTr, unsigned int nClU, bool reducedClA)
 {
-  computePointerWithAlignment(mem, c.qTotU, nClU);
+  computePointerWithAlignment(mem, c.qTotU, nClU); // Do not reorder, qTotU ist used as first address in GPUChainTracking::RunTPCCompression
   computePointerWithAlignment(mem, c.qMaxU, nClU);
   computePointerWithAlignment(mem, c.flagsU, nClU);
   computePointerWithAlignment(mem, c.padDiffU, nClU);
@@ -87,6 +93,7 @@ void* GPUTPCCompression::SetPointersMemory(void* mem)
 {
   computePointerWithAlignment(mem, mMemory);
   computePointerWithAlignment(mem, mOutput);
+  mOutputA = mOutput;
   return mem;
 }
 
@@ -94,10 +101,14 @@ void GPUTPCCompression::RegisterMemoryAllocation()
 {
   AllocateAndInitializeLate();
   mMemoryResOutputHost = mRec->RegisterMemoryAllocation(this, &GPUTPCCompression::SetPointersOutputHost, GPUMemoryResource::MEMORY_OUTPUT_FLAG | GPUMemoryResource::MEMORY_HOST | GPUMemoryResource::MEMORY_CUSTOM, "TPCCompressionOutputHost");
-  if (mRec->GetProcessingSettings().tpcCompressionGatherMode != 2) {
-    mRec->RegisterMemoryAllocation(this, &GPUTPCCompression::SetPointersOutput, GPUMemoryResource::MEMORY_OUTPUT | GPUMemoryResource::MEMORY_STACK, "TPCCompressionOutput");
+  if (mRec->GetProcessingSettings().tpcCompressionGatherMode == 3) {
+    mMemoryResOutputGPU = mRec->RegisterMemoryAllocation(this, &GPUTPCCompression::SetPointersOutputGPU, GPUMemoryResource::MEMORY_SCRATCH | GPUMemoryResource::MEMORY_GPU | GPUMemoryResource::MEMORY_CUSTOM | GPUMemoryResource::MEMORY_STACK, "TPCCompressionOutputGPU");
   }
-  mRec->RegisterMemoryAllocation(this, &GPUTPCCompression::SetPointersScratch, GPUMemoryResource::MEMORY_SCRATCH | GPUMemoryResource::MEMORY_STACK, "TPCCompressionScratch");
+  unsigned int stackScratch = (mRec->GetProcessingSettings().tpcCompressionGatherMode != 3) ? GPUMemoryResource::MEMORY_STACK : 0;
+  if (mRec->GetProcessingSettings().tpcCompressionGatherMode < 2) {
+    mRec->RegisterMemoryAllocation(this, &GPUTPCCompression::SetPointersOutput, GPUMemoryResource::MEMORY_OUTPUT | stackScratch, "TPCCompressionOutput");
+  }
+  mRec->RegisterMemoryAllocation(this, &GPUTPCCompression::SetPointersScratch, GPUMemoryResource::MEMORY_SCRATCH | stackScratch, "TPCCompressionScratch");
   mRec->RegisterMemoryAllocation(this, &GPUTPCCompression::SetPointersMemory, GPUMemoryResource::MEMORY_PERMANENT, "TPCCompressionMemory");
 }
 
