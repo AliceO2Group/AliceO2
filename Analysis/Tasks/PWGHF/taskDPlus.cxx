@@ -16,6 +16,7 @@
 
 #include "Framework/runDataProcessing.h"
 #include "Framework/AnalysisTask.h"
+#include "Framework/HistogramRegistry.h"
 #include "Analysis/HFSecondaryVertex.h"
 #include "Analysis/HFCandidateSelectionTables.h"
 
@@ -26,23 +27,32 @@ using namespace o2::aod::hf_cand_prong3;
 
 /// D± analysis task
 struct TaskDPlus {
-  OutputObj<TH1F> hmass{TH1F("hmass", "3-prong candidates;inv. mass (#pi K #pi) (GeV/#it{c}^{2});entries", 500, 1.6, 2.1)};
-  OutputObj<TH1F> hptcand{TH1F("hptcand", "3-prong candidates;candidate #it{p}_{T} (GeV/#it{c});entries", 100, 0., 10.)};
-  OutputObj<TH1F> hptprong0{TH1F("hptprong0", "3-prong candidates;prong 0 #it{p}_{T} (GeV/#it{c});entries", 100, 0., 10.)};
-  OutputObj<TH1F> hptprong1{TH1F("hptprong1", "3-prong candidates;prong 1 #it{p}_{T} (GeV/#it{c});entries", 100, 0., 10.)};
-  OutputObj<TH1F> hptprong2{TH1F("hptprong2", "3-prong candidates;prong 2 #it{p}_{T} (GeV/#it{c});entries", 100, 0., 10.)};
-  OutputObj<TH1F> hdeclength{TH1F("declength", "3-prong candidates;decay length (cm);entries", 200, 0., 2.)};
-  OutputObj<TH1F> hdeclengthxy{TH1F("declengthxy", "3-prong candidates;decay length xy (cm);entries", 200, 0., 2.)};
-  OutputObj<TH1F> hd0Prong0{TH1F("hd0Prong0", "3-prong candidates;prong 0 DCAxy to prim. vertex (cm);entries", 100, -1., 1.)};
-  OutputObj<TH1F> hd0Prong1{TH1F("hd0Prong1", "3-prong candidates;prong 1 DCAxy to prim. vertex (cm);entries", 100, -1., 1.)};
-  OutputObj<TH1F> hd0Prong2{TH1F("hd0Prong2", "3-prong candidates;prong 2 DCAxy to prim. vertex (cm);entries", 100, -1., 1.)};
-  OutputObj<TH1F> hCt{TH1F("hCt", "3-prong candidates;proper lifetime (D^{#pm}) * #it{c} (cm);entries", 120, -20., 100.)};
-  OutputObj<TH1F> hCPA{TH1F("hCPA", "3-prong candidates;cosine of pointing angle;entries", 110, -1.1, 1.1)};
-  OutputObj<TH1F> hEta{TH1F("hEta", "3-prong candidates;candidate #it{#eta};entries", 100, -2., 2.)};
-  //OutputObj<TH1F> hselectionstatus{TH1F("selectionstatus", "3-prong candidates;selection status;entries", 5, -0.5, 4.5)};
-  OutputObj<TH1F> hImpParErr{TH1F("hImpParErr", "3-prong candidates;impact parameter error (cm);entries", 100, -1., 1.)};
-  OutputObj<TH1F> hDecLenErr{TH1F("hDecLenErr", "3-prong candidates;decay length error (cm);entries", 100, 0., 1.)};
-  OutputObj<TH1F> hDecLenXYErr{TH1F("hDecLenXYErr", "3-prong candidates;decay length xy error (cm);entries", 100, 0., 1.)};
+  HistogramRegistry registry{
+    "registry",
+    {
+      {"hMass", "3-prong candidates;inv. mass (#pi K #pi) (GeV/#it{c}^{2});entries", {HistType::kTH1F, {{350, 1.7, 2.05}}}},
+      {"hPt", "3-prong candidates;candidate #it{p}_{T} (GeV/#it{c});entries", {HistType::kTH1F, {{100, 0., 10.}}}},
+      {"hEta", "3-prong candidates;candidate #it{#eta};entries", {HistType::kTH1F, {{100, -2., 2.}}}},
+      {"hCt", "3-prong candidates;proper lifetime (D^{#pm}) * #it{c} (cm);entries", {HistType::kTH1F, {{120, -20., 100.}}}},
+      {"hDecayLength", "3-prong candidates;decay length (cm);entries", {HistType::kTH1F, {{200, 0., 2.}}}},
+      {"hDecayLengthXY", "3-prong candidates;decay length xy (cm);entries", {HistType::kTH1F, {{200, 0., 2.}}}},
+      {"hNormalisedDecayLengthXY", "3-prong candidates;norm. decay length xy;entries", {HistType::kTH1F, {{80, 0., 80.}}}},
+      {"hCPA", "3-prong candidates;cos. pointing angle;entries", {HistType::kTH1F, {{110, -1.1, 1.1}}}},
+      {"hCPAxy", "3-prong candidates;cos. pointing angle xy;entries", {HistType::kTH1F, {{110, -1.1, 1.1}}}},
+      {"hImpactParameterXY", "3-prong candidates;impact parameter xy (cm);entries", {HistType::kTH1F, {{200, -1., 1.}}}},
+      {"hMaxNormalisedDeltaIP", "3-prong candidates;norm. IP;entries", {HistType::kTH1F, {{200, -20., 20.}}}},
+      {"hImpactParameterProngSqSum", "3-prong candidates;squared sum of prong imp. par. (cm^{2});entries", {HistType::kTH1F, {{100, 0., 1.}}}},
+      {"hDecayLengthError", "3-prong candidates;decay length error (cm);entries", {HistType::kTH1F, {{100, 0., 1.}}}},
+      {"hDecayLengthXYError", "3-prong candidates;decay length xy error (cm);entries", {HistType::kTH1F, {{100, 0., 1.}}}},
+      {"hImpactParameterError", "3-prong candidates;impact parameter error (cm);entries", {HistType::kTH1F, {{100, 0., 1.}}}},
+      {"hPtProng0", "3-prong candidates;prong 0 #it{p}_{T} (GeV/#it{c});entries", {HistType::kTH1F, {{100, 0., 10.}}}},
+      {"hPtProng1", "3-prong candidates;prong 1 #it{p}_{T} (GeV/#it{c});entries", {HistType::kTH1F, {{100, 0., 10.}}}},
+      {"hPtProng2", "3-prong candidates;prong 2 #it{p}_{T} (GeV/#it{c});entries", {HistType::kTH1F, {{100, 0., 10.}}}},
+      {"hd0Prong0", "3-prong candidates;prong 0 DCAxy to prim. vertex (cm);entries", {HistType::kTH1F, {{100, -1., 1.}}}},
+      {"hd0Prong1", "3-prong candidates;prong 1 DCAxy to prim. vertex (cm);entries", {HistType::kTH1F, {{100, -1., 1.}}}},
+      {"hd0Prong2", "3-prong candidates;prong 2 DCAxy to prim. vertex (cm);entries", {HistType::kTH1F, {{100, -1., 1.}}}}
+      //{"hSelectionStatus", "3-prong candidates;selection status;entries",  {HistType::kTH1F, {{5, -0.5, 4.5}}}}
+    }};
 
   Configurable<int> d_selectionFlagDPlus{"d_selectionFlagDPlus", 1, "Selection Flag for DPlus"};
 
@@ -52,25 +62,30 @@ struct TaskDPlus {
   void process(aod::HfCandProng3 const& candidates)
   {
     for (auto& candidate : candidates) {
-      hmass->Fill(InvMassDPlus(candidate));
-      hptcand->Fill(candidate.pt());
-      hptprong0->Fill(candidate.ptProng0());
-      hptprong1->Fill(candidate.ptProng1());
-      hptprong2->Fill(candidate.ptProng2());
-      hdeclength->Fill(candidate.decayLength());
-      hdeclengthxy->Fill(candidate.decayLengthXY());
-      hd0Prong0->Fill(candidate.impactParameter0());
-      hd0Prong1->Fill(candidate.impactParameter1());
-      hd0Prong2->Fill(candidate.impactParameter2());
-      hCt->Fill(CtDPlus(candidate));
-      hCPA->Fill(candidate.cpa());
-      hEta->Fill(candidate.eta());
-      //hselectionstatus->Fill(candidate.isSelDPlus());
-      hImpParErr->Fill(candidate.errorImpactParameter0());
-      hImpParErr->Fill(candidate.errorImpactParameter1());
-      hImpParErr->Fill(candidate.errorImpactParameter2());
-      hDecLenErr->Fill(candidate.errorDecayLength());
-      hDecLenXYErr->Fill(candidate.errorDecayLengthXY());
+      registry.get<TH1>("hMass")->Fill(InvMassDPlus(candidate));
+      registry.get<TH1>("hPt")->Fill(candidate.pt());
+      registry.get<TH1>("hEta")->Fill(candidate.eta());
+      registry.get<TH1>("hCt")->Fill(CtDPlus(candidate));
+      registry.get<TH1>("hDecayLength")->Fill(candidate.decayLength());
+      registry.get<TH1>("hDecayLengthXY")->Fill(candidate.decayLengthXY());
+      registry.get<TH1>("hNormalisedDecayLengthXY")->Fill(candidate.decayLengthXYNormalised());
+      registry.get<TH1>("hCPA")->Fill(candidate.cpa());
+      registry.get<TH1>("hCPAxy")->Fill(candidate.cpaXY());
+      registry.get<TH1>("hImpactParameterXY")->Fill(candidate.impactParameterXY());
+      registry.get<TH1>("hMaxNormalisedDeltaIP")->Fill(candidate.maxNormalisedDeltaIP());
+      registry.get<TH1>("hImpactParameterProngSqSum")->Fill(candidate.impactParameterProngSqSum());
+      registry.get<TH1>("hDecayLengthError")->Fill(candidate.errorDecayLength());
+      registry.get<TH1>("hDecayLengthXYError")->Fill(candidate.errorDecayLengthXY());
+      registry.get<TH1>("hImpactParameterError")->Fill(candidate.errorImpactParameter0());
+      registry.get<TH1>("hImpactParameterError")->Fill(candidate.errorImpactParameter1());
+      registry.get<TH1>("hImpactParameterError")->Fill(candidate.errorImpactParameter2());
+      registry.get<TH1>("hPtProng0")->Fill(candidate.ptProng0());
+      registry.get<TH1>("hPtProng1")->Fill(candidate.ptProng1());
+      registry.get<TH1>("hPtProng2")->Fill(candidate.ptProng2());
+      registry.get<TH1>("hd0Prong0")->Fill(candidate.impactParameter0());
+      registry.get<TH1>("hd0Prong1")->Fill(candidate.impactParameter1());
+      registry.get<TH1>("hd0Prong2")->Fill(candidate.impactParameter2());
+      //registry.get<TH1>("hSelectionStatus")->Fill(candidate.isSelDPlus());
     }
   }
 };
