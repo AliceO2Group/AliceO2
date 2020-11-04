@@ -28,7 +28,7 @@ void printArray(std::ostream& oss, T* array, size_t size)
 } // namespace
 
 std::ostream& operator<<(std::ostream& oss, Variant const& val)
-{  
+{
   switch (val.type()) {
     case VariantType::Int:
       oss << val.get<int>();
