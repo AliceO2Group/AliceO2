@@ -9,6 +9,7 @@
 // or submit itself to any jurisdiction.
 #include "Framework/DataRefUtils.h"
 #include "Framework/AlgorithmSpec.h"
+#include "Framework/DataAllocator.h"
 #include "Framework/ServiceRegistry.h"
 #include "Framework/runDataProcessing.h"
 #include "Framework/ControlService.h"

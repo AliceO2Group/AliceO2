@@ -14,6 +14,7 @@
 #include "Framework/CompletionPolicy.h"
 #include "Framework/DispatchPolicy.h"
 #include "Framework/DataProcessorSpec.h"
+#include "Framework/DataAllocator.h"
 #include "Framework/WorkflowSpec.h"
 #include "Framework/ConfigContext.h"
 #include "Framework/BoostOptionsRetriever.h"
