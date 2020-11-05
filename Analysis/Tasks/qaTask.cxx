@@ -10,10 +10,12 @@
 /// \author Peter Hristov <Peter.Hristov@cern.ch>, CERN
 /// \author Gian Michele Innocenti <gian.michele.innocenti@cern.ch>, CERN
 /// \author Henrique J C Zanoli <henrique.zanoli@cern.ch>, Utrecht University
+/// \author Nicolo' Jacazio <nicolo.jacazio@cern.ch>, CERN
 
 #include "Framework/runDataProcessing.h"
 #include "Framework/AnalysisTask.h"
 #include "Framework/AnalysisDataModel.h"
+#include "Framework/HistogramRegistry.h"
 #include "Analysis/trackUtilities.h"
 #include "ReconstructionDataFormats/DCA.h"
 #include "Analysis/MC.h"
@@ -140,40 +142,40 @@ struct QATrackingResolution {
   std::array<double, 2> impactParameterRange = {-1500, 1500};       // micrometer
   std::array<double, 2> impactParameterResolutionRange = {0, 1000}; // micrometer
 
-  o2fw::OutputObj<TH1F> etaDiffMCRec{TH1F("etaDiffMCReco", ";#eta_{MC} - #eta_{Rec}", nBinsDeltaEta, -2, 2)};
-  o2fw::OutputObj<TH2F> etaDiffMCRecoVsEtaMC{TH2F("etaDiffMCRecoVsEtaMC", ";#eta_{MC} - #eta_{Rec};#eta_{MC}", nBinsDeltaEta, -2, 2, nBinsEta, etaRange[0], etaRange[1])};
-  o2fw::OutputObj<TH2F> etaDiffMCRecoVsEtaReco{TH2F("etaDiffMCRecoVsEtaReco", ";#eta_{MC} - #eta_{Rec};#eta_{Rec}", nBinsDeltaEta, -2, 2, nBinsEta, etaRange[0], etaRange[1])};
+  // Registry of histograms
+  o2fw::HistogramRegistry histos{"Histos", {}, o2fw::OutputObjHandlingPolicy::AnalysisObject};
 
-  o2fw::OutputObj<TH1F> phiDiffMCRec{
-    TH1F("phiDiffMCRec", ";#varphi_{MC} - #varphi_{Rec} [rad]", nBinsDeltaPhi, -M_PI, M_PI)};
-
-  o2fw::OutputObj<TH1F> ptDiffMCRec{TH1F("ptDiffMCRec", ";p_{T}_{MC} - p_{T}_{Rec} [GeV/c]", nBinsDeltaPt, -2., 2.)};
-
-  o2fw::OutputObj<TH1F> ptResolution{
-    TH1F("ptResolution", ";(p_{T}_{MC} - p_{T}_{Rec})/(p_{T}_{Rec}) ", nBinsDeltaPt, -2., 2.)};
-
-  o2fw::OutputObj<TH2F> ptResolutionVsPt{TH2F("ptResolutionVsPt",
-                                              ";p_{T} [GeV/c];(p_{T}_{MC} - p_{T}_{Rec})/(p_{T}_{Rec})", nBinsPtTrack,
-                                              ptRange[0], ptRange[1], nBinsDeltaPt, 0, 2.)};
-
-  o2fw::OutputObj<TH2F> ptResolutionVsEta{TH2F("ptResolutionVsEta", ";#eta;(p_{T}_{MC} - p_{T}_{Rec})/(p_{T}_{Rec})",
-                                               nBinsEta, -4., 4., nBinsDeltaPt, -2., 2.)};
-
-  o2fw::OutputObj<TH2F> impactParameterVsPt{TH2F("impactParameterVsPt", ";p_{T} [GeV/c];Impact Parameter [{#mu}m]",
-                                                 nBinsPtTrack, ptRange[0], ptRange[1], nBinsImpactParameter,
-                                                 impactParameterRange[0], impactParameterRange[1])};
-
-  o2fw::OutputObj<TH2F> impactParameterVsEta{TH2F("impactParameterVsEta", "#eta;Impact Parameter [{#mu}m]",
-                                                  nBinsEta, etaRange[0], etaRange[1], nBinsImpactParameter,
-                                                  impactParameterRange[0], impactParameterRange[1])};
-
-  o2fw::OutputObj<TH2F> impactParameterErrorVsPt{
-    TH2F("impactParameterErrorVsPt", ";p_{T} [GeV/c];Impact Parameter Error [#mum]", nBinsPtTrack, ptRange[0],
-         ptRange[1], nBinsImpactParameter, impactParameterRange[0], impactParameterRange[1])};
-
-  o2fw::OutputObj<TH2F> impactParameterErrorVsEta{
-    TH2F("impactParameterErrorVsEta", ";#eta;Impact Parameter Error [#mum]", nBinsEta, etaRange[0], etaRange[1],
-         nBinsImpactParameter, 0, impactParameterRange[1])};
+  void init(o2fw::InitContext&)
+  {
+    // Eta
+    histos.add("Eta/etaDiffMCReco", ";#eta_{MC} - #eta_{Rec}", o2fw::kTH1F,
+               {{nBinsDeltaEta, -2, 2}});
+    histos.add("Eta/etaDiffMCRecoVsEtaMC", ";#eta_{MC} - #eta_{Rec};#eta_{MC}", o2fw::kTH2F,
+               {{nBinsDeltaEta, -2, 2}, {nBinsEta, etaRange[0], etaRange[1]}});
+    histos.add("Eta/etaDiffMCRecoVsEtaReco", ";#eta_{MC} - #eta_{Rec};#eta_{Rec}", o2fw::kTH2F,
+               {{nBinsDeltaEta, -2, 2}, {nBinsEta, etaRange[0], etaRange[1]}});
+    // Phi
+    histos.add("Phi/phiDiffMCRec", ";#varphi_{MC} - #varphi_{Rec} [rad]", o2fw::kTH1F,
+               {{nBinsDeltaPhi, -M_PI, M_PI}});
+    // Pt
+    histos.add("Pt/ptDiffMCRec", ";p_{T}_{MC} - p_{T}_{Rec} [GeV/c]", o2fw::kTH1F,
+               {{nBinsDeltaPt, -2., 2.}});
+    histos.add("Pt/ptResolution", ";(p_{T}_{MC} - p_{T}_{Rec})/(p_{T}_{Rec})", o2fw::kTH1F,
+               {{nBinsDeltaPt, -2., 2.}});
+    histos.add("Pt/ptResolutionVsPt", ";p_{T} [GeV/c];(p_{T}_{MC} - p_{T}_{Rec})/(p_{T}_{Rec})", o2fw::kTH2F,
+               {{nBinsPtTrack, ptRange[0], ptRange[1]}, {nBinsDeltaPt, 0, 2.}});
+    histos.add("Pt/ptResolutionVsEta", ";#eta;(p_{T}_{MC} - p_{T}_{Rec})/(p_{T}_{Rec})", o2fw::kTH2F,
+               {{nBinsEta, -4., 4.}, {nBinsDeltaPt, -2., 2.}});
+    // Impact parameters
+    histos.add("ImpactParameter/impactParameterVsPt", ";p_{T} [GeV/c];Impact Parameter [{#mu}m]", o2fw::kTH2F,
+               {{nBinsPtTrack, ptRange[0], ptRange[1]}, {nBinsImpactParameter, impactParameterRange[0], impactParameterRange[1]}});
+    histos.add("ImpactParameter/impactParameterVsEta", "#eta;Impact Parameter [{#mu}m]", o2fw::kTH2F,
+               {{nBinsEta, etaRange[0], etaRange[1]}, {nBinsImpactParameter, impactParameterRange[0], impactParameterRange[1]}});
+    histos.add("ImpactParameter/impactParameterErrorVsPt", ";p_{T} [GeV/c];Impact Parameter Error [#mum]", o2fw::kTH2F,
+               {{nBinsPtTrack, ptRange[0], ptRange[1]}, {nBinsImpactParameter, impactParameterRange[0], impactParameterRange[1]}});
+    histos.add("ImpactParameter/impactParameterErrorVsEta", ";#eta;Impact Parameter Error [#mum]", o2fw::kTH2F,
+               {{nBinsEta, etaRange[0], etaRange[1]}, {nBinsImpactParameter, 0, impactParameterRange[1]}});
+  }
 
   void process(const o2::soa::Join<o2::aod::Collisions, o2::aod::McCollisionLabels>::iterator& collision,
                const o2::soa::Join<o2::aod::Tracks, o2::aod::TracksCov, o2::aod::McTrackLabels>& tracks,
@@ -183,20 +185,20 @@ struct QATrackingResolution {
 
     for (const auto& track : tracks) {
       const double deltaPt = track.label().pt() - track.pt();
-      ptDiffMCRec->Fill(deltaPt);
+      histos.fill("Pt/ptDiffMCRec", deltaPt);
 
       const double deltaPtOverPt = deltaPt / track.pt();
-      ptResolution->Fill((deltaPtOverPt));
-      ptResolutionVsPt->Fill(track.pt(), abs(deltaPtOverPt));
-      ptResolutionVsEta->Fill(track.eta(), abs(deltaPtOverPt));
+      histos.fill("Pt/ptResolution", deltaPtOverPt);
+      histos.fill("Pt/ptResolutionVsPt", track.pt(), abs(deltaPtOverPt));
+      histos.fill("Pt/ptResolutionVsEta", track.eta(), abs(deltaPtOverPt));
 
       const double deltaEta = track.label().eta() - track.eta();
-      etaDiffMCRec->Fill(deltaEta);
-      etaDiffMCRecoVsEtaMC->Fill(deltaEta, track.label().eta());
-      etaDiffMCRecoVsEtaReco->Fill(deltaEta, track.eta());
+      histos.fill("Eta/etaDiffMCReco", deltaEta);
+      histos.fill("Eta/etaDiffMCRecoVsEtaMC", deltaEta, track.label().eta());
+      histos.fill("Eta/etaDiffMCRecoVsEtaReco", deltaEta, track.eta());
 
       const auto deltaPhi = track_utils::ConvertPhiRange(track.label().phi() - track.phi());
-      phiDiffMCRec->Fill(deltaPhi);
+      histos.fill("Phi/phiDiffMCRec", deltaPhi);
 
       double impactParameter{-999.};
       double impactParameterError{-999.};
@@ -205,10 +207,10 @@ struct QATrackingResolution {
         track_utils::GetImpactParameterAndError(track, primaryVertex, impactParameter, impactParameterError);
 
       if (propagate) {
-        impactParameterVsPt->Fill(track.pt(), impactParameter);
-        impactParameterVsEta->Fill(track.eta(), impactParameter);
-        impactParameterErrorVsPt->Fill(track.pt(), impactParameterError);
-        impactParameterErrorVsEta->Fill(track.eta(), impactParameterError);
+        histos.fill("ImpactParameter/impactParameterVsPt", track.pt(), impactParameter);
+        histos.fill("ImpactParameter/impactParameterVsEta", track.eta(), impactParameter);
+        histos.fill("ImpactParameter/impactParameterErrorVsPt", track.pt(), impactParameterError);
+        histos.fill("ImpactParameter/impactParameterErrorVsEta", track.eta(), impactParameterError);
       }
     }
   }
