@@ -21,4 +21,7 @@
 #pragma link C++ class o2::tof::HitType + ;
 #pragma link C++ class vector < o2::tof::HitType> + ;
 
+#pragma link C++ class o2::tof::TOFSimParams + ;
+#pragma link C++ class o2::conf::ConfigurableParamHelper < o2::tof::TOFSimParams> + ;
+
 #endif

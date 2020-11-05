@@ -105,6 +105,9 @@ void CompressedDecodingTask::postData(ProcessingContext& pc)
   std::vector<uint64_t>& errors = mDecoder.getErrors();
   pc.outputs().snapshot(Output{o2::header::gDataOriginTOF, "ERRORS", 0, Lifetime::Timeframe}, errors);
 
+  DigitHeader& digitH = mDecoder.getDigitHeader();
+  pc.outputs().snapshot(Output{o2::header::gDataOriginTOF, "DIGITHEADER", 0, Lifetime::Timeframe}, digitH);
+
   // RS this is a hack to be removed once we have correct propagation of the firstTForbit by the framework
   auto setFirstTFOrbit = [&](const Output& spec, uint32_t orb) {
     auto* hd = pc.outputs().findMessageHeader(spec);
@@ -189,6 +192,8 @@ void CompressedDecodingTask::trailerHandler(const CrateHeader_t* crateHeader, co
     mNCrateCloseTF++;
   }
 
+  mDecoder.addCrateHeaderData(crateOrbit->orbitID, crateHeader->drmID, crateHeader->bunchID, crateTrailer->eventCounter);
+
   // Diagnostics used to fill digit patterns
   auto numberOfDiagnostics = crateTrailer->numberOfDiagnostics;
   auto numberOfErrors = crateTrailer->numberOfErrors;
@@ -196,6 +201,7 @@ void CompressedDecodingTask::trailerHandler(const CrateHeader_t* crateHeader, co
     const uint32_t* val = reinterpret_cast<const uint32_t*>(&(diagnostics[i]));
     mDecoder.addPattern(*val, crateHeader->drmID, crateOrbit->orbitID, crateHeader->bunchID);
 
+    /*
     int islot = (*val & 15);
     printf("DRM = %d (orbit = %d) slot = %d: \n", crateHeader->drmID, crateOrbit->orbitID, islot);
     if (islot == 1) {
@@ -315,6 +321,7 @@ void CompressedDecodingTask::trailerHandler(const CrateHeader_t* crateHeader, co
       }
     }
     printf("------\n");
+    */
   }
   for (int i = 0; i < numberOfErrors; i++) {
     const uint32_t* val = reinterpret_cast<const uint32_t*>(&(errors[i]));
@@ -353,6 +360,7 @@ void CompressedDecodingTask::frameHandler(const CrateHeader_t* crateHeader, cons
 DataProcessorSpec getCompressedDecodingSpec(const std::string& inputDesc, bool conet)
 {
   std::vector<OutputSpec> outputs;
+  outputs.emplace_back(o2::header::gDataOriginTOF, "DIGITHEADER", 0, Lifetime::Timeframe);
   outputs.emplace_back(o2::header::gDataOriginTOF, "DIGITS", 0, Lifetime::Timeframe);
   outputs.emplace_back(o2::header::gDataOriginTOF, "READOUTWINDOW", 0, Lifetime::Timeframe);
   outputs.emplace_back(o2::header::gDataOriginTOF, "PATTERNS", 0, Lifetime::Timeframe);

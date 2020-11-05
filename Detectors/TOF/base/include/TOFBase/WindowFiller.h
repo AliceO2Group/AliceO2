@@ -28,9 +28,16 @@ class WindowFiller
   struct PatternData {
     uint32_t pattern;
     int icrate;
+
     unsigned long row;
 
     PatternData(uint32_t patt = 0, int icr = 0, unsigned long rw = 0) : pattern(patt), icrate(icr), row(rw) {}
+  };
+
+  struct CrateHeaderData {
+    int32_t bc[Geo::kNCrate] = {-1};
+    uint32_t eventCounter[Geo::kNCrate] = {0};
+    CrateHeaderData() { memset(bc, -1, Geo::kNCrate * 4); }
   };
 
   WindowFiller() { initObj(); };
@@ -50,6 +57,7 @@ class WindowFiller
   std::vector<Digit>* getDigitPerTimeFrame() { return &mDigitsPerTimeFrame; }
   std::vector<ReadoutWindowData>* getReadoutWindowData() { return &mReadoutWindowData; }
   std::vector<ReadoutWindowData>* getReadoutWindowDataFiltered() { return &mReadoutWindowDataFiltered; }
+  DigitHeader& getDigitHeader() { return mDigitHeader; }
 
   void fillOutputContainer(std::vector<Digit>& digits);
   void flushOutputContainer(std::vector<Digit>& digits); // flush all residual buffered data
@@ -68,7 +76,8 @@ class WindowFiller
   }
 
   std::vector<uint32_t>& getPatterns() { return mPatterns; }
-  void addPattern(const uint32_t val, int icrate, int orbit, int bc) { mCratePatterns.emplace_back(val, icrate, orbit * 3 + (bc + 100) / 1188); }
+  void addPattern(const uint32_t val, int icrate, int orbit, int bc) { mCratePatterns.emplace_back(val, icrate, orbit * 3 + (bc + 100) / Geo::BC_IN_WINDOW); }
+  void addCrateHeaderData(unsigned long orbit, int crate, int32_t bc, uint32_t eventCounter);
 
  protected:
   // info TOF timewindow
@@ -106,6 +115,9 @@ class WindowFiller
   std::vector<uint64_t> mErrors;
 
   std::vector<PatternData> mCratePatterns;
+  std::vector<CrateHeaderData> mCrateHeaderData;
+
+  DigitHeader mDigitHeader;
 
   void fillDigitsInStrip(std::vector<Strip>* strips, int channel, int tdc, int tot, uint64_t nbc, UInt_t istrip, uint32_t triggerorbit = 0, uint16_t triggerbunch = 0);
   //  void fillDigitsInStrip(std::vector<Strip>* strips, o2::dataformats::MCTruthContainer<o2::tof::MCLabel>* mcTruthContainer, int channel, int tdc, int tot, int nbc, UInt_t istrip, Int_t trackID, Int_t eventID, Int_t sourceID);
@@ -136,7 +148,7 @@ class WindowFiller
     return true;
   }
 
-  ClassDefNV(WindowFiller, 1);
+  ClassDefNV(WindowFiller, 2);
 };
 } // namespace tof
 } // namespace o2

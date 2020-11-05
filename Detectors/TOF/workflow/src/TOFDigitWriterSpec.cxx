@@ -29,6 +29,7 @@ using ReadoutWinType = std::vector<o2::tof::ReadoutWindowData>;
 using PatternType = std::vector<uint32_t>;
 using ErrorType = std::vector<uint64_t>;
 using LabelsType = std::vector<o2::dataformats::MCTruthContainer<o2::MCCompLabel>>;
+using HeaderType = o2::tof::DigitHeader;
 using namespace o2::header;
 
 DataProcessorSpec getTOFDigitWriterSpec(bool useMC, bool writeErr)
@@ -46,6 +47,8 @@ DataProcessorSpec getTOFDigitWriterSpec(bool useMC, bool writeErr)
   // read the trigger data first and store in the trigP2Sect shared pointer
   auto preprocessor = [nCalls](ProcessingContext&) {
     (*nCalls)++;
+  };
+  auto loggerH = [nCalls](HeaderType const& indata) {
   };
   auto logger = [nCalls](OutputType const& indata) {
     //    LOG(INFO) << "RECEIVED DIGITS SIZE " << indata.size();
@@ -65,6 +68,11 @@ DataProcessorSpec getTOFDigitWriterSpec(bool useMC, bool writeErr)
                                 // the preprocessor only increments the call count, we keep this functionality
                                 // of the original implementation
                                 MakeRootTreeWriterSpec::Preprocessor{preprocessor},
+                                BranchDefinition<HeaderType>{InputSpec{"digitheader", gDataOriginTOF, "DIGITHEADER", 0},
+                                                             "TOFHeader",
+                                                             "tofdigitheader-branch-name",
+                                                             1,
+                                                             loggerH},
                                 BranchDefinition<OutputType>{InputSpec{"digits", gDataOriginTOF, "DIGITS", 0},
                                                              "TOFDigit",
                                                              "tofdigits-branch-name",
