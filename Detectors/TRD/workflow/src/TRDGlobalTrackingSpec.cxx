@@ -93,8 +93,8 @@ void TRDGlobalTracking::run(ProcessingContext& pc)
 {
   mTimer.Start(false);
   const auto tracksITSTPC = pc.inputs().get<gsl::span<o2::dataformats::TrackTPCITS>>("tpcitstrack");
-  const auto trackletsTRD = pc.inputs().get<std::vector<o2::trd::Tracklet64>>("trdtracklets");
-  const auto triggerRecords = pc.inputs().get<std::vector<o2::trd::TriggerRecord>>("trdtriggerrec");
+  const auto trackletsTRD = pc.inputs().get<gsl::span<o2::trd::Tracklet64>>("trdtracklets");
+  const auto triggerRecords = pc.inputs().get<gsl::span<o2::trd::TriggerRecord>>("trdtriggerrec");
 
   int nTracks = tracksITSTPC.size();
   int nCollisions = triggerRecords.size();
