@@ -58,6 +58,9 @@
   }                                                                                    \
   if (mProcessingSettings.tpcCompressionGatherModeKernel < 0) {                        \
     mProcessingSettings.tpcCompressionGatherModeKernel = GPUCA_COMP_GATHER_KERNEL;     \
+  }                                                                                    \
+  if (mProcessingSettings.tpcCompressionGatherMode < 0) {                              \
+    mProcessingSettings.tpcCompressionGatherMode = GPUCA_COMP_GATHER_MODE;             \
   }
 
 #endif

@@ -11,8 +11,6 @@
 /// \file testGPUsortCUDA.cu
 /// \author Michael Lettrich
 
-#define GPUCA_GPUTYPE_TURING
-
 #define BOOST_TEST_MODULE Test GPUCommonAlgorithm Sorting CUDA
 #define BOOST_TEST_MAIN
 #define BOOST_TEST_DYN_LINK
