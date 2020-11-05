@@ -15,10 +15,12 @@
 
 #include "DataFormatsFT0/RecPoints.h"
 #include "Framework/AnalysisDataModel.h"
+#include "Framework/AnalysisHelpers.h"
 #include "Framework/DataProcessorSpec.h"
 #include "Framework/Task.h"
 #include "ReconstructionDataFormats/TrackTPCITS.h"
 #include "TStopwatch.h"
+#include <CCDB/BasicCCDBManager.h>
 #include <string>
 #include <vector>
 
@@ -89,6 +91,7 @@ class AODProducerWorkflowDPL : public Task
   uint64_t minGlBC = INT64_MAX;
 
   void findMinMaxBc(gsl::span<const o2::ft0::RecPoints>& ft0RecPoints, gsl::span<const o2::dataformats::TrackTPCITS>& tracksITSTPC);
+  int64_t getTimeStamp(uint64_t firstVtxGlBC, int runNumber);
 
   template <typename TracksType, typename TracksCursorType>
   void fillTracksTable(const TracksType& tracks, std::vector<int>& vCollRefs, const TracksCursorType& tracksCursor, int trackType);

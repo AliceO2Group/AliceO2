@@ -15,7 +15,10 @@
 #include "DataFormatsITS/TrackITS.h"
 #include "DataFormatsTPC/TrackTPC.h"
 #include "DetectorsCommonDataFormats/NameConf.h"
+#include <CCDB/BasicCCDBManager.h>
+#include "CommonDataFormat/InteractionRecord.h"
 #include "Framework/AnalysisDataModel.h"
+#include "Framework/AnalysisHelpers.h"
 #include "Framework/ConfigParamRegistry.h"
 #include "Framework/DataTypes.h"
 #include "Framework/InputRecordWalker.h"
@@ -35,6 +38,7 @@
 #include "TMath.h"
 #include <map>
 #include <vector>
+
 
 using namespace o2::framework;
 
@@ -64,6 +68,38 @@ void AODProducerWorkflowDPL::findMinMaxBc(gsl::span<const o2::ft0::RecPoints>& f
     }
   }
 }
+
+int64_t AODProducerWorkflowDPL::getTimeStamp(uint64_t firstVtxGlBC, int runNumber) {
+  // FIXME:
+  // check if this code is correct
+
+  auto& mgr = o2::ccdb::BasicCCDBManager::instance();
+  o2::ccdb::CcdbApi ccdb_api;
+  const std::string rct_path = "RCT/RunInformation/";
+  const std::string start_orbit_path = "Trigger/StartOrbit";
+  const std::string url("http://ccdb-test.cern.ch:8080");
+
+  mgr.setURL(url);
+  ccdb_api.init(url);
+
+  std::map<int, int>* mapStartOrbit = mgr.get<std::map<int, int>>(start_orbit_path);
+  int64_t ts = 0;
+  std::map<std::string, std::string> metadata;
+  std::map<std::string, std::string> headers;
+  const std::string run_path = Form("%s/%i", rct_path.data(), runNumber);
+  headers = ccdb_api.retrieveHeaders(run_path, metadata, -1);
+  ts = atol(headers["SOR"].c_str());
+
+  // firstRec --> `minimal` global BC in the simulation (see AODProducerWorkflowDPL::findMinMaxBc)
+  // firstVtxGlBC --> global BC correspinding to the first prim. vertex
+
+  const uint32_t initialOrbit = mapStartOrbit->at(runNumber);
+  const o2::InteractionRecord firstRec(minGlBC, initialOrbit);
+  const o2::InteractionRecord firstVtx(firstVtxGlBC, initialOrbit);
+  ts += (firstRec - firstVtx).bc2ns() / 1000000;
+
+  return ts;
+};
 
 template <typename TracksType, typename TracksCursorType>
 void AODProducerWorkflowDPL::fillTracksTable(const TracksType& tracks, std::vector<int>& vCollRefs, const TracksCursorType& tracksCursor, int trackType)
@@ -109,9 +145,8 @@ void AODProducerWorkflowDPL::fillTracksTable(const TracksType& tracks, std::vect
           tpcNClsFindable = tpcTrack.getNClusters();
         },
         [&](o2::dataformats::TrackTPCITS itsTpcTrack) {
-          LOG(INFO) << "check";
-        }
-      },
+          LOG(DEBUG) << "TrackTPCITS: check";
+        }},
       tmp);
 
     // TODO:
@@ -200,12 +235,6 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
   auto& tracksBuilder = pc.outputs().make<TableBuilder>(Output{"AOD", "TRACK"});
   auto& timeFrameNumberBuilder = pc.outputs().make<uint64_t>(Output{"TFN", "TFNumber"});
 
-  // TODO:
-  // obtain a real TF number
-  timeFrameNumberBuilder = 123;
-
-  // TODO:
-  // add  FV0A, FV0C, FDD tables
   auto& fv0aBuilder = pc.outputs().make<TableBuilder>(Output{"AOD", "FV0A"});
   auto& fv0cBuilder = pc.outputs().make<TableBuilder>(Output{"AOD", "FV0C"});
   auto& fddBuilder = pc.outputs().make<TableBuilder>(Output{"AOD", "FDD"});
@@ -217,26 +246,46 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
   auto mcCollisionsCursor = mcCollisionsBuilder.cursor<o2::aod::McCollisions>();
   auto tracksCursor = tracksBuilder.cursor<o2::aodproducer::TracksTable>();
 
-  // TODO:
-  // add  FV0A, FV0C, FDD tables
   auto fv0aCursor = fv0aBuilder.cursor<o2::aod::FV0As>();
   auto fv0cCursor = fv0cBuilder.cursor<o2::aod::FV0Cs>();
   auto fddCursor = fddBuilder.cursor<o2::aod::FDDs>();
   auto zdcCursor = zdcBuilder.cursor<o2::aod::Zdcs>();
 
+  findMinMaxBc(ft0RecPoints, tracksITSTPC);
+
+  std::map<uint64_t, uint64_t> mGlobBC2BCID;
+
+  // TODO:
+  // get real run number and triggerMask
+  int runNumber = 244918;
+  uint64_t triggerMask = 1;
+
+  // filling BC table and map<globalBC, BCId>
+  for (uint64_t i = 0; i <= maxGlBC - minGlBC; i++) {
+    bcCursor(0,
+             runNumber,
+             minGlBC + i,
+             triggerMask);
+    mGlobBC2BCID[minGlBC + i] = i;
+  }
+
+  // TODO:
+  // add real FV0A, FV0C, FDD, ZDC tables instead of dummies
   float dummyfv0AmplA[48] = {0.};
-  float dummyfv0AmplC[32] = {0.};
-  float dummyfddAmplA[4] = {0.};
-  float dummyfddAmplC[4] = {0.};
   fv0aCursor(0,
              (uint64_t)0,
              dummyfv0AmplA,
              0.f,
              (uint8_t)0);
+
+  float dummyfv0AmplC[32] = {0.};
   fv0cCursor(0,
              (uint64_t)0,
              dummyfv0AmplC,
              0.f);
+
+  float dummyfddAmplA[4] = {0.};
+  float dummyfddAmplC[4] = {0.};
   fddCursor(0,
             (uint64_t)0,
             dummyfddAmplA,
@@ -277,7 +326,6 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
   LOG(INFO) << "FOUND " << parts.size() << " parts";
 
   // TODO:
-  // change index to BCId (?)
   // figure out generatorID and collision weight
   int index = 0;
   int generatorID = 0;
@@ -290,8 +338,9 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
     auto eventID = colparts[0].entryID;
     auto sourceID = colparts[0].sourceID;
     auto& header = mcReader.getMCEventHeader(sourceID, eventID);
+    uint64_t globalBC = rec.bc + rec.orbit * o2::constants::lhc::LHCMaxBunches;
     mcCollisionsCursor(0,
-                       index,
+                       mGlobBC2BCID.at(globalBC),
                        generatorID,
                        header.GetX(),
                        header.GetY(),
@@ -300,24 +349,6 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
                        mcColWeight,
                        header.GetB());
     index++;
-  }
-
-  findMinMaxBc(ft0RecPoints, tracksITSTPC);
-
-  std::map<uint64_t, uint64_t> mGlobBC2BCID;
-
-  // TODO:
-  // get real run number and triggerMask
-  int runNumber = 244918;
-  uint64_t triggerMask = 1;
-
-  // filling BC table and map<globalBC, BCId>
-  for (uint64_t i = 0; i <= maxGlBC - minGlBC; i++) {
-    bcCursor(0,
-             runNumber,
-             minGlBC + i,
-             triggerMask);
-    mGlobBC2BCID[minGlBC + i] = i;
   }
 
   // vector of FT0 amplitudes
@@ -349,17 +380,27 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
   std::vector<int> vCollRefsTPC(tracksTPC.size(), -1);
   std::vector<int> vCollRefsTPCITS(tracksITSTPC.size(), -1);
 
+  // global bc of the 1st vertex for TF number
+  uint64_t firstVtxGlBC;
+
   // filling collisions table
   int collisionID = 0;
   for (auto& vertex : primVertices) {
     auto& cov = vertex.getCov();
     auto& timeStamp = vertex.getTimeStamp();
     Double_t tsTimeStamp = timeStamp.getTimeStamp() * 1E3; // ms to ns
+    // FIXME:
+    // should use IRMin and IRMax for globalBC calculation
     uint64_t globalBC = tsTimeStamp / o2::constants::lhc::LHCBunchSpacingNS;
+
+    if (collisionID == 0) {
+      firstVtxGlBC = globalBC;
+    }
+
     int BCid = mGlobBC2BCID.at(globalBC);
     // TODO:
     // get real collision time mask
-    int collisionTimeMask = 1;
+    int collisionTimeMask = 0;
     collisionsCursor(0,
                      BCid,
                      vertex.getX(),
@@ -379,6 +420,9 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
     auto trackRef = primVer2TRefs[collisionID];
     int start = trackRef.getFirstEntryOfSource(0);
     int ntracks = trackRef.getEntriesOfSource(0);
+
+    // FIXME:
+    // `track<-->vertex` ambiguity is not accounted for in this code
     for (int ti = 0; ti < ntracks; ti++) {
       auto trackIndex = primVerGIs[start + ti];
       const auto source = trackIndex.getSource();
@@ -406,6 +450,8 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
   if (mFillTracksITSTPC) {
     fillTracksTable(tracksITSTPC, vCollRefsTPCITS, tracksCursor, o2::vertexing::GIndex::Source::TPCITS); // fTrackType = 0
   }
+
+  timeFrameNumberBuilder = getTimeStamp(firstVtxGlBC, runNumber);
 
   mTimer.Stop();
 }
