@@ -50,7 +50,7 @@ class Tracklet64
  public:
   Tracklet64() = default;
   Tracklet64(uint64_t trackletword) { mtrackletWord = trackletword; }
-  Tracklet64(const Tracklet64& rhs) { mtrackletWord = rhs.getTrackletWord(); };
+  Tracklet64(const Tracklet64&) = default;
   Tracklet64(uint64_t format, uint64_t hcid, uint64_t padrow, uint64_t col, uint64_t position,
              uint64_t slope, uint64_t Q0, uint64_t Q1, uint64_t Q2)
   {
@@ -58,7 +58,6 @@ class Tracklet64
   }
 
   ~Tracklet64() = default;
-  Tracklet64& operator=(const Tracklet64& o) { return *this; }
 
   //TODO convert to the actual number  regarding compliments.
   // ----- Getters for contents of tracklet word -----
@@ -149,7 +148,6 @@ class Tracklet64
  protected:
   uint64_t mtrackletWord; // the 64 bit word holding all the tracklet information for run3.
  private:
-  //  Tracklet& operator=(const Tracklet &rhs);   // not implemented
   ClassDefNV(Tracklet64, 1);
 };
 
