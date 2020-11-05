@@ -94,7 +94,11 @@ void CTFCoder::compress(CompressedInfos& cc,
     cc.ndigROF[irof] = ndig;
     cc.ndiaROF[irof] = rofRec.sizeDia();
     for (int icrate = 0; icrate < 72; icrate++) {
-      cc.ndiaCrate[irof * 72 + icrate] = rofRec.getDiagnosticInCrate(icrate);
+      if (rofRec.isEmptyCrate(icrate)) {
+        cc.ndiaCrate[irof * 72 + icrate] = 0;
+      } else {
+        cc.ndiaCrate[irof * 72 + icrate] = rofRec.getDiagnosticInCrate(icrate) + 1; // shifted by one since -1 means crate not available (then to get unsigned int)
+      }
     }
 
     if (!ndig) { // no hits data for this ROF --> not fill

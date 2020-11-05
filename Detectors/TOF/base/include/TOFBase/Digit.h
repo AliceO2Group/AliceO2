@@ -116,15 +116,27 @@ struct ReadoutWindowData {
   o2::dataformats::RangeReference<int, int> refDiagnostic;
 
   // crate info for diagnostic patterns
-  int mNdiaCrate[72] = {0};
+  int mNdiaCrate[Geo::kNCrate] = {0};
+  int mDeltaBCCrate[Geo::kNCrate] = {0};
+  int mDeltaEventCounterCrate[Geo::kNCrate] = {0};
 
   InteractionRecord mFirstIR{0, 0};
+  int mEventCounter = 0;
 
   const InteractionRecord& getBCData() const { return mFirstIR; }
 
+  void setEmptyCrate(int crate) { mNdiaCrate[crate] = -1; }
+  bool isEmptyCrate(int crate) const { return (mNdiaCrate[crate] == -1); }
   void addedDiagnostic(int crate) { mNdiaCrate[crate]++; }
   void setDiagnosticInCrate(int crate, int val) { mNdiaCrate[crate] = val; }
-  int getDiagnosticInCrate(int crate) const { return mNdiaCrate[crate]; }
+  int getDiagnosticInCrate(int crate) const
+  {
+    if (isEmptyCrate(crate)) {
+      return 0;
+    } else {
+      return mNdiaCrate[crate];
+    }
+  }
 
   void setBCData(int orbit, int bc)
   {
@@ -164,7 +176,36 @@ struct ReadoutWindowData {
   void setFirstEntryDia(int first) { refDiagnostic.setFirstEntry(first); }
   void setNEntriesDia(int ne) { refDiagnostic.setEntries(ne); }
 
-  ClassDefNV(ReadoutWindowData, 3);
+  void setEventCounter(int ev) { mEventCounter = ev; }
+  void setDeltaEventCounterCrate(int crate, int ev) { mDeltaEventCounterCrate[crate] = ev; }
+  int getEventCounter() const { return mEventCounter; }
+  int getDeltaEventCounterCrate(int crate) const { return mDeltaEventCounterCrate[crate]; }
+  void setDeltaBCCrate(int crate, int bc) { mDeltaBCCrate[crate] = bc; }
+  int getDeltaBCCrate(int crate) const { return mDeltaBCCrate[crate]; }
+
+  ClassDefNV(ReadoutWindowData, 4);
+};
+
+struct DigitHeader {
+  int mCountsCrate[Geo::kNCrate] = {0};
+  int mNumberOfCrates[Geo::kNCrate] = {0};
+  int mCountsRow = 0;
+
+  void clear()
+  {
+    memset(mCountsCrate, 0, Geo::kNCrate * 4);
+    memset(mNumberOfCrates, 0, Geo::kNCrate * 4);
+    mCountsRow = 0;
+  }
+  DigitHeader() { clear(); }
+  void addRow() { mCountsRow++; }
+  int getNRow() const { return mCountsRow; }
+  void crateSeen(int crate) { mCountsCrate[crate]++; }
+  void numCratesSeen(int ncrates) { mNumberOfCrates[ncrates]++; }
+  int getCrateCounts(int crate) const { return mCountsCrate[crate]; }
+  int numCratesCounts(int ncrates) const { return mNumberOfCrates[ncrates]; }
+
+  ClassDefNV(DigitHeader, 2);
 };
 
 } // namespace tof

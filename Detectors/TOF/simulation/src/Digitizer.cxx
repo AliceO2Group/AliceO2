@@ -10,6 +10,7 @@
 
 #include "TOFSimulation/Digitizer.h"
 #include "DetectorsBase/GeometryManager.h"
+#include "TOFSimulation/TOFSimParams.h"
 
 #include "TCanvas.h"
 #include "TFile.h"
@@ -512,7 +513,7 @@ void Digitizer::initParameters()
   mBound4 = 0.9;  // distance from border (not fired pad) when efficiency vanishes
 
   // resolution parameters
-  mTOFresolution = 60;    // TOF global resolution in ps
+  mTOFresolution = TOFSimParams::Instance().time_resolution; // TOF global resolution in ps
   mShowerResolution = 50; // smearing correlated for all digits of the same hit
   if (mTOFresolution > mShowerResolution) {
     mDigitResolution = TMath::Sqrt(mTOFresolution * mTOFresolution -
@@ -546,10 +547,10 @@ void Digitizer::initParameters()
   }
 
   // efficiency parameters
-  mEffCenter = 0.995;    // efficiency in the center of the fired pad
-  mEffBoundary1 = 0.94;  // efficiency in mBound2
-  mEffBoundary2 = 0.833; // efficiency in the pad border
-  mEffBoundary3 = 0.1;   // efficiency in mBound3
+  mEffCenter = TOFSimParams::Instance().eff_center;       // efficiency in the center of the fired pad
+  mEffBoundary1 = TOFSimParams::Instance().eff_boundary1; // efficiency in mBound2
+  mEffBoundary2 = TOFSimParams::Instance().eff_boundary2; // efficiency in the pad border
+  mEffBoundary3 = TOFSimParams::Instance().eff_boundary3; // efficiency in mBound3
 }
 
 //______________________________________________________________________
