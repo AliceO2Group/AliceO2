@@ -381,7 +381,7 @@ struct HistFiller {
 
   // fill any type of histogram with columns (Cs) of a filtered table (if weight is requested it must reside the last specified column)
   template <typename... Cs, typename R, typename T>
-  static void fillHistAnyTable(std::shared_ptr<R>& hist, const T& table, const o2::framework::expressions::Filter& filter)
+  static void fillHistAny(std::shared_ptr<R>& hist, const T& table, const o2::framework::expressions::Filter& filter)
   {
     auto filtered = o2::soa::Filtered<T>{{table.asArrowTable()}, o2::framework::expressions::createSelection(table.asArrowTable(), filter)};
     for (auto& t : filtered) {
@@ -482,57 +482,25 @@ struct HistFiller {
 class HistogramRegistry
 {
  public:
-  HistogramRegistry(char const* const name_, std::vector<HistogramSpec> histSpecs_ = {}, OutputObjHandlingPolicy policy_ = OutputObjHandlingPolicy::AnalysisObject, bool sortHistos_ = true, bool createRegistryDir_ = false)
-    : mName(name_), mPolicy(policy_), mRegistryKey(), mRegistryValue(), mSortHistos(sortHistos_), mCreateRegistryDir(createRegistryDir_)
+  HistogramRegistry(char const* const name, std::vector<HistogramSpec> histSpecs = {}, OutputObjHandlingPolicy policy = OutputObjHandlingPolicy::AnalysisObject, bool sortHistos = true, bool createRegistryDir = false)
+    : mName(name), mPolicy(policy), mRegistryKey(), mRegistryValue(), mSortHistos(sortHistos), mCreateRegistryDir(createRegistryDir)
   {
     mRegistryKey.fill(0u);
-    for (auto& histSpec : histSpecs_) {
+    for (auto& histSpec : histSpecs) {
       insert(histSpec);
     }
   }
 
-  void add(const HistogramSpec& histSpec_)
-  {
-    insert(histSpec_);
-  }
+  // functions to add histograms to the registry
+  void add(const HistogramSpec& histSpec);
+  void add(char const* const name, char const* const title, const HistogramConfigSpec& histConfigSpec, bool callSumw2 = false);
+  void add(char const* const name, char const* const title, HistType histType, std::vector<AxisSpec> axes, bool callSumw2 = false);
+  void addClone(const std::string& source, const std::string& target);
 
-  void add(char const* const name_, char const* const title_, const HistogramConfigSpec& histConfigSpec_, bool callSumw2_ = false)
+  // function to query if name is already in use
+  bool contains(char const* const name)
   {
-    insert({name_, title_, histConfigSpec_, callSumw2_});
-  }
-
-  void add(char const* const name_, char const* const title_, HistType histType_, std::vector<AxisSpec> axes_, bool callSumw2_ = false)
-  {
-    insert({name_, title_, {histType_, axes_}, callSumw2_});
-  }
-
-  // store a copy of an existing histogram (or group of histograms) under a different name
-  void addClone(const std::string& source_, const std::string& target_)
-  {
-    auto doInsertClone = [&](const auto& sharedPtr) {
-      if (!sharedPtr.get()) {
-        return;
-      }
-      std::string sourceName{((TNamed*)sharedPtr.get())->GetName()};
-      // search for histograms starting with source_ substring
-      if (sourceName.rfind(source_, 0) == 0) {
-        // when cloning groups of histograms source_ and target_ must end with "/"
-        if (sourceName.size() != source_.size() && (source_.back() != '/' || target_.back() != '/')) {
-          return;
-        }
-        // when cloning a single histogram the specified target_ must not be a group name
-        if (sourceName.size() == source_.size() && target_.back() == '/') {
-          LOGF(FATAL, "Cannot turn histogram into folder!");
-        }
-        std::string targetName{target_};
-        targetName += sourceName.substr(sourceName.find(source_) + source_.size());
-        insertClone(targetName.data(), sharedPtr);
-      }
-    };
-
-    for (auto& histVariant : mRegistryValue) {
-      std::visit(doInsertClone, histVariant);
-    }
+    return contains(compile_time_hash(name), name);
   }
 
   // gets the underlying histogram pointer
@@ -573,59 +541,7 @@ class HistogramRegistry
     mTaskHash = hash;
   }
 
-  TList* operator*()
-  {
-    TList* list = new TList();
-    list->SetName(mName.data());
-
-    for (auto j = 0u; j < MAX_REGISTRY_SIZE; ++j) {
-      TNamed* rawPtr = nullptr;
-      std::visit([&](const auto& sharedPtr) { rawPtr = (TNamed*)sharedPtr.get(); }, mRegistryValue[j]);
-      if (rawPtr) {
-        std::deque<std::string> path = splitPath(rawPtr->GetName());
-        std::string name = path.back();
-        path.pop_back();
-        TList* targetList{getSubList(list, path)};
-        if (targetList) {
-          rawPtr->SetName(name.data());
-          targetList->Add(rawPtr);
-        } else {
-          LOGF(FATAL, "Specified subfolder could not be created.");
-        }
-      }
-    }
-
-    // sort histograms in output file alphabetically
-    if (mSortHistos) {
-      std::function<void(TList*)> sortList;
-      sortList = [&](TList* list) {
-        list->Sort();
-        TIter next(list);
-        TNamed* subList = nullptr;
-        std::vector<TObject*> subLists;
-        while ((subList = (TNamed*)next())) {
-          if (subList->InheritsFrom(TList::Class())) {
-            subLists.push_back(subList);
-            sortList((TList*)subList);
-          }
-        }
-        // place lists always at the top
-        std::reverse(subLists.begin(), subLists.end());
-        for (auto curList : subLists) {
-          list->Remove(curList);
-          list->AddFirst(curList);
-        }
-      };
-      sortList(list);
-    }
-
-    // create dedicated directory containing all of the registrys histograms
-    if (mCreateRegistryDir) {
-      // propagate this to the writer by adding a 'flag' to the output list
-      list->AddLast(new TNamed("createFolder", ""));
-    }
-    return list;
-  }
+  TList* operator*();
 
   // fill hist with values
   template <typename... Ts>
@@ -638,7 +554,7 @@ class HistogramRegistry
   template <typename... Cs, typename T>
   void fill(char const* const name, const T& table, const o2::framework::expressions::Filter& filter)
   {
-    std::visit([&table, &filter](auto&& hist) { HistFiller::fillHistAnyTable<Cs...>(hist, table, filter); }, mRegistryValue[getHistIndex(name)]);
+    std::visit([&table, &filter](auto&& hist) { HistFiller::fillHistAny<Cs...>(hist, table, filter); }, mRegistryValue[getHistIndex(name)]);
   }
 
   // get rough estimate for size of histogram stored in registry
@@ -686,7 +602,7 @@ class HistogramRegistry
 
   // clone an existing histogram and insert it into the registry
   template <typename T>
-  void insertClone(const char* name, const std::shared_ptr<T>& originalHist)
+  void insertClone(char const* const name, const std::shared_ptr<T>& originalHist)
   {
     const uint32_t id = compile_time_hash(name);
     const uint32_t i = imask(id);
@@ -704,7 +620,7 @@ class HistogramRegistry
     LOGF(FATAL, "Internal array of HistogramRegistry %s is full.", mName);
   }
 
-  inline constexpr uint32_t imask(uint32_t i) const
+  constexpr uint32_t imask(uint32_t i) const
   {
     return i & MASK;
   }
@@ -724,73 +640,16 @@ class HistogramRegistry
     throw runtime_error("No matching histogram found in HistogramRegistry!");
   }
 
+  bool contains(const uint32_t id, char const* const name);
+
   // helper function to create resp. find the subList defined by path
-  TList* getSubList(TList* list, std::deque<std::string>& path)
-  {
-    if (path.empty()) {
-      return list;
-    }
-    TList* targetList{nullptr};
-    std::string nextList = path[0];
-    path.pop_front();
-    if (auto subList = (TList*)list->FindObject(nextList.data())) {
-      if (subList->InheritsFrom(TList::Class())) {
-        targetList = getSubList((TList*)subList, path);
-      } else {
-        return nullptr;
-      }
-    } else {
-      subList = new TList();
-      subList->SetName(nextList.data());
-      list->Add(subList);
-      targetList = getSubList(subList, path);
-    }
-    return targetList;
-  }
+  TList* getSubList(TList* list, std::deque<std::string>& path);
 
   // helper function to split user defined path/to/hist/name string
-  std::deque<std::string> splitPath(const std::string& pathAndNameUser)
-  {
-    std::istringstream pathAndNameStream(pathAndNameUser);
-    std::deque<std::string> pathAndName;
-    std::string curDir;
-    while (std::getline(pathAndNameStream, curDir, '/')) {
-      pathAndName.push_back(curDir);
-    }
-    return pathAndName;
-  }
+  std::deque<std::string> splitPath(const std::string& pathAndNameUser);
 
   // helper function that checks if name of histogram is reasonable and keeps track of names already in use
-  void registerName(const std::string& name)
-  {
-    if (name.empty() || name.back() == '/') {
-      LOGF(FATAL, "Invalid name for a histogram.");
-    }
-    std::deque<std::string> path = splitPath(name);
-    std::string cumulativeName{};
-    int depth = path.size();
-    for (auto& step : path) {
-      if (step.empty()) {
-        LOGF(FATAL, "Found empty group name in path for histogram %s.", name);
-      }
-      cumulativeName += step;
-      for (auto& curName : mRegisteredNames) {
-        // there is already a histogram where we want to put a folder or histogram
-        if (cumulativeName == curName) {
-          LOGF(FATAL, "Histogram name %s is not compatible with existing names.", name);
-        }
-        // for the full new histogram name we need to check that none of the existing histograms already uses this as a group name
-        if (depth == 1) {
-          if (curName.rfind(cumulativeName, 0) == 0 && curName.size() > cumulativeName.size() && curName.at(cumulativeName.size()) == '/') {
-            LOGF(FATAL, "Histogram name %s is not compatible with existing names.", name);
-          }
-        }
-      }
-      --depth;
-      cumulativeName += "/";
-    }
-    mRegisteredNames.push_back(name);
-  }
+  void registerName(const std::string& name);
 
   std::string mName{};
   OutputObjHandlingPolicy mPolicy{};
