@@ -131,10 +131,11 @@ struct ReadoutWindowData {
   void setDiagnosticInCrate(int crate, int val) { mNdiaCrate[crate] = val; }
   int getDiagnosticInCrate(int crate) const
   {
-    if (isEmptyCrate(crate))
+    if (isEmptyCrate(crate)) {
       return 0;
-    else
+    } else {
       return mNdiaCrate[crate];
+    }
   }
 
   void setBCData(int orbit, int bc)

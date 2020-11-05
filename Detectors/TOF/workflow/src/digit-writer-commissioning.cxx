@@ -8,7 +8,7 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#include "TOFWorkflowUtils/TOFDigitWriterSpitterSpec.h"
+#include "TOFWorkflowUtils/TOFDigitWriterSplitterSpec.h"
 #include "CommonUtils/ConfigurableParam.h"
 #include "Framework/ConfigParamSpec.h"
 
