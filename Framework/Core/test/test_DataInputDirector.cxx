@@ -11,6 +11,7 @@
 #define BOOST_TEST_MAIN
 #define BOOST_TEST_DYN_LINK
 
+#include <fstream>
 #include <boost/test/unit_test.hpp>
 
 #include "Headers/DataHeader.h"

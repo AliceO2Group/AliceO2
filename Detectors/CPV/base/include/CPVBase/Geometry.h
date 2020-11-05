@@ -13,6 +13,7 @@
 
 #include <string>
 
+#include <Rtypes.h>
 #include <RStringView.h>
 #include <TMath.h>
 
@@ -74,6 +75,8 @@ class Geometry
   {
     return absId > 0 && absId <= getTotalNPads();
   } // TODO: evaluate from real geometry
+
+  ClassDefNV(Geometry, 1);
 };
 } // namespace cpv
 } // namespace o2
