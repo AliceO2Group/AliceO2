@@ -119,7 +119,7 @@ where `tracks.in` is a binary file with the same format as the one written by th
 
 Send the list of MCH tracks ([TrackMCH](../../../../DataFormats/Detectors/MUON/MCH/include/DataFormatsMCH/TrackMCH.h)) and the list of associated clusters ([ClusterStruct](../Base/include/MCHBase/ClusterBlock.h)) in two separate messages with the data description "TRACKS" and "TRACKCLUSTERS", respectively.
 
-Option `--forTrackFitter` allows to send the messages with the data description "TRACKSIN" and "TRACKCLUSTERSIN", respectively, as expected by the workflow `o2-mch-tracks-to-tracks-workflow` described below.
+Option `--forTrackFitter` allows to send the messages with the data description "TRACKSIN" and "TRACKCLUSTERSIN", respectively, as expected by the workflow [o2-mch-tracks-to-tracks-workflow](#track-fitter).
 
 ### Vertex sampler
 
@@ -146,12 +146,12 @@ If no binary file is provided, the vertex is always set to (0,0,0).
 
 `o2-mch-tracks-sink-workflow --outfile "tracks.out"`
 
-Take as input the list of tracks at vertex (`TrackAtVtxStruct` as described above), the list of MCH tracks ([TrackMCH](../../../../DataFormats/Detectors/MUON/MCH/include/DataFormatsMCH/TrackMCH.h)) and the list of associated clusters ([ClusterStruct](../Base/include/MCHBase/ClusterBlock.h)) of the current event with the data description "TRACKSATVERTEX", "TRACKS" and "TRACKCLUSTERS", respectively, and write them in the binary file `tracks.out` with the following format:
+Take as input the list of tracks at vertex ([TrackAtVtxStruct](#track-extrapolation-to-vertex)), the list of MCH tracks ([TrackMCH](../../../../DataFormats/Detectors/MUON/MCH/include/DataFormatsMCH/TrackMCH.h)) and the list of associated clusters ([ClusterStruct](../Base/include/MCHBase/ClusterBlock.h)) of the current event with the data description "TRACKSATVERTEX", "TRACKS" and "TRACKCLUSTERS", respectively, and write them in the binary file `tracks.out` with the following format:
 
 * number of tracks at vertex (int)
 * number of MCH tracks (int)
 * number of associated clusters (int)
-* list of tracks at vertex (`TrackAtVtxStruct` as described above)
+* list of tracks at vertex ([TrackAtVtxStruct](#track-extrapolation-to-vertex))
 * list of MCH tracks ([TrackMCH](../../../../DataFormats/Detectors/MUON/MCH/include/DataFormatsMCH/TrackMCH.h))
 * list of associated clusters ([ClusterStruct](../Base/include/MCHBase/ClusterBlock.h))
 
