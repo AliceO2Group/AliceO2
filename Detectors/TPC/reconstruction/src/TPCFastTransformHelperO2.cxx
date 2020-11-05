@@ -246,7 +246,7 @@ int TPCFastTransformHelperO2::updateCalibration(TPCFastTransform& fastTransform,
   // spline corrections for xyz
   // Time-of-flight correction: ldrift += dist-to-vtx*tofCorr
 
-  const double t0 = elParam.PeakingTime / elParam.ZbinWidth;
+  const double t0 = elParam.getAverageShapingTime() / elParam.ZbinWidth;
 
   const double vdCorrY = 0.;
   const double ldCorr = 0.;

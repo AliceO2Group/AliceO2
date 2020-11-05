@@ -45,6 +45,13 @@ struct ParameterElectronics : public o2::conf::ConfigurableParamHelper<Parameter
   float ElectronCharge = 1.602e-19f;                            ///< Electron charge [C]
   DigitzationMode DigiMode = DigitzationMode::SubtractPedestal; ///< Digitization mode [full / ... ]
 
+  /// Average time from the start of the signal shaping to the COG of the sampled distribution
+  ///
+  /// Since the shaping of the electronic starts when the signals arrive, the cluster finder
+  /// reconstructs signals later in time. Due to the asymmetry of the signal, the average
+  /// shaping time is somewhat larger then the PeakingTime
+  float getAverageShapingTime() const { return PeakingTime + 35e-3f; }
+
   O2ParamDef(ParameterElectronics, "TPCEleParam");
 };
 } // namespace tpc
