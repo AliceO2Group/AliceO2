@@ -15,6 +15,7 @@
 #include "Framework/ConfigContext.h"
 #include "Framework/DeviceSpec.h"
 #include "Framework/DataSpecUtils.h"
+#include "Framework/DataAllocator.h"
 #include "Framework/ControlService.h"
 #include "Framework/RawDeviceService.h"
 #include "Framework/StringHelpers.h"

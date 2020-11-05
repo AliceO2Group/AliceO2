@@ -11,12 +11,12 @@
 #define O2_FRAMEWORK_PROCESSINGCONTEXT_H_
 
 #include "Framework/InputRecord.h"
-#include "Framework/DataAllocator.h"
 
 namespace o2::framework
 {
 
 struct ServiceRegistry;
+struct DataAllocator;
 
 // This is a utility class to reduce the amount of boilerplate when defining
 // an algorithm.
