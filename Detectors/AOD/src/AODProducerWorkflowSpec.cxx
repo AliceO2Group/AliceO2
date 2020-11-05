@@ -39,7 +39,6 @@
 #include <map>
 #include <vector>
 
-
 using namespace o2::framework;
 
 namespace o2::aodproducer
@@ -69,7 +68,8 @@ void AODProducerWorkflowDPL::findMinMaxBc(gsl::span<const o2::ft0::RecPoints>& f
   }
 }
 
-int64_t AODProducerWorkflowDPL::getTimeStamp(uint64_t firstVtxGlBC, int runNumber) {
+int64_t AODProducerWorkflowDPL::getTimeStamp(uint64_t firstVtxGlBC, int runNumber)
+{
   // FIXME:
   // check if this code is correct
 
