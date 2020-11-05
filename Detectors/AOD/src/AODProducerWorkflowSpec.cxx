@@ -57,7 +57,7 @@ void AODProducerWorkflowDPL::findMinMaxBc(gsl::span<const o2::ft0::RecPoints>& f
   }
 
   for (auto& trackITSTPC : tracksITSTPC) {
-    Double_t timeStamp = trackITSTPC.getTimeMUS().getTimeStamp() * 1.E3; // ms to ns
+    Double_t timeStamp = trackITSTPC.getTimeMUS().getTimeStamp() * 1.E3; // mus to ns
     uint64_t bc = (uint64_t)(timeStamp / o2::constants::lhc::LHCBunchSpacingNS);
     if (minGlBC > bc) {
       minGlBC = bc;
@@ -68,7 +68,7 @@ void AODProducerWorkflowDPL::findMinMaxBc(gsl::span<const o2::ft0::RecPoints>& f
   }
 }
 
-int64_t AODProducerWorkflowDPL::getTimeStamp(uint64_t firstVtxGlBC, int runNumber)
+int64_t AODProducerWorkflowDPL::getTFNumber(uint64_t firstVtxGlBC, int runNumber)
 {
   // FIXME:
   // check if this code is correct
@@ -77,7 +77,7 @@ int64_t AODProducerWorkflowDPL::getTimeStamp(uint64_t firstVtxGlBC, int runNumbe
   o2::ccdb::CcdbApi ccdb_api;
   const std::string rct_path = "RCT/RunInformation/";
   const std::string start_orbit_path = "Trigger/StartOrbit";
-  const std::string url("http://ccdb-test.cern.ch:8080");
+  const std::string url = "http://ccdb-test.cern.ch:8080";
 
   mgr.setURL(url);
   ccdb_api.init(url);
@@ -90,13 +90,21 @@ int64_t AODProducerWorkflowDPL::getTimeStamp(uint64_t firstVtxGlBC, int runNumbe
   headers = ccdb_api.retrieveHeaders(run_path, metadata, -1);
   ts = atol(headers["SOR"].c_str());
 
-  // firstRec --> `minimal` global BC in the simulation (see AODProducerWorkflowDPL::findMinMaxBc)
-  // firstVtxGlBC --> global BC correspinding to the first prim. vertex
+  // ccdb returns timestamp in mus
+  // mus to ms
+  ts = ts / 1000;
 
-  const uint32_t initialOrbit = mapStartOrbit->at(runNumber);
-  const o2::InteractionRecord firstRec(minGlBC, initialOrbit);
-  const o2::InteractionRecord firstVtx(firstVtxGlBC, initialOrbit);
-  ts += (firstRec - firstVtx).bc2ns() / 1000000;
+  // firstRec --> calculated using `minimal` global BC in the simulation (see AODProducerWorkflowDPL::findMinMaxBc)
+  // firstVtxGlBC --> calculated using global BC correspinding to the first prim. vertex
+
+  uint32_t initialOrbit = mapStartOrbit->at(runNumber);
+  uint16_t firstRecBC = minGlBC % o2::constants::lhc::LHCMaxBunches;
+  uint32_t firstRecOrbit = minGlBC / o2::constants::lhc::LHCMaxBunches;
+  uint16_t firstVtxBC = firstVtxGlBC % o2::constants::lhc::LHCMaxBunches;
+  uint32_t firstVtxOrbit = firstVtxGlBC / o2::constants::lhc::LHCMaxBunches;
+  const o2::InteractionRecord firstRec(firstRecBC, firstRecOrbit);
+  const o2::InteractionRecord firstVtx(firstVtxBC, firstVtxOrbit);
+  ts += (firstVtx - firstRec).bc2ns() / 1000000;
 
   return ts;
 };
@@ -388,7 +396,7 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
   for (auto& vertex : primVertices) {
     auto& cov = vertex.getCov();
     auto& timeStamp = vertex.getTimeStamp();
-    Double_t tsTimeStamp = timeStamp.getTimeStamp() * 1E3; // ms to ns
+    Double_t tsTimeStamp = timeStamp.getTimeStamp() * 1E3; // mus to ns
     // FIXME:
     // should use IRMin and IRMax for globalBC calculation
     uint64_t globalBC = tsTimeStamp / o2::constants::lhc::LHCBunchSpacingNS;
@@ -451,7 +459,7 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
     fillTracksTable(tracksITSTPC, vCollRefsTPCITS, tracksCursor, o2::vertexing::GIndex::Source::TPCITS); // fTrackType = 0
   }
 
-  timeFrameNumberBuilder = getTimeStamp(firstVtxGlBC, runNumber);
+  timeFrameNumberBuilder = getTFNumber(firstVtxGlBC, runNumber);
 
   mTimer.Stop();
 }
