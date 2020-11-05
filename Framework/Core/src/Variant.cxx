@@ -10,10 +10,22 @@
 #include "Framework/Variant.h"
 #include <iostream>
 
-namespace o2
+namespace o2::framework
 {
-namespace framework
+
+namespace
 {
+template <typename T>
+void printArray(std::ostream& oss, T* array, size_t size)
+{
+  for (auto i = 0u; i < size; ++i) {
+    oss << array[i];
+    if (i < size - 1) {
+      oss << ", ";
+    }
+  }
+}
+} // namespace
 
 std::ostream& operator<<(std::ostream& oss, Variant const& val)
 {
@@ -36,6 +48,18 @@ std::ostream& operator<<(std::ostream& oss, Variant const& val)
     case VariantType::Bool:
       oss << val.get<bool>();
       break;
+    case VariantType::ArrayInt:
+      printArray<int>(oss, val.get<int*>(), val.size());
+      break;
+    case VariantType::ArrayFloat:
+      printArray<float>(oss, val.get<float*>(), val.size());
+      break;
+    case VariantType::ArrayDouble:
+      printArray<double>(oss, val.get<double*>(), val.size());
+      break;
+    case VariantType::ArrayBool:
+      printArray<bool>(oss, val.get<bool*>(), val.size());
+      break;
     case VariantType::Empty:
       break;
     default:
@@ -45,5 +69,4 @@ std::ostream& operator<<(std::ostream& oss, Variant const& val)
   return oss;
 }
 
-} // namespace framework
-} // namespace o2
+} // namespace o2::framework
