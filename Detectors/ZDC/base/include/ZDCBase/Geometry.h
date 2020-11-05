@@ -11,6 +11,7 @@
 #ifndef ALICEO2_ZDC_GEOMETRY_H
 #define ALICEO2_ZDC_GEOMETRY_H
 
+#include <Rtypes.h>
 #include "TMath.h"
 #include <cmath>
 

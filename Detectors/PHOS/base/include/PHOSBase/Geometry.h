@@ -13,6 +13,7 @@
 
 #include <string>
 
+#include <Rtypes.h>
 #include <RStringView.h>
 #include <TMath.h>
 
@@ -114,6 +115,8 @@ class Geometry
   static Geometry* sGeom; // Pointer to the unique instance of the singleton
 
   std::string mGeoName; ///< Geometry name string
+
+  ClassDefNV(Geometry, 1);
 };
 } // namespace phos
 } // namespace o2

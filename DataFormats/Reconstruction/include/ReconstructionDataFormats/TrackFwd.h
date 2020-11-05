@@ -16,6 +16,7 @@
 #ifndef ALICEO2_BASE_TRACKFWD
 #define ALICEO2_BASE_TRACKFWD
 
+#include <Rtypes.h>
 #include <TMath.h>
 #include "Math/SMatrix.h"
 #include "MathUtils/Utils.h"

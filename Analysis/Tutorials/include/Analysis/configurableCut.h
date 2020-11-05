@@ -12,6 +12,7 @@
 #define CONFIGURABLECUT_H
 
 #include <iosfwd>
+#include <Rtypes.h>
 #include <TMath.h>
 
 class configurableCut

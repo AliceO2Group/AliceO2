@@ -11,6 +11,7 @@
 #define BOOST_TEST_MAIN
 #define BOOST_TEST_DYN_LINK
 
+#include <fstream>
 #include <boost/test/unit_test.hpp>
 
 #include "Headers/DataHeader.h"
@@ -50,7 +51,8 @@ BOOST_AUTO_TEST_CASE(TestDatainputDirector)
 
   DataInputDirector didir1;
   BOOST_CHECK(didir1.readJson(jsonFile));
-  didir1.printOut(); printf("\n\n");
+  didir1.printOut();
+  printf("\n\n");
 
   BOOST_CHECK_EQUAL(didir1.getNumberInputDescriptors(), 2);
 
@@ -94,7 +96,8 @@ BOOST_AUTO_TEST_CASE(TestDatainputDirector)
                                          "Bresults_1.root",
                                          "Bresults_2.root"};
   DataInputDirector didir2(inputFiles);
-  didir2.printOut(); printf("\n\n");
+  didir2.printOut();
+  printf("\n\n");
   BOOST_CHECK(didir2.readJson(jsonFile));
 
   //auto [file2, directory2] = didir2.getFileFolder(dh, 1, 0);
