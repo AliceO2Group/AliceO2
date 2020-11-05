@@ -16,6 +16,7 @@
 #ifndef ALICEO2_MCH_TRACKPARAM_H_
 #define ALICEO2_MCH_TRACKPARAM_H_
 
+#include <memory> // for std::unique_ptr
 #include <TMatrixD.h>
 
 #include "MCHBase/TrackBlock.h"
