@@ -85,6 +85,7 @@ LOGFILE=${DICTIONARY_FILE}.log
 @CMAKE_COMMAND@ -E env LD_LIBRARY_PATH=${LD_LIBRARY_PATH} @ROOT_rootcling_CMD@ \
   -f $DICTIONARY_FILE \
   -inlineInputHeader \
+  -noGlobalUsingStd \
   -rmf ${ROOTMAP_FILE} \
   -rml ${ROOTMAP_LIBRARY_NAME} \
   ${INCLUDE_DIRS//;/ } \
