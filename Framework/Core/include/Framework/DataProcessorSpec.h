@@ -14,6 +14,7 @@
 #include "Framework/ConfigParamSpec.h"
 #include "Framework/DataProcessorLabel.h"
 #include "Framework/DataRef.h"
+#include "Framework/DataAllocator.h"
 #include "Framework/InputSpec.h"
 #include "Framework/OutputSpec.h"
 #include "Framework/CommonServices.h"

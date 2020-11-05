@@ -26,6 +26,7 @@
 #include "DataFormatsFT0/ChannelData.h"
 
 #include "Framework/ProcessingContext.h"
+#include "Framework/DataAllocator.h"
 #include "Framework/OutputSpec.h"
 #include <gsl/span>
 
