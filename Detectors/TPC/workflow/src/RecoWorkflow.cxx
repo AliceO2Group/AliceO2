@@ -238,7 +238,7 @@ framework::WorkflowSpec getWorkflow(CompletionPolicyData* policyData, std::vecto
   // ClusterDecoderRawSpec
   bool produceCompClusters = isEnabled(OutputType::CompClusters);
   bool produceTracks = isEnabled(OutputType::Tracks);
-  bool runTracker = produceTracks || produceCompClusters;
+  bool runTracker = produceTracks || produceCompClusters || (isEnabled(OutputType::Clusters) && caClusterer);
   bool runHWDecoder = !caClusterer && (runTracker || isEnabled(OutputType::Clusters));
   bool runClusterer = !caClusterer && (runHWDecoder || isEnabled(OutputType::ClustersHardware));
   bool zsDecoder = inputType == InputType::ZSRaw;
