@@ -445,7 +445,10 @@ bool DataProcessingDevice::ConditionalRun()
   if (mState.loop) {
     ZoneScopedN("uv idle");
     TracyPlot("past activity", (int64_t)mWasActive);
-    uv_run(mState.loop, (mWasActive && (mDataProcessorContexes.at(0).state->streaming != StreamingState::Idle) && (mState.activeSignals.empty())) ? UV_RUN_NOWAIT : UV_RUN_ONCE);
+    auto shouldNotWait = (mWasActive &&
+                          (mDataProcessorContexes.at(0).state->streaming != StreamingState::Idle) && (mState.activeSignals.empty())) ||
+                         (mDataProcessorContexes.at(0).state->streaming == StreamingState::EndOfStreaming);
+    uv_run(mState.loop, shouldNotWait ? UV_RUN_NOWAIT : UV_RUN_ONCE);
   }
 
   // Notify on the main thread the new region callbacks, making sure
