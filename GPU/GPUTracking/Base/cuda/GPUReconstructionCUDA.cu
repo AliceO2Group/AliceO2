@@ -22,9 +22,11 @@
 #include "GPUReconstructionIncludes.h"
 #include "GPUParamRTC.h"
 
-static constexpr size_t REQUIRE_MIN_MEMORY = 1024u * 1024 * 1024;
-static constexpr size_t REQUIRE_MEMORY_RESERVED = 512u * 1024 * 1024;
-static constexpr size_t REQUIRE_FREE_MEMORY_RESERVED = 2048u * 1024 * 1024;
+static constexpr size_t REQUIRE_MIN_MEMORY = 1024L * 1024 * 1024;
+static constexpr size_t REQUIRE_MEMORY_RESERVED = 512L * 1024 * 1024;
+static constexpr size_t REQUIRE_FREE_MEMORY_RESERVED_PER_SM = 40L * 1024 * 1024;
+static constexpr size_t RESERVE_EXTRA_MEM_THRESHOLD = 10L * 1024 * 1024 * 1024;
+static constexpr size_t RESERVE_EXTRA_MEM_OFFSET = 1L * 512 * 1024 * 1024;
 
 using namespace GPUCA_NAMESPACE::gpu;
 
@@ -33,7 +35,7 @@ texture<cahit2, cudaTextureType1D, cudaReadModeElementType> gAliTexRefu2;
 texture<calink, cudaTextureType1D, cudaReadModeElementType> gAliTexRefu;
 #endif
 
-__global__ void dummyInitKernel(void* foo)
+__global__ void dummyInitKernel(void*)
 {
 }
 
@@ -285,20 +287,20 @@ int GPUReconstructionCUDABackend::InitDevice_Runtime()
       if (cudaDeviceProp.major < reqVerMaj || (cudaDeviceProp.major == reqVerMaj && cudaDeviceProp.minor < reqVerMin)) {
         deviceOK = false;
         deviceFailure = "Too low device revision";
-      } else if (free < std::max(mDeviceMemorySize, REQUIRE_MIN_MEMORY)) {
+      } else if (free < std::max<size_t>(mDeviceMemorySize, REQUIRE_MIN_MEMORY)) {
         deviceOK = false;
         deviceFailure = "Insufficient GPU memory";
       }
 
       deviceSpeed = (double)cudaDeviceProp.multiProcessorCount * (double)cudaDeviceProp.clockRate * (double)cudaDeviceProp.warpSize * (double)free * (double)cudaDeviceProp.major * (double)cudaDeviceProp.major;
       if (mProcessingSettings.debugLevel >= 2) {
-        GPUImportant("Device %s%2d: %s (Rev: %d.%d - Mem Avail %lld / %lld)%s %s", deviceOK ? " " : "[", i, cudaDeviceProp.name, cudaDeviceProp.major, cudaDeviceProp.minor, (long long int)free, (long long int)cudaDeviceProp.totalGlobalMem, deviceOK ? " " : " ]", deviceOK ? "" : deviceFailure);
+        GPUImportant("Device %s%2d: %s (Rev: %d.%d - Mem Avail %lu / %lu)%s %s", deviceOK ? " " : "[", i, cudaDeviceProp.name, cudaDeviceProp.major, cudaDeviceProp.minor, free, (size_t)cudaDeviceProp.totalGlobalMem, deviceOK ? " " : " ]", deviceOK ? "" : deviceFailure);
       }
       if (!deviceOK) {
         continue;
       }
       devicesOK[i] = true;
-      devMemory[i] = std::min(free, total - REQUIRE_MEMORY_RESERVED);
+      devMemory[i] = std::min<size_t>(free, std::max<long int>(0, total - REQUIRE_MEMORY_RESERVED));
       if (deviceSpeed > bestDeviceSpeed) {
         bestDevice = i;
         bestDeviceSpeed = deviceSpeed;
@@ -312,7 +314,7 @@ int GPUReconstructionCUDABackend::InitDevice_Runtime()
     bool noDevice = false;
     if (bestDevice == -1) {
       GPUWarning("No %sCUDA Device available, aborting CUDA Initialisation", count ? "appropriate " : "");
-      GPUImportant("Requiring Revision %d.%d, Mem: %lld", reqVerMaj, reqVerMin, (long long int)std::max(mDeviceMemorySize, REQUIRE_MIN_MEMORY));
+      GPUImportant("Requiring Revision %d.%d, Mem: %lu", reqVerMaj, reqVerMin, std::max<size_t>(mDeviceMemorySize, REQUIRE_MIN_MEMORY));
       noDevice = true;
     } else if (mProcessingSettings.deviceNum > -1) {
       if (mProcessingSettings.deviceNum >= (signed)count) {
@@ -354,6 +356,9 @@ int GPUReconstructionCUDABackend::InitDevice_Runtime()
       GPUInfo("\ttextureAlignment = %lld", (unsigned long long int)cudaDeviceProp.textureAlignment);
       GPUInfo(" ");
     }
+    if (cudaDeviceProp.warpSize != GPUCA_WARP_SIZE) {
+      throw std::runtime_error("Invalid warp size on GPU");
+    }
     mBlockCount = cudaDeviceProp.multiProcessorCount;
     mWarpSize = 32;
     mMaxThreads = std::max<int>(mMaxThreads, cudaDeviceProp.maxThreadsPerBlock * mBlockCount);
@@ -394,10 +399,14 @@ int GPUReconstructionCUDABackend::InitDevice_Runtime()
       return (1);
     }
 
+    if (mDeviceMemorySize == 1 || mDeviceMemorySize == 2) {
+      mDeviceMemorySize = std::max<long int>(0, devMemory[mDeviceId] - REQUIRE_FREE_MEMORY_RESERVED_PER_SM * cudaDeviceProp.multiProcessorCount); // Take all GPU memory but some reserve
+      if (mDeviceMemorySize >= RESERVE_EXTRA_MEM_THRESHOLD) {
+        mDeviceMemorySize -= RESERVE_EXTRA_MEM_OFFSET;
+      }
+    }
     if (mDeviceMemorySize == 2) {
-      mDeviceMemorySize = devMemory[mDeviceId] * 2 / 3; // Leave 1/3 of GPU memory for event display
-    } else if (mDeviceMemorySize == 1) {
-      mDeviceMemorySize = devMemory[mDeviceId] - REQUIRE_FREE_MEMORY_RESERVED; // Take all GPU memory but 1/2 GB
+      mDeviceMemorySize = mDeviceMemorySize * 2 / 3; // Leave 1/3 of GPU memory for event display
     }
 
     if (mDeviceMemorySize > cudaDeviceProp.totalGlobalMem || GPUFailedMsgI(cudaMalloc(&mDeviceMemoryBase, mDeviceMemorySize))) {
