@@ -130,6 +130,7 @@ DataProcessorSpec getCATrackerSpec(CompletionPolicyData* policyData, ca::Config 
       processAttributes->suppressOutput = (confParam.dump == 2);
       config.configInterface.dumpEvents = confParam.dump;
       config.configInterface.dropSecondaryLegs = confParam.dropSecondaryLegs;
+      config.configInterface.memoryBufferScaleFactor = confParam.memoryBufferScaleFactor;
       if (confParam.display) {
 #ifdef GPUCA_BUILD_EVENT_DISPLAY
         processAttributes->displayBackend.reset(new GPUDisplayBackendGlfw);

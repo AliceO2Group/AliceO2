@@ -75,6 +75,7 @@ int GPUTPCO2Interface::Initialize(const GPUO2InterfaceConfiguration& config)
   if (!mRec->IsGPU() && mConfig->configProcessing.memoryAllocationStrategy == GPUMemoryResource::ALLOCATION_INDIVIDUAL) {
     mRec->MemoryScalers()->factor *= 2;
   }
+  mRec->MemoryScalers()->factor *= mConfig->configInterface.memoryBufferScaleFactor;
   mInitialized = true;
   return (0);
 }

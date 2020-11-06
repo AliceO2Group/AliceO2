@@ -274,6 +274,7 @@ AddOption(synchronousProcessing, bool, false, "", 0, "Apply performance shortcut
 AddOption(mutexMemReg, bool, false, "", 0, "Global mutex to serialize GPU memory registration")
 AddOption(display, bool, false, "", 0, "Enable standalone gpu tracking visualizaion")
 AddOption(dropSecondaryLegs, bool, true, "", 0, "Do not store secondary legs of looping track in TrackTPC")
+AddOption(memoryBufferScaleFactor, float, 1.f, "", 0, "Factor to scale buffer size estimations")
 EndConfig()
 #endif // GPUCA_O2_LIB
 #endif // !GPUCA_GPUCODE_DEVICE
