@@ -235,6 +235,11 @@ DataProcessorSpec CommonDataProcessors::getOutputObjHistSink(outputObjects const
   return spec;
 }
 
+enum FileType : int {
+  AOD,
+  DANGLING
+};
+
 // add sink for the AODs
 DataProcessorSpec
   CommonDataProcessors::getGlobalAODSink(std::shared_ptr<DataOutputDirector> dod,
