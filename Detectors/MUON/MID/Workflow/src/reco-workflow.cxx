@@ -37,7 +37,7 @@ void customize(std::vector<ConfigParamSpec>& workflowOptions)
     options{
       {"mc", VariantType::Bool, false, {"Propagate labels"}},
       {"disable-tracking", VariantType::Bool, false, {"Only run clustering"}},
-      {"disable-output-file", VariantType::Bool, false, {"Do not write output to file"}}};
+      {"disable-root-output", VariantType::Bool, false, {"Do not write output to file"}}};
   workflowOptions.insert(workflowOptions.end(), options.begin(), options.end());
 }
 
@@ -47,7 +47,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
 {
   bool isMC = cfgc.options().get<bool>("mc");
   bool disableTracking = cfgc.options().get<bool>("disable-tracking");
-  bool disableFile = cfgc.options().get<bool>("disable-output-file");
+  bool disableFile = cfgc.options().get<bool>("disable-root-output");
 
   WorkflowSpec specs;
   specs.emplace_back(isMC ? o2::mid::getClusterizerMCSpec() : o2::mid::getClusterizerSpec());

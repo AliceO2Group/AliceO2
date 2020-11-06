@@ -109,5 +109,5 @@ o2-mid-reco-workflow --disable-tracking
 It is also possible to avoid producing a root file with:
 
 ```bash
-o2-mid-reco-workflow --disable-output-file
+o2-mid-reco-workflow --disable-root-output
 ```
