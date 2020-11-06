@@ -63,6 +63,9 @@ int GPUTPCO2Interface::Initialize(const GPUO2InterfaceConfiguration& config)
     mChain->SetOutputControlClustersNative(mOutputClustersNative.get());
     mOutputTPCTracks.reset(new GPUOutputControl);
     mChain->SetOutputControlTPCTracks(mOutputTPCTracks.get());
+    GPUOutputControl dummy;
+    dummy.set([](size_t size) -> void* {throw std::runtime_error("invalid output memory request, no common output buffer set"); return nullptr; });
+    mRec->SetOutputControl(dummy);
   }
   if (mConfig->configProcessing.runMC) {
     mOutputTPCClusterLabels.reset(new GPUOutputControl);
