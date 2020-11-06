@@ -576,12 +576,14 @@ DataProcessorSpec getCATrackerSpec(CompletionPolicyData* policyData, ca::Config 
           outputRegions.clustersNative.size = clusterOutput->get().size() - sizeof(ClusterCountIndex);
         }
       }
-      if (processAttributes->allocateOutputOnTheFly) {
-        outputRegions.tpcTracks.allocator = [&bufferTPCTracksChar, &pc](size_t size) -> void* {bufferTPCTracksChar = pc.outputs().make<char>(Output{gDataOriginTPC, "TRACKSGPU", 0}, size).data(); return bufferTPCTracksChar; };
-      } else {
-        bufferTPCTracks.emplace(pc.outputs().make<std::vector<char>>(Output{gDataOriginTPC, "TRACKSGPU", 0}, processAttributes->outputBufferSize));
-        outputRegions.tpcTracks.ptr = bufferTPCTracksChar = bufferTPCTracks->get().data();
-        outputRegions.tpcTracks.size = bufferTPCTracks->get().size();
+      if (specconfig.outputTracks) {
+        if (processAttributes->allocateOutputOnTheFly) {
+          outputRegions.tpcTracks.allocator = [&bufferTPCTracksChar, &pc](size_t size) -> void* {bufferTPCTracksChar = pc.outputs().make<char>(Output{gDataOriginTPC, "TRACKSGPU", 0}, size).data(); return bufferTPCTracksChar; };
+        } else {
+          bufferTPCTracks.emplace(pc.outputs().make<std::vector<char>>(Output{gDataOriginTPC, "TRACKSGPU", 0}, processAttributes->outputBufferSize));
+          outputRegions.tpcTracks.ptr = bufferTPCTracksChar = bufferTPCTracks->get().data();
+          outputRegions.tpcTracks.size = bufferTPCTracks->get().size();
+        }
       }
       if (specconfig.processMC) {
         outputRegions.clusterLabels.allocator = [&clustersMCBuffer](size_t size) -> void* { return &clustersMCBuffer; };
