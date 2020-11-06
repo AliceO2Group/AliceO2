@@ -346,8 +346,9 @@ Bool_t Detector::ProcessHits(FairVolume* vol)
   while ((lay < mTotalNumberOfLayers) && (notSens = (volID != mLayerID[lay]))) {
     ++lay;
   }
-  if (notSens)
+  if (notSens) {
     return kFALSE; // RS: can this happen? This method must be called for sensors only?
+  }
 
   // Is it needed to keep a track reference when the outer ITS volume is encountered?
   auto stack = (o2::data::Stack*)fMC->GetStack();
@@ -387,10 +388,12 @@ Bool_t Detector::ProcessHits(FairVolume* vol)
   }
 
   // increment energy loss at all steps except entrance
-  if (!startHit)
+  if (!startHit) {
     mTrackData.mEnergyLoss += fMC->Edep();
-  if (!(startHit | stopHit))
+  }
+  if (!(startHit | stopHit)) {
     return kFALSE; // do noting
+  }
 
   if (startHit) {
     mTrackData.mEnergyLoss = 0.;
@@ -883,8 +886,9 @@ void Detector::constructDetectorGeometry()
       vITSV->AddNode(wrapVols[id], 1, nullptr);
     }
   }
-  if (!mCreateOuterBarrel)
+  if (!mCreateOuterBarrel) {
     mTotalNumberOfLayers = mNumberOfInnerLayers;
+  }
 
   // Now create the actual geometry
   for (Int_t j = 0; j < mTotalNumberOfLayers; j++) {
@@ -928,7 +932,7 @@ void Detector::constructDetectorGeometry()
       mGeometry[j]->setSensorThick(mDetectorThickness[j]);
     }
 
-    if (mCreateOuterBarrel && j >= mNumberOfInnerLayers)
+    if (mCreateOuterBarrel && j >= mNumberOfInnerLayers) {
       for (int iw = 0; iw < sNumberOfWrapperVolumes; iw++) {
         if (mLayerRadii[j] > mWrapperMinRadius[iw] && mLayerRadii[j] < mWrapperMaxRadius[iw]) {
           LOG(DEBUG) << "Will embed layer " << j << " in wrapper volume " << iw;
@@ -938,6 +942,7 @@ void Detector::constructDetectorGeometry()
           break;
         }
       }
+    }
     mGeometry[j]->createLayer(dest);
   }
 

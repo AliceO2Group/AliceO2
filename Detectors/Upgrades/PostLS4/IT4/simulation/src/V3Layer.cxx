@@ -547,8 +547,9 @@ TGeoVolume* V3Layer::createStave(const TGeoManager* /*mgr*/)
     //    mechStaveVol = createStaveStructInnerB();
     if (mechStaveVol) {
       ypos = (static_cast<TGeoBBox*>(modVol->GetShape()))->GetDY() - ypos;
-      if (mStaveModel != Detector::kIBModel4)
+      if (mStaveModel != Detector::kIBModel4) {
         ypos += (static_cast<TGeoBBox*>(mechStaveVol->GetShape()))->GetDY();
+      }
       staveVol->AddNode(mechStaveVol, 1, new TGeoCombiTrans(0, -ypos, 0, new TGeoRotation("", 0, 0, 180)));
     }
   } else {
@@ -566,9 +567,10 @@ TGeoVolume* V3Layer::createStave(const TGeoManager* /*mgr*/)
       mechStaveVol = createSpaceFrameOuterB();
 
       if (mechStaveVol) {
-        if (mBuildLevel < 6) // Carbon
+        if (mBuildLevel < 6) { // Carbon
           staveVol->AddNode(mechStaveVol, 1,
                             new TGeoCombiTrans(0, -sOBSFrameULegHeight1, 0, new TGeoRotation("", 180, 0, 0)));
+        }
       }
     }
   }
@@ -617,10 +619,11 @@ TGeoVolume* V3Layer::createModuleInnerB(const TGeoManager* mgr)
   char chipName[nameLen], sensName[nameLen], volumeName[nameLen];
 
   // For material budget studies
-  if (mBuildLevel < 6)
+  if (mBuildLevel < 6) {
     dummyChip = kFALSE; // will be made of Si
-  else
+  } else {
     dummyChip = kTRUE; // will be made of Air
+  }
 
   // First create the single chip
   snprintf(chipName, nameLen, "%s%d", o2::its4::GeometryTGeo::getITSChipPattern(), mLayerNumber);
@@ -651,8 +654,9 @@ TGeoVolume* V3Layer::createModuleInnerB(const TGeoManager* mgr)
   Double_t yano = (static_cast<TGeoBBox*>(aluAnodeCableVol->GetShape()))->GetDY();
 
   ytot = ymod;
-  if (mStaveModel == Detector::kIBModel4)
+  if (mStaveModel == Detector::kIBModel4) {
     ytot += (sIBGlueThick / 2 + ygnd + sIBFlexCableKapThick / 2 + yano + sIBFlexCapacitorYHi / 2);
+  }
 
   TGeoBBox* module = new TGeoBBox(xtot, ytot, ztot);
 
@@ -685,8 +689,9 @@ TGeoVolume* V3Layer::createModuleInnerB(const TGeoManager* mgr)
 
   if (mStaveModel == Detector::kIBModel4) {
     ypos += (ymod + glue->GetDY());
-    if (mBuildLevel < 2) // Glue
+    if (mBuildLevel < 2) { // Glue
       modVol->AddNode(glueVol, 1, new TGeoTranslation(xpos, ypos, 0));
+    }
     ypos += glue->GetDY();
 
     if (mBuildLevel < 4) { // Kapton
@@ -808,20 +813,22 @@ void V3Layer::createIBCapacitors(TGeoVolume* modvol, Double_t zchip, Double_t yz
 
   nCapacitors++;
   for (Int_t j = 0; j < sIBChipsPerRow; j++) {
-    if (j == (sIBChipsPerRow - 1))
+    if (j == (sIBChipsPerRow - 1)) {
       xpos = xGroup4[1];
-    else
+    } else {
       xpos = xGroup4[0];
+    }
     zpos = -mIBModuleZLength / 2 + j * (2 * zchip + sIBChipZGap) + zchip + zGroup4[j];
     modvol->AddNode(capacitor, j + 1 + nCapacitors, new TGeoTranslation(-xpos, ypos, -zpos));
   }
 
   nCapacitors += sIBChipsPerRow;
   for (Int_t j = 0; j < nGroup5A; j++) {
-    if (j == 0)
+    if (j == 0) {
       xpos = xGroup5A[0];
-    else
+    } else {
       xpos = xGroup5A[1];
+    }
     zpos = zGroup5A[j];
     modvol->AddNode(capacitor, j + 1 + nCapacitors, new TGeoTranslation(-xpos, ypos, -zpos));
   }
@@ -869,8 +876,9 @@ TGeoVolume* V3Layer::createIBFPCAlGnd(const Double_t xcable, const Double_t zcab
   aluminumVol->SetFillColor(kCyan);
 
   ypos = coverlay->GetDY() - aluminum->GetDY();
-  if (mBuildLevel < 1) // Aluminum
+  if (mBuildLevel < 1) { // Aluminum
     coverlayVol->AddNode(aluminumVol, 1, new TGeoTranslation(0, ypos, 0));
+  }
 
   return coverlayVol;
 }
@@ -920,8 +928,9 @@ TGeoVolume* V3Layer::createIBFPCAlAnode(const Double_t xcable, const Double_t zc
   aluminumVol->SetFillColor(kCyan);
 
   ypos = -coverlay->GetDY() + aluminum->GetZ(1);
-  if (mBuildLevel < 1) // Aluminum
+  if (mBuildLevel < 1) { // Aluminum
     coverlayVol->AddNode(aluminumVol, 1, new TGeoCombiTrans(0, ypos, 0, new TGeoRotation("", 0, -90, 0)));
+  }
 
   return coverlayVol;
 }
@@ -1224,16 +1233,19 @@ TGeoVolume* V3Layer::createStaveModelInnerB4(const TGeoManager* mgr)
 
   // Now build up the half stave
   ypos = glue->GetDY();
-  if (mBuildLevel < 2) // Glue
+  if (mBuildLevel < 2) { // Glue
     mechStavVol->AddNode(glueVol, 1, new TGeoTranslation(0, ypos, 0));
+  }
 
   ypos += (glue->GetDY() + fleecbot->GetDY());
-  if (mBuildLevel < 5) // Carbon
+  if (mBuildLevel < 5) { // Carbon
     mechStavVol->AddNode(fleecbotVol, 1, new TGeoTranslation(0, ypos, 0));
+  }
 
   ypos += (fleecbot->GetDY() + cfplate->GetDY());
-  if (mBuildLevel < 5) // Carbon
+  if (mBuildLevel < 5) { // Carbon
     mechStavVol->AddNode(cfplateVol, 1, new TGeoTranslation(0, ypos, 0));
+  }
 
   ylay = ypos + cfplate->GetDY(); // The level where tubes etc. lay
 
@@ -1906,10 +1918,11 @@ TGeoVolume* V3Layer::createStaveModelOuterB2(const TGeoManager* mgr)
   zmod = (static_cast<TGeoBBox*>(moduleVol->GetShape()))->GetDZ();
 
   if (mLayerNumber == mNumberOfInnerLayers ||
-      mLayerNumber == mNumberOfInnerLayers + 1)
+      mLayerNumber == mNumberOfInnerLayers + 1) {
     zlen = sOBColdPlateZLenML / 2; // Middle Layer
-  else
+  } else {
     zlen = sOBColdPlateZLenOL / 2; // Outer Layer
+  }
 
   xlen = sOBColdPlateXWidth / 2;
 
@@ -1944,8 +1957,9 @@ TGeoVolume* V3Layer::createStaveModelOuterB2(const TGeoManager* mgr)
     new TGeoTubeSeg("FleecTube", rCoolMax + yGraph, rCoolMax + yCFleece + yGraph, zlen, 180., 360.);
 
   TGeoTube* gammaConvRod;
-  if (mAddGammaConv)
+  if (mAddGammaConv) {
     gammaConvRod = new TGeoTube("GammaConver", 0, 0.5 * mGammaConvDiam, zlen - sOBCPConnHollowZLen);
+  }
 
   //  TGeoBBox* flex1_5cm = new TGeoBBox("Flex1MV_5cm", xHalfSt, yFlex1 / 2, flexOverlap / 2);
   //  TGeoBBox* flex2_5cm = new TGeoBBox("Flex2MV_5cm", xHalfSt, yFlex2 / 2, flexOverlap / 2);
@@ -1958,8 +1972,9 @@ TGeoVolume* V3Layer::createStaveModelOuterB2(const TGeoManager* mgr)
   // The half stave container (an XTru to avoid overlaps between neightbours)
   xHalfSt = xmod; // add the cross cables when done!
   yHalfSt = ypowbus + ymod + coldPlate->GetDY() + 2 * fleeccent->GetDY() + graphlat->GetDY() + fleeclat->GetDY();
-  if (mAddGammaConv)
+  if (mAddGammaConv) {
     yHalfSt += mGammaConvDiam;
+  }
 
   xtru[0] = xHalfSt;
   ytru[0] = 0;
@@ -1969,8 +1984,9 @@ TGeoVolume* V3Layer::createStaveModelOuterB2(const TGeoManager* mgr)
   ytru[2] = ytru[1];
   xtru[3] = xtru[2];
   ytru[3] = ytru[2] - (coolTube->GetRmax() + fleectub->GetRmax());
-  if (mAddGammaConv)
+  if (mAddGammaConv) {
     ytru[3] -= mGammaConvDiam;
+  }
   xtru[4] = sOBCoolTubeXDist / 2 - fleectub->GetRmax();
   ytru[4] = ytru[3];
   xtru[5] = xtru[4];
@@ -1994,8 +2010,9 @@ TGeoVolume* V3Layer::createStaveModelOuterB2(const TGeoManager* mgr)
     new TGeoBBox("connCsideOB", sOBCPConnectorXWidth / 2, sOBCPConnBlockYHei / 2, sOBCPConnBlockZLen / 2);
 
   // The StaveStruct container, a Composite Shape
-  if (mAddGammaConv)
+  if (mAddGammaConv) {
     yHalfSt -= mGammaConvDiam;
+  }
   ypos = 2 * yHalfSt + connAside->GetDY() - sOBCPConnHollowYHei;
   zpos = zlen + connAside->GetDZ() - sOBCPConnHollowZLen;
   snprintf(volname, nameLen, "transAsideOB%d", mLayerNumber);
@@ -2119,18 +2136,21 @@ TGeoVolume* V3Layer::createStaveModelOuterB2(const TGeoManager* mgr)
   ypos -= ymod;
 
   ypos -= fleeccent->GetDY();
-  if (mBuildLevel < 6) // Carbon
+  if (mBuildLevel < 6) { // Carbon
     halfStaveVol->AddNode(fleeccentVol, 1, new TGeoTranslation(0, ypos, 0));
+  }
   ypos -= fleeccent->GetDY();
 
   ypos -= coldPlate->GetDY();
-  if (mBuildLevel < 6) // Carbon
+  if (mBuildLevel < 6) { // Carbon
     halfStaveVol->AddNode(coldPlateVol, 1, new TGeoTranslation(0, ypos, 0));
+  }
   ypos -= coldPlate->GetDY();
 
   ypos -= fleeccent->GetDY();
-  if (mBuildLevel < 6) // Carbon
+  if (mBuildLevel < 6) { // Carbon
     halfStaveVol->AddNode(fleeccentVol, 2, new TGeoTranslation(0, ypos, 0));
+  }
 
   xpos = sOBCoolTubeXDist / 2;
   ypos1 = ypos - (fleeccent->GetDY() + coolTube->GetRmax());
@@ -2307,45 +2327,55 @@ TGeoVolume* V3Layer::createOBPowerBiasBuses(const Double_t zcable, const TGeoMan
 
   // Volumes are piled up from bottom to top
   ypos = -pnbBus->GetDY() + kapPB->GetDY();
-  if (mBuildLevel < 5) // Kapton
+  if (mBuildLevel < 5) { // Kapton
     pnbBusVol->AddNode(kapPBVol, 1, new TGeoTranslation(0, ypos, 0));
+  }
 
   ypos += (kapPB->GetDY() + gndPB->GetDY());
-  if (mBuildLevel < 2) // Aluminum
+  if (mBuildLevel < 2) { // Aluminum
     pnbBusVol->AddNode(gndPBVol, 1, new TGeoTranslation(0, ypos, 0));
+  }
 
   ypos += (gndPB->GetDY() + dielPB->GetDY());
-  if (mBuildLevel < 5) // Kapton
+  if (mBuildLevel < 5) { // Kapton
     pnbBusVol->AddNode(dielPBVol, 1, new TGeoTranslation(0, ypos, 0));
+  }
 
   ypos += (dielPB->GetDY() + topPB->GetDY());
-  if (mBuildLevel < 2) // Aluminum
+  if (mBuildLevel < 2) { // Aluminum
     pnbBusVol->AddNode(topPBVol, 1, new TGeoTranslation(0, ypos, 0));
+  }
 
   ypos += (topPB->GetDY() + kapPB->GetDY());
-  if (mBuildLevel < 5) // Kapton
+  if (mBuildLevel < 5) { // Kapton
     pnbBusVol->AddNode(kapPBVol, 2, new TGeoTranslation(0, ypos, 0));
+  }
 
   //
   ypos += (kapPB->GetDY() + kapBB->GetDY());
-  if (mBuildLevel < 5) // Kapton
+  if (mBuildLevel < 5) { // Kapton
     pnbBusVol->AddNode(kapBBVol, 1, new TGeoTranslation(0, ypos, 0));
+  }
 
   ypos += (kapBB->GetDY() + botBB->GetDY());
-  if (mBuildLevel < 2) // Aluminum
+  if (mBuildLevel < 2) { // Aluminum
     pnbBusVol->AddNode(botBBVol, 1, new TGeoTranslation(0, ypos, 0));
+  }
 
   ypos += (botBB->GetDY() + dielBB->GetDY());
-  if (mBuildLevel < 5) // Kapton
+  if (mBuildLevel < 5) { // Kapton
     pnbBusVol->AddNode(dielBBVol, 1, new TGeoTranslation(0, ypos, 0));
+  }
 
   ypos += (dielBB->GetDY() + topBB->GetDY());
-  if (mBuildLevel < 2) // Aluminum
+  if (mBuildLevel < 2) { // Aluminum
     pnbBusVol->AddNode(topBBVol, 1, new TGeoTranslation(0, ypos, 0));
+  }
 
   ypos += (topBB->GetDY() + kapBB->GetDY());
-  if (mBuildLevel < 5) // Kapton
+  if (mBuildLevel < 5) { // Kapton
     pnbBusVol->AddNode(kapBBVol, 2, new TGeoTranslation(0, ypos, 0));
+  }
 
   //
   return pnbBusVol;
@@ -3452,10 +3482,11 @@ TGeoVolume* V3Layer::createModuleOuterB(const TGeoManager* mgr)
   // First create all needed shapes
 
   // For material budget studies
-  if (mBuildLevel < 7)
+  if (mBuildLevel < 7) {
     dummyChip = kFALSE; // will be made of Si
-  else
+  } else {
     dummyChip = kTRUE; // will be made of Air
+  }
 
   // The chip (the same as for IB)
   snprintf(chipName, nameLen, "%s%d", o2::its4::GeometryTGeo::getITSChipPattern(), mLayerNumber);
@@ -3525,8 +3556,9 @@ TGeoVolume* V3Layer::createModuleOuterB(const TGeoManager* mgr)
   // Now build up the module
   ypos = -module->GetDY() + glueCP->GetDY();
 
-  if (mBuildLevel < 3) // Glue
+  if (mBuildLevel < 3) { // Glue
     modVol->AddNode(glueCPVol, 1, new TGeoTranslation(0, ypos, 0));
+  }
 
   xpos = xchip + xGap / 2;
   ypos += (ychip + glueCP->GetDY());
@@ -3550,8 +3582,9 @@ TGeoVolume* V3Layer::createModuleOuterB(const TGeoManager* mgr)
   }
 
   ypos += (ychip + glueFPC->GetDY());
-  if (mBuildLevel < 3) // Glue
+  if (mBuildLevel < 3) { // Glue
     modVol->AddNode(glueFPCVol, 1, new TGeoTranslation(0, ypos, 0));
+  }
   ypos += glueFPC->GetDY();
 
   if (mBuildLevel < 5) { // Kapton
@@ -3608,8 +3641,9 @@ TGeoVolume* V3Layer::createOBFPCCuGnd(const Double_t zcable, const TGeoManager* 
   copperVol->SetFillColor(kCyan);
 
   ypos = -soldmask->GetDY() + copper->GetDY();
-  if (mBuildLevel < 1) // Copper
+  if (mBuildLevel < 1) { // Copper
     soldmaskVol->AddNode(copperVol, 1, new TGeoTranslation(0, ypos, 0));
+  }
 
   return soldmaskVol;
 }
@@ -3653,8 +3687,9 @@ TGeoVolume* V3Layer::createOBFPCCuSig(const Double_t zcable, const TGeoManager* 
   copperVol->SetFillColor(kCyan);
 
   ypos = soldmask->GetDY() - copper->GetDY();
-  if (mBuildLevel < 1) // Copper
+  if (mBuildLevel < 1) { // Copper
     soldmaskVol->AddNode(copperVol, 1, new TGeoTranslation(0, ypos, 0));
+  }
 
   return soldmaskVol;
 }
