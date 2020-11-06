@@ -26,13 +26,14 @@ o2_add_library(
     O2::Steer
     O2::TOFWorkflow
     O2::TPCWorkflow
+    O2::CCDB
 )
 
 o2_add_executable(
   workflow
   COMPONENT_NAME aod-producer
   SOURCES src/aod-producer-workflow.cxx
-  PUBLIC_LINK_LIBRARIES O2::AODProducerWorkflow 
+  PUBLIC_LINK_LIBRARIES O2::AODProducerWorkflow
 )
 
 o2_add_executable(
