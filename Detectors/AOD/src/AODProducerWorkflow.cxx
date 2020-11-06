@@ -35,14 +35,13 @@ framework::WorkflowSpec getAODProducerWorkflow()
 {
   // TODO:
   // switch to configurable parameters (?)
-  bool useFT0 = true;
   bool useMC = false;
 
   // FIXME:
   // switch (?) from o2::ft0::getReconstructionSpec to RecPointReader
   // (which does not return RECCHDATA at the moment)
   framework::WorkflowSpec specs{
-    o2::vertexing::getPrimaryVertexingSpec(useFT0, useMC),
+    o2::vertexing::getPrimaryVertexReaderSpec(useMC),
     o2::globaltracking::getTrackTPCITSReaderSpec(useMC),
     o2::its::getITSTrackReaderSpec(useMC),
     o2::tpc::getTPCTrackReaderSpec(useMC),
