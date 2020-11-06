@@ -9,6 +9,7 @@
 // or submit itself to any jurisdiction.
 #include "Framework/Variant.h"
 #include <iostream>
+#include <sstream>
 
 namespace o2::framework
 {
@@ -18,12 +19,14 @@ namespace
 template <typename T>
 void printArray(std::ostream& oss, T* array, size_t size)
 {
+  oss << variant_array_symbol<T>::symbol << "[";
   for (auto i = 0u; i < size; ++i) {
     oss << array[i];
     if (i < size - 1) {
-      oss << ", ";
+      oss << ",";
     }
   }
+  oss << "]";
 }
 } // namespace
 
@@ -67,6 +70,13 @@ std::ostream& operator<<(std::ostream& oss, Variant const& val)
       break;
   };
   return oss;
+}
+
+std::string Variant::asString() const
+{
+  std::stringstream ss;
+  ss << *this;
+  return ss.str();
 }
 
 } // namespace o2::framework

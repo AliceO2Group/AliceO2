@@ -13,10 +13,32 @@
 
 #include "Framework/DeviceConfigInfo.h"
 #include "Framework/DeviceInfo.h"
+#include "Framework/Variant.h"
 #include <boost/test/unit_test.hpp>
+#include <boost/tokenizer.hpp>
+#include <boost/lexical_cast.hpp>
 #include <string_view>
+#include <regex>
 
-BOOST_AUTO_TEST_CASE(TestDeviceMetricsInfo)
+template <typename T>
+std::string arrayPrinter(boost::property_tree::ptree const& tree)
+{
+  std::stringstream ss;
+  int size = tree.size();
+  int count = 0;
+  ss << o2::framework::variant_array_symbol<T>::symbol << "[";
+  for (auto& element : tree) {
+    ss << element.second.get_value<T>();
+    if (count < size - 1) {
+      ss << ",";
+    }
+    ++count;
+  }
+  ss << "]";
+  return ss.str();
+}
+
+BOOST_AUTO_TEST_CASE(TestDeviceConfigInfo)
 {
   using namespace o2::framework;
   std::string configString;
@@ -76,4 +98,22 @@ BOOST_AUTO_TEST_CASE(TestDeviceMetricsInfo)
   BOOST_CHECK_EQUAL(result, true);
   BOOST_CHECK_EQUAL(info.currentConfig.get<std::string>("foo"), "bar");
   BOOST_CHECK_EQUAL(info.currentProvenance.get<std::string>("foo"), "prov");
+
+  // Parse an array
+  configString = "foo[XX:XX:XX][INFO] [CONFIG] array=i[1,2,3,4] 1789372894 prov\n";
+  std::string_view configa{configString.data() + 3, configString.size() - 4};
+  result = DeviceConfigHelper::parseConfig(configa, match);
+  auto valueString = std::string(match.beginValue, match.endValue - match.beginValue);
+
+  BOOST_REQUIRE_EQUAL(result, true);
+  BOOST_CHECK(strncmp(match.beginKey, "array", 5) == 0);
+  BOOST_CHECK_EQUAL(match.timestamp, 1789372894);
+  BOOST_CHECK(strncmp(match.beginValue, "i[1,2,3,4]", 10) == 0);
+  BOOST_CHECK(strncmp(match.beginProvenance, "prov", 4) == 0);
+
+  // Process a given config entry
+  result = DeviceConfigHelper::processConfig(match, info);
+  BOOST_CHECK_EQUAL(result, true);
+  BOOST_CHECK_EQUAL(info.currentProvenance.get<std::string>("array"), "prov");
+  BOOST_CHECK_EQUAL(arrayPrinter<int>(info.currentConfig.get_child("array")), "i[1,2,3,4]");
 }

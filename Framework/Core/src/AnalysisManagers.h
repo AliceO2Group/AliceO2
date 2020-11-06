@@ -360,7 +360,7 @@ struct OptionManager<Configurable<T, IP>> {
   static bool appendOption(std::vector<ConfigParamSpec>& options, Configurable<T, IP>& what)
   {
     if constexpr (variant_trait_v<typename std::decay<T>::type> != VariantType::Unknown) {
-      options.emplace_back(ConfigParamSpec{what.name, variant_trait_v<typename std::decay<T>::type>, what.value, {what.help}});
+      options.emplace_back(ConfigParamSpec{what.name, variant_trait_v<std::decay_t<T>>, what.value, {what.help}});
     } else {
       auto specs = RootConfigParamHelpers::asConfigParamSpecs<T>(what.name, what.value);
       options.insert(options.end(), specs.begin(), specs.end());

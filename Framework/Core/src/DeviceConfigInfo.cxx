@@ -10,15 +10,9 @@
 
 #include "Framework/DeviceConfigInfo.h"
 #include "Framework/DeviceInfo.h"
-#include <cassert>
-#include <cinttypes>
 #include <cstdlib>
-
-#include <algorithm>
 #include <regex>
 #include <string_view>
-#include <tuple>
-#include <iostream>
 
 namespace o2::framework
 {
@@ -67,10 +61,26 @@ bool DeviceConfigHelper::processConfig(ParsedConfigMatch& match,
       match.beginProvenance == nullptr || match.endProvenance == nullptr) {
     return false;
   }
-  info.currentConfig.put(std::string(match.beginKey, match.endKey - match.beginKey),
-                         std::string(match.beginValue, match.endValue - match.beginValue));
-  info.currentProvenance.put(std::string(match.beginKey, match.endKey - match.beginKey),
-                             std::string(match.beginProvenance, match.endProvenance - match.beginProvenance));
+  auto keyString = std::string(match.beginKey, match.endKey - match.beginKey);
+  auto valueString = std::string(match.beginValue, match.endValue - match.beginValue);
+  auto provenanceString = std::string(match.beginProvenance, match.endProvenance - match.beginProvenance);
+  std::regex fmatch(R"([ifdb]\[.*\])", std::regex_constants::ECMAScript);
+  std::regex nmatch(R"((?:(?!=,)|(?!=\[))[+-]?\d+\.?\d*(?:[eE][+-]?\d+)?(?=,|\]))", std::regex_constants::ECMAScript);
+  auto end = std::sregex_iterator();
+  auto fmt = std::sregex_iterator(valueString.begin(), valueString.end(), fmatch);
+  if (fmt != end) {
+    boost::property_tree::ptree branch;
+    auto values = std::sregex_iterator(valueString.begin(), valueString.end(), nmatch);
+    for (auto v = values; v != end; ++v) {
+      boost::property_tree::ptree leaf;
+      leaf.put("", v->str());
+      branch.push_back(std::make_pair("", leaf));
+    }
+    info.currentConfig.put_child(keyString, branch);
+  } else {
+    info.currentConfig.put(keyString, valueString);
+  }
+  info.currentProvenance.put(keyString, provenanceString);
   return true;
 }
 
