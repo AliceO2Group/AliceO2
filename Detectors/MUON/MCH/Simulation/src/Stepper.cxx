@@ -37,7 +37,7 @@ void Stepper::process(const TVirtualMC& vmc)
 
   if (!(vmc.TrackCharge())) {
     // Only charged particles
-    return false;
+    return;
   }
   
   o2::SimTrackStatus t{vmc};
