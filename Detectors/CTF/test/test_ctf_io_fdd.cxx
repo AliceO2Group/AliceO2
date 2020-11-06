@@ -34,31 +34,28 @@ BOOST_AUTO_TEST_CASE(CTFTest)
 
   for (int idig = 0; idig < 1000; idig++) {
     ir += 1 + gRandom->Integer(200);
-    uint8_t ich = gRandom->Poisson(10);
+    uint8_t ich = gRandom->Poisson(4);
     auto start = channels.size();
     int32_t tMeanA = 0, tMeanC = 0;
     int32_t ampTotA = 0, ampTotC = 0;
     Triggers trig;
     trig.triggersignals = gRandom->Integer(128);
-
     while (ich < Nchannels) {
       int16_t t = -2048 + gRandom->Integer(2048 * 2);
       uint16_t q = gRandom->Integer(4096);
-      uint16_t feb = gRandom->Integer(4096);
+      uint16_t feb =  gRandom->Rndm() > 0.5 ? 0 : 1;
       channels.emplace_back(ich, t, q, feb);
 
-      if (gRandom->Rndm() < 0.5) {
-        if (ich > 8) {
-          trig.nChanA++;
-          ampTotA += q;
-          tMeanA += t;
-        } else {
-          trig.nChanC++;
-          ampTotC += q;
-          tMeanC += t;
-        }
+      if (ich > 7) {
+        trig.nChanA++;
+        ampTotA += q;
+        tMeanA += t;
+      } else {
+        trig.nChanC++;
+        ampTotC += q;
+        tMeanC += t;
       }
-      ich += 1 + gRandom->Poisson(10);
+      ich += 1 + gRandom->Poisson(4);
     }
     if (trig.nChanA) {
       trig.timeA = tMeanA / trig.nChanA;

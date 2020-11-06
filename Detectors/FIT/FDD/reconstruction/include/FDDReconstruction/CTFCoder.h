@@ -71,13 +71,15 @@ void CTFCoder::encode(VEC& buff, const gsl::span<const Digit>& digitVec, const g
   using MD = o2::ctf::Metadata::OptStore;
   // what to do which each field: see o2::ctd::Metadata explanation
   constexpr MD optField[CTF::getNBlocks()] = {
+    MD::EENCODE, // BLC_trigger
     MD::EENCODE, // BLC_bcInc
     MD::EENCODE, // BLC_orbitInc
     MD::EENCODE, // BLC_nChan
-
+    
     MD::EENCODE, // BLC_idChan
     MD::EENCODE, // BLC_time
-    MD::EENCODE  // BLC_charge
+    MD::EENCODE, // BLC_charge
+    MD::EENCODE  // BLC_feeBits
   };
   CompressedDigits cd;
   compress(cd, digitVec, channelVec);
@@ -95,6 +97,7 @@ void CTFCoder::encode(VEC& buff, const gsl::span<const Digit>& digitVec, const g
   // at every encoding the buffer might be autoexpanded, so we don't work with fixed pointer ec
 #define ENCODEFDD(part, slot, bits) CTF::get(buff.data())->encode(part, int(slot), bits, optField[int(slot)], &buff, mCoders[int(slot)].get());
   // clang-format off
+  ENCODEFDD(cd.trigger,   CTF::BLC_trigger,  0);
   ENCODEFDD(cd.bcInc,     CTF::BLC_bcInc,    0);
   ENCODEFDD(cd.orbitInc,  CTF::BLC_orbitInc, 0);
   ENCODEFDD(cd.nChan,     CTF::BLC_nChan,    0);
@@ -102,6 +105,7 @@ void CTFCoder::encode(VEC& buff, const gsl::span<const Digit>& digitVec, const g
   ENCODEFDD(cd.idChan ,   CTF::BLC_idChan,   0);
   ENCODEFDD(cd.time,      CTF::BLC_time,     0);
   ENCODEFDD(cd.charge,    CTF::BLC_charge,   0);
+  ENCODEFDD(cd.feeBits,   CTF::BLC_feeBits,  0);
   // clang-format on
   CTF::get(buff.data())->print(getPrefix());
 }
@@ -115,6 +119,7 @@ void CTFCoder::decode(const CTF::base& ec, VDIG& digitVec, VCHAN& channelVec)
   ec.print(getPrefix());
 #define DECODEFDD(part, slot) ec.decode(part, int(slot), mCoders[int(slot)].get())
   // clang-format off
+  DECODEFDD(cd.trigger,   CTF::BLC_trigger);
   DECODEFDD(cd.bcInc,     CTF::BLC_bcInc); 
   DECODEFDD(cd.orbitInc,  CTF::BLC_orbitInc);
   DECODEFDD(cd.nChan,     CTF::BLC_nChan);
@@ -122,6 +127,7 @@ void CTFCoder::decode(const CTF::base& ec, VDIG& digitVec, VCHAN& channelVec)
   DECODEFDD(cd.idChan,    CTF::BLC_idChan);
   DECODEFDD(cd.time,      CTF::BLC_time);
   DECODEFDD(cd.charge,    CTF::BLC_charge);
+  DECODEFDD(cd.feeBits,   CTF::BLC_feeBits);
   // clang-format on
   //
   decompress(cd, digitVec, channelVec);
@@ -147,14 +153,37 @@ void CTFCoder::decompress(const CompressedDigits& cd, VDIG& digitVec, VCHAN& cha
     } else {
       ir.bc += cd.bcInc[idig];
     }
+    Triggers trig;
+    trig.triggersignals = cd.trigger[idig];
 
     firstEntry = channelVec.size();
     uint8_t chID = 0;
+    int amplA = 0, amplC = 0, timeA = 0, timeC = 0;
     for (uint8_t ic = 0; ic < cd.nChan[idig]; ic++) {
       auto icc = channelVec.size();
-      const auto& chan = channelVec.emplace_back((chID += cd.idChan[icc]), cd.time[icc], cd.charge[icc], 0);
+      const auto& chan = channelVec.emplace_back((chID += cd.idChan[icc]), cd.time[icc], cd.charge[icc], cd.feeBits[icc]);
+      //
+      // rebuild digit
+      if (chan.mPMNumber > 7) { // A side
+        amplA += chan.mChargeADC;
+        timeA += chan.mTime;
+        trig.nChanA++;
+
+      } else {
+        amplC += chan.mChargeADC;
+        timeC += chan.mTime;
+        trig.nChanC++;
+      }
     }
-    digitVec.emplace_back(firstEntry, cd.nChan[idig], ir, Triggers());
+    if (trig.nChanA) {
+      trig.timeA = timeA / trig.nChanA;
+      trig.amplA = amplA * 0.125;
+    }
+    if (trig.nChanC) {
+      trig.timeC = timeC / trig.nChanC;
+      trig.amplC = amplC * 0.125;
+    }
+    digitVec.emplace_back(firstEntry, cd.nChan[idig], ir, trig);
   }
 }
 

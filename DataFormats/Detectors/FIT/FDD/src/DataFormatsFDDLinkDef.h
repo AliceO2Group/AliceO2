@@ -38,6 +38,6 @@
 
 #pragma link C++ class o2::fdd::CTFHeader + ;
 #pragma link C++ class o2::fdd::CTF + ;
-#pragma link C++ class o2::ctf::EncodedBlocks < o2::fdd::CTFHeader, 6, uint32_t> + ;
+#pragma link C++ class o2::ctf::EncodedBlocks < o2::fdd::CTFHeader, 8, uint32_t> + ;
 
 #endif

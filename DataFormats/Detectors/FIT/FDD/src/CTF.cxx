@@ -18,6 +18,7 @@ using namespace o2::fdd;
 ///________________________________
 void CompressedDigits::clear()
 {
+  trigger.clear();
   bcInc.clear();
   orbitInc.clear();
   nChan.clear();
@@ -25,6 +26,7 @@ void CompressedDigits::clear()
   idChan.clear();
   time.clear();
   charge.clear();
+  feeBits.clear();
 
   header.nTriggers = 0;
   header.firstOrbit = 0;

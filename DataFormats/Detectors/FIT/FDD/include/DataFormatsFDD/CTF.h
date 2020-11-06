@@ -39,6 +39,7 @@ struct CompressedDigits {
   CTFHeader header;
 
   // BC data
+  std::vector<uint8_t> trigger;   // trigger bits
   std::vector<uint16_t> bcInc;    // increment in BC if the same orbit, otherwise abs bc
   std::vector<uint32_t> orbitInc; // increment in orbit
   std::vector<uint8_t> nChan;     // number of fired channels
@@ -47,29 +48,32 @@ struct CompressedDigits {
   std::vector<uint8_t> idChan; // channels ID: 1st on absolute, then increment
   std::vector<int16_t> time;   // time
   std::vector<int16_t> charge; // Amplitude
+  std::vector<uint8_t> feeBits; // QTC chain
 
   CompressedDigits() = default;
 
   void clear();
 
-  ClassDefNV(CompressedDigits, 1);
+  ClassDefNV(CompressedDigits, 2);
 };
 
 /// wrapper for the Entropy-encoded clusters of the TF
-struct CTF : public o2::ctf::EncodedBlocks<CTFHeader, 6, uint32_t> {
+struct CTF : public o2::ctf::EncodedBlocks<CTFHeader, 8, uint32_t> {
 
   static constexpr size_t N = getNBlocks();
   enum Slots {
+    BLC_trigger,  // trigger bits
     BLC_bcInc,    // increment in BC
     BLC_orbitInc, // increment in orbit
     BLC_nChan,    // number of fired channels
 
     BLC_idChan, // channels ID: 1st on absolute, then increment
     BLC_time,   // time
-    BLC_charge  // amplitude
+    BLC_charge,  // amplitude
+    BLC_feeBits  // bits
   };
 
-  ClassDefNV(CTF, 1);
+  ClassDefNV(CTF, 2);
 };
 
 } // namespace fdd
