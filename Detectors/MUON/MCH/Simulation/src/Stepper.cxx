@@ -39,7 +39,7 @@ void Stepper::process(const TVirtualMC& vmc)
     // Only charged particles
     return;
   }
-  
+
   o2::SimTrackStatus t{vmc};
 
   int detElemId;
