@@ -43,7 +43,7 @@ BOOST_AUTO_TEST_CASE(CTFTest)
     while (ich < Nchannels) {
       int16_t t = -2048 + gRandom->Integer(2048 * 2);
       uint16_t q = gRandom->Integer(4096);
-      uint16_t feb =  gRandom->Rndm() > 0.5 ? 0 : 1;
+      uint16_t feb = gRandom->Rndm() > 0.5 ? 0 : 1;
       channels.emplace_back(ich, t, q, feb);
 
       if (ich > 7) {

@@ -45,9 +45,9 @@ struct CompressedDigits {
   std::vector<uint8_t> nChan;     // number of fired channels
 
   // channel data
-  std::vector<uint8_t> idChan; // channels ID: 1st on absolute, then increment
-  std::vector<int16_t> time;   // time
-  std::vector<int16_t> charge; // Amplitude
+  std::vector<uint8_t> idChan;  // channels ID: 1st on absolute, then increment
+  std::vector<int16_t> time;    // time
+  std::vector<int16_t> charge;  // Amplitude
   std::vector<uint8_t> feeBits; // QTC chain
 
   CompressedDigits() = default;
@@ -69,8 +69,8 @@ struct CTF : public o2::ctf::EncodedBlocks<CTFHeader, 8, uint32_t> {
 
     BLC_idChan, // channels ID: 1st on absolute, then increment
     BLC_time,   // time
-    BLC_charge,  // amplitude
-    BLC_feeBits  // bits
+    BLC_charge, // amplitude
+    BLC_feeBits // bits
   };
 
   ClassDefNV(CTF, 2);

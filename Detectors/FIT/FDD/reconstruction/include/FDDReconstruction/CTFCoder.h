@@ -75,7 +75,7 @@ void CTFCoder::encode(VEC& buff, const gsl::span<const Digit>& digitVec, const g
     MD::EENCODE, // BLC_bcInc
     MD::EENCODE, // BLC_orbitInc
     MD::EENCODE, // BLC_nChan
-    
+
     MD::EENCODE, // BLC_idChan
     MD::EENCODE, // BLC_time
     MD::EENCODE, // BLC_charge
