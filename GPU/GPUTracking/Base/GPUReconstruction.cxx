@@ -284,15 +284,21 @@ int GPUReconstruction::InitPhaseBeforeDevice()
   mDeviceMemorySize = mHostMemorySize = 0;
   for (unsigned int i = 0; i < mChains.size(); i++) {
     mChains[i]->RegisterPermanentMemoryAndProcessors();
-    size_t memGpu, memHost;
-    mChains[i]->MemorySize(memGpu, memHost);
-    mDeviceMemorySize += memGpu;
-    mHostMemorySize += memHost;
+    size_t memPrimary, memPageLocked;
+    mChains[i]->MemorySize(memPrimary, memPageLocked);
+    if (!IsGPU() || mOutputControl.OutputType == GPUOutputControl::AllocateInternal) {
+      memPageLocked = memPrimary;
+    }
+    mDeviceMemorySize += memPrimary;
+    mHostMemorySize += memPageLocked;
   }
   if (mProcessingSettings.forceMemoryPoolSize && mProcessingSettings.forceMemoryPoolSize <= 2 && CanQueryMaxMemory()) {
     mDeviceMemorySize = mProcessingSettings.forceMemoryPoolSize;
   } else if (mProcessingSettings.forceMemoryPoolSize > 2) {
-    mDeviceMemorySize = mHostMemorySize = mProcessingSettings.forceMemoryPoolSize;
+    mDeviceMemorySize = mProcessingSettings.forceMemoryPoolSize;
+    if (!IsGPU() || mOutputControl.OutputType == GPUOutputControl::AllocateInternal) {
+      mHostMemorySize = mDeviceMemorySize;
+    }
   }
   if (mProcessingSettings.forceHostMemoryPoolSize) {
     mHostMemorySize = mProcessingSettings.forceHostMemoryPoolSize;
