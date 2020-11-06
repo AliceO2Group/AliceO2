@@ -434,11 +434,13 @@ DataProcessorSpec
 
   std::vector<InputSpec> validBinaryInputs;
   auto onlyTimeframe = [](InputSpec const& input) {
-    return input.lifetime == Lifetime::Timeframe;
+    return (DataSpecUtils::partialMatch(input, o2::header::DataOrigin("TFN")) == false) &&
+           input.lifetime == Lifetime::Timeframe;
   };
 
   auto noTimeframe = [](InputSpec const& input) {
-    return input.lifetime != Lifetime::Timeframe;
+    return (DataSpecUtils::partialMatch(input, o2::header::DataOrigin("TFN")) == true) ||
+           input.lifetime != Lifetime::Timeframe;
   };
 
   std::copy_if(danglingOutputInputs.begin(), danglingOutputInputs.end(),
