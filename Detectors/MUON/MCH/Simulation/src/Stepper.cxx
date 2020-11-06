@@ -34,6 +34,12 @@ Stepper::~Stepper()
 
 void Stepper::process(const TVirtualMC& vmc)
 {
+
+  if (!(vmc.TrackCharge())) {
+    // Only charged particles
+    return;
+  }
+
   o2::SimTrackStatus t{vmc};
 
   int detElemId;
