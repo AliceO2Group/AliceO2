@@ -440,7 +440,7 @@ DataProcessorSpec
 
   auto noTimeframe = [](InputSpec const& input) {
     return (DataSpecUtils::partialMatch(input, o2::header::DataOrigin("TFN")) == true) ||
-          input.lifetime != Lifetime::Timeframe;
+           input.lifetime != Lifetime::Timeframe;
   };
 
   std::copy_if(danglingOutputInputs.begin(), danglingOutputInputs.end(),
