@@ -86,6 +86,7 @@ o2-ft0-flp-dpl-workflow $ARGS_ALL --disable-root-output |
 o2-ft0-reco-workflow $ARGS_ALL --disable-root-input --disable-root-output ${NOMCLABELS} |  
 o2-ft0-entropy-encoder-workflow $ARGS_ALL  |  
 o2-tpcits-match-workflow $ARGS_ALL -b --disable-root-input --disable-root-output ${NOMCLABELS}  |  
+o2-mid-raw-to-digits-workflow $ARGS_ALL | \  
 o2-mid-reco-workflow $ARGS_ALL --disable-root-output |  
 o2-mid-entropy-encoder-workflow $ARGS_ALL |  
 o2-tof-compressor $ARGS_ALL |  
