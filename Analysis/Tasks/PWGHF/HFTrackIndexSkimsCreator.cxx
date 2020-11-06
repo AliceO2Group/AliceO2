@@ -23,6 +23,12 @@
 #include "AnalysisCore/trackUtilities.h"
 #include "AnalysisCore/HFConfigurables.h"
 //#include "AnalysisDataModel/Centrality.h"
+#include "AnalysisDataModel/StrangenessTables.h"
+#include "AnalysisDataModel/TrackSelectionTables.h"
+#include "ReconstructionDataFormats/V0.h"
+#include "Framework/ASoAHelpers.h"
+#include "Framework/AnalysisDataModel.h"
+
 #include <algorithm>
 
 using namespace o2;
@@ -58,7 +64,12 @@ struct SelectTracks {
   Configurable<double> ptmintrack_3prong{"ptmintrack_3prong", -1., "min. track pT for 3 prong candidate"};
   Configurable<LabeledArray<double>> cutsTrack3Prong{"cuts_singletrack_3prong", {hf_cuts_single_track::cutsTrack[0], npTBinsTrack, nCutVarsTrack, pTBinLabelsTrack, cutVarLabelsTrack}, "Single-track selections per pT bin for 3-prong candidates"};
   Configurable<double> etamax_3prong{"etamax_3prong", 4., "max. pseudorapidity for 3 prong candidate"};
-
+  // bachelor cuts (when using cascades)
+  Configurable<double> ptmintrack_bach{"ptmintrack_bach", 0.3, "min. track pT for bachelor in cascade candidate"}; // 0.5 for PbPb 2015?
+  Configurable<double> dcatoprimxy_maxpt_bach{"dcatoprimxy_maxpt_bach", 2., "max pt cut for min. DCAXY to prim. vtx. for bachelor in cascade candidate"};
+  Configurable<double> dcatoprimxymin_bach{"dcatoprimxymin_bach", 0., "min. DCAXY to prim. vtx. for bachelor in cascade candidate"}; // for PbPb 2018, the cut should be 0.0025
+  Configurable<double> dcatoprimxymax_bach{"dcatoprimxymax_bach", 1.0, "max. DCAXY to prim. vtx. for bachelor in cascade candidate"};
+  Configurable<double> etamax_bach{"etamax_bach", 0.8, "max. pseudorapidity for bachelor in cascade candidate"};
   HistogramRegistry registry{
     "registry",
     {{"hpt_nocuts", "all tracks;#it{p}_{T}^{track} (GeV/#it{c});entries", {HistType::kTH1F, {{100, 0., 10.}}}},
@@ -70,6 +81,12 @@ struct SelectTracks {
      {"hpt_cuts_3prong", "tracks selected for 3-prong vertexing;#it{p}_{T}^{track} (GeV/#it{c});entries", {HistType::kTH1F, {{100, 0., 10.}}}},
      {"hdcatoprimxy_cuts_3prong", "tracks selected for 3-prong vertexing;DCAxy to prim. vtx. (cm);entries", {HistType::kTH1F, {{400, -2., 2.}}}},
      {"heta_cuts_3prong", "tracks selected for 3-prong vertexing;#it{#eta};entries", {HistType::kTH1F, {{static_cast<int>(1.2 * etamax_3prong * 100), -1.2 * etamax_3prong, 1.2 * etamax_3prong}}}}}};
+     // bachelor (for cascades) histograms
+     {"hpt_cuts_bach", "bachelor tracks selected for cascade vertexing;#it{p}_{T}^{track} (GeV/#it{c});entries", {HistType::kTH1F, {{100, 0., 10.}}}},
+     {"hdcatoprimxy_cuts_bach", "bachelor tracks selected for cascade vertexing;DCAxy to prim. vtx. (cm);entries", {HistType::kTH1F, {{100, -1., 1.}}}},
+     {"heta_cuts_bach", "bachelortracks selected for cascade vertexing;#it{#eta};entries", {HistType::kTH1F, {{100, -1., 1.}}}}
+
+    }};
 
   // array of 2-prong and 3-prong single-track cuts
   std::array<LabeledArray<double>, 2> cutsSingleTrack;
@@ -106,7 +123,7 @@ struct SelectTracks {
     math_utils::Point3D<float> vtxXYZ(collision.posX(), collision.posY(), collision.posZ());
     for (auto& track : tracks) {
 
-      int status_prong = 3; // selection flag , 2 bits on
+      int status_prong = 7; // selection flag , 3 bits on
 
       auto trackPt = track.pt();
       if (b_dovalplots.value) {
@@ -120,6 +137,9 @@ struct SelectTracks {
       if (trackPt < ptmintrack_3prong) {
         status_prong = status_prong & ~(1 << 1);
       }
+      if (track.pt() < ptmintrack_bach) {
+        status_prong = status_prong & ~(1 << 2);
+      }
 
       auto trackEta = track.eta();
       // eta cut
@@ -129,11 +149,14 @@ struct SelectTracks {
       if ((status_prong & (1 << 1)) && abs(trackEta) > etamax_3prong) {
         status_prong = status_prong & ~(1 << 1);
       }
+      if ((status_prong & (1 << 2)) && abs(track.eta()) > etamax_bach) {
+        status_prong = status_prong & ~(1 << 2);
+      }
 
       // quality cut
       if (doCutQuality.value && status_prong > 0) { // FIXME to make a more complete selection e.g track.flags() & o2::aod::track::TPCrefit && track.flags() & o2::aod::track::GoldenChi2 &&
         UChar_t clustermap = track.itsClusterMap();
-        if (!(track.tpcNClsFound() >= d_tpcnclsfound.value &&
+        if (!(track.tpcNClsFound() >= d_tpcnclsfound.value && // is this the number of TPC clusters? It should not be used
               track.flags() & o2::aod::track::ITSrefit &&
               (TESTBIT(clustermap, 0) || TESTBIT(clustermap, 1)))) {
           status_prong = 0;
@@ -143,6 +166,7 @@ struct SelectTracks {
       // DCA cut
       array<float, 2> dca;
       if (status_prong > 0) {
+        double dcatoprimxymin_bach_ptdep = dcatoprimxymin_bach * TMath::Max(0., (1 - TMath::Floor(trackPt / dcatoprimxy_maxpt_bach)));
         auto trackparvar0 = getTrackParCov(track);
         if (!trackparvar0.propagateParamToDCA(vtxXYZ, d_bz, &dca, 100.)) { // get impact parameters
           status_prong = 0;
@@ -152,6 +176,9 @@ struct SelectTracks {
         }
         if ((status_prong & (1 << 1)) && !isSelectedTrack(track, dca, Cand3Prong)) {
           status_prong = status_prong & ~(1 << 1);
+        }
+        if ((status_prong & (1 << 2)) && (abs(dca[0]) < dcatoprimxymin_bach_ptdep || abs(dca[0]) > dcatoprimxymax_bach)) {
+          status_prong = status_prong & ~(1 << 2);
         }
       }
 
@@ -167,6 +194,11 @@ struct SelectTracks {
           registry.get<TH1>(HIST("hdcatoprimxy_cuts_3prong"))->Fill(dca[0]);
           registry.get<TH1>(HIST("heta_cuts_3prong"))->Fill(trackEta);
         }
+        if (status_prong & (1 << 2)) {
+          registry.get<TH1>(HIST("hpt_cuts_bach"))->Fill(trackPt);
+          registry.get<TH1>(HIST("hdcatoprimxy_cuts_bach"))->Fill(dca[0]);
+          registry.get<TH1>(HIST("heta_cuts_bach"))->Fill(trackEta);
+        }
       }
 
       // fill table row
@@ -174,6 +206,228 @@ struct SelectTracks {
     }
   }
 };
+
+//________________________________________________________________________________________________________________________
+
+/// Pre-selection of cascade secondary vertices
+/// It will produce in any case a HfTrackIndexProng2 object, but mixing a V0
+/// with a track, instead of 2 tracks
+
+/// to run: o2-analysis-weak-decay-indices --aod-file AO2D.root -b | o2-analysis-lambdakzerobuilder -b |
+///         o2-analysis-trackextension -b | o2-analysis-hf-track-index-skims-creator -b
+
+struct HFTrackIndexSkimsCreatorCascades {
+  Produces<aod::HfTrackIndexCasc> rowTrackIndexCasc;
+  //  Produces<aod::HfTrackIndexProng2> rowTrackIndexCasc;
+
+  // whether to do or not validation plots
+  Configurable<bool> b_dovalplots{"b_dovalplots", true, "fill histograms"};
+
+  // event selection
+  //Configurable<int> triggerindex{"triggerindex", -1, "trigger index"};
+
+  // vertexing parameters
+  Configurable<double> d_bz{"d_bz", 5., "magnetic field"};
+  Configurable<bool> b_propdca{"b_propdca", true, "create tracks version propagated to PCA"};
+  Configurable<double> d_maxr{"d_maxr", 200., "reject PCA's above this radius"};
+  Configurable<double> d_maxdzini{"d_maxdzini", 4., "reject (if>0) PCA candidate if tracks DZ exceeds threshold"};
+  Configurable<double> d_minparamchange{"d_minparamchange", 1.e-3, "stop iterations if largest change of any X is smaller than this"};
+  Configurable<double> d_minrelchi2change{"d_minrelchi2change", 0.9, "stop iterations if chi2/chi2old > this"};
+  Configurable<bool> d_UseAbsDCA{"d_UseAbsDCA", true, "Use Abs DCAs"};
+
+  // quality cut
+  Configurable<bool> doCutQuality{"doCutQuality", true, "apply quality cuts"};
+
+  // track cuts for V0 daughters
+  Configurable<bool> tpcrefit{"tpcrefit", true, "request TPC refit V0 daughters"};
+  Configurable<int> mincrossedrows{"mincrossedrows", 50, "min crossed rows V0 daughters"};
+  Configurable<double> etamax{"etamax", 1.1, "max. pseudorapidity V0 daughters"};
+  Configurable<double> ptmin{"ptmin", 0.05, "min. pT V0 daughters"};
+
+  // bachelor cuts
+  //  Configurable<float> dcabachtopv{"dcabachtopv", .1, "DCA Bach To PV"};
+  //  Configurable<double> ptminbach{"ptminbach", -1., "min. track pT bachelor"};
+
+  // v0 cuts
+  Configurable<double> cospaV0{"cospaV0", .995, "CosPA V0"};                 // as in the task that create the V0s
+  Configurable<double> dcaXYnegtopv{"dcaXYnegtopv", .1, "DCA_XY Neg To PV"}; // check: in HF Run 2, it was 0 at filtering
+  Configurable<double> dcaXYpostopv{"dcaXYpostopv", .1, "DCA_XY Pos To PV"}; // check: in HF Run 2, it was 0 at filtering
+  Configurable<double> cutInvMassV0{"cutInvMassV0", 0.05, "V0 candidate invariant mass difference wrt PDG"};
+
+  // cascade cuts
+  Configurable<double> cutCascPtCandMin{"cutCascPtCandMin", -1., "min. pT of the 2-prong candidate"};              // PbPb 2018: use 1
+  Configurable<double> cutCascInvMassLc{"cutCascInvMassLc", 1., "Lc candidate invariant mass difference wrt PDG"}; // for PbPb 2018: use 0.2
+  //Configurable<double> cutCascDCADaughters{"cutCascDCADaughters", .1, "DCA between V0 and bachelor in cascade"};
+
+  // histograms
+  HistogramRegistry registry{
+    "registry",
+    {{"hvtx2_x", "2-prong candidates;#it{x}_{sec. vtx.} (cm);entries", {HistType::kTH1F, {{1000, -2., 2.}}}},
+     {"hvtx2_y", "2-prong candidates;#it{y}_{sec. vtx.} (cm);entries", {HistType::kTH1F, {{1000, -2., 2.}}}},
+     {"hvtx2_z", "2-prong candidates;#it{z}_{sec. vtx.} (cm);entries", {HistType::kTH1F, {{1000, -20., 20.}}}},
+     {"hmass2", "2-prong candidates;inv. mass (K0s p) (GeV/#it{c}^{2});entries", {HistType::kTH1F, {{500, 0., 5.}}}}}};
+
+  // NB: using FullTracks = soa::Join<Tracks, TracksCov, TracksExtra>; defined in Framework/Core/include/Framework/AnalysisDataModel.h
+  using MyTracks = soa::Join<aod::FullTracks, aod::HFSelTrack, aod::TracksExtended>;
+  //Partition<MyTracks> selectedTracks = aod::hf_seltrack::isSelProng >= 4;
+  // using SelectedV0s = soa::Filtered<aod::V0DataExt>;
+  double massP = RecoDecay::getMassPDG(kProton);
+  double massK0s = RecoDecay::getMassPDG(kK0Short);
+  double massPi = RecoDecay::getMassPDG(kPiPlus);
+  double massLc = RecoDecay::getMassPDG(4122);
+  double mass2K0sP{0.}; // WHY HERE?
+  //  Filter filterV0s = aod::v0data::dcapostopv > dcapostopv &&
+  //		   aod::v0data::dcanegtopv > dcanegtopv; // add here the cuts on the V0s
+
+  using FullTracksExt = soa::Join<aod::FullTracks, aod::TracksExtended>;
+
+  void process(aod::Collision const& collision,
+               aod::BCs const& bcs,
+               //soa::Filtered<aod::V0DataExt> const& V0s,
+               aod::V0DataExt const& V0s,
+               MyTracks const& tracks) // TODO: I am now assuming that the V0s are already filtered with my cuts (David's work to come)
+  {
+
+    //Define o2 fitter, 2-prong
+    o2::vertexing::DCAFitterN<2> fitter;
+    fitter.setBz(d_bz);
+    fitter.setPropagateToPCA(b_propdca);
+    fitter.setMaxR(d_maxr);
+    fitter.setMinParamChange(d_minparamchange);
+    fitter.setMinRelChi2Change(d_minrelchi2change);
+    //fitter.setMaxDZIni(1e9); // used in cascadeproducer.cxx, but not for the 2 prongs
+    //fitter.setMaxChi2(1e9);  // used in cascadeproducer.cxx, but not for the 2 prongs
+    fitter.setUseAbsDCA(d_UseAbsDCA);
+
+    // fist we loop over the bachelor candidate
+
+    //for (const auto& bach : selectedTracks) {
+    for (const auto& bach : tracks) {
+
+      // selections on the bachelor
+      // pT cut
+      if (bach.isSelProng() < 4) {
+        continue;
+      }
+
+      if (tpcrefit) {
+        if (!(bach.trackType() & o2::aod::track::TPCrefit))
+          continue;
+      }
+      if (bach.tpcNClsCrossedRows() < mincrossedrows)
+        continue;
+
+      auto bachTrack = getTrackParCov(bach);
+
+      // now we loop over the V0s
+      for (const auto& v0 : V0s) {
+        // selections on the V0 daughters
+        const auto& posTrack = v0.posTrack_as<MyTracks>();
+        const auto& negTrack = v0.negTrack_as<MyTracks>();
+        if (tpcrefit) {
+          if (!(posTrack.trackType() & o2::aod::track::TPCrefit) ||
+              !(negTrack.trackType() & o2::aod::track::TPCrefit))
+            continue;
+        }
+        if (posTrack.tpcNClsCrossedRows() < mincrossedrows ||
+            negTrack.tpcNClsCrossedRows() < mincrossedrows) {
+          continue;
+        }
+        //
+        // if (posTrack.dcaXY() < dcapostopv ||   // to the filters?
+        //     negTrack.dcaXY() < dcanegtopv) {
+        //   continue;
+        // }
+        //
+        if (posTrack.pt() < ptmin || // to the filters? I can't for now, it is not in the tables
+            negTrack.pt() < ptmin) {
+          continue;
+        }
+        if (abs(posTrack.eta()) > etamax || // to the filters? I can't for now, it is not in the tables
+            abs(negTrack.eta()) > etamax) {
+          continue;
+        }
+
+        // V0 invariant mass selection
+        if (std::abs(v0.mK0Short() - massK0s) > cutInvMassV0)
+          continue; // should go to the filter, but since it is a dynamic column, I cannot use it there
+
+        // V0 cosPointingAngle selection
+        if (v0.v0cosPA(collision.posX(), collision.posY(), collision.posZ()) < cospaV0)
+          continue;
+
+        auto posTrackParCov = getTrackParCov(posTrack);
+        posTrackParCov.propagateTo(v0.posX(), d_bz); // propagate the track to the X closest to the V0 vertex
+        auto negTrackParCov = getTrackParCov(negTrack);
+        negTrackParCov.propagateTo(v0.negX(), d_bz); // propagate the track to the X closest to the V0 vertex
+        std::array<float, 3> pvecv0 = {0., 0., 0.};
+        std::array<float, 3> pvecbach = {0., 0., 0.};
+
+        const std::array<float, 3> vertexV0 = {v0.x(), v0.y(), v0.z()};
+        const std::array<float, 3> momentumV0 = {v0.px(), v0.py(), v0.pz()};
+
+        // we build the neutral track to then build the cascade
+        auto trackV0 = o2::dataformats::V0(vertexV0, momentumV0, posTrackParCov, negTrackParCov, posTrack.globalIndex(), negTrack.globalIndex()); // build the V0 track
+
+        // now we find the DCA between the V0 and the bachelor, for the cascade
+        int nCand2 = fitter.process(trackV0, bachTrack);
+
+        std::array<float, 3> pVecCandCasc = {0., 0., 0.};
+        if (nCand2 != 0) {
+          fitter.propagateTracksToVertex();        // propagate the bach and V0 to the Lc vertex
+          fitter.getTrack(0).getPxPyPzGlo(pvecv0); // take the momentum at the Lc vertex
+          fitter.getTrack(1).getPxPyPzGlo(pvecbach);
+
+          // HF code for the 2 prongs would use:
+          //auto pVecCandCasc = array{bachTrack.px() + trackV0.px(),
+          //			       bachTrack.py() + trackV0.py(),
+          //			       bachTrack.pz() + trackV0.pz()};
+          // but I think this is equivalent, and I understand it better where it comes from
+          pVecCandCasc = array{pvecbach[0] + pvecv0[0],
+                               pvecbach[1] + pvecv0[1],
+                               pvecbach[2] + pvecv0[2]};
+
+          // cascade candidate pT cut
+          if (RecoDecay::Pt(pVecCandCasc) < cutCascPtCandMin) {
+            continue;
+          }
+
+          // invariant mass
+          // calculate invariant masses
+          auto arrMom = array{pvecbach, pvecv0};
+          mass2K0sP = RecoDecay::M(arrMom, array{massP, massK0s});
+          // invariant-mass cut
+          if (cutCascInvMassLc >= 0.) {
+            if (std::abs(mass2K0sP - massLc) < cutCascInvMassLc) {
+              continue;
+            }
+          }
+          std::array<float, 3> posCasc = {0., 0., 0.};
+          const auto& cascvtx = fitter.getPCACandidate();
+          for (int i = 0; i < 3; i++) {
+            posCasc[i] = cascvtx[i];
+          }
+
+          // fill table row
+          rowTrackIndexCasc(v0.globalIndex(),
+                            bach.globalIndex(),
+                            1); // 1 should be the value for the Lc
+          // fill histograms
+          if (b_dovalplots) {
+            registry.get<TH1>(HIST("hvtx2_x"))->Fill(posCasc[0]);
+            registry.get<TH1>(HIST("hvtx2_y"))->Fill(posCasc[1]);
+            registry.get<TH1>(HIST("hvtx2_z"))->Fill(posCasc[2]);
+            registry.get<TH1>(HIST("hmass2"))->Fill(mass2K0sP);
+          }
+
+        } // we could build the cascade
+      }   // loop over V0s
+
+    } // loop over tracks
+  }   // process
+};
+
+//____________________________________________________________________________________________________________________________________________
 
 /// Pre-selection of 2-prong and 3-prong secondary vertices
 struct HFTrackIndexSkimsCreator {
@@ -220,8 +474,7 @@ struct HFTrackIndexSkimsCreator {
      {"hmassDsToPiKK", "D_{s} candidates;inv. mass (K K #pi) (GeV/#it{c}^{2});entries", {HistType::kTH1F, {{500, 0., 5.}}}},
      {"hmassXicToPKPi", "#Xi_{c} candidates;inv. mass (p K #pi) (GeV/#it{c}^{2});entries", {HistType::kTH1F, {{500, 0., 5.}}}}}};
 
-  Filter filterSelectTracks = (aod::hf_seltrack::isSelProng > 0);
-
+  Filter filterSelectTracks = (aod::hf_seltrack::isSelProng > 0 || aod::hf_seltrack::isSelProng < 4);
   using SelectedTracks = soa::Filtered<soa::Join<aod::Tracks, aod::TracksCov, aod::TracksExtra, aod::HFSelTrack>>;
 
   // FIXME
@@ -911,5 +1164,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
 {
   return WorkflowSpec{
     adaptAnalysisTask<SelectTracks>(cfgc, TaskName{"hf-produce-sel-track"}),
-    adaptAnalysisTask<HFTrackIndexSkimsCreator>(cfgc, TaskName{"hf-track-index-skims-creator"})};
+      adaptAnalysisTask<HFTrackIndexSkimsCreator>(cfgc, TaskName{"hf-track-index-skims-creator"}),
+      adaptAnalysisTask<HFTrackIndexSkimsCreatorCascades>(cfgc, TaskName{"hf-track-index-skims-cascades-creator"})};
+
 }

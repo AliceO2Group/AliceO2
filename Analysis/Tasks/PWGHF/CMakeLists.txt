@@ -38,6 +38,11 @@ o2_add_dpl_workflow(hf-tree-creator-d0-tokpi
                     PUBLIC_LINK_LIBRARIES O2::Framework O2::AnalysisDataModel O2::AnalysisCore O2::DetectorsVertexing ROOT::EG
                     COMPONENT_NAME Analysis)
 
+o2_add_dpl_workflow(hf-candidate-creator-cascade
+                    SOURCES HFCandidateCreatorCascade.cxx
+                    PUBLIC_LINK_LIBRARIES O2::Framework O2::AnalysisDataModel O2::AnalysisCore O2::DetectorsVertexing ROOT::EG
+                    COMPONENT_NAME Analysis)
+
 o2_add_dpl_workflow(hf-candidate-creator-3prong
                     SOURCES HFCandidateCreator3Prong.cxx
                     PUBLIC_LINK_LIBRARIES O2::Framework O2::AnalysisDataModel O2::AnalysisCore O2::DetectorsVertexing ROOT::EG
