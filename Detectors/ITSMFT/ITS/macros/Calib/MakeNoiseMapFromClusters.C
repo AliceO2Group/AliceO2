@@ -13,7 +13,7 @@
 
 #endif
 
-void MakeNoiseMapFromClusters(std::string input = "o2clus_its.root", std::string output = "noise.root", bool only1pix = true)
+void MakeNoiseMapFromClusters(std::string input = "o2clus_its.root", std::string output = "noise.root", bool only1pix = false, float probT = 3e-6)
 {
   TFile in(input.data());
   if (!in.IsOpen()) {
@@ -43,11 +43,13 @@ void MakeNoiseMapFromClusters(std::string input = "o2clus_its.root", std::string
 
   o2::itsmft::NoiseMap noiseMap(24120);
 
+  long int nStrobes = 0;
   auto nevents = clusTree->GetEntries();
   for (int n = 0; n < nevents; n++) {
     clusTree->GetEntry(n);
     auto pattIt = patternsPtr->cbegin();
     for (const auto& rof : *rofVec) {
+      nStrobes++;
       auto clustersInFrame = rof.getROFData(*clusters);
       for (const auto& c : clustersInFrame) {
         if (c.getPatternID() != o2::itsmft::CompCluster::InvalidPatternID)
@@ -96,8 +98,11 @@ void MakeNoiseMapFromClusters(std::string input = "o2clus_its.root", std::string
     }
   }
 
-  int ncalib = noiseMap.dumpAboveThreshold(3);
-  std::cout << "Threshold: 3"
+  noiseMap.applyProbThreshold(probT, nStrobes);
+
+  int fired = probT * nStrobes;
+  int ncalib = noiseMap.dumpAboveThreshold(fired);
+  std::cout << "Probalibity threshold: " << probT
             << "  number of pixels: " << ncalib << '\n';
 
   TFile out(output.data(), "new");
