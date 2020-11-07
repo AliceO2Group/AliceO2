@@ -27,7 +27,7 @@ getShmFiles() {
 
 o2_cleanup_shm_files() {
   # find shared memory files **CURRENTLY IN USE** by FairMQ
-  USEDFILES=`lsof -u $(whoami) | grep "/dev/shm/fmq" | sed 's/.*\/dev/\/dev/g' | sort | uniq | tr '\n' ' '`
+  USEDFILES=`/usr/sbin/lsof -u $(whoami) | grep "/dev/shm/fmq" | sed 's/.*\/dev/\/dev/g' | sort | uniq | tr '\n' ' '`
 
   echo "${USEDFILES}"
   if [ ! "${USEDFILES}" ]; then
