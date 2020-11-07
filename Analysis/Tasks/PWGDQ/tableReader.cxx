@@ -228,6 +228,8 @@ struct BarrelTrackSelection {
 
     uint8_t filterMap = uint8_t(0);
 
+    trackSel.reserve(tracks.size());
+
     for (auto& track : tracks) {
       filterMap = uint8_t(0);
       VarManager::FillTrack<gkTrackFillMap>(track, fValues);
@@ -500,8 +502,9 @@ WorkflowSpec defineDataProcessing(ConfigContext const&)
     adaptAnalysisTask<EventSelection>("my-event-selection"),
     adaptAnalysisTask<BarrelTrackSelection>("barrel-track-selection"),
     adaptAnalysisTask<MuonTrackSelection>("muon-track-selection"),
-    adaptAnalysisTask<TableReader>("table-reader")
-    //adaptAnalysisTask<DileptonHadronAnalysis>("dilepton-hadron")
+    adaptAnalysisTask<TableReader>("table-reader"),
+    adaptAnalysisTask<DileptonHadronAnalysis>("dilepton-hadron")
+
   };
 }
 
@@ -556,9 +559,13 @@ void DefineHistograms(HistogramManager* histMan, TString histClasses)
         histMan->AddHistogram(classStr.Data(), "TPCncls_Run", "Number of cluster in TPC", true, kNRuns, 0.5, 0.5 + kNRuns, VarManager::kRunId,
                               10, -0.5, 159.5, VarManager::kTPCncls, 10, 0., 1., VarManager::kNothing, runsStr.Data());               // TH1F histogram
         histMan->AddHistogram(classStr.Data(), "ITSncls", "Number of cluster in ITS", false, 8, -0.5, 7.5, VarManager::kITSncls);     // TH1F histogram
+        histMan->AddHistogram(classStr.Data(), "ITSchi2", "ITS chi2", false, 100, 0.0, 50.0, VarManager::kITSchi2);                   // TH1F histogram
+        histMan->AddHistogram(classStr.Data(), "IsITSrefit", "", false, 2, -0.5, 1.5, VarManager::kIsITSrefit);                       // TH1F histogram
+        histMan->AddHistogram(classStr.Data(), "IsTPCrefit", "", false, 2, -0.5, 1.5, VarManager::kIsTPCrefit);                       // TH1F histogram
+        histMan->AddHistogram(classStr.Data(), "IsSPDany", "", false, 2, -0.5, 1.5, VarManager::kIsSPDany);                           // TH1F histogram
         //for TPC PID
         histMan->AddHistogram(classStr.Data(), "TPCdedx_pIN", "TPC dE/dx vs pIN", false, 200, 0.0, 20.0, VarManager::kPin, 200, 0.0, 200., VarManager::kTPCsignal);                    // TH2F histogram
-
+        histMan->AddHistogram(classStr.Data(), "TPCchi2", "TPC chi2", false, 100, 0.0, 10.0, VarManager::kTPCchi2);                                                                    // TH1F histogram
         histMan->AddHistogram(classStr.Data(), "DCAxy", "DCAxy", false, 100, -3.0, 3.0, VarManager::kTrackDCAxy); // TH1F histogram
         histMan->AddHistogram(classStr.Data(), "DCAz", "DCAz", false, 100, -5.0, 5.0, VarManager::kTrackDCAz);    // TH1F histogram
       }

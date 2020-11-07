@@ -36,6 +36,7 @@ static const float fgkMuonMass = 0.105;        // GeV
 class VarManager : public TObject
 {
  public:
+  // map the information contained in the objects passed to the Fill functions
   enum ObjTypes {
     BC = BIT(0),
     Collision = BIT(1),
@@ -47,13 +48,15 @@ class VarManager : public TObject
     TrackCov = BIT(1),
     TrackExtra = BIT(2),
     TrackPID = BIT(3),
+    TrackDCA = BIT(4),
+    TrackSelection = BIT(5),
     // TODO: Central model MUON variables to be added
-    ReducedTrack = BIT(4),
-    ReducedTrackBarrel = BIT(5),
-    ReducedTrackBarrelCov = BIT(6),
-    ReducedTrackBarrelPID = BIT(7),
-    ReducedTrackMuon = BIT(8),
-    Pair = BIT(9)
+    ReducedTrack = BIT(6),
+    ReducedTrackBarrel = BIT(7),
+    ReducedTrackBarrelCov = BIT(8),
+    ReducedTrackBarrelPID = BIT(9),
+    ReducedTrackMuon = BIT(10),
+    Pair = BIT(11)
   };
 
  public:
@@ -103,6 +106,8 @@ class VarManager : public TObject
 
     // Barrel track variables
     kPin,
+    kIsGlobalTrack,
+    kIsGlobalTrackSDD,
     kIsITSrefit,
     kIsSPDany,
     kIsSPDfirst,
@@ -298,22 +303,22 @@ void VarManager::FillEvent(T const& event, float* values)
     values[kBC] = event.globalBC();
     values[kCentVZERO] = event.centV0M();
     if (fgUsedVars[kIsINT7]) {
-      values[kIsINT7] = event.triggerAlias() & (uint32_t(1) << kINT7);
+      values[kIsINT7] = (event.triggerAlias() & (uint32_t(1) << kINT7)) > 0;
     }
     if (fgUsedVars[kIsEMC7]) {
-      values[kIsEMC7] = event.triggerAlias() & (uint32_t(1) << kEMC7);
+      values[kIsEMC7] = (event.triggerAlias() & (uint32_t(1) << kEMC7)) > 0;
     }
     if (fgUsedVars[kIsINT7inMUON]) {
-      values[kIsINT7inMUON] = event.triggerAlias() & (uint32_t(1) << kINT7inMUON);
+      values[kIsINT7inMUON] = (event.triggerAlias() & (uint32_t(1) << kINT7inMUON)) > 0;
     }
     if (fgUsedVars[kIsMuonSingleLowPt7]) {
-      values[kIsMuonSingleLowPt7] = event.triggerAlias() & (uint32_t(1) << kMuonSingleLowPt7);
+      values[kIsMuonSingleLowPt7] = (event.triggerAlias() & (uint32_t(1) << kMuonSingleLowPt7)) > 0;
     }
     if (fgUsedVars[kIsMuonUnlikeLowPt7]) {
-      values[kIsMuonUnlikeLowPt7] = event.triggerAlias() & (uint32_t(1) << kMuonUnlikeLowPt7);
+      values[kIsMuonUnlikeLowPt7] = (event.triggerAlias() & (uint32_t(1) << kMuonUnlikeLowPt7)) > 0;
     }
     if (fgUsedVars[kIsMuonLikeLowPt7]) {
-      values[kIsMuonLikeLowPt7] = event.triggerAlias() & (uint32_t(1) << kMuonLikeLowPt7);
+      values[kIsMuonLikeLowPt7] = (event.triggerAlias() & (uint32_t(1) << kMuonLikeLowPt7)) > 0;
     }
   }
 
@@ -356,19 +361,19 @@ void VarManager::FillTrack(T const& track, float* values)
   if constexpr ((fillMap & TrackExtra) > 0 || (fillMap & ReducedTrackBarrel) > 0) {
     values[kPin] = track.tpcInnerParam();
     if (fgUsedVars[kIsITSrefit]) {
-      values[kIsITSrefit] = track.flags() & (uint64_t(1) << 2); // TODO: the flag mapping needs to be updated
+      values[kIsITSrefit] = (track.flags() & (uint32_t(1) << 0)) > 0;
     }
     if (fgUsedVars[kIsTPCrefit]) {
-      values[kIsTPCrefit] = track.flags() & (uint64_t(1) << 6); // TODO: the flag mapping needs to be updated
+      values[kIsTPCrefit] = (track.flags() & (uint32_t(1) << 1)) > 0;
     }
     if (fgUsedVars[kIsSPDfirst]) {
-      values[kIsSPDfirst] = track.itsClusterMap() & uint8_t(1);
+      values[kIsSPDfirst] = (track.itsClusterMap() & uint8_t(1)) > 0;
     }
     if (fgUsedVars[kIsSPDboth]) {
-      values[kIsSPDboth] = track.itsClusterMap() & uint8_t(3);
+      values[kIsSPDboth] = (track.itsClusterMap() & uint8_t(3)) > 0;
     }
     if (fgUsedVars[kIsSPDany]) {
-      values[kIsSPDfirst] = (track.itsClusterMap() & uint8_t(1)) || (track.itsClusterMap() & uint8_t(2));
+      values[kIsSPDany] = (track.itsClusterMap() & uint8_t(1)) || (track.itsClusterMap() & uint8_t(2));
     }
     values[kITSchi2] = track.itsChi2NCl();
     values[kTPCncls] = track.tpcNClsFound();
@@ -379,9 +384,6 @@ void VarManager::FillTrack(T const& track, float* values)
       if (fgUsedVars[kITSncls]) {
         values[kITSncls] = track.itsNCls(); // dynamic column
       }
-      // TODO: DCA calculation for central data model tracks to be added here
-      values[kTrackDCAxy] = -9999.;
-      values[kTrackDCAz] = -9999.;
     }
     if constexpr ((fillMap & ReducedTrackBarrel) > 0) {
       if (fgUsedVars[kITSncls]) {
@@ -393,6 +395,16 @@ void VarManager::FillTrack(T const& track, float* values)
       values[kTrackDCAxy] = track.dcaXY();
       values[kTrackDCAz] = track.dcaZ();
     }
+  }
+
+  if constexpr ((fillMap & TrackDCA) > 0) {
+    values[kTrackDCAxy] = track.dcaXY();
+    values[kTrackDCAz] = track.dcaZ();
+  }
+
+  if constexpr ((fillMap & TrackSelection) > 0) {
+    values[kIsGlobalTrack] = track.isGlobalTrack();
+    values[kIsGlobalTrackSDD] = track.isGlobalTrackSDD();
   }
 
   if constexpr ((fillMap & TrackCov) > 0 || (fillMap & ReducedTrackBarrelCov) > 0) {
