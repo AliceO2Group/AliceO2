@@ -155,6 +155,21 @@ class Cell
 
   void PrintStream(std::ostream& stream) const;
 
+  /// used for CTF encoding/decoding: access to packed data
+  void setPacked(uint16_t tower, uint16_t t, uint16_t en, uint16_t status)
+  {
+    auto dt = getDataRepresentation();
+    dt->mTowerID = tower;
+    dt->mTime = t;
+    dt->mEnergy = en;
+    dt->mCellStatus = status;
+  }
+
+  auto getPackedTowerID() const { return getDataRepresentation()->mTowerID; }
+  auto getPackedTime() const { return getDataRepresentation()->mTime; }
+  auto getPackedEnergy() const { return getDataRepresentation()->mEnergy; }
+  auto getPackedCellStatus() const { return getDataRepresentation()->mCellStatus; }
+
  private:
   struct __attribute__((packed)) CellData {
     uint16_t mTowerID : 15;   ///< bits 0-14   Tower ID
