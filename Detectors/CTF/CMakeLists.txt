@@ -57,3 +57,11 @@ o2_add_test(mid
             SOURCES test/test_ctf_io_mid.cxx
             COMPONENT_NAME ctf
             LABELS ctf)
+          
+o2_add_test(emcal
+            PUBLIC_LINK_LIBRARIES O2::CTFWorkflow
+                                  O2::DataFormatsEMCAL
+                                  O2::EMCALReconstruction
+            SOURCES test/test_ctf_io_emcal.cxx
+            COMPONENT_NAME ctf
+            LABELS ctf)
