@@ -20,10 +20,15 @@ set(HDRS GPUReconstructionCUDA.h GPUReconstructionCUDAInternals.h GPUReconstruct
 
 # -------------------------------- Prepare RTC -------------------------------------------------------
 if(NOT ALIGPU_BUILD_TYPE STREQUAL "ALIROOT")
-  set(CURTC_DEFINES "-D$<JOIN:$<TARGET_PROPERTY:O2::GPUTracking,COMPILE_DEFINITIONS>,$<SEMICOLON>-D>"
-                    -DGPUCA_GPUCODE_GENRTC -DGPUCA_GPULIBRARY=CUDA
+  if(ALIGPU_BUILD_TYPE STREQUAL "O2")
+    set(defineIncludeSrc "O2::${MODULE}")
+  else()
+    set(defineIncludeSrc "${MODULE}")
+  endif()
+  set(CURTC_DEFINES "-D$<JOIN:$<TARGET_PROPERTY:${defineIncludeSrc},COMPILE_DEFINITIONS>,$<SEMICOLON>-D>"
+                    -DGPUCA_GPUCODE_GENRTC
   )
-  set(CURTC_INCLUDES "-I$<JOIN:$<TARGET_PROPERTY:O2::GPUTracking,INCLUDE_DIRECTORIES>,$<SEMICOLON>-I>"
+  set(CURTC_INCLUDES "-I$<JOIN:$<TARGET_PROPERTY:${defineIncludeSrc},INCLUDE_DIRECTORIES>,$<SEMICOLON>-I>"
                     -I${CMAKE_SOURCE_DIR}/Detectors/Base/src
                     -I${CMAKE_SOURCE_DIR}/Detectors/TRD/base/src
   )
@@ -113,8 +118,7 @@ if(ALIGPU_BUILD_TYPE STREQUAL "O2")
     TARGETVARNAME targetName)
 
   target_compile_definitions(
-    ${targetName} PUBLIC GPUCA_GPULIBRARY=CUDA
-    $<TARGET_PROPERTY:O2::GPUTracking,COMPILE_DEFINITIONS>)
+    ${targetName} PUBLIC $<TARGET_PROPERTY:O2::GPUTracking,COMPILE_DEFINITIONS>)
 
   set_target_properties(${targetName} PROPERTIES LINKER_LANGUAGE CXX)
 
@@ -122,34 +126,32 @@ if(ALIGPU_BUILD_TYPE STREQUAL "O2")
 endif()
 
 if(ALIGPU_BUILD_TYPE STREQUAL "ALIROOT")
-  add_definitions(-DGPUCA_GPULIBRARY=CUDA)
-
+  set(targetName Ali${MODULE})
   # Generate the dictionary
   get_directory_property(incdirs INCLUDE_DIRECTORIES)
-  generate_dictionary("Ali${MODULE}" "" "GPUReconstructionCUDA.h"
+  generate_dictionary("${targetName}" "" "GPUReconstructionCUDA.h"
                       "${incdirs} .")
 
   # Generate the ROOT map Dependecies
-  generate_rootmap("Ali${MODULE}" "" "")
+  generate_rootmap("${targetName}" "" "")
 
   # Add a library to the project using the specified source files
-  add_library_tested(Ali${MODULE} SHARED ${SRCS} G__Ali${MODULE}.cxx)
+  add_library_tested(${targetName} SHARED ${SRCS} G__${targetName}.cxx)
   # CUDA run-time and driver
-  target_link_libraries(Ali${MODULE} PUBLIC AliGPUTracking)
+  target_link_libraries(${targetName} PUBLIC AliGPUTracking)
 
   # Additional compilation flags
-  set_target_properties(Ali${MODULE} PROPERTIES COMPILE_FLAGS "")
+  set_target_properties(${targetName} PROPERTIES COMPILE_FLAGS "")
 
   # Installation
-  install(TARGETS Ali${MODULE} ARCHIVE DESTINATION lib LIBRARY DESTINATION lib)
+  install(TARGETS ${targetName} ARCHIVE DESTINATION lib LIBRARY DESTINATION lib)
 
   install(FILES ${HDRS} DESTINATION include)
 
-  set(targetName Ali${MODULE})
+  
 endif()
 
 if(ALIGPU_BUILD_TYPE STREQUAL "Standalone")
-  add_definitions(-DGPUCA_GPULIBRARY=CUDA)
   add_library(${MODULE} SHARED ${SRCS})
   target_link_libraries(${MODULE} PUBLIC GPUTracking)
   set(targetName ${MODULE})
@@ -158,3 +160,11 @@ endif()
 
 # Since
 target_link_libraries(${targetName} PRIVATE cuda cudart nvrtc)
+target_compile_definitions(${targetName} PUBLIC GPUCA_GPULIBRARY=CUDA)
+if(CUDA_COMPUTETARGET AND CUDA_COMPUTETARGET STREQUAL "86")
+target_compile_definitions(${targetName} PUBLIC GPUCA_GPUTYPE_AMPERE)
+elseif(CUDA_COMPUTETARGET AND CUDA_COMPUTETARGET STREQUAL "75")
+target_compile_definitions(${targetName} PUBLIC GPUCA_GPUTYPE_TURING)
+else()
+target_compile_definitions(${targetName} PUBLIC GPUCA_GPUTYPE_AMPERE)
+endif()
