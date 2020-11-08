@@ -16,10 +16,17 @@ o2_add_library(EMCALWorkflow
                        src/DigitsPrinterSpec.cxx
                        src/AnalysisClusterSpec.cxx
                        src/RawToCellConverterSpec.cxx
+                       src/EntropyEncoderSpec.cxx
+                       src/EntropyDecoderSpec.cxx
                PUBLIC_LINK_LIBRARIES O2::Framework O2::DataFormatsEMCAL
                                      O2::DPLUtils O2::EMCALBase O2::EMCALReconstruction O2::Algorithm)
 
 o2_add_executable(reco-workflow
                   COMPONENT_NAME emcal
                   SOURCES src/emc-reco-workflow.cxx
+                  PUBLIC_LINK_LIBRARIES O2::EMCALWorkflow)
+
+o2_add_executable(entropy-encoder-workflow
+                  COMPONENT_NAME emcal
+                  SOURCES src/entropy-encoder-workflow.cxx
                   PUBLIC_LINK_LIBRARIES O2::EMCALWorkflow)
