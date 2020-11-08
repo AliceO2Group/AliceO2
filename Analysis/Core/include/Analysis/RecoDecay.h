@@ -499,21 +499,20 @@ class RecoDecay
     // Check the PDG codes of the decay products.
     if (N > 1) {
       LOGF(debug, "isMCMatchedDecayGen: Checking %d daughters", N);
-      auto indexCandidateDaughterI = candidate.daughter0();
-      for (auto iProng = 0; iProng < N; ++iProng) {
-        if (iProng == 1) {
-          indexCandidateDaughterI = candidate.daughter1();
-        }
-        // FIXME: 3-prong decays
-        //else if (iProng == 2) {
-        //  indexCandidateDaughterI = candidate.daughter2();
-        //}
-        if (indexCandidateDaughterI == -1) {
-          return false;
-        }
-        auto candidateDaughterI = particlesMC.iteratorAt(indexCandidateDaughterI); // ith daughter particle
-        auto PDGCandidateDaughterI = candidateDaughterI.pdgCode();                 // PDG code of the ith daughter
-        LOGF(debug, "isMCMatchedDecayGen: Daughter %d PDG: %d", iProng, PDGCandidateDaughterI);
+      // Daughter indices are consecutive.
+      auto indexDaughterFirst = candidate.daughter0();
+      auto indexDaughterLast = candidate.daughter1();
+      if (indexDaughterFirst == -1 || indexDaughterLast == -1) {
+        return false;
+      }
+      // Check number of daughters.
+      if (indexDaughterLast - indexDaughterFirst + 1 != N) {
+        return false;
+      }
+      for (auto indexDaughterI = indexDaughterFirst; indexDaughterI <= indexDaughterLast; ++indexDaughterI) {
+        auto candidateDaughterI = particlesMC.iteratorAt(indexDaughterI); // ith daughter particle
+        auto PDGCandidateDaughterI = candidateDaughterI.pdgCode();        // PDG code of the ith daughter
+        LOGF(debug, "isMCMatchedDecayGen: Daughter %d PDG: %d", indexDaughterI, PDGCandidateDaughterI);
         bool PDGFound = false; // Is the PDG code of this daughter among the remaining expected PDG codes?
         for (auto iProngCp = 0; iProngCp < N; ++iProngCp) {
           if (PDGCandidateDaughterI == sgn * arrPDGDaughters[iProngCp]) {
