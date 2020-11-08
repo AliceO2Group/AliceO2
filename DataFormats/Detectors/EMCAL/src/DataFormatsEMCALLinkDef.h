@@ -41,4 +41,8 @@
 #pragma link C++ class o2::emcal::EventHandler < o2::emcal::Cell> + ;
 #pragma link C++ class o2::emcal::EventHandler < o2::emcal::Digit> + ;
 
+#pragma link C++ struct o2::emcal::CTFHeader + ;
+#pragma link C++ struct o2::emcal::CTF + ;
+#pragma link C++ class o2::ctf::EncodedBlocks < o2::emcal::CTFHeader, 7, uint32_t> + ;
+
 #endif
