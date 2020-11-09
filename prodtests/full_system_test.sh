@@ -72,6 +72,7 @@ for STAGE in "NOGPU" "WITHGPU"; do
     TPC_GPU_OPT="GPU_proc.deviceNum=0;GPU_global.deviceType=CUDA;GPU_proc.forceMemoryPoolSize=6000000000;GPU_proc.forceHostMemoryPoolSize=3000000000"
   else
     TPC_GPU_OPT="GPU_proc.forceHostMemoryPoolSize=${TPCTRACKERSCRATCHMEMORY}"
+    DICTCREATION=" | o2-ctf-writer-workflow $ARGS_ALL --output-type dict --save-dict-after 1 --onlyDet ITS,MFT,TPC,TOF,FT0,MID "
   fi
 
   ARGS_ALL="--session default"
@@ -91,7 +92,7 @@ o2-mid-reco-workflow $ARGS_ALL --disable-root-output |
 o2-mid-entropy-encoder-workflow $ARGS_ALL |
 o2-tof-compressor $ARGS_ALL |
 o2-tof-reco-workflow $ARGS_ALL --configKeyValues \"HBFUtils.nHBFPerTF=128\" --input-type raw --output-type ctf,clusters,matching-info --disable-root-output  ${NOMCLABELS}  |  
-o2-tpc-scdcalib-interpolation-workflow $ARGS_ALL --disable-root-output --disable-root-input --shm-segment-size $SHMSIZE ${GLOBALDPLOPT}"
+o2-tpc-scdcalib-interpolation-workflow $ARGS_ALL --disable-root-output --disable-root-input ${DICTCREATION}  --shm-segment-size $SHMSIZE ${GLOBALDPLOPT}"
 
 
   # --- record interesting metrics to monitor ----
