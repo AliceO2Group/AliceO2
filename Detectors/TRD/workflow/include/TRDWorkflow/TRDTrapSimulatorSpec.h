@@ -65,6 +65,7 @@ class TRDDPLTrapSimulatorTask : public o2::framework::Task
   bool mEnableOnlineGainCorrection{false};
   bool mEnableTrapConfigDump{false};
   bool mFixTriggerRecords{false};   // shift the trigger record due to its being corrupt on coming in.
+  bool mDumpTriggerRecords{false};  // display the trigger records.
   std::vector<Tracklet64> mTracklets; // store of found tracklets
   std::string mTrapConfigName;      // the name of the config to be used.
   std::string mTrapConfigBaseName = "TRD_test/TrapConfig/";

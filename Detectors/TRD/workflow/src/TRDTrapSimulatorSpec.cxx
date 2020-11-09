@@ -21,6 +21,8 @@
 #include <unistd.h> // for getppid
 #include <chrono>
 #include <gsl/span>
+#include <iostream>
+#include <fstream>
 
 #include "TChain.h"
 
@@ -57,82 +59,12 @@
 //#endif ci is failing on this, sort out another time.
 
 using namespace o2::framework;
+using namespace std::placeholders; // this is for std::bind to build the comparator for the indexed sort of digits.
 
 namespace o2
 {
 namespace trd
 {
-
-bool msgDigitSortComparator(o2::trd::Digit const& a, o2::trd::Digit const& b)
-{
-  // sort digits.
-  // order of sort, is time, detector, hlaf chamber index, readout board, mcm.
-  // the pads wont be in order they are in, in the pad row.
-  // it however does not matter as all the relevant pads will be loaded into the 8 mcms of the pad row.
-  // so the shared pad issue is fixed.
-  FeeParam* fee = FeeParam::instance();
-  int rowa = a.getRow();
-  int rowb = b.getRow();
-  int pada = a.getPad();
-  int padb = b.getPad();
-  int deta = a.getDetector();
-  int detb = b.getDetector();
-  double timea = a.getTimeStamp();
-  double timeb = b.getTimeStamp();
-  int roba = fee->getROBfromPad(rowa, pada);
-  int robb = fee->getROBfromPad(rowb, padb);
-  int mcma = fee->getMCMfromPad(rowa, pada);
-  int mcmb = fee->getMCMfromPad(rowb, padb);
-  int hcida = deta * 2 + roba % 2;
-  int hcidb = detb * 2 + robb % 2;
-  //LOG(info) << "comparing " << rowa << ":" << pada <<":" << roba <<" "<< mcma  << " with " << rowb << ":" << padb <<":" << robb <<" "<< mcmb;
-  if (timea < timeb) {
-    //  LOG(info) << "yip timea < timeb " << timea <<"<" << timeb;
-    return 1;
-  } else if (timea == timeb) {
-    if (hcida < hcidb) {
-      return 1;
-    } else {
-      if (hcida == hcidb) {
-        if (mcma < mcmb) {
-          return 1;
-        } else {
-          return 0;
-        }
-      } else {
-        return 0;
-      }
-    }
-    return 0;
-
-    /*     if (deta < detb)
-      return 1;
-    else {
-      if (deta == detb) {
-        if(hcida < hcidb) 
-          return 1;
-        else { 
-            if (roba < robb)
-          return 1;
-        else {
-          if (roba == robb) {
-            if (mcma < mcmb)
-              return 1;
-            else
-              return 0;
-          } else
-            return 0;
-        }
-        return 0;
-      }
-      return 0;
-      }
-      return 0;
-    }
-    return 0;*/
-  }
-  return 0;
-}
 
 TrapConfig* TRDDPLTrapSimulatorTask::getTrapConfig()
 {
@@ -149,7 +81,7 @@ TrapConfig* TRDDPLTrapSimulatorTask::getTrapConfig()
     // try to load the requested configuration
     loadTrapConfig();
     //calib.
-    LOG(info) << "using TRAPconfig :" << mTrapConfig->getConfigName().c_str() << "." << mTrapConfig->getConfigVersion().c_str();
+    LOG(info) << "using TRAPconfig :\"" << mTrapConfig->getConfigName().c_str() << "\".\"" << mTrapConfig->getConfigVersion().c_str() << "\"";
 
     // we still have to load the gain tables
     // if the gain filter is active
@@ -240,6 +172,7 @@ void TRDDPLTrapSimulatorTask::init(o2::framework::InitContext& ic)
   mOnlineGainTableName = ic.options().get<std::string>("trd-onlinegaintable");
   mRunNumber = ic.options().get<int>("trd-runnum");
   mEnableTrapConfigDump = ic.options().get<bool>("trd-dumptrapconfig");
+  mDumpTriggerRecords = ic.options().get<bool>("trd-dumptriggerrecords");
   mFixTriggerRecords = ic.options().get<bool>("trd-fixtriggerrecord");
   //Connect to CCDB for all things needing access to ccdb.
   auto& ccdbmgr = o2::ccdb::BasicCCDBManager::instance();
@@ -259,27 +192,10 @@ std::string printDigit(o2::trd::Digit& a)
 
 bool digitindexcompare(unsigned int A, unsigned int B, const std::vector<o2::trd::Digit>& originalDigits)
 {
-
+  // sort into ROC:padrow:padcolum
   const o2::trd::Digit *a, *b;
   a = &originalDigits[A];
   b = &originalDigits[B];
-  FeeParam* fee = FeeParam::instance();
-  int rowa = a->getRow();
-  int rowb = b->getRow();
-  int pada = a->getPad();
-  int padb = b->getPad();
-  double timea = a->getTimeStamp();
-  double timeb = b->getTimeStamp();
-  int roba = fee->getROBfromPad(rowa, pada);
-  int robb = fee->getROBfromPad(rowb, padb);
-  int mcma = fee->getMCMfromPad(rowa, pada);
-  int mcmb = fee->getMCMfromPad(rowb, padb);
-  if (a->getTimeStamp() < b->getTimeStamp()) {
-    return 1;
-  }
-  if (a->getTimeStamp() > b->getTimeStamp()) {
-    return 0;
-  }
   // timestamps are equal
   if (a->getDetector() < b->getDetector()) {
     return 1;
@@ -287,19 +203,19 @@ bool digitindexcompare(unsigned int A, unsigned int B, const std::vector<o2::trd
   if (a->getDetector() > b->getDetector()) {
     return 0;
   }
-  //detectors are equal
-  if (roba < robb) {
+  if (a->getRow() < b->getRow()) {
     return 1;
   }
-  if (roba > robb) {
+  if (a->getRow() > b->getRow()) {
     return 0;
   }
-  //rob is equal
-  if (mcma < mcmb) {
+  if (a->getPad() < b->getPad()) {
+    return 0;
+  }
+  if (a->getPad() > b->getPad()) {
     return 1;
-  } else {
-    return 0;
   }
+  return 0;
 }
 
 void TRDDPLTrapSimulatorTask::setTriggerRecord(std::vector<o2::trd::TriggerRecord>& triggerrecord, uint32_t currentrecord, uint64_t recordsize)
@@ -368,7 +284,10 @@ void TRDDPLTrapSimulatorTask::run(o2::framework::ProcessingContext& pc)
   uint64_t currentTriggerRecord = 0;
 
   for (auto& trig : triggerRecords) {
-    LOG(debug) << "Trigger Record ; " << trig.getFirstEntry() << " --> " << trig.getNumberOfObjects();
+    if (mDumpTriggerRecords)
+      LOG(info) << "Trigger Record ; " << trig.getFirstEntry() << " --> " << trig.getNumberOfObjects();
+    else
+      LOG(debug) << "Trigger Record ; " << trig.getFirstEntry() << " --> " << trig.getNumberOfObjects();
   }
   // fix incoming trigger records if requested.
   if (mFixTriggerRecords) {
@@ -384,7 +303,7 @@ void TRDDPLTrapSimulatorTask::run(o2::framework::ProcessingContext& pc)
   std::vector<unsigned int> msgDigitsIndex;
   msgDigitsIndex.reserve(msgDigits.size());
 
-  LOG(debug) << "Read in msgDigits with size of : " << msgDigits.size() << " labels contain : " << digitMCLabels.getNElements() << " with and index size of  : " << digitMCLabels.getIndexedSize();
+  LOG(debug) << "Read in msgDigits with size of : " << msgDigits.size() << " labels contain : " << digitMCLabels.getNElements() << " with and index size of  : " << digitMCLabels.getIndexedSize() << " and triggerrecord count of :" << triggerRecords.size();
 
   if (digitMCLabels.getIndexedSize() != msgDigits.size()) {
     LOG(warn) << "Digits and Labels coming into TrapSimulator are of differing sizes, labels will be jibberish. " << digitMCLabels.getIndexedSize() << "!=" << msgDigits.size();
@@ -408,30 +327,46 @@ void TRDDPLTrapSimulatorTask::run(o2::framework::ProcessingContext& pc)
   LOG(debug) << "msgdigitsindex is " << msgDigitsIndex.size();
 
   auto sortstart = std::chrono::high_resolution_clock::now();
-  //sort the digits array
-  std::stable_sort(msgDigits.begin(), msgDigits.end(), msgDigitSortComparator);
+  //sort the digits array TODO refactor this intoa vector index sort and possibly generalise past merely digits.
+  for (auto& trig : triggerRecords) {
+    LOG(debug) << " sorting from index: " << trig.getFirstEntry() << " till " << trig.getNumberOfObjects() + trig.getFirstEntry();
+    LOG(debug) << "pre sort";
+    for (int i = msgDigitsIndex[trig.getFirstEntry()]; i < trig.getNumberOfObjects() + trig.getFirstEntry(); i++)
+      LOG(debug) << "i:" << msgDigitsIndex[i];
+    std::stable_sort(std::begin(msgDigitsIndex) + trig.getFirstEntry(), std::begin(msgDigitsIndex) + trig.getNumberOfObjects() + trig.getFirstEntry(),
+                     [msgDigits](auto&& PH1, auto&& PH2) { return digitindexcompare(PH1, PH2, msgDigits); });
+    LOG(debug) << "post sort";
+    for (int i = msgDigitsIndex[trig.getFirstEntry()]; i < trig.getNumberOfObjects() + trig.getFirstEntry(); i++)
+      LOG(debug) << "i:" << i << " = " << msgDigitsIndex[i];
+    LOG(debug) << "*****************************************************************";
+  }
+
   mSortingTime = std::chrono::high_resolution_clock::now() - sortstart;
   LOG(debug) << "TRD Digit Sorting took " << mSortingTime.count();
   // sort from triggerRecords.getFirstEntry() to triggerRecords.getFirstEntry()+triggerRecords.getNumberOfObjects();
   //check the incoming triggerrecords:
+  int triggerrecordcount = 0;
   for (auto& trig : triggerRecords) {
-    LOG(debug) << "Trigger Record ; " << trig.getFirstEntry() << " --> " << trig.getNumberOfObjects();
+    LOG(debug) << "Trigger Record ; " << triggerrecordcount << " = " << trig.getFirstEntry() << " --> " << trig.getNumberOfObjects();
+    triggerrecordcount++;
   }
   for (auto& trig : trackletTriggerRecords) {
     LOG(debug) << "Trigger Tracklet  Record ; " << trig.getFirstEntry() << " --> " << trig.getNumberOfObjects();
   }
   //print digits to check the sorting.
-  LOG(debug4) << " Digits : ";
-  for (auto& digit : msgDigits) {
-    LOG(debug4) << "sorted digit time:" << digit.getTimeStamp() << " detector:row:pad:rob:mcm ::"
-                << digit.getDetector() << ":" << digit.getRow() << ":" << digit.getPad() << ":"
-                << mFeeParam->getROBfromPad(digit.getRow(), digit.getPad()) << ":"
-                << mFeeParam->getMCMfromPad(digit.getRow(), digit.getPad())
-                << " LinkId:" << LinkRecord::getHalfChamberLinkId(digit.getDetector(), mFeeParam->getROBfromPad(digit.getRow(), digit.getPad())) << "\t\t  SM:stack:layer:side  "
-                << digit.getDetector() / 30 << ":" << Geometry::getStack(digit.getDetector())
-                << ":" << Geometry::getLayer(digit.getDetector()) << ":" << FeeParam::instance()->getRobSide(mFeeParam->getROBfromPad(digit.getRow(), digit.getPad()))
-                << " with ORI# : " << mFeeParam->getORI(digit.getDetector(), mFeeParam->getROBfromPad(digit.getRow(), digit.getPad()))
-                << " within SM ori#:" << mFeeParam->getORIinSM(digit.getDetector(), mFeeParam->getROBfromPad(digit.getRow(), digit.getPad()));
+  LOG(info) << " Digits : ";
+  //for (auto& digit : msgDigits) {
+  for (auto& digitindex : msgDigitsIndex) {
+    Digit digit = msgDigits[digitindex];
+    LOG(debug) << "sorted digit time:" << digit.getTimeStamp() << " detector:row:pad:rob:mcm ::"
+               << digit.getDetector() << ":" << digit.getRow() << ":" << digit.getPad() << ":"
+               << mFeeParam->getROBfromPad(digit.getRow(), digit.getPad()) << ":"
+               << mFeeParam->getMCMfromPad(digit.getRow(), digit.getPad())
+               << " LinkId:" << LinkRecord::getHalfChamberLinkId(digit.getDetector(), mFeeParam->getROBfromPad(digit.getRow(), digit.getPad())) << "\t\t  SM:stack:layer:side  "
+               << digit.getDetector() / 30 << ":" << Geometry::getStack(digit.getDetector())
+               << ":" << Geometry::getLayer(digit.getDetector()) << ":" << FeeParam::instance()->getRobSide(mFeeParam->getROBfromPad(digit.getRow(), digit.getPad()))
+               << " with ORI# : " << mFeeParam->getORI(digit.getDetector(), mFeeParam->getROBfromPad(digit.getRow(), digit.getPad()))
+               << " within SM ori#:" << mFeeParam->getORIinSM(digit.getDetector(), mFeeParam->getROBfromPad(digit.getRow(), digit.getPad()));
   }
   //accounting variables for various things.
   //TODO make them class members, i dont want to fiddle right now though.
@@ -452,15 +387,17 @@ void TRDDPLTrapSimulatorTask::run(o2::framework::ProcessingContext& pc)
   uint64_t digitcounter = 0;
   double b = 0;
   LOG(debug4) << "now for digit loop ";
-  for (auto digititerator = msgDigits.begin(); digititerator != msgDigits.end() /* && std::distance(msgDigits.begin(),digititerator)<7*/; ++digititerator) {
+  for (auto digititerator = msgDigitsIndex.begin(); digititerator != msgDigitsIndex.end() /* && std::distance(msgDigits.begin(),digititerator)<7*/; ++digititerator) {
     //in here we have an entire padrow which corresponds to 8 TRAPs.
     //while on a single padrow, populate data structures in the 8 trapsimulator.
     //on change of padrow
     //  fireup trapsim, do its thing with each 18 sequence of pads data that already exists inside the class from previous iterations of the loop
-    double digittime = digititerator->getTimeStamp();
-    int pad = digititerator->getPad();
-    int row = digititerator->getRow();
-    int detector = digititerator->getDetector();
+    LOG(debug) << "Digit iterator is : " << *digititerator;
+    Digit* digit = &msgDigits[*digititerator];
+    double digittime = digit->getTimeStamp();
+    int pad = digit->getPad();
+    int row = digit->getRow();
+    int detector = digit->getDetector();
     int rob = mFeeParam->getROBfromPad(row, pad);
     int mcm = mFeeParam->getMCMfromPad(row, pad);
     int trdstack = Geometry::getStack(detector);
@@ -472,7 +409,7 @@ void TRDDPLTrapSimulatorTask::run(o2::framework::ProcessingContext& pc)
                << " LinkId:" << LinkRecord::getHalfChamberLinkId(detector, rob) << "\t\t  SM:stack:layer:side  " << detector / 30 << ":" << trdstack << ":" << trdlayer << ":" << fibreside
                << " with ORI : " << mFeeParam->getORI(detector, rob) << " and within supermodule ori index:" << mFeeParam->getORIinSM(detector, rob);
     LOG(debug) << "digit time :  " << digittime;
-    if (digititerator == msgDigits.begin()) { // first time in loop
+    if (digititerator == msgDigitsIndex.begin()) { // first time in loop
       oldrow = row;
       olddetector = detector;
     }
@@ -499,7 +436,6 @@ void TRDDPLTrapSimulatorTask::run(o2::framework::ProcessingContext& pc)
     if (olddetector != detector || oldrow != row) {
       // we have gone over the pad row. //TODO ??? do we need to check for change of time as well?
       //all data is inside the 8 relavent trapsimulators
-      LOG(debug) << "digit count in change padrow if statement is : " << std::distance(msgDigits.begin(), digititerator);
       int preivousrob = mFeeParam->getROBfromPad(oldrow, oldpad); //
       //fireup Trapsim.
       auto traploopstart = std::chrono::high_resolution_clock::now();
@@ -611,7 +547,7 @@ void TRDDPLTrapSimulatorTask::run(o2::framework::ProcessingContext& pc)
     }
     LOG(debug) << "tmplabels for set data : " << tmplabels.size() << " and gslspan digitlabels size of : " << digitslabels.size();
     LOG(debug) << " setting data with pad=" << pad << " ti=" << trapindex + 1;
-    mTrapSimulator[trapindex].setData(adc, digititerator->getADC(), tmplabels);
+    mTrapSimulator[trapindex].setData(adc, digit->getADC(), tmplabels);
 
     // now take care of the case of shared pads (the whole reason for doing this pad row wise).
 
@@ -619,7 +555,7 @@ void TRDDPLTrapSimulatorTask::run(o2::framework::ProcessingContext& pc)
       adc = 20 - (pad % 18) - 1;
       if (trapindex != 0) { // avoid the case of the first trap chip
         LOG(debug) << " setting data preceding with pad=" << pad << " ti=" << trapindex - 1;
-        mTrapSimulator[trapindex - 1].setData(adc, digititerator->getADC(), tmplabels);
+        mTrapSimulator[trapindex - 1].setData(adc, digit->getADC(), tmplabels);
       }
     }
     if ((pad - 1) % 18 == 0) { // case of pad 17 must shared to next trap chip as adc 20
@@ -627,7 +563,7 @@ void TRDDPLTrapSimulatorTask::run(o2::framework::ProcessingContext& pc)
       adc = 20 - (pad % 18) - 1;
       if (trapindex + 1 != 8) { // avoid the case of the last trap chip.
         LOG(debug) << " setting data proceeding with pad=" << pad << " ti=" << trapindex + 1;
-        mTrapSimulator[trapindex + 1].setData(adc, digititerator->getADC(), tmplabels);
+        mTrapSimulator[trapindex + 1].setData(adc, digit->getADC(), tmplabels);
       }
     }
 
@@ -661,7 +597,8 @@ void TRDDPLTrapSimulatorTask::run(o2::framework::ProcessingContext& pc)
     LOG(info) << "Raw data words written = " << mTotalRawWordsWritten << " with a vector size = " << rawdata.size();
   }
   LOG(debug) << "END OF RUN .............";
-
+  //TODO does anyone care to have the digits to tracklet mapping. Do we then presort the digits inline with the index or send both digits and sorted index.
+  //TODO is is available for post processing via the debug stream output.
   pc.outputs().snapshot(Output{"TRD", "TRACKLETS", 0, Lifetime::Timeframe}, trapTrackletsAccum);
   pc.outputs().snapshot(Output{"TRD", "TRKTRGRD", 0, Lifetime::Timeframe}, trackletTriggerRecords);
   /*pc.outputs().snapshot(Output{"TRD", "TRKLABELS", 0, Lifetime::Timeframe}, trackletMCLabels);  */
@@ -698,6 +635,7 @@ o2::framework::DataProcessorSpec getTRDTrapSimulatorSpec()
                              {"trd-onlinegaintable", VariantType::String, "Krypton_2015-02", {"Online gain table to be use, names found in CCDB, obviously trd-onlinegaincorrection must be set as well."}},
                              {"trd-debugrejectedtracklets", VariantType::Bool, false, {"Output all MCM where tracklets were not identified"}},
                              {"trd-dumptrapconfig", VariantType::Bool, false, {"Dump the selected trap configuration at loading time, to text file"}},
+                             {"trd-dumptriggerrecords", VariantType::Bool, false, {"Dump the trigger record to the default log output"}},
                              {"trd-runnum", VariantType::Int, 297595, {"Run number to use to anchor simulation to, defaults to 297595"}}}};
 };
 
