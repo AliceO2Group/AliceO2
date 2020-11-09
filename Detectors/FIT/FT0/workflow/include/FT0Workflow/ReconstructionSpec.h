@@ -17,6 +17,7 @@
 #include "Framework/Task.h"
 #include "FT0Reconstruction/CollisionTimeRecoTask.h"
 #include "DataFormatsFT0/RecPoints.h"
+#include "TStopwatch.h"
 
 using namespace o2::framework;
 
@@ -32,14 +33,15 @@ class ReconstructionDPL : public Task
   ~ReconstructionDPL() override = default;
   void init(InitContext& ic) final;
   void run(ProcessingContext& pc) final;
+  void endOfStream(framework::EndOfStreamContext& ec) final;
 
  private:
-  bool mFinished = false;
   bool mUseMC = true;
   std::vector<o2::ft0::RecPoints> mRecPoints;
   std::vector<o2::ft0::ChannelDataFloat> mRecChData;
   o2::ft0::CollisionTimeRecoTask mReco;
   o2::header::DataOrigin mOrigin = o2::header::gDataOriginFT0;
+  TStopwatch mTimer;
 };
 
 /// create a processor spec
