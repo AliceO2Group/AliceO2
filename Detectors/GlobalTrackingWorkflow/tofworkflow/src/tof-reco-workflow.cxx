@@ -48,7 +48,7 @@
 // including Framework/runDataProcessing
 void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
 {
-  workflowOptions.push_back(ConfigParamSpec{"input-type", o2::framework::VariantType::String, "digits", {"digits, raw, clusters, ctf"}});
+  workflowOptions.push_back(ConfigParamSpec{"input-type", o2::framework::VariantType::String, "digits", {"digits, raw, clusters"}});
   workflowOptions.push_back(ConfigParamSpec{"output-type", o2::framework::VariantType::String, "clusters,matching-info,calib-info", {"digits, clusters, matching-info, calib-info, raw, ctf"}});
   workflowOptions.push_back(ConfigParamSpec{"disable-mc", o2::framework::VariantType::Bool, false, {"disable sending of MC information, TBI"}});
   workflowOptions.push_back(ConfigParamSpec{"tof-sectors", o2::framework::VariantType::String, "0-17", {"TOF sector range, e.g. 5-7,8,9 ,TBI"}});
@@ -127,7 +127,6 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
   bool dgtinput = 0;
   bool clusterinput = 0;
   bool rawinput = 0;
-  bool ctfinput = 0;
   if (inputType == "digits") {
     dgtinput = 1;
   } else if (inputType == "clusters") {
@@ -135,11 +134,9 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
   } else if (inputType == "raw") {
     rawinput = 1;
     writeerr = cfgc.options().get<bool>("write-decoding-errors");
-  } else if (inputType == "ctf") {
-    ctfinput = 1;
   }
 
-  if (ctfinput || rawinput) {
+  if (rawinput) {
   } else {
     if (!cfgc.helpOnCommandLine()) {
       std::string inputGRP = o2::base::NameConf::getGRPFileName();
@@ -179,9 +176,10 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
     specs.emplace_back(o2::tof::getClusterReaderSpec(useMC));
   } else if (dgtinput) {
     // TOF clusterizer
-    LOG(INFO) << "Insert TOF Digit reader from file";
-    specs.emplace_back(o2::tof::getDigitReaderSpec(useMC));
-
+    if (!disableRootInput) {
+      LOG(INFO) << "Insert TOF Digit reader from file";
+      specs.emplace_back(o2::tof::getDigitReaderSpec(useMC));
+    }
     if (writeraw) {
       LOG(INFO) << "Insert TOF Raw writer";
       specs.emplace_back(o2::tof::getTOFRawWriterSpec());
@@ -196,15 +194,6 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
       // add TOF digit writer without mc labels
       LOG(INFO) << "Insert TOF Digit Writer";
       specs.emplace_back(o2::tof::getTOFDigitWriterSpec(0, writeerr));
-    }
-  } else if (ctfinput) {
-    LOG(INFO) << "Insert TOF CTF decoder";
-    specs.emplace_back(o2::tof::getEntropyDecoderSpec());
-
-    if (writedigit && !disableRootOutput) {
-      // add TOF digit writer without mc labels
-      LOG(INFO) << "Insert TOF Digit Writer";
-      specs.emplace_back(o2::tof::getTOFDigitWriterSpec(0));
     }
   }
 
