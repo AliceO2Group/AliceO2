@@ -135,10 +135,18 @@ struct pidTOFTaskBeta {
   }
 };
 
-const int Np = 9;
-const TString pN[Np] = {"El", "Mu", "Pi", "Ka", "Pr", "De", "Tr", "He", "Al"};
-const TString pT[Np] = {"#mu", "#pi", "K", "p", "d", "t", "^{3}He", "#alpha"};
 struct pidTOFTaskQA {
+  static constexpr int Np = 9;
+  static constexpr const char* hexpected[Np] = {"expected/El", "expected/Mu", "expected/Pi",
+                                                "expected/Ka", "expected/Pr", "expected/De",
+                                                "expected/Tr", "expected/He", "expected/Al"};
+  static constexpr const char* hexpected_diff[Np] = {"expected_diff/El", "expected_diff/Mu", "expected_diff/Pi",
+                                                     "expected_diff/Ka", "expected_diff/Pr", "expected_diff/De",
+                                                     "expected_diff/Tr", "expected_diff/He", "expected_diff/Al"};
+  static constexpr const char* hnsigma[Np] = {"nsigma/El", "nsigma/Mu", "nsigma/Pi",
+                                              "nsigma/Ka", "nsigma/Pr", "nsigma/De",
+                                              "nsigma/Tr", "nsigma/He", "nsigma/Al"};
+  static constexpr const char* pT[Np] = {"e", "#mu", "#pi", "K", "p", "d", "t", "^{3}He", "#alpha"};
   HistogramRegistry histos{"Histos", {}, OutputObjHandlingPolicy::QAObject};
 
   Configurable<int> nBinsP{"nBinsP", 400, "Number of bins for the momentum"};
@@ -165,22 +173,22 @@ struct pidTOFTaskQA {
   void init(o2::framework::InitContext&)
   {
     // Event properties
-    histos.add("event/hvertexz", ";Vtx_{z} (cm);Entries", HistType::kTH1F, {{100, -20, 20}});
+    histos.add("event/vertexz", ";Vtx_{z} (cm);Entries", HistType::kTH1F, {{100, -20, 20}});
     histos.add("event/colltime", ";Collision time (ps);Entries", HistType::kTH1F, {{100, -2000, 2000}});
-    histos.add("event/htofsignal", ";#it{p} (GeV/#it{c});TOF Signal", HistType::kTH2F, {{nBinsP, MinP, MaxP}, {10000, 0, 2e6}});
-    makelogaxis(histos.get<TH2>("event/htofsignal"));
-    histos.add("event/htofbeta", ";#it{p} (GeV/#it{c});TOF #beta", HistType::kTH2F, {{nBinsP, MinP, MaxP}, {1000, 0, 2}});
-    makelogaxis(histos.get<TH2>("event/htofbeta"));
+    histos.add("event/tofsignal", ";#it{p} (GeV/#it{c});TOF Signal", HistType::kTH2F, {{nBinsP, MinP, MaxP}, {10000, 0, 2e6}});
+    makelogaxis(histos.get<TH2>("event/tofsignal"));
+    histos.add("event/tofbeta", ";#it{p} (GeV/#it{c});TOF #beta", HistType::kTH2F, {{nBinsP, MinP, MaxP}, {1000, 0, 2}});
+    makelogaxis(histos.get<TH2>("event/tofbeta"));
     for (int i = 0; i < Np; i++) {
       // Exp signal
-      histos.add("expected/" + pN[i], Form(";#it{p} (GeV/#it{c});t_{exp}(%s)", pT[i].Data()), HistType::kTH2F, {{nBinsP, MinP, MaxP}, {1000, 0, 2e6}});
-      makelogaxis(histos.get<TH2>("expected/" + pN[i]));
+      histos.add(hexpected[i], Form(";#it{p} (GeV/#it{c});t_{exp}(%s)", pT[i]), HistType::kTH2F, {{nBinsP, MinP, MaxP}, {1000, 0, 2e6}});
+      makelogaxis(histos.get<TH2>(hexpected[i]));
       // T-Texp
-      histos.add("timediff/" + pN[i], Form(";#it{p} (GeV/#it{c});(t-t_{evt}-t_{exp}(%s))", pT[i].Data()), HistType::kTH2F, {{nBinsP, MinP, MaxP}, {100, -1000, 1000}});
-      makelogaxis(histos.get<TH2>("timediff/" + pN[i]));
+      histos.add(hexpected_diff[i], Form(";#it{p} (GeV/#it{c});(t-t_{evt}-t_{exp}(%s))", pT[i]), HistType::kTH2F, {{nBinsP, MinP, MaxP}, {100, -1000, 1000}});
+      makelogaxis(histos.get<TH2>(hexpected_diff[i]));
       // NSigma
-      histos.add("nsigma/" + pN[i], Form(";#it{p} (GeV/#it{c});N_{#sigma}^{TOF}(%s)", pT[i].Data()), HistType::kTH2F, {{nBinsP, MinP, MaxP}, {200, -10, 10}});
-      makelogaxis(histos.get<TH2>("nsigma/" + pN[i]));
+      histos.add(hnsigma[i], Form(";#it{p} (GeV/#it{c});N_{#sigma}^{TOF}(%s)", pT[i]), HistType::kTH2F, {{nBinsP, MinP, MaxP}, {200, -10, 10}});
+      makelogaxis(histos.get<TH2>(hnsigma[i]));
     }
   }
 #undef makelogaxis
@@ -197,22 +205,22 @@ struct pidTOFTaskQA {
       }
       const float tof = t.tofSignal() - collision.collisionTime();
       //
-      histos.fill("event/htofsignal", t.p(), t.tofSignal());
-      histos.fill("event/htofbeta", t.p(), t.beta());
+      histos.fill("event/tofsignal", t.p(), t.tofSignal());
+      histos.fill("event/tofbeta", t.p(), t.beta());
       //
       const float exp[Np] = {t.tofExpSignalEl(), t.tofExpSignalMu(), t.tofExpSignalPi(),
                              t.tofExpSignalKa(), t.tofExpSignalPr(), t.tofExpSignalDe(),
                              t.tofExpSignalTr(), t.tofExpSignalHe(), t.tofExpSignalAl()};
       for (int i = 0; i < Np; i++) {
-        histos.fill("expected/" + pN[i], t.p(), exp[i]);
-        histos.fill("timediff/" + pN[i], t.p(), tof - exp[i]);
+        histos.fill(hexpected[i], t.p(), exp[i]);
+        histos.fill(hexpected_diff[i], t.p(), tof - exp[i]);
       }
       //
       const float nsigma[Np] = {t.tofNSigmaEl(), t.tofNSigmaMu(), t.tofNSigmaPi(),
                                 t.tofNSigmaKa(), t.tofNSigmaPr(), t.tofNSigmaDe(),
                                 t.tofNSigmaTr(), t.tofNSigmaHe(), t.tofNSigmaAl()};
       for (int i = 0; i < Np; i++) {
-        histos.fill("nsigma/" + pN[i], t.p(), nsigma[i]);
+        histos.fill(hnsigma[i], t.p(), nsigma[i]);
       }
     }
   }

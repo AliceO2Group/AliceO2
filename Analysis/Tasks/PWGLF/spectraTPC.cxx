@@ -20,10 +20,6 @@ using namespace o2;
 using namespace o2::framework;
 using namespace o2::framework::expressions;
 
-const int Np = 9;
-const TString pN[Np] = {"El", "Mu", "Pi", "Ka", "Pr", "De", "Tr", "He", "Al"};
-const TString pT[Np] = {"#mu", "#pi", "K", "p", "d", "t", "^{3}He", "#alpha"};
-
 void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
 {
   std::vector<ConfigParamSpec> options{
@@ -54,50 +50,20 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
     h->GetXaxis()->Set(nbins, binp);                              \
   }
 
-struct TPCPIDQASignalwTOFTask {
-  HistogramRegistry histos{"Histos", {}, OutputObjHandlingPolicy::AnalysisObject};
-
-  void init(o2::framework::InitContext&)
-  {
-    for (int i = 0; i < Np; i++) {
-      histos.add("signal/htpcsignal" + pN[i], ";#it{p} (GeV/#it{c});TPC Signal;N_{#sigma}^{TPC}(" + pT[i] + ")", kTH3D, {{1000, 0.001, 20}, {1000, 0, 1000}, {20, -10, 10}});
-      makelogaxis(histos.get<TH3>("hexp" + pN[i]));
-    }
-  }
-
-  // Filters
-  CANDIDATE_SELECTION
-
-  Filter trackFilterTOF = (aod::track::tofSignal > 0); // Skip tracks without TOF
-  using TrackCandidates = soa::Filtered<soa::Join<aod::Tracks, aod::TracksExtra, aod::pidRespTPC, aod::pidRespTOF, aod::TrackSelection>>;
-  void process(TrackCandidates::iterator const& track)
-  {
-    // const float mom = track.p();
-    const float mom = track.tpcInnerParam();
-    histos.fill("htpcsignalEl", mom, track.tpcSignal(), track.tofNSigmaEl());
-    histos.fill("htpcsignalMu", mom, track.tpcSignal(), track.tofNSigmaMu());
-    histos.fill("htpcsignalPi", mom, track.tpcSignal(), track.tofNSigmaPi());
-    histos.fill("htpcsignalKa", mom, track.tpcSignal(), track.tofNSigmaKa());
-    histos.fill("htpcsignalPr", mom, track.tpcSignal(), track.tofNSigmaPr());
-    histos.fill("htpcsignalDe", mom, track.tpcSignal(), track.tofNSigmaDe());
-    histos.fill("htpcsignalTr", mom, track.tpcSignal(), track.tofNSigmaTr());
-    histos.fill("htpcsignalHe", mom, track.tpcSignal(), track.tofNSigmaHe());
-    histos.fill("htpcsignalAl", mom, track.tpcSignal(), track.tofNSigmaAl());
-  }
-};
-
+constexpr int Np = 9;
 struct TPCSpectraTask {
+  static constexpr const char* pT[Np] = {"e", "#mu", "#pi", "K", "p", "d", "t", "^{3}He", "#alpha"};
+  static constexpr const char* hp[Np] = {"p/El", "p/Mu", "p/Pi", "p/Ka", "p/Pr", "p/De", "p/Tr", "p/He", "p/Al"};
+  static constexpr const char* hpt[Np] = {"pt/El", "pt/Mu", "pt/Pi", "pt/Ka", "pt/Pr", "pt/De", "pt/Tr", "pt/He", "pt/Al"};
   HistogramRegistry histos{"Histos", {}, OutputObjHandlingPolicy::AnalysisObject};
-  HistogramRegistry pt{"pt", {}, OutputObjHandlingPolicy::AnalysisObject};
-  HistogramRegistry p{"pt", {}, OutputObjHandlingPolicy::AnalysisObject};
 
   void init(o2::framework::InitContext&)
   {
     histos.add("p/Unselected", "Unselected;#it{p} (GeV/#it{c})", kTH1F, {{100, 0, 20}});
     histos.add("pt/Unselected", "Unselected;#it{p}_{T} (GeV/#it{c})", kTH1F, {{100, 0, 20}});
     for (int i = 0; i < Np; i++) {
-      histos.add("p/" + pN[i], pT[i] + ";#it{p} (GeV/#it{c})", kTH1F, {{100, 0, 20}});
-      histos.add("pt/" + pN[i], pT[i] + ";#it{p}_{T} (GeV/#it{c})", kTH1F, {{100, 0, 20}});
+      histos.add(hp[i], Form("%s;#it{p} (GeV/#it{c})", pT[i]), kTH1F, {{100, 0, 20}});
+      histos.add(hpt[i], Form("%s;#it{p}_{T} (GeV/#it{c})", pT[i]), kTH1F, {{100, 0, 20}});
     }
   }
 
@@ -112,15 +78,51 @@ struct TPCSpectraTask {
     const float nsigma[Np] = {track.tpcNSigmaEl(), track.tpcNSigmaMu(), track.tpcNSigmaPi(),
                               track.tpcNSigmaKa(), track.tpcNSigmaPr(), track.tpcNSigmaDe(),
                               track.tpcNSigmaTr(), track.tpcNSigmaHe(), track.tpcNSigmaAl()};
-    p.fill("Unselected", track.p());
-    pt.fill("Unselected", track.pt());
+    histos.fill("p/Unselected", track.p());
+    histos.fill("pt/Unselected", track.pt());
     for (int i = 0; i < Np; i++) {
       if (abs(nsigma[i]) > nsigmacut.value) {
         continue;
       }
-      p.fill(pN[i], track.p());
-      pt.fill(pN[i], track.pt());
+      histos.fill(hp[i], track.p());
+      histos.fill(hpt[i], track.pt());
     }
+  }
+};
+
+struct TPCPIDQASignalwTOFTask {
+  static constexpr const char* pT[Np] = {"e", "#mu", "#pi", "K", "p", "d", "t", "^{3}He", "#alpha"};
+  static constexpr const char* htpcsignal[Np] = {"tpcsignal/El", "tpcsignal/Mu", "tpcsignal/Pi",
+                                                 "tpcsignal/Ka", "tpcsignal/Pr", "tpcsignal/De",
+                                                 "tpcsignal/Tr", "tpcsignal/He", "tpcsignal/Al"};
+  HistogramRegistry histos{"Histos", {}, OutputObjHandlingPolicy::AnalysisObject};
+
+  void init(o2::framework::InitContext&)
+  {
+    for (int i = 0; i < Np; i++) {
+      histos.add(htpcsignal[i], Form(";#it{p} (GeV/#it{c});TPC Signal;N_{#sigma}^{TPC}(%s)", pT[i]), kTH3D, {{1000, 0.001, 20}, {1000, 0, 1000}, {20, -10, 10}});
+      makelogaxis(histos.get<TH3>(htpcsignal[i]));
+    }
+  }
+
+  // Filters
+  CANDIDATE_SELECTION
+
+  Filter trackFilterTOF = (aod::track::tofSignal > 0.f); // Skip tracks without TOF
+  using TrackCandidates = soa::Filtered<soa::Join<aod::Tracks, aod::TracksExtra, aod::pidRespTPC, aod::pidRespTOF, aod::TrackSelection>>;
+  void process(TrackCandidates::iterator const& track)
+  {
+    // const float mom = track.p();
+    const float mom = track.tpcInnerParam();
+    histos.fill(htpcsignal[0], mom, track.tpcSignal(), track.tofNSigmaEl());
+    histos.fill(htpcsignal[1], mom, track.tpcSignal(), track.tofNSigmaMu());
+    histos.fill(htpcsignal[2], mom, track.tpcSignal(), track.tofNSigmaPi());
+    histos.fill(htpcsignal[3], mom, track.tpcSignal(), track.tofNSigmaKa());
+    histos.fill(htpcsignal[4], mom, track.tpcSignal(), track.tofNSigmaPr());
+    histos.fill(htpcsignal[5], mom, track.tpcSignal(), track.tofNSigmaDe());
+    histos.fill(htpcsignal[6], mom, track.tpcSignal(), track.tofNSigmaTr());
+    histos.fill(htpcsignal[7], mom, track.tpcSignal(), track.tofNSigmaHe());
+    histos.fill(htpcsignal[8], mom, track.tpcSignal(), track.tofNSigmaAl());
   }
 };
 
