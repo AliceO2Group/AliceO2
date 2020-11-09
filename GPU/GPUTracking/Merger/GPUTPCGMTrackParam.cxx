@@ -326,8 +326,7 @@ GPUd() bool GPUTPCGMTrackParam::Fit(const GPUTPCGMMerger* GPUrestrict() merger, 
   }
   ConstrainSinPhi();
 
-  bool ok = N + NTolerated >= GPUCA_TRACKLET_SELECTOR_MIN_HITS(mP[4]) && CheckNumericalQuality(covYYUpd);
-  if (!ok) {
+  if (!(N + NTolerated >= GPUCA_TRACKLET_SELECTOR_MIN_HITS(mP[4]) && 2 * NTolerated <= CAMath::Max(10, N) && CheckNumericalQuality(covYYUpd))) {
     return (false);
   }
 
@@ -338,7 +337,7 @@ GPUd() bool GPUTPCGMTrackParam::Fit(const GPUTPCGMMerger* GPUrestrict() merger, 
   MoveToReference(prop, param, Alpha);
   NormalizeAlpha(Alpha);
 
-  return (ok);
+  return (true);
 }
 
 GPUd() void GPUTPCGMTrackParam::MoveToReference(GPUTPCGMPropagator& prop, const GPUParam& param, float& Alpha)
