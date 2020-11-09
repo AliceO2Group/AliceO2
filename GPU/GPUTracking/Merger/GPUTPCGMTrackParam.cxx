@@ -327,7 +327,7 @@ GPUd() bool GPUTPCGMTrackParam::Fit(const GPUTPCGMMerger* GPUrestrict() merger, 
   ConstrainSinPhi();
 
   if (!(N + NTolerated >= GPUCA_TRACKLET_SELECTOR_MIN_HITS(mP[4]) && 2 * NTolerated <= CAMath::Max(10, N) && CheckNumericalQuality(covYYUpd))) {
-    return (false);
+    return (false); // TODO: NTolerated should never become that large, check what is going wrong!
   }
 
   if (dEdxOut) {

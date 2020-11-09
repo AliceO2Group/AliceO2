@@ -35,6 +35,7 @@
 #include "GPUTPCGMMergedTrackHit.h"
 #include "GPUTPCGMMergerTypes.h"
 #include "GPUHostDataTypes.h"
+#include "TPCFastTransform.h"
 
 #include <atomic>
 #ifdef WITH_OPENMP
@@ -85,7 +86,6 @@ int GPUCATracking::runTracking(GPUO2InterfaceIOPtrs* data, GPUInterfaceOutputs* 
   auto& gasParam = ParameterGas::Instance();
   auto& elParam = ParameterElectronics::Instance();
   float vzbin = (elParam.ZbinWidth * gasParam.DriftV);
-  float vzbinInv = 1.f / vzbin;
   Mapper& mapper = Mapper::instance();
 
   std::vector<o2::tpc::Digit> gpuDigits[Sector::MAXSECTOR];
@@ -179,7 +179,6 @@ int GPUCATracking::runTracking(GPUO2InterfaceIOPtrs* data, GPUInterfaceOutputs* 
   clusterOffsetCounter.store(0);
 
   constexpr float MinDelta = 0.1;
-  float maxDriftTime = detParam.TPClength * vzbinInv;
 
 #ifdef WITH_OPENMP
 #pragma omp parallel for if(!outputTracksMCTruth) num_threads(4)
@@ -291,7 +290,7 @@ int GPUCATracking::runTracking(GPUO2InterfaceIOPtrs* data, GPUInterfaceOutputs* 
         // estimate max/min time increments which still keep track in the physical limits of the TPC
         auto times = std::minmax(t1, t2);
         tFwd = times.first - time0;
-        tBwd = time0 - (times.second - maxDriftTime);
+        tBwd = time0 - times.second + mTrackingCAO2Interface->getConfig().configCalib.fastTransform->getMaxDriftTime(t1 > t2 ? sector1 : sector2);
       }
     }
     oTrack.setTime0(time0);
