@@ -502,7 +502,7 @@ class RecoDecay
       // Daughter indices are consecutive.
       auto indexDaughterFirst = candidate.daughter0();
       auto indexDaughterLast = candidate.daughter1();
-      if (indexDaughterFirst == -1 || indexDaughterLast == -1) {
+      if (indexDaughterLast <= indexDaughterFirst || indexDaughterFirst == -1 || indexDaughterLast == -1) {
         return false;
       }
       // Check number of daughters.
