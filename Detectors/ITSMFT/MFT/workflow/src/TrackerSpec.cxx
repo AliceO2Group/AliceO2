@@ -43,6 +43,8 @@ namespace mft
 
 void TrackerDPL::init(InitContext& ic)
 {
+  mTimer.Stop();
+  mTimer.Reset();
   auto filename = ic.options().get<std::string>("grp-file");
   const auto grp = o2::parameters::GRPObject::loadFrom(filename.c_str());
   if (grp) {
@@ -74,6 +76,7 @@ void TrackerDPL::init(InitContext& ic)
 
 void TrackerDPL::run(ProcessingContext& pc)
 {
+  mTimer.Start(false);
   gsl::span<const unsigned char> patterns = pc.inputs().get<gsl::span<unsigned char>>("patterns");
   auto compClusters = pc.inputs().get<const std::vector<o2::itsmft::CompClusterExt>>("compClusters");
   auto nTracksLTF = 0;
@@ -168,6 +171,13 @@ void TrackerDPL::run(ProcessingContext& pc)
     pc.outputs().snapshot(Output{"MFT", "TRACKSMCTR", 0, Lifetime::Timeframe}, allTrackLabels);
     pc.outputs().snapshot(Output{"MFT", "TRACKSMC2ROF", 0, Lifetime::Timeframe}, mc2rofs);
   }
+  mTimer.Stop();
+}
+
+void TrackerDPL::endOfStream(EndOfStreamContext& ec)
+{
+  LOGF(INFO, "MFT Tracker total timing: Cpu: %.3e Real: %.3e s in %d slots",
+       mTimer.CpuTime(), mTimer.RealTime(), mTimer.Counter() - 1);
 }
 
 DataProcessorSpec getTrackerSpec(bool useMC)
