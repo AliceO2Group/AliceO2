@@ -111,10 +111,18 @@ struct pidTPCTask {
   }
 };
 
-const int Np = 9;
-const TString pN[Np] = {"El", "Mu", "Pi", "Ka", "Pr", "De", "Tr", "He", "Al"};
-const TString pT[Np] = {"#mu", "#pi", "K", "p", "d", "t", "^{3}He", "#alpha"};
 struct pidTPCTaskQA {
+  static constexpr int Np = 9;
+  static constexpr const char* pT[Np] = {"e", "#mu", "#pi", "K", "p", "d", "t", "^{3}He", "#alpha"};
+  static constexpr const char* hexpected[Np] = {"expected/El", "expected/Mu", "expected/Pi",
+                                                "expected/Ka", "expected/Pr", "expected/De",
+                                                "expected/Tr", "expected/He", "expected/Al"};
+  static constexpr const char* hexpected_diff[Np] = {"expected_diff/El", "expected_diff/Mu", "expected_diff/Pi",
+                                                     "expected_diff/Ka", "expected_diff/Pr", "expected_diff/De",
+                                                     "expected_diff/Tr", "expected_diff/He", "expected_diff/Al"};
+  static constexpr const char* hnsigma[Np] = {"nsigma/El", "nsigma/Mu", "nsigma/Pi",
+                                              "nsigma/Ka", "nsigma/Pr", "nsigma/De",
+                                              "nsigma/Tr", "nsigma/He", "nsigma/Al"};
   HistogramRegistry histos{"Histos", {}, OutputObjHandlingPolicy::QAObject};
 
   Configurable<int> nBinsP{"nBinsP", 400, "Number of bins for the momentum"};
@@ -142,19 +150,19 @@ struct pidTPCTaskQA {
   }
 
     // Event properties
-    histos.add("event/hvertexz", ";Vtx_{z} (cm);Entries", kTH1F, {{100, -20, 20}});
-    histos.add("event/htpcsignal", ";#it{p} (GeV/#it{c});TPC Signal", kTH2F, {{nBinsP, MinP, MaxP}, {1000, 0, 1000}});
-    makelogaxis(histos.get<TH2>("event/htpcsignal"));
+    histos.add("event/vertexz", ";Vtx_{z} (cm);Entries", kTH1F, {{100, -20, 20}});
+    histos.add("event/tpcsignal", ";#it{p} (GeV/#it{c});TPC Signal", kTH2F, {{nBinsP, MinP, MaxP}, {1000, 0, 1000}});
+    makelogaxis(histos.get<TH2>("event/tpcsignal"));
     for (int i = 0; i < Np; i++) {
       // Exp signal
-      histos.add("expected/" + pN[i], Form(";#it{p} (GeV/#it{c});d#it{E}/d#it{x}_(%s)", pT[i].Data()), kTH2F, {{nBinsP, MinP, MaxP}, {1000, 0, 1000}});
-      makelogaxis(histos.get<TH2>("expected/" + pN[i]));
+      histos.add(hexpected[i], Form(";#it{p} (GeV/#it{c});d#it{E}/d#it{x}_(%s)", pT[i]), kTH2F, {{nBinsP, MinP, MaxP}, {1000, 0, 1000}});
+      makelogaxis(histos.get<TH2>(hexpected[i]));
       // Signal - Expected signal
-      histos.add("expected_diff/" + pN[i], Form(";#it{p} (GeV/#it{c});;d#it{E}/d#it{x} - d#it{E}/d#it{x}(%s)", pT[i].Data()), kTH2F, {{nBinsP, MinP, MaxP}, {1000, -500, 500}});
-      makelogaxis(histos.get<TH2>("expected_diff/" + pN[i]));
+      histos.add(hexpected_diff[i], Form(";#it{p} (GeV/#it{c});;d#it{E}/d#it{x} - d#it{E}/d#it{x}(%s)", pT[i]), kTH2F, {{nBinsP, MinP, MaxP}, {1000, -500, 500}});
+      makelogaxis(histos.get<TH2>(hexpected_diff[i]));
       // NSigma
-      histos.add("nsigma/" + pN[i], Form(";#it{p} (GeV/#it{c});N_{#sigma}^{TPC}(%s)", pT[i].Data()), kTH2F, {{nBinsP, MinP, MaxP}, {200, -10, 10}});
-      makelogaxis(histos.get<TH2>("nsigma/" + pN[i]));
+      histos.add(hnsigma[i], Form(";#it{p} (GeV/#it{c});N_{#sigma}^{TPC}(%s)", pT[i]), kTH2F, {{nBinsP, MinP, MaxP}, {200, -10, 10}});
+      makelogaxis(histos.get<TH2>(hnsigma[i]));
     }
 #undef makelogaxis
   }
@@ -165,21 +173,21 @@ struct pidTPCTaskQA {
     for (auto t : tracks) {
       // const float mom = t.p();
       const float mom = t.tpcInnerParam();
-      histos.fill("event/htpcsignal", mom, t.tpcSignal());
+      histos.fill("event/tpcsignal", mom, t.tpcSignal());
       //
       const float exp[Np] = {t.tpcExpSignalEl(), t.tpcExpSignalMu(), t.tpcExpSignalPi(),
                              t.tpcExpSignalKa(), t.tpcExpSignalPr(), t.tpcExpSignalDe(),
                              t.tpcExpSignalTr(), t.tpcExpSignalHe(), t.tpcExpSignalAl()};
       for (int i = 0; i < Np; i++) {
-        histos.fill("expected/" + pN[i], mom, exp[i]);
-        histos.fill("expected_diff/" + pN[i], mom, t.tpcSignal() - exp[i]);
+        histos.fill(hexpected[i], mom, exp[i]);
+        histos.fill(hexpected_diff[i], mom, t.tpcSignal() - exp[i]);
       }
       //
       const float nsigma[Np] = {t.tpcNSigmaEl(), t.tpcNSigmaMu(), t.tpcNSigmaPi(),
                                 t.tpcNSigmaKa(), t.tpcNSigmaPr(), t.tpcNSigmaDe(),
                                 t.tpcNSigmaTr(), t.tpcNSigmaHe(), t.tpcNSigmaAl()};
       for (int i = 0; i < Np; i++) {
-        histos.fill("nsigma/" + pN[i], t.p(), nsigma[i]);
+        histos.fill(hnsigma[i], t.p(), nsigma[i]);
       }
     }
   }
