@@ -68,13 +68,14 @@ cat raw/*/*.cfg > rawAll.cfg
 # We run the workflow in both CPU-only and With-GPU mode
 for STAGE in "NOGPU" "WITHGPU"; do
 
+  ARGS_ALL="--session default"
   if [[ "$STAGE" = "WITHGPU" ]]; then
     TPC_GPU_OPT="GPU_proc.deviceNum=0;GPU_global.deviceType=CUDA;GPU_proc.forceMemoryPoolSize=6000000000;GPU_proc.forceHostMemoryPoolSize=3000000000"
   else
     TPC_GPU_OPT="GPU_proc.forceHostMemoryPoolSize=${TPCTRACKERSCRATCHMEMORY}"
+    DICTCREATION=" | o2-ctf-writer-workflow $ARGS_ALL --output-type dict --save-dict-after 1 --onlyDet ITS,MFT,TPC,TOF,FT0,MID "
   fi
 
-  ARGS_ALL="--session default"
   logfile=reco_${STAGE}.log
   taskwrapper ${logfile} "o2-raw-file-reader-workflow $ARGS_ALL --configKeyValues \"HBFUtils.nHBFPerTF=128\" --delay $TFDELAY --loop $NTIMEFRAMES --max-tf 0 --input-conf rawAll.cfg |  
 o2-itsmft-stf-decoder-workflow $ARGS_ALL  |  
@@ -85,13 +86,13 @@ o2-tpc-reco-workflow $ARGS_ALL --input-type=zsraw ${NOMCLABELS} --output-type tr
 o2-ft0-flp-dpl-workflow $ARGS_ALL --disable-root-output |  
 o2-ft0-reco-workflow $ARGS_ALL --disable-root-input --disable-root-output ${NOMCLABELS} |  
 o2-ft0-entropy-encoder-workflow $ARGS_ALL  |  
-o2-tpcits-match-workflow $ARGS_ALL -b --disable-root-input --disable-root-output ${NOMCLABELS}  |  
+o2-tpcits-match-workflow $ARGS_ALL --disable-root-input --disable-root-output ${NOMCLABELS}  |  
 o2-mid-raw-to-digits-workflow $ARGS_ALL |
 o2-mid-reco-workflow $ARGS_ALL --disable-root-output |  
-o2-mid-entropy-encoder-workflow $ARGS_ALL |
-o2-tof-compressor $ARGS_ALL |
+o2-mid-entropy-encoder-workflow $ARGS_ALL |  
+o2-tof-compressor $ARGS_ALL |  
 o2-tof-reco-workflow $ARGS_ALL --configKeyValues \"HBFUtils.nHBFPerTF=128\" --input-type raw --output-type ctf,clusters,matching-info --disable-root-output  ${NOMCLABELS}  |  
-o2-tpc-scdcalib-interpolation-workflow $ARGS_ALL --disable-root-output --disable-root-input --shm-segment-size $SHMSIZE ${GLOBALDPLOPT}"
+o2-tpc-scdcalib-interpolation-workflow $ARGS_ALL --disable-root-output --disable-root-input ${DICTCREATION} --shm-segment-size $SHMSIZE ${GLOBALDPLOPT}"
 
 
   # --- record interesting metrics to monitor ----
