@@ -439,20 +439,20 @@ void WorkflowHelpers::injectServiceDevices(WorkflowSpec& workflow, ConfigContext
 
   /// Analyze all ouputs
   //  outputTypes = isAOD*2 + isdangling*1 + 0
-  auto [OutputsInputs, outputTypes] = analyzeOutputs(workflow);
+  auto [outputsInputs, outputTypes] = analyzeOutputs(workflow);
 
   // create DataOutputDescriptor
-  std::shared_ptr<DataOutputDirector> dod = getDataOutputDirector(ctx.options(), OutputsInputs, outputTypes);
+  std::shared_ptr<DataOutputDirector> dod = getDataOutputDirector(ctx.options(), outputsInputs, outputTypes);
 
   // select outputs of type AOD which need to be saved
   // ATTENTION: if there are dangling outputs the getGlobalAODSink
   // has to be created in any case!
   std::vector<InputSpec> outputsInputsAOD;
-  for (auto ii = 0u; ii < OutputsInputs.size(); ii++) {
+  for (auto ii = 0u; ii < outputsInputs.size(); ii++) {
     if ((outputTypes[ii] & ANALYSIS) == ANALYSIS) {
-      auto ds = dod->getDataOutputDescriptors(OutputsInputs[ii]);
+      auto ds = dod->getDataOutputDescriptors(outputsInputs[ii]);
       if (ds.size() > 0 || (outputTypes[ii] & DANGLING) == DANGLING) {
-        outputsInputsAOD.emplace_back(OutputsInputs[ii]);
+        outputsInputsAOD.emplace_back(outputsInputs[ii]);
       }
     }
   }
@@ -471,9 +471,9 @@ void WorkflowHelpers::injectServiceDevices(WorkflowSpec& workflow, ConfigContext
   // file sink for notAOD dangling outputs
   // select dangling outputs which are not of type AOD
   std::vector<InputSpec> outputsInputsDangling;
-  for (auto ii = 0u; ii < OutputsInputs.size(); ii++) {
+  for (auto ii = 0u; ii < outputsInputs.size(); ii++) {
     if ((outputTypes[ii] & DANGLING) == DANGLING && (outputTypes[ii] & ANALYSIS) == 0) {
-      outputsInputsDangling.emplace_back(OutputsInputs[ii]);
+      outputsInputsDangling.emplace_back(outputsInputs[ii]);
     }
   }
 
@@ -961,12 +961,12 @@ std::tuple<std::vector<InputSpec>, std::vector<unsigned char>> WorkflowHelpers::
 std::vector<InputSpec> WorkflowHelpers::computeDanglingOutputs(WorkflowSpec const& workflow)
 {
 
-  auto [OutputsInputs, outputTypes] = analyzeOutputs(workflow);
+  auto [outputsInputs, outputTypes] = analyzeOutputs(workflow);
 
   std::vector<InputSpec> results;
-  for (auto ii = 0u; ii < OutputsInputs.size(); ii++) {
-    if ((outputTypes[ii] & 1) == 1) {
-      results.emplace_back(OutputsInputs[ii]);
+  for (auto ii = 0u; ii < outputsInputs.size(); ii++) {
+    if (outputTypes[ii] & DANGLING) {
+      results.emplace_back(outputsInputs[ii]);
     }
   }
 

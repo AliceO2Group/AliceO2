@@ -243,15 +243,15 @@ enum FileType : int {
 // add sink for the AODs
 DataProcessorSpec
   CommonDataProcessors::getGlobalAODSink(std::shared_ptr<DataOutputDirector> dod,
-                                         std::vector<InputSpec> const& OutputInputs)
+                                         std::vector<InputSpec> const& outputInputs)
 {
 
-  auto writerFunction = [dod, OutputInputs](InitContext& ic) -> std::function<void(ProcessingContext&)> {
+  auto writerFunction = [dod, outputInputs](InitContext& ic) -> std::function<void(ProcessingContext&)> {
     LOGP(DEBUG, "======== getGlobalAODSink::Init ==========");
 
     // find out if any table needs to be saved
     bool hasOutputsToWrite = false;
-    for (auto& outobj : OutputInputs) {
+    for (auto& outobj : outputInputs) {
       auto ds = dod->getDataOutputDescriptors(outobj);
       if (ds.size() > 0) {
         hasOutputsToWrite = true;
@@ -375,7 +375,7 @@ DataProcessorSpec
   // see runDataProcessing.h
   DataProcessorSpec spec{
     "internal-dpl-aod-writer",
-    OutputInputs,
+    outputInputs,
     Outputs{},
     AlgorithmSpec(writerFunction),
     {}};
