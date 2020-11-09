@@ -21,10 +21,11 @@ using namespace o2;
 using namespace o2::framework;
 using namespace o2::framework::expressions;
 
-const int Np = 9;
-const TString pN[Np] = {"El", "Mu", "Pi", "Ka", "Pr", "De", "Tr", "He", "Al"};
-const TString pT[Np] = {"#mu", "#pi", "K", "p", "d", "t", "^{3}He", "#alpha"};
 struct TOFSpectraTask {
+  static constexpr int Np = 9;
+  static constexpr const char* pT[Np] = {"e", "#mu", "#pi", "K", "p", "d", "t", "^{3}He", "#alpha"};
+  static constexpr const char* hp[Np] = {"p/El", "p/Mu", "p/Pi", "p/Ka", "p/Pr", "p/De", "p/Tr", "p/He", "p/Al"};
+  static constexpr const char* hpt[Np] = {"pt/El", "pt/Mu", "pt/Pi", "pt/Ka", "pt/Pr", "pt/De", "pt/Tr", "pt/He", "pt/Al"};
   HistogramRegistry histos{"Histos", {}, OutputObjHandlingPolicy::AnalysisObject};
 
   void init(o2::framework::InitContext&)
@@ -32,8 +33,8 @@ struct TOFSpectraTask {
     histos.add("p/Unselected", "Unselected;#it{p} (GeV/#it{c})", kTH1F, {{100, 0, 20}});
     histos.add("pt/Unselected", "Unselected;#it{p}_{T} (GeV/#it{c})", kTH1F, {{100, 0, 20}});
     for (int i = 0; i < Np; i++) {
-      histos.add(Form("p/%s", pN[i].Data()), Form("%s;#it{p} (GeV/#it{c})", pT[i].Data()), kTH1F, {{100, 0, 20}});
-      histos.add(Form("pt/%s", pN[i].Data()), Form("%s;#it{p}_{T} (GeV/#it{c})", pT[i].Data()), kTH1F, {{100, 0, 20}});
+      histos.add(hp[i], Form("%s;#it{p} (GeV/#it{c})", pT[i]), kTH1F, {{100, 0, 20}});
+      histos.add(hpt[i], Form("%s;#it{p}_{T} (GeV/#it{c})", pT[i]), kTH1F, {{100, 0, 20}});
     }
     histos.add("electronbeta/hp_El", ";#it{p} (GeV/#it{c})", kTH1F, {{100, 0, 20}});
     histos.add("electronbeta/hpt_El", ";#it{p}_{T} (GeV/#it{c})", kTH1F, {{100, 0, 20}});
@@ -43,10 +44,12 @@ struct TOFSpectraTask {
     histos.add("electronbeta/hp_betasigma_El", ";#it{p} (GeV/#it{c});(#beta - #beta_{e})/#sigma;Tracks", kTH2D, {{100, 0, 20}, {100, -5, 5}});
   }
 
+  Configurable<float> cfgCutVertex{"cfgCutVertex", 10.0f, "Accepted z-vertex range"};
+  Configurable<float> cfgCutEta{"cfgCutEta", 0.8f, "Eta range for tracks"};
   Configurable<float> nsigmacut{"nsigmacut", 3, "Value of the Nsigma cut"};
 
-  Filter trackFilter = aod::track::isGlobalTrack == true;
-
+  Filter collisionFilter = nabs(aod::collision::posZ) < cfgCutVertex;
+  Filter trackFilter = (nabs(aod::track::eta) < cfgCutEta) && (aod::track::isGlobalTrack == true) && (aod::track::tofSignal > 0.f);
   using TrackCandidates = soa::Filtered<soa::Join<aod::Tracks, aod::TracksExtra, aod::pidRespTOF, aod::pidRespTOFbeta, aod::TrackSelection>>;
   void process(TrackCandidates::iterator const& track)
   {
@@ -59,8 +62,8 @@ struct TOFSpectraTask {
       if (abs(nsigma[i]) > nsigmacut.value) {
         continue;
       }
-      histos.fill(Form("p/%s", pN[i].Data()), track.p());
-      histos.fill(Form("pt/%s", pN[i].Data()), track.pt());
+      histos.fill(hp[i], track.p());
+      histos.fill(hpt[i], track.pt());
     }
     //
     if (TMath::Abs(track.separationbetael() < 1.f)) {
