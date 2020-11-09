@@ -28,11 +28,14 @@ namespace ft0
 
 void ReconstructionDPL::init(InitContext& ic)
 {
+  mTimer.Stop();
+  mTimer.Reset();
   LOG(INFO) << "ReconstructionDPL::init";
 }
 
 void ReconstructionDPL::run(ProcessingContext& pc)
 {
+  mTimer.Start(false);
   mRecPoints.clear();
   auto digits = pc.inputs().get<gsl::span<o2::ft0::Digit>>("digits");
   //auto digits = pc.inputs().get<const std::vector<o2::ft0::Digit>>("digits");
@@ -63,7 +66,13 @@ void ReconstructionDPL::run(ProcessingContext& pc)
   pc.outputs().snapshot(Output{mOrigin, "RECPOINTS", 0, Lifetime::Timeframe}, mRecPoints);
   pc.outputs().snapshot(Output{mOrigin, "RECCHDATA", 0, Lifetime::Timeframe}, mRecChData);
 
-  mFinished = true;
+  mTimer.Stop();
+}
+
+void ReconstructionDPL::endOfStream(EndOfStreamContext& ec)
+{
+  LOGF(INFO, "FT0 reconstruction total timing: Cpu: %.3e Real: %.3e s in %d slots",
+       mTimer.CpuTime(), mTimer.RealTime(), mTimer.Counter() - 1);
 }
 
 DataProcessorSpec getReconstructionSpec(bool useMC)
