@@ -16,33 +16,30 @@
 # simply sourced into the target script.
 
 
-# returns list of files used in /dev/shm (this is done by DPL for shared memory communication)
-# arguments is a list of pids
-getShmFiles() {
-  F=`for p in "$@"; do
-    lsof -p ${p} 2>/dev/null | grep "/dev/shm/" | awk '//{print $9}'
-  done | sort | uniq | tr '\n' ' '`
-  echo "$F"
-}
-
 o2_cleanup_shm_files() {
-  # find shared memory files **CURRENTLY IN USE** by FairMQ
-  USEDFILES=`/usr/sbin/lsof -u $(whoami) | grep "/dev/shm/fmq" | sed 's/.*\/dev/\/dev/g' | sort | uniq | tr '\n' ' '`
+  # check if we have lsof (otherwise we do nothing)
+  which lsof &> /dev/null
+  if [ "$?" = "0" ]; then
+    # find shared memory files **CURRENTLY IN USE** by FairMQ
+    USEDFILES=`lsof -u $(whoami) | grep -e \"/dev/shm/.*fmq\" | sed 's/.*\/dev/\/dev/g' | sort | uniq | tr '\n' ' '`
 
-  echo "${USEDFILES}"
-  if [ ! "${USEDFILES}" ]; then
-    # in this case we can remove everything
-    COMMAND="find /dev/shm/ -name \"fmq_*\" -delete"
+    echo "${USEDFILES}"
+    if [ ! "${USEDFILES}" ]; then
+      # in this case we can remove everything
+      COMMAND="find /dev/shm/ -user $(whoami) -name \"*fmq_*\" -delete 2> /dev/null"
+    else
+      # build exclusion list
+      for f in ${USEDFILES}; do
+        LOGICALOP=""
+        [ "${EXCLPATTERN}" ] && LOGICALOP="-o"
+        EXCLPATTERN="${EXCLPATTERN} ${LOGICALOP} -wholename ${f}"
+      done
+      COMMAND="find /dev/shm/ -user $(whoami) -type f -not \( ${EXCLPATTERN} \) -delete 2> /dev/null"
+    fi
+    eval "${COMMAND}"
   else
-    # build exclusion list
-    for f in ${USEDFILES}; do
-      LOGICALOP=""
-      [ "${EXCLPATTERN}" ] && LOGICALOP="-o"
-      EXCLPATTERN="${EXCLPATTERN} ${LOGICALOP} -wholename ${f}"
-    done
-    COMMAND="find /dev/shm/ -type f -not \( ${EXCLPATTERN} \) -delete"
+    echo "Can't do shared mem cleanup: lsof not found"
   fi
-  eval "${COMMAND}"
 }
 
 # Function to find out all the (recursive) child processes starting from a parent PID.
@@ -186,11 +183,13 @@ taskwrapper() {
 
       sleep 2
 
-      # query processes still alive
+      # query processes still alive and terminate them
       for p in $(childprocs ${PID}); do
         echo "killing child $p"
-        kill $p 2> /dev/null
+        kill -9 $p 2> /dev/null
       done
+      sleep 2
+
       # remove leftover shm files
       o2_cleanup_shm_files
 
