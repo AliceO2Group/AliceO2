@@ -101,6 +101,10 @@ void Encoder::writePayload(uint16_t feeId, const InteractionRecord& ir)
 void Encoder::finalize(bool closeFile)
 {
   /// Writes remaining data and closes the file
+  if (mLastIR.isDummy()) {
+    mLastIR.bc = mRawWriter.getHBFUtils().bcFirst;
+    mLastIR.orbit = mRawWriter.getHBFUtils().orbitFirst;
+  }
   auto ir = getOrbitIR(mLastIR.orbit);
   for (uint16_t feeId = 0; feeId < crateparams::sNGBTs; ++feeId) {
     // Write the last payload
