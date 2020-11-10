@@ -55,6 +55,10 @@ class FEEIdConfig
 
   std::unordered_map<uint32_t, uint16_t> mGBTIdToFeeId; /// Correspondence between GBT Id and FeeId
 };
+namespace raw
+{
+static constexpr uint8_t sUserLogicLinkID = 15;
+}
 
 } // namespace mid
 } // namespace o2
