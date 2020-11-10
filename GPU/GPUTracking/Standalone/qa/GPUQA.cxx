@@ -154,8 +154,6 @@ static constexpr float ETA_MAX2 = 0.9;
 static constexpr float MIN_WEIGHT_CLS = 40;
 static constexpr float FINDABLE_WEIGHT_CLS = 70;
 
-static constexpr int MC_LABEL_INVALID = -1e9;
-
 static constexpr bool CLUST_HIST_INT_SUM = false;
 
 static constexpr const int COLORCOUNT = 12;
@@ -249,7 +247,36 @@ inline auto& GPUQA::GetMCTrackObj(T& obj, const GPUQA::mcLabelI_t& l)
   return obj[l.getEventID()][l.getTrackID()];
 }
 
-GPUQA::GPUQA(GPUChainTracking* rec) : mTracking(rec), mConfig(GPUQA_GetConfig(rec)) {}
+template <>
+auto GPUQA::getHist<TH1F>()
+{
+  return std::make_pair(&mHist1D, &mHist1D_pos);
+}
+template <>
+auto GPUQA::getHist<TH2F>()
+{
+  return std::make_pair(&mHist2D, &mHist2D_pos);
+}
+template <>
+auto GPUQA::getHist<TH1D>()
+{
+  return std::make_pair(&mHist1Dd, &mHist1Dd_pos);
+}
+template <class T, typename... Args>
+void GPUQA::createHist(T*& h, Args... args)
+{
+  const auto& p = getHist<T>();
+  p.first->get()->emplace_back(args...);
+  p.second->emplace_back(&h);
+  h = &p.first->get()->back();
+}
+
+GPUQA::GPUQA(GPUChainTracking* rec) : mTracking(rec), mConfig(GPUQA_GetConfig(rec))
+{
+  mHist1D.reset(new std::vector<TH1F>);
+  mHist2D.reset(new std::vector<TH2F>);
+  mHist1Dd.reset(new std::vector<TH1D>);
+}
 
 GPUQA::~GPUQA() = default;
 
@@ -338,22 +365,9 @@ void GPUQA::SetMCTrackRange(int min, int max)
 
 int GPUQA::GetMCTrackLabel(unsigned int trackId) const { return (trackId >= mTrackMCLabels.size() ? MC_LABEL_INVALID : mTrackMCLabels[trackId].getTrackID()); }
 
-int GPUQA::InitQA()
+int GPUQA::InitQACreateHistograms()
 {
-  if (mQAInitialized) {
-    return 1;
-  }
   char name[2048], fname[1024];
-
-  mColorNums = new Color_t[COLORCOUNT];
-  for (int i = 0; i < COLORCOUNT; i++) {
-    float f1 = (float)((COLORS_HEX[i] >> 16) & 0xFF) / (float)0xFF;
-    float f2 = (float)((COLORS_HEX[i] >> 8) & 0xFF) / (float)0xFF;
-    float f3 = (float)((COLORS_HEX[i] >> 0) & 0xFF) / (float)0xFF;
-    TColor* c = new TColor(10000 + i, f1, f2, f3);
-    mColorNums[i] = c->GetNumber();
-  }
-
   // Create Efficiency Histograms
   for (int i = 0; i < 4; i++) {
     for (int j = 0; j < 2; j++) {
@@ -362,11 +376,10 @@ int GPUQA::InitQA()
           for (int m = 0; m < 2; m++) {
             sprintf(name, "%s%s%s%sVs%s", m ? "eff" : "tracks", EFF_TYPES[i], FINDABLE_NAMES[j], PRIM_NAMES[k], VSPARAMETER_NAMES[l]);
             if (l == 4) {
-              double* binsPt = CreateLogAxis(AXIS_BINS[4], k == 0 ? PT_MIN_PRIM : AXES_MIN[4], AXES_MAX[4]);
-              mEff[i][j][k][l][m] = new TH1F(name, name, AXIS_BINS[l], binsPt);
-              delete[] binsPt;
+              std::unique_ptr<double> binsPt{CreateLogAxis(AXIS_BINS[4], k == 0 ? PT_MIN_PRIM : AXES_MIN[4], AXES_MAX[4])};
+              createHist(mEff[i][j][k][l][m], name, name, AXIS_BINS[l], binsPt.get());
             } else {
-              mEff[i][j][k][l][m] = new TH1F(name, name, AXIS_BINS[l], AXES_MIN[l], AXES_MAX[l]);
+              createHist(mEff[i][j][k][l][m], name, name, AXIS_BINS[l], AXES_MIN[l], AXES_MAX[l]);
             }
             mEff[i][j][k][l][m]->Sumw2();
           }
@@ -381,23 +394,21 @@ int GPUQA::InitQA()
       sprintf(name, "rms_%s_vs_%s", VSPARAMETER_NAMES[i], VSPARAMETER_NAMES[j]);
       sprintf(fname, "mean_%s_vs_%s", VSPARAMETER_NAMES[i], VSPARAMETER_NAMES[j]);
       if (j == 4) {
-        double* binsPt = CreateLogAxis(AXIS_BINS[4], mConfig.resPrimaries == 1 ? PT_MIN_PRIM : AXES_MIN[4], AXES_MAX[4]);
-        mRes[i][j][0] = new TH1F(name, name, AXIS_BINS[j], binsPt);
-        mRes[i][j][1] = new TH1F(fname, fname, AXIS_BINS[j], binsPt);
-        delete[] binsPt;
+        std::unique_ptr<double> binsPt{CreateLogAxis(AXIS_BINS[4], mConfig.resPrimaries == 1 ? PT_MIN_PRIM : AXES_MIN[4], AXES_MAX[4])};
+        createHist(mRes[i][j][0], name, name, AXIS_BINS[j], binsPt.get());
+        createHist(mRes[i][j][1], fname, fname, AXIS_BINS[j], binsPt.get());
       } else {
-        mRes[i][j][0] = new TH1F(name, name, AXIS_BINS[j], AXES_MIN[j], AXES_MAX[j]);
-        mRes[i][j][1] = new TH1F(fname, fname, AXIS_BINS[j], AXES_MIN[j], AXES_MAX[j]);
+        createHist(mRes[i][j][0], name, name, AXIS_BINS[j], AXES_MIN[j], AXES_MAX[j]);
+        createHist(mRes[i][j][1], fname, fname, AXIS_BINS[j], AXES_MIN[j], AXES_MAX[j]);
       }
       sprintf(name, "res_%s_vs_%s", VSPARAMETER_NAMES[i], VSPARAMETER_NAMES[j]);
       const float* axis = mConfig.nativeFitResolutions ? RES_AXES_NATIVE : RES_AXES;
       const int nbins = i == 4 && mConfig.nativeFitResolutions ? (10 * RES_AXIS_BINS[0]) : RES_AXIS_BINS[0];
       if (j == 4) {
-        double* binsPt = CreateLogAxis(AXIS_BINS[4], mConfig.resPrimaries == 1 ? PT_MIN_PRIM : AXES_MIN[4], AXES_MAX[4]);
-        mRes2[i][j] = new TH2F(name, name, nbins, -axis[i], axis[i], AXIS_BINS[j], binsPt);
-        delete[] binsPt;
+        std::unique_ptr<double> binsPt{CreateLogAxis(AXIS_BINS[4], mConfig.resPrimaries == 1 ? PT_MIN_PRIM : AXES_MIN[4], AXES_MAX[4])};
+        createHist(mRes2[i][j], name, name, nbins, -axis[i], axis[i], AXIS_BINS[j], binsPt.get());
       } else {
-        mRes2[i][j] = new TH2F(name, name, nbins, -axis[i], axis[i], AXIS_BINS[j], AXES_MIN[j], AXES_MAX[j]);
+        createHist(mRes2[i][j], name, name, nbins, -axis[i], axis[i], AXIS_BINS[j], AXES_MIN[j], AXES_MAX[j]);
       }
     }
   }
@@ -408,21 +419,19 @@ int GPUQA::InitQA()
       sprintf(name, "pull_rms_%s_vs_%s", VSPARAMETER_NAMES[i], VSPARAMETER_NAMES[j]);
       sprintf(fname, "pull_mean_%s_vs_%s", VSPARAMETER_NAMES[i], VSPARAMETER_NAMES[j]);
       if (j == 4) {
-        double* binsPt = CreateLogAxis(AXIS_BINS[4], AXES_MIN[4], AXES_MAX[4]);
-        mPull[i][j][0] = new TH1F(name, name, AXIS_BINS[j], binsPt);
-        mPull[i][j][1] = new TH1F(fname, fname, AXIS_BINS[j], binsPt);
-        delete[] binsPt;
+        std::unique_ptr<double> binsPt{CreateLogAxis(AXIS_BINS[4], AXES_MIN[4], AXES_MAX[4])};
+        createHist(mPull[i][j][0], name, name, AXIS_BINS[j], binsPt.get());
+        createHist(mPull[i][j][1], fname, fname, AXIS_BINS[j], binsPt.get());
       } else {
-        mPull[i][j][0] = new TH1F(name, name, AXIS_BINS[j], AXES_MIN[j], AXES_MAX[j]);
-        mPull[i][j][1] = new TH1F(fname, fname, AXIS_BINS[j], AXES_MIN[j], AXES_MAX[j]);
+        createHist(mPull[i][j][0], name, name, AXIS_BINS[j], AXES_MIN[j], AXES_MAX[j]);
+        createHist(mPull[i][j][1], fname, fname, AXIS_BINS[j], AXES_MIN[j], AXES_MAX[j]);
       }
       sprintf(name, "pull_%s_vs_%s", VSPARAMETER_NAMES[i], VSPARAMETER_NAMES[j]);
       if (j == 4) {
-        double* binsPt = CreateLogAxis(AXIS_BINS[4], AXES_MIN[4], AXES_MAX[4]);
-        mPull2[i][j] = new TH2F(name, name, RES_AXIS_BINS[0], -PULL_AXIS, PULL_AXIS, AXIS_BINS[j], binsPt);
-        delete[] binsPt;
+        std::unique_ptr<double> binsPt{CreateLogAxis(AXIS_BINS[4], AXES_MIN[4], AXES_MAX[4])};
+        createHist(mPull2[i][j], name, name, RES_AXIS_BINS[0], -PULL_AXIS, PULL_AXIS, AXIS_BINS[j], binsPt.get());
       } else {
-        mPull2[i][j] = new TH2F(name, name, RES_AXIS_BINS[0], -PULL_AXIS, PULL_AXIS, AXIS_BINS[j], AXES_MIN[j], AXES_MAX[j]);
+        createHist(mPull2[i][j], name, name, RES_AXIS_BINS[0], -PULL_AXIS, PULL_AXIS, AXIS_BINS[j], AXES_MIN[j], AXES_MAX[j]);
       }
     }
   }
@@ -432,20 +441,51 @@ int GPUQA::InitQA()
     int ioffset = i >= (2 * N_CLS_HIST - 1) ? (2 * N_CLS_HIST - 1) : i >= N_CLS_HIST ? N_CLS_HIST : 0;
     int itype = i >= (2 * N_CLS_HIST - 1) ? 2 : i >= N_CLS_HIST ? 1 : 0;
     sprintf(name, "clusters%s%s", CLUSTER_NAMES_SHORT[i - ioffset], CLUSTER_TYPES[itype]);
-    double* binsPt = CreateLogAxis(AXIS_BINS[4], PT_MIN_CLUST, PT_MAX);
-    mClusters[i] = new TH1D(name, name, AXIS_BINS[4], binsPt);
-    delete[] binsPt;
+    std::unique_ptr<double> binsPt{CreateLogAxis(AXIS_BINS[4], PT_MIN_CLUST, PT_MAX)};
+    createHist(mClusters[i], name, name, AXIS_BINS[4], binsPt.get());
   }
   {
     sprintf(name, "nclusters");
-    mNCl = new TH1F(name, name, 160, 0, 159);
+    createHist(mNCl, name, name, 160, 0, 159);
   }
 
   // Create Tracks Histograms
   {
     sprintf(name, "tracks");
-    double* binsPt = CreateLogAxis(AXIS_BINS[4], PT_MIN_CLUST, PT_MAX);
-    mTracks = new TH1F(name, name, AXIS_BINS[4], binsPt);
+    std::unique_ptr<double> binsPt{CreateLogAxis(AXIS_BINS[4], PT_MIN_CLUST, PT_MAX)};
+    createHist(mTracks, name, name, AXIS_BINS[4], binsPt.get());
+  }
+
+  for (unsigned int i = 0; i < mHist1D->size(); i++) {
+    *mHist1D_pos[i] = &(*mHist1D)[i];
+  }
+  for (unsigned int i = 0; i < mHist2D->size(); i++) {
+    *mHist2D_pos[i] = &(*mHist2D)[i];
+  }
+  for (unsigned int i = 0; i < mHist1Dd->size(); i++) {
+    *mHist1Dd_pos[i] = &(*mHist1Dd)[i];
+  }
+
+  return 0;
+}
+
+int GPUQA::InitQA()
+{
+  if (mQAInitialized) {
+    return 1;
+  }
+
+  mColorNums = new Color_t[COLORCOUNT];
+  for (int i = 0; i < COLORCOUNT; i++) {
+    float f1 = (float)((COLORS_HEX[i] >> 16) & 0xFF) / (float)0xFF;
+    float f2 = (float)((COLORS_HEX[i] >> 8) & 0xFF) / (float)0xFF;
+    float f3 = (float)((COLORS_HEX[i] >> 0) & 0xFF) / (float)0xFF;
+    TColor* c = new TColor(10000 + i, f1, f2, f3);
+    mColorNums[i] = c->GetNumber();
+  }
+
+  if (InitQACreateHistograms()) {
+    return 1;
   }
 
   mkdir("plots", S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
