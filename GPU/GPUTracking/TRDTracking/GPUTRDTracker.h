@@ -152,7 +152,7 @@ class GPUTRDTracker_t : public GPUProcessor
   GPUd() void SetMaxEta(float maxEta) { mMaxEta = maxEta; }
   GPUd() void SetChi2Threshold(float chi2) { mMaxChi2 = chi2; }
   GPUd() void SetChi2Penalty(float chi2) { mChi2Penalty = chi2; }
-  GPUd() void SetMaxMissingLayers(int ly) { mMaxMissingLy = ly; }
+  GPUd() void SetStopTrkFollowingAfterNMissingLayers(int ly) { mMaxMissingLy = ly; }
   GPUd() void SetExtraRoadY(float extraRoadY) { mExtraRoadY = extraRoadY; }
   GPUd() void SetRoadZ(float roadZ) { mRoadZ = roadZ; }
 
