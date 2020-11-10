@@ -44,7 +44,7 @@ using namespace o2::framework;
 namespace o2::aodproducer
 {
 
-void AODProducerWorkflowDPL::findMinMaxBc(gsl::span<const o2::ft0::RecPoints>& ft0RecPoints, gsl::span<const o2::dataformats::TrackTPCITS>& tracksITSTPC)
+void AODProducerWorkflowDPL::findMinMaxBc(gsl::span<const o2::ft0::RecPoints>& ft0RecPoints, gsl::span<const o2::dataformats::TrackTPCITS>& tracksITSTPC, const std::vector<o2::InteractionTimeRecord>& mcRecords)
 {
   for (auto& ft0RecPoint : ft0RecPoints) {
     uint64_t bc = ft0RecPoint.getInteractionRecord().orbit * o2::constants::lhc::LHCMaxBunches + ft0RecPoint.getInteractionRecord().bc;
@@ -59,6 +59,16 @@ void AODProducerWorkflowDPL::findMinMaxBc(gsl::span<const o2::ft0::RecPoints>& f
   for (auto& trackITSTPC : tracksITSTPC) {
     Double_t timeStamp = trackITSTPC.getTimeMUS().getTimeStamp() * 1.E3; // mus to ns
     uint64_t bc = (uint64_t)(timeStamp / o2::constants::lhc::LHCBunchSpacingNS);
+    if (minGlBC > bc) {
+      minGlBC = bc;
+    }
+    if (maxGlBC < bc) {
+      maxGlBC = bc;
+    }
+  }
+
+  for (auto& rec : mcRecords) {
+    uint64_t bc = rec.bc + rec.orbit * o2::constants::lhc::LHCMaxBunches;
     if (minGlBC > bc) {
       minGlBC = bc;
     }
@@ -259,7 +269,15 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
   auto fddCursor = fddBuilder.cursor<o2::aod::FDDs>();
   auto zdcCursor = zdcBuilder.cursor<o2::aod::Zdcs>();
 
-  findMinMaxBc(ft0RecPoints, tracksITSTPC);
+  o2::steer::MCKinematicsReader mcReader("collisioncontext.root");
+  const auto mcContext = mcReader.getDigitizationContext();
+  const auto& mcRecords = mcContext->getEventRecords();
+  const auto& mcParts = mcContext->getEventParts();
+
+  LOG(INFO) << "FOUND " << mcRecords.size() << " records";
+  LOG(INFO) << "FOUND " << mcParts.size() << " parts";
+
+  findMinMaxBc(ft0RecPoints, tracksITSTPC, mcRecords);
 
   std::map<uint64_t, uint64_t> mGlobBC2BCID;
 
@@ -325,14 +343,6 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
             0.f,
             0.f);
 
-  o2::steer::MCKinematicsReader mcReader("collisioncontext.root");
-  const auto context = mcReader.getDigitizationContext();
-  const auto& records = context->getEventRecords();
-  const auto& parts = context->getEventParts();
-
-  LOG(INFO) << "FOUND " << records.size() << " records";
-  LOG(INFO) << "FOUND " << parts.size() << " parts";
-
   // TODO:
   // figure out generatorID and collision weight
   int index = 0;
@@ -340,11 +350,11 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
   float mcColWeight = 1.;
 
   // filling mcCollison table
-  for (auto& rec : records) {
+  for (auto& rec : mcRecords) {
     auto time = rec.getTimeNS();
-    auto& colparts = parts[index];
-    auto eventID = colparts[0].entryID;
-    auto sourceID = colparts[0].sourceID;
+    auto& colParts = mcParts[index];
+    auto eventID = colParts[0].entryID;
+    auto sourceID = colParts[0].sourceID;
     auto& header = mcReader.getMCEventHeader(sourceID, eventID);
     uint64_t globalBC = rec.bc + rec.orbit * o2::constants::lhc::LHCMaxBunches;
     mcCollisionsCursor(0,
