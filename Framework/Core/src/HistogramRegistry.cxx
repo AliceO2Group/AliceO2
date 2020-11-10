@@ -34,6 +34,39 @@ const std::map<HistType, std::function<HistPtr(const HistogramSpec&)>> HistFacto
 
 #undef CALLB
 
+// helper function to find the histogram position in the registry
+uint32_t HistogramRegistry::getHistIndex(const HistName& histName)
+{
+  const uint32_t i = imask(histName.id);
+  if (O2_BUILTIN_LIKELY(histName.id == mRegistryKey[i])) {
+    return i;
+  }
+  for (auto j = 1u; j < MAX_REGISTRY_SIZE; ++j) {
+    if (histName.id == mRegistryKey[imask(j + i)]) {
+      return imask(j + i);
+    }
+  }
+  throw runtime_error_f("Could not find histogram \"%s\" in HistogramRegistry \"%s\"!", histName.name, mName.data());
+}
+
+// create histogram from specification and insert it into the registry
+void HistogramRegistry::insert(const HistogramSpec& histSpec)
+{
+  const uint32_t i = imask(histSpec.id);
+  for (auto j = 0u; j < MAX_REGISTRY_SIZE; ++j) {
+    TObject* rawPtr = nullptr;
+    std::visit([&](const auto& sharedPtr) { rawPtr = sharedPtr.get(); }, mRegistryValue[imask(j + i)]);
+    if (!rawPtr) {
+      registerName(histSpec.name);
+      mRegistryKey[imask(j + i)] = histSpec.id;
+      mRegistryValue[imask(j + i)] = HistFactory::createHistVariant(histSpec);
+      lookup += j;
+      return;
+    }
+  }
+  LOGF(FATAL, "Internal array of HistogramRegistry %s is full.", mName);
+}
+
 void HistogramRegistry::add(const HistogramSpec& histSpec)
 {
   insert(histSpec);
@@ -79,19 +112,37 @@ void HistogramRegistry::addClone(const std::string& source, const std::string& t
 }
 
 // function to query if name is already in use
-bool HistogramRegistry::contains(const uint32_t id, char const* const name)
+bool HistogramRegistry::contains(HistName histName)
 {
   // check for all occurances of the hash
   auto iter = mRegistryKey.begin();
-  while ((iter = std::find(iter, mRegistryKey.end(), id)) != mRegistryKey.end()) {
+  while ((iter = std::find(iter, mRegistryKey.end(), histName.id)) != mRegistryKey.end()) {
     const char* curName = nullptr;
     std::visit([&](auto&& hist) { if(hist) { curName = hist->GetName(); } }, mRegistryValue[iter - mRegistryKey.begin()]);
     // if hash is the same, make sure that name is indeed the same
-    if (strcmp(curName, name) == 0) {
+    if (strcmp(curName, histName.name) == 0) {
       return true;
     }
   }
   return false;
+}
+
+// get rough estimate for size of histogram stored in registry
+double HistogramRegistry::getSize(HistName histName, double fillFraction)
+{
+  double size{};
+  std::visit([&fillFraction, &size](auto&& hist) { size = HistFiller::getSize(hist, fillFraction); }, mRegistryValue[getHistIndex(histName)]);
+  return size;
+}
+
+// get rough estimate for size of all histograms stored in registry
+double HistogramRegistry::getSize(double fillFraction)
+{
+  double size{};
+  for (auto j = 0u; j < MAX_REGISTRY_SIZE; ++j) {
+    std::visit([&fillFraction, &size](auto&& hist) { if(hist) { size += HistFiller::getSize(hist, fillFraction);} }, mRegistryValue[j]);
+  }
+  return size;
 }
 
 // print some useful meta-info about the stored histograms

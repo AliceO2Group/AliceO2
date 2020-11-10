@@ -84,10 +84,12 @@ BOOST_AUTO_TEST_CASE(HistogramRegistryExpressionFill)
   };
 
   /// Fill histogram with expression and table
-  registry.fill<test::X>("x", tests, test::x > 3.0f);
+  constexpr HistName x("x");
+  registry.fill<test::X>(x, tests, test::x > 3.0f);
   BOOST_CHECK_EQUAL(registry.get<TH1>("x")->GetEntries(), 4);
 
   /// Fill histogram with expression and table
-  registry.fill<test::X, test::Y>("xy", tests, test::x > 3.0f && test::y > -5.0f);
+  constexpr HistName xy("xy");
+  registry.fill<test::X, test::Y>(xy, tests, test::x > 3.0f && test::y > -5.0f);
   BOOST_CHECK_EQUAL(registry.get<TH2>("xy")->GetEntries(), 2);
 }

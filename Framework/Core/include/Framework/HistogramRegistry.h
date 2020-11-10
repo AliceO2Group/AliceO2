@@ -481,6 +481,23 @@ struct HistFiller {
 
 //**************************************************************************************************
 /**
+ * Histogram name object that can be constructed at compile-time and directly provides the associated hash.
+ */
+//**************************************************************************************************
+struct HistName {
+  constexpr HistName(char const* const name_)
+    : name(name_),
+      id(compile_time_hash(name_)),
+      isconstexpr(__builtin_is_constant_evaluated())
+  {
+  }
+  char const* const name{};
+  const uint32_t id{};
+  const bool isconstexpr{};
+};
+
+//**************************************************************************************************
+/**
  * Histogram registry that can be used to store and fill histograms of any type.
  */
 //**************************************************************************************************
@@ -503,23 +520,19 @@ class HistogramRegistry
   void addClone(const std::string& source, const std::string& target);
 
   // function to query if name is already in use
-  bool contains(char const* const name)
-  {
-    return contains(compile_time_hash(name), name);
-  }
+  bool contains(HistName histName);
 
   // gets the underlying histogram pointer
   // we cannot automatically infer type here so it has to be explicitly specified
   // -> get<TH1>(), get<TH2>(), get<TH3>(), get<THn>(), get<THnSparse>(), get<TProfile>(), get<TProfile2D>(), get<TProfile3D>()
   /// @return the histogram registered with name @a name
   template <typename T>
-  auto& get(char const* const name)
+  auto& get(const HistName& histName)
   {
-    if (auto histPtr = std::get_if<std::shared_ptr<T>>(&mRegistryValue[getHistIndex(name)])) {
+    if (auto histPtr = std::get_if<std::shared_ptr<T>>(&mRegistryValue[getHistIndex(histName)]))
       return *histPtr;
-    } else {
-      throw runtime_error("Histogram type specified in get() does not match actual histogram type!");
-    }
+    else
+      throw runtime_error_f("Histogram type specified in get<>(\"%s\") does not match the actual type of the histogram!", histName.name);
   }
 
   /// @return the histogram registered with name @a name
@@ -551,35 +564,25 @@ class HistogramRegistry
 
   // fill hist with values
   template <typename... Ts>
-  void fill(char const* const name, Ts&&... positionAndWeight)
+  void fill(const HistName& histName, Ts&&... positionAndWeight)
   {
-    std::visit([&positionAndWeight...](auto&& hist) { HistFiller::fillHistAny(hist, std::forward<Ts>(positionAndWeight)...); }, mRegistryValue[getHistIndex(name)]);
+    //if(!histName.isconstexpr) LOGF(INFO, "HistName %s is not constexpr and will be hasehd at runtime!", histName.name);
+    std::visit([&positionAndWeight...](auto&& hist) { HistFiller::fillHistAny(hist, std::forward<Ts>(positionAndWeight)...); }, mRegistryValue[getHistIndex(histName)]);
   }
 
   // fill hist with content of (filtered) table columns
   template <typename... Cs, typename T>
-  void fill(char const* const name, const T& table, const o2::framework::expressions::Filter& filter)
+  void fill(const HistName& histName, const T& table, const o2::framework::expressions::Filter& filter)
   {
-    std::visit([&table, &filter](auto&& hist) { HistFiller::fillHistAny<Cs...>(hist, table, filter); }, mRegistryValue[getHistIndex(name)]);
+    //if(!histName.isconstexpr) LOGF(INFO, "HistName %s is not constexpr and will be hasehd at runtime!", histName.name);
+    std::visit([&table, &filter](auto&& hist) { HistFiller::fillHistAny<Cs...>(hist, table, filter); }, mRegistryValue[getHistIndex(histName)]);
   }
 
   // get rough estimate for size of histogram stored in registry
-  double getSize(char const* const name, double fillFraction = 1.)
-  {
-    double size{};
-    std::visit([&fillFraction, &size](auto&& hist) { size = HistFiller::getSize(hist, fillFraction); }, mRegistryValue[getHistIndex(name)]);
-    return size;
-  }
+  double getSize(HistName histName, double fillFraction = 1.);
 
   // get rough estimate for size of all histograms stored in registry
-  double getSize(double fillFraction = 1.)
-  {
-    double size{};
-    for (auto j = 0u; j < MAX_REGISTRY_SIZE; ++j) {
-      std::visit([&fillFraction, &size](auto&& hist) { if(hist) { size += HistFiller::getSize(hist, fillFraction);} }, mRegistryValue[j]);
-    }
-    return size;
-  }
+  double getSize(double fillFraction = 1.);
 
   // print summary of the histograms stored in registry
   void print(bool showAxisDetails = false);
@@ -589,36 +592,20 @@ class HistogramRegistry
 
  private:
   // create histogram from specification and insert it into the registry
-  void insert(const HistogramSpec& histSpec)
-  {
-    const uint32_t i = imask(histSpec.id);
-    for (auto j = 0u; j < MAX_REGISTRY_SIZE; ++j) {
-      TObject* rawPtr = nullptr;
-      std::visit([&](const auto& sharedPtr) { rawPtr = sharedPtr.get(); }, mRegistryValue[imask(j + i)]);
-      if (!rawPtr) {
-        registerName(histSpec.name);
-        mRegistryKey[imask(j + i)] = histSpec.id;
-        mRegistryValue[imask(j + i)] = HistFactory::createHistVariant(histSpec);
-        lookup += j;
-        return;
-      }
-    }
-    LOGF(FATAL, "Internal array of HistogramRegistry %s is full.", mName);
-  }
+  void insert(const HistogramSpec& histSpec);
 
   // clone an existing histogram and insert it into the registry
   template <typename T>
-  void insertClone(char const* const name, const std::shared_ptr<T>& originalHist)
+  void insertClone(HistName histName, const std::shared_ptr<T>& originalHist)
   {
-    const uint32_t id = compile_time_hash(name);
-    const uint32_t i = imask(id);
+    const uint32_t i = imask(histName.id);
     for (auto j = 0u; j < MAX_REGISTRY_SIZE; ++j) {
       TObject* rawPtr = nullptr;
       std::visit([&](const auto& sharedPtr) { rawPtr = sharedPtr.get(); }, mRegistryValue[imask(j + i)]);
       if (!rawPtr) {
-        registerName(name);
-        mRegistryKey[imask(j + i)] = id;
-        mRegistryValue[imask(j + i)] = std::shared_ptr<T>(static_cast<T*>(originalHist->Clone(name)));
+        registerName(histName.name);
+        mRegistryKey[imask(j + i)] = histName.id;
+        mRegistryValue[imask(j + i)] = std::shared_ptr<T>(static_cast<T*>(originalHist->Clone(histName.name)));
         lookup += j;
         return;
       }
@@ -631,22 +618,8 @@ class HistogramRegistry
     return i & MASK;
   }
 
-  uint32_t getHistIndex(char const* const name)
-  {
-    const uint32_t id = compile_time_hash(name);
-    const uint32_t i = imask(id);
-    if (O2_BUILTIN_LIKELY(id == mRegistryKey[i])) {
-      return i;
-    }
-    for (auto j = 1u; j < MAX_REGISTRY_SIZE; ++j) {
-      if (id == mRegistryKey[imask(j + i)]) {
-        return imask(j + i);
-      }
-    }
-    throw runtime_error("No matching histogram found in HistogramRegistry!");
-  }
-
-  bool contains(const uint32_t id, char const* const name);
+  // helper function to find the histogram position in the registry
+  uint32_t getHistIndex(const HistName& histName);
 
   // helper function to create resp. find the subList defined by path
   TList* getSubList(TList* list, std::deque<std::string>& path);
