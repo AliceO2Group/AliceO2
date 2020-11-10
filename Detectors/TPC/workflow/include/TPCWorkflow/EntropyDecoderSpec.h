@@ -35,6 +35,7 @@ class EntropyDecoderSpec : public o2::framework::Task
   ~EntropyDecoderSpec() override = default;
   void init(o2::framework::InitContext& ic) final;
   void run(o2::framework::ProcessingContext& pc) final;
+  void endOfStream(o2::framework::EndOfStreamContext& ec) final;
 
  private:
   o2::tpc::CTFCoder mCTFCoder;
