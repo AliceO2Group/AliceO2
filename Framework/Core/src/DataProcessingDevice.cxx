@@ -499,6 +499,14 @@ void DataProcessingDevice::doPrepare(DataProcessorContext& context)
     auto& channel = context.spec->inputChannels[ci];
     auto& info = context.state->inputChannelInfos[ci];
 
+    // If at least one channel is complete, we keep polling for the remaining
+    // stuff.
+    // FIXME: this is definitely not what we want, but
+    // it should get the analysis working.
+    if (info.state == InputChannelState::Completed) {
+  	  *context.wasActive = true;
+    }
+
     if (info.state != InputChannelState::Completed && info.state != InputChannelState::Pull) {
       context.allDone = false;
     }
