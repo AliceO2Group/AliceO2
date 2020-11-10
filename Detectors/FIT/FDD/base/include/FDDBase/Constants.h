@@ -22,6 +22,8 @@ namespace o2
 namespace fdd
 {
 constexpr short Nchannels = 16;
+constexpr short Nmodules = 2;
+constexpr short NChPerMod = 8;
 constexpr short Ntriggers = 5;
 constexpr float IntTimeRes = 0.4;
 constexpr float PhotoCathodeEfficiency = 0.18;

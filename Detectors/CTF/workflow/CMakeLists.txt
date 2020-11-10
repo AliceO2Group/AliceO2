@@ -18,12 +18,14 @@ o2_add_library(CTFWorkflow
                                      O2::DataFormatsTOF
                                      O2::DataFormatsFT0
                                      O2::DataFormatsFV0
+				     O2::DataFormatsFDD
 				     O2::DataFormatsMID
                                      O2::DataFormatsParameters
                                      O2::ITSMFTWorkflow
                                      O2::TPCWorkflow
                                      O2::FT0Workflow
                                      O2::FV0Workflow
+				     O2::FDDWorkflow
                                      O2::TOFWorkflow
                                      O2::MIDWorkflow
                                      O2::EMCALWorkflow

@@ -8,13 +8,27 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#ifdef __CLING__
+#include <stdexcept>
+#include <cstring>
+#include "Framework/Logger.h"
+#include "DataFormatsFDD/CTF.h"
 
-#pragma link off all globals;
-#pragma link off all classes;
-#pragma link off all functions;
+using namespace o2::fdd;
 
-#pragma link C++ class o2::fdd::Reconstructor + ;
-#pragma link C++ class o2::fdd::ReadRaw + ;
+///________________________________
+void CompressedDigits::clear()
+{
+  trigger.clear();
+  bcInc.clear();
+  orbitInc.clear();
+  nChan.clear();
 
-#endif
+  idChan.clear();
+  time.clear();
+  charge.clear();
+  feeBits.clear();
+
+  header.nTriggers = 0;
+  header.firstOrbit = 0;
+  header.firstBC = 0;
+}
