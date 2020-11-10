@@ -64,6 +64,7 @@
 #include <fcntl.h>
 #include "GPUReconstructionConvert.h"
 #include "DetectorsRaw/RDHUtils.h"
+#include <TStopwatch.h>
 
 using namespace o2::framework;
 using namespace o2::header;
@@ -82,6 +83,8 @@ DataProcessorSpec getCATrackerSpec(CompletionPolicyData* policyData, ca::Config 
   if (specconfig.outputCAClusters && !specconfig.caClusterer && !specconfig.decompressTPC) {
     throw std::runtime_error("inconsistent configuration: cluster output is only possible if CA clusterer is activated");
   }
+
+  static TStopwatch timer;
 
   constexpr static size_t NSectors = Sector::MAXSECTOR;
   constexpr static size_t NEndpoints = 20; //TODO: get from mapper?
@@ -229,6 +232,8 @@ DataProcessorSpec getCATrackerSpec(CompletionPolicyData* policyData, ca::Config 
       if (tracker->initialize(config) != 0) {
         throw std::invalid_argument("GPUCATracking initialization failed");
       }
+      timer.Stop();
+      timer.Reset();
     }
 
     auto& callbacks = ic.services().get<CallbackService>();
@@ -257,10 +262,18 @@ DataProcessorSpec getCATrackerSpec(CompletionPolicyData* policyData, ca::Config 
       }
     });
 
+    // the callback to be set as hook at stop of processing for the framework
+    auto printTiming = []() {
+      LOGF(INFO, "TPC CATracker total timing: Cpu: %.3e Real: %.3e s in %d slots", timer.CpuTime(), timer.RealTime(), timer.Counter() - 1);
+    };
+    ic.services().get<CallbackService>().set(CallbackService::Id::Stop, printTiming);
+
     auto processingFct = [processAttributes, specconfig](ProcessingContext& pc) {
       if (processAttributes->readyToQuit) {
         return;
       }
+      auto cput = timer.CpuTime();
+      timer.Start(false);
       auto& parser = processAttributes->parser;
       auto& tracker = processAttributes->tracker;
       auto& verbosity = processAttributes->verbosity;
@@ -676,6 +689,8 @@ DataProcessorSpec getCATrackerSpec(CompletionPolicyData* policyData, ca::Config 
           }
         }
       }
+      timer.Stop();
+      LOG(INFO) << "TPC CATracker time for this TF " << timer.CpuTime() - cput << " s";
     };
 
     return processingFct;
