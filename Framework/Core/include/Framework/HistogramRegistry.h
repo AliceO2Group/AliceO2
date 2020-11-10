@@ -520,7 +520,7 @@ class HistogramRegistry
   void addClone(const std::string& source, const std::string& target);
 
   // function to query if name is already in use
-  bool contains(HistName histName);
+  bool contains(const HistName& histName);
 
   // gets the underlying histogram pointer
   // we cannot automatically infer type here so it has to be explicitly specified
@@ -579,7 +579,7 @@ class HistogramRegistry
   }
 
   // get rough estimate for size of histogram stored in registry
-  double getSize(HistName histName, double fillFraction = 1.);
+  double getSize(const HistName& histName, double fillFraction = 1.);
 
   // get rough estimate for size of all histograms stored in registry
   double getSize(double fillFraction = 1.);
@@ -596,7 +596,7 @@ class HistogramRegistry
 
   // clone an existing histogram and insert it into the registry
   template <typename T>
-  void insertClone(HistName histName, const std::shared_ptr<T>& originalHist)
+  void insertClone(const HistName& histName, const std::shared_ptr<T>& originalHist)
   {
     const uint32_t i = imask(histName.id);
     for (auto j = 0u; j < MAX_REGISTRY_SIZE; ++j) {

@@ -112,7 +112,7 @@ void HistogramRegistry::addClone(const std::string& source, const std::string& t
 }
 
 // function to query if name is already in use
-bool HistogramRegistry::contains(HistName histName)
+bool HistogramRegistry::contains(const HistName& histName)
 {
   // check for all occurances of the hash
   auto iter = mRegistryKey.begin();
@@ -128,7 +128,7 @@ bool HistogramRegistry::contains(HistName histName)
 }
 
 // get rough estimate for size of histogram stored in registry
-double HistogramRegistry::getSize(HistName histName, double fillFraction)
+double HistogramRegistry::getSize(const HistName& histName, double fillFraction)
 {
   double size{};
   std::visit([&fillFraction, &size](auto&& hist) { size = HistFiller::getSize(hist, fillFraction); }, mRegistryValue[getHistIndex(histName)]);
