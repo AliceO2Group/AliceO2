@@ -82,8 +82,9 @@ void GeometryManager::drawDeep(TEveGeoShape* geomShape, Color_t color, Char_t tr
 
     if (strcmp(geomShape->GetElementName(), "TPC_Drift_1") == 0) { // hack for TPC drift chamber
       geomShape->SetRnrSelf(kTRUE);
-      if (color >= 0)
+      if (color >= 0) {
         geomShape->SetMainColor(color);
+      }
       if (lineColor >= 0) {
         geomShape->SetLineColor(lineColor);
         geomShape->SetLineWidth(0.1);
@@ -101,8 +102,9 @@ void GeometryManager::drawDeep(TEveGeoShape* geomShape, Color_t color, Char_t tr
     }
   } else {
     geomShape->SetRnrSelf(true);
-    if (color >= 0)
+    if (color >= 0) {
       geomShape->SetMainColor(color);
+    }
     if (lineColor >= 0) {
       geomShape->SetLineColor(lineColor);
       geomShape->SetLineWidth(0.1);

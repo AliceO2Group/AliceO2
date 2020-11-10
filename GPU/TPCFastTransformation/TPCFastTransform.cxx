@@ -158,11 +158,13 @@ int TPCFastTransform::writeToFile(std::string outFName, std::string name)
   /// store to file
   assert(isConstructed());
 
-  if (outFName.empty())
+  if (outFName.empty()) {
     outFName = "tpcFastTransform.root";
+  }
 
-  if (name.empty())
+  if (name.empty()) {
     name = "TPCFastTransform";
+  }
 
   TFile outf(outFName.data(), "recreate");
   if (outf.IsZombie()) {
@@ -171,12 +173,14 @@ int TPCFastTransform::writeToFile(std::string outFName, std::string name)
   }
 
   bool isBufferExternal = !isBufferInternal();
-  if (isBufferExternal)
+  if (isBufferExternal) {
     adoptInternalBuffer(mFlatBufferPtr);
+  }
   outf.WriteObjectAny(this, Class(), name.data());
   outf.Close();
-  if (isBufferExternal)
+  if (isBufferExternal) {
     clearInternalBufferPtr();
+  }
   return 0;
 }
 
@@ -184,11 +188,13 @@ TPCFastTransform* TPCFastTransform::loadFromFile(std::string inpFName, std::stri
 {
   /// load from file
 
-  if (inpFName.empty())
+  if (inpFName.empty()) {
     inpFName = "tpcFastTransform.root";
+  }
 
-  if (name.empty())
+  if (name.empty()) {
     name = "TPCFastTransform";
+  }
 
   TFile inpf(inpFName.data());
   if (inpf.IsZombie()) {

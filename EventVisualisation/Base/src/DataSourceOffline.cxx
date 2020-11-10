@@ -37,16 +37,18 @@ DataReader* DataSourceOffline::instance[EVisualisationGroup::NvisualisationGroup
 
 TObject* DataSourceOffline::getEventData(int no, EVisualisationGroup purpose)
 {
-  if (instance[purpose] == nullptr)
+  if (instance[purpose] == nullptr) {
     return nullptr;
+  }
   return instance[purpose]->getEventData(no);
 }
 
 int DataSourceOffline::GetEventCount()
 {
   for (int i = 0; i < EVisualisationGroup::NvisualisationGroups; i++) {
-    if (instance[i] != nullptr)
+    if (instance[i] != nullptr) {
       return instance[i]->GetEventCount();
+    }
   }
   return 1;
 };

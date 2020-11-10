@@ -48,8 +48,9 @@ class TOFDigitWriterSplitter : public Task
     mOutputTree->Branch("TOFDigit", &mPDigits);
     mOutputTree->Branch("TOFReadoutWindow", &mPROW);
     mOutputTree->Branch("TOFPatterns", &mPDia);
-    if (mStoreErrors)
+    if (mStoreErrors) {
       mOutputTree->Branch("TOFErrors", &mPErr);
+    }
 
     mNTF = 0;
   }
@@ -141,8 +142,9 @@ DataProcessorSpec getTOFCalibCollectorWriterSpec(int nTF, bool storeErr = false)
   inputs.emplace_back("rows", o2::header::gDataOriginTOF, "READOUTWINDOW");
   inputs.emplace_back("patterns", o2::header::gDataOriginTOF, "PATTERNS");
 
-  if (storeErr)
+  if (storeErr) {
     inputs.emplace_back("errors", o2::header::gDataOriginTOF, "ERRORS");
+  }
 
   std::vector<OutputSpec> outputs; // empty
 

@@ -50,8 +50,9 @@ class MeanVertexObject
   void setZ(float val) { mPos[2] = val; }
   void setPos(std::array<float, 3> val)
   {
-    for (int i = 0; i < 3; i++)
+    for (int i = 0; i < 3; i++) {
       mPos[i] = val[i];
+    }
   }
 
   float getX() const { return mPos[0]; }
@@ -64,8 +65,9 @@ class MeanVertexObject
   void setSigmaZ(float val) { mSigma[2] = val; }
   void setSigma(std::array<float, 3> val)
   {
-    for (int i = 0; i < 3; i++)
+    for (int i = 0; i < 3; i++) {
       mSigma[i] = val[i];
+    }
   }
 
   float getSigmaX() const { return mSigma[0]; }

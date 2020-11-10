@@ -183,8 +183,9 @@ void O2MCApplicationBase::AddParticles()
   LOG(INFO) << param;
 
   // check if there are PDG codes requested for user decay
-  if (param.pdglist.empty())
+  if (param.pdglist.empty()) {
     return;
+  }
 
   // loop over PDG codes in the string
   std::stringstream ss(param.pdglist);

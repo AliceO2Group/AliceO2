@@ -337,11 +337,13 @@ GPUd() int GPUTPCGMPropagator::PropagateToXAlphaBz(float posX, float posAlpha, b
 
   GPUTPCGMPhysicalTrackModel t0e(mT0);
   float dLp = 0;
-  if (t0e.PropagateToXBzLight(posX, Bz, dLp))
+  if (t0e.PropagateToXBzLight(posX, Bz, dLp)) {
     return 1;
+  }
 
-  if (CAMath::Abs(t0e.SinPhi()) >= mMaxSinPhi)
+  if (CAMath::Abs(t0e.SinPhi()) >= mMaxSinPhi) {
     return -3;
+  }
 
   return FollowLinearization(t0e, Bz, dLp, inFlyDirection);
 }

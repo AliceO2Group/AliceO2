@@ -61,14 +61,16 @@ GeneratorHepMC::~GeneratorHepMC()
 {
   /** default destructor **/
 
-  if (mStream.is_open())
+  if (mStream.is_open()) {
     mStream.close();
+  }
   if (mReader) {
     mReader->close();
     delete mReader;
   }
-  if (mEvent)
+  if (mEvent) {
     delete mEvent;
+  }
 }
 
 /*****************************************************************/
@@ -80,8 +82,9 @@ Bool_t GeneratorHepMC::generateEvent()
   /** clear and read event **/
   mEvent->clear();
   mReader->read_event(*mEvent);
-  if (mReader->failed())
+  if (mReader->failed()) {
     return kFALSE;
+  }
   /** set units to desired output **/
   mEvent->set_units(HepMC3::Units::GEV, HepMC3::Units::MM);
 

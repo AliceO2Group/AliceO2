@@ -30,8 +30,9 @@ VisualisationCluster::VisualisationCluster(double XYZ[])
 
 void VisualisationCluster::setCoordinates(double xyz[3])
 {
-  for (int i = 0; i < 3; i++)
+  for (int i = 0; i < 3; i++) {
     mCoordinates[i] = xyz[i];
+  }
 }
 
 } // namespace event_visualisation

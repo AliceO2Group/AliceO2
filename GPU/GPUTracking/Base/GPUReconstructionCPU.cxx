@@ -308,8 +308,9 @@ static std::atomic_flag timerFlag; // TODO: Should be a class member not global,
 
 GPUReconstructionCPU::timerMeta* GPUReconstructionCPU::insertTimer(unsigned int id, std::string&& name, int J, int num, int type, RecoStep step)
 {
-  while (timerFlag.test_and_set())
+  while (timerFlag.test_and_set()) {
     ;
+  }
   if (mTimers.size() <= id) {
     mTimers.resize(id + 1);
   }
@@ -327,8 +328,9 @@ GPUReconstructionCPU::timerMeta* GPUReconstructionCPU::insertTimer(unsigned int 
 GPUReconstructionCPU::timerMeta* GPUReconstructionCPU::getTimerById(unsigned int id)
 {
   timerMeta* retVal = nullptr;
-  while (timerFlag.test_and_set())
+  while (timerFlag.test_and_set()) {
     ;
+  }
   if (mTimers.size() > id && mTimers[id]) {
     retVal = mTimers[id].get();
     retVal->count++;

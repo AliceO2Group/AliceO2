@@ -33,8 +33,9 @@ class GeometryParams final : public TNamed
   /// get singleton (create if necessary)
   static GeometryParams* GetInstance(const std::string_view name = "Run2")
   {
-    if (!sGeomParam)
+    if (!sGeomParam) {
       sGeomParam = new GeometryParams(name);
+    }
     return sGeomParam;
   }
 
@@ -54,14 +55,17 @@ class GeometryParams final : public TNamed
 
   void getModuleCenter(int module, float* pos) const
   {
-    for (int i = 0; i < 3; i++)
+    for (int i = 0; i < 3; i++) {
       pos[i] = mModuleCenter[module][i];
+    }
   }
   void getModuleAngle(int module, float angle[3][2]) const
   {
-    for (int i = 0; i < 3; i++)
-      for (int ian = 0; ian < 2; ian++)
+    for (int i = 0; i < 3; i++) {
+      for (int ian = 0; ian < 2; ian++) {
         angle[i][ian] = mModuleAngle[module][i][ian];
+      }
+    }
   }
   // Return PHOS support geometry parameters
   float getRailOuterSize(int index) const { return mRailOuterSize[index]; }

@@ -361,8 +361,9 @@ void SplineHelper1D<DataT>::approximateFunction(
   const int nPar = mSpline.getNumberOfParameters(1);
   double b[nPar];
   for (int idim = 0; idim < mFdimensions; idim++) {
-    for (int i = 0; i < nPar; i++)
+    for (int i = 0; i < nPar; i++) {
       b[i] = 0.;
+    }
 
     for (int i = 0; i < getNumberOfDataPoints(); ++i) {
       const DataPoint& p = mDataPoints[i];
@@ -440,14 +441,17 @@ void SplineHelper1D<DataT>::approximateDerivatives(
   const double* row = mLSMmatrixSvalues.data();
   for (int i = 0; i < nKnots; ++i, row += nKnots) {
     double s[Ndim];
-    for (int d = 0; d < Ndim; d++)
+    for (int d = 0; d < Ndim; d++) {
       s[d] = 0.;
-    for (int j = 0; j < nKnots; ++j) {
-      for (int d = 0; d < Ndim; d++)
-        s[d] += row[j] * Fparameters[2 * j * Ndim + d];
     }
-    for (int d = 0; d < Ndim; d++)
+    for (int j = 0; j < nKnots; ++j) {
+      for (int d = 0; d < Ndim; d++) {
+        s[d] += row[j] * Fparameters[2 * j * Ndim + d];
+      }
+    }
+    for (int d = 0; d < Ndim; d++) {
       b[i * Ndim + d] -= s[d];
+    }
   }
 
   row = mLSMmatrixSderivatives.data();

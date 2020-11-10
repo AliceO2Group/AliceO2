@@ -85,8 +85,9 @@ int main(int argc, char** argv)
 {
   LOG(INFO) << "Welcome in O2 event visualisation tool";
   Options* options = processCommandLine(argc, argv);
-  if (options == nullptr)
+  if (options == nullptr) {
     exit(-1);
+  }
 
   srand(static_cast<unsigned int>(time(nullptr)));
 
@@ -96,8 +97,9 @@ int main(int argc, char** argv)
   std::array<const char*, 7> keys = {"Gui.DefaultFont", "Gui.MenuFont", "Gui.MenuHiFont",
                                      "Gui.DocFixedFont", "Gui.DocPropFont", "Gui.IconFont", "Gui.StatusFont"};
   for (const auto& key : keys) {
-    if (settings.Defined(key))
+    if (settings.Defined(key)) {
       gEnv->SetValue(key, settings.GetValue(key, ""));
+    }
   }
 
   // create ROOT application environment
