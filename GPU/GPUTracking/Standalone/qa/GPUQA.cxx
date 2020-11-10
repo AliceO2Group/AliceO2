@@ -119,12 +119,12 @@ namespace GPUCA_NAMESPACE::gpu
 extern GPUSettingsStandalone configStandalone;
 }
 #endif
-static const GPUSettingsQA& GPUQA_GetConfig(GPUChainTracking* rec)
+static const GPUSettingsQA& GPUQA_GetConfig(GPUChainTracking* chain)
 {
 #if !defined(GPUCA_STANDALONE)
   static GPUSettingsQA defaultConfig;
-  if (rec->mConfigQA) {
-    return *((const GPUSettingsQA*)rec->mConfigQA);
+  if (chain && chain->mConfigQA) {
+    return *((const GPUSettingsQA*)chain->mConfigQA);
   } else {
     return defaultConfig;
   }
@@ -188,6 +188,8 @@ static const constexpr int RES_AXIS_BINS[] = {1017, 113}; // Consecutive bin siz
 static const constexpr float RES_AXES[5] = {1., 1., 0.03, 0.03, 1.0};
 static const constexpr float RES_AXES_NATIVE[5] = {1., 1., 0.1, 0.1, 5.0};
 static const constexpr float PULL_AXIS = 10.f;
+
+static TCanvas cfit;
 
 #ifdef GPUCA_TPC_GEOMETRY_O2
 #include "SimulationDataFormat/MCCompLabel.h"
@@ -271,11 +273,12 @@ void GPUQA::createHist(T*& h, Args... args)
   h = &p.first->get()->back();
 }
 
-GPUQA::GPUQA(GPUChainTracking* rec) : mTracking(rec), mConfig(GPUQA_GetConfig(rec))
+GPUQA::GPUQA(GPUChainTracking* chain) : mTracking(chain), mConfig(GPUQA_GetConfig(chain))
 {
   mHist1D.reset(new std::vector<TH1F>);
   mHist2D.reset(new std::vector<TH2F>);
   mHist1Dd.reset(new std::vector<TH1D>);
+  mRunForQC = chain == nullptr;
 }
 
 GPUQA::~GPUQA() = default;
@@ -475,7 +478,7 @@ int GPUQA::InitQA()
     return 1;
   }
 
-  mColorNums = new Color_t[COLORCOUNT];
+  mColorNums.resize(COLORCOUNT);
   for (int i = 0; i < COLORCOUNT; i++) {
     float f1 = (float)((COLORS_HEX[i] >> 16) & 0xFF) / (float)0xFF;
     float f2 = (float)((COLORS_HEX[i] >> 8) & 0xFF) / (float)0xFF;
@@ -488,11 +491,13 @@ int GPUQA::InitQA()
     return 1;
   }
 
-  mkdir("plots", S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
+  if (!mRunForQC) {
+    mkdir("plots", S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
+  }
 
 #ifdef GPUCA_O2_LIB
-  TFile* fileSim = new TFile(o2::base::NameConf::getMCKinematicsFileName("o2sim").c_str());
-  TTree* treeSim = (TTree*)fileSim->Get("o2sim");
+  TFile fileSim(o2::base::NameConf::getMCKinematicsFileName("o2sim").c_str());
+  TTree* treeSim = (TTree*)fileSim.Get("o2sim");
   std::vector<o2::MCTrack>* tracksX;
   std::vector<o2::TrackReference>* trackRefsX;
   if (treeSim == nullptr) {
@@ -567,8 +572,7 @@ int GPUQA::InitQA()
     }
   }
 
-  fileSim->Close();
-  delete fileSim;
+  fileSim.Close();
 #endif
 
   if (mConfig.matchMCLabels.size()) {
@@ -1605,148 +1609,150 @@ int GPUQA::DrawQAHistograms()
     tout = new TFile(mConfig.output.c_str(), "RECREATE");
   }
 
-  float legendSpacingString = 0.025;
-  for (int i = 0; i < ConfigNumInputs; i++) {
-    GetName(fname, i);
-    if (strlen(fname) * 0.006 > legendSpacingString) {
-      legendSpacingString = strlen(fname) * 0.006;
+  if (!mRunForQC) {
+    float legendSpacingString = 0.025;
+    for (int i = 0; i < ConfigNumInputs; i++) {
+      GetName(fname, i);
+      if (strlen(fname) * 0.006 > legendSpacingString) {
+        legendSpacingString = strlen(fname) * 0.006;
+      }
     }
-  }
 
-  // Create Canvas / Pads for Efficiency Histograms
-  for (int ii = 0; ii < 6; ii++) {
-    int i = ii == 5 ? 4 : ii;
-    sprintf(fname, "ceff_%d", ii);
-    sprintf(name, "Efficiency versus %s", VSPARAMETER_NAMES[i]);
-    mCEff[ii] = new TCanvas(fname, name, 0, 0, 700, 700. * 2. / 3.);
-    mCEff[ii]->cd();
-    float dy = 1. / 2.;
-    mPEff[ii][0] = new TPad("p0", "", 0.0, dy * 0, 0.5, dy * 1);
-    mPEff[ii][0]->Draw();
-    mPEff[ii][0]->SetRightMargin(0.04);
-    mPEff[ii][1] = new TPad("p1", "", 0.5, dy * 0, 1.0, dy * 1);
-    mPEff[ii][1]->Draw();
-    mPEff[ii][1]->SetRightMargin(0.04);
-    mPEff[ii][2] = new TPad("p2", "", 0.0, dy * 1, 0.5, dy * 2 - .001);
-    mPEff[ii][2]->Draw();
-    mPEff[ii][2]->SetRightMargin(0.04);
-    mPEff[ii][3] = new TPad("p3", "", 0.5, dy * 1, 1.0, dy * 2 - .001);
-    mPEff[ii][3]->Draw();
-    mPEff[ii][3]->SetRightMargin(0.04);
-    mLEff[ii] = new TLegend(0.92 - legendSpacingString * 1.45, 0.83 - (0.93 - 0.82) / 2. * (float)ConfigNumInputs, 0.98, 0.849);
-    SetLegend(mLEff[ii]);
-  }
-
-  // Create Canvas / Pads for Resolution Histograms
-  for (int ii = 0; ii < 7; ii++) {
-    int i = ii == 5 ? 4 : ii;
-    sprintf(fname, "cres_%d", ii);
-    if (ii == 6) {
-      sprintf(name, "Integral Resolution");
-    } else {
-      sprintf(name, "Resolution versus %s", VSPARAMETER_NAMES[i]);
+    // Create Canvas / Pads for Efficiency Histograms
+    for (int ii = 0; ii < 6; ii++) {
+      int i = ii == 5 ? 4 : ii;
+      sprintf(fname, "ceff_%d", ii);
+      sprintf(name, "Efficiency versus %s", VSPARAMETER_NAMES[i]);
+      mCEff[ii] = new TCanvas(fname, name, 0, 0, 700, 700. * 2. / 3.);
+      mCEff[ii]->cd();
+      float dy = 1. / 2.;
+      mPEff[ii][0] = new TPad("p0", "", 0.0, dy * 0, 0.5, dy * 1);
+      mPEff[ii][0]->Draw();
+      mPEff[ii][0]->SetRightMargin(0.04);
+      mPEff[ii][1] = new TPad("p1", "", 0.5, dy * 0, 1.0, dy * 1);
+      mPEff[ii][1]->Draw();
+      mPEff[ii][1]->SetRightMargin(0.04);
+      mPEff[ii][2] = new TPad("p2", "", 0.0, dy * 1, 0.5, dy * 2 - .001);
+      mPEff[ii][2]->Draw();
+      mPEff[ii][2]->SetRightMargin(0.04);
+      mPEff[ii][3] = new TPad("p3", "", 0.5, dy * 1, 1.0, dy * 2 - .001);
+      mPEff[ii][3]->Draw();
+      mPEff[ii][3]->SetRightMargin(0.04);
+      mLEff[ii] = new TLegend(0.92 - legendSpacingString * 1.45, 0.83 - (0.93 - 0.82) / 2. * (float)ConfigNumInputs, 0.98, 0.849);
+      SetLegend(mLEff[ii]);
     }
-    mCRes[ii] = new TCanvas(fname, name, 0, 0, 700, 700. * 2. / 3.);
-    mCRes[ii]->cd();
-    gStyle->SetOptFit(1);
 
-    float dy = 1. / 2.;
-    mPRes[ii][3] = new TPad("p0", "", 0.0, dy * 0, 0.5, dy * 1);
-    mPRes[ii][3]->Draw();
-    mPRes[ii][3]->SetRightMargin(0.04);
-    mPRes[ii][4] = new TPad("p1", "", 0.5, dy * 0, 1.0, dy * 1);
-    mPRes[ii][4]->Draw();
-    mPRes[ii][4]->SetRightMargin(0.04);
-    mPRes[ii][0] = new TPad("p2", "", 0.0, dy * 1, 1. / 3., dy * 2 - .001);
-    mPRes[ii][0]->Draw();
-    mPRes[ii][0]->SetRightMargin(0.04);
-    mPRes[ii][0]->SetLeftMargin(0.15);
-    mPRes[ii][1] = new TPad("p3", "", 1. / 3., dy * 1, 2. / 3., dy * 2 - .001);
-    mPRes[ii][1]->Draw();
-    mPRes[ii][1]->SetRightMargin(0.04);
-    mPRes[ii][1]->SetLeftMargin(0.135);
-    mPRes[ii][2] = new TPad("p4", "", 2. / 3., dy * 1, 1.0, dy * 2 - .001);
-    mPRes[ii][2]->Draw();
-    mPRes[ii][2]->SetRightMargin(0.06);
-    mPRes[ii][2]->SetLeftMargin(0.135);
-    if (ii < 6) {
-      mLRes[ii] = new TLegend(0.9 - legendSpacingString * 1.45, 0.93 - (0.93 - 0.86) / 2. * (float)ConfigNumInputs, 0.98, 0.949);
-      SetLegend(mLRes[ii]);
+    // Create Canvas / Pads for Resolution Histograms
+    for (int ii = 0; ii < 7; ii++) {
+      int i = ii == 5 ? 4 : ii;
+      sprintf(fname, "cres_%d", ii);
+      if (ii == 6) {
+        sprintf(name, "Integral Resolution");
+      } else {
+        sprintf(name, "Resolution versus %s", VSPARAMETER_NAMES[i]);
+      }
+      mCRes[ii] = new TCanvas(fname, name, 0, 0, 700, 700. * 2. / 3.);
+      mCRes[ii]->cd();
+      gStyle->SetOptFit(1);
+
+      float dy = 1. / 2.;
+      mPRes[ii][3] = new TPad("p0", "", 0.0, dy * 0, 0.5, dy * 1);
+      mPRes[ii][3]->Draw();
+      mPRes[ii][3]->SetRightMargin(0.04);
+      mPRes[ii][4] = new TPad("p1", "", 0.5, dy * 0, 1.0, dy * 1);
+      mPRes[ii][4]->Draw();
+      mPRes[ii][4]->SetRightMargin(0.04);
+      mPRes[ii][0] = new TPad("p2", "", 0.0, dy * 1, 1. / 3., dy * 2 - .001);
+      mPRes[ii][0]->Draw();
+      mPRes[ii][0]->SetRightMargin(0.04);
+      mPRes[ii][0]->SetLeftMargin(0.15);
+      mPRes[ii][1] = new TPad("p3", "", 1. / 3., dy * 1, 2. / 3., dy * 2 - .001);
+      mPRes[ii][1]->Draw();
+      mPRes[ii][1]->SetRightMargin(0.04);
+      mPRes[ii][1]->SetLeftMargin(0.135);
+      mPRes[ii][2] = new TPad("p4", "", 2. / 3., dy * 1, 1.0, dy * 2 - .001);
+      mPRes[ii][2]->Draw();
+      mPRes[ii][2]->SetRightMargin(0.06);
+      mPRes[ii][2]->SetLeftMargin(0.135);
+      if (ii < 6) {
+        mLRes[ii] = new TLegend(0.9 - legendSpacingString * 1.45, 0.93 - (0.93 - 0.86) / 2. * (float)ConfigNumInputs, 0.98, 0.949);
+        SetLegend(mLRes[ii]);
+      }
     }
-  }
 
-  // Create Canvas / Pads for Pull Histograms
-  for (int ii = 0; ii < 7; ii++) {
-    int i = ii == 5 ? 4 : ii;
-    sprintf(fname, "cpull_%d", ii);
-    if (ii == 6) {
-      sprintf(name, "Integral Pull");
-    } else {
-      sprintf(name, "Pull versus %s", VSPARAMETER_NAMES[i]);
+    // Create Canvas / Pads for Pull Histograms
+    for (int ii = 0; ii < 7; ii++) {
+      int i = ii == 5 ? 4 : ii;
+      sprintf(fname, "cpull_%d", ii);
+      if (ii == 6) {
+        sprintf(name, "Integral Pull");
+      } else {
+        sprintf(name, "Pull versus %s", VSPARAMETER_NAMES[i]);
+      }
+      mCPull[ii] = new TCanvas(fname, name, 0, 0, 700, 700. * 2. / 3.);
+      mCPull[ii]->cd();
+      gStyle->SetOptFit(1);
+
+      float dy = 1. / 2.;
+      mPPull[ii][3] = new TPad("p0", "", 0.0, dy * 0, 0.5, dy * 1);
+      mPPull[ii][3]->Draw();
+      mPPull[ii][3]->SetRightMargin(0.04);
+      mPPull[ii][4] = new TPad("p1", "", 0.5, dy * 0, 1.0, dy * 1);
+      mPPull[ii][4]->Draw();
+      mPPull[ii][4]->SetRightMargin(0.04);
+      mPPull[ii][0] = new TPad("p2", "", 0.0, dy * 1, 1. / 3., dy * 2 - .001);
+      mPPull[ii][0]->Draw();
+      mPPull[ii][0]->SetRightMargin(0.04);
+      mPPull[ii][0]->SetLeftMargin(0.15);
+      mPPull[ii][1] = new TPad("p3", "", 1. / 3., dy * 1, 2. / 3., dy * 2 - .001);
+      mPPull[ii][1]->Draw();
+      mPPull[ii][1]->SetRightMargin(0.04);
+      mPPull[ii][1]->SetLeftMargin(0.135);
+      mPPull[ii][2] = new TPad("p4", "", 2. / 3., dy * 1, 1.0, dy * 2 - .001);
+      mPPull[ii][2]->Draw();
+      mPPull[ii][2]->SetRightMargin(0.06);
+      mPPull[ii][2]->SetLeftMargin(0.135);
+      if (ii < 6) {
+        mLPull[ii] = new TLegend(0.9 - legendSpacingString * 1.45, 0.93 - (0.93 - 0.86) / 2. * (float)ConfigNumInputs, 0.98, 0.949);
+        SetLegend(mLPull[ii]);
+      }
     }
-    mCPull[ii] = new TCanvas(fname, name, 0, 0, 700, 700. * 2. / 3.);
-    mCPull[ii]->cd();
-    gStyle->SetOptFit(1);
 
-    float dy = 1. / 2.;
-    mPPull[ii][3] = new TPad("p0", "", 0.0, dy * 0, 0.5, dy * 1);
-    mPPull[ii][3]->Draw();
-    mPPull[ii][3]->SetRightMargin(0.04);
-    mPPull[ii][4] = new TPad("p1", "", 0.5, dy * 0, 1.0, dy * 1);
-    mPPull[ii][4]->Draw();
-    mPPull[ii][4]->SetRightMargin(0.04);
-    mPPull[ii][0] = new TPad("p2", "", 0.0, dy * 1, 1. / 3., dy * 2 - .001);
-    mPPull[ii][0]->Draw();
-    mPPull[ii][0]->SetRightMargin(0.04);
-    mPPull[ii][0]->SetLeftMargin(0.15);
-    mPPull[ii][1] = new TPad("p3", "", 1. / 3., dy * 1, 2. / 3., dy * 2 - .001);
-    mPPull[ii][1]->Draw();
-    mPPull[ii][1]->SetRightMargin(0.04);
-    mPPull[ii][1]->SetLeftMargin(0.135);
-    mPPull[ii][2] = new TPad("p4", "", 2. / 3., dy * 1, 1.0, dy * 2 - .001);
-    mPPull[ii][2]->Draw();
-    mPPull[ii][2]->SetRightMargin(0.06);
-    mPPull[ii][2]->SetLeftMargin(0.135);
-    if (ii < 6) {
-      mLPull[ii] = new TLegend(0.9 - legendSpacingString * 1.45, 0.93 - (0.93 - 0.86) / 2. * (float)ConfigNumInputs, 0.98, 0.949);
-      SetLegend(mLPull[ii]);
+    // Create Canvas for Cluster Histos
+    for (int i = 0; i < 3; i++) {
+      sprintf(fname, "cclust_%d", i);
+      mCClust[i] = new TCanvas(fname, CLUSTER_TITLES[i], 0, 0, 700, 700. * 2. / 3.);
+      mCClust[i]->cd();
+      mPClust[i] = new TPad("p0", "", 0.0, 0.0, 1.0, 1.0);
+      mPClust[i]->Draw();
+      float y1 = i != 1 ? 0.77 : 0.27, y2 = i != 1 ? 0.9 : 0.42;
+      mLClust[i] = new TLegend(i == 2 ? 0.1 : (0.65 - legendSpacingString * 1.45), y2 - (y2 - y1) * (ConfigNumInputs + (i != 1) / 2.) + 0.005, i == 2 ? (0.3 + legendSpacingString * 1.45) : 0.9, y2);
+      SetLegend(mLClust[i]);
     }
-  }
 
-  // Create Canvas for Cluster Histos
-  for (int i = 0; i < 3; i++) {
-    sprintf(fname, "cclust_%d", i);
-    mCClust[i] = new TCanvas(fname, CLUSTER_TITLES[i], 0, 0, 700, 700. * 2. / 3.);
-    mCClust[i]->cd();
-    mPClust[i] = new TPad("p0", "", 0.0, 0.0, 1.0, 1.0);
-    mPClust[i]->Draw();
-    float y1 = i != 1 ? 0.77 : 0.27, y2 = i != 1 ? 0.9 : 0.42;
-    mLClust[i] = new TLegend(i == 2 ? 0.1 : (0.65 - legendSpacingString * 1.45), y2 - (y2 - y1) * (ConfigNumInputs + (i != 1) / 2.) + 0.005, i == 2 ? (0.3 + legendSpacingString * 1.45) : 0.9, y2);
-    SetLegend(mLClust[i]);
-  }
+    // Create Canvas for other histos
+    {
+      mCTracks = new TCanvas("ctracks", "Track Pt", 0, 0, 700, 700. * 2. / 3.);
+      mCTracks->cd();
+      mPTracks = new TPad("p0", "", 0.0, 0.0, 1.0, 1.0);
+      mPTracks->Draw();
+      mLTracks = new TLegend(0.9 - legendSpacingString * 1.45, 0.93 - (0.93 - 0.86) / 2. * (float)ConfigNumInputs, 0.98, 0.949);
+      SetLegend(mLTracks);
 
-  // Create Canvas for other histos
-  {
-    mCTracks = new TCanvas("ctracks", "Track Pt", 0, 0, 700, 700. * 2. / 3.);
-    mCTracks->cd();
-    mPTracks = new TPad("p0", "", 0.0, 0.0, 1.0, 1.0);
-    mPTracks->Draw();
-    mLTracks = new TLegend(0.9 - legendSpacingString * 1.45, 0.93 - (0.93 - 0.86) / 2. * (float)ConfigNumInputs, 0.98, 0.949);
-    SetLegend(mLTracks);
+      mCNCl = new TCanvas("cncl", "Number of clusters per track", 0, 0, 700, 700. * 2. / 3.);
+      mCNCl->cd();
+      mPNCl = new TPad("p0", "", 0.0, 0.0, 1.0, 1.0);
+      mPNCl->Draw();
+      mLNCl = new TLegend(0.9 - legendSpacingString * 1.45, 0.93 - (0.93 - 0.86) / 2. * (float)ConfigNumInputs, 0.98, 0.949);
+      SetLegend(mLNCl);
+    }
 
-    mCNCl = new TCanvas("cncl", "Number of clusters per track", 0, 0, 700, 700. * 2. / 3.);
-    mCNCl->cd();
-    mPNCl = new TPad("p0", "", 0.0, 0.0, 1.0, 1.0);
-    mPNCl->Draw();
-    mLNCl = new TLegend(0.9 - legendSpacingString * 1.45, 0.93 - (0.93 - 0.86) / 2. * (float)ConfigNumInputs, 0.98, 0.949);
-    SetLegend(mLNCl);
-  }
-
-  if (!mConfig.inputHistogramsOnly) {
-    GPUInfo("QA Stats: Eff: Tracks Prim %d (Eta %d, Pt %d) %f%% (%f%%) Sec %d (Eta %d, Pt %d) %f%% (%f%%) -  Res: Tracks %d (Eta %d, Pt %d)", (int)mEff[3][1][0][0][0]->GetEntries(), (int)mEff[3][1][0][3][0]->GetEntries(), (int)mEff[3][1][0][4][0]->GetEntries(),
-            mEff[0][0][0][0][0]->GetSumOfWeights() / std::max(1., mEff[3][0][0][0][0]->GetSumOfWeights()), mEff[0][1][0][0][0]->GetSumOfWeights() / std::max(1., mEff[3][1][0][0][0]->GetSumOfWeights()), (int)mEff[3][1][1][0][0]->GetEntries(), (int)mEff[3][1][1][3][0]->GetEntries(),
-            (int)mEff[3][1][1][4][0]->GetEntries(), mEff[0][0][1][0][0]->GetSumOfWeights() / std::max(1., mEff[3][0][1][0][0]->GetSumOfWeights()), mEff[0][1][1][0][0]->GetSumOfWeights() / std::max(1., mEff[3][1][1][0][0]->GetSumOfWeights()), (int)mRes2[0][0]->GetEntries(),
-            (int)mRes2[0][3]->GetEntries(), (int)mRes2[0][4]->GetEntries());
+    if (!mConfig.inputHistogramsOnly) {
+      GPUInfo("QA Stats: Eff: Tracks Prim %d (Eta %d, Pt %d) %f%% (%f%%) Sec %d (Eta %d, Pt %d) %f%% (%f%%) -  Res: Tracks %d (Eta %d, Pt %d)", (int)mEff[3][1][0][0][0]->GetEntries(), (int)mEff[3][1][0][3][0]->GetEntries(), (int)mEff[3][1][0][4][0]->GetEntries(),
+              mEff[0][0][0][0][0]->GetSumOfWeights() / std::max(1., mEff[3][0][0][0][0]->GetSumOfWeights()), mEff[0][1][0][0][0]->GetSumOfWeights() / std::max(1., mEff[3][1][0][0][0]->GetSumOfWeights()), (int)mEff[3][1][1][0][0]->GetEntries(), (int)mEff[3][1][1][3][0]->GetEntries(),
+              (int)mEff[3][1][1][4][0]->GetEntries(), mEff[0][0][1][0][0]->GetSumOfWeights() / std::max(1., mEff[3][0][1][0][0]->GetSumOfWeights()), mEff[0][1][1][0][0]->GetSumOfWeights() / std::max(1., mEff[3][1][1][0][0]->GetSumOfWeights()), (int)mRes2[0][0]->GetEntries(),
+              (int)mRes2[0][3]->GetEntries(), (int)mRes2[0][4]->GetEntries());
+    }
   }
 
   // Process / Draw Efficiency Histograms
@@ -1795,6 +1801,9 @@ int GPUQA::DrawQAHistograms()
           e->SetLineColor(mColorNums[(l == 2 ? (ConfigNumInputs * 2 + k) : (k * 2 + l)) % COLORCOUNT]);
           e->SetLineStyle(CONFIG_DASHED_MARKERS ? k + 1 : 1);
           SetAxisSize(e);
+          if (mRunForQC) {
+            continue;
+          }
           e->Draw(k || l ? "same" : "");
           if (j == 0) {
             GetName(fname, k);
@@ -1805,10 +1814,17 @@ int GPUQA::DrawQAHistograms()
             mPEff[ii][j]->SetLogx();
           }
         }
+        if (mRunForQC) {
+          continue;
+        }
         mCEff[ii]->cd();
         ChangePadTitleSize(mPEff[ii][j], 0.056);
       }
     }
+    if (mRunForQC) {
+      continue;
+    }
+
     mLEff[ii]->Draw();
 
     doPerfFigure(0.2, 0.295, 0.025);
@@ -1834,8 +1850,9 @@ int GPUQA::DrawQAHistograms()
         TPad* pad = p ? mPPull[ii][j] : mPRes[ii][j];
 
         if (!mConfig.inputHistogramsOnly && ii != 5) {
-          TCanvas cfit;
-          cfit.cd();
+          if (!mRunForQC) {
+            cfit.cd();
+          }
 
           TAxis* axis = src->GetYaxis();
           int nBins = axis->GetNbins();
@@ -1920,8 +1937,9 @@ int GPUQA::DrawQAHistograms()
           dstIntegral->SetName(fname);
           dstIntegral->SetTitle(name);
         }
-        pad->cd();
-
+        if (!mRunForQC) {
+          pad->cd();
+        }
         int numColor = 0;
         float tmpMax = -1000.;
         float tmpMin = 1000.;
@@ -1999,6 +2017,10 @@ int GPUQA::DrawQAHistograms()
             } else if (j < 3) {
               e->GetYaxis()->SetTitleOffset(1.4);
             }
+            if (mRunForQC) {
+              continue;
+            }
+
             e->Draw(k || l ? "same" : "");
             if (j == 0) {
               GetName(fname, k);
@@ -2011,6 +2033,10 @@ int GPUQA::DrawQAHistograms()
             }
           }
         }
+        if (mRunForQC) {
+          continue;
+        }
+
         if (ii == 5) {
           pad->SetLogx();
         }
@@ -2019,6 +2045,10 @@ int GPUQA::DrawQAHistograms()
           ChangePadTitleSize(pad, 0.056);
         }
       }
+      if (mRunForQC) {
+        continue;
+      }
+
       leg->Draw();
 
       doPerfFigure(0.2, 0.295, 0.025);
@@ -2068,10 +2098,18 @@ int GPUQA::DrawQAHistograms()
         if (tout && !mConfig.inputHistogramsOnly && k == 0) {
           e->Write();
         }
+        if (mRunForQC) {
+          continue;
+        }
+
         e->Draw(k == 0 ? "" : "same");
       }
       can->cd();
     }
+    if (mRunForQC) {
+      continue;
+    }
+
     can->Print(p ? "plots/pull_integral.pdf" : "plots/res_integral.pdf");
     if (mConfig.writeRootFiles) {
       can->Print(p ? "plots/pull_integral.root" : "plots/res_integral.root");
@@ -2111,7 +2149,7 @@ int GPUQA::DrawQAHistograms()
       if (!mcAvail) {
         counts[N_CLS_HIST - 1] = mClusterCounts.nTotal;
       }
-      if (counts[N_CLS_HIST - 1]) {
+      if (counts[N_CLS_HIST - 1] && !mRunForQC) {
         if (mcAvail) {
           for (int i = 0; i < N_CLS_HIST; i++) {
             printf("\t%35s: %'12llu (%6.2f%%)\n", CLUSTER_NAMES[i], counts[i], 100.f * counts[i] / counts[N_CLS_HIST - 1]);
@@ -2220,6 +2258,10 @@ int GPUQA::DrawQAHistograms()
           if (i == 0) {
             e->GetXaxis()->SetRange(2, AXIS_BINS[4]);
           }
+          if (mRunForQC) {
+            continue;
+          }
+
           e->Draw(j == end - 1 && k == 0 ? "" : "same");
           GetName(fname, k);
           sprintf(name, "%s%s", fname, CLUSTER_NAMES[j - begin]);
@@ -2230,9 +2272,17 @@ int GPUQA::DrawQAHistograms()
         TH1* e = reinterpret_cast<TH1F*>(mClusters[begin + CL_att_adj]->Clone());
         e->Add(mClusters[begin + CL_prot], -1);
         e->SetLineColor(mColorNums[numColor++ % COLORCOUNT]);
+        if (mRunForQC) {
+          continue;
+        }
+
         e->Draw("same");
         mLClust[i]->AddEntry(e, "Removed", "l");
       }
+      if (mRunForQC) {
+        continue;
+      }
+
       mLClust[i]->Draw();
 
       doPerfFigure(i != 2 ? 0.37 : 0.6, 0.295, 0.030);
@@ -2246,7 +2296,7 @@ int GPUQA::DrawQAHistograms()
   }
 
   // Process track histograms
-  {
+  if (!mRunForQC) {
     float tmpMax = 0.;
     for (int k = 0; k < ConfigNumInputs; k++) {
       TH1F* e = mTracks;

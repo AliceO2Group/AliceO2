@@ -84,12 +84,12 @@ namespace GPUCA_NAMESPACE::gpu
 extern GPUSettingsStandalone configStandalone;
 }
 #endif
-static const GPUSettingsDisplay& GPUDisplay_GetConfig(GPUChainTracking* rec)
+static const GPUSettingsDisplay& GPUDisplay_GetConfig(GPUChainTracking* chain)
 {
 #if !defined(GPUCA_STANDALONE)
   static GPUSettingsDisplay defaultConfig;
-  if (rec->mConfigDisplay) {
-    return *((const GPUSettingsDisplay*)rec->mConfigDisplay);
+  if (chain->mConfigDisplay) {
+    return *((const GPUSettingsDisplay*)chain->mConfigDisplay);
   } else {
     return defaultConfig;
   }
@@ -99,7 +99,7 @@ static const GPUSettingsDisplay& GPUDisplay_GetConfig(GPUChainTracking* rec)
 #endif
 }
 
-GPUDisplay::GPUDisplay(GPUDisplayBackend* backend, GPUChainTracking* rec, GPUQA* qa) : mBackend(backend), mChain(rec), mConfig(GPUDisplay_GetConfig(rec)), mQA(qa), mMerger(rec->GetTPCMerger()) { backend->mDisplay = this; }
+GPUDisplay::GPUDisplay(GPUDisplayBackend* backend, GPUChainTracking* chain, GPUQA* qa) : mBackend(backend), mChain(chain), mConfig(GPUDisplay_GetConfig(chain)), mQA(qa), mMerger(chain->GetTPCMerger()) { backend->mDisplay = this; }
 
 const GPUParam& GPUDisplay::param() { return mChain->GetParam(); }
 const GPUTPCTracker& GPUDisplay::sliceTracker(int iSlice) { return mChain->GetTPCSliceTrackers()[iSlice]; }
