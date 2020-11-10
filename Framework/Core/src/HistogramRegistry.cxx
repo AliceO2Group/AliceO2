@@ -46,7 +46,7 @@ uint32_t HistogramRegistry::getHistIndex(const HistName& histName)
       return imask(j + i);
     }
   }
-  throw runtime_error_f("Could not find histogram \"%s\" in HistogramRegistry \"%s\"!", histName.name, mName.data());
+  throw runtime_error_f(R"(Could not find histogram "%s" in HistogramRegistry "%s"!)", histName.name, mName.data());
 }
 
 // create histogram from specification and insert it into the registry
@@ -64,7 +64,7 @@ void HistogramRegistry::insert(const HistogramSpec& histSpec)
       return;
     }
   }
-  LOGF(FATAL, "Internal array of HistogramRegistry %s is full.", mName);
+  LOGF(FATAL, R"(Internal array of HistogramRegistry "%s" is full.)", mName);
 }
 
 void HistogramRegistry::add(const HistogramSpec& histSpec)
@@ -322,18 +322,18 @@ void HistogramRegistry::registerName(const std::string& name)
   int depth = path.size();
   for (auto& step : path) {
     if (step.empty()) {
-      LOGF(FATAL, "Found empty group name in path for histogram %s.", name);
+      LOGF(FATAL, R"(Found empty group name in path for histogram "%s".)", name);
     }
     cumulativeName += step;
     for (auto& curName : mRegisteredNames) {
       // there is already a histogram where we want to put a folder or histogram
       if (cumulativeName == curName) {
-        LOGF(FATAL, "Histogram name %s is not compatible with existing names.", name);
+        LOGF(FATAL, R"(Histogram name "%s" is not compatible with existing names.)", name);
       }
       // for the full new histogram name we need to check that none of the existing histograms already uses this as a group name
       if (depth == 1) {
         if (curName.rfind(cumulativeName, 0) == 0 && curName.size() > cumulativeName.size() && curName.at(cumulativeName.size()) == '/') {
-          LOGF(FATAL, "Histogram name %s is not compatible with existing names.", name);
+          LOGF(FATAL, R"(Histogram name "%s" is not compatible with existing names.)", name);
         }
       }
     }

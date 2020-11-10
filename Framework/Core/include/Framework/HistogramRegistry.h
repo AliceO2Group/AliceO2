@@ -530,7 +530,7 @@ class HistogramRegistry
     if (auto histPtr = std::get_if<std::shared_ptr<T>>(&mRegistryValue[getHistIndex(histName)]))
       return *histPtr;
     else
-      throw runtime_error_f("Histogram type specified in get<>(\"%s\") does not match the actual type of the histogram!", histName.name);
+      throw runtime_error_f(R"(Histogram type specified in get<>("%s") does not match the actual type of the histogram!)", histName.name);
   }
 
   /// @return the histogram registered with name @a name
