@@ -60,6 +60,7 @@ enum struct OutputType { Digits,
                          DisableWriter,
                          SendClustersPerSector,
                          ZSRaw,
+                         QA,
 };
 
 using CompletionPolicyData = std::vector<framework::InputSpec>;

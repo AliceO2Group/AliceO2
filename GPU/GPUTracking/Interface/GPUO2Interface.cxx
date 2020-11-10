@@ -18,6 +18,7 @@
 #include "GPUOutputControl.h"
 #include "GPUO2InterfaceConfiguration.h"
 #include "GPUParam.inc"
+#include "GPUQA.h"
 #include <iostream>
 #include <fstream>
 #ifdef WITH_OPENMP
@@ -158,6 +159,11 @@ int GPUTPCO2Interface::RunTracking(GPUTrackingInOutPointers* data, GPUInterfaceO
     outputs->compressedClusters.size = mOutputCompressedClusters->EndOfSpace ? 0 : mChain->mIOPtrs.tpcCompressedClusters->totalDataSize;
     outputs->clustersNative.size = mOutputClustersNative->EndOfSpace ? 0 : (mChain->mIOPtrs.clustersNative->nClustersTotal * sizeof(*mChain->mIOPtrs.clustersNative->clustersLinear));
     outputs->tpcTracks.size = mOutputCompressedClusters->EndOfSpace ? 0 : (size_t)((char*)mOutputCompressedClusters->OutputPtr - (char*)mOutputCompressedClusters->OutputBase);
+  }
+  if (mConfig->configQA.forQC) {
+    outputs->qa.hist1 = &mChain->GetQA()->getHistograms1D();
+    outputs->qa.hist2 = &mChain->GetQA()->getHistograms2D();
+    outputs->qa.hist3 = &mChain->GetQA()->getHistograms1Dd();
   }
   *data = mChain->mIOPtrs;
 

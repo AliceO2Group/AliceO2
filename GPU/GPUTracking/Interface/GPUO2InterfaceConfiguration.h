@@ -34,6 +34,10 @@
 #include "GPUHostDataTypes.h"
 #include "DataFormatsTPC/Constants.h"
 
+class TH1F;
+class TH1D;
+class TH2F;
+
 namespace o2
 {
 namespace tpc
@@ -57,11 +61,18 @@ struct GPUInterfaceOutputRegion {
   std::function<void*(size_t)> allocator = nullptr;
 };
 
+struct GPUInterfaceQAOutputs {
+  const std::vector<TH1F>* hist1;
+  const std::vector<TH2F>* hist2;
+  const std::vector<TH1D>* hist3;
+};
+
 struct GPUInterfaceOutputs {
   GPUInterfaceOutputRegion compressedClusters;
   GPUInterfaceOutputRegion clustersNative;
   GPUInterfaceOutputRegion tpcTracks;
   GPUInterfaceOutputRegion clusterLabels;
+  GPUInterfaceQAOutputs qa;
 };
 
 // Full configuration structure with all available settings of GPU...
