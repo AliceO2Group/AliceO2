@@ -159,8 +159,7 @@ void TRDGlobalTracking::run(ProcessingContext& pc)
   mTracker->DoTracking(mChainTracking);
   mTracker->DumpTracks();
 
-  std::vector<GPUTRDTrack> tracksOut;
-  //tracksOut.resize(mTracker->NTracks());
+  std::vector<GPUTRDTrack> tracksOut(mTracker->NTracks());
   std::copy(mTracker->Tracks(), mTracker->Tracks() + mTracker->NTracks(), tracksOut.begin());
   pc.outputs().snapshot(Output{o2::header::gDataOriginTRD, "MATCHTRD", 0, Lifetime::Timeframe}, tracksOut);
 
