@@ -12,12 +12,19 @@
 #define O2_ANALYSIS_PAIRCUTS_H
 
 #include <cmath>
+
 #include <TH2F.h>
 #include <TH3F.h>
+
+#include "Framework/Logger.h"
+#include "Framework/HistogramRegistry.h"
 
 // Functions which cut on particle pairs (decays, conversions, two-track cuts)
 //
 // Author: Jan Fiete Grosse-Oetringhaus
+
+using namespace o2;
+using namespace o2::framework;
 
 class PairCuts
 {
@@ -29,22 +36,26 @@ class PairCuts
                   Rho,
                   ParticlesLastEntry };
 
+  void SetHistogramRegistry(HistogramRegistry* registry) { histogramRegistry = registry; }
+
   void SetPairCut(Particle particle, float cut)
   {
+    LOGF(info, "Enabled pair cut for %d with value %f", static_cast<int>(particle), cut);
     mCuts[particle] = cut;
-    if (mControlConvResoncances == nullptr) {
-      mControlConvResoncances = new TH2F("ControlConvResoncances", ";id;delta mass", 6, -0.5, 5.5, 500, -0.5, 0.5);
+    if (histogramRegistry != nullptr && histogramRegistry->contains("ControlConvResonances") == false) {
+      histogramRegistry->add("ControlConvResonances", "", {HistType::kTH2F, {{6, -0.5, 5.5, "id"}, {500, -0.5, 0.5, "delta mass"}}});
     }
   }
 
   void SetTwoTrackCuts(float distance = 0.02f, float radius = 0.8f)
   {
+    LOGF(info, "Enabled two-track cut with distance %f and radius %f", distance, radius);
     mTwoTrackDistance = distance;
     mTwoTrackRadius = radius;
 
-    if (mTwoTrackDistancePt[0] == nullptr) {
-      mTwoTrackDistancePt[0] = new TH3F("TwoTrackDistancePt[0]", ";#Delta#eta;#Delta#varphi^{*}_{min};#Delta p_{T}", 100, -0.15, 0.15, 100, -0.05, 0.05, 20, 0, 10);
-      mTwoTrackDistancePt[1] = (TH3F*)mTwoTrackDistancePt[0]->Clone("TwoTrackDistancePt[1]");
+    if (histogramRegistry != nullptr && histogramRegistry->contains("TwoTrackDistancePt_0") == false) {
+      histogramRegistry->add("TwoTrackDistancePt_0", "", {HistType::kTH3F, {{100, -0.15, 0.15, "#Delta#eta"}, {100, -0.05, 0.05, "#Delta#varphi^{*}_{min}"}, {20, 0, 10, "#Delta p_{T}"}}});
+      histogramRegistry->addClone("TwoTrackDistancePt_0", "TwoTrackDistancePt_1");
     }
   }
 
@@ -59,8 +70,7 @@ class PairCuts
   float mTwoTrackDistance = -1; // distance below which the pair is flagged as to be removed
   float mTwoTrackRadius = 0.8f; // radius at which the two track cuts are applied
 
-  TH2F* mControlConvResoncances = nullptr;  // control histograms for cuts on conversions and resonances
-  TH3F* mTwoTrackDistancePt[2] = {nullptr}; // control histograms for two-track efficiency study: dphi*_min vs deta (0 = before cut, 1 = after cut)
+  HistogramRegistry* histogramRegistry = nullptr; // if set, control histograms are stored here
 
   template <typename T>
   bool conversionCut(T const& track1, T const& track2, Particle conv, double cut);
@@ -132,14 +142,18 @@ bool PairCuts::twoTrackCut(T const& track1, T const& track2, int bSign)
         }
       }
 
-      mTwoTrackDistancePt[0]->Fill(deta, dphistarmin, TMath::Abs(track1.pt() - track2.pt()));
+      if (histogramRegistry != nullptr) {
+        histogramRegistry->fill("TwoTrackDistancePt_0", deta, dphistarmin, TMath::Abs(track1.pt() - track2.pt()));
+      }
 
       if (dphistarminabs < mTwoTrackDistance && TMath::Abs(deta) < mTwoTrackDistance) {
         //LOGF(debug, "Removed track pair %ld %ld with %f %f %f %f %d %f %f %d %d", track1.index(), track2.index(), deta, dphistarminabs, track1.phi2(), track1.pt(), track1.charge(), track2.phi2(), track2.pt(), track2.charge(), bSign);
         return true;
       }
 
-      mTwoTrackDistancePt[1]->Fill(deta, dphistarmin, TMath::Abs(track1.pt() - track2.pt()));
+      if (histogramRegistry != nullptr) {
+        histogramRegistry->fill("TwoTrackDistancePt_1", deta, dphistarmin, TMath::Abs(track1.pt() - track2.pt()));
+      }
     }
   }
 
@@ -196,7 +210,11 @@ bool PairCuts::conversionCut(T const& track1, T const& track2, Particle conv, do
   }
 
   massC = getInvMassSquared(track1, massD1, track2, massD2);
-  mControlConvResoncances->Fill(static_cast<int>(conv), massC - massM * massM);
+
+  if (histogramRegistry != nullptr) {
+    histogramRegistry->fill("ControlConvResonances", static_cast<int>(conv), massC - massM * massM);
+  }
+
   if (massC > (massM - cut) * (massM - cut) && massC < (massM + cut) * (massM + cut)) {
     return true;
   }
@@ -268,20 +286,20 @@ double PairCuts::getInvMassSquaredFast(T const& track1, double m0_1, T const& tr
 
   // fold onto 0...pi
   float deltaPhi = TMath::Abs(phi1 - phi2);
-  while (deltaPhi > TMath::TwoPi()) {
-    deltaPhi -= TMath::TwoPi();
+  while (deltaPhi > M_PI * 2) {
+    deltaPhi -= M_PI * 2;
   }
-  if (deltaPhi > TMath::Pi()) {
-    deltaPhi = TMath::TwoPi() - deltaPhi;
+  if (deltaPhi > M_PI) {
+    deltaPhi = M_PI * 2 - deltaPhi;
   }
 
   float cosDeltaPhi = 0;
-  if (deltaPhi < TMath::Pi() / 3) {
+  if (deltaPhi < M_PI / 3) {
     cosDeltaPhi = 1.0 - deltaPhi * deltaPhi / 2 + deltaPhi * deltaPhi * deltaPhi * deltaPhi / 24;
-  } else if (deltaPhi < 2 * TMath::Pi() / 3) {
-    cosDeltaPhi = -(deltaPhi - TMath::Pi() / 2) + 1.0 / 6 * TMath::Power((deltaPhi - TMath::Pi() / 2), 3);
+  } else if (deltaPhi < 2 * M_PI / 3) {
+    cosDeltaPhi = -(deltaPhi - M_PI / 2) + 1.0 / 6 * TMath::Power((deltaPhi - M_PI / 2), 3);
   } else {
-    cosDeltaPhi = -1.0 + 1.0 / 2.0 * (deltaPhi - TMath::Pi()) * (deltaPhi - TMath::Pi()) - 1.0 / 24.0 * TMath::Power(deltaPhi - TMath::Pi(), 4);
+    cosDeltaPhi = -1.0 + 1.0 / 2.0 * (deltaPhi - M_PI) * (deltaPhi - M_PI) - 1.0 / 24.0 * TMath::Power(deltaPhi - M_PI, 4);
   }
 
   double mass2 = m0_1 * m0_1 + m0_2 * m0_2 + 2 * (TMath::Sqrt(e1squ * e2squ) - (pt1 * pt2 * (cosDeltaPhi + 1.0 / tantheta1 / tantheta2)));
