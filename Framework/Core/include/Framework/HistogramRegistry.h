@@ -487,13 +487,11 @@ struct HistFiller {
 struct HistName {
   constexpr HistName(char const* const name_)
     : name(name_),
-      id(compile_time_hash(name_)),
-      isconstexpr(__builtin_is_constant_evaluated())
+      id(compile_time_hash(name_))
   {
   }
   char const* const name{};
   const uint32_t id{};
-  const bool isconstexpr{};
 };
 
 //**************************************************************************************************
@@ -566,7 +564,6 @@ class HistogramRegistry
   template <typename... Ts>
   void fill(const HistName& histName, Ts&&... positionAndWeight)
   {
-    //if(!histName.isconstexpr) LOGF(INFO, "HistName %s is not constexpr and will be hasehd at runtime!", histName.name);
     std::visit([&positionAndWeight...](auto&& hist) { HistFiller::fillHistAny(hist, std::forward<Ts>(positionAndWeight)...); }, mRegistryValue[getHistIndex(histName)]);
   }
 
@@ -574,7 +571,6 @@ class HistogramRegistry
   template <typename... Cs, typename T>
   void fill(const HistName& histName, const T& table, const o2::framework::expressions::Filter& filter)
   {
-    //if(!histName.isconstexpr) LOGF(INFO, "HistName %s is not constexpr and will be hasehd at runtime!", histName.name);
     std::visit([&table, &filter](auto&& hist) { HistFiller::fillHistAny<Cs...>(hist, table, filter); }, mRegistryValue[getHistIndex(histName)]);
   }
 
