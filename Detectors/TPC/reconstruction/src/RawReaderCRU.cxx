@@ -842,6 +842,49 @@ void RawReaderCRU::copyEvents(const std::vector<uint32_t>& eventNumbers, std::st
     }
   }
 }
+
+void RawReaderCRU::writeGBTDataPerLink(std::string_view outputDirectory, int maxEvents)
+{
+  // open the input file
+  std::ifstream& file = mFileHandle;
+  if (!file.is_open()) {
+    file.open(mInputFileName, std::ifstream::binary);
+    if (!file.good()) {
+      throw std::runtime_error("Unable to open or access file " + mInputFileName);
+    }
+  }
+
+  // data buffer. Maximum size is 8k
+  char buffer[8192];
+
+  // loop over events
+  for (int eventNumber = 0; eventNumber < getNumberOfEvents(); ++eventNumber) {
+    if ((maxEvents > -1) && (eventNumber > maxEvents)) {
+      break;
+    }
+
+    const auto& linkInfoArray = mManager->mEventSync.getLinkInfoArrayForEvent(eventNumber, mCRU);
+
+    for (int iLink = 0; iLink < MaxNumberOfLinks; ++iLink) {
+      const auto& linkInfo = linkInfoArray[iLink];
+      if (!linkInfo.IsPresent) {
+        continue;
+      }
+
+      const int ep = iLink >= 12;
+      const int link = iLink - (ep)*12;
+      auto outputFileName = fmt::format("{}/CRU_{:02}_EP_{}_Link_{:02}", outputDirectory.data(), mCRU, ep, link);
+      std::ofstream outputFile(outputFileName, std::ios_base::binary);
+
+      for (auto packetNumber : linkInfo.PacketPositions) {
+        const auto& packet = mPacketDescriptorMaps[iLink][packetNumber];
+        file.seekg(packet.getPayloadOffset(), file.beg);
+        file.read(buffer, packet.getPayloadSize());
+        outputFile.write(buffer, packet.getPayloadSize());
+      }
+    }
+  }
+}
 //==============================================================================
 //===| stream overloads for helper classes |====================================
 //
@@ -1056,6 +1099,32 @@ void RawReaderCRUManager::copyEvents(const std::string_view inputFileNames, cons
   RawReaderCRUManager manager;
   manager.setupReaders(inputFileNames);
   manager.copyEvents(eventNumbers, outputDirectory, mode);
+}
+
+void RawReaderCRUManager::writeGBTDataPerLink(std::string_view outputDirectory, int maxEvents)
+{
+  init();
+  const auto& cruSeen = mEventSync.getCRUSeen();
+
+  for (size_t iCRU = 0; iCRU < cruSeen.size(); ++iCRU) {
+    const auto readerNumber = cruSeen[iCRU];
+    if (readerNumber >= 0) {
+      auto& reader = mRawReadersCRU[readerNumber];
+      reader->forceCRU(iCRU);
+      reader->writeGBTDataPerLink(outputDirectory, maxEvents);
+    }
+  }
+}
+
+void RawReaderCRUManager::writeGBTDataPerLink(const std::string_view inputFileNames, std::string_view outputDirectory, int maxEvents)
+{
+  if (gSystem->AccessPathName(outputDirectory.data())) {
+    gSystem->mkdir(outputDirectory.data(), kTRUE);
+  }
+
+  RawReaderCRUManager manager;
+  manager.setupReaders(inputFileNames);
+  manager.writeGBTDataPerLink(outputDirectory, maxEvents);
 }
 
 void RawReaderCRUManager::processEvent(uint32_t eventNumber, EndReaderCallback endReader)

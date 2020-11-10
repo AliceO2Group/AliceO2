@@ -629,6 +629,9 @@ class RawReaderCRU
   /// copy single events to another file
   void copyEvents(const std::vector<uint32_t>& eventNumbers, std::string outputDirectory, std::ios_base::openmode mode = std::ios_base::openmode(0));
 
+  /// write GBT data into separate files per link
+  void writeGBTDataPerLink(std::string_view outputDirectory, int maxEvents = -1);
+
   /// run a data filling callback function
   void runADCDataCallback(const ADCRawData& rawData);
 
@@ -764,10 +767,10 @@ inline void GBTFrame::updateSyncCheck(SyncArray& syncArray)
       // shift in a 1 if the halfword is 0x15
       if (mFrameHalfWords[s][hPos] == 0x15) {
         mSyncCheckRegister[s] = (mSyncCheckRegister[s] << 1) | 1;
-      // shift in a 0 if the halfword is 0xA
+        // shift in a 0 if the halfword is 0xA
       } else if (mFrameHalfWords[s][hPos] == 0xA) {
         mSyncCheckRegister[s] = (mSyncCheckRegister[s] << 1);
-      // otherwise reset the register to 0
+        // otherwise reset the register to 0
       } else {
         mSyncCheckRegister[s] = 0;
       }
@@ -792,10 +795,10 @@ inline void GBTFrame::updateSyncCheck(bool verbose)
       // shift in a 1 if the halfword is 0x15
       if (mFrameHalfWords[s][hPos] == 0x15) {
         mSyncCheckRegister[s] = (mSyncCheckRegister[s] << 1) | 1;
-      // shift in a 0 if the halfword is 0xA
+        // shift in a 0 if the halfword is 0xA
       } else if (mFrameHalfWords[s][hPos] == 0xA) {
         mSyncCheckRegister[s] = (mSyncCheckRegister[s] << 1);
-      // otherwise reset the register to 0
+        // otherwise reset the register to 0
       } else {
         mSyncCheckRegister[s] = 0;
       }
@@ -967,6 +970,12 @@ class RawReaderCRUManager
 
   /// copy single events from raw input files to another file
   static void copyEvents(const std::string_view inputFileNames, const std::vector<uint32_t> eventNumbers, std::string_view outputDirectory, std::ios_base::openmode mode = std::ios_base::openmode(0));
+
+  /// copy single events from raw input files to another file
+  void writeGBTDataPerLink(std::string_view outputDirectory, int maxEvents = -1);
+
+  /// copy single events from raw input files to another file
+  static void writeGBTDataPerLink(const std::string_view inputFileNames, std::string_view outputDirectory, int maxEvents = -1);
 
   /// set a callback function
   void setADCDataCallback(ADCDataCallback function) { mADCDataCallback = function; }
