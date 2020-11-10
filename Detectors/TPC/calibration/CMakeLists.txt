@@ -36,11 +36,6 @@ o2_target_root_dictionary(TPCCalibration
                                   include/TPCCalibration/CalibPadGainTracks.h
                                   include/TPCCalibration/FastHisto.h)
 
-o2_add_executable(calib-pedestal
-                  COMPONENT_NAME tpc
-                  SOURCES run/calib-pedestal.cxx
-                  PUBLIC_LINK_LIBRARIES O2::TPCCalibration O2::Framework O2::DPLUtils)
-
 o2_add_test_root_macro(macro/comparePedestalsAndNoise.C
                        PUBLIC_LINK_LIBRARIES O2::TPCBase
                        LABELS tpc)

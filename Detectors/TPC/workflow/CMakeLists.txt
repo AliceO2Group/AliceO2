@@ -38,6 +38,12 @@ o2_add_executable(raw-to-digits-workflow
                   SOURCES src/tpc-raw-to-digits-workflow.cxx
                   PUBLIC_LINK_LIBRARIES O2::TPCWorkflow)
 
+o2_add_executable(calib-pedestal
+                  COMPONENT_NAME tpc
+                  SOURCES src/tpc-calib-pedestal.cxx
+                  PUBLIC_LINK_LIBRARIES O2::TPCWorkflow
+                                        O2::DetectorsCalibration)
+
 o2_add_test(workflow
             COMPONENT_NAME tpc
             LABELS tpc workflow
