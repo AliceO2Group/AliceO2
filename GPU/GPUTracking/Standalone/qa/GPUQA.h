@@ -38,7 +38,7 @@ class GPUChainTracking;
 class GPUQA
 {
  public:
-  GPUQA(GPUChainTracking* rec) {}
+  GPUQA(GPUChainTracking* chain) {}
   ~GPUQA() = default;
 
   int InitQA() { return 1; }
@@ -82,7 +82,7 @@ class GPUQA
 {
  public:
   GPUQA();
-  GPUQA(GPUChainTracking* rec);
+  GPUQA(GPUChainTracking* chain);
   ~GPUQA();
 
   int InitQA();
@@ -97,9 +97,9 @@ class GPUQA
   static bool QAAvailable() { return true; }
   bool IsInitialized() { return mQAInitialized; }
 
-  const std::vector<TH1F>& getHistograms1D() const { return mHist1D; }
-  const std::vector<TH2F>& getHistograms2D() const { return mHist2D; }
-  const std::vector<TH1D>& getHistograms1Dd() const { return mHist1Dd; }
+  const std::vector<TH1F>& getHistograms1D() const { return *mHist1D; }
+  const std::vector<TH2F>& getHistograms2D() const { return *mHist2D; }
+  const std::vector<TH1D>& getHistograms1Dd() const { return *mHist1Dd; }
 
   static constexpr int N_CLS_HIST = 8;
   static constexpr int N_CLS_TYPE = 3;
@@ -182,6 +182,7 @@ class GPUQA
 
   GPUChainTracking* mTracking;
   const GPUSettingsQA& mConfig;
+  bool mRunForQC;
 
   const char* str_perf_figure_1 = "ALICE Performance 2018/03/20";
   // const char* str_perf_figure_2 = "2015, MC pp, #sqrt{s} = 5.02 TeV";
@@ -268,7 +269,7 @@ class GPUQA
   std::vector<std::vector<bool>> mGoodTracks;
   std::vector<std::vector<bool>> mGoodHits;
 
-  Color_t* mColorNums;
+  std::vector<Color_t> mColorNums;
 
   int mMCTrackMin = -1, mMCTrackMax = -1;
 };
