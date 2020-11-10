@@ -516,7 +516,7 @@ int GPUQA::InitQA()
   mHist1D = new std::vector<TH1F>;
   mHist2D = new std::vector<TH2F>;
   mHist1Dd = new std::vector<TH1D>;
-  
+
   mColorNums.resize(COLORCOUNT);
   mColors.reserve(COLORCOUNT);
   for (int i = 0; i < COLORCOUNT; i++) {

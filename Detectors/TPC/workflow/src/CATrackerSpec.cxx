@@ -42,6 +42,7 @@
 #include "DetectorsRaw/HBFUtils.h"
 #include "TPCBase/RDHUtils.h"
 #include "GPUO2InterfaceConfiguration.h"
+#include "GPUO2InterfaceQA.h"
 #include "TPCCFCalibration.h"
 #include "GPUDisplayBackend.h"
 #ifdef GPUCA_BUILD_EVENT_DISPLAY
@@ -100,6 +101,8 @@ DataProcessorSpec getCATrackerSpec(CompletionPolicyData* policyData, ca::Config 
     std::unique_ptr<TPCFastTransform> fastTransform;
     std::unique_ptr<TPCdEdxCalibrationSplines> dEdxSplines;
     std::unique_ptr<TPCCFCalibration> tpcCalibration;
+    std::unique_ptr<GPUSettingsQA> qaConfig;
+    std::unique_ptr<GPUO2InterfaceQA> qa;
     std::vector<int> clusterOutputIds;
     unsigned long outputBufferSize = 0;
     unsigned long tpcSectorMask = 0;
@@ -241,6 +244,10 @@ DataProcessorSpec getCATrackerSpec(CompletionPolicyData* policyData, ca::Config 
       // Configuration is prepared, initialize the tracker.
       if (tracker->initialize(config) != 0) {
         throw std::invalid_argument("GPUCATracking initialization failed");
+      }
+      if (specconfig.outputQA) {
+        processAttributes->qaConfig.reset(new GPUSettingsQA(config.configQA));
+        processAttributes->qa = std::make_unique<GPUO2InterfaceQA>(processAttributes->qaConfig.get());
       }
       timer.Stop();
       timer.Reset();
@@ -701,15 +708,10 @@ DataProcessorSpec getCATrackerSpec(CompletionPolicyData* policyData, ca::Config 
       }
       if (specconfig.outputQA) {
         TObjArray out;
-        for (unsigned int i = 0; i < outputRegions.qa.hist1->size(); i++) {
-          out.Add((TObject*)&(*outputRegions.qa.hist1)[i]); // FIXME: Fundamentally broken, we cannot add the const object, but QC doesn't accept the std::vector
-        }
-        for (unsigned int i = 0; i < outputRegions.qa.hist2->size(); i++) {
-          out.Add((TObject*)&(*outputRegions.qa.hist2)[i]);
-        }
-        for (unsigned int i = 0; i < outputRegions.qa.hist3->size(); i++) {
-          out.Add((TObject*)&(*outputRegions.qa.hist3)[i]);
-        }
+        std::vector<TH1F> copy1 = *outputRegions.qa.hist1; // Internally, this will also be used as output, so we need a non-const copy
+        std::vector<TH2F> copy2 = *outputRegions.qa.hist2;
+        std::vector<TH1D> copy3 = *outputRegions.qa.hist3;
+        processAttributes->qa->postprocess(copy1, copy2, copy3, out);
         pc.outputs().snapshot({gDataOriginTPC, "TRACKINGQA", 0, Lifetime::Timeframe}, out);
       }
       timer.Stop();
