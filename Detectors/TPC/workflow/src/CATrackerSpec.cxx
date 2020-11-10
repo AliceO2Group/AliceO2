@@ -65,6 +65,10 @@
 #include "GPUReconstructionConvert.h"
 #include "DetectorsRaw/RDHUtils.h"
 #include <TStopwatch.h>
+#include <TObjArray.h>
+#include <TH1F.h>
+#include <TH2F.h>
+#include <TH1D.h>
 
 using namespace o2::framework;
 using namespace o2::header;
@@ -154,6 +158,12 @@ DataProcessorSpec getCATrackerSpec(CompletionPolicyData* policyData, ca::Config 
         LOG(INFO) << "GPU device number selected from pipeline id: " << myId << " / " << idMax;
       }
       config.configProcessing.runMC = specconfig.processMC;
+      if (specconfig.outputQA) {
+        if (!config.configProcessing.runQA) {
+          config.configQA.forQC = true;
+        }
+        config.configProcessing.runQA = true;
+      }
       config.configReconstruction.NWaysOuter = true;
       config.configInterface.outputToExternalBuffers = true;
 
@@ -689,6 +699,19 @@ DataProcessorSpec getCATrackerSpec(CompletionPolicyData* policyData, ca::Config 
           }
         }
       }
+      if (specconfig.outputQA) {
+        TObjArray out;
+        for (unsigned int i = 0; i < outputRegions.qa.hist1->size(); i++) {
+          out.Add((TObject*)&(*outputRegions.qa.hist1)[i]); // FIXME: Fundamentally broken, we cannot add the const object, but QC doesn't accept the std::vector
+        }
+        for (unsigned int i = 0; i < outputRegions.qa.hist2->size(); i++) {
+          out.Add((TObject*)&(*outputRegions.qa.hist2)[i]);
+        }
+        for (unsigned int i = 0; i < outputRegions.qa.hist3->size(); i++) {
+          out.Add((TObject*)&(*outputRegions.qa.hist3)[i]);
+        }
+        pc.outputs().snapshot({gDataOriginTPC, "TRACKINGQA", 0, Lifetime::Timeframe}, out);
+      }
       timer.Stop();
       LOG(INFO) << "TPC CATracker time for this TF " << timer.CpuTime() - cput << " s";
     };
@@ -788,6 +811,9 @@ DataProcessorSpec getCATrackerSpec(CompletionPolicyData* policyData, ca::Config 
           outputSpecs.emplace_back(gDataOriginTPC, "CLNATIVEMCLBL", NSectors, Lifetime::Timeframe);
         }
       }
+    }
+    if (specconfig.outputQA) {
+      outputSpecs.emplace_back(gDataOriginTPC, "TRACKINGQA", 0, Lifetime::Timeframe);
     }
     return std::move(outputSpecs);
   };
