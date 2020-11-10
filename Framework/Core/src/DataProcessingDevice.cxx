@@ -505,15 +505,45 @@ void DataProcessingDevice::doPrepare(DataProcessorContext& context)
     if (info.state != InputChannelState::Running) {
       continue;
     }
-    FairMQParts parts;
-    auto result = context.device->Receive(parts, channel.name, 0, 0);
-    if (result > 0) {
-      // Receiving data counts as activity now, so that
-      // We can make sure we process all the pending
-      // messages without hanging on the uv_run.
-      *context.wasActive = true;
-      DataProcessingDevice::handleData(context, parts, info);
+    int result = -2;
+    auto& fairMQChannel = context.device->GetChannel(channel.name, 0);
+    auto& socket = fairMQChannel.GetSocket();
+    uint32_t events;
+    socket.Events(&events);
+    if ((events & 1) == 0) {
+      continue;
     }
+    // Notice that there seems to be a difference between the documentation
+    // of zeromq and the observed behavior. The fact that ZMQ_POLLIN
+    // is raised does not mean that a message is immediately available to
+    // read, just that it will be available soon, so the receive can
+    // still return -2. To avoid this we keep receiving on the socket until
+    // we get a message, consume all the consecutive messages, and then go back
+    // to the usual loop.
+    do {
+      if (events & 1) {
+        bool oneMessage = false;
+        while (true) {
+          FairMQParts parts;
+          result = fairMQChannel.Receive(parts, 0);
+          if (result >= 0) {
+            // Receiving data counts as activity now, so that
+            // We can make sure we process all the pending
+            // messages without hanging on the uv_run.
+            *context.wasActive = true;
+            DataProcessingDevice::handleData(context, parts, info);
+            oneMessage = true;
+          } else {
+            if (oneMessage) {
+              break;
+            }
+          }
+        }
+      } else {
+        break;
+      }
+      socket.Events(&events);
+    } while (events & 1);
   }
 }
 
@@ -607,8 +637,8 @@ void DataProcessingDevice::handleData(DataProcessorContext& context, FairMQParts
   // and we do a few stats. We bind parts as a lambda captured variable, rather
   // than an input, because we do not want the outer loop actually be exposed
   // to the implementation details of the messaging layer.
-  auto getInputTypes = [& stats = context.registry->get<DataProcessingStats>(),
-                        &parts, &info]() -> std::optional<std::vector<InputType>> {
+  auto getInputTypes = [&stats = context.registry->get<DataProcessingStats>(),
+                        &parts, &info, &context]() -> std::optional<std::vector<InputType>> {
     stats.inputParts = parts.Size();
 
     TracyPlot("messages received", (int64_t)parts.Size());
@@ -623,6 +653,7 @@ void DataProcessingDevice::handleData(DataProcessorContext& context, FairMQParts
       if (sih) {
         info.state = sih->state;
         results[hi] = InputType::SourceInfo;
+        *context.wasActive = true;
         continue;
       }
       auto dh = o2::header::get<DataHeader*>(parts.At(pi)->GetData());
@@ -654,7 +685,7 @@ void DataProcessingDevice::handleData(DataProcessorContext& context, FairMQParts
     registry.get<Monitoring>().send(Metric{*context.errorCount, "errors"}.addTag(Key::Subsystem, Value::DPL));
   };
 
-  auto handleValidMessages = [&parts, &relayer = *context.relayer, &reportError](std::vector<InputType> const& types) {
+  auto handleValidMessages = [&parts, &context = context, &relayer = *context.relayer, &reportError](std::vector<InputType> const& types) {
     // We relay execution to make sure we have a complete set of parts
     // available.
     for (size_t pi = 0; pi < (parts.Size() / 2); ++pi) {
@@ -670,6 +701,7 @@ void DataProcessingDevice::handleData(DataProcessorContext& context, FairMQParts
           }
         } break;
         case InputType::SourceInfo: {
+          *context.wasActive = true;
 
         } break;
         case InputType::Invalid: {
