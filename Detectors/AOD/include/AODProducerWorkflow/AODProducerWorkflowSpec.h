@@ -91,7 +91,7 @@ class AODProducerWorkflowDPL : public Task
   uint64_t maxGlBC = 0;
   uint64_t minGlBC = INT64_MAX;
 
-  void findMinMaxBc(gsl::span<const o2::ft0::RecPoints>& ft0RecPoints, gsl::span<const o2::dataformats::TrackTPCITS>& tracksITSTPC);
+  void findMinMaxBc(gsl::span<const o2::ft0::RecPoints>& ft0RecPoints, gsl::span<const o2::dataformats::TrackTPCITS>& tracksITSTPC, const std::vector<o2::InteractionTimeRecord>& mcRecords);
   int64_t getTFNumber(uint64_t firstVtxGlBC, int runNumber);
 
   template <typename TracksType, typename TracksCursorType>
