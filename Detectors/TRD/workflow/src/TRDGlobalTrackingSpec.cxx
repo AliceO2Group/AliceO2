@@ -82,7 +82,7 @@ void TRDGlobalTracking::init(InitContext& ic)
   mTracker->SetPtThreshold(0.5);
   mTracker->SetChi2Threshold(15);
   mTracker->SetChi2Penalty(12);
-  mTracker->SetMaxMissingLayers(6);
+  mTracker->SetStopTrkFollowingAfterNMissingLayers(6);
   mTracker->PrintSettings();
 
   mTimer.Stop();
