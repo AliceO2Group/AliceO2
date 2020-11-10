@@ -13,7 +13,6 @@
 #ifndef O2_FDD_RECPOINTWRITER_H
 #define O2_FDD_RECPOINTWRITER_H
 
-
 #include "Framework/DataProcessorSpec.h"
 
 using namespace o2::framework;

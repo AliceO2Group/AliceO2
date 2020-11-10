@@ -121,7 +121,6 @@ void Geometry::buildGeometry()
   vFDAarray->AddNode(secFDA, 3, Rz180);                  // --------------->  x
   vFDAarray->AddNode(secFDA, 4, Rx180);                  //   3    |   4
 
-
   /// FDD_C in the tunnel
 
   new TGeoBBox("shFDCbox", kFDCCellSideX / 2.0, kFDCCellSideY / 2.0, kFDCCelldz / 2.0);
