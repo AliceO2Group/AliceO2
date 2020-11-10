@@ -41,6 +41,7 @@ enum struct Operation {
   OutputCAClusters,       // publish the clusters produced by CA clusterer
   OutputCompClusters,     // publish CompClusters container
   OutputCompClustersFlat, // publish CompClusters container
+  OutputQA,               // Ship QA histograms to QC
   ProcessMC,              // process MC labels
   SendClustersPerSector,  // Send clusters and clusters mc labels per sector
   Noop,                   // skip argument on the constructor
@@ -88,6 +89,9 @@ struct Config {
       case Operation::OutputCAClusters:
         outputCAClusters = true;
         break;
+      case Operation::OutputQA:
+        outputQA = true;
+        break;
       case Operation::ProcessMC:
         processMC = true;
         break;
@@ -116,6 +120,7 @@ struct Config {
   bool outputCompClusters = false;
   bool outputCompClustersFlat = false;
   bool outputCAClusters = false;
+  bool outputQA = false;
   bool processMC = false;
   bool sendClustersPerSector = false;
 };
