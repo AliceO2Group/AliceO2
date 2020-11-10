@@ -178,7 +178,7 @@ DataProcessorSpec getTRDGlobalTrackingSpec(bool useMC)
   std::vector<OutputSpec> outputs;
   inputs.emplace_back("tpcitstrack", "GLO", "TPCITS", 0, Lifetime::Timeframe);
   inputs.emplace_back("trdtracklets", o2::header::gDataOriginTRD, "TRACKLETS", 0, Lifetime::Timeframe);
-  inputs.emplace_back("trdtriggerrec", o2::header::gDataOriginTRD, "TRIGGERREC", 0, Lifetime::Timeframe);
+  inputs.emplace_back("trdtriggerrec", o2::header::gDataOriginTRD, "TRKTRGRD", 0, Lifetime::Timeframe);
 
   if (useMC) {
     LOG(FATAL) << "MC usage must be disabled for this workflow, since it is not yet implemented";
