@@ -86,7 +86,7 @@ void run_trd_tracker(std::string path = "./",
   tracker->SetPtThreshold(0.5);
   tracker->SetChi2Threshold(15);
   tracker->SetChi2Penalty(12);
-  tracker->SetMaxMissingLayers(6);
+  tracker->SetStopTrkFollowingAfterNMissingLayers(6);
   tracker->PrintSettings();
 
   // load input tracks
