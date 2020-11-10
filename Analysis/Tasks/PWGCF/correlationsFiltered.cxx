@@ -174,10 +174,12 @@ struct CorrelationTask {
         }
 
         float deltaPhi = track1.phi() - track2.phi();
-        if (deltaPhi > 1.5 * TMath::Pi())
+        if (deltaPhi > 1.5 * TMath::Pi()) {
           deltaPhi -= TMath::TwoPi();
-        if (deltaPhi < -0.5 * TMath::Pi())
+        }
+        if (deltaPhi < -0.5 * TMath::Pi()) {
           deltaPhi += TMath::TwoPi();
+        }
 
         same->getPairHist()->Fill(CorrelationContainer::kCFStepReconstructed,
                                   track1.eta() - track2.eta(), track2.pt(), track1.pt(), centrality, deltaPhi, collision.posZ());

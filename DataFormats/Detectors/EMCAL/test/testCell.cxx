@@ -54,15 +54,17 @@ BOOST_AUTO_TEST_CASE(Cell_test)
 
   for (auto e : energies) {
     c.setEnergy(e);
-    if (e > 16)
+    if (e > 16) {
       c.setLowGain();
+    }
     BOOST_CHECK_EQUAL(c.getTower(), 0);
     BOOST_CHECK_SMALL(double(c.getTimeStamp()), 0.73);
     BOOST_CHECK_SMALL(e - c.getEnergy(), 0.02); // Require 20 MeV resolution
-    if (e > 16)
+    if (e > 16) {
       BOOST_CHECK_EQUAL(c.getLowGain(), true);
-    else
+    } else {
       BOOST_CHECK_EQUAL(c.getHighGain(), true);
+    }
   }
 
   c.setEnergy(0);

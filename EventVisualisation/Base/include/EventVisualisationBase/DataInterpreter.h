@@ -45,11 +45,12 @@ class DataInterpreter
   virtual ~DataInterpreter() = default;
   static void removeInstances()
   {
-    for (int i = 0; i < EVisualisationGroup::NvisualisationGroups; i++)
+    for (int i = 0; i < EVisualisationGroup::NvisualisationGroups; i++) {
       if (instance[i] != nullptr) {
         delete instance[i];
         instance[i] = nullptr;
       }
+    }
   }
 
   // Should return visualisation objects for required data type

@@ -225,13 +225,15 @@ struct HistFactory {
     for (std::size_t i = 0; i < nAxes; i++) {
       TAxis* axis{getAxis(i, hist)};
       if (axis) {
-        if (histSpec.config.axes[i].title)
+        if (histSpec.config.axes[i].title) {
           axis->SetTitle((*histSpec.config.axes[i].title).data());
+        }
 
         // this helps to have axes not only called 0,1,2... in ndim histos
         if constexpr (std::is_base_of_v<THnBase, T>) {
-          if (histSpec.config.axes[i].name)
+          if (histSpec.config.axes[i].name) {
             axis->SetName((std::string(axis->GetName()) + "-" + *histSpec.config.axes[i].name).data());
+          }
         }
 
         // move the bin edges in case a variable binning was requested
@@ -244,8 +246,9 @@ struct HistFactory {
         }
       }
     }
-    if (histSpec.callSumw2)
+    if (histSpec.callSumw2) {
       hist->Sumw2();
+    }
 
     return hist;
   }
@@ -254,19 +257,21 @@ struct HistFactory {
   template <typename T>
   static HistPtr createHistVariant(const HistogramSpec& histSpec)
   {
-    if (auto hist = castToVariant(createHist<T>(histSpec)))
+    if (auto hist = castToVariant(createHist<T>(histSpec))) {
       return *hist;
-    else
+    } else {
       throw runtime_error("Histogram was not created properly.");
+    }
   }
 
   // runtime version of the above
   static HistPtr createHistVariant(const HistogramSpec& histSpec)
   {
-    if (histSpec.config.type == HistType::kUndefinedHist)
+    if (histSpec.config.type == HistType::kUndefinedHist) {
       throw runtime_error("Histogram type was not specified.");
-    else
+    } else {
       return HistogramCreationCallbacks.at(histSpec.config.type)(histSpec);
+    }
   }
 
   // helper function to get the axis via index for any type of root histogram
@@ -510,10 +515,11 @@ class HistogramRegistry
   template <typename T>
   auto& get(char const* const name)
   {
-    if (auto histPtr = std::get_if<std::shared_ptr<T>>(&mRegistryValue[getHistIndex(name)]))
+    if (auto histPtr = std::get_if<std::shared_ptr<T>>(&mRegistryValue[getHistIndex(name)])) {
       return *histPtr;
-    else
+    } else {
       throw runtime_error("Histogram type specified in get() does not match actual histogram type!");
+    }
   }
 
   /// @return the histogram registered with name @a name

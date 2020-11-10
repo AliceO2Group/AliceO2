@@ -43,8 +43,9 @@ DataInterpreterVSD::~DataInterpreterVSD()
 
 std::unique_ptr<VisualisationEvent> DataInterpreterVSD::interpretDataForType(TObject* data, EVisualisationDataType type)
 {
-  if (mVSD == nullptr)
+  if (mVSD == nullptr) {
     mVSD = new TEveVSD;
+  }
   this->DropEvent();
 
   // Connect to new event-data.

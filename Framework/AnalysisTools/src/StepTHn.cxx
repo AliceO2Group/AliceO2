@@ -71,8 +71,9 @@ StepTHnT<TemplateArray>::StepTHnT(const Char_t* name, const Char_t* title, const
                                   Int_t* nBins, std::vector<Double_t> binEdges[], const char** axisTitles) : StepTHn(name, title, nSteps, nAxis, nBins, binEdges, axisTitles)
 {
   mNBins = 1;
-  for (Int_t i = 0; i < mNVars; i++)
+  for (Int_t i = 0; i < mNVars; i++) {
     mNBins *= nBins[i];
+  }
   if constexpr (std::is_same_v<TemplateArray, TArrayD>) {
     mPrototype = new THnSparseD(Form("%s_sparse", name), title, nAxis, nBins);
   } else {
@@ -165,8 +166,9 @@ StepTHn& StepTHn::operator=(const StepTHn& c)
 {
   // assigment operator
 
-  if (this != &c)
+  if (this != &c) {
     ((StepTHn&)c).Copy(*this);
+  }
 
   return *this;
 }
@@ -186,19 +188,22 @@ void StepTHn::Copy(TObject& c) const
   target.init();
 
   for (Int_t i = 0; i < mNSteps; i++) {
-    if (mValues[i])
+    if (mValues[i]) {
       target.mValues[i] = createArray(mValues[i]);
-    else
+    } else {
       target.mValues[i] = nullptr;
+    }
 
-    if (mSumw2[i])
+    if (mSumw2[i]) {
       target.mSumw2[i] = createArray(mSumw2[i]);
-    else
+    } else {
       target.mSumw2[i] = nullptr;
+    }
   }
 
-  if (mPrototype)
+  if (mPrototype) {
     target.mPrototype = dynamic_cast<THnSparseF*>(mPrototype->Clone());
+  }
 }
 
 template <class TemplateArray>
@@ -208,11 +213,13 @@ Long64_t StepTHnT<TemplateArray>::Merge(TCollection* list)
   // PROOF).
   // Returns the number of merged objects (including this).
 
-  if (!list)
+  if (!list) {
     return 0;
+  }
 
-  if (list->IsEmpty())
+  if (list->IsEmpty()) {
     return 1;
+  }
 
   TIterator* iter = list->MakeIterator();
   TObject* obj;
@@ -221,28 +228,33 @@ Long64_t StepTHnT<TemplateArray>::Merge(TCollection* list)
   while ((obj = iter->Next())) {
 
     StepTHnT<TemplateArray>* entry = dynamic_cast<StepTHnT<TemplateArray>*>(obj);
-    if (entry == nullptr)
+    if (entry == nullptr) {
       continue;
+    }
 
     for (Int_t i = 0; i < mNSteps; i++) {
       if (entry->mValues[i]) {
-        if (!mValues[i])
+        if (!mValues[i]) {
           mValues[i] = createArray();
+        }
 
         auto source = dynamic_cast<TemplateArray*>(entry->mValues[i])->GetArray();
         auto target = dynamic_cast<TemplateArray*>(mValues[i])->GetArray();
-        for (Long64_t l = 0; l < mNBins; l++)
+        for (Long64_t l = 0; l < mNBins; l++) {
           target[l] += source[l];
+        }
       }
 
       if (entry->mSumw2[i]) {
-        if (!mSumw2[i])
+        if (!mSumw2[i]) {
           mSumw2[i] = createArray();
+        }
 
         auto source = dynamic_cast<TemplateArray*>(entry->mSumw2[i])->GetArray();
         auto target = dynamic_cast<TemplateArray*>(mSumw2[i])->GetArray();
-        for (Long64_t l = 0; l < mNBins; l++)
+        for (Long64_t l = 0; l < mNBins; l++) {
           target[l] += source[l];
+        }
       }
     }
 
@@ -278,23 +290,27 @@ void StepTHn::createTarget(Int_t step, Bool_t sparse)
 
   if (!mTarget) {
     mTarget = new THnBase*[mNSteps];
-    for (Int_t i = 0; i < mNSteps; i++)
+    for (Int_t i = 0; i < mNSteps; i++) {
       mTarget[i] = nullptr;
+    }
   }
 
-  if (mTarget[step])
+  if (mTarget[step]) {
     return;
+  }
 
   TArray* source = mValues[step];
   // if mSumw2 is not stored, the sqrt of the number of bin entries in source is filled below; otherwise we use mSumw2
   TArray* sourceSumw2 = source;
-  if (mSumw2[step])
+  if (mSumw2[step]) {
     sourceSumw2 = mSumw2[step];
+  }
 
-  if (sparse)
+  if (sparse) {
     mTarget[step] = THnSparse::CreateSparse(Form("%s_%d", GetName(), step), Form("%s_%d", GetTitle(), step), mPrototype);
-  else
+  } else {
     mTarget[step] = THn::CreateHn(Form("%s_%d", GetName(), step), Form("%s_%d", GetTitle(), step), mPrototype);
+  }
 
   THnBase* target = mTarget[step];
 
@@ -332,8 +348,9 @@ void StepTHn::createTarget(Int_t step, Bool_t sparse)
       }
     }
 
-    if (binIdx[0] > nBins[0])
+    if (binIdx[0] > nBins[0]) {
       break;
+    }
   }
 
   LOGF(info, "Step %d: copied %lld entries out of %lld bins", step, count, getGlobalBinIndex(binIdx));

@@ -187,8 +187,9 @@ void IrregularSpline1D::constructRegular(int numberOfKnots)
   /// \param numberOfKnots     Number of knots
   ///
 
-  if (numberOfKnots < 5)
+  if (numberOfKnots < 5) {
     numberOfKnots = 5;
+  }
 
   std::vector<float> knots(numberOfKnots);
   double du = 1. / (numberOfKnots - 1.);

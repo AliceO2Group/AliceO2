@@ -38,8 +38,9 @@ void IrregularSpline2D3DCalibrator::setRasterSize(int nKnotsU, int nKnotsV)
   int n[2] = {nKnotsU, nKnotsV};
 
   for (int uv = 0; uv < 2; ++uv) {
-    if (n[uv] < mMaxNKnots[uv])
+    if (n[uv] < mMaxNKnots[uv]) {
       n[uv] = mMaxNKnots[uv];
+    }
   }
 
   mRaster.constructRegular(n[0], n[1]);
@@ -53,8 +54,9 @@ void IrregularSpline2D3DCalibrator::setMaxNKnots(int nKnotsU, int nKnotsV)
   mMaxNKnots[1] = nKnotsV;
 
   for (int uv = 0; uv < 2; ++uv) {
-    if (mMaxNKnots[uv] < 5)
+    if (mMaxNKnots[uv] < 5) {
       mMaxNKnots[uv] = 5;
+    }
   }
 }
 
@@ -88,10 +90,12 @@ void IrregularSpline2D3DCalibrator::startCalibration(std::function<void(float, f
       double u = i * du;
       d.rasterKnot = nearbyint(u * (mRaster.getGrid(uv).getNumberOfKnots() - 1));
       //std::cout<<"uv "<<uv<<" i "<<d.rasterKnot<<" u "<<u<<std::endl;
-      if (d.rasterKnot <= lastKnot)
+      if (d.rasterKnot <= lastKnot) {
         continue;
-      if (d.rasterKnot >= mRaster.getGrid(uv).getNumberOfKnots() - 1)
+      }
+      if (d.rasterKnot >= mRaster.getGrid(uv).getNumberOfKnots() - 1) {
         continue;
+      }
       mKnots[uv].push_back(d);
       lastKnot = d.rasterKnot;
     }
@@ -158,8 +162,9 @@ IrregularSpline2D3DCalibrator::Action IrregularSpline2D3DCalibrator::checkAction
     std::list<KnotData>::iterator next = knot;
     ++next;
     if (next != mKnots[uv].end()) {
-      if (next->rasterKnot <= knot->rasterKnot + 1)
+      if (next->rasterKnot <= knot->rasterKnot + 1) {
         isSpaceUp = 0;
+      }
     }
   }
 
@@ -170,13 +175,15 @@ IrregularSpline2D3DCalibrator::Action IrregularSpline2D3DCalibrator::checkAction
     std::list<KnotData>::iterator prev = knot;
     if (prev != mKnots[uv].begin()) {
       --prev;
-      if (prev->rasterKnot >= knot->rasterKnot - 1)
+      if (prev->rasterKnot >= knot->rasterKnot - 1) {
         isSpaceDn = 0;
+      }
     }
   }
 
-  if (!isSpaceUp && !isSpaceDn)
+  if (!isSpaceUp && !isSpaceDn) {
     return ret;
+  }
 
   // get the area of interest
 
@@ -224,8 +231,9 @@ IrregularSpline2D3DCalibrator::Action IrregularSpline2D3DCalibrator::checkAction
 
   int uv = knot->uv;
 
-  if (mSpline.getGrid(uv).getNumberOfKnots() <= 5)
+  if (mSpline.getGrid(uv).getNumberOfKnots() <= 5) {
     return ret;
+  }
 
   // get the area of interest
 
@@ -289,8 +297,9 @@ bool IrregularSpline2D3DCalibrator::doCalibrationStep()
   for (int uv = 0; uv < 2; ++uv) {
     for (std::list<KnotData>::iterator i = mKnots[uv].begin(); i != mKnots[uv].end(); ++i) {
       Action a = checkActionShift(i);
-      if (a.cost < bestAction.cost)
+      if (a.cost < bestAction.cost) {
         bestAction = a;
+      }
     }
   }
 
@@ -320,8 +329,9 @@ bool IrregularSpline2D3DCalibrator::doCalibrationStep()
 
     for (std::list<KnotData>::iterator i = mKnots[uv].begin(); i != mKnots[uv].end(); ++i) {
       Action a = checkActionRemove(i);
-      if (a.cost < bestAction.cost)
+      if (a.cost < bestAction.cost) {
         bestAction = a;
+      }
     }
   }
   bestAction.cost = sqrt(bestAction.cost / 3.);
@@ -349,8 +359,9 @@ std::unique_ptr<float[]> IrregularSpline2D3DCalibrator::calibrateSpline(Irregula
   // main method: spline calibration
 
   startCalibration(F);
-  while (doCalibrationStep())
+  while (doCalibrationStep()) {
     ;
+  }
   createCurrentSpline();
   spline_uv.cloneFromObject(mSpline, nullptr);
   std::unique_ptr<float[]> tmp(new float[mSpline.getNumberOfKnots()]);
@@ -377,8 +388,9 @@ double IrregularSpline2D3DCalibrator::getMaxDeviationLine(const IrregularSpline2
     double dy = fy - fy0;
     double dz = fz - fz0;
     double d2 = dx * dx + dy * dy + dz * dz;
-    if (dMax2 < d2)
+    if (dMax2 < d2) {
       dMax2 = d2;
+    }
   }
   return dMax2;
 }
@@ -389,8 +401,9 @@ double IrregularSpline2D3DCalibrator::getMaxDeviationArea(const IrregularSpline2
   double dMax = 0.;
   for (int knot = knotFirst; knot <= knotLast; ++knot) {
     double d = getMaxDeviationLine(spline, data, axis, knot);
-    if (dMax < d)
+    if (dMax < d) {
       dMax = d;
+    }
   }
   return dMax;
 }

@@ -111,8 +111,9 @@ void Detector::InitializeO2Detector()
 
   std::string inputDir;
   const char* aliceO2env = std::getenv("O2_ROOT");
-  if (aliceO2env)
+  if (aliceO2env) {
     inputDir = std::string(aliceO2env);
+  }
   inputDir += "/share/Detectors/ZDC/simulation/data/";
   //ZN case
   loadLightTable(mLightTableZN, 0, ZNRADIUSBINS, inputDir + "light22620362207s");
@@ -206,8 +207,9 @@ void Detector::getDetIDandSecID(TString const& volname, math_utils::Vector3D<flo
     if (xDet.X() <= 0.) {
       if (xDet.Y() <= 0.) {
         sector = Ch1;
-      } else
+      } else {
         sector = Ch3;
+      }
     } else {
       if (xDet.Y() <= 0.) {
         sector = Ch2;
@@ -306,8 +308,9 @@ Bool_t Detector::ProcessHits(FairVolume* v)
 
   // If the particle is in a ZN or ZP fiber connected to the common PMT
   // then the assigned sector is 0 (PMC) NB-> does not work for ZEM
-  if ((fMC->CurrentMedium() == mMediumPMCid) && (detector != ZEM))
+  if ((fMC->CurrentMedium() == mMediumPMCid) && (detector != ZEM)) {
     sector = 0;
+  }
   //printf("ProcessHits:  x=(%f, %f, %f)  \n",x[0], x[1], x[2]);
   //printf("\tDET %d  SEC %d  -> XImpact=(%f, %f, %f)\n",detector,sector, xImp.X(), xImp.Y(), xImp.Z());
 
@@ -1389,8 +1392,9 @@ void Detector::createCsideBeamLine()
   if (mTCLIAAPERTURE < 3.5) {
     boxpar[0] = 5.4 / 2.;
     boxpar[1] = (3.5 - mTCLIAAPERTURE - mVCollSideCCentreY - 0.7) / 2.; // FIX IT!!!!!!!!
-    if (boxpar[1] < 0.)
+    if (boxpar[1] < 0.) {
       boxpar[1] = 0.;
+    }
     boxpar[2] = 124.4 / 2.;
     TVirtualMC::GetMC()->Gsvolu("QCVC", "BOX ", getMediumID(kGraphite), boxpar, 3);
     TVirtualMC::GetMC()->Gspos("QCVC", 1, "QE02", -boxpar[0], mTCLIAAPERTURE + mVCollSideCCentreY + boxpar[1], -totLength1 / 2. + 160.8 + 78. + 148. / 2., 0, "ONLY");     // FIX IT!!!!!!!!
@@ -2327,19 +2331,22 @@ Bool_t Detector::calculateTableIndexes(int& ibeta, int& iangle, int& iradius)
   //particle velocity
   float ptot = TMath::Sqrt(p[0] * p[0] + p[1] * p[1] + p[2] * p[2]);
   float beta = 0.;
-  if (energy > 0.)
+  if (energy > 0.) {
     beta = ptot / energy;
+  }
   if (beta >= 0.67) {
-    if (beta <= 0.75)
+    if (beta <= 0.75) {
       ibeta = 0;
-    else if (beta > 0.75 && beta <= 0.85)
+    } else if (beta > 0.75 && beta <= 0.85) {
       ibeta = 1;
-    else if (beta > 0.85 && beta <= 0.95)
+    } else if (beta > 0.85 && beta <= 0.95) {
       ibeta = 2;
-    else if (beta > 0.95)
+    } else if (beta > 0.95) {
       ibeta = 3;
-  } else
+    }
+  } else {
     return kFALSE;
+  }
   //track angle wrt fibre axis (||LHC axis)
   double umom[3] = {0., 0., 0.}, udet[3] = {0., 0., 0.};
   umom[0] = p[0] / ptot;
@@ -2348,18 +2355,20 @@ Bool_t Detector::calculateTableIndexes(int& ibeta, int& iangle, int& iradius)
   fMC->Gmtod(umom, udet, 2);
   double angleRad = TMath::ACos(udet[2]);
   double angleDeg = angleRad * kRaddeg;
-  if (angleDeg < 110.)
+  if (angleDeg < 110.) {
     iangle = int(0.5 + angleDeg / 2.);
-  else
+  } else {
     return kFALSE;
+  }
   //radius from fibre axis
   fMC->Gmtod(x, xDet, 1);
   float radius = 0.;
   if (TMath::Abs(udet[0]) > 0) {
     float dcoeff = udet[1] / udet[0];
     radius = TMath::Abs((xDet[1] - dcoeff * xDet[0]) / TMath::Sqrt(dcoeff * dcoeff + 1.));
-  } else
+  } else {
     radius = TMath::Abs(udet[0]);
+  }
   iradius = int(radius * 1000. + 1.);
   //printf("\t beta %f  angle %f  radius %f\n",beta, angleDeg, radius);
   return kTRUE;

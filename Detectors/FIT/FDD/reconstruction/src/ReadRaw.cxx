@@ -122,8 +122,9 @@ void ReadRaw::readRawData(const LookUpTable& lut)
 //_____________________________________________________________________________________
 void ReadRaw::close()
 {
-  if (mRawFileIn.is_open())
+  if (mRawFileIn.is_open()) {
     mRawFileIn.close();
+  }
 }
 //_____________________________________________________________________________________
 void ReadRaw::writeDigits(const std::string& outputDigitsFilePath)

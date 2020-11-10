@@ -68,21 +68,25 @@ Bool_t
     mParticles.clear();
 
     /** generate event **/
-    if (!generateEvent())
+    if (!generateEvent()) {
       return kFALSE;
+    }
 
     /** import particles **/
-    if (!importParticles())
+    if (!importParticles()) {
       return kFALSE;
+    }
 
     /** trigger event **/
-    if (triggerEvent())
+    if (triggerEvent()) {
       break;
+    }
   }
 
   /** add tracks **/
-  if (!addTracks(primGen))
+  if (!addTracks(primGen)) {
     return kFALSE;
+  }
 
   /** update header **/
   updateHeader(primGen->GetEvent());
@@ -146,36 +150,42 @@ Bool_t
   /** trigger event **/
 
   /** check trigger presence **/
-  if (mTriggers.size() == 0 && mDeepTriggers.size() == 0)
+  if (mTriggers.size() == 0 && mDeepTriggers.size() == 0) {
     return kTRUE;
+  }
 
   /** check trigger mode **/
   Bool_t triggered;
-  if (mTriggerMode == kTriggerOFF)
+  if (mTriggerMode == kTriggerOFF) {
     return kTRUE;
-  else if (mTriggerMode == kTriggerOR)
+  } else if (mTriggerMode == kTriggerOR) {
     triggered = kFALSE;
-  else if (mTriggerMode == kTriggerAND)
+  } else if (mTriggerMode == kTriggerAND) {
     triggered = kTRUE;
-  else
+  } else {
     return kTRUE;
+  }
 
   /** loop over triggers **/
   for (const auto& trigger : mTriggers) {
     auto retval = trigger(mParticles);
-    if (mTriggerMode == kTriggerOR)
+    if (mTriggerMode == kTriggerOR) {
       triggered |= retval;
-    if (mTriggerMode == kTriggerAND)
+    }
+    if (mTriggerMode == kTriggerAND) {
       triggered &= retval;
+    }
   }
 
   /** loop over deep triggers **/
   for (const auto& trigger : mDeepTriggers) {
     auto retval = trigger(mInterface, mInterfaceName);
-    if (mTriggerMode == kTriggerOR)
+    if (mTriggerMode == kTriggerOR) {
       triggered |= retval;
-    if (mTriggerMode == kTriggerAND)
+    }
+    if (mTriggerMode == kTriggerAND) {
       triggered &= retval;
+    }
   }
 
   /** return **/

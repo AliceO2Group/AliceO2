@@ -38,8 +38,9 @@ DataReaderVSD::DataReaderVSD()
 DataReaderVSD::~DataReaderVSD()
 {
   if (mEvDirKeys.size() > 0) {
-    for (auto obj : mEvDirKeys)
+    for (auto obj : mEvDirKeys) {
       delete obj;
+    }
     mEvDirKeys.clear();
   }
 

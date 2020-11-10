@@ -81,8 +81,9 @@ void DigitizerSpec::retrieveHits(const char* brname,
 
 void DigitizerSpec::run(framework::ProcessingContext& pc)
 {
-  if (mFinished)
+  if (mFinished) {
     return;
+  }
 
   // read collision context from input
   auto context = pc.inputs().get<o2::steer::DigitizationContext*>("collisioncontext");

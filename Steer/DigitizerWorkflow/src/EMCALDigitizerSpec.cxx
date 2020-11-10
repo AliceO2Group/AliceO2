@@ -48,8 +48,9 @@ void DigitizerSpec::initDigitizerTask(framework::InitContext& ctx)
 
 void DigitizerSpec::run(framework::ProcessingContext& ctx)
 {
-  if (mFinished)
+  if (mFinished) {
     return;
+  }
 
   // read collision context from input
   auto context = ctx.inputs().get<o2::steer::DigitizationContext*>("collisioncontext");
@@ -58,8 +59,9 @@ void DigitizerSpec::run(framework::ProcessingContext& ctx)
   LOG(DEBUG) << "GOT " << timesview.size() << " COLLISSION TIMES";
 
   // if there is nothing to do ... return
-  if (timesview.size() == 0)
+  if (timesview.size() == 0) {
     return;
+  }
 
   TStopwatch timer;
   timer.Start();
@@ -92,8 +94,9 @@ void DigitizerSpec::run(framework::ProcessingContext& ctx)
 
     mDigitizer.setEventTime(timesview[collID].getTimeNS());
 
-    if (!mDigitizer.isLive())
+    if (!mDigitizer.isLive()) {
       continue;
+    }
 
     if (mDigitizer.isEmpty()) {
       mDigitizer.initCycle();

@@ -103,8 +103,9 @@ void Digitizer::process(const std::vector<Hit> hits, std::vector<Digit>& digits,
   }   //loop over hits
 
   //generate noise-only digits
-  if (mNoise)
+  if (mNoise) {
     generateNoiseDigits();
+  }
 
   fillOutputContainer(digits);
   provideMC(mcContainer);

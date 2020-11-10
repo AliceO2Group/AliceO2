@@ -284,10 +284,11 @@ void TRDDPLTrapSimulatorTask::run(o2::framework::ProcessingContext& pc)
   uint64_t currentTriggerRecord = 0;
 
   for (auto& trig : triggerRecords) {
-    if (mDumpTriggerRecords)
+    if (mDumpTriggerRecords) {
       LOG(info) << "Trigger Record ; " << trig.getFirstEntry() << " --> " << trig.getNumberOfObjects();
-    else
+    } else {
       LOG(debug) << "Trigger Record ; " << trig.getFirstEntry() << " --> " << trig.getNumberOfObjects();
+    }
   }
   // fix incoming trigger records if requested.
   if (mFixTriggerRecords) {
@@ -331,13 +332,15 @@ void TRDDPLTrapSimulatorTask::run(o2::framework::ProcessingContext& pc)
   for (auto& trig : triggerRecords) {
     LOG(debug) << " sorting from index: " << trig.getFirstEntry() << " till " << trig.getNumberOfObjects() + trig.getFirstEntry();
     LOG(debug) << "pre sort";
-    for (int i = msgDigitsIndex[trig.getFirstEntry()]; i < trig.getNumberOfObjects() + trig.getFirstEntry(); i++)
+    for (int i = msgDigitsIndex[trig.getFirstEntry()]; i < trig.getNumberOfObjects() + trig.getFirstEntry(); i++) {
       LOG(debug) << "i:" << msgDigitsIndex[i];
+    }
     std::stable_sort(std::begin(msgDigitsIndex) + trig.getFirstEntry(), std::begin(msgDigitsIndex) + trig.getNumberOfObjects() + trig.getFirstEntry(),
                      [msgDigits](auto&& PH1, auto&& PH2) { return digitindexcompare(PH1, PH2, msgDigits); });
     LOG(debug) << "post sort";
-    for (int i = msgDigitsIndex[trig.getFirstEntry()]; i < trig.getNumberOfObjects() + trig.getFirstEntry(); i++)
+    for (int i = msgDigitsIndex[trig.getFirstEntry()]; i < trig.getNumberOfObjects() + trig.getFirstEntry(); i++) {
       LOG(debug) << "i:" << i << " = " << msgDigitsIndex[i];
+    }
     LOG(debug) << "*****************************************************************";
   }
 

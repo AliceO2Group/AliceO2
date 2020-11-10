@@ -69,18 +69,21 @@ Bool_t GeneratorPythia6::Init()
     for (std::string line; getline(fin, line);) {
       /** remove comments **/
       line = line.substr(0, line.find_first_of(comment));
-      if (line.size() == 0)
+      if (line.size() == 0) {
         continue;
+      }
       /** remove leading/trailing whitespaces **/
       const auto line_begin = line.find_first_not_of(whitespace);
       const auto line_end = line.find_last_not_of(whitespace);
       if (line_begin == std::string::npos ||
-          line_end == std::string::npos)
+          line_end == std::string::npos) {
         continue;
+      }
       const auto line_range = line_end - line_begin + 1;
       line = line.substr(line_begin, line_range);
-      if (line.size() == 0)
+      if (line.size() == 0) {
         continue;
+      }
       /** process command **/
       readString(line.c_str());
     }

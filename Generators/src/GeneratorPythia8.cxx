@@ -120,8 +120,9 @@ Bool_t
   /** generate event **/
 
   /** generate event **/
-  if (!mPythia.next())
+  if (!mPythia.next()) {
     return false;
+  }
 
 #if PYTHIA_VERSION_INTEGER < 8300
   /** [NOTE] The issue with large particle production vertex when running 
@@ -202,8 +203,9 @@ void GeneratorPythia8::updateHeader(FairMCEventHeader* eventHeader)
 #endif
 
   /** set impact parameter if in heavy-ion mode **/
-  if (hiinfo)
+  if (hiinfo) {
     eventHeader->SetB(hiinfo->b());
+  }
 }
 
 /*****************************************************************/
@@ -221,16 +223,18 @@ void GeneratorPythia8::selectFromAncestor(int ancestor, Pythia8::Event& inputEve
   select = [&](int i) {
     selected.insert(i);
     auto dl = inputEvent[i].daughterList();
-    for (auto j : dl)
+    for (auto j : dl) {
       select(j);
+    }
   };
   select(ancestor);
 
   // map selected particle index to output index
   std::map<int, int> indexMap;
   int index = outputEvent.size();
-  for (auto i : selected)
+  for (auto i : selected) {
     indexMap[i] = index++;
+  }
 
   // adjust mother/daughter indices and append to output event
   for (auto i : selected) {

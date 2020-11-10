@@ -141,10 +141,12 @@ inline T RegularSpline1D::getSpline(const T correctedData[], float u) const
 
 inline double RegularSpline1D::knotIndexToU(int iknot) const
 {
-  if (iknot <= 0)
+  if (iknot <= 0) {
     return 0;
-  if (iknot >= mNumberOfKnots)
+  }
+  if (iknot >= mNumberOfKnots) {
     return 1;
+  }
   return iknot / ((double)mNumberOfKnots - 1.);
 }
 
@@ -152,10 +154,11 @@ inline int RegularSpline1D::getKnotIndex(float u) const
 {
   //index is just u elem [0, 1] * numberOfKnots and then floored. (so the "left" coordinate beside u gets chosen)
   int index = (int)(u * (mNumberOfKnots - 1));
-  if (index <= 1)
+  if (index <= 1) {
     index = 1;
-  else if (index >= mNumberOfKnots - 3)
+  } else if (index >= mNumberOfKnots - 3) {
     index = mNumberOfKnots - 3;
+  }
   return index;
 }
 

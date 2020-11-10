@@ -230,22 +230,30 @@ int DCSProcessor::processMap(const std::unordered_map<DPID, DPVAL>& map, bool is
                                    mDpsbinariesmap);
 
   if (!isDelta) {
-    if (foundChars != mPidschars.size())
+    if (foundChars != mPidschars.size()) {
       LOG(INFO) << "Not all expected char-typed DPs found!";
-    if (foundInts != mPidsints.size())
+    }
+    if (foundInts != mPidsints.size()) {
       LOG(INFO) << "Not all expected int-typed DPs found!";
-    if (foundDoubles != mPidsdoubles.size())
+    }
+    if (foundDoubles != mPidsdoubles.size()) {
       LOG(INFO) << "Not all expected double-typed DPs found!";
-    if (foundUInts != mPidsUints.size())
+    }
+    if (foundUInts != mPidsUints.size()) {
       LOG(INFO) << "Not all expected uint-typed DPs found!";
-    if (foundBools != mPidsbools.size())
+    }
+    if (foundBools != mPidsbools.size()) {
       LOG(INFO) << "Not all expected bool-typed DPs found!";
-    if (foundStrings != mPidsstrings.size())
+    }
+    if (foundStrings != mPidsstrings.size()) {
       LOG(INFO) << "Not all expected string-typed DPs found!";
-    if (foundTimes != mPidstimes.size())
+    }
+    if (foundTimes != mPidstimes.size()) {
       LOG(INFO) << "Not all expected time-typed DPs found!";
-    if (foundBinaries != mPidsbinaries.size())
+    }
+    if (foundBinaries != mPidsbinaries.size()) {
       LOG(INFO) << "Not all expected binary-typed DPs found!";
+    }
   }
 
   // filling CCDB info to be sent in output
