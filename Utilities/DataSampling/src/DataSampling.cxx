@@ -75,7 +75,7 @@ void DataSampling::DoGenerateInfrastructure(Dispatcher& dispatcher, WorkflowSpec
     }
   }
 
-  if (dispatcher.getInputSpecs().size() > 0) {
+  if (dispatcher.numberOfPolicies() > 0) {
     DataProcessorSpec spec;
     spec.name = dispatcher.getName();
     spec.inputs = dispatcher.getInputSpecs();

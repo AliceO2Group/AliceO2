@@ -258,5 +258,9 @@ framework::Options Dispatcher::getOptions()
 
   return options;
 }
+size_t Dispatcher::numberOfPolicies()
+{
+  return mPolicies.size();
+}
 
 } // namespace o2::utilities

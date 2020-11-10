@@ -52,6 +52,8 @@ class Dispatcher : public framework::Task
 
   /// \brief Register a Data Sampling Policy
   void registerPolicy(std::unique_ptr<DataSamplingPolicy>&&);
+  /// \brief Returns the number of registered policies.
+  size_t numberOfPolicies();
 
   const std::string& getName();
   /// \brief Assembles InputSpecs of all registered policies in a single vector, removing overlapping entries.
