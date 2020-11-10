@@ -43,20 +43,24 @@ EventManager* EventManager::instance = nullptr;
 
 EventManager& EventManager::getInstance()
 {
-  if (instance == nullptr)
+  if (instance == nullptr) {
     instance = new EventManager();
+  }
   return *instance;
 }
 
 EventManager::EventManager() : TEveEventManager("Event", "")
 {
   LOG(INFO) << "Initializing TEveManager";
-  for (unsigned int i = 0; i < elemof(dataInterpreters); i++)
+  for (unsigned int i = 0; i < elemof(dataInterpreters); i++) {
     dataInterpreters[i] = nullptr;
-  for (unsigned int i = 0; i < elemof(dataReaders); i++)
+  }
+  for (unsigned int i = 0; i < elemof(dataReaders); i++) {
     dataReaders[i] = nullptr;
-  for (unsigned int i = 0; i < elemof(dataTypeLists); i++)
+  }
+  for (unsigned int i = 0; i < elemof(dataTypeLists); i++) {
     dataTypeLists[i] = nullptr;
+  }
 }
 
 void EventManager::Open()

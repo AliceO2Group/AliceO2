@@ -40,8 +40,9 @@ PrimaryGenerator::~PrimaryGenerator()
     mEmbedFile->Close();
     delete mEmbedFile;
   }
-  if (mEmbedEvent)
+  if (mEmbedEvent) {
     delete mEmbedEvent;
+  }
 }
 
 /*****************************************************************/
@@ -76,8 +77,9 @@ Bool_t PrimaryGenerator::GenerateEvent(FairGenericStack* pStack)
   /** generate event **/
 
   /** normal generation if no embedding **/
-  if (!mEmbedTree)
+  if (!mEmbedTree) {
     return FairPrimaryGenerator::GenerateEvent(pStack);
+  }
 
   /** this is for embedding **/
 
@@ -89,13 +91,15 @@ Bool_t PrimaryGenerator::GenerateEvent(FairGenericStack* pStack)
   auto genList = GetListOfGenerators();
   for (int igen = 0; igen < genList->GetEntries(); ++igen) {
     auto o2gen = dynamic_cast<Generator*>(genList->At(igen));
-    if (o2gen)
+    if (o2gen) {
       o2gen->notifyEmbedding(mEmbedEvent);
+    }
   }
 
   /** generate event **/
-  if (!FairPrimaryGenerator::GenerateEvent(pStack))
+  if (!FairPrimaryGenerator::GenerateEvent(pStack)) {
     return kFALSE;
+  }
 
   /** add embedding info to event header **/
   auto o2event = dynamic_cast<MCEventHeader*>(fEvent);

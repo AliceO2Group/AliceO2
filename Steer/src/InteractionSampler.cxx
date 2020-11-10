@@ -55,16 +55,18 @@ void InteractionSampler::init()
   // Poisson distribution of number of collisions in the bunch excluding 0
   mNCollBCGenerator.initialize([mu]() {
     int n = 0;
-    while ((n = gRandom->Poisson(mu)) == 0)
+    while ((n = gRandom->Poisson(mu)) == 0) {
       ;
+    }
     return n;
   });
 
   auto trms = mBCTimeRMS;
   mCollTimeGenerator.initialize([trms]() {
     float t; // make sure it does not go outside half bunch
-    while (std::abs(t = gRandom->Gaus(0, trms)) > o2::constants::lhc::LHCBunchSpacingNS / 2.1)
+    while (std::abs(t = gRandom->Gaus(0, trms)) > o2::constants::lhc::LHCBunchSpacingNS / 2.1) {
       ;
+    }
     return t;
   });
 

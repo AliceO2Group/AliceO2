@@ -258,10 +258,12 @@ void GeneratorFactory::setPrimaryGenerator(o2::conf::SimConfig const& conf, Fair
       return;
     }
     generator->setTriggerMode(o2::eventgen::Generator::kTriggerOR);
-    if (trigger)
+    if (trigger) {
       generator->addTrigger(trigger);
-    if (deeptrigger)
+    }
+    if (deeptrigger) {
       generator->addDeepTrigger(deeptrigger);
+    }
   }
 }
 

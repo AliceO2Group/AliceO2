@@ -40,10 +40,11 @@ void Cell::setTimeStamp(float timestamp)
   // truncate:
   const float TIME_MIN = -1. * TIME_SHIFT,
               TIME_MAX = TIME_RANGE - TIME_SHIFT;
-  if (timestamp < TIME_MIN)
+  if (timestamp < TIME_MIN) {
     timestamp = TIME_MIN;
-  else if (timestamp > TIME_MAX)
+  } else if (timestamp > TIME_MAX) {
     timestamp = TIME_MAX;
+  }
   getDataRepresentation()->mTime = static_cast<uint16_t>((timestamp + TIME_SHIFT) / TIME_RESOLUTION);
 }
 

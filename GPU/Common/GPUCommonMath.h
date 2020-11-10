@@ -188,8 +188,9 @@ GPUdi() CONSTEXPR17 T GPUCommonMath::nextMultipleOf(T val)
   CONSTEXPRIF(I & (I - 1))
   {
     T tmp = val % I;
-    if (tmp)
+    if (tmp) {
       val += I - tmp;
+    }
     return val;
   }
   else
@@ -214,12 +215,14 @@ GPUdi() int GPUCommonMath::Nint(float x)
   int i;
   if (x >= 0) {
     i = int(x + 0.5f);
-    if (x + 0.5f == float(i) && i & 1)
+    if (x + 0.5f == float(i) && i & 1) {
       i--;
+    }
   } else {
     i = int(x - 0.5f);
-    if (x - 0.5f == float(i) && i & 1)
+    if (x - 0.5f == float(i) && i & 1) {
       i++;
+    }
   }
   return i;
 }

@@ -111,15 +111,17 @@ void WindowFiller::fillDigitsInStrip(std::vector<Strip>* strips, int channel, in
 //______________________________________________________________________
 void WindowFiller::addCrateHeaderData(unsigned long orbit, int crate, int32_t bc, uint32_t eventCounter)
 {
-  if (orbit < mFirstIR.orbit)
+  if (orbit < mFirstIR.orbit) {
     return;
+  }
   orbit -= mFirstIR.orbit;
 
   orbit *= Geo::NWINDOW_IN_ORBIT;          // move from orbit to N readout window
   orbit += (bc + 100) / Geo::BC_IN_WINDOW; // select readout window in the orbit according to the BC (100 shift to avoid border effects)
 
-  if (mCrateHeaderData.size() < orbit + 1)
+  if (mCrateHeaderData.size() < orbit + 1) {
     mCrateHeaderData.resize(orbit + 1);
+  }
 
   mCrateHeaderData[orbit].bc[crate] = bc;
   mCrateHeaderData[orbit].eventCounter[crate] = eventCounter;
@@ -159,22 +161,27 @@ void WindowFiller::fillOutputContainer(std::vector<Digit>& digits)
         if (mCrateHeaderData[irow].bc[icrate] == -1) { // crate not read
           info.setEmptyCrate(icrate);
           continue;
-        } else
+        } else {
           mDigitHeader.crateSeen(icrate);
+        }
         ncratesSeen++;
 
-        if (bc_shift == -1 || mCrateHeaderData[irow].bc[icrate] < bc_shift)
+        if (bc_shift == -1 || mCrateHeaderData[irow].bc[icrate] < bc_shift) {
           bc_shift = mCrateHeaderData[irow].bc[icrate];
-        if (eventcounter == -1 || mCrateHeaderData[irow].eventCounter[icrate] < eventcounter)
+        }
+        if (eventcounter == -1 || mCrateHeaderData[irow].eventCounter[icrate] < eventcounter) {
           eventcounter = mCrateHeaderData[irow].eventCounter[icrate];
+        }
       }
 
       mDigitHeader.numCratesSeen(ncratesSeen);
 
-      if (bc_shift == -1)
+      if (bc_shift == -1) {
         bc_shift = (mReadoutWindowData.size() % Geo::NWINDOW_IN_ORBIT) * Geo::BC_IN_WINDOW; // insert default value
-      if (eventcounter == -1)
+      }
+      if (eventcounter == -1) {
         eventcounter = mReadoutWindowData.size() % 4096; // insert default value
+      }
     }
 
     info.setBCData(mFirstIR.orbit + orbit_shift, mFirstIR.bc + bc_shift);

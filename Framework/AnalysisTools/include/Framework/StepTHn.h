@@ -146,9 +146,9 @@ void StepTHn::Fill(Int_t istep, const Ts&... valuesAndWeight)
     bin *= mNbinsCache[i];
 
     Int_t tmpBin = 0;
-    if (mLastVars[i] == tempArray[i])
+    if (mLastVars[i] == tempArray[i]) {
       tmpBin = mLastBins[i];
-    else {
+    } else {
       tmpBin = mAxisCache[i]->FindBin(tempArray[i]);
       mLastBins[i] = tmpBin;
       mLastVars[i] = tempArray[i];
@@ -156,8 +156,9 @@ void StepTHn::Fill(Int_t istep, const Ts&... valuesAndWeight)
     //Printf("%d", tmpBin);
 
     // under/overflow not supported
-    if (tmpBin < 1 || tmpBin > mNbinsCache[i])
+    if (tmpBin < 1 || tmpBin > mNbinsCache[i]) {
       return;
+    }
 
     // bins start from 0 here
     bin += tmpBin - 1;
@@ -179,8 +180,9 @@ void StepTHn::Fill(Int_t istep, const Ts&... valuesAndWeight)
 
   // TODO probably slow; add StepTHnT::add ?
   mValues[istep]->SetAt(mValues[istep]->GetAt(bin) + weight, bin);
-  if (mSumw2[istep])
+  if (mSumw2[istep]) {
     mSumw2[istep]->SetAt(mSumw2[istep]->GetAt(bin) + weight, bin);
+  }
 }
 
 #endif

@@ -108,12 +108,16 @@ void Initializer::setupGeometry()
   auto multiView = MultiView::getInstance();
   //auto geometry_enabled = GeometryManager::getInstance().getR2Geometry()? R2Visualisation:R3Visualisation;
   for (int iDet = 0; iDet < NvisualisationGroups; ++iDet) {
-    if (GeometryManager::getInstance().getR2Geometry())
-      if (!R2Visualisation[iDet])
+    if (GeometryManager::getInstance().getR2Geometry()) {
+      if (!R2Visualisation[iDet]) {
         continue;
-    if (!GeometryManager::getInstance().getR2Geometry())
-      if (!R3Visualisation[iDet])
+      }
+    }
+    if (!GeometryManager::getInstance().getR2Geometry()) {
+      if (!R3Visualisation[iDet]) {
         continue;
+      }
+    }
 
     EVisualisationGroup det = static_cast<EVisualisationGroup>(iDet);
     string detName = gVisualisationGroupName[det];

@@ -40,8 +40,9 @@ GeneratorFromFile::GeneratorFromFile(const char* name)
     // std::cout << "probing for " << eventstring << "\n";
     object = mEventFile->Get(eventstringstr.str().c_str());
     // std::cout << "got " << object << "\n";
-    if (object != nullptr)
+    if (object != nullptr) {
       mEventsAvailable++;
+    }
   } while (object != nullptr);
   LOG(INFO) << "Found " << mEventsAvailable << " events in this file \n";
 }

@@ -126,10 +126,11 @@ class RawFileReader
     LinkBlock(int fid, size_t offs) : offset(offs), fileID(fid) {}
     void setFlag(uint8_t fl, bool v = true)
     {
-      if (v)
+      if (v) {
         flags |= fl;
-      else
+      } else {
         flags &= ~fl;
+      }
     }
     bool testFlag(uint8_t fl) const { return (flags & fl) == fl; }
     void print(const std::string& pref = "") const;

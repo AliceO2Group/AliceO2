@@ -65,20 +65,23 @@ void VisualisationTrack::addChild(int childID)
 
 void VisualisationTrack::addMomentum(double pxpypz[3])
 {
-  for (int i = 0; i < 3; i++)
+  for (int i = 0; i < 3; i++) {
     mMomentum[i] = pxpypz[i];
+  }
 }
 
 void VisualisationTrack::addStartCoordinates(double xyz[3])
 {
-  for (int i = 0; i < 3; i++)
+  for (int i = 0; i < 3; i++) {
     mStartCoordinates[i] = xyz[i];
+  }
 }
 
 void VisualisationTrack::addEndCoordinates(double xyz[3])
 {
-  for (int i = 0; i < 3; i++)
+  for (int i = 0; i < 3; i++) {
     mEndCoordinates[i] = xyz[i];
+  }
 }
 
 void VisualisationTrack::addPolyPoint(double x, double y, double z)
