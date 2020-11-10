@@ -48,6 +48,12 @@ void EntropyDecoderSpec::run(ProcessingContext& pc)
             << compclusters.size() << " bytes in " << mTimer.CpuTime() - cput << " s";
 }
 
+void EntropyDecoderSpec::endOfStream(EndOfStreamContext& ec)
+{
+  LOGF(INFO, "TPC Entropy Decoding total timing: Cpu: %.3e Real: %.3e s in %d slots",
+       mTimer.CpuTime(), mTimer.RealTime(), mTimer.Counter() - 1);
+}
+
 DataProcessorSpec getEntropyDecoderSpec()
 {
   return DataProcessorSpec{
