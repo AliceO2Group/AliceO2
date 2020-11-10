@@ -25,6 +25,8 @@ class TPad;
 class TH1;
 class TFile;
 class TH1D;
+class TObjArray;
+class TColor;
 typedef short int Color_t;
 
 #if !defined(GPUCA_BUILD_QA) || defined(GPUCA_GPUCODE)
@@ -82,12 +84,12 @@ class GPUQA
 {
  public:
   GPUQA();
-  GPUQA(GPUChainTracking* chain);
+  GPUQA(GPUChainTracking* chain, const GPUSettingsQA* config = nullptr);
   ~GPUQA();
 
   int InitQA();
   void RunQA(bool matchOnly = false);
-  int DrawQAHistograms();
+  int DrawQAHistograms(TObjArray* qcout = nullptr);
   void SetMCTrackRange(int min, int max);
   bool SuppressTrack(int iTrack) const;
   bool SuppressHit(int iHit) const;
@@ -100,6 +102,7 @@ class GPUQA
   const std::vector<TH1F>& getHistograms1D() const { return *mHist1D; }
   const std::vector<TH2F>& getHistograms2D() const { return *mHist2D; }
   const std::vector<TH1D>& getHistograms1Dd() const { return *mHist1Dd; }
+  int loadHistograms(std::vector<TH1F>& i1, std::vector<TH2F>& i2, std::vector<TH1D>& i3);
 
   static constexpr int N_CLS_HIST = 8;
   static constexpr int N_CLS_TYPE = 3;
@@ -251,16 +254,17 @@ class GPUQA
   TPad* mPNCl;
   TLegend* mLNCl;
 
-  std::unique_ptr<std::vector<TH1F>> mHist1D{};
-  std::unique_ptr<std::vector<TH2F>> mHist2D{};
-  std::unique_ptr<std::vector<TH1D>> mHist1Dd{};
+  std::vector<TH1F>* mHist1D = nullptr;
+  std::vector<TH2F>* mHist2D = nullptr;
+  std::vector<TH1D>* mHist1Dd = nullptr;
+  bool mHaveExternalHists = false;
   std::vector<TH1F**> mHist1D_pos{};
   std::vector<TH2F**> mHist2D_pos{};
   std::vector<TH1D**> mHist1Dd_pos{};
   template <class T>
-  auto getHist();
+  auto getHistArray();
   template <class T, typename... Args>
-  void createHist(T*& h, Args... args);
+  void createHist(T*& h, const char* name, Args... args);
 
   int mNEvents = 0;
   bool mQAInitialized = false;
@@ -270,6 +274,7 @@ class GPUQA
   std::vector<std::vector<bool>> mGoodHits;
 
   std::vector<Color_t> mColorNums;
+  std::vector<TColor> mColors;
 
   int mMCTrackMin = -1, mMCTrackMax = -1;
 };

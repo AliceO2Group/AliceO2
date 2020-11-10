@@ -26,6 +26,7 @@
 #include "TTree.h"
 #include "TStyle.h"
 #include "TLatex.h"
+#include "TObjArray.h"
 #include <sys/stat.h>
 
 #include "GPUQA.h"
@@ -214,7 +215,7 @@ inline int GPUQA::GetMCLabelCol(unsigned int i, unsigned int j) { return mTracki
 inline float GPUQA::GetMCLabelWeight(unsigned int i, unsigned int j) { return 1; }
 inline float GPUQA::GetMCLabelWeight(const mcLabels_t& label, unsigned int j) { return 1; }
 inline float GPUQA::GetMCLabelWeight(const mcLabel_t& label) { return 1; }
-inline bool GPUQA::mcPresent() { return !mConfig.noMC && mTracking->mIOPtrs.clustersNative->clustersMCTruth && mNColTracks.size(); }
+inline bool GPUQA::mcPresent() { return !mConfig.noMC && mTracking && mTracking->mIOPtrs.clustersNative->clustersMCTruth && mNColTracks.size(); }
 #define TRACK_EXPECTED_REFERENCE_X 78
 #else
 inline GPUQA::mcLabelI_t::mcLabelI_t(const GPUQA::mcLabel_t& l) : track(l.fMCID)
@@ -240,7 +241,7 @@ inline float GPUQA::GetMCLabelWeight(const mcLabels_t& label, unsigned int j) { 
 inline float GPUQA::GetMCLabelWeight(const mcLabel_t& label) { return label.fWeight; }
 inline int GPUQA::FakeLabelID(int id) { return id < 0 ? id : (-2 - id); }
 inline int GPUQA::AbsLabelID(int id) { return id >= 0 ? id : (-id - 2); }
-inline bool GPUQA::mcPresent() { return !mConfig.noMC && GetNMCLabels() && GetNMCTracks(0); }
+inline bool GPUQA::mcPresent() { return !mConfig.noMC && mTracking && GetNMCLabels() && GetNMCTracks(0); }
 #define TRACK_EXPECTED_REFERENCE_X 81
 #endif
 template <class T>
@@ -250,38 +251,51 @@ inline auto& GPUQA::GetMCTrackObj(T& obj, const GPUQA::mcLabelI_t& l)
 }
 
 template <>
-auto GPUQA::getHist<TH1F>()
+auto GPUQA::getHistArray<TH1F>()
 {
-  return std::make_pair(&mHist1D, &mHist1D_pos);
+  return std::make_pair(mHist1D, &mHist1D_pos);
 }
 template <>
-auto GPUQA::getHist<TH2F>()
+auto GPUQA::getHistArray<TH2F>()
 {
-  return std::make_pair(&mHist2D, &mHist2D_pos);
+  return std::make_pair(mHist2D, &mHist2D_pos);
 }
 template <>
-auto GPUQA::getHist<TH1D>()
+auto GPUQA::getHistArray<TH1D>()
 {
-  return std::make_pair(&mHist1Dd, &mHist1Dd_pos);
+  return std::make_pair(mHist1Dd, &mHist1Dd_pos);
 }
 template <class T, typename... Args>
-void GPUQA::createHist(T*& h, Args... args)
+void GPUQA::createHist(T*& h, const char* name, Args... args)
 {
-  const auto& p = getHist<T>();
-  p.first->get()->emplace_back(args...);
+  const auto& p = getHistArray<T>();
+  if (mHaveExternalHists) {
+    if (p.first->size() <= p.second->size()) {
+      throw std::runtime_error("Incoming histogram array incomplete");
+    }
+    if (strcmp((*p.first)[p.second->size()].GetName(), name)) {
+      throw std::runtime_error("Incoming histogram has incorrect name");
+    }
+  } else {
+    p.first->emplace_back(name, args...);
+  }
   p.second->emplace_back(&h);
-  h = &p.first->get()->back();
+  h = &p.first->back();
 }
 
-GPUQA::GPUQA(GPUChainTracking* chain) : mTracking(chain), mConfig(GPUQA_GetConfig(chain))
+GPUQA::GPUQA(GPUChainTracking* chain, const GPUSettingsQA* config) : mTracking(chain), mConfig(config ? *config : GPUQA_GetConfig(chain))
 {
-  mHist1D.reset(new std::vector<TH1F>);
-  mHist2D.reset(new std::vector<TH2F>);
-  mHist1Dd.reset(new std::vector<TH1D>);
   mRunForQC = chain == nullptr || mConfig.forQC;
 }
 
-GPUQA::~GPUQA() = default;
+GPUQA::~GPUQA()
+{
+  if (mQAInitialized && !mHaveExternalHists) {
+    delete mHist1D;
+    delete mHist2D;
+    delete mHist1Dd;
+  }
+}
 
 inline bool GPUQA::MCComp(const mcLabel_t& a, const mcLabel_t& b) { return (GPUQA::GetMCLabelID(a) > GPUQA::GetMCLabelID(b)); }
 
@@ -384,7 +398,9 @@ int GPUQA::InitQACreateHistograms()
             } else {
               createHist(mEff[i][j][k][l][m], name, name, AXIS_BINS[l], AXES_MIN[l], AXES_MAX[l]);
             }
-            mEff[i][j][k][l][m]->Sumw2();
+            if (!mHaveExternalHists) {
+              mEff[i][j][k][l][m]->Sumw2();
+            }
           }
         }
       }
@@ -472,19 +488,43 @@ int GPUQA::InitQACreateHistograms()
   return 0;
 }
 
+int GPUQA::loadHistograms(std::vector<TH1F>& i1, std::vector<TH2F>& i2, std::vector<TH1D>& i3)
+{
+  if (mQAInitialized) {
+    return 1;
+  }
+  mHist1D = &i1;
+  mHist2D = &i2;
+  mHist1Dd = &i3;
+  mHist1D_pos.clear();
+  mHist2D_pos.clear();
+  mHist1Dd_pos.clear();
+  mHaveExternalHists = true;
+  if (InitQACreateHistograms()) {
+    return 1;
+  }
+  mQAInitialized = true;
+  return 0;
+}
+
 int GPUQA::InitQA()
 {
   if (mQAInitialized) {
     return 1;
   }
 
+  mHist1D = new std::vector<TH1F>;
+  mHist2D = new std::vector<TH2F>;
+  mHist1Dd = new std::vector<TH1D>;
+  
   mColorNums.resize(COLORCOUNT);
+  mColors.reserve(COLORCOUNT);
   for (int i = 0; i < COLORCOUNT; i++) {
     float f1 = (float)((COLORS_HEX[i] >> 16) & 0xFF) / (float)0xFF;
     float f2 = (float)((COLORS_HEX[i] >> 8) & 0xFF) / (float)0xFF;
     float f3 = (float)((COLORS_HEX[i] >> 0) & 0xFF) / (float)0xFF;
-    TColor* c = new TColor(10000 + i, f1, f2, f3);
-    mColorNums[i] = c->GetNumber();
+    mColors.emplace_back(10000 + i, f1, f2, f3);
+    mColorNums[i] = mColors.back().GetNumber();
   }
 
   if (InitQACreateHistograms()) {
@@ -1589,7 +1629,7 @@ T* GPUQA::GetHist(T*& ee, std::vector<TFile*>& tin, int k, int nNewInput)
   return (e);
 }
 
-int GPUQA::DrawQAHistograms()
+int GPUQA::DrawQAHistograms(TObjArray* qcout)
 {
   if (!mQAInitialized) {
     return 1;
@@ -1755,12 +1795,16 @@ int GPUQA::DrawQAHistograms()
     }
   }
 
+  int flagShowVsPtLog = mRunForQC ? 0 : 1;
+
   // Process / Draw Efficiency Histograms
-  for (int ii = 0; ii < 6; ii++) {
+  for (int ii = 0; ii < 5 + flagShowVsPtLog; ii++) {
     int i = ii == 5 ? 4 : ii;
     for (int k = 0; k < ConfigNumInputs; k++) {
       for (int j = 0; j < 4; j++) {
-        mPEff[ii][j]->cd();
+        if (!mRunForQC) {
+          mPEff[ii][j]->cd();
+        }
         for (int l = 0; l < 3; l++) {
           if (k == 0 && mConfig.inputHistogramsOnly == 0 && ii != 5) {
             if (l == 0) {
@@ -1796,14 +1840,17 @@ int GPUQA::DrawQAHistograms()
           e->GetYaxis()->SetTitle("(Efficiency)");
           e->GetXaxis()->SetTitle(XAXIS_TITLES[i]);
 
-          e->SetMarkerColor(kBlack);
           e->SetLineWidth(1);
-          e->SetLineColor(mColorNums[(l == 2 ? (ConfigNumInputs * 2 + k) : (k * 2 + l)) % COLORCOUNT]);
           e->SetLineStyle(CONFIG_DASHED_MARKERS ? k + 1 : 1);
           SetAxisSize(e);
+          if (qcout) {
+            qcout->Add(e);
+          }
           if (mRunForQC) {
             continue;
           }
+          e->SetMarkerColor(kBlack);
+          e->SetLineColor(mColorNums[(l == 2 ? (ConfigNumInputs * 2 + k) : (k * 2 + l)) % COLORCOUNT]);
           e->Draw(k || l ? "same" : "");
           if (j == 0) {
             GetName(fname, k);
@@ -1839,7 +1886,7 @@ int GPUQA::DrawQAHistograms()
   TH1D *resIntegral[5] = {}, *pullIntegral[5] = {};
   TF1* customGaus = new TF1("G", "[0]*exp(-(x-[1])*(x-[1])/(2.*[2]*[2]))");
   for (int p = 0; p < 2; p++) {
-    for (int ii = 0; ii < 6; ii++) {
+    for (int ii = 0; ii < 5 + flagShowVsPtLog; ii++) {
       TCanvas* can = p ? mCPull[ii] : mCRes[ii];
       TLegend* leg = p ? mLPull[ii] : mLRes[ii];
       int i = ii == 5 ? 4 : ii;
@@ -2001,9 +2048,7 @@ int GPUQA::DrawQAHistograms()
             }
             e->SetMaximum(tmpMax);
             e->SetMinimum(tmpMin);
-            e->SetMarkerColor(kBlack);
             e->SetLineWidth(1);
-            e->SetLineColor(mColorNums[numColor++ % COLORCOUNT]);
             e->SetLineStyle(CONFIG_DASHED_MARKERS ? k + 1 : 1);
             SetAxisSize(e);
             e->GetYaxis()->SetTitle(p ? AXIS_TITLES_PULL[j] : mConfig.nativeFitResolutions ? AXIS_TITLES_NATIVE[j] : AXIS_TITLES[j]);
@@ -2017,10 +2062,15 @@ int GPUQA::DrawQAHistograms()
             } else if (j < 3) {
               e->GetYaxis()->SetTitleOffset(1.4);
             }
+            if (qcout) {
+              qcout->Add(e);
+            }
             if (mRunForQC) {
               continue;
             }
 
+            e->SetMarkerColor(kBlack);
+            e->SetLineColor(mColorNums[numColor++ % COLORCOUNT]);
             e->Draw(k || l ? "same" : "");
             if (j == 0) {
               GetName(fname, k);
@@ -2068,7 +2118,9 @@ int GPUQA::DrawQAHistograms()
       TPad* pad = p ? mPPull[6][i] : mPRes[6][i];
       TH1D* hist = p ? pullIntegral[i] : resIntegral[i];
       int numColor = 0;
-      pad->cd();
+      if (!mRunForQC) {
+        pad->cd();
+      }
       if (!mConfig.inputHistogramsOnly && mcAvail) {
         TH1D* e = hist;
         e->GetEntries();
@@ -2094,15 +2146,21 @@ int GPUQA::DrawQAHistograms()
         }
         e->SetMaximum(tmpMax * 1.02);
         e->SetMinimum(tmpMax * -0.02);
-        e->SetLineColor(mColorNums[numColor++ % COLORCOUNT]);
         if (tout && !mConfig.inputHistogramsOnly && k == 0) {
           e->Write();
+        }
+        if (qcout) {
+          qcout->Add(e);
         }
         if (mRunForQC) {
           continue;
         }
 
+        e->SetLineColor(mColorNums[numColor++ % COLORCOUNT]);
         e->Draw(k == 0 ? "" : "same");
+      }
+      if (mRunForQC) {
+        continue;
       }
       can->cd();
     }
@@ -2230,8 +2288,10 @@ int GPUQA::DrawQAHistograms()
     }
 
     for (int i = 0; i < N_CLS_TYPE; i++) {
-      mPClust[i]->cd();
-      mPClust[i]->SetLogx();
+      if (!mRunForQC) {
+        mPClust[i]->cd();
+        mPClust[i]->SetLogx();
+      }
       int begin = i == 2 ? (2 * N_CLS_HIST - 1) : i == 1 ? N_CLS_HIST : 0;
       int end = i == 2 ? (3 * N_CLS_HIST - 1) : i == 1 ? (2 * N_CLS_HIST - 1) : N_CLS_HIST;
       int numColor = 0;
@@ -2251,17 +2311,20 @@ int GPUQA::DrawQAHistograms()
             e->Write();
           }
           e->SetStats(kFALSE);
-          e->SetMarkerColor(kBlack);
           e->SetLineWidth(1);
-          e->SetLineColor(mColorNums[numColor++ % COLORCOUNT]);
           e->SetLineStyle(CONFIG_DASHED_MARKERS ? j + 1 : 1);
           if (i == 0) {
             e->GetXaxis()->SetRange(2, AXIS_BINS[4]);
+          }
+          if (qcout) {
+            qcout->Add(e);
           }
           if (mRunForQC) {
             continue;
           }
 
+          e->SetMarkerColor(kBlack);
+          e->SetLineColor(mColorNums[numColor++ % COLORCOUNT]);
           e->Draw(j == end - 1 && k == 0 ? "" : "same");
           GetName(fname, k);
           sprintf(name, "%s%s", fname, CLUSTER_NAMES[j - begin]);
@@ -2271,11 +2334,14 @@ int GPUQA::DrawQAHistograms()
       if (ConfigNumInputs == 1) {
         TH1* e = reinterpret_cast<TH1F*>(mClusters[begin + CL_att_adj]->Clone());
         e->Add(mClusters[begin + CL_prot], -1);
-        e->SetLineColor(mColorNums[numColor++ % COLORCOUNT]);
+        if (qcout) {
+          qcout->Add(e);
+        }
         if (mRunForQC) {
           continue;
         }
 
+        e->SetLineColor(mColorNums[numColor++ % COLORCOUNT]);
         e->Draw("same");
         mLClust[i]->AddEntry(e, "Removed", "l");
       }
@@ -2321,11 +2387,14 @@ int GPUQA::DrawQAHistograms()
       e->SetMaximum(tmpMax * 1.02);
       e->SetMinimum(tmpMax * -0.02);
       e->SetStats(kFALSE);
-      e->SetMarkerColor(kBlack);
       e->SetLineWidth(1);
-      e->SetLineColor(mColorNums[k % COLORCOUNT]);
       e->GetYaxis()->SetTitle("a.u.");
       e->GetXaxis()->SetTitle("#it{p}_{Tmc} (GeV/#it{c})");
+      if (qcout) {
+        qcout->Add(e);
+      }
+      e->SetMarkerColor(kBlack);
+      e->SetLineColor(mColorNums[k % COLORCOUNT]);
       e->Draw(k == 0 ? "" : "same");
       GetName(fname, k);
       sprintf(name, "%sTrack Pt", fname);
@@ -2360,11 +2429,14 @@ int GPUQA::DrawQAHistograms()
       e->SetMaximum(tmpMax * 1.02);
       e->SetMinimum(tmpMax * -0.02);
       e->SetStats(kFALSE);
-      e->SetMarkerColor(kBlack);
       e->SetLineWidth(1);
-      e->SetLineColor(mColorNums[k % COLORCOUNT]);
       e->GetYaxis()->SetTitle("a.u.");
       e->GetXaxis()->SetTitle("NClusters");
+      if (qcout) {
+        qcout->Add(e);
+      }
+      e->SetMarkerColor(kBlack);
+      e->SetLineColor(mColorNums[k % COLORCOUNT]);
       e->Draw(k == 0 ? "" : "same");
       GetName(fname, k);
       sprintf(name, "%sNClusters", fname);
