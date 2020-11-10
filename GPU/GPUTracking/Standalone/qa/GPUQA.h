@@ -60,7 +60,8 @@ class GPUQA
 
 #include "GPUTPCDef.h"
 #include <cmath>
-
+#include <vector>
+#include <memory>
 #ifdef GPUCA_TPC_GEOMETRY_O2
 #include <gsl/span>
 #endif
@@ -80,6 +81,7 @@ class GPUTPCMCInfo;
 class GPUQA
 {
  public:
+  GPUQA();
   GPUQA(GPUChainTracking* rec);
   ~GPUQA();
 
@@ -95,8 +97,14 @@ class GPUQA
   static bool QAAvailable() { return true; }
   bool IsInitialized() { return mQAInitialized; }
 
+  const std::vector<TH1F>& getHistograms1D() const { return mHist1D; }
+  const std::vector<TH2F>& getHistograms2D() const { return mHist2D; }
+  const std::vector<TH1D>& getHistograms1Dd() const { return mHist1Dd; }
+
   static constexpr int N_CLS_HIST = 8;
   static constexpr int N_CLS_TYPE = 3;
+
+  static constexpr int MC_LABEL_INVALID = -1e9;
 
  private:
   struct additionalMCParameters {
@@ -107,6 +115,8 @@ class GPUQA
     int attached, fakeAttached, adjacent, fakeAdjacent;
     float pt;
   };
+
+  int InitQACreateHistograms();
 
   void SetAxisSize(TH1F* e);
   void SetLegend(TLegend* l);
@@ -239,6 +249,17 @@ class GPUQA
   TCanvas* mCNCl;
   TPad* mPNCl;
   TLegend* mLNCl;
+
+  std::unique_ptr<std::vector<TH1F>> mHist1D{};
+  std::unique_ptr<std::vector<TH2F>> mHist2D{};
+  std::unique_ptr<std::vector<TH1D>> mHist1Dd{};
+  std::vector<TH1F**> mHist1D_pos{};
+  std::vector<TH2F**> mHist2D_pos{};
+  std::vector<TH1D**> mHist1Dd_pos{};
+  template <class T>
+  auto getHist();
+  template <class T, typename... Args>
+  void createHist(T*& h, Args... args);
 
   int mNEvents = 0;
   bool mQAInitialized = false;
