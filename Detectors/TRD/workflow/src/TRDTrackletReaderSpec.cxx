@@ -56,7 +56,7 @@ void TRDTrackletReader::run(ProcessingContext& pc)
   LOG(INFO) << "Pushing " << mTracklets.size() << " TRD tracklets for these trigger records";
 
   pc.outputs().snapshot(Output{o2::header::gDataOriginTRD, "TRACKLETS", 0, Lifetime::Timeframe}, mTracklets);
-  pc.outputs().snapshot(Output{o2::header::gDataOriginTRD, "TRIGGERREC", 0, Lifetime::Timeframe}, mTriggerRecords);
+  pc.outputs().snapshot(Output{o2::header::gDataOriginTRD, "TRKTRGRD", 0, Lifetime::Timeframe}, mTriggerRecords);
   if (mUseMC) {
     LOG(FATAL) << "MC information not yet included for TRD tracklets";
   }
@@ -71,7 +71,7 @@ DataProcessorSpec getTRDTrackletReaderSpec(bool useMC)
 {
   std::vector<OutputSpec> outputs;
   outputs.emplace_back(o2::header::gDataOriginTRD, "TRACKLETS", 0, Lifetime::Timeframe);
-  outputs.emplace_back(o2::header::gDataOriginTRD, "TRIGGERREC", 0, Lifetime::Timeframe);
+  outputs.emplace_back(o2::header::gDataOriginTRD, "TRKTRGRD", 0, Lifetime::Timeframe);
   if (useMC) {
     LOG(FATAL) << "MC information not yet included for TRD tracklets";
   }
