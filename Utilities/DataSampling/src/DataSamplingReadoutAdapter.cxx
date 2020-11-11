@@ -12,11 +12,8 @@
 #include "Headers/DataHeader.h"
 #include "Framework/DataSpecUtils.h"
 #include <atomic>
-#include <iostream>
-
 
 using namespace o2::framework;
-using namespace std;
 
 namespace o2::utilities
 {
