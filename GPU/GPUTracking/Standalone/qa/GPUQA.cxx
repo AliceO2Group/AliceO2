@@ -190,6 +190,22 @@ static const constexpr float RES_AXES[5] = {1., 1., 0.03, 0.03, 1.0};
 static const constexpr float RES_AXES_NATIVE[5] = {1., 1., 0.1, 0.1, 5.0};
 static const constexpr float PULL_AXIS = 10.f;
 
+std::vector<Color_t> GPUQA::mColorNums;
+std::vector<TColor> GPUQA::mColors;
+int GPUQA::initColors()
+{
+  mColorNums.resize(COLORCOUNT);
+  mColors.reserve(COLORCOUNT);
+  for (int i = 0; i < COLORCOUNT; i++) {
+    float f1 = (float)((COLORS_HEX[i] >> 16) & 0xFF) / (float)0xFF;
+    float f2 = (float)((COLORS_HEX[i] >> 8) & 0xFF) / (float)0xFF;
+    float f3 = (float)((COLORS_HEX[i] >> 0) & 0xFF) / (float)0xFF;
+    mColors.emplace_back(10000 + i, f1, f2, f3);
+    mColorNums[i] = mColors.back().GetNumber();
+  }
+  return 0;
+}
+
 #ifdef GPUCA_TPC_GEOMETRY_O2
 #include "SimulationDataFormat/MCCompLabel.h"
 #include "SimulationDataFormat/ConstMCTruthContainer.h"
@@ -303,6 +319,8 @@ void GPUQA::clearGarbagageCollector()
 
 GPUQA::GPUQA(GPUChainTracking* chain, const GPUSettingsQA* config) : mTracking(chain), mConfig(config ? *config : GPUQA_GetConfig(chain)), mGarbageCollector(std::make_unique<GPUQAGarbageCollection>())
 {
+  static int initColorsInitialized = initColors();
+  (void)initColorsInitialized;
   mRunForQC = chain == nullptr || mConfig.shipToQC;
 }
 
@@ -535,16 +553,6 @@ int GPUQA::InitQA()
   mHist1D = new std::vector<TH1F>;
   mHist2D = new std::vector<TH2F>;
   mHist1Dd = new std::vector<TH1D>;
-
-  mColorNums.resize(COLORCOUNT);
-  mColors.reserve(COLORCOUNT);
-  for (int i = 0; i < COLORCOUNT; i++) {
-    float f1 = (float)((COLORS_HEX[i] >> 16) & 0xFF) / (float)0xFF;
-    float f2 = (float)((COLORS_HEX[i] >> 8) & 0xFF) / (float)0xFF;
-    float f3 = (float)((COLORS_HEX[i] >> 0) & 0xFF) / (float)0xFF;
-    mColors.emplace_back(10000 + i, f1, f2, f3);
-    mColorNums[i] = mColors.back().GetNumber();
-  }
 
   if (InitQACreateHistograms()) {
     return 1;
