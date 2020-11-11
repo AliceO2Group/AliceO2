@@ -952,12 +952,12 @@ int GPUReconstruction::ReadSettings(const char* dir)
   return 0;
 }
 
-void GPUReconstruction::SetSettings(float solenoidBz)
+void GPUReconstruction::SetSettings(float solenoidBz, const GPURecoStepConfiguration* workflow)
 {
   GPUSettingsEvent ev;
   new (&ev) GPUSettingsEvent;
   ev.solenoidBz = solenoidBz;
-  SetSettings(&ev, nullptr, nullptr);
+  SetSettings(&ev, nullptr, nullptr, workflow);
 }
 
 void GPUReconstruction::SetSettings(const GPUSettingsEvent* settings, const GPUSettingsRec* rec, const GPUSettingsProcessing* proc, const GPURecoStepConfiguration* workflow)
