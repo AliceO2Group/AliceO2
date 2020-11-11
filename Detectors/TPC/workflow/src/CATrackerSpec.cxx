@@ -163,7 +163,7 @@ DataProcessorSpec getCATrackerSpec(CompletionPolicyData* policyData, ca::Config 
       config.configProcessing.runMC = specconfig.processMC;
       if (specconfig.outputQA) {
         if (!config.configProcessing.runQA) {
-          config.configQA.forQC = true;
+          config.configQA.shipToQC = true;
         }
         config.configProcessing.runQA = true;
       }
@@ -713,6 +713,7 @@ DataProcessorSpec getCATrackerSpec(CompletionPolicyData* policyData, ca::Config 
         std::vector<TH1D> copy3 = *outputRegions.qa.hist3;
         processAttributes->qa->postprocess(copy1, copy2, copy3, out);
         pc.outputs().snapshot({gDataOriginTPC, "TRACKINGQA", 0, Lifetime::Timeframe}, out);
+        processAttributes->qa->cleanup();
       }
       timer.Stop();
       LOG(INFO) << "TPC CATracker time for this TF " << timer.CpuTime() - cput << " s";
