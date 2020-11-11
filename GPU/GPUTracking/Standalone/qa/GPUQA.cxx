@@ -303,7 +303,7 @@ void GPUQA::clearGarbagageCollector()
 
 GPUQA::GPUQA(GPUChainTracking* chain, const GPUSettingsQA* config) : mTracking(chain), mConfig(config ? *config : GPUQA_GetConfig(chain)), mGarbageCollector(std::make_unique<GPUQAGarbageCollection>())
 {
-  mRunForQC = chain == nullptr || mConfig.forQC;
+  mRunForQC = chain == nullptr || mConfig.shipToQC;
 }
 
 GPUQA::~GPUQA()
@@ -1644,6 +1644,11 @@ T* GPUQA::GetHist(T*& ee, std::vector<std::unique_ptr<TFile>>& tin, int k, int n
   return (e);
 }
 
+void GPUQA::DrawQAHistogramsCleanup()
+{
+  clearGarbagageCollector();
+}
+
 int GPUQA::DrawQAHistograms(TObjArray* qcout)
 {
   if (!mQAInitialized) {
@@ -1664,7 +1669,7 @@ int GPUQA::DrawQAHistograms(TObjArray* qcout)
     tout = std::make_unique<TFile>(mConfig.output.c_str(), "RECREATE");
   }
 
-  if (!mRunForQC) {
+  if (!mRunForQC || mConfig.shipToQCAsCanvas) {
     float legendSpacingString = 0.025;
     for (int i = 0; i < ConfigNumInputs; i++) {
       GetName(fname, i);
@@ -1801,23 +1806,23 @@ int GPUQA::DrawQAHistograms(TObjArray* qcout)
       mLNCl = createGarbageCollected<TLegend>(0.9 - legendSpacingString * 1.45, 0.93 - (0.93 - 0.86) / 2. * (float)ConfigNumInputs, 0.98, 0.949);
       SetLegend(mLNCl);
     }
-
-    if (!mConfig.inputHistogramsOnly) {
-      GPUInfo("QA Stats: Eff: Tracks Prim %d (Eta %d, Pt %d) %f%% (%f%%) Sec %d (Eta %d, Pt %d) %f%% (%f%%) -  Res: Tracks %d (Eta %d, Pt %d)", (int)mEff[3][1][0][0][0]->GetEntries(), (int)mEff[3][1][0][3][0]->GetEntries(), (int)mEff[3][1][0][4][0]->GetEntries(),
-              mEff[0][0][0][0][0]->GetSumOfWeights() / std::max(1., mEff[3][0][0][0][0]->GetSumOfWeights()), mEff[0][1][0][0][0]->GetSumOfWeights() / std::max(1., mEff[3][1][0][0][0]->GetSumOfWeights()), (int)mEff[3][1][1][0][0]->GetEntries(), (int)mEff[3][1][1][3][0]->GetEntries(),
-              (int)mEff[3][1][1][4][0]->GetEntries(), mEff[0][0][1][0][0]->GetSumOfWeights() / std::max(1., mEff[3][0][1][0][0]->GetSumOfWeights()), mEff[0][1][1][0][0]->GetSumOfWeights() / std::max(1., mEff[3][1][1][0][0]->GetSumOfWeights()), (int)mRes2[0][0]->GetEntries(),
-              (int)mRes2[0][3]->GetEntries(), (int)mRes2[0][4]->GetEntries());
-    }
   }
 
-  int flagShowVsPtLog = mRunForQC ? 0 : 1;
+  if (!mRunForQC && !mConfig.inputHistogramsOnly) {
+    GPUInfo("QA Stats: Eff: Tracks Prim %d (Eta %d, Pt %d) %f%% (%f%%) Sec %d (Eta %d, Pt %d) %f%% (%f%%) -  Res: Tracks %d (Eta %d, Pt %d)", (int)mEff[3][1][0][0][0]->GetEntries(), (int)mEff[3][1][0][3][0]->GetEntries(), (int)mEff[3][1][0][4][0]->GetEntries(),
+            mEff[0][0][0][0][0]->GetSumOfWeights() / std::max(1., mEff[3][0][0][0][0]->GetSumOfWeights()), mEff[0][1][0][0][0]->GetSumOfWeights() / std::max(1., mEff[3][1][0][0][0]->GetSumOfWeights()), (int)mEff[3][1][1][0][0]->GetEntries(), (int)mEff[3][1][1][3][0]->GetEntries(),
+            (int)mEff[3][1][1][4][0]->GetEntries(), mEff[0][0][1][0][0]->GetSumOfWeights() / std::max(1., mEff[3][0][1][0][0]->GetSumOfWeights()), mEff[0][1][1][0][0]->GetSumOfWeights() / std::max(1., mEff[3][1][1][0][0]->GetSumOfWeights()), (int)mRes2[0][0]->GetEntries(),
+            (int)mRes2[0][3]->GetEntries(), (int)mRes2[0][4]->GetEntries());
+  }
+
+  int flagShowVsPtLog = (mRunForQC && !mConfig.shipToQCAsCanvas) ? 0 : 1;
 
   // Process / Draw Efficiency Histograms
   for (int ii = 0; ii < 5 + flagShowVsPtLog; ii++) {
     int i = ii == 5 ? 4 : ii;
     for (int k = 0; k < ConfigNumInputs; k++) {
       for (int j = 0; j < 4; j++) {
-        if (!mRunForQC) {
+        if (!mRunForQC || mConfig.shipToQCAsCanvas) {
           mPEff[ii][j]->cd();
         }
         for (int l = 0; l < 3; l++) {
@@ -1858,10 +1863,10 @@ int GPUQA::DrawQAHistograms(TObjArray* qcout)
           e->SetLineWidth(1);
           e->SetLineStyle(CONFIG_DASHED_MARKERS ? k + 1 : 1);
           SetAxisSize(e);
-          if (qcout) {
+          if (qcout && !mConfig.shipToQCAsCanvas) {
             qcout->Add(e);
           }
-          if (mRunForQC) {
+          if (mRunForQC && !mConfig.shipToQCAsCanvas) {
             continue;
           }
           e->SetMarkerColor(kBlack);
@@ -1876,21 +1881,26 @@ int GPUQA::DrawQAHistograms(TObjArray* qcout)
             mPEff[ii][j]->SetLogx();
           }
         }
-        if (mRunForQC) {
+        if (mRunForQC && !mConfig.shipToQCAsCanvas) {
           continue;
         }
         mCEff[ii]->cd();
         ChangePadTitleSize(mPEff[ii][j], 0.056);
       }
     }
-    if (mRunForQC) {
+    if (mRunForQC && !mConfig.shipToQCAsCanvas) {
       continue;
     }
 
     mLEff[ii]->Draw();
 
+    if (mRunForQC) {
+      if (qcout) {
+        qcout->Add(mCEff[ii]);
+      }
+      continue;
+    }
     doPerfFigure(0.2, 0.295, 0.025);
-
     mCEff[ii]->Print(Form("plots/eff_vs_%s.pdf", VSPARAMETER_NAMES[ii]));
     if (mConfig.writeRootFiles) {
       mCEff[ii]->Print(Form("plots/eff_vs_%s.root", VSPARAMETER_NAMES[ii]));
@@ -1913,12 +1923,10 @@ int GPUQA::DrawQAHistograms(TObjArray* qcout)
         TPad* pad = p ? mPPull[ii][j] : mPRes[ii][j];
 
         if (!mConfig.inputHistogramsOnly && ii != 5) {
-          if (!mRunForQC) {
-            if (cfit == nullptr) {
-              cfit = createGarbageCollected<TCanvas>();
-            }
-            cfit->cd();
+          if (cfit == nullptr) {
+            cfit = createGarbageCollected<TCanvas>();
           }
+          cfit->cd();
 
           TAxis* axis = src->GetYaxis();
           int nBins = axis->GetNbins();
@@ -2002,7 +2010,7 @@ int GPUQA::DrawQAHistograms(TObjArray* qcout)
           dstIntegral->SetName(fname);
           dstIntegral->SetTitle(name);
         }
-        if (!mRunForQC) {
+        if (!mRunForQC || mConfig.shipToQCAsCanvas) {
           pad->cd();
         }
         int numColor = 0;
@@ -2080,10 +2088,10 @@ int GPUQA::DrawQAHistograms(TObjArray* qcout)
             } else if (j < 3) {
               e->GetYaxis()->SetTitleOffset(1.4);
             }
-            if (qcout) {
+            if (qcout && !mConfig.shipToQCAsCanvas) {
               qcout->Add(e);
             }
-            if (mRunForQC) {
+            if (mRunForQC && !mConfig.shipToQCAsCanvas) {
               continue;
             }
 
@@ -2101,7 +2109,7 @@ int GPUQA::DrawQAHistograms(TObjArray* qcout)
             }
           }
         }
-        if (mRunForQC) {
+        if (mRunForQC && !mConfig.shipToQCAsCanvas) {
           continue;
         }
 
@@ -2113,14 +2121,19 @@ int GPUQA::DrawQAHistograms(TObjArray* qcout)
           ChangePadTitleSize(pad, 0.056);
         }
       }
-      if (mRunForQC) {
+      if (mRunForQC && !mConfig.shipToQCAsCanvas) {
         continue;
       }
 
       leg->Draw();
 
+      if (mRunForQC) {
+        if (qcout) {
+          qcout->Add(can);
+        }
+        continue;
+      }
       doPerfFigure(0.2, 0.295, 0.025);
-
       can->Print(Form(p ? "plots/pull_vs_%s.pdf" : "plots/res_vs_%s.pdf", VSPARAMETER_NAMES[ii]));
       if (mConfig.writeRootFiles) {
         can->Print(Form(p ? "plots/pull_vs_%s.root" : "plots/res_vs_%s.root", VSPARAMETER_NAMES[ii]));
@@ -2135,7 +2148,7 @@ int GPUQA::DrawQAHistograms(TObjArray* qcout)
       TPad* pad = p ? mPPull[6][i] : mPRes[6][i];
       TH1D* hist = p ? pullIntegral[i] : resIntegral[i];
       int numColor = 0;
-      if (!mRunForQC) {
+      if (!mRunForQC || mConfig.shipToQCAsCanvas) {
         pad->cd();
       }
       if (!mConfig.inputHistogramsOnly && mcAvail) {
@@ -2166,22 +2179,25 @@ int GPUQA::DrawQAHistograms(TObjArray* qcout)
         if (tout && !mConfig.inputHistogramsOnly && k == 0) {
           e->Write();
         }
-        if (qcout) {
+        if (qcout && !mConfig.shipToQCAsCanvas) {
           qcout->Add(e);
         }
-        if (mRunForQC) {
+        if (mRunForQC && !mConfig.shipToQCAsCanvas) {
           continue;
         }
 
         e->SetLineColor(mColorNums[numColor++ % COLORCOUNT]);
         e->Draw(k == 0 ? "" : "same");
       }
-      if (mRunForQC) {
+      if (mRunForQC && !mConfig.shipToQCAsCanvas) {
         continue;
       }
       can->cd();
     }
     if (mRunForQC) {
+      if (qcout) {
+        qcout->Add(can);
+      }
       continue;
     }
 
@@ -2300,7 +2316,7 @@ int GPUQA::DrawQAHistograms(TObjArray* qcout)
     }
 
     for (int i = 0; i < N_CLS_TYPE; i++) {
-      if (!mRunForQC) {
+      if (!mRunForQC || mConfig.shipToQCAsCanvas) {
         mPClust[i]->cd();
         mPClust[i]->SetLogx();
       }
@@ -2328,10 +2344,10 @@ int GPUQA::DrawQAHistograms(TObjArray* qcout)
           if (i == 0) {
             e->GetXaxis()->SetRange(2, AXIS_BINS[4]);
           }
-          if (qcout) {
+          if (qcout && !mConfig.shipToQCAsCanvas) {
             qcout->Add(e);
           }
-          if (mRunForQC) {
+          if (mRunForQC && !mConfig.shipToQCAsCanvas) {
             continue;
           }
 
@@ -2346,10 +2362,10 @@ int GPUQA::DrawQAHistograms(TObjArray* qcout)
       if (ConfigNumInputs == 1) {
         TH1* e = reinterpret_cast<TH1F*>(mClusters[begin + CL_att_adj]->Clone());
         e->Add(mClusters[begin + CL_prot], -1);
-        if (qcout) {
+        if (qcout && !mConfig.shipToQCAsCanvas) {
           qcout->Add(e);
         }
-        if (mRunForQC) {
+        if (mRunForQC && !mConfig.shipToQCAsCanvas) {
           continue;
         }
 
@@ -2357,14 +2373,19 @@ int GPUQA::DrawQAHistograms(TObjArray* qcout)
         e->Draw("same");
         mLClust[i]->AddEntry(e, "Removed", "l");
       }
-      if (mRunForQC) {
+      if (mRunForQC && !mConfig.shipToQCAsCanvas) {
         continue;
       }
 
       mLClust[i]->Draw();
 
+      if (mRunForQC) {
+        if (qcout) {
+          qcout->Add(mCClust[i]);
+        }
+        continue;
+      }
       doPerfFigure(i != 2 ? 0.37 : 0.6, 0.295, 0.030);
-
       mCClust[i]->cd();
       mCClust[i]->Print(i == 2 ? "plots/clusters_integral.pdf" : i == 1 ? "plots/clusters_relative.pdf" : "plots/clusters.pdf");
       if (mConfig.writeRootFiles) {

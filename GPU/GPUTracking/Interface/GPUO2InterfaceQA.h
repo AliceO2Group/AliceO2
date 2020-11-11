@@ -45,6 +45,7 @@ class GPUO2InterfaceQA
 
   // Input might be modified, so we assume non-const. If it is const, a copy should be created before.
   int postprocess(std::vector<TH1F>& in1, std::vector<TH2F>& in2, std::vector<TH1D>& in3, TObjArray& out);
+  void cleanup();
 
  private:
   std::unique_ptr<GPUQA> mQA;
