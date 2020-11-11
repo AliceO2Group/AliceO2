@@ -49,7 +49,7 @@ void TRDGlobalTracking::init(InitContext& ic)
   auto geo = Geometry::instance();
   geo->createPadPlaneArray();
   geo->createClusterMatrixArray();
-  const GeometryFlat geoFlat(*geo);
+  mFlatGeo = std::make_unique<GeometryFlat>(*geo);
 
   //-------- init GPU reconstruction --------//
   GPUSettingsEvent cfgEvent;                 // defaults should be ok
@@ -71,7 +71,7 @@ void TRDGlobalTracking::init(InitContext& ic)
   mTracker->SetNMaxCollisions(1000); // max number of collisions within a time frame which can be processed
 
   mRec->RegisterGPUProcessor(mTracker, false);
-  mChainTracking->SetTRDGeometry(&geoFlat);
+  mChainTracking->SetTRDGeometry(std::move(mFlatGeo));
   if (mRec->Init()) {
     LOG(FATAL) << "GPUReconstruction could not be initialized";
   }
@@ -124,6 +124,7 @@ void TRDGlobalTracking::run(ProcessingContext& pc)
 
   LOG(INFO) << "Start loading input into TRD tracker";
   // load everything into the tracker
+  int nTracksLoaded = 0;
   for (int iTrk = 0; iTrk < nTracks; ++iTrk) {
     const auto& match = tracksITSTPC[iTrk];
     const auto& trk = match.getParamOut();
@@ -137,8 +138,11 @@ void TRDGlobalTracking::run(ProcessingContext& pc)
       trkLoad.setCov(trk.getCov()[i], i);
     }
     trkLoad.setTime(match.getTimeMUS().getTimeStamp());
-    mTracker->LoadTrack(trkLoad);
-    LOGF(INFO, "Loaded track %i with time %f", iTrk, trkLoad.getTime());
+    if (mTracker->LoadTrack(trkLoad)) {
+      continue;
+    }
+    ++nTracksLoaded;
+    LOGF(INFO, "Loaded track %i with time %f", nTracksLoaded, trkLoad.getTime());
   }
 
   for (int iTrklt = 0; iTrklt < nTracklets; ++iTrklt) {

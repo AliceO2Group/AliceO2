@@ -238,7 +238,8 @@ void GPUTRDTracker_t<TRDTRK, PROP>::DoTracking(GPUChainTracking* chainTracking)
     }
 
     if (!CalculateSpacePoints(iColl)) {
-      GPUError("Space points for at least one chamber could not be calculated");
+      GPUError("Space points for at least one chamber could not be calculated (for interaction %i)", iColl);
+      break;
     }
   }
 
@@ -451,7 +452,7 @@ GPUd() int GPUTRDTracker_t<TRDTRK, PROP>::LoadTrack(const TRDTRK& trk, const int
     return (1);
   }
   if (checkTrack && !CheckTrackTRDCandidate(trk)) {
-    return 0;
+    return 2;
   }
 #ifdef GPUCA_ALIROOT_LIB
   new (&mTracks[mNTracks]) TRDTRK(trk); // We need placement new, since the class is virtual
