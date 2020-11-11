@@ -190,8 +190,6 @@ static const constexpr float RES_AXES[5] = {1., 1., 0.03, 0.03, 1.0};
 static const constexpr float RES_AXES_NATIVE[5] = {1., 1., 0.1, 0.1, 5.0};
 static const constexpr float PULL_AXIS = 10.f;
 
-static TCanvas cfit;
-
 #ifdef GPUCA_TPC_GEOMETRY_O2
 #include "SimulationDataFormat/MCCompLabel.h"
 #include "SimulationDataFormat/ConstMCTruthContainer.h"
@@ -283,7 +281,27 @@ void GPUQA::createHist(T*& h, const char* name, Args... args)
   h = &p.first->back();
 }
 
-GPUQA::GPUQA(GPUChainTracking* chain, const GPUSettingsQA* config) : mTracking(chain), mConfig(config ? *config : GPUQA_GetConfig(chain))
+namespace GPUCA_NAMESPACE::gpu
+{
+struct GPUQAGarbageCollection {
+  std::tuple<std::vector<std::unique_ptr<TCanvas>>, std::vector<std::unique_ptr<TLegend>>, std::vector<std::unique_ptr<TPad>>, std::vector<std::unique_ptr<TLatex>>, std::vector<std::unique_ptr<TH1D>>> v;
+};
+} // namespace GPUCA_NAMESPACE::gpu
+
+template <class T, typename... Args>
+T* GPUQA::createGarbageCollected(Args... args)
+{
+  auto& v = std::get<std::vector<std::unique_ptr<T>>>(mGarbageCollector->v);
+  v.emplace_back(std::make_unique<T>(args...));
+  return v.back().get();
+}
+void GPUQA::clearGarbagageCollector()
+{
+  std::get<std::vector<std::unique_ptr<TPad>>>(mGarbageCollector->v).clear(); // Make sure to depete TPad first due to ROOT ownership (std::tuple has no defined order in its destructor)
+  std::apply([](auto&&... args) { ((args.clear()), ...); }, mGarbageCollector->v);
+}
+
+GPUQA::GPUQA(GPUChainTracking* chain, const GPUSettingsQA* config) : mTracking(chain), mConfig(config ? *config : GPUQA_GetConfig(chain)), mGarbageCollector(std::make_unique<GPUQAGarbageCollection>())
 {
   mRunForQC = chain == nullptr || mConfig.forQC;
 }
@@ -295,6 +313,7 @@ GPUQA::~GPUQA()
     delete mHist2D;
     delete mHist1Dd;
   }
+  clearGarbagageCollector(); // Needed to guarantee correct order for ROOT ownership
 }
 
 inline bool GPUQA::MCComp(const mcLabel_t& a, const mcLabel_t& b) { return (GPUQA::GetMCLabelID(a) > GPUQA::GetMCLabelID(b)); }
@@ -366,7 +385,7 @@ void GPUQA::doPerfFigure(float x, float y, float size)
   if (!PERF_FIGURE) {
     return;
   }
-  TLatex* t = new TLatex;
+  TLatex* t = createGarbageCollected<TLatex>();
   t->SetNDC(kTRUE);
   t->SetTextColor(1);
   t->SetTextSize(size);
@@ -393,7 +412,7 @@ int GPUQA::InitQACreateHistograms()
           for (int m = 0; m < 2; m++) {
             sprintf(name, "%s%s%s%sVs%s", m ? "eff" : "tracks", EFF_TYPES[i], FINDABLE_NAMES[j], PRIM_NAMES[k], VSPARAMETER_NAMES[l]);
             if (l == 4) {
-              std::unique_ptr<double> binsPt{CreateLogAxis(AXIS_BINS[4], k == 0 ? PT_MIN_PRIM : AXES_MIN[4], AXES_MAX[4])};
+              std::unique_ptr<double[]> binsPt{CreateLogAxis(AXIS_BINS[4], k == 0 ? PT_MIN_PRIM : AXES_MIN[4], AXES_MAX[4])};
               createHist(mEff[i][j][k][l][m], name, name, AXIS_BINS[l], binsPt.get());
             } else {
               createHist(mEff[i][j][k][l][m], name, name, AXIS_BINS[l], AXES_MIN[l], AXES_MAX[l]);
@@ -413,7 +432,7 @@ int GPUQA::InitQACreateHistograms()
       sprintf(name, "rms_%s_vs_%s", VSPARAMETER_NAMES[i], VSPARAMETER_NAMES[j]);
       sprintf(fname, "mean_%s_vs_%s", VSPARAMETER_NAMES[i], VSPARAMETER_NAMES[j]);
       if (j == 4) {
-        std::unique_ptr<double> binsPt{CreateLogAxis(AXIS_BINS[4], mConfig.resPrimaries == 1 ? PT_MIN_PRIM : AXES_MIN[4], AXES_MAX[4])};
+        std::unique_ptr<double[]> binsPt{CreateLogAxis(AXIS_BINS[4], mConfig.resPrimaries == 1 ? PT_MIN_PRIM : AXES_MIN[4], AXES_MAX[4])};
         createHist(mRes[i][j][0], name, name, AXIS_BINS[j], binsPt.get());
         createHist(mRes[i][j][1], fname, fname, AXIS_BINS[j], binsPt.get());
       } else {
@@ -424,7 +443,7 @@ int GPUQA::InitQACreateHistograms()
       const float* axis = mConfig.nativeFitResolutions ? RES_AXES_NATIVE : RES_AXES;
       const int nbins = i == 4 && mConfig.nativeFitResolutions ? (10 * RES_AXIS_BINS[0]) : RES_AXIS_BINS[0];
       if (j == 4) {
-        std::unique_ptr<double> binsPt{CreateLogAxis(AXIS_BINS[4], mConfig.resPrimaries == 1 ? PT_MIN_PRIM : AXES_MIN[4], AXES_MAX[4])};
+        std::unique_ptr<double[]> binsPt{CreateLogAxis(AXIS_BINS[4], mConfig.resPrimaries == 1 ? PT_MIN_PRIM : AXES_MIN[4], AXES_MAX[4])};
         createHist(mRes2[i][j], name, name, nbins, -axis[i], axis[i], AXIS_BINS[j], binsPt.get());
       } else {
         createHist(mRes2[i][j], name, name, nbins, -axis[i], axis[i], AXIS_BINS[j], AXES_MIN[j], AXES_MAX[j]);
@@ -438,7 +457,7 @@ int GPUQA::InitQACreateHistograms()
       sprintf(name, "pull_rms_%s_vs_%s", VSPARAMETER_NAMES[i], VSPARAMETER_NAMES[j]);
       sprintf(fname, "pull_mean_%s_vs_%s", VSPARAMETER_NAMES[i], VSPARAMETER_NAMES[j]);
       if (j == 4) {
-        std::unique_ptr<double> binsPt{CreateLogAxis(AXIS_BINS[4], AXES_MIN[4], AXES_MAX[4])};
+        std::unique_ptr<double[]> binsPt{CreateLogAxis(AXIS_BINS[4], AXES_MIN[4], AXES_MAX[4])};
         createHist(mPull[i][j][0], name, name, AXIS_BINS[j], binsPt.get());
         createHist(mPull[i][j][1], fname, fname, AXIS_BINS[j], binsPt.get());
       } else {
@@ -447,7 +466,7 @@ int GPUQA::InitQACreateHistograms()
       }
       sprintf(name, "pull_%s_vs_%s", VSPARAMETER_NAMES[i], VSPARAMETER_NAMES[j]);
       if (j == 4) {
-        std::unique_ptr<double> binsPt{CreateLogAxis(AXIS_BINS[4], AXES_MIN[4], AXES_MAX[4])};
+        std::unique_ptr<double[]> binsPt{CreateLogAxis(AXIS_BINS[4], AXES_MIN[4], AXES_MAX[4])};
         createHist(mPull2[i][j], name, name, RES_AXIS_BINS[0], -PULL_AXIS, PULL_AXIS, AXIS_BINS[j], binsPt.get());
       } else {
         createHist(mPull2[i][j], name, name, RES_AXIS_BINS[0], -PULL_AXIS, PULL_AXIS, AXIS_BINS[j], AXES_MIN[j], AXES_MAX[j]);
@@ -460,7 +479,7 @@ int GPUQA::InitQACreateHistograms()
     int ioffset = i >= (2 * N_CLS_HIST - 1) ? (2 * N_CLS_HIST - 1) : i >= N_CLS_HIST ? N_CLS_HIST : 0;
     int itype = i >= (2 * N_CLS_HIST - 1) ? 2 : i >= N_CLS_HIST ? 1 : 0;
     sprintf(name, "clusters%s%s", CLUSTER_NAMES_SHORT[i - ioffset], CLUSTER_TYPES[itype]);
-    std::unique_ptr<double> binsPt{CreateLogAxis(AXIS_BINS[4], PT_MIN_CLUST, PT_MAX)};
+    std::unique_ptr<double[]> binsPt{CreateLogAxis(AXIS_BINS[4], PT_MIN_CLUST, PT_MAX)};
     createHist(mClusters[i], name, name, AXIS_BINS[4], binsPt.get());
   }
   {
@@ -471,7 +490,7 @@ int GPUQA::InitQACreateHistograms()
   // Create Tracks Histograms
   {
     sprintf(name, "tracks");
-    std::unique_ptr<double> binsPt{CreateLogAxis(AXIS_BINS[4], PT_MIN_CLUST, PT_MAX)};
+    std::unique_ptr<double[]> binsPt{CreateLogAxis(AXIS_BINS[4], PT_MIN_CLUST, PT_MAX)};
     createHist(mTracks, name, name, AXIS_BINS[4], binsPt.get());
   }
 
@@ -617,11 +636,11 @@ int GPUQA::InitQA()
 
   if (mConfig.matchMCLabels.size()) {
     unsigned int nFiles = mConfig.matchMCLabels.size();
-    std::vector<TFile*> files(nFiles);
+    std::vector<std::unique_ptr<TFile>> files;
     std::vector<std::vector<std::vector<int>>*> labelsBuffer(nFiles);
     std::vector<std::vector<std::vector<int>>*> effBuffer(nFiles);
     for (unsigned int i = 0; i < nFiles; i++) {
-      files[i] = new TFile(mConfig.matchMCLabels[i]);
+      files.emplace_back(std::make_unique<TFile>(mConfig.matchMCLabels[i]));
       labelsBuffer[i] = (std::vector<std::vector<int>>*)files[i]->Get("mcLabelBuffer");
       effBuffer[i] = (std::vector<std::vector<int>>*)files[i]->Get("mcEffBuffer");
       if (labelsBuffer[i] == nullptr || effBuffer[i] == nullptr) {
@@ -650,10 +669,6 @@ int GPUQA::InitQA()
         }
         mGoodTracks[iEvent][k] = labelsOK[abs((*labelsBuffer[0])[iEvent][k])];
       }
-    }
-
-    for (unsigned int i = 0; i < nFiles; i++) {
-      delete files[i];
     }
   }
   mQAInitialized = true;
@@ -1618,7 +1633,7 @@ void GPUQA::GetName(char* fname, int k)
 }
 
 template <class T>
-T* GPUQA::GetHist(T*& ee, std::vector<TFile*>& tin, int k, int nNewInput)
+T* GPUQA::GetHist(T*& ee, std::vector<std::unique_ptr<TFile>>& tin, int k, int nNewInput)
 {
   T* e = ee;
   if ((mConfig.inputHistogramsOnly || k) && (e = dynamic_cast<T*>(tin[k - nNewInput]->Get(e->GetName()))) == nullptr) {
@@ -1640,13 +1655,13 @@ int GPUQA::DrawQAHistograms(TObjArray* qcout)
   const int nNewInput = mConfig.inputHistogramsOnly ? 0 : 1;
   const int ConfigNumInputs = nNewInput + mConfig.compareInputs.size();
 
-  std::vector<TFile*> tin(mConfig.compareInputs.size());
+  std::vector<std::unique_ptr<TFile>> tin;
   for (unsigned int i = 0; i < mConfig.compareInputs.size(); i++) {
-    tin[i] = new TFile(mConfig.compareInputs[i]);
+    tin.emplace_back(std::make_unique<TFile>(mConfig.compareInputs[i]));
   }
-  TFile* tout = nullptr;
+  std::unique_ptr<TFile> tout = nullptr;
   if (mConfig.output.size()) {
-    tout = new TFile(mConfig.output.c_str(), "RECREATE");
+    tout = std::make_unique<TFile>(mConfig.output.c_str(), "RECREATE");
   }
 
   if (!mRunForQC) {
@@ -1663,22 +1678,22 @@ int GPUQA::DrawQAHistograms(TObjArray* qcout)
       int i = ii == 5 ? 4 : ii;
       sprintf(fname, "ceff_%d", ii);
       sprintf(name, "Efficiency versus %s", VSPARAMETER_NAMES[i]);
-      mCEff[ii] = new TCanvas(fname, name, 0, 0, 700, 700. * 2. / 3.);
+      mCEff[ii] = createGarbageCollected<TCanvas>(fname, name, 0, 0, 700, 700. * 2. / 3.);
       mCEff[ii]->cd();
       float dy = 1. / 2.;
-      mPEff[ii][0] = new TPad("p0", "", 0.0, dy * 0, 0.5, dy * 1);
+      mPEff[ii][0] = createGarbageCollected<TPad>("p0", "", 0.0, dy * 0, 0.5, dy * 1);
       mPEff[ii][0]->Draw();
       mPEff[ii][0]->SetRightMargin(0.04);
-      mPEff[ii][1] = new TPad("p1", "", 0.5, dy * 0, 1.0, dy * 1);
+      mPEff[ii][1] = createGarbageCollected<TPad>("p1", "", 0.5, dy * 0, 1.0, dy * 1);
       mPEff[ii][1]->Draw();
       mPEff[ii][1]->SetRightMargin(0.04);
-      mPEff[ii][2] = new TPad("p2", "", 0.0, dy * 1, 0.5, dy * 2 - .001);
+      mPEff[ii][2] = createGarbageCollected<TPad>("p2", "", 0.0, dy * 1, 0.5, dy * 2 - .001);
       mPEff[ii][2]->Draw();
       mPEff[ii][2]->SetRightMargin(0.04);
-      mPEff[ii][3] = new TPad("p3", "", 0.5, dy * 1, 1.0, dy * 2 - .001);
+      mPEff[ii][3] = createGarbageCollected<TPad>("p3", "", 0.5, dy * 1, 1.0, dy * 2 - .001);
       mPEff[ii][3]->Draw();
       mPEff[ii][3]->SetRightMargin(0.04);
-      mLEff[ii] = new TLegend(0.92 - legendSpacingString * 1.45, 0.83 - (0.93 - 0.82) / 2. * (float)ConfigNumInputs, 0.98, 0.849);
+      mLEff[ii] = createGarbageCollected<TLegend>(0.92 - legendSpacingString * 1.45, 0.83 - (0.93 - 0.82) / 2. * (float)ConfigNumInputs, 0.98, 0.849);
       SetLegend(mLEff[ii]);
     }
 
@@ -1691,31 +1706,31 @@ int GPUQA::DrawQAHistograms(TObjArray* qcout)
       } else {
         sprintf(name, "Resolution versus %s", VSPARAMETER_NAMES[i]);
       }
-      mCRes[ii] = new TCanvas(fname, name, 0, 0, 700, 700. * 2. / 3.);
+      mCRes[ii] = createGarbageCollected<TCanvas>(fname, name, 0, 0, 700, 700. * 2. / 3.);
       mCRes[ii]->cd();
       gStyle->SetOptFit(1);
 
       float dy = 1. / 2.;
-      mPRes[ii][3] = new TPad("p0", "", 0.0, dy * 0, 0.5, dy * 1);
+      mPRes[ii][3] = createGarbageCollected<TPad>("p0", "", 0.0, dy * 0, 0.5, dy * 1);
       mPRes[ii][3]->Draw();
       mPRes[ii][3]->SetRightMargin(0.04);
-      mPRes[ii][4] = new TPad("p1", "", 0.5, dy * 0, 1.0, dy * 1);
+      mPRes[ii][4] = createGarbageCollected<TPad>("p1", "", 0.5, dy * 0, 1.0, dy * 1);
       mPRes[ii][4]->Draw();
       mPRes[ii][4]->SetRightMargin(0.04);
-      mPRes[ii][0] = new TPad("p2", "", 0.0, dy * 1, 1. / 3., dy * 2 - .001);
+      mPRes[ii][0] = createGarbageCollected<TPad>("p2", "", 0.0, dy * 1, 1. / 3., dy * 2 - .001);
       mPRes[ii][0]->Draw();
       mPRes[ii][0]->SetRightMargin(0.04);
       mPRes[ii][0]->SetLeftMargin(0.15);
-      mPRes[ii][1] = new TPad("p3", "", 1. / 3., dy * 1, 2. / 3., dy * 2 - .001);
+      mPRes[ii][1] = createGarbageCollected<TPad>("p3", "", 1. / 3., dy * 1, 2. / 3., dy * 2 - .001);
       mPRes[ii][1]->Draw();
       mPRes[ii][1]->SetRightMargin(0.04);
       mPRes[ii][1]->SetLeftMargin(0.135);
-      mPRes[ii][2] = new TPad("p4", "", 2. / 3., dy * 1, 1.0, dy * 2 - .001);
+      mPRes[ii][2] = createGarbageCollected<TPad>("p4", "", 2. / 3., dy * 1, 1.0, dy * 2 - .001);
       mPRes[ii][2]->Draw();
       mPRes[ii][2]->SetRightMargin(0.06);
       mPRes[ii][2]->SetLeftMargin(0.135);
       if (ii < 6) {
-        mLRes[ii] = new TLegend(0.9 - legendSpacingString * 1.45, 0.93 - (0.93 - 0.86) / 2. * (float)ConfigNumInputs, 0.98, 0.949);
+        mLRes[ii] = createGarbageCollected<TLegend>(0.9 - legendSpacingString * 1.45, 0.93 - (0.93 - 0.86) / 2. * (float)ConfigNumInputs, 0.98, 0.949);
         SetLegend(mLRes[ii]);
       }
     }
@@ -1729,31 +1744,31 @@ int GPUQA::DrawQAHistograms(TObjArray* qcout)
       } else {
         sprintf(name, "Pull versus %s", VSPARAMETER_NAMES[i]);
       }
-      mCPull[ii] = new TCanvas(fname, name, 0, 0, 700, 700. * 2. / 3.);
+      mCPull[ii] = createGarbageCollected<TCanvas>(fname, name, 0, 0, 700, 700. * 2. / 3.);
       mCPull[ii]->cd();
       gStyle->SetOptFit(1);
 
       float dy = 1. / 2.;
-      mPPull[ii][3] = new TPad("p0", "", 0.0, dy * 0, 0.5, dy * 1);
+      mPPull[ii][3] = createGarbageCollected<TPad>("p0", "", 0.0, dy * 0, 0.5, dy * 1);
       mPPull[ii][3]->Draw();
       mPPull[ii][3]->SetRightMargin(0.04);
-      mPPull[ii][4] = new TPad("p1", "", 0.5, dy * 0, 1.0, dy * 1);
+      mPPull[ii][4] = createGarbageCollected<TPad>("p1", "", 0.5, dy * 0, 1.0, dy * 1);
       mPPull[ii][4]->Draw();
       mPPull[ii][4]->SetRightMargin(0.04);
-      mPPull[ii][0] = new TPad("p2", "", 0.0, dy * 1, 1. / 3., dy * 2 - .001);
+      mPPull[ii][0] = createGarbageCollected<TPad>("p2", "", 0.0, dy * 1, 1. / 3., dy * 2 - .001);
       mPPull[ii][0]->Draw();
       mPPull[ii][0]->SetRightMargin(0.04);
       mPPull[ii][0]->SetLeftMargin(0.15);
-      mPPull[ii][1] = new TPad("p3", "", 1. / 3., dy * 1, 2. / 3., dy * 2 - .001);
+      mPPull[ii][1] = createGarbageCollected<TPad>("p3", "", 1. / 3., dy * 1, 2. / 3., dy * 2 - .001);
       mPPull[ii][1]->Draw();
       mPPull[ii][1]->SetRightMargin(0.04);
       mPPull[ii][1]->SetLeftMargin(0.135);
-      mPPull[ii][2] = new TPad("p4", "", 2. / 3., dy * 1, 1.0, dy * 2 - .001);
+      mPPull[ii][2] = createGarbageCollected<TPad>("p4", "", 2. / 3., dy * 1, 1.0, dy * 2 - .001);
       mPPull[ii][2]->Draw();
       mPPull[ii][2]->SetRightMargin(0.06);
       mPPull[ii][2]->SetLeftMargin(0.135);
       if (ii < 6) {
-        mLPull[ii] = new TLegend(0.9 - legendSpacingString * 1.45, 0.93 - (0.93 - 0.86) / 2. * (float)ConfigNumInputs, 0.98, 0.949);
+        mLPull[ii] = createGarbageCollected<TLegend>(0.9 - legendSpacingString * 1.45, 0.93 - (0.93 - 0.86) / 2. * (float)ConfigNumInputs, 0.98, 0.949);
         SetLegend(mLPull[ii]);
       }
     }
@@ -1761,29 +1776,29 @@ int GPUQA::DrawQAHistograms(TObjArray* qcout)
     // Create Canvas for Cluster Histos
     for (int i = 0; i < 3; i++) {
       sprintf(fname, "cclust_%d", i);
-      mCClust[i] = new TCanvas(fname, CLUSTER_TITLES[i], 0, 0, 700, 700. * 2. / 3.);
+      mCClust[i] = createGarbageCollected<TCanvas>(fname, CLUSTER_TITLES[i], 0, 0, 700, 700. * 2. / 3.);
       mCClust[i]->cd();
-      mPClust[i] = new TPad("p0", "", 0.0, 0.0, 1.0, 1.0);
+      mPClust[i] = createGarbageCollected<TPad>("p0", "", 0.0, 0.0, 1.0, 1.0);
       mPClust[i]->Draw();
       float y1 = i != 1 ? 0.77 : 0.27, y2 = i != 1 ? 0.9 : 0.42;
-      mLClust[i] = new TLegend(i == 2 ? 0.1 : (0.65 - legendSpacingString * 1.45), y2 - (y2 - y1) * (ConfigNumInputs + (i != 1) / 2.) + 0.005, i == 2 ? (0.3 + legendSpacingString * 1.45) : 0.9, y2);
+      mLClust[i] = createGarbageCollected<TLegend>(i == 2 ? 0.1 : (0.65 - legendSpacingString * 1.45), y2 - (y2 - y1) * (ConfigNumInputs + (i != 1) / 2.) + 0.005, i == 2 ? (0.3 + legendSpacingString * 1.45) : 0.9, y2);
       SetLegend(mLClust[i]);
     }
 
     // Create Canvas for other histos
     {
-      mCTracks = new TCanvas("ctracks", "Track Pt", 0, 0, 700, 700. * 2. / 3.);
+      mCTracks = createGarbageCollected<TCanvas>("ctracks", "Track Pt", 0, 0, 700, 700. * 2. / 3.);
       mCTracks->cd();
-      mPTracks = new TPad("p0", "", 0.0, 0.0, 1.0, 1.0);
+      mPTracks = createGarbageCollected<TPad>("p0", "", 0.0, 0.0, 1.0, 1.0);
       mPTracks->Draw();
-      mLTracks = new TLegend(0.9 - legendSpacingString * 1.45, 0.93 - (0.93 - 0.86) / 2. * (float)ConfigNumInputs, 0.98, 0.949);
+      mLTracks = createGarbageCollected<TLegend>(0.9 - legendSpacingString * 1.45, 0.93 - (0.93 - 0.86) / 2. * (float)ConfigNumInputs, 0.98, 0.949);
       SetLegend(mLTracks);
 
-      mCNCl = new TCanvas("cncl", "Number of clusters per track", 0, 0, 700, 700. * 2. / 3.);
+      mCNCl = createGarbageCollected<TCanvas>("cncl", "Number of clusters per track", 0, 0, 700, 700. * 2. / 3.);
       mCNCl->cd();
-      mPNCl = new TPad("p0", "", 0.0, 0.0, 1.0, 1.0);
+      mPNCl = createGarbageCollected<TPad>("p0", "", 0.0, 0.0, 1.0, 1.0);
       mPNCl->Draw();
-      mLNCl = new TLegend(0.9 - legendSpacingString * 1.45, 0.93 - (0.93 - 0.86) / 2. * (float)ConfigNumInputs, 0.98, 0.949);
+      mLNCl = createGarbageCollected<TLegend>(0.9 - legendSpacingString * 1.45, 0.93 - (0.93 - 0.86) / 2. * (float)ConfigNumInputs, 0.98, 0.949);
       SetLegend(mLNCl);
     }
 
@@ -1884,7 +1899,8 @@ int GPUQA::DrawQAHistograms(TObjArray* qcout)
 
   // Process / Draw Resolution Histograms
   TH1D *resIntegral[5] = {}, *pullIntegral[5] = {};
-  TF1* customGaus = new TF1("G", "[0]*exp(-(x-[1])*(x-[1])/(2.*[2]*[2]))");
+  TCanvas* cfit = nullptr;
+  std::unique_ptr<TF1> customGaus = std::make_unique<TF1>("G", "[0]*exp(-(x-[1])*(x-[1])/(2.*[2]*[2]))");
   for (int p = 0; p < 2; p++) {
     for (int ii = 0; ii < 5 + flagShowVsPtLog; ii++) {
       TCanvas* can = p ? mCPull[ii] : mCRes[ii];
@@ -1898,7 +1914,10 @@ int GPUQA::DrawQAHistograms(TObjArray* qcout)
 
         if (!mConfig.inputHistogramsOnly && ii != 5) {
           if (!mRunForQC) {
-            cfit.cd();
+            if (cfit == nullptr) {
+              cfit = createGarbageCollected<TCanvas>();
+            }
+            cfit->cd();
           }
 
           TAxis* axis = src->GetYaxis();
@@ -1907,7 +1926,7 @@ int GPUQA::DrawQAHistograms(TObjArray* qcout)
           for (int bin = 1; bin <= nBins; bin++) {
             int bin0 = std::max(bin - integ, 0);
             int bin1 = std::min(bin + integ, nBins);
-            TH1D* proj = src->ProjectionX("proj", bin0, bin1);
+            std::unique_ptr<TH1D> proj{src->ProjectionX("proj", bin0, bin1)};
             proj->ClearUnderflowAndOverflow();
             if (proj->GetEntries()) {
               unsigned int rebin = 1;
@@ -1931,8 +1950,8 @@ int GPUQA::DrawQAHistograms(TObjArray* qcout)
 
                   if (k && !forceLogLike) {
                     customGaus->SetParameters(fitFunc->GetParameter(0), fitFunc->GetParameter(1), fitFunc->GetParameter(2));
-                    proj->Fit(customGaus, "sQ");
-                    fitFunc = customGaus;
+                    proj->Fit(customGaus.get(), "sQ");
+                    fitFunc = customGaus.get();
                   }
 
                   const float sigma = fabs(fitFunc->GetParameter(2));
@@ -1964,7 +1983,6 @@ int GPUQA::DrawQAHistograms(TObjArray* qcout)
               dst[1]->SetBinContent(bin, 0.f);
               dst[1]->SetBinError(bin, 0.f);
             }
-            delete proj;
           }
           if (ii == 0) {
             dstIntegral = src->ProjectionX(mConfig.nativeFitResolutions ? PARAMETER_NAMES_NATIVE[j] : PARAMETER_NAMES[j], 0, nBins + 1);
@@ -1977,7 +1995,7 @@ int GPUQA::DrawQAHistograms(TObjArray* qcout)
         }
         if (ii == 0) {
           if (mConfig.inputHistogramsOnly) {
-            dstIntegral = new TH1D;
+            dstIntegral = createGarbageCollected<TH1D>();
           }
           sprintf(fname, p ? "IntPull%s" : "IntRes%s", VSPARAMETER_NAMES[j]);
           sprintf(name, p ? "%s Pull" : "%s Resolution", p || mConfig.nativeFitResolutions ? PARAMETER_NAMES_NATIVE[j] : PARAMETER_NAMES[j]);
@@ -2109,7 +2127,6 @@ int GPUQA::DrawQAHistograms(TObjArray* qcout)
       }
     }
   }
-  delete customGaus;
 
   // Process Integral Resolution Histogreams
   for (int p = 0; p < 2; p++) {
@@ -2171,11 +2188,6 @@ int GPUQA::DrawQAHistograms(TObjArray* qcout)
     can->Print(p ? "plots/pull_integral.pdf" : "plots/res_integral.pdf");
     if (mConfig.writeRootFiles) {
       can->Print(p ? "plots/pull_integral.root" : "plots/res_integral.root");
-    }
-    if (!mConfig.inputHistogramsOnly) {
-      for (int i = 0; i < 5; i++) {
-        delete (p ? pullIntegral : resIntegral)[i];
-      }
     }
   }
 
@@ -2462,11 +2474,12 @@ int GPUQA::DrawQAHistograms(TObjArray* qcout)
 
   if (tout) {
     tout->Close();
-    delete tout;
   }
   for (unsigned int i = 0; i < mConfig.compareInputs.size(); i++) {
     tin[i]->Close();
-    delete tin[i];
+  }
+  if (!qcout) {
+    clearGarbagageCollector();
   }
   return (0);
 }
