@@ -52,10 +52,12 @@ void TRDGlobalTracking::init(InitContext& ic)
   mFlatGeo = std::make_unique<GeometryFlat>(*geo);
 
   //-------- init GPU reconstruction --------//
-  GPUSettingsEvent cfgEvent;                 // defaults should be ok
-  GPUSettingsRec cfgRec;                     // don't care for now, NWaysOuter is set in here for instance
-  GPUSettingsProcessing cfgDeviceProcessing; // also keep defaults here, or adjust debug level
-  cfgDeviceProcessing.debugLevel = 5;
+  GPUSettingsEvent cfgEvent;
+  cfgEvent.solenoidBz = o2::base::Propagator::Instance()->getNominalBz();
+  GPUSettingsRec cfgRec;
+  cfgRec.NWaysOuter = 1;
+  GPUSettingsProcessing cfgDeviceProcessing;
+  cfgDeviceProcessing.debugLevel = -1; // -1 : silent
   GPURecoStepConfiguration cfgRecoStep;
   cfgRecoStep.steps = GPUDataTypes::RecoStep::NoRecoStep;
   cfgRecoStep.inputs.clear();
@@ -77,6 +79,7 @@ void TRDGlobalTracking::init(InitContext& ic)
   }
 
   // configure the tracker
+  // TODO: these settings will eventually be moved to GPUSettingsRec to be configurable via --configKeyValues
   //mTracker->EnableDebugOutput();
   //mTracker->StartDebugging();
   mTracker->SetPtThreshold(0.5);
