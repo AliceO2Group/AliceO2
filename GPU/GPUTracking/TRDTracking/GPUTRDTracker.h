@@ -140,7 +140,7 @@ class GPUTRDTracker_t : public GPUProcessor
 
   // input from TRD trigger record
   GPUd() void SetNMaxCollisions(int nColl) { mNMaxCollisions = nColl; } // can this be fixed to a sufficiently large value?
-  GPUd() void SetNCollisions(int nColl) { mNCollisions = nColl; }
+  GPUd() void SetNCollisions(int nColl);
   GPUd() void SetTriggerRecordIndices(int* indices) { mTriggerRecordIndices = indices; }
   GPUd() void SetTriggerRecordTimes(float* times) { mTriggerRecordTimes = times; }
 

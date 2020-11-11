@@ -1310,6 +1310,19 @@ GPUd() bool GPUTRDTracker_t<TRDTRK, PROP>::IsGeoFindable(const TRDTRK* t, const 
   return true;
 }
 
+template <class TRDTRK, class PROP>
+GPUd() void GPUTRDTracker_t<TRDTRK, PROP>::SetNCollisions(int nColl)
+{
+  // Set the number of collisions for a given time frame.
+  // The number is taken from the TRD trigger records
+  if (nColl < mNMaxCollisions) {
+    mNCollisions = nColl;
+  } else {
+    GPUError("Cannot process more than %i collisions. The last %i collisions will be dropped", mNMaxCollisions, nColl - mNMaxCollisions);
+    mNCollisions = mNMaxCollisions;
+  }
+}
+
 #ifndef GPUCA_GPUCODE
 namespace GPUCA_NAMESPACE
 {
