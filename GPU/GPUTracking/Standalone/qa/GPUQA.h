@@ -79,6 +79,7 @@ namespace GPUCA_NAMESPACE::gpu
 {
 class GPUChainTracking;
 class GPUTPCMCInfo;
+struct GPUQAGarbageCollection;
 
 class GPUQA
 {
@@ -129,7 +130,7 @@ class GPUQA
   void doPerfFigure(float x, float y, float size);
   void GetName(char* fname, int k);
   template <class T>
-  T* GetHist(T*& ee, std::vector<TFile*>& tin, int k, int nNewInput);
+  T* GetHist(T*& ee, std::vector<std::unique_ptr<TFile>>& tin, int k, int nNewInput);
 
 #ifdef GPUCA_TPC_GEOMETRY_O2
   using mcLabels_t = gsl::span<const o2::MCCompLabel>;
@@ -265,6 +266,11 @@ class GPUQA
   auto getHistArray();
   template <class T, typename... Args>
   void createHist(T*& h, const char* name, Args... args);
+
+  std::unique_ptr<GPUQAGarbageCollection> mGarbageCollector;
+  template <class T, typename... Args>
+  T* createGarbageCollected(Args... args);
+  void clearGarbagageCollector();
 
   int mNEvents = 0;
   bool mQAInitialized = false;
