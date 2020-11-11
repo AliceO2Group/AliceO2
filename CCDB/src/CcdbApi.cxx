@@ -22,6 +22,7 @@
 #include <TMessage.h>
 #include <sstream>
 #include <TFile.h>
+#include <TGrid.h>
 #include <TSystem.h>
 #include <TStreamerInfo.h>
 #include <TMemFile.h>
@@ -69,6 +70,12 @@ void CcdbApi::init(std::string const& host)
     initInSnapshotMode(path);
   } else {
     curlInit();
+  }
+
+  // find out if we can can in principle connect to Alien
+  mHaveAlienToken = checkAlienToken();
+  if (!mHaveAlienToken) {
+    LOG(WARN) << "CCDB: Did not find an alien token; Cannot serve objects located on alien://";
   }
 }
 
@@ -391,15 +398,16 @@ std::string CcdbApi::generateFileName(const std::string& inp)
 
 namespace
 {
+template <typename MapType = std::map<std::string, std::string>>
 size_t header_map_callback(char* buffer, size_t size, size_t nitems, void* userdata)
 {
-  auto* headers = static_cast<std::map<std::string, std::string>*>(userdata);
+  auto* headers = static_cast<MapType*>(userdata);
   auto header = std::string(buffer, size * nitems);
   std::string::size_type index = header.find(':', 0);
   if (index != std::string::npos) {
-    headers->insert(std::make_pair(
-      boost::algorithm::trim_copy(header.substr(0, index)),
-      boost::algorithm::trim_copy(header.substr(index + 1))));
+    const auto key = boost::algorithm::trim_copy(header.substr(0, index));
+    const auto value = boost::algorithm::trim_copy(header.substr(index + 1));
+    headers->insert(std::make_pair(key, value));
   }
   return size * nitems;
 }
@@ -458,7 +466,7 @@ TObject* CcdbApi::retrieveFromTFile(std::string const& path, std::map<std::strin
   // setup curl for headers handling
   if (headers != nullptr) {
     list = curl_slist_append(list, ("If-None-Match: " + to_string(timestamp)).c_str());
-    curl_easy_setopt(curl_handle, CURLOPT_HEADERFUNCTION, header_map_callback);
+    curl_easy_setopt(curl_handle, CURLOPT_HEADERFUNCTION, header_map_callback<>);
     curl_easy_setopt(curl_handle, CURLOPT_HEADERDATA, headers);
   }
 
@@ -643,6 +651,145 @@ void* CcdbApi::extractFromLocalFile(std::string const& filename, TClass const* t
   return extractFromTFile(f, tcl);
 }
 
+bool CcdbApi::checkAlienToken() const
+{
+  // a somewhat weird construction to programmatically find out if we
+  // have a GRID token; Can be replaced with something more elegant once
+  // alien-token-info does not ask for passwords interactively
+  auto returncode = system("timeout 1s timeout 1s alien-token-info &> /dev/null");
+  return returncode == 0;
+}
+
+bool CcdbApi::initTGrid() const
+{
+  if (!mAlienInstance) {
+    if (mHaveAlienToken) {
+      mAlienInstance = TGrid::Connect("alien");
+    }
+  }
+  return mAlienInstance != nullptr;
+}
+
+void* CcdbApi::downloadAlienContent(std::string const& url, TClass* cl) const
+{
+  if (!initTGrid()) {
+    return nullptr;
+  }
+  auto memfile = TMemFile::Open(url.c_str(), "OPEN");
+  if (memfile) {
+    auto content = extractFromTFile(*memfile, cl);
+    delete memfile;
+    return content;
+  }
+  return nullptr;
+}
+
+void* CcdbApi::interpretAsTMemFileAndExtract(char* contentptr, size_t contentsize, TClass* tcl) const
+{
+  void* result = nullptr;
+  Int_t previousErrorLevel = gErrorIgnoreLevel;
+  gErrorIgnoreLevel = kFatal;
+  TMemFile memFile("name", contentptr, contentsize, "READ");
+  gErrorIgnoreLevel = previousErrorLevel;
+  if (!memFile.IsZombie()) {
+    result = extractFromTFile(memFile, tcl);
+    if (!result) {
+      LOG(ERROR) << o2::utils::concat_string("Couldn't retrieve object corresponding to ", tcl->GetName(), " from TFile");
+    }
+    memFile.Close();
+  }
+  return result;
+}
+
+// navigate sequence of URLs until TFile content is found; object is extracted and returned
+void* CcdbApi::navigateURLsAndRetrieveContent(CURL* curl_handle, std::string const& url, TClass* cl, std::map<string, string>* headers) const
+{
+  // let's see first of all if the url is something specific that curl cannot handle
+  if (url.find("alien:/", 0) != std::string::npos) {
+    return downloadAlienContent(url, cl);
+  }
+  // add other final cases here
+  // example root://
+
+  // otherwise make an HTTP/CURL request
+  // specify URL to get
+  curl_easy_setopt(curl_handle, CURLOPT_URL, url.c_str());
+  // some servers don't like requests that are made without a user-agent
+  // field, so we provide one
+  curl_easy_setopt(curl_handle, CURLOPT_USERAGENT, "libcurl-agent/1.0");
+  // if redirected , we tell libcurl NOT to follow redirection
+  curl_easy_setopt(curl_handle, CURLOPT_FOLLOWLOCATION, 0L);
+  curl_easy_setopt(curl_handle, CURLOPT_HEADERFUNCTION, header_map_callback<decltype(mHeaderData)>);
+  mHeaderData.clear();
+  curl_easy_setopt(curl_handle, CURLOPT_HEADERDATA, (void*)&mHeaderData);
+
+  MemoryStruct chunk{(char*)malloc(1), 0};
+
+  // send all data to this function
+  curl_easy_setopt(curl_handle, CURLOPT_WRITEFUNCTION, WriteMemoryCallback);
+  curl_easy_setopt(curl_handle, CURLOPT_WRITEDATA, (void*)&chunk);
+
+  auto res = curl_easy_perform(curl_handle);
+  long response_code = -1;
+  void* content = nullptr;
+  bool errorflag = false;
+  bool cachingflag = false;
+  if (res == CURLE_OK && curl_easy_getinfo(curl_handle, CURLINFO_RESPONSE_CODE, &response_code) == CURLE_OK) {
+    if (headers) {
+      for (auto& p : mHeaderData) {
+        (*headers)[p.first] = p.second;
+      }
+    }
+    if (200 <= response_code && response_code < 300) {
+      // good response and the content is directly provided and should have been dumped into "chunk"
+      content = interpretAsTMemFileAndExtract(chunk.memory, chunk.size, cl);
+    } else if (response_code == 304) {
+      // this means the object exist but I am not serving
+      // it since it's already in your possession
+
+      // there is nothing to be done here
+      cachingflag = true;
+    }
+    // this is a more general redirection
+    else if (300 <= response_code && response_code < 400) {
+      // we try content locations in order of appearance until one succeeds
+      // 1st: The "Location" field
+      // 2nd: Possible "Content-Location" fields
+      auto tryLocations = [this, &curl_handle, &content, cl](auto range) {
+        for (auto it = range.first; it != range.second; ++it) {
+          auto nextlocation = it->second;
+          LOG(DEBUG) << "Trying content location " << nextlocation;
+          content = navigateURLsAndRetrieveContent(curl_handle, nextlocation, cl, nullptr);
+          if (content /* or other success marker in future */) {
+            break;
+          }
+        }
+      };
+      tryLocations(mHeaderData.equal_range("Location"));
+      if (content == nullptr) {
+        tryLocations(mHeaderData.equal_range("Content-Location"));
+      }
+    } else if (response_code == 404) {
+      LOG(ERROR) << "Requested resource does not exist";
+      errorflag = true;
+    } else {
+      errorflag = true;
+    }
+    // cleanup
+    if (chunk.memory != nullptr) {
+      free(chunk.memory);
+    }
+  } else {
+    LOG(ERROR) << "Curl request to " << url << " failed ";
+    errorflag = true;
+  }
+  // indicate that an error occurred ---> used by caching layers (such as CCDBManager)
+  if (errorflag && headers) {
+    (*headers)["Error"] = "An error occurred during retrieval";
+  }
+  return content;
+}
+
 void* CcdbApi::retrieveFromTFile(std::type_info const& tinfo, std::string const& path,
                                  std::map<std::string, std::string> const& metadata, long timestamp,
                                  std::map<std::string, std::string>* headers, std::string const& etag,
@@ -655,103 +802,32 @@ void* CcdbApi::retrieveFromTFile(std::type_info const& tinfo, std::string const&
     return nullptr;
   }
 
-  // Note : based on https://curl.haxx.se/libcurl/c/getinmemory.html
-  // Thus it does not comply to our coding guidelines as it is a copy paste.
-
-  // Prepare CURL
-  CURL* curl_handle;
-  CURLcode res;
-  struct MemoryStruct chunk {
-    (char*)malloc(1) /*memory*/, 0 /*size*/
-  };
-
-  /* init the curl session */
-  curl_handle = curl_easy_init();
-
+  CURL* curl_handle = curl_easy_init();
   string fullUrl = getFullUrlForRetrieval(curl_handle, path, metadata, timestamp);
   // if we are in snapshot mode we can simply open the file; extract the object and return
   if (mInSnapshotMode) {
     return extractFromLocalFile(fullUrl, tcl);
   }
 
-  /* specify URL to get */
-  curl_easy_setopt(curl_handle, CURLOPT_URL, fullUrl.c_str());
-
-  /* send all data to this function  */
-  curl_easy_setopt(curl_handle, CURLOPT_WRITEFUNCTION, WriteMemoryCallback);
-
-  /* we pass our 'chunk' struct to the callback function */
-  curl_easy_setopt(curl_handle, CURLOPT_WRITEDATA, (void*)&chunk);
-
-  /* some servers don't like requests that are made without a user-agent
-         field, so we provide one */
-  curl_easy_setopt(curl_handle, CURLOPT_USERAGENT, "libcurl-agent/1.0");
-
-  /* if redirected , we tell libcurl to follow redirection */
-  curl_easy_setopt(curl_handle, CURLOPT_FOLLOWLOCATION, 1L);
-
+  // add some global options to the curl query
   struct curl_slist* list = nullptr;
   if (!etag.empty()) {
     list = curl_slist_append(list, ("If-None-Match: " + etag).c_str());
   }
-
   if (!createdNotAfter.empty()) {
     list = curl_slist_append(list, ("If-Not-After: " + createdNotAfter).c_str());
   }
-
   if (!createdNotBefore.empty()) {
     list = curl_slist_append(list, ("If-Not-Before: " + createdNotBefore).c_str());
   }
-
-  // setup curl for headers handling
-  if (headers != nullptr) {
+  if (headers) {
     list = curl_slist_append(list, ("If-None-Match: " + to_string(timestamp)).c_str());
-    curl_easy_setopt(curl_handle, CURLOPT_HEADERFUNCTION, header_map_callback);
-    curl_easy_setopt(curl_handle, CURLOPT_HEADERDATA, headers);
   }
+  curl_easy_setopt(curl_handle, CURLOPT_HTTPHEADER, list);
 
-  if (list) {
-    curl_easy_setopt(curl_handle, CURLOPT_HTTPHEADER, list);
-  }
-
-  /* get it! */
-  res = curl_easy_perform(curl_handle);
-  std::string errStr;
-  void* result = nullptr;
-  if (res == CURLE_OK) {
-    long response_code;
-    res = curl_easy_getinfo(curl_handle, CURLINFO_RESPONSE_CODE, &response_code);
-    if ((res == CURLE_OK) && (response_code != 404)) {
-      Int_t previousErrorLevel = gErrorIgnoreLevel;
-      gErrorIgnoreLevel = kFatal;
-      TMemFile memFile("name", chunk.memory, chunk.size, "READ");
-      gErrorIgnoreLevel = previousErrorLevel;
-      if (!memFile.IsZombie()) {
-        result = extractFromTFile(memFile, tcl);
-        if (!result) {
-          errStr = o2::utils::concat_string("Couldn't retrieve the object ", path);
-          LOG(ERROR) << errStr;
-        }
-        memFile.Close();
-      } else {
-        LOG(DEBUG) << "Object " << path << " is stored in a TMemFile";
-      }
-    } else {
-      errStr = o2::utils::concat_string("Invalid URL : ", fullUrl);
-      LOG(ERROR) << errStr;
-    }
-  } else {
-    errStr = o2::utils::concat_string("curl_easy_perform() failed: ", curl_easy_strerror(res));
-    fprintf(stderr, "%s", errStr.c_str());
-  }
-
-  if (!errStr.empty() && headers) {
-    (*headers)["Error"] = errStr;
-  }
-
+  auto content = navigateURLsAndRetrieveContent(curl_handle, fullUrl, tcl, headers);
   curl_easy_cleanup(curl_handle);
-  free(chunk.memory);
-  return result;
+  return content;
 }
 
 size_t CurlWrite_CallbackFunc_StdString2(void* contents, size_t size, size_t nmemb, std::string* s)
@@ -930,7 +1006,7 @@ std::map<std::string, std::string> CcdbApi::retrieveHeaders(std::string const& p
     /* get us the resource without a body! */
     curl_easy_setopt(curl, CURLOPT_NOBODY, 1L);
     curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 1L);
-    curl_easy_setopt(curl, CURLOPT_HEADERFUNCTION, header_map_callback);
+    curl_easy_setopt(curl, CURLOPT_HEADERFUNCTION, header_map_callback<>);
     curl_easy_setopt(curl, CURLOPT_HEADERDATA, &headers);
 
     // Perform the request, res will get the return code
