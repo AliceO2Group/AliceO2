@@ -91,6 +91,7 @@ class GPUQA
   int InitQA();
   void RunQA(bool matchOnly = false);
   int DrawQAHistograms(TObjArray* qcout = nullptr);
+  void DrawQAHistogramsCleanup(); // Needed after call to DrawQAHistograms with qcout != nullptr when GPUSettingsQA.shipToQCAsCanvas = true to clean up the Canvases etc.
   void SetMCTrackRange(int min, int max);
   bool SuppressTrack(int iTrack) const;
   bool SuppressHit(int iHit) const;

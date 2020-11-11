@@ -30,3 +30,8 @@ int GPUO2InterfaceQA::postprocess(std::vector<TH1F>& in1, std::vector<TH2F>& in2
   }
   return mQA->DrawQAHistograms(&out);
 }
+
+void GPUO2InterfaceQA::cleanup()
+{
+  mQA->DrawQAHistogramsCleanup();
+}
