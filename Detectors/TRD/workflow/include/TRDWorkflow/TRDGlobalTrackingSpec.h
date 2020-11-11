@@ -16,7 +16,7 @@
 #include "Framework/DataProcessorSpec.h"
 #include "Framework/Task.h"
 #include "TStopwatch.h"
-
+#include "TRDBase/GeometryFlat.h"
 #include "GPUO2Interface.h"
 #include "GPUTRDTracker.h"
 
@@ -38,6 +38,7 @@ class TRDGlobalTracking : public o2::framework::Task
   o2::gpu::GPUTRDTracker* mTracker{nullptr};          ///< TRD tracking engine
   o2::gpu::GPUReconstruction* mRec{nullptr};          ///< GPU reconstruction pointer, handles memory for the tracker
   o2::gpu::GPUChainTracking* mChainTracking{nullptr}; ///< TRD tracker is run in the tracking chain
+  std::unique_ptr<GeometryFlat> mFlatGeo{nullptr};    ///< flat TRD geometry
   bool mUseMC{false};                                 ///< MC flag
   TStopwatch mTimer;
 };
