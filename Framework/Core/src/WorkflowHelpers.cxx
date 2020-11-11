@@ -382,7 +382,7 @@ void WorkflowHelpers::injectServiceDevices(WorkflowSpec& workflow, ConfigContext
     {}};
 
   DataProcessorSpec indexBuilder{
-    "internal-dpl-index-builder",
+    "internal-dpl-aod-index-builder",
     {},
     {},
     readers::AODReaderHelpers::indexBuilderCallback(requestedIDXs),
