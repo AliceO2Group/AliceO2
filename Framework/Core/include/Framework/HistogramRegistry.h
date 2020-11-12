@@ -249,7 +249,6 @@ struct HistFactory {
     if (histSpec.callSumw2) {
       hist->Sumw2();
     }
-
     return hist;
   }
 
@@ -527,10 +526,11 @@ class HistogramRegistry
   template <typename T>
   auto& get(const HistName& histName)
   {
-    if (auto histPtr = std::get_if<std::shared_ptr<T>>(&mRegistryValue[getHistIndex(histName)]))
+    if (auto histPtr = std::get_if<std::shared_ptr<T>>(&mRegistryValue[getHistIndex(histName)])) {
       return *histPtr;
-    else
+    } else {
       throw runtime_error_f(R"(Histogram type specified in get<>("%s") does not match the actual type of the histogram!)", histName.name);
+    }
   }
 
   /// @return the histogram registered with name @a name
