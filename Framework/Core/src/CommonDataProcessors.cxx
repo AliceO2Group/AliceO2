@@ -226,7 +226,7 @@ DataProcessorSpec CommonDataProcessors::getOutputObjHistSink(outputObjects const
   };
 
   DataProcessorSpec spec{
-    "internal-dpl-global-analysis-file-sink",
+    "internal-dpl-aod-global-analysis-file-sink",
     {InputSpec("x", DataSpecUtils::dataDescriptorMatcherFrom(header::DataOrigin{"ATSK"}))},
     Outputs{},
     AlgorithmSpec(writerFunction),
