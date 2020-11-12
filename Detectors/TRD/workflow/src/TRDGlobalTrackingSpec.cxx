@@ -114,7 +114,7 @@ void TRDGlobalTracking::run(ProcessingContext& pc)
     int64_t evTime = trg.getBCData().toLong() * o2::constants::lhc::LHCBunchSpacingNS; // event time in ns
     trdTriggerTimes.push_back(evTime / 1000.);
     trdTriggerIndices.push_back(iFirstTracklet);
-    LOGF(INFO, "Event %i: Occured at %li us after SOR, contains %i tracklets, index of first tracklet is %i", iEv, evTime / 1000, nTrackletsCurrent, iFirstTracklet);
+    LOGF(DEBUG, "Event %i: Occured at %li us after SOR, contains %i tracklets, index of first tracklet is %i", iEv, evTime / 1000, nTrackletsCurrent, iFirstTracklet);
   }
 
   mTracker->Reset();
@@ -125,7 +125,7 @@ void TRDGlobalTracking::run(ProcessingContext& pc)
   mRec->PrepareEvent();
   mRec->SetupGPUProcessor(mTracker, true);
 
-  LOG(INFO) << "Start loading input into TRD tracker";
+  LOG(DEBUG) << "Start loading input into TRD tracker";
   // load everything into the tracker
   int nTracksLoaded = 0;
   for (int iTrk = 0; iTrk < nTracks; ++iTrk) {
@@ -145,7 +145,7 @@ void TRDGlobalTracking::run(ProcessingContext& pc)
       continue;
     }
     ++nTracksLoaded;
-    LOGF(INFO, "Loaded track %i with time %f", nTracksLoaded, trkLoad.getTime());
+    LOGF(DEBUG, "Loaded track %i with time %f", nTracksLoaded, trkLoad.getTime());
   }
 
   for (int iTrklt = 0; iTrklt < nTracklets; ++iTrklt) {
@@ -162,9 +162,9 @@ void TRDGlobalTracking::run(ProcessingContext& pc)
   mTracker->SetTriggerRecordTimes(&(trdTriggerTimes[0]));
   mTracker->SetTriggerRecordIndices(&(trdTriggerIndices[0]));
   mTracker->SetNCollisions(nCollisions);
-  mTracker->DumpTracks();
+  //mTracker->DumpTracks();
   mTracker->DoTracking(mChainTracking);
-  mTracker->DumpTracks();
+  //mTracker->DumpTracks();
 
   std::vector<GPUTRDTrack> tracksOut(mTracker->NTracks());
   std::copy(mTracker->Tracks(), mTracker->Tracks() + mTracker->NTracks(), tracksOut.begin());
