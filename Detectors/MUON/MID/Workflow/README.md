@@ -28,10 +28,8 @@ o2-sim-digitizer-workflow
 To reconstruct the MC digits, run:
 
 ```bash
-o2-mid-digits-reader-workflow | o2-mid-reco-workflow --mc
+o2-mid-digits-reader-workflow | o2-mid-reco-workflow
 ```
-
-The `--mc` option at the end of the workflow allow to propagate the MC labels up to the tracks.
 
 ### Zero suppression
 
@@ -51,7 +49,7 @@ o2-mid-digits-reader-workflow --disable-zero-suppression
 To reconstruct the raw data (either from converted MC digits or real data), run:
 
 ```bash
-o2-raw-file-reader-workflow --input-conf MIDraw.cfg | o2-mid-raw-to-digits-workflow | o2-mid-reco-workflow
+o2-raw-file-reader-workflow --input-conf MIDraw.cfg | o2-mid-raw-to-digits-workflow | o2-mid-reco-workflow --disable-mc
 ```
 
 The reconstruction from raw data can also be tested using as input raw data obtained from the MC digits.
@@ -73,7 +71,7 @@ The CTF for MID corresponds to the digit.
 So one can retrieve the digits from the CTF and run the reconstruction with the usual workflow with:
 
 ```bash
-o2-ctf-reader-workflow --ctf-input o2_ctf_0000000000.root --onlyDet MID | o2-mid-reco-workflow
+o2-ctf-reader-workflow --ctf-input o2_ctf_0000000000.root --onlyDet MID | o2-mid-reco-workflow --disable-mc
 ```
 
 ### Generate CTF
