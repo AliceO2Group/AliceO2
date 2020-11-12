@@ -35,7 +35,7 @@ void customize(std::vector<ConfigParamSpec>& workflowOptions)
 {
   std::vector<ConfigParamSpec>
     options{
-      {"mc", VariantType::Bool, false, {"Propagate labels"}},
+      {"disable-mc", VariantType::Bool, false, {"Do not propagate MC labels"}},
       {"disable-tracking", VariantType::Bool, false, {"Only run clustering"}},
       {"disable-root-output", VariantType::Bool, false, {"Do not write output to file"}}};
   workflowOptions.insert(workflowOptions.end(), options.begin(), options.end());
@@ -45,14 +45,14 @@ void customize(std::vector<ConfigParamSpec>& workflowOptions)
 
 WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
 {
-  bool isMC = cfgc.options().get<bool>("mc");
+  bool disableMC = cfgc.options().get<bool>("disable-mc");
   bool disableTracking = cfgc.options().get<bool>("disable-tracking");
   bool disableFile = cfgc.options().get<bool>("disable-root-output");
 
   WorkflowSpec specs;
-  specs.emplace_back(isMC ? o2::mid::getClusterizerMCSpec() : o2::mid::getClusterizerSpec());
+  specs.emplace_back(disableMC ? o2::mid::getClusterizerSpec() : o2::mid::getClusterizerMCSpec());
   if (!disableTracking) {
-    specs.emplace_back(isMC ? o2::mid::getTrackerMCSpec() : o2::mid::getTrackerSpec());
+    specs.emplace_back(disableMC ? o2::mid::getTrackerSpec() : o2::mid::getTrackerMCSpec());
   }
   if (!disableFile) {
     std::array<o2::header::DataDescription, 2> clusterDescriptions{"CLUSTERS", "TRACKCLUSTERS"};
@@ -69,8 +69,8 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
                                               MakeRootTreeWriterSpec::BranchDefinition<const char*>{InputSpec{"mid_trackClusters", o2::header::gDataOriginMID, clusterDescriptions[idx]}, clusterBranch[idx]},
                                               MakeRootTreeWriterSpec::BranchDefinition<std::vector<o2::mid::ROFRecord>>{InputSpec{"mid_tracks_rof", o2::header::gDataOriginMID, "TRACKSROF"}, "MIDTrackROF", disableTracking ? 0 : 1},
                                               MakeRootTreeWriterSpec::BranchDefinition<std::vector<o2::mid::ROFRecord>>{InputSpec{"mid_trclus_rof", o2::header::gDataOriginMID, clusterROFDescriptions[idx]}, clusterROFBranch[idx]},
-                                              MakeRootTreeWriterSpec::BranchDefinition<o2::dataformats::MCTruthContainer<o2::MCCompLabel>>{InputSpec{"mid_track_labels", o2::header::gDataOriginMID, "TRACKSLABELS"}, "MIDTrackLabels", (disableTracking || !isMC) ? 0 : 1},
-                                              MakeRootTreeWriterSpec::BranchDefinition<o2::dataformats::MCTruthContainer<o2::mid::MCClusterLabel>>{InputSpec{"mid_trclus_labels", o2::header::gDataOriginMID, clusterLabelDescriptions[idx]}, clusterLabelBranch[idx], (!isMC) ? 0 : 1})());
+                                              MakeRootTreeWriterSpec::BranchDefinition<o2::dataformats::MCTruthContainer<o2::MCCompLabel>>{InputSpec{"mid_track_labels", o2::header::gDataOriginMID, "TRACKSLABELS"}, "MIDTrackLabels", (disableTracking || disableMC) ? 0 : 1},
+                                              MakeRootTreeWriterSpec::BranchDefinition<o2::dataformats::MCTruthContainer<o2::mid::MCClusterLabel>>{InputSpec{"mid_trclus_labels", o2::header::gDataOriginMID, clusterLabelDescriptions[idx]}, clusterLabelBranch[idx], disableMC ? 0 : 1})());
   }
 
   return specs;
