@@ -190,21 +190,19 @@ static const constexpr float RES_AXES[5] = {1., 1., 0.03, 0.03, 1.0};
 static const constexpr float RES_AXES_NATIVE[5] = {1., 1., 0.1, 0.1, 5.0};
 static const constexpr float PULL_AXIS = 10.f;
 
-std::vector<Color_t> GPUQA::mColorNums;
 std::vector<TColor> GPUQA::mColors;
 int GPUQA::initColors()
 {
-  mColorNums.resize(COLORCOUNT);
   mColors.reserve(COLORCOUNT);
   for (int i = 0; i < COLORCOUNT; i++) {
     float f1 = (float)((COLORS_HEX[i] >> 16) & 0xFF) / (float)0xFF;
     float f2 = (float)((COLORS_HEX[i] >> 8) & 0xFF) / (float)0xFF;
     float f3 = (float)((COLORS_HEX[i] >> 0) & 0xFF) / (float)0xFF;
     mColors.emplace_back(10000 + i, f1, f2, f3);
-    mColorNums[i] = mColors.back().GetNumber();
   }
   return 0;
 }
+static constexpr Color_t defaultColorNUms[COLORCOUNT] = {kRed, kBlue, kGreen, kMagenta, kOrange, kAzure, kBlack, kYellow, kGray, kTeal, kSpring, kPink};
 
 #ifdef GPUCA_TPC_GEOMETRY_O2
 #include "SimulationDataFormat/MCCompLabel.h"
@@ -1662,6 +1660,12 @@ int GPUQA::DrawQAHistograms(TObjArray* qcout)
   if (!mQAInitialized) {
     return 1;
   }
+
+  std::vector<Color_t> colorNums(COLORCOUNT);
+  for (int i = 0; i < COLORCOUNT; i++) {
+    colorNums[i] = qcout ? defaultColorNUms[i] : mColors[i].GetNumber();
+  }
+
   bool mcAvail = mcPresent();
   char name[2048], fname[1024];
 
@@ -1878,7 +1882,7 @@ int GPUQA::DrawQAHistograms(TObjArray* qcout)
             continue;
           }
           e->SetMarkerColor(kBlack);
-          e->SetLineColor(mColorNums[(l == 2 ? (ConfigNumInputs * 2 + k) : (k * 2 + l)) % COLORCOUNT]);
+          e->SetLineColor(colorNums[(l == 2 ? (ConfigNumInputs * 2 + k) : (k * 2 + l)) % COLORCOUNT]);
           e->Draw(k || l ? "same" : "");
           if (j == 0) {
             GetName(fname, k);
@@ -2104,7 +2108,7 @@ int GPUQA::DrawQAHistograms(TObjArray* qcout)
             }
 
             e->SetMarkerColor(kBlack);
-            e->SetLineColor(mColorNums[numColor++ % COLORCOUNT]);
+            e->SetLineColor(colorNums[numColor++ % COLORCOUNT]);
             e->Draw(k || l ? "same" : "");
             if (j == 0) {
               GetName(fname, k);
@@ -2194,7 +2198,7 @@ int GPUQA::DrawQAHistograms(TObjArray* qcout)
           continue;
         }
 
-        e->SetLineColor(mColorNums[numColor++ % COLORCOUNT]);
+        e->SetLineColor(colorNums[numColor++ % COLORCOUNT]);
         e->Draw(k == 0 ? "" : "same");
       }
       if (mRunForQC && !mConfig.shipToQCAsCanvas) {
@@ -2360,7 +2364,7 @@ int GPUQA::DrawQAHistograms(TObjArray* qcout)
           }
 
           e->SetMarkerColor(kBlack);
-          e->SetLineColor(mColorNums[numColor++ % COLORCOUNT]);
+          e->SetLineColor(colorNums[numColor++ % COLORCOUNT]);
           e->Draw(j == end - 1 && k == 0 ? "" : "same");
           GetName(fname, k);
           sprintf(name, "%s%s", fname, CLUSTER_NAMES[j - begin]);
@@ -2377,7 +2381,7 @@ int GPUQA::DrawQAHistograms(TObjArray* qcout)
           continue;
         }
 
-        e->SetLineColor(mColorNums[numColor++ % COLORCOUNT]);
+        e->SetLineColor(colorNums[numColor++ % COLORCOUNT]);
         e->Draw("same");
         mLClust[i]->AddEntry(e, "Removed", "l");
       }
@@ -2435,7 +2439,7 @@ int GPUQA::DrawQAHistograms(TObjArray* qcout)
         qcout->Add(e);
       }
       e->SetMarkerColor(kBlack);
-      e->SetLineColor(mColorNums[k % COLORCOUNT]);
+      e->SetLineColor(colorNums[k % COLORCOUNT]);
       e->Draw(k == 0 ? "" : "same");
       GetName(fname, k);
       sprintf(name, "%sTrack Pt", fname);
@@ -2477,7 +2481,7 @@ int GPUQA::DrawQAHistograms(TObjArray* qcout)
         qcout->Add(e);
       }
       e->SetMarkerColor(kBlack);
-      e->SetLineColor(mColorNums[k % COLORCOUNT]);
+      e->SetLineColor(colorNums[k % COLORCOUNT]);
       e->Draw(k == 0 ? "" : "same");
       GetName(fname, k);
       sprintf(name, "%sNClusters", fname);
