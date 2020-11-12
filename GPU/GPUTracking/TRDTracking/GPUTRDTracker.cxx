@@ -405,8 +405,7 @@ GPUd() void GPUTRDTracker_t<TRDTRK, PROP>::CheckTrackRefs(const int trackID, boo
       layer = 5;
     }
     if (layer < 0) {
-      Error("CheckTrackRefs", "No layer can be determined");
-      GPUError("x=%f, y=%f, z=%f, layer=%i", xLoc, trackReference->LocalY(), trackReference->Z(), layer);
+      GPUError("No layer can be determined for x=%f, y=%f, z=%f, layer=%i", xLoc, trackReference->LocalY(), trackReference->Z(), layer);
       continue;
     }
     if (trackReference->TestBits(0x1 << 18)) {
@@ -510,7 +509,9 @@ GPUd() int GPUTRDTracker_t<TRDTRK, PROP>::GetCollisionID(float trkTime) const
 {
   for (int iColl = 0; iColl < mNCollisions; ++iColl) {
     if (CAMath::Abs(trkTime - mTriggerRecordTimes[iColl]) < mTimeWindow) {
-      GPUInfo("TRD info found from interaction %i at %f for track with time %f", iColl, mTriggerRecordTimes[iColl], trkTime);
+      if (ENABLE_INFO) {
+        GPUInfo("TRD info found from interaction %i at %f for track with time %f", iColl, mTriggerRecordTimes[iColl], trkTime);
+      }
       return iColl;
     }
   }
@@ -527,7 +528,9 @@ GPUd() void GPUTRDTracker_t<TRDTRK, PROP>::DoTrackingThread(int iTrk, int thread
   if (mProcessPerTimeFrame) {
     collisionId = GetCollisionID(mTracks[iTrk].getTime());
     if (collisionId < 0) {
-      GPUInfo("Did not find TRD data for track with t=%f", mTracks[iTrk].getTime());
+      if (ENABLE_INFO) {
+        GPUInfo("Did not find TRD data for track with t=%f", mTracks[iTrk].getTime());
+      }
       // no TRD data available for the bunch crossing this track originates from
       return;
     }
@@ -689,7 +692,6 @@ GPUd() bool GPUTRDTracker_t<TRDTRK, PROP>::FollowProlongation(PROP* prop, TRDTRK
         if (ENABLE_INFO) {
           GPUInfo("Track propagation failed for track %i candidate %i in layer %i (pt=%f, x=%f, mR[layer]=%f)", iTrack, iCandidate, iLayer, trkWork->getPt(), trkWork->getX(), mR[2 * kNLayers + iLayer]);
         }
-        GPUInfo("Propagation failed");
         continue;
       }
 
@@ -698,7 +700,6 @@ GPUd() bool GPUTRDTracker_t<TRDTRK, PROP>::FollowProlongation(PROP* prop, TRDTRK
         if (ENABLE_INFO) {
           GPUInfo("FollowProlongation: Adjusting sector failed for track %i candidate %i in layer %i", iTrack, iCandidate, iLayer);
         }
-        GPUInfo("Adjust sector failed");
         continue;
       }
 
@@ -716,7 +717,6 @@ GPUd() bool GPUTRDTracker_t<TRDTRK, PROP>::FollowProlongation(PROP* prop, TRDTRK
         if (ENABLE_INFO) {
           GPUInfo("FollowProlongation: Track out of TRD acceptance with z=%f in layer %i (eta=%f)", trkWork->getZ(), iLayer, trkWork->getEta());
         }
-        GPUInfo("Out of z acceptance");
         continue;
       }
 
