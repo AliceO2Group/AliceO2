@@ -280,7 +280,7 @@ class GPUQA
   std::vector<std::vector<bool>> mGoodTracks;
   std::vector<std::vector<bool>> mGoodHits;
 
-  static std::vector<TColor> mColors;
+  static std::vector<TColor*> mColors;
   static int initColors();
 
   int mMCTrackMin = -1, mMCTrackMax = -1;
