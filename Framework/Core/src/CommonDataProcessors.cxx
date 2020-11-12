@@ -489,8 +489,7 @@ DataProcessorSpec CommonDataProcessors::getDummySink(std::vector<InputSpec> cons
     "internal-dpl-injected-dummy-sink",
     danglingOutputInputs,
     Outputs{},
-    AlgorithmSpec([](ProcessingContext&ctx) {})
-  };
+    AlgorithmSpec([](ProcessingContext& ctx) {})};
 }
 
 } // namespace framework
