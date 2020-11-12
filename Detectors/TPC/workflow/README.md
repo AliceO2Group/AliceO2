@@ -146,3 +146,44 @@ bz=     magnetic field
 * implement configuration from the GRP
 
 ## Open questions
+
+## Calibration workflows
+
+### Pedestal calibration
+#### Options
+```bash
+--direct-file-dump write final calibration to local root file
+--max-events       maximum number of events to process
+--no-calib-output  don't send the calibration data via DPL (required in case the calibration write is not attached)
+--use-old-subspec  Subspecification is built from RDH like 
+```
+
+#### Runnin with data distribution
+In one shell start the data distribution playback, e.g.
+```bash
+StfBuilder --id builder --data-source-enable --data-source-dir=2020-11-11T14_18_25Z --data-source-rate=100 --dpl-channel-name=dpl-chan  --channel-config "name=dpl-chan,type=pair,method=connect,address=ipc:///tmp/stf-builder-dpl-pipe-0,transport=zeromq,rateLogging=1"
+```
+
+In another shell start the pedestal calibration
+```bash
+o2-dpl-raw-proxy -b --dataspec "A:TPC/RAWDATA" --channel-config "name=readout-proxy,type=pair,method=bind,address=ipc:///tmp/stf-builder-dpl-pipe-0,transport=zeromq,rateLogging=1" \
+| o2-tpc-calib-pedestal  --max-events 5 --direct-file-dump --shm-segment-size $((8<<30)) --no-calib-output --use-old-subspec
+```
+
+#### Running with raw file playback
+Create a raw-reader.cfg e.g.
+```bash
+i=0; echo "[defaults]"; echo "dataOrigin = TPC"; echo "dataDescription = RAWDATA"; echo; for file in *.raw; do echo "[input-$i]"; echo "dataOrigin = TPC"; echo "dataDescription = RAWDATA"; echo "filePath=$file"; echo; i=$((i+1)); done > raw-reader.cfg
+```
+
+Then run
+```bash
+o2-raw-file-reader-workflow  --input-conf raw-reader.cfg --nocheck-hbf-per-tf --nocheck-hbf-jump --shm-segment-size $((8<<30)) \
+|  o2-tpc-calib-pedestal  --max-events 5 --direct-file-dump --shm-segment-size $((8<<30)) --no-calib-output
+```
+
+#### send data to CCDB
+Remove the `--no-calib-output` option and add
+```bash
+| o2-calibration-ccdb-populator-workflow
+```
