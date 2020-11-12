@@ -468,23 +468,32 @@ void WorkflowHelpers::injectServiceDevices(WorkflowSpec& workflow, ConfigContext
   workflow.insert(workflow.end(), extraSpecs.begin(), extraSpecs.end());
   extraSpecs.clear();
 
-  // file sink for notAOD dangling outputs
-  // select dangling outputs which are not of type AOD
-  std::vector<InputSpec> outputsInputsDangling;
+  // Select dangling outputs which are not of type AOD
+  std::vector<InputSpec> redirectedOutputsInputs;
   for (auto ii = 0u; ii < outputsInputs.size(); ii++) {
-    if ((outputTypes[ii] & DANGLING) == DANGLING && (outputTypes[ii] & ANALYSIS) == 0) {
-      outputsInputsDangling.emplace_back(outputsInputs[ii]);
+    if (ctx.options().get<std::string>("forwarding-policy") == "none") {
+      continue;
     }
+    // We forward to the output proxy all the inputs only if they are dangling
+    // or if the forwarding policy is "proxy".
+    if (!(outputTypes[ii] & DANGLING) && (ctx.options().get<std::string>("forwarding-policy") != "all")) {
+      continue;
+    }
+    // AODs are skipped in any case.
+    if ((outputTypes[ii] & ANALYSIS)) {
+      continue;
+    }
+    redirectedOutputsInputs.emplace_back(outputsInputs[ii]);
   }
 
   std::vector<InputSpec> unmatched;
-  if (outputsInputsDangling.size() > 0 && ctx.options().get<std::string>("dangling-outputs-policy") == "file") {
-    auto fileSink = CommonDataProcessors::getGlobalFileSink(outputsInputsDangling, unmatched);
-    if (unmatched.size() != outputsInputsDangling.size()) {
+  if (redirectedOutputsInputs.size() > 0 && ctx.options().get<std::string>("forwarding-destination") == "file") {
+    auto fileSink = CommonDataProcessors::getGlobalFileSink(redirectedOutputsInputs, unmatched);
+    if (unmatched.size() != redirectedOutputsInputs.size()) {
       extraSpecs.push_back(fileSink);
     }
-  } else if (outputsInputsDangling.size() > 0 && ctx.options().get<std::string>("dangling-outputs-policy") == "fairmq") {
-    auto fairMQSink = CommonDataProcessors::getGlobalFairMQSink(outputsInputsDangling);
+  } else if (redirectedOutputsInputs.size() > 0 && ctx.options().get<std::string>("forwarding-destination") == "fairmq") {
+    auto fairMQSink = CommonDataProcessors::getGlobalFairMQSink(redirectedOutputsInputs);
     extraSpecs.push_back(fairMQSink);
   }
   if (unmatched.size() > 0) {
