@@ -1429,7 +1429,7 @@ void GPUQA::RunQA(bool matchOnly)
     GPUWarning("No MC information available, only running partial TPC QA!");
   }
 
-  // Fill other histograms
+  // Fill track statistic histograms
   for (unsigned int i = 0; i < mTracking->mIOPtrs.nMergedTracks; i++) {
     const GPUTPCGMMergedTrack& track = mTracking->mIOPtrs.mergedTracks[i];
     if (!track.OK()) {
@@ -1693,7 +1693,7 @@ int GPUQA::DrawQAHistograms(TObjArray* qcout)
     // Create Canvas / Pads for Efficiency Histograms
     for (int ii = 0; ii < 6; ii++) {
       int i = ii == 5 ? 4 : ii;
-      sprintf(fname, "ceff_%d", ii);
+      sprintf(fname, "eff_vs_%s_layout", VSPARAMETER_NAMES[ii]);
       sprintf(name, "Efficiency versus %s", VSPARAMETER_NAMES[i]);
       mCEff[ii] = createGarbageCollected<TCanvas>(fname, name, 0, 0, 700, 700. * 2. / 3.);
       mCEff[ii]->cd();
@@ -1717,10 +1717,11 @@ int GPUQA::DrawQAHistograms(TObjArray* qcout)
     // Create Canvas / Pads for Resolution Histograms
     for (int ii = 0; ii < 7; ii++) {
       int i = ii == 5 ? 4 : ii;
-      sprintf(fname, "cres_%d", ii);
       if (ii == 6) {
+        sprintf(fname, "res_integral_layout");
         sprintf(name, "Integral Resolution");
       } else {
+        sprintf(fname, "res_vs_%s_layout", VSPARAMETER_NAMES[ii]);
         sprintf(name, "Resolution versus %s", VSPARAMETER_NAMES[i]);
       }
       mCRes[ii] = createGarbageCollected<TCanvas>(fname, name, 0, 0, 700, 700. * 2. / 3.);
@@ -1755,10 +1756,12 @@ int GPUQA::DrawQAHistograms(TObjArray* qcout)
     // Create Canvas / Pads for Pull Histograms
     for (int ii = 0; ii < 7; ii++) {
       int i = ii == 5 ? 4 : ii;
-      sprintf(fname, "cpull_%d", ii);
+
       if (ii == 6) {
+        sprintf(fname, "pull_integral_layout");
         sprintf(name, "Integral Pull");
       } else {
+        sprintf(fname, "pull_vs_%s_layout", VSPARAMETER_NAMES[ii]);
         sprintf(name, "Pull versus %s", VSPARAMETER_NAMES[i]);
       }
       mCPull[ii] = createGarbageCollected<TCanvas>(fname, name, 0, 0, 700, 700. * 2. / 3.);
@@ -1792,7 +1795,7 @@ int GPUQA::DrawQAHistograms(TObjArray* qcout)
 
     // Create Canvas for Cluster Histos
     for (int i = 0; i < 3; i++) {
-      sprintf(fname, "cclust_%d", i);
+      sprintf(fname, "clusters_%s_layout", CLUSTER_TYPES[i]);
       mCClust[i] = createGarbageCollected<TCanvas>(fname, CLUSTER_TITLES[i], 0, 0, 700, 700. * 2. / 3.);
       mCClust[i]->cd();
       mPClust[i] = createGarbageCollected<TPad>("p0", "", 0.0, 0.0, 1.0, 1.0);
@@ -1802,8 +1805,8 @@ int GPUQA::DrawQAHistograms(TObjArray* qcout)
       SetLegend(mLClust[i]);
     }
 
-    // Create Canvas for other histos
-    {
+    // Create Canvas for track statistic histos
+    if (!mRunForQC) {
       mCTracks = createGarbageCollected<TCanvas>("ctracks", "Track Pt", 0, 0, 700, 700. * 2. / 3.);
       mCTracks->cd();
       mPTracks = createGarbageCollected<TPad>("p0", "", 0.0, 0.0, 1.0, 1.0);
@@ -2406,7 +2409,7 @@ int GPUQA::DrawQAHistograms(TObjArray* qcout)
     }
   }
 
-  // Process track histograms
+  // Process track statistic histograms
   if (!mRunForQC) {
     float tmpMax = 0.;
     for (int k = 0; k < ConfigNumInputs; k++) {
