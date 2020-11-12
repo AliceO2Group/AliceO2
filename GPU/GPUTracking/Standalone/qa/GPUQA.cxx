@@ -125,7 +125,7 @@ static const GPUSettingsQA& GPUQA_GetConfig(GPUChainTracking* chain)
 #if !defined(GPUCA_STANDALONE)
   static GPUSettingsQA defaultConfig;
   if (chain && chain->mConfigQA) {
-    return *((const GPUSettingsQA*)chain->mConfigQA);
+    return *chain->mConfigQA;
   } else {
     return defaultConfig;
   }
