@@ -89,7 +89,7 @@ static const GPUSettingsDisplay& GPUDisplay_GetConfig(GPUChainTracking* chain)
 #if !defined(GPUCA_STANDALONE)
   static GPUSettingsDisplay defaultConfig;
   if (chain->mConfigDisplay) {
-    return *((const GPUSettingsDisplay*)chain->mConfigDisplay);
+    return *chain->mConfigDisplay;
   } else {
     return defaultConfig;
   }

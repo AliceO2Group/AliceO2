@@ -171,8 +171,8 @@ class GPUChainTracking : public GPUChain, GPUReconstructionHelpers::helperDelega
   void SetOutputControlTPCTracks(GPUOutputControl* v) { mOutputTPCTracks = v; }
   void SetOutputControlClusterLabels(GPUOutputControl* v) { mOutputClusterLabels = v; }
 
-  const void* mConfigDisplay = nullptr; // Abstract pointer to Standalone Display Configuration Structure
-  const void* mConfigQA = nullptr;      // Abstract pointer to Standalone QA Configuration Structure
+  const GPUSettingsDisplay* mConfigDisplay = nullptr; // Abstract pointer to Standalone Display Configuration Structure
+  const GPUSettingsQA* mConfigQA = nullptr;           // Abstract pointer to Standalone QA Configuration Structure
 
  protected:
   struct GPUTrackingFlatObjects : public GPUProcessor {
