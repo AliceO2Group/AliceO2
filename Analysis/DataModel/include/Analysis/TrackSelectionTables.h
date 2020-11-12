@@ -17,6 +17,7 @@ namespace o2::aod
 {
 namespace track
 {
+// Columns to store the DCA to the primary vertex
 DECLARE_SOA_COLUMN(DcaXY, dcaXY, float);
 DECLARE_SOA_COLUMN(DcaZ, dcaZ, float);
 
