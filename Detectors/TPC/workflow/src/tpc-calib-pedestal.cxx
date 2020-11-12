@@ -36,7 +36,7 @@ using RDHUtils = o2::raw::RDHUtils;
 void customize(std::vector<o2::framework::CompletionPolicy>& policies)
 {
   using o2::framework::CompletionPolicy;
-  policies.push_back(CompletionPolicyHelpers::defineByName("calib-pedestal", CompletionPolicy::CompletionOp::Consume));
+  policies.push_back(CompletionPolicyHelpers::defineByName("calib-tpc-pedestal", CompletionPolicy::CompletionOp::Consume));
 }
 
 // we need to add workflow options before including Framework/runDataProcessing
@@ -45,7 +45,9 @@ void customize(std::vector<ConfigParamSpec>& workflowOptions)
   std::vector<ConfigParamSpec> options{
     {"input-spec", VariantType::String, "A:TPC/RAWDATA", {"selection string input specs"}},
     {"configKeyValues", VariantType::String, "", {"Semicolon separated key=value strings (e.g.: 'TPCCalibPedestal.FirstTimeBin=10;...')"}},
-    {"configFile", VariantType::String, "", {"configuration file for configurable parameters"}}};
+    {"configFile", VariantType::String, "", {"configuration file for configurable parameters"}},
+    {"no-calib-output", VariantType::Bool, false, {"skip sending the calibration output"}},
+  };
 
   std::swap(workflowOptions, options);
 }
@@ -64,9 +66,10 @@ WorkflowSpec defineDataProcessing(ConfigContext const& config)
   o2::conf::ConfigurableParam::writeINI("o2tpccalibration_configuration.ini");
 
   const std::string inputSpec = config.options().get<std::string>("input-spec");
+  const auto skipCalib = config.options().get<bool>("no-calib-output");
 
   WorkflowSpec workflow;
-  workflow.emplace_back(getTPCCalibPedestalSpec(inputSpec));
+  workflow.emplace_back(getTPCCalibPedestalSpec(inputSpec, skipCalib));
 
   return workflow;
 }

@@ -23,10 +23,12 @@ o2_add_library(TPCWorkflow
                        src/LinkZSToDigitsSpec.cxx
                        src/TPCSectorCompletionPolicy.cxx
                        src/ZSSpec.cxx
+                       src/CalibProcessingHelper.cxx
                TARGETVARNAME targetName
                PUBLIC_LINK_LIBRARIES O2::Framework O2::DataFormatsTPC
                                      O2::DPLUtils O2::TPCReconstruction
-                                     O2::TPCCalibration O2::TPCSimulation)
+                                     O2::TPCCalibration O2::TPCSimulation
+                                     O2::DetectorsCalibration)
 
 o2_add_executable(reco-workflow
                   COMPONENT_NAME tpc
@@ -41,8 +43,7 @@ o2_add_executable(raw-to-digits-workflow
 o2_add_executable(calib-pedestal
                   COMPONENT_NAME tpc
                   SOURCES src/tpc-calib-pedestal.cxx
-                  PUBLIC_LINK_LIBRARIES O2::TPCWorkflow
-                                        O2::DetectorsCalibration)
+                  PUBLIC_LINK_LIBRARIES O2::TPCWorkflow)
 
 o2_add_test(workflow
             COMPONENT_NAME tpc
