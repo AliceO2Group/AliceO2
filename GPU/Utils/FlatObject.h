@@ -316,7 +316,9 @@ class FlatObject
   char* mFlatBufferContainer = nullptr;                               //[mFlatBufferSize]  Optional container for the flat buffer
   char* mFlatBufferPtr = nullptr;                                     //!  Pointer to the flat buffer
 
+#ifndef GPUCA_ALIROOT_LIB
   ClassDefNV(FlatObject, 1);
+#endif
 };
 
 /// ========================================================================================================

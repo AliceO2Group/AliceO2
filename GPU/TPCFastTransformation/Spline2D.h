@@ -95,7 +95,7 @@ class Spline2D
   Spline2D(const Spline2D&) CON_DELETE;
 #endif
 
-#if !defined(GPUCA_GPUCODE) && !defined(GPUCA_STANDALONE)
+#if !defined(GPUCA_GPUCODE) && !defined(GPUCA_STANDALONE) && !defined(GPUCA_ALIROOT_LIB)
   /// read a class object from the file
   static Spline2D* readFromFile(TFile& inpf, const char* name)
   {

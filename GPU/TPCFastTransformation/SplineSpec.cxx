@@ -205,6 +205,7 @@ void SplineContainer<DataT>::
   helper.approximateFunction(*reinterpret_cast<Spline<DataT>*>(this), xMin, xMax, F, nAuxiliaryDataPoints);
 }
 
+#ifndef GPUCA_ALIROOT_LIB
 template <typename DataT>
 int SplineContainer<DataT>::writeToFile(TFile& outf, const char* name)
 {
@@ -225,6 +226,7 @@ int SplineContainer<DataT>::test(const bool draw, const bool drawDataPoints)
 {
   return SplineHelper<DataT>::test(draw, drawDataPoints);
 }
+#endif
 
 #endif // GPUCA_GPUCODE && !GPUCA_STANDALONE
 

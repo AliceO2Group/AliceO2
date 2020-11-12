@@ -27,6 +27,7 @@
 #include "GPUDefMacros.h"
 
 // GPU Run Configuration
+#ifdef GPUCA_GPUCODE
 #if defined(GPUCA_GPUTYPE_VEGA)
   #define GPUCA_WARP_SIZE 64
   #define GPUCA_THREAD_COUNT 256
@@ -196,9 +197,10 @@
   #define GPUCA_MERGER_INTERPOLATION_ERROR_TYPE half
   // #define GPUCA_USE_TEXTURES
 #elif defined(GPUCA_GPUTYPE_OPENCL)
-#elif defined(GPUCA_GPUCODE)
+#else
   #error GPU TYPE NOT SET
 #endif
+#endif // GPUCA_GPUCODE
 
 #ifdef GPUCA_GPUCODE
   // Default settings, if not already set for selected GPU type
