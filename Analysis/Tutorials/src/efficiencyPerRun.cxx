@@ -12,10 +12,9 @@
 /// \brief A tutorial task to retrieve objects from CCDB given a run number.
 ///        This example demonstrates how the CCDB can be used to store an efficiency object which is valid only for a specific time
 ///        interval (e.g. for a run)
-///        The objects are uploaded with
-///        o2-ccdb-upload -p Users/jgrosseo/efficiency/simple -f eff.root -k efficiency --starttimestamp 1 --endtimestamp 16032093350000
+///        The objects are uploaded with https://alimonitor.cern.ch/ccdb/upload.jsp
 ///        Different timestamps intervals can be given.
-///        You need to run this with the o2-analysis-timestamps example
+///        You need to run this with the o2-analysis-timestamp task
 ///        NOTE If only one efficiency object for all runs is needed, this code is not optimal. In this case please check the example:
 ///        efficiencyGlobal.cxx
 ///
@@ -32,8 +31,8 @@ using namespace o2;
 
 struct EfficiencyPerRun {
   Service<ccdb::BasicCCDBManager> ccdb;
-  Configurable<std::string> path{"ccdb-path", "Users/jgrosseo/efficiency/simple", "base path to the ccdb object"};
-  Configurable<std::string> url{"ccdb-url", "http://ccdb-test.cern.ch:8080", "url of the ccdb repository"};
+  Configurable<std::string> path{"ccdb-path", "Users/j/jgrosseo/tutorial/efficiency/simple", "base path to the ccdb object"};
+  Configurable<std::string> url{"ccdb-url", "http://alice-ccdb.cern.ch", "url of the ccdb repository"};
   Configurable<long> nolaterthan{"ccdb-no-later-than", std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count(), "latest acceptable timestamp of creation for the object"};
 
   OutputObj<TH1F> pt{TH1F("pt", "pt", 20, 0., 10.)};
