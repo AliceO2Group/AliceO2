@@ -319,7 +319,7 @@ void DataProcessingDevice::InitTask()
   // We add a timer only in case a channel poller is not there.
   if ((mStatefulProcess != nullptr) || (mStatelessProcess != nullptr)) {
     for (auto& x : fChannels) {
-      if ((x.first.rfind("from_internal-dpl", 0) == 0) && (x.first.rfind("from_internal-dpl-aod", 0) != 0)) {
+      if ((x.first.rfind("from_internal-dpl", 0) == 0) && (x.first.rfind("from_internal-dpl-aod", 0) != 0) && (x.first.rfind("from_internal-dpl-injected", 0)) != 0) {
         LOG(debug) << x.first << " is an internal channel. Skipping as no input will come from there." << std::endl;
         continue;
       }

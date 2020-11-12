@@ -486,10 +486,10 @@ DataProcessorSpec CommonDataProcessors::getGlobalFairMQSink(std::vector<InputSpe
 DataProcessorSpec CommonDataProcessors::getDummySink(std::vector<InputSpec> const& danglingOutputInputs)
 {
   return DataProcessorSpec{
-    "internal-dpl-dummy-sink",
+    "internal-dpl-injected-dummy-sink",
     danglingOutputInputs,
     Outputs{},
-  };
+    AlgorithmSpec([](ProcessingContext& ctx) {})};
 }
 
 } // namespace framework
