@@ -175,6 +175,7 @@ void Spline1DContainer<DataT>::approximateFunction(
   helper.approximateFunction(*reinterpret_cast<Spline1D<DataT>*>(this), xMin, xMax, F, nAxiliaryDataPoints);
 }
 
+#ifndef GPUCA_ALIROOT_LIB
 template <class DataT>
 int Spline1DContainer<DataT>::writeToFile(TFile& outf, const char* name)
 {
@@ -190,6 +191,7 @@ Spline1DContainer<DataT>* Spline1DContainer<DataT>::readFromFile(
   return FlatObject::readFromFile<Spline1DContainer<DataT>>(inpf, name);
 }
 
+#endif
 #endif
 
 #if !defined(GPUCA_GPUCODE)
@@ -261,7 +263,7 @@ void Spline1DContainer<DataT>::setFutureBufferAddress(char* futureFlatBufferPtr)
   FlatObject::setFutureBufferAddress(futureFlatBufferPtr);
 }
 
-#if !defined(GPUCA_GPUCODE) && !defined(GPUCA_STANDALONE)
+#if !defined(GPUCA_GPUCODE) && !defined(GPUCA_STANDALONE) && !defined(GPUCA_ALIROOT_LIB)
 template <class DataT>
 int Spline1DContainer<DataT>::test(const bool draw, const bool drawDataPoints)
 {

@@ -159,7 +159,7 @@ class Spline1D
   Spline1D(const Spline1D&) CON_DELETE;
 #endif
 
-#if !defined(GPUCA_GPUCODE) && !defined(GPUCA_STANDALONE)
+#if !defined(GPUCA_GPUCODE) && !defined(GPUCA_STANDALONE) && !defined(GPUCA_ALIROOT_LIB)
   /// read a class object from the file
   static Spline1D* readFromFile(TFile& inpf, const char* name)
   {

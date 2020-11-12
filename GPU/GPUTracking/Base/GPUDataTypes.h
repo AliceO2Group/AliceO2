@@ -69,7 +69,7 @@ namespace gpu
 {
 class TPCFastTransform;
 class TPCdEdxCalibrationSplines;
-class TPCCFCalibration;
+struct TPCCFCalibration;
 } // namespace gpu
 } // namespace GPUCA_NAMESPACE
 

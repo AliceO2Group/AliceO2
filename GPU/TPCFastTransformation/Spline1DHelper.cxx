@@ -485,6 +485,7 @@ void Spline1DHelper<DataT>::approximateDerivatives(
   }
 }
 
+#ifndef GPUCA_ALIROOT_LIB
 template <typename DataT>
 int Spline1DHelper<DataT>::test(const bool draw, const bool drawDataPoints)
 {
@@ -735,6 +736,7 @@ int Spline1DHelper<DataT>::test(const bool draw, const bool drawDataPoints)
   }
   return 0;
 }
+#endif
 
 template class GPUCA_NAMESPACE::gpu::Spline1DHelper<float>;
 template class GPUCA_NAMESPACE::gpu::Spline1DHelper<double>;

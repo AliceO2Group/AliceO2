@@ -169,7 +169,7 @@ class Spline1DContainer : public FlatObject
 
   ///_______________  Test tools  _______________
 
-#if !defined(GPUCA_GPUCODE) && !defined(GPUCA_STANDALONE) // code invisible on GPU and in the standalone compilation
+#if !defined(GPUCA_GPUCODE) && !defined(GPUCA_STANDALONE) && !defined(GPUCA_ALIROOT_LIB) // code invisible on GPU and in the standalone compilation
   /// Test the class functionality
   static int test(const bool draw = 0, const bool drawDataPoints = 1);
 #endif

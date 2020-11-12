@@ -203,6 +203,7 @@ void Spline2DContainer<DataT>::approximateFunction(
   helper.approximateFunction(*reinterpret_cast<Spline2D<DataT>*>(this), x1Min, x1Max, x2Min, x2Max, F, nAuxiliaryDataPointsX1, nAuxiliaryDataPointsX2);
 }
 
+#ifndef GPUCA_ALIROOT_LIB
 template <typename DataT>
 int Spline2DContainer<DataT>::writeToFile(TFile& outf, const char* name)
 {
@@ -223,6 +224,7 @@ int Spline2DContainer<DataT>::test(const bool draw, const bool drawDataPoints)
 {
   return Spline2DHelper<DataT>::test(draw, drawDataPoints);
 }
+#endif
 
 #endif // GPUCA_GPUCODE && !GPUCA_STANDALONE
 
