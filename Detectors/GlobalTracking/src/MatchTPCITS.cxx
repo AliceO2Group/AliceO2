@@ -1444,7 +1444,7 @@ bool MatchTPCITS::refitTrackTPCITSloopITS(int iITS, int& iTPC)
     mTPCTransform->Transform(sector, row, cl.getPad(), cl.getTime(), clsX, clsYZ[0], clsYZ[1], timeTB);
     // rotate to 1 cluster's sector
     if (!tracOut.rotate(o2::math_utils::sector2Angle(sector % 18))) {
-      LOG(WARNING) << "Rotation to sector " << int(sector % 18) << " failed";
+      LOG(DEBUG) << "Rotation to sector " << int(sector % 18) << " failed";
       mMatchedTracks.pop_back(); // destroy failed track
       return false;
     }
@@ -1452,7 +1452,7 @@ bool MatchTPCITS::refitTrackTPCITSloopITS(int iITS, int& iTPC)
 
     // propagate to 1st cluster X
     if (!propagator->PropagateToXBxByBz(tracOut, clsX, o2::constants::physics::MassPionCharged, MaxSnp, 10., mUseMatCorrFlag, &trfit.getLTIntegralOut())) {
-      LOG(WARNING) << "Propagation to 1st cluster at X=" << clsX << " failed, Xtr=" << tracOut.getX() << " snp=" << tracOut.getSnp();
+      LOG(DEBUG) << "Propagation to 1st cluster at X=" << clsX << " failed, Xtr=" << tracOut.getX() << " snp=" << tracOut.getSnp();
       mMatchedTracks.pop_back(); // destroy failed track
       return false;
     }
@@ -1471,8 +1471,8 @@ bool MatchTPCITS::refitTrackTPCITSloopITS(int iITS, int& iTPC)
     for (; icl--;) {
       const auto& cl = tpcTrOrig.getCluster(mTPCTrackClusIdx, icl, *mTPCClusterIdxStruct, sector, row);
       if (row <= prevrow) {
-        LOG(WARNING) << "New row/sect " << int(row) << '/' << int(sector) << " is <= the previous " << int(prevrow)
-                     << '/' << int(prevsector) << " TrackID: " << tTPC.sourceID << " Pt:" << tracOut.getPt();
+        LOG(DEBUG) << "New row/sect " << int(row) << '/' << int(sector) << " is <= the previous " << int(prevrow)
+                   << '/' << int(prevsector) << " TrackID: " << tTPC.sourceID << " Pt:" << tracOut.getPt();
         if (row < prevrow) {
           break;
         } else {
@@ -1484,21 +1484,21 @@ bool MatchTPCITS::refitTrackTPCITSloopITS(int iITS, int& iTPC)
       if (prevsector != sector) {
         prevsector = sector;
         if (!tracOut.rotate(o2::math_utils::sector2Angle(sector % 18))) {
-          LOG(WARNING) << "Rotation to sector " << int(sector % 18) << " failed";
+          LOG(DEBUG) << "Rotation to sector " << int(sector % 18) << " failed";
           mMatchedTracks.pop_back(); // destroy failed track
           return false;
         }
       }
       if (!propagator->PropagateToXBxByBz(tracOut, clsX, o2::constants::physics::MassPionCharged, MaxSnp,
                                           10., MatCorrType::USEMatCorrNONE, &trfit.getLTIntegralOut())) { // no material correction!
-        LOG(INFO) << "Propagation to cluster " << icl << " (of " << tpcTrOrig.getNClusterReferences() << ") at X="
-                  << clsX << " failed, Xtr=" << tracOut.getX() << " snp=" << tracOut.getSnp() << " pT=" << tracOut.getPt();
+        LOG(DEBUG) << "Propagation to cluster " << icl << " (of " << tpcTrOrig.getNClusterReferences() << ") at X="
+                   << clsX << " failed, Xtr=" << tracOut.getX() << " snp=" << tracOut.getSnp() << " pT=" << tracOut.getPt();
         mMatchedTracks.pop_back(); // destroy failed track
         return false;
       }
       chi2Out += tracOut.getPredictedChi2(clsYZ, clsCov);
       if (!tracOut.update(clsYZ, clsCov)) {
-        LOG(WARNING) << "Update failed at cluster " << icl << ", chi2 =" << chi2Out;
+        LOG(DEBUG) << "Update failed at cluster " << icl << ", chi2 =" << chi2Out;
         mMatchedTracks.pop_back(); // destroy failed track
         return false;
       }
@@ -1637,7 +1637,7 @@ bool MatchTPCITS::refitTrackTPCITSloopTPC(int iTPC, int& iITS)
     mTPCTransform->Transform(sector, row, cl.getPad(), cl.getTime() - timeTB, clsX, clsYZ[0], clsYZ[1]);
     // rotate to 1 cluster's sector
     if (!tracOut.rotate(o2::math_utils::sector2Angle(sector % 18))) {
-      LOG(WARNING) << "Rotation to sector " << int(sector % 18) << " failed";
+      LOG(DEBUG) << "Rotation to sector " << int(sector % 18) << " failed";
       mMatchedTracks.pop_back(); // destroy failed track
       return false;
     }
@@ -1645,7 +1645,7 @@ bool MatchTPCITS::refitTrackTPCITSloopTPC(int iTPC, int& iITS)
 
     // propagate to 1st cluster X
     if (!propagator->PropagateToXBxByBz(tracOut, clsX, o2::constants::physics::MassPionCharged, MaxSnp, 10., mUseMatCorrFlag, &trfit.getLTIntegralOut())) {
-      LOG(WARNING) << "Propagation to 1st cluster at X=" << clsX << " failed, Xtr=" << tracOut.getX() << " snp=" << tracOut.getSnp();
+      LOG(DEBUG) << "Propagation to 1st cluster at X=" << clsX << " failed, Xtr=" << tracOut.getX() << " snp=" << tracOut.getSnp();
       mMatchedTracks.pop_back(); // destroy failed track
       return false;
     }
@@ -1664,8 +1664,8 @@ bool MatchTPCITS::refitTrackTPCITSloopTPC(int iTPC, int& iITS)
     for (; icl--;) {
       const auto& cl = tpcTrOrig.getCluster(mTPCTrackClusIdx, icl, *mTPCClusterIdxStruct, sector, row);
       if (row <= prevrow) {
-        LOG(WARNING) << "New row/sect " << int(row) << '/' << int(sector) << " is <= the previous " << int(prevrow)
-                     << '/' << int(prevsector) << " TrackID: " << tTPC.sourceID << " Pt:" << tracOut.getPt();
+        LOG(DEBUG) << "New row/sect " << int(row) << '/' << int(sector) << " is <= the previous " << int(prevrow)
+                   << '/' << int(prevsector) << " TrackID: " << tTPC.sourceID << " Pt:" << tracOut.getPt();
         if (row < prevrow) {
           break;
         } else {
@@ -1677,21 +1677,21 @@ bool MatchTPCITS::refitTrackTPCITSloopTPC(int iTPC, int& iITS)
       if (prevsector != sector) {
         prevsector = sector;
         if (!tracOut.rotate(o2::math_utils::sector2Angle(sector % 18))) {
-          LOG(WARNING) << "Rotation to sector " << int(sector % 18) << " failed";
+          LOG(DEBUG) << "Rotation to sector " << int(sector % 18) << " failed";
           mMatchedTracks.pop_back(); // destroy failed track
           return false;
         }
       }
       if (!propagator->PropagateToXBxByBz(tracOut, clsX, o2::constants::physics::MassPionCharged, MaxSnp,
                                           10., MatCorrType::USEMatCorrNONE, &trfit.getLTIntegralOut())) { // no material correction!
-        LOG(INFO) << "Propagation to cluster " << icl << " (of " << tpcTrOrig.getNClusterReferences() << ") at X="
-                  << clsX << " failed, Xtr=" << tracOut.getX() << " snp=" << tracOut.getSnp() << " pT=" << tracOut.getPt();
+        LOG(DEBUG) << "Propagation to cluster " << icl << " (of " << tpcTrOrig.getNClusterReferences() << ") at X="
+                   << clsX << " failed, Xtr=" << tracOut.getX() << " snp=" << tracOut.getSnp() << " pT=" << tracOut.getPt();
         mMatchedTracks.pop_back(); // destroy failed track
         return false;
       }
       chi2Out += tracOut.getPredictedChi2(clsYZ, clsCov);
       if (!tracOut.update(clsYZ, clsCov)) {
-        LOG(WARNING) << "Update failed at cluster " << icl << ", chi2 =" << chi2Out;
+        LOG(DEBUG) << "Update failed at cluster " << icl << ", chi2 =" << chi2Out;
         mMatchedTracks.pop_back(); // destroy failed track
         return false;
       }
@@ -1764,14 +1764,14 @@ bool MatchTPCITS::refitTPCInward(o2::track::TrackParCov& trcIn, float& chi2, flo
   chi2 = 0;
   icl = nclAcc - 1;
 
-  printf("RowsSpan: %d %d | %d clusters of %d\n", rowArr[0], rowArr[icl], nclAcc, tpcTrOrig.getNClusterReferences()); // tmp
+  //  printf("RowsSpan: %d %d | %d clusters of %d\n", rowArr[0], rowArr[icl], nclAcc, tpcTrOrig.getNClusterReferences()); // tmp
 
   auto propagator = o2::base::Propagator::Instance();
   mTPCTransform->Transform(sectArr[icl], rowArr[icl], clsArr[icl]->getPad(), clsArr[icl]->getTime(), clsX, clsYZ[0], clsYZ[1], timeTB);
   mTPCClusterParam->GetClusterErrors2(rowArr[icl], clsYZ[1], trcIn.getSnp(), trcIn.getTgl(), clsCov[0], clsCov[2]);
   uint8_t sectCurr = sectArr[icl];
   if (!trcIn.rotate(o2::math_utils::sector2Angle(sectCurr % 18))) {
-    LOG(WARNING) << "Rotation to sector " << int(sectCurr % 18) << " failed";
+    LOG(DEBUG) << "Rotation to sector " << int(sectCurr % 18) << " failed";
     return false;
   }
   trcIn.setX(clsX);
@@ -1786,17 +1786,17 @@ bool MatchTPCITS::refitTPCInward(o2::track::TrackParCov& trcIn, float& chi2, flo
     if (sectArr[icl] != sectCurr) {
       sectCurr = sectArr[icl];
       if (!trcIn.rotate(o2::math_utils::sector2Angle(sectCurr % 18))) {
-        LOG(WARNING) << "Rotation to sector " << int(sectCurr % 18) << " failed";
-        LOG(WARNING) << trcIn.asString();
+        LOG(DEBUG) << "Rotation to sector " << int(sectCurr % 18) << " failed";
+        LOG(DEBUG) << trcIn.asString();
         return false;
       }
     }
     mTPCTransform->Transform(sectArr[icl], rowArr[icl], clsArr[icl]->getPad(), clsArr[icl]->getTime(), clsX, clsYZ[0], clsYZ[1], timeTB);
     mTPCClusterParam->GetClusterErrors2(rowArr[icl], clsYZ[1], trcIn.getSnp(), trcIn.getTgl(), clsCov[0], clsCov[2]);
     if (!propagator->PropagateToXBxByBz(trcIn, clsX, m, TolSNP, 10., MatCorrType::USEMatCorrNONE)) { // no material correction!
-      LOG(INFO) << "Propagation to cluster at X="
-                << clsX << " failed, Xtr=" << trcIn.getX() << " snp=" << trcIn.getSnp() << " pT=" << trcIn.getPt();
-      LOG(WARNING) << trcIn.asString();
+      LOG(DEBUG) << "Propagation to cluster at X="
+                 << clsX << " failed, Xtr=" << trcIn.getX() << " snp=" << trcIn.getSnp() << " pT=" << trcIn.getPt();
+      LOG(DEBUG) << trcIn.asString();
       return false;
     }
     chi2 += trcIn.getPredictedChi2(clsYZ, clsCov);
@@ -1809,8 +1809,8 @@ bool MatchTPCITS::refitTPCInward(o2::track::TrackParCov& trcIn, float& chi2, flo
   // propagate to the inner edge of the TPC
   // Note: it is allowed to not reach the requested radius
   if (!propagator->PropagateToXBxByBz(trcIn, xTgt, m, MaxSnp, 2., mUseMatCorrFlag)) {
-    LOG(INFO) << "Propagation to target X=" << xTgt << " failed, Xtr=" << trcIn.getX() << " snp=" << trcIn.getSnp() << " pT=" << trcIn.getPt();
-    LOG(WARNING) << trcIn.asString();
+    LOG(DEBUG) << "Propagation to target X=" << xTgt << " failed, Xtr=" << trcIn.getX() << " snp=" << trcIn.getSnp() << " pT=" << trcIn.getPt();
+    LOG(DEBUG) << trcIn.asString();
     return false;
   }
   return true;
