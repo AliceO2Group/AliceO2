@@ -478,8 +478,8 @@ int SplineHelper<DataT>::test(const bool draw, const bool drawDataPoints)
       }
     }
 
-    o2::gpu::Spline<float, nDimX, nDimY> spline(nKnots, knotsU);
-    o2::gpu::Spline2D<float, nDimY> spline2D(nKnots[0], knotsU[0], nKnots[1], knotsU[1]);
+    Spline<float, nDimX, nDimY> spline(nKnots, knotsU);
+    Spline2D<float, nDimY> spline2D(nKnots[0], knotsU[0], nKnots[1], knotsU[1]);
 
     cout << "mark 1" << std::endl;
     spline.approximateFunction(xMin, xMax, F, nAxiliaryDatapoints);

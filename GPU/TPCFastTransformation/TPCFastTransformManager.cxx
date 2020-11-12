@@ -282,7 +282,7 @@ int TPCFastTransformManager::updateCalibration(TPCFastTransform& fastTransform,
 
       Spline2DHelper<float> helper;
       helper.setSpline(spline, 4, 4);
-      auto F = [&](float su, float sv, float dxuv[3]) {
+      auto F = [&](double su, double sv, double dxuv[3]) {
         float x = rowInfo.x;
         // x, u, v cordinates of the knot (local cartesian coord. of slice
         // towards central electrode )

@@ -222,6 +222,7 @@ void Spline2DHelper<DataT>::approximateFunction(
   }
 }
 
+#ifndef GPUCA_ALIROOT_LIB
 template <typename DataT>
 int Spline2DHelper<DataT>::test(const bool draw, const bool drawDataPoints)
 {
@@ -477,6 +478,7 @@ int Spline2DHelper<DataT>::test(const bool draw, const bool drawDataPoints)
 
   return 0;
 }
+#endif
 
 template class GPUCA_NAMESPACE::gpu::Spline2DHelper<float>;
 template class GPUCA_NAMESPACE::gpu::Spline2DHelper<double>;

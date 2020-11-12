@@ -117,7 +117,7 @@ class Spline1DHelper
   ///  Gives error string
   const char* getLastError() const { return mError.c_str(); }
 
-#if !defined(GPUCA_GPUCODE) && !defined(GPUCA_STANDALONE) // code invisible on GPU and in the standalone compilation
+#if !defined(GPUCA_GPUCODE) && !defined(GPUCA_STANDALONE) && !defined(GPUCA_ALIROOT_LIB) // code invisible on GPU and in the standalone compilation
   /// Test the Spline1D class functionality
   static int test(const bool draw = 0, const bool drawDataPoints = 1);
 #endif
