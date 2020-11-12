@@ -269,8 +269,11 @@ bool DataSpecUtils::partialMatch(InputSpec const& input, header::DataOrigin cons
 
 bool DataSpecUtils::partialMatch(InputSpec const& input, header::DataDescription const& description)
 {
-  auto dataType = DataSpecUtils::asConcreteDataTypeMatcher(input);
-  return dataType.description == description;
+  try {
+    return DataSpecUtils::asConcreteDataDescription(input) == description;
+  } catch (...) {
+    return false;
+  }
 }
 
 bool DataSpecUtils::partialMatch(OutputSpec const& output, header::DataDescription const& description)
@@ -400,7 +403,7 @@ ConcreteDataTypeMatcher DataSpecUtils::asConcreteDataTypeMatcher(OutputSpec cons
 ConcreteDataTypeMatcher DataSpecUtils::asConcreteDataTypeMatcher(InputSpec const& spec)
 {
   return std::visit(overloaded{
-                      [](ConcreteDataMatcher const& concrete) {
+                      [](auto const& concrete) {
                         return ConcreteDataTypeMatcher{concrete.origin, concrete.description};
                       },
                       [](DataDescriptorMatcher const& matcher) {
@@ -416,7 +419,7 @@ ConcreteDataTypeMatcher DataSpecUtils::asConcreteDataTypeMatcher(InputSpec const
 header::DataOrigin DataSpecUtils::asConcreteOrigin(InputSpec const& spec)
 {
   return std::visit(overloaded{
-                      [](ConcreteDataMatcher const& concrete) {
+                      [](auto const& concrete) {
                         return concrete.origin;
                       },
                       [](DataDescriptorMatcher const& matcher) {
@@ -432,7 +435,7 @@ header::DataOrigin DataSpecUtils::asConcreteOrigin(InputSpec const& spec)
 header::DataDescription DataSpecUtils::asConcreteDataDescription(InputSpec const& spec)
 {
   return std::visit(overloaded{
-                      [](ConcreteDataMatcher const& concrete) {
+                      [](auto const& concrete) {
                         return concrete.description;
                       },
                       [](DataDescriptorMatcher const& matcher) {
