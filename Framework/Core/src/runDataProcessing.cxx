@@ -980,7 +980,11 @@ int runStateMachine(DataProcessorSpecs const& workflow,
 
         /// Cleanup the shared memory for the uniqueWorkflowId, in
         /// case we are unlucky and an old one is already present.
-        cleanupSHM(driverInfo.uniqueWorkflowId);
+        if (driverInfo.noSHMCleanup) {
+          LOGP(warning, "Not cleaning up shared memory.");
+        } else {
+          cleanupSHM(driverInfo.uniqueWorkflowId);
+        }
         /// After INIT we go into RUNNING and eventually to SCHEDULE from
         /// there and back into running. This is because the general case
         /// would be that we start an application and then we wait for
@@ -1280,7 +1284,11 @@ int runStateMachine(DataProcessorSpecs const& workflow,
         }
         LOG(INFO) << "Dumping used configuration in dpl-config.json";
         boost::property_tree::write_json("dpl-config.json", finalConfig);
-        cleanupSHM(driverInfo.uniqueWorkflowId);
+        if (driverInfo.noSHMCleanup) {
+          LOGP(warning, "Not cleaning up shared memory.");
+        } else {
+          cleanupSHM(driverInfo.uniqueWorkflowId);
+        }
         return calculateExitCode(deviceSpecs, infos);
       }
       case DriverState::PERFORM_CALLBACKS:
@@ -1580,6 +1588,7 @@ int doMain(int argc, char** argv, o2::framework::WorkflowSpec const& workflow,
     ("stop,s", bpo::value<bool>()->zero_tokens()->default_value(false), "stop before device start")                                            //                                                                                                           //
     ("single-step", bpo::value<bool>()->zero_tokens()->default_value(false), "start in single step mode")                                      //                                                                                                             //
     ("batch,b", bpo::value<bool>()->zero_tokens()->default_value(isatty(fileno(stdout)) == 0), "batch processing mode")                        //                                                                                                               //
+    ("no-cleanup", bpo::value<bool>()->zero_tokens()->default_value(false), "do not cleanup the shm segment")                                  //                                                                                                               //
     ("hostname", bpo::value<std::string>()->default_value("localhost"), "hostname to deploy")                                                  //                                                                                                                 //
     ("resources", bpo::value<std::string>()->default_value(""), "resources allocated for the workflow")                                        //                                                                                                                   //
     ("start-port,p", bpo::value<unsigned short>()->default_value(22000), "start port to allocate")                                             //                                                                                                                     //
@@ -1792,6 +1801,7 @@ int doMain(int argc, char** argv, o2::framework::WorkflowSpec const& workflow,
   driverInfo.argc = argc;
   driverInfo.argv = argv;
   driverInfo.batch = varmap["batch"].as<bool>();
+  driverInfo.noSHMCleanup = varmap["no-cleanup"].as<bool>();
   driverInfo.terminationPolicy = varmap["completion-policy"].as<TerminationPolicy>();
   if (varmap["error-policy"].defaulted() && driverInfo.batch == false) {
     driverInfo.errorPolicy = TerminationPolicy::WAIT;

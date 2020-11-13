@@ -138,6 +138,8 @@ struct DriverInfo {
   short tracyPort = 8086;
   /// Aggregate metrics calculated in the driver itself
   DeviceMetricsInfo metrics;
+  /// Skip shared memory cleanup if set
+  bool noSHMCleanup;
 };
 
 } // namespace o2::framework
