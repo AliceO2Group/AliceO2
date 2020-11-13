@@ -29,8 +29,16 @@ std::unique_ptr<ConfigContext> makeEmptyConfigContext()
   // FIXME: Ugly... We need to fix ownership and make sure the ConfigContext
   //        either owns or shares ownership of the registry.
   std::vector<std::unique_ptr<ParamRetriever>> retrievers;
-  static std::vector<ConfigParamSpec> specs;
-  specs.push_back(ConfigParamSpec{"dangling-outputs-policy", VariantType::String, "file", {"what to do with dangling outputs. file: write to file, fairmq: send to output proxy"}});
+  static std::vector<ConfigParamSpec> specs = {
+    ConfigParamSpec{"forwarding-policy",
+                    VariantType::String,
+                    "dangling",
+                    {""}},
+    ConfigParamSpec{"forwarding-destination",
+                    VariantType::String,
+                    "file",
+                    {"what to do with dangling outputs. file: write to file, fairmq: send to output proxy"}},
+  };
   specs.push_back(ConfigParamSpec{"aod-memory-rate-limit", VariantType::String, "0", {"rate"}});
   auto store = std::make_unique<ConfigParamStore>(specs, std::move(retrievers));
   store->preload();

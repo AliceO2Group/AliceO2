@@ -480,7 +480,7 @@ DataProcessorSpec CommonDataProcessors::getGlobalFairMQSink(std::vector<InputSpe
   externalChannelSpec.protocol = ChannelProtocol::IPC;
   std::string defaultChannelConfig = formatExternalChannelConfiguration(externalChannelSpec);
   // at some point the formatting tool might add the transport as well so we have to check
-  return specifyFairMQDeviceOutputProxy("internal-dpl-output-proxy", danglingOutputInputs, defaultChannelConfig.c_str());
+  return specifyFairMQDeviceOutputProxy("internal-dpl-injected-output-proxy", danglingOutputInputs, defaultChannelConfig.c_str());
 }
 
 DataProcessorSpec CommonDataProcessors::getDummySink(std::vector<InputSpec> const& danglingOutputInputs)

@@ -127,7 +127,6 @@ int main(int argc, char** argv)
     UserCustomizationsHelper::userDefinedCustomization(workflowOptions, 0);
     workflowOptions.push_back(ConfigParamSpec{"readers", VariantType::Int64, 1ll, {"number of parallel readers to use"}});
     workflowOptions.push_back(ConfigParamSpec{"pipeline", VariantType::String, "", {"override default pipeline size"}});
-    workflowOptions.push_back(ConfigParamSpec{"dangling-outputs-policy", VariantType::String, "file", {"what to do with dangling outputs. file: write to file, fairmq: send to output proxy"}});
 
     // options for AOD rate limiting
     workflowOptions.push_back(ConfigParamSpec{"aod-memory-rate-limit", VariantType::Int64, 0LL, {"Rate limit AOD processing based on memory"}});
@@ -139,6 +138,18 @@ int main(int argc, char** argv)
     workflowOptions.push_back(ConfigParamSpec{"aod-writer-ntfmerge", VariantType::Int, -1, {"Number of time frames to merge into one file"}});
     workflowOptions.push_back(ConfigParamSpec{"aod-writer-keep", VariantType::String, "", {"Comma separated list of ORIGIN/DESCRIPTION/SUBSPECIFICATION:treename:col1/col2/..:filename"}});
 
+    workflowOptions.push_back(ConfigParamSpec{"forwarding-policy",
+                                              VariantType::String,
+                                              "dangling",
+                                              {"Which messages to forward."
+                                               " dangling: dangling outputs,"
+                                               " all: all messages"}});
+    workflowOptions.push_back(ConfigParamSpec{"forwarding-destination",
+                                              VariantType::String,
+                                              "file",
+                                              {"Destination for forwarded messages."
+                                               " file: write to file,"
+                                               " fairmq: send to output proxy"}});
     std::vector<ChannelConfigurationPolicy> channelPolicies;
     UserCustomizationsHelper::userDefinedCustomization(channelPolicies, 0);
     auto defaultChannelPolicies = ChannelConfigurationPolicy::createDefaultPolicies();
