@@ -129,6 +129,7 @@ set(HDRS_INSTALL
     Merger/GPUTPCGMMergerTypes.h
     Global/GPUErrorCodes.h
     Standalone/qconfigoptions.h
+    Standalone/qa/GPUQAHelper.h
     Base/GPUSettingsList.h
     DataCompression/GPUTPCClusterRejection.h
 )

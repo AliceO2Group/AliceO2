@@ -44,7 +44,7 @@
 
 #if !defined(GPUCA_GPUCODE) && (defined(GPUCA_MERGER_BY_MC_LABEL) || defined(GPUCA_CADEBUG_ENABLED) || GPUCA_MERGE_LOOPER_MC)
 #include "AliHLTTPCClusterMCData.h"
-#ifdef GPUCA_O2_LIB
+#ifdef HAVE_O2HEADERS
 #include "DataFormatsTPC/ClusterNative.h"
 #include "SimulationDataFormat/ConstMCTruthContainer.h"
 #include "SimulationDataFormat/MCCompLabel.h"
@@ -92,6 +92,8 @@ GPUTPCGMMerger::GPUTPCGMMerger()
 
 // DEBUG CODE
 #if !defined(GPUCA_GPUCODE) && (defined(GPUCA_MERGER_BY_MC_LABEL) || defined(GPUCA_CADEBUG_ENABLED) || GPUCA_MERGE_LOOPER_MC)
+#include "GPUQAHelper.h"
+
 void GPUTPCGMMerger::CheckMergedTracks()
 {
   std::vector<bool> trkUsed(SliceTrackInfoLocalTotal());
@@ -141,6 +143,17 @@ void GPUTPCGMMerger::CheckMergedTracks()
   }
 }
 
+template <class T>
+inline const auto* resolveMCLabels(const o2::dataformats::ConstMCTruthContainerView<o2::MCCompLabel>* a, const AliHLTTPCClusterMCLabel* b)
+{
+  return a;
+}
+template <>
+inline const auto* resolveMCLabels<AliHLTTPCClusterMCLabel>(const o2::dataformats::ConstMCTruthContainerView<o2::MCCompLabel>* a, const AliHLTTPCClusterMCLabel* b)
+{
+  return b;
+}
+
 template <class T, class S>
 long int GPUTPCGMMerger::GetTrackLabelA(const S& trk)
 {
@@ -152,7 +165,7 @@ long int GPUTPCGMMerger::GetTrackLabelA(const S& trk)
   } else {
     nClusters = trk.NClusters();
   }
-  std::vector<long int> labels;
+  auto acc = GPUTPCTrkLbl<false, GPUTPCTrkLbl_ret>(resolveMCLabels<T>(GetConstantMem()->ioPtrs.clustersNative ? GetConstantMem()->ioPtrs.clustersNative->clustersMCTruth : nullptr, GetConstantMem()->ioPtrs.mcLabelsTPC), 0.5f);
   for (int i = 0; i < nClusters; i++) {
     int id;
     if constexpr (std::is_same<S, GPUTPCGMBorderTrack&>::value) {
@@ -166,47 +179,15 @@ long int GPUTPCGMMerger::GetTrackLabelA(const S& trk)
     } else {
       id = mClusters[trk.FirstClusterRef() + i].num;
     }
-    if constexpr (std::is_same<T, AliHLTTPCClusterMCLabel>::value) {
-      for (int j = 0; j < 3; j++) {
-        int label = GetConstantMem()->ioPtrs.mcLabelsTPC[id].fClusterID[j].fMCID;
-        if (label >= 0) {
-          labels.push_back(label);
-        }
-      }
-    } else {
-#ifdef GPUCA_O2_LIB
-      for (auto label : GetConstantMem()->ioPtrs.clustersNative->clustersMCTruth->getLabels(id)) {
-        labels.push_back(label.getTrackEventSourceID());
-      }
-#endif
-    }
+    acc.addLabel(id);
   }
-  if (labels.size() == 0) {
-    return (-1);
-  }
-  std::sort(labels.begin(), labels.end());
-  labels.push_back(-1);
-  long int bestLabel = -1, curLabel = labels[0];
-  int curCount = 1, bestLabelCount = 0;
-  for (unsigned int i = 1; i < labels.size(); i++) {
-    if (labels[i] == curLabel) {
-      curCount++;
-    } else {
-      if (curCount > bestLabelCount) {
-        bestLabelCount = curCount;
-        bestLabel = curLabel;
-      }
-      curLabel = labels[i];
-      curCount = 1;
-    }
-  }
-  return bestLabel;
+  return acc.computeLabel().id;
 }
 
 template <class S>
 long int GPUTPCGMMerger::GetTrackLabel(const S& trk)
 {
-#ifdef GPUCA_O2_LIB
+#ifdef GPUCA_TPC_GEOMETRY_O2
   if (GetConstantMem()->ioPtrs.clustersNative->clustersMCTruth) {
     return GetTrackLabelA<o2::dataformats::ConstMCTruthContainerView<o2::MCCompLabel>, S>(trk);
   } else

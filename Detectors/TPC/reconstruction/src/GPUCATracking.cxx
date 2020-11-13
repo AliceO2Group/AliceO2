@@ -35,9 +35,11 @@
 #include "GPUTPCGMMergedTrackHit.h"
 #include "GPUTPCGMMergerTypes.h"
 #include "GPUHostDataTypes.h"
+#include "GPUQAHelper.h"
 #include "TPCFastTransform.h"
 
 #include <atomic>
+#include <optional>
 #ifdef WITH_OPENMP
 #include <omp.h>
 #endif
@@ -180,12 +182,15 @@ int GPUCATracking::runTracking(GPUO2InterfaceIOPtrs* data, GPUInterfaceOutputs* 
 
   constexpr float MinDelta = 0.1;
 
+  auto labelAssigner = (outputTracksMCTruth && data->clusters->clustersMCTruth) ? std::make_optional(GPUTPCTrkLbl(data->clusters->clustersMCTruth, sTrackMCMaxFake)) : std::nullopt;
+
 #ifdef WITH_OPENMP
 #pragma omp parallel for if(!outputTracksMCTruth) num_threads(4)
 #endif
   for (int iTmp = 0; iTmp < nTracks; iTmp++) {
     auto& oTrack = (*outputTracks)[iTmp];
     const int i = trackSort[iTmp].first;
+    labelAssigner->reset();
 
     oTrack =
       TrackTPC(tracks[i].GetParam().GetX(), tracks[i].GetAlpha(),
@@ -219,7 +224,6 @@ int GPUCATracking::runTracking(GPUO2InterfaceIOPtrs* data, GPUInterfaceOutputs* 
     uint8_t* sectorIndexArr = reinterpret_cast<uint8_t*>(clIndArr + nOutCl);
     uint8_t* rowIndexArr = sectorIndexArr + nOutCl;
 
-    std::vector<std::pair<MCCompLabel, unsigned int>> labels;
     int nOutCl2 = 0;
     float t1, t2;
     int sector1, sector2;
@@ -248,19 +252,7 @@ int GPUCATracking::runTracking(GPUO2InterfaceIOPtrs* data, GPUInterfaceOutputs* 
         sector2 = sector;
       }
       if (outputTracksMCTruth && data->clusters->clustersMCTruth) {
-        for (const auto& element : data->clusters->clustersMCTruth->getLabels(clusterIdGlobal)) {
-          bool found = false;
-          for (int l = 0; l < labels.size(); l++) {
-            if (labels[l].first == element) {
-              labels[l].second++;
-              found = true;
-              break;
-            }
-          }
-          if (!found) {
-            labels.emplace_back(element, 1);
-          }
-        }
+        labelAssigner->addLabel(clusterIdGlobal);
       }
     }
 
@@ -306,22 +298,7 @@ int GPUCATracking::runTracking(GPUO2InterfaceIOPtrs* data, GPUInterfaceOutputs* 
     }
 
     if (outputTracksMCTruth) {
-      if (labels.size() == 0) {
-        outputTracksMCTruth->emplace_back(); //default constructor creates NotSet label
-      } else {
-        int bestLabelNum = 0, bestLabelCount = 0;
-        for (int j = 0; j < labels.size(); j++) {
-          if (labels[j].second > bestLabelCount) {
-            bestLabelNum = j;
-            bestLabelCount = labels[j].second;
-          }
-        }
-        MCCompLabel& bestLabel = labels[bestLabelNum].first;
-        if (bestLabelCount < (1.f - sTrackMCMaxFake) * nOutCl) {
-          bestLabel.setFakeFlag();
-        }
-        outputTracksMCTruth->emplace_back(bestLabel);
-      }
+      outputTracksMCTruth->emplace_back(labelAssigner->computeLabel());
     }
   }
   outClusRefs->resize(clusterOffsetCounter.load()); // remove overhead

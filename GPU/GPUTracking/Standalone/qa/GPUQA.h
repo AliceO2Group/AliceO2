@@ -146,6 +146,7 @@ class GPUQA
   struct mcLabelI_t {
     int getTrackID() const { return AbsLabelID(track); }
     int getEventID() const { return 0; }
+    long int getTrackEventSourceID() const { return getTrackID(); }
     bool isFake() const { return track < 0; }
     bool isValid() const { return track != MC_LABEL_INVALID; }
     void invalidate() { track = MC_LABEL_INVALID; }
@@ -181,6 +182,7 @@ class GPUQA
   float GetMCLabelWeight(unsigned int i, unsigned int j);
   float GetMCLabelWeight(const mcLabels_t& label, unsigned int j);
   float GetMCLabelWeight(const mcLabel_t& label);
+  const auto& GetClusterLabels();
   bool mcPresent();
 
   static bool MCComp(const mcLabel_t& a, const mcLabel_t& b);
