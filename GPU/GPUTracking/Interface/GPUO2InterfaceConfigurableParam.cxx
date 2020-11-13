@@ -100,7 +100,7 @@ GPUSettingsO2 GPUO2InterfaceConfiguration::ReadConfigurableParam()
   if (global.continuousMaxTimeBin) {
     configEvent.continuousMaxTimeBin = global.continuousMaxTimeBin;
   }
-  if (global.solenoidBz > -1000.f) {
+  if (global.solenoidBz > -1e6f) {
     configEvent.solenoidBz = global.solenoidBz;
   }
   if (global.constBz) {
