@@ -62,8 +62,10 @@ struct TaskD0 {
 
   void process(soa::Filtered<soa::Join<aod::HfCandProng2, aod::HFSelD0Candidate>> const& candidates)
   {
+    //Printf("Candidates: %d", candidates.size());
     for (auto& candidate : candidates) {
-      if (cutEtaCandMax > 0. && std::abs(candidate.eta()) > cutEtaCandMax) {
+      if (cutEtaCandMax >= 0. && std::abs(candidate.eta()) > cutEtaCandMax) {
+        //Printf("Candidate: eta rejection: %g", candidate.eta());
         continue;
       }
       if (candidate.isSelD0() >= d_selectionFlagD0) {
@@ -101,7 +103,10 @@ struct TaskD0MC {
      {"hPtRecBg", "2-prong candidates (rec. unmatched);#it{p}_{T} (GeV/#it{c});entries", {HistType::kTH1F, {{100, 0., 10.}}}},
      {"hPtGen", "2-prong candidates (gen. matched);#it{p}_{T} (GeV/#it{c});entries", {HistType::kTH1F, {{100, 0., 10.}}}},
      {"hCPARecSig", "2-prong candidates (rec. matched);cosine of pointing angle;entries", {HistType::kTH1F, {{110, -1.1, 1.1}}}},
-     {"hCPARecBg", "2-prong candidates (rec. unmatched);cosine of pointing angle;entries", {HistType::kTH1F, {{110, -1.1, 1.1}}}}}};
+     {"hCPARecBg", "2-prong candidates (rec. unmatched);cosine of pointing angle;entries", {HistType::kTH1F, {{110, -1.1, 1.1}}}},
+     {"hEtaRecSig", "2-prong candidates (rec. matched);#it{#eta};entries", {HistType::kTH1F, {{100, -2., 2.}}}},
+     {"hEtaRecBg", "2-prong candidates (rec. unmatched);#it{#eta};entries", {HistType::kTH1F, {{100, -2., 2.}}}},
+     {"hEtaGen", "2-prong candidates (gen. matched);#it{#eta};entries", {HistType::kTH1F, {{100, -2., 2.}}}}}};
 
   Configurable<int> d_selectionFlagD0{"d_selectionFlagD0", 1, "Selection Flag for D0"};
   Configurable<int> d_selectionFlagD0bar{"d_selectionFlagD0bar", 1, "Selection Flag for D0bar"};
@@ -113,25 +118,32 @@ struct TaskD0MC {
                soa::Join<aod::McParticles, aod::HfCandProng2MCGen> const& particlesMC)
   {
     // MC rec.
+    //Printf("MC Candidates: %d", candidates.size());
     for (auto& candidate : candidates) {
-      if (cutEtaCandMax > 0. && std::abs(candidate.eta()) > cutEtaCandMax) {
+      if (cutEtaCandMax >= 0. && std::abs(candidate.eta()) > cutEtaCandMax) {
+        //Printf("MC Rec.: eta rejection: %g", candidate.eta());
         continue;
       }
       if (candidate.flagMCMatchRec() == 1) {
         registry.get<TH1>("hPtRecSig")->Fill(candidate.pt());
         registry.get<TH1>("hCPARecSig")->Fill(candidate.cpa());
+        registry.get<TH1>("hEtaRecSig")->Fill(candidate.eta());
       } else {
         registry.get<TH1>("hPtRecBg")->Fill(candidate.pt());
         registry.get<TH1>("hCPARecBg")->Fill(candidate.cpa());
+        registry.get<TH1>("hEtaRecBg")->Fill(candidate.eta());
       }
     }
     // MC gen.
+    //Printf("MC Particles: %d", particlesMC.size());
     for (auto& particle : particlesMC) {
-      if (cutEtaCandMax > 0. && std::abs(particle.eta()) > cutEtaCandMax) {
+      if (cutEtaCandMax >= 0. && std::abs(particle.eta()) > cutEtaCandMax) {
+        //Printf("MC Gen.: eta rejection: %g", particle.eta());
         continue;
       }
       if (particle.flagMCMatchGen() == 1) {
         registry.get<TH1>("hPtGen")->Fill(particle.pt());
+        registry.get<TH1>("hEtaGen")->Fill(particle.eta());
       }
     }
   }

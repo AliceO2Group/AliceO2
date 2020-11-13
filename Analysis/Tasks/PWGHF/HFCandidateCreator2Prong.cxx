@@ -154,7 +154,6 @@ struct HFCandidateCreator2ProngMC {
     }
 
     // Match generated particles.
-    Printf("Proceeding to gen MC matching");
     for (auto& particle : particlesMC) {
       // D0(bar) → π± K∓
       auto isMatchedGenD0 = RecoDecay::isMCMatchedDecayGen(particlesMC, particle, 421, array{+kPiPlus, -kKPlus}, true);
