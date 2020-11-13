@@ -266,7 +266,7 @@ AddSubConfig(GPUSettingsEG, EG)
 EndConfig()
 #elif defined(GPUCA_O2_LIB) || defined(GPUCA_O2_INTERFACE) // GPUCA_STANDALONE
 BeginSubConfig(GPUSettingsO2, global, configStandalone, "O2", 0, "O2 workflow settings")
-AddOption(solenoidBz, float, -1000.f, "", 0, "solenoid field strength")
+AddOption(solenoidBz, float, -1e6f, "", 0, "solenoid field strength")
 AddOption(constBz, bool, false, "", 0, "force constant Bz for tests")
 AddOption(continuousMaxTimeBin, int, 0, "", 0, "maximum time bin of continuous data, 0 for triggered events, -1 for default of 23ms")
 AddOption(deviceType, std::string, "CPU", "", 0, "Device type, CPU | CUDA | HIP | OCL1 | OCL2")
