@@ -120,7 +120,7 @@ GPUdi() void sincos(double ang, double& s, double& c)
 #ifndef GPUCA_GPUCODE_DEVICE
 
 template <typename T>
-GPUdi() std::tuple<T, T> sincos(T ang)
+GPUhdi() std::tuple<T, T> sincos(T ang)
 {
   T sin = 0;
   T cos = 0;
