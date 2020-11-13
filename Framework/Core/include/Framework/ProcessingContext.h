@@ -17,7 +17,7 @@ struct ServiceRegistry;
 struct DataAllocator;
 struct InputRecord;
 
-// This is a utility class to reduce the amount of boilerplate when defining
+// This is a utility class to reduce the amount of boilerplate when  defining
 // an algorithm.
 class ProcessingContext
 {
