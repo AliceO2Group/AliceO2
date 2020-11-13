@@ -150,6 +150,7 @@ class VarManager : public TObject
     kMuonBendingCoor,
     kMuonNonBendingCoor,
     kMuonRAtAbsorberEnd,
+    kMuonPDca,
     kMuonChi2,
     kMuonChi2MatchTrigger,
     kNMuonTrackVariables,
@@ -440,6 +441,7 @@ void VarManager::FillTrack(T const& track, float* values)
     values[kMuonBendingCoor] = track.bendingCoor();
     values[kMuonNonBendingCoor] = track.nonBendingCoor();
     values[kMuonRAtAbsorberEnd] = track.rAtAbsorberEnd();
+    values[kMuonPDca] = track.pDca();
     values[kMuonChi2] = track.chi2();
     values[kMuonChi2MatchTrigger] = track.chi2MatchTrigger();
   }

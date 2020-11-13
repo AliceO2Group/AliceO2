@@ -347,6 +347,15 @@ DECLARE_SOA_DYNAMIC_COLUMN(RAtAbsorberEnd, rAtAbsorberEnd, [](float bendingCoor,
   float rAtAbsorberEnd = std::sqrt(xAbs * xAbs + yAbs * yAbs);
   return rAtAbsorberEnd;
 });
+DECLARE_SOA_DYNAMIC_COLUMN(PDca, pDca, [](float inverseBendingMomentum, float thetaX, float thetaY, float bendingCoor, float nonBendingCoor, float zMu) -> float {
+  // linear extrapolation of the coordinates of the track to the position of the end of the absorber (-505 cm)
+  float dca = std::sqrt(bendingCoor * bendingCoor + nonBendingCoor * nonBendingCoor + zMu * zMu);
+  float pz = -std::sqrt(1.0 + std::tan(thetaY) * std::tan(thetaY)) / std::abs(inverseBendingMomentum);
+  float pt = std::abs(pz) * std::sqrt(std::tan(thetaX) * std::tan(thetaX) + std::tan(thetaY) * std::tan(thetaY));
+  float pTot = std::sqrt(pt * pt + pz * pz);
+  float pDca = pTot * dca;
+  return pDca;
+});
 DECLARE_SOA_EXPRESSION_COLUMN(Pt, pt, float, nsqrt(1.0f + ntan(aod::muon::thetaY) * ntan(aod::muon::thetaY)) * nsqrt(ntan(aod::muon::thetaX) * ntan(aod::muon::thetaX) + ntan(aod::muon::thetaY) * ntan(aod::muon::thetaY)) / nabs(aod::muon::inverseBendingMomentum));
 DECLARE_SOA_EXPRESSION_COLUMN(Px, px, float, -1.0f * ntan(aod::muon::thetaX) * nsqrt(1.0f + ntan(aod::muon::thetaY) * ntan(aod::muon::thetaY)) / nabs(aod::muon::inverseBendingMomentum));
 DECLARE_SOA_EXPRESSION_COLUMN(Py, py, float, -1.0f * ntan(aod::muon::thetaY) * nsqrt(1.0f + ntan(aod::muon::thetaY) * ntan(aod::muon::thetaY)) / nabs(aod::muon::inverseBendingMomentum));
@@ -362,6 +371,7 @@ DECLARE_SOA_TABLE_FULL(StoredMuons, "Muons", "AOD", "MUON",
                        muon::Eta<muon::InverseBendingMomentum, muon::ThetaX, muon::ThetaY>,
                        muon::Phi<muon::ThetaX, muon::ThetaY>,
                        muon::RAtAbsorberEnd<muon::BendingCoor, muon::NonBendingCoor, muon::ThetaX, muon::ThetaY, muon::ZMu>,
+                       muon::PDca<muon::InverseBendingMomentum, muon::ThetaX, muon::ThetaY, muon::BendingCoor, muon::NonBendingCoor, muon::ZMu>,
                        muon::Charge<muon::InverseBendingMomentum>);
 
 DECLARE_SOA_EXTENDED_TABLE(Muons, StoredMuons, "MUON",

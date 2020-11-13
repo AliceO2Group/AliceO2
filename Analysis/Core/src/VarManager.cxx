@@ -216,6 +216,8 @@ void VarManager::SetDefaultVarNames()
   fgVariableUnits[kMuonNonBendingCoor] = "";
   fgVariableNames[kMuonRAtAbsorberEnd] = "R at the end of the absorber";
   fgVariableUnits[kMuonRAtAbsorberEnd] = "";
+  fgVariableNames[kMuonPDca] = "p x dca";
+  fgVariableUnits[kMuonPDca] = "cm x GeV/c";
   fgVariableNames[kMuonChi2] = "#chi 2";
   fgVariableUnits[kMuonChi2] = "";
   fgVariableNames[kMuonChi2MatchTrigger] = "#chi 2 trigger match";
