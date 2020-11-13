@@ -45,6 +45,10 @@
 #define GPUCA_LOGGING_PRINTF
 #include "GPULogging.h"
 
+#ifdef GPUCA_O2_LIB
+#include "GPUO2InterfaceConfiguration.h"
+#endif
+
 namespace GPUCA_NAMESPACE
 {
 namespace gpu
@@ -954,10 +958,18 @@ int GPUReconstruction::ReadSettings(const char* dir)
 
 void GPUReconstruction::SetSettings(float solenoidBz, const GPURecoStepConfiguration* workflow)
 {
+#ifdef GPUCA_O2_LIB
+  GPUO2InterfaceConfiguration config;
+  config.ReadConfigurableParam();
+  if (config.configEvent.solenoidBz <= -1e6f) {
+    config.configEvent.solenoidBz = solenoidBz;
+  }
+  SetSettings(&config.configEvent, &config.configReconstruction, &config.configProcessing, workflow);
+#else
   GPUSettingsEvent ev;
-  new (&ev) GPUSettingsEvent;
   ev.solenoidBz = solenoidBz;
   SetSettings(&ev, nullptr, nullptr, workflow);
+#endif
 }
 
 void GPUReconstruction::SetSettings(const GPUSettingsEvent* settings, const GPUSettingsRec* rec, const GPUSettingsProcessing* proc, const GPURecoStepConfiguration* workflow)
