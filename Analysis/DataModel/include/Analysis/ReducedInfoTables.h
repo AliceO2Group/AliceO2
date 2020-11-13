@@ -135,7 +135,8 @@ DECLARE_SOA_TABLE(ReducedMuonsExtended, "AOD", "RTMUONEXTENDED",
                   muon::ThetaX, muon::ThetaY, muon::ZMu,
                   muon::BendingCoor, muon::NonBendingCoor,
                   muon::Chi2, muon::Chi2MatchTrigger,
-                  muon::RAtAbsorberEnd<muon::BendingCoor, muon::NonBendingCoor, muon::ThetaX, muon::ThetaY, muon::ZMu>);
+                  muon::RAtAbsorberEnd<muon::BendingCoor, muon::NonBendingCoor, muon::ThetaX, muon::ThetaY, muon::ZMu>,
+                  muon::PDca<muon::InverseBendingMomentum, muon::ThetaX, muon::ThetaY, muon::BendingCoor, muon::NonBendingCoor, muon::ZMu>);
 
 // iterators
 using ReducedTrack = ReducedTracks::iterator;
