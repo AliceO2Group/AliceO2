@@ -458,6 +458,16 @@ class RecoDecay
         return false;
       }
     }
+    // Check that no daughter is missing.
+    // Daughter indices are supposed to be consecutive.
+    auto indexDaughterFirst = arrMothers[0].daughter0();
+    auto indexDaughterLast = arrMothers[0].daughter1();
+    if (indexDaughterLast <= indexDaughterFirst || indexDaughterFirst == -1 || indexDaughterLast == -1) {
+      return false;
+    }
+    if (indexDaughterLast - indexDaughterFirst + 1 != N) {
+      return false;
+    }
     LOGF(debug, "isMCMatchedDecayRec: Matched");
     return true;
   }
@@ -499,7 +509,7 @@ class RecoDecay
     // Check the PDG codes of the decay products.
     if (N > 1) {
       LOGF(debug, "isMCMatchedDecayGen: Checking %d daughters", N);
-      // Daughter indices are consecutive.
+      // Daughter indices are supposed to be consecutive.
       auto indexDaughterFirst = candidate.daughter0();
       auto indexDaughterLast = candidate.daughter1();
       if (indexDaughterLast <= indexDaughterFirst || indexDaughterFirst == -1 || indexDaughterLast == -1) {
