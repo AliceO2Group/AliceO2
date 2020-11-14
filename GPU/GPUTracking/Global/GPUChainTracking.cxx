@@ -2400,7 +2400,7 @@ int GPUChainTracking::RunChain()
   }
   const bool needQA = GPUQA::QAAvailable() && (GetProcessingSettings().runQA || (GetProcessingSettings().eventDisplay && mIOPtrs.nMCInfosTPC));
   if (needQA && mQA->IsInitialized() == false) {
-    if (mQA->InitQA()) {
+    if (mQA->InitQA(GetProcessingSettings().runQA ? -GetProcessingSettings().runQA : -1)) {
       return 1;
     }
   }
