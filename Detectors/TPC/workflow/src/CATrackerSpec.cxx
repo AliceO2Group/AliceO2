@@ -102,6 +102,7 @@ DataProcessorSpec getCATrackerSpec(CompletionPolicyData* policyData, ca::Config 
     std::unique_ptr<TPCdEdxCalibrationSplines> dEdxSplines;
     std::unique_ptr<TPCCFCalibration> tpcCalibration;
     std::unique_ptr<GPUSettingsQA> qaConfig;
+    int qaTaskMask = 0;
     std::unique_ptr<GPUO2InterfaceQA> qa;
     std::vector<int> clusterOutputIds;
     unsigned long outputBufferSize = 0;
@@ -162,10 +163,15 @@ DataProcessorSpec getCATrackerSpec(CompletionPolicyData* policyData, ca::Config 
       }
       config.configProcessing.runMC = specconfig.processMC;
       if (specconfig.outputQA) {
-        if (!config.configProcessing.runQA) {
-          config.configQA.shipToQC = true;
+        if (!specconfig.processMC) {
+          throw std::runtime_error("Need MC information to create QA plots");
         }
-        config.configProcessing.runQA = true;
+        config.configQA.shipToQC = true;
+        if (!config.configProcessing.runQA) {
+          config.configQA.enableLocalOutput = false;
+          processAttributes->qaTaskMask = 15;
+          config.configProcessing.runQA = -processAttributes->qaTaskMask;
+        }
       }
       config.configReconstruction.NWaysOuter = true;
       config.configInterface.outputToExternalBuffers = true;
@@ -711,7 +717,7 @@ DataProcessorSpec getCATrackerSpec(CompletionPolicyData* policyData, ca::Config 
         std::vector<TH1F> copy1 = *outputRegions.qa.hist1; // Internally, this will also be used as output, so we need a non-const copy
         std::vector<TH2F> copy2 = *outputRegions.qa.hist2;
         std::vector<TH1D> copy3 = *outputRegions.qa.hist3;
-        processAttributes->qa->postprocess(copy1, copy2, copy3, out);
+        processAttributes->qa->postprocess(copy1, copy2, copy3, out, processAttributes->qaTaskMask ? processAttributes->qaTaskMask : -1);
         pc.outputs().snapshot({gDataOriginTPC, "TRACKINGQA", 0, Lifetime::Timeframe}, out);
         processAttributes->qa->cleanup();
       }
