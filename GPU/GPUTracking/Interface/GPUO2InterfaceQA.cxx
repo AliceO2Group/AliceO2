@@ -23,9 +23,9 @@ GPUO2InterfaceQA::GPUO2InterfaceQA(const GPUSettingsQA* config) : mQA(new GPUQA(
 
 GPUO2InterfaceQA::~GPUO2InterfaceQA() = default;
 
-int GPUO2InterfaceQA::postprocess(std::vector<TH1F>& in1, std::vector<TH2F>& in2, std::vector<TH1D>& in3, TObjArray& out)
+int GPUO2InterfaceQA::postprocess(std::vector<TH1F>& in1, std::vector<TH2F>& in2, std::vector<TH1D>& in3, TObjArray& out, int tasks)
 {
-  if (mQA->loadHistograms(in1, in2, in3)) {
+  if (mQA->loadHistograms(in1, in2, in3, tasks)) {
     return 1;
   }
   return mQA->DrawQAHistograms(&out);
