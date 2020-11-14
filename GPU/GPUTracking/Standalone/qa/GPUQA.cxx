@@ -724,17 +724,12 @@ void GPUQA::RunQA(bool matchOnly)
   if (mcAvail) {
     // Assign Track MC Labels
     timer.Start();
-    bool ompError = false;
-
 #if QA_DEBUG == 0
     GPUCA_OPENMP(parallel for)
 #endif
     for (unsigned int i = 0; i < mTracking->mIOPtrs.nMergedTracks; i++) {
       auto acc = GPUTPCTrkLbl<true, mcLabelI_t>(GetClusterLabels(), 1.f - mConfig.recThreshold);
       acc.reset();
-      if (ompError) {
-        continue;
-      }
       int nClusters = 0;
       const GPUTPCGMMergedTrack& track = mTracking->mIOPtrs.mergedTracks[i];
       std::vector<mcLabel_t> labels;
@@ -746,15 +741,13 @@ void GPUQA::RunQA(bool matchOnly)
         unsigned int hitId = mTracking->mIOPtrs.mergedTrackHits[track.FirstClusterRef() + k].num;
         if (hitId >= GetNMCLabels()) {
           GPUError("Invalid hit id %u > %d", hitId, GetNMCLabels());
-          ompError = true;
-          break;
+          throw std::runtime_error("qa error");
         }
         acc.addLabel(hitId);
         for (int j = 0; j < GetMCLabelNID(hitId); j++) {
           if (GetMCLabelID(hitId, j) >= (int)GetNMCTracks(GetMCLabelCol(hitId, j))) {
             GPUError("Invalid label %d > %d (hit %d, label %d, col %d)", GetMCLabelID(hitId, j), GetNMCTracks(GetMCLabelCol(hitId, j)), hitId, j, (int)GetMCLabelCol(hitId, j));
-            ompError = true;
-            break;
+            throw std::runtime_error("qa error");
           }
           if (GetMCLabelID(hitId, j) >= 0) {
             if (QA_DEBUG >= 3 && track.OK()) {
@@ -762,12 +755,6 @@ void GPUQA::RunQA(bool matchOnly)
             }
           }
         }
-        if (ompError) {
-          break;
-        }
-      }
-      if (ompError) {
-        continue;
       }
 
       float maxweight, sumweight;
@@ -779,9 +766,6 @@ void GPUQA::RunQA(bool matchOnly)
         GPUInfo("Track %d label %d (fake %d) weight %f clusters %d (fitted %d) (%f%% %f%%) Pt %f", i, maxLabel.getTrackID(), (int)(maxLabel.isFake()), maxweight, nClusters, track.NClustersFitted(), 100.f * maxweight / sumweight, 100.f * (float)maxcount / (float)nClusters,
                 std::sqrt(mc.pX * mc.pX + mc.pY * mc.pY));
       }
-    }
-    if (ompError) {
-      return;
     }
     if (QA_TIMING) {
       GPUInfo("QA Time: Assign Track Labels:\t\t%6.0f us", timer.GetCurrentElapsedTime(true) * 1e6);
