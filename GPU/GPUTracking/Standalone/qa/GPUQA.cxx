@@ -724,11 +724,11 @@ void GPUQA::RunQA(bool matchOnly)
   if (mcAvail) {
     // Assign Track MC Labels
     timer.Start();
+    auto acc = GPUTPCTrkLbl<true, mcLabelI_t>(GetClusterLabels(), 1.f - mConfig.recThreshold);
 #if QA_DEBUG == 0
-    GPUCA_OPENMP(parallel for)
+    GPUCA_OPENMP(parallel for firstprivate(acc))
 #endif
     for (unsigned int i = 0; i < mTracking->mIOPtrs.nMergedTracks; i++) {
-      auto acc = GPUTPCTrkLbl<true, mcLabelI_t>(GetClusterLabels(), 1.f - mConfig.recThreshold);
       acc.reset();
       int nClusters = 0;
       const GPUTPCGMMergedTrack& track = mTracking->mIOPtrs.mergedTracks[i];
