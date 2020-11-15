@@ -12,8 +12,6 @@
 #include "Framework/WorkflowSpec.h"
 #include "Framework/DataProcessorSpec.h"
 #include "Framework/ControlService.h"
-#include "Framework/CompletionPolicy.h"
-#include "Framework/CompletionPolicyHelpers.h"
 #include "Framework/Logger.h"
 #include "Framework/ConfigParamSpec.h"
 #include "CommonUtils/ConfigurableParam.h"
@@ -28,17 +26,6 @@
 #include <thread> // to detect number of hardware threads
 
 using namespace o2::framework;
-
-// customize the completion policy
-void customize(std::vector<o2::framework::CompletionPolicy>& policies)
-{
-  // we customize the completion policy for the writer since it should stream immediately
-  using CompletionPolicy = o2::framework::CompletionPolicy;
-  using CompletionPolicyHelpers = o2::framework::CompletionPolicyHelpers;
-  policies.push_back(CompletionPolicyHelpers::defineByName("tpc-cluster-decoder.*", CompletionPolicy::CompletionOp::Consume));
-  policies.push_back(CompletionPolicyHelpers::defineByName("tpc-clusterer.*", CompletionPolicy::CompletionOp::Consume));
-  policies.push_back(CompletionPolicyHelpers::defineByName("tpc-tracker.*", CompletionPolicy::CompletionOp::Consume));
-}
 
 enum class DecoderType {
   GBT,   ///< GBT frame raw decoding
@@ -125,9 +112,6 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   if (!tpcRecoOutputType.empty()) {
     recoOuput = tpcRecoOutputType.c_str();
   }
-
-  auto tpcRecoWorkflow = o2::tpc::reco_workflow::getWorkflow(nullptr, tpcSectors, tpcSectors, false, lanes, "digitizer", recoOuput.data());
-  specs.insert(specs.end(), tpcRecoWorkflow.begin(), tpcRecoWorkflow.end());
 
   return specs;
 }

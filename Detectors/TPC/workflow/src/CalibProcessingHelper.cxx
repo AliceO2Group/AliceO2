@@ -21,9 +21,11 @@
 using namespace o2::tpc;
 using namespace o2::framework;
 
-void calib_processing_helper::processRawData(o2::framework::InputRecord& inputs, std::unique_ptr<RawReaderCRU>& reader, bool useOldSubspec)
+uint64_t calib_processing_helper::processRawData(o2::framework::InputRecord& inputs, std::unique_ptr<RawReaderCRU>& reader, bool useOldSubspec)
 {
   std::vector<InputSpec> filter = {{"check", ConcreteDataTypeMatcher{o2::header::gDataOriginTPC, "RAWDATA"}, Lifetime::Timeframe}};
+
+  uint64_t activeSectors = 0;
 
   for (auto const& ref : InputRecordWalker(inputs, filter)) {
     const auto* dh = DataRefUtils::getHeader<o2::header::DataHeader*>(ref);
@@ -42,6 +44,9 @@ void calib_processing_helper::processRawData(o2::framework::InputRecord& inputs,
       //---| new definition by David |---
       rdh_utils::getMapping(feeID, cruID, endPoint, linkID);
     }
+
+    uint64_t sector = cruID / 10;
+    activeSectors |= (0x1 << sector);
 
     const auto globalLinkID = linkID + endPoint * 12;
 
@@ -85,4 +90,6 @@ void calib_processing_helper::processRawData(o2::framework::InputRecord& inputs,
 
     reader->runADCDataCallback(rawData);
   }
+
+  return activeSectors;
 }
