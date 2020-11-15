@@ -708,7 +708,6 @@ void DeviceSpecHelpers::dataProcessorSpecs2DeviceSpecs(const WorkflowSpec& workf
   // them before assigning to a device.
   std::vector<OutputSpec> outputs;
 
-  WorkflowHelpers::verifyWorkflow(workflow);
   WorkflowHelpers::constructGraph(workflow, logicalEdges, outputs, availableForwardsInfo);
 
   // We need to instanciate one device per (me, timeIndex) in the

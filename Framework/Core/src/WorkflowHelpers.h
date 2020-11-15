@@ -143,6 +143,11 @@ struct OutputObj {
   bool isdangling;
 };
 
+enum struct WorkflowParsingState : int {
+  Valid,
+  Empty,
+};
+
 /// A set of internal helper classes to manipulate a Workflow
 struct WorkflowHelpers {
   /// Topological sort for a graph of @a nodeCount nodes.
@@ -163,7 +168,7 @@ struct WorkflowHelpers {
 
   // Helper method to verify that a given workflow is actually valid e.g. that
   // it contains no empty labels.
-  static void verifyWorkflow(const WorkflowSpec& workflow);
+  [[nodiscard]] static WorkflowParsingState verifyWorkflow(const WorkflowSpec& workflow);
 
   // Depending on the workflow and the dangling inputs inside it, inject "fake"
   // devices to mark the fact we might need some extra action to make sure
