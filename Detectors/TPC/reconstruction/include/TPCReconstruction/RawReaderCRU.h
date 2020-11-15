@@ -167,6 +167,10 @@ class SyncPosition
   /// return half word position
   uint32_t getHalfWordPosition() const { return mHalfWordPos; };
 
+  uint32_t getFrameNumber() const { return mFrameNum; }
+
+  uint32_t getPacketNumber() const { return mPacketNum; }
+
   /// return if sync was found
   bool synched() const { return mSyncFound; };
 
@@ -209,7 +213,7 @@ class GBTFrame
 
   /// set syncronisation found for stream
   /// \param stream stream
-  bool mSyncFound(int stream) { return mSyncPos[stream].synched(); };
+  bool syncFound(int stream) { return mSyncPos[stream].synched(); };
 
   /// get the syncronisation array
   const SyncArray& getSyncArray() const { return mSyncPos; }
@@ -634,6 +638,12 @@ class RawReaderCRU
 
   /// run a data filling callback function
   void runADCDataCallback(const ADCRawData& rawData);
+
+  /// set output file prefix
+  void setOutputFilePrefix(std::string_view prefix) { mOutputFilePrefix = prefix; }
+
+  /// output file prefix
+  const std::string& getOutputFilePrefix() const { return mOutputFilePrefix; }
 
   //===========================================================================
   //===| Nested helper classes |===============================================

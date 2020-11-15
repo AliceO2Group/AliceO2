@@ -337,7 +337,7 @@ int RawReaderCRU::scanFile()
     };
 
     // debug output
-    if (CHECK_BIT(mDebugLevel, DebugLevel::RDHDump)) {
+    if (mVerbosity && CHECK_BIT(mDebugLevel, DebugLevel::RDHDump)) {
       //std::cout << "Packet " << std::setw(5) << currentPacket << " - Link " << int(linkID) << "\n";
       //std::cout << rdh;
       printHorizontal(rdh);
@@ -443,7 +443,7 @@ void RawReaderCRU::findSyncPositions()
       // TODO: In future there might be more then one sync in the stream
       //       this should be takein into account
       if (syncFoundForLink(link)) {
-        if (CHECK_BIT(mDebugLevel, DebugLevel::SyncPositions)) {
+        if (mVerbosity && CHECK_BIT(mDebugLevel, DebugLevel::SyncPositions)) {
           std::cout << "Sync positions for link " << link << '\n';
           const auto& syncs = mSyncPositions[link];
           for (int i = 0; i < syncs.size(); ++i) {
@@ -481,12 +481,12 @@ int RawReaderCRU::processPacket(GBTFrame& gFrame, uint32_t startPos, uint32_t si
     gFrame.getFrameHalfWords();
 
     // debug output
-    if (CHECK_BIT(mDebugLevel, DebugLevel::GBTFrames)) {
+    if (mVerbosity && CHECK_BIT(mDebugLevel, DebugLevel::GBTFrames)) {
       std::cout << gFrame;
     }
 
     gFrame.getAdcValues(rawData);
-    gFrame.updateSyncCheck(CHECK_BIT(mDebugLevel, DebugLevel::SyncPositions));
+    gFrame.updateSyncCheck(mVerbosity && CHECK_BIT(mDebugLevel, DebugLevel::SyncPositions));
     if (!(rawData.getNumTimebins() % 16) && (rawData.getNumTimebins() >= mNumTimeBins * 16)) {
       return 1;
     }
@@ -497,6 +497,8 @@ int RawReaderCRU::processPacket(GBTFrame& gFrame, uint32_t startPos, uint32_t si
 int RawReaderCRU::processMemory(const std::vector<o2::byte>& data, ADCRawData& rawData)
 {
   GBTFrame gFrame;
+
+  const bool dumpSyncPositoins = CHECK_BIT(mDebugLevel, DebugLevel::SyncPositions);
 
   // 16 bytes is the size of a GBT frame
   for (int iFrame = 0; iFrame < data.size() / 16; ++iFrame) {
@@ -514,16 +516,35 @@ int RawReaderCRU::processMemory(const std::vector<o2::byte>& data, ADCRawData& r
     gFrame.getFrameHalfWords();
 
     // debug output
-    if (CHECK_BIT(mDebugLevel, DebugLevel::GBTFrames)) {
+    if (mVerbosity && CHECK_BIT(mDebugLevel, DebugLevel::GBTFrames)) {
       std::cout << gFrame;
     }
 
     gFrame.getAdcValues(rawData);
-    gFrame.updateSyncCheck(CHECK_BIT(mDebugLevel, DebugLevel::SyncPositions));
+    gFrame.updateSyncCheck(mVerbosity && dumpSyncPositoins);
     if (!(rawData.getNumTimebins() % 16) && (rawData.getNumTimebins() >= mNumTimeBins * 16)) {
-      return 1;
+      break;
     }
   };
+
+  if (mDumpTextFiles && dumpSyncPositoins) {
+    const auto fileName = mOutputFilePrefix + "/LinkPositions.txt";
+    std::ofstream file(fileName, std::ofstream::app);
+    auto& syncPositions = gFrame.getSyncArray();
+
+    for (int s = 0; s < 5; ++s) {
+      auto& syncPos = syncPositions[s];
+      if (syncPos.synched()) {
+        file << mEventNumber << "\t"
+             << mCRU << "\t"
+             << mLink << "\t"
+             << s << "\t"
+             << syncPos.getPacketNumber() << "\t"
+             << syncPos.getFrameNumber() << "\t"
+             << syncPos.getHalfWordPosition() << "\n";
+      }
+    }
+  }
   return 0;
 }
 
@@ -646,13 +667,13 @@ int RawReaderCRU::processDataFile()
     std::string fileName;
     for (int s = 0; s < 5; s++) {
       if (mStream == 0x0 or ((mStream >> s) & 0x1) == 0x1) {
-        if (gFrame.mSyncFound(s) == false) {
+        if (gFrame.syncFound(s) == false) {
           std::cout << "No sync found" << std::endl;
         }
         // debug output
         rawData.setOutputStream(s);
         rawData.setNumTimebins(mNumTimeBins);
-        if (CHECK_BIT(mDebugLevel, DebugLevel::ADCValues)) {
+        if (mVerbosity && CHECK_BIT(mDebugLevel, DebugLevel::ADCValues)) {
           std::cout << rawData << std::endl;
         };
         // write the data to file
@@ -787,14 +808,39 @@ void RawReaderCRU::processFile(const std::string_view inputFile, uint32_t timeBi
   // Instantiate the RawReaderCRU
   RawReaderCRUManager cruManager;
   cruManager.setDebugLevel(debugLevel);
-  RawReaderCRU& rawReaderCRU = cruManager.createReader(inputFile, timeBins, 0, stream, debugLevel, verbosity, outputFilePrefix);
+  //RawReaderCRU& rawReaderCRU = cruManager.createReader(inputFile, timeBins, 0, stream, debugLevel, verbosity, outputFilePrefix);
+  cruManager.setupReaders(inputFile, timeBins, debugLevel, verbosity, outputFilePrefix);
+  for (auto& reader : cruManager.getReaders()) {
+    reader->mDumpTextFiles = true;
+    reader->mFillADCdataMap = false;
+  }
   cruManager.init();
-  rawReaderCRU.mDumpTextFiles = true;
-  rawReaderCRU.mFillADCdataMap = false;
-  for (int ievent = 0; ievent < rawReaderCRU.getNumberOfEvents(); ++ievent) {
+
+  if (CHECK_BIT(debugLevel, DebugLevel::SyncPositions)) {
+    std::string outPrefix = outputFilePrefix.length() ? outputFilePrefix.data() : "./";
+    const auto fileName = outPrefix + "/LinkPositions.txt";
+    std::ofstream file(fileName, std::ofstream::out);
+    file << "EventNumber/I"
+         << ":"
+         << "CRU"
+         << ":"
+         << "Link"
+         << ":"
+         << "Stream"
+         << ":"
+         << "PacketNumber"
+         << ":"
+         << "FrameNumber"
+         << ":"
+         << "HalfWordPosition"
+         << "\n";
+    file.close();
+  }
+
+  for (int ievent = 0; ievent < cruManager.getNumberOfEvents(); ++ievent) {
     fmt::print("=============| event {: 5d} |===============\n", ievent);
-    rawReaderCRU.setEventNumber(ievent);
-    rawReaderCRU.processLinks(linkMask);
+
+    cruManager.processEvent(ievent);
   }
 }
 
@@ -1081,6 +1127,7 @@ void RawReaderCRUManager::setupReaders(const std::string_view inputFileNames,
     reader.setReaderNumber(mRawReadersCRU.size() - 1);
     reader.setVerbosity(verbosity);
     reader.setDebugLevel(debugLevel);
+    reader.setOutputFilePrefix(outputFilePrefix);
     O2INFO("Adding file: %s\n", file->GetName());
   }
 }
