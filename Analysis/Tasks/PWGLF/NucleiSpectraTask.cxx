@@ -53,7 +53,7 @@ struct NucleiSpecraTask {
         continue;
       }
 
-      hTPCsignal->Fill(track.p(), track.tpcSignal());
+      hTPCsignal->Fill(track.tpcInnerParam(), track.tpcSignal());
       hMomentum->Fill(track.p());
     }
   }
