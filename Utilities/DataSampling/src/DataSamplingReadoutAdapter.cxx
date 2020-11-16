@@ -25,19 +25,19 @@ static std::atomic<unsigned int> blockId = 0;
 InjectorFunction dataSamplingReadoutAdapter(OutputSpec const& spec)
 {
   return [spec](FairMQDevice& device, FairMQParts& parts, ChannelRetriever channelRetriever) {
-    for (size_t i = 0; i < parts.Size() / 2; ++i) {
+    for (size_t i = 0; i < parts.Size(); ++i) {
 
       DataHeader dh;
       ConcreteDataTypeMatcher dataType = DataSpecUtils::asConcreteDataTypeMatcher(spec);
       dh.dataOrigin = dataType.origin;
       dh.dataDescription = dataType.description;
       dh.subSpecification = DataSpecUtils::getOptionalSubSpec(spec).value_or(0xFF);
-      dh.payloadSize = parts.At(2 * i + 1)->GetSize();
+      dh.payloadSize = parts.At(i)->GetSize();
       dh.payloadSerializationMethod = o2::header::gSerializationMethodNone;
 
       DataProcessingHeader dph{++blockId, 0};
       o2::header::Stack headerStack{dh, dph};
-      sendOnChannel(device, std::move(headerStack), std::move(parts.At(2 * i + 1)), spec, channelRetriever);
+      sendOnChannel(device, std::move(headerStack), std::move(parts.At(i)), spec, channelRetriever);
     }
   };
 }
