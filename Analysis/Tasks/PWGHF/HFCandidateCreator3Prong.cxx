@@ -14,7 +14,6 @@
 ///
 /// \author Vít Kučera <vit.kucera@cern.ch>, CERN
 
-#include "Framework/runDataProcessing.h"
 #include "Framework/AnalysisTask.h"
 #include "DetectorsVertexing/DCAFitterN.h"
 #include "Analysis/HFSecondaryVertex.h"
@@ -23,6 +22,14 @@
 
 using namespace o2;
 using namespace o2::framework;
+
+void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
+{
+  ConfigParamSpec optionDoMC{"doMC", VariantType::Bool, false, {"Perform MC matching."}};
+  workflowOptions.push_back(optionDoMC);
+}
+
+#include "Framework/runDataProcessing.h"
 
 /// Reconstruction of heavy-flavour 3-prong decay candidates
 struct HFCandidateCreator3Prong {
@@ -132,9 +139,44 @@ struct HFCandidateCreator3ProngExpressions {
   void init(InitContext const&) {}
 };
 
-WorkflowSpec defineDataProcessing(ConfigContext const&)
+/// Performs MC matching.
+struct HFCandidateCreator3ProngMC {
+  Produces<aod::HfCandProng3MCRec> rowMCMatchRec;
+  Produces<aod::HfCandProng3MCGen> rowMCMatchGen;
+
+  void process(aod::HfCandProng3 const& candidates,
+               aod::BigTracksMC const& tracks,
+               aod::McParticles const& particlesMC)
+  {
+    // Match reconstructed candidates.
+    for (auto& candidate : candidates) {
+      auto arrayDaughters = array{candidate.index0_as<aod::BigTracksMC>(), candidate.index1_as<aod::BigTracksMC>(), candidate.index2_as<aod::BigTracksMC>()};
+      // D± → π± K∓ π±
+      auto isMatchedRecDPlus = RecoDecay::isMCMatchedDecayRec(particlesMC, arrayDaughters, 411, array{+kPiPlus, -kKPlus, +kPiPlus}, true);
+      // Lc± → p± K∓ π±
+      auto isMatchedRecLc = RecoDecay::isMCMatchedDecayRec(particlesMC, std::move(arrayDaughters), 4122, array{+kProton, -kKPlus, +kPiPlus}, true);
+      rowMCMatchRec(uint8_t(isMatchedRecDPlus + 2 * isMatchedRecLc));
+    }
+
+    // Match generated particles.
+    for (auto& particle : particlesMC) {
+      // D± → π± K∓ π±
+      auto isMatchedGenDPlus = RecoDecay::isMCMatchedDecayGen(particlesMC, particle, 411, array{+kPiPlus, -kKPlus, +kPiPlus}, true);
+      // Lc± → p± K∓ π±
+      auto isMatchedGenLc = RecoDecay::isMCMatchedDecayGen(particlesMC, particle, 4122, array{+kProton, -kKPlus, +kPiPlus}, true);
+      rowMCMatchGen(uint8_t(isMatchedGenDPlus + 2 * isMatchedGenLc));
+    }
+  }
+};
+
+WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
 {
-  return WorkflowSpec{
+  WorkflowSpec workflow{
     adaptAnalysisTask<HFCandidateCreator3Prong>("hf-cand-creator-3prong"),
     adaptAnalysisTask<HFCandidateCreator3ProngExpressions>("hf-cand-creator-3prong-expressions")};
+  const bool doMC = cfgc.options().get<bool>("doMC");
+  if (doMC) {
+    workflow.push_back(adaptAnalysisTask<HFCandidateCreator3ProngMC>("hf-cand-creator-3prong-mc"));
+  }
+  return workflow;
 }

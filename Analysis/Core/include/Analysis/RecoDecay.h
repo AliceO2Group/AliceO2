@@ -415,30 +415,72 @@ class RecoDecay
   template <std::size_t N, typename T, typename U>
   static bool isMCMatchedDecayRec(const T& particlesMC, const array<U, N>& arrDaughters, int PDGMother, array<int, N> arrPDGDaughters, bool acceptAntiParticles = false)
   {
-    LOGF(debug, "isMCMatchedDecayRec: Expected mother PDG: %d", PDGMother);
-    int sgn = 1;                              // 1 if the expected mother is particle, -1 if antiparticle
-    array<o2::aod::McParticle, N> arrMothers; // array of mother particles
+    //Printf("MC Rec.: Expected mother PDG: %d", PDGMother);
+    int sgn = 1;                     // 1 if the expected mother is particle, -1 if antiparticle
+    int indexMother = -1;            // index of the mother particle
+    int indexDaughterFirst = -1;     // index of the first daughter
+    int indexDaughterLast = -1;      // index of the last daughter
+    array<int, N> arrDaughtersIndex; // array of daughter indices
     // loop over daughter particles
     for (auto iProng = 0; iProng < N; ++iProng) {
       auto particleI = arrDaughters[iProng].label(); // ith daughter particle
+      arrDaughtersIndex[iProng] = particleI.globalIndex();
       auto indexParticleIMother = particleI.mother0();
       if (indexParticleIMother == -1) {
+        //Printf("MC Rec. rejected: bad mother index: %d", indexParticleIMother);
         return false;
       }
-      // Check mother PDG code.
-      auto particleIMother = particlesMC.iteratorAt(indexParticleIMother); // mother of the ith daughter
-      auto PDGParticleIMother = particleIMother.pdgCode();                 // PDG code of the mother of the ith daughter
-      LOGF(debug, "isMCMatchedDecayRec: Daughter %d mother PDG: %d", iProng, PDGParticleIMother);
+      // Get the mother.
+      auto particleIMother = particlesMC.iteratorAt(indexParticleIMother);
+      // Check mother's PDG code.
+      auto PDGParticleIMother = particleIMother.pdgCode(); // PDG code of the mother of the ith daughter
+      //Printf("MC Rec.: Daughter %d mother PDG: %d", iProng, PDGParticleIMother);
       if (PDGParticleIMother != sgn * PDGMother) {
         if (acceptAntiParticles && iProng == 0 && PDGParticleIMother == -PDGMother) {
           sgn = -1; // PDG code of the first daughter's mother determines whether the expected mother is a particle or antiparticle.
         } else {
+          //Printf("MC Rec. rejected: bad mother PDG: %s%d != %d", acceptAntiParticles ? "abs " : "", PDGParticleIMother, sgn * PDGMother);
           return false;
         }
       }
-      // Check daughter PDG code.
+      // Check that all daughters have the same mother.
+      if (iProng == 0) {
+        indexMother = indexParticleIMother;
+      } else if (indexParticleIMother != indexMother) {
+        //Printf("MC Rec. rejected: different mothers: %d %d", indexMother, indexParticleIMother);
+        return false;
+      }
+      // Set the range of expected daughter indices.
+      if (iProng == 0) {
+        indexDaughterFirst = particleIMother.daughter0();
+        indexDaughterLast = particleIMother.daughter1();
+        // Check the daughter indices.
+        // Daughter indices are supposed to be consecutive.
+        if (indexDaughterLast <= indexDaughterFirst || indexDaughterFirst == -1 || indexDaughterLast == -1) {
+          //Printf("MC Rec. rejected: bad daughter index range: %d-%d", indexDaughterFirst, indexDaughterLast);
+          return false;
+        }
+        // Check the number of daughters.
+        if (indexDaughterLast - indexDaughterFirst + 1 != N) {
+          //Printf("MC Rec. rejected: incorrect number of daughters: %d", indexDaughterLast - indexDaughterFirst + 1);
+          return false;
+        }
+      }
+      // Check that the daughter is not a stepdaughter.
+      if (arrDaughtersIndex[iProng] < indexDaughterFirst || arrDaughtersIndex[iProng] > indexDaughterLast) {
+        //Printf("MC Rec. rejected: stepdaughter: %d outside %d-%d", arrDaughtersIndex[iProng], indexDaughterFirst, indexDaughterLast);
+        return false;
+      }
+      // Check that the daughter is not a twin.
+      for (auto jProng = 0; jProng < iProng; ++jProng) {
+        if (arrDaughtersIndex[iProng] == arrDaughtersIndex[jProng]) {
+          //Printf("MC Rec. rejected: twin daughter: %d", arrDaughtersIndex[iProng]);
+          return false;
+        }
+      }
+      // Check daughter's PDG code.
       auto PDGParticleI = particleI.pdgCode(); // PDG code of the ith daughter
-      LOGF(debug, "isMCMatchedDecayRec: Daughter %d PDG: %d", iProng, PDGParticleI);
+      //Printf("MC Rec: Daughter %d PDG: %d", iProng, PDGParticleI);
       bool PDGFound = false; // Is the PDG code of this daughter among the remaining expected PDG codes?
       for (auto iProngCp = 0; iProngCp < N; ++iProngCp) {
         if (PDGParticleI == sgn * arrPDGDaughters[iProngCp]) {
@@ -448,17 +490,11 @@ class RecoDecay
         }
       }
       if (!PDGFound) {
-        return false;
-      }
-      arrMothers[iProng] = particleIMother;
-    }
-    // Check that all daughters have the same mother.
-    for (auto iProng = 1; iProng < N; ++iProng) {
-      if (arrMothers[iProng] != arrMothers[0]) {
+        //Printf("MC Rec. rejected: bad daughter PDG: %d", PDGParticleI);
         return false;
       }
     }
-    LOGF(debug, "isMCMatchedDecayRec: Matched");
+    //Printf("MC Rec. accepted: m: %d, d: %d-%d", indexMother, indexDaughterFirst, indexDaughterLast);
     return true;
   }
 
@@ -484,36 +520,43 @@ class RecoDecay
   template <std::size_t N, typename T, typename U>
   static bool isMCMatchedDecayGen(const T& particlesMC, const U& candidate, int PDGParticle, array<int, N> arrPDGDaughters, bool acceptAntiParticles = false)
   {
-    LOGF(debug, "isMCMatchedDecayGen: Expected particle PDG: %d", PDGParticle);
+    //Printf("MC Gen.: Expected particle PDG: %d", PDGParticle);
     int sgn = 1; // 1 if the expected mother is particle, -1 if antiparticle
+    int indexDaughterFirst = 0; // index of the first daughter
+    int indexDaughterLast = 0;  // index of the last daughter
     // Check the PDG code of the particle.
     auto PDGCandidate = candidate.pdgCode();
-    LOGF(debug, "isMCMatchedDecayGen: Candidate PDG: %d", PDGCandidate);
+    //Printf("MC Gen.: Candidate PDG: %d", PDGCandidate);
     if (PDGCandidate != PDGParticle) {
       if (acceptAntiParticles && PDGCandidate == -PDGParticle) {
         sgn = -1;
       } else {
+        //Printf("MC Gen. rejected: bad particle PDG: %s%d != %d", acceptAntiParticles ? "abs " : "", PDGCandidate, sgn * PDGParticle);
         return false;
       }
     }
     // Check the PDG codes of the decay products.
     if (N > 1) {
-      LOGF(debug, "isMCMatchedDecayGen: Checking %d daughters", N);
-      auto indexCandidateDaughterI = candidate.daughter0();
-      for (auto iProng = 0; iProng < N; ++iProng) {
-        if (iProng == 1) {
-          indexCandidateDaughterI = candidate.daughter1();
-        }
-        // FIXME: 3-prong decays
-        //else if (iProng == 2) {
-        //  indexCandidateDaughterI = candidate.daughter2();
-        //}
-        if (indexCandidateDaughterI == -1) {
-          return false;
-        }
-        auto candidateDaughterI = particlesMC.iteratorAt(indexCandidateDaughterI); // ith daughter particle
-        auto PDGCandidateDaughterI = candidateDaughterI.pdgCode();                 // PDG code of the ith daughter
-        LOGF(debug, "isMCMatchedDecayGen: Daughter %d PDG: %d", iProng, PDGCandidateDaughterI);
+      //Printf("MC Gen.: Checking %d daughters", N);
+      // Set the range of expected daughter indices.
+      indexDaughterFirst = candidate.daughter0();
+      indexDaughterLast = candidate.daughter1();
+      // Check the daughter indices.
+      // Daughter indices are supposed to be consecutive.
+      if (indexDaughterLast <= indexDaughterFirst || indexDaughterFirst == -1 || indexDaughterLast == -1) {
+        //Printf("MC Gen. rejected: bad daughter index range: %d-%d", indexDaughterFirst, indexDaughterLast);
+        return false;
+      }
+      // Check the number of daughters.
+      if (indexDaughterLast - indexDaughterFirst + 1 != N) {
+        //Printf("MC Gen. rejected: incorrect number of daughters: %d", indexDaughterLast - indexDaughterFirst + 1);
+        return false;
+      }
+      // Check daughters' PDG codes.
+      for (auto indexDaughterI = indexDaughterFirst; indexDaughterI <= indexDaughterLast; ++indexDaughterI) {
+        auto candidateDaughterI = particlesMC.iteratorAt(indexDaughterI); // ith daughter particle
+        auto PDGCandidateDaughterI = candidateDaughterI.pdgCode();        // PDG code of the ith daughter
+        //Printf("MC Gen.: Daughter %d PDG: %d", indexDaughterI, PDGCandidateDaughterI);
         bool PDGFound = false; // Is the PDG code of this daughter among the remaining expected PDG codes?
         for (auto iProngCp = 0; iProngCp < N; ++iProngCp) {
           if (PDGCandidateDaughterI == sgn * arrPDGDaughters[iProngCp]) {
@@ -523,11 +566,12 @@ class RecoDecay
           }
         }
         if (!PDGFound) {
+          //Printf("MC Gen. rejected: bad daughter PDG: %d", PDGCandidateDaughterI);
           return false;
         }
       }
     }
-    LOGF(debug, "isMCMatchedDecayGen: Matched");
+    //Printf("MC Gen. accepted: m: %d, d: %d-%d", candidate.globalIndex(), indexDaughterFirst, indexDaughterLast);
     return true;
   }
 
