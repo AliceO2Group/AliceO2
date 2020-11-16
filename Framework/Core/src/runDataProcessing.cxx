@@ -1207,7 +1207,6 @@ int runStateMachine(DataProcessorSpecs const& workflow,
           // In case of an empty workflow, we need to deploy the GUI at least once.
           driverInfo.states.push_back(DriverState::RUNNING);
           driverInfo.states.push_back(DriverState::REDEPLOY_GUI);
-          guiDeployedOnce += 1;
         } else {
           driverInfo.states.push_back(DriverState::RUNNING);
         }
