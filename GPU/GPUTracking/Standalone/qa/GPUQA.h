@@ -71,7 +71,12 @@ class GPUQA
 namespace o2
 {
 class MCCompLabel;
-}
+namespace tpc
+{
+class TrackTPC;
+struct ClusterNativeAccess;
+} // namespace tpc
+} // namespace o2
 
 class AliHLTTPCClusterMCLabel;
 
@@ -89,7 +94,7 @@ class GPUQA
   ~GPUQA();
 
   int InitQA(int tasks = -1);
-  void RunQA(bool matchOnly = false);
+  void RunQA(bool matchOnly = false, const std::vector<o2::tpc::TrackTPC>* tracksExternal = nullptr, const std::vector<o2::MCCompLabel>* tracksExtMC = nullptr, const o2::tpc::ClusterNativeAccess* clNative = nullptr);
   int DrawQAHistograms(TObjArray* qcout = nullptr);
   void DrawQAHistogramsCleanup(); // Needed after call to DrawQAHistograms with qcout != nullptr when GPUSettingsQA.shipToQCAsCanvas = true to clean up the Canvases etc.
   void SetMCTrackRange(int min, int max);
@@ -104,6 +109,7 @@ class GPUQA
   const std::vector<TH1F>& getHistograms1D() const { return *mHist1D; }
   const std::vector<TH2F>& getHistograms2D() const { return *mHist2D; }
   const std::vector<TH1D>& getHistograms1Dd() const { return *mHist1Dd; }
+  void resetHists();
   int loadHistograms(std::vector<TH1F>& i1, std::vector<TH2F>& i2, std::vector<TH1D>& i3, int tasks = -1);
 
   static constexpr int N_CLS_HIST = 8;
@@ -297,6 +303,8 @@ class GPUQA
   static int initColors();
 
   int mMCTrackMin = -1, mMCTrackMax = -1;
+
+  const o2::tpc::ClusterNativeAccess* mClNative;
 };
 
 inline bool GPUQA::SuppressTrack(int iTrack) const { return (mConfig.matchMCLabels.size() && !mGoodTracks[mNEvents][iTrack]); }
