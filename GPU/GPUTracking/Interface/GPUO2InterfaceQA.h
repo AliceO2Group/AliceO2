@@ -33,6 +33,16 @@ class TH1D;
 class TH2F;
 class TObjArray;
 
+namespace o2
+{
+class MCCompLabel;
+namespace tpc
+{
+class TrackTPC;
+struct ClusterNativeAccess;
+} // namespace tpc
+} // namespace o2
+
 namespace o2::gpu
 {
 class GPUQA;
@@ -43,8 +53,16 @@ class GPUO2InterfaceQA
   GPUO2InterfaceQA(const GPUSettingsQA* config = nullptr);
   ~GPUO2InterfaceQA();
 
+  int initializeForProcessing(int tasks); // only needed for processing, not for postprocessing
+
+  void runQA(const std::vector<o2::tpc::TrackTPC>* tracksExternal, const std::vector<o2::MCCompLabel>* tracksExtMC, const o2::tpc::ClusterNativeAccess* clNative);
+  int postprocess(TObjArray& out);
+
   // Input might be modified, so we assume non-const. If it is const, a copy should be created before.
-  int postprocess(std::vector<TH1F>& in1, std::vector<TH2F>& in2, std::vector<TH1D>& in3, TObjArray& out, int tasks);
+  int postprocessExternal(std::vector<TH1F>& in1, std::vector<TH2F>& in2, std::vector<TH1D>& in3, TObjArray& out, int tasks);
+
+  void getHists(const std::vector<TH1F>*& h1, const std::vector<TH2F>*& h2, const std::vector<TH1D>*& h3);
+  void resetHists();
   void cleanup();
 
  private:
