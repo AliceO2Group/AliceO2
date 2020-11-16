@@ -148,21 +148,13 @@ class GPUTRDTracker_t : public GPUProcessor
   GPUd() void SetProcessPerTimeFrame() { mProcessPerTimeFrame = true; }
   GPUd() void SetMCEvent(AliMCEvent* mc) { mMCEvent = mc; }
   GPUd() void EnableDebugOutput() { mDebugOutput = true; }
-  GPUd() void SetPtThreshold(float minPt) { mMinPt = minPt; }
   GPUd() void SetMaxEta(float maxEta) { mMaxEta = maxEta; }
-  GPUd() void SetChi2Threshold(float chi2) { mMaxChi2 = chi2; }
-  GPUd() void SetChi2Penalty(float chi2) { mChi2Penalty = chi2; }
-  GPUd() void SetStopTrkFollowingAfterNMissingLayers(int ly) { mMaxMissingLy = ly; }
   GPUd() void SetExtraRoadY(float extraRoadY) { mExtraRoadY = extraRoadY; }
   GPUd() void SetRoadZ(float roadZ) { mRoadZ = roadZ; }
 
   GPUd() AliMCEvent* GetMCEvent() const { return mMCEvent; }
   GPUd() bool GetIsDebugOutputOn() const { return mDebugOutput; }
-  GPUd() float GetPtThreshold() const { return mMinPt; }
   GPUd() float GetMaxEta() const { return mMaxEta; }
-  GPUd() float GetChi2Threshold() const { return mMaxChi2; }
-  GPUd() float GetChi2Penalty() const { return mChi2Penalty; }
-  GPUd() int GetMaxMissingLayers() const { return mMaxMissingLy; }
   GPUd() int GetNCandidates() const { return mNCandidates; }
   GPUd() float GetExtraRoadY() const { return mExtraRoadY; }
   GPUd() float GetRoadZ() const { return mRoadZ; }
@@ -215,13 +207,9 @@ class GPUTRDTracker_t : public GPUProcessor
   bool mDebugOutput;                       // store debug output
   float mTimeWindow;                       // max. deviation of the ITS-TPC track time w.r.t. TRD trigger record time stamp (in us, default is 100 ns)
   float mRadialOffset;                     // due to mis-calibration of t0
-  float mMinPt;                            // min pt of TPC tracks for tracking
   float mMaxEta;                           // TPC tracks with higher eta are ignored
   float mExtraRoadY;                       // addition to search road in r-phi to account for not exact radial match of tracklets and tracks in first iteration
   float mRoadZ;                            // in z, a constant search road is used
-  float mMaxChi2;                          // max chi2 for tracklets
-  int mMaxMissingLy;                       // max number of missing layers per track
-  float mChi2Penalty;                      // chi2 added to the track for no update
   float mZCorrCoefNRC;                     // tracklet z-position depends linearly on track dip angle
   AliMCEvent* mMCEvent;                    //! externaly supplied optional MC event
   GPUTRDTrackerDebug<TRDTRK>* mDebug;      // debug output
