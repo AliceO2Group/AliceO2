@@ -239,6 +239,17 @@ taskwrapper() {
   trap '' SIGTERM
 
   o2_cleanup_shm_files #--> better to register a general trap at EXIT
+
+  # this gives some possibility to customize the wrapper
+  # and do some special task at the ordinary exit. The hook takes 3 arguments: 
+  # - The original command
+  # - the logfile
+  # - the return code from the execution
+  if [ "${JOBUTILS_JOB_ENDHOOK}" ]; then
+    hook="${JOBUTILS_JOB_ENDHOOK} '$command' $logfile ${RC}"
+    eval "${hook}"
+  fi
+
   return ${RC}
 }
 
