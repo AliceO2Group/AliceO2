@@ -38,6 +38,9 @@ class SplineUtil
     //  2 - at least one of the dimensions must be set during runtime
     //  3 - specialization where nYdim==1 (a small add-on on top of the other specs)
 
+    // calculate it as one return statement to make the AliRoot compiler happy
+    return (nYdim == 1) ? 3 : ((nXdim > 0 && nYdim > 0) ? 1 : 2);
+    /*
     if (nYdim == 1) {
       return 3;
     }
@@ -46,6 +49,7 @@ class SplineUtil
     } else {
       return 2;
     }
+    */
   }
 
   /// Spline1D & Spline2D specialization number depending on nYdim
