@@ -928,6 +928,8 @@ int runStateMachine(DataProcessorSpecs const& workflow,
   std::vector<ServicePreSchedule> preScheduleCallbacks;
   std::vector<ServicePostSchedule> postScheduleCallbacks;
 
+  bool guiDeployedOnce = false;
+
   while (true) {
     // If control forced some transition on us, we push it to the queue.
     if (driverControl.forcedTransitions.empty() == false) {
@@ -1025,6 +1027,10 @@ int runStateMachine(DataProcessorSpecs const& workflow,
         break;
       case DriverState::MATERIALISE_WORKFLOW:
         try {
+          auto workflowState = WorkflowHelpers::verifyWorkflow(workflow);
+          if (driverInfo.batch == true && workflowState == WorkflowParsingState::Empty) {
+            throw runtime_error("Empty workflow provided while running in batch mode.");
+          }
           DeviceSpecHelpers::dataProcessorSpecs2DeviceSpecs(workflow,
                                                             driverInfo.channelPolicies,
                                                             driverInfo.completionPolicies,
@@ -1062,6 +1068,13 @@ int runStateMachine(DataProcessorSpecs const& workflow,
           // This should expand nodes so that we can build a consistent DAG.
         } catch (std::runtime_error& e) {
           std::cerr << "Invalid workflow: " << e.what() << std::endl;
+          return 1;
+        } catch (o2::framework::RuntimeErrorRef ref) {
+          auto& e = o2::framework::error_from_ref(ref);
+#ifdef DPL_ENABLE_BACKTRACE
+          backtrace_symbols_fd(err.backtrace, err.maxBacktrace, STDERR_FILENO);
+#endif
+          std::cerr << "Invalid workflow: " << e.what << std::endl;
           return 1;
         } catch (...) {
           std::cerr << "Unknown error while materialising workflow";
@@ -1107,6 +1120,7 @@ int runStateMachine(DataProcessorSpecs const& workflow,
           guiContext.window = window;
           gui_timer.data = &guiContext;
           uv_timer_start(&gui_timer, gui_callback, 0, 20);
+          guiDeployedOnce = true;
         }
         break;
       case DriverState::SCHEDULE: {
@@ -1185,10 +1199,14 @@ int runStateMachine(DataProcessorSpecs const& workflow,
           driverInfo.states.push_back(DriverState::RUNNING);
           driverInfo.states.push_back(DriverState::REDEPLOY_GUI);
           driverInfo.states.push_back(DriverState::SCHEDULE);
-        } else if (deviceSpecs.size() == 0) {
+        } else if (deviceSpecs.empty() && driverInfo.batch == true) {
           LOG(INFO) << "No device resulting from the workflow. Quitting.";
           // If there are no deviceSpecs, we exit.
           driverInfo.states.push_back(DriverState::EXIT);
+        } else if (deviceSpecs.empty() && driverInfo.batch == false && !guiDeployedOnce) {
+          // In case of an empty workflow, we need to deploy the GUI at least once.
+          driverInfo.states.push_back(DriverState::RUNNING);
+          driverInfo.states.push_back(DriverState::REDEPLOY_GUI);
         } else {
           driverInfo.states.push_back(DriverState::RUNNING);
         }

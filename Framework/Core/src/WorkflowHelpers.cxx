@@ -755,10 +755,10 @@ void WorkflowHelpers::sortEdges(std::vector<size_t>& inEdgeIndex,
   std::sort(outEdgeIndex.begin(), outEdgeIndex.end(), outSorter);
 }
 
-void WorkflowHelpers::verifyWorkflow(const o2::framework::WorkflowSpec& workflow)
+WorkflowParsingState WorkflowHelpers::verifyWorkflow(const o2::framework::WorkflowSpec& workflow)
 {
   if (workflow.empty()) {
-    throw std::runtime_error("Empty workflow!");
+    return WorkflowParsingState::Empty;
   }
   std::set<std::string> validNames;
   std::vector<OutputSpec> availableOutputs;
@@ -799,6 +799,7 @@ void WorkflowHelpers::verifyWorkflow(const o2::framework::WorkflowSpec& workflow
       }
     }
   }
+  return WorkflowParsingState::Valid;
 }
 
 using UnifiedDataSpecType = std::variant<InputSpec, OutputSpec>;
