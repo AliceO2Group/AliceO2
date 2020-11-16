@@ -648,10 +648,10 @@ int GPUDisplay::InitGL_internal()
   mThreadTracks.resize(mChain->GetProcessingSettings().ompThreads);
 #ifdef GPUCA_DISPLAY_OPENGL_CORE
   CHKERR(mVertexShader = glCreateShader(GL_VERTEX_SHADER));
-  CHKERR(glShaderSource(mVertexShader, 1, &GPUDisplayShaders::vertexShader, NULL));
+  CHKERR(glShaderSource(mVertexShader, 1, &GPUDisplayShaders::vertexShader, nullptr));
   CHKERR(glCompileShader(mVertexShader));
   CHKERR(mFragmentShader = glCreateShader(GL_FRAGMENT_SHADER));
-  CHKERR(glShaderSource(mFragmentShader, 1, &GPUDisplayShaders::fragmentShader, NULL));
+  CHKERR(glShaderSource(mFragmentShader, 1, &GPUDisplayShaders::fragmentShader, nullptr));
   CHKERR(glCompileShader(mFragmentShader));
   CHKERR(mShaderProgram = glCreateProgram());
   CHKERR(glAttachShader(mShaderProgram, mVertexShader));
