@@ -105,7 +105,7 @@ void* GPUTRDTracker_t<TRDTRK, PROP>::SetPointersTracks(void* base)
 }
 
 template <class TRDTRK, class PROP>
-GPUTRDTracker_t<TRDTRK, PROP>::GPUTRDTracker_t() : mR(nullptr), mIsInitialized(false), mProcessPerTimeFrame(false), mMemoryPermanent(-1), mMemoryTracklets(-1), mMemoryTracks(-1), mNMaxCollisions(1), mNMaxTracks(0), mNMaxSpacePoints(0), mTracks(nullptr), mNCandidates(1), mNCollisions(1), mNTracks(0), mNEvents(0), mTriggerRecordIndices(nullptr), mTriggerRecordTimes(nullptr), mTracklets(nullptr), mMaxThreads(100), mNTracklets(0), mTrackletIndexArray(nullptr), mHypothesis(nullptr), mCandidates(nullptr), mSpacePoints(nullptr), mTrackletLabels(nullptr), mGeo(nullptr), mRPhiA2(0), mRPhiB(0), mRPhiC2(0), mDyA2(0), mDyB(0), mDyC2(0), mAngleToDyA(0), mAngleToDyB(0), mAngleToDyC(0), mDebugOutput(false), mTimeWindow(.1f), mRadialOffset(-0.1), mMinPt(2.f), mMaxEta(0.84f), mExtraRoadY(2.f), mRoadZ(18.f), mMaxChi2(15.0f), mMaxMissingLy(6), mChi2Penalty(12.0f), mZCorrCoefNRC(1.4f), mMCEvent(nullptr), mDebug(new GPUTRDTrackerDebug<TRDTRK>())
+GPUTRDTracker_t<TRDTRK, PROP>::GPUTRDTracker_t() : mR(nullptr), mIsInitialized(false), mProcessPerTimeFrame(false), mMemoryPermanent(-1), mMemoryTracklets(-1), mMemoryTracks(-1), mNMaxCollisions(1), mNMaxTracks(0), mNMaxSpacePoints(0), mTracks(nullptr), mNCandidates(1), mNCollisions(1), mNTracks(0), mNEvents(0), mTriggerRecordIndices(nullptr), mTriggerRecordTimes(nullptr), mTracklets(nullptr), mMaxThreads(100), mNTracklets(0), mTrackletIndexArray(nullptr), mHypothesis(nullptr), mCandidates(nullptr), mSpacePoints(nullptr), mTrackletLabels(nullptr), mGeo(nullptr), mRPhiA2(0), mRPhiB(0), mRPhiC2(0), mDyA2(0), mDyB(0), mDyC2(0), mAngleToDyA(0), mAngleToDyB(0), mAngleToDyC(0), mDebugOutput(false), mTimeWindow(.1f), mRadialOffset(-0.1), mMaxEta(0.84f), mExtraRoadY(2.f), mRoadZ(18.f), mZCorrCoefNRC(1.4f), mMCEvent(nullptr), mDebug(new GPUTRDTrackerDebug<TRDTRK>())
 {
   //--------------------------------------------------------------------
   // Default constructor
@@ -299,8 +299,8 @@ void GPUTRDTracker_t<TRDTRK, PROP>::PrintSettings() const
   //--------------------------------------------------------------------
   GPUInfo("##############################################################");
   GPUInfo("Current settings for GPU TRD tracker:");
-  GPUInfo(" mMaxChi2(%.2f), mChi2Penalty(%.2f), nCandidates(%i), maxMissingLayers(%i)", mMaxChi2, mChi2Penalty, mNCandidates, mMaxMissingLy);
-  GPUInfo(" ptCut = %.2f GeV, abs(eta) < %.2f", mMinPt, mMaxEta);
+  GPUInfo(" maxChi2(%.2f), chi2Penalty(%.2f), nCandidates(%i), maxMissingLayers(%i)", Param().rec.trdMaxChi2, Param().rec.trdPenaltyChi2, mNCandidates, Param().rec.trdStopTrkAfterNMissLy);
+  GPUInfo(" ptCut = %.2f GeV, abs(eta) < %.2f", Param().rec.trdMinTrackPt, mMaxEta);
   GPUInfo("##############################################################");
 }
 
@@ -435,7 +435,7 @@ GPUd() bool GPUTRDTracker_t<TRDTRK, PROP>::CheckTrackTRDCandidate(const TRDTRK& 
   if (CAMath::Abs(trk.getEta()) > mMaxEta) {
     return false;
   }
-  if (trk.getPt() < mMinPt) {
+  if (trk.getPt() < Param().rec.trdMinTrackPt) {
     return false;
   }
   return true;
@@ -778,16 +778,16 @@ GPUd() bool GPUTRDTracker_t<TRDTRK, PROP>::FollowProlongation(PROP* prop, TRDTRK
             RecalcTrkltCov(tilt, trkWork->getSnp(), pad->GetRowSize(mTracklets[trkltIdx].GetZbin()), trkltCovTmp);
             float chi2 = prop->getPredictedChi2(trkltPosTmpYZ, trkltCovTmp);
             // GPUInfo("layer %i: chi2 = %f", iLayer, chi2);
-            if (chi2 < mMaxChi2 && CAMath::Abs(GetAngularPull(mSpacePoints[trkltIdx].mDy, trkWork->getSnp())) < 4) {
+            if (chi2 < Param().rec.trdMaxChi2 && CAMath::Abs(GetAngularPull(mSpacePoints[trkltIdx].mDy, trkWork->getSnp())) < 4) {
               Hypothesis hypo(trkWork->GetNlayers(), iCandidate, trkltIdx, trkWork->GetChi2() + chi2);
               InsertHypothesis(hypo, nCurrHypothesis, hypothesisIdxOffset);
-            } // end tracklet chi2 < mMaxChi2
+            } // end tracklet chi2 < Param().rec.trdMaxChi2
           }   // end tracklet in window
         }     // tracklet loop
       }       // chamber loop
 
       // add no update to hypothesis list
-      Hypothesis hypoNoUpdate(trkWork->GetNlayers(), iCandidate, -1, trkWork->GetChi2() + mChi2Penalty);
+      Hypothesis hypoNoUpdate(trkWork->GetNlayers(), iCandidate, -1, trkWork->GetChi2() + Param().rec.trdPenaltyChi2);
       InsertHypothesis(hypoNoUpdate, nCurrHypothesis, hypothesisIdxOffset);
       isOK = true;
     } // end candidate loop
@@ -853,10 +853,10 @@ GPUd() bool GPUTRDTracker_t<TRDTRK, PROP>::FollowProlongation(PROP* prop, TRDTRK
       if (mHypothesis[iUpdate + hypothesisIdxOffset].mTrackletId == -1) {
         // no matching tracklet found
         if (trkWork->GetIsFindable(iLayer)) {
-          if (trkWork->GetNmissingConsecLayers(iLayer) > mMaxMissingLy) {
+          if (trkWork->GetNmissingConsecLayers(iLayer) > Param().rec.trdStopTrkAfterNMissLy) {
             trkWork->SetIsStopped();
           }
-          trkWork->SetChi2(trkWork->GetChi2() + mChi2Penalty);
+          trkWork->SetChi2(trkWork->GetChi2() + Param().rec.trdPenaltyChi2);
         }
         if (iUpdate == 0 && mNCandidates > 1) { // TODO: is thie really necessary????? CHECK!
           *t = mCandidates[2 * iUpdate + nextIdx];
@@ -876,9 +876,9 @@ GPUd() bool GPUTRDTracker_t<TRDTRK, PROP>::FollowProlongation(PROP* prop, TRDTRK
         if (ENABLE_WARNING) {
           Warning("FollowProlongation", "Final track propagation for track %i update %i in layer %i failed", iTrack, iUpdate, iLayer);
         }
-        trkWork->SetChi2(trkWork->GetChi2() + mChi2Penalty);
+        trkWork->SetChi2(trkWork->GetChi2() + Param().rec.trdPenaltyChi2);
         if (trkWork->GetIsFindable(iLayer)) {
-          if (trkWork->GetNmissingConsecLayers(iLayer) >= mMaxMissingLy) {
+          if (trkWork->GetNmissingConsecLayers(iLayer) >= Param().rec.trdStopTrkAfterNMissLy) {
             trkWork->SetIsStopped();
           }
         }
@@ -922,9 +922,9 @@ GPUd() bool GPUTRDTracker_t<TRDTRK, PROP>::FollowProlongation(PROP* prop, TRDTRK
         if (ENABLE_WARNING) {
           Warning("FollowProlongation", "Failed to update track %i with space point in layer %i", iTrack, iLayer);
         }
-        trkWork->SetChi2(trkWork->GetChi2() + mChi2Penalty);
+        trkWork->SetChi2(trkWork->GetChi2() + Param().rec.trdPenaltyChi2);
         if (trkWork->GetIsFindable(iLayer)) {
-          if (trkWork->GetNmissingConsecLayers(iLayer) >= mMaxMissingLy) {
+          if (trkWork->GetNmissingConsecLayers(iLayer) >= Param().rec.trdStopTrkAfterNMissLy) {
             trkWork->SetIsStopped();
           }
         }

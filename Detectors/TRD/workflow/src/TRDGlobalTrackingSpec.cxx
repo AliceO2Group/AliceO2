@@ -52,25 +52,19 @@ void TRDGlobalTracking::init(InitContext& ic)
   mFlatGeo = std::make_unique<GeometryFlat>(*geo);
 
   //-------- init GPU reconstruction --------//
-  GPUSettingsEvent cfgEvent;
-  cfgEvent.solenoidBz = o2::base::Propagator::Instance()->getNominalBz();
-  GPUSettingsRec cfgRec;
-  cfgRec.NWaysOuter = 1;
-  GPUSettingsProcessing cfgDeviceProcessing;
-  cfgDeviceProcessing.debugLevel = -1; // -1 : silent
   GPURecoStepConfiguration cfgRecoStep;
   cfgRecoStep.steps = GPUDataTypes::RecoStep::NoRecoStep;
   cfgRecoStep.inputs.clear();
   cfgRecoStep.outputs.clear();
   mRec = GPUReconstruction::CreateInstance("CPU", true);
-  mRec->SetSettings(&cfgEvent, &cfgRec, &cfgDeviceProcessing, &cfgRecoStep);
+  mRec->SetSettings(o2::base::Propagator::Instance()->getNominalBz(), &cfgRecoStep);
 
   mChainTracking = mRec->AddChain<GPUChainTracking>();
 
   mTracker = new GPUTRDTracker();
-  mTracker->SetNCandidates(1); // must be set before initialization
+  mTracker->SetNCandidates(mRec->GetProcessingSettings().trdNCandidates); // must be set before initialization
   mTracker->SetProcessPerTimeFrame();
-  mTracker->SetNMaxCollisions(1000); // max number of collisions within a time frame which can be processed
+  mTracker->SetNMaxCollisions(mRec->GetProcessingSettings().trdNMaxCollisions);
 
   mRec->RegisterGPUProcessor(mTracker, false);
   mChainTracking->SetTRDGeometry(std::move(mFlatGeo));
@@ -78,14 +72,6 @@ void TRDGlobalTracking::init(InitContext& ic)
     LOG(FATAL) << "GPUReconstruction could not be initialized";
   }
 
-  // configure the tracker
-  // TODO: these settings will eventually be moved to GPUSettingsRec to be configurable via --configKeyValues
-  //mTracker->EnableDebugOutput();
-  //mTracker->StartDebugging();
-  mTracker->SetPtThreshold(0.5);
-  mTracker->SetChi2Threshold(15);
-  mTracker->SetChi2Penalty(12);
-  mTracker->SetStopTrkFollowingAfterNMissingLayers(6);
   mTracker->PrintSettings();
 
   mTimer.Stop();
