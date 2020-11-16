@@ -146,16 +146,18 @@ struct HFCandidateCreator2ProngMC {
   {
     // Match reconstructed candidates.
     for (auto& candidate : candidates) {
-      auto isMatchedRec = RecoDecay::isMCMatchedDecayRec(
+      // D0(bar) → π± K∓
+      auto isMatchedRecD0 = RecoDecay::isMCMatchedDecayRec(
         particlesMC, array{candidate.index0_as<aod::BigTracksMC>(), candidate.index1_as<aod::BigTracksMC>()},
         421, array{+kPiPlus, -kKPlus}, true);
-      rowMCMatchRec(uint8_t(isMatchedRec));
+      rowMCMatchRec(uint8_t(isMatchedRecD0));
     }
 
     // Match generated particles.
     for (auto& particle : particlesMC) {
-      auto isMatchedGen = RecoDecay::isMCMatchedDecayGen(particlesMC, particle, 421, array{+kPiPlus, -kKPlus}, true);
-      rowMCMatchGen(uint8_t(isMatchedGen));
+      // D0(bar) → π± K∓
+      auto isMatchedGenD0 = RecoDecay::isMCMatchedDecayGen(particlesMC, particle, 421, array{+kPiPlus, -kKPlus}, true);
+      rowMCMatchGen(uint8_t(isMatchedGenD0));
     }
   }
 };
