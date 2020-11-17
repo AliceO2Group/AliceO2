@@ -100,6 +100,7 @@ class ChipPixelData
  public:
   ChipPixelData() = default;
   ~ChipPixelData() = default;
+  uint8_t getCableHW() const { return mCableHW; } //Getting Cable HW
   uint8_t getROFlags() const { return mROFlags; }
   uint16_t getChipID() const { return mChipID; }
   uint32_t getROFrame() const { return mROFrame; }
@@ -111,6 +112,7 @@ class ChipPixelData
   const std::vector<PixelData>& getData() const { return mPixels; }
   std::vector<PixelData>& getData() { return (std::vector<PixelData>&)mPixels; }
 
+  void setCableHW(uint8_t chw = 0) { mCableHW = chw; } //Setting Cable HW
   void setROFlags(uint8_t f = 0) { mROFlags = f; }
   void setChipID(uint16_t id) { mChipID = id; }
   void setROFrame(uint32_t r) { mROFrame = r; }
@@ -126,6 +128,7 @@ class ChipPixelData
 
   void clear()
   {
+    mCableHW=0;
     mPixels.clear();
     mROFlags = 0;
     mFirstUnmasked = 0;
@@ -136,6 +139,7 @@ class ChipPixelData
   {
     // swap content of two objects
     mPixels.swap(other.mPixels);
+    std::swap(mCableHW, other.mCableHW);
     std::swap(mROFrame, other.mROFrame);
     std::swap(mROFlags, other.mROFlags);
     std::swap(mTrigger, other.mTrigger);
@@ -225,6 +229,7 @@ class ChipPixelData
   void print() const;
 
  private:
+  uint8_t mCableHW = 0;
   uint8_t mROFlags = 0;                          // readout flags from the chip trailer
   uint16_t mChipID = 0;                          // chip id within the detector
   uint32_t mROFrame = 0;                         // readout frame ID
