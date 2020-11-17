@@ -18,8 +18,8 @@ ClassImp(o2::itsmft::Digit);
 
 using namespace o2::itsmft;
 
-Digit::Digit(UShort_t chipindex, UShort_t row, UShort_t col, Int_t charge)
-  : mChipIndex(chipindex), mRow(row), mCol(col)
+Digit::Digit(UShort_t cableHW, UShort_t chipindex, UShort_t row, UShort_t col, Int_t charge)
+  : mCableHW(cableHW), mChipIndex(chipindex), mRow(row), mCol(col)
 {
   setCharge(charge);
 }
