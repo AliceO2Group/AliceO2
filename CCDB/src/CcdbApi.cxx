@@ -656,6 +656,9 @@ bool CcdbApi::checkAlienToken() const
   // a somewhat weird construction to programmatically find out if we
   // have a GRID token; Can be replaced with something more elegant once
   // alien-token-info does not ask for passwords interactively
+  if (getenv("JALIEN_TOKEN_CERT")) {
+    return true;
+  }
   auto returncode = system("timeout 1s timeout 1s alien-token-info &> /dev/null");
   return returncode == 0;
 }
