@@ -24,6 +24,7 @@
 #include <TTree.h>
 #include <THnSparse.h>
 #include <TObjArray.h>
+#include <TGraph.h>
 
 namespace o2::mergers::algorithm
 {
@@ -81,6 +82,8 @@ void merge(TObject* const target, TObject* const other)
       errorCode = reinterpret_cast<THnBase*>(target)->Merge(&otherCollection);
     } else if (target->InheritsFrom(TTree::Class())) {
       errorCode = reinterpret_cast<TTree*>(target)->Merge(&otherCollection);
+    } else if (target->InheritsFrom(TGraph::Class())) {
+      errorCode = reinterpret_cast<TGraph*>(target)->Merge(&otherCollection);
     } else {
       throw std::runtime_error("Object with type '" + std::string(target->ClassName()) + "' is not one of the mergeable types.");
     }
