@@ -413,7 +413,7 @@ BOOST_AUTO_TEST_CASE(TestOutEdgeProcessingHelpers)
   defaultOffer.memory = 0.01;
 
   DeviceSpecHelpers::processOutEdgeActions(devices, deviceIndex, connections, rm, edgeOutIndex, logicalEdges,
-                                           actions, workflow, globalOutputs, channelPolicies, defaultOffer);
+                                           actions, workflow, globalOutputs, channelPolicies, "", defaultOffer);
 
   std::vector<DeviceId> expectedDeviceIndex = {{0, 0, 0}, {0, 0, 0}, {0, 0, 0}, {1, 0, 1}, {1, 0, 1}, {1, 1, 2}, {1, 1, 2}, {1, 2, 3}, {1, 2, 3}};
   BOOST_REQUIRE_EQUAL(devices.size(), 4); // For producers
@@ -461,7 +461,7 @@ BOOST_AUTO_TEST_CASE(TestOutEdgeProcessingHelpers)
   std::sort(connections.begin(), connections.end());
 
   DeviceSpecHelpers::processInEdgeActions(devices, deviceIndex, connections, rm, edgeInIndex, logicalEdges,
-                                          inActions, workflow, availableForwardsInfo, channelPolicies, defaultOffer);
+                                          inActions, workflow, availableForwardsInfo, channelPolicies, "", defaultOffer);
   //
   std::vector<DeviceId> expectedDeviceIndexFinal = {{0, 0, 0}, {0, 0, 0}, {0, 0, 0}, {1, 0, 1}, {1, 0, 1}, {1, 1, 2}, {1, 1, 2}, {1, 2, 3}, {1, 2, 3}, {2, 0, 4}, {2, 1, 5}};
   BOOST_REQUIRE_EQUAL(expectedDeviceIndexFinal.size(), deviceIndex.size());
@@ -729,7 +729,7 @@ BOOST_AUTO_TEST_CASE(TestSimpleWildcard)
   defaultOffer.memory = 0.01;
 
   DeviceSpecHelpers::processOutEdgeActions(devices, deviceIndex, connections, rm, edgeOutIndex, logicalEdges,
-                                           outActions, workflow, globalOutputs, channelPolicies, defaultOffer);
+                                           outActions, workflow, globalOutputs, channelPolicies, "", defaultOffer);
 
   BOOST_REQUIRE_EQUAL(devices.size(), 2); // Two devices have outputs: A and Timer
   BOOST_CHECK_EQUAL(devices[0].name, "A");
@@ -745,7 +745,7 @@ BOOST_AUTO_TEST_CASE(TestSimpleWildcard)
   std::sort(connections.begin(), connections.end());
 
   DeviceSpecHelpers::processInEdgeActions(devices, deviceIndex, connections, rm, edgeInIndex, logicalEdges,
-                                          inActions, workflow, availableForwardsInfo, channelPolicies, defaultOffer);
+                                          inActions, workflow, availableForwardsInfo, channelPolicies, "", defaultOffer);
 
   BOOST_REQUIRE_EQUAL(devices.size(), 3); // Now we also have B
   BOOST_CHECK_EQUAL(devices[0].name, "A");

@@ -40,6 +40,7 @@ namespace framework
 struct DeviceSpec {
   std::string name;
   std::string id;
+  std::string channelPrefix;
   std::vector<InputChannelSpec> inputChannels;
   std::vector<OutputChannelSpec> outputChannels;
   std::vector<std::string> arguments;

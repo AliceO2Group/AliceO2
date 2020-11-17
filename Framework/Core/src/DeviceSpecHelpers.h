@@ -50,7 +50,8 @@ struct DeviceSpecHelpers {
     ResourceManager& resourceManager,
     std::string const& uniqueWorkflowId,
     bool optimizeTopology = false,
-    unsigned short resourcesMonitoringInterval = 0);
+    unsigned short resourcesMonitoringInterval = 0,
+    std::string const& channelPrefix = "");
 
   static void dataProcessorSpecs2DeviceSpecs(
     const WorkflowSpec& workflow,
@@ -60,11 +61,12 @@ struct DeviceSpecHelpers {
     ResourceManager& resourceManager,
     std::string const& uniqueWorkflowId,
     bool optimizeTopology = false,
-    unsigned short resourcesMonitoringInterval = 0)
+    unsigned short resourcesMonitoringInterval = 0,
+    std::string const& channelPrefix = "")
   {
     std::vector<DispatchPolicy> dispatchPolicies = DispatchPolicy::createDefaultPolicies();
     dataProcessorSpecs2DeviceSpecs(workflow, channelPolicies, completionPolicies,
-                                   dispatchPolicies, devices, resourceManager, uniqueWorkflowId, optimizeTopology, resourcesMonitoringInterval);
+                                   dispatchPolicies, devices, resourceManager, uniqueWorkflowId, optimizeTopology, resourcesMonitoringInterval, channelPrefix);
   }
 
   /// Helper to provide the channel configuration string for an input channel
@@ -102,6 +104,7 @@ struct DeviceSpecHelpers {
     const WorkflowSpec& workflow,
     const std::vector<OutputSpec>& outputs,
     std::vector<ChannelConfigurationPolicy> const& channelPolicies,
+    std::string const& channelPrefix,
     ComputingOffer const& defaultOffer);
 
   /// This takes the list of preprocessed edges of a graph
@@ -119,6 +122,7 @@ struct DeviceSpecHelpers {
     const WorkflowSpec& workflow,
     const std::vector<LogicalForwardInfo>& availableForwardsInfo,
     std::vector<ChannelConfigurationPolicy> const& channelPolicies,
+    std::string const& channelPrefix,
     ComputingOffer const& defaultOffer);
 
   /// return a description of all options to be forwarded to the device
