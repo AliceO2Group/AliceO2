@@ -17,7 +17,9 @@
 
 #include <string>
 #include <ostream>
+#if !defined(__CLING__) && !defined(__ROOTCLING__)
 #include <variant>
+#endif
 
 namespace o2::framework
 {
@@ -57,7 +59,9 @@ struct InputSpec {
   std::string binding;
 
   /// The actual matcher for the input spec.
+#if !defined(__CLING__) && !defined(__ROOTCLING__)
   std::variant<ConcreteDataMatcher, data_matcher::DataDescriptorMatcher> matcher;
+#endif
 
   enum Lifetime lifetime;
 
