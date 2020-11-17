@@ -56,17 +56,14 @@
   #define CONSTEXPR constexpr
   #define CONSTEXPRRET CONSTEXPR
   #if defined(__cplusplus) && __cplusplus >= 201703L
-    #define CONSTEXPRIF if constexpr
     #define CONSTEXPR17 constexpr
   #else
-    #define CONSTEXPRIF if
     #define CONSTEXPR17
   #endif
 #else
   #define CON_DELETE
   #define CON_DEFAULT
   #define CONSTEXPR const
-  #define CONSTEXPRIF if
   #define CONSTEXPR17
   #define CONSTEXPRRET
 #endif
