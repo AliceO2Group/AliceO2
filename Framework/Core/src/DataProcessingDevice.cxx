@@ -505,7 +505,7 @@ void DataProcessingDevice::doPrepare(DataProcessorContext& context)
     if (info.state != InputChannelState::Running) {
       continue;
     }
-    int64_t result = -2;
+    int result = -2;
     auto& fairMQChannel = context.device->GetChannel(channel.name, 0);
     auto& socket = fairMQChannel.GetSocket();
     uint32_t events;
@@ -526,7 +526,7 @@ void DataProcessingDevice::doPrepare(DataProcessorContext& context)
         while (true) {
           FairMQParts parts;
           result = fairMQChannel.Receive(parts, 0);
-          if (result >= 0) {
+          if ((result != -2) && (result != -1)) {
             // Receiving data counts as activity now, so that
             // We can make sure we process all the pending
             // messages without hanging on the uv_run.
