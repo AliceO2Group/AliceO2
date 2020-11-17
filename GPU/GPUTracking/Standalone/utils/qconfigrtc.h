@@ -25,11 +25,15 @@
 template <class T>
 static std::string qConfigPrintRtc(const T& tSrc, bool useConstexpr)
 {
+#if defined(__cplusplus) && __cplusplus >= 201703L
   std::stringstream out;
 #define QCONFIG_PRINT_RTC
 #include "qconfig.h"
 #undef QCONFIG_PRINT_RTC
   return out.str();
+#else
+  throw std::runtime_error("not supported");
+#endif
 }
 
 #define QCONFIG_CONVERT_RTC
