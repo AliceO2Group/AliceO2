@@ -339,13 +339,10 @@ GPUdi() GPUTPCCompressionGatherKernels::Vec128* GPUTPCCompressionGatherKernels::
 template <typename T, typename S>
 GPUdi() bool GPUTPCCompressionGatherKernels::isAlignedTo(const S* ptr)
 {
-  CONSTEXPRIF(alignof(S) >= alignof(T))
-  {
+  if CONSTEXPR17 (alignof(S) >= alignof(T)) {
     static_cast<void>(ptr);
     return true;
-  }
-  else
-  {
+  } else {
     return reinterpret_cast<size_t>(ptr) % alignof(T) == 0;
   }
   return false; // BUG: Cuda complains about missing return value with constexpr if
