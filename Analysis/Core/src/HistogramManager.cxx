@@ -149,7 +149,7 @@ void HistogramManager::AddHistogram(const char* histClass, const char* hname, co
 
   // tokenize the title string; the user may include in it axis titles which will overwrite the defaults
   TString titleStr(title);
-  TObjArray* arr = titleStr.Tokenize(";");
+  std::unique_ptr<TObjArray> arr(titleStr.Tokenize(";"));
   // mark required variables as being used
   if (varX > kNothing) {
     fUsedVars[varX] = kTRUE;
@@ -364,7 +364,7 @@ void HistogramManager::AddHistogram(const char* histClass, const char* hname, co
 
   // tokenize the title string; the user may include in it axis titles which will overwrite the defaults
   TString titleStr(title);
-  TObjArray* arr = titleStr.Tokenize(";");
+  std::unique_ptr<TObjArray> arr(titleStr.Tokenize(";"));
 
   // encode needed variable identifiers in a vector and push it to the std::list corresponding to the current histogram list
   std::vector<int> varVector;
@@ -529,7 +529,7 @@ void HistogramManager::AddHistogram(const char* histClass, const char* hname, co
 
   // tokenize the title string; the user may include in it axis titles which will overwrite the defaults
   TString titleStr(title);
-  TObjArray* arr = titleStr.Tokenize(";");
+  std::unique_ptr<TObjArray> arr(titleStr.Tokenize(";"));
 
   if (varW > kNothing) {
     fUsedVars[varW] = kTRUE;
@@ -608,7 +608,7 @@ void HistogramManager::AddHistogram(const char* histClass, const char* hname, co
 
   // tokenize the title string; the user may include in it axis titles which will overwrite the defaults
   TString titleStr(title);
-  TObjArray* arr = titleStr.Tokenize(";");
+  std::unique_ptr<TObjArray> arr(titleStr.Tokenize(";"));
 
   if (varW > kNothing) {
     fUsedVars[varW] = kTRUE;
@@ -811,7 +811,7 @@ void HistogramManager::MakeAxisLabels(TAxis* ax, const char* labels)
   // add bin labels to an axis
   //
   TString labelsStr(labels);
-  TObjArray* arr = labelsStr.Tokenize(";");
+  std::unique_ptr<TObjArray> arr(labelsStr.Tokenize(";"));
   for (int ib = 1; ib <= ax->GetNbins(); ++ib) {
     if (ib >= arr->GetEntries() + 1) {
       break;
