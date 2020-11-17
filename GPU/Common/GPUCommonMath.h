@@ -148,10 +148,15 @@ class GPUCommonMath
   GPUd() CONSTEXPR17 static T nextMultipleOf(T val);
 
 #ifdef GPUCA_NOCOMPAT
+  GPUdi() static float Sum2() // Needed for legacy C++, For >=17 the below if constexpr handles the case
+  {
+    return 0.f;
+  }
+
   template <typename... Args>
   GPUdi() static float Sum2(float w, Args... args)
   {
-    if constexpr (sizeof...(Args) == 0) {
+    if CONSTEXPR17 (sizeof...(Args) == 0) {
       return w * w;
     } else {
       return w * w + Sum2(args...);
@@ -185,16 +190,13 @@ typedef GPUCommonMath CAMath;
 template <int I, class T>
 GPUdi() CONSTEXPR17 T GPUCommonMath::nextMultipleOf(T val)
 {
-  CONSTEXPRIF(I & (I - 1))
-  {
+  if CONSTEXPR17 (I & (I - 1)) {
     T tmp = val % I;
     if (tmp) {
       val += I - tmp;
     }
     return val;
-  }
-  else
-  {
+  } else {
     return (val + I - 1) & ~(T)(I - 1);
   }
   return 0; // BUG: Cuda complains about missing return value with constexpr if
