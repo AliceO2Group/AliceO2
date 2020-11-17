@@ -146,7 +146,7 @@ int RawPixelDecoder<Mapping>::fillDecodedDigits(DigitContainer& digits, ROFConta
     for (int ic = 0; ic < mRUDecodeVec[iru].nChipsFired; ic++) {
       const auto& chip = mRUDecodeVec[iru].chipsData[ic];
       for (const auto& hit : mRUDecodeVec[iru].chipsData[ic].getData()) {
-        digits.emplace_back(chip.getChipID(), hit.getRow(), hit.getCol());
+        digits.emplace_back(chip.getCableHW(), chip.getChipID(), hit.getRow(), hit.getCol());
       }
     }
   }
