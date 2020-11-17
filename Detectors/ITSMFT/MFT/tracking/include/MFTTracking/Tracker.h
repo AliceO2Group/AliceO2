@@ -26,6 +26,9 @@
 #include "SimulationDataFormat/MCTruthContainer.h"
 #include "DataFormatsParameters/GRPObject.h"
 
+// BV
+#include "TStopwatch.h"
+
 namespace o2
 {
 namespace mft
@@ -58,12 +61,14 @@ class Tracker
   void setROFrame(std::uint32_t f) { mROFrame = f; }
   std::uint32_t getROFrame() const { return mROFrame; }
 
+  // BV
+  void initialize();
+
  private:
   void findTracks(ROframe&);
   void findTracksLTF(ROframe&);
   void findTracksCA(ROframe&);
-  void computeCells(ROframe&);
-  void computeCellsInRoad(Road&);
+  void computeCellsInRoad(ROframe&);
   void runForwardInRoad(ROframe&);
   void runBackwardInRoad(ROframe&);
   void updateCellStatusInRoad(Road&);
@@ -72,14 +77,11 @@ class Tracker
 
   const Int_t isDiskFace(Int_t layer) const { return (layer % 2); }
   const Float_t getDistanceToSeed(const Cluster&, const Cluster&, const Cluster&) const;
-  void getRPhiProjectionBin(const Cluster&, const Int_t, const Int_t, Int_t&, Int_t&) const;
-  Bool_t getBinClusterRange(const ROframe&, const Int_t, const Int_t, Int_t&, Int_t&) const;
-  const Float_t getCellDeviation(const ROframe&, const Cell&, const Cell&) const;
-  const Bool_t getCellsConnect(const ROframe&, const Cell&, const Cell&) const;
-  const Float_t getCellChisquare(ROframe&, const Cell&) const;
-  const Bool_t addCellToCurrentTrackCA(const Int_t, const Int_t, ROframe&);
-
-  const Bool_t LinearRegression(Int_t, Float_t*, Float_t*, Float_t*, Float_t&, Float_t&, Float_t&, Float_t&, Float_t&, Int_t skip = -1) const;
+  void getBinClusterRange(const ROframe&, const Int_t, const Int_t, Int_t&, Int_t&) const;
+  const Float_t getCellDeviation(const Cell&, const Cell&) const;
+  const Bool_t getCellsConnect(const Cell&, const Cell&) const;
+  void addCellToCurrentTrackCA(const Int_t, const Int_t, ROframe&);
+  void addCellToCurrentRoad(ROframe&, const Int_t, const Int_t, const Int_t, const Int_t, Int_t&);
 
   Float_t mBz = 5.f;
   std::uint32_t mROFrame = 0;
@@ -92,6 +94,14 @@ class Tracker
   Int_t mMaxCellLevel = 0;
 
   bool mUseMC = false;
+
+  std::array<std::array<std::array<std::vector<Int_t>, constants::index_table::RPhiBins>, (constants::mft::LayersNumber - 1)>, (constants::mft::LayersNumber - 1)> mBinsS;
+  std::array<std::array<std::array<std::vector<Int_t>, constants::index_table::RPhiBins>, (constants::mft::LayersNumber - 1)>, (constants::mft::LayersNumber - 1)> mBins;
+
+  struct TrackElement {
+    Int_t layer;
+    Int_t idInLayer;
+  };
 };
 
 //_________________________________________________________________________________________________
@@ -99,91 +109,36 @@ inline const Float_t Tracker::getDistanceToSeed(const Cluster& cluster1, const C
 {
   // the seed is between "cluster1" and "cluster2" and cuts the plane
   // of the "cluster" at a distance dR from it
-  Float_t dxSeed, dySeed, dzSeed, dz, dR, xSeed, ySeed;
+  Float_t dxSeed, dySeed, dzSeed, invdzSeed, dz, dR, xSeed, ySeed;
   dxSeed = cluster2.getX() - cluster1.getX();
   dySeed = cluster2.getY() - cluster1.getY();
   dzSeed = cluster2.getZ() - cluster1.getZ();
   dz = cluster.getZ() - cluster1.getZ();
-  xSeed = cluster1.getX() + dxSeed * dz / dzSeed;
-  ySeed = cluster1.getY() + dySeed * dz / dzSeed;
+  invdzSeed = dz / dzSeed;
+  xSeed = cluster1.getX() + dxSeed * invdzSeed;
+  ySeed = cluster1.getY() + dySeed * invdzSeed;
   dR = std::sqrt((cluster.getX() - xSeed) * (cluster.getX() - xSeed) + (cluster.getY() - ySeed) * (cluster.getY() - ySeed));
   return dR;
 }
 
 //_________________________________________________________________________________________________
-inline void Tracker::getRPhiProjectionBin(const Cluster& cluster1, const Int_t layer1, const Int_t layer, Int_t& binR_proj, Int_t& binPhi_proj) const
+inline void Tracker::getBinClusterRange(const ROframe& event, const Int_t layer, const Int_t bin, Int_t& clsMinIndex, Int_t& clsMaxIndex) const
 {
-  Float_t dz, x_proj, y_proj, r_proj, phi_proj;
-  dz = constants::mft::LayerZCoordinate()[layer] - constants::mft::LayerZCoordinate()[layer1];
-  x_proj = cluster1.getX() + dz * cluster1.getX() * constants::mft::InverseLayerZCoordinate()[layer1];
-  y_proj = cluster1.getY() + dz * cluster1.getY() * constants::mft::InverseLayerZCoordinate()[layer1];
-  auto clsPoint2D = math_utils::Point2D<Float_t>(x_proj, y_proj);
-  r_proj = clsPoint2D.R();
-  phi_proj = clsPoint2D.Phi();
-  o2::math_utils::bringTo02PiGen(phi_proj);
-  binR_proj = constants::index_table::getRBinIndex(r_proj);
-  binPhi_proj = constants::index_table::getPhiBinIndex(phi_proj);
-  return;
+  const auto& pair = event.getClusterBinIndexRange(layer)[bin];
+  clsMinIndex = pair.first;
+  clsMaxIndex = pair.second;
 }
 
 //_________________________________________________________________________________________________
-inline Bool_t Tracker::getBinClusterRange(const ROframe& event, const Int_t layer, const Int_t bin, Int_t& clsMinIndex, Int_t& clsMaxIndex) const
+inline const Float_t Tracker::getCellDeviation(const Cell& cell1, const Cell& cell2) const
 {
-  const auto pair2 = event.getClusterBinIndexRange(layer).find(bin);
-  if (pair2 == event.getClusterBinIndexRange(layer).end()) {
-    return kFALSE;
-  }
-  Int_t binIndex = pair2->first;
-  // get the range in ordered cluster index within this bin
-  std::pair<Int_t, Int_t> pair1 = pair2->second;
-  clsMinIndex = pair1.first;
-  clsMaxIndex = pair1.second;
-  return kTRUE;
-}
+  Float_t cell1dx = cell1.getX2() - cell1.getX1();
+  Float_t cell1dy = cell1.getY2() - cell1.getY1();
+  Float_t cell1dz = cell1.getZ2() - cell1.getZ1();
 
-//_________________________________________________________________________________________________
-inline const Float_t Tracker::getCellDeviation(const ROframe& event, const Cell& cell1, const Cell& cell2) const
-{
-  Int_t cell1layer1 = cell1.getFirstLayerId();
-  Int_t cell1layer2 = cell1.getSecondLayerId();
-
-  Int_t cell2layer1 = cell2.getFirstLayerId();
-  Int_t cell2layer2 = cell2.getSecondLayerId();
-
-  Int_t cell1cls1 = cell1.getFirstClusterIndex();
-  Int_t cell1cls2 = cell1.getSecondClusterIndex();
-
-  Int_t cell2cls1 = cell2.getFirstClusterIndex();
-  Int_t cell2cls2 = cell2.getSecondClusterIndex();
-
-  auto cluster11 = event.getClustersInLayer(cell1layer1)[cell1cls1];
-  auto cluster12 = event.getClustersInLayer(cell1layer2)[cell1cls2];
-  auto cluster21 = event.getClustersInLayer(cell2layer1)[cell2cls1];
-  auto cluster22 = event.getClustersInLayer(cell2layer2)[cell2cls2];
-
-  Float_t cell1x1 = cluster11.getX();
-  Float_t cell1y1 = cluster11.getY();
-  Float_t cell1z1 = cluster11.getZ();
-
-  Float_t cell1x2 = cluster12.getX();
-  Float_t cell1y2 = cluster12.getY();
-  Float_t cell1z2 = cluster12.getZ();
-
-  Float_t cell2x1 = cluster21.getX();
-  Float_t cell2y1 = cluster21.getY();
-  Float_t cell2z1 = cluster21.getZ();
-
-  Float_t cell2x2 = cluster22.getX();
-  Float_t cell2y2 = cluster22.getY();
-  Float_t cell2z2 = cluster22.getZ();
-
-  Float_t cell1dx = cell1x2 - cell1x1;
-  Float_t cell1dy = cell1y2 - cell1y1;
-  Float_t cell1dz = cell1z2 - cell1z1;
-
-  Float_t cell2dx = cell2x2 - cell2x1;
-  Float_t cell2dy = cell2y2 - cell2y1;
-  Float_t cell2dz = cell2z2 - cell2z1;
+  Float_t cell2dx = cell2.getX2() - cell2.getX1();
+  Float_t cell2dy = cell2.getY2() - cell2.getY1();
+  Float_t cell2dz = cell2.getZ2() - cell2.getZ1();
 
   Float_t cell1mod = std::sqrt(cell1dx * cell1dx + cell1dy * cell1dy + cell1dz * cell1dz);
   Float_t cell2mod = std::sqrt(cell2dx * cell2dx + cell2dy * cell2dy + cell2dz * cell2dz);
@@ -194,49 +149,12 @@ inline const Float_t Tracker::getCellDeviation(const ROframe& event, const Cell&
 }
 
 //_________________________________________________________________________________________________
-inline const Bool_t Tracker::getCellsConnect(const ROframe& event, const Cell& cell1, const Cell& cell2) const
+inline const Bool_t Tracker::getCellsConnect(const Cell& cell1, const Cell& cell2) const
 {
-  Int_t cell1layer1 = cell1.getFirstLayerId();
-  Int_t cell1layer2 = cell1.getSecondLayerId();
-
-  Int_t cell2layer1 = cell2.getFirstLayerId();
-  Int_t cell2layer2 = cell2.getSecondLayerId();
-
-  Int_t cell1cls1 = cell1.getFirstClusterIndex();
-  Int_t cell1cls2 = cell1.getSecondClusterIndex();
-
-  Int_t cell2cls1 = cell2.getFirstClusterIndex();
-  Int_t cell2cls2 = cell2.getSecondClusterIndex();
-
-  auto cluster11 = event.getClustersInLayer(cell1layer1)[cell1cls1];
-  auto cluster12 = event.getClustersInLayer(cell1layer2)[cell1cls2];
-  auto cluster21 = event.getClustersInLayer(cell2layer1)[cell2cls1];
-  auto cluster22 = event.getClustersInLayer(cell2layer2)[cell2cls2];
-
-  Float_t cell1x1 = cluster11.getX();
-  Float_t cell1y1 = cluster11.getY();
-  //Float_t cell1z1 = cluster11.getZ();
-
-  Float_t cell1x2 = cluster12.getX();
-  Float_t cell1y2 = cluster12.getY();
-  //Float_t cell1z2 = cluster12.getZ();
-
-  Float_t cell2x1 = cluster21.getX();
-  Float_t cell2y1 = cluster21.getY();
-  //Float_t cell2z1 = cluster21.getZ();
-
-  Float_t cell2x2 = cluster22.getX();
-  Float_t cell2y2 = cluster22.getY();
-  //Float_t cell2z2 = cluster22.getZ();
-
-  Float_t cell1dx = cell1x2 - cell1x1;
-  Float_t cell1dy = cell1y2 - cell1y1;
-  //Float_t cell1dz = cell1z2 - cell1z1;
-
-  Float_t cell2dx = cell2x2 - cell2x1;
-  Float_t cell2dy = cell2y2 - cell2y1;
-  //Float_t cell2dz = cell2z2 - cell2z1;
-
+  Float_t cell1x2 = cell1.getX2();
+  Float_t cell1y2 = cell1.getY2();
+  Float_t cell2x1 = cell2.getX1();
+  Float_t cell2y1 = cell2.getY1();
   Float_t dx = cell1x2 - cell2x1;
   Float_t dy = cell1y2 - cell2y1;
   Float_t dr = std::sqrt(dx * dx + dy * dy);

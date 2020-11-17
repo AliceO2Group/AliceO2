@@ -48,57 +48,48 @@ class ROframe final
 
   void setROFrameId(const Int_t rofid) { mROframeId = rofid; }
 
-  const std::array<std::vector<Cluster>, constants::mft::LayersNumber>& getClusters() const { return mClusters; }
-  const std::vector<Cluster>& getClustersInLayer(Int_t layerId) const { return mClusters[layerId]; }
+  std::vector<Cluster>& getClustersInLayer(Int_t layerId) { return mClusters[layerId]; }
 
-  const MCCompLabel& getClusterLabels(Int_t layerId, const Cluster& cl) const { return mClusterLabels[layerId][cl.clusterId]; }
   const MCCompLabel& getClusterLabels(Int_t layerId, const Int_t clusterId) const { return mClusterLabels[layerId][clusterId]; }
 
-  const std::map<Int_t, std::pair<Int_t, Int_t>>& getClusterBinIndexRange(Int_t layerId) const { return mClusterBinIndexRange[layerId]; }
+  const std::array<std::pair<Int_t, Int_t>, constants::index_table::RPhiBins>& getClusterBinIndexRange(Int_t layerId) const { return mClusterBinIndexRange[layerId]; }
+
   const Int_t getClusterExternalIndex(Int_t layerId, const Int_t clusterId) const { return mClusterExternalIndices[layerId][clusterId]; }
 
-  const std::array<std::vector<Cell>, constants::mft::LayersNumber>& getCells() const;
-  const std::vector<Cell>& getCellsInLayer(Int_t layerId) const { return mCells[layerId]; }
   std::vector<TrackLTF>& getTracksLTF();
   TrackLTF& getCurrentTrackLTF();
-  void removeCurrentTrackLTF();
-  Road& getCurrentRoad();
-  void removeCurrentRoad();
-  std::vector<Road>& getRoads();
+
   std::vector<TrackCA>& getTracksCA();
   TrackCA& getCurrentTrackCA();
-  void removeCurrentTrackCA();
+
+  Road& getCurrentRoad();
 
   template <typename... T>
   void addClusterToLayer(Int_t layer, T&&... args);
 
-  template <typename... T>
-  void addCellToLayer(Int_t layer, T&&... args);
-
   void addClusterLabelToLayer(Int_t layer, const MCCompLabel label);
   void addClusterExternalIndexToLayer(Int_t layer, const Int_t idx);
-  void addClusterBinIndexRangeToLayer(Int_t layer, const std::pair<Int_t, std::pair<Int_t, Int_t>> range);
+
   void addTrackLTF() { mTracksLTF.emplace_back(); }
 
-  void addTrackCA();
+  void addTrackCA(const Int_t);
+
   void addRoad();
 
-  void initialise();
+  void initialize();
+
   void sortClusters();
 
-  Bool_t isClusterUsed(Int_t layer, Int_t clusterId) const;
-  void markUsedCluster(Int_t layer, Int_t clusterId);
-
   void clear();
+
+  const Int_t getNClustersInLayer(Int_t layerId) const { return mClusters[layerId].size(); }
 
  private:
   Int_t mROframeId;
   std::array<std::vector<Cluster>, constants::mft::LayersNumber> mClusters;
   std::array<std::vector<MCCompLabel>, constants::mft::LayersNumber> mClusterLabels;
   std::array<std::vector<Int_t>, constants::mft::LayersNumber> mClusterExternalIndices;
-  std::array<std::map<Int_t, std::pair<Int_t, Int_t>>, constants::mft::LayersNumber> mClusterBinIndexRange;
-  std::array<std::vector<Bool_t>, constants::mft::LayersNumber> mUsedClusters;
-  std::array<std::vector<Cell>, constants::mft::LayersNumber> mCells;
+  std::array<std::array<std::pair<Int_t, Int_t>, constants::index_table::RPhiBins>, constants::mft::LayersNumber> mClusterBinIndexRange;
   std::vector<TrackLTF> mTracksLTF;
   std::vector<TrackCA> mTracksCA;
   std::vector<Road> mRoads;
@@ -117,32 +108,9 @@ inline void ROframe::addClusterExternalIndexToLayer(Int_t layer, const Int_t idx
   mClusterExternalIndices[layer].push_back(idx);
 }
 
-inline void ROframe::addClusterBinIndexRangeToLayer(Int_t layer, const std::pair<Int_t, std::pair<Int_t, Int_t>> range)
-{
-  mClusterBinIndexRange[layer].insert(range);
-}
-
-template <typename... T>
-void ROframe::addCellToLayer(Int_t layer, T&&... values)
-{
-  mCells[layer].emplace_back(layer, std::forward<T>(values)...);
-}
-
-inline Bool_t ROframe::isClusterUsed(Int_t layer, Int_t clusterId) const
-{
-  return mUsedClusters[layer][clusterId];
-}
-
-inline void ROframe::markUsedCluster(Int_t layer, Int_t clusterId) { mUsedClusters[layer][clusterId] = kTRUE; }
-
 inline TrackLTF& ROframe::getCurrentTrackLTF()
 {
   return mTracksLTF.back();
-}
-
-inline void ROframe::removeCurrentTrackLTF()
-{
-  mTracksLTF.pop_back();
 }
 
 inline std::vector<TrackLTF>& ROframe::getTracksLTF()
@@ -153,7 +121,6 @@ inline std::vector<TrackLTF>& ROframe::getTracksLTF()
 inline void ROframe::addRoad()
 {
   mRoads.emplace_back();
-  mRoads.back().setRoadId(mRoads.size() - 1);
 }
 
 inline Road& ROframe::getCurrentRoad()
@@ -161,26 +128,14 @@ inline Road& ROframe::getCurrentRoad()
   return mRoads.back();
 }
 
-inline void ROframe::removeCurrentRoad()
+inline void ROframe::addTrackCA(const Int_t roadId)
 {
-  mRoads.pop_back();
+  mTracksCA.emplace_back();
 }
-
-inline std::vector<Road>& ROframe::getRoads()
-{
-  return mRoads;
-}
-
-inline void ROframe::addTrackCA() { mTracksCA.emplace_back(); }
 
 inline TrackCA& ROframe::getCurrentTrackCA()
 {
   return mTracksCA.back();
-}
-
-inline void ROframe::removeCurrentTrackCA()
-{
-  mTracksCA.pop_back();
 }
 
 inline std::vector<TrackCA>& ROframe::getTracksCA()
@@ -194,8 +149,9 @@ inline void ROframe::clear()
     mClusters[iLayer].clear();
     mClusterLabels[iLayer].clear();
     mClusterExternalIndices[iLayer].clear();
-    mClusterBinIndexRange[iLayer].clear();
-    mCells[iLayer].clear();
+    for (Int_t iBin = 0; iBin < constants::index_table::RPhiBins; ++iBin) {
+      mClusterBinIndexRange[iLayer][iBin] = std::pair<Int_t, Int_t>(0, -1);
+    }
   }
   mTracksLTF.clear();
   mTracksCA.clear();
