@@ -306,7 +306,7 @@ void DefineHistograms(HistogramManager* histMan, TString histClasses)
   }
   VarManager::SetRunNumbers(kNRuns, runs);
 
-  TObjArray* arr = histClasses.Tokenize(";");
+  std::unique_ptr<TObjArray> arr(histClasses.Tokenize(";"));
   for (Int_t iclass = 0; iclass < arr->GetEntries(); ++iclass) {
     TString classStr = arr->At(iclass)->GetName();
 
