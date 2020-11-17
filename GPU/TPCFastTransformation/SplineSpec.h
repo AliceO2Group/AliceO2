@@ -346,7 +346,7 @@ class SplineSpec<DataT, XdimT, YdimT, 0> : public SplineContainer<DataT>
       int Ydim = nrofInterpolations;
       DataT coordinate = u[d];
 
-      typedef Spline1DSpec<DataT, YdimT, 0> TGridX;
+      typedef Spline1DSpec<DataT, 0, YdimT> TGridX;
       const TGridX& gridX = *((const TGridX*)&(mGrid[d]));
       gridX.interpolateU(Ydim, knotL, S0, D0, S1, D1, coordinate, iParameters);
 

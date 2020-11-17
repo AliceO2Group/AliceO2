@@ -481,11 +481,9 @@ int SplineHelper<DataT>::test(const bool draw, const bool drawDataPoints)
     Spline<float, nDimX, nDimY> spline(nKnots, knotsU);
     Spline2D<float, nDimY> spline2D(nKnots[0], knotsU[0], nKnots[1], knotsU[1]);
 
-    cout << "mark 1" << std::endl;
     spline.approximateFunction(xMin, xMax, F, nAxiliaryDatapoints);
     spline2D.approximateFunction(xMin[0], xMax[0], xMin[1], xMax[1],
                                  F2D, nAxiliaryDatapoints[0], nAxiliaryDatapoints[0]);
-    cout << "mark 2" << std::endl;
 
     long double statDf = 0;
     long double statDf2D = 0;
