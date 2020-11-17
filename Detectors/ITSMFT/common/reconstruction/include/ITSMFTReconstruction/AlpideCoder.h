@@ -116,11 +116,10 @@ class AlpideCoder
 
   static void setNoisyPixels(const NoiseMap* noise) { mNoisyPixels = noise; }
  
- //----------------------------------Setting CableHW in decoding-------------------------------------------------
 
   /// decode alpide data for the next non-empty chip from the buffer
   template <class T, typename CG>
-  static int decodeChip_HW(ChipPixelData& chipData, T& buffer, CG cidGetter, uint8_t chw)
+  static int decodeChip(ChipPixelData& chipData, T& buffer, CG cidGetter, bool setHW)
   {
     // read record for single non-empty chip, updating on change module and cycle.
     // return number of records filled (>0), EOFFlag or Error
@@ -143,7 +142,7 @@ class AlpideCoder
       //
       if ((expectInp & ExpectChipEmpty) && dataCM == CHIPEMPTY) { // empty chip was expected
         chipData.setChipID(cidGetter(dataC & MaskChipID));        // here we set the global chip ID
-	chipData.setCableHW(chw);
+	if (setHW) chipData.setCableHW(chw);
         if (!buffer.next(timestamp)) {
 #ifdef ALPIDE_DECODING_STAT
           chipData.setError(ChipStat::TruncatedChipEmpty);
@@ -156,195 +155,7 @@ class AlpideCoder
 
       if ((expectInp & ExpectChipHeader) && dataCM == CHIPHEADER) { // chip header was expected
         chipData.setChipID(cidGetter(dataC & MaskChipID));          // here we set the global chip ID
-	chipData.setCableHW(chw);
-        if (!buffer.next(timestamp)) {
-#ifdef ALPIDE_DECODING_STAT
-          chipData.setError(ChipStat::TruncatedChipHeader);
-#endif
-          return unexpectedEOF("CHIP_HEADER");
-        }
-        expectInp = ExpectRegion; // now expect region info
-        continue;
-      }
-
-      // region info ?
-      if ((expectInp & ExpectRegion) && (dataC & REGION) == REGION) { // chip header was seen, or hit data read
-        region = dataC & MaskRegion;
-        expectInp = ExpectData;
-        continue;
-      }
-
-      if ((expectInp & ExpectChipTrailer) && dataCM == CHIPTRAILER) { // chip trailer was expected
-        expectInp = ExpectChipHeader | ExpectChipEmpty;
-        chipData.setROFlags(dataC & MaskROFlags);
-#ifdef ALPIDE_DECODING_STAT
-        uint8_t roErr = dataC & MaskROFlags;
-        if (roErr) {
-          if (roErr == MaskErrBusyViolation) {
-            chipData.setError(ChipStat::BusyViolation);
-          } else if (roErr == MaskErrDataOverrun) {
-            chipData.setError(ChipStat::DataOverrun);
-          } else if (roErr == MaskErrFatal) {
-            chipData.setError(ChipStat::Fatal);
-          }
-        }
-#endif
-        // in case there are entries in the "right" columns buffer, add them to the container
-        if (nRightCHits) {
-          colDPrev++;
-          for (int ihr = 0; ihr < nRightCHits; ihr++) {
-            addHit(chipData, rightColHits[ihr], colDPrev);
-          }
-        }
-        break;
-      }
-
-      // hit info ?
-      if ((expectInp & ExpectData)) {
-        if (isData(dataC)) { // region header was seen, expect data
-                             // note that here we are checking on the byte rather than the short, need complete to ushort
-          dataS = dataC << 8;
-          if (!buffer.next(dataC)) {
-#ifdef ALPIDE_DECODING_STAT
-            chipData.setError(ChipStat::TruncatedRegion);
-#endif
-            return unexpectedEOF("CHIPDATA");
-          }
-          dataS |= dataC;
-          // we are decoding the pixel addres, if this is a DATALONG, we will fetch the mask later
-          uint16_t dColID = (dataS & MaskEncoder) >> 10;
-          uint16_t pixID = dataS & MaskPixID;
-
-          // convert data to usual row/pixel format
-          uint16_t row = pixID >> 1;
-          // abs id of left column in double column
-          uint16_t colD = (region * NDColInReg + dColID) << 1; // TODO consider <<4 instead of *NDColInReg?
-
-          // if we start new double column, transfer the hits accumulated in the right column buffer of prev. double column
-          if (colD != colDPrev) {
-            colDPrev++;
-            for (int ihr = 0; ihr < nRightCHits; ihr++) {
-              addHit(chipData, rightColHits[ihr], colDPrev);
-            }
-            colDPrev = colD;
-            nRightCHits = 0; // reset the buffer
-          }
-
-          bool rightC = (row & 0x1) ? !(pixID & 0x1) : (pixID & 0x1); // true for right column / lalse for left
-
-          // we want to have hits sorted in column/row, so the hits in right column of given double column
-          // are first collected in the temporary buffer
-          // real columnt id is col = colD + 1;
-          if (rightC) {
-            rightColHits[nRightCHits++] = row; // col = colD+1
-          } else {
-            addHit(chipData, row, colD); // col = colD, left column hits are added directly to the container
-          }
-
-          if ((dataS & (~MaskDColID)) == DATALONG) { // multiple hits ?
-            uint8_t hitsPattern = 0;
-            if (!buffer.next(hitsPattern)) {
-#ifdef ALPIDE_DECODING_STAT
-              chipData.setError(ChipStat::TruncatedLondData);
-#endif
-              return unexpectedEOF("CHIP_DATA_LONG:Pattern");
-            }
-#ifdef ALPIDE_DECODING_STAT
-            if (hitsPattern & (~MaskHitMap)) {
-              chipData.setError(ChipStat::WrongDataLongPattern);
-            }
-#endif
-            for (int ip = 0; ip < HitMapSize; ip++) {
-              if (hitsPattern & (0x1 << ip)) {
-                uint16_t addr = pixID + ip + 1, rowE = addr >> 1;
-                rightC = ((rowE & 0x1) ? !(addr & 0x1) : (addr & 0x1)); // true for right column / lalse for left
-                // the real columnt is int colE = colD + rightC;
-                if (rightC) { // same as above
-                  rightColHits[nRightCHits++] = rowE;
-                } else {
-                  addHit(chipData, rowE, colD + rightC); // left column hits are added directly to the container
-                }
-              }
-            }
-          }
-        } else {
-#ifdef ALPIDE_DECODING_STAT
-          chipData.setError(ChipStat::NoDataFound);
-#endif
-          LOG(ERROR) << "Expected DataShort or DataLong mask, got : " << dataS;
-          return Error;
-        }
-        expectInp = ExpectChipTrailer | ExpectData | ExpectRegion;
-        continue; // end of DATA(SHORT or LONG) processing
-      }
-
-      if (dataC == BUSYON) {
-#ifdef ALPIDE_DECODING_STAT
-        chipData.setError(ChipStat::BusyOn);
-#endif
-        continue;
-      }
-      if (dataC == BUSYOFF) {
-#ifdef ALPIDE_DECODING_STAT
-        chipData.setError(ChipStat::BusyOff);
-#endif
-        continue;
-      }
-
-      if (!dataC) {
-        buffer.clear(); // 0 padding reached (end of the cable data), no point in continuing
-        break;
-      }
-#ifdef ALPIDE_DECODING_STAT
-      chipData.setError(ChipStat::UnknownWord);
-#endif
-      return unexpectedEOF(fmt::format("Unknown word 0x{:x} [expectation = 0x{:x}]", int(dataC), int(expectInp))); // error
-    }
-
-    return chipData.getData().size();
-  }
-
-  /// check if the byte corresponds to chip_header or chip_empty flag
-//------------------------------------------------------------------------------------------------
-
-
-  /// decode alpide data for the next non-empty chip from the buffer
-  template <class T, typename CG>
-  static int decodeChip(ChipPixelData& chipData, T& buffer, CG cidGetter)
-  {
-    // read record for single non-empty chip, updating on change module and cycle.
-    // return number of records filled (>0), EOFFlag or Error
-    //
-    uint8_t dataC = 0, timestamp = 0;
-    uint16_t dataS = 0, region = 0;
-    //
-    int nRightCHits = 0;               // counter for the hits in the right column of the current double column
-    std::uint16_t rightColHits[NRows]; // buffer for the accumulation of hits in the right column
-    std::uint16_t colDPrev = 0xffff;   // previously processed double column (to dected change of the double column)
-
-    uint32_t expectInp = ExpectChipHeader | ExpectChipEmpty; // data must always start with chip header or chip empty flag
-
-    chipData.clear();
-
-    while (buffer.next(dataC)) {
-      //
-      // ---------- chip info ?
-      uint8_t dataCM = dataC & (~MaskChipID);
-      //
-      if ((expectInp & ExpectChipEmpty) && dataCM == CHIPEMPTY) { // empty chip was expected
-        chipData.setChipID(cidGetter(dataC & MaskChipID));        // here we set the global chip ID
-        if (!buffer.next(timestamp)) {
-#ifdef ALPIDE_DECODING_STAT
-          chipData.setError(ChipStat::TruncatedChipEmpty);
-#endif
-          return unexpectedEOF("CHIP_EMPTY:Timestamp");
-        }
-        expectInp = ExpectChipHeader | ExpectChipEmpty;
-        continue;
-      }
-
-      if ((expectInp & ExpectChipHeader) && dataCM == CHIPHEADER) { // chip header was expected
-        chipData.setChipID(cidGetter(dataC & MaskChipID));          // here we set the global chip ID
+	if (setHW) chipData.setCableHW(chw);
         if (!buffer.next(timestamp)) {
 #ifdef ALPIDE_DECODING_STAT
           chipData.setError(ChipStat::TruncatedChipHeader);
