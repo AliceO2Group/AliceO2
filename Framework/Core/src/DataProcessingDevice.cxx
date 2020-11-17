@@ -275,9 +275,9 @@ void DataProcessingDevice::Init()
   /// expect them to create any data.
   for (size_t ci = 0; ci < mSpec.inputChannels.size(); ++ci) {
     auto& name = mSpec.inputChannels[ci].name;
-    if (name.find("from_internal-dpl-clock") == 0) {
+    if (name.find(mSpec.channelPrefix + "from_internal-dpl-clock") == 0) {
       mState.inputChannelInfos[ci].state = InputChannelState::Pull;
-    } else if (name.find("from_internal-dpl-ccdb-backend") == 0) {
+    } else if (name.find(mSpec.channelPrefix + "from_internal-dpl-ccdb-backend") == 0) {
       mState.inputChannelInfos[ci].state = InputChannelState::Pull;
     }
   }
@@ -355,11 +355,11 @@ void DataProcessingDevice::InitTask()
     // devices to allow for enumerations.
     if (mState.activeInputPollers.empty() && mState.activeTimers.empty() && mState.activeSignals.empty()) {
       for (auto& x : fChannels) {
-        if (x.first.rfind("from_internal-dpl", 0) == 0) {
+        if (x.first.rfind(mSpec.channelPrefix + "from_internal-dpl", 0) == 0) {
           LOG(debug) << x.first << " is an internal channel. Not polling." << std::endl;
           continue;
         }
-        assert(x.first.rfind("from_" + mSpec.name + "_", 0) == 0);
+        assert(x.first.rfind(mSpec.channelPrefix + "from_" + mSpec.name + "_", 0) == 0);
         // We assume there is always a ZeroMQ socket behind.
         int zmq_fd = 0;
         size_t zmq_fd_len = sizeof(zmq_fd);

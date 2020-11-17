@@ -1039,7 +1039,8 @@ int runStateMachine(DataProcessorSpecs const& workflow,
                                                             *resourceManager,
                                                             driverInfo.uniqueWorkflowId,
                                                             !varmap["no-IPC"].as<bool>(),
-                                                            driverInfo.resourcesMonitoringInterval);
+                                                            driverInfo.resourcesMonitoringInterval,
+                                                            varmap["channel-prefix"].as<std::string>());
           metricProcessingCallbacks.clear();
           for (auto& device : deviceSpecs) {
             for (auto& service : device.services) {

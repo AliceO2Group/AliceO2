@@ -252,6 +252,7 @@ void DeviceSpecHelpers::processOutEdgeActions(std::vector<DeviceSpec>& devices,
                                               const std::vector<EdgeAction>& actions, const WorkflowSpec& workflow,
                                               const std::vector<OutputSpec>& outputsMatchers,
                                               const std::vector<ChannelConfigurationPolicy>& channelPolicies,
+                                              std::string const& channelPrefix,
                                               ComputingOffer const& defaultOffer)
 {
   // The topology cannot be empty or not connected. If that is the case, than
@@ -261,7 +262,9 @@ void DeviceSpecHelpers::processOutEdgeActions(std::vector<DeviceSpec>& devices,
 
   // Edges are navigated in order for each device, so the device associaited to
   // an edge is always the last one created.
-  auto deviceForEdge = [&actions, &workflow, &devices, &logicalEdges, &resourceManager, &defaultOffer](size_t ei, ComputingOffer& acceptedOffer) {
+  auto deviceForEdge = [&actions, &workflow, &devices,
+                        &logicalEdges, &resourceManager,
+                        &defaultOffer, &channelPrefix](size_t ei, ComputingOffer& acceptedOffer) {
     auto& edge = logicalEdges[ei];
     auto& action = actions[ei];
 
@@ -293,6 +296,7 @@ void DeviceSpecHelpers::processOutEdgeActions(std::vector<DeviceSpec>& devices,
     DeviceSpec device;
     device.name = processor.name;
     device.id = processor.name;
+    device.channelPrefix = channelPrefix;
     if (processor.maxInputTimeslices != 1) {
       device.id = processor.name + "_t" + std::to_string(edge.producerTimeIndex);
     }
@@ -318,7 +322,7 @@ void DeviceSpecHelpers::processOutEdgeActions(std::vector<DeviceSpec>& devices,
     if (consumer.maxInputTimeslices != 1) {
       consumerDeviceId += "_t" + std::to_string(edge.timeIndex);
     }
-    channel.name = "from_" + device.id + "_to_" + consumerDeviceId;
+    channel.name = device.channelPrefix + "from_" + device.id + "_to_" + consumerDeviceId;
     channel.port = acceptedOffer.startPort + acceptedOffer.rangeSize;
     channel.hostname = acceptedOffer.hostname;
     deviceResource.usedPorts += 1;
@@ -433,6 +437,7 @@ void DeviceSpecHelpers::processInEdgeActions(std::vector<DeviceSpec>& devices,
                                              const std::vector<EdgeAction>& actions, const WorkflowSpec& workflow,
                                              std::vector<LogicalForwardInfo> const& availableForwardsInfo,
                                              std::vector<ChannelConfigurationPolicy> const& channelPolicies,
+                                             std::string const& channelPrefix,
                                              ComputingOffer const& defaultOffer)
 {
   auto const& constDeviceIndex = deviceIndex;
@@ -473,7 +478,9 @@ void DeviceSpecHelpers::processInEdgeActions(std::vector<DeviceSpec>& devices,
     return lastConsumerSearch->deviceIndex;
   };
 
-  auto createNewDeviceForEdge = [&workflow, &logicalEdges, &devices, &deviceIndex, &resourceManager, &defaultOffer](size_t ei, ComputingOffer& acceptedOffer) {
+  auto createNewDeviceForEdge = [&workflow, &logicalEdges, &devices,
+                                 &deviceIndex, &resourceManager, &defaultOffer,
+                                 &channelPrefix](size_t ei, ComputingOffer& acceptedOffer) {
     auto& edge = logicalEdges[ei];
 
     if (acceptedOffer.hostname != "") {
@@ -500,6 +507,7 @@ void DeviceSpecHelpers::processInEdgeActions(std::vector<DeviceSpec>& devices,
     DeviceSpec device;
     device.name = processor.name;
     device.id = processor.name;
+    device.channelPrefix = channelPrefix;
     if (processor.maxInputTimeslices != 1) {
       device.id += "_t" + std::to_string(edge.timeIndex);
     }
@@ -552,7 +560,7 @@ void DeviceSpecHelpers::processInEdgeActions(std::vector<DeviceSpec>& devices,
     auto const& producerDevice = devices[pi];
     auto& consumerDevice = devices[ci];
     InputChannelSpec channel;
-    channel.name = "from_" + producerDevice.id + "_to_" + consumerDevice.id;
+    channel.name = producerDevice.channelPrefix + "from_" + producerDevice.id + "_to_" + consumerDevice.id;
     channel.hostname = producerDevice.resource.hostname;
     channel.port = port;
     for (auto& policy : channelPolicies) {
@@ -695,7 +703,8 @@ void DeviceSpecHelpers::dataProcessorSpecs2DeviceSpecs(const WorkflowSpec& workf
                                                        ResourceManager& resourceManager,
                                                        std::string const& uniqueWorkflowId,
                                                        bool optimizeTopology,
-                                                       unsigned short resourcesMonitoringInterval)
+                                                       unsigned short resourcesMonitoringInterval,
+                                                       std::string const& channelPrefix)
 {
 
   std::vector<LogicalForwardInfo> availableForwardsInfo;
@@ -747,13 +756,13 @@ void DeviceSpecHelpers::dataProcessorSpecs2DeviceSpecs(const WorkflowSpec& workf
   defaultOffer.memory /= deviceCount + 1;
 
   processOutEdgeActions(devices, deviceIndex, connections, resourceManager, outEdgeIndex, logicalEdges,
-                        outActions, workflow, outputs, channelPolicies, defaultOffer);
+                        outActions, workflow, outputs, channelPolicies, channelPrefix, defaultOffer);
 
   // FIXME: is this not the case???
   std::sort(connections.begin(), connections.end());
 
   processInEdgeActions(devices, deviceIndex, connections, resourceManager, inEdgeIndex, logicalEdges,
-                       inActions, workflow, availableForwardsInfo, channelPolicies, defaultOffer);
+                       inActions, workflow, availableForwardsInfo, channelPolicies, channelPrefix, defaultOffer);
   // We apply the completion policies here since this is where we have all the
   // devices resolved.
   for (auto& device : devices) {
@@ -984,6 +993,7 @@ void DeviceSpecHelpers::prepareArguments(bool defaultQuiet, bool defaultStopped,
         realOdesc.add_options()("shm-throw-bad-alloc", bpo::value<std::string>());
         realOdesc.add_options()("shm-segment-id", bpo::value<std::string>());
         realOdesc.add_options()("shm-monitor", bpo::value<std::string>());
+        realOdesc.add_options()("channel-prefix", bpo::value<std::string>());
         realOdesc.add_options()("session", bpo::value<std::string>());
         filterArgsFct(expansions.we_wordc, expansions.we_wordv, realOdesc);
         wordfree(&expansions);
@@ -1087,26 +1097,27 @@ boost::program_options::options_description DeviceSpecHelpers::getForwardedDevic
   // - rate is an option of FairMQ device for ConditionalRun
   // - child-driver is not a FairMQ device option but used per device to start to process
   bpo::options_description forwardedDeviceOptions;
-  forwardedDeviceOptions.add_options()                                                                                //
-    ("severity", bpo::value<std::string>()->default_value("info"), "severity level of the log")                       //
-    ("plugin,P", bpo::value<std::string>(), "FairMQ plugin list")                                                     //
-    ("plugin-search-path,S", bpo::value<std::string>(), "FairMQ plugins search path")                                 //
-    ("control-port", bpo::value<std::string>(), "Utility port to be used by O2 Control")                              //
-    ("rate", bpo::value<std::string>(), "rate for a data source device (Hz)")                                         //
-    ("shm-monitor", bpo::value<std::string>(), "whether to use the shared memory monitor")                            //
-    ("shm-segment-size", bpo::value<std::string>(), "size of the shared memory segment in bytes")                     //
-    ("shm-mlock-segment", bpo::value<std::string>()->default_value("false"), "mlock shared memory segment")           //
-    ("shm-zero-segment", bpo::value<std::string>()->default_value("false"), "zero shared memory segment")             //
-    ("shm-throw-bad-alloc", bpo::value<std::string>()->default_value("true"), "throw if insufficient shm memory")     //
-    ("shm-segment-id", bpo::value<std::string>()->default_value("0"), "shm segment id")                               //
-    ("environment", bpo::value<std::string>(), "comma separated list of environment variables to set for the device") //
-    ("post-fork-command", bpo::value<std::string>(), "post fork command to execute (e.g. numactl {pid}")              //
-    ("session", bpo::value<std::string>(), "unique label for the shared memory session")                              //
-    ("configuration,cfg", bpo::value<std::string>(), "configuration connection string")                               //
-    ("monitoring-backend", bpo::value<std::string>(), "monitoring connection string")                                 //
-    ("infologger-mode", bpo::value<std::string>(), "INFOLOGGER_MODE override")                                        //
-    ("infologger-severity", bpo::value<std::string>(), "minimun FairLogger severity which goes to info logger")       //
-    ("child-driver", bpo::value<std::string>(), "external driver to start childs with (e.g. valgrind)");              //
+  forwardedDeviceOptions.add_options()                                                                                                        //
+    ("severity", bpo::value<std::string>()->default_value("info"), "severity level of the log")                                               //
+    ("plugin,P", bpo::value<std::string>(), "FairMQ plugin list")                                                                             //
+    ("plugin-search-path,S", bpo::value<std::string>(), "FairMQ plugins search path")                                                         //
+    ("control-port", bpo::value<std::string>(), "Utility port to be used by O2 Control")                                                      //
+    ("rate", bpo::value<std::string>(), "rate for a data source device (Hz)")                                                                 //
+    ("shm-monitor", bpo::value<std::string>(), "whether to use the shared memory monitor")                                                    //
+    ("channel-prefix", bpo::value<std::string>()->default_value(""), "prefix to use for multiplexing multiple workflows in the same session") //
+    ("shm-segment-size", bpo::value<std::string>(), "size of the shared memory segment in bytes")                                             //
+    ("shm-mlock-segment", bpo::value<std::string>()->default_value("false"), "mlock shared memory segment")                                   //
+    ("shm-zero-segment", bpo::value<std::string>()->default_value("false"), "zero shared memory segment")                                     //
+    ("shm-throw-bad-alloc", bpo::value<std::string>()->default_value("true"), "throw if insufficient shm memory")                             //
+    ("shm-segment-id", bpo::value<std::string>()->default_value("0"), "shm segment id")                                                       //
+    ("environment", bpo::value<std::string>(), "comma separated list of environment variables to set for the device")                         //
+    ("post-fork-command", bpo::value<std::string>(), "post fork command to execute (e.g. numactl {pid}")                                      //
+    ("session", bpo::value<std::string>(), "unique label for the shared memory session")                                                      //
+    ("configuration,cfg", bpo::value<std::string>(), "configuration connection string")                                                       //
+    ("monitoring-backend", bpo::value<std::string>(), "monitoring connection string")                                                         //
+    ("infologger-mode", bpo::value<std::string>(), "INFOLOGGER_MODE override")                                                                //
+    ("infologger-severity", bpo::value<std::string>(), "minimun FairLogger severity which goes to info logger")                               //
+    ("child-driver", bpo::value<std::string>(), "external driver to start childs with (e.g. valgrind)");                                      //
 
   return forwardedDeviceOptions;
 }
