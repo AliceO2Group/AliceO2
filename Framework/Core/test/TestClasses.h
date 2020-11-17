@@ -7,14 +7,14 @@
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
-#ifndef FRAMEWORK_TEST_CLASSES_H
-#define FRAMEWORK_TEST_CLASSES_H
+#ifndef O2_FRAMEWORK_TEST_CLASSES_H_
+#define O2_FRAMEWORK_TEST_CLASSES_H_
 
 #include <Rtypes.h>
+#include "Framework/InputSpec.h"
+#include "Framework/OutputSpec.h"
 
-namespace o2
-{
-namespace test
+namespace o2::test
 {
 
 class TriviallyCopyable
@@ -84,6 +84,5 @@ class SimplePODClass
   ClassDefNV(SimplePODClass, 1);
 };
 
-} // namespace test
-} // namespace o2
-#endif // FRAMEWORK_TEST_CLASSES_H
+} // namespace o2::test
+#endif // O2_FRAMEWORK_TEST_CLASSES_H_
