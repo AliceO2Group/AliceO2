@@ -169,6 +169,24 @@ class RecoDecay
     return std::atanh(mom[2] / E(mom, mass));
   }
 
+  /// Calculates azimuthal angle from x and y momentum components.
+  /// \param px,py  {x, y} momentum components
+  /// \return azimuthal angle
+  static double Phi(double px, double py)
+  {
+    // phi = pi+TMath::Atan2(-py,-px)
+    return (double)(o2::constants::math::PI + std::atan2(-py,-px));
+  }
+
+  /// Calculates azimuthal angle from 3-(or 2-)momenta.
+  /// \param args  pack of 3-(or 2-)momentum arrays
+  /// \return azimuthal angle
+  template <std::size_t N, typename T>
+  static double Phi(const array<T, N>& vec)
+  {
+    return Phi(vec[0],vec[1]);
+  }
+
   /// Calculates cosine of pointing angle.
   /// \param posPV  {x, y, z} position of the primary vertex
   /// \param posSV  {x, y, z} position of the secondary vertex
