@@ -505,7 +505,7 @@ void DataProcessingDevice::doPrepare(DataProcessorContext& context)
     if (info.state != InputChannelState::Running) {
       continue;
     }
-    int result = -2;
+    int64_t result = -2;
     auto& fairMQChannel = context.device->GetChannel(channel.name, 0);
     auto& socket = fairMQChannel.GetSocket();
     uint32_t events;
