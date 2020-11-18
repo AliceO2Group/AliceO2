@@ -209,7 +209,6 @@ class DCSDataProcessor : public o2::framework::Task
         // now preparing CCDB object
         for (int idet = 0; idet < kNdetectors; idet++) {
           std::map<std::string, std::string> md;
-	  LOG(INFO) << "HEEERE! preparing the CCDBobject";
           mDCSprocVect[idet].prepareCCDBobject(mDCSprocVect[idet].getCCDBSimpleMovingAverage(),
                                                mDCSprocVect[idet].getCCDBSimpleMovingAverageInfo(),
                                                mDCSprocVect[idet].getName() + "/TestDCS/SimpleMovingAverageDPs",
