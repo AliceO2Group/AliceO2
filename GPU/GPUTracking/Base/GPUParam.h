@@ -54,6 +54,7 @@ struct GPUParam_t {
 };
 } // namespace internal
 
+#if !(defined(__CINT__) || defined(__ROOTCINT__)) || defined(__CLING__) // Hide from ROOT 5 CINT since it triggers a CINT but
 MEM_CLASS_PRE()
 struct GPUParam : public internal::GPUParam_t<GPUSettingsRec, GPUSettingsParam> {
 
@@ -84,6 +85,7 @@ struct GPUParam : public internal::GPUParam_t<GPUSettingsRec, GPUSettingsParam> 
   GPUd() void Slice2Global(int iSlice, float x, float y, float z, float* X, float* Y, float* Z) const;
   GPUd() void Global2Slice(int iSlice, float x, float y, float z, float* X, float* Y, float* Z) const;
 };
+#endif
 
 } // namespace gpu
 } // namespace GPUCA_NAMESPACE
