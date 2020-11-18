@@ -254,8 +254,29 @@ struct alignas(128) DataPointCompositeObject final {
                  (char*)&dpcom.data.payload_pt1, 56);
     }
   }
+
+  /**
+    * The destructor for DataPointCompositeObject so it is not deleted
+    * and thus DataPointCompositeObject is trivially copyable
+    */
+  ~DataPointCompositeObject() noexcept = default;
   ClassDefNV(DataPointCompositeObject, 1);
 };
+
+/**
+  * Return the value contained in the DataPointCompositeObject, if possible.
+  *
+  * @tparam T the expected type of the value
+  *
+  * @param dpcom the DataPointCompositeObject the value is extracted from
+  *
+  * @returns the value of the data point
+  *
+  * @throws if the DeliveryType of the data point is not compatible with T
+  */
+template <typename T>
+T getValue(const DataPointCompositeObject& dpcom);
+
 } // namespace dcs
 } // namespace o2
 
