@@ -16,12 +16,13 @@ ClassImp(DataPointCompositeObject);
 
 namespace o2::dcs
 {
-template<typename T, o2::dcs::DeliveryType dt>
-T getValueImpl(const DataPointCompositeObject& dpcom) {
-union Converter {
-  uint64_t raw_data;
-  T t_value;
-};
+template <typename T, o2::dcs::DeliveryType dt>
+T getValueImpl(const DataPointCompositeObject& dpcom)
+{
+  union Converter {
+    uint64_t raw_data;
+    T t_value;
+  };
   if (dpcom.id.get_type() != dt) {
     throw std::runtime_error("DPCOM is of unexpected type " + o2::dcs::show(dt));
   }
@@ -35,39 +36,48 @@ union Converter {
 // - double
 // - uint32_t
 // - int32_t
-// - char 
+// - char
 // - bool
-
-// template<>
-// double getValueImpl<double,DeliveryType::RAW_DOUBLE>(const DataPointCompositeObject&);
 //
-template<>
+// - string
+
+template <>
 double getValue(const DataPointCompositeObject& dpcom)
 {
-  return getValueImpl<double,DeliveryType::RAW_DOUBLE>(dpcom);
+  return getValueImpl<double, DeliveryType::RAW_DOUBLE>(dpcom);
 }
 
 template <>
 uint32_t getValue(const DataPointCompositeObject& dpcom)
 {
-  return getValueImpl<uint32_t,DeliveryType::RAW_UINT>(dpcom);
+  return getValueImpl<uint32_t, DeliveryType::RAW_UINT>(dpcom);
 }
 
 template <>
 int32_t getValue(const DataPointCompositeObject& dpcom)
 {
-  return getValueImpl<int32_t,DeliveryType::RAW_INT>(dpcom);
+  return getValueImpl<int32_t, DeliveryType::RAW_INT>(dpcom);
 }
 
 template <>
 char getValue(const DataPointCompositeObject& dpcom)
 {
-  return getValueImpl<char,DeliveryType::RAW_CHAR>(dpcom);
+  return getValueImpl<char, DeliveryType::RAW_CHAR>(dpcom);
 }
 
 template <>
 bool getValue(const DataPointCompositeObject& dpcom)
 {
-  return getValueImpl<bool,DeliveryType::RAW_BOOL>(dpcom);
+  return getValueImpl<bool, DeliveryType::RAW_BOOL>(dpcom);
 }
+
+template <>
+std::string getValue(const DataPointCompositeObject& dpcom)
+{
+  if (dpcom.id.get_type() != o2::dcs::DeliveryType::RAW_STRING) {
+    throw std::runtime_error("DPCOM is of unexpected type " + o2::dcs::show(dpcom.id.get_type()));
+  }
+  return std::string((char*)&dpcom.data.payload_pt1);
+}
+
 } // namespace o2::dcs
