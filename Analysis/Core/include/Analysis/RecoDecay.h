@@ -175,7 +175,7 @@ class RecoDecay
   static double Phi(double px, double py)
   {
     // phi = pi+TMath::Atan2(-py,-px)
-    return (double)(o2::constants::math::PI + std::atan2(-py,-px));
+    return (double)(o2::constants::math::PI + std::atan2(-py, -px));
   }
 
   /// Calculates azimuthal angle from 3-(or 2-)momenta.
@@ -184,7 +184,7 @@ class RecoDecay
   template <std::size_t N, typename T>
   static double Phi(const array<T, N>& vec)
   {
-    return Phi(vec[0],vec[1]);
+    return Phi(vec[0], vec[1]);
   }
 
   /// Calculates cosine of pointing angle.
@@ -539,7 +539,7 @@ class RecoDecay
   static bool isMCMatchedDecayGen(const T& particlesMC, const U& candidate, int PDGParticle, array<int, N> arrPDGDaughters, bool acceptAntiParticles = false)
   {
     //Printf("MC Gen.: Expected particle PDG: %d", PDGParticle);
-    int sgn = 1; // 1 if the expected mother is particle, -1 if antiparticle
+    int sgn = 1;                // 1 if the expected mother is particle, -1 if antiparticle
     int indexDaughterFirst = 0; // index of the first daughter
     int indexDaughterLast = 0;  // index of the last daughter
     // Check the PDG code of the particle.
