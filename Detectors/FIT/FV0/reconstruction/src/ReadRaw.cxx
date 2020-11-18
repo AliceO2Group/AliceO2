@@ -154,7 +154,8 @@ void ReadRaw::writeDigits(const std::string& outputDigitsFilePath)
       chDataVecTree.emplace_back(int(sec.pmtNumber), float(sec.time), Short_t(sec.chargeAdc));
       nStored++;
     }
-    chBcVecTree.emplace_back(first, nStored, digit.first);
+    Triggers triggers; // TODO: Actual values are not set
+    chBcVecTree.emplace_back(first, nStored, digit.first, triggers);
   }
 
   outTree->Branch("FV0DigitBC", &chBcVecTree);

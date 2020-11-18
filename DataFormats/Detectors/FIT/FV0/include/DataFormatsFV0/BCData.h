@@ -26,21 +26,59 @@ namespace fv0
 {
 class ChannelData;
 
+struct Triggers {
+  enum {
+    bitMinBias,
+    bitMinBiasInner,
+    bitMinBiasOuter,
+    bitHighMult
+  };
+  uint8_t triggerSignals = 0; // V0 trigger signals
+  int8_t nChanA = 0;          // number of fired channels [A side]
+  int32_t amplA = -1000;      // sum amplitude [A side]
+  Triggers() = default;
+
+  Triggers(uint8_t signals, int8_t chanA, int32_t amplASum)
+  {
+    triggerSignals = signals;
+    nChanA = chanA;
+    amplA = amplASum;
+  }
+
+  bool getIsMinBias() const { return (triggerSignals & (1 << bitMinBias)) != 0; }
+  bool getIsMinBiasInner() const { return (triggerSignals & (1 << bitMinBiasInner)) != 0; }
+  bool getIsMinBiasOuter() const { return (triggerSignals & (1 << bitMinBiasOuter)) != 0; }
+  bool getIsHighMult() const { return (triggerSignals & (1 << bitHighMult)) != 0; }
+
+  void setTriggers(Bool_t isMinBias, Bool_t isMinBiasInner, Bool_t isMinBiasOuter, Bool_t isHighMult, int8_t chanA, int32_t amplASum)
+  {
+    triggerSignals = (isMinBias << bitMinBias) | (isMinBiasInner << bitMinBiasInner) | (isMinBiasOuter << bitMinBiasOuter) | (isHighMult << bitHighMult);
+    nChanA = chanA;
+    amplA = amplASum;
+  }
+
+  ClassDefNV(Triggers, 1);
+};
+
 struct BCData {
   /// we are going to refer to at most 48 channels, so 6 bits for the number of channels and 26 for the reference
   o2::dataformats::RangeRefComp<6> ref;
   o2::InteractionRecord ir;
+  Triggers mTriggers;
 
   BCData() = default;
-  BCData(int first, int ne, o2::InteractionRecord iRec)
+  BCData(int first, int ne, o2::InteractionRecord iRec, const Triggers& chTrig)
   {
     ref.setFirstEntry(first);
     ref.setEntries(ne);
     ir = iRec;
+    mTriggers = chTrig;
   }
 
   gsl::span<const ChannelData> getBunchChannelData(const gsl::span<const ChannelData> tfdata) const;
   const o2::InteractionRecord& getIntRecord() const { return ir; };
+  Triggers getTriggers() const { return mTriggers; }
+  void setTriggers(Triggers triggers) { mTriggers = triggers; };
   void print() const;
 
   ClassDefNV(BCData, 1);
