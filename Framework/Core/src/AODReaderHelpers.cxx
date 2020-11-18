@@ -225,6 +225,7 @@ AlgorithmSpec AODReaderHelpers::rootFileReaderCallback()
       if (!watchdog->update()) {
         LOGP(INFO, "Run time exceeds run time limit of {} seconds!", watchdog->runTimeLimit);
         LOGP(INFO, "Stopping reader {} after time frame {}.", device.inputTimesliceId, watchdog->numberTimeFrames - 1);
+        monitoring.flushBuffer();
         didir->closeInputFiles();
         control.endOfStream();
         control.readyToQuit(QuitRequest::Me);
