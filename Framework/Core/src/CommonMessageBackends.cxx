@@ -92,6 +92,7 @@ enum struct RateLimitingState {
   BELOW_LIMIT = 3,               // New metric received, we are below limit.
   NEXT_ITERATION_FROM_BELOW = 4, // Iteration when previously in BELOW_LIMIT.
   ABOVE_LIMIT = 5,               // New metric received, we are above limit.
+  EMPTY = 6,                     //
 };
 
 struct RateLimitConfig {
@@ -168,6 +169,7 @@ o2::framework::ServiceSpec CommonMessageBackends::arrowBackendSpec()
                        static auto totalMessagesDestroyedMetric = DeviceMetricsHelper::createNumericMetric<uint64_t>(driverMetrics, "total-arrow-messages-destroyed");
                        static auto totalBytesDeltaMetric = DeviceMetricsHelper::createNumericMetric<int>(driverMetrics, "arrow-bytes-delta");
                        static auto totalSignalsMetric = DeviceMetricsHelper::createNumericMetric<uint64_t>(driverMetrics, "aod-reader-signals");
+                       static auto skippedSignalsMetric = DeviceMetricsHelper::createNumericMetric<uint64_t>(driverMetrics, "aod-skipped-signals");
                        static auto remainingBytes = DeviceMetricsHelper::createNumericMetric<uint64_t>(driverMetrics, "aod-remaining-bytes");
 
                        bool changed = false;
@@ -180,8 +182,9 @@ o2::framework::ServiceSpec CommonMessageBackends::arrowBackendSpec()
                          lastSignalTimestamp = driverMetrics.timestamps[signalIndex][info.pos - 1];
                        }
 
-                       size_t lastCreatedBytesTimestamp = 0;
-                       size_t lastDestroyedBytesTimestamp = 0;
+                       size_t lastTimestamp = 0;
+                       size_t firstTimestamp = -1;
+                       size_t lastDecision = 0;
                        for (auto& deviceMetrics : allDeviceMetrics) {
                          {
                            size_t index = DeviceMetricsHelper::metricIdxByName("arrow-bytes-created", deviceMetrics);
@@ -191,7 +194,8 @@ o2::framework::ServiceSpec CommonMessageBackends::arrowBackendSpec()
                              MetricInfo info = deviceMetrics.metrics.at(index);
                              auto& data = deviceMetrics.uint64Metrics.at(info.storeIdx);
                              totalBytesCreated += (int64_t)data.at((info.pos - 1) % data.size());
-                             lastCreatedBytesTimestamp = deviceMetrics.timestamps[index][info.pos - 1];
+                             lastTimestamp = std::max(lastTimestamp, deviceMetrics.timestamps[index][info.pos - 1]);
+                             firstTimestamp = std::min(lastTimestamp, firstTimestamp);
                            }
                          }
                          {
@@ -202,7 +206,7 @@ o2::framework::ServiceSpec CommonMessageBackends::arrowBackendSpec()
                              MetricInfo info = deviceMetrics.metrics.at(index);
                              auto& data = deviceMetrics.uint64Metrics.at(info.storeIdx);
                              totalBytesDestroyed += (int64_t)data.at((info.pos - 1) % data.size());
-                             lastDestroyedBytesTimestamp = deviceMetrics.timestamps[index][info.pos - 1];
+                             firstTimestamp = std::min(lastTimestamp, firstTimestamp);
                            }
                          }
                          {
@@ -232,6 +236,10 @@ o2::framework::ServiceSpec CommonMessageBackends::arrowBackendSpec()
                        bool done = false;
                        static int stateTransitions = 0;
                        static int signalsCount = 0;
+                       static int skippedCount = 0;
+                       static uint64_t now = 0;
+                       static uint64_t lastSignal = 0;
+                       now = uv_hrtime();
                        while (!done) {
                          stateMetric(driverMetrics, (uint64_t)(currentState), stateTransitions++);
                          switch (currentState) {
@@ -247,9 +255,12 @@ o2::framework::ServiceSpec CommonMessageBackends::arrowBackendSpec()
                            case RateLimitingState::STARTED: {
                              for (size_t di = 0; di < specs.size(); ++di) {
                                if (specs[di].name == "internal-dpl-aod-reader") {
-                                 if (di < infos.size()) {
+                                 if (di < infos.size() && (now - lastSignal > 10000000)) {
                                    kill(infos[di].pid, SIGUSR1);
                                    totalSignalsMetric(driverMetrics, signalsCount++, timestamp);
+                                   lastSignal = now;
+                                 } else {
+                                   skippedSignalsMetric(driverMetrics, skippedCount++, timestamp);
                                  }
                                }
                              }
@@ -258,19 +269,37 @@ o2::framework::ServiceSpec CommonMessageBackends::arrowBackendSpec()
                            } break;
                            case RateLimitingState::CHANGED: {
                              remainingBytes(driverMetrics, totalBytesCreated <= (totalBytesDestroyed + memLimit) ? (totalBytesDestroyed + memLimit) - totalBytesCreated : 0, timestamp);
-                             if (totalBytesCreated <= (totalBytesDestroyed + memLimit)) {
+                             if (totalBytesCreated <= totalBytesDestroyed) {
+                               currentState = RateLimitingState::EMPTY;
+                             } else if (totalBytesCreated <= (totalBytesDestroyed + memLimit)) {
                                currentState = RateLimitingState::BELOW_LIMIT;
                              } else {
                                currentState = RateLimitingState::ABOVE_LIMIT;
                              }
                              changed = false;
                            } break;
-                           case RateLimitingState::BELOW_LIMIT: {
+                           case RateLimitingState::EMPTY: {
                              for (size_t di = 0; di < specs.size(); ++di) {
                                if (specs[di].name == "internal-dpl-aod-reader") {
                                  if (di < infos.size()) {
                                    kill(infos[di].pid, SIGUSR1);
                                    totalSignalsMetric(driverMetrics, signalsCount++, timestamp);
+                                   lastSignal = now;
+                                 }
+                               }
+                             }
+                             changed = false;
+                             currentState = RateLimitingState::NEXT_ITERATION_FROM_BELOW;
+                           }
+                           case RateLimitingState::BELOW_LIMIT: {
+                             for (size_t di = 0; di < specs.size(); ++di) {
+                               if (specs[di].name == "internal-dpl-aod-reader") {
+                                 if (di < infos.size() && (now - lastSignal > 10000000)) {
+                                   kill(infos[di].pid, SIGUSR1);
+                                   totalSignalsMetric(driverMetrics, signalsCount++, timestamp);
+                                   lastSignal = now;
+                                 } else {
+                                   skippedSignalsMetric(driverMetrics, skippedCount++, timestamp);
                                  }
                                }
                              }
