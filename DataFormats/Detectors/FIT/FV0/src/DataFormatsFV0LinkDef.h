@@ -20,7 +20,9 @@
 
 #pragma link C++ class o2::fv0::ChannelData + ;
 #pragma link C++ class o2::fv0::BCData + ;
+#pragma link C++ class o2::fv0::Triggers + ;
 #pragma link C++ class std::vector < o2::fv0::ChannelData> + ;
+#pragma link C++ class std::vector < o2::fv0::Triggers> + ;
 #pragma link C++ class std::vector < o2::fv0::BCData> + ;
 
 #pragma link C++ class o2::fv0::RawEventData + ;

@@ -154,7 +154,8 @@ void CTFCoder::decompress(const CompressedDigits& cd, VDIG& digitVec, VCHAN& cha
       auto icc = channelVec.size();
       const auto& chan = channelVec.emplace_back((chID += cd.idChan[icc]), cd.time[icc], cd.charge[icc]);
     }
-    digitVec.emplace_back(firstEntry, cd.nChan[idig], ir);
+    Triggers triggers; // TODO: Actual values are not set
+    digitVec.emplace_back(firstEntry, cd.nChan[idig], ir, triggers);
   }
 }
 

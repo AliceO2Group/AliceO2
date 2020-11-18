@@ -46,6 +46,9 @@ struct FV0DigParam : public o2::conf::ConfigurableParamHelper<FV0DigParam> {
   int avgNumberPhElectronPerMip = 201;                                        // avg number of photo-electrons per MIP
   float globalTimeOfFlight = 315.0 / o2::constants::physics::LightSpeedCm2NS; //TODO check the correct value for distance of FV0 to IP
 
+  ///Parameters for trigger simulation
+  int adcChargeHighMultTh = 3.0 * 498; //threshold value of ADC charge for high multiplicity trigger
+
   O2ParamDef(FV0DigParam, "FV0DigParam");
 };
 } // namespace fv0
