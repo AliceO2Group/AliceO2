@@ -20,6 +20,7 @@
 #include "Framework/RawDeviceService.h"
 #include "Framework/StringHelpers.h"
 #include "Framework/CommonMessageBackends.h"
+#include "Framework/ExternalFairMQDeviceProxy.h"
 
 #include "Headers/DataHeader.h"
 #include <algorithm>
@@ -236,6 +237,23 @@ void WorkflowHelpers::injectServiceDevices(WorkflowSpec& workflow, ConfigContext
                           {},
                           AlgorithmSpec::dummyAlgorithm()};
 
+  // In case InputSpec of description RAWDATA are
+  // requested but not available as part of the workflow,
+  // we insert in the configuration a raw proxy
+  // which listens on.
+  std::vector<InputSpec> unmatchedRawDataSpecs;
+  Outputs readoutProxyOutput;
+  for (auto const& unmatched : unmatchedRawDataSpecs) {
+    readoutProxyOutput.emplace_back(DataSpecUtils::asOutputSpec(unmatched));
+  }
+  // we use the same specs as filters in the dpl adaptor
+  auto filterSpecs = readoutProxyOutput;
+  DataProcessorSpec rawProxy = specifyExternalFairMQDeviceProxy(
+    "readout-proxy",
+    std::move(readoutProxyOutput),
+    "type=pair,method=connect,address=ipc:///tmp/readout-pipe-0,rateLogging=1,transport=shmem",
+    dplModelAdaptor(filterSpecs, false));
+
   // In case InputSpec of origin AOD are
   // requested but not available as part of the workflow,
   // we insert in the configuration something which
@@ -268,7 +286,9 @@ void WorkflowHelpers::injectServiceDevices(WorkflowSpec& workflow, ConfigContext
     readerServices};
 
   std::vector<InputSpec> requestedAODs;
+  std::vector<InputSpec> requestedRAWs;
   std::vector<OutputSpec> providedAODs;
+  std::vector<OutputSpec> providedRAWs;
   std::vector<InputSpec> requestedDYNs;
   std::vector<InputSpec> requestedIDXs;
 
@@ -341,6 +361,9 @@ void WorkflowHelpers::injectServiceDevices(WorkflowSpec& workflow, ConfigContext
           requestedIDXs.emplace_back(input);
         }
       }
+      if (DataSpecUtils::partialMatch(input, header::DataDescription{"RAWDATA"})) {
+        requestedRAWs.emplace_back(input);
+      }
     }
 
     std::stable_sort(timer.outputs.begin(), timer.outputs.end(), [](OutputSpec const& a, OutputSpec const& b) { return *DataSpecUtils::getOptionalSubSpec(a) < *DataSpecUtils::getOptionalSubSpec(b); });
@@ -359,6 +382,8 @@ void WorkflowHelpers::injectServiceDevices(WorkflowSpec& workflow, ConfigContext
         } else {
           it->second.push_back(output.binding.value);
         }
+      } else if (DataSpecUtils::partialMatch(output, header::DataDescription{"RAWDATA"})) {
+        providedRAWs.emplace_back(output);
       }
       if (output.lifetime == Lifetime::Condition) {
         providedCCDBs.push_back(output);
@@ -393,9 +418,13 @@ void WorkflowHelpers::injectServiceDevices(WorkflowSpec& workflow, ConfigContext
 
   addMissingOutputsToReader(providedAODs, requestedAODs, aodReader);
   addMissingOutputsToReader(providedCCDBs, requestedCCDBs, ccdbBackend);
+  addMissingOutputsToReader(providedRAWs, requestedRAWs, rawProxy);
 
   std::vector<DataProcessorSpec> extraSpecs;
 
+  if (rawProxy.outputs.empty() == false) {
+    extraSpecs.push_back(rawProxy);
+  }
   if (ccdbBackend.outputs.empty() == false) {
     extraSpecs.push_back(ccdbBackend);
   }
