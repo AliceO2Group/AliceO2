@@ -65,7 +65,6 @@ static constexpr char DUMP_HEADER[DUMP_HEADER_SIZE + 1] = "CAv1";
 GPUChainTracking::InOutMemory::InOutMemory() = default;
 GPUChainTracking::InOutMemory::~InOutMemory() = default;
 GPUChainTracking::InOutMemory::InOutMemory(GPUChainTracking::InOutMemory&&) = default;
-GPUChainTracking::InOutMemory& GPUChainTracking::InOutMemory::operator=(GPUChainTracking::InOutMemory&&) = default;
 
 void GPUChainTracking::DumpData(const char* filename)
 {
