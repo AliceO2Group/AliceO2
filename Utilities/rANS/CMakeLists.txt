@@ -13,6 +13,7 @@ o2_add_library(rANS
                        src/FrequencyTable.cxx
                PUBLIC_LINK_LIBRARIES FairLogger::FairLogger)
 
+
 o2_add_test(EncodeDecode
             NAME EncodeDecode
             SOURCES test/test_ransEncodeDecode.cxx
@@ -33,6 +34,12 @@ o2_add_test(CombinedIterator
             PUBLIC_LINK_LIBRARIES O2::rANS
             COMPONENT_NAME rANS
             LABELS utils)
+            
+o2_add_executable(CombinedIterator
+                    SOURCES benchmarks/bench_ransCombinedIterator.cxx
+                    COMPONENT_NAME rANS
+              IS_BENCHMARK
+                    PUBLIC_LINK_LIBRARIES O2::rANS benchmark::benchmark)
             
 o2_add_executable(rans-encode-decode-8
                   TARGETVARNAME targetName
