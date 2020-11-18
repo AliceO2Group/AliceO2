@@ -7,6 +7,19 @@
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
+//
+// Example V0 analysis task
+// ========================
+//
+// This code loops over a V0Data table and produces some
+// standard analysis output. It requires either
+// the lambdakzerofinder or the lambdakzeroproducer tasks
+// to have been executed in the workflow (before).
+//
+//    Comments, questions, complaints, suggestions?
+//    Please write to:
+//    david.dobrigkeit.chinellato@cern.ch
+//
 #include "Framework/runDataProcessing.h"
 #include "Framework/AnalysisTask.h"
 #include "Framework/AnalysisDataModel.h"
@@ -50,7 +63,7 @@ struct lambdakzeroQA {
   OutputObj<TH1F> hDCANegToPV{TH1F("hDCANegToPV", "", 1000, 0.0, 10.0)};
   OutputObj<TH1F> hDCAV0Dau{TH1F("hDCAV0Dau", "", 1000, 0.0, 10.0)};
 
-  void process(aod::Collision const& collision, soa::Join<aod::V0s, aod::V0DataExt> const& fullV0s)
+  void process(aod::Collision const& collision, aod::V0DataExt const& fullV0s)
   {
     for (auto& v0 : fullV0s) {
       hMassLambda->Fill(v0.mLambda());
@@ -82,7 +95,7 @@ struct lambdakzeroconsumer {
   Filter preFilterV0 = aod::v0data::dcapostopv > dcapostopv&&
                                                    aod::v0data::dcanegtopv > dcanegtopv&& aod::v0data::dcaV0daughters < dcav0dau;
 
-  void process(soa::Join<aod::Collisions, aod::EvSels, aod::Cents>::iterator const& collision, soa::Filtered<soa::Join<aod::V0s, aod::V0DataExt>> const& fullV0s)
+  void process(soa::Join<aod::Collisions, aod::EvSels, aod::Cents>::iterator const& collision, soa::Filtered<aod::V0DataExt> const& fullV0s)
   {
     if (!collision.alias()[kINT7]) {
       return;

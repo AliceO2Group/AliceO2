@@ -8,7 +8,24 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 //
-// This task re-reconstructs the V0s and cascades
+// V0 Finder task
+// ==============
+//
+// This code loops over positive and negative tracks and finds
+// valid V0 candidates from scratch using a certain set of
+// minimum (configurable) selection criteria.
+//
+// It is different than the producer: the producer merely
+// loops over an *existing* list of V0s (pos+neg track
+// indices) and calculates the corresponding full V0 information
+//
+// In both cases, any analysis should loop over the "V0Data"
+// table as that table contains all information.
+//
+//    Comments, questions, complaints, suggestions?
+//    Please write to:
+//    david.dobrigkeit.chinellato@cern.ch
+//
 
 #include "Framework/runDataProcessing.h"
 #include "Framework/AnalysisTask.h"
@@ -99,7 +116,6 @@ struct lambdakzeroprefilter {
 
 struct lambdakzerofinder {
   Produces<aod::V0Data> v0data;
-  Produces<aod::V0FinderData> v0finderdata;
 
   OutputObj<TH1F> hCandPerEvent{TH1F("hCandPerEvent", "", 1000, 0, 1000)};
 
@@ -172,8 +188,8 @@ struct lambdakzerofinder {
         }
 
         lNCand++;
-        v0finderdata(t0.globalIndex(), t1.globalIndex(), t0.collisionId());
-        v0data(pos[0], pos[1], pos[2],
+        v0data(t0.globalIndex(), t1.globalIndex(), t0.collisionId(),
+               pos[0], pos[1], pos[2],
                pvec0[0], pvec0[1], pvec0[2],
                pvec1[0], pvec1[1], pvec1[2],
                fitter.getChi2AtPCACandidate(),
@@ -210,10 +226,9 @@ struct lambdakzerofinderQA {
   //Filter preFilter2 = aod::v0data::dcanegtopv > dcanegtopv;
   //Filter preFilter3 = aod::v0data::dcaV0daughters < dcav0dau;
 
-  ///Connect to V0FinderData: newly indexed, note: V0DataExt table incompatible with standard V0 table!
+  ///Connect to V0Data: newly indexed, note: V0DataExt table incompatible with standard V0 table!
   void process(soa::Join<aod::Collisions, aod::EvSels, aod::Cents>::iterator const& collision,
-               //             soa::Filtered<soa::Join<aod::V0FinderData, aod::V0DataExt>> const& fullV0s)
-               soa::Join<aod::V0FinderData, aod::V0DataExt> const& fullV0s)
+               aod::V0DataExt const& fullV0s)
   {
     if (!collision.alias()[kINT7]) {
       return;
