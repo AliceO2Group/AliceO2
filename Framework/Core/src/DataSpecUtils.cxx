@@ -278,8 +278,11 @@ bool DataSpecUtils::partialMatch(InputSpec const& input, header::DataDescription
 
 bool DataSpecUtils::partialMatch(OutputSpec const& output, header::DataDescription const& description)
 {
-  auto dataType = DataSpecUtils::asConcreteDataTypeMatcher(output);
-  return dataType.description == description;
+  try {
+    return DataSpecUtils::asConcreteDataTypeMatcher(output).description == description;
+  } catch (...) {
+    return false;
+  }
 }
 
 struct MatcherInfo {
