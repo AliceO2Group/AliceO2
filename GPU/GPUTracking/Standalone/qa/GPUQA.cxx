@@ -585,6 +585,8 @@ int GPUQA::InitQA(int tasks)
   }
 
 #ifdef GPUCA_O2_LIB
+  static constexpr float PRIM_MAX_T = 0.01f;
+
   TFile fileSim(o2::base::NameConf::getMCKinematicsFileName("o2sim").c_str());
   TTree* treeSim = (TTree*)fileSim.Get("o2sim");
   std::vector<o2::MCTrack>* tracksX;
@@ -650,8 +652,16 @@ int GPUQA::InitQA(int tasks)
       }
 
       info.charge = particle ? particle->Charge() : 0;
-      info.prim = 1;
+      info.prim = trk.T() < PRIM_MAX_T;
       info.primDaughters = 0;
+      if (trk.getFirstDaughterTrackId() != -1) {
+        for (int k = trk.getFirstDaughterTrackId(); k <= trk.getLastDaughterTrackId(); k++) {
+          if (tracks[k].T() < PRIM_MAX_T) {
+            info.primDaughters = 1;
+            break;
+          }
+        }
+      }
       info.pid = pid;
       info.t0 = timebin;
       if (refId[j] >= 0) {
