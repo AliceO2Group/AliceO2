@@ -208,6 +208,7 @@ int GPUQA::initColors()
 }
 static constexpr Color_t defaultColorNUms[COLORCOUNT] = {kRed, kBlue, kGreen, kMagenta, kOrange, kAzure, kBlack, kYellow, kGray, kTeal, kSpring, kPink};
 
+#define TRACK_EXPECTED_REFERENCE_X_DEFAULT 81
 #ifdef GPUCA_TPC_GEOMETRY_O2
 inline unsigned int GPUQA::GetNMCCollissions()
 {
@@ -257,7 +258,7 @@ inline float GPUQA::GetMCLabelWeight(const mcLabel_t& label) { return label.fWei
 inline int GPUQA::FakeLabelID(int id) { return id < 0 ? id : (-2 - id); }
 inline int GPUQA::AbsLabelID(int id) { return id >= 0 ? id : (-id - 2); }
 inline bool GPUQA::mcPresent() { return !mConfig.noMC && mTracking && GetNMCLabels() && GetNMCTracks(0); }
-#define TRACK_EXPECTED_REFERENCE_X 81
+#define TRACK_EXPECTED_REFERENCE_X TRACK_EXPECTED_REFERENCE_X_DEFAULT
 #endif
 template <class T>
 inline auto& GPUQA::GetMCTrackObj(T& obj, const GPUQA::mcLabelI_t& l)
@@ -1158,23 +1159,33 @@ void GPUQA::RunQA(bool matchOnly, const std::vector<o2::tpc::TrackTPC>* tracksEx
 
         prop.SetTrack(&param, alpha);
         bool inFlyDirection = 0;
-#ifdef GPUCA_TPC_GEOMETRY_O2 // ignore z here, larger difference in X due to shifted reference
-        if (mConfig.strict && (param.X() - mclocal[0]) * (param.X() - mclocal[0]) + (param.Y() - mclocal[1]) * (param.Y() - mclocal[1]) + (mTracking->GetParam().par.continuousMaxTimeBin ? 0 : ((param.Z() - mc1.z) * (param.Z() - mc1.z))) > (5 + abs(81 - TRACK_EXPECTED_REFERENCE_X)) * (5 + abs(81 - TRACK_EXPECTED_REFERENCE_X))) {
-#else // Consider Z offset (pseudo-tf mc tracks have shifted z)
-        if (mConfig.strict && (param.X() - mclocal[0]) * (param.X() - mclocal[0]) + (param.Y() - mclocal[1]) * (param.Y() - mclocal[1]) + (param.Z() + param.TZOffset() - mc1.z) * (param.Z() + param.TZOffset() - mc1.z) > 25) { // TODO: fix TZOffset
+        if (mConfig.strict) {
+          const float dx = param.X() - std::max<float>(mclocal[0], TRACK_EXPECTED_REFERENCE_X_DEFAULT); // Limit distance check if the O2 MC position is farther inside than the AliRoot MC position.
+          const float dy = param.Y() - mclocal[1];
+#ifdef GPUCA_TPC_GEOMETRY_O2
+          float dz = mTracking->GetParam().par.continuousMaxTimeBin ? 0 : (param.Z() - mc1.z);
+#else
+          float dz = param.Z() + param.TZOffset() - mc1.z;
 #endif
-          continue;
+          if (dx * dx + dy * dy + dz * dz > 5.f * 5.f) {
+            continue;
+          }
         }
 
         if (prop.PropagateToXAlpha(mclocal[0], alpha, inFlyDirection)) {
           continue;
         }
-#ifdef GPUCA_TPC_GEOMETRY_O2 // ignore z here, larger difference in X due to shifted reference
-        if (fabsf(param.Y() - mclocal[1]) > (mConfig.strict ? 1.f : 4.f) || (mTracking->GetParam().par.continuousMaxTimeBin == 0 && fabsf(param.Z() + param.TZOffset() - mc1.z) > (mConfig.strict ? 1.f : 4.f))) { // TODO: fix TZOffset here
+        {
+          float limit = mConfig.strict ? 1.f : 4.f;
+          float dy = param.Y() - mclocal[1];
+#ifdef GPUCA_TPC_GEOMETRY_O2
+          float dz = mTracking->GetParam().par.continuousMaxTimeBin ? 0 : (param.Z() - mc1.z);
 #else
-        if (fabsf(param.Y() - mclocal[1]) > (mConfig.strict ? 1.f : 4.f) || fabsf(param.Z() + param.TZOffset() - mc1.z) > (mConfig.strict ? 1.f : 4.f)) {                                                                         // TODO: fix TZOffset here
+          float dz = param.Z() + param.TZOffset() - mc1.z;
 #endif
-          continue;
+          if (fabsf(dy) > limit || fabsf(dz) > limit) {
+            continue;
+          }
         }
 
         float charge = mc1.charge > 0 ? 1.f : -1.f;
