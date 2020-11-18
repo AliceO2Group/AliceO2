@@ -20,14 +20,12 @@
 #include <cstdint>
 #include <iosfwd>
 #include <string>
+#if !defined(__CLING__) && !defined(__ROOTCLING__)
 #include <variant>
+#endif
 #include <vector>
 
-namespace o2
-{
-namespace framework
-{
-namespace data_matcher
+namespace o2::framework::data_matcher
 {
 
 /// Marks an empty item in the context
@@ -48,7 +46,12 @@ struct ContextRef {
 /// We do not have any float in the value, because AFAICT there is no need for
 /// it in the O2 DataHeader, however we could add it later on.
 struct ContextElement {
+
+#if !defined(__CLING__) && !defined(__ROOTCLING__)
   using Value = std::variant<uint32_t, uint64_t, std::string, None>;
+#else
+  using Value = None;
+#endif
   std::string label;    /// The name of the variable contained in this element.
   Value value = None{}; /// The actual contents of the element.
 };
@@ -115,11 +118,17 @@ class ValueHolder
   template <typename VISITOR>
   decltype(auto) visit(VISITOR visitor) const
   {
+#if !defined(__CLING__) && !defined(__ROOTCLING__)
     return std::visit(visitor, mValue);
+#else
+    return ContextRef{};
+#endif
   }
 
  protected:
+#if !defined(__CLING__) && !defined(__ROOTCLING__)
   std::variant<T, ContextRef> mValue;
+#endif
 };
 
 /// Something which can be matched against a header::DataOrigin
@@ -220,8 +229,12 @@ struct DescriptorMatcherTrait<header::DataHeader::SubSpecificationType> {
   using Matcher = SubSpecificationTypeValueMatcher;
 };
 
+#if !defined(__CLING__) && !defined(__ROOTCLING__)
 class DataDescriptorMatcher;
 using Node = std::variant<OriginValueMatcher, DescriptionValueMatcher, SubSpecificationTypeValueMatcher, std::unique_ptr<DataDescriptorMatcher>, ConstantValueMatcher, StartTimeValueMatcher>;
+#else
+using Node = ConstantValueMatcher;
+#endif
 
 // A matcher for a given O2 Data Model descriptor.  We use a variant to hold
 // the different kind of matchers so that we can have a hierarchy or
@@ -276,9 +289,7 @@ class DataDescriptorMatcher
   Node mRight;
 };
 
-} // namespace data_matcher
-} // namespace framework
-} // namespace o2
+} // namespace o2::framework::data_matcher
 
 // This is to work around CLING issues when parsing
 // GCC 7.3.0 std::variant implementation as described by:
