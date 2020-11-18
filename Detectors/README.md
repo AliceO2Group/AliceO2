@@ -19,6 +19,7 @@ This module contains the following submodules:
 * \subpage refDetectorsCPV
 * \subpage refDetectorsCTF
 * \subpage refDetectorsEMCAL
+* \subpage refDetectorsDCS
 * \subpage refDetectorsFIT
 * \subpage refDetectorsHMPID
 * \subpage refDetectorsITSMFT
