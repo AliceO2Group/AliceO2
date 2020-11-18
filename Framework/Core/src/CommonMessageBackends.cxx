@@ -231,6 +231,7 @@ o2::framework::ServiceSpec CommonMessageBackends::arrowBackendSpec()
                        }
                        bool done = false;
                        static int stateTransitions = 0;
+                       static int signalsCount = 0;
                        while (!done) {
                          stateMetric(driverMetrics, (uint64_t)(currentState), stateTransitions++);
                          switch (currentState) {
@@ -248,7 +249,7 @@ o2::framework::ServiceSpec CommonMessageBackends::arrowBackendSpec()
                                if (specs[di].name == "internal-dpl-aod-reader") {
                                  if (di < infos.size()) {
                                    kill(infos[di].pid, SIGUSR1);
-                                   totalSignalsMetric(driverMetrics, 1, timestamp);
+                                   totalSignalsMetric(driverMetrics, signalsCount++, timestamp);
                                  }
                                }
                              }
@@ -269,7 +270,7 @@ o2::framework::ServiceSpec CommonMessageBackends::arrowBackendSpec()
                                if (specs[di].name == "internal-dpl-aod-reader") {
                                  if (di < infos.size()) {
                                    kill(infos[di].pid, SIGUSR1);
-                                   totalSignalsMetric(driverMetrics, 1, timestamp);
+                                   totalSignalsMetric(driverMetrics, signalsCount++, timestamp);
                                  }
                                }
                              }
