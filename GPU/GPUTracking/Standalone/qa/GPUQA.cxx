@@ -49,11 +49,15 @@
 #ifdef HAVE_O2HEADERS
 #include "SimulationDataFormat/ConstMCTruthContainer.h"
 #include "SimulationDataFormat/MCCompLabel.h"
+#include "TPCFastTransform.h"
 #endif
 #ifdef GPUCA_O2_LIB
+#include "DetectorsRaw/HBFUtils.h"
 #include "DataFormatsTPC/TrackTPC.h"
+#include "DataFormatsTPC/Constants.h"
 #include "SimulationDataFormat/MCTrack.h"
 #include "SimulationDataFormat/TrackReference.h"
+#include "SimulationDataFormat/DigitizationContext.h"
 #include "DetectorsCommonDataFormats/DetID.h"
 #include "DetectorsCommonDataFormats/NameConf.h"
 #include "TPDGCode.h"
@@ -599,7 +603,15 @@ int GPUQA::InitQA(int tasks)
   mMCInfos.resize(nSimEvents);
   mNColTracks.resize(nSimEvents);
   std::vector<int> refId;
+
+  auto dc = o2::steer::DigitizationContext::loadFromFile("collisioncontext.root");
+  auto evrec = dc->getEventRecords();
+
   for (int i = 0; i < nSimEvents; i++) {
+    auto ir = evrec[i];
+    auto ir0 = o2::raw::HBFUtils::Instance().getFirstIRofTF(ir);
+    float timebin = (float)ir.differenceInBC(ir0) / o2::tpc::constants::LHCBCPERTIMEBIN;
+
     treeSim->GetEntry(i);
     const std::vector<o2::MCTrack>& tracks = *tracksX;
     const std::vector<o2::TrackReference>& trackRefs = *trackRefsX;
@@ -641,6 +653,7 @@ int GPUQA::InitQA(int tasks)
       info.prim = 1;
       info.primDaughters = 0;
       info.pid = pid;
+      info.t0 = timebin;
       if (refId[j] >= 0) {
         const auto& trkRef = trackRefs[refId[j]];
         info.x = trkRef.X();
@@ -1122,6 +1135,7 @@ void GPUQA::RunQA(bool matchOnly, const std::vector<o2::tpc::TrackTPC>* tracksEx
 
         GPUTPCGMTrackParam param;
         float alpha = 0.f;
+        int side;
         if (tracksExternal) {
 #ifdef GPUCA_O2_LIB
           for (int k = 0; k < 5; k++) {
@@ -1131,11 +1145,14 @@ void GPUQA::RunQA(bool matchOnly, const std::vector<o2::tpc::TrackTPC>* tracksEx
             param.Cov()[k] = (*tracksExternal)[i].getCov()[k];
           }
           param.X() = (*tracksExternal)[i].getX();
+          param.TZOffset() = (*tracksExternal)[i].getTime0();
           alpha = (*tracksExternal)[i].getAlpha();
+          side = (*tracksExternal)[i].hasBothSidesClusters() ? 2 : ((*tracksExternal)[i].hasCSideClusters() ? 1 : 0);
 #endif
         } else {
           param = mTracking->mIOPtrs.mergedTracks[i].GetParam();
           alpha = mTracking->mIOPtrs.mergedTracks[i].GetAlpha();
+          side = mTracking->mIOPtrs.mergedTracks[i].CCE() ? 2 : (mTracking->mIOPtrs.mergedTracks[i].CSide() ? 1 : 0);
         }
 
         float mclocal[4]; // Rotated x,y,Px,Py mc-coordinates - the MC data should be rotated since the track is propagated best along x
@@ -1160,16 +1177,25 @@ void GPUQA::RunQA(bool matchOnly, const std::vector<o2::tpc::TrackTPC>* tracksEx
           continue;
         }
 
+        auto getdz = [this, &mclocal, &param, &mc1, &side]() {
+          if (!mTracking->GetParam().par.continuousMaxTimeBin) {
+            return param.Z() - mc1.z;
+          }
+#ifdef GPUCA_TPC_GEOMETRY_O2
+          if (!mTracking->GetParam().par.earlyTpcTransform) {
+            float shift = side == 2 ? 0 : mTracking->GetTPCTransform()->convDeltaTimeToDeltaZinTimeFrame(side * GPUChainTracking::NSLICES / 2, param.GetTZOffset() - mc1.t0);
+            return param.GetZ() + shift - mc1.z;
+          }
+#endif
+          return param.Z() + param.TZOffset() - mc1.z;
+        };
+
         prop.SetTrack(&param, alpha);
         bool inFlyDirection = 0;
         if (mConfig.strict) {
           const float dx = param.X() - std::max<float>(mclocal[0], TRACK_EXPECTED_REFERENCE_X_DEFAULT); // Limit distance check if the O2 MC position is farther inside than the AliRoot MC position.
           const float dy = param.Y() - mclocal[1];
-#ifdef GPUCA_TPC_GEOMETRY_O2
-          float dz = mTracking->GetParam().par.continuousMaxTimeBin ? 0 : (param.Z() - mc1.z);
-#else
-          float dz = param.Z() + param.TZOffset() - mc1.z;
-#endif
+          const float dz = getdz();
           if (dx * dx + dy * dy + dz * dz > 5.f * 5.f) {
             continue;
           }
@@ -1178,23 +1204,13 @@ void GPUQA::RunQA(bool matchOnly, const std::vector<o2::tpc::TrackTPC>* tracksEx
         if (prop.PropagateToXAlpha(mclocal[0], alpha, inFlyDirection)) {
           continue;
         }
-        {
-          float limit = mConfig.strict ? 1.f : 4.f;
-          float dy = param.Y() - mclocal[1];
-#ifdef GPUCA_TPC_GEOMETRY_O2
-          float dz = mTracking->GetParam().par.continuousMaxTimeBin ? 0 : (param.Z() - mc1.z);
-#else
-          float dz = param.Z() + param.TZOffset() - mc1.z;
-#endif
-          if (fabsf(dy) > limit || fabsf(dz) > limit) {
-            continue;
-          }
+        if (fabsf(param.Y() - mclocal[1]) > (mConfig.strict ? 1.f : 4.f) || fabsf(getdz()) > (mConfig.strict ? 1.f : 4.f)) {
+          continue;
         }
-
         float charge = mc1.charge > 0 ? 1.f : -1.f;
 
         float deltaY = param.GetY() - mclocal[1];
-        float deltaZ = param.GetZ() + param.TZOffset() - mc1.z; // TODO: fix TZOffset here
+        float deltaZ = getdz();
         float deltaPhiNative = param.GetSinPhi() - mclocal[3] / mc2.pt;
         float deltaPhi = std::asin(param.GetSinPhi()) - std::atan2(mclocal[3], mclocal[2]);
         float deltaLambdaNative = param.GetDzDs() - mc1.pZ / mc2.pt;

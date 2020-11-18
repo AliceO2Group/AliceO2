@@ -30,6 +30,9 @@ struct GPUTPCMCInfo {
   float pY;
   float pZ;
   float genRadius;
+#ifdef GPUCA_TPC_GEOMETRY_O2
+  float t0;
+#endif
 };
 } // namespace gpu
 } // namespace GPUCA_NAMESPACE
