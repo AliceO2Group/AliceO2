@@ -18,7 +18,7 @@
 #include "CommonDataFormat/BunchFilling.h"
 #include "DetectorsCommonDataFormats/DetID.h"
 #include "DataFormatsParameters/GRPObject.h"
-#include <FairLogger.h>
+#include <GPUCommonLogger.h>
 
 namespace o2
 {
