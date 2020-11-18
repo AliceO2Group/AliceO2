@@ -994,7 +994,7 @@ void GPUQA::RunQA(bool matchOnly, const std::vector<o2::tpc::TrackTPC>* tracksEx
           const float& mcphi = mc2.phi;
           const float& mceta = mc2.eta;
 
-          if (info.prim && info.primDaughters) {
+          if (info.primDaughters) {
             continue;
           }
           if (mc2.nWeightCls < MIN_WEIGHT_CLS) {
@@ -1079,6 +1079,9 @@ void GPUQA::RunQA(bool matchOnly, const std::vector<o2::tpc::TrackTPC>* tracksEx
         const mcInfo_t& mc1 = GetMCTrack(mTrackMCLabels[i]);
         const additionalMCParameters& mc2 = GetMCTrackObj(mMCParam, mTrackMCLabels[i]);
 
+        if (mc1.primDaughters) {
+          continue;
+        }
         if (!tracksExternal) {
           if (!mTracking->mIOPtrs.mergedTracks[i].OK()) {
             continue;
@@ -1108,9 +1111,9 @@ void GPUQA::RunQA(bool matchOnly, const std::vector<o2::tpc::TrackTPC>* tracksEx
         if (mc2.nWeightCls < MIN_WEIGHT_CLS) {
           continue;
         }
-        if (mConfig.resPrimaries == 1 && (!mc1.prim || mc1.primDaughters)) {
+        if (mConfig.resPrimaries == 1 && !mc1.prim) {
           continue;
-        } else if (mConfig.resPrimaries == 2 && (mc1.prim || mc1.primDaughters)) {
+        } else if (mConfig.resPrimaries == 2 && mc1.prim) {
           continue;
         }
         if (GetMCTrackObj(mTrackMCLabelsReverse, mTrackMCLabels[i]) != (int)i) {
