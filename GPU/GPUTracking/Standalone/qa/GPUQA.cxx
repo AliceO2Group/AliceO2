@@ -46,10 +46,10 @@
 #include "GPUO2DataTypes.h"
 #include "GPUParam.inc"
 #include "GPUTPCClusterRejection.h"
+#include "TPCFastTransform.h"
 #ifdef HAVE_O2HEADERS
 #include "SimulationDataFormat/ConstMCTruthContainer.h"
 #include "SimulationDataFormat/MCCompLabel.h"
-#include "TPCFastTransform.h"
 #endif
 #ifdef GPUCA_O2_LIB
 #include "DetectorsRaw/HBFUtils.h"
@@ -875,7 +875,18 @@ void GPUQA::RunQA(bool matchOnly, const std::vector<o2::tpc::TrackTPC>* tracksEx
           GetMCTrackObj(mRecTracks, label)++;
           if (mMCTrackMin == -1 || (label.getTrackID() >= mMCTrackMin && label.getTrackID() < mMCTrackMax)) {
             int& revLabel = GetMCTrackObj(mTrackMCLabelsReverse, label);
-            if (revLabel == -1 || !mTracking->mIOPtrs.mergedTracks[revLabel].OK() || (mTracking->mIOPtrs.mergedTracks[i].OK() && fabsf(mTracking->mIOPtrs.mergedTracks[i].GetParam().GetZ()) < fabsf(mTracking->mIOPtrs.mergedTracks[revLabel].GetParam().GetZ()))) {
+            const auto* trks = mTracking->mIOPtrs.mergedTracks;
+            bool comp;
+            if (revLabel == -1) {
+              comp = true;
+            } else if (mTracking->GetParam().par.earlyTpcTransform) {
+              comp = fabsf(trks[i].GetParam().GetZ() + trks[i].GetParam().GetTZOffset()) < fabsf(trks[revLabel].GetParam().GetZ() + trks[revLabel].GetParam().GetTZOffset());
+            } else {
+              float shift1 = mTracking->GetTPCTransform()->convDeltaTimeToDeltaZinTimeFrame(trks[i].CSide() * GPUChainTracking::NSLICES / 2, trks[i].GetParam().GetTZOffset());
+              float shift2 = mTracking->GetTPCTransform()->convDeltaTimeToDeltaZinTimeFrame(trks[revLabel].CSide() * GPUChainTracking::NSLICES / 2, trks[revLabel].GetParam().GetTZOffset());
+              comp = fabsf(trks[i].GetParam().GetZ() + shift1) < fabsf(trks[revLabel].GetParam().GetZ() + shift2);
+            }
+            if (revLabel == -1 || !trks[revLabel].OK() || (trks[i].OK() && comp)) {
               revLabel = i;
             }
           }
