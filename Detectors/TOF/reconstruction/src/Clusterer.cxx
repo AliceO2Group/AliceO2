@@ -264,7 +264,7 @@ void Clusterer::buildCluster(Cluster& c, MCLabelContainer const* digitMCTruth)
 }
 
 //_____________________________________________________________________
-void Clusterer::setFirstOrbit(uint32_t orb)
+void Clusterer::setFirstOrbit(uint64_t orb)
 {
   mFirstOrbit = orb;
   mBCOffset = orb * o2::constants::lhc::LHCMaxBunches;
