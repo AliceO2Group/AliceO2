@@ -1268,6 +1268,7 @@ int GPUDisplay::DrawGLScene_internal(bool mixAnimation, float mAnimateTime)
         if (mMerger.Param().par.earlyTpcTransform) {
           const auto& cl = ioptrs().clusterData[iSlice][i];
           cid = cl.id;
+          row = cl.row;
         } else {
           cid = ioptrs().clustersNative->clusterOffset[iSlice][0] + i;
           while (row < GPUCA_ROW_COUNT && ioptrs().clustersNative->clusterOffset[iSlice][row + 1] <= (unsigned int)cid) {
@@ -1282,7 +1283,7 @@ int GPUDisplay::DrawGLScene_internal(bool mixAnimation, float mAnimateTime)
         float4* ptr = &mGlobalPos[cid];
         if (mMerger.Param().par.earlyTpcTransform) {
           const auto& cl = ioptrs().clusterData[iSlice][i];
-          mChain->GetParam().Slice2Global(iSlice, cl.x + mXadd, cl.y, cl.z, &ptr->x, &ptr->y, &ptr->z);
+          mChain->GetParam().Slice2Global(iSlice, (mConfig.clustersOnNominalRow ? mMerger.Param().tpcGeometry.Row2X(row) : cl.x) + mXadd, cl.y, cl.z, &ptr->x, &ptr->y, &ptr->z);
         } else {
           float x, y, z;
           const auto& cln = ioptrs().clustersNative->clusters[iSlice][0][i];
