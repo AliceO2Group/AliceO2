@@ -56,7 +56,9 @@ static void BM_CreateGraphOverhead(benchmark::State& state)
     std::vector<OutputSpec> outputs;
     std::vector<LogicalForwardInfo> availableForwardsInfo;
 
-    WorkflowHelpers::verifyWorkflow(workflow);
+    if (WorkflowHelpers::verifyWorkflow(workflow) != WorkflowParsingState::Valid) {
+      throw std::runtime_error("Invalid workflow");
+    };
     auto context = makeEmptyConfigContext();
     WorkflowHelpers::injectServiceDevices(workflow, *context);
     WorkflowHelpers::constructGraph(workflow,
@@ -92,7 +94,9 @@ static void BM_CreateGraphReverseOverhead(benchmark::State& state)
     std::vector<OutputSpec> outputs;
     std::vector<LogicalForwardInfo> availableForwardsInfo;
 
-    WorkflowHelpers::verifyWorkflow(workflow);
+    if (WorkflowHelpers::verifyWorkflow(workflow) != WorkflowParsingState::Valid) {
+      throw std::runtime_error("Invalid workflow");
+    };
     auto context = makeEmptyConfigContext();
     WorkflowHelpers::injectServiceDevices(workflow, *context);
     WorkflowHelpers::constructGraph(workflow, logicalEdges,
