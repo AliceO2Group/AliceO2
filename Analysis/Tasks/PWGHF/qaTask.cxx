@@ -139,7 +139,7 @@ class Feature
 std::string MakeTitle(std::vector<std::string> axisTitles, const std::string& counts = "Counts")
 {
   axisTitles.push_back(counts);
-  return boost::algorithm::join(axisTitles, ";");
+  return ";" + boost::algorithm::join(axisTitles, ";");
 }
 
 Feature Eta("#eta");
@@ -159,7 +159,7 @@ namespace qafeat = o2::qa::features;
 
 /// Task to QA global observables of the event
 struct QAGlobalObservables {
-  o2fw::Configurable<int> nBinsNumberOfTracks{"nBinsNumberOfTracks", 2000, "Number of bins fot the Number of Tracks"};
+  o2fw::Configurable<int> nBinsNumberOfTracks{"nBinsNumberOfTracks", 2000, "Number of bins for the Number of Tracks"};
   o2fw::Configurable<int> nBinsVertexPosition{"nBinsPt", 100, "Number of bins for the Vertex Position"};
 
   std::array<float, 2> collisionZRange = {-20., 20.};
@@ -232,10 +232,10 @@ struct QATrackingKine {
 
 /// Task to evaluate the tracking resolution (Pt, Eta, Phi and impact parameter)
 struct QATrackingResolution {
-  std::vector<double> ptBins = {0,    0.01, 0.02, 0.03, 0.04,  0.05, 0.06,  0.07, 0.08, 0.09, 0.10, 0.12,
-                                0.14, 0.16, 0.18, 0.2,  0.225, 0.25, 0.275, 0.3,  0.35, 0.4,  0.45, 0.5,
-                                0.6,  0.7,  0.8,  0.9,  1.0,   1.2,  1.4,   1.6,  1.8,  2.0,  2.5,  3.0,
-                                3.5,  4.,   5.,   6.,   8.,    10.,  15.,   20.,  30.,  50.,  100.};
+  std::vector<double> ptBins = {0, 0.01, 0.02, 0.03, 0.04, 0.05, 0.06, 0.07, 0.08, 0.09, 0.10, 0.12,
+                                0.14, 0.16, 0.18, 0.2, 0.225, 0.25, 0.275, 0.3, 0.35, 0.4, 0.45, 0.5,
+                                0.6, 0.7, 0.8, 0.9, 1.0, 1.2, 1.4, 1.6, 1.8, 2.0, 2.5, 3.0,
+                                3.5, 4., 5., 6., 8., 10., 15., 20., 30., 50., 100.};
 
   o2fw::Configurable<int> nBinsEta{"nBinsEta", 60, "Number of bins for the pseudorapidity"};
   std::array<double, 2> etaRange = {-3, 3};
