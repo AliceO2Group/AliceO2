@@ -23,6 +23,7 @@
 
 #include <cmath>
 #include <string>
+#include <sstream>
 #include "boost/algorithm/string.hpp"
 
 namespace o2fw = o2::framework;
@@ -77,31 +78,49 @@ bool GetImpactParameterAndError(const Track& track, const o2df::VertexBase& prim
 }
 } // namespace track_utils
 
-namespace o2::qa
+namespace o2::qa::features
 {
 
 /// Class to abstract the naming of a particular feature. It can help you to build the histogram
-/// labels in a consistent way, and can generate the titles. You can also pass the
-/// plotWithMatplotlib when constructing it to make the labels friendly to matplotlib.
+/// labels in a consistent way and generate the titles.
 class Feature
 {
  public:
   Feature() = default;
-  Feature(std::string name, std::string unit) : mName(std::move(name)), mUnit(std::move(unit)){};
+  Feature(std::string name, std::string unit = "") : mName(std::move(name)), mUnit(std::move(unit)){};
 
+  /// Returns the feature tagged as MC with no unit. Example: p_{T}^{MC}.
   std::string MCRaw() const { return mName + "^{MC}"; };
+
+  /// Returns the feature tagged as Reconstructed with no unit. Example: p_{T}^{Rec}.
   std::string RecRaw() const { return mName + "^{Rec}"; };
+
+  /// Returns the unit with no brackets. Example: GeV/c.
   std::string UnitRaw() const { return mUnit; };
+
+  /// Returns the name with no units. Example: p_{T}.
   std::string NameRaw() const { return mName; };
 
-  std::string Name() const { return mName + UnitFormatted(); };
-  std::string MC() const { return MCRaw() + UnitFormatted(); };
-  std::string Rec() const { return RecRaw() + UnitFormatted(); };
+  /// Returns the name with the unit. Example: p_{T} [Gev/c].
+  std::string Name() const { return mName + Unit(); };
 
-  std::string MCRecDiff() const { return MCRaw() + " - " + RecRaw() + UnitFormatted(); };
-  std::string RelativeMCRecDiff() const { return "(" + MCRaw() + " - " + RecRaw() + ")/(" + RecRaw() + ")"; };
+  /// Returns the name tagged as MC with the unit. Example: p_{T}^{MC} [Gev/c].
+  std::string MC() const { return MCRaw() + Unit(); };
 
-  std::string UnitFormatted() const
+  /// Returns the name tagged as Reconstructed with the unit. Example: p_{T}^{Rec} [Gev/c]
+  std::string Rec() const { return RecRaw() + Unit(); };
+
+  /// Returns the name difference between the MC and reconstructed with the unit.
+  /// Example: p_{T}^{MC} - p_{T}^{Rec} [Gev/c]
+  std::string MCRecDiff() const { return MCRaw() + " - " + RecRaw() + Unit(); };
+
+  /// Returns the name difference between the MC and reconstructed divided by the reconstructed.
+  /// For example: (p_{T}^{MC} - p_{T}^{Rec})/p_{T}^{Rec}
+  std::string RelativeMCRecDiff() const { return "(" + MCRaw() + " - " + RecRaw() + ")/" + RecRaw(); };
+
+  /// Returns the unit formatted to be used in the axis. If no unit is present, returns an empty value.
+  /// Example: [GeV/c]
+  std::string Unit() const
   {
     if (UnitRaw().empty()) {
       return "";
@@ -109,123 +128,37 @@ class Feature
     return " [" + UnitRaw() + "]";
   };
 
+  operator std::string() { return Name(); }
+
  private:
-  const bool mPlotWithMatplotlib{false};
   const std::string mName;
   const std::string mUnit;
 };
 
-/// Handle consistent naming of the histograms in the task and adds the possibility to make the
-/// histogram titles friendly to matplotlib.
-class Features
+/// Makes a title for an histogram
+std::string MakeTitle(std::vector<std::string> axisTitles, const std::string& counts = "Counts")
 {
- public:
-  Features(bool plotWithMatplotlib = false, std::string countsLabel = "Counts")
-    : mPlotWithMatplotlib(plotWithMatplotlib), mCountLabel(countsLabel){};
+  axisTitles.push_back(counts);
+  return boost::algorithm::join(axisTitles, ";");
+}
 
-  const std::string& CountsLabel() const { return mCountLabel; }
-  bool PlotWithMatplotlib() const { return mPlotWithMatplotlib; }
+Feature Eta("#eta");
+Feature TrackMultiplicity("Track Multiplicity");
+Feature Phi{"#varphi", "rad"};
+Feature Pt("p_{T}", "GeV/c");
+Feature VertexX("X", "cm");
+Feature VertexY("Y", "cm");
+Feature VertexZ("Z", "cm");
+Feature ImpactParameterRPhi("Impact Parameter r#varphi", "#mum");
+Feature ImpactParameterRPhiError("Impact Parameter Error r#varphi", "#mum");
+Feature ImpactParameterZ("Impact Parameter Z", "#mum");
+Feature ImpactParameterZError("Impact Parameter Z Error", "#mum");
+} // namespace o2::qa::features
 
-  /// Given a string with the content of the X title, builds the title field for the histogram using
-  /// an empty title and the string that represents the number of counts.
-  std::string Title1D(const std::string& xAxis) const
-  {
-    return RemoveExtraMathSymbols(";" + xAxis + ";" + CountsLabel());
-  }
-
-  /// Given a string with the content of the X and Y titles, builds the title field for the
-  /// histogram using an empty title and the string that represents the number of counts.
-  std::string Title2D(const std::string& xAxis, const std::string& yAxis) const
-  {
-    return RemoveExtraMathSymbols(";" + xAxis + ";" + yAxis + ";" + CountsLabel());
-  }
-
-  /// Returns the symbol used to give math commands: \ for matplotlib and # for ROOT.
-  std::string MathSymbol() const
-  {
-    if (PlotWithMatplotlib()) {
-      return "\\";
-    }
-    return "#";
-  }
-
-  /// Returns the symbol used to start/end math text: $ for matplotlib and nothing for ROOT.
-  std::string MathDelimiter() const
-  {
-    if (PlotWithMatplotlib()) {
-      return "$";
-    }
-    return "";
-  }
-  /// Tags that this text should be displayed in math mode using the correct MathDelimiter.
-  std::string MathText(const std::string& text) const { return MathDelimiter() + text + MathDelimiter(); }
-
-  std::string RemoveExtraMathSymbols(std::string text) const
-  {
-    if (!PlotWithMatplotlib())
-      return text;
-
-    boost::replace_all(text, MathDelimiter() + MathDelimiter(), "");
-    return text;
-  }
-
- private:
-  const bool mPlotWithMatplotlib;
-  const std::string mCountLabel;
-};
-
-class QAFeatures : public Features
-{
- public:
-  QAFeatures(bool plotWithMatplotlib = false, std::string countsLabel = "Counts")
-    : Features(plotWithMatplotlib, countsLabel),
-      mTrackMultiplicity("Track Multiplicity", ""),
-      mEta(MathText(MathSymbol() + "eta"), ""),
-      mPhi{MathText(MathSymbol() + "varphi"), "rad"},
-      mPt(MathText("p_{T}"), "GeV/c"),
-      mVertexX("X", "cm"),
-      mVertexY("Y", "cm"),
-      mVertexZ("Z", "cm"),
-      mImpactParameterRPhi("Impact Parameter r" + MathText(MathSymbol() + "varphi"),
-                           MathText(MathSymbol() + "mu") + "m"),
-      mImpactParameterRPhiError("Impact Parameter Error r" + MathText(MathSymbol() + "varphi"),
-                                MathText(MathSymbol() + "mu") + "m"),
-      mImpactParameterZ("Impact Parameter Z", MathText(MathSymbol() + "mu") + "m"),
-      mImpactParameterZError("Impact Parameter Z Error ", MathText("mu") + "m"){};
-
-  const Feature& Eta() const { return mEta; }
-  const Feature& Phi() const { return mPhi; }
-  const Feature& Pt() const { return mPt; }
-  const Feature& VertexX() const { return mVertexX; }
-  const Feature& VertexY() const { return mVertexY; }
-  const Feature& VertexZ() const { return mVertexZ; }
-  const Feature& TrackMultiplicity() const { return mTrackMultiplicity; }
-  const Feature& ImpactParameterRPhi() const { return mImpactParameterRPhi; }
-  const Feature& ImpactParameterRPhiError() const { return mImpactParameterRPhiError; }
-  const Feature& ImpactParameterZ() const { return mImpactParameterZ; }
-  const Feature& ImpactParameterZError() const { return mImpactParameterZError; }
-
- private:
-  const Feature mTrackMultiplicity;
-  const Feature mEta;
-  const Feature mPhi;
-  const Feature mPt;
-  const Feature mVertexX;
-  const Feature mVertexY;
-  const Feature mVertexZ;
-  const Feature mImpactParameterRPhi;
-  const Feature mImpactParameterRPhiError;
-  const Feature mImpactParameterZ;
-  const Feature mImpactParameterZError;
-};
-} // namespace o2::qa
+namespace qafeat = o2::qa::features;
 
 /// Task to QA global observables of the event
 struct QAGlobalObservables {
-  o2fw::Configurable<bool> histogramAxisForMatplotlib{
-    "histogramAxisForMatplotlib", false, "Sets the histograms title to be friendly to matplotlib instead of ROOT"};
-  o2::qa::QAFeatures qa = o2::qa::QAFeatures(histogramAxisForMatplotlib);
-
   o2fw::Configurable<int> nBinsNumberOfTracks{"nBinsNumberOfTracks", 2000, "Number of bins fot the Number of Tracks"};
   o2fw::Configurable<int> nBinsVertexPosition{"nBinsPt", 100, "Number of bins for the Vertex Position"};
 
@@ -234,21 +167,21 @@ struct QAGlobalObservables {
 
   std::array<float, 2> numberOfTracksRange = {0, 400};
 
-  o2fw::OutputObj<TH1D> eventCount{TH1D("eventCount", qa.Title1D("").c_str(), 2, 0, 2)};
+  o2fw::OutputObj<TH1D> eventCount{TH1D("eventCount", qafeat::MakeTitle({"Selected Events"}).c_str(), 2, 0, 2)};
   o2fw::HistogramRegistry histograms{"HistogramsGlobalQA"};
 
   void init(o2fw::InitContext&)
   {
-    histograms.add("collision/collisionX", qa.Title1D(qa.VertexX().Name()).c_str(), o2fw::kTH1D,
+    histograms.add("collision/collisionX", qafeat::MakeTitle({qafeat::VertexX}).c_str(), o2fw::kTH1D,
                    {{nBinsVertexPosition, collisionXYRange[0], collisionXYRange[1]}});
 
-    histograms.add("collision/collisionY", qa.Title1D(qa.VertexY().Name()).c_str(), o2fw::kTH1D,
+    histograms.add("collision/collisionY", qafeat::MakeTitle({qafeat::VertexY}).c_str(), o2fw::kTH1D,
                    {{nBinsVertexPosition, collisionXYRange[0], collisionXYRange[1]}});
 
-    histograms.add("collision/collisionZ", qa.Title1D(qa.VertexZ().Name()).c_str(), o2fw::kTH1D,
+    histograms.add("collision/collisionZ", qafeat::MakeTitle({qafeat::VertexZ}).c_str(), o2fw::kTH1D,
                    {{nBinsVertexPosition, collisionZRange[0], collisionZRange[1]}});
 
-    histograms.add("multiplicity/numberOfTracks", qa.Title1D(qa.TrackMultiplicity().Name()).c_str(), o2fw::kTH1D,
+    histograms.add("multiplicity/numberOfTracks", qafeat::MakeTitle({qafeat::TrackMultiplicity}).c_str(), o2fw::kTH1D,
                    {{nBinsNumberOfTracks, numberOfTracksRange[0], numberOfTracksRange[1]}});
   }
 
@@ -270,9 +203,6 @@ struct QAGlobalObservables {
 
 /// Task to QA the kinematic properties of the tracks
 struct QATrackingKine {
-  o2fw::Configurable<bool> histogramAxisForMatplotlib{
-    "histogramAxisForMatplotlib", false, "Sets the histograms title to be friendly to matplotlib instead of ROOT"};
-  o2::qa::QAFeatures qa = o2::qa::QAFeatures(histogramAxisForMatplotlib);
   o2fw::Configurable<int> nBinsPt{"nBinsPt", 100, "Number of bins for Pt"};
   std::array<double, 2> ptRange = {0, 10.};
 
@@ -285,10 +215,11 @@ struct QATrackingKine {
 
   void init(o2fw::InitContext&)
   {
-    histos.add("tracking/pt", qa.Title1D(qa.Pt().Name()).c_str(), o2fw::kTH1D, {{nBinsPt, ptRange[0], ptRange[1]}});
-    histos.add("tracking/eta", qa.Title1D(qa.Eta().NameRaw()).c_str(), o2fw::kTH1D,
+    histos.add("tracking/pt", qafeat::MakeTitle({qafeat::Pt}).c_str(), o2fw::kTH1D,
+               {{nBinsPt, ptRange[0], ptRange[1]}});
+    histos.add("tracking/eta", qafeat::MakeTitle({qafeat::Eta.NameRaw()}).c_str(), o2fw::kTH1D,
                {{nBinsEta, etaRange[0], etaRange[1]}});
-    histos.add("tracking/phi", qa.Title1D(qa.Phi().Name()).c_str(), o2fw::kTH1D, {{nBinsPhi, 0, 2 * M_PI}});
+    histos.add("tracking/phi", qafeat::MakeTitle({qafeat::Phi}).c_str(), o2fw::kTH1D, {{nBinsPhi, 0, 2 * M_PI}});
   }
 
   void process(const o2::aod::Track& track)
@@ -301,20 +232,18 @@ struct QATrackingKine {
 
 /// Task to evaluate the tracking resolution (Pt, Eta, Phi and impact parameter)
 struct QATrackingResolution {
-  o2fw::Configurable<bool> setupHistogramAxisForMatplotlib{
-    "setupHistogramAxisForMatplotlib", false, "Sets the histograms title to be friendly to matplotlib instead of ROOT"};
-  o2::qa::QAFeatures qa = o2::qa::QAFeatures(setupHistogramAxisForMatplotlib);
+  std::vector<double> ptBins = {0,    0.01, 0.02, 0.03, 0.04,  0.05, 0.06,  0.07, 0.08, 0.09, 0.10, 0.12,
+                                0.14, 0.16, 0.18, 0.2,  0.225, 0.25, 0.275, 0.3,  0.35, 0.4,  0.45, 0.5,
+                                0.6,  0.7,  0.8,  0.9,  1.0,   1.2,  1.4,   1.6,  1.8,  2.0,  2.5,  3.0,
+                                3.5,  4.,   5.,   6.,   8.,    10.,  15.,   20.,  30.,  50.,  100.};
 
-  o2fw::Configurable<int> nBinsPt{"nBinsPt", 100, "Number of bins for the transverse momentum"};
-  std::array<double, 2> ptRange = {0, 10.};
-
-  o2fw::Configurable<int> nBinsEta{"nBinsEta", 400, "Number of bins for the pseudorapidity"};
+  o2fw::Configurable<int> nBinsEta{"nBinsEta", 60, "Number of bins for the pseudorapidity"};
   std::array<double, 2> etaRange = {-3, 3};
 
-  o2fw::Configurable<int> nBinsPhi{"nBinsPhi", 100, "Number of bins for Phi"};
+  o2fw::Configurable<int> nBinsPhi{"nBinsPhi", 50, "Number of bins for Phi"};
   std::array<double, 2> phiRange = {0, 2 * M_PI};
 
-  o2fw::Configurable<int> nBinsDeltaPt{"nBinsDeltaPt", 400, "Number of bins for the transverse momentum differences"};
+  o2fw::Configurable<int> nBinsDeltaPt{"nBinsDeltaPt", 100, "Number of bins for the transverse momentum differences"};
   std::array<double, 2> deltaPtRange = {-0.5, 0.5};
 
   o2fw::Configurable<int> nBinsDeltaPhi{"nBinsDeltaPhi", 100, "Number of bins for the azimuthal angle differences"};
@@ -333,96 +262,102 @@ struct QATrackingResolution {
 
   void init(o2fw::InitContext&)
   {
+    // Histogram axis definitions
+
+    o2fw::AxisSpec ptAxis{ptBins};
+    o2fw::AxisSpec deltaPtAxis{nBinsDeltaPt, deltaPtRange[0], deltaPtRange[1]};
+    o2fw::AxisSpec deltaPtRelativeAxis{nBinsDeltaPt, deltaPtRange[0], deltaPtRange[1]};
+    o2fw::AxisSpec deltaPtAbsoluteRelativeAxis{nBinsDeltaPt, 0., deltaPtRange[1]};
+
+    o2fw::AxisSpec etaAxis{nBinsEta, etaRange[0], etaRange[1]};
+    o2fw::AxisSpec deltaEtaAxis{nBinsDeltaEta, deltaEtaRange[0], deltaEtaRange[1]};
+
+    o2fw::AxisSpec phiAxis{nBinsPhi, phiRange[0], phiRange[1]};
+    o2fw::AxisSpec deltaPhiAxis{nBinsDeltaPhi, deltaPhiRange[0], deltaPhiRange[1]};
+
+    o2fw::AxisSpec impactParRPhiAxis{nBinsImpactParameter, impactParameterRange[0], impactParameterRange[1]};
+    o2fw::AxisSpec impactParRPhiErrorAxis{nBinsImpactParameter, impactParameterResolutionRange[0],
+                                          impactParameterResolutionRange[1]};
+
+    o2fw::AxisSpec impactParZAxis{nBinsImpactParameter, impactParameterRange[0], impactParameterRange[1]};
+    o2fw::AxisSpec impactParZErrorAxis{nBinsImpactParameter, impactParameterResolutionRange[0],
+                                       impactParameterResolutionRange[1]};
+
     // Eta
-    histos.add("eta/etaDiffMCReco", qa.Title1D(qa.Eta().MCRecDiff()).c_str(), o2fw::kTH1D,
-               {{nBinsDeltaEta, deltaEtaRange[0], deltaEtaRange[1]}});
+    histos.add("eta/etaDiffMCReco", qafeat::MakeTitle({qafeat::Eta.MCRecDiff()}).c_str(), o2fw::kTH1D, {deltaEtaAxis});
 
-    histos.add("eta/etaDiffMCRecoVsEtaMC", qa.Title2D(qa.Eta().MCRecDiff(), qa.Eta().MC()).c_str(), o2fw::kTH2D,
-               {{nBinsDeltaEta, deltaEtaRange[0], deltaEtaRange[1]}, {nBinsEta, etaRange[0], etaRange[1]}});
+    histos.add("eta/etaDiffMCRecoVsEtaMC", qafeat::MakeTitle({qafeat::Eta.MCRecDiff(), qafeat::Eta.MC()}).c_str(),
+               o2fw::kTH2D, {deltaEtaAxis, etaAxis});
 
-    histos.add("eta/etaDiffMCRecoVsEtaReco", qa.Title2D(qa.Eta().MCRecDiff(), qa.Eta().Rec()).c_str(), o2fw::kTH2D,
-               {{nBinsDeltaEta, deltaEtaRange[0], deltaEtaRange[1]}, {nBinsEta, etaRange[0], etaRange[1]}});
+    histos.add("eta/etaDiffMCRecoVsEtaReco", qafeat::MakeTitle({qafeat::Eta.MCRecDiff(), qafeat::Eta.Rec()}).c_str(),
+               o2fw::kTH2D, {deltaEtaAxis, etaAxis});
 
     // Phi
-    histos.add("phi/phiDiffMCRec", qa.Title1D(qa.Phi().MCRecDiff()).c_str(), o2fw::kTH1D,
-               {{nBinsDeltaPhi, deltaPhiRange[0], deltaPhiRange[1]}});
+    histos.add("phi/phiDiffMCRec", qafeat::MakeTitle({qafeat::Phi.MCRecDiff()}).c_str(), o2fw::kTH1D, {deltaPhiAxis});
 
     // Pt
-    histos.add("pt/ptDiffMCRec", qa.Title1D(qa.Pt().MCRecDiff()).c_str(), o2fw::kTH1D,
-               {{nBinsDeltaPt, deltaPtRange[0], deltaPtRange[1]}});
+    histos.add("pt/ptDiffMCRec", qafeat::MakeTitle({qafeat::Pt.MCRecDiff()}).c_str(), o2fw::kTH1D, {deltaPtAxis});
 
-    histos.add("pt/ptResolution", qa.Title1D(qa.Pt().RelativeMCRecDiff()).c_str(), o2fw::kTH1D,
-               {{nBinsDeltaPt, -1., 1.}});
+    histos.add("pt/ptResolution", qafeat::MakeTitle({qafeat::Pt.RelativeMCRecDiff()}).c_str(), o2fw::kTH1D,
+               {deltaPtRelativeAxis});
 
-    histos.add("pt/ptResolutionVsPt", qa.Title2D(qa.Pt().Rec(), qa.Pt().RelativeMCRecDiff()).c_str(), o2fw::kTH2D,
-               {{nBinsPt, ptRange[0], ptRange[1]}, {nBinsDeltaPt, 0., deltaPtRange[1]}});
+    histos.add("pt/ptResolutionVsPt", qafeat::MakeTitle({qafeat::Pt.Rec(), qafeat::Pt.RelativeMCRecDiff()}).c_str(),
+               o2fw::kTH2D, {ptAxis, deltaPtAbsoluteRelativeAxis});
 
-    histos.add("pt/ptResolutionVsEta", qa.Title2D(qa.Eta().Rec(), qa.Pt().RelativeMCRecDiff()).c_str(), o2fw::kTH2D,
-               {{nBinsEta, etaRange[0], etaRange[1]}, {nBinsDeltaPt, 0., deltaPtRange[1]}});
+    histos.add("pt/ptResolutionVsEta", qafeat::MakeTitle({qafeat::Eta.Rec(), qafeat::Pt.RelativeMCRecDiff()}).c_str(),
+               o2fw::kTH2D, {etaAxis, deltaPtAbsoluteRelativeAxis});
 
-    histos.add("pt/ptResolutionVsPhi", qa.Title2D(qa.Phi().Rec(), qa.Pt().RelativeMCRecDiff()).c_str(), o2fw::kTH2D,
-               {{nBinsPhi, phiRange[0], phiRange[1]}, {nBinsDeltaPt, 0., deltaPtRange[1]}});
+    histos.add("pt/ptResolutionVsPhi", qafeat::MakeTitle({qafeat::Phi.Rec(), qafeat::Pt.RelativeMCRecDiff()}).c_str(),
+               o2fw::kTH2D, {phiAxis, deltaPtAbsoluteRelativeAxis});
 
     // Impact parameters
-    histos.add(
-      "impactParameter/impactParameterRPhiVsPt", qa.Title2D(qa.Pt().Rec(), qa.ImpactParameterRPhi().Name()).c_str(),
-      o2fw::kTH2D,
-      {{nBinsPt, ptRange[0], ptRange[1]}, {nBinsImpactParameter, impactParameterRange[0], impactParameterRange[1]}});
+    histos.add("impactParameter/impactParameterRPhiVsPt",
+               qafeat::MakeTitle({qafeat::Pt.Rec(), qafeat::ImpactParameterRPhi}).c_str(), o2fw::kTH2D,
+               {ptAxis, impactParRPhiAxis});
 
-    histos.add(
-      "impactParameter/impactParameterRPhiVsEta", qa.Title2D(qa.Eta().Rec(), qa.ImpactParameterRPhi().Name()).c_str(),
-      o2fw::kTH2D,
-      {{nBinsEta, etaRange[0], etaRange[1]}, {nBinsImpactParameter, impactParameterRange[0], impactParameterRange[1]}});
+    histos.add("impactParameter/impactParameterRPhiVsEta",
+               qafeat::MakeTitle({qafeat::Eta.Rec(), qafeat::ImpactParameterRPhi}).c_str(), o2fw::kTH2D,
+               {etaAxis, impactParRPhiAxis});
 
-    histos.add(
-      "impactParameter/impactParameterRPhiVsPhi", qa.Title2D(qa.Phi().Rec(), qa.ImpactParameterRPhi().Name()).c_str(),
-      o2fw::kTH2D,
-      {{nBinsPhi, phiRange[0], phiRange[1]}, {nBinsImpactParameter, impactParameterRange[0], impactParameterRange[1]}});
+    histos.add("impactParameter/impactParameterRPhiVsPhi",
+               qafeat::MakeTitle({qafeat::Phi.Rec(), qafeat::ImpactParameterRPhi}).c_str(), o2fw::kTH2D,
+               {phiAxis, impactParRPhiAxis});
 
     histos.add("impactParameter/impactParameterErrorRPhiVsPt",
-               qa.Title2D(qa.Pt().Rec(), qa.ImpactParameterRPhiError().Name()).c_str(), o2fw::kTH2D,
-               {{nBinsPt, ptRange[0], ptRange[1]},
-                {nBinsImpactParameter, impactParameterResolutionRange[0], impactParameterResolutionRange[1]}});
+               qafeat::MakeTitle({qafeat::Pt.Rec(), qafeat::ImpactParameterRPhiError}).c_str(), o2fw::kTH2D,
+               {ptAxis, impactParRPhiErrorAxis});
 
     histos.add("impactParameter/impactParameterErrorRPhiVsEta",
-               qa.Title2D(qa.Eta().Rec(), qa.ImpactParameterRPhiError().Name()).c_str(), o2fw::kTH2D,
-               {{nBinsEta, etaRange[0], etaRange[1]},
-                {nBinsImpactParameter, impactParameterResolutionRange[0], impactParameterResolutionRange[1]}});
+               qafeat::MakeTitle({qafeat::Eta.Rec(), qafeat::ImpactParameterRPhiError}).c_str(), o2fw::kTH2D,
+               {etaAxis, impactParRPhiErrorAxis});
 
     histos.add("impactParameter/impactParameterErrorRPhiVsPhi",
-               qa.Title2D(qa.Phi().Rec(), qa.ImpactParameterRPhiError().Name()).c_str(), o2fw::kTH2D,
-               {{nBinsPhi, phiRange[0], phiRange[1]},
-                {nBinsImpactParameter, impactParameterResolutionRange[0], impactParameterResolutionRange[1]}});
+               qafeat::MakeTitle({qafeat::Phi.Rec(), qafeat::ImpactParameterRPhiError}).c_str(), o2fw::kTH2D,
+               {phiAxis, impactParRPhiErrorAxis});
 
-    histos.add(
-      "impactParameter/impactParameterZVsPt", qa.Title2D(qa.Pt().Rec(), qa.ImpactParameterZ().Name()).c_str(),
-      o2fw::kTH2D,
-      {{nBinsPt, ptRange[0], ptRange[1]}, {nBinsImpactParameter, impactParameterRange[0], impactParameterRange[1]}});
+    histos.add("impactParameter/impactParameterZVsPt",
+               qafeat::MakeTitle({qafeat::Pt.Rec(), qafeat::ImpactParameterZ}).c_str(), o2fw::kTH2D,
+               {ptAxis, impactParZAxis});
 
-    histos.add(
-      "impactParameter/impactParameterZVsEta", qa.Title2D(qa.Eta().Rec(), qa.ImpactParameterZ().Name()).c_str(),
-      o2fw::kTH2D,
-      {{nBinsEta, etaRange[0], etaRange[1]}, {nBinsImpactParameter, impactParameterRange[0], impactParameterRange[1]}});
+    histos.add("impactParameter/impactParameterZVsEta",
+               qafeat::MakeTitle({qafeat::Eta.Rec(), qafeat::ImpactParameterZ}).c_str(), o2fw::kTH2D,
+               {etaAxis, impactParZAxis});
 
-    histos.add(
-      "impactParameter/impactParameterZVsPhi", qa.Title2D(qa.Phi().Rec(), qa.ImpactParameterZ().Name()).c_str(),
-      o2fw::kTH2D,
-      {{nBinsPhi, phiRange[0], phiRange[1]}, {nBinsImpactParameter, impactParameterRange[0], impactParameterRange[1]}});
+    histos.add("impactParameter/impactParameterZVsPhi",
+               qafeat::MakeTitle({qafeat::Phi.Rec(), qafeat::ImpactParameterZ}).c_str(), o2fw::kTH2D,
+               {phiAxis, impactParZAxis});
 
     histos.add("impactParameter/impactParameterErrorZVsPt",
-               qa.Title2D(qa.Pt().Rec(), qa.ImpactParameterZError().Name()).c_str(), o2fw::kTH2D,
-               {{nBinsPt, ptRange[0], ptRange[1]},
-                {nBinsImpactParameter, impactParameterResolutionRange[0], impactParameterResolutionRange[1]}});
+               qafeat::MakeTitle({qafeat::Pt.Rec(), qafeat::ImpactParameterZError}).c_str(), o2fw::kTH2D,
+               {ptAxis, impactParZErrorAxis});
 
-    histos.add(
-      "impactParameter/impactParameterErrorZVsEta",
-      qa.Title2D(qa.Eta().Rec(), qa.ImpactParameterZError().Name()).c_str(), o2fw::kTH2D,
-      {{nBinsEta, etaRange[0], etaRange[1]}, {nBinsImpactParameter, impactParameterRange[0], impactParameterRange[1]}});
+    histos.add("impactParameter/impactParameterErrorZVsEta",
+               qafeat::MakeTitle({qafeat::Eta.Rec(), qafeat::ImpactParameterZError}).c_str(), o2fw::kTH2D,
+               {etaAxis, impactParZErrorAxis});
 
-    histos.add(
-      "impactParameter/impactParameterErrorZVsPhi",
-      qa.Title2D(qa.Phi().Rec(), qa.ImpactParameterZError().Name()).c_str(), o2fw::kTH2D,
-      {{nBinsPhi, phiRange[0], phiRange[1]}, {nBinsImpactParameter, impactParameterRange[0], impactParameterRange[1]}});
+    histos.add("impactParameter/impactParameterErrorZVsPhi",
+               qafeat::MakeTitle({qafeat::Phi.Rec(), qafeat::ImpactParameterZError}).c_str(), o2fw::kTH2D,
+               {phiAxis, impactParZErrorAxis});
   }
 
   void process(const o2::soa::Join<o2::aod::Collisions, o2::aod::McCollisionLabels>::iterator& collision,
