@@ -142,6 +142,7 @@ EndConfig()
 // Settings concerning the event display
 BeginSubConfig(GPUSettingsDisplay, GL, configStandalone, "GL", 'g', "OpenGL display settings")
 AddOption(clustersOnly, bool, false, "", 0, "Visualize clusters only")
+AddOption(clustersOnNominalRow, bool, false, "", 0, "Show clusters at nominal x of pad row for early-transformed data")
 AddHelp("help", 'h')
 EndConfig()
 
