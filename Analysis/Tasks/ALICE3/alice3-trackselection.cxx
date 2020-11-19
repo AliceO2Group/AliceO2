@@ -1,3 +1,4 @@
+// PLEASE DO NOT MERGE THIS PR
 // Copyright CERN and copyright holders of ALICE O2. This software is
 // distributed under the terms of the GNU General Public License v3 (GPL
 // Version 3), copied verbatim in the file "COPYING".
