@@ -26,6 +26,7 @@ struct ResourcesMonitoringHelper {
   /// Dump the metrics in @a metrics which match the names specified in @a metricsToDump
   /// @a specs are the DeviceSpecs associated to the metrics.
   static bool dumpMetricsToJSON(std::vector<DeviceMetricsInfo> const& metrics,
+                                DeviceMetricsInfo const& driverMetrics,
                                 std::vector<DeviceSpec> const& specs,
                                 std::vector<std::string> const& metricsToDump) noexcept;
   static bool isResourcesMonitoringEnabled(unsigned short interval) noexcept { return interval > 0; }
