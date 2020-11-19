@@ -191,6 +191,9 @@ void Clusterer::buildCluster(Cluster& c, MCLabelContainer const* digitMCTruth)
     mContributingDigit[idig]->getPhiAndEtaIndex(phi2, eta2);
     deltaPhi = phi1 - phi2;
     deltaEta = eta1 - eta2;
+
+    bool isOk = true;
+
     if (deltaPhi == 1) {   // the digit is to the LEFT of the cluster; let's check about UP/DOWN/Same Line
       if (deltaEta == 1) { // the digit is DOWN LEFT wrt the cluster
         mask = Cluster::kDownLeft;
@@ -215,10 +218,12 @@ void Clusterer::buildCluster(Cluster& c, MCLabelContainer const* digitMCTruth)
       } else { // impossible!!
         LOG(DEBUG) << " Check what is going on, the digit you are trying to merge to the cluster must be in a different channels... ";
       }
-    } else { // impossible!!! We checked above...
-      LOG(DEBUG) << " Check what is going on, the digit you are trying to merge to the cluster is too far from the cluster, you should have not got here... ";
+    } else { // This may happens if the cluster centroid changes because of TOT  condition: let's remove this digit from the cluster
+      isOk = false;
+      mContributingDigit[idig]->setIsUsedInCluster(false);
     }
-    c.addBitInContributingChannels(mask);
+    if (isOk)
+      c.addBitInContributingChannels(mask);
   }
 
   // filling the MC labels of this cluster; the first will be those of the main digit; then the others
@@ -226,6 +231,8 @@ void Clusterer::buildCluster(Cluster& c, MCLabelContainer const* digitMCTruth)
     int lbl = mClsLabels->getIndexedSize(); // this should correspond to the number of digits also;
     //printf("lbl = %d\n", lbl);
     for (int i = 0; i < mNumberOfContributingDigits; i++) {
+      if (!mContributingDigit[i]->isUsedInCluster())
+        continue;
       //printf("contributing digit = %d\n", i);
       int digitLabel = mContributingDigit[i]->getLabel();
       //printf("digitLabel = %d\n", digitLabel);

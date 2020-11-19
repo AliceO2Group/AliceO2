@@ -68,7 +68,7 @@ class Digit
 
   Bool_t isUsedInCluster() const { return mIsUsedInCluster; }
 
-  void setIsUsedInCluster() { mIsUsedInCluster = kTRUE; }
+  void setIsUsedInCluster(bool val = true) { mIsUsedInCluster = val; }
 
   Int_t getElectronicIndex() const { return mElectronIndex; }
   void setElectronicIndex(Int_t ind) { mElectronIndex = ind; }
