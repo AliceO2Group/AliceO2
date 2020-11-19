@@ -178,7 +178,7 @@ InjectorFunction o2DataModelAdaptor(OutputSpec const& spec, uint64_t startTime, 
   };
 }
 
-InjectorFunction dplModelAdaptor(std::vector<OutputSpec> const& filterSpecs, bool throwOnUnmatchedInputs)
+InjectorFunction dplModelAdaptor(std::vector<OutputSpec> const& filterSpecs, UnmatchedPolicy unmatchedPolicy)
 {
   // structure to hald information on the unmatch ed data and print a warning at cleanup
   class DroppedDataSpecs
@@ -212,8 +212,9 @@ InjectorFunction dplModelAdaptor(std::vector<OutputSpec> const& filterSpecs, boo
     std::string descriptions;
   };
 
-  return [filterSpecs = std::move(filterSpecs), throwOnUnmatchedInputs, droppedDataSpecs = std::make_shared<DroppedDataSpecs>()](FairMQDevice& device, FairMQParts& parts, ChannelRetriever channelRetriever) {
+  return [filterSpecs = std::move(filterSpecs), unmatchedPolicy, droppedDataSpecs = std::make_shared<DroppedDataSpecs>()](FairMQDevice& device, FairMQParts& parts, ChannelRetriever channelRetriever) {
     std::unordered_map<std::string, FairMQParts> outputs;
+    FairMQParts forwarded;
     std::vector<bool> indicesDone(parts.Size() / 2, false);
     std::vector<std::string> unmatchedDescriptions;
     int lastSplitPartIndex = -1;
@@ -276,6 +277,8 @@ InjectorFunction dplModelAdaptor(std::vector<OutputSpec> const& filterSpecs, boo
         }
       }
       if (indicesDone[msgidx] == false) {
+        forwarded.AddPart(std::move(parts.At(msgidx * 2)));
+        forwarded.AddPart(std::move(parts.At(msgidx * 2 + 1)));
         unmatchedDescriptions.emplace_back(DataSpecUtils::describe(query));
       }
     }
@@ -286,25 +289,37 @@ InjectorFunction dplModelAdaptor(std::vector<OutputSpec> const& filterSpecs, boo
       sendOnChannel(device, channelParts, channelName);
     }
     if (not unmatchedDescriptions.empty()) {
-      if (throwOnUnmatchedInputs) {
-        std::string descriptions;
-        for (auto const& desc : unmatchedDescriptions) {
-          descriptions += "\n   " + desc;
-        }
-        throw std::runtime_error("No matching filter rule for input data " + descriptions +
-                                 "\n Add appropriate matcher(s) to dataspec definition or allow to drop unmatched data");
-      } else {
-        bool changed = false;
-        for (auto const& desc : unmatchedDescriptions) {
-          if (not droppedDataSpecs->find(desc)) {
-            // a new description
-            droppedDataSpecs->add(desc);
-            changed = true;
+      switch (unmatchedPolicy) {
+        case UnmatchedPolicy::THROW: {
+          std::string descriptions;
+          for (auto const& desc : unmatchedDescriptions) {
+            descriptions += "\n   " + desc;
           }
-        }
-        if (changed) {
-          droppedDataSpecs->warning();
-        }
+          throw std::runtime_error("No matching filter rule for input data " + descriptions +
+                                   "\n Add appropriate matcher(s) to dataspec definition or allow to drop unmatched data");
+        } break;
+        case UnmatchedPolicy::WARN: {
+          bool changed = false;
+          for (auto const& desc : unmatchedDescriptions) {
+            if (not droppedDataSpecs->find(desc)) {
+              // a new description
+              droppedDataSpecs->add(desc);
+              changed = true;
+            }
+          }
+          if (changed) {
+            droppedDataSpecs->warning();
+          }
+        } break;
+        case UnmatchedPolicy::IGNORE: {
+        } break;
+        case UnmatchedPolicy::FORWARD: {
+          try {
+            sendOnChannel(device, forwarded, "forwarding");
+          } catch (...) {
+            LOG(error) << "Could not find channel \"forwarding\"";
+          }
+        } break;
       }
     }
   };
@@ -391,7 +406,8 @@ DataProcessorSpec specifyExternalFairMQDeviceProxy(char const* name,
   }};
   const char* d = strdup(((std::string(defaultChannelConfig).find("name=") == std::string::npos ? (std::string("name=") + name + ",") : "") + std::string(defaultChannelConfig)).c_str());
   spec.options = {
-    ConfigParamSpec{"channel-config", VariantType::String, d, {"Out-of-band channel config"}}};
+    ConfigParamSpec{"channel-config", VariantType::String, d, {"Out-of-band channel config"}},
+    ConfigParamSpec{"extra-channel-config", VariantType::String, "", {"Out-of-band channel config"}}};
   return spec;
 }
 

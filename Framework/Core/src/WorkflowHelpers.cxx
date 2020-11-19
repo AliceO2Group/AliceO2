@@ -252,7 +252,7 @@ void WorkflowHelpers::injectServiceDevices(WorkflowSpec& workflow, ConfigContext
     "readout-proxy",
     std::move(readoutProxyOutput),
     "type=pair,method=connect,address=ipc:///tmp/readout-pipe-0,rateLogging=1,transport=shmem",
-    dplModelAdaptor(filterSpecs, false));
+    dplModelAdaptor(filterSpecs, UnmatchedPolicy::FORWARD));
 
   // In case InputSpec of origin AOD are
   // requested but not available as part of the workflow,

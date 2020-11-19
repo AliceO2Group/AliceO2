@@ -28,7 +28,7 @@ void customize(std::vector<ConfigParamSpec>& workflowOptions)
 
   workflowOptions.push_back(
     ConfigParamSpec{
-      "throwOnUnmatched", VariantType::Bool, false, {"throw if unmatched input data is found"}});
+      "unmatched-policy", VariantType::String, "warn", {"what to do with unmatched data (ignore, warn, throw, forward)"}});
 }
 
 #include "Framework/runDataProcessing.h"
@@ -36,7 +36,17 @@ void customize(std::vector<ConfigParamSpec>& workflowOptions)
 WorkflowSpec defineDataProcessing(ConfigContext const& config)
 {
   std::string outputconfig = config.options().get<std::string>("dataspec");
-  bool throwOnUnmatched = config.options().get<bool>("throwOnUnmatched");
+  std::string unmatchedPolicyConfig = config.options().get<std::string>("unmatched-policy");
+  UnmatchedPolicy unmatchedPolicy = UnmatchedPolicy::WARN;
+  if (unmatchedPolicyConfig == "ignore") {
+    unmatchedPolicy = UnmatchedPolicy::IGNORE;
+  } else if (unmatchedPolicyConfig == "warn") {
+    unmatchedPolicy = UnmatchedPolicy::WARN;
+  } else if (unmatchedPolicyConfig == "throw") {
+    unmatchedPolicy = UnmatchedPolicy::THROW;
+  } else if (unmatchedPolicyConfig == "forward") {
+    unmatchedPolicy = UnmatchedPolicy::FORWARD;
+  }
   std::vector<InputSpec> matchers = select(outputconfig.c_str());
   Outputs readoutProxyOutput;
   for (auto const& matcher : matchers) {
@@ -49,7 +59,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& config)
     "readout-proxy",
     std::move(readoutProxyOutput),
     "type=pair,method=connect,address=ipc:///tmp/readout-pipe-0,rateLogging=1,transport=shmem",
-    dplModelAdaptor(filterSpecs, throwOnUnmatched));
+    dplModelAdaptor(filterSpecs, unmatchedPolicy));
 
   WorkflowSpec workflow;
   workflow.emplace_back(readoutProxy);

@@ -22,6 +22,15 @@ namespace o2
 namespace framework
 {
 
+/// Policies on what to do with things which do not match the provided
+/// descriptors
+enum struct UnmatchedPolicy : int {
+  THROW,  // Throw an exception
+  IGNORE, // Ignore with no message
+  WARN,   // Log a warning message
+  FORWARD // Forward them to the "forwarding" channel
+};
+
 /// A callback function to retrieve the FairMQChannel name to be used for sending
 /// messages of the specified OutputSpec
 using ChannelRetriever = std::function<std::string(OutputSpec const&, DataProcessingHeader::StartTime)>;
@@ -61,7 +70,7 @@ InjectorFunction o2DataModelAdaptor(OutputSpec const& spec, uint64_t startTime, 
 /// The list of specs is used as a filter list, all incoming data matching an entry
 /// in the list will be send through the corresponding channel
 InjectorFunction dplModelAdaptor(std::vector<OutputSpec> const& specs = {{header::gDataOriginAny, header::gDataDescriptionAny}},
-                                 bool throwOnUnmatchedInputs = true);
+                                 UnmatchedPolicy unmatchedPolicy = UnmatchedPolicy::THROW);
 
 /// The default connection method for the custom source
 static auto gDefaultConverter = incrementalConverter(OutputSpec{"TST", "TEST", 0}, 0, 1);
