@@ -948,6 +948,7 @@ void DeviceSpecHelpers::prepareArguments(bool defaultQuiet, bool defaultStopped,
 
     // has option --session been specified on the command line?
     bool haveSessionArg = false;
+    std::string extraChannelConfig;
     using FilterFunctionT = std::function<void(decltype(argc), decltype(argv), decltype(od))>;
 
     // the filter function will forward command line arguments based on the option
@@ -1009,6 +1010,9 @@ void DeviceSpecHelpers::prepareArguments(bool defaultQuiet, bool defaultStopped,
       }
 
       haveSessionArg = haveSessionArg || varmap.count("session") != 0;
+      if (varmap.count("extra-channel-config") != 0) {
+        extraChannelConfig = varmap["extra-channel-config"].as<std::string>();
+      }
 
       for (const auto varit : varmap) {
         // find the option belonging to key, add if the option has been parsed
@@ -1044,6 +1048,10 @@ void DeviceSpecHelpers::prepareArguments(bool defaultQuiet, bool defaultStopped,
     filterArgsFct(argc, argv, foDesc);
     // filter device options, and handle option groups
     filterArgsFct(argc, argv, od);
+    if (extraChannelConfig.empty() == false) {
+      tmpArgs.emplace_back(std::string("--channel-config"));
+      tmpArgs.emplace_back(extraChannelConfig);
+    }
 
     // Add the channel configuration
     for (auto& channel : spec.outputChannels) {
