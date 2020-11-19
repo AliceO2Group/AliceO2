@@ -9,6 +9,7 @@
 // or submit itself to any jurisdiction.
 
 #include "ResourcesMonitoringHelper.h"
+#include "Framework/DeviceMetricsInfo.h"
 #include <boost/property_tree/json_parser.hpp>
 #include <fstream>
 #include <string_view>
@@ -18,6 +19,7 @@
 using namespace o2::framework;
 
 bool ResourcesMonitoringHelper::dumpMetricsToJSON(const std::vector<DeviceMetricsInfo>& metrics,
+                                                  const DeviceMetricsInfo& driverMetrics,
                                                   const std::vector<DeviceSpec>& specs,
                                                   std::vector<std::string> const& performanceMetrics) noexcept
 {
@@ -74,6 +76,47 @@ bool ResourcesMonitoringHelper::dumpMetricsToJSON(const std::vector<DeviceMetric
 
     root.add_child(specs[idx].name, deviceRoot);
   }
+
+  boost::property_tree::ptree driverRoot;
+  for (const auto& metricLabel : driverMetrics.metricLabelsIdx) {
+
+    //check if we are interested
+    if (std::find(std::begin(performanceMetrics), std::end(performanceMetrics), metricLabel.label) == std::end(performanceMetrics)) {
+      continue;
+    }
+
+    //if so
+
+    boost::property_tree::ptree metricNode;
+
+    switch (driverMetrics.metrics[metricLabel.index].type) {
+      case MetricType::Int:
+        metricNode = fillNodeWithValue(driverMetrics, driverMetrics.intMetrics,
+                                       metricLabel.index, driverMetrics.metrics[metricLabel.index].storeIdx);
+        break;
+
+      case MetricType::Float:
+        metricNode = fillNodeWithValue(driverMetrics, driverMetrics.floatMetrics,
+                                       metricLabel.index, driverMetrics.metrics[metricLabel.index].storeIdx);
+        break;
+
+      case MetricType::String:
+        metricNode = fillNodeWithValue(driverMetrics, driverMetrics.stringMetrics,
+                                       metricLabel.index, driverMetrics.metrics[metricLabel.index].storeIdx);
+        break;
+
+      case MetricType::Uint64:
+        metricNode = fillNodeWithValue(driverMetrics, driverMetrics.uint64Metrics,
+                                       metricLabel.index, driverMetrics.metrics[metricLabel.index].storeIdx);
+        break;
+
+      default:
+        continue;
+    }
+    driverRoot.add_child(metricLabel.label, metricNode);
+  }
+
+  root.add_child("driver", driverRoot);
 
   std::ofstream file("performanceMetrics.json", std::ios::out);
   if (file.is_open()) {
