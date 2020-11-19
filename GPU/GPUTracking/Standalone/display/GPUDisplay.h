@@ -138,38 +138,6 @@ class GPUDisplay
     GLvertex(GLfloat a, GLfloat b, GLfloat c) : x(a), y(b), z(c) {}
   };
 
-  struct OpenGLConfig {
-    int animationMode = 0;
-
-    bool smoothPoints = true;
-    bool smoothLines = false;
-    bool depthBuffer = false;
-
-    bool drawClusters = true;
-    bool drawLinks = false;
-    bool drawSeeds = false;
-    bool drawInitLinks = false;
-    bool drawTracklets = false;
-    bool drawTracks = false;
-    bool drawGlobalTracks = false;
-    bool drawFinal = false;
-    int excludeClusters = 0;
-    int propagateTracks = 0;
-
-    int colorClusters = 1;
-    int drawSlice = -1;
-    int drawRelatedSlices = 0;
-    int drawGrid = 0;
-    int colorCollisions = 0;
-    int showCollision = -1;
-
-    float pointSize = 2.0;
-    float lineWidth = 1.4;
-
-    bool drawTPC = true;
-    bool drawTRD = true;
-  };
-
   struct DrawArraysIndirectCommand {
     DrawArraysIndirectCommand(unsigned int a = 0, unsigned int b = 0, unsigned int c = 0, unsigned int d = 0) : count(a), instanceCount(b), first(c), baseInstance(d) {}
     unsigned int count;
@@ -294,7 +262,7 @@ class GPUDisplay
   GPUDisplayBackend* mBackend;
   GPUChainTracking* mChain;
   const GPUSettingsDisplay& mConfig;
-  OpenGLConfig mCfg;
+  GPUSettingsDisplayLight mCfg;
   GPUQA* mQA;
   const GPUTPCGMMerger& mMerger;
   qSem mSemLockDisplay;
@@ -385,7 +353,7 @@ class GPUDisplay
   bool mAnimationChangeConfig = true;
   float mAnimationDelay = 2.f;
   vecpod<float> mAnimateVectors[9];
-  vecpod<OpenGLConfig> mAnimateConfig;
+  vecpod<GPUSettingsDisplayLight> mAnimateConfig;
   opengl_spline mAnimationSplines[8];
 
   volatile int mResetScene = 0;
