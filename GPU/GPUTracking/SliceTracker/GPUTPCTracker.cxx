@@ -177,9 +177,11 @@ GPUh() int GPUTPCTracker::CheckEmptySlice()
   // Check if the Slice is empty, if so set the output apropriate and tell the reconstuct procesdure to terminate
   if (NHitsTotal() < 1) {
     mCommonMem->nTracks = mCommonMem->nTrackHits = 0;
-    WriteOutputPrepare();
-    mOutput->SetNTracks(0);
-    mOutput->SetNTrackClusters(0);
+    if (mOutput) {
+      WriteOutputPrepare();
+      mOutput->SetNTracks(0);
+      mOutput->SetNTrackClusters(0);
+    }
     return 1;
   }
   return 0;
