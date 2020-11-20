@@ -209,6 +209,31 @@ struct ExpirationHandlerHelpers {
   {
     return [](DeviceState&, ConfigParamRegistry const&) { return LifetimeHelpers::fetchFromObjectRegistry(); };
   }
+
+  /// This behaves as data. I.e. we never create it unless data arrives.
+  static RouteConfigurator::CreationConfigurator createOptionalConfigurator()
+  {
+    return [](DeviceState&, ConfigParamRegistry const&) { return LifetimeHelpers::dataDrivenCreation(); };
+  }
+
+  /// This will always exipire an optional record when no data is received.
+  static RouteConfigurator::DanglingConfigurator danglingOptionalConfigurator()
+  {
+    return [](DeviceState&, ConfigParamRegistry const&) { return LifetimeHelpers::expireAlways(); };
+  }
+
+  /// When the record expires, simply create a dummy entry.
+  static RouteConfigurator::ExpirationConfigurator expiringOptionalConfigurator(InputSpec const& spec, std::string const& sourceChannel)
+  {
+    auto m = std::get_if<ConcreteDataMatcher>(&spec.matcher);
+    if (m == nullptr) {
+      throw runtime_error("InputSpec for Enumeration must be fully qualified");
+    }
+    // We copy the matcher to avoid lifetime issues.
+    return [matcher = *m, sourceChannel](DeviceState&, ConfigParamRegistry const&) {
+      return LifetimeHelpers::dummy(matcher, sourceChannel);
+    };
+  }
 };
 
 /// This creates a string to configure channels of a FairMQDevice
@@ -637,6 +662,12 @@ void DeviceSpecHelpers::processInEdgeActions(std::vector<DeviceSpec>& devices,
           ExpirationHandlerHelpers::dataDrivenConfigurator(),
           ExpirationHandlerHelpers::danglingTransientConfigurator(),
           ExpirationHandlerHelpers::expiringTransientConfigurator(inputSpec)};
+        break;
+      case Lifetime::Optional:
+        route.configurator = {
+          ExpirationHandlerHelpers::createOptionalConfigurator(),
+          ExpirationHandlerHelpers::danglingOptionalConfigurator(),
+          ExpirationHandlerHelpers::expiringOptionalConfigurator(inputSpec, sourceChannel)};
         break;
       default:
         break;
