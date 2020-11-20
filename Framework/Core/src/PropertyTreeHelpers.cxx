@@ -14,6 +14,8 @@
 
 #include <boost/property_tree/ptree.hpp>
 #include <boost/program_options/variables_map.hpp>
+#include <boost/tokenizer.hpp>
+#include <boost/lexical_cast.hpp>
 
 #include <vector>
 #include <string>
@@ -25,6 +27,16 @@ void PropertyTreeHelpers::populateDefaults(std::vector<ConfigParamSpec> const& s
                                            boost::property_tree::ptree& pt,
                                            boost::property_tree::ptree& provenance)
 {
+  auto addBranch = [&](std::string key, auto* values, size_t size) {
+    boost::property_tree::ptree branch;
+    for (auto i = 0u; i < size; ++i) {
+      boost::property_tree::ptree leaf;
+      leaf.put("", values[i]);
+      branch.push_back(std::make_pair("", leaf));
+    }
+    pt.put_child(key, branch);
+  };
+
   for (auto& spec : schema) {
     std::string key = spec.name.substr(0, spec.name.find(","));
     try {
@@ -50,6 +62,18 @@ void PropertyTreeHelpers::populateDefaults(std::vector<ConfigParamSpec> const& s
         case VariantType::Bool:
           pt.put(key, spec.defaultValue.get<bool>());
           break;
+        case VariantType::ArrayInt:
+          addBranch(key, spec.defaultValue.get<int*>(), spec.defaultValue.size());
+          break;
+        case VariantType::ArrayFloat:
+          addBranch(key, spec.defaultValue.get<float*>(), spec.defaultValue.size());
+          break;
+        case VariantType::ArrayDouble:
+          addBranch(key, spec.defaultValue.get<double*>(), spec.defaultValue.size());
+          break;
+        case VariantType::ArrayBool:
+          addBranch(key, spec.defaultValue.get<bool*>(), spec.defaultValue.size());
+          break;
         case VariantType::Unknown:
         case VariantType::Empty:
         default:
@@ -66,11 +90,38 @@ void PropertyTreeHelpers::populateDefaults(std::vector<ConfigParamSpec> const& s
   }
 }
 
+namespace
+{
+template <typename T>
+std::vector<T> toVector(std::string const& input)
+{
+  std::vector<T> result;
+  //check if the array string has correct array type symbol
+  assert(input[0] == variant_array_symbol<T>::symbol);
+  //strip type symbol and parentheses
+  boost::tokenizer<> tokenizer(input.substr(2, input.size() - 3));
+  for (auto it = tokenizer.begin(); it != tokenizer.end(); ++it) {
+    result.push_back(boost::lexical_cast<T>(*it));
+  }
+  return result;
+}
+} // namespace
+
 void PropertyTreeHelpers::populate(std::vector<ConfigParamSpec> const& schema,
                                    boost::property_tree::ptree& pt,
                                    boost::program_options::variables_map const& vmap,
                                    boost::property_tree::ptree& provenance)
 {
+  auto addBranch = [&](std::string key, auto vector) {
+    boost::property_tree::ptree branch;
+    for (auto i = 0u; i < vector.size(); ++i) {
+      boost::property_tree::ptree leaf;
+      leaf.put("", vector[i]);
+      branch.push_back(std::make_pair("", leaf));
+    }
+    pt.put_child(key, branch);
+  };
+
   for (auto& spec : schema) {
     // strip short version to get the correct key
     std::string key = spec.name.substr(0, spec.name.find(","));
@@ -98,6 +149,26 @@ void PropertyTreeHelpers::populate(std::vector<ConfigParamSpec> const& schema,
           break;
         case VariantType::Bool:
           pt.put(key, vmap[key].as<bool>());
+          break;
+        case VariantType::ArrayInt: {
+          auto v = toVector<int>(vmap[key].as<std::string>());
+          addBranch(key, v);
+        };
+          break;
+        case VariantType::ArrayFloat: {
+          auto v = toVector<float>(vmap[key].as<std::string>());
+          addBranch(key, v);
+        };
+          break;
+        case VariantType::ArrayDouble: {
+          auto v = toVector<double>(vmap[key].as<std::string>());
+          addBranch(key, v);
+        };
+          break;
+        case VariantType::ArrayBool: {
+          auto v = toVector<bool>(vmap[key].as<std::string>());
+          addBranch(key, v);
+        };
           break;
         case VariantType::Unknown:
         case VariantType::Empty:
@@ -148,6 +219,12 @@ void PropertyTreeHelpers::populate(std::vector<ConfigParamSpec> const& schema,
         case VariantType::Bool:
           pt.put(key, (*it).get_value<bool>());
           break;
+        case VariantType::ArrayInt:
+        case VariantType::ArrayFloat:
+        case VariantType::ArrayDouble:
+        case VariantType::ArrayBool:
+          pt.put_child(key, *it);
+          break;
         case VariantType::Unknown:
         case VariantType::Empty:
         default:
@@ -184,17 +261,6 @@ void traverseRecursive(const boost::property_tree::ptree& parent,
 void PropertyTreeHelpers::traverse(const boost::property_tree::ptree& parent, PropertyTreeHelpers::WalkerFunction& method)
 {
   traverseRecursive(parent, "", parent, method);
-}
-
-void PropertyTreeHelpers::merge(boost::property_tree::ptree& dest,
-                                boost::property_tree::ptree const& source,
-                                boost::property_tree::ptree::path_type const& mergePoint)
-{
-  using boost::property_tree::ptree;
-  WalkerFunction merge = [&dest, &mergePoint](ptree const& parent, ptree::path_type childPath, ptree const& child) {
-    dest.put(mergePoint / childPath, child.data());
-  };
-  traverse(source, merge);
 }
 
 } // namespace o2::framework

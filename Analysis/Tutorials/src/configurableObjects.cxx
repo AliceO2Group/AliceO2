@@ -12,6 +12,8 @@
 #include "Framework/AnalysisDataModel.h"
 #include "Analysis/configurableCut.h"
 
+#include <sstream>
+
 using namespace o2;
 using namespace o2::framework;
 using namespace o2::framework::expressions;
@@ -22,10 +24,27 @@ using namespace o2::framework::expressions;
 struct ConfigurableObjectDemo {
   Configurable<configurableCut> cut{"cut", {0.5, 1, true}, "generic cut"};
   MutableConfigurable<configurableCut> mutable_cut{"mutable_cut", {1., 2, false}, "generic cut"};
+
+  // note that size is fixed by this declaration - externally supplied vector needs to be the same size!
+  Configurable<std::vector<int>> array{"array", {1, 2, 3, 4, 5}, "generic array"};
+
   void init(InitContext const&){};
   void process(aod::Collision const&, aod::Tracks const& tracks)
   {
     LOGF(INFO, "Cut1: %.3f; Cut2: %.3f", cut, mutable_cut);
+    auto vec = (std::vector<int>)array;
+    std::stringstream ss;
+    ss << "[";
+    auto count = 0u;
+    for (auto& entry : vec) {
+      ss << entry;
+      if (count < vec.size() - 1) {
+        ss << ",";
+      }
+      ++count;
+    }
+    ss << "]";
+    LOGF(INFO, "Array: %s", ss.str().c_str());
     for (auto& track : tracks) {
       if (track.globalIndex() % 500 == 0) {
         std::string decision1;

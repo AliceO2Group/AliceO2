@@ -1299,7 +1299,7 @@ int runStateMachine(DataProcessorSpecs const& workflow,
         for (size_t di = 0; di < infos.size(); ++di) {
           auto info = infos[di];
           auto spec = deviceSpecs[di];
-          PropertyTreeHelpers::merge(finalConfig, info.currentConfig, spec.name);
+          finalConfig.put_child(spec.name, info.currentConfig);
         }
         LOG(INFO) << "Dumping used configuration in dpl-config.json";
         boost::property_tree::write_json("dpl-config.json", finalConfig);

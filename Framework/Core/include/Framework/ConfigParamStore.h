@@ -37,6 +37,12 @@ class ConfigParamStore
   boost::property_tree::ptree& store() { return *mStore; };
   boost::property_tree::ptree& provenanceTree() { return *mProvenance; };
 
+  /// Get the specs
+  std::vector<ConfigParamSpec> const& specs() const
+  {
+    return mSpecs;
+  }
+
   /// Activate the next store
   void activate();
 
