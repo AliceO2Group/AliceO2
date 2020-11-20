@@ -55,6 +55,7 @@
 #include <unordered_map>
 #include <uv.h>
 #include <execinfo.h>
+#include <sstream>
 
 using namespace o2::framework;
 using Key = o2::monitoring::tags::Key;
@@ -175,6 +176,27 @@ void on_socket_polled(uv_poll_t* poller, int status, int events)
   // We do nothing, all the logic for now stays in DataProcessingDevice::doRun()
 }
 
+namespace
+{
+template <typename T>
+std::string arrayPrinter(boost::property_tree::ptree const& tree)
+{
+  std::stringstream ss;
+  int size = tree.size();
+  int count = 0;
+  ss << variant_array_symbol<T>::symbol << "[";
+  for (auto& element : tree) {
+    ss << element.second.get_value<T>();
+    if (count < size - 1) {
+      ss << ",";
+    }
+    ++count;
+  }
+  ss << "]";
+  return ss.str();
+}
+} // namespace
+
 /// This  takes care  of initialising  the device  from its  specification. In
 /// particular it needs to:
 ///
@@ -219,14 +241,13 @@ void DataProcessingDevice::Init()
   } else {
     retrievers.emplace_back(std::make_unique<FairOptionsRetriever>(GetConfig()));
   }
-  auto configStore = std::move(std::make_unique<ConfigParamStore>(mSpec.options, std::move(retrievers)));
+  auto configStore = std::make_unique<ConfigParamStore>(mSpec.options, std::move(retrievers));
   configStore->preload();
   configStore->activate();
   using boost::property_tree::ptree;
 
   /// Dump the configuration so that we can get it from the driver.
   for (auto& entry : configStore->store()) {
-    LOG(INFO) << "[CONFIG] " << entry.first << "=" << configStore->store().get<std::string>(entry.first) << " 1 " << configStore->provenance(entry.first.c_str());
     PropertyTreeHelpers::WalkerFunction printer = [&configStore, topLevel = entry.first](ptree const& parent, ptree::path_type childPath, ptree const& child) {
       // FIXME: not clear why we get invoked for the root entry
       //        and twice for each node. It nevertheless works
@@ -236,8 +257,32 @@ void DataProcessingDevice::Init()
         LOG(INFO) << "[CONFIG] " << topLevel << "." << childPath.dump() << "=" << child.data() << " 1 " << configStore->provenance(topLevel.c_str());
       }
     };
-    PropertyTreeHelpers::traverse(entry.second, printer);
+
+    auto spec = std::find_if(configStore->specs().begin(), configStore->specs().end(), [&](auto& x) { return x.name == entry.first; });
+    if (spec != configStore->specs().end()) {
+      switch (spec->type) {
+        case VariantType::ArrayInt:
+          LOG(INFO) << "[CONFIG] " << entry.first << "=" << arrayPrinter<int>(entry.second) << " 1 " << configStore->provenance(entry.first.c_str());
+          break;
+        case VariantType::ArrayFloat:
+          LOG(INFO) << "[CONFIG] " << entry.first << "=" << arrayPrinter<float>(entry.second) << " 1 " << configStore->provenance(entry.first.c_str());
+          break;
+        case VariantType::ArrayDouble:
+          LOG(INFO) << "[CONFIG] " << entry.first << "=" << arrayPrinter<double>(entry.second) << " 1 " << configStore->provenance(entry.first.c_str());
+          break;
+        case VariantType::ArrayBool:
+          LOG(INFO) << "[CONFIG] " << entry.first << "=" << arrayPrinter<bool>(entry.second) << " 1 " << configStore->provenance(entry.first.c_str());
+          break;
+        default:
+          LOG(INFO) << "[CONFIG] " << entry.first << "=" << configStore->store().get<std::string>(entry.first) << " 1 " << configStore->provenance(entry.first.c_str());
+          PropertyTreeHelpers::traverse(entry.second, printer);
+      }
+    } else {
+      LOG(INFO) << "[CONFIG] " << entry.first << "=" << configStore->store().get<std::string>(entry.first) << " 1 " << configStore->provenance(entry.first.c_str());
+      PropertyTreeHelpers::traverse(entry.second, printer);
+    }
   }
+
   mConfigRegistry = std::make_unique<ConfigParamRegistry>(std::move(configStore));
 
   mExpirationHandlers.clear();

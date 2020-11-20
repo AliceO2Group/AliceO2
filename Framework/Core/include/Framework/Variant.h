@@ -53,17 +53,49 @@ DECLARE_VARIANT_TRAIT(long int, Int64);
 DECLARE_VARIANT_TRAIT(long long int, Int64);
 DECLARE_VARIANT_TRAIT(float, Float);
 DECLARE_VARIANT_TRAIT(double, Double);
+DECLARE_VARIANT_TRAIT(bool, Bool);
+
 DECLARE_VARIANT_TRAIT(const char*, String);
 DECLARE_VARIANT_TRAIT(char*, String);
 DECLARE_VARIANT_TRAIT(char* const, String);
 DECLARE_VARIANT_TRAIT(const char* const, String);
 DECLARE_VARIANT_TRAIT(std::string_view, String);
 DECLARE_VARIANT_TRAIT(std::string, String);
-DECLARE_VARIANT_TRAIT(bool, Bool);
+
 DECLARE_VARIANT_TRAIT(int*, ArrayInt);
 DECLARE_VARIANT_TRAIT(float*, ArrayFloat);
 DECLARE_VARIANT_TRAIT(double*, ArrayDouble);
 DECLARE_VARIANT_TRAIT(bool*, ArrayBool);
+
+DECLARE_VARIANT_TRAIT(std::vector<int>, ArrayInt);
+DECLARE_VARIANT_TRAIT(std::vector<float>, ArrayFloat);
+DECLARE_VARIANT_TRAIT(std::vector<double>, ArrayDouble);
+DECLARE_VARIANT_TRAIT(std::vector<bool>, ArrayBool);
+
+template <typename T>
+struct variant_array_symbol {
+  constexpr static char symbol = 'u';
+};
+
+template <>
+struct variant_array_symbol<int> {
+  constexpr static char symbol = 'i';
+};
+
+template <>
+struct variant_array_symbol<float> {
+  constexpr static char symbol = 'f';
+};
+
+template <>
+struct variant_array_symbol<double> {
+  constexpr static char symbol = 'd';
+};
+
+template <>
+struct variant_array_symbol<bool> {
+  constexpr static char symbol = 'b';
+};
 
 template <typename T>
 inline constexpr VariantType variant_trait_v = variant_trait<T>::value;
@@ -84,6 +116,7 @@ DECLARE_VARIANT_TYPE(float, Float);
 DECLARE_VARIANT_TYPE(double, Double);
 DECLARE_VARIANT_TYPE(const char*, String);
 DECLARE_VARIANT_TYPE(bool, Bool);
+
 DECLARE_VARIANT_TYPE(int*, ArrayInt);
 DECLARE_VARIANT_TYPE(float*, ArrayFloat);
 DECLARE_VARIANT_TYPE(double*, ArrayDouble);
@@ -293,6 +326,7 @@ class Variant
 
   VariantType type() const { return mType; }
   size_t size() const { return mSize; }
+  std::string asString() const;
 
  private:
   friend std::ostream& operator<<(std::ostream& oss, Variant const& val);

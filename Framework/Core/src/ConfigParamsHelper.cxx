@@ -35,8 +35,6 @@ void ConfigParamsHelper::populateBoostProgramOptions(
     if (vetos.find_nothrow(spec.name, false)) {
       continue;
     }
-    const char* name = spec.name.c_str();
-    const char* help = spec.help.c_str();
 
     switch (spec.type) {
       // FIXME: Should we handle int and size_t diffently?
@@ -60,9 +58,17 @@ void ConfigParamsHelper::populateBoostProgramOptions(
         addConfigSpecOption<VariantType::Bool>(spec, options);
         break;
       case VariantType::ArrayInt:
+        addConfigSpecOption<VariantType::ArrayInt>(spec, options);
+        break;
       case VariantType::ArrayFloat:
+        addConfigSpecOption<VariantType::ArrayFloat>(spec, options);
+        break;
       case VariantType::ArrayDouble:
+        addConfigSpecOption<VariantType::ArrayDouble>(spec, options);
+        break;
       case VariantType::ArrayBool:
+        addConfigSpecOption<VariantType::ArrayBool>(spec, options);
+        break;
       case VariantType::Unknown:
       case VariantType::Empty:
         break;
