@@ -17,6 +17,11 @@ namespace o2::aod
 {
 namespace v0data
 {
+//Needed to have shorter table that does not rely on existing one (filtering!)
+DECLARE_SOA_INDEX_COLUMN_FULL(PosTrack, posTrack, int, FullTracks, "fPosTrackID");
+DECLARE_SOA_INDEX_COLUMN_FULL(NegTrack, negTrack, int, FullTracks, "fNegTrackID");
+DECLARE_SOA_INDEX_COLUMN(Collision, collision);
+
 //General V0 properties: position, momentum
 DECLARE_SOA_COLUMN(PxPos, pxpos, float);
 DECLARE_SOA_COLUMN(PyPos, pypos, float);
@@ -62,6 +67,7 @@ DECLARE_SOA_EXPRESSION_COLUMN(Pz, pz, float, 1.f * aod::v0data::pzpos + 1.f * ao
 } // namespace v0dataext
 
 DECLARE_SOA_TABLE(V0Data, "AOD", "V0DATA",
+                  o2::soa::Index<>, v0data::PosTrackId, v0data::NegTrackId, v0data::CollisionId,
                   v0data::X, v0data::Y, v0data::Z,
                   v0data::PxPos, v0data::PyPos, v0data::PzPos,
                   v0data::PxNeg, v0data::PyNeg, v0data::PzNeg,
@@ -91,16 +97,12 @@ DECLARE_SOA_EXTENDED_TABLE_USER(V0DataExt, V0DataOrigin, "V0DATAEXT",
 
 using V0DataFull = V0DataExt;
 
-namespace v0finderdata
-{
-DECLARE_SOA_INDEX_COLUMN_FULL(PosTrack, posTrack, int, FullTracks, "fPosTrackID");
-DECLARE_SOA_INDEX_COLUMN_FULL(NegTrack, negTrack, int, FullTracks, "fNegTrackID");
-DECLARE_SOA_INDEX_COLUMN(Collision, collision);
-} // namespace v0finderdata
-DECLARE_SOA_TABLE(V0FinderData, "AOD", "V0FINDERDATA", o2::soa::Index<>, v0finderdata::PosTrackId, v0finderdata::NegTrackId, v0finderdata::CollisionId);
-
 namespace cascdata
 {
+//Necessary for full filtering functionality
+DECLARE_SOA_INDEX_COLUMN_FULL(V0, v0, int, V0DataExt, "fV0ID");
+DECLARE_SOA_INDEX_COLUMN_FULL(BachTrack, bachTrack, int, FullTracks, "fBachTrackID");
+DECLARE_SOA_INDEX_COLUMN(Collision, collision);
 //General V0 properties: position, momentum
 DECLARE_SOA_COLUMN(Charge, charge, int);
 DECLARE_SOA_COLUMN(PxPos, pxpos, float);
@@ -163,6 +165,8 @@ DECLARE_SOA_EXPRESSION_COLUMN(Pz, pz, float, 1.f * aod::cascdata::pzpos + 1.f * 
 } // namespace cascdataext
 
 DECLARE_SOA_TABLE(CascData, "AOD", "CASCDATA",
+                  o2::soa::Index<>, cascdata::V0Id, cascdata::BachTrackId, cascdata::CollisionId,
+
                   cascdata::Charge,
                   cascdata::X, cascdata::Y, cascdata::Z,
                   cascdata::Xlambda, cascdata::Ylambda, cascdata::Zlambda,
@@ -198,14 +202,6 @@ DECLARE_SOA_EXTENDED_TABLE_USER(CascDataExt, CascDataOrigin, "CascDATAEXT",
                                 cascdataext::Px, cascdataext::Py, cascdataext::Pz);
 
 using CascDataFull = CascDataExt;
-
-namespace cascfinderdata
-{
-DECLARE_SOA_INDEX_COLUMN_FULL(V0, v0, int, V0FinderData, "fV0ID");
-DECLARE_SOA_INDEX_COLUMN_FULL(BachTrack, bachTrack, int, FullTracks, "fBachTrackID");
-DECLARE_SOA_INDEX_COLUMN(Collision, collision);
-} // namespace cascfinderdata
-DECLARE_SOA_TABLE(CascFinderData, "AOD", "CASCFINDERDATA", o2::soa::Index<>, cascfinderdata::V0Id, cascfinderdata::BachTrackId, cascfinderdata::CollisionId);
 } // namespace o2::aod
 
 #endif // O2_ANALYSIS_STRANGENESSTABLES_H_

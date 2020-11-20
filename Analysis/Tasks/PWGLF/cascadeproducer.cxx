@@ -7,6 +7,21 @@
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
+//
+// Cascade Producer task
+// =====================
+//
+// This task loops over an *existing* list of cascades (V0+bachelor track
+// indices) and calculates the corresponding full cascade information
+//
+// Any analysis should loop over the "CascData"
+// table as that table contains all information
+//
+//    Comments, questions, complaints, suggestions?
+//    Please write to:
+//    david.dobrigkeit.chinellato@cern.ch
+//
+
 #include "Framework/runDataProcessing.h"
 #include "Framework/AnalysisTask.h"
 #include "Framework/AnalysisDataModel.h"
@@ -152,7 +167,8 @@ struct cascadeproducer {
         } //end if cascade recoed
       }   //end if v0 recoed
       //Fill table, please
-      cascdata(charge, posXi[0], posXi[1], posXi[2], pos[0], pos[1], pos[2],
+      cascdata(casc.v0().globalIndex(), casc.bachelor().globalIndex(), casc.bachelor().collisionId(),
+               charge, posXi[0], posXi[1], posXi[2], pos[0], pos[1], pos[2],
                pvecpos[0], pvecpos[1], pvecpos[2],
                pvecneg[0], pvecneg[1], pvecneg[2],
                pvecbach[0], pvecbach[1], pvecbach[2],
