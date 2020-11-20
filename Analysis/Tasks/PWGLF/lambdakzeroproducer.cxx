@@ -84,20 +84,26 @@ struct lambdakzeroprefilterpairs {
   {
     for (auto& V0 : V0s) {
       if (tpcrefit) {
-        if (!(V0.posTrack().flags() & 0x40))
+        if (!(V0.posTrack().flags() & 0x40)) {
           continue; //TPC refit
-        if (!(V0.negTrack().flags() & 0x40))
+        }
+        if (!(V0.negTrack().flags() & 0x40)) {
           continue; //TPC refit
+        }
       }
-      if (V0.posTrack().tpcNClsCrossedRows() < mincrossedrows)
+      if (V0.posTrack().tpcNClsCrossedRows() < mincrossedrows) {
         continue;
-      if (V0.negTrack().tpcNClsCrossedRows() < mincrossedrows)
+      }
+      if (V0.negTrack().tpcNClsCrossedRows() < mincrossedrows) {
         continue;
+      }
 
-      if (V0.posTrack_as<FullTracksExt>().dcaXY() < dcapostopv)
+      if (V0.posTrack_as<FullTracksExt>().dcaXY() < dcapostopv) {
         continue;
-      if (V0.negTrack_as<FullTracksExt>().dcaXY() < dcanegtopv)
+      }
+      if (V0.negTrack_as<FullTracksExt>().dcaXY() < dcanegtopv) {
         continue;
+      }
 
       v0goodindices(V0.posTrack().globalIndex(), V0.negTrack().globalIndex(), V0.posTrack().collisionId());
     }
@@ -164,13 +170,15 @@ struct lambdakzeroproducer {
       }
 
       //Apply selections so a skimmed table is created only
-      if (fitter.getChi2AtPCACandidate() < dcav0dau)
+      if (fitter.getChi2AtPCACandidate() < dcav0dau) {
         continue;
+      }
 
       auto V0CosinePA = RecoDecay::CPA(array{collision.posX(), collision.posY(), collision.posZ()}, array{pos[0], pos[1], pos[2]}, array{pvec0[0] + pvec1[0], pvec0[1] + pvec1[1], pvec0[2] + pvec1[2]});
 
-      if (V0CosinePA < v0cospa)
+      if (V0CosinePA < v0cospa) {
         continue;
+      }
 
       v0data(V0.posTrack().globalIndex(), V0.negTrack().globalIndex(), V0.negTrack().collisionId(),
              pos[0], pos[1], pos[2],
