@@ -32,10 +32,6 @@ o2_add_dpl_workflow(trackqa
                     PUBLIC_LINK_LIBRARIES O2::Framework O2::AnalysisDataModel O2::AnalysisCore
                     COMPONENT_NAME Analysis)
 
-o2_add_dpl_workflow(qatask
-                    SOURCES qaTask.cxx
-                    PUBLIC_LINK_LIBRARIES O2::Framework O2::AnalysisDataModel O2::AnalysisCore
-                    COMPONENT_NAME Analysis)
 
 o2_add_dpl_workflow(pid-tof
                     SOURCES pidTOF.cxx
