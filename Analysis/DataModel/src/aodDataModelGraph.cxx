@@ -262,7 +262,6 @@ int main(int, char**)
   displayEntity<JetConstituents>();
 
   displayEntities<V0s, V0DataFull>();
-  displayEntity<V0FinderData>();
 
   displayEntities<Cascades, CascDataFull>();
 

@@ -7,6 +7,21 @@
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
+//
+// V0 Producer task
+// ================
+//
+// This task loops over an *existing* list of V0s (neg/pos track
+// indices) and calculates the corresponding full V0 information
+//
+// Any analysis should loop over the "V0Data"
+// table as that table contains all information
+//
+//    Comments, questions, complaints, suggestions?
+//    Please write to:
+//    david.dobrigkeit.chinellato@cern.ch
+//
+
 #include "Framework/runDataProcessing.h"
 #include "Framework/AnalysisTask.h"
 #include "Framework/AnalysisDataModel.h"
@@ -17,6 +32,8 @@
 #include "Analysis/RecoDecay.h"
 #include "Analysis/trackUtilities.h"
 #include "Analysis/StrangenessTables.h"
+#include "Analysis/TrackSelection.h"
+#include "Analysis/TrackSelectionTables.h"
 
 #include <TFile.h>
 #include <TH2F.h>
@@ -36,6 +53,63 @@ using namespace o2::framework;
 using namespace o2::framework::expressions;
 using std::array;
 
+//This table stores a filtered list of valid V0 indices
+namespace o2::aod
+{
+namespace v0goodindices
+{
+DECLARE_SOA_INDEX_COLUMN_FULL(PosTrack, posTrack, int, FullTracks, "fPositiveTrackID");
+DECLARE_SOA_INDEX_COLUMN_FULL(NegTrack, negTrack, int, FullTracks, "fNegativeTrackID");
+DECLARE_SOA_INDEX_COLUMN(Collision, collision);
+} // namespace v0goodindices
+DECLARE_SOA_TABLE(V0GoodIndices, "AOD", "V0GOODINDICES", o2::soa::Index<>,
+                  v0goodindices::PosTrackId, v0goodindices::NegTrackId, v0goodindices::CollisionId);
+} // namespace o2::aod
+
+using FullTracksExt = soa::Join<aod::FullTracks, aod::TracksExtended>;
+
+//This prefilter creates a skimmed list of good V0s to re-reconstruct so that
+//CPU is saved in case there are specific selections that are to be done
+//Note: more configurables, more options to be added as needed
+struct lambdakzeroprefilterpairs {
+  Configurable<float> dcanegtopv{"dcanegtopv", .1, "DCA Neg To PV"};
+  Configurable<float> dcapostopv{"dcapostopv", .1, "DCA Pos To PV"};
+  Configurable<int> mincrossedrows{"mincrossedrows", 70, "min crossed rows"};
+  Configurable<bool> tpcrefit{"tpcrefit", 1, "demand TPC refit"};
+
+  Produces<aod::V0GoodIndices> v0goodindices;
+
+  void process(aod::Collision const& collision, aod::V0s const& V0s,
+               soa::Join<aod::FullTracks, aod::TracksExtended> const& tracks)
+  {
+    for (auto& V0 : V0s) {
+      if (tpcrefit) {
+        if (!(V0.posTrack().flags() & 0x40)) {
+          continue; //TPC refit
+        }
+        if (!(V0.negTrack().flags() & 0x40)) {
+          continue; //TPC refit
+        }
+      }
+      if (V0.posTrack().tpcNClsCrossedRows() < mincrossedrows) {
+        continue;
+      }
+      if (V0.negTrack().tpcNClsCrossedRows() < mincrossedrows) {
+        continue;
+      }
+
+      if (V0.posTrack_as<FullTracksExt>().dcaXY() < dcapostopv) {
+        continue;
+      }
+      if (V0.negTrack_as<FullTracksExt>().dcaXY() < dcanegtopv) {
+        continue;
+      }
+
+      v0goodindices(V0.posTrack().globalIndex(), V0.negTrack().globalIndex(), V0.posTrack().collisionId());
+    }
+  }
+};
+
 /// Cascade builder task: rebuilds cascades
 struct lambdakzeroproducer {
 
@@ -48,25 +122,18 @@ struct lambdakzeroproducer {
   Configurable<double> d_bz{"d_bz", -5.0, "bz field"};
   Configurable<double> d_UseAbsDCA{"d_UseAbsDCA", kTRUE, "Use Abs DCAs"};
 
+  //Selection criteria
+  Configurable<double> v0cospa{"v0cospa", 0.995, "V0 CosPA"}; //double -> N.B. dcos(x)/dx = 0 at x=0)
+  Configurable<float> dcav0dau{"dcav0dau", 1.0, "DCA V0 Daughters"};
+  Configurable<float> v0radius{"v0radius", 5.0, "v0radius"};
+
   double massPi = TDatabasePDG::Instance()->GetParticle(kPiPlus)->Mass();
   double massKa = TDatabasePDG::Instance()->GetParticle(kKPlus)->Mass();
   double massPr = TDatabasePDG::Instance()->GetParticle(kProton)->Mass();
 
-  /// Extracts dca in the XY plane
-  /// \return dcaXY
-  template <typename T, typename U>
-  auto getdcaXY(const T& track, const U& coll)
-  {
-    //Calculate DCAs
-    auto sinAlpha = sin(track.alpha());
-    auto cosAlpha = cos(track.alpha());
-    auto globalX = track.x() * cosAlpha - track.y() * sinAlpha;
-    auto globalY = track.x() * sinAlpha + track.y() * cosAlpha;
-    return sqrt(pow((globalX - coll[0]), 2) +
-                pow((globalY - coll[1]), 2));
-  }
+  using FullTracksExt = soa::Join<aod::FullTracks, aod::TracksExtended>;
 
-  void process(aod::Collision const& collision, aod::V0s const& V0s, aod::FullTracks const& tracks)
+  void process(aod::Collision const& collision, aod::V0GoodIndices const& V0s, soa::Join<aod::FullTracks, aod::TracksExtended> const& tracks)
   {
     //Define o2 fitter, 2-prong
     o2::vertexing::DCAFitterN<2> fitter;
@@ -102,12 +169,24 @@ struct lambdakzeroproducer {
         fitter.getTrack(1).getPxPyPzGlo(pvec1);
       }
 
-      v0data(pos[0], pos[1], pos[2],
+      //Apply selections so a skimmed table is created only
+      if (fitter.getChi2AtPCACandidate() < dcav0dau) {
+        continue;
+      }
+
+      auto V0CosinePA = RecoDecay::CPA(array{collision.posX(), collision.posY(), collision.posZ()}, array{pos[0], pos[1], pos[2]}, array{pvec0[0] + pvec1[0], pvec0[1] + pvec1[1], pvec0[2] + pvec1[2]});
+
+      if (V0CosinePA < v0cospa) {
+        continue;
+      }
+
+      v0data(V0.posTrack().globalIndex(), V0.negTrack().globalIndex(), V0.negTrack().collisionId(),
+             pos[0], pos[1], pos[2],
              pvec0[0], pvec0[1], pvec0[2],
              pvec1[0], pvec1[1], pvec1[2],
              fitter.getChi2AtPCACandidate(),
-             getdcaXY(V0.posTrack(), pVtx),
-             getdcaXY(V0.negTrack(), pVtx));
+             V0.posTrack_as<FullTracksExt>().dcaXY(),
+             V0.negTrack_as<FullTracksExt>().dcaXY());
     }
   }
 };

@@ -8,7 +8,24 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 //
-// This task re-reconstructs the V0s and cascades
+// Cascade Finder task
+// ===================
+//
+// This code loops over existing V0s and bachelor tracks and finds
+// valid cascade candidates from scratch using a certain set of
+// minimum (configurable) selection criteria.
+//
+// It is different than the producer: the producer merely
+// loops over an *existing* list of cascades (V0+bachelor track
+// indices) and calculates the corresponding full cascade information
+//
+// In both cases, any analysis should loop over the "CascData"
+// table as that table contains all information.
+//
+//    Comments, questions, complaints, suggestions?
+//    Please write to:
+//    david.dobrigkeit.chinellato@cern.ch
+//
 
 #include "Framework/runDataProcessing.h"
 #include "Framework/AnalysisTask.h"
@@ -47,8 +64,6 @@ using namespace ROOT::Math;
 namespace o2::aod
 {
 
-using V0FinderFull = soa::Join<aod::V0FinderData, aod::V0DataExt>;
-
 namespace cascgoodpostracks
 {
 DECLARE_SOA_INDEX_COLUMN_FULL(GoodPosTrack, goodPosTrack, int, FullTracks, "fGoodPosTrackID");
@@ -65,13 +80,13 @@ DECLARE_SOA_COLUMN(DCAXY, dcaXY, float);
 DECLARE_SOA_TABLE(CascGoodNegTracks, "AOD", "CASCGOODNTRACKS", o2::soa::Index<>, cascgoodnegtracks::GoodNegTrackId, cascgoodnegtracks::CollisionId, cascgoodnegtracks::DCAXY);
 namespace cascgoodlambdas
 {
-DECLARE_SOA_INDEX_COLUMN_FULL(GoodLambda, goodLambda, int, V0FinderFull, "fGoodLambdaId");
+DECLARE_SOA_INDEX_COLUMN_FULL(GoodLambda, goodLambda, int, V0DataExt, "fGoodLambdaId");
 DECLARE_SOA_INDEX_COLUMN(Collision, collision);
 } // namespace cascgoodlambdas
 DECLARE_SOA_TABLE(CascGoodLambdas, "AOD", "CASCGOODLAM", o2::soa::Index<>, cascgoodlambdas::GoodLambdaId, cascgoodlambdas::CollisionId);
 namespace cascgoodantilambdas
 {
-DECLARE_SOA_INDEX_COLUMN_FULL(GoodAntiLambda, goodAntiLambda, int, V0FinderFull, "fGoodAntiLambdaId");
+DECLARE_SOA_INDEX_COLUMN_FULL(GoodAntiLambda, goodAntiLambda, int, V0DataExt, "fGoodAntiLambdaId");
 DECLARE_SOA_INDEX_COLUMN(Collision, collision);
 } // namespace cascgoodantilambdas
 DECLARE_SOA_TABLE(CascGoodAntiLambdas, "AOD", "CASCGOODALAM", o2::soa::Index<>, cascgoodantilambdas::GoodAntiLambdaId, cascgoodantilambdas::CollisionId);
@@ -95,11 +110,13 @@ struct cascadeprefilter {
   Partition<soa::Join<aod::FullTracks, aod::TracksExtended>> goodPosTracks = aod::track::signed1Pt > 0.0f && aod::track::dcaXY > dcabachtopv;
   Partition<soa::Join<aod::FullTracks, aod::TracksExtended>> goodNegTracks = aod::track::signed1Pt < 0.0f && aod::track::dcaXY < -dcabachtopv;
 
-  Partition<soa::Join<aod::V0FinderData, aod::V0DataExt>> goodV0s = aod::v0data::dcapostopv > dcapostopv&& aod::v0data::dcanegtopv > dcanegtopv&& aod::v0data::dcaV0daughters < dcav0dau;
+  Partition<aod::V0DataExt> goodV0s = aod::v0data::dcapostopv > dcapostopv&& aod::v0data::dcanegtopv > dcanegtopv&& aod::v0data::dcaV0daughters < dcav0dau;
+
+  using FullTracksExt = soa::Join<aod::FullTracks, aod::TracksExtended>;
 
   void process(aod::Collision const& collision,
-               soa::Join<aod::FullTracks, aod::TracksExtended> const& tracks,
-               soa::Join<aod::V0FinderData, aod::V0DataExt> const& V0s)
+               FullTracksExt const& tracks,
+               aod::V0DataExt const& V0s)
   {
     for (auto& t0 : goodPosTracks) {
       if (!(t0.flags() & 0x40)) {
@@ -139,7 +156,6 @@ struct cascadeprefilter {
 
 struct cascadefinder {
   Produces<aod::CascData> cascdata;
-  Produces<aod::CascFinderData> cascfinderdata;
 
   OutputObj<TH1F> hCandPerEvent{TH1F("hCandPerEvent", "", 100, 0, 100)};
 
@@ -155,7 +171,7 @@ struct cascadefinder {
   //Process: subscribes to a lot of things!
   void process(aod::Collision const& collision,
                aod::FullTracks const& tracks,
-               soa::Join<aod::V0FinderData, aod::V0DataExt> const& V0s,
+               aod::V0DataExt const& V0s,
                aod::CascGoodLambdas const& lambdas,
                aod::CascGoodAntiLambdas const& antiLambdas,
                aod::CascGoodPosTracks const& pBachtracks,
@@ -248,8 +264,8 @@ struct cascadefinder {
 
             lNCand++;
             //If we got here, it means this is a good candidate!
-            cascfinderdata(v0.globalIndex(), t0.globalIndex(), t0.collisionId());
-            cascdata(-1, posXi[0], posXi[1], posXi[2], pos[0], pos[1], pos[2],
+            cascdata(v0.globalIndex(), v0.posTrack().globalIndex(), v0.negTrack().collisionId(),
+                     -1, posXi[0], posXi[1], posXi[2], pos[0], pos[1], pos[2],
                      pvecpos[0], pvecpos[1], pvecpos[2],
                      pvecneg[0], pvecneg[1], pvecneg[2],
                      pvecbach[0], pvecbach[1], pvecbach[2],
@@ -320,8 +336,8 @@ struct cascadefinder {
 
             lNCand++;
             //If we got here, it means this is a good candidate!
-            cascfinderdata(v0.globalIndex(), t0.globalIndex(), t0.collisionId());
-            cascdata(+1, posXi[0], posXi[1], posXi[2], pos[0], pos[1], pos[2],
+            cascdata(v0.globalIndex(), v0.posTrack().globalIndex(), v0.negTrack().collisionId(),
+                     +1, posXi[0], posXi[1], posXi[2], pos[0], pos[1], pos[2],
                      pvecpos[0], pvecpos[1], pvecpos[2],
                      pvecneg[0], pvecneg[1], pvecneg[2],
                      pvecbach[0], pvecbach[1], pvecbach[2],
@@ -364,7 +380,7 @@ struct cascadefinderQA {
                                                                                                           aod::cascdata::dcaV0daughters < dcav0dau&& aod::cascdata::dcacascdaughters < dcacascdau;
 
   ///Connect to CascFinderData: newly indexed, note: CascDataExt table incompatible with standard V0 table!
-  void process(soa::Join<aod::Collisions, aod::EvSels, aod::Cents>::iterator const& collision, soa::Filtered<soa::Join<aod::CascFinderData, aod::CascDataExt>> const& Cascades)
+  void process(soa::Join<aod::Collisions, aod::EvSels, aod::Cents>::iterator const& collision, soa::Filtered<aod::CascDataExt> const& Cascades)
   {
     if (!collision.alias()[kINT7]) {
       return;
