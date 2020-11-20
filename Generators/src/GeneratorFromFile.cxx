@@ -14,6 +14,7 @@
 #include <TBranch.h>
 #include <TClonesArray.h>
 #include <TFile.h>
+#include <TMCProcess.h>
 #include <TParticle.h>
 #include <TTree.h>
 #include <sstream>
@@ -110,7 +111,7 @@ Bool_t GeneratorFromFile::ReadEvent(FairPrimaryGenerator* primGen)
     auto isFirstTrackableDescendant = [](TParticle const& p) {
       const int kTransportBit = BIT(14);
       // The particle should have not set kDone bit and its status should not exceed 1
-      if (p.GetUniqueID() > 0 || !p.TestBit(kTransportBit)) {
+      if ((p.GetUniqueID() > 0 && p.GetUniqueID() != kPNoProcess) || !p.TestBit(kTransportBit)) {
         return false;
       }
       return true;
