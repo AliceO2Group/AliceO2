@@ -56,6 +56,26 @@ void MCKinematicsReader::loadHeadersForSource(int source) const
   }
 }
 
+void MCKinematicsReader::loadTrackRefsForSource(int source) const
+{
+  auto chain = mInputChains[source];
+  if (chain) {
+    // todo: get name from NameConfig
+    auto br = chain->GetBranch("IndexedTrackRefs");
+    if (br) {
+      o2::dataformats::MCTruthContainer<o2::TrackReference>* refs = nullptr;
+      br->SetAddress(&refs);
+      mTrackRefs[source].resize(br->GetEntries());
+      for (int event = 0; event < br->GetEntries(); ++event) {
+        br->GetEntry(event);
+        mTrackRefs[source][event] = *refs;
+      }
+    } else {
+      LOG(WARN) << "IndexedTrackRefs branch not found";
+    }
+  }
+}
+
 bool MCKinematicsReader::initFromDigitContext(std::string_view name)
 {
   if (mInitialized) {
@@ -76,6 +96,7 @@ bool MCKinematicsReader::initFromDigitContext(std::string_view name)
   // load the kinematics information
   mTracks.resize(mInputChains.size());
   mHeaders.resize(mInputChains.size());
+  mTrackRefs.resize(mInputChains.size());
 
   // actual loading will be done only if someone asks
   // the first time for a particular source ...
@@ -93,6 +114,7 @@ bool MCKinematicsReader::initFromKinematics(std::string_view name)
   mInputChains.back()->AddFile(o2::base::NameConf::getMCKinematicsFileName(name.data()).c_str());
   mTracks.resize(1);
   mHeaders.resize(1);
+  mTrackRefs.resize(1);
   mInitialized = true;
 
   return true;
