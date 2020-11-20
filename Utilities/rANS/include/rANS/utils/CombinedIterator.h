@@ -130,6 +130,7 @@ auto CombinedInputIterator<iterA_T, iterB_T, F>::operator=(const CombinedInputIt
 {
   mIterA = other.mIterA;
   mIterB = other.mIterB;
+  return *this;
 }
 
 template <class iterA_T, class iterB_T, class F>
@@ -176,6 +177,7 @@ auto CombinedOutputIterator<iterA_T, iterB_T, F>::operator=(const CombinedOutput
 {
   mIterA = other.mIterA;
   mIterB = other.mIterB;
+  return *this;
 }
 
 template <class iterA_T, class iterB_T, class F>
