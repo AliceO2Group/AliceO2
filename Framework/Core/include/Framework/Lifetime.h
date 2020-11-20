@@ -16,7 +16,7 @@ namespace o2::framework
 /// Possible Lifetime of objects being exchanged by the DPL.
 enum struct Lifetime {
   /// A message which is associated to a timeframe. DPL will wait indefinitely for it by default.
-  Timeframe, 
+  Timeframe,
   /// Eventually a message whose content is retrieved from CCDB
   Condition,
   /// Do not use for now
@@ -28,7 +28,14 @@ enum struct Lifetime {
   /// A message which is created immediately, with payload / containing a
   /// single value which gets incremented for every / invokation.
   Enumeration,
-  Signal
+  /// A message which is created every time a SIGUSR1 is received.
+  Signal,
+  /// An optional message. When data arrives, if not already part of the data,
+  /// a dummy entry will be generated.
+  /// This comes handy e.g. to handle Raw Data, since DataDistribution will provide
+  /// everything in one go so whatever is expected but not there, for whatever reason
+  /// will be substituted with a dummy entry.
+  Optional
 };
 
 } // namespace o2::framework

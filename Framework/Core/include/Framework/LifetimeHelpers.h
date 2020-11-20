@@ -7,8 +7,8 @@
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
-#ifndef FRAMEWORK_LIFETIMEHELPERS_H
-#define FRAMEWORK_LIFETIMEHELPERS_H
+#ifndef O2_FRAMEWORK_LIFETIMEHELPERS_H_
+#define O2_FRAMEWORK_LIFETIMEHELPERS_H_
 
 #include "Framework/ExpirationHandler.h"
 #include "Framework/PartRef.h"
@@ -17,9 +17,7 @@
 #include <functional>
 #include <string>
 
-namespace o2
-{
-namespace framework
+namespace o2::framework
 {
 
 struct ConcreteDataMatcher;
@@ -33,6 +31,7 @@ struct LifetimeHelpers {
   /// Callback which creates a new timeslice as soon as one is available and
   /// uses an incremental number as timestamp.
   static ExpirationHandler::Creator enumDrivenCreation(size_t first, size_t last, size_t step, size_t inputTimeslice, size_t maxTimeSliceId);
+
   /// Callback which creates a new timeslice when timer
   /// expires and there is not a compatible datadriven callback
   /// available.
@@ -78,9 +77,12 @@ struct LifetimeHelpers {
   /// The payload of each message will contain an incremental number for each
   /// message being created.
   static ExpirationHandler::Handler enumerate(ConcreteDataMatcher const& spec, std::string const& sourceChannel);
+
+  /// Create a dummy (empty) message every time a record expires, suing @a spec
+  /// as content of the payload.
+  static ExpirationHandler::Handler dummy(ConcreteDataMatcher const& spec, std::string const& sourceChannel);
 };
 
-} // namespace framework
-} // namespace o2
+} // namespace o2::framework
 
-#endif // FRAMEWORK_LIFETIMEHELPERS_H
+#endif // O2_FRAMEWORK_LIFETIMEHELPERS_H_

@@ -28,9 +28,7 @@
 using namespace o2::header;
 using namespace fair;
 
-namespace o2
-{
-namespace framework
+namespace o2::framework
 {
 
 namespace
@@ -303,5 +301,34 @@ ExpirationHandler::Handler LifetimeHelpers::enumerate(ConcreteDataMatcher const&
   return f;
 }
 
-} // namespace framework
-} // namespace o2
+/// Create a dummy message with the provided ConcreteDataMatcher
+ExpirationHandler::Handler LifetimeHelpers::dummy(ConcreteDataMatcher const& matcher, std::string const& sourceChannel)
+{
+  using counter_t = int64_t;
+  auto counter = std::make_shared<counter_t>(0);
+  auto f = [matcher, counter, sourceChannel](ServiceRegistry& services, PartRef& ref, uint64_t timestamp) -> void {
+    // We should invoke the handler only once.
+    assert(!ref.header);
+    assert(!ref.payload);
+    auto& rawDeviceService = services.get<RawDeviceService>();
+
+    DataHeader dh;
+    dh.dataOrigin = matcher.origin;
+    dh.dataDescription = matcher.description;
+    dh.subSpecification = matcher.subSpec;
+    dh.payloadSize = 0;
+    dh.payloadSerializationMethod = gSerializationMethodNone;
+
+    DataProcessingHeader dph{timestamp, 1};
+
+    auto&& transport = rawDeviceService.device()->GetChannel(sourceChannel, 0).Transport();
+    auto channelAlloc = o2::pmr::getTransportAllocator(transport);
+    auto header = o2::pmr::getMessage(o2::header::Stack{channelAlloc, dh, dph});
+    ref.header = std::move(header);
+    auto payload = rawDeviceService.device()->NewMessage(0);
+    ref.payload = std::move(payload);
+  };
+  return f;
+}
+
+} // namespace o2::framework

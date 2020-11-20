@@ -323,6 +323,7 @@ void WorkflowHelpers::injectServiceDevices(WorkflowSpec& workflow, ConfigContext
         case Lifetime::QA:
         case Lifetime::Transient:
         case Lifetime::Timeframe:
+        case Lifetime::Optional:
           break;
       }
       if (DataSpecUtils::partialMatch(input, header::DataOrigin{"AOD"})) {
