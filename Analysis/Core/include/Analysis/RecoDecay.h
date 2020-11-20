@@ -443,24 +443,30 @@ class RecoDecay
     for (auto iProng = 0; iProng < N; ++iProng) {
       auto particleI = arrDaughters[iProng].label(); // ith daughter particle
       arrDaughtersIndex[iProng] = particleI.globalIndex();
-      auto indexParticleIMother = particleI.mother0();
-      if (indexParticleIMother == -1) {
-        //Printf("MC Rec. rejected: bad mother index: %d", indexParticleIMother);
-        return false;
-      }
-      // Get the mother.
-      auto particleIMother = particlesMC.iteratorAt(indexParticleIMother);
-      // Check mother's PDG code.
-      auto PDGParticleIMother = particleIMother.pdgCode(); // PDG code of the mother of the ith daughter
-      //Printf("MC Rec.: Daughter %d mother PDG: %d", iProng, PDGParticleIMother);
-      if (PDGParticleIMother != sgn * PDGMother) {
-        if (acceptAntiParticles && iProng == 0 && PDGParticleIMother == -PDGMother) {
+      // Get the mother by looking for the expected PDG code in the mother chain.
+      int indexParticleIMother = -1;
+      auto particleIMother = particleI;
+      while (particleIMother.mother0() != -1) {
+        auto indexParticleIMotherTmp = particleIMother.mother0();
+        particleIMother = particlesMC.iteratorAt(indexParticleIMotherTmp);
+        // Check mother's PDG code.
+        auto PDGParticleIMother = particleIMother.pdgCode(); // PDG code of the mother of the ith daughter
+        //Printf("MC Rec.: Daughter %d mother PDG: %d", iProng, PDGParticleIMother);
+        if (PDGParticleIMother == sgn * PDGMother) {
+          indexParticleIMother = indexParticleIMotherTmp;
+          break;
+        }
+        else if (acceptAntiParticles && iProng == 0 && PDGParticleIMother == -PDGMother) {
           sgn = -1; // PDG code of the first daughter's mother determines whether the expected mother is a particle or antiparticle.
-        } else {
-          //Printf("MC Rec. rejected: bad mother PDG: %s%d != %d", acceptAntiParticles ? "abs " : "", PDGParticleIMother, sgn * PDGMother);
-          return false;
+          indexParticleIMother = indexParticleIMotherTmp;
+          break;
         }
       }
+      if (indexParticleIMother == -1) {
+        //Printf("MC Rec. rejected: bad mother index or PDG: %d", indexParticleIMother);
+        return false;
+      }
+
       // Check that all daughters have the same mother.
       if (iProng == 0) {
         indexMother = indexParticleIMother;
