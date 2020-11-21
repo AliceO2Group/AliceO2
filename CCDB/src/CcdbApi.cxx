@@ -659,7 +659,7 @@ bool CcdbApi::checkAlienToken() const
   if (getenv("JALIEN_TOKEN_CERT")) {
     return true;
   }
-  auto returncode = system("timeout 1s timeout 1s alien-token-info &> /dev/null");
+  auto returncode = system("alien-token-info > /dev/null 2> /dev/null");
   return returncode == 0;
 }
 
@@ -757,20 +757,30 @@ void* CcdbApi::navigateURLsAndRetrieveContent(CURL* curl_handle, std::string con
     else if (300 <= response_code && response_code < 400) {
       // we try content locations in order of appearance until one succeeds
       // 1st: The "Location" field
-      // 2nd: Possible "Content-Location" fields
-      auto tryLocations = [this, &curl_handle, &content, cl](auto range) {
+      // 2nd: Possible "Content-Location" fields - Location field
+      std::vector<std::string> locs;
+      auto iter = mHeaderData.find("Location");
+      if (iter != mHeaderData.end()) {
+        locs.push_back(iter->second);
+      }
+      // add alternative locations (not yet included)
+      auto iter2 = mHeaderData.find("Content-Location");
+      if (iter2 != mHeaderData.end()) {
+        auto range = mHeaderData.equal_range("Content-Location");
         for (auto it = range.first; it != range.second; ++it) {
-          auto nextlocation = it->second;
-          LOG(DEBUG) << "Trying content location " << nextlocation;
-          content = navigateURLsAndRetrieveContent(curl_handle, nextlocation, cl, nullptr);
+          if (std::find(locs.begin(), locs.end(), it->second) == locs.end()) {
+            locs.push_back(it->second);
+          }
+        }
+      }
+      for (auto& l : locs) {
+        if (l.size() > 0) {
+          LOG(DEBUG) << "Trying content location " << l;
+          content = navigateURLsAndRetrieveContent(curl_handle, l, cl, nullptr);
           if (content /* or other success marker in future */) {
             break;
           }
         }
-      };
-      tryLocations(mHeaderData.equal_range("Location"));
-      if (content == nullptr) {
-        tryLocations(mHeaderData.equal_range("Content-Location"));
       }
     } else if (response_code == 404) {
       LOG(ERROR) << "Requested resource does not exist";
