@@ -423,7 +423,83 @@ class RecoDecay
     return newMass;
   }
 
-  /// Check whether the reconstructed decay candidate is the expected decay.
+  /// Gets the complete list of indices of final-state daughters of an MC particle.
+  /// \param particlesMC  table with MC particles
+  /// \param index  index of the MC particle
+  /// \param list  vector where the indices of final-state daughters will be added
+  /// \param arrPDGFinal  array of PDG codes of particles to be considered final
+  /// \param stage  decay tree level; If different from 0, the particle itself will be added in the list in case it has no daughters.
+  /// \note Final state is defined as particles from arrPDGFinal plus final daughters of any other decay branch.
+  template <std::size_t N, typename T>
+  static void getDaughters(const T& particlesMC,
+                           int index,
+                           std::vector<int>* list,
+                           const array<int, N>& arrPDGFinal,
+                           int8_t stage = 0)
+  {
+    if (index == -1) {
+      Printf("getDaughters: Error: No particle: index %d", index);
+      return;
+    }
+    if (!list) {
+      Printf("getDaughters: Error: No list!");
+      return;
+    }
+    // Get the particle.
+    auto particle = particlesMC.iteratorAt(index);
+    bool isFinal = false; // Flag to indicate the end of recursion
+    // Get the range of daughter indices.
+    int indexDaughterFirst = particle.daughter0();
+    int indexDaughterLast = particle.daughter1();
+    // Check whether there are any daughters.
+    if (indexDaughterFirst == -1 && indexDaughterLast == -1) {
+      // If the original particle has no daughters, we do nothing and exit.
+      if (stage == 0) {
+        Printf("No daughters of %d", index);
+        return;
+      }
+      // If this is not the original particle, we are at the end of this branch and this particle is final.
+      isFinal = true;
+    }
+    // If the particle has daughters but is considered to be final, we label it as final.
+    auto PDGParticle = particle.pdgCode();
+    for (auto iPDG : arrPDGFinal) {
+      if (std::abs(PDGParticle) == std::abs(iPDG)) {
+        isFinal = true;
+        break;
+      }
+    }
+    // If the particle is labelled as final, we add this particle in the list of final daughters and exit.
+    if (isFinal) {
+      for (int i = 0; i < stage; i++) // Indent to make the tree look nice.
+        printf(" ");
+      printf("Stage %d: Adding %d (PDG %d) as final daughter.\n", stage, index, PDGParticle);
+      list->push_back(index);
+      return;
+    }
+    // If we are here, we have to follow the daughter tree.
+    for (int i = 0; i < stage; i++) // Indent to make the tree look nice.
+      printf(" ");
+    printf("Stage %d: %d (PDG %d) -> %d-%d\n", stage, index, PDGParticle, indexDaughterFirst, indexDaughterLast);
+    // Call itself to get daughters of daughters recursively.
+    // Get daughters of the first daughter.
+    if (indexDaughterFirst != -1) {
+      getDaughters(particlesMC, indexDaughterFirst, list, arrPDGFinal, stage + 1);
+    }
+    // Get daughters of the daughters in between if any.
+    // Daughter indices are supposed to be consecutive. Reverse order will not work here.
+    if (indexDaughterFirst != -1 && indexDaughterLast != -1) {
+      for (auto iD = indexDaughterFirst + 1; iD < indexDaughterLast; ++iD) {
+        getDaughters(particlesMC, iD, list, arrPDGFinal, stage + 1);
+      }
+    }
+    // Get daughters of the last daughter if different from the first one.
+    if (indexDaughterLast != -1 && indexDaughterLast != indexDaughterFirst) {
+      getDaughters(particlesMC, indexDaughterLast, list, arrPDGFinal, stage + 1);
+    }
+  }
+
+  /// Checks whether the reconstructed decay candidate is the expected decay.
   /// \param particlesMC  table with MC particles
   /// \param arrDaughters  array of candidate daughters
   /// \param PDGMother  expected mother PDG code
@@ -433,78 +509,107 @@ class RecoDecay
   template <std::size_t N, typename T, typename U>
   static bool isMCMatchedDecayRec(const T& particlesMC, const array<U, N>& arrDaughters, int PDGMother, array<int, N> arrPDGDaughters, bool acceptAntiParticles = false)
   {
-    //Printf("MC Rec.: Expected mother PDG: %d", PDGMother);
-    int sgn = 1;                     // 1 if the expected mother is particle, -1 if antiparticle
+    Printf("MC Rec.: Expected mother PDG: %d", PDGMother);
+    int sgn = 1;                     // 1 if the expected mother is particle, -1 if antiparticle (w.r.t. PDGMother)
     int indexMother = -1;            // index of the mother particle
     int indexDaughterFirst = -1;     // index of the first daughter
     int indexDaughterLast = -1;      // index of the last daughter
-    array<int, N> arrDaughtersIndex; // array of daughter indices
-    // loop over daughter particles
+    std::vector<int> arrAllDaughtersIndex; // vector of indices of all daughters of the mother of the first provided daughter
+    array<int, N> arrDaughtersIndex; // array of indices of provided daughters
+    // Loop over decay candidate prongs
     for (auto iProng = 0; iProng < N; ++iProng) {
       auto particleI = arrDaughters[iProng].label(); // ith daughter particle
       arrDaughtersIndex[iProng] = particleI.globalIndex();
       // Get the mother by looking for the expected PDG code in the mother chain.
-      int indexParticleIMother = -1;
-      auto particleIMother = particleI;
+      int indexParticleIMother = -1; // index of the final matched mother, if found
+      auto particleIMother = particleI; // Initialise loop over mothers.
+      int stage = 0; // mother tree level (just for debugging)
       while (particleIMother.mother0() != -1) {
         auto indexParticleIMotherTmp = particleIMother.mother0();
         particleIMother = particlesMC.iteratorAt(indexParticleIMotherTmp);
         // Check mother's PDG code.
         auto PDGParticleIMother = particleIMother.pdgCode(); // PDG code of the mother of the ith daughter
-        //Printf("MC Rec.: Daughter %d mother PDG: %d", iProng, PDGParticleIMother);
-        if (PDGParticleIMother == sgn * PDGMother) {
+        for (int i = stage; i < 0; i++) // Indent to make the tree look nice.
+          printf(" ");
+        printf("MC Rec: Stage %d: Daughter %d mother PDG: %d\n", stage, iProng, PDGParticleIMother);
+        if (PDGParticleIMother == sgn * PDGMother) { // exact PDG match
           indexParticleIMother = indexParticleIMotherTmp;
           break;
         }
-        else if (acceptAntiParticles && iProng == 0 && PDGParticleIMother == -PDGMother) {
+        else if (acceptAntiParticles && iProng == 0 && PDGParticleIMother == -PDGMother) { // antiparticle PDG match
           sgn = -1; // PDG code of the first daughter's mother determines whether the expected mother is a particle or antiparticle.
           indexParticleIMother = indexParticleIMotherTmp;
           break;
         }
+        stage--;
       }
+      // Check whether mother was found.
       if (indexParticleIMother == -1) {
-        //Printf("MC Rec. rejected: bad mother index or PDG: %d", indexParticleIMother);
+        Printf("MC Rec. rejected: bad mother index or PDG");
         return false;
       }
+      Printf("MC Rec. Good mother: %d", indexParticleIMother);
 
       // Check that all daughters have the same mother.
       if (iProng == 0) {
-        indexMother = indexParticleIMother;
+        indexMother = indexParticleIMother; // The first daughter sets the expected mother index.
       } else if (indexParticleIMother != indexMother) {
-        //Printf("MC Rec. rejected: different mothers: %d %d", indexMother, indexParticleIMother);
+        Printf("MC Rec. rejected: different mothers: %d %d", indexMother, indexParticleIMother);
         return false;
       }
-      // Set the range of expected daughter indices.
+      // Get the list of expected daughter indices.
       if (iProng == 0) {
         indexDaughterFirst = particleIMother.daughter0();
         indexDaughterLast = particleIMother.daughter1();
         // Check the daughter indices.
-        // Daughter indices are supposed to be consecutive.
-        if (indexDaughterLast <= indexDaughterFirst || indexDaughterFirst == -1 || indexDaughterLast == -1) {
-          //Printf("MC Rec. rejected: bad daughter index range: %d-%d", indexDaughterFirst, indexDaughterLast);
+        // Daughter indices are supposed to be consecutive and in increasing order.
+        // Same indices indicate a single daughter.
+        if (indexDaughterLast < indexDaughterFirst || indexDaughterFirst == -1 || indexDaughterLast == -1) {
+          Printf("MC Rec. rejected: bad daughter index range: %d-%d", indexDaughterFirst, indexDaughterLast);
           return false;
         }
-        // Check the number of daughters.
-        if (indexDaughterLast - indexDaughterFirst + 1 != N) {
-          //Printf("MC Rec. rejected: incorrect number of daughters: %d", indexDaughterLast - indexDaughterFirst + 1);
+        // Check that the number of direct daughters is not larger than the number of expected final daughters.
+        if (indexDaughterLast - indexDaughterFirst + 1 > N) {
+          Printf("MC Rec. rejected: too many direct daughters: %d (expected %d final)", indexDaughterLast - indexDaughterFirst + 1, N);
+          return false;
+        }
+        // Get the list of final daughters.
+        getDaughters(particlesMC, indexMother, &arrAllDaughtersIndex, arrPDGDaughters);
+        printf("Mother %d has %d final daughters:", indexMother, arrAllDaughtersIndex.size());
+        for (auto i : arrAllDaughtersIndex) {
+          printf(" %d", i);
+        }
+        printf("\n");
+        // Check whether the number of final daughters is equal to the number of provided prongs.
+        if (arrAllDaughtersIndex.size() != N) {
+          Printf("MC Rec. rejected: incorrect number of final daughters: %d (expected %d)", arrAllDaughtersIndex.size(), N);
           return false;
         }
       }
-      // Check that the daughter is not a stepdaughter.
-      if (arrDaughtersIndex[iProng] < indexDaughterFirst || arrDaughtersIndex[iProng] > indexDaughterLast) {
-        //Printf("MC Rec. rejected: stepdaughter: %d outside %d-%d", arrDaughtersIndex[iProng], indexDaughterFirst, indexDaughterLast);
+      // Check that the daughter is not a stepdaughter (particle pointing to the mother while not being its daughter).
+      // (Hopefully unnecessary)
+      bool isDaughterFound = false;
+      for (auto iD : arrAllDaughtersIndex) {
+        if (arrDaughtersIndex[iProng] == iD) {
+          isDaughterFound = true;
+          break;
+        }
+      }
+      if (!isDaughterFound) {
+        Printf("MC Rec. rejected: stepdaughter: %d not in the list of final daughters", arrDaughtersIndex[iProng]);
         return false;
       }
-      // Check that the daughter is not a twin.
+      // Check that the daughter is not a twin (particle considered twice as a daughter).
+      // (Hopefully unnecessary)
       for (auto jProng = 0; jProng < iProng; ++jProng) {
         if (arrDaughtersIndex[iProng] == arrDaughtersIndex[jProng]) {
-          //Printf("MC Rec. rejected: twin daughter: %d", arrDaughtersIndex[iProng]);
+          Printf("MC Rec. rejected: twin daughter: %d", arrDaughtersIndex[iProng]);
           return false;
         }
       }
       // Check daughter's PDG code.
       auto PDGParticleI = particleI.pdgCode(); // PDG code of the ith daughter
-      //Printf("MC Rec: Daughter %d PDG: %d", iProng, PDGParticleI);
+      Printf("MC Rec: Daughter %d PDG: %d", iProng, PDGParticleI);
       bool PDGFound = false; // Is the PDG code of this daughter among the remaining expected PDG codes?
       for (auto iProngCp = 0; iProngCp < N; ++iProngCp) {
         if (PDGParticleI == sgn * arrPDGDaughters[iProngCp]) {
@@ -514,15 +619,15 @@ class RecoDecay
         }
       }
       if (!PDGFound) {
-        //Printf("MC Rec. rejected: bad daughter PDG: %d", PDGParticleI);
+        Printf("MC Rec. rejected: bad daughter PDG: %d", PDGParticleI);
         return false;
       }
     }
-    //Printf("MC Rec. accepted: m: %d, d: %d-%d", indexMother, indexDaughterFirst, indexDaughterLast);
+    Printf("MC Rec. accepted: m: %d, d: %d-%d", indexMother, indexDaughterFirst, indexDaughterLast);
     return true;
   }
 
-  /// Check whether the MC particle is the expected one.
+  /// Checks whether the MC particle is the expected one.
   /// \param particlesMC  table with MC particles
   /// \param candidate  candidate MC particle
   /// \param PDGParticle  expected particle PDG code
