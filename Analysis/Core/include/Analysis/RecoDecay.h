@@ -428,6 +428,7 @@ class RecoDecay
   /// \param index  index of the MC particle
   /// \param list  vector where the indices of final-state daughters will be added
   /// \param arrPDGFinal  array of PDG codes of particles to be considered final
+  /// \param depthMax  maximum decay tree level; Daughters at this level (or beyond) will be considered final.
   /// \param stage  decay tree level; If different from 0, the particle itself will be added in the list in case it has no daughters.
   /// \note Final state is defined as particles from arrPDGFinal plus final daughters of any other decay branch.
   template <std::size_t N, typename T>
@@ -435,6 +436,7 @@ class RecoDecay
                            int index,
                            std::vector<int>* list,
                            const array<int, N>& arrPDGFinal,
+                           int depthMax = 1,
                            int8_t stage = 0)
   {
     if (index == -1) {
@@ -448,11 +450,14 @@ class RecoDecay
     // Get the particle.
     auto particle = particlesMC.iteratorAt(index);
     bool isFinal = false; // Flag to indicate the end of recursion
+    if (stage >= depthMax) { // Maximum depth has been reached (or exceeded).
+      isFinal = true;
+    }
     // Get the range of daughter indices.
     int indexDaughterFirst = particle.daughter0();
     int indexDaughterLast = particle.daughter1();
     // Check whether there are any daughters.
-    if (indexDaughterFirst == -1 && indexDaughterLast == -1) {
+    if (!isFinal && indexDaughterFirst == -1 && indexDaughterLast == -1) {
       // If the original particle has no daughters, we do nothing and exit.
       if (stage == 0) {
         Printf("No daughters of %d", index);
@@ -463,10 +468,12 @@ class RecoDecay
     }
     // If the particle has daughters but is considered to be final, we label it as final.
     auto PDGParticle = particle.pdgCode();
-    for (auto iPDG : arrPDGFinal) {
-      if (std::abs(PDGParticle) == std::abs(iPDG)) {
-        isFinal = true;
-        break;
+    if (!isFinal) {
+      for (auto PDGi : arrPDGFinal) {
+        if (std::abs(PDGParticle) == std::abs(PDGi)) { // Accept antiparticles.
+          isFinal = true;
+          break;
+        }
       }
     }
     // If the particle is labelled as final, we add this particle in the list of final daughters and exit.
@@ -484,18 +491,18 @@ class RecoDecay
     // Call itself to get daughters of daughters recursively.
     // Get daughters of the first daughter.
     if (indexDaughterFirst != -1) {
-      getDaughters(particlesMC, indexDaughterFirst, list, arrPDGFinal, stage + 1);
+      getDaughters(particlesMC, indexDaughterFirst, list, arrPDGFinal, depthMax, stage + 1);
     }
     // Get daughters of the daughters in between if any.
     // Daughter indices are supposed to be consecutive. Reverse order will not work here.
     if (indexDaughterFirst != -1 && indexDaughterLast != -1) {
       for (auto iD = indexDaughterFirst + 1; iD < indexDaughterLast; ++iD) {
-        getDaughters(particlesMC, iD, list, arrPDGFinal, stage + 1);
+        getDaughters(particlesMC, iD, list, arrPDGFinal, depthMax, stage + 1);
       }
     }
     // Get daughters of the last daughter if different from the first one.
     if (indexDaughterLast != -1 && indexDaughterLast != indexDaughterFirst) {
-      getDaughters(particlesMC, indexDaughterLast, list, arrPDGFinal, stage + 1);
+      getDaughters(particlesMC, indexDaughterLast, list, arrPDGFinal, depthMax, stage + 1);
     }
   }
 
