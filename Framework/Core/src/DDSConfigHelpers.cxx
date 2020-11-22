@@ -48,9 +48,8 @@ void dumpDeviceSpec2DDS(std::ostream& out,
       }
       // If channel-prefix is empty do not print it out
       if (strcmp(arg, "--channel-prefix") == 0 &&
-          ai+1 < execution.args.size() &&
-          *execution.args[ai+1] == 0)
-      {
+          ai + 1 < execution.args.size() &&
+          *execution.args[ai + 1] == 0) {
         ai++;
         continue;
       }
