@@ -26,6 +26,7 @@
 #include <sstream>
 #include "boost/algorithm/string.hpp"
 
+using namespace o2::framework;
 namespace o2fw = o2::framework;
 namespace o2exp = o2::framework::expressions;
 namespace o2df = o2::dataformats;
@@ -183,6 +184,18 @@ struct QAGlobalObservables {
 
     histograms.add("multiplicity/numberOfTracks", qafeat::MakeTitle({qafeat::TrackMultiplicity}).c_str(), o2fw::kTH1D,
                    {{nBinsNumberOfTracks, numberOfTracksRange[0], numberOfTracksRange[1]}});
+
+    // covariance histograms
+    histograms.add("Covariance/xx", "xx;Cov_{xx} [cm]", kTH1D, {{200, -0.1, 0.1}});
+    histograms.add("Covariance/xy", "xy;Cov_{xy} [cm]", kTH1D, {{200, -0.1, 0.1}});
+    histograms.add("Covariance/xz", "xz;Cov_{xz} [cm]", kTH1D, {{200, -0.1, 0.1}});
+    histograms.add("Covariance/yy", "yy;Cov_{yy} [cm]", kTH1D, {{200, -0.1, 0.1}});
+    histograms.add("Covariance/yz", "yz;Cov_{yz} [cm]", kTH1D, {{200, -0.1, 0.1}});
+    histograms.add("Covariance/zz", "zz;Cov_{zz} [cm]", kTH1D, {{200, -0.1, 0.1}});
+
+    // quality histograms
+    histograms.add("Quality/Chi2", "#Chi^{2};#Chi^{2}", kTH1D, {{100, 0, 10}});
+    histograms.add("Quality/Contributors", "Contributors;Contributors", kTH1D, {{100, 0, 100}});
   }
 
   void process(const o2::aod::Collision& collision, const o2::aod::Tracks& tracks)
@@ -198,6 +211,18 @@ struct QAGlobalObservables {
     }
 
     histograms.fill("multiplicity/numberOfTracks", nTracks);
+
+    // fill covariance variables
+    histograms.fill("Covariance/xx", collision.covXX());
+    histograms.fill("Covariance/xy", collision.covXY());
+    histograms.fill("Covariance/xz", collision.covXZ());
+    histograms.fill("Covariance/yy", collision.covYY());
+    histograms.fill("Covariance/yz", collision.covYZ());
+    histograms.fill("Covariance/zz", collision.covZZ());
+
+    // fill quality variables
+    histograms.fill("Quality/Chi2", collision.chi2());
+    histograms.fill("Quality/Contributors", collision.numContrib());
   }
 };
 
