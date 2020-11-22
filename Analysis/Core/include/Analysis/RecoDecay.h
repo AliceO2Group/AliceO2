@@ -512,8 +512,8 @@ class RecoDecay
     Printf("MC Rec.: Expected mother PDG: %d", PDGMother);
     int sgn = 1;                     // 1 if the expected mother is particle, -1 if antiparticle (w.r.t. PDGMother)
     int indexMother = -1;            // index of the mother particle
-    int indexDaughterFirst = -1;     // index of the first daughter
-    int indexDaughterLast = -1;      // index of the last daughter
+    int indexDaughterFirst = -1;     // index of the first direct daughter
+    int indexDaughterLast = -1;      // index of the last direct daughter
     std::vector<int> arrAllDaughtersIndex; // vector of indices of all daughters of the mother of the first provided daughter
     array<int, N> arrDaughtersIndex; // array of indices of provided daughters
     // Loop over decay candidate prongs
@@ -650,44 +650,56 @@ class RecoDecay
   template <std::size_t N, typename T, typename U>
   static bool isMCMatchedDecayGen(const T& particlesMC, const U& candidate, int PDGParticle, array<int, N> arrPDGDaughters, bool acceptAntiParticles = false)
   {
-    //Printf("MC Gen.: Expected particle PDG: %d", PDGParticle);
-    int sgn = 1;                // 1 if the expected mother is particle, -1 if antiparticle
+    Printf("MC Gen.: Expected particle PDG: %d", PDGParticle);
+    int sgn = 1;                // 1 if the expected mother is particle, -1 if antiparticle (w.r.t. PDGParticle)
     // Check the PDG code of the particle.
     auto PDGCandidate = candidate.pdgCode();
-    //Printf("MC Gen.: Candidate PDG: %d", PDGCandidate);
+    Printf("MC Gen.: Candidate PDG: %d", PDGCandidate);
     if (PDGCandidate != PDGParticle) {
-      if (acceptAntiParticles && PDGCandidate == -PDGParticle) {
+      if (acceptAntiParticles && PDGCandidate == -PDGParticle) { // antiparticle PDG match
         sgn = -1;
       } else {
-        //Printf("MC Gen. rejected: bad particle PDG: %s%d != %d", acceptAntiParticles ? "abs " : "", PDGCandidate, sgn * PDGParticle);
+        Printf("MC Gen. rejected: bad particle PDG: %s%d != %d", acceptAntiParticles ? "abs " : "", PDGCandidate, sgn * PDGParticle);
         return false;
       }
     }
     // Check the PDG codes of the decay products.
-    int indexDaughterFirst = 0; // index of the first daughter
-    int indexDaughterLast = 0;  // index of the last daughter
-    std::vector<int> arrAllDaughtersIndex; // vector of indices of all daughters of the mother of the first provided daughter
+    int indexDaughterFirst = 0; // index of the first direct daughter
+    int indexDaughterLast = 0;  // index of the last direct daughter
     if (N > 0) {
-      //Printf("MC Gen.: Checking %d daughters", N);
-      // Set the range of expected daughter indices.
+      Printf("MC Gen.: Checking %d daughters", N);
+      std::vector<int> arrAllDaughtersIndex; // vector of indices of all daughters
       indexDaughterFirst = candidate.daughter0();
       indexDaughterLast = candidate.daughter1();
       // Check the daughter indices.
-      // Daughter indices are supposed to be consecutive.
-      if (indexDaughterLast <= indexDaughterFirst || indexDaughterFirst == -1 || indexDaughterLast == -1) {
-        //Printf("MC Gen. rejected: bad daughter index range: %d-%d", indexDaughterFirst, indexDaughterLast);
+      // Daughter indices are supposed to be consecutive and in increasing order.
+      // Same indices indicate a single daughter.
+      if (indexDaughterLast < indexDaughterFirst || indexDaughterFirst == -1 || indexDaughterLast == -1) {
+        Printf("MC Rec. rejected: bad daughter index range: %d-%d", indexDaughterFirst, indexDaughterLast);
         return false;
       }
-      // Check the number of daughters.
-      if (indexDaughterLast - indexDaughterFirst + 1 != N) {
-        //Printf("MC Gen. rejected: incorrect number of daughters: %d", indexDaughterLast - indexDaughterFirst + 1);
+      // Check that the number of direct daughters is not larger than the number of expected final daughters.
+      if (indexDaughterLast - indexDaughterFirst + 1 > N) {
+        Printf("MC Rec. rejected: too many direct daughters: %d (expected %d final)", indexDaughterLast - indexDaughterFirst + 1, N);
+        return false;
+      }
+      // Get the list of final daughters.
+      getDaughters(particlesMC, candidate.globalIndex(), &arrAllDaughtersIndex, arrPDGDaughters);
+      printf("Mother %d has %d final daughters:", candidate.globalIndex(), arrAllDaughtersIndex.size());
+      for (auto i : arrAllDaughtersIndex) {
+        printf(" %d", i);
+      }
+      printf("\n");
+      // Check whether the number of final daughters is equal to the number of provided prongs.
+      if (arrAllDaughtersIndex.size() != N) {
+        Printf("MC Rec. rejected: incorrect number of final daughters: %d (expected %d)", arrAllDaughtersIndex.size(), N);
         return false;
       }
       // Check daughters' PDG codes.
-      for (auto indexDaughterI = indexDaughterFirst; indexDaughterI <= indexDaughterLast; ++indexDaughterI) {
+      for (auto indexDaughterI : arrAllDaughtersIndex) {
         auto candidateDaughterI = particlesMC.iteratorAt(indexDaughterI); // ith daughter particle
         auto PDGCandidateDaughterI = candidateDaughterI.pdgCode();        // PDG code of the ith daughter
-        //Printf("MC Gen.: Daughter %d PDG: %d", indexDaughterI, PDGCandidateDaughterI);
+        Printf("MC Gen.: Daughter %d PDG: %d", indexDaughterI, PDGCandidateDaughterI);
         bool PDGFound = false; // Is the PDG code of this daughter among the remaining expected PDG codes?
         for (auto iProngCp = 0; iProngCp < N; ++iProngCp) {
           if (PDGCandidateDaughterI == sgn * arrPDGDaughters[iProngCp]) {
@@ -697,12 +709,12 @@ class RecoDecay
           }
         }
         if (!PDGFound) {
-          //Printf("MC Gen. rejected: bad daughter PDG: %d", PDGCandidateDaughterI);
+          Printf("MC Gen. rejected: bad daughter PDG: %d", PDGCandidateDaughterI);
           return false;
         }
       }
     }
-    //Printf("MC Gen. accepted: m: %d, d: %d-%d", candidate.globalIndex(), indexDaughterFirst, indexDaughterLast);
+    Printf("MC Gen. accepted: m: %d, d: %d-%d", candidate.globalIndex(), indexDaughterFirst, indexDaughterLast);
     return true;
   }
 
