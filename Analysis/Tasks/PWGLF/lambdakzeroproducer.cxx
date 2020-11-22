@@ -17,6 +17,14 @@
 // Any analysis should loop over the "V0Data"
 // table as that table contains all information
 //
+// WARNING: adding filters to the producer IS NOT
+// equivalent to re-running the finders. This will only
+// ever produce *tighter* selection sections. It is your
+// responsibility to check if, by setting a loose filter
+// setting, you are going into a region in which no
+// candidates exist because the original indices were generated
+// using tigher selections.
+//
 //    Comments, questions, complaints, suggestions?
 //    Please write to:
 //    david.dobrigkeit.chinellato@cern.ch
