@@ -97,6 +97,7 @@ struct cascadeprefilter {
   Configurable<int> mincrossedrows{"mincrossedrows", 70, "min crossed rows"};
   Configurable<float> dcav0topv{"dcav0topv", .1, "DCA V0 To PV"};
   Configurable<double> cospaV0{"cospaV0", .98, "CosPA V0"};
+  Configurable<double> v0radius{"v0radius", 0.9, "v0radius"};
   Configurable<float> lambdamasswindow{"lambdamasswindow", .006, "Distance from Lambda mass"};
   Configurable<float> dcav0dau{"dcav0dau", .6, "DCA V0 Daughters"};
   Configurable<float> dcanegtopv{"dcanegtopv", .1, "DCA Neg To PV"};
@@ -141,6 +142,12 @@ struct cascadeprefilter {
         continue;
       }
       if (v0.dcav0topv(collision.posX(), collision.posY(), collision.posZ()) < dcav0topv) {
+        continue;
+      }
+      if (v0.dcaV0daughters() > dcav0dau) {
+        continue;
+      }
+      if (v0.v0radius() < v0radius) {
         continue;
       }
 

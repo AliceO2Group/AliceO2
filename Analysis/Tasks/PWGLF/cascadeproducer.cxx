@@ -17,6 +17,14 @@
 // Any analysis should loop over the "CascData"
 // table as that table contains all information
 //
+// WARNING: adding filters to the producer IS NOT
+// equivalent to re-running the finders. This will only
+// ever produce *tighter* selection sections. It is your
+// responsibility to check if, by setting a loose filter
+// setting, you are going into a region in which no
+// candidates exist because the original indices were generated
+// using tigher selections.
+//
 //    Comments, questions, complaints, suggestions?
 //    Please write to:
 //    david.dobrigkeit.chinellato@cern.ch
@@ -31,6 +39,8 @@
 #include "ReconstructionDataFormats/Track.h"
 #include "Analysis/RecoDecay.h"
 #include "Analysis/trackUtilities.h"
+#include "Analysis/TrackSelection.h"
+#include "Analysis/TrackSelectionTables.h"
 #include "Analysis/StrangenessTables.h"
 
 #include <TFile.h>
@@ -51,6 +61,94 @@ using namespace o2::framework;
 using namespace o2::framework::expressions;
 using std::array;
 
+namespace o2::aod
+{
+
+namespace cascgood
+{
+DECLARE_SOA_INDEX_COLUMN_FULL(V0, v0, int, V0DataExt, "fV0Id");
+DECLARE_SOA_INDEX_COLUMN_FULL(Bachelor, bachelor, int, FullTracks, "fTracksID");
+DECLARE_SOA_INDEX_COLUMN(Collision, collision);
+} // namespace cascgood
+DECLARE_SOA_TABLE(CascGood, "AOD", "CASCGOOD", o2::soa::Index<>,
+                  cascgood::V0Id, cascgood::BachelorId,
+                  cascgood::CollisionId);
+} // namespace o2::aod
+
+using FullTracksExt = soa::Join<aod::FullTracks, aod::TracksExtended>;
+
+//This prefilter creates a skimmed list of good V0s to re-reconstruct so that
+//CPU is saved in case there are specific selections that are to be done
+//Note: more configurables, more options to be added as needed
+struct cascadeprefilterpairs {
+  Configurable<int> mincrossedrows{"mincrossedrows", 70, "min crossed rows"};
+  Configurable<float> dcav0topv{"dcav0topv", .1, "DCA V0 To PV"};
+  Configurable<double> cospaV0{"cospaV0", .98, "CosPA V0"};
+  Configurable<float> lambdamasswindow{"lambdamasswindow", .006, "Distance from Lambda mass"};
+  Configurable<float> dcav0dau{"dcav0dau", .6, "DCA V0 Daughters"};
+  Configurable<float> dcanegtopv{"dcanegtopv", .1, "DCA Neg To PV"};
+  Configurable<float> dcapostopv{"dcapostopv", .1, "DCA Pos To PV"};
+  Configurable<float> dcabachtopv{"dcabachtopv", .1, "DCA Bach To PV"};
+  Configurable<bool> tpcrefit{"tpcrefit", 1, "demand TPC refit"};
+  Configurable<double> v0radius{"v0radius", 0.9, "v0radius"};
+
+  Produces<aod::CascGood> cascgood;
+  void process(aod::Collision const& collision, aod::V0DataExt const& V0s, aod::Cascades const& Cascades,
+               soa::Join<aod::FullTracks, aod::TracksExtended> const& tracks)
+  {
+    for (auto& casc : Cascades) {
+      //Single-track properties filter
+      if (tpcrefit) {
+        if (!(casc.v0().posTrack().flags() & 0x40)) {
+          continue; //TPC refit
+        }
+        if (!(casc.v0().negTrack().flags() & 0x40)) {
+          continue; //TPC refit
+        }
+        if (!(casc.bachelor().flags() & 0x40)) {
+          continue; //TPC refit
+        }
+      }
+      if (casc.v0().posTrack().tpcNClsCrossedRows() < mincrossedrows) {
+        continue;
+      }
+      if (casc.v0().negTrack().tpcNClsCrossedRows() < mincrossedrows) {
+        continue;
+      }
+      if (casc.bachelor().tpcNClsCrossedRows() < mincrossedrows) {
+        continue;
+      }
+      if (casc.v0().posTrack_as<FullTracksExt>().dcaXY() < dcapostopv) {
+        continue;
+      }
+      if (casc.v0().negTrack_as<FullTracksExt>().dcaXY() < dcanegtopv) {
+        continue;
+      }
+      if (casc.bachelor_as<FullTracksExt>().dcaXY() < dcabachtopv) {
+        continue;
+      }
+
+      //V0 selections
+      if (fabs(casc.v0_as<o2::aod::V0DataExt>().mLambda() - 1.116) > lambdamasswindow && fabs(casc.v0_as<o2::aod::V0DataExt>().mAntiLambda() - 1.116) > lambdamasswindow) {
+        continue;
+      }
+      if (casc.v0_as<o2::aod::V0DataExt>().dcaV0daughters() > dcav0dau) {
+        continue;
+      }
+      if (casc.v0_as<o2::aod::V0DataExt>().v0radius() < v0radius) {
+        continue;
+      }
+      if (casc.v0_as<o2::aod::V0DataExt>().v0cosPA(collision.posX(), collision.posY(), collision.posZ()) < cospaV0) {
+        continue;
+      }
+      if (casc.v0_as<o2::aod::V0DataExt>().dcav0topv(collision.posX(), collision.posY(), collision.posZ()) < dcav0topv) {
+        continue;
+      }
+      cascgood(casc.v0().globalIndex(), casc.bachelor().globalIndex(), casc.bachelor().collisionId());
+    }
+  }
+};
+
 /// Cascade builder task: rebuilds cascades
 struct cascadeproducer {
   Produces<aod::CascData> cascdata;
@@ -62,21 +160,7 @@ struct cascadeproducer {
   Configurable<double> d_bz{"d_bz", -5.0, "bz field"};
   Configurable<double> d_UseAbsDCA{"d_UseAbsDCA", kTRUE, "Use Abs DCAs"};
 
-  /// Extracts dca in the XY plane
-  /// \return dcaXY
-  template <typename T, typename U>
-  auto getdcaXY(const T& track, const U& coll)
-  {
-    //Calculate DCAs
-    auto sinAlpha = sin(track.alpha());
-    auto cosAlpha = cos(track.alpha());
-    auto globalX = track.x() * cosAlpha - track.y() * sinAlpha;
-    auto globalY = track.x() * sinAlpha + track.y() * cosAlpha;
-    return sqrt(pow((globalX - coll[0]), 2) +
-                pow((globalY - coll[1]), 2));
-  }
-
-  void process(aod::Collision const& collision, aod::V0s const& V0s, aod::Cascades const& Cascades, aod::FullTracks const& trackss)
+  void process(aod::Collision const& collision, aod::V0DataExt const& V0s, aod::CascGood const& Cascades, aod::FullTracks const& tracks)
   {
     //Define o2 fitter, 2-prong
     o2::vertexing::DCAFitterN<2> fitterV0, fitterCasc;
@@ -173,15 +257,22 @@ struct cascadeproducer {
                pvecneg[0], pvecneg[1], pvecneg[2],
                pvecbach[0], pvecbach[1], pvecbach[2],
                fitterV0.getChi2AtPCACandidate(), fitterCasc.getChi2AtPCACandidate(),
-               getdcaXY(casc.v0().posTrack(), pVtx),
-               getdcaXY(casc.v0().negTrack(), pVtx),
-               getdcaXY(casc.bachelor(), pVtx));
+               casc.v0().posTrack_as<FullTracksExt>().dcaXY(),
+               casc.v0().negTrack_as<FullTracksExt>().dcaXY(),
+               casc.bachelor_as<FullTracksExt>().dcaXY());
     }
   }
+};
+
+/// Extends the v0data table with expression columns
+struct cascprodinitializer {
+  Spawns<aod::V0DataExt> v0dataext;
+  void init(InitContext const&) {}
 };
 
 WorkflowSpec defineDataProcessing(ConfigContext const&)
 {
   return WorkflowSpec{
+    adaptAnalysisTask<cascprodinitializer>("lf-cascprodinitializer"),
     adaptAnalysisTask<cascadeproducer>("lf-cascadeproducer")};
 }
