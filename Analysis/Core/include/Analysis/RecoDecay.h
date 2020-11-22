@@ -636,7 +636,8 @@ class RecoDecay
   template <typename T, typename U>
   static bool isMCMatchedDecayGen(const T& particlesMC, const U& candidate, int PDGParticle, bool acceptAntiParticles = false)
   {
-    return isMCMatchedDecayGen(particlesMC, candidate, PDGParticle, array{0}, acceptAntiParticles);
+    array<int, 0> arrPDGDaughters;
+    return isMCMatchedDecayGen(particlesMC, candidate, PDGParticle, std::move(arrPDGDaughters), acceptAntiParticles);
   }
 
   /// Check whether the MC particle is the expected one and whether it decayed via the expected decay channel.
@@ -651,8 +652,6 @@ class RecoDecay
   {
     //Printf("MC Gen.: Expected particle PDG: %d", PDGParticle);
     int sgn = 1;                // 1 if the expected mother is particle, -1 if antiparticle
-    int indexDaughterFirst = 0; // index of the first daughter
-    int indexDaughterLast = 0;  // index of the last daughter
     // Check the PDG code of the particle.
     auto PDGCandidate = candidate.pdgCode();
     //Printf("MC Gen.: Candidate PDG: %d", PDGCandidate);
@@ -665,7 +664,10 @@ class RecoDecay
       }
     }
     // Check the PDG codes of the decay products.
-    if (N > 1) {
+    int indexDaughterFirst = 0; // index of the first daughter
+    int indexDaughterLast = 0;  // index of the last daughter
+    std::vector<int> arrAllDaughtersIndex; // vector of indices of all daughters of the mother of the first provided daughter
+    if (N > 0) {
       //Printf("MC Gen.: Checking %d daughters", N);
       // Set the range of expected daughter indices.
       indexDaughterFirst = candidate.daughter0();
