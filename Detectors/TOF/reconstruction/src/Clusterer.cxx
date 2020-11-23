@@ -100,7 +100,7 @@ void Clusterer::processStrip(std::vector<Cluster>& clusters, MCLabelContainer co
       // check if the TOF time are close enough to be merged; if not, it means that nothing else will contribute to the cluster (since digits are ordered in time)
       double timeDigNext = digNext->getCalibratedTime(); // in ps
       LOG(DEBUG) << "Time difference = " << timeDigNext - timeDig;
-      if (timeDigNext - timeDig > 500 /*in ps*/) {
+      if (timeDigNext - timeDig > 5000 /*in ps*/) { // to be change to 500 ps
         break;
       }
       digNext->getPhiAndEtaIndex(iphi2, ieta2);
@@ -179,6 +179,8 @@ void Clusterer::buildCluster(Cluster& c, MCLabelContainer const* digitMCTruth)
   //setL0L1Latency(); // to be filled (maybe)
   //setDeltaBC(); // to be filled (maybe)
 
+  c.setDigitInfo(0, mContributingDigit[0]->getChannel(), mContributingDigit[0]->getCalibratedTime(), mContributingDigit[0]->getTOT() * Geo::TOTBIN_NS);
+
   int chan1, chan2;
   int phi1, phi2;
   int eta1, eta2;
@@ -215,15 +217,18 @@ void Clusterer::buildCluster(Cluster& c, MCLabelContainer const* digitMCTruth)
         mask = Cluster::kDown;
       } else if (deltaEta == -1) { // the digit is UP wrt the cluster
         mask = Cluster::kUp;
-      } else { // impossible!!
+      } else { // same channel!
         LOG(DEBUG) << " Check what is going on, the digit you are trying to merge to the cluster must be in a different channels... ";
       }
-    } else { // This may happens if the cluster centroid changes because of TOT  condition: let's remove this digit from the cluster
+    } else { // |delataphi| > 1
       isOk = false;
       mContributingDigit[idig]->setIsUsedInCluster(false);
     }
-    if (isOk)
+
+    if (isOk) {
+      c.setDigitInfo(c.getNumOfContributingChannels(), mContributingDigit[idig]->getChannel(), mContributingDigit[idig]->getCalibratedTime(), mContributingDigit[idig]->getTOT() * Geo::TOTBIN_NS);
       c.addBitInContributingChannels(mask);
+    }
   }
 
   // filling the MC labels of this cluster; the first will be those of the main digit; then the others
