@@ -12,19 +12,13 @@
 /// \brief Definition of SpaceCharge class
 ///
 /// \author  Matthias Kleiner <mkleiner@ikf.uni-frankfurt.de>
+/// \date Aug 21, 2020
 
 #include "TPCSpaceCharge/SpaceCharge.h"
 #include "fmt/core.h"
 #include "Framework/Logger.h"
+#include "TPCSpaceCharge/NearestNeighbour.h"
 #include <chrono>
-
-// for nearest neighbour search. needed for the calculation of the global distortions by iterative method using global corrections
-#include <CGAL/Exact_predicates_inexact_constructions_kernel.h>
-#include <CGAL/Search_traits_3.h>
-#include <CGAL/Search_traits_adapter.h>
-#include <CGAL/Orthogonal_k_neighbor_search.h>
-#include <CGAL/property_map.h>
-#include <boost/iterator/zip_iterator.hpp>
 
 #ifdef WITH_OPENMP
 #include <omp.h>
@@ -337,23 +331,10 @@ void SpaceCharge<DataT, Nz, Nr, Nphi>::calcEField(const Side side)
 template <typename DataT, size_t Nz, size_t Nr, size_t Nphi>
 void SpaceCharge<DataT, Nz, Nr, Nphi>::calcGlobalDistWithGlobalCorrIterative(const DistCorrInterpolator<DataT, Nz, Nr, Nphi>& globCorr, const int maxIter, const DataT approachZ, const DataT approachR, const DataT approachPhi, const DataT diffCorr)
 {
-  // for nearest neighbour search see: https://doc.cgal.org/latest/Spatial_searching/Spatial_searching_2searching_with_point_with_info_8cpp-example.html
-  using Kernel = CGAL::Exact_predicates_inexact_constructions_kernel;
-  using Point_3 = Kernel::Point_3;
-  using Point_Index = boost::tuple<Point_3, std::array<unsigned int, 3>>;
-  using Traits_base = CGAL::Search_traits_3<Kernel>;
-  using Traits = CGAL::Search_traits_adapter<Point_Index, CGAL::Nth_of_tuple_property_map<0, Point_Index>, Traits_base>;
-  using K_neighbor_search = CGAL::Orthogonal_k_neighbor_search<Traits>;
-  using Tree = K_neighbor_search::Tree;
-
   const Side side = globCorr.getSide();
   const int nPoints = Nz * Nr * Nphi; // maximum number of points
 
-  std::vector<Point_3> points{};
-  points.reserve(nPoints);
-  std::vector<std::array<unsigned int, 3>> indices{};
-  indices.reserve(nPoints);
-
+  NearestNeighbour kdtree(nPoints);
   // loop over global corrections and calculate the positions of the global correction
   for (unsigned int iPhi = 0; iPhi < Nphi; ++iPhi) {
     const DataT phi = getPhiVertex(iPhi, side);
@@ -374,15 +355,14 @@ void SpaceCharge<DataT, Nz, Nr, Nphi>::calcGlobalDistWithGlobalCorrIterative(con
         const bool checkZ = side == Side::A ? posZCorr >= getZMin(side) && posZCorr <= getZMax(side) : posZCorr <= getZMin(side) && posZCorr >= getZMax(side);
         if (posRCorr >= getRMin(side) && posRCorr <= getRMax(side) && checkZ) {
           // normalize coordinates to gridspacing for searching the nearest neighbour. Otherwise one would have to convert the coordinates to x,y,z
-          points.emplace_back(Point_3(posZCorr * getInvSpacingZ(side), posRCorr * getInvSpacingR(side), posPhiCorr * getInvSpacingPhi(side)));
-          indices.emplace_back(std::array<unsigned int, 3>{iZ, iR, iPhi});
+          kdtree.addPointAndIndex(posZCorr * getInvSpacingZ(side), posRCorr * getInvSpacingR(side), posPhiCorr * getInvSpacingPhi(side), iZ, iR, iPhi);
         }
       }
     }
   }
 
   // Insert data points in the tree
-  Tree tree(boost::make_zip_iterator(boost::make_tuple(points.begin(), indices.begin())), boost::make_zip_iterator(boost::make_tuple(points.end(), indices.end())));
+  kdtree.setTree();
 
 #pragma omp parallel for num_threads(sNThreads)
   for (unsigned int iPhi = 0; iPhi < Nphi; ++iPhi) {
@@ -393,18 +373,18 @@ void SpaceCharge<DataT, Nz, Nr, Nphi>::calcGlobalDistWithGlobalCorrIterative(con
         const DataT z = getZVertex(iZ, side);
 
         // find nearest neighbour
-        const Point_3 query(z * getInvSpacingZ(side), radius * getInvSpacingR(side), phi * getInvSpacingPhi(side));
-        const int neighbors = 1; // we need only one nearest neighbour
-        const K_neighbor_search search(tree, query, neighbors);
+        DataT nearestZ = 0;
+        DataT nearestR = 0;
+        DataT nearestPhi = 0;
 
-        const K_neighbor_search::iterator it = search.begin();
-        const DataT nearestZ = static_cast<DataT>(boost::get<0>(it->first)[0]) * getGridSpacingZ(side);
-        const DataT nearestR = static_cast<DataT>(boost::get<0>(it->first)[1]) * getGridSpacingR(side);
-        const DataT nearestPhi = static_cast<DataT>(boost::get<0>(it->first)[2]) * getGridSpacingPhi(side);
+        unsigned int nearestiZ = 0;
+        unsigned int nearestiR = 0;
+        unsigned int nearestiPhi = 0;
 
-        const unsigned int nearestiZ = boost::get<1>(it->first)[0];
-        const unsigned int nearestiR = boost::get<1>(it->first)[1];
-        const unsigned int nearestiPhi = boost::get<1>(it->first)[2];
+        kdtree.query(z * getInvSpacingZ(side), radius * getInvSpacingR(side), phi * getInvSpacingPhi(side), nearestZ, nearestR, nearestPhi, nearestiZ, nearestiR, nearestiPhi);
+        nearestZ *= getGridSpacingZ(side);
+        nearestR *= getGridSpacingR(side);
+        nearestPhi *= getGridSpacingPhi(side);
 
         //
         //==========================================================================================
