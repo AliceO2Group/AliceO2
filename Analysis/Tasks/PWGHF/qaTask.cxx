@@ -186,12 +186,12 @@ struct QAGlobalObservables {
                    {{nBinsNumberOfTracks, numberOfTracksRange[0], numberOfTracksRange[1]}});
 
     // covariance histograms
-    histograms.add("Covariance/xx", "xx;Cov_{xx} [cm]", kTH1D, {{200, -0.1, 0.1}});
-    histograms.add("Covariance/xy", "xy;Cov_{xy} [cm]", kTH1D, {{200, -0.1, 0.1}});
-    histograms.add("Covariance/xz", "xz;Cov_{xz} [cm]", kTH1D, {{200, -0.1, 0.1}});
-    histograms.add("Covariance/yy", "yy;Cov_{yy} [cm]", kTH1D, {{200, -0.1, 0.1}});
-    histograms.add("Covariance/yz", "yz;Cov_{yz} [cm]", kTH1D, {{200, -0.1, 0.1}});
-    histograms.add("Covariance/zz", "zz;Cov_{zz} [cm]", kTH1D, {{200, -0.1, 0.1}});
+    histograms.add("Covariance/xx", "xx;Cov_{xx} [cm^{2}]", kTH1D, {{200, -0.1, 0.1}});
+    histograms.add("Covariance/xy", "xy;Cov_{xy} [cm^{2}]", kTH1D, {{200, -0.1, 0.1}});
+    histograms.add("Covariance/xz", "xz;Cov_{xz} [cm^{2}]", kTH1D, {{200, -0.1, 0.1}});
+    histograms.add("Covariance/yy", "yy;Cov_{yy} [cm^{2}]", kTH1D, {{200, -0.1, 0.1}});
+    histograms.add("Covariance/yz", "yz;Cov_{yz} [cm^{2}]", kTH1D, {{200, -0.1, 0.1}});
+    histograms.add("Covariance/zz", "zz;Cov_{zz} [cm^{2}]", kTH1D, {{200, -0.1, 0.1}});
 
     // quality histograms
     histograms.add("Quality/Chi2", "#Chi^{2};#Chi^{2}", kTH1D, {{100, 0, 10}});
