@@ -265,14 +265,14 @@ struct DileptonMuMu {
     for (auto& tpos : posMuons) {
       for (auto& tneg : negMuons) {
         //dileptonList(event, VarManager::fgValues[VarManager::kMass], VarManager::fgValues[VarManager::kPt], VarManager::fgValues[VarManager::kEta], VarManager::fgValues[VarManager::kPhi], 1);
-        VarManager::FillPair(tpos, tneg);
+        VarManager::FillPair(tpos, tneg, nullptr, VarManager::kJpsiToMuMu);
         if (!fDiMuonCut->IsSelected(VarManager::fgValues)) {
           return;
         }
         fHistMan->FillHistClass("PairsMuonULS", VarManager::fgValues);
       }
       for (auto tpos2 = tpos + 1; tpos2 != posMuons.end(); ++tpos2) { // ++ pairs
-        VarManager::FillPair(tpos, tpos2);
+        VarManager::FillPair(tpos, tpos2, nullptr, VarManager::kJpsiToMuMu);
         if (!fDiMuonCut->IsSelected(VarManager::fgValues)) {
           return;
         }
@@ -281,7 +281,7 @@ struct DileptonMuMu {
     }
     for (auto tneg : negMuons) { // -- pairs
       for (auto tneg2 = tneg + 1; tneg2 != negMuons.end(); ++tneg2) {
-        VarManager::FillPair(tneg, tneg2);
+        VarManager::FillPair(tneg, tneg2, nullptr, VarManager::kJpsiToMuMu);
         if (!fDiMuonCut->IsSelected(VarManager::fgValues)) {
           return;
         }
