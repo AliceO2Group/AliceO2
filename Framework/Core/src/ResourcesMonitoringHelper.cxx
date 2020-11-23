@@ -74,7 +74,7 @@ bool ResourcesMonitoringHelper::dumpMetricsToJSON(const std::vector<DeviceMetric
       deviceRoot.add_child(metricLabel.label, metricNode);
     }
 
-    root.add_child(specs[idx].name, deviceRoot);
+    root.add_child(specs[idx].id, deviceRoot);
   }
 
   boost::property_tree::ptree driverRoot;
