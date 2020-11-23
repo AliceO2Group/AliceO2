@@ -59,17 +59,23 @@ childprocs() {
   fi
 }
 
+taskwrapper_cleanup() {
+  MOTHERPID=$1
+  SIGNAL=${2:-SIGTERM}
+  for p in $(childprocs ${MOTHERPID}); do
+  echo "killing child $p"
+  kill -s ${SIGNAL} $p 2> /dev/null
+  done
+  sleep 2
+  # remove leftover shm files
+  o2_cleanup_shm_files
+}
+
 taskwrapper_cleanup_handler() {
   PID=$1
   SIGNAL=$2
   echo "CLEANUP HANDLER FOR PROCESS ${PID} AND SIGNAL ${SIGNAL}"
-  PROCS=$(childprocs ${PID})
-  # make sure to bring down everything, including all kids
-  for p in ${PROCS}; do
-    echo "killing ${p}"
-    kill -s ${SIGNAL} ${p} 2> /dev/null
-  done
-  o2_cleanup_shm_files
+  taskwrapper_cleanup ${PID} ${SIGNAL}
   # I prefer to exit the current job completely
   exit 1
 }
@@ -89,6 +95,8 @@ taskwrapper() {
   local logfile=$1
   shift 1
   local command="$*"
+
+  STARTTIME=$SECONDS
 
   # launch the actual command in the background
   echo "Launching task: ${command} &> $logfile &"
@@ -159,10 +167,10 @@ taskwrapper() {
              -e \"Assertion.*failed\"               \
              -e \"There was a crash.\""
       
-    grepcommand="grep -H ${pattern} $logfile >> encountered_exceptions_list 2>/dev/null"
+    grepcommand="grep -H ${pattern} $logfile ${JOBUTILS_JOB_SUPERVISEDFILES} >> encountered_exceptions_list 2>/dev/null"
     eval ${grepcommand}
     
-    grepcommand="grep -h --count ${pattern} $logfile 2>/dev/null"
+    grepcommand="grep -h --count ${pattern} $logfile ${JOBUTILS_JOB_SUPERVISEDFILES} 2>/dev/null"
     # using eval here since otherwise the pattern is translated to a
     # a weirdly quoted stringlist
     RC=$(eval ${grepcommand})
@@ -183,15 +191,7 @@ taskwrapper() {
 
       sleep 2
 
-      # query processes still alive and terminate them
-      for p in $(childprocs ${PID}); do
-        echo "killing child $p"
-        kill -9 $p 2> /dev/null
-      done
-      sleep 2
-
-      # remove leftover shm files
-      o2_cleanup_shm_files
+      taskwrapper_cleanup ${PID} SIGKILL
 
       RC_ACUM=$((RC_ACUM+1))
       [ ! "${JOBUTILS_KEEPJOBSCRIPT}" ] && rm ${SCRIPTNAME} 2> /dev/null
@@ -212,6 +212,21 @@ taskwrapper() {
         echo "${cpucounter} ${p} ${total} ${utime} ${stime} ${name}" >> ${logfile}_cpuusage
       done
       let cpucounter=cpucounter+1
+    fi
+
+    # a good moment to check for jobs timeout (or other resources)
+    if [ "$JOBUTILS_JOB_TIMEOUT" ]; then
+      $(awk -v S="${SECONDS}" -v T="${JOBUTILS_JOB_TIMEOUT}" -v START="${STARTTIME}" '//{} END{if((S-START)>T){exit 1;} exit 0;}' < /dev/null)
+      if [ "$?" = "1" ]; then
+        echo "task timeout reached .. killing all processes";
+        taskwrapper_cleanup $PID SIGKILL
+        # call a more specialized hook for this??
+        if [ "${JOBUTILS_JOB_FAILUREHOOK}" ]; then
+          hook="${JOBUTILS_JOB_FAILUREHOOK} '$command' $logfile"
+          eval "${hook}"
+        fi
+        return 1
+      fi
     fi
 
     # sleep for some time (can be customized for power user)
