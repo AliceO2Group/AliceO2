@@ -140,6 +140,11 @@ class MCTruthContainer
   size_t getIndexedSize() const { return mHeaderArray.size(); }
   // return the number of elements managed in this container
   size_t getNElements() const { return mTruthArray.size(); }
+  // return unterlaying vector of elements
+  const std::vector<TruthElement>& getTruthArray() const
+  {
+    return mTruthArray;
+  }
 
   // get individual "view" container for a given data index
   // the caller can do modifications on this view (such as sorting)
