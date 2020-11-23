@@ -20,6 +20,7 @@ set(HDRS GPUReconstructionCUDA.h GPUReconstructionCUDAInternals.h GPUReconstruct
 
 # -------------------------------- Prepare RTC -------------------------------------------------------
 if(NOT ALIGPU_BUILD_TYPE STREQUAL "ALIROOT")
+  enable_language(ASM)
   if(ALIGPU_BUILD_TYPE STREQUAL "O2")
     set(defineIncludeSrc "O2::${MODULE}")
   else()
@@ -92,7 +93,7 @@ if(NOT ALIGPU_BUILD_TYPE STREQUAL "ALIROOT")
     ${CURTC_BIN}.src.S
     PROPERTIES
     LANGUAGE
-    CXX
+    ASM
     OBJECT_DEPENDS
     "${CURTC_BIN}.src;${GPUDIR}/Standalone/makefiles/include.S")
     
@@ -100,7 +101,7 @@ if(NOT ALIGPU_BUILD_TYPE STREQUAL "ALIROOT")
     ${CURTC_BIN}.command.S
     PROPERTIES
     LANGUAGE
-    CXX
+    ASM
   )
   
   set(SRCS ${SRCS} ${CURTC_BIN}.src.S ${CURTC_BIN}.command.S)

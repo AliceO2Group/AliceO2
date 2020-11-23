@@ -9,6 +9,7 @@
 # submit itself to any jurisdiction.
 
 set(MODULE GPUTrackingOCL2)
+enable_language(ASM)
 
 if(DEFINED OCL2_GPUTARGET)
   set(TMP_TARGET "(AMDGPU Target ${OCL2_GPUTARGET})")
@@ -68,7 +69,7 @@ if(OPENCL2_ENABLED_AMD) # BUILD OpenCL2 binaries for AMD target
     ${CMAKE_CURRENT_BINARY_DIR}/GPUReconstructionOCLCode.amd.S
     PROPERTIES
     LANGUAGE
-    CXX
+    ASM
     OBJECT_DEPENDS
     "${CL_BIN}.amd;${GPUDIR}/Standalone/makefiles/include.S")
 
@@ -108,7 +109,7 @@ if(OPENCL2_ENABLED_SPIRV) # BUILD OpenCL2 intermediate code for SPIR-V target
     ${CMAKE_CURRENT_BINARY_DIR}/GPUReconstructionOCLCode.spirv.S
     PROPERTIES
     LANGUAGE
-    CXX
+    ASM
     OBJECT_DEPENDS
     "${CL_BIN}.spirv;${GPUDIR}/Standalone/makefiles/include.S")
 
@@ -140,7 +141,7 @@ if(OPENCL2_ENABLED) # BUILD OpenCL2 source code for runtime compilation target
     ${CMAKE_CURRENT_BINARY_DIR}/GPUReconstructionOCLCode.src.S
     PROPERTIES
     LANGUAGE
-    CXX
+    ASM
     OBJECT_DEPENDS
     "${CL_BIN}.src;${GPUDIR}/Standalone/makefiles/include.S")
 
