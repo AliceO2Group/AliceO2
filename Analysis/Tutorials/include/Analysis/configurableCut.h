@@ -18,8 +18,8 @@
 class configurableCut
 {
  public:
-  configurableCut(float cut_ = 2., int state_ = 1, bool option_ = true)
-    : cut{cut_}, state{state_}, option{option_}
+  configurableCut(float cut_ = 2., int state_ = 1, bool option_ = true, std::vector<float> bins_ = {0.5, 1.5, 2.5})
+    : cut{cut_}, state{state_}, option{option_}, bins{bins_}
   {
   }
 
@@ -34,12 +34,16 @@ class configurableCut
   void setOption(bool option_);
   bool getOption() const;
 
+  void setBins(std::vector<float> bins_);
+  auto getBins() const;
+
  private:
   float cut;
   int state;
   bool option;
+  std::vector<float> bins;
 
-  ClassDef(configurableCut, 3);
+  ClassDef(configurableCut, 4);
 };
 
 std::ostream& operator<<(std::ostream& os, configurableCut const& c);
