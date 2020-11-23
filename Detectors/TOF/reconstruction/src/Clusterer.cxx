@@ -236,8 +236,9 @@ void Clusterer::buildCluster(Cluster& c, MCLabelContainer const* digitMCTruth)
     int lbl = mClsLabels->getIndexedSize(); // this should correspond to the number of digits also;
     //printf("lbl = %d\n", lbl);
     for (int i = 0; i < mNumberOfContributingDigits; i++) {
-      if (!mContributingDigit[i]->isUsedInCluster())
+      if (!mContributingDigit[i]->isUsedInCluster()) {
         continue;
+      }
       //printf("contributing digit = %d\n", i);
       int digitLabel = mContributingDigit[i]->getLabel();
       //printf("digitLabel = %d\n", digitLabel);
