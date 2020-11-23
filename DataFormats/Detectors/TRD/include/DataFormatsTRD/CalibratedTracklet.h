@@ -11,43 +11,35 @@
 #ifndef O2_TRD_CALIBRATEDTRACKLET_H
 #define O2_TRD_CALIBRATEDTRACKLET_H
 
+#include "DataFormatsTRD/Tracklet64.h"
+
 namespace o2
 {
 namespace trd
 {
 
-class CalibratedTracklet
+// The CalibratedTracklet has been calibrated in x and dy according to a calculated Lorentz Angle and Drift Velocity.
+// Tracklet positions in local z direction are reported at the center of the pad-row.
+// Pad-tilting correction is performed after tracking.
+class CalibratedTracklet : public Tracklet64
 {
  public:
   CalibratedTracklet() = default;
-  CalibratedTracklet(int HCID, int column, float x, float y, float z, float dy)
-  {
-    mHCID = HCID;
-    mColumn = column;
-    mx = x;
-    my = y;
-    mz = z;
-    mdy = dy;
-  }
+  CalibratedTracklet(uint64_t trackletWord, float x, float y, float z, float dy)
+    : Tracklet64(trackletWord), mx(x), my(y), mz(z), mdy(dy){};
   ~CalibratedTracklet() = default;
 
-  int getHCID() { return mHCID; }
-  int getColumn() { return mColumn; }
   float getX() { return mx; }
   float getY() { return my; }
   float getZ() { return mz; }
   float getDy() { return mdy; }
 
-  int setHCID(int HCID) { mHCID = HCID; }
-  int setColumn(int column) { mColumn = column; }
   void setX(float x) { mx = x; }
   void setY(float y) { my = y; }
   void setZ(float z) { mz = z; }
   void setDy(float dy) { mdy = dy; }
 
  private:
-  int mHCID;
-  int mColumn;
   float mx;
   float my;
   float mz;

@@ -12,6 +12,8 @@
 #define O2_TRD_TRACKLETTRANSFORMER_H
 
 #include "TRDBase/Geometry.h"
+#include "DataFormatsTRD/Tracklet64.h"
+#include "DataFormatsTRD/CalibratedTracklet.h"
 
 namespace o2
 {
@@ -24,25 +26,43 @@ class TrackletTransformer
   TrackletTransformer();
   ~TrackletTransformer() = default;
 
-  void loadPadPlane(int hcid);
+  float getXCathode() { return mXCathode; }
+  float getXAnode() { return mXAnode; }
+  float getXDrift() { return mXDrift; }
+  float getXtb0() { return mXtb0; }
 
-  float calculateX();
+  void setXCathode(float x) { mXCathode = x; }
+  void setXAnode(float x) { mXAnode = x; }
+  void setXDrift(float x) { mXDrift = x; }
+  void setXtb0(float x) { mXtb0 = x; }
+
+  void loadPadPlane(int hcid);
 
   float calculateY(int hcid, int column, int position);
 
   float calculateZ(int padrow);
 
-  float calculateDy(int slope);
+  float calculateDy(int slope, double oldLorentzAngle, double lorentzAngle, double driftVRatio);
 
   float calibrateX(double x, double t0Correction);
 
-  float calibrateDy(double rawDy, double oldLorentzAngle, double lorentzAngle, double driftVRatio);
-
   std::array<float, 3> transformL2T(int hcid, std::array<double, 3> spacePoint);
+
+  CalibratedTracklet transformTracklet(Tracklet64 tracklet);
 
  private:
   o2::trd::Geometry* mGeo;
   const o2::trd::PadPlane* mPadPlane;
+
+  float mXCathode;
+  float mXAnode;
+  float mXDrift;
+  float mXtb0;
+
+  float mt0Correction;
+  float mOldLorentzAngle;
+  float mLorentzAngle;
+  float mDriftVRatio;
 };
 
 } // namespace trd

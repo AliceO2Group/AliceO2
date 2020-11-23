@@ -21,6 +21,22 @@ TrackletTransformer::TrackletTransformer()
   mGeo = Geometry::instance();
   mGeo->createPadPlaneArray();
   mGeo->createClusterMatrixArray();
+
+  // 3 cm
+  mXCathode = mGeo->cdrHght();
+  // 2.221
+  // mXAnode = mGeo->anodePos();
+  // 3.35
+  mXAnode = mGeo->cdrHght() + mGeo->camHght() / 2;
+  // 2.5
+  mXDrift = mGeo->cdrHght() - 0.5;
+  mXtb0 = -100;
+
+  // dummy values for testing. This will change in the future when values are pulled from CCDB
+  mt0Correction = -0.1;
+  mOldLorentzAngle = 0.16;
+  mLorentzAngle = -0.14;
+  mDriftVRatio = 1.1;
 }
 
 void TrackletTransformer::loadPadPlane(int hcid)
@@ -29,15 +45,6 @@ void TrackletTransformer::loadPadPlane(int hcid)
   int stack = mGeo->getStack(detector);
   int layer = mGeo->getLayer(detector);
   mPadPlane = mGeo->getPadPlane(layer, stack);
-}
-
-float TrackletTransformer::calculateX()
-{
-  // report x at 5mm below the cathode plan to minimize error propogration from tracklet fit and driftV calibration
-  float driftHeight = mGeo->cdrHght();
-  float x = driftHeight - 0.5;
-
-  return x;
 }
 
 float TrackletTransformer::calculateY(int hcid, int column, int position)
@@ -63,7 +70,7 @@ float TrackletTransformer::calculateZ(int padrow)
   return z;
 }
 
-float TrackletTransformer::calculateDy(int slope)
+float TrackletTransformer::calculateDy(int slope, double oldLorentzAngle, double lorentzAngle, double driftVRatio)
 {
   double padWidth = mPadPlane->getWidthIPad();
 
@@ -73,19 +80,7 @@ float TrackletTransformer::calculateDy(int slope)
 
   // dy = slope * nTimeBins * padWidth * GRANULARITYTRKLSLOPE;
   // nTimeBins should be number of timebins in drift region. 1 timebin is 100 nanosecond
-  double dy = slope * ((driftHeight / vDrift) / 0.1) * padWidth * GRANULARITYTRKLSLOPE;
-
-  return dy;
-}
-
-float TrackletTransformer::calibrateX(double x, double t0Correction)
-{
-  return x += t0Correction;
-}
-
-float TrackletTransformer::calibrateDy(double rawDy, double oldLorentzAngle, double lorentzAngle, double driftVRatio)
-{
-  // LOG(info) << "RAW: " << rawDy;
+  double rawDy = slope * ((driftHeight / vDrift) / 0.1) * padWidth * GRANULARITYTRKLSLOPE;
 
   // driftDistance = 3.35
   float driftDistance = mGeo->cdrHght() + mGeo->camHght();
@@ -115,6 +110,11 @@ float TrackletTransformer::calibrateDy(double rawDy, double oldLorentzAngle, dou
   return calibratedDy;
 }
 
+float TrackletTransformer::calibrateX(double x, double t0Correction)
+{
+  return x += t0Correction;
+}
+
 std::array<float, 3> TrackletTransformer::transformL2T(int hcid, std::array<double, 3> point)
 {
   int detector = hcid / 2;
@@ -124,4 +124,35 @@ std::array<float, 3> TrackletTransformer::transformL2T(int hcid, std::array<doub
   auto gobalPoint = transformationMatrix ^ localPoint;
 
   return {(float)gobalPoint.x(), (float)gobalPoint.y(), (float)gobalPoint.z()};
+}
+
+CalibratedTracklet TrackletTransformer::transformTracklet(Tracklet64 tracklet)
+{
+  uint64_t trackletWord = tracklet.getTrackletWord();
+  uint64_t hcid = tracklet.getHCID();
+  uint64_t padrow = tracklet.getPadRow();
+  uint64_t column = tracklet.getColumn();
+  // 0-2048 | units:pad-widths | granularity=1/75 (measured from center pad 10) 1024 is 0/center of pad 10
+  uint64_t position = tracklet.getPosition();
+  // 0-127 | units:pads/timebin | granularity=1/1000
+  uint64_t slope = tracklet.getSlope();
+
+  // calculate raw local chamber space point
+  loadPadPlane(hcid);
+  float x = getXDrift();
+  float y = calculateY(hcid, column, position);
+  float z = calculateZ(padrow);
+
+  float dy = calculateDy(slope, mOldLorentzAngle, mLorentzAngle, mDriftVRatio);
+  float calibratedX = calibrateX(x, mt0Correction);
+
+  std::array<float, 3> sectorSpacePoint = transformL2T(hcid, std::array<double, 3>{x, y, z});
+
+  LOG(debug) << "x: " << sectorSpacePoint[0] << " | "
+             << "y: " << sectorSpacePoint[1] << " | "
+             << "z: " << sectorSpacePoint[2];
+
+  CalibratedTracklet calibratedTracklet = CalibratedTracklet(trackletWord, sectorSpacePoint[0], sectorSpacePoint[1], sectorSpacePoint[2], dy);
+
+  return calibratedTracklet;
 }
