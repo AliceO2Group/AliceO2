@@ -9,6 +9,7 @@
 # submit itself to any jurisdiction.
 
 set(MODULE GPUTrackingOCL)
+enable_language(ASM)
 
 # AMD APP SDK required for OpenCL tracker as it's using specific extensions
 # (currently) not provided by other vendors
@@ -78,7 +79,7 @@ set_source_files_properties(
   ${CMAKE_CURRENT_BINARY_DIR}/GPUReconstructionOCLCode.S
   PROPERTIES
   LANGUAGE
-  CXX
+  ASM
   OBJECT_DEPENDS
   "${CL_BIN};${GPUDIR}/Standalone/makefiles/include.S")
 
