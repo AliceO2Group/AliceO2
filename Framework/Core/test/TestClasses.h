@@ -11,7 +11,6 @@
 #define O2_FRAMEWORK_TEST_CLASSES_H_
 
 #include <Rtypes.h>
-#include "Framework/InputSpec.h"
 #include "Framework/OutputSpec.h"
 
 namespace o2::test
