@@ -83,11 +83,19 @@ class MCKinematicsReader
 
   /// return all track references associated to a source/event/track
   gsl::span<o2::TrackReference> getTrackRefs(int source, int event, int track) const;
+  /// return all track references associated to a source/event
+  const std::vector<o2::TrackReference>& getTrackRefsByEvent(int source, int event) const;
   /// return all track references associated to a event/track (when initialized from kinematics directly)
   gsl::span<o2::TrackReference> getTrackRefs(int event, int track) const;
 
   /// retrieves the MCEventHeader for a given eventID and sourceID
   o2::dataformats::MCEventHeader const& getMCEventHeader(int source, int event) const;
+
+  /// Get number of sources
+  size_t getNSources() const;
+
+  /// Get number of events
+  size_t getNEvents(int source) const;
 
   DigitizationContext const* getDigitizationContext() const
   {
@@ -162,9 +170,30 @@ inline gsl::span<o2::TrackReference> MCKinematicsReader::getTrackRefs(int source
   return mTrackRefs[source][event].getLabels(track);
 }
 
+inline const std::vector<o2::TrackReference>& MCKinematicsReader::getTrackRefsByEvent(int source, int event) const
+{
+  if (mTrackRefs[source].size() == 0) {
+    loadTrackRefsForSource(source);
+  }
+  return mTrackRefs[source][event].getTruthArray();
+}
+
 inline gsl::span<o2::TrackReference> MCKinematicsReader::getTrackRefs(int event, int track) const
 {
   return getTrackRefs(0, event, track);
+}
+
+inline size_t MCKinematicsReader::getNSources() const
+{
+  return mTracks.size();
+}
+
+inline size_t MCKinematicsReader::getNEvents(int source) const
+{
+  if (mTracks[source].size() == 0) {
+    loadTracksForSource(source);
+  }
+  return mTracks[source].size();
 }
 
 } // namespace steer
