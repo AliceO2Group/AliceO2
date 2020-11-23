@@ -225,14 +225,19 @@ struct ExpirationHandlerHelpers {
   /// When the record expires, simply create a dummy entry.
   static RouteConfigurator::ExpirationConfigurator expiringOptionalConfigurator(InputSpec const& spec, std::string const& sourceChannel)
   {
-    auto m = std::get_if<ConcreteDataMatcher>(&spec.matcher);
-    if (m == nullptr) {
-      throw runtime_error("InputSpec for Enumeration must be fully qualified");
+    try {
+      ConcreteDataMatcher concrete = DataSpecUtils::asConcreteDataMatcher(spec);
+      return [concrete, sourceChannel](DeviceState&, ConfigParamRegistry const&) {
+        return LifetimeHelpers::dummy(concrete, sourceChannel);
+      };
+    } catch (...) {
+      ConcreteDataTypeMatcher dataType = DataSpecUtils::asConcreteDataTypeMatcher(spec);
+      ConcreteDataMatcher concrete{dataType.origin, dataType.description, 0xdeadbeef};
+      return [concrete, sourceChannel](DeviceState&, ConfigParamRegistry const&) {
+        return LifetimeHelpers::dummy(concrete, sourceChannel);
+      };
     }
     // We copy the matcher to avoid lifetime issues.
-    return [matcher = *m, sourceChannel](DeviceState&, ConfigParamRegistry const&) {
-      return LifetimeHelpers::dummy(matcher, sourceChannel);
-    };
   }
 };
 
