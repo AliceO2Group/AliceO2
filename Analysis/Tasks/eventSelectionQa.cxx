@@ -89,6 +89,7 @@ struct EventSelectionTask {
   OutputObj<TH1F> hTimeFDCacc{TH1F("hTimeFDCacc", "", 1000, -100., 100.)};
 
   Configurable<bool> isMC{"isMC", 0, "0 - data, 1 - MC"};
+  Configurable<int> selection{"sel", 7, "trigger: 7 - sel7, 8 - sel8"};
 
   void process(soa::Join<aod::Collisions, aod::EvSels>::iterator const& col, aod::BCs const& bcs, aod::Zdcs const& zdcs, aod::FV0As const& fv0as, aod::FV0Cs const& fv0cs, aod::FT0s ft0s, aod::FDDs fdds)
   {
@@ -113,8 +114,16 @@ struct EventSelectionTask {
     hTimeFDAall->Fill(fdd.timeA());
     hTimeFDCall->Fill(fdd.timeC());
 
-    if (!col.sel7()) {
+    if (selection == 7 && !col.sel7()) {
       return;
+    }
+
+    if (selection == 8 && !col.sel8()) {
+      return;
+    }
+
+    if (selection != 7 && selection != 8) {
+      LOGF(fatal, "Unknown selection type! Use `--sel 7` or `--sel 8`");
     }
 
     hTimeV0Aacc->Fill(fv0a.time());

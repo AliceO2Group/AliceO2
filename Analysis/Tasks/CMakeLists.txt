@@ -50,7 +50,7 @@ o2_add_dpl_workflow(validation
 
 o2_add_dpl_workflow(event-selection
                     SOURCES eventSelection.cxx
-                    PUBLIC_LINK_LIBRARIES O2::Framework O2::AnalysisDataModel O2::AnalysisCore O2::DetectorsBase O2::CCDB
+                    PUBLIC_LINK_LIBRARIES O2::Framework O2::AnalysisDataModel O2::AnalysisCore O2::DetectorsBase O2::CCDB O2::CommonConstants
                     COMPONENT_NAME Analysis)
 
 o2_add_dpl_workflow(event-selection-qa

@@ -7,15 +7,25 @@
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
+
+#include "Framework/ConfigParamSpec.h"
+
+using namespace o2;
+using namespace o2::framework;
+
+// custom configurable for switching between run2 and run3 selection types
+void customize(std::vector<ConfigParamSpec>& workflowOptions)
+{
+  workflowOptions.push_back(ConfigParamSpec{"selection-run", VariantType::Int, 2, {"selection type: 2 - run 2, 3 - run 3"}});
+}
+
 #include "Framework/runDataProcessing.h"
 #include "Framework/AnalysisTask.h"
 #include "Framework/AnalysisDataModel.h"
 #include "Analysis/EventSelection.h"
 #include "Analysis/TriggerAliases.h"
 #include <CCDB/BasicCCDBManager.h>
-
-using namespace o2;
-using namespace o2::framework;
+#include "CommonConstants/LHCConstants.h"
 
 struct EvSelParameters {
   // time-of-flight offset
@@ -123,12 +133,97 @@ struct EventSelectionTask {
     }
 
     // Fill event selection columns
-    evsel(alias, bbT0A, bbT0C, bbV0A, bbV0C, bgV0A, bgV0C, bbZNA, bbZNC, bbFDA, bbFDC, bgFDA, bgFDC);
+    int64_t foundFT0 = -1; // this column is not used in run2 analysis
+    evsel(alias, bbT0A, bbT0C, bbV0A, bbV0C, bgV0A, bgV0C, bbZNA, bbZNC, bbFDA, bbFDC, bgFDA, bgFDC, foundFT0);
   }
 };
 
-WorkflowSpec defineDataProcessing(ConfigContext const&)
+// helper table and task for BCs<-->FT0s matching
+namespace o2::aod
 {
-  return WorkflowSpec{
-    adaptAnalysisTask<EventSelectionTask>("event-selection")};
+DECLARE_SOA_INDEX_TABLE_USER(SparseBCsFT0s, BCs, "MA_SP_BCS_FT0S", o2::aod::indices::BCId, o2::aod::indices::FT0Id);
+}
+
+struct EventSelectionTaskRun3Helper {
+  Builds<aod::SparseBCsFT0s> matchedBCsFT0s;
+  void process(aod::BCs, aod::FT0s)
+  {
+  }
+};
+
+struct EventSelectionTaskRun3 {
+  Produces<aod::EvSels> evsel;
+
+  EvSelParameters par;
+
+  void process(aod::Collision const& collision, aod::SparseBCsFT0s const& matchedBCsFT0s, aod::BCs const& bcs, aod::Zdcs const& zdcs, aod::FV0As const& fv0as, aod::FT0s const& ft0s, aod::FDDs const& fdds)
+  {
+    // calculating [minBC, maxBC] range for a collision
+    int deltaBC = std::ceil(collision.collisionTimeRes() / o2::constants::lhc::LHCBunchSpacingNS * 4);
+    int64_t colBC = collision.bc().globalBC();
+    int64_t maxColBC = colBC + deltaBC;
+    int64_t minColBC = colBC - deltaBC;
+
+    int64_t minFt0Dist = INT32_MAX;
+    int64_t foundFT0 = -1;
+    float timeA = -999.f;
+    float timeC = -999.f;
+
+    // calculating BCID iteration range
+    int64_t minGlobalBC = bcs.begin().globalBC();
+    int64_t maxGlobalBC = bcs.iteratorAt(bcs.size() - 1).globalBC();
+    int64_t startIt = minColBC - minGlobalBC;
+    int64_t endIt = maxColBC - minGlobalBC;
+
+    // iterating only through relevant BCIDs and
+    // searching for the nearest FT0
+    for (int64_t i = startIt; i <= endIt; i++) {
+      auto matched = matchedBCsFT0s.iteratorAt(i);
+      if (matched.has_ft0() == false) {
+        continue;
+      }
+      auto bc = bcs.iteratorAt(i);
+      int64_t ft0BC = bc.globalBC();
+      int64_t ft0Dist = abs(ft0BC - colBC);
+      if (ft0Dist < minFt0Dist) {
+        minFt0Dist = ft0Dist;
+        foundFT0 = matched.ft0().globalIndex();
+      }
+    }
+
+    if (minFt0Dist != INT32_MAX) {
+      auto ft0 = ft0s.iteratorAt(foundFT0);
+      timeA = ft0.timeA();
+      timeC = ft0.timeC();
+    }
+
+    bool bbZNA = 1;
+    bool bbZNC = 1;
+    bool bbV0A = 0;
+    bool bbV0C = 0;
+    bool bgV0A = 0;
+    bool bgV0C = 0;
+    bool bbFDA = 0;
+    bool bbFDC = 0;
+    bool bgFDA = 0;
+    bool bgFDC = 0;
+    bool bbT0A = timeA > par.fT0ABBlower && timeA < par.fT0ABBupper;
+    bool bbT0C = timeC > par.fT0CBBlower && timeC < par.fT0CBBupper;
+
+    int32_t alias[kNaliases] = {0};
+    // Fill event selection columns
+    // saving FT0 row index (foundFT0) for further analysis
+    evsel(alias, bbT0A, bbT0C, bbV0A, bbV0C, bgV0A, bgV0C, bbZNA, bbZNC, bbFDA, bbFDC, bgFDA, bgFDC, foundFT0);
+  }
+};
+
+WorkflowSpec defineDataProcessing(ConfigContext const& ctx)
+{
+  if (ctx.options().get<int>("selection-run") == 2) {
+    return WorkflowSpec{adaptAnalysisTask<EventSelectionTask>("event-selection")};
+  } else {
+    return WorkflowSpec{
+      adaptAnalysisTask<EventSelectionTaskRun3Helper>("event-selection-helper"),
+      adaptAnalysisTask<EventSelectionTaskRun3>("event-selection")};
+  }
 }

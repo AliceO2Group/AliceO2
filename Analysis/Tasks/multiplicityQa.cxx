@@ -27,13 +27,25 @@ struct MultiplicityQaTask {
 
   OutputObj<TProfile> hMultNtrackletsVsV0M{TProfile("hMultNtrackletsVsV0M", "", 50000, 0., 50000.)};
 
+  Configurable<bool> isMC{"isMC", 0, "0 - data, 1 - MC"};
+  Configurable<int> selection{"sel", 7, "trigger: 7 - sel7, 8 - sel8"};
+
   void process(soa::Join<aod::Collisions, aod::EvSels, aod::Mults>::iterator const& col)
   {
-    if (!col.alias()[kINT7]) {
+    if (!isMC && !col.alias()[kINT7]) {
       return;
     }
-    if (!col.sel7()) {
+
+    if (selection == 7 && !col.sel7()) {
       return;
+    }
+
+    if (selection == 8 && !col.sel8()) {
+      return;
+    }
+
+    if (selection != 7 && selection != 8) {
+      LOGF(fatal, "Unknown selection type! Use `--sel 7` or `--sel 8`");
     }
 
     LOGF(debug, "multV0A=%5.0f multV0C=%5.0f multV0M=%5.0f multT0A=%5.0f multT0C=%5.0f multT0M=%5.0f", col.multV0A(), col.multV0C(), col.multV0M(), col.multT0A(), col.multT0C(), col.multT0M());
