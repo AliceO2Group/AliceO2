@@ -303,6 +303,7 @@ AlgorithmSpec AODReaderHelpers::rootFileReaderCallback()
           }
         }
         t2t.fill(tr);
+        delete tr;
 
         first = false;
       }
