@@ -707,6 +707,11 @@ void* CcdbApi::interpretAsTMemFileAndExtract(char* contentptr, size_t contentsiz
 // navigate sequence of URLs until TFile content is found; object is extracted and returned
 void* CcdbApi::navigateURLsAndRetrieveContent(CURL* curl_handle, std::string const& url, TClass* cl, std::map<string, string>* headers) const
 {
+  // a global internal data structure that can be filled with HTTP header information
+  // static --> to avoid frequent alloc/dealloc as optimization
+  // not sure if thread_local takes away that benefit
+  static thread_local std::multimap<std::string, std::string> headerData;
+
   // let's see first of all if the url is something specific that curl cannot handle
   if (url.find("alien:/", 0) != std::string::npos) {
     return downloadAlienContent(url, cl);
@@ -722,9 +727,9 @@ void* CcdbApi::navigateURLsAndRetrieveContent(CURL* curl_handle, std::string con
   curl_easy_setopt(curl_handle, CURLOPT_USERAGENT, "libcurl-agent/1.0");
   // if redirected , we tell libcurl NOT to follow redirection
   curl_easy_setopt(curl_handle, CURLOPT_FOLLOWLOCATION, 0L);
-  curl_easy_setopt(curl_handle, CURLOPT_HEADERFUNCTION, header_map_callback<decltype(mHeaderData)>);
-  mHeaderData.clear();
-  curl_easy_setopt(curl_handle, CURLOPT_HEADERDATA, (void*)&mHeaderData);
+  curl_easy_setopt(curl_handle, CURLOPT_HEADERFUNCTION, header_map_callback<decltype(headerData)>);
+  headerData.clear();
+  curl_easy_setopt(curl_handle, CURLOPT_HEADERDATA, (void*)&headerData);
 
   MemoryStruct chunk{(char*)malloc(1), 0};
 
@@ -739,7 +744,7 @@ void* CcdbApi::navigateURLsAndRetrieveContent(CURL* curl_handle, std::string con
   bool cachingflag = false;
   if (res == CURLE_OK && curl_easy_getinfo(curl_handle, CURLINFO_RESPONSE_CODE, &response_code) == CURLE_OK) {
     if (headers) {
-      for (auto& p : mHeaderData) {
+      for (auto& p : headerData) {
         (*headers)[p.first] = p.second;
       }
     }
@@ -759,14 +764,14 @@ void* CcdbApi::navigateURLsAndRetrieveContent(CURL* curl_handle, std::string con
       // 1st: The "Location" field
       // 2nd: Possible "Content-Location" fields - Location field
       std::vector<std::string> locs;
-      auto iter = mHeaderData.find("Location");
-      if (iter != mHeaderData.end()) {
+      auto iter = headerData.find("Location");
+      if (iter != headerData.end()) {
         locs.push_back(iter->second);
       }
       // add alternative locations (not yet included)
-      auto iter2 = mHeaderData.find("Content-Location");
-      if (iter2 != mHeaderData.end()) {
-        auto range = mHeaderData.equal_range("Content-Location");
+      auto iter2 = headerData.find("Content-Location");
+      if (iter2 != headerData.end()) {
+        auto range = headerData.equal_range("Content-Location");
         for (auto it = range.first; it != range.second; ++it) {
           if (std::find(locs.begin(), locs.end(), it->second) == locs.end()) {
             locs.push_back(it->second);
