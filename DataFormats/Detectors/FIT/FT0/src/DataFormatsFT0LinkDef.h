@@ -33,6 +33,7 @@
 #pragma link C++ class vector < o2::ft0::ChannelDataFloat> + ;
 
 #pragma link C++ class o2::ft0::MCLabel + ;
+#include "SimulationDataFormat/MCTruthContainer.h"
 #pragma link C++ class o2::dataformats::MCTruthContainer < o2::ft0::MCLabel> + ;
 
 #pragma link C++ class o2::ft0::HitType + ;
