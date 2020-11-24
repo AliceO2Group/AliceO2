@@ -428,7 +428,7 @@ class RecoDecay
   /// \param index  index of the MC particle
   /// \param list  vector where the indices of final-state daughters will be added
   /// \param arrPDGFinal  array of PDG codes of particles to be considered final
-  /// \param depthMax  maximum decay tree level; Daughters at this level (or beyond) will be considered final.
+  /// \param depthMax  maximum decay tree level; Daughters at this level (or beyond) will be considered final. If -1, all levels are considered.
   /// \param stage  decay tree level; If different from 0, the particle itself will be added in the list in case it has no daughters.
   /// \note Final state is defined as particles from arrPDGFinal plus final daughters of any other decay branch.
   template <std::size_t N, typename T>
@@ -436,7 +436,7 @@ class RecoDecay
                            int index,
                            std::vector<int>* list,
                            const array<int, N>& arrPDGFinal,
-                           int depthMax = 1,
+                           int depthMax = -1,
                            int8_t stage = 0)
   {
     if (index == -1) {
@@ -450,7 +450,7 @@ class RecoDecay
     // Get the particle.
     auto particle = particlesMC.iteratorAt(index);
     bool isFinal = false; // Flag to indicate the end of recursion
-    if (stage >= depthMax) { // Maximum depth has been reached (or exceeded).
+    if (depthMax > -1 && stage >= depthMax) { // Maximum depth has been reached (or exceeded).
       isFinal = true;
     }
     // Get the range of daughter indices.
@@ -512,9 +512,10 @@ class RecoDecay
   /// \param PDGMother  expected mother PDG code
   /// \param arrPDGDaughters  array of expected daughter PDG codes
   /// \param acceptAntiParticles  switch to accept the antiparticle version of the expected decay
+  /// \param depthMax  maximum decay tree level to check; Daughters up to this level will be considered. If -1, all levels are considered.
   /// \return true if PDG codes of the mother and daughters are correct, false otherwise
   template <std::size_t N, typename T, typename U>
-  static bool isMCMatchedDecayRec(const T& particlesMC, const array<U, N>& arrDaughters, int PDGMother, array<int, N> arrPDGDaughters, bool acceptAntiParticles = false)
+  static bool isMCMatchedDecayRec(const T& particlesMC, const array<U, N>& arrDaughters, int PDGMother, array<int, N> arrPDGDaughters, bool acceptAntiParticles = false, int depthMax = 1)
   {
     Printf("MC Rec.: Expected mother PDG: %d", PDGMother);
     int sgn = 1;                     // 1 if the expected mother is particle, -1 if antiparticle (w.r.t. PDGMother)
@@ -581,7 +582,7 @@ class RecoDecay
           return false;
         }
         // Get the list of final daughters.
-        getDaughters(particlesMC, indexMother, &arrAllDaughtersIndex, arrPDGDaughters);
+        getDaughters(particlesMC, indexMother, &arrAllDaughtersIndex, arrPDGDaughters, depthMax);
         printf("Mother %d has %d final daughters:", indexMother, arrAllDaughtersIndex.size());
         for (auto i : arrAllDaughtersIndex) {
           printf(" %d", i);
@@ -653,9 +654,10 @@ class RecoDecay
   /// \param PDGParticle  expected particle PDG code
   /// \param arrPDGDaughters  array of expected PDG codes of daughters
   /// \param acceptAntiParticles  switch to accept the antiparticle
+  /// \param depthMax  maximum decay tree level to check; Daughters up to this level will be considered. If -1, all levels are considered.
   /// \return true if PDG codes of the particle and its daughters are correct, false otherwise
   template <std::size_t N, typename T, typename U>
-  static bool isMCMatchedDecayGen(const T& particlesMC, const U& candidate, int PDGParticle, array<int, N> arrPDGDaughters, bool acceptAntiParticles = false)
+  static bool isMCMatchedDecayGen(const T& particlesMC, const U& candidate, int PDGParticle, array<int, N> arrPDGDaughters, bool acceptAntiParticles = false, int depthMax = 1)
   {
     Printf("MC Gen.: Expected particle PDG: %d", PDGParticle);
     int sgn = 1;                // 1 if the expected mother is particle, -1 if antiparticle (w.r.t. PDGParticle)
@@ -691,7 +693,7 @@ class RecoDecay
         return false;
       }
       // Get the list of final daughters.
-      getDaughters(particlesMC, candidate.globalIndex(), &arrAllDaughtersIndex, arrPDGDaughters);
+      getDaughters(particlesMC, candidate.globalIndex(), &arrAllDaughtersIndex, arrPDGDaughters, depthMax);
       printf("Mother %d has %d final daughters:", candidate.globalIndex(), arrAllDaughtersIndex.size());
       for (auto i : arrAllDaughtersIndex) {
         printf(" %d", i);
