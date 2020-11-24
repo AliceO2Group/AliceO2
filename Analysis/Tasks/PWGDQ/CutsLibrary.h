@@ -16,14 +16,14 @@
 
 namespace o2::aod
 {
-namespace DQCutsLibrary
+namespace dqcuts
 {
 AnalysisCompositeCut* GetCompositeCut(const char* cutName);
 AnalysisCut* GetAnalysisCut(const char* cutName);
-} // namespace DQCutsLibrary
+} // namespace dqcuts
 } // namespace o2::aod
 
-AnalysisCompositeCut* o2::aod::DQCutsLibrary::GetCompositeCut(const char* cutName)
+AnalysisCompositeCut* o2::aod::dqcuts::GetCompositeCut(const char* cutName)
 {
   //
   // define composie cuts, typically combinations of all the ingredients needed for a full cut
@@ -98,7 +98,7 @@ AnalysisCompositeCut* o2::aod::DQCutsLibrary::GetCompositeCut(const char* cutNam
   return nullptr;
 }
 
-AnalysisCut* o2::aod::DQCutsLibrary::GetAnalysisCut(const char* cutName)
+AnalysisCut* o2::aod::dqcuts::GetAnalysisCut(const char* cutName)
 {
   //
   // define here cuts which are likely to be used often

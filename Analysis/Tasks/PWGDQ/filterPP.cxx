@@ -48,14 +48,14 @@ using namespace o2::aod;
 // Some definitions
 namespace o2::aod
 {
-namespace dqPPfilter
+namespace dqppfilter
 {
 DECLARE_SOA_COLUMN(IsDQEventSelected, isDQEventSelected, int);
 DECLARE_SOA_COLUMN(IsBarrelSelected, isBarrelSelected, uint8_t);
-} // namespace dqPPfilter
+} // namespace dqppfilter
 
-DECLARE_SOA_TABLE(DQEventCuts, "AOD", "DQEVENTCUTS", dqPPfilter::IsDQEventSelected);
-DECLARE_SOA_TABLE(DQBarrelTrackCuts, "AOD", "DQBARRELCUTS", dqPPfilter::IsBarrelSelected);
+DECLARE_SOA_TABLE(DQEventCuts, "AOD", "DQEVENTCUTS", dqppfilter::IsDQEventSelected);
+DECLARE_SOA_TABLE(DQBarrelTrackCuts, "AOD", "DQBARRELCUTS", dqppfilter::IsBarrelSelected);
 } // namespace o2::aod
 
 using MyEvents = soa::Join<aod::Collisions, aod::EvSels>;
@@ -100,7 +100,7 @@ struct EventSelectionTask {
     if (!cutNamesStr.IsNull()) {
       std::unique_ptr<TObjArray> objArray(cutNamesStr.Tokenize(","));
       for (int icut = 0; icut < objArray->GetEntries(); ++icut) {
-        fEventCut.AddCut(DQCutsLibrary::GetAnalysisCut(objArray->At(icut)->GetName()));
+        fEventCut.AddCut(dqcuts::GetAnalysisCut(objArray->At(icut)->GetName()));
       }
     }
 
@@ -162,7 +162,7 @@ struct BarrelTrackSelectionTask {
     if (!cutNamesStr.IsNull()) {
       std::unique_ptr<TObjArray> objArray(cutNamesStr.Tokenize(","));
       for (int icut = 0; icut < objArray->GetEntries(); ++icut) {
-        fTrackCuts.push_back(*DQCutsLibrary::GetCompositeCut(objArray->At(icut)->GetName()));
+        fTrackCuts.push_back(*dqcuts::GetCompositeCut(objArray->At(icut)->GetName()));
       }
     }
 
@@ -206,8 +206,8 @@ struct FilterPPTask {
 
   float* fValues;
 
-  Partition<MyBarrelTracksSelected> posTracks = aod::track::signed1Pt > 0.0f && aod::dqPPfilter::isBarrelSelected > uint8_t(0);
-  Partition<MyBarrelTracksSelected> negTracks = aod::track::signed1Pt < 0.0f && aod::dqPPfilter::isBarrelSelected > uint8_t(0);
+  Partition<MyBarrelTracksSelected> posTracks = aod::track::signed1Pt > 0.0f && aod::dqppfilter::isBarrelSelected > uint8_t(0);
+  Partition<MyBarrelTracksSelected> negTracks = aod::track::signed1Pt < 0.0f && aod::dqppfilter::isBarrelSelected > uint8_t(0);
 
   Configurable<std::string> fConfigTrackCuts{"cfgBarrelTrackCuts", "jpsiPID1", "Comma separated list of barrel track cuts"};
   Configurable<std::string> fConfigPairCuts{"cfgPairCuts", "pairMassLow", "Comma separated list of pair cuts"};
@@ -224,7 +224,7 @@ struct FilterPPTask {
     fNPairCuts = objArray->GetEntries();
     if (fNPairCuts) {
       for (int icut = 0; icut < fNPairCuts; ++icut) {
-        fPairCuts.push_back(*DQCutsLibrary::GetCompositeCut(objArray->At(icut)->GetName()));
+        fPairCuts.push_back(*dqcuts::GetCompositeCut(objArray->At(icut)->GetName()));
       }
     }
 
@@ -270,7 +270,7 @@ struct FilterPPTask {
   void process(MyEventsSelected::iterator const& event, MyBarrelTracksSelected const& tracks, aod::BCs const& bcs)
   {
     uint64_t filter = 0;
-    //TODO: Output histograms not produced if the dqPPfilter::isDQEventSelected() is used
+    
     if (event.isDQEventSelected() == 1) {
       // Reset the fValues array
       VarManager::ResetValues(0, VarManager::kNVars, fValues);
@@ -338,21 +338,21 @@ void DefineHistograms(HistogramManager* histMan, TString histClasses)
     285328, 285347, 285364, 285365, 285396};
   VarManager::SetRunNumbers(kNRuns, runs);
 
-  TObjArray* arr = histClasses.Tokenize(";");
-  for (Int_t iclass = 0; iclass < arr->GetEntries(); ++iclass) {
-    TString classStr = arr->At(iclass)->GetName();
+  std::unique_ptr<TObjArray> objArray(histClasses.Tokenize(";"));
+  for (Int_t iclass = 0; iclass < objArray->GetEntries(); ++iclass) {
+    TString classStr = objArray->At(iclass)->GetName();
     histMan->AddHistClass(classStr.Data());
 
     if (classStr.Contains("Event")) {
-      DQHistogramLibrary::DefineHistograms(histMan, arr->At(iclass)->GetName(), "event", "trigger,vtxPbPb");
+      dqhistograms::DefineHistograms(histMan, objArray->At(iclass)->GetName(), "event", "trigger,vtxPbPb");
     }
 
     if (classStr.Contains("Track")) {
-      DQHistogramLibrary::DefineHistograms(histMan, arr->At(iclass)->GetName(), "track", "its,tpcpid,dca");
+      dqhistograms::DefineHistograms(histMan, objArray->At(iclass)->GetName(), "track", "its,tpcpid,dca");
     }
 
     if (classStr.Contains("Pairs")) {
-      DQHistogramLibrary::DefineHistograms(histMan, arr->At(iclass)->GetName(), "pair");
+      dqhistograms::DefineHistograms(histMan, objArray->At(iclass)->GetName(), "pair");
     }
   }
 }

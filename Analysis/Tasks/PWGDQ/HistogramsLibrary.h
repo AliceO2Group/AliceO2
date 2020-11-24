@@ -15,13 +15,13 @@
 
 namespace o2::aod
 {
-namespace DQHistogramLibrary
+namespace dqhistograms
 {
 void DefineHistograms(HistogramManager* hm, const char* histClass, const char* groupName, const char* subGroupName = "");
 }
 } // namespace o2::aod
 
-void o2::aod::DQHistogramLibrary::DefineHistograms(HistogramManager* hm, const char* histClass, const char* groupName, const char* subGroupName)
+void o2::aod::dqhistograms::DefineHistograms(HistogramManager* hm, const char* histClass, const char* groupName, const char* subGroupName)
 {
   //
   // Add a predefined group of histograms to the HistogramManager hm and histogram class histClass
