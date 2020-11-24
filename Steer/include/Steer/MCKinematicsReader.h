@@ -106,6 +106,7 @@ class MCKinematicsReader
   void loadTracksForSource(int source) const;
   void loadHeadersForSource(int source) const;
   void loadTrackRefsForSource(int source) const;
+  void initIndexedTrackRefs(std::vector<o2::TrackReference>& refs, o2::dataformats::MCTruthContainer<o2::TrackReference>& indexedrefs) const;
 
   DigitizationContext const* mDigitizationContext = nullptr;
 
@@ -115,7 +116,7 @@ class MCKinematicsReader
   // a vector of tracks foreach source and each collision
   mutable std::vector<std::vector<std::vector<o2::MCTrack>>> mTracks; // the in-memory track container
   mutable std::vector<std::vector<o2::dataformats::MCEventHeader>> mHeaders; // the in-memory header container
-  mutable std::vector<std::vector<o2::dataformats::MCTruthContainer<o2::TrackReference>>> mTrackRefs; // the in-memory track ref container
+  mutable std::vector<std::vector<o2::dataformats::MCTruthContainer<o2::TrackReference>>> mIndexedTrackRefs; // the in-memory track ref container
 
   bool mInitialized = false; // whether initialized
 };
@@ -164,18 +165,18 @@ inline o2::dataformats::MCEventHeader const& MCKinematicsReader::getMCEventHeade
 
 inline gsl::span<o2::TrackReference> MCKinematicsReader::getTrackRefs(int source, int event, int track) const
 {
-  if (mTrackRefs[source].size() == 0) {
+  if (mIndexedTrackRefs[source].size() == 0) {
     loadTrackRefsForSource(source);
   }
-  return mTrackRefs[source][event].getLabels(track);
+  return mIndexedTrackRefs[source][event].getLabels(track);
 }
 
 inline const std::vector<o2::TrackReference>& MCKinematicsReader::getTrackRefsByEvent(int source, int event) const
 {
-  if (mTrackRefs[source].size() == 0) {
+  if (mIndexedTrackRefs[source].size() == 0) {
     loadTrackRefsForSource(source);
   }
-  return mTrackRefs[source][event].getTruthArray();
+  return mIndexedTrackRefs[source][event].getTruthArray();
 }
 
 inline gsl::span<o2::TrackReference> MCKinematicsReader::getTrackRefs(int event, int track) const

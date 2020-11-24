@@ -97,7 +97,7 @@ class SimTraits
 
   // branches that are related to kinematics and general event information
   static inline const std::vector<std::string> KINEMATICSBRANCHES =
-    {"MCTrack", "MCEventHeader", "TrackRefs", "IndexedTrackRefs"};
+    {"MCTrack", "MCEventHeader", "TrackRefs"};
 
   ClassDefNV(SimTraits, 1);
 };
