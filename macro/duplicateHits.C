@@ -172,7 +172,6 @@ void duplicateHits(const char* filebase = "o2sim", const char* newfilebase = "o2
   duplicate<o2::dataformats::MCEventHeader>(kintree, "MCEventHeader.", newkintree, factor);
   // TODO: fix EventIDs in the newly created MCEventHeaders
   duplicate<o2::TrackReference>(kintree, "TrackRefs", newkintree, factor);
-  duplicate<o2::dataformats::MCTruthContainer<o2::TrackReference>>(kintree, "IndexedTrackRefs", newkintree, factor);
   newkintree->Write();
 
   // duplicating hits

@@ -262,7 +262,6 @@ class O2HitMerger : public FairMQDevice
     fillSubEventInfoEntry(info);
     consumeData<std::vector<o2::MCTrack>>(info.eventID, "MCTrack", data, index);
     consumeData<std::vector<o2::TrackReference>>(info.eventID, "TrackRefs", data, index);
-    consumeData<o2::dataformats::MCTruthContainer<o2::TrackReference>>(info.eventID, "IndexedTrackRefs", data, index);
     while (index < data.Size()) {
       consumeHits(info.eventID, data, index);
     }
@@ -324,13 +323,6 @@ class O2HitMerger : public FairMQDevice
   void backInsert(T const& from, T& to)
   {
     std::copy(from.begin(), from.end(), std::back_inserter(to));
-  }
-  // specialization for o2::MCTruthContainer<S>
-  template <typename S>
-  void backInsert(o2::dataformats::MCTruthContainer<S> const& from,
-                  o2::dataformats::MCTruthContainer<S>& to)
-  {
-    to.mergeAtBack(from);
   }
 
   void reorderAndMergeMCTRacks(TTree& origin, TTree& target, const std::vector<int>& nprimaries, const std::vector<int>& nsubevents)
@@ -610,7 +602,6 @@ class O2HitMerger : public FairMQDevice
     reorderAndMergeMCTRacks(*tree, *mOutTree, nprimaries, subevOrdered);
     Int_t ioffset = 0;
     remapTrackIdsAndMerge<std::vector<o2::TrackReference>>("TrackRefs", *tree, *mOutTree, trackoffsets, nprimaries, subevOrdered);
-    merge<o2::dataformats::MCTruthContainer<o2::TrackReference>>("IndexedTrackRefs", *tree, *mOutTree);
 
     // c) do the merge procedure for all hits ... delegate this to detector specific functions
     // since they know about types; number of branches; etc.
