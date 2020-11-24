@@ -18,7 +18,6 @@
 #include "DetectorsCommonDataFormats/DetID.h"
 #include "FairGenericStack.h"
 #include "SimulationDataFormat/MCTrack.h"
-#include "SimulationDataFormat/MCTruthContainer.h"
 #include "SimulationDataFormat/TrackReference.h"
 #include "SimulationDataFormat/MCEventStats.h"
 #include "Rtypes.h"
@@ -283,8 +282,6 @@ class Stack : public FairGenericStack
 
   // storage for track references
   std::vector<o2::TrackReference>* mTrackRefs = nullptr; //!
-
-  o2::dataformats::MCTruthContainer<o2::TrackReference>* mIndexedTrackRefs = nullptr; //!
 
   /// a pointer to the current MCEventStats object
   o2::dataformats::MCEventStats* mMCEventStats = nullptr; //!

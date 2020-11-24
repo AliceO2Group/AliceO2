@@ -72,7 +72,6 @@ Stack::Stack(Int_t size)
     mMinHits(1),
     mEnergyCut(0.),
     mTrackRefs(new std::vector<o2::TrackReference>),
-    mIndexedTrackRefs(new typename std::remove_pointer<decltype(mIndexedTrackRefs)>::type),
     mIsG4Like(false)
 {
   auto vmc = TVirtualMC::GetMC();
@@ -518,14 +517,6 @@ void Stack::UpdateTrackIndex(TRefArray* detList)
     return a.getTrackID() < b.getTrackID();
   });
 
-  // make final indexed container for track references
-  // fill empty
-  for (auto& ref : *mTrackRefs) {
-    if (ref.getTrackID() >= 0) {
-      mIndexedTrackRefs->addElement(ref.getTrackID(), ref);
-    }
-  }
-
   for (auto det : mActiveDetectors) {
     // update the track indices by delegating to specialized detector functions
     det->updateHitTrackIndices(mIndexMap);
@@ -553,7 +544,6 @@ void Stack::Reset()
   mNumberOfPrimariesPopped = 0;
   mPrimaryParticles.clear();
   mTrackRefs->clear();
-  mIndexedTrackRefs->clear();
   mTrackIDtoParticlesEntry.clear();
   mHitCounter = 0;
 }
@@ -562,7 +552,6 @@ void Stack::Register()
 {
   FairRootManager::Instance()->RegisterAny("MCTrack", mTracks, kTRUE);
   FairRootManager::Instance()->RegisterAny("TrackRefs", mTrackRefs, kTRUE);
-  FairRootManager::Instance()->RegisterAny("IndexedTrackRefs", mIndexedTrackRefs, kTRUE);
 }
 
 void Stack::Print(Int_t iVerbose) const

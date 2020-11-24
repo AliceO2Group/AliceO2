@@ -167,7 +167,7 @@ o2_add_test(CheckStackG4
   NAME o2sim_checksimkinematics_G4
   WORKING_DIRECTORY ${SIMTESTDIR}
   COMMAND_LINE_ARGS o2simG4
-  PUBLIC_LINK_LIBRARIES O2::SimulationDataFormat
+  PUBLIC_LINK_LIBRARIES O2::SimulationDataFormat O2::Steer
   NO_BOOST_TEST
   LABELS "g4;sim;long")
 
@@ -206,7 +206,7 @@ o2_add_test(CheckStackG3
   NAME o2sim_checksimkinematics_G3
   WORKING_DIRECTORY ${SIMTESTDIR}
   COMMAND_LINE_ARGS o2simG3
-  PUBLIC_LINK_LIBRARIES O2::SimulationDataFormat
+  PUBLIC_LINK_LIBRARIES O2::SimulationDataFormat O2::Steer
   NO_BOOST_TEST
   LABELS "g3;sim;long")
 

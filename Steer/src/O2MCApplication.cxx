@@ -248,7 +248,6 @@ void O2MCApplication::SendData()
   attachSubEventInfo(simdataparts, *mSubEventInfo);
   auto tracks = attachBranch<std::vector<o2::MCTrack>>("MCTrack", *mSimDataChannel, simdataparts);
   attachBranch<std::vector<o2::TrackReference>>("TrackRefs", *mSimDataChannel, simdataparts);
-  attachBranch<o2::dataformats::MCTruthContainer<o2::TrackReference>>("IndexedTrackRefs", *mSimDataChannel, simdataparts);
   assert(tracks->size() == mSubEventInfo->npersistenttracks);
 
   for (auto det : listActiveDetectors) {
