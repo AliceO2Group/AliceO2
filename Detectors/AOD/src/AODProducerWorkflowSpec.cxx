@@ -44,7 +44,7 @@ using namespace o2::framework;
 namespace o2::aodproducer
 {
 
-void AODProducerWorkflowDPL::findMinMaxBc(gsl::span<const o2::ft0::RecPoints>& ft0RecPoints, gsl::span<const o2::dataformats::TrackTPCITS>& tracksITSTPC, const std::vector<o2::InteractionTimeRecord>& mcRecords)
+void AODProducerWorkflowDPL::findMinMaxBc(gsl::span<const o2::ft0::RecPoints>& ft0RecPoints, gsl::span<const o2::vertexing::PVertex>& primVertices, const std::vector<o2::InteractionTimeRecord>& mcRecords)
 {
   for (auto& ft0RecPoint : ft0RecPoints) {
     uint64_t bc = ft0RecPoint.getInteractionRecord().orbit * o2::constants::lhc::LHCMaxBunches + ft0RecPoint.getInteractionRecord().bc;
@@ -56,14 +56,16 @@ void AODProducerWorkflowDPL::findMinMaxBc(gsl::span<const o2::ft0::RecPoints>& f
     }
   }
 
-  for (auto& trackITSTPC : tracksITSTPC) {
-    Double_t timeStamp = trackITSTPC.getTimeMUS().getTimeStamp() * 1.E3; // mus to ns
-    uint64_t bc = (uint64_t)(timeStamp / o2::constants::lhc::LHCBunchSpacingNS);
-    if (minGlBC > bc) {
-      minGlBC = bc;
+  for (auto& vertex : primVertices) {
+    const InteractionRecord& colIRMin = vertex.getIRMin();
+    const InteractionRecord& colIRMax = vertex.getIRMax();
+    uint64_t colBCMin = colIRMin.orbit * o2::constants::lhc::LHCMaxBunches + colIRMin.bc;
+    uint64_t colBCMax = colIRMax.orbit * o2::constants::lhc::LHCMaxBunches + colIRMax.bc;
+    if (minGlBC > colBCMin) {
+      minGlBC = colBCMin;
     }
-    if (maxGlBC < bc) {
-      maxGlBC = bc;
+    if (maxGlBC < colBCMax) {
+      maxGlBC = colBCMax;
     }
   }
 
@@ -242,9 +244,9 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
   auto tracksITSTPC = pc.inputs().get<gsl::span<o2::dataformats::TrackTPCITS>>("tracksITSTPC");
   auto tracksTPC = pc.inputs().get<gsl::span<o2::tpc::TrackTPC>>("trackTPC");
 
-  LOG(INFO) << "FOUND " << tracksTPC.size() << " TPC tracks";
-  LOG(INFO) << "FOUND " << tracksITS.size() << " ITS tracks";
-  LOG(INFO) << "FOUND " << tracksITSTPC.size() << " ITCTPC tracks";
+  LOG(DEBUG) << "FOUND " << tracksTPC.size() << " TPC tracks";
+  LOG(DEBUG) << "FOUND " << tracksITS.size() << " ITS tracks";
+  LOG(DEBUG) << "FOUND " << tracksITSTPC.size() << " ITCTPC tracks";
 
   auto& bcBuilder = pc.outputs().make<TableBuilder>(Output{"AOD", "BC"});
   auto& collisionsBuilder = pc.outputs().make<TableBuilder>(Output{"AOD", "COLLISION"});
@@ -254,8 +256,8 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
   auto& timeFrameNumberBuilder = pc.outputs().make<uint64_t>(Output{"TFN", "TFNumber"});
 
   auto& fv0aBuilder = pc.outputs().make<TableBuilder>(Output{"AOD", "FV0A"});
-  auto& fv0cBuilder = pc.outputs().make<TableBuilder>(Output{"AOD", "FV0C"});
   auto& fddBuilder = pc.outputs().make<TableBuilder>(Output{"AOD", "FDD"});
+  auto& fv0cBuilder = pc.outputs().make<TableBuilder>(Output{"AOD", "FV0C"});
   auto& zdcBuilder = pc.outputs().make<TableBuilder>(Output{"AOD", "ZDC"});
 
   auto bcCursor = bcBuilder.cursor<o2::aod::BCs>();
@@ -274,10 +276,10 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
   const auto& mcRecords = mcContext->getEventRecords();
   const auto& mcParts = mcContext->getEventParts();
 
-  LOG(INFO) << "FOUND " << mcRecords.size() << " records";
-  LOG(INFO) << "FOUND " << mcParts.size() << " parts";
+  LOG(DEBUG) << "FOUND " << mcRecords.size() << " records";
+  LOG(DEBUG) << "FOUND " << mcParts.size() << " parts";
 
-  findMinMaxBc(ft0RecPoints, tracksITSTPC, mcRecords);
+  findMinMaxBc(ft0RecPoints, primVertices, mcRecords);
 
   std::map<uint64_t, uint64_t> mGlobBC2BCID;
 
@@ -435,6 +437,7 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
                      timeStamp.getTimeStamp(),
                      timeStamp.getTimeStampError(),
                      collisionTimeMask);
+
     auto trackRef = primVer2TRefs[collisionID];
     int start = trackRef.getFirstEntryOfSource(0);
     int ntracks = trackRef.getEntriesOfSource(0);

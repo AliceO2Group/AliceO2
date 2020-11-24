@@ -18,7 +18,7 @@
 #include "Framework/AnalysisHelpers.h"
 #include "Framework/DataProcessorSpec.h"
 #include "Framework/Task.h"
-#include "ReconstructionDataFormats/TrackTPCITS.h"
+#include "GlobalTrackingWorkflow/PrimaryVertexingSpec.h"
 #include "TStopwatch.h"
 #include <CCDB/BasicCCDBManager.h>
 #include <string>
@@ -91,7 +91,7 @@ class AODProducerWorkflowDPL : public Task
   uint64_t maxGlBC = 0;
   uint64_t minGlBC = INT64_MAX;
 
-  void findMinMaxBc(gsl::span<const o2::ft0::RecPoints>& ft0RecPoints, gsl::span<const o2::dataformats::TrackTPCITS>& tracksITSTPC, const std::vector<o2::InteractionTimeRecord>& mcRecords);
+  void findMinMaxBc(gsl::span<const o2::ft0::RecPoints>& ft0RecPoints, gsl::span<const o2::vertexing::PVertex>& primVertices, const std::vector<o2::InteractionTimeRecord>& mcRecords);
   int64_t getTFNumber(uint64_t firstVtxGlBC, int runNumber);
 
   template <typename TracksType, typename TracksCursorType>
