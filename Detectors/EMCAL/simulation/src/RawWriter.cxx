@@ -121,15 +121,30 @@ bool RawWriter::processTrigger(const o2::emcal::TriggerRecord& trg)
 
       std::vector<int> rawbunches;
       for (auto& bunch : findBunches(channel.mDigits)) {
+        rawbunches.push_back(bunch.mADCs.size() + 2); // add 2 words for header information
         rawbunches.push_back(bunch.mStarttime);
-        rawbunches.push_back(bunch.mADCs.size());
         for (auto adc : bunch.mADCs) {
           rawbunches.push_back(adc);
         }
       }
+      if (!rawbunches.size()) {
+        continue;
+      }
       auto encodedbunches = encodeBunchData(rawbunches);
-      auto chanhead = createChannelHeader(hwaddress, encodedbunches.size() * 3 - 2, false); /// bad channel status eventually to be added later
+      auto chanhead = createChannelHeader(hwaddress, rawbunches.size(), false); /// bad channel status eventually to be added later
       char* chanheadwords = reinterpret_cast<char*>(&chanhead);
+      uint32_t* testheader = reinterpret_cast<uint32_t*>(chanheadwords);
+      if ((*testheader >> 30) & 1) {
+        // header pattern found, check that the payload size is properly reflecting the number of words
+        uint32_t payloadsizeRead = ((*testheader >> 16) & 0x3FF);
+        uint32_t nwordsRead = (payloadsizeRead + 2) / 3;
+        if (encodedbunches.size() != nwordsRead) {
+          LOG(ERROR) << "Mismatch in number of 32-bit words, encoded " << encodedbunches.size() << ", recalculated " << nwordsRead << std::endl;
+          LOG(ERROR) << "Payload size: " << payloadsizeRead << ", number of words: " << rawbunches.size() << ", encodeed words " << encodedbunches.size() << ", calculated words " << nwordsRead << std::endl;
+        }
+      } else {
+        LOG(ERROR) << "Header without header bit detected ..." << std::endl;
+      }
       for (int iword = 0; iword < sizeof(ChannelHeader) / sizeof(char); iword++) {
         payload.emplace_back(chanheadwords[iword]);
       }
@@ -137,6 +152,10 @@ bool RawWriter::processTrigger(const o2::emcal::TriggerRecord& trg)
       for (auto iword = 0; iword < encodedbunches.size() * sizeof(int) / sizeof(char); iword++) {
         payload.emplace_back(channelwords[iword]);
       }
+    }
+
+    if (!payload.size()) {
+      continue;
     }
 
     // Create RCU trailer
@@ -239,14 +258,16 @@ std::vector<int> RawWriter::encodeBunchData(const std::vector<int>& data)
         currentword.mWord2 = adc;
         break;
     };
-    if (wordnumber == 2) {
+    wordnumber++;
+    if (wordnumber == 3) {
       // start new word;
       encoded.push_back(currentword.mDataWord);
       currentword.mDataWord = 0;
       wordnumber = 0;
-    } else {
-      wordnumber++;
     }
+  }
+  if (wordnumber) {
+    encoded.push_back(currentword.mDataWord);
   }
   return encoded;
 }
@@ -257,6 +278,7 @@ ChannelHeader RawWriter::createChannelHeader(int hardwareAddress, int payloadSiz
   header.mHardwareAddress = hardwareAddress;
   header.mPayloadSize = payloadSize;
   header.mBadChannel = isBadChannel ? 1 : 0;
+  header.mHeaderBits = 1;
   return header;
 }
 
