@@ -407,8 +407,6 @@ class CcdbApi //: public DatabaseInterface
   std::string mUrl{};
   std::string mSnapshotTopPath{};
   bool mInSnapshotMode = false;
-  mutable std::multimap<std::string, std::string> mHeaderData; //! a "global" internal data structure that can be filled with HTTP header information
-                                                               // (without need to recreate this structure locally each time)
   mutable TGrid* mAlienInstance = nullptr;                     // a cached connection to TGrid (needed for Alien locations)
   bool mHaveAlienToken = false;                                // stores if an alien token is available
 
