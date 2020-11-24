@@ -7,14 +7,23 @@
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
+#include "Framework/ConfigParamSpec.h"
+
+using namespace o2;
+using namespace o2::framework;
+
+// custom configurable for switching between run2 and run3 selection types
+void customize(std::vector<ConfigParamSpec>& workflowOptions)
+{
+  workflowOptions.push_back(ConfigParamSpec{"selection-run", VariantType::Int, 2, {"selection type: 2 - run 2, 3 - run 3"}});
+}
+
 #include "Framework/runDataProcessing.h"
 #include "Framework/AnalysisTask.h"
 #include "Framework/AnalysisDataModel.h"
 #include "Analysis/EventSelection.h"
 #include "Analysis/Multiplicity.h"
 #include "iostream"
-using namespace o2;
-using namespace o2::framework;
 
 struct MultiplicityTableTaskIndexed {
   Produces<aod::Mults> mult;
@@ -61,8 +70,50 @@ struct MultiplicityTableTaskIndexed {
   }
 };
 
-WorkflowSpec defineDataProcessing(ConfigContext const&)
+struct MultiplicityTableTaskRun3 {
+  Produces<aod::Mults> mult;
+  Partition<aod::Tracks> tracklets = (aod::track::trackType == static_cast<uint8_t>(o2::aod::track::TrackTypeEnum::Run2Tracklet));
+
+  void process(soa::Join<aod::Collisions, aod::EvSels> const& collisions, aod::Tracks const& tracks, aod::BCs const& bcs, aod::Zdcs const& zdcs, aod::FV0As const& fv0as, aod::FT0s const& ft0s)
+  {
+    for (auto& collision : collisions) {
+      float multV0A = -1.f;
+      float multV0C = -1.f;
+      float multT0A = -1.f;
+      float multT0C = -1.f;
+      float multZNA = -1.f;
+      float multZNC = -1.f;
+      int multTracklets = tracklets.size();
+
+      const float* aAmplitudesA;
+      const float* aAmplitudesC;
+
+      // using FT0 row index from event selection task
+      int64_t foundFT0 = collision.foundFT0();
+
+      if (foundFT0 != -1) {
+        auto ft0 = ft0s.iteratorAt(foundFT0);
+        aAmplitudesA = ft0.amplitudeA();
+        aAmplitudesC = ft0.amplitudeC();
+        for (int i = 0; i < 96; i++) {
+          multT0A += aAmplitudesA[i];
+        }
+        for (int i = 0; i < 112; i++) {
+          multT0C += aAmplitudesC[i];
+        }
+      }
+
+      LOGF(debug, "multV0A=%5.0f multV0C=%5.0f multT0A=%5.0f multT0C=%5.0f multZNA=%6.0f multZNC=%6.0f multTracklets=%i", multV0A, multV0C, multT0A, multT0C, multZNA, multZNC, multTracklets);
+      mult(multV0A, multV0C, multT0A, multT0C, multZNA, multZNC, multTracklets);
+    }
+  }
+};
+
+WorkflowSpec defineDataProcessing(ConfigContext const& ctx)
 {
-  return WorkflowSpec{
-    adaptAnalysisTask<MultiplicityTableTaskIndexed>("multiplicity-table")};
+  if (ctx.options().get<int>("selection-run") == 2) {
+    return WorkflowSpec{adaptAnalysisTask<MultiplicityTableTaskIndexed>("multiplicity-table")};
+  } else {
+    return WorkflowSpec{adaptAnalysisTask<MultiplicityTableTaskRun3>("multiplicity-table")};
+  }
 }
