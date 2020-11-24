@@ -270,7 +270,7 @@ struct FilterPPTask {
   void process(MyEventsSelected::iterator const& event, MyBarrelTracksSelected const& tracks, aod::BCs const& bcs)
   {
     uint64_t filter = 0;
-    
+
     if (event.isDQEventSelected() == 1) {
       // Reset the fValues array
       VarManager::ResetValues(0, VarManager::kNVars, fValues);
