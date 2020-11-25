@@ -67,6 +67,8 @@ std::shared_ptr<arrow::DataType> concreteArrowType(atype::type type)
       return arrow::int16();
     case atype::INT32:
       return arrow::int32();
+    case atype::INT64:
+      return arrow::int64();
     case atype::FLOAT:
       return arrow::float32();
     case atype::DOUBLE:
@@ -268,8 +270,8 @@ Operations createOperations(Filter const& expression)
       return t1;
     }
 
-    if (t1 == atype::INT32 || t1 == atype::INT8 || t1 == atype::INT16 || t1 == atype::UINT8) {
-      if (t2 == atype::INT32 || t2 == atype::INT8 || t2 == atype::INT16 || t2 == atype::UINT8) {
+    if (t1 == atype::INT32 || t1 == atype::INT8 || t1 == atype::INT16 || t1 == atype::INT64 || t1 == atype::UINT8) {
+      if (t2 == atype::INT32 || t2 == atype::INT8 || t2 == atype::INT16 || t2 == atype::INT64 || t2 == atype::UINT8) {
         return atype::FLOAT;
       }
       if (t2 == atype::FLOAT) {
@@ -280,7 +282,7 @@ Operations createOperations(Filter const& expression)
       }
     }
     if (t1 == atype::FLOAT) {
-      if (t2 == atype::INT32 || t2 == atype::INT8 || t2 == atype::INT16 || t2 == atype::UINT8) {
+      if (t2 == atype::INT32 || t2 == atype::INT8 || t2 == atype::INT16 || t2 == atype::INT64 || t2 == atype::UINT8) {
         return atype::FLOAT;
       }
       if (t2 == atype::DOUBLE) {
@@ -450,6 +452,9 @@ gandiva::NodePtr createExpressionTree(Operations const& opSpecs,
       }
       if (content.index() == 4) {
         return gandiva::TreeExprBuilder::MakeLiteral(std::get<uint8_t>(content));
+      }
+      if (content.index() == 5) {
+        return gandiva::TreeExprBuilder::MakeLiteral(std::get<int64_t>(content));
       }
       throw runtime_error("Malformed LiteralNode");
     }
