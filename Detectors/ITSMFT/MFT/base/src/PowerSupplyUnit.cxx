@@ -46,6 +46,7 @@ TGeoVolumeAssembly* PowerSupplyUnit::create()
   TGeoMedium* kMedPeek = gGeoManager->GetMedium("MFT_PEEK$");
   TGeoMedium* kMed_Water = gGeoManager->GetMedium("MFT_Water$");
   TGeoMedium* kMedAlu = gGeoManager->GetMedium("MFT_Alu$");
+  TGeoMedium* kMedPolyPipe = gGeoManager->GetMedium("MFT_Polyimide$");
 
   TGeoVolumeAssembly* mHalfPSU = new TGeoVolumeAssembly("PSU");
 
@@ -396,11 +397,51 @@ TGeoVolumeAssembly* PowerSupplyUnit::create()
   combtrans_water_pipe_straight_tube_side_left2->RegisterYourself();
   combtrans_water_pipe_straight_tube_side_right2->RegisterYourself();
 
+  //==================== PIPE - connection to the patch panel ======================
+  TGeoTorus* pipe_side_torus_left3 = new TGeoTorus("pipe_side_torus_left3", water_pipe_side_position_radius, water_pipe_inner_radius, water_pipe_outer_radius, 0, 90);
+  TGeoRotation* rotate_water_torus_left3 = new TGeoRotation("rotate_water_torus_left3", -90, 90, 0);
+  TGeoCombiTrans* combtrans_water_torus_left3 = new TGeoCombiTrans("combtrans_water_torus_left3", +(water_pipe_main_position_radius + water_pipe_side_position_radius) * TMath::Cos((90 - water_pipe_side_angle) * TMath::Pi() / 180.) + water_pipe_straight_tube_side1_length * 2 + water_pipe_side_position_radius,
+                                                                   -(water_pipe_main_position_radius + water_pipe_side_position_radius) * TMath::Sin((90 - water_pipe_side_angle) * TMath::Pi() / 180.) - 2 * water_pipe_straight_tube_side2_length, -water_pipe_side_position_radius, rotate_water_torus_left3);
+  combtrans_water_torus_left3->RegisterYourself();
+  Float_t water_pipe_straight_tube_side3_length = 6;
+  TGeoTubeSeg* pipe_straight_tube_left3 = new TGeoTubeSeg("pipe_straight_tube_left3", water_pipe_inner_radius, water_pipe_outer_radius, water_pipe_straight_tube_side3_length, 0, 360);
+  TGeoRotation* rotate_water_straight_tube_left3 = new TGeoRotation("rotate_water_straight_tube_left3", 0, 0, 0);
+  TGeoCombiTrans* combtrans_water_straight_tube_side_left3 = new TGeoCombiTrans("combtrans_water_straight_tube_side_left3", +(water_pipe_main_position_radius + water_pipe_side_position_radius) * TMath::Cos((90 - water_pipe_side_angle) * TMath::Pi() / 180.) + water_pipe_straight_tube_side1_length * 2 + water_pipe_side_position_radius,
+                                                                                -(water_pipe_main_position_radius + water_pipe_side_position_radius) * TMath::Sin((90 - water_pipe_side_angle) * TMath::Pi() / 180.) - 2 * water_pipe_straight_tube_side2_length - water_pipe_side_position_radius, -water_pipe_straight_tube_side3_length - water_pipe_side_position_radius, rotate_water_straight_tube_left3);
+  combtrans_water_straight_tube_side_left3->RegisterYourself();
+
+  TGeoTorus* pipe_side_torus_rigth3 = new TGeoTorus("pipe_side_torus_rigth3", water_pipe_side_position_radius, water_pipe_inner_radius, water_pipe_outer_radius, 0, 90);
+  TGeoRotation* rotate_water_torus_rigth3 = new TGeoRotation("rotate_water_torus_rigth3", -90, 90, 0);
+  TGeoCombiTrans* combtrans_water_torus_rigth3 = new TGeoCombiTrans("combtrans_water_torus_rigth3", -(water_pipe_main_position_radius + water_pipe_side_position_radius) * TMath::Cos((90 - water_pipe_side_angle) * TMath::Pi() / 180.) - water_pipe_straight_tube_side1_length * 2 - water_pipe_side_position_radius,
+                                                                    -(water_pipe_main_position_radius + water_pipe_side_position_radius) * TMath::Sin((90 - water_pipe_side_angle) * TMath::Pi() / 180.) - 2 * water_pipe_straight_tube_side2_length, -water_pipe_side_position_radius, rotate_water_torus_rigth3);
+  combtrans_water_torus_rigth3->RegisterYourself();
+
+  TGeoTubeSeg* pipe_straight_tube_rigth3 = new TGeoTubeSeg("pipe_straight_tube_rigth3", 0, water_pipe_inner_radius, water_pipe_straight_tube_side3_length, 0, 360);
+  TGeoRotation* rotate_water_straight_tube_rigth3 = new TGeoRotation("rotate_water_straight_tube_rigth3", 0, 0, 0);
+  TGeoCombiTrans* combtrans_water_straight_tube_side_rigth3 = new TGeoCombiTrans("combtrans_water_straight_tube_side_rigth3", -(water_pipe_main_position_radius + water_pipe_side_position_radius) * TMath::Cos((90 - water_pipe_side_angle) * TMath::Pi() / 180.) - water_pipe_straight_tube_side1_length * 2 - water_pipe_side_position_radius,
+                                                                                 -(water_pipe_main_position_radius + water_pipe_side_position_radius) * TMath::Sin((90 - water_pipe_side_angle) * TMath::Pi() / 180.) - 2 * water_pipe_straight_tube_side2_length - water_pipe_side_position_radius, -water_pipe_straight_tube_side3_length - water_pipe_side_position_radius, rotate_water_straight_tube_rigth3);
+  combtrans_water_straight_tube_side_rigth3->RegisterYourself();
+
+  TGeoCompositeShape* water_pipe_toPatchPanel = new TGeoCompositeShape("water_pipe_toPatchPanel",
+                                                                       "pipe_straight_tube_left3:combtrans_water_straight_tube_side_left3"
+                                                                       " + pipe_side_torus_left3:combtrans_water_torus_left3"
+                                                                       " + pipe_straight_tube_rigth3:combtrans_water_straight_tube_side_rigth3"
+                                                                       " + pipe_side_torus_rigth3:combtrans_water_torus_rigth3");
+  TGeoVolume* poly_pipe = new TGeoVolume("poly_pipe_toPatchPanel", water_pipe_toPatchPanel, kMedPolyPipe);
+  poly_pipe->SetLineColor(kGray);
+  mHalfPSU->AddNode(poly_pipe, 1, nullptr);
+
+  //==================================================
+
   TGeoCompositeShape* water_pipe_shape = new TGeoCompositeShape("water_pipe_shape",
                                                                 "water_pipe_main_torus + water_pipe_side_torus_left1:trans_water_pipe_side_torus_left1 + water_pipe_side_torus_right1:trans_water_pipe_side_torus_right1"
                                                                 " + water_pipe_straight_tube_side1:combtrans_rotated_water_pipe_straight_tube_side1_left + water_pipe_straight_tube_side1:combtrans_rotated_water_pipe_straight_tube_side1_right"
                                                                 " + water_pipe_side_torus_left2:trans_water_pipe_side_torus_left2 + water_pipe_side_torus_right2:trans_water_pipe_side_torus_right2"
-                                                                " + water_pipe_straight_tube_side2:combtrans_water_pipe_straight_tube_side_left2 + water_pipe_straight_tube_side2:combtrans_water_pipe_straight_tube_side_right2");
+                                                                " + water_pipe_straight_tube_side2:combtrans_water_pipe_straight_tube_side_left2 + water_pipe_straight_tube_side2:combtrans_water_pipe_straight_tube_side_right2"
+                                                                " + pipe_straight_tube_left3:combtrans_water_straight_tube_side_left3"
+                                                                " + pipe_side_torus_left3:combtrans_water_torus_left3"
+                                                                " + pipe_straight_tube_rigth3:combtrans_water_straight_tube_side_rigth3"
+                                                                " + pipe_side_torus_rigth3:combtrans_water_torus_rigth3");
 
   TGeoVolume* water_pipe = new TGeoVolume("water_pipe", water_pipe_shape, kMedAlu);
   water_pipe->SetLineColor(kGray);
@@ -449,11 +490,22 @@ TGeoVolumeAssembly* PowerSupplyUnit::create()
   combtrans_water_straight_tube_side_left2->RegisterYourself();
   combtrans_water_straight_tube_side_right2->RegisterYourself();
 
+  //============ WATER, Connecting to the Patch Panel  ===============
+  TGeoTorus* water_side_torus_left3 = new TGeoTorus("water_side_torus_left3", water_pipe_side_position_radius, 0, water_pipe_inner_radius, 0, 90);
+  TGeoTubeSeg* water_straight_tube_left3 = new TGeoTubeSeg("water_straight_tube_left3", 0, water_pipe_inner_radius, water_pipe_straight_tube_side3_length, 0, 360);
+  TGeoTorus* water_side_torus_rigth3 = new TGeoTorus("water_side_torus_rigth3", water_pipe_side_position_radius, 0, water_pipe_inner_radius, 0, 90);
+  TGeoTubeSeg* water_straight_tube_rigth3 = new TGeoTubeSeg("water_straight_tube_rigth3", 0, water_pipe_inner_radius, water_pipe_straight_tube_side3_length, 0, 360);
+  //==================================================================
+
   TGeoCompositeShape* water_shape = new TGeoCompositeShape("water_shape",
                                                            "water_main_torus + water_side_torus_left1:trans_water_side_torus_left1 + water_side_torus_right1:trans_water_side_torus_right1"
                                                            " + water_straight_tube_side1:combtrans_rotated_water_straight_tube_side1_left + water_straight_tube_side1:combtrans_rotated_water_straight_tube_side1_right"
                                                            " + water_side_torus_left2:trans_water_side_torus_left2 + water_side_torus_right2:trans_water_side_torus_right2"
-                                                           " + water_straight_tube_side2:combtrans_water_straight_tube_side_left2 + water_straight_tube_side2:combtrans_water_straight_tube_side_right2");
+                                                           " + water_straight_tube_side2:combtrans_water_straight_tube_side_left2 + water_straight_tube_side2:combtrans_water_straight_tube_side_right2"
+                                                           " + water_straight_tube_left3:combtrans_water_straight_tube_side_left3"
+                                                           " + water_side_torus_left3:combtrans_water_torus_left3"
+                                                           " + water_straight_tube_rigth3:combtrans_water_straight_tube_side_rigth3"
+                                                           " + water_side_torus_rigth3:combtrans_water_torus_rigth3");
 
   TGeoVolume* water = new TGeoVolume("water", water_shape, kMed_Water);
   water->SetLineColor(kBlue);
