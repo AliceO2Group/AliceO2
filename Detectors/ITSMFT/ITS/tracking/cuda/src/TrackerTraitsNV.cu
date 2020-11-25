@@ -62,7 +62,27 @@ GPU_DEVICE const int4 getBinsRect(const Cluster& currentCluster, const int layer
 namespace GPU
 {
 
-__constant__ TrackingParameters kTrkPar;
+struct StaticTrackingParameters {
+  StaticTrackingParameters& operator=(const StaticTrackingParameters& t);
+
+  int CellMinimumLevel();
+
+  /// General parameters
+  int ClusterSharing = 0;
+  int MinTrackLength = 7;
+  /// Trackleting cuts
+  float TrackletMaxDeltaPhi = 0.3f;
+  float TrackletMaxDeltaZ[constants::its2::TrackletsPerRoad] = {0.1f, 0.1f, 0.3f, 0.3f, 0.3f, 0.3f};
+  /// Cell finding cuts
+  float CellMaxDeltaTanLambda = 0.025f;
+  float CellMaxDCA[constants::its2::CellsPerRoad] = {0.05f, 0.04f, 0.05f, 0.2f, 0.4f};
+  float CellMaxDeltaPhi = 0.14f;
+  float CellMaxDeltaZ[constants::its2::CellsPerRoad] = {0.2f, 0.4f, 0.5f, 0.6f, 3.0f};
+  /// Neighbour finding cuts
+  float NeighbourMaxDeltaCurvature[constants::its2::CellsPerRoad - 1] = {0.008f, 0.0025f, 0.003f, 0.0035f};
+  float NeighbourMaxDeltaN[constants::its2::CellsPerRoad - 1] = {0.002f, 0.0090f, 0.002f, 0.005f};
+};
+__constant__ StaticTrackingParameters kTrkPar;
 
 __device__ void computeLayerTracklets(DeviceStoreNV& devStore, const int layerIndex,
                                       Vector<Tracklet>& trackletsVector)
@@ -304,7 +324,7 @@ void TrackerTraitsNV::computeLayerTracklets()
 {
   PrimaryVertexContextNV* primaryVertexContext = static_cast<PrimaryVertexContextNV*>(mPrimaryVertexContext);
 
-  cudaMemcpyToSymbol(GPU::kTrkPar, &mTrkParams, sizeof(TrackingParameters));
+  // cudaMemcpyToSymbol(GPU::kTrkPar, &mTrkParams, sizeof(TrackingParameters));
   std::array<size_t, constants::its2::CellsPerRoad> tempSize;
   std::array<int, constants::its2::CellsPerRoad> trackletsNum;
   std::array<GPU::Stream, constants::its2::TrackletsPerRoad> streamArray;
