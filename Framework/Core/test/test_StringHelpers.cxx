@@ -22,3 +22,23 @@ BOOST_AUTO_TEST_CASE(StringHelpersHash)
   BOOST_CHECK_EQUAL(compile_time_hash(cs), compile_time_hash("test-string"));
   BOOST_CHECK_EQUAL(compile_time_hash(s.c_str()), compile_time_hash(cs));
 }
+
+template <typename T>
+void printString(const T& constStr)
+{
+  LOGF(INFO, "ConstStr:");
+  LOGF(INFO, "name -> %s ", constStr.name);
+  LOGF(INFO, "hash -> %d ", constStr.hash);
+  LOGF(INFO, "idx  -> %d ", constStr.idx);
+};
+
+BOOST_AUTO_TEST_CASE(StringHelpersConstStr)
+{
+  printString(CONST_STR("this/is/a/histogram"));
+
+  auto myConstStr = CONST_STR("helloWorld");
+  printString(myConstStr);
+  static_assert(std::is_same_v<decltype(myConstStr), ConstStr<'h', 'e', 'l', 'l', 'o', 'W', 'o', 'r', 'l', 'd'>>);
+  static_assert(myConstStr.hash == (uint32_t)942280617);
+  BOOST_CHECK_EQUAL(myConstStr.hash, compile_time_hash("helloWorld"));
+}
