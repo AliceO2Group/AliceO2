@@ -163,7 +163,7 @@ GPUg() void trackleterKernel(
       const size_t stride{currentClusterIndex * store.getConfig().maxTrackletsPerCluster};
       const Cluster& currentCluster = store.getClusters()[1][currentClusterIndex]; // assign-constructor may be a problem, check
       const VertexerLayerName adjacentLayerIndex{layerOrder == TrackletingLayerOrder::fromInnermostToMiddleLayer ? VertexerLayerName::innermostLayer : VertexerLayerName::outerLayer};
-      const int4 selectedBinsRect{getBinsRect(currentCluster, static_cast<int>(adjacentLayerIndex), 0.f, 50.f, phiCut / 2)};
+      const int4 selectedBinsRect{getBinsRect(currentCluster, static_cast<int>(adjacentLayerIndex), 0.f, 0.f, 50.f, phiCut / 2)};
       if (selectedBinsRect.x != 0 || selectedBinsRect.y != 0 || selectedBinsRect.z != 0 || selectedBinsRect.w != 0) {
         int phiBinsNum{selectedBinsRect.w - selectedBinsRect.y + 1};
         if (phiBinsNum < 0) {
