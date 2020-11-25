@@ -11,8 +11,9 @@
 #define BOOST_TEST_MAIN
 #define BOOST_TEST_DYN_LINK
 
-#include "Framework/StringHelpers.h"
 #include <boost/test/unit_test.hpp>
+#include "Framework/StringHelpers.h"
+#include <iostream>
 
 BOOST_AUTO_TEST_CASE(StringHelpersHash)
 {
@@ -26,10 +27,10 @@ BOOST_AUTO_TEST_CASE(StringHelpersHash)
 template <typename T>
 void printString(const T& constStr)
 {
-  LOGF(INFO, "ConstStr:");
-  LOGF(INFO, "name -> %s ", constStr.name);
-  LOGF(INFO, "hash -> %d ", constStr.hash);
-  LOGF(INFO, "idx  -> %d ", constStr.idx);
+  std::cout << "ConstStr:" << std::endl;
+  std::cout << "name -> " << constStr.name << std::endl;
+  std::cout << "hash -> " << constStr.hash << std::endl;
+  std::cout << "idx  -> " << constStr.idx << std::endl;
 };
 
 BOOST_AUTO_TEST_CASE(StringHelpersConstStr)
