@@ -21,6 +21,7 @@
 #endif
 
 #include "ITStracking/Definitions.h"
+#include "GPUCommonMath.h"
 
 namespace o2
 {
@@ -78,6 +79,30 @@ GPU_HOST_DEVICE constexpr GPUArray<float, LayersNumber> InverseZBinSize()
                                         0.5f * ZBins / (zSize[3]), 0.5f * ZBins / (zSize[4]), 0.5f * ZBins / (zSize[5]),
                                         0.5f * ZBins / (zSize[6])}};
 }
+inline float getInverseZCoordinate(const int layerIndex)
+{
+  return 0.5f * ZBins / LayersZCoordinate()[layerIndex];
+}
+
+GPU_HOST_DEVICE inline int getZBinIndex(const int layerIndex, const float zCoordinate)
+{
+  return (zCoordinate + LayersZCoordinate()[layerIndex]) *
+         InverseZBinSize()[layerIndex];
+}
+
+GPU_HOST_DEVICE inline int getPhiBinIndex(const float currentPhi)
+{
+  return (currentPhi * InversePhiBinSize);
+}
+
+GPU_HOST_DEVICE inline int getBinIndex(const int zIndex, const int phiIndex)
+{
+  return gpu::GPUCommonMath::Min(phiIndex * ZBins + zIndex,
+                                 ZBins * PhiBins - 1);
+}
+
+GPU_HOST_DEVICE constexpr int4 getEmptyBinsRect() { return int4{0, 0, 0, 0}; }
+
 } // namespace its2
 
 namespace pdgcodes

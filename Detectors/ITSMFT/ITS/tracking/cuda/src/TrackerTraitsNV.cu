@@ -33,6 +33,29 @@
 #include "ITStrackingCUDA/Stream.h"
 #include "ITStrackingCUDA/Vector.h"
 
+namespace
+{
+GPU_DEVICE const int4 getBinsRect(const Cluster& currentCluster, const int layerIndex,
+                                  const float z1, const float z2, float maxdeltaz, float maxdeltaphi)
+{
+  const float zRangeMin = gpu::GPUCommonMath::Min(z1, z2) - maxdeltaz;
+  const float phiRangeMin = currentCluster.phiCoordinate - maxdeltaphi;
+  const float zRangeMax = gpu::GPUCommonMath::Max(z1, z2) + maxdeltaz;
+  const float phiRangeMax = currentCluster.phiCoordinate + maxdeltaphi;
+
+  if (zRangeMax < -LayersZCoordinate()[layerIndex + 1] ||
+      zRangeMin > LayersZCoordinate()[layerIndex + 1] || zRangeMin > zRangeMax) {
+
+    return getEmptyBinsRect();
+  }
+
+  return int4{gpu::GPUCommonMath::Max(0, getZBinIndex(layerIndex + 1, zRangeMin)),
+              getPhiBinIndex(phiRangeMin),
+              gpu::GPUCommonMath::Min(ZBins - 1, getZBinIndex(layerIndex + 1, zRangeMax)),
+              getPhiBinIndex(phiRangeMax)};
+}
+} // namespace
+
 namespace o2
 {
 namespace its
@@ -62,8 +85,8 @@ __device__ void computeLayerTracklets(DeviceStoreNV& devStore, const int layerIn
     const float zAtRmin{tanLambda * (devStore.getRmin(layerIndex + 1) - currentCluster.rCoordinate) + currentCluster.zCoordinate};
     const float zAtRmax{tanLambda * (devStore.getRmax(layerIndex + 1) - currentCluster.rCoordinate) + currentCluster.zCoordinate};
 
-    const int4 selectedBinsRect{TrackerTraits::getBinsRect(currentCluster, layerIndex, zAtRmin, zAtRmax,
-                                                           kTrkPar.TrackletMaxDeltaZ[layerIndex], kTrkPar.TrackletMaxDeltaPhi)};
+    const int4 selectedBinsRect{getBinsRect(currentCluster, layerIndex, zAtRmin, zAtRmax,
+                                            kTrkPar.TrackletMaxDeltaZ[layerIndex], kTrkPar.TrackletMaxDeltaPhi)};
 
     if (selectedBinsRect.x != 0 || selectedBinsRect.y != 0 || selectedBinsRect.z != 0 || selectedBinsRect.w != 0) {
 
@@ -78,7 +101,7 @@ __device__ void computeLayerTracklets(DeviceStoreNV& devStore, const int layerIn
       for (int iPhiBin{selectedBinsRect.y}, iPhiCount{0}; iPhiCount < phiBinsNum;
            iPhiBin = ++iPhiBin == constants::its2::PhiBins ? 0 : iPhiBin, iPhiCount++) {
 
-        const int firstBinIndex{index_table_utils::getBinIndex(selectedBinsRect.x, iPhiBin)};
+        const int firstBinIndex{constants::its2::getBinIndex(selectedBinsRect.x, iPhiBin)};
         const int firstRowClusterIndex = devStore.getIndexTables()[layerIndex][firstBinIndex];
         const int maxRowClusterIndex = devStore.getIndexTables()[layerIndex][{firstBinIndex + selectedBinsRect.z - selectedBinsRect.x + 1}];
 
@@ -493,7 +516,8 @@ void TrackerTraitsNV::refitTracks(const std::array<std::vector<TrackingFrameInfo
   for (int iLayer = 0; iLayer < 7; iLayer++) {
     clusters[iLayer] = pvctx->getDeviceClusters()[iLayer].get();
   }
-  mChainRunITSTrackFit(*mChain, mPrimaryVertexContext->getRoads(), clusters, cells, tf, tracks);
+  //TODO: restore this
+  // mChainRunITSTrackFit(*mChain, mPrimaryVertexContext->getRoads(), clusters, cells, tf, tracks);
 }
 } // namespace its
 } // namespace o2

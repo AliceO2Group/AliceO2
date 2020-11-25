@@ -56,12 +56,12 @@ class DeviceStoreVertexerGPU final
   DeviceStoreVertexerGPU();
   ~DeviceStoreVertexerGPU() = default;
 
-  UniquePointer<DeviceStoreVertexerGPU> initialise(const std::array<std::vector<Cluster>, constants::its::LayersNumberVertexer>&,
-                                                   const std::array<std::array<int, constants::index_table::ZBins * constants::index_table::PhiBins + 1>,
-                                                                    constants::its::LayersNumberVertexer>&);
+  UniquePointer<DeviceStoreVertexerGPU> initialise(const std::array<std::vector<Cluster>, constants::its2::LayersNumberVertexer>&,
+                                                   const std::array<std::array<int, constants::its2::ZBins * constants::its2::PhiBins + 1>,
+                                                                    constants::its2::LayersNumberVertexer>&);
 
   // RO APIs
-  GPUd() const Array<Vector<Cluster>, constants::its::LayersNumberVertexer>& getClusters()
+  GPUd() const Array<Vector<Cluster>, constants::its2::LayersNumberVertexer>& getClusters()
   {
     return mClusters;
   }
@@ -111,7 +111,7 @@ class DeviceStoreVertexerGPU final
 
  private:
   VertexerStoreConfigurationGPU mGPUConf;
-  Array<Vector<Cluster>, constants::its::LayersNumberVertexer> mClusters;
+  Array<Vector<Cluster>, constants::its2::LayersNumberVertexer> mClusters;
   Vector<Line> mTracklets;
   Array<Vector<int>, 2> mIndexTables;
   Vector<GPUVertex> mGPUVertices;
@@ -121,7 +121,7 @@ class DeviceStoreVertexerGPU final
   Vector<int> mNExclusiveFoundLines;
   Vector<Tracklet> mDuplets01;
   Vector<Tracklet> mDuplets12;
-  Array<Vector<int>, constants::its::LayersNumberVertexer - 1> mNFoundDuplets;
+  Array<Vector<int>, constants::its2::LayersNumberVertexer - 1> mNFoundDuplets;
   Vector<int> mCUBTmpBuffer;
   Vector<float> mXYCentroids;
   Vector<float> mZCentroids;
@@ -140,7 +140,7 @@ inline std::vector<int> DeviceStoreVertexerGPU::getNFoundTrackletsFromGPU(const 
 {
   // Careful: this might lead to large allocations, use debug-purpose only
   std::vector<int> sizes;
-  sizes.resize(constants::its::LayersNumberVertexer);
+  sizes.resize(constants::its2::LayersNumberVertexer);
   mSizes.copyIntoSizedVector(sizes);
   std::vector<int> nFoundDuplets;
   nFoundDuplets.resize(sizes[1]);
@@ -158,7 +158,7 @@ inline std::vector<Tracklet> DeviceStoreVertexerGPU::getRawDupletsFromGPU(const 
 {
   // Careful: this might lead to large allocations, use debug-purpose only
   std::vector<int> sizes;
-  sizes.resize(constants::its::LayersNumberVertexer);
+  sizes.resize(constants::its2::LayersNumberVertexer);
   mSizes.copyIntoSizedVector(sizes);
   std::vector<Tracklet> tmpDuplets;
   tmpDuplets.resize(static_cast<size_t>(mGPUConf.dupletsCapacity));
@@ -180,7 +180,7 @@ inline std::vector<Tracklet> DeviceStoreVertexerGPU::getDupletsFromGPU(const Ord
 {
   // Careful: this might lead to large allocations, use debug-purpose only
   std::vector<int> sizes;
-  sizes.resize(constants::its::LayersNumberVertexer);
+  sizes.resize(constants::its2::LayersNumberVertexer);
   mSizes.copyIntoSizedVector(sizes);
   std::vector<Tracklet> tmpDuplets;
   tmpDuplets.resize(static_cast<size_t>(mGPUConf.dupletsCapacity));

@@ -38,7 +38,7 @@ class PrimaryVertexContextNV final : public PrimaryVertexContext
   PrimaryVertexContextNV() = default;
   virtual ~PrimaryVertexContextNV() = default;
 
-  virtual void initialise(const MemoryParameters& memParam, const std::array<std::vector<Cluster>, constants::its2::LayersNumber>& cl,
+  void initialise(const MemoryParameters& memParam, const std::array<std::vector<Cluster>, constants::its2::LayersNumber>& cl,
                           const std::array<float, 3>& pv, const int iteration);
 
   GPU::DeviceStoreNV& getDeviceContext();

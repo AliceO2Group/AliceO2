@@ -37,14 +37,14 @@ namespace o2
 namespace its
 {
 
-using constants::index_table::PhiBins;
-using constants::index_table::ZBins;
-using constants::its::LayersRCoordinate;
-using constants::its::LayersZCoordinate;
-using constants::its::VertexerHistogramVolume;
+using constants::its2::PhiBins;
+using constants::its2::ZBins;
+using constants::its2::LayersRCoordinate;
+using constants::its2::LayersZCoordinate;
+using constants::its2::VertexerHistogramVolume;
 using constants::math::TwoPi;
-using index_table_utils::getPhiBinIndex;
-using index_table_utils::getZBinIndex;
+using constants::its2::getPhiBinIndex;
+using constants::its2::getZBinIndex;
 using math_utils::getNormalizedPhiCoordinate;
 
 GPUh() void gpuThrowOnError()
@@ -155,7 +155,7 @@ GPUg() void trackleterKernel(
         }
         const size_t nClustersAdjacentLayer = store.getClusters()[static_cast<int>(adjacentLayerIndex)].size();
         for (size_t iPhiBin{(size_t)selectedBinsRect.y}, iPhiCount{0}; iPhiCount < (size_t)phiBinsNum; iPhiBin = ++iPhiBin == PhiBins ? 0 : iPhiBin, iPhiCount++) {
-          const int firstBinIndex{index_table_utils::getBinIndex(selectedBinsRect.x, iPhiBin)};
+          const int firstBinIndex{constants::its2::getBinIndex(selectedBinsRect.x, iPhiBin)};
           const int firstRowClusterIndex{store.getIndexTable(adjacentLayerIndex)[firstBinIndex]};
           const int maxRowClusterIndex{store.getIndexTable(adjacentLayerIndex)[firstBinIndex + selectedBinsRect.z - selectedBinsRect.x + 1]};
           for (size_t iAdjacentCluster{(size_t)firstRowClusterIndex}; iAdjacentCluster < (size_t)maxRowClusterIndex && iAdjacentCluster < nClustersAdjacentLayer; ++iAdjacentCluster) {
