@@ -33,8 +33,12 @@
 #include "ITStrackingCUDA/Stream.h"
 #include "ITStrackingCUDA/Vector.h"
 
-namespace
+namespace o2
 {
+namespace its
+{
+
+using namespace constants::its2;
 GPU_DEVICE const int4 getBinsRect(const Cluster& currentCluster, const int layerIndex,
                                   const float z1, const float z2, float maxdeltaz, float maxdeltaphi)
 {
@@ -54,12 +58,7 @@ GPU_DEVICE const int4 getBinsRect(const Cluster& currentCluster, const int layer
               gpu::GPUCommonMath::Min(ZBins - 1, getZBinIndex(layerIndex + 1, zRangeMax)),
               getPhiBinIndex(phiRangeMax)};
 }
-} // namespace
 
-namespace o2
-{
-namespace its
-{
 namespace GPU
 {
 

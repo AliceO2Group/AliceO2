@@ -37,15 +37,30 @@ namespace o2
 namespace its
 {
 
-using constants::its2::getPhiBinIndex;
-using constants::its2::getZBinIndex;
-using constants::its2::LayersRCoordinate;
-using constants::its2::LayersZCoordinate;
-using constants::its2::PhiBins;
-using constants::its2::VertexerHistogramVolume;
-using constants::its2::ZBins;
+using constants::its::VertexerHistogramVolume;
 using constants::math::TwoPi;
 using math_utils::getNormalizedPhiCoordinate;
+
+using namespace constants::its2;
+GPU_DEVICE const int4 getBinsRect(const Cluster& currentCluster, const int layerIndex,
+                                  const float z1, const float z2, float maxdeltaz, float maxdeltaphi)
+{
+  const float zRangeMin = gpu::GPUCommonMath::Min(z1, z2) - maxdeltaz;
+  const float phiRangeMin = currentCluster.phiCoordinate - maxdeltaphi;
+  const float zRangeMax = gpu::GPUCommonMath::Max(z1, z2) + maxdeltaz;
+  const float phiRangeMax = currentCluster.phiCoordinate + maxdeltaphi;
+
+  if (zRangeMax < -LayersZCoordinate()[layerIndex + 1] ||
+      zRangeMin > LayersZCoordinate()[layerIndex + 1] || zRangeMin > zRangeMax) {
+
+    return getEmptyBinsRect();
+  }
+
+  return int4{gpu::GPUCommonMath::Max(0, getZBinIndex(layerIndex + 1, zRangeMin)),
+              getPhiBinIndex(phiRangeMin),
+              gpu::GPUCommonMath::Min(ZBins - 1, getZBinIndex(layerIndex + 1, zRangeMax)),
+              getPhiBinIndex(phiRangeMax)};
+}
 
 GPUh() void gpuThrowOnError()
 {
@@ -82,7 +97,8 @@ void VertexerTraitsGPU::initialise(ROframe* event)
 {
   reset();
   arrangeClusters(event);
-  mStoreVertexerGPUPtr = mStoreVertexerGPU.initialise(mClusters, mIndexTables);
+  //TODO: restore this
+  // mStoreVertexerGPUPtr = mStoreVertexerGPU.initialise(mClusters, mIndexTables);
 }
 
 namespace GPU
@@ -147,7 +163,7 @@ GPUg() void trackleterKernel(
       const size_t stride{currentClusterIndex * store.getConfig().maxTrackletsPerCluster};
       const Cluster& currentCluster = store.getClusters()[1][currentClusterIndex]; // assign-constructor may be a problem, check
       const VertexerLayerName adjacentLayerIndex{layerOrder == TrackletingLayerOrder::fromInnermostToMiddleLayer ? VertexerLayerName::innermostLayer : VertexerLayerName::outerLayer};
-      const int4 selectedBinsRect{VertexerTraits::getBinsRect(currentCluster, static_cast<int>(adjacentLayerIndex), 0.f, 50.f, phiCut / 2)};
+      const int4 selectedBinsRect{getBinsRect(currentCluster, static_cast<int>(adjacentLayerIndex), 0.f, 50.f, phiCut / 2)};
       if (selectedBinsRect.x != 0 || selectedBinsRect.y != 0 || selectedBinsRect.z != 0 || selectedBinsRect.w != 0) {
         int phiBinsNum{selectedBinsRect.w - selectedBinsRect.y + 1};
         if (phiBinsNum < 0) {
