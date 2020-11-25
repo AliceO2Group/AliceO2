@@ -290,8 +290,9 @@ struct FilterPPTask {
           }
           VarManager::FillPair(tpos, tneg, fValues); // compute pair quantities
           for (int i = 0; i < fNTrackCuts; ++i) {
-            if (!(cutFilter & (uint8_t(1) << i)))
+            if (!(cutFilter & (uint8_t(1) << i))) {
               continue;
+            }
             fHistMan->FillHistClass(Form("PairsBarrelPM_%s", fTrkCutsNameArray->At(i)->GetName()), fValues);
             int j = 0;
             for (auto cut = fPairCuts.begin(); cut != fPairCuts.end(); cut++, j++) {
