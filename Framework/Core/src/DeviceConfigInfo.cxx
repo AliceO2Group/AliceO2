@@ -70,7 +70,7 @@ bool DeviceConfigHelper::processConfig(ParsedConfigMatch& match,
     boost::property_tree::json_parser::read_json(ss, branch);
     info.currentConfig.put_child(keyString, branch);
   } catch (boost::exception&) {
-    /// global option exclusion
+    // in case it is not a tree but a single value
     info.currentConfig.put(keyString, valueString);
   }
 

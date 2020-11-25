@@ -249,16 +249,15 @@ void DataProcessingDevice::Init()
 
   /// Dump the configuration so that we can get it from the driver.
   for (auto& entry : configStore->store()) {
-    try {
-      std::stringstream ss;
+    std::stringstream ss;
+    if (entry.second.size() != 0) {
       boost::property_tree::json_parser::write_json(ss, configStore->store().get_child(entry.first), false);
-      auto str = ss.str();
-      str.pop_back(); //remove EoL
-      LOG(INFO) << "[CONFIG] " << entry.first << "=" << str << " 1 " << configStore->provenance(entry.first.c_str());
-    } catch (boost::exception&) {
-      /// FIXME: why do global options need a special case?
-      LOG(INFO) << "[CONFIG] " << entry.first << "=" << configStore->store().get<std::string>(entry.first) << " 1 " << configStore->provenance(entry.first.c_str());
+    } else {
+      ss << configStore->store().get<std::string>(entry.first) << "\n";
     }
+    auto str = ss.str();
+    str.pop_back(); //remove EoL
+    LOG(INFO) << "[CONFIG] " << entry.first << "=" << str << " 1 " << configStore->provenance(entry.first.c_str());
   }
 
   mConfigRegistry = std::make_unique<ConfigParamRegistry>(std::move(configStore));
