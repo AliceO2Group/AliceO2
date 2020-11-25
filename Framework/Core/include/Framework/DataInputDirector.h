@@ -75,7 +75,6 @@ struct DataInputDescriptor {
 
   void closeInputFile();
   bool isAlienSupportOn() { return mAlienSupport; }
-  TFile* getCurrentFile() { return mcurrentFile; }
 
  private:
   std::string minputfilesFile = "";
