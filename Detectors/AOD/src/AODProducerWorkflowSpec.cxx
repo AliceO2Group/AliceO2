@@ -31,6 +31,7 @@
 #include "ReconstructionDataFormats/Track.h"
 #include "ReconstructionDataFormats/TrackTPCITS.h"
 #include "SimulationDataFormat/DigitizationContext.h"
+#include "SimulationDataFormat/MCTrack.h"
 #include "SimulationDataFormat/MCCompLabel.h"
 #include "SimulationDataFormat/MCEventHeader.h"
 #include "SimulationDataFormat/MCTruthContainer.h"
@@ -243,6 +244,10 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
   auto tracksITS = pc.inputs().get<gsl::span<o2::its::TrackITS>>("trackITS");
   auto tracksITSTPC = pc.inputs().get<gsl::span<o2::dataformats::TrackTPCITS>>("tracksITSTPC");
   auto tracksTPC = pc.inputs().get<gsl::span<o2::tpc::TrackTPC>>("trackTPC");
+  auto tracksTPCMCTruth = pc.inputs().get<gsl::span<o2::MCCompLabel>>("trackTPCMCTruth");
+  auto tracksITSMCTruth = pc.inputs().get<gsl::span<o2::MCCompLabel>>("trackITSMCTruth");
+  auto tracksITSTPC_ITSMC = pc.inputs().get<gsl::span<o2::MCCompLabel>>("tracksITSTPC_ITSMC");
+  auto tracksITSTPC_TPCMC = pc.inputs().get<gsl::span<o2::MCCompLabel>>("tracksITSTPC_TPCMC");
 
   LOG(DEBUG) << "FOUND " << tracksTPC.size() << " TPC tracks";
   LOG(DEBUG) << "FOUND " << tracksITS.size() << " ITS tracks";
@@ -253,6 +258,8 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
   auto& ft0Builder = pc.outputs().make<TableBuilder>(Output{"AOD", "FT0"});
   auto& mcCollisionsBuilder = pc.outputs().make<TableBuilder>(Output{"AOD", "MCCOLLISION"});
   auto& tracksBuilder = pc.outputs().make<TableBuilder>(Output{"AOD", "TRACK"});
+  auto& mcParticlesBuilder = pc.outputs().make<TableBuilder>(Output{"AOD", "MCPARTICLE"});
+  auto& mcTrackLabelBuilder = pc.outputs().make<TableBuilder>(Output{"AOD", "MCTRACKLABEL"});
   auto& timeFrameNumberBuilder = pc.outputs().make<uint64_t>(Output{"TFN", "TFNumber"});
 
   auto& fv0aBuilder = pc.outputs().make<TableBuilder>(Output{"AOD", "FV0A"});
@@ -265,6 +272,8 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
   auto ft0Cursor = ft0Builder.cursor<o2::aod::FT0s>();
   auto mcCollisionsCursor = mcCollisionsBuilder.cursor<o2::aod::McCollisions>();
   auto tracksCursor = tracksBuilder.cursor<o2::aodproducer::TracksTable>();
+  auto mcParticlesCursor = mcParticlesBuilder.cursor<o2::aodproducer::MCParticlesTable>();
+  auto mcTrackLabelCursor = mcTrackLabelBuilder.cursor<o2::aod::McTrackLabels>();
 
   auto fv0aCursor = fv0aBuilder.cursor<o2::aod::FV0As>();
   auto fv0cCursor = fv0cBuilder.cursor<o2::aod::FV0Cs>();
@@ -351,11 +360,14 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
   int generatorID = 0;
   float mcColWeight = 1.;
 
+  std::vector<int> eventIDs;
+
   // filling mcCollison table
   for (auto& rec : mcRecords) {
     auto time = rec.getTimeNS();
     auto& colParts = mcParts[index];
     auto eventID = colParts[0].entryID;
+    eventIDs.push_back(eventID);
     auto sourceID = colParts[0].sourceID;
     auto& header = mcReader.getMCEventHeader(sourceID, eventID);
     uint64_t globalBC = rec.bc + rec.orbit * o2::constants::lhc::LHCMaxBunches;
@@ -369,6 +381,46 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
                        mcColWeight,
                        header.GetB());
     index++;
+  }
+
+  // tpc tracks --> mc particles
+  // std::map<<eventID, trackID>, McParticles::Index>
+  std::map<std::pair<int, int>, int> mIDsToIndex;
+
+  // filling mcparticle table
+  // TODO:
+  // fill columns:
+  //   status code
+  //   flags
+  //   weight
+
+  int mcParticlesIndex = 0;
+  for (auto mcEventID : eventIDs) {
+    std::vector<MCTrack> const& mcParticles = mcReader.getTracks(mcEventID);
+    int mcTrackID = 0;
+    for (auto& mcParticle : mcParticles) {
+      mcParticlesCursor(0,
+                        mcEventID,
+                        mcParticle.GetPdgCode(),
+                        0,
+                        (uint8_t)0,
+                        mcParticle.getMotherTrackId(),
+                        mcParticle.getSecondMotherTrackId(),
+                        mcParticle.getFirstDaughterTrackId(),
+                        mcParticle.getLastDaughterTrackId(),
+                        0.f,
+                        (float)mcParticle.Px(),
+                        (float)mcParticle.Py(),
+                        (float)mcParticle.Pz(),
+                        (float)mcParticle.GetEnergy(),
+                        (float)mcParticle.Vx(),
+                        (float)mcParticle.Vy(),
+                        (float)mcParticle.Vz(),
+                        (float)mcParticle.T());
+      mIDsToIndex[std::make_pair(mcEventID, mcTrackID)] = mcParticlesIndex;
+      mcTrackID++;
+      mcParticlesIndex++;
+    }
   }
 
   // vector of FT0 amplitudes
@@ -462,14 +514,46 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
   }
 
   // filling tracks tables
+
+  // TODO:
+  // fill label mask
+
   if (mFillTracksITS) {
     fillTracksTable(tracksITS, vCollRefsITS, tracksCursor, o2::vertexing::GIndex::Source::ITS); // fTrackType = 1
+    for (auto& mcTruthITS : tracksITSMCTruth) {
+      int labelID = mIDsToIndex.at(std::make_pair(mcTruthITS.getEventID(), mcTruthITS.getTrackID()));
+      mcTrackLabelCursor(0,
+                         labelID,
+                         (uint16_t)0);
+    }
   }
+
   if (mFillTracksTPC) {
     fillTracksTable(tracksTPC, vCollRefsTPC, tracksCursor, o2::vertexing::GIndex::Source::TPC); // fTrackType = 2
+    for (auto& mcTruthTPC : tracksTPCMCTruth) {
+      int labelID = mIDsToIndex.at(std::make_pair(mcTruthTPC.getEventID(), mcTruthTPC.getTrackID()));
+      mcTrackLabelCursor(0,
+                         labelID,
+                         (uint16_t)0);
+    }
   }
+
   if (mFillTracksITSTPC) {
     fillTracksTable(tracksITSTPC, vCollRefsTPCITS, tracksCursor, o2::vertexing::GIndex::Source::TPCITS); // fTrackType = 0
+    int iterEnd = tracksITSTPC.size();
+    for (int i = 0; i < iterEnd; i++) {
+      auto& mcTruthITS = tracksITSTPC_ITSMC[i];
+      auto& mcTruthTPC = tracksITSTPC_TPCMC[i];
+      int labelITS = mIDsToIndex.at(std::make_pair(mcTruthITS.getEventID(), mcTruthITS.getTrackID()));
+      int labelTPC = mIDsToIndex.at(std::make_pair(mcTruthTPC.getEventID(), mcTruthTPC.getTrackID()));
+      int labelID = labelITS == labelTPC ? labelITS : -1;
+      if (labelID == -1) {
+        LOG(DEBUG) << "ITS-TPC MCTruth: labelIDs do not match at " << i;
+      }
+      mcTrackLabelCursor(0,
+                         labelID,
+                         (uint16_t)0);
+    }
   }
 
   timeFrameNumberBuilder = getTFNumber(firstVtxGlBC, runNumber);
@@ -496,12 +580,18 @@ DataProcessorSpec getAODProducerWorkflowSpec()
   inputs.emplace_back("trackITS", "ITS", "TRACKS", 0, Lifetime::Timeframe);
   inputs.emplace_back("tracksITSTPC", "GLO", "TPCITS", 0, Lifetime::Timeframe);
   inputs.emplace_back("trackTPC", "TPC", "TRACKS", 0, Lifetime::Timeframe);
+  inputs.emplace_back("trackTPCMCTruth", "TPC", "TRACKSMCLBL", 0, Lifetime::Timeframe);
+  inputs.emplace_back("trackITSMCTruth", "ITS", "TRACKSMCTR", 0, Lifetime::Timeframe);
+  inputs.emplace_back("tracksITSTPC_ITSMC", "GLO", "TPCITS_ITSMC", 0, Lifetime::Timeframe);
+  inputs.emplace_back("tracksITSTPC_TPCMC", "GLO", "TPCITS_TPCMC", 0, Lifetime::Timeframe);
 
   outputs.emplace_back(OutputLabel{"O2bc"}, "AOD", "BC", 0, Lifetime::Timeframe);
   outputs.emplace_back(OutputLabel{"O2collision"}, "AOD", "COLLISION", 0, Lifetime::Timeframe);
   outputs.emplace_back(OutputLabel{"O2ft0"}, "AOD", "FT0", 0, Lifetime::Timeframe);
   outputs.emplace_back(OutputLabel{"O2mccollision"}, "AOD", "MCCOLLISION", 0, Lifetime::Timeframe);
   outputs.emplace_back(OutputLabel{"O2track"}, "AOD", "TRACK", 0, Lifetime::Timeframe);
+  outputs.emplace_back(OutputLabel{"O2mcparticle"}, "AOD", "MCPARTICLE", 0, Lifetime::Timeframe);
+  outputs.emplace_back(OutputLabel{"O2mctracklabel"}, "AOD", "MCTRACKLABEL", 0, Lifetime::Timeframe);
   outputs.emplace_back(OutputSpec{"TFN", "TFNumber"});
 
   // TODO:
