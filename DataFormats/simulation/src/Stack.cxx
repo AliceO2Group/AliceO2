@@ -22,6 +22,8 @@
 #include "FairLogger.h"   // for FairLogger
 #include "FairRootManager.h"
 #include "SimulationDataFormat/BaseHits.h"
+#include "SimulationDataFormat/StackParam.h"
+#include "CommonUtils/ConfigurationMacroHelper.h"
 
 #include "TLorentzVector.h" // for TLorentzVector
 #include "TParticle.h"      // for TParticle
@@ -77,6 +79,38 @@ Stack::Stack(Int_t size)
   auto vmc = TVirtualMC::GetMC();
   if (vmc && strcmp(vmc->GetName(), "TGeant4") == 0) {
     mIsG4Like = true;
+  }
+
+  auto& param = o2::sim::StackParam::Instance();
+  LOG(INFO) << param;
+  TransportFcn transportPrimary;
+  if (param.transportPrimary.compare("none") == 0) {
+    transportPrimary = [](const TParticle& p) {
+      return false;
+    };
+  } else if (param.transportPrimary.compare("all") == 0) {
+    transportPrimary = [](const TParticle& p) {
+      return true;
+    };
+  } else if (param.transportPrimary.compare("barrel") == 0) {
+    transportPrimary = [](const TParticle& p) {
+      return (std::fabs(p.Eta()) < 2.0);
+    };
+  } else if (param.transportPrimary.compare("external") == 0) {
+    transportPrimary = o2::conf::GetFromMacro<o2::data::Stack::TransportFcn>(param.transportPrimaryFileName,
+                                                                             param.transportPrimaryFuncName,
+                                                                             "o2::data::Stack::TransportFcn", "stack_transport_primary");
+    if (!mTransportPrimary) {
+      LOG(FATAL) << "Failed to retrieve external \'transportPrimary\' function: problem with configuration ";
+    }
+  } else {
+    LOG(FATAL) << "unsupported \'trasportPrimary\' mode: " << param.transportPrimary;
+  }
+
+  if (param.transportPrimaryInvert) {
+    mTransportPrimary = [transportPrimary](const TParticle& p) { return !transportPrimary; };
+  } else {
+    mTransportPrimary = transportPrimary;
   }
 }
 
@@ -189,8 +223,13 @@ void Stack::PushTrack(Int_t toBeDone, Int_t parentId, Int_t pdgCode, Double_t px
     p.SetBit(ParticleStatus::kKeep);
     p.SetBit(ParticleStatus::kPrimary);
     if (toBeDone == 1) {
-      p.SetBit(ParticleStatus::kToBeDone, 1);
-      mNumberOfPrimariesforTracking++;
+      if (mTransportPrimary(p)) {
+        p.SetBit(ParticleStatus::kToBeDone, 1);
+        mNumberOfPrimariesforTracking++;
+      } else {
+        p.SetBit(ParticleStatus::kToBeDone, 0);
+        p.SetBit(ParticleStatus::kInhibited, 1);
+      }
     } else {
       p.SetBit(ParticleStatus::kToBeDone, 0);
     }

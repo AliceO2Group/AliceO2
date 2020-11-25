@@ -28,6 +28,7 @@
 #include <memory>
 #include <stack>
 #include <utility>
+#include <functional>
 
 class TClonesArray;
 class TRefArray;
@@ -220,6 +221,8 @@ class Stack : public FairGenericStack
   /// update values in the current event header
   void updateEventStats();
 
+  typedef std::function<bool(const TParticle& p)> TransportFcn;
+
  private:
   /// STL stack (FILO) used to handle the TParticles for tracking
   /// stack entries refer to
@@ -275,6 +278,8 @@ class Stack : public FairGenericStack
   bool mIsG4Like = false; //! flag indicating if the stack is used in a manner done by Geant4
 
   bool mIsExternalMode = false; // is stack an external factory or directly used inside simulation?
+
+  TransportFcn mTransportPrimary = [](const TParticle& p) { return false; }; //! a function to inhibit the tracking of a particle
 
   // storage for track references
   std::vector<o2::TrackReference>* mTrackRefs = nullptr; //!

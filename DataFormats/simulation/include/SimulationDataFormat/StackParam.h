@@ -23,6 +23,10 @@ namespace sim
 struct StackParam : public o2::conf::ConfigurableParamHelper<StackParam> {
   bool storeSecondaries = true;
   bool pruneKine = true;
+  std::string transportPrimary = "all";
+  std::string transportPrimaryFileName = "";
+  std::string transportPrimaryFuncName = "";
+  bool transportPrimaryInvert = false;
 
   // boilerplate stuff + make principal key "Stack"
   O2ParamDef(StackParam, "Stack");
