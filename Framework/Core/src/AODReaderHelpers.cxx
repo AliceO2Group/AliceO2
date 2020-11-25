@@ -245,6 +245,8 @@ AlgorithmSpec AODReaderHelpers::rootFileReaderCallback()
       bool first = true;
       static size_t totalSizeUncompressed = 0;
       static size_t totalSizeCompressed = 0;
+      static size_t totalReadCalls = 0;
+
       for (auto route : requestedTables) {
 
         // create header
@@ -252,6 +254,11 @@ AlgorithmSpec AODReaderHelpers::rootFileReaderCallback()
         auto dh = header::DataHeader(concrete.description, concrete.origin, concrete.subSpec);
 
         // create a TreeToTable object
+        auto info = didir->getFileFolder(dh, fcnt, ntf);
+        size_t before = 0;
+        if (info.file) {
+          info.file->GetReadCalls();
+        }
         tr = didir->getDataTree(dh, fcnt, ntf);
         if (!tr) {
           if (first) {
@@ -303,12 +310,16 @@ AlgorithmSpec AODReaderHelpers::rootFileReaderCallback()
           }
         }
         t2t.fill(tr);
+        if (info.file) {
+          totalReadCalls += info.file->GetReadCalls() - before;
+        }
         delete tr;
 
         first = false;
       }
       monitoring.send(Metric{(uint64_t)totalSizeUncompressed, "aod-bytes-read-uncompressed"}.addTag(Key::Subsystem, monitoring::tags::Value::DPL));
       monitoring.send(Metric{(uint64_t)totalSizeCompressed, "aod-bytes-read-compressed"}.addTag(Key::Subsystem, monitoring::tags::Value::DPL));
+      monitoring.send(Metric{(uint64_t)totalReadCalls, "aod-total-read-calls"}.addTag(Key::Subsystem, monitoring::tags::Value::DPL));
 
       // save file number and time frame
       *fileCounter = (fcnt - device.inputTimesliceId) / device.maxInputTimeslices;
