@@ -74,10 +74,16 @@ constexpr uint32_t compile_time_hash(char const* str)
   return crc32(str, static_cast<int>(__builtin_strlen(str)) - 1) ^ 0xFFFFFFFF;
 }
 
+template <int N>
+constexpr uint32_t compile_time_hash_from_literal(const char (&str)[N])
+{
+  return crc32(str, N - 2) ^ 0xFFFFFFFF;
+}
+
 template <char... chars>
 struct ConstStr {
   static constexpr char name[] = {chars..., '\0'};
-  static constexpr uint32_t hash = compile_time_hash(name);
+  static constexpr uint32_t hash = compile_time_hash_from_literal(name);
   static constexpr uint32_t idx = hash & 0x1FF;
 };
 
