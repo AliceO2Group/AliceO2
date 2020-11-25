@@ -59,7 +59,8 @@ enum ParticleStatus { kKeep = BIT(14),
                       kDaughters = BIT(15),
                       kToBeDone = BIT(16),
                       kPrimary = BIT(17),
-                      kTransport = BIT(18) };
+                      kTransport = BIT(18),
+                      kInhibited = BIT(19) };
 class Stack : public FairGenericStack
 {
  public:
@@ -280,6 +281,8 @@ class Stack : public FairGenericStack
   bool mIsG4Like = false; //! flag indicating if the stack is used in a manner done by Geant4
 
   bool mIsExternalMode = false; // is stack an external factory or directly used inside simulation?
+
+  std::function<bool(const TParticle& p)> mInhibitPrimary = [](const TParticle& p) { return false; }; // a function to inhibit the tracking of a particle
 
   // storage for track references
   std::vector<o2::TrackReference>* mTrackRefs = nullptr; //!

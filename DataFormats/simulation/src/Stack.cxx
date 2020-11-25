@@ -22,6 +22,7 @@
 #include "FairLogger.h"   // for FairLogger
 #include "FairRootManager.h"
 #include "SimulationDataFormat/BaseHits.h"
+#include "SimulationDataFormat/StackParam.h"
 
 #include "TLorentzVector.h" // for TLorentzVector
 #include "TParticle.h"      // for TParticle
@@ -78,6 +79,26 @@ Stack::Stack(Int_t size)
   auto vmc = TVirtualMC::GetMC();
   if (vmc && strcmp(vmc->GetName(), "TGeant4") == 0) {
     mIsG4Like = true;
+  }
+
+  auto& param = o2::sim::StackParam::Instance();
+  if (param.inhibitPrimary.compare("none") == 0) {
+    mInhibitPrimary = [](const TParticle& p) {
+      return false;
+    };
+  } else if (param.inhibitPrimary.compare("all") == 0) {
+    mInhibitPrimary = [](const TParticle& p) {
+      return true;
+    };
+  } else if (param.inhibitPrimary.compare("forward") == 0) {
+    mInhibitPrimary = [](const TParticle& p) {
+      if (std::fabs(p.Eta()) > 1.0) {
+        return true;
+      }
+      return false;
+    };
+  } else {
+    mInhibitPrimary = [](const TParticle& p) { return false; };
   }
 }
 
@@ -190,8 +211,13 @@ void Stack::PushTrack(Int_t toBeDone, Int_t parentId, Int_t pdgCode, Double_t px
     p.SetBit(ParticleStatus::kKeep);
     p.SetBit(ParticleStatus::kPrimary);
     if (toBeDone == 1) {
-      p.SetBit(ParticleStatus::kToBeDone, 1);
-      mNumberOfPrimariesforTracking++;
+      if (mInhibitPrimary(p)) {
+        p.SetBit(ParticleStatus::kToBeDone, 0);
+        p.SetBit(ParticleStatus::kInhibited, 1);
+      } else {
+        p.SetBit(ParticleStatus::kToBeDone, 1);
+        mNumberOfPrimariesforTracking++;
+      }
     } else {
       p.SetBit(ParticleStatus::kToBeDone, 0);
     }
