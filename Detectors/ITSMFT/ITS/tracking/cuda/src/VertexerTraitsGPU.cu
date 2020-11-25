@@ -43,11 +43,11 @@ using math_utils::getNormalizedPhiCoordinate;
 
 using namespace constants::its2;
 GPU_DEVICE const int4 getBinsRect(const Cluster& currentCluster, const int layerIndex,
-                                  const float z1, const float z2, float maxdeltaz, float maxdeltaphi)
+                                  const float z1, float maxdeltaz, float maxdeltaphi)
 {
-  const float zRangeMin = gpu::GPUCommonMath::Min(z1, z2) - maxdeltaz;
+  const float zRangeMin = z1 - maxdeltaz;
   const float phiRangeMin = currentCluster.phiCoordinate - maxdeltaphi;
-  const float zRangeMax = gpu::GPUCommonMath::Max(z1, z2) + maxdeltaz;
+  const float zRangeMax = z1 + maxdeltaz;
   const float phiRangeMax = currentCluster.phiCoordinate + maxdeltaphi;
 
   if (zRangeMax < -LayersZCoordinate()[layerIndex + 1] ||
@@ -163,7 +163,7 @@ GPUg() void trackleterKernel(
       const size_t stride{currentClusterIndex * store.getConfig().maxTrackletsPerCluster};
       const Cluster& currentCluster = store.getClusters()[1][currentClusterIndex]; // assign-constructor may be a problem, check
       const VertexerLayerName adjacentLayerIndex{layerOrder == TrackletingLayerOrder::fromInnermostToMiddleLayer ? VertexerLayerName::innermostLayer : VertexerLayerName::outerLayer};
-      const int4 selectedBinsRect{getBinsRect(currentCluster, static_cast<int>(adjacentLayerIndex), 0.f, 0.f, 50.f, phiCut / 2)};
+      const int4 selectedBinsRect{getBinsRect(currentCluster, static_cast<int>(adjacentLayerIndex), 0.f, 50.f, phiCut / 2)};
       if (selectedBinsRect.x != 0 || selectedBinsRect.y != 0 || selectedBinsRect.z != 0 || selectedBinsRect.w != 0) {
         int phiBinsNum{selectedBinsRect.w - selectedBinsRect.y + 1};
         if (phiBinsNum < 0) {
