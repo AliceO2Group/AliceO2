@@ -1071,11 +1071,11 @@ int runStateMachine(DataProcessorSpecs const& workflow,
           std::cerr << "Invalid workflow: " << e.what() << std::endl;
           return 1;
         } catch (o2::framework::RuntimeErrorRef ref) {
-          auto& e = o2::framework::error_from_ref(ref);
+          auto& err = o2::framework::error_from_ref(ref);
 #ifdef DPL_ENABLE_BACKTRACE
           backtrace_symbols_fd(err.backtrace, err.maxBacktrace, STDERR_FILENO);
 #endif
-          std::cerr << "Invalid workflow: " << e.what << std::endl;
+          std::cerr << "Invalid workflow: " << err.what << std::endl;
           return 1;
         } catch (...) {
           std::cerr << "Unknown error while materialising workflow";
