@@ -78,7 +78,7 @@ GPU_HOST_DEVICE constexpr GPUArray<float, LayersNumber> InverseZBinSize()
                                         0.5f * ZBins / (zSize[3]), 0.5f * ZBins / (zSize[4]), 0.5f * ZBins / (zSize[5]),
                                         0.5f * ZBins / (zSize[6])}};
 }
-}
+} // namespace its2
 
 namespace pdgcodes
 {
