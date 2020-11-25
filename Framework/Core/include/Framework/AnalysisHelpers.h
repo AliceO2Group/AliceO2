@@ -486,6 +486,13 @@ struct Partition {
   {
   }
 
+  void bindTable(T& table)
+  {
+    mFiltered.reset(getTableFromFilter(table, filter));
+    bindExternalIndices(&table);
+    getBoundToExternalIndices(table);
+  }
+
   void setTable(const T& table)
   {
     mFiltered.reset(getTableFromFilter(table, filter));
