@@ -34,9 +34,13 @@ struct Cluster : public o2::BaseCluster<float> {
       clusterId{id},
       indexTableBin{bin},
       sigmaX2{sigX2},
-      sigmaY2{sigY2} {};
+      sigmaY2{sigY2},
+      isUsed{false} {};
   Cluster(const Float_t x, const Float_t y, const Float_t z, const Int_t index);
   Cluster(const Int_t layerIndex, const Cluster& other);
+
+  void setUsed(Bool_t bval) { isUsed = bval; }
+  const Bool_t getUsed() { return isUsed; }
 
   Float_t phiCoordinate;
   Float_t rCoordinate;
@@ -44,6 +48,7 @@ struct Cluster : public o2::BaseCluster<float> {
   Int_t indexTableBin;
   Float_t sigmaX2;
   Float_t sigmaY2;
+  Bool_t isUsed;
 };
 
 } // namespace mft

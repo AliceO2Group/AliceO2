@@ -60,6 +60,7 @@ void TrackerDPL::init(InitContext& ic)
     mTracker = std::make_unique<o2::mft::Tracker>(mUseMC);
     double centerMFT[3] = {0, 0, -61.4}; // Field at center of MFT
     mTracker->setBz(field->getBz(centerMFT));
+    mTracker->initialize();
   } else {
     throw std::runtime_error(o2::utils::concat_string("Cannot retrieve GRP from the ", filename));
   }
@@ -134,7 +135,7 @@ void TrackerDPL::run(ProcessingContext& pc)
       int nclUsed = ioutils::loadROFrameData(rof, event, compClusters, pattIt, mDict, labels);
       if (nclUsed) {
         event.setROFrameId(roFrame);
-        event.initialise();
+        event.initialize();
         LOG(INFO) << "ROframe: " << roFrame << ", clusters loaded : " << nclUsed;
         mTracker->setROFrame(roFrame);
         mTracker->clustersToTracks(event);
