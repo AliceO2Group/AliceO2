@@ -70,7 +70,7 @@ void DigitReader::run(ProcessingContext& pc)
 
     static o2::parameters::GRPObject::ROMode roMode = o2::parameters::GRPObject::CONTINUOUS;
 
-    LOG(INFO) << "TOF: Sending ROMode= " << roMode << " to GRPUpdater";
+    LOG(DEBUG) << "TOF: Sending ROMode= " << roMode << " to GRPUpdater";
     pc.outputs().snapshot(Output{o2::header::gDataOriginTOF, "ROMode", 0, Lifetime::Timeframe}, roMode);
   } else {
     LOG(ERROR) << "Cannot read the TOF digits !";

@@ -19,6 +19,8 @@
 #include <TMath.h>
 #include <cstdlib>
 #include "CommonConstants/LHCConstants.h"
+#include <vector>
+#include "Rtypes.h"
 
 namespace o2
 {
@@ -110,6 +112,11 @@ class Cluster : public o2::BaseCluster<float>
 
   int getBC() const { return int(mTimeRaw * BC_TIME_INPS_INV); }
 
+  void setDigitInfo(int idig, int ch, double t, float tot);
+  int getDigitInfoCH(int idig) const { return mDigitInfoCh[idig]; }
+  double getDigitInfoT(int idig) const { return mDigitInfoT[idig]; }
+  float getDigitInfoTOT(int idig) const { return mDigitInfoTOT[idig]; }
+
  private:
   friend class boost::serialization::access;
 
@@ -123,7 +130,12 @@ class Cluster : public o2::BaseCluster<float>
   float mPhi = PhiOutOfRange;  //! phi coordinate
   int mEntryInTree;            //! index of the entry in the tree from which we read the cluster
 
-  ClassDefNV(Cluster, 3);
+  // add extra info to trace all digit infos (for commissioning phase)
+  int mDigitInfoCh[6] = {0, 0, 0, 0, 0, 0};
+  double mDigitInfoT[6] = {0., 0., 0., 0., 0., 0.};
+  float mDigitInfoTOT[6] = {0., 0., 0., 0., 0., 0.};
+
+  ClassDefNV(Cluster, 4);
 };
 
 std::ostream& operator<<(std::ostream& os, Cluster& c);

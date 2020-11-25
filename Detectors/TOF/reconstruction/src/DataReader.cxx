@@ -50,7 +50,7 @@ Bool_t DigitDataReader::getNextStripData(StripData& stripData)
 
   // sorting the digits of the current strip according to the TDC
   std::sort(stripData.digits.begin(), stripData.digits.end(),
-            [](const Digit& a, const Digit& b) { return a.getTDC() < b.getTDC(); });
+            [](const Digit& a, const Digit& b) { if(a.getBC() != b.getBC()){ return a.getBC() < b.getBC();} return a.getTDC() < b.getTDC(); });
 
   return kTRUE;
 }

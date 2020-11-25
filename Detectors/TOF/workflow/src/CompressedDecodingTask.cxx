@@ -157,7 +157,7 @@ void CompressedDecodingTask::run(ProcessingContext& pc)
     }
   }
 
-  if ((mNCrateOpenTF == 72 || mConetMode) && mNCrateOpenTF == mNCrateCloseTF) {
+  if ((mNCrateOpenTF > 0 || mConetMode) && mNCrateOpenTF == mNCrateCloseTF) {
     mHasToBePosted = true;
   }
 

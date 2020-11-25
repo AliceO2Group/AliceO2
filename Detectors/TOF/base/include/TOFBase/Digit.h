@@ -68,7 +68,7 @@ class Digit
 
   Bool_t isUsedInCluster() const { return mIsUsedInCluster; }
 
-  void setIsUsedInCluster() { mIsUsedInCluster = kTRUE; }
+  void setIsUsedInCluster(bool val = true) { mIsUsedInCluster = val; }
 
   Int_t getElectronicIndex() const { return mElectronIndex; }
   void setElectronicIndex(Int_t ind) { mElectronIndex = ind; }
@@ -188,13 +188,13 @@ struct ReadoutWindowData {
 
 struct DigitHeader {
   int mCountsCrate[Geo::kNCrate] = {0};
-  int mNumberOfCrates[Geo::kNCrate] = {0};
+  int mNumberOfCrates[Geo::kNCrate + 1] = {0};
   int mCountsRow = 0;
 
   void clear()
   {
     memset(mCountsCrate, 0, Geo::kNCrate * 4);
-    memset(mNumberOfCrates, 0, Geo::kNCrate * 4);
+    memset(mNumberOfCrates, 0, (Geo::kNCrate + 1) * 4);
     mCountsRow = 0;
   }
   DigitHeader() { clear(); }

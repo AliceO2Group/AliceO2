@@ -32,10 +32,10 @@ DataProcessorSpec getTOFClusterWriterSpec(bool useMC)
 {
   // Spectators for logging
   auto logger = [](OutputType const& indata) {
-    LOG(INFO) << "RECEIVED CLUSTERS SIZE " << indata.size();
+    LOG(DEBUG) << "RECEIVED CLUSTERS SIZE " << indata.size();
   };
   auto loggerMCLabels = [](LabelsType const& labeldata) {
-    LOG(INFO) << "TOF GOT " << labeldata.getNElements() << " LABELS ";
+    LOG(DEBUG) << "TOF GOT " << labeldata.getNElements() << " LABELS ";
   };
   return MakeRootTreeWriterSpec("TOFClusterWriter",
                                 "tofclusters.root",
