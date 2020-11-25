@@ -1075,7 +1075,7 @@ int runStateMachine(DataProcessorSpecs const& workflow,
 #ifdef DPL_ENABLE_BACKTRACE
           backtrace_symbols_fd(err.backtrace, err.maxBacktrace, STDERR_FILENO);
 #endif
-          std::cerr << "Invalid workflow: " << e.what << std::endl;
+          std::cerr << "Invalid workflow: " << err.what << std::endl;
           return 1;
         } catch (...) {
           std::cerr << "Unknown error while materialising workflow";
