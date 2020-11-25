@@ -1300,17 +1300,18 @@ int runStateMachine(DataProcessorSpecs const& workflow,
         // the workflow was not really run.
         // NOTE: is this really what we want? should we run
         // SCHEDULE and dump the full configuration as well?
-        if (!infos.empty()) {
-          boost::property_tree::ptree finalConfig;
-          assert(infos.size() == deviceSpecs.size());
-          for (size_t di = 0; di < infos.size(); ++di) {
-            auto info = infos[di];
-            auto spec = deviceSpecs[di];
-            finalConfig.put_child(spec.name, info.currentConfig);
-          }
-          LOG(INFO) << "Dumping used configuration in dpl-config.json";
-          boost::property_tree::write_json("dpl-config.json", finalConfig);
+        if (infos.empty()) {
+          return 0;
         }
+        boost::property_tree::ptree finalConfig;
+        assert(infos.size() == deviceSpecs.size());
+        for (size_t di = 0; di < infos.size(); ++di) {
+          auto info = infos[di];
+          auto spec = deviceSpecs[di];
+          finalConfig.put_child(spec.name, info.currentConfig);
+        }
+        LOG(INFO) << "Dumping used configuration in dpl-config.json";
+        boost::property_tree::write_json("dpl-config.json", finalConfig);
         if (driverInfo.noSHMCleanup) {
           LOGP(warning, "Not cleaning up shared memory.");
         } else {
