@@ -32,6 +32,8 @@
 #include <TTree.h>
 #include <THnSparse.h>
 #include <TF1.h>
+#include <TGraph.h>
+#include <TProfile.h>
 
 //using namespace o2::framework;
 using namespace o2::mergers;
@@ -185,6 +187,38 @@ BOOST_AUTO_TEST_CASE(MergerSingularObjects)
 
     BOOST_CHECK_NO_THROW(algorithm::merge(target, other));
     BOOST_CHECK_EQUAL(target->GetEntries(), 3);
+
+    delete other;
+    delete target;
+  }
+  {
+    constexpr Int_t points = 5;
+    Double_t x1[] = {0, 1, 2, 3, 4};
+    Double_t y1[] = {0, 1, 2, 3, 4};
+    Double_t x2[] = {5, 6, 7, 8, 9};
+    Double_t y2[] = {5, 6, 7, 8, 9};
+
+    TGraph* target = new TGraph(points, x1, y1);
+    TGraph* other = new TGraph(points, x2, y2);
+
+    BOOST_CHECK_NO_THROW(algorithm::merge(target, other));
+    BOOST_CHECK_EQUAL(target->GetN(), 2 * points);
+
+    delete other;
+    delete target;
+  }
+  {
+    auto target = new TProfile("hprof1", "hprof1", bins, min, max, min, max);
+    target->Fill(2, 2, 1);
+    auto other = new TProfile("hprof2", "hprof2", bins, min, max, min, max);
+    other->Fill(5, 5, 1);
+
+    BOOST_CHECK_NO_THROW(algorithm::merge(target, other));
+    BOOST_CHECK_EQUAL(target->GetEntries(), 2);
+    BOOST_CHECK_EQUAL(target->GetBinContent(target->FindBin(0)), 0);
+    BOOST_CHECK_EQUAL(target->GetBinContent(target->FindBin(1)), 0);
+    BOOST_CHECK_CLOSE(target->GetBinContent(target->FindBin(2)), 2, 0.001);
+    BOOST_CHECK_CLOSE(target->GetBinContent(target->FindBin(5)), 5, 0.001);
 
     delete other;
     delete target;
