@@ -10,7 +10,7 @@
 
 o2_add_library(TPCSpaceChargeBase
                TARGETVARNAME targetNameBase
-	       SOURCES src/NearestNeighbour.cxx
+               SOURCES src/NearestNeighbour.cxx
                PRIVATE_LINK_LIBRARIES CGAL::CGAL)
 
 o2_add_library(TPCSpaceCharge
@@ -20,7 +20,7 @@ o2_add_library(TPCSpaceCharge
                PUBLIC_LINK_LIBRARIES O2::TPCBase
                                      Vc::Vc
                                      ROOT::Core
-				     O2::TPCSpaceChargeBase)
+                                     O2::TPCSpaceChargeBase)
 
 o2_target_root_dictionary(TPCSpaceCharge
                           HEADERS include/TPCSpaceCharge/PoissonSolver.h

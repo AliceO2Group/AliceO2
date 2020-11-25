@@ -17,6 +17,11 @@
 #ifndef ALICEO2_TPC_NEARESTNEIGHBOUR_H_
 #define ALICEO2_TPC_NEARESTNEIGHBOUR_H_
 
+#include <memory>
+
+// class containing the CGAL members
+class NearestNeighbourInternal;
+
 namespace o2
 {
 namespace tpc
@@ -27,17 +32,26 @@ class NearestNeighbour
 {
   /// for nearest neighbour search see: https://doc.cgal.org/latest/Spatial_searching/Spatial_searching_2searching_with_point_with_info_8cpp-example.html
  public:
-  /// default constructor
+  /// constructor
   /// \param nPoints maximum number of points which will be filled in the tree
   NearestNeighbour(const int nPoints);
 
+  /// destructor
+  ~NearestNeighbour();
+
   /// add a point and their index to the tree
-  void addPointAndIndex(const DataT z, const DataT r, const DataT phi, const unsigned int iZ, const unsigned int iR, const unsigned int iPhi) const;
+  /// \param z z position of the point
+  /// \param r r position of the point
+  /// \param phi phi position of the point
+  /// \param iZ z index of the point
+  /// \param iR r index of the point
+  /// \param iPhi phi index of the point
+  void addPointAndIndex(const DataT z, const DataT r, const DataT phi, const unsigned int iZ, const unsigned int iR, const unsigned int iPhi);
 
-  /// created the tree after all points are added
-  void setTree() const;
+  /// create the tree after all points are added
+  void setTree();
 
-  /// find the nearest neighbor/s for given query point
+  /// find the nearest neighbor for given query point
   /// \param z z position of query point
   /// \param r r position of query point
   /// \param phi phi position of query point
@@ -48,6 +62,21 @@ class NearestNeighbour
   /// \param iRNearest index in r direction of nearest point found
   /// \param iPhiNearest index in phi direction of nearest point found
   void query(const DataT z, const DataT r, const DataT phi, DataT& zNearest, DataT& rNearest, DataT& phiNearest, unsigned int& iZNearest, unsigned int& iRNearest, unsigned int& iPhiNearest) const;
+
+ private:
+  /// access to the tree member of this class
+  auto& tree();
+  const auto& tree() const;
+
+  /// access to the indices member of this class
+  auto& indices();
+  const auto& indices() const;
+
+  /// access to the point member of this class
+  auto& points();
+  const auto& points() const;
+
+  std::unique_ptr<NearestNeighbourInternal> mInternal; ///< container for the CGAL members
 };
 
 } // namespace tpc
