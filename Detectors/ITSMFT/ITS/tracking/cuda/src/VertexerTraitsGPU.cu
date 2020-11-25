@@ -37,14 +37,14 @@ namespace o2
 namespace its
 {
 
-using constants::its2::PhiBins;
-using constants::its2::ZBins;
-using constants::its2::LayersRCoordinate;
-using constants::its2::LayersZCoordinate;
-using constants::its2::VertexerHistogramVolume;
-using constants::math::TwoPi;
 using constants::its2::getPhiBinIndex;
 using constants::its2::getZBinIndex;
+using constants::its2::LayersRCoordinate;
+using constants::its2::LayersZCoordinate;
+using constants::its2::PhiBins;
+using constants::its2::VertexerHistogramVolume;
+using constants::its2::ZBins;
+using constants::math::TwoPi;
 using math_utils::getNormalizedPhiCoordinate;
 
 GPUh() void gpuThrowOnError()
