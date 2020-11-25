@@ -17,7 +17,6 @@
 
 #include "MFTTracking/Cell.h"
 #include "MFTTracking/Constants.h"
-#include "SimulationDataFormat/MCCompLabel.h"
 
 namespace o2
 {
@@ -28,88 +27,59 @@ class Road final
 {
  public:
   Road();
-  void setPoint(const Float_t x, const Float_t y, const Float_t z, const Int_t layer, const Int_t clusterId, const MCCompLabel label, Bool_t& newPoint);
+
+  void setPoint(const Int_t layer, const Int_t clusterId)
+  {
+    mClusterId[layer].push_back(clusterId);
+  }
+
   void setRoadId(const Int_t id) { mRoadId = id; }
   const Int_t getRoadId() const { return mRoadId; }
-  void setNDisks(const Int_t nd) { mNDisks = nd; }
-  const Int_t getNDisks() const { return mNDisks; }
-  const Int_t getNPoints() const { return mNPoints; }
-  const Int_t getNPointsInLayer(Int_t layer) const;
-  void getLength(Int_t& layer1, Int_t& layer2) const;
-  void setHasTracksCA() { mHasTracksCA = kTRUE; }
-  const Bool_t hasTracksCA() const;
 
-  const std::vector<Float_t>& getXCoordinatesInLayer(Int_t layer) const { return mX[layer]; }
-  const std::vector<Float_t>& getYCoordinatesInLayer(Int_t layer) const { return mY[layer]; }
-  const std::vector<Float_t>& getZCoordinatesInLayer(Int_t layer) const { return mZ[layer]; }
+  const Int_t getNPointsInLayer(Int_t layer) const;
+
+  void getLength(Int_t& layer1, Int_t& layer2) const;
+
   const std::vector<Int_t>& getClustersIdInLayer(Int_t layer) const { return mClusterId[layer]; }
-  const std::vector<MCCompLabel>& getMCCompLabelsInLayer(Int_t layer) const { return mMCCompLabel[layer]; }
 
   template <typename... T>
-  void addCellToLayer(Int_t layer, T&&... args);
+  Cell& addCellInLayer(Int_t layer, T&&... args);
 
-  const std::vector<Cell>& getCellsInLayer(Int_t) const;
+  std::vector<Cell>& getCellsInLayer(Int_t);
+
   void addLeftNeighbourToCell(const Int_t, const Int_t, const Int_t, const Int_t);
   void addRightNeighbourToCell(const Int_t, const Int_t, const Int_t, const Int_t);
+
   void incrementCellLevel(const Int_t, const Int_t);
   void updateCellLevel(const Int_t, const Int_t);
-  const Int_t getCellLevel(const Int_t, const Int_t) const;
-  const Bool_t isCellUsed(const Int_t, const Int_t) const;
-  void setCellUsed(const Int_t, const Int_t, const Bool_t);
+
   void setCellLevel(const Int_t, const Int_t, const Int_t);
+  const Int_t getCellLevel(const Int_t, const Int_t) const;
+  void setCellUsed(const Int_t, const Int_t, const Bool_t);
+  const Bool_t isCellUsed(const Int_t, const Int_t) const;
 
  private:
   Int_t mRoadId;
-  Int_t mNDisks;
-  Int_t mNPoints;
-  Bool_t mHasTracksCA;
-  std::array<std::vector<Float_t>, constants::mft::LayersNumber> mX;
-  std::array<std::vector<Float_t>, constants::mft::LayersNumber> mY;
-  std::array<std::vector<Float_t>, constants::mft::LayersNumber> mZ;
   std::array<std::vector<Int_t>, constants::mft::LayersNumber> mClusterId;
-  std::array<std::vector<MCCompLabel>, constants::mft::LayersNumber> mMCCompLabel;
   std::array<std::vector<Cell>, (constants::mft::LayersNumber - 1)> mCell;
 };
 
 inline Road::Road()
-  : mRoadId{0},
-    mNDisks{0},
-    mNPoints{0}
+  : mRoadId{0}
 {
   // Nothing to do
 }
 
-inline void Road::setPoint(const Float_t x, const Float_t y, const Float_t z, const Int_t layer, const Int_t clusterId, const MCCompLabel label, Bool_t& newPoint)
-{
-  if (!newPoint) {
-    if (!mZ.empty()) {
-      mX[layer].pop_back();
-      mY[layer].pop_back();
-      mZ[layer].pop_back();
-      mClusterId[layer].pop_back();
-      mMCCompLabel[layer].pop_back();
-    }
-  } else { // end replace point
-    newPoint = kFALSE;
-  }
-  mX[layer].push_back(x);
-  mY[layer].push_back(y);
-  mZ[layer].push_back(z);
-  mClusterId[layer].push_back(clusterId);
-  mMCCompLabel[layer].emplace_back(label);
-  ++mNPoints;
-}
-
 inline const Int_t Road::getNPointsInLayer(Int_t layer) const
 {
-  return mX[layer].size();
+  return mClusterId[layer].size();
 }
 
 inline void Road::getLength(Int_t& layer1, Int_t& layer2) const
 {
   layer1 = -1, layer2 = 10;
   for (Int_t layer = 0; layer < constants::mft::LayersNumber; ++layer) {
-    if (mX[layer].size() > 0) {
+    if (mClusterId[layer].size() > 0) {
       if (layer1 < 0) {
         layer1 = layer;
       }
@@ -118,18 +88,14 @@ inline void Road::getLength(Int_t& layer1, Int_t& layer2) const
   }
 }
 
-inline const Bool_t Road::hasTracksCA() const
-{
-  return mHasTracksCA;
-}
-
 template <typename... T>
-void Road::addCellToLayer(Int_t layer, T&&... values)
+Cell& Road::addCellInLayer(Int_t layer, T&&... values)
 {
   mCell[layer].emplace_back(layer, std::forward<T>(values)...);
+  return mCell[layer].back();
 }
 
-inline const std::vector<Cell>& Road::getCellsInLayer(Int_t layer) const
+inline std::vector<Cell>& Road::getCellsInLayer(Int_t layer)
 {
   return mCell[layer];
 }

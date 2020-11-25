@@ -33,14 +33,9 @@ Int_t ROframe::getTotalClusters() const
   return Int_t(totalClusters);
 }
 
-void ROframe::initialise()
+void ROframe::initialize()
 {
   sortClusters();
-
-  for (Int_t layer = 0; layer < constants::mft::LayersNumber; ++layer) {
-    mUsedClusters[layer].clear();
-    mUsedClusters[layer].resize(mClusters[layer].size(), kFALSE);
-  }
 }
 
 void ROframe::sortClusters()
@@ -55,7 +50,7 @@ void ROframe::sortClusters()
     sort(mClusters[iLayer].begin(), mClusters[iLayer].end(),
          [](Cluster& c1, Cluster& c2) { return c1.indexTableBin < c2.indexTableBin; });
     // find the cluster local index range in each bin
-    // index = element position vector in the vector
+    // index = element position in the vector
     nClsInLayer = mClusters[iLayer].size();
     binPrevIndex = mClusters[iLayer].at(0).indexTableBin;
     clsMinIndex = 0;
@@ -63,16 +58,19 @@ void ROframe::sortClusters()
       if (mClusters[iLayer].at(jClsLayer).indexTableBin == binPrevIndex) {
         continue;
       }
+
       clsMaxIndex = jClsLayer - 1;
-      std::pair<Int_t, Int_t> pair1(clsMinIndex, clsMaxIndex);
-      mClusterBinIndexRange[iLayer].insert(std::pair<Int_t, std::pair<Int_t, Int_t>>(binPrevIndex, pair1));
+
+      mClusterBinIndexRange[iLayer][binPrevIndex] = std::pair<Int_t, Int_t>(clsMinIndex, clsMaxIndex);
+
       binPrevIndex = mClusters[iLayer].at(jClsLayer).indexTableBin;
       clsMinIndex = jClsLayer;
     } // clusters
+
     // last cluster
     clsMaxIndex = jClsLayer - 1;
-    std::pair<Int_t, Int_t> pair1(clsMinIndex, clsMaxIndex);
-    mClusterBinIndexRange[iLayer].insert(std::pair<Int_t, std::pair<Int_t, Int_t>>(binPrevIndex, pair1));
+
+    mClusterBinIndexRange[iLayer][binPrevIndex] = std::pair<Int_t, Int_t>(clsMinIndex, clsMaxIndex);
   } // layers
 }
 
