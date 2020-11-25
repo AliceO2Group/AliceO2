@@ -14,6 +14,8 @@
 /// @file   TOFDigitWriterSplitterSpec.h
 /// @brief  Device to write to tree the information for TOF time slewing calibration.
 
+#include "Framework/ControlService.h"
+#include "Framework/ConfigParamRegistry.h"
 #include "Framework/DataProcessorSpec.h"
 #include "Framework/Task.h"
 #include "TOFBase/Digit.h"
@@ -35,12 +37,14 @@ class TOFDigitWriterSplitter : public Task
   using ErrorType = std::vector<uint64_t>;
   using HeaderType = o2::tof::DigitHeader;
 
+  std::string mBaseName;
+
  public:
   TOFDigitWriterSplitter(int nTF, bool storeErr = false) : mTFthr(nTF), mStoreErrors(storeErr) {}
 
   void createAndOpenFileAndTree()
   {
-    TString filename = TString::Format("tofdigits_%d.root", mCount);
+    TString filename = TString::Format("%s_%06d.root", mBaseName.c_str(), mCount);
     LOG(DEBUG) << "opening file " << filename.Data();
     mfileOut.reset(TFile::Open(TString::Format("%s", filename.Data()), "RECREATE"));
     mOutputTree = std::make_unique<TTree>("o2sim", "Tree with TOF digits");
@@ -57,6 +61,8 @@ class TOFDigitWriterSplitter : public Task
 
   void init(o2::framework::InitContext& ic) final
   {
+    mBaseName = ic.options().get<std::string>("output-base-name");
+
     mCount = 0;
     createAndOpenFileAndTree();
   }
@@ -153,7 +159,7 @@ DataProcessorSpec getTOFCalibCollectorWriterSpec(int nTF, bool storeErr = false)
     inputs,
     outputs,
     AlgorithmSpec{adaptFromTask<o2::tof::TOFDigitWriterSplitter>(nTF, storeErr)},
-    Options{}};
+    Options{{"output-base-name", VariantType::String, "tofdigits", {"Name of the input file (root extension will be added)"}}}};
 }
 
 } // namespace framework
