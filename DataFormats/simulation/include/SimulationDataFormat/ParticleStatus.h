@@ -18,6 +18,7 @@ enum ParticleStatus { kKeep = BIT(14),
                       kDaughters = BIT(15),
                       kToBeDone = BIT(16),
                       kPrimary = BIT(17),
-                      kTransport = BIT(18) };
+                      kTransport = BIT(18),
+                      kInhibited = BIT(19) };
 
 #endif
