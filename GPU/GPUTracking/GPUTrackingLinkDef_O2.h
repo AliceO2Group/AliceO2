@@ -21,6 +21,7 @@
 #pragma link C++ class o2::gpu::GPUTPCO2InterfaceRefit + ;
 #pragma link C++ class o2::gpu::GPUO2InterfaceQA + ;
 #pragma link C++ class o2::gpu::TPCdEdxCalibrationSplines + ;
+#pragma link C++ class o2::gpu::TPCdEdxCalibrationSplines2 + ;
 #pragma link C++ class o2::gpu::GPUConfigurableParamGPUSettingsO2 + ;
 #pragma link C++ class o2::gpu::GPUConfigurableParamGPUSettingsRec + ;
 #pragma link C++ class o2::gpu::GPUConfigurableParamGPUSettingsProcessing + ;
