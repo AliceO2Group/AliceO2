@@ -18,7 +18,7 @@
 #include "GPUProcessor.h"
 #include "GPUDataTypes.h"
 #include "CfFragment.h"
-#include "TPCCFCalibration.h"
+#include "TPCPadGainCalib.h"
 
 namespace o2
 {
@@ -44,7 +44,7 @@ class Digit;
 namespace GPUCA_NAMESPACE::gpu
 {
 struct GPUTPCClusterMCInterim;
-struct TPCCFCalibration;
+struct TPCPadGainCalib;
 
 struct ChargePos;
 

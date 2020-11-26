@@ -172,7 +172,7 @@ if(ALIGPU_BUILD_TYPE STREQUAL "O2" OR CONFIG_O2_EXTENSIONS)
         TPCClusterFinder/GPUTPCCFMCLabelFlattener.cxx
         TPCClusterFinder/GPUTPCCFDecodeZS.cxx
         TPCClusterFinder/GPUTPCCFGather.cxx
-        TPCClusterFinder/TPCCFCalibration.cxx
+        TPCClusterFinder/TPCPadGainCalib.cxx
         dEdx/TPCdEdxCalibrationSplines.cxx
         Refit/GPUTrackingRefit.cxx)
 
