@@ -62,6 +62,10 @@ class RawPixelDecoder final : public PixelReader
 
   template <class DigitContainer, class ROFContainer>
   int fillDecodedDigits(DigitContainer& digits, ROFContainer& rofs);
+  
+  template <class DigitContainer, class ROFContainer>
+  int fillDecodedDigitsHW(DigitContainer& digits, ROFContainer& rofs);
+
 
   const RUDecodeData* getRUDecode(int ruSW) const { return mRUEntry[ruSW] < 0 ? nullptr : &mRUDecodeVec[mRUEntry[ruSW]]; }
   const GBTLink* getGBTLink(int i) const { return i < 0 ? nullptr : &mGBTLinks[i]; }
@@ -146,7 +150,7 @@ int RawPixelDecoder<Mapping>::fillDecodedDigits(DigitContainer& digits, ROFConta
     for (int ic = 0; ic < mRUDecodeVec[iru].nChipsFired; ic++) {
       const auto& chip = mRUDecodeVec[iru].chipsData[ic];
       for (const auto& hit : mRUDecodeVec[iru].chipsData[ic].getData()) {
-        digits.emplace_back(chip.getCableHW(), chip.getChipID(), hit.getRow(), hit.getCol());
+                digits.emplace_back(chip.getChipID(), hit.getRow(), hit.getCol());
       }
     }
   }
@@ -155,6 +159,35 @@ int RawPixelDecoder<Mapping>::fillDecodedDigits(DigitContainer& digits, ROFConta
   mTimerFetchData.Stop();
   return nFilled;
 }
+
+template <class Mapping>
+template <class DigitContainer, class ROFContainer>
+int RawPixelDecoder<Mapping>::fillDecodedDigitsHW(DigitContainer& digits, ROFContainer& rofs)
+{
+  if (mInteractionRecord.isDummy()) {
+    return 0; // nothing was decoded
+  }
+  mTimerFetchData.Start(false);
+  int ref = digits.size();
+  for (unsigned int iru = 0; iru < mRUDecodeVec.size(); iru++) {
+    uint16_t feeID = mMAP.RUSW2FEEId(mRUDecodeVec[iru].ruSWID,0);
+    uint16_t half = (feeID >> 6) & 0x1;
+    uint16_t disk = (feeID >> 3) & 0x7;
+    uint16_t plane = (feeID >> 2) & 0x1;
+    uint16_t zone = feeID & 0x3;
+    for (int ic = 0; ic < mRUDecodeVec[iru].nChipsFired; ic++) {
+      const auto& chip = mRUDecodeVec[iru].chipsData[ic];
+      for (const auto& hit : mRUDecodeVec[iru].chipsData[ic].getData()) {
+                digits.emplace_back(half,disk, plane, zone, chip.getCableHW(), chip.getChipID(), hit.getRow(), hit.getCol());
+      }
+    }
+  }
+  int nFilled = digits.size() - ref;
+  rofs.emplace_back(mInteractionRecord, mROFCounter, ref, nFilled);
+  mTimerFetchData.Stop();
+  return nFilled;
+}
+  
 
 using RawDecoderITS = RawPixelDecoder<ChipMappingITS>;
 using RawDecoderMFT = RawPixelDecoder<ChipMappingMFT>;
