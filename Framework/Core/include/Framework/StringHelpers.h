@@ -82,8 +82,8 @@ constexpr uint32_t compile_time_hash_from_literal(const char (&str)[N])
 
 template <char... chars>
 struct ConstStr {
-  static constexpr char name[] = {chars..., '\0'};
-  static constexpr uint32_t hash = compile_time_hash_from_literal(name);
+  static constexpr char str[] = {chars..., '\0'};
+  static constexpr uint32_t hash = compile_time_hash_from_literal(str);
   static constexpr uint32_t idx = hash & 0x1FF;
 };
 

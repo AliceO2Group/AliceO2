@@ -28,7 +28,7 @@ template <typename T>
 void printString(const T& constStr)
 {
   std::cout << "ConstStr:" << std::endl;
-  std::cout << "name -> " << constStr.name << std::endl;
+  std::cout << "str -> " << constStr.str << std::endl;
   std::cout << "hash -> " << constStr.hash << std::endl;
   std::cout << "idx  -> " << constStr.idx << std::endl;
 };
