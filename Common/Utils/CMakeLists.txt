@@ -27,7 +27,8 @@ o2_target_root_dictionary(CommonUtils
                                   include/CommonUtils/ValueMonitor.h
 				  include/CommonUtils/MemFileHelper.h
                                   include/CommonUtils/ConfigurableParam.h
-                                  include/CommonUtils/ConfigurableParamHelper.h)
+                                  include/CommonUtils/ConfigurableParamHelper.h
+                                  include/CommonUtils/ConfigurationMacroHelper.h)
 
 o2_add_test(TreeStream
             COMPONENT_NAME CommonUtils

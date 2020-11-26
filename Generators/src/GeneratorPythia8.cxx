@@ -12,7 +12,7 @@
 
 #include "Generators/GeneratorPythia8.h"
 #include "Generators/GeneratorPythia8Param.h"
-#include "Generators/ConfigurationMacroHelper.h"
+#include "CommonUtils/ConfigurationMacroHelper.h"
 #include "FairLogger.h"
 #include "TParticle.h"
 #include "FairMCEventHeader.h"
@@ -82,7 +82,7 @@ Bool_t GeneratorPythia8::Init()
   /** user hooks via configuration macro **/
   if (!mHooksFileName.empty()) {
     LOG(INFO) << "Applying \'Pythia8\' user hooks: " << mHooksFileName << " -> " << mHooksFuncName;
-    auto hooks = GetFromMacro<Pythia8::UserHooks*>(mHooksFileName, mHooksFuncName, "Pythia8::UserHooks*", "pythia8_user_hooks");
+    auto hooks = o2::conf::GetFromMacro<Pythia8::UserHooks*>(mHooksFileName, mHooksFuncName, "Pythia8::UserHooks*", "pythia8_user_hooks");
     if (!hooks) {
       LOG(FATAL) << "Failed to init \'Pythia8\': problem with user hooks configuration ";
       return false;

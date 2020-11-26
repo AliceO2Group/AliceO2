@@ -10,8 +10,8 @@
 
 /// \author R+Preghenella - February 2020
 
-#ifndef ALICEO2_EVENTGEN_CONFIGURATIONMACRO_H_
-#define ALICEO2_EVENTGEN_CONFIGURATIONMACRO_H_
+#ifndef ALICEO2_CONF_CONFIGURATIONMACRO_H_
+#define ALICEO2_CONF_CONFIGURATIONMACRO_H_
 
 #include "FairLogger.h"
 #include "TROOT.h"
@@ -22,7 +22,7 @@
 
 namespace o2
 {
-namespace eventgen
+namespace conf
 {
 
 template <typename T>
@@ -67,7 +67,7 @@ T GetFromMacro(const std::string& file, const std::string& funcname, const std::
   return *ptr;
 }
 
-} // namespace eventgen
+} // namespace conf
 } // namespace o2
 
-#endif /* ALICEO2_EVENTGEN_CONFIGURATIONMACRO_H_ */
+#endif /* ALICEO2_CONF_CONFIGURATIONMACRO_H_ */
