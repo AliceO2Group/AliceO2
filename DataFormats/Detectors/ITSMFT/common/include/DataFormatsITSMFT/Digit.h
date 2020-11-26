@@ -30,13 +30,10 @@ class Digit
 
  public:
   /// Constructor, initializing values for position, charge and readout frame
-  Digit(UShort_t cableHW = 0, UShort_t chipindex = 0, UShort_t row = 0, UShort_t col = 0, Int_t charge = 0);
+  Digit(UShort_t chipindex = 0, UShort_t row = 0, UShort_t col = 0, Int_t charge = 0);
 
   /// Destructor
   ~Digit() = default;
- 
-   /// Get the calbeHW
-  UShort_t getCableHW() const { return mCableHW; }
 
   /// Get the index of the chip
   UShort_t getChipIndex() const { return mChipIndex; }
@@ -49,9 +46,6 @@ class Digit
 
   /// Get the accumulated charged of the digit
   Int_t getCharge() const { return mCharge; }
- 
-   /// Set cable HW
-  void setCableHW(UShort_t chw) { mCableHW = chw;}
 
   /// Set the index of the chip
   void setChipIndex(UShort_t index) { mChipIndex = index; }
@@ -81,7 +75,6 @@ class Digit
   }
 
  private:
-  UShort_t mCableHW = 0;
   UShort_t mChipIndex = 0; ///< Chip index
   UShort_t mRow = 0;       ///< Pixel index in X
   UShort_t mCol = 0;       ///< Pixel index in Z
@@ -89,6 +82,30 @@ class Digit
 
   ClassDefNV(Digit, 2);
 };
+ 
+class DigitHW : public Digit
+{
+        public:
+         DigitHW(UShort_t half = 0, UShort_t disk = 0, UShort_t plane = 0, UShort_t zone = 0, UShort_t cableHW = 0, UShort_t chipindex = 0, UShort_t row = 0, UShort_t col = 0, Int_t charge = 0);
+
+  ~DigitHW() = default;
+
+  /// Get the calbeHW
+  UShort_t getCableHW() const { return mCableHW; }
+
+  /// Set cable HW
+  void setCableHW(UShort_t chw) { mCableHW = chw;}
+
+        private:
+          UShort_t mHalf = 0;
+          UShort_t mDisk = 0;
+          UShort_t mPlane = 0;
+          UShort_t mZone = 0;
+          UShort_t mCableHW = 0; ///< Cable HW
+
+          ClassDefNV(DigitHW, 2);
+};
+ 
 } // namespace itsmft
 } // namespace o2
 
