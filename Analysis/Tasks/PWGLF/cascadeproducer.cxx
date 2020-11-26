@@ -274,5 +274,6 @@ WorkflowSpec defineDataProcessing(ConfigContext const&)
 {
   return WorkflowSpec{
     adaptAnalysisTask<cascprodinitializer>("lf-cascprodinitializer"),
+    adaptAnalysisTask<cascadeprefilterpairs>("lf-cascadeprefilterpairs"),
     adaptAnalysisTask<cascadeproducer>("lf-cascadeproducer")};
 }
