@@ -15,10 +15,12 @@
 #ifndef TRACKINGITSU_INCLUDE_CONFIGURATION_H_
 #define TRACKINGITSU_INCLUDE_CONFIGURATION_H_
 
+#ifndef GPUCA_GPUCODE_DEVICE
 #include <array>
 #include <climits>
 #include <vector>
 #include <cmath>
+#endif
 
 #include "ITStracking/Constants.h"
 

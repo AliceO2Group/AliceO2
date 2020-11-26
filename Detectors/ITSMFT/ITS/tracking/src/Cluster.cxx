@@ -14,6 +14,7 @@
 
 #include "ITStracking/Cluster.h"
 #include "ITStracking/MathUtils.h"
+#include "ITStracking/IndexTableUtils.h"
 
 namespace o2
 {

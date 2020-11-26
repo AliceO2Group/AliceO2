@@ -23,6 +23,7 @@
 #include "ITStracking/Configuration.h"
 #include "ITStracking/ClusterLines.h"
 #include "ITStracking/Definitions.h"
+#include "ITStracking/IndexTableUtils.h"
 #ifdef _ALLOW_DEBUG_TREES_ITS_
 #include "ITStracking/StandaloneDebugger.h"
 #endif

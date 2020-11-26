@@ -21,12 +21,13 @@
 
 #include "ITStracking/Definitions.h"
 #include "ITStracking/MathUtils.h"
-#include "ITStracking/IndexTableUtils.h"
 
 namespace o2
 {
 namespace its
 {
+
+class IndexTableUtils;
 
 struct Cluster final {
   Cluster() = default;
