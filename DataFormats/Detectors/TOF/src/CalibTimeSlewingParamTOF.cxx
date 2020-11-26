@@ -64,7 +64,7 @@ float CalibTimeSlewingParamTOF::evalTimeSlewing(int channel, float totIn) const
   }
 
   if (totIn == 0) {
-    return (float)((mTimeSlewing[sector])[n].second);
+    return (float)((mTimeSlewing[sector])[n].second + mGlobalOffset[sector][channel]);
   }
 
   // we convert tot from ns to ps and to unsigned short
@@ -80,13 +80,13 @@ float CalibTimeSlewingParamTOF::evalTimeSlewing(int channel, float totIn) const
   }
 
   if (n == nstop - 1) {
-    return (float)((mTimeSlewing[sector])[n].second); // use the last value stored for that channel
+    return (float)((mTimeSlewing[sector])[n].second + mGlobalOffset[sector][channel]); // use the last value stored for that channel
   }
 
   float w1 = (float)(tot - (mTimeSlewing[sector])[n].first);
   float w2 = (float)((mTimeSlewing[sector])[n + 1].first - tot);
 
-  return (float)(((mTimeSlewing[sector])[n].second * w2 + (mTimeSlewing[sector])[n + 1].second * w1) / ((mTimeSlewing[sector])[n + 1].first - (mTimeSlewing[sector])[n].first));
+  return (float)(mGlobalOffset[sector][channel] + (((mTimeSlewing[sector])[n].second * w2 + (mTimeSlewing[sector])[n + 1].second * w1) / ((mTimeSlewing[sector])[n + 1].first - (mTimeSlewing[sector])[n].first)));
 }
 //______________________________________________
 
@@ -114,10 +114,11 @@ void CalibTimeSlewingParamTOF::addTimeSlewingInfo(int channel, float tot, float 
     // printf("DBG: fill channel %i\n",currentch);
     // set also all the previous ones which were not filled
     mChannelStart[sector][currentch] = (mTimeSlewing[sector]).size();
+    mGlobalOffset[sector][currentch] = time;
     currentch--;
   }
   // printf("DBG: emplace back (%f,%f)\n",tot,time);
-  (mTimeSlewing[sector]).emplace_back((unsigned short)(tot * 1000), (short)time);
+  (mTimeSlewing[sector]).emplace_back((unsigned short)(tot * 1000), (short)(time - mGlobalOffset[sector][currentch]));
 }
 //______________________________________________
 

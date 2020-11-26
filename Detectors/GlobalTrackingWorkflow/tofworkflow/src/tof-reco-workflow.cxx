@@ -171,7 +171,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
   LOG(INFO) << "TOF disable-row-writing = " << disableROWwriting;
   LOG(INFO) << "TOF write-decoding-errors = " << writeerr;
 
-  if (clusterinput) {
+  if (clusterinput && !disableRootInput) {
     LOG(INFO) << "Insert TOF Cluster Reader";
     specs.emplace_back(o2::tof::getClusterReaderSpec(useMC));
   } else if (dgtinput) {
@@ -197,7 +197,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
     }
   }
 
-  if (!clusterinput && writecluster) {
+  if (!clusterinput && writecluster && !disableRootOutput) {
     LOG(INFO) << "Insert TOF Clusterizer";
     specs.emplace_back(o2::tof::getTOFClusterizerSpec(useMC, useCCDB));
     if (writecluster && !disableRootOutput) {
@@ -222,7 +222,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
       LOG(INFO) << "Insert TOF Matched Info Writer";
       specs.emplace_back(o2::tof::getTOFMatchedWriterSpec(useMC));
     }
-    if (writecalib) {
+    if (writecalib && !disableRootOutput) {
       LOG(INFO) << "Insert TOF Calib Info Writer";
       specs.emplace_back(o2::tof::getTOFCalibWriterSpec());
     }
