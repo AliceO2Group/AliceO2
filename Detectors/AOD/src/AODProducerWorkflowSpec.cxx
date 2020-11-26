@@ -159,9 +159,7 @@ void AODProducerWorkflowDPL::fillTracksTable(const TracksType& tracks, std::vect
           itsClusterMap = itsTrack.getPattern();
         },
         [&](o2::tpc::TrackTPC tpcTrack) {
-          tpcChi2NCl = tpcTrack.getChi2();
-          // FIXME:
-          // what values to fill here?
+          tpcChi2NCl = tpcTrack.getNClusters() ? tpcTrack.getChi2() / tpcTrack.getNClusters() : 0;
           tpcSignal = tpcTrack.getdEdx().dEdxTotTPC;
           tpcNClsFindable = tpcTrack.getNClusters();
         },
@@ -513,28 +511,39 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
     collisionID++;
   }
 
-  // filling tracks tables
+  // filling tracks tables and track label table
 
-  // TODO:
-  // fill label mask
+  int nEvents = eventIDs.size();
 
   if (mFillTracksITS) {
     fillTracksTable(tracksITS, vCollRefsITS, tracksCursor, o2::vertexing::GIndex::Source::ITS); // fTrackType = 1
     for (auto& mcTruthITS : tracksITSMCTruth) {
-      int labelID = mIDsToIndex.at(std::make_pair(mcTruthITS.getEventID(), mcTruthITS.getTrackID()));
+      uint32_t labelID = std::numeric_limits<uint32_t>::max();
+      // TODO:
+      // fill label mask
+      uint16_t labelMask = 0;
+      if (mcTruthITS.getEventID() < nEvents) {
+        labelID = mIDsToIndex.at(std::make_pair(mcTruthITS.getEventID(), mcTruthITS.getTrackID()));
+      }
       mcTrackLabelCursor(0,
                          labelID,
-                         (uint16_t)0);
+                         labelMask);
     }
   }
 
   if (mFillTracksTPC) {
     fillTracksTable(tracksTPC, vCollRefsTPC, tracksCursor, o2::vertexing::GIndex::Source::TPC); // fTrackType = 2
     for (auto& mcTruthTPC : tracksTPCMCTruth) {
-      int labelID = mIDsToIndex.at(std::make_pair(mcTruthTPC.getEventID(), mcTruthTPC.getTrackID()));
+      uint32_t labelID = std::numeric_limits<uint32_t>::max();
+      // TODO:
+      // fill label mask
+      uint16_t labelMask = 0;
+      if (mcTruthTPC.getEventID() < nEvents) {
+        labelID = mIDsToIndex.at(std::make_pair(mcTruthTPC.getEventID(), mcTruthTPC.getTrackID()));
+      }
       mcTrackLabelCursor(0,
                          labelID,
-                         (uint16_t)0);
+                         labelMask);
     }
   }
 
@@ -544,15 +553,25 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
     for (int i = 0; i < iterEnd; i++) {
       auto& mcTruthITS = tracksITSTPC_ITSMC[i];
       auto& mcTruthTPC = tracksITSTPC_TPCMC[i];
-      int labelITS = mIDsToIndex.at(std::make_pair(mcTruthITS.getEventID(), mcTruthITS.getTrackID()));
-      int labelTPC = mIDsToIndex.at(std::make_pair(mcTruthTPC.getEventID(), mcTruthTPC.getTrackID()));
-      int labelID = labelITS == labelTPC ? labelITS : -1;
-      if (labelID == -1) {
+      uint32_t labelID = std::numeric_limits<uint32_t>::max();
+      uint32_t labelITS = std::numeric_limits<uint32_t>::max();
+      uint32_t labelTPC = std::numeric_limits<uint32_t>::max();
+      // TODO:
+      // fill label mask
+      // currently using label mask to indicate labelITS != labelTPC
+      uint16_t labelMask = 0;
+      if (mcTruthITS.getEventID() < nEvents && mcTruthTPC.getEventID() < nEvents) {
+        labelITS = mIDsToIndex.at(std::make_pair(mcTruthITS.getEventID(), mcTruthITS.getTrackID()));
+        labelTPC = mIDsToIndex.at(std::make_pair(mcTruthTPC.getEventID(), mcTruthTPC.getTrackID()));
+        labelID = labelITS;
+      }
+      if (labelITS != labelTPC) {
         LOG(DEBUG) << "ITS-TPC MCTruth: labelIDs do not match at " << i;
+        labelMask |= (0x1 << 15);
       }
       mcTrackLabelCursor(0,
                          labelID,
-                         (uint16_t)0);
+                         labelMask);
     }
   }
 
