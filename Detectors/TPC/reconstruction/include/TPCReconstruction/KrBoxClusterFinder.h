@@ -53,7 +53,7 @@
 /// the arrays are larger than a sector. For the size in row-direction, a constant is used.
 /// For time and pad direction, a number is set (here is room for improvements).
 ///
-/// When data from a new sector is encountered, the method
+/// ToDo: Find an elegant way to split the huge map into four (IROC, OROC1, OROC2 and OROC3) smaller maps. Unfortunately, this seems to interfere with the rest of the code.
 ///
 /// How to use:
 /// Load tpcdigits.root
@@ -104,15 +104,18 @@ class KrBoxClusterFinder
 
  private:
   // These variables can be varied
+  // They were choses such that the box in each readout chamber is approx. the same size
   int mMaxClusterSizeTime = 3; ///< The "radius" of a cluster in time direction
-  int mMaxClusterSizePad = 3;  ///< radius in pad direction
-  int mMaxClusterSizeRow = 2;  ///< radius in row direction
 
-  // Todo: Differentiate between different ROCS:
-  // int mMaxClusterSizeRowIROC = 3;  // radius in row direction
-  // int mMaxClusterSizeRowOROC1 = 2; // radius in row direction
-  // int mMaxClusterSizeRowOROC2 = 2; // radius in row direction
-  // int mMaxClusterSizeRowOROC3 = 1; // radius in row direction
+  int mMaxClusterSizeRowIROC = 3;  ///< The "radius" of a cluster in row direction in IROC
+  int mMaxClusterSizeRowOROC1 = 2; ///< The "radius" of a cluster in row direction in OROC1
+  int mMaxClusterSizeRowOROC2 = 2; ///< The "radius" of a cluster in row direction in OROC2
+  int mMaxClusterSizeRowOROC3 = 1; ///< The "radius" of a cluster in row direction in OROC3
+
+  int mMaxClusterSizePadIROC = 3;  ///< The "radius" of a cluster in pad direction in IROC
+  int mMaxClusterSizePadOROC1 = 2; ///< The "radius" of a cluster in pad direction in OROC1
+  int mMaxClusterSizePadOROC2 = 2; ///< The "radius" of a cluster in pad direction in OROC2
+  int mMaxClusterSizePadOROC3 = 2; ///< The "radius" of a cluster in pad direction in OROC3
 
   float mQThresholdMax = 10.0;    ///< the Maximum charge in a cluster must exceed this value or it is discarded
   float mQThreshold = 1.0;        ///< every charge which is added to a cluster must exceed this value or it is discarded
@@ -123,6 +126,12 @@ class KrBoxClusterFinder
   static constexpr size_t MaxPads = 138;  ///< Size of the map in pad-direction
   static constexpr size_t MaxRows = 152;  ///< Size of the map in row-direction
   static constexpr size_t MaxTimes = 550; ///< Size of the map in time-direction
+
+  /// Values to define ROC boundaries
+  static constexpr size_t MaxRowsIROC = 63;  ///< Amount of rows in IROC
+  static constexpr size_t MaxRowsOROC1 = 34; ///< Amount of rows in OROC1
+  static constexpr size_t MaxRowsOROC2 = 30; ///< Amount of rows in OROC2
+  static constexpr size_t MaxRowsOROC3 = 25; ///< Amount of rows in OROC3
 
   /// Need an instance of Mapper to know position of pads
   const Mapper& mMapperInstance = o2::tpc::Mapper::instance();
@@ -140,7 +149,7 @@ class KrBoxClusterFinder
   /// Returns sign of val (in a crazy way)
   int signnum(int val) { return (0 < val) - (val < 0); }
 
-  ClassDefNV(KrBoxClusterFinder, 0);
+  ClassDefNV(KrBoxClusterFinder, 1);
 };
 
 } // namespace tpc

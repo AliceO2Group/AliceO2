@@ -39,6 +39,9 @@ KrBoxClusterFinder::KrBoxClusterFinder(std::vector<o2::tpc::Digit>& eventSector)
     const int row = digit.getRow();
     const int pad = digit.getPad();
 
+    // Every row starts at pad zero. But the number of pads in a row is not a constant.
+    // If we would just fill the map naively, we would put pads next to each other, which are not neighbours on the pad plane.
+    // Hence, we need to correct for this:
     const int pads = mMapperInstance.getNumberOfPadsInRowSector(row);
     const int corPad = pad - (pads / 2) + (MaxPads / 2);
 
@@ -62,9 +65,12 @@ void KrBoxClusterFinder::updateTempClusterFinal()
   mTempCluster.sigmaRow = std::sqrt(std::abs(mTempCluster.sigmaRow - mTempCluster.meanRow * mTempCluster.meanRow));
   mTempCluster.sigmaTime = std::sqrt(std::abs(mTempCluster.sigmaTime - mTempCluster.meanTime * mTempCluster.meanTime));
 
-  const int pads = mMapperInstance.getNumberOfPadsInRowSector(int(mTempCluster.meanRow));
+  const int corPadsMean = mMapperInstance.getNumberOfPadsInRowSector(int(mTempCluster.meanRow));
+  const int corPadsMaxCharge = mMapperInstance.getNumberOfPadsInRowSector(int(mTempCluster.maxChargeRow));
 
-  mTempCluster.meanPad = mTempCluster.meanPad + (pads / 2.0) - (MaxPads / 2.0);
+  // Since every padrow is shifted such that neighbouring pads are indeed neighbours, we have to shift once back:
+  mTempCluster.meanPad = mTempCluster.meanPad + (corPadsMean / 2.0) - (MaxPads / 2.0);
+  mTempCluster.maxChargePad = mTempCluster.maxChargePad + (corPadsMaxCharge / 2.0) - (MaxPads / 2.0);
 }
 
 // Function to update the temporal cluster.
@@ -89,6 +95,8 @@ void KrBoxClusterFinder::updateTempCluster(float tempCharge, int tempPad, int te
 
   if (tempCharge > mTempCluster.maxCharge) {
     mTempCluster.maxCharge = tempCharge;
+    mTempCluster.maxChargePad = tempPad;
+    mTempCluster.maxChargeRow = tempRow;
   }
 }
 
@@ -96,10 +104,28 @@ void KrBoxClusterFinder::updateTempCluster(float tempCharge, int tempPad, int te
 // mMapOfAllDigitsCreator function, this function also updates the cluster tree
 std::vector<std::tuple<int, int, int>> KrBoxClusterFinder::findLocalMaxima()
 {
+  int mMaxClusterSizePad; // radius in pad direction
+  int mMaxClusterSizeRow; // radius in row direction
+
   std::vector<std::tuple<int, int, int>> localMaximaCoords;
-  // loop over whole mMapOfAllDigits the find clusers
+  // loop over whole mMapOfAllDigits the find clusters
   for (int iTime = 0; iTime < MaxTimes; iTime++) {
     for (int iRow = 0; iRow < MaxRows; iRow++) {
+      // Since pad size is different for each ROC, we take this into account while looking for maxima:
+      if (iRow < MaxRowsIROC) {
+        mMaxClusterSizePad = mMaxClusterSizePadIROC;
+        mMaxClusterSizeRow = mMaxClusterSizeRowIROC;
+      } else if (iRow < MaxRowsIROC + MaxRowsOROC1) {
+        mMaxClusterSizePad = mMaxClusterSizePadOROC1;
+        mMaxClusterSizeRow = mMaxClusterSizeRowOROC1;
+      } else if (iRow < MaxRowsIROC + MaxRowsOROC1 + MaxRowsOROC2) {
+        mMaxClusterSizePad = mMaxClusterSizePadOROC2;
+        mMaxClusterSizeRow = mMaxClusterSizeRowOROC2;
+      } else if (iRow < MaxRowsIROC + MaxRowsOROC1 + MaxRowsOROC2 + MaxRowsOROC3) {
+        mMaxClusterSizePad = mMaxClusterSizePadOROC3;
+        mMaxClusterSizeRow = mMaxClusterSizeRowOROC3;
+      }
+
       for (int iPad = 0; iPad < MaxPads; iPad++) {
 
         mTempCluster.reset();
@@ -190,16 +216,53 @@ KrCluster KrBoxClusterFinder::buildCluster(int clusterCenterPad, int clusterCent
 {
   mTempCluster = KrCluster();
 
+  int mMaxClusterSizePad; // radius in pad direction
+  int mMaxClusterSizeRow; // radius in row direction
+
+  // Check if we are in IROC, OROC1, OROC2 or OROC3 and adapt the box size accordingly.
+  if (clusterCenterRow < MaxRowsIROC) {
+    mMaxClusterSizePad = mMaxClusterSizePadIROC;
+    mMaxClusterSizeRow = mMaxClusterSizeRowIROC;
+  } else if (clusterCenterRow < MaxRowsIROC + MaxRowsOROC1) {
+    mMaxClusterSizePad = mMaxClusterSizePadOROC1;
+    mMaxClusterSizeRow = mMaxClusterSizeRowOROC1;
+  } else if (clusterCenterRow < MaxRowsIROC + MaxRowsOROC1 + MaxRowsOROC2) {
+    mMaxClusterSizePad = mMaxClusterSizePadOROC2;
+    mMaxClusterSizeRow = mMaxClusterSizeRowOROC2;
+  } else if (clusterCenterRow < MaxRowsIROC + MaxRowsOROC1 + MaxRowsOROC2 + MaxRowsOROC3) {
+    mMaxClusterSizePad = mMaxClusterSizePadOROC3;
+    mMaxClusterSizeRow = mMaxClusterSizeRowOROC3;
+  }
+
   for (int iTime = -mMaxClusterSizeTime; iTime <= mMaxClusterSizeTime; iTime++) {
     for (int iRow = -mMaxClusterSizeRow; iRow <= mMaxClusterSizeRow; iRow++) {
       for (int iPad = -mMaxClusterSizePad; iPad <= mMaxClusterSizePad; iPad++) {
-        // First: Check if we might check outside of map:
+        // First: Check if we might look outside of map:
         if (clusterCenterTime + iTime < 0 || clusterCenterTime + iTime >= MaxTimes || clusterCenterPad + iPad < 0 || clusterCenterPad + iPad >= MaxPads || clusterCenterRow + iRow < 0 || clusterCenterRow + iRow >= MaxRows || mMapOfAllDigits.at(clusterCenterTime + iTime).at(clusterCenterRow + iRow).at(clusterCenterPad + iPad) <= mQThreshold) {
           continue;
         }
+        // Second: Check if we might look over ROC boundaries:
+        if (clusterCenterRow < MaxRowsIROC) {
+          if (clusterCenterRow + iRow > MaxRowsIROC) {
+            continue;
+          }
+        } else if (clusterCenterRow < MaxRowsIROC + MaxRowsOROC1) {
+          if (clusterCenterRow + iRow < MaxRowsIROC || clusterCenterRow + iRow >= MaxRowsIROC + MaxRowsOROC1) {
+            continue;
+          }
+        } else if (clusterCenterRow < MaxRowsIROC + MaxRowsOROC1 + MaxRowsOROC2) {
+          if (clusterCenterRow + iRow < MaxRowsIROC + MaxRowsOROC1 || clusterCenterRow + iRow >= MaxRowsIROC + MaxRowsOROC1 + MaxRowsOROC2) {
+            continue;
+          }
+        } else if (clusterCenterRow < MaxRowsIROC + MaxRowsOROC1 + MaxRowsOROC2 + MaxRowsOROC3) {
+          if (clusterCenterRow + iRow < MaxRowsIROC + MaxRowsOROC1 + MaxRowsOROC2) {
+            continue;
+          }
+        }
+
         // If not, there are several cases which were explained (for 2D) in the header of the code.
         // The first one is for the diagonal. So, the digit we are investigating here is on the diagonal:
-        else if (std::abs(iTime) == std::abs(iPad) && std::abs(iTime) == std::abs(iRow)) {
+        if (std::abs(iTime) == std::abs(iPad) && std::abs(iTime) == std::abs(iRow)) {
           // Now we check, if the next inner digit has a signal above threshold:
           if (mMapOfAllDigits[clusterCenterTime + iTime - signnum(iTime)][clusterCenterRow + iRow - signnum(iRow)][clusterCenterPad + iPad - signnum(iPad)] > mQThreshold) {
             // If yes, the cluster gets updated with the digit on the diagonal.
