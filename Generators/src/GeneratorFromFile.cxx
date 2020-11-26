@@ -9,6 +9,7 @@
 // or submit itself to any jurisdiction.
 
 #include "Generators/GeneratorFromFile.h"
+#include "SimulationDataFormat/MCTrack.h"
 #include <FairLogger.h>
 #include <FairPrimaryGenerator.h>
 #include <TBranch.h>
@@ -154,7 +155,84 @@ Bool_t GeneratorFromFile::ReadEvent(FairPrimaryGenerator* primGen)
   return kFALSE;
 }
 
+// based on O2 kinematics
+
+GeneratorFromO2Kine::GeneratorFromO2Kine(const char* name)
+{
+  mEventFile = TFile::Open(name);
+  if (mEventFile == nullptr) {
+    LOG(FATAL) << "EventFile " << name << " not found";
+    return;
+  }
+  // the kinematics will be stored inside a branch MCTrack
+  // different events are stored inside different entries
+  auto tree = (TTree*)mEventFile->Get("o2sim");
+  if (tree) {
+    mEventBranch = tree->GetBranch("MCTrack");
+    if (mEventBranch) {
+      mEventsAvailable = mEventBranch->GetEntries();
+      LOG(INFO) << "Found " << mEventsAvailable << " events in this file";
+      return;
+    }
+  }
+  LOG(ERROR) << "Problem reading events from file " << name;
+}
+
+void GeneratorFromO2Kine::SetStartEvent(int start)
+{
+  if (start < mEventsAvailable) {
+    mEventCounter = start;
+  } else {
+    LOG(ERROR) << "start event bigger than available events\n";
+  }
+}
+
+Bool_t GeneratorFromO2Kine::ReadEvent(FairPrimaryGenerator* primGen)
+{
+  // NOTE: This should be usable with kinematics files without secondaries
+  // It might need some adjustment to make it work with secondaries or to continue
+  // from a kinematics snapshot
+
+  if (mEventCounter < mEventsAvailable) {
+    int particlecounter = 0;
+
+    std::vector<o2::MCTrack>* tracks = nullptr;
+    mEventBranch->SetAddress(&tracks);
+    mEventBranch->GetEntry(mEventCounter);
+
+    for (auto& p : *tracks) {
+      auto pdgid = p.GetPdgCode();
+      auto px = p.Px();
+      auto py = p.Py();
+      auto pz = p.Pz();
+      auto vx = p.Vx();
+      auto vy = p.Vy();
+      auto vz = p.Vz();
+      auto parent = -1; // --> check this !!!
+      auto e = p.GetEnergy();
+      auto tof = p.T();
+      auto weight = 1.; // p.GetWeight() ??;
+      auto wanttracking = p.getToBeDone();
+      LOG(DEBUG) << "Putting primary " << pdgid;
+      primGen->AddTrack(pdgid, px, py, pz, vx, vy, vz, parent, wanttracking, e, tof, weight);
+      particlecounter++;
+    }
+    mEventCounter++;
+
+    if (tracks) {
+      delete tracks;
+    }
+
+    LOG(INFO) << "Event generator put " << particlecounter << " on stack";
+    return kTRUE;
+  } else {
+    LOG(ERROR) << "GeneratorFromO2Kine: Ran out of events\n";
+  }
+  return kFALSE;
+}
+
 } // namespace eventgen
 } // end namespace o2
 
 ClassImp(o2::eventgen::GeneratorFromFile);
+ClassImp(o2::eventgen::GeneratorFromO2Kine);
