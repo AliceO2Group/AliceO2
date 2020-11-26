@@ -136,6 +136,12 @@ void GeneratorFactory::setPrimaryGenerator(o2::conf::SimConfig const& conf, Fair
     extGen->SetStartEvent(conf.getStartEvent());
     primGen->AddGenerator(extGen);
     LOG(INFO) << "using external kinematics";
+  } else if (genconfig.compare("extkinO2") == 0) {
+    // external kinematics from previous O2 output
+    auto extGen = new o2::eventgen::GeneratorFromO2Kine(conf.getExtKinematicsFileName().c_str());
+    extGen->SetStartEvent(conf.getStartEvent());
+    primGen->AddGenerator(extGen);
+    LOG(INFO) << "using external O2 kinematics";
 #ifdef GENERATORS_WITH_HEPMC3
   } else if (genconfig.compare("hepmc") == 0) {
     // external HepMC file

@@ -58,6 +58,34 @@ class GeneratorFromFile : public FairGenerator
   ClassDefOverride(GeneratorFromFile, 1);
 };
 
+/// This class implements a generic FairGenerator which
+/// reads the particles from an external O2 sim kinematics file.
+class GeneratorFromO2Kine : public FairGenerator
+{
+ public:
+  GeneratorFromO2Kine() = default;
+  GeneratorFromO2Kine(const char* name);
+
+  // the FairGenerator interface methods
+
+  /** Generates (or reads) one event and adds the tracks to the
+   ** injected primary generator instance.
+   ** @param primGen  pointer to the primary FairPrimaryGenerator
+   **/
+  bool ReadEvent(FairPrimaryGenerator* primGen) override;
+
+  // Set from which event to start
+  void SetStartEvent(int start);
+
+ private:
+  TFile* mEventFile = nullptr;     //! the file containing the persistent events
+  TBranch* mEventBranch = nullptr; //! the branch containing the persistent events
+  int mEventCounter = 0;
+  int mEventsAvailable = 0;
+  bool mSkipNonTrackable = true; //! whether to pass non-trackable (decayed particles) to the MC stack
+  ClassDefOverride(GeneratorFromO2Kine, 1);
+};
+
 } // end namespace eventgen
 } // end namespace o2
 

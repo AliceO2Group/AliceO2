@@ -20,6 +20,7 @@
 #include "SimulationDataFormat/MCTrack.h"
 #include "SimulationDataFormat/TrackReference.h"
 #include "SimulationDataFormat/MCEventStats.h"
+#include "SimulationDataFormat/ParticleStatus.h"
 #include "Rtypes.h"
 #include "TParticle.h"
 
@@ -54,11 +55,6 @@ namespace data
 /// The storage of secondaries can be switched off.
 /// The storage of all mothers can be switched off.
 /// By default, the minimal number of hits is 1 and the energy cut is 0.
-enum ParticleStatus { kKeep = BIT(14),
-                      kDaughters = BIT(15),
-                      kToBeDone = BIT(16),
-                      kPrimary = BIT(17),
-                      kTransport = BIT(18) };
 class Stack : public FairGenericStack
 {
  public:
