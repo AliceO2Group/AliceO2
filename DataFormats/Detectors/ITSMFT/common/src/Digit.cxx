@@ -15,11 +15,12 @@
 #include <iostream>
 
 ClassImp(o2::itsmft::Digit);
+ClassImp(o2::itsmft::DigitHW);
 
 using namespace o2::itsmft;
 
-Digit::Digit(UShort_t cableHW, UShort_t chipindex, UShort_t row, UShort_t col, Int_t charge)
-  : mCableHW(cableHW), mChipIndex(chipindex), mRow(row), mCol(col)
+Digit::Digit(UShort_t chipindex, UShort_t row, UShort_t col, Int_t charge)
+  : mChipIndex(chipindex), mRow(row), mCol(col)
 {
   setCharge(charge);
 }
@@ -29,3 +30,10 @@ std::ostream& Digit::print(std::ostream& output) const
   output << "ITSMFTDigit chip [" << mChipIndex << "] R:" << mRow << " C:" << mCol << " Q: " << mCharge;
   return output;
 }
+
+DigitHW::DigitHW(UShort_t half, UShort_t disk, UShort_t plane, UShort_t zone, UShort_t cableHW, UShort_t chipindex, UShort_t row, UShort_t col, Int_t charge)
+  : mHalf(half), mDisk(disk), mPlane(plane), mZone(zone), mCableHW(cableHW), Digit(chipindex,row,col,charge)
+{
+
+}
+
