@@ -8,7 +8,7 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#include "TOFWorkflowUtils/TOFDigitWriterSplitterSpec.h"
+#include "TOFWorkflowUtils/TOFClusterWriterSplitterSpec.h"
 #include "CommonUtils/ConfigurableParam.h"
 #include "Framework/ConfigParamSpec.h"
 
@@ -21,7 +21,6 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
 {
   // option allowing to set parameters
   workflowOptions.push_back(ConfigParamSpec{"ntf", o2::framework::VariantType::Int, 1, {"number of timeframe written for output file"}});
-  workflowOptions.push_back(ConfigParamSpec{"write-decoding-errors", o2::framework::VariantType::Bool, false, {"trace errors in digits output when decoding"}});
 }
 
 // ------------------------------------------------------------------
@@ -33,7 +32,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
   WorkflowSpec wf;
   // Update the (declared) parameters if changed from the command line
   auto ntf = cfgc.options().get<int>("ntf");
-  auto write_err = cfgc.options().get<bool>("write-decoding-errors");
-  wf.emplace_back(o2::framework::getTOFDigitWriterSplitterSpec(ntf, write_err));
+  wf.emplace_back(o2::framework::getTOFClusterWriterSplitterSpec(ntf));
+
   return wf;
 }

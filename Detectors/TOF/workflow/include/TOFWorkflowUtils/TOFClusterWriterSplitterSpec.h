@@ -8,19 +8,20 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#ifndef O2_TOFDIGIT_SPLITTER_WRITER_H
-#define O2_TOFDIGIT_SPLITTER_WRITER_H
+#ifndef O2_TOFCLUSTER_SPLITTER_WRITER_H
+#define O2_TOFCLUSTER_SPLITTER_WRITER_H
 
-/// @file   TOFDigitWriterSplitterSpec.h
+/// @file   TOFClusterWriterSplitterSpec.h
 /// @brief  Device to write to tree the information for TOF time slewing calibration.
 
 #include "Framework/ControlService.h"
 #include "Framework/ConfigParamRegistry.h"
 #include "Framework/DataProcessorSpec.h"
 #include "Framework/Task.h"
-#include "TOFBase/Digit.h"
+#include "DataFormatsTOF/Cluster.h"
 #include "Framework/Logger.h"
 #include <TTree.h>
+#include <TFile.h>
 #include <gsl/span>
 
 using namespace o2::framework;
@@ -29,32 +30,22 @@ namespace o2
 {
 namespace tof
 {
-class TOFDigitWriterSplitter : public Task
+class TOFClusterWriterSplitter : public Task
 {
-  using OutputType = std::vector<o2::tof::Digit>;
-  using ReadoutWinType = std::vector<o2::tof::ReadoutWindowData>;
-  using PatternType = std::vector<uint32_t>;
-  using ErrorType = std::vector<uint64_t>;
-  using HeaderType = o2::tof::DigitHeader;
+  using OutputType = std::vector<o2::tof::Cluster>;
 
   std::string mBaseName;
 
  public:
-  TOFDigitWriterSplitter(int nTF, bool storeErr = false) : mTFthr(nTF), mStoreErrors(storeErr) {}
+  TOFClusterWriterSplitter(int nTF) : mTFthr(nTF) {}
 
   void createAndOpenFileAndTree()
   {
     TString filename = TString::Format("%s_%06d.root", mBaseName.c_str(), mCount);
     LOG(DEBUG) << "opening file " << filename.Data();
     mfileOut.reset(TFile::Open(TString::Format("%s", filename.Data()), "RECREATE"));
-    mOutputTree = std::make_unique<TTree>("o2sim", "Tree with TOF digits");
-    mOutputTree->Branch("TOFHeader", &mPHeader);
-    mOutputTree->Branch("TOFDigit", &mPDigits);
-    mOutputTree->Branch("TOFReadoutWindow", &mPROW);
-    mOutputTree->Branch("TOFPatterns", &mPDia);
-    if (mStoreErrors) {
-      mOutputTree->Branch("TOFErrors", &mPErr);
-    }
+    mOutputTree = std::make_unique<TTree>("o2sim", "Tree with TOF clusters");
+    mOutputTree->Branch("TOFCluster", &mPClusters);
 
     mNTF = 0;
   }
@@ -69,22 +60,10 @@ class TOFDigitWriterSplitter : public Task
 
   void run(o2::framework::ProcessingContext& pc) final
   {
-    auto digits = pc.inputs().get<OutputType>("digits");
-    mPDigits = &digits;
-    auto header = pc.inputs().get<HeaderType>("header");
-    mPHeader = &header;
-    auto row = pc.inputs().get<ReadoutWinType>("rows");
-    mPROW = &row;
-    auto dia = pc.inputs().get<PatternType>("patterns");
-    mPDia = &dia;
-    if (mStoreErrors) {
-      auto error = pc.inputs().get<ErrorType>("errors");
-      mPErr = &error;
+    auto clusters = pc.inputs().get<OutputType>("clusters");
+    mPClusters = &clusters;
+    mOutputTree->Fill();
 
-      mOutputTree->Fill();
-    } else {
-      mOutputTree->Fill();
-    }
     mNTF++;
 
     if (mNTF >= mTFthr) {
@@ -102,18 +81,10 @@ class TOFDigitWriterSplitter : public Task
   int mCount = 0; // how many times we filled the tree
   int mNTF = 0;
   int mTFthr = 1;
-  bool mStoreErrors = false;
   bool mIsEndOfStream = false;
-  OutputType mDigits;
-  const OutputType* mPDigits = &mDigits;
-  ReadoutWinType mROW;
-  const ReadoutWinType* mPROW = &mROW;
-  PatternType mDia;
-  const PatternType* mPDia = &mDia;
-  ErrorType mErr;
-  const ErrorType* mPErr = &mErr;
-  HeaderType mHeader;
-  const HeaderType* mPHeader = &mHeader;
+  OutputType mClusters;
+  const OutputType* mPClusters = &mClusters;
+
   std::unique_ptr<TTree> mOutputTree;        ///< tree for the collected calib tof info
   std::unique_ptr<TFile> mfileOut = nullptr; // file in which to write the output
 
@@ -140,26 +111,19 @@ class TOFDigitWriterSplitter : public Task
 namespace framework
 {
 
-DataProcessorSpec getTOFDigitWriterSplitterSpec(int nTF, bool storeErr = false)
+DataProcessorSpec getTOFClusterWriterSplitterSpec(int nTF)
 {
   std::vector<InputSpec> inputs;
-  inputs.emplace_back("header", o2::header::gDataOriginTOF, "DIGITHEADER");
-  inputs.emplace_back("digits", o2::header::gDataOriginTOF, "DIGITS");
-  inputs.emplace_back("rows", o2::header::gDataOriginTOF, "READOUTWINDOW");
-  inputs.emplace_back("patterns", o2::header::gDataOriginTOF, "PATTERNS");
-
-  if (storeErr) {
-    inputs.emplace_back("errors", o2::header::gDataOriginTOF, "ERRORS");
-  }
+  inputs.emplace_back("clusters", o2::header::gDataOriginTOF, "CLUSTERS");
 
   std::vector<OutputSpec> outputs; // empty
 
   return DataProcessorSpec{
-    "tof-digit-splitter-writer",
+    "tof-cluster-splitter-writer",
     inputs,
     outputs,
-    AlgorithmSpec{adaptFromTask<o2::tof::TOFDigitWriterSplitter>(nTF, storeErr)},
-    Options{{"output-base-name", VariantType::String, "tofdigits", {"Name of the input file (root extension will be added)"}}}};
+    AlgorithmSpec{adaptFromTask<o2::tof::TOFClusterWriterSplitter>(nTF)},
+    Options{{"output-base-name", VariantType::String, "tofclusters", {"Name of the input file (root extension will be added)"}}}};
 }
 
 } // namespace framework
