@@ -47,6 +47,7 @@
 #pragma link C++ class o2::eventgen::GeneratorFactory + ;
 #endif
 #pragma link C++ class o2::eventgen::GeneratorFromFile + ;
+#pragma link C++ class o2::eventgen::GeneratorFromO2Kine + ;
 #pragma link C++ class o2::PDG + ;
 #pragma link C++ class o2::eventgen::PrimaryGenerator + ;
 
