@@ -197,7 +197,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
     }
   }
 
-  if (!clusterinput && writecluster && !disableRootOutput) {
+  if (!clusterinput && writecluster) {
     LOG(INFO) << "Insert TOF Clusterizer";
     specs.emplace_back(o2::tof::getTOFClusterizerSpec(useMC, useCCDB));
     if (writecluster && !disableRootOutput) {

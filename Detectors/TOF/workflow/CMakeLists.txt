@@ -31,3 +31,8 @@ o2_add_executable(digit-writer-workflow
                   SOURCES src/digit-writer-commissioning.cxx
                   COMPONENT_NAME tof
                   PUBLIC_LINK_LIBRARIES O2::TOFWorkflowUtils)
+
+o2_add_executable(cluster-writer-workflow
+                  SOURCES src/cluster-writer-commissioning.cxx
+                  COMPONENT_NAME tof
+                  PUBLIC_LINK_LIBRARIES O2::TOFWorkflowUtils)
