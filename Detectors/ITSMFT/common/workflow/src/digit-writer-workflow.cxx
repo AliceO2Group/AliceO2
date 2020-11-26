@@ -21,6 +21,7 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
 {
   // option allowing to set parameters
   std::vector<ConfigParamSpec> options{
+    ConfigParamSpec{"writeHW", VariantType::Bool, false, {"write hardware info"}},
     ConfigParamSpec{"disable-mc", VariantType::Bool, false, {"disable mc truth"}},
     ConfigParamSpec{"runmft", VariantType::Bool, false, {"expect MFT data"}},
     ConfigParamSpec{"configKeyValues", VariantType::String, "", {"semicolon separated key=value strings"}}};
@@ -36,12 +37,14 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
 {
   WorkflowSpec wf;
   bool useMC = !cfgc.options().get<bool>("disable-mc");
+  bool writeHW = cfgc.options().get<bool>("writeHW");
+
 
   // Update the (declared) parameters if changed from the command line
   o2::conf::ConfigurableParam::updateFromString(cfgc.options().get<std::string>("configKeyValues"));
 
   if (cfgc.options().get<bool>("runmft")) {
-    wf.emplace_back(o2::itsmft::getMFTDigitWriterSpec(useMC));
+    wf.emplace_back(o2::itsmft::getMFTDigitWriterSpec(useMC, writeHW));
   } else {
     wf.emplace_back(o2::itsmft::getITSDigitWriterSpec(useMC));
   }
