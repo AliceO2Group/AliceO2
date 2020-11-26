@@ -19,7 +19,7 @@ namespace itsmft
 {
 
 o2::framework::DataProcessorSpec getITSDigitWriterSpec(bool mctruth = true);
-o2::framework::DataProcessorSpec getMFTDigitWriterSpec(bool mctruth = true);
+o2::framework::DataProcessorSpec getMFTDigitWriterSpec(bool mctruth = true, bool hardware = false);
 
 } // end namespace itsmft
 } // end namespace o2
