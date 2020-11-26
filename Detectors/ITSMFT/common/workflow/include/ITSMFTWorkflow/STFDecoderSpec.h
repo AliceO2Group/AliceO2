@@ -37,7 +37,7 @@ template <class Mapping>
 class STFDecoder : public Task
 {
  public:
-  STFDecoder(bool clusters = true, bool pattern = true, bool digits = false, std::string_view dict = "", std::string_view noise = "");
+  STFDecoder(bool clusters = true, bool pattern = true, bool digits = false, std::string_view dict = "", std::string_view noise = "", bool hardware = false);
   ~STFDecoder() override = default;
   void init(InitContext& ic) final;
   void run(ProcessingContext& pc) final;
@@ -46,6 +46,7 @@ class STFDecoder : public Task
  private:
   std::unique_ptr<o2::itsmft::Clusterer> setupClusterer(const std::string& dictName);
   TStopwatch mTimer;
+  bool mWriteHW = false;
   bool mDoClusters = false;
   bool mDoPatterns = false;
   bool mDoDigits = false;
@@ -63,7 +64,7 @@ using STFDecoderMFT = STFDecoder<ChipMappingMFT>;
 
 /// create a processor spec
 o2::framework::DataProcessorSpec getSTFDecoderITSSpec(bool doClusters, bool doPatterns, bool doDigits, const std::string& dict, const std::string& noise);
-o2::framework::DataProcessorSpec getSTFDecoderMFTSpec(bool doClusters, bool doPatterns, bool doDigits, const std::string& dict, const std::string& noise);
+o2::framework::DataProcessorSpec getSTFDecoderMFTSpec(bool doClusters, bool doPatterns, bool doDigits, const std::string& dict, const std::string& noise, bool writeHW);
 
 } // namespace itsmft
 } // namespace o2
