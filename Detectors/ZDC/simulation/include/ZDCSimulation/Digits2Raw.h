@@ -74,8 +74,8 @@ class Digits2Raw
   EventData mZDC;                                                       /// Output structure
   bool mIsContinuous = true;                                            /// Continuous (self-triggered) or externally-triggered readout
   bool mOutputPerLink = false;                                          /// Split output
-  const ModuleConfig* mModuleConfig = 0;                                /// Trigger/readout configuration object
-  const SimCondition* mSimCondition = 0;                                /// Pedestal/noise configuration object
+  const ModuleConfig* mModuleConfig = nullptr;                          /// Trigger/readout configuration object
+  const SimCondition* mSimCondition = nullptr;                          /// Pedestal/noise configuration object
   UShort_t mScalers[NModules][NChPerModule] = {0};                      /// ZDC orbit scalers
   UInt_t mLastOrbit = 0;                                                /// Last processed orbit
   uint32_t mTriggerMask = 0;                                            /// Trigger mask from ModuleConfig

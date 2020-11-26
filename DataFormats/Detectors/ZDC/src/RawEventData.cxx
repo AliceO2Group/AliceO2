@@ -32,7 +32,7 @@ void EventData::print() const
         // Word 2
         printf("%04x %08x %08x ", data[im][ic].w[2][2], data[im][ic].w[2][1], data[im][ic].w[2][0]);
         printf("%s %s %s %s %s %s 6-b ", f.Hit ? "H" : " ", f.Auto_m ? "TM" : "  ", f.Auto_0 ? "T0" : "  ", f.Auto_1 ? "T1" : "  ", f.Auto_2 ? "T2" : "  ", f.Auto_3 ? "T3" : "  ");
-        printf(" %5d %5d %5d %5d %5d %5d\n", f.s06, f.s07, f.s08, f.s09, f.s10, f.s11, f.error);
+        printf(" %5d %5d %5d %5d %5d %5d\n", f.s06, f.s07, f.s08, f.s09, f.s10, f.s11);
       } else if (data[im][ic].f.fixed_0 == 0 && data[im][ic].f.fixed_1 == 0 && data[im][ic].f.fixed_2 == 0) {
         // Empty channel
       } else {
