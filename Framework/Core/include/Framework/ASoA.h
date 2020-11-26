@@ -808,6 +808,17 @@ static constexpr auto extractBindings(framework::pack<Is...>)
   return framework::pack<typename Is::binding_t...>{};
 }
 
+template <typename T>
+class Filtered;
+
+template <typename T>
+auto select(T const& t, framework::expressions::Filter&& f)
+{
+  return Filtered<T>({t.asArrowTable()}, framework::expressions::createExpressionTree(
+                                           framework::expressions::createOperations(f),
+                                           t.asArrowTable()->schema()));
+}
+
 /// A Table class which observes an arrow::Table and provides
 /// It is templated on a set of Column / DynamicColumn types.
 template <typename... C>
@@ -998,6 +1009,11 @@ class Table
   void bindExternalIndices(TA*... current)
   {
     mBegin.bindExternalIndices(current...);
+  }
+
+  auto select(framework::expressions::Filter&& f) const
+  {
+    return o2::soa::select(*this, std::forward<framework::expressions::Filter>(f));
   }
 
  private:
@@ -1761,12 +1777,6 @@ class Filtered<Filtered<T>> : public FilteredPolicy<typename T::table_t>
 
 template <typename T>
 using is_soa_filtered_t = typename framework::is_base_of_template<soa::FilteredPolicy, T>;
-
-template <typename T>
-auto filter(T&& t, framework::expressions::Filter const& expr)
-{
-  return Filtered<T>(t.asArrowTable(), expr);
-}
 
 /// Template for building an index table to access matching rows from non-
 /// joinable, but compatible tables, e.g. Collisions and ZDCs.
