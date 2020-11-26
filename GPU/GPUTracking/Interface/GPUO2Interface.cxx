@@ -53,7 +53,7 @@ int GPUTPCO2Interface::Initialize(const GPUO2InterfaceConfiguration& config)
   }
   mRec->SetSettings(&mConfig->configEvent, &mConfig->configReconstruction, &mConfig->configProcessing, &mConfig->configWorkflow);
   mChain->SetTPCFastTransform(mConfig->configCalib.fastTransform);
-  mChain->SetTPCCFCalibration(mConfig->configCalib.tpcCalibration);
+  mChain->SetTPCPadGainCalib(mConfig->configCalib.tpcPadGain);
   mChain->SetdEdxSplines(mConfig->configCalib.dEdxSplines);
   mChain->SetMatLUT(mConfig->configCalib.matLUT);
   mChain->SetTRDGeometry(mConfig->configCalib.trdGeometry);

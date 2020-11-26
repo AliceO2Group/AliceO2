@@ -224,10 +224,10 @@ void GPUChainTracking::DumpSettings(const char* dir)
     f += "tpctransform.dump";
     DumpFlatObjectToFile(processors()->calibObjects.fastTransform, f.c_str());
   }
-  if (processors()->calibObjects.tpcCalibration != nullptr) {
+  if (processors()->calibObjects.tpcPadGain != nullptr) {
     f = dir;
-    f += "tpccalibration.dump";
-    DumpStructToFile(processors()->calibObjects.tpcCalibration, f.c_str());
+    f += "tpcpadgaincalib.dump";
+    DumpStructToFile(processors()->calibObjects.tpcPadGain, f.c_str());
   }
 #ifdef HAVE_O2HEADERS
   if (processors()->calibObjects.dEdxSplines != nullptr) {
@@ -257,9 +257,9 @@ void GPUChainTracking::ReadSettings(const char* dir)
   mTPCFastTransformU = ReadFlatObjectFromFile<TPCFastTransform>(f.c_str());
   processors()->calibObjects.fastTransform = mTPCFastTransformU.get();
   f = dir;
-  f += "tpccalibration.dump";
-  mTPCCalibrationU = ReadStructFromFile<TPCCFCalibration>(f.c_str());
-  processors()->calibObjects.tpcCalibration = mTPCCalibrationU.get();
+  f += "tpcpadgaincalib.dump";
+  mTPCPadGainCalibU = ReadStructFromFile<TPCPadGainCalib>(f.c_str());
+  processors()->calibObjects.tpcPadGain = mTPCPadGainCalibU.get();
 #ifdef HAVE_O2HEADERS
   f = dir;
   f += "dedxsplines.dump";

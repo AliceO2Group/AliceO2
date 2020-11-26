@@ -8,11 +8,11 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-/// \file TPCCFCalibration.h
+/// \file TPCPadGainCalib.h
 /// \author Felix Weiglhofer
 
-#ifndef O2_GPU_TPC_CF_CALIBRATION_H
-#define O2_GPU_TPC_CF_CALIBRATION_H
+#ifndef O2_GPU_TPC_PAD_GAIN_CALIB_H
+#define O2_GPU_TPC_PAD_GAIN_CALIB_H
 
 #include "clusterFinderDefs.h"
 #include "GPUCommonMath.h"
@@ -40,11 +40,11 @@ struct TPCPadGainCorrectionStepNum<unsigned short> {
   static constexpr int value = 65534;
 };
 
-struct TPCCFCalibration {
+struct TPCPadGainCalib {
  public:
 #ifndef GPUCA_GPUCODE
-  TPCCFCalibration();
-  TPCCFCalibration(const o2::tpc::CalDet<float>&);
+  TPCPadGainCalib();
+  TPCPadGainCalib(const o2::tpc::CalDet<float>&);
 #endif
 
   // Deal with pad gain correction from here on
@@ -60,7 +60,7 @@ struct TPCCFCalibration {
 
  private:
   template <typename T = unsigned short>
-  class PadGainCorrection
+  class SectorPadGainCorrection
   {
 
    public:
@@ -68,7 +68,7 @@ struct TPCCFCalibration {
     constexpr static float MaxCorrectionFactor = 2.f;
     constexpr static int NumOfSteps = TPCPadGainCorrectionStepNum<T>::value;
 
-    GPUdi() PadGainCorrection()
+    GPUdi() SectorPadGainCorrection()
     {
       reset();
     }
@@ -119,7 +119,7 @@ struct TPCCFCalibration {
   };
 
   unsigned short mPadOffsetPerRow[TPC_NUM_OF_ROWS];
-  PadGainCorrection<unsigned short> mGainCorrection[TPC_SECTORS];
+  SectorPadGainCorrection<unsigned short> mGainCorrection[TPC_SECTORS];
 
   GPUdi() unsigned short globalPad(tpccf::Row row, tpccf::Pad pad) const
   {
