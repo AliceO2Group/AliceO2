@@ -36,7 +36,7 @@
 
 namespace bpo = boost::program_options;
 
-void digi2raw(const std::string& inpName, const std::string& outDir, int verbosity, bool filePerLink, uint32_t rdhV = 4, bool noEmptyHBF = false,
+void digi2raw(const std::string& inpName, const std::string& outDir, int verbosity, bool filePerLink, uint32_t rdhV = 4,
               int superPageSizeInB = 1024 * 1024);
 
 int main(int argc, char** argv)
@@ -83,13 +83,12 @@ int main(int argc, char** argv)
            vm["output-dir"].as<std::string>(),
            vm["verbosity"].as<int>(),
            vm["file-per-link"].as<bool>(),
-           vm["rdh-version"].as<uint32_t>(),
-           vm["no-empty-hbf"].as<bool>());
+           vm["rdh-version"].as<uint32_t>());
 
   return 0;
 }
 
-void digi2raw(const std::string& inpName, const std::string& outDir, int verbosity, bool filePerLink, uint32_t rdhV, bool noEmptyHBF, int superPageSizeInB)
+void digi2raw(const std::string& inpName, const std::string& outDir, int verbosity, bool filePerLink, uint32_t rdhV, int superPageSizeInB)
 {
   long timeStamp = 0;
   std::string ccdbHost = "http://ccdb-test.cern.ch:8080";
@@ -134,7 +133,6 @@ void digi2raw(const std::string& inpName, const std::string& outDir, int verbosi
   wr.setContinuousReadout(grp->isDetContinuousReadOut(o2::detectors::DetID::ZDC)); // must be set explicitly
   wr.setSuperPageSize(superPageSizeInB);
   wr.useRDHVersion(rdhV);
-  wr.setDontFillEmptyHBF(noEmptyHBF);
 
   std::string outDirName(outDir);
   if (outDirName.back() != '/') {
