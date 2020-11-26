@@ -12,6 +12,7 @@
 #define O2_FRAMEWORK_STRINGHELPERS_H_
 
 #include <cstdint>
+#include <utility>
 
 // CRC32 Table (zlib polynomial) static
 constexpr uint32_t crc_table[256] = {0x0L, 0x77073096L, 0xee0e612cL,
@@ -72,5 +73,42 @@ constexpr uint32_t compile_time_hash(char const* str)
 {
   return crc32(str, static_cast<int>(__builtin_strlen(str)) - 1) ^ 0xFFFFFFFF;
 }
+
+template <int N>
+constexpr uint32_t compile_time_hash_from_literal(const char (&str)[N])
+{
+  return crc32(str, N - 2) ^ 0xFFFFFFFF;
+}
+
+template <char... chars>
+struct ConstStr {
+  static constexpr char str[] = {chars..., '\0'};
+  static constexpr uint32_t hash = compile_time_hash_from_literal(str);
+  static constexpr uint32_t idx = hash & 0x1FF;
+};
+
+template <typename T, std::size_t... Is>
+constexpr auto as_chars_impl(std::index_sequence<Is...>)
+{
+  return ConstStr<T::str()[Is]...>{};
+}
+
+template <typename T>
+constexpr auto as_chars()
+{
+  return as_chars_impl<T>(
+    std::make_index_sequence<sizeof(T::str()) - 1>{});
+}
+
+#define CONST_STR(literal)                  \
+  [] {                                      \
+    struct literal_to_chars {               \
+      static constexpr decltype(auto) str() \
+      {                                     \
+        return literal;                     \
+      }                                     \
+    };                                      \
+    return as_chars<literal_to_chars>();    \
+  }()
 
 #endif // O2_FRAMEWORK_STRINGHELPERS_H
