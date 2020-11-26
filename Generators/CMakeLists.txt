@@ -73,7 +73,6 @@ set(headers
     include/Generators/InteractionDiamondParam.h
     include/Generators/TriggerExternalParam.h
     include/Generators/TriggerParticleParam.h
-    include/Generators/ConfigurationMacroHelper.h
     include/Generators/BoxGunParam.h
     include/Generators/QEDGenParam.h
     include/Generators/GenCosmicsParam.h)
