@@ -136,7 +136,7 @@ GPUdi() void GPUProcessor::raiseError(unsigned int code, unsigned int param1, un
 #if defined(GPUCA_NOCOMPAT_ALLCINT) && (!defined(GPUCA_GPULIBRARY) || !defined(GPUCA_ALIROOT_LIB)) && defined(HAVE_O2HEADERS)
 GPUd() float GPUTPCClusterFinder::getGainCorrection(tpccf::Row row, tpccf::Pad pad) const
 {
-  return GetConstantMem()->calibObjects.tpcCalibration->getGainCorrection(mISlice, row, pad);
+  return GetConstantMem()->calibObjects.tpcPadGain->getGainCorrection(mISlice, row, pad);
 }
 #endif
 

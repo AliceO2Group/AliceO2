@@ -43,7 +43,7 @@
 #include "TPCBase/RDHUtils.h"
 #include "GPUO2InterfaceConfiguration.h"
 #include "GPUO2InterfaceQA.h"
-#include "TPCCFCalibration.h"
+#include "TPCPadGainCalib.h"
 #include "GPUDisplayBackend.h"
 #ifdef GPUCA_BUILD_EVENT_DISPLAY
 #include "GPUDisplayBackendGlfw.h"
@@ -100,7 +100,7 @@ DataProcessorSpec getCATrackerSpec(CompletionPolicyData* policyData, ca::Config 
     std::unique_ptr<GPUDisplayBackend> displayBackend;
     std::unique_ptr<TPCFastTransform> fastTransform;
     std::unique_ptr<TPCdEdxCalibrationSplines> dEdxSplines;
-    std::unique_ptr<TPCCFCalibration> tpcCalibration;
+    std::unique_ptr<TPCPadGainCalib> tpcPadGainCalib;
     std::unique_ptr<GPUSettingsQA> qaConfig;
     int qaTaskMask = 0;
     std::unique_ptr<GPUO2InterfaceQA> qa;
@@ -230,14 +230,14 @@ DataProcessorSpec getCATrackerSpec(CompletionPolicyData* policyData, ca::Config 
       if (boost::filesystem::exists(confParam.gainCalibFile)) {
         LOG(INFO) << "Loading tpc gain correction from file " << confParam.gainCalibFile;
         const auto* gainMap = o2::tpc::utils::readCalPads(confParam.gainCalibFile, "GainMap")[0];
-        processAttributes->tpcCalibration.reset(new TPCCFCalibration{*gainMap});
+        processAttributes->tpcPadGainCalib.reset(new TPCPadGainCalib{*gainMap});
       } else {
         if (not confParam.gainCalibFile.empty()) {
           LOG(WARN) << "Couldn't find tpc gain correction file " << confParam.gainCalibFile << ". Not applying any gain correction.";
         }
-        processAttributes->tpcCalibration.reset(new TPCCFCalibration{});
+        processAttributes->tpcPadGainCalib.reset(new TPCPadGainCalib{});
       }
-      config.configCalib.tpcCalibration = processAttributes->tpcCalibration.get();
+      config.configCalib.tpcPadGain = processAttributes->tpcPadGainCalib.get();
 
       // Sample code what needs to be done for the TRD Geometry, when we extend this to TRD tracking.
       /*o2::base::GeometryManager::loadGeometry();

@@ -255,7 +255,7 @@ bool GPUChainTracking::ValidateSteps()
     GPUError("Cannot run dE/dx without calibration splines");
     return false;
   }
-  if ((GetRecoSteps() & GPUDataTypes::RecoStep::TPCClusterFinding) && processors()->calibObjects.tpcCalibration == nullptr) {
+  if ((GetRecoSteps() & GPUDataTypes::RecoStep::TPCClusterFinding) && processors()->calibObjects.tpcPadGain == nullptr) {
     GPUError("Cannot run gain calibration without calibration object");
     return false;
   }
@@ -383,8 +383,8 @@ int GPUChainTracking::Init()
       memcpy((void*)mFlatObjectsShadow.mCalibObjects.trdGeometry, (const void*)processors()->calibObjects.trdGeometry, sizeof(*processors()->calibObjects.trdGeometry));
       mFlatObjectsShadow.mCalibObjects.trdGeometry->clearInternalBufferPtr();
     }
-    if (processors()->calibObjects.tpcCalibration) {
-      memcpy((void*)mFlatObjectsShadow.mCalibObjects.tpcCalibration, (const void*)processors()->calibObjects.tpcCalibration, sizeof(*processors()->calibObjects.tpcCalibration));
+    if (processors()->calibObjects.tpcPadGain) {
+      memcpy((void*)mFlatObjectsShadow.mCalibObjects.tpcPadGain, (const void*)processors()->calibObjects.tpcPadGain, sizeof(*processors()->calibObjects.tpcPadGain));
     }
 #endif
     TransferMemoryResourceLinkToGPU(RecoStep::NoRecoStep, mFlatObjectsShadow.mMemoryResFlat);
@@ -439,8 +439,8 @@ void* GPUChainTracking::GPUTrackingFlatObjects::SetPointersFlatObjects(void* mem
     computePointerWithAlignment(mem, mCalibObjects.fastTransform, 1);
     computePointerWithAlignment(mem, mTpcTransformBuffer, mChainTracking->GetTPCTransform()->getFlatBufferSize());
   }
-  if (mChainTracking->GetTPCCalibration()) {
-    computePointerWithAlignment(mem, mCalibObjects.tpcCalibration, 1);
+  if (mChainTracking->GetTPCPadGainCalib()) {
+    computePointerWithAlignment(mem, mCalibObjects.tpcPadGain, 1);
   }
 #ifdef HAVE_O2HEADERS
   if (mChainTracking->GetdEdxSplines()) {

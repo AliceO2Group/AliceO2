@@ -27,7 +27,7 @@
 #include "TPCFastTransform.h"
 #include "TPCdEdxCalibrationSplines.h"
 #include "GPUO2InterfaceConfiguration.h"
-#include "TPCCFCalibration.h"
+#include "TPCPadGainCalib.h"
 
 using namespace o2::gpu;
 
@@ -77,8 +77,8 @@ BOOST_AUTO_TEST_CASE(CATracking_test1)
   config.configCalib.fastTransform = fastTransform.get();
   std::unique_ptr<o2::gpu::TPCdEdxCalibrationSplines> dEdxSplines(new TPCdEdxCalibrationSplines);
   config.configCalib.dEdxSplines = dEdxSplines.get();
-  std::unique_ptr<TPCCFCalibration> tpcCalibration(new TPCCFCalibration{});
-  config.configCalib.tpcCalibration = tpcCalibration.get();
+  std::unique_ptr<TPCPadGainCalib> gainCalib(new TPCPadGainCalib{});
+  config.configCalib.tpcPadGain = gainCalib.get();
 
   tracker.initialize(config);
   std::vector<ClusterNativeContainer> cont(constants::MAXGLOBALPADROW);
