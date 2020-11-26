@@ -31,13 +31,14 @@
 #include "ZDCSimulation/Digits2Raw.h"
 #include "DataFormatsParameters/GRPObject.h"
 #include "SimulationDataFormat/DigitizationContext.h"
+#include "SimConfig/DigiParams.h"
 
 /// MC->raw conversion for ZDC
 
 namespace bpo = boost::program_options;
 
 void digi2raw(const std::string& inpName, const std::string& outDir, int verbosity, bool filePerLink, uint32_t rdhV = 4,
-              int superPageSizeInB = 1024 * 1024);
+              int superPageSizeInB = 1024 * 1024, const std::string& ccdbHost = "");
 
 int main(int argc, char** argv)
 {
@@ -56,6 +57,7 @@ int main(int argc, char** argv)
     add_option("input-file,i", bpo::value<std::string>()->default_value("zdcdigits.root"), "input ZDC digits file");
     add_option("file-per-link,l", bpo::value<bool>()->default_value(false)->implicit_value(true), "create output file per CRU (default: write single file)");
     add_option("output-dir,o", bpo::value<std::string>()->default_value("./"), "output directory for raw data");
+    add_option("ccdb-url,o", bpo::value<std::string>()->default_value(""), "url of the ccdb repository");
     uint32_t defRDH = o2::raw::RDHUtils::getVersion<o2::header::RAWDataHeader>();
     add_option("rdh-version,r", bpo::value<uint32_t>()->default_value(defRDH), "RDH version to use");
     add_option("configKeyValues", bpo::value<std::string>()->default_value(""), "comma-separated configKeyValues");
@@ -79,19 +81,28 @@ int main(int argc, char** argv)
     exit(2);
   }
   o2::conf::ConfigurableParam::updateFromString(vm["configKeyValues"].as<std::string>());
+
+  std::string ccdb_url = vm["ccdb-url"].as<std::string>();
+  auto& dopt = o2::conf::DigiParams::Instance();
+  std::string ccdbHost = dopt.ccdb;
+  if (ccdb_url.length() > 0) {
+    ccdbHost = ccdb_url;
+    LOG(INFO) << "CCDB url set to " << ccdb_url;
+  }
   digi2raw(vm["input-file"].as<std::string>(),
            vm["output-dir"].as<std::string>(),
            vm["verbosity"].as<int>(),
            vm["file-per-link"].as<bool>(),
-           vm["rdh-version"].as<uint32_t>());
+           vm["rdh-version"].as<uint32_t>()
+             ccdbHost);
 
   return 0;
 }
 
-void digi2raw(const std::string& inpName, const std::string& outDir, int verbosity, bool filePerLink, uint32_t rdhV, int superPageSizeInB)
+void digi2raw(const std::string& inpName, const std::string& outDir, int verbosity, bool filePerLink, uint32_t rdhV, int superPageSizeInB, const std::string& ccdbHost)
 {
   long timeStamp = 0;
-  std::string ccdbHost = "http://ccdb-test.cern.ch:8080";
+  //std::string ccdbHost = "http://ccdb-test.cern.ch:8080";
   auto& mgr = o2::ccdb::BasicCCDBManager::instance();
   mgr.setURL(ccdbHost);
   if (timeStamp == mgr.getTimestamp()) {

@@ -32,17 +32,17 @@ void Digits2Raw::processDigits(const std::string& outDir, const std::string& fil
   mIsContinuous = sopt.continuous;
 
   if (!mModuleConfig) {
-    LOG(ERROR) << "Missing ModuleConfig configuration object";
+    LOG(FATAL) << "Missing ModuleConfig configuration object";
     return;
   }
 
   if (!mSimCondition) {
-    LOG(ERROR) << "Missing SimCondition configuration object";
+    LOG(FATAL) << "Missing SimCondition configuration object";
     return;
   }
 
   if (mNEmpty < 0) {
-    LOG(ERROR) << "Bunch crossing map is not initialized";
+    LOG(FATAL) << "Bunch crossing map is not initialized";
     return;
   }
 
