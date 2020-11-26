@@ -181,8 +181,9 @@ class VertexerTraits
 inline void VertexerTraits::initialise(ROframe* event)
 {
   reset();
-  if (!mIndexTableUtils.getNzBins())
+  if (!mIndexTableUtils.getNzBins()) {
     updateVertexingParameters(mVrtParams);
+  }
   arrangeClusters(event);
   setIsGPU(false);
 }
