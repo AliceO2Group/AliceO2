@@ -119,7 +119,7 @@ class AlpideCoder
 
   /// decode alpide data for the next non-empty chip from the buffer
   template <class T, typename CG>
-  static int decodeChip(ChipPixelData& chipData, T& buffer, CG cidGetter, bool setHW)
+  static int decodeChip(ChipPixelData& chipData, T& buffer, CG cidGetter, uint8_t chw = 0, bool setHW = false)
   {
     // read record for single non-empty chip, updating on change module and cycle.
     // return number of records filled (>0), EOFFlag or Error
