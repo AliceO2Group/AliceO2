@@ -202,5 +202,6 @@ struct lambdakzeroproducer {
 WorkflowSpec defineDataProcessing(ConfigContext const&)
 {
   return WorkflowSpec{
+    adaptAnalysisTask<lambdakzeroprefilterpairs>("lf-lambdakzeroprefilterpairs"),
     adaptAnalysisTask<lambdakzeroproducer>("lf-lambdakzeroproducer")};
 }
