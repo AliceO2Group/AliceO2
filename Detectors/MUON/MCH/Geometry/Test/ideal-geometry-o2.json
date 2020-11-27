@@ -1,0 +1,2272 @@
+{
+  "alignables": [
+    {
+      "symname": "MCH/HC0",
+      "transform": {
+        "tx": 0,
+        "ty": 0,
+        "tz": -526.1599731445312,
+        "yaw": -0,
+        "pitch": 0,
+        "roll": -0
+      },
+      "aligned": false
+    },
+    {
+      "symname": "MCH/HC1",
+      "transform": {
+        "tx": 0,
+        "ty": 0,
+        "tz": -526.1599731445312,
+        "yaw": -0,
+        "pitch": 0,
+        "roll": -0
+      },
+      "aligned": false
+    },
+    {
+      "symname": "MCH/HC2",
+      "transform": {
+        "tx": 0,
+        "ty": 0,
+        "tz": -545.239990234375,
+        "yaw": -0,
+        "pitch": 0,
+        "roll": -0
+      },
+      "aligned": false
+    },
+    {
+      "symname": "MCH/HC3",
+      "transform": {
+        "tx": 0,
+        "ty": 0,
+        "tz": -545.239990234375,
+        "yaw": -0,
+        "pitch": 0,
+        "roll": -0
+      },
+      "aligned": false
+    },
+    {
+      "symname": "MCH/HC4",
+      "transform": {
+        "tx": 0,
+        "ty": 0,
+        "tz": -676.4,
+        "yaw": -0,
+        "pitch": 0,
+        "roll": -0
+      },
+      "aligned": false
+    },
+    {
+      "symname": "MCH/HC5",
+      "transform": {
+        "tx": 0,
+        "ty": 0,
+        "tz": -676.4,
+        "yaw": -0,
+        "pitch": 0,
+        "roll": -0
+      },
+      "aligned": false
+    },
+    {
+      "symname": "MCH/HC6",
+      "transform": {
+        "tx": 0,
+        "ty": 0,
+        "tz": -695.4,
+        "yaw": -0,
+        "pitch": 0,
+        "roll": -0
+      },
+      "aligned": false
+    },
+    {
+      "symname": "MCH/HC7",
+      "transform": {
+        "tx": 0,
+        "ty": 0,
+        "tz": -695.4,
+        "yaw": -0,
+        "pitch": 0,
+        "roll": -0
+      },
+      "aligned": false
+    },
+    {
+      "symname": "MCH/HC8",
+      "transform": {
+        "tx": 0,
+        "ty": -0.1074,
+        "tz": -959.75,
+        "yaw": -0,
+        "pitch": 0,
+        "roll": -0.7940000000000002
+      },
+      "aligned": false
+    },
+    {
+      "symname": "MCH/HC9",
+      "transform": {
+        "tx": 0,
+        "ty": 0.1074,
+        "tz": -975.25,
+        "yaw": -0,
+        "pitch": 0,
+        "roll": -0.7940000000000002
+      },
+      "aligned": false
+    },
+    {
+      "symname": "MCH/HC10",
+      "transform": {
+        "tx": 0,
+        "ty": -0.1074,
+        "tz": -990.75,
+        "yaw": -0,
+        "pitch": 0,
+        "roll": -0.7940000000000002
+      },
+      "aligned": false
+    },
+    {
+      "symname": "MCH/HC11",
+      "transform": {
+        "tx": 0,
+        "ty": 0.1074,
+        "tz": -1006.25,
+        "yaw": -0,
+        "pitch": 0,
+        "roll": -0.7940000000000002
+      },
+      "aligned": false
+    },
+    {
+      "symname": "MCH/HC12",
+      "transform": {
+        "tx": 0,
+        "ty": -0.1074,
+        "tz": -1259.75,
+        "yaw": -0,
+        "pitch": 0,
+        "roll": -0.7940000000000002
+      },
+      "aligned": false
+    },
+    {
+      "symname": "MCH/HC13",
+      "transform": {
+        "tx": 0,
+        "ty": -0.1074,
+        "tz": -1284.25,
+        "yaw": -0,
+        "pitch": 0,
+        "roll": -0.7940000000000002
+      },
+      "aligned": false
+    },
+    {
+      "symname": "MCH/HC14",
+      "transform": {
+        "tx": 0,
+        "ty": -0.1074,
+        "tz": -1299.75,
+        "yaw": -0,
+        "pitch": 0,
+        "roll": -0.7940000000000002
+      },
+      "aligned": false
+    },
+    {
+      "symname": "MCH/HC15",
+      "transform": {
+        "tx": 0,
+        "ty": -0.1074,
+        "tz": -1315.25,
+        "yaw": -0,
+        "pitch": 0,
+        "roll": -0.7940000000000002
+      },
+      "aligned": false
+    },
+    {
+      "symname": "MCH/HC16",
+      "transform": {
+        "tx": 0,
+        "ty": -0.1074,
+        "tz": -1398.85,
+        "yaw": -0,
+        "pitch": 0,
+        "roll": -0.7940000000000002
+      },
+      "aligned": false
+    },
+    {
+      "symname": "MCH/HC17",
+      "transform": {
+        "tx": 0,
+        "ty": -0.1074,
+        "tz": -1414.35,
+        "yaw": -0,
+        "pitch": 0,
+        "roll": -0.7940000000000002
+      },
+      "aligned": false
+    },
+    {
+      "symname": "MCH/HC18",
+      "transform": {
+        "tx": 0,
+        "ty": -0.1074,
+        "tz": -1429.85,
+        "yaw": -0,
+        "pitch": 0,
+        "roll": -0.7940000000000002
+      },
+      "aligned": false
+    },
+    {
+      "symname": "MCH/HC19",
+      "transform": {
+        "tx": 0,
+        "ty": -0.1074,
+        "tz": -1445.35,
+        "yaw": -0,
+        "pitch": 0,
+        "roll": -0.7940000000000002
+      },
+      "aligned": false
+    },
+    {
+      "deid": 100,
+      "symname": "MCH/HC0/DE100",
+      "transform": {
+        "tx": 0.1850000023841858,
+        "ty": -0.5199999809265137,
+        "tz": -529.9099731445312,
+        "yaw": -0,
+        "pitch": 0,
+        "roll": -0
+      },
+      "aligned": false
+    },
+    {
+      "deid": 101,
+      "symname": "MCH/HC1/DE101",
+      "transform": {
+        "tx": -0.1850000023841858,
+        "ty": -0.5199999809265137,
+        "tz": -522.4099731445312,
+        "yaw": -180,
+        "pitch": 0,
+        "roll": -180
+      },
+      "aligned": false
+    },
+    {
+      "deid": 102,
+      "symname": "MCH/HC1/DE102",
+      "transform": {
+        "tx": -0.1850000023841858,
+        "ty": 0.5199999809265137,
+        "tz": -529.9099731445312,
+        "yaw": -180,
+        "pitch": 0,
+        "roll": -0
+      },
+      "aligned": false
+    },
+    {
+      "deid": 103,
+      "symname": "MCH/HC0/DE103",
+      "transform": {
+        "tx": 0.1850000023841858,
+        "ty": 0.5199999809265137,
+        "tz": -522.4099731445312,
+        "yaw": -0,
+        "pitch": 0,
+        "roll": -180
+      },
+      "aligned": false
+    },
+    {
+      "deid": 200,
+      "symname": "MCH/HC2/DE200",
+      "transform": {
+        "tx": 0.1850000023841858,
+        "ty": -0.5199999809265137,
+        "tz": -548.989990234375,
+        "yaw": -0,
+        "pitch": 0,
+        "roll": -0
+      },
+      "aligned": false
+    },
+    {
+      "deid": 201,
+      "symname": "MCH/HC3/DE201",
+      "transform": {
+        "tx": -0.1850000023841858,
+        "ty": -0.5199999809265137,
+        "tz": -541.489990234375,
+        "yaw": -180,
+        "pitch": 0,
+        "roll": -180
+      },
+      "aligned": false
+    },
+    {
+      "deid": 202,
+      "symname": "MCH/HC3/DE202",
+      "transform": {
+        "tx": -0.1850000023841858,
+        "ty": 0.5199999809265137,
+        "tz": -548.989990234375,
+        "yaw": -180,
+        "pitch": 0,
+        "roll": -0
+      },
+      "aligned": false
+    },
+    {
+      "deid": 203,
+      "symname": "MCH/HC2/DE203",
+      "transform": {
+        "tx": 0.1850000023841858,
+        "ty": 0.5199999809265137,
+        "tz": -541.489990234375,
+        "yaw": -0,
+        "pitch": 0,
+        "roll": -180
+      },
+      "aligned": false
+    },
+    {
+      "deid": 300,
+      "symname": "MCH/HC4/DE300",
+      "transform": {
+        "tx": 0,
+        "ty": 0,
+        "tz": -680.3,
+        "yaw": -0,
+        "pitch": 0,
+        "roll": -0
+      },
+      "aligned": false
+    },
+    {
+      "deid": 301,
+      "symname": "MCH/HC5/DE301",
+      "transform": {
+        "tx": 0,
+        "ty": 0,
+        "tz": -672.5,
+        "yaw": -180,
+        "pitch": 0,
+        "roll": -180
+      },
+      "aligned": false
+    },
+    {
+      "deid": 302,
+      "symname": "MCH/HC5/DE302",
+      "transform": {
+        "tx": 0,
+        "ty": 0,
+        "tz": -680.3,
+        "yaw": -180,
+        "pitch": 0,
+        "roll": -0
+      },
+      "aligned": false
+    },
+    {
+      "deid": 303,
+      "symname": "MCH/HC4/DE303",
+      "transform": {
+        "tx": 0,
+        "ty": 0,
+        "tz": -672.5,
+        "yaw": -0,
+        "pitch": 0,
+        "roll": -180
+      },
+      "aligned": false
+    },
+    {
+      "deid": 400,
+      "symname": "MCH/HC6/DE400",
+      "transform": {
+        "tx": 0,
+        "ty": 0,
+        "tz": -699.3,
+        "yaw": -0,
+        "pitch": 0,
+        "roll": -0
+      },
+      "aligned": false
+    },
+    {
+      "deid": 401,
+      "symname": "MCH/HC7/DE401",
+      "transform": {
+        "tx": 0,
+        "ty": 0,
+        "tz": -691.5,
+        "yaw": -180,
+        "pitch": 0,
+        "roll": -180
+      },
+      "aligned": false
+    },
+    {
+      "deid": 402,
+      "symname": "MCH/HC7/DE402",
+      "transform": {
+        "tx": 0,
+        "ty": 0,
+        "tz": -699.3,
+        "yaw": -180,
+        "pitch": 0,
+        "roll": -0
+      },
+      "aligned": false
+    },
+    {
+      "deid": 403,
+      "symname": "MCH/HC6/DE403",
+      "transform": {
+        "tx": 0,
+        "ty": 0,
+        "tz": -691.5,
+        "yaw": -0,
+        "pitch": 0,
+        "roll": -180
+      },
+      "aligned": false
+    },
+    {
+      "deid": 500,
+      "symname": "MCH/HC8/DE500",
+      "transform": {
+        "tx": 81.25,
+        "ty": -0.05197011713870941,
+        "tz": -955.7503840774286,
+        "yaw": -180,
+        "pitch": 0,
+        "roll": 179.20600000000002
+      },
+      "aligned": false
+    },
+    {
+      "deid": 501,
+      "symname": "MCH/HC8/DE501",
+      "transform": {
+        "tx": 81.25,
+        "ty": 37.63354058543762,
+        "tz": -964.2734283156105,
+        "yaw": -180,
+        "pitch": 0,
+        "roll": 179.20600000000002
+      },
+      "aligned": false
+    },
+    {
+      "deid": 502,
+      "symname": "MCH/HC8/DE502",
+      "transform": {
+        "tx": 81.25,
+        "ty": 75.44078042139485,
+        "tz": -956.7966231164355,
+        "yaw": -0,
+        "pitch": 0,
+        "roll": 179.20600000000002
+      },
+      "aligned": false
+    },
+    {
+      "deid": 503,
+      "symname": "MCH/HC8/DE503",
+      "transform": {
+        "tx": 61.25,
+        "ty": 112.62633913364976,
+        "tz": -965.3127386192597,
+        "yaw": -0,
+        "pitch": 0,
+        "roll": -0.7940000000000002
+      },
+      "aligned": false
+    },
+    {
+      "deid": 504,
+      "symname": "MCH/HC8/DE504",
+      "transform": {
+        "tx": 41.25,
+        "ty": 146.43396304703566,
+        "tz": -957.7805035372235,
+        "yaw": -0,
+        "pitch": 0,
+        "roll": 179.20600000000002
+      },
+      "aligned": false
+    },
+    {
+      "deid": 505,
+      "symname": "MCH/HC9/DE505",
+      "transform": {
+        "tx": -41.25,
+        "ty": 146.5379032813131,
+        "tz": -981.2797353823661,
+        "yaw": -180,
+        "pitch": 0,
+        "roll": -0.7940000000000002
+      },
+      "aligned": false
+    },
+    {
+      "deid": 506,
+      "symname": "MCH/HC9/DE506",
+      "transform": {
+        "tx": -61.25,
+        "ty": 112.95199889937234,
+        "tz": -972.8135067741171,
+        "yaw": -180,
+        "pitch": 0,
+        "roll": 179.20600000000002
+      },
+      "aligned": false
+    },
+    {
+      "deid": 507,
+      "symname": "MCH/HC9/DE507",
+      "transform": {
+        "tx": -81.25,
+        "ty": 75.54472065567226,
+        "tz": -980.2958549615781,
+        "yaw": -180,
+        "pitch": 0,
+        "roll": -0.7940000000000002
+      },
+      "aligned": false
+    },
+    {
+      "deid": 508,
+      "symname": "MCH/HC9/DE508",
+      "transform": {
+        "tx": -81.25,
+        "ty": 37.9592003511602,
+        "tz": -971.7741964704679,
+        "yaw": -0,
+        "pitch": 0,
+        "roll": -0.7940000000000002
+      },
+      "aligned": false
+    },
+    {
+      "deid": 509,
+      "symname": "MCH/HC9/DE509",
+      "transform": {
+        "tx": -81.25,
+        "ty": 0.05197011713870941,
+        "tz": -979.2496159225714,
+        "yaw": -0,
+        "pitch": 0,
+        "roll": -0.7940000000000002
+      },
+      "aligned": false
+    },
+    {
+      "deid": 510,
+      "symname": "MCH/HC9/DE510",
+      "transform": {
+        "tx": -81.25,
+        "ty": -37.63354058543762,
+        "tz": -970.7265716843895,
+        "yaw": -0,
+        "pitch": 0,
+        "roll": 179.20600000000002
+      },
+      "aligned": false
+    },
+    {
+      "deid": 511,
+      "symname": "MCH/HC9/DE511",
+      "transform": {
+        "tx": -81.25,
+        "ty": -75.44078042139485,
+        "tz": -978.2033768835645,
+        "yaw": -180,
+        "pitch": 0,
+        "roll": -0.7940000000000002
+      },
+      "aligned": false
+    },
+    {
+      "deid": 512,
+      "symname": "MCH/HC9/DE512",
+      "transform": {
+        "tx": -61.25,
+        "ty": -112.62633913364976,
+        "tz": -969.6872613807403,
+        "yaw": -180,
+        "pitch": 0,
+        "roll": 179.20600000000002
+      },
+      "aligned": false
+    },
+    {
+      "deid": 513,
+      "symname": "MCH/HC9/DE513",
+      "transform": {
+        "tx": -41.25,
+        "ty": -146.43396304703566,
+        "tz": -977.2194964627765,
+        "yaw": -180,
+        "pitch": 0,
+        "roll": -0.7940000000000002
+      },
+      "aligned": false
+    },
+    {
+      "deid": 514,
+      "symname": "MCH/HC8/DE514",
+      "transform": {
+        "tx": 41.25,
+        "ty": -146.5379032813131,
+        "tz": -953.7202646176339,
+        "yaw": -0,
+        "pitch": 0,
+        "roll": 179.20600000000002
+      },
+      "aligned": false
+    },
+    {
+      "deid": 515,
+      "symname": "MCH/HC8/DE515",
+      "transform": {
+        "tx": 61.25,
+        "ty": -112.95199889937234,
+        "tz": -962.1864932258829,
+        "yaw": -0,
+        "pitch": 0,
+        "roll": -0.7940000000000002
+      },
+      "aligned": false
+    },
+    {
+      "deid": 516,
+      "symname": "MCH/HC8/DE516",
+      "transform": {
+        "tx": 81.25,
+        "ty": -75.54472065567226,
+        "tz": -954.7041450384219,
+        "yaw": -0,
+        "pitch": 0,
+        "roll": 179.20600000000002
+      },
+      "aligned": false
+    },
+    {
+      "deid": 517,
+      "symname": "MCH/HC8/DE517",
+      "transform": {
+        "tx": 81.25,
+        "ty": -37.9592003511602,
+        "tz": -963.2258035295321,
+        "yaw": -180,
+        "pitch": 0,
+        "roll": -0.7940000000000002
+      },
+      "aligned": false
+    },
+    {
+      "deid": 600,
+      "symname": "MCH/HC10/DE600",
+      "transform": {
+        "tx": 81.25,
+        "ty": -0.05197011713870941,
+        "tz": -986.7503840774286,
+        "yaw": -180,
+        "pitch": 0,
+        "roll": 179.20600000000002
+      },
+      "aligned": false
+    },
+    {
+      "deid": 601,
+      "symname": "MCH/HC10/DE601",
+      "transform": {
+        "tx": 81.25,
+        "ty": 37.63354058543762,
+        "tz": -995.2734283156105,
+        "yaw": -180,
+        "pitch": 0,
+        "roll": 179.20600000000002
+      },
+      "aligned": false
+    },
+    {
+      "deid": 602,
+      "symname": "MCH/HC10/DE602",
+      "transform": {
+        "tx": 81.25,
+        "ty": 75.44078042139485,
+        "tz": -987.7966231164355,
+        "yaw": -0,
+        "pitch": 0,
+        "roll": 179.20600000000002
+      },
+      "aligned": false
+    },
+    {
+      "deid": 603,
+      "symname": "MCH/HC10/DE603",
+      "transform": {
+        "tx": 61.25,
+        "ty": 112.62633913364976,
+        "tz": -996.3127386192597,
+        "yaw": -0,
+        "pitch": 0,
+        "roll": -0.7940000000000002
+      },
+      "aligned": false
+    },
+    {
+      "deid": 604,
+      "symname": "MCH/HC10/DE604",
+      "transform": {
+        "tx": 41.25,
+        "ty": 146.43396304703566,
+        "tz": -988.7805035372235,
+        "yaw": -0,
+        "pitch": 0,
+        "roll": 179.20600000000002
+      },
+      "aligned": false
+    },
+    {
+      "deid": 605,
+      "symname": "MCH/HC11/DE605",
+      "transform": {
+        "tx": -41.25,
+        "ty": 146.5379032813131,
+        "tz": -1012.2797353823661,
+        "yaw": -180,
+        "pitch": 0,
+        "roll": -0.7940000000000002
+      },
+      "aligned": false
+    },
+    {
+      "deid": 606,
+      "symname": "MCH/HC11/DE606",
+      "transform": {
+        "tx": -61.25,
+        "ty": 112.95199889937234,
+        "tz": -1003.8135067741171,
+        "yaw": -180,
+        "pitch": 0,
+        "roll": 179.20600000000002
+      },
+      "aligned": false
+    },
+    {
+      "deid": 607,
+      "symname": "MCH/HC11/DE607",
+      "transform": {
+        "tx": -81.25,
+        "ty": 75.54472065567226,
+        "tz": -1011.2958549615781,
+        "yaw": -180,
+        "pitch": 0,
+        "roll": -0.7940000000000002
+      },
+      "aligned": false
+    },
+    {
+      "deid": 608,
+      "symname": "MCH/HC11/DE608",
+      "transform": {
+        "tx": -81.25,
+        "ty": 37.9592003511602,
+        "tz": -1002.7741964704679,
+        "yaw": -0,
+        "pitch": 0,
+        "roll": -0.7940000000000002
+      },
+      "aligned": false
+    },
+    {
+      "deid": 609,
+      "symname": "MCH/HC11/DE609",
+      "transform": {
+        "tx": -81.25,
+        "ty": 0.05197011713870941,
+        "tz": -1010.2496159225714,
+        "yaw": -0,
+        "pitch": 0,
+        "roll": -0.7940000000000002
+      },
+      "aligned": false
+    },
+    {
+      "deid": 610,
+      "symname": "MCH/HC11/DE610",
+      "transform": {
+        "tx": -81.25,
+        "ty": -37.63354058543762,
+        "tz": -1001.7265716843895,
+        "yaw": -0,
+        "pitch": 0,
+        "roll": 179.20600000000002
+      },
+      "aligned": false
+    },
+    {
+      "deid": 611,
+      "symname": "MCH/HC11/DE611",
+      "transform": {
+        "tx": -81.25,
+        "ty": -75.44078042139485,
+        "tz": -1009.2033768835645,
+        "yaw": -180,
+        "pitch": 0,
+        "roll": -0.7940000000000002
+      },
+      "aligned": false
+    },
+    {
+      "deid": 612,
+      "symname": "MCH/HC11/DE612",
+      "transform": {
+        "tx": -61.25,
+        "ty": -112.62633913364976,
+        "tz": -1000.6872613807403,
+        "yaw": -180,
+        "pitch": 0,
+        "roll": 179.20600000000002
+      },
+      "aligned": false
+    },
+    {
+      "deid": 613,
+      "symname": "MCH/HC11/DE613",
+      "transform": {
+        "tx": -41.25,
+        "ty": -146.43396304703566,
+        "tz": -1008.2194964627765,
+        "yaw": -180,
+        "pitch": 0,
+        "roll": -0.7940000000000002
+      },
+      "aligned": false
+    },
+    {
+      "deid": 614,
+      "symname": "MCH/HC10/DE614",
+      "transform": {
+        "tx": 41.25,
+        "ty": -146.5379032813131,
+        "tz": -984.7202646176339,
+        "yaw": -0,
+        "pitch": 0,
+        "roll": 179.20600000000002
+      },
+      "aligned": false
+    },
+    {
+      "deid": 615,
+      "symname": "MCH/HC10/DE615",
+      "transform": {
+        "tx": 61.25,
+        "ty": -112.95199889937234,
+        "tz": -993.1864932258829,
+        "yaw": -0,
+        "pitch": 0,
+        "roll": -0.7940000000000002
+      },
+      "aligned": false
+    },
+    {
+      "deid": 616,
+      "symname": "MCH/HC10/DE616",
+      "transform": {
+        "tx": 81.25,
+        "ty": -75.54472065567226,
+        "tz": -985.7041450384219,
+        "yaw": -0,
+        "pitch": 0,
+        "roll": 179.20600000000002
+      },
+      "aligned": false
+    },
+    {
+      "deid": 617,
+      "symname": "MCH/HC10/DE617",
+      "transform": {
+        "tx": 81.25,
+        "ty": -37.9592003511602,
+        "tz": -994.2258035295321,
+        "yaw": -180,
+        "pitch": 0,
+        "roll": -0.7940000000000002
+      },
+      "aligned": false
+    },
+    {
+      "deid": 700,
+      "symname": "MCH/HC12/DE700",
+      "transform": {
+        "tx": 140,
+        "ty": -0.04850574945987875,
+        "tz": -1255.500408082268,
+        "yaw": -0,
+        "pitch": 0,
+        "roll": 179.20600000000002
+      },
+      "aligned": false
+    },
+    {
+      "deid": 701,
+      "symname": "MCH/HC12/DE701",
+      "transform": {
+        "tx": 121.25,
+        "ty": 38.03003781001593,
+        "tz": -1264.5289472990573,
+        "yaw": -180,
+        "pitch": 0,
+        "roll": 179.20600000000002
+      },
+      "aligned": false
+    },
+    {
+      "deid": 702,
+      "symname": "MCH/HC12/DE702",
+      "transform": {
+        "tx": 101.25,
+        "ty": 72.54452324520946,
+        "tz": -1256.5064604562003,
+        "yaw": -0,
+        "pitch": 0,
+        "roll": 179.20600000000002
+      },
+      "aligned": false
+    },
+    {
+      "deid": 703,
+      "symname": "MCH/HC12/DE703",
+      "transform": {
+        "tx": 101.25,
+        "ty": 109.02322043565675,
+        "tz": -1265.5128277198453,
+        "yaw": -0,
+        "pitch": 0,
+        "roll": -0.7940000000000002
+      },
+      "aligned": false
+    },
+    {
+      "deid": 704,
+      "symname": "MCH/HC12/DE704",
+      "transform": {
+        "tx": 81.25,
+        "ty": 138.43819556957186,
+        "tz": -1257.4196677763402,
+        "yaw": -0,
+        "pitch": 0,
+        "roll": 179.20600000000002
+      },
+      "aligned": false
+    },
+    {
+      "deid": 705,
+      "symname": "MCH/HC12/DE705",
+      "transform": {
+        "tx": 61.25,
+        "ty": 175.31685435227624,
+        "tz": -1266.4315780282711,
+        "yaw": -0,
+        "pitch": 0,
+        "roll": -0.7940000000000002
+      },
+      "aligned": false
+    },
+    {
+      "deid": 706,
+      "symname": "MCH/HC12/DE706",
+      "transform": {
+        "tx": 41.25,
+        "ty": 204.43185829199854,
+        "tz": -1258.3342608435514,
+        "yaw": -0,
+        "pitch": 0,
+        "roll": 179.20600000000002
+      },
+      "aligned": false
+    },
+    {
+      "deid": 707,
+      "symname": "MCH/HC13/DE707",
+      "transform": {
+        "tx": -41.25,
+        "ty": 204.31406979091827,
+        "tz": -1291.3334446790154,
+        "yaw": -180,
+        "pitch": 0,
+        "roll": -0.7940000000000002
+      },
+      "aligned": false
+    },
+    {
+      "deid": 708,
+      "symname": "MCH/HC13/DE708",
+      "transform": {
+        "tx": -61.25,
+        "ty": 175.4346428533565,
+        "tz": -1282.4323941928071,
+        "yaw": -180,
+        "pitch": 0,
+        "roll": 179.20600000000002
+      },
+      "aligned": false
+    },
+    {
+      "deid": 709,
+      "symname": "MCH/HC13/DE709",
+      "transform": {
+        "tx": -81.25,
+        "ty": 138.3204070684916,
+        "tz": -1290.4188516118043,
+        "yaw": -180,
+        "pitch": 0,
+        "roll": -0.7940000000000002
+      },
+      "aligned": false
+    },
+    {
+      "deid": 710,
+      "symname": "MCH/HC13/DE710",
+      "transform": {
+        "tx": -101.25,
+        "ty": 109.141008936737,
+        "tz": -1281.5136438843813,
+        "yaw": -180,
+        "pitch": 0,
+        "roll": 179.20600000000002
+      },
+      "aligned": false
+    },
+    {
+      "deid": 711,
+      "symname": "MCH/HC13/DE711",
+      "transform": {
+        "tx": -101.25,
+        "ty": 72.42673474412922,
+        "tz": -1289.5056442916643,
+        "yaw": -180,
+        "pitch": 0,
+        "roll": -0.7940000000000002
+      },
+      "aligned": false
+    },
+    {
+      "deid": 712,
+      "symname": "MCH/HC13/DE712",
+      "transform": {
+        "tx": -121.25,
+        "ty": 38.147826311096175,
+        "tz": -1280.5297634635933,
+        "yaw": -0,
+        "pitch": 0,
+        "roll": -0.7940000000000002
+      },
+      "aligned": false
+    },
+    {
+      "deid": 713,
+      "symname": "MCH/HC13/DE713",
+      "transform": {
+        "tx": -140,
+        "ty": -0.16629425054012126,
+        "tz": -1288.499591917732,
+        "yaw": -180,
+        "pitch": 0,
+        "roll": -0.7940000000000002
+      },
+      "aligned": false
+    },
+    {
+      "deid": 714,
+      "symname": "MCH/HC13/DE714",
+      "transform": {
+        "tx": -121.25,
+        "ty": -38.24483781001593,
+        "tz": -1279.4710527009427,
+        "yaw": -0,
+        "pitch": 0,
+        "roll": 179.20600000000002
+      },
+      "aligned": false
+    },
+    {
+      "deid": 715,
+      "symname": "MCH/HC13/DE715",
+      "transform": {
+        "tx": -101.25,
+        "ty": -72.75932324520946,
+        "tz": -1287.4935395437997,
+        "yaw": -180,
+        "pitch": 0,
+        "roll": -0.7940000000000002
+      },
+      "aligned": false
+    },
+    {
+      "deid": 716,
+      "symname": "MCH/HC13/DE716",
+      "transform": {
+        "tx": -101.25,
+        "ty": -109.23802043565675,
+        "tz": -1278.4871722801547,
+        "yaw": -180,
+        "pitch": 0,
+        "roll": 179.20600000000002
+      },
+      "aligned": false
+    },
+    {
+      "deid": 717,
+      "symname": "MCH/HC13/DE717",
+      "transform": {
+        "tx": -81.25,
+        "ty": -138.65299556957189,
+        "tz": -1286.5803322236598,
+        "yaw": -180,
+        "pitch": 0,
+        "roll": -0.7940000000000002
+      },
+      "aligned": false
+    },
+    {
+      "deid": 718,
+      "symname": "MCH/HC13/DE718",
+      "transform": {
+        "tx": -61.25,
+        "ty": -175.53165435227626,
+        "tz": -1277.5684219717289,
+        "yaw": -180,
+        "pitch": 0,
+        "roll": 179.20600000000002
+      },
+      "aligned": false
+    },
+    {
+      "deid": 719,
+      "symname": "MCH/HC13/DE719",
+      "transform": {
+        "tx": -41.25,
+        "ty": -204.64665829199856,
+        "tz": -1285.6657391564486,
+        "yaw": -180,
+        "pitch": 0,
+        "roll": -0.7940000000000002
+      },
+      "aligned": false
+    },
+    {
+      "deid": 720,
+      "symname": "MCH/HC12/DE720",
+      "transform": {
+        "tx": 41.25,
+        "ty": -204.5288697909183,
+        "tz": -1252.6665553209846,
+        "yaw": -0,
+        "pitch": 0,
+        "roll": 179.20600000000002
+      },
+      "aligned": false
+    },
+    {
+      "deid": 721,
+      "symname": "MCH/HC12/DE721",
+      "transform": {
+        "tx": 61.25,
+        "ty": -175.64944285335653,
+        "tz": -1261.5676058071929,
+        "yaw": -0,
+        "pitch": 0,
+        "roll": -0.7940000000000002
+      },
+      "aligned": false
+    },
+    {
+      "deid": 722,
+      "symname": "MCH/HC12/DE722",
+      "transform": {
+        "tx": 81.25,
+        "ty": -138.53520706849162,
+        "tz": -1253.5811483881957,
+        "yaw": -0,
+        "pitch": 0,
+        "roll": 179.20600000000002
+      },
+      "aligned": false
+    },
+    {
+      "deid": 723,
+      "symname": "MCH/HC12/DE723",
+      "transform": {
+        "tx": 101.25,
+        "ty": -109.35580893673699,
+        "tz": -1262.4863561156187,
+        "yaw": -0,
+        "pitch": 0,
+        "roll": -0.7940000000000002
+      },
+      "aligned": false
+    },
+    {
+      "deid": 724,
+      "symname": "MCH/HC12/DE724",
+      "transform": {
+        "tx": 101.25,
+        "ty": -72.64153474412922,
+        "tz": -1254.4943557083357,
+        "yaw": -0,
+        "pitch": 0,
+        "roll": 179.20600000000002
+      },
+      "aligned": false
+    },
+    {
+      "deid": 725,
+      "symname": "MCH/HC12/DE725",
+      "transform": {
+        "tx": 121.25,
+        "ty": -38.36262631109617,
+        "tz": -1263.4702365364067,
+        "yaw": -180,
+        "pitch": 0,
+        "roll": -0.7940000000000002
+      },
+      "aligned": false
+    },
+    {
+      "deid": 800,
+      "symname": "MCH/HC14/DE800",
+      "transform": {
+        "tx": 140,
+        "ty": -0.04850574945987875,
+        "tz": -1295.500408082268,
+        "yaw": -0,
+        "pitch": 0,
+        "roll": 179.20600000000002
+      },
+      "aligned": false
+    },
+    {
+      "deid": 801,
+      "symname": "MCH/HC14/DE801",
+      "transform": {
+        "tx": 121.25,
+        "ty": 38.03003781001593,
+        "tz": -1304.5289472990573,
+        "yaw": -180,
+        "pitch": 0,
+        "roll": 179.20600000000002
+      },
+      "aligned": false
+    },
+    {
+      "deid": 802,
+      "symname": "MCH/HC14/DE802",
+      "transform": {
+        "tx": 101.25,
+        "ty": 75.99419197842722,
+        "tz": -1296.5542687301684,
+        "yaw": -0,
+        "pitch": 0,
+        "roll": 179.20600000000002
+      },
+      "aligned": false
+    },
+    {
+      "deid": 803,
+      "symname": "MCH/HC14/DE803",
+      "transform": {
+        "tx": 101.25,
+        "ty": 113.42279795048519,
+        "tz": -1305.5738005909927,
+        "yaw": -0,
+        "pitch": 0,
+        "roll": -0.7940000000000002
+      },
+      "aligned": false
+    },
+    {
+      "deid": 804,
+      "symname": "MCH/HC14/DE804",
+      "transform": {
+        "tx": 81.25,
+        "ty": 142.9377634824646,
+        "tz": -1297.4820263945592,
+        "yaw": -0,
+        "pitch": 0,
+        "roll": 179.20600000000002
+      },
+      "aligned": false
+    },
+    {
+      "deid": 805,
+      "symname": "MCH/HC14/DE805",
+      "transform": {
+        "tx": 61.25,
+        "ty": 179.81642226516897,
+        "tz": -1306.49393664649,
+        "yaw": -0,
+        "pitch": 0,
+        "roll": -0.7940000000000002
+      },
+      "aligned": false
+    },
+    {
+      "deid": 806,
+      "symname": "MCH/HC14/DE806",
+      "transform": {
+        "tx": 41.25,
+        "ty": 208.53146461263412,
+        "tz": -1298.3910764734842,
+        "yaw": -0,
+        "pitch": 0,
+        "roll": 179.20600000000002
+      },
+      "aligned": false
+    },
+    {
+      "deid": 807,
+      "symname": "MCH/HC15/DE807",
+      "transform": {
+        "tx": -41.25,
+        "ty": 208.41367611155385,
+        "tz": -1322.3902603089484,
+        "yaw": -180,
+        "pitch": 0,
+        "roll": -0.7940000000000002
+      },
+      "aligned": false
+    },
+    {
+      "deid": 808,
+      "symname": "MCH/HC15/DE808",
+      "transform": {
+        "tx": -61.25,
+        "ty": 179.93421076624924,
+        "tz": -1313.494752811026,
+        "yaw": -180,
+        "pitch": 0,
+        "roll": 179.20600000000002
+      },
+      "aligned": false
+    },
+    {
+      "deid": 809,
+      "symname": "MCH/HC15/DE809",
+      "transform": {
+        "tx": -81.25,
+        "ty": 142.81997498138432,
+        "tz": -1321.4812102300232,
+        "yaw": -180,
+        "pitch": 0,
+        "roll": -0.7940000000000002
+      },
+      "aligned": false
+    },
+    {
+      "deid": 810,
+      "symname": "MCH/HC15/DE810",
+      "transform": {
+        "tx": -101.25,
+        "ty": 113.54058645156543,
+        "tz": -1312.5746167555287,
+        "yaw": -180,
+        "pitch": 0,
+        "roll": 179.20600000000002
+      },
+      "aligned": false
+    },
+    {
+      "deid": 811,
+      "symname": "MCH/HC15/DE811",
+      "transform": {
+        "tx": -101.25,
+        "ty": 75.87640347734698,
+        "tz": -1320.5534525656324,
+        "yaw": -180,
+        "pitch": 0,
+        "roll": -0.7940000000000002
+      },
+      "aligned": false
+    },
+    {
+      "deid": 812,
+      "symname": "MCH/HC15/DE812",
+      "transform": {
+        "tx": -121.25,
+        "ty": 38.147826311096175,
+        "tz": -1311.5297634635933,
+        "yaw": -0,
+        "pitch": 0,
+        "roll": -0.7940000000000002
+      },
+      "aligned": false
+    },
+    {
+      "deid": 813,
+      "symname": "MCH/HC15/DE813",
+      "transform": {
+        "tx": -140,
+        "ty": -0.16629425054012126,
+        "tz": -1319.499591917732,
+        "yaw": -180,
+        "pitch": 0,
+        "roll": -0.7940000000000002
+      },
+      "aligned": false
+    },
+    {
+      "deid": 814,
+      "symname": "MCH/HC15/DE814",
+      "transform": {
+        "tx": -121.25,
+        "ty": -38.24483781001593,
+        "tz": -1310.4710527009427,
+        "yaw": -0,
+        "pitch": 0,
+        "roll": 179.20600000000002
+      },
+      "aligned": false
+    },
+    {
+      "deid": 815,
+      "symname": "MCH/HC15/DE815",
+      "transform": {
+        "tx": -101.25,
+        "ty": -76.20899197842722,
+        "tz": -1318.4457312698316,
+        "yaw": -180,
+        "pitch": 0,
+        "roll": -0.7940000000000002
+      },
+      "aligned": false
+    },
+    {
+      "deid": 816,
+      "symname": "MCH/HC15/DE816",
+      "transform": {
+        "tx": -101.25,
+        "ty": -113.63759795048519,
+        "tz": -1309.4261994090073,
+        "yaw": -180,
+        "pitch": 0,
+        "roll": 179.20600000000002
+      },
+      "aligned": false
+    },
+    {
+      "deid": 817,
+      "symname": "MCH/HC15/DE817",
+      "transform": {
+        "tx": -81.25,
+        "ty": -143.15256348246461,
+        "tz": -1317.5179736054408,
+        "yaw": -180,
+        "pitch": 0,
+        "roll": -0.7940000000000002
+      },
+      "aligned": false
+    },
+    {
+      "deid": 818,
+      "symname": "MCH/HC15/DE818",
+      "transform": {
+        "tx": -61.25,
+        "ty": -180.031222265169,
+        "tz": -1308.50606335351,
+        "yaw": -180,
+        "pitch": 0,
+        "roll": 179.20600000000002
+      },
+      "aligned": false
+    },
+    {
+      "deid": 819,
+      "symname": "MCH/HC15/DE819",
+      "transform": {
+        "tx": -41.25,
+        "ty": -208.74626461263415,
+        "tz": -1316.6089235265158,
+        "yaw": -180,
+        "pitch": 0,
+        "roll": -0.7940000000000002
+      },
+      "aligned": false
+    },
+    {
+      "deid": 820,
+      "symname": "MCH/HC14/DE820",
+      "transform": {
+        "tx": 41.25,
+        "ty": -208.62847611155388,
+        "tz": -1292.6097396910516,
+        "yaw": -0,
+        "pitch": 0,
+        "roll": 179.20600000000002
+      },
+      "aligned": false
+    },
+    {
+      "deid": 821,
+      "symname": "MCH/HC14/DE821",
+      "transform": {
+        "tx": 61.25,
+        "ty": -180.14901076624926,
+        "tz": -1301.505247188974,
+        "yaw": -0,
+        "pitch": 0,
+        "roll": -0.7940000000000002
+      },
+      "aligned": false
+    },
+    {
+      "deid": 822,
+      "symname": "MCH/HC14/DE822",
+      "transform": {
+        "tx": 81.25,
+        "ty": -143.03477498138434,
+        "tz": -1293.5187897699768,
+        "yaw": -0,
+        "pitch": 0,
+        "roll": 179.20600000000002
+      },
+      "aligned": false
+    },
+    {
+      "deid": 823,
+      "symname": "MCH/HC14/DE823",
+      "transform": {
+        "tx": 101.25,
+        "ty": -113.75538645156543,
+        "tz": -1302.4253832444713,
+        "yaw": -0,
+        "pitch": 0,
+        "roll": -0.7940000000000002
+      },
+      "aligned": false
+    },
+    {
+      "deid": 824,
+      "symname": "MCH/HC14/DE824",
+      "transform": {
+        "tx": 101.25,
+        "ty": -76.09120347734698,
+        "tz": -1294.4465474343676,
+        "yaw": -0,
+        "pitch": 0,
+        "roll": 179.20600000000002
+      },
+      "aligned": false
+    },
+    {
+      "deid": 825,
+      "symname": "MCH/HC14/DE825",
+      "transform": {
+        "tx": 121.25,
+        "ty": -38.36262631109617,
+        "tz": -1303.4702365364067,
+        "yaw": -180,
+        "pitch": 0,
+        "roll": 179.20600000000002
+      },
+      "aligned": false
+    },
+    {
+      "deid": 900,
+      "symname": "MCH/HC16/DE900",
+      "transform": {
+        "tx": 140,
+        "ty": -0.04850574945987875,
+        "tz": -1394.600408082268,
+        "yaw": -0,
+        "pitch": 0,
+        "roll": 179.20600000000002
+      },
+      "aligned": false
+    },
+    {
+      "deid": 901,
+      "symname": "MCH/HC16/DE901",
+      "transform": {
+        "tx": 121.25,
+        "ty": 38.03003781001593,
+        "tz": -1403.6289472990572,
+        "yaw": -180,
+        "pitch": 0,
+        "roll": 179.20600000000002
+      },
+      "aligned": false
+    },
+    {
+      "deid": 902,
+      "symname": "MCH/HC16/DE902",
+      "transform": {
+        "tx": 121.25,
+        "ty": 76.04418717745936,
+        "tz": -1395.654961603704,
+        "yaw": -0,
+        "pitch": 0,
+        "roll": 179.20600000000002
+      },
+      "aligned": false
+    },
+    {
+      "deid": 903,
+      "symname": "MCH/HC16/DE903",
+      "transform": {
+        "tx": 121.25,
+        "ty": 113.52278834854948,
+        "tz": -1404.6751863380641,
+        "yaw": -0,
+        "pitch": 0,
+        "roll": -0.7940000000000002
+      },
+      "aligned": false
+    },
+    {
+      "deid": 904,
+      "symname": "MCH/HC16/DE904",
+      "transform": {
+        "tx": 101.25,
+        "ty": 150.93699532760724,
+        "tz": -1396.6928861602817,
+        "yaw": -0,
+        "pitch": 0,
+        "roll": 179.20600000000002
+      },
+      "aligned": false
+    },
+    {
+      "deid": 905,
+      "symname": "MCH/HC16/DE905",
+      "transform": {
+        "tx": 81.25,
+        "ty": 187.86564930934375,
+        "tz": -1405.7054892857484,
+        "yaw": -0,
+        "pitch": 0,
+        "roll": -0.7940000000000002
+      },
+      "aligned": false
+    },
+    {
+      "deid": 906,
+      "symname": "MCH/HC16/DE906",
+      "transform": {
+        "tx": 61.25,
+        "ty": 224.72990909904797,
+        "tz": -1397.7155674990724,
+        "yaw": -0,
+        "pitch": 0,
+        "roll": 179.20600000000002
+      },
+      "aligned": false
+    },
+    {
+      "deid": 907,
+      "symname": "MCH/HC17/DE907",
+      "transform": {
+        "tx": -61.25,
+        "ty": 224.6121205979677,
+        "tz": -1421.7147513345365,
+        "yaw": -180,
+        "pitch": 0,
+        "roll": -0.7940000000000002
+      },
+      "aligned": false
+    },
+    {
+      "deid": 908,
+      "symname": "MCH/HC17/DE908",
+      "transform": {
+        "tx": -81.25,
+        "ty": 187.98343781042402,
+        "tz": -1412.7063054502844,
+        "yaw": -180,
+        "pitch": 0,
+        "roll": 179.20600000000002
+      },
+      "aligned": false
+    },
+    {
+      "deid": 909,
+      "symname": "MCH/HC17/DE909",
+      "transform": {
+        "tx": -101.25,
+        "ty": 150.81920682652697,
+        "tz": -1420.6920699957457,
+        "yaw": -180,
+        "pitch": 0,
+        "roll": -0.7940000000000002
+      },
+      "aligned": false
+    },
+    {
+      "deid": 910,
+      "symname": "MCH/HC17/DE910",
+      "transform": {
+        "tx": -121.25,
+        "ty": 113.64057684962972,
+        "tz": -1411.6760025026,
+        "yaw": -180,
+        "pitch": 0,
+        "roll": 179.20600000000002
+      },
+      "aligned": false
+    },
+    {
+      "deid": 911,
+      "symname": "MCH/HC17/DE911",
+      "transform": {
+        "tx": -121.25,
+        "ty": 75.92639867637912,
+        "tz": -1419.654145439168,
+        "yaw": -180,
+        "pitch": 0,
+        "roll": -0.7940000000000002
+      },
+      "aligned": false
+    },
+    {
+      "deid": 912,
+      "symname": "MCH/HC17/DE912",
+      "transform": {
+        "tx": -121.25,
+        "ty": 38.147826311096175,
+        "tz": -1410.6297634635932,
+        "yaw": -0,
+        "pitch": 0,
+        "roll": -0.7940000000000002
+      },
+      "aligned": false
+    },
+    {
+      "deid": 913,
+      "symname": "MCH/HC17/DE913",
+      "transform": {
+        "tx": -140,
+        "ty": -0.16629425054012126,
+        "tz": -1418.599591917732,
+        "yaw": -180,
+        "pitch": 0,
+        "roll": -0.7940000000000002
+      },
+      "aligned": false
+    },
+    {
+      "deid": 914,
+      "symname": "MCH/HC17/DE914",
+      "transform": {
+        "tx": -121.25,
+        "ty": -38.24483781001593,
+        "tz": -1409.5710527009426,
+        "yaw": -0,
+        "pitch": 0,
+        "roll": 179.20600000000002
+      },
+      "aligned": false
+    },
+    {
+      "deid": 915,
+      "symname": "MCH/HC17/DE915",
+      "transform": {
+        "tx": -121.25,
+        "ty": -76.25898717745936,
+        "tz": -1417.545038396296,
+        "yaw": -180,
+        "pitch": 0,
+        "roll": -0.7940000000000002
+      },
+      "aligned": false
+    },
+    {
+      "deid": 916,
+      "symname": "MCH/HC17/DE916",
+      "transform": {
+        "tx": -121.25,
+        "ty": -113.73758834854948,
+        "tz": -1408.5248136619357,
+        "yaw": -180,
+        "pitch": 0,
+        "roll": 179.20600000000002
+      },
+      "aligned": false
+    },
+    {
+      "deid": 917,
+      "symname": "MCH/HC17/DE917",
+      "transform": {
+        "tx": -101.25,
+        "ty": -151.15179532760726,
+        "tz": -1416.5071138397182,
+        "yaw": -180,
+        "pitch": 0,
+        "roll": -0.7940000000000002
+      },
+      "aligned": false
+    },
+    {
+      "deid": 918,
+      "symname": "MCH/HC17/DE918",
+      "transform": {
+        "tx": -81.25,
+        "ty": -188.08044930934378,
+        "tz": -1407.4945107142514,
+        "yaw": -180,
+        "pitch": 0,
+        "roll": 179.20600000000002
+      },
+      "aligned": false
+    },
+    {
+      "deid": 919,
+      "symname": "MCH/HC17/DE919",
+      "transform": {
+        "tx": -61.25,
+        "ty": -224.944709099048,
+        "tz": -1415.4844325009274,
+        "yaw": -180,
+        "pitch": 0,
+        "roll": -0.7940000000000002
+      },
+      "aligned": false
+    },
+    {
+      "deid": 920,
+      "symname": "MCH/HC16/DE920",
+      "transform": {
+        "tx": 61.25,
+        "ty": -224.82692059796773,
+        "tz": -1391.4852486654634,
+        "yaw": -0,
+        "pitch": 0,
+        "roll": 179.20600000000002
+      },
+      "aligned": false
+    },
+    {
+      "deid": 921,
+      "symname": "MCH/HC16/DE921",
+      "transform": {
+        "tx": 81.25,
+        "ty": -188.19823781042405,
+        "tz": -1400.4936945497154,
+        "yaw": -0,
+        "pitch": 0,
+        "roll": -0.7940000000000002
+      },
+      "aligned": false
+    },
+    {
+      "deid": 922,
+      "symname": "MCH/HC16/DE922",
+      "transform": {
+        "tx": 101.25,
+        "ty": -151.034006826527,
+        "tz": -1392.5079300042541,
+        "yaw": -0,
+        "pitch": 0,
+        "roll": 179.20600000000002
+      },
+      "aligned": false
+    },
+    {
+      "deid": 923,
+      "symname": "MCH/HC16/DE923",
+      "transform": {
+        "tx": 121.25,
+        "ty": -113.85537684962972,
+        "tz": -1401.5239974973997,
+        "yaw": -0,
+        "pitch": 0,
+        "roll": -0.7940000000000002
+      },
+      "aligned": false
+    },
+    {
+      "deid": 924,
+      "symname": "MCH/HC16/DE924",
+      "transform": {
+        "tx": 121.25,
+        "ty": -76.14119867637912,
+        "tz": -1393.545854560832,
+        "yaw": -0,
+        "pitch": 0,
+        "roll": 179.20600000000002
+      },
+      "aligned": false
+    },
+    {
+      "deid": 925,
+      "symname": "MCH/HC16/DE925",
+      "transform": {
+        "tx": 121.25,
+        "ty": -38.36262631109617,
+        "tz": -1402.5702365364066,
+        "yaw": -180,
+        "pitch": 0,
+        "roll": -0.7940000000000002
+      },
+      "aligned": false
+    },
+    {
+      "deid": 1000,
+      "symname": "MCH/HC18/DE1000",
+      "transform": {
+        "tx": 140,
+        "ty": -0.04850574945987875,
+        "tz": -1425.600408082268,
+        "yaw": -0,
+        "pitch": 0,
+        "roll": 179.20600000000002
+      },
+      "aligned": false
+    },
+    {
+      "deid": 1001,
+      "symname": "MCH/HC18/DE1001",
+      "transform": {
+        "tx": 121.25,
+        "ty": 38.03003781001593,
+        "tz": -1434.6289472990572,
+        "yaw": -180,
+        "pitch": 0,
+        "roll": 179.20600000000002
+      },
+      "aligned": false
+    },
+    {
+      "deid": 1002,
+      "symname": "MCH/HC18/DE1002",
+      "transform": {
+        "tx": 121.25,
+        "ty": 76.04418717745936,
+        "tz": -1426.654961603704,
+        "yaw": -0,
+        "pitch": 0,
+        "roll": 179.20600000000002
+      },
+      "aligned": false
+    },
+    {
+      "deid": 1003,
+      "symname": "MCH/HC18/DE1003",
+      "transform": {
+        "tx": 121.25,
+        "ty": 113.52278834854948,
+        "tz": -1435.6751863380641,
+        "yaw": -0,
+        "pitch": 0,
+        "roll": -0.7940000000000002
+      },
+      "aligned": false
+    },
+    {
+      "deid": 1004,
+      "symname": "MCH/HC18/DE1004",
+      "transform": {
+        "tx": 101.25,
+        "ty": 150.93699532760724,
+        "tz": -1427.6928861602817,
+        "yaw": -0,
+        "pitch": 0,
+        "roll": 179.20600000000002
+      },
+      "aligned": false
+    },
+    {
+      "deid": 1005,
+      "symname": "MCH/HC18/DE1005",
+      "transform": {
+        "tx": 81.25,
+        "ty": 187.86564930934375,
+        "tz": -1436.7054892857484,
+        "yaw": -0,
+        "pitch": 0,
+        "roll": -0.7940000000000002
+      },
+      "aligned": false
+    },
+    {
+      "deid": 1006,
+      "symname": "MCH/HC18/DE1006",
+      "transform": {
+        "tx": 61.25,
+        "ty": 224.72990909904797,
+        "tz": -1428.7155674990724,
+        "yaw": -0,
+        "pitch": 0,
+        "roll": 179.20600000000002
+      },
+      "aligned": false
+    },
+    {
+      "deid": 1007,
+      "symname": "MCH/HC19/DE1007",
+      "transform": {
+        "tx": -61.25,
+        "ty": 224.6121205979677,
+        "tz": -1452.7147513345365,
+        "yaw": -180,
+        "pitch": 0,
+        "roll": -0.7940000000000002
+      },
+      "aligned": false
+    },
+    {
+      "deid": 1008,
+      "symname": "MCH/HC19/DE1008",
+      "transform": {
+        "tx": -81.25,
+        "ty": 187.98343781042402,
+        "tz": -1443.7063054502844,
+        "yaw": -180,
+        "pitch": 0,
+        "roll": 179.20600000000002
+      },
+      "aligned": false
+    },
+    {
+      "deid": 1009,
+      "symname": "MCH/HC19/DE1009",
+      "transform": {
+        "tx": -101.25,
+        "ty": 150.81920682652697,
+        "tz": -1451.6920699957457,
+        "yaw": -180,
+        "pitch": 0,
+        "roll": -0.7940000000000002
+      },
+      "aligned": false
+    },
+    {
+      "deid": 1010,
+      "symname": "MCH/HC19/DE1010",
+      "transform": {
+        "tx": -121.25,
+        "ty": 113.64057684962972,
+        "tz": -1442.6760025026,
+        "yaw": -180,
+        "pitch": 0,
+        "roll": 179.20600000000002
+      },
+      "aligned": false
+    },
+    {
+      "deid": 1011,
+      "symname": "MCH/HC19/DE1011",
+      "transform": {
+        "tx": -121.25,
+        "ty": 75.92639867637912,
+        "tz": -1450.654145439168,
+        "yaw": -180,
+        "pitch": 0,
+        "roll": -0.7940000000000002
+      },
+      "aligned": false
+    },
+    {
+      "deid": 1012,
+      "symname": "MCH/HC19/DE1012",
+      "transform": {
+        "tx": -121.25,
+        "ty": 38.147826311096175,
+        "tz": -1441.6297634635932,
+        "yaw": -0,
+        "pitch": 0,
+        "roll": -0.7940000000000002
+      },
+      "aligned": false
+    },
+    {
+      "deid": 1013,
+      "symname": "MCH/HC19/DE1013",
+      "transform": {
+        "tx": -140,
+        "ty": -0.16629425054012126,
+        "tz": -1449.599591917732,
+        "yaw": -180,
+        "pitch": 0,
+        "roll": -0.7940000000000002
+      },
+      "aligned": false
+    },
+    {
+      "deid": 1014,
+      "symname": "MCH/HC19/DE1014",
+      "transform": {
+        "tx": -121.25,
+        "ty": -38.24483781001593,
+        "tz": -1440.5710527009426,
+        "yaw": -0,
+        "pitch": 0,
+        "roll": 179.20600000000002
+      },
+      "aligned": false
+    },
+    {
+      "deid": 1015,
+      "symname": "MCH/HC19/DE1015",
+      "transform": {
+        "tx": -121.25,
+        "ty": -76.25898717745936,
+        "tz": -1448.545038396296,
+        "yaw": -180,
+        "pitch": 0,
+        "roll": -0.7940000000000002
+      },
+      "aligned": false
+    },
+    {
+      "deid": 1016,
+      "symname": "MCH/HC19/DE1016",
+      "transform": {
+        "tx": -121.25,
+        "ty": -113.73758834854948,
+        "tz": -1439.5248136619357,
+        "yaw": -180,
+        "pitch": 0,
+        "roll": 179.20600000000002
+      },
+      "aligned": false
+    },
+    {
+      "deid": 1017,
+      "symname": "MCH/HC19/DE1017",
+      "transform": {
+        "tx": -101.25,
+        "ty": -151.15179532760726,
+        "tz": -1447.5071138397182,
+        "yaw": -180,
+        "pitch": 0,
+        "roll": -0.7940000000000002
+      },
+      "aligned": false
+    },
+    {
+      "deid": 1018,
+      "symname": "MCH/HC19/DE1018",
+      "transform": {
+        "tx": -81.25,
+        "ty": -188.08044930934378,
+        "tz": -1438.4945107142514,
+        "yaw": -180,
+        "pitch": 0,
+        "roll": 179.20600000000002
+      },
+      "aligned": false
+    },
+    {
+      "deid": 1019,
+      "symname": "MCH/HC19/DE1019",
+      "transform": {
+        "tx": -61.25,
+        "ty": -224.944709099048,
+        "tz": -1446.4844325009274,
+        "yaw": -180,
+        "pitch": 0,
+        "roll": -0.7940000000000002
+      },
+      "aligned": false
+    },
+    {
+      "deid": 1020,
+      "symname": "MCH/HC18/DE1020",
+      "transform": {
+        "tx": 61.25,
+        "ty": -224.82692059796773,
+        "tz": -1422.4852486654634,
+        "yaw": -0,
+        "pitch": 0,
+        "roll": 179.20600000000002
+      },
+      "aligned": false
+    },
+    {
+      "deid": 1021,
+      "symname": "MCH/HC18/DE1021",
+      "transform": {
+        "tx": 81.25,
+        "ty": -188.19823781042405,
+        "tz": -1431.4936945497154,
+        "yaw": -0,
+        "pitch": 0,
+        "roll": -0.7940000000000002
+      },
+      "aligned": false
+    },
+    {
+      "deid": 1022,
+      "symname": "MCH/HC18/DE1022",
+      "transform": {
+        "tx": 101.25,
+        "ty": -151.034006826527,
+        "tz": -1423.5079300042541,
+        "yaw": -0,
+        "pitch": 0,
+        "roll": 179.20600000000002
+      },
+      "aligned": false
+    },
+    {
+      "deid": 1023,
+      "symname": "MCH/HC18/DE1023",
+      "transform": {
+        "tx": 121.25,
+        "ty": -113.85537684962972,
+        "tz": -1432.5239974973997,
+        "yaw": -0,
+        "pitch": 0,
+        "roll": -0.7940000000000002
+      },
+      "aligned": false
+    },
+    {
+      "deid": 1024,
+      "symname": "MCH/HC18/DE1024",
+      "transform": {
+        "tx": 121.25,
+        "ty": -76.14119867637912,
+        "tz": -1424.545854560832,
+        "yaw": -0,
+        "pitch": 0,
+        "roll": 179.20600000000002
+      },
+      "aligned": false
+    },
+    {
+      "deid": 1025,
+      "symname": "MCH/HC18/DE1025",
+      "transform": {
+        "tx": 121.25,
+        "ty": -38.36262631109617,
+        "tz": -1433.5702365364066,
+        "yaw": -180,
+        "pitch": 0,
+        "roll": -0.7940000000000002
+      },
+      "aligned": false
+    }
+  ]
+}

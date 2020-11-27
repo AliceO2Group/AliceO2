@@ -14,10 +14,16 @@
 #pragma link off all classes;
 #pragma link off all functions;
 
-#pragma link C++ namespace o2;
-#pragma link C++ namespace o2::mch;
+#pragma link C++ namespace o2::mch::test;
 
-#pragma link C++ class o2::mch::Digit + ;
-#pragma link C++ class std::vector < o2::mch::Digit > +;
+#pragma link C++ class o2::mch::test::Dummy;
+
+#pragma link C++ function o2::mch::test::createStandaloneGeometry;
+#pragma link C++ function o2::mch::test::createRegularGeometry;
+#pragma link C++ function o2::mch::test::drawGeometry;
+#pragma link C++ function o2::mch::test::getRadio;
+#pragma link C++ function o2::mch::test::showGeometryAsTextTree;
+#pragma link C++ function o2::mch::test::setVolumeVisibility;
+#pragma link C++ function o2::mch::test::setVolumeColor;
 
 #endif

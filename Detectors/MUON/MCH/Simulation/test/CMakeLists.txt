@@ -8,28 +8,30 @@
 # granted to it by virtue of its status as an Intergovernmental Organization or
 # submit itself to any jurisdiction.
 
-o2_add_test(geometry-standalone
-        NAME o2-test-mch-geometry-standalone
-        COMPONENT_NAME mch
-        SOURCES testGeometry.cxx
-        PUBLIC_LINK_LIBRARIES O2::MCHSimulation O2::MCHBase
-        COMMAND_LINE_ARGS standalone
-        LABELS muon mch sim)
-
-o2_add_test(geometry-regular
-        NAME o2-test-mch-geometry-regular
-        COMPONENT_NAME mch
-        SOURCES testGeometry.cxx
-        PUBLIC_LINK_LIBRARIES O2::MCHSimulation O2::MCHBase
-        COMMAND_LINE_ARGS regular
-        LABELS muon mch sim)
-
-o2_add_test(simulation
+o2_add_test(digit-merging
         COMPONENT_NAME mch
         SOURCES testDigitMerging.cxx DigitMerging.cxx
-        testDigitization.cxx testResponse.cxx
-        PUBLIC_LINK_LIBRARIES O2::MCHSimulation O2::MCHBase
-        LABELS muon mch long sim)
+        PUBLIC_LINK_LIBRARIES O2::MCHSimulation O2::MCHBase O2::DetectorsPassive
+        LABELS muon mch sim)
+
+# o2_add_test(digitization
+#         COMPONENT_NAME mch
+#         SOURCES testDigitization.cxx 
+#         PUBLIC_LINK_LIBRARIES O2::MCHSimulation O2::MCHBase O2::DetectorsPassive
+#         LABELS muon mch long sim)
+#
+# o2_add_test(response
+#         COMPONENT_NAME mch
+#         SOURCES testResponse.cxx 
+#         PUBLIC_LINK_LIBRARIES O2::MCHSimulation O2::MCHBase O2::DetectorsPassive
+#         LABELS muon mch  sim)
+
+o2_add_test(regular-geometry
+        COMPONENT_NAME mch
+        SOURCES 
+        testRegularGeometry.cxx
+        PUBLIC_LINK_LIBRARIES O2::MCHSimulation O2::MCHBase O2::DetectorsPassive
+        LABELS muon mch  sim)
 
 if(benchmark_FOUND)
         o2_add_executable(
