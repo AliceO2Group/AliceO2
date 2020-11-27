@@ -138,7 +138,6 @@ BOOST_AUTO_TEST_CASE(CTFTest)
     BOOST_CHECK(dor.mTriggers.timeA == ddc.mTriggers.timeA);
     BOOST_CHECK(dor.mTriggers.timeC == ddc.mTriggers.timeC);
     BOOST_CHECK(dor.mTriggers.triggersignals == ddc.mTriggers.triggersignals);
-    BOOST_CHECK(dor.mTriggers.timeC == ddc.mTriggers.timeC);
   }
   for (int i = channels.size(); i--;) {
     const auto& cor = channels[i];
