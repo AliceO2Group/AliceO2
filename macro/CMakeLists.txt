@@ -53,6 +53,7 @@ install(FILES CheckDigits_mft.C
               run_rawdecoding_mft.C
               run_trac_ca_its.C
               run_trac_its.C
+              run_trac_alice3.C
 	      CreateBCPattern.C
         DESTINATION share/macro/)
 
@@ -379,6 +380,11 @@ o2_add_test_root_macro(run_trac_its.C
                                              O2::MathUtils
                                              O2::SimulationDataFormat
                         LABELS its)
+
+# FIXME: move to subsystem dir
+o2_add_test_root_macro(run_trac_alice3.C
+                       PUBLIC_LINK_LIBRARIES O2::GPUTracking
+                       LABELS its COMPILE_ONLY)
 
 #
 # NOTE: commented out until unit testing reenabled FIXME : re-enable or delete ?
