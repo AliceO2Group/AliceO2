@@ -45,12 +45,7 @@ BOOST_AUTO_TEST_CASE(StringHelpersConstStr)
   static_assert(myConstStr.hash == (uint32_t)942280617);
   BOOST_CHECK_EQUAL(myConstStr.hash, compile_time_hash("helloWorld"));
 
-  if constexpr (is_const_str<decltype(myConstStr)>::value) {
+  if constexpr (is_const_str_v(myConstStr)) {
     std::cout << "myConstStr is a compile-time string" << std::endl;
-  }
-
-  auto myFakeConstStr = "helloWorld";
-  if constexpr (is_const_str<decltype(myFakeConstStr)>::value) {
-    std::cout << "ERROR: type trait does not detect compile-time strings properly." << std::endl;
   }
 }

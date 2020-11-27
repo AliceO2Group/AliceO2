@@ -96,6 +96,12 @@ template <char... chars>
 struct is_const_str<ConstStr<chars...>> : std::true_type {
 };
 
+template <typename T>
+constexpr bool is_const_str_v(T)
+{
+  return is_const_str<T>::value;
+}
+
 template <typename T, std::size_t... Is>
 constexpr auto as_chars_impl(std::index_sequence<Is...>)
 {
