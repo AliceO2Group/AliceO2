@@ -29,6 +29,7 @@ namespace o2
 {
 namespace its
 {
+
 namespace GPU
 {
 
@@ -38,83 +39,83 @@ class DeviceStoreNV final
   DeviceStoreNV();
 
   UniquePointer<DeviceStoreNV> initialise(const float3&,
-                                          const std::array<std::vector<Cluster>, constants::its::LayersNumber>&,
-                                          const std::array<std::vector<Tracklet>, constants::its::TrackletsPerRoad>&,
-                                          const std::array<std::vector<Cell>, constants::its::CellsPerRoad>&,
-                                          const std::array<std::vector<int>, constants::its::CellsPerRoad - 1>&,
-                                          const std::array<float, constants::its::LayersNumber>&,
-                                          const std::array<float, constants::its::LayersNumber>&);
+                                          const std::array<std::vector<Cluster>, constants::its2::LayersNumber>&,
+                                          const std::array<std::vector<Tracklet>, constants::its2::TrackletsPerRoad>&,
+                                          const std::array<std::vector<Cell>, constants::its2::CellsPerRoad>&,
+                                          const std::array<std::vector<int>, constants::its2::CellsPerRoad - 1>&,
+                                          const std::array<float, constants::its2::LayersNumber>&,
+                                          const std::array<float, constants::its2::LayersNumber>&);
   GPU_DEVICE const float3& getPrimaryVertex();
-  GPU_HOST_DEVICE Array<Vector<Cluster>, constants::its::LayersNumber>& getClusters();
-  GPU_DEVICE Array<Array<int, constants::index_table::ZBins * constants::index_table::PhiBins + 1>,
-                   constants::its::TrackletsPerRoad>&
+  GPU_HOST_DEVICE Array<Vector<Cluster>, constants::its2::LayersNumber>& getClusters();
+  GPU_DEVICE Array<Array<int, constants::its2::ZBins * constants::its2::PhiBins + 1>,
+                   constants::its2::TrackletsPerRoad>&
     getIndexTables();
-  GPU_HOST_DEVICE Array<Vector<Tracklet>, constants::its::TrackletsPerRoad>& getTracklets();
-  GPU_HOST_DEVICE Array<Vector<int>, constants::its::CellsPerRoad>& getTrackletsLookupTable();
-  GPU_HOST_DEVICE Array<Vector<int>, constants::its::CellsPerRoad>& getTrackletsPerClusterTable();
-  GPU_HOST_DEVICE Array<Vector<Cell>, constants::its::CellsPerRoad>& getCells();
-  GPU_HOST_DEVICE Array<Vector<int>, constants::its::CellsPerRoad - 1>& getCellsLookupTable();
-  GPU_HOST_DEVICE Array<Vector<int>, constants::its::CellsPerRoad - 1>& getCellsPerTrackletTable();
-  Array<Vector<int>, constants::its::CellsPerRoad>& getTempTableArray();
+  GPU_HOST_DEVICE Array<Vector<Tracklet>, constants::its2::TrackletsPerRoad>& getTracklets();
+  GPU_HOST_DEVICE Array<Vector<int>, constants::its2::CellsPerRoad>& getTrackletsLookupTable();
+  GPU_HOST_DEVICE Array<Vector<int>, constants::its2::CellsPerRoad>& getTrackletsPerClusterTable();
+  GPU_HOST_DEVICE Array<Vector<Cell>, constants::its2::CellsPerRoad>& getCells();
+  GPU_HOST_DEVICE Array<Vector<int>, constants::its2::CellsPerRoad - 1>& getCellsLookupTable();
+  GPU_HOST_DEVICE Array<Vector<int>, constants::its2::CellsPerRoad - 1>& getCellsPerTrackletTable();
+  Array<Vector<int>, constants::its2::CellsPerRoad>& getTempTableArray();
 
   GPU_HOST_DEVICE float getRmin(int layer);
   GPU_HOST_DEVICE float getRmax(int layer);
 
  private:
   UniquePointer<float3> mPrimaryVertex;
-  Array<Vector<Cluster>, constants::its::LayersNumber> mClusters;
-  Array<float, constants::its::LayersNumber> mRmin;
-  Array<float, constants::its::LayersNumber> mRmax;
-  Array<Array<int, constants::index_table::ZBins * constants::index_table::PhiBins + 1>, constants::its::TrackletsPerRoad>
+  Array<Vector<Cluster>, constants::its2::LayersNumber> mClusters;
+  Array<float, constants::its2::LayersNumber> mRmin;
+  Array<float, constants::its2::LayersNumber> mRmax;
+  Array<Array<int, constants::its2::ZBins * constants::its2::PhiBins + 1>, constants::its2::TrackletsPerRoad>
     mIndexTables;
-  Array<Vector<Tracklet>, constants::its::TrackletsPerRoad> mTracklets;
-  Array<Vector<int>, constants::its::CellsPerRoad> mTrackletsLookupTable;
-  Array<Vector<int>, constants::its::CellsPerRoad> mTrackletsPerClusterTable;
-  Array<Vector<Cell>, constants::its::CellsPerRoad> mCells;
-  Array<Vector<int>, constants::its::CellsPerRoad - 1> mCellsLookupTable;
-  Array<Vector<int>, constants::its::CellsPerRoad - 1> mCellsPerTrackletTable;
+  Array<Vector<Tracklet>, constants::its2::TrackletsPerRoad> mTracklets;
+  Array<Vector<int>, constants::its2::CellsPerRoad> mTrackletsLookupTable;
+  Array<Vector<int>, constants::its2::CellsPerRoad> mTrackletsPerClusterTable;
+  Array<Vector<Cell>, constants::its2::CellsPerRoad> mCells;
+  Array<Vector<int>, constants::its2::CellsPerRoad - 1> mCellsLookupTable;
+  Array<Vector<int>, constants::its2::CellsPerRoad - 1> mCellsPerTrackletTable;
 };
 
 GPU_DEVICE inline const float3& DeviceStoreNV::getPrimaryVertex() { return *mPrimaryVertex; }
 
-GPU_HOST_DEVICE inline Array<Vector<Cluster>, constants::its::LayersNumber>& DeviceStoreNV::getClusters()
+GPU_HOST_DEVICE inline Array<Vector<Cluster>, constants::its2::LayersNumber>& DeviceStoreNV::getClusters()
 {
   return mClusters;
 }
 
-GPU_DEVICE inline Array<Array<int, constants::index_table::ZBins * constants::index_table::PhiBins + 1>,
-                        constants::its::TrackletsPerRoad>&
+GPU_DEVICE inline Array<Array<int, constants::its2::ZBins * constants::its2::PhiBins + 1>,
+                        constants::its2::TrackletsPerRoad>&
   DeviceStoreNV::getIndexTables()
 {
   return mIndexTables;
 }
 
-GPU_DEVICE inline Array<Vector<Tracklet>, constants::its::TrackletsPerRoad>& DeviceStoreNV::getTracklets()
+GPU_DEVICE inline Array<Vector<Tracklet>, constants::its2::TrackletsPerRoad>& DeviceStoreNV::getTracklets()
 {
   return mTracklets;
 }
 
-GPU_DEVICE inline Array<Vector<int>, constants::its::CellsPerRoad>& DeviceStoreNV::getTrackletsLookupTable()
+GPU_DEVICE inline Array<Vector<int>, constants::its2::CellsPerRoad>& DeviceStoreNV::getTrackletsLookupTable()
 {
   return mTrackletsLookupTable;
 }
 
-GPU_DEVICE inline Array<Vector<int>, constants::its::CellsPerRoad>& DeviceStoreNV::getTrackletsPerClusterTable()
+GPU_DEVICE inline Array<Vector<int>, constants::its2::CellsPerRoad>& DeviceStoreNV::getTrackletsPerClusterTable()
 {
   return mTrackletsPerClusterTable;
 }
 
-GPU_HOST_DEVICE inline Array<Vector<Cell>, constants::its::CellsPerRoad>& DeviceStoreNV::getCells()
+GPU_HOST_DEVICE inline Array<Vector<Cell>, constants::its2::CellsPerRoad>& DeviceStoreNV::getCells()
 {
   return mCells;
 }
 
-GPU_HOST_DEVICE inline Array<Vector<int>, constants::its::CellsPerRoad - 1>& DeviceStoreNV::getCellsLookupTable()
+GPU_HOST_DEVICE inline Array<Vector<int>, constants::its2::CellsPerRoad - 1>& DeviceStoreNV::getCellsLookupTable()
 {
   return mCellsLookupTable;
 }
 
-GPU_HOST_DEVICE inline Array<Vector<int>, constants::its::CellsPerRoad - 1>&
+GPU_HOST_DEVICE inline Array<Vector<int>, constants::its2::CellsPerRoad - 1>&
   DeviceStoreNV::getCellsPerTrackletTable()
 {
   return mCellsPerTrackletTable;

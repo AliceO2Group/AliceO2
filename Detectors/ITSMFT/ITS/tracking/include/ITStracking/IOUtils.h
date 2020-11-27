@@ -55,7 +55,6 @@ constexpr float DefClusErrorCol = o2::itsmft::SegmentationAlpide::PitchCol * 0.5
 constexpr float DefClusError2Row = DefClusErrorRow * DefClusErrorRow;
 constexpr float DefClusError2Col = DefClusErrorCol * DefClusErrorCol;
 
-void loadConfigurations(const std::string&);
 std::vector<ROframe> loadEventData(const std::string&);
 void loadEventData(ROframe& events, gsl::span<const itsmft::CompClusterExt> clusters,
                    gsl::span<const unsigned char>::iterator& pattIt, const itsmft::TopologyDictionary& dict,
@@ -63,7 +62,7 @@ void loadEventData(ROframe& events, gsl::span<const itsmft::CompClusterExt> clus
 int loadROFrameData(const o2::itsmft::ROFRecord& rof, ROframe& events, gsl::span<const itsmft::CompClusterExt> clusters,
                     gsl::span<const unsigned char>::iterator& pattIt, const itsmft::TopologyDictionary& dict,
                     const dataformats::MCTruthContainer<MCCompLabel>* mClsLabels = nullptr);
-void generateSimpleData(ROframe& event, const int phiDivs, const int zDivs);
+// void generateSimpleData(ROframe& event, const int phiDivs, const int zDivs);
 
 void convertCompactClusters(gsl::span<const itsmft::CompClusterExt> clusters,
                             gsl::span<const unsigned char>::iterator& pattIt,

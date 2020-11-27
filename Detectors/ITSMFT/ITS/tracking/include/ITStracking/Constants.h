@@ -21,6 +21,7 @@
 #endif
 
 #include "ITStracking/Definitions.h"
+#include "GPUCommonMath.h"
 
 namespace o2
 {
@@ -41,13 +42,22 @@ constexpr float FloatMinThreshold{1e-20f};
 
 namespace its
 {
-constexpr int LayersNumber{7};
 constexpr int LayersNumberVertexer{3};
-constexpr int TrackletsPerRoad{LayersNumber - 1};
-constexpr int CellsPerRoad{LayersNumber - 2};
 constexpr int ClustersPerCell{3};
 constexpr int UnusedIndex{-1};
 constexpr float Resolution{0.0005f};
+
+GPU_HOST_DEVICE constexpr GPUArray<float, 3> VertexerHistogramVolume()
+{
+  return GPUArray<float, 3>{{1.98, 1.98, 40.f}};
+}
+} // namespace its
+
+namespace its2
+{
+constexpr int LayersNumber{7};
+constexpr int TrackletsPerRoad{LayersNumber - 1};
+constexpr int CellsPerRoad{LayersNumber - 2};
 
 GPU_HOST_DEVICE constexpr GPUArray<float, LayersNumber> LayersZCoordinate()
 {
@@ -58,25 +68,42 @@ GPU_HOST_DEVICE constexpr GPUArray<float, LayersNumber> LayersRCoordinate()
 {
   return GPUArray<float, LayersNumber>{{2.33959f, 3.14076f, 3.91924f, 19.6213f, 24.5597f, 34.388f, 39.3329f}};
 }
-GPU_HOST_DEVICE constexpr GPUArray<float, 3> VertexerHistogramVolume()
-{
-  return GPUArray<float, 3>{{1.98, 1.98, 40.f}};
-}
-} // namespace its
 
-namespace index_table
-{
 constexpr int ZBins{256};
 constexpr int PhiBins{128};
-constexpr float InversePhiBinSize{constants::index_table::PhiBins / constants::math::TwoPi};
-GPU_HOST_DEVICE constexpr GPUArray<float, its::LayersNumber> InverseZBinSize()
+constexpr float InversePhiBinSize{PhiBins / constants::math::TwoPi};
+GPU_HOST_DEVICE constexpr GPUArray<float, LayersNumber> InverseZBinSize()
 {
-  constexpr auto zSize = its::LayersZCoordinate();
-  return GPUArray<float, its::LayersNumber>{{0.5f * ZBins / (zSize[0]), 0.5f * ZBins / (zSize[1]), 0.5f * ZBins / (zSize[2]),
-                                             0.5f * ZBins / (zSize[3]), 0.5f * ZBins / (zSize[4]), 0.5f * ZBins / (zSize[5]),
-                                             0.5f * ZBins / (zSize[6])}};
+  constexpr auto zSize = LayersZCoordinate();
+  return GPUArray<float, LayersNumber>{{0.5f * ZBins / (zSize[0]), 0.5f * ZBins / (zSize[1]), 0.5f * ZBins / (zSize[2]),
+                                        0.5f * ZBins / (zSize[3]), 0.5f * ZBins / (zSize[4]), 0.5f * ZBins / (zSize[5]),
+                                        0.5f * ZBins / (zSize[6])}};
 }
-} // namespace index_table
+inline float getInverseZCoordinate(const int layerIndex)
+{
+  return 0.5f * ZBins / LayersZCoordinate()[layerIndex];
+}
+
+GPU_HOST_DEVICE inline int getZBinIndex(const int layerIndex, const float zCoordinate)
+{
+  return (zCoordinate + LayersZCoordinate()[layerIndex]) *
+         InverseZBinSize()[layerIndex];
+}
+
+GPU_HOST_DEVICE inline int getPhiBinIndex(const float currentPhi)
+{
+  return (currentPhi * InversePhiBinSize);
+}
+
+GPU_HOST_DEVICE inline int getBinIndex(const int zIndex, const int phiIndex)
+{
+  return gpu::GPUCommonMath::Min(phiIndex * ZBins + zIndex,
+                                 ZBins * PhiBins - 1);
+}
+
+GPU_HOST_DEVICE constexpr int4 getEmptyBinsRect() { return int4{0, 0, 0, 0}; }
+
+} // namespace its2
 
 namespace pdgcodes
 {

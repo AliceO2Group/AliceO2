@@ -78,7 +78,7 @@ GPUdii() void GPUITSFitterKernel::Thread<0>(int nBlocks, int nThreads, int iBloc
     int lastCellLevel = o2::its::constants::its::UnusedIndex;
     CA_DEBUGGER(int nClusters = 2);
 
-    for (int iCell{0}; iCell < o2::its::constants::its::CellsPerRoad; ++iCell) {
+    for (int iCell{0}; iCell < Fitter.NumberOfLayers() - 2; ++iCell) {
       const int cellIndex = road[iCell];
       if (cellIndex == o2::its::constants::its::UnusedIndex) {
         continue;
@@ -164,13 +164,13 @@ GPUdii() void GPUITSFitterKernel::Thread<0>(int nBlocks, int nThreads, int iBloc
     for (size_t iC = 0; iC < 7; ++iC) {
       temporaryTrack.mClusters[iC] = clusters[iC];
     }
-    bool fitSuccess = fitTrack(Fitter, prop, temporaryTrack, o2::its::constants::its::LayersNumber - 4, -1, -1);
+    bool fitSuccess = fitTrack(Fitter, prop, temporaryTrack, Fitter.NumberOfLayers() - 4, -1, -1);
     if (!fitSuccess) {
       continue;
     }
     CA_DEBUGGER(fitCounters[nClusters - 4]++);
     temporaryTrack.ResetCovariance();
-    fitSuccess = fitTrack(Fitter, prop, temporaryTrack, 0, o2::its::constants::its::LayersNumber, 1);
+    fitSuccess = fitTrack(Fitter, prop, temporaryTrack, 0, Fitter.NumberOfLayers(), 1);
     if (!fitSuccess) {
       continue;
     }
@@ -184,7 +184,7 @@ GPUdii() void GPUITSFitterKernel::Thread<0>(int nBlocks, int nThreads, int iBloc
     temporaryTrack.mOuterParam.X = temporaryTrack.X();
     temporaryTrack.mOuterParam.alpha = prop.GetAlpha();
     temporaryTrack.ResetCovariance();
-    fitSuccess = fitTrack(Fitter, prop, temporaryTrack, o2::its::constants::its::LayersNumber - 1, -1, -1);
+    fitSuccess = fitTrack(Fitter, prop, temporaryTrack, Fitter.NumberOfLayers() - 1, -1, -1);
     if (!fitSuccess) {
       continue;
     }

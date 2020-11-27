@@ -57,12 +57,21 @@ void Tracker::clustersToTracks(const ROframe& event, std::ostream& timeBenchmark
     float total{0.f};
 
     for (int iteration = 0; iteration < mTrkParams.size(); ++iteration) {
+
+      int numCls = 0;
+      for (unsigned int iLayer{0}; iLayer < mTrkParams[iteration].NLayers; ++iLayer) {
+        numCls += event.getClusters()[iLayer].size();
+      }
+      if (numCls < mTrkParams[iteration].MinTrackLength) {
+        continue;
+      }
+
       mTraits->UpdateTrackingParameters(mTrkParams[iteration]);
       /// Ugly hack -> Unifiy float3 definition in CPU and CUDA/HIP code
       int pass = iteration + iVertex; /// Do not reinitialise the context if we analyse pile-up events
       std::array<float, 3> pV = {event.getPrimaryVertex(iVertex).x, event.getPrimaryVertex(iVertex).y, event.getPrimaryVertex(iVertex).z};
       total += evaluateTask(&Tracker::initialisePrimaryVertexContext, "Context initialisation",
-                            timeBenchmarkOutputStream, mMemParams[iteration], event.getClusters(), pV, pass);
+                            timeBenchmarkOutputStream, mMemParams[iteration], mTrkParams[iteration], event.getClusters(), pV, pass);
       total += evaluateTask(&Tracker::computeTracklets, "Tracklet finding", timeBenchmarkOutputStream);
       total += evaluateTask(&Tracker::computeCells, "Cell finding", timeBenchmarkOutputStream);
       total += evaluateTask(&Tracker::findCellsNeighbours, "Neighbour finding", timeBenchmarkOutputStream, iteration);
@@ -93,7 +102,7 @@ void Tracker::computeCells()
 
 void Tracker::findCellsNeighbours(int& iteration)
 {
-  for (int iLayer{0}; iLayer < constants::its::CellsPerRoad - 1; ++iLayer) {
+  for (int iLayer{0}; iLayer < mTrkParams[iteration].CellsPerRoad() - 1; ++iLayer) {
 
     if (mPrimaryVertexContext->getCells()[iLayer + 1].empty() ||
         mPrimaryVertexContext->getCellsLookupTable()[iLayer].empty()) {
@@ -101,6 +110,8 @@ void Tracker::findCellsNeighbours(int& iteration)
     }
 
     int layerCellsNum{static_cast<int>(mPrimaryVertexContext->getCells()[iLayer].size())};
+    const int nextLayerCellsNum{static_cast<int>(mPrimaryVertexContext->getCells()[iLayer + 1].size())};
+    mPrimaryVertexContext->getCellsNeighbours()[iLayer].resize(nextLayerCellsNum);
 
     for (int iCell{0}; iCell < layerCellsNum; ++iCell) {
 
@@ -111,16 +122,13 @@ void Tracker::findCellsNeighbours(int& iteration)
           mPrimaryVertexContext->getCells()[iLayer + 1][nextLayerFirstCellIndex].getFirstTrackletIndex() ==
             nextLayerTrackletIndex) {
 
-        const int nextLayerCellsNum{static_cast<int>(mPrimaryVertexContext->getCells()[iLayer + 1].size())};
-        mPrimaryVertexContext->getCellsNeighbours()[iLayer].resize(nextLayerCellsNum);
-
-        for (int iNextLayerCell{nextLayerFirstCellIndex};
-             iNextLayerCell < nextLayerCellsNum &&
-             mPrimaryVertexContext->getCells()[iLayer + 1][iNextLayerCell].getFirstTrackletIndex() ==
-               nextLayerTrackletIndex;
-             ++iNextLayerCell) {
+        for (int iNextLayerCell{nextLayerFirstCellIndex}; iNextLayerCell < nextLayerCellsNum; ++iNextLayerCell) {
 
           Cell& nextCell{mPrimaryVertexContext->getCells()[iLayer + 1][iNextLayerCell]};
+          if (nextCell.getFirstTrackletIndex() != nextLayerTrackletIndex) {
+            break;
+          }
+
           const float3 currentCellNormalVector{currentCell.getNormalVectorCoordinates()};
           const float3 nextCellNormalVector{nextCell.getNormalVectorCoordinates()};
           const float3 normalVectorsDeltaVector{currentCellNormalVector.x - nextCellNormalVector.x,
@@ -152,11 +160,11 @@ void Tracker::findCellsNeighbours(int& iteration)
 
 void Tracker::findRoads(int& iteration)
 {
-  for (int iLevel{constants::its::CellsPerRoad}; iLevel >= mTrkParams[iteration].CellMinimumLevel(); --iLevel) {
+  for (int iLevel{mTrkParams[iteration].CellsPerRoad()}; iLevel >= mTrkParams[iteration].CellMinimumLevel(); --iLevel) {
     CA_DEBUGGER(int nRoads = -mPrimaryVertexContext->getRoads().size());
     const int minimumLevel{iLevel - 1};
 
-    for (int iLayer{constants::its::CellsPerRoad - 1}; iLayer >= minimumLevel; --iLayer) {
+    for (int iLayer{mTrkParams[iteration].CellsPerRoad() - 1}; iLayer >= minimumLevel; --iLayer) {
 
       const int levelCellsNum{static_cast<int>(mPrimaryVertexContext->getCells()[iLayer].size())};
 
@@ -218,19 +226,19 @@ void Tracker::findTracks(const ROframe& event)
   std::vector<TrackITSExt> tracks;
   tracks.reserve(mPrimaryVertexContext->getRoads().size());
 #ifdef CA_DEBUG
-  std::array<int, 4> roadCounters{0, 0, 0, 0};
-  std::array<int, 4> fitCounters{0, 0, 0, 0};
-  std::array<int, 4> backpropagatedCounters{0, 0, 0, 0};
-  std::array<int, 4> refitCounters{0, 0, 0, 0};
-  std::array<int, 4> nonsharingCounters{0, 0, 0, 0};
+  std::vector<int> roadCounters(mTrkParams[0].NLayers - 3, 0);
+  std::vector<int> fitCounters(mTrkParams[0].NLayers - 3, 0);
+  std::vector<int> backpropagatedCounters(mTrkParams[0].NLayers - 3, 0);
+  std::vector<int> refitCounters(mTrkParams[0].NLayers - 3, 0);
+  std::vector<int> nonsharingCounters(mTrkParams[0].NLayers - 3, 0);
 #endif
 
   for (auto& road : mPrimaryVertexContext->getRoads()) {
-    std::array<int, 7> clusters{constants::its::UnusedIndex, constants::its::UnusedIndex, constants::its::UnusedIndex, constants::its::UnusedIndex, constants::its::UnusedIndex, constants::its::UnusedIndex, constants::its::UnusedIndex};
+    std::vector<int> clusters(mTrkParams[0].NLayers, constants::its::UnusedIndex);
     int lastCellLevel = constants::its::UnusedIndex;
     CA_DEBUGGER(int nClusters = 2);
 
-    for (int iCell{0}; iCell < constants::its::CellsPerRoad; ++iCell) {
+    for (int iCell{0}; iCell < mTrkParams[0].CellsPerRoad(); ++iCell) {
       const int cellIndex = road[iCell];
       if (cellIndex == constants::its::UnusedIndex) {
         continue;
@@ -271,20 +279,20 @@ void Tracker::findTracks(const ROframe& event)
     for (size_t iC = 0; iC < clusters.size(); ++iC) {
       temporaryTrack.setExternalClusterIndex(iC, clusters[iC], clusters[iC] != constants::its::UnusedIndex);
     }
-    bool fitSuccess = fitTrack(event, temporaryTrack, constants::its::LayersNumber - 4, -1, -1);
+    bool fitSuccess = fitTrack(event, temporaryTrack, mTrkParams[0].NLayers - 4, -1, -1);
     if (!fitSuccess) {
       continue;
     }
     CA_DEBUGGER(fitCounters[nClusters - 4]++);
     temporaryTrack.resetCovariance();
-    fitSuccess = fitTrack(event, temporaryTrack, 0, constants::its::LayersNumber, 1);
+    fitSuccess = fitTrack(event, temporaryTrack, 0, mTrkParams[0].NLayers, 1);
     if (!fitSuccess) {
       continue;
     }
     CA_DEBUGGER(backpropagatedCounters[nClusters - 4]++);
     temporaryTrack.getParamOut() = temporaryTrack;
     temporaryTrack.resetCovariance();
-    fitSuccess = fitTrack(event, temporaryTrack, constants::its::LayersNumber - 1, -1, -1);
+    fitSuccess = fitTrack(event, temporaryTrack, mTrkParams[0].NLayers - 1, -1, -1);
     if (!fitSuccess) {
       continue;
     }
@@ -298,19 +306,19 @@ void Tracker::findTracks(const ROframe& event)
             [](TrackITSExt& track1, TrackITSExt& track2) { return track1.isBetter(track2, 1.e6f); });
 
 #ifdef CA_DEBUG
-  std::array<int, 26> sharingMatrix{0};
-  int prevNclusters = 7;
-  auto cumulativeIndex = [](int ncl) -> int {
-    constexpr int idx[5] = {0, 5, 11, 18, 26};
-    return idx[ncl - 4];
-  };
-  std::array<int, 4> xcheckCounters{0};
+  // std::array<int, 26> sharingMatrix{0};
+  // int prevNclusters = 7;
+  // auto cumulativeIndex = [](int ncl) -> int {
+  //   constexpr int idx[5] = {0, 5, 11, 18, 26};
+  //   return idx[ncl - 4];
+  // };
+  // std::array<int, 4> xcheckCounters{0};
 #endif
 
   for (auto& track : tracks) {
     CA_DEBUGGER(int nClusters = 0);
     int nShared = 0;
-    for (int iLayer{0}; iLayer < constants::its::LayersNumber; ++iLayer) {
+    for (int iLayer{0}; iLayer < mTrkParams[0].NLayers; ++iLayer) {
       if (track.getClusterIndex(iLayer) == constants::its::UnusedIndex) {
         continue;
       }
@@ -318,24 +326,24 @@ void Tracker::findTracks(const ROframe& event)
       CA_DEBUGGER(nClusters++);
     }
 
-#ifdef CA_DEBUG
-    assert(nClusters == track.getNumberOfClusters());
-    xcheckCounters[nClusters - 4]++;
-    assert(nShared <= nClusters);
-    sharingMatrix[cumulativeIndex(nClusters) + nShared]++;
-#endif
+    // #ifdef CA_DEBUG
+    //     assert(nClusters == track.getNumberOfClusters());
+    //     xcheckCounters[nClusters - 4]++;
+    //     assert(nShared <= nClusters);
+    //     sharingMatrix[cumulativeIndex(nClusters) + nShared]++;
+    // #endif
 
     if (nShared > mTrkParams[0].ClusterSharing) {
       continue;
     }
 
-#ifdef CA_DEBUG
-    nonsharingCounters[nClusters - 4]++;
-    assert(nClusters <= prevNclusters);
-    prevNclusters = nClusters;
-#endif
+    // #ifdef CA_DEBUG
+    //     nonsharingCounters[nClusters - 4]++;
+    //     assert(nClusters <= prevNclusters);
+    //     prevNclusters = nClusters;
+    // #endif
 
-    for (int iLayer{0}; iLayer < constants::its::LayersNumber; ++iLayer) {
+    for (int iLayer{0}; iLayer < mTrkParams[0].NLayers; ++iLayer) {
       if (track.getClusterIndex(iLayer) == constants::its::UnusedIndex) {
         continue;
       }
@@ -365,26 +373,26 @@ void Tracker::findTracks(const ROframe& event)
     std::cout << count << "\t";
   std::cout << std::endl;
 
-  std::cout << "+++ Cross check counters for 4, 5, 6 and 7 clusters:\t";
-  for (size_t iCount = 0; iCount < refitCounters.size(); ++iCount) {
-    std::cout << xcheckCounters[iCount] << "\t";
-    //assert(refitCounters[iCount] == xcheckCounters[iCount]);
-  }
-  std::cout << std::endl;
+  // std::cout << "+++ Cross check counters for 4, 5, 6 and 7 clusters:\t";
+  // for (size_t iCount = 0; iCount < refitCounters.size(); ++iCount) {
+  //   std::cout << xcheckCounters[iCount] << "\t";
+  //   //assert(refitCounters[iCount] == xcheckCounters[iCount]);
+  // }
+  // std::cout << std::endl;
 
-  std::cout << "+++ Nonsharing candidates with 4, 5, 6 and 7 clusters:\t";
-  for (int count : nonsharingCounters)
-    std::cout << count << "\t";
-  std::cout << std::endl;
+  // std::cout << "+++ Nonsharing candidates with 4, 5, 6 and 7 clusters:\t";
+  // for (int count : nonsharingCounters)
+  //   std::cout << count << "\t";
+  // std::cout << std::endl;
 
-  std::cout << "+++ Sharing matrix:\n";
-  for (int iCl = 4; iCl <= 7; ++iCl) {
-    std::cout << "+++ ";
-    for (int iSh = cumulativeIndex(iCl); iSh < cumulativeIndex(iCl + 1); ++iSh) {
-      std::cout << sharingMatrix[iSh] << "\t";
-    }
-    std::cout << std::endl;
-  }
+  // std::cout << "+++ Sharing matrix:\n";
+  // for (int iCl = 4; iCl <= 7; ++iCl) {
+  //   std::cout << "+++ ";
+  //   for (int iSh = cumulativeIndex(iCl); iSh < cumulativeIndex(iCl + 1); ++iSh) {
+  //     std::cout << sharingMatrix[iSh] << "\t";
+  //   }
+  //   std::cout << std::endl;
+  // }
 #endif
 }
 
@@ -477,7 +485,7 @@ void Tracker::computeRoadsMClabels(const ROframe& event)
     bool isFakeRoad{false};
     bool isFirstRoadCell{true};
 
-    for (int iCell{0}; iCell < constants::its::CellsPerRoad; ++iCell) {
+    for (int iCell{0}; iCell < mTrkParams[0].CellsPerRoad(); ++iCell) {
       const int currentCellIndex{currentRoad[iCell]};
 
       if (currentCellIndex == constants::its::UnusedIndex) {
@@ -554,7 +562,6 @@ void Tracker::computeTracksMClabels(const ROframe& event)
       if (index == constants::its::UnusedIndex) {
         continue;
       }
-
       const MCCompLabel& currentLabel = event.getClusterLabels(iCluster, index);
       if (currentLabel == maxOccurrencesValue) {
         ++count;

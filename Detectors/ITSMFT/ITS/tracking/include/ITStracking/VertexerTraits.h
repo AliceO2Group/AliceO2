@@ -23,6 +23,7 @@
 #include "ITStracking/Configuration.h"
 #include "ITStracking/ClusterLines.h"
 #include "ITStracking/Definitions.h"
+#include "ITStracking/IndexTableUtils.h"
 #ifdef _ALLOW_DEBUG_TREES_ITS_
 #include "ITStracking/StandaloneDebugger.h"
 #endif
@@ -45,8 +46,6 @@ namespace its
 
 class ROframe;
 
-using constants::index_table::PhiBins;
-using constants::index_table::ZBins;
 using constants::its::LayersNumberVertexer;
 
 struct lightVertex {
@@ -106,8 +105,11 @@ class VertexerTraits
   {
     return int4{0, 0, 0, 0};
   }
-  GPUhd() static const int4 getBinsRect(const Cluster&, const int, const float, float maxdeltaz, float maxdeltaphi);
-  GPUhd() static const int2 getPhiBins(float phi, float deltaPhi);
+  GPUhd() const int4 getBinsRect(const Cluster&, const int, const float, float maxdeltaz, float maxdeltaphi);
+  GPUhd() const int2 getPhiBins(float phi, float deltaPhi);
+
+  GPUhd() static const int4 getBinsRect(const Cluster&, const int, const float, float maxdeltaz, float maxdeltaphi, const IndexTableUtils&);
+  GPUhd() static const int2 getPhiBins(float phi, float deltaPhi, const IndexTableUtils&);
 
   // virtual vertexer interface
   virtual void reset();
@@ -128,8 +130,9 @@ class VertexerTraits
 
   void updateVertexingParameters(const VertexingParameters& vrtPar);
   VertexingParameters getVertexingParameters() const { return mVrtParams; }
-  static const std::vector<std::pair<int, int>> selectClusters(const std::array<int, ZBins * PhiBins + 1>& indexTable,
-                                                               const std::array<int, 4>& selectedBinsRect);
+  static const std::vector<std::pair<int, int>> selectClusters(const int* indexTable,
+                                                               const std::array<int, 4>& selectedBinsRect,
+                                                               const IndexTableUtils& utils);
   std::vector<lightVertex> getVertices() const { return mVertices; }
 
   // utils
@@ -160,7 +163,8 @@ class VertexerTraits
 #endif
 
   VertexingParameters mVrtParams;
-  std::array<std::array<int, ZBins * PhiBins + 1>, LayersNumberVertexer> mIndexTables;
+  IndexTableUtils mIndexTableUtils;
+  std::array<std::vector<int>, LayersNumberVertexer> mIndexTables;
   std::vector<lightVertex> mVertices;
 
   // Frame related quantities
@@ -177,6 +181,9 @@ class VertexerTraits
 inline void VertexerTraits::initialise(ROframe* event)
 {
   reset();
+  if (!mIndexTableUtils.getNzBins()) {
+    updateVertexingParameters(mVrtParams);
+  }
   arrangeClusters(event);
   setIsGPU(false);
 }
@@ -189,32 +196,51 @@ inline void VertexerTraits::setIsGPU(const unsigned char isgpu)
 inline void VertexerTraits::updateVertexingParameters(const VertexingParameters& vrtPar)
 {
   mVrtParams = vrtPar;
+  mIndexTableUtils.setTrackingParameters(vrtPar);
+  mVrtParams.phiSpan = static_cast<int>(std::ceil(mIndexTableUtils.getNphiBins() * mVrtParams.phiCut /
+                                                  constants::math::TwoPi));
+  mVrtParams.zSpan = static_cast<int>(std::ceil(mVrtParams.zCut * mIndexTableUtils.getInverseZCoordinate(0)));
+  for (auto& table : mIndexTables) {
+    table.resize(mIndexTableUtils.getNphiBins() * mIndexTableUtils.getNzBins() + 1, 0);
+  }
 }
 
 GPUhdi() const int2 VertexerTraits::getPhiBins(float phi, float dPhi)
 {
-  return int2{index_table_utils::getPhiBinIndex(math_utils::getNormalizedPhiCoordinate(phi - dPhi)),
-              index_table_utils::getPhiBinIndex(math_utils::getNormalizedPhiCoordinate(phi + dPhi))};
+  return VertexerTraits::getPhiBins(phi, dPhi, mIndexTableUtils);
+}
+
+GPUhdi() const int2 VertexerTraits::getPhiBins(float phi, float dPhi, const IndexTableUtils& utils)
+{
+  return int2{utils.getPhiBinIndex(math_utils::getNormalizedPhiCoordinate(phi - dPhi)),
+              utils.getPhiBinIndex(math_utils::getNormalizedPhiCoordinate(phi + dPhi))};
 }
 
 GPUhdi() const int4 VertexerTraits::getBinsRect(const Cluster& currentCluster, const int layerIndex,
-                                                const float directionZIntersection, float maxdeltaz, float maxdeltaphi)
+                                                const float directionZIntersection, float maxdeltaz, float maxdeltaphi,
+                                                const IndexTableUtils& utils)
 {
   const float zRangeMin = directionZIntersection - 2 * maxdeltaz;
   const float phiRangeMin = currentCluster.phiCoordinate - maxdeltaphi;
   const float zRangeMax = directionZIntersection + 2 * maxdeltaz;
   const float phiRangeMax = currentCluster.phiCoordinate + maxdeltaphi;
 
-  if (zRangeMax < -constants::its::LayersZCoordinate()[layerIndex + 1] ||
-      zRangeMin > constants::its::LayersZCoordinate()[layerIndex + 1] || zRangeMin > zRangeMax) {
+  if (zRangeMax < -utils.getLayerZ(layerIndex + 1) ||
+      zRangeMin > utils.getLayerZ(layerIndex + 1) || zRangeMin > zRangeMax) {
 
     return getEmptyBinsRect();
   }
 
-  return int4{gpu::GPUCommonMath::Max(0, index_table_utils::getZBinIndex(layerIndex + 1, zRangeMin)),
-              index_table_utils::getPhiBinIndex(math_utils::getNormalizedPhiCoordinate(phiRangeMin)),
-              gpu::GPUCommonMath::Min(constants::index_table::ZBins - 1, index_table_utils::getZBinIndex(layerIndex + 1, zRangeMax)),
-              index_table_utils::getPhiBinIndex(math_utils::getNormalizedPhiCoordinate(phiRangeMax))};
+  return int4{gpu::GPUCommonMath::Max(0, utils.getZBinIndex(layerIndex + 1, zRangeMin)),
+              utils.getPhiBinIndex(math_utils::getNormalizedPhiCoordinate(phiRangeMin)),
+              gpu::GPUCommonMath::Min(utils.getNzBins() - 1, utils.getZBinIndex(layerIndex + 1, zRangeMax)),
+              utils.getPhiBinIndex(math_utils::getNormalizedPhiCoordinate(phiRangeMax))};
+}
+
+GPUhdi() const int4 VertexerTraits::getBinsRect(const Cluster& currentCluster, const int layerIndex,
+                                                const float directionZIntersection, float maxdeltaz, float maxdeltaphi)
+{
+  return VertexerTraits::getBinsRect(currentCluster, layerIndex, directionZIntersection, maxdeltaz, maxdeltaphi, mIndexTableUtils);
 }
 
 // debug

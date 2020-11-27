@@ -13,6 +13,8 @@
 ///
 
 #include "ITStracking/Road.h"
+#include <cassert>
+#include <iostream>
 
 namespace o2
 {
@@ -25,7 +27,7 @@ Road::Road(int cellLayer, int cellId) : Road() { addCell(cellLayer, cellId); }
 
 void Road::resetRoad()
 {
-  for (int i = 0; i < constants::its::CellsPerRoad; i++) {
+  for (int i = 0; i < mMaxRoadSize; i++) {
     mCellIds[i] = constants::its::UnusedIndex;
   }
   mRoadSize = 0;

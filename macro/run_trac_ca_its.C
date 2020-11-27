@@ -63,13 +63,13 @@ void run_trac_ca_its(std::string path = "./",
   gSystem->Load("libO2ITStracking.so");
 
   //std::unique_ptr<GPUReconstruction> rec(GPUReconstruction::CreateInstance());
-  std::unique_ptr<GPUReconstruction> rec(GPUReconstruction::CreateInstance("CUDA", true)); // for GPU with CUDA
-  auto* chainITS = rec->AddChain<GPUChainITS>();
-  rec->Init();
+  // std::unique_ptr<GPUReconstruction> rec(GPUReconstruction::CreateInstance("CUDA", true)); // for GPU with CUDA
+  // auto* chainITS = rec->AddChain<GPUChainITS>();
+  // rec->Init();
 
-  o2::its::Tracker tracker(chainITS->GetITSTrackerTraits());
-  //o2::its::Tracker tracker(new o2::its::TrackerTraitsCPU());
-  o2::its::ROframe event(0);
+  // o2::its::Tracker tracker(chainITS->GetITSTrackerTraits());
+  o2::its::Tracker tracker(new o2::its::TrackerTraitsCPU());
+  o2::its::ROframe event(0, 7);
 
   if (path.back() != '/') {
     path += '/';

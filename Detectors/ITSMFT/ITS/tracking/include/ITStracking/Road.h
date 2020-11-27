@@ -43,8 +43,10 @@ class Road final
   void resetRoad();
   void addCell(int, int);
 
+  static constexpr int mMaxRoadSize = 13;
+
  private:
-  int mCellIds[constants::its::CellsPerRoad];
+  int mCellIds[mMaxRoadSize];
   int mRoadSize;
   int mLabel;
   bool mIsFakeRoad;

@@ -37,7 +37,7 @@ class TrackITS : public o2::track::TrackParCov
 
  public:
   using o2::track::TrackParCov::TrackParCov; // inherit base constructors
-  static constexpr int MaxClusters = 7;
+  static constexpr int MaxClusters = 16;
 
   TrackITS() = default;
   TrackITS(const TrackITS& t) = default;
@@ -87,7 +87,7 @@ class TrackITS : public o2::track::TrackParCov
   o2::track::TrackParCov& getParamOut() { return mParamOut; }
   const o2::track::TrackParCov& getParamOut() const { return mParamOut; }
 
-  void setPattern(uint8_t p) { mPattern = p; }
+  void setPattern(uint16_t p) { mPattern = p; }
   int getPattern() const { return mPattern; }
   bool hasHitOnLayer(int i) { return mPattern & (0x1 << i); }
 
@@ -95,7 +95,7 @@ class TrackITS : public o2::track::TrackParCov
   o2::track::TrackParCov mParamOut; ///< parameter at largest radius
   ClusRefs mClusRef;                ///< references on clusters
   float mChi2 = 0.;                 ///< Chi2 for this track
-  uint8_t mPattern = 0;             ///< layers pattern
+  uint16_t mPattern = 0;            ///< layers pattern
 
   ClassDefNV(TrackITS, 4);
 };
@@ -104,7 +104,7 @@ class TrackITSExt : public TrackITS
 {
   ///< heavy version of TrackITS, with clusters embedded
  public:
-  static constexpr int MaxClusters = 7;
+  static constexpr int MaxClusters = 16; /// Prepare for overlaps and new detector configurations
   using TrackITS::TrackITS; // inherit base constructors
 
   TrackITSExt(o2::track::TrackParCov&& parCov, short ncl, float chi2,
@@ -132,7 +132,7 @@ class TrackITSExt : public TrackITS
   }
 
  private:
-  std::array<int, MaxClusters> mIndex = {-1}; ///< Indices of associated clusters
+  std::array<int, MaxClusters> mIndex = {-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1}; ///< Indices of associated clusters
   ClassDefNV(TrackITSExt, 2);
 };
 } // namespace its

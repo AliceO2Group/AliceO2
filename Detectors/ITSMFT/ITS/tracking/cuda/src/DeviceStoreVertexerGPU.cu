@@ -47,7 +47,7 @@ DeviceStoreVertexerGPU::DeviceStoreVertexerGPU()
   mBeamPosition = Vector<float>{2, 2};
 
   for (int iTable{0}; iTable < 2; ++iTable) {
-    mIndexTables[iTable] = Vector<int>{constants::index_table::ZBins * constants::index_table::PhiBins + 1}; // 2*20*20+1 * sizeof(int) = 802B
+    mIndexTables[iTable] = Vector<int>{constants::its2::ZBins * constants::its2::PhiBins + 1}; // 2*20*20+1 * sizeof(int) = 802B
   }
   for (int iLayer{0}; iLayer < constants::its::LayersNumberVertexer; ++iLayer) { // 4e4 * 3 * sizof(Cluster) = 3.36MB
     mClusters[iLayer] = Vector<Cluster>{mGPUConf.clustersPerLayerCapacity, mGPUConf.clustersPerLayerCapacity};
@@ -68,7 +68,7 @@ DeviceStoreVertexerGPU::DeviceStoreVertexerGPU()
 } // namespace GPU
 
 UniquePointer<DeviceStoreVertexerGPU> DeviceStoreVertexerGPU::initialise(const std::array<std::vector<Cluster>, constants::its::LayersNumberVertexer>& clusters,
-                                                                         const std::array<std::array<int, constants::index_table::ZBins * constants::index_table::PhiBins + 1>,
+                                                                         const std::array<std::array<int, constants::its2::ZBins * constants::its2::PhiBins + 1>,
                                                                                           constants::its::LayersNumberVertexer>& indexTables)
 {
 #ifdef _ALLOW_DEBUG_TREES_ITS_

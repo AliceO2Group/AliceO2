@@ -170,7 +170,7 @@ int run_primary_vertexer_ITS(const GPUDataTypes::DeviceType dtype = GPUDataTypes
 
   for (size_t iROfCount{static_cast<size_t>(startAt)}; iROfCount < static_cast<size_t>(stopAt); ++iROfCount) {
     auto& rof = (*rofs)[iROfCount];
-    o2::its::ROframe frame(iROfCount); // to get meaningful roframeId
+    o2::its::ROframe frame(iROfCount, 7); // to get meaningful roframeId
     std::cout << "ROframe: " << iROfCount << std::endl;
 
     auto it = pattIt;
