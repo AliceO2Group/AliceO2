@@ -99,7 +99,7 @@ BOOST_AUTO_TEST_CASE(CTFTest)
   // reading
   vec.clear();
   {
-    sw.Start ();
+    sw.Start();
     TFile flIn("test_ctf_ft0.root");
     std::unique_ptr<TTree> tree((TTree*)flIn.Get(std::string(o2::base::NameConf::CTFTREENAME).c_str()));
     BOOST_CHECK(tree);
