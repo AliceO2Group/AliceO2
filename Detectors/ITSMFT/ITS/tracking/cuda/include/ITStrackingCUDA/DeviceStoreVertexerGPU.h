@@ -57,7 +57,7 @@ class DeviceStoreVertexerGPU final
   ~DeviceStoreVertexerGPU() = default;
 
   UniquePointer<DeviceStoreVertexerGPU> initialise(const std::array<std::vector<Cluster>, constants::its::LayersNumberVertexer>&,
-                                                   const std::array<std::array<int, constants::index_table::ZBins * constants::index_table::PhiBins + 1>,
+                                                   const std::array<std::array<int, constants::its2::ZBins * constants::its2::PhiBins + 1>,
                                                                     constants::its::LayersNumberVertexer>&);
 
   // RO APIs

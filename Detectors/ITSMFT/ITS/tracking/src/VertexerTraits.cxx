@@ -37,31 +37,30 @@ namespace o2
 namespace its
 {
 using boost::histogram::indexed;
-using constants::index_table::PhiBins;
-using constants::index_table::ZBins;
-using constants::its::LayersRCoordinate;
-using constants::its::LayersZCoordinate;
 using constants::math::TwoPi;
-using index_table_utils::getZBinIndex;
 
 void trackleterKernelSerial(
   const std::vector<Cluster>& clustersNextLayer,    // 0 2
   const std::vector<Cluster>& clustersCurrentLayer, // 1 1
-  const std::array<int, ZBins * PhiBins + 1>& indexTableNext,
+  const int* indexTableNext,
   const unsigned char pairOfLayers,
   const float phiCut,
   std::vector<Tracklet>& Tracklets,
   std::vector<int>& foundTracklets,
+  const IndexTableUtils& utils,
   // const ROframe* evt = nullptr,
   const int maxTrackletsPerCluster = static_cast<int>(2e3))
 {
+  const int PhiBins{utils.getNphiBins()};
+  const int ZBins{utils.getNzBins()};
+
   foundTracklets.resize(clustersCurrentLayer.size(), 0);
   // loop on layer1 clusters
   for (unsigned int iCurrentLayerClusterIndex{0}; iCurrentLayerClusterIndex < clustersCurrentLayer.size(); ++iCurrentLayerClusterIndex) {
     int storedTracklets{0};
     const Cluster currentCluster{clustersCurrentLayer[iCurrentLayerClusterIndex]};
     const int layerIndex{pairOfLayers == LAYER0_TO_LAYER1 ? 0 : 2};
-    const int4 selectedBinsRect{VertexerTraits::getBinsRect(currentCluster, layerIndex, 0.f, 50.f, phiCut / 2)};
+    const int4 selectedBinsRect{VertexerTraits::getBinsRect(currentCluster, layerIndex, 0.f, 50.f, phiCut / 2, utils)};
     if (selectedBinsRect.x != 0 || selectedBinsRect.y != 0 || selectedBinsRect.z != 0 || selectedBinsRect.w != 0) {
       int phiBinsNum{selectedBinsRect.w - selectedBinsRect.y + 1};
       if (phiBinsNum < 0) {
@@ -69,7 +68,7 @@ void trackleterKernelSerial(
       }
       // loop on phi bins next layer
       for (int iPhiBin{selectedBinsRect.y}, iPhiCount{0}; iPhiCount < phiBinsNum; iPhiBin = ++iPhiBin == PhiBins ? 0 : iPhiBin, iPhiCount++) {
-        const int firstBinIndex{index_table_utils::getBinIndex(selectedBinsRect.x, iPhiBin)};
+        const int firstBinIndex{utils.getBinIndex(selectedBinsRect.x, iPhiBin)};
         const int firstRowClusterIndex{indexTableNext[firstBinIndex]};
         const int maxRowClusterIndex{indexTableNext[firstBinIndex + ZBins]};
         // loop on clusters next layer
@@ -150,9 +149,6 @@ VertexerTraits::VertexerTraits() : mAverageClustersRadii{std::array<float, 3>{0.
 VertexerTraits::VertexerTraits() : mAverageClustersRadii{std::array<float, 3>{0.f, 0.f, 0.f}},
                                    mMaxDirectorCosine3{0.f}
 {
-  mVrtParams.phiSpan = static_cast<int>(std::ceil(constants::index_table::PhiBins * mVrtParams.phiCut /
-                                                  constants::math::TwoPi));
-  mVrtParams.zSpan = static_cast<int>(std::ceil(mVrtParams.zCut * constants::index_table::InverseZBinSize()[0]));
 }
 #endif
 
@@ -169,7 +165,7 @@ void VertexerTraits::reset()
 {
   for (int iLayer{0}; iLayer < constants::its::LayersNumberVertexer; ++iLayer) {
     mClusters[iLayer].clear();
-    mIndexTables[iLayer].fill(0);
+    std::fill(mIndexTables[iLayer].begin(), mIndexTables[iLayer].end(), 0);
   }
 
   mTracklets.clear();
@@ -193,6 +189,7 @@ std::vector<int> VertexerTraits::getMClabelsLayer(const int layer) const
 
 void VertexerTraits::arrangeClusters(ROframe* event)
 {
+  const auto& LayersZCoordinate = mVrtParams.LayerZ;
   mEvent = event;
   for (int iLayer{0}; iLayer < constants::its::LayersNumberVertexer; ++iLayer) {
     const auto& currentLayer{event->getClustersOnLayer(iLayer)};
@@ -202,7 +199,7 @@ void VertexerTraits::arrangeClusters(ROframe* event)
         mClusters[iLayer].reserve(clustersNum);
       }
       for (unsigned int iCluster{0}; iCluster < clustersNum; ++iCluster) {
-        mClusters[iLayer].emplace_back(iLayer, currentLayer.at(iCluster));
+        mClusters[iLayer].emplace_back(iLayer, mIndexTableUtils, currentLayer.at(iCluster));
         mAverageClustersRadii[iLayer] += mClusters[iLayer].back().rCoordinate;
       }
       mAverageClustersRadii[iLayer] *= 1.f / clustersNum;
@@ -221,7 +218,7 @@ void VertexerTraits::arrangeClusters(ROframe* event)
           previousBinIndex = currentBinIndex;
         }
       }
-      for (int iBin{previousBinIndex + 1}; iBin <= ZBins * PhiBins; iBin++) {
+      for (int iBin{previousBinIndex + 1}; iBin <= mIndexTableUtils.getNzBins() * mIndexTableUtils.getNphiBins(); iBin++) {
         mIndexTables[iLayer][iBin] = static_cast<int>(clustersNum);
       }
     }
@@ -229,25 +226,25 @@ void VertexerTraits::arrangeClusters(ROframe* event)
   mDeltaRadii10 = mAverageClustersRadii[1] - mAverageClustersRadii[0];
   mDeltaRadii21 = mAverageClustersRadii[2] - mAverageClustersRadii[1];
   mMaxDirectorCosine3 =
-    LayersZCoordinate()[2] / std::sqrt(LayersZCoordinate()[2] * LayersZCoordinate()[2] +
-                                       (mDeltaRadii10 + mDeltaRadii21) * (mDeltaRadii10 + mDeltaRadii21));
+    LayersZCoordinate[2] / std::hypot(LayersZCoordinate[2], mDeltaRadii10 + mDeltaRadii21);
 }
 
-const std::vector<std::pair<int, int>> VertexerTraits::selectClusters(const std::array<int, ZBins * PhiBins + 1>& indexTable,
-                                                                      const std::array<int, 4>& selectedBinsRect)
+const std::vector<std::pair<int, int>> VertexerTraits::selectClusters(const int* indexTable,
+                                                                      const std::array<int, 4>& selectedBinsRect,
+                                                                      const IndexTableUtils& utils)
 {
   std::vector<std::pair<int, int>> filteredBins{};
   int phiBinsNum{selectedBinsRect[3] - selectedBinsRect[1] + 1};
   if (phiBinsNum < 0) {
-    phiBinsNum += PhiBins;
+    phiBinsNum += utils.getNphiBins();
   }
   filteredBins.reserve(phiBinsNum);
   for (int iPhiBin{selectedBinsRect[1]}, iPhiCount{0}; iPhiCount < phiBinsNum;
-       iPhiBin = ++iPhiBin == PhiBins ? 0 : iPhiBin, iPhiCount++) {
-    const int firstBinIndex{index_table_utils::getBinIndex(selectedBinsRect[0], iPhiBin)};
+       iPhiBin = ++iPhiBin == utils.getNphiBins() ? 0 : iPhiBin, iPhiCount++) {
+    const int firstBinIndex{utils.getBinIndex(selectedBinsRect[0], iPhiBin)};
     filteredBins.emplace_back(
       indexTable[firstBinIndex],
-      index_table_utils::countRowSelectedBins(indexTable, iPhiBin, selectedBinsRect[0], selectedBinsRect[2]));
+      utils.countRowSelectedBins(indexTable, iPhiBin, selectedBinsRect[0], selectedBinsRect[2]));
   }
   return filteredBins;
 }
@@ -312,20 +309,22 @@ void VertexerTraits::computeTracklets()
   trackleterKernelSerial(
     mClusters[0],
     mClusters[1],
-    mIndexTables[0],
+    mIndexTables[0].data(),
     LAYER0_TO_LAYER1,
     mVrtParams.phiCut,
     mComb01,
-    mFoundTracklets01);
+    mFoundTracklets01,
+    mIndexTableUtils);
 
   trackleterKernelSerial(
     mClusters[2],
     mClusters[1],
-    mIndexTables[2],
+    mIndexTables[2].data(),
     LAYER1_TO_LAYER2,
     mVrtParams.phiCut,
     mComb12,
-    mFoundTracklets12);
+    mFoundTracklets12,
+    mIndexTableUtils);
 
 #ifdef _ALLOW_DEBUG_TREES_ITS_
   if (isDebugFlag(VertexerDebug::CombinatoricsTreeAll)) {

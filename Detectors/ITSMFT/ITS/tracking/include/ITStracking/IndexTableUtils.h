@@ -22,6 +22,7 @@
 #endif
 
 #include "ITStracking/Constants.h"
+#include "ITStracking/Configuration.h"
 #include "ITStracking/Definitions.h"
 #include "GPUCommonMath.h"
 #include "GPUCommonDef.h"
@@ -31,42 +32,64 @@ namespace o2
 namespace its
 {
 
-namespace index_table_utils
+class IndexTableUtils
 {
-float getInverseZBinSize(const int);
-GPUhdi() int getZBinIndex(const int, const float);
-GPUhdi() int getPhiBinIndex(const float);
-GPUhdi() int getBinIndex(const int, const int);
-GPUhdi() int countRowSelectedBins(
-  const GPUArray<int, constants::index_table::ZBins * constants::index_table::PhiBins + 1>&, const int, const int,
-  const int);
-} // namespace index_table_utils
+ public:
+  template <class T>
+  void setTrackingParameters(const T& params);
+  float getInverseZCoordinate(const int layerIndex) const;
+  GPUhdi() int getZBinIndex(const int, const float) const;
+  GPUhdi() int getPhiBinIndex(const float) const;
+  GPUhdi() int getBinIndex(const int, const int) const;
+  GPUhdi() int countRowSelectedBins(const int*, const int, const int, const int) const;
 
-inline float getInverseZCoordinate(const int layerIndex)
+  GPUhdi() int getNzBins() const { return mNzBins; }
+  GPUhdi() int getNphiBins() const { return mNphiBins; }
+  GPUhdi() float getLayerZ(int i) const { return mLayerZ[i]; }
+
+ private:
+  int mNzBins = 0;
+  int mNphiBins = 0;
+  float mInversePhiBinSize = 0.f;
+  std::vector<float> mLayerZ;
+  std::vector<float> mInverseZBinSize;
+};
+
+template <class T>
+inline void IndexTableUtils::setTrackingParameters(const T& params)
 {
-  return 0.5f * constants::index_table::ZBins / constants::its::LayersZCoordinate()[layerIndex];
+  mInversePhiBinSize = params.PhiBins / constants::math::TwoPi;
+  mInverseZBinSize.resize(params.LayerZ.size());
+  mNzBins = params.ZBins;
+  mNphiBins = params.PhiBins;
+  mLayerZ = params.LayerZ;
+  for (unsigned int iL{0}; iL < mInverseZBinSize.size(); ++iL) {
+    mInverseZBinSize[iL] = 0.5f * params.ZBins / params.LayerZ[iL];
+  }
 }
 
-GPUhdi() int index_table_utils::getZBinIndex(const int layerIndex, const float zCoordinate)
+inline float IndexTableUtils::getInverseZCoordinate(const int layerIndex) const
 {
-  return (zCoordinate + constants::its::LayersZCoordinate()[layerIndex]) *
-         constants::index_table::InverseZBinSize()[layerIndex];
+  return 0.5f * mNzBins / mLayerZ[layerIndex];
 }
 
-GPUhdi() int index_table_utils::getPhiBinIndex(const float currentPhi)
+GPUhdi() int IndexTableUtils::getZBinIndex(const int layerIndex, const float zCoordinate) const
 {
-  return (currentPhi * constants::index_table::InversePhiBinSize);
+  return (zCoordinate + mLayerZ[layerIndex]) * mInverseZBinSize[layerIndex];
 }
 
-GPUhdi() int index_table_utils::getBinIndex(const int zIndex, const int phiIndex)
+GPUhdi() int IndexTableUtils::getPhiBinIndex(const float currentPhi) const
 {
-  return gpu::GPUCommonMath::Min(phiIndex * constants::index_table::ZBins + zIndex,
-                                 constants::index_table::ZBins * constants::index_table::PhiBins - 1);
+  return (currentPhi * mInversePhiBinSize);
 }
 
-GPUhdi() int index_table_utils::countRowSelectedBins(
-  const GPUArray<int, constants::index_table::ZBins * constants::index_table::PhiBins + 1>& indexTable,
-  const int phiBinIndex, const int minZBinIndex, const int maxZBinIndex)
+GPUhdi() int IndexTableUtils::getBinIndex(const int zIndex, const int phiIndex) const
+{
+  return gpu::GPUCommonMath::Min(phiIndex * mNzBins + zIndex, mNzBins * mNphiBins - 1);
+}
+
+GPUhdi() int IndexTableUtils::countRowSelectedBins(const int* indexTable, const int phiBinIndex,
+                                                   const int minZBinIndex, const int maxZBinIndex) const
 {
   const int firstBinIndex{getBinIndex(minZBinIndex, phiBinIndex)};
   const int maxBinIndex{firstBinIndex + maxZBinIndex - minZBinIndex + 1};
