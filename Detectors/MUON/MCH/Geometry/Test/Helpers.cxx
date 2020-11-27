@@ -8,27 +8,20 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#include "MCHSimulation/GeometryTest.h"
-
 #include "DetectorsBase/GeometryManager.h"
 #include "DetectorsBase/MaterialManager.h"
-#include "MCHSimulation/Geometry.h"
+#include "MCHGeometryCreator/Geometry.h"
+#include "MCHGeometryTest/Helpers.h"
+#include "MCHGeometryTransformer/Transformations.h"
 #include "Math/GenVector/Cartesian3D.h"
+#include "TGLRnrCtx.h"
+#include "TGLViewer.h"
 #include "TGeoManager.h"
 #include "TGeoVolume.h"
 #include "TH2F.h"
-#include <iostream>
 #include "TPRegexp.h"
-#include "TGLViewer.h"
-#include "TGLRnrCtx.h"
 #include "TVirtualPad.h"
-#include "DetectorsPassive/Cave.h"
-#include "DetectorsPassive/Dipole.h"
-#include "DetectorsPassive/Absorber.h"
-#include "DetectorsPassive/Compensator.h"
-#include "DetectorsPassive/Shil.h"
-#include "DetectorsPassive/Pipe.h"
-#include "MCHSimulation/Detector.h"
+#include <iostream>
 
 namespace o2
 {
@@ -117,37 +110,7 @@ void createStandaloneGeometry()
   TGeoManager* g = new TGeoManager("MCH-ONLY", "ALICE MCH Standalone Geometry");
   TGeoVolume* top = createAirVacuumCave("cave");
   g->SetTopVolume(top);
-  o2::mch::createGeometry(*top);
-}
-
-void createRegularGeometry()
-{
-  if (gGeoManager && gGeoManager->GetTopVolume()) {
-    std::cerr << "Can only call this function with an empty geometry, i.e. gGeoManager==nullptr "
-              << " or gGeoManager->GetTopVolume()==nullptr\n";
-  }
-  TGeoManager* g = new TGeoManager("MCH-BASICS", "ALICE MCH Regular Geometry");
-  o2::passive::Cave("CAVE", "Cave (for MCH Basics)").ConstructGeometry();
-  o2::passive::Dipole("DIPO", "Alice Dipole (for MCH Basics)").ConstructGeometry();
-  o2::passive::Compensator("COMP", "Alice Compensator Dipole (for MCH Basics)").ConstructGeometry();
-  o2::passive::Pipe("PIPE", "Beam pipe (for MCH Basics)").ConstructGeometry();
-  o2::passive::Shil("SHIL", "Small angle beam shield (for MCH Basics)").ConstructGeometry();
-  o2::passive::Absorber("ABSO", "Absorber (for MCH Basics)").ConstructGeometry();
-  o2::mch::Detector(true).ConstructGeometry();
-}
-
-void addAlignableVolumes()
-{
-  if (!gGeoManager) {
-    std::cerr << "gGeoManager == nullptr, must create a geometry first\n";
-    return;
-  }
-  // If not closed, we need to close it
-  if (!gGeoManager->IsClosed()) {
-    gGeoManager->CloseGeometry();
-  }
-  // Then add the alignable volumes
-  o2::mch::Detector(true).addAlignableVolumes();
+  o2::mch::geo::createGeometry(*g, *top);
 }
 
 void setVolumeVisibility(const char* pattern, bool visible, bool visibleDaughters)
@@ -258,7 +221,8 @@ TH2* getRadio(int detElemId, float xmin, float ymin, float xmax, float ymax, flo
   }
   TH2* hmatb = new TH2F("hmatb", "hmatb", (int)((xmax - xmin) / xstep), xmin, xmax, (int)((ymax - ymin) / ystep), ymin, ymax);
 
-  auto t = o2::mch::getTransformation(detElemId, *gGeoManager);
+  auto transformation = o2::mch::geo::transformationFromTGeoManager(*gGeoManager);
+  auto t = transformation(detElemId);
 
   auto normal = getNormalVector(t);
 

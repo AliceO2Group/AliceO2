@@ -11,7 +11,8 @@
 #include "MCHSimulation/Digitizer.h"
 
 #include "MCHMappingInterface/Segmentation.h"
-#include "MCHSimulation/Geometry.h"
+#include "MCHGeometryCreator/Geometry.h"
+#include "MCHGeometryTransformer/Transformations.h"
 #include "MCHSimulation/Response.h"
 #include "TGeoManager.h"
 #include "TMath.h"
@@ -124,7 +125,8 @@ int Digitizer::processHit(const Hit& hit, int detID, int event_time)
   auto time = event_time & int(hit.GetTime() / 25.);
 
   //transformation from global to local
-  auto t = o2::mch::getTransformation(detID, *gGeoManager);
+  auto transformation = o2::mch::geo::transformationFromTGeoManager(*gGeoManager);
+  auto t = transformation(detID);
   math_utils::Point3D<float> lpos;
   t.MasterToLocal(pos, lpos);
 
@@ -185,7 +187,7 @@ int Digitizer::processHit(const Hit& hit, int detID, int event_time)
 void Digitizer::generateNoiseDigits()
 {
 
-  o2::mch::mapping::forEachDetectionElement([& digits = this->mDigits, &normProbNoise = this->mNormProbNoise,
+  o2::mch::mapping::forEachDetectionElement([&digits = this->mDigits, &normProbNoise = this->mNormProbNoise,
                                              &eventTime = this->mEventTime, &eventID = this->mEventID,
                                              &srcID = this->mSrcID, &mcTruthOutputContainer = this->mMCTruthOutputContainer](int detID) {
     auto& seg = segmentation(detID);
@@ -211,7 +213,7 @@ void Digitizer::mergeDigits()
 {
   std::vector<int> indices(mDigits.size());
   std::iota(begin(indices), end(indices), 0);
-  std::sort(indices.begin(), indices.end(), [& digits = this->mDigits, this](int a, int b) {
+  std::sort(indices.begin(), indices.end(), [&digits = this->mDigits, this](int a, int b) {
     return (getGlobalDigit(digits[a].getDetID(), digits[a].getPadID()) < getGlobalDigit(digits[b].getDetID(), digits[b].getPadID()));
   });
 

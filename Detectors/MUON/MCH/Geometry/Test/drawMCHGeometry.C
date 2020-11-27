@@ -1,5 +1,5 @@
 #if !defined(__CLING__) || defined(__ROOTCLING__)
-#include "MCHSimulation/GeometryTest.h"
+#include "MCHGeometryTest/Helpers.h"
 #endif
 
 void drawMCHGeometry()

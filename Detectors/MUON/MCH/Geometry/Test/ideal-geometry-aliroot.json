@@ -1,0 +1,2224 @@
+{
+  "alignables": [
+    {
+      "symname": "/MUON/GM0",
+      "transform": {
+        "tx": 0,
+        "ty": 0,
+        "tz": -526.1599731445312,
+        "yaw": -0,
+        "pitch": 0,
+        "roll": -0
+      },
+      "aligned": true
+    },
+    {
+      "symname": "/MUON/GM1",
+      "transform": {
+        "tx": 0,
+        "ty": 0,
+        "tz": -545.239990234375,
+        "yaw": -0,
+        "pitch": 0,
+        "roll": -0
+      },
+      "aligned": true
+    },
+    {
+      "symname": "/MUON/GM2",
+      "transform": {
+        "tx": 0,
+        "ty": 0,
+        "tz": -676.4000244140625,
+        "yaw": -0,
+        "pitch": 0,
+        "roll": -0
+      },
+      "aligned": true
+    },
+    {
+      "symname": "/MUON/GM3",
+      "transform": {
+        "tx": 0,
+        "ty": 0,
+        "tz": -695.4000244140625,
+        "yaw": -0,
+        "pitch": 0,
+        "roll": -0
+      },
+      "aligned": true
+    },
+    {
+      "symname": "/MUON/GM4",
+      "transform": {
+        "tx": 0,
+        "ty": -0.16628965477512675,
+        "tz": -967.4988477676281,
+        "yaw": -0,
+        "pitch": 0,
+        "roll": -0.7940000295639039
+      },
+      "aligned": true
+    },
+    {
+      "symname": "/MUON/GM5",
+      "transform": {
+        "tx": 0,
+        "ty": 0.16628965477512675,
+        "tz": -967.5011522323719,
+        "yaw": -0,
+        "pitch": 0,
+        "roll": -0.7940000295639039
+      },
+      "aligned": true
+    },
+    {
+      "symname": "/MUON/GM6",
+      "transform": {
+        "tx": 0,
+        "ty": -0.16628965477512675,
+        "tz": -998.4988477676281,
+        "yaw": -0,
+        "pitch": 0,
+        "roll": -0.7940000295639039
+      },
+      "aligned": true
+    },
+    {
+      "symname": "/MUON/GM7",
+      "transform": {
+        "tx": 0,
+        "ty": 0.16628965477512675,
+        "tz": -998.5011522323719,
+        "yaw": -0,
+        "pitch": 0,
+        "roll": -0.7940000295639039
+      },
+      "aligned": true
+    },
+    {
+      "symname": "/MUON/GM8",
+      "transform": {
+        "tx": 0,
+        "ty": -0.16628965477512675,
+        "tz": -1276.4988477676281,
+        "yaw": -0,
+        "pitch": 0,
+        "roll": -0.7940000295639039
+      },
+      "aligned": true
+    },
+    {
+      "symname": "/MUON/GM9",
+      "transform": {
+        "tx": 0,
+        "ty": 0.16628965477512675,
+        "tz": -1276.5011522323719,
+        "yaw": -0,
+        "pitch": 0,
+        "roll": -0.7940000295639039
+      },
+      "aligned": true
+    },
+    {
+      "symname": "/MUON/GM10",
+      "transform": {
+        "tx": 0,
+        "ty": -0.16628965477512675,
+        "tz": -1307.4988477676281,
+        "yaw": -0,
+        "pitch": 0,
+        "roll": -0.7940000295639039
+      },
+      "aligned": true
+    },
+    {
+      "symname": "/MUON/GM11",
+      "transform": {
+        "tx": 0,
+        "ty": 0.16628965477512675,
+        "tz": -1307.5011522323719,
+        "yaw": -0,
+        "pitch": 0,
+        "roll": -0.7940000295639039
+      },
+      "aligned": true
+    },
+    {
+      "symname": "/MUON/GM12",
+      "transform": {
+        "tx": 0,
+        "ty": -0.16628965477512675,
+        "tz": -1406.5988233535656,
+        "yaw": -0,
+        "pitch": 0,
+        "roll": -0.7940000295639039
+      },
+      "aligned": true
+    },
+    {
+      "symname": "/MUON/GM13",
+      "transform": {
+        "tx": 0,
+        "ty": 0.16628965477512675,
+        "tz": -1406.6011278183094,
+        "yaw": -0,
+        "pitch": 0,
+        "roll": -0.7940000295639039
+      },
+      "aligned": true
+    },
+    {
+      "symname": "/MUON/GM14",
+      "transform": {
+        "tx": 0,
+        "ty": -0.16628965477512675,
+        "tz": -1437.5988233535656,
+        "yaw": -0,
+        "pitch": 0,
+        "roll": -0.7940000295639039
+      },
+      "aligned": true
+    },
+    {
+      "symname": "/MUON/GM15",
+      "transform": {
+        "tx": 0,
+        "ty": 0.16628965477512675,
+        "tz": -1437.6011278183094,
+        "yaw": -0,
+        "pitch": 0,
+        "roll": -0.7940000295639039
+      },
+      "aligned": true
+    },
+    {
+      "deid": 100,
+      "symname": "/MUON/GM0/DE100",
+      "transform": {
+        "tx": 0.185,
+        "ty": -0.52,
+        "tz": -529.9099731445312,
+        "yaw": -0,
+        "pitch": 0,
+        "roll": -0
+      },
+      "aligned": true
+    },
+    {
+      "deid": 101,
+      "symname": "/MUON/GM0/DE101",
+      "transform": {
+        "tx": -0.185,
+        "ty": -0.52,
+        "tz": -522.4099731445312,
+        "yaw": -180,
+        "pitch": 0,
+        "roll": -180
+      },
+      "aligned": true
+    },
+    {
+      "deid": 102,
+      "symname": "/MUON/GM0/DE102",
+      "transform": {
+        "tx": -0.185,
+        "ty": 0.52,
+        "tz": -529.9099731445312,
+        "yaw": -180,
+        "pitch": 0,
+        "roll": -0
+      },
+      "aligned": true
+    },
+    {
+      "deid": 103,
+      "symname": "/MUON/GM0/DE103",
+      "transform": {
+        "tx": 0.185,
+        "ty": 0.52,
+        "tz": -522.4099731445312,
+        "yaw": -0,
+        "pitch": 0,
+        "roll": -180
+      },
+      "aligned": true
+    },
+    {
+      "deid": 200,
+      "symname": "/MUON/GM1/DE200",
+      "transform": {
+        "tx": 0.185,
+        "ty": -0.52,
+        "tz": -548.989990234375,
+        "yaw": -0,
+        "pitch": 0,
+        "roll": -0
+      },
+      "aligned": true
+    },
+    {
+      "deid": 201,
+      "symname": "/MUON/GM1/DE201",
+      "transform": {
+        "tx": -0.185,
+        "ty": -0.52,
+        "tz": -541.489990234375,
+        "yaw": -180,
+        "pitch": 0,
+        "roll": -180
+      },
+      "aligned": true
+    },
+    {
+      "deid": 202,
+      "symname": "/MUON/GM1/DE202",
+      "transform": {
+        "tx": -0.185,
+        "ty": 0.52,
+        "tz": -548.989990234375,
+        "yaw": -180,
+        "pitch": 0,
+        "roll": -0
+      },
+      "aligned": true
+    },
+    {
+      "deid": 203,
+      "symname": "/MUON/GM1/DE203",
+      "transform": {
+        "tx": 0.185,
+        "ty": 0.52,
+        "tz": -541.489990234375,
+        "yaw": -0,
+        "pitch": 0,
+        "roll": -180
+      },
+      "aligned": true
+    },
+    {
+      "deid": 300,
+      "symname": "/MUON/GM2/DE300",
+      "transform": {
+        "tx": 0,
+        "ty": 0,
+        "tz": -679.8000245094299,
+        "yaw": -0,
+        "pitch": 0,
+        "roll": -0
+      },
+      "aligned": true
+    },
+    {
+      "deid": 301,
+      "symname": "/MUON/GM2/DE301",
+      "transform": {
+        "tx": 0,
+        "ty": 0,
+        "tz": -673.0000243186951,
+        "yaw": -180,
+        "pitch": 0,
+        "roll": -180
+      },
+      "aligned": true
+    },
+    {
+      "deid": 302,
+      "symname": "/MUON/GM2/DE302",
+      "transform": {
+        "tx": 0,
+        "ty": 0,
+        "tz": -679.8000245094299,
+        "yaw": -180,
+        "pitch": 0,
+        "roll": -0
+      },
+      "aligned": true
+    },
+    {
+      "deid": 303,
+      "symname": "/MUON/GM2/DE303",
+      "transform": {
+        "tx": 0,
+        "ty": 0,
+        "tz": -673.0000243186951,
+        "yaw": -0,
+        "pitch": 0,
+        "roll": -180
+      },
+      "aligned": true
+    },
+    {
+      "deid": 400,
+      "symname": "/MUON/GM3/DE400",
+      "transform": {
+        "tx": 0,
+        "ty": 0,
+        "tz": -698.8000245094299,
+        "yaw": -0,
+        "pitch": 0,
+        "roll": -0
+      },
+      "aligned": true
+    },
+    {
+      "deid": 401,
+      "symname": "/MUON/GM3/DE401",
+      "transform": {
+        "tx": 0,
+        "ty": 0,
+        "tz": -692.0000243186951,
+        "yaw": -180,
+        "pitch": 0,
+        "roll": -180
+      },
+      "aligned": true
+    },
+    {
+      "deid": 402,
+      "symname": "/MUON/GM3/DE402",
+      "transform": {
+        "tx": 0,
+        "ty": 0,
+        "tz": -698.8000245094299,
+        "yaw": -180,
+        "pitch": 0,
+        "roll": -0
+      },
+      "aligned": true
+    },
+    {
+      "deid": 403,
+      "symname": "/MUON/GM3/DE403",
+      "transform": {
+        "tx": 0,
+        "ty": 0,
+        "tz": -692.0000243186951,
+        "yaw": -0,
+        "pitch": 0,
+        "roll": -180
+      },
+      "aligned": true
+    },
+    {
+      "deid": 500,
+      "symname": "/MUON/GM4/DE500",
+      "transform": {
+        "tx": 81.25,
+        "ty": -0.003464367807815144,
+        "tz": -955.7499759951589,
+        "yaw": -180,
+        "pitch": 0,
+        "roll": 179.2059999704361
+      },
+      "aligned": true
+    },
+    {
+      "deid": 501,
+      "symname": "/MUON/GM4/DE501",
+      "transform": {
+        "tx": 81.25,
+        "ty": 37.68204556750454,
+        "tz": -964.2730202422136,
+        "yaw": -180,
+        "pitch": 0,
+        "roll": 179.2059999704361
+      },
+      "aligned": true
+    },
+    {
+      "deid": 502,
+      "symname": "/MUON/GM4/DE502",
+      "transform": {
+        "tx": 81.25,
+        "ty": 75.48928617018588,
+        "tz": -956.7962150731191,
+        "yaw": -0,
+        "pitch": 0,
+        "roll": 179.2059999704361
+      },
+      "aligned": true
+    },
+    {
+      "deid": 503,
+      "symname": "/MUON/GM4/DE503",
+      "transform": {
+        "tx": 61.25,
+        "ty": 112.67484792951139,
+        "tz": -965.3123306374202,
+        "yaw": -0,
+        "pitch": 0,
+        "roll": -0.7940000295639039
+      },
+      "aligned": true
+    },
+    {
+      "deid": 504,
+      "symname": "/MUON/GM4/DE504",
+      "transform": {
+        "tx": 41.25,
+        "ty": 146.48246879531905,
+        "tz": -957.7800955305386,
+        "yaw": -0,
+        "pitch": 0,
+        "roll": 179.2059999704361
+      },
+      "aligned": true
+    },
+    {
+      "deid": 505,
+      "symname": "/MUON/GM5/DE505",
+      "transform": {
+        "tx": -41.25,
+        "ty": 146.48939753093464,
+        "tz": -981.2801435402207,
+        "yaw": -180,
+        "pitch": 0,
+        "roll": -0.7940000295639039
+      },
+      "aligned": true
+    },
+    {
+      "deid": 506,
+      "symname": "/MUON/GM5/DE506",
+      "transform": {
+        "tx": -61.25,
+        "ty": 112.90349620482719,
+        "tz": -972.8139149569315,
+        "yaw": -180,
+        "pitch": 0,
+        "roll": 179.2059999704361
+      },
+      "aligned": true
+    },
+    {
+      "deid": 507,
+      "symname": "/MUON/GM5/DE507",
+      "transform": {
+        "tx": -81.25,
+        "ty": 75.49621490580152,
+        "tz": -980.2962630828013,
+        "yaw": -180,
+        "pitch": 0,
+        "roll": -0.7940000295639039
+      },
+      "aligned": true
+    },
+    {
+      "deid": 508,
+      "symname": "/MUON/GM5/DE508",
+      "transform": {
+        "tx": -81.25,
+        "ty": 37.91069384282034,
+        "tz": -971.7746045617249,
+        "yaw": -0,
+        "pitch": 0,
+        "roll": -0.7940000295639039
+      },
+      "aligned": true
+    },
+    {
+      "deid": 509,
+      "symname": "/MUON/GM5/DE509",
+      "transform": {
+        "tx": -81.25,
+        "ty": 0.003464367807815144,
+        "tz": -979.2500240048411,
+        "yaw": -0,
+        "pitch": 0,
+        "roll": -0.7940000295639039
+      },
+      "aligned": true
+    },
+    {
+      "deid": 510,
+      "symname": "/MUON/GM5/DE510",
+      "transform": {
+        "tx": -81.25,
+        "ty": -37.68204556750454,
+        "tz": -970.7269797577864,
+        "yaw": -0,
+        "pitch": 0,
+        "roll": 179.2059999704361
+      },
+      "aligned": true
+    },
+    {
+      "deid": 511,
+      "symname": "/MUON/GM5/DE511",
+      "transform": {
+        "tx": -81.25,
+        "ty": -75.48928617018588,
+        "tz": -978.2037849268809,
+        "yaw": -180,
+        "pitch": 0,
+        "roll": -0.7940000295639039
+      },
+      "aligned": true
+    },
+    {
+      "deid": 512,
+      "symname": "/MUON/GM5/DE512",
+      "transform": {
+        "tx": -61.25,
+        "ty": -112.67484792951139,
+        "tz": -969.6876693625798,
+        "yaw": -180,
+        "pitch": 0,
+        "roll": 179.2059999704361
+      },
+      "aligned": true
+    },
+    {
+      "deid": 513,
+      "symname": "/MUON/GM5/DE513",
+      "transform": {
+        "tx": -41.25,
+        "ty": -146.48246879531905,
+        "tz": -977.2199044694614,
+        "yaw": -180,
+        "pitch": 0,
+        "roll": -0.7940000295639039
+      },
+      "aligned": true
+    },
+    {
+      "deid": 514,
+      "symname": "/MUON/GM4/DE514",
+      "transform": {
+        "tx": 41.25,
+        "ty": -146.48939753093464,
+        "tz": -953.7198564597793,
+        "yaw": -0,
+        "pitch": 0,
+        "roll": 179.2059999704361
+      },
+      "aligned": true
+    },
+    {
+      "deid": 515,
+      "symname": "/MUON/GM4/DE515",
+      "transform": {
+        "tx": 61.25,
+        "ty": -112.90349620482719,
+        "tz": -962.1860850430685,
+        "yaw": -0,
+        "pitch": 0,
+        "roll": -0.7940000295639039
+      },
+      "aligned": true
+    },
+    {
+      "deid": 516,
+      "symname": "/MUON/GM4/DE516",
+      "transform": {
+        "tx": 81.25,
+        "ty": -75.49621490580152,
+        "tz": -954.7037369171987,
+        "yaw": -0,
+        "pitch": 0,
+        "roll": 179.2059999704361
+      },
+      "aligned": true
+    },
+    {
+      "deid": 517,
+      "symname": "/MUON/GM4/DE517",
+      "transform": {
+        "tx": 81.25,
+        "ty": -37.91069384282034,
+        "tz": -963.2253954382751,
+        "yaw": -180,
+        "pitch": 0,
+        "roll": -0.7940000295639039
+      },
+      "aligned": true
+    },
+    {
+      "deid": 600,
+      "symname": "/MUON/GM6/DE600",
+      "transform": {
+        "tx": 81.25,
+        "ty": -0.003464367807815144,
+        "tz": -986.7499759951589,
+        "yaw": -180,
+        "pitch": 0,
+        "roll": 179.2059999704361
+      },
+      "aligned": true
+    },
+    {
+      "deid": 601,
+      "symname": "/MUON/GM6/DE601",
+      "transform": {
+        "tx": 81.25,
+        "ty": 37.68204556750454,
+        "tz": -995.2730202422136,
+        "yaw": -180,
+        "pitch": 0,
+        "roll": 179.2059999704361
+      },
+      "aligned": true
+    },
+    {
+      "deid": 602,
+      "symname": "/MUON/GM6/DE602",
+      "transform": {
+        "tx": 81.25,
+        "ty": 75.48928617018588,
+        "tz": -987.7962150731191,
+        "yaw": -0,
+        "pitch": 0,
+        "roll": 179.2059999704361
+      },
+      "aligned": true
+    },
+    {
+      "deid": 603,
+      "symname": "/MUON/GM6/DE603",
+      "transform": {
+        "tx": 61.25,
+        "ty": 112.67484792951139,
+        "tz": -996.3123306374202,
+        "yaw": -0,
+        "pitch": 0,
+        "roll": -0.7940000295639039
+      },
+      "aligned": true
+    },
+    {
+      "deid": 604,
+      "symname": "/MUON/GM6/DE604",
+      "transform": {
+        "tx": 41.25,
+        "ty": 146.48246879531905,
+        "tz": -988.7800955305386,
+        "yaw": -0,
+        "pitch": 0,
+        "roll": 179.2059999704361
+      },
+      "aligned": true
+    },
+    {
+      "deid": 605,
+      "symname": "/MUON/GM7/DE605",
+      "transform": {
+        "tx": -41.25,
+        "ty": 146.48939753093464,
+        "tz": -1012.2801435402207,
+        "yaw": -180,
+        "pitch": 0,
+        "roll": -0.7940000295639039
+      },
+      "aligned": true
+    },
+    {
+      "deid": 606,
+      "symname": "/MUON/GM7/DE606",
+      "transform": {
+        "tx": -61.25,
+        "ty": 112.90349620482719,
+        "tz": -1003.8139149569315,
+        "yaw": -180,
+        "pitch": 0,
+        "roll": 179.2059999704361
+      },
+      "aligned": true
+    },
+    {
+      "deid": 607,
+      "symname": "/MUON/GM7/DE607",
+      "transform": {
+        "tx": -81.25,
+        "ty": 75.49621490580152,
+        "tz": -1011.2962630828013,
+        "yaw": -180,
+        "pitch": 0,
+        "roll": -0.7940000295639039
+      },
+      "aligned": true
+    },
+    {
+      "deid": 608,
+      "symname": "/MUON/GM7/DE608",
+      "transform": {
+        "tx": -81.25,
+        "ty": 37.91069384282034,
+        "tz": -1002.7746045617249,
+        "yaw": -0,
+        "pitch": 0,
+        "roll": -0.7940000295639039
+      },
+      "aligned": true
+    },
+    {
+      "deid": 609,
+      "symname": "/MUON/GM7/DE609",
+      "transform": {
+        "tx": -81.25,
+        "ty": 0.003464367807815144,
+        "tz": -1010.2500240048411,
+        "yaw": -0,
+        "pitch": 0,
+        "roll": -0.7940000295639039
+      },
+      "aligned": true
+    },
+    {
+      "deid": 610,
+      "symname": "/MUON/GM7/DE610",
+      "transform": {
+        "tx": -81.25,
+        "ty": -37.68204556750454,
+        "tz": -1001.7269797577864,
+        "yaw": -0,
+        "pitch": 0,
+        "roll": 179.2059999704361
+      },
+      "aligned": true
+    },
+    {
+      "deid": 611,
+      "symname": "/MUON/GM7/DE611",
+      "transform": {
+        "tx": -81.25,
+        "ty": -75.48928617018588,
+        "tz": -1009.2037849268809,
+        "yaw": -180,
+        "pitch": 0,
+        "roll": -0.7940000295639039
+      },
+      "aligned": true
+    },
+    {
+      "deid": 612,
+      "symname": "/MUON/GM7/DE612",
+      "transform": {
+        "tx": -61.25,
+        "ty": -112.67484792951139,
+        "tz": -1000.6876693625798,
+        "yaw": -180,
+        "pitch": 0,
+        "roll": 179.2059999704361
+      },
+      "aligned": true
+    },
+    {
+      "deid": 613,
+      "symname": "/MUON/GM7/DE613",
+      "transform": {
+        "tx": -41.25,
+        "ty": -146.48246879531905,
+        "tz": -1008.2199044694614,
+        "yaw": -180,
+        "pitch": 0,
+        "roll": -0.7940000295639039
+      },
+      "aligned": true
+    },
+    {
+      "deid": 614,
+      "symname": "/MUON/GM6/DE614",
+      "transform": {
+        "tx": 41.25,
+        "ty": -146.48939753093464,
+        "tz": -984.7198564597793,
+        "yaw": -0,
+        "pitch": 0,
+        "roll": 179.2059999704361
+      },
+      "aligned": true
+    },
+    {
+      "deid": 615,
+      "symname": "/MUON/GM6/DE615",
+      "transform": {
+        "tx": 61.25,
+        "ty": -112.90349620482719,
+        "tz": -993.1860850430685,
+        "yaw": -0,
+        "pitch": 0,
+        "roll": -0.7940000295639039
+      },
+      "aligned": true
+    },
+    {
+      "deid": 616,
+      "symname": "/MUON/GM6/DE616",
+      "transform": {
+        "tx": 81.25,
+        "ty": -75.49621490580152,
+        "tz": -985.7037369171987,
+        "yaw": -0,
+        "pitch": 0,
+        "roll": 179.2059999704361
+      },
+      "aligned": true
+    },
+    {
+      "deid": 617,
+      "symname": "/MUON/GM6/DE617",
+      "transform": {
+        "tx": 81.25,
+        "ty": -37.91069384282034,
+        "tz": -994.2253954382751,
+        "yaw": -180,
+        "pitch": 0,
+        "roll": -0.7940000295639039
+      },
+      "aligned": true
+    },
+    {
+      "deid": 700,
+      "symname": "/MUON/GM8/DE700",
+      "transform": {
+        "tx": 140,
+        "ty": 0,
+        "tz": -1264.5,
+        "yaw": -0,
+        "pitch": 0,
+        "roll": 179.2059999704361
+      },
+      "aligned": true
+    },
+    {
+      "deid": 701,
+      "symname": "/MUON/GM8/DE701",
+      "transform": {
+        "tx": 121.25,
+        "ty": 38.07854431768339,
+        "tz": -1273.5285392470098,
+        "yaw": -180,
+        "pitch": 0,
+        "roll": 179.2059999704361
+      },
+      "aligned": true
+    },
+    {
+      "deid": 702,
+      "symname": "/MUON/GM8/DE702",
+      "transform": {
+        "tx": 101.25,
+        "ty": 72.5930350970798,
+        "tz": -1265.5060524959688,
+        "yaw": -0,
+        "pitch": 0,
+        "roll": 179.2059999704361
+      },
+      "aligned": true
+    },
+    {
+      "deid": 703,
+      "symname": "/MUON/GM8/DE703",
+      "transform": {
+        "tx": 101.25,
+        "ty": 109.07173075714752,
+        "tz": -1274.5124197572914,
+        "yaw": -0,
+        "pitch": 0,
+        "roll": -0.7940000295639039
+      },
+      "aligned": true
+    },
+    {
+      "deid": 704,
+      "symname": "/MUON/GM8/DE704",
+      "transform": {
+        "tx": 81.25,
+        "ty": 138.48670131804144,
+        "tz": -1266.4192597655297,
+        "yaw": -0,
+        "pitch": 0,
+        "roll": 179.2059999704361
+      },
+      "aligned": true
+    },
+    {
+      "deid": 705,
+      "symname": "/MUON/GM8/DE705",
+      "transform": {
+        "tx": 61.25,
+        "ty": 175.36536009609583,
+        "tz": -1275.4311700364894,
+        "yaw": -0,
+        "pitch": 0,
+        "roll": -0.7940000295639039
+      },
+      "aligned": true
+    },
+    {
+      "deid": 706,
+      "symname": "/MUON/GM8/DE706",
+      "transform": {
+        "tx": 41.25,
+        "ty": 204.08040855067148,
+        "tz": -1267.3283099628795,
+        "yaw": -0,
+        "pitch": 0,
+        "roll": 179.2059999704361
+      },
+      "aligned": true
+    },
+    {
+      "deid": 707,
+      "symname": "/MUON/GM9/DE707",
+      "transform": {
+        "tx": -41.25,
+        "ty": 204.08040855067148,
+        "tz": -1291.3283099628795,
+        "yaw": -180,
+        "pitch": 0,
+        "roll": -0.7940000295639039
+      },
+      "aligned": true
+    },
+    {
+      "deid": 708,
+      "symname": "/MUON/GM9/DE708",
+      "transform": {
+        "tx": -61.25,
+        "ty": 175.60093710702725,
+        "tz": -1282.4328023656828,
+        "yaw": -180,
+        "pitch": 0,
+        "roll": 179.2059999704361
+      },
+      "aligned": true
+    },
+    {
+      "deid": 709,
+      "symname": "/MUON/GM9/DE709",
+      "transform": {
+        "tx": -81.25,
+        "ty": 138.48670131804144,
+        "tz": -1290.4192597655297,
+        "yaw": -180,
+        "pitch": 0,
+        "roll": -0.7940000295639039
+      },
+      "aligned": true
+    },
+    {
+      "deid": 710,
+      "symname": "/MUON/GM9/DE710",
+      "transform": {
+        "tx": -101.25,
+        "ty": 109.30730776807894,
+        "tz": -1281.5140520864848,
+        "yaw": -180,
+        "pitch": 0,
+        "roll": 179.2059999704361
+      },
+      "aligned": true
+    },
+    {
+      "deid": 711,
+      "symname": "/MUON/GM9/DE711",
+      "transform": {
+        "tx": -101.25,
+        "ty": 72.5930350970798,
+        "tz": -1289.5060524959688,
+        "yaw": -180,
+        "pitch": 0,
+        "roll": -0.7940000295639039
+      },
+      "aligned": true
+    },
+    {
+      "deid": 712,
+      "symname": "/MUON/GM9/DE712",
+      "transform": {
+        "tx": -121.25,
+        "ty": 38.314121328614824,
+        "tz": -1280.5301715762032,
+        "yaw": -0,
+        "pitch": 0,
+        "roll": -0.7940000295639039
+      },
+      "aligned": true
+    },
+    {
+      "deid": 713,
+      "symname": "/MUON/GM9/DE713",
+      "transform": {
+        "tx": -140,
+        "ty": 0,
+        "tz": -1288.5,
+        "yaw": -180,
+        "pitch": 0,
+        "roll": -0.7940000295639039
+      },
+      "aligned": true
+    },
+    {
+      "deid": 714,
+      "symname": "/MUON/GM9/DE714",
+      "transform": {
+        "tx": -121.25,
+        "ty": -38.07854431768339,
+        "tz": -1279.4714607529902,
+        "yaw": -0,
+        "pitch": 0,
+        "roll": 179.2059999704361
+      },
+      "aligned": true
+    },
+    {
+      "deid": 715,
+      "symname": "/MUON/GM9/DE715",
+      "transform": {
+        "tx": -101.25,
+        "ty": -72.5930350970798,
+        "tz": -1287.4939475040312,
+        "yaw": -180,
+        "pitch": 0,
+        "roll": -0.7940000295639039
+      },
+      "aligned": true
+    },
+    {
+      "deid": 716,
+      "symname": "/MUON/GM9/DE716",
+      "transform": {
+        "tx": -101.25,
+        "ty": -109.07173075714752,
+        "tz": -1278.4875802427086,
+        "yaw": -180,
+        "pitch": 0,
+        "roll": 179.2059999704361
+      },
+      "aligned": true
+    },
+    {
+      "deid": 717,
+      "symname": "/MUON/GM9/DE717",
+      "transform": {
+        "tx": -81.25,
+        "ty": -138.48670131804144,
+        "tz": -1286.5807402344703,
+        "yaw": -180,
+        "pitch": 0,
+        "roll": -0.7940000295639039
+      },
+      "aligned": true
+    },
+    {
+      "deid": 718,
+      "symname": "/MUON/GM9/DE718",
+      "transform": {
+        "tx": -61.25,
+        "ty": -175.36536009609583,
+        "tz": -1277.5688299635106,
+        "yaw": -180,
+        "pitch": 0,
+        "roll": 179.2059999704361
+      },
+      "aligned": true
+    },
+    {
+      "deid": 719,
+      "symname": "/MUON/GM9/DE719",
+      "transform": {
+        "tx": -41.25,
+        "ty": -204.08040855067148,
+        "tz": -1285.6716900371205,
+        "yaw": -180,
+        "pitch": 0,
+        "roll": -0.7940000295639039
+      },
+      "aligned": true
+    },
+    {
+      "deid": 720,
+      "symname": "/MUON/GM8/DE720",
+      "transform": {
+        "tx": 41.25,
+        "ty": -204.08040855067148,
+        "tz": -1261.6716900371205,
+        "yaw": -0,
+        "pitch": 0,
+        "roll": 179.2059999704361
+      },
+      "aligned": true
+    },
+    {
+      "deid": 721,
+      "symname": "/MUON/GM8/DE721",
+      "transform": {
+        "tx": 61.25,
+        "ty": -175.60093710702725,
+        "tz": -1270.5671976343172,
+        "yaw": -0,
+        "pitch": 0,
+        "roll": -0.7940000295639039
+      },
+      "aligned": true
+    },
+    {
+      "deid": 722,
+      "symname": "/MUON/GM8/DE722",
+      "transform": {
+        "tx": 81.25,
+        "ty": -138.48670131804144,
+        "tz": -1262.5807402344703,
+        "yaw": -0,
+        "pitch": 0,
+        "roll": 179.2059999704361
+      },
+      "aligned": true
+    },
+    {
+      "deid": 723,
+      "symname": "/MUON/GM8/DE723",
+      "transform": {
+        "tx": 101.25,
+        "ty": -109.30730776807894,
+        "tz": -1271.4859479135152,
+        "yaw": -0,
+        "pitch": 0,
+        "roll": -0.7940000295639039
+      },
+      "aligned": true
+    },
+    {
+      "deid": 724,
+      "symname": "/MUON/GM8/DE724",
+      "transform": {
+        "tx": 101.25,
+        "ty": -72.5930350970798,
+        "tz": -1263.4939475040312,
+        "yaw": -0,
+        "pitch": 0,
+        "roll": 179.2059999704361
+      },
+      "aligned": true
+    },
+    {
+      "deid": 725,
+      "symname": "/MUON/GM8/DE725",
+      "transform": {
+        "tx": 121.25,
+        "ty": -38.314121328614824,
+        "tz": -1272.4698284237968,
+        "yaw": -180,
+        "pitch": 0,
+        "roll": -0.7940000295639039
+      },
+      "aligned": true
+    },
+    {
+      "deid": 800,
+      "symname": "/MUON/GM10/DE800",
+      "transform": {
+        "tx": 140,
+        "ty": 0,
+        "tz": -1295.5,
+        "yaw": -0,
+        "pitch": 0,
+        "roll": 179.2059999704361
+      },
+      "aligned": true
+    },
+    {
+      "deid": 801,
+      "symname": "/MUON/GM10/DE801",
+      "transform": {
+        "tx": 121.25,
+        "ty": 38.07854431768339,
+        "tz": -1304.5285392470098,
+        "yaw": -180,
+        "pitch": 0,
+        "roll": 179.2059999704361
+      },
+      "aligned": true
+    },
+    {
+      "deid": 802,
+      "symname": "/MUON/GM10/DE802",
+      "transform": {
+        "tx": 101.25,
+        "ty": 76.04270077880811,
+        "tz": -1296.553860729427,
+        "yaw": -0,
+        "pitch": 0,
+        "roll": 179.2059999704361
+      },
+      "aligned": true
+    },
+    {
+      "deid": 803,
+      "symname": "/MUON/GM10/DE803",
+      "transform": {
+        "tx": 101.25,
+        "ty": 113.4713097976769,
+        "tz": -1305.5733926518537,
+        "yaw": -0,
+        "pitch": 0,
+        "roll": -0.7940000295639039
+      },
+      "aligned": true
+    },
+    {
+      "deid": 804,
+      "symname": "/MUON/GM10/DE804",
+      "transform": {
+        "tx": 81.25,
+        "ty": 142.986269230902,
+        "tz": -1297.4816183860703,
+        "yaw": -0,
+        "pitch": 0,
+        "roll": 179.2059999704361
+      },
+      "aligned": true
+    },
+    {
+      "deid": 805,
+      "symname": "/MUON/GM10/DE805",
+      "transform": {
+        "tx": 61.25,
+        "ty": 179.86492800895635,
+        "tz": -1306.49352865703,
+        "yaw": -0,
+        "pitch": 0,
+        "roll": -0.7940000295639039
+      },
+      "aligned": true
+    },
+    {
+      "deid": 806,
+      "symname": "/MUON/GM10/DE806",
+      "transform": {
+        "tx": 41.25,
+        "ty": 208.57997646353203,
+        "tz": -1298.3906685834202,
+        "yaw": -0,
+        "pitch": 0,
+        "roll": 179.2059999704361
+      },
+      "aligned": true
+    },
+    {
+      "deid": 807,
+      "symname": "/MUON/GM11/DE807",
+      "transform": {
+        "tx": -41.25,
+        "ty": 208.57997646353203,
+        "tz": -1322.3906685834202,
+        "yaw": -180,
+        "pitch": 0,
+        "roll": -0.7940000295639039
+      },
+      "aligned": true
+    },
+    {
+      "deid": 808,
+      "symname": "/MUON/GM11/DE808",
+      "transform": {
+        "tx": -61.25,
+        "ty": 180.10050501988778,
+        "tz": -1313.4951609862237,
+        "yaw": -180,
+        "pitch": 0,
+        "roll": 179.2059999704361
+      },
+      "aligned": true
+    },
+    {
+      "deid": 809,
+      "symname": "/MUON/GM11/DE809",
+      "transform": {
+        "tx": -81.25,
+        "ty": 142.986269230902,
+        "tz": -1321.4816183860703,
+        "yaw": -180,
+        "pitch": 0,
+        "roll": -0.7940000295639039
+      },
+      "aligned": true
+    },
+    {
+      "deid": 810,
+      "symname": "/MUON/GM11/DE810",
+      "transform": {
+        "tx": -101.25,
+        "ty": 113.70688680860832,
+        "tz": -1312.5750249810471,
+        "yaw": -180,
+        "pitch": 0,
+        "roll": 179.2059999704361
+      },
+      "aligned": true
+    },
+    {
+      "deid": 811,
+      "symname": "/MUON/GM11/DE811",
+      "transform": {
+        "tx": -101.25,
+        "ty": 76.04270077880811,
+        "tz": -1320.553860729427,
+        "yaw": -180,
+        "pitch": 0,
+        "roll": -0.7940000295639039
+      },
+      "aligned": true
+    },
+    {
+      "deid": 812,
+      "symname": "/MUON/GM11/DE812",
+      "transform": {
+        "tx": -121.25,
+        "ty": 38.314121328614824,
+        "tz": -1311.5301715762032,
+        "yaw": -0,
+        "pitch": 0,
+        "roll": -0.7940000295639039
+      },
+      "aligned": true
+    },
+    {
+      "deid": 813,
+      "symname": "/MUON/GM11/DE813",
+      "transform": {
+        "tx": -140,
+        "ty": 0,
+        "tz": -1319.5,
+        "yaw": -180,
+        "pitch": 0,
+        "roll": -0.7940000295639039
+      },
+      "aligned": true
+    },
+    {
+      "deid": 814,
+      "symname": "/MUON/GM11/DE814",
+      "transform": {
+        "tx": -121.25,
+        "ty": -38.07854431768339,
+        "tz": -1310.4714607529902,
+        "yaw": -0,
+        "pitch": 0,
+        "roll": 179.2059999704361
+      },
+      "aligned": true
+    },
+    {
+      "deid": 815,
+      "symname": "/MUON/GM11/DE815",
+      "transform": {
+        "tx": -101.25,
+        "ty": -76.04270077880811,
+        "tz": -1318.446139270573,
+        "yaw": -180,
+        "pitch": 0,
+        "roll": -0.7940000295639039
+      },
+      "aligned": true
+    },
+    {
+      "deid": 816,
+      "symname": "/MUON/GM11/DE816",
+      "transform": {
+        "tx": -101.25,
+        "ty": -113.4713097976769,
+        "tz": -1309.4266073481463,
+        "yaw": -180,
+        "pitch": 0,
+        "roll": 179.2059999704361
+      },
+      "aligned": true
+    },
+    {
+      "deid": 817,
+      "symname": "/MUON/GM11/DE817",
+      "transform": {
+        "tx": -81.25,
+        "ty": -142.986269230902,
+        "tz": -1317.5183816139297,
+        "yaw": -180,
+        "pitch": 0,
+        "roll": -0.7940000295639039
+      },
+      "aligned": true
+    },
+    {
+      "deid": 818,
+      "symname": "/MUON/GM11/DE818",
+      "transform": {
+        "tx": -61.25,
+        "ty": -179.86492800895635,
+        "tz": -1308.50647134297,
+        "yaw": -180,
+        "pitch": 0,
+        "roll": 179.2059999704361
+      },
+      "aligned": true
+    },
+    {
+      "deid": 819,
+      "symname": "/MUON/GM11/DE819",
+      "transform": {
+        "tx": -41.25,
+        "ty": -208.57997646353203,
+        "tz": -1316.6093314165798,
+        "yaw": -180,
+        "pitch": 0,
+        "roll": -0.7940000295639039
+      },
+      "aligned": true
+    },
+    {
+      "deid": 820,
+      "symname": "/MUON/GM10/DE820",
+      "transform": {
+        "tx": 41.25,
+        "ty": -208.57997646353203,
+        "tz": -1292.6093314165798,
+        "yaw": -0,
+        "pitch": 0,
+        "roll": 179.2059999704361
+      },
+      "aligned": true
+    },
+    {
+      "deid": 821,
+      "symname": "/MUON/GM10/DE821",
+      "transform": {
+        "tx": 61.25,
+        "ty": -180.10050501988778,
+        "tz": -1301.5048390137763,
+        "yaw": -0,
+        "pitch": 0,
+        "roll": -0.7940000295639039
+      },
+      "aligned": true
+    },
+    {
+      "deid": 822,
+      "symname": "/MUON/GM10/DE822",
+      "transform": {
+        "tx": 81.25,
+        "ty": -142.986269230902,
+        "tz": -1293.5183816139297,
+        "yaw": -0,
+        "pitch": 0,
+        "roll": 179.2059999704361
+      },
+      "aligned": true
+    },
+    {
+      "deid": 823,
+      "symname": "/MUON/GM10/DE823",
+      "transform": {
+        "tx": 101.25,
+        "ty": -113.70688680860832,
+        "tz": -1302.4249750189529,
+        "yaw": -0,
+        "pitch": 0,
+        "roll": -0.7940000295639039
+      },
+      "aligned": true
+    },
+    {
+      "deid": 824,
+      "symname": "/MUON/GM10/DE824",
+      "transform": {
+        "tx": 101.25,
+        "ty": -76.04270077880811,
+        "tz": -1294.446139270573,
+        "yaw": -0,
+        "pitch": 0,
+        "roll": 179.2059999704361
+      },
+      "aligned": true
+    },
+    {
+      "deid": 825,
+      "symname": "/MUON/GM10/DE825",
+      "transform": {
+        "tx": 121.25,
+        "ty": -38.314121328614824,
+        "tz": -1303.4698284237968,
+        "yaw": -180,
+        "pitch": 0,
+        "roll": -0.7940000295639039
+      },
+      "aligned": true
+    },
+    {
+      "deid": 900,
+      "symname": "/MUON/GM12/DE900",
+      "transform": {
+        "tx": 140,
+        "ty": 0,
+        "tz": -1394.5999755859375,
+        "yaw": -0,
+        "pitch": 0,
+        "roll": 179.2059999704361
+      },
+      "aligned": true
+    },
+    {
+      "deid": 901,
+      "symname": "/MUON/GM12/DE901",
+      "transform": {
+        "tx": 121.25,
+        "ty": 38.07854431768339,
+        "tz": -1403.6285148329473,
+        "yaw": -180,
+        "pitch": 0,
+        "roll": 179.2059999704361
+      },
+      "aligned": true
+    },
+    {
+      "deid": 902,
+      "symname": "/MUON/GM12/DE902",
+      "transform": {
+        "tx": 121.25,
+        "ty": 76.09269902930468,
+        "tz": -1395.6545292312157,
+        "yaw": -0,
+        "pitch": 0,
+        "roll": 179.2059999704361
+      },
+      "aligned": true
+    },
+    {
+      "deid": 903,
+      "symname": "/MUON/GM12/DE903",
+      "transform": {
+        "tx": 121.25,
+        "ty": 113.57129867000808,
+        "tz": -1404.6747539637695,
+        "yaw": -0,
+        "pitch": 0,
+        "roll": -0.7940000295639039
+      },
+      "aligned": true
+    },
+    {
+      "deid": 904,
+      "symname": "/MUON/GM12/DE904",
+      "transform": {
+        "tx": 101.25,
+        "ty": 150.9855010759874,
+        "tz": -1396.692453741858,
+        "yaw": -0,
+        "pitch": 0,
+        "roll": 179.2059999704361
+      },
+      "aligned": true
+    },
+    {
+      "deid": 905,
+      "symname": "/MUON/GM12/DE905",
+      "transform": {
+        "tx": 81.25,
+        "ty": 187.91415810453836,
+        "tz": -1405.705056928669,
+        "yaw": -0,
+        "pitch": 0,
+        "roll": -0.7940000295639039
+      },
+      "aligned": true
+    },
+    {
+      "deid": 906,
+      "symname": "/MUON/GM12/DE906",
+      "transform": {
+        "tx": 61.25,
+        "ty": 224.77841789836523,
+        "tz": -1397.7151351610146,
+        "yaw": -0,
+        "pitch": 0,
+        "roll": 179.2059999704361
+      },
+      "aligned": true
+    },
+    {
+      "deid": 907,
+      "symname": "/MUON/GM13/DE907",
+      "transform": {
+        "tx": -61.25,
+        "ty": 224.77841789836523,
+        "tz": -1421.7151351610146,
+        "yaw": -180,
+        "pitch": 0,
+        "roll": -0.7940000295639039
+      },
+      "aligned": true
+    },
+    {
+      "deid": 908,
+      "symname": "/MUON/GM13/DE908",
+      "transform": {
+        "tx": -81.25,
+        "ty": 188.14973511546978,
+        "tz": -1412.7066892578623,
+        "yaw": -180,
+        "pitch": 0,
+        "roll": 179.2059999704361
+      },
+      "aligned": true
+    },
+    {
+      "deid": 909,
+      "symname": "/MUON/GM13/DE909",
+      "transform": {
+        "tx": -101.25,
+        "ty": 150.9855010759874,
+        "tz": -1420.692453741858,
+        "yaw": -180,
+        "pitch": 0,
+        "roll": -0.7940000295639039
+      },
+      "aligned": true
+    },
+    {
+      "deid": 910,
+      "symname": "/MUON/GM13/DE910",
+      "transform": {
+        "tx": -121.25,
+        "ty": 113.8068756809395,
+        "tz": -1411.6763862929631,
+        "yaw": -180,
+        "pitch": 0,
+        "roll": 179.2059999704361
+      },
+      "aligned": true
+    },
+    {
+      "deid": 911,
+      "symname": "/MUON/GM13/DE911",
+      "transform": {
+        "tx": -121.25,
+        "ty": 76.09269902930468,
+        "tz": -1419.6545292312157,
+        "yaw": -180,
+        "pitch": 0,
+        "roll": -0.7940000295639039
+      },
+      "aligned": true
+    },
+    {
+      "deid": 912,
+      "symname": "/MUON/GM13/DE912",
+      "transform": {
+        "tx": -121.25,
+        "ty": 38.314121328614824,
+        "tz": -1410.6301471621407,
+        "yaw": -0,
+        "pitch": 0,
+        "roll": -0.7940000295639039
+      },
+      "aligned": true
+    },
+    {
+      "deid": 913,
+      "symname": "/MUON/GM13/DE913",
+      "transform": {
+        "tx": -140,
+        "ty": 0,
+        "tz": -1418.5999755859375,
+        "yaw": -180,
+        "pitch": 0,
+        "roll": -0.7940000295639039
+      },
+      "aligned": true
+    },
+    {
+      "deid": 914,
+      "symname": "/MUON/GM13/DE914",
+      "transform": {
+        "tx": -121.25,
+        "ty": -38.07854431768339,
+        "tz": -1409.5714363389277,
+        "yaw": -0,
+        "pitch": 0,
+        "roll": 179.2059999704361
+      },
+      "aligned": true
+    },
+    {
+      "deid": 915,
+      "symname": "/MUON/GM13/DE915",
+      "transform": {
+        "tx": -121.25,
+        "ty": -76.09269902930468,
+        "tz": -1417.5454219406593,
+        "yaw": -180,
+        "pitch": 0,
+        "roll": -0.7940000295639039
+      },
+      "aligned": true
+    },
+    {
+      "deid": 916,
+      "symname": "/MUON/GM13/DE916",
+      "transform": {
+        "tx": -121.25,
+        "ty": -113.57129867000808,
+        "tz": -1408.5251972081055,
+        "yaw": -180,
+        "pitch": 0,
+        "roll": 179.2059999704361
+      },
+      "aligned": true
+    },
+    {
+      "deid": 917,
+      "symname": "/MUON/GM13/DE917",
+      "transform": {
+        "tx": -101.25,
+        "ty": -150.9855010759874,
+        "tz": -1416.507497430017,
+        "yaw": -180,
+        "pitch": 0,
+        "roll": -0.7940000295639039
+      },
+      "aligned": true
+    },
+    {
+      "deid": 918,
+      "symname": "/MUON/GM13/DE918",
+      "transform": {
+        "tx": -81.25,
+        "ty": -187.91415810453836,
+        "tz": -1407.494894243206,
+        "yaw": -180,
+        "pitch": 0,
+        "roll": 179.2059999704361
+      },
+      "aligned": true
+    },
+    {
+      "deid": 919,
+      "symname": "/MUON/GM13/DE919",
+      "transform": {
+        "tx": -61.25,
+        "ty": -224.77841789836523,
+        "tz": -1415.4848160108604,
+        "yaw": -180,
+        "pitch": 0,
+        "roll": -0.7940000295639039
+      },
+      "aligned": true
+    },
+    {
+      "deid": 920,
+      "symname": "/MUON/GM12/DE920",
+      "transform": {
+        "tx": 61.25,
+        "ty": -224.77841789836523,
+        "tz": -1391.4848160108604,
+        "yaw": -0,
+        "pitch": 0,
+        "roll": 179.2059999704361
+      },
+      "aligned": true
+    },
+    {
+      "deid": 921,
+      "symname": "/MUON/GM12/DE921",
+      "transform": {
+        "tx": 81.25,
+        "ty": -188.14973511546978,
+        "tz": -1400.4932619140127,
+        "yaw": -0,
+        "pitch": 0,
+        "roll": -0.7940000295639039
+      },
+      "aligned": true
+    },
+    {
+      "deid": 922,
+      "symname": "/MUON/GM12/DE922",
+      "transform": {
+        "tx": 101.25,
+        "ty": -150.9855010759874,
+        "tz": -1392.507497430017,
+        "yaw": -0,
+        "pitch": 0,
+        "roll": 179.2059999704361
+      },
+      "aligned": true
+    },
+    {
+      "deid": 923,
+      "symname": "/MUON/GM12/DE923",
+      "transform": {
+        "tx": 121.25,
+        "ty": -113.8068756809395,
+        "tz": -1401.5235648789119,
+        "yaw": -0,
+        "pitch": 0,
+        "roll": -0.7940000295639039
+      },
+      "aligned": true
+    },
+    {
+      "deid": 924,
+      "symname": "/MUON/GM12/DE924",
+      "transform": {
+        "tx": 121.25,
+        "ty": -76.09269902930468,
+        "tz": -1393.5454219406593,
+        "yaw": -0,
+        "pitch": 0,
+        "roll": 179.2059999704361
+      },
+      "aligned": true
+    },
+    {
+      "deid": 925,
+      "symname": "/MUON/GM12/DE925",
+      "transform": {
+        "tx": 121.25,
+        "ty": -38.314121328614824,
+        "tz": -1402.5698040097343,
+        "yaw": -180,
+        "pitch": 0,
+        "roll": -0.7940000295639039
+      },
+      "aligned": true
+    },
+    {
+      "deid": 1000,
+      "symname": "/MUON/GM14/DE1000",
+      "transform": {
+        "tx": 140,
+        "ty": 0,
+        "tz": -1425.5999755859375,
+        "yaw": -0,
+        "pitch": 0,
+        "roll": 179.2059999704361
+      },
+      "aligned": true
+    },
+    {
+      "deid": 1001,
+      "symname": "/MUON/GM14/DE1001",
+      "transform": {
+        "tx": 121.25,
+        "ty": 38.07854431768339,
+        "tz": -1434.6285148329473,
+        "yaw": -180,
+        "pitch": 0,
+        "roll": 179.2059999704361
+      },
+      "aligned": true
+    },
+    {
+      "deid": 1002,
+      "symname": "/MUON/GM14/DE1002",
+      "transform": {
+        "tx": 121.25,
+        "ty": 76.09269902930468,
+        "tz": -1426.6545292312157,
+        "yaw": -0,
+        "pitch": 0,
+        "roll": 179.2059999704361
+      },
+      "aligned": true
+    },
+    {
+      "deid": 1003,
+      "symname": "/MUON/GM14/DE1003",
+      "transform": {
+        "tx": 121.25,
+        "ty": 113.57129867000808,
+        "tz": -1435.6747539637695,
+        "yaw": -0,
+        "pitch": 0,
+        "roll": -0.7940000295639039
+      },
+      "aligned": true
+    },
+    {
+      "deid": 1004,
+      "symname": "/MUON/GM14/DE1004",
+      "transform": {
+        "tx": 101.25,
+        "ty": 150.9855010759874,
+        "tz": -1427.692453741858,
+        "yaw": -0,
+        "pitch": 0,
+        "roll": 179.2059999704361
+      },
+      "aligned": true
+    },
+    {
+      "deid": 1005,
+      "symname": "/MUON/GM14/DE1005",
+      "transform": {
+        "tx": 81.25,
+        "ty": 187.91415810453836,
+        "tz": -1436.705056928669,
+        "yaw": -0,
+        "pitch": 0,
+        "roll": -0.7940000295639039
+      },
+      "aligned": true
+    },
+    {
+      "deid": 1006,
+      "symname": "/MUON/GM14/DE1006",
+      "transform": {
+        "tx": 61.25,
+        "ty": 224.77841789836523,
+        "tz": -1428.7151351610146,
+        "yaw": -0,
+        "pitch": 0,
+        "roll": 179.2059999704361
+      },
+      "aligned": true
+    },
+    {
+      "deid": 1007,
+      "symname": "/MUON/GM15/DE1007",
+      "transform": {
+        "tx": -61.25,
+        "ty": 224.77841789836523,
+        "tz": -1452.7151351610146,
+        "yaw": -180,
+        "pitch": 0,
+        "roll": -0.7940000295639039
+      },
+      "aligned": true
+    },
+    {
+      "deid": 1008,
+      "symname": "/MUON/GM15/DE1008",
+      "transform": {
+        "tx": -81.25,
+        "ty": 188.14973511546978,
+        "tz": -1443.7066892578623,
+        "yaw": -180,
+        "pitch": 0,
+        "roll": 179.2059999704361
+      },
+      "aligned": true
+    },
+    {
+      "deid": 1009,
+      "symname": "/MUON/GM15/DE1009",
+      "transform": {
+        "tx": -101.25,
+        "ty": 150.9855010759874,
+        "tz": -1451.692453741858,
+        "yaw": -180,
+        "pitch": 0,
+        "roll": -0.7940000295639039
+      },
+      "aligned": true
+    },
+    {
+      "deid": 1010,
+      "symname": "/MUON/GM15/DE1010",
+      "transform": {
+        "tx": -121.25,
+        "ty": 113.8068756809395,
+        "tz": -1442.6763862929631,
+        "yaw": -180,
+        "pitch": 0,
+        "roll": 179.2059999704361
+      },
+      "aligned": true
+    },
+    {
+      "deid": 1011,
+      "symname": "/MUON/GM15/DE1011",
+      "transform": {
+        "tx": -121.25,
+        "ty": 76.09269902930468,
+        "tz": -1450.6545292312157,
+        "yaw": -180,
+        "pitch": 0,
+        "roll": -0.7940000295639039
+      },
+      "aligned": true
+    },
+    {
+      "deid": 1012,
+      "symname": "/MUON/GM15/DE1012",
+      "transform": {
+        "tx": -121.25,
+        "ty": 38.314121328614824,
+        "tz": -1441.6301471621407,
+        "yaw": -0,
+        "pitch": 0,
+        "roll": -0.7940000295639039
+      },
+      "aligned": true
+    },
+    {
+      "deid": 1013,
+      "symname": "/MUON/GM15/DE1013",
+      "transform": {
+        "tx": -140,
+        "ty": 0,
+        "tz": -1449.5999755859375,
+        "yaw": -180,
+        "pitch": 0,
+        "roll": -0.7940000295639039
+      },
+      "aligned": true
+    },
+    {
+      "deid": 1014,
+      "symname": "/MUON/GM15/DE1014",
+      "transform": {
+        "tx": -121.25,
+        "ty": -38.07854431768339,
+        "tz": -1440.5714363389277,
+        "yaw": -0,
+        "pitch": 0,
+        "roll": 179.2059999704361
+      },
+      "aligned": true
+    },
+    {
+      "deid": 1015,
+      "symname": "/MUON/GM15/DE1015",
+      "transform": {
+        "tx": -121.25,
+        "ty": -76.09269902930468,
+        "tz": -1448.5454219406593,
+        "yaw": -180,
+        "pitch": 0,
+        "roll": -0.7940000295639039
+      },
+      "aligned": true
+    },
+    {
+      "deid": 1016,
+      "symname": "/MUON/GM15/DE1016",
+      "transform": {
+        "tx": -121.25,
+        "ty": -113.57129867000808,
+        "tz": -1439.5251972081055,
+        "yaw": -180,
+        "pitch": 0,
+        "roll": 179.2059999704361
+      },
+      "aligned": true
+    },
+    {
+      "deid": 1017,
+      "symname": "/MUON/GM15/DE1017",
+      "transform": {
+        "tx": -101.25,
+        "ty": -150.9855010759874,
+        "tz": -1447.507497430017,
+        "yaw": -180,
+        "pitch": 0,
+        "roll": -0.7940000295639039
+      },
+      "aligned": true
+    },
+    {
+      "deid": 1018,
+      "symname": "/MUON/GM15/DE1018",
+      "transform": {
+        "tx": -81.25,
+        "ty": -187.91415810453836,
+        "tz": -1438.494894243206,
+        "yaw": -180,
+        "pitch": 0,
+        "roll": 179.2059999704361
+      },
+      "aligned": true
+    },
+    {
+      "deid": 1019,
+      "symname": "/MUON/GM15/DE1019",
+      "transform": {
+        "tx": -61.25,
+        "ty": -224.77841789836523,
+        "tz": -1446.4848160108604,
+        "yaw": -180,
+        "pitch": 0,
+        "roll": -0.7940000295639039
+      },
+      "aligned": true
+    },
+    {
+      "deid": 1020,
+      "symname": "/MUON/GM14/DE1020",
+      "transform": {
+        "tx": 61.25,
+        "ty": -224.77841789836523,
+        "tz": -1422.4848160108604,
+        "yaw": -0,
+        "pitch": 0,
+        "roll": 179.2059999704361
+      },
+      "aligned": true
+    },
+    {
+      "deid": 1021,
+      "symname": "/MUON/GM14/DE1021",
+      "transform": {
+        "tx": 81.25,
+        "ty": -188.14973511546978,
+        "tz": -1431.4932619140127,
+        "yaw": -0,
+        "pitch": 0,
+        "roll": -0.7940000295639039
+      },
+      "aligned": true
+    },
+    {
+      "deid": 1022,
+      "symname": "/MUON/GM14/DE1022",
+      "transform": {
+        "tx": 101.25,
+        "ty": -150.9855010759874,
+        "tz": -1423.507497430017,
+        "yaw": -0,
+        "pitch": 0,
+        "roll": 179.2059999704361
+      },
+      "aligned": true
+    },
+    {
+      "deid": 1023,
+      "symname": "/MUON/GM14/DE1023",
+      "transform": {
+        "tx": 121.25,
+        "ty": -113.8068756809395,
+        "tz": -1432.5235648789119,
+        "yaw": -0,
+        "pitch": 0,
+        "roll": -0.7940000295639039
+      },
+      "aligned": true
+    },
+    {
+      "deid": 1024,
+      "symname": "/MUON/GM14/DE1024",
+      "transform": {
+        "tx": 121.25,
+        "ty": -76.09269902930468,
+        "tz": -1424.5454219406593,
+        "yaw": -0,
+        "pitch": 0,
+        "roll": 179.2059999704361
+      },
+      "aligned": true
+    },
+    {
+      "deid": 1025,
+      "symname": "/MUON/GM14/DE1025",
+      "transform": {
+        "tx": 121.25,
+        "ty": -38.314121328614824,
+        "tz": -1433.5698040097343,
+        "yaw": -180,
+        "pitch": 0,
+        "roll": -0.7940000295639039
+      },
+      "aligned": true
+    }
+  ]
+}

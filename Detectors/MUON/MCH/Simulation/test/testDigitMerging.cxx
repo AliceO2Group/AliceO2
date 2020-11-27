@@ -8,9 +8,8 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#define BOOST_TEST_MODULE Test MCHSimulation Digitization
+#define BOOST_TEST_MODULE Test MCHSimulation DigitMerging
 #define BOOST_TEST_DYN_LINK
-#define BOOST_TEST_MAIN
 
 #include <boost/test/unit_test.hpp>
 
@@ -24,8 +23,6 @@
 #include <iostream>
 
 using o2::mch::Digit;
-
-BOOST_AUTO_TEST_SUITE(o2_mch_simulation)
 
 std::vector<Digit> createNonOverlappingDigits()
 {
@@ -102,5 +99,3 @@ BOOST_DATA_TEST_CASE(DigitMerging, boost::unit_test::data::make(mergingFunctions
   auto m = mergingFunction(createOverlappingDigits(), createLabelsOverlappingDigits());
   BOOST_CHECK(std::is_permutation(m.begin(), m.end(), expected().begin()));
 }
-
-BOOST_AUTO_TEST_SUITE_END()

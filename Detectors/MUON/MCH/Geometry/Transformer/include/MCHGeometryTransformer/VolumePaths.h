@@ -7,17 +7,16 @@
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
+/// get the local-to-global transformation for a given detection element
 
-#ifdef __CLING__
+#ifndef O2_MCH_GEOMETRY_TRANSFORMER_VOLUME_PATHS_H
+#define O2_MCH_GEOMETRY_TRANSFORMER_VOLUME_PATHS_H
 
-#pragma link off all globals;
-#pragma link off all classes;
-#pragma link off all functions;
+#include <string>
 
-#pragma link C++ namespace o2;
-#pragma link C++ namespace o2::mch;
-
-#pragma link C++ class o2::mch::Digit + ;
-#pragma link C++ class std::vector < o2::mch::Digit > +;
+namespace o2::mch::geo
+{
+std::string volumePathName(int deId);
+}
 
 #endif

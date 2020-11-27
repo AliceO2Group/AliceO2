@@ -13,22 +13,19 @@
 /// \author Florian Damas <florian.damas@cern.ch>
 /// \date   16 mai 2018
 
-#ifndef O2_MCH_SIMULATION_STATION1GEOMETRY_H
-#define O2_MCH_SIMULATION_STATION1GEOMETRY_H
+#ifndef O2_MCH_GEOMETRY_CREATOR_STATION1GEOMETRY_H
+#define O2_MCH_GEOMETRY_CREATOR_STATION1GEOMETRY_H
 
 #include <vector>
 
 class TGeoVolume;
 
-namespace o2
-{
-namespace mch
+namespace o2::mch
 {
 
 void createStation1Geometry(TGeoVolume& topVolume);
 
 std::vector<TGeoVolume*> getStation1SensitiveVolumes();
 
-} // namespace mch
-} // namespace o2
-#endif // O2_MCH_SIMULATION_STATION1GEOMETRY_H
+} // namespace o2::mch
+#endif

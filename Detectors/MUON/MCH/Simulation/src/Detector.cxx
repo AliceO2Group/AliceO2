@@ -9,7 +9,7 @@
 // or submit itself to any jurisdiction.
 
 #include "MCHSimulation/Detector.h"
-#include "MCHSimulation/Geometry.h"
+#include "MCHGeometryCreator/Geometry.h"
 #include "SimulationDataFormat/Stack.h"
 #include "Stepper.h"
 #include "TGeoManager.h"
@@ -42,7 +42,7 @@ Detector::~Detector()
 
 void Detector::defineSensitiveVolumes()
 {
-  for (auto* vol : getSensitiveVolumes()) {
+  for (auto* vol : geo::getSensitiveVolumes()) {
     AddSensitiveVolume(vol);
   }
 }
@@ -58,7 +58,7 @@ void Detector::ConstructGeometry()
   if (!top) {
     throw std::runtime_error("Cannot create MCH geometry without a top volume");
   }
-  createGeometry(*top);
+  geo::createGeometry(*gGeoManager, *top);
 }
 
 void Detector::addAlignableVolumes() const
@@ -66,7 +66,7 @@ void Detector::addAlignableVolumes() const
   if (!gGeoManager) {
     throw std::runtime_error("Cannot add alignable volumes without TGeoManager");
   }
-  addAlignableVolumesMCH();
+  geo::addAlignableVolumes(*gGeoManager);
 }
 
 Bool_t Detector::ProcessHits(FairVolume* v)
