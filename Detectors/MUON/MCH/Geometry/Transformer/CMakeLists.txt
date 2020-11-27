@@ -8,13 +8,15 @@
 # granted to it by virtue of its status as an Intergovernmental Organization or
 # submit itself to any jurisdiction.
 
-add_subdirectory(Base)
-add_subdirectory(Contour)
-add_subdirectory(Mapping)
-add_subdirectory(PreClustering)
-add_subdirectory(Geometry)
-add_subdirectory(Clustering)
-add_subdirectory(Simulation)
-add_subdirectory(Tracking)
-add_subdirectory(Raw)
-add_subdirectory(Workflow)
+o2_add_library(
+  MCHGeometryTransformer
+  SOURCES src/Transformations.cxx src/VolumePaths.cxx
+  PUBLIC_LINK_LIBRARIES ROOT::Geom O2::MathUtils ms_gsl::ms_gsl
+                        RapidJSON::RapidJSON)
+
+o2_add_executable(
+  convert-geometry
+  SOURCES src/convert-geometry.cxx
+  PUBLIC_LINK_LIBRARIES ROOT::Geom ms_gsl::ms_gsl Boost::program_options
+                        O2::MCHGeometryTransformer
+  COMPONENT_NAME mch)

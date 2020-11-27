@@ -8,32 +8,19 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#ifndef O2_MCH_SIMULATION_GEOMETRYTEST_H
-#define O2_MCH_SIMULATION_GEOMETRYTEST_H
+#ifndef O2_MCH_GEOMETRY_TEST_HELPERS_H
+#define O2_MCH_GEOMETRY_TEST_HELPERS_H
 
 #include <iostream>
 
 class TH2;
 
-namespace o2
-{
-namespace mch
-{
-namespace test
+namespace o2::mch::test
 {
 
 /// creates MCH geometry from scratch (i.e. from a null TGeoManager)
 /// usefull for tests or drawing for instance.
 void createStandaloneGeometry();
-
-/// creates MCH geometry with the beam shielding and the dipole
-/// from scratch (i.e. from a null TGeoManager).
-/// usefull for tests.
-void createRegularGeometry();
-
-/// creates MCH regular geometry and adds alignable volumes
-/// useull for tests.
-void addAlignableVolumes();
 
 /// tree like textual dump of the geometry nodes
 void showGeometryAsTextTree(const char* fromPath = "", int maxdepth = 2, std::ostream& out = std::cout);
@@ -58,8 +45,6 @@ class Dummy
 {
   // to force Root produce a dictionary for namespace test (seems it is doing it fully if there are only functions in the namespace)
 };
-} // namespace test
-} // namespace mch
-} // namespace o2
+} // namespace o2::mch::test
 
 #endif

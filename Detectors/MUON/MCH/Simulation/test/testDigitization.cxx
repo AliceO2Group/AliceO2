@@ -11,19 +11,21 @@
 /// \brief This task tests the Digitizer and the Response of the MCH digitization
 /// \author Michael Winn, DPhN/IRFU/CEA, michael.winn@cern.ch
 
+#define BOOST_TEST_MODULE Test MCHSimulation Digitization
 #define BOOST_TEST_DYN_LINK
 
 #include <boost/test/unit_test.hpp>
 
-#include "TGeoManager.h"
 #include "MCHBase/Digit.h"
-#include "MCHSimulation/Digitizer.h"
-#include "MCHSimulation/Hit.h"
-#include "MCHSimulation/Geometry.h"
-#include "MCHSimulation/GeometryTest.h"
+#include "MCHGeometryTransformer/Transformations.h"
 #include "MCHMappingInterface/Segmentation.h"
+#include "MCHSimulation/Digitizer.h"
+#include "MCHGeometryCreator/Geometry.h"
+#include "MCHGeometryCreator/GeometryTest.h"
+#include "MCHSimulation/Hit.h"
 #include "SimulationDataFormat/MCCompLabel.h"
 #include "SimulationDataFormat/MCTruthContainer.h"
+#include "TGeoManager.h"
 #include "TGeoManager.h"
 #include "boost/format.hpp"
 #include <boost/test/data/test_case.hpp>
@@ -48,8 +50,6 @@ o2::math_utils::Point3D<float> exitPoint2(-49.2965, 28.8806, -1441.75);
 /// \brief Test of the Digitization
 /// A couple of values are filled into Hits and we check whether we get reproducible output in terms of digits
 /// and MClabels
-
-BOOST_AUTO_TEST_SUITE(o2_mch_simulation)
 
 BOOST_FIXTURE_TEST_SUITE(digitization, GEOMETRY)
 
@@ -82,6 +82,8 @@ BOOST_AUTO_TEST_CASE(DigitizerTest)
   int digitcounter2 = 0;
   int count = 0;
 
+  auto transformation = o2::mch::geo::transformationFromTGeoManager(*gGeoManager);
+
   for (auto& digit : digits) {
 
     int padid = digit.getPadID();
@@ -98,7 +100,7 @@ BOOST_AUTO_TEST_CASE(DigitizerTest)
       double padsizeX = seg1.padSizeX(padid);
       double padposY = seg1.padPositionY(padid);
       double padsizeY = seg1.padSizeY(padid);
-      auto t = o2::mch::getTransformation(detElemId1, *gGeoManager);
+      auto t = transformation(detElemId1);
 
       o2::math_utils::Point3D<float> pos(hits.at(0).GetX(), hits.at(0).GetY(), hits.at(0).GetZ());
       o2::math_utils::Point3D<float> lpos;
@@ -117,7 +119,7 @@ BOOST_AUTO_TEST_CASE(DigitizerTest)
       double padsizeX = seg2.padSizeX(padid);
       double padposY = seg2.padPositionY(padid);
       double padsizeY = seg2.padSizeY(padid);
-      auto t = o2::mch::getTransformation(detElemId2, *gGeoManager);
+      auto t = transformation(detElemId2);
 
       o2::math_utils::Point3D<float> pos(hits.at(1).GetX(), hits.at(1).GetY(), hits.at(1).GetZ());
       o2::math_utils::Point3D<float> lpos;
@@ -203,5 +205,4 @@ BOOST_AUTO_TEST_CASE(mergingDigitizer)
 
 } //testing
 
-BOOST_AUTO_TEST_SUITE_END()
 BOOST_AUTO_TEST_SUITE_END()
