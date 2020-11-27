@@ -13,6 +13,7 @@
 
 #include <cstdint>
 #include <utility>
+#include <type_traits>
 
 // CRC32 Table (zlib polynomial) static
 constexpr uint32_t crc_table[256] = {0x0L, 0x77073096L, 0xee0e612cL,
@@ -85,6 +86,14 @@ struct ConstStr {
   static constexpr char str[] = {chars..., '\0'};
   static constexpr uint32_t hash = compile_time_hash_from_literal(str);
   static constexpr uint32_t idx = hash & 0x1FF;
+};
+
+template <typename>
+struct is_const_str : std::false_type {
+};
+
+template <char... chars>
+struct is_const_str<ConstStr<chars...>> : std::true_type {
 };
 
 template <typename T, std::size_t... Is>
