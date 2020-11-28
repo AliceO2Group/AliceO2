@@ -8,7 +8,7 @@
 #include <TRandom3.h>
 #include <TGeoGlobalMagField.h>
 #include <vector>
-
+#include <Math/Point3Dfwd.h>
 #include "DataFormatsITSMFT/ROFRecord.h"
 #include "ITSMFTSimulation/Hit.h"
 #include "ITStracking/Configuration.h"
@@ -21,10 +21,9 @@
 #include "DataFormatsITSMFT/CompCluster.h"
 #include "DetectorsCommonDataFormats/DetID.h"
 #include "SimulationDataFormat/MCTrack.h"
-#include "MathUtils/Cartesian3D.h"
+#include "MathUtils/Cartesian.h"
 #include "ReconstructionDataFormats/DCA.h"
 #include "ReconstructionDataFormats/Vertex.h"
-
 #endif
 
 using o2::its::MemoryParameters;
@@ -146,7 +145,7 @@ void run_trac_alice3(const string hitsFileName = "o2sim_HitsIT4.root")
   TH2D dcaz("dcaz", ";#it{p}_{T} (GeV/#it{c});DCA_{z} (#mum);", nBins, newBins, 200, -200, 200);
   TH2D deltaE("deltaE", ";#it{p}_{T} (GeV/#it{c});#DeltaE (MeV);", nBins, newBins, 200, 0, 100);
 
-  Point3D<float> pos{0.f, 0.f, 0.f};
+  ROOT::Math::XYZPointF pos{0.f, 0.f, 0.f};
   const std::array<float, 6> cov{1.e-4, 0., 0., 1.e-4, 0., 1.e-4};
   o2::dataformats::VertexBase vtx(pos, cov);
   o2::dataformats::DCA dca;
