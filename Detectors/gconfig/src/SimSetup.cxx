@@ -53,6 +53,8 @@ void SimSetup::setup(const char* engine)
     setupFromPlugin("libO2G3Setup", "_ZN2o28g3config8G3ConfigEv");
   } else if (strcmp(engine, "TGeant4") == 0) {
     setupFromPlugin("libO2G4Setup", "_ZN2o28g4config8G4ConfigEv");
+  } else if (strcmp(engine, "TFluka") == 0) {
+    setupFromPlugin("libO2FLUKASetup", "_ZN2o211flukaconfig11FlukaConfigEv");
   } else {
     LOG(FATAL) << "Unsupported engine " << engine;
   }

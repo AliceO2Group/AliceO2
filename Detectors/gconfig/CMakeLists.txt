@@ -18,6 +18,16 @@ o2_add_library(G4Setup
                PUBLIC_LINK_LIBRARIES MC::Geant4VMC MC::Geant4 FairRoot::Base O2::SimulationDataFormat O2::Generators ROOT::EGPythia6
 )
 
+if (FlukaVMC_FOUND)
+  message(STATUS "BUILDING WITH FLUKA")
+  o2_add_library(FLUKASetup
+                 SOURCES src/FlukaConfig.cxx
+       	         PUBLIC_LINK_LIBRARIES MC::FlukaVMC FairRoot::Base O2::SimulationDataFormat O2::Generators ROOT::EGPythia6
+	        )
+else()
+  message(STATUS "BUILDING WITHOUT FLUKA")
+endif (FlukaVMC_FOUND)
+	      
 o2_add_library(SimSetup
                SOURCES  src/GlobalProcessCutSimParam.cxx src/SimSetup.cxx src/SetCuts.cxx
 	       PUBLIC_LINK_LIBRARIES O2::CommonUtils O2::DetectorsBase
@@ -49,3 +59,5 @@ o2_add_test_root_macro(g3Config.C
 o2_add_test_root_macro(g4Config.C
                        PUBLIC_LINK_LIBRARIES O2::SimSetup
                        LABELS simsetup)
+
+o2_data_file(COPY data  DESTINATION Detectors/gconfig/)
