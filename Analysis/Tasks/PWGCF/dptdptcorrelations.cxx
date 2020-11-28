@@ -20,6 +20,7 @@
 #include <TParameter.h>
 #include <TList.h>
 #include <TDirectory.h>
+#include <TFolder.h>
 #include <TH1.h>
 #include <TH2.h>
 #include <TH3.h>
@@ -301,6 +302,7 @@ struct DptDptCorrelationsFilterAnalysisTask {
                                                            "triplets - nbins, min, max - for z_vtx, pT, eta and phi, binning plus bin fraction of phi origin shift"};
 
   OutputObj<TList> fOutput{"DptDptCorrelationsGlobalInfo", OutputObjHandlingPolicy::AnalysisObject};
+  OutputObj<TFolder> fConfOutput{"DptDptCorrelationsGlobalConfiguration", OutputObjHandlingPolicy::AnalysisObject};
 
   Produces<aod::AcceptedEvents> acceptedevents;
   Produces<aod::ScannedTracks> scannedtracks;
@@ -334,15 +336,20 @@ struct DptDptCorrelationsFilterAnalysisTask {
     /* if the system type is not known at this time, we have to put the initalization somewhere else */
     fSystem = getSystemType();
 
+    /* create the configuration folder which will own the task configuration parameters */
+    TFolder* fOutputFolder = new TFolder("DptDptCorrelationsGlobalConfigurationFolder", "DptDptCorrelationsGlobalConfigurationFolder");
+    fOutputFolder->SetOwner(true);
+    fConfOutput.setObject(fOutputFolder);
+
+    /* incorporate configuration parameters to the output */
+    fOutputFolder->Add(new TParameter<Int_t>("TrackType", cfgTrackType, 'f'));
+    fOutputFolder->Add(new TParameter<Int_t>("TrackOneCharge", cfgTrackOneCharge, 'f'));
+    fOutputFolder->Add(new TParameter<Int_t>("TrackTwoCharge", cfgTrackTwoCharge, 'f'));
+
     /* create the output list which will own the task histograms */
     TList* fOutputList = new TList();
     fOutputList->SetOwner(true);
     fOutput.setObject(fOutputList);
-
-    /* incorporate configuration parameters to the output */
-    fOutputList->Add(new TParameter<Int_t>("TrackType", cfgTrackType, 'f'));
-    fOutputList->Add(new TParameter<Int_t>("TrackOneCharge", cfgTrackOneCharge, 'f'));
-    fOutputList->Add(new TParameter<Int_t>("TrackTwoCharge", cfgTrackTwoCharge, 'f'));
 
     /* create the histograms */
     if (fSystem > kPbp) {
@@ -463,6 +470,7 @@ struct DptDptCorrelationsTask {
                                                            "triplets - nbins, min, max - for z_vtx, pT, eta and phi, binning plus bin fraction of phi origin shift"};
 
   OutputObj<TList> fOutput{"DptDptCorrelationsData", OutputObjHandlingPolicy::AnalysisObject};
+  OutputObj<TFolder> fConfOutput{"DptDptCorrelationsConfiguration", OutputObjHandlingPolicy::AnalysisObject};
 
   Filter onlyacceptedevents = (aod::dptdptcorrelations::eventaccepted == DPTDPT_TRUE);
   Filter onlyacceptedtracks = ((aod::dptdptcorrelations::trackacceptedasone == DPTDPT_TRUE) or (aod::dptdptcorrelations::trackacceptedastwo == DPTDPT_TRUE));
@@ -477,6 +485,7 @@ struct DptDptCorrelationsTask {
                                                                                       {28, -7.0, 7.0, 18, 0.2, 2.0, 16, -0.8, 0.8, 72, 0.5},
                                                                                       "triplets - nbins, min, max - for z_vtx, pT, eta and phi, binning plus bin fraction of phi origin shift"},
                          OutputObj<TList> _fOutput = {"DptDptCorrelationsData", OutputObjHandlingPolicy::AnalysisObject},
+                         OutputObj<TFolder> _fConfOutput = {"DptDptCorrelationsConfiguration", OutputObjHandlingPolicy::AnalysisObject},
                          Filter _onlyacceptedevents = (aod::dptdptcorrelations::eventaccepted == DPTDPT_TRUE),
                          Filter _onlyacceptedtracks = ((aod::dptdptcorrelations::trackacceptedasone == DPTDPT_TRUE) or (aod::dptdptcorrelations::trackacceptedastwo == DPTDPT_TRUE)),
                          Partition<aod::FilteredTracks> _Tracks1 = aod::dptdptcorrelations::trackacceptedasone == DPTDPT_TRUE,
@@ -486,6 +495,7 @@ struct DptDptCorrelationsTask {
       cfgProcessPairs(_cfgProcessPairs),
       cfgBinning(_cfgBinning),
       fOutput(_fOutput),
+      fConfOutput(_fConfOutput),
       onlyacceptedevents((aod::dptdptcorrelations::eventaccepted == DPTDPT_TRUE) and (aod::dptdptcorrelations::centmult > fCentMultMin) and (aod::dptdptcorrelations::centmult < fCentMultMax)),
       onlyacceptedtracks((aod::dptdptcorrelations::trackacceptedasone == DPTDPT_TRUE) or (aod::dptdptcorrelations::trackacceptedastwo == DPTDPT_TRUE)),
       Tracks1(aod::dptdptcorrelations::trackacceptedasone == DPTDPT_TRUE),
@@ -516,29 +526,34 @@ struct DptDptCorrelationsTask {
     etabinwidth = (etaup - etalow) / float(etabins);
     phibinwidth = (phiup - philow) / float(phibins);
 
-    /* create the output list which will own the task histograms */
-    TList* fOutputList = new TList();
-    fOutputList->SetOwner(true);
-    fOutput.setObject(fOutputList);
+    /* create the configuration folder which will own the task configuration parameters */
+    TFolder* fOutputFolder = new TFolder("DptDptCorrelationsConfigurationFolder", "DptDptCorrelationsConfigurationFolder");
+    fOutputFolder->SetOwner(true);
+    fConfOutput.setObject(fOutputFolder);
 
     /* incorporate configuration parameters to the output */
-    fOutputList->Add(new TParameter<Int_t>("NoBinsVertexZ", zvtxbins, 'f'));
-    fOutputList->Add(new TParameter<Int_t>("NoBinsPt", ptbins, 'f'));
-    fOutputList->Add(new TParameter<Int_t>("NoBinsEta", etabins, 'f'));
-    fOutputList->Add(new TParameter<Int_t>("NoBinsPhi", phibins, 'f'));
-    fOutputList->Add(new TParameter<Double_t>("MinVertexZ", zvtxlow, 'f'));
-    fOutputList->Add(new TParameter<Double_t>("MaxVertexZ", zvtxup, 'f'));
-    fOutputList->Add(new TParameter<Double_t>("MinPt", ptlow, 'f'));
-    fOutputList->Add(new TParameter<Double_t>("MaxPt", ptup, 'f'));
-    fOutputList->Add(new TParameter<Double_t>("MinEta", etalow, 'f'));
-    fOutputList->Add(new TParameter<Double_t>("MaxEta", etaup, 'f'));
-    fOutputList->Add(new TParameter<Double_t>("MinPhi", philow, 'f'));
-    fOutputList->Add(new TParameter<Double_t>("MaxPhi", phiup, 'f'));
-    fOutputList->Add(new TParameter<Double_t>("PhiBinShift", phibinshift, 'f'));
+    fOutputFolder->Add(new TParameter<Int_t>("NoBinsVertexZ", zvtxbins, 'f'));
+    fOutputFolder->Add(new TParameter<Int_t>("NoBinsPt", ptbins, 'f'));
+    fOutputFolder->Add(new TParameter<Int_t>("NoBinsEta", etabins, 'f'));
+    fOutputFolder->Add(new TParameter<Int_t>("NoBinsPhi", phibins, 'f'));
+    fOutputFolder->Add(new TParameter<Double_t>("MinVertexZ", zvtxlow, 'f'));
+    fOutputFolder->Add(new TParameter<Double_t>("MaxVertexZ", zvtxup, 'f'));
+    fOutputFolder->Add(new TParameter<Double_t>("MinPt", ptlow, 'f'));
+    fOutputFolder->Add(new TParameter<Double_t>("MaxPt", ptup, 'f'));
+    fOutputFolder->Add(new TParameter<Double_t>("MinEta", etalow, 'f'));
+    fOutputFolder->Add(new TParameter<Double_t>("MaxEta", etaup, 'f'));
+    fOutputFolder->Add(new TParameter<Double_t>("MinPhi", philow, 'f'));
+    fOutputFolder->Add(new TParameter<Double_t>("MaxPhi", phiup, 'f'));
+    fOutputFolder->Add(new TParameter<Double_t>("PhiBinShift", phibinshift, 'f'));
 
     /* after the parameters dump the proper phi limits are set according to the phi shift */
     phiup = phiup - phibinwidth * phibinshift;
     philow = philow - phibinwidth * phibinshift;
+
+    /* create the output list which will own the task histograms */
+    TList* fOutputList = new TList();
+    fOutputList->SetOwner(true);
+    fOutput.setObject(fOutputList);
 
     /* create the histograms */
     Bool_t oldstatus = TH1::AddDirectoryStatus();
