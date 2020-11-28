@@ -63,6 +63,9 @@ set_package_properties(Geant4
 find_package(Geant4VMC MODULE)
 set_package_properties(Geant4VMC PROPERTIES TYPE ${mcPackageRequirement})
 
+find_package(FlukaVMC MODULE)
+set_package_properties(FlukaVMC PROPERTIES TYPE OPTIONAL)
+
 find_package(VGM MODULE)
 set_package_properties(VGM PROPERTIES TYPE ${mcPackageRequirement})
 

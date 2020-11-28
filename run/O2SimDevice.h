@@ -188,14 +188,8 @@ class O2SimDevice final : public FairMQDevice
                     << "part " << info.part << "/" << info.nparts;
           gRandom->SetSeed(chunk->mSubEventInfo.seed);
 
-          auto& conf = o2::conf::SimConfig::Instance();
-          if (strcmp(conf.getMCEngine().c_str(), "TGeant4") == 0) {
-            mVMC->ProcessEvent();
-          } else {
-            // for Geant3 at least calling ProcessEvent is not enough
-            // as some hooks are not called
-            mVMC->ProcessRun(1);
-          }
+          // Process one event
+          mVMC->ProcessRun(1);
 
           FairSystemInfo sysinfo;
           LOG(INFO) << "TIME-STAMP " << mTimer.RealTime() << "\t";

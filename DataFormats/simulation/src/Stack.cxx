@@ -77,8 +77,8 @@ Stack::Stack(Int_t size)
     mIsG4Like(false)
 {
   auto vmc = TVirtualMC::GetMC();
-  if (vmc && strcmp(vmc->GetName(), "TGeant4") == 0) {
-    mIsG4Like = true;
+  if (vmc) {
+    mIsG4Like = !(vmc->SecondariesAreOrdered());
   }
 
   auto& param = o2::sim::StackParam::Instance();
