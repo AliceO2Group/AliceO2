@@ -154,17 +154,17 @@ struct HFCandidateCreator3ProngMC {
 
     // Match reconstructed candidates.
     for (auto& candidate : candidates) {
-      Printf("New rec. candidate");
+      //Printf("New rec. candidate");
       result = 0;
       auto arrayDaughters = array{candidate.index0_as<aod::BigTracksMC>(), candidate.index1_as<aod::BigTracksMC>(), candidate.index2_as<aod::BigTracksMC>()};
 
       // D± → π± K∓ π±
-      Printf("Checking D± → π± K∓ π±");
+      //Printf("Checking D± → π± K∓ π±");
       auto indexRecDPlus = RecoDecay::getMatchedMCRec(particlesMC, arrayDaughters, 411, array{+kPiPlus, -kKPlus, +kPiPlus}, true, &sign);
       result += sign * DPlusToPiKPi * int8_t(indexRecDPlus > -1);
 
       // Λc± → p± K∓ π±
-      Printf("Checking Λc± → p± K∓ π±");
+      //Printf("Checking Λc± → p± K∓ π±");
       auto indexRecLc = RecoDecay::getMatchedMCRec(particlesMC, std::move(arrayDaughters), 4122, array{+kProton, -kKPlus, +kPiPlus}, true, &sign);
       result += sign * LcToPKPi * int8_t(indexRecLc > -1);
 
@@ -173,16 +173,16 @@ struct HFCandidateCreator3ProngMC {
 
     // Match generated particles.
     for (auto& particle : particlesMC) {
-      Printf("New gen. candidate");
+      //Printf("New gen. candidate");
       result = 0;
 
       // D± → π± K∓ π±
-      Printf("Checking D± → π± K∓ π±");
+      //Printf("Checking D± → π± K∓ π±");
       auto isMatchedGenDPlus = RecoDecay::isMatchedMCGen(particlesMC, particle, 411, array{+kPiPlus, -kKPlus, +kPiPlus}, true, &sign);
       result += sign * DPlusToPiKPi * int8_t(isMatchedGenDPlus);
 
       // Λc± → p± K∓ π±
-      Printf("Checking Λc± → p± K∓ π±");
+      //Printf("Checking Λc± → p± K∓ π±");
       auto isMatchedGenLc = RecoDecay::isMatchedMCGen(particlesMC, particle, 4122, array{+kProton, -kKPlus, +kPiPlus}, true, &sign);
       result += sign * LcToPKPi * int8_t(isMatchedGenLc);
 
