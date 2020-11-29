@@ -433,10 +433,10 @@ class RecoDecay
   template <typename T, typename U>
   static int getMother(const T& particlesMC, const U& particle, int PDGMother, bool acceptAntiParticles = false, int8_t* sign = nullptr)
   {
-    int8_t sgn = 0;                     // 1 if the expected mother is particle, -1 if antiparticle (w.r.t. PDGMother)
-    int indexMother = -1; // index of the final matched mother, if found
+    int8_t sgn = 0;                 // 1 if the expected mother is particle, -1 if antiparticle (w.r.t. PDGMother)
+    int indexMother = -1;           // index of the final matched mother, if found
     auto particleMother = particle; // Initialise loop over mothers.
-    int stage = 0; // mother tree level (just for debugging)
+    int stage = 0;                  // mother tree level (just for debugging)
     if (sign) {
       *sign = sgn;
     }
@@ -447,14 +447,13 @@ class RecoDecay
       auto PDGParticleIMother = particleMother.pdgCode(); // PDG code of the mother
       //printf("getMother: ");
       //for (int i = stage; i < 0; i++) // Indent to make the tree look nice.
-        //printf(" ");
+      //  printf(" ");
       //printf("Stage %d: Mother PDG: %d\n", stage, PDGParticleIMother);
       if (PDGParticleIMother == PDGMother) { // exact PDG match
         sgn = 1;
         indexMother = indexMotherTmp;
         break;
-      }
-      else if (acceptAntiParticles && PDGParticleIMother == -PDGMother) { // antiparticle PDG match
+      } else if (acceptAntiParticles && PDGParticleIMother == -PDGMother) { // antiparticle PDG match
         sgn = -1;
         indexMother = indexMotherTmp;
         break;
@@ -493,7 +492,7 @@ class RecoDecay
     }
     // Get the particle.
     auto particle = particlesMC.iteratorAt(index);
-    bool isFinal = false; // Flag to indicate the end of recursion
+    bool isFinal = false;                     // Flag to indicate the end of recursion
     if (depthMax > -1 && stage >= depthMax) { // Maximum depth has been reached (or exceeded).
       isFinal = true;
     }
@@ -524,7 +523,7 @@ class RecoDecay
     if (isFinal) {
       //printf("getDaughters: ");
       //for (int i = 0; i < stage; i++) // Indent to make the tree look nice.
-        //printf(" ");
+      //  printf(" ");
       //printf("Stage %d: Adding %d (PDG %d) as final daughter.\n", stage, index, PDGParticle);
       list->push_back(index);
       return;
@@ -532,7 +531,7 @@ class RecoDecay
     // If we are here, we have to follow the daughter tree.
     //printf("getDaughters: ");
     //for (int i = 0; i < stage; i++) // Indent to make the tree look nice.
-      //printf(" ");
+    //  printf(" ");
     //printf("Stage %d: %d (PDG %d) -> %d-%d\n", stage, index, PDGParticle, indexDaughterFirst, indexDaughterLast);
     // Call itself to get daughters of daughters recursively.
     // Get daughters of the first daughter.
@@ -567,10 +566,10 @@ class RecoDecay
   static int getMatchedMCRec(const T& particlesMC, const array<U, N>& arrDaughters, int PDGMother, array<int, N> arrPDGDaughters, bool acceptAntiParticles = false, int8_t* sign = nullptr, int depthMax = 1)
   {
     //Printf("MC Rec: Expected mother PDG: %d", PDGMother);
-    int8_t sgn = 0;                     // 1 if the expected mother is particle, -1 if antiparticle (w.r.t. PDGMother)
+    int8_t sgn = 0;                  // 1 if the expected mother is particle, -1 if antiparticle (w.r.t. PDGMother)
     int indexMother = -1;            // index of the mother particle
     std::vector<int> arrAllDaughtersIndex; // vector of indices of all daughters of the mother of the first provided daughter
-    array<int, N> arrDaughtersIndex; // array of indices of provided daughters
+    array<int, N> arrDaughtersIndex;       // array of indices of provided daughters
     if (sign) {
       *sign = sgn;
     }
@@ -591,7 +590,7 @@ class RecoDecay
         //Printf("MC Rec: Good mother: %d", indexMother);
         auto particleMother = particlesMC.iteratorAt(indexMother);
         int indexDaughterFirst = particleMother.daughter0(); // index of the first direct daughter
-        int indexDaughterLast = particleMother.daughter1(); // index of the last direct daughter
+        int indexDaughterLast = particleMother.daughter1();  // index of the last direct daughter
         // Check the daughter indices.
         if (indexDaughterFirst <= -1 && indexDaughterLast <= -1) {
           //Printf("MC Rec: Rejected: bad daughter index range: %d-%d", indexDaughterFirst, indexDaughterLast);
@@ -606,7 +605,7 @@ class RecoDecay
         getDaughters(particlesMC, indexMother, &arrAllDaughtersIndex, arrPDGDaughters, depthMax);
         //printf("MC Rec: Mother %d has %d final daughters:", indexMother, arrAllDaughtersIndex.size());
         //for (auto i : arrAllDaughtersIndex) {
-          //printf(" %d", i);
+        //  printf(" %d", i);
         //}
         //printf("\n");
         // Check whether the number of actual final daughters is equal to the number of expected final daughters (i.e. the number of provided prongs).
@@ -678,7 +677,7 @@ class RecoDecay
   static bool isMatchedMCGen(const T& particlesMC, const U& candidate, int PDGParticle, array<int, N> arrPDGDaughters, bool acceptAntiParticles = false, int8_t* sign = nullptr, int depthMax = 1)
   {
     //Printf("MC Gen: Expected particle PDG: %d", PDGParticle);
-    int8_t sgn = 0;                // 1 if the expected mother is particle, -1 if antiparticle (w.r.t. PDGParticle)
+    int8_t sgn = 0; // 1 if the expected mother is particle, -1 if antiparticle (w.r.t. PDGParticle)
     if (sign) {
       *sign = sgn;
     }
@@ -687,8 +686,7 @@ class RecoDecay
     //Printf("MC Gen: Candidate PDG: %d", PDGCandidate);
     if (PDGCandidate == PDGParticle) { // exact PDG match
       sgn = 1;
-    }
-    else if (acceptAntiParticles && PDGCandidate == -PDGParticle) { // antiparticle PDG match
+    } else if (acceptAntiParticles && PDGCandidate == -PDGParticle) { // antiparticle PDG match
       sgn = -1;
     }
     if (sgn == 0) {
@@ -698,9 +696,9 @@ class RecoDecay
     // Check the PDG codes of the decay products.
     if (N > 0) {
       //Printf("MC Gen: Checking %d daughters", N);
-      std::vector<int> arrAllDaughtersIndex; // vector of indices of all daughters
+      std::vector<int> arrAllDaughtersIndex;          // vector of indices of all daughters
       int indexDaughterFirst = candidate.daughter0(); // index of the first direct daughter
-      int indexDaughterLast = candidate.daughter1(); // index of the last direct daughter
+      int indexDaughterLast = candidate.daughter1();  // index of the last direct daughter
       // Check the daughter indices.
       if (indexDaughterFirst <= -1 && indexDaughterLast <= -1) {
         //Printf("MC Gen: Rejected: bad daughter index range: %d-%d", indexDaughterFirst, indexDaughterLast);
@@ -715,7 +713,7 @@ class RecoDecay
       getDaughters(particlesMC, candidate.globalIndex(), &arrAllDaughtersIndex, arrPDGDaughters, depthMax);
       //printf("MC Gen: Mother %d has %d final daughters:", candidate.globalIndex(), arrAllDaughtersIndex.size());
       //for (auto i : arrAllDaughtersIndex) {
-        //printf(" %d", i);
+      //  printf(" %d", i);
       //}
       //printf("\n");
       // Check whether the number of final daughters is equal to the required number.

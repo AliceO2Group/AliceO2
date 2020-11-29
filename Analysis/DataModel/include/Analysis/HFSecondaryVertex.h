@@ -133,10 +133,11 @@ DECLARE_SOA_DYNAMIC_COLUMN(M, m, [](float px0, float py0, float pz0, float px1, 
 DECLARE_SOA_DYNAMIC_COLUMN(M2, m2, [](float px0, float py0, float pz0, float px1, float py1, float pz1, const array<double, 2>& m) { return RecoDecay::M2(array{array{px0, py0, pz0}, array{px1, py1, pz1}}, m); });
 DECLARE_SOA_DYNAMIC_COLUMN(CosThetaStar, cosThetaStar, [](float px0, float py0, float pz0, float px1, float py1, float pz1, const array<double, 2>& m, double mTot, int iProng) { return RecoDecay::CosThetaStar(array{array{px0, py0, pz0}, array{px1, py1, pz1}}, m, mTot, iProng); });
 // MC matching result:
-// - bit 0: D0(bar) → π± K∓
+// - ±D0ToPiK: D0(bar) → π± K∓
 DECLARE_SOA_COLUMN(FlagMCMatchRec, flagMCMatchRec, int8_t); // reconstruction level
 DECLARE_SOA_COLUMN(FlagMCMatchGen, flagMCMatchGen, int8_t); // generator level
 
+// mapping of decay types
 enum DecayType { D0ToPiK = 1 };
 
 // functions for specific particles
@@ -259,12 +260,14 @@ DECLARE_SOA_EXPRESSION_COLUMN(Pz, pz, float, 1.f * aod::hf_cand::pzProng0 + 1.f 
 DECLARE_SOA_DYNAMIC_COLUMN(M, m, [](float px0, float py0, float pz0, float px1, float py1, float pz1, float px2, float py2, float pz2, const array<double, 3>& m) { return RecoDecay::M(array{array{px0, py0, pz0}, array{px1, py1, pz1}, array{px2, py2, pz2}}, m); });
 DECLARE_SOA_DYNAMIC_COLUMN(M2, m2, [](float px0, float py0, float pz0, float px1, float py1, float pz1, float px2, float py2, float pz2, const array<double, 3>& m) { return RecoDecay::M2(array{array{px0, py0, pz0}, array{px1, py1, pz1}, array{px2, py2, pz2}}, m); });
 // MC matching result:
-// - bit 0: D± → π± K∓ π±
-// - bit 1: Λc± → p± K∓ π±
+// - ±DPlusToPiKPi: D± → π± K∓ π±
+// - ±LcToPKPi: Λc± → p± K∓ π±
 DECLARE_SOA_COLUMN(FlagMCMatchRec, flagMCMatchRec, int8_t); // reconstruction level
 DECLARE_SOA_COLUMN(FlagMCMatchGen, flagMCMatchGen, int8_t); // generator level
 
-enum DecayType { DPlusToPiKPi = 1, LcToPKPi };
+// mapping of decay types
+enum DecayType { DPlusToPiKPi = 1,
+                 LcToPKPi };
 
 // functions for specific particles
 
