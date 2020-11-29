@@ -26,7 +26,6 @@ BOOST_AUTO_TEST_CASE(CTFTest)
 {
   std::vector<Digit> digits;
   std::vector<ChannelData> channels;
-
   TStopwatch sw;
   sw.Start();
   o2::InteractionRecord ir(0, 0);
@@ -39,6 +38,7 @@ BOOST_AUTO_TEST_CASE(CTFTest)
     auto start = channels.size();
     int32_t tMeanA = 0, tMeanC = 0;
     int32_t ampTotA = 0, ampTotC = 0;
+    uint8_t eventFlag = 10;
     Triggers trig;
     trig.triggersignals = gRandom->Integer(128);
     while (ich < MAXChan) {
@@ -69,6 +69,7 @@ BOOST_AUTO_TEST_CASE(CTFTest)
     }
     auto end = channels.size();
     digits.emplace_back(start, end - start, ir, trig, idig);
+    digits[idig].setEventStatus(eventFlag);
   }
 
   LOG(INFO) << "Generated " << channels.size() << " channels in " << digits.size() << " digits " << sw.CpuTime() << " s";
@@ -121,13 +122,13 @@ BOOST_AUTO_TEST_CASE(CTFTest)
 
   BOOST_CHECK(digitsD.size() == digits.size());
   BOOST_CHECK(channelsD.size() == channels.size());
-  LOG(INFO) << "  BOOST_CHECK digitsD.size() " << digitsD.size() << " digits.size() " << digits.size() << " BOOST_CHECK(channelsD.size()  " << channelsD.size() << " channels.size()) " << channels.size();
+  LOG(DEBUG) << "  BOOST_CHECK digitsD.size() " << digitsD.size() << " digits.size() " << digits.size() << " BOOST_CHECK(channelsD.size()  " << channelsD.size() << " channels.size()) " << channels.size();
 
   for (int i = digits.size(); i--;) {
     const auto& dor = digits[i];
     const auto& ddc = digitsD[i];
-    LOG(INFO) << " dor " << dor.mTriggers.nChanA << " " << dor.mTriggers.nChanC << " " << dor.mTriggers.amplA << " " << dor.mTriggers.amplC;
-    LOG(INFO) << " ddc " << ddc.mTriggers.nChanA << " " << ddc.mTriggers.nChanC << " " << ddc.mTriggers.amplA << " " << ddc.mTriggers.amplC;
+    LOG(DEBUG) << " dor " << dor.mTriggers.nChanA << " " << dor.mTriggers.nChanC << " " << dor.mTriggers.amplA << " " << dor.mTriggers.amplC;
+    LOG(DEBUG) << " ddc " << ddc.mTriggers.nChanA << " " << ddc.mTriggers.nChanC << " " << ddc.mTriggers.amplA << " " << ddc.mTriggers.amplC;
 
     BOOST_CHECK(dor.mIntRecord == ddc.mIntRecord);
     BOOST_CHECK(dor.mTriggers.nChanA == ddc.mTriggers.nChanA);
