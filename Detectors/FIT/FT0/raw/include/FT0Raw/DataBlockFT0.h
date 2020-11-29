@@ -55,6 +55,10 @@ class DataBlockPM : public DataBlockBase<DataBlockPM, RawHeaderPM, RawDataPM>
   // put here code for raw data checking
   void sanityCheck(bool& flag)
   {
+    if (DataBlockWrapper<RawDataPM>::mNelements == 0) {
+      flag = false;
+      return;
+    }
     if (DataBlockWrapper<RawDataPM>::mNelements % 2 == 0 && DataBlockWrapper<RawDataPM>::mData[DataBlockWrapper<RawDataPM>::mNelements - 1].channelID == 0) {
       DataBlockWrapper<RawDataPM>::mNelements--; //in case of half GBT-word filling
     }
