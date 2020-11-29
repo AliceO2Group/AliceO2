@@ -13,6 +13,7 @@
 
 #include "CommonDataFormat/InteractionRecord.h"
 #include "Framework/ConfigParamRegistry.h"
+#include "Framework/InputRecordWalker.h"
 #include "Framework/ControlService.h"
 #include "Framework/WorkflowSpec.h"
 #include "DataFormatsEMCAL/EMCALBlockHeader.h"
@@ -68,8 +69,7 @@ void RawToCellConverterSpec::run(framework::ProcessingContext& ctx)
   std::map<o2::InteractionRecord, std::shared_ptr<std::vector<o2::emcal::Cell>>> cellBuffer; // Internal cell buffer
 
   int firstEntry = 0;
-  for (const auto& rawData : ctx.inputs()) {
-
+  for (const auto& rawData : framework::InputRecordWalker(ctx.inputs())) {
     //o2::emcal::RawReaderMemory<o2::header::RAWDataHeaderV4> rawreader(gsl::span(rawData.payload, o2::framework::DataRefUtils::getPayloadSize(rawData)));
 
     o2::emcal::RawReaderMemory rawreader(o2::framework::DataRefUtils::as<const char>(rawData));
