@@ -235,7 +235,7 @@ class SpaceCharge
 
   math_utils::RandomRing<> mRandomFlat; //!<! Circular random buffer containing flat random values to convert the charge density to a flat ion distribution inside the voxel
 
-  ClassDefNV(SpaceCharge, 1);
+  ClassDefNV(SpaceCharge, 2);
 };
 
 } // namespace tpc
