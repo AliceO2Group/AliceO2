@@ -558,9 +558,9 @@ class RecoDecay
   /// \param arrPDGDaughters  array of expected daughter PDG codes
   /// \param acceptAntiParticles  switch to accept the antiparticle version of the expected decay
   /// \param depthMax  maximum decay tree level to check; Daughters up to this level will be considered. If -1, all levels are considered.
-  /// \return true if PDG codes of the mother and daughters are correct, false otherwise
+  /// \return index of the mother particle if the mother and daughters are correct, -1 otherwise
   template <std::size_t N, typename T, typename U>
-  static bool isMCMatchedDecayRec(const T& particlesMC, const array<U, N>& arrDaughters, int PDGMother, array<int, N> arrPDGDaughters, bool acceptAntiParticles = false, int depthMax = 1)
+  static int getMatchedMCRec(const T& particlesMC, const array<U, N>& arrDaughters, int PDGMother, array<int, N> arrPDGDaughters, bool acceptAntiParticles = false, int depthMax = 1)
   {
     Printf("MC Rec: Expected mother PDG: %d", PDGMother);
     int8_t sgn = 0;                     // 1 if the expected mother is particle, -1 if antiparticle (w.r.t. PDGMother)
@@ -579,7 +579,7 @@ class RecoDecay
         // Check whether mother was found.
         if (indexMother <= -1) {
           Printf("MC Rec: Rejected: bad mother index or PDG");
-          return false;
+          return -1;
         }
         Printf("MC Rec: Good mother: %d", indexMother);
         auto particleMother = particlesMC.iteratorAt(indexMother);
@@ -588,12 +588,12 @@ class RecoDecay
         // Check the daughter indices.
         if (indexDaughterFirst <= -1 && indexDaughterLast <= -1) {
           Printf("MC Rec: Rejected: bad daughter index range: %d-%d", indexDaughterFirst, indexDaughterLast);
-          return false;
+          return -1;
         }
         // Check that the number of direct daughters is not larger than the number of expected final daughters.
         if (indexDaughterFirst > -1 && indexDaughterLast > -1 && indexDaughterLast - indexDaughterFirst + 1 > N) {
           Printf("MC Rec: Rejected: too many direct daughters: %d (expected %d final)", indexDaughterLast - indexDaughterFirst + 1, N);
-          return false;
+          return -1;
         }
         // Get the list of actual final daughters.
         getDaughters(particlesMC, indexMother, &arrAllDaughtersIndex, arrPDGDaughters, depthMax);
@@ -605,7 +605,7 @@ class RecoDecay
         // Check whether the number of actual final daughters is equal to the number of expected final daughters (i.e. the number of provided prongs).
         if (arrAllDaughtersIndex.size() != N) {
           Printf("MC Rec: Rejected: incorrect number of final daughters: %d (expected %d)", arrAllDaughtersIndex.size(), N);
-          return false;
+          return -1;
         }
       }
       // Check that the daughter is in the list of final daughters.
@@ -620,7 +620,7 @@ class RecoDecay
       }
       if (!isDaughterFound) {
         Printf("MC Rec: Rejected: bad daughter index: %d not in the list of final daughters", arrDaughtersIndex[iProng]);
-        return false;
+        return -1;
       }
       // Check daughter's PDG code.
       auto PDGParticleI = particleI.pdgCode(); // PDG code of the ith daughter
@@ -635,11 +635,11 @@ class RecoDecay
       }
       if (!isPDGFound) {
         Printf("MC Rec: Rejected: bad daughter PDG: %d", PDGParticleI);
-        return false;
+        return -1;
       }
     }
     Printf("MC Rec: Accepted: m: %d", indexMother);
-    return true;
+    return indexMother;
   }
 
   /// Checks whether the MC particle is the expected one.
@@ -649,10 +649,10 @@ class RecoDecay
   /// \param acceptAntiParticles  switch to accept the antiparticle
   /// \return true if PDG code of the particle is correct, false otherwise
   template <typename T, typename U>
-  static bool isMCMatchedDecayGen(const T& particlesMC, const U& candidate, int PDGParticle, bool acceptAntiParticles = false)
+  static int isMatchedMCGen(const T& particlesMC, const U& candidate, int PDGParticle, bool acceptAntiParticles = false)
   {
     array<int, 0> arrPDGDaughters;
-    return isMCMatchedDecayGen(particlesMC, candidate, PDGParticle, std::move(arrPDGDaughters), acceptAntiParticles);
+    return isMatchedMCGen(particlesMC, candidate, PDGParticle, std::move(arrPDGDaughters), acceptAntiParticles);
   }
 
   /// Check whether the MC particle is the expected one and whether it decayed via the expected decay channel.
@@ -664,7 +664,7 @@ class RecoDecay
   /// \param depthMax  maximum decay tree level to check; Daughters up to this level will be considered. If -1, all levels are considered.
   /// \return true if PDG codes of the particle and its daughters are correct, false otherwise
   template <std::size_t N, typename T, typename U>
-  static bool isMCMatchedDecayGen(const T& particlesMC, const U& candidate, int PDGParticle, array<int, N> arrPDGDaughters, bool acceptAntiParticles = false, int depthMax = 1)
+  static bool isMatchedMCGen(const T& particlesMC, const U& candidate, int PDGParticle, array<int, N> arrPDGDaughters, bool acceptAntiParticles = false, int depthMax = 1)
   {
     Printf("MC Gen: Expected particle PDG: %d", PDGParticle);
     int sgn = 1;                // 1 if the expected mother is particle, -1 if antiparticle (w.r.t. PDGParticle)

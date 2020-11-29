@@ -154,11 +154,11 @@ struct HFCandidateCreator3ProngMC {
       auto arrayDaughters = array{candidate.index0_as<aod::BigTracksMC>(), candidate.index1_as<aod::BigTracksMC>(), candidate.index2_as<aod::BigTracksMC>()};
       // D± → π± K∓ π±
       Printf("Checking D± → π± K∓ π±");
-      auto isMatchedRecDPlus = RecoDecay::isMCMatchedDecayRec(particlesMC, arrayDaughters, 411, array{+kPiPlus, -kKPlus, +kPiPlus}, true);
-      // Lc± → p± K∓ π±
-      Printf("Checking Lc± → p± K∓ π±");
-      auto isMatchedRecLc = RecoDecay::isMCMatchedDecayRec(particlesMC, std::move(arrayDaughters), 4122, array{+kProton, -kKPlus, +kPiPlus}, true);
-      rowMCMatchRec(uint8_t(isMatchedRecDPlus + 2 * isMatchedRecLc));
+      auto indexRecDPlus = RecoDecay::getMatchedMCRec(particlesMC, arrayDaughters, 411, array{+kPiPlus, -kKPlus, +kPiPlus}, true);
+      // Λc± → p± K∓ π±
+      Printf("Checking Λc± → p± K∓ π±");
+      auto indexRecLc = RecoDecay::getMatchedMCRec(particlesMC, std::move(arrayDaughters), 4122, array{+kProton, -kKPlus, +kPiPlus}, true);
+      rowMCMatchRec(uint8_t((indexRecDPlus > -1) + 2 * (indexRecLc > -1)));
     }
 
     // Match generated particles.
@@ -166,10 +166,10 @@ struct HFCandidateCreator3ProngMC {
       Printf("New gen. candidate");
       // D± → π± K∓ π±
       Printf("Checking D± → π± K∓ π±");
-      auto isMatchedGenDPlus = RecoDecay::isMCMatchedDecayGen(particlesMC, particle, 411, array{+kPiPlus, -kKPlus, +kPiPlus}, true);
-      // Lc± → p± K∓ π±
-      Printf("Checking Lc± → p± K∓ π±");
-      auto isMatchedGenLc = RecoDecay::isMCMatchedDecayGen(particlesMC, particle, 4122, array{+kProton, -kKPlus, +kPiPlus}, true);
+      auto isMatchedGenDPlus = RecoDecay::isMatchedMCGen(particlesMC, particle, 411, array{+kPiPlus, -kKPlus, +kPiPlus}, true);
+      // Λc± → p± K∓ π±
+      Printf("Checking Λc± → p± K∓ π±");
+      auto isMatchedGenLc = RecoDecay::isMatchedMCGen(particlesMC, particle, 4122, array{+kProton, -kKPlus, +kPiPlus}, true);
       rowMCMatchGen(uint8_t(isMatchedGenDPlus + 2 * isMatchedGenLc));
     }
   }
