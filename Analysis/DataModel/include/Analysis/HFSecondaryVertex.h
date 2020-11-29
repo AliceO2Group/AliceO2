@@ -137,6 +137,8 @@ DECLARE_SOA_DYNAMIC_COLUMN(CosThetaStar, cosThetaStar, [](float px0, float py0, 
 DECLARE_SOA_COLUMN(FlagMCMatchRec, flagMCMatchRec, int8_t); // reconstruction level
 DECLARE_SOA_COLUMN(FlagMCMatchGen, flagMCMatchGen, int8_t); // generator level
 
+enum DecayType { D0ToPiK = 1 };
+
 // functions for specific particles
 
 // D0(bar) → π± K∓
@@ -261,6 +263,8 @@ DECLARE_SOA_DYNAMIC_COLUMN(M2, m2, [](float px0, float py0, float pz0, float px1
 // - bit 1: Λc± → p± K∓ π±
 DECLARE_SOA_COLUMN(FlagMCMatchRec, flagMCMatchRec, int8_t); // reconstruction level
 DECLARE_SOA_COLUMN(FlagMCMatchGen, flagMCMatchGen, int8_t); // generator level
+
+enum DecayType { DPlusToPiKPi = 1, LcToPKPi };
 
 // functions for specific particles
 

@@ -22,6 +22,7 @@
 
 using namespace o2;
 using namespace o2::framework;
+using namespace o2::aod::hf_cand_prong2;
 
 void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
 {
@@ -157,7 +158,7 @@ struct HFCandidateCreator2ProngMC {
       auto indexRecD0 = RecoDecay::getMatchedMCRec(
         particlesMC, array{candidate.index0_as<aod::BigTracksMC>(), candidate.index1_as<aod::BigTracksMC>()},
         421, array{+kPiPlus, -kKPlus}, true, &sign);
-      result += sign * 1 * int8_t(indexRecD0 > -1);
+      result += sign * D0ToPiK * int8_t(indexRecD0 > -1);
 
       rowMCMatchRec(result);
     }
@@ -170,7 +171,7 @@ struct HFCandidateCreator2ProngMC {
       // D0(bar) → π± K∓
       Printf("Checking D0(bar) → π± K∓");
       auto isMatchedGenD0 = RecoDecay::isMatchedMCGen(particlesMC, particle, 421, array{+kPiPlus, -kKPlus}, true, &sign);
-      result += sign * 1 * int8_t(isMatchedGenD0);
+      result += sign * D0ToPiK * int8_t(isMatchedGenD0);
 
       rowMCMatchGen(result);
     }

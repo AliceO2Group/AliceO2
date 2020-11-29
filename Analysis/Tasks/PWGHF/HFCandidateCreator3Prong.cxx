@@ -22,6 +22,7 @@
 
 using namespace o2;
 using namespace o2::framework;
+using namespace o2::aod::hf_cand_prong3;
 
 void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
 {
@@ -160,12 +161,12 @@ struct HFCandidateCreator3ProngMC {
       // D± → π± K∓ π±
       Printf("Checking D± → π± K∓ π±");
       auto indexRecDPlus = RecoDecay::getMatchedMCRec(particlesMC, arrayDaughters, 411, array{+kPiPlus, -kKPlus, +kPiPlus}, true, &sign);
-      result += sign * 1 * int8_t(indexRecDPlus > -1);
+      result += sign * DPlusToPiKPi * int8_t(indexRecDPlus > -1);
 
       // Λc± → p± K∓ π±
       Printf("Checking Λc± → p± K∓ π±");
       auto indexRecLc = RecoDecay::getMatchedMCRec(particlesMC, std::move(arrayDaughters), 4122, array{+kProton, -kKPlus, +kPiPlus}, true, &sign);
-      result += sign * 2 * int8_t(indexRecLc > -1);
+      result += sign * LcToPKPi * int8_t(indexRecLc > -1);
 
       rowMCMatchRec(result);
     }
@@ -178,12 +179,12 @@ struct HFCandidateCreator3ProngMC {
       // D± → π± K∓ π±
       Printf("Checking D± → π± K∓ π±");
       auto isMatchedGenDPlus = RecoDecay::isMatchedMCGen(particlesMC, particle, 411, array{+kPiPlus, -kKPlus, +kPiPlus}, true, &sign);
-      result += sign * 1 * int8_t(isMatchedGenDPlus);
+      result += sign * DPlusToPiKPi * int8_t(isMatchedGenDPlus);
 
       // Λc± → p± K∓ π±
       Printf("Checking Λc± → p± K∓ π±");
       auto isMatchedGenLc = RecoDecay::isMatchedMCGen(particlesMC, particle, 4122, array{+kProton, -kKPlus, +kPiPlus}, true, &sign);
-      result += sign * 2 * int8_t(isMatchedGenLc);
+      result += sign * LcToPKPi * int8_t(isMatchedGenLc);
 
       rowMCMatchGen(result);
     }
