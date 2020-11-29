@@ -1084,6 +1084,7 @@ void DeviceSpecHelpers::prepareArguments(bool defaultQuiet, bool defaultStopped,
     filterArgsFct(argc, argv, foDesc);
     // filter device options, and handle option groups
     filterArgsFct(argc, argv, od);
+    // FIXME: hack to get a few extra channels until we support vector of strings as options
     if (extraChannelConfig.empty() == false) {
       tmpArgs.emplace_back(std::string("--channel-config"));
       tmpArgs.emplace_back(extraChannelConfig);
