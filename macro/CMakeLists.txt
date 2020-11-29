@@ -383,7 +383,7 @@ o2_add_test_root_macro(run_trac_its.C
 
 # FIXME: move to subsystem dir
 o2_add_test_root_macro(run_trac_alice3.C
-                       PUBLIC_LINK_LIBRARIES O2::GPUTracking
+                       PUBLIC_LINK_LIBRARIES O2::GPUTracking O2::ITSMFTSimulation
                        LABELS its COMPILE_ONLY)
 
 #
