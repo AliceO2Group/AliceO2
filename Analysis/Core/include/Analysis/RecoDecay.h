@@ -434,12 +434,15 @@ class RecoDecay
   static int getMother(const T& particlesMC, const U& particle, int PDGMother, bool acceptAntiParticles = false, int8_t* sign = nullptr)
   {
     int8_t sgn = 0;                     // 1 if the expected mother is particle, -1 if antiparticle (w.r.t. PDGMother)
-    int indexParticleIMother = -1; // index of the final matched mother, if found
+    int indexMother = -1; // index of the final matched mother, if found
     auto particleMother = particle; // Initialise loop over mothers.
     int stage = 0; // mother tree level (just for debugging)
+    if (sign) {
+      *sign = sgn;
+    }
     while (particleMother.mother0() > -1) {
-      auto indexParticleIMotherTmp = particleMother.mother0();
-      particleMother = particlesMC.iteratorAt(indexParticleIMotherTmp);
+      auto indexMotherTmp = particleMother.mother0();
+      particleMother = particlesMC.iteratorAt(indexMotherTmp);
       // Check mother's PDG code.
       auto PDGParticleIMother = particleMother.pdgCode(); // PDG code of the mother
       printf("getMother: ");
@@ -448,12 +451,12 @@ class RecoDecay
       printf("Stage %d: Mother PDG: %d\n", stage, PDGParticleIMother);
       if (PDGParticleIMother == PDGMother) { // exact PDG match
         sgn = 1;
-        indexParticleIMother = indexParticleIMotherTmp;
+        indexMother = indexMotherTmp;
         break;
       }
       else if (acceptAntiParticles && PDGParticleIMother == -PDGMother) { // antiparticle PDG match
         sgn = -1;
-        indexParticleIMother = indexParticleIMotherTmp;
+        indexMother = indexMotherTmp;
         break;
       }
       stage--;
@@ -461,7 +464,7 @@ class RecoDecay
     if (sign) {
       *sign = sgn;
     }
-    return indexParticleIMother;
+    return indexMother;
   }
 
   /// Gets the complete list of indices of final-state daughters of an MC particle.
@@ -557,16 +560,20 @@ class RecoDecay
   /// \param PDGMother  expected mother PDG code
   /// \param arrPDGDaughters  array of expected daughter PDG codes
   /// \param acceptAntiParticles  switch to accept the antiparticle version of the expected decay
+  /// \param sign  antiparticle indicator of the found mother w.r.t. PDGMother; 1 if particle, -1 if antiparticle, 0 if mother not found
   /// \param depthMax  maximum decay tree level to check; Daughters up to this level will be considered. If -1, all levels are considered.
   /// \return index of the mother particle if the mother and daughters are correct, -1 otherwise
   template <std::size_t N, typename T, typename U>
-  static int getMatchedMCRec(const T& particlesMC, const array<U, N>& arrDaughters, int PDGMother, array<int, N> arrPDGDaughters, bool acceptAntiParticles = false, int depthMax = 1)
+  static int getMatchedMCRec(const T& particlesMC, const array<U, N>& arrDaughters, int PDGMother, array<int, N> arrPDGDaughters, bool acceptAntiParticles = false, int8_t* sign = nullptr, int depthMax = 1)
   {
     Printf("MC Rec: Expected mother PDG: %d", PDGMother);
     int8_t sgn = 0;                     // 1 if the expected mother is particle, -1 if antiparticle (w.r.t. PDGMother)
     int indexMother = -1;            // index of the mother particle
     std::vector<int> arrAllDaughtersIndex; // vector of indices of all daughters of the mother of the first provided daughter
     array<int, N> arrDaughtersIndex; // array of indices of provided daughters
+    if (sign) {
+      *sign = sgn;
+    }
     // Loop over decay candidate prongs
     for (auto iProng = 0; iProng < N; ++iProng) {
       auto particleI = arrDaughters[iProng].label(); // ith daughter particle
@@ -639,6 +646,9 @@ class RecoDecay
       }
     }
     Printf("MC Rec: Accepted: m: %d", indexMother);
+    if (sign) {
+      *sign = sgn;
+    }
     return indexMother;
   }
 
@@ -661,23 +671,29 @@ class RecoDecay
   /// \param PDGParticle  expected particle PDG code
   /// \param arrPDGDaughters  array of expected PDG codes of daughters
   /// \param acceptAntiParticles  switch to accept the antiparticle
+  /// \param sign  antiparticle indicator of the candidate w.r.t. PDGParticle; 1 if particle, -1 if antiparticle, 0 if not matched
   /// \param depthMax  maximum decay tree level to check; Daughters up to this level will be considered. If -1, all levels are considered.
   /// \return true if PDG codes of the particle and its daughters are correct, false otherwise
   template <std::size_t N, typename T, typename U>
-  static bool isMatchedMCGen(const T& particlesMC, const U& candidate, int PDGParticle, array<int, N> arrPDGDaughters, bool acceptAntiParticles = false, int depthMax = 1)
+  static bool isMatchedMCGen(const T& particlesMC, const U& candidate, int PDGParticle, array<int, N> arrPDGDaughters, bool acceptAntiParticles = false, int8_t* sign = nullptr, int depthMax = 1)
   {
     Printf("MC Gen: Expected particle PDG: %d", PDGParticle);
-    int sgn = 1;                // 1 if the expected mother is particle, -1 if antiparticle (w.r.t. PDGParticle)
+    int8_t sgn = 0;                // 1 if the expected mother is particle, -1 if antiparticle (w.r.t. PDGParticle)
+    if (sign) {
+      *sign = sgn;
+    }
     // Check the PDG code of the particle.
     auto PDGCandidate = candidate.pdgCode();
     Printf("MC Gen: Candidate PDG: %d", PDGCandidate);
-    if (PDGCandidate != PDGParticle) {
-      if (acceptAntiParticles && PDGCandidate == -PDGParticle) { // antiparticle PDG match
-        sgn = -1;
-      } else {
-        Printf("MC Gen: Rejected: bad particle PDG: %s%d != %d", acceptAntiParticles ? "abs " : "", PDGCandidate, sgn * PDGParticle);
-        return false;
-      }
+    if (PDGCandidate == PDGParticle) { // exact PDG match
+      sgn = 1;
+    }
+    else if (acceptAntiParticles && PDGCandidate == -PDGParticle) { // antiparticle PDG match
+      sgn = -1;
+    }
+    if (sgn == 0) {
+      Printf("MC Gen: Rejected: bad particle PDG: %s%d != %d", acceptAntiParticles ? "abs " : "", PDGCandidate, std::abs(PDGParticle));
+      return false;
     }
     // Check the PDG codes of the decay products.
     if (N > 0) {
@@ -727,6 +743,9 @@ class RecoDecay
       }
     }
     Printf("MC Gen: Accepted: m: %d", candidate.globalIndex());
+    if (sign) {
+      *sign = sgn;
+    }
     return true;
   }
 
