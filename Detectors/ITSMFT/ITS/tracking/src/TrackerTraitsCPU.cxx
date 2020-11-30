@@ -80,7 +80,7 @@ void TrackerTraitsCPU::computeLayerTracklets()
         for (int iNextLayerCluster{firstRowClusterIndex}; iNextLayerCluster < maxRowClusterIndex;
              ++iNextLayerCluster) {
 
-          if (iNextLayerCluster >= primaryVertexContext->getClusters()[iLayer + 1].size()) {
+          if (iNextLayerCluster >= (int)primaryVertexContext->getClusters()[iLayer + 1].size()) {
             break;
           }
 
