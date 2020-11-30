@@ -353,71 +353,80 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
             0.f);
 
   // TODO:
-  // figure out generatorID and collision weight
-  int index = 0;
-  int generatorID = 0;
+  // figure out collision weight
   float mcColWeight = 1.;
 
-  std::vector<int> eventIDs;
-
   // filling mcCollison table
+  int index = 0;
   for (auto& rec : mcRecords) {
     auto time = rec.getTimeNS();
-    auto& colParts = mcParts[index];
-    auto eventID = colParts[0].entryID;
-    eventIDs.push_back(eventID);
-    auto sourceID = colParts[0].sourceID;
-    auto& header = mcReader.getMCEventHeader(sourceID, eventID);
     uint64_t globalBC = rec.bc + rec.orbit * o2::constants::lhc::LHCMaxBunches;
-    mcCollisionsCursor(0,
-                       mGlobBC2BCID.at(globalBC),
-                       generatorID,
-                       header.GetX(),
-                       header.GetY(),
-                       header.GetZ(),
-                       time,
-                       mcColWeight,
-                       header.GetB());
+    auto& colParts = mcParts[index];
+    for (int i = 0; i < colParts.size(); i++) {
+      auto eventID = colParts[i].entryID;
+      auto sourceID = colParts[i].sourceID;
+      // FIXME:
+      // use generators' names for generatorIDs (?)
+      short generatorID = sourceID;
+      auto& header = mcReader.getMCEventHeader(sourceID, eventID);
+      mcCollisionsCursor(0,
+                         mGlobBC2BCID.at(globalBC),
+                         generatorID,
+                         header.GetX(),
+                         header.GetY(),
+                         header.GetZ(),
+                         time,
+                         mcColWeight,
+                         header.GetB());
+    }
     index++;
   }
 
-  // tpc tracks --> mc particles
-  // std::map<<eventID, trackID>, McParticles::Index>
-  std::map<std::pair<int, int>, int> mIDsToIndex;
+  // tracks --> mc particles
+  // std::map<<sourceID, eventID, trackID>, McParticles::Index>
+  std::map<std::tuple<uint32_t, uint32_t, uint32_t>, uint32_t> mIDsToIndex;
 
   // filling mcparticle table
-  // TODO:
-  // fill columns:
-  //   status code
-  //   flags
-  //   weight
+  uint32_t mcParticlesIndex = 0;
+  for (int sourceID = 0; sourceID < mcReader.getNSources(); sourceID++) {
+    for (int mcEventID = 0; mcEventID < mcReader.getNEvents(sourceID); mcEventID++) {
+      std::vector<MCTrack> const& mcParticles = mcReader.getTracks(sourceID, mcEventID);
 
-  int mcParticlesIndex = 0;
-  for (auto mcEventID : eventIDs) {
-    std::vector<MCTrack> const& mcParticles = mcReader.getTracks(mcEventID);
-    int mcTrackID = 0;
-    for (auto& mcParticle : mcParticles) {
-      mcParticlesCursor(0,
-                        mcEventID,
-                        mcParticle.GetPdgCode(),
-                        0,
-                        (uint8_t)0,
-                        mcParticle.getMotherTrackId(),
-                        mcParticle.getSecondMotherTrackId(),
-                        mcParticle.getFirstDaughterTrackId(),
-                        mcParticle.getLastDaughterTrackId(),
-                        0.f,
-                        (float)mcParticle.Px(),
-                        (float)mcParticle.Py(),
-                        (float)mcParticle.Pz(),
-                        (float)mcParticle.GetEnergy(),
-                        (float)mcParticle.Vx(),
-                        (float)mcParticle.Vy(),
-                        (float)mcParticle.Vz(),
-                        (float)mcParticle.T());
-      mIDsToIndex[std::make_pair(mcEventID, mcTrackID)] = mcParticlesIndex;
-      mcTrackID++;
-      mcParticlesIndex++;
+      // TODO
+      //  *fill dummy columns
+      //  *mother/daughter IDs need to be recalculated before storing into table
+      int statusCode = 0;
+      uint8_t flags = 0;
+      float weight = 0.f;
+      int mother0 = 0;
+      int mother1 = 0;
+      int daughter0 = 0;
+      int daughter1 = 0;
+
+      int mcTrackID = 0;
+      for (auto& mcParticle : mcParticles) {
+        mcParticlesCursor(0,
+                          mcEventID,
+                          mcParticle.GetPdgCode(),
+                          statusCode,
+                          flags,
+                          mother0,
+                          mother1,
+                          daughter0,
+                          daughter1,
+                          weight,
+                          (float)mcParticle.Px(),
+                          (float)mcParticle.Py(),
+                          (float)mcParticle.Pz(),
+                          (float)mcParticle.GetEnergy(),
+                          (float)mcParticle.Vx(),
+                          (float)mcParticle.Vy(),
+                          (float)mcParticle.Vz(),
+                          (float)mcParticle.T());
+        mIDsToIndex[std::make_tuple(sourceID, mcEventID, mcTrackID)] = mcParticlesIndex;
+        mcTrackID++;
+        mcParticlesIndex++;
+      }
     }
   }
 
@@ -461,7 +470,9 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
     Double_t tsTimeStamp = timeStamp.getTimeStamp() * 1E3; // mus to ns
     // FIXME:
     // should use IRMin and IRMax for globalBC calculation
-    uint64_t globalBC = tsTimeStamp / o2::constants::lhc::LHCBunchSpacingNS;
+    uint64_t globalBC = std::round(tsTimeStamp / o2::constants::lhc::LHCBunchSpacingNS);
+
+    LOG(DEBUG) << globalBC << " " << tsTimeStamp;
 
     if (collisionID == 0) {
       firstVtxGlBC = globalBC;
@@ -513,7 +524,10 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
 
   // filling tracks tables and track label table
 
-  int nEvents = eventIDs.size();
+  // labelMask (temporary) usage:
+  //   bit 13 -- ITS and TPC labels are not equal
+  //   bit 14 -- isNoise() == true
+  //   bit 15 -- isFake() == true
 
   if (mFillTracksITS) {
     fillTracksTable(tracksITS, vCollRefsITS, tracksCursor, o2::vertexing::GIndex::Source::ITS); // fTrackType = 1
@@ -522,8 +536,15 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
       // TODO:
       // fill label mask
       uint16_t labelMask = 0;
-      if (mcTruthITS.getEventID() < nEvents) {
-        labelID = mIDsToIndex.at(std::make_pair(mcTruthITS.getEventID(), mcTruthITS.getTrackID()));
+      int nEventsITS = mcReader.getNEvents(mcTruthITS.getSourceID());
+      if (mcTruthITS.getEventID() < mcReader.getNEvents(mcTruthITS.getSourceID())) {
+        labelID = mIDsToIndex.at(std::make_tuple(mcTruthITS.getSourceID(), mcTruthITS.getEventID(), mcTruthITS.getTrackID()));
+      }
+      if (mcTruthITS.isFake()) {
+        labelMask |= (0x1 << 15);
+      }
+      if (mcTruthITS.isNoise()) {
+        labelMask |= (0x1 << 14);
       }
       mcTrackLabelCursor(0,
                          labelID,
@@ -538,8 +559,15 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
       // TODO:
       // fill label mask
       uint16_t labelMask = 0;
-      if (mcTruthTPC.getEventID() < nEvents) {
-        labelID = mIDsToIndex.at(std::make_pair(mcTruthTPC.getEventID(), mcTruthTPC.getTrackID()));
+      int nEventsTPC = mcReader.getNEvents(mcTruthTPC.getSourceID());
+      if (mcTruthTPC.getEventID() < nEventsTPC) {
+        labelID = mIDsToIndex.at(std::make_tuple(mcTruthTPC.getSourceID(), mcTruthTPC.getEventID(), mcTruthTPC.getTrackID()));
+      }
+      if (mcTruthTPC.isFake()) {
+        labelMask |= (0x1 << 15);
+      }
+      if (mcTruthTPC.isNoise()) {
+        labelMask |= (0x1 << 14);
       }
       mcTrackLabelCursor(0,
                          labelID,
@@ -549,8 +577,7 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
 
   if (mFillTracksITSTPC) {
     fillTracksTable(tracksITSTPC, vCollRefsTPCITS, tracksCursor, o2::vertexing::GIndex::Source::TPCITS); // fTrackType = 0
-    int iterEnd = tracksITSTPC.size();
-    for (int i = 0; i < iterEnd; i++) {
+    for (int i = 0; i < tracksITSTPC.size(); i++) {
       auto& mcTruthITS = tracksITSTPC_ITSMC[i];
       auto& mcTruthTPC = tracksITSTPC_TPCMC[i];
       uint32_t labelID = std::numeric_limits<uint32_t>::max();
@@ -560,14 +587,22 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
       // fill label mask
       // currently using label mask to indicate labelITS != labelTPC
       uint16_t labelMask = 0;
-      if (mcTruthITS.getEventID() < nEvents && mcTruthTPC.getEventID() < nEvents) {
-        labelITS = mIDsToIndex.at(std::make_pair(mcTruthITS.getEventID(), mcTruthITS.getTrackID()));
-        labelTPC = mIDsToIndex.at(std::make_pair(mcTruthTPC.getEventID(), mcTruthTPC.getTrackID()));
+      int nEventsITS = mcReader.getNEvents(mcTruthITS.getSourceID());
+      int nEventsTPC = mcReader.getNEvents(mcTruthTPC.getSourceID());
+      if (mcTruthITS.getEventID() < nEventsITS && mcTruthTPC.getEventID() < nEventsTPC) {
+        labelITS = mIDsToIndex.at(std::make_tuple(mcTruthITS.getSourceID(), mcTruthITS.getEventID(), mcTruthITS.getTrackID()));
+        labelTPC = mIDsToIndex.at(std::make_tuple(mcTruthTPC.getSourceID(), mcTruthTPC.getEventID(), mcTruthTPC.getTrackID()));
         labelID = labelITS;
+      }
+      if (mcTruthITS.isFake() || mcTruthTPC.isFake()) {
+        labelMask |= (0x1 << 15);
+      }
+      if (mcTruthITS.isNoise() || mcTruthTPC.isNoise()) {
+        labelMask |= (0x1 << 14);
       }
       if (labelITS != labelTPC) {
         LOG(DEBUG) << "ITS-TPC MCTruth: labelIDs do not match at " << i;
-        labelMask |= (0x1 << 15);
+        labelMask |= (0x1 << 13);
       }
       mcTrackLabelCursor(0,
                          labelID,
