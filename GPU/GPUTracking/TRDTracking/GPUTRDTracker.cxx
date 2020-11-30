@@ -44,9 +44,9 @@ class GPUTPCGMPolynomialField;
 #include "TDatabasePDG.h"
 #include "AliMCParticle.h"
 #include "AliMCEvent.h"
-static const float piMass = TDatabasePDG::Instance()->GetParticle(211)->Mass();
+//static const float piMass = TDatabasePDG::Instance()->GetParticle(211)->Mass();
 #else
-static const float piMass = 0.139f;
+//static const float piMass = 0.139f;
 #endif
 
 #include "GPUChainTracking.h"
@@ -267,6 +267,7 @@ void GPUTRDTracker_t<TRDTRK, PROP>::DoTracking(GPUChainTracking* chainTracking)
   }
 
   auto duration = std::chrono::high_resolution_clock::now() - timeStart;
+  (void)duration; // suppress warning about unused variable
   /*
   std::cout << "--->  -----> -------> ---------> ";
   std::cout << "Time for event " << mNEvents << ": " << std::chrono::duration_cast<std::chrono::microseconds>(duration).count() << " us ";
