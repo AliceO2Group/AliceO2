@@ -8,13 +8,8 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#ifndef O2_MCH_RAW_SAMPA_CHANNEL_HANDLER_H
-#define O2_MCH_RAW_SAMPA_CHANNEL_HANDLER_H
-
-#include <functional>
-
-#include "MCHRawCommon/SampaCluster.h"
-#include "MCHRawElecMap/DsElecId.h"
+#ifndef O2_MCH_RAW_ERROR_CODES_H
+#define O2_MCH_RAW_ERROR_CODES_H
 
 namespace o2
 {
@@ -22,11 +17,21 @@ namespace mch
 {
 namespace raw
 {
-/// A SampaChannelHandler is a function that takes a pair to identify
-/// a readout sampa channel and a SampaCluster containing the channel data.
-using SampaChannelHandler = std::function<void(DsElecId dsId,
-                                               uint8_t channel,
-                                               SampaCluster)>;
+
+enum ErrorCodes {
+  ErrorParity = 1,                    // 1
+  ErrorHammingCorrectable = 1 << 1,   // 2
+  ErrorHammingUncorrectable = 1 << 2, // 4
+  ErrorBadClusterSize = 1 << 3,       // 8
+  ErrorBadPacketType = 1 << 4,        // 16
+  ErrorBadHeartBeatPacket = 1 << 5,   // 32
+  ErrorBadIncompleteWord = 1 << 6,    // 64
+  ErrorTruncatedData = 1 << 7,        // 128
+  ErrorBadELinkID = 1 << 8,           // 256
+  ErrorBadLinkID = 1 << 9,            // 512
+  ErrorUnknownLinkID = 1 << 10        // 1024
+};
+
 } // namespace raw
 } // namespace mch
 } // namespace o2
