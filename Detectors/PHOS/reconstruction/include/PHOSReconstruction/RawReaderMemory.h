@@ -28,7 +28,7 @@ namespace phos
 /// \class RawReaderMemory
 /// \brief Reader for raw data produced by the Readout application in in-memory format
 /// \ingroup PHOSreconstruction
-/// \author Dmitri Peresunko after Markus Fasel 
+/// \author Dmitri Peresunko after Markus Fasel
 /// \since Sept. 25, 2020
 ///
 ///

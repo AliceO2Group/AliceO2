@@ -28,7 +28,6 @@ Geometry::Geometry(const std::string_view name) : mGeoName(name) {}
 //  1    57 ...3529
 //  relid[3]: (module number[0...4], iphi[1...64], iz[1...56])
 
-
 short Geometry::relToAbsId(char moduleNumber, int strip, int cell)
 {
   // calculates absolute cell Id from moduleNumber, strip (number) and cell (number)
@@ -56,7 +55,7 @@ bool Geometry::absToRelNumbering(short absId, char* relid)
 
   short phosmodulenumber = (absId - 1) / (nZ * nPhi);
 
-  relid[0] = phosmodulenumber ;
+  relid[0] = phosmodulenumber;
   absId -= phosmodulenumber * nPhi * nZ;
   relid[1] = 1 + (absId - 1) / nZ;
   relid[2] = absId - (relid[1] - 1) * nZ;
@@ -68,7 +67,7 @@ char Geometry::absIdToModule(short absId)
   const short nZ = 56;
   const short nPhi = 64;
 
-  return  (absId - 1) / (nZ * nPhi);
+  return (absId - 1) / (nZ * nPhi);
 }
 
 int Geometry::areNeighbours(short absId1, short absId2)
@@ -128,8 +127,8 @@ bool Geometry::relToAbsNumbering(const char* relId, short& absId)
 
   absId =
     relId[0] * nPhi * nZ + // the offset of PHOS modules
-    (relId[1] - 1) * nZ +        // the offset along phi
-    relId[2];                    // the offset along z
+    (relId[1] - 1) * nZ +  // the offset along phi
+    relId[2];              // the offset along z
 
   return true;
 }

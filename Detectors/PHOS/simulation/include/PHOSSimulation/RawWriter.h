@@ -34,10 +34,9 @@ namespace o2
 namespace phos
 {
 
-  static constexpr short kNPHOSSAMPLES = 15;  ///< Maximal number of samples in altro  
-  static constexpr short kOVERFLOW     = 970; ///< Overflow level: 1023-pedestal~50
-  static constexpr float kPHOSTIMETICK = 100.e-9;  ///< PHOS sampling time step 
-
+static constexpr short kNPHOSSAMPLES = 15;      ///< Maximal number of samples in altro
+static constexpr short kOVERFLOW = 970;         ///< Overflow level: 1023-pedestal~50
+static constexpr float kPHOSTIMETICK = 100.e-9; ///< PHOS sampling time step
 
 struct AltroBunch {
   int mStarttime;
@@ -95,12 +94,11 @@ class RawWriter
                       std::vector<char>& trailer, std::vector<char>& header) const;
 
  protected:
-  
-  void createRawBunches(const std::vector<o2::phos::Digit*>& digits, std::vector<o2::phos::AltroBunch>& bunchHG, 
-                        std::vector<o2::phos::AltroBunch>&bunchLG, bool& isLGFilled) ;     
+  void createRawBunches(const std::vector<o2::phos::Digit*>& digits, std::vector<o2::phos::AltroBunch>& bunchHG,
+                        std::vector<o2::phos::AltroBunch>& bunchLG, bool& isLGFilled);
 
-  std::vector<int> encodeBunchData(const std::vector<int>& data) ;
-  void fillGamma2(float amp,float time,short *samples) ;
+  std::vector<int> encodeBunchData(const std::vector<int>& data);
+  void fillGamma2(float amp, float time, short* samples);
   // std::tuple<int, int, int> getOnlineID(int towerID);
   // std::tuple<int, int> getLinkAssignment(int ddlID);
 
@@ -108,13 +106,13 @@ class RawWriter
   std::vector<char> createRCUTrailer(int payloadsize, int feca, int fecb, double timesample, double l1phase);
 
  private:
-  FileFor_t mFileFor = FileFor_t::kFullDet;                   ///< Granularity of the output files
-  std::string mOutputLocation = "./";                         ///< Rawfile name
-  std::unique_ptr<o2::phos::Mapping> mMapping;                ///< Mapping handler
-  const CalibParams* mCalibParams = nullptr;                  ///< PHOS calibration
-  gsl::span<o2::phos::Digit> mDigits;                         ///< Digits input vector - must be in digitized format including the time response
-  std::vector<SRUDigitContainer> mSRUdata;                    ///< Internal helper of digits assigned to SRUs
-  std::unique_ptr<o2::raw::RawFileWriter> mRawWriter;         ///< Raw writer
+  FileFor_t mFileFor = FileFor_t::kFullDet;           ///< Granularity of the output files
+  std::string mOutputLocation = "./";                 ///< Rawfile name
+  std::unique_ptr<o2::phos::Mapping> mMapping;        ///< Mapping handler
+  const CalibParams* mCalibParams = nullptr;          ///< PHOS calibration
+  gsl::span<o2::phos::Digit> mDigits;                 ///< Digits input vector - must be in digitized format including the time response
+  std::vector<SRUDigitContainer> mSRUdata;            ///< Internal helper of digits assigned to SRUs
+  std::unique_ptr<o2::raw::RawFileWriter> mRawWriter; ///< Raw writer
 
   ClassDefNV(RawWriter, 1);
 };

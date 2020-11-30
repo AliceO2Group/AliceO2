@@ -14,7 +14,6 @@
 /// \author Dmitri Peresunko <Dmitri.Peresunko at cern.ch>
 /// \date   20 Nov 2020
 
-
 #include "PHOSWorkflow/RawWriterSpec.h"
 #include "Framework/RootSerializationSupport.h"
 #include "DataFormatsPHOS/Digit.h"
@@ -31,11 +30,11 @@ void RawWriterSpec::init(framework::InitContext& ctx)
 
   auto rawdir = ctx.options().get<std::string>("rawpath");
 
-  LOG(INFO) << "[PHOSRawWriter - init] Initialize raw writer " ;
-  if(!mRawWriter){
-    mRawWriter = new o2::phos::RawWriter() ;
+  LOG(INFO) << "[PHOSRawWriter - init] Initialize raw writer ";
+  if (!mRawWriter) {
+    mRawWriter = new o2::phos::RawWriter();
     mRawWriter->setOutputLocation(rawdir.data());
-    mRawWriter->init() ;
+    mRawWriter->init();
   }
 }
 
@@ -47,11 +46,11 @@ void RawWriterSpec::run(framework::ProcessingContext& ctx)
   auto digitsTR = ctx.inputs().get<std::vector<o2::phos::TriggerRecord>>("digitTriggerRecords");
   LOG(INFO) << "[PHOSRawWriter - run]  Received " << digits.size() << " digits and " << digitsTR.size() << " TriggerRecords";
 
-  mRawWriter->digitsToRaw(digits,digitsTR) ;
+  mRawWriter->digitsToRaw(digits, digitsTR);
   LOG(INFO) << "[PHOSRawWriter - run]  Finished ";
-  
+
   //flash and close output files
-  mRawWriter->getWriter().close() ;
+  mRawWriter->getWriter().close();
   ctx.services().get<o2::framework::ControlService>().readyToQuit(framework::QuitRequest::Me);
 }
 
@@ -67,5 +66,5 @@ o2::framework::DataProcessorSpec o2::phos::reco_workflow::getRawWriterSpec()
                                           o2::framework::adaptFromTask<o2::phos::reco_workflow::RawWriterSpec>(),
                                           o2::framework::Options{
                                             {"rawpath", o2::framework::VariantType::String, "./", {"path to write raw"}},
-                                          }} ;
+                                          }};
 }

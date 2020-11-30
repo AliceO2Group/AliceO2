@@ -92,39 +92,37 @@ o2::framework::WorkflowSpec getWorkflow(bool propagateMC,
     }
   }
 
-
-
   if (inputType == InputType::Digits) {
     if (isEnabled(OutputType::Cells)) {
       specs.emplace_back(o2::phos::getPublisherSpec(PublisherConf{
-                                                    "phos-digit-reader",
-                                                    "o2sim",
-                                                    {"digitbranch", "PHOSDigit", "Digit branch"},
-                                                    {"digittrigger", "PHOSDigitTrigRecords", "TrigRecords branch"},
-                                                    {"mcbranch", "PHOSDigitMCTruth", "MC label branch"},
-                                                    {"mcmapbranch", "", "Dummy branch"},
-                                                    o2::framework::OutputSpec{"PHS", "DIGITS"},
-                                                    o2::framework::OutputSpec{"PHS", "DIGITTRIGREC"},
-                                                    o2::framework::OutputSpec{"PHS", "DIGITSMCTR"},
-                                                    o2::framework::OutputSpec{"PHS", ""}}, // it empty, do not create
-                                                  propagateMC, false));
+                                                      "phos-digit-reader",
+                                                      "o2sim",
+                                                      {"digitbranch", "PHOSDigit", "Digit branch"},
+                                                      {"digittrigger", "PHOSDigitTrigRecords", "TrigRecords branch"},
+                                                      {"mcbranch", "PHOSDigitMCTruth", "MC label branch"},
+                                                      {"mcmapbranch", "", "Dummy branch"},
+                                                      o2::framework::OutputSpec{"PHS", "DIGITS"},
+                                                      o2::framework::OutputSpec{"PHS", "DIGITTRIGREC"},
+                                                      o2::framework::OutputSpec{"PHS", "DIGITSMCTR"},
+                                                      o2::framework::OutputSpec{"PHS", ""}}, // it empty, do not create
+                                                    propagateMC, false));
       // add converter for cells
       specs.emplace_back(o2::phos::reco_workflow::getCellConverterSpec(propagateMC));
     }
 
     if (isEnabled(OutputType::Clusters)) {
       specs.emplace_back(o2::phos::getPublisherSpec(PublisherConf{
-                                                    "phos-digit-reader",
-                                                    "o2sim",
-                                                    {"digitbranch", "PHOSDigit", "Digit branch"},
-                                                    {"digittrigger", "PHOSDigitTrigRecords", "TrigRecords branch"},
-                                                    {"mcbranch", "PHOSDigitMCTruth", "MC label branch"},
-                                                    {"mcmapbranch", "", "Dummy branch"},
-                                                    o2::framework::OutputSpec{"PHS", "DIGITS"},
-                                                    o2::framework::OutputSpec{"PHS", "DIGITTRIGREC"},
-                                                    o2::framework::OutputSpec{"PHS", "DIGITSMCTR"},
-                                                    o2::framework::OutputSpec{"PHS", ""}}, // it empty, do not create
-                                                  propagateMC, false));
+                                                      "phos-digit-reader",
+                                                      "o2sim",
+                                                      {"digitbranch", "PHOSDigit", "Digit branch"},
+                                                      {"digittrigger", "PHOSDigitTrigRecords", "TrigRecords branch"},
+                                                      {"mcbranch", "PHOSDigitMCTruth", "MC label branch"},
+                                                      {"mcmapbranch", "", "Dummy branch"},
+                                                      o2::framework::OutputSpec{"PHS", "DIGITS"},
+                                                      o2::framework::OutputSpec{"PHS", "DIGITTRIGREC"},
+                                                      o2::framework::OutputSpec{"PHS", "DIGITSMCTR"},
+                                                      o2::framework::OutputSpec{"PHS", ""}}, // it empty, do not create
+                                                    propagateMC, false));
       // add clusterizer
       specs.emplace_back(o2::phos::reco_workflow::getClusterizerSpec(propagateMC));
     }
@@ -133,19 +131,18 @@ o2::framework::WorkflowSpec getWorkflow(bool propagateMC,
       specs.emplace_back(o2::phos::reco_workflow::getPhosDigitsPrinterSpec());
     }
 
-
     if (isEnabled(OutputType::Raw)) {
       specs.emplace_back(o2::phos::getPublisherSpec(PublisherConf{
-                                                    "phos-digit-reader",
-                                                    "o2sim",
-                                                    {"digitbranch", "PHOSDigit", "Digit branch"},
-                                                    {"digittrigger", "PHOSDigitTrigRecords", "TrigRecords branch"},
-                                                    {"mcbranch", "PHOSDigitMCTruth", "Dummy branch"},
-                                                    {"mcmapbranch", "", "Dummy branch"},
-                                                    o2::framework::OutputSpec{"PHS", "DIGITS"},
-                                                    o2::framework::OutputSpec{"PHS", "DIGITTRIGREC"},
-                                                    o2::framework::OutputSpec{"PHS", "DIGITSMCTR"},
-                                                    o2::framework::OutputSpec{"PHS", ""}}, // it empty, do not create
+                                                      "phos-digit-reader",
+                                                      "o2sim",
+                                                      {"digitbranch", "PHOSDigit", "Digit branch"},
+                                                      {"digittrigger", "PHOSDigitTrigRecords", "TrigRecords branch"},
+                                                      {"mcbranch", "PHOSDigitMCTruth", "Dummy branch"},
+                                                      {"mcmapbranch", "", "Dummy branch"},
+                                                      o2::framework::OutputSpec{"PHS", "DIGITS"},
+                                                      o2::framework::OutputSpec{"PHS", "DIGITTRIGREC"},
+                                                      o2::framework::OutputSpec{"PHS", "DIGITSMCTR"},
+                                                      o2::framework::OutputSpec{"PHS", ""}}, // it empty, do not create
                                                     false, false));
       // add Raw encoder
       specs.emplace_back(o2::phos::reco_workflow::getRawWriterSpec());
@@ -178,7 +175,6 @@ o2::framework::WorkflowSpec getWorkflow(bool propagateMC,
     return std::make_tuple(o2::framework::MakeRootTreeWriterSpec::TerminationCondition::Action::DoProcessing, false);
   };
 
- 
   if (isEnabled(OutputType::Digits)) {
     using DigitOutputType = std::vector<o2::phos::Digit>;
     using DTROutputType = std::vector<o2::phos::TriggerRecord>;
@@ -197,7 +193,6 @@ o2::framework::WorkflowSpec getWorkflow(bool propagateMC,
                                                                                                 "PHSDigitMCTruth",
                                                                                                 "digitmc-branch-name"})());
   }
-
 
   if (isEnabled(OutputType::Clusters)) {
     specs.emplace_back(o2::framework::MakeRootTreeWriterSpec("phos-clusters-writer", "phosclusters.root", "o2sim", -1,

@@ -29,7 +29,7 @@ using namespace o2::phos::reco_workflow;
 
 void RawToCellConverterSpec::init(framework::InitContext& ctx)
 {
- LOG(DEBUG) << "Initialize converter ";
+  LOG(DEBUG) << "Initialize converter ";
 
   auto path = ctx.options().get<std::string>("mappingpath");
   if (!mMapping) {
@@ -37,9 +37,9 @@ void RawToCellConverterSpec::init(framework::InitContext& ctx)
     if (!mMapping) {
       LOG(ERROR) << "Failed to initialize mapping";
     }
-    if(mMapping->setMapping()!=o2::phos::Mapping::kOK){
+    if (mMapping->setMapping() != o2::phos::Mapping::kOK) {
       LOG(ERROR) << "Failed to construct mapping";
-    } 
+    }
   }
 
   auto fitmethod = ctx.options().get<std::string>("fitmethod");
@@ -51,22 +51,21 @@ void RawToCellConverterSpec::init(framework::InitContext& ctx)
     // mRawFitter->setL1Phase(0.);
   }
 
-  mFillChi2 = (ctx.options().get<std::string>("fillchi2").compare("on")==0) ;
-  if(mFillChi2){
+  mFillChi2 = (ctx.options().get<std::string>("fillchi2").compare("on") == 0);
+  if (mFillChi2) {
     LOG(INFO) << "Fit quality output will be filled";
   }
 
-  mCombineGHLG = (ctx.options().get<std::string>("keepGHLG").compare("on")!=0) ;
-  if(!mCombineGHLG){
+  mCombineGHLG = (ctx.options().get<std::string>("keepGHLG").compare("on") != 0);
+  if (!mCombineGHLG) {
     LOG(INFO) << "Both HighGain and LowGain will be kept";
   }
 
-  mPedestalRun = (ctx.options().get<std::string>("pedestal").find("on")!=std::string::npos) ;
-  if(mPedestalRun){
-    mRawFitter->setPedestal() ;
+  mPedestalRun = (ctx.options().get<std::string>("pedestal").find("on") != std::string::npos);
+  if (mPedestalRun) {
+    mRawFitter->setPedestal();
     LOG(INFO) << "Pedestal run will be processed";
   }
-
 }
 
 void RawToCellConverterSpec::run(framework::ProcessingContext& ctx)
@@ -74,11 +73,11 @@ void RawToCellConverterSpec::run(framework::ProcessingContext& ctx)
   // Cache cells from bunch crossings as the component reads timeframes from many links consecutively
   std::map<o2::InteractionRecord, std::shared_ptr<std::vector<o2::phos::Cell>>> cellBuffer; // Internal cell buffer
   int firstEntry = 0;
-  mOutputHWErrors.clear() ;
-  if(mFillChi2){
-    mOutputFitChi.clear() ;
+  mOutputHWErrors.clear();
+  if (mFillChi2) {
+    mOutputFitChi.clear();
   }
-  
+
   for (const auto& rawData : framework::InputRecordWalker(ctx.inputs())) {
 
     o2::phos::RawReaderMemory rawreader(o2::framework::DataRefUtils::as<const char>(rawData));
@@ -90,7 +89,7 @@ void RawToCellConverterSpec::run(framework::ProcessingContext& ctx)
       auto triggerBC = o2::raw::RDHUtils::getTriggerBC(header);
       auto triggerOrbit = o2::raw::RDHUtils::getTriggerOrbit(header);
       auto ddl = o2::raw::RDHUtils::getFEEID(header);
-      
+
       o2::InteractionRecord currentIR(triggerBC, triggerOrbit);
       std::shared_ptr<std::vector<o2::phos::Cell>> currentCellContainer;
       auto found = cellBuffer.find(currentIR);
@@ -100,53 +99,53 @@ void RawToCellConverterSpec::run(framework::ProcessingContext& ctx)
       } else {
         currentCellContainer = found->second;
       }
-      if (ddl > o2::phos::Mapping::NDDL){ //only 14 correct DDLs
-        mOutputHWErrors.emplace_back(15,16,char(ddl)); //Add non-existing DDL as DDL 15
-        continue; //skip STU ddl
+      if (ddl > o2::phos::Mapping::NDDL) {               //only 14 correct DDLs
+        mOutputHWErrors.emplace_back(15, 16, char(ddl)); //Add non-existing DDL as DDL 15
+        continue;                                        //skip STU ddl
       }
       // use the altro decoder to decode the raw data, and extract the RCU trailer
       o2::phos::AltroDecoder decoder(rawreader);
       AltroDecoderError::ErrorType_t err = decoder.decode();
 
-      if(err!=AltroDecoderError::kOK){ 
+      if (err != AltroDecoderError::kOK) {
         //TODO handle severe errors
         //TODO: probably careful conversion of decoder errors to Fitter errors?
-        char e =(char)err ; 
-        mOutputHWErrors.emplace_back(ddl,16,e); //assign general header errors to non-existing FEE 16
+        char e = (char)err;
+        mOutputHWErrors.emplace_back(ddl, 16, e); //assign general header errors to non-existing FEE 16
       }
       // Loop over all the channels
       for (auto& chan : decoder.getChannels()) {
 
         short absId;
-        Mapping::CaloFlag caloFlag ;
-        
+        Mapping::CaloFlag caloFlag;
+
         short fee;
-        char e2 = CheckHWAddress(ddl,chan.getHardwareAddress(),fee);
-        if(e2){
-          mOutputHWErrors.emplace_back(ddl,fee,e2);
+        char e2 = CheckHWAddress(ddl, chan.getHardwareAddress(), fee);
+        if (e2) {
+          mOutputHWErrors.emplace_back(ddl, fee, e2);
           continue;
         }
-        Mapping::ErrorStatus s = mMapping->hwToAbsId(ddl, chan.getHardwareAddress(), absId,caloFlag) ;
-        if(s!=Mapping::ErrorStatus::kOK){
-          mOutputHWErrors.emplace_back(ddl,15,(char)s); //use non-existing FEE 15 for general errors
+        Mapping::ErrorStatus s = mMapping->hwToAbsId(ddl, chan.getHardwareAddress(), absId, caloFlag);
+        if (s != Mapping::ErrorStatus::kOK) {
+          mOutputHWErrors.emplace_back(ddl, 15, (char)s); //use non-existing FEE 15 for general errors
           continue;
         }
-        if(caloFlag!=Mapping::kTRU){ //HighGain or LowGain
+        if (caloFlag != Mapping::kTRU) { //HighGain or LowGain
           CaloRawFitter::FitStatus fitResults = mRawFitter->evaluate(chan.getBunches());
-          if(mFillChi2){
-            for(int is=0; is<mRawFitter->getNsamples(); is++){
-              if(!mRawFitter->isOverflow(is)){ //Overflow is will show wrong chi2
-                short chiAddr=absId;
-                chiAddr|=caloFlag<<14 ;
+          if (mFillChi2) {
+            for (int is = 0; is < mRawFitter->getNsamples(); is++) {
+              if (!mRawFitter->isOverflow(is)) { //Overflow is will show wrong chi2
+                short chiAddr = absId;
+                chiAddr |= caloFlag << 14;
                 mOutputFitChi.emplace_back(chiAddr);
-                mOutputFitChi.emplace_back(short(mRawFitter->getChi2(is))) ;
+                mOutputFitChi.emplace_back(short(mRawFitter->getChi2(is)));
               }
             }
           }
-          if(fitResults==CaloRawFitter::FitStatus::kOK){
+          if (fitResults == CaloRawFitter::FitStatus::kOK) {
             //TODO: which results should be accepted? full configurable list
-            for(int is=0; is<mRawFitter->getNsamples(); is++){
-              if(!mRawFitter->isOverflow(is) || caloFlag!=o2::phos::Mapping::kHighGain){ //do not use HighGain if sample saturated. In LG special fitting is used
+            for (int is = 0; is < mRawFitter->getNsamples(); is++) {
+              if (!mRawFitter->isOverflow(is) || caloFlag != o2::phos::Mapping::kHighGain) { //do not use HighGain if sample saturated. In LG special fitting is used
                 currentCellContainer->emplace_back(absId, mRawFitter->getAmp(is), mRawFitter->getTime(is), (ChannelType_t)caloFlag);
               }
             }
@@ -160,83 +159,78 @@ void RawToCellConverterSpec::run(framework::ProcessingContext& ctx)
   mOutputCells.clear();
   mOutputTriggerRecords.clear();
   for (auto [bc, cells] : cellBuffer) {
-    int prevCellSize=mOutputCells.size() ;
+    int prevCellSize = mOutputCells.size();
     if (cells->size()) {
       // Sort cells according to cell ID
       std::sort(cells->begin(), cells->end(), [](o2::phos::Cell& lhs, o2::phos::Cell& rhs) { return lhs.getAbsId() < rhs.getAbsId(); });
-      
-      if(mCombineGHLG && !mPedestalRun){// combine for normal data, do not combine e.g. for LED run and pedestal
+
+      if (mCombineGHLG && !mPedestalRun) { // combine for normal data, do not combine e.g. for LED run and pedestal
         //Combine HG and LG sells
         //Should be next to each other after sorting
-        auto it1 = cells->begin();   
+        auto it1 = cells->begin();
         auto it2 = cells->begin();
-        it2++;   
-        while (it1!=cells->end()){
-          if(it2!=cells->end()){
-            if((*it1).getAbsId()== (*it2).getAbsId()){ //HG and LG channels, if both, copy only HG as more precise
-              if((*it1).getType()==o2::phos::HIGH_GAIN){
+        it2++;
+        while (it1 != cells->end()) {
+          if (it2 != cells->end()) {
+            if ((*it1).getAbsId() == (*it2).getAbsId()) { //HG and LG channels, if both, copy only HG as more precise
+              if ((*it1).getType() == o2::phos::HIGH_GAIN) {
                 mOutputCells.push_back(*it1);
-              }
-              else{
-                mOutputCells.push_back(*it2);            
+              } else {
+                mOutputCells.push_back(*it2);
               }
               ++it1; //yes increase twice
               ++it2;
-            }
-            else{ //no double cells, copy this one
+            } else { //no double cells, copy this one
               mOutputCells.push_back(*it1);
             }
-          }
-          else{ //just copy last one
+          } else { //just copy last one
             mOutputCells.push_back(*it1);
           }
           ++it1;
           ++it2;
         }
-      }
-      else{
-        for(auto cell: *cells){
-            mOutputCells.push_back(cell);
+      } else {
+        for (auto cell : *cells) {
+          mOutputCells.push_back(cell);
         }
       }
     }
 
-    mOutputTriggerRecords.emplace_back(bc, mOutputCells.size(), mOutputCells.size()-prevCellSize);
+    mOutputTriggerRecords.emplace_back(bc, mOutputCells.size(), mOutputCells.size() - prevCellSize);
   }
-  cellBuffer.clear() ;
-
+  cellBuffer.clear();
 
   LOG(INFO) << "[PHOSRawToCellConverter - run] Writing " << mOutputCells.size() << " cells ...";
   ctx.outputs().snapshot(o2::framework::Output{"PHS", "CELLS", 0, o2::framework::Lifetime::Timeframe}, mOutputCells);
   ctx.outputs().snapshot(o2::framework::Output{"PHS", "CELLTRIGREC", 0, o2::framework::Lifetime::Timeframe}, mOutputTriggerRecords);
   ctx.outputs().snapshot(o2::framework::Output{"PHS", "RAWHWERRORS", 0, o2::framework::Lifetime::Timeframe}, mOutputHWErrors);
-  if(mFillChi2){
+  if (mFillChi2) {
     ctx.outputs().snapshot(o2::framework::Output{"PHS", "CELLFITQA", 0, o2::framework::Lifetime::Timeframe}, mOutputFitChi);
   }
 }
 
-char RawToCellConverterSpec::CheckHWAddress(short ddl, short hwAddr, short &fee){
-  
-  if(ddl<0||ddl>o2::phos::Mapping::NDDL){
-    return (char)4 ;
+char RawToCellConverterSpec::CheckHWAddress(short ddl, short hwAddr, short& fee)
+{
+
+  if (ddl < 0 || ddl > o2::phos::Mapping::NDDL) {
+    return (char)4;
   }
-//  short chan = hwAddr & 0xf;
+  //  short chan = hwAddr & 0xf;
   short chip = hwAddr >> 4 & 0x7;
   short fec = hwAddr >> 7 & 0xf;
   short branch = hwAddr >> 11 & 0x1;
 
-  if(branch<0 || branch>1){
+  if (branch < 0 || branch > 1) {
     return (char)1;
   }
-  if(fec<0 || fec>15){
+  if (fec < 0 || fec > 15) {
     return (char)2;
   }
-  if(fec!=0 && (chip<0||chip>4||chip==1)){ //Do not check for TRU (fec=0)
+  if (fec != 0 && (chip < 0 || chip > 4 || chip == 1)) { //Do not check for TRU (fec=0)
     return (char)3;
   }
   return (char)0;
 }
-
 
 o2::framework::DataProcessorSpec o2::phos::reco_workflow::getRawToCellConverterSpec()
 {
@@ -258,6 +252,5 @@ o2::framework::DataProcessorSpec o2::phos::reco_workflow::getRawToCellConverterS
                                             {"mappingpath", o2::framework::VariantType::String, "", {"Path to mapping files"}},
                                             {"fillchi2", o2::framework::VariantType::String, "off", {"Fill sample qualities on/off"}},
                                             {"keepGHLG", o2::framework::VariantType::String, "off", {"keep HighGain and Low Gain signals on/off"}},
-                                            {"pedestal", o2::framework::VariantType::String, "off", {"Analyze as pedestal run on/off"}}
-                                          }};
+                                            {"pedestal", o2::framework::VariantType::String, "off", {"Analyze as pedestal run on/off"}}}};
 }

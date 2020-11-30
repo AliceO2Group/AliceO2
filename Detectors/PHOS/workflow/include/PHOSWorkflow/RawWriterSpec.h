@@ -55,7 +55,7 @@ class RawWriterSpec : public framework::Task
   void run(framework::ProcessingContext& ctx) final;
 
  private:
-   o2::phos::RawWriter * mRawWriter = nullptr ; 
+  o2::phos::RawWriter* mRawWriter = nullptr;
 };
 
 /// \brief Creating DataProcessorSpec for the PHOS Cell Converter Spec

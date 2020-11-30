@@ -29,7 +29,6 @@ namespace phos
 class AltroDecoderError : public std::exception
 {
  public:
-
   enum ErrorType_t {
     kOK,                      ///< NoError
     RCU_TRAILER_ERROR,        ///< RCU trailer cannot be decoded or invalid
@@ -61,13 +60,13 @@ class AltroDecoderError : public std::exception
 
  private:
   ErrorType_t mErrorType;    ///< Code of the decoding error type
-  std::string mErrorMessage;               ///< Message connected to the error type
+  std::string mErrorMessage; ///< Message connected to the error type
 };
 
 /// \class AltroDecoder
 /// \brief Decoder of the ALTRO data in the raw page
 /// \ingroup PHOSreconstruction
-/// \author Dmitri Peresunko aftesr Markus Fasel 
+/// \author Dmitri Peresunko aftesr Markus Fasel
 /// \since Sept, 2020
 ///
 /// This is a base class for reading raw data digits in Altro format.
@@ -82,9 +81,6 @@ class AltroDecoderError : public std::exception
 class AltroDecoder
 {
  public:
-
-
-
   /// \brief Constructor
   /// \param reader Raw reader instance to be decoded
   AltroDecoder(RawReaderMemory& reader);

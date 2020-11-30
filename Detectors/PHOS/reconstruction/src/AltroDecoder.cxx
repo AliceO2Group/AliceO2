@@ -30,16 +30,16 @@ AltroDecoderError::ErrorType_t AltroDecoder::decode()
   try {
     readRCUTrailer();
   } catch (RCUTrailer::Error& e) {
-      return AltroDecoderError::RCU_TRAILER_ERROR ;
+    return AltroDecoderError::RCU_TRAILER_ERROR;
   }
   //TODO  checkRCUTrailer();
-  
+
   try {
     readChannels();
   } catch (AltroDecoderError& e) {
-      return e.getErrorType() ;
+    return e.getErrorType();
   }
-  return AltroDecoderError::kOK ;
+  return AltroDecoderError::kOK;
 }
 
 void AltroDecoder::readRCUTrailer()
@@ -80,7 +80,7 @@ void AltroDecoder::readChannels()
       currentword = buffer[currentpos++];
       if ((currentword >> 30) != 0) {
         LOG(ERROR) << "Unexpected end of payload in altro channel payload! FEE=" << o2::raw::RDHUtils::getFEEID(mRawReader.getRawHeader())
-              << ", Address=0x" << std::hex << currentchannel.getHardwareAddress() << ", word=0x" << currentword << std::dec;
+                   << ", Address=0x" << std::hex << currentchannel.getHardwareAddress() << ", word=0x" << currentword << std::dec;
         currentpos--;
         continue;
       }

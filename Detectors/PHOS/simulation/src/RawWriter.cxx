@@ -32,9 +32,9 @@ void RawWriter::init()
     if (!mMapping) {
       LOG(ERROR) << "Failed to initialize mapping";
     }
-    if(mMapping->setMapping()!=o2::phos::Mapping::kOK){
+    if (mMapping->setMapping() != o2::phos::Mapping::kOK) {
       LOG(ERROR) << "Failed to construct mapping";
-    } 
+    }
   }
 
   for (auto iddl = 0; iddl < o2::phos::Mapping::NDDL; iddl++) {
@@ -47,9 +47,9 @@ void RawWriter::init()
       case FileFor_t::kLink:
         rawfilename += fmt::format("/phos_{:d}.raw", iddl);
     }
-    short crorc,link; 
-    mMapping->ddlToCrorcLink(iddl,crorc,link) ;
-    mRawWriter->registerLink(iddl,crorc, link, 0, rawfilename.data());
+    short crorc, link;
+    mMapping->ddlToCrorcLink(iddl, crorc, link);
+    mRawWriter->registerLink(iddl, crorc, link, 0, rawfilename.data());
   }
 
   // initialize containers for SRU
@@ -70,11 +70,11 @@ void RawWriter::digitsToRaw(gsl::span<o2::phos::Digit> digitsbranch, gsl::span<o
       LOG(INFO) << "[RawWriter] getting calibration object from ccdb";
       o2::ccdb::CcdbApi ccdb;
       std::map<std::string, std::string> metadata;
-      ccdb.init("http://ccdb-test.cern.ch:8080");  // or http://localhost:8080 for a local installation
-      auto tr = triggerbranch.begin() ;
-      double eventTime =-1;
+      ccdb.init("http://ccdb-test.cern.ch:8080"); // or http://localhost:8080 for a local installation
+      auto tr = triggerbranch.begin();
+      double eventTime = -1;
       // if(tr!=triggerbranch.end()){
-      //   eventTime = (*tr).getBCData().getTimeNS() ;      
+      //   eventTime = (*tr).getBCData().getTimeNS() ;
       // }
       mCalibParams = ccdb.retrieveFromTFileAny<o2::phos::CalibParams>("PHOS/Calib", metadata, eventTime);
       if (!mCalibParams) {
@@ -84,33 +84,33 @@ void RawWriter::digitsToRaw(gsl::span<o2::phos::Digit> digitsbranch, gsl::span<o
   }
 
   for (auto trg : triggerbranch) {
-    processTrigger(digitsbranch,trg);
+    processTrigger(digitsbranch, trg);
   }
 }
 
 bool RawWriter::processTrigger(const gsl::span<o2::phos::Digit> digitsbranch, const o2::phos::TriggerRecord& trg)
 {
-  auto srucont = mSRUdata.begin(); 
+  auto srucont = mSRUdata.begin();
   while (srucont != mSRUdata.end()) {
     srucont->mChannels.clear();
-    srucont++ ;
+    srucont++;
   }
   std::vector<o2::phos::Digit*>* digitsList;
   for (auto& dig : gsl::span(digitsbranch.data() + trg.getFirstEntry(), trg.getNumberOfObjects())) {
     short absId = dig.getAbsId();
     short ddl, hwAddrHG;
     //get ddl and High Gain hw addresses
-    if(mMapping->absIdTohw(absId,0,ddl,hwAddrHG) != o2::phos::Mapping::kOK){
-      LOG(ERROR) << "Wrong AbsId"<< absId ;
+    if (mMapping->absIdTohw(absId, 0, ddl, hwAddrHG) != o2::phos::Mapping::kOK) {
+      LOG(ERROR) << "Wrong AbsId" << absId;
     }
 
     //Collect possible several digits (signal+pileup) into one map record
     auto celldata = mSRUdata[ddl].mChannels.find(absId);
     if (celldata == mSRUdata[ddl].mChannels.end()) {
-      const auto it = mSRUdata[ddl].mChannels.insert(celldata,{absId,std::vector<o2::phos::Digit*>()});
-      it->second.push_back(&dig) ;
+      const auto it = mSRUdata[ddl].mChannels.insert(celldata, {absId, std::vector<o2::phos::Digit*>()});
+      it->second.push_back(&dig);
     } else {
-      celldata->second.push_back(&dig) ;
+      celldata->second.push_back(&dig);
     }
   }
 
@@ -118,20 +118,20 @@ bool RawWriter::processTrigger(const gsl::span<o2::phos::Digit> digitsbranch, co
   std::vector<int> rawbunches;
   std::vector<char> payload;
   std::vector<AltroBunch> rawbunchesHG, rawbunchesLG;
-  
-  for(srucont = mSRUdata.begin();srucont!=mSRUdata.end();srucont++) {
-    short ddl = srucont->mSRUid ;
-    payload.clear() ;
 
-    for (auto ch = srucont->mChannels.cbegin();ch !=srucont->mChannels.cend();ch++) {
+  for (srucont = mSRUdata.begin(); srucont != mSRUdata.end(); srucont++) {
+    short ddl = srucont->mSRUid;
+    payload.clear();
+
+    for (auto ch = srucont->mChannels.cbegin(); ch != srucont->mChannels.cend(); ch++) {
       // Find out hardware address of the channel
 
-      bool isLGfilled=0;
-      createRawBunches(ch->second, rawbunchesHG, rawbunchesLG, isLGfilled) ;     
-  
+      bool isLGfilled = 0;
+      createRawBunches(ch->second, rawbunchesHG, rawbunchesLG, isLGfilled);
+
       short hwAddrHG; //High gain always filled
-      if(mMapping->absIdTohw(ch->first,0,ddl,hwAddrHG)!=o2::phos::Mapping::kOK){
-        LOG(ERROR) << "Wrong AbsId"<< ch->first ;
+      if (mMapping->absIdTohw(ch->first, 0, ddl, hwAddrHG) != o2::phos::Mapping::kOK) {
+        LOG(ERROR) << "Wrong AbsId" << ch->first;
       }
 
       rawbunches.clear();
@@ -142,31 +142,31 @@ bool RawWriter::processTrigger(const gsl::span<o2::phos::Digit> digitsbranch, co
           rawbunches.push_back(adc);
         }
       }
-      if (!rawbunches.size()){
+      if (!rawbunches.size()) {
         continue;
       }
 
       auto encodedbunches = encodeBunchData(rawbunches);
-      auto chanhead = createChannelHeader(hwAddrHG, rawbunches.size()); 
+      auto chanhead = createChannelHeader(hwAddrHG, rawbunches.size());
       char* chanheadwords = reinterpret_cast<char*>(&chanhead);
 
       for (int iword = 0; iword < sizeof(ChannelHeader) / sizeof(char); iword++) {
-       payload.emplace_back(chanheadwords[iword]);
+        payload.emplace_back(chanheadwords[iword]);
       }
       char* channelwords = reinterpret_cast<char*>(encodedbunches.data());
       for (auto iword = 0; iword < encodedbunches.size() * sizeof(int) / sizeof(char); iword++) {
         payload.emplace_back(channelwords[iword]);
       }
 
-      if(isLGfilled){ //fill both HighGain, and LowGain channels in case of saturation
+      if (isLGfilled) { //fill both HighGain, and LowGain channels in case of saturation
         short hwAddrLG; //High gain always filled
-        if(mMapping->absIdTohw(ch->first,1,ddl,hwAddrLG) != o2::phos::Mapping::kOK){
-          LOG(ERROR)<< "Wrong AbsId"<< ch->first ;
+        if (mMapping->absIdTohw(ch->first, 1, ddl, hwAddrLG) != o2::phos::Mapping::kOK) {
+          LOG(ERROR) << "Wrong AbsId" << ch->first;
         }
 
         rawbunches.clear();
         for (auto& bunch : rawbunchesHG) {
-          rawbunches.push_back(bunch.mADCs.size()+2);
+          rawbunches.push_back(bunch.mADCs.size() + 2);
           rawbunches.push_back(bunch.mStarttime);
           for (auto adc : bunch.mADCs) {
             rawbunches.push_back(adc);
@@ -174,7 +174,7 @@ bool RawWriter::processTrigger(const gsl::span<o2::phos::Digit> digitsbranch, co
         }
 
         encodedbunches = encodeBunchData(rawbunches);
-        chanhead = createChannelHeader(hwAddrLG, encodedbunches.size() * 3 - 2); 
+        chanhead = createChannelHeader(hwAddrLG, encodedbunches.size() * 3 - 2);
         chanheadwords = reinterpret_cast<char*>(&chanhead);
         for (int iword = 0; iword < sizeof(ChannelHeader) / sizeof(char); iword++) {
           payload.emplace_back(chanheadwords[iword]);
@@ -195,93 +195,89 @@ bool RawWriter::processTrigger(const gsl::span<o2::phos::Digit> digitsbranch, co
     // register output data
     LOG(DEBUG1) << "Adding payload with size " << payload.size() << " (" << payload.size() / 4 << " ALTRO words)";
 
-    short crorc,link; 
-    mMapping->ddlToCrorcLink(ddl,crorc,link) ;
-    mRawWriter->addData(ddl,crorc,link, 0, trg.getBCData(), payload);
+    short crorc, link;
+    mMapping->ddlToCrorcLink(ddl, crorc, link);
+    mRawWriter->addData(ddl, crorc, link, 0, trg.getBCData(), payload);
   }
   return true;
 }
 
-void RawWriter::createRawBunches(const std::vector<o2::phos::Digit*>& channelDigits, std::vector<o2::phos::AltroBunch> &bunchHG, 
-                                 std::vector<o2::phos::AltroBunch> &bunchLG, bool &isLGFilled)
+void RawWriter::createRawBunches(const std::vector<o2::phos::Digit*>& channelDigits, std::vector<o2::phos::AltroBunch>& bunchHG,
+                                 std::vector<o2::phos::AltroBunch>& bunchLG, bool& isLGFilled)
 {
- 
-  isLGFilled = false ;
-  short samples[kNPHOSSAMPLES]={0} ;
-  float hglgratio=16.;
-  for(auto dig: channelDigits){
+
+  isLGFilled = false;
+  short samples[kNPHOSSAMPLES] = {0};
+  float hglgratio = 16.;
+  for (auto dig : channelDigits) {
     //Convert energy and time to ADC counts and time ticks
-    float ampADC = dig->getAmplitude()/mCalibParams->getGain(dig->getAbsId());
-    if(ampADC>kOVERFLOW){ //High Gain in saturation, fill also Low Gain
-      isLGFilled=true ;
+    float ampADC = dig->getAmplitude() / mCalibParams->getGain(dig->getAbsId());
+    if (ampADC > kOVERFLOW) { //High Gain in saturation, fill also Low Gain
+      isLGFilled = true;
     }
     float timeTicks = dig->getTimeStamp();
     //If LowGain will be used, apply LG time decalibration (HG will be omitted in this case in rec.)
-    if(isLGFilled){
-      timeTicks+= mCalibParams->getLGTimeCalib(dig->getAbsId()) ;
-      hglgratio = mCalibParams->getHGLGRatio(dig->getAbsId()) ;
+    if (isLGFilled) {
+      timeTicks += mCalibParams->getLGTimeCalib(dig->getAbsId());
+      hglgratio = mCalibParams->getHGLGRatio(dig->getAbsId());
+    } else {
+      timeTicks += mCalibParams->getHGTimeCalib(dig->getAbsId());
     }
-    else{
-      timeTicks+= mCalibParams->getHGTimeCalib(dig->getAbsId()) ;      
-    }
-    timeTicks/=kPHOSTIMETICK ;
+    timeTicks /= kPHOSTIMETICK;
     //Add to current sample contribution from digit
-    fillGamma2(ampADC,timeTicks,samples) ; 
+    fillGamma2(ampADC, timeTicks, samples);
   }
 
   //reduce samples below ZS and fill output
-  short zs= (short) o2::phos::PHOSSimParams::Instance().mZSthreshold ;
-  bunchHG.clear() ;
-  AltroBunch currentBunch ;
+  short zs = (short)o2::phos::PHOSSimParams::Instance().mZSthreshold;
+  bunchHG.clear();
+  AltroBunch currentBunch;
   //Note reverse time order
-  for(int i=kNPHOSSAMPLES-1; i--; ){
-    if(samples[i]>zs){
-      currentBunch.mADCs.emplace_back(std::min(kOVERFLOW,samples[i]));
-    }
-    else{ //end of sample?
-      if(currentBunch.mADCs.size()){
-        currentBunch.mStarttime=i+1;
-        bunchHG.push_back(currentBunch) ;
-        currentBunch.mADCs.clear() ;
+  for (int i = kNPHOSSAMPLES - 1; i--;) {
+    if (samples[i] > zs) {
+      currentBunch.mADCs.emplace_back(std::min(kOVERFLOW, samples[i]));
+    } else { //end of sample?
+      if (currentBunch.mADCs.size()) {
+        currentBunch.mStarttime = i + 1;
+        bunchHG.push_back(currentBunch);
+        currentBunch.mADCs.clear();
       }
     }
   }
-  if(isLGFilled){
-    bunchLG.clear() ;
-    currentBunch.mADCs.clear() ;
-    for(int i=kNPHOSSAMPLES-1; i--; ){
-      if(samples[i]>zs*hglgratio){
-        currentBunch.mADCs.emplace_back(std::min(kOVERFLOW,short(samples[i]/hglgratio)));
-      }
-      else{ //end of sample?
-        if(currentBunch.mADCs.size()){
-          currentBunch.mStarttime=i+1;
-          bunchLG.push_back(currentBunch) ;
-          currentBunch.mADCs.clear() ;
+  if (isLGFilled) {
+    bunchLG.clear();
+    currentBunch.mADCs.clear();
+    for (int i = kNPHOSSAMPLES - 1; i--;) {
+      if (samples[i] > zs * hglgratio) {
+        currentBunch.mADCs.emplace_back(std::min(kOVERFLOW, short(samples[i] / hglgratio)));
+      } else { //end of sample?
+        if (currentBunch.mADCs.size()) {
+          currentBunch.mStarttime = i + 1;
+          bunchLG.push_back(currentBunch);
+          currentBunch.mADCs.clear();
         }
       }
     }
   }
-
 }
 
-void RawWriter::fillGamma2(float amp,float time,short *samples){
+void RawWriter::fillGamma2(float amp, float time, short* samples)
+{
   //Simulate Gamma2 signal added to current sample in PHOS
   float alpha = o2::phos::PHOSSimParams::Instance().mSampleDecayTime;
 
-  for(int i=0; i<kNPHOSSAMPLES; i++){
-    float x = alpha*(i - time);
-    float y = 0.25*amp*x*x*std::exp(2.-x) ; //0.25*exp(-2) normalization to unity 
-    samples[i]+=short(y) ;
+  for (int i = 0; i < kNPHOSSAMPLES; i++) {
+    float x = alpha * (i - time);
+    float y = 0.25 * amp * x * x * std::exp(2. - x); //0.25*exp(-2) normalization to unity
+    samples[i] += short(y);
   }
-
 }
 
 std::vector<int> RawWriter::encodeBunchData(const std::vector<int>& data)
 {
   std::vector<int> encoded;
   CaloBunchWord currentword;
-  currentword.mDataWord=0;
+  currentword.mDataWord = 0;
   int wordnumber = 0;
   for (auto adc : data) {
     switch (wordnumber) {
@@ -305,17 +301,17 @@ std::vector<int> RawWriter::encodeBunchData(const std::vector<int>& data)
   }
   if (wordnumber) {
     encoded.push_back(currentword.mDataWord);
-  }  
+  }
   return encoded;
 }
 
 ChannelHeader RawWriter::createChannelHeader(int hardwareAddress, int payloadSize)
 {
   ChannelHeader header;
-  header.mDataWord=0 ;
+  header.mDataWord = 0;
   header.mHardwareAddress = hardwareAddress;
   header.mPayloadSize = payloadSize;
-  header.mZero2=1; //mark channel header
+  header.mZero2 = 1; //mark channel header
   return header;
 }
 

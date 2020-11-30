@@ -25,24 +25,23 @@ namespace phos
 class RawReaderError
 {
  public:
-
   /// \brief Constructor
   RawReaderError() = default;
 
   /// \brief Constructor
-  RawReaderError(char ddl, char fec, char err ):mDDL(ddl),mFEC(fec),mErr(err){}
+  RawReaderError(char ddl, char fec, char err) : mDDL(ddl), mFEC(fec), mErr(err) {}
 
   /// \brief destructor
   ~RawReaderError() = default;
 
-  char getDDL(){return mDDL; }
-  char getFEC(){return mDDL; }
-  char getError(){return mErr;}
+  char getDDL() { return mDDL; }
+  char getFEC() { return mDDL; }
+  char getError() { return mErr; }
 
  private:
-  char mDDL=0;
-  char mFEC=0;
-  char mErr=0;
+  char mDDL = 0;
+  char mFEC = 0;
+  char mErr = 0;
 
   ClassDefNV(RawReaderError, 1);
 };

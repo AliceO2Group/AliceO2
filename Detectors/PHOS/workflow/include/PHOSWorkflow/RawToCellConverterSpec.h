@@ -58,18 +58,18 @@ class RawToCellConverterSpec : public framework::Task
 
  protected:
   /// \brief simple check of HW address
-  char CheckHWAddress(short ddl, short hwAddress, short &fee);
+  char CheckHWAddress(short ddl, short hwAddress, short& fee);
 
  private:
-  bool mFillChi2 = false ;             ///< Fill output with quality of samples
-  bool mCombineGHLG = true ;           ///< Combine or not HG and LG channels (def: combine, LED runs: not combine)     
-  bool mPedestalRun = false ;          ///< Analyze pedestal run (calculate pedestal mean and RMS)
-  std::unique_ptr<o2::phos::Mapping> mMapping = nullptr;       ///!<! Mapping
-  std::unique_ptr<o2::phos::CaloRawFitter> mRawFitter;         ///!<! Raw fitter
-  std::vector<o2::phos::Cell> mOutputCells;                    ///< Container with output cells
-  std::vector<o2::phos::TriggerRecord> mOutputTriggerRecords;  ///< Container with output cells
-  std::vector<o2::phos::RawReaderError> mOutputHWErrors ;      ///< Errors occured in reading data
-  std::vector<short>  mOutputFitChi ;  ///< Raw sample fit quality
+  bool mFillChi2 = false;                                     ///< Fill output with quality of samples
+  bool mCombineGHLG = true;                                   ///< Combine or not HG and LG channels (def: combine, LED runs: not combine)
+  bool mPedestalRun = false;                                  ///< Analyze pedestal run (calculate pedestal mean and RMS)
+  std::unique_ptr<o2::phos::Mapping> mMapping = nullptr;      ///!<! Mapping
+  std::unique_ptr<o2::phos::CaloRawFitter> mRawFitter;        ///!<! Raw fitter
+  std::vector<o2::phos::Cell> mOutputCells;                   ///< Container with output cells
+  std::vector<o2::phos::TriggerRecord> mOutputTriggerRecords; ///< Container with output cells
+  std::vector<o2::phos::RawReaderError> mOutputHWErrors;      ///< Errors occured in reading data
+  std::vector<short> mOutputFitChi;                           ///< Raw sample fit quality
 };
 
 /// \brief Creating DataProcessorSpec for the PHOS Cell Converter Spec

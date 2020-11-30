@@ -86,7 +86,7 @@ void Digitizer::process(const std::vector<Hit>* hitsBg, const std::vector<Hit>* 
 
   Int_t nTotCells = mGeometry->getTotalNCells();
 
-  short start=64*56+32*56+1; //first digit in half-mod 1
+  short start = 64 * 56 + 32 * 56 + 1; //first digit in half-mod 1
   char relid[3];
   for (short absId = start; absId < nTotCells; absId++) {
 

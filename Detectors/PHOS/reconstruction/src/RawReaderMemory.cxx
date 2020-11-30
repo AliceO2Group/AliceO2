@@ -65,10 +65,9 @@ void RawReaderMemory::next()
            nextbc = RDHDecoder::getTriggerBC(nextheader);
       auto currentorbit = RDHDecoder::getTriggerOrbit(mRawHeader),
            nextorbit = RDHDecoder::getTriggerOrbit(nextheader);
-      if(currentbc!=nextbc || currentorbit!=nextorbit){
+      if (currentbc != nextbc || currentorbit != nextorbit) {
         isDataTerminated = true;
-      }
-      else{
+      } else {
         auto nextpagecounter = RDHDecoder::getPageCounter(nextheader);
         if (nextpagecounter == 0) {
           isDataTerminated = true;

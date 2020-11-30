@@ -23,7 +23,7 @@ namespace phos
 /// \class RawBuffer
 /// \brief Buffer for PHOS raw pages
 /// \ingroup PHOSreconstruction
-/// \author Dmitri Peresunko after Markus Fasel 
+/// \author Dmitri Peresunko after Markus Fasel
 /// \since Sept, 2020
 class RawBuffer
 {
