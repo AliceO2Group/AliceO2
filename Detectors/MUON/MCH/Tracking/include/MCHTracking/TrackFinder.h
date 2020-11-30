@@ -52,6 +52,9 @@ class TrackFinder
   /// set the flag to try to find more track candidates starting from 1 cluster in each of station (1..) 4 and 5
   void findMoreTrackCandidates(bool moreCandidates) { mMoreCandidates = moreCandidates; }
 
+  /// set the flag to refine the tracks in the end using cluster resolution
+  void refineTracks(bool refine) { mRefineTracks = refine; }
+
   /// set the debug level defining the verbosity
   void debug(int debugLevel) { mDebugLevel = debugLevel; }
 
@@ -79,6 +82,8 @@ class TrackFinder
   void improveTracks();
 
   void removeConnectedTracks(int stMin, int stMax);
+
+  void refineTracks();
 
   void finalize();
 
@@ -113,6 +118,15 @@ class TrackFinder
   /// return the chamber to which this plane belong to
   int getChamberId(int plane) { return (plane < 8) ? plane / 2 : 4 + (plane - 8) / 4; }
 
+  /// return the chamber resolution square in x direction
+  static constexpr double chamberResolutionX2() { return SChamberResolutionX * SChamberResolutionX; }
+  /// return the chamber resolution square in y direction
+  static constexpr double chamberResolutionY2() { return SChamberResolutionY * SChamberResolutionY; }
+
+  /// chamber resolution in x direction used as cluster resolution during tracking
+  static constexpr double SChamberResolutionX = 0.2;
+  /// chamber resolution in y direction used as cluster resolution during tracking
+  static constexpr double SChamberResolutionY = 0.2;
   /// sigma cut to select clusters (local chi2) and tracks (global chi2) during tracking
   static constexpr double SSigmaCutForTracking = 5.;
   /// sigma cut to select clusters (local chi2) and tracks (global chi2) during improvement
@@ -125,8 +139,8 @@ class TrackFinder
   static constexpr double SBendingVertexDispersion = 70.;    ///< vertex dispersion (cm) in bending plane
   static constexpr double SMinBendingMomentum = 0.8;         ///< minimum value (GeV/c) of momentum in bending plane
   /// z position of the chambers
-  static constexpr float SDefaultChamberZ[10] = {-526.16, -545.24, -676.4, -695.4, -967.5,
-                                                 -998.5, -1276.5, -1307.5, -1406.6, -1437.6};
+  static constexpr double SDefaultChamberZ[10] = {-526.16, -545.24, -676.4, -695.4, -967.5,
+                                                  -998.5, -1276.5, -1307.5, -1406.6, -1437.6};
   /// default chamber thickness in X0 for reconstruction
   static constexpr double SChamberThicknessInX0[10] = {0.065, 0.065, 0.075, 0.075, 0.035,
                                                        0.035, 0.035, 0.035, 0.035, 0.035};
@@ -142,7 +156,8 @@ class TrackFinder
 
   double mMaxMCSAngle2[10]{}; ///< maximum angle dispersion due to MCS
 
-  bool mMoreCandidates = false; ///< try to find more track candidates starting from 1 cluster in each of station (1..) 4 and 5
+  bool mMoreCandidates = false; ///< find more track candidates starting from 1 cluster in each of station (1..) 4 and 5
+  bool mRefineTracks = true;    ///< refine the tracks in the end using cluster resolution
 
   int mDebugLevel = 0; ///< debug level defining the verbosity
 
@@ -155,6 +170,7 @@ class TrackFinder
   std::chrono::duration<double> mTimeFollowTracks{};       ///< timer
   std::chrono::duration<double> mTimeImproveTracks{};      ///< timer
   std::chrono::duration<double> mTimeCleanTracks{};        ///< timer
+  std::chrono::duration<double> mTimeRefineTracks{};       ///< timer
 };
 
 } // namespace mch
