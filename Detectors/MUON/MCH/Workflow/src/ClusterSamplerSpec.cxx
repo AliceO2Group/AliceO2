@@ -88,10 +88,6 @@ class ClusterSamplerTask
     // fill clusters in O2 format, if any
     if (nClusters > 0) {
       mInputFile.read(reinterpret_cast<char*>(clusters.data()), clusters.size_bytes());
-      for (auto& cluster : clusters) {
-        cluster.ex = 0.2f;
-        cluster.ey = 0.2f;
-      }
     } else {
       LOG(INFO) << "event is empty";
     }

@@ -63,6 +63,9 @@ class TrackFinderTask
     auto moreCandidates = ic.options().get<bool>("moreCandidates");
     mTrackFinder.findMoreTrackCandidates(moreCandidates);
 
+    auto refineTracks = !ic.options().get<bool>("noRefinement");
+    mTrackFinder.refineTracks(refineTracks);
+
     auto debugLevel = ic.options().get<int>("debug");
     mTrackFinder.debug(debugLevel);
 
@@ -142,6 +145,7 @@ o2::framework::DataProcessorSpec getTrackFinderSpec()
     Options{{"l3Current", VariantType::Float, -30000.0f, {"L3 current"}},
             {"dipoleCurrent", VariantType::Float, -6000.0f, {"Dipole current"}},
             {"moreCandidates", VariantType::Bool, false, {"Find more track candidates"}},
+            {"noRefinement", VariantType::Bool, false, {"Disable the track refinement"}},
             {"debug", VariantType::Int, 0, {"debug level"}}}};
 }
 

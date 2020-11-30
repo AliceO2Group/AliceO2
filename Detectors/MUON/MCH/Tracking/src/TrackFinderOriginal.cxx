@@ -32,7 +32,7 @@ namespace mch
 
 using namespace std;
 
-constexpr float TrackFinderOriginal::SDefaultChamberZ[10];
+constexpr double TrackFinderOriginal::SDefaultChamberZ[10];
 constexpr double TrackFinderOriginal::SChamberThicknessInX0[10];
 constexpr bool TrackFinderOriginal::SRequestStation[5];
 
@@ -47,6 +47,9 @@ void TrackFinderOriginal::init(float l3Current, float dipoleCurrent)
   // Enable the track smoother
   mTrackFitter.smoothTracks(true);
 
+  // Set the chamber resolution used for fitting the tracks during the tracking
+  mTrackFitter.setChamberResolution(SChamberResolutionX, SChamberResolutionY);
+
   // Set the maximum MCS angle in chamber from the minimum acceptable momentum
   TrackParam param{};
   double inverseBendingP = (SMinBendingMomentum > 0.) ? 1. / SMinBendingMomentum : 1.;
@@ -59,11 +62,14 @@ void TrackFinderOriginal::init(float l3Current, float dipoleCurrent)
 //_________________________________________________________________________________________________
 const std::list<Track>& TrackFinderOriginal::findTracks(const std::array<std::list<Cluster>, 10>* clusters)
 {
-  /// Run the orginal track finder algorithm
+  /// Run the original track finder algorithm
 
   print("\n------------------ Start the original track finder ------------------");
   mClusters = clusters;
   mTracks.clear();
+
+  // Use the chamber resolution when fitting the tracks during the tracking
+  mTrackFitter.useChamberResolution();
 
   // Look for candidates from clusters in stations(1..) 4 and 5
   print("\n--> Step 1: find track candidates\n");
@@ -117,13 +123,18 @@ const std::list<Track>& TrackFinderOriginal::findTracks(const std::array<std::li
   tEnd = std::chrono::high_resolution_clock::now();
   mTimeCleanTracks += tEnd - tStart;
 
-  // Set the final track parameters and covariances
-  finalize();
+  // Refine the tracks using cluster resolution or just finalize them
+  if (mRefineTracks) {
+    tStart = std::chrono::high_resolution_clock::now();
+    mTrackFitter.useClusterResolution();
+    refineTracks();
+    tEnd = std::chrono::high_resolution_clock::now();
+    mTimeRefineTracks += tEnd - tStart;
+  } else {
+    finalize();
+  }
   printTracks();
-  /*
-  // Refit the reconstructed tracks with a different resolution for mono-cathod clusters
-  discardMonoCathodClusters();
-*/
+
   return mTracks;
 }
 
@@ -304,7 +315,7 @@ std::list<Track>::iterator TrackFinderOriginal::findTrackCandidates(int ch1, int
       // check if non bending impact parameter is within tolerances
       double nonBendingSlope = (cluster1.getX() - cluster2.getX()) / dZ;
       double nonBendingImpactParam = TMath::Abs(cluster1.getX() - cluster1.getZ() * nonBendingSlope);
-      double nonBendingImpactParamErr = TMath::Sqrt((z1 * z1 * cluster2.getEx2() + z2 * z2 * cluster1.getEx2()) / dZ / dZ + impactMCS2);
+      double nonBendingImpactParamErr = TMath::Sqrt((z1 * z1 * chamberResolutionX2() + z2 * z2 * chamberResolutionX2()) / dZ / dZ + impactMCS2);
       if ((nonBendingImpactParam - SSigmaCutForTracking * nonBendingImpactParamErr) > (3. * SNonBendingVertexDispersion)) {
         continue;
       }
@@ -313,7 +324,7 @@ std::list<Track>::iterator TrackFinderOriginal::findTrackCandidates(int ch1, int
       if (TrackExtrap::isFieldON()) { // depending whether the field is ON or OFF
         // check if bending momentum is within tolerances
         double bendingImpactParam = cluster1.getY() - cluster1.getZ() * bendingSlope;
-        double bendingImpactParamErr2 = (z1 * z1 * cluster2.getEy2() + z2 * z2 * cluster1.getEy2()) / dZ / dZ + impactMCS2;
+        double bendingImpactParamErr2 = (z1 * z1 * chamberResolutionY2() + z2 * z2 * chamberResolutionY2()) / dZ / dZ + impactMCS2;
         double bendingMomentum = TMath::Abs(TrackExtrap::getBendingMomentumFromImpactParam(bendingImpactParam));
         double bendingMomentumErr = TMath::Sqrt((bendingVertexDispersion2 + bendingImpactParamErr2) / bendingImpactParam / bendingImpactParam + 0.01) * bendingMomentum;
         if ((bendingMomentum + 3. * bendingMomentumErr) < SMinBendingMomentum) {
@@ -322,7 +333,7 @@ std::list<Track>::iterator TrackFinderOriginal::findTrackCandidates(int ch1, int
       } else {
         // or check if bending impact parameter is within tolerances
         double bendingImpactParam = TMath::Abs(cluster1.getY() - cluster1.getZ() * bendingSlope);
-        double bendingImpactParamErr = TMath::Sqrt((z1 * z1 * cluster2.getEy2() + z2 * z2 * cluster1.getEy2()) / dZ / dZ + impactMCS2);
+        double bendingImpactParamErr = TMath::Sqrt((z1 * z1 * chamberResolutionY2() + z2 * z2 * chamberResolutionY2()) / dZ / dZ + impactMCS2);
         if ((bendingImpactParam - SSigmaCutForTracking * bendingImpactParamErr) > (3. * SBendingVertexDispersion)) {
           continue;
         }
@@ -402,15 +413,15 @@ void TrackFinderOriginal::createTrack(const Cluster& cl1, const Cluster& cl2)
   TMatrixD paramCov(5, 5);
   paramCov.Zero();
   // Non bending plane
-  double cl1Ex2 = cl1.getEx2();
-  double cl2Ex2 = cl2.getEx2();
+  double cl1Ex2 = chamberResolutionX2();
+  double cl2Ex2 = chamberResolutionX2();
   paramCov(0, 0) = cl1Ex2;
   paramCov(0, 1) = cl1Ex2 / dZ;
   paramCov(1, 0) = paramCov(0, 1);
   paramCov(1, 1) = (cl1Ex2 + cl2Ex2) / dZ / dZ;
   // Bending plane
-  double cl1Ey2 = cl1.getEy2();
-  double cl2Ey2 = cl2.getEy2();
+  double cl1Ey2 = chamberResolutionY2();
+  double cl2Ey2 = chamberResolutionY2();
   paramCov(2, 2) = cl1Ey2;
   paramCov(2, 3) = cl1Ey2 / dZ;
   paramCov(3, 2) = paramCov(2, 3);
@@ -913,8 +924,8 @@ bool TrackFinderOriginal::tryOneClusterFast(const TrackParam& param, const Clust
   double dX = cluster.getX() - (param.getNonBendingCoor() + param.getNonBendingSlope() * dZ);
   double dY = cluster.getY() - (param.getBendingCoor() + param.getBendingSlope() * dZ);
   const TMatrixD& paramCov = param.getCovariances();
-  double errX2 = paramCov(0, 0) + dZ * dZ * paramCov(1, 1) + 2. * dZ * paramCov(0, 1) + cluster.getEx2();
-  double errY2 = paramCov(2, 2) + dZ * dZ * paramCov(3, 3) + 2. * dZ * paramCov(2, 3) + cluster.getEy2();
+  double errX2 = paramCov(0, 0) + dZ * dZ * paramCov(1, 1) + 2. * dZ * paramCov(0, 1) + chamberResolutionX2();
+  double errY2 = paramCov(2, 2) + dZ * dZ * paramCov(3, 3) + 2. * dZ * paramCov(2, 3) + chamberResolutionY2();
 
   double dXmax = SSigmaCutForTracking * TMath::Sqrt(2. * errX2) + SMaxNonBendingDistanceToTrack;
   double dYmax = SSigmaCutForTracking * TMath::Sqrt(2. * errY2) + SMaxBendingDistanceToTrack;
@@ -949,8 +960,8 @@ double TrackFinderOriginal::tryOneCluster(const TrackParam& param, const Cluster
 
   // Combine the cluster and track resolutions and covariances
   const TMatrixD& paramCov = paramAtCluster.getCovariances();
-  double sigmaX2 = paramCov(0, 0) + cluster.getEx2();
-  double sigmaY2 = paramCov(2, 2) + cluster.getEy2();
+  double sigmaX2 = paramCov(0, 0) + chamberResolutionX2();
+  double sigmaY2 = paramCov(2, 2) + chamberResolutionY2();
   double covXY = paramCov(0, 2);
   double det = sigmaX2 * sigmaY2 - covXY * covXY;
 
@@ -994,7 +1005,7 @@ void TrackFinderOriginal::updateTrack(Track& track, TrackParam& trackParamAtClus
   const Cluster* cluster1(trackParamAtCluster1.getClusterPtr());
   double deltaX = trackParamAtCluster1.getNonBendingCoor() - cluster1->getX();
   double deltaY = trackParamAtCluster1.getBendingCoor() - cluster1->getY();
-  double localChi2 = deltaX * deltaX / cluster1->getEx2() + deltaY * deltaY / cluster1->getEy2();
+  double localChi2 = deltaX * deltaX / chamberResolutionX2() + deltaY * deltaY / chamberResolutionY2();
   trackParamAtCluster1.setLocalChi2(localChi2);
 
   // Compute the local chi2 at cluster2
@@ -1003,7 +1014,7 @@ void TrackFinderOriginal::updateTrack(Track& track, TrackParam& trackParamAtClus
   TrackExtrap::extrapToZ(&extrapTrackParamAtCluster2, trackParamAtCluster2.getZ());
   deltaX = extrapTrackParamAtCluster2.getNonBendingCoor() - cluster2->getX();
   deltaY = extrapTrackParamAtCluster2.getBendingCoor() - cluster2->getY();
-  localChi2 = deltaX * deltaX / cluster2->getEx2() + deltaY * deltaY / cluster2->getEy2();
+  localChi2 = deltaX * deltaX / chamberResolutionX2() + deltaY * deltaY / chamberResolutionY2();
   trackParamAtCluster2.setLocalChi2(localChi2);
 
   // Add the parameters at the new clusters
@@ -1261,6 +1272,28 @@ void TrackFinderOriginal::improveTracks()
 }
 
 //_________________________________________________________________________________________________
+void TrackFinderOriginal::refineTracks()
+{
+  /// Refit, improve and finalize the reconstructed tracks
+
+  print("Refine tracks");
+
+  for (auto itTrack = mTracks.begin(); itTrack != mTracks.end();) {
+    try {
+      mTrackFitter.fit(*itTrack, false);
+      ++itTrack;
+    } catch (exception const&) {
+      print("Removing candidate at position #", getTrackIndex(itTrack));
+      itTrack = mTracks.erase(itTrack);
+    }
+  }
+
+  improveTracks();
+
+  finalize();
+}
+
+//_________________________________________________________________________________________________
 void TrackFinderOriginal::finalize()
 {
   /// Copy the smoothed parameters and covariances into the regular ones
@@ -1375,6 +1408,7 @@ void TrackFinderOriginal::printTimers() const
   LOG(INFO) << "completeTracks duration = " << mTimeCompleteTracks.count() << " s";
   LOG(INFO) << "improveTracks duration = " << mTimeImproveTracks.count() << " s";
   LOG(INFO) << "removeConnectedTracks duration = " << mTimeCleanTracks.count() << " s";
+  LOG(INFO) << "refineTracks duration = " << mTimeRefineTracks.count() << " s";
 }
 
 } // namespace mch

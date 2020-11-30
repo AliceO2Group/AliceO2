@@ -33,7 +33,7 @@ namespace mch
 
 using namespace std;
 
-constexpr float TrackFinder::SDefaultChamberZ[10];
+constexpr double TrackFinder::SDefaultChamberZ[10];
 constexpr double TrackFinder::SChamberThicknessInX0[10];
 constexpr bool TrackFinder::SRequestStation[5];
 constexpr int TrackFinder::SNDE[10];
@@ -48,6 +48,9 @@ void TrackFinder::init(float l3Current, float dipoleCurrent)
 
   // enable the track smoother
   mTrackFitter.smoothTracks(true);
+
+  // set the chamber resolution used for fitting the tracks during the tracking
+  mTrackFitter.setChamberResolution(SChamberResolutionX, SChamberResolutionY);
 
   // use the Runge-Kutta extrapolation v2
   TrackExtrap::useExtrapV2();
@@ -147,6 +150,9 @@ const std::list<Track>& TrackFinder::findTracks(const std::unordered_map<int, st
     }
   }
 
+  // use the chamber resolution when fitting the tracks during the tracking
+  mTrackFitter.useChamberResolution();
+
   // find track candidates on stations 4 and 5
   auto tStart = std::chrono::high_resolution_clock::now();
   findTrackCandidates();
@@ -181,14 +187,22 @@ const std::list<Track>& TrackFinder::findTracks(const std::unordered_map<int, st
   tEnd = std::chrono::high_resolution_clock::now();
   mTimeImproveTracks += tEnd - tStart;
 
-  // Remove connected tracks in stations(1..) 3, 4 and 5
+  // remove connected tracks in stations(1..) 3, 4 and 5
   tStart = std::chrono::high_resolution_clock::now();
   removeConnectedTracks(2, 4);
   tEnd = std::chrono::high_resolution_clock::now();
   mTimeCleanTracks += tEnd - tStart;
 
-  // Set the final track parameters and covariances
-  finalize();
+  // refine the tracks using cluster resolution or just finalize them
+  if (mRefineTracks) {
+    tStart = std::chrono::high_resolution_clock::now();
+    mTrackFitter.useClusterResolution();
+    refineTracks();
+    tEnd = std::chrono::high_resolution_clock::now();
+    mTimeRefineTracks += tEnd - tStart;
+  } else {
+    finalize();
+  }
 
   return mTracks;
 }
@@ -628,7 +642,7 @@ std::list<Track>::iterator TrackFinder::findTrackCandidates(int plane1, int plan
           // check if non bending impact parameter is within tolerances
           double nonBendingSlope = (cluster1.getX() - cluster2.getX()) / dZ;
           double nonBendingImpactParam = TMath::Abs(cluster1.getX() - cluster1.getZ() * nonBendingSlope);
-          double nonBendingImpactParamErr = TMath::Sqrt((z1 * z1 * cluster2.getEx2() + z2 * z2 * cluster1.getEx2()) / dZ / dZ + impactMCS2);
+          double nonBendingImpactParamErr = TMath::Sqrt((z1 * z1 * chamberResolutionX2() + z2 * z2 * chamberResolutionX2()) / dZ / dZ + impactMCS2);
           if ((nonBendingImpactParam - SSigmaCutForTracking * nonBendingImpactParamErr) > (3. * SNonBendingVertexDispersion)) {
             continue;
           }
@@ -637,7 +651,7 @@ std::list<Track>::iterator TrackFinder::findTrackCandidates(int plane1, int plan
           if (TrackExtrap::isFieldON()) { // depending whether the field is ON or OFF
             // check if bending momentum is within tolerances
             double bendingImpactParam = cluster1.getY() - cluster1.getZ() * bendingSlope;
-            double bendingImpactParamErr2 = (z1 * z1 * cluster2.getEy2() + z2 * z2 * cluster1.getEy2()) / dZ / dZ + impactMCS2;
+            double bendingImpactParamErr2 = (z1 * z1 * chamberResolutionY2() + z2 * z2 * chamberResolutionY2()) / dZ / dZ + impactMCS2;
             double bendingMomentum = TMath::Abs(TrackExtrap::getBendingMomentumFromImpactParam(bendingImpactParam));
             double bendingMomentumErr = TMath::Sqrt((bendingVertexDispersion2 + bendingImpactParamErr2) / bendingImpactParam / bendingImpactParam + 0.01) * bendingMomentum;
             if ((bendingMomentum + 3. * bendingMomentumErr) < SMinBendingMomentum) {
@@ -646,7 +660,7 @@ std::list<Track>::iterator TrackFinder::findTrackCandidates(int plane1, int plan
           } else {
             // or check if bending impact parameter is within tolerances
             double bendingImpactParam = TMath::Abs(cluster1.getY() - cluster1.getZ() * bendingSlope);
-            double bendingImpactParamErr = TMath::Sqrt((z1 * z1 * cluster2.getEy2() + z2 * z2 * cluster1.getEy2()) / dZ / dZ + impactMCS2);
+            double bendingImpactParamErr = TMath::Sqrt((z1 * z1 * chamberResolutionY2() + z2 * z2 * chamberResolutionY2()) / dZ / dZ + impactMCS2);
             if ((bendingImpactParam - SSigmaCutForTracking * bendingImpactParamErr) > (3. * SBendingVertexDispersion)) {
               continue;
             }
@@ -1223,6 +1237,22 @@ void TrackFinder::removeConnectedTracks(int stMin, int stMax)
 }
 
 //_________________________________________________________________________________________________
+void TrackFinder::refineTracks()
+{
+  /// Refit, smooth and finalize the reconstructed tracks
+
+  for (auto itTrack = mTracks.begin(); itTrack != mTracks.end();) {
+    try {
+      mTrackFitter.fit(*itTrack);
+      ++itTrack;
+    } catch (exception const&) {
+      print("refineTracks: removing candidate at position #", getTrackIndex(itTrack));
+      itTrack = mTracks.erase(itTrack);
+    }
+  }
+}
+
+//_________________________________________________________________________________________________
 void TrackFinder::finalize()
 {
   /// Copy the smoothed parameters and covariances into the regular ones
@@ -1489,8 +1519,8 @@ bool TrackFinder::tryOneClusterFast(const TrackParam& param, const Cluster& clus
   double dX = cluster.getX() - (param.getNonBendingCoor() + param.getNonBendingSlope() * dZ);
   double dY = cluster.getY() - (param.getBendingCoor() + param.getBendingSlope() * dZ);
   const TMatrixD& paramCov = param.getCovariances();
-  double errX2 = paramCov(0, 0) + dZ * dZ * paramCov(1, 1) + 2. * dZ * paramCov(0, 1) + cluster.getEx2();
-  double errY2 = paramCov(2, 2) + dZ * dZ * paramCov(3, 3) + 2. * dZ * paramCov(2, 3) + cluster.getEy2();
+  double errX2 = paramCov(0, 0) + dZ * dZ * paramCov(1, 1) + 2. * dZ * paramCov(0, 1) + chamberResolutionX2();
+  double errY2 = paramCov(2, 2) + dZ * dZ * paramCov(3, 3) + 2. * dZ * paramCov(2, 3) + chamberResolutionY2();
 
   double dXmax = SSigmaCutForTracking * TMath::Sqrt(2. * errX2) + SMaxNonBendingDistanceToTrack;
   double dYmax = SSigmaCutForTracking * TMath::Sqrt(2. * errY2) + SMaxBendingDistanceToTrack;
@@ -1524,8 +1554,8 @@ double TrackFinder::tryOneCluster(const TrackParam& param, const Cluster& cluste
 
   // Combine the cluster and track resolutions and covariances
   const TMatrixD& paramCov = paramAtCluster.getCovariances();
-  double sigmaX2 = paramCov(0, 0) + cluster.getEx2();
-  double sigmaY2 = paramCov(2, 2) + cluster.getEy2();
+  double sigmaX2 = paramCov(0, 0) + chamberResolutionX2();
+  double sigmaY2 = paramCov(2, 2) + chamberResolutionY2();
   double covXY = paramCov(0, 2);
   double det = sigmaX2 * sigmaY2 - covXY * covXY;
 
@@ -1635,6 +1665,7 @@ void TrackFinder::printTimers() const
   LOG(INFO) << "followTracks duration = " << mTimeFollowTracks.count() << " s";
   LOG(INFO) << "improveTracks duration = " << mTimeImproveTracks.count() << " s";
   LOG(INFO) << "removeConnectedTracks duration = " << mTimeCleanTracks.count() << " s";
+  LOG(INFO) << "refineTracks duration = " << mTimeRefineTracks.count() << " s";
 }
 
 } // namespace mch

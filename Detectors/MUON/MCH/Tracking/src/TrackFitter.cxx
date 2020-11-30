@@ -30,7 +30,7 @@ namespace mch
 
 using namespace std;
 
-constexpr float TrackFitter::SDefaultChamberZ[10];
+constexpr double TrackFitter::SDefaultChamberZ[10];
 constexpr double TrackFitter::SChamberThicknessInX0[10];
 
 //_________________________________________________________________________________________________
@@ -117,14 +117,26 @@ void TrackFitter::initTrack(const Cluster& cl1, const Cluster& cl2, TrackParam& 
   // compute the track parameter covariances at the last cluster (as if the other clusters did not exist)
   TMatrixD lastParamCov(5, 5);
   lastParamCov.Zero();
+  double cl1Ey2(0.);
+  if (mUseChamberResolution) {
+    // Non bending plane
+    lastParamCov(0, 0) = mChamberResolutionX2;
+    lastParamCov(1, 1) = (1000. * mChamberResolutionX2 + lastParamCov(0, 0)) / dZ / dZ;
+    // Bending plane
+    lastParamCov(2, 2) = mChamberResolutionY2;
+    cl1Ey2 = mChamberResolutionY2;
+  } else {
+    // Non bending plane
+    lastParamCov(0, 0) = cl2.getEx2();
+    lastParamCov(1, 1) = (1000. * cl1.getEx2() + lastParamCov(0, 0)) / dZ / dZ;
+    // Bending plane
+    lastParamCov(2, 2) = cl2.getEy2();
+    cl1Ey2 = cl1.getEy2();
+  }
   // Non bending plane
-  lastParamCov(0, 0) = cl2.getEx2();
   lastParamCov(0, 1) = -lastParamCov(0, 0) / dZ;
   lastParamCov(1, 0) = lastParamCov(0, 1);
-  lastParamCov(1, 1) = (1000. * cl1.getEx2() + lastParamCov(0, 0)) / dZ / dZ;
   // Bending plane
-  double cl1Ey2 = cl1.getEy2();
-  lastParamCov(2, 2) = cl2.getEy2();
   lastParamCov(2, 3) = -lastParamCov(2, 2) / dZ;
   lastParamCov(3, 2) = lastParamCov(2, 3);
   lastParamCov(3, 3) = (1000. * cl1Ey2 + lastParamCov(2, 2)) / dZ / dZ;
@@ -267,8 +279,13 @@ void TrackFitter::runKalmanFilter(TrackParam& trackParam)
   // compute the new cluster weight (U)
   TMatrixD clusterWeight(5, 5);
   clusterWeight.Zero();
-  clusterWeight(0, 0) = 1. / cluster->getEx2();
-  clusterWeight(2, 2) = 1. / cluster->getEy2();
+  if (mUseChamberResolution) {
+    clusterWeight(0, 0) = 1. / mChamberResolutionX2;
+    clusterWeight(2, 2) = 1. / mChamberResolutionY2;
+  } else {
+    clusterWeight(0, 0) = 1. / cluster->getEx2();
+    clusterWeight(2, 2) = 1. / cluster->getEy2();
+  }
 
   // compute the new parameters covariance matrix ((W+U)^-1)
   TMatrixD newParamCov(paramWeight, TMatrixD::kPlus, clusterWeight);
@@ -345,10 +362,15 @@ void TrackFitter::runSmoother(const TrackParam& previousParam, TrackParam& param
 
   // compute weight of smoothed residual: W(k n) = (clusterCov - C(k n))^-1
   TMatrixD smoothResidualWeight(2, 2);
-  smoothResidualWeight(0, 0) = cluster->getEx2() - smoothCovariances(0, 0);
+  if (mUseChamberResolution) {
+    smoothResidualWeight(0, 0) = mChamberResolutionX2 - smoothCovariances(0, 0);
+    smoothResidualWeight(1, 1) = mChamberResolutionY2 - smoothCovariances(2, 2);
+  } else {
+    smoothResidualWeight(0, 0) = cluster->getEx2() - smoothCovariances(0, 0);
+    smoothResidualWeight(1, 1) = cluster->getEy2() - smoothCovariances(2, 2);
+  }
   smoothResidualWeight(0, 1) = -smoothCovariances(0, 2);
   smoothResidualWeight(1, 0) = -smoothCovariances(2, 0);
-  smoothResidualWeight(1, 1) = cluster->getEy2() - smoothCovariances(2, 2);
   if (smoothResidualWeight.Determinant() != 0) {
     smoothResidualWeight.Invert();
   } else {
