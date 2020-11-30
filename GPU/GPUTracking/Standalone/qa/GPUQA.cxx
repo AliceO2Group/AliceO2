@@ -810,7 +810,7 @@ void GPUQA::RunQA(bool matchOnly, const std::vector<o2::tpc::TrackTPC>* tracksEx
         int maxcount;
         auto maxLabel = acc.computeLabel(&maxweight, &sumweight, &maxcount);
         mTrackMCLabels[i] = maxLabel;
-        if (QA_DEBUG && track.OK() && GetNMCTracks(maxLabel.getEventID()) > maxLabel.getTrackID()) {
+        if (QA_DEBUG && track.OK() && GetNMCTracks(maxLabel.getEventID()) > (unsigned int)maxLabel.getTrackID()) {
           const mcInfo_t& mc = GetMCTrack(maxLabel);
           GPUInfo("Track %d label %d (fake %d) weight %f clusters %d (fitted %d) (%f%% %f%%) Pt %f", i, maxLabel.getTrackID(), (int)(maxLabel.isFake()), maxweight, nClusters, track.NClustersFitted(), 100.f * maxweight / sumweight, 100.f * (float)maxcount / (float)nClusters,
                   std::sqrt(mc.pX * mc.pX + mc.pY * mc.pY));
@@ -1187,7 +1187,7 @@ void GPUQA::RunQA(bool matchOnly, const std::vector<o2::tpc::TrackTPC>* tracksEx
           continue;
         }
 
-        auto getdz = [this, &mclocal, &param, &mc1, &side]() {
+        auto getdz = [this, &param, &mc1, &side]() {
           if (!mTracking->GetParam().par.continuousMaxTimeBin) {
             return param.Z() - mc1.z;
           }

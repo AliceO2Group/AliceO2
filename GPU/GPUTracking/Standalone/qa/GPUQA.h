@@ -78,12 +78,12 @@ struct ClusterNativeAccess;
 } // namespace tpc
 } // namespace o2
 
-class AliHLTTPCClusterMCLabel;
+struct AliHLTTPCClusterMCLabel;
 
 namespace GPUCA_NAMESPACE::gpu
 {
 class GPUChainTracking;
-class GPUTPCMCInfo;
+struct GPUTPCMCInfo;
 struct GPUQAGarbageCollection;
 
 class GPUQA

@@ -1003,6 +1003,9 @@ void GPUReconstruction::SetInputControl(void* ptr, size_t size)
   mInputControl.set(ptr, size);
 }
 
+GPUReconstruction::GPUThreadContext::GPUThreadContext() = default;
+GPUReconstruction::GPUThreadContext::~GPUThreadContext() = default;
+
 std::unique_ptr<GPUReconstruction::GPUThreadContext> GPUReconstruction::GetThreadContext() { return std::unique_ptr<GPUReconstruction::GPUThreadContext>(new GPUThreadContext); }
 
 GPUReconstruction* GPUReconstruction::CreateInstance(DeviceType type, bool forceType, GPUReconstruction* master)

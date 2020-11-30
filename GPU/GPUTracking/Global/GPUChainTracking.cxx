@@ -1891,7 +1891,7 @@ int GPUChainTracking::RunTPCTrackingMerger(bool synchronizeOutput)
     for (unsigned int i = 0; i < NSLICES; i++) {
       GPUTPCTracker& trk = processors()->tpcTrackers[i];
       TransferMemoryResourcesToHost(RecoStep::NoRecoStep, &trk);
-      auto sorter = [&trk](GPUTPCTrack& trk1, GPUTPCTrack& trk2) {
+      auto sorter = [](GPUTPCTrack& trk1, GPUTPCTrack& trk2) {
         if (trk1.NHits() == trk2.NHits()) {
           return trk1.Param().Y() > trk2.Param().Y();
         }

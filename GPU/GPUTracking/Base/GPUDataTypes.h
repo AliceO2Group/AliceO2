@@ -27,7 +27,7 @@
 #ifdef GPUCA_NOCOMPAT
 #include "GPUTRDDef.h"
 
-class AliHLTTPCClusterMCLabel;
+struct AliHLTTPCClusterMCLabel;
 struct AliHLTTPCRawCluster;
 namespace o2
 {
@@ -97,7 +97,7 @@ class GPUTPCGMMergedTrack;
 struct GPUTPCGMMergedTrackHit;
 struct GPUTPCGMMergedTrackHitXYZ;
 class GPUTRDTrackletWord;
-class GPUTPCMCInfo;
+struct GPUTPCMCInfo;
 struct GPUTPCClusterData;
 struct GPUTRDTrackletLabels;
 struct GPUTPCDigitsMCInput;

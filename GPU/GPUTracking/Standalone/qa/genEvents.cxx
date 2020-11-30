@@ -91,7 +91,7 @@ double genEvents::GetGaus(double sigma)
   double x = 0;
   do {
     x = gRandom->Gaus(0., sigma);
-    if (fabsf(x) <= 3.5 * sigma) {
+    if (fabs(x) <= 3.5 * sigma) {
       break;
     }
   } while (1);

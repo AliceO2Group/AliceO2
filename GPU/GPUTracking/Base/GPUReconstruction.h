@@ -46,7 +46,7 @@ namespace GPUCA_NAMESPACE
 namespace gpu
 {
 class GPUChain;
-class GPUMemorySizeScalers;
+struct GPUMemorySizeScalers;
 struct GPUReconstructionPipelineContext;
 
 class GPUReconstruction
@@ -278,8 +278,8 @@ class GPUReconstruction
   class GPUThreadContext
   {
    public:
-    GPUThreadContext() = default;
-    virtual ~GPUThreadContext() = default;
+    GPUThreadContext();
+    virtual ~GPUThreadContext();
   };
   virtual std::unique_ptr<GPUThreadContext> GetThreadContext();
 

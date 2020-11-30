@@ -287,7 +287,6 @@ inline void SemiregularSpline2D3D::correctEdges(T* data) const
   }
 
   { // ==== high edge of V ====
-    const RegularSpline1D& gridU = getGridU(nv - 4);
     int nu = getGridU(nv - 1).getNumberOfKnots();
 
     for (int iu = 0; iu < nu; iu++) {

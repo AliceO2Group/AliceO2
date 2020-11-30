@@ -59,7 +59,7 @@ class GPUTRDGeometry;
 class TPCFastTransform;
 class TPCdEdxCalibrationSplines;
 class GPUTrackingInputProvider;
-class GPUChainTrackingFinalContext;
+struct GPUChainTrackingFinalContext;
 struct GPUTPCCFChainContext;
 
 class GPUChainTracking : public GPUChain, GPUReconstructionHelpers::helperDelegateBase

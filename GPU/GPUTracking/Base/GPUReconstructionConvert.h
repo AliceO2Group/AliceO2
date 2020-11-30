@@ -32,14 +32,14 @@ class RawFileWriter;
 } // namespace raw
 } // namespace o2
 
-class AliHLTTPCRawCluster;
+struct AliHLTTPCRawCluster;
 
 namespace GPUCA_NAMESPACE
 {
 namespace gpu
 {
-class GPUParam;
-class GPUTPCClusterData;
+struct GPUParam;
+struct GPUTPCClusterData;
 class TPCFastTransform;
 struct GPUTrackingInOutDigits;
 struct GPUTrackingInOutZS;
