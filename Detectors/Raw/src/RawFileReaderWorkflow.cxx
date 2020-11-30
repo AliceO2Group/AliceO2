@@ -89,8 +89,6 @@ class RawReaderSpecs : public o2f::Task
     auto findOutputChannel = [&ctx, this](RawFileReader::LinkData& link, size_t timeslice) {
       if (!this->mRawChannelName.empty()) {
         link.fairMQChannel = this->mRawChannelName;
-        LOG(INFO) << "Found output channel for %s/%s/0x%x", link.origin.as<std::string>(),
-          link.description.as<std::string>(), link.subspec;
         return true;
       }
       auto outputRoutes = ctx.services().get<o2f::RawDeviceService>().spec().outputs;
@@ -99,15 +97,11 @@ class RawReaderSpecs : public o2f::Task
         if (o2f::DataSpecUtils::match(oroute.matcher, link.origin, link.description, link.subspec) && ((timeslice % oroute.maxTimeslices) == oroute.timeslice)) {
           link.fairMQChannel = oroute.channel;
           LOG(DEBUG) << "picking the route:" << o2f::DataSpecUtils::describe(oroute.matcher) << " channel " << oroute.channel;
-          LOG(INFO) << "picking the route:" << o2f::DataSpecUtils::describe(oroute.matcher) << " channel " << oroute.channel;
-          LOG(INFO) << "picking channel for " << link.origin.as<std::string>() << "/" << link.description.as<std::string>() << "/" << link.subspec;
           return true;
         }
       }
-      //      LOGF(ERROR, "Failed to find output channel for %s/%s/0x%x", link.origin.as<std::string>(),
-      //           link.description.as<std::string>(), link.subspec);
-      LOG(INFO) << "Failed to find output channel for %s/%s/0x%x", link.origin.as<std::string>(),
-        link.description.as<std::string>(), link.subspec;
+      LOGF(ERROR, "Failed to find output channel for %s/%s/0x%x", link.origin.as<std::string>(),
+           link.description.as<std::string>(), link.subspec);
       return false;
     };
 
@@ -179,8 +173,8 @@ class RawReaderSpecs : public o2f::Task
         if (hdrTmpl.splitPayloadIndex == 0) {
           auto ir = o2::raw::RDHUtils::getHeartBeatIR(plMessage->GetData());
           auto tfid = hbfU.getTF(ir);
-          hdrTmpl.firstTForbit = hbfU.getIRTF(tfid).orbit; // will be picked for the
-          hdrTmpl.tfCounter = mTFCounter;                  // following parts
+          hdrTmpl.firstTForbit = hbfU.getIRTF(tfid).orbit;                                           // will be picked for the
+          hdrTmpl.tfCounter = mTFCounter;                                                            // following parts
           // reinterpret_cast<o2::header::DataHeader*>(hdMessage->GetData())->firstTForbit = hdrTmpl.firstTForbit;     // hack to fix already filled headers
           // reinterpret_cast<o2::header::DataHeader*>(hdMessage->GetData())->tfCounter = mTFCounter;   // at the moment don't use it
         }
@@ -200,7 +194,6 @@ class RawReaderSpecs : public o2f::Task
       }
       LOGF(DEBUG, "Added %d parts for TF#%d(%d in iteration %d) of %s/%s/0x%u", hdrTmpl.splitPayloadParts, mTFCounter, tfID,
            mLoopsDone, link.origin.as<std::string>(), link.description.as<std::string>(), link.subspec);
-      LOG(INFO) << "Added " << hdrTmpl.splitPayloadParts << " parts for TF#" << mTFCounter << "(" << tfID << " in iteration " << mLoopsDone << ") of " << link.origin.as<std::string>() << "/" << link.description.as<std::string>() << "/" << link.subspec;
     }
 
     if (mTFCounter) { // delay sending
@@ -231,11 +224,11 @@ class RawReaderSpecs : public o2f::Task
   }
 
  private:
-  int mLoop = 0;                  // once last TF reached, loop while mLoop>=0
-  uint32_t mTFCounter = 0;        // TFId accumulator (accounts for looping)
-  uint32_t mDelayUSec = 0;        // Delay in microseconds between TFs
-  uint32_t mMinTFID = 0;          // 1st TF to extract
-  uint32_t mMaxTFID = 0xffffffff; // last TF to extrct
+  int mLoop = 0;                                   // once last TF reached, loop while mLoop>=0
+  uint32_t mTFCounter = 0;                         // TFId accumulator (accounts for looping)
+  uint32_t mDelayUSec = 0;                         // Delay in microseconds between TFs
+  uint32_t mMinTFID = 0;                           // 1st TF to extract
+  uint32_t mMaxTFID = 0xffffffff;                  // last TF to extrct
   size_t mLoopsDone = 0;
   size_t mSentSize = 0;
   size_t mSentMessages = 0;
