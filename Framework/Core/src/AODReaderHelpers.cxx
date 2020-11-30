@@ -283,6 +283,7 @@ AlgorithmSpec AODReaderHelpers::rootFileReaderCallback()
             throw std::runtime_error("Processing is stopped!");
           }
         }
+        tr->SetCacheSize(0);
         if (first) {
           timeFrameNumber = didir->getTimeFrameNumber(dh, fcnt, ntf);
           auto o = Output(TFNumberHeader);
