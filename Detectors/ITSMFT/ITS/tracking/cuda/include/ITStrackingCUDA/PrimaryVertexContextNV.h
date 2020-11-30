@@ -38,8 +38,8 @@ class PrimaryVertexContextNV final : public PrimaryVertexContext
   PrimaryVertexContextNV() = default;
   virtual ~PrimaryVertexContextNV() = default;
 
-  void initialise(const MemoryParameters& memParam, const std::array<std::vector<Cluster>, constants::its2::LayersNumber>& cl,
-                  const std::array<float, 3>& pv, const int iteration);
+  void initialise(const MemoryParameters& memParam, const TrackingParameters& trkParam,
+                  const std::vector<std::vector<Cluster>>& cl, const std::array<float, 3>& pv, const int iteration) override;
 
   GPU::DeviceStoreNV& getDeviceContext();
   GPU::Array<GPU::Vector<Cluster>, constants::its2::LayersNumber>& getDeviceClusters();
@@ -124,8 +124,8 @@ inline void PrimaryVertexContextNV::updateDeviceContext()
   mGPUContextDevicePointer = GPU::UniquePointer<GPU::DeviceStoreNV>{mGPUContext};
 }
 
-inline void PrimaryVertexContextNV::initialise(const MemoryParameters& memParam, const std::array<std::vector<Cluster>, constants::its2::LayersNumber>& cl,
-                                               const std::array<float, 3>& pv, const int iteration)
+inline void PrimaryVertexContextNV::initialise(const MemoryParameters& memParam, const TrackingParameters& trkParam,
+                                               const std::vector<std::vector<Cluster>>& cl, const std::array<float, 3>& pv, const int iteration)
 {
   ///TODO: to be re-enabled in the future
   // this->PrimaryVertexContext::initialise(memParam, cl, pv, iteration);

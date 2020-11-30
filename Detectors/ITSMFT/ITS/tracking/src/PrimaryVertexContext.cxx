@@ -105,7 +105,7 @@ void PrimaryVertexContext::initialise(const MemoryParameters& memParam, const Tr
         for (unsigned int iB{0}; iB < clsPerBin.size(); ++iB) {
           mIndexTables[iLayer - 1][iB] = lutPerBin[iB];
         }
-        for (auto iB{clsPerBin.size()}; iB < (int)mIndexTables[iLayer - 1].size(); iB++) {
+        for (auto iB{clsPerBin.size()}; iB < mIndexTables[iLayer - 1].size(); iB++) {
           mIndexTables[iLayer - 1][iB] = clustersNum;
         }
       }
