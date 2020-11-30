@@ -163,9 +163,9 @@ class SpaceCharge
   double getVoxelSizePhi() const { return mVoxelSizePhi; }
   double getVoxelSizeR() const { return mVoxelSizeR; }
   double getVoxelSizeZ() const { return mVoxelSizeZ; }
-  std::vector<double> getCoordinatesPhi() const { return mCoordPhi; }
-  std::vector<double> getCoordinatesR() const { return mCoordR; }
-  std::vector<double> getCoordinatesZ() const { return mCoordZ; }
+  std::vector<double> const& getCoordinatesPhi() const { return mCoordPhi; }
+  std::vector<double> const& getCoordinatesR() const { return mCoordR; }
+  std::vector<double> const& getCoordinatesZ() const { return mCoordZ; }
 
   void setUseIrregularLUTs(int useIrrLUTs);
   void setUseFastDistIntegration(int useFastInt);
