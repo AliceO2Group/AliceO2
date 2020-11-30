@@ -30,7 +30,6 @@
 #include "GPUMemoryResource.h"
 #include "GPUConstantMem.h"
 #include "GPUTPCSliceOutput.h"
-#include "GPUDataTypes.h"
 #include "GPULogging.h"
 
 namespace o2
