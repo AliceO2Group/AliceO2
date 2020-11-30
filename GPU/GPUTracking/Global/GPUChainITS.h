@@ -17,10 +17,10 @@
 #include "GPUChain.h"
 namespace o2::its
 {
-class Cluster;
+struct Cluster;
 class Road;
 class Cell;
-class TrackingFrameInfo;
+struct TrackingFrameInfo;
 class TrackITSExt;
 } // namespace o2::its
 

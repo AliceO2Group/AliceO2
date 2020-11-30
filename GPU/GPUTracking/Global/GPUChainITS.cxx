@@ -85,7 +85,7 @@ int GPUChainITS::RunITSTrackFit(std::vector<o2::its::Road>& roads, std::vector<c
 
   Fitter.clearMemory();
   Fitter.SetNumberOfRoads(roads.size());
-  for (int i = 0; i < clusters.size(); i++) {
+  for (unsigned int i = 0; i < clusters.size(); i++) {
     Fitter.SetNumberTF(i, tf[i].size());
   }
   Fitter.SetMaxData(processors()->ioPtrs);
@@ -93,7 +93,7 @@ int GPUChainITS::RunITSTrackFit(std::vector<o2::its::Road>& roads, std::vector<c
   std::copy(cells.begin(), cells.end(), Fitter.cells());
   SetupGPUProcessor(&Fitter, true);
   std::copy(roads.begin(), roads.end(), Fitter.roads());
-  for (int i = 0; i < clusters.size(); i++) {
+  for (unsigned int i = 0; i < clusters.size(); i++) {
     std::copy(tf[i].begin(), tf[i].end(), Fitter.trackingFrame()[i]);
   }
 
