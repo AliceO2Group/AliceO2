@@ -13,7 +13,7 @@
 
 #include <array>
 #include "BareElinkDecoder.h"
-#include "MCHRawDecoder/SampaChannelHandler.h"
+#include "MCHRawDecoder/DecodedDataHandlers.h"
 #include <gsl/span>
 #include <fmt/printf.h>
 #include <fmt/format.h>
@@ -40,8 +40,9 @@ class BareGBTDecoder : public PayloadDecoder<BareGBTDecoder<CHARGESUM>>
  public:
   /// Constructor.
   /// \param solarId
-  /// \param sampaChannelHandler the callable that will handle each SampaCluster
-  BareGBTDecoder(uint16_t solarId, SampaChannelHandler sampaChannelHandler);
+  /// \param decodedDataHandlers a structure with various callable that
+  /// handle the Sampa packets and decoding errors
+  BareGBTDecoder(uint16_t solarId, DecodedDataHandlers decodedDataHandlers);
 
   /** @name Main interface 
     */
@@ -81,10 +82,10 @@ using namespace boost::multiprecision;
 
 template <typename CHARGESUM>
 BareGBTDecoder<CHARGESUM>::BareGBTDecoder(uint16_t solarId,
-                                          SampaChannelHandler sampaChannelHandler)
-  : PayloadDecoder<BareGBTDecoder<CHARGESUM>>(sampaChannelHandler),
+                                          DecodedDataHandlers decodedDataHandlers)
+  : PayloadDecoder<BareGBTDecoder<CHARGESUM>>(decodedDataHandlers),
     mSolarId{solarId},
-    mElinks{impl::makeArray<40>([=](uint8_t i) { return BareElinkDecoder<CHARGESUM>(DsElecId{solarId, static_cast<uint8_t>(i / 5), static_cast<uint8_t>(i % 5)}, sampaChannelHandler); })},
+    mElinks{impl::makeArray<40>([=](uint8_t i) { return BareElinkDecoder<CHARGESUM>(DsElecId{solarId, static_cast<uint8_t>(i / 5), static_cast<uint8_t>(i % 5)}, decodedDataHandlers); })},
     mNofGbtWordsSeens{0}
 {
 }

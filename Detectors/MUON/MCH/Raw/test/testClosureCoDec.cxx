@@ -134,7 +134,9 @@ bool testDecode(gsl::span<const std::byte> testBuffer, gsl::span<std::string> ex
 {
   std::vector<std::string> result;
 
-  auto pageDecoder = createPageDecoder(testBuffer, handlePacketStoreAsVec(result));
+  DecodedDataHandlers handlers;
+  handlers.sampaChannelHandler = handlePacketStoreAsVec(result);
+  auto pageDecoder = createPageDecoder(testBuffer, handlers);
 
   auto parser = createPageParser();
 

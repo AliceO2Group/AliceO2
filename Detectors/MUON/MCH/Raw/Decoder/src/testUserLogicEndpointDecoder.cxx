@@ -22,7 +22,7 @@
 #include "MCHRawCommon/DataFormats.h"
 #include "MCHRawCommon/SampaHeader.h"
 #include "MCHRawDecoder/PageDecoder.h"
-#include "MCHRawDecoder/SampaChannelHandler.h"
+#include "MCHRawDecoder/DecodedDataHandlers.h"
 #include "MCHRawEncoderPayload/DataBlock.h"
 #include "MCHRawEncoderPayload/PayloadEncoder.h"
 #include "MoveBuffer.h"
@@ -33,7 +33,74 @@
 #include <iostream>
 
 using namespace o2::mch::raw;
-using o2::header::RAWDataHeaderV4;
+
+const uint64_t CruPageOK[] = {
+  0x00000A0000124006ul,
+  0x000C4C0F00A000A0ul,
+  0x010E853D00000570ul,
+  0x0000000000000000ul,
+  0x0000000000006000ul,
+  0x0000000000000000ul,
+  0x0000000000000000ul,
+  0x0000000000000000ul,
+  ((0x0200ul << 50) & 0xFFFC000000000000ul) + 0x1555540F00113ul,
+  ((0x0200ul << 50) & 0xFFFC000000000000ul) + 0x3F04ECA103E5Cul,
+  ((0x0200ul << 50) & 0xFFFC000000000000ul) + 0x0000040215C0Dul,
+  ((0x0200ul << 50) & 0xFFFC000000000000ul) + 0x00000C0301004ul,
+  ((0x0204ul << 50) & 0xFFFC000000000000ul) + 0x0000000000400ul,
+  ((0x0200ul << 50) & 0xFFFC000000000000ul) + 0x1555540F00113ul,
+  ((0x0200ul << 50) & 0xFFFC000000000000ul) + 0x1F080CA100E4Dul,
+  ((0x0204ul << 50) & 0xFFFC000000000000ul) + 0x00044C0100001ul,
+  ((0x3FBBul << 50) & 0xFFFC000000000000ul) + 0x1DEEDFEEDDEEDul,
+  ((0x3FBBul << 50) & 0xFFFC000000000000ul) + 0x1DEEDFEEDDEEDul,
+  ((0x3FBBul << 50) & 0xFFFC000000000000ul) + 0x1DEEDFEEDDEEDul,
+  ((0x3FBBul << 50) & 0xFFFC000000000000ul) + 0x1DEEDFEEDDEEDul};
+
+const uint64_t CruPageBadClusterSize[] = {
+  0x00000A0000124006ul,
+  0x000C4C0F00A000A0ul,
+  0x010E853D00000570ul,
+  0x0000000000000000ul,
+  0x0000000000006000ul,
+  0x0000000000000000ul,
+  0x0000000000000000ul,
+  0x0000000000000000ul,
+  ((0x0200ul << 50) & 0xFFFC000000000000ul) + 0x1555540F00113ul,
+  ((0x0200ul << 50) & 0xFFFC000000000000ul) + 0x3F04ECA103E5Cul,
+  ((0x0200ul << 50) & 0xFFFC000000000000ul) + 0x0000040215C0Eul, // <== the cluster size is increased from 13 (0xD) to 14 (0xE)
+  ((0x0200ul << 50) & 0xFFFC000000000000ul) + 0x00000C0301004ul, // now the cluster size does not match anymore with the
+  ((0x0204ul << 50) & 0xFFFC000000000000ul) + 0x0000000000400ul, // number of 10-bit words in the SAMPA header, which will trigger
+  ((0x0200ul << 50) & 0xFFFC000000000000ul) + 0x1555540F00113ul, // a ErrorBadClusterSize error.
+  ((0x0200ul << 50) & 0xFFFC000000000000ul) + 0x1F080CA100E4Dul,
+  ((0x0204ul << 50) & 0xFFFC000000000000ul) + 0x00044C0100001ul,
+  ((0x3FBBul << 50) & 0xFFFC000000000000ul) + 0x1DEEDFEEDDEEDul,
+  ((0x3FBBul << 50) & 0xFFFC000000000000ul) + 0x1DEEDFEEDDEEDul,
+  ((0x3FBBul << 50) & 0xFFFC000000000000ul) + 0x1DEEDFEEDDEEDul,
+  ((0x3FBBul << 50) & 0xFFFC000000000000ul) + 0x1DEEDFEEDDEEDul};
+
+const uint64_t CruPageBadN10bitWords[] = {
+  0x00000A0000124006ul,
+  0x000C4C0F00A000A0ul,
+  0x010E853D00000570ul,
+  0x0000000000000000ul,
+  0x0000000000006000ul,
+  0x0000000000000000ul,
+  0x0000000000000000ul,
+  0x0000000000000000ul,
+  ((0x0200ul << 50) & 0xFFFC000000000000ul) + 0x1555540F00113ul,
+  ((0x0200ul << 50) & 0xFFFC000000000000ul) + 0x3F04ECA103E5Cul,
+  ((0x0200ul << 50) & 0xFFFC000000000000ul) + 0x0000040215C08ul, // <== the cluster size is decreased from 13 (0xD) to 8 (0x8)
+  //((0x0200ul<<50)&0xFFFC000000000000ul) + 0x00000C0301004ul, // and one 50-bit word is removed. In this case the cluster
+  ((0x0204ul << 50) & 0xFFFC000000000000ul) + 0x0000000000400ul, // size matches the number of samples in the data, but the
+  ((0x0200ul << 50) & 0xFFFC000000000000ul) + 0x1555540F00113ul, // end of the SAMPA packet arrives too early with respect to
+  ((0x0200ul << 50) & 0xFFFC000000000000ul) + 0x1F080CA100E4Dul, // the number of 10-bit words in the SAMPA header. This will
+  ((0x0204ul << 50) & 0xFFFC000000000000ul) + 0x00044C0100001ul, // trigger a ErrorBadIncompleteWord error.
+  ((0x3FBBul << 50) & 0xFFFC000000000000ul) + 0x1DEEDFEEDDEEDul,
+  ((0x3FBBul << 50) & 0xFFFC000000000000ul) + 0x1DEEDFEEDDEEDul,
+  ((0x3FBBul << 50) & 0xFFFC000000000000ul) + 0x1DEEDFEEDDEEDul,
+  ((0x3FBBul << 50) & 0xFFFC000000000000ul) + 0x1DEEDFEEDDEEDul, // <== a word is added at the end in order to match the
+  ((0x3FBBul << 50) & 0xFFFC000000000000ul) + 0x1DEEDFEEDDEEDul  // payload size in the RDH
+};
 
 SampaChannelHandler handlePacket(std::string& result)
 {
@@ -46,6 +113,14 @@ SampaChannelHandler handlePacket(std::string& result)
         result += fmt::format("-{}", s);
       }
     }
+    result += "\n";
+  };
+}
+
+SampaErrorHandler handleError(std::string& result)
+{
+  return [&result](DsElecId dsId, int8_t chip, uint32_t error) {
+    result += fmt::format("{}-chip-{}-error-{}", asString(dsId), chip, error);
     result += "\n";
   };
 }
@@ -89,7 +164,10 @@ std::string decodeBuffer(int feeId, gsl::span<const std::byte> buffer)
 {
   std::string results;
   auto fee2solar = createFeeLink2SolarMapper<ElectronicMapperGenerated>();
-  UserLogicEndpointDecoder<CHARGESUM> dec(feeId, fee2solar, handlePacket(results));
+  DecodedDataHandlers handlers;
+  handlers.sampaChannelHandler = handlePacket(results);
+  handlers.sampaErrorHandler = handleError(results);
+  UserLogicEndpointDecoder<CHARGESUM> dec(feeId, fee2solar, handlers);
   dec.append(buffer);
   return results;
 }
@@ -137,6 +215,27 @@ std::string testPayloadDecode(DsElecId ds1,
   auto payloadBuffer = convertBuffer2PayloadBuffer(buffer, insertSync);
 
   return decodeBuffer<CHARGESUM>(feeId, payloadBuffer);
+}
+
+std::string testPayloadDecodeCruPages(gsl::span<const uint64_t> page)
+{
+  auto solar2feelink = createSolar2FeeLinkMapper<ElectronicMapperGenerated>();
+
+  const void* rdhP = reinterpret_cast<const void*>(page.data());
+  uint16_t feeId = o2::raw::RDHUtils::getFEEID(rdhP);
+  auto rdhSize = o2::raw::RDHUtils::getHeaderSize(rdhP);
+  auto payloadSize = o2::raw::RDHUtils::getMemorySize(rdhP) - rdhSize;
+
+  gsl::span<const std::byte> buffer(reinterpret_cast<const std::byte*>(page.data()), page.size() * 8);
+  gsl::span<const std::byte> payloadBuffer = buffer.subspan(rdhSize, payloadSize);
+
+  const uint16_t CRUID_MASK = 0xFF;
+  const uint16_t CHARGESUM_MASK = 0x100;
+  if (feeId & CHARGESUM_MASK) {
+    return decodeBuffer<ChargeSumMode>(feeId & CRUID_MASK, payloadBuffer);
+  } else {
+    return decodeBuffer<SampleMode>(feeId & CRUID_MASK, payloadBuffer);
+  }
 }
 
 BOOST_AUTO_TEST_SUITE(o2_mch_raw)
@@ -225,6 +324,32 @@ BOOST_AUTO_TEST_CASE(SyncInTheMiddleChargeSumModeTwoChannels)
   BOOST_CHECK_EQUAL(r,
                     "S361-J6-DS2-ch-63-ts-345-q-123456-cs-789\n"
                     "S361-J6-DS2-ch-63-ts-346-q-789012-cs-345\n");
+}
+
+BOOST_AUTO_TEST_CASE(TestCruPageOK)
+{
+  gsl::span<const uint64_t> page = CruPageOK;
+  std::string r = testPayloadDecodeCruPages(page);
+  BOOST_CHECK_EQUAL(r,
+                    "S81-J0-DS0-ch-42-ts-87-q-2-1-0-4-4-3-3-0-0-1-0-0-0\n"
+                    "S81-J0-DS0-ch-42-ts-0-q-1\n");
+}
+
+BOOST_AUTO_TEST_CASE(TestCruPageBadClusterSize)
+{
+  gsl::span<const uint64_t> page = CruPageBadClusterSize;
+  std::string r = testPayloadDecodeCruPages(page);
+  BOOST_CHECK_EQUAL(r,
+                    fmt::format("S81-J0-DS0-chip-1-error-{}\nS81-J0-DS0-ch-42-ts-0-q-1\n", ErrorBadClusterSize));
+}
+
+BOOST_AUTO_TEST_CASE(TestCruPageBadN10bitWords)
+{
+  gsl::span<const uint64_t> page = CruPageBadN10bitWords;
+  std::string r = testPayloadDecodeCruPages(page);
+  BOOST_CHECK_EQUAL(r,
+                    fmt::format("S81-J0-DS0-ch-42-ts-87-q-2-1-0-0-1-0-0-0\nS81-J0-DS0-chip-1-error-{}\nS81-J0-DS0-ch-42-ts-0-q-1\n",
+                                ErrorBadIncompleteWord));
 }
 
 BOOST_AUTO_TEST_SUITE_END()

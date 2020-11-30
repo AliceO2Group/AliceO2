@@ -14,7 +14,7 @@
 #include <functional>
 #include <gsl/span>
 #include <map>
-#include "MCHRawDecoder/SampaChannelHandler.h"
+#include "MCHRawDecoder/DecodedDataHandlers.h"
 #include "MCHRawElecMap/Mapper.h"
 
 namespace o2::mch::raw
@@ -32,11 +32,11 @@ using RawBuffer = gsl::span<const std::byte>;
 //
 // @param rdhBuffer a raw memory buffer containing (at least) one RDH
 // which information is used to decide which PageDecoder implementation to choose
-// @param channelHandler (optional) a callable object that will be called for each
-// decoded SampaCluster
+// @param decodedDataHandlers a structure with various callable objects (optional) that
+/// will be called for each decoded Sampa packet and in case of decoding errors
 //
 PageDecoder createPageDecoder(RawBuffer rdhBuffer,
-                              SampaChannelHandler channelHandler);
+                              DecodedDataHandlers decodedDataHandlers);
 
 // Same as above but only to be used for special cases, e.g. when
 // trying to decode test beam data with an electronic mapping that
@@ -46,8 +46,16 @@ PageDecoder createPageDecoder(RawBuffer rdhBuffer,
 // object into a solarId.
 //
 PageDecoder createPageDecoder(RawBuffer rdhBuffer,
-                              SampaChannelHandler channelHandler,
+                              DecodedDataHandlers decodedDataHandlers,
                               FeeLink2SolarMapper fee2solar);
+
+// Alternative versions of the same functions, taking a SampaChannelHandler as parameter.
+[[deprecated("Use createPageDecoder(RawBuffer,DecodedDataHandlers) instead.")]] PageDecoder createPageDecoder(RawBuffer rdhBuffer,
+                                                                                                              SampaChannelHandler channelHandler);
+
+[[deprecated("Use createPageDecoder(RawBuffer,DecodedDataHandlers,fee2solar) instead.")]] PageDecoder createPageDecoder(RawBuffer rdhBuffer,
+                                                                                                                        SampaChannelHandler channelHandler,
+                                                                                                                        FeeLink2SolarMapper fee2solar);
 
 // A PageParser loops over the given buffer and apply the given page decoder
 // to each page.
