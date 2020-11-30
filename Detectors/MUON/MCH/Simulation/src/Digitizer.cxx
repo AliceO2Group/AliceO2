@@ -187,7 +187,7 @@ int Digitizer::processHit(const Hit& hit, int detID, int event_time)
 void Digitizer::generateNoiseDigits()
 {
 
-  o2::mch::mapping::forEachDetectionElement([&digits = this->mDigits, &normProbNoise = this->mNormProbNoise,
+  o2::mch::mapping::forEachDetectionElement([& digits = this->mDigits, &normProbNoise = this->mNormProbNoise,
                                              &eventTime = this->mEventTime, &eventID = this->mEventID,
                                              &srcID = this->mSrcID, &mcTruthOutputContainer = this->mMCTruthOutputContainer](int detID) {
     auto& seg = segmentation(detID);
@@ -213,7 +213,7 @@ void Digitizer::mergeDigits()
 {
   std::vector<int> indices(mDigits.size());
   std::iota(begin(indices), end(indices), 0);
-  std::sort(indices.begin(), indices.end(), [&digits = this->mDigits, this](int a, int b) {
+  std::sort(indices.begin(), indices.end(), [& digits = this->mDigits, this](int a, int b) {
     return (getGlobalDigit(digits[a].getDetID(), digits[a].getPadID()) < getGlobalDigit(digits[b].getDetID(), digits[b].getPadID()));
   });
 
