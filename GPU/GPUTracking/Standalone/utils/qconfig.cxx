@@ -452,16 +452,9 @@ template <typename T>
 inline void qAddOptionMessage(qConfigSettings<T>& settings, T& ref)
 {
   if (settings.message) {
-    printf(settings.message, ref);
-    printf("\n");
-  }
-}
-template <>
-inline void qAddOptionMessage<bool>(qConfigSettings<bool>& settings, bool& ref)
-{
-  if (settings.message) {
-    printf(settings.message, ref ? "ON" : "OFF");
-    printf("\n");
+    std::string tmp = print_type(ref);
+    std::string msg = std::string(settings.message) + "\n";
+    printf(msg.c_str(), tmp.c_str());
   }
 }
 
