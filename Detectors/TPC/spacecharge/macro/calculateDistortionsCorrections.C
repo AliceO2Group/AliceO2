@@ -9,7 +9,7 @@ template <typename DataT, size_t Nz, size_t Nr, size_t Nphi>
 void calculateDistortionsAnalytical(const int globalEFieldTypeAna = 1, const int globalDistTypeAna = 1, const int eFieldTypeAna = 1, const int usePoissonSolverAna = 1, const int nSteps = 1, const int simpsonIterations = 3, const int nThreads = -1);
 
 template <typename DataT, size_t Nz, size_t Nr, size_t Nphi>
-void calculateDistortionsFromHist(const char* path, const char* histoName, const int globalEFieldType = 1, const int globalDistType = 1, const int nSteps = 1, const int simpsonIterations = 3, const int nThreads = -1);
+void calculateDistortionsFromHist(const char* path, const char* histoName, const int sides, const int globalEFieldType = 1, const int globalDistType = 1, const int nSteps = 1, const int simpsonIterations = 3, const int nThreads = -1);
 
 /// \param gridType granularity of the grid
 /// \param globalEFieldTypeAna setting for global distortions/corrections:                          0: using electric field, 1: using local dis/corr interpolator
@@ -29,27 +29,34 @@ void calcDistAna(const int gridType = 0, const int globalEFieldTypeAna = 1, cons
     calculateDistortionsAnalytical<double, 33, 33, 180>(globalEFieldTypeAna, globalDistTypeAna, eFieldTypeAna, usePoissonSolverAna, nSteps, simpsonIterations, nThreads);
   } else if (gridType == 3) {
     calculateDistortionsAnalytical<double, 17, 17, 90>(globalEFieldTypeAna, globalDistTypeAna, eFieldTypeAna, usePoissonSolverAna, nSteps, simpsonIterations, nThreads);
+  } else if (gridType == 4) {
+    calculateDistortionsAnalytical<double, 257, 257, 180>(globalEFieldTypeAna, globalDistTypeAna, eFieldTypeAna, usePoissonSolverAna, nSteps, simpsonIterations, nThreads);
   }
 }
 
 /// \param path path to the root file containing the 3D density histogram
 /// \param histoName name of the histogram in the root file
 /// \param gridType granularity of the grid
+/// \param sides setting which sides will be processed: 0: A- and C-Side, 1: A-Side, 2: C-Side
 /// \param globalEFieldType setting for  global distortions/corrections:   0: using electric field, 1: using local dis/corr interpolator
 /// \param globalDistType setting for global distortions:                  0: standard method,      1: interpolation of global corrections
 /// \param nSteps number of which are used for calculation of distortions/corrections per z-bin
 /// \param simpsonIterations number of iterations used in the simpson intergration
 /// \param nThreads number of threads which are used (if the value is -1 all threads should be used)
-void calcDistFromHist(const char* path, const char* histoName, const int gridType = 0, const int globalEFieldType = 1, const int globalDistType = 1, const int nSteps = 1, const int simpsonIterations = 3, const int nThreads = -1)
+void calcDistFromHist(const char* path, const char* histoName, const int gridType = 0, const int sides = 0, const int globalEFieldType = 1, const int globalDistType = 1, const int nSteps = 1, const int simpsonIterations = 3, const int nThreads = -1)
 {
   if (gridType == 0) {
-    calculateDistortionsFromHist<double, 129, 129, 180>(path, histoName, globalEFieldType, globalDistType, nSteps, simpsonIterations, nThreads);
+    calculateDistortionsFromHist<double, 129, 129, 180>(path, histoName, sides, globalEFieldType, globalDistType, nSteps, simpsonIterations, nThreads);
   } else if (gridType == 1) {
-    calculateDistortionsFromHist<double, 65, 65, 180>(path, histoName, globalEFieldType, globalDistType, nSteps, simpsonIterations, nThreads);
+    calculateDistortionsFromHist<double, 65, 65, 180>(path, histoName, sides, globalEFieldType, globalDistType, nSteps, simpsonIterations, nThreads);
   } else if (gridType == 2) {
-    calculateDistortionsFromHist<double, 33, 33, 180>(path, histoName, globalEFieldType, globalDistType, nSteps, simpsonIterations, nThreads);
+    calculateDistortionsFromHist<double, 33, 33, 180>(path, histoName, sides, globalEFieldType, globalDistType, nSteps, simpsonIterations, nThreads);
   } else if (gridType == 3) {
-    calculateDistortionsFromHist<double, 17, 17, 90>(path, histoName, globalEFieldType, globalDistType, nSteps, simpsonIterations, nThreads);
+    calculateDistortionsFromHist<double, 17, 17, 90>(path, histoName, sides, globalEFieldType, globalDistType, nSteps, simpsonIterations, nThreads);
+  } else if (gridType == 4) {
+    calculateDistortionsFromHist<double, 257, 257, 180>(path, histoName, sides, globalEFieldType, globalDistType, nSteps, simpsonIterations, nThreads);
+  } else if (gridType == 5) {
+    calculateDistortionsFromHist<double, 257, 257, 360>(path, histoName, sides, globalEFieldType, globalDistType, nSteps, simpsonIterations, nThreads);
   }
 }
 
@@ -295,12 +302,13 @@ void calculateDistortionsAnalytical(const int globalEFieldTypeAna, const int glo
 
 /// \param path path to the root file containing the 3D density histogram
 /// \param histoName name of the histogram in the root file
+/// \param sides setting which sides will be processed: 0: A- and C-Side, 1: A-Side, 2: C-Side
 /// \param globalEFieldType setting for  global distortions/corrections: 0: using electric field, 1: using local dis/corr interpolator
 /// \param globalDistType setting for global distortions: 0: standard method,      1: interpolation of global corrections
 /// \param nSteps number of which are used for calculation of distortions/corrections per z-bin
 /// \param simpsonIterations number of iterations used in the simpson intergration
 template <typename DataT = double, size_t Nz = 17, size_t Nr = 17, size_t Nphi = 90>
-void calculateDistortionsFromHist(const char* path, const char* histoName, const int globalEFieldType, const int globalDistType, const int nSteps, const int simpsonIterations, const int nThreads)
+void calculateDistortionsFromHist(const char* path, const char* histoName, const int sides, const int globalEFieldType, const int globalDistType, const int nSteps, const int simpsonIterations, const int nThreads)
 {
   using SC = o2::tpc::SpaceCharge<DataT, Nz, Nr, Nphi>;
   const auto integrationStrategy = o2::tpc::SpaceCharge<DataT, Nz, Nr, Nphi>::IntegrationStrategy::SimpsonIterative;
@@ -319,7 +327,16 @@ void calculateDistortionsFromHist(const char* path, const char* histoName, const
   fileOutSCDensity.Close();
 
   o2::utils::TreeStreamRedirector pcstream(TString::Format("distortions_real_nR%lu_nZ%lu_nPhi%lu_SimpsonsIter%i.root", Nr, Nz, Nphi, simpsonIterations).Data(), "RECREATE");
-  for (int iside = 0; iside < 2; ++iside) {
+  int iSideStart = 0;
+  int iSideEnd = 2;
+  if (sides == 1) {
+    // a side only
+    iSideEnd = 1;
+  } else if (sides == 2) {
+    // c side only
+    iSideStart = 1;
+  }
+  for (int iside = iSideStart; iside < iSideEnd; ++iside) {
     std::cout << "side: " << iside << std::endl;
     o2::tpc::Side side = (iside == 0) ? o2::tpc::Side::A : o2::tpc::Side::C;
     const auto distType = globalDistType == 0 ? SC::GlobalDistType::Standard : SC ::GlobalDistType::Fast;
@@ -336,9 +353,13 @@ void calculateDistortionsFromHist(const char* path, const char* histoName, const
 
   // write global corrections and distortions to file
   TFile fOut("spacecharge.root", "RECREATE");
-  spaceCharge3D.dumpGlobalDistortions(fOut, o2::tpc::Side::A);
-  spaceCharge3D.dumpGlobalDistortions(fOut, o2::tpc::Side::C);
-  spaceCharge3D.dumpGlobalCorrections(fOut, o2::tpc::Side::A);
-  spaceCharge3D.dumpGlobalCorrections(fOut, o2::tpc::Side::C);
+  if(sides!=2){
+    spaceCharge3D.dumpGlobalDistortions(fOut, o2::tpc::Side::A);
+    spaceCharge3D.dumpGlobalCorrections(fOut, o2::tpc::Side::A);
+  }
+  if(sides!=1){
+    spaceCharge3D.dumpGlobalDistortions(fOut, o2::tpc::Side::C);
+    spaceCharge3D.dumpGlobalCorrections(fOut, o2::tpc::Side::C);
+  }
   fOut.Close();
 }

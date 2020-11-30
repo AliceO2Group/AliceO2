@@ -24,6 +24,24 @@
 #pragma link C++ class o2::tpc::TPCParameters < double> + ;
 #pragma link C++ class o2::tpc::AnalyticalFields < double> + ;
 
+// 257*257*360
+#pragma link C++ class o2::tpc::RegularGrid3D < double, 257, 257, 360> + ;
+#pragma link C++ class o2::tpc::DataContainer3D < double, 257, 257, 360> + ;
+#pragma link C++ class o2::tpc::PoissonSolver < double, 257, 257, 360> + ;
+#pragma link C++ class o2::tpc::SpaceCharge < double, 257, 257, 360> + ;
+#pragma link C++ class o2::tpc::NumericalFields < double, 257, 257, 360> + ;
+#pragma link C++ class o2::tpc::DistCorrInterpolator < double, 257, 257, 360> + ;
+#pragma link C++ class o2::tpc::GridProperties < double, 257, 257, 360> + ;
+
+// 257*257*180
+#pragma link C++ class o2::tpc::RegularGrid3D < double, 257, 257, 180> + ;
+#pragma link C++ class o2::tpc::DataContainer3D < double, 257, 257, 180> + ;
+#pragma link C++ class o2::tpc::PoissonSolver < double, 257, 257, 180> + ;
+#pragma link C++ class o2::tpc::SpaceCharge < double, 257, 257, 180> + ;
+#pragma link C++ class o2::tpc::NumericalFields < double, 257, 257, 180> + ;
+#pragma link C++ class o2::tpc::DistCorrInterpolator < double, 257, 257, 180> + ;
+#pragma link C++ class o2::tpc::GridProperties < double, 257, 257, 180> + ;
+
 // 129*129*180
 #pragma link C++ class o2::tpc::RegularGrid3D < double, 129, 129, 180> + ;
 #pragma link C++ class o2::tpc::DataContainer3D < double, 129, 129, 180> + ;

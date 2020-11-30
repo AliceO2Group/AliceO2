@@ -1180,6 +1180,8 @@ template class o2::tpc::SpaceCharge<DataTD, 17, 17, 90>;
 template class o2::tpc::SpaceCharge<DataTD, 33, 33, 180>;
 template class o2::tpc::SpaceCharge<DataTD, 65, 65, 180>;
 template class o2::tpc::SpaceCharge<DataTD, 129, 129, 180>;
+template class o2::tpc::SpaceCharge<DataTD, 257, 257, 180>;
+template class o2::tpc::SpaceCharge<DataTD, 257, 257, 360>;
 
 // 129*129*180
 using NumFields129D = NumericalFields<DataTD, 129, 129, 180>;
@@ -1244,3 +1246,35 @@ template void O2TPCSpaceCharge3DCalc17D::calcGlobalCorrections(const DistCorrInt
 template void O2TPCSpaceCharge3DCalc17D::calcGlobalDistortions(const NumFields17D&);
 template void O2TPCSpaceCharge3DCalc17D::calcGlobalDistortions(const AnaFields17D&);
 template void O2TPCSpaceCharge3DCalc17D::calcGlobalDistortions(const DistCorrInterp17D&);
+
+// 257*257*180
+using NumFields257D = NumericalFields<DataTD, 257, 257, 180>;
+using AnaFields257D = AnalyticalFields<DataTD>;
+using DistCorrInterp257D = DistCorrInterpolator<DataTD, 257, 257, 180>;
+using O2TPCSpaceCharge3DCalc257D = SpaceCharge<DataTD, 257, 257, 180>;
+
+template void O2TPCSpaceCharge3DCalc257D::calcLocalDistortionsCorrections(const O2TPCSpaceCharge3DCalc257D::Type, const NumFields257D&);
+template void O2TPCSpaceCharge3DCalc257D::calcLocalDistortionsCorrections(const O2TPCSpaceCharge3DCalc257D::Type, const AnaFields257D&);
+template void O2TPCSpaceCharge3DCalc257D::calcGlobalCorrections(const NumFields257D&);
+template void O2TPCSpaceCharge3DCalc257D::calcGlobalCorrections(const AnaFields257D&);
+template void O2TPCSpaceCharge3DCalc257D::calcGlobalCorrections(const DistCorrInterp257D&);
+
+template void O2TPCSpaceCharge3DCalc257D::calcGlobalDistortions(const NumFields257D&);
+template void O2TPCSpaceCharge3DCalc257D::calcGlobalDistortions(const AnaFields257D&);
+template void O2TPCSpaceCharge3DCalc257D::calcGlobalDistortions(const DistCorrInterp257D&);
+
+// 257*257*360
+using NumFields257360D = NumericalFields<DataTD, 257, 257, 360>;
+using AnaFields257360D = AnalyticalFields<DataTD>;
+using DistCorrInterp257360D = DistCorrInterpolator<DataTD, 257, 257, 360>;
+using O2TPCSpaceCharge3DCalc257360D = SpaceCharge<DataTD, 257, 257, 360>;
+
+template void O2TPCSpaceCharge3DCalc257360D::calcLocalDistortionsCorrections(const O2TPCSpaceCharge3DCalc257360D::Type, const NumFields257360D&);
+template void O2TPCSpaceCharge3DCalc257360D::calcLocalDistortionsCorrections(const O2TPCSpaceCharge3DCalc257360D::Type, const AnaFields257360D&);
+template void O2TPCSpaceCharge3DCalc257360D::calcGlobalCorrections(const NumFields257360D&);
+template void O2TPCSpaceCharge3DCalc257360D::calcGlobalCorrections(const AnaFields257360D&);
+template void O2TPCSpaceCharge3DCalc257360D::calcGlobalCorrections(const DistCorrInterp257360D&);
+
+template void O2TPCSpaceCharge3DCalc257360D::calcGlobalDistortions(const NumFields257360D&);
+template void O2TPCSpaceCharge3DCalc257360D::calcGlobalDistortions(const AnaFields257360D&);
+template void O2TPCSpaceCharge3DCalc257360D::calcGlobalDistortions(const DistCorrInterp257360D&);

@@ -1492,4 +1492,6 @@ template class o2::tpc::PoissonSolver<double, 17, 17, 90>;
 template class o2::tpc::PoissonSolver<double, 33, 33, 180>;
 template class o2::tpc::PoissonSolver<double, 65, 65, 180>;
 template class o2::tpc::PoissonSolver<double, 129, 129, 180>;
+template class o2::tpc::PoissonSolver<double, 257, 257, 180>;
+template class o2::tpc::PoissonSolver<double, 257, 257, 360>;
 template class o2::tpc::PoissonSolver<double, 129, 129, 1>; // for 2D Poisson Solver
