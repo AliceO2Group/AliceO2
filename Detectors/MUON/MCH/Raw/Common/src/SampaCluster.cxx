@@ -65,11 +65,23 @@ uint16_t SampaCluster::nof10BitWords() const
   if (isClusterSum()) {
     n10 += 2; // 20 bits (chargesum)
   } else {
-    for (auto s : samples) {
-      ++n10; // 10 bits for each sample
-    }
+    n10 += samples.size();
   }
   return n10;
+}
+
+uint32_t SampaCluster::sum() const
+{
+  uint32_t tot(0);
+  if (isClusterSum()) {
+    tot = chargeSum;
+  } else {
+    for (const auto& s : samples) {
+      tot += s;
+    }
+  }
+
+  return tot;
 }
 
 std::ostream& operator<<(std::ostream& os, const SampaCluster& sc)

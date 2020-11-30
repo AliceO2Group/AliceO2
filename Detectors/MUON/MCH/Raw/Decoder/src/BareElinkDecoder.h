@@ -14,7 +14,7 @@
 #include "Assertions.h"
 #include "MCHRawCommon/DataFormats.h"
 #include "MCHRawCommon/SampaHeader.h"
-#include "MCHRawDecoder/SampaChannelHandler.h"
+#include "MCHRawDecoder/DecodedDataHandlers.h"
 #include <bitset>
 #include <fmt/format.h>
 #include <fmt/printf.h>
@@ -33,7 +33,7 @@ namespace o2::mch::raw
 ///
 /// Bits coming from parts of the GBT words are added to the Elink using the
 /// append() method and each time a SampaCluster is decoded,
-/// it is passed to the SampaChannelHandler for further processing (or none).
+/// it is passed to the DecodedDataHandlers for further processing (or none).
 ///
 /// \nosubgrouping
 ///
@@ -44,9 +44,9 @@ class BareElinkDecoder
   /// Constructor.
   /// \param dsId the (electronic) id of the dual sampa this elink
   /// is connected  to
-  /// \param sampaChannelHandler a callable that is passed
-  /// each SampaCluster that will be decoded
-  BareElinkDecoder(DsElecId dsId, SampaChannelHandler sampaChannelHandler);
+  /// \param decodedDataHandlers a structure with various callable that
+  /// handle the Sampa packets and decoding errors
+  BareElinkDecoder(DsElecId dsId, DecodedDataHandlers decodedDataHandlers);
 
   /** @name Main interface 
   */
@@ -104,7 +104,7 @@ class BareElinkDecoder
 
  private:
   DsElecId mDsId;
-  SampaChannelHandler mSampaChannelHandler; //< The callable that will deal with the SampaCluster objects we decode
+  DecodedDataHandlers mDecodedDataHandlers; //< The structure with the callables that  deal with the Sampa packets and the decoding errors
   SampaHeader mSampaHeader;                 //< Current SampaHeader
   uint64_t mBitBuffer;                      //< Our internal bit stream buffer
   /** @name internal global counters
@@ -154,9 +154,9 @@ std::string bitBufferString(const std::bitset<50>& bs, int imax)
 
 template <typename CHARGESUM>
 BareElinkDecoder<CHARGESUM>::BareElinkDecoder(DsElecId dsId,
-                                              SampaChannelHandler sampaChannelHandler)
+                                              DecodedDataHandlers decodedDataHandlers)
   : mDsId{dsId},
-    mSampaChannelHandler{sampaChannelHandler},
+    mDecodedDataHandlers{decodedDataHandlers},
     mSampaHeader{},
     mBitBuffer{},
     mNofSync{},
@@ -422,20 +422,20 @@ std::ostream& operator<<(std::ostream& os, const o2::mch::raw::BareElinkDecoder<
 template <>
 void BareElinkDecoder<ChargeSumMode>::sendCluster()
 {
-  if (mSampaChannelHandler) {
-    mSampaChannelHandler(mDsId,
-                         channelNumber64(mSampaHeader),
-                         SampaCluster(mTimestamp, mSampaHeader.bunchCrossingCounter(), mClusterSum, mClusterSize));
+  SampaChannelHandler handler = mDecodedDataHandlers.sampaChannelHandler;
+  if (handler) {
+    handler(mDsId, channelNumber64(mSampaHeader),
+            SampaCluster(mTimestamp, mSampaHeader.bunchCrossingCounter(), mClusterSum, mClusterSize));
   }
 }
 
 template <>
 void BareElinkDecoder<SampleMode>::sendCluster()
 {
-  if (mSampaChannelHandler) {
-    mSampaChannelHandler(mDsId,
-                         channelNumber64(mSampaHeader),
-                         SampaCluster(mTimestamp, mSampaHeader.bunchCrossingCounter(), mSamples));
+  SampaChannelHandler handler = mDecodedDataHandlers.sampaChannelHandler;
+  if (handler) {
+    handler(mDsId, channelNumber64(mSampaHeader),
+            SampaCluster(mTimestamp, mSampaHeader.bunchCrossingCounter(), mSamples));
   }
   mSamples.clear();
 }

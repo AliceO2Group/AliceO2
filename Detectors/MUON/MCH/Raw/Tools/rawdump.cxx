@@ -177,7 +177,9 @@ std::map<std::string, ChannelStat> rawdump(std::string input, DumpOptions opt)
     npages++;
     bytesRead += in.gcount();
     if (!decode) {
-      decode = createPageDecoder(page, channelHandler);
+      DecodedDataHandlers handlers;
+      handlers.sampaChannelHandler = channelHandler;
+      decode = createPageDecoder(page, handlers);
     }
     patchPage(buffer);
     decode(page);

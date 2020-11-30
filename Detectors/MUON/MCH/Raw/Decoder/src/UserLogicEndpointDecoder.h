@@ -13,7 +13,7 @@
 
 #include <array>
 #include "UserLogicElinkDecoder.h"
-#include "MCHRawDecoder/SampaChannelHandler.h"
+#include "MCHRawDecoder/DecodedDataHandlers.h"
 #include <gsl/span>
 #include <fmt/printf.h>
 #include <fmt/format.h>
@@ -48,7 +48,7 @@ class UserLogicEndpointDecoder : public PayloadDecoder<UserLogicEndpointDecoder<
   /// \param sampaChannelHandler the callable that will handle each SampaCluster
   UserLogicEndpointDecoder(uint16_t feeId,
                            std::function<std::optional<uint16_t>(FeeLinkId id)> fee2SolarMapper,
-                           SampaChannelHandler sampaChannelHandler);
+                           DecodedDataHandlers decodedDataHandlers);
 
   /** @name Main interface 
     */
@@ -74,7 +74,7 @@ class UserLogicEndpointDecoder : public PayloadDecoder<UserLogicEndpointDecoder<
  private:
   uint16_t mFeeId;
   std::function<std::optional<uint16_t>(FeeLinkId id)> mFee2SolarMapper;
-  SampaChannelHandler mChannelHandler;
+  DecodedDataHandlers mDecodedDataHandlers;
   std::map<uint16_t, std::array<ElinkDecoder, 40>> mElinkDecoders;
   int mNofGbtWordsSeens;
 };
@@ -85,11 +85,11 @@ using namespace boost::multiprecision;
 template <typename CHARGESUM>
 UserLogicEndpointDecoder<CHARGESUM>::UserLogicEndpointDecoder(uint16_t feeId,
                                                               std::function<std::optional<uint16_t>(FeeLinkId id)> fee2SolarMapper,
-                                                              SampaChannelHandler sampaChannelHandler)
-  : PayloadDecoder<UserLogicEndpointDecoder<CHARGESUM>>(sampaChannelHandler),
+                                                              DecodedDataHandlers decodedDataHandlers)
+  : PayloadDecoder<UserLogicEndpointDecoder<CHARGESUM>>(decodedDataHandlers),
     mFeeId{feeId},
     mFee2SolarMapper{fee2SolarMapper},
-    mChannelHandler(sampaChannelHandler),
+    mDecodedDataHandlers(decodedDataHandlers),
     mNofGbtWordsSeens{0}
 {
 }
@@ -123,7 +123,13 @@ size_t UserLogicEndpointDecoder<CHARGESUM>::append(Payload buffer)
     int gbt = (word >> 59) & 0x1F;
 
     if (gbt < 0 || gbt > 11) {
-      throw fmt::format("warning : out-of-range gbt {} word={:08X}\n", gbt, word);
+      SampaErrorHandler handler = mDecodedDataHandlers.sampaErrorHandler;
+      if (handler) {
+        DsElecId dsId{static_cast<uint16_t>(0), static_cast<uint8_t>(0), static_cast<uint8_t>(0)};
+        handler(dsId, -1, ErrorBadLinkID);
+      } else {
+        throw fmt::format("warning : out-of-range gbt {} word={:08X}\n", gbt, word);
+      }
     }
 
     // Get the corresponding decoders array, or allocate it if does not exist yet
@@ -136,19 +142,34 @@ size_t UserLogicEndpointDecoder<CHARGESUM>::append(Payload buffer)
       auto solarId = mFee2SolarMapper(feeLinkId);
 
       if (!solarId.has_value()) {
-        throw std::logic_error(fmt::format("{} Could not get solarId from feeLinkId={}\n", __PRETTY_FUNCTION__, asString(feeLinkId)));
+        SampaErrorHandler handler = mDecodedDataHandlers.sampaErrorHandler;
+        if (handler) {
+          DsElecId dsId{static_cast<uint16_t>(0), static_cast<uint8_t>(0), static_cast<uint8_t>(0)};
+          handler(dsId, -1, ErrorUnknownLinkID);
+        } else {
+          throw std::logic_error(fmt::format("{} Could not get solarId from feeLinkId={}\n", __PRETTY_FUNCTION__, asString(feeLinkId)));
+        }
       }
 
       mElinkDecoders.emplace(static_cast<uint16_t>(gbt),
                              impl::makeArray<40>([=](size_t i) {
                                DsElecId dselec{solarId.value(), static_cast<uint8_t>(i / 5), static_cast<uint8_t>(i % 5)};
-                               return ElinkDecoder(dselec, mChannelHandler);
+                               return ElinkDecoder(dselec, mDecodedDataHandlers);
                              }));
       d = mElinkDecoders.find(gbt);
     }
 
     // in the 14 MSB(Most Significant Bits) 6 are used to specify the Dual Sampa index (0..39)
     uint16_t dsid = (word >> 53) & 0x3F;
+    if (dsid > 39) {
+      SampaErrorHandler handler = mDecodedDataHandlers.sampaErrorHandler;
+      if (handler) {
+        DsElecId dsId{static_cast<uint16_t>(0), static_cast<uint8_t>(0), static_cast<uint8_t>(0)};
+        handler(dsId, -1, ErrorBadELinkID);
+      } else {
+        throw fmt::format("warning : out-of-range DS ID {} word={:08X}\n", dsid, word);
+      }
+    }
 
     // bits 50..52 are error bits
     int8_t error = static_cast<uint8_t>((word >> 50) & 0x7);

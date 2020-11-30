@@ -67,6 +67,9 @@ struct SampaCluster {
   /// needed to store this cluster
   uint16_t nof10BitWords() const;
 
+  /// sum returns the total charge in the cluster
+  uint32_t sum() const;
+
   uint10_t sampaTime;            //< 10 bits for a local time stamp
   uint20_t bunchCrossing;        //< 20 bits for bunch crossing counter
   uint20_t chargeSum;            //< 20 bits for a cluster sum
