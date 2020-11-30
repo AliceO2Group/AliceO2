@@ -116,7 +116,7 @@ struct EventSelection {
 
     AnalysisCut* varCut = new AnalysisCut();
     varCut->AddCut(VarManager::kVtxZ, -10.0, 10.0);
-    varCut->AddCut(VarManager::kIsMuonSingleLowPt7, 0.5, 1.5);
+    varCut->AddCut(VarManager::kIsMuonUnlikeLowPt7, 0.5, 1.5);
 
     fEventCut->AddCut(varCut);
     // TODO: Add more cuts, also enable cuts which are not easily possible via the VarManager (e.g. trigger selections)
