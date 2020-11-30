@@ -87,7 +87,7 @@ class GPUChainTracking : public GPUChain, GPUReconstructionHelpers::helperDelega
     InOutMemory();
     ~InOutMemory();
     InOutMemory(InOutMemory&&);
-    InOutMemory& operator=(InOutMemory&&) = default;
+    InOutMemory& operator=(InOutMemory&&);
 
     std::unique_ptr<unsigned long long int[]> tpcZSpages;
     std::unique_ptr<char[]> tpcZSpagesChar; // Same as above, but as char (needed for reading dumps, but deprecated, since alignment can be wrong)
