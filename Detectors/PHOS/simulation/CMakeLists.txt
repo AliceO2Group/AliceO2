@@ -27,5 +27,10 @@ o2_target_root_dictionary(PHOSSimulation
                                   include/PHOSSimulation/GeometryParams.h 
                                   include/PHOSSimulation/Digitizer.h
                                   include/PHOSSimulation/RawWriter.h)
+o2_add_executable(digi2raw
+                  COMPONENT_NAME phos
+                  PUBLIC_LINK_LIBRARIES O2::PHOSSimulation
+                  SOURCES src/RawCreator.cxx)
+
 
 o2_data_file(COPY data  DESTINATION Detectors/PHS/simulation)

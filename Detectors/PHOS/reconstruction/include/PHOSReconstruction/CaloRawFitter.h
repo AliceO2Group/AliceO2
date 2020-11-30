@@ -99,7 +99,7 @@ class CaloRawFitter
   bool mPedestalRun = false;         ///< analyze as pedestal run
   std::vector<bool> mOverflow;       ///< is last sample saturated
   FitStatus mStatus = kNotEvaluated; ///< status of last evaluated sample: -1: not yet evaluated; 0: OK; 1: overflow; 2: too large RMS; 3: single spikes
-  uint mMaxSample = 0;               ///< maximal sample
+  short mMaxSample = 0;              ///< maximal sample
   std::vector<float> mAmp;           ///< amplitude of last processed sample
   std::vector<float> mTime;          ///< time of last processed sample
   std::vector<float> mChi2;          ///< chi2 calculated in last fit

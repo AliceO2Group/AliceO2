@@ -22,10 +22,10 @@
 
 #include "CommonUtils/ConfigurableParam.h"
 #include "CommonUtils/StringUtils.h"
-#include "DataFormatsEMCAL/Digit.h"
-#include "DataFormatsEMCAL/TriggerRecord.h"
-#include "EMCALBase/Geometry.h"
-#include "EMCALSimulation/RawWriter.h"
+#include "DataFormatsPHOS/Digit.h"
+#include "DataFormatsPHOS/TriggerRecord.h"
+#include "PHOSBase/Geometry.h"
+#include "PHOSSimulation/RawWriter.h"
 
 namespace bpo = boost::program_options;
 
@@ -34,7 +34,7 @@ int main(int argc, const char** argv)
   bpo::variables_map vm;
   bpo::options_description opt_general("Usage:\n  " + std::string(argv[0]) +
                                        " <cmds/options>\n"
-                                       "  Tool will encode emcal raw data from input file\n"
+                                       "  Tool will encode phos raw data from input file\n"
                                        "Commands / Options");
   bpo::options_description opt_hidden("");
   bpo::options_description opt_all;
@@ -44,7 +44,7 @@ int main(int argc, const char** argv)
     auto add_option = opt_general.add_options();
     add_option("help,h", "Print this help message");
     add_option("verbose,v", bpo::value<uint32_t>()->default_value(0), "Select verbosity level [0 = no output]");
-    add_option("input-file,i", bpo::value<std::string>()->default_value("emcaldigits.root"), "Specifies digit input file.");
+    add_option("input-file,i", bpo::value<std::string>()->default_value("phosdigits.root"), "Specifies digit input file.");
     add_option("file-for,f", bpo::value<std::string>()->default_value("all"), "single file per: all,subdet,link");
     add_option("output-dir,o", bpo::value<std::string>()->default_value("./"), "output directory for raw data");
     add_option("debug,d", bpo::value<uint32_t>()->default_value(0), "Select debug output level [0 = no debug output]");
@@ -85,29 +85,16 @@ int main(int argc, const char** argv)
 
   std::unique_ptr<TFile> digitfile(TFile::Open(digitfilename.data(), "READ"));
   auto treereader = std::make_unique<TTreeReader>(static_cast<TTree*>(digitfile->Get("o2sim")));
-  TTreeReaderValue<std::vector<o2::emcal::Digit>> digitbranch(*treereader, "EMCALDigit");
-  TTreeReaderValue<std::vector<o2::emcal::TriggerRecord>> triggerbranch(*treereader, "EMCALDigitTRGR");
+  TTreeReaderValue<std::vector<o2::phos::Digit>> digitbranch(*treereader, "PHOSDigit");
+  TTreeReaderValue<std::vector<o2::phos::TriggerRecord>> triggerbranch(*treereader, "PHOSDigitTrigRecords");
 
-  o2::emcal::RawWriter::FileFor_t granularity = o2::emcal::RawWriter::FileFor_t::kFullDet;
-  if (filefor == "all") {
-    granularity = o2::emcal::RawWriter::FileFor_t::kFullDet;
-  } else if (filefor == "subdet") {
-    granularity = o2::emcal::RawWriter::FileFor_t::kSubDet;
-  } else if (filefor == "link") {
-    granularity = o2::emcal::RawWriter::FileFor_t::kLink;
-  }
-
-  o2::emcal::RawWriter rawwriter;
+  o2::phos::RawWriter rawwriter;
   rawwriter.setOutputLocation(outputdir.data());
-  rawwriter.setFileFor(granularity);
-  rawwriter.setGeometry(o2::emcal::Geometry::GetInstanceFromRunNumber(300000));
-  rawwriter.setNumberOfADCSamples(15); // @TODO Needs to come from CCDB
-  rawwriter.setPedestal(0);            // @TODO Needs to come from CCDB
   rawwriter.init();
 
   // Loop over all entries in the tree, where each tree entry corresponds to a time frame
   for (auto en : *treereader) {
     rawwriter.digitsToRaw(*digitbranch, *triggerbranch);
   }
-  rawwriter.getWriter().writeConfFile("EMC", "RAWDATA", o2::utils::concat_string(outputdir, "/EMCraw.cfg"));
+  rawwriter.getWriter().writeConfFile("PHS", "RAWDATA", o2::utils::concat_string(outputdir, "/rawreader.cfg"));
 }
