@@ -61,7 +61,8 @@ class MCTrackT
   Int_t GetPdgCode() const { return mPdgCode; }
   Int_t getMotherTrackId() const { return mMotherTrackId; }
   Int_t getSecondMotherTrackId() const { return mSecondMotherTrackId; }
-  bool isSecondary() const { return mMotherTrackId != -1; }
+  bool isPrimary() const { return getProcess() == TMCProcess::kPPrimary; }
+  bool isSecondary() const { return !isPrimary(); }
   Int_t getFirstDaughterTrackId() const { return mFirstDaughterTrackId; }
   Int_t getLastDaughterTrackId() const { return mLastDaughterTrackId; }
   Double_t GetStartVertexMomentumX() const { return mStartVertexMomentumX; }
@@ -207,11 +208,11 @@ class MCTrackT
   Int_t mPdgCode;
 
   ///  Index of mother tracks
-  Int_t mMotherTrackId;
-  Int_t mSecondMotherTrackId;
+  Int_t mMotherTrackId = -1;
+  Int_t mSecondMotherTrackId = -1;
 
-  Int_t mFirstDaughterTrackId;
-  Int_t mLastDaughterTrackId;
+  Int_t mFirstDaughterTrackId = -1;
+  Int_t mLastDaughterTrackId = -1;
   // hitmask stored as an int
   // if bit i is set it means that this track left a trace in detector i
   // we should have sizeof(int) < o2::base::DetId::nDetectors

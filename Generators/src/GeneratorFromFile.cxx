@@ -208,7 +208,7 @@ Bool_t GeneratorFromO2Kine::ReadEvent(FairPrimaryGenerator* primGen)
       auto vx = p.Vx();
       auto vy = p.Vy();
       auto vz = p.Vz();
-      auto parent = -1; // --> check this !!!
+      auto parent = p.getMotherTrackId();
       auto e = p.GetEnergy();
       auto tof = p.T();
       auto weight = 1.; // p.GetWeight() ??;
