@@ -88,13 +88,21 @@ int main(int argc, const char** argv)
   TTreeReaderValue<std::vector<o2::phos::Digit>> digitbranch(*treereader, "PHOSDigit");
   TTreeReaderValue<std::vector<o2::phos::TriggerRecord>> triggerbranch(*treereader, "PHOSDigitTrigRecords");
 
+  o2::phos::RawWriter::FileFor_t granularity = o2::phos::RawWriter::FileFor_t::kFullDet;
+  if (filefor == "all") {
+    granularity = o2::phos::RawWriter::FileFor_t::kFullDet;
+  } else if (filefor == "link") {
+    granularity = o2::phos::RawWriter::FileFor_t::kLink;
+  }
+
   o2::phos::RawWriter rawwriter;
   rawwriter.setOutputLocation(outputdir.data());
+  rawwriter.setFileFor(granularity);
   rawwriter.init();
 
   // Loop over all entries in the tree, where each tree entry corresponds to a time frame
   for (auto en : *treereader) {
     rawwriter.digitsToRaw(*digitbranch, *triggerbranch);
   }
-  rawwriter.getWriter().writeConfFile("PHS", "RAWDATA", o2::utils::concat_string(outputdir, "/rawreader.cfg"));
+  rawwriter.getWriter().writeConfFile("PHS", "RAWDATA", o2::utils::concat_string(outputdir, "/PHSraw.cfg"));
 }

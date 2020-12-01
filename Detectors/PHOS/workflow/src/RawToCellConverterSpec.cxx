@@ -111,7 +111,8 @@ void RawToCellConverterSpec::run(framework::ProcessingContext& ctx)
       } else {
         currentCellContainer = found->second;
       }
-      if (ddl > o2::phos::Mapping::NDDL) {               //only 14 correct DDLs
+      if (ddl > o2::phos::Mapping::NDDL) { //only 14 correct DDLs
+        LOG(ERROR) << "DDL=" << ddl;
         mOutputHWErrors.emplace_back(15, 16, char(ddl)); //Add non-existing DDL as DDL 15
         continue;                                        //skip STU ddl
       }
