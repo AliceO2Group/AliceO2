@@ -367,18 +367,20 @@ template <typename T>
 struct OutputObj {
   using obj_t = T;
 
-  OutputObj(T&& t, OutputObjHandlingPolicy policy_ = OutputObjHandlingPolicy::AnalysisObject)
+  OutputObj(T&& t, OutputObjHandlingPolicy policy_ = OutputObjHandlingPolicy::AnalysisObject, OutputObjSourceType sourceType_ = OutputObjSourceType::OutputObjSource)
     : object(std::make_shared<T>(t)),
       label(t.GetName()),
       policy{policy_},
+      sourceType{sourceType_},
       mTaskHash{0}
   {
   }
 
-  OutputObj(std::string const& label_, OutputObjHandlingPolicy policy_ = OutputObjHandlingPolicy::AnalysisObject)
+  OutputObj(std::string const& label_, OutputObjHandlingPolicy policy_ = OutputObjHandlingPolicy::AnalysisObject, OutputObjSourceType sourceType_ = OutputObjSourceType::OutputObjSource)
     : object(nullptr),
       label(label_),
       policy{policy_},
+      sourceType{sourceType_},
       mTaskHash{0}
   {
   }
@@ -439,12 +441,13 @@ struct OutputObj {
   OutputRef ref()
   {
     return OutputRef{std::string{label}, 0,
-                     o2::header::Stack{OutputObjHeader{policy, mTaskHash}}};
+                     o2::header::Stack{OutputObjHeader{policy, sourceType, mTaskHash}}};
   }
 
   std::shared_ptr<T> object;
   std::string label;
   OutputObjHandlingPolicy policy;
+  OutputObjSourceType sourceType;
   uint32_t mTaskHash;
 };
 

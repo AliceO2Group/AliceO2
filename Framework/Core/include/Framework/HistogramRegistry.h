@@ -539,7 +539,7 @@ class HistogramRegistry
 
   OutputRef ref()
   {
-    return OutputRef{std::string{mName}, 0, o2::header::Stack{OutputObjHeader{mPolicy, mTaskHash}}};
+    return OutputRef{std::string{mName}, 0, o2::header::Stack{OutputObjHeader{mPolicy, OutputObjSourceType::HistogramRegistrySource, mTaskHash}}};
   }
 
   void setHash(uint32_t hash)

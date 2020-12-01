@@ -12,6 +12,7 @@
 #include "Framework/AnalysisDataModel.h"
 #include "Framework/HistogramRegistry.h"
 #include <TH1F.h>
+#include <TParameter.h>
 
 #include <cmath>
 
@@ -212,6 +213,34 @@ struct ETask {
   }
 };
 
+struct FTask {
+  Configurable<int> cfgTrackType{"trktype", 1, "Type of selected tracks: 0 = no selection, 1 = global tracks FB96"};
+  OutputObj<TList> fOutput{"TListForTests", OutputObjHandlingPolicy::AnalysisObject, OutputObjSourceType::OutputObjSource};
+  HistogramRegistry registry{
+    "registry",
+    {
+      {"eta", "#eta", {HistType::kTH1F, {{102, -2.01, 2.01}}}},     //
+      {"phi", "#varphi", {HistType::kTH1F, {{100, 0., 2. * M_PI}}}} //
+    }                                                               //
+  };
+
+  void init(InitContext const&)
+  {
+    TList* fOutputList = new TList();
+    fOutputList->SetOwner(true);
+    fOutput.setObject(fOutputList);
+    fOutputList->Add(new TParameter<Int_t>("TrackType", cfgTrackType, 'f'));
+  }
+
+  void process(aod::Tracks const& tracks)
+  {
+    for (auto& track : tracks) {
+      registry.get<TH1>("eta")->Fill(track.eta());
+      registry.get<TH1>("phi")->Fill(track.phi());
+    }
+  }
+};
+
 WorkflowSpec defineDataProcessing(ConfigContext const&)
 {
   return WorkflowSpec{
@@ -219,5 +248,6 @@ WorkflowSpec defineDataProcessing(ConfigContext const&)
     adaptAnalysisTask<ATask>("eta-and-phi-histograms"),
     adaptAnalysisTask<BTask>("filtered-histograms"),
     adaptAnalysisTask<CTask>("dimension-test"),
-    adaptAnalysisTask<DTask>("realistic-example")};
+    adaptAnalysisTask<DTask>("realistic-example"),
+    adaptAnalysisTask<FTask>("tlist-test")};
 }
