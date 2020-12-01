@@ -763,10 +763,20 @@ void* CcdbApi::navigateURLsAndRetrieveContent(CURL* curl_handle, std::string con
       // we try content locations in order of appearance until one succeeds
       // 1st: The "Location" field
       // 2nd: Possible "Content-Location" fields - Location field
+
+      // some locations are relative to the main server so we need to fix/complement them
+      auto complement_Location = [this](std::string const& loc) {
+        if (loc[0] == '/') {
+          // if it's just a path (noticed by trailing '/' we prepend the server url
+          return getURL() + loc;
+        }
+        return loc;
+      };
+
       std::vector<std::string> locs;
       auto iter = headerData.find("Location");
       if (iter != headerData.end()) {
-        locs.push_back(iter->second);
+        locs.push_back(complement_Location(iter->second));
       }
       // add alternative locations (not yet included)
       auto iter2 = headerData.find("Content-Location");
@@ -774,7 +784,7 @@ void* CcdbApi::navigateURLsAndRetrieveContent(CURL* curl_handle, std::string con
         auto range = headerData.equal_range("Content-Location");
         for (auto it = range.first; it != range.second; ++it) {
           if (std::find(locs.begin(), locs.end(), it->second) == locs.end()) {
-            locs.push_back(it->second);
+            locs.push_back(complement_Location(it->second));
           }
         }
       }
