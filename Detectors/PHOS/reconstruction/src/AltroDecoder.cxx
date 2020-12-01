@@ -30,7 +30,7 @@ AltroDecoderError::ErrorType_t AltroDecoder::decode()
   try {
     readRCUTrailer();
   } catch (RCUTrailer::Error& e) {
-    LOG(ERROR) << "RCU trailer error" << (int)e.getErrorType() ;
+    LOG(ERROR) << "RCU trailer error" << (int)e.getErrorType();
     return AltroDecoderError::RCU_TRAILER_ERROR;
   }
   //TODO  checkRCUTrailer();
@@ -38,7 +38,7 @@ AltroDecoderError::ErrorType_t AltroDecoder::decode()
     readChannels();
   } catch (AltroDecoderError::ErrorType_t e) {
     LOG(ERROR) << "Altro decoding error " << e;
-    return e ;
+    return e;
   }
   return AltroDecoderError::kOK;
 }
@@ -50,7 +50,7 @@ void AltroDecoder::readRCUTrailer()
     gsl::span<const uint32_t> payloadwords(payloadwordsOrig.data(), payloadwordsOrig.size());
     mRCUTrailer.constructFromRawPayload(payloadwords);
   } catch (RCUTrailer::Error& e) {
-    throw e ;
+    throw e;
   }
 }
 
@@ -104,7 +104,7 @@ void AltroDecoder::readChannels()
 const RCUTrailer& AltroDecoder::getRCUTrailer() const
 {
   if (!mRCUTrailer.isInitialized())
-    throw AltroDecoderError::ErrorType_t::RCU_TRAILER_ERROR;// "RCU trailer was not initialized");
+    throw AltroDecoderError::ErrorType_t::RCU_TRAILER_ERROR; // "RCU trailer was not initialized");
   return mRCUTrailer;
 }
 

@@ -57,11 +57,10 @@ void RawReaderMemory::next()
   mCurrentTrailer.reset();
   bool isDataTerminated = false;
   do {
-    try{
+    try {
       nextPage(false);
-    }
-    catch(RawDecodingError::ErrorType_t e){
-      throw e;      
+    } catch (RawDecodingError::ErrorType_t e) {
+      throw e;
     }
     if (hasNext()) {
       auto nextheader = decodeRawHeader(mRawMemoryBuffer.data() + mCurrentPosition);
@@ -123,25 +122,24 @@ void RawReaderMemory::nextPage(bool doResetPayload)
     // Every page gets a trailer. The trailers from the single pages need to be removed.
     // There will be a combined trailer which keeps the sum of the payloads for all trailers.
     // This will be appended to the chopped payload.
-    int tralersize=0;
+    int tralersize = 0;
     if (!mCurrentTrailer.isInitialized()) {
-      try{
+      try {
         mCurrentTrailer.constructFromPayloadWords(mRawBuffer.getDataWords());
-      }catch(...){
-        throw RawDecodingError::ErrorType_t::HEADER_DECODING;     
+      } catch (...) {
+        throw RawDecodingError::ErrorType_t::HEADER_DECODING;
       }
-      tralersize=mCurrentTrailer.getTrailerSize();
-    }
-    else{
+      tralersize = mCurrentTrailer.getTrailerSize();
+    } else {
       RCUTrailer trailer;
-      try{
+      try {
         trailer.constructFromPayloadWords(mRawBuffer.getDataWords());
-      }catch(...){
-        throw RawDecodingError::ErrorType_t::HEADER_INVALID;     
+      } catch (...) {
+        throw RawDecodingError::ErrorType_t::HEADER_INVALID;
       }
 
       mCurrentTrailer.setPayloadSize(mCurrentTrailer.getPayloadSize() + trailer.getPayloadSize());
-      tralersize=trailer.getTrailerSize();
+      tralersize = trailer.getTrailerSize();
     }
 
     gsl::span<const uint32_t> payloadWithoutTrailer(mRawBuffer.getDataWords().data(), mRawBuffer.getDataWords().size() - tralersize);

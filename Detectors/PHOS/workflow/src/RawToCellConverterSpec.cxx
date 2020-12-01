@@ -82,18 +82,17 @@ void RawToCellConverterSpec::run(framework::ProcessingContext& ctx)
     o2::phos::RawReaderMemory rawreader(o2::framework::DataRefUtils::as<const char>(rawData));
     // loop over all the DMA pages
     while (rawreader.hasNext()) {
-      try{
-         rawreader.next();
-      }
-      catch(RawDecodingError::ErrorType_t e){
+      try {
+        rawreader.next();
+      } catch (RawDecodingError::ErrorType_t e) {
         LOG(ERROR) << "Raw decoding error " << (int)e;
         //add error list
         mOutputHWErrors.emplace_back(14, (int)e, 1); //Put general errors to non-existing DDL14
         //if problem in header, abandon this page
-        if(e==RawDecodingError::ErrorType_t::PAGE_NOTFOUND || 
-           e==RawDecodingError::ErrorType_t::HEADER_DECODING || 
-           e==RawDecodingError::ErrorType_t::HEADER_INVALID){ 
-           break ;
+        if (e == RawDecodingError::ErrorType_t::PAGE_NOTFOUND ||
+            e == RawDecodingError::ErrorType_t::HEADER_DECODING ||
+            e == RawDecodingError::ErrorType_t::HEADER_INVALID) {
+          break;
         }
         //if problem in payload, try to continue
         continue;
