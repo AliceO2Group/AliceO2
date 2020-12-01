@@ -167,7 +167,7 @@ void SVertexer::process(const gsl::span<const PVertex>& vertices,   // primary v
             continue;
           }
           // check cos of pointing angle
-          float dz = v0pos[2] - mMeanVertex.getZ(), cosPointingAngle = (prodXY + dz * pV0[2]) / std::sqrt((dx * dx + dy * dy + dz * dz) * p2V0);
+          float dz = v0pos[2] - pv.getZ(), cosPointingAngle = (prodXY + dz * pV0[2]) / std::sqrt((dx * dx + dy * dy + dz * dz) * p2V0);
           if (cosPointingAngle < mMinCosPointingAngle) {
             if (ambiguousV0) {
               continue; // no need to check this pair wrt other vertices
