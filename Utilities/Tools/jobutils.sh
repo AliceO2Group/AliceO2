@@ -13,8 +13,11 @@
 # This file contains a couple of utility functions for reuse
 # in shell job scripts (such as on the GRID).
 # In order to use these functions in scripts, this file needs to be
-# simply sourced into the target script.
+# simply sourced into the target script. The script needs bash versions > 4
 
+# TODOs:
+# -harmonize use of bc/awk for calculations
+# -harmonize coding style for variables
 
 o2_cleanup_shm_files() {
   # check if we have lsof (otherwise we do nothing)
@@ -91,6 +94,8 @@ taskwrapper_cleanup_handler() {
 #   (until DPL offers signal handling and automatic shutdown)
 # - possibility to provide user hooks for "start" and "failure"
 # - possibility to skip (jump over) job alltogether
+# - possibility to define timeout
+# - possibility to control/limit the CPU load
 taskwrapper() {
   local logfile=$1
   shift 1
@@ -141,7 +146,7 @@ taskwrapper() {
     finalcommand="TIME=\"#walltime %e\" ${O2_ROOT}/share/scripts/monitor-mem.sh ${TIMECOMMAND} './${SCRIPTNAME}'"
   fi
   echo "Running: ${finalcommand}" > ${logfile}
-  eval ${finalcommand} >> ${logfile} 2>&1 &
+  eval ${finalcommand} >> ${logfile} 2>&1 & disown
 
   # THE NEXT PART IS THE SUPERVISION PART
   # get the PID
@@ -151,7 +156,9 @@ taskwrapper() {
   trap "taskwrapper_cleanup_handler ${PID} SIGTERM" SIGTERM
 
   cpucounter=1
+  NLOGICALCPUS=$(getNumberOfLogicalCPUCores)
 
+  reduction_factor=1
   while [ 1 ]; do
     # We don't like to see critical problems in the log file.
 
@@ -202,21 +209,83 @@ taskwrapper() {
     ps -p $PID > /dev/null
     [ $? == 1 ] && break
 
-    if [ "${JOBUTILS_MONITORCPU}" ]; then
-      # get some CPU usage statistics per process --> actual usage can be calculated thereafter
-      for p in $(childprocs ${PID}); do
-        total=`awk 'BEGIN{s=0}/cpu /{for (i=1;i<=NF;i++) s+=$i;} END {print s}' /proc/stat`
-        utime=`awk '//{print $14}' /proc/${p}/stat 2> /dev/null`
-        stime=`awk '//{print $15}' /proc/${p}/stat 2> /dev/null`
-        name=`awk '//{print $2}' /proc/${p}/stat 2> /dev/null`
-        echo "${cpucounter} ${p} ${total} ${utime} ${stime} ${name}" >> ${logfile}_cpuusage
+    if [ "${JOBUTILS_MONITORCPU}" ] || [ "${JOBUTILS_LIMITLOAD}" ]; then
+      # NOTE: The following section is "a bit" compute intensive and currently not optimized
+      # A careful evaluation of awk vs bc or other tools might be needed -- or a move to a more
+      # system oriented language/tool
+
+      for p in $limitPIDs; do
+        wait ${p}
       done
+
+      # get some CPU usage statistics per process --> actual usage can be calculated thereafter
+      total=`awk 'BEGIN{s=0}/cpu /{for (i=1;i<=NF;i++) s+=$i;} END {print s}' /proc/stat`
+      previous_total=${current_total}
+      current_total=${total}
+      # quickly fetch the data
+      childpids=$(childprocs ${PID})
+
+      for p in $childpids; do
+        while read -r name utime stime; do
+          echo "${cpucounter} ${p} ${total} ${utime} ${stime} ${name}" >> ${logfile}_cpuusage
+          previous[$p]=${current[$p]}
+          current[$p]=${utime}
+          name[$p]=${name}
+        done <<<$(awk '//{print $2" "$14" "$15}' /proc/${p}/stat 2>/dev/null)
+      done
+      # do some calculations based on the data
+      totalCPU=0             # actual CPU load measured
+      totalCPU_unlimited=0   # extrapolated unlimited CPU load
+      line=""
+      for p in $childpids; do
+        C=${current[$p]}
+        P=${previous[$p]}
+        CT=${total}
+        PT=${previous_total}
+        # echo "${p} : current ${C} previous ${P} ${CT} ${PT}"
+        thisCPU[$p]=$(awk -v "c=${C}" -v "p=${P}" -v "ct=${CT}" -v "pt=${PT}" -v "ncpu=${NLOGICALCPUS}" 'BEGIN { print 100.*ncpu*(c-p)/(ct-pt); }')
+        line="${line} $p:${thisCPU[$p]}"
+        totalCPU=$(awk -v "t=${totalCPU}" -v "this=${thisCPU[$p]}" 'BEGIN { print (t + this); }')
+        previousfactor=1
+        [ ${waslimited[$p]} ] && previousfactor=${reduction_factor}
+        totalCPU_unlimited=$(awk -v "t=${totalCPU_unlimited}" -v "this=${thisCPU[$p]}" -v f="${previousfactor}" 'BEGIN { print (t + this/f); }')
+        # echo "CPU last time window ${p} : ${thisCPU[$p]}"
+      done
+
+      echo "${line}"
+      echo "${cpucounter} totalCPU = ${totalCPU} -- without limitation ${totalCPU_unlimited}"
+      # We can check if the total load is above a resource limit
+      # And take corrective actions if we extend by 10%
+      limitPIDs=""
+      unset waslimited
+      if (( $(echo "${totalCPU_unlimited} > 1.1*${JOBUTILS_LIMITLOAD}" | bc -l) )); then
+        # we reduce each pid proportionally for the time until the next check and record the reduction factor in place
+        oldreduction=${reduction_factor}
+        reduction_factor=$(awk -v limit="${JOBUTILS_LIMITLOAD}" -v cur="${totalCPU_unlimited}" 'BEGIN{ print limit/cur;}')
+        echo "APPLYING REDUCTION = ${reduction_factor}"
+
+        for p in $childpids; do
+          cpulim=$(awk -v a="${thisCPU[${p}]}" -v newr="${reduction_factor}" -v oldr="${oldreduction}" 'BEGIN { r=(a/oldr)*newr; print r; if(r > 0.05) {exit 0;} exit 1; }')
+          if [ $? = "0" ]; then
+            # we only apply to jobs above a certain threshold
+            echo "Setting CPU lim for job ${p} / ${name[$p]} to ${cpulim}";
+
+            timeout ${JOBUTILS_WRAPPER_SLEEP} ${O2_ROOT}/share/scripts/cpulimit -l ${cpulim} -p ${p} > /dev/null 2> /dev/null & disown
+            proc=$!
+            limitPIDs="${limitPIDs} ${proc}"
+            waslimited[$p]=1
+          fi
+        done
+      else
+        echo "RESETING REDUCTION = 1"
+        reduction_factor=1.
+      fi
       let cpucounter=cpucounter+1
     fi
 
     # a good moment to check for jobs timeout (or other resources)
     if [ "$JOBUTILS_JOB_TIMEOUT" ]; then
-      $(awk -v S="${SECONDS}" -v T="${JOBUTILS_JOB_TIMEOUT}" -v START="${STARTTIME}" '//{} END{if((S-START)>T){exit 1;} exit 0;}' < /dev/null)
+      $(awk -v S="${SECONDS}" -v T="${JOBUTILS_JOB_TIMEOUT}" -v START="${STARTTIME}" 'BEGIN {if((S-START)>T){exit 1;} exit 0;}')
       if [ "$?" = "1" ]; then
         echo "task timeout reached .. killing all processes";
         taskwrapper_cleanup $PID SIGKILL
@@ -230,7 +299,7 @@ taskwrapper() {
     fi
 
     # sleep for some time (can be customized for power user)
-    sleep ${JOBUTILS_WRAPPER_SLEEP:-5}
+    sleep ${JOBUTILS_WRAPPER_SLEEP:-10}
   done
 
   # wait for PID and fetch return code
@@ -281,3 +350,11 @@ getNumberOfPhysicalCPUCores() {
   echo "${N}"
 }
 
+getNumberOfLogicalCPUCores() {
+  if [ "$(uname)" == "Darwin" ]; then
+    echo $(sysctl -n hw.logicalcpu)
+  else
+    # Do something under GNU/Linux platform
+    echo $(grep "processor" /proc/cpuinfo | wc -l)
+  fi
+}
