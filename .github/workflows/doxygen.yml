@@ -7,7 +7,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - name: Install doxygen
-      run: sudo apt-get install -y doxygen doxygen-doc doxygen-latex doxygen-gui graphviz cmake
+      run: |
+        sudo apt-get update -y
+        sudo apt-get install -y doxygen doxygen-doc doxygen-latex doxygen-gui graphviz cmake
     - name: Install doxygen
       run: |
         cat > CMakeLists.txt <<\EOF
