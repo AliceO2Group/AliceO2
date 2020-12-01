@@ -8,8 +8,8 @@
 # granted to it by virtue of its status as an Intergovernmental Organization or
 # submit itself to any jurisdiction.
 
-add_subdirectory(cpulimit)
+add_executable(cpulimit
+               cpulimit.c list.c process_group.c process_iterator.c)
+target_compile_definitions(cpulimit PUBLIC _GNU_SOURCE)
 
-install(PROGRAMS monitor-mem.sh DESTINATION share/scripts/)
-install(PROGRAMS jobutils.sh DESTINATION share/scripts/)
-install(PROGRAMS grid_submit.sh DESTINATION share/scripts/)
+install(TARGETS cpulimit DESTINATION share/scripts/)
