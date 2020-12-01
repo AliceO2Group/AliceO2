@@ -57,6 +57,12 @@ o2_add_test(CcdbApi-Alien
 		PUBLIC_LINK_LIBRARIES O2::CCDB
 		LABELS ccdb)
 
+o2_add_test(CcdbApi-EMC
+		SOURCES test/testCcdbApi_EMC.cxx
+		COMPONENT_NAME ccdb
+		PUBLIC_LINK_LIBRARIES O2::CCDB
+		LABELS ccdb)
+
 o2_add_test(BasicCCDBManager
             SOURCES test/testBasicCCDBManager.cxx
             COMPONENT_NAME ccdb
