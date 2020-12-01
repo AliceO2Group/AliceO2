@@ -20,3 +20,9 @@ jobs:
         EOF
         cmake .
         make doc
+        git add doc/html
+        git config --global user.email "github-action-bot@example.com"
+        git config --global user.name "GitHub Action Bot"
+        git commit -m "Updated README" -a || echo "No changes to commit"
+        git push origin `git subtree split --prefix doc/html dev`:refs/heads/gh-pages --force
+
