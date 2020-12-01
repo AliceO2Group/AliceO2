@@ -26,6 +26,12 @@ enum OutputObjHandlingPolicy : unsigned int {
   numPolicies
 };
 
+enum OutputObjSourceType : unsigned int {
+  OutputObjSource,
+  HistogramRegistrySource,
+  numTypes
+};
+
 /// @struct OutputObjHeader
 /// @brief O2 header for OutputObj metadata
 struct OutputObjHeader : public BaseHeader {
@@ -33,15 +39,18 @@ struct OutputObjHeader : public BaseHeader {
   constexpr static const o2::header::HeaderType sHeaderType = "OutObjMD";
   constexpr static const o2::header::SerializationMethod sSerializationMethod = o2::header::gSerializationMethodNone;
   OutputObjHandlingPolicy mPolicy;
+  OutputObjSourceType mSourceType;
   uint32_t mTaskHash;
 
   constexpr OutputObjHeader()
     : BaseHeader(sizeof(OutputObjHeader), sHeaderType, sSerializationMethod, sVersion),
       mPolicy{OutputObjHandlingPolicy::AnalysisObject},
+      mSourceType{OutputObjSourceType::OutputObjSource},
       mTaskHash{0} {}
-  constexpr OutputObjHeader(OutputObjHandlingPolicy policy, uint32_t hash)
+  constexpr OutputObjHeader(OutputObjHandlingPolicy policy, OutputObjSourceType sourceType, uint32_t hash)
     : BaseHeader(sizeof(OutputObjHeader), sHeaderType, sSerializationMethod, sVersion),
       mPolicy{policy},
+      mSourceType{sourceType},
       mTaskHash{hash} {}
   constexpr OutputObjHeader(OutputObjHeader const&) = default;
 };
