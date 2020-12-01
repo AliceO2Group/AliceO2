@@ -30,14 +30,15 @@ AltroDecoderError::ErrorType_t AltroDecoder::decode()
   try {
     readRCUTrailer();
   } catch (RCUTrailer::Error& e) {
+    LOG(ERROR) << "RCU trailer error" << (int)e.getErrorType() ;
     return AltroDecoderError::RCU_TRAILER_ERROR;
   }
   //TODO  checkRCUTrailer();
-
   try {
     readChannels();
-  } catch (AltroDecoderError& e) {
-    return e.getErrorType();
+  } catch (AltroDecoderError::ErrorType_t e) {
+    LOG(ERROR) << "Altro decoding error " << e;
+    return e ;
   }
   return AltroDecoderError::kOK;
 }
@@ -49,9 +50,7 @@ void AltroDecoder::readRCUTrailer()
     gsl::span<const uint32_t> payloadwords(payloadwordsOrig.data(), payloadwordsOrig.size());
     mRCUTrailer.constructFromRawPayload(payloadwords);
   } catch (RCUTrailer::Error& e) {
-    AliceO2::InfoLogger::InfoLogger logger;
-    logger << e.what();
-    throw AltroDecoderError(AltroDecoderError::ErrorType_t::RCU_TRAILER_ERROR, (boost::format("RCU trailer decoding error: %s") % e.what()).str().data());
+    throw e ;
   }
 }
 
@@ -105,13 +104,13 @@ void AltroDecoder::readChannels()
 const RCUTrailer& AltroDecoder::getRCUTrailer() const
 {
   if (!mRCUTrailer.isInitialized())
-    throw AltroDecoderError(AltroDecoderError::ErrorType_t::RCU_TRAILER_ERROR, "RCU trailer was not initialized");
+    throw AltroDecoderError::ErrorType_t::RCU_TRAILER_ERROR;// "RCU trailer was not initialized");
   return mRCUTrailer;
 }
 
 const std::vector<Channel>& AltroDecoder::getChannels() const
 {
   if (!mChannelsInitialized)
-    throw AltroDecoderError(AltroDecoderError::ErrorType_t::CHANNEL_ERROR, "Channels not initizalized");
+    throw AltroDecoderError::ErrorType_t::CHANNEL_ERROR; // "Channels not initizalized");
   return mChannels;
 }

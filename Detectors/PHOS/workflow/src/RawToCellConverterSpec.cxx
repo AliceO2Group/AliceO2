@@ -21,9 +21,8 @@
 #include "PHOSReconstruction/Bunch.h"
 #include "PHOSReconstruction/CaloRawFitter.h"
 #include "PHOSReconstruction/AltroDecoder.h"
+#include "PHOSReconstruction/RawDecodingError.h"
 #include "PHOSWorkflow/RawToCellConverterSpec.h"
-// #include "SimulationDataFormat/MCCompLabel.h"
-// #include "SimulationDataFormat/MCTruthContainer.h"
 
 using namespace o2::phos::reco_workflow;
 
@@ -81,10 +80,24 @@ void RawToCellConverterSpec::run(framework::ProcessingContext& ctx)
   for (const auto& rawData : framework::InputRecordWalker(ctx.inputs())) {
 
     o2::phos::RawReaderMemory rawreader(o2::framework::DataRefUtils::as<const char>(rawData));
-
     // loop over all the DMA pages
     while (rawreader.hasNext()) {
-      rawreader.next();
+      try{
+         rawreader.next();
+      }
+      catch(RawDecodingError::ErrorType_t e){
+        LOG(ERROR) << "Raw decoding error " << (int)e;
+        //add error list
+        mOutputHWErrors.emplace_back(14, (int)e, 1); //Put general errors to non-existing DDL14
+        //if problem in header, abandon this page
+        if(e==RawDecodingError::ErrorType_t::PAGE_NOTFOUND || 
+           e==RawDecodingError::ErrorType_t::HEADER_DECODING || 
+           e==RawDecodingError::ErrorType_t::HEADER_INVALID){ 
+           break ;
+        }
+        //if problem in payload, try to continue
+        continue;
+      }
       auto& header = rawreader.getRawHeader();
       auto triggerBC = o2::raw::RDHUtils::getTriggerBC(header);
       auto triggerOrbit = o2::raw::RDHUtils::getTriggerOrbit(header);

@@ -39,7 +39,7 @@ o2::header::RDHAny RawReaderMemory::decodeRawHeader(const void* payloadwords)
   } else if (headerversion == 6) {
     return o2::header::RDHAny(*reinterpret_cast<const o2::header::RAWDataHeaderV6*>(payloadwords));
   }
-  throw RawDecodingError(RawDecodingError::ErrorType_t::HEADER_DECODING);
+  throw RawDecodingError::ErrorType_t::HEADER_DECODING;
 }
 
 void RawReaderMemory::init()
@@ -57,7 +57,12 @@ void RawReaderMemory::next()
   mCurrentTrailer.reset();
   bool isDataTerminated = false;
   do {
-    nextPage(false);
+    try{
+      nextPage(false);
+    }
+    catch(RawDecodingError::ErrorType_t e){
+      throw e;      
+    }
     if (hasNext()) {
       auto nextheader = decodeRawHeader(mRawMemoryBuffer.data() + mCurrentPosition);
       // check continuing payload based on the bc/orbit ID
@@ -87,7 +92,7 @@ void RawReaderMemory::next()
 void RawReaderMemory::nextPage(bool doResetPayload)
 {
   if (!hasNext()) {
-    throw RawDecodingError(RawDecodingError::ErrorType_t::PAGE_NOTFOUND);
+    throw RawDecodingError::ErrorType_t::PAGE_NOTFOUND;
   }
   if (doResetPayload) {
     mRawPayload.reset();
@@ -105,11 +110,11 @@ void RawReaderMemory::nextPage(bool doResetPayload)
     }
     mRawHeaderInitialized = true;
   } catch (...) {
-    throw RawDecodingError(RawDecodingError::ErrorType_t::HEADER_DECODING);
+    throw RawDecodingError::ErrorType_t::HEADER_DECODING;
   }
   if (mCurrentPosition + RDHDecoder::getMemorySize(mRawHeader) > mRawMemoryBuffer.size()) {
     // Payload incomplete
-    throw RawDecodingError(RawDecodingError::ErrorType_t::PAYLOAD_DECODING);
+    throw RawDecodingError::ErrorType_t::PAYLOAD_DECODING;
   } else {
     mRawBuffer.readFromMemoryBuffer(gsl::span<const char>(mRawMemoryBuffer.data() + mCurrentPosition + RDHDecoder::getHeaderSize(mRawHeader), RDHDecoder::getMemorySize(mRawHeader) - RDHDecoder::getHeaderSize(mRawHeader)));
 
@@ -118,13 +123,28 @@ void RawReaderMemory::nextPage(bool doResetPayload)
     // Every page gets a trailer. The trailers from the single pages need to be removed.
     // There will be a combined trailer which keeps the sum of the payloads for all trailers.
     // This will be appended to the chopped payload.
-    auto trailer = RCUTrailer::constructFromPayloadWords(mRawBuffer.getDataWords());
+    int tralersize=0;
     if (!mCurrentTrailer.isInitialized()) {
-      mCurrentTrailer = trailer;
-    } else {
-      mCurrentTrailer.setPayloadSize(mCurrentTrailer.getPayloadSize() + trailer.getPayloadSize());
+      try{
+        mCurrentTrailer.constructFromPayloadWords(mRawBuffer.getDataWords());
+      }catch(...){
+        throw RawDecodingError::ErrorType_t::HEADER_DECODING;     
+      }
+      tralersize=mCurrentTrailer.getTrailerSize();
     }
-    gsl::span<const uint32_t> payloadWithoutTrailer(mRawBuffer.getDataWords().data(), mRawBuffer.getDataWords().size() - trailer.getTrailerSize());
+    else{
+      RCUTrailer trailer;
+      try{
+        trailer.constructFromPayloadWords(mRawBuffer.getDataWords());
+      }catch(...){
+        throw RawDecodingError::ErrorType_t::HEADER_INVALID;     
+      }
+
+      mCurrentTrailer.setPayloadSize(mCurrentTrailer.getPayloadSize() + trailer.getPayloadSize());
+      tralersize=trailer.getTrailerSize();
+    }
+
+    gsl::span<const uint32_t> payloadWithoutTrailer(mRawBuffer.getDataWords().data(), mRawBuffer.getDataWords().size() - tralersize);
 
     mRawPayload.appendPayloadWords(payloadWithoutTrailer);
     mRawPayload.increasePageCount();
@@ -136,7 +156,7 @@ void RawReaderMemory::readPage(int page)
 {
   int currentposition = 8192 * page;
   if (currentposition >= mRawMemoryBuffer.size()) {
-    throw RawDecodingError(RawDecodingError::ErrorType_t::PAGE_NOTFOUND);
+    throw RawDecodingError::ErrorType_t::PAGE_NOTFOUND;
   }
   mRawHeaderInitialized = false;
   mPayloadInitialized = false;
@@ -145,11 +165,11 @@ void RawReaderMemory::readPage(int page)
     mRawHeader = decodeRawHeader(mRawMemoryBuffer.data() + mCurrentPosition);
     mRawHeaderInitialized = true;
   } catch (...) {
-    throw RawDecodingError(RawDecodingError::ErrorType_t::HEADER_DECODING);
+    throw RawDecodingError::ErrorType_t::HEADER_DECODING;
   }
   if (currentposition + RDHDecoder::getHeaderSize(mRawHeader) + RDHDecoder::getMemorySize(mRawHeader) >= mRawMemoryBuffer.size()) {
     // Payload incomplete
-    throw RawDecodingError(RawDecodingError::ErrorType_t::PAYLOAD_DECODING);
+    throw RawDecodingError::ErrorType_t::PAYLOAD_DECODING;
   } else {
     mRawBuffer.readFromMemoryBuffer(gsl::span<const char>(mRawMemoryBuffer.data() + currentposition + RDHDecoder::getHeaderSize(mRawHeader), RDHDecoder::getMemorySize(mRawHeader)));
   }
@@ -158,7 +178,7 @@ void RawReaderMemory::readPage(int page)
 const o2::header::RDHAny& RawReaderMemory::getRawHeader() const
 {
   if (!mRawHeaderInitialized) {
-    throw RawDecodingError(RawDecodingError::ErrorType_t::HEADER_INVALID);
+    throw RawDecodingError::ErrorType_t::HEADER_INVALID;
   }
   return mRawHeader;
 }
@@ -166,7 +186,7 @@ const o2::header::RDHAny& RawReaderMemory::getRawHeader() const
 const RawBuffer& RawReaderMemory::getRawBuffer() const
 {
   if (!mPayloadInitialized) {
-    throw RawDecodingError(RawDecodingError::ErrorType_t::PAYLOAD_INVALID);
+    throw RawDecodingError::ErrorType_t::PAYLOAD_INVALID;
   }
   return mRawBuffer;
 }
