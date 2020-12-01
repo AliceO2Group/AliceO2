@@ -283,7 +283,7 @@ int calculateExitCode(DeviceSpecs& deviceSpecs, DeviceInfos& infos)
     auto& spec = deviceSpecs[di];
     if (exitCode == 0 && info.maxLogLevel >= LogParsingHelpers::LogLevel::Error) {
       LOG(ERROR) << "SEVERE: Device " << spec.name << " (" << info.pid << ") had at least one "
-                 << "message above severity ERROR: " << std::regex_replace(info.lastError, regexp, "");
+                 << "message above severity ERROR: " << std::regex_replace(info.firstError, regexp, "");
       exitCode = 1;
     }
   }
@@ -699,6 +699,9 @@ LogProcessingState processChildrenOutput(DriverInfo& driverInfo,
       }
       if (logLevel == LogParsingHelpers::LogLevel::Error) {
         info.lastError = token;
+        if (info.firstError.empty()) {
+          info.firstError = token;
+        }
       }
       s.remove_prefix(pos + delimiter.length());
     }
