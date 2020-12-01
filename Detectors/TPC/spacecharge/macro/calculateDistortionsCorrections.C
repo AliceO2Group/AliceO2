@@ -353,11 +353,11 @@ void calculateDistortionsFromHist(const char* path, const char* histoName, const
 
   // write global corrections and distortions to file
   TFile fOut("spacecharge.root", "RECREATE");
-  if(sides!=2){
+  if (sides != 2) {
     spaceCharge3D.dumpGlobalDistortions(fOut, o2::tpc::Side::A);
     spaceCharge3D.dumpGlobalCorrections(fOut, o2::tpc::Side::A);
   }
-  if(sides!=1){
+  if (sides != 1) {
     spaceCharge3D.dumpGlobalDistortions(fOut, o2::tpc::Side::C);
     spaceCharge3D.dumpGlobalCorrections(fOut, o2::tpc::Side::C);
   }
