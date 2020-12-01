@@ -17,7 +17,6 @@
 
 #include <array>
 #include "ReconstructionDataFormats/BaseCluster.h"
-#include "MFTTracking/IndexTableUtils.h"
 #include "GPUCommonDef.h"
 
 namespace o2
@@ -37,7 +36,6 @@ struct Cluster : public o2::BaseCluster<float> {
       sigmaY2{sigY2},
       isUsed{false} {};
   Cluster(const Float_t x, const Float_t y, const Float_t z, const Int_t index);
-  Cluster(const Int_t layerIndex, const Cluster& other);
 
   void setUsed(Bool_t bval) { isUsed = bval; }
   const Bool_t getUsed() { return isUsed; }

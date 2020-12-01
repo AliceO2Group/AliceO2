@@ -30,7 +30,7 @@ class Cell final
 {
  public:
   Cell();
-  /// layer1, layer2, clsLayer1, clsLayer2, cellId; set level = 1
+  /// layer1, layer2, clsInLayer1, clsInLayer2, cellId; set level = 1
   Cell(const Int_t, const Int_t, const Int_t, const Int_t, const Int_t);
 
   const Int_t getFirstLayerId() const;
