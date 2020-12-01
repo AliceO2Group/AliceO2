@@ -17,6 +17,7 @@
 
 #include <climits>
 #include <vector>
+#include <array>
 
 #include <Rtypes.h>
 
@@ -47,13 +48,6 @@ constexpr std::array<Float_t, LayersNumber> InverseLayerZCoordinate()
 {
   return std::array<Float_t, LayersNumber>{-1. / 45.3, -1. / 46.7, -1. / 48.6, -1. / 50.0, -1. / 52.4, -1. / 53.8, -1. / 67.7, -1. / 69.1, -1. / 76.1, -1. / 77.5};
 }
-constexpr Int_t MinTrackPointsLTF{5};
-constexpr Int_t MinTrackPointsCA{4};
-constexpr Int_t MinTrackStationsLTF{4};
-constexpr Int_t MinTrackStationsCA{4};
-constexpr Int_t MaxTrackPoints{20};
-constexpr Float_t LTFclsRCut{0.0100};
-constexpr Float_t ROADclsRCut{0.0400};
 constexpr Int_t MaxCellNeighbours{10};
 } // namespace mft
 
@@ -65,38 +59,7 @@ constexpr Float_t RMax{16.0};
 constexpr Float_t PhiMin{0.};
 constexpr Float_t PhiMax{o2::constants::math::TwoPI}; // [rad]
 
-constexpr Int_t RBins{50};
-constexpr Int_t PhiBins{50};
-
-constexpr Int_t RPhiBins{RBins * PhiBins};
-
-constexpr Float_t PhiBinSize{(PhiMax - PhiMin) / PhiBins};
-constexpr Float_t RBinSize{(RMax - RMin) / RBins};
-
-constexpr Float_t InversePhiBinSize{PhiBins / (PhiMax - PhiMin)};
-constexpr Float_t InverseRBinSize{RBins / (RMax - RMin)};
-
-constexpr UChar_t LTFseed2BinWin{3};
-constexpr UChar_t LTFinterBinWin{3};
-
-constexpr Int_t getRBinIndex(const Float_t r)
-{
-  return (Int_t)((r - RMin) * InverseRBinSize);
-}
-
-constexpr Int_t getPhiBinIndex(const Float_t phi)
-{
-  return (Int_t)((phi - PhiMin) * InversePhiBinSize);
-}
-
-constexpr Int_t getBinIndex(const Int_t rIndex, const Int_t phiIndex)
-{
-  if (0 <= rIndex && rIndex < RBins &&
-      0 <= phiIndex && phiIndex < PhiBins) {
-    return (phiIndex * RBins + rIndex);
-  }
-  return -1;
-}
+constexpr Int_t MaxRPhiBins{100 * 100};
 } // namespace index_table
 
 } // namespace constants

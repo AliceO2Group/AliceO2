@@ -18,6 +18,7 @@
 #include "MFTTracking/ROframe.h"
 #include "MFTTracking/TrackFitter.h"
 #include "MFTTracking/Cluster.h"
+#include "MFTTracking/TrackerConfig.h"
 
 #include "MathUtils/Utils.h"
 #include "MathUtils/Cartesian.h"
@@ -25,9 +26,6 @@
 #include "SimulationDataFormat/MCCompLabel.h"
 #include "SimulationDataFormat/MCTruthContainer.h"
 #include "DataFormatsParameters/GRPObject.h"
-
-// BV
-#include "TStopwatch.h"
 
 namespace o2
 {
@@ -61,8 +59,12 @@ class Tracker
   void setROFrame(std::uint32_t f) { mROFrame = f; }
   std::uint32_t getROFrame() const { return mROFrame; }
 
-  // BV
   void initialize();
+  const o2::mft::TrackerConfig* getConfig() { return mTrackerConfig.get(); }
+  void setConfig(const TrackerConfig& conf)
+  {
+    mTrackerConfig = std::make_unique<o2::mft::TrackerConfig>(conf);
+  }
 
  private:
   void findTracks(ROframe&);
@@ -95,13 +97,24 @@ class Tracker
 
   bool mUseMC = false;
 
-  std::array<std::array<std::array<std::vector<Int_t>, constants::index_table::RPhiBins>, (constants::mft::LayersNumber - 1)>, (constants::mft::LayersNumber - 1)> mBinsS;
-  std::array<std::array<std::array<std::vector<Int_t>, constants::index_table::RPhiBins>, (constants::mft::LayersNumber - 1)>, (constants::mft::LayersNumber - 1)> mBins;
+  std::array<std::array<std::array<std::vector<Int_t>, constants::index_table::MaxRPhiBins>, (constants::mft::LayersNumber - 1)>, (constants::mft::LayersNumber - 1)> mBinsS;
+  std::array<std::array<std::array<std::vector<Int_t>, constants::index_table::MaxRPhiBins>, (constants::mft::LayersNumber - 1)>, (constants::mft::LayersNumber - 1)> mBins;
 
   struct TrackElement {
+    TrackElement() = default;
+    TrackElement(Int_t la, Int_t id)
+    {
+      layer = la;
+      idInLayer = id;
+    };
     Int_t layer;
     Int_t idInLayer;
   };
+
+  std::vector<TrackElement> roadPoints;
+
+  /// tracking configuration parameters
+  std::unique_ptr<o2::mft::TrackerConfig> mTrackerConfig = nullptr;
 };
 
 //_________________________________________________________________________________________________
