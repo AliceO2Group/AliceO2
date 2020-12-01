@@ -10,6 +10,9 @@ jobs:
       run: |
         sudo apt-get update -y
         sudo apt-get install -y doxygen doxygen-doc doxygen-latex doxygen-gui graphviz cmake
+    - uses: actions/checkout@v2
+      with:
+        ref: "dev"
     - name: Install doxygen
       run: |
         cat > CMakeLists.txt <<\EOF
