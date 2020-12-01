@@ -33,6 +33,8 @@
 #include <ROOT/RDataFrame.hxx>
 #include <TGrid.h>
 #include <TFile.h>
+#include <TTreeCache.h>
+#include <TTreePerfStats.h>
 
 #include <arrow/ipc/reader.h>
 #include <arrow/ipc/writer.h>
@@ -283,7 +285,8 @@ AlgorithmSpec AODReaderHelpers::rootFileReaderCallback()
             throw std::runtime_error("Processing is stopped!");
           }
         }
-        tr->SetCacheSize(0);
+        TTreePerfStats ps("ioperf", tr);
+
         if (first) {
           timeFrameNumber = didir->getTimeFrameNumber(dh, fcnt, ntf);
           auto o = Output(TFNumberHeader);
@@ -314,6 +317,7 @@ AlgorithmSpec AODReaderHelpers::rootFileReaderCallback()
         if (info.file) {
           totalReadCalls += info.file->GetReadCalls() - before;
         }
+        monitoring.send(Metric{(double)ps.GetReadCalls(), "aod-tree-read-calls"}.addTag(Key::Subsystem, monitoring::tags::Value::DPL));
         delete tr;
 
         first = false;
