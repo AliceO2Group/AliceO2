@@ -252,6 +252,13 @@ class SpaceCharge
   /// \param point 3D coordinates of the electron
   void distortElectron(GlobalPosition3D& point) const;
 
+  /// set the distortions directly from a look up table
+  /// \param distdZ distortions in z direction
+  /// \param distdR distortions in r direction
+  /// \param distdRPhi distortions in rphi direction
+  /// \param side side of the TPC
+  void setDistortionLookupTables(const DataContainer& distdZ, const DataContainer& distdR, const DataContainer& distdRPhi, const Side side);
+
   /// set the density, potential, electric fields, local distortions/corrections, global distortions/corrections from a file. Missing objects in the file are ignored.
   /// \file file containing the stored values for the density, potential, electric fields, local distortions/corrections, global distortions/corrections
   /// \param side side of the TPC

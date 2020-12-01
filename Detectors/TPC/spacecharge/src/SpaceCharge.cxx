@@ -1175,6 +1175,15 @@ void SpaceCharge<DataT, Nz, Nr, Nphi>::init()
   }
 }
 
+template <typename DataT, size_t Nz, size_t Nr, size_t Nphi>
+void SpaceCharge<DataT, Nz, Nr, Nphi>::setDistortionLookupTables(const DataContainer& distdZ, const DataContainer& distdR, const DataContainer& distdRPhi, const Side side)
+{
+  mGlobalDistdR[side] = distdR;
+  mGlobalDistdZ[side] = distdZ;
+  mGlobalDistdRPhi[side] = distdRPhi;
+  mIsGlobalDistSet[side] = true;
+}
+
 using DataTD = double;
 template class o2::tpc::SpaceCharge<DataTD, 17, 17, 90>;
 template class o2::tpc::SpaceCharge<DataTD, 33, 33, 180>;

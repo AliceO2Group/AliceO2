@@ -35,7 +35,13 @@ o2_target_root_dictionary(TPCSpaceCharge
                           LINKDEF src/TPCSpacechargeLinkDef.h)
 
 o2_add_test_root_macro(macro/calculateDistortionsCorrections.C
-                       PUBLIC_LINK_LIBRARIES O2::TPCSpaceCharge)
+                       PUBLIC_LINK_LIBRARIES O2::TPCSpaceCharge
+                       LABELS tpc)
+
+o2_add_test_root_macro(macro/createResidualDistortionObject.C
+                      PUBLIC_LINK_LIBRARIES O2::TPCSpaceCharge
+                                            O2::CommonUtils
+                      LABELS tpc)
 
 o2_add_test(PoissonSolver
             COMPONENT_NAME spacecharge
