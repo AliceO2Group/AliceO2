@@ -38,7 +38,7 @@
 namespace bpo = boost::program_options;
 
 void digi2raw(const std::string& inpName, const std::string& outDir, int verbosity, bool filePerLink, uint32_t rdhV = 4,
-              int superPageSizeInB = 1024 * 1024, const std::string& ccdbHost = "");
+              const std::string& ccdbHost = "", int superPageSizeInB = 1024 * 1024);
 
 int main(int argc, char** argv)
 {
@@ -89,17 +89,18 @@ int main(int argc, char** argv)
     ccdbHost = ccdb_url;
     LOG(INFO) << "CCDB url set to " << ccdb_url;
   }
+  LOG(INFO) << "CCDB url " << ccdbHost;
   digi2raw(vm["input-file"].as<std::string>(),
            vm["output-dir"].as<std::string>(),
            vm["verbosity"].as<int>(),
            vm["file-per-link"].as<bool>(),
-           vm["rdh-version"].as<uint32_t>()
-             ccdbHost);
+           vm["rdh-version"].as<uint32_t>(),
+           ccdbHost);
 
   return 0;
 }
 
-void digi2raw(const std::string& inpName, const std::string& outDir, int verbosity, bool filePerLink, uint32_t rdhV, int superPageSizeInB, const std::string& ccdbHost)
+void digi2raw(const std::string& inpName, const std::string& outDir, int verbosity, bool filePerLink, uint32_t rdhV, const std::string& ccdbHost, int superPageSizeInB)
 {
   long timeStamp = 0;
   //std::string ccdbHost = "http://ccdb-test.cern.ch:8080";
