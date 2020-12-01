@@ -138,20 +138,22 @@ struct GBTLinkDecodingStat {
   uint32_t ruLinkID = 0; // Link ID within RU
 
   // Note: packet here is meant as a group of CRU pages belonging to the same trigger
-  uint32_t nPackets = 0;                                                        // total number of packets
+  uint32_t nPackets = 0;                                                        // total number of packets (RDH pages)
+  uint32_t nTriggers = 0;                                                       // total number of triggers (ROFs)
   std::array<uint32_t, NErrorsDefined> errorCounts = {};                        // error counters
   std::array<uint32_t, GBTDataTrailer::MaxStateCombinations> packetStates = {}; // packet status from the trailer
 
   void clear()
   {
     nPackets = 0;
+    nTriggers = 0;
     errorCounts.fill(0);
     packetStates.fill(0);
   }
 
   void print(bool skipEmpty = true) const;
 
-  ClassDefNV(GBTLinkDecodingStat, 1);
+  ClassDefNV(GBTLinkDecodingStat, 2);
 };
 
 } // namespace itsmft

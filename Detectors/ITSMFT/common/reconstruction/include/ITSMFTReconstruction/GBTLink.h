@@ -249,6 +249,7 @@ GBTLink::CollectedDataStatus GBTLink::collectROFCableData(const Mapping& chmap)
         printTrigger(gbtTrg);
       }
       GBTLINK_DECODE_ERRORCHECK(errRes, checkErrorsTriggerWord(gbtTrg));
+      statistics.nTriggers++;
       if (gbtTrg->noData) { // emtpy trigger
         return status;
       }
@@ -309,6 +310,7 @@ GBTLink::CollectedDataStatus GBTLink::collectROFCableData(const Mapping& chmap)
       ir = RDHUtils::getTriggerIR(*lastRDH);
       trigger = RDHUtils::getTriggerType(*lastRDH);
     }
+
     return (status = DataSeen);
   }
 
