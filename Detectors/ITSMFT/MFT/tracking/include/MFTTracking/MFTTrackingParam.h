@@ -35,6 +35,28 @@ struct MFTTrackingParam : public o2::conf::ConfigurableParamHelper<MFTTrackingPa
   double MFTRadLength = 1.0; // MFT average material budget within acceptance. Should be 0.041
   bool verbose = false;
 
+  /// tracking algorithm (LTF and CA) parameters
+  /// minimum number of points for a LTF track
+  Int_t MinTrackPointsLTF = 5;
+  /// minimum number of points for a CA track
+  Int_t MinTrackPointsCA = 4;
+  /// minimum number of detector stations for a LTF track
+  Int_t MinTrackStationsLTF = 4;
+  /// minimum number of detector stations for a CA track
+  Int_t MinTrackStationsCA = 4;
+  /// maximum distance for a cluster to be attached to a seed line (LTF)
+  Float_t LTFclsRCut = 0.0100;
+  /// maximum distance for a cluster to be attached to a seed line (CA road)
+  Float_t ROADclsRCut = 0.0400;
+  /// number of bins in r-direction
+  Int_t RBins = 50;
+  /// number of bins in phi-direction
+  Int_t PhiBins = 50;
+  /// RPhi search window bin width for the second point of a seed (LTF and CA)
+  Int_t LTFseed2BinWin = 3;
+  /// RPhi search window bin width for the intermediate points
+  Int_t LTFinterBinWin = 3;
+
   O2ParamDef(MFTTrackingParam, "MFTTracking");
 };
 

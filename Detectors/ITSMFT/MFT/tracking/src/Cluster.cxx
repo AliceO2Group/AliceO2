@@ -12,7 +12,6 @@
 ///
 
 #include "MFTTracking/Cluster.h"
-#include "MFTTracking/IndexTableUtils.h"
 
 #include "MathUtils/Utils.h"
 #include "MathUtils/Cartesian.h"
@@ -30,20 +29,6 @@ Cluster::Cluster(const Float_t x, const Float_t y, const Float_t z, const Int_t 
     indexTableBin{0}
 {
   auto clsPoint2D = math_utils::Point2D<Float_t>(x, y);
-  rCoordinate = clsPoint2D.R();
-  phiCoordinate = clsPoint2D.Phi();
-  o2::math_utils::bringTo02PiGen(phiCoordinate);
-}
-
-Cluster::Cluster(const Int_t layerIndex, const Cluster& other)
-  : BaseCluster(1, other.getXYZ()),
-    phiCoordinate{0.},
-    rCoordinate{0.},
-    clusterId{other.clusterId},
-    indexTableBin{index_table_utils::getBinIndex(index_table_utils::getRBinIndex(layerIndex, rCoordinate),
-                                                 index_table_utils::getPhiBinIndex(phiCoordinate))}
-{
-  auto clsPoint2D = math_utils::Point2D<Float_t>(other.getX(), other.getY());
   rCoordinate = clsPoint2D.R();
   phiCoordinate = clsPoint2D.Phi();
   o2::math_utils::bringTo02PiGen(phiCoordinate);

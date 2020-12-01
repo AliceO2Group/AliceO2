@@ -52,7 +52,7 @@ class ROframe final
 
   const MCCompLabel& getClusterLabels(Int_t layerId, const Int_t clusterId) const { return mClusterLabels[layerId][clusterId]; }
 
-  const std::array<std::pair<Int_t, Int_t>, constants::index_table::RPhiBins>& getClusterBinIndexRange(Int_t layerId) const { return mClusterBinIndexRange[layerId]; }
+  const std::array<std::pair<Int_t, Int_t>, constants::index_table::MaxRPhiBins>& getClusterBinIndexRange(Int_t layerId) const { return mClusterBinIndexRange[layerId]; }
 
   const Int_t getClusterExternalIndex(Int_t layerId, const Int_t clusterId) const { return mClusterExternalIndices[layerId][clusterId]; }
 
@@ -89,7 +89,7 @@ class ROframe final
   std::array<std::vector<Cluster>, constants::mft::LayersNumber> mClusters;
   std::array<std::vector<MCCompLabel>, constants::mft::LayersNumber> mClusterLabels;
   std::array<std::vector<Int_t>, constants::mft::LayersNumber> mClusterExternalIndices;
-  std::array<std::array<std::pair<Int_t, Int_t>, constants::index_table::RPhiBins>, constants::mft::LayersNumber> mClusterBinIndexRange;
+  std::array<std::array<std::pair<Int_t, Int_t>, constants::index_table::MaxRPhiBins>, constants::mft::LayersNumber> mClusterBinIndexRange;
   std::vector<TrackLTF> mTracksLTF;
   std::vector<TrackCA> mTracksCA;
   std::vector<Road> mRoads;
@@ -149,7 +149,7 @@ inline void ROframe::clear()
     mClusters[iLayer].clear();
     mClusterLabels[iLayer].clear();
     mClusterExternalIndices[iLayer].clear();
-    for (Int_t iBin = 0; iBin < constants::index_table::RPhiBins; ++iBin) {
+    for (Int_t iBin = 0; iBin < constants::index_table::MaxRPhiBins; ++iBin) {
       mClusterBinIndexRange[iLayer][iBin] = std::pair<Int_t, Int_t>(0, -1);
     }
   }
