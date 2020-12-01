@@ -376,7 +376,7 @@ class EncodedBlocks
   template <typename VE, typename VB>
   inline void encode(const VE& src, int slot, uint8_t probabilityBits, Metadata::OptStore opt, VB* buffer = nullptr, const void* encoderExt = nullptr)
   {
-    encode(&(*src.begin()), &(*src.end()), slot, probabilityBits, opt, buffer, encoderExt);
+    encode(std::begin(src), std::end(src), slot, probabilityBits, opt, buffer, encoderExt);
   }
 
   /// encode vector src to bloc at provided slot

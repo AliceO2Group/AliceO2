@@ -42,6 +42,7 @@ BOOST_AUTO_TEST_CASE(CTFTest)
   {
     CTFCoder coder;
     coder.setCompClusAddresses(c, buff);
+    coder.setCombineColumns(true);
   }
   ccFlat->set(sz, c);
 
@@ -85,6 +86,7 @@ BOOST_AUTO_TEST_CASE(CTFTest)
   std::vector<o2::ctf::BufferType> vecIO;
   {
     CTFCoder coder;
+    coder.setCombineColumns(true);
     coder.encode(vecIO, c); // compress
   }
   sw.Stop();
@@ -120,6 +122,7 @@ BOOST_AUTO_TEST_CASE(CTFTest)
   const auto ctfImage = o2::tpc::CTF::getImage(vecIO.data());
   {
     CTFCoder coder;
+    coder.setCombineColumns(true);
     coder.decode(ctfImage, vecIn); // decompress
   }
   sw.Stop();

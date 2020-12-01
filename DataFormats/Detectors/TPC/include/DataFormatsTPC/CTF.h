@@ -33,6 +33,8 @@ struct CTFHeader : public CompressedClustersCounters {
 /// wrapper for the Entropy-encoded clusters of the TF
 struct CTF : public o2::ctf::EncodedBlocks<CTFHeader, 23, uint32_t> {
 
+  using container_t = o2::ctf::EncodedBlocks<CTFHeader, 23, uint32_t>;
+
   static constexpr size_t N = getNBlocks();
   static constexpr int NBitsQTot = 16;
   static constexpr int NBitsQMax = 10;
