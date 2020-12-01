@@ -441,6 +441,8 @@ for (int pos = 0; pos < alldigits.size(); ++pos) {
   }
 }
 ```
+Note, that one can also access kinematics directly after the transport simulation. 
+In this case, one needs to initialize the MCKinematicsReader in a different mode.
 
 # Simulation tutorials/examples <a name="Examples"></a>
 
