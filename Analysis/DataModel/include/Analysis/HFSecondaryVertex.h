@@ -25,15 +25,13 @@ namespace o2::aod
 {
 namespace hf_seltrack
 {
-DECLARE_SOA_COLUMN(IsSel2Prong, isSel2Prong, int);
-DECLARE_SOA_COLUMN(IsSel3Prong, isSel3Prong, int);
+DECLARE_SOA_COLUMN(IsSelProng, isSelProng, int);
 DECLARE_SOA_COLUMN(DCAPrim0, dcaPrim0, float);
 DECLARE_SOA_COLUMN(DCAPrim1, dcaPrim1, float);
 } // namespace hf_seltrack
 
 DECLARE_SOA_TABLE(HFSelTrack, "AOD", "HFSELTRACK",
-                  hf_seltrack::IsSel2Prong,
-                  hf_seltrack::IsSel3Prong,
+                  hf_seltrack::IsSelProng,
                   hf_seltrack::DCAPrim0,
                   hf_seltrack::DCAPrim1);
 
@@ -50,6 +48,13 @@ DECLARE_SOA_INDEX_COLUMN_FULL(Index1, index1, int, BigTracks, "fIndex1");
 DECLARE_SOA_INDEX_COLUMN_FULL(Index2, index2, int, BigTracks, "fIndex2");
 DECLARE_SOA_INDEX_COLUMN_FULL(Index3, index3, int, BigTracks, "fIndex3");
 DECLARE_SOA_COLUMN(HFflag, hfflag, uint8_t);
+
+DECLARE_SOA_COLUMN(D0ToKPiFlag, d0ToKPiFlag, uint8_t);
+DECLARE_SOA_COLUMN(JpsiToEEFlag, jpsiToEEFlag, uint8_t);
+
+DECLARE_SOA_COLUMN(DPlusPiKPiFlag, dPlusPiKPiFlag, uint8_t);
+DECLARE_SOA_COLUMN(LcPKPiFlag, lcPKPiFlag, uint8_t);
+DECLARE_SOA_COLUMN(DsKKPiFlag, dsKKPiFlag, uint8_t);
 } // namespace hf_track_index
 
 DECLARE_SOA_TABLE(HfTrackIndexProng2, "AOD", "HFTRACKIDXP2",
@@ -57,11 +62,20 @@ DECLARE_SOA_TABLE(HfTrackIndexProng2, "AOD", "HFTRACKIDXP2",
                   hf_track_index::Index1Id,
                   hf_track_index::HFflag);
 
+DECLARE_SOA_TABLE(HfCutStatusProng2, "AOD", "HFCUTSTATUSP2",
+                  hf_track_index::D0ToKPiFlag,
+                  hf_track_index::JpsiToEEFlag);
+
 DECLARE_SOA_TABLE(HfTrackIndexProng3, "AOD", "HFTRACKIDXP3",
                   hf_track_index::Index0Id,
                   hf_track_index::Index1Id,
                   hf_track_index::Index2Id,
                   hf_track_index::HFflag);
+
+DECLARE_SOA_TABLE(HfCutStatusProng3, "AOD", "HFCUTSTATUSP3",
+                  hf_track_index::DPlusPiKPiFlag,
+                  hf_track_index::LcPKPiFlag,
+                  hf_track_index::DsKKPiFlag);
 
 // general decay properties
 namespace hf_cand
