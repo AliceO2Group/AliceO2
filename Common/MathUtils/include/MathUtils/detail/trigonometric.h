@@ -108,24 +108,16 @@ inline void bringToPMPiGen(T& phi)
 }
 
 template <typename T>
-GPUdi() void sincos(T ang, T& s, T& c)
+GPUdi() void sincos(T ang, GPUgeneric() T& s, GPUgeneric() T& c)
 {
   return o2::gpu::GPUCommonMath::SinCos(ang, s, c);
 }
 
 template <>
-GPUdi() void sincos(double ang, double& s, double& c)
-{
-  return o2::gpu::GPUCommonMath::SinCosd(ang, s, c);
-}
-
-#ifdef __OPENCLCPP__
-template <>
 GPUdi() void sincos(double ang, GPUgeneric() double& s, GPUgeneric() double& c)
 {
   return o2::gpu::GPUCommonMath::SinCosd(ang, s, c);
 }
-#endif
 
 #ifndef GPUCA_GPUCODE_DEVICE
 
