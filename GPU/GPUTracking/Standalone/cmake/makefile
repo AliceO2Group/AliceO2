@@ -1,4 +1,5 @@
 all:
+	+$(MAKE) -C build depend
 	+$(MAKE) -C build install
 
 clean:
