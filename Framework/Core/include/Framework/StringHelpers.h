@@ -14,6 +14,7 @@
 #include <cstdint>
 #include <utility>
 #include <type_traits>
+#include <string_view>
 
 // CRC32 Table (zlib polynomial) static
 constexpr uint32_t crc_table[256] = {0x0L, 0x77073096L, 0xee0e612cL,
@@ -102,6 +103,15 @@ constexpr bool is_const_str_v(T)
   return is_const_str<T>::value;
 }
 
+template <char... chars1, char... chars2>
+constexpr auto operator+(const ConstStr<chars1...>&, const ConstStr<chars2...>&)
+{
+  return ConstStr<chars1..., chars2...>{};
+}
+
+namespace const_str_details
+{
+
 template <typename T, std::size_t... Is>
 constexpr auto as_chars_impl(std::index_sequence<Is...>)
 {
@@ -112,18 +122,45 @@ template <typename T>
 constexpr auto as_chars()
 {
   return as_chars_impl<T>(
-    std::make_index_sequence<sizeof(T::str()) - 1>{});
+    std::make_index_sequence<T::size() - 1>{});
 }
 
-#define CONST_STR(literal)                  \
-  [] {                                      \
-    struct literal_to_chars {               \
-      static constexpr decltype(auto) str() \
-      {                                     \
-        return literal;                     \
-      }                                     \
-    };                                      \
-    return as_chars<literal_to_chars>();    \
+template <int N>
+constexpr const char* const get_str(const char (&str)[N])
+{
+  return str;
+}
+
+template <int N>
+constexpr const int get_size(const char (&str)[N])
+{
+  return N;
+}
+
+constexpr const char* const get_str(const std::string_view& str)
+{
+  return str.data();
+}
+
+constexpr const int get_size(const std::string_view& str)
+{
+  return str.size() + 1;
+}
+} // namespace const_str_details
+
+#define CONST_STR(literal)                                  \
+  [] {                                                      \
+    struct literal_to_chars {                               \
+      static constexpr decltype(auto) str()                 \
+      {                                                     \
+        return const_str_details::get_str(literal);         \
+      }                                                     \
+      static constexpr decltype(auto) size()                \
+      {                                                     \
+        return const_str_details::get_size(literal);        \
+      }                                                     \
+    };                                                      \
+    return const_str_details::as_chars<literal_to_chars>(); \
   }()
 
 #endif // O2_FRAMEWORK_STRINGHELPERS_H
