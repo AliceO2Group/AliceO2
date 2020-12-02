@@ -19,6 +19,7 @@ TString VarManager::fgVariableUnits[VarManager::kNVars] = {""};
 bool VarManager::fgUsedVars[VarManager::kNVars] = {kFALSE};
 float VarManager::fgValues[VarManager::kNVars] = {0.0};
 std::map<int, int> VarManager::fgRunMap;
+TString VarManager::fgRunStr = "";
 
 //__________________________________________________________________
 VarManager::VarManager() : TObject()
@@ -66,6 +67,7 @@ void VarManager::SetRunNumbers(int n, int* runs)
   //
   for (int i = 0; i < n; ++i) {
     fgRunMap[runs[i]] = i + 1;
+    fgRunStr += Form("%d;", runs[i]);
   }
 }
 
