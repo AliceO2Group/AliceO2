@@ -53,10 +53,10 @@ class TrackReader : public Task
   bool mUseMC = true; // use MC truth
 
   std::string mInputFileName = "tpctracks.root";
-  std::string mTrackTreeName = "events";
-  std::string mTrackBranchName = "Tracks";
+  std::string mTrackTreeName = "tpcrec";
+  std::string mTrackBranchName = "TPCTracks";
   std::string mClusRefBranchName = "ClusRefs";
-  std::string mTrackMCTruthBranchName = "TracksMCTruth";
+  std::string mTrackMCTruthBranchName = "TPCTracksMCTruth";
 };
 
 /// create a processor spec
