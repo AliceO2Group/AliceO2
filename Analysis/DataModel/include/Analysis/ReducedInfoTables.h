@@ -24,6 +24,14 @@
 
 namespace o2::aod
 {
+
+namespace dqppfilter
+{
+DECLARE_SOA_COLUMN(EventFilter, eventFilter, uint64_t);
+}
+// Table to be used for storing event-level decisions (DQ high level triggers)
+DECLARE_SOA_TABLE(DQEventFilter, "AOD", "EVENTFILTER", dqppfilter::EventFilter);
+
 namespace reducedevent
 {
 

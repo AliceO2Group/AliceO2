@@ -59,6 +59,12 @@ class VarManager : public TObject
     Pair = BIT(11)
   };
 
+  enum PairCandidateType {
+    kJpsiToEE,   // J/psi        -> e+ e-
+    kJpsiToMuMu, // J/psi        -> mu+ mu-
+    kNMaxCandidateTypes
+  };
+
  public:
   enum Variables {
     kNothing = -1,
@@ -209,13 +215,21 @@ class VarManager : public TObject
   }
 
   static void SetRunNumbers(int n, int* runs);
+  static int GetNRuns()
+  {
+    return fgRunMap.size();
+  }
+  static TString GetRunStr()
+  {
+    return fgRunStr;
+  }
 
   template <uint32_t fillMap, typename T>
   static void FillEvent(T const& event, float* values = nullptr);
   template <uint32_t fillMap, typename T>
   static void FillTrack(T const& track, float* values = nullptr);
   template <typename T>
-  static void FillPair(T const& t1, T const& t2, float* values = nullptr);
+  static void FillPair(T const& t1, T const& t2, float* values = nullptr, PairCandidateType pairType = kJpsiToEE);
   template <typename T1, typename T2>
   static void FillDileptonHadron(T1 const& dilepton, T2 const& hadron, float* values = nullptr, float hadronMass = 0.0f);
 
@@ -231,6 +245,7 @@ class VarManager : public TObject
   static void SetVariableDependencies(); // toggle those variables on which other used variables might depend
 
   static std::map<int, int> fgRunMap; // map of runs to be used in histogram axes
+  static TString fgRunStr;            // semi-colon separated list of runs, to be used for histogram axis labels
 
   static void FillEventDerived(float* values = nullptr);
   static void FillTrackDerived(float* values = nullptr);
@@ -454,32 +469,21 @@ void VarManager::FillTrack(T const& track, float* values)
 }
 
 template <typename T>
-void VarManager::FillPair(T const& t1, T const& t2, float* values)
+void VarManager::FillPair(T const& t1, T const& t2, float* values, PairCandidateType pairType)
 {
   if (!values) {
     values = fgValues;
   }
 
-  float mass1 = fgkElectronMass;
-  float mass2 = fgkElectronMass;
-
-  bool isMuon1 = t1.filteringFlags() & (1 << 0);
-  bool isMuon2 = t2.filteringFlags() & (1 << 0);
-
-  if (isMuon1) {
-    mass1 = fgkMuonMass;
-  } else {
-    mass1 = fgkElectronMass;
+  float m1 = fgkElectronMass;
+  float m2 = fgkElectronMass;
+  if (pairType == kJpsiToMuMu) {
+    m1 = fgkMuonMass;
+    m2 = fgkMuonMass;
   }
 
-  if (isMuon2) {
-    mass2 = fgkMuonMass;
-  } else {
-    mass2 = fgkElectronMass;
-  }
-
-  ROOT::Math::PtEtaPhiMVector v1(t1.pt(), t1.eta(), t1.phi(), mass1);
-  ROOT::Math::PtEtaPhiMVector v2(t2.pt(), t2.eta(), t2.phi(), mass2);
+  ROOT::Math::PtEtaPhiMVector v1(t1.pt(), t1.eta(), t1.phi(), m1);
+  ROOT::Math::PtEtaPhiMVector v2(t2.pt(), t2.eta(), t2.phi(), m2);
   ROOT::Math::PtEtaPhiMVector v12 = v1 + v2;
   values[kMass] = v12.M();
   values[kPt] = v12.Pt();
