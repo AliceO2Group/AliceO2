@@ -26,7 +26,7 @@ uint16_t CHARGESUM_MASK = 0x100;
 template <typename FORMAT, typename CHARGESUM>
 struct PayloadDecoderImpl {
 
-  using type = struct {
+  using type = struct PayloadDecoderImplReturnType {
     void process(uint32_t, gsl::span<const std::byte>);
   };
 
