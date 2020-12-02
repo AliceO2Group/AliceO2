@@ -75,12 +75,41 @@ struct BTask {
 struct TTask {
   using myCol = soa::Join<aod::Collisions, aod::CollisionsExtra>;
   expressions::Filter multfilter = aod::collision::mult > 10;
-  void process(soa::Filtered<soa::Join<aod::Collisions, aod::CollisionsExtra>>::iterator const& col, aod::Tracks const& tracks)
+  void process(soa::Filtered<myCol>::iterator const& col, aod::Tracks const& tracks)
   {
     LOGF(INFO, "[direct] ID: %d; %d == %d", col.globalIndex(), col.mult(), tracks.size());
     if (tracks.size() > 0) {
       auto track0 = tracks.begin();
       LOGF(INFO, "[index ] ID: %d; %d == %d", track0.collision_as<myCol>().globalIndex(), track0.collision_as<myCol>().mult(), tracks.size());
+    }
+  }
+};
+
+struct ZTask {
+  using myCol = soa::Join<aod::Collisions, aod::CollisionsExtra>;
+
+  void process(myCol const& collisions, aod::Tracks const& tracks)
+  {
+    auto multbin0_10 = collisions.select(aod::collision::mult >= 0 && aod::collision::mult < 10);
+    auto multbin10_30 = collisions.select(aod::collision::mult >= 10 && aod::collision::mult < 30);
+    auto multbin30_100 = collisions.select(aod::collision::mult >= 30 && aod::collision::mult < 100);
+
+    LOGF(INFO, "Bin 0-10");
+    for (auto& col : multbin0_10) {
+      auto groupedTracks = tracks.select(aod::track::collisionId == col.globalIndex());
+      LOGF(INFO, "Collision %d; Ntrk = %d vs %d", col.globalIndex(), col.mult(), groupedTracks.size());
+    }
+
+    LOGF(INFO, "Bin 10-30");
+    for (auto& col : multbin10_30) {
+      auto groupedTracks = tracks.select(aod::track::collisionId == col.globalIndex());
+      LOGF(INFO, "Collision %d; Ntrk = %d vs %d", col.globalIndex(), col.mult(), groupedTracks.size());
+    }
+
+    LOGF(INFO, "Bin 30-100");
+    for (auto& col : multbin30_100) {
+      auto groupedTracks = tracks.select(aod::track::collisionId == col.globalIndex());
+      LOGF(INFO, "Collision %d; Ntrk = %d vs %d", col.globalIndex(), col.mult(), groupedTracks.size());
     }
   }
 };
@@ -91,5 +120,6 @@ WorkflowSpec defineDataProcessing(ConfigContext const&)
     adaptAnalysisTask<ATask>("produce-etaphi"),
     adaptAnalysisTask<BTask>("consume-etaphi"),
     adaptAnalysisTask<MTask>("produce-mult"),
-    adaptAnalysisTask<TTask>("consume-mult")};
+    adaptAnalysisTask<TTask>("consume-mult"),
+    adaptAnalysisTask<ZTask>("partition-mult")};
 }
