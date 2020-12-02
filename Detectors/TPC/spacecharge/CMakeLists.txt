@@ -36,7 +36,7 @@ o2_target_root_dictionary(TPCSpaceCharge
 
 o2_add_test_root_macro(macro/calculateDistortionsCorrections.C
                        PUBLIC_LINK_LIBRARIES O2::TPCSpaceCharge
-                       LABELS tpc)
+                       LABELS tpc COMPILE_ONLY)
 
 o2_add_test_root_macro(macro/createResidualDistortionObject.C
                       PUBLIC_LINK_LIBRARIES O2::TPCSpaceCharge
