@@ -74,6 +74,12 @@ constexpr bool is_type_spawnable_v = false;
 template <typename T>
 constexpr bool is_type_spawnable_v<T, std::void_t<decltype(sizeof(typename T::spawnable_t))>> = true;
 
+template <typename T, typename = void>
+constexpr bool is_index_table_v = false;
+
+template <typename T>
+constexpr bool is_index_table_v<T, std::void_t<decltype(sizeof(typename T::indexing_t))>> = true;
+
 template <typename T, typename TLambda>
 void call_if_has_originals(TLambda&& lambda)
 {
@@ -100,7 +106,7 @@ constexpr auto make_originals_from_type()
     } else if constexpr (is_type_with_originals_v<typename decayed::table_t>) {
       return typename decayed::table_t::originals{};
     } else if constexpr (is_type_with_parent_v<decayed>) {
-      return make_originals_from_type(decayed::parent_t);
+      return make_originals_from_type<typename decayed::parent_t>();
     } else {
       return framework::pack<decayed>{};
     }
@@ -1022,11 +1028,11 @@ class Table
   {
     if constexpr (T::persistent::value) {
       auto label = T::columnLabel();
-      auto index = mTable->schema()->GetFieldIndex(label);
-      if (index == -1) {
+      auto index = mTable->schema()->GetAllFieldIndices(label);
+      if (index.empty() == true) {
         throw runtime_error_f("Unable to find column with label %s", label);
       }
-      return mTable->column(index).get();
+      return mTable->column(index[0]).get();
     } else {
       return nullptr;
     }
@@ -1070,10 +1076,21 @@ class TableMetadata
   static std::string sourceSpec() { return fmt::format("{}/{}/{}", INHERIT::mLabel, INHERIT::mOrigin, INHERIT::mDescription); };
 };
 
+/// Helper template to define universal join
+template <typename Key, typename H, typename... Ts>
+struct IndexTable;
+
 template <typename... C1, typename... C2>
 constexpr auto joinTables(o2::soa::Table<C1...> const& t1, o2::soa::Table<C2...> const& t2)
 {
   return o2::soa::Table<C1..., C2...>(ArrowHelpers::joinTables({t1.asArrowTable(), t2.asArrowTable()}));
+}
+
+// special case for appending an index
+template <typename... C1, typename Key, typename H, typename... C2>
+constexpr auto joinTables(o2::soa::Table<C1...> const& t1, o2::soa::IndexTable<Key, H, C2...> const& t2)
+{
+  return joinTables(t1, o2::soa::Table<H, C2...>{t2.asArrowTable()});
 }
 
 template <typename T, typename... C, typename... O>
@@ -1786,6 +1803,8 @@ using is_soa_filtered_t = typename framework::is_base_of_template<soa::FilteredP
 template <typename Key, typename H, typename... Ts>
 struct IndexTable : Table<soa::Index<>, H, Ts...> {
   using base_t = Table<soa::Index<>, H, Ts...>;
+  using table_t = base_t;
+  using safe_base_t = Table<H, Ts...>;
   using indexing_t = Key;
   using first_t = typename H::binding_t;
   using rest_t = framework::pack<typename Ts::binding_t...>;
