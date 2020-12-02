@@ -48,4 +48,22 @@ BOOST_AUTO_TEST_CASE(StringHelpersConstStr)
   if constexpr (is_const_str_v(myConstStr)) {
     std::cout << "myConstStr is a compile-time string" << std::endl;
   }
+
+  auto myConstStr2 = CONST_STR("hello") + CONST_STR("Universe");
+  printString(myConstStr2);
+  static_assert(std::is_same_v<decltype(myConstStr2), ConstStr<'h', 'e', 'l', 'l', 'o', 'U', 'n', 'i', 'v', 'e', 'r', 's', 'e'>>);
+
+  enum ParticleSpecies {
+    kPion,
+    kKaon
+  };
+  static constexpr std::string_view hist[] = {"ptDist", "etaDist"};
+  static constexpr std::string_view particleSuffix[] = {"_pions", "_kaons"};
+
+  printString(CONST_STR(hist[0]) + CONST_STR(particleSuffix[kPion]));
+  printString(CONST_STR(hist[0]) + CONST_STR(particleSuffix[kKaon]));
+  printString(CONST_STR(hist[1]) + CONST_STR(particleSuffix[kPion]));
+  printString(CONST_STR(hist[1]) + CONST_STR(particleSuffix[kKaon]));
+
+  BOOST_CHECK_EQUAL(CONST_STR(hist[0]).hash, CONST_STR("ptDist").hash);
 }
