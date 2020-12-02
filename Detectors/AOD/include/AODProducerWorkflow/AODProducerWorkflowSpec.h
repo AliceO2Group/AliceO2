@@ -73,6 +73,24 @@ using TracksTable = o2::soa::Table<o2::aod::track::CollisionId,
                                    o2::aod::track::TrackEtaEMCAL,
                                    o2::aod::track::TrackPhiEMCAL>;
 
+using MCParticlesTable = o2::soa::Table<o2::aod::mcparticle::McCollisionId,
+                                        o2::aod::mcparticle::PdgCode,
+                                        o2::aod::mcparticle::StatusCode,
+                                        o2::aod::mcparticle::Flags,
+                                        o2::aod::mcparticle::Mother0,
+                                        o2::aod::mcparticle::Mother1,
+                                        o2::aod::mcparticle::Daughter0,
+                                        o2::aod::mcparticle::Daughter1,
+                                        o2::aod::mcparticle::Weight,
+                                        o2::aod::mcparticle::Px,
+                                        o2::aod::mcparticle::Py,
+                                        o2::aod::mcparticle::Pz,
+                                        o2::aod::mcparticle::E,
+                                        o2::aod::mcparticle::Vx,
+                                        o2::aod::mcparticle::Vy,
+                                        o2::aod::mcparticle::Vz,
+                                        o2::aod::mcparticle::Vt>;
+
 class AODProducerWorkflowDPL : public Task
 {
  public:
