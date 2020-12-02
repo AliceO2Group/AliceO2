@@ -39,7 +39,7 @@ namespace mft
 class TrackCA;
 class TrackLTF;
 
-class ROframe final
+class ROframe
 {
  public:
   ROframe(Int_t ROframeId);
