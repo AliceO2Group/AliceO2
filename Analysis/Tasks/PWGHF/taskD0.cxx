@@ -124,7 +124,7 @@ struct TaskD0MC {
         //Printf("MC Rec.: eta rejection: %g", candidate.eta());
         continue;
       }
-      if (candidate.flagMCMatchRec() == 1) {
+      if (std::abs(candidate.flagMCMatchRec()) == D0ToPiK) {
         registry.get<TH1>("hPtRecSig")->Fill(candidate.pt());
         registry.get<TH1>("hCPARecSig")->Fill(candidate.cpa());
         registry.get<TH1>("hEtaRecSig")->Fill(candidate.eta());
@@ -141,7 +141,7 @@ struct TaskD0MC {
         //Printf("MC Gen.: eta rejection: %g", particle.eta());
         continue;
       }
-      if (particle.flagMCMatchGen() == 1) {
+      if (std::abs(particle.flagMCMatchGen()) == D0ToPiK) {
         registry.get<TH1>("hPtGen")->Fill(particle.pt());
         registry.get<TH1>("hEtaGen")->Fill(particle.eta());
       }
