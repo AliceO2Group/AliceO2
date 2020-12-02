@@ -45,7 +45,7 @@ int main(int argc, const char** argv)
     add_option("help,h", "Print this help message");
     add_option("verbose,v", bpo::value<uint32_t>()->default_value(0), "Select verbosity level [0 = no output]");
     add_option("input-file,i", bpo::value<std::string>()->default_value("phosdigits.root"), "Specifies digit input file.");
-    add_option("file-for,f", bpo::value<std::string>()->default_value("all"), "single file per: all,subdet,link");
+    add_option("file-for,f", bpo::value<std::string>()->default_value("all"), "single file per: all,link");
     add_option("output-dir,o", bpo::value<std::string>()->default_value("./"), "output directory for raw data");
     add_option("debug,d", bpo::value<uint32_t>()->default_value(0), "Select debug output level [0 = no debug output]");
     add_option("configKeyValues", bpo::value<std::string>()->default_value(""), "comma-separated configKeyValues");
