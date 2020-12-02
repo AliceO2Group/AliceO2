@@ -14,6 +14,7 @@
 #define ALICEO2_GENERATORFROMFILE_H_
 
 #include "FairGenerator.h"
+#include "Generators/Generator.h"
 
 class TBranch;
 class TFile;
@@ -60,19 +61,18 @@ class GeneratorFromFile : public FairGenerator
 
 /// This class implements a generic FairGenerator which
 /// reads the particles from an external O2 sim kinematics file.
-class GeneratorFromO2Kine : public FairGenerator
+class GeneratorFromO2Kine : public o2::eventgen::Generator
 {
  public:
   GeneratorFromO2Kine() = default;
   GeneratorFromO2Kine(const char* name);
 
-  // the FairGenerator interface methods
-
-  /** Generates (or reads) one event and adds the tracks to the
-   ** injected primary generator instance.
-   ** @param primGen  pointer to the primary FairPrimaryGenerator
-   **/
-  bool ReadEvent(FairPrimaryGenerator* primGen) override;
+  // the o2 Generator interface methods
+  bool generateEvent() override
+  { /* trivial - actual work in importParticles */
+    return true;
+  }
+  bool importParticles() override;
 
   // Set from which event to start
   void SetStartEvent(int start);
