@@ -12,10 +12,17 @@ o2_add_library(PHOSWorkflow
                SOURCES src/RecoWorkflow.cxx
                        src/PublisherSpec.cxx
                        src/CellConverterSpec.cxx
+                       src/RawToCellConverterSpec.cxx
                        src/ClusterizerSpec.cxx
                        src/DigitsPrinterSpec.cxx
+                       src/RawWriterSpec.cxx
                PUBLIC_LINK_LIBRARIES O2::Framework O2::DataFormatsPHOS 
-                                     O2::DPLUtils O2::PHOSBase O2::PHOSCalib O2::PHOSSimulation O2::PHOSReconstruction O2::Algorithm)
+                                     O2::DPLUtils 
+                                     O2::PHOSBase 
+                                     O2::PHOSCalib 
+                                     O2::PHOSSimulation 
+                                     O2::PHOSReconstruction 
+                                     O2::Algorithm)
 
 o2_add_executable(reco-workflow
                   COMPONENT_NAME phos

@@ -85,7 +85,10 @@ void Digitizer::process(const std::vector<Hit>* hitsBg, const std::vector<Hit>* 
   }
 
   Int_t nTotCells = mGeometry->getTotalNCells();
-  for (short absId = 1; absId < nTotCells; absId++) {
+
+  short start = 64 * 56 + 32 * 56 + 1; //first digit in half-mod 1
+  char relid[3];
+  for (short absId = start; absId < nTotCells; absId++) {
 
     // If signal exist in this cell, add noise to it, otherwise just create noise digit
     if (absId == hitAbsId) {

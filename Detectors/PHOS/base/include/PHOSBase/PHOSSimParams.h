@@ -50,6 +50,19 @@ struct PHOSSimParams : public o2::conf::ConfigurableParamHelper<PHOSSimParams> {
   float mMinNoiseTime = -200.;   ///< minimum time in noise channels (in ns)
   float mMaxNoiseTime = 2000.;   ///< minimum time in noise channels (in ns)
 
+  //Parameters used in Raw simulation
+  float mSampleDecayTime = 0.047619048; ///< Time parameter in Gamma2 function (1/tau, 100.e-9/2.1e-6)
+
+  // //Parameters used in raw data reconstruction
+  // bool  mSubtractPedestal = false ;    ///< subtract pedestals
+  // bool  mCreateSampleQualityOutput = false ; ///< Create stream of sample quality
+  // bool  mApplyBadMap = false ;         ///< Apply bad map in sample fitting
+  // short mZeroSuppression = 5;          ///< Zero suppression in ADC counts
+  // short mMaxSampleLength = 35;         ///< Maximal length of sample
+  // short mChiMinCut = 0 ;               ///< Minimal cut on sample quality
+  // short mChiMaxCut = 1000;             ///< Maximal cut on sample quality
+  // std::string mFitterVersion = "default"; ///< version of raw fitter to be used
+
   //Parameters used in clusterization
   float mLogWeight = 4.5;             ///< Cutoff used in log. weight calculation
   float mDigitMinEnergy = 0.010;      ///< Minimal energy of digits to be used in cluster (GeV)

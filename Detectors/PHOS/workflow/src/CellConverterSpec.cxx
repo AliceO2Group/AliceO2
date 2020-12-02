@@ -24,7 +24,7 @@ using namespace o2::phos::reco_workflow;
 
 void CellConverterSpec::init(framework::InitContext& ctx)
 {
-  LOG(DEBUG) << "[PHOSCellConverter - init] Initialize converter " << (mPropagateMC ? "with" : "without") << " MC truth container";
+  LOG(INFO) << "[PHOSCellConverter - init] Initialize converter " << (mPropagateMC ? "with" : "without") << " MC truth container";
 }
 
 void CellConverterSpec::run(framework::ProcessingContext& ctx)
@@ -38,7 +38,6 @@ void CellConverterSpec::run(framework::ProcessingContext& ctx)
     ctx.services().get<o2::framework::ControlService>().readyToQuit(framework::QuitRequest::Me);
     return;
   }
-  LOG(INFO) << "Had Payload";
 
   mOutputCells.clear();
   mOutputCellTrigRecs.clear();
@@ -113,8 +112,8 @@ void CellConverterSpec::run(framework::ProcessingContext& ctx)
   ctx.outputs().snapshot(o2::framework::Output{"PHS", "CELLS", 0, o2::framework::Lifetime::Timeframe}, mOutputCells);
   ctx.outputs().snapshot(o2::framework::Output{"PHS", "CELLTRIGREC", 0, o2::framework::Lifetime::Timeframe}, mOutputCellTrigRecs);
   if (mPropagateMC) {
-    ctx.outputs().snapshot(o2::framework::Output{"PHS", "CELLSMCTR", 0, o2::framework::Lifetime::Timeframe}, mOutputTruthCont);
-    ctx.outputs().snapshot(o2::framework::Output{"PHS", "CELLSMCMAP", 0, o2::framework::Lifetime::Timeframe}, mOutputTruthMap);
+    //ctx.outputs().snapshot(o2::framework::Output{"PHS", "CELLSMCTR", 0, o2::framework::Lifetime::Timeframe}, mOutputTruthCont);
+    //ctx.outputs().snapshot(o2::framework::Output{"PHS", "CELLSMCMAP", 0, o2::framework::Lifetime::Timeframe}, mOutputTruthMap);
   }
   LOG(INFO) << "Finished ";
   ctx.services().get<o2::framework::ControlService>().readyToQuit(framework::QuitRequest::Me);
@@ -130,8 +129,8 @@ o2::framework::DataProcessorSpec o2::phos::reco_workflow::getCellConverterSpec(b
   outputs.emplace_back("PHS", "CELLTRIGREC", 0, o2::framework::Lifetime::Timeframe);
   if (propagateMC) {
     inputs.emplace_back("digitsmctr", "PHS", "DIGITSMCTR", 0, o2::framework::Lifetime::Timeframe);
-    outputs.emplace_back("PHS", "CELLSMCTR", 0, o2::framework::Lifetime::Timeframe);
-    outputs.emplace_back("PHS", "CELLSMCMAP", 0, o2::framework::Lifetime::Timeframe);
+    //outputs.emplace_back("PHS", "CELLSMCTR", 0, o2::framework::Lifetime::Timeframe);
+    //outputs.emplace_back("PHS", "CELLSMCMAP", 0, o2::framework::Lifetime::Timeframe);
   }
   return o2::framework::DataProcessorSpec{"PHOSCellConverterSpec",
                                           inputs,
