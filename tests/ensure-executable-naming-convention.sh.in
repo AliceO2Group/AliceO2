@@ -28,6 +28,7 @@ RE_IS_BENCH="^o2-bench"
 RE_START_WITH_O2_OR_TEST="^o2-"
 RE_ONLY_LOWER_CASE_OR_DASH_OR_COMMA="^[a-z0-9]([a-z0-9\.]+|-)+[a-z0-9]$"
 RE_SUBSYSTEM="(o2)-([a-z,0-9]+)+" # o2-subsystem
+RE_EXEMPTION="cpulimit"
 
 KNOWN_GROUPS="alicehlt \
 analysis aod d0 simple \
@@ -40,7 +41,10 @@ fit its mch mid tpc \
 tpcits \
 flp heartbeat message epn \
 mergers \
-subframebuilder sync timeframe framework"
+subframebuilder sync timeframe framework \
+analysistutorial tof trd phos mft mchmapping mchraw \
+calibration fdd ft0 fv0 rans raw secondary \
+cpv ctf dpl emcal dcs itsmft primary reco pidparam"
 
 [[ -d @CMAKE_RUNTIME_OUTPUT_DIRECTORY@ ]] || exit 0
 
@@ -50,6 +54,7 @@ for F in *; do
   [[ -x $F && -f $F ]] || continue
   [[ $F =~ $RE_IS_TEST ]] && continue # convention for tests is yet to come
   [[ $F =~ $RE_IS_BENCH ]] && continue # convention for tests is yet to come
+  [[ $F =~ $RE_EXEMPTION ]] && continue # allow special executables to not follow the convention
   [[ ! $F =~ $RE_START_WITH_O2_OR_TEST ]] && error_msg $F "does not start with o2-"
   [[ ! $F =~ $RE_ONLY_LOWER_CASE_OR_DASH_OR_COMMA ]] && error_msg $F "should only contains lowercase letters, numbers, or dashes"
   [[ $F =~ $RE_SUBSYSTEM ]] && SUBSYSTEM=${BASH_REMATCH[2]}
