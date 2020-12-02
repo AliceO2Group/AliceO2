@@ -19,11 +19,15 @@ o2_add_library(PHOSReconstruction
                        src/Bunch.cxx
                        src/Channel.cxx
                        src/CaloRawFitter.cxx
+		       src/CTFCoder.cxx
+		       src/CTFHelper.cxx
                PUBLIC_LINK_LIBRARIES O2::PHOSBase
                                      O2::PHOSCalib
                                      O2::DataFormatsPHOS
                                      O2::DetectorsRaw
-                                     AliceO2::InfoLogger)
+                                     AliceO2::InfoLogger
+				     O2::rANS
+				     ms_gsl::ms_gsl)
 
 o2_target_root_dictionary(PHOSReconstruction
                           HEADERS include/PHOSReconstruction/RawReaderMemory.h

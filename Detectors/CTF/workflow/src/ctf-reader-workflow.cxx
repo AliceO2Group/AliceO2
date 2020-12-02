@@ -28,6 +28,7 @@
 #include "TOFWorkflowUtils/EntropyDecoderSpec.h"
 #include "MIDWorkflow/EntropyDecoderSpec.h"
 #include "EMCALWorkflow/EntropyDecoderSpec.h"
+#include "PHOSWorkflow/EntropyDecoderSpec.h"
 
 using namespace o2::framework;
 using DetID = o2::detectors::DetID;
@@ -95,6 +96,9 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   }
   if (dets[DetID::EMC]) {
     specs.push_back(o2::emcal::getEntropyDecoderSpec());
+  }
+  if (dets[DetID::PHS]) {
+    specs.push_back(o2::phos::getEntropyDecoderSpec());
   }
 
   return std::move(specs);

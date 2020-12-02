@@ -16,6 +16,8 @@ o2_add_library(PHOSWorkflow
                        src/ClusterizerSpec.cxx
                        src/DigitsPrinterSpec.cxx
                        src/RawWriterSpec.cxx
+                       src/EntropyEncoderSpec.cxx
+                       src/EntropyDecoderSpec.cxx
                PUBLIC_LINK_LIBRARIES O2::Framework O2::DataFormatsPHOS 
                                      O2::DPLUtils 
                                      O2::PHOSBase 
@@ -27,4 +29,9 @@ o2_add_library(PHOSWorkflow
 o2_add_executable(reco-workflow
                   COMPONENT_NAME phos
                   SOURCES src/phos-reco-workflow.cxx
+                  PUBLIC_LINK_LIBRARIES O2::PHOSWorkflow)
+
+o2_add_executable(entropy-encoder-workflow
+                  COMPONENT_NAME phos
+                  SOURCES src/entropy-encoder-workflow.cxx
                   PUBLIC_LINK_LIBRARIES O2::PHOSWorkflow)
