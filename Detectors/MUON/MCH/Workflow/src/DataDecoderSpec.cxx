@@ -148,8 +148,9 @@ class DataDecoderTask
     mDecoder->reset();
     decodeTF(pc);
     for (auto&& input : pc.inputs()) {
-      if (input.spec->binding == "readout")
+      if (input.spec->binding == "readout") {
         decodeReadout(input);
+      }
     }
 
     auto& digits = mDecoder->getOutputDigits();
