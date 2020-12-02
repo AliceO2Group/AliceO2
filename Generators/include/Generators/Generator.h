@@ -59,7 +59,7 @@ class Generator : public FairGenerator
 	*@param pStack The stack
 	*@return kTRUE if successful, kFALSE if not
 	**/
-  Bool_t ReadEvent(FairPrimaryGenerator* primGen) override;
+  Bool_t ReadEvent(FairPrimaryGenerator* primGen) final;
 
   /** setters **/
   void setMomentumUnit(double val) { mMomentumUnit = val; };
