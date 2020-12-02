@@ -40,7 +40,7 @@ struct IterateV0 {
 
 // This example is identical to IterateV0, but uses the exclusive match. This means that collisions where any
 // of the tables asked for in Run2MatchedExclusive (see AnalysisDataModel.h) are missing are not there.
-// Therefore, the syntax is more complicated because we cannot join against Collision 
+// Therefore, the syntax is more complicated because we cannot join against Collision
 // (the tables have different number of entries)
 // Only to be used if one is sure that all your events have the desired information
 struct IterateV0Exclusive {
