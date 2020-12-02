@@ -27,6 +27,8 @@ BOOST_AUTO_TEST_CASE(StringHelpersHash)
 template <typename T>
 void printString(const T& constStr)
 {
+  static_assert(is_const_str<T>::value, "This function can only print compile-time strings!");
+
   std::cout << "ConstStr:" << std::endl;
   std::cout << "str -> " << constStr.str << std::endl;
   std::cout << "hash -> " << constStr.hash << std::endl;
@@ -42,4 +44,8 @@ BOOST_AUTO_TEST_CASE(StringHelpersConstStr)
   static_assert(std::is_same_v<decltype(myConstStr), ConstStr<'h', 'e', 'l', 'l', 'o', 'W', 'o', 'r', 'l', 'd'>>);
   static_assert(myConstStr.hash == (uint32_t)942280617);
   BOOST_CHECK_EQUAL(myConstStr.hash, compile_time_hash("helloWorld"));
+
+  if constexpr (is_const_str_v(myConstStr)) {
+    std::cout << "myConstStr is a compile-time string" << std::endl;
+  }
 }
