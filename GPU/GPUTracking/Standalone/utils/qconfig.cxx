@@ -374,6 +374,24 @@ inline int qAddOptionType<unsigned int>(qConfigSettings<unsigned int>& settings,
     settings.doDefault);
 }
 template <>
+inline int qAddOptionType<short>(qConfigSettings<short>& settings, short& ref, int& i, const char** argv, const int argc, short /*def*/)
+{
+  return qAddOptionGeneric<short>(
+    settings, ref, i, argv, argc, settings.set, [](const char* a) -> short {
+      return atoi(a);
+    },
+    settings.doDefault);
+}
+template <>
+inline int qAddOptionType<unsigned short>(qConfigSettings<unsigned short>& settings, unsigned short& ref, int& i, const char** argv, const int argc, unsigned short /*def*/)
+{
+  return qAddOptionGeneric<unsigned short>(
+    settings, ref, i, argv, argc, settings.set, [](const char* a) -> unsigned short {
+      return strtoul(a, nullptr, 0);
+    },
+    settings.doDefault);
+}
+template <>
 inline int qAddOptionType<long>(qConfigSettings<long>& settings, long& ref, int& i, const char** argv, const int argc, long /*def*/)
 {
   return qAddOptionGeneric<long>(
