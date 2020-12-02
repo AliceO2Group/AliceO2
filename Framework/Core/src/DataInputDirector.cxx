@@ -102,6 +102,7 @@ bool DataInputDescriptor::setFile(int counter)
   if (!mcurrentFile) {
     throw std::runtime_error(fmt::format("Couldn't open file \"{}\"!", filename));
   }
+  mcurrentFile->SetReadaheadSize(50 * 1024 * 1024);
 
   // get the directory names
   if (mfilenames[counter]->numberOfTimeFrames <= 0) {

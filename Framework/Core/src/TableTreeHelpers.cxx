@@ -863,7 +863,10 @@ void TreeToTable::fill(TTree* tree)
   std::vector<std::unique_ptr<ColumnIterator>> columnIterators;
   TTreeReader treeReader{tree};
 
+  tree->SetCacheSize(50000000);
+  tree->SetClusterPrefetch(true);
   for (auto&& columnName : mColumnNames) {
+    tree->AddBranchToCache(columnName.c_str(), true);
     auto colit = std::make_unique<ColumnIterator>(treeReader, columnName.c_str());
     auto stat = colit->getStatus();
     if (!stat) {
@@ -871,6 +874,7 @@ void TreeToTable::fill(TTree* tree)
     }
     columnIterators.push_back(std::move(colit));
   }
+  tree->StopCacheLearningPhase();
   auto numEntries = treeReader.GetEntries(true);
 
   for (auto&& column : columnIterators) {
