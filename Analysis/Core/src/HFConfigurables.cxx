@@ -8,16 +8,7 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#pragma link off all globals;
-#pragma link off all classes;
-#pragma link off all functions;
-
-#pragma link C++ class CorrelationContainer + ;
-#pragma link C++ class TrackSelection + ;
-#pragma link C++ class TriggerAliases + ;
-
-#pragma link C++ class VarManager + ;
-#pragma link C++ class HistogramManager + ;
-#pragma link C++ class AnalysisCut + ;
-#pragma link C++ class AnalysisCompositeCut + ;
-#pragma link C++ class HFTrackIndexSkimsCreatorConfigs + ;
+// HF Configurable Classes
+//
+// Authors: Nima Zardoshti
+#include "Analysis/HFConfigurables.h"

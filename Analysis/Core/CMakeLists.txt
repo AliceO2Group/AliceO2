@@ -16,6 +16,7 @@ o2_add_library(AnalysisCore
                         src/AnalysisCut.cxx
                         src/AnalysisCompositeCut.cxx
                         src/TriggerAliases.cxx
+			src/HFConfigurables.cxx
                PUBLIC_LINK_LIBRARIES O2::Framework O2::AnalysisDataModel O2::AnalysisTools)
 
 o2_target_root_dictionary(AnalysisCore
@@ -28,6 +29,7 @@ o2_target_root_dictionary(AnalysisCore
                       include/Analysis/AnalysisCompositeCut.h
                       include/Analysis/TriggerAliases.h
                       include/Analysis/MC.h
+		      include/Analysis/HFConfigurables.h
               LINKDEF src/AnalysisCoreLinkDef.h)
 
 if(FastJet_FOUND)
