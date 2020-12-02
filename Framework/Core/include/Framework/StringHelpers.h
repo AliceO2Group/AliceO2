@@ -104,7 +104,7 @@ constexpr bool is_const_str_v(T)
 }
 
 template <char... chars1, char... chars2>
-auto operator+(const ConstStr<chars1...>&, const ConstStr<chars2...>&)
+constexpr auto operator+(const ConstStr<chars1...>&, const ConstStr<chars2...>&)
 {
   return ConstStr<chars1..., chars2...>{};
 }
