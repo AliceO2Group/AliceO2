@@ -28,7 +28,8 @@ jobs:
           python-version: 3.7
       - name: Install ali-bot
         run: |
-          sudo apt-get install libsasl2-dev python-dev libldap2-dev libssl-dev
+          sudo apt-get update -y
+          sudo apt-get install -y libsasl2-dev python-dev libldap2-dev libssl-dev
           python -m pip install --upgrade pip
           pip install git+https://github.com/alisw/ali-bot@master
       - uses: octokit/graphql-action@v2.x
