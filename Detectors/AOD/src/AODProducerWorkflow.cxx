@@ -35,7 +35,7 @@ framework::WorkflowSpec getAODProducerWorkflow()
 {
   // TODO:
   // switch to configurable parameters (?)
-  bool useMC = false;
+  bool useMC = true;
 
   // FIXME:
   // switch (?) from o2::ft0::getReconstructionSpec to RecPointReader
