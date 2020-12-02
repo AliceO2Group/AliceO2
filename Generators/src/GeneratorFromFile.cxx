@@ -187,7 +187,7 @@ void GeneratorFromO2Kine::SetStartEvent(int start)
   }
 }
 
-Bool_t GeneratorFromO2Kine::ReadEvent(FairPrimaryGenerator* primGen)
+bool GeneratorFromO2Kine::importParticles()
 {
   // NOTE: This should be usable with kinematics files without secondaries
   // It might need some adjustment to make it work with secondaries or to continue
@@ -200,21 +200,30 @@ Bool_t GeneratorFromO2Kine::ReadEvent(FairPrimaryGenerator* primGen)
     mEventBranch->SetAddress(&tracks);
     mEventBranch->GetEntry(mEventCounter);
 
-    for (auto& p : *tracks) {
-      auto pdgid = p.GetPdgCode();
-      auto px = p.Px();
-      auto py = p.Py();
-      auto pz = p.Pz();
-      auto vx = p.Vx();
-      auto vy = p.Vy();
-      auto vz = p.Vz();
-      auto parent = p.getMotherTrackId();
-      auto e = p.GetEnergy();
-      auto tof = p.T();
-      auto weight = 1.; // p.GetWeight() ??;
-      auto wanttracking = p.getToBeDone();
-      LOG(DEBUG) << "Putting primary " << pdgid;
-      primGen->AddTrack(pdgid, px, py, pz, vx, vy, vz, parent, wanttracking, e, tof, weight);
+    for (auto& t : *tracks) {
+      // I guess we only want primaries (unless later on we continue a simulation)
+      if (!t.isPrimary()) {
+        continue;
+      }
+
+      auto pdg = t.GetPdgCode();
+      auto px = t.Px();
+      auto py = t.Py();
+      auto pz = t.Pz();
+      auto vx = t.Vx();
+      auto vy = t.Vy();
+      auto vz = t.Vz();
+      auto m1 = t.getMotherTrackId();
+      auto m2 = t.getSecondMotherTrackId();
+      auto d1 = t.getFirstDaughterTrackId();
+      auto d2 = t.getLastDaughterTrackId();
+      auto e = t.GetEnergy();
+      auto vt = t.T();
+      auto weight = 1.; // p.GetWeight() ??
+      auto wanttracking = t.getToBeDone();
+      LOG(DEBUG) << "Putting primary " << pdg;
+
+      mParticles.push_back(TParticle(pdg, wanttracking, m1, m2, d1, d2, px, py, pz, e, vx, vy, vz, vt));
       particlecounter++;
     }
     mEventCounter++;
@@ -224,11 +233,11 @@ Bool_t GeneratorFromO2Kine::ReadEvent(FairPrimaryGenerator* primGen)
     }
 
     LOG(INFO) << "Event generator put " << particlecounter << " on stack";
-    return kTRUE;
+    return true;
   } else {
     LOG(ERROR) << "GeneratorFromO2Kine: Ran out of events\n";
   }
-  return kFALSE;
+  return false;
 }
 
 } // namespace eventgen
