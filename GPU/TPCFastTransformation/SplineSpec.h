@@ -327,31 +327,28 @@ class SplineSpec<DataT, XdimT, YdimT, 0> : public SplineContainer<DataT>
     DataT S1[maxInterpolations];
     DataT D1[maxInterpolations];
 
-    int nrofInterpolations = (1 << (2 * nXdim - 2)) * nYdim;
-    int nrofKnots = 1 << (nXdim);
+    int nInterpolations = (1 << (2 * nXdim - 2)) * nYdim;
+    int nKnots = 1 << (nXdim);
 
     for (int d = 0; d < nXdim; d++) {            //for every dimension
       DataT* pointer[4] = {S0, D0, S1, D1};      // pointers for interpolation arrays S0, D0, S1, D1 point to Arraystart
-      for (int i = 0; i < nrofKnots; i++) {      //for every knot
-        for (int j = 0; j < nrofKnots; j++) {    // for every parametertype
+      for (int i = 0; i < nKnots; i++) {         //for every knot
+        for (int j = 0; j < nKnots; j++) {       // for every parametertype
           int pointernr = 2 * (i % 2) + (j % 2); //to which array should it be delivered
           for (int k = 0; k < nYdim; k++) {
-            pointer[pointernr][0] = iParameters[(i * nrofKnots + j) * nYdim + k];
+            pointer[pointernr][0] = iParameters[(i * nKnots + j) * nYdim + k];
             pointer[pointernr]++;
           }
         } // end for j (every parametertype)
       }   // end for i (every knot)
 
       const typename Spline1D<DataT>::Knot& knotL = mGrid[d].getKnot(indices[d]);
-      int Ydim = nrofInterpolations;
       DataT coordinate = u[d];
-
-      typedef Spline1DSpec<DataT, 0, YdimT> TGridX;
+      typedef Spline1DSpec<DataT, 0, 0> TGridX;
       const TGridX& gridX = *((const TGridX*)&(mGrid[d]));
-      gridX.interpolateU(Ydim, knotL, S0, D0, S1, D1, coordinate, iParameters);
-
-      nrofInterpolations = nrofInterpolations / 4;
-      nrofKnots = nrofKnots / 2;
+      gridX.interpolateU(nInterpolations, knotL, S0, D0, S1, D1, coordinate, iParameters);
+      nInterpolations /= 4;
+      nKnots /= 2;
     } //end d (every dimension)
 
     for (int i = 0; i < nYdim; i++) {
