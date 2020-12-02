@@ -24,17 +24,17 @@ namespace mft
 {
 class TrackerConfig
 {
- public:  
+ public:
   TrackerConfig();
-  TrackerConfig(const TrackerConfig& conf);
-  TrackerConfig& operator=(const TrackerConfig& conf);
+  TrackerConfig(const TrackerConfig& conf) = default;
+  TrackerConfig& operator=(const TrackerConfig& conf) = default;
 
   void initialize(const MFTTrackingParam& trkParam);
- 
+
   const Int_t getRBinIndex(const Float_t r) const;
   const Int_t getPhiBinIndex(const Float_t phi) const;
   const Int_t getBinIndex(const Int_t rIndex, const Int_t phiIndex) const;
-    
+
   // tracking configuration parameters
   Int_t mMinTrackPointsLTF = 5;
   Int_t mMinTrackPointsCA = 4;
@@ -53,7 +53,6 @@ class TrackerConfig
   Float_t mInversePhiBinSize = 50. / constants::index_table::PhiMax;
 
  private:
-
   ClassDefNV(TrackerConfig, 1);
 };
 
@@ -75,7 +74,7 @@ inline const Int_t TrackerConfig::getBinIndex(const Int_t rIndex, const Int_t ph
   }
   return (mRBins * mPhiBins);
 }
- 
+
 } // namespace mft
 } // namespace o2
 

@@ -23,10 +23,12 @@ namespace o2
 namespace mft
 {
 
-class Road final
+class Road
 {
  public:
-  Road();
+  Road() { mRoadId = 0; };
+  void reset();
+  void initialize();
 
   void setPoint(const Int_t layer, const Int_t clusterId)
   {
@@ -64,10 +66,24 @@ class Road final
   std::array<std::vector<Cell>, (constants::mft::LayersNumber - 1)> mCell;
 };
 
-inline Road::Road()
-  : mRoadId{0}
+inline void Road::reset()
 {
-  // Nothing to do
+  Int_t layer;
+  for (layer = 0; layer < (constants::mft::LayersNumber - 1); ++layer) {
+    mCell[layer].clear();
+    mClusterId[layer].clear();
+  }
+  mClusterId[layer].clear();
+}
+
+inline void Road::initialize()
+{
+  Int_t layer;
+  for (layer = 0; layer < (constants::mft::LayersNumber - 1); ++layer) {
+    mCell[layer].reserve(constants::mft::MaxCellsInRoad);
+    mClusterId[layer].reserve(constants::mft::MaxPointsInRoad);
+  }
+  mClusterId[layer].reserve(constants::mft::MaxPointsInRoad);
 }
 
 inline const Int_t Road::getNPointsInLayer(Int_t layer) const
