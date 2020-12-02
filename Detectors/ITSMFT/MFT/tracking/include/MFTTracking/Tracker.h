@@ -34,7 +34,7 @@ namespace mft
 
 class TrackLTF;
 
-class Tracker
+class Tracker : public TrackerConfig
 {
 
  public:
@@ -60,20 +60,16 @@ class Tracker
   std::uint32_t getROFrame() const { return mROFrame; }
 
   void initialize();
-  const o2::mft::TrackerConfig* getConfig() { return mTrackerConfig.get(); }
-  void setConfig(const TrackerConfig& conf)
-  {
-    mTrackerConfig = std::make_unique<o2::mft::TrackerConfig>(conf);
-  }
+  void initConfig(const MFTTrackingParam& trkParam);
 
  private:
   void findTracks(ROframe&);
   void findTracksLTF(ROframe&);
   void findTracksCA(ROframe&);
   void computeCellsInRoad(ROframe&);
-  void runForwardInRoad(ROframe&);
+  void runForwardInRoad();
   void runBackwardInRoad(ROframe&);
-  void updateCellStatusInRoad(Road&);
+  void updateCellStatusInRoad();
 
   bool fitTracks(ROframe&);
 
@@ -100,6 +96,7 @@ class Tracker
   std::array<std::array<std::array<std::vector<Int_t>, constants::index_table::MaxRPhiBins>, (constants::mft::LayersNumber - 1)>, (constants::mft::LayersNumber - 1)> mBinsS;
   std::array<std::array<std::array<std::vector<Int_t>, constants::index_table::MaxRPhiBins>, (constants::mft::LayersNumber - 1)>, (constants::mft::LayersNumber - 1)> mBins;
 
+  /// helper to store points of a track candidate
   struct TrackElement {
     TrackElement() = default;
     TrackElement(Int_t la, Int_t id)
@@ -111,10 +108,8 @@ class Tracker
     Int_t idInLayer;
   };
 
-  std::vector<TrackElement> roadPoints;
-
-  /// tracking configuration parameters
-  std::unique_ptr<o2::mft::TrackerConfig> mTrackerConfig = nullptr;
+  /// current road for CA algorithm
+  Road mRoad;
 };
 
 //_________________________________________________________________________________________________

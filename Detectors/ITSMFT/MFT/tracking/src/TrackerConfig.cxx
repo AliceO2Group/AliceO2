@@ -38,53 +38,6 @@ o2::mft::TrackerConfig::TrackerConfig()
 }
 
 //__________________________________________________________________________
-o2::mft::TrackerConfig::TrackerConfig(const TrackerConfig& conf)
-  : mMinTrackPointsLTF(conf.mMinTrackPointsLTF),
-    mMinTrackPointsCA(conf.mMinTrackPointsCA),
-    mMinTrackStationsLTF(conf.mMinTrackStationsLTF),
-    mMinTrackStationsCA(conf.mMinTrackStationsCA),
-    mLTFclsRCut(conf.mLTFclsRCut),
-    mROADclsRCut(conf.mROADclsRCut),
-    mLTFseed2BinWin(conf.mLTFseed2BinWin),
-    mLTFinterBinWin(conf.mLTFinterBinWin),
-    mRBins(conf.mRBins),
-    mPhiBins(conf.mPhiBins),
-    mRPhiBins(conf.mRPhiBins),
-    mRBinSize(conf.mRBinSize),
-    mPhiBinSize(conf.mPhiBinSize),
-    mInverseRBinSize(conf.mInverseRBinSize),
-    mInversePhiBinSize(conf.mInversePhiBinSize)
-{
-  /// copy constructor
-}
-
-//__________________________________________________________________________
-o2::mft::TrackerConfig& o2::mft::TrackerConfig::operator=(const TrackerConfig& conf)
-{
-  /// assign constructor
-
-  if (this == &conf) {
-    return *this;
-  }
-
-  mMinTrackPointsLTF = conf.mMinTrackPointsLTF;
-  mMinTrackPointsCA = conf.mMinTrackPointsCA;
-  mMinTrackStationsLTF = conf.mMinTrackStationsLTF;
-  mMinTrackStationsCA = conf.mMinTrackStationsCA;
-  mLTFclsRCut = conf.mLTFclsRCut;
-  mROADclsRCut = conf.mROADclsRCut;
-  mLTFseed2BinWin = conf.mLTFseed2BinWin;
-  mLTFinterBinWin = conf.mLTFinterBinWin;
-  mRBins = conf.mRBins;
-  mPhiBins = conf.mPhiBins;
-  mRPhiBins = conf.mRPhiBins;
-  mRBinSize = conf.mRBinSize;
-  mPhiBinSize = conf.mPhiBinSize;
-  mInverseRBinSize = conf.mInverseRBinSize;
-  mInversePhiBinSize = conf.mInversePhiBinSize;
-}
-
-//__________________________________________________________________________
 void o2::mft::TrackerConfig::initialize(const MFTTrackingParam& trkParam)
 {
   /// initialize from MFTTrackingParam (command line configuration parameters)

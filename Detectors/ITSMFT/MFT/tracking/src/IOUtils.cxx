@@ -35,7 +35,7 @@ namespace mft
 {
 
 int ioutils::loadROFrameData(const o2::itsmft::ROFRecord& rof, ROframe& event, gsl::span<const itsmft::CompClusterExt> clusters, gsl::span<const unsigned char>::iterator& pattIt, const itsmft::TopologyDictionary& dict,
-                             const dataformats::MCTruthContainer<MCCompLabel>* mcLabels, const o2::mft::TrackerConfig* trkParam)
+                             const dataformats::MCTruthContainer<MCCompLabel>* mcLabels, const o2::mft::Tracker* tracker)
 {
   event.clear();
   GeometryTGeo* geom = GeometryTGeo::Instance();
@@ -72,9 +72,9 @@ int ioutils::loadROFrameData(const o2::itsmft::ROFRecord& rof, ROframe& event, g
     Float_t rCoord = clsPoint2D.R();
     Float_t phiCoord = clsPoint2D.Phi();
     o2::math_utils::bringTo02PiGen(phiCoord);
-    int rBinIndex = trkParam->getRBinIndex(rCoord);
-    int phiBinIndex = trkParam->getPhiBinIndex(phiCoord);
-    int binIndex = trkParam->getBinIndex(rBinIndex, phiBinIndex);
+    int rBinIndex = tracker->getRBinIndex(rCoord);
+    int phiBinIndex = tracker->getPhiBinIndex(phiCoord);
+    int binIndex = tracker->getBinIndex(rBinIndex, phiBinIndex);
     // TODO: Check consistency of sigmaX2 and sigmaY2
     event.addClusterToLayer(layer, gloXYZ.x(), gloXYZ.y(), gloXYZ.z(), phiCoord, rCoord, event.getClustersInLayer(layer).size(), binIndex, sigmaX2, sigmaY2, sensorID);
     if (mcLabels) {
