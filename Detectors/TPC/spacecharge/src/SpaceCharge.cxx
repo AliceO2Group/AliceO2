@@ -1053,7 +1053,7 @@ void SpaceCharge<DataT, Nz, Nr, Nphi>::distortElectron(GlobalPosition3D& point) 
   getDistortions(point.X(), point.Y(), point.Z(), side, distX, distY, distZ);
 
   // set distorted coordinates
-  point.SetXYZ(point.X() + distX, point.Y() + distY, point.Y() + distY);
+  point.SetXYZ(point.X() + distX, point.Y() + distY, point.Z() + distZ);
 }
 
 template <typename DataT, size_t Nz, size_t Nr, size_t Nphi>
