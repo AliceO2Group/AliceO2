@@ -15,6 +15,7 @@ o2_add_library(DataFormatsPHOS
                        src/Cluster.cxx 
                        src/MCLabel.cxx 
                        src/TriggerRecord.cxx
+		       src/CTF.cxx
                 PUBLIC_LINK_LIBRARIES O2::CommonDataFormat 
                                      O2::Headers 
                                      O2::MathUtils 
@@ -29,7 +30,9 @@ o2_target_root_dictionary(DataFormatsPHOS
                                   include/DataFormatsPHOS/Digit.h
                                   include/DataFormatsPHOS/Cluster.h
                                   include/DataFormatsPHOS/MCLabel.h
-                                  include/DataFormatsPHOS/TriggerRecord.h)
+                                  include/DataFormatsPHOS/TriggerRecord.h
+				  include/DataFormatsPHOS/CTF.h
+				  )
 o2_add_test(Cell
             SOURCES test/testCell.cxx
             COMPONENT_NAME DataFormats-PHOS

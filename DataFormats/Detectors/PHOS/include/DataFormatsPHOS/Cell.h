@@ -71,6 +71,24 @@ class Cell
 
   void PrintStream(std::ostream& stream) const;
 
+  // raw access for CTF encoding
+  uint16_t getPackedID() const { return getLong() & 0x3fff; }
+  void setPackedID(uint16_t v) { mBits = (getLong() & 0xffffffc000) + (v & 0x3fff); }
+
+  uint16_t getPackedTime() const { return (getLong() >> 14) & 0x3ff; }
+  void setPackedTime(uint16_t v) { mBits = (getLong() & 0xffff003fff) + (uint64_t(v & 0x3ff) << 14); }
+
+  uint16_t getPackedEnergy() const { return (getLong() >> 24) & 0x7fff; }
+  void setPackedEnergy(uint16_t v) { mBits = (getLong() & 0x8000ffffff) + (uint64_t(v & 0x7fff) << 24); }
+
+  uint8_t getPackedCellStatus() const { return mBits[39]; }
+  void setPackedCellStatus(uint8_t v) { mBits[39] = v ? true : false; }
+
+  void setPacked(uint16_t id, uint16_t t, uint16_t en, uint16_t status)
+  {
+    mBits = uint64_t(id & 0x3fff) + (uint64_t(t & 0x3ff) << 14) + (uint64_t(en & 0x7fff) << 24) + (uint64_t(status & 0x1) << 39);
+  }
+
  private:
   std::bitset<40> mBits;
 

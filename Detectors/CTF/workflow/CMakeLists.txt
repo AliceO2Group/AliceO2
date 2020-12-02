@@ -29,6 +29,7 @@ o2_add_library(CTFWorkflow
                                      O2::TOFWorkflow
                                      O2::MIDWorkflow
                                      O2::EMCALWorkflow
+				     O2::PHOSWorkflow
                                      O2::Algorithm
                                      O2::CommonUtils)
 

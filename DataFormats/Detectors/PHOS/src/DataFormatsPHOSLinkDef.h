@@ -29,4 +29,8 @@
 // For channel type in digits and cells
 #pragma link C++ enum o2::phos::ChannelType_t + ;
 
+#pragma link C++ struct o2::phos::CTFHeader + ;
+#pragma link C++ struct o2::phos::CTF + ;
+#pragma link C++ class o2::ctf::EncodedBlocks < o2::phos::CTFHeader, 7, uint32_t> + ;
+
 #endif
