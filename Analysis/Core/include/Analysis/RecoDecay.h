@@ -101,7 +101,7 @@ class RecoDecay
   }
 
   /// Calculates scalar product of vectors.
-  /// \note Promotes numbers to double before squaring to avoid precision loss in float multiplication.
+  /// \note Promotes numbers to double to avoid precision loss in float multiplication.
   /// \param N  dimension
   /// \param vec1,vec2  vectors
   /// \return scalar product
@@ -113,6 +113,19 @@ class RecoDecay
       res += (double)vec1[iDim] * (double)vec2[iDim];
     }
     return res;
+  }
+
+  /// FIXME: probably cross and dot products should be in some utility class
+  /// Calculates cross product of vectors in three dimensions.
+  /// \note Promotes numbers to double to avoid precision loss in float multiplication.
+  /// \param vec1,vec2  vectors
+  /// \return cross-product vector
+  template <typename T, typename U>
+  static array<double, 3> crossProd(const array<T, 3>& vec1, const array<U, 3>& vec2)
+  {
+    return array<double, 3>{((double)vec1[1] * (double)vec2[2]) - ((double)vec1[2] * (double)vec2[1]),
+                            ((double)vec1[2] * (double)vec2[0]) - ((double)vec1[0] * (double)vec2[2]),
+                            ((double)vec1[0] * (double)vec2[1]) - ((double)vec1[1] * (double)vec2[0])};
   }
 
   /// Calculates magnitude squared of a vector.
@@ -404,6 +417,76 @@ class RecoDecay
   static double M(const T&... args)
   {
     return std::sqrt(M2(args...));
+  }
+
+  // Calculation of topological quantities
+
+  /// Calculates impact parameter in the bending plane of the particle w.r.t. a point
+  /// \param point  {x, y, z} position of the point
+  /// \param posSV  {x, y, z} position of the secondary vertex
+  /// \param mom  {x, y, z} particle momentum array
+  /// \return impact parameter in {x, y}
+  template <typename T, typename U, typename V>
+  static double ImpParXY(const T& point, const U& posSV, const array<V, 3>& mom)
+  {
+    // Ported from AliAODRecoDecay::ImpParXY
+    auto flightLineXY = array{posSV[0] - point[0], posSV[1] - point[1]};
+    auto k = dotProd(flightLineXY, array{mom[0], mom[1]}) / Pt2(mom);
+    auto dx = flightLineXY[0] - k * (double)mom[0];
+    auto dy = flightLineXY[1] - k * (double)mom[1];
+    auto absImpPar = sqrtSumOfSquares(dx, dy);
+    auto flightLine = array{posSV[0] - point[0], posSV[1] - point[1], posSV[2] - point[2]};
+    auto cross = crossProd(mom, flightLine);
+    return (cross[2] > 0. ? absImpPar : -1. * absImpPar);
+  }
+
+  /// Calculates the difference between measured and expected track impact parameter
+  /// normalized to its uncertainty
+  /// \param decLenXY decay lenght in {x, y} plane
+  /// \param errDecLenXY error on decay lenght in {x, y} plane
+  /// \param momMother {x, y, z} or {x, y} candidate momentum array
+  /// \param impParProng prong impact parameter
+  /// \param errImpParProng error on prong impact parameter
+  /// \param momProng {x, y, z} or {x, y} prong momentum array
+  /// \return normalized difference between expected and observed impact parameter
+  template <std::size_t N, std::size_t M, typename T, typename U, typename V, typename W, typename X, typename Y>
+  static double normImpParMeasMinusExpProng(T decLenXY, U errDecLenXY, const array<V, N>& momMother, W impParProng,
+                                            X errImpParProng, const array<Y, M>& momProng)
+  {
+    // Ported from AliAODRecoDecayHF::Getd0MeasMinusExpProng adding normalization directly in the function
+    auto sinThetaP = ((double)momProng[0] * (double)momMother[1] - (double)momProng[1] * (double)momMother[0]) /
+                     (Pt(momProng) * Pt(momMother));
+    auto diff = impParProng - (double)decLenXY * sinThetaP;
+    auto errImpParExpProng = (double)errDecLenXY * sinThetaP;
+    auto errDiff = sqrtSumOfSquares(errImpParProng, errImpParExpProng);
+    return (errDiff > 0. ? diff / errDiff : 0.);
+  }
+
+  /// Calculates maximum normalized difference between measured and expected impact parameter of candidate prongs
+  /// \param posPV {x, y, z} or {x, y} position of primary vertex
+  /// \param posSV {x, y, z} or {x, y} position of secondary vertex
+  /// \param errDecLenXY error on decay lenght in {x, y} plane
+  /// \param momMother {x, y, z} or {x, y} candidate momentum array
+  /// \param arrImpPar array of prong impact parameters
+  /// \param arrErrImpPar array of errors on prong impact parameter (same order as arrImpPar)
+  /// \param momMom array of {x, y, z} or {x, y} prong momenta (same order as arrImpPar)
+  /// \return maximum normalized difference between expected and observed impact parameters
+  template <std::size_t N, std::size_t M, std::size_t K, typename T, typename U, typename V, typename W, typename X,
+            typename Y, typename Z>
+  static double maxNormalisedDeltaIP(const T& posPV, const U& posSV, V errDecLenXY, const array<W, M>& momMother,
+                                     const array<X, N>& arrImpPar, const array<Y, N>& arrErrImpPar,
+                                     const array<array<Z, K>, N>& arrMom)
+  {
+    auto decLenXY = distanceXY(posPV, posSV);
+    double maxNormDeltaIP{0.};
+    for (auto iProng = 0; iProng < N; ++iProng) {
+      auto prongNormDeltaIP = normImpParMeasMinusExpProng(decLenXY, errDecLenXY, momMother, arrImpPar[iProng],
+                                                          arrErrImpPar[iProng], arrMom[iProng]);
+      if (std::abs(prongNormDeltaIP) > std::abs(maxNormDeltaIP)) {
+        maxNormDeltaIP = prongNormDeltaIP;
+      }
+    }
+    return maxNormDeltaIP;
   }
 
   /// Returns particle mass based on PDG code.
