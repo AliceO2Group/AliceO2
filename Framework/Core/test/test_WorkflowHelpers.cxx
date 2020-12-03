@@ -11,6 +11,7 @@
 #define BOOST_TEST_MAIN
 #define BOOST_TEST_DYN_LINK
 
+#include "Mocking.h"
 #include "test_HelperMacros.h"
 #include "Framework/ConfigContext.h"
 #include "Framework/WorkflowSpec.h"
@@ -23,30 +24,6 @@
 #include <memory>
 
 using namespace o2::framework;
-
-std::unique_ptr<ConfigContext> makeEmptyConfigContext()
-{
-  // FIXME: Ugly... We need to fix ownership and make sure the ConfigContext
-  //        either owns or shares ownership of the registry.
-  std::vector<std::unique_ptr<ParamRetriever>> retrievers;
-  static std::vector<ConfigParamSpec> specs = {
-    ConfigParamSpec{"forwarding-policy",
-                    VariantType::String,
-                    "dangling",
-                    {""}},
-    ConfigParamSpec{"forwarding-destination",
-                    VariantType::String,
-                    "file",
-                    {"what to do with dangling outputs. file: write to file, fairmq: send to output proxy"}},
-  };
-  specs.push_back(ConfigParamSpec{"aod-memory-rate-limit", VariantType::String, "0", {"rate"}});
-  auto store = std::make_unique<ConfigParamStore>(specs, std::move(retrievers));
-  store->preload();
-  store->activate();
-  static ConfigParamRegistry registry(std::move(store));
-  auto context = std::make_unique<ConfigContext>(registry, 0, nullptr);
-  return context;
-}
 
 BOOST_AUTO_TEST_CASE(TestVerifyWorkflow)
 {

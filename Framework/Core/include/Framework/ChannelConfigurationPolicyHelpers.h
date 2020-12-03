@@ -14,10 +14,12 @@
 
 #include <functional>
 
-namespace o2
+namespace o2::framework
 {
-namespace framework
-{
+
+struct FairMQChannelConfigSpec {
+  int64_t rateLogging;
+};
 
 /// A set of helpers for common ChannelConfigurationPolicy behaviors
 struct ChannelConfigurationPolicyHelpers {
@@ -41,24 +43,23 @@ struct ChannelConfigurationPolicyHelpers {
 
   // Some trivial modifier which can be used by the policy.
   /// Makes the passed input channel connect and subscribe
-  static InputChannelModifier subscribeInput;
+  static InputChannelModifier subscribeInput(FairMQChannelConfigSpec const& spec);
   /// Makes the passed output channel bind and subscribe
-  static OutputChannelModifier publishOutput;
+  static OutputChannelModifier publishOutput(FairMQChannelConfigSpec const& spec);
   /// Makes the passed input channel connect and pull
-  static InputChannelModifier pullInput;
+  static InputChannelModifier pullInput(FairMQChannelConfigSpec const& spec);
   /// Makes the passed output channel bind and push
-  static OutputChannelModifier pushOutput;
+  static OutputChannelModifier pushOutput(FairMQChannelConfigSpec const& spec);
   /// Makes the passed input channel connect and request
-  static InputChannelModifier reqInput;
+  static InputChannelModifier reqInput(FairMQChannelConfigSpec const& spec);
   /// Makes the passed output channel bind and reply
-  static OutputChannelModifier replyOutput;
+  static OutputChannelModifier replyOutput(FairMQChannelConfigSpec const& spec);
   /// Makes the passed input channel connect and pair
-  static InputChannelModifier pairInput;
+  static InputChannelModifier pairInput(FairMQChannelConfigSpec const& spec);
   /// Makes the passed output channel bind and pair
-  static OutputChannelModifier pairOutput;
+  static OutputChannelModifier pairOutput(FairMQChannelConfigSpec const& spec);
 };
 
-} // namespace framework
-} // namespace o2
+} // namespace o2::framework
 
-#endif // FRAMEWORK_CHANNELCONFIGURATIONPOLICY_H
+#endif // O2_FRAMEWORK_CHANNELCONFIGURATIONPOLICY_H_

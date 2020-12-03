@@ -253,7 +253,7 @@ std::string DeviceSpecHelpers::inputChannel2String(const InputChannelSpec& chann
   result += std::string("type=") + ChannelSpecHelpers::typeAsString(channel.type);
   result += std::string(",method=") + ChannelSpecHelpers::methodAsString(channel.method);
   result += std::string(",address=") + ChannelSpecHelpers::channelUrl(channel);
-  result += std::string(",rateLogging=60");
+  result += std::string(",rateLogging=" + std::to_string(channel.rateLogging));
 
   return result;
 }
@@ -268,7 +268,7 @@ std::string DeviceSpecHelpers::outputChannel2String(const OutputChannelSpec& cha
   result += std::string("type=") + ChannelSpecHelpers::typeAsString(channel.type);
   result += std::string(",method=") + ChannelSpecHelpers::methodAsString(channel.method);
   result += std::string(",address=") + ChannelSpecHelpers::channelUrl(channel);
-  result += std::string(",rateLogging=60");
+  result += std::string(",rateLogging=" + std::to_string(channel.rateLogging));
 
   return result;
 }
