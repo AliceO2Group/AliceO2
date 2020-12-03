@@ -17,15 +17,13 @@ using namespace o2::framework::expressions;
 
 // This task shows how to access the Muons belong to a collision
 // The association is made through the BC column (and in Run 3 may not be unique!)
-// To run this workflow, the o2-analysis-run(2,3)-matcher has to be run as well.
-// Example: o2-analysis-run2-matcher --aod-file AO2D.root | o2-analysistutorial-muon-iteration
 //
 // Note that one has to subscribe to aod::Collisions const& to load
 // the relevant data even if you access the data itself through m.collision()
 // This uses the exclusive matcher, so you only get BCs which have a collision
 // If you want also BCs without collision, see the example IterateMuonsSparse below
 struct IterateMuons {
-  void process(aod::BCCollisionsExclusive::iterator const& m, aod::Collisions const&, aod::Muons const& muons)
+  void process(aod::MatchedBCCollisionsExclusive::iterator const& m, aod::Collisions const&, aod::Muons const& muons)
   {
     LOGF(INFO, "Vertex = %f has %d muons", m.collision().posZ(), muons.size());
     for (auto& muon : muons) {
@@ -37,7 +35,7 @@ struct IterateMuons {
 // This uses the sparase matcher, so you also get BCs without a collision.
 // You need to check with m.has_collision()
 struct IterateMuonsSparse {
-  void process(aod::BCCollisionsSparse::iterator const& m, aod::Collisions const&, aod::Muons const& muons)
+  void process(aod::MatchedBCCollisionsSparse::iterator const& m, aod::Collisions const&, aod::Muons const& muons)
   {
     if (m.has_collision()) {
       LOGF(INFO, "Vertex = %f has %d muons", m.collision().posZ(), muons.size());

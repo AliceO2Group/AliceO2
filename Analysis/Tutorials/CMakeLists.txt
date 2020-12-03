@@ -167,3 +167,8 @@ o2_add_dpl_workflow(efficiency-global
                   SOURCES src/efficiencyGlobal.cxx
                   PUBLIC_LINK_LIBRARIES O2::Framework O2::AnalysisCore O2::AnalysisDataModel
                   COMPONENT_NAME AnalysisTutorial)
+
+o2_add_dpl_workflow(compatible-bcs
+                  SOURCES src/compatibleBCs.cxx
+                  PUBLIC_LINK_LIBRARIES O2::Framework O2::AnalysisCore O2::AnalysisDataModel
+                  COMPONENT_NAME AnalysisTutorial)
