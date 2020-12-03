@@ -85,15 +85,15 @@ Stack::Stack(Int_t size)
   LOG(INFO) << param;
   TransportFcn transportPrimary;
   if (param.transportPrimary.compare("none") == 0) {
-    transportPrimary = [](const TParticle& p) {
+    transportPrimary = [](const TParticle& p, const std::vector<TParticle>& particles) {
       return false;
     };
   } else if (param.transportPrimary.compare("all") == 0) {
-    transportPrimary = [](const TParticle& p) {
+    transportPrimary = [](const TParticle& p, const std::vector<TParticle>& particles) {
       return true;
     };
   } else if (param.transportPrimary.compare("barrel") == 0) {
-    transportPrimary = [](const TParticle& p) {
+    transportPrimary = [](const TParticle& p, const std::vector<TParticle>& particles) {
       return (std::fabs(p.Eta()) < 2.0);
     };
   } else if (param.transportPrimary.compare("external") == 0) {
@@ -108,7 +108,7 @@ Stack::Stack(Int_t size)
   }
 
   if (param.transportPrimaryInvert) {
-    mTransportPrimary = [transportPrimary](const TParticle& p) { return !transportPrimary; };
+    mTransportPrimary = [transportPrimary](const TParticle& p, const std::vector<TParticle>& particles) { return !transportPrimary; };
   } else {
     mTransportPrimary = transportPrimary;
   }
@@ -230,7 +230,7 @@ void Stack::PushTrack(Int_t toBeDone, Int_t parentId, Int_t pdgCode, Double_t px
     p.SetBit(ParticleStatus::kKeep);
     p.SetBit(ParticleStatus::kPrimary);
     if (toBeDone == 1) {
-      if (mTransportPrimary(p)) {
+      if (mTransportPrimary(p, mPrimaryParticles)) {
         p.SetBit(ParticleStatus::kToBeDone, 1);
         mNumberOfPrimariesforTracking++;
       } else {
