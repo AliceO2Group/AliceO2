@@ -104,7 +104,7 @@ void RawToCellConverterSpec::run(framework::ProcessingContext& ctx)
       o2::emcal::AltroDecoder decoder(rawreader);
       decoder.decode();
 
-      std::cout << decoder.getRCUTrailer() << std::endl;
+      LOG(DEBUG) << decoder.getRCUTrailer();
 
       o2::emcal::Mapper map = mMapper->getMappingForDDL(feeID);
       int iSM = feeID / 2;
