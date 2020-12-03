@@ -225,7 +225,7 @@ class Stack : public FairGenericStack
   /// update values in the current event header
   void updateEventStats();
 
-  typedef std::function<bool(const TParticle& p)> TransportFcn;
+  typedef std::function<bool(const TParticle& p, const std::vector<TParticle>& particles)> TransportFcn;
 
  private:
   /// STL stack (FILO) used to handle the TParticles for tracking
@@ -283,7 +283,7 @@ class Stack : public FairGenericStack
 
   bool mIsExternalMode = false; // is stack an external factory or directly used inside simulation?
 
-  TransportFcn mTransportPrimary = [](const TParticle& p) { return false; }; //! a function to inhibit the tracking of a particle
+  TransportFcn mTransportPrimary = [](const TParticle& p, const std::vector<TParticle>& particles) { return false; }; //! a function to inhibit the tracking of a particle
 
   // storage for track references
   std::vector<o2::TrackReference>* mTrackRefs = nullptr; //!

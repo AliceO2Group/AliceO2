@@ -1,7 +1,7 @@
 o2::data::Stack::TransportFcn
 transportPDG(int pdg = 321)
 {
-  return [pdg](const TParticle& p) -> bool {
+  return [pdg](const TParticle& p, const std::vector<TParticle>& particles) -> bool {
 	   return p.GetPdgCode() == pdg;
 	 };
 }
