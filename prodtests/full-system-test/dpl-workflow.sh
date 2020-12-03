@@ -26,7 +26,7 @@ else
 fi
 
 if [ $CREATECTFDICT == 1 ]; then
-  CMD_DICT="o2-ctf-writer-workflow $ARGS_ALL --output-type dict --save-dict-after 1 --onlyDet ITS,MFT,TPC,TOF,FT0,MID"
+  CMD_DICT="o2-ctf-writer-workflow $ARGS_ALL --output-type dict --save-dict-after 1 --onlyDet ITS,MFT,TPC,TOF,FT0,MID,EMC,PHS"
 else
   CMD_DICT=cat
 fi
@@ -91,6 +91,10 @@ o2-ft0-entropy-encoder-workflow $ARGS_ALL | \
 o2-mid-raw-to-digits-workflow $ARGS_ALL | \
 o2-mid-reco-workflow $ARGS_ALL --disable-root-output $DISABLE_MC $MID_CONFIG | \
 o2-mid-entropy-encoder-workflow $ARGS_ALL | \
+o2-phos-reco-workflow $ARGS_ALL --input-type raw --output-type cells | \
+o2-phos-entropy-encoder-workflow $ARGS_ALL |\
+o2-emcal-reco-workflow $ARGS_ALL --input-type raw --output-type cells | \
+o2-emcal-entropy-encoder-workflow $ARGS_ALL |\
 o2-tof-compressor $ARGS_ALL | \
 o2-tof-reco-workflow $ARGS_ALL --configKeyValues "HBFUtils.nHBFPerTF=$NHBPERTF" --input-type raw --output-type ctf,clusters,matching-info --disable-root-output $DISABLE_MC | \
 o2-tpc-scdcalib-interpolation-workflow $ARGS_ALL --disable-root-output --disable-root-input | \
