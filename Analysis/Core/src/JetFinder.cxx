@@ -11,7 +11,7 @@
 // jet finder task
 //
 // Author: Jochen Klein, Nima Zardoshti
-#include "Analysis/JetFinder.h"
+#include "AnalysisCore/JetFinder.h"
 #include "Framework/AnalysisTask.h"
 
 /// Sets the jet finding parameters

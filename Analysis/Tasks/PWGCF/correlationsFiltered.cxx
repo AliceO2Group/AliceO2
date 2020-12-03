@@ -13,11 +13,11 @@
 #include "Framework/ASoAHelpers.h"
 #include "Framework/StepTHn.h"
 
-#include "Analysis/EventSelection.h"
-#include "Analysis/TrackSelectionTables.h"
-#include "Analysis/Centrality.h"
-#include "Analysis/CorrelationContainer.h"
-#include "Analysis/CFDerived.h"
+#include "AnalysisDataModel/EventSelection.h"
+#include "AnalysisDataModel/TrackSelectionTables.h"
+#include "AnalysisDataModel/Centrality.h"
+#include "AnalysisCore/CorrelationContainer.h"
+#include "AnalysisDataModel/CFDerived.h"
 
 #include <TH1F.h>
 #include <cmath>

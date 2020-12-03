@@ -10,8 +10,8 @@
 #include "Framework/runDataProcessing.h"
 #include "Framework/AnalysisTask.h"
 #include "Framework/AnalysisDataModel.h"
-#include "Analysis/Multiplicity.h"
-#include "Analysis/Centrality.h"
+#include "AnalysisDataModel/Multiplicity.h"
+#include "AnalysisDataModel/Centrality.h"
 #include <CCDB/BasicCCDBManager.h>
 #include "TH1F.h"
 

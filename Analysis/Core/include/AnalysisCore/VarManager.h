@@ -26,7 +26,7 @@
 #include <cmath>
 
 #include "Framework/DataTypes.h"
-#include "Analysis/TriggerAliases.h"
+#include "AnalysisCore/TriggerAliases.h"
 
 // TODO: create an array holding these constants for all needed particles or check for a place where these are already defined
 static const float fgkElectronMass = 0.000511; // GeV

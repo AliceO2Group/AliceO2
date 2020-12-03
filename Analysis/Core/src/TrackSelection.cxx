@@ -12,7 +12,7 @@
 // Class for track selection
 //
 
-#include "Analysis/TrackSelection.h"
+#include "AnalysisCore/TrackSelection.h"
 
 bool TrackSelection::FulfillsITSHitRequirements(uint8_t itsClusterMap)
 {

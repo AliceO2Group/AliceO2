@@ -11,7 +11,7 @@
 #include "Framework/AnalysisTask.h"
 #include "Framework/AnalysisDataModel.h"
 
-#include "PID/PIDResponse.h"
+#include "AnalysisDataModel/PID/PIDResponse.h"
 
 #include <TH1F.h>
 #include <TH2F.h>

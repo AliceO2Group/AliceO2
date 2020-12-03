@@ -18,8 +18,8 @@
 #define O2_ANALYSIS_HFSECONDARYVERTEX_H_
 
 #include "Framework/AnalysisDataModel.h"
-#include "Analysis/RecoDecay.h"
-#include "PID/PIDResponse.h"
+#include "AnalysisCore/RecoDecay.h"
+#include "AnalysisDataModel/PID/PIDResponse.h"
 
 namespace o2::aod
 {

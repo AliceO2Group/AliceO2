@@ -15,11 +15,11 @@
 #include "Framework/StepTHn.h"
 #include "Framework/HistogramRegistry.h"
 
-#include "Analysis/EventSelection.h"
-#include "Analysis/TrackSelectionTables.h"
-#include "Analysis/Centrality.h"
-#include "Analysis/CorrelationContainer.h"
-#include "Analysis/PairCuts.h"
+#include "AnalysisDataModel/EventSelection.h"
+#include "AnalysisDataModel/TrackSelectionTables.h"
+#include "AnalysisDataModel/Centrality.h"
+#include "AnalysisCore/CorrelationContainer.h"
+#include "AnalysisCore/PairCuts.h"
 
 #include <TH1F.h>
 #include <cmath>
