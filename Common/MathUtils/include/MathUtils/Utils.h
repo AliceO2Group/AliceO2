@@ -106,12 +106,12 @@ inline void bringToPMPid(double& phi)
 
 GPUdi() void sincos(float ang, float& s, float& c)
 {
-  detail::sincos(ang, s, c);
+  detail::sincos<float>(ang, s, c);
 }
 
 GPUdi() void sincosd(double ang, double& s, double& c)
 {
-  detail::sincos(ang, s, c);
+  detail::sincos<double>(ang, s, c);
 }
 
 #ifndef GPUCA_GPUCODE_DEVICE
