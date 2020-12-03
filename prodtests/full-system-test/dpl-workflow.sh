@@ -35,9 +35,11 @@ if [ $SYNCMODE == 1 ]; then
   CFG_X="fastMultConfig.cutMultClusLow=30;fastMultConfig.cutMultClusHigh=2000;fastMultConfig.cutMultVtxHigh=500"
   ITS_CONFIG="--configKeyValues $CFG_X"
   TPC_CONFIG="GPU_global.synchronousProcessing=1;"
+  MID_CONFIG="--disable-tracking"
 else
   ITS_CONFIG=
   TPC_CONFIG=
+  MID_CONFIG=
 fi
 TPC_CONFIG2=
 
@@ -87,7 +89,7 @@ o2-ft0-flp-dpl-workflow $ARGS_ALL --disable-root-output | \
 o2-ft0-reco-workflow $ARGS_ALL --disable-root-input --disable-root-output $DISABLE_MC | \
 o2-ft0-entropy-encoder-workflow $ARGS_ALL | \
 o2-mid-raw-to-digits-workflow $ARGS_ALL | \
-o2-mid-reco-workflow $ARGS_ALL --disable-root-output $DISABLE_MC | \
+o2-mid-reco-workflow $ARGS_ALL --disable-root-output $DISABLE_MC $MID_CONFIG | \
 o2-mid-entropy-encoder-workflow $ARGS_ALL | \
 o2-tof-compressor $ARGS_ALL | \
 o2-tof-reco-workflow $ARGS_ALL --configKeyValues "HBFUtils.nHBFPerTF=$NHBPERTF" --input-type raw --output-type ctf,clusters,matching-info --disable-root-output $DISABLE_MC | \
