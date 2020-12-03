@@ -63,6 +63,8 @@ taskwrapper ft0raw.log o2-ft0-digi2raw --file-per-link --configKeyValues '"HBFUt
 taskwrapper tpcraw.log o2-tpc-digits-to-rawzs  --file-for link --configKeyValues '"HBFUtils.nHBFPerTF=128;HBFUtils.orbitFirst=0"' -i tpcdigits.root -o raw/TPC
 taskwrapper tofraw.log o2-tof-reco-workflow ${GLOBALDPLOPT} --tof-raw-file-for link --configKeyValues '"HBFUtils.nHBFPerTF=128;HBFUtils.orbitFirst=0"' --output-type raw --tof-raw-outdir raw/TOF
 taskwrapper midraw.log o2-mid-digits-to-raw-workflow ${GLOBALDPLOPT} --mid-raw-outdir raw/MID --mid-raw-perlink  --configKeyValues '"HBFUtils.nHBFPerTF=128;HBFUtils.orbitFirst=0"'
+taskwrapper emcraw.log o2-emcal-rawcreator --file-for link --configKeyValues '"HBFUtils.nHBFPerTF=128;HBFUtils.orbitFirst=0"' -o raw/EMC
+taskwrapper phsraw.log o2-phos-digi2raw  --file-for link --configKeyValues '"HBFUtils.nHBFPerTF=128;HBFUtils.orbitFirst=0"' -o raw/PHS
 cat raw/*/*.cfg > rawAll.cfg
 
 # We run the workflow in both CPU-only and With-GPU mode
@@ -102,7 +104,7 @@ for STAGE in "NOGPU" "WITHGPU"; do
     walltime=`grep "#walltime" ${logfile}_time | awk '//{print $2}'`
     echo "walltime_${STAGE},${TAG} value=${walltime}" >> ${METRICFILE}
 
-    # memory 
+    # memory
     maxmem=`awk '/PROCESS MAX MEM/{print $5}' ${logfile}`  # in MB
     avgmem=`awk '/PROCESS AVG MEM/{print $5}' ${logfile}`  # in MB
     echo "maxmem_${STAGE},${TAG} value=${maxmem}" >> ${METRICFILE}
