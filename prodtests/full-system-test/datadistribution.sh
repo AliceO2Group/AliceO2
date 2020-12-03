@@ -10,7 +10,7 @@ fi
 
 export DATADIST_SHM_DELAY=10
 export TF_DIR=./raw/timeframe
-export TFRATE=$(awk "BEGIN {printf \"%.6f\",1/$NTIMEFRAMES}")
+export TFRATE=$(awk "BEGIN {printf \"%.6f\",1/$TFDELAY}")
 
 ARGS_ALL="--session default --severity $SEVERITY --shm-segment-size $SHMSIZE --no-cleanup"
 
