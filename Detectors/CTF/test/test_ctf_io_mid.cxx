@@ -32,7 +32,7 @@ BOOST_AUTO_TEST_CASE(CTFTest)
   // indicated. What it more weird is that for similar tests of other detectors the library is loaded!
   // Absence of the library leads to complains about the StreamerInfo and eventually segm.faul when appending the
   // CTH to the tree. For this reason I am loading it here manually
-  gSystem->Load("libO2DetectorsCommonDataFormats.so");
+  gSystem->Load("libO2DetectorsCommonDataFormats");
   TStopwatch sw;
   sw.Start();
   o2::InteractionRecord ir(0, 0);
