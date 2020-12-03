@@ -164,20 +164,33 @@ void Digitizer::flush(std::vector<o2::tpc::Digit>& digits,
   mDigitContainer.fillOutputContainer(digits, labels, commonModeOutput, mSector, sampaProcessing.getTimeBinFromTime(mEventTime), mIsContinuous, finalFlush);
 }
 
-void Digitizer::setUseSCDistortions(SpaceCharge::SCDistortionType distortionType, const TH3* hisInitialSCDensity, int nRBins, int nPhiBins, int nZSlices)
+void Digitizer::setUseSCDistortions(SC::SCDistortionType distortionType, const TH3* hisInitialSCDensity)
 {
   mUseSCDistortions = true;
   if (!mSpaceCharge) {
-    mSpaceCharge = std::make_unique<SpaceCharge>(nRBins, nPhiBins, nZSlices);
+    mSpaceCharge = std::make_unique<SC>();
   }
   mSpaceCharge->setSCDistortionType(distortionType);
   if (hisInitialSCDensity) {
-    mSpaceCharge->setInitialSpaceChargeDensity(hisInitialSCDensity);
+    mSpaceCharge->fillChargeDensityFromHisto(*hisInitialSCDensity);
+    mSpaceCharge->setUseInitialSCDensity(true);
   }
 }
 
-void Digitizer::setUseSCDistortions(SpaceCharge* spaceCharge)
+void Digitizer::setUseSCDistortions(SC* spaceCharge)
 {
   mUseSCDistortions = true;
   mSpaceCharge.reset(spaceCharge);
+}
+
+void Digitizer::setUseSCDistortions(TFile& finp)
+{
+  mUseSCDistortions = true;
+  if (!mSpaceCharge) {
+    mSpaceCharge = std::make_unique<SC>();
+  }
+  mSpaceCharge->setGlobalDistortionsFromFile(finp, Side::A);
+  mSpaceCharge->setGlobalDistortionsFromFile(finp, Side::C);
+  mSpaceCharge->setGlobalCorrectionsFromFile(finp, Side::A);
+  mSpaceCharge->setGlobalCorrectionsFromFile(finp, Side::C);
 }

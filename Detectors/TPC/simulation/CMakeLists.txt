@@ -21,9 +21,8 @@ o2_add_library(TPCSimulation
                        src/PadResponse.cxx
                        src/Point.cxx
                        src/SAMPAProcessing.cxx
-                       src/SpaceCharge.cxx
                PUBLIC_LINK_LIBRARIES O2::DetectorsBase O2::SimulationDataFormat
-                                     O2::TPCBase O2::TPCSpaceChargeBase
+                                     O2::TPCBase O2::TPCSpaceCharge
                                      ROOT::Physics)
 
 o2_target_root_dictionary(TPCSimulation
@@ -38,8 +37,7 @@ o2_target_root_dictionary(TPCSimulation
                                   include/TPCSimulation/GEMAmplification.h
                                   include/TPCSimulation/PadResponse.h
                                   include/TPCSimulation/Point.h
-                                  include/TPCSimulation/SAMPAProcessing.h
-                                  include/TPCSimulation/SpaceCharge.h)
+                                  include/TPCSimulation/SAMPAProcessing.h)
 
 o2_add_executable(digits-to-rawzs
                   COMPONENT_NAME tpc
@@ -56,13 +54,6 @@ if(BUILD_TESTING)
                          PUBLIC_LINK_LIBRARIES O2::TPCBase
                                                O2::SimulationDataFormat
                          LABELS tpc)
-
-  o2_add_test_root_macro(macro/createResidualDistortionObject.C
-          PUBLIC_LINK_LIBRARIES O2::TPCSpaceChargeBase
-                                O2::CommonUtils
-                                O2::CommonConstants
-                                O2::TPCSimulation
-          LABELS tpc)
 
   o2_add_test_root_macro(macro/laserTrackGenerator.C
                          PUBLIC_LINK_LIBRARIES FairRoot::Base

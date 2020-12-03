@@ -18,7 +18,7 @@
   /eos/user/e/ehellbar/SpaceCharge/data/RUN3/InputSCDensityHistograms
 
   Run macro:
-  root -l -b -q $O2_SRC/Detectors/TPC/reconstruction/macro/createTPCSpaceChargeCorrection.C+\(180,65,65,\"InputSCDensityHistograms_8000events.root\",\"inputSCDensity3D_8000_0\",\"tpctransformSCcorrection.root\"\)
+  root -l -b -q $O2_SRC/Detectors/TPC/reconstruction/macro/createTPCSpaceChargeCorrection.C+\(\"InputSCDensityHistograms_8000events.root\",\"inputSCDensity3D_8000_0\",\"tpctransformSCcorrection.root\"\)
 
   Test macro compilation:
   .L $O2_SRC/Detectors/TPC/reconstruction/macro/createTPCSpaceChargeCorrection.C+
@@ -31,9 +31,8 @@
 #include "TFile.h"
 #include "TH3.h"
 #include "TLatex.h"
-#include "TMatrixD.h"
 
-#include "AliTPCSpaceCharge3DCalc.h"
+#include "TPCSpaceCharge/SpaceCharge.h"
 
 #include "CommonConstants/MathConstants.h"
 #include "CommonUtils/TreeStreamRedirector.h"
@@ -43,39 +42,36 @@ using namespace o2;
 using namespace tpc;
 using namespace gpu;
 
-std::unique_ptr<AliTPCSpaceCharge3DCalc> spaceCharge = nullptr;
+/// \param nPhi number of phi bins of original correction lookup table
+/// \param nR number of r bins of original correction lookup table, has to be 2^n + 1
+/// \param nZ number of z bins of original correction lookup table, has to be 2^n + 1
+const int nPhi = 180;
+const int nR = 129;
+const int nZ = 129;
+using SC = o2::tpc::SpaceCharge<double, nZ, nR, nPhi>;
+std::unique_ptr<SC> spaceCharge;
 
 void getSpaceChargeCorrection(const int roc, const double XYZ[3], double dXdYdZ[3]);
-void initSpaceCharge(const int nPhi, const int nR, const int nZ, const int interpolationOrder,
-                     const char* histoFileName, const char* histoName);
+void initSpaceCharge(const char* histoFileName, const char* histoName);
 
 void DumpFlatObjectToFile(const TPCFastTransform* obj, const char* file);
 std::unique_ptr<TPCFastTransform> ReadFlatObjectFromFile(const char* file);
 
-void debugInterpolation(utils::TreeStreamRedirector& pcstream,
-                        const o2::gpu::TPCFastTransformGeo& geo,
-                        TPCFastTransform* fastTransform);
-void debugGridpoints(utils::TreeStreamRedirector& pcstream,
-                     const o2::gpu::TPCFastTransformGeo& geo,
-                     TPCFastTransform* fastTransform);
+void debugInterpolation(utils::TreeStreamRedirector& pcstream, const o2::gpu::TPCFastTransformGeo& geo, TPCFastTransform* fastTransform);
+void debugGridpoints(utils::TreeStreamRedirector& pcstream, const o2::gpu::TPCFastTransformGeo& geo, TPCFastTransform* fastTransform);
 
-/// Creates TPCFastTransform object for TPC space-charge correction, stores it in a file and provides a deub tree if requested
-/// \param nPhi number of phi bins of original correction lookup table
-/// \param nR number of r bins of original correction lookup table, has to be 2^n + 1
-/// \param nZ number of z bins of original correction lookup table, has to be 2^n + 1
+/// Creates TPCFastTransform object for TPC space-charge correction, stores it in a file and provides a debug tree if requested
 /// \param histoFileName path and name to the root file containing input space-charge density histograms
 /// \param histoName name of the input space-charge density histogram
 /// \param outputFileName name of the output file to store the TPCFastTransform object in
 /// \param debug create debug tree comparing original corrections and spline interpolations from TPCFastTransform (1 = on the spline interpolation grid, 2 = on the original lookup table grid)
 void createTPCSpaceChargeCorrection(
-  const int nPhi = 180, const int nR = 65, const int nZ = 65,
   const char* histoFileName = "InputSCDensityHistograms_10000events.root",
   const char* histoName = "inputSCDensity3D_10000_avg",
   const char* outputFileName = "tpctransform.root",
   const int debug = 0)
 {
-  const int interpolationOrder = 2.;
-  initSpaceCharge(nPhi, nR, nZ, interpolationOrder, histoFileName, histoName);
+  initSpaceCharge(histoFileName, histoName);
   TPCFastTransformHelperO2::instance()->setSpaceChargeCorrection(getSpaceChargeCorrection);
 
   std::unique_ptr<TPCFastTransform> fastTransform(TPCFastTransformHelperO2::instance()->create(0));
@@ -84,7 +80,7 @@ void createTPCSpaceChargeCorrection(
 
   if (debug > 0) {
     const o2::gpu::TPCFastTransformGeo& geo = fastTransform->getGeometry();
-    utils::TreeStreamRedirector pcstream(TString::Format("fastTransformUnitTest_debug%d_gridsize%d-%d-%d_order%d.root", debug, nPhi, nR, nZ, interpolationOrder).Data(), "recreate");
+    utils::TreeStreamRedirector pcstream(TString::Format("fastTransformUnitTest_debug%d_gridsize%d-%d-%d.root", debug, nPhi, nR, nZ).Data(), "recreate");
     switch (debug) {
       case 1:
         debugInterpolation(pcstream, geo, fastTransform.get());
@@ -100,54 +96,35 @@ void createTPCSpaceChargeCorrection(
 }
 
 /// Initialize calculation of original correction lookup tables
-/// \param nPhi number of phi bins of original correction lookup table
-/// \param nR number of r bins of original correction lookup table, has to be 2^n + 1
-/// \param nZ number of z bins of original correction lookup table, has to be 2^n + 1
-/// \param interpolationOrder interpolation method to use for original correction lookup tables (1 = linear interpolation, 2 = polynomial interpolation of 2nd order, >2 = cubic spline interpolation of higher orders)
 /// \param histoFileName path and name to the root file containing input space-charge density histograms
 /// \param histoName name of the input space-charge density histogram
-void initSpaceCharge(const int nPhi, const int nR, const int nZ, const int interpolationOrder,
-                     const char* histoFileName, const char* histoName)
+void initSpaceCharge(const char* histoFileName, const char* histoName)
 {
   // get histogram with space-charge density
   std::unique_ptr<TFile> histoFile = std::unique_ptr<TFile>(TFile::Open(histoFileName));
   std::unique_ptr<TH3> scHisto = std::unique_ptr<TH3>((TH3*)histoFile->Get(histoName));
 
   // initialize space-charge object
-  spaceCharge = std::make_unique<AliTPCSpaceCharge3DCalc>(nR, nZ, nPhi, interpolationOrder, 3, 0);
+  spaceCharge = std::make_unique<SC>();
 
   // input charge
-  std::unique_ptr<std::unique_ptr<TMatrixD>[]> mMatrixChargeA = std::make_unique<std::unique_ptr<TMatrixD>[]>(nPhi);
-  std::unique_ptr<std::unique_ptr<TMatrixD>[]> mMatrixChargeC = std::make_unique<std::unique_ptr<TMatrixD>[]>(nPhi);
-  for (int iphi = 0; iphi < nPhi; ++iphi) {
-    mMatrixChargeA[iphi] = std::make_unique<TMatrixD>(nR, nZ);
-    mMatrixChargeC[iphi] = std::make_unique<TMatrixD>(nR, nZ);
-  }
-  spaceCharge->GetChargeDensity((TMatrixD**)mMatrixChargeA.get(), (TMatrixD**)mMatrixChargeC.get(), (TH3*)scHisto.get(), nR, nZ, nPhi);
-  spaceCharge->SetInputSpaceChargeA((TMatrixD**)mMatrixChargeA.get());
-  spaceCharge->SetInputSpaceChargeC((TMatrixD**)mMatrixChargeC.get());
+  spaceCharge->fillChargeDensityFromHisto(*scHisto.get());
 
   // further parameters
-  spaceCharge->SetOmegaTauT1T2(0.32, 1.f, 1.f);
-  spaceCharge->SetCorrectionType(0);      // 0: use regular spaced LUTs, 1: use irregular LUTs (not recommended at the time as it is slower and results have to be verified)
-  spaceCharge->SetIntegrationStrategy(0); // 0: use default integration along drift lines, 1: use fast integration (not recommended at the time as results have to be verified)
+  spaceCharge->setOmegaTauT1T2(0.32, 1.f, 1.f);
 
-  // calculate LUTs
-  spaceCharge->ForceInitSpaceCharge3DPoissonIntegralDz(nR, nZ, nPhi, 300, 1e-8);
+  // start calculation of lookup tables (takes some time)
+  spaceCharge->calculateDistortionsCorrections(Side::A);
+  spaceCharge->calculateDistortionsCorrections(Side::C);
 }
 
 /// Function to get corrections from original lookup tables
-/// \param roc readout chamber index (0 - 71)
 /// \param XYZ array with x, y and z position
 /// \param dXdYdZ array with correction dx, dy and dz
 void getSpaceChargeCorrection(const int roc, const double XYZ[3], double dXdYdZ[3])
 {
-  const float xyzf[3] = {static_cast<float>(XYZ[0]), static_cast<float>(XYZ[1]), static_cast<float>(XYZ[2])};
-  float dxdydzf[3] = {0.f, 0.f, 0.f};
-  spaceCharge->GetCorrection(xyzf, roc, dxdydzf);
-  dXdYdZ[0] = static_cast<double>(dxdydzf[0]);
-  dXdYdZ[1] = static_cast<double>(dxdydzf[1]);
-  dXdYdZ[2] = static_cast<double>(dxdydzf[2]);
+  Side side = roc < 18 ? Side::A : Side::C;
+  spaceCharge->getCorrections(XYZ[0], XYZ[1], XYZ[2], side, dXdYdZ[0], dXdYdZ[1], dXdYdZ[2]);
 }
 
 /// Save TPCFastTransform to a file
@@ -203,15 +180,12 @@ void debugInterpolation(utils::TreeStreamRedirector& pcstream,
   for (int slice = 0; slice < geo.getNumberOfSlices(); slice += 1) {
     // for (int slice = 21; slice < 22; slice += 1) {
     std::cout << "debug slice " << slice << " ... " << std::endl;
-
     const o2::gpu::TPCFastTransformGeo::SliceInfo& sliceInfo = geo.getSliceInfo(slice);
 
     for (int row = 0; row < geo.getNumberOfRows(); row++) {
-
       int nPads = geo.getRowInfo(row).maxPad + 1;
 
       for (int pad = 0; pad < nPads; pad++) {
-
         for (float time = 0; time < 500; time += 10) {
 
           // non-corrected point
@@ -232,35 +206,32 @@ void debugInterpolation(utils::TreeStreamRedirector& pcstream,
           // the original correction
           double gxyz[3] = {gx, gy, gz};
           double gdC[3] = {0, 0, 0};
-          getSpaceChargeCorrection(slice, gxyz, gdC);
+          Side side = slice < geo.getNumberOfSlicesA() ? Side::A : Side::C;
+          spaceCharge->getCorrections(gxyz[0], gxyz[1], gxyz[2], side, gdC[0], gdC[1], gdC[2]);
           float ldxC, ldyC, ldzC;
-          geo.convGlobalToLocal(slice, gdC[0], gdC[1], gdC[2], ldxC, ldyC,
-                                ldzC);
+          geo.convGlobalToLocal(slice, gdC[0], gdC[1], gdC[2], ldxC, ldyC, ldzC);
 
-          float rC = std::sqrt((gx + gdC[0]) * (gx + gdC[0]) +
-                               (gy + gdC[1]) * (gy + gdC[1]));
+          float rC = std::sqrt((gx + gdC[0]) * (gx + gdC[0]) + (gy + gdC[1]) * (gy + gdC[1]));
 
           // calculate distortion for the xyz0
-          float ldD[3] = {0.0, 0.0, 0.0};
-          float gdD[3] = {0.0, 0.0, 0.0};
+          double ldD[3] = {0.0, 0.0, 0.0};
+          double gdD[3] = {0.0, 0.0, 0.0};
 
           float gxyzf[3] = {gx, gy, gz};
-          float pointCyl[3] = {r, phi, gz};
+          float pointCyl[3] = {gz, r, phi};
           double efield[3] = {0.0, 0.0, 0.0};
-          double charge = spaceCharge->GetChargeCylAC(pointCyl, slice);
-          double potential = spaceCharge->GetPotentialCylAC(pointCyl, slice);
-          spaceCharge->GetElectricFieldCyl(pointCyl, slice, efield);
-          spaceCharge->GetLocalDistortionCyl(pointCyl, slice, ldD);
-          spaceCharge->GetDistortion(gxyzf, slice, gdD);
+          double charge = spaceCharge->getChargeCyl(pointCyl[0], pointCyl[1], pointCyl[2], side);
+          double potential = spaceCharge->getPotentialCyl(pointCyl[0], pointCyl[1], pointCyl[2], side);
+          spaceCharge->getElectricFieldsCyl(pointCyl[0], pointCyl[1], pointCyl[2], side, efield[0], efield[1], efield[2]);
+          spaceCharge->getLocalDistortionsCyl(pointCyl[0], pointCyl[1], pointCyl[2], side, ldD[0], ldD[1], ldD[2]);
+          spaceCharge->getDistortions(gxyzf[0], gxyzf[1], gxyzf[2], side, gdD[0], gdD[1], gdD[2]);
 
           double gD[3] = {gx + gdD[0], gy + gdD[1], gz + gdD[2]};
-
           float rD = std::sqrt(gD[0] * gD[0] + gD[1] * gD[1]);
 
           // correction for the distorted point
-
           double gdDC[3] = {0, 0, 0};
-          getSpaceChargeCorrection(slice, gD, gdDC);
+          spaceCharge->getCorrections(gD[0], gD[1], gD[2], side, gdDC[0], gdDC[1], gdDC[2]);
 
           pcstream << "fastTransform"
                    // internal coordinates
@@ -313,9 +284,9 @@ void debugInterpolation(utils::TreeStreamRedirector& pcstream,
                    //
                    << "charge=" << charge
                    << "potential=" << potential
-                   << "Er=" << efield[0]
-                   << "Ephi=" << efield[1]
-                   << "Ez=" << efield[2]
+                   << "Ez=" << efield[0]
+                   << "Er=" << efield[1]
+                   << "Ephi=" << efield[2]
                    << "\n";
         }
       }
@@ -327,51 +298,33 @@ void debugInterpolation(utils::TreeStreamRedirector& pcstream,
 /// \param pcstream output stream
 /// \param geo TPCFastTransformGeo object
 /// \param fastTransform TPCFastTransform object
-void debugGridpoints(utils::TreeStreamRedirector& pcstream,
-                     const o2::gpu::TPCFastTransformGeo& geo,
-                     TPCFastTransform* fastTransform)
+void debugGridpoints(utils::TreeStreamRedirector& pcstream, const o2::gpu::TPCFastTransformGeo& geo, TPCFastTransform* fastTransform)
 {
-  int nR = spaceCharge->GetNRRows();
-  int nZ = spaceCharge->GetNZColumns();
-  int nPhi = spaceCharge->GetNPhiSlices();
-
-  float deltaR =
-    (AliTPCPoissonSolver::fgkOFCRadius - AliTPCPoissonSolver::fgkIFCRadius) /
-    (nR - 1);
-  float deltaZ = AliTPCPoissonSolver::fgkTPCZ0 / (nZ - 1);
-  float deltaPhi = o2::constants::math::TwoPI / nPhi;
-
   for (int iside = 0; iside < 2; ++iside) {
-
+    const Side side = iside == 0 ? Side::A : Side::C;
     for (int iphi = 0; iphi < nPhi; ++iphi) {
-      float phi = deltaPhi * iphi;
-      int sector = iside == 0 ? phi / o2::constants::math::TwoPI * 18
-                              : phi / o2::constants::math::TwoPI * 18 + 18;
+      float phi = spaceCharge->getPhiVertex(iphi, side);
+      int sector = iside == 0 ? phi / o2::constants::math::TwoPI * 18 : phi / o2::constants::math::TwoPI * 18 + 18;
 
       for (int ir = 0; ir < nR; ++ir) {
-        float radius = AliTPCPoissonSolver::fgkIFCRadius + deltaR * ir;
+        float radius = spaceCharge->getRVertex(ir, side);
         float gx0 = radius * std::cos(phi);
         float gy0 = radius * std::sin(phi);
 
         for (int iz = 0; iz < nZ; ++iz) {
-          float gz0 = iside == 0 ? deltaZ * iz
-                                 : -1 * deltaZ * iz;
-
+          float gz0 = spaceCharge->getZVertex(iz, side);
           float x0 = 0.f, y0 = 0.f, z0 = 0.f;
           geo.convGlobalToLocal(sector, gx0, gy0, gz0, x0, y0, z0);
           if (x0 < geo.getRowInfo(0).x - 0.375) {
             continue;
           }
-          if (x0 >= (geo.getRowInfo(62).x + 0.375) &&
-              x0 < (geo.getRowInfo(63).x - 0.5)) {
+          if (x0 >= (geo.getRowInfo(62).x + 0.375) && x0 < (geo.getRowInfo(63).x - 0.5)) {
             continue;
           }
-          if (x0 >= (geo.getRowInfo(96).x + 0.5) &&
-              x0 < (geo.getRowInfo(97).x - 0.6)) {
+          if (x0 >= (geo.getRowInfo(96).x + 0.5) && x0 < (geo.getRowInfo(97).x - 0.6)) {
             continue;
           }
-          if (x0 >= (geo.getRowInfo(126).x + 0.6) &&
-              x0 < (geo.getRowInfo(127).x - 0.75)) {
+          if (x0 >= (geo.getRowInfo(126).x + 0.6) && x0 < (geo.getRowInfo(127).x - 0.75)) {
             continue;
           }
           if (x0 > (geo.getRowInfo(151).x + 0.75)) {
@@ -417,19 +370,18 @@ void debugGridpoints(utils::TreeStreamRedirector& pcstream,
           double gcorr[3] = {0, 0, 0};
           getSpaceChargeCorrection(sector, xyz, gcorr);
           float lcorr[3];
-          geo.convGlobalToLocal(sector, gcorr[0], gcorr[1], gcorr[2], lcorr[0],
-                                lcorr[1], lcorr[2]);
+          geo.convGlobalToLocal(sector, gcorr[0], gcorr[1], gcorr[2], lcorr[0], lcorr[1], lcorr[2]);
 
           float fxyz[3] = {gx0, gy0, gz0};
-          float pointCyl[3] = {radius, phi, gz0};
+          float pointCyl[3] = {gz0, radius, phi};
           double efield[3] = {0.0, 0.0, 0.0};
-          float distLocal[3] = {0.0, 0.0, 0.0};
-          float dist[3] = {0.0, 0.0, 0.0};
-          double charge = spaceCharge->GetChargeCylAC(pointCyl, sector);
-          double potential = spaceCharge->GetPotentialCylAC(pointCyl, sector);
-          spaceCharge->GetElectricFieldCyl(pointCyl, sector, efield);
-          spaceCharge->GetLocalDistortionCyl(pointCyl, sector, distLocal);
-          spaceCharge->GetDistortion(fxyz, sector, dist);
+          double distLocal[3] = {0.0, 0.0, 0.0};
+          double dist[3] = {0.0, 0.0, 0.0};
+          double charge = spaceCharge->getChargeCyl(pointCyl[0], pointCyl[1], pointCyl[2], side);
+          double potential = spaceCharge->getPotentialCyl(pointCyl[0], pointCyl[1], pointCyl[2], side);
+          spaceCharge->getElectricFieldsCyl(pointCyl[0], pointCyl[1], pointCyl[2], side, efield[0], efield[1], efield[2]);
+          spaceCharge->getLocalDistortionsCyl(pointCyl[0], pointCyl[1], pointCyl[2], side, distLocal[0], distLocal[1], distLocal[2]);
+          spaceCharge->getDistortions(fxyz[0], fxyz[1], fxyz[2], side, dist[0], dist[1], dist[2]);
 
           pcstream << "fastTransform"
                    // internal coordinates
@@ -472,9 +424,9 @@ void debugGridpoints(utils::TreeStreamRedirector& pcstream,
                    //
                    << "charge=" << charge
                    << "potential=" << potential
-                   << "Er=" << efield[0]
-                   << "Ephi=" << efield[1]
-                   << "Ez=" << efield[2]
+                   << "Ez=" << efield[0]
+                   << "Er=" << efield[1]
+                   << "Ephi=" << efield[2]
                    << "\n";
         }
       }
@@ -485,7 +437,7 @@ void debugGridpoints(utils::TreeStreamRedirector& pcstream,
 /// Make a simple QA plot of the debug stream
 void makeQAplot()
 {
-  TFile f("fastTransformUnitTest_debug1_gridsize180-65-65_order2.root");
+  TFile f("fastTransformUnitTest_debug1_gridsize180-129-129.root");
   TTree* tree = (TTree*)f.Get("fastTransform");
   tree->SetMarkerSize(0.2);
   tree->SetMarkerStyle(21);
