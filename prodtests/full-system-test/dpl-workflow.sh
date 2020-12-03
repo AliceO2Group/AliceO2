@@ -17,7 +17,7 @@ if [ $SHMTHROW == 0 ]; then
 fi
 
 if [ $EXTINPUT == 1 ]; then
-  CMD_X="B:TPC/RAWDATA;C:ITS/RAWDATA;D:TOF/RAWDATA;D:MFT/RAWDATA;E:FT0/RAWDATA;F:MID/RAWDATA"
+  CMD_X="B:TPC/RAWDATA;C:ITS/RAWDATA;D:TOF/RAWDATA;D:MFT/RAWDATA;E:FT0/RAWDATA;F:MID/RAWDATA;G:EMC/RAWDATA;H:PHS/RAWDATA"
   CMD_Y="name=readout-proxy,type=pull,method=connect,address=ipc://@stfb-to-dpl$1,transport=shmem,rateLogging=0"
   CMD_INPUT="o2-dpl-raw-proxy $ARGS_ALL --dataspec $CMD_X --channel-config $CMD_Y"
 else
