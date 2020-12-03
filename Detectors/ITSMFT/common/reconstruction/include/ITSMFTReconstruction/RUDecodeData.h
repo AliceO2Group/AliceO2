@@ -44,6 +44,10 @@ struct RUDecodeData {
   int nChipsFired = 0;     // number of chips with data or with errors
   int lastChipChecked = 0; // last chips checked among nChipsFired
   const RUInfo* ruInfo = nullptr;
+  //Adding calibration info in RU pointer
+  int nInj = 0;
+  int chargeInj = 0;
+
 
   RUDecodeData()
   {
@@ -77,7 +81,8 @@ int RUDecodeData::decodeROF(const Mapping& mp)
     auto chIdGetter = [this, &mp, cabHW](int cid) {
       return mp.getGlobalChipID(cid, cabHW, *this->ruInfo);
     };
-    while (AlpideCoder::decodeChip(*chipData, cableData[icab], chIdGetter, cabHW, true) || chipData->isErrorSet()) { // we register only chips with hits or errors flags set
+    while (AlpideCoder::decodeChip(*chipData, cableData[icab], chIdGetter) || chipData->isErrorSet()) { // we register only chips with hits or errors flags set
+      chipData->setCableHW(cabHW);
       setROFInfo(chipData, cableLinkPtr[icab]);
       ntot += chipData->getData().size();
 #ifdef ALPIDE_DECODING_STAT
