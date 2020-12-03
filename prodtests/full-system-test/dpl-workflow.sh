@@ -8,10 +8,12 @@ if [ "0$ALIENVLVL" == "0" ]; then
   alienv --no-refresh load O2/latest
 fi
 
-ARGS_ALL="--session default --severity $SEVERITY --shm-segment-id $NUMAID --shm-throw-bad-alloc 0 --shm-segment-size $SHMSIZE"
-
+ARGS_ALL="--session default --severity $SEVERITY --shm-segment-id $NUMAID --shm-segment-size $SHMSIZE"
 if [ $EXTINPUT == 1 ] || [ $NUMAGPUIDS == 1 ]; then
   ARGS_ALL+=" --no-cleanup"
+fi
+if [ $SHMTHROW == 0 ]; then
+  ARGS_ALL+=" --shm-throw-bad-alloc 0"
 fi
 
 if [ $EXTINPUT == 1 ]; then
