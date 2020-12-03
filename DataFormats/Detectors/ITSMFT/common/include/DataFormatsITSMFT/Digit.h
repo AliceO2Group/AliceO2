@@ -86,7 +86,8 @@ class Digit
 class DigitHW : public Digit
 {
         public:
-         DigitHW(UShort_t half = 0, UShort_t disk = 0, UShort_t plane = 0, UShort_t zone = 0, UShort_t cableHW = 0, UShort_t chipindex = 0, UShort_t row = 0, UShort_t col = 0, Int_t charge = 0);
+         DigitHW(UShort_t nInjection = 0, UShort_t chargeInjected = 0, UShort_t half = 0, UShort_t disk = 0, UShort_t plane = 0, UShort_t zone = 0, UShort_t cableHW = 0, UShort_t chipindex = 0, UShort_t row = 0, UShort_t col = 0, Int_t charge = 0);
+
 
   ~DigitHW() = default;
 
@@ -97,6 +98,8 @@ class DigitHW : public Digit
   void setCableHW(UShort_t chw) { mCableHW = chw;}
 
         private:
+          UShort_t mNInj = 0;
+          UShort_t mChargeInj = 0;
           UShort_t mHalf = 0;
           UShort_t mDisk = 0;
           UShort_t mPlane = 0;
