@@ -38,6 +38,12 @@ o2_target_root_dictionary(DetectorsVertexing
                                   include/DetectorsVertexing/SVertexer.h
                                   include/DetectorsVertexing/SVertexerParams.h
                                   include/DetectorsVertexing/V0Hypothesis.h)
+if(CUDA_ENABLED)
+        add_subdirectory(cuda)
+        # target_compile_definitions(${targetName} PRIVATE CUDA_ENABLED)
+endif()
+
+add_subdirectory(macros)
 
 o2_add_test(
   DCAFitterN

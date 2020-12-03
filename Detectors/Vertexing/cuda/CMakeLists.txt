@@ -19,4 +19,4 @@ o2_add_library(DetectorsVertexingCUDA
 set_property(TARGET ${targetName} PROPERTY CUDA_SEPARABLE_COMPILATION ON)
 
 target_compile_definitions(
-  ${targetName} PRIVATE $<TARGET_PROPERTY:O2::ITStracking,COMPILE_DEFINITIONS>)
+  ${targetName} PRIVATE $<TARGET_PROPERTY:O2::DetectorsVertexing,COMPILE_DEFINITIONS>)
