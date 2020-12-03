@@ -1162,6 +1162,10 @@ int GPUChainTracking::RunTPCClusterizer(bool synchronizeOutput)
         using PeakMapType = decltype(*clustererShadow.mPpeakMap);
         runKernel<GPUMemClean16>(GetGridAutoStep(lane, RecoStep::TPCClusterFinding), krnlRunRangeNone, {}, clustererShadow.mPchargeMap, TPCMapMemoryLayout<ChargeMapType>::items() * sizeof(ChargeMapType));
         runKernel<GPUMemClean16>(GetGridAutoStep(lane, RecoStep::TPCClusterFinding), krnlRunRangeNone, {}, clustererShadow.mPpeakMap, TPCMapMemoryLayout<PeakMapType>::items() * sizeof(PeakMapType));
+        if (fragment.index == 0) {
+          using HasLostBaselineType = decltype(*clustererShadow.mPpadHasLostBaseline);
+          runKernel<GPUMemClean16>(GetGridAutoStep(lane, RecoStep::TPCClusterFinding), krnlRunRangeNone, {}, clustererShadow.mPpadHasLostBaseline, TPC_PADS_IN_SECTOR * sizeof(HasLostBaselineType));
+        }
         DoDebugAndDump(RecoStep::TPCClusterFinding, 0, clusterer, &GPUTPCClusterFinder::DumpChargeMap, *mDebugFile, "Zeroed Charges");
 
         if (mIOPtrs.tpcZS && mCFContext->nPagesSector[iSlice]) {
@@ -1219,6 +1223,14 @@ int GPUChainTracking::RunTPCClusterizer(bool synchronizeOutput)
 
         if (propagateMCLabels) {
           runKernel<GPUTPCCFChargeMapFiller, GPUTPCCFChargeMapFiller::fillIndexMap>(GetGrid(clusterer.mPmemory->counters.nDigitsInFragment, lane, GPUReconstruction::krnlDeviceType::CPU), {iSlice}, {});
+        }
+
+        bool checkForNoisyPads = (rec()->GetParam().rec.maxTimeBinAboveThresholdIn1000Bin > 0) || (rec()->GetParam().rec.maxConsecTimeBinAboveThreshold > 0);
+        checkForNoisyPads &= (rec()->GetParam().rec.noisyPadsQuickCheck ? fragment.index == 0 : true);
+
+        if (checkForNoisyPads) {
+          int nBlocks = TPC_PADS_IN_SECTOR / GPUTPCCFCheckPadBaseline::getPadsPerBlock(doGPU);
+          runKernel<GPUTPCCFCheckPadBaseline>(GetGridBlk(nBlocks, lane), {iSlice}, {});
         }
 
         runKernel<GPUTPCCFPeakFinder>(GetGrid(clusterer.mPmemory->counters.nPositions, lane), {iSlice}, {});
@@ -1310,7 +1322,7 @@ int GPUChainTracking::RunTPCClusterizer(bool synchronizeOutput)
         transferRunning[lane] = 1;
       }
 
-      if (not propagateMCLabels) {
+      if (not propagateMCLabels || clusterer.mPmemory->counters.nClusters == 0) {
         continue;
       }
 

@@ -26,7 +26,7 @@ GPUdii() void GPUTPCCFPeakFinder::Thread<0>(int nBlocks, int nThreads, int iBloc
 {
   Array2D<PackedCharge> chargeMap(reinterpret_cast<PackedCharge*>(clusterer.mPchargeMap));
   Array2D<uchar> isPeakMap(clusterer.mPpeakMap);
-  findPeaksImpl(get_num_groups(0), get_local_size(0), get_group_id(0), get_local_id(0), smem, chargeMap, clusterer.mPpositions, clusterer.mPmemory->counters.nPositions, clusterer.Param().rec, clusterer.mPisPeak, isPeakMap);
+  findPeaksImpl(get_num_groups(0), get_local_size(0), get_group_id(0), get_local_id(0), smem, chargeMap, clusterer.mPpadHasLostBaseline, clusterer.mPpositions, clusterer.mPmemory->counters.nPositions, clusterer.Param().rec, *clusterer.GetConstantMem()->calibObjects.tpcPadGain, clusterer.mPisPeak, isPeakMap);
 }
 
 GPUdii() bool GPUTPCCFPeakFinder::isPeak(
@@ -91,9 +91,11 @@ GPUdii() bool GPUTPCCFPeakFinder::isPeak(
 
 GPUd() void GPUTPCCFPeakFinder::findPeaksImpl(int nBlocks, int nThreads, int iBlock, int iThread, GPUSharedMemory& smem,
                                               const Array2D<PackedCharge>& chargeMap,
+                                              const uchar* padHasLostBaseline,
                                               const ChargePos* positions,
                                               SizeT digitnum,
                                               const GPUSettingsRec& calib,
+                                              const TPCPadGainCalib& gainCorrection, // Only used for globalPad() function
                                               uchar* isPeakPredicate,
                                               Array2D<uchar>& peakMap)
 {
@@ -105,8 +107,10 @@ GPUd() void GPUTPCCFPeakFinder::findPeaksImpl(int nBlocks, int nThreads, int iBl
   ChargePos pos = positions[CAMath::Min(idx, (SizeT)(digitnum - 1))];
   Charge charge = pos.valid() ? chargeMap[pos].unpack() : Charge(0);
 
-  uchar peak;
-  peak = isPeak(smem, charge, pos, SCRATCH_PAD_SEARCH_N, chargeMap, calib, smem.posBcast, smem.buf);
+  bool hasLostBaseline = padHasLostBaseline[gainCorrection.globalPad(pos.row(), pos.pad())];
+  charge = (hasLostBaseline) ? 0.f : charge;
+
+  uchar peak = isPeak(smem, charge, pos, SCRATCH_PAD_SEARCH_N, chargeMap, calib, smem.posBcast, smem.buf);
 
   // Exit early if dummy. See comment above.
   bool iamDummy = (idx >= digitnum);

@@ -48,6 +48,8 @@ struct TPCPadGainCalib;
 
 struct ChargePos;
 
+class GPUTPCGeometry;
+
 class GPUTPCClusterFinder : public GPUProcessor
 {
  public:
@@ -96,6 +98,7 @@ class GPUTPCClusterFinder : public GPUProcessor
   unsigned char* mPzs = nullptr;
   ZSOffset* mPzsOffsets = nullptr;
   MinMaxCN* mMinMaxCN = nullptr;
+  unsigned char* mPpadHasLostBaseline = nullptr;
   tpc::Digit* mPdigits = nullptr; // input digits, only set if ZS is skipped
   ChargePos* mPpositions = nullptr;
   ChargePos* mPpeakPositions = nullptr;
@@ -136,6 +139,7 @@ class GPUTPCClusterFinder : public GPUProcessor
   short mOutputId = -1;
 
   GPUdi() float getGainCorrection(tpccf::Row, tpccf::Pad) const;
+  GPUdi() const GPUTPCGeometry* getGeometry() const;
 
 #ifndef GPUCA_GPUCODE
   void DumpDigits(std::ostream& out);

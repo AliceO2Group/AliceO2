@@ -58,6 +58,11 @@ struct TPCPadGainCalib {
     return mGainCorrection[sector].get(globalPad(row, pad));
   }
 
+  GPUdi() unsigned short globalPad(tpccf::Row row, tpccf::Pad pad) const
+  {
+    return mPadOffsetPerRow[row] + pad;
+  }
+
  private:
   template <typename T = unsigned short>
   class SectorPadGainCorrection
@@ -121,10 +126,6 @@ struct TPCPadGainCalib {
   unsigned short mPadOffsetPerRow[TPC_NUM_OF_ROWS];
   SectorPadGainCorrection<unsigned short> mGainCorrection[TPC_SECTORS];
 
-  GPUdi() unsigned short globalPad(tpccf::Row row, tpccf::Pad pad) const
-  {
-    return mPadOffsetPerRow[row] + pad;
-  }
 };
 
 } // namespace GPUCA_NAMESPACE::gpu
