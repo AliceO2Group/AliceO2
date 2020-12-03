@@ -167,7 +167,7 @@ Bool_t
   /* loop over particles */
   //  auto weight = mPythia.info.weight(); // TBD: use weights
   auto nParticles = event.size();
-  for (Int_t iparticle = 0; iparticle < nParticles; iparticle++) { // first particle is system
+  for (Int_t iparticle = 1; iparticle < nParticles; iparticle++) { // first particle is system
     auto particle = event[iparticle];
     auto pdg = particle.id();
     auto st = particle.statusHepMC();
@@ -179,10 +179,10 @@ Bool_t
     auto vy = particle.yProd();
     auto vz = particle.zProd();
     auto vt = particle.tProd();
-    auto m1 = particle.mother1();
-    auto m2 = particle.mother2();
-    auto d1 = particle.daughter1();
-    auto d2 = particle.daughter2();
+    auto m1 = particle.mother1() - 1;
+    auto m2 = particle.mother2() - 1;
+    auto d1 = particle.daughter1() - 1;
+    auto d2 = particle.daughter2() - 1;
     mParticles.push_back(TParticle(pdg, st, m1, m2, d1, d2, px, py, pz, et, vx, vy, vz, vt));
   }
 
