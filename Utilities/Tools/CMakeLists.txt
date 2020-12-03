@@ -8,7 +8,17 @@
 # granted to it by virtue of its status as an Intergovernmental Organization or
 # submit itself to any jurisdiction.
 
-add_subdirectory(cpulimit)
+EXECUTE_PROCESS (COMMAND ${CMAKE_C_COMPILER} -print-file-name=libc.so.6
+                 OUTPUT_VARIABLE GLIBC
+                 OUTPUT_STRIP_TRAILING_WHITESPACE)
+
+GET_FILENAME_COMPONENT (GLIBC ${GLIBC} REALPATH)
+GET_FILENAME_COMPONENT (GLIBC_VERSION ${GLIBC} NAME)
+STRING (REPLACE "libc-" "" GLIBC_VERSION ${GLIBC_VERSION})
+STRING (REPLACE ".so" "" GLIBC_VERSION ${GLIBC_VERSION})
+if(${GLIBC_VERSION} VERSION_LESS 2.32)
+  add_subdirectory(cpulimit) # Incompatible to glibc >= 2.32
+endif()
 
 install(PROGRAMS monitor-mem.sh DESTINATION share/scripts/)
 install(PROGRAMS jobutils.sh DESTINATION share/scripts/)
