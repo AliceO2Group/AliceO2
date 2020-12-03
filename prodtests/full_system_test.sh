@@ -24,8 +24,9 @@ NEventsQED=${NEventsQED:-1000} #35000 for full TF
 NCPUS=$(getNumberOfPhysicalCPUCores)
 echo "Found ${NCPUS} physical CPU cores"
 NJOBS=${NJOBS:-"${NCPUS}"}
-SHMSIZE=128000000000 # 128000000000  # Size of shared memory for messages
-TPCTRACKERSCRATCHMEMORY=22000000000
+SHMSIZE=${SHMSIZE:-8000000000} # Size of shared memory for messages (use 128 GB for 550 event full TF)
+TPCTRACKERSCRATCHMEMORY=${SHMSIZE:-4000000000} # Size of memory allocated by TPC tracker. (Use 24 GB for 550 event full TF)
+ENABLE_GPU_TEST=${ENABLE_GPU_TEST:-0} # Run the full system test also on the GPU
 NTIMEFRAMES=${NTIMEFRAMES:-1} # Number of time frames to process
 TFDELAY=100 # Delay in seconds between publishing time frames
 NOMCLABELS="--disable-mc"
@@ -68,7 +69,11 @@ taskwrapper phsraw.log o2-phos-digi2raw  --file-for link --configKeyValues '"HBF
 cat raw/*/*.cfg > rawAll.cfg
 
 # We run the workflow in both CPU-only and With-GPU mode
-for STAGE in "NOGPU" "WITHGPU"; do
+STAGES="NOGPU"
+if [ $ENABLE_GPU_TEST != "0" ]; then
+  STAGES+=" WITHGPU"
+fi
+for STAGE in $STAGES; do
 
   ARGS_ALL="--session default"
   DICTCREATION=""
