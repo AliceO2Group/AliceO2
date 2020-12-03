@@ -14,6 +14,7 @@
 #include "Generators/Generator.h"
 #include "Generators/InteractionDiamondParam.h"
 #include "SimulationDataFormat/MCEventHeader.h"
+#include "SimulationDataFormat/Stack.h"
 #include "FairLogger.h"
 
 #include "FairGenericStack.h"
@@ -186,9 +187,14 @@ void PrimaryGenerator::AddTrack(Int_t pdgid, Double_t px, Double_t py, Double_t 
   }
 
   /** add track to stack **/
-  fStack->PushTrack(doTracking, mother1, pdgid, px, py, pz,
-                    e, vx, vy, vz, tof, polx, poly, polz, proc, ntr,
-                    weight, status, mother2);
+  auto stack = dynamic_cast<o2::data::Stack*>(fStack);
+  if (!stack) {
+    LOG(FATAL) << "Stack must be an o2::data:Stack";
+    return; // must be the o2 stack
+  }
+  stack->PushTrack(doTracking, mother1, pdgid, px, py, pz,
+                   e, vx, vy, vz, tof, polx, poly, polz, proc, ntr,
+                   weight, status, mother2, daughter1, daughter2);
 
   fNTracks++;
 }
