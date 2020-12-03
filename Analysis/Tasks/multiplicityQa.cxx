@@ -7,6 +7,15 @@
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
+//
+// This code calculates output histograms for centrality calibration
+// as well as vertex-Z dependencies of raw variables (either for calibration
+// of vtx-Z dependencies or for the calibration of those).
+//
+// This task is not strictly necessary in a typical analysis workflow,
+// except for centrality calibration! The necessary task is the multiplicity
+// tables.
+
 #include "Framework/runDataProcessing.h"
 #include "Framework/AnalysisTask.h"
 #include "Framework/AnalysisDataModel.h"
@@ -24,6 +33,12 @@ struct MultiplicityQaTask {
   OutputObj<TH1F> hMultZNA{TH1F("hMultZNA", "", 600, 0., 240000.)};
   OutputObj<TH1F> hMultZNC{TH1F("hMultZNC", "", 600, 0., 240000.)};
   OutputObj<TH2F> hMultV0MvsT0M{TH2F("hMultV0MvsT0M", ";V0M;T0M", 200, 0., 50000., 200, 0., 200000.)};
+
+  //For vertex-Z corrections
+  OutputObj<TProfile> hVtxProfV0M{TProfile("hVtxProfV0M", "", 600, 0., 240000.)};
+  OutputObj<TProfile> hVtxProfT0M{TProfile("hVtxProfT0M", "", 10000, 0., 200000.)};
+  OutputObj<TProfile> hVtxProfZNA{TProfile("hVtxProfZNA", "", 600, 0., 240000.)};
+  OutputObj<TProfile> hVtxProfZNC{TProfile("hVtxProfZNC", "", 600, 0., 240000.)};
 
   OutputObj<TProfile> hMultNtrackletsVsV0M{TProfile("hMultNtrackletsVsV0M", "", 50000, 0., 50000.)};
 
@@ -56,6 +71,12 @@ struct MultiplicityQaTask {
     hMultZNC->Fill(col.multZNC());
     hMultV0MvsT0M->Fill(col.multV0M(), col.multT0M());
     hMultNtrackletsVsV0M->Fill(col.multV0M(), col.multTracklets());
+
+    //Vertex-Z dependencies
+    hVtxProfV0M->Fill(col.posZ(), col.multV0M());
+    hVtxProfT0M->Fill(col.posZ(), col.multT0M());
+    hVtxProfZNA->Fill(col.posZ(), col.multZNA());
+    hVtxProfZNC->Fill(col.posZ(), col.multZNC());
   }
 };
 
