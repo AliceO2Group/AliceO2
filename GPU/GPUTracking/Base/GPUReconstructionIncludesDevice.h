@@ -77,6 +77,7 @@ using namespace GPUCA_NAMESPACE::gpu;
 #include "GPUTPCCFClusterizer.cxx"
 #include "GPUTPCCFDeconvolution.cxx"
 #include "GPUTPCCFMCLabelFlattener.cxx"
+#include "GPUTPCCFCheckPadBaseline.cxx"
 #include "GPUTPCCFDecodeZS.cxx"
 #include "GPUTPCCFGather.cxx"
 

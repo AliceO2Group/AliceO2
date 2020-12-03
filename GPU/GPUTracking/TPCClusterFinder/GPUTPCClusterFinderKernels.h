@@ -22,6 +22,7 @@
 #include "GPUTPCCFStreamCompaction.h"
 #include "GPUTPCCFClusterizer.h"
 #include "GPUTPCCFMCLabelFlattener.h"
+#include "GPUTPCCFCheckPadBaseline.h"
 #include "GPUTPCCFDecodeZS.h"
 #include "GPUTPCCFGather.h"
 
