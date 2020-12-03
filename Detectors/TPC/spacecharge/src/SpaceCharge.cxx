@@ -17,7 +17,6 @@
 #include "TPCSpaceCharge/SpaceCharge.h"
 #include "fmt/core.h"
 #include "Framework/Logger.h"
-#include "TPCSpaceCharge/NearestNeighbour.h"
 #include <chrono>
 
 #ifdef WITH_OPENMP
@@ -332,37 +331,6 @@ template <typename DataT, size_t Nz, size_t Nr, size_t Nphi>
 void SpaceCharge<DataT, Nz, Nr, Nphi>::calcGlobalDistWithGlobalCorrIterative(const DistCorrInterpolator<DataT, Nz, Nr, Nphi>& globCorr, const int maxIter, const DataT approachZ, const DataT approachR, const DataT approachPhi, const DataT diffCorr)
 {
   const Side side = globCorr.getSide();
-  const int nPoints = Nz * Nr * Nphi; // maximum number of points
-
-  NearestNeighbour kdtree(nPoints);
-  // loop over global corrections and calculate the positions of the global correction
-  for (unsigned int iPhi = 0; iPhi < Nphi; ++iPhi) {
-    const DataT phi = getPhiVertex(iPhi, side);
-    for (unsigned int iR = 0; iR < Nr; ++iR) {
-      const DataT radius = getRVertex(iR, side);
-      for (unsigned int iZ = 0; iZ < Nz; ++iZ) {
-        const DataT z = getZVertex(iZ, side);
-
-        const DataT globalCorrR = mGlobalCorrdR[side](iZ, iR, iPhi);
-        const DataT globalCorrRPhi = mGlobalCorrdRPhi[side](iZ, iR, iPhi);
-        const DataT globalCorrZ = mGlobalCorrdZ[side](iZ, iR, iPhi);
-
-        const DataT posRCorr = radius + globalCorrR; // position of global correction
-        const DataT posPhiCorr = regulatePhi(phi + globalCorrRPhi / radius, side);
-        const DataT posZCorr = z + globalCorrZ;
-
-        // check if the postion lies in the TPC volume
-        const bool checkZ = side == Side::A ? posZCorr >= getZMin(side) && posZCorr <= getZMax(side) : posZCorr <= getZMin(side) && posZCorr >= getZMax(side);
-        if (posRCorr >= getRMin(side) && posRCorr <= getRMax(side) && checkZ) {
-          // normalize coordinates to gridspacing for searching the nearest neighbour. Otherwise one would have to convert the coordinates to x,y,z
-          kdtree.addPointAndIndex(posZCorr * getInvSpacingZ(side), posRCorr * getInvSpacingR(side), posPhiCorr * getInvSpacingPhi(side), iZ, iR, iPhi);
-        }
-      }
-    }
-  }
-
-  // Insert data points in the tree
-  kdtree.setTree();
 
 #pragma omp parallel for num_threads(sNThreads)
   for (unsigned int iPhi = 0; iPhi < Nphi; ++iPhi) {
@@ -372,19 +340,13 @@ void SpaceCharge<DataT, Nz, Nr, Nphi>::calcGlobalDistWithGlobalCorrIterative(con
       for (unsigned int iZ = 0; iZ < Nz; ++iZ) {
         const DataT z = getZVertex(iZ, side);
 
-        // find nearest neighbour
-        DataT nearestZ = 0;
-        DataT nearestR = 0;
-        DataT nearestPhi = 0;
+        unsigned int nearestiZ = iZ;
+        unsigned int nearestiR = iR;
+        unsigned int nearestiPhi = iPhi;
 
-        unsigned int nearestiZ = 0;
-        unsigned int nearestiR = 0;
-        unsigned int nearestiPhi = 0;
-
-        kdtree.query(z * getInvSpacingZ(side), radius * getInvSpacingR(side), phi * getInvSpacingPhi(side), nearestZ, nearestR, nearestPhi, nearestiZ, nearestiR, nearestiPhi);
-        nearestZ *= getGridSpacingZ(side);
-        nearestR *= getGridSpacingR(side);
-        nearestPhi *= getGridSpacingPhi(side);
+        DataT nearestZ = getZVertex(nearestiZ, side);
+        DataT nearestR = getRVertex(nearestiR, side);
+        DataT nearestPhi = getPhiVertex(nearestiPhi, side);
 
         //
         //==========================================================================================

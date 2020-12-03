@@ -8,19 +8,13 @@
 # granted to it by virtue of its status as an Intergovernmental Organization or
 # submit itself to any jurisdiction.
 
-o2_add_library(TPCSpaceChargeBase
-               TARGETVARNAME targetNameBase
-               SOURCES src/NearestNeighbour.cxx
-               PRIVATE_LINK_LIBRARIES CGAL::CGAL)
-
 o2_add_library(TPCSpaceCharge
                TARGETVARNAME targetName
                SOURCES src/SpaceCharge.cxx
                        src/PoissonSolver.cxx
                PUBLIC_LINK_LIBRARIES O2::TPCBase
                                      Vc::Vc
-                                     ROOT::Core
-                                     O2::TPCSpaceChargeBase)
+                                     ROOT::Core)
 
 o2_target_root_dictionary(TPCSpaceCharge
                           HEADERS include/TPCSpaceCharge/PoissonSolver.h
