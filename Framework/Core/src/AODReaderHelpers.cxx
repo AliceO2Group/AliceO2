@@ -245,6 +245,12 @@ AlgorithmSpec AODReaderHelpers::rootFileReaderCallback()
       int fcnt = (*fileCounter * device.maxInputTimeslices) + device.inputTimesliceId;
       int ntf = *numTF + 1;
       monitoring.send(Metric{(uint64_t)ntf, "tf-sent"}.addTag(Key::Subsystem, monitoring::tags::Value::DPL));
+      static int currentFileCounter = -1;
+      static int filesProcessed = 0;
+      if (currentFileCounter != *fileCounter) {
+        currentFileCounter = *fileCounter;
+        monitoring.send(Metric{(uint64_t)++filesProcessed, "files-opened"}.addTag(Key::Subsystem, monitoring::tags::Value::DPL));
+      }
 
       // loop over requested tables
       TTree* tr = nullptr;
