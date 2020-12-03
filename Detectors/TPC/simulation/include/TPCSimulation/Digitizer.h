@@ -18,7 +18,7 @@
 #include "TPCSimulation/DigitContainer.h"
 #include "TPCSimulation/PadResponse.h"
 #include "TPCSimulation/Point.h"
-#include "TPCSimulation/SpaceCharge.h"
+#include "TPCSpaceCharge/SpaceCharge.h"
 
 #include "TPCBase/Mapper.h"
 
@@ -52,6 +52,8 @@ class DigitContainer;
 class Digitizer
 {
  public:
+  using SC = SpaceCharge<double, 129, 129, 180>;
+
   /// Default constructor
   Digitizer() = default;
 
@@ -109,20 +111,24 @@ class Digitizer
   /// \param nZSlices number of grid points in z, must be (2**N)+1
   /// \param nPhiBins number of grid points in phi
   /// \param nRBins number of grid points in r, must be (2**N)+1
-  void setUseSCDistortions(SpaceCharge::SCDistortionType distortionType, const TH3* hisInitialSCDensity, int nRBins, int nPhiBins, int nZSlices);
+  void setUseSCDistortions(SC::SCDistortionType distortionType, const TH3* hisInitialSCDensity);
   /// Enable the use of space-charge distortions and provide SpaceCharge object as input
   /// \param spaceCharge unique pointer to spaceCharge object
-  void setUseSCDistortions(SpaceCharge* spaceCharge);
+  void setUseSCDistortions(SC* spaceCharge);
+
+  /// Enable the use of space-charge distortions by providing global distortions and global corrections stored in a ROOT file
+  /// The storage of the values should be done by the methods provided in the SpaceCharge class
+  /// \param TFile file containing distortions and corrections
+  void setUseSCDistortions(TFile& finp);
 
  private:
-  DigitContainer mDigitContainer;            ///< Container for the Digits
-  std::unique_ptr<SpaceCharge> mSpaceCharge; ///< Handler of space-charge distortions
-  Sector mSector = -1;                       ///< ID of the currently processed sector
-  float mEventTime = 0.f;                    ///< Time of the currently processed event
+  DigitContainer mDigitContainer;   ///< Container for the Digits
+  std::unique_ptr<SC> mSpaceCharge; ///< Handler of space-charge distortions
+  Sector mSector = -1;              ///< ID of the currently processed sector
+  float mEventTime = 0.f;           ///< Time of the currently processed event
   // FIXME: whats the reason for hving this static?
   static bool mIsContinuous;      ///< Switch for continuous readout
   bool mUseSCDistortions = false; ///< Flag to switch on the use of space-charge distortions
-
   ClassDefNV(Digitizer, 1);
 };
 } // namespace tpc
