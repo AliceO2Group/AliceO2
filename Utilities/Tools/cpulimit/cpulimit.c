@@ -38,7 +38,9 @@
 #include <string.h>
 #include <sys/stat.h>
 #include <sys/time.h>
+#if defined(__APPLE__)
 #include <sys/sysctl.h>
+#endif
 #include <sys/resource.h>
 #include <sys/types.h>
 #include <sys/wait.h>
