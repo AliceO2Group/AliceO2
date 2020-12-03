@@ -16,6 +16,7 @@ export NUMAGPUIDS=1
 export EXTINPUT=1
 export EPNPIPELINES=1
 export SYNCMODE=1
+export SHMTHROW=0
 
 if [ $1 == "dd" ]; then
   export CMD=datadistribution.sh
