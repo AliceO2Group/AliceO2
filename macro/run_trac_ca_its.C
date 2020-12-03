@@ -60,7 +60,7 @@ void run_trac_ca_its(std::string path = "./",
                      std::string inputGRP = "o2sim_grp.root")
 {
 
-  gSystem->Load("libO2ITStracking.so");
+  gSystem->Load("libO2ITStracking");
 
   //std::unique_ptr<GPUReconstruction> rec(GPUReconstruction::CreateInstance());
   // std::unique_ptr<GPUReconstruction> rec(GPUReconstruction::CreateInstance("CUDA", true)); // for GPU with CUDA

@@ -58,7 +58,7 @@ int RecalculateSlice(GPUTPCGMPhysicalTrackModel& t, AliExternalTrackParam& t0, i
 
 int checkPropagation()
 {
-  // gSystem->Load("libAliHLTTPC.so");
+  // gSystem->Load("libAliHLTTPC");
 
   TH1F* hDiff[3] = {0, 0, 0};
 
