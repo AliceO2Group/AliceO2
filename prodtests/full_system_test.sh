@@ -7,7 +7,7 @@
 #
 # Note that this might require a production server to run.
 #
-# This script needs some binary objects (for the moment):
+# This script can use additional binary objects which can be optionally provided:
 # - matbud.root + ITSdictionary.bin
 #
 # authors: D. Rohr / S. Wenzel
@@ -83,6 +83,7 @@ for STAGE in "NOGPU" "WITHGPU"; do
     export GPUTYPE=CPU
     export SYNCMODE=0
     export HOSTMEMSIZE=$TPCTRACKERSCRATCHMEMORY
+    rm -f ctf_dictionary.root
   fi
   export SHMSIZE
   export NTIMEFRAMES
