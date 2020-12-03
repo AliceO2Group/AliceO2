@@ -119,7 +119,7 @@ class AlpideCoder
 
   /// decode alpide data for the next non-empty chip from the buffer
   template <class T, typename CG>
-  static int decodeChip(ChipPixelData& chipData, T& buffer, CG cidGetter, uint8_t chw = 0, bool setHW = false)
+  static int decodeChip(ChipPixelData& chipData, T& buffer, CG cidGetter)
   {
     // read record for single non-empty chip, updating on change module and cycle.
     // return number of records filled (>0), EOFFlag or Error
@@ -142,7 +142,6 @@ class AlpideCoder
       //
       if ((expectInp & ExpectChipEmpty) && dataCM == CHIPEMPTY) { // empty chip was expected
         chipData.setChipID(cidGetter(dataC & MaskChipID));        // here we set the global chip ID
-	if (setHW) chipData.setCableHW(chw);
         if (!buffer.next(timestamp)) {
 #ifdef ALPIDE_DECODING_STAT
           chipData.setError(ChipStat::TruncatedChipEmpty);
@@ -155,7 +154,6 @@ class AlpideCoder
 
       if ((expectInp & ExpectChipHeader) && dataCM == CHIPHEADER) { // chip header was expected
         chipData.setChipID(cidGetter(dataC & MaskChipID));          // here we set the global chip ID
-	if (setHW) chipData.setCableHW(chw);
         if (!buffer.next(timestamp)) {
 #ifdef ALPIDE_DECODING_STAT
           chipData.setError(ChipStat::TruncatedChipHeader);
