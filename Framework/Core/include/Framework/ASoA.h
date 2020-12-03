@@ -697,6 +697,19 @@ struct RowViewCore : public IP, C... {
     return copy;
   }
 
+  RowViewCore& operator--()
+  {
+    this->moveByIndex(-1);
+    return *this;
+  }
+
+  RowViewCore operator--(int)
+  {
+    RowViewCore<IP, C...> copy = *this;
+    this->operator--();
+    return copy;
+  }
+
   /// Allow incrementing by more than one the iterator
   RowViewCore operator+(int64_t inc) const
   {

@@ -617,6 +617,7 @@ DECLARE_SOA_INDEX_COLUMN(FT0, ft0);
 DECLARE_SOA_INDEX_COLUMN(FDD, fdd);
 } // namespace indices
 
+// First entry: Collision
 #define INDEX_LIST_RUN2 indices::CollisionId, indices::ZdcId, indices::BCId, indices::FT0Id, indices::FV0AId, indices::FV0CId, indices::FDDId
 DECLARE_SOA_INDEX_TABLE_EXCLUSIVE(Run2MatchedExclusive, BCs, "MA_RN2_EX", INDEX_LIST_RUN2);
 DECLARE_SOA_INDEX_TABLE(Run2MatchedSparse, BCs, "MA_RN2_SP", INDEX_LIST_RUN2);
@@ -625,8 +626,17 @@ DECLARE_SOA_INDEX_TABLE(Run2MatchedSparse, BCs, "MA_RN2_SP", INDEX_LIST_RUN2);
 DECLARE_SOA_INDEX_TABLE_EXCLUSIVE(Run3MatchedExclusive, BCs, "MA_RN3_EX", INDEX_LIST_RUN3);
 DECLARE_SOA_INDEX_TABLE(Run3MatchedSparse, BCs, "MA_RN3_SP", INDEX_LIST_RUN3);
 
-DECLARE_SOA_INDEX_TABLE_EXCLUSIVE(BCCollisionsExclusive, BCs, "MA_BCCOL_EX", indices::BCId, indices::CollisionId);
-DECLARE_SOA_INDEX_TABLE(BCCollisionsSparse, BCs, "MA_BCCOL_SP", indices::BCId, indices::CollisionId);
+// First entry: BC
+DECLARE_SOA_INDEX_TABLE_EXCLUSIVE(MatchedBCCollisionsExclusive, BCs, "MA_BCCOL_EX", indices::BCId, indices::CollisionId);
+DECLARE_SOA_INDEX_TABLE(MatchedBCCollisionsSparse, BCs, "MA_BCCOL_SP", indices::BCId, indices::CollisionId);
+
+DECLARE_SOA_INDEX_TABLE_EXCLUSIVE(Run3MatchedToBCExclusive, BCs, "MA_RN3_BC_EX", indices::BCId, indices::ZdcId, indices::FT0Id, indices::FV0AId, indices::FDDId);
+DECLARE_SOA_INDEX_TABLE(Run3MatchedToBCSparse, BCs, "MA_RN3_BC_SP", indices::BCId, indices::ZdcId, indices::FT0Id, indices::FV0AId, indices::FDDId);
+
+// Joins with collisions (only for sparse ones)
+// NOTE: index table needs to be always last argument
+using CollisionMatchedRun2Sparse = soa::Join<Collisions, Run2MatchedSparse>::iterator;
+using CollisionMatchedRun3Sparse = soa::Join<Collisions, Run3MatchedSparse>::iterator;
 
 } // namespace aod
 
