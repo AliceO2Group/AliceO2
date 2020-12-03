@@ -11,7 +11,7 @@
 //< Macro to run QED background generator, us it as e.g.
 //< o2-sim -n10000 -m PIPE ITS T0 MFT  --noemptyevents -g external --configKeyValues "GeneratorExternal.fileName=QEDloader.C"
 
-R__LOAD_LIBRARY(libTEPEMGEN.so)
+R__LOAD_LIBRARY(libTEPEMGEN)
 
 o2::eventgen::GeneratorTGenerator* QEDepem()
 {

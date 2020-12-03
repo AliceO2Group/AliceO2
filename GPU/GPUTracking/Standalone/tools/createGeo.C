@@ -17,7 +17,7 @@ void createGeo()
   gm->createClusterMatrixArray();
   o2::trd::GeometryFlat gf(*gm);
   //if (!gf.readMatricesFromFile()) return; // uncomment this line when the matrices dumped from AliRoot should be used
-  gSystem->Load("libO2GPUTracking.so");
+  gSystem->Load("libO2GPUTracking");
   GPUReconstruction* rec = GPUReconstruction::CreateInstance(GPUReconstruction::DeviceType::CPU);
   GPUChainTracking* chain = rec->AddChain<GPUChainTracking>();
   chain->SetTRDGeometry(&gf);

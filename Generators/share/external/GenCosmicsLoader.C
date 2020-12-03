@@ -20,7 +20,7 @@ FairGenerator* fg = nullptr;
 FairGenerator* GenCosmicsLoader()
 {
   const TString macroName = "GenCosmics";
-  gSystem->Load("libGeneratorCosmics.so");
+  gSystem->Load("libGeneratorCosmics");
 
   // the path of the macro to load depends on where it was installed, we assume that its installation
   // directory is the same as of the loader macro

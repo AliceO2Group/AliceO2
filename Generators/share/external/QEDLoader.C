@@ -17,7 +17,7 @@ FairGenerator* fg = nullptr;
 FairGenerator* QEDLoader()
 {
   const TString macroName = "QEDepem";
-  gSystem->Load("libTEPEMGEN.so");
+  gSystem->Load("libTEPEMGEN");
 
   // the path of the macro to load depends on where it was installed, we assume that its installation
   // directory is the same as of the loader macro
