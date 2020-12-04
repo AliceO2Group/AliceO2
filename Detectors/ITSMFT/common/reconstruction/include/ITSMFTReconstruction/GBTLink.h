@@ -265,6 +265,7 @@ GBTLink::CollectedDataStatus GBTLink::collectROFCableData(const Mapping& chmap)
         dataOffset += GBTPaddedWordLength;
         //Adding calibration info in RU pointer
         int calUser = gbtC->calibUserField;
+        ruPtr->calCount = gbtC->calibCounter;
         ruPtr->nInj = calUser >> 16;
         ruPtr->chargeInj = calUser & 0xff;
 
