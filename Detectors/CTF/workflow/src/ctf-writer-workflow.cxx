@@ -30,7 +30,7 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
   options.push_back(ConfigParamSpec{"onlyDet", VariantType::String, std::string{DetID::NONE}, {"comma separated list of detectors to accept. Overrides skipDet"}});
   options.push_back(ConfigParamSpec{"skipDet", VariantType::String, std::string{DetID::NONE}, {"comma separate list of detectors to skip"}});
   options.push_back(ConfigParamSpec{"grpfile", VariantType::String, o2::base::NameConf::getGRPFileName(), {"name of the grp file"}});
-  options.push_back(ConfigParamSpec{"output-type", VariantType::String, "ctf", {"output types: ctf (per TF) or dict (create dictionaries)"}});
+  options.push_back(ConfigParamSpec{"output-type", VariantType::String, "ctf", {"output types: ctf (per TF) or dict (create dictionaries) or both or none"}});
   std::swap(workflowOptions, options);
 }
 
@@ -52,6 +52,14 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
     } else if (outmode == "dict") {
       doCTF = false;
       doDict = true;
+    } else if (outmode == "both") {
+      doCTF = true;
+      doDict = true;
+    } else if (outmode == "none") {
+      doCTF = false;
+      doDict = false;
+    } else {
+      throw std::invalid_argument("Invalid output-type");
     }
     run = grp->getRun();
   }
