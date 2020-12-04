@@ -1124,7 +1124,9 @@ class Table
 
   auto sliceBy(framework::expressions::BindingNode const& node, int value) const
   {
-    return o2::soa::sliceBy(*this, node, value);
+    auto t = o2::soa::sliceBy(*this, node, value);
+    copyIndexBindings(t);
+    return t;
   }
 
  private:
