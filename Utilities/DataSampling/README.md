@@ -1,3 +1,7 @@
+<!-- doxy
+\page refUtilitiesDataSampling Data Sampling
+/doxy -->
+
 ## Data Sampling
 
 Data Sampling provides a possibility to sample data in DPL workflows based on certain conditions ( 5% randomly, when a payload is greater than 4234 bytes, etc.). The job of passing the right data is done by a data processor called `Dispatcher`. A desired data stream is specified in form of Data Sampling Policies, configured by JSON structures (example below) or by using dedicated interface methods (for advanced use).

@@ -1,3 +1,7 @@
+<!-- doxy
+\page refprodtestsfull-system-test Full system test configuration and scripts
+/doxy -->
+
 ## Full system test configuration and scripts
 
 The full system test workflow scripts consist of 3 shell scripts:

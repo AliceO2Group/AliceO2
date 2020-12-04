@@ -15,4 +15,5 @@ This module contains the documentation pages.
 * \subpage refdocDoxygenInstructions
 * \subpage refdocManPages
 * \subpage refdocUpgrades
+* \subpage refprodtestsfull-system-test
 /doxy -->

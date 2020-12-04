@@ -1,3 +1,7 @@
+<!-- doxy
+\page refDetectorsUpgradesPostLS4IT4 UpgradesIT4
+/doxy -->
+
 # IT4
 At the moment the IT4 name is a placeholder for barrel detector.
 

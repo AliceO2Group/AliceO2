@@ -1,3 +1,7 @@
+<!-- doxy
+\page refDetectorsDCStestWorkflow testWorkflow
+/doxy -->
+
 Local example workflow with local CCDB (running on port 6464) :
 
 ```shell

@@ -11,6 +11,7 @@ This module contains the following submodules:
 
 * \subpage refUtilitiesDataCompression
 * \subpage refUtilitiesDataFlow
+* \subpage refUtilitiesDataSampling
 * \subpage refUtilitiesMCStepLogger
 * \subpage refUtilitiesMergers
 * \subpage refUtilitiesO2Device
