@@ -31,7 +31,6 @@
 #include "Framework/AnalysisTask.h"
 #include "Framework/AnalysisDataModel.h"
 #include "Framework/ASoAHelpers.h"
-#include "AnalysisDataModel/HFSecondaryVertex.h"
 #include "DetectorsVertexing/DCAFitterN.h"
 #include "ReconstructionDataFormats/Track.h"
 #include "AnalysisCore/RecoDecay.h"

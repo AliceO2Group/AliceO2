@@ -34,7 +34,6 @@
 #include "Framework/AnalysisTask.h"
 #include "Framework/AnalysisDataModel.h"
 #include "Framework/ASoAHelpers.h"
-#include "AnalysisDataModel/HFSecondaryVertex.h"
 #include "DetectorsVertexing/DCAFitterN.h"
 #include "ReconstructionDataFormats/Track.h"
 #include "AnalysisCore/RecoDecay.h"
@@ -53,7 +52,6 @@
 #include <cmath>
 #include <array>
 #include <cstdlib>
-#include "AnalysisDataModel/PID/PIDResponse.h"
 #include "Framework/ASoAHelpers.h"
 
 using namespace o2;
@@ -99,29 +97,29 @@ struct cascadeprefilterpairs {
     for (auto& casc : Cascades) {
       //Single-track properties filter
       if (tpcrefit) {
-        if (!(casc.v0().posTrack().flags() & 0x40)) {
+        if (!(casc.v0_as<o2::aod::V0DataExt>().posTrack_as<FullTracksExt>().trackType() & o2::aod::track::TPCrefit)) {
           continue; //TPC refit
         }
-        if (!(casc.v0().negTrack().flags() & 0x40)) {
+        if (!(casc.v0_as<o2::aod::V0DataExt>().negTrack_as<FullTracksExt>().trackType() & o2::aod::track::TPCrefit)) {
           continue; //TPC refit
         }
-        if (!(casc.bachelor().flags() & 0x40)) {
+        if (!(casc.bachelor_as<FullTracksExt>().trackType() & o2::aod::track::TPCrefit)) {
           continue; //TPC refit
         }
       }
-      if (casc.v0().posTrack().tpcNClsCrossedRows() < mincrossedrows) {
+      if (casc.v0_as<o2::aod::V0DataExt>().posTrack_as<FullTracksExt>().tpcNClsCrossedRows() < mincrossedrows) {
         continue;
       }
-      if (casc.v0().negTrack().tpcNClsCrossedRows() < mincrossedrows) {
+      if (casc.v0_as<o2::aod::V0DataExt>().negTrack_as<FullTracksExt>().tpcNClsCrossedRows() < mincrossedrows) {
         continue;
       }
-      if (casc.bachelor().tpcNClsCrossedRows() < mincrossedrows) {
+      if (casc.bachelor_as<FullTracksExt>().tpcNClsCrossedRows() < mincrossedrows) {
         continue;
       }
-      if (casc.v0().posTrack_as<FullTracksExt>().dcaXY() < dcapostopv) {
+      if (casc.v0_as<o2::aod::V0DataExt>().posTrack_as<FullTracksExt>().dcaXY() < dcapostopv) {
         continue;
       }
-      if (casc.v0().negTrack_as<FullTracksExt>().dcaXY() < dcanegtopv) {
+      if (casc.v0_as<o2::aod::V0DataExt>().negTrack_as<FullTracksExt>().dcaXY() < dcanegtopv) {
         continue;
       }
       if (casc.bachelor_as<FullTracksExt>().dcaXY() < dcabachtopv) {
@@ -144,7 +142,10 @@ struct cascadeprefilterpairs {
       if (casc.v0_as<o2::aod::V0DataExt>().dcav0topv(collision.posX(), collision.posY(), collision.posZ()) < dcav0topv) {
         continue;
       }
-      cascgood(casc.v0().globalIndex(), casc.bachelor().globalIndex(), casc.bachelor().collisionId());
+      cascgood(
+        casc.v0_as<o2::aod::V0DataExt>().globalIndex(),
+        casc.bachelor_as<FullTracksExt>().globalIndex(),
+        casc.bachelor_as<FullTracksExt>().collisionId());
     }
   }
 };
@@ -196,9 +197,9 @@ struct cascadeproducer {
       hCascCandidate->Fill(0.5);
 
       //Acquire basic tracks
-      auto pTrack = getTrackParCov(casc.v0().posTrack());
-      auto nTrack = getTrackParCov(casc.v0().negTrack());
-      auto bTrack = getTrackParCov(casc.bachelor());
+      auto pTrack = getTrackParCov(casc.v0_as<o2::aod::V0DataExt>().posTrack_as<FullTracksExt>());
+      auto nTrack = getTrackParCov(casc.v0_as<o2::aod::V0DataExt>().negTrack_as<FullTracksExt>());
+      auto bTrack = getTrackParCov(casc.bachelor_as<FullTracksExt>());
       if (casc.bachelor().signed1Pt() > 0) {
         charge = +1;
       }
@@ -251,15 +252,18 @@ struct cascadeproducer {
         } //end if cascade recoed
       }   //end if v0 recoed
       //Fill table, please
-      cascdata(casc.v0().globalIndex(), casc.bachelor().globalIndex(), casc.bachelor().collisionId(),
-               charge, posXi[0], posXi[1], posXi[2], pos[0], pos[1], pos[2],
-               pvecpos[0], pvecpos[1], pvecpos[2],
-               pvecneg[0], pvecneg[1], pvecneg[2],
-               pvecbach[0], pvecbach[1], pvecbach[2],
-               fitterV0.getChi2AtPCACandidate(), fitterCasc.getChi2AtPCACandidate(),
-               casc.v0().posTrack_as<FullTracksExt>().dcaXY(),
-               casc.v0().negTrack_as<FullTracksExt>().dcaXY(),
-               casc.bachelor_as<FullTracksExt>().dcaXY());
+      cascdata(
+        casc.v0_as<o2::aod::V0DataExt>().globalIndex(),
+        casc.bachelor_as<FullTracksExt>().globalIndex(),
+        casc.bachelor_as<FullTracksExt>().collisionId(),
+        charge, posXi[0], posXi[1], posXi[2], pos[0], pos[1], pos[2],
+        pvecpos[0], pvecpos[1], pvecpos[2],
+        pvecneg[0], pvecneg[1], pvecneg[2],
+        pvecbach[0], pvecbach[1], pvecbach[2],
+        fitterV0.getChi2AtPCACandidate(), fitterCasc.getChi2AtPCACandidate(),
+        casc.v0().posTrack_as<FullTracksExt>().dcaXY(),
+        casc.v0().negTrack_as<FullTracksExt>().dcaXY(),
+        casc.bachelor_as<FullTracksExt>().dcaXY());
     }
   }
 };
