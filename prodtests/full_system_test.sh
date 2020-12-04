@@ -110,6 +110,10 @@ for STAGE in $STAGES; do
     walltime=`grep "#walltime" ${logfile}_time | awk '//{print $2}'`
     echo "walltime_${STAGE},${TAG} value=${walltime}" >> ${METRICFILE}
 
+    # GPU reconstruction (also in CPU version) processing time
+    gpurecotime=`grep "tpc-tracker" reco_NOGPU.log | grep -e "Total Wall Time:" | awk '//{printf "%f", $6/1000000}'`
+    echo "gpurecotime_${STAGE},${TAG} value=${gpurecotime}" >> ${METRICFILE}
+
     # memory
     maxmem=`awk '/PROCESS MAX MEM/{print $5}' ${logfile}`  # in MB
     avgmem=`awk '/PROCESS AVG MEM/{print $5}' ${logfile}`  # in MB
