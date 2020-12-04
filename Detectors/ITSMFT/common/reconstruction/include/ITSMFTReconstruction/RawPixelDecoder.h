@@ -170,6 +170,7 @@ int RawPixelDecoder<Mapping>::fillDecodedDigitsHW(DigitContainer& digits, ROFCon
   mTimerFetchData.Start(false);
   int ref = digits.size();
   for (unsigned int iru = 0; iru < mRUDecodeVec.size(); iru++) {
+    uint16_t calcounter = mRUDecodeVec[iru].calCount;
     uint16_t ninjection = mRUDecodeVec[iru].nInj;
     uint16_t chargeinjected = mRUDecodeVec[iru].chargeInj;
     uint16_t feeID = mMAP.RUSW2FEEId(mRUDecodeVec[iru].ruSWID,0);
@@ -180,7 +181,7 @@ int RawPixelDecoder<Mapping>::fillDecodedDigitsHW(DigitContainer& digits, ROFCon
     for (int ic = 0; ic < mRUDecodeVec[iru].nChipsFired; ic++) {
       const auto& chip = mRUDecodeVec[iru].chipsData[ic];
       for (const auto& hit : mRUDecodeVec[iru].chipsData[ic].getData()) {
-                digits.emplace_back(ninjection, chargeinjected, half, disk, plane, zone, chip.getCableHW(), chip.getChipID(), hit.getRow(), hit.getCol());
+                digits.emplace_back(calcounter, ninjection, chargeinjected, half, disk, plane, zone, chip.getCableHW(), chip.getChipID(), hit.getRow(), hit.getCol());
 
       }
     }
