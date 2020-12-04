@@ -28,7 +28,7 @@ SHMSIZE=${SHMSIZE:-8000000000} # Size of shared memory for messages (use 128 GB 
 TPCTRACKERSCRATCHMEMORY=${SHMSIZE:-4000000000} # Size of memory allocated by TPC tracker. (Use 24 GB for 550 event full TF)
 ENABLE_GPU_TEST=${ENABLE_GPU_TEST:-0} # Run the full system test also on the GPU
 NTIMEFRAMES=${NTIMEFRAMES:-1} # Number of time frames to process
-TFDELAY=100 # Delay in seconds between publishing time frames
+TFDELAY=${TFDELAY:-100} # Delay in seconds between publishing time frames
 NOMCLABELS="--disable-mc"
 
 # allow skipping
@@ -73,6 +73,7 @@ STAGES="NOGPU"
 if [ $ENABLE_GPU_TEST != "0" ]; then
   STAGES+=" WITHGPU"
 fi
+STAGES+=" ASYNC"
 for STAGE in $STAGES; do
 
   ARGS_ALL="--session default"
@@ -83,11 +84,22 @@ for STAGE in $STAGES; do
     export GPUMEMSIZE=6000000000
     export HOSTMEMSIZE=1000000000
     export SYNCMODE=1
+    export CTFINPUT=0
+    export SAVECTF=0
+  elif [[ "$STAGE" = "ASYNC" ]]; then
+    export CREATECTFDICT=1
+    export GPUTYPE=CPU
+    export SYNCMODE=0
+    export HOSTMEMSIZE=$TPCTRACKERSCRATCHMEMORY
+    export CTFINPUT=1
+    export SAVECTF=0
   else
     export CREATECTFDICT=1
     export GPUTYPE=CPU
     export SYNCMODE=0
     export HOSTMEMSIZE=$TPCTRACKERSCRATCHMEMORY
+    export CTFINPUT=0
+    export SAVECTF=1
     rm -f ctf_dictionary.root
   fi
   export SHMSIZE
