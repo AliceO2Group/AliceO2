@@ -98,6 +98,10 @@ struct ZTask {
     for (auto& col : multbin0_10) {
       auto groupedTracks = tracks.select(aod::track::collisionId == col.globalIndex());
       LOGF(INFO, "Collision %d; Ntrk = %d vs %d", col.globalIndex(), col.mult(), groupedTracks.size());
+      if (groupedTracks.size() > 0) {
+        auto track = groupedTracks.begin();
+        LOGF(INFO, "Track 0 belongs to collision %d at Z = %f", track.collisionId(), track.collision_as<myCol>().posZ());
+      }
     }
 
     LOGF(INFO, "Bin 10-30");
