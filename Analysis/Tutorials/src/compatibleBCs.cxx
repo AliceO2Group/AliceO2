@@ -51,7 +51,9 @@ T getCompatibleBCs(aod::Collision const& collision, T const& bcs)
 
   LOGF(INFO, "Will consider BC entries from %d to %d", minBCId, maxBCId);
 
-  return T{{bcs.asArrowTable()->Slice(minBCId, maxBCId - minBCId + 1)}, (uint64_t)minBCId};
+  T slice{{bcs.asArrowTable()->Slice(minBCId, maxBCId - minBCId + 1)}, (uint64_t)minBCId};
+  bcs.copyIndexBindings(slice);
+  return slice;
 }
 
 // Example 1 (academic, because it is not enough to just access the BC table):
@@ -82,8 +84,6 @@ struct CompatibleT0V0A {
     LOGF(INFO, "Vertex with most probable BC %llu and collision time %f +- %f ps", bc.globalBC(), collision.collisionTime(), collision.collisionTimeRes());
 
     auto bcSlice = getCompatibleBCs(collision, bct0s);
-    // TODO move to getCompatibleBCs
-    bcSlice.bindExternalIndices(&ft0s, &fv0as);
 
     for (auto& bc : bcSlice) {
       if (bc.has_ft0() && bc.has_fv0a()) {
