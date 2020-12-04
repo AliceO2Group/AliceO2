@@ -18,11 +18,8 @@
 #include <regex>
 #include "rapidjson/fwd.h"
 
-namespace o2
+namespace o2::framework
 {
-namespace framework
-{
-using namespace rapidjson;
 
 struct FileNameHolder {
   std::string fileName;
@@ -130,11 +127,10 @@ struct DataInputDirector {
   bool mDebugMode = false;
   bool mAlienSupport = false;
 
-  bool readJsonDocument(Document* doc);
+  bool readJsonDocument(rapidjson::Document* doc);
   bool isValid();
 };
 
-} // namespace framework
-} // namespace o2
+} // namespace o2::framework
 
 #endif // o2_framework_DataInputDirector_H_INCLUDED

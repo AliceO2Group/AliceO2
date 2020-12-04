@@ -27,8 +27,6 @@
 #include <cassert>
 #include <fmt/format.h>
 
-using o2::framework::runtime_error_f;
-
 namespace o2::soa
 {
 template <typename... C>
@@ -1091,7 +1089,7 @@ class Table
       auto label = T::columnLabel();
       auto index = mTable->schema()->GetAllFieldIndices(label);
       if (index.empty() == true) {
-        throw runtime_error_f("Unable to find column with label %s", label);
+        throw o2::framework::runtime_error_f("Unable to find column with label %s", label);
       }
       return mTable->column(index[0]).get();
     } else {
