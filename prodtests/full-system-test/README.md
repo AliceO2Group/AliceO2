@@ -46,6 +46,7 @@ The following options exist (some of the options are not used in all scripts, an
   * 0: Read `ctf_dictionary.root` as input.
   * 1: Create `ctf_dictionary.root`. Note that this was already done automatically if the raw data was simulated with `full_system_test.sh`.
 * `SYNCMODE`: Run only reconstruction steps of the synchronous reconstruction.
+  * Note that there is no `ASYNCMODE` but instead the `CTFINPUT` option already enforces asynchronous processing.
 * `NUMAGPUIDS`: NUMAID-aware GPU id selection. Needed for the full EPN configuration with 8 GPUs, 2 NUMA domains, 4 GPUs per domain.
   In this configuration, 2 instances of `dpl-workflow.sh` must run in parallel.
   To be used in combination with `NUMAID` to select the id per workflow.
@@ -56,6 +57,7 @@ The following options exist (some of the options are not used in all scripts, an
 * `EXTINPUT`: Receive input from raw FMQ channel instead of running o2-raw-file-reader.
   * 0: `dpl-workflow.sh` can run as standalone benchmark, and will read the input itself.
   * 1: To be used in combination with either `datadistribution.sh` or `raw-reader.sh` or with another DataDistribution instance.
+* `CTFINPUT`: Read input from CTF ROOT file. This option is incompatible to EXTINPUT=1. The CTF ROOT file can be stored via SAVECTF=1.
 * `NHBPERTF`: Time frame length (in HBF)
 * `GLOBALDPLOPT`: Global DPL workflow options appended to o2-dpl-run.
 * `EPNPIPELINES`: Set default EPN pipeline multiplicities.
