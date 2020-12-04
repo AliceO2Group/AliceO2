@@ -41,7 +41,8 @@ o2_add_executable(trap-sim
 
 o2_add_executable(global-tracking
                   COMPONENT_NAME trd
-                  SOURCES src/trd-tracking-workflow.cxx)
+                  SOURCES src/trd-tracking-workflow.cxx
+                  PUBLIC_LINK_LIBRARIES O2::TRDWorkflow)
 
 o2_add_executable(tracklet-transformer
                   COMPONENT_NAME trd
