@@ -1,5 +1,5 @@
 <!-- doxy
-\page refDetectorsITSMFT ITSMFT
+\page refDetectorsUpgrades Upgrades
 /doxy -->
 
 # Upgrades
@@ -14,6 +14,6 @@ ENABLE_UPGRADES=ON aliBuild build O2 --defaults o2
 ```
 
 <!-- doxy
-* \subpage refIT3
-* \subpage refPostLS4
+* \subpage refDetectorsUpgradesIT3
+* \subpage refDetectorsUpgradesPostLS4IT4
 /doxy -->

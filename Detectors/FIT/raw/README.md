@@ -1,3 +1,7 @@
+<!-- doxy
+\page refFITraw FIT raw
+/doxy -->
+
 # DataBlockBase
 DataBlockWrapper - wrapper for raw data structures\
 There should be three static fields in raw data structs, which defines its "signature":\
