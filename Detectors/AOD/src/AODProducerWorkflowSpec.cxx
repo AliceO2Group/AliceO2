@@ -472,8 +472,8 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
     auto& cov = vertex.getCov();
     auto& timeStamp = vertex.getTimeStamp();
     Double_t tsTimeStamp = timeStamp.getTimeStamp() * 1E3; // mus to ns
-    // FIXME:
-    // should use IRMin and IRMax for globalBC calculation
+    // TODO:
+    // use filling scheme to calculate most prob. BC
     uint64_t globalBC = std::round(tsTimeStamp / o2::constants::lhc::LHCBunchSpacingNS);
 
     LOG(DEBUG) << globalBC << " " << tsTimeStamp;
@@ -482,8 +482,8 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
       firstVtxGlBC = globalBC;
     }
 
-    // collision timestamp in ns wrt to the beginning of collision BC
-    tsTimeStamp = tsTimeStamp - std::lround(tsTimeStamp / o2::constants::lhc::LHCBunchSpacingNS) * o2::constants::lhc::LHCBunchSpacingNS;
+    // collision timestamp in ns wrt the beginning of collision BC
+    tsTimeStamp = globalBC * o2::constants::lhc::LHCBunchSpacingNS - tsTimeStamp;
     int BCid = mGlobBC2BCID.at(globalBC);
     // TODO:
     // get real collision time mask
