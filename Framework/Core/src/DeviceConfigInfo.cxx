@@ -11,8 +11,8 @@
 #include "Framework/DeviceConfigInfo.h"
 #include "Framework/DeviceInfo.h"
 #include <cstdlib>
-#include <regex>
 #include <string_view>
+#include <boost/property_tree/json_parser.hpp>
 
 namespace o2::framework
 {
@@ -64,22 +64,16 @@ bool DeviceConfigHelper::processConfig(ParsedConfigMatch& match,
   auto keyString = std::string(match.beginKey, match.endKey - match.beginKey);
   auto valueString = std::string(match.beginValue, match.endValue - match.beginValue);
   auto provenanceString = std::string(match.beginProvenance, match.endProvenance - match.beginProvenance);
-  std::regex fmatch(R"([ifdb]\[.*\])", std::regex_constants::ECMAScript);
-  std::regex nmatch(R"((?:(?!=,)|(?!=\[))[+-]?\d+\.?\d*(?:[eE][+-]?\d+)?(?=,|\]))", std::regex_constants::ECMAScript);
-  auto end = std::sregex_iterator();
-  auto fmt = std::sregex_iterator(valueString.begin(), valueString.end(), fmatch);
-  if (fmt != end) {
-    boost::property_tree::ptree branch;
-    auto values = std::sregex_iterator(valueString.begin(), valueString.end(), nmatch);
-    for (auto v = values; v != end; ++v) {
-      boost::property_tree::ptree leaf;
-      leaf.put("", v->str());
-      branch.push_back(std::make_pair("", leaf));
-    }
+  boost::property_tree::ptree branch;
+  std::stringstream ss{valueString};
+  try {
+    boost::property_tree::json_parser::read_json(ss, branch);
     info.currentConfig.put_child(keyString, branch);
-  } else {
+  } catch (boost::exception&) {
+    // in case it is not a tree but a single value
     info.currentConfig.put(keyString, valueString);
   }
+
   info.currentProvenance.put(keyString, provenanceString);
   return true;
 }
