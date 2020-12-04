@@ -14,10 +14,9 @@
 #include "Framework/SimpleOptionsRetriever.h"
 #include "../src/WorkflowHelpers.h"
 
-using namespace o2::framework;
-
-std::unique_ptr<ConfigContext> makeEmptyConfigContext()
+std::unique_ptr<o2::framework::ConfigContext> makeEmptyConfigContext()
 {
+  using namespace o2::framework;
   // FIXME: Ugly... We need to fix ownership and make sure the ConfigContext
   //        either owns or shares ownership of the registry.
   std::vector<std::unique_ptr<ParamRetriever>> retrievers;
