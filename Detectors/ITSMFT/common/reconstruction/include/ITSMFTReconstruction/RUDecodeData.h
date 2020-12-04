@@ -47,6 +47,7 @@ struct RUDecodeData {
   //Adding calibration info in RU pointer
   int nInj = 0;
   int chargeInj = 0;
+  int calCount = 0;
 
 
   RUDecodeData()
