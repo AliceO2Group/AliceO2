@@ -13,9 +13,7 @@
 #include <string>
 #include "Framework/ChannelSpec.h"
 
-namespace o2
-{
-namespace framework
+namespace o2::framework
 {
 
 ChannelConfigurationPolicyHelpers::PolicyMatcher ChannelConfigurationPolicyHelpers::matchAny =
@@ -37,41 +35,58 @@ ChannelConfigurationPolicyHelpers::PolicyMatcher ChannelConfigurationPolicyHelpe
   return [nameString](std::string const&, std::string const& consumerId) -> bool { return consumerId == nameString; };
 }
 
-ChannelConfigurationPolicyHelpers::InputChannelModifier ChannelConfigurationPolicyHelpers::subscribeInput =
-  [](InputChannelSpec& channel) {
+ChannelConfigurationPolicyHelpers::InputChannelModifier ChannelConfigurationPolicyHelpers::subscribeInput(FairMQChannelConfigSpec const& spec)
+{
+  return [spec](InputChannelSpec& channel) {
     channel.method = ChannelMethod::Connect;
     channel.type = ChannelType::Sub;
+    channel.rateLogging = spec.rateLogging;
   };
+}
 
-ChannelConfigurationPolicyHelpers::OutputChannelModifier ChannelConfigurationPolicyHelpers::publishOutput =
-  [](OutputChannelSpec& channel) {
+ChannelConfigurationPolicyHelpers::OutputChannelModifier ChannelConfigurationPolicyHelpers::publishOutput(FairMQChannelConfigSpec const& spec)
+{
+  return [spec](OutputChannelSpec& channel) {
     channel.method = ChannelMethod::Bind;
     channel.type = ChannelType::Pub;
+    channel.rateLogging = spec.rateLogging;
   };
+}
 
-ChannelConfigurationPolicyHelpers::InputChannelModifier ChannelConfigurationPolicyHelpers::pullInput =
-  [](InputChannelSpec& channel) {
+ChannelConfigurationPolicyHelpers::InputChannelModifier ChannelConfigurationPolicyHelpers::pullInput(FairMQChannelConfigSpec const& spec)
+{
+  return [spec](InputChannelSpec& channel) {
     channel.method = ChannelMethod::Connect;
     channel.type = ChannelType::Pull;
+    channel.rateLogging = spec.rateLogging;
   };
+}
 
-ChannelConfigurationPolicyHelpers::OutputChannelModifier ChannelConfigurationPolicyHelpers::pushOutput =
-  [](OutputChannelSpec& channel) {
+ChannelConfigurationPolicyHelpers::OutputChannelModifier ChannelConfigurationPolicyHelpers::pushOutput(FairMQChannelConfigSpec const& spec)
+{
+  return [spec](OutputChannelSpec& channel) {
     channel.method = ChannelMethod::Bind;
     channel.type = ChannelType::Push;
+    channel.rateLogging = spec.rateLogging;
   };
+}
 
-ChannelConfigurationPolicyHelpers::InputChannelModifier ChannelConfigurationPolicyHelpers::pairInput =
-  [](InputChannelSpec& channel) {
+ChannelConfigurationPolicyHelpers::InputChannelModifier ChannelConfigurationPolicyHelpers::pairInput(FairMQChannelConfigSpec const& spec)
+{
+  return [spec](InputChannelSpec& channel) {
     channel.method = ChannelMethod::Connect;
     channel.type = ChannelType::Pair;
+    channel.rateLogging = spec.rateLogging;
   };
+}
 
-ChannelConfigurationPolicyHelpers::OutputChannelModifier ChannelConfigurationPolicyHelpers::pairOutput =
-  [](OutputChannelSpec& channel) {
+ChannelConfigurationPolicyHelpers::OutputChannelModifier ChannelConfigurationPolicyHelpers::pairOutput(FairMQChannelConfigSpec const& spec)
+{
+  return [spec](OutputChannelSpec& channel) {
     channel.method = ChannelMethod::Bind;
     channel.type = ChannelType::Pair;
+    channel.rateLogging = spec.rateLogging;
   };
+}
 
-} // namespace framework
-} // namespace o2
+} // namespace o2::framework

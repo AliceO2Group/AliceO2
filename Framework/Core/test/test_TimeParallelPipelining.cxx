@@ -11,6 +11,7 @@
 #define BOOST_TEST_MAIN
 #define BOOST_TEST_DYN_LINK
 
+#include "Mocking.h"
 #include <boost/test/unit_test.hpp>
 #include "../src/DeviceSpecHelpers.h"
 #include "../src/SimpleResourceManager.h"
@@ -52,7 +53,8 @@ BOOST_AUTO_TEST_CASE(TimePipeliningSimple)
 {
   auto workflow = defineSimplePipelining();
   std::vector<DeviceSpec> devices;
-  auto channelPolicies = ChannelConfigurationPolicy::createDefaultPolicies();
+  auto configContext = makeEmptyConfigContext();
+  auto channelPolicies = ChannelConfigurationPolicy::createDefaultPolicies(*configContext);
   auto completionPolicies = CompletionPolicy::createDefaultPolicies();
   std::vector<ComputingResource> resources = {ComputingResourceHelpers::getLocalhostResource()};
   SimpleResourceManager rm(resources);
@@ -104,7 +106,8 @@ BOOST_AUTO_TEST_CASE(TimePipeliningFull)
 {
   auto workflow = defineDataProcessing();
   std::vector<DeviceSpec> devices;
-  auto channelPolicies = ChannelConfigurationPolicy::createDefaultPolicies();
+  auto configContext = makeEmptyConfigContext();
+  auto channelPolicies = ChannelConfigurationPolicy::createDefaultPolicies(*configContext);
   auto completionPolicies = CompletionPolicy::createDefaultPolicies();
   std::vector<ComputingResource> resources = {ComputingResourceHelpers::getLocalhostResource()};
   SimpleResourceManager rm(resources);

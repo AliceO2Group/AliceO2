@@ -7,8 +7,8 @@
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
-#ifndef FRAMEWORK_CHANNELCONFIGURATIONPOLICY_H
-#define FRAMEWORK_CHANNELCONFIGURATIONPOLICY_H
+#ifndef O2_FRAMEWORK_CHANNELCONFIGURATIONPOLICY_H_
+#define O2_FRAMEWORK_CHANNELCONFIGURATIONPOLICY_H_
 
 #include "Framework/ChannelConfigurationPolicyHelpers.h"
 #include "Framework/ChannelSpec.h"
@@ -16,10 +16,10 @@
 #include <vector>
 #include <functional>
 
-namespace o2
+namespace o2::framework
 {
-namespace framework
-{
+
+struct ConfigContext;
 
 /// A ChannelConfigurationPolicy allows the user
 /// to customise connection method and type
@@ -37,10 +37,10 @@ struct ChannelConfigurationPolicy {
   Helpers::InputChannelModifier modifyInput = nullptr;
   Helpers::OutputChannelModifier modifyOutput = nullptr;
 
-  static std::vector<ChannelConfigurationPolicy> createDefaultPolicies();
+  /// Default policies to use, based on the contents of the @configContex content
+  static std::vector<ChannelConfigurationPolicy> createDefaultPolicies(ConfigContext const& configContext);
 };
 
-} // namespace framework
-} // namespace o2
+} // namespace o2::framework
 
-#endif // FRAMEWORK_CHANNELCONFIGURATIONPOLICY_H
+#endif // O2_FRAMEWORK_CHANNELCONFIGURATIONPOLICY_H_

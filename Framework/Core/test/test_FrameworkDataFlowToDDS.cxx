@@ -11,6 +11,7 @@
 #define BOOST_TEST_MAIN
 #define BOOST_TEST_DYN_LINK
 
+#include "Mocking.h"
 #include <boost/test/unit_test.hpp>
 #include "../src/DDSConfigHelpers.h"
 #include "../src/DeviceSpecHelpers.h"
@@ -69,7 +70,8 @@ BOOST_AUTO_TEST_CASE(TestDDS)
 {
   auto workflow = defineDataProcessing();
   std::ostringstream ss{""};
-  auto channelPolicies = ChannelConfigurationPolicy::createDefaultPolicies();
+  auto configContext = makeEmptyConfigContext();
+  auto channelPolicies = ChannelConfigurationPolicy::createDefaultPolicies(*configContext);
   std::vector<DeviceSpec> devices;
   std::vector<ComputingResource> resources{ComputingResourceHelpers::getLocalhostResource()};
   SimpleResourceManager rm(resources);

@@ -11,6 +11,7 @@
 #define BOOST_TEST_MAIN
 #define BOOST_TEST_DYN_LINK
 
+#include "Mocking.h"
 #include <boost/test/unit_test.hpp>
 #include "../src/ChannelSpecHelpers.h"
 #include "../src/DeviceSpecHelpers.h"
@@ -40,7 +41,8 @@ WorkflowSpec defineDataProcessing1()
 BOOST_AUTO_TEST_CASE(TestDeviceSpec1)
 {
   auto workflow = defineDataProcessing1();
-  auto channelPolicies = ChannelConfigurationPolicy::createDefaultPolicies();
+  auto configContext = makeEmptyConfigContext();
+  auto channelPolicies = ChannelConfigurationPolicy::createDefaultPolicies(*configContext);
   auto completionPolicies = CompletionPolicy::createDefaultPolicies();
   BOOST_REQUIRE_EQUAL(channelPolicies.empty(), false);
   BOOST_REQUIRE_EQUAL(completionPolicies.empty(), false);
@@ -80,10 +82,11 @@ BOOST_AUTO_TEST_CASE(TestDeviceSpec1PushPull)
   auto workflow = defineDataProcessing1();
   ChannelConfigurationPolicy pushPullPolicy;
   pushPullPolicy.match = ChannelConfigurationPolicyHelpers::matchAny;
-  pushPullPolicy.modifyInput = ChannelConfigurationPolicyHelpers::pullInput;
-  pushPullPolicy.modifyOutput = ChannelConfigurationPolicyHelpers::pushOutput;
+  pushPullPolicy.modifyInput = ChannelConfigurationPolicyHelpers::pullInput({60});
+  pushPullPolicy.modifyOutput = ChannelConfigurationPolicyHelpers::pushOutput({60});
 
   std::vector<ChannelConfigurationPolicy> channelPolicies = {pushPullPolicy};
+  auto configContext = makeEmptyConfigContext();
   auto completionPolicies = CompletionPolicy::createDefaultPolicies();
 
   BOOST_REQUIRE_EQUAL(channelPolicies.empty(), false);
@@ -128,7 +131,8 @@ WorkflowSpec defineDataProcessing2()
 BOOST_AUTO_TEST_CASE(TestDeviceSpec2)
 {
   auto workflow = defineDataProcessing2();
-  auto channelPolicies = ChannelConfigurationPolicy::createDefaultPolicies();
+  auto configContext = makeEmptyConfigContext();
+  auto channelPolicies = ChannelConfigurationPolicy::createDefaultPolicies(*configContext);
   auto completionPolicies = CompletionPolicy::createDefaultPolicies();
   std::vector<DeviceSpec> devices;
 
@@ -170,7 +174,8 @@ WorkflowSpec defineDataProcessing3()
 BOOST_AUTO_TEST_CASE(TestDeviceSpec3)
 {
   auto workflow = defineDataProcessing3();
-  auto channelPolicies = ChannelConfigurationPolicy::createDefaultPolicies();
+  auto configContext = makeEmptyConfigContext();
+  auto channelPolicies = ChannelConfigurationPolicy::createDefaultPolicies(*configContext);
   auto completionPolicies = CompletionPolicy::createDefaultPolicies();
   std::vector<DeviceSpec> devices;
 
@@ -218,7 +223,8 @@ WorkflowSpec defineDataProcessing4()
 BOOST_AUTO_TEST_CASE(TestDeviceSpec4)
 {
   auto workflow = defineDataProcessing4();
-  auto channelPolicies = ChannelConfigurationPolicy::createDefaultPolicies();
+  auto configContext = makeEmptyConfigContext();
+  auto channelPolicies = ChannelConfigurationPolicy::createDefaultPolicies(*configContext);
   auto completionPolicies = CompletionPolicy::createDefaultPolicies();
   std::vector<DeviceSpec> devices;
   std::vector<ComputingResource> resources{ComputingResourceHelpers::getLocalhostResource()};
@@ -287,7 +293,8 @@ WorkflowSpec defineDataProcessing5()
 BOOST_AUTO_TEST_CASE(TestTopologyForwarding)
 {
   auto workflow = defineDataProcessing5();
-  auto channelPolicies = ChannelConfigurationPolicy::createDefaultPolicies();
+  auto configContext = makeEmptyConfigContext();
+  auto channelPolicies = ChannelConfigurationPolicy::createDefaultPolicies(*configContext);
   auto completionPolicies = CompletionPolicy::createDefaultPolicies();
   std::vector<DeviceSpec> devices;
 
@@ -404,7 +411,8 @@ BOOST_AUTO_TEST_CASE(TestOutEdgeProcessingHelpers)
   };
 
   WorkflowSpec workflow = defineDataProcessing7();
-  auto channelPolicies = ChannelConfigurationPolicy::createDefaultPolicies();
+  auto configContext = makeEmptyConfigContext();
+  auto channelPolicies = ChannelConfigurationPolicy::createDefaultPolicies(*configContext);
 
   std::vector<ComputingResource> resources{ComputingResourceHelpers::getLocalhostResource()};
   SimpleResourceManager rm(resources);
@@ -566,7 +574,8 @@ BOOST_AUTO_TEST_CASE(TestTopologyLayeredTimePipeline)
 {
   auto workflow = defineDataProcessing7();
   std::vector<DeviceSpec> devices;
-  auto channelPolicies = ChannelConfigurationPolicy::createDefaultPolicies();
+  auto configContext = makeEmptyConfigContext();
+  auto channelPolicies = ChannelConfigurationPolicy::createDefaultPolicies(*configContext);
   auto completionPolicies = CompletionPolicy::createDefaultPolicies();
   std::vector<ComputingResource> resources{ComputingResourceHelpers::getLocalhostResource()};
   SimpleResourceManager rm(resources);
@@ -690,7 +699,8 @@ BOOST_AUTO_TEST_CASE(TestSimpleWildcard)
   auto workflow = defineDataProcessing8();
   std::vector<ComputingResource> resources{ComputingResourceHelpers::getLocalhostResource()};
   SimpleResourceManager rm(resources);
-  auto channelPolicies = ChannelConfigurationPolicy::createDefaultPolicies();
+  auto configContext = makeEmptyConfigContext();
+  auto channelPolicies = ChannelConfigurationPolicy::createDefaultPolicies(*configContext);
 
   std::vector<DeviceSpec> devices;
   std::vector<DeviceId> deviceIndex;
