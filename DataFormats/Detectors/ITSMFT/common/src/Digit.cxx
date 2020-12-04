@@ -31,8 +31,10 @@ std::ostream& Digit::print(std::ostream& output) const
   return output;
 }
 
-DigitHW::DigitHW(UShort_t nInjection, UShort_t chargeInjected, UShort_t half, UShort_t disk, UShort_t plane, UShort_t zone, UShort_t cableHW, UShort_t chipindex, UShort_t row, UShort_t col, Int_t charge)
-  : mNInj(nInjection), mChargeInj(chargeInjected), mHalf(half), mDisk(disk), mPlane(plane), mZone(zone), mCableHW(cableHW), Digit(chipindex,row,col,charge)
+DigitHW::DigitHW(UShort_t caliCounter, UShort_t nInjection, UShort_t chargeInjected, UShort_t half, UShort_t disk, UShort_t plane, UShort_t zone, UShort_t cableHW, UShort_t chipindex, UShort_t row, UShort_t col, Int_t charge)
+  : mCounter(caliCounter), mNInj(nInjection), mChargeInj(chargeInjected), mHalf(half), mDisk(disk), mPlane(plane), mZone(zone), mCableHW(cableHW), Digit(chipindex,row,col,charge)
+{
+
 {
 
 }
