@@ -35,7 +35,5 @@ DigitHW::DigitHW(UShort_t caliCounter, UShort_t nInjection, UShort_t chargeInjec
   : mCounter(caliCounter), mNInj(nInjection), mChargeInj(chargeInjected), mHalf(half), mDisk(disk), mPlane(plane), mZone(zone), mCableHW(cableHW), Digit(chipindex,row,col,charge)
 {
 
-{
-
 }
 
