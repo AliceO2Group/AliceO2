@@ -351,8 +351,9 @@ void SplineHelper<DataT>::approximateFunction(
           }
           // get the knotindexvalue for FParameters:
           int knotind = pointstoarray(knotindices, numberOfKnots, mXdimensions);
-          for (int f = 0; f < mFdimensions; f++)
+          for (int f = 0; f < mFdimensions; f++) {
             Fparameters[knotind * numberOfParameterTypes * mFdimensions + p * mFdimensions + f] = par[dimension][2 * i * mFdimensions + mFdimensions + f]; ///write derivatives in FParameters
+          }
         }
       } // end for all fknots (for redistribution)
 
