@@ -15,6 +15,9 @@ fi
 if [ $SHMTHROW == 0 ]; then
   ARGS_ALL+=" --shm-throw-bad-alloc 0"
 fi
+if [ $NORATELOG == 1 ]; then
+  ARGS_ALL+=" --fairmq-rate-logging 0"
+fi
 
 if [ $EXTINPUT == 1 ]; then
   CMD_X="B:TPC/RAWDATA;C:ITS/RAWDATA;D:TOF/RAWDATA;D:MFT/RAWDATA;E:FT0/RAWDATA;F:MID/RAWDATA;G:EMC/RAWDATA;H:PHS/RAWDATA"

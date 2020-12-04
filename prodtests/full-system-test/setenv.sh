@@ -25,6 +25,7 @@ if [ -z "$GLOBALDPLOPT" ];  then export GLOBALDPLOPT=; fi              # Global 
 if [ -z "$EPNPIPELINES" ];  then export EPNPIPELINES=0; fi             # Set default EPN pipeline multiplicities
 if [ -z "$SEVERITY" ];      then export SEVERITY="info"; fi            # Log verbosity
 if [ -z "$SHMTHROW" ];      then export SHMTHROW=1; fi                 # Throw exception when running out of SHM
+if [ -z "$NORATELOG" ];     then export NORATELOG=1; fi                # Disable FairMQ Rate Logging
 
 SEVERITY_TPC="info" # overrides severity for the tpc workflow
 DISABLE_MC="--disable-mc"
