@@ -3,6 +3,7 @@
 
 #if !defined(__CLING__) || defined(__ROOTCLING__)
 #include "DetectorsVertexing/DCAFitterN.h"
+#include "DetectorsVertexingCUDA/SVertexer.h"
 #include "CommonUtils/TreeStreamRedirector.h"
 #include <TRandom.h>
 #include <TGenPhaseSpace.h>
@@ -194,6 +195,9 @@ void runSVertexer()
             << " mean.dist to truth: " << meanDA << " CPU time: " << swA.CpuTime();
   LOG(INFO) << "2-prongs with wgh.dist minization: eff= " << float(nfoundW) / NTest
             << " mean.dist to truth: " << meanDW << " CPU time: " << swW.CpuTime();
+
+  o2::vertexing::SVertexerGPU sV{};
+  sV.hello();
   //   BOOST_CHECK(nfoundA > 0.99 * NTest);
   //   BOOST_CHECK(nfoundW > 0.99 * NTest);
   //   BOOST_CHECK(meanDA < 0.1);

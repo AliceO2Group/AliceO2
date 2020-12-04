@@ -7,25 +7,25 @@
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
+///
+/// \file SVertexer.h
+/// \ author: mconcas@cern.ch
 
-#include "DetectorsVertexingCUDA/SVertexer.h"
+// #include "DetectorsVertexing/SVertexer.h"
+#include "GPUCommonDef.h"
 
 namespace o2
 {
 namespace vertexing
 {
-namespace GPU
-{ // Kernels
-GPUg() void helloKernel() {
-    printf("Hello World from GPU!\n");
-}
-}
 
-// Steers
-void SVertexerGPU::hello()
+class SVertexerGPU final
 {
-    GPU::helloKernel<<<1,1>>>();
-}
+ public:
+  SVertexerGPU() = default;
+  virtual ~SVertexerGPU() = default;
+  void hello();
+};
 
-}
-}
+} // namespace vertexing
+} // namespace o2

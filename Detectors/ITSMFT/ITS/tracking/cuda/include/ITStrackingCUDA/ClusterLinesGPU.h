@@ -9,7 +9,6 @@
 // or submit itself to any jurisdiction.
 ///
 /// \file ClusterLinesGPU.h
-/// \brief GPU-compliant version of ClusterLines, for the moment separated, might create a common traits for ClusterLines + later specifications for each arch, later.
 /// \ autrhor: mconcas@cern.ch
 
 #ifndef O2_ITSMFT_TRACKING_CLUSTERLINESGPU_H_
