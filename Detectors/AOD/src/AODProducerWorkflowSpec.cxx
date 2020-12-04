@@ -502,7 +502,7 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
                      vertex.getChi2(),
                      vertex.getNContributors(),
                      tsTimeStamp,
-                     timeStamp.getTimeStampError(),
+                     timeStamp.getTimeStampError() * 1E3,
                      collisionTimeMask);
 
     auto trackRef = primVer2TRefs[collisionID];
