@@ -21,7 +21,7 @@
 // Root includes
 #include "TMath.h"
 // O2 includes
-#include "PIDBase/ParamBase.h"
+#include "AnalysisDataModel/PID/ParamBase.h"
 
 namespace o2::pid::tof
 {

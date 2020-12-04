@@ -18,7 +18,7 @@
 #ifndef O2_ANALYSIS_PID_TPCRESO_H_
 #define O2_ANALYSIS_PID_TPCRESO_H_
 
-#include "PIDBase/ParamBase.h"
+#include "AnalysisDataModel/PID/ParamBase.h"
 
 namespace o2::pid::tpc
 {

@@ -19,8 +19,8 @@
 #include "Framework/runDataProcessing.h"
 #include "Framework/AnalysisTask.h"
 #include "Framework/AnalysisDataModel.h"
-#include "Analysis/Multiplicity.h"
-#include "Analysis/EventSelection.h"
+#include "AnalysisDataModel/Multiplicity.h"
+#include "AnalysisDataModel/EventSelection.h"
 #include "TH1F.h"
 #include "TH2F.h"
 

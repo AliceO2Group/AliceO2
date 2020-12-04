@@ -16,7 +16,7 @@
 #include "Framework/AnalysisTask.h"
 #include "Framework/AnalysisDataModel.h"
 #include "Framework/HistogramRegistry.h"
-#include "Analysis/trackUtilities.h"
+#include "AnalysisCore/trackUtilities.h"
 #include "ReconstructionDataFormats/DCA.h"
 
 #include "TH1D.h"

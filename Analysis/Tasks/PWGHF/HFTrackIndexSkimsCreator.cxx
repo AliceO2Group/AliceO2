@@ -18,10 +18,10 @@
 #include "Framework/runDataProcessing.h"
 #include "Framework/AnalysisTask.h"
 #include "DetectorsVertexing/DCAFitterN.h"
-#include "Analysis/HFSecondaryVertex.h"
-#include "Analysis/trackUtilities.h"
-#include "Analysis/HFConfigurables.h"
-//#include "Analysis/Centrality.h"
+#include "AnalysisDataModel/HFSecondaryVertex.h"
+#include "AnalysisCore/trackUtilities.h"
+#include "AnalysisCore/HFConfigurables.h"
+//#include "AnalysisDataModel/Centrality.h"
 #include "Framework/HistogramRegistry.h"
 #include <algorithm>
 

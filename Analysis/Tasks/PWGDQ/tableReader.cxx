@@ -14,11 +14,11 @@
 #include "Framework/AnalysisTask.h"
 #include "Framework/AnalysisDataModel.h"
 #include "Framework/ASoAHelpers.h"
-#include "Analysis/ReducedInfoTables.h"
-#include "Analysis/VarManager.h"
-#include "Analysis/HistogramManager.h"
-#include "Analysis/AnalysisCut.h"
-#include "Analysis/AnalysisCompositeCut.h"
+#include "AnalysisDataModel/ReducedInfoTables.h"
+#include "AnalysisCore/VarManager.h"
+#include "AnalysisCore/HistogramManager.h"
+#include "AnalysisCore/AnalysisCut.h"
+#include "AnalysisCore/AnalysisCompositeCut.h"
 #include <TH1F.h>
 #include <TMath.h>
 #include <THashList.h>

@@ -21,7 +21,7 @@
 #include "Framework/AnalysisDataModel.h"
 #include "Framework/ASoA.h"
 
-#include "Analysis/Jet.h"
+#include "AnalysisDataModel/Jet.h"
 
 using namespace o2;
 using namespace o2::framework;

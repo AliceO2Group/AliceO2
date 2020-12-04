@@ -19,8 +19,8 @@
 #include <boost/program_options.hpp>
 #include <FairLogger.h>
 #include "TFile.h"
-#include "PID/BetheBloch.h"
-#include "PID/TPCReso.h"
+#include "AnalysisDataModel/PID/BetheBloch.h"
+#include "AnalysisDataModel/PID/TPCReso.h"
 
 using namespace o2::pid::tpc;
 namespace bpo = boost::program_options;

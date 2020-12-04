@@ -11,4 +11,4 @@
 // HF Configurable Classes
 //
 // Authors: Nima Zardoshti
-#include "Analysis/HFConfigurables.h"
+#include "AnalysisCore/HFConfigurables.h"

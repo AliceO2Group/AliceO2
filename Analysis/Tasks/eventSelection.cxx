@@ -22,8 +22,8 @@ void customize(std::vector<ConfigParamSpec>& workflowOptions)
 #include "Framework/runDataProcessing.h"
 #include "Framework/AnalysisTask.h"
 #include "Framework/AnalysisDataModel.h"
-#include "Analysis/EventSelection.h"
-#include "Analysis/TriggerAliases.h"
+#include "AnalysisDataModel/EventSelection.h"
+#include "AnalysisCore/TriggerAliases.h"
 #include <CCDB/BasicCCDBManager.h>
 #include "CommonConstants/LHCConstants.h"
 

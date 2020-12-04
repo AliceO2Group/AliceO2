@@ -20,8 +20,8 @@
 #include "fastjet/PseudoJet.hh"
 #include "fastjet/ClusterSequenceArea.hh"
 
-#include "Analysis/Jet.h"
-#include "Analysis/JetFinder.h"
+#include "AnalysisDataModel/Jet.h"
+#include "AnalysisCore/JetFinder.h"
 
 using namespace o2;
 using namespace o2::framework;

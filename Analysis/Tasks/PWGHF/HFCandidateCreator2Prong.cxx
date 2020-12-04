@@ -16,8 +16,8 @@
 
 #include "Framework/AnalysisTask.h"
 #include "DetectorsVertexing/DCAFitterN.h"
-#include "Analysis/HFSecondaryVertex.h"
-#include "Analysis/trackUtilities.h"
+#include "AnalysisDataModel/HFSecondaryVertex.h"
+#include "AnalysisCore/trackUtilities.h"
 #include "ReconstructionDataFormats/DCA.h"
 
 using namespace o2;

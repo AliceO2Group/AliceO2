@@ -19,7 +19,7 @@
 #include <boost/program_options.hpp>
 #include <FairLogger.h>
 #include "TFile.h"
-#include "PID/TOFReso.h"
+#include "AnalysisDataModel/PID/TOFReso.h"
 
 using namespace o2::pid::tof;
 namespace bpo = boost::program_options;
