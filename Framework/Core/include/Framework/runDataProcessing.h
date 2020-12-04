@@ -138,6 +138,8 @@ int main(int argc, char** argv)
     workflowOptions.push_back(ConfigParamSpec{"aod-writer-ntfmerge", VariantType::Int, -1, {"Number of time frames to merge into one file"}});
     workflowOptions.push_back(ConfigParamSpec{"aod-writer-keep", VariantType::String, "", {"Comma separated list of ORIGIN/DESCRIPTION/SUBSPECIFICATION:treename:col1/col2/..:filename"}});
 
+    workflowOptions.push_back(ConfigParamSpec{"fairmq-rate-logging", VariantType::Int, 60, {"Rate logging for FairMQ channels"}});
+
     workflowOptions.push_back(ConfigParamSpec{"forwarding-policy",
                                               VariantType::String,
                                               "dangling",
@@ -150,10 +152,6 @@ int main(int argc, char** argv)
                                               {"Destination for forwarded messages."
                                                " file: write to file,"
                                                " fairmq: send to output proxy"}});
-    std::vector<ChannelConfigurationPolicy> channelPolicies;
-    UserCustomizationsHelper::userDefinedCustomization(channelPolicies, 0);
-    auto defaultChannelPolicies = ChannelConfigurationPolicy::createDefaultPolicies();
-    channelPolicies.insert(std::end(channelPolicies), std::begin(defaultChannelPolicies), std::end(defaultChannelPolicies));
 
     std::vector<CompletionPolicy> completionPolicies;
     UserCustomizationsHelper::userDefinedCustomization(completionPolicies, 0);
@@ -178,6 +176,10 @@ int main(int argc, char** argv)
     for (auto& spec : specs) {
       UserCustomizationsHelper::userDefinedCustomization(spec.requiredServices, 0);
     }
+    std::vector<ChannelConfigurationPolicy> channelPolicies;
+    UserCustomizationsHelper::userDefinedCustomization(channelPolicies, 0);
+    auto defaultChannelPolicies = ChannelConfigurationPolicy::createDefaultPolicies(configContext);
+    channelPolicies.insert(std::end(channelPolicies), std::begin(defaultChannelPolicies), std::end(defaultChannelPolicies));
     result = doMain(argc, argv, specs, channelPolicies, completionPolicies, dispatchPolicies, workflowOptions, configContext);
   } catch (boost::exception& e) {
     doBoostException(e);

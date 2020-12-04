@@ -1,0 +1,45 @@
+// Copyright CERN and copyright holders of ALICE O2. This software is
+// distributed under the terms of the GNU General Public License v3 (GPL
+// Version 3), copied verbatim in the file "COPYING".
+//
+// See http://alice-o2.web.cern.ch/license for full licensing information.
+//
+// In applying this license CERN does not waive the privileges and immunities
+// granted to it by virtue of its status as an Intergovernmental Organization
+// or submit itself to any jurisdiction.
+#include "test_HelperMacros.h"
+#include "Framework/ConfigContext.h"
+#include "Framework/WorkflowSpec.h"
+#include "Framework/DataSpecUtils.h"
+#include "Framework/SimpleOptionsRetriever.h"
+#include "../src/WorkflowHelpers.h"
+
+using namespace o2::framework;
+
+std::unique_ptr<ConfigContext> makeEmptyConfigContext()
+{
+  // FIXME: Ugly... We need to fix ownership and make sure the ConfigContext
+  //        either owns or shares ownership of the registry.
+  std::vector<std::unique_ptr<ParamRetriever>> retrievers;
+  static std::vector<ConfigParamSpec> specs = {
+    ConfigParamSpec{"forwarding-policy",
+                    VariantType::String,
+                    "dangling",
+                    {""}},
+    ConfigParamSpec{"forwarding-destination",
+                    VariantType::String,
+                    "file",
+                    {"what to do with dangling outputs. file: write to file, fairmq: send to output proxy"}},
+    ConfigParamSpec{"fairmq-rate-logging",
+                    VariantType::Int,
+                    60,
+                    {"rateLogging"}},
+  };
+  specs.push_back(ConfigParamSpec{"aod-memory-rate-limit", VariantType::String, "0", {"rate"}});
+  auto store = std::make_unique<ConfigParamStore>(specs, std::move(retrievers));
+  store->preload();
+  store->activate();
+  static ConfigParamRegistry registry(std::move(store));
+  auto context = std::make_unique<ConfigContext>(registry, 0, nullptr);
+  return context;
+}

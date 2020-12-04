@@ -9,20 +9,19 @@
 // or submit itself to any jurisdiction.
 
 #include "Framework/ChannelConfigurationPolicy.h"
+#include "Framework/ConfigContext.h"
 
-namespace o2
-{
-namespace framework
+namespace o2::framework
 {
 
-std::vector<ChannelConfigurationPolicy> ChannelConfigurationPolicy::createDefaultPolicies()
+std::vector<ChannelConfigurationPolicy> ChannelConfigurationPolicy::createDefaultPolicies(ConfigContext const& configContext)
 {
   ChannelConfigurationPolicy defaultPolicy;
   defaultPolicy.match = ChannelConfigurationPolicyHelpers::matchAny;
-  defaultPolicy.modifyInput = ChannelConfigurationPolicyHelpers::pullInput;
-  defaultPolicy.modifyOutput = ChannelConfigurationPolicyHelpers::pushOutput;
+  defaultPolicy.modifyInput = ChannelConfigurationPolicyHelpers::pullInput({configContext.options().get<int>("fairmq-rate-logging")});
+  defaultPolicy.modifyOutput = ChannelConfigurationPolicyHelpers::pushOutput({configContext.options().get<int>("fairmq-rate-logging")});
+
   return {defaultPolicy};
 }
 
-} // namespace framework
-} // namespace o2
+} // namespace o2::framework
