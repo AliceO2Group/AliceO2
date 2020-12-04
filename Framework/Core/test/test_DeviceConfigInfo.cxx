@@ -100,7 +100,7 @@ BOOST_AUTO_TEST_CASE(TestDeviceConfigInfo)
   BOOST_CHECK_EQUAL(info.currentProvenance.get<std::string>("foo"), "prov");
 
   // Parse an array
-  configString = "foo[XX:XX:XX][INFO] [CONFIG] array=i[1,2,3,4] 1789372894 prov\n";
+  configString = "foo[XX:XX:XX][INFO] [CONFIG] array={\"\":\"1\",\"\":\"2\",\"\":\"3\",\"\":\"4\",\"\":\"5\"} 1789372894 prov\n";
   std::string_view configa{configString.data() + 3, configString.size() - 4};
   result = DeviceConfigHelper::parseConfig(configa, match);
   auto valueString = std::string(match.beginValue, match.endValue - match.beginValue);
@@ -108,12 +108,12 @@ BOOST_AUTO_TEST_CASE(TestDeviceConfigInfo)
   BOOST_REQUIRE_EQUAL(result, true);
   BOOST_CHECK(strncmp(match.beginKey, "array", 5) == 0);
   BOOST_CHECK_EQUAL(match.timestamp, 1789372894);
-  BOOST_CHECK(strncmp(match.beginValue, "i[1,2,3,4]", 10) == 0);
+  BOOST_CHECK(strncmp(match.beginValue, "{\"\":\"1\",\"\":\"2\",\"\":\"3\",\"\":\"4\",\"\":\"5\"}", 35) == 0);
   BOOST_CHECK(strncmp(match.beginProvenance, "prov", 4) == 0);
 
   // Process a given config entry
   result = DeviceConfigHelper::processConfig(match, info);
   BOOST_CHECK_EQUAL(result, true);
   BOOST_CHECK_EQUAL(info.currentProvenance.get<std::string>("array"), "prov");
-  BOOST_CHECK_EQUAL(arrayPrinter<int>(info.currentConfig.get_child("array")), "i[1,2,3,4]");
+  BOOST_CHECK_EQUAL(arrayPrinter<int>(info.currentConfig.get_child("array")), "i[1,2,3,4,5]");
 }

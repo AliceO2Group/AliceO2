@@ -56,6 +56,7 @@
 #include <uv.h>
 #include <execinfo.h>
 #include <sstream>
+#include <boost/property_tree/json_parser.hpp>
 
 using namespace o2::framework;
 using Key = o2::monitoring::tags::Key;
@@ -248,39 +249,15 @@ void DataProcessingDevice::Init()
 
   /// Dump the configuration so that we can get it from the driver.
   for (auto& entry : configStore->store()) {
-    PropertyTreeHelpers::WalkerFunction printer = [&configStore, topLevel = entry.first](ptree const& parent, ptree::path_type childPath, ptree const& child) {
-      // FIXME: not clear why we get invoked for the root entry
-      //        and twice for each node. It nevertheless works
-      //        because the net result is that we call twice
-      //        ptree put.
-      if (childPath.dump() != "") {
-        LOG(INFO) << "[CONFIG] " << topLevel << "." << childPath.dump() << "=" << child.data() << " 1 " << configStore->provenance(topLevel.c_str());
-      }
-    };
-
-    auto spec = std::find_if(configStore->specs().begin(), configStore->specs().end(), [&](auto& x) { return x.name == entry.first; });
-    if (spec != configStore->specs().end()) {
-      switch (spec->type) {
-        case VariantType::ArrayInt:
-          LOG(INFO) << "[CONFIG] " << entry.first << "=" << arrayPrinter<int>(entry.second) << " 1 " << configStore->provenance(entry.first.c_str());
-          break;
-        case VariantType::ArrayFloat:
-          LOG(INFO) << "[CONFIG] " << entry.first << "=" << arrayPrinter<float>(entry.second) << " 1 " << configStore->provenance(entry.first.c_str());
-          break;
-        case VariantType::ArrayDouble:
-          LOG(INFO) << "[CONFIG] " << entry.first << "=" << arrayPrinter<double>(entry.second) << " 1 " << configStore->provenance(entry.first.c_str());
-          break;
-        case VariantType::ArrayBool:
-          LOG(INFO) << "[CONFIG] " << entry.first << "=" << arrayPrinter<bool>(entry.second) << " 1 " << configStore->provenance(entry.first.c_str());
-          break;
-        default:
-          LOG(INFO) << "[CONFIG] " << entry.first << "=" << configStore->store().get<std::string>(entry.first) << " 1 " << configStore->provenance(entry.first.c_str());
-          PropertyTreeHelpers::traverse(entry.second, printer);
-      }
+    std::stringstream ss;
+    if (entry.second.size() != 0) {
+      boost::property_tree::json_parser::write_json(ss, configStore->store().get_child(entry.first), false);
     } else {
-      LOG(INFO) << "[CONFIG] " << entry.first << "=" << configStore->store().get<std::string>(entry.first) << " 1 " << configStore->provenance(entry.first.c_str());
-      PropertyTreeHelpers::traverse(entry.second, printer);
+      ss << configStore->store().get<std::string>(entry.first) << "\n";
     }
+    auto str = ss.str();
+    str.pop_back(); //remove EoL
+    LOG(INFO) << "[CONFIG] " << entry.first << "=" << str << " 1 " << configStore->provenance(entry.first.c_str());
   }
 
   mConfigRegistry = std::make_unique<ConfigParamRegistry>(std::move(configStore));
