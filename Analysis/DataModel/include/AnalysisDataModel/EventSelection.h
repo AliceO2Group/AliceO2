@@ -11,7 +11,7 @@
 #define O2_ANALYSIS_EVENTSELECTION_H_
 
 #include "Framework/AnalysisDataModel.h"
-#include "Analysis/TriggerAliases.h"
+#include "AnalysisCore/TriggerAliases.h"
 
 namespace o2::aod
 {

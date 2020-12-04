@@ -15,10 +15,10 @@
 #include "Framework/AnalysisDataModel.h"
 #include "Framework/AnalysisTask.h"
 #include "Framework/HistogramRegistry.h"
-#include "Analysis/MC.h"
-#include "Analysis/TrackSelectionTables.h"
-#include "Analysis/TrackSelection.h"
-#include "Analysis/TrackSelectionDefaults.h"
+#include "AnalysisCore/MC.h"
+#include "AnalysisDataModel/TrackSelectionTables.h"
+#include "AnalysisCore/TrackSelection.h"
+#include "AnalysisCore/TrackSelectionDefaults.h"
 
 using namespace o2;
 using namespace o2::framework;

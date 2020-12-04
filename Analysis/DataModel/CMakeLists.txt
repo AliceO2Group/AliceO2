@@ -16,30 +16,15 @@ o2_add_library(AnalysisDataModel
 
 
 o2_target_root_dictionary(AnalysisDataModel
-                          HEADERS include/PIDBase/ParamBase.h
-                                  include/PIDBase/DetectorResponse.h
-                                  include/PID/PIDTOF.h
-                                  include/PID/TOFReso.h
-                                  include/PID/PIDTPC.h
-                                  include/PID/BetheBloch.h
-                                  include/PID/TPCReso.h
+                          HEADERS include/AnalysisDataModel/PID/ParamBase.h
+                                  include/AnalysisDataModel/PID/DetectorResponse.h
+                                  include/AnalysisDataModel/PID/PIDTOF.h
+                                  include/AnalysisDataModel/PID/TOFReso.h
+                                  include/AnalysisDataModel/PID/PIDTPC.h
+                                  include/AnalysisDataModel/PID/BetheBloch.h
+                                  include/AnalysisDataModel/PID/TPCReso.h
                           LINKDEF src/AnalysisDataModelLinkDef.h
                          )
-
-install(FILES
-        include/PIDBase/ParamBase.h
-        include/PIDBase/DetectorResponse.h
-        DESTINATION
-        include/PIDBase)
-
-install(FILES
-        include/PID/PIDTOF.h
-        include/PID/TOFReso.h
-        include/PID/PIDTPC.h
-        include/PID/BetheBloch.h
-        include/PID/TPCReso.h
-        DESTINATION
-        include/PID)
 
 o2_add_executable(aod-data-model-graph
                   SOURCES src/aodDataModelGraph.cxx

@@ -11,11 +11,11 @@
 #include "Framework/AnalysisTask.h"
 #include "Framework/AnalysisDataModel.h"
 #include "Framework/ASoAHelpers.h"
-#include "Analysis/EventSelection.h"
-#include "Analysis/Centrality.h"
-#include "Analysis/TrackSelection.h"
+#include "AnalysisDataModel/EventSelection.h"
+#include "AnalysisDataModel/Centrality.h"
+#include "AnalysisCore/TrackSelection.h"
 #include "AnalysisConfigurableCuts.h"
-#include "Analysis/TrackSelectionTables.h"
+#include "AnalysisDataModel/TrackSelectionTables.h"
 #include <TROOT.h>
 #include <TParameter.h>
 #include <TList.h>

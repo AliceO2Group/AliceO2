@@ -12,7 +12,7 @@
 
 #include "Framework/ASoA.h"
 #include "Framework/AnalysisDataModel.h"
-#include "Analysis/Centrality.h"
+#include "AnalysisDataModel/Centrality.h"
 
 namespace o2::aod
 {

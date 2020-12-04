@@ -10,8 +10,8 @@
 //
 // Contact: iarsene@cern.ch, i.c.arsene@fys.uio.no
 //
-#include "Analysis/HistogramManager.h"
-#include "Analysis/VarManager.h"
+#include "AnalysisCore/HistogramManager.h"
+#include "AnalysisCore/VarManager.h"
 
 namespace o2::aod
 {

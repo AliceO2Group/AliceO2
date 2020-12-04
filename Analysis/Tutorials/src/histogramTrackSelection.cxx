@@ -15,8 +15,8 @@
 
 #include <cmath>
 
-#include "Analysis/TrackSelection.h"
-#include "Analysis/TrackSelectionTables.h"
+#include "AnalysisCore/TrackSelection.h"
+#include "AnalysisDataModel/TrackSelectionTables.h"
 
 using namespace o2;
 using namespace o2::framework;

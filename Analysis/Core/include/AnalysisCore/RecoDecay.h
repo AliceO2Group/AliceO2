@@ -649,8 +649,8 @@ class RecoDecay
   static int getMatchedMCRec(const T& particlesMC, const array<U, N>& arrDaughters, int PDGMother, array<int, N> arrPDGDaughters, bool acceptAntiParticles = false, int8_t* sign = nullptr, int depthMax = 1)
   {
     //Printf("MC Rec: Expected mother PDG: %d", PDGMother);
-    int8_t sgn = 0;                  // 1 if the expected mother is particle, -1 if antiparticle (w.r.t. PDGMother)
-    int indexMother = -1;            // index of the mother particle
+    int8_t sgn = 0;                        // 1 if the expected mother is particle, -1 if antiparticle (w.r.t. PDGMother)
+    int indexMother = -1;                  // index of the mother particle
     std::vector<int> arrAllDaughtersIndex; // vector of indices of all daughters of the mother of the first provided daughter
     array<int, N> arrDaughtersIndex;       // array of indices of provided daughters
     if (sign) {

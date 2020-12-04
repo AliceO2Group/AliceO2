@@ -21,8 +21,8 @@ void customize(std::vector<ConfigParamSpec>& workflowOptions)
 #include "Framework/runDataProcessing.h"
 #include "Framework/AnalysisTask.h"
 #include "Framework/AnalysisDataModel.h"
-#include "Analysis/EventSelection.h"
-#include "Analysis/Multiplicity.h"
+#include "AnalysisDataModel/EventSelection.h"
+#include "AnalysisDataModel/Multiplicity.h"
 #include "iostream"
 
 struct MultiplicityTableTaskIndexed {

@@ -11,7 +11,7 @@
 #define O2_ANALYSIS_STRANGENESSTABLES_H_
 
 #include "Framework/AnalysisDataModel.h"
-#include "Analysis/RecoDecay.h"
+#include "AnalysisCore/RecoDecay.h"
 
 namespace o2::aod
 {

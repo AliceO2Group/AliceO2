@@ -25,7 +25,7 @@
 // O2 includes
 #include "Framework/Logger.h"
 #include "ReconstructionDataFormats/PID.h"
-#include "PIDBase/DetectorResponse.h"
+#include "AnalysisDataModel/PID/DetectorResponse.h"
 
 namespace o2::pid::tof
 {

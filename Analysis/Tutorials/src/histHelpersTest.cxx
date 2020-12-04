@@ -9,7 +9,7 @@
 // or submit itself to any jurisdiction.
 
 #include "Framework/AnalysisTask.h"
-#include "Analysis/HistHelpers.h"
+#include "AnalysisCore/HistHelpers.h"
 
 #include "Framework/AnalysisDataModel.h"
 #include "Framework/runDataProcessing.h"

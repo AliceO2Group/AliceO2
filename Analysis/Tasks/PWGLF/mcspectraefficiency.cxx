@@ -11,9 +11,9 @@
 // O2 includes
 #include "Framework/AnalysisTask.h"
 #include "Framework/AnalysisDataModel.h"
-#include "Analysis/MC.h"
+#include "AnalysisCore/MC.h"
 #include "Framework/ASoAHelpers.h"
-#include "Analysis/TrackSelectionTables.h"
+#include "AnalysisDataModel/TrackSelectionTables.h"
 
 // ROOT includes
 #include <TH1F.h>

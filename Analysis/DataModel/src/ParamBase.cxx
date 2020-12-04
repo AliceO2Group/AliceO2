@@ -16,7 +16,7 @@
 ///        These are the basic storage elements to be kept in the CCDB
 ///
 
-#include "PIDBase/ParamBase.h"
+#include "AnalysisDataModel/PID/ParamBase.h"
 #include "Framework/Logger.h"
 
 namespace o2::pid

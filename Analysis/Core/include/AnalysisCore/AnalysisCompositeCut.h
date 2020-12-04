@@ -16,7 +16,7 @@
 #ifndef AnalysisCompositeCut_H
 #define AnalysisCompositeCut_H
 
-#include "Analysis/AnalysisCut.h"
+#include "AnalysisCore/AnalysisCut.h"
 #include <vector>
 
 //_________________________________________________________________________

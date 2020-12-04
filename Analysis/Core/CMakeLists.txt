@@ -20,16 +20,16 @@ o2_add_library(AnalysisCore
                PUBLIC_LINK_LIBRARIES O2::Framework O2::AnalysisDataModel O2::AnalysisTools)
 
 o2_target_root_dictionary(AnalysisCore
-              HEADERS include/Analysis/CorrelationContainer.h
-                      include/Analysis/TrackSelection.h
-                      include/Analysis/TrackSelectionDefaults.h
-                      include/Analysis/VarManager.h
-                      include/Analysis/HistogramManager.h
-                      include/Analysis/AnalysisCut.h
-                      include/Analysis/AnalysisCompositeCut.h
-                      include/Analysis/TriggerAliases.h
-                      include/Analysis/MC.h
-		      include/Analysis/HFConfigurables.h
+              HEADERS include/AnalysisCore/CorrelationContainer.h
+                      include/AnalysisCore/TrackSelection.h
+                      include/AnalysisCore/TrackSelectionDefaults.h
+                      include/AnalysisCore/VarManager.h
+                      include/AnalysisCore/HistogramManager.h
+                      include/AnalysisCore/AnalysisCut.h
+                      include/AnalysisCore/AnalysisCompositeCut.h
+                      include/AnalysisCore/TriggerAliases.h
+                      include/AnalysisCore/MC.h
+		      include/AnalysisCore/HFConfigurables.h
               LINKDEF src/AnalysisCoreLinkDef.h)
 
 if(FastJet_FOUND)
@@ -38,6 +38,6 @@ o2_add_library(AnalysisJets
                PUBLIC_LINK_LIBRARIES O2::AnalysisCore FastJet::FastJet FastJet::Contrib)
 
 o2_target_root_dictionary(AnalysisJets
-              HEADERS include/Analysis/JetFinder.h
+              HEADERS include/AnalysisCore/JetFinder.h
               LINKDEF src/AnalysisJetsLinkDef.h)
 endif()

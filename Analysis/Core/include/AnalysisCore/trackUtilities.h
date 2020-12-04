@@ -18,7 +18,7 @@
 
 #include "ReconstructionDataFormats/Track.h"
 #include "ReconstructionDataFormats/Vertex.h"
-#include "Analysis/RecoDecay.h"
+#include "AnalysisCore/RecoDecay.h"
 
 /// Extracts track parameters from a track.
 template <typename T>

@@ -15,8 +15,8 @@
 #include "Framework/HistogramRegistry.h"
 #include "ReconstructionDataFormats/Track.h"
 #include <CCDB/BasicCCDBManager.h>
-#include "PID/PIDResponse.h"
-#include "PID/PIDTPC.h"
+#include "AnalysisDataModel/PID/PIDResponse.h"
+#include "AnalysisDataModel/PID/PIDTPC.h"
 
 using namespace o2;
 using namespace o2::framework;

@@ -19,7 +19,7 @@
 #define O2_ANALYSIS_PID_BETHEBLOCH_H_
 
 #include "TPCSimulation/Detector.h"
-#include "PIDBase/ParamBase.h"
+#include "AnalysisDataModel/PID/ParamBase.h"
 
 namespace o2::pid::tpc
 {

@@ -13,7 +13,7 @@
 //
 // Author: Jan Fiete Grosse-Oetringhaus
 
-#include "Analysis/CorrelationContainer.h"
+#include "AnalysisCore/CorrelationContainer.h"
 #include "Framework/StepTHn.h"
 #include "Framework/Logger.h"
 #include "THnSparse.h"

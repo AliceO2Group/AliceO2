@@ -34,14 +34,14 @@
 #include "Framework/AnalysisTask.h"
 #include "Framework/AnalysisDataModel.h"
 #include "Framework/ASoAHelpers.h"
-#include "Analysis/HFSecondaryVertex.h"
+#include "AnalysisDataModel/HFSecondaryVertex.h"
 #include "DetectorsVertexing/DCAFitterN.h"
 #include "ReconstructionDataFormats/Track.h"
-#include "Analysis/RecoDecay.h"
-#include "Analysis/trackUtilities.h"
-#include "Analysis/StrangenessTables.h"
-#include "Analysis/TrackSelection.h"
-#include "Analysis/TrackSelectionTables.h"
+#include "AnalysisCore/RecoDecay.h"
+#include "AnalysisCore/trackUtilities.h"
+#include "AnalysisDataModel/StrangenessTables.h"
+#include "AnalysisCore/TrackSelection.h"
+#include "AnalysisDataModel/TrackSelectionTables.h"
 
 #include <TFile.h>
 #include <TH2F.h>
@@ -53,7 +53,7 @@
 #include <cmath>
 #include <array>
 #include <cstdlib>
-#include "PID/PIDResponse.h"
+#include "AnalysisDataModel/PID/PIDResponse.h"
 #include "Framework/ASoAHelpers.h"
 
 using namespace o2;
