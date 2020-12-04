@@ -21,6 +21,7 @@ if [ -z "$SYNCMODE" ];      then export SYNCMODE=0; fi                 # Run onl
 if [ -z "$NUMAID" ];        then export NUMAID=0; fi                   # SHM segment id to use for shipping data as well as set of GPUs to use (use 0 / 1 for 2 NUMA domains)
 if [ -z "$NUMAGPUIDS" ];    then export NUMAGPUIDS=0; fi               # NUMAID-aware GPU id selection
 if [ -z "$EXTINPUT" ];      then export EXTINPUT=0; fi                 # Receive input from raw FMQ channel instead of running o2-raw-file-reader
+if [ -z "$CTFINPUT" ];      then export CTFINPUT=0; fi                 # Read input from CTF (incompatible to EXTINPUT=1)
 if [ -z "$NHBPERTF" ];      then export NHBPERTF=128; fi               # Time frame length (in HBF)
 if [ -z "$GLOBALDPLOPT" ];  then export GLOBALDPLOPT=; fi              # Global DPL workflow options appended at the end
 if [ -z "$EPNPIPELINES" ];  then export EPNPIPELINES=0; fi             # Set default EPN pipeline multiplicities
@@ -30,3 +31,16 @@ if [ -z "$NORATELOG" ];     then export NORATELOG=1; fi                # Disable
 
 SEVERITY_TPC="info" # overrides severity for the tpc workflow
 DISABLE_MC="--disable-mc"
+
+if [ $EXTINPUT == 1 ] && [ $CTFINPUT == 1 ]; then
+  echo EXTINPUT and CTFINPUT are incompatible
+  exit 1
+fi
+if [ $SAVECTF == 1 ] && [ $CTFINPUT == 1 ]; then
+  echo SAVECTF and CTFINPUT are incompatible
+  exit 1
+fi
+if [ $SYNCMODE == 1 ] && [ $CTFINPUT == 1 ]; then
+  echo SYNCMODE and CTFINPUT are incompatible
+  exit 1
+fi

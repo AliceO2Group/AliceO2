@@ -8,6 +8,7 @@ if [ "0$ALIENVLVL" == "0" ]; then
   alienv --no-refresh load O2/latest
 fi
 
+# Set general arguments
 ARGS_ALL="--session default --severity $SEVERITY --shm-segment-id $NUMAID --shm-segment-size $SHMSIZE"
 if [ $EXTINPUT == 1 ] || [ $NUMAGPUIDS == 1 ]; then
   ARGS_ALL+=" --no-cleanup"
@@ -19,35 +20,26 @@ if [ $NORATELOG == 1 ]; then
   ARGS_ALL+=" --fairmq-rate-logging 0"
 fi
 
-if [ $EXTINPUT == 1 ]; then
-  CMD_X="B:TPC/RAWDATA;C:ITS/RAWDATA;D:TOF/RAWDATA;D:MFT/RAWDATA;E:FT0/RAWDATA;F:MID/RAWDATA;G:EMC/RAWDATA;H:PHS/RAWDATA"
-  CMD_Y="name=readout-proxy,type=pull,method=connect,address=ipc://@stfb-to-dpl$1,transport=shmem,rateLogging=0"
-  CMD_INPUT="o2-dpl-raw-proxy $ARGS_ALL --dataspec $CMD_X --channel-config $CMD_Y"
-else
-  CMD_X="HBFUtils.nHBFPerTF=$NHBPERTF;"
-  CMD_INPUT="o2-raw-file-reader-workflow $ARGS_ALL --configKeyValues $CMD_X --delay $TFDELAY --loop $NTIMEFRAMES --max-tf 0 --input-conf rawAll.cfg"
-fi
-
-CMD_CTF_TYPE="none"
-if [ $CREATECTFDICT == 1 ] && [ $SAVECTF == 1 ]; then CMD_CTF_TYPE="both"; fi
-if [ $CREATECTFDICT == 1 ] && [ $SAVECTF == 0 ]; then CMD_CTF_TYPE="dict"; fi
-if [ $CREATECTFDICT == 0 ] && [ $SAVECTF == 1 ]; then CMD_CTF_TYPE="ctf"; fi
-CMD_CTF="o2-ctf-writer-workflow $ARGS_ALL --output-type $CMD_CTF_TYPE --onlyDet ITS,MFT,TPC,TOF,FT0,MID,EMC,PHS"
-if [ $CREATECTFDICT == 1 ] && [ $; then
-  CMD_CTF+=" --save-dict-after 1"
-fi
-
+# Set some individual workflow arguments depending on configuration
+TPC_INPUT=zsraw
+TPC_OUTPUT=tracks,clusters,disable-writer
+TPC_CONFIG=
+TPC_CONFIG_KEY=
+TOF_INPUT=raw
+TOF_OUTPUT=clusters,matching-info
+ITS_CONFIG=
+ITS_CONFIG_KEY=
 if [ $SYNCMODE == 1 ]; then
-  CFG_X="fastMultConfig.cutMultClusLow=30;fastMultConfig.cutMultClusHigh=2000;fastMultConfig.cutMultVtxHigh=500"
-  ITS_CONFIG="--configKeyValues $CFG_X"
-  TPC_CONFIG="GPU_global.synchronousProcessing=1;"
-  CMD_MID="cat"
-else
-  ITS_CONFIG=
-  TPC_CONFIG=
-  CMD_MID="o2-mid-reco-workflow $ARGS_ALL --disable-root-output $DISABLE_MC"
+  ITS_CONFIG_KEY+="fastMultConfig.cutMultClusLow=30;fastMultConfig.cutMultClusHigh=2000;fastMultConfig.cutMultVtxHigh=500"
+  TPC_CONFIG_KEY+=" GPU_global.synchronousProcessing=1;"
 fi
-TPC_CONFIG2=
+if [ $CTFINPUT == 1 ]; then
+  ITS_CONFIG+=" --async-phase"
+else
+  ITS_CONFIG+=" --entropy-encoding"
+  TOF_OUTPUT+=",ctf"
+  TPC_OUTPUT+=",encoded-clusters"
+fi
 
 if [ $GPUTYPE == "HIP" ]; then
   if [ $NUMAID == 0 ] || [ $NUMAGPUIDS == 0 ]; then
@@ -55,23 +47,22 @@ if [ $GPUTYPE == "HIP" ]; then
   else
     export TIMESLICEOFFSET=$NGPUS
   fi
-  TPC_CONFIG+="GPU_proc.deviceNum=0;GPU_global.mutexMemReg=true;"
-  CFG_Y="ROCR_VISIBLE_DEVICES={timeslice${TIMESLICEOFFSET}}"
-  TPC_CONFIG2+=" --environment $CFG_Y"
+  TPC_CONFIG_KEY+="GPU_proc.deviceNum=0;GPU_global.mutexMemReg=true;"
+  TPC_CONFIG+=" --environment \"ROCR_VISIBLE_DEVICES={timeslice${TIMESLICEOFFSET}}\""
   export HSA_NO_SCRATCH_RECLAIM=1
   #export HSA_TOOLS_LIB=/opt/rocm/lib/librocm-debug-agent.so.2
 else
-  TPC_CONFIG+="GPU_proc.deviceNum=-2;"
+  TPC_CONFIG_KEY+="GPU_proc.deviceNum=-2;"
 fi
 
 if [ $GPUTYPE != "CPU" ]; then
-  TPC_CONFIG+="GPU_proc.forceMemoryPoolSize=$GPUMEMSIZE;"
+  TPC_CONFIG_KEY+="GPU_proc.forceMemoryPoolSize=$GPUMEMSIZE;"
   if [ $HOSTMEMSIZE == "0" ]; then
     HOSTMEMSIZE=$(( 1 << 30 ))
   fi
 fi
 if [ $HOSTMEMSIZE != "0" ]; then
-  TPC_CONFIG+="GPU_proc.forceHostMemoryPoolSize=$HOSTMEMSIZE;"
+  TPC_CONFIG_KEY+="GPU_proc.forceHostMemoryPoolSize=$HOSTMEMSIZE;"
 fi
 
 if [ $EPNPIPELINES == 1 ]; then
@@ -84,25 +75,71 @@ else
   N_ITSDEC=1
 fi
 
-$CMD_INPUT | \
-o2-itsmft-stf-decoder-workflow $ARGS_ALL --pipeline its-stf-decoder:$N_ITSDEC | \
-o2-itsmft-stf-decoder-workflow $ARGS_ALL --runmft true | \
-o2-its-reco-workflow $ARGS_ALL --trackerCA $DISABLE_MC --clusters-from-upstream --disable-root-output --entropy-encoding $ITS_CONFIG | \
-o2-itsmft-entropy-encoder-workflow $ARGS_ALL --runmft true | \
-o2-tpc-reco-workflow ${ARGS_ALL/--severity $SEVERITY/--severity $SEVERITY_TPC} --input-type=zsraw $DISABLE_MC --output-type tracks,clusters,encoded-clusters,disable-writer --pipeline tpc-tracker:$NGPUS,tpc-entropy-encoder:$N_TPCENT $TPC_CONFIG2 --configKeyValues "HBFUtils.nHBFPerTF=$NHBPERTF;GPU_global.deviceType=$GPUTYPE;GPU_proc.debugLevel=0;$TPC_CONFIG" | \
-o2-tpcits-match-workflow $ARGS_ALL --disable-root-input --disable-root-output $DISABLE_MC --pipeline itstpc-track-matcher:$N_TPCITS | \
-o2-ft0-flp-dpl-workflow $ARGS_ALL --disable-root-output | \
-o2-ft0-reco-workflow $ARGS_ALL --disable-root-input --disable-root-output $DISABLE_MC | \
-o2-ft0-entropy-encoder-workflow $ARGS_ALL | \
-o2-mid-raw-to-digits-workflow $ARGS_ALL | \
-$CMD_MID | \
-o2-mid-entropy-encoder-workflow $ARGS_ALL | \
-o2-phos-reco-workflow $ARGS_ALL --input-type raw --output-type cells | \
-o2-phos-entropy-encoder-workflow $ARGS_ALL |\
-o2-emcal-reco-workflow $ARGS_ALL --input-type raw --output-type cells --disable-root-output | \
-o2-emcal-entropy-encoder-workflow $ARGS_ALL |\
-o2-tof-compressor $ARGS_ALL | \
-o2-tof-reco-workflow $ARGS_ALL --configKeyValues "HBFUtils.nHBFPerTF=$NHBPERTF" --input-type raw --output-type ctf,clusters,matching-info --disable-root-output $DISABLE_MC | \
-o2-tpc-scdcalib-interpolation-workflow $ARGS_ALL --disable-root-output --disable-root-input | \
-$CMD_CTF | \
-o2-dpl-run $ARGS_ALL $GLOBALDPLOPT --run
+# Input workflow
+if [ $CTFINPUT == 1 ]; then
+  TPC_INPUT=compressed-clusters-ctf
+  TOF_INPUT=digits
+  WORKFLOW="o2-ctf-reader-workflow --ctf-input o2_ctf_0000000000.root $ARGS_ALL | "
+elif [ $EXTINPUT == 1 ]; then
+  WORKFLOW="o2-dpl-raw-proxy $ARGS_ALL --dataspec \"B:TPC/RAWDATA;C:ITS/RAWDATA;D:TOF/RAWDATA;D:MFT/RAWDATA;E:FT0/RAWDATA;F:MID/RAWDATA;G:EMC/RAWDATA;H:PHS/RAWDATA\" --channel-config \"name=readout-proxy,type=pull,method=connect,address=ipc://@stfb-to-dpl,transport=shmem,rateLogging=0\" | "
+else
+  WORKFLOW="o2-raw-file-reader-workflow $ARGS_ALL --configKeyValues \"HBFUtils.nHBFPerTF=$NHBPERTF;\" --delay $TFDELAY --loop $NTIMEFRAMES --max-tf 0 --input-conf rawAll.cfg | "
+fi
+
+#Decoder workflows
+if [ $CTFINPUT == 0 ]; then
+  WORKFLOW+="o2-itsmft-stf-decoder-workflow $ARGS_ALL --pipeline its-stf-decoder:$N_ITSDEC | "
+  WORKFLOW+="o2-itsmft-stf-decoder-workflow $ARGS_ALL --runmft true | "
+  WORKFLOW+="o2-ft0-flp-dpl-workflow $ARGS_ALL --disable-root-output | "
+  WORKFLOW+="o2-mid-raw-to-digits-workflow $ARGS_ALL | "
+  WORKFLOW+="o2-tof-compressor $ARGS_ALL | "
+fi
+
+# Common workflows
+WORKFLOW+="o2-its-reco-workflow $ARGS_ALL --trackerCA $DISABLE_MC --clusters-from-upstream --disable-root-output $ITS_CONFIG --configKeyValues \"HBFUtils.nHBFPerTF=128;$ITS_CONFIG_KEY\" | "
+WORKFLOW+="o2-tpc-reco-workflow ${ARGS_ALL/--severity $SEVERITY/--severity $SEVERITY_TPC} --input-type=$TPC_INPUT $DISABLE_MC --output-type $TPC_OUTPUT --pipeline tpc-tracker:$NGPUS,tpc-entropy-encoder:$N_TPCENT $TPC_CONFIG --configKeyValues \"HBFUtils.nHBFPerTF=$NHBPERTF;GPU_global.deviceType=$GPUTYPE;GPU_proc.debugLevel=0;$TPC_CONFIG_KEY\" | "
+WORKFLOW+="o2-tpcits-match-workflow $ARGS_ALL --disable-root-input --disable-root-output $DISABLE_MC --pipeline itstpc-track-matcher:$N_TPCITS --configKeyValues \"HBFUtils.nHBFPerTF=128;\" | "
+WORKFLOW+="o2-ft0-reco-workflow $ARGS_ALL --disable-root-input --disable-root-output $DISABLE_MC --configKeyValues \"HBFUtils.nHBFPerTF=128;\" | "
+WORKFLOW+="o2-tof-reco-workflow $ARGS_ALL --configKeyValues \"HBFUtils.nHBFPerTF=$NHBPERTF\" --input-type $TOF_INPUT --output-type $TOF_OUTPUT --disable-root-input --disable-root-output $DISABLE_MC | "
+
+# Workflows disabled in sync mode
+if [ $SYNCMODE == 0 ]; then
+  WORKFLOW+="o2-mid-reco-workflow $ARGS_ALL --disable-root-output $DISABLE_MC | "
+  # WORKFLOW+="o2-mft-reco-workflow $ARGS_ALL --clusters-from-upstream --disable-mc --disable-root-output --configKeyValues \"HBFUtils.nHBFPerTF=128;\" | " # Disabled since currently crashing
+  WORKFLOW+="o2-primary-vertexing-workflow $ARGS_ALL --disable-mc --disable-root-input --disable-root-output --validate-with-ft0 | "
+  WORKFLOW+="o2-secondary-vertexing-workflow $ARGS_ALL --disable-root-input --disable-root-output | "
+fi
+
+# Workflows disabled in async mode
+if [ $CTFINPUT == 0 ]; then
+  WORKFLOW+="o2-phos-reco-workflow $ARGS_ALL --input-type raw --output-type cells | "
+  WORKFLOW+="o2-emcal-reco-workflow $ARGS_ALL --input-type raw --output-type cells --disable-root-output | "
+
+  WORKFLOW+="o2-itsmft-entropy-encoder-workflow $ARGS_ALL --runmft true | "
+  WORKFLOW+="o2-ft0-entropy-encoder-workflow $ARGS_ALL | "
+  WORKFLOW+="o2-mid-entropy-encoder-workflow $ARGS_ALL | "
+  WORKFLOW+="o2-phos-entropy-encoder-workflow $ARGS_ALL | "
+  WORKFLOW+="o2-emcal-entropy-encoder-workflow $ARGS_ALL | "
+
+  WORKFLOW+="o2-tpc-scdcalib-interpolation-workflow $ARGS_ALL --disable-root-output --disable-root-input | "
+
+  # Output workflow
+  CTF_OUTPUT_TYPE="none"
+  if [ $CREATECTFDICT == 1 ] && [ $SAVECTF == 1 ]; then CTF_OUTPUT_TYPE="both"; fi
+  if [ $CREATECTFDICT == 1 ] && [ $SAVECTF == 0 ]; then CTF_OUTPUT_TYPE="dict"; fi
+  if [ $CREATECTFDICT == 0 ] && [ $SAVECTF == 1 ]; then CTF_OUTPUT_TYPE="ctf"; fi
+  CMD_CTF="o2-ctf-writer-workflow $ARGS_ALL --output-type $CTF_OUTPUT_TYPE --onlyDet ITS,MFT,TPC,TOF,FT0,MID,EMC,PHS"
+  if [ $CREATECTFDICT == 1 ] && [ $; then
+    CMD_CTF+=" --save-dict-after 1"
+  fi
+  WORKFLOW+="$CMD_CTF | "
+fi
+
+# DPL run binary
+WORKFLOW+="o2-dpl-run $ARGS_ALL $GLOBALDPLOPT --run"
+
+# Execute the command we have assembled
+#echo Running workflow:
+#echo $WORKFLOW | sed "s/| */|\n/g"
+#echo
+eval $WORKFLOW
