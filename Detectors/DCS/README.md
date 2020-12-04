@@ -18,3 +18,7 @@ auto dps = o2::dcs::generateRandomDataPoints(patterns,0.0,1200.0);
 ```
 
 would generate 420 data points.
+
+<!-- doxy
+* \subpage refDetectorsDCStestWorkflow
+/doxy -->

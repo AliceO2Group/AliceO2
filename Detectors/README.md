@@ -18,6 +18,7 @@ This module contains the following submodules:
 * \subpage refDetectorsCalibration
 * \subpage refDetectorsCPV
 * \subpage refDetectorsCTF
+* \subpage refDetectorsDCS
 * \subpage refDetectorsEMCAL
 * \subpage refDetectorsDCS
 * \subpage refDetectorsFIT
@@ -29,5 +30,6 @@ This module contains the following submodules:
 * \subpage refDetectorsTOF
 * \subpage refDetectorsTPC
 * \subpage refDetectorsTRD
+* \subpage refDetectorsUpgrades
 * \subpage refDetectorsZDC
 /doxy -->
