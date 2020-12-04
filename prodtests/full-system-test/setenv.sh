@@ -16,6 +16,7 @@ if [ -z "$DDSHMSIZE" ];     then export DDSHMSIZE=$(( 32 << 10 )); fi  # Size of
 if [ -z "$GPUMEMSIZE" ];    then export GPUMEMSIZE=$(( 13 << 30 )); fi # Size of allocated GPU memory (if GPUTYPE != CPU)
 if [ -z "$HOSTMEMSIZE" ];   then export HOSTMEMSIZE=0; fi              # Size of allocated host memory for GPU reconstruction (0 = default)
 if [ -z "$CREATECTFDICT" ]; then export CREATECTFDICT=0; fi            # Create CTF dictionary
+if [ -z "$SAVECTF" ];       then export SAVECTF=0; fi                  # Save the CTF to a ROOT file
 if [ -z "$SYNCMODE" ];      then export SYNCMODE=0; fi                 # Run only reconstruction steps of the synchronous reconstruction
 if [ -z "$NUMAID" ];        then export NUMAID=0; fi                   # SHM segment id to use for shipping data as well as set of GPUs to use (use 0 / 1 for 2 NUMA domains)
 if [ -z "$NUMAGPUIDS" ];    then export NUMAGPUIDS=0; fi               # NUMAID-aware GPU id selection

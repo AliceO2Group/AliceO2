@@ -41,6 +41,7 @@ The following options exist (some of the options are not used in all scripts, an
 * `HOSTMEMSIZE`: Size of allocated host memory for GPU reconstruction (0 = default).
   * For `GPUTYPE = CPU`: TPC Tracking scratch memory size. (Default 0 -> dynamic allocation.)
   * Otherwise : Size of page-locked host memory for GPU processing. (Defauls 0 -> 1 GB.)
+* `SAVECTF`: Save the CTF to a root file.
 * `CREATECTFDICT`: Create CTF dictionary.
   * 0: Read `ctf_dictionary.root` as input.
   * 1: Create `ctf_dictionary.root`. Note that this was already done automatically if the raw data was simulated with `full_system_test.sh`.
