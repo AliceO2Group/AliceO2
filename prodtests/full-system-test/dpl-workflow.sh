@@ -96,7 +96,7 @@ $CMD_MID | \
 o2-mid-entropy-encoder-workflow $ARGS_ALL | \
 o2-phos-reco-workflow $ARGS_ALL --input-type raw --output-type cells | \
 o2-phos-entropy-encoder-workflow $ARGS_ALL |\
-o2-emcal-reco-workflow $ARGS_ALL --input-type raw --output-type cells | \
+o2-emcal-reco-workflow $ARGS_ALL --input-type raw --output-type cells --disable-root-output | \
 o2-emcal-entropy-encoder-workflow $ARGS_ALL |\
 o2-tof-compressor $ARGS_ALL | \
 o2-tof-reco-workflow $ARGS_ALL --configKeyValues "HBFUtils.nHBFPerTF=$NHBPERTF" --input-type raw --output-type ctf,clusters,matching-info --disable-root-output $DISABLE_MC | \
