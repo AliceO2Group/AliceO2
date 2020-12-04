@@ -742,10 +742,38 @@ struct RowViewCore : public IP, C... {
     (CL::setCurrent(current), ...);
   }
 
+  template <typename CL>
+  auto getCurrent() const
+  {
+    return CL::getCurrentRaw();
+  }
+
+  template <typename... Cs>
+  auto getIndexBindingsImpl(framework::pack<Cs...>) const
+  {
+    return std::vector<void*>{static_cast<Cs const&>(*this).getCurrentRaw()...};
+  }
+
+  auto getIndexBindings() const
+  {
+    return getIndexBindingsImpl(external_index_columns_t{});
+  }
+
   template <typename... TA>
   void bindExternalIndices(TA*... current)
   {
     (doSetCurrentIndex(external_index_columns_t{}, current), ...);
+  }
+
+  template <typename... Cs>
+  void doSetCurrentIndexRaw(framework::pack<Cs...> p, std::vector<void*>&& ptrs)
+  {
+    (Cs::setCurrentRaw(ptrs[framework::has_type_at_v<Cs>(p)]), ...);
+  }
+
+  void bindExternalIndicesRaw(std::vector<void*>&& ptrs)
+  {
+    doSetCurrentIndexRaw(external_index_columns_t{}, std::forward<std::vector<void*>>(ptrs));
   }
 
  private:
@@ -848,6 +876,7 @@ class Table
   using columns = framework::pack<C...>;
   using column_types = framework::pack<typename C::type...>;
   using persistent_columns_t = framework::selected_pack<is_persistent_t, C...>;
+  using external_index_columns_t = framework::selected_pack<is_external_index_t, C...>;
 
   template <typename IP, typename Parent, typename... T>
   struct RowViewBase : public RowViewCore<IP, C...> {
@@ -1030,9 +1059,28 @@ class Table
     mBegin.bindExternalIndices(current...);
   }
 
+  void bindExternalIndicesRaw(std::vector<void*>&& ptrs)
+  {
+    mBegin.bindExternalIndicesRaw(std::forward<std::vector<void*>>(ptrs));
+  }
+
+  template <typename T, typename... Cs>
+  void doCopyIndexBindings(framework::pack<Cs...>, T& dest) const
+  {
+    dest.bindExternalIndicesRaw(mBegin.getIndexBindings());
+  }
+
+  template <typename T>
+  void copyIndexBindings(T& dest) const
+  {
+    doCopyIndexBindings(external_index_columns_t{}, dest);
+  }
+
   auto select(framework::expressions::Filter&& f) const
   {
-    return o2::soa::select(*this, std::forward<framework::expressions::Filter>(f));
+    auto t = o2::soa::select(*this, std::forward<framework::expressions::Filter>(f));
+    copyIndexBindings(t);
+    return t;
   }
 
  private:
@@ -1300,7 +1348,14 @@ constexpr auto is_binding_compatible_v()
       }                                                                            \
       return false;                                                                \
     }                                                                              \
-    binding_t* getCurrent() { return static_cast<binding_t*>(mBinding); }          \
+                                                                                   \
+    bool setCurrentRaw(void* current)                                              \
+    {                                                                              \
+      this->mBinding = current;                                                    \
+      return true;                                                                 \
+    }                                                                              \
+    binding_t* getCurrent() const { return static_cast<binding_t*>(mBinding); }    \
+    void* getCurrentRaw() const { return mBinding; }                               \
     void* mBinding = nullptr;                                                      \
   };                                                                               \
   static const o2::framework::expressions::BindingNode _Getter_##Id { _Label_,     \
@@ -1535,6 +1590,7 @@ class FilteredPolicy : public T
   using originals = originals_pack_t<T>;
   using table_t = typename T::table_t;
   using persistent_columns_t = typename T::persistent_columns_t;
+  using external_index_columns_t = typename T::external_index_columns_t;
 
   template <typename P, typename... Os>
   constexpr static auto make_it(framework::pack<Os...> const&)
@@ -1623,6 +1679,23 @@ class FilteredPolicy : public T
   {
     table_t::bindExternalIndices(current...);
     mFilteredBegin.bindExternalIndices(current...);
+  }
+
+  void bindExternalIndicesRaw(std::vector<void*>&& ptrs)
+  {
+    mFilteredBegin.bindExternalIndicesRaw(std::forward<std::vector<void*>>(ptrs));
+  }
+
+  template <typename T1, typename... Cs>
+  void doCopyIndexBindings(framework::pack<Cs...>, T1& dest) const
+  {
+    dest.bindExternalIndicesRaw(mFilteredBegin.getIndexBindings());
+  }
+
+  template <typename T1>
+  void copyIndexBindings(T1& dest) const
+  {
+    doCopyIndexBindings(external_index_columns_t{}, dest);
   }
 
  protected:
