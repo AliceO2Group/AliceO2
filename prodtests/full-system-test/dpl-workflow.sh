@@ -28,10 +28,13 @@ else
   CMD_INPUT="o2-raw-file-reader-workflow $ARGS_ALL --configKeyValues $CMD_X --delay $TFDELAY --loop $NTIMEFRAMES --max-tf 0 --input-conf rawAll.cfg"
 fi
 
-if [ $CREATECTFDICT == 1 ]; then
-  CMD_DICT="o2-ctf-writer-workflow $ARGS_ALL --output-type dict --save-dict-after 1 --onlyDet ITS,MFT,TPC,TOF,FT0,MID,EMC,PHS"
-else
-  CMD_DICT=cat
+CMD_CTF_TYPE="none"
+if [ $CREATECTFDICT == 1 ] && [ $SAVECTF == 1 ]; then CMD_CTF_TYPE="both"; fi
+if [ $CREATECTFDICT == 1 ] && [ $SAVECTF == 0 ]; then CMD_CTF_TYPE="dict"; fi
+if [ $CREATECTFDICT == 0 ] && [ $SAVECTF == 1 ]; then CMD_CTF_TYPE="ctf"; fi
+CMD_CTF="o2-ctf-writer-workflow $ARGS_ALL --output-type $CMD_CTF_TYPE --onlyDet ITS,MFT,TPC,TOF,FT0,MID,EMC,PHS"
+if [ $CREATECTFDICT == 1 ] && [ $; then
+  CMD_CTF+=" --save-dict-after 1"
 fi
 
 if [ $SYNCMODE == 1 ]; then
@@ -101,5 +104,5 @@ o2-emcal-entropy-encoder-workflow $ARGS_ALL |\
 o2-tof-compressor $ARGS_ALL | \
 o2-tof-reco-workflow $ARGS_ALL --configKeyValues "HBFUtils.nHBFPerTF=$NHBPERTF" --input-type raw --output-type ctf,clusters,matching-info --disable-root-output $DISABLE_MC | \
 o2-tpc-scdcalib-interpolation-workflow $ARGS_ALL --disable-root-output --disable-root-input | \
-$CMD_DICT | \
+$CMD_CTF | \
 o2-dpl-run $ARGS_ALL $GLOBALDPLOPT --run
