@@ -23,6 +23,7 @@
 #include <arrow/array.h>
 #include <arrow/util/variant.h>
 #include <arrow/compute/kernel.h>
+#include <arrow/compute/api_aggregate.h>
 #include <gandiva/selection_vector.h>
 #include <cassert>
 #include <fmt/format.h>
@@ -864,6 +865,44 @@ auto select(T const& t, framework::expressions::Filter&& f)
                                            t.asArrowTable()->schema()));
 }
 
+namespace
+{
+auto getSliceFor(int value, char const* key, std::shared_ptr<arrow::Table> const& input, std::shared_ptr<arrow::Table>& output, uint64_t& offset)
+{
+  arrow::Datum value_counts;
+  auto options = arrow::compute::CountOptions::Defaults();
+  ARROW_ASSIGN_OR_RAISE(value_counts,
+                        arrow::compute::CallFunction("value_counts", {input->GetColumnByName(key)},
+                                                     &options));
+  auto pair = static_cast<arrow::StructArray>(value_counts.array());
+  auto values = static_cast<arrow::NumericArray<arrow::Int32Type>>(pair.field(0)->data());
+  auto counts = static_cast<arrow::NumericArray<arrow::Int64Type>>(pair.field(1)->data());
+
+  int slice;
+  for (slice = 0; slice < values.length(); ++slice) {
+    if (values.Value(slice) == value) {
+      offset = slice;
+      output = input->Slice(slice, counts.Value(slice));
+      return arrow::Status::OK();
+    }
+  }
+  output = input->Slice(0, 0);
+  return arrow::Status::OK();
+}
+} // namespace
+
+template <typename T>
+auto sliceBy(T const& t, framework::expressions::BindingNode const& node, int value)
+{
+  uint64_t offset = 0;
+  std::shared_ptr<arrow::Table> result = nullptr;
+  auto status = getSliceFor(value, node.name.c_str(), t.asArrowTable(), result, offset);
+  if (status.ok()) {
+    return T({result}, offset);
+  }
+  throw std::runtime_error("Failed to slice table");
+}
+
 /// A Table class which observes an arrow::Table and provides
 /// It is templated on a set of Column / DynamicColumn types.
 template <typename... C>
@@ -1077,6 +1116,13 @@ class Table
   auto select(framework::expressions::Filter&& f) const
   {
     auto t = o2::soa::select(*this, std::forward<framework::expressions::Filter>(f));
+    copyIndexBindings(t);
+    return t;
+  }
+
+  auto sliceBy(framework::expressions::BindingNode const& node, int value) const
+  {
+    auto t = o2::soa::sliceBy(*this, node, value);
     copyIndexBindings(t);
     return t;
   }
