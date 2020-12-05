@@ -240,7 +240,7 @@ struct TrackCheckTaskEvSelTrackSel {
 
   //Filters
   Filter collfilter = nabs(aod::collision::posZ) < cfgCutVZ;
-  Filter trackfilter = aod::track::isGlobalTrack == true;
+  Filter trackfilter = aod::track::isGlobalTrack == (uint8_t) true;
   void process(soa::Filtered<soa::Join<aod::Collisions, aod::EvSels>>::iterator const& col,
                soa::Filtered<soa::Join<aod::Tracks, aod::TracksExtra, aod::TracksExtended,
                                        aod::TrackSelection, aod::McTrackLabels>>& tracks,
