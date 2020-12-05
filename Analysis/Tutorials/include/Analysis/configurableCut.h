@@ -35,7 +35,7 @@ class configurableCut
   bool getOption() const;
 
   void setBins(std::vector<float> bins_);
-  auto getBins() const;
+  std::vector<float> getBins() const;
 
  private:
   float cut;

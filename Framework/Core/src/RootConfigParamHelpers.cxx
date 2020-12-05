@@ -10,6 +10,7 @@
 
 #include "Framework/RootConfigParamHelpers.h"
 #include "Framework/ConfigParamSpec.h"
+#include "Framework/StringHelpers.h"
 #include <TClass.h>
 #include <TDataMember.h>
 #include <TDataType.h>
@@ -35,14 +36,14 @@ bool isString(TDataMember const& dm)
 // a generic looper of data members of a TClass; calling a callback
 // reused in various functions below
 void loopOverMembers(TClass* cl, void* obj,
-                     std::function<void(const TDataMember*, int, int)>&& callback)
+                     std::function<void(TDataMember*, int, int)>&& callback)
 {
   auto memberlist = cl->GetListOfDataMembers();
   for (int i = 0; i < memberlist->GetEntries(); ++i) {
     auto dm = (TDataMember*)memberlist->At(i);
 
     auto isValidComplex = [dm]() {
-      return isString(*dm) || dm->IsEnum();
+      return isString(*dm) || dm->IsEnum() || dm->IsSTLContainer();
     };
 
     // filter out static members for now
@@ -70,6 +71,20 @@ void loopOverMembers(TClass* cl, void* obj,
   }
 }
 
+namespace
+{
+template <typename T>
+std::vector<T> extractVector(boost::property_tree::ptree const& tree)
+{
+  std::vector<T> result(tree.size());
+  auto count = 0u;
+  for (auto& entry : tree) {
+    result[count++] = entry.second.get_value<T>();
+  }
+  return result;
+}
+} // namespace
+
 // construct name (in dependence on vector or scalar data and index)
 std::string getName(const TDataMember* dm, int index, int size)
 {
@@ -83,7 +98,7 @@ std::string getName(const TDataMember* dm, int index, int size)
 
 void ptreeToMember(boost::property_tree::ptree const& value,
                    char const* tname,
-                   TDataMember const* dm,
+                   TDataMember* dm,
                    void* ptr)
 {
   auto dt = dm->GetDataType();
@@ -150,6 +165,23 @@ void ptreeToMember(boost::property_tree::ptree const& value,
       }
     }
   }
+  if (dm->IsSTLContainer()) {
+    auto type = dm->GetTypeName();
+    switch (compile_time_hash(type)) {
+      case compile_time_hash("vector<int>"):
+        *static_cast<std::vector<int>*>(ptr) = extractVector<int>(value);
+        return;
+      case compile_time_hash("vector<float>"):
+        *static_cast<std::vector<float>*>(ptr) = extractVector<float>(value);
+        return;
+      case compile_time_hash("vector<double>"):
+        *static_cast<std::vector<double>*>(ptr) = extractVector<double>(value);
+        return;
+      case compile_time_hash("vector<bool>"):
+      default:
+        throw std::runtime_error("Not and int/float/double/bool vector");
+    }
+  }
   // if we get here none of the above worked
   if (strcmp(tname, "string") == 0 || strcmp(tname, "std::string")) {
     *(std::string*)ptr = value.get_value<std::string>();
@@ -158,7 +190,7 @@ void ptreeToMember(boost::property_tree::ptree const& value,
 }
 
 // Convert a DataMember to a ConfigParamSpec
-ConfigParamSpec memberToConfigParamSpec(const char* tname, TDataMember const* dm, void* ptr)
+ConfigParamSpec memberToConfigParamSpec(const char* tname, TDataMember* dm, void* ptr)
 {
   auto dt = dm->GetDataType();
   if (dt != nullptr) {
@@ -210,6 +242,22 @@ ConfigParamSpec memberToConfigParamSpec(const char* tname, TDataMember const* dm
       }
     }
   }
+  if (dm->IsSTLContainer()) {
+    auto type = dm->GetTypeName();
+    switch (compile_time_hash(type)) {
+      case compile_time_hash("vector<int>"):
+        return ConfigParamSpec{tname, VariantType::ArrayInt, *static_cast<std::vector<int>*>(ptr), {"No help"}};
+      case compile_time_hash("vector<float>"):
+        return ConfigParamSpec{tname, VariantType::ArrayFloat, *static_cast<std::vector<float>*>(ptr), {"No help"}};
+      case compile_time_hash("vector<double>"):
+        return ConfigParamSpec{tname, VariantType::ArrayDouble, *static_cast<std::vector<double>*>(ptr), {"No help"}};
+      case compile_time_hash("vector<bool>"):
+        throw std::runtime_error("bool vector not supported yet");
+        //        return ConfigParamSpec{tname, VariantType::ArrayBool, *static_cast<std::vector<bool>*>(ptr), {"No help"}};
+      default:
+        throw std::runtime_error("Not and int/float/double/bool vector");
+    }
+  }
   // if we get here none of the above worked
   if (strcmp(tname, "string") == 0 || strcmp(tname, "std::string")) {
     return ConfigParamSpec{tname, VariantType::String, *(std::string*)ptr, {"No help"}};
@@ -226,7 +274,7 @@ std::vector<ConfigParamSpec>
 {
   std::vector<ConfigParamSpec> specs;
 
-  auto toDataMember = [&mainKey, &specs, obj](const TDataMember* dm, int index, int size) {
+  auto toDataMember = [&mainKey, &specs, obj](TDataMember* dm, int index, int size) {
     auto dt = dm->GetDataType();
     auto TS = dt ? dt->Size() : 0;
     char* ptr = ((char*)obj) + dm->GetOffset() + index * TS;
@@ -243,7 +291,7 @@ std::vector<ConfigParamSpec>
 /// using the values in the ptree to override, where appropriate.
 void RootConfigParamHelpers::fillFromPtree(TClass* cl, void* obj, boost::property_tree::ptree const& pt)
 {
-  auto toDataMember = [obj, &pt](const TDataMember* dm, int index, int size) {
+  auto toDataMember = [obj, &pt](TDataMember* dm, int index, int size) {
     auto dt = dm->GetDataType();
     auto TS = dt ? dt->Size() : 0;
     char* ptr = ((char*)obj) + dm->GetOffset() + index * TS;
