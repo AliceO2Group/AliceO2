@@ -56,7 +56,7 @@ void configurableCut::setBins(std::vector<float> bins_)
 {
   bins = bins_;
 };
-auto configurableCut::getBins() const
+std::vector<float> configurableCut::getBins() const
 {
   return bins;
 };
