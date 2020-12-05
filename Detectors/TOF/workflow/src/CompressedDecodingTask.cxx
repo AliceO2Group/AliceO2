@@ -131,13 +131,13 @@ void CompressedDecodingTask::run(ProcessingContext& pc)
 {
   mTimer.Start(false);
 
-  if (pc.inputs().getNofParts(0) && !mConetMode) {
+  if (pc.inputs().getNofParts(0) && !mConetMode && 0) { // it doesn't work
     //RS set the 1st orbit of the TF from the O2 header, relying on rdhHandler is not good (in fact, the RDH might be eliminated in the derived data)
     const auto* dh = o2::header::get<o2::header::DataHeader*>(pc.inputs().getByPos(0).header);
     mInitOrbit = dh->firstTForbit;
   }
 
-  mDecoder.setFirstIR({0, mInitOrbit});
+  //  mDecoder.setFirstIR({0, mInitOrbit});
 
   /** loop over inputs routes **/
   for (auto iit = pc.inputs().begin(), iend = pc.inputs().end(); iit != iend; ++iit) {
@@ -179,6 +179,9 @@ void CompressedDecodingTask::headerHandler(const CrateHeader_t* crateHeader, con
     LOG(DEBUG) << "Crate found" << crateHeader->drmID;
 
     mInitOrbit = crateOrbit->orbitID;
+    if (mNCrateOpenTF == 0) {
+      mDecoder.setFirstIR({0, mInitOrbit});
+    }
 
     mNCrateOpenTF++;
   }
@@ -203,7 +206,6 @@ void CompressedDecodingTask::trailerHandler(const CrateHeader_t* crateHeader, co
 
     /*
     int islot = (*val & 15);
-    printf("DRM = %d (orbit = %d) slot = %d: \n", crateHeader->drmID, crateOrbit->orbitID, islot);
     if (islot == 1) {
       if (o2::tof::diagnostic::DRM_HEADER_MISSING & *val) {
         printf("DRM_HEADER_MISSING\n");
@@ -323,6 +325,7 @@ void CompressedDecodingTask::trailerHandler(const CrateHeader_t* crateHeader, co
     printf("------\n");
     */
   }
+
   for (int i = 0; i < numberOfErrors; i++) {
     const uint32_t* val = reinterpret_cast<const uint32_t*>(&(errors[i]));
     mDecoder.addError(*val, crateHeader->drmID);
@@ -331,12 +334,16 @@ void CompressedDecodingTask::trailerHandler(const CrateHeader_t* crateHeader, co
 
 void CompressedDecodingTask::rdhHandler(const o2::header::RAWDataHeader* rdh)
 {
+  const auto& rdhr = *rdh;
+  // set first orbtìt here (to be check in future), please not remove this!!!
+  if (mNCrateOpenTF == 0) {
+    mInitOrbit = RDHUtils::getHeartBeatOrbit(rdhr);
+    mDecoder.setFirstIR({0, mInitOrbit});
+  }
 
   // rdh close
-  const auto& rdhr = *rdh;
   if (RDHUtils::getStop(rdhr) && RDHUtils::getHeartBeatOrbit(rdhr) == o2::raw::HBFUtils::Instance().getNOrbitsPerTF() - 1 + mInitOrbit) {
     mNCrateCloseTF++;
-    //    printf("New TF close RDH %d\n", int(rdh->feeId));
     return;
   }
 
