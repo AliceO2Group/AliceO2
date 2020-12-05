@@ -96,7 +96,7 @@ struct ZTask {
 
     LOGF(INFO, "Bin 0-10");
     for (auto& col : multbin0_10) {
-      auto groupedTracks = tracks.select(aod::track::collisionId == col.globalIndex());
+      auto groupedTracks = tracks.sliceBy(aod::track::collisionId, col.globalIndex());
       LOGF(INFO, "Collision %d; Ntrk = %d vs %d", col.globalIndex(), col.mult(), groupedTracks.size());
       if (groupedTracks.size() > 0) {
         auto track = groupedTracks.begin();
@@ -106,13 +106,13 @@ struct ZTask {
 
     LOGF(INFO, "Bin 10-30");
     for (auto& col : multbin10_30) {
-      auto groupedTracks = tracks.select(aod::track::collisionId == col.globalIndex());
+      auto groupedTracks = tracks.sliceBy(aod::track::collisionId, col.globalIndex());
       LOGF(INFO, "Collision %d; Ntrk = %d vs %d", col.globalIndex(), col.mult(), groupedTracks.size());
     }
 
     LOGF(INFO, "Bin 30-100");
     for (auto& col : multbin30_100) {
-      auto groupedTracks = tracks.select(aod::track::collisionId == col.globalIndex());
+      auto groupedTracks = tracks.sliceBy(aod::track::collisionId, col.globalIndex());
       LOGF(INFO, "Collision %d; Ntrk = %d vs %d", col.globalIndex(), col.mult(), groupedTracks.size());
     }
   }
