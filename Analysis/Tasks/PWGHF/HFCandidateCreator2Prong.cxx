@@ -115,7 +115,8 @@ struct HFCandidateCreator2Prong {
                        pvec1[0], pvec1[1], pvec1[2],
                        impactParameter0.getY(), impactParameter1.getY(),
                        std::sqrt(impactParameter0.getSigmaY2()), std::sqrt(impactParameter1.getSigmaY2()),
-                       rowTrackIndexProng2.index0Id(), rowTrackIndexProng2.index1Id());
+                       rowTrackIndexProng2.index0Id(), rowTrackIndexProng2.index1Id(),
+                       rowTrackIndexProng2.hfflag());
 
       // fill histograms
       if (b_dovalplots) {
