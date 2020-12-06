@@ -461,6 +461,15 @@ void showTopologyNodeGraph(WorkspaceGUIState& state,
     ImVec2 node_rect_max = node_rect_min + node->Size;
     ImVec2 node_rect_title = node_rect_min + ImVec2(node->Size.x, 24);
 
+    if (node_rect_min.x > 20 + 2 * NODE_WINDOW_PADDING.x + state.leftPaneSize + graphSize.x) {
+      ImGui::PopID();
+      continue;
+    }
+    if (node_rect_min.y > 20 + 2 * NODE_WINDOW_PADDING.y + toolbarSize.y + graphSize.y) {
+      ImGui::PopID();
+      continue;
+    }
+
     // Display node box
     draw_list->ChannelsSetCurrent(backgroundLayer); // Background
     ImGui::SetCursorScreenPos(node_rect_min);
