@@ -80,6 +80,19 @@ struct alignas(128) DataPointCompositeObject final {
     const DataPointValue& data) noexcept : id(id), data(data) {}
 
   /**
+         * Copy constructor
+         */
+  DataPointCompositeObject(const DataPointCompositeObject& src) noexcept : DataPointCompositeObject(src.id, src.data) {}
+
+  DataPointCompositeObject& operator=(const DataPointCompositeObject& src) noexcept
+  {
+    if (&src != this) {
+      memcpy(this, &src, sizeof(DataPointCompositeObject));
+    }
+    return *this;
+  }
+
+  /**
          * Bit-by bit equality comparison of DataPointCompositeObjects.
          *
          * @param other The right-hand operand of equality comparison.
@@ -278,6 +291,25 @@ template <typename T>
 T getValue(const DataPointCompositeObject& dpcom);
 
 } // namespace dcs
+
+/// Defining DataPointCompositeObject explicitly as messageable
+namespace framework
+{
+template <typename T>
+struct is_messageable;
+template <>
+struct is_messageable<o2::dcs::DataPointCompositeObject> : std::true_type {
+};
+} // namespace framework
+
 } // namespace o2
+
+/// Defining DataPointCompositeObject explicitly as copiable
+namespace std
+{
+template <>
+struct is_trivially_copyable<o2::dcs::DataPointCompositeObject> : std::true_type {
+};
+} // namespace std
 
 #endif /* O2_DCS_DATAPOINT_COMPOSITE_OBJECT_H */
