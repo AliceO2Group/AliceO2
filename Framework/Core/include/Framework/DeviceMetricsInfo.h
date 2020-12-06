@@ -47,11 +47,12 @@ struct StringMetric {
   char data[MAX_SIZE];
 };
 
-// Also for the keys it does not make much sense to keep more than 256 chars.
+// Also for the keys it does not make much sense to keep more than 247 chars.
 // They should be nevertheless 0 terminated.
 struct MetricLabelIndex {
-  static constexpr size_t MAX_METRIC_LABEL_SIZE = 256 - sizeof(size_t); // Maximum size for a metric name.
+  static constexpr size_t MAX_METRIC_LABEL_SIZE = 256 - sizeof(size_t) - sizeof(unsigned char); // Maximum size for a metric name.
   size_t index;
+  unsigned char size = 0;
   char label[MAX_METRIC_LABEL_SIZE];
 };
 
@@ -169,6 +170,7 @@ struct DeviceMetricsHelper {
     strncpy(metricLabelIdx.label, name, MetricLabelIndex::MAX_METRIC_LABEL_SIZE - 1);
     metricLabelIdx.label[MetricLabelIndex::MAX_METRIC_LABEL_SIZE - 1] = '\0';
     metricLabelIdx.index = metrics.metrics.size();
+    metricLabelIdx.size = strlen(metricLabelIdx.label);
     metrics.metricLabelsIdx.push_back(metricLabelIdx);
 
     // Add the the actual Metric info to the store

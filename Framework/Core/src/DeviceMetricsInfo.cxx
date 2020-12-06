@@ -189,6 +189,7 @@ bool DeviceMetricsHelper::processMetric(ParsedMetricMatch& match,
     auto lastChar = std::min(match.endKey - match.beginKey, (ptrdiff_t)MetricLabelIndex::MAX_METRIC_LABEL_SIZE - 1);
     memcpy(metricLabelIdx.label, match.beginKey, lastChar);
     metricLabelIdx.label[lastChar] = '\0';
+    metricLabelIdx.size = lastChar;
     metricLabelIdx.index = info.metrics.size();
     info.metricLabelsIdx.insert(mi, metricLabelIdx);
     // Add the the actual Metric info to the store
@@ -261,13 +262,14 @@ bool DeviceMetricsHelper::processMetric(ParsedMetricMatch& match,
   return true;
 }
 
-size_t
-  DeviceMetricsHelper::metricIdxByName(const std::string& name, const DeviceMetricsInfo& info)
+size_t DeviceMetricsHelper::metricIdxByName(const std::string& name, const DeviceMetricsInfo& info)
 {
   size_t i = 0;
   while (i < info.metricLabelsIdx.size()) {
     auto& metricName = info.metricLabelsIdx[i];
-    if (metricName.label == name) {
+    // We check the size first and then the last character because that's
+    // likely to be different for multi-index metrics
+    if (metricName.size == name.size() && metricName.label[metricName.size - 1] == name[metricName.size - 1] && memcmp(metricName.label, name.c_str(), metricName.size) == 0) {
       return metricName.index;
     }
     ++i;
