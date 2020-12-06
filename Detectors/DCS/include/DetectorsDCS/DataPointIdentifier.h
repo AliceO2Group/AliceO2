@@ -80,6 +80,19 @@ class alignas(64) DataPointIdentifier final
   }
 
   /**
+         * A copy constructor for DataPointIdentifier. 
+         */
+  DataPointIdentifier(const DataPointIdentifier& src) noexcept : DataPointIdentifier(src.pt1, src.pt2, src.pt3, src.pt4, src.pt5, src.pt6, src.pt7, src.pt8) {}
+
+  DataPointIdentifier& operator=(const DataPointIdentifier& src) noexcept
+  {
+    if (&src != this) {
+      memcpy(this, &src, sizeof(DataPointIdentifier));
+    }
+    return *this;
+  }
+
+  /**
          * This stati procedure fills the given DataPointIdentifier object with
          * the given parameters.
          *
@@ -202,6 +215,16 @@ struct DPIDHash {
 };
 } // namespace dcs
 
+/// Defining DataPointIdentifier explicitly as messageable
+namespace framework
+{
+template <typename T>
+struct is_messageable;
+template <>
+struct is_messageable<o2::dcs::DataPointIdentifier> : std::true_type {
+};
+} // namespace framework
+
 } // namespace o2
 
 // specailized std::hash
@@ -214,6 +237,11 @@ struct hash<o2::dcs::DataPointIdentifier> {
     return std::hash<uint64_t>{}(dpid.hash_code());
   }
 };
+
+template <>
+struct is_trivially_copyable<o2::dcs::DataPointIdentifier> : std::true_type {
+};
+
 } // namespace std
 
 #endif /* O2_DCS_DATAPOINT_IDENTIFIER_H */
