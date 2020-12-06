@@ -104,6 +104,7 @@ class AODProducerWorkflowDPL : public Task
   int mFillTracksITS = 1;
   int mFillTracksTPC = 1;
   int mFillTracksITSTPC = 1;
+  int mTFNumber = -1;
   TStopwatch mTimer;
 
   uint64_t maxGlBC = 0;
