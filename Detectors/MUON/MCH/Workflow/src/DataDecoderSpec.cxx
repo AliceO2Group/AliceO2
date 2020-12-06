@@ -15,7 +15,6 @@
 /// \brief Implementation of a data processor to run the raw decoding
 ///
 
-
 #include <random>
 #include <iostream>
 #include <fstream>
