@@ -34,7 +34,6 @@
 #include "Framework/AnalysisTask.h"
 #include "Framework/AnalysisDataModel.h"
 #include "Framework/ASoAHelpers.h"
-#include "AnalysisDataModel/HFSecondaryVertex.h"
 #include "DetectorsVertexing/DCAFitterN.h"
 #include "ReconstructionDataFormats/Track.h"
 #include "AnalysisCore/RecoDecay.h"
@@ -53,7 +52,6 @@
 #include <cmath>
 #include <array>
 #include <cstdlib>
-#include "AnalysisDataModel/PID/PIDResponse.h"
 #include "Framework/ASoAHelpers.h"
 
 using namespace o2;
@@ -85,35 +83,41 @@ struct lambdakzeroprefilterpairs {
   Configurable<int> mincrossedrows{"mincrossedrows", 70, "min crossed rows"};
   Configurable<bool> tpcrefit{"tpcrefit", 1, "demand TPC refit"};
 
+  OutputObj<TH1F> hGoodIndices{TH1F("hGoodIndices", "", 4, 0, 4)};
+
   Produces<aod::V0GoodIndices> v0goodindices;
 
   void process(aod::Collision const& collision, aod::V0s const& V0s,
                soa::Join<aod::FullTracks, aod::TracksExtended> const& tracks)
   {
     for (auto& V0 : V0s) {
+      hGoodIndices->Fill(0.5);
       if (tpcrefit) {
-        if (!(V0.posTrack().flags() & 0x40)) {
+        if (!(V0.posTrack_as<FullTracksExt>().trackType() & o2::aod::track::TPCrefit)) {
           continue; //TPC refit
         }
-        if (!(V0.negTrack().flags() & 0x40)) {
+        if (!(V0.negTrack_as<FullTracksExt>().trackType() & o2::aod::track::TPCrefit)) {
           continue; //TPC refit
         }
       }
-      if (V0.posTrack().tpcNClsCrossedRows() < mincrossedrows) {
+      hGoodIndices->Fill(1.5);
+      if (V0.posTrack_as<FullTracksExt>().tpcNClsCrossedRows() < mincrossedrows) {
         continue;
       }
-      if (V0.negTrack().tpcNClsCrossedRows() < mincrossedrows) {
+      if (V0.negTrack_as<FullTracksExt>().tpcNClsCrossedRows() < mincrossedrows) {
         continue;
       }
-
-      if (V0.posTrack_as<FullTracksExt>().dcaXY() < dcapostopv) {
+      hGoodIndices->Fill(2.5);
+      if (fabs(V0.posTrack_as<FullTracksExt>().dcaXY()) < dcapostopv) {
         continue;
       }
-      if (V0.negTrack_as<FullTracksExt>().dcaXY() < dcanegtopv) {
+      if (fabs(V0.negTrack_as<FullTracksExt>().dcaXY()) < dcanegtopv) {
         continue;
       }
-
-      v0goodindices(V0.posTrack().globalIndex(), V0.negTrack().globalIndex(), V0.posTrack().collisionId());
+      hGoodIndices->Fill(3.5);
+      v0goodindices(V0.posTrack_as<FullTracksExt>().globalIndex(),
+                    V0.negTrack_as<FullTracksExt>().globalIndex(),
+                    V0.posTrack_as<FullTracksExt>().collisionId());
     }
   }
 };
@@ -124,7 +128,7 @@ struct lambdakzeroproducer {
   Produces<aod::V0Data> v0data;
 
   OutputObj<TH1F> hEventCounter{TH1F("hEventCounter", "", 1, 0, 1)};
-  OutputObj<TH1F> hCascCandidate{TH1F("hCascCandidate", "", 10, 0, 10)};
+  OutputObj<TH1F> hV0Candidate{TH1F("hV0Candidate", "", 2, 0, 2)};
 
   //Configurables
   Configurable<double> d_bz{"d_bz", -5.0, "bz field"};
@@ -162,13 +166,13 @@ struct lambdakzeroproducer {
       std::array<float, 3> pvec0 = {0.};
       std::array<float, 3> pvec1 = {0.};
 
-      hCascCandidate->Fill(0.5);
-      auto pTrack = getTrackParCov(V0.posTrack());
-      auto nTrack = getTrackParCov(V0.negTrack());
+      hV0Candidate->Fill(0.5);
+
+      auto pTrack = getTrackParCov(V0.posTrack_as<FullTracksExt>());
+      auto nTrack = getTrackParCov(V0.negTrack_as<FullTracksExt>());
       int nCand = fitter.process(pTrack, nTrack);
       if (nCand != 0) {
         fitter.propagateTracksToVertex();
-        hCascCandidate->Fill(2.5);
         const auto& vtx = fitter.getPCACandidate();
         for (int i = 0; i < 3; i++) {
           pos[i] = vtx[i];
@@ -178,7 +182,7 @@ struct lambdakzeroproducer {
       }
 
       //Apply selections so a skimmed table is created only
-      if (fitter.getChi2AtPCACandidate() < dcav0dau) {
+      if (fitter.getChi2AtPCACandidate() > dcav0dau) {
         continue;
       }
 
@@ -188,13 +192,17 @@ struct lambdakzeroproducer {
         continue;
       }
 
-      v0data(V0.posTrack().globalIndex(), V0.negTrack().globalIndex(), V0.negTrack().collisionId(),
-             pos[0], pos[1], pos[2],
-             pvec0[0], pvec0[1], pvec0[2],
-             pvec1[0], pvec1[1], pvec1[2],
-             fitter.getChi2AtPCACandidate(),
-             V0.posTrack_as<FullTracksExt>().dcaXY(),
-             V0.negTrack_as<FullTracksExt>().dcaXY());
+      hV0Candidate->Fill(1.5);
+      v0data(
+        V0.posTrack_as<FullTracksExt>().globalIndex(),
+        V0.negTrack_as<FullTracksExt>().globalIndex(),
+        V0.negTrack_as<FullTracksExt>().collisionId(),
+        pos[0], pos[1], pos[2],
+        pvec0[0], pvec0[1], pvec0[2],
+        pvec1[0], pvec1[1], pvec1[2],
+        fitter.getChi2AtPCACandidate(),
+        V0.posTrack_as<FullTracksExt>().dcaXY(),
+        V0.negTrack_as<FullTracksExt>().dcaXY());
     }
   }
 };
