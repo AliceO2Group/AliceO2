@@ -44,7 +44,6 @@
 #include <cmath>
 #include <array>
 #include <cstdlib>
-#include "AnalysisDataModel/PID/PIDResponse.h"
 #include "Framework/ASoAHelpers.h"
 
 using namespace o2;
