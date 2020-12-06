@@ -49,7 +49,7 @@ struct TOFSpectraTask {
   Configurable<float> nsigmacut{"nsigmacut", 3, "Value of the Nsigma cut"};
 
   Filter collisionFilter = nabs(aod::collision::posZ) < cfgCutVertex;
-  Filter trackFilter = (nabs(aod::track::eta) < cfgCutEta) && (aod::track::isGlobalTrack == true) && (aod::track::tofSignal > 0.f);
+  Filter trackFilter = (nabs(aod::track::eta) < cfgCutEta) && (aod::track::isGlobalTrack == (uint8_t) true) && (aod::track::tofSignal > 0.f);
   using TrackCandidates = soa::Filtered<soa::Join<aod::Tracks, aod::TracksExtra, aod::pidRespTOF, aod::pidRespTOFbeta, aod::TrackSelection>>;
   void process(TrackCandidates::iterator const& track)
   {

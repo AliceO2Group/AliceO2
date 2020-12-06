@@ -104,7 +104,7 @@ struct ReconstructedTask {
   OutputObj<TH2F> pDiff{TH2F("pDiff", "pDiff;#it{p}_{MC} #it{p}_{Rec} (GeV/#it{c})", 500, -2, 2, PDGBINNING)};
 
   Filter trackAcceptance = (nabs(aod::track::eta) < 0.8f);
-  Filter trackCuts = ((aod::track::isGlobalTrack == true) || (aod::track::isGlobalTrackSDD == true));
+  Filter trackCuts = ((aod::track::isGlobalTrack == (uint8_t) true) || (aod::track::isGlobalTrackSDD == (uint8_t) true));
 
   void process(soa::Join<aod::Collisions, aod::McCollisionLabels>::iterator const& collision,
                soa::Filtered<soa::Join<aod::Tracks, aod::TracksExtra, aod::TracksExtended, aod::McTrackLabels, aod::TrackSelection>> const& tracks,

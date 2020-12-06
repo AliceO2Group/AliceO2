@@ -44,7 +44,7 @@ struct TrackQATask {
 
   Configurable<int> selectedTracks{"select", 1, "Choice of track selection. 0 = no selection, 1 = globalTracks, 2 = globalTracksSDD"};
 
-  Filter trackFilter = aod::track::isGlobalTrack == true;
+  Filter trackFilter = aod::track::isGlobalTrack == (uint8_t) true;
 
   void init(o2::framework::InitContext&)
   {
