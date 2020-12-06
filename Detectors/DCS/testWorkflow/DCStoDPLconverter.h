@@ -61,17 +61,14 @@ o2f::InjectorFunction dcs2dpl(std::unordered_map<DPID, o2h::DataDescription>& dp
     for (size_t i = 0; i < parts.Size(); ++i) {             // DCS sends only 1 part, but we should be able to receive more
       auto nDPCOM = parts.At(i)->GetSize() / sizeof(DPCOM); // number of DPCOM in current part
       for (size_t j = 0; j < nDPCOM; j++) {
-        DPCOM src;
-        memcpy(&src, reinterpret_cast<char*>(parts.At(i)->GetData()) + j * sizeof(DPCOM), sizeof(DPCOM));
-        // const auto* src = reinterpret_cast<const DPCOM*>(parts.At(i)->GetData()) + j;
+        const auto& src = *(reinterpret_cast<const DPCOM*>(parts.At(i)->GetData()) + j);
         // do we want to check if this DP was requested ?
         auto mapEl = dpid2group.find(src.id);
         if (verbose) {
           LOG(INFO) << "Received DP " << src.id << " (data = " << src.data << "), matched to output-> " << (mapEl == dpid2group.end() ? "none " : mapEl->second.as<std::string>());
         }
         if (mapEl != dpid2group.end()) {
-          auto& dst = cache[src.id]; // this is needed in case in the 1s window we get a new value for the same DP
-          memcpy(&dst, &src, sizeof(DPCOM));
+          auto& dst = cache[src.id] = src; // this is needed in case in the 1s window we get a new value for the same DP
         }
       }
     }
