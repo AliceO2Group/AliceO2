@@ -224,6 +224,10 @@ void AODProducerWorkflowDPL::init(InitContext& ic)
   mFillTracksITS = ic.options().get<int>("fill-tracks-its");
   mFillTracksTPC = ic.options().get<int>("fill-tracks-tpc");
   mFillTracksITSTPC = ic.options().get<int>("fill-tracks-its-tpc");
+  mTFNumber = ic.options().get<int>("aod-timeframe-id");
+  if (mTFNumber == -1) {
+    LOG(INFO) << "TFNumber will be obtained from CCDB";
+  }
   LOG(INFO) << "track filling flags set to: "
             << "\n ITS = " << mFillTracksITS << "\n TPC = " << mFillTracksTPC << "\n ITSTPC = " << mFillTracksITSTPC;
 
@@ -468,8 +472,8 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
     auto& cov = vertex.getCov();
     auto& timeStamp = vertex.getTimeStamp();
     Double_t tsTimeStamp = timeStamp.getTimeStamp() * 1E3; // mus to ns
-    // FIXME:
-    // should use IRMin and IRMax for globalBC calculation
+    // TODO:
+    // use filling scheme to calculate most prob. BC
     uint64_t globalBC = std::round(tsTimeStamp / o2::constants::lhc::LHCBunchSpacingNS);
 
     LOG(DEBUG) << globalBC << " " << tsTimeStamp;
@@ -478,6 +482,8 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
       firstVtxGlBC = globalBC;
     }
 
+    // collision timestamp in ns wrt the beginning of collision BC
+    tsTimeStamp = globalBC * o2::constants::lhc::LHCBunchSpacingNS - tsTimeStamp;
     int BCid = mGlobBC2BCID.at(globalBC);
     // TODO:
     // get real collision time mask
@@ -495,8 +501,8 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
                      cov[5],
                      vertex.getChi2(),
                      vertex.getNContributors(),
-                     timeStamp.getTimeStamp(),
-                     timeStamp.getTimeStampError(),
+                     tsTimeStamp,
+                     timeStamp.getTimeStampError() * 1E3,
                      collisionTimeMask);
 
     auto trackRef = primVer2TRefs[collisionID];
@@ -610,7 +616,11 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
     }
   }
 
-  timeFrameNumberBuilder = getTFNumber(firstVtxGlBC, runNumber);
+  if (mTFNumber == -1) {
+    timeFrameNumberBuilder = getTFNumber(firstVtxGlBC, runNumber);
+  } else {
+    timeFrameNumberBuilder = mTFNumber;
+  }
 
   mTimer.Stop();
 }
@@ -663,7 +673,8 @@ DataProcessorSpec getAODProducerWorkflowSpec()
     Options{
       ConfigParamSpec{"fill-tracks-its", VariantType::Int, 1, {"Fill ITS tracks into tracks table"}},
       ConfigParamSpec{"fill-tracks-tpc", VariantType::Int, 1, {"Fill TPC tracks into tracks table"}},
-      ConfigParamSpec{"fill-tracks-its-tpc", VariantType::Int, 1, {"Fill ITS-TPC tracks into tracks table"}}}};
+      ConfigParamSpec{"fill-tracks-its-tpc", VariantType::Int, 1, {"Fill ITS-TPC tracks into tracks table"}},
+      ConfigParamSpec{"aod-timeframe-id", VariantType::Int, -1, {"Set timeframe number"}}}};
 }
 
 } // namespace o2::aodproducer
