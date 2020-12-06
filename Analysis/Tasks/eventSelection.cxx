@@ -138,60 +138,48 @@ struct EventSelectionTask {
   }
 };
 
-// helper table and task for BCs<-->FT0s matching
-namespace o2::aod
-{
-DECLARE_SOA_INDEX_TABLE_USER(SparseBCsFT0s, BCs, "MA_SP_BCS_FT0S", o2::aod::indices::BCId, o2::aod::indices::FT0Id);
-}
-
-struct EventSelectionTaskRun3Helper {
-  Builds<aod::SparseBCsFT0s> matchedBCsFT0s;
-  void process(aod::BCs, aod::FT0s)
-  {
-  }
-};
-
 struct EventSelectionTaskRun3 {
   Produces<aod::EvSels> evsel;
 
   EvSelParameters par;
 
-  void process(aod::Collision const& collision, aod::SparseBCsFT0s const& matchedBCsFT0s, aod::BCs const& bcs, aod::Zdcs const& zdcs, aod::FV0As const& fv0as, aod::FT0s const& ft0s, aod::FDDs const& fdds)
+  void process(aod::Collision const& collision, soa::Join<aod::BCs, aod::Run3MatchedToBCSparse> const& bct0s, aod::Zdcs const& zdcs, aod::FV0As const& fv0as, aod::FT0s const& ft0s, aod::FDDs const& fdds)
   {
-    // calculating [minBC, maxBC] range for a collision
-    int deltaBC = std::ceil(collision.collisionTimeRes() / o2::constants::lhc::LHCBunchSpacingNS * 4);
-    int64_t colBC = collision.bc().globalBC();
-    int64_t maxColBC = colBC + deltaBC;
-    int64_t minColBC = colBC - deltaBC;
-
-    int64_t minFt0Dist = INT32_MAX;
+    int64_t ft0Dist;
     int64_t foundFT0 = -1;
     float timeA = -999.f;
     float timeC = -999.f;
 
-    // calculating BCID iteration range
-    int64_t minGlobalBC = bcs.begin().globalBC();
-    int64_t maxGlobalBC = bcs.iteratorAt(bcs.size() - 1).globalBC();
-    int64_t startIt = minColBC - minGlobalBC;
-    int64_t endIt = maxColBC - minGlobalBC;
+    auto bcIter = collision.bc_as<soa::Join<aod::BCs, aod::Run3MatchedToBCSparse>>();
 
-    // iterating only through relevant BCIDs and
-    // searching for the nearest FT0
-    for (int64_t i = startIt; i <= endIt; i++) {
-      auto matched = matchedBCsFT0s.iteratorAt(i);
-      if (matched.has_ft0() == false) {
-        continue;
+    uint64_t apprBC = bcIter.globalBC();
+    uint64_t meanBC = apprBC - std::lround(collision.collisionTime() / o2::constants::lhc::LHCBunchSpacingNS);
+    int deltaBC = std::ceil(collision.collisionTimeRes() / o2::constants::lhc::LHCBunchSpacingNS * 4);
+
+    int moveCount = 0;
+    while (bcIter != bct0s.end() && bcIter.globalBC() <= meanBC + deltaBC && bcIter.globalBC() >= meanBC - deltaBC) {
+      if (bcIter.has_ft0()) {
+        ft0Dist = bcIter.globalBC() - meanBC;
+        foundFT0 = bcIter.ft0().globalIndex();
+        break;
       }
-      auto bc = bcs.iteratorAt(i);
-      int64_t ft0BC = bc.globalBC();
-      int64_t ft0Dist = abs(ft0BC - colBC);
-      if (ft0Dist < minFt0Dist) {
-        minFt0Dist = ft0Dist;
-        foundFT0 = matched.ft0().globalIndex();
+      ++bcIter;
+      ++moveCount;
+    }
+
+    bcIter.moveByIndex(-moveCount);
+    while (bcIter != bct0s.begin() && bcIter.globalBC() <= meanBC + deltaBC && bcIter.globalBC() >= meanBC - deltaBC) {
+      --bcIter;
+      if (bcIter.has_ft0() && (meanBC - bcIter.globalBC()) < ft0Dist) {
+        foundFT0 = bcIter.ft0().globalIndex();
+        break;
+      }
+      if ((meanBC - bcIter.globalBC()) >= ft0Dist) {
+        break;
       }
     }
 
-    if (minFt0Dist != INT32_MAX) {
+    if (foundFT0 != -1) {
       auto ft0 = ft0s.iteratorAt(foundFT0);
       timeA = ft0.timeA();
       timeC = ft0.timeC();
@@ -223,7 +211,6 @@ WorkflowSpec defineDataProcessing(ConfigContext const& ctx)
     return WorkflowSpec{adaptAnalysisTask<EventSelectionTask>("event-selection")};
   } else {
     return WorkflowSpec{
-      adaptAnalysisTask<EventSelectionTaskRun3Helper>("event-selection-helper"),
       adaptAnalysisTask<EventSelectionTaskRun3>("event-selection")};
   }
 }
