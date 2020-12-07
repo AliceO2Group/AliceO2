@@ -25,6 +25,8 @@
 #include <utility>
 
 #include "ITStracking/Configuration.h"
+#include "DetectorsBase/MatLayerCylSet.h"
+#include "CommonConstants/MathConstants.h"
 #include "ITStracking/Definitions.h"
 #include "ITStracking/ROframe.h"
 #include "ITStracking/MathUtils.h"
@@ -80,7 +82,8 @@ class Tracker
   void findCellsNeighbours(int& iteration);
   void findRoads(int& iteration);
   void findTracks(const ROframe& ev);
-  bool fitTrack(const ROframe& event, TrackITSExt& track, int start, int end, int step);
+  bool fitTrack(const ROframe& event, TrackITSExt& track, int start, int end, int step,
+                const float chi2cut = o2::constants::math::VeryBig);
   void traverseCellsTree(const int, const int);
   void computeRoadsMClabels(const ROframe&);
   void computeTracksMClabels(const ROframe&);
@@ -100,6 +103,7 @@ class Tracker
   std::uint32_t mROFrame = 0;
   std::vector<TrackITSExt> mTracks;
   std::vector<MCCompLabel> mTrackLabels;
+  o2::base::MatLayerCylSet* mMatLayerCylSet;
   o2::gpu::GPUChainITS* mRecoChain = nullptr;
 };
 
