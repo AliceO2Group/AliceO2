@@ -14,7 +14,6 @@
 
 #include "ITStracking/Tracker.h"
 
-#include "CommonConstants/MathConstants.h"
 #include "ITStracking/Cell.h"
 #include "ITStracking/Constants.h"
 #include "ITStracking/IndexTableUtils.h"
@@ -41,6 +40,7 @@ Tracker::Tracker(o2::its::TrackerTraits* traits)
   mMemParams.resize(1);
   assert(traits != nullptr);
   mTraits = traits;
+  mMatLayerCylSet = o2::base::MatLayerCylSet::loadFromFile();
   mPrimaryVertexContext = mTraits->getPrimaryVertexContext();
 }
 
@@ -285,14 +285,14 @@ void Tracker::findTracks(const ROframe& event)
     }
     CA_DEBUGGER(fitCounters[nClusters - 4]++);
     temporaryTrack.resetCovariance();
-    fitSuccess = fitTrack(event, temporaryTrack, 0, mTrkParams[0].NLayers, 1);
+    fitSuccess = fitTrack(event, temporaryTrack, 0, mTrkParams[0].NLayers, 1, mTrkParams[0].FitIterationMaxChi2[0]);
     if (!fitSuccess) {
       continue;
     }
     CA_DEBUGGER(backpropagatedCounters[nClusters - 4]++);
     temporaryTrack.getParamOut() = temporaryTrack;
     temporaryTrack.resetCovariance();
-    fitSuccess = fitTrack(event, temporaryTrack, mTrkParams[0].NLayers - 1, -1, -1);
+    fitSuccess = fitTrack(event, temporaryTrack, mTrkParams[0].NLayers - 1, -1, -1, mTrkParams[0].FitIterationMaxChi2[1]);
     if (!fitSuccess) {
       continue;
     }
@@ -396,7 +396,7 @@ void Tracker::findTracks(const ROframe& event)
 #endif
 }
 
-bool Tracker::fitTrack(const ROframe& event, TrackITSExt& track, int start, int end, int step)
+bool Tracker::fitTrack(const ROframe& event, TrackITSExt& track, int start, int end, int step, const float chi2cut)
 {
   track.setChi2(0);
   for (int iLayer{start}; iLayer != end; iLayer += step) {
@@ -412,17 +412,34 @@ bool Tracker::fitTrack(const ROframe& event, TrackITSExt& track, int start, int 
     if (!track.propagateTo(trackingHit.xTrackingFrame, getBz())) {
       return false;
     }
-
-    track.setChi2(track.getChi2() +
-                  track.getPredictedChi2(trackingHit.positionTrackingFrame, trackingHit.covarianceTrackingFrame));
+    auto predChi2{track.getPredictedChi2(trackingHit.positionTrackingFrame, trackingHit.covarianceTrackingFrame)};
+    if (predChi2 > chi2cut) {
+      return false;
+    }
+    track.setChi2(track.getChi2() + predChi2);
     if (!track.o2::track::TrackParCov::update(trackingHit.positionTrackingFrame, trackingHit.covarianceTrackingFrame)) {
       return false;
     }
 
-    const float xx0 = (iLayer > 2) ? 0.008f : 0.003f; // Rough layer thickness
-    constexpr float radiationLength = 9.36f;          // Radiation length of Si [cm]
-    constexpr float density = 2.33f;                  // Density of Si [g/cm^3]
-    if (!track.correctForMaterial(xx0, xx0 * radiationLength * density, true)) {
+    float xx0 = ((iLayer > 2) ? 0.008f : 0.003f); // Rough layer thickness
+    float radiationLength = 9.36f;                // Radiation length of Si [cm]
+    float density = 2.33f;                        // Density of Si [g/cm^3]
+    float distance = xx0;                         // Default thickness
+
+    if (mTrkParams[0].UseMatBudLUT) {
+      if ((iLayer + step) != end) {
+        const auto cl_0 = mPrimaryVertexContext->getClusters()[iLayer][track.getClusterIndex(iLayer)];
+        const auto cl_1 = mPrimaryVertexContext->getClusters()[iLayer + step][track.getClusterIndex(iLayer + step)];
+
+        distance = std::hypot(cl_0.xCoordinate - cl_1.xCoordinate, cl_0.yCoordinate - cl_1.yCoordinate, cl_0.zCoordinate - cl_1.zCoordinate);
+
+        auto matbud = mMatLayerCylSet->getMatBudget(cl_0.xCoordinate, cl_0.yCoordinate, cl_0.zCoordinate, cl_1.xCoordinate, cl_1.yCoordinate, cl_1.zCoordinate);
+        xx0 = matbud.meanX2X0;
+        radiationLength = matbud.length;
+        density = matbud.meanRho;
+      }
+    }
+    if (!track.correctForMaterial(xx0, ((start < end) ? -1. : 1.) * distance * density, 0.14, false)) { // ~0.14 GeV: mass of charged pion is used by default
       return false;
     }
   }
