@@ -103,7 +103,7 @@ class Tracker
   std::uint32_t mROFrame = 0;
   std::vector<TrackITSExt> mTracks;
   std::vector<MCCompLabel> mTrackLabels;
-  o2::base::MatLayerCylSet* mMatLayerCylSet;
+  o2::base::MatLayerCylSet* mMatLayerCylSet = nullptr;
   o2::gpu::GPUChainITS* mRecoChain = nullptr;
 };
 
@@ -111,6 +111,9 @@ inline void Tracker::setParameters(const std::vector<MemoryParameters>& memPars,
 {
   mMemParams = memPars;
   mTrkParams = trkPars;
+  if (mTrkParams[0].UseMatBudLUT) {
+    mMatLayerCylSet = o2::base::MatLayerCylSet::loadFromFile();
+  }
 }
 
 inline float Tracker::getBz() const

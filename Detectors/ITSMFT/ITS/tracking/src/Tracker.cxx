@@ -40,7 +40,6 @@ Tracker::Tracker(o2::its::TrackerTraits* traits)
   mMemParams.resize(1);
   assert(traits != nullptr);
   mTraits = traits;
-  mMatLayerCylSet = o2::base::MatLayerCylSet::loadFromFile();
   mPrimaryVertexContext = mTraits->getPrimaryVertexContext();
 }
 
@@ -426,20 +425,21 @@ bool Tracker::fitTrack(const ROframe& event, TrackITSExt& track, int start, int 
     float density = 2.33f;                        // Density of Si [g/cm^3]
     float distance = xx0;                         // Default thickness
 
-    if (mTrkParams[0].UseMatBudLUT) {
+    if (mMatLayerCylSet) {
       if ((iLayer + step) != end) {
         const auto cl_0 = mPrimaryVertexContext->getClusters()[iLayer][track.getClusterIndex(iLayer)];
         const auto cl_1 = mPrimaryVertexContext->getClusters()[iLayer + step][track.getClusterIndex(iLayer + step)];
 
-        distance = std::hypot(cl_0.xCoordinate - cl_1.xCoordinate, cl_0.yCoordinate - cl_1.yCoordinate, cl_0.zCoordinate - cl_1.zCoordinate);
-
         auto matbud = mMatLayerCylSet->getMatBudget(cl_0.xCoordinate, cl_0.yCoordinate, cl_0.zCoordinate, cl_1.xCoordinate, cl_1.yCoordinate, cl_1.zCoordinate);
         xx0 = matbud.meanX2X0;
-        radiationLength = matbud.length;
         density = matbud.meanRho;
+        distance = matbud.length;
       }
     }
-    if (!track.correctForMaterial(xx0, ((start < end) ? -1. : 1.) * distance * density, 0.14, false)) { // ~0.14 GeV: mass of charged pion is used by default
+    // The correctForMaterial should be called with anglecorr==true if the material budget is the "mean budget in vertical direction" and with false if the the estimated budget already accounts for the track inclination.
+    // Here using !mMatLayerCylSet as its presence triggers update of parameters
+
+    if (!track.correctForMaterial(xx0, ((start < end) ? -1. : 1.) * distance * density, 0.14, !mMatLayerCylSet)) { // ~0.14 GeV: mass of charged pion is used by default
       return false;
     }
   }
