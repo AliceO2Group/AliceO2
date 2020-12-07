@@ -96,7 +96,7 @@ if [ "$dosim" == "1" ]; then
   taskwrapper sim.log o2-sim -n"$nev" --configKeyValue "Diamond.width[2]=6." -g "$gener" -e "$engine" $simWorker
 
   ##------ extract number of hits
-  root -q -b -l ${O2_ROOT}/share/macro/analyzeHits.C > hitstats.log
+  taskwrapper hitstats.log root -q -b -l ${O2_ROOT}/share/macro/analyzeHits.C
 fi
 
 if [ "$dodigi" == "1" ]; then
@@ -124,7 +124,7 @@ if [ "$doreco" == "1" ]; then
 
   echo "Running MFT reco flow"
   #needs MFT digitized data
-  taskwrapper mftreco.log  o2-mft-reco-workflow  $gloOpt
+  # taskwrapper mftreco.log  o2-mft-reco-workflow  $gloOpt
   echo "Return status of mftreco: $?"
 
   echo "Running FT0 reco flow"
@@ -149,10 +149,10 @@ if [ "$doreco" == "1" ]; then
 
   echo "Running TOF matching QA"
   #need results of ITSTPC-TOF matching (+ TOF clusters and ITS-TPC tracks)
-  root -b -q -l $O2_ROOT/share/macro/checkTOFMatching.C 1>tofmatch_qa.log 2>&1
+  taskwrapper tofmatch_qa.log root -b -q -l $O2_ROOT/share/macro/checkTOFMatching.C
   echo "Return status of TOF matching qa: $?"
 
   echo "Producing AOD"
-  taskwrapper aod.log o2-reco-standalone-aod-producer
+  taskwrapper aod.log o2-aod-producer-workflow --aod-writer-keep dangling --aod-writer-resfile "AO2D" --aod-writer-resmode UPDATE --aod-timeframe-id 1
   echo "Return status of AOD production: $?"
 fi
