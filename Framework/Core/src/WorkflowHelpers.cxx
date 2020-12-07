@@ -511,6 +511,7 @@ void WorkflowHelpers::constructGraph(const WorkflowSpec& workflow,
                                      std::vector<LogicalForwardInfo>& forwardedInputsInfo)
 {
   assert(!workflow.empty());
+
   // This is the state. Oif is the iterator I use for the searches.
   std::list<LogicalOutputInfo> availableOutputsInfo;
   auto const& constOutputs = outputs; // const version of the outputs

@@ -1383,6 +1383,47 @@ bool isOutputToPipe()
   return ((s.st_mode & S_IFIFO) != 0);
 }
 
+void overrideCloning(ConfigContext& ctx, WorkflowSpec& workflow)
+{
+  struct CloningSpec {
+    std::string templateMatcher;
+    std::string cloneName;
+  };
+  auto s = ctx.options().get<std::string>("clone");
+  std::vector<CloningSpec> specs;
+  std::string delimiter = ",";
+
+  size_t pos = 0;
+  while (s.empty() == false) {
+    auto newPos = s.find(delimiter);
+    auto token = s.substr(0, newPos);
+    auto split = token.find(":");
+    if (split == std::string::npos) {
+      throw std::runtime_error("bad clone definition. Syntax <template-processor>:<clone-name>");
+    }
+    auto key = token.substr(0, split);
+    token.erase(0, split + 1);
+    auto value = token;
+    specs.push_back({key, value});
+    s.erase(0, newPos + (newPos == std::string::npos ? 0 : 1));
+  }
+  if (s.empty() == false && specs.empty() == true) {
+    throw std::runtime_error("bad pipeline definition. Syntax <processor>:<pipeline>");
+  }
+
+  std::vector<DataProcessorSpec> extraSpecs;
+  for (auto& spec : specs) {
+    for (auto& processor : workflow) {
+      if (processor.name == spec.templateMatcher) {
+        auto clone = processor;
+        clone.name = spec.cloneName;
+        extraSpecs.push_back(clone);
+      }
+    }
+  }
+  workflow.insert(workflow.end(), extraSpecs.begin(), extraSpecs.end());
+}
+
 void overridePipeline(ConfigContext& ctx, WorkflowSpec& workflow)
 {
   struct PipelineSpec {
