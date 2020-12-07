@@ -59,7 +59,7 @@ struct EmcalCorrectionTask {
   std::vector<o2::emcal::AnalysisCluster> mAnalysisClusters;
 
   // QA
-  // TODO: Not comprehensive.
+  // NOTE: This is not comprehensive.
   OutputObj<TH1F> hCellE{"hCellE"};
   OutputObj<TH1I> hCellTowerID{"hCellTowerID"};
   OutputObj<TH2F> hCellEtaPhi{"hCellEtaPhi"};
@@ -182,7 +182,7 @@ struct EmcalCorrectionTask {
       //LOG(DEBUG) << "Cluster E: " << cluster.E();
       clusters(collision, cluster.E(), pos.Eta(), pos.Phi(), cluster.getM02());
       // TEMP
-      if (cluster.E() < 0.15) {
+      if (cluster.E() < 0.150) {
         continue;
       }
       // ENDTEMP
