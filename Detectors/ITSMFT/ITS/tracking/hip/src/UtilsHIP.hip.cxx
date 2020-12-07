@@ -55,7 +55,7 @@ namespace o2
 {
 namespace its
 {
-namespace GPU
+namespace gpu
 {
 
 void Utils::HostHIP::checkHIPError(const hipError_t error, const char* file, const int line)
@@ -167,6 +167,6 @@ GPUd() int Utils::DeviceHIP::getLaneIndex()
 //   return atomicAdd(p, incrementSize);
 // }
 
-} // namespace GPU
+} // namespace gpu
 } // namespace its
 } // namespace o2

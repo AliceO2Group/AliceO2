@@ -51,8 +51,8 @@ GPUdi() Tracklet::Tracklet(const int firstClusterOrderingIndex, const int second
     secondClusterIndex{secondClusterOrderingIndex},
     tanLambda{(firstCluster.zCoordinate - secondCluster.zCoordinate) /
               (firstCluster.rCoordinate - secondCluster.rCoordinate)},
-    phiCoordinate{gpu::GPUCommonMath::ATan2(firstCluster.yCoordinate - secondCluster.yCoordinate,
-                                            firstCluster.xCoordinate - secondCluster.xCoordinate)}
+    phiCoordinate{o2::gpu::GPUCommonMath::ATan2(firstCluster.yCoordinate - secondCluster.yCoordinate,
+                                                firstCluster.xCoordinate - secondCluster.xCoordinate)}
 {
   // Nothing to do
 }

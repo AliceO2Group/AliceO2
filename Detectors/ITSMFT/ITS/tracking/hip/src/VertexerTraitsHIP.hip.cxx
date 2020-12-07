@@ -57,9 +57,9 @@ GPUhd() const int4 getBinsRect(const Cluster& currentCluster, const int layerInd
     return constants::its2::getEmptyBinsRect();
   }
 
-  return int4{gpu::GPUCommonMath::Max(0, getZBinIndex(layerIndex + 1, zRangeMin)),
+  return int4{o2::gpu::GPUCommonMath::Max(0, getZBinIndex(layerIndex + 1, zRangeMin)),
               getPhiBinIndex(phiRangeMin),
-              gpu::GPUCommonMath::Min(ZBins - 1, getZBinIndex(layerIndex + 1, zRangeMax)),
+              o2::gpu::GPUCommonMath::Min(ZBins - 1, getZBinIndex(layerIndex + 1, zRangeMax)),
               getPhiBinIndex(phiRangeMax)};
 }
 
@@ -101,7 +101,7 @@ void VertexerTraitsHIP::initialise(ROframe* event)
   // mStoreVertexerGPUPtr = mStoreVertexerGPU.initialise(mClusters, mIndexTables);
 }
 
-namespace GPU
+namespace gpu
 {
 
 template <typename... Args>
@@ -176,7 +176,7 @@ GPUg() void trackleterKernel(
           const int maxRowClusterIndex{store->getIndexTable(adjacentLayerIndex)[firstBinIndex + selectedBinsRect.z - selectedBinsRect.x + 1]};
           for (int iAdjacentCluster{firstRowClusterIndex}; iAdjacentCluster < maxRowClusterIndex && iAdjacentCluster < nClustersAdjacentLayer; ++iAdjacentCluster) {
             const Cluster& adjacentCluster = store->getClusters()[static_cast<int>(adjacentLayerIndex)][iAdjacentCluster]; // assign-constructor may be a problem, check
-            if (gpu::GPUCommonMath::Abs(currentCluster.phiCoordinate - adjacentCluster.phiCoordinate) < phiCut) {
+            if (o2::gpu::GPUCommonMath::Abs(currentCluster.phiCoordinate - adjacentCluster.phiCoordinate) < phiCut) {
               if (storedTracklets < store->getConfig().maxTrackletsPerCluster) {
                 if (layerOrder == TrackletingLayerOrder::fromInnermostToMiddleLayer) {
                   store->getDuplets01().emplace(stride + storedTracklets, iAdjacentCluster, currentClusterIndex, adjacentCluster, currentCluster);
@@ -208,8 +208,8 @@ GPUg() void trackletSelectionKernel(
     int validTracklets{0};
     for (int iTracklet12{0}; iTracklet12 < store->getNFoundTracklets(TrackletingLayerOrder::fromMiddleToOuterLayer)[currentClusterIndex]; ++iTracklet12) {
       for (int iTracklet01{0}; iTracklet01 < store->getNFoundTracklets(TrackletingLayerOrder::fromInnermostToMiddleLayer)[currentClusterIndex] && validTracklets < store->getConfig().maxTrackletsPerCluster; ++iTracklet01) {
-        const float deltaTanLambda{gpu::GPUCommonMath::Abs(store->getDuplets01()[stride + iTracklet01].tanLambda - store->getDuplets12()[stride + iTracklet12].tanLambda)};
-        const float deltaPhi{gpu::GPUCommonMath::Abs(store->getDuplets01()[stride + iTracklet01].phiCoordinate - store->getDuplets12()[stride + iTracklet12].phiCoordinate)};
+        const float deltaTanLambda{o2::gpu::GPUCommonMath::Abs(store->getDuplets01()[stride + iTracklet01].tanLambda - store->getDuplets12()[stride + iTracklet12].tanLambda)};
+        const float deltaPhi{o2::gpu::GPUCommonMath::Abs(store->getDuplets01()[stride + iTracklet01].phiCoordinate - store->getDuplets12()[stride + iTracklet12].phiCoordinate)};
         if (deltaTanLambda < tanLambdaCut && deltaPhi < phiCut && validTracklets != store->getConfig().maxTrackletsPerCluster) {
           assert(store->getDuplets01()[stride + iTracklet01].secondClusterIndex == store->getDuplets12()[stride + iTracklet12].firstClusterIndex);
           if (!isInitRun) {
@@ -277,7 +277,7 @@ GPUg() void computeZCentroidsKernel(DeviceStoreVertexerHIP* store,
       float tmpX{store->getConfig().histConf.lowHistBoundariesXYZ[0] + store->getTmpVertexPositionBins()[0].key * store->getConfig().histConf.binSizeHistX + store->getConfig().histConf.binSizeHistX / 2};
       int sumWX{store->getTmpVertexPositionBins()[0].value};
       float wX{tmpX * store->getTmpVertexPositionBins()[0].value};
-      for (int iBin{gpu::GPUCommonMath::Max(0, store->getTmpVertexPositionBins()[0].key - binOpeningX)}; iBin < gpu::GPUCommonMath::Min(store->getTmpVertexPositionBins()[0].key + binOpeningX + 1, store->getConfig().histConf.nBinsXYZ[0] - 1); ++iBin) {
+      for (int iBin{o2::gpu::GPUCommonMath::Max(0, store->getTmpVertexPositionBins()[0].key - binOpeningX)}; iBin < o2::gpu::GPUCommonMath::Min(store->getTmpVertexPositionBins()[0].key + binOpeningX + 1, store->getConfig().histConf.nBinsXYZ[0] - 1); ++iBin) {
         if (iBin != store->getTmpVertexPositionBins()[0].key) {
           wX += (store->getConfig().histConf.lowHistBoundariesXYZ[0] + iBin * store->getConfig().histConf.binSizeHistX + store->getConfig().histConf.binSizeHistX / 2) * store->getHistogramXYZ()[0].get()[iBin];
           sumWX += store->getHistogramXYZ()[0].get()[iBin];
@@ -286,7 +286,7 @@ GPUg() void computeZCentroidsKernel(DeviceStoreVertexerHIP* store,
       float tmpY{store->getConfig().histConf.lowHistBoundariesXYZ[1] + store->getTmpVertexPositionBins()[1].key * store->getConfig().histConf.binSizeHistY + store->getConfig().histConf.binSizeHistY / 2};
       int sumWY{store->getTmpVertexPositionBins()[1].value};
       float wY{tmpY * store->getTmpVertexPositionBins()[1].value};
-      for (int iBin{gpu::GPUCommonMath::Max(0, store->getTmpVertexPositionBins()[1].key - binOpeningY)}; iBin < gpu::GPUCommonMath::Min(store->getTmpVertexPositionBins()[1].key + binOpeningY + 1, store->getConfig().histConf.nBinsXYZ[1] - 1); ++iBin) {
+      for (int iBin{o2::gpu::GPUCommonMath::Max(0, store->getTmpVertexPositionBins()[1].key - binOpeningY)}; iBin < o2::gpu::GPUCommonMath::Min(store->getTmpVertexPositionBins()[1].key + binOpeningY + 1, store->getConfig().histConf.nBinsXYZ[1] - 1); ++iBin) {
         if (iBin != store->getTmpVertexPositionBins()[1].key) {
           wY += (store->getConfig().histConf.lowHistBoundariesXYZ[1] + iBin * store->getConfig().histConf.binSizeHistY + store->getConfig().histConf.binSizeHistY / 2) * store->getHistogramXYZ()[1].get()[iBin];
           sumWY += store->getHistogramXYZ()[1].get()[iBin];
@@ -318,7 +318,7 @@ GPUg() void computeVertexKernel(DeviceStoreVertexerHIP* store, const int vertInd
         float ez{0.f};
         int sumWZ{store->getTmpVertexPositionBins()[2].value};
         float wZ{z * store->getTmpVertexPositionBins()[2].value};
-        for (int iBin{gpu::GPUCommonMath::Max(0, store->getTmpVertexPositionBins()[2].key - binOpeningZ)}; iBin < gpu::GPUCommonMath::Min(store->getTmpVertexPositionBins()[2].key + binOpeningZ + 1, store->getConfig().histConf.nBinsXYZ[2] - 1); ++iBin) {
+        for (int iBin{o2::gpu::GPUCommonMath::Max(0, store->getTmpVertexPositionBins()[2].key - binOpeningZ)}; iBin < o2::gpu::GPUCommonMath::Min(store->getTmpVertexPositionBins()[2].key + binOpeningZ + 1, store->getConfig().histConf.nBinsXYZ[2] - 1); ++iBin) {
           if (iBin != store->getTmpVertexPositionBins()[2].key) {
             wZ += (store->getConfig().histConf.lowHistBoundariesXYZ[2] + iBin * store->getConfig().histConf.binSizeHistZ + store->getConfig().histConf.binSizeHistZ / 2) * store->getHistogramXYZ()[2].get()[iBin];
             sumWZ += store->getHistogramXYZ()[2].get()[iBin];
@@ -336,7 +336,7 @@ GPUg() void computeVertexKernel(DeviceStoreVertexerHIP* store, const int vertInd
     }
   }
 }
-} // namespace GPU
+} // namespace gpu
 
 void VertexerTraitsHIP::computeTracklets()
 {
@@ -344,17 +344,17 @@ void VertexerTraitsHIP::computeTracklets()
     std::cout << "\t\tno clusters on layer 1. Returning.\n";
     return;
   }
-  const dim3 threadsPerBlock{GPU::Utils::HostHIP::getBlockSize(mClusters[1].capacity())};
-  const dim3 blocksGrid{GPU::Utils::HostHIP::getBlocksGrid(threadsPerBlock, mClusters[1].capacity())};
+  const dim3 threadsPerBlock{gpu::Utils::HostHIP::getBlockSize(mClusters[1].capacity())};
+  const dim3 blocksGrid{gpu::Utils::HostHIP::getBlocksGrid(threadsPerBlock, mClusters[1].capacity())};
 
-  hipLaunchKernelGGL((GPU::trackleterKernel), dim3(blocksGrid), dim3(threadsPerBlock), 0, 0,
+  hipLaunchKernelGGL((gpu::trackleterKernel), dim3(blocksGrid), dim3(threadsPerBlock), 0, 0,
                      getDeviceContextPtr(),
-                     GPU::TrackletingLayerOrder::fromInnermostToMiddleLayer,
+                     gpu::TrackletingLayerOrder::fromInnermostToMiddleLayer,
                      mVrtParams.phiCut);
 
-  hipLaunchKernelGGL((GPU::trackleterKernel), dim3(blocksGrid), dim3(threadsPerBlock), 0, 0,
+  hipLaunchKernelGGL((gpu::trackleterKernel), dim3(blocksGrid), dim3(threadsPerBlock), 0, 0,
                      getDeviceContextPtr(),
-                     GPU::TrackletingLayerOrder::fromMiddleToOuterLayer,
+                     gpu::TrackletingLayerOrder::fromMiddleToOuterLayer,
                      mVrtParams.phiCut);
 
   gpuThrowOnError();
@@ -362,8 +362,8 @@ void VertexerTraitsHIP::computeTracklets()
 #ifdef _ALLOW_DEBUG_TREES_ITS_
   if (isDebugFlag(VertexerDebug::CombinatoricsTreeAll)) {
     mDebugger->fillCombinatoricsTree(mClusters,
-                                     mStoreVertexerGPU.getDupletsFromGPU(GPU::TrackletingLayerOrder::fromInnermostToMiddleLayer),
-                                     mStoreVertexerGPU.getDupletsFromGPU(GPU::TrackletingLayerOrder::fromMiddleToOuterLayer),
+                                     mStoreVertexerGPU.getDupletsFromGPU(gpu::TrackletingLayerOrder::fromInnermostToMiddleLayer),
+                                     mStoreVertexerGPU.getDupletsFromGPU(gpu::TrackletingLayerOrder::fromMiddleToOuterLayer),
                                      mEvent);
   }
 #endif
@@ -375,11 +375,11 @@ void VertexerTraitsHIP::computeTrackletMatching()
     std::cout << "\t\tno clusters on layer 1. Returning.\n";
     return;
   }
-  const dim3 threadsPerBlock{GPU::Utils::HostHIP::getBlockSize(mClusters[1].capacity())};
-  const dim3 blocksGrid{GPU::Utils::HostHIP::getBlocksGrid(threadsPerBlock, mClusters[1].capacity())};
+  const dim3 threadsPerBlock{gpu::Utils::HostHIP::getBlockSize(mClusters[1].capacity())};
+  const dim3 blocksGrid{gpu::Utils::HostHIP::getBlocksGrid(threadsPerBlock, mClusters[1].capacity())};
   size_t bufferSize = mStoreVertexerGPU.getConfig().tmpCUBBufferSize * sizeof(int);
 
-  hipLaunchKernelGGL((GPU::trackletSelectionKernel), dim3(blocksGrid), dim3(threadsPerBlock), 0, 0,
+  hipLaunchKernelGGL((gpu::trackletSelectionKernel), dim3(blocksGrid), dim3(threadsPerBlock), 0, 0,
                      getDeviceContextPtr(),
                      true, // isInitRun
                      mVrtParams.tanLambdaCut,
@@ -391,7 +391,7 @@ void VertexerTraitsHIP::computeTrackletMatching()
                                          mStoreVertexerGPU.getNExclusiveFoundLines().get(),
                                          mClusters[1].size());
 
-  hipLaunchKernelGGL((GPU::trackletSelectionKernel), dim3(blocksGrid), dim3(threadsPerBlock), 0, 0,
+  hipLaunchKernelGGL((gpu::trackletSelectionKernel), dim3(blocksGrid), dim3(threadsPerBlock), 0, 0,
                      getDeviceContextPtr(),
                      false, // isInitRun
                      mVrtParams.tanLambdaCut,
@@ -402,8 +402,8 @@ void VertexerTraitsHIP::computeTrackletMatching()
 #ifdef _ALLOW_DEBUG_TREES_ITS_
   if (isDebugFlag(VertexerDebug::TrackletTreeAll)) {
     mDebugger->fillTrackletSelectionTree(mClusters,
-                                         mStoreVertexerGPU.getRawDupletsFromGPU(GPU::TrackletingLayerOrder::fromInnermostToMiddleLayer),
-                                         mStoreVertexerGPU.getRawDupletsFromGPU(GPU::TrackletingLayerOrder::fromMiddleToOuterLayer),
+                                         mStoreVertexerGPU.getRawDupletsFromGPU(gpu::TrackletingLayerOrder::fromInnermostToMiddleLayer),
+                                         mStoreVertexerGPU.getRawDupletsFromGPU(gpu::TrackletingLayerOrder::fromMiddleToOuterLayer),
                                          mStoreVertexerGPU.getDupletIndicesFromGPU(),
                                          mEvent);
   }
@@ -423,15 +423,15 @@ void VertexerTraitsHIP::computeVertices()
     std::cout << "\t\tno clusters on layer 1. Returning.\n";
     return;
   }
-  const dim3 threadsPerBlock{GPU::Utils::HostHIP::getBlockSize(mClusters[1].capacity())};
-  const dim3 blocksGrid{GPU::Utils::HostHIP::getBlocksGrid(threadsPerBlock, mClusters[1].capacity())};
+  const dim3 threadsPerBlock{gpu::Utils::HostHIP::getBlockSize(mClusters[1].capacity())};
+  const dim3 blocksGrid{gpu::Utils::HostHIP::getBlocksGrid(threadsPerBlock, mClusters[1].capacity())};
   size_t bufferSize = mStoreVertexerGPU.getConfig().tmpCUBBufferSize * sizeof(int);
   int nLines = mStoreVertexerGPU.getNExclusiveFoundLines().getElementFromDevice(mClusters[1].size() - 1) + mStoreVertexerGPU.getNFoundLines().getElementFromDevice(mClusters[1].size() - 1);
   int nCentroids{static_cast<int>(nLines * (nLines - 1) / 2)};
   int* histogramXY[2] = {mStoreVertexerGPU.getHistogramXYZ()[0].get(), mStoreVertexerGPU.getHistogramXYZ()[1].get()};
   float tmpArrayLow[2] = {mStoreVertexerGPU.getConfig().histConf.lowHistBoundariesXYZ[0], mStoreVertexerGPU.getConfig().histConf.lowHistBoundariesXYZ[1]};
   float tmpArrayHigh[2] = {mStoreVertexerGPU.getConfig().histConf.highHistBoundariesXYZ[0], mStoreVertexerGPU.getConfig().histConf.highHistBoundariesXYZ[1]};
-  hipLaunchKernelGGL((GPU::computeCentroidsKernel), dim3(blocksGrid), dim3(threadsPerBlock), 0, 0, getDeviceContextPtr(),
+  hipLaunchKernelGGL((gpu::computeCentroidsKernel), dim3(blocksGrid), dim3(threadsPerBlock), 0, 0, getDeviceContextPtr(),
                      mVrtParams.histPairCut);
 
   (void)hipcub::DeviceHistogram::MultiHistogramEven<2, 2>(reinterpret_cast<void*>(mStoreVertexerGPU.getCUBTmpBuffer().get()), // d_temp_storage
@@ -454,7 +454,7 @@ void VertexerTraitsHIP::computeVertices()
                                      mStoreVertexerGPU.getTmpVertexPositionBins().get() + 1,
                                      mStoreVertexerGPU.getConfig().histConf.nBinsXYZ[0]);
 
-  hipLaunchKernelGGL((GPU::computeZCentroidsKernel), dim3(blocksGrid), dim3(threadsPerBlock), 0, 0, getDeviceContextPtr(), mVrtParams.histPairCut, mStoreVertexerGPU.getConfig().histConf.binSpanXYZ[0], mStoreVertexerGPU.getConfig().histConf.binSpanXYZ[1]);
+  hipLaunchKernelGGL((gpu::computeZCentroidsKernel), dim3(blocksGrid), dim3(threadsPerBlock), 0, 0, getDeviceContextPtr(), mVrtParams.histPairCut, mStoreVertexerGPU.getConfig().histConf.binSpanXYZ[0], mStoreVertexerGPU.getConfig().histConf.binSpanXYZ[1]);
 
   (void)hipcub::DeviceHistogram::HistogramEven(reinterpret_cast<void*>(mStoreVertexerGPU.getCUBTmpBuffer().get()), // d_temp_storage
                                                bufferSize,                                                         // temp_storage_bytes
@@ -480,9 +480,9 @@ void VertexerTraitsHIP::computeVertices()
                                                          mStoreVertexerGPU.getConfig().histConf.nBinsXYZ[2] - 1});
     }
 #endif
-    hipLaunchKernelGGL((GPU::computeVertexKernel), dim3(blocksGrid), dim3(5), 0, 0, getDeviceContextPtr(), iVertex, mVrtParams.clusterContributorsCut, mStoreVertexerGPU.getConfig().histConf.binSpanXYZ[2]);
+    hipLaunchKernelGGL((gpu::computeVertexKernel), dim3(blocksGrid), dim3(5), 0, 0, getDeviceContextPtr(), iVertex, mVrtParams.clusterContributorsCut, mStoreVertexerGPU.getConfig().histConf.binSpanXYZ[2]);
   }
-  std::vector<GPU::GPUVertex> vertices;
+  std::vector<gpu::GPUVertex> vertices;
   vertices.resize(mStoreVertexerGPU.getConfig().nMaxVertices);
   mStoreVertexerGPU.getVertices().copyIntoSizedVector(vertices);
 
@@ -498,23 +498,23 @@ void VertexerTraitsHIP::computeVertices()
 #ifdef _ALLOW_DEBUG_TREES_ITS_
 void VertexerTraitsHIP::computeMCFiltering()
 {
-  std::vector<Tracklet> tracklets01 = mStoreVertexerGPU.getRawDupletsFromGPU(GPU::TrackletingLayerOrder::fromInnermostToMiddleLayer);
-  std::vector<Tracklet> tracklets12 = mStoreVertexerGPU.getRawDupletsFromGPU(GPU::TrackletingLayerOrder::fromMiddleToOuterLayer);
-  std::vector<int> labels01 = mStoreVertexerGPU.getNFoundTrackletsFromGPU(GPU::TrackletingLayerOrder::fromInnermostToMiddleLayer);
-  std::vector<int> labels12 = mStoreVertexerGPU.getNFoundTrackletsFromGPU(GPU::TrackletingLayerOrder::fromMiddleToOuterLayer);
+  std::vector<Tracklet> tracklets01 = mStoreVertexerGPU.getRawDupletsFromGPU(gpu::TrackletingLayerOrder::fromInnermostToMiddleLayer);
+  std::vector<Tracklet> tracklets12 = mStoreVertexerGPU.getRawDupletsFromGPU(gpu::TrackletingLayerOrder::fromMiddleToOuterLayer);
+  std::vector<int> labels01 = mStoreVertexerGPU.getNFoundTrackletsFromGPU(gpu::TrackletingLayerOrder::fromInnermostToMiddleLayer);
+  std::vector<int> labels12 = mStoreVertexerGPU.getNFoundTrackletsFromGPU(gpu::TrackletingLayerOrder::fromMiddleToOuterLayer);
   VertexerStoreConfigurationGPU tmpGPUConf;
   const int stride = tmpGPUConf.maxTrackletsPerCluster;
 
   filterTrackletsWithMC(tracklets01, tracklets12, labels01, labels12, stride);
-  mStoreVertexerGPU.updateFoundDuplets(GPU::TrackletingLayerOrder::fromInnermostToMiddleLayer, labels01);
-  mStoreVertexerGPU.updateDuplets(GPU::TrackletingLayerOrder::fromInnermostToMiddleLayer, tracklets01);
-  mStoreVertexerGPU.updateFoundDuplets(GPU::TrackletingLayerOrder::fromMiddleToOuterLayer, labels12);
-  mStoreVertexerGPU.updateDuplets(GPU::TrackletingLayerOrder::fromMiddleToOuterLayer, tracklets12);
+  mStoreVertexerGPU.updateFoundDuplets(gpu::TrackletingLayerOrder::fromInnermostToMiddleLayer, labels01);
+  mStoreVertexerGPU.updateDuplets(gpu::TrackletingLayerOrder::fromInnermostToMiddleLayer, tracklets01);
+  mStoreVertexerGPU.updateFoundDuplets(gpu::TrackletingLayerOrder::fromMiddleToOuterLayer, labels12);
+  mStoreVertexerGPU.updateDuplets(gpu::TrackletingLayerOrder::fromMiddleToOuterLayer, tracklets12);
 
   if (isDebugFlag(VertexerDebug::CombinatoricsTreeAll)) {
     mDebugger->fillCombinatoricsTree(mClusters,
-                                     mStoreVertexerGPU.getDupletsFromGPU(GPU::TrackletingLayerOrder::fromInnermostToMiddleLayer),
-                                     mStoreVertexerGPU.getDupletsFromGPU(GPU::TrackletingLayerOrder::fromMiddleToOuterLayer),
+                                     mStoreVertexerGPU.getDupletsFromGPU(gpu::TrackletingLayerOrder::fromInnermostToMiddleLayer),
+                                     mStoreVertexerGPU.getDupletsFromGPU(gpu::TrackletingLayerOrder::fromMiddleToOuterLayer),
                                      mEvent);
   }
 }

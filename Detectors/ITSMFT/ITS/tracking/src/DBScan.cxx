@@ -33,9 +33,9 @@ Centroid::Centroid(int* indices, float* position)
 
 float Centroid::ComputeDistance(const Centroid& c1, const Centroid& c2)
 {
-  return gpu::GPUCommonMath::Sqrt((c1.mPosition[0] - c2.mPosition[0]) * (c1.mPosition[0] - c2.mPosition[0]) +
-                                  (c1.mPosition[1] - c2.mPosition[1]) * (c1.mPosition[1] - c2.mPosition[1]) +
-                                  (c1.mPosition[2] - c2.mPosition[2]) * (c1.mPosition[2] - c2.mPosition[2]));
+  return o2::gpu::GPUCommonMath::Sqrt((c1.mPosition[0] - c2.mPosition[0]) * (c1.mPosition[0] - c2.mPosition[0]) +
+                                      (c1.mPosition[1] - c2.mPosition[1]) * (c1.mPosition[1] - c2.mPosition[1]) +
+                                      (c1.mPosition[2] - c2.mPosition[2]) * (c1.mPosition[2] - c2.mPosition[2]));
 }
 } // namespace its
 } // namespace o2

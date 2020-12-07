@@ -23,7 +23,7 @@ namespace
 
 using namespace o2::its;
 
-__device__ void fillIndexTables(GPU::DeviceStoreNV& primaryVertexContext, const int layerIndex)
+__device__ void fillIndexTables(o2::its::gpu::DeviceStoreNV& primaryVertexContext, const int layerIndex)
 {
 
   const int currentClusterIndex{static_cast<int>(blockDim.x * blockIdx.x + threadIdx.x)};
@@ -66,7 +66,7 @@ __device__ void fillIndexTables(GPU::DeviceStoreNV& primaryVertexContext, const 
   }
 }
 
-__device__ void fillTrackletsPerClusterTables(GPU::DeviceStoreNV& primaryVertexContext, const int layerIndex)
+__device__ void fillTrackletsPerClusterTables(o2::its::gpu::DeviceStoreNV& primaryVertexContext, const int layerIndex)
 {
   const int currentClusterIndex{static_cast<int>(blockDim.x * blockIdx.x + threadIdx.x)};
   const int clustersSize{static_cast<int>(primaryVertexContext.getClusters()[layerIndex + 1].size())};
@@ -77,7 +77,7 @@ __device__ void fillTrackletsPerClusterTables(GPU::DeviceStoreNV& primaryVertexC
   }
 }
 
-__device__ void fillCellsPerClusterTables(GPU::DeviceStoreNV& primaryVertexContext, const int layerIndex)
+__device__ void fillCellsPerClusterTables(o2::its::gpu::DeviceStoreNV& primaryVertexContext, const int layerIndex)
 {
   const int totalThreadNum{static_cast<int>(primaryVertexContext.getClusters()[layerIndex + 1].size())};
   const int trackletsSize{static_cast<int>(primaryVertexContext.getTracklets()[layerIndex + 1].capacity())};
@@ -92,7 +92,7 @@ __device__ void fillCellsPerClusterTables(GPU::DeviceStoreNV& primaryVertexConte
   }
 }
 
-__global__ void fillDeviceStructures(GPU::DeviceStoreNV& primaryVertexContext, const int layerIndex)
+__global__ void fillDeviceStructures(o2::its::gpu::DeviceStoreNV& primaryVertexContext, const int layerIndex)
 {
   fillIndexTables(primaryVertexContext, layerIndex);
 
@@ -112,7 +112,7 @@ namespace o2
 {
 namespace its
 {
-namespace GPU
+namespace gpu
 {
 
 DeviceStoreNV::DeviceStoreNV()
@@ -183,6 +183,6 @@ UniquePointer<DeviceStoreNV> DeviceStoreNV::initialise(const float3& primaryVert
   return gpuContextDevicePointer;
 }
 
-} // namespace GPU
+} // namespace gpu
 } // namespace its
 } // namespace o2

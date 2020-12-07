@@ -90,13 +90,13 @@ void TrackerTraitsCPU::computeLayerTracklets()
             continue;
           }
 
-          const float deltaZ{gpu::GPUCommonMath::Abs(tanLambda * (nextCluster.rCoordinate - currentCluster.rCoordinate) +
-                                                     currentCluster.zCoordinate - nextCluster.zCoordinate)};
-          const float deltaPhi{gpu::GPUCommonMath::Abs(currentCluster.phiCoordinate - nextCluster.phiCoordinate)};
+          const float deltaZ{o2::gpu::GPUCommonMath::Abs(tanLambda * (nextCluster.rCoordinate - currentCluster.rCoordinate) +
+                                                         currentCluster.zCoordinate - nextCluster.zCoordinate)};
+          const float deltaPhi{o2::gpu::GPUCommonMath::Abs(currentCluster.phiCoordinate - nextCluster.phiCoordinate)};
 
           if (deltaZ < mTrkParams.TrackletMaxDeltaZ[iLayer] &&
               (deltaPhi < mTrkParams.TrackletMaxDeltaPhi ||
-               gpu::GPUCommonMath::Abs(deltaPhi - constants::math::TwoPi) < mTrkParams.TrackletMaxDeltaPhi)) {
+               o2::gpu::GPUCommonMath::Abs(deltaPhi - constants::math::TwoPi) < mTrkParams.TrackletMaxDeltaPhi)) {
 
             if (iLayer > 0 &&
                 primaryVertexContext->getTrackletsLookupTable()[iLayer - 1][iCluster] == constants::its::UnusedIndex) {

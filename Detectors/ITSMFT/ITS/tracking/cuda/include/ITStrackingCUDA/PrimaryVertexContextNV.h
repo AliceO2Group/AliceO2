@@ -41,87 +41,87 @@ class PrimaryVertexContextNV final : public PrimaryVertexContext
   void initialise(const MemoryParameters& memParam, const TrackingParameters& trkParam,
                   const std::vector<std::vector<Cluster>>& cl, const std::array<float, 3>& pv, const int iteration) override;
 
-  GPU::DeviceStoreNV& getDeviceContext();
-  GPU::Array<GPU::Vector<Cluster>, constants::its2::LayersNumber>& getDeviceClusters();
-  GPU::Array<GPU::Vector<Tracklet>, constants::its2::TrackletsPerRoad>& getDeviceTracklets();
-  GPU::Array<GPU::Vector<int>, constants::its2::CellsPerRoad>& getDeviceTrackletsLookupTable();
-  GPU::Array<GPU::Vector<int>, constants::its2::CellsPerRoad>& getDeviceTrackletsPerClustersTable();
-  GPU::Array<GPU::Vector<Cell>, constants::its2::CellsPerRoad>& getDeviceCells();
-  GPU::Array<GPU::Vector<int>, constants::its2::CellsPerRoad - 1>& getDeviceCellsLookupTable();
-  GPU::Array<GPU::Vector<int>, constants::its2::CellsPerRoad - 1>& getDeviceCellsPerTrackletTable();
-  std::array<GPU::Vector<int>, constants::its2::CellsPerRoad>& getTempTableArray();
-  std::array<GPU::Vector<Tracklet>, constants::its2::CellsPerRoad>& getTempTrackletArray();
-  std::array<GPU::Vector<Cell>, constants::its2::CellsPerRoad - 1>& getTempCellArray();
+  gpu::DeviceStoreNV& getDeviceContext();
+  gpu::Array<gpu::Vector<Cluster>, constants::its2::LayersNumber>& getDeviceClusters();
+  gpu::Array<gpu::Vector<Tracklet>, constants::its2::TrackletsPerRoad>& getDeviceTracklets();
+  gpu::Array<gpu::Vector<int>, constants::its2::CellsPerRoad>& getDeviceTrackletsLookupTable();
+  gpu::Array<gpu::Vector<int>, constants::its2::CellsPerRoad>& getDeviceTrackletsPerClustersTable();
+  gpu::Array<gpu::Vector<Cell>, constants::its2::CellsPerRoad>& getDeviceCells();
+  gpu::Array<gpu::Vector<int>, constants::its2::CellsPerRoad - 1>& getDeviceCellsLookupTable();
+  gpu::Array<gpu::Vector<int>, constants::its2::CellsPerRoad - 1>& getDeviceCellsPerTrackletTable();
+  std::array<gpu::Vector<int>, constants::its2::CellsPerRoad>& getTempTableArray();
+  std::array<gpu::Vector<Tracklet>, constants::its2::CellsPerRoad>& getTempTrackletArray();
+  std::array<gpu::Vector<Cell>, constants::its2::CellsPerRoad - 1>& getTempCellArray();
   void updateDeviceContext();
 
  private:
-  GPU::DeviceStoreNV mGPUContext;
-  GPU::UniquePointer<GPU::DeviceStoreNV> mGPUContextDevicePointer;
-  std::array<GPU::Vector<int>, constants::its2::CellsPerRoad> mTempTableArray;
-  std::array<GPU::Vector<Tracklet>, constants::its2::CellsPerRoad> mTempTrackletArray;
-  std::array<GPU::Vector<Cell>, constants::its2::CellsPerRoad - 1> mTempCellArray;
+  gpu::DeviceStoreNV mGPUContext;
+  gpu::UniquePointer<gpu::DeviceStoreNV> mGPUContextDevicePointer;
+  std::array<gpu::Vector<int>, constants::its2::CellsPerRoad> mTempTableArray;
+  std::array<gpu::Vector<Tracklet>, constants::its2::CellsPerRoad> mTempTrackletArray;
+  std::array<gpu::Vector<Cell>, constants::its2::CellsPerRoad - 1> mTempCellArray;
 };
 
-inline GPU::DeviceStoreNV& PrimaryVertexContextNV::getDeviceContext()
+inline gpu::DeviceStoreNV& PrimaryVertexContextNV::getDeviceContext()
 {
   return *mGPUContextDevicePointer;
 }
 
-inline GPU::Array<GPU::Vector<Cluster>, constants::its2::LayersNumber>& PrimaryVertexContextNV::getDeviceClusters()
+inline gpu::Array<gpu::Vector<Cluster>, constants::its2::LayersNumber>& PrimaryVertexContextNV::getDeviceClusters()
 {
   return mGPUContext.getClusters();
 }
 
-inline GPU::Array<GPU::Vector<Tracklet>, constants::its2::TrackletsPerRoad>& PrimaryVertexContextNV::getDeviceTracklets()
+inline gpu::Array<gpu::Vector<Tracklet>, constants::its2::TrackletsPerRoad>& PrimaryVertexContextNV::getDeviceTracklets()
 {
   return mGPUContext.getTracklets();
 }
 
-inline GPU::Array<GPU::Vector<int>, constants::its2::CellsPerRoad>& PrimaryVertexContextNV::getDeviceTrackletsLookupTable()
+inline gpu::Array<gpu::Vector<int>, constants::its2::CellsPerRoad>& PrimaryVertexContextNV::getDeviceTrackletsLookupTable()
 {
   return mGPUContext.getTrackletsLookupTable();
 }
 
-inline GPU::Array<GPU::Vector<int>, constants::its2::CellsPerRoad>&
+inline gpu::Array<gpu::Vector<int>, constants::its2::CellsPerRoad>&
   PrimaryVertexContextNV::getDeviceTrackletsPerClustersTable()
 {
   return mGPUContext.getTrackletsPerClusterTable();
 }
 
-inline GPU::Array<GPU::Vector<Cell>, constants::its2::CellsPerRoad>& PrimaryVertexContextNV::getDeviceCells()
+inline gpu::Array<gpu::Vector<Cell>, constants::its2::CellsPerRoad>& PrimaryVertexContextNV::getDeviceCells()
 {
   return mGPUContext.getCells();
 }
 
-inline GPU::Array<GPU::Vector<int>, constants::its2::CellsPerRoad - 1>& PrimaryVertexContextNV::getDeviceCellsLookupTable()
+inline gpu::Array<gpu::Vector<int>, constants::its2::CellsPerRoad - 1>& PrimaryVertexContextNV::getDeviceCellsLookupTable()
 {
   return mGPUContext.getCellsLookupTable();
 }
 
-inline GPU::Array<GPU::Vector<int>, constants::its2::CellsPerRoad - 1>&
+inline gpu::Array<gpu::Vector<int>, constants::its2::CellsPerRoad - 1>&
   PrimaryVertexContextNV::getDeviceCellsPerTrackletTable()
 {
   return mGPUContext.getCellsPerTrackletTable();
 }
 
-inline std::array<GPU::Vector<int>, constants::its2::CellsPerRoad>& PrimaryVertexContextNV::getTempTableArray()
+inline std::array<gpu::Vector<int>, constants::its2::CellsPerRoad>& PrimaryVertexContextNV::getTempTableArray()
 {
   return mTempTableArray;
 }
 
-inline std::array<GPU::Vector<Tracklet>, constants::its2::CellsPerRoad>& PrimaryVertexContextNV::getTempTrackletArray()
+inline std::array<gpu::Vector<Tracklet>, constants::its2::CellsPerRoad>& PrimaryVertexContextNV::getTempTrackletArray()
 {
   return mTempTrackletArray;
 }
 
-inline std::array<GPU::Vector<Cell>, constants::its2::CellsPerRoad - 1>& PrimaryVertexContextNV::getTempCellArray()
+inline std::array<gpu::Vector<Cell>, constants::its2::CellsPerRoad - 1>& PrimaryVertexContextNV::getTempCellArray()
 {
   return mTempCellArray;
 }
 
 inline void PrimaryVertexContextNV::updateDeviceContext()
 {
-  mGPUContextDevicePointer = GPU::UniquePointer<GPU::DeviceStoreNV>{mGPUContext};
+  mGPUContextDevicePointer = gpu::UniquePointer<gpu::DeviceStoreNV>{mGPUContext};
 }
 
 inline void PrimaryVertexContextNV::initialise(const MemoryParameters& memParam, const TrackingParameters& trkParam,

@@ -22,7 +22,7 @@ namespace o2
 {
 namespace its
 {
-namespace GPU
+namespace gpu
 {
 
 struct GPUVertex final {
@@ -66,7 +66,7 @@ class ClusterLinesGPU final
   float mVertex[3];          // cluster centroid position
 };
 
-} // namespace GPU
+} // namespace gpu
 } // namespace its
 } // namespace o2
 #endif

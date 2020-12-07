@@ -80,9 +80,9 @@ inline void TrackerTraits::UpdateTrackingParameters(const TrackingParameters& tr
 inline GPU_DEVICE const int4 TrackerTraits::getBinsRect(const Cluster& currentCluster, const int layerIndex,
                                                         const float z1, const float z2, float maxdeltaz, float maxdeltaphi)
 {
-  const float zRangeMin = gpu::GPUCommonMath::Min(z1, z2) - maxdeltaz;
+  const float zRangeMin = o2::gpu::GPUCommonMath::Min(z1, z2) - maxdeltaz;
   const float phiRangeMin = currentCluster.phiCoordinate - maxdeltaphi;
-  const float zRangeMax = gpu::GPUCommonMath::Max(z1, z2) + maxdeltaz;
+  const float zRangeMax = o2::gpu::GPUCommonMath::Max(z1, z2) + maxdeltaz;
   const float phiRangeMax = currentCluster.phiCoordinate + maxdeltaphi;
 
   if (zRangeMax < -mTrkParams.LayerZ[layerIndex + 1] ||
@@ -92,9 +92,9 @@ inline GPU_DEVICE const int4 TrackerTraits::getBinsRect(const Cluster& currentCl
   }
 
   const IndexTableUtils& utils{mPrimaryVertexContext->mIndexTableUtils};
-  return int4{gpu::GPUCommonMath::Max(0, utils.getZBinIndex(layerIndex + 1, zRangeMin)),
+  return int4{o2::gpu::GPUCommonMath::Max(0, utils.getZBinIndex(layerIndex + 1, zRangeMin)),
               utils.getPhiBinIndex(math_utils::getNormalizedPhiCoordinate(phiRangeMin)),
-              gpu::GPUCommonMath::Min(mTrkParams.ZBins - 1, utils.getZBinIndex(layerIndex + 1, zRangeMax)),
+              o2::gpu::GPUCommonMath::Min(mTrkParams.ZBins - 1, utils.getZBinIndex(layerIndex + 1, zRangeMax)),
               utils.getPhiBinIndex(math_utils::getNormalizedPhiCoordinate(phiRangeMax))};
 }
 } // namespace its

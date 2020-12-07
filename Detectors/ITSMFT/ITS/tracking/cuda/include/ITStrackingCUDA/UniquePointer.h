@@ -21,7 +21,7 @@ namespace o2
 {
 namespace its
 {
-namespace GPU
+namespace gpu
 {
 
 namespace
@@ -145,7 +145,7 @@ GPU_HOST_DEVICE const T& UniquePointer<T>::operator*() const noexcept
 {
   return PointerTraits::getReference(mDevicePointer);
 }
-} // namespace GPU
+} // namespace gpu
 } // namespace its
 } // namespace o2
 
