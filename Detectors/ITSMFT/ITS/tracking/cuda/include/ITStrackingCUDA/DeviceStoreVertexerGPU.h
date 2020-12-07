@@ -35,7 +35,7 @@ namespace o2
 {
 namespace its
 {
-namespace GPU
+namespace gpu
 {
 
 enum class TrackletingLayerOrder {
@@ -145,7 +145,7 @@ inline std::vector<int> DeviceStoreVertexerGPU::getNFoundTrackletsFromGPU(const 
   std::vector<int> nFoundDuplets;
   nFoundDuplets.resize(sizes[1]);
 
-  if (order == GPU::Order::fromInnermostToMiddleLayer) {
+  if (order == gpu::Order::fromInnermostToMiddleLayer) {
     mNFoundDuplets[0].copyIntoSizedVector(nFoundDuplets);
   } else {
     mNFoundDuplets[1].copyIntoSizedVector(nFoundDuplets);
@@ -165,7 +165,7 @@ inline std::vector<Tracklet> DeviceStoreVertexerGPU::getRawDupletsFromGPU(const 
   std::vector<int> nFoundDuplets;
   nFoundDuplets.resize(sizes[1]);
 
-  if (order == GPU::Order::fromInnermostToMiddleLayer) {
+  if (order == gpu::Order::fromInnermostToMiddleLayer) {
     mNFoundDuplets[0].copyIntoSizedVector(nFoundDuplets);
     mDuplets01.copyIntoSizedVector(tmpDuplets);
   } else {
@@ -188,7 +188,7 @@ inline std::vector<Tracklet> DeviceStoreVertexerGPU::getDupletsFromGPU(const Ord
   nFoundDuplets.resize(sizes[1]);
   std::vector<Tracklet> shrinkedDuplets;
 
-  if (order == GPU::Order::fromInnermostToMiddleLayer) {
+  if (order == gpu::Order::fromInnermostToMiddleLayer) {
     mNFoundDuplets[0].copyIntoSizedVector(nFoundDuplets);
     mDuplets01.copyIntoSizedVector(tmpDuplets);
   } else {
@@ -244,7 +244,7 @@ inline std::vector<int> DeviceStoreVertexerGPU::getHistogramZFromGPU()
 
 inline void DeviceStoreVertexerGPU::updateDuplets(const Order order, std::vector<Tracklet>& duplets)
 {
-  if (order == GPU::Order::fromInnermostToMiddleLayer) {
+  if (order == gpu::Order::fromInnermostToMiddleLayer) {
     mDuplets01.reset(duplets.data(), static_cast<int>(duplets.size()));
   } else {
     mDuplets12.reset(duplets.data(), static_cast<int>(duplets.size()));
@@ -253,7 +253,7 @@ inline void DeviceStoreVertexerGPU::updateDuplets(const Order order, std::vector
 
 inline void DeviceStoreVertexerGPU::updateFoundDuplets(const Order order, std::vector<int>& nDuplets)
 {
-  if (order == GPU::Order::fromInnermostToMiddleLayer) {
+  if (order == gpu::Order::fromInnermostToMiddleLayer) {
     mNFoundDuplets[0].reset(nDuplets.data(), static_cast<int>(nDuplets.size()));
   } else {
     mNFoundDuplets[1].reset(nDuplets.data(), static_cast<int>(nDuplets.size()));
@@ -296,7 +296,7 @@ inline std::vector<Line> DeviceStoreVertexerGPU::getLinesFromGPU()
   return lines;
 }
 
-} // namespace GPU
+} // namespace gpu
 } // namespace its
 } // namespace o2
 #endif //O2_ITS_TRACKING_DEVICE_STORE_VERTEXER_GPU_H_

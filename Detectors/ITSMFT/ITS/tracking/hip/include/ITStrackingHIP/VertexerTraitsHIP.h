@@ -59,15 +59,15 @@ class VertexerTraitsHIP : public VertexerTraits
 
   // GPU-specific getters
   GPUd() static const int2 getBinsPhiRectWindow(const Cluster&, float maxdeltaphi);
-  GPUhd() GPU::DeviceStoreVertexerHIP& getDeviceContext();
-  GPUhd() GPU::DeviceStoreVertexerHIP* getDeviceContextPtr();
+  GPUhd() gpu::DeviceStoreVertexerHIP& getDeviceContext();
+  GPUhd() gpu::DeviceStoreVertexerHIP* getDeviceContextPtr();
 
  protected:
   // #ifdef _ALLOW_DEBUG_TREES_ITS_
   //   StandaloneDebugger* mDebugger;
   // #endif
-  GPU::DeviceStoreVertexerHIP mStoreVertexerGPU;
-  GPU::UniquePointer<GPU::DeviceStoreVertexerHIP> mStoreVertexerGPUPtr;
+  gpu::DeviceStoreVertexerHIP mStoreVertexerGPU;
+  gpu::UniquePointer<gpu::DeviceStoreVertexerHIP> mStoreVertexerGPUPtr;
 };
 
 GPUdi() const int2 VertexerTraitsHIP::getBinsPhiRectWindow(const Cluster& currentCluster, float phiCut)
@@ -79,12 +79,12 @@ GPUdi() const int2 VertexerTraitsHIP::getBinsPhiRectWindow(const Cluster& curren
   return int2{phiBinMin, phiBinSpan};
 }
 
-GPUhdi() GPU::DeviceStoreVertexerHIP& VertexerTraitsHIP::getDeviceContext()
+GPUhdi() gpu::DeviceStoreVertexerHIP& VertexerTraitsHIP::getDeviceContext()
 {
   return *mStoreVertexerGPUPtr;
 }
 
-GPUhdi() GPU::DeviceStoreVertexerHIP* VertexerTraitsHIP::getDeviceContextPtr()
+GPUhdi() gpu::DeviceStoreVertexerHIP* VertexerTraitsHIP::getDeviceContextPtr()
 {
   return mStoreVertexerGPUPtr.get();
 }

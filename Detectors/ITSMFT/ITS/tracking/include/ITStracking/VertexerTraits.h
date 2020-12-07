@@ -231,9 +231,9 @@ GPUhdi() const int4 VertexerTraits::getBinsRect(const Cluster& currentCluster, c
     return getEmptyBinsRect();
   }
 
-  return int4{gpu::GPUCommonMath::Max(0, utils.getZBinIndex(layerIndex + 1, zRangeMin)),
+  return int4{o2::gpu::GPUCommonMath::Max(0, utils.getZBinIndex(layerIndex + 1, zRangeMin)),
               utils.getPhiBinIndex(math_utils::getNormalizedPhiCoordinate(phiRangeMin)),
-              gpu::GPUCommonMath::Min(utils.getNzBins() - 1, utils.getZBinIndex(layerIndex + 1, zRangeMax)),
+              o2::gpu::GPUCommonMath::Min(utils.getNzBins() - 1, utils.getZBinIndex(layerIndex + 1, zRangeMax)),
               utils.getPhiBinIndex(math_utils::getNormalizedPhiCoordinate(phiRangeMax))};
 }
 

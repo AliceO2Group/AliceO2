@@ -21,7 +21,7 @@ namespace o2
 {
 namespace its
 {
-namespace GPU
+namespace gpu
 {
 
 class StreamHIP final
@@ -39,7 +39,7 @@ class StreamHIP final
  private:
   hipStream_t mStream;
 };
-} // namespace GPU
+} // namespace gpu
 } // namespace its
 } // namespace o2
 

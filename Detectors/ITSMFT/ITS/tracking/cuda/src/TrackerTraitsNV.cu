@@ -42,9 +42,9 @@ using namespace constants::its2;
 GPU_DEVICE const int4 getBinsRect(const Cluster& currentCluster, const int layerIndex,
                                   const float z1, const float z2, float maxdeltaz, float maxdeltaphi)
 {
-  const float zRangeMin = gpu::GPUCommonMath::Min(z1, z2) - maxdeltaz;
+  const float zRangeMin = o2::gpu::GPUCommonMath::Min(z1, z2) - maxdeltaz;
   const float phiRangeMin = currentCluster.phiCoordinate - maxdeltaphi;
-  const float zRangeMax = gpu::GPUCommonMath::Max(z1, z2) + maxdeltaz;
+  const float zRangeMax = o2::gpu::GPUCommonMath::Max(z1, z2) + maxdeltaz;
   const float phiRangeMax = currentCluster.phiCoordinate + maxdeltaphi;
 
   if (zRangeMax < -LayersZCoordinate()[layerIndex + 1] ||
@@ -53,13 +53,13 @@ GPU_DEVICE const int4 getBinsRect(const Cluster& currentCluster, const int layer
     return getEmptyBinsRect();
   }
 
-  return int4{gpu::GPUCommonMath::Max(0, getZBinIndex(layerIndex + 1, zRangeMin)),
+  return int4{o2::gpu::GPUCommonMath::Max(0, getZBinIndex(layerIndex + 1, zRangeMin)),
               getPhiBinIndex(phiRangeMin),
-              gpu::GPUCommonMath::Min(ZBins - 1, getZBinIndex(layerIndex + 1, zRangeMax)),
+              o2::gpu::GPUCommonMath::Min(ZBins - 1, getZBinIndex(layerIndex + 1, zRangeMax)),
               getPhiBinIndex(phiRangeMax)};
 }
 
-namespace GPU
+namespace gpu
 {
 
 struct StaticTrackingParameters {
@@ -129,11 +129,11 @@ __device__ void computeLayerTracklets(DeviceStoreNV& devStore, const int layerIn
 
           const Cluster& nextCluster{nextLayerClusters[iNextLayerCluster]};
 
-          const float deltaZ{gpu::GPUCommonMath::Abs(
+          const float deltaZ{o2::gpu::GPUCommonMath::Abs(
             tanLambda * (nextCluster.rCoordinate - currentCluster.rCoordinate) + currentCluster.zCoordinate - nextCluster.zCoordinate)};
-          const float deltaPhi{gpu::GPUCommonMath::Abs(currentCluster.phiCoordinate - nextCluster.phiCoordinate)};
+          const float deltaPhi{o2::gpu::GPUCommonMath::Abs(currentCluster.phiCoordinate - nextCluster.phiCoordinate)};
 
-          if (deltaZ < kTrkPar.TrackletMaxDeltaZ[layerIndex] && (deltaPhi < kTrkPar.TrackletMaxDeltaPhi || gpu::GPUCommonMath::Abs(deltaPhi - constants::math::TwoPi) < kTrkPar.TrackletMaxDeltaPhi)) {
+          if (deltaZ < kTrkPar.TrackletMaxDeltaZ[layerIndex] && (deltaPhi < kTrkPar.TrackletMaxDeltaPhi || o2::gpu::GPUCommonMath::Abs(deltaPhi - constants::math::TwoPi) < kTrkPar.TrackletMaxDeltaPhi)) {
 
             cooperative_groups::coalesced_group threadGroup = cooperative_groups::coalesced_threads();
             int currentIndex{};
@@ -189,14 +189,14 @@ __device__ void computeLayerCells(DeviceStoreNV& devStore, const int layerIndex,
            iNextLayerTracklet < nextLayerTrackletsNum && devStore.getTracklets()[layerIndex + 1][iNextLayerTracklet].firstClusterIndex == nextLayerClusterIndex; ++iNextLayerTracklet) {
 
         const Tracklet& nextTracklet{devStore.getTracklets()[layerIndex + 1][iNextLayerTracklet]};
-        const float deltaTanLambda{gpu::GPUCommonMath::Abs(currentTracklet.tanLambda - nextTracklet.tanLambda)};
-        const float deltaPhi{gpu::GPUCommonMath::Abs(currentTracklet.phiCoordinate - nextTracklet.phiCoordinate)};
+        const float deltaTanLambda{o2::gpu::GPUCommonMath::Abs(currentTracklet.tanLambda - nextTracklet.tanLambda)};
+        const float deltaPhi{o2::gpu::GPUCommonMath::Abs(currentTracklet.phiCoordinate - nextTracklet.phiCoordinate)};
 
-        if (deltaTanLambda < kTrkPar.CellMaxDeltaTanLambda && (deltaPhi < kTrkPar.CellMaxDeltaPhi || gpu::GPUCommonMath::Abs(deltaPhi - constants::math::TwoPi) < kTrkPar.CellMaxDeltaPhi)) {
+        if (deltaTanLambda < kTrkPar.CellMaxDeltaTanLambda && (deltaPhi < kTrkPar.CellMaxDeltaPhi || o2::gpu::GPUCommonMath::Abs(deltaPhi - constants::math::TwoPi) < kTrkPar.CellMaxDeltaPhi)) {
 
           const float averageTanLambda{0.5f * (currentTracklet.tanLambda + nextTracklet.tanLambda)};
           const float directionZIntersection{-averageTanLambda * firstCellCluster.rCoordinate + firstCellCluster.zCoordinate};
-          const float deltaZ{gpu::GPUCommonMath::Abs(directionZIntersection - primaryVertex.z)};
+          const float deltaZ{o2::gpu::GPUCommonMath::Abs(directionZIntersection - primaryVertex.z)};
 
           if (deltaZ < kTrkPar.CellMaxDeltaZ[layerIndex]) {
 
@@ -210,20 +210,20 @@ __device__ void computeLayerCells(DeviceStoreNV& devStore, const int layerIndex,
 
             float3 cellPlaneNormalVector{math_utils::crossProduct(firstDeltaVector, secondDeltaVector)};
 
-            const float vectorNorm{gpu::GPUCommonMath::Sqrt(
+            const float vectorNorm{o2::gpu::GPUCommonMath::Sqrt(
               cellPlaneNormalVector.x * cellPlaneNormalVector.x + cellPlaneNormalVector.y * cellPlaneNormalVector.y + cellPlaneNormalVector.z * cellPlaneNormalVector.z)};
 
-            if (!(vectorNorm < constants::math::FloatMinThreshold || gpu::GPUCommonMath::Abs(cellPlaneNormalVector.z) < constants::math::FloatMinThreshold)) {
+            if (!(vectorNorm < constants::math::FloatMinThreshold || o2::gpu::GPUCommonMath::Abs(cellPlaneNormalVector.z) < constants::math::FloatMinThreshold)) {
 
               const float inverseVectorNorm{1.0f / vectorNorm};
               const float3 normalizedPlaneVector{cellPlaneNormalVector.x * inverseVectorNorm, cellPlaneNormalVector.y * inverseVectorNorm, cellPlaneNormalVector.z * inverseVectorNorm};
               const float planeDistance{-normalizedPlaneVector.x * (secondCellCluster.xCoordinate - primaryVertex.x) - (normalizedPlaneVector.y * secondCellCluster.yCoordinate - primaryVertex.y) - normalizedPlaneVector.z * secondCellClusterQuadraticRCoordinate};
               const float normalizedPlaneVectorQuadraticZCoordinate{normalizedPlaneVector.z * normalizedPlaneVector.z};
-              const float cellTrajectoryRadius{gpu::GPUCommonMath::Sqrt(
+              const float cellTrajectoryRadius{o2::gpu::GPUCommonMath::Sqrt(
                 (1.0f - normalizedPlaneVectorQuadraticZCoordinate - 4.0f * planeDistance * normalizedPlaneVector.z) / (4.0f * normalizedPlaneVectorQuadraticZCoordinate))};
               const float2 circleCenter{-0.5f * normalizedPlaneVector.x / normalizedPlaneVector.z, -0.5f * normalizedPlaneVector.y / normalizedPlaneVector.z};
-              const float distanceOfClosestApproach{gpu::GPUCommonMath::Abs(
-                cellTrajectoryRadius - gpu::GPUCommonMath::Sqrt(circleCenter.x * circleCenter.x + circleCenter.y * circleCenter.y))};
+              const float distanceOfClosestApproach{o2::gpu::GPUCommonMath::Abs(
+                cellTrajectoryRadius - o2::gpu::GPUCommonMath::Sqrt(circleCenter.x * circleCenter.x + circleCenter.y * circleCenter.y))};
 
               if (distanceOfClosestApproach <= kTrkPar.CellMaxDCA[layerIndex]) {
 
@@ -303,7 +303,7 @@ __global__ void sortCellsKernel(DeviceStoreNV& devStore, const int layerIndex,
   }
 }
 
-} // namespace GPU
+} // namespace gpu
 
 TrackerTraits* createTrackerTraitsNV()
 {
@@ -324,10 +324,10 @@ void TrackerTraitsNV::computeLayerTracklets()
 {
   PrimaryVertexContextNV* primaryVertexContext = static_cast<PrimaryVertexContextNV*>(mPrimaryVertexContext);
 
-  // cudaMemcpyToSymbol(GPU::kTrkPar, &mTrkParams, sizeof(TrackingParameters));
+  // cudaMemcpyToSymbol(gpu::kTrkPar, &mTrkParams, sizeof(TrackingParameters));
   std::array<size_t, constants::its2::CellsPerRoad> tempSize;
   std::array<int, constants::its2::CellsPerRoad> trackletsNum;
-  std::array<GPU::Stream, constants::its2::TrackletsPerRoad> streamArray;
+  std::array<gpu::Stream, constants::its2::TrackletsPerRoad> streamArray;
 
   for (int iLayer{0}; iLayer < constants::its2::CellsPerRoad; ++iLayer) {
 
@@ -347,19 +347,19 @@ void TrackerTraitsNV::computeLayerTracklets()
 
   for (int iLayer{0}; iLayer < constants::its2::TrackletsPerRoad; ++iLayer) {
 
-    const GPU::DeviceProperties& deviceProperties = GPU::Context::getInstance().getDeviceProperties();
+    const gpu::DeviceProperties& deviceProperties = gpu::Context::getInstance().getDeviceProperties();
     const int clustersNum{static_cast<int>(primaryVertexContext->getClusters()[iLayer].size())};
-    dim3 threadsPerBlock{GPU::Utils::Host::getBlockSize(clustersNum, 1, 192)};
-    dim3 blocksGrid{GPU::Utils::Host::getBlocksGrid(threadsPerBlock, clustersNum)};
+    dim3 threadsPerBlock{gpu::Utils::Host::getBlockSize(clustersNum, 1, 192)};
+    dim3 blocksGrid{gpu::Utils::Host::getBlocksGrid(threadsPerBlock, clustersNum)};
 
     if (iLayer == 0) {
 
-      GPU::layerTrackletsKernel<<<blocksGrid, threadsPerBlock, 0, streamArray[iLayer].get()>>>(primaryVertexContext->getDeviceContext(),
+      gpu::layerTrackletsKernel<<<blocksGrid, threadsPerBlock, 0, streamArray[iLayer].get()>>>(primaryVertexContext->getDeviceContext(),
                                                                                                iLayer, primaryVertexContext->getDeviceTracklets()[iLayer].getWeakCopy());
 
     } else {
 
-      GPU::layerTrackletsKernel<<<blocksGrid, threadsPerBlock, 0, streamArray[iLayer].get()>>>(primaryVertexContext->getDeviceContext(),
+      gpu::layerTrackletsKernel<<<blocksGrid, threadsPerBlock, 0, streamArray[iLayer].get()>>>(primaryVertexContext->getDeviceContext(),
                                                                                                iLayer, primaryVertexContext->getTempTrackletArray()[iLayer - 1].getWeakCopy());
     }
 
@@ -390,10 +390,10 @@ void TrackerTraitsNV::computeLayerTracklets()
                                   primaryVertexContext->getDeviceTrackletsLookupTable()[iLayer].get(),
                                   primaryVertexContext->getClusters()[iLayer + 1].size(), streamArray[iLayer + 1].get());
 
-    dim3 threadsPerBlock{GPU::Utils::Host::getBlockSize(trackletsNum[iLayer])};
-    dim3 blocksGrid{GPU::Utils::Host::getBlocksGrid(threadsPerBlock, trackletsNum[iLayer])};
+    dim3 threadsPerBlock{gpu::Utils::Host::getBlockSize(trackletsNum[iLayer])};
+    dim3 blocksGrid{gpu::Utils::Host::getBlocksGrid(threadsPerBlock, trackletsNum[iLayer])};
 
-    GPU::sortTrackletsKernel<<<blocksGrid, threadsPerBlock, 0, streamArray[iLayer + 1].get()>>>(primaryVertexContext->getDeviceContext(),
+    gpu::sortTrackletsKernel<<<blocksGrid, threadsPerBlock, 0, streamArray[iLayer + 1].get()>>>(primaryVertexContext->getDeviceContext(),
                                                                                                 iLayer + 1, primaryVertexContext->getTempTrackletArray()[iLayer].getWeakCopy());
 
     cudaError_t error = cudaGetLastError();
@@ -416,7 +416,7 @@ void TrackerTraitsNV::computeLayerCells()
   std::array<size_t, constants::its2::CellsPerRoad - 1> tempSize;
   std::array<int, constants::its2::CellsPerRoad - 1> trackletsNum;
   std::array<int, constants::its2::CellsPerRoad - 1> cellsNum;
-  std::array<GPU::Stream, constants::its2::CellsPerRoad> streamArray;
+  std::array<gpu::Stream, constants::its2::CellsPerRoad> streamArray;
 
   for (int iLayer{0}; iLayer < constants::its2::CellsPerRoad - 1; ++iLayer) {
 
@@ -437,22 +437,22 @@ void TrackerTraitsNV::computeLayerCells()
   cudaDeviceSynchronize();
 
   for (int iLayer{0}; iLayer < constants::its2::CellsPerRoad; ++iLayer) {
-    const GPU::DeviceProperties& deviceProperties = GPU::Context::getInstance().getDeviceProperties();
+    const gpu::DeviceProperties& deviceProperties = gpu::Context::getInstance().getDeviceProperties();
     const int trackletsSize = primaryVertexContext->getDeviceTracklets()[iLayer].getSizeFromDevice();
     if (trackletsSize == 0) {
       continue;
     }
-    dim3 threadsPerBlock{GPU::Utils::Host::getBlockSize(trackletsSize)};
-    dim3 blocksGrid{GPU::Utils::Host::getBlocksGrid(threadsPerBlock, trackletsSize)};
+    dim3 threadsPerBlock{gpu::Utils::Host::getBlockSize(trackletsSize)};
+    dim3 blocksGrid{gpu::Utils::Host::getBlocksGrid(threadsPerBlock, trackletsSize)};
 
     if (iLayer == 0) {
 
-      GPU::layerCellsKernel<<<blocksGrid, threadsPerBlock, 0, streamArray[iLayer].get()>>>(primaryVertexContext->getDeviceContext(),
+      gpu::layerCellsKernel<<<blocksGrid, threadsPerBlock, 0, streamArray[iLayer].get()>>>(primaryVertexContext->getDeviceContext(),
                                                                                            iLayer, primaryVertexContext->getDeviceCells()[iLayer].getWeakCopy());
 
     } else {
 
-      GPU::layerCellsKernel<<<blocksGrid, threadsPerBlock, 0, streamArray[iLayer].get()>>>(primaryVertexContext->getDeviceContext(),
+      gpu::layerCellsKernel<<<blocksGrid, threadsPerBlock, 0, streamArray[iLayer].get()>>>(primaryVertexContext->getDeviceContext(),
                                                                                            iLayer, primaryVertexContext->getTempCellArray()[iLayer - 1].getWeakCopy());
     }
 
@@ -482,10 +482,10 @@ void TrackerTraitsNV::computeLayerCells()
                                   primaryVertexContext->getDeviceCellsLookupTable()[iLayer].get(), trackletsNum[iLayer],
                                   streamArray[iLayer + 1].get());
 
-    dim3 threadsPerBlock{GPU::Utils::Host::getBlockSize(trackletsNum[iLayer])};
-    dim3 blocksGrid{GPU::Utils::Host::getBlocksGrid(threadsPerBlock, trackletsNum[iLayer])};
+    dim3 threadsPerBlock{gpu::Utils::Host::getBlockSize(trackletsNum[iLayer])};
+    dim3 blocksGrid{gpu::Utils::Host::getBlocksGrid(threadsPerBlock, trackletsNum[iLayer])};
 
-    GPU::sortCellsKernel<<<blocksGrid, threadsPerBlock, 0, streamArray[iLayer + 1].get()>>>(primaryVertexContext->getDeviceContext(),
+    gpu::sortCellsKernel<<<blocksGrid, threadsPerBlock, 0, streamArray[iLayer + 1].get()>>>(primaryVertexContext->getDeviceContext(),
                                                                                             iLayer + 1, primaryVertexContext->getTempCellArray()[iLayer].getWeakCopy());
 
     cudaError_t error = cudaGetLastError();

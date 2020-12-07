@@ -21,7 +21,7 @@ namespace o2
 {
 namespace its
 {
-namespace GPU
+namespace gpu
 {
 
 class Stream final
@@ -39,7 +39,7 @@ class Stream final
  private:
   GPUStream mStream;
 };
-} // namespace GPU
+} // namespace gpu
 } // namespace its
 } // namespace o2
 

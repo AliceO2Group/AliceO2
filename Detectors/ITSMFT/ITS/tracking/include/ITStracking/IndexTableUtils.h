@@ -85,7 +85,7 @@ GPUhdi() int IndexTableUtils::getPhiBinIndex(const float currentPhi) const
 
 GPUhdi() int IndexTableUtils::getBinIndex(const int zIndex, const int phiIndex) const
 {
-  return gpu::GPUCommonMath::Min(phiIndex * mNzBins + zIndex, mNzBins * mNphiBins - 1);
+  return o2::gpu::GPUCommonMath::Min(phiIndex * mNzBins + zIndex, mNzBins * mNphiBins - 1);
 }
 
 GPUhdi() int IndexTableUtils::countRowSelectedBins(const int* indexTable, const int phiBinIndex,

@@ -18,7 +18,7 @@ namespace o2
 {
 namespace its
 {
-namespace GPU
+namespace gpu
 {
 
 Stream::Stream()
@@ -36,6 +36,6 @@ const GPUStream& Stream::get() const
   return mStream;
 }
 
-} // namespace GPU
+} // namespace gpu
 } // namespace its
 } // namespace o2

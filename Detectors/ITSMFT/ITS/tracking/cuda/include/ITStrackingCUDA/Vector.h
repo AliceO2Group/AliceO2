@@ -28,7 +28,7 @@ namespace o2
 {
 namespace its
 {
-namespace GPU
+namespace gpu
 {
 
 template <typename T>
@@ -324,7 +324,7 @@ GPU_HOST_DEVICE void Vector<T>::dump()
   printf("mArrayPointer = %p\nmDeviceSize   = %p\nmCapacity     = %d\nmIsWeak       = %s\n",
          mArrayPointer, mDeviceSize, mCapacity, mIsWeak ? "true" : "false");
 }
-} // namespace GPU
+} // namespace gpu
 } // namespace its
 } // namespace o2
 

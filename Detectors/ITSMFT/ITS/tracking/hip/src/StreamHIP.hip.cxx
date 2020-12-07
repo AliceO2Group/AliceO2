@@ -18,7 +18,7 @@ namespace o2
 {
 namespace its
 {
-namespace GPU
+namespace gpu
 {
 
 StreamHIP::StreamHIP()
@@ -36,6 +36,6 @@ const hipStream_t& StreamHIP::get() const
   return mStream;
 }
 
-} // namespace GPU
+} // namespace gpu
 } // namespace its
 } // namespace o2

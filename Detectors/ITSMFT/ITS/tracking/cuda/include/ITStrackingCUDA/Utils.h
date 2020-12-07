@@ -22,7 +22,7 @@ namespace o2
 {
 namespace its
 {
-namespace GPU
+namespace gpu
 {
 
 namespace Utils
@@ -58,7 +58,7 @@ GPUd() int shareToWarp(const int, const int);
 GPUd() int gpuAtomicAdd(int*, const int);
 } // namespace Device
 } // namespace Utils
-} // namespace GPU
+} // namespace gpu
 } // namespace its
 } // namespace o2
 

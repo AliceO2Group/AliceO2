@@ -88,8 +88,8 @@ GPUhdi() Line::Line(const float firstPoint[3], const float secondPoint[3])
     cosinesDirector[i] = secondPoint[i] - firstPoint[i];
   }
 
-  float inverseNorm{1.f / gpu::CAMath::Sqrt(cosinesDirector[0] * cosinesDirector[0] + cosinesDirector[1] * cosinesDirector[1] +
-                                            cosinesDirector[2] * cosinesDirector[2])};
+  float inverseNorm{1.f / o2::gpu::CAMath::Sqrt(cosinesDirector[0] * cosinesDirector[0] + cosinesDirector[1] * cosinesDirector[1] +
+                                                cosinesDirector[2] * cosinesDirector[2])};
 
   for (int index{0}; index < 3; ++index) {
     cosinesDirector[index] *= inverseNorm;
@@ -106,8 +106,8 @@ GPUhdi() Line::Line(const Tracklet& tracklet, const Cluster* innerClusters, cons
   cosinesDirector[1] = outerClusters[tracklet.secondClusterIndex].yCoordinate - innerClusters[tracklet.firstClusterIndex].yCoordinate;
   cosinesDirector[2] = outerClusters[tracklet.secondClusterIndex].zCoordinate - innerClusters[tracklet.firstClusterIndex].zCoordinate;
 
-  float inverseNorm{1.f / gpu::CAMath::Sqrt(cosinesDirector[0] * cosinesDirector[0] + cosinesDirector[1] * cosinesDirector[1] +
-                                            cosinesDirector[2] * cosinesDirector[2])};
+  float inverseNorm{1.f / o2::gpu::CAMath::Sqrt(cosinesDirector[0] * cosinesDirector[0] + cosinesDirector[1] * cosinesDirector[1] +
+                                                cosinesDirector[2] * cosinesDirector[2])};
 
   for (int index{0}; index < 3; ++index) {
     cosinesDirector[index] *= inverseNorm;
@@ -125,8 +125,8 @@ GPUhdi() Line::Line(const Tracklet& tracklet, const Cluster* innerClusters, cons
   cosinesDirector[1] = outerClusters[tracklet.secondClusterIndex].yCoordinate - innerClusters[tracklet.firstClusterIndex].yCoordinate;
   cosinesDirector[2] = outerClusters[tracklet.secondClusterIndex].zCoordinate - innerClusters[tracklet.firstClusterIndex].zCoordinate;
 
-  float inverseNorm{1.f / gpu::CAMath::Sqrt(cosinesDirector[0] * cosinesDirector[0] + cosinesDirector[1] * cosinesDirector[1] +
-                                            cosinesDirector[2] * cosinesDirector[2])};
+  float inverseNorm{1.f / o2::gpu::CAMath::Sqrt(cosinesDirector[0] * cosinesDirector[0] + cosinesDirector[1] * cosinesDirector[1] +
+                                                cosinesDirector[2] * cosinesDirector[2])};
 
   for (int index{0}; index < 3; ++index)
     cosinesDirector[index] *= inverseNorm;
@@ -145,7 +145,7 @@ inline float Line::getDistanceFromPoint(const Line& line, const std::array<float
     DCASquared += (line.originPoint[i] - point[i] + line.cosinesDirector[i] * cdelta) *
                   (line.originPoint[i] - point[i] + line.cosinesDirector[i] * cdelta);
   }
-  return gpu::CAMath::Sqrt(DCASquared);
+  return o2::gpu::CAMath::Sqrt(DCASquared);
 }
 
 GPUhdi() float Line::getDistanceFromPoint(const Line& line, const float point[3])
@@ -159,7 +159,7 @@ GPUhdi() float Line::getDistanceFromPoint(const Line& line, const float point[3]
     DCASquared += (line.originPoint[i] - point[i] + line.cosinesDirector[i] * cdelta) *
                   (line.originPoint[i] - point[i] + line.cosinesDirector[i] * cdelta);
   }
-  return gpu::CAMath::Sqrt(DCASquared);
+  return o2::gpu::CAMath::Sqrt(DCASquared);
 }
 
 GPUhdi() float Line::getDCA(const Line& firstLine, const Line& secondLine, const float precision)
@@ -178,7 +178,7 @@ GPUhdi() float Line::getDCA(const Line& firstLine, const Line& secondLine, const
     distance += (secondLine.originPoint[i] - firstLine.originPoint[i]) * normalVector[i];
   }
   if (norm > precision) {
-    return gpu::CAMath::Abs(distance / gpu::CAMath::Sqrt(norm));
+    return o2::gpu::CAMath::Abs(distance / o2::gpu::CAMath::Sqrt(norm));
   } else {
 #if defined(__CUDACC__) || defined(__HIPCC__)
     float stdOriginPoint[3];

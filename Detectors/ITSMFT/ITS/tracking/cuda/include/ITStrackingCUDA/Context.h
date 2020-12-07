@@ -23,7 +23,7 @@ namespace o2
 {
 namespace its
 {
-namespace GPU
+namespace gpu
 {
 
 struct DeviceProperties final {
@@ -62,7 +62,7 @@ class Context final
   int mDevicesNum;
   std::vector<DeviceProperties> mDeviceProperties;
 };
-} // namespace GPU
+} // namespace gpu
 } // namespace its
 } // namespace o2
 

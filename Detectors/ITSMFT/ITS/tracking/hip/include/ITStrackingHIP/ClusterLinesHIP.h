@@ -23,7 +23,7 @@ namespace o2
 {
 namespace its
 {
-namespace GPU
+namespace gpu
 {
 
 struct GPUVertex final {
@@ -67,7 +67,7 @@ class ClusterLinesHIP final
   float mVertex[3];          // cluster centroid position
 };
 
-} // namespace GPU
+} // namespace gpu
 } // namespace its
 } // namespace o2
 #endif /* O2_ITS_TRACKING_INCLUDE_CLUSTERLINES_HIP_H_ */

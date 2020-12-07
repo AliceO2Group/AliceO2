@@ -80,8 +80,8 @@ void PrimaryVertexContext::initialise(const MemoryParameters& memParam, const Tr
         CA_DEBUGGER(assert(zBin > 0));
         h.phi = phi;
         h.r = math_utils::calculateRCoordinate(x, y);
-        mMinR[iLayer] = gpu::GPUCommonMath::Min(h.r, mMinR[iLayer]);
-        mMaxR[iLayer] = gpu::GPUCommonMath::Max(h.r, mMaxR[iLayer]);
+        mMinR[iLayer] = o2::gpu::GPUCommonMath::Min(h.r, mMinR[iLayer]);
+        mMaxR[iLayer] = o2::gpu::GPUCommonMath::Max(h.r, mMaxR[iLayer]);
         h.bin = bin;
         h.ind = clsPerBin[bin]++;
       }

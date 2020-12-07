@@ -18,7 +18,7 @@ namespace o2
 {
 namespace its
 {
-namespace GPU
+namespace gpu
 {
 
 GPUd() ClusterLinesHIP::ClusterLinesHIP(const Line& firstLine, const Line& secondLine)
@@ -133,6 +133,6 @@ GPUd() void ClusterLinesHIP::computeClusterCentroid()
                  mBMatrix[0] * (mAMatrix[1] * mAMatrix[4] - mAMatrix[2] * mAMatrix[3])) /
                determinant;
 }
-} // namespace GPU
+} // namespace gpu
 } // namespace its
 } // namespace o2
