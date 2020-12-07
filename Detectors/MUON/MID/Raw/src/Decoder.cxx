@@ -73,7 +73,7 @@ std::unique_ptr<Decoder> createDecoder(const o2::header::RDHAny& rdh, bool isDeb
 {
   /// Creates the decoder from the RDH info
   bool isBare = (o2::raw::RDHUtils::getLinkID(rdh) != raw::sUserLogicLinkID);
-  return std::make_unique<Decoder>(isDebugMode, isBare, electronicsDelay, crateMasks);
+  return std::make_unique<Decoder>(isDebugMode, isBare, electronicsDelay, crateMasks, feeIdConfig);
 }
 std::unique_ptr<Decoder> createDecoder(const o2::header::RDHAny& rdh, bool isDebugMode, const char* electronicsDelayFile, const char* crateMasksFile, const char* feeIdConfigFile)
 {
