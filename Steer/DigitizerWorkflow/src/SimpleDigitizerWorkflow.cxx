@@ -576,7 +576,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   // the CPV part
   if (isEnabled(o2::detectors::DetID::CPV)) {
     detList.emplace_back(o2::detectors::DetID::CPV);
-    // connect the PHOS digitization
+    // connect the CPV digitization
     specs.emplace_back(o2::cpv::getCPVDigitizerSpec(fanoutsize++, mctruth));
     // add PHOS writer
     specs.emplace_back(o2::cpv::getCPVDigitWriterSpec(mctruth));

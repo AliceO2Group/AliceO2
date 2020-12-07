@@ -19,13 +19,13 @@
 
 using namespace o2::cpv;
 
-BadChannelMap::BadChannelMap(int /*dummy*/)
+BadChannelMap::BadChannelMap(short /*dummy*/)
 {
 
   //Mark few channels as bad for test peurposes
   for (short i = 0; i < 60; i++) {
     //module 2
-    short channelID = 3584 + i * 57;
+    unsigned short channelID = 3584 + i * 57;
     mBadCells.set(channelID);
     channelID = 3640 + i * 55;
     mBadCells.set(channelID);
@@ -33,7 +33,7 @@ BadChannelMap::BadChannelMap(int /*dummy*/)
 
   for (short i = 0; i < 16; i++) {
     //module 3
-    int channelID = 8972 + i * 57;
+    unsigned short channelID = 8972 + i * 57;
     mBadCells.set(channelID);
     channelID = 8092 + i * 57;
     mBadCells.set(channelID);
@@ -44,7 +44,7 @@ BadChannelMap::BadChannelMap(int /*dummy*/)
   }
 }
 
-void BadChannelMap::getHistogramRepresentation(char module, TH2* h) const
+void BadChannelMap::getHistogramRepresentation(short module, TH2* h) const
 {
   if (!h) {
     LOG(ERROR) << "provide histogram to be filled";
@@ -60,7 +60,7 @@ void BadChannelMap::getHistogramRepresentation(char module, TH2* h) const
   h->Reset();
 
   short relid[3] = {module, 1, 1};
-  short absId;
+  unsigned short absId;
   for (short ix = 1; ix <= MAXX; ix++) {
     relid[1] = ix;
     for (short iz = 1; iz <= MAXZ; iz++) {

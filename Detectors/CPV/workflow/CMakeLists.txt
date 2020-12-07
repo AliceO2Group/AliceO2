@@ -13,10 +13,24 @@ o2_add_library(CPVWorkflow
                        src/PublisherSpec.cxx
                        src/ClusterizerSpec.cxx
                        src/DigitsPrinterSpec.cxx
-               PUBLIC_LINK_LIBRARIES O2::Framework O2::DataFormatsCPV 
-                                     O2::DPLUtils O2::CPVBase O2::CPVCalib O2::CPVSimulation O2::CPVReconstruction O2::Algorithm)
+                       src/RawToDigitConverterSpec.cxx
+                       src/EntropyEncoderSpec.cxx
+                       src/EntropyDecoderSpec.cxx
+               PUBLIC_LINK_LIBRARIES O2::Framework 
+                                     O2::DataFormatsCPV 
+                                     O2::DPLUtils 
+                                     O2::CPVBase 
+                                     O2::CPVCalib 
+                                     O2::CPVSimulation 
+                                     O2::CPVReconstruction 
+                                     O2::Algorithm)
 
 o2_add_executable(reco-workflow
                   COMPONENT_NAME cpv
                   SOURCES src/cpv-reco-workflow.cxx
+                  PUBLIC_LINK_LIBRARIES O2::CPVWorkflow)
+
+o2_add_executable(entropy-encoder-workflow
+                  COMPONENT_NAME cpv
+                  SOURCES src/entropy-encoder-workflow.cxx
                   PUBLIC_LINK_LIBRARIES O2::CPVWorkflow)
