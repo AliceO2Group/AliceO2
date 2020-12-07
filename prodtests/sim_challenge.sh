@@ -124,7 +124,7 @@ if [ "$doreco" == "1" ]; then
 
   echo "Running MFT reco flow"
   #needs MFT digitized data
-  # taskwrapper mftreco.log  o2-mft-reco-workflow  $gloOpt
+  taskwrapper mftreco.log  o2-mft-reco-workflow  $gloOpt
   echo "Return status of mftreco: $?"
 
   echo "Running FT0 reco flow"
