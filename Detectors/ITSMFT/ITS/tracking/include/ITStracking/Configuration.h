@@ -72,6 +72,9 @@ struct TrackingParameters {
   /// Neighbour finding cuts
   std::vector<float> NeighbourMaxDeltaCurvature = {0.008f, 0.0025f, 0.003f, 0.0035f};
   std::vector<float> NeighbourMaxDeltaN = {0.002f, 0.0090f, 0.002f, 0.005f};
+  /// Fitter parameters
+  bool UseMatBudLUT = false;
+  std::array<float, 2> FitIterationMaxChi2 = {o2::constants::math::VeryBig, o2::constants::math::VeryBig};
 };
 
 struct MemoryParameters {

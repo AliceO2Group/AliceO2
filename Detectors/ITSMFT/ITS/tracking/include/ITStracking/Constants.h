@@ -21,6 +21,7 @@
 #endif
 
 #include "ITStracking/Definitions.h"
+#include "CommonConstants/MathConstants.h"
 #include "GPUCommonMath.h"
 #include "GPUCommonDef.h"
 
