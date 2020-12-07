@@ -59,11 +59,11 @@ class VertexerTraitsGPU : public VertexerTraits
 
   // GPU-specific getters
   GPUd() static const int2 getBinsPhiRectWindow(const Cluster&, float maxdeltaphi);
-  GPUhd() GPU::DeviceStoreVertexerGPU& getDeviceContext();
+  GPUhd() gpu::DeviceStoreVertexerGPU& getDeviceContext();
 
  protected:
-  GPU::DeviceStoreVertexerGPU mStoreVertexerGPU;
-  GPU::UniquePointer<GPU::DeviceStoreVertexerGPU> mStoreVertexerGPUPtr;
+  gpu::DeviceStoreVertexerGPU mStoreVertexerGPU;
+  gpu::UniquePointer<gpu::DeviceStoreVertexerGPU> mStoreVertexerGPUPtr;
 };
 
 inline GPUd() const int2 VertexerTraitsGPU::getBinsPhiRectWindow(const Cluster& currentCluster, float phiCut)
@@ -75,7 +75,7 @@ inline GPUd() const int2 VertexerTraitsGPU::getBinsPhiRectWindow(const Cluster& 
   return int2{phiBinMin, phiBinSpan};
 }
 
-inline GPU::DeviceStoreVertexerGPU& VertexerTraitsGPU::getDeviceContext()
+inline gpu::DeviceStoreVertexerGPU& VertexerTraitsGPU::getDeviceContext()
 {
   return *mStoreVertexerGPUPtr;
 }

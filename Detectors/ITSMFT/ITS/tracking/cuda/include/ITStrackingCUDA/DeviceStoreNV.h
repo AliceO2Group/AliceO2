@@ -30,7 +30,7 @@ namespace o2
 namespace its
 {
 
-namespace GPU
+namespace gpu
 {
 
 class DeviceStoreNV final
@@ -131,7 +131,7 @@ GPU_HOST_DEVICE inline float DeviceStoreNV::getRmax(int layer)
   return mRmax[layer];
 }
 
-} // namespace GPU
+} // namespace gpu
 } // namespace its
 } // namespace o2
 

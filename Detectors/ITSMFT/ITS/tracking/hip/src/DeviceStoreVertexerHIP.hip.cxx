@@ -21,7 +21,7 @@ namespace o2
 {
 namespace its
 {
-namespace GPU
+namespace gpu
 {
 GPUg() void defaultInitArrayKernel(int* array, const size_t arraySize, const int initValue = 0)
 {
@@ -65,7 +65,7 @@ DeviceStoreVertexerHIP::DeviceStoreVertexerHIP()
   }
   mSizes = VectorHIP<int>{constants::its::LayersNumberVertexer};
 #endif
-} // namespace GPU
+} // namespace gpu
 
 UniquePointer<DeviceStoreVertexerHIP> DeviceStoreVertexerHIP::initialise(const std::array<std::vector<Cluster>, constants::its::LayersNumberVertexer>& clusters,
                                                                          const std::array<std::array<int, constants::its2::ZBins * constants::its2::PhiBins + 1>,
@@ -105,6 +105,6 @@ GPUd() const VectorHIP<int>& DeviceStoreVertexerHIP::getIndexTable(const Vertexe
   return mIndexTables[1];
 }
 
-} // namespace GPU
+} // namespace gpu
 } // namespace its
 } // namespace o2

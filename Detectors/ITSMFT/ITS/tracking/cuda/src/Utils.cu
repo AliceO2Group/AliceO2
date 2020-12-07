@@ -70,7 +70,7 @@ namespace o2
 {
 namespace its
 {
-namespace GPU
+namespace gpu
 {
 
 void Utils::Host::checkCUDAError(const cudaError_t error, const char* file, const int line)
@@ -190,6 +190,6 @@ GPUd() int Utils::Device::gpuAtomicAdd(int* p, const int incrementSize)
   return atomicAdd(p, incrementSize);
 }
 
-} // namespace GPU
+} // namespace gpu
 } // namespace its
 } // namespace o2
