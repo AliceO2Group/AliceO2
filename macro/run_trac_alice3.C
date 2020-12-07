@@ -78,7 +78,7 @@ void run_trac_alice3(const string hitsFileName = "o2sim_HitsIT4.root")
   trackParams[0].NLayers = 10;
   trackParams[0].MinTrackLength = 10;
 
-  std::vector<float> LayerRadii = {1.8f, 2.4f, 3.0f, 4.0f, 5.0f, 6.0f, 7.0f, 8.0f, 9.0f, 10.0f};
+  std::vector<float> LayerRadii = {1.8f, 2.8f, 3.8f, 8.0f, 20.0f, 25.0f, 40.0f, 55.f, 80.0f, 100.f};
   std::vector<float> LayerZ(10);
   for (int i{0}; i < 10; ++i)
     LayerZ[i] = getDetLengthFromEta(1.44, LayerRadii[i]) + 1.;
@@ -110,8 +110,8 @@ void run_trac_alice3(const string hitsFileName = "o2sim_HitsIT4.root")
     memParams[i] = memParams[i - 1];
     trackParams[i] = trackParams[i - 1];
     // trackParams[i].MinTrackLength -= 2;
-    trackParams[i].TrackletMaxDeltaPhi *= 3;
-    trackParams[i].CellMaxDeltaPhi *= 3;
+    trackParams[i].TrackletMaxDeltaPhi = trackParams[i].TrackletMaxDeltaPhi * 3 > TMath::Pi() ? TMath::Pi() : trackParams[i].TrackletMaxDeltaPhi * 3;
+    trackParams[i].CellMaxDeltaPhi = trackParams[i].CellMaxDeltaPhi * 3 > TMath::Pi() ? TMath::Pi() : trackParams[i].CellMaxDeltaPhi * 3;
     trackParams[i].CellMaxDeltaTanLambda *= 3;
     for (auto& val : trackParams[i].TrackletMaxDeltaZ)
       val *= 3;
