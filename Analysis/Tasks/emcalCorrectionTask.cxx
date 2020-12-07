@@ -111,7 +111,7 @@ struct EmcalCorrectionTask {
     // Convert aod::Calo to o2::emcal::Cell which can be used with the clusterizer.
     // In particular, we need to filter only EMCAL cells.
     mEmcalCells.clear();
-    for (auto & cell : cells) {
+    for (auto& cell : cells) {
       if (cell.caloType() != selectedCellType || cell.bc() != collision.bc()) {
         //LOG(DEBUG) << "Rejected";
         continue;
@@ -123,13 +123,12 @@ struct EmcalCorrectionTask {
         cell.cellNumber(),
         cell.amplitude(),
         cell.time(),
-        o2::emcal::intToChannelType(cell.cellType())
-      ));
+        o2::emcal::intToChannelType(cell.cellType())));
     }
 
     // Cell QA
     // For convenience, use the clusterizer stored geometry to get the eta-phi
-    for (auto & cell : mEmcalCells) {
+    for (auto& cell : mEmcalCells) {
       hCellE->Fill(cell.getEnergy());
       hCellTowerID->Fill(cell.getTower());
       auto res = mClusterizer->getGeometry()->EtaPhiFromIndex(cell.getTower());
@@ -141,8 +140,8 @@ struct EmcalCorrectionTask {
 
     // TODO: Helpful for now, but should be removed.
     LOG(DEBUG) << "Converted EMCAL cells";
-    for (auto & cell : mEmcalCells) {
-      LOG(DEBUG) << cell.getTower() <<  ": E: " << cell.getEnergy() << ", time: " << cell.getTimeStamp()  << ", type: " << cell.getType();
+    for (auto& cell : mEmcalCells) {
+      LOG(DEBUG) << cell.getTower() << ": E: " << cell.getEnergy() << ", time: " << cell.getTimeStamp() << ", type: " << cell.getType();
     }
 
     LOG(INFO) << "Converted cells. Contains: " << mEmcalCells.size() << ". Originally " << cells.size() << ". About to run clusterizer.";
