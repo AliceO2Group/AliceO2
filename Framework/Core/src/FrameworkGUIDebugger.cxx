@@ -8,11 +8,6 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 #include "Framework/FrameworkGUIDebugger.h"
-#include <algorithm>
-#include <iostream>
-#include <set>
-#include <string>
-#include <cinttypes>
 #include "Framework/ConfigContext.h"
 #include "Framework/ConfigParamRegistry.h"
 #include "DebugGUI/imgui.h"
@@ -25,6 +20,14 @@
 #include "Framework/FrameworkGUIDataRelayerUsage.h"
 #include "Framework/PaletteHelpers.h"
 #include "Framework/FrameworkGUIState.h"
+
+#include <fmt/format.h>
+
+#include <algorithm>
+#include <iostream>
+#include <set>
+#include <string>
+#include <cinttypes>
 
 // Simplify debugging
 template class std::vector<o2::framework::DeviceMetricsInfo>;
@@ -733,6 +736,42 @@ void displayDriverInfo(DriverInfo const& driverInfo, DriverControl& driverContro
   ImGui::Text("State stack (depth %lu)", driverInfo.states.size());
   if (ImGui::Button("SIGCONT all children")) {
     kill(0, SIGCONT);
+  }
+  ImGui::SameLine();
+  if (ImGui::Button("Debug driver")) {
+    std::string pidStr = std::to_string(pid);
+    setenv("O2DEBUGGEDPID", pidStr.c_str(), 1);
+#ifdef __APPLE__
+    std::string defaultAppleDebugCommand =
+      "osascript -e 'tell application \"Terminal\" to activate'"
+      " -e 'tell application \"Terminal\" to do script \"lldb -p \" & (system attribute \"O2DEBUGGEDPID\")'";
+    setenv("O2DPLDEBUG", defaultAppleDebugCommand.c_str(), 0);
+#else
+    setenv("O2DPLDEBUG", "xterm -hold -e gdb attach $O2DEBUGGEDPID &", 0);
+#endif
+    int retVal = system(getenv("O2DPLDEBUG"));
+    (void)retVal;
+  }
+
+  ImGui::SameLine();
+  if (ImGui::Button("Profile")) {
+    std::string pidStr = std::to_string(pid);
+    setenv("O2PROFILEDPID", pidStr.c_str(), 1);
+#ifdef __APPLE__
+    auto defaultAppleProfileCommand = fmt::format(
+      "osascript -e 'tell application \"Terminal\" to activate'"
+      " -e 'tell application \"Terminal\" to do script \"xcrun xctrace record --output dpl-profile-{}.trace"
+      " --time-limit 30s --template Time\\\\ Profiler --attach {} "
+      " && open dpl-profile-{}.trace && exit\"'"
+      " && open dpl-driver-profile-{}.trace",
+      pid, pid, pid, pid);
+    std::cout << defaultAppleProfileCommand << std::endl;
+    setenv("O2DPLPROFILE", defaultAppleProfileCommand.c_str(), 0);
+#else
+    setenv("O2DPLPROFILE", "xterm -hold -e perf record -a -g -p $O2PROFILEDPID > perf-$O2PROFILEDPID.data &", 0);
+#endif
+    int retVal = system(getenv("O2DPLPROFILE"));
+    (void)retVal;
   }
 
   for (size_t i = 0; i < driverInfo.states.size(); ++i) {
