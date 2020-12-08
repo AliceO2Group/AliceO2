@@ -1408,7 +1408,17 @@ void overrideCloning(ConfigContext& ctx, WorkflowSpec& workflow)
     }
     auto key = token.substr(0, split);
     token.erase(0, split + 1);
-    auto value = token;
+    size_t error;
+    std::string value = "";
+    try {
+      auto numValue = std::stoll(token, &error, 10);
+      if (token[error] != '\0') {
+        throw std::runtime_error("bad name for clone:" + token);
+      }
+      value = key + "_c" + std::to_string(numValue);
+    } catch (std::invalid_argument& e) {
+      value = token;
+    }
     specs.push_back({key, value});
     s.erase(0, newPos + (newPos == std::string::npos ? 0 : 1));
   }
