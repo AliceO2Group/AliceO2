@@ -93,7 +93,7 @@ struct lambdakzeroprefilter {
                soa::Join<aod::FullTracks, aod::TracksExtended> const& tracks)
   {
     for (auto& t0 : goodPosTracks) {
-      if (!(t0.flags() & 0x40)) {
+      if (!(t0.trackType() & o2::aod::track::TPCrefit)) {
         continue; //TPC refit
       }
       if (t0.tpcNClsCrossedRows() < mincrossedrows) {
@@ -102,7 +102,7 @@ struct lambdakzeroprefilter {
       v0GoodPosTracks(t0.globalIndex(), t0.collisionId(), t0.dcaXY());
     }
     for (auto& t0 : goodNegTracks) {
-      if (!(t0.flags() & 0x40)) {
+      if (!(t0.trackType() & o2::aod::track::TPCrefit)) {
         continue; //TPC refit
       }
       if (t0.tpcNClsCrossedRows() < mincrossedrows) {
