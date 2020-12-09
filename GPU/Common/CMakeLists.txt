@@ -18,6 +18,7 @@ set(HDRS_INSTALL
     GPUCommonLogger.h
     GPUCommonMath.h
     GPUCommonRtypes.h
+    GPUCommonArray.h
     GPUCommonTransform3D.h
     GPUDef.h
     GPUDefConstantsAndSettings.h

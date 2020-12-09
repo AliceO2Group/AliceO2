@@ -28,10 +28,11 @@
 #include "GPUCommonDef.h"
 #include "GPUCommonRtypes.h"
 #include "GPUCommonMath.h"
+#include "GPUCommonArray.h"
+#include "GPUROOTCartesianFwd.h"
 
 #ifndef __OPENCL__
 #include <algorithm>
-#include <array>
 #include <cfloat>
 #include <cmath>
 #include <cstring>
@@ -49,9 +50,6 @@
 #include "ReconstructionDataFormats/PID.h"
 
 #include "ReconstructionDataFormats/TrackUtils.h"
-
-//Forward declarations, since we cannot include the headers if we eventually want to use track.h on GPU
-#include "GPUROOTCartesianFwd.h"
 
 namespace o2
 {
@@ -122,9 +120,9 @@ class TrackParametrization
 
  public:
   using value_t = value_T;
-  using dim2_t = std::array<value_t, 2>;
-  using dim3_t = std::array<value_t, 3>;
-  using params_t = std::array<value_t, kNParams>;
+  using dim2_t = gpu::gpustd::array<value_t, 2>;
+  using dim3_t = gpu::gpustd::array<value_t, 3>;
+  using params_t = gpu::gpustd::array<value_t, kNParams>;
 
   static_assert(std::is_floating_point_v<value_t>);
 
@@ -188,7 +186,7 @@ class TrackParametrization
   math_utils::Point3D<value_t> getXYZGlo() const;
   void getXYZGlo(dim3_t& xyz) const;
   bool getPxPyPzGlo(dim3_t& pxyz) const;
-  bool getPosDirGlo(std::array<value_t, 9>& posdirp) const;
+  bool getPosDirGlo(gpu::gpustd::array<value_t, 9>& posdirp) const;
 
   // methods for track params estimate at other point
   bool getYZAt(value_t xk, value_t b, value_t& y, value_t& z) const;

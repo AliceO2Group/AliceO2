@@ -262,7 +262,7 @@ bool TrackParametrizationWithError<value_T>::propagateToDCA(const o2::dataformat
 //______________________________________________________________
 template <typename value_T>
 TrackParametrizationWithError<value_T>::TrackParametrizationWithError(const dim3_t& xyz, const dim3_t& pxpypz,
-                                                                      const std::array<value_t, kLabCovMatSize>& cv, int charge, bool sectorAlpha)
+                                                                             const gpu::gpustd::array<value_t, kLabCovMatSize>& cv, int charge, bool sectorAlpha)
 {
   // construct track param and covariance from kinematics and lab errors
 
@@ -454,7 +454,7 @@ bool TrackParametrizationWithError<value_T>::propagateTo(value_t xk, const dim3_
   step *= std::sqrt(1.f + this->getTgl() * this->getTgl());
   //
   // get the track x,y,z,px/p,py/p,pz/p,p,sinAlpha,cosAlpha in the Global System
-  std::array<value_t, 9> vecLab{0.f};
+  gpu::gpustd::array<value_t, 9> vecLab{0.f};
   if (!this->getPosDirGlo(vecLab)) {
     return false;
   }
@@ -521,13 +521,13 @@ bool TrackParametrizationWithError<value_T>::propagateTo(value_t xk, const dim3_
     costet = b[2] / bb;
     sintet = bt / bb;
   }
-  std::array<value_t, 7> vect{costet * cosphi * vecLab[0] + costet * sinphi * vecLab[1] - sintet * vecLab[2],
-                              -sinphi * vecLab[0] + cosphi * vecLab[1],
-                              sintet * cosphi * vecLab[0] + sintet * sinphi * vecLab[1] + costet * vecLab[2],
-                              costet * cosphi * vecLab[3] + costet * sinphi * vecLab[4] - sintet * vecLab[5],
-                              -sinphi * vecLab[3] + cosphi * vecLab[4],
-                              sintet * cosphi * vecLab[3] + sintet * sinphi * vecLab[4] + costet * vecLab[5],
-                              vecLab[6]};
+  gpu::gpustd::array<value_t, 7> vect{costet * cosphi * vecLab[0] + costet * sinphi * vecLab[1] - sintet * vecLab[2],
+                                      -sinphi * vecLab[0] + cosphi * vecLab[1],
+                                      sintet * cosphi * vecLab[0] + sintet * sinphi * vecLab[1] + costet * vecLab[2],
+                                      costet * cosphi * vecLab[3] + costet * sinphi * vecLab[4] - sintet * vecLab[5],
+                                      -sinphi * vecLab[3] + cosphi * vecLab[4],
+                                      sintet * cosphi * vecLab[3] + sintet * sinphi * vecLab[4] + costet * vecLab[5],
+                                      vecLab[6]};
 
   // Do the helix step
   value_t sgn = this->getSign();
@@ -1004,7 +1004,7 @@ bool TrackParametrizationWithError<value_T>::correctForMaterial(value_t x2x0, va
 
 //______________________________________________________________
 template <typename value_T>
-bool TrackParametrizationWithError<value_T>::getCovXYZPxPyPzGlo(std::array<value_t, kLabCovMatSize>& cv) const
+bool TrackParametrizationWithError<value_T>::getCovXYZPxPyPzGlo(gpu::gpustd::array<value_t, kLabCovMatSize>& cv) const
 {
   //---------------------------------------------------------------------
   // This function returns the global covariance matrix of the track params
