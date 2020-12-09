@@ -17,7 +17,7 @@ namespace o2
 namespace dataformats
 {
 
-#ifndef ALIGPU_GPUCODE
+#ifndef GPUCA_ALIGPUCODE
 
 std::string VertexBase::asString() const
 {

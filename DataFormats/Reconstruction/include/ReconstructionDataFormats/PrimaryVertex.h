@@ -36,7 +36,7 @@ class PrimaryVertex : public Vertex<TimeStampWithError<float, float>>
   void setIR(const InteractionRecord& ir) { mIRMin = mIRMax = ir; }
   bool hasUniqueIR() const { return !mIRMin.isDummy() && (mIRMin == mIRMax); }
 
-#ifndef ALIGPU_GPUCODE
+#ifndef GPUCA_ALIGPUCODE
   void print() const;
   std::string asString() const;
 #endif
@@ -48,7 +48,7 @@ class PrimaryVertex : public Vertex<TimeStampWithError<float, float>>
   ClassDefNV(PrimaryVertex, 1);
 };
 
-#ifndef ALIGPU_GPUCODE
+#ifndef GPUCA_ALIGPUCODE
 std::ostream& operator<<(std::ostream& os, const o2::dataformats::PrimaryVertex& v);
 #endif
 

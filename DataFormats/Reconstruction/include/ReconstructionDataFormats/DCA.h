@@ -16,7 +16,7 @@
 #ifndef __OPENCL__
 #include <array>
 #endif
-#ifndef ALIGPU_GPUCODE
+#ifndef GPUCA_ALIGPUCODE
 #include <iosfwd>
 #endif
 

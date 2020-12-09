@@ -14,7 +14,7 @@
 namespace o2
 {
 
-#ifndef ALIGPU_GPUCODE
+#ifndef GPUCA_ALIGPUCODE
 
 std::string InteractionRecord::asString() const
 {

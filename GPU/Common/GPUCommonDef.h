@@ -74,7 +74,7 @@
 #endif
 
 //Set AliRoot / O2 namespace
-#if defined(GPUCA_STANDALONE) || (defined(GPUCA_O2_LIB) && !defined(GPUCA_O2_INTERFACE)) || defined(GPUCA_ALIROOT_LIB) || defined(GPUCA_GPULIBRARY)
+#if defined(GPUCA_STANDALONE) || (defined(GPUCA_O2_LIB) && !defined(GPUCA_O2_INTERFACE)) || defined(GPUCA_ALIROOT_LIB) || defined(GPUCA_GPULIBRARY) || defined (GPUCA_GPUCODE)
   #define GPUCA_ALIGPUCODE
 #endif
 #ifdef GPUCA_ALIROOT_LIB
