@@ -593,17 +593,6 @@ void DefineHistograms(HistogramManager* histMan, TString histClasses)
       histMan->AddHistogram(classStr.Data(), "Eta_Phi", "", false, 20, -1.0, 1.0, VarManager::kEta, 100, -8.0, 8.0, VarManager::kPhi);
     }
 
-    if (classStr.Contains("DileptonsSelected")) {
-      histMan->AddHistClass(classStr.Data());
-      histMan->AddHistogram(classStr.Data(), "Mass_Pt", "", false, 100, 0.0, 5.0, VarManager::kMass, 100, 0.0, 20.0, VarManager::kPt);
-    }
-
-    if (classStr.Contains("HadronsSelected")) {
-      histMan->AddHistClass(classStr.Data());
-      histMan->AddHistogram(classStr.Data(), "Eta_Pt", "", false, 20, -1.0, 1.0, VarManager::kEta, 100, 0.0, 20.0, VarManager::kPt);
-      histMan->AddHistogram(classStr.Data(), "Eta_Phi", "", false, 20, -1.0, 1.0, VarManager::kEta, 100, -8.0, 8.0, VarManager::kPhi);
-    }
-
     if (classStr.Contains("Pairs")) {
       histMan->AddHistClass(classStr.Data());
       histMan->AddHistogram(classStr.Data(), "Mass_Pt_Cent", "", false, 125, 0.0, 5.0, VarManager::kMass, 20, 0.0, 20.0, VarManager::kPt, 10, 0.0, 100.0, VarManager::kCentVZERO);
