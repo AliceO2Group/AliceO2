@@ -20,7 +20,19 @@
 #define LOGP(...)
 
 #elif defined(GPUCA_GPUCODE_DEVICE)
-#define LOG(...) static_assert("LOG(...) << ... unsupported in GPU code");
+#include "GPUCommonDef.h"
+namespace o2::gpu::detail
+{
+struct DummyLogger {
+  template <typename... Args>
+  GPUd() DummyLogger& operator<<(Args... args)
+  {
+    return *this;
+  }
+};
+} // namespace o2::gpu::detail
+#define LOG(...) o2::gpu::detail::DummyLogger()
+//#define LOG(...) static_assert(false, "LOG(...) << ... unsupported in GPU code");
 #define LOGF(type, string, ...)         \
   {                                     \
     printf(string "\n", ##__VA_ARGS__); \
