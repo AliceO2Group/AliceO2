@@ -11,12 +11,15 @@
 #ifndef ALICEO2_VERTEX_H
 #define ALICEO2_VERTEX_H
 
+#include "GPUCommonDef.h"
+#include "GPUCommonMath.h"
 #include <MathUtils/Cartesian.h>
+
 #include "CommonDataFormat/TimeStamp.h"
 #ifndef __OPENCL__
 #include <array>
 #endif
-#ifndef ALIGPU_GPUCODE
+#ifndef GPUCA_ALIGPUCODE
 #include <iosfwd>
 #endif
 
@@ -42,7 +45,7 @@ class VertexBase
   {
   }
 
-#ifndef ALIGPU_GPUCODE
+#ifndef GPUCA_ALIGPUCODE
   void print() const;
   std::string asString() const;
 #endif
@@ -144,7 +147,7 @@ class Vertex : public VertexBase
   ClassDefNV(Vertex, 3);
 };
 
-#ifndef ALIGPU_GPUCODE
+#ifndef GPUCA_ALIGPUCODE
 std::ostream& operator<<(std::ostream& os, const o2::dataformats::VertexBase& v);
 #endif
 
