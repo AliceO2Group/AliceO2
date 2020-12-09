@@ -15,6 +15,7 @@
 #ifndef ALICEO2_track_PID_H_
 #define ALICEO2_track_PID_H_
 
+#include "GPUCommonDef.h"
 #include "GPUCommonRtypes.h"
 #include "CommonConstants/PhysicsConstants.h"
 
@@ -99,44 +100,46 @@ class PID
   static constexpr ID NIDsTot = pid_constants::NIDsTot; ///< total number of defined IDs
   static_assert(NIDsTot == LastExt + 1, "Incorrect NIDsTot, please update!");
 
-  PID() = default;
-  PID(ID id) : mID(id) {}
-  PID(const char* name);
-  PID(const PID& src) = default;
-  PID& operator=(const PID& src) = default;
+  GPUdDefault() PID() = default;
+  GPUd() PID(ID id) : mID(id) {}
+  GPUd() PID(const char* name);
+  GPUdDefault() PID(const PID& src) = default;
+  GPUdDefault() PID& operator=(const PID& src) = default;
 
-  ID getID() const { return mID; }
-  operator ID() const { return getID(); }
+  GPUd() ID getID() const { return mID; }
+  GPUd() operator ID() const { return getID(); }
 
-  float getMass() const { return getMass(mID); }
-  float getMass2Z() const { return getMass2Z(mID); }
-  int getCharge() const { return getCharge(mID); }
+  GPUd() float getMass() const { return getMass(mID); }
+  GPUd() float getMass2Z() const { return getMass2Z(mID); }
+  GPUd() int getCharge() const { return getCharge(mID); }
 
-  static float getMass(ID id) { return pid_constants::sMasses[id]; }
-  static float getMass2(ID id) { return pid_constants::sMasses2[id]; }
-  static float getMass2Z(ID id) { return pid_constants::sMasses2Z[id]; }
-  static int getCharge(ID id) { return pid_constants::sCharges[id]; }
+  GPUd() static float getMass(ID id) { return pid_constants::sMasses[id]; }
+  GPUd() static float getMass2(ID id) { return pid_constants::sMasses2[id]; }
+  GPUd() static float getMass2Z(ID id) { return pid_constants::sMasses2Z[id]; }
+  GPUd() static int getCharge(ID id) { return pid_constants::sCharges[id]; }
 #ifndef GPUCA_GPUCODE_DEVICE
-  const char* getName() const
+  GPUd() const char* getName() const
   {
     return getName(mID);
   }
-  static const char* getName(ID id) { return pid_constants::sNames[id]; }
+  GPUd() static const char* getName(ID id) { return pid_constants::sNames[id]; }
 #endif
 
  private:
   ID mID = Pion;
 
   // are 2 strings equal ? (trick from Giulio)
-  inline static constexpr bool sameStr(char const* x, char const* y)
+  GPUdi() static constexpr bool sameStr(char const* x, char const* y)
   {
     return !*x && !*y ? true : /* default */ (*x == *y && sameStr(x + 1, y + 1));
   }
 
-  inline static constexpr ID nameToID(char const* name, ID id)
+#ifndef GPUCA_GPUCODE_DEVICE
+  GPUdi() static constexpr ID nameToID(char const* name, ID id)
   {
-    return id > LastExt ? id : sameStr(name, sNames[id]) ? id : nameToID(name, id + 1);
+    return id > LastExt ? id : sameStr(name, pid_constants::sNames[id]) ? id : nameToID(name, id + 1);
   }
+#endif
 
   ClassDefNV(PID, 2);
 };

@@ -108,11 +108,12 @@ GPUdi() void sincos(float ang, float& s, float& c)
 {
   detail::sincos<float>(ang, s, c);
 }
-
+#ifndef __OPENCL__
 GPUdi() void sincosd(double ang, double& s, double& c)
 {
   detail::sincos<double>(ang, s, c);
 }
+#endif
 
 GPUdi() void rotateZ(float xL, float yL, float& xG, float& yG, float snAlp, float csAlp)
 {

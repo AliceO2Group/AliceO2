@@ -18,11 +18,6 @@
 
 using namespace o2::track;
 
-constexpr const char* PID::sNames[NIDsTot + 1];
-constexpr const float PID::sMasses[NIDsTot];
-constexpr const float PID::sMasses2Z[NIDsTot];
-constexpr const int PID::sCharges[NIDsTot];
-
 //_______________________________
 PID::PID(const char* name) : mID(nameToID(name, First))
 {

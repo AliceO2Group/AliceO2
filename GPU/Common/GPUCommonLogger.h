@@ -14,13 +14,9 @@
 #ifndef GPUCOMMONFAIRLOGGER_H
 #define GPUCOMMONFAIRLOGGER_H
 
-#if defined(__OPENCL__)
-#define LOG(...)
-#define LOGF(...)
-#define LOGP(...)
-
-#elif defined(GPUCA_GPUCODE_DEVICE)
 #include "GPUCommonDef.h"
+
+#if defined(GPUCA_GPUCODE_DEVICE)
 namespace o2::gpu::detail
 {
 struct DummyLogger {
@@ -31,6 +27,14 @@ struct DummyLogger {
   }
 };
 } // namespace o2::gpu::detail
+#endif
+
+#if defined(__OPENCL__)
+#define LOG(...) o2::gpu::detail::DummyLogger()
+#define LOGF(...)
+#define LOGP(...)
+
+#elif defined(GPUCA_GPUCODE_DEVICE)
 #define LOG(...) o2::gpu::detail::DummyLogger()
 //#define LOG(...) static_assert(false, "LOG(...) << ... unsupported in GPU code");
 #define LOGF(type, string, ...)         \
