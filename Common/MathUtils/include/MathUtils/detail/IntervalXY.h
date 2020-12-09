@@ -16,9 +16,12 @@
 #ifndef MATHUTILS_INCLUDE_MATHUTILS_DETAIL_INTERVALXY_H_
 #define MATHUTILS_INCLUDE_MATHUTILS_DETAIL_INTERVALXY_H_
 
+#include "GPUCommonDef.h"
 #include "GPUCommonRtypes.h"
+#ifndef GPUCA_GPUCODE_DEVICE
 #include <cmath>
 #include <tuple>
+#endif
 
 #include "MathUtils/detail/CircleXY.h"
 
@@ -36,30 +39,32 @@ class IntervalXY
   using value_t = T;
 
   ///< 2D interval in lab frame defined by its one edge and signed projection lengths on X,Y axes
-  IntervalXY(T x = T(), T y = T(), T dx = T(), T dy = T());
-  T getX0() const;
-  T getY0() const;
-  T& getX0();
-  T& getY0();
-  T getX1() const;
-  T getY1() const;
-  T getDX() const;
-  T getDY() const;
-  T& getDX();
-  T& getDY();
+  GPUd() IntervalXY(T x = T(), T y = T(), T dx = T(), T dy = T());
+  GPUd() T getX0() const;
+  GPUd() T getY0() const;
+  GPUd() T& getX0();
+  GPUd() T& getY0();
+  GPUd() T getX1() const;
+  GPUd() T getY1() const;
+  GPUd() T getDX() const;
+  GPUd() T getDY() const;
+  GPUd() T& getDX();
+  GPUd() T& getDY();
 
-  void setX0(T x0);
-  void setY0(T y0);
-  void setX1(T x1);
-  void setY1(T y1);
-  void setDX(T dx);
-  void setDY(T dy);
-  void setEdges(T x0, T y0, T x1, T y1);
+  GPUd() void setX0(T x0);
+  GPUd() void setY0(T y0);
+  GPUd() void setX1(T x1);
+  GPUd() void setY1(T y1);
+  GPUd() void setDX(T dx);
+  GPUd() void setDY(T dy);
+  GPUd() void setEdges(T x0, T y0, T x1, T y1);
 
-  void eval(T t, T& x, T& y) const;
+  GPUd() void eval(T t, T& x, T& y) const;
+#ifndef GPUCA_GPUCODE_DEVICE
   std::tuple<T, T> eval(T t) const;
+#endif
 
-  void getLineCoefs(T& a, T& b, T& c) const;
+  GPUd() void getLineCoefs(T& a, T& b, T& c) const;
 
   /** check if XY interval is seen by the circle.
   * The tolerance parameter eps is interpreted as a fraction of the interval
@@ -69,9 +74,9 @@ class IntervalXY
   * y = yc + dy*t
   * with 0<t<1., we acctually check the interval for -eps<t<1+eps
   */
-  bool seenByCircle(const CircleXY<T>& circle, T eps) const;
+  GPUd() bool seenByCircle(const CircleXY<T>& circle, T eps) const;
 
-  bool circleCrossParam(const CircleXY<T>& circle, T& t) const;
+  GPUd() bool circleCrossParam(const CircleXY<T>& circle, T& t) const;
 
   /**
   * check if XY interval is seen by the line defined by other interval
@@ -82,12 +87,12 @@ class IntervalXY
   * y = yc + dy*t
   * with 0<t<1., we acctually check the interval for -eps<t<1+eps
   */
-  bool seenByLine(const IntervalXY<T>& other, T eps) const;
+  GPUd() bool seenByLine(const IntervalXY<T>& other, T eps) const;
 
   /**
    * get crossing parameter of 2 intervals
    */
-  bool lineCrossParam(const IntervalXY<T>& other, T& t) const;
+  GPUd() bool lineCrossParam(const IntervalXY<T>& other, T& t) const;
 
  private:
   T mX, mY;   ///< one of edges
@@ -97,100 +102,100 @@ class IntervalXY
 };
 
 template <typename T>
-IntervalXY<T>::IntervalXY(T x, T y, T dx, T dy) : mX(std::move(x)), mY(std::move(y)), mDx(std::move(dx)), mDY(std::move(dy))
+GPUdi() IntervalXY<T>::IntervalXY(T x, T y, T dx, T dy) : mX(x), mY(y), mDx(dx), mDY(dy)
 {
 }
 
 template <typename T>
-inline T IntervalXY<T>::getX0() const
-{
-  return mX;
-}
-
-template <typename T>
-inline T IntervalXY<T>::getY0() const
-{
-  return mY;
-}
-
-template <typename T>
-inline T& IntervalXY<T>::getX0()
+GPUdi() T IntervalXY<T>::getX0() const
 {
   return mX;
 }
 
 template <typename T>
-inline T& IntervalXY<T>::getY0()
+GPUdi() T IntervalXY<T>::getY0() const
 {
   return mY;
 }
 
 template <typename T>
-inline T IntervalXY<T>::getX1() const
+GPUdi() T& IntervalXY<T>::getX0()
+{
+  return mX;
+}
+
+template <typename T>
+GPUdi() T& IntervalXY<T>::getY0()
+{
+  return mY;
+}
+
+template <typename T>
+GPUdi() T IntervalXY<T>::getX1() const
 {
   return mX + mDx;
 }
 template <typename T>
-inline T IntervalXY<T>::getY1() const
+GPUdi() T IntervalXY<T>::getY1() const
 {
   return mY + mDY;
 }
 template <typename T>
-inline T IntervalXY<T>::getDX() const
+GPUdi() T IntervalXY<T>::getDX() const
 {
   return mDx;
 }
 template <typename T>
-inline T IntervalXY<T>::getDY() const
+GPUdi() T IntervalXY<T>::getDY() const
 {
   return mDY;
 }
 
 template <typename T>
-inline T& IntervalXY<T>::getDX()
+GPUdi() T& IntervalXY<T>::getDX()
 {
   return mDx;
 }
 template <typename T>
-inline T& IntervalXY<T>::getDY()
+GPUdi() T& IntervalXY<T>::getDY()
 {
   return mDY;
 }
 
 template <typename T>
-inline void IntervalXY<T>::setX0(T x0)
+GPUdi() void IntervalXY<T>::setX0(T x0)
 {
   mX = x0;
 }
 
 template <typename T>
-inline void IntervalXY<T>::setY0(T y0)
+GPUdi() void IntervalXY<T>::setY0(T y0)
 {
   mY = y0;
 }
 template <typename T>
-inline void IntervalXY<T>::setX1(T x1)
+GPUdi() void IntervalXY<T>::setX1(T x1)
 {
   mDx = x1 - mX;
 }
 template <typename T>
-inline void IntervalXY<T>::setY1(T y1)
+GPUdi() void IntervalXY<T>::setY1(T y1)
 {
   mDY = y1 - mY;
 }
 template <typename T>
-inline void IntervalXY<T>::setDX(T dx)
+GPUdi() void IntervalXY<T>::setDX(T dx)
 {
   mDx = dx;
 }
 template <typename T>
-inline void IntervalXY<T>::setDY(T dy)
+GPUdi() void IntervalXY<T>::setDY(T dy)
 {
   mDY = dy;
 }
 
 template <typename T>
-inline void IntervalXY<T>::setEdges(T x0, T y0, T x1, T y1)
+GPUdi() void IntervalXY<T>::setEdges(T x0, T y0, T x1, T y1)
 {
   mX = x0;
   mY = y0;
@@ -198,20 +203,22 @@ inline void IntervalXY<T>::setEdges(T x0, T y0, T x1, T y1)
   mDY = y1 - y0;
 }
 
+#ifndef GPUCA_GPUCODE_DEVICE
 template <typename T>
-inline std::tuple<T, T> IntervalXY<T>::eval(T t) const
+GPUdi() std::tuple<T, T> IntervalXY<T>::eval(T t) const
 {
   return {mX + t * mDx, mY + t * mDY};
 }
+#endif
 
 template <typename T>
-inline void IntervalXY<T>::eval(T t, T& x, T& y) const
+GPUdi() void IntervalXY<T>::eval(T t, T& x, T& y) const
 {
   std::tie(x, y) = eval(t);
 }
 
 template <typename T>
-void IntervalXY<T>::getLineCoefs(T& a, T& b, T& c) const
+GPUdi() void IntervalXY<T>::getLineCoefs(T& a, T& b, T& c) const
 {
   // convert to line parameters in canonical form: a*x+b*y+c = 0
   c = mX * mDY - mY * mDx;
@@ -230,7 +237,7 @@ void IntervalXY<T>::getLineCoefs(T& a, T& b, T& c) const
 }
 
 template <typename T>
-bool IntervalXY<T>::seenByCircle(const CircleXY<T>& circle, T eps) const
+GPUdi() bool IntervalXY<T>::seenByCircle(const CircleXY<T>& circle, T eps) const
 {
   T dx0 = mX - circle.xC;
   T dy0 = mY - circle.yC;
@@ -251,7 +258,7 @@ bool IntervalXY<T>::seenByCircle(const CircleXY<T>& circle, T eps) const
   return (d02 - rC2) * (d12 - rC2) < 0;
 }
 template <typename T>
-bool IntervalXY<T>::circleCrossParam(const CircleXY<T>& circle, T& t) const
+GPUdi() bool IntervalXY<T>::circleCrossParam(const CircleXY<T>& circle, T& t) const
 {
   const T dx = mX - circle.xC;
   const T dy = mY - circle.yC;
@@ -271,7 +278,7 @@ bool IntervalXY<T>::circleCrossParam(const CircleXY<T>& circle, T& t) const
 }
 
 template <typename T>
-bool IntervalXY<T>::seenByLine(const IntervalXY<T>& other, T eps) const
+GPUdi() bool IntervalXY<T>::seenByLine(const IntervalXY<T>& other, T eps) const
 {
   T a, b, c; // find equation of the line a*x+b*y+c = 0
   other.getLineCoefs(a, b, c);
@@ -282,7 +289,7 @@ bool IntervalXY<T>::seenByLine(const IntervalXY<T>& other, T eps) const
 }
 
 template <typename T>
-bool IntervalXY<T>::lineCrossParam(const IntervalXY<T>& other, T& t) const
+GPUdi() bool IntervalXY<T>::lineCrossParam(const IntervalXY<T>& other, T& t) const
 {
   // tolerance
   constexpr float eps = 1.e-9f;
