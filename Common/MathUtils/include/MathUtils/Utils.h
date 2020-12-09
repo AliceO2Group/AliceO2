@@ -114,17 +114,17 @@ GPUdi() void sincosd(double ang, double& s, double& c)
   detail::sincos<double>(ang, s, c);
 }
 
-#ifndef GPUCA_GPUCODE_DEVICE
-inline void rotateZ(float xL, float yL, float& xG, float& yG, float snAlp, float csAlp)
+GPUdi() void rotateZ(float xL, float yL, float& xG, float& yG, float snAlp, float csAlp)
 {
   return detail::rotateZ<float>(xL, yL, xG, yG, snAlp, csAlp);
 }
 
-inline void rotateZd(double xL, double yL, double& xG, double& yG, double snAlp, double csAlp)
+GPUdi() void rotateZd(double xL, double yL, double& xG, double& yG, double snAlp, double csAlp)
 {
   return detail::rotateZ<double>(xL, yL, xG, yG, snAlp, csAlp);
 }
 
+#ifndef GPUCA_GPUCODE_DEVICE
 inline void rotateZInv(float xG, float yG, float& xL, float& yL, float snAlp, float csAlp)
 {
   detail::rotateZInv<float>(xG, yG, xL, yL, snAlp, csAlp);

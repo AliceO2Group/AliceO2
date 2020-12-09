@@ -16,6 +16,7 @@
 #ifndef MATHUTILS_INCLUDE_MATHUTILS_DETAIL_CIRCLEXY_H_
 #define MATHUTILS_INCLUDE_MATHUTILS_DETAIL_CIRCLEXY_H_
 
+#include "GPUCommonDef.h"
 #include "GPUCommonRtypes.h"
 
 namespace o2
@@ -32,18 +33,18 @@ struct CircleXY {
   T rC; // circle radius
   T xC; // x-center
   T yC; // y-center
-  CircleXY(T r = T(), T x = T(), T y = T());
-  T getCenterD2() const;
+  GPUd() CircleXY(T r = T(), T x = T(), T y = T());
+  GPUd() T getCenterD2() const;
   ClassDefNV(CircleXY, 2);
 };
 
 template <typename T>
-CircleXY<T>::CircleXY(T r, T x, T y) : rC(std::move(r)), xC(std::move(x)), yC(std::move(y))
+GPUdi() CircleXY<T>::CircleXY(T r, T x, T y) : rC(r), xC(x), yC(y)
 {
 }
 
 template <typename T>
-inline T CircleXY<T>::getCenterD2() const
+GPUdi() T CircleXY<T>::getCenterD2() const
 {
   return xC * xC + yC * yC;
 }
