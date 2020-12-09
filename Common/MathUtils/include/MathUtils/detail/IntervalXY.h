@@ -18,6 +18,7 @@
 
 #include "GPUCommonDef.h"
 #include "GPUCommonRtypes.h"
+#include "GPUCommonMath.h"
 #ifndef GPUCA_GPUCODE_DEVICE
 #include <cmath>
 #include <tuple>
@@ -205,7 +206,7 @@ GPUdi() void IntervalXY<T>::setEdges(T x0, T y0, T x1, T y1)
 
 #ifndef GPUCA_GPUCODE_DEVICE
 template <typename T>
-GPUdi() std::tuple<T, T> IntervalXY<T>::eval(T t) const
+std::tuple<T, T> IntervalXY<T>::eval(T t) const
 {
   return {mX + t * mDx, mY + t * mDY};
 }
@@ -214,7 +215,8 @@ GPUdi() std::tuple<T, T> IntervalXY<T>::eval(T t) const
 template <typename T>
 GPUdi() void IntervalXY<T>::eval(T t, T& x, T& y) const
 {
-  std::tie(x, y) = eval(t);
+  x = mX + t * mDx;
+  y = mY + t * mDY;
 }
 
 template <typename T>
@@ -269,11 +271,11 @@ GPUdi() bool IntervalXY<T>::circleCrossParam(const CircleXY<T>& circle, T& t) co
   if (det < 0.f) {
     return false;
   }
-  det = std::sqrt(det);
+  det = gpu::CAMath::Sqrt(det);
   const T t0 = -b - det;
   const T t1 = -b + det;
   // select the one closer to [0:1] interval
-  t = (std::fabs(t0 - 0.5f) < std::fabs(t1 - 0.5f)) ? t0 : t1;
+  t = (gpu::CAMath::Abs(t0 - 0.5f) < gpu::CAMath::Abs(t1 - 0.5f)) ? t0 : t1;
   return true;
 }
 
@@ -282,8 +284,9 @@ GPUdi() bool IntervalXY<T>::seenByLine(const IntervalXY<T>& other, T eps) const
 {
   T a, b, c; // find equation of the line a*x+b*y+c = 0
   other.getLineCoefs(a, b, c);
-  const auto [x0, y0] = eval(-eps);
-  const auto [x1, y1] = eval(1.f + eps);
+  T x0, y0, x1, y1;
+  eval(-eps, x0, y0);
+  eval(1.f + eps, x0, y0);
 
   return (a * x0 + b * y0 + c) * (a * x1 + b * y1 + c) < 0;
 }
@@ -296,7 +299,7 @@ GPUdi() bool IntervalXY<T>::lineCrossParam(const IntervalXY<T>& other, T& t) con
   const T dx = other.getX0() - mX;
   const T dy = other.getY0() - mY;
   const T det = -mDx * other.getY0() + mDY * other.getX0();
-  if (std::fabs(det) < eps) {
+  if (gpu::CAMath::Abs(det) < eps) {
     return false; // parallel
   }
   t = (-dx * other.getY0() + dy * other.getX0()) / det;

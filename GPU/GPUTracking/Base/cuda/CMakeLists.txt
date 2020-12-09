@@ -115,6 +115,7 @@ if(ALIGPU_BUILD_TYPE STREQUAL "O2")
     PRIVATE_INCLUDE_DIRECTORIES
       ${CMAKE_SOURCE_DIR}/Detectors/Base/src
       ${CMAKE_SOURCE_DIR}/Detectors/TRD/base/src
+      ${CMAKE_SOURCE_DIR}/DataFormats/Reconstruction/src
     PUBLIC_LINK_LIBRARIES O2::GPUTracking O2::ITStrackingCUDA
     TARGETVARNAME targetName)
 

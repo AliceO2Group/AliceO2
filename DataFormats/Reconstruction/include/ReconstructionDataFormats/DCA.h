@@ -11,12 +11,11 @@
 #ifndef ALICEO2_DCA_H
 #define ALICEO2_DCA_H
 
+#include "GPUCommonDef.h"
 #include "GPUCommonRtypes.h"
+#include "GPUCommonArray.h"
 
-#ifndef __OPENCL__
-#include <array>
-#endif
-#ifndef GPUCA_ALIGPUCODE
+#ifndef GPUCA_GPUCODE_DEVICE
 #include <iosfwd>
 #endif
 
@@ -32,14 +31,14 @@ class DCA
 {
 
  public:
-  DCA() = default;
+  GPUdDefault() DCA() = default;
 
-  DCA(float y, float z, float syy = 0.f, float syz = 0.f, float szz = 0.f)
+  GPUd() DCA(float y, float z, float syy = 0.f, float syz = 0.f, float szz = 0.f)
   {
     set(y, z, syy, syz, szz);
   }
 
-  void set(float y, float z, float syy, float syz, float szz)
+  GPUd() void set(float y, float z, float syy, float syz, float szz)
   {
     mY = y;
     mZ = z;
@@ -48,30 +47,32 @@ class DCA
     mCov[2] = szz;
   }
 
-  void set(float y, float z)
+  GPUd() void set(float y, float z)
   {
     mY = y;
     mZ = z;
   }
 
-  auto getY() const { return mY; }
-  auto getZ() const { return mZ; }
-  auto getSigmaY2() const { return mCov[0]; }
-  auto getSigmaYZ() const { return mCov[1]; }
-  auto getSigmaZ2() const { return mCov[2]; }
-  const auto& getCovariance() const { return mCov; }
+  GPUd() auto getY() const { return mY; }
+  GPUd() auto getZ() const { return mZ; }
+  GPUd() auto getSigmaY2() const { return mCov[0]; }
+  GPUd() auto getSigmaYZ() const { return mCov[1]; }
+  GPUd() auto getSigmaZ2() const { return mCov[2]; }
+  GPUd() const auto& getCovariance() const { return mCov; }
 
   void print() const;
 
  private:
   float mY = 0.f;
   float mZ = 0.f;
-  std::array<float, 3> mCov; ///< s2y, syz, s2z
+  gpu::gpustd::array<float, 3> mCov; ///< s2y, syz, s2z
 
   ClassDefNV(DCA, 1);
 };
 
+#ifndef GPUCA_GPUCODE_DEVICE
 std::ostream& operator<<(std::ostream& os, const DCA& d);
+#endif
 
 } // namespace dataformats
 } // namespace o2

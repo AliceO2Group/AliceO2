@@ -32,14 +32,14 @@ namespace track
 {
 // helper function
 template <typename value_T = float>
-value_T BetheBlochSolid(value_T bg, value_T rho = 2.33, value_T kp1 = 0.20, value_T kp2 = 3.00, value_T meanI = 173e-9,
+GPUd() value_T BetheBlochSolid(value_T bg, value_T rho = 2.33, value_T kp1 = 0.20, value_T kp2 = 3.00, value_T meanI = 173e-9,
                                value_T meanZA = 0.49848);
 template <typename value_T = float>
-void g3helx3(value_T qfield, value_T step, gpu::gpustd::array<value_T, 7>& vect);
+GPUd() void g3helx3(value_T qfield, value_T step, gpu::gpustd::array<value_T, 7>& vect);
 
 //____________________________________________________
 template <typename value_T>
-void g3helx3(value_T qfield, value_T step, gpu::gpustd::array<value_T, 7>& vect)
+GPUd() void g3helx3(value_T qfield, value_T step, gpu::gpustd::array<value_T, 7>& vect)
 {
   /******************************************************************
    *                                                                *
@@ -58,8 +58,9 @@ void g3helx3(value_T qfield, value_T step, gpu::gpustd::array<value_T, 7>& vect)
    *  vect[7](cm,GeV/c) - input/output x, y, z, px/p, py/p ,pz/p, p *
    *                                                                *
    ******************************************************************/
-
+#ifndef GPUCA_GPUCODE_DEVICE
   static_assert(std::is_floating_point_v<value_T>);
+#endif
 
   const int ix = 0, iy = 1, iz = 2, ipx = 3, ipy = 4, ipz = 5, ipp = 6;
   constexpr value_T kOvSqSix = 0.408248f; // std::sqrt(1./6.);
@@ -70,11 +71,11 @@ void g3helx3(value_T qfield, value_T step, gpu::gpustd::array<value_T, 7>& vect)
   value_T tet = rho * step;
 
   value_T tsint, sintt, sint, cos1t;
-  if (std::fabs(tet) > 0.03f) {
-    sint = std::sin(tet);
+  if (gpu::CAMath::Abs(tet) > 0.03f) {
+    sint = gpu::CAMath::Sin(tet);
     sintt = sint / tet;
     tsint = (tet - sint) / tet;
-    value_T t = std::sin(0.5f * tet);
+    value_T t = gpu::CAMath::Sin(0.5f * tet);
     cos1t = 2 * t * t / tet;
   } else {
     tsint = tet * tet / 6.f;
@@ -99,8 +100,8 @@ void g3helx3(value_T qfield, value_T step, gpu::gpustd::array<value_T, 7>& vect)
 
 //____________________________________________________
 template <typename value_T>
-value_T BetheBlochSolid(value_T bg, value_T rho, value_T kp1, value_T kp2, value_T meanI,
-                        value_T meanZA)
+GPUd() value_T BetheBlochSolid(value_T bg, value_T rho, value_T kp1, value_T kp2, value_T meanI,
+                               value_T meanZA)
 {
   //
   // This is the parameterization of the Bethe-Bloch formula inspired by Geant.
@@ -115,7 +116,9 @@ value_T BetheBlochSolid(value_T bg, value_T rho, value_T kp1, value_T kp2, value
   // The default values for the kp* parameters are for silicon.
   // The returned value is in [GeV/(g/cm^2)].
   //
+#ifndef GPUCA_GPUCODE_DEVICE
   static_assert(std::is_floating_point_v<value_T>);
+#endif
 
   constexpr value_T mK = 0.307075e-3f; // [GeV*cm^2/g]
   constexpr value_T me = 0.511e-3f;    // [GeV/c^2]
@@ -126,15 +129,15 @@ value_T BetheBlochSolid(value_T bg, value_T rho, value_T kp1, value_T kp2, value
 
   //*** Density effect
   value_T d2 = 0.;
-  const value_T x = std::log(bg);
-  const value_T lhwI = std::log(28.816f * 1e-9f * std::sqrt(rho * meanZA) / meanI);
+  const value_T x = gpu::CAMath::Log(bg);
+  const value_T lhwI = gpu::CAMath::Log(28.816f * 1e-9f * gpu::CAMath::Sqrt(rho * meanZA) / meanI);
   if (x > kp2) {
     d2 = lhwI + x - 0.5f;
   } else if (x > kp1) {
     double r = (kp2 - x) / (kp2 - kp1);
     d2 = lhwI + x - 0.5f + (0.5f - lhwI - kp1) * r * r * r;
   }
-  return mK * meanZA * (1 + bg2) / bg2 * (0.5f * std::log(2 * me * bg2 * maxT / (meanI * meanI)) - bg2 / (1 + bg2) - d2);
+  return mK * meanZA * (1 + bg2) / bg2 * (0.5f * gpu::CAMath::Log(2 * me * bg2 * maxT / (meanI * meanI)) - bg2 / (1 + bg2) - d2);
 }
 
 } // namespace track

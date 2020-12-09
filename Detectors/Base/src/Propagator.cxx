@@ -9,7 +9,7 @@
 // or submit itself to any jurisdiction.
 
 #include "DetectorsBase/Propagator.h"
-#include <GPUCommonLogger.h>
+#include "GPUCommonLogger.h"
 #include "Field/MagFieldFast.h"
 #include "MathUtils/Utils.h"
 #include "ReconstructionDataFormats/Vertex.h"

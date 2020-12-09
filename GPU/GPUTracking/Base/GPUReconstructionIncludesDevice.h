@@ -58,6 +58,10 @@ using namespace GPUCA_NAMESPACE::gpu;
 #include "MatLayerCyl.cxx"
 #include "Ray.cxx"
 
+// O2 track model
+#include "TrackParametrization.cxx"
+#include "TrackParametrizationWithError.cxx"
+
 // Files for GPU dEdx
 #include "GPUdEdx.cxx"
 

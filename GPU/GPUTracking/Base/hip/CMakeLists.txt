@@ -31,6 +31,7 @@ if(ALIGPU_BUILD_TYPE STREQUAL "O2")
     PUBLIC_LINK_LIBRARIES O2::GPUTracking O2::ITStrackingHIP hip::host hip::device hip::hipcub roc::rocthrust
     PUBLIC_INCLUDE_DIRECTORIES ${CMAKE_SOURCE_DIR}/Detectors/TRD/base/src
                                ${CMAKE_SOURCE_DIR}/Detectors/Base/src
+                               ${CMAKE_SOURCE_DIR}/DataFormats/Reconstruction/src
     TARGETVARNAME targetName)
 
   target_compile_definitions(
