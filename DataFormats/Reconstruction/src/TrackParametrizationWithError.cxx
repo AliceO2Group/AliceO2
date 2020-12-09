@@ -27,10 +27,10 @@
 #include "ReconstructionDataFormats/Vertex.h"
 #include "ReconstructionDataFormats/DCA.h"
 #include <GPUCommonLogger.h>
-#include "Math/SMatrix.h"
 
 #ifndef GPUCA_GPUCODE_DEVICE
 #include <iostream>
+#include "Math/SMatrix.h"
 #endif
 
 #ifndef GPUCA_ALIGPUCODE
@@ -686,6 +686,8 @@ typename TrackParametrizationWithError<value_T>::value_t TrackParametrizationWit
   return (d * (szz * d - sdz * z) + z * (sdd * z - d * sdz)) / det;
 }
 
+#ifndef GPUCA_GPUCODE_DEVICE // Disable function relying on ROOT SMatrix on GPU
+
 //______________________________________________
 template <typename value_T>
 void TrackParametrizationWithError<value_T>::buildCombinedCovMatrix(const TrackParametrizationWithError<value_T>& rhs, MatrixDSym5& cov) const
@@ -830,6 +832,8 @@ bool TrackParametrizationWithError<value_T>::update(const TrackParametrizationWi
   }
   return update(rhs, covI);
 }
+
+#endif
 
 //______________________________________________
 template <typename value_T>
