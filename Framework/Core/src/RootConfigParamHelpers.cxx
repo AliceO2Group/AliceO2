@@ -101,6 +101,24 @@ void ptreeToMember(boost::property_tree::ptree const& value,
                    TDataMember* dm,
                    void* ptr)
 {
+
+  if (dm->IsSTLContainer()) {
+    auto type = dm->GetTypeName();
+    switch (compile_time_hash(type)) {
+      case compile_time_hash("vector<int>"):
+        *static_cast<std::vector<int>*>(ptr) = extractVector<int>(value);
+        return;
+      case compile_time_hash("vector<float>"):
+        *static_cast<std::vector<float>*>(ptr) = extractVector<float>(value);
+        return;
+      case compile_time_hash("vector<double>"):
+        *static_cast<std::vector<double>*>(ptr) = extractVector<double>(value);
+        return;
+      case compile_time_hash("vector<bool>"):
+      default:
+        throw std::runtime_error("Not and int/float/double/bool vector");
+    }
+  }
   auto dt = dm->GetDataType();
   if (dt != nullptr) {
     switch (dt->GetType()) {
@@ -165,23 +183,6 @@ void ptreeToMember(boost::property_tree::ptree const& value,
       }
     }
   }
-  if (dm->IsSTLContainer()) {
-    auto type = dm->GetTypeName();
-    switch (compile_time_hash(type)) {
-      case compile_time_hash("vector<int>"):
-        *static_cast<std::vector<int>*>(ptr) = extractVector<int>(value);
-        return;
-      case compile_time_hash("vector<float>"):
-        *static_cast<std::vector<float>*>(ptr) = extractVector<float>(value);
-        return;
-      case compile_time_hash("vector<double>"):
-        *static_cast<std::vector<double>*>(ptr) = extractVector<double>(value);
-        return;
-      case compile_time_hash("vector<bool>"):
-      default:
-        throw std::runtime_error("Not and int/float/double/bool vector");
-    }
-  }
   // if we get here none of the above worked
   if (strcmp(tname, "string") == 0 || strcmp(tname, "std::string")) {
     *(std::string*)ptr = value.get_value<std::string>();
@@ -192,6 +193,22 @@ void ptreeToMember(boost::property_tree::ptree const& value,
 // Convert a DataMember to a ConfigParamSpec
 ConfigParamSpec memberToConfigParamSpec(const char* tname, TDataMember* dm, void* ptr)
 {
+  if (dm->IsSTLContainer()) {
+    auto type = dm->GetTypeName();
+    switch (compile_time_hash(type)) {
+      case compile_time_hash("vector<int>"):
+        return ConfigParamSpec{tname, VariantType::ArrayInt, *static_cast<std::vector<int>*>(ptr), {"No help"}};
+      case compile_time_hash("vector<float>"):
+        return ConfigParamSpec{tname, VariantType::ArrayFloat, *static_cast<std::vector<float>*>(ptr), {"No help"}};
+      case compile_time_hash("vector<double>"):
+        return ConfigParamSpec{tname, VariantType::ArrayDouble, *static_cast<std::vector<double>*>(ptr), {"No help"}};
+      case compile_time_hash("vector<bool>"):
+        throw std::runtime_error("bool vector not supported yet");
+        //        return ConfigParamSpec{tname, VariantType::ArrayBool, *static_cast<std::vector<bool>*>(ptr), {"No help"}};
+      default:
+        throw std::runtime_error("Not and int/float/double/bool vector");
+    }
+  }
   auto dt = dm->GetDataType();
   if (dt != nullptr) {
     switch (dt->GetType()) {
@@ -240,22 +257,6 @@ ConfigParamSpec memberToConfigParamSpec(const char* tname, TDataMember* dm, void
       default: {
         break;
       }
-    }
-  }
-  if (dm->IsSTLContainer()) {
-    auto type = dm->GetTypeName();
-    switch (compile_time_hash(type)) {
-      case compile_time_hash("vector<int>"):
-        return ConfigParamSpec{tname, VariantType::ArrayInt, *static_cast<std::vector<int>*>(ptr), {"No help"}};
-      case compile_time_hash("vector<float>"):
-        return ConfigParamSpec{tname, VariantType::ArrayFloat, *static_cast<std::vector<float>*>(ptr), {"No help"}};
-      case compile_time_hash("vector<double>"):
-        return ConfigParamSpec{tname, VariantType::ArrayDouble, *static_cast<std::vector<double>*>(ptr), {"No help"}};
-      case compile_time_hash("vector<bool>"):
-        throw std::runtime_error("bool vector not supported yet");
-        //        return ConfigParamSpec{tname, VariantType::ArrayBool, *static_cast<std::vector<bool>*>(ptr), {"No help"}};
-      default:
-        throw std::runtime_error("Not and int/float/double/bool vector");
     }
   }
   // if we get here none of the above worked
