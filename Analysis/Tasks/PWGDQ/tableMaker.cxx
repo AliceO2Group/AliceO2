@@ -74,7 +74,8 @@ struct TableMaker {
 
   // Partition will select fast a group of tracks with basic requirements
   //   If some of the cuts cannot be included in the Partition expression, add them via AnalysisCut(s)
-  Partition<MyBarrelTracks> barrelSelectedTracks = o2::aod::track::pt >= 1.0f && nabs(o2::aod::track::eta) <= 0.9f && o2::aod::track::tpcSignal >= 70.0f && o2::aod::track::tpcSignal <= 100.0f && o2::aod::track::tpcChi2NCl < 4.0f && o2::aod::track::itsChi2NCl < 36.0f;
+  //Partition<MyBarrelTracks> barrelSelectedTracks = o2::aod::track::pt >= 1.0f && nabs(o2::aod::track::eta) <= 0.9f && o2::aod::track::tpcSignal >= 70.0f && o2::aod::track::tpcSignal <= 100.0f && o2::aod::track::tpcChi2NCl < 4.0f && o2::aod::track::itsChi2NCl < 36.0f;
+  Partition<MyBarrelTracks> barrelSelectedTracks = o2::aod::track::pt >= 0.05f && nabs(o2::aod::track::eta) <= 0.9f && o2::aod::track::tpcSignal > 1.0f  && o2::aod::track::tpcChi2NCl < 4.0f && o2::aod::track::itsChi2NCl < 36.0f;
 
   // TODO a few of the important muon variables in the central data model are dynamic columns so not usable in expressions (e.g. eta, phi)
   //        Update the data model to have them as expression columns
@@ -107,11 +108,14 @@ struct TableMaker {
     //trackVarCut->AddCut(VarManager::kPt, 1.0, 1000.0);
     //trackVarCut->AddCut(VarManager::kEta, -0.9, 0.9);
     //trackVarCut->AddCut(VarManager::kTPCsignal, 70.0, 100.0);
+    trackVarCut->AddCut(VarManager::kIsSPDany, 0.5, 1.5);
     trackVarCut->AddCut(VarManager::kIsITSrefit, 0.5, 1.5);
     trackVarCut->AddCut(VarManager::kIsTPCrefit, 0.5, 1.5);
     //trackVarCut->AddCut(VarManager::kTPCchi2, 0.0, 4.0);
-    //trackVarCut->AddCut(VarManager::kITSchi2, 0.1, 36.0);
-    trackVarCut->AddCut(VarManager::kTPCncls, 100.0, 161.);
+    //trackVarCut->AddCut(VarManager::kITSchi2, 0.0, 36.0);
+    //trackVarCut->AddCut(VarManager::kTPCncls, 100.0, 161.);
+    trackVarCut->AddCut(VarManager::kTrackDCAxy, -2.4, 2.4);
+    trackVarCut->AddCut(VarManager::kTrackDCAz, -3.2, 3.2);
 
     AnalysisCut* pidCut1 = new AnalysisCut();
     TF1* cutLow1 = new TF1("cutLow1", "pol1", 0., 10.);
@@ -119,7 +123,7 @@ struct TableMaker {
     pidCut1->AddCut(VarManager::kTPCsignal, cutLow1, 100.0, false, VarManager::kPin, 0.5, 3.0);
 
     fTrackCut->AddCut(trackVarCut);
-    fTrackCut->AddCut(pidCut1);
+    //fTrackCut->AddCut(pidCut1);
 
     VarManager::SetUseVars(AnalysisCut::fgUsedVars); // provide the list of required variables so that VarManager knows what to fill
   }
