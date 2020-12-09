@@ -14,6 +14,7 @@
 
 #include <boost/property_tree/ptree.hpp>
 #include <boost/program_options/variables_map.hpp>
+#include <boost/lexical_cast.hpp>
 
 #include <vector>
 #include <string>
