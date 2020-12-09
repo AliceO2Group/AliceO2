@@ -229,7 +229,7 @@ bool TrackParametrizationWithError<value_T>::propagateToDCA(const o2::dataformat
   x -= xv;
   y -= yv;
   //Estimate the impact parameter neglecting the track curvature
-  Double_t d = std::abs(x * snp - y * csp);
+  value_t d = std::abs(x * snp - y * csp);
   if (d > maxD) {
     return false;
   }
