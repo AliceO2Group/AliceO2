@@ -107,17 +107,24 @@ inline void bringToPMPiGen(T& phi)
   phi = toPMPiGen<T>(phi);
 }
 
+#ifdef __OPENCL__ // TODO: get rid of that stupid workaround for OpenCL template address spaces
 template <typename T>
-GPUhdi() void sincos(T ang, GPUgeneric() T& s, GPUgeneric() T& c)
+GPUhdi() void sincos(T ang, float& s, float& c)
 {
   return o2::gpu::GPUCommonMath::SinCos(ang, s, c);
 }
-
+#else
+template <typename T>
+GPUhdi() void sincos(T ang, T& s, T& c)
+{
+  return o2::gpu::GPUCommonMath::SinCos(ang, s, c);
+}
 template <>
-GPUhdi() void sincos(double ang, GPUgeneric() double& s, GPUgeneric() double& c)
+GPUhdi() void sincos(double ang, double& s, double& c)
 {
   return o2::gpu::GPUCommonMath::SinCosd(ang, s, c);
 }
+#endif
 
 #ifndef GPUCA_GPUCODE_DEVICE
 
