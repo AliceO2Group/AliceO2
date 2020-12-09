@@ -37,12 +37,12 @@ class TrackParametrizationWithError : public TrackParametrization<value_T>
   static_assert(std::is_floating_point_v<value_t>);
 
  public:
-  using covMat_t = std::array<value_t, kCovMatSize>;
+  using covMat_t = gpu::gpustd::array<value_t, kCovMatSize>;
 
   TrackParametrizationWithError();
-  TrackParametrizationWithError(value_t x, value_t alpha, const params_t& par, const std::array<value_t, kCovMatSize>& cov, int charge = 1);
+  TrackParametrizationWithError(value_t x, value_t alpha, const params_t& par, const covMat_t& cov, int charge = 1);
   TrackParametrizationWithError(const dim3_t& xyz, const dim3_t& pxpypz,
-                                const std::array<value_t, kLabCovMatSize>& cv, int sign, bool sectorAlpha = true);
+                                       const gpu::gpustd::array<value_t, kLabCovMatSize>& cv, int sign, bool sectorAlpha = true);
 
   TrackParametrizationWithError(const TrackParametrizationWithError& src) = default;
   TrackParametrizationWithError(TrackParametrizationWithError&& src) = default;
@@ -70,7 +70,7 @@ class TrackParametrizationWithError : public TrackParametrization<value_T>
   value_t getCovarElem(int i, int j) const;
   value_t getDiagError2(int i) const;
 
-  bool getCovXYZPxPyPzGlo(std::array<value_t, kLabCovMatSize>& c) const;
+  bool getCovXYZPxPyPzGlo(gpu::gpustd::array<value_t, kLabCovMatSize>& c) const;
 
   void print() const;
 #ifndef GPUCA_ALIGPUCODE

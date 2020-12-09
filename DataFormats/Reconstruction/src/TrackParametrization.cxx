@@ -130,7 +130,7 @@ bool TrackParametrization<value_T>::getPxPyPzGlo(dim3_t& pxyz) const
 
 //____________________________________________________
 template <typename value_T>
-bool TrackParametrization<value_T>::getPosDirGlo(std::array<value_t, 9>& posdirp) const
+bool TrackParametrization<value_T>::getPosDirGlo(gpu::gpustd::array<value_t, 9>& posdirp) const
 {
   // fill vector with lab x,y,z,px/p,py/p,pz/p,p,sinAlpha,cosAlpha
   value_t ptI = std::fabs(getQ2Pt());
@@ -229,7 +229,7 @@ bool TrackParametrization<value_T>::propagateParamTo(value_t xk, const dim3_t& b
   step *= std::sqrt(1.f + getTgl() * getTgl());
   //
   // get the track x,y,z,px/p,py/p,pz/p,p,sinAlpha,cosAlpha in the Global System
-  std::array<value_t, 9> vecLab{0.f};
+  gpu::gpustd::array<value_t, 9> vecLab{0.f};
   if (!getPosDirGlo(vecLab)) {
     return false;
   }
@@ -248,13 +248,13 @@ bool TrackParametrization<value_T>::propagateParamTo(value_t xk, const dim3_t& b
     costet = b[2] / bb;
     sintet = bt / bb;
   }
-  std::array<value_t, 7> vect{costet * cosphi * vecLab[0] + costet * sinphi * vecLab[1] - sintet * vecLab[2],
-                              -sinphi * vecLab[0] + cosphi * vecLab[1],
-                              sintet * cosphi * vecLab[0] + sintet * sinphi * vecLab[1] + costet * vecLab[2],
-                              costet * cosphi * vecLab[3] + costet * sinphi * vecLab[4] - sintet * vecLab[5],
-                              -sinphi * vecLab[3] + cosphi * vecLab[4],
-                              sintet * cosphi * vecLab[3] + sintet * sinphi * vecLab[4] + costet * vecLab[5],
-                              vecLab[6]};
+  gpu::gpustd::array<value_t, 7> vect{costet * cosphi * vecLab[0] + costet * sinphi * vecLab[1] - sintet * vecLab[2],
+                                      -sinphi * vecLab[0] + cosphi * vecLab[1],
+                                      sintet * cosphi * vecLab[0] + sintet * sinphi * vecLab[1] + costet * vecLab[2],
+                                      costet * cosphi * vecLab[3] + costet * sinphi * vecLab[4] - sintet * vecLab[5],
+                                      -sinphi * vecLab[3] + cosphi * vecLab[4],
+                                      sintet * cosphi * vecLab[3] + sintet * sinphi * vecLab[4] + costet * vecLab[5],
+                                      vecLab[6]};
 
   // Do the helix step
   value_t q = getCharge();

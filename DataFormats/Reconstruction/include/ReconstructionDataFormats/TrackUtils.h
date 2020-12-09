@@ -17,9 +17,9 @@
 #define INCLUDE_RECONSTRUCTIONDATAFORMATS_TRACKUTILS_H_
 
 #include "GPUCommonRtypes.h"
+#include "GPUCommonArray.h"
 
 #ifndef __OPENCL__
-#include <array>
 #include <cmath>
 #endif
 
@@ -33,13 +33,13 @@ namespace track
 // helper function
 template <typename value_T = float>
 value_T BetheBlochSolid(value_T bg, value_T rho = 2.33, value_T kp1 = 0.20, value_T kp2 = 3.00, value_T meanI = 173e-9,
-                        value_T meanZA = 0.49848);
+                               value_T meanZA = 0.49848);
 template <typename value_T = float>
-void g3helx3(value_T qfield, value_T step, std::array<value_T, 7>& vect);
+void g3helx3(value_T qfield, value_T step, gpu::gpustd::array<value_T, 7>& vect);
 
 //____________________________________________________
 template <typename value_T>
-void g3helx3(value_T qfield, value_T step, std::array<value_T, 7>& vect)
+void g3helx3(value_T qfield, value_T step, gpu::gpustd::array<value_T, 7>& vect)
 {
   /******************************************************************
    *                                                                *
