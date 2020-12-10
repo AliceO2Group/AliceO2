@@ -8,20 +8,20 @@
 # granted to it by virtue of its status as an Intergovernmental Organization or
 # submit itself to any jurisdiction.
 
+o2_add_library(G3Setup
+               SOURCES src/G3Config.cxx
+               PUBLIC_LINK_LIBRARIES MC::Geant3 FairRoot::Base O2::SimulationDataFormat O2::Generators
+)
+
+o2_add_library(G4Setup
+               SOURCES src/G4Config.cxx
+               PUBLIC_LINK_LIBRARIES MC::Geant4VMC MC::Geant4 FairRoot::Base O2::SimulationDataFormat O2::Generators ROOT::EGPythia6
+)
+
 o2_add_library(SimSetup
-               SOURCES src/G3Config.cxx src/G4Config.cxx
-                       src/GlobalProcessCutSimParam.cxx src/SimSetup.cxx
-               PUBLIC_LINK_LIBRARIES MC::Geant3
-                                     MC::Geant4VMC
-                                     MC::Geant4
-                                     O2::SimulationDataFormat
-                                     O2::DetectorsPassive
-				     O2::Generators
-                                     MC::Pythia6 # this is needed by Geant3 and
-                                                 # EGPythia6
-                                     ROOT::EGPythia6 # this is needed by Geant4
-                                                     # (TPythia6Decayer)
-               )
+               SOURCES  src/GlobalProcessCutSimParam.cxx src/SimSetup.cxx src/SetCuts.cxx
+	       PUBLIC_LINK_LIBRARIES O2::CommonUtils O2::DetectorsBase
+              )
 
 o2_target_root_dictionary(SimSetup
                           HEADERS include/SimSetup/SimSetup.h
