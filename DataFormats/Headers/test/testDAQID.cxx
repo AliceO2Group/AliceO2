@@ -23,6 +23,7 @@ using namespace o2::header;
 
 BOOST_AUTO_TEST_CASE(DAQIDTEST)
 {
+
   for (int i = 0; i < DAQID::MAXDAQ + 5; i++) {
     auto vo2 = DAQID::DAQtoO2(i);
     auto daq = DAQID::O2toDAQ(vo2);
@@ -32,4 +33,7 @@ BOOST_AUTO_TEST_CASE(DAQIDTEST)
     BOOST_CHECK(i == daq || vo2 == DAQID::DAQtoO2(DAQID::INVALID));
   }
   std::cout << "DAQ INVALID  " << int(DAQID::INVALID) << " <-> " << DAQID::DAQtoO2(DAQID::INVALID).str << std::endl;
+  std::cout << "DAQ UNLOADED " << int(DAQID::UNLOADED) << " <-> " << DAQID::DAQtoO2(DAQID::UNLOADED).str << std::endl;
+  BOOST_CHECK(DAQID::DAQtoO2(DAQID::UNLOADED) == o2::header::gDataOriginUnloaded);
+  BOOST_CHECK(DAQID::O2toDAQ(o2::header::gDataOriginUnloaded) == DAQID::UNLOADED);
 }
