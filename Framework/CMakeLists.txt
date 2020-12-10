@@ -17,5 +17,3 @@ add_subdirectory(Core)
 add_subdirectory(Utils)
 
 add_subdirectory(TestWorkflows) 
-
-add_subdirectory(AnalysisTools) 
