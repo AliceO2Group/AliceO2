@@ -18,3 +18,9 @@
 #pragma link C++ class o2::test::SimplePODClass + ;
 #pragma link C++ class std::vector < o2::test::TriviallyCopyable > +;
 #pragma link C++ class std::vector < o2::test::Polymorphic > +;
+
+#pragma link C++ class StepTHn + ;
+#pragma link C++ class StepTHnT < TArrayF> + ;
+#pragma link C++ class StepTHnT < TArrayD> + ;
+#pragma link C++ typedef StepTHnF;
+#pragma link C++ typedef StepTHnD;

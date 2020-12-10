@@ -17,7 +17,7 @@ o2_add_library(AnalysisCore
                         src/AnalysisCompositeCut.cxx
                         src/TriggerAliases.cxx
 			src/HFConfigurables.cxx
-               PUBLIC_LINK_LIBRARIES O2::Framework O2::AnalysisDataModel O2::AnalysisTools)
+               PUBLIC_LINK_LIBRARIES O2::Framework O2::AnalysisDataModel)
 
 o2_target_root_dictionary(AnalysisCore
               HEADERS include/AnalysisCore/CorrelationContainer.h
