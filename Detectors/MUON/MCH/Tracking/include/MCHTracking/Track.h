@@ -45,6 +45,9 @@ class Track
   /// Return the number of attached clusters
   int getNClusters() const { return mParamAtClusters.size(); }
 
+  /// Return the number of degrees of freedom of the track
+  int getNDF() const { return 2 * getNClusters() - 5; }
+
   /// Return a reference to the track parameters at first cluster
   const TrackParam& first() const { return mParamAtClusters.front(); }
   /// Return a reference to the track parameters at last cluster
@@ -72,7 +75,7 @@ class Track
 
   bool isBetter(const Track& track) const;
 
-  void tagRemovableClusters(uint8_t requestedStationMask);
+  void tagRemovableClusters(uint8_t requestedStationMask, bool request2ChInSameSt45);
 
   void setCurrentParam(const TrackParam& param, int chamber);
   TrackParam& getCurrentParam();
