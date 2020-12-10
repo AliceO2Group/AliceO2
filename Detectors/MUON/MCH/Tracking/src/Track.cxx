@@ -28,8 +28,7 @@ using namespace std;
 
 //__________________________________________________________________________
 Track::Track(const Track& track)
-  : mParamAtVertex(track.mParamAtVertex),
-    mParamAtClusters(track.mParamAtClusters),
+  : mParamAtClusters(track.mParamAtClusters),
     mCurrentParam(nullptr),
     mCurrentChamber(-1),
     mConnected(track.mConnected),

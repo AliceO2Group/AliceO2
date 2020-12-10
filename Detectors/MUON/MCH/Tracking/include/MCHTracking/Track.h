@@ -39,9 +39,6 @@ class Track
   Track(Track&&) = delete;
   Track& operator=(Track&&) = delete;
 
-  /// Return a reference to the track parameters at vertex
-  const TrackParam& getParamAtVertex() const { return mParamAtVertex; }
-
   /// Return the number of attached clusters
   int getNClusters() const { return mParamAtClusters.size(); }
 
@@ -101,7 +98,6 @@ class Track
   void print() const;
 
  private:
-  TrackParam mParamAtVertex{};                 ///< track parameters at vertex
   std::list<TrackParam> mParamAtClusters{};    ///< list of track parameters at each cluster
   std::unique_ptr<TrackParam> mCurrentParam{}; ///< current track parameters used during tracking
   int mCurrentChamber = -1;                    ///< current chamber on which the current parameters are given
