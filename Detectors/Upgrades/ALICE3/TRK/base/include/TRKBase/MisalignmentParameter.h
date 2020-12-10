@@ -11,8 +11,8 @@
 /// \file MisalignmentParameter.h
 /// \brief Definition of the MisalignmentParameter class
 
-#ifndef ALICEO2_ITS4_MISALIGNMENTPARAMETER_H_
-#define ALICEO2_ITS4_MISALIGNMENTPARAMETER_H_
+#ifndef ALICEO2_TRK_MISALIGNMENTPARAMETER_H_
+#define ALICEO2_TRK_MISALIGNMENTPARAMETER_H_
 
 #include "FairParGenericSet.h" // for FairParGenericSet
 
@@ -24,7 +24,7 @@ class FairParamList;
 
 namespace o2
 {
-namespace its4
+namespace trk
 {
 class MisalignmentParameter : public FairParGenericSet
 {
@@ -64,7 +64,7 @@ class MisalignmentParameter : public FairParGenericSet
 
   ClassDefOverride(MisalignmentParameter, 1);
 };
-} // namespace its4
+} // namespace trk
 } // namespace o2
 
 #endif
