@@ -16,9 +16,11 @@ o2_add_library(TRDWorkflow
                        src/TRDDigitWriterSpec.cxx
                        src/TRDDigitReaderSpec.cxx
                        src/TRDTrackletWriterSpec.cxx
+                       src/TRDCalibratedTrackletWriterSpec.cxx
                        src/TRDTrackletReaderSpec.cxx
                        src/TRDTrapRawWriterSpec.cxx
                        src/TRDTrapSimulatorSpec.cxx
+                       src/TRDTrackletTransformerSpec.cxx
                        src/TRDGlobalTrackingSpec.cxx
                        src/TRDTrackWriterSpec.cxx
                        src/TRDTrackingWorkflow.cxx
@@ -40,6 +42,11 @@ o2_add_executable(trap-sim
 o2_add_executable(global-tracking
                   COMPONENT_NAME trd
                   SOURCES src/trd-tracking-workflow.cxx
+                  PUBLIC_LINK_LIBRARIES O2::TRDWorkflow)
+
+o2_add_executable(tracklet-transformer
+                  COMPONENT_NAME trd
+                  SOURCES src/TRDTrackletTransformerWorkflow.cxx
                   PUBLIC_LINK_LIBRARIES O2::TRDWorkflow)
 
 
