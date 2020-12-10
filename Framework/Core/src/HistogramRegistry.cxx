@@ -34,6 +34,24 @@ const std::map<HistType, std::function<HistPtr(const HistogramSpec&)>> HistFacto
 
 #undef CALLB
 
+// create histogram from specification and insert it into the registry
+void HistogramRegistry::insert(const HistogramSpec& histSpec)
+{
+  const uint32_t i = imask(histSpec.hash);
+  for (auto j = 0u; j < MAX_REGISTRY_SIZE; ++j) {
+    TObject* rawPtr = nullptr;
+    std::visit([&](const auto& sharedPtr) { rawPtr = sharedPtr.get(); }, mRegistryValue[imask(j + i)]);
+    if (!rawPtr) {
+      registerName(histSpec.name);
+      mRegistryKey[imask(j + i)] = histSpec.hash;
+      mRegistryValue[imask(j + i)] = HistFactory::createHistVariant(histSpec);
+      lookup += j;
+      return;
+    }
+  }
+  LOGF(FATAL, R"(Internal array of HistogramRegistry "%s" is full.)", mName);
+}
+
 void HistogramRegistry::add(const HistogramSpec& histSpec)
 {
   insert(histSpec);
@@ -79,19 +97,37 @@ void HistogramRegistry::addClone(const std::string& source, const std::string& t
 }
 
 // function to query if name is already in use
-bool HistogramRegistry::contains(const uint32_t id, char const* const name)
+bool HistogramRegistry::contains(const HistName& histName)
 {
   // check for all occurances of the hash
   auto iter = mRegistryKey.begin();
-  while ((iter = std::find(iter, mRegistryKey.end(), id)) != mRegistryKey.end()) {
+  while ((iter = std::find(iter, mRegistryKey.end(), histName.hash)) != mRegistryKey.end()) {
     const char* curName = nullptr;
     std::visit([&](auto&& hist) { if(hist) { curName = hist->GetName(); } }, mRegistryValue[iter - mRegistryKey.begin()]);
     // if hash is the same, make sure that name is indeed the same
-    if (strcmp(curName, name) == 0) {
+    if (strcmp(curName, histName.str) == 0) {
       return true;
     }
   }
   return false;
+}
+
+// get rough estimate for size of histogram stored in registry
+double HistogramRegistry::getSize(const HistName& histName, double fillFraction)
+{
+  double size{};
+  std::visit([&fillFraction, &size](auto&& hist) { size = HistFiller::getSize(hist, fillFraction); }, mRegistryValue[getHistIndex(histName)]);
+  return size;
+}
+
+// get rough estimate for size of all histograms stored in registry
+double HistogramRegistry::getSize(double fillFraction)
+{
+  double size{};
+  for (auto j = 0u; j < MAX_REGISTRY_SIZE; ++j) {
+    std::visit([&fillFraction, &size](auto&& hist) { if(hist) { size += HistFiller::getSize(hist, fillFraction);} }, mRegistryValue[j]);
+  }
+  return size;
 }
 
 // print some useful meta-info about the stored histograms
@@ -150,7 +186,7 @@ void HistogramRegistry::print(bool showAxisDetails)
   LOGF(INFO, "%s\"%s\"", std::string((int)(0.5 * titleString.size() - (1 + 0.5 * mName.size())), ' '), mName);
   std::sort(mRegisteredNames.begin(), mRegisteredNames.end());
   for (auto& curHistName : mRegisteredNames) {
-    std::visit(printHistInfo, mRegistryValue[getHistIndex(curHistName.data())]);
+    std::visit(printHistInfo, mRegistryValue[getHistIndex(HistName{curHistName.data()})]);
   }
   std::string totalSizeInfo{};
   if (containsSparseHist) {
@@ -271,18 +307,18 @@ void HistogramRegistry::registerName(const std::string& name)
   int depth = path.size();
   for (auto& step : path) {
     if (step.empty()) {
-      LOGF(FATAL, "Found empty group name in path for histogram %s.", name);
+      LOGF(FATAL, R"(Found empty group name in path for histogram "%s".)", name);
     }
     cumulativeName += step;
     for (auto& curName : mRegisteredNames) {
       // there is already a histogram where we want to put a folder or histogram
       if (cumulativeName == curName) {
-        LOGF(FATAL, "Histogram name %s is not compatible with existing names.", name);
+        LOGF(FATAL, R"(Histogram name "%s" is not compatible with existing names.)", name);
       }
       // for the full new histogram name we need to check that none of the existing histograms already uses this as a group name
       if (depth == 1) {
         if (curName.rfind(cumulativeName, 0) == 0 && curName.size() > cumulativeName.size() && curName.at(cumulativeName.size()) == '/') {
-          LOGF(FATAL, "Histogram name %s is not compatible with existing names.", name);
+          LOGF(FATAL, R"(Histogram name "%s" is not compatible with existing names.)", name);
         }
       }
     }

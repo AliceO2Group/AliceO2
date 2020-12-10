@@ -41,19 +41,19 @@ BOOST_AUTO_TEST_CASE(HistogramRegistryLookup)
   };
 
   /// Get histograms by name
-  BOOST_REQUIRE_EQUAL(registry.get<TH1>("eta")->GetNbinsX(), 100);
-  BOOST_REQUIRE_EQUAL(registry.get<TH1>("phi")->GetNbinsX(), 102);
-  BOOST_REQUIRE_EQUAL(registry.get<TH1>("pt")->GetNbinsX(), 1002);
-  BOOST_REQUIRE_EQUAL(registry.get<TH2>("ptToPt")->GetNbinsX(), 100);
-  BOOST_REQUIRE_EQUAL(registry.get<TH2>("ptToPt")->GetNbinsY(), 100);
+  BOOST_REQUIRE_EQUAL(registry.get<TH1>(HIST("eta"))->GetNbinsX(), 100);
+  BOOST_REQUIRE_EQUAL(registry.get<TH1>(HIST("phi"))->GetNbinsX(), 102);
+  BOOST_REQUIRE_EQUAL(registry.get<TH1>(HIST("pt"))->GetNbinsX(), 1002);
+  BOOST_REQUIRE_EQUAL(registry.get<TH2>(HIST("ptToPt"))->GetNbinsX(), 100);
+  BOOST_REQUIRE_EQUAL(registry.get<TH2>(HIST("ptToPt"))->GetNbinsY(), 100);
 
   /// Get a pointer to the histogram
-  auto histo = registry.get<TH1>("pt").get();
+  auto histo = registry.get<TH1>(HIST("pt")).get();
   BOOST_REQUIRE_EQUAL(histo->GetNbinsX(), 1002);
 
   /// Get registry object from a function
   auto r = foo();
-  auto histo2 = r.get<TH1>("histo").get();
+  auto histo2 = r.get<TH1>(HIST("histo")).get();
   BOOST_REQUIRE_EQUAL(histo2->GetNbinsX(), 100);
 }
 
@@ -84,10 +84,10 @@ BOOST_AUTO_TEST_CASE(HistogramRegistryExpressionFill)
   };
 
   /// Fill histogram with expression and table
-  registry.fill<test::X>("x", tests, test::x > 3.0f);
-  BOOST_CHECK_EQUAL(registry.get<TH1>("x")->GetEntries(), 4);
+  registry.fill<test::X>(HIST("x"), tests, test::x > 3.0f);
+  BOOST_CHECK_EQUAL(registry.get<TH1>(HIST("x"))->GetEntries(), 4);
 
   /// Fill histogram with expression and table
-  registry.fill<test::X, test::Y>("xy", tests, test::x > 3.0f && test::y > -5.0f);
-  BOOST_CHECK_EQUAL(registry.get<TH2>("xy")->GetEntries(), 2);
+  registry.fill<test::X, test::Y>(HIST("xy"), tests, test::x > 3.0f && test::y > -5.0f);
+  BOOST_CHECK_EQUAL(registry.get<TH2>(HIST("xy"))->GetEntries(), 2);
 }
