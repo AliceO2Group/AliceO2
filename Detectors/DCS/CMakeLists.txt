@@ -59,6 +59,12 @@ o2_add_executable(
   PUBLIC_LINK_LIBRARIES O2::Framework
   O2::DetectorsDCS)
 
+o2_add_executable(
+  sim-workflow
+  COMPONENT_NAME dcs
+  SOURCES testWorkflow/dcs-sim-workflow.cxx
+  PUBLIC_LINK_LIBRARIES O2::Framework O2::DetectorsDCS)
+
 if(OpenMP_CXX_FOUND)
   target_compile_definitions(${targetName} PRIVATE WITH_OPENMP)
   target_link_libraries(${targetName} PRIVATE OpenMP::OpenMP_CXX)

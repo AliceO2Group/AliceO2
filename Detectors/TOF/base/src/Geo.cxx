@@ -723,3 +723,32 @@ Int_t Geo::getIndexFromEquipment(Int_t icrate, Int_t islot, Int_t ichain, Int_t 
 {
   return 0; // to be implemented
 }
+
+void Geo::getStripAndModule(Int_t iStripPerSM, Int_t& iplate, Int_t& istrip)
+{
+  //
+  // Convert the serial number of the TOF strip number iStripPerSM [0,90]
+  // in module number iplate [0,4] and strip number istrip [0,14/18].
+  // Copied from AliRoot TOF::AliTOFGeometry
+  //
+
+  if (iStripPerSM < 0 || iStripPerSM >= NSTRIPC + NSTRIPB + NSTRIPA + NSTRIPB + NSTRIPC) {
+    iplate = -1;
+    istrip = -1;
+  } else if (iStripPerSM < NSTRIPC) {
+    iplate = 0;
+    istrip = iStripPerSM;
+  } else if (iStripPerSM >= NSTRIPC && iStripPerSM < NSTRIPC + NSTRIPB) {
+    iplate = 1;
+    istrip = iStripPerSM - NSTRIPC;
+  } else if (iStripPerSM >= NSTRIPC + NSTRIPB && iStripPerSM < NSTRIPC + NSTRIPB + NSTRIPA) {
+    iplate = 2;
+    istrip = iStripPerSM - NSTRIPC - NSTRIPB;
+  } else if (iStripPerSM >= NSTRIPC + NSTRIPB + NSTRIPA && iStripPerSM < NSTRIPC + NSTRIPB + NSTRIPA + NSTRIPB) {
+    iplate = 3;
+    istrip = iStripPerSM - NSTRIPC - NSTRIPB - NSTRIPA;
+  } else if (iStripPerSM >= NSTRIPC + NSTRIPB + NSTRIPA + NSTRIPB && iStripPerSM < NSTRIPC + NSTRIPB + NSTRIPA + NSTRIPB + NSTRIPC) {
+    iplate = 4;
+    istrip = iStripPerSM - NSTRIPC - NSTRIPB - NSTRIPA - NSTRIPB;
+  }
+}

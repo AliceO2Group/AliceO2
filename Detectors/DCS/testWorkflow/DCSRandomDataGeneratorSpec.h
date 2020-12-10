@@ -18,9 +18,11 @@
 #include "Framework/DeviceSpec.h"
 #include "Framework/Logger.h"
 #include "Framework/Task.h"
+#include <TDatime.h>
 #include <random>
 #include <variant>
 #include <string>
+#include <algorithm>
 
 using namespace o2::framework;
 
@@ -54,9 +56,18 @@ using HintType = std::variant<DataPointHint<double>,
 std::vector<int> generateIntegers(size_t size, int min, int max)
 {
   std::uniform_int_distribution<int> distribution(min, max);
-  std::mt19937 generator;
-  std::vector<int> data(size);
-  std::generate(data.begin(), data.end(), [&]() { return distribution(generator); });
+  std::mt19937 generator(std::random_device{}());
+  std::vector<int> data;
+  while (data.size() != size) {
+    data.emplace_back(distribution(generator));
+    std::sort(begin(data), end(data));
+    auto last = std::unique(begin(data), end(data)); // make sure we do not duplicate
+    data.erase(last, end(data));
+  }
+  std::shuffle(begin(data), end(data), generator);
+  for (auto i = 0; i < data.size(); ++i) {
+    LOG(INFO) << "Generating randomly DP at index " << data[i];
+  }
   return data;
 }
 
@@ -68,12 +79,20 @@ std::vector<int> generateIntegers(size_t size, int min, int max)
   * @returns a vector of DataPointCompositeObjects
   */
 std::vector<o2::dcs::DataPointCompositeObject> generate(const std::vector<HintType> hints,
-                                                        float fraction = 1.0)
+                                                        float fraction = 1.0,
+                                                        uint64_t tfid = 0)
 {
   std::vector<o2::dcs::DataPointCompositeObject> dataPoints;
 
-  auto GenerateVisitor = [](const auto& t) {
-    return o2::dcs::generateRandomDataPoints({t.aliasPattern}, t.minValue, t.maxValue);
+  TDatime d;
+  auto dsec = d.Convert();
+  dsec += tfid;
+  d.Set(dsec);
+
+  std::string refDate = d.AsString();
+
+  auto GenerateVisitor = [refDate](const auto& t) {
+    return o2::dcs::generateRandomDataPoints({t.aliasPattern}, t.minValue, t.maxValue, refDate);
   };
 
   for (const auto& hint : hints) {
@@ -84,7 +103,8 @@ std::vector<o2::dcs::DataPointCompositeObject> generate(const std::vector<HintTy
   }
   if (fraction < 1.0) {
     auto indices = generateIntegers(fraction * dataPoints.size(), 0, dataPoints.size() - 1);
-    auto tmp = dataPoints;
+    std::vector<o2::dcs::DataPointCompositeObject> tmp;
+    tmp.swap(dataPoints);
     dataPoints.clear();
     for (auto i : indices) {
       dataPoints.push_back(tmp[i]);
@@ -114,11 +134,29 @@ class DCSRandomDataGenerator : public o2::framework::Task
     mMaxCyclesNoFullMap = ic.options().get<int64_t>("max-cycles-no-full-map");
 
     // create the list of DataPointHints to be used by the generator
-    mDataPointHints.emplace_back(DataPointHint<char>{"TestChar_0", 'A', 'z'});
+    // each detector should create his own when running the tests
+
+    /*mDataPointHints.emplace_back(DataPointHint<char>{"TestChar_0", 'A', 'z'});
     mDataPointHints.emplace_back(DataPointHint<double>{"TestDouble_[0..3]", 0, 1700});
     mDataPointHints.emplace_back(DataPointHint<int32_t>{"TestInt_[0..50000{:d}]", 0, 1234});
     mDataPointHints.emplace_back(DataPointHint<bool>{"TestBool_[00..03]", 0, 1});
     mDataPointHints.emplace_back(DataPointHint<std::string>{"TestString_0", "ABC", "ABCDEF"});
+    */
+    // for TOF
+    // for test, we use less DPs that official ones
+    mTOFDataPointHints.emplace_back(DataPointHint<double>{"tof_hv_vp_[00..02]", 0, 50.});
+    mTOFDataPointHints.emplace_back(DataPointHint<double>{"tof_hv_vn_[00..02]", 0, 50.});
+    mTOFDataPointHints.emplace_back(DataPointHint<double>{"tof_hv_ip_[00..02]", 0, 50.});
+    mTOFDataPointHints.emplace_back(DataPointHint<double>{"tof_hv_in_[00..02]", 0, 50.});
+    mTOFDataPointHints.emplace_back(DataPointHint<int32_t>{"TOF_FEACSTATUS_[00..01]", 0, 255});
+    mTOFDataPointHints.emplace_back(DataPointHint<int32_t>{"TOF_HVSTATUS_SM[00..01]MOD[0..1]", 0, 524287});
+    // for TOF, official list
+    //mTOFDataPointHints.emplace_back(DataPointHint<double>{"tof_hv_vp_[00..89]", 0, 50.});
+    //mTOFDataPointHints.emplace_back(DataPointHint<double>{"tof_hv_vn_[00..89]", 0, 50.});
+    //mTOFDataPointHints.emplace_back(DataPointHint<double>{"tof_hv_ip_[00..89]", 0, 50.});
+    //mTOFDataPointHints.emplace_back(DataPointHint<double>{"tof_hv_in_[00..89]", 0, 50.});
+    //mTOFDataPointHints.emplace_back(DataPointHint<int32_t>{"TOF_FEACSTATUS_[00..71]", 0, 255});
+    //mTOFDataPointHints.emplace_back(DataPointHint<int32_t>{"TOF_HVSTATUS_SM[00..17]MOD[0..4]", 0, 524287});
   }
 
   void run(o2::framework::ProcessingContext& pc) final
@@ -135,12 +173,13 @@ class DCSRandomDataGenerator : public o2::framework::Task
     // fraction is one if we generate FBI (Full Buffer Image)
     float fraction = (generateFBI ? 1.0 : mDeltaFraction);
 
-    auto dpcoms = generate(mDataPointHints, fraction);
+    TDatime d;
+    auto dpcoms = generate(mDataPointHints, fraction, tfid);
+    auto tofdpcoms = generate(mTOFDataPointHints, fraction, tfid);
 
-    // the output must always get both FBI and Delta, but one of them is empty.
-    std::vector<o2::dcs::DataPointCompositeObject> empty;
-    pc.outputs().snapshot(Output{"DCS", "DATAPOINTS", 0, Lifetime::Timeframe}, generateFBI ? dpcoms : empty);
-    pc.outputs().snapshot(Output{"DCS", "DATAPOINTSdelta", 0, Lifetime::Timeframe}, generateFBI ? empty : dpcoms);
+    LOG(INFO) << "***************** TF " << tfid << " has generated " << tofdpcoms.size() << " DPs for TOF";
+    pc.outputs().snapshot(Output{"DCS", "DATAPOINTS", 0, Lifetime::Timeframe}, dpcoms);
+    pc.outputs().snapshot(Output{"DCS", "TOFDATAPOINTS", 0, Lifetime::Timeframe}, tofdpcoms);
     mTFs++;
   }
 
@@ -150,6 +189,7 @@ class DCSRandomDataGenerator : public o2::framework::Task
   uint64_t mMaxCyclesNoFullMap;
   float mDeltaFraction;
   std::vector<HintType> mDataPointHints;
+  std::vector<HintType> mTOFDataPointHints;
 };
 
 } // namespace
@@ -159,7 +199,7 @@ DataProcessorSpec getDCSRandomDataGeneratorSpec()
   return DataProcessorSpec{
     "dcs-random-data-generator",
     Inputs{},
-    Outputs{{{"outputDCS"}, "DCS", "DATAPOINTS"}, {{"outputDCSdelta"}, "DCS", "DATAPOINTSdelta"}},
+    Outputs{{{"outputDCS"}, "DCS", "DATAPOINTS"}, {{"outputDCSTOF"}, "DCS", "TOFDATAPOINTS"}},
     AlgorithmSpec{adaptFromTask<DCSRandomDataGenerator>()},
     Options{
       {"max-timeframes", VariantType::Int64, 99999999999ll, {"max TimeFrames to generate"}},
