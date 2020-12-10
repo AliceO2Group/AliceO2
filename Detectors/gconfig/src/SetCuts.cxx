@@ -8,22 +8,19 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-/********************************************************************************
- *    Copyright (C) 2014 GSI Helmholtzzentrum fuer Schwerionenforschung GmbH    *
- *                                                                              *
- *              This software is distributed under the terms of the             *
- *         GNU Lesser General Public Licence version 3 (LGPL) version 3,        *
- *                  copied verbatim in the file "LICENSE"                       *
- ********************************************************************************/
+#include "SetCuts.h"
+#include "SimSetup/GlobalProcessCutSimParam.h"
+#include "DetectorsBase/MaterialManager.h"
+#include "FairLogger.h"
 
-/** Configuration macro for setting common cuts and processes for G3, G4 and Fluka (M. Al-Turany 27.03.2008)
-    specific cuts and processes to g3 or g4 should be set in the g3Config.C, g4Config.C or flConfig.C
+using namespace o2::base;
 
-*/
+namespace o2
+{
 
 void SetCuts()
 {
-  cout << "SetCuts Macro: Setting Processes.." << endl;
+  LOG(INFO) << "Setup global cuts and processes";
 
   // ------>>>> IMPORTANT!!!!
   // For a correct comparison between GEANE and MC (pull distributions)
@@ -38,8 +35,8 @@ void SetCuts()
 
   // \note All following settings could also be set in Cave since it is always loaded.
   // Use MaterialManager to set processes and cuts
-  auto& mgr = MaterialManager::Instance();
-  auto& params = GlobalProcessCutSimParam::Instance();
+  auto& mgr = o2::base::MaterialManager::Instance();
+  auto& params = o2::GlobalProcessCutSimParam::Instance();
 
   LOG(INFO) << "Set default settings for processes and cuts.";
   mgr.DefaultProcesses({{EProc::kPAIR, params.PAIR},   /** pair production */
@@ -73,3 +70,5 @@ void SetCuts()
   LOG(INFO) << "Special process settings are " << settingProc << ".";
   LOG(INFO) << "Special cut settings are " << settingCut << ".";
 }
+
+} // namespace o2

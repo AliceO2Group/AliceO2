@@ -8,28 +8,12 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#include "FairRunSim.h"
-#include "TGeant3.h"
-#include "TGeant3TGeo.h"
-#include "SimulationDataFormat/Stack.h"
-#include "SimulationDataFormat/StackParam.h"
-#include "FairLogger.h"
-#include "FairModule.h"
-#include "Generators/DecayerPythia8.h"
-
-// these are used in commonConfig.C
-using o2::eventgen::DecayerPythia8;
+#ifndef O2_SIMSETUP_SETCUTS_H
+#define O2_SIMSETUP_SETCUTS_H
 
 namespace o2
 {
-namespace g3config
-{
-#include "../g3Config.C"
-
-void G3Config()
-{
-  LOG(INFO) << "Setting up G3 sim from library code";
-  Config();
+void SetCuts();
 }
-} // namespace g3config
-} // namespace o2
+
+#endif
