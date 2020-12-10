@@ -8,13 +8,8 @@
 # granted to it by virtue of its status as an Intergovernmental Organization or
 # submit itself to any jurisdiction.
 
-add_subdirectory(base)
-add_subdirectory(calibration)
-add_subdirectory(simulation)
-add_subdirectory(reconstruction)
-add_subdirectory(compression)
-if(BUILD_TESTING)
-  add_subdirectory(prototyping)
-  add_subdirectory(calibration/macros)
-endif()
-add_subdirectory(workflow)
+o2_add_test(
+  make-CCDB-Entry-For-DCS
+  SOURCES makeCCDBEntryForDCS.cxx
+  COMPONENT_NAME tof
+  PUBLIC_LINK_LIBRARIES O2::DetectorsDCS O2::CCDB)

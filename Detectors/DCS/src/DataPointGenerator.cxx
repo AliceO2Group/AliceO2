@@ -13,6 +13,7 @@
 #include "DetectorsDCS/DataPointCreator.h"
 #include "DetectorsDCS/DataPointCompositeObject.h"
 #include "DetectorsDCS/StringUtils.h"
+#include "Framework/Logger.h"
 #include <fmt/format.h>
 #include <random>
 #include <utility>
@@ -23,16 +24,27 @@ namespace
 {
 std::pair<uint32_t, uint16_t> getDate(const std::string& refDate)
 {
+
   uint32_t seconds;
   if (refDate.empty()) {
     auto current = std::time(nullptr);
     auto t = std::localtime(&current);
-    uint32_t seconds = mktime(t);
+    seconds = mktime(t);
   } else {
     std::tm t{};
     std::istringstream ss(refDate);
     ss >> std::get_time(&t, "%Y-%b-%d %H:%M:%S");
-    seconds = mktime(&t);
+    if (ss.fail()) { // let's see if it was passed as a TDatime
+      std::tm tt{};
+      std::istringstream sss(refDate);
+      sss >> std::get_time(&tt, "%a %b %d %H:%M:%S %Y");
+      if (sss.fail()) {
+        LOG(ERROR) << "We cannot parse the date";
+      }
+      seconds = mktime(&tt);
+    } else {
+      seconds = mktime(&t);
+    }
   }
   uint16_t msec = 5;
   return std::make_pair(seconds, msec);
