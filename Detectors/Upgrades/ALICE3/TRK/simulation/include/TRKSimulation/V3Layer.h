@@ -16,8 +16,8 @@
 #ifndef ALICEO2_TRK_UPGRADEV3LAYER_H_
 #define ALICEO2_TRK_UPGRADEV3LAYER_H_
 
-#include <TGeoManager.h>                // for gGeoManager
-#include "Rtypes.h"                     // for Double_t, Int_t, Bool_t, etc
+#include <TGeoManager.h>               // for gGeoManager
+#include "Rtypes.h"                    // for Double_t, Int_t, Bool_t, etc
 #include "TRKSimulation/V11Geometry.h" // for V11Geometry
 #include "TRKSimulation/Detector.h"    // for Detector, Detector::Model
 
@@ -340,7 +340,7 @@ class V3Layer : public V11Geometry
 
   UInt_t mChipTypeID; ///< detector type id
   Bool_t mIsTurbo;    ///< True if this layer is a "turbo" layer
-  Bool_t mIsTRK;     ///< True if this layer is a new TRK layer
+  Bool_t mIsTRK;      ///< True if this layer is a new TRK layer
   Int_t mBuildLevel;  ///< Used for material studies
 
   Detector::Model mStaveModel; ///< The stave model

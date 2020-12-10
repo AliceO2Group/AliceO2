@@ -680,7 +680,7 @@ void Detector::defineLayer(Int_t nlay, double phi0, Double_t r, Int_t nstav, Int
 }
 
 void Detector::defineInnerLayerTRK(Int_t nlay, Double_t r, Double_t zlen,
-                                    Double_t dthick, UInt_t dettypeID, Int_t buildLevel)
+                                   Double_t dthick, UInt_t dettypeID, Int_t buildLevel)
 {
   //     Sets the layer parameters
   // Inputs:

@@ -167,7 +167,7 @@ class Detector : public o2::base::DetImpl<Detector>
   /// \param dettypeID ??
   /// \param buildLevel (if 0, all geometry is build, used for material budget studies)
   void defineInnerLayerTRK(Int_t nlay, Double_t r, Double_t zlen,
-                            Double_t dthick = 0., UInt_t detType = 0, Int_t buildFlag = 0);
+                           Double_t dthick = 0., UInt_t detType = 0, Int_t buildFlag = 0);
 
   /// Gets the layer parameters
   /// \param nlay layer number
@@ -295,7 +295,7 @@ class Detector : public o2::base::DetImpl<Detector>
   Int_t* mWrapperLayerId;                              //! Id of wrapper layer to which layer belongs (-1 if not wrapped)
 
   Bool_t* mTurboLayer;          //! True for "turbo" layers
-  Bool_t* mTRKLayer;           //! True for new TRK layers
+  Bool_t* mTRKLayer;            //! True for new TRK layers
   Double_t* mLayerPhi0;         //! Vector of layer's 1st stave phi in lab
   Double_t* mLayerRadii;        //! Vector of layer radii
   Double_t* mLayerZLen;         //! Vector of layer lengths

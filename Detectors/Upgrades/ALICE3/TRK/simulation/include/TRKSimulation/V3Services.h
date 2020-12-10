@@ -16,8 +16,8 @@
 #ifndef ALICEO2_TRK_UPGRADEV3SERVICES_H_
 #define ALICEO2_TRK_UPGRADEV3SERVICES_H_
 
-#include <TGeoManager.h>                // for gGeoManager
-#include "Rtypes.h"                     // for Double_t, Int_t, Bool_t, etc
+#include <TGeoManager.h>               // for gGeoManager
+#include "Rtypes.h"                    // for Double_t, Int_t, Bool_t, etc
 #include "TRKSimulation/V11Geometry.h" // for V11Geometry
 #include "TRKSimulation/Detector.h"    // for Detector, Detector::Model
 
