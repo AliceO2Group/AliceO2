@@ -40,6 +40,11 @@ constexpr int NROBC1 = 8;       // the number of ROBs per C1 chamber
 constexpr int NADCMCM = 21;     // the number of ADC channels per MCM
 constexpr int NCOLMCM = 18;     // the number of pads per MCM
 
+constexpr int NBITSTRKLPOS = 11;                   // number of bits for position in tracklet64 word
+constexpr int NBITSTRKLSLOPE = 8;                  // number of bits for slope in tracklet64 word
+constexpr float GRANULARITYTRKLPOS = 1.f / 75;     // granularity of position in tracklet64 word in pad-widths
+constexpr float GRANULARITYTRKLSLOPE = 1.f / 1000; // granularity of slope in tracklet64 word in pads/timebin
+
 // OS: Should this not be flexible for example in case of Kr calib?
 constexpr int TIMEBINS = 30; // the number of time bins
 
