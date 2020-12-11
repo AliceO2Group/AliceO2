@@ -201,28 +201,28 @@ struct QAGlobalObservables {
   void process(const o2::aod::Collision& collision, const o2::aod::Tracks& tracks)
   {
     eventCount->Fill(0);
-    histograms.fill("collision/collisionX", collision.posX());
-    histograms.fill("collision/collisionY", collision.posY());
-    histograms.fill("collision/collisionZ", collision.posZ());
+    histograms.fill(HIST("collision/collisionX"), collision.posX());
+    histograms.fill(HIST("collision/collisionY"), collision.posY());
+    histograms.fill(HIST("collision/collisionZ"), collision.posZ());
 
     int nTracks(0);
     for (const auto& track : tracks) {
       nTracks++;
     }
 
-    histograms.fill("multiplicity/numberOfTracks", nTracks);
+    histograms.fill(HIST("multiplicity/numberOfTracks"), nTracks);
 
     // fill covariance variables
-    histograms.fill("Covariance/xx", collision.covXX());
-    histograms.fill("Covariance/xy", collision.covXY());
-    histograms.fill("Covariance/xz", collision.covXZ());
-    histograms.fill("Covariance/yy", collision.covYY());
-    histograms.fill("Covariance/yz", collision.covYZ());
-    histograms.fill("Covariance/zz", collision.covZZ());
+    histograms.fill(HIST("Covariance/xx"), collision.covXX());
+    histograms.fill(HIST("Covariance/xy"), collision.covXY());
+    histograms.fill(HIST("Covariance/xz"), collision.covXZ());
+    histograms.fill(HIST("Covariance/yy"), collision.covYY());
+    histograms.fill(HIST("Covariance/yz"), collision.covYZ());
+    histograms.fill(HIST("Covariance/zz"), collision.covZZ());
 
     // fill quality variables
-    histograms.fill("Quality/Chi2", collision.chi2());
-    histograms.fill("Quality/Contributors", collision.numContrib());
+    histograms.fill(HIST("Quality/Chi2"), collision.chi2());
+    histograms.fill(HIST("Quality/Contributors"), collision.numContrib());
   }
 };
 
@@ -249,9 +249,9 @@ struct QATrackingKine {
 
   void process(const o2::aod::Track& track)
   {
-    histos.fill("tracking/eta", track.eta());
-    histos.fill("tracking/pt", track.pt());
-    histos.fill("tracking/phi", track.phi());
+    histos.fill(HIST("tracking/eta"), track.eta());
+    histos.fill(HIST("tracking/pt"), track.pt());
+    histos.fill(HIST("tracking/phi"), track.phi());
   }
 };
 
@@ -393,22 +393,22 @@ struct QATrackingResolution {
 
     for (const auto& track : tracks) {
       const double deltaPt = track.label().pt() - track.pt();
-      histos.fill("pt/ptDiffMCRec", deltaPt);
+      histos.fill(HIST("pt/ptDiffMCRec"), deltaPt);
 
       const double deltaPtOverPt = deltaPt / track.pt();
 
-      histos.fill("pt/ptResolution", deltaPtOverPt);
-      histos.fill("pt/ptResolutionVsPt", track.pt(), std::abs(deltaPtOverPt));
-      histos.fill("pt/ptResolutionVsEta", track.eta(), std::abs(deltaPtOverPt));
-      histos.fill("pt/ptResolutionVsPhi", track.phi(), std::abs(deltaPtOverPt));
+      histos.fill(HIST("pt/ptResolution"), deltaPtOverPt);
+      histos.fill(HIST("pt/ptResolutionVsPt"), track.pt(), std::abs(deltaPtOverPt));
+      histos.fill(HIST("pt/ptResolutionVsEta"), track.eta(), std::abs(deltaPtOverPt));
+      histos.fill(HIST("pt/ptResolutionVsPhi"), track.phi(), std::abs(deltaPtOverPt));
 
       const double deltaEta = track.label().eta() - track.eta();
-      histos.fill("eta/etaDiffMCReco", deltaEta);
-      histos.fill("eta/etaDiffMCRecoVsEtaMC", deltaEta, track.label().eta());
-      histos.fill("eta/etaDiffMCRecoVsEtaReco", deltaEta, track.eta());
+      histos.fill(HIST("eta/etaDiffMCReco"), deltaEta);
+      histos.fill(HIST("eta/etaDiffMCRecoVsEtaMC"), deltaEta, track.label().eta());
+      histos.fill(HIST("eta/etaDiffMCRecoVsEtaReco"), deltaEta, track.eta());
 
       const double deltaPhi = track_utils::ConvertPhiRange(track.label().phi() - track.phi());
-      histos.fill("phi/phiDiffMCRec", deltaPhi);
+      histos.fill(HIST("phi/phiDiffMCRec"), deltaPhi);
 
       double impactParameterRPhi{-999.}, impactParameterRPhiError{-999.};
       double impactParameterZ{-999.}, impactParameterErrorZ{-999.};
@@ -417,21 +417,21 @@ struct QATrackingResolution {
         track, primaryVertex, impactParameterRPhi, impactParameterRPhiError, impactParameterZ, impactParameterErrorZ);
 
       if (propagate) {
-        histos.fill("impactParameter/impactParameterRPhiVsPt", track.pt(), impactParameterRPhi);
-        histos.fill("impactParameter/impactParameterRPhiVsEta", track.eta(), impactParameterRPhi);
-        histos.fill("impactParameter/impactParameterRPhiVsPhi", track.phi(), impactParameterRPhi);
+        histos.fill(HIST("impactParameter/impactParameterRPhiVsPt"), track.pt(), impactParameterRPhi);
+        histos.fill(HIST("impactParameter/impactParameterRPhiVsEta"), track.eta(), impactParameterRPhi);
+        histos.fill(HIST("impactParameter/impactParameterRPhiVsPhi"), track.phi(), impactParameterRPhi);
 
-        histos.fill("impactParameter/impactParameterZVsPt", track.pt(), impactParameterZ);
-        histos.fill("impactParameter/impactParameterZVsEta", track.eta(), impactParameterZ);
-        histos.fill("impactParameter/impactParameterZVsPhi", track.phi(), impactParameterZ);
+        histos.fill(HIST("impactParameter/impactParameterZVsPt"), track.pt(), impactParameterZ);
+        histos.fill(HIST("impactParameter/impactParameterZVsEta"), track.eta(), impactParameterZ);
+        histos.fill(HIST("impactParameter/impactParameterZVsPhi"), track.phi(), impactParameterZ);
 
-        histos.fill("impactParameter/impactParameterErrorRPhiVsPt", track.pt(), impactParameterRPhiError);
-        histos.fill("impactParameter/impactParameterErrorRPhiVsEta", track.eta(), impactParameterRPhiError);
-        histos.fill("impactParameter/impactParameterErrorRPhiVsPhi", track.phi(), impactParameterRPhiError);
+        histos.fill(HIST("impactParameter/impactParameterErrorRPhiVsPt"), track.pt(), impactParameterRPhiError);
+        histos.fill(HIST("impactParameter/impactParameterErrorRPhiVsEta"), track.eta(), impactParameterRPhiError);
+        histos.fill(HIST("impactParameter/impactParameterErrorRPhiVsPhi"), track.phi(), impactParameterRPhiError);
 
-        histos.fill("impactParameter/impactParameterErrorZVsPt", track.pt(), impactParameterErrorZ);
-        histos.fill("impactParameter/impactParameterErrorZVsEta", track.eta(), impactParameterErrorZ);
-        histos.fill("impactParameter/impactParameterErrorZVsPhi", track.phi(), impactParameterErrorZ);
+        histos.fill(HIST("impactParameter/impactParameterErrorZVsPt"), track.pt(), impactParameterErrorZ);
+        histos.fill(HIST("impactParameter/impactParameterErrorZVsEta"), track.eta(), impactParameterErrorZ);
+        histos.fill(HIST("impactParameter/impactParameterErrorZVsPhi"), track.phi(), impactParameterErrorZ);
       }
     }
   }

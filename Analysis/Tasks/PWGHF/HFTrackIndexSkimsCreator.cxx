@@ -73,7 +73,7 @@ struct SelectTracks {
 
       auto trackPt = track.pt();
       if (b_dovalplots) {
-        registry.get<TH1>("hpt_nocuts")->Fill(trackPt);
+        registry.get<TH1>(HIST("hpt_nocuts"))->Fill(trackPt);
       }
 
       // pT cut
@@ -123,14 +123,14 @@ struct SelectTracks {
       // fill histograms
       if (b_dovalplots) {
         if (status_prong & (1 << 0)) {
-          registry.get<TH1>("hpt_cuts_2prong")->Fill(trackPt);
-          registry.get<TH1>("hdcatoprimxy_cuts_2prong")->Fill(dca[0]);
-          registry.get<TH1>("heta_cuts_2prong")->Fill(trackEta);
+          registry.get<TH1>(HIST("hpt_cuts_2prong"))->Fill(trackPt);
+          registry.get<TH1>(HIST("hdcatoprimxy_cuts_2prong"))->Fill(dca[0]);
+          registry.get<TH1>(HIST("heta_cuts_2prong"))->Fill(trackEta);
         }
         if (status_prong & (1 << 1)) {
-          registry.get<TH1>("hpt_cuts_3prong")->Fill(trackPt);
-          registry.get<TH1>("hdcatoprimxy_cuts_3prong")->Fill(dca[0]);
-          registry.get<TH1>("heta_cuts_3prong")->Fill(trackEta);
+          registry.get<TH1>(HIST("hpt_cuts_3prong"))->Fill(trackPt);
+          registry.get<TH1>(HIST("hdcatoprimxy_cuts_3prong"))->Fill(dca[0]);
+          registry.get<TH1>(HIST("heta_cuts_3prong"))->Fill(trackEta);
         }
       }
 
@@ -441,25 +441,25 @@ struct HFTrackIndexSkimsCreator {
               // fill histograms
               if (b_dovalplots) {
 
-                registry.get<TH1>("hvtx2_x")->Fill(secondaryVertex2[0]);
-                registry.get<TH1>("hvtx2_y")->Fill(secondaryVertex2[1]);
-                registry.get<TH1>("hvtx2_z")->Fill(secondaryVertex2[2]);
+                registry.get<TH1>(HIST("hvtx2_x"))->Fill(secondaryVertex2[0]);
+                registry.get<TH1>(HIST("hvtx2_y"))->Fill(secondaryVertex2[1]);
+                registry.get<TH1>(HIST("hvtx2_z"))->Fill(secondaryVertex2[2]);
                 arrMom = array{pvec0, pvec1};
                 for (int n2 = 0; n2 < n2ProngDecays; n2++) {
                   if (isSelected2ProngCand & 1 << n2) {
                     if ((cut2ProngInvMassCandMin[n2] < 0. && cut2ProngInvMassCandMax[n2] <= 0.) || (mass2ProngHypo1[n2] >= cut2ProngInvMassCandMin[n2] && mass2ProngHypo1[n2] < cut2ProngInvMassCandMax[n2])) {
                       mass2ProngHypo1[n2] = RecoDecay::M(arrMom, arr2Mass1[n2]);
                       if (n2 == 0) {
-                        registry.get<TH1>("hmassD0")->Fill(mass2ProngHypo1[n2]);
+                        registry.get<TH1>(HIST("hmassD0"))->Fill(mass2ProngHypo1[n2]);
                       }
                       if (n2 == 1) {
-                        registry.get<TH1>("hmassJpsi")->Fill(mass2ProngHypo1[n2]);
+                        registry.get<TH1>(HIST("hmassJpsi"))->Fill(mass2ProngHypo1[n2]);
                       }
                     }
                     if ((cut2ProngInvMassCandMin[n2] < 0. && cut2ProngInvMassCandMax[n2] <= 0.) || (mass2ProngHypo2[n2] >= cut2ProngInvMassCandMin[n2] && mass2ProngHypo2[n2] < cut2ProngInvMassCandMax[n2])) {
                       mass2ProngHypo2[n2] = RecoDecay::M(arrMom, arr2Mass2[n2]);
                       if (n2 == 0) {
-                        registry.get<TH1>("hmassD0")->Fill(mass2ProngHypo1[n2]);
+                        registry.get<TH1>(HIST("hmassD0"))->Fill(mass2ProngHypo1[n2]);
                       }
                     }
                   }
@@ -609,31 +609,31 @@ struct HFTrackIndexSkimsCreator {
             // fill histograms
             if (b_dovalplots) {
 
-              registry.get<TH1>("hvtx3_x")->Fill(secondaryVertex3[0]);
-              registry.get<TH1>("hvtx3_y")->Fill(secondaryVertex3[1]);
-              registry.get<TH1>("hvtx3_z")->Fill(secondaryVertex3[2]);
+              registry.get<TH1>(HIST("hvtx3_x"))->Fill(secondaryVertex3[0]);
+              registry.get<TH1>(HIST("hvtx3_y"))->Fill(secondaryVertex3[1]);
+              registry.get<TH1>(HIST("hvtx3_z"))->Fill(secondaryVertex3[2]);
               arr3Mom = array{pvec0, pvec1, pvec2};
               for (int n3 = 0; n3 < n3ProngDecays; n3++) {
                 if (isSelected3ProngCand & 1 << n3) {
                   if ((cut3ProngInvMassCandMin[n3] < 0. && cut3ProngInvMassCandMax[n3] <= 0.) || (mass3ProngHypo1[n3] >= cut3ProngInvMassCandMin[n3] && mass3ProngHypo1[n3] < cut3ProngInvMassCandMax[n3])) {
                     mass3ProngHypo1[n3] = RecoDecay::M(arr3Mom, arr3Mass1[n3]);
                     if (n3 == 0) {
-                      registry.get<TH1>("hmassDPlus")->Fill(mass3ProngHypo1[n3]);
+                      registry.get<TH1>(HIST("hmassDPlus"))->Fill(mass3ProngHypo1[n3]);
                     }
                     if (n3 == 1) {
-                      registry.get<TH1>("hmassLc")->Fill(mass3ProngHypo1[n3]);
+                      registry.get<TH1>(HIST("hmassLc"))->Fill(mass3ProngHypo1[n3]);
                     }
                     if (n3 == 2) {
-                      registry.get<TH1>("hmassDs")->Fill(mass3ProngHypo1[n3]);
+                      registry.get<TH1>(HIST("hmassDs"))->Fill(mass3ProngHypo1[n3]);
                     }
                   }
                   if ((cut3ProngInvMassCandMin[n3] < 0. && cut3ProngInvMassCandMax[n3] <= 0.) || (mass3ProngHypo2[n3] >= cut3ProngInvMassCandMin[n3] && mass3ProngHypo2[n3] < cut3ProngInvMassCandMax[n3])) {
                     mass3ProngHypo2[n3] = RecoDecay::M(arr3Mom, arr3Mass2[n3]);
                     if (n3 == 1) {
-                      registry.get<TH1>("hmassLc")->Fill(mass3ProngHypo2[n3]);
+                      registry.get<TH1>(HIST("hmassLc"))->Fill(mass3ProngHypo2[n3]);
                     }
                     if (n3 == 2) {
-                      registry.get<TH1>("hmassDs")->Fill(mass3ProngHypo2[n3]);
+                      registry.get<TH1>(HIST("hmassDs"))->Fill(mass3ProngHypo2[n3]);
                     }
                   }
                 }
@@ -776,31 +776,31 @@ struct HFTrackIndexSkimsCreator {
             // fill histograms
             if (b_dovalplots) {
 
-              registry.get<TH1>("hvtx3_x")->Fill(secondaryVertex3[0]);
-              registry.get<TH1>("hvtx3_y")->Fill(secondaryVertex3[1]);
-              registry.get<TH1>("hvtx3_z")->Fill(secondaryVertex3[2]);
+              registry.get<TH1>(HIST("hvtx3_x"))->Fill(secondaryVertex3[0]);
+              registry.get<TH1>(HIST("hvtx3_y"))->Fill(secondaryVertex3[1]);
+              registry.get<TH1>(HIST("hvtx3_z"))->Fill(secondaryVertex3[2]);
               arr3Mom = array{pvec0, pvec1, pvec2};
               for (int n3 = 0; n3 < n3ProngDecays; n3++) {
                 if (isSelected3ProngCand & 1 << n3) {
                   if ((cut3ProngInvMassCandMin[n3] < 0. && cut3ProngInvMassCandMax[n3] <= 0.) || (mass3ProngHypo1[n3] >= cut3ProngInvMassCandMin[n3] && mass3ProngHypo1[n3] < cut3ProngInvMassCandMax[n3])) {
                     mass3ProngHypo1[n3] = RecoDecay::M(arr3Mom, arr3Mass1[n3]);
                     if (n3 == 0) {
-                      registry.get<TH1>("hmassDPlus")->Fill(mass3ProngHypo1[n3]);
+                      registry.get<TH1>(HIST("hmassDPlus"))->Fill(mass3ProngHypo1[n3]);
                     }
                     if (n3 == 1) {
-                      registry.get<TH1>("hmassLc")->Fill(mass3ProngHypo1[n3]);
+                      registry.get<TH1>(HIST("hmassLc"))->Fill(mass3ProngHypo1[n3]);
                     }
                     if (n3 == 2) {
-                      registry.get<TH1>("hmassDs")->Fill(mass3ProngHypo1[n3]);
+                      registry.get<TH1>(HIST("hmassDs"))->Fill(mass3ProngHypo1[n3]);
                     }
                   }
                   if ((cut3ProngInvMassCandMin[n3] < 0. && cut3ProngInvMassCandMax[n3] <= 0.) || (mass3ProngHypo2[n3] >= cut3ProngInvMassCandMin[n3] && mass3ProngHypo2[n3] < cut3ProngInvMassCandMax[n3])) {
                     mass3ProngHypo2[n3] = RecoDecay::M(arr3Mom, arr3Mass2[n3]);
                     if (n3 == 1) {
-                      registry.get<TH1>("hmassLc")->Fill(mass3ProngHypo2[n3]);
+                      registry.get<TH1>(HIST("hmassLc"))->Fill(mass3ProngHypo2[n3]);
                     }
                     if (n3 == 2) {
-                      registry.get<TH1>("hmassDs")->Fill(mass3ProngHypo2[n3]);
+                      registry.get<TH1>(HIST("hmassDs"))->Fill(mass3ProngHypo2[n3]);
                     }
                   }
                 }
@@ -815,11 +815,11 @@ struct HFTrackIndexSkimsCreator {
     nCand2 = rowTrackIndexProng2.lastIndex() - nCand2; // number of 2-prong candidates in this collision
     nCand3 = rowTrackIndexProng3.lastIndex() - nCand3; // number of 3-prong candidates in this collision
 
-    registry.get<TH1>("hNTracks")->Fill(nTracks);
-    registry.get<TH1>("hNCand2Prong")->Fill(nCand2);
-    registry.get<TH1>("hNCand3Prong")->Fill(nCand3);
-    registry.get<TH2>("hNCand2ProngVsNTracks")->Fill(nTracks, nCand2);
-    registry.get<TH2>("hNCand3ProngVsNTracks")->Fill(nTracks, nCand3);
+    registry.get<TH1>(HIST("hNTracks"))->Fill(nTracks);
+    registry.get<TH1>(HIST("hNCand2Prong"))->Fill(nCand2);
+    registry.get<TH1>(HIST("hNCand3Prong"))->Fill(nCand3);
+    registry.get<TH2>(HIST("hNCand2ProngVsNTracks"))->Fill(nTracks, nCand2);
+    registry.get<TH2>(HIST("hNCand3ProngVsNTracks"))->Fill(nTracks, nCand3);
   }
 };
 

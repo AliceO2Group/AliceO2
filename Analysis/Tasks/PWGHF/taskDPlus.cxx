@@ -62,30 +62,30 @@ struct TaskDPlus {
   void process(aod::HfCandProng3 const& candidates)
   {
     for (auto& candidate : candidates) {
-      registry.get<TH1>("hMass")->Fill(InvMassDPlus(candidate));
-      registry.get<TH1>("hPt")->Fill(candidate.pt());
-      registry.get<TH1>("hEta")->Fill(candidate.eta());
-      registry.get<TH1>("hCt")->Fill(CtDPlus(candidate));
-      registry.get<TH1>("hDecayLength")->Fill(candidate.decayLength());
-      registry.get<TH1>("hDecayLengthXY")->Fill(candidate.decayLengthXY());
-      registry.get<TH1>("hNormalisedDecayLengthXY")->Fill(candidate.decayLengthXYNormalised());
-      registry.get<TH1>("hCPA")->Fill(candidate.cpa());
-      registry.get<TH1>("hCPAxy")->Fill(candidate.cpaXY());
-      registry.get<TH1>("hImpactParameterXY")->Fill(candidate.impactParameterXY());
-      registry.get<TH1>("hMaxNormalisedDeltaIP")->Fill(candidate.maxNormalisedDeltaIP());
-      registry.get<TH1>("hImpactParameterProngSqSum")->Fill(candidate.impactParameterProngSqSum());
-      registry.get<TH1>("hDecayLengthError")->Fill(candidate.errorDecayLength());
-      registry.get<TH1>("hDecayLengthXYError")->Fill(candidate.errorDecayLengthXY());
-      registry.get<TH1>("hImpactParameterError")->Fill(candidate.errorImpactParameter0());
-      registry.get<TH1>("hImpactParameterError")->Fill(candidate.errorImpactParameter1());
-      registry.get<TH1>("hImpactParameterError")->Fill(candidate.errorImpactParameter2());
-      registry.get<TH1>("hPtProng0")->Fill(candidate.ptProng0());
-      registry.get<TH1>("hPtProng1")->Fill(candidate.ptProng1());
-      registry.get<TH1>("hPtProng2")->Fill(candidate.ptProng2());
-      registry.get<TH1>("hd0Prong0")->Fill(candidate.impactParameter0());
-      registry.get<TH1>("hd0Prong1")->Fill(candidate.impactParameter1());
-      registry.get<TH1>("hd0Prong2")->Fill(candidate.impactParameter2());
-      //registry.get<TH1>("hSelectionStatus")->Fill(candidate.isSelDPlus());
+      registry.get<TH1>(HIST("hMass"))->Fill(InvMassDPlus(candidate));
+      registry.get<TH1>(HIST("hPt"))->Fill(candidate.pt());
+      registry.get<TH1>(HIST("hEta"))->Fill(candidate.eta());
+      registry.get<TH1>(HIST("hCt"))->Fill(CtDPlus(candidate));
+      registry.get<TH1>(HIST("hDecayLength"))->Fill(candidate.decayLength());
+      registry.get<TH1>(HIST("hDecayLengthXY"))->Fill(candidate.decayLengthXY());
+      registry.get<TH1>(HIST("hNormalisedDecayLengthXY"))->Fill(candidate.decayLengthXYNormalised());
+      registry.get<TH1>(HIST("hCPA"))->Fill(candidate.cpa());
+      registry.get<TH1>(HIST("hCPAxy"))->Fill(candidate.cpaXY());
+      registry.get<TH1>(HIST("hImpactParameterXY"))->Fill(candidate.impactParameterXY());
+      registry.get<TH1>(HIST("hMaxNormalisedDeltaIP"))->Fill(candidate.maxNormalisedDeltaIP());
+      registry.get<TH1>(HIST("hImpactParameterProngSqSum"))->Fill(candidate.impactParameterProngSqSum());
+      registry.get<TH1>(HIST("hDecayLengthError"))->Fill(candidate.errorDecayLength());
+      registry.get<TH1>(HIST("hDecayLengthXYError"))->Fill(candidate.errorDecayLengthXY());
+      registry.get<TH1>(HIST("hImpactParameterError"))->Fill(candidate.errorImpactParameter0());
+      registry.get<TH1>(HIST("hImpactParameterError"))->Fill(candidate.errorImpactParameter1());
+      registry.get<TH1>(HIST("hImpactParameterError"))->Fill(candidate.errorImpactParameter2());
+      registry.get<TH1>(HIST("hPtProng0"))->Fill(candidate.ptProng0());
+      registry.get<TH1>(HIST("hPtProng1"))->Fill(candidate.ptProng1());
+      registry.get<TH1>(HIST("hPtProng2"))->Fill(candidate.ptProng2());
+      registry.get<TH1>(HIST("hd0Prong0"))->Fill(candidate.impactParameter0());
+      registry.get<TH1>(HIST("hd0Prong1"))->Fill(candidate.impactParameter1());
+      registry.get<TH1>(HIST("hd0Prong2"))->Fill(candidate.impactParameter2());
+      //registry.get<TH1>(HIST("hSelectionStatus"))->Fill(candidate.isSelDPlus());
     }
   }
 };
