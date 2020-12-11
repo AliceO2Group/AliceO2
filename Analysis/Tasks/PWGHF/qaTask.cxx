@@ -18,15 +18,15 @@
 #include "Framework/HistogramRegistry.h"
 #include "AnalysisCore/trackUtilities.h"
 #include "ReconstructionDataFormats/DCA.h"
+#include "AnalysisCore/MC.h"
 
 #include "TH1D.h"
 
 #include <cmath>
 #include <string>
-#include <sstream>
+#include <algorithm>
 #include "boost/algorithm/string.hpp"
 
-using namespace o2::framework;
 namespace o2fw = o2::framework;
 namespace o2exp = o2::framework::expressions;
 namespace o2df = o2::dataformats;
@@ -76,6 +76,21 @@ bool GetImpactParameterAndError(const Track& track, const o2df::VertexBase& prim
     impactParameterErrorZ = conversion_to_micrometer * std::sqrt(dca.getSigmaZ2());
   }
   return propagate;
+}
+
+
+/// Returns wheter the particle is an electron, muon, pion, kaon or proton.
+/// \param particle the simulated particle.
+template <typename MCParticle>
+bool isPossibleToTrack(MCParticle particle)
+{
+  const int pdg_particle = std::abs(particle.pdgCode());
+  const std::vector<int> particles = {11, 13, 211, 321, 2212};
+
+  if (std::find(particles.begin(), particles.end(), pdg_particle) != particles.end()) {
+    return true;
+  }
+  return false;
 }
 } // namespace track_utils
 
@@ -140,7 +155,7 @@ class Feature
 std::string MakeTitle(std::vector<std::string> axisTitles, const std::string& counts = "Counts")
 {
   axisTitles.push_back(counts);
-  return ";" + boost::algorithm::join(axisTitles, ";");
+  return "; " + boost::algorithm::join(axisTitles, "; ");
 }
 
 Feature Eta("#eta");
@@ -154,6 +169,15 @@ Feature ImpactParameterRPhi("Impact Parameter r#varphi", "#mum");
 Feature ImpactParameterRPhiError("Impact Parameter Error r#varphi", "#mum");
 Feature ImpactParameterZ("Impact Parameter Z", "#mum");
 Feature ImpactParameterZError("Impact Parameter Z Error", "#mum");
+Feature NumberOfContributors("Number Of contributors to the PV.");
+Feature CovarianceXX("Cov_{xx}", "cm^{2}");
+Feature CovarianceXY("Cov_{xy}", "cm^{2}");
+Feature CovarianceXZ("Cov_{xz}", "cm^{2}");
+Feature CovarianceYY("Cov_{yy}", "cm^{2}");
+Feature CovarianceYZ("Cov_{yz}", "cm^{2}");
+Feature CovarianceZZ("Cov_{zz}", "cm^{2}");
+Feature VertexChi2("#Chi^{2}");
+
 } // namespace o2::qa::features
 
 namespace qafeat = o2::qa::features;
@@ -161,41 +185,65 @@ namespace qafeat = o2::qa::features;
 /// Task to QA global observables of the event
 struct QAGlobalObservables {
   o2fw::Configurable<int> nBinsNumberOfTracks{"nBinsNumberOfTracks", 2000, "Number of bins for the Number of Tracks"};
-  o2fw::Configurable<int> nBinsVertexPosition{"nBinsPt", 100, "Number of bins for the Vertex Position"};
+
+  o2fw::Configurable<int> nBinsVertexPosition{"nBinsVertexPosition", 100, "Number of bins for the Vertex Position"};
+
+  o2fw::Configurable<int> nBinsNumberOfContributorsVertex{
+    "nBinsNumberOfContributorsVertex", 200, "Number bins for the number of contributors to the primary vertex"};
+
+  o2fw::Configurable<int> numberOfContributorsVertexMax{
+    "numberOfContributorsVertexMax", 200, "Maximum value for the Number of contributors to the primary vertex"};
+
+  o2fw::Configurable<int> nBinsVertexCovarianceMatrix{"nBinsVertexCovarianceMatrix", 100,
+                                                      "Number bins for the vertex covariance matrix"};
 
   std::array<float, 2> collisionZRange = {-20., 20.};
   std::array<float, 2> collisionXYRange = {-0.01, 0.01};
-
   std::array<float, 2> numberOfTracksRange = {0, 400};
+  std::array<float, 2> vertexCovarianceMatrixRange = {-0.1, 0.1};
 
   o2fw::OutputObj<TH1D> eventCount{TH1D("eventCount", qafeat::MakeTitle({"Selected Events"}).c_str(), 2, 0, 2)};
   o2fw::HistogramRegistry histograms{"HistogramsGlobalQA"};
 
   void init(o2fw::InitContext&)
   {
-    histograms.add("collision/collisionX", qafeat::MakeTitle({qafeat::VertexX}).c_str(), o2fw::kTH1D,
-                   {{nBinsVertexPosition, collisionXYRange[0], collisionXYRange[1]}});
+    o2fw::AxisSpec collisionXAxis{nBinsVertexPosition, collisionXYRange[0], collisionXYRange[1]};
+    o2fw::AxisSpec collisionYAxis{nBinsVertexPosition, collisionXYRange[0], collisionXYRange[1]};
+    o2fw::AxisSpec collisionZAxis{nBinsVertexPosition, collisionZRange[0], collisionZRange[1]};
 
-    histograms.add("collision/collisionY", qafeat::MakeTitle({qafeat::VertexY}).c_str(), o2fw::kTH1D,
-                   {{nBinsVertexPosition, collisionXYRange[0], collisionXYRange[1]}});
+    o2fw::AxisSpec numberOfContributorsAxis{nBinsNumberOfContributorsVertex, 0, float(numberOfContributorsVertexMax)};
+    o2fw::AxisSpec numberOfTrackAxis{nBinsNumberOfTracks, numberOfTracksRange[0], numberOfTracksRange[1]};
 
-    histograms.add("collision/collisionZ", qafeat::MakeTitle({qafeat::VertexZ}).c_str(), o2fw::kTH1D,
-                   {{nBinsVertexPosition, collisionZRange[0], collisionZRange[1]}});
+    o2fw::AxisSpec vertexCovarianceMatrixAxis{nBinsVertexCovarianceMatrix, vertexCovarianceMatrixRange[0],
+                                              vertexCovarianceMatrixRange[1]};
+
+    histograms.add("collision/collisionX", qafeat::MakeTitle({qafeat::VertexX}).c_str(), o2fw::kTH1D, {collisionXAxis});
+
+    histograms.add("collision/collisionY", qafeat::MakeTitle({qafeat::VertexY}).c_str(), o2fw::kTH1D, {collisionYAxis});
+
+    histograms.add("collision/collisionZ", qafeat::MakeTitle({qafeat::VertexZ}).c_str(), o2fw::kTH1D, {collisionZAxis});
+
+    histograms.add("collision/numberOfContributors", qafeat::MakeTitle({qafeat::NumberOfContributors}).c_str(),
+                   o2fw::kTH1D, {numberOfContributorsAxis});
+
+    histograms.add("collision/vertexChi2", qafeat::MakeTitle({qafeat::VertexChi2}).c_str(),
+                   o2fw::kTH1D, {{100, 0, 10}});
 
     histograms.add("multiplicity/numberOfTracks", qafeat::MakeTitle({qafeat::TrackMultiplicity}).c_str(), o2fw::kTH1D,
-                   {{nBinsNumberOfTracks, numberOfTracksRange[0], numberOfTracksRange[1]}});
+                   {numberOfTrackAxis});
 
-    // covariance histograms
-    histograms.add("Covariance/xx", "xx;Cov_{xx} [cm^{2}]", kTH1D, {{200, -0.1, 0.1}});
-    histograms.add("Covariance/xy", "xy;Cov_{xy} [cm^{2}]", kTH1D, {{200, -0.1, 0.1}});
-    histograms.add("Covariance/xz", "xz;Cov_{xz} [cm^{2}]", kTH1D, {{200, -0.1, 0.1}});
-    histograms.add("Covariance/yy", "yy;Cov_{yy} [cm^{2}]", kTH1D, {{200, -0.1, 0.1}});
-    histograms.add("Covariance/yz", "yz;Cov_{yz} [cm^{2}]", kTH1D, {{200, -0.1, 0.1}});
-    histograms.add("Covariance/zz", "zz;Cov_{zz} [cm^{2}]", kTH1D, {{200, -0.1, 0.1}});
-
-    // quality histograms
-    histograms.add("Quality/Chi2", "#Chi^{2};#Chi^{2}", kTH1D, {{100, 0, 10}});
-    histograms.add("Quality/Contributors", "Contributors;Contributors", kTH1D, {{100, 0, 100}});
+    histograms.add("covariance/xx", qafeat::MakeTitle({qafeat::CovarianceXX}).c_str(), o2fw::kTH1D,
+                   {vertexCovarianceMatrixAxis});
+    histograms.add("covariance/xy", qafeat::MakeTitle({qafeat::CovarianceXY}).c_str(), o2fw::kTH1D,
+                   {vertexCovarianceMatrixAxis});
+    histograms.add("covariance/xz", qafeat::MakeTitle({qafeat::CovarianceXZ}).c_str(), o2fw::kTH1D,
+                   {vertexCovarianceMatrixAxis});
+    histograms.add("covariance/yy", qafeat::MakeTitle({qafeat::CovarianceYY}).c_str(), o2fw::kTH1D,
+                   {vertexCovarianceMatrixAxis});
+    histograms.add("covariance/yz", qafeat::MakeTitle({qafeat::CovarianceYZ}).c_str(), o2fw::kTH1D,
+                   {vertexCovarianceMatrixAxis});
+    histograms.add("covariance/zz", qafeat::MakeTitle({qafeat::CovarianceZZ}).c_str(), o2fw::kTH1D,
+                   {vertexCovarianceMatrixAxis});
   }
 
   void process(const o2::aod::Collision& collision, const o2::aod::Tracks& tracks)
@@ -205,24 +253,22 @@ struct QAGlobalObservables {
     histograms.fill("collision/collisionY", collision.posY());
     histograms.fill("collision/collisionZ", collision.posZ());
 
+    histograms.fill("collision/numberOfContributors", collision.numContrib());
+    histograms.fill("collision/vertexChi2", collision.chi2());
+
+    histograms.fill("covariance/xx", collision.covXX());
+    histograms.fill("covariance/xy", collision.covXY());
+    histograms.fill("covariance/xz", collision.covXZ());
+    histograms.fill("covariance/yy", collision.covYY());
+    histograms.fill("covariance/yz", collision.covYZ());
+    histograms.fill("covariance/zz", collision.covZZ());
+
     int nTracks(0);
     for (const auto& track : tracks) {
       nTracks++;
     }
 
     histograms.fill("multiplicity/numberOfTracks", nTracks);
-
-    // fill covariance variables
-    histograms.fill("Covariance/xx", collision.covXX());
-    histograms.fill("Covariance/xy", collision.covXY());
-    histograms.fill("Covariance/xz", collision.covXZ());
-    histograms.fill("Covariance/yy", collision.covYY());
-    histograms.fill("Covariance/yz", collision.covYZ());
-    histograms.fill("Covariance/zz", collision.covZZ());
-
-    // fill quality variables
-    histograms.fill("Quality/Chi2", collision.chi2());
-    histograms.fill("Quality/Contributors", collision.numContrib());
   }
 };
 
@@ -257,10 +303,21 @@ struct QATrackingKine {
 
 /// Task to evaluate the tracking resolution (Pt, Eta, Phi and impact parameter)
 struct QATrackingResolution {
-  std::vector<double> ptBins = {0, 0.01, 0.02, 0.03, 0.04, 0.05, 0.06, 0.07, 0.08, 0.09, 0.10, 0.12,
-                                0.14, 0.16, 0.18, 0.2, 0.225, 0.25, 0.275, 0.3, 0.35, 0.4, 0.45, 0.5,
-                                0.6, 0.7, 0.8, 0.9, 1.0, 1.2, 1.4, 1.6, 1.8, 2.0, 2.5, 3.0,
-                                3.5, 4., 5., 6., 8., 10., 15., 20., 30., 50., 100.};
+  std::vector<double> ptBins = {
+    0.01,   0.0101, 0.0102, 0.0103, 0.0104, 0.0105, 0.0106, 0.0107, 0.0108, 0.0109, 0.011,  0.0111, 0.0112, 0.0113,
+    0.0114, 0.0115, 0.0116, 0.0117, 0.0118, 0.0119, 0.012,  0.0121, 0.0122, 0.0123, 0.0124, 0.0125, 0.0126, 0.0127,
+    0.0128, 0.0129, 0.013,  0.0131, 0.0132, 0.0133, 0.0134, 0.0135, 0.0136, 0.0137, 0.0138, 0.0139, 0.014,  0.0141,
+    0.0142, 0.0143, 0.0144, 0.0145, 0.0146, 0.0147, 0.0148, 0.0149, 0.015,  0.0151, 0.0152, 0.0153, 0.0154, 0.0155,
+    0.0156, 0.0157, 0.0158, 0.0159, 0.016,  0.0161, 0.0162, 0.0163, 0.0164, 0.0165, 0.0166, 0.0167, 0.0168, 0.0169,
+    0.017,  0.0171, 0.0172, 0.0173, 0.0174, 0.0175, 0.0176, 0.0177, 0.0178, 0.0179, 0.018,  0.0181, 0.0182, 0.0183,
+    0.0184, 0.0185, 0.0186, 0.0187, 0.0188, 0.0189, 0.019,  0.0191, 0.0192, 0.0193, 0.0194, 0.0195, 0.0196, 0.0197,
+    0.0198, 0.0199, 0.02,   0.03,   0.04,   0.05,   0.06,   0.07,   0.08,   0.09,   0.1,    0.12,   0.14,   0.155,
+    0.16,   0.165,  0.175,  0.18,   0.185,  0.2,    0.225,  0.25,   0.25,   0.275,  0.3,    0.35,   0.35,   0.4,
+    0.45,   0.45,   0.5,    0.6,    0.7,    0.8,    0.9,    1.0,    1.2,    1.4,    1.6,    1.8,    2.0,    2.5,
+    3.0,    3.5,    4.0,    5.0,    6.0,    8.0,    10.0,   15.0,   20.0,   30.0,   50.0,   100.};
+
+  o2fw::Configurable<bool> useOnlyPhysicsPrimary{"useOnlyPhysicsPrimary", true,
+                                                 "Whether to use only physical primary particles for the resolution."};
 
   o2fw::Configurable<int> nBinsEta{"nBinsEta", 60, "Number of bins for the pseudorapidity"};
   std::array<double, 2> etaRange = {-3, 3};
@@ -392,6 +449,12 @@ struct QATrackingResolution {
     const o2df::VertexBase primaryVertex = getPrimaryVertex(collision);
 
     for (const auto& track : tracks) {
+      if (useOnlyPhysicsPrimary) {
+        const auto mcParticle = track.label();
+        if (!MC::isPhysicalPrimary(mcParticle, mcParticles)) {
+          continue;
+        }
+      }
       const double deltaPt = track.label().pt() - track.pt();
       histos.fill("pt/ptDiffMCRec", deltaPt);
 
@@ -437,9 +500,65 @@ struct QATrackingResolution {
   }
 };
 
+/// Task to QA the kinematic properties of the tracks
+struct QATrackingEfficiency {
+  std::vector<double> ptBins = {
+    0.01,   0.0101, 0.0102, 0.0103, 0.0104, 0.0105, 0.0106, 0.0107, 0.0108, 0.0109, 0.011,  0.0111, 0.0112, 0.0113,
+    0.0114, 0.0115, 0.0116, 0.0117, 0.0118, 0.0119, 0.012,  0.0121, 0.0122, 0.0123, 0.0124, 0.0125, 0.0126, 0.0127,
+    0.0128, 0.0129, 0.013,  0.0131, 0.0132, 0.0133, 0.0134, 0.0135, 0.0136, 0.0137, 0.0138, 0.0139, 0.014,  0.0141,
+    0.0142, 0.0143, 0.0144, 0.0145, 0.0146, 0.0147, 0.0148, 0.0149, 0.015,  0.0151, 0.0152, 0.0153, 0.0154, 0.0155,
+    0.0156, 0.0157, 0.0158, 0.0159, 0.016,  0.0161, 0.0162, 0.0163, 0.0164, 0.0165, 0.0166, 0.0167, 0.0168, 0.0169,
+    0.017,  0.0171, 0.0172, 0.0173, 0.0174, 0.0175, 0.0176, 0.0177, 0.0178, 0.0179, 0.018,  0.0181, 0.0182, 0.0183,
+    0.0184, 0.0185, 0.0186, 0.0187, 0.0188, 0.0189, 0.019,  0.0191, 0.0192, 0.0193, 0.0194, 0.0195, 0.0196, 0.0197,
+    0.0198, 0.0199, 0.02,   0.03,   0.04,   0.05,   0.06,   0.07,   0.08,   0.09,   0.1,    0.12,   0.14,   0.155,
+    0.16,   0.165,  0.175,  0.18,   0.185,  0.2,    0.225,  0.25,   0.25,   0.275,  0.3,    0.35,   0.35,   0.4,
+    0.45,   0.45,   0.5,    0.6,    0.7,    0.8,    0.9,    1.0,    1.2,    1.4,    1.6,    1.8,    2.0,    2.5,
+    3.0,    3.5,    4.0,    5.0,    6.0,    8.0,    10.0,   15.0,   20.0,   30.0,   50.0,   100.};
+
+  o2fw::Configurable<int> nBinsEta{"nBinsEta", 30, "Number of bins for the pseudorapidity"};
+  std::array<double, 2> etaRange = {-3, 3};
+
+  o2fw::Configurable<int> nBinsPhi{"nBinsPhi", 20, "Number of bins for Phi"};
+  std::array<double, 2> phiRange = {0, 2 * M_PI};
+
+  o2fw::HistogramRegistry histos{"HistogramsTrackingEfficiencyQA"};
+
+  void init(o2fw::InitContext&)
+  {
+    o2fw::AxisSpec ptAxis{ptBins};
+    o2fw::AxisSpec phiAxis{nBinsPhi, phiRange[0], phiRange[1]};
+    o2fw::AxisSpec etaAxis{nBinsEta, etaRange[0], etaRange[1]};
+
+    histos.add("reconstructed_kinematics",
+               qafeat::MakeTitle({qafeat::Pt.MC(), qafeat::Eta.MC(), qafeat::Phi.MC()}).c_str(), o2fw::kTH3D,
+               {ptAxis, etaAxis, phiAxis});
+
+    histos.add("generated_kinematics", qafeat::MakeTitle({qafeat::Pt.MC(), qafeat::Eta.MC(), qafeat::Phi.MC()}).c_str(),
+               o2fw::kTH3D, {ptAxis, etaAxis, phiAxis});
+  }
+
+  void process(const o2::soa::Join<o2::aod::Tracks, o2::aod::McTrackLabels>& tracks,
+               const o2::aod::McParticles& mcParticles)
+  {
+    for (const auto& track : tracks) {
+      const auto mcParticle = track.label();
+      if (MC::isPhysicalPrimary(mcParticle, mcParticles) && track_utils::isPossibleToTrack(mcParticle)) {
+        histos.fill("reconstructed_kinematics", mcParticle.pt(), mcParticle.eta(), mcParticle.phi());
+      }
+    }
+
+    for (const auto& mcParticle : mcParticles) {
+      if (MC::isPhysicalPrimary(mcParticle, mcParticles) && track_utils::isPossibleToTrack(mcParticle)) {
+        histos.fill("generated_kinematics", mcParticle.pt(), mcParticle.eta(), mcParticle.phi());
+      }
+    }
+  }
+};
+
 o2fw::WorkflowSpec defineDataProcessing(o2fw::ConfigContext const&)
 {
   return o2fw::WorkflowSpec{o2fw::adaptAnalysisTask<QAGlobalObservables>("qa-global-observables"),
                             o2fw::adaptAnalysisTask<QATrackingKine>("qa-tracking-kine"),
-                            o2fw::adaptAnalysisTask<QATrackingResolution>("qa-tracking-resolution")};
-}
+                            o2fw::adaptAnalysisTask<QATrackingResolution>("qa-tracking-resolution"),
+                            o2fw::adaptAnalysisTask<QATrackingEfficiency>("qa-tracking-efficiency")};
+};
