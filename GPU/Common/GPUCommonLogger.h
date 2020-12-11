@@ -16,12 +16,12 @@
 
 #include "GPUCommonDef.h"
 
-#if defined(GPUCA_GPUCODE_DEVICE)
+#if defined(GPUCA_GPUCODE_DEVICE) || defined(__HIPCC__)
 namespace o2::gpu::detail
 {
 struct DummyLogger {
   template <typename... Args>
-  GPUd() DummyLogger& operator<<(Args... args)
+  GPUhd() DummyLogger& operator<<(Args... args)
   {
     return *this;
   }
@@ -34,7 +34,7 @@ struct DummyLogger {
 #define LOGF(...)
 #define LOGP(...)
 
-#elif defined(GPUCA_GPUCODE_DEVICE)
+#elif defined(GPUCA_GPUCODE_DEVICE) || defined(__HIPCC__)
 #define LOG(...) o2::gpu::detail::DummyLogger()
 //#define LOG(...) static_assert(false, "LOG(...) << ... unsupported in GPU code");
 #define LOGF(type, string, ...)         \
