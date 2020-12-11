@@ -15,7 +15,7 @@
 
 // ATTENTION: In opposite to old AliITSgeomTGeo, all indices start from 0, not from 1!!!
 
-#include "ITS4Base/GeometryTGeo.h"
+#include "TRKBase/GeometryTGeo.h"
 #include "DetectorsBase/GeometryManager.h"
 #include "ITSMFTBase/SegmentationAlpide.h"
 #include "MathUtils/Cartesian.h"
@@ -41,14 +41,14 @@
 #include <cstring> // for strstr, strlen
 
 using namespace TMath;
-using namespace o2::its4;
+using namespace o2::trk;
 using namespace o2::detectors;
 
 using Segmentation = o2::itsmft::SegmentationAlpide;
 
-ClassImp(o2::its4::GeometryTGeo);
+ClassImp(o2::trk::GeometryTGeo);
 
-std::unique_ptr<o2::its4::GeometryTGeo> GeometryTGeo::sInstance;
+std::unique_ptr<o2::trk::GeometryTGeo> GeometryTGeo::sInstance;
 
 std::string GeometryTGeo::sVolumeName = "ITSV";               ///< Mother volume name
 std::string GeometryTGeo::sLayerName = "ITSULayer";           ///< Layer name
@@ -60,13 +60,13 @@ std::string GeometryTGeo::sSensorName = "ITSUSensor";         ///< Sensor name
 std::string GeometryTGeo::sWrapperVolumeName = "ITSUWrapVol"; ///< Wrapper volume name
 
 //__________________________________________________________________________
-GeometryTGeo::GeometryTGeo(bool build, int loadTrans) : o2::itsmft::GeometryTGeo(DetID::IT3)
+GeometryTGeo::GeometryTGeo(bool build, int loadTrans) : o2::itsmft::GeometryTGeo(DetID::TRK)
 {
   // default c-tor, if build is true, the structures will be filled and the transform matrices
   // will be cached
   if (sInstance) {
-    LOG(FATAL) << "Invalid use of public constructor: o2::its4::GeometryTGeo instance exists";
-    // throw std::runtime_error("Invalid use of public constructor: o2::its4::GeometryTGeo instance exists");
+    LOG(FATAL) << "Invalid use of public constructor: o2::trk::GeometryTGeo instance exists";
+    // throw std::runtime_error("Invalid use of public constructor: o2::trk::GeometryTGeo instance exists");
   }
 
   for (int i = MAXLAYERS; i--;) {
@@ -82,9 +82,9 @@ void GeometryTGeo::adopt(GeometryTGeo* raw)
 {
   // adopt the unique instance from external raw pointer (to be used only to read saved instance from file)
   if (sInstance) {
-    LOG(FATAL) << "No adoption: o2::its4::GeometryTGeo instance exists";
+    LOG(FATAL) << "No adoption: o2::trk::GeometryTGeo instance exists";
   }
-  sInstance = std::unique_ptr<o2::its4::GeometryTGeo>(raw);
+  sInstance = std::unique_ptr<o2::trk::GeometryTGeo>(raw);
 }
 
 //__________________________________________________________________________
@@ -240,7 +240,7 @@ bool GeometryTGeo::getChipId(int index, int& lay, int& sta, int& hsta, int& mod,
 //__________________________________________________________________________
 const char* GeometryTGeo::composeSymNameLayer(int lr)
 {
-  return Form("%s/%s%d", composeSymNameITS4(), getITSLayerPattern(), lr);
+  return Form("%s/%s%d", composeSymNameTRK(), getITSLayerPattern(), lr);
 }
 
 //__________________________________________________________________________

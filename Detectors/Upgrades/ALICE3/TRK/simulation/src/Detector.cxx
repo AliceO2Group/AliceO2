@@ -13,10 +13,10 @@
 
 #include "ITSMFTBase/SegmentationAlpide.h"
 #include "ITSMFTSimulation/Hit.h"
-#include "ITS4Base/GeometryTGeo.h"
-#include "ITS4Simulation/Detector.h"
-#include "ITS4Simulation/V3Layer.h"
-#include "ITS4Simulation/V3Services.h"
+#include "TRKBase/GeometryTGeo.h"
+#include "TRKSimulation/Detector.h"
+#include "TRKSimulation/V3Layer.h"
+#include "TRKSimulation/V3Services.h"
 
 #include "SimulationDataFormat/Stack.h"
 #include "SimulationDataFormat/TrackReference.h"
@@ -51,7 +51,7 @@ using std::endl;
 
 using o2::itsmft::Hit;
 using Segmentation = o2::itsmft::SegmentationAlpide;
-using namespace o2::its4;
+using namespace o2::trk;
 
 float getDetLengthFromEta(const float eta, const float radius)
 {
@@ -59,7 +59,7 @@ float getDetLengthFromEta(const float eta, const float radius)
 }
 
 Detector::Detector()
-  : o2::base::DetImpl<Detector>("IT4", kTRUE),
+  : o2::base::DetImpl<Detector>("TRK", kTRUE),
     mTrackData(),
     /*
     mHitStarted(false),
@@ -118,8 +118,8 @@ void Detector::configITS(Detector* its)
   // double dzLr, rLr, phi0, turbo;
   // int nStaveLr, nModPerStaveLr;
 
-  //  its->setStaveModelIB(o2::its4::Detector::kIBModel4);
-  its->setStaveModelOB(o2::its4::Detector::kOBModel2);
+  //  its->setStaveModelIB(o2::trk::Detector::kIBModel4);
+  its->setStaveModelOB(o2::trk::Detector::kOBModel2);
 
   const int kNWrapVol = 3;
   const double wrpRMin[kNWrapVol] = {2.1, 19.3, 33.32};
@@ -157,19 +157,19 @@ void Detector::configITS(Detector* its)
   tdr5data.emplace_back(std::array<double, 2>{100.f, getDetLengthFromEta(1.44f, 100.f)});
 
   std::array<float, 10> sensorThicknesses = {50.e-4, 50.e-4, 50.e-4, 50.e-3, 50.e-3, 50.e-3, 50.e-3, 50.e-3, 50.e-3, 50.e-3};
-  its->setStaveModelOB(o2::its4::Detector::kOBModel2);
+  its->setStaveModelOB(o2::trk::Detector::kOBModel2);
   // its->createOuterBarrel(false);
 
   auto idLayer{0};
   for (auto& layerData : tdr5data) {
-    its->defineInnerLayerITS4(idLayer, layerData[0], layerData[1], sensorThicknesses[idLayer], 0, 0);
+    its->defineInnerLayerTRK(idLayer, layerData[0], layerData[1], sensorThicknesses[idLayer], 0, 0);
     ++idLayer;
   }
   its->createOuterBarrel(false);
 }
 
 Detector::Detector(Bool_t active)
-  : o2::base::DetImpl<Detector>("IT4", active),
+  : o2::base::DetImpl<Detector>("TRK", active),
     mTrackData(),
     /*
     mHitStarted(false),
@@ -196,7 +196,7 @@ Detector::Detector(Bool_t active)
 
   if (mTotalNumberOfLayers > 0) { // if not, we'll Fatal-ize in CreateGeometry
     for (Int_t j = 0; j < mTotalNumberOfLayers; j++) {
-      mITS4Layer[j] = kFALSE;
+      mTRKLayer[j] = kFALSE;
       mLayerPhi0[j] = 0;
       mLayerRadii[j] = 0.;
       mLayerZLen[j] = 0.;
@@ -301,7 +301,7 @@ void Detector::createAllArrays()
 
   mWrapperLayerId = new Int_t[mTotalNumberOfLayers];
   mTurboLayer = new Bool_t[mTotalNumberOfLayers];
-  mITS4Layer = new Bool_t[mTotalNumberOfLayers];
+  mTRKLayer = new Bool_t[mTotalNumberOfLayers];
 
   mLayerPhi0 = new Double_t[mTotalNumberOfLayers];
   mLayerRadii = new Double_t[mTotalNumberOfLayers];
@@ -679,8 +679,8 @@ void Detector::defineLayer(Int_t nlay, double phi0, Double_t r, Int_t nstav, Int
   mBuildLevel[nlay] = buildLevel;
 }
 
-void Detector::defineInnerLayerITS4(Int_t nlay, Double_t r, Double_t zlen,
-                                    Double_t dthick, UInt_t dettypeID, Int_t buildLevel)
+void Detector::defineInnerLayerTRK(Int_t nlay, Double_t r, Double_t zlen,
+                                   Double_t dthick, UInt_t dettypeID, Int_t buildLevel)
 {
   //     Sets the layer parameters
   // Inputs:
@@ -695,7 +695,7 @@ void Detector::defineInnerLayerITS4(Int_t nlay, Double_t r, Double_t zlen,
   // Return:
   //   none.
 
-  LOG(INFO) << "L# " << nlay << " with ITS4 geo R:" << r
+  LOG(INFO) << "L# " << nlay << " with TRK geo R:" << r
             << " Dthick:" << dthick << " DetID:" << dettypeID << " B:" << buildLevel;
 
   if (nlay >= mTotalNumberOfLayers || nlay < 0) {
@@ -704,7 +704,7 @@ void Detector::defineInnerLayerITS4(Int_t nlay, Double_t r, Double_t zlen,
   }
 
   mTurboLayer[nlay] = kFALSE;
-  mITS4Layer[nlay] = kTRUE;
+  mTRKLayer[nlay] = kTRUE;
   mLayerRadii[nlay] = r;
   mLayerZLen[nlay] = zlen;
   mDetectorThickness[nlay] = dthick;
@@ -806,7 +806,7 @@ TGeoVolume* Detector::createWrapperVolume(Int_t id)
       break;
   }
 
-  TGeoMedium* medAir = gGeoManager->GetMedium("IT4_AIR$");
+  TGeoMedium* medAir = gGeoManager->GetMedium("TRK_AIR$");
 
   char volnam[30];
   snprintf(volnam, 29, "%s%d", GeometryTGeo::getITSWrapVolPattern(), id);
@@ -847,13 +847,13 @@ void Detector::constructDetectorGeometry()
     if (mLayerRadii[j] <= 0) {
       LOG(FATAL) << "Wrong layer radius for layer " << j << "(" << mLayerRadii[j] << ")";
     }
-    if (mStavePerLayer[j] <= 0 && !mITS4Layer[j]) {
+    if (mStavePerLayer[j] <= 0 && !mTRKLayer[j]) {
       LOG(FATAL) << "Wrong number of staves for layer " << j << "(" << mStavePerLayer[j] << ")";
     }
-    if (mUnitPerStave[j] <= 0 && !mITS4Layer[j]) {
+    if (mUnitPerStave[j] <= 0 && !mTRKLayer[j]) {
       LOG(FATAL) << "Wrong number of chips for layer " << j << "(" << mUnitPerStave[j] << ")";
     }
-    if (mChipThickness[j] < 0 && !mITS4Layer[j]) {
+    if (mChipThickness[j] < 0 && !mTRKLayer[j]) {
       LOG(FATAL) << "Wrong chip thickness for layer " << j << "(" << mChipThickness[j] << ")";
     }
     if (mTurboLayer[j] && mStaveWidth[j] <= 0) {
@@ -871,7 +871,7 @@ void Detector::constructDetectorGeometry()
       }
     }
 
-    if (mChipThickness[j] == 0 && !mITS4Layer[j]) {
+    if (mChipThickness[j] == 0 && !mTRKLayer[j]) {
       LOG(INFO) << "Chip thickness for layer " << j << " not set, using default";
     }
   }
@@ -905,8 +905,8 @@ void Detector::constructDetectorGeometry()
 
     mGeometry[j]->setNumberOfInnerLayers(mNumberOfInnerLayers);
 
-    if (mITS4Layer[j]) {
-      mGeometry[j]->setIsITS4(kTRUE);
+    if (mTRKLayer[j]) {
+      mGeometry[j]->setIsTRK(kTRUE);
       mGeometry[j]->setIBModuleZLength(mLayerZLen[j]);
     }
 
@@ -1078,7 +1078,7 @@ void Detector::createServiceBarrel(const Bool_t innerBarrel, TGeoVolume* dest, c
   //  Double_t phi1   =  180;
   //  Double_t phi2   =  360;
 
-  TGeoMedium* medCarbonFleece = mgr->GetMedium("IT4_CarbonFleece$");
+  TGeoMedium* medCarbonFleece = mgr->GetMedium("TRK_CarbonFleece$");
 
   if (innerBarrel) {
     zLenOB = ((TGeoTube*)(dest->GetShape()))->GetDz();
@@ -1113,7 +1113,7 @@ void Detector::addAlignableVolumes() const
   }
 
   TString path = Form("/cave_1/barrel_1/%s_2", GeometryTGeo::getITSVolPattern());
-  TString sname = GeometryTGeo::composeSymNameITS4();
+  TString sname = GeometryTGeo::composeSymNameTRK();
 
   LOG(DEBUG) << sname << " <-> " << path;
 
@@ -1371,4 +1371,4 @@ std::istream& operator>>(std::istream& is, Detector& r)
   return is;
 }
 
-ClassImp(o2::its4::Detector);
+ClassImp(o2::trk::Detector);

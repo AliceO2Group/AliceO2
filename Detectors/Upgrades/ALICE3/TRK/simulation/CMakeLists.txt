@@ -8,18 +8,18 @@
 # granted to it by virtue of its status as an Intergovernmental Organization or
 # submit itself to any jurisdiction.
 
-o2_add_library(ITS4Simulation
+o2_add_library(TRKSimulation
                SOURCES src/V11Geometry.cxx src/V1Layer.cxx src/V3Layer.cxx
                        src/Detector.cxx src/V3Services.cxx
-               PUBLIC_LINK_LIBRARIES O2::ITS4Base O2::ITSMFTSimulation
+               PUBLIC_LINK_LIBRARIES O2::TRKBase O2::ITSMFTSimulation
                                      ROOT::Physics)
 
-o2_target_root_dictionary(ITS4Simulation
-                          HEADERS include/ITS4Simulation/Detector.h
-                                  include/ITS4Simulation/V1Layer.h
-                                  include/ITS4Simulation/V3Layer.h
-                                  include/ITS4Simulation/V11Geometry.h
-                                  include/ITS4Simulation/V3Services.h
+o2_target_root_dictionary(TRKSimulation
+                          HEADERS include/TRKSimulation/Detector.h
+                                  include/TRKSimulation/V1Layer.h
+                                  include/TRKSimulation/V3Layer.h
+                                  include/TRKSimulation/V11Geometry.h
+                                  include/TRKSimulation/V3Services.h
                                   )
 
-o2_data_file(COPY data  DESTINATION Detectors/ITS4/simulation)
+o2_data_file(COPY data  DESTINATION Detectors/TRK/simulation)

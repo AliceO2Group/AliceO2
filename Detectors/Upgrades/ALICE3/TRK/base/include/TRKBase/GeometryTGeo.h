@@ -13,8 +13,8 @@
 /// \author cvetan.cheshkov@cern.ch - 15/02/2007
 /// \author ruben.shahoyan@cern.ch - adapted to ITSupg 18/07/2012
 
-#ifndef ALICEO2_ITS4_GEOMETRYTGEO_H_
-#define ALICEO2_ITS4_GEOMETRYTGEO_H_
+#ifndef ALICEO2_TRK_GEOMETRYTGEO_H_
+#define ALICEO2_TRK_GEOMETRYTGEO_H_
 
 #include <TGeoMatrix.h> // for TGeoHMatrix
 #include <TObject.h>    // for TObject
@@ -31,7 +31,7 @@ class TGeoPNEntry;
 
 namespace o2
 {
-namespace its4
+namespace trk
 {
 /// GeometryTGeo is a simple interface class to TGeoManager. It is used in the simulation
 /// and reconstruction in order to query the TGeo ITS geometry.
@@ -247,7 +247,7 @@ class GeometryTGeo : public o2::itsmft::GeometryTGeo
   static void setITSChipPattern(const char* nm) { sChipName = nm; }
   static void setITSSensorPattern(const char* nm) { sSensorName = nm; }
   /// sym name of the layer
-  static const char* composeSymNameITS4() { return o2::detectors::DetID(o2::detectors::DetID::IT3).getName(); }
+  static const char* composeSymNameTRK() { return o2::detectors::DetID(o2::detectors::DetID::IT3).getName(); }
   /// sym name of the layer
   static const char* composeSymNameLayer(int lr);
 
@@ -345,11 +345,11 @@ class GeometryTGeo : public o2::itsmft::GeometryTGeo
   static std::string sWrapperVolumeName; ///< Wrapper volume name
 
  private:
-  static std::unique_ptr<o2::its4::GeometryTGeo> sInstance; ///< singletone instance
+  static std::unique_ptr<o2::trk::GeometryTGeo> sInstance; ///< singletone instance
 
   ClassDefOverride(GeometryTGeo, 1); // ITS geometry based on TGeo
 };
-} // namespace its4
+} // namespace trk
 } // namespace o2
 
 #endif

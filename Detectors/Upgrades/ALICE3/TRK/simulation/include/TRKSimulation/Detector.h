@@ -11,8 +11,8 @@
 /// \file Detector.h
 /// \brief Definition of the Detector class
 
-#ifndef ALICEO2_ITS4_DETECTOR_H_
-#define ALICEO2_ITS4_DETECTOR_H_
+#ifndef ALICEO2_TRK_DETECTOR_H_
+#define ALICEO2_TRK_DETECTOR_H_
 
 #include <vector>                             // for vector
 #include "DetectorsBase/GeometryManager.h"    // for getSensID
@@ -42,14 +42,14 @@ class Hit;
 
 namespace o2
 {
-namespace its4
+namespace trk
 {
 class GeometryTGeo;
 }
 } // namespace o2
 namespace o2
 {
-namespace its4
+namespace trk
 {
 class V3Layer;
 }
@@ -57,7 +57,7 @@ class V3Layer;
 
 namespace o2
 {
-namespace its4
+namespace trk
 {
 class V3Layer;
 class V3Services;
@@ -88,7 +88,7 @@ class Detector : public o2::base::DetImpl<Detector>
   ///         kFALSE for inactive detectors
   Detector(Bool_t active);
 
-  /// Special version for ITS4: add number on Inner Layers
+  /// Special version for TRK: add number on Inner Layers
   Detector(Bool_t active, Int_t nlay);
 
   /// Default constructor
@@ -159,15 +159,15 @@ class Detector : public o2::base::DetImpl<Detector>
   // void defineLayerTurbo(Int_t nlay, Double_t phi0, Double_t r, Int_t nladd, Int_t nmod, Double_t width, Double_t tilt,
   //                       Double_t lthick = 0., Double_t dthick = 0., UInt_t detType = 0, Int_t buildFlag = 0) override;
 
-  /// Sets the layer parameters for new ITS4 geo
+  /// Sets the layer parameters for new TRK geo
   /// \param nlay layer number
   /// \param r layer radius
   /// \param zlen layer length
   /// \param dthick detector thickness (if omitted, defaults to 0)
   /// \param dettypeID ??
   /// \param buildLevel (if 0, all geometry is build, used for material budget studies)
-  void defineInnerLayerITS4(Int_t nlay, Double_t r, Double_t zlen,
-                            Double_t dthick = 0., UInt_t detType = 0, Int_t buildFlag = 0);
+  void defineInnerLayerTRK(Int_t nlay, Double_t r, Double_t zlen,
+                           Double_t dthick = 0., UInt_t detType = 0, Int_t buildFlag = 0);
 
   /// Gets the layer parameters
   /// \param nlay layer number
@@ -238,7 +238,7 @@ class Detector : public o2::base::DetImpl<Detector>
 
   /// Return Chip Volume UID
   /// \param id volume id
-  Int_t chipVolUID(Int_t id) const { return o2::base::GeometryManager::getSensID(o2::detectors::DetID::IT4, id); }
+  Int_t chipVolUID(Int_t id) const { return o2::base::GeometryManager::getSensID(o2::detectors::DetID::TRK, id); }
 
   void EndOfEvent() override;
 
@@ -265,7 +265,7 @@ class Detector : public o2::base::DetImpl<Detector>
   void createOuterBarrel(const Bool_t ob) { mCreateOuterBarrel = ob; };
   Bool_t isCreateOuterBarrel() { return mCreateOuterBarrel; };
 
-  o2::its4::GeometryTGeo* mGeometryTGeo; //! access to geometry details
+  o2::trk::GeometryTGeo* mGeometryTGeo; //! access to geometry details
 
  protected:
   Int_t* mLayerID;     //! [sNumberLayers] layer identifier
@@ -281,8 +281,8 @@ class Detector : public o2::base::DetImpl<Detector>
     double mEnergyLoss;            //! energy loss
   } mTrackData;                    //!
 
-  Int_t mNumberOfInnerLayers; //! number of ITS4 inner layers
-  Int_t mTotalNumberOfLayers; //! total number of ITS4 layers (IB+OB)
+  Int_t mNumberOfInnerLayers; //! number of TRK inner layers
+  Int_t mTotalNumberOfLayers; //! total number of TRK layers (IB+OB)
   Bool_t mCreateOuterBarrel;  //! true to create the Outer Barrel
 
   Int_t mNumberOfDetectors;
@@ -295,7 +295,7 @@ class Detector : public o2::base::DetImpl<Detector>
   Int_t* mWrapperLayerId;                              //! Id of wrapper layer to which layer belongs (-1 if not wrapped)
 
   Bool_t* mTurboLayer;          //! True for "turbo" layers
-  Bool_t* mITS4Layer;           //! True for new ITS4 layers
+  Bool_t* mTRKLayer;            //! True for new TRK layers
   Double_t* mLayerPhi0;         //! Vector of layer's 1st stave phi in lab
   Double_t* mLayerRadii;        //! Vector of layer radii
   Double_t* mLayerZLen;         //! Vector of layer lengths
@@ -363,7 +363,7 @@ class Detector : public o2::base::DetImpl<Detector>
 std::ostream& operator<<(std::ostream& os, Detector& source);
 
 std::istream& operator>>(std::istream& os, Detector& source);
-} // namespace its4
+} // namespace trk
 } // namespace o2
 
 #ifdef USESHM
@@ -372,7 +372,7 @@ namespace o2
 namespace base
 {
 template <>
-struct UseShm<o2::its4::Detector> {
+struct UseShm<o2::trk::Detector> {
   static constexpr bool value = true;
 };
 } // namespace base

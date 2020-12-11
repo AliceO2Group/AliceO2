@@ -51,7 +51,7 @@ float getDetLengthFromEta(const float eta, const float radius)
   return 10. * (10. + radius * std::cos(2 * std::atan(std::exp(-eta))));
 }
 
-void run_trac_alice3(const string hitsFileName = "o2sim_HitsIT4.root")
+void run_trac_alice3(const string hitsFileName = "o2sim_HitsTRK.root")
 {
 
   TChain mcTree("o2sim");
@@ -72,7 +72,7 @@ void run_trac_alice3(const string hitsFileName = "o2sim_HitsIT4.root")
 
   std::uint32_t roFrame;
   std::vector<Hit>* hits = nullptr;
-  itsHits.SetBranchAddress("IT4Hit", &hits);
+  itsHits.SetBranchAddress("TRKHit", &hits);
 
   std::vector<TrackingParameters> trackParams(4);
   trackParams[0].NLayers = 10;

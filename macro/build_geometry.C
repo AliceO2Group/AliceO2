@@ -47,7 +47,7 @@
 
 #ifdef ENABLE_UPGRADES
 #include <ITS3Simulation/Detector.h>
-#include <ITS4Simulation/Detector.h>
+#include <TRKSimulation/Detector.h>
 #endif
 
 void finalize_geometry(FairRunSim* run);
@@ -127,7 +127,7 @@ void build_geometry(FairRunSim* run = nullptr)
   // beam pipe
   if (isActivated("PIPE")) {
 #ifdef ENABLE_UPGRADES
-    if (isActivated("IT3") || isActivated("IT4")) {
+    if (isActivated("IT3") || isActivated("TRK")) {
       run->AddModule(new o2::passive::Pipe("PIPE", "Beam pipe", 1.6f, 0.05));
     } else {
       run->AddModule(new o2::passive::Pipe("PIPE", "Beam pipe"));
@@ -180,10 +180,10 @@ void build_geometry(FairRunSim* run = nullptr)
     run->AddModule(its3);
   }
 
-  if (isActivated("IT4")) {
-    // ITS4
-    auto its4 = new o2::its4::Detector(true);
-    run->AddModule(its4);
+  if (isActivated("TRK")) {
+    // ALICE 3 TRK
+    auto trk = new o2::trk::Detector(true);
+    run->AddModule(trk);
   }
 #endif
 

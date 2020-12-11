@@ -14,11 +14,11 @@
 #pragma link off all classes;
 #pragma link off all functions;
 
-#pragma link C++ class o2::its4::V11Geometry + ;
-#pragma link C++ class o2::its4::V1Layer + ;
-#pragma link C++ class o2::its4::V3Layer + ;
-#pragma link C++ class o2::its4::V3Services + ;
-#pragma link C++ class o2::its4::Detector + ;
-#pragma link C++ class o2::base::DetImpl < o2::its4::Detector> + ;
+#pragma link C++ class o2::trk::V11Geometry + ;
+#pragma link C++ class o2::trk::V1Layer + ;
+#pragma link C++ class o2::trk::V3Layer + ;
+#pragma link C++ class o2::trk::V3Services + ;
+#pragma link C++ class o2::trk::Detector + ;
+#pragma link C++ class o2::base::DetImpl < o2::trk::Detector> + ;
 
 #endif

@@ -13,13 +13,13 @@
 /// \author Mario Sitta <sitta@to.infn.it>
 /// \author Chinorat Kobdaj (kobdaj@g.sut.ac.th)
 
-#ifndef ALICEO2_ITS4_UPGRADEV3LAYER_H_
-#define ALICEO2_ITS4_UPGRADEV3LAYER_H_
+#ifndef ALICEO2_TRK_UPGRADEV3LAYER_H_
+#define ALICEO2_TRK_UPGRADEV3LAYER_H_
 
-#include <TGeoManager.h>                // for gGeoManager
-#include "Rtypes.h"                     // for Double_t, Int_t, Bool_t, etc
-#include "ITS4Simulation/V11Geometry.h" // for V11Geometry
-#include "ITS4Simulation/Detector.h"    // for Detector, Detector::Model
+#include <TGeoManager.h>               // for gGeoManager
+#include "Rtypes.h"                    // for Double_t, Int_t, Bool_t, etc
+#include "TRKSimulation/V11Geometry.h" // for V11Geometry
+#include "TRKSimulation/Detector.h"    // for Detector, Detector::Model
 
 class TGeoXtru;
 
@@ -29,7 +29,7 @@ class TGeoVolume; // lines 15-15
 
 namespace o2
 {
-namespace its4
+namespace trk
 {
 
 /// This class defines the Geometry for the ITS  using TGeo. This is a work class used
@@ -64,7 +64,7 @@ class V3Layer : public V11Geometry
 
   Bool_t isTurbo() const { return mIsTurbo; };
 
-  Bool_t isITS4() const { return mIsITS4; };
+  Bool_t isTRK() const { return mIsTRK; };
 
   Double_t getChipThick() const { return mChipThickness; };
 
@@ -110,10 +110,10 @@ class V3Layer : public V11Geometry
   /// Gets the Gamma Conversion Rod X position
   Double_t getGammaConversionRodXPos();
 
-  /// Sets whether this is a new ITS4 layer
-  void setIsITS4(const Bool_t its4) { mIsITS4 = its4; };
+  /// Sets whether this is a new TRK layer
+  void setIsTRK(const Bool_t trk) { mIsTRK = trk; };
 
-  /// Sets Module Z length (valid only for new ITS4 layer)
+  /// Sets Module Z length (valid only for new TRK layer)
   void setIBModuleZLength(const Double_t z) { mIBModuleZLength = z; };
 
   /// Sets the Stave tilt angle (for turbo layers only)
@@ -142,7 +142,7 @@ class V3Layer : public V11Geometry
 
   void setBuildLevel(Int_t buildLevel) { mBuildLevel = buildLevel; }
 
-  void setStaveModel(o2::its4::Detector::Model model) { mStaveModel = model; }
+  void setStaveModel(o2::trk::Detector::Model model) { mStaveModel = model; }
 
   void setNumberOfInnerLayers(const Int_t n) { mNumberOfInnerLayers = n; };
 
@@ -163,10 +163,10 @@ class V3Layer : public V11Geometry
   /// \param motherVolume The TGeoVolume owing the volume structure
   void createLayerTurbo(TGeoVolume* motherVolume);
 
-  /// Creates a new ITS4 Layer and places inside its mother volume
+  /// Creates a new TRK Layer and places inside its mother volume
   /// \param motherVolume The TGeoVolume owing the volume structure
   /// \param mgr The GeoManager (used only to get the proper material)
-  void createITS4Layer(TGeoVolume* motherVolume, const TGeoManager* mgr = gGeoManager);
+  void createTRKLayer(TGeoVolume* motherVolume, const TGeoManager* mgr = gGeoManager);
 
   /// Computes the inner radius of the air container for the Turbo configuration
   /// as the radius of either the circle tangent to the stave or the circle
@@ -340,7 +340,7 @@ class V3Layer : public V11Geometry
 
   UInt_t mChipTypeID; ///< detector type id
   Bool_t mIsTurbo;    ///< True if this layer is a "turbo" layer
-  Bool_t mIsITS4;     ///< True if this layer is a new ITS4 layer
+  Bool_t mIsTRK;      ///< True if this layer is a new TRK layer
   Int_t mBuildLevel;  ///< Used for material studies
 
   Detector::Model mStaveModel; ///< The stave model
@@ -564,7 +564,7 @@ class V3Layer : public V11Geometry
 
   ClassDefOverride(V3Layer, 0); // ITS v3 geometry
 };
-} // namespace its4
+} // namespace trk
 } // namespace o2
 
 #endif
