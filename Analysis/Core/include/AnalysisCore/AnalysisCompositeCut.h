@@ -29,18 +29,26 @@ class AnalysisCompositeCut : public AnalysisCut
   AnalysisCompositeCut& operator=(const AnalysisCompositeCut& c) = default;
   ~AnalysisCompositeCut() override;
 
-  void AddCut(AnalysisCut* cut) { fCutList.push_back(*cut); };
+  void AddCut(AnalysisCut* cut)
+  {
+    if (cut->IsA() == AnalysisCompositeCut::Class()) {
+      fCompositeCutList.push_back(*(AnalysisCompositeCut*)cut);
+    } else {
+      fCutList.push_back(*cut);
+    }
+  };
 
   bool GetUseAND() const { return fOptionUseAND; }
-  int GetNCuts() const { return fCutList.size(); }
+  int GetNCuts() const { return fCutList.size() + fCompositeCutList.size(); }
 
   bool IsSelected(float* values) override;
 
  protected:
   bool fOptionUseAND;                // true (default): apply AND on all cuts; false: use OR
   std::vector<AnalysisCut> fCutList; // list of cuts
+  std::vector<AnalysisCompositeCut> fCompositeCutList; // list of composite cuts
 
-  ClassDef(AnalysisCompositeCut, 1);
+  ClassDef(AnalysisCompositeCut, 2);
 };
 
 #endif
