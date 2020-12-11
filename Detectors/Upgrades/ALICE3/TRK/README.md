@@ -1,20 +1,20 @@
 <!-- doxy
-\page refDetectorsUpgradesPostLS4IT4 UpgradesIT4
+\page refDetectorsUpgradesPostLS4TRK UpgradesTRK
 /doxy -->
 
-# IT4
-At the moment the IT4 name is a placeholder for barrel detector.
+# TRK
+At the moment the TRK name is a placeholder for silicon barrel detector.
 
 # Run the full simulation
-Provided O2 has been compiled with upgrades enabled, it is possible to simulate IT4 geometry within the `o2-sim` executable.
+Provided O2 has been compiled with upgrades enabled, it is possible to simulate TRK geometry using the `o2-sim` executable.
 
 ## Simulation
-IT4 module is enabled via the `-m IT4` parameter.
+TRK module is enabled via the `-m TRK` parameter.
 In case of `PIPE` to be enabled, the size of the beam pipe is automatically scaled to what is foreseen for the upgrades.
 
 Typical command to generate MC data:
 ```bash
-o2-sim -m PIPE IT4 [...]
+o2-sim -m PIPE TRK [...]
 ```
 
 ## Reconstruction

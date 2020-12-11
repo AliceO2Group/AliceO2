@@ -8,13 +8,13 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#ifndef ALICEO2_ITS4_UPGRADEV1LAYER_H_
-#define ALICEO2_ITS4_UPGRADEV1LAYER_H_
+#ifndef ALICEO2_TRK_UPGRADEV1LAYER_H_
+#define ALICEO2_TRK_UPGRADEV1LAYER_H_
 
-#include <TGeoManager.h>                // for gGeoManager
-#include "Rtypes.h"                     // for Double_t, Int_t, Bool_t, etc
-#include "ITS4Simulation/V11Geometry.h" // for V11Geometry
-#include "ITS4Simulation/Detector.h"    // for Detector, Detector::Model
+#include <TGeoManager.h>               // for gGeoManager
+#include "Rtypes.h"                    // for Double_t, Int_t, Bool_t, etc
+#include "TRKSimulation/V11Geometry.h" // for V11Geometry
+#include "TRKSimulation/Detector.h"    // for Detector, Detector::Model
 
 class TGeoArb8;
 
@@ -24,7 +24,7 @@ class TGeoVolume; // lines 15-15
 
 namespace o2
 {
-namespace its4
+namespace trk
 {
 
 /// This class defines the Geometry for the ITS  using TGeo. This is a work class used
@@ -197,7 +197,7 @@ class V1Layer : public V11Geometry
     mBuildLevel = buildLevel;
   }
 
-  void setStaveModel(o2::its4::Detector::Model model)
+  void setStaveModel(o2::trk::Detector::Model model)
   {
     mStaveModel = model;
   }
@@ -409,7 +409,7 @@ class V1Layer : public V11Geometry
 
   ClassDefOverride(V1Layer, 0); // ITS v1 geometry
 };
-} // namespace its4
+} // namespace trk
 } // namespace o2
 
 #endif
