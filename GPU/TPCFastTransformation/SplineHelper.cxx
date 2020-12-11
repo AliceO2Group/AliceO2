@@ -135,7 +135,7 @@ void SplineHelper<DataT>::approximateFunction(
   //std::vector<DataT> dataPointF(getNumberOfDataPoints() * mFdimensions);
   //DUMYY VERSION Commented out
   /* for (int i = 0; i < getNumberOfDataPoints() * mFdimensions; i++) {
-    dataPointF[i] = 1.; 
+    dataPointF[i] = 1.;
   } */
   /*
   double scaleX1 = (x1Max - x1Min) / ((double)mHelperU1.getSpline().getUmax());
@@ -155,19 +155,59 @@ void SplineHelper<DataT>::approximateFunction(
 template <typename DataT>
 void SplineHelper<DataT>::approximateFunctionBatch(
   DataT* Fparameters, const double xMin[], const double xMax[],
-  std::function<void(const std::vector<double> x[], std::vector<double> f[/*mFdimensions*/])> F,
+  std::function<void(const std::vector<double> x[], double f[/*mFdimensions*/])> F,
   unsigned int batchsize) const
 {
   /// Create best-fit spline parameters for a given input function F.
   /// F calculates values for a batch of points.
   /// output in Fparameters
 
-  // TODO: implement later
-
-  std::vector<double> dataPointF(getNumberOfDataPoints() * mFdimensions);
-  for (int i = 0; i < getNumberOfDataPoints() * mFdimensions; i++) {
-    dataPointF[i] = 0.;
+  double scaleX[mXdimensions];
+  for (int i = 0; i < mXdimensions; i++) {
+    scaleX[i] = (xMax[i] - xMin[i]) / ((double)(mHelpers[i].getSpline().getUmax()));
   }
+
+  const int nrOfAllPoints = getNumberOfDataPoints();
+  std::vector<double> dataPointF(nrOfAllPoints * mFdimensions);
+
+  int nrOfPoints[mXdimensions];
+  for (int i = 0; i < mXdimensions; i++) {
+    nrOfPoints[i] = mHelpers[i].getNumberOfDataPoints();
+  }
+
+  std::vector<double> x[mXdimensions];
+  for (unsigned int iDim = 0; iDim < mXdimensions; ++iDim) {
+    x[iDim].reserve(batchsize);
+  }
+
+  int ibatch = 0;
+  int index = 0;
+  for (int d = 0; d < nrOfAllPoints; d++) { // for all DataPoints
+    int indices[mXdimensions];
+    int modoperand = 1;
+    int divisor = 1;
+
+    // get the DataPoint index
+    for (int i = 0; i < mXdimensions; i++) {
+      modoperand *= nrOfPoints[i];
+      indices[i] = (int)((d % modoperand) / divisor);
+      divisor *= nrOfPoints[i];
+      // get the respecting u-values:
+      x[i].emplace_back(xMin[i] + mHelpers[i].getDataPoint(indices[i]).u * scaleX[i]);
+    }
+    ++ibatch;
+
+    if (ibatch == batchsize || d == nrOfAllPoints - 1) {
+      ibatch = 0;
+
+      F(x, &dataPointF[index]);
+      index = (d + 1) * mFdimensions;
+
+      for (unsigned int iDim = 0; iDim < mXdimensions; ++iDim) {
+        x[iDim].clear();
+      }
+    }
+  } // end for all DataPoints d
 
   approximateFunction(Fparameters, dataPointF.data());
 }
