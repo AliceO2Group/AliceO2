@@ -74,7 +74,7 @@ class SplineHelper
   /// approximate std::function, output in Fparameters. F calculates values for a batch of points.
   void approximateFunctionBatch(
     DataT* Fparameters, const double xMin[/* mXdimensions */], const double xMax[/* mXdimensions */],
-    std::function<void(const std::vector<double> x[/* mXdimensions */], std::vector<double> f[/*mFdimensions*/])> F,
+    std::function<void(const std::vector<double> x[/* mXdimensions */], double f[/*mFdimensions*/])> F,
     unsigned int batchsize) const;
 
   /// approximate a function given as an array of values at data points
