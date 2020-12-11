@@ -35,10 +35,10 @@ struct MultiplicityQaTask {
   OutputObj<TH2F> hMultV0MvsT0M{TH2F("hMultV0MvsT0M", ";V0M;T0M", 200, 0., 50000., 200, 0., 200000.)};
 
   //For vertex-Z corrections
-  OutputObj<TProfile> hVtxProfV0M{TProfile("hVtxProfV0M", "", 600, 0., 240000.)};
-  OutputObj<TProfile> hVtxProfT0M{TProfile("hVtxProfT0M", "", 10000, 0., 200000.)};
-  OutputObj<TProfile> hVtxProfZNA{TProfile("hVtxProfZNA", "", 600, 0., 240000.)};
-  OutputObj<TProfile> hVtxProfZNC{TProfile("hVtxProfZNC", "", 600, 0., 240000.)};
+  OutputObj<TProfile> hVtxProfV0M{TProfile("hVtxProfV0M", "", 150, -15, 15)};
+  OutputObj<TProfile> hVtxProfT0M{TProfile("hVtxProfT0M", "", 150, -15, 15)};
+  OutputObj<TProfile> hVtxProfZNA{TProfile("hVtxProfZNA", "", 150, -15, 15)};
+  OutputObj<TProfile> hVtxProfZNC{TProfile("hVtxProfZNC", "", 150, -15, 15)};
 
   OutputObj<TProfile> hMultNtrackletsVsV0M{TProfile("hMultNtrackletsVsV0M", "", 50000, 0., 50000.)};
 

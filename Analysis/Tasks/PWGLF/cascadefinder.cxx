@@ -120,7 +120,7 @@ struct cascadeprefilter {
                aod::V0DataExt const& V0s)
   {
     for (auto& t0 : goodPosTracks) {
-      if (!(t0.flags() & 0x40)) {
+      if (!(t0.trackType() & o2::aod::track::TPCrefit)) {
         continue; //TPC refit
       }
       if (t0.tpcNClsCrossedRows() < mincrossedrows) {
@@ -129,7 +129,7 @@ struct cascadeprefilter {
       cascGoodPosTracks(t0.globalIndex(), t0.collisionId(), t0.dcaXY());
     }
     for (auto& t0 : goodNegTracks) {
-      if (!(t0.flags() & 0x40)) {
+      if (!(t0.trackType() & o2::aod::track::TPCrefit)) {
         continue; //TPC refit
       }
       if (t0.tpcNClsCrossedRows() < mincrossedrows) {
