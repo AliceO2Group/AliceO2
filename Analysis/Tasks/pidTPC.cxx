@@ -148,26 +148,20 @@ struct pidTPCTaskQA {
     h->GetXaxis()->Set(nbins, binp);
   }
 
-  template <std::size_t... Is>
-  void addParticleHistos_impl(std::index_sequence<Is...>)
-  {
-    // Exp signal
-    ((histos.add(hexpected[Is].data(), Form(";#it{p} (GeV/#it{c});d#it{E}/d#it{x}_(%s)", pT[Is]), kTH2F, {{nBinsP, MinP, MaxP}, {1000, 0, 1000}})), ...);
-    ((makelogaxis(histos.get<TH2>(HIST(hexpected[Is])))), ...);
-
-    // Signal - Expected signal
-    ((histos.add(hexpected_diff[Is].data(), Form(";#it{p} (GeV/#it{c});;d#it{E}/d#it{x} - d#it{E}/d#it{x}(%s)", pT[Is]), kTH2F, {{nBinsP, MinP, MaxP}, {1000, -500, 500}})), ...);
-    ((makelogaxis(histos.get<TH2>(HIST(hexpected_diff[Is])))), ...);
-
-    // NSigma
-    ((histos.add(hnsigma[Is].data(), Form(";#it{p} (GeV/#it{c});N_{#sigma}^{TPC}(%s)", pT[Is]), kTH2F, {{nBinsP, MinP, MaxP}, {200, -10, 10}})), ...);
-    ((makelogaxis(histos.get<TH2>(HIST(hnsigma[Is])))), ...);
-  }
-
-  template <std::size_t N, typename Indices = std::make_index_sequence<N>>
+  template <uint8_t i>
   void addParticleHistos()
   {
-    addParticleHistos_impl(Indices{});
+    // Exp signal
+    histos.add(hexpected[i].data(), Form(";#it{p} (GeV/#it{c});d#it{E}/d#it{x}_(%s)", pT[i]), kTH2F, {{nBinsP, MinP, MaxP}, {1000, 0, 1000}});
+    makelogaxis(histos.get<TH2>(HIST(hexpected[i])));
+
+    // Signal - Expected signal
+    histos.add(hexpected_diff[i].data(), Form(";#it{p} (GeV/#it{c});;d#it{E}/d#it{x} - d#it{E}/d#it{x}(%s)", pT[i]), kTH2F, {{nBinsP, MinP, MaxP}, {1000, -500, 500}});
+    makelogaxis(histos.get<TH2>(HIST(hexpected_diff[i])));
+
+    // NSigma
+    histos.add(hnsigma[i].data(), Form(";#it{p} (GeV/#it{c});N_{#sigma}^{TPC}(%s)", pT[i]), kTH2F, {{nBinsP, MinP, MaxP}, {200, -10, 10}});
+    makelogaxis(histos.get<TH2>(HIST(hnsigma[i])));
   }
 
   void init(o2::framework::InitContext&)
@@ -177,20 +171,23 @@ struct pidTPCTaskQA {
     histos.add("event/tpcsignal", ";#it{p} (GeV/#it{c});TPC Signal", kTH2F, {{nBinsP, MinP, MaxP}, {1000, 0, 1000}});
     makelogaxis(histos.get<TH2>(HIST("event/tpcsignal")));
 
-    addParticleHistos<Np>();
+    addParticleHistos<0>();
+    addParticleHistos<1>();
+    addParticleHistos<2>();
+    addParticleHistos<3>();
+    addParticleHistos<4>();
+    addParticleHistos<5>();
+    addParticleHistos<6>();
+    addParticleHistos<7>();
+    addParticleHistos<8>();
   }
 
-  template <std::size_t... Is, typename T>
-  void fillParticleHistos_impl(const T& t, const float mom, const float exp[], const float nsigma[], std::index_sequence<Is...>)
-  {
-    ((histos.fill(HIST(hexpected[Is]), mom, exp[Is])), ...);
-    ((histos.fill(HIST(hexpected_diff[Is]), mom, t.tpcSignal() - exp[Is])), ...);
-    ((histos.fill(HIST(hnsigma[Is]), t.p(), nsigma[Is])), ...);
-  }
-  template <std::size_t N, typename Indices = std::make_index_sequence<N>, typename T>
+  template <uint8_t i, typename T>
   void fillParticleHistos(const T& t, const float mom, const float exp[], const float nsigma[])
   {
-    fillParticleHistos_impl(t, mom, exp, nsigma, Indices{});
+    histos.fill(HIST(hexpected[i]), mom, exp[i]);
+    histos.fill(HIST(hexpected_diff[i]), mom, t.tpcSignal() - exp[i]);
+    histos.fill(HIST(hnsigma[i]), t.p(), nsigma[i]);
   }
 
   void process(aod::Collision const& collision, soa::Join<aod::Tracks, aod::TracksExtra, aod::pidRespTPC> const& tracks)
@@ -210,7 +207,15 @@ struct pidTPCTaskQA {
                                 t.tpcNSigmaKa(), t.tpcNSigmaPr(), t.tpcNSigmaDe(),
                                 t.tpcNSigmaTr(), t.tpcNSigmaHe(), t.tpcNSigmaAl()};
       //
-      fillParticleHistos<Np>(t, mom, exp, nsigma);
+      fillParticleHistos<0>(t, mom, exp, nsigma);
+      fillParticleHistos<1>(t, mom, exp, nsigma);
+      fillParticleHistos<2>(t, mom, exp, nsigma);
+      fillParticleHistos<3>(t, mom, exp, nsigma);
+      fillParticleHistos<4>(t, mom, exp, nsigma);
+      fillParticleHistos<5>(t, mom, exp, nsigma);
+      fillParticleHistos<6>(t, mom, exp, nsigma);
+      fillParticleHistos<7>(t, mom, exp, nsigma);
+      fillParticleHistos<8>(t, mom, exp, nsigma);
     }
   }
 };

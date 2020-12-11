@@ -45,25 +45,13 @@ struct TOFSpectraTask {
   }
 
   template <std::size_t i, typename T>
-  void fillParticleHisto(const T& track, const float nsigma[])
+  void fillParticleHistos(const T& track, const float nsigma[])
   {
     if (abs(nsigma[i]) > nsigmacut.value) {
       return;
     }
     histos.fill(HIST(hp[i]), track.p());
     histos.fill(HIST(hpt[i]), track.pt());
-  }
-
-  template <std::size_t... Is, typename T>
-  void fillParticleHistos_impl(const T& track, const float nsigma[], std::index_sequence<Is...>)
-  {
-    ((fillParticleHisto<Is>(track, nsigma)), ...);
-  }
-
-  template <std::size_t N, typename Indices = std::make_index_sequence<N>, typename T>
-  void fillParticleHistos(const T& track, const float nsigma[])
-  {
-    fillParticleHistos_impl(track, nsigma, Indices{});
   }
 
   Configurable<float> cfgCutVertex{"cfgCutVertex", 10.0f, "Accepted z-vertex range"};
@@ -81,7 +69,16 @@ struct TOFSpectraTask {
     histos.fill(HIST("p/Unselected"), track.p());
     histos.fill(HIST("pt/Unselected"), track.pt());
 
-    fillParticleHistos<Np>(track, nsigma);
+    fillParticleHistos<0>(track, nsigma);
+    fillParticleHistos<1>(track, nsigma);
+    fillParticleHistos<2>(track, nsigma);
+    fillParticleHistos<3>(track, nsigma);
+    fillParticleHistos<4>(track, nsigma);
+    fillParticleHistos<5>(track, nsigma);
+    fillParticleHistos<6>(track, nsigma);
+    fillParticleHistos<7>(track, nsigma);
+    fillParticleHistos<8>(track, nsigma);
+
     //
     if (TMath::Abs(track.separationbetael() < 1.f)) {
       histos.fill(HIST("electronbeta/hp_El"), track.p());

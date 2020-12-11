@@ -173,26 +173,20 @@ struct pidTOFTaskQA {
     h->GetXaxis()->Set(nbins, binp);
   }
 
-  template <std::size_t... Is>
-  void addParticleHistos_impl(std::index_sequence<Is...>)
-  {
-    // Exp signal
-    ((histos.add(hexpected[Is].data(), Form(";#it{p} (GeV/#it{c});t_{exp}(%s)", pT[Is]), HistType::kTH2F, {{nBinsP, MinP, MaxP}, {1000, 0, 2e6}})), ...);
-    ((makelogaxis(histos.get<TH2>(HIST(hexpected[Is])))), ...);
-
-    // T-Texp
-    ((histos.add(hexpected_diff[Is].data(), Form(";#it{p} (GeV/#it{c});(t-t_{evt}-t_{exp}(%s))", pT[Is]), HistType::kTH2F, {{nBinsP, MinP, MaxP}, {100, -1000, 1000}})), ...);
-    ((makelogaxis(histos.get<TH2>(HIST(hexpected_diff[Is])))), ...);
-
-    // NSigma
-    ((histos.add(hnsigma[Is].data(), Form(";#it{p} (GeV/#it{c});N_{#sigma}^{TOF}(%s)", pT[Is]), HistType::kTH2F, {{nBinsP, MinP, MaxP}, {200, -10, 10}})), ...);
-    ((makelogaxis(histos.get<TH2>(HIST(hnsigma[Is])))), ...);
-  }
-
-  template <std::size_t N, typename Indices = std::make_index_sequence<N>>
+  template <uint8_t i>
   void addParticleHistos()
   {
-    addParticleHistos_impl(Indices{});
+    // Exp signal
+    histos.add(hexpected[i].data(), Form(";#it{p} (GeV/#it{c});t_{exp}(%s)", pT[i]), HistType::kTH2F, {{nBinsP, MinP, MaxP}, {1000, 0, 2e6}});
+    makelogaxis(histos.get<TH2>(HIST(hexpected[i])));
+
+    // T-Texp
+    histos.add(hexpected_diff[i].data(), Form(";#it{p} (GeV/#it{c});(t-t_{evt}-t_{exp}(%s))", pT[i]), HistType::kTH2F, {{nBinsP, MinP, MaxP}, {100, -1000, 1000}});
+    makelogaxis(histos.get<TH2>(HIST(hexpected_diff[i])));
+
+    // NSigma
+    histos.add(hnsigma[i].data(), Form(";#it{p} (GeV/#it{c});N_{#sigma}^{TOF}(%s)", pT[i]), HistType::kTH2F, {{nBinsP, MinP, MaxP}, {200, -10, 10}});
+    makelogaxis(histos.get<TH2>(HIST(hnsigma[i])));
   }
 
   void init(o2::framework::InitContext&)
@@ -205,20 +199,23 @@ struct pidTOFTaskQA {
     histos.add("event/tofbeta", ";#it{p} (GeV/#it{c});TOF #beta", HistType::kTH2F, {{nBinsP, MinP, MaxP}, {1000, 0, 2}});
     makelogaxis(histos.get<TH2>(HIST("event/tofbeta")));
 
-    addParticleHistos<Np>();
+    addParticleHistos<0>();
+    addParticleHistos<1>();
+    addParticleHistos<2>();
+    addParticleHistos<3>();
+    addParticleHistos<4>();
+    addParticleHistos<5>();
+    addParticleHistos<6>();
+    addParticleHistos<7>();
+    addParticleHistos<8>();
   }
 
-  template <std::size_t... Is, typename T>
-  void fillParticleHistos_impl(const T& t, const float tof, const float exp[], const float nsigma[], std::index_sequence<Is...>)
-  {
-    ((histos.fill(HIST(hexpected[Is]), t.p(), exp[Is])), ...);
-    ((histos.fill(HIST(hexpected_diff[Is]), t.p(), tof - exp[Is])), ...);
-    ((histos.fill(HIST(hnsigma[Is]), t.p(), nsigma[Is])), ...);
-  }
-  template <std::size_t N, typename Indices = std::make_index_sequence<N>, typename T>
+  template <uint8_t i, typename T>
   void fillParticleHistos(const T& t, const float tof, const float exp[], const float nsigma[])
   {
-    fillParticleHistos_impl(t, tof, exp, nsigma, Indices{});
+    histos.fill(HIST(hexpected[i]), t.p(), exp[i]);
+    histos.fill(HIST(hexpected_diff[i]), t.p(), tof - exp[i]);
+    histos.fill(HIST(hnsigma[i]), t.p(), nsigma[i]);
   }
 
   void process(aod::Collision const& collision, soa::Join<aod::Tracks, aod::TracksExtra, aod::pidRespTOF, aod::pidRespTOFbeta> const& tracks)
@@ -244,7 +241,15 @@ struct pidTOFTaskQA {
                                 t.tofNSigmaKa(), t.tofNSigmaPr(), t.tofNSigmaDe(),
                                 t.tofNSigmaTr(), t.tofNSigmaHe(), t.tofNSigmaAl()};
       //
-      fillParticleHistos<Np>(t, tof, exp, nsigma);
+      fillParticleHistos<0>(t, tof, exp, nsigma);
+      fillParticleHistos<1>(t, tof, exp, nsigma);
+      fillParticleHistos<2>(t, tof, exp, nsigma);
+      fillParticleHistos<3>(t, tof, exp, nsigma);
+      fillParticleHistos<4>(t, tof, exp, nsigma);
+      fillParticleHistos<5>(t, tof, exp, nsigma);
+      fillParticleHistos<6>(t, tof, exp, nsigma);
+      fillParticleHistos<7>(t, tof, exp, nsigma);
+      fillParticleHistos<8>(t, tof, exp, nsigma);
     }
   }
 };
