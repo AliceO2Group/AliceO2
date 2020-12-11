@@ -103,14 +103,16 @@ void AltroDecoder::readChannels()
 
 const RCUTrailer& AltroDecoder::getRCUTrailer() const
 {
-  if (!mRCUTrailer.isInitialized())
+  if (!mRCUTrailer.isInitialized()) {
     throw AltroDecoderError::ErrorType_t::RCU_TRAILER_ERROR; // "RCU trailer was not initialized");
+  }
   return mRCUTrailer;
 }
 
 const std::vector<Channel>& AltroDecoder::getChannels() const
 {
-  if (!mChannelsInitialized)
+  if (!mChannelsInitialized) {
     throw AltroDecoderError::ErrorType_t::CHANNEL_ERROR; // "Channels not initizalized");
+  }
   return mChannels;
 }
