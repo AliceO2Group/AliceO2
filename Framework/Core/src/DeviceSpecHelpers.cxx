@@ -36,6 +36,7 @@
 
 #include <uv.h>
 #include <iostream>
+#include <fmt/format.h>
 
 #include <sys/time.h>
 #include <sys/resource.h>
@@ -245,32 +246,26 @@ struct ExpirationHandlerHelpers {
 /// FIXME: support shared memory
 std::string DeviceSpecHelpers::inputChannel2String(const InputChannelSpec& channel)
 {
-  std::string result;
-
-  if (!channel.name.empty()) {
-    result += "name=" + channel.name + ",";
-  }
-  result += std::string("type=") + ChannelSpecHelpers::typeAsString(channel.type);
-  result += std::string(",method=") + ChannelSpecHelpers::methodAsString(channel.method);
-  result += std::string(",address=") + ChannelSpecHelpers::channelUrl(channel);
-  result += std::string(",rateLogging=" + std::to_string(channel.rateLogging));
-
-  return result;
+  return fmt::format("{}type={},method={},address={},rateLogging={},recvBufferSize={},sendBufferSize={}",
+                     channel.name.empty() ? "" : "name=" + channel.name + ",",
+                     ChannelSpecHelpers::typeAsString(channel.type),
+                     ChannelSpecHelpers::methodAsString(channel.method),
+                     ChannelSpecHelpers::channelUrl(channel),
+                     channel.rateLogging,
+                     channel.recvBufferSize,
+                     channel.sendBufferSize);
 }
 
 std::string DeviceSpecHelpers::outputChannel2String(const OutputChannelSpec& channel)
 {
-  std::string result;
-
-  if (!channel.name.empty()) {
-    result += "name=" + channel.name + ",";
-  }
-  result += std::string("type=") + ChannelSpecHelpers::typeAsString(channel.type);
-  result += std::string(",method=") + ChannelSpecHelpers::methodAsString(channel.method);
-  result += std::string(",address=") + ChannelSpecHelpers::channelUrl(channel);
-  result += std::string(",rateLogging=" + std::to_string(channel.rateLogging));
-
-  return result;
+  return fmt::format("{}type={},method={},address={},rateLogging={},recvBufferSize={},sendBufferSize={}",
+                     channel.name.empty() ? "" : "name=" + channel.name + ",",
+                     ChannelSpecHelpers::typeAsString(channel.type),
+                     ChannelSpecHelpers::methodAsString(channel.method),
+                     ChannelSpecHelpers::channelUrl(channel),
+                     channel.rateLogging,
+                     channel.recvBufferSize,
+                     channel.sendBufferSize);
 }
 
 void DeviceSpecHelpers::processOutEdgeActions(std::vector<DeviceSpec>& devices,

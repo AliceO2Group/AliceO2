@@ -98,6 +98,7 @@ o2_add_library(Framework
                        src/Task.cxx
                        src/TextControlService.cxx
                        src/Variant.cxx
+                       src/WorkflowCustomizationHelpers.cxx
                        src/WorkflowHelpers.cxx
                        src/WorkflowSerializationHelpers.cxx
                        src/WorkflowSpec.cxx

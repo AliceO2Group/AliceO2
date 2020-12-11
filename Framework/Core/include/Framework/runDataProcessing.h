@@ -20,6 +20,7 @@
 #include "Framework/BoostOptionsRetriever.h"
 #include "Framework/CustomWorkflowTerminationHook.h"
 #include "Framework/CommonServices.h"
+#include "Framework/WorkflowCustomizationHelpers.h"
 #include "Framework/Logger.h"
 
 #include <unistd.h>
@@ -74,6 +75,9 @@ void defaultConfiguration(std::vector<o2::framework::ServiceSpec>& services)
 {
   services = o2::framework::CommonServices::defaultServices();
 }
+
+/// Workflow options which are required by DPL in order to work.
+std::vector<o2::framework::ConfigParamSpec> requiredWorkflowOptions();
 
 void defaultConfiguration(o2::framework::OnWorkflowTerminationHook& hook)
 {
@@ -131,35 +135,8 @@ int main(int argc, char** argv)
     // The default policy is a catch all pub/sub setup to be consistent with the past.
     std::vector<o2::framework::ConfigParamSpec> workflowOptions;
     UserCustomizationsHelper::userDefinedCustomization(workflowOptions, 0);
-    workflowOptions.push_back(ConfigParamSpec{"readers", VariantType::Int64, 1ll, {"number of parallel readers to use"}});
-    workflowOptions.push_back(ConfigParamSpec{"pipeline", VariantType::String, "", {"override default pipeline size"}});
-    workflowOptions.push_back(ConfigParamSpec{"clone", VariantType::String, "", {"clone processors from a template"}});
-    workflowOptions.push_back(ConfigParamSpec{"workflow-suffix", VariantType::String, "", {"suffix to add to all dataprocessors"}});
-
-    // options for AOD rate limiting
-    workflowOptions.push_back(ConfigParamSpec{"aod-memory-rate-limit", VariantType::Int64, 0LL, {"Rate limit AOD processing based on memory"}});
-
-    // options for AOD writer
-    workflowOptions.push_back(ConfigParamSpec{"aod-writer-json", VariantType::String, "", {"Name of the json configuration file"}});
-    workflowOptions.push_back(ConfigParamSpec{"aod-writer-resfile", VariantType::String, "", {"Default name of the output file"}});
-    workflowOptions.push_back(ConfigParamSpec{"aod-writer-resmode", VariantType::String, "RECREATE", {"Creation mode of the result files: NEW, CREATE, RECREATE, UPDATE"}});
-    workflowOptions.push_back(ConfigParamSpec{"aod-writer-ntfmerge", VariantType::Int, -1, {"Number of time frames to merge into one file"}});
-    workflowOptions.push_back(ConfigParamSpec{"aod-writer-keep", VariantType::String, "", {"Comma separated list of ORIGIN/DESCRIPTION/SUBSPECIFICATION:treename:col1/col2/..:filename"}});
-
-    workflowOptions.push_back(ConfigParamSpec{"fairmq-rate-logging", VariantType::Int, 60, {"Rate logging for FairMQ channels"}});
-
-    workflowOptions.push_back(ConfigParamSpec{"forwarding-policy",
-                                              VariantType::String,
-                                              "dangling",
-                                              {"Which messages to forward."
-                                               " dangling: dangling outputs,"
-                                               " all: all messages"}});
-    workflowOptions.push_back(ConfigParamSpec{"forwarding-destination",
-                                              VariantType::String,
-                                              "file",
-                                              {"Destination for forwarded messages."
-                                               " file: write to file,"
-                                               " fairmq: send to output proxy"}});
+    auto requiredWorkflowOptions = WorkflowCustomizationHelpers::requiredWorkflowOptions();
+    workflowOptions.insert(std::end(workflowOptions), std::begin(requiredWorkflowOptions), std::end(requiredWorkflowOptions));
 
     std::vector<CompletionPolicy> completionPolicies;
     UserCustomizationsHelper::userDefinedCustomization(completionPolicies, 0);

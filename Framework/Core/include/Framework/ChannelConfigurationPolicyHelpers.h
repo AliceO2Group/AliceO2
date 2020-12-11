@@ -7,8 +7,8 @@
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
-#ifndef FRAMEWORK_CHANNELCONFIGURATIONPOLICYHELPERS_H
-#define FRAMEWORK_CHANNELCONFIGURATIONPOLICYHELPERS_H
+#ifndef O2_FRAMEWORK_CHANNELCONFIGURATIONPOLICYHELPERS_H_
+#define O2_FRAMEWORK_CHANNELCONFIGURATIONPOLICYHELPERS_H_
 
 #include "Framework/ChannelSpec.h"
 
@@ -19,6 +19,9 @@ namespace o2::framework
 
 struct FairMQChannelConfigSpec {
   int64_t rateLogging;
+  int64_t recvBufferSize;
+  int64_t sendBufferSize;
+  std::string ipcPrefix;
 };
 
 /// A set of helpers for common ChannelConfigurationPolicy behaviors
