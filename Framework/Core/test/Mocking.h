@@ -12,6 +12,7 @@
 #include "Framework/WorkflowSpec.h"
 #include "Framework/DataSpecUtils.h"
 #include "Framework/SimpleOptionsRetriever.h"
+#include "Framework/WorkflowCustomizationHelpers.h"
 #include "../src/WorkflowHelpers.h"
 
 std::unique_ptr<o2::framework::ConfigContext> makeEmptyConfigContext()
@@ -20,21 +21,7 @@ std::unique_ptr<o2::framework::ConfigContext> makeEmptyConfigContext()
   // FIXME: Ugly... We need to fix ownership and make sure the ConfigContext
   //        either owns or shares ownership of the registry.
   std::vector<std::unique_ptr<ParamRetriever>> retrievers;
-  static std::vector<ConfigParamSpec> specs = {
-    ConfigParamSpec{"forwarding-policy",
-                    VariantType::String,
-                    "dangling",
-                    {""}},
-    ConfigParamSpec{"forwarding-destination",
-                    VariantType::String,
-                    "file",
-                    {"what to do with dangling outputs. file: write to file, fairmq: send to output proxy"}},
-    ConfigParamSpec{"fairmq-rate-logging",
-                    VariantType::Int,
-                    60,
-                    {"rateLogging"}},
-  };
-  specs.push_back(ConfigParamSpec{"aod-memory-rate-limit", VariantType::String, "0", {"rate"}});
+  static std::vector<ConfigParamSpec> specs = WorkflowCustomizationHelpers::requiredWorkflowOptions();
   auto store = std::make_unique<ConfigParamStore>(specs, std::move(retrievers));
   store->preload();
   store->activate();
