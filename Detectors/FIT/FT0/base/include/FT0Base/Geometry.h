@@ -16,6 +16,8 @@
 
 #include <Rtypes.h>
 #include <TVector3.h>
+#include <vector>
+
 namespace o2
 {
 namespace ft0
