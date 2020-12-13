@@ -102,7 +102,7 @@ class TrackParametrizationWithError : public TrackParametrization<value_T>
   template <typename T>
   GPUd() bool update(const BaseCluster<T>& p);
 
-  GPUd() bool correctForMaterial(value_t x2x0, value_t xrho, value_t mass, bool anglecorr = false, value_t dedx = kCalcdEdxAuto);
+  GPUd() bool correctForMaterial(value_t x2x0, value_t xrho, bool anglecorr = false, value_t dedx = kCalcdEdxAuto);
 
   GPUd() void resetCovariance(value_t s2 = 0);
   GPUd() void checkCovariance();

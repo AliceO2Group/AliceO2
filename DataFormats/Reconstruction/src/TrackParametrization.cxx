@@ -682,14 +682,13 @@ GPUd() bool TrackParametrization<value_T>::getXatLabR(value_t r, value_t& x, val
 
 //______________________________________________
 template <typename value_T>
-GPUd() bool TrackParametrization<value_T>::correctForELoss(value_t xrho, value_t mass, bool anglecorr, value_t dedx)
+GPUd() bool TrackParametrization<value_T>::correctForELoss(value_t xrho, bool anglecorr, value_t dedx)
 {
   //------------------------------------------------------------------
   // This function corrects the track parameters for the energy loss in crossed material.
   // "xrho" - is the product length*density (g/cm^2).
   //     It should be passed as negative when propagating tracks
   //     from the intreaction point to the outside of the central barrel.
-  // "mass" - the mass of this particle (GeV/c^2).
   // "dedx" - mean enery loss (GeV/(g/cm^2), if <=kCalcdEdxAuto : calculate on the fly
   // "anglecorr" - switch for the angular correction
   //------------------------------------------------------------------
@@ -703,19 +702,15 @@ GPUd() bool TrackParametrization<value_T>::correctForELoss(value_t xrho, value_t
     value_t angle = gpu::CAMath::Sqrt(cst2I / (csp2));
     xrho *= angle;
   }
-
   value_t p = getP();
-  if (mass < 0) {
-    p += p; // q=2 particle
-  }
-  value_t p2 = p * p, mass2 = mass * mass;
-  value_t e2 = p2 + mass2;
+  value_t p2 = p * p;
+  value_t e2 = p2 + getPID().getMass2();
   value_t beta2 = p2 / e2;
 
   // Calculating the energy loss corrections************************
   if ((xrho != 0.f) && (beta2 < 1.f)) {
     if (dedx < kCalcdEdxAuto + constants::math::Almost1) { // request to calculate dedx on the fly
-      dedx = BetheBlochSolid(p / gpu::CAMath::Abs(mass));
+      dedx = BetheBlochSolid(p / getPID().getMass());
       if (mAbsCharge != 1) {
         dedx *= mAbsCharge * mAbsCharge;
       }
@@ -727,7 +722,7 @@ GPUd() bool TrackParametrization<value_T>::correctForELoss(value_t xrho, value_t
       return false; // 30% energy loss is too much!
     }
     value_t eupd = e + dE;
-    value_t pupd2 = eupd * eupd - mass2;
+    value_t pupd2 = eupd * eupd - getPID().getMass2();
     if (pupd2 < kMinP * kMinP) {
       return false;
     }

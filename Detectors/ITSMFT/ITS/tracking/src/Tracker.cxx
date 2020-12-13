@@ -439,7 +439,7 @@ bool Tracker::fitTrack(const ROframe& event, TrackITSExt& track, int start, int 
     // The correctForMaterial should be called with anglecorr==true if the material budget is the "mean budget in vertical direction" and with false if the the estimated budget already accounts for the track inclination.
     // Here using !mMatLayerCylSet as its presence triggers update of parameters
 
-    if (!track.correctForMaterial(xx0, ((start < end) ? -1. : 1.) * distance * density, 0.14, !mMatLayerCylSet)) { // ~0.14 GeV: mass of charged pion is used by default
+    if (!track.correctForMaterial(xx0, ((start < end) ? -1. : 1.) * distance * density, !mMatLayerCylSet)) { // ~0.14 GeV: mass of charged pion is used by default
       return false;
     }
   }
