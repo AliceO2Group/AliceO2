@@ -35,7 +35,9 @@
 void CheckTopologies(std::string clusfile = "o2clus_its.root",
                      std::string hitfile = "o2sim_HitsITS.root",
                      std::string collContextfile = "collisioncontext.root",
-                     std::string inputGeom = "")
+                     std::string inputGeom = "",
+                     float checkOutliers = 2., // reject outliers (MC dX or dZ exceeds row/col span by a factor above the threshold)
+                     float minPtMC = 0.01)     // account only MC hits with pT above threshold
 {
   const int QEDSourceID = 99; // Clusters from this MC source correspond to QED electrons
 
@@ -57,7 +59,7 @@ void CheckTopologies(std::string clusfile = "o2clus_its.root",
   const o2::steer::DigitizationContext* digContext = nullptr;
   TStopwatch sw;
   sw.Start();
-
+  float minPtMC2 = minPtMC > 0 ? minPtMC * minPtMC : -1;
   // Geometry
   o2::base::GeometryManager::loadGeometry(inputGeom);
   auto gman = o2::its::GeometryTGeo::Instance();
@@ -205,12 +207,20 @@ void CheckTopologies(std::string clusfile = "o2clus_its.root",
           auto hitEntry = mc2hit.find(key);
           if (hitEntry != mc2hit.end()) {
             const auto& hit = (*hitArray)[hitEntry->second];
-            auto locH = gman->getMatrixL2G(chipID) ^ (hit.GetPos()); // inverse conversion from global to local
-            auto locHsta = gman->getMatrixL2G(chipID) ^ (hit.GetPosStart());
-            locH.SetXYZ(0.5 * (locH.X() + locHsta.X()), 0.5 * (locH.Y() + locHsta.Y()), 0.5 * (locH.Z() + locHsta.Z()));
-            const auto locC = o2::itsmft::TopologyDictionary::getClusterCoordinates(cluster, pattern, false);
-            dX = locH.X() - locC.X();
-            dZ = locH.Z() - locC.Z();
+            if (minPtMC < 0.f || hit.GetMomentum().Perp2() > minPtMC2) {
+              auto locH = gman->getMatrixL2G(chipID) ^ (hit.GetPos()); // inverse conversion from global to local
+              auto locHsta = gman->getMatrixL2G(chipID) ^ (hit.GetPosStart());
+              locH.SetXYZ(0.5 * (locH.X() + locHsta.X()), 0.5 * (locH.Y() + locHsta.Y()), 0.5 * (locH.Z() + locHsta.Z()));
+              const auto locC = o2::itsmft::TopologyDictionary::getClusterCoordinates(cluster, pattern, false);
+              dX = locH.X() - locC.X();
+              dZ = locH.Z() - locC.Z();
+              if (checkOutliers > 0.) {
+                if (std::abs(dX) > topology.getRowSpan() * o2::itsmft::SegmentationAlpide::PitchRow * checkOutliers ||
+                    std::abs(dZ) > topology.getColumnSpan() * o2::itsmft::SegmentationAlpide::PitchCol * checkOutliers) { // ignore outlier
+                  dX = dZ = BuildTopologyDictionary::IgnoreVal;
+                }
+              }
+            }
           } else {
             printf("Failed to find MC hit entry for Tr:%d chipID:%d\n", trID, chipID);
             lab.print();
