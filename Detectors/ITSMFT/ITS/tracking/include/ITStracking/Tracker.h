@@ -39,7 +39,7 @@
 #include "Framework/Logger.h"
 
 #ifdef CA_DEBUG
-#include "ITStracking/StandaloneDebugger.h"
+#include "ITSTracking/StandaloneDebugger.h"
 #endif
 
 namespace o2
@@ -95,6 +95,13 @@ class Tracker
   void computeRoadsMClabels(const ROframe&);
   void computeTracksMClabels(const ROframe&);
   void rectifyClusterIndices(const ROframe& event);
+
+  // Smoother
+  float getSmoothedPredictedChi2(const o2::track::TrackParCov&, const o2::track::TrackParCov&,
+                                 const std::array<float, 2>&, const std::array<float, 3>&);
+  bool initializeSmootherTracks(const ROframe& event, o2::its::TrackITSExt& outwT,
+                                o2::its::TrackITSExt& inwT, const int startIt = 0, const int startOt = 6);
+  bool kalmanPropagateOutwardsTrack(const ROframe& event, o2::its::TrackITSExt& track, const int first, const int last);
 
   template <typename... T>
   float evaluateTask(void (Tracker::*)(T...), const char*, std::ostream& ostream, T&&... args);

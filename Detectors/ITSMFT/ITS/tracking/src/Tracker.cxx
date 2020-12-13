@@ -34,6 +34,16 @@ namespace o2
 namespace its
 {
 
+constexpr std::array<double, 3> getInverseSymm2D(const std::array<double, 3>& mat)
+{
+  const double det = mat[0] * mat[2] - mat[1] * mat[1];
+  return std::array<double, 3>{mat[2] / det, -mat[1] / det, mat[0] / det};
+}
+
+using constants::its::UnusedIndex;
+const MCCompLabel unusedMCLabel = {UnusedIndex, UnusedIndex,
+                                   UnusedIndex, false};
+
 Tracker::Tracker(o2::its::TrackerTraits* traits)
 {
   /// Initialise standard configuration with 1 iteration
@@ -451,7 +461,7 @@ bool Tracker::fitTrack(const ROframe& event, TrackITSExt& track, int start, int 
     // The correctForMaterial should be called with anglecorr==true if the material budget is the "mean budget in vertical direction" and with false if the the estimated budget already accounts for the track inclination.
     // Here using !mMatLayerCylSet as its presence triggers update of parameters
 
-    if (!track.correctForMaterial(xx0, ((start < end) ? -1. : 1.) * distance * density, !mMatLayerCylSet)) { // ~0.14 GeV: mass of charged pion is used by default
+    if (!track.correctForMaterial(xx0, ((start < end) ? -1. : 1.) * distance * density, !mMatLayerCylSet)) {
       return false;
     }
   }
@@ -672,6 +682,163 @@ void Tracker::getGlobalConfiguration()
   if (tc.useMatBudLUT) {
     initMatBudLUTFromFile();
   }
+// Smoother
+float Tracker::getSmoothedPredictedChi2(const o2::track::TrackParCov& outwT, // outwards track: from innermost cluster to outermost
+                                        const o2::track::TrackParCov& inwT,  // inwards track: from outermost cluster to innermost
+                                        const std::array<float, 2>& cls,
+                                        const std::array<float, 3>& clCov)
+{
+  // Tracks need to be already propagated, compute only smoothed prediction
+  // Symmetric covariances assumed
+
+  if (outwT.getX() != inwT.getX()) {
+    LOG(ERROR) << "Tracks need to be propagated to the same point! inwT.X=" << inwT.getX() << " outwT.X=" << outwT.getX();
+  }
+
+  std::array<double, 2> pp1 = {static_cast<double>(outwT.getY()), static_cast<double>(outwT.getZ())}; // predicted Y,Z points
+  std::array<double, 2> pp2 = {static_cast<double>(inwT.getY()), static_cast<double>(inwT.getZ())};   // predicted Y,Z points
+
+  std::array<double, 3> c1 = {static_cast<double>(outwT.getSigmaY2()),
+                              static_cast<double>(outwT.getSigmaZY()),
+                              static_cast<double>(outwT.getSigmaZ2())}; // Cov. track 1
+
+  std::array<double, 3> c2 = {static_cast<double>(inwT.getSigmaY2()),
+                              static_cast<double>(inwT.getSigmaZY()),
+                              static_cast<double>(inwT.getSigmaZ2())}; // Cov. track 2
+
+  std::array<double, 3> w1 = getInverseSymm2D(c1); // weight matrices
+  std::array<double, 3> w2 = getInverseSymm2D(c2);
+
+  std::array<double, 3> w1w2 = {w1[0] + w2[0], w1[1] + w2[1], w1[2] + w2[2]};
+  std::array<double, 3> C = getInverseSymm2D(w1w2); // C = (W1+W2)^-1
+
+  std::array<double, 2> w1pp1 = {w1[0] * pp1[0] + w1[1] * pp1[1], w1[1] * pp1[0] + w1[2] * pp1[1]};
+  std::array<double, 2> w2pp2 = {w2[0] * pp2[0] + w2[1] * pp2[1], w2[1] * pp2[0] + w2[2] * pp2[1]};
+
+  float Y = static_cast<float>(C[0] * (w1pp1[0] + w2pp2[0]) + C[1] * (w1pp1[1] + w2pp2[1]));
+  float Z = static_cast<float>(C[1] * (w1pp1[0] + w2pp2[0]) + C[2] * (w1pp1[1] + w2pp2[1]));
+
+  std::array<double, 2> delta = {Y - cls[0], Z - cls[1]};
+  std::array<double, 3> CCp = {C[0] + clCov[0], C[1] + clCov[1], C[2] + clCov[2]};
+
+  float chi2 = static_cast<float>(delta[0] * (CCp[0] * delta[0] + CCp[1] * delta[1]) + delta[1] * (CCp[1] * delta[0] + CCp[2] * delta[1]));
+#ifdef CA_DEBUG
+  LOG(INFO) << "Propagated t1_y: " << pp1[0] << " t1_z: " << pp1[1];
+  LOG(INFO) << "Propagated t2_y: " << pp2[0] << " t2_z: " << pp2[1];
+  LOG(INFO) << "Smoothed prediction Y: " << Y << " Z: " << Z;
+  LOG(INFO) << "cov t1: 0: " << c1[0] << " 1: " << c1[1] << " 2: " << c1[2];
+  LOG(INFO) << "cov t2: 0: " << c2[0] << " 1: " << c2[1] << " 2: " << c2[2];
+  LOG(INFO) << "cov Pr: 0: " << C[0] << " 1: " << C[1] << " 2: " << C[2];
+  LOG(INFO) << "chi2: " << chi2;
+  LOG(INFO) << "";
+#endif
+  return chi2;
+}
+
+bool Tracker::initializeSmootherTracks(const ROframe& event,
+                                       o2::its::TrackITSExt& outwT, // outwards track: from innermost cluster to outermost
+                                       o2::its::TrackITSExt& inwT,  // inwards track: from outermost cluster to innermost
+                                       const int firstLayer,
+                                       const int lastLayer)
+{
+  float radiationLength = 9.36f; // Radiation length of Si [cm]
+  float density = 2.33f;         // Density of Si [g/cm^3]
+  float distance;                // Default thickness
+
+  outwT.resetCovariance();
+  outwT.setChi2(0);
+  inwT.resetCovariance();
+  inwT.setChi2(0);
+
+  // Initialise tracks with their first two clusters respectively
+  for (auto iLayer{0}; iLayer < 2; ++iLayer) {
+    int iLayerInwardsTrack{lastLayer - iLayer};
+    const TrackingFrameInfo& inwHit = event.getTrackingFrameInfoOnLayer(iLayerInwardsTrack).at(inwT.getClusterIndex(iLayerInwardsTrack));
+    float xx0_inw = ((iLayerInwardsTrack > 2) ? 0.008f : 0.003f); // Rough layer thickness
+    inwT.rotate(inwHit.alphaTrackingFrame);
+    inwT.propagateTo(inwHit.xTrackingFrame, getBz());
+    inwT.setChi2(inwT.getChi2() +
+                 inwT.getPredictedChi2(inwHit.positionTrackingFrame, inwHit.covarianceTrackingFrame));
+    inwT.o2::track::TrackParCov::update(inwHit.positionTrackingFrame, inwHit.covarianceTrackingFrame);
+
+    if (mMatLayerCylSet) {
+      if (iLayer) {
+        const auto cl_0 = mPrimaryVertexContext->getClusters()[iLayerInwardsTrack][inwT.getClusterIndex(iLayerInwardsTrack)];
+        const auto cl_1 = mPrimaryVertexContext->getClusters()[iLayerInwardsTrack - 1][inwT.getClusterIndex(iLayerInwardsTrack - 1)];
+
+        auto matbud = mMatLayerCylSet->getMatBudget(cl_0.xCoordinate, cl_0.yCoordinate, cl_0.zCoordinate, cl_1.xCoordinate, cl_1.yCoordinate, cl_1.zCoordinate);
+        xx0_inw = matbud.meanX2X0;
+        density = matbud.meanRho;
+        distance = matbud.length;
+      }
+    }
+
+    if (!inwT.correctForMaterial(xx0_inw, distance * density, !mMatLayerCylSet)) {
+      return false;
+    }
+    const TrackingFrameInfo& outwHit = event.getTrackingFrameInfoOnLayer(iLayer).at(outwT.getClusterIndex(iLayer));
+    float xx0_out = ((iLayer > 2) ? 0.008f : 0.003f);
+    outwT.rotate(outwHit.alphaTrackingFrame);
+    outwT.propagateTo(outwHit.xTrackingFrame, getBz());
+    outwT.setChi2(outwT.getChi2() +
+                  outwT.getPredictedChi2(outwHit.positionTrackingFrame, outwHit.covarianceTrackingFrame));
+    outwT.o2::track::TrackParCov::update(outwHit.positionTrackingFrame, outwHit.covarianceTrackingFrame);
+
+    if (mMatLayerCylSet) {
+      if (iLayer) {
+        const auto cl_0 = mPrimaryVertexContext->getClusters()[iLayer][outwT.getClusterIndex(iLayer)];
+        const auto cl_1 = mPrimaryVertexContext->getClusters()[iLayer + 1][outwT.getClusterIndex(iLayer + 1)];
+
+        auto matbud = mMatLayerCylSet->getMatBudget(cl_0.xCoordinate, cl_0.yCoordinate, cl_0.zCoordinate, cl_1.xCoordinate, cl_1.yCoordinate, cl_1.zCoordinate);
+        xx0_out = matbud.meanX2X0;
+        density = matbud.meanRho;
+        distance = matbud.length;
+      }
+    }
+    if (!outwT.correctForMaterial(xx0_out, -distance * density, !mMatLayerCylSet)) {
+      return false;
+    }
+  }
+
+  return true;
+}
+
+bool Tracker::kalmanPropagateOutwardsTrack(const ROframe& event,
+                                           o2::its::TrackITSExt& track,
+                                           const int first,
+                                           const int last)
+{
+  float radiationLength = 9.36f; // Radiation length of Si [cm]
+  float density = 2.33f;         // Density of Si [g/cm^3]
+  float distance;                // Default thickness
+  bool status{false};
+
+  for (auto iLevel{first}; iLevel < last; ++iLevel) {
+    float xx0 = ((iLevel > 2) ? 0.008f : 0.003f); // Rough layer thickness
+    distance = xx0;
+    const TrackingFrameInfo& tF = event.getTrackingFrameInfoOnLayer(iLevel).at(track.getClusterIndex(iLevel));
+    status = track.rotate(tF.alphaTrackingFrame);
+    status &= track.propagateTo(tF.xTrackingFrame, getBz());
+    track.setChi2(track.getChi2() +
+                  track.getPredictedChi2(tF.positionTrackingFrame, tF.covarianceTrackingFrame));
+    status &= track.o2::track::TrackParCov::update(tF.positionTrackingFrame, tF.covarianceTrackingFrame);
+    if (mMatLayerCylSet) {
+      if (iLevel != first || iLevel != last) {
+        const auto cl_0 = mPrimaryVertexContext->getClusters()[iLevel][track.getClusterIndex(iLevel)];
+        const auto cl_1 = mPrimaryVertexContext->getClusters()[iLevel + 1][track.getClusterIndex(iLevel + 1)];
+
+        auto matbud = mMatLayerCylSet->getMatBudget(cl_0.xCoordinate, cl_0.yCoordinate, cl_0.zCoordinate, cl_1.xCoordinate, cl_1.yCoordinate, cl_1.zCoordinate);
+        xx0 = matbud.meanX2X0;
+        density = matbud.meanRho;
+        distance = matbud.length;
+      }
+    }
+
+    if (!track.correctForMaterial(xx0, -distance * density, !mMatLayerCylSet)) {
+      return false;
+    }
+  }
+  return status;
 }
 
 } // namespace its
