@@ -3089,7 +3089,7 @@ void Detector::defineSensitiveVolumes()
     vmc->Gstpar(index, "PRIMIO_E", 20.77);
     vmc->Gstpar(index, "PRIMIO_N", 14.35);
     vmc->Gstpar(index, "LOSS", 14);
-    vmc->Gstpar(index, "STRA",  4);
+    vmc->Gstpar(index, "STRA", 4);
   }
 }
 
