@@ -59,39 +59,39 @@ class Propagator
   static constexpr float MAX_SIN_PHI = 0.85f;
   static constexpr float MAX_STEP = 2.0f;
 
-  bool PropagateToXBxByBz(o2::track::TrackParCov& track, float x, float mass = o2::constants::physics::MassPionCharged,
+  bool PropagateToXBxByBz(o2::track::TrackParCov& track, float x,
                           float maxSnp = MAX_SIN_PHI, float maxStep = MAX_STEP, MatCorrType matCorr = MatCorrType::USEMatCorrTGeo,
                           o2::track::TrackLTIntegral* tofInfo = nullptr, int signCorr = 0) const;
 
-  bool PropagateToXBxByBz(o2::track::TrackPar& track, float x, float mass = o2::constants::physics::MassPionCharged,
+  bool PropagateToXBxByBz(o2::track::TrackPar& track, float x,
                           float maxSnp = MAX_SIN_PHI, float maxStep = MAX_STEP, MatCorrType matCorr = MatCorrType::USEMatCorrTGeo,
                           o2::track::TrackLTIntegral* tofInfo = nullptr, int signCorr = 0) const;
 
-  bool propagateToX(o2::track::TrackParCov& track, float x, float bZ, float mass = o2::constants::physics::MassPionCharged,
+  bool propagateToX(o2::track::TrackParCov& track, float x, float bZ,
                     float maxSnp = MAX_SIN_PHI, float maxStep = MAX_STEP, MatCorrType matCorr = MatCorrType::USEMatCorrTGeo,
                     o2::track::TrackLTIntegral* tofInfo = nullptr, int signCorr = 0) const;
 
-  bool propagateToX(o2::track::TrackPar& track, float x, float bZ, float mass = o2::constants::physics::MassPionCharged,
+  bool propagateToX(o2::track::TrackPar& track, float x, float bZ,
                     float maxSnp = MAX_SIN_PHI, float maxStep = MAX_STEP, MatCorrType matCorr = MatCorrType::USEMatCorrTGeo,
                     o2::track::TrackLTIntegral* tofInfo = nullptr, int signCorr = 0) const;
 
   bool propagateToDCA(const o2::dataformats::VertexBase& vtx, o2::track::TrackParCov& track, float bZ,
-                      float mass = o2::constants::physics::MassPionCharged, float maxStep = MAX_STEP, MatCorrType matCorr = MatCorrType::USEMatCorrTGeo,
+                      float maxStep = MAX_STEP, MatCorrType matCorr = MatCorrType::USEMatCorrTGeo,
                       o2::dataformats::DCA* dcaInfo = nullptr, o2::track::TrackLTIntegral* tofInfo = nullptr,
                       int signCorr = 0, float maxD = 999.f) const;
 
   bool propagateToDCABxByBz(const o2::dataformats::VertexBase& vtx, o2::track::TrackParCov& track,
-                            float mass = o2::constants::physics::MassPionCharged, float maxStep = MAX_STEP, MatCorrType matCorr = MatCorrType::USEMatCorrTGeo,
+                            float maxStep = MAX_STEP, MatCorrType matCorr = MatCorrType::USEMatCorrTGeo,
                             o2::dataformats::DCA* dcaInfo = nullptr, o2::track::TrackLTIntegral* tofInfo = nullptr,
                             int signCorr = 0, float maxD = 999.f) const;
 
   bool propagateToDCA(const o2::math_utils::Point3D<float>& vtx, o2::track::TrackPar& track, float bZ,
-                      float mass = o2::constants::physics::MassPionCharged, float maxStep = MAX_STEP, MatCorrType matCorr = MatCorrType::USEMatCorrTGeo,
+                      float maxStep = MAX_STEP, MatCorrType matCorr = MatCorrType::USEMatCorrTGeo,
                       std::array<float, 2>* dca = nullptr, o2::track::TrackLTIntegral* tofInfo = nullptr,
                       int signCorr = 0, float maxD = 999.f) const;
 
   bool propagateToDCABxByBz(const o2::math_utils::Point3D<float>& vtx, o2::track::TrackPar& track,
-                            float mass = o2::constants::physics::MassPionCharged, float maxStep = MAX_STEP, MatCorrType matCorr = MatCorrType::USEMatCorrTGeo,
+                            float maxStep = MAX_STEP, MatCorrType matCorr = MatCorrType::USEMatCorrTGeo,
                             std::array<float, 2>* dca = nullptr, o2::track::TrackLTIntegral* tofInfo = nullptr,
                             int signCorr = 0, float maxD = 999.f) const;
 

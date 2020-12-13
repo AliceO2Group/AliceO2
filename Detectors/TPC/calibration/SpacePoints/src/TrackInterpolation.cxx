@@ -192,7 +192,7 @@ bool TrackInterpolation::interpolateTrackITSTOF(const o2::dataformats::MatchInfo
       LOG(DEBUG) << "Failed to rotate track during first extrapolation";
       return false;
     }
-    if (!propagator->PropagateToXBxByBz(trkWork, param::RowX[iRow], o2::constants::physics::MassPionCharged, mMaxSnp, mMaxStep, mMatCorr)) {
+    if (!propagator->PropagateToXBxByBz(trkWork, param::RowX[iRow], mMaxSnp, mMaxStep, mMatCorr)) {
       LOG(DEBUG) << "Failed on first extrapolation";
       return false;
     }
@@ -218,7 +218,7 @@ bool TrackInterpolation::interpolateTrackITSTOF(const o2::dataformats::MatchInfo
   float clTOFX = clTOF.getX();
   std::array<float, 2> clTOFYZ{clTOF.getY(), clTOF.getZ()};
   std::array<float, 3> clTOFCov{mSigYZ2TOF, 0.f, mSigYZ2TOF}; // assume no correlation between y and z and equal cluster error sigma^2 = (3cm)^2 / 12
-  if (!propagator->PropagateToXBxByBz(trkWork, clTOFX, o2::constants::physics::MassPionCharged, mMaxSnp, mMaxStep, mMatCorr)) {
+  if (!propagator->PropagateToXBxByBz(trkWork, clTOFX, mMaxSnp, mMaxStep, mMatCorr)) {
     LOG(DEBUG) << "Failed final propagation to TOF radius";
     return false;
   }
@@ -236,7 +236,7 @@ bool TrackInterpolation::interpolateTrackITSTOF(const o2::dataformats::MatchInfo
       LOG(DEBUG) << "Failed to rotate track during back propagation";
       return false;
     }
-    if (!propagator->PropagateToXBxByBz(trkWork, param::RowX[iRow], o2::constants::physics::MassPionCharged, mMaxSnp, mMaxStep, mMatCorr)) {
+    if (!propagator->PropagateToXBxByBz(trkWork, param::RowX[iRow], mMaxSnp, mMaxStep, mMatCorr)) {
       LOG(DEBUG) << "Failed on back propagation";
       //printf("trkX(%.2f), clX(%.2f), clY(%.2f), clZ(%.2f), alphaTOF(%.2f)\n", trkWork.getX(), param::RowX[iRow], clTOFYZ[0], clTOFYZ[1], clTOFAlpha);
       return false;
@@ -315,7 +315,7 @@ bool TrackInterpolation::extrapolateTrackITS(const o2::its::TrackITS& trkITS, co
     if (!trk.rotate(o2::math_utils::sector2Angle(sector))) {
       return false;
     }
-    if (!propagator->PropagateToXBxByBz(trk, x, o2::constants::physics::MassPionCharged, mMaxSnp, mMaxStep, mMatCorr)) {
+    if (!propagator->PropagateToXBxByBz(trk, x, mMaxSnp, mMaxStep, mMatCorr)) {
       return false;
     }
     TPCClusterResiduals res;

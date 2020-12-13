@@ -197,7 +197,7 @@ class TrackParametrization
   GPUd() math_utils::Point3D<value_t> getXYZGloAt(value_t xk, value_t b, bool& ok) const;
 
   // parameters manipulation
-  GPUd() bool correctForELoss(value_t xrho, value_t mass, bool anglecorr = false, value_t dedx = kCalcdEdxAuto);
+  GPUd() bool correctForELoss(value_t xrho, bool anglecorr = false, value_t dedx = kCalcdEdxAuto);
   GPUd() bool rotateParam(value_t alpha);
   GPUd() bool propagateParamTo(value_t xk, value_t b);
   GPUd() bool propagateParamTo(value_t xk, const dim3_t& b);

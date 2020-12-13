@@ -96,7 +96,7 @@ int Propagator::initFieldFromGRP(const o2::parameters::GRPObject* grp, bool verb
 #endif
 
 //_______________________________________________________________________
-bool Propagator::PropagateToXBxByBz(o2::track::TrackParCov& track, float xToGo, float mass, float maxSnp, float maxStep,
+bool Propagator::PropagateToXBxByBz(o2::track::TrackParCov& track, float xToGo, float maxSnp, float maxStep,
                                     Propagator::MatCorrType matCorr, o2::track::TrackLTIntegral* tofInfo, int signCorr) const
 {
   //----------------------------------------------------------------
@@ -105,7 +105,6 @@ bool Propagator::PropagateToXBxByBz(o2::track::TrackParCov& track, float xToGo, 
   // taking into account all the three components of the magnetic field
   // and correcting for the crossed material.
   //
-  // mass     - mass used in propagation - used for energy loss correction (if <0 then q=2)
   // maxStep  - maximal step for propagation
   // tofInfo  - optional container for track length and PID-dependent TOF integration
   //
@@ -137,7 +136,7 @@ bool Propagator::PropagateToXBxByBz(o2::track::TrackParCov& track, float xToGo, 
     if (matCorr != MatCorrType::USEMatCorrNONE) {
       auto xyz1 = track.getXYZGlo();
       auto mb = getMatBudget(matCorr, xyz0, xyz1);
-      if (!track.correctForMaterial(mb.meanX2X0, ((signCorr < 0) ? -mb.length : mb.length) * mb.meanRho, mass)) {
+      if (!track.correctForMaterial(mb.meanX2X0, ((signCorr < 0) ? -mb.length : mb.length) * mb.meanRho)) {
         return false;
       }
 
@@ -156,7 +155,7 @@ bool Propagator::PropagateToXBxByBz(o2::track::TrackParCov& track, float xToGo, 
 }
 
 //_______________________________________________________________________
-bool Propagator::PropagateToXBxByBz(o2::track::TrackPar& track, float xToGo, float mass, float maxSnp, float maxStep,
+bool Propagator::PropagateToXBxByBz(o2::track::TrackPar& track, float xToGo, float maxSnp, float maxStep,
                                     Propagator::MatCorrType matCorr, o2::track::TrackLTIntegral* tofInfo, int signCorr) const
 {
   //----------------------------------------------------------------
@@ -165,7 +164,6 @@ bool Propagator::PropagateToXBxByBz(o2::track::TrackPar& track, float xToGo, flo
   // taking into account all the three components of the magnetic field
   // and optionally correcting for the e.loss crossed material.
   //
-  // mass     - mass used in propagation - used for energy loss correction (if <0 then q=2)
   // maxStep  - maximal step for propagation
   // tofInfo  - optional container for track length and PID-dependent TOF integration
   //
@@ -197,7 +195,7 @@ bool Propagator::PropagateToXBxByBz(o2::track::TrackPar& track, float xToGo, flo
     if (matCorr != MatCorrType::USEMatCorrNONE) {
       auto xyz1 = track.getXYZGlo();
       auto mb = getMatBudget(matCorr, xyz0, xyz1);
-      if (!track.correctForELoss(((signCorr < 0) ? -mb.length : mb.length) * mb.meanRho, mass)) {
+      if (!track.correctForELoss(((signCorr < 0) ? -mb.length : mb.length) * mb.meanRho)) {
         return false;
       }
       if (tofInfo) {
@@ -215,7 +213,7 @@ bool Propagator::PropagateToXBxByBz(o2::track::TrackPar& track, float xToGo, flo
 }
 
 //_______________________________________________________________________
-bool Propagator::propagateToX(o2::track::TrackParCov& track, float xToGo, float bZ, float mass, float maxSnp, float maxStep,
+bool Propagator::propagateToX(o2::track::TrackParCov& track, float xToGo, float bZ, float maxSnp, float maxStep,
                               Propagator::MatCorrType matCorr, o2::track::TrackLTIntegral* tofInfo, int signCorr) const
 {
   //----------------------------------------------------------------
@@ -224,7 +222,6 @@ bool Propagator::propagateToX(o2::track::TrackParCov& track, float xToGo, float 
   // taking into account all the three components of the magnetic field
   // and correcting for the crossed material.
   //
-  // mass     - mass used in propagation - used for energy loss correction (if <0 then q=2)
   // maxStep  - maximal step for propagation
   // tofInfo  - optional container for track length and PID-dependent TOF integration
   //
@@ -255,7 +252,7 @@ bool Propagator::propagateToX(o2::track::TrackParCov& track, float xToGo, float 
       auto xyz1 = track.getXYZGlo();
       auto mb = getMatBudget(matCorr, xyz0, xyz1);
       //
-      if (!track.correctForMaterial(mb.meanX2X0, ((signCorr < 0) ? -mb.length : mb.length) * mb.meanRho, mass)) {
+      if (!track.correctForMaterial(mb.meanX2X0, ((signCorr < 0) ? -mb.length : mb.length) * mb.meanRho)) {
         return false;
       }
 
@@ -274,7 +271,7 @@ bool Propagator::propagateToX(o2::track::TrackParCov& track, float xToGo, float 
 }
 
 //_______________________________________________________________________
-bool Propagator::propagateToX(o2::track::TrackPar& track, float xToGo, float bZ, float mass, float maxSnp, float maxStep,
+bool Propagator::propagateToX(o2::track::TrackPar& track, float xToGo, float bZ, float maxSnp, float maxStep,
                               Propagator::MatCorrType matCorr, o2::track::TrackLTIntegral* tofInfo, int signCorr) const
 {
   //----------------------------------------------------------------
@@ -283,7 +280,6 @@ bool Propagator::propagateToX(o2::track::TrackPar& track, float xToGo, float bZ,
   // taking into account all the three components of the magnetic field
   // and correcting for the crossed material.
   //
-  // mass     - mass used in propagation - used for energy loss correction (if <0 then q=2)
   // maxStep  - maximal step for propagation
   // tofInfo  - optional container for track length and PID-dependent TOF integration
   //
@@ -314,7 +310,7 @@ bool Propagator::propagateToX(o2::track::TrackPar& track, float xToGo, float bZ,
       auto xyz1 = track.getXYZGlo();
       auto mb = getMatBudget(matCorr, xyz0, xyz1);
       //
-      if (!track.correctForELoss(((signCorr < 0) ? -mb.length : mb.length) * mb.meanRho, mass)) {
+      if (!track.correctForELoss(((signCorr < 0) ? -mb.length : mb.length) * mb.meanRho)) {
         return false;
       }
 
@@ -334,7 +330,7 @@ bool Propagator::propagateToX(o2::track::TrackPar& track, float xToGo, float bZ,
 
 //_______________________________________________________________________
 bool Propagator::propagateToDCA(const o2::dataformats::VertexBase& vtx, o2::track::TrackParCov& track, float bZ,
-                                float mass, float maxStep, Propagator::MatCorrType matCorr,
+                                float maxStep, Propagator::MatCorrType matCorr,
                                 o2::dataformats::DCA* dca, o2::track::TrackLTIntegral* tofInfo,
                                 int signCorr, float maxD) const
 {
@@ -362,7 +358,7 @@ bool Propagator::propagateToDCA(const o2::dataformats::VertexBase& vtx, o2::trac
 
   auto tmpT(track); // operate on the copy to recover after the failure
   alp += std::asin(sn);
-  if (!tmpT.rotate(alp) || !propagateToX(tmpT, xv, bZ, mass, 0.85, maxStep, matCorr, tofInfo, signCorr)) {
+  if (!tmpT.rotate(alp) || !propagateToX(tmpT, xv, bZ, 0.85, maxStep, matCorr, tofInfo, signCorr)) {
     LOG(WARNING) << "failed to propagate to alpha=" << alp << " X=" << xv << vtx << " | Track is: ";
     tmpT.print();
     return false;
@@ -379,7 +375,7 @@ bool Propagator::propagateToDCA(const o2::dataformats::VertexBase& vtx, o2::trac
 
 //_______________________________________________________________________
 bool Propagator::propagateToDCABxByBz(const o2::dataformats::VertexBase& vtx, o2::track::TrackParCov& track,
-                                      float mass, float maxStep, Propagator::MatCorrType matCorr,
+                                      float maxStep, Propagator::MatCorrType matCorr,
                                       o2::dataformats::DCA* dca, o2::track::TrackLTIntegral* tofInfo,
                                       int signCorr, float maxD) const
 {
@@ -407,7 +403,7 @@ bool Propagator::propagateToDCABxByBz(const o2::dataformats::VertexBase& vtx, o2
 
   auto tmpT(track); // operate on the copy to recover after the failure
   alp += std::asin(sn);
-  if (!tmpT.rotate(alp) || !PropagateToXBxByBz(tmpT, xv, mass, 0.85, maxStep, matCorr, tofInfo, signCorr)) {
+  if (!tmpT.rotate(alp) || !PropagateToXBxByBz(tmpT, xv, 0.85, maxStep, matCorr, tofInfo, signCorr)) {
     LOG(WARNING) << "failed to propagate to alpha=" << alp << " X=" << xv << vtx << " | Track is: ";
     tmpT.print();
     return false;
@@ -424,7 +420,7 @@ bool Propagator::propagateToDCABxByBz(const o2::dataformats::VertexBase& vtx, o2
 
 //_______________________________________________________________________
 bool Propagator::propagateToDCA(const math_utils::Point3D<float>& vtx, o2::track::TrackPar& track, float bZ,
-                                float mass, float maxStep, Propagator::MatCorrType matCorr,
+                                float maxStep, Propagator::MatCorrType matCorr,
                                 std::array<float, 2>* dca, o2::track::TrackLTIntegral* tofInfo,
                                 int signCorr, float maxD) const
 {
@@ -452,7 +448,7 @@ bool Propagator::propagateToDCA(const math_utils::Point3D<float>& vtx, o2::track
 
   auto tmpT(track); // operate on the copy to recover after the failure
   alp += std::asin(sn);
-  if (!tmpT.rotateParam(alp) || !propagateToX(tmpT, xv, bZ, mass, 0.85, maxStep, matCorr, tofInfo, signCorr)) {
+  if (!tmpT.rotateParam(alp) || !propagateToX(tmpT, xv, bZ, 0.85, maxStep, matCorr, tofInfo, signCorr)) {
     LOG(WARNING) << "failed to propagate to alpha=" << alp << " X=" << xv << " for vertex "
                  << vtx.X() << ' ' << vtx.Y() << ' ' << vtx.Z() << " | Track is: ";
     tmpT.printParam();
@@ -468,7 +464,7 @@ bool Propagator::propagateToDCA(const math_utils::Point3D<float>& vtx, o2::track
 
 //_______________________________________________________________________
 bool Propagator::propagateToDCABxByBz(const math_utils::Point3D<float>& vtx, o2::track::TrackPar& track,
-                                      float mass, float maxStep, Propagator::MatCorrType matCorr,
+                                      float maxStep, Propagator::MatCorrType matCorr,
                                       std::array<float, 2>* dca, o2::track::TrackLTIntegral* tofInfo,
                                       int signCorr, float maxD) const
 {
@@ -496,7 +492,7 @@ bool Propagator::propagateToDCABxByBz(const math_utils::Point3D<float>& vtx, o2:
 
   auto tmpT(track); // operate on the copy to recover after the failure
   alp += std::asin(sn);
-  if (!tmpT.rotateParam(alp) || !PropagateToXBxByBz(tmpT, xv, mass, 0.85, maxStep, matCorr, tofInfo, signCorr)) {
+  if (!tmpT.rotateParam(alp) || !PropagateToXBxByBz(tmpT, xv, 0.85, maxStep, matCorr, tofInfo, signCorr)) {
     LOG(WARNING) << "failed to propagate to alpha=" << alp << " X=" << xv << " for vertex "
                  << vtx.X() << ' ' << vtx.Y() << ' ' << vtx.Z() << " | Track is: ";
     tmpT.printParam();

@@ -507,7 +507,7 @@ class MatchTPCITS
   void refitWinners(bool loopInITS = false);
   bool refitTrackTPCITSloopITS(int iITS, int& iTPC);
   bool refitTrackTPCITSloopTPC(int iTPC, int& iITS);
-  bool refitTPCInward(o2::track::TrackParCov& trcIn, float& chi2, float xTgt, int trcID, float timeTB, float m = o2::constants::physics::MassPionCharged) const;
+  bool refitTPCInward(o2::track::TrackParCov& trcIn, float& chi2, float xTgt, int trcID, float timeTB) const;
 
   void selectBestMatches();
   bool validateTPCMatch(int iTPC);

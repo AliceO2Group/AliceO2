@@ -110,6 +110,7 @@ class PID
   GPUd() operator ID() const { return getID(); }
 
   GPUd() float getMass() const { return getMass(mID); }
+  GPUd() float getMass2() const { return getMass2(mID); }
   GPUd() float getMass2Z() const { return getMass2Z(mID); }
   GPUd() int getCharge() const { return getCharge(mID); }
 
