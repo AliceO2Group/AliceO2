@@ -3739,13 +3739,13 @@ void HeatExchanger::createCoolingPipes(Int_t half, Int_t disk)
   if (disk == 0 || disk == 1 || disk == 2) {
     auto* mCoolingPipe1 = new TGeoVolumeAssembly(Form("cooling_pipe1_H%d", half));
     if (disk == 0) {
-      length1 = 1.3;
+      length1 = 5.3;
     }
     if (disk == 1) {
-      length1 = 0.87;
+      length1 = 4.87;
     }
     if (disk == 2) {
-      length1 = 0.45;
+      length1 = 4.45;
     }
     rin = 0.25 / 2;
     rout = 0.4 / 2;
@@ -3763,13 +3763,13 @@ void HeatExchanger::createCoolingPipes(Int_t half, Int_t disk)
     transfoTorus1->RegisterYourself();
 
     if (disk == 0) {
-      length2 = 7.9;
+      length2 = 13.2;
     }
     if (disk == 1) {
-      length2 = 4.1;
+      length2 = 9.7;
     }
     if (disk == 2) {
-      length2 = 0.2;
+      length2 = 6.1;
     }
     TGeoVolume* Tube2 = gGeoManager->MakeTube(Form("Tube2_H%d_D%d", half, disk), mPipe, rin, rout, length2 / 2);
     TGeoVolume* TubeW2 = gGeoManager->MakeTube(Form("TubeW2_H%d_D%d", half, disk), mWater, 0., rin, length2 / 2);
@@ -3791,13 +3791,13 @@ void HeatExchanger::createCoolingPipes(Int_t half, Int_t disk)
 
     Float_t length3;
     if (disk == 0) {
-      length3 = 4.18;
+      length3 = 3.9;
     }
     if (disk == 1) {
-      length3 = 4.10;
+      length3 = 3.85;
     }
     if (disk == 2) {
-      length3 = 4.54;
+      length3 = 4.25;
     }
     TGeoVolume* Tube3 = gGeoManager->MakeTube(Form("Tube3_H%d_D%d", half, disk), mPipe, rin, rout, length3 / 2);
     TGeoVolume* TubeW3 = gGeoManager->MakeTube(Form("TubeW3_H%d_D%d", half, disk), mWater, 0., rin, length3 / 2);
@@ -3806,28 +3806,31 @@ void HeatExchanger::createCoolingPipes(Int_t half, Int_t disk)
     TGeoCombiTrans* transfoTube3 = new TGeoCombiTrans(-length2 - radius2 - radius1, -radius2 - length3 / 2, length1 / 2 + radius1, rTube3);
     transfoTube3->RegisterYourself();
 
-    Float_t length4 = 14.0; // one single pipe instead of 3 pipes coming from the 3 first disks
+    Float_t length4 = 10.; //12.5; // one single pipe instead of 3 pipes coming from the 3 first disks
     Float_t rin4 = 0.216;
     Float_t rout4 = 0.346;
     TGeoVolume* Tube4 = gGeoManager->MakeTube(Form("Tube4_H%d_D%d", half, disk), mPipe, rin4, rout4, length4 / 2);
     TGeoVolume* TubeW4 = gGeoManager->MakeTube(Form("TubeW4_H%d_D%d", half, disk), mWater, 0., rin4, length4 / 2);
-    Float_t theta4 = 8.0; // angle from the "horizontal" plane x,z
-    Float_t phi4 = 47.0;  // "azimutal" angle
+    Float_t theta4 = 19.; // horizontal plane angle
+    Float_t phi4 = 37;    // vertical plane angle
     TGeoRotation* rTube4 = new TGeoRotation("rotationTube4", 90.0 + theta4, 90.0 + phi4, 0.0);
     rTube4->RegisterYourself();
     // next line, the x and z axis are reversed in the location...
-    TGeoCombiTrans* transfoTube4 = new TGeoCombiTrans(-length2 - radius2 - radius1 - 3.5, -radius2 - length3 / 2 - 2.95, length1 / 2 + radius1 + 3.80, rTube4);
+    Float_t xTube4 = length1 / 2. + radius1 + TMath::Cos(theta4 * TMath::DegToRad()) * TMath::Sin(phi4 * TMath::DegToRad()) * length4 / 2 * 0.8;
+    Float_t yTube4 = -radius2 - length3 - TMath::Sin(theta4 * TMath::DegToRad()) * length4 / 2 * 0.8 - 0.2;
+    Float_t zTube4 = -radius1 - length2 - radius2 - TMath::Cos(theta4 * TMath::DegToRad()) * TMath::Cos(phi4 * TMath::DegToRad()) * length4 / 2 * 0.8;
+    TGeoCombiTrans* transfoTube4 = new TGeoCombiTrans(zTube4, yTube4 - 0.2, xTube4 - 0.1, rTube4);
     transfoTube4->RegisterYourself();
 
-    Float_t length5 = 16.5; // one single pipe instead of 3 pipes coming from the 3 first disks
+    Float_t length5 = 13.; //14.5; // one single pipe instead of 5 pipes
     Double_t theta = 180. * TMath::Pi() / 180.;
     Double_t phi = 0. * TMath::Pi() / 180.;
     Double_t nlow[3];
     nlow[0] = TMath::Sin(theta) * TMath::Cos(phi);
     nlow[1] = TMath::Sin(theta) * TMath::Sin(phi);
     nlow[2] = TMath::Cos(theta);
-    theta = 36. * TMath::Pi() / 180.;
-    phi = 270. * TMath::Pi() / 180.;
+    theta = 15. * TMath::Pi() / 180.;
+    phi = -90. * TMath::Pi() / 180.;
     Double_t nhi[3];
     nhi[0] = TMath::Sin(theta) * TMath::Cos(phi);
     nhi[1] = TMath::Sin(theta) * TMath::Sin(phi);
@@ -3836,13 +3839,14 @@ void HeatExchanger::createCoolingPipes(Int_t half, Int_t disk)
     Float_t rout5 = 0.447;
     TGeoVolume* Tube5 = gGeoManager->MakeCtub(Form("Tube5_H%d_D%d", half, disk), mPipe, rin5, rout5, length5 / 2, 0., 360., nlow[0], nlow[1], nlow[2], nhi[0], nhi[1], nhi[2]);
     TGeoVolume* TubeW5 = gGeoManager->MakeCtub(Form("TubeW5_H%d_D%d", half, disk), mWater, 0., rin5, length5 / 2, 0., 360., nlow[0], nlow[1], nlow[2], nhi[0], nhi[1], nhi[2]);
-    Float_t theta5 = 11.0; // angle from the "horizontal" plane x,z
-    Float_t phi5 = 9.0;    // "azimutal" angle
+    Float_t theta5 = 8.5; // angle from the "horizontal" plane x,z
+    Float_t phi5 = 12.5;  // "azimutal" angle
     TGeoRotation* rTube5 = new TGeoRotation("rotationTube5", 90.0 + theta5, 90.0 + phi5, 0.0);
     rTube5->RegisterYourself();
-    TGeoCombiTrans* transfoTube5 = new TGeoCombiTrans(-length2 - radius2 - radius1 - 3.4 - TMath::Cos(phi4 * TMath::DegToRad()) * length4 / 2 - TMath::Cos(phi5 * TMath::DegToRad()) * length5 / 2,
-                                                      -radius2 - length3 / 2 - 2.6 - TMath::Sin(theta4 * TMath::DegToRad()) * length4 / 2 - TMath::Sin(theta5 * TMath::DegToRad()) * length5 / 2,
-                                                      length1 / 2 + radius1 + 3.8 + TMath::Sin(phi4 * TMath::DegToRad()) * length4 / 2 + TMath::Sin(phi5 * TMath::DegToRad()) * length5 / 2, rTube5);
+    Float_t xTube5 = xTube4 + TMath::Cos(theta4 * TMath::DegToRad()) * TMath::Sin(phi4 * TMath::DegToRad()) * length4 / 2 + TMath::Cos(theta5 * TMath::DegToRad()) * TMath::Sin(phi5 * TMath::DegToRad()) * length5 / 2 * 1.03;
+    Float_t yTube5 = yTube4 - TMath::Sin(theta4 * TMath::DegToRad()) * length4 / 2 - TMath::Sin(theta5 * TMath::DegToRad()) * length5 / 2 * 1.03 + 0.2;
+    Float_t zTube5 = zTube4 - TMath::Cos(theta4 * TMath::DegToRad()) * TMath::Cos(phi4 * TMath::DegToRad()) * length4 / 2 - TMath::Cos(theta5 * TMath::DegToRad()) * TMath::Cos(phi5 * TMath::DegToRad()) * length5 / 2 * 1.03;
+    TGeoCombiTrans* transfoTube5 = new TGeoCombiTrans(zTube5, yTube5, xTube5, rTube5);
     transfoTube5->RegisterYourself();
 
     Tube1->SetLineColor(kGray);
@@ -3852,6 +3856,9 @@ void HeatExchanger::createCoolingPipes(Int_t half, Int_t disk)
     Tube3->SetLineColor(kGray);
     Tube4->SetLineColor(kGray);
     Tube5->SetLineColor(kGray);
+    TubeW3->SetLineColor(kBlue);
+    TubeW4->SetLineColor(kBlue);
+    TubeW5->SetLineColor(kBlue);
 
     mCoolingPipe1->AddNode(Tube1, 1, tTube1);
     mCoolingPipe1->AddNode(Torus1, 1, transfoTorus1);
@@ -3874,14 +3881,18 @@ void HeatExchanger::createCoolingPipes(Int_t half, Int_t disk)
     //-----------------------------------------------------------------
     auto* mCoolingPipe2 = new TGeoVolumeAssembly(Form("cooling_pipe2_H%d_D%d", half, disk));
     TGeoVolume* Tube1p = gGeoManager->MakeTube(Form("Tube1p_H%d_D%d", half, disk), mPipe, rin, rout, length1 / 2);
-    TGeoVolume* Torus1p = gGeoManager->MakeTorus(Form("Torus1p_H%d_D%d", half, disk), mPipe, radius1, rin, rout, 0., 90.);
-    TGeoVolume* Tube2p = gGeoManager->MakeTube(Form("Tube2p_H%d_D%d", half, disk), mPipe, rin, rout, length2 / 2);
-    TGeoVolume* Torus2p = gGeoManager->MakeTorus(Form("Torus2p_H%d_D%d", half, disk), mPipe, radius2, rin, rout, 0., 90.);
-    TGeoVolume* Tube3p = gGeoManager->MakeTube(Form("Tube3p_H%d_D%d", half, disk), mPipe, rin, rout, length3 / 2);
     TGeoVolume* TubeW1p = gGeoManager->MakeTube(Form("TubeW1p_H%d_D%d", half, disk), mWater, 0., rin, length1 / 2);
+
+    TGeoVolume* Torus1p = gGeoManager->MakeTorus(Form("Torus1p_H%d_D%d", half, disk), mPipe, radius1, rin, rout, 0., 90.);
     TGeoVolume* TorusW1p = gGeoManager->MakeTorus(Form("TorusW1p_H%d_D%d", half, disk), mWater, radius1, 0., rin, 0., 90.);
+
+    TGeoVolume* Tube2p = gGeoManager->MakeTube(Form("Tube2p_H%d_D%d", half, disk), mPipe, rin, rout, length2 / 2);
     TGeoVolume* TubeW2p = gGeoManager->MakeTube(Form("TubeW2p_H%d_D%d", half, disk), mWater, 0., rin, length2 / 2);
+
+    TGeoVolume* Torus2p = gGeoManager->MakeTorus(Form("Torus2p_H%d_D%d", half, disk), mPipe, radius2, rin, rout, 0., 90.);
     TGeoVolume* TorusW2p = gGeoManager->MakeTorus(Form("TorusW2p_H%d_D%d", half, disk), mWater, radius2, 0., rin, 0., 90.);
+
+    TGeoVolume* Tube3p = gGeoManager->MakeTube(Form("Tube3p_H%d_D%d", half, disk), mPipe, rin, rout, length3 / 2);
     TGeoVolume* TubeW3p = gGeoManager->MakeTube(Form("TubeW3p_H%d_D%d", half, disk), mWater, 0., rin, length3 / 2);
 
     TGeoRotation* rTorus2p = new TGeoRotation("rotationTorus2p", 180.0, 0.0, 0.0);
@@ -3892,7 +3903,8 @@ void HeatExchanger::createCoolingPipes(Int_t half, Int_t disk)
     transfoTube3p->RegisterYourself();
     TGeoRotation* rTube4p = new TGeoRotation(Form("rotationTube4p_H%d_D%d", half, disk), 90.0 - theta4, phi4 - 90.0, 0.0);
     rTube4p->RegisterYourself();
-    TGeoCombiTrans* transfoTube4p = new TGeoCombiTrans(-length2 - radius2 - radius1 - 3.5, radius2 + length3 / 2 + 2.95, length1 / 2 + radius1 + 3.80, rTube4p);
+
+    TGeoCombiTrans* transfoTube4p = new TGeoCombiTrans(zTube4, -yTube4 + 0.2, xTube4 - 0.1, rTube4p);
     transfoTube4p->RegisterYourself();
 
     Tube1p->SetLineColor(kGray);
@@ -3900,6 +3912,7 @@ void HeatExchanger::createCoolingPipes(Int_t half, Int_t disk)
     Tube2p->SetLineColor(kGray);
     Torus2p->SetLineColor(kGray);
     Tube3p->SetLineColor(kGray);
+    TubeW3p->SetLineColor(kBlue);
 
     mCoolingPipe2->AddNode(Tube1p, 1, tTube1);
     mCoolingPipe2->AddNode(Torus1p, 1, transfoTorus1);
@@ -3911,30 +3924,37 @@ void HeatExchanger::createCoolingPipes(Int_t half, Int_t disk)
     mCoolingPipe2->AddNode(TubeW2p, 1, transfoTube2);
     mCoolingPipe2->AddNode(TorusW2p, 1, transfoTorus2p);
     mCoolingPipe2->AddNode(TubeW3p, 1, transfoTube3p);
+
     if (disk == 0) {
-      mCoolingPipe2->AddNode(Tube4, 1, transfoTube4p);
+
+      TGeoVolume* Tube4p = gGeoManager->MakeTube(Form("Tube4p_H%d_D%d", half, disk), mPipe, rin4, rout4, length4 / 2);
+      TGeoVolume* TubeW4p = gGeoManager->MakeTube(Form("TubeW4p_H%d_D%d", half, disk), mWater, 0., rin4, length4 / 2);
+      Tube4p->SetLineColor(kGray);
+      TubeW4p->SetLineColor(kBlue);
+
+      mCoolingPipe2->AddNode(Tube4p, 1, transfoTube4p);
+      mCoolingPipe2->AddNode(TubeW4p, 1, transfoTube4p);
       theta = 180. * TMath::Pi() / 180.;
       phi = 0. * TMath::Pi() / 180.;
       nlow[0] = TMath::Sin(theta) * TMath::Cos(phi);
       nlow[1] = TMath::Sin(theta) * TMath::Sin(phi);
       nlow[2] = TMath::Cos(theta);
-      theta = -36. * TMath::Pi() / 180.;
+      theta = -15. * TMath::Pi() / 180.;
       phi = 270. * TMath::Pi() / 180.;
       nhi[0] = TMath::Sin(theta) * TMath::Cos(phi);
       nhi[1] = TMath::Sin(theta) * TMath::Sin(phi);
       nhi[2] = TMath::Cos(theta);
       TGeoVolume* Tube5p = gGeoManager->MakeCtub(Form("Tube5p_H%d_D%d", half, disk), mPipe, rin5, rout5, length5 / 2, 0., 360., nlow[0], nlow[1], nlow[2], nhi[0], nhi[1], nhi[2]);
-      Float_t theta5 = 11.0; // angle from the "horizontal" plane x,z
-      Float_t phi5 = 9.0;    // "azimutal" angle
+      TGeoVolume* TubeW5p = gGeoManager->MakeCtub(Form("TubeW5p_H%d_D%d", half, disk), mWater, 0., rin5, length5 / 2, 0., 360., nlow[0], nlow[1], nlow[2], nhi[0], nhi[1], nhi[2]);
       TGeoRotation* rTube5p = new TGeoRotation("rotationTube5p", -90.0 - theta5, -(90.0 + phi5), 0.0);
       rTube5p->RegisterYourself();
       TGeoCombiTrans* transfoTube5p;
-      transfoTube5p = new TGeoCombiTrans(-length2 - radius2 - radius1 - 3.4 - TMath::Cos(phi4 * TMath::DegToRad()) * length4 / 2 - TMath::Cos(phi5 * TMath::DegToRad()) * length5 / 2,
-                                         radius2 + length3 / 2 + 2.6 + TMath::Sin(theta4 * TMath::DegToRad()) * length4 / 2 + TMath::Sin(theta5 * TMath::DegToRad()) * length5 / 2,
-                                         length1 / 2 + radius1 + 3.8 + TMath::Sin(phi4 * TMath::DegToRad()) * length4 / 2 + TMath::Sin(phi5 * TMath::DegToRad()) * length5 / 2, rTube5p);
+      transfoTube5p = new TGeoCombiTrans(zTube5, -yTube5, xTube5, rTube5p);
       transfoTube5p->RegisterYourself();
       Tube5p->SetLineColor(kGray);
+      TubeW5p->SetLineColor(kBlue);
       mCoolingPipe2->AddNode(Tube5p, 1, transfoTube5p);
+      mCoolingPipe2->AddNode(TubeW5p, 1, transfoTube5p);
     }
     TGeoCombiTrans* transfoCoolingPipe1 = nullptr;
     TGeoCombiTrans* transfoCoolingPipe2 = nullptr;
@@ -3951,6 +3971,7 @@ void HeatExchanger::createCoolingPipes(Int_t half, Int_t disk)
     mHalfDisk->AddNode(mCoolingPipe1, 1, transfoCoolingPipe1);
     mHalfDisk->AddNode(mCoolingPipe2, 1, transfoCoolingPipe2);
   }
+
   //=================================================================
   //=================================================================
   if (disk == 3) {
@@ -3958,10 +3979,12 @@ void HeatExchanger::createCoolingPipes(Int_t half, Int_t disk)
     auto* mCoolingPipe3 = new TGeoVolumeAssembly(Form("cooling_pipe3_H%d_D%d", half, disk));
     Float_t length1_3 = 2.;
     TGeoVolume* Tube1_3 = gGeoManager->MakeTube(Form("Tube1_3_H%d_D%d", half, disk), mPipe, rin, rout, length1_3 / 2);
+    TGeoVolume* TubeW1_3 = gGeoManager->MakeTube(Form("TubeW1_3_H%d_D%d", half, disk), mWater, 0., rin, length1_3 / 2);
     TGeoTranslation* tTube1_3 = new TGeoTranslation(0.0, 0.0, 0.0);
     tTube1_3->RegisterYourself();
     Float_t radius1_3 = 0.4;
     TGeoVolume* Torus1_3 = gGeoManager->MakeTorus(Form("Torus1_3_H%d_D%d", half, disk), mPipe, radius1_3, rin, rout, 0., 90.);
+    TGeoVolume* TorusW1_3 = gGeoManager->MakeTorus(Form("TorusW1_3_H%d_D%d", half, disk), mWater, radius1_3, 0., rin, 0., 90.);
     TGeoRotation* rTorus1_3 = new TGeoRotation("rotationTorus1_3", 90.0, 90.0, 0.0);
     rTorus1_3->RegisterYourself();
     TGeoCombiTrans* transfoTorus1_3 = new TGeoCombiTrans(0.0, -radius1_3, length1_3 / 2, rTorus1_3);
@@ -3969,14 +3992,16 @@ void HeatExchanger::createCoolingPipes(Int_t half, Int_t disk)
 
     Float_t length2_3;
     if (disk == 3) {
-      length2_3 = 9.89;
+      length2_3 = 10.4;
     }
     TGeoVolume* Tube2_3 = gGeoManager->MakeTube(Form("Tube2_3_H%d_D%d", half, disk), mPipe, rin, rout, length2_3 / 2);
+    TGeoVolume* TubeW2_3 = gGeoManager->MakeTube(Form("TubeW2_3_H%d_D%d", half, disk), mWater, 0., rin, length2_3 / 2);
     TGeoRotation* rTube2_3 = new TGeoRotation("rotationTube2_3", 180.0, 90.0, 90.0);
     rTube2_3->RegisterYourself();
     TGeoCombiTrans* transfoTube2_3 = new TGeoCombiTrans(0., -length2_3 / 2 - radius1_3, length1_3 / 2 + radius1_3, rTube2_3);
     transfoTube2_3->RegisterYourself();
     TGeoVolume* Torus2_3 = gGeoManager->MakeTorus(Form("Torus2_3_H%d_D%d", half, disk), mPipe, radius1_3, rin, rout, 0., 90.);
+    TGeoVolume* TorusW2_3 = gGeoManager->MakeTorus(Form("TorusW2_3_H%d_D%d", half, disk), mWater, radius1_3, 0., rin, 0., 90.);
     TGeoRotation* rTorus2_3 = new TGeoRotation("rotationTorus2_3", 90.0, 90.0, 180.0);
     rTorus2_3->RegisterYourself();
     TGeoCombiTrans* transfoTorus2_3 = new TGeoCombiTrans(0.0, -length2_3 - radius1_3, length1_3 / 2 + radius1_3 + radius1_3, rTorus2_3);
@@ -3984,9 +4009,10 @@ void HeatExchanger::createCoolingPipes(Int_t half, Int_t disk)
 
     Float_t length3_3;
     if (disk == 3) {
-      length3_3 = 4.73;
+      length3_3 = 4.4;
     }
     TGeoVolume* Tube3_3 = gGeoManager->MakeTube(Form("Tube3_3_H%d_D%d", half, disk), mPipe, rin, rout, length3_3 / 2);
+    TGeoVolume* TubeW3_3 = gGeoManager->MakeTube(Form("TubeW3_3_H%d_D%d", half, disk), mWater, 0., rin, length3_3 / 2);
     TGeoRotation* rTube3_3 = new TGeoRotation("rotationTube3_3", 0.0, 0.0, 0.0);
     rTube3_3->RegisterYourself();
     TGeoCombiTrans* transfoTube3_3 = new TGeoCombiTrans(0., -length2_3 - radius1_3 - radius1_3, length1_3 / 2 + radius1_3 + radius1_3 + length3_3 / 2, rTube3_3);
@@ -3997,15 +4023,21 @@ void HeatExchanger::createCoolingPipes(Int_t half, Int_t disk)
     Tube2_3->SetLineColor(kGray);
     Torus2_3->SetLineColor(kGray);
     Tube3_3->SetLineColor(kGray);
+    TubeW3_3->SetLineColor(kBlue);
 
     mCoolingPipe3->AddNode(Tube1_3, 1, tTube1_3);
     mCoolingPipe3->AddNode(Torus1_3, 1, transfoTorus1_3);
     mCoolingPipe3->AddNode(Tube2_3, 1, transfoTube2_3);
     mCoolingPipe3->AddNode(Torus2_3, 1, transfoTorus2_3);
     mCoolingPipe3->AddNode(Tube3_3, 1, transfoTube3_3);
+    mCoolingPipe3->AddNode(TubeW1_3, 1, tTube1_3);
+    mCoolingPipe3->AddNode(TorusW1_3, 1, transfoTorus1_3);
+    mCoolingPipe3->AddNode(TubeW2_3, 1, transfoTube2_3);
+    mCoolingPipe3->AddNode(TorusW2_3, 1, transfoTorus2_3);
+    mCoolingPipe3->AddNode(TubeW3_3, 1, transfoTube3_3);
 
     TGeoCombiTrans* transfoCoolingPipe3_3 = nullptr;
-    TGeoRotation* rotation3_3 = new TGeoRotation("rotation3_3", 90., 90., 80.);
+    TGeoRotation* rotation3_3 = new TGeoRotation("rotation3_3", 90., 90., 76.);
     rotation3_3->RegisterYourself();
     transfoCoolingPipe3_3 = new TGeoCombiTrans(17. + length1_3 / 2, 0.75, 0.0, rotation3_3);
 
@@ -4028,6 +4060,7 @@ void HeatExchanger::createCoolingPipes(Int_t half, Int_t disk)
     Tube2p_3->SetLineColor(kGray);
     Torus2p_3->SetLineColor(kGray);
     Tube3p_3->SetLineColor(kGray);
+    TubeW3p_3->SetLineColor(kBlue);
 
     mCoolingPipe4->AddNode(Tube1p_3, 1, tTube1_3);
     mCoolingPipe4->AddNode(Torus1p_3, 1, transfoTorus1_3);
@@ -4041,7 +4074,7 @@ void HeatExchanger::createCoolingPipes(Int_t half, Int_t disk)
     mCoolingPipe4->AddNode(TubeW3p_3, 1, transfoTube3_3);
 
     TGeoCombiTrans* transfoCoolingPipe4_3 = nullptr;
-    TGeoRotation* rotation4_3 = new TGeoRotation("rotation4_3", 90., 90., -80.);
+    TGeoRotation* rotation4_3 = new TGeoRotation("rotation4_3", 90., 90., -76.);
     rotation4_3->RegisterYourself();
     transfoCoolingPipe4_3 = new TGeoCombiTrans(17. + length1_3 / 2, -0.75, 0.0, rotation4_3);
     transfoCoolingPipe4_3->RegisterYourself();
@@ -4049,6 +4082,7 @@ void HeatExchanger::createCoolingPipes(Int_t half, Int_t disk)
     mHalfDisk->AddNode(mCoolingPipe3, 1, transfoCoolingPipe3_3);
     mHalfDisk->AddNode(mCoolingPipe4, 1, transfoCoolingPipe4_3);
   }
+
   //=================================================================
   if (disk == 4) {
     // One diagonal side
@@ -4069,10 +4103,10 @@ void HeatExchanger::createCoolingPipes(Int_t half, Int_t disk)
 
     Float_t length2_4;
     if (disk == 4) {
-      length2_4 = 10.57;
+      length2_4 = 10.8;
     }
     TGeoVolume* Tube2_4 = gGeoManager->MakeTube("Tube2_4", mPipe, rin, rout, length2_4 / 2);
-    TGeoVolume* TubeW2_4 = gGeoManager->MakeTube("TubeW2_4", mPipe, 0., rin, length2_4 / 2);
+    TGeoVolume* TubeW2_4 = gGeoManager->MakeTube("TubeW2_4", mWater, 0., rin, length2_4 / 2);
     TGeoRotation* rTube2_4 = new TGeoRotation("rotationTube2_4", 180.0, 90.0, 90.0);
     rTube2_4->RegisterYourself();
     TGeoCombiTrans* transfoTube2_4 = new TGeoCombiTrans(0., -length2_4 / 2 - radius1_4, length1_4 / 2 + radius1_4, rTube2_4);
@@ -4087,7 +4121,7 @@ void HeatExchanger::createCoolingPipes(Int_t half, Int_t disk)
 
     Float_t length3_4;
     if (disk == 4) {
-      length3_4 = 5.41;
+      length3_4 = 5.2;
     }
     TGeoVolume* Tube3_4 = gGeoManager->MakeTube(Form("Tube3_4_H%d_D%d", half, disk), mPipe, rin, rout, length3_4 / 2);
     TGeoVolume* TubeW3_4 = gGeoManager->MakeTube(Form("TubeW3_4_H%d_D%d", half, disk), mWater, 0., rin, length3_4 / 2);
@@ -4101,6 +4135,7 @@ void HeatExchanger::createCoolingPipes(Int_t half, Int_t disk)
     Tube2_4->SetLineColor(kGray);
     Torus2_4->SetLineColor(kGray);
     Tube3_4->SetLineColor(kGray);
+    TubeW3_4->SetLineColor(kBlue);
 
     mCoolingPipe3->AddNode(Tube1_4, 1, tTube1_4);
     mCoolingPipe3->AddNode(Torus1_4, 1, transfoTorus1_4);
@@ -4136,6 +4171,7 @@ void HeatExchanger::createCoolingPipes(Int_t half, Int_t disk)
     Tube2p_4->SetLineColor(kGray);
     Torus2p_4->SetLineColor(kGray);
     Tube3p_4->SetLineColor(kGray);
+    TubeW3p_4->SetLineColor(kBlue);
 
     mCoolingPipe4->AddNode(Tube1p_4, 1, tTube1_4);
     mCoolingPipe4->AddNode(Torus1p_4, 1, transfoTorus1_4);
