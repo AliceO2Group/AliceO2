@@ -345,7 +345,7 @@ GPUd() int GPUTrackingRefit::RefitTrack(T& trkX, bool outward, bool resetCov)
         IgnoreErrors(trk.getSnp());
         return -1;
       }
-      if (!prop->PropagateToXBxByBz(trk, x, o2::constants::physics::MassPionCharged, GPUCA_MAX_SIN_PHI_LOW)) {
+      if (!prop->PropagateToXBxByBz(trk, x, GPUCA_MAX_SIN_PHI_LOW)) {
         IgnoreErrors(trk.getSnp());
         return -2;
       }

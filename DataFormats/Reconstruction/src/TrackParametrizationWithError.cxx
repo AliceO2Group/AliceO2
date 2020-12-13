@@ -908,7 +908,7 @@ GPUd() bool TrackParametrizationWithError<value_T>::update(const dim2_t& p, cons
 
 //______________________________________________
 template <typename value_T>
-GPUd() bool TrackParametrizationWithError<value_T>::correctForMaterial(value_t x2x0, value_t xrho, value_t mass, bool anglecorr, value_t dedx)
+GPUd() bool TrackParametrizationWithError<value_T>::correctForMaterial(value_t x2x0, value_t xrho, bool anglecorr, value_t dedx)
 {
   //------------------------------------------------------------------
   // This function corrects the track parameters for the crossed material.
@@ -916,7 +916,6 @@ GPUd() bool TrackParametrizationWithError<value_T>::correctForMaterial(value_t x
   // "xrho" - is the product length*density (g/cm^2).
   //     It should be passed as negative when propagating tracks
   //     from the intreaction point to the outside of the central barrel.
-  // "mass" - the mass of this particle (GeV/c^2).
   // "dedx" - mean enery loss (GeV/(g/cm^2), if <=kCalcdEdxAuto : calculate on the fly
   // "anglecorr" - switch for the angular correction
   //------------------------------------------------------------------
@@ -937,10 +936,9 @@ GPUd() bool TrackParametrizationWithError<value_T>::correctForMaterial(value_t x
     x2x0 *= angle;
     xrho *= angle;
   }
-
   value_t p = this->getP();
-  value_t p2 = p * p, mass2 = mass * mass;
-  value_t e2 = p2 + mass2;
+  value_t p2 = p * p;
+  value_t e2 = p2 + this->getPID().getMass2();
   value_t beta2 = p2 / e2;
 
   // Calculating the multiple scattering corrections******************
@@ -970,7 +968,7 @@ GPUd() bool TrackParametrizationWithError<value_T>::correctForMaterial(value_t x
   value_t cP4 = 1.f;
   if ((xrho != 0.f) && (beta2 < 1.f)) {
     if (dedx < kCalcdEdxAuto + constants::math::Almost1) { // request to calculate dedx on the fly
-      dedx = BetheBlochSolid(p / gpu::CAMath::Abs(mass));
+      dedx = BetheBlochSolid(p / this->getPID().getMass());
       if (this->getAbsCharge() != 1) {
         dedx *= this->getAbsCharge() * this->getAbsCharge();
       }
@@ -982,7 +980,7 @@ GPUd() bool TrackParametrizationWithError<value_T>::correctForMaterial(value_t x
       return false; // 30% energy loss is too much!
     }
     value_t eupd = e + dE;
-    value_t pupd2 = eupd * eupd - mass2;
+    value_t pupd2 = eupd * eupd - this->getPID().getMass2();
     if (pupd2 < kMinP * kMinP) {
       return false;
     }
