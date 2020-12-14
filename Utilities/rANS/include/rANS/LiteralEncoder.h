@@ -92,7 +92,7 @@ const stream_IT LiteralEncoder<coder_T, stream_T, source_T>::process(const strea
     assert(outputIter < outputEnd);
   }
 
-  while (inputIT > inputBegin) { // NB: working in reverse!
+  while (inputIT != inputBegin) { // NB: working in reverse!
     std::tie(inputIT, outputIter) = encode(--inputIT, outputIter, rans1);
     std::tie(inputIT, outputIter) = encode(--inputIT, outputIter, rans0);
     assert(outputIter < outputEnd);

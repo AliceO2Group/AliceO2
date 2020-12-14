@@ -107,7 +107,7 @@ const stream_IT DedupEncoder<coder_T, stream_T, source_T>::process(const stream_
     return std::tuple(++dedupIT, coder.putSymbol(outputIter, encoderSymbol, this->mProbabilityBits));
   };
 
-  while (inputIT > inputBegin) { // NB: working in reverse!
+  while (inputIT != inputBegin) { // NB: working in reverse!
     std::tie(inputIT, outputIter) = encode(--inputIT, outputIter, rans);
     assert(outputIter < outputEnd);
   }
