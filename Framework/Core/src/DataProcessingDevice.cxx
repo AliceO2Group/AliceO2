@@ -250,13 +250,14 @@ void DataProcessingDevice::Init()
   /// Dump the configuration so that we can get it from the driver.
   for (auto& entry : configStore->store()) {
     std::stringstream ss;
+    std::string str;
     if (entry.second.size() != 0) {
-      boost::property_tree::json_parser::write_json(ss, configStore->store().get_child(entry.first), false);
+      boost::property_tree::json_parser::write_json(ss, entry.second, false);
+      str = ss.str();
+      str.pop_back(); //remove EoL
     } else {
-      ss << configStore->store().get<std::string>(entry.first) << "\n";
+      str = entry.second.get_value<std::string>();
     }
-    auto str = ss.str();
-    str.pop_back(); //remove EoL
     LOG(INFO) << "[CONFIG] " << entry.first << "=" << str << " 1 " << configStore->provenance(entry.first.c_str());
   }
 
