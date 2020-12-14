@@ -63,6 +63,9 @@ std::ostream& operator<<(std::ostream& oss, Variant const& val)
     case VariantType::ArrayBool:
       printArray<bool>(oss, val.get<bool*>(), val.size());
       break;
+    case VariantType::ArrayString:
+      printArray<std::string>(oss, val.get<std::string*>(), val.size());
+      break;
     case VariantType::Empty:
       break;
     default:

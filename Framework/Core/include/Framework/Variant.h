@@ -36,6 +36,7 @@ enum class VariantType : int { Int = 0,
                                ArrayFloat,
                                ArrayDouble,
                                ArrayBool,
+                               ArrayString,
                                Empty,
                                Unknown };
 
@@ -66,11 +67,13 @@ DECLARE_VARIANT_TRAIT(int*, ArrayInt);
 DECLARE_VARIANT_TRAIT(float*, ArrayFloat);
 DECLARE_VARIANT_TRAIT(double*, ArrayDouble);
 DECLARE_VARIANT_TRAIT(bool*, ArrayBool);
+DECLARE_VARIANT_TRAIT(std::string*, ArrayString);
 
 DECLARE_VARIANT_TRAIT(std::vector<int>, ArrayInt);
 DECLARE_VARIANT_TRAIT(std::vector<float>, ArrayFloat);
 DECLARE_VARIANT_TRAIT(std::vector<double>, ArrayDouble);
 DECLARE_VARIANT_TRAIT(std::vector<bool>, ArrayBool);
+DECLARE_VARIANT_TRAIT(std::vector<std::string>, ArrayString);
 
 template <typename T>
 struct variant_array_symbol {
@@ -97,6 +100,11 @@ struct variant_array_symbol<bool> {
   constexpr static char symbol = 'b';
 };
 
+template <>
+struct variant_array_symbol<std::string> {
+  constexpr static char symbol = 's';
+};
+
 template <typename T>
 inline constexpr VariantType variant_trait_v = variant_trait<T>::value;
 
@@ -121,6 +129,7 @@ DECLARE_VARIANT_TYPE(int*, ArrayInt);
 DECLARE_VARIANT_TYPE(float*, ArrayFloat);
 DECLARE_VARIANT_TYPE(double*, ArrayDouble);
 DECLARE_VARIANT_TYPE(bool*, ArrayBool);
+DECLARE_VARIANT_TYPE(std::string*, ArrayString);
 
 template <typename S, typename T>
 struct variant_helper {
@@ -217,6 +226,10 @@ class Variant
         mSize = other.mSize;
         variant_helper<storage_t, bool*>::set(&mStore, other.get<bool*>(), mSize);
         return;
+      case variant_trait_v<std::string*>:
+        mSize = other.mSize;
+        variant_helper<storage_t, std::string*>::set(&mStore, other.get<std::string*>(), mSize);
+        return;
       default:
         mStore = other.mStore;
         mSize = other.mSize;
@@ -243,6 +256,8 @@ class Variant
       case variant_trait_v<bool*>:
         *reinterpret_cast<bool**>(&(other.mStore)) = nullptr;
         return;
+      case variant_trait_v<std::string*>:
+        *reinterpret_cast<std::string**>(&(other.mStore)) = nullptr;
       default:
         return;
     }
@@ -258,6 +273,7 @@ class Variant
       case variant_trait_v<float*>:
       case variant_trait_v<double*>:
       case variant_trait_v<bool*>:
+      case variant_trait_v<std::string*>:
         if (reinterpret_cast<void**>(&mStore) != nullptr) {
           free(*reinterpret_cast<void**>(&mStore));
         }
@@ -289,6 +305,10 @@ class Variant
       case variant_trait_v<bool*>:
         mSize = other.mSize;
         variant_helper<storage_t, bool*>::set(&mStore, other.get<bool*>(), mSize);
+        return;
+      case variant_trait_v<std::string*>:
+        mSize = other.mSize;
+        variant_helper<storage_t, std::string*>::set(&mStore, other.get<std::string*>(), mSize);
         return;
       default:
         mStore = other.mStore;
