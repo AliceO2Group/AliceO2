@@ -116,7 +116,7 @@ std::vector<std::string> toVector(std::string const& input)
   std::vector<std::string> result;
   //check if the array string has correct array type symbol
   assert(input[0] == variant_array_symbol<std::string>::symbol);
-  std::regex smatch(R"((?:(?!=,)|(?!=\[))\w?(?=,|\]))");
+  std::regex smatch(R"((?:(?!=,)|(?!=\[))\w+(?=,|\]))");
   auto end = std::sregex_iterator();
   auto values = std::sregex_iterator(input.begin(), input.end(), smatch);
   for (auto v = values; v != end; ++v) {
