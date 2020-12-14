@@ -87,6 +87,7 @@ void CalibRawBase::setupContainers(TString fileInfo, uint32_t verbosity, uint32_
           printf("Forcing CRU %03d\n", cru);
         }
       }
+      mRawReaderCRUManager.init();
     } else if (rorcType == "digits") {
       TString files = gSystem->GetFromPipe(TString::Format("ls %s", arrDataInfo->At(0)->GetName()));
       //const int timeBins = static_cast<TObjString*>(arrDataInfo->At(1))->String().Atoi();
