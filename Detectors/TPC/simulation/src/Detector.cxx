@@ -3079,11 +3079,11 @@ void Detector::defineSensitiveVolumes()
     // set volume sentive
     AddSensitiveVolume(v);
   }
-  //
-  // Special sensitive volue parameters in case FKUKA is used as transport engine
+
+  // Special sensitive volume parameters in case FLUKA is used as transport engine
   auto vmc = TVirtualMC::GetMC();
   if (strcmp(vmc->GetName(), "TFluka") == 0) {
-    printf("Setting special FLUKA parameters for  TPC Driftgas \n");
+    LOG(INFO) << "Setting special FLUKA parameters for  TPC Driftgas";
     auto& mgr = o2::base::MaterialManager::Instance();
     Int_t index = mgr.getMediumID("TPC", kDriftGas2);
     vmc->Gstpar(index, "PRIMIO_E", 20.77);
