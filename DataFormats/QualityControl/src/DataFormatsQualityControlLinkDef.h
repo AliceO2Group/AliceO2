@@ -14,8 +14,8 @@
 #pragma link off all classes;
 #pragma link off all functions;
 
-#pragma link C++ class o2::analysis::FlagReasons + ;
-#pragma link C++ class o2::analysis::TimeRangeFlags < uint64_t, uint16_t > +;
-#pragma link C++ class o2::analysis::TimeRangeFlagsCollection < uint64_t, uint16_t > +;
+#pragma link C++ class o2::quality_control::FlagReason + ;
+#pragma link C++ class o2::quality_control::TimeRangeFlag + ;
+#pragma link C++ class o2::quality_control::TimeRangeFlagCollection + ;
 
 #endif
