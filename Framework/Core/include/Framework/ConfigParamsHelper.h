@@ -118,7 +118,8 @@ struct ConfigParamsHelper {
     } else if constexpr (V == VariantType::ArrayInt ||
                          V == VariantType::ArrayFloat ||
                          V == VariantType::ArrayDouble ||
-                         V == VariantType::ArrayBool) {
+                         V == VariantType::ArrayBool ||
+                         V == VariantType::ArrayString) {
       auto value = boost::program_options::value<std::string>();
       value = value->default_value(spec.defaultValue.asString());
       if constexpr (V != VariantType::String) {
