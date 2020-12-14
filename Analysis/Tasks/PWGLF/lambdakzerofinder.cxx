@@ -82,33 +82,39 @@ struct lambdakzeroprefilter {
   Configurable<float> dcanegtopv{"dcanegtopv", .1, "DCA Neg To PV"};
   Configurable<float> dcapostopv{"dcapostopv", .1, "DCA Pos To PV"};
   Configurable<int> mincrossedrows{"mincrossedrows", 70, "min crossed rows"};
+  Configurable<int> tpcrefit{"tpcrefit", 1, "demand TPC refit"};
 
   Produces<aod::V0GoodPosTracks> v0GoodPosTracks;
   Produces<aod::V0GoodNegTracks> v0GoodNegTracks;
 
-  Partition<soa::Join<aod::FullTracks, aod::TracksExtended>> goodPosTracks = aod::track::signed1Pt > 0.0f && aod::track::dcaXY > dcapostopv;
-  Partition<soa::Join<aod::FullTracks, aod::TracksExtended>> goodNegTracks = aod::track::signed1Pt < 0.0f && aod::track::dcaXY < -dcanegtopv;
+  //still exhibiting issues? To be checked
+  //Partition<soa::Join<aod::FullTracks, aod::TracksExtended>> goodPosTracks = aod::track::signed1Pt > 0.0f && aod::track::dcaXY > dcapostopv;
+  //Partition<soa::Join<aod::FullTracks, aod::TracksExtended>> goodNegTracks = aod::track::signed1Pt < 0.0f && aod::track::dcaXY < -dcanegtopv;
 
   void process(aod::Collision const& collision,
                soa::Join<aod::FullTracks, aod::TracksExtended> const& tracks)
   {
-    for (auto& t0 : goodPosTracks) {
-      if (!(t0.trackType() & o2::aod::track::TPCrefit)) {
-        continue; //TPC refit
+    for (auto& t0 : tracks) {
+      if (tpcrefit) {
+        if (!(t0.trackType() & o2::aod::track::TPCrefit)) {
+          continue; //TPC refit
+        }
       }
       if (t0.tpcNClsCrossedRows() < mincrossedrows) {
         continue;
       }
-      v0GoodPosTracks(t0.globalIndex(), t0.collisionId(), t0.dcaXY());
-    }
-    for (auto& t0 : goodNegTracks) {
-      if (!(t0.trackType() & o2::aod::track::TPCrefit)) {
-        continue; //TPC refit
+      if (t0.signed1Pt() > 0.0f) {
+        if (fabs(t0.dcaXY()) < dcapostopv) {
+          continue;
+        }
+        v0GoodPosTracks(t0.globalIndex(), t0.collisionId(), t0.dcaXY());
       }
-      if (t0.tpcNClsCrossedRows() < mincrossedrows) {
-        continue;
+      if (t0.signed1Pt() < 0.0f) {
+        if (fabs(t0.dcaXY()) < dcanegtopv) {
+          continue;
+        }
+        v0GoodNegTracks(t0.globalIndex(), t0.collisionId(), -t0.dcaXY());
       }
-      v0GoodNegTracks(t0.globalIndex(), t0.collisionId(), -t0.dcaXY());
     }
   }
 };
