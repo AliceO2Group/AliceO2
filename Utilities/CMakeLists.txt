@@ -8,11 +8,6 @@
 # granted to it by virtue of its status as an Intergovernmental Organization or
 # submit itself to any jurisdiction.
 
-if(ALIROOT)
-  # FIXME: not tested
-  add_subdirectory(hough)
-endif(ALIROOT)
-
 add_subdirectory(aliceHLTwrapper)
 add_subdirectory(O2MessageMonitor)
 add_subdirectory(DataFlow)
