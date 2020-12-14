@@ -32,13 +32,15 @@ namespace utils
 template <class iterA_T, class iterB_T, class F>
 class CombinedInputIterator
 {
-  using difference_type = std::ptrdiff_t;
-  using value_type = std::result_of<F(iterA_T, iterB_T)>;
-  using pointer = value_type*;
-  using reference = value_type&;
-  using iterator_category = std::input_iterator_tag;
 
  public:
+  using difference_type = std::ptrdiff_t;
+  using value_type = std::invoke_result_t<F, iterA_T, iterB_T>;
+  using pointer = value_type*;
+  using reference = value_type&;
+  using iterator_category = std::bidirectional_iterator_tag;
+
+  CombinedInputIterator();
   CombinedInputIterator(iterA_T iterA, iterB_T iterB, F functor);
   CombinedInputIterator(const CombinedInputIterator& iter) = default;
   CombinedInputIterator(CombinedInputIterator&& iter) = default;
@@ -53,6 +55,8 @@ class CombinedInputIterator
   //pointer arithmetics
   CombinedInputIterator& operator++();
   CombinedInputIterator operator++(int);
+  CombinedInputIterator& operator--();
+  CombinedInputIterator operator--(int);
 
   // dereference
   auto operator*() const;
@@ -86,13 +90,13 @@ class CombinedOutputIterator
     CombinedOutputIterator& mIter;
   };
 
+ public:
   using difference_type = std::ptrdiff_t;
   using value_type = Proxy;
   using pointer = value_type*;
   using reference = value_type&;
   using iterator_category = std::input_iterator_tag;
 
- public:
   CombinedOutputIterator(iterA_T iterA, iterB_T iterB, F functor);
   CombinedOutputIterator(const CombinedOutputIterator& iter) = default;
   CombinedOutputIterator(CombinedOutputIterator&& iter) = default;
@@ -119,6 +123,9 @@ class CombinedOutputIterator
     return o;
   }
 };
+
+template <class iterA_T, class iterB_T, class F>
+CombinedInputIterator<iterA_T, iterB_T, F>::CombinedInputIterator() : mIterA{}, mIterB{}, mFunctor{} {};
 
 template <class iterA_T, class iterB_T, class F>
 CombinedInputIterator<iterA_T, iterB_T, F>::CombinedInputIterator(iterA_T iterA, iterB_T iterB, F functor) : mIterA(iterA), mIterB(iterB), mFunctor(functor)
@@ -158,6 +165,22 @@ inline auto CombinedInputIterator<iterA_T, iterB_T, F>::operator++(int) -> Combi
 {
   auto res = *this;
   ++(*this);
+  return res;
+}
+
+template <class iterA_T, class iterB_T, class F>
+inline auto CombinedInputIterator<iterA_T, iterB_T, F>::operator--() -> CombinedInputIterator&
+{
+  --mIterA;
+  --mIterB;
+  return *this;
+}
+
+template <class iterA_T, class iterB_T, class F>
+inline auto CombinedInputIterator<iterA_T, iterB_T, F>::operator--(int) -> CombinedInputIterator
+{
+  auto res = *this;
+  --(*this);
   return res;
 }
 
