@@ -326,6 +326,12 @@ AlgorithmSpec AODReaderHelpers::rootFileReaderCallback()
         t2t.fill(tr);
         if (info.file) {
           totalReadCalls += info.file->GetReadCalls() - before;
+          static std::string currentFileRead = "";
+          std::string nextFileRead = info.file->GetPath();
+          if (currentFileRead != nextFileRead) {
+            currentFileRead = nextFileRead;
+            monitoring.send(Metric{currentFileRead, "aod-file-read-path"}.addTag(Key::Subsystem, monitoring::tags::Value::DPL));
+          }
         }
         monitoring.send(Metric{(double)ps.GetReadCalls(), "aod-tree-read-calls"}.addTag(Key::Subsystem, monitoring::tags::Value::DPL));
         delete tr;
