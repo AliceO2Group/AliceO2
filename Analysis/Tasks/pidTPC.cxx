@@ -114,81 +114,108 @@ struct pidTPCTask {
 struct pidTPCTaskQA {
   static constexpr int Np = 9;
   static constexpr const char* pT[Np] = {"e", "#mu", "#pi", "K", "p", "d", "t", "^{3}He", "#alpha"};
-  static constexpr const char* hexpected[Np] = {"expected/El", "expected/Mu", "expected/Pi",
-                                                "expected/Ka", "expected/Pr", "expected/De",
-                                                "expected/Tr", "expected/He", "expected/Al"};
-  static constexpr const char* hexpected_diff[Np] = {"expected_diff/El", "expected_diff/Mu", "expected_diff/Pi",
-                                                     "expected_diff/Ka", "expected_diff/Pr", "expected_diff/De",
-                                                     "expected_diff/Tr", "expected_diff/He", "expected_diff/Al"};
-  static constexpr const char* hnsigma[Np] = {"nsigma/El", "nsigma/Mu", "nsigma/Pi",
-                                              "nsigma/Ka", "nsigma/Pr", "nsigma/De",
-                                              "nsigma/Tr", "nsigma/He", "nsigma/Al"};
+  static constexpr std::string_view hexpected[Np] = {"expected/El", "expected/Mu", "expected/Pi",
+                                                     "expected/Ka", "expected/Pr", "expected/De",
+                                                     "expected/Tr", "expected/He", "expected/Al"};
+  static constexpr std::string_view hexpected_diff[Np] = {"expected_diff/El", "expected_diff/Mu", "expected_diff/Pi",
+                                                          "expected_diff/Ka", "expected_diff/Pr", "expected_diff/De",
+                                                          "expected_diff/Tr", "expected_diff/He", "expected_diff/Al"};
+  static constexpr std::string_view hnsigma[Np] = {"nsigma/El", "nsigma/Mu", "nsigma/Pi",
+                                                   "nsigma/Ka", "nsigma/Pr", "nsigma/De",
+                                                   "nsigma/Tr", "nsigma/He", "nsigma/Al"};
   HistogramRegistry histos{"Histos", {}, OutputObjHandlingPolicy::QAObject};
 
   Configurable<int> nBinsP{"nBinsP", 400, "Number of bins for the momentum"};
   Configurable<float> MinP{"MinP", 0, "Minimum momentum in range"};
   Configurable<float> MaxP{"MaxP", 20, "Maximum momentum in range"};
 
-  void init(o2::framework::InitContext&)
+  template <typename T>
+  void makelogaxis(T h)
   {
-
-#define makelogaxis(h)                                            \
-  {                                                               \
-    const Int_t nbins = h->GetNbinsX();                           \
-    double binp[nbins + 1];                                       \
-    double max = h->GetXaxis()->GetBinUpEdge(nbins);              \
-    double min = h->GetXaxis()->GetBinLowEdge(1);                 \
-    if (min <= 0)                                                 \
-      min = 0.00001;                                              \
-    double lmin = TMath::Log10(min);                              \
-    double ldelta = (TMath::Log10(max) - lmin) / ((double)nbins); \
-    for (int i = 0; i < nbins; i++) {                             \
-      binp[i] = TMath::Exp(TMath::Log(10) * (lmin + i * ldelta)); \
-    }                                                             \
-    binp[nbins] = max + 1;                                        \
-    h->GetXaxis()->Set(nbins, binp);                              \
+    const int nbins = h->GetNbinsX();
+    double binp[nbins + 1];
+    double max = h->GetXaxis()->GetBinUpEdge(nbins);
+    double min = h->GetXaxis()->GetBinLowEdge(1);
+    if (min <= 0) {
+      min = 0.00001;
+    }
+    double lmin = TMath::Log10(min);
+    double ldelta = (TMath::Log10(max) - lmin) / ((double)nbins);
+    for (int i = 0; i < nbins; i++) {
+      binp[i] = TMath::Exp(TMath::Log(10) * (lmin + i * ldelta));
+    }
+    binp[nbins] = max + 1;
+    h->GetXaxis()->Set(nbins, binp);
   }
 
+  template <uint8_t i>
+  void addParticleHistos()
+  {
+    // Exp signal
+    histos.add(hexpected[i].data(), Form(";#it{p} (GeV/#it{c});d#it{E}/d#it{x}_(%s)", pT[i]), kTH2F, {{nBinsP, MinP, MaxP}, {1000, 0, 1000}});
+    makelogaxis(histos.get<TH2>(HIST(hexpected[i])));
+
+    // Signal - Expected signal
+    histos.add(hexpected_diff[i].data(), Form(";#it{p} (GeV/#it{c});;d#it{E}/d#it{x} - d#it{E}/d#it{x}(%s)", pT[i]), kTH2F, {{nBinsP, MinP, MaxP}, {1000, -500, 500}});
+    makelogaxis(histos.get<TH2>(HIST(hexpected_diff[i])));
+
+    // NSigma
+    histos.add(hnsigma[i].data(), Form(";#it{p} (GeV/#it{c});N_{#sigma}^{TPC}(%s)", pT[i]), kTH2F, {{nBinsP, MinP, MaxP}, {200, -10, 10}});
+    makelogaxis(histos.get<TH2>(HIST(hnsigma[i])));
+  }
+
+  void init(o2::framework::InitContext&)
+  {
     // Event properties
     histos.add("event/vertexz", ";Vtx_{z} (cm);Entries", kTH1F, {{100, -20, 20}});
     histos.add("event/tpcsignal", ";#it{p} (GeV/#it{c});TPC Signal", kTH2F, {{nBinsP, MinP, MaxP}, {1000, 0, 1000}});
-    makelogaxis(histos.get<TH2>("event/tpcsignal"));
-    for (int i = 0; i < Np; i++) {
-      // Exp signal
-      histos.add(hexpected[i], Form(";#it{p} (GeV/#it{c});d#it{E}/d#it{x}_(%s)", pT[i]), kTH2F, {{nBinsP, MinP, MaxP}, {1000, 0, 1000}});
-      makelogaxis(histos.get<TH2>(hexpected[i]));
-      // Signal - Expected signal
-      histos.add(hexpected_diff[i], Form(";#it{p} (GeV/#it{c});;d#it{E}/d#it{x} - d#it{E}/d#it{x}(%s)", pT[i]), kTH2F, {{nBinsP, MinP, MaxP}, {1000, -500, 500}});
-      makelogaxis(histos.get<TH2>(hexpected_diff[i]));
-      // NSigma
-      histos.add(hnsigma[i], Form(";#it{p} (GeV/#it{c});N_{#sigma}^{TPC}(%s)", pT[i]), kTH2F, {{nBinsP, MinP, MaxP}, {200, -10, 10}});
-      makelogaxis(histos.get<TH2>(hnsigma[i]));
-    }
-#undef makelogaxis
+    makelogaxis(histos.get<TH2>(HIST("event/tpcsignal")));
+
+    addParticleHistos<0>();
+    addParticleHistos<1>();
+    addParticleHistos<2>();
+    addParticleHistos<3>();
+    addParticleHistos<4>();
+    addParticleHistos<5>();
+    addParticleHistos<6>();
+    addParticleHistos<7>();
+    addParticleHistos<8>();
   }
+
+  template <uint8_t i, typename T>
+  void fillParticleHistos(const T& t, const float mom, const float exp[], const float nsigma[])
+  {
+    histos.fill(HIST(hexpected[i]), mom, exp[i]);
+    histos.fill(HIST(hexpected_diff[i]), mom, t.tpcSignal() - exp[i]);
+    histos.fill(HIST(hnsigma[i]), t.p(), nsigma[i]);
+  }
+
   void process(aod::Collision const& collision, soa::Join<aod::Tracks, aod::TracksExtra, aod::pidRespTPC> const& tracks)
   {
-    histos.fill("event/vertexz", collision.posZ());
+    histos.fill(HIST("event/vertexz"), collision.posZ());
 
     for (auto t : tracks) {
       // const float mom = t.p();
       const float mom = t.tpcInnerParam();
-      histos.fill("event/tpcsignal", mom, t.tpcSignal());
+      histos.fill(HIST("event/tpcsignal"), mom, t.tpcSignal());
       //
       const float exp[Np] = {t.tpcExpSignalEl(), t.tpcExpSignalMu(), t.tpcExpSignalPi(),
                              t.tpcExpSignalKa(), t.tpcExpSignalPr(), t.tpcExpSignalDe(),
                              t.tpcExpSignalTr(), t.tpcExpSignalHe(), t.tpcExpSignalAl()};
-      for (int i = 0; i < Np; i++) {
-        histos.fill(hexpected[i], mom, exp[i]);
-        histos.fill(hexpected_diff[i], mom, t.tpcSignal() - exp[i]);
-      }
       //
       const float nsigma[Np] = {t.tpcNSigmaEl(), t.tpcNSigmaMu(), t.tpcNSigmaPi(),
                                 t.tpcNSigmaKa(), t.tpcNSigmaPr(), t.tpcNSigmaDe(),
                                 t.tpcNSigmaTr(), t.tpcNSigmaHe(), t.tpcNSigmaAl()};
-      for (int i = 0; i < Np; i++) {
-        histos.fill(hnsigma[i], t.p(), nsigma[i]);
-      }
+      //
+      fillParticleHistos<0>(t, mom, exp, nsigma);
+      fillParticleHistos<1>(t, mom, exp, nsigma);
+      fillParticleHistos<2>(t, mom, exp, nsigma);
+      fillParticleHistos<3>(t, mom, exp, nsigma);
+      fillParticleHistos<4>(t, mom, exp, nsigma);
+      fillParticleHistos<5>(t, mom, exp, nsigma);
+      fillParticleHistos<6>(t, mom, exp, nsigma);
+      fillParticleHistos<7>(t, mom, exp, nsigma);
+      fillParticleHistos<8>(t, mom, exp, nsigma);
     }
   }
 };
