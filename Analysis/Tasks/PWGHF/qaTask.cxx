@@ -19,6 +19,7 @@
 #include "AnalysisCore/trackUtilities.h"
 #include "ReconstructionDataFormats/DCA.h"
 #include "AnalysisCore/MC.h"
+#include "TPDGCode.h"
 
 #include "TH1D.h"
 
@@ -499,7 +500,8 @@ struct QATrackingResolution {
   }
 };
 
-/// Task to QA the kinematic properties of the tracks
+/// Task to QA the efficiency of a particular particle defined by particlePDG
+template <PDG_t particlePDG>
 struct QATrackingEfficiency {
   std::vector<double> ptBins = {
     0.01, 0.0101, 0.0102, 0.0103, 0.0104, 0.0105, 0.0106, 0.0107, 0.0108, 0.0109, 0.011, 0.0111, 0.0112, 0.0113,
@@ -514,15 +516,13 @@ struct QATrackingEfficiency {
     0.45, 0.45, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0, 1.2, 1.4, 1.6, 1.8, 2.0, 2.5,
     3.0, 3.5, 4.0, 5.0, 6.0, 8.0, 10.0, 15.0, 20.0, 30.0, 50.0, 100.};
 
-  o2fw::Configurable<int> particlePDG{"particlePDG", 211, "Absolute value of the particle pdg to select"};
-
   o2fw::Configurable<int> nBinsEta{"nBinsEta", 30, "Number of bins for the pseudorapidity"};
   std::array<double, 2> etaRange = {-3, 3};
 
   o2fw::Configurable<int> nBinsPhi{"nBinsPhi", 20, "Number of bins for Phi"};
   std::array<double, 2> phiRange = {0, 2 * M_PI};
 
-  o2fw::HistogramRegistry histos{"HistogramsTrackingEfficiencyQA"};
+  o2fw::HistogramRegistry histos{"histogramsTrackingEfficiencyQA"};
 
   void init(o2fw::InitContext&)
   {
@@ -530,31 +530,30 @@ struct QATrackingEfficiency {
     o2fw::AxisSpec phiAxis{nBinsPhi, phiRange[0], phiRange[1]};
     o2fw::AxisSpec etaAxis{nBinsEta, etaRange[0], etaRange[1]};
 
-    histos.add("reconstructed_kinematics",
-               qafeat::MakeTitle({qafeat::Pt.MC(), qafeat::Eta.MC(), qafeat::Phi.MC()}).c_str(), o2fw::kTH3D,
-               {ptAxis, etaAxis, phiAxis});
+    histos.add("reconstructedKinematics",
+               qafeat::MakeTitle({qafeat::Pt.MC(), qafeat::Eta.MC(), qafeat::Phi.MC()}).c_str(),
+               o2fw::kTH3D, {ptAxis, etaAxis, phiAxis});
 
-    histos.add("generated_kinematics", qafeat::MakeTitle({qafeat::Pt.MC(), qafeat::Eta.MC(), qafeat::Phi.MC()}).c_str(),
+    histos.add("generatedKinematics",
+               qafeat::MakeTitle({qafeat::Pt.MC(), qafeat::Eta.MC(), qafeat::Phi.MC()}).c_str(),
                o2fw::kTH3D, {ptAxis, etaAxis, phiAxis});
   }
 
   void process(const o2::soa::Join<o2::aod::Tracks, o2::aod::McTrackLabels>& tracks,
-               o2::aod::McParticles& mcParticles)
+               const o2::aod::McParticles& mcParticles)
   {
     for (const auto& track : tracks) {
-      auto mcParticle = track.label();
+      const auto mcParticle = track.label();
       if (MC::isPhysicalPrimary(mcParticles, mcParticle) &&
-          track_utils::isPossibleToTrack(mcParticle) &&
           abs(mcParticle.pdgCode()) == particlePDG) {
-        histos.fill("reconstructed_kinematics", mcParticle.pt(), mcParticle.eta(), mcParticle.phi());
+        histos.fill("reconstructedKinematics", mcParticle.pt(), mcParticle.eta(), mcParticle.phi());
       }
     }
 
-    for (auto& mcParticle : mcParticles) {
+    for (const auto& mcParticle : mcParticles) {
       if (MC::isPhysicalPrimary(mcParticles, mcParticle) &&
-          track_utils::isPossibleToTrack(mcParticle) &&
           abs(mcParticle.pdgCode()) == particlePDG) {
-        histos.fill("generated_kinematics", mcParticle.pt(), mcParticle.eta(), mcParticle.phi());
+        histos.fill("generatedKinematics", mcParticle.pt(), mcParticle.eta(), mcParticle.phi());
       }
     }
   }
@@ -565,5 +564,9 @@ o2fw::WorkflowSpec defineDataProcessing(o2fw::ConfigContext const&)
   return o2fw::WorkflowSpec{o2fw::adaptAnalysisTask<QAGlobalObservables>("qa-global-observables"),
                             o2fw::adaptAnalysisTask<QATrackingKine>("qa-tracking-kine"),
                             o2fw::adaptAnalysisTask<QATrackingResolution>("qa-tracking-resolution"),
-                            o2fw::adaptAnalysisTask<QATrackingEfficiency>("qa-tracking-efficiency")};
+                            o2fw::adaptAnalysisTask<QATrackingEfficiency<PDG_t::kPiPlus>>("qa-tracking-efficiency-pion"),
+                            o2fw::adaptAnalysisTask<QATrackingEfficiency<PDG_t::kProton>>("qa-tracking-efficiency-proton"),
+                            o2fw::adaptAnalysisTask<QATrackingEfficiency<PDG_t::kElectron>>("qa-tracking-efficiency-electron"),
+                            o2fw::adaptAnalysisTask<QATrackingEfficiency<PDG_t::kMuonMinus>>("qa-tracking-efficiency-muon"),
+                            o2fw::adaptAnalysisTask<QATrackingEfficiency<PDG_t::kKPlus>>("qa-tracking-efficiency-kaon")};
 };
