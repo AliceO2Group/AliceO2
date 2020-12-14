@@ -8,6 +8,7 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
+#include "DetectorsBase/MaterialManager.h"
 #include "TPCSimulation/Detector.h"
 #include "TPCSimulation/Point.h"
 #include "TPCBase/ParameterGas.h"
@@ -3077,6 +3078,18 @@ void Detector::defineSensitiveVolumes()
 
     // set volume sentive
     AddSensitiveVolume(v);
+  }
+
+  // Special sensitive volume parameters in case FLUKA is used as transport engine
+  auto vmc = TVirtualMC::GetMC();
+  if (strcmp(vmc->GetName(), "TFluka") == 0) {
+    LOG(INFO) << "Setting special FLUKA parameters for  TPC Driftgas";
+    auto& mgr = o2::base::MaterialManager::Instance();
+    Int_t index = mgr.getMediumID("TPC", kDriftGas2);
+    vmc->Gstpar(index, "PRIMIO_E", 20.77);
+    vmc->Gstpar(index, "PRIMIO_N", 14.35);
+    vmc->Gstpar(index, "LOSS", 14);
+    vmc->Gstpar(index, "STRA", 4);
   }
 }
 
