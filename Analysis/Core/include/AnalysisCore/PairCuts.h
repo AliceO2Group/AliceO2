@@ -143,7 +143,7 @@ bool PairCuts::twoTrackCut(T const& track1, T const& track2, int bSign)
       }
 
       if (histogramRegistry != nullptr) {
-        histogramRegistry->fill("TwoTrackDistancePt_0", deta, dphistarmin, TMath::Abs(track1.pt() - track2.pt()));
+        histogramRegistry->fill(HIST("TwoTrackDistancePt_0"), deta, dphistarmin, TMath::Abs(track1.pt() - track2.pt()));
       }
 
       if (dphistarminabs < mTwoTrackDistance && TMath::Abs(deta) < mTwoTrackDistance) {
@@ -152,7 +152,7 @@ bool PairCuts::twoTrackCut(T const& track1, T const& track2, int bSign)
       }
 
       if (histogramRegistry != nullptr) {
-        histogramRegistry->fill("TwoTrackDistancePt_1", deta, dphistarmin, TMath::Abs(track1.pt() - track2.pt()));
+        histogramRegistry->fill(HIST("TwoTrackDistancePt_1"), deta, dphistarmin, TMath::Abs(track1.pt() - track2.pt()));
       }
     }
   }
@@ -212,7 +212,7 @@ bool PairCuts::conversionCut(T const& track1, T const& track2, Particle conv, do
   massC = getInvMassSquared(track1, massD1, track2, massD2);
 
   if (histogramRegistry != nullptr) {
-    histogramRegistry->fill("ControlConvResonances", static_cast<int>(conv), massC - massM * massM);
+    histogramRegistry->fill(HIST("ControlConvResonances"), static_cast<int>(conv), massC - massM * massM);
   }
 
   if (massC > (massM - cut) * (massM - cut) && massC < (massM + cut) * (massM + cut)) {

@@ -89,44 +89,44 @@ struct TrackQATask {
   void process(soa::Filtered<soa::Join<aod::FullTracks, aod::TracksExtended, aod::TrackSelection>>::iterator const& track)
   {
     // fill kinematic variables
-    histos.fill("Kine/pt", track.pt());
-    histos.fill("Kine/eta", track.eta());
-    histos.fill("Kine/phi", track.phi());
+    histos.fill(HIST("Kine/pt"), track.pt());
+    histos.fill(HIST("Kine/eta"), track.eta());
+    histos.fill(HIST("Kine/phi"), track.phi());
 
     // fill track parameters
-    histos.fill("TrackPar/alpha", track.alpha());
-    histos.fill("TrackPar/x", track.x());
-    histos.fill("TrackPar/y", track.y());
-    histos.fill("TrackPar/z", track.z());
-    histos.fill("TrackPar/signed1Pt", track.signed1Pt());
-    histos.fill("TrackPar/snp", track.snp());
-    histos.fill("TrackPar/tgl", track.tgl());
+    histos.fill(HIST("TrackPar/alpha"), track.alpha());
+    histos.fill(HIST("TrackPar/x"), track.x());
+    histos.fill(HIST("TrackPar/y"), track.y());
+    histos.fill(HIST("TrackPar/z"), track.z());
+    histos.fill(HIST("TrackPar/signed1Pt"), track.signed1Pt());
+    histos.fill(HIST("TrackPar/snp"), track.snp());
+    histos.fill(HIST("TrackPar/tgl"), track.tgl());
     for (unsigned int i = 0; i < 64; i++) {
       if (track.flags() & (1 << i)) {
-        histos.fill("TrackPar/flags", i);
+        histos.fill(HIST("TrackPar/flags"), i);
       }
     }
-    histos.fill("TrackPar/dcaXY", track.dcaXY());
-    histos.fill("TrackPar/dcaZ", track.dcaZ());
-    histos.fill("TrackPar/length", track.length());
+    histos.fill(HIST("TrackPar/dcaXY"), track.dcaXY());
+    histos.fill(HIST("TrackPar/dcaZ"), track.dcaZ());
+    histos.fill(HIST("TrackPar/length"), track.length());
 
     // fill ITS variables
-    histos.fill("ITS/itsNCls", track.itsNCls());
-    histos.fill("ITS/itsChi2NCl", track.itsChi2NCl());
+    histos.fill(HIST("ITS/itsNCls"), track.itsNCls());
+    histos.fill(HIST("ITS/itsChi2NCl"), track.itsChi2NCl());
     for (unsigned int i = 0; i < 7; i++) {
       if (track.itsClusterMap() & (1 << i)) {
-        histos.fill("ITS/itsHits", i);
+        histos.fill(HIST("ITS/itsHits"), i);
       }
     }
 
     // fill TPC variables
-    histos.fill("TPC/tpcNClsFindable", track.tpcNClsFindable());
-    histos.fill("TPC/tpcNClsFound", track.tpcNClsFound());
-    histos.fill("TPC/tpcNClsShared", track.tpcNClsShared());
-    histos.fill("TPC/tpcNClsCrossedRows", track.tpcNClsCrossedRows());
-    histos.fill("TPC/tpcCrossedRowsOverFindableCls", track.tpcCrossedRowsOverFindableCls());
-    histos.fill("TPC/tpcFractionSharedCls", track.tpcFractionSharedCls());
-    histos.fill("TPC/tpcChi2NCl", track.tpcChi2NCl());
+    histos.fill(HIST("TPC/tpcNClsFindable"), track.tpcNClsFindable());
+    histos.fill(HIST("TPC/tpcNClsFound"), track.tpcNClsFound());
+    histos.fill(HIST("TPC/tpcNClsShared"), track.tpcNClsShared());
+    histos.fill(HIST("TPC/tpcNClsCrossedRows"), track.tpcNClsCrossedRows());
+    histos.fill(HIST("TPC/tpcCrossedRowsOverFindableCls"), track.tpcCrossedRowsOverFindableCls());
+    histos.fill(HIST("TPC/tpcFractionSharedCls"), track.tpcFractionSharedCls());
+    histos.fill(HIST("TPC/tpcChi2NCl"), track.tpcChi2NCl());
   }
 };
 
@@ -138,7 +138,7 @@ struct TrackCutQATask {
   {
     cuts.add("single_cut", ";Cut;Tracks", kTH1D, {{ncuts, 0, ncuts}});
     for (int i = 0; i < ncuts; i++) {
-      cuts.get<TH1>("single_cut")->GetXaxis()->SetBinLabel(1 + i, TrackSelection::mCutNames[i].data());
+      cuts.get<TH1>(HIST("single_cut"))->GetXaxis()->SetBinLabel(1 + i, TrackSelection::mCutNames[i].data());
     }
   }
 
@@ -146,7 +146,7 @@ struct TrackCutQATask {
   {
     for (int i = 0; i < ncuts; i++) {
       if (selectedTracks.IsSelected(track, static_cast<TrackSelection::TrackCuts>(i))) {
-        cuts.fill("single_cut", i);
+        cuts.fill(HIST("single_cut"), i);
       }
     }
   }
