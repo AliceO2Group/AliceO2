@@ -74,6 +74,9 @@ void PropertyTreeHelpers::populateDefaults(std::vector<ConfigParamSpec> const& s
         case VariantType::ArrayBool:
           addBranch(key, spec.defaultValue.get<bool*>(), spec.defaultValue.size());
           break;
+        case VariantType::ArrayString:
+          addBranch(key, spec.defaultValue.get<std::string*>(), spec.defaultValue.size());
+          break;
         case VariantType::Unknown:
         case VariantType::Empty:
         default:
@@ -103,6 +106,21 @@ std::vector<T> toVector(std::string const& input)
   auto values = std::sregex_iterator(input.begin(), input.end(), nmatch);
   for (auto v = values; v != end; ++v) {
     result.push_back(boost::lexical_cast<T>(v->str()));
+  }
+  return result;
+}
+
+template <>
+std::vector<std::string> toVector(std::string const& input)
+{
+  std::vector<std::string> result;
+  //check if the array string has correct array type symbol
+  assert(input[0] == variant_array_symbol<std::string>::symbol);
+  std::regex smatch(R"((?:(?!=,)|(?!=\[))\w+(?=,|\]))");
+  auto end = std::sregex_iterator();
+  auto values = std::sregex_iterator(input.begin(), input.end(), smatch);
+  for (auto v = values; v != end; ++v) {
+    result.push_back(v->str());
   }
   return result;
 }
@@ -171,6 +189,11 @@ void PropertyTreeHelpers::populate(std::vector<ConfigParamSpec> const& schema,
           addBranch(key, v);
         };
           break;
+        case VariantType::ArrayString: {
+          auto v = toVector<std::string>(vmap[key].as<std::string>());
+          addBranch(key, v);
+        };
+          break;
         case VariantType::Unknown:
         case VariantType::Empty:
         default:
@@ -224,6 +247,7 @@ void PropertyTreeHelpers::populate(std::vector<ConfigParamSpec> const& schema,
         case VariantType::ArrayFloat:
         case VariantType::ArrayDouble:
         case VariantType::ArrayBool:
+        case VariantType::ArrayString:
           pt.put_child(key, *it);
           break;
         case VariantType::Unknown:

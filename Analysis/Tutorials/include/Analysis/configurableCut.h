@@ -18,8 +18,8 @@
 class configurableCut
 {
  public:
-  configurableCut(float cut_ = 2., int state_ = 1, bool option_ = true, std::vector<float> bins_ = {0.5, 1.5, 2.5})
-    : cut{cut_}, state{state_}, option{option_}, bins{bins_}
+  configurableCut(float cut_ = 2., int state_ = 1, bool option_ = true, std::vector<float> bins_ = {0.5, 1.5, 2.5}, std::vector<std::string> labels_ = {"l1", "l2", "l3"})
+    : cut{cut_}, state{state_}, option{option_}, bins{bins_}, labels{labels_}
   {
   }
 
@@ -37,11 +37,15 @@ class configurableCut
   void setBins(std::vector<float> bins_);
   std::vector<float> getBins() const;
 
+  void setLabels(std::vector<std::string> labels_);
+  std::vector<std::string> getLabels() const;
+
  private:
   float cut;
   int state;
   bool option;
   std::vector<float> bins;
+  std::vector<std::string> labels;
 
   ClassDef(configurableCut, 4);
 };

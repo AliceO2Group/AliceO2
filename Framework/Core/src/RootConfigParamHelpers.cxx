@@ -115,8 +115,13 @@ void ptreeToMember(boost::property_tree::ptree const& value,
         *static_cast<std::vector<double>*>(ptr) = extractVector<double>(value);
         return;
       case compile_time_hash("vector<bool>"):
+        throw std::runtime_error("Bool arrays are not implemented yet");
+      case compile_time_hash("vector<std::string>"):
+      case compile_time_hash("vector<string>"):
+        *static_cast<std::vector<std::string>*>(ptr) = extractVector<std::string>(value);
+        return;
       default:
-        throw std::runtime_error("Not and int/float/double/bool vector");
+        throw std::runtime_error("Not an int/float/double/bool vector");
     }
   }
   auto dt = dm->GetDataType();
@@ -205,8 +210,11 @@ ConfigParamSpec memberToConfigParamSpec(const char* tname, TDataMember* dm, void
       case compile_time_hash("vector<bool>"):
         throw std::runtime_error("bool vector not supported yet");
         //        return ConfigParamSpec{tname, VariantType::ArrayBool, *static_cast<std::vector<bool>*>(ptr), {"No help"}};
+      case compile_time_hash("vector<std::string>"):
+      case compile_time_hash("vector<string>"):
+        return ConfigParamSpec{tname, VariantType::ArrayString, *static_cast<std::vector<std::string>*>(ptr), {"No help"}};
       default:
-        throw std::runtime_error("Not and int/float/double/bool vector");
+        throw std::runtime_error("Not an int/float/double/bool vector");
     }
   }
   auto dt = dm->GetDataType();

@@ -69,6 +69,9 @@ void ConfigParamsHelper::populateBoostProgramOptions(
       case VariantType::ArrayBool:
         addConfigSpecOption<VariantType::ArrayBool>(spec, options);
         break;
+      case VariantType::ArrayString:
+        addConfigSpecOption<VariantType::ArrayString>(spec, options);
+        break;
       case VariantType::Unknown:
       case VariantType::Empty:
         break;

@@ -105,4 +105,28 @@ BOOST_AUTO_TEST_CASE(VariantTest)
   for (auto i = 0u; i < fd.size(); ++i) {
     BOOST_CHECK(farr[i] == (fd.get<float*>())[i]);
   }
+
+  std::vector<std::string> vstrings{"s1", "s2", "s3"};
+  std::string strings[] = {"l1", "l2", "l3"};
+  Variant vstr(strings, 3);
+  Variant vvstr(vstrings);
+
+  BOOST_CHECK(vstr.size() == 3);
+  BOOST_CHECK(vvstr.size() == 3);
+  for (auto i = 0u; i < vstr.size(); ++i) {
+    BOOST_CHECK(strings[i] == (vstr.get<std::string*>())[i]);
+  }
+  for (auto i = 0u; i < vvstr.size(); ++i) {
+    BOOST_CHECK(vstrings[i] == (vvstr.get<std::string*>())[i]);
+  }
+
+  Variant vsc(vstr);            // Copy constructor
+  Variant vsm(std::move(vstr)); // Move constructor
+  Variant vscc = vsm;           // Copy assignment
+  for (auto i = 0u; i < vsm.size(); ++i) {
+    BOOST_CHECK(strings[i] == (vsm.get<std::string*>())[i]);
+  }
+  for (auto i = 0u; i < vscc.size(); ++i) {
+    BOOST_CHECK(strings[i] == (vscc.get<std::string*>())[i]);
+  }
 }
