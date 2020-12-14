@@ -176,15 +176,11 @@ struct CorrelationTask {
       }
     }
 
-    // NOTE remove when HistogramRegistry uses constexpr strings for lookup
-    auto& yields = registry.get<TH3>(HIST("yields"));
-    auto& etaphi = registry.get<TH3>(HIST("etaphi"));
-
     for (auto& track1 : tracks) {
       // LOGF(info, "Track %f | %f | %f  %d %d", track1.eta(), track1.phi(), track1.pt(), track1.isGlobalTrack(), track1.isGlobalTrackSDD());
 
-      yields->Fill(centrality, track1.pt(), track1.eta());
-      etaphi->Fill(centrality, track1.eta(), track1.phi());
+      registry.fill(HIST("yields"), centrality, track1.pt(), track1.eta());
+      registry.fill(HIST("etaphi"), centrality, track1.eta(), track1.phi());
 
       if (cfgTriggerCharge != 0 && cfgTriggerCharge * track1.charge() < 0) {
         continue;
